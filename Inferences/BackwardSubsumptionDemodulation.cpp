@@ -164,13 +164,13 @@ void BackwardSubsumptionDemodulation::perform(Clause* sideCl, BwSimplificationRe
 
   if (!lmLit1->isEquality() || !lmLit1->isPositive()) {
     // lmLit1 is not a positive equality, so we don't need to check the other one
-    perform2(sideCl, lmLit1, simplificationsStorage);
+    performWithQueryLit(sideCl, lmLit1, simplificationsStorage);
   } else if (!lmLit2->isEquality() || !lmLit2->isPositive()) {
-    perform2(sideCl, lmLit2, simplificationsStorage);
+    performWithQueryLit(sideCl, lmLit2, simplificationsStorage);
   } else {
     // both are positive equalities so we need to check both of them
-    perform2(sideCl, lmLit1, simplificationsStorage);
-    perform2(sideCl, lmLit2, simplificationsStorage);
+    performWithQueryLit(sideCl, lmLit1, simplificationsStorage);
+    performWithQueryLit(sideCl, lmLit2, simplificationsStorage);
   }
 
   simplifications = getPersistentIterator(getSTLIterator(simplificationsStorage.begin(), simplificationsStorage.end()));
@@ -178,7 +178,7 @@ void BackwardSubsumptionDemodulation::perform(Clause* sideCl, BwSimplificationRe
 }  // perform
 
 
-void BackwardSubsumptionDemodulation::perform2(Clause* sideCl, Literal* candidateQueryLit, vvector<BwSimplificationRecord>& simplifications)
+void BackwardSubsumptionDemodulation::performWithQueryLit(Clause* sideCl, Literal* candidateQueryLit, vvector<BwSimplificationRecord>& simplifications)
 {
 
   //                      candidate
@@ -294,7 +294,7 @@ void BackwardSubsumptionDemodulation::perform2(Clause* sideCl, Literal* candidat
 
     simplifyCandidate(sideCl, candidate, simplifications);
   }
-}  // perform2
+}  // performWithQueryLit
 
 
 /// Handles the matching part.
@@ -376,7 +376,7 @@ bool BackwardSubsumptionDemodulation::simplifyCandidate(Clause* sideCl, Clause* 
       }
 
       Clause* replacement = nullptr;
-      if (simplifyCandidate2(sideCl, mainCl, matcher, replacement)) {
+      if (rewriteCandidate(sideCl, mainCl, matcher, replacement)) {
         RSTAT_MCTR_INC("BSD, successes by MLMatch", numMatches + 1);  // +1 so it fits with the previous output
         simplifications.emplace_back(mainCl, replacement);
         return true;
@@ -393,7 +393,7 @@ bool BackwardSubsumptionDemodulation::simplifyCandidate(Clause* sideCl, Clause* 
 
 /// Handles the rewriting part.
 /// Returns true iff the main premise has been simplified.
-bool BackwardSubsumptionDemodulation::simplifyCandidate2(Clause* sideCl, Clause* mainCl, MLMatcherSD const& matcher, Clause*& replacement)
+bool BackwardSubsumptionDemodulation::rewriteCandidate(Clause* sideCl, Clause* mainCl, MLMatcherSD const& matcher, Clause*& replacement)
 {
   Ordering const& ordering = _salg->getOrdering();
 
@@ -714,7 +714,7 @@ isRedundant:
   }  // for (dli)
 
   return false;
-}  // simplifyCandidate2
+}  // rewriteCandidate
 
 
 }

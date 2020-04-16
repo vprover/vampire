@@ -73,9 +73,9 @@ class BackwardSubsumptionDemodulation
     bool _preorderedOnly;
     bool _allowIncompleteness;
 
-    void perform2(Clause* premise, Literal* candidateQueryLit, vvector<BwSimplificationRecord>& simplifications);
+    void performWithQueryLit(Clause* premise, Literal* candidateQueryLit, vvector<BwSimplificationRecord>& simplifications);
     bool simplifyCandidate(Clause* sideCl, Clause* mainCl, vvector<BwSimplificationRecord>& simplifications);
-    bool simplifyCandidate2(Clause* sideCl, Clause* mainCl, MLMatcherSD const& matcher, Clause*& replacement);
+    bool rewriteCandidate(Clause* sideCl, Clause* mainCl, MLMatcherSD const& matcher, Clause*& replacement);
 };
 
 };
