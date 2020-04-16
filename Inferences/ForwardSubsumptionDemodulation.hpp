@@ -13,21 +13,26 @@ using namespace Saturation;
 
 
 /**
- * Forward Subsumption Demodulation (FSD) is a forward simplification rule
- * that combines subsumption and demodulation.
+ * Subsumption Demodulation is a simplification rule that generalizes
+ * demodulation by combining subsumption and demodulation.
+ * The rule is defined as follows:
  *
  *      l = r \/ C        L[lΘ] \/ CΘ \/ D
  *     ------------------------------------
  *              L[rΘ] \/ CΘ \/ D
  *
- * where C, D are clauses and Θ is a substitution,
- * lΘ > rΘ   and   l = r  <  L[lΘ] \/ D.
+ * where
+ * - C, D are clauses and Θ is a substitution,
+ * - lΘ > rΘ, and
+ * - L[lΘ] \/ D > (l = r)Θ.
  *
- * TODO:
- * Mention in this comment:
- * - Why do we need this?
- * - How does it help us? Maybe with a small example (a version that works with demodulation; then we introduce conditions s.t. we need FSD)
- * - Relation to conditional rewriting.
+ * For a detailed description, see the paper
+ *
+ *    Bernhard Gleiss, Laura Kovács, Jakob Rath:
+ *    Subsumption Demodulation in First-Order Theorem Proving.
+ *    Accepted for IJCAR 2020.
+ *
+ * This class implements the forward direction.
  */
 class ForwardSubsumptionDemodulation
   : public ForwardSimplificationEngine
