@@ -129,7 +129,7 @@ Clause* ColorHelper::skolemizeColoredConstants(Clause* c)
       resStack[i] = EqHelper::replace(resStack[i], replaced, newTrm);
     }
   }
-  Clause* res = Clause::fromStack(resStack, c->inputType(), new Inference1(Inference::COLOR_UNBLOCKING, c));
+  Clause* res = Clause::fromStack(resStack, new Inference1(Inference::Rule::COLOR_UNBLOCKING, c));
   return res;
 }
 
@@ -231,7 +231,7 @@ Clause* ColorHelper::skolemizeColoredTerms(Clause* c)
   }
 
   ASS_EQ(resStack.size(), clen);
-  Clause* res = Clause::fromStack(resStack, c->inputType(), new Inference1(Inference::COLOR_UNBLOCKING, c));
+  Clause* res = Clause::fromStack(resStack, new Inference1(Inference::Rule::COLOR_UNBLOCKING, c));
   return res;
 }
 

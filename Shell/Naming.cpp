@@ -109,18 +109,12 @@ FormulaUnit* Naming::apply(FormulaUnit* unit, UnitList*& defs) {
   }
   ASS(UnitList::isNonEmpty(_defs));
   UnitList::Iterator defit(_defs);
-  if(env.clausePriorities){
-    while(defit.hasNext()){
-      Unit* def = defit.next();
-      env.clausePriorities->insert(def,unit->getPriority());
-    }
-  }
+
   defs = _defs;
   UnitList* premises = UnitList::copy(_defs);
   UnitList::push(unit, premises);
   return new FormulaUnit(g,
-      new InferenceMany(Inference::DEFINITION_FOLDING, premises),
-      unit->inputType());
+      new InferenceMany(Inference::Rule::DEFINITION_FOLDING, premises));
 } // Naming::apply
 
 Formula* Naming::apply_iter(Formula* top_f) {
@@ -1204,8 +1198,8 @@ Formula* Naming::introduceDefinition(Formula* f, bool iff) {
     //TODO do we know the sorts of the free variabls vs?
     def = new QuantifiedFormula(FORALL, vs, 0, def);
   }
-  Inference* inf = new Inference(Inference::PREDICATE_DEFINITION);
-  Unit* definition = new FormulaUnit(def, inf, Unit::AXIOM);
+  Inference* inf = new Inference0(Inference::InputType::AXIOM,Inference::Rule::PREDICATE_DEFINITION);
+  Unit* definition = new FormulaUnit(def, inf);
 
   InferenceStore::instance()->recordIntroducedSymbol(definition, false,
       atom->functor());

@@ -532,9 +532,9 @@ void Options::Options::init()
     // Captures that if the value is not default then sineSelection must be on
     _sineGeneralityThreshold.reliesOn(_sineSelection.is(notEqual(SineSelection::OFF)));
 
-    _sineSelection = ChoiceOptionValue<SineSelection>("sine_selection","ss",SineSelection::OFF,{"axioms","included","off","priority"});
+    _sineSelection = ChoiceOptionValue<SineSelection>("sine_selection","ss",SineSelection::OFF,{"axioms","included","off"});
     _sineSelection.description=
-    "If 'axioms', all formulas that are not annotated as 'axiom' (i.e. conjectures and hypotheses) are initially selected, and the SInE selection is performed on those annotated as 'axiom'. If 'included', all formulas that are directly in the problem file are initially selected, and the SInE selection is performed on formulas from included files. The 'included' value corresponds to the behaviour of the original SInE implementation. The 'priority' value acts like 'axioms' except a clauses weight is multiplied by 1+ the depth at which it was selected.";
+    "If 'axioms', all formulas that are not annotated as 'axiom' (i.e. conjectures and hypotheses) are initially selected, and the SInE selection is performed on those annotated as 'axiom'. If 'included', all formulas that are directly in the problem file are initially selected, and the SInE selection is performed on formulas from included files. The 'included' value corresponds to the behaviour of the original SInE implementation.";
     _lookup.insert(&_sineSelection);
     _sineSelection.tag(OptionTag::PREPROCESSING);
     _sineSelection.setRandomChoices(atomsMoreThan(100000),{"axioms","axioms","off"});
@@ -882,6 +882,7 @@ void Options::Options::init()
     _ageWeightRatio.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->Or<int>(_instGenWithResolution.is(equal(true))));
     _ageWeightRatio.setRandomChoices({"8:1","5:1","4:1","3:1","2:1","3:2","5:4","1","2:3","2","3","4","5","6","7","8","10","12","14","16","20","24","28","32","40","50","64","128","1024"});
 
+
     _ageWeightRatioShape = ChoiceOptionValue<AgeWeightRatioShape>("age_weight_ratio_shape","awrs",AgeWeightRatioShape::CONSTANT,{"constant","decay", "converge"});
     _ageWeightRatioShape.description = "How to change the age/weight ratio during proof search.";
     _lookup.insert(&_ageWeightRatioShape);
@@ -892,10 +893,95 @@ void Options::Options::init()
     _lookup.insert(&_ageWeightRatioShapeFrequency);
     _ageWeightRatioShapeFrequency.tag(OptionTag::SATURATION);
 
-      _literalMaximalityAftercheck = BoolOptionValue("literal_maximality_aftercheck","lma",false);
-      _lookup.insert(&_literalMaximalityAftercheck);
-      _literalMaximalityAftercheck.tag(OptionTag::SATURATION);
-      _literalMaximalityAftercheck.setExperimental();
+    _useTheorySplitQueues = BoolOptionValue("theory_split_queue","thsq",false);
+    _useTheorySplitQueues.description = "Turn on clause selection using multiple queues containing different clauses (split by amount of theory reasoning)";
+    _lookup.insert(&_useTheorySplitQueues);
+    _useTheorySplitQueues.tag(OptionTag::SATURATION);
+
+    _theorySplitQueueExpectedRatioDenom = IntOptionValue("theory_split_queue_expected_ratio_denom","thsqd", 8);
+    _theorySplitQueueExpectedRatioDenom.description = "The denominator n such that we expect the final proof to have a ratio of theory-axioms to all-axioms of 1/n.";
+    _lookup.insert(&_theorySplitQueueExpectedRatioDenom);
+    _theorySplitQueueExpectedRatioDenom.reliesOn(_useTheorySplitQueues.is(equal(true)));
+    _theorySplitQueueExpectedRatioDenom.tag(OptionTag::SATURATION);
+
+    _theorySplitQueueCutoffs = StringOptionValue("theory_split_queue_cutoffs", "thsqc", "0,32,80");
+    _theorySplitQueueCutoffs.description = "The cutoff-values for the split-queues (the cutoff value for the last queue has to be omitted, as it is always infinity). Any split-queue contains all clauses which are assigned a feature-value less or equal to the cutoff-value of the queue. If no custom value for this option is set, the implementation will use cutoffs 0,4*d,10*d,infinity (where d denotes the theory-split-queue-expected-ratio-denominator).";
+    _lookup.insert(&_theorySplitQueueCutoffs);
+    _theorySplitQueueCutoffs.reliesOn(_useTheorySplitQueues.is(equal(true)));
+    _theorySplitQueueCutoffs.tag(OptionTag::SATURATION);
+    _theorySplitQueueCutoffs.setExperimental();
+
+    _theorySplitQueueRatios = StringOptionValue("theory_split_queue_ratios", "thsqr", "20,10,10,1");
+    _theorySplitQueueRatios.description = "The ratios for picking clauses from the split-queues using weighted round robin. If a queue is empty, the clause will be picked from the next non-empty queue to the right. Note that this option implicitly also sets the number of queues.";
+    _lookup.insert(&_theorySplitQueueRatios);
+    _theorySplitQueueRatios.reliesOn(_useTheorySplitQueues.is(equal(true)));
+    _theorySplitQueueRatios.tag(OptionTag::SATURATION);
+    _theorySplitQueueRatios.setExperimental();
+
+    _theorySplitQueueLayeredArrangement = BoolOptionValue("theory_split_queue_layered_arrangement","thsql",true);
+    _theorySplitQueueLayeredArrangement.description = "If turned on, use a layered arrangement to split clauses into queues. Otherwise use a tammet-style-arrangement.";
+    _lookup.insert(&_theorySplitQueueLayeredArrangement);
+    _theorySplitQueueLayeredArrangement.reliesOn(_useTheorySplitQueues.is(equal(true)));
+    _theorySplitQueueLayeredArrangement.tag(OptionTag::SATURATION);
+    _theorySplitQueueLayeredArrangement.setExperimental();
+
+    _useAvatarSplitQueues = BoolOptionValue("avatar_split_queue","avsq",false);
+    _useAvatarSplitQueues.description = "Turn on experiments: clause selection with multiple queues containing different clauses (split by amount of avatar-split-set-size)";
+    _lookup.insert(&_useAvatarSplitQueues);
+    _useAvatarSplitQueues.tag(OptionTag::AVATAR);
+    _avatarSplitQueueCutoffs.reliesOn(_splitting.is(equal(true)));
+
+    _avatarSplitQueueCutoffs = StringOptionValue("avatar_split_queue_cutoffs", "avsqc", "0");
+    _avatarSplitQueueCutoffs.description = "The cutoff-values for the avatar-split-queues (the cutoff value for the last queue is omitted, since it has to be infinity).";
+    _lookup.insert(&_avatarSplitQueueCutoffs);
+    _avatarSplitQueueCutoffs.reliesOn(_useAvatarSplitQueues.is(equal(true)));
+    _avatarSplitQueueCutoffs.tag(OptionTag::AVATAR);
+    _avatarSplitQueueCutoffs.setExperimental();
+
+    _avatarSplitQueueRatios = StringOptionValue("avatar_split_queue_ratios", "avsqr", "1,2");
+    _avatarSplitQueueRatios.description = "The ratios for picking clauses from the split-queues using weighted round robin. If a queue is empty, the clause will be picked from the next non-empty queue to the right. Note that this option implicitly also sets the number of queues.";
+    _lookup.insert(&_avatarSplitQueueRatios);
+    _avatarSplitQueueRatios.reliesOn(_useAvatarSplitQueues.is(equal(true)));
+    _avatarSplitQueueRatios.tag(OptionTag::AVATAR);
+    _avatarSplitQueueRatios.setExperimental();
+
+    _avatarSplitQueueLayeredArrangement = BoolOptionValue("avatar_split_queue_layered_arrangement","avsql",false);
+    _avatarSplitQueueLayeredArrangement.description = "If turned on, use a layered arrangement to split clauses into queues. Otherwise use a tammet-style-arrangement.";
+    _lookup.insert(&_avatarSplitQueueLayeredArrangement);
+    _avatarSplitQueueLayeredArrangement.reliesOn(_useAvatarSplitQueues.is(equal(true)));
+    _avatarSplitQueueLayeredArrangement.tag(OptionTag::AVATAR);
+    _avatarSplitQueueLayeredArrangement.setExperimental();
+
+    _useSineLevelSplitQueues = BoolOptionValue("sine_level_split_queue","slsq",false);
+    _useSineLevelSplitQueues.description = "Turn on experiments: clause selection with multiple queues containing different clauses (split by sine-level of clause)";
+    _lookup.insert(&_useSineLevelSplitQueues);
+    _useSineLevelSplitQueues.tag(OptionTag::SATURATION);
+
+    _sineLevelSplitQueueCutoffs = StringOptionValue("sine_level_split_queue_cutoffs", "slsqc", "0");
+    _sineLevelSplitQueueCutoffs.description = "The cutoff-values for the sine-level-split-queues (the cutoff value for the last queue is omitted, since it has to be infinity).";
+    _lookup.insert(&_sineLevelSplitQueueCutoffs);
+    _sineLevelSplitQueueCutoffs.reliesOn(_useSineLevelSplitQueues.is(equal(true)));
+    _sineLevelSplitQueueCutoffs.tag(OptionTag::SATURATION);
+    _sineLevelSplitQueueCutoffs.setExperimental();
+
+    _sineLevelSplitQueueRatios = StringOptionValue("sine_level_split_queue_ratios", "slsqr", "1,3");
+    _sineLevelSplitQueueRatios.description = "The ratios for picking clauses from the sine-level-split-queues using weighted round robin. If a queue is empty, the clause will be picked from the next non-empty queue to the right. Note that this option implicitly also sets the number of queues.";
+    _lookup.insert(&_sineLevelSplitQueueRatios);
+    _sineLevelSplitQueueRatios.reliesOn(_useSineLevelSplitQueues.is(equal(true)));
+    _sineLevelSplitQueueRatios.tag(OptionTag::SATURATION);
+    _sineLevelSplitQueueRatios.setExperimental();
+
+    _sineLevelSplitQueueLayeredArrangement = BoolOptionValue("sine_level_split_queue_layered_arrangement","slsql",true);
+    _sineLevelSplitQueueLayeredArrangement.description = "If turned on, use a layered arrangement to split clauses into queues. Otherwise use a tammet-style-arrangement.";
+    _lookup.insert(&_sineLevelSplitQueueLayeredArrangement);
+    _sineLevelSplitQueueLayeredArrangement.reliesOn(_useSineLevelSplitQueues.is(equal(true)));
+    _sineLevelSplitQueueLayeredArrangement.tag(OptionTag::SATURATION);
+    _sineLevelSplitQueueLayeredArrangement.setExperimental();
+
+	    _literalMaximalityAftercheck = BoolOptionValue("literal_maximality_aftercheck","lma",false);
+	    _lookup.insert(&_literalMaximalityAftercheck);
+	    _literalMaximalityAftercheck.tag(OptionTag::SATURATION);
+	    _literalMaximalityAftercheck.setExperimental();
 
       _lrsFirstTimeCheck = IntOptionValue("lrs_first_time_check","",5);
       _lrsFirstTimeCheck.description=
@@ -1209,7 +1295,7 @@ void Options::Options::init()
 
     _hyperSuperposition = BoolOptionValue("hyper_superposition","",false);
     _hyperSuperposition.description=
-    "Generating inference that attempts to do several rewritings at once if it will eliminate literals of the original clause (now we aim just for elimination by equality resolution)";
+    "Simplifying inference that attempts to do several rewritings at once if it will eliminate literals of the original clause (now we aim just for elimination by equality resolution)";
     _lookup.insert(&_hyperSuperposition);
     _hyperSuperposition.tag(OptionTag::INFERENCES);
 
@@ -1709,11 +1795,6 @@ void Options::Options::init()
     _maxPassive.description="";
     //_lookup.insert(&_maxPassive);
     _maxPassive.tag(OptionTag::OTHER);
-
-    _maxWeight = IntOptionValue("max_weight","",0);
-    _maxWeight.description="Weight limit for clauses (0 means no weight limit)";
-    _lookup.insert(&_maxWeight);
-    _maxWeight.tag(OptionTag::SATURATION);
 
     _nonGoalWeightCoefficient = NonGoalWeightOptionValue("nongoal_weight_coefficient","nwc",1.0);
     _nonGoalWeightCoefficient.description=
@@ -2984,10 +3065,6 @@ bool Options::complete(const Problem& prb) const
     return false;
   }
 
-  if(_maxWeight.actualValue > 0){
-    return false;
-  }
-
   Property& prop = *prb.getProperty();
 
   // general properties causing incompleteness
@@ -3113,4 +3190,164 @@ bool Options::checkProblemOptionConstraints(Property* prop,bool fail_early)
   }
 
   return result;
+}
+
+Lib::vvector<int> Options::theorySplitQueueRatios() const
+{
+  CALL("Options::theorySplitQueueRatios");
+  vstringstream inputRatiosStream(_theorySplitQueueRatios.actualValue);
+  Lib::vvector<int> inputRatios;
+  std::string currentRatio;
+  while (std::getline(inputRatiosStream, currentRatio, ',')) {
+    inputRatios.push_back(std::stoi(currentRatio));
+  }
+
+  // sanity checks
+  if (inputRatios.size() < 2) {
+    USER_ERROR("Wrong usage of option '-thsqr'. Needs to have at least two values (e.g. '10,1')");
+  }
+  for (unsigned i = 0; i < inputRatios.size(); i++) {
+    if(inputRatios[i] <= 0) {
+      USER_ERROR("Wrong usage of option '-thsqr'. Each ratio needs to be a positive integer");
+    }
+  }
+
+  return inputRatios;
+}
+
+Lib::vvector<float> Options::theorySplitQueueCutoffs() const
+{
+  CALL("Options::theorySplitQueueCutoffs");
+  // initialize cutoffs
+  Lib::vvector<float> cutoffs;
+  if (_theorySplitQueueCutoffs.isDefault()) {
+    // if no custom cutoffs are set, use heuristics: (0,4*d,10*d,infinity)
+    auto d = _theorySplitQueueExpectedRatioDenom.actualValue;
+    cutoffs.push_back(0.0f);
+    cutoffs.push_back(4.0f * d);
+    cutoffs.push_back(10.0f * d);
+    cutoffs.push_back(std::numeric_limits<float>::max());
+  } else {
+    // if custom cutoffs are set, parse them and add float-max as last value
+    vstringstream cutoffsStream(_theorySplitQueueCutoffs.actualValue);
+    std::string currentCutoff;
+    while (std::getline(cutoffsStream, currentCutoff, ','))
+    {
+      cutoffs.push_back(std::stof(currentCutoff));
+    }
+    cutoffs.push_back(std::numeric_limits<float>::max());
+  }
+
+  // sanity checks
+  for (unsigned i = 0; i < cutoffs.size(); i++)
+  {
+    auto cutoff = cutoffs[i];
+
+    if (i > 0 && cutoff <= cutoffs[i-1])
+    {
+      USER_ERROR("Wrong usage of option '-thsqc'. The cutoff values must be strictly increasing");
+    }
+  }
+
+  return cutoffs;
+}
+
+Lib::vvector<int> Options::avatarSplitQueueRatios() const
+{
+  CALL("Options::avatarSplitQueueRatios");
+  vstringstream inputRatiosStream(_avatarSplitQueueRatios.actualValue);
+  Lib::vvector<int> inputRatios;
+  std::string currentRatio;
+  while (std::getline(inputRatiosStream, currentRatio, ',')) {
+    inputRatios.push_back(std::stoi(currentRatio));
+  }
+
+  // sanity checks
+  if (inputRatios.size() < 2) {
+    USER_ERROR("Wrong usage of option '-avsqr'. Needs to have at least two values (e.g. '10,1')");
+  }
+  for (unsigned i = 0; i < inputRatios.size(); i++) {
+    if(inputRatios[i] <= 0) {
+      USER_ERROR("Each ratio (supplied by option '-avsqr') needs to be a positive integer");
+    }
+  }
+
+  return inputRatios;
+}
+
+Lib::vvector<float> Options::avatarSplitQueueCutoffs() const
+{
+  CALL("Options::avatarSplitQueueCutoffs");
+  // initialize cutoffs and add float-max as last value
+  Lib::vvector<float> cutoffs;
+  vstringstream cutoffsStream(_avatarSplitQueueCutoffs.actualValue);
+  std::string currentCutoff;
+  while (std::getline(cutoffsStream, currentCutoff, ','))
+  {
+    cutoffs.push_back(std::stof(currentCutoff));
+  }
+  cutoffs.push_back(std::numeric_limits<float>::max());
+
+  // sanity checks
+  for (unsigned i = 0; i < cutoffs.size(); i++)
+  {
+    auto cutoff = cutoffs[i];
+
+    if (i > 0 && cutoff <= cutoffs[i-1])
+    {
+      USER_ERROR("The cutoff values (supplied by option '-avsqc') must be strictly increasing");
+    }
+  }
+
+  return cutoffs;
+}
+
+Lib::vvector<int> Options::sineLevelSplitQueueRatios() const
+{
+  CALL("Options::sineLevelSplitQueueRatios");
+  vstringstream inputRatiosStream(_sineLevelSplitQueueRatios.actualValue);
+  Lib::vvector<int> inputRatios;
+  std::string currentRatio;
+  while (std::getline(inputRatiosStream, currentRatio, ',')) {
+    inputRatios.push_back(std::stoi(currentRatio));
+  }
+
+  // sanity checks
+  if (inputRatios.size() < 2) {
+    USER_ERROR("Wrong usage of option '-slsqr'. Needs to have at least two values (e.g. '1,3')");
+  }
+  for (unsigned i = 0; i < inputRatios.size(); i++) {
+    if(inputRatios[i] <= 0) {
+      USER_ERROR("Each ratio (supplied by option '-slsqr') needs to be a positive integer");
+    }
+  }
+
+  return inputRatios;
+}
+
+Lib::vvector<float> Options::sineLevelSplitQueueCutoffs() const
+{
+  CALL("Options::sineLevelSplitQueueCutoffs");
+  // initialize cutoffs and add float-max as last value
+  Lib::vvector<float> cutoffs;
+  vstringstream cutoffsStream(_sineLevelSplitQueueCutoffs.actualValue);
+  std::string currentCutoff;
+  while (std::getline(cutoffsStream, currentCutoff, ','))
+  {
+    cutoffs.push_back(std::stof(currentCutoff));
+  }
+  cutoffs.push_back(std::numeric_limits<float>::max());
+
+  // sanity checks
+  for (unsigned i = 0; i < cutoffs.size(); i++)
+  {
+    auto cutoff = cutoffs[i];
+
+    if (i > 0 && cutoff <= cutoffs[i-1])
+    {
+      USER_ERROR("The cutoff values (supplied by option '-slsqc') must be strictly increasing");
+    }
+  }
+
+  return cutoffs;
 }

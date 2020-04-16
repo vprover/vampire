@@ -55,7 +55,7 @@ TEST_FUN(index)
   TermList fxa(Term::create2(f,x,a));
   Literal* lit = Literal::createEquality(true,fxy,a,Sorts::SRT_DEFAULT);
 
-  Clause * cl = new(1) Clause(1,Unit::AXIOM,new Inference(Inference::INPUT));
+  Clause * cl = new(1) Clause(1,Unit::AXIOM,new Inference0(Inference::INPUT));
   (* cl)[0] = lit;
   
   dismatchIndex->handleClause(cl,true);

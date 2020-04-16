@@ -66,52 +66,29 @@ bool Clause::_auxInUse = false;
 
 
 /** New clause */
-Clause::Clause(unsigned length,InputType it,Inference* inf)
-  : Unit(Unit::CLAUSE,inf,it),
+Clause::Clause(unsigned length,Inference* inf)
+  : Unit(Unit::CLAUSE,inf),
     _length(length),
     _color(COLOR_INVALID),
-    _input(0),
     _extensionality(false),
     _extensionalityTag(false),
     _component(false),
-    _theoryDescendant(false),
-    _inductionDepth(0),
     _numSelected(0),
     _age(0),
     _weight(0),
+    _weightForClauseSelection(0),
     _store(NONE),
     _refCnt(0),
     _reductionTimestamp(0),
     _literalPositions(0),
-    _splits(0),
     _numActiveSplits(0),
     _auxTimestamp(0)
 {
-
-  if(it == Unit::EXTENSIONALITY_AXIOM){
+  // MS: TODO: not sure if this belongs here and whether EXTENSIONALITY_AXIOM input types ever appear anywhere (as a vampire-extension TPTP formula role)
+  if(inf->inputType() == Inference::InputType::EXTENSIONALITY_AXIOM){
     //cout << "Setting extensionality" << endl;
     _extensionalityTag = true;
-    setInputType(Unit::AXIOM);
-  }
-  static bool check = env.options->theoryAxioms() != Options::TheoryAxiomLevel::OFF ||
-                      env.options->induction() != Options::Induction::NONE;
-  if(check){
-    Inference::Iterator it = inf->iterator();
-    bool isTheoryDescendant = isTheoryAxiom();
-    unsigned id = 0; 
-    while(inf->hasNext(it)){
-      Unit* parent = inf->next(it);
-      if(parent->isClause()){
-        isTheoryDescendant &= static_cast<Clause*>(parent)->isTheoryDescendant();
-        id = max(id,static_cast<Clause*>(parent)->inductionDepth());
-      }
-      else{
-        // if a parent is not a clause then it cannot be a theory descendant
-        isTheoryDescendant = false;
-      }
-    }
-    _theoryDescendant=isTheoryDescendant;
-    _inductionDepth=id;
+    inf->setInputType(Inference::InputType::AXIOM);
   }
 }
 
@@ -168,12 +145,12 @@ void Clause::destroyExceptInferenceObject()
 }
 
 
-Clause* Clause::fromStack(const Stack<Literal*>& lits, InputType it, Inference* inf)
+Clause* Clause::fromStack(const Stack<Literal*>& lits, Inference* inf)
 {
   CALL("Clause::fromStack");
 
   unsigned clen = lits.size();
-  Clause* res = new (clen) Clause(clen, it, inf);
+  Clause* res = new (clen) Clause(clen, inf);
 
   for(unsigned i = 0; i < clen; i++) {
     (*res)[i] = lits[i];
@@ -194,8 +171,8 @@ Clause* Clause::fromClause(Clause* c)
 {
   CALL("Clause::fromClause");
 
-  Inference* inf = new Inference1(Inference::REORDER_LITERALS, c);
-  Clause* res = fromIterator(Clause::Iterator(*c), c->inputType(), inf);
+  Inference* inf = new Inference1(Inference::Rule::REORDER_LITERALS, c);
+  Clause* res = fromIterator(Clause::Iterator(*c), inf);
 
   res->setAge(c->age());
   //res->setProp(c->prop());
@@ -355,7 +332,7 @@ bool Clause::noSplits() const
 {
   CALL("Clause::noSplits");
 
-  return !this->splits() || this->splits()->isEmpty();
+  return !_inference->splits() || _inference->splits()->isEmpty();
 }
 
 /**
@@ -432,12 +409,12 @@ vstring Clause::toString() const
     result += vstring(" {");
       
     result += vstring("a:") + Int::toString(_age);
-    result += vstring(",w:") + Int::toString(weight());
+    unsigned weight = (_weight ? _weight : computeWeight());
+    result += vstring(",w:") + Int::toString(weight);
     
-    float ew = const_cast<Clause*>(this)->getEffectiveWeight(const_cast<Shell::Options&>(*(env.options)));
-    unsigned effective = static_cast<int>(ceil(ew));
-    if(effective!=weight()){
-      result += vstring(",effW:") + Int::toString(effective);
+    unsigned weightForClauseSelection = (_weightForClauseSelection ? _weightForClauseSelection : computeWeightForClauseSelection(*env.options));
+    if(weightForClauseSelection!=weight){
+      result += vstring(",wCS:") + Int::toString(weightForClauseSelection);
     }
 
     if (numSelected()>0) {
@@ -448,22 +425,24 @@ vstring Clause::toString() const
       result += vstring(",col:") + Int::toString(color());
     }
 
-    if(isGoal()){
+    if(_inference->derivedFromGoal()){
       result += vstring(",goal:1");
     }
-    if(isTheoryDescendant()){
-      result += vstring(",tD:1");
+    if(_inference->isPureTheoryDescendant()){
+      result += vstring(",ptD:1");
     }
 
     if(env.options->induction() != Shell::Options::Induction::NONE){
-      result += vstring(",inD:") + Int::toString(inductionDepth());
+      result += vstring(",inD:") + Int::toString(_inference->inductionDepth());
     }
+    result += ",thAx:" + Int::toString((int)(_inference->th_ancestors));
+    result += ",allAx:" + Int::toString((int)(_inference->all_ancestors));
+    result += ",thDist:" + Int::toString( _inference->th_ancestors * env.options->theorySplitQueueExpectedRatioDenom() - _inference->all_ancestors);
     result += vstring("}");
   }
 
   return result;
 }
-
 
 /**
  * Convert the clause into sequence of strings, each containing
@@ -520,30 +499,17 @@ void Clause::computeColor() const
  * @since 02/01/2008 Manchester.
  * @since 22/01/2015 include splitWeight in weight
  */
-void Clause::computeWeight() const
+unsigned Clause::computeWeight() const
 {
   CALL("Clause::computeWeight");
 
-  _weight = 0;
+  unsigned result = 0;
   for (int i = _length-1; i >= 0; i--) {
     ASS(_literals[i]->shared());
-    _weight += _literals[i]->weight();
+    result += _literals[i]->weight();
   }
 
-  // We now include this directly in weight()
-  // This is so that we can reduce the split set and keep the original weight
-  // The alternative would be to remove the clause and reenter it into the passive queue whenever
-  // The split set was changed
-  if (env.options->nonliteralsInClauseWeight()) {
-    _weight+=splitWeight(); // no longer includes propWeight
-  }
-
-  // If _weight is zero (empty clause) then no need to do this
-  if(_weight){
-    unsigned priority = getPriority();
-    _weight *= priority;
-  }
-
+  return result;
 } // Clause::computeWeight
 
 
@@ -566,7 +532,7 @@ unsigned Clause::splitWeight() const
  * @since 04/05/2013 Manchester, updated to use new NonVariableIterator
  * @author Andrei Voronkov
  */
-unsigned Clause::getNumeralWeight() 
+unsigned Clause::getNumeralWeight() const
 {
   CALL("Clause::getNumeralWeight");
 
@@ -616,19 +582,34 @@ unsigned Clause::getNumeralWeight()
 } // getNumeralWeight
 
 /**
- * Return effective weight of the clause (i.e. weight multiplied
- * by the nongoal weight coefficient, if applicable)
- * @since 22/1/15 weight uses splitWeight
+ * compute weight of the clause used by clause selection and cache it
  */
-float Clause::getEffectiveWeight(const Options& opt) 
+unsigned Clause::computeWeightForClauseSelection(const Options& opt) const
 {
-  CALL("Clause::getEffectiveWeight");
+  CALL("Clause::computeWeightForClauseSelection");
 
-  static float nongoalWeightCoef=opt.nongoalWeightCoefficient();
-  static bool restrictNWC = opt.restrictNWCtoGC();
+  unsigned w = 0;
+  if (_weight) {
+    w = _weight;
+  } else {
+    w = computeWeight();
+  }
 
-  bool goal = isGoal();
-  if(goal && restrictNWC){
+  unsigned splWeight = 0;
+  if (opt.nonliteralsInClauseWeight()) {
+    splWeight = splitWeight(); // no longer includes propWeight
+  }
+
+  // hack: computation of getNumeralWeight is potentially expensive, so we only compute it if
+  // the option increasedNumeralWeight is set to true.
+  unsigned numeralWeight = 0;
+  if (opt.increasedNumeralWeight())
+  {
+    numeralWeight = getNumeralWeight();
+  }
+
+  bool derivedFromGoal = _inference->derivedFromGoal();
+  if(derivedFromGoal && opt.restrictNWCtoGC()){
     bool found = false;
     for(unsigned i=0;i<_length;i++){
       TermFunIterator it(_literals[i]);
@@ -637,16 +618,27 @@ float Clause::getEffectiveWeight(const Options& opt)
         found |= env.signature->getFunction(it.next())->inGoal();
       }
     }
-    if(!found){ goal=false; }
-  } 
+    if(!found){ derivedFromGoal=false; }
+  }
 
-  unsigned w=weight();
+  return Clause::computeWeightForClauseSelection(w, splWeight, numeralWeight, derivedFromGoal, opt);
+}
+
+/*
+ * note: we currently assume in Clause::computeWeightForClauseSelection(opt) that numeralWeight is only used here if
+ * the option increasedNumeralWeight() is set to true.
+ */
+unsigned Clause::computeWeightForClauseSelection(unsigned w, unsigned splitWeight, unsigned numeralWeight, bool derivedFromGoal, const Shell::Options& opt)
+{
+  static unsigned nongoalWeightCoeffNum = opt.nongoalWeightCoefficientNumerator();
+  static unsigned nongoalWeightCoefDenom = opt.nongoalWeightCoefficientDenominator();
+
+  w += splitWeight;
+
   if (opt.increasedNumeralWeight()) {
-    return (2*w+getNumeralWeight()) * ( !goal ? nongoalWeightCoef : 1.0f);
+    w = (2 * w + numeralWeight);
   }
-  else {
-    return w * ( !goal ? nongoalWeightCoef : 1.0f);
-  }
+  return w * ( !derivedFromGoal ? nongoalWeightCoeffNum : nongoalWeightCoefDenom);
 }
 
 void Clause::collectVars(DHSet<unsigned>& acc)

@@ -525,8 +525,7 @@ private:
       return res;
     }
     //here the input type and inference are just arbitrary, they'll never be used
-    Clause* res = Clause::fromIterator(getArrayishObjectIterator(lits, len),
-	Unit::AXIOM, new Inference(Inference::INPUT));
+    Clause* res = Clause::fromIterator(getArrayishObjectIterator(lits, len),new Inference0(Inference::InputType::AXIOM,Inference::Rule::INPUT));
     res->incRefCnt();
     _index->insert(res);
     return res;
@@ -565,7 +564,7 @@ private:
     res = cl;
     if(!res) {
       res = Clause::fromIterator(getSingletonIterator(norm),
-  	Unit::AXIOM, new Inference(Inference::INPUT));
+          new Inference0(Inference::InputType::AXIOM,Inference::Rule::INPUT));
     }
     ALWAYS(_atomIndex.insert(norm, res));
     return res;

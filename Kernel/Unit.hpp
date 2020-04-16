@@ -55,34 +55,9 @@ public:
     FORMULA = 1
   };
 
-  /** Kind of input. The integers should not be changed, they are used in
-   *  Compare. */
-  enum InputType {
-    /** Axiom or derives from axioms */
-    AXIOM = 0,
-    /** Assumption or derives from axioms and assumptions */
-    ASSUMPTION = 1,
-    /** derives from the goal */
-    CONJECTURE = 2,
-    /** negated conjecture */
-    NEGATED_CONJECTURE = 3,
-    /** Vampire-only, for the consequence-finding mode */
-    CLAIM = 4,
-    /** Used in parsing and preprocessing for extensionality clause tagging, should not appear in proof search */
-    EXTENSIONALITY_AXIOM = 5,
-    /** Used to seperate model definitions in model_check mode, should not appear in proof search */
-    MODEL_DEFINITION = 6
-  };
-
-  static InputType getInputType(UnitList* units);
-  static InputType getInputType(InputType t1, InputType t2);
-
   void destroy();
   vstring toString() const;
   unsigned varCnt();
-  unsigned getPriority() const;
-
-  unsigned getSineLevel() const;
 
   vstring inferenceAsString() const;
 
@@ -91,16 +66,6 @@ public:
   { return _kind == CLAUSE; }
 
   Clause* asClause();
-
-  /** return the input type of the unit */
-  InputType inputType() const
-  { return (InputType)_inputType; }
-  /** set the input type of the unit */
-  void setInputType(InputType it)
-  { _inputType=it; }
-  /** return true if inputType relates to a goal **/
-  bool isGoal() const 
-  { return _inputType > ASSUMPTION; }  
 
   /** Return the number of this unit */
   unsigned number() const { return _number; }
@@ -111,8 +76,6 @@ public:
   const Inference* inference() const { return _inference; }
   /** Set a new inference object (the old one not destroyed). */
   void setInference(Inference* inf) { _inference = inf; }
-  /** the input unit number this clause is generated from, -1 if none */
-  int adam() const {return _adam;}
 
   /** Return the inherited color of the unit or COLOR_INVALID
    * if there isn't an inherited color.
@@ -164,9 +127,7 @@ public:
   inline bool isFromPreprocessing()
   { return !_firstNonPreprocessingNumber || _number<_firstNonPreprocessingNumber; }
 
-
   void assertValid();
-
 
   static void onPreprocessingEnd();
   static void onParsingEnd(){ _lastParsingNumber = _lastNumber;}
@@ -177,18 +138,14 @@ protected:
   unsigned _number;
   /** Kind  */
   unsigned _kind : 1;
-  /** input type  */
-  unsigned _inputType : 3;
   /** used in interpolation to denote parents of what color have been used */
   unsigned _inheritedColor : 2;
   /** true if the unit is read from a TPTP included file  */
   unsigned _included : 1;
   /** inference used to obtain the unit */
   Inference* _inference;
-  /** the input unit number this clause is generated from, -1 if none */
-  int _adam;
 
-  Unit(Kind kind,Inference* inf,InputType it);
+  Unit(Kind kind,Inference* inf);
 
   /** Used to enumerate units */
   static unsigned _lastNumber;

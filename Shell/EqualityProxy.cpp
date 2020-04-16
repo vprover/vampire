@@ -292,16 +292,16 @@ Clause* EqualityProxy::apply(Clause* cl)
   Inference* inf;
   ASS(proxyPremises.isNonEmpty());
   if (proxyPremises.size() == 1) {
-    inf = new Inference2(Inference::EQUALITY_PROXY_REPLACEMENT, cl, proxyPremises.top());
+    inf = new Inference2(Inference::Rule::EQUALITY_PROXY_REPLACEMENT, cl, proxyPremises.top());
   }
   else {
     UnitList* prems = 0;
     UnitList::pushFromIterator(UnitStack::ConstIterator(proxyPremises),prems);
     UnitList::push(cl,prems);
-    inf = new InferenceMany(Inference::EQUALITY_PROXY_REPLACEMENT, prems);
+    inf = new InferenceMany(Inference::Rule::EQUALITY_PROXY_REPLACEMENT, prems);
   }
 
-  Clause* res = new(clen) Clause(clen, cl->inputType(), inf);
+  Clause* res = new(clen) Clause(clen, inf);
   res->setAge(cl->age());
 
   for (unsigned i=0;i<clen;i++) {
@@ -371,8 +371,8 @@ unsigned EqualityProxy::getProxyPredicate(unsigned sort)
   Formula* defForm = new BinaryFormula(IFF, new AtomicFormula(proxyLit), new AtomicFormula(eqLit));
   Formula* quantDefForm = Formula::quantify(defForm);
 
-  Inference* inf = new Inference(Inference::EQUALITY_PROXY_AXIOM1);
-  FormulaUnit* defUnit = new FormulaUnit(quantDefForm, inf, Unit::AXIOM);
+  Inference* inf = new Inference0(Inference::InputType::AXIOM, Inference::Rule::EQUALITY_PROXY_AXIOM1);
+  FormulaUnit* defUnit = new FormulaUnit(quantDefForm, inf);
 
   s_proxyPremises[sort] = defUnit;
   InferenceStore::instance()->recordIntroducedSymbol(defUnit, false, newPred);
@@ -407,8 +407,8 @@ Clause* EqualityProxy::createEqProxyAxiom(const LiteralStack& literalStack)
     UnitList::push(prem, prems);
   }
   ASS(prems);
-  Inference* inf = new InferenceMany(Inference::EQUALITY_PROXY_AXIOM2, prems);
-  Clause* res = Clause::fromStack(literalStack, Unit::AXIOM, inf);
+  Inference* inf = new InferenceMany(Inference::Rule::EQUALITY_PROXY_AXIOM2, prems);
+  Clause* res = Clause::fromStack(literalStack, inf);
   return res;
 } // EqualityProxy::createEqProxyAxiom
 

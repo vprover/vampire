@@ -140,9 +140,8 @@ Clause* Condensation::simplify(Clause* cl)
       }
 
       if(success) {
-	Inference* inf = new Inference1(Inference::CONDENSATION, cl);
-	Unit::InputType inpType = cl->inputType();
-	Clause* res = new(newLen) Clause(newLen, inpType, inf);
+	Inference* inf = new Inference1(Inference::Rule::CONDENSATION, cl);
+	Clause* res = new(newLen) Clause(newLen, inf);
 	Renaming norm;
 
 	for(unsigned i=0;i<newLen;i++) {

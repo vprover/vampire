@@ -458,14 +458,20 @@ void preprocessMode(bool theory)
   while (units.hasNext()) {
     Unit* u = units.next();
     if (!env.options->showFOOL()) {
-      if (u->inference()->rule() == Inference::FOOL_AXIOM) {
+      if (u->inference()->rule() == Inference::Rule::FOOL_AXIOM_TRUE_NEQ_FALSE || u->inference()->rule() == Inference::Rule::FOOL_AXIOM_ALL_IS_TRUE_OR_FALSE) {
         continue;
       }
     }
 
     if (theory) {
       Formula* f = u->getFormula();
-      FormulaUnit* fu = new FormulaUnit(f,u->inference(),u->inputType() == Unit::CONJECTURE ? Unit::NEGATED_CONJECTURE : u->inputType()); // CONJECTURE is evil, as it cannot occur multiple times
+
+      // CONJECTURE as inputType is evil, as it cannot occur multiple times
+      if (u->inference()->inputType() == Inference::InputType::CONJECTURE) {
+        u->inference()->setInputType(Inference::InputType::NEGATED_CONJECTURE);
+      }
+
+      FormulaUnit* fu = new FormulaUnit(f,u->inference()); // we are stealing u's inference which is not nice
       env.out() << TPTPPrinter::toString(fu) << "\n";
     } else {
       env.out() << TPTPPrinter::toString(u) << "\n";
@@ -714,10 +720,16 @@ void clausifyMode(bool theory)
     if (!cl) {
       continue;
     }
-    printed_conjecture |= cl->inputType() == Unit::CONJECTURE || cl->inputType() == Unit::NEGATED_CONJECTURE;
+    printed_conjecture |= cl->inference()->inputType() == Inference::InputType::CONJECTURE || cl->inference()->inputType() == Inference::InputType::NEGATED_CONJECTURE;
     if (theory) {
       Formula* f = Formula::fromClause(cl);
-      FormulaUnit* fu = new FormulaUnit(f,cl->inference(),cl->inputType() == Unit::CONJECTURE ? Unit::NEGATED_CONJECTURE : cl->inputType()); // CONJECTURE is evil, as it cannot occur multiple times
+
+      // CONJECTURE as inputType is evil, as it cannot occur multiple times
+      if (cl->inference()->inputType() == Inference::InputType::CONJECTURE) {
+        cl->inference()->setInputType(Inference::InputType::NEGATED_CONJECTURE);
+      }
+
+      FormulaUnit* fu = new FormulaUnit(f,cl->inference()); // we are stealing cl's inference, which is not nice!
       env.out() << TPTPPrinter::toString(fu) << "\n";
     } else {
       env.out() << TPTPPrinter::toString(cl) << "\n";
@@ -725,7 +737,7 @@ void clausifyMode(bool theory)
   }
   if(!printed_conjecture && UIHelper::haveConjecture()){
     unsigned p = env.signature->addFreshPredicate(0,"p");
-    Clause* c = new(2) Clause(2,Unit::InputType::NEGATED_CONJECTURE,new Inference(Inference::INPUT));
+    Clause* c = new(2) Clause(2,new Inference0(Inference::InputType::NEGATED_CONJECTURE,Inference::Rule::INPUT));
     (*c)[0] = Literal::create(p,0,true,false,0);
     (*c)[1] = Literal::create(p,0,false,false,0);
     env.out() << TPTPPrinter::toString(c) << "\n";

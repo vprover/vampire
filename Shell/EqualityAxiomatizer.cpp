@@ -166,13 +166,13 @@ void EqualityAxiomatizer::addLocalAxioms(UnitList*& units, unsigned sort)
   CALL("EqualityAxiomatizer::addLocalAxioms");
 
   {
-    Clause* axR = new(1) Clause(1, Clause::AXIOM, new Inference(Inference::EQUALITY_PROXY_AXIOM2));
+    Clause* axR = new(1) Clause(1, Clause::AXIOM, new Inference0(Inference::EQUALITY_PROXY_AXIOM2));
     (*axR)[0]=Literal::createEquality(true,TermList(0,false),TermList(0,false), sort);
     UnitList::push(axR,units);
   }
 
   if(_opt==Options::EqualityProxy::RST || _opt==Options::EqualityProxy::RSTC) {
-    Clause* axT = new(3) Clause(3, Clause::AXIOM, new Inference(Inference::EQUALITY_PROXY_AXIOM2));
+    Clause* axT = new(3) Clause(3, Clause::AXIOM, new Inference0(Inference::EQUALITY_PROXY_AXIOM2));
     (*axT)[0]=Literal::createEquality(false,TermList(0,false),TermList(1,false), sort);
     (*axT)[1]=Literal::createEquality(false,TermList(1,false),TermList(2,false), sort);
     (*axT)[2]=Literal::createEquality(true,TermList(0,false),TermList(2,false), sort);
@@ -297,7 +297,7 @@ Clause* EqualityAxiomatizer::getFnCongruenceAxiom(unsigned fn)
   Term* t2 = Term::create(fn, arity, vars2.begin());
   lits.push(Literal::createEquality(true, TermList(t1), TermList(t2), fnType->result()));
 
-  return Clause::fromStack(lits, Unit::AXIOM, new Inference(Inference::EQUALITY_PROXY_AXIOM2));
+  return Clause::fromStack(lits, Unit::AXIOM, new Inference0(Inference::EQUALITY_PROXY_AXIOM2));
 }
 
 Clause* EqualityAxiomatizer::getPredCongruenceAxiom(unsigned pred)
@@ -322,7 +322,7 @@ Clause* EqualityAxiomatizer::getPredCongruenceAxiom(unsigned pred)
   lits.push(Literal::create(pred, arity, false, false, vars1.begin()));
   lits.push(Literal::create(pred, arity, true, false, vars2.begin()));
 
-  return Clause::fromStack(lits, Unit::AXIOM, new Inference(Inference::EQUALITY_PROXY_AXIOM2));
+  return Clause::fromStack(lits, Unit::AXIOM, new Inference0(Inference::EQUALITY_PROXY_AXIOM2));
 }
 
 void EqualityAxiomatizer::addCongruenceAxioms(UnitList*& units)

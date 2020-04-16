@@ -60,8 +60,7 @@ void LRS::onUnprocessedSelected(Clause* c)
     if(estimatedReachable>=0) {
       _passive->updateLimits(estimatedReachable);
       if(!_limitsEverActive) {
-        Limits* lims=getLimits();
-        _limitsEverActive=lims->weightLimited() || lims->ageLimited();
+        _limitsEverActive=_passive->weightLimited() || _passive->ageLimited();
       }
     }
   }
@@ -82,7 +81,7 @@ bool LRS::shouldUpdateLimits()
   cnt++;
 
   //when there are limits, we check more frequently so we don't skip too much inferences
-  if(cnt==500 || ((getLimits()->weightLimited() || getLimits()->ageLimited()) && cnt>50 ) ) {
+  if(cnt==500 || ((_passive->weightLimited() || _passive->ageLimited()) && cnt>50 ) ) {
     cnt=0;
     return true;
   }

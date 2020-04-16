@@ -881,6 +881,11 @@ private:
 
 }; // class Literal
 
+// TODO used in some proofExtra output
+//      find a better place for this?
+bool positionIn(TermList& subterm,TermList* term, vstring& position);
+bool positionIn(TermList& subterm,Term* term, vstring& position);
+
 struct TermListHash {
   static unsigned hash(TermList t) {
     return static_cast<unsigned>(t.content());

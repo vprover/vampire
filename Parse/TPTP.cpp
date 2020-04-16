@@ -1279,40 +1279,39 @@ void TPTP::fof(bool fo)
 
   _isQuestion = false;
   if(_modelDefinition){
-    _lastInputType = Unit::MODEL_DEFINITION;
+    _lastInputType = Inference::InputType::MODEL_DEFINITION;
   }
   else if (tp == "axiom" || tp == "plain") {
-    _lastInputType = Unit::AXIOM;
+    _lastInputType = Inference::InputType::AXIOM;
   }
   else if(tp == "extensionality"){
     // this will be transformed to just AXIOM after clausification
-    _lastInputType = Unit::EXTENSIONALITY_AXIOM;
+    _lastInputType = Inference::InputType::EXTENSIONALITY_AXIOM;
   }
   else if (tp == "definition") {
-    _lastInputType = Unit::AXIOM;
+    _lastInputType = Inference::InputType::AXIOM;
   }
   else if (tp == "conjecture") {
     _containsConjecture = true;
-    _lastInputType = Unit::CONJECTURE;
+    _lastInputType = Inference::InputType::CONJECTURE;
   }
   else if (tp == "question") {
     _isQuestion = true;
     _containsConjecture = true;
-    _lastInputType = Unit::CONJECTURE;
+    _lastInputType = Inference::InputType::CONJECTURE;
   }
   else if (tp == "negated_conjecture") {
-    _lastInputType = Unit::NEGATED_CONJECTURE;
+    _lastInputType = Inference::InputType::NEGATED_CONJECTURE;
   }
   else if (tp == "hypothesis" || tp == "theorem" || tp == "lemma") {
-    _lastInputType = Unit::ASSUMPTION;
-  }
-  else if (tp == "assumption" || tp == "unknown") {
-    // assumptions are not used, so we assign them a non-existing input type and then
-    // not include them in the input
-    _lastInputType = -1;
+    _lastInputType = Inference::InputType::ASSUMPTION;
   }
   else if (tp == "claim") {
-    _lastInputType = Unit::CLAIM;
+    _lastInputType = Inference::InputType::CLAIM;
+  }
+  else if (tp == "assumption" || tp == "unknown") {
+    // MS: we were silently dropping these until now. I wonder why...
+    PARSE_ERROR((vstring)"Unsupported unit type '" + tp + "' found",start);
   }
   else {
     PARSE_ERROR((vstring)"unit type, such as axiom or definition expected but " + tp + " found",
@@ -1404,37 +1403,36 @@ void TPTP::tff()
   _bools.push(true); // to denote that it is an FOF formula
   _isQuestion = false;
   if (tp == "axiom" || tp == "plain") {
-    _lastInputType = Unit::AXIOM;
+    _lastInputType = Inference::InputType::AXIOM;
   }
   else if (tp == "extensionality"){
     // this will be transformed to just AXIOM after clausification
-    _lastInputType = Unit::EXTENSIONALITY_AXIOM;
+    _lastInputType = Inference::InputType::EXTENSIONALITY_AXIOM;
   }
   else if (tp == "definition") {
-    _lastInputType = Unit::AXIOM;
+    _lastInputType = Inference::InputType::AXIOM;
   }
   else if (tp == "conjecture") {
     _containsConjecture = true;
-    _lastInputType = Unit::CONJECTURE;
+    _lastInputType = Inference::InputType::CONJECTURE;
   }
   else if (tp == "question") {
     _isQuestion = true;
     _containsConjecture = true;
-    _lastInputType = Unit::CONJECTURE;
+    _lastInputType = Inference::InputType::CONJECTURE;
   }
   else if (tp == "negated_conjecture") {
-    _lastInputType = Unit::NEGATED_CONJECTURE;
+    _lastInputType = Inference::InputType::NEGATED_CONJECTURE;
   }
   else if (tp == "hypothesis" || tp == "theorem" || tp == "lemma") {
-    _lastInputType = Unit::ASSUMPTION;
+    _lastInputType = Inference::InputType::ASSUMPTION;
   }
   else if (tp == "assumption" || tp == "unknown") {
-    // assumptions are not used, so we assign them a non-existing input type and then
-    // not include them in the input
-    _lastInputType = -1;
+    // MS: we were silently dropping these until now. I wonder why...
+    PARSE_ERROR((vstring)"Unsupported unit type '" + tp + "' found",start);
   }
   else if (tp == "claim") {
-    _lastInputType = Unit::CLAIM;
+    _lastInputType = Inference::InputType::CLAIM;
   }
   else {
     PARSE_ERROR((vstring)"unit type, such as axiom or definition expected but " + tp + " found",
@@ -3022,10 +3020,6 @@ void TPTP::endFof()
   bool isFof = _bools.pop();
   Formula* f = _formulas.pop();
   vstring nm = _strings.pop(); // unit name
-  if (_lastInputType == -1) {
-    // assumption, they are not used
-    return;
-  }
   if (_allowedNames && !_allowedNames->contains(nm)) {
     return;
   }
@@ -3033,7 +3027,7 @@ void TPTP::endFof()
   Unit* unit;
   if (isFof) { // fof() or tff()
     env.statistics->inputFormulas++;
-    unit = new FormulaUnit(f,new Inference(Inference::INPUT),(Unit::InputType)_lastInputType);
+    unit = new FormulaUnit(f,new Inference0(_lastInputType,Inference::Rule::INPUT));
     unit->setInheritedColor(_currentColor);
   }
   else { // cnf()
@@ -3079,7 +3073,7 @@ void TPTP::endFof()
 	USER_ERROR((vstring)"input formula not in CNF: " + f->toString());
       }
     }
-    unit = Clause::fromStack(lits,(Unit::InputType)_lastInputType,new Inference(Inference::INPUT));
+    unit = Clause::fromStack(lits,new Inference0(_lastInputType,Inference::Rule::INPUT));
     unit->setInheritedColor(_currentColor);
   }
 
@@ -3099,7 +3093,7 @@ void TPTP::endFof()
   }
 
   switch (_lastInputType) {
-  case Unit::CONJECTURE:
+  case Inference::InputType::CONJECTURE:
     if(!isFof) USER_ERROR("conjecture is not allowed in cnf");
     if(_seenConjecture) USER_ERROR("Vampire only supports a single conjecture in a problem");
     _seenConjecture=true;
@@ -3121,8 +3115,7 @@ void TPTP::endFof()
                                 g->sorts(),
 				new BinaryFormula(IMP,g->subformula(),new AtomicFormula(a)));
       unit = new FormulaUnit(f,
-			     new Inference1(Inference::ANSWER_LITERAL,unit),
-			     Unit::CONJECTURE);
+			     new Inference1(Inference::Rule::ANSWER_LITERAL,unit));
     }
     else {
       Formula::VarList* vs = f->freeVariables();
@@ -3134,12 +3127,11 @@ void TPTP::endFof()
 	f = new NegatedFormula(new QuantifiedFormula(FORALL,vs,0,f));
       }
       unit = new FormulaUnit(f,
-			     new Inference1(Inference::NEGATED_CONJECTURE,unit),
-			     Unit::CONJECTURE);
+			     new Inference1(Inference::Rule::NEGATED_CONJECTURE,unit));
     }
     break;
 
-  case Unit::CLAIM:
+  case Inference::InputType::CLAIM:
     {
       bool added;
       unsigned pred = env.signature->addPredicate(nm,0,added);
@@ -3157,8 +3149,7 @@ void TPTP::endFof()
       }
       f = new BinaryFormula(IFF,claim,f);
       unit = new FormulaUnit(f,
-			     new Inference1(Inference::CLAIM_DEFINITION,unit),
-			     Unit::ASSUMPTION);
+			     new Inference1(Inference::Rule::CLAIM_DEFINITION,unit));
     }
     break;
 

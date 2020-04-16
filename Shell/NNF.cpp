@@ -53,8 +53,7 @@ FormulaUnit* NNF::ennf(FormulaUnit* unit)
   }
 
   FormulaUnit* res = new FormulaUnit(g,
-			 new Inference1(Inference::ENNF,unit),
-			 unit->inputType());
+			 new Inference1(Inference::Rule::ENNF,unit));
 
   if (env.options->showPreprocessing()) {
     env.beginOutput();
@@ -85,8 +84,7 @@ FormulaUnit* NNF::nnf(FormulaUnit* unit)
   }
 
   return new FormulaUnit(g,
-			 new Inference1(Inference::NNF,unit),
-			 unit->inputType());
+			 new Inference1(Inference::Rule::NNF,unit));
 } // NNF::nnf
 
 

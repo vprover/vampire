@@ -240,11 +240,11 @@ TEST_FUN(division){
   SAT::SAT2FO s2f;
   SAT::Z3Interfacing* sat = new SAT::Z3Interfacing(*env.options,s2f);
 
-  Clause * cl = new(1) Clause(1,Unit::AXIOM,new Inference(Inference::INPUT));
+  Clause * cl = new(1) Clause(1,Unit::AXIOM,new Inference0(Inference::INPUT));
   (* cl)[0] = lit;
   sat->addClause(s2f.toSAT(cl),true);
 
-  cl = new(1) Clause(1,Unit::AXIOM,new Inference(Inference::INPUT));
+  cl = new(1) Clause(1,Unit::AXIOM,new Inference0(Inference::INPUT));
   (* cl)[0] = Literal::createEquality(true,a,one,Sorts::SRT_REAL);
   sat->addClause(s2f.toSAT(cl),true);
 
