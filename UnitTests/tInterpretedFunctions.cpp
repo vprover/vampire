@@ -232,7 +232,7 @@ void check_no_succ(Literal& orig) {
   Literal* src = Literal::create(&orig, orig.polarity());
   auto success = eval.evaluate(src,constant,result,constantTrue, sideConditions);
 
-  CHECK_EQ(success, false, "evaluation successful", orig.toString());
+  CHECK_EQ(success, false, "unexpectedly evaluation was successful", orig.toString());
   // CHECK_EQ(result, NULL, "result was set", orig.toString());
   // CHECK_EQ(sideConditions.isEmpty(), true, "non-empty side condictions", orig.toString());
   // CHECK_EQ(constant, true, "result not evaluated to constant", orig.toString());
@@ -623,6 +623,53 @@ TEST_FUN(x_gt_minus_x) {
 
 
 #endif
+
+
+// x = -(-x)
+TEST_FUN(eval_double_minus_1) {
+  TERM_FUNCTIONS(INT)
+
+  check_eval(
+      eq(x, uminus(uminus(x))),
+      true);
+  check_eval(
+      neg(eq(x, uminus(uminus(x)))),
+      false);
+};
+
+
+// x < -(-x)
+TEST_FUN(eval_double_minus_2) {
+  TERM_FUNCTIONS(INT)
+
+  check_eval(
+      lt(x, uminus(uminus(x))),
+      false);
+  check_eval(
+      neg(lt(x, uminus(uminus(x)))),
+      true);
+};
+
+
+// a = -(-x)
+TEST_FUN(eval_double_minus_3) {
+  TERM_FUNCTIONS(INT)
+
+  check_eval(
+      eq(a(), uminus(uminus(x))),
+      eq(a(), x));
+};
+
+
+// 4 = -(-x + 4)
+// ==> 4 = x + (-4)
+TEST_FUN(eval_double_minus_4) {
+  TERM_FUNCTIONS(INT)
+
+  check_eval(
+      eq(4, uminus(add(uminus(x), 4))),
+      eq(8, x) );
+};
 
 
 

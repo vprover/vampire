@@ -35,3 +35,4 @@ valgrind.supp
 *.txt
 *.smt2
 *.cnf
+tags

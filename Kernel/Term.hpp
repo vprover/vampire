@@ -354,6 +354,9 @@ public:
     return _args + (_arity - n);
   }
   /** Indexing operator for accessing arguments */
+  const TermList operator[](int i) const {
+    return *nthArgument(i);
+  }
   TermList operator[](int i) {
     return *nthArgument(i);
   }
