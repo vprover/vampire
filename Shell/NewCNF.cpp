@@ -66,8 +66,8 @@ void NewCNF::clausify(FormulaUnit* unit,Stack<Clause*>& output)
 
     case FALSE: {
       // create an empty clause and push it in the stack
-      Inference* inf = new Inference1(Inference::CLAUSIFY,unit);
-      Clause* clause = new(0) Clause(0, unit->inputType(),inf);
+      Inference* inf = new Inference1(Inference::Rule::CLAUSIFY,unit);
+      Clause* clause = new(0) Clause(0, inf);
       output.push(clause);
       return;
     }
@@ -900,13 +900,13 @@ Term* NewCNF::createSkolemTerm(unsigned var, VarSet* free)
   bool isPredicate = (rangeSort == Sorts::SRT_BOOL);
   if (isPredicate) {
     unsigned pred = Skolem::addSkolemPredicate(arity, domainSorts.begin(), var);
-    if(_beingClausified->isGoal()){
+    if(_beingClausified->inference()->derivedFromGoal()){
       env.signature->getPredicate(pred)->markInGoal();
     }
     res = Term::createFormula(new AtomicFormula(Literal::create(pred, arity, true, false, fnArgs.begin())));
   } else {
     unsigned fun = Skolem::addSkolemFunction(arity, domainSorts.begin(), rangeSort, var);
-    if(_beingClausified->isGoal()){
+    if(_beingClausified->inference()->derivedFromGoal()){
       env.signature->getFunction(fun)->markInGoal();
     }
     if(_forInduction){
@@ -1452,8 +1452,8 @@ Clause* NewCNF::toClause(SPGenClause gc)
     properLiterals.push(l);
   }
 
-  Inference* inference = new Inference1(Inference::CLAUSIFY, _beingClausified);
-  Clause* clause = new(gc->size()) Clause(gc->size(), _beingClausified->inputType(), inference);
+  Inference* inference = new Inference1(Inference::Rule::CLAUSIFY, _beingClausified);
+  Clause* clause = new(gc->size()) Clause(gc->size(), inference);
   for (int i = gc->size() - 1; i >= 0; i--) {
     (*clause)[i] = properLiterals[i];
   }

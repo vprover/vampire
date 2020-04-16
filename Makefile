@@ -321,6 +321,7 @@ VSAT_OBJ=SAT/ClauseDisposer.o\
 #         SAT/SingleWatchSAT.o
 
 VST_OBJ= Saturation/AWPassiveClauseContainer.o\
+         Saturation/PredicateSplitPassiveClauseContainer.o\
          Saturation/ClauseContainer.o\
          Saturation/ConsequenceFinder.o\
          Saturation/Discount.o\
@@ -574,7 +575,7 @@ version.cpp: .git/HEAD .git/index Makefile
 # separate directory for object files implementation
 
 # different directory for each configuration, so there is no need for "make clean"
-SED_CMD='s/^[(]HEAD$$/detached/'      #
+SED_CMD='s/.*[(].*/detached/' # if branch name contains an opening bracket, replace it with detached (in order to avoid a crash during linking). This covers at least the case '(HEAD' occuring if one is in detached state, and '(no' occuring if one currently performs a rebase.
 BRANCH=$(shell git branch | grep "\*" | cut -d ' ' -f 2 | sed -e $(SED_CMD)  )
 COM_CNT=$(shell git rev-list HEAD --count)
 CONF_ID := obj/$(shell echo -n "$(BRANCH) $(XFLAGS)"|sum|cut -d ' ' -f1)X

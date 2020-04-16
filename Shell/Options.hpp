@@ -60,6 +60,7 @@
 #include "Lib/Allocator.hpp"
 #include "Lib/XML.hpp"
 #include "Lib/Comparison.hpp"
+#include "Lib/STL.hpp"
 
 #include "Property.hpp"
 
@@ -609,8 +610,7 @@ public:
   enum class SineSelection : unsigned int {
     AXIOMS = 0,
     INCLUDED = 1,
-    OFF = 2,
-    PRIORITY = 3
+    OFF = 2
   };
 
   enum class Proof : unsigned int {
@@ -1983,10 +1983,22 @@ public:
   long maxAnswers() const { return _maxAnswers.actualValue; }
   //void setMaxAnswers(int newVal) { _maxAnswers = newVal; }
   long maxPassive() const { return _maxPassive.actualValue; }
-  int maxWeight() const { return _maxWeight.actualValue; }
   int ageRatio() const { return _ageWeightRatio.actualValue; }
   void setAgeRatio(int v){ _ageWeightRatio.actualValue = v; }
   int weightRatio() const { return _ageWeightRatio.otherValue; }
+  bool useTheorySplitQueues() const { return _useTheorySplitQueues.actualValue; }
+  Lib::vvector<int> theorySplitQueueRatios() const;
+  Lib::vvector<float> theorySplitQueueCutoffs() const;
+  int theorySplitQueueExpectedRatioDenom() const { return _theorySplitQueueExpectedRatioDenom.actualValue; }
+  bool theorySplitQueueLayeredArrangement() const { return _theorySplitQueueLayeredArrangement.actualValue; }
+  bool useAvatarSplitQueues() const { return _useAvatarSplitQueues.actualValue; }
+  Lib::vvector<int> avatarSplitQueueRatios() const;
+  Lib::vvector<float> avatarSplitQueueCutoffs() const;
+  bool avatarSplitQueueLayeredArrangement() const { return _avatarSplitQueueLayeredArrangement.actualValue; }
+  bool useSineLevelSplitQueues() const { return _useSineLevelSplitQueues.actualValue; }
+  Lib::vvector<int> sineLevelSplitQueueRatios() const;
+  Lib::vvector<float> sineLevelSplitQueueCutoffs() const;
+  bool sineLevelSplitQueueLayeredArrangement() const { return _sineLevelSplitQueueLayeredArrangement.actualValue; }
   void setWeightRatio(int v){ _ageWeightRatio.otherValue = v; }
 	AgeWeightRatioShape ageWeightRatioShape() const { return _ageWeightRatioShape.actualValue; }
 	int ageWeightRatioShapeFrequency() const { return _ageWeightRatioShapeFrequency.actualValue; }
@@ -2000,7 +2012,8 @@ public:
   TACyclicityCheck termAlgebraCyclicityCheck() const { return _termAlgebraCyclicityCheck.actualValue; }
   unsigned extensionalityMaxLength() const { return _extensionalityMaxLength.actualValue; }
   bool extensionalityAllowPosEq() const { return _extensionalityAllowPosEq.actualValue; }
-  float nongoalWeightCoefficient() const { return _nonGoalWeightCoefficient.actualValue; }
+  unsigned nongoalWeightCoefficientNumerator() const { return _nonGoalWeightCoefficient.numerator; }
+  unsigned nongoalWeightCoefficientDenominator() const { return _nonGoalWeightCoefficient.denominator; }
   bool restrictNWCtoGC() const { return _restrictNWCtoGC.actualValue; }
   Sos sos() const { return _sos.actualValue; }
   unsigned sosTheoryLimit() const { return _sosTheoryLimit.actualValue; }
@@ -2095,9 +2108,6 @@ public:
   void setTimeLimitInDeciseconds(int newVal) { _timeLimitInDeciseconds.actualValue = newVal; }
   int getWhileNumber(){return _whileNumber.actualValue;}
   int getFunctionNumber(){return _functionNumber.actualValue;}
-
-  int nonGoalWeightCoeffitientNumerator() const { return _nonGoalWeightCoefficient.numerator; }
-  int nonGoalWeightCoeffitientDenominator() const { return _nonGoalWeightCoefficient.denominator; }
 
   bool splitAtActivation() const{ return _splitAtActivation.actualValue; }
   SplittingNonsplittableComponents splittingNonsplittableComponents() const { return _splittingNonsplittableComponents.actualValue; }
@@ -2247,6 +2257,19 @@ private:
   RatioOptionValue _ageWeightRatio;
 	ChoiceOptionValue<AgeWeightRatioShape> _ageWeightRatioShape;
 	UnsignedOptionValue _ageWeightRatioShapeFrequency;
+  BoolOptionValue _useTheorySplitQueues;
+  StringOptionValue _theorySplitQueueRatios;
+  StringOptionValue _theorySplitQueueCutoffs;
+  IntOptionValue _theorySplitQueueExpectedRatioDenom;
+  BoolOptionValue _theorySplitQueueLayeredArrangement;
+  BoolOptionValue _useAvatarSplitQueues;
+  StringOptionValue _avatarSplitQueueRatios;
+  StringOptionValue _avatarSplitQueueCutoffs;
+  BoolOptionValue _avatarSplitQueueLayeredArrangement;
+  BoolOptionValue _useSineLevelSplitQueues;
+  StringOptionValue _sineLevelSplitQueueRatios;
+  StringOptionValue _sineLevelSplitQueueCutoffs;
+  BoolOptionValue _sineLevelSplitQueueLayeredArrangement;
   BoolOptionValue _literalMaximalityAftercheck;
   BoolOptionValue _arityCheck;
   
@@ -2376,7 +2399,6 @@ private:
   IntOptionValue _maxAnswers;
   IntOptionValue _maxInferenceDepth;
   LongOptionValue _maxPassive;
-  IntOptionValue _maxWeight;
   UnsignedOptionValue _maximalPropagatedEqualityLength;
   UnsignedOptionValue _memoryLimit; // should be size_t, making an assumption
   ChoiceOptionValue<Mode> _mode;

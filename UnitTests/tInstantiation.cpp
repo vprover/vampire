@@ -51,12 +51,12 @@ TEST_FUN(instances)
   TermList multTwoX(Term::create2(mult, two, x));
   Literal* lit = Literal::createEquality(true, multTwoX, five, Sorts::SRT_INTEGER);
 
-  Clause * cl = new(1) Clause(1,Unit::AXIOM,new Inference(Inference::INPUT));
+  Clause * cl = new(1) Clause(1,Unit::AXIOM,new Inference0(Inference::INPUT));
   (* cl)[0] = lit;
 
   TermList twenty(theory->representConstant(IntegerConstantType("20")));
   Literal* l2 = Literal::createEquality(true,twenty,twenty,Sorts::SRT_INTEGER);
-  Clause* cl2 = new(1) Clause(1,Unit::AXIOM,new Inference(Inference::INPUT));
+  Clause* cl2 = new(1) Clause(1,Unit::AXIOM,new Inference0(Inference::INPUT));
   (* cl2)[0] = l2;
 
   Instantiation inst;

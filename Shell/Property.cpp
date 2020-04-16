@@ -300,7 +300,8 @@ void Property::scan(Clause* clause)
       }
     }
 
-    bool goal = (clause->inputType()==Unit::CONJECTURE || clause->inputType()==Unit::NEGATED_CONJECTURE);
+    bool goal = (clause->inference()->inputType()==Inference::InputType::CONJECTURE ||
+        clause->inference()->inputType()==Inference::InputType::NEGATED_CONJECTURE);
     bool unit = (clause->length() == 1);
 
     // 1 for context polarity, only used in formulas
@@ -327,7 +328,7 @@ void Property::scan(Clause* clause)
     _pureEquationalClauses ++;
   }
 
-  if (clause->inputType() == Unit::AXIOM) {
+  if (clause->inference()->inputType() == Inference::InputType::AXIOM) {
     _axiomClauses ++;
     if ( literals == 1) {
       _unitAxioms ++;
@@ -368,7 +369,7 @@ void Property::scan(Clause* clause)
 
   if (_variablesInThisClause > 0) {
     _allClausesGround = false;
-    if(!clause->isTheoryAxiom()){
+    if(!clause->inference()->isTheoryAxiom()){
       _allNonTheoryClausesGround = false;
     }
   }
@@ -386,7 +387,7 @@ void Property::scan(FormulaUnit* unit)
   CALL("Property::scan(const FormulaUnit*)");
 
 
-  if (unit->inputType() == Unit::AXIOM) {
+  if (unit->inference()->inputType() == Inference::InputType::AXIOM) {
     _axiomFormulas ++;
   }
   else {

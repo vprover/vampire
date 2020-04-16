@@ -133,8 +133,8 @@ struct EqualityFactoring::ResultFn
       return 0;
     }
 
-    Inference* inf = new Inference1(Inference::EQUALITY_FACTORING, _cl);
-    Clause* res = new(_cLen) Clause(_cLen, _cl->inputType(), inf);
+    Inference* inf = new Inference1(Inference::Rule::EQUALITY_FACTORING, _cl);
+    Clause* res = new(_cLen) Clause(_cLen, inf);
 
     (*res)[0]=Literal::createEquality(false, sRHSS, fRHSS, srt);
 

@@ -27,6 +27,7 @@
 
 #include "Forwards.hpp"
 #include "Lib/Stack.hpp"
+#include "Kernel/Inference.hpp"
 
 namespace Shell {
 
@@ -45,7 +46,7 @@ public:
 
 private:
   Clause* trySplitClause(Clause* cl);
-  Literal* splitLiteral(Literal* lit, Unit::InputType inpType, Clause*& premise);
+  Literal* splitLiteral(Literal* lit, Inference::InputType inpType, Clause*& premise);
 
   Literal* makeNameLiteral(unsigned predNum, TermList arg, bool polarity);
 

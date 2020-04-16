@@ -32,6 +32,8 @@
 #include "Lib/Allocator.hpp"
 #include "Lib/VString.hpp"
 
+#include <type_traits>
+
 using namespace std;
 using namespace Lib;
 
@@ -43,10 +45,41 @@ namespace Kernel {
 class Inference
 {
 public:
+  /** Kind of input. The integers should not be changed, they are used in
+   *  Compare. */
+  enum class InputType : unsigned char {
+    /** Axiom or derives from axioms */
+    AXIOM = 0,
+    /** Assumption or derives from axioms and assumptions */
+    ASSUMPTION = 1,
+    /** derives from the goal */
+    CONJECTURE = 2,
+    /** negated conjecture */
+    NEGATED_CONJECTURE = 3,
+    /** Vampire-only, for the consequence-finding mode */
+    CLAIM = 4,
+    /** Used in parsing and preprocessing for extensionality clause tagging, should not appear in proof search */
+    EXTENSIONALITY_AXIOM = 5,
+    /** Used to seperate model definitions in model_check mode, should not appear in proof search */
+    MODEL_DEFINITION = 6
+  };
+
+  static std::underlying_type<InputType>::type toNumber(InputType t) { return static_cast<std::underlying_type<InputType>::type>(t); }
+
+  static InputType getInputType(UnitList* units);
+  static InputType getInputType(InputType t1, InputType t2);
+
+  /** return the input type of the unit */
+  InputType inputType() const { return (InputType)_inputType; }
+  /** set the input type of the unit */
+  void setInputType(InputType it) { _inputType=it; }
+  /** return true if inputType relates to a goal **/
+  bool derivedFromGoal() const { return toNumber(_inputType) > toNumber(InputType::ASSUMPTION); }
+
   /**
    * Tag to denote various kinds of inference rules.
    */
-  enum Rule {
+  enum class Rule : unsigned char {
     /** input formula or clause */
     INPUT,
     /** negated conjecture from the input */
@@ -54,6 +87,8 @@ public:
     /** introduction of answer literal into the conjecture,
      * or the unit negation of answer literal used to obtain refutation */
     ANSWER_LITERAL,
+    /** claim definition, definition introduced by a claim in the input */
+    CLAIM_DEFINITION,
 //     /** choice_axiom (Ax)((Ey)F(x,y) -> F(x,f(x))) */
 //     CHOICE_AXIOM,
 //     /** (Ax)(F(x)->F'(x)), G[F(t)] / G[F'(t)] */
@@ -124,74 +159,22 @@ public:
 //     HALF_EQUIV,
 //     /** miniscoping */
 //     MINISCOPE,
+    /** choice axiom */
+    CHOICE_AXIOM,
     /** skolemization */
     SKOLEMIZE,
     /** obtain clause from a formula */
     CLAUSIFY,
-    /** obtain a formula from a clause */
-    FORMULIFY,
+
+    /** THIS DEFINES AN INTERVAL IN THIS ENUM WHERE ALL SIMPLIFYING INFERENCES SHOULD BELONG
+     * (see also INTERNAL_SIMPLIFYING_INFERNCE_LAST and isSimplifyingInferenceRule below). */
+    GENERIC_SIMPLIFYING_INFERNCE,
     /** obtain a clause from a clause by removing duplicate literals */
     REMOVE_DUPLICATE_LITERALS,
-//     /** shell clause transformed to a resolution clause */
-//     SHELL_TO_RESOLUTION,
-    /** resolution inference */
-    RESOLUTION,
-    /** constrained resolution inference */
-    CONSTRAINED_RESOLUTION,
-    /** equality proxy replacement */
-    EQUALITY_PROXY_REPLACEMENT,
-    /** definition of the equality proxy predicate in the form E(x,y) <=> x=y */
-    EQUALITY_PROXY_AXIOM1,
-    /** equality proxy axioms such as E(x,x) or ~E(x,y) \/ x=y */
-    EQUALITY_PROXY_AXIOM2,
-    /** unfolding by definitions f(x1,...,xn)=t */
-    DEFINITION_UNFOLDING,
-    /** any kind of definition folding */
-    DEFINITION_FOLDING,
-    /** introduction of auxiliady predicate for EPR-preserving skolemization */
-    SKOLEM_PREDICATE_INTRODUCTION,
-    /** EPR-preserving skolemization */
-    PREDICATE_SKOLEMIZE,
-//     /** expansion of row variable, KIF-specific */
-//     ROW_VARIABLE_EXPANSION,
-    /** introduction of new name p, p <=> C */
-    PREDICATE_DEFINITION,
-    /** unfolding predicate definitions */
-    PREDICATE_DEFINITION_UNFOLDING,
-    /** merging predicate definitions */
-    PREDICATE_DEFINITION_MERGING,
-    /** discovery of equivalences between atoms */
-    EQUIVALENCE_DISCOVERY,
-    /** sharing common subformulas across the problem */
-    FORMULA_SHARING,
-    /** reduce a formula containing false or true, for example
-     *  false & A ---> false */
-    REDUCE_FALSE_TRUE,
-    /** Local simplification of formula, for example A | (B & A) ---> A*/
-    LOCAL_SIMPLIFICATION,
-    /** Normalization of formulas */
-    NORMALIZATION,
-    /** propagate equalities in formulas, for example
-     * X=Y => X=f(Y) ---> X=f(X) */
-    EQUALITY_PROPAGATION,
     /** remove from clause one or more inequalities <i>s != s</i> */
     TRIVIAL_INEQUALITY_REMOVAL,
-    /** factoring inference */
-    FACTORING,
-    /** factoring with constraints */
-    CONSTRAINED_FACTORING,
     /** subsumption resolution simplification rule */
     SUBSUMPTION_RESOLUTION,
-    /** superposition inference */
-    SUPERPOSITION,
-    /** superposition with constraints */
-    CONSTRAINED_SUPERPOSITION,
-    /** equality factoring inference */
-    EQUALITY_FACTORING,
-    /** equality resolution inference */
-    EQUALITY_RESOLUTION,
-    /** redundant inference with extensionality-like clause */
-    EXTENSIONALITY_RESOLUTION,
     /** forward demodulation inference */
     FORWARD_DEMODULATION,
     /** backward demodulation inference */
@@ -208,8 +191,87 @@ public:
     CONDENSATION,
     /** evaluation inference */
     EVALUATION,
-    /** evaluation inference */
+    /** interpreted simplification inference */
     INTERPRETED_SIMPLIFICATION,
+    /** inference rule for term algebras (no equality between terms of different constructors)*/
+    TERM_ALGEBRA_DISTINCTNESS,
+    /** inference rule for term algebras (no cyclic terms)*/
+    TERM_ALGEBRA_ACYCLICITY,
+    /** inference rule for term algebras (injectivity of constructors)*/
+    TERM_ALGEBRA_INJECTIVITY_SIMPLIFYING,
+    /** hyper-superposition */
+    HYPER_SUPERPOSITION_SIMPLIFYING, // not used at the moment
+    /** global subsumption */
+    GLOBAL_SUBSUMPTION, // CEREFUL: the main premise is not necessarily the first one!
+    /** distinct equality removal */
+    DISTINCT_EQUALITY_REMOVAL,
+    /** the last simplifying inference marker --
+      inferences between GENERIC_SIMPLIFYING_INFERNCE and INTERNAL_SIMPLIFYING_INFERNCE_LAST will be automatically understood simplifying
+      (see also isSimplifyingInferenceRule) */
+    INTERNAL_SIMPLIFYING_INFERNCE_LAST,
+
+
+    /** THIS DEFINES AN INTERVAL IN THIS ENUM WHERE ALL SIMPLIFYING INFERENCES SHOULD BELONG
+      * (see also INTERNAL_GENERATING_INFERNCE_LAST and isGeneratingInferenceRule below). */
+    GENERIC_GENERATING_INFERNCE,
+    /** resolution inference */
+    RESOLUTION,
+    /** constrained resolution inference */
+    CONSTRAINED_RESOLUTION,
+    /** factoring inference */
+    FACTORING,
+    /** factoring with constraints */
+    CONSTRAINED_FACTORING,
+    /** superposition inference */
+    SUPERPOSITION,
+    /** superposition with constraints */
+    CONSTRAINED_SUPERPOSITION,
+    /** equality factoring inference */
+    EQUALITY_FACTORING,
+    /** equality resolution inference */
+    EQUALITY_RESOLUTION,
+    /** redundant inference with extensionality-like clause */
+    EXTENSIONALITY_RESOLUTION,
+    /** inference rule for term algebras (injectivity of constructors)*/
+    TERM_ALGEBRA_INJECTIVITY_GENERATING,
+    /** Replaces a literal of the form C[s] with C[true] \/ s = false, where s is a boolean non-variable term */
+    FOOL_PARAMODULATION,
+    /** unit resulting resolution */
+    UNIT_RESULTING_RESOLUTION,
+    /** hyper-superposition */
+    HYPER_SUPERPOSITION_GENERATING,
+
+    /** generated as instance of its parent */
+    INSTANCE_GENERATION, // used by InstGen. Fun fact: the inference has one parent (logically) but the age is set from two parents (and +1)!
+    /* Instantiation */
+    INSTANTIATION, // used for theory reasoning
+    /** the last generating inference marker --
+          inferences between GENERIC_GENERATING_INFERNCE and INTERNAL_GENERATING_INFERNCE_LAST will be automatically understood generating
+          (see also isGeneratingInferenceRule) */
+    INTERNAL_GENERATING_INFERNCE_LAST,
+
+
+    /** equality proxy replacement */
+    EQUALITY_PROXY_REPLACEMENT,
+    /** definition of the equality proxy predicate in the form E(x,y) <=> x=y */
+    EQUALITY_PROXY_AXIOM1,
+    /** equality proxy axioms such as E(x,x) or ~E(x,y) \/ x=y */
+    EQUALITY_PROXY_AXIOM2,
+    /** unfolding by definitions f(x1,...,xn)=t */
+    DEFINITION_UNFOLDING,
+    /** any kind of definition folding */
+    DEFINITION_FOLDING,
+    /** introduction of new name p, p <=> C */
+    PREDICATE_DEFINITION,
+    /** unfolding predicate definitions */
+    PREDICATE_DEFINITION_UNFOLDING,
+    /** merging predicate definitions */
+    PREDICATE_DEFINITION_MERGING,
+    /** reduce a formula containing false or true, for example
+     *  false & A ---> false */
+    REDUCE_FALSE_TRUE,
+    /** normalizing inference */
+    THEORY_NORMALIZATION,
     /** unused predicate definition removal */
     UNUSED_PREDICATE_DEFINITION_REMOVAL,
     /** pure predicate removal */
@@ -222,47 +284,31 @@ public:
     GROUNDING,
     /** equality axiom */
     EQUALITY_AXIOM,
-    /** choice axiom */
-    CHOICE_AXIOM,
     /** conflict clause generated by sat solver */
     SAT_CONFLICT_CLAUSE,
     /** distinctness axiom for numbers, generated by SimplifyProver */
     SIMPLIFY_PROVER_DISTINCT_NUMBERS_AXIOM,
-    /** a not further specified theory axiom internally added by the class TheoryAxioms. */
-    THEORY_AXIOM,
-    /** acyclicity axiom for term algebras */
-    TERM_ALGEBRA_ACYCLICITY_AXIOM,
-    /** discrimation axiom for term algebras */
-    TERM_ALGEBRA_DISCRIMINATION_AXIOM,
-    /** distinctness axiom for term algebras */
-    TERM_ALGEBRA_DISTINCTNESS_AXIOM,
-    /** exhaustiveness axiom (or domain closure axiom) for term algebras */
-    TERM_ALGEBRA_EXHAUSTIVENESS_AXIOM,
-    /** exhaustiveness axiom (or domain closure axiom) for term algebras */
-    TERM_ALGEBRA_INJECTIVITY_AXIOM,
-    /** one of two axioms of FOOL (distinct constants or finite domain) */
-    FOOL_AXIOM,
-    /** a theory axiom which is not generated internally in Vampire */
-    EXTERNAL_THEORY_AXIOM,
-    /** inference rule for term algebras (no cyclic terms)*/
-    TERM_ALGEBRA_ACYCLICITY,
-    /** inference rule for term algebras (no equality between terms of different constructors)*/
-    TERM_ALGEBRA_DISTINCTNESS,
-    /** inference rule for term algebras (injectivity of constructors)*/
-    TERM_ALGEBRA_INJECTIVITY,
-    //** Flatten a clause to separate theory literals */
-    THEORY_FLATTENING,
     /** Introduction of formula to convert formulas used as argument positions.
      *  Such formulas have the form F->f(x)=1 or ~F->f(x)=0 */
     BOOLEAN_TERM_ENCODING,
+    //** Flatten a clause to separate theory literals */
+    THEORY_FLATTENING,
     /** Elimination of FOOL expressions that makes a formula not syntactically first-order */
     FOOL_ELIMINATION,
     /** Elimination of $ite expressions */
     FOOL_ITE_ELIMINATION,
     /** Elimination of $let expressions */
     FOOL_LET_ELIMINATION,
-    /** Replaces a literal of the form C[s] with C[true] \/ s = false, where s is a boolean non-variable term */
-    FOOL_PARAMODULATION,
+    /** result of general splitting */
+    GENERAL_SPLITTING,
+    /** component introduced by general splitting */
+    GENERAL_SPLITTING_COMPONENT,
+    /** replacing colored constants by skolem functions */
+    COLOR_UNBLOCKING,
+
+    /** refutation in the SAT solver for InstGen */
+    SAT_INSTGEN_REFUTATION,
+
     /** definition introduced by AVATAR */
     AVATAR_DEFINITION,
     /** component introduced by AVATAR */
@@ -275,71 +321,146 @@ public:
     AVATAR_CONTRADICTION_CLAUSE,
     /** sat color elimination */
     SAT_COLOR_ELIMINATION,
-    /** result of general splitting */
-    GENERAL_SPLITTING,
-    /** component introduced by general splitting */
-    GENERAL_SPLITTING_COMPONENT,
-    /** merge of clauses with common non-prop. parts */
-    COMMON_NONPROP_MERGE,
-    /** reducing the propositional part (due to simplification) */
-    PROP_REDUCE,
-    /** clause naming */
-    CLAUSE_NAMING,
-    /** bddzation */
-    BDDZATION,
-    /** tautology introduction */
-    TAUTOLOGY_INTRODUCTION,
-    /** replacing colored constants by skolem functions */
-    COLOR_UNBLOCKING,
-    /** generated as instance of its parent */
-    INSTANCE_GENERATION,
-    /** unit resulting resolution */
-    UNIT_RESULTING_RESOLUTION,
-    /** hyper-superposition */
-    HYPER_SUPERPOSITION,
-    /** global subsumption */
-    GLOBAL_SUBSUMPTION,
-    /** refutation in the SAT solver for InstGen */
-    SAT_INSTGEN_REFUTATION,
-    /** distinct equality removal */
-    DISTINCT_EQUALITY_REMOVAL,
+    /** obtain a formula from a clause */
+    FORMULIFY,
+
     /** inference coming from outside of Vampire */
     EXTERNAL,
-    /** claim definition, definition introduced by a claim in the input */
-    CLAIM_DEFINITION,
+
     /** BNFT flattening */
     BFNT_FLATTENING,
     /** BNFT axioms m != n */
     BFNT_DISTINCT,
     /** BNFT totality axioms R(x,1) \/ ... \/ R(x,n) */
     BFNT_TOTALITY,
+
     /* FMB flattening */
     FMB_FLATTENING,
     /* Functional definition for FMB */
     FMB_FUNC_DEF,
     /* Definition Introduction for FMB */
-    FMB_DEF_INTRO, 
+    FMB_DEF_INTRO,
+    /* Finite model not found */
+    MODEL_NOT_FOUND,
+
     /* Adding sort predicate */
     ADD_SORT_PREDICATES,
     /* Adding sort functions */
     ADD_SORT_FUNCTIONS,
-    /* Instantiation */
-    INSTANTIATION,
-    /* Finite model not found */
-    MODEL_NOT_FOUND,
+
     /* Induction hypothesis*/
-    INDUCTION,
-    /* Inductive strengthening*/
-    INDUCTIVE_STRENGTH
+    INDUCTION_AXIOM,
+
+    /** a not further specified theory axiom internally added by the class TheoryAxioms. */
+    GENERIC_THEORY_AXIOM,
+    /** Some specific groups of axioms coming from TheoryAxioms.cpp" */
+    THEORY_AXIOM_COMMUTATIVITY,
+    THEORY_AXIOM_ASSOCIATIVITY,
+    THEORY_AXIOM_RIGHT_IDENTINTY,
+    THEORY_AXIOM_LEFT_IDENTINTY,
+    THEORY_AXIOM_INVERSE_OP_OP_INVERSES,
+    THEORY_AXIOM_INVERSE_OP_UNIT,
+    THEORY_AXIOM_INVERSE_ASSOC,
+    THEORY_AXIOM_NONREFLEX,
+    THEORY_AXIOM_TRANSITIVITY,
+    THEORY_AXIOM_ORDER_TOTALALITY,
+    THEORY_AXIOM_ORDER_MONOTONICITY,
+    THEORY_AXIOM_PLUS_ONE_GREATER,
+    THEORY_AXIOM_ORDER_PLUS_ONE_DICHOTOMY,
+    THEORY_AXIOM_MINUS_MINUS_X,
+    THEORY_AXIOM_TIMES_ZERO,
+    THEORY_AXIOM_DISTRIBUTIVITY,
+    THEORY_AXIOM_DIVISIBILITY,
+    THEORY_AXIOM_MODULO_MULTIPLY,
+    THEORY_AXIOM_MODULO_POSITIVE,
+    THEORY_AXIOM_MODULO_SMALL,
+    THEORY_AXIOM_DIVIDES_MULTIPLY,
+    THEORY_AXIOM_NONDIVIDES_SKOLEM,
+    THEORY_AXIOM_ABS_EQUALS,
+    THEORY_AXIOM_ABS_MINUS_EQUALS,
+    THEORY_AXIOM_QUOTIENT_NON_ZERO,
+    THEORY_AXIOM_QUOTIENT_MULTIPLY,
+    THEORY_AXIOM_EXTRA_INTEGER_ORDERING,
+    THEORY_AXIOM_FLOOR_SMALL,
+    THEORY_AXIOM_FLOOR_BIG,
+    THEORY_AXIOM_CEILING_BIG,
+    THEORY_AXIOM_CEILING_SMALL,
+    THEORY_AXIOM_TRUNC1,
+    THEORY_AXIOM_TRUNC2,
+    THEORY_AXIOM_TRUNC3,
+    THEORY_AXIOM_TRUNC4,
+    THEORY_AXIOM_ARRAY_EXTENSIONALITY,
+    THEORY_AXIOM_BOOLEAN_ARRAY_EXTENSIONALITY, // currently applied to a formula, so won't propagate to clause->isTheoryAxiom()
+    THEORY_AXIOM_BOOLEAN_ARRAY_WRITE1, // currently applied to a formula, so won't propagate to clause->isTheoryAxiom()
+    THEORY_AXIOM_BOOLEAN_ARRAY_WRITE2, // currently applied to a formula, so won't propagate to clause->isTheoryAxiom()
+    THEORY_AXIOM_ARRAY_WRITE1,
+    THEORY_AXIOM_ARRAY_WRITE2,
+    /** acyclicity axiom for term algebras */
+    TERM_ALGEBRA_ACYCLICITY_AXIOM,
+    TERM_ALGEBRA_DIRECT_SUBTERMS_AXIOM,
+    TERM_ALGEBRA_SUBTERMS_TRANSITIVE_AXIOM,
+    /** discrimination axiom for term algebras */
+    TERM_ALGEBRA_DISCRIMINATION_AXIOM,
+    /** distinctness axiom for term algebras */
+    TERM_ALGEBRA_DISTINCTNESS_AXIOM,
+    /** exhaustiveness axiom (or domain closure axiom) for term algebras */
+    TERM_ALGEBRA_EXHAUSTIVENESS_AXIOM, // currently (sometimes) applied to a formula, so won't propagate to clause->isTheoryAxiom()
+    /** exhaustiveness axiom (or domain closure axiom) for term algebras */
+    TERM_ALGEBRA_INJECTIVITY_AXIOM,
+    /** one of two axioms of FOOL (distinct constants or finite domain) */
+    FOOL_AXIOM_TRUE_NEQ_FALSE,
+    FOOL_AXIOM_ALL_IS_TRUE_OR_FALSE,
+    /** the last internal theory axiom marker --
+      axioms between THEORY_AXIOM and INTERNAL_THEORY_AXIOM_LAST will be automatically making their respective clauses isTheoryAxiom() true */
+    INTERNAL_THEORY_AXIOM_LAST,
+    /** a theory axiom which is not generated internally in Vampire */
+    EXTERNAL_THEORY_AXIOM
   }; // class Inference::Rule
 
-  explicit Inference(Rule r);
+  static std::underlying_type<Rule>::type toNumber(Rule r) { return static_cast<std::underlying_type<Rule>::type>(r); }
+
+  /** Currently not enforced but (almost) assumed:
+   * - these are simplifying inferences used during proof search
+   * - therefore they operate on Clauses
+   * - there is always a main premise, which is going to be the first one returned by Iterator
+   * (CAREFUL: this is currently a problem for GLOBAL_SUBSUMPTION)
+   * - the age of the corresponding Clause is the same as that of this main premise
+   **/
+  static bool isSimplifyingInferenceRule(Rule r) {
+    return (toNumber(r) >= toNumber(Rule::GENERIC_SIMPLIFYING_INFERNCE) &&
+        toNumber(r) < toNumber(Rule::INTERNAL_SIMPLIFYING_INFERNCE_LAST));
+  }
+
+  /**
+   * Currently not enforced but (almost) assumed:
+   * - these are generating inferences used during proof search
+   * - therefore they operate on Clauses
+   * - the age of the corresponding Clause is computed as the max over parent's ages +1
+   */
+  static bool isGeneratingInferenceRule(Rule r) {
+    return (toNumber(r) >= toNumber(Rule::GENERIC_GENERATING_INFERNCE) &&
+        toNumber(r) < toNumber(Rule::INTERNAL_GENERATING_INFERNCE_LAST));
+  }
+
+  /** Currently not enforced but assumed:
+   * - theory axioms should not have any premises
+   **/
+  static bool isTheoryAxiomRule(Rule r) {
+    return (toNumber(r) >= toNumber(Rule::GENERIC_THEORY_AXIOM) &&
+        toNumber(r) < toNumber(Rule::INTERNAL_THEORY_AXIOM_LAST));
+  }
+
+  static bool isExternalTheoryAxiomRule(Rule r) {
+    return r == Rule::EXTERNAL_THEORY_AXIOM;
+  }
+
+  explicit Inference(InputType inputType, Rule r);
 
   /**
    * Destroy the Inference object and decrease reference
    * counters in refered clauses.
    */
-  virtual void destroy();
+  virtual void destroy() = 0;
   /**
    * Destroy the Inference object without decreasing reference
    * counters in refered units.
@@ -362,13 +483,16 @@ public:
    */
   virtual void minimizePremises() {}
 
+  /**
+   * After minimizePremises has been called, some inferences may have fewer parents,
+   * so statistics could change and this function recomputes them.
+   * The function is only responsible for the update between this inference and its parents (if any).
+   * The caller is responsible to ensure that parents are updated before children.
+   **/
+  virtual void updateStatistics() = 0;
+
   static vstring ruleName(Rule rule);
   vstring name() const { return ruleName(_rule); }
-
-  // TODO used in some proofExtra output
-  //      find a better place for this
-  static bool positionIn(TermList& subterm,TermList* term, vstring& position);
-  static bool positionIn(TermList& subterm,Term* term, vstring& position);
 
   CLASS_NAME(Inference);
   USE_ALLOCATOR(Inference);
@@ -385,28 +509,188 @@ public:
     };
   };
 
-  virtual Iterator iterator();
-  virtual bool hasNext(Iterator& it);
-  virtual Unit* next(Iterator& it);
+  virtual Iterator iterator() const = 0;
+  virtual bool hasNext(Iterator& it) const = 0;
+  virtual Unit* next(Iterator& it) const = 0;
 
   /** Return the inference rule */
   Rule rule() const { return _rule; }
 
-  /** Set extra string */
-  void setExtra(vstring e){ _extra=e; }
-  /** Return the extra string */
-  vstring extra() { return _extra; }
+  unsigned char getSineLevel() const { return _sineLevel; }
+  /* should be only used to initialize the "whole chain" by SineUtils */
+  void setSineLevel(unsigned char l) { _sineLevel = l; }
 
-  unsigned maxDepth(){ return _maxDepth; }
+  /*
+   * returns true if clause is a theory axiom
+   *
+   * Definition: A unit is a theory axiom iff both
+   * 1) it is added internally in the TheoryAxiom-class or is an externally added theory axiom
+   * 2) it is a clause.
+   * In particular:
+   * - integer/rational/real theory axioms are internal theory axioms
+   * - term algebra axioms are internal theory axioms
+   * - FOOL axioms are internal theory axioms
+   * - equality-proxy-axioms, SimplifyProver’s-distinct-number-axioms, and BFNT-axioms
+   *   are not treated as internal theory axioms, since they are not generated in TheoryAxioms
+   *   (these axioms should probably be refactored into TheoryAxioms at some point)
+   * - consequences of theory axioms are not theory axioms
+   * - each theory axiom is a theory-tautology, but not every theory-tautology
+   *   is a theory axiom (e.g. a consequence of two theory axioms or a conflict
+   *   clause generated by a call to Z3)
+   * We are interested in whether a clause is an internal theory axiom, because of several reasons:
+   * - Internal theory axioms are already assumed to be clausal and simplified as much as possible
+   * - Internal theory axioms often blow up the search space
+   * - We don't need to pass internal theory axioms to another prover, if
+   *   that prover natively handles the corresponding theory.
+   *
+   * TODO: handle the exhaustiveness axiom, which should be added as clause
+   */
+  bool isTheoryAxiom() const {
+    return isExternalTheoryAxiomRule(_rule) || // maybe we don't want these?
+        isTheoryAxiomRule(_rule);
+  }
+
+
+  /*
+   * returns true if clause is an external theory axiom
+   *
+   * Definition: A unit is an external theory axiom iff it is added by parsing
+   * an external theory axioms (currently only happens in some LTB mode)
+   *
+   * We are interested in whether a clause is an external theory axiom, because of several reasons:
+   * - External theory axioms should already be simplified as much as possible
+   * - External theory axioms often blow up the search space
+   *
+   * TODO: If an unit u with inference EXTERNAL_THEORY_AXIOM is a formula (and therefore not a clause),
+   *  the results c_i of clausifying u will not be labelled EXTERNAL_THEORY_AXIOM, and therefore this function
+   * will return false for c_i. In particular, adding the same formula as a clause or as formula could cause
+   * different behaviour by Vampire, which is probably a bad thing.
+   */
+  bool isExternalTheoryAxiom() const {
+    return isExternalTheoryAxiomRule(_rule);
+  }
+
+  /*
+   * Returns true if the unit belonging to this inference is a pure theory descendant.
+   *
+   * Definition: A pure theory descendant is a unit that
+   * has a derivation where each leaf is a theory axiom.
+   * (This propagates in AVATAR from the clause being split to the corresponding components,
+   * because some people thought it should be that way.)
+   *
+   * Note that a theory axiom itself is also a pure theory descendant.
+   */
+  bool isPureTheoryDescendant() const { return _isPureTheoryDescendant; }
+  /** This is how AVATAR sets it... */
+  void setPureTheoryDescendant(bool val) { _isPureTheoryDescendant = val; }
+
+  unsigned inductionDepth() const { return _inductionDepth; }
+  void setInductionDepth(unsigned d) { _inductionDepth = d; }
+
+  void computeTheoryRunningSums() {
+    CALL("Inference::computeTheoryRunningSums");
+
+    Inference::Iterator parentIt = iterator();
+
+    // inference without parents
+    if (!hasNext(parentIt))
+    {
+      th_ancestors = isTheoryAxiom() ? 1.0 : 0.0;
+      all_ancestors = 1.0;
+    }
+    else
+    {
+      // for simplifying inferences, propagate running sums of main premise
+      if (isSimplifyingInferenceRule(_rule))
+      {
+        // all simplifying inferences save the main premise as first premise
+        Unit* mainPremise = next(parentIt);
+        th_ancestors = mainPremise->inference()->th_ancestors;
+        all_ancestors = mainPremise->inference()->all_ancestors;
+      }
+      // for non-simplifying inferences, compute running sums as sum over all parents
+      else
+      {
+        th_ancestors = 0.0;
+        all_ancestors = 0.0; // there is going to be at least one, eventually
+        while (hasNext(parentIt))
+        {
+          Unit *parent = next(parentIt);
+          th_ancestors += parent->inference()->th_ancestors;
+          all_ancestors += parent->inference()->all_ancestors;
+        }
+      }
+    }
+  }
+
+  SplitSet* splits() const { return _splits; }
+  void setSplits(SplitSet* splits) {
+    ASS(splits != nullptr);
+    ASS(!_splits);
+    _splits=splits;
+  }
 
 protected:
+  InputType _inputType : 3;
+
   /** The rule used */
-  Rule _rule;
-  /** Extra information */
-  vstring _extra;
-  /** The depth */
-  unsigned _maxDepth;
+  Rule _rule : 8;
+
+  /** track whether all leafs were theory axioms only */
+  bool _isPureTheoryDescendant : 1;
+
+  /** Induction depth **/
+  unsigned _inductionDepth : 5;
+
+  /** Sine level computed in SineUtils and used in various heuristics.
+   * May stay uninitialized (i.e. always MAX), if not needed
+   **/
+  unsigned char _sineLevel : 8; // updated as the minimum from parents to children
+
+  SplitSet* _splits;
+
+public:
+  // counting the leafs (in the tree rather than dag sense)
+  // which are theory axioms and the total across all leafs
+  float th_ancestors, all_ancestors; // we use floats, because this can grow large (because of the tree understanding of the dag);
+  // CAREFUL: could this lead to platform differences?
+
 }; // class Inference
+
+/**
+ * Inferences with no premise
+ */
+class Inference0
+  : public Inference
+{
+public:
+  Inference0(InputType inputType, Rule rule) : Inference(inputType, rule)
+  {
+    computeTheoryRunningSums();
+
+    _isPureTheoryDescendant = isTheoryAxiom();
+
+    //_inductionDepth = 0 from Inference::Inference (or set externally)
+    //_sineLevel = MAX from Inference::Inference (or set externally)
+  }
+
+  /* Inference0 does not update (it does not have parents anyway).
+  * So if any of Inference0's statistics have been set externally during
+  * proof search, update statistics won't reset these "hacky" values.
+  * (C.f., inductionDepth assigned in AVATAR to AVATAR_DEFINITION
+  * and thus later propagated to AVATAR_COMPONENT, AVATAR_SPLIT_CLAUSE, and transitively to AVATAR_REFUTATION,
+  * and similarly inductionDepth assigned INDUCTION "hypothesis" formulas in Induction.)
+  */
+  void updateStatistics() {}
+
+  virtual void destroy();
+  virtual Iterator iterator() const;
+  virtual bool hasNext(Iterator& it) const;
+  virtual Unit* next(Iterator& it) const;
+
+  CLASS_NAME(Inference0);
+  USE_ALLOCATOR(Inference0);
+};
 
 /**
  * Inferences with a single premise
@@ -417,18 +701,29 @@ class Inference1
 {
 public:
   Inference1(Rule rule,Unit* premise)
-    : Inference(rule),
+    : Inference(premise->inference()->inputType(), rule),
       _premise1(premise)
   { 
     _premise1->incRefCnt(); 
-    _maxDepth = premise->inference()->maxDepth()+1; 
-    if(_rule == EVALUATION){ _maxDepth = premise->inference()->maxDepth(); }
+
+    computeTheoryRunningSums();
+    _isPureTheoryDescendant = _premise1->inference()->isPureTheoryDescendant();
+    _sineLevel = min(_sineLevel,premise->inference()->getSineLevel());
+
+    updateStatistics();
+  }
+
+  void updateStatistics()
+  {
+    CALL("Inference1::updateStatistics");
+
+    _inductionDepth = _premise1->inference()->inductionDepth();
   }
 
   virtual void destroy();
-  virtual Iterator iterator();
-  virtual bool hasNext(Iterator& it);
-  virtual Unit* next(Iterator& it);
+  virtual Iterator iterator() const;
+  virtual bool hasNext(Iterator& it) const;
+  virtual Unit* next(Iterator& it) const;
 
   CLASS_NAME(Inference1);
   USE_ALLOCATOR(Inference1);
@@ -436,6 +731,51 @@ public:
 protected:
   /** The premise */
   Unit* _premise1;
+};
+
+/**
+ * Inferences with two premises
+ * @since 07/01/2008 Torrevieja
+ */
+class Inference2
+  : public Inference
+{
+public:
+  Inference2(Rule rule,Unit* premise1,Unit* premise2)
+    : Inference(getInputType(premise1->inference()->inputType(),premise2->inference()->inputType()), rule),
+      _premise1(premise1),
+      _premise2(premise2)
+  {
+    _premise1->incRefCnt();
+    _premise2->incRefCnt();
+
+    computeTheoryRunningSums();
+    _isPureTheoryDescendant = _premise1->inference()->isPureTheoryDescendant() && _premise2->inference()->isPureTheoryDescendant();
+    _sineLevel = min(premise1->inference()->getSineLevel(),premise2->inference()->getSineLevel());
+
+    updateStatistics();
+  }
+
+  void updateStatistics()
+  {
+    CALL("Inference2::updateStatistics");
+
+    _inductionDepth = max(_premise1->inference()->inductionDepth(),_premise2->inference()->inductionDepth());
+  }
+
+  virtual void destroy();
+  virtual Iterator iterator() const;
+  virtual bool hasNext(Iterator& it) const;
+  virtual Unit* next(Iterator& it) const;
+
+  CLASS_NAME(Inference2);
+  USE_ALLOCATOR(Inference2);
+
+protected:
+  /** First premise */
+  Unit* _premise1;
+  /** Second premise */
+  Unit* _premise2;
 };
 
 /**
@@ -450,51 +790,19 @@ public:
   virtual ~InferenceMany() { UnitList::destroy(_premises); }
 
   virtual void destroy();
-  virtual Iterator iterator();
-  virtual bool hasNext(Iterator& it);
-  virtual Unit* next(Iterator& it);
+  virtual Iterator iterator() const;
+  virtual bool hasNext(Iterator& it) const;
+  virtual Unit* next(Iterator& it) const;
 
   CLASS_NAME(InferenceMany);
   USE_ALLOCATOR(InferenceMany);
+
+  void updateStatistics();
 
 protected:
   /** The premises */
   UnitList* _premises;
 };
-
-/**
- * Inferences with two premises
- * @since 07/01/2008 Torrevieja
- */
-class Inference2
-  : public Inference
-{
-public:
-  Inference2(Rule rule,Unit* premise1,Unit* premise2)
-    : Inference(rule),
-      _premise1(premise1),
-      _premise2(premise2)
-  {
-    _premise1->incRefCnt();
-    _premise2->incRefCnt();
-    _maxDepth = max(premise1->inference()->maxDepth(),premise2->inference()->maxDepth())+1;
-  }
-
-  virtual void destroy();
-  virtual Iterator iterator();
-  virtual bool hasNext(Iterator& it);
-  virtual Unit* next(Iterator& it);
-
-  CLASS_NAME(Inference2);
-  USE_ALLOCATOR(Inference2);
-
-protected:
-  /** First premise */
-  Unit* _premise1;
-  /** Second premise */
-  Unit* _premise2;
-};
-
 
 }
 #endif

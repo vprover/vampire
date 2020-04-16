@@ -48,7 +48,6 @@ public:
   void attach(SaturationAlgorithm* salg) override;
   void detach() override;
 
-  Clause* generateClause(Clause* queryCl, Literal* queryLit, SLQueryResult res, Limits* limits=0);
   ClauseIterator generateClauses(Clause* premise);
 
   bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override;

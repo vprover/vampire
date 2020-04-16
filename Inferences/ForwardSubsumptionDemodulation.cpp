@@ -610,10 +610,8 @@ isRedundant:
                 return true;
               }
 
-              Inference* inference = new Inference2(Inference::FORWARD_SUBSUMPTION_DEMODULATION, cl, mcl);
-              Unit::InputType inputType = std::max(cl->inputType(), mcl->inputType());
-
-              Clause* newCl = new(cl->length()) Clause(cl->length(), inputType, inference);
+              Inference* inference = new Inference2(Inference::Rule::FORWARD_SUBSUMPTION_DEMODULATION, cl, mcl);
+              Clause* newCl = new(cl->length()) Clause(cl->length(), inference);
 
               for (unsigned i = 0; i < cl->length(); ++i) {
                 if (i == dli) {

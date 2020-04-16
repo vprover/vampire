@@ -320,9 +320,9 @@ struct Instantiation::ResultFn
   {
     CALL("Instantiation::ResultFn::operator()");
 
-    Inference* inf = new Inference1(Inference::INSTANTIATION,_cl);
+    Inference* inf = new Inference1(Inference::Rule::INSTANTIATION,_cl);
     unsigned clen = _cl->length();
-    Clause* res = new(clen) Clause(clen,_cl->inputType(),inf);
+    Clause* res = new(clen) Clause(clen,inf);
     res->setAge(_cl->age()+1);
 
     for(unsigned i=0;i<clen;i++){

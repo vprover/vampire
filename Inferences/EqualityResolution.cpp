@@ -80,8 +80,8 @@ struct EqualityResolution::ResultFn
     }
     unsigned newLen=_cLen-1;
 
-    Inference* inf = new Inference1(Inference::EQUALITY_RESOLUTION, _cl);
-    Clause* res = new(newLen) Clause(newLen, _cl->inputType(), inf);
+    Inference* inf = new Inference1(Inference::Rule::EQUALITY_RESOLUTION, _cl);
+    Clause* res = new(newLen) Clause(newLen, inf);
 
     Literal* litAfter = 0;
 

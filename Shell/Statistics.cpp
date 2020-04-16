@@ -435,8 +435,6 @@ const char* Statistics::phaseToString(ExecutionPhase p)
     return "Including theory axioms";
   case PREPROCESS_1:
     return "Preprocessing 1";
-  case EQUALITY_PROPAGATION:
-    return "Equality propagation";
   case PREDIACTE_DEFINITION_MERGING:
     return "Predicate definition merging";
   case PREDICATE_DEFINITION_INLINING:

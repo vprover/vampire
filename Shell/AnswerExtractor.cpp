@@ -110,11 +110,11 @@ void AnswerExtractor::getNeededUnits(Clause* refutation, ClauseStack& premiseCla
     }
     Inference::Rule infRule;
     UnitIterator parents = is.getParents(curr, infRule);
-    if(infRule==Inference::NEGATED_CONJECTURE) {
+    if(infRule==Inference::Rule::NEGATED_CONJECTURE) {
       conjectures.push(curr);
     }
-    if(infRule==Inference::CLAUSIFY ||
-	(curr->isClause() && (infRule==Inference::INPUT || infRule==Inference::NEGATED_CONJECTURE )) ){
+    if(infRule==Inference::Rule::CLAUSIFY ||
+	(curr->isClause() && (infRule==Inference::Rule::INPUT || infRule==Inference::Rule::NEGATED_CONJECTURE )) ){
       ASS(curr->isClause());
       premiseClauses.push(curr->asClause());
     }
@@ -364,7 +364,7 @@ Unit* AnswerLiteralManager::tryAddingAnswerLiteral(Unit* unit)
 {
   CALL("AnswerLiteralManager::tryAddingAnswerLiteral");
 
-  if(unit->isClause() || unit->inputType()!=Unit::CONJECTURE) {
+  if(unit->isClause() || unit->inference()->inputType()!=Inference::InputType::CONJECTURE) {
     return unit;
   }
 
@@ -390,8 +390,8 @@ Unit* AnswerLiteralManager::tryAddingAnswerLiteral(Unit* unit)
 
   newForm = Flattening::flatten(newForm);
 
-  Inference* inf = new Inference1(Inference::ANSWER_LITERAL, unit);
-  Unit* res = new FormulaUnit(newForm, inf, unit->inputType());
+  Inference* inf = new Inference1(Inference::Rule::ANSWER_LITERAL, unit);
+  Unit* res = new FormulaUnit(newForm, inf);
 
   return res;
 }
@@ -481,8 +481,8 @@ Clause* AnswerLiteralManager::getResolverClause(unsigned pred)
     args.push(TermList(i, false));
   }
   Literal* lit = Literal::create(pred, arity, true, false, args.begin());
-  res = Clause::fromIterator(getSingletonIterator(lit), Unit::AXIOM,
-      new Inference(Inference::ANSWER_LITERAL));
+  res = Clause::fromIterator(getSingletonIterator(lit),
+      new Inference0(Inference::InputType::AXIOM,Inference::Rule::ANSWER_LITERAL));
 
   _resolverClauses.insert(pred, res);
   return res;
@@ -501,8 +501,8 @@ Clause* AnswerLiteralManager::getRefutation(Clause* answer)
     UnitList::push(resolvingPrem, premises);
   }
 
-  Inference* inf = new InferenceMany(Inference::UNIT_RESULTING_RESOLUTION, premises);
-  Clause* refutation = Clause::fromIterator(LiteralIterator::getEmpty(), answer->inputType(), inf);
+  Inference* inf = new InferenceMany(Inference::Rule::UNIT_RESULTING_RESOLUTION, premises);
+  Clause* refutation = Clause::fromIterator(LiteralIterator::getEmpty(), inf);
   return refutation;
 }
 

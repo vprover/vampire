@@ -79,8 +79,7 @@ FormulaUnit* Flattening::flatten (FormulaUnit* unit)
   }
 
   FormulaUnit* res = new FormulaUnit(g,
-			 new Inference1(Inference::FLATTEN,unit),
-			 unit->inputType());
+			 new Inference1(Inference::Rule::FLATTEN,unit));
   if(unit->included()) {
     res->markIncluded();
   }

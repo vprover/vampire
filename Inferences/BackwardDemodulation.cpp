@@ -135,7 +135,6 @@ struct BackwardDemodulation::ResultFn
       return BwSimplificationRecord(0);
     }
 
-
     TermList lhs=arg.first;
     TermList rhs=EqHelper::getOtherEqualitySide(_eqLit, lhs);
 
@@ -165,35 +164,34 @@ struct BackwardDemodulation::ResultFn
     }
 
     if(_parent.getOptions().demodulationRedundancyCheck() && qr.literal->isEquality() &&
-	(qr.term==*qr.literal->nthArgument(0) || qr.term==*qr.literal->nthArgument(1)) ) {
+      (qr.term==*qr.literal->nthArgument(0) || qr.term==*qr.literal->nthArgument(1)) ) {
       TermList other=EqHelper::getOtherEqualitySide(qr.literal, qr.term);
       Ordering::Result tord=_ordering.compare(rhsS, other);
       if(tord!=Ordering::LESS && tord!=Ordering::LESS_EQ) {
-	unsigned eqSort = SortHelper::getEqualityArgumentSort(qr.literal);
-	Literal* eqLitS=Literal::createEquality(true, lhsS, rhsS, eqSort);
-	bool isMax=true;
-	Clause::Iterator cit(*qr.clause);
-	while(cit.hasNext()) {
-	  Literal* lit2=cit.next();
-	  if(qr.literal==lit2) {
-	    continue;
-	  }
-	  if(_ordering.compare(eqLitS, lit2)==Ordering::LESS) {
-	    isMax=false;
-	    break;
-	  }
-	}
-	if(isMax) {
-//	  RSTAT_CTR_INC("bw subsumptions prevented by tlCheck");
-	  //The demodulation is this case which doesn't preserve completeness:
-	  //s = t     s = t1 \/ C
-	  //---------------------
-	  //     t = t1 \/ C
-	  //where t > t1 and s = t > C
-	  return BwSimplificationRecord(0);
-	}
+        unsigned eqSort = SortHelper::getEqualityArgumentSort(qr.literal);
+        Literal* eqLitS=Literal::createEquality(true, lhsS, rhsS, eqSort);
+        bool isMax=true;
+        Clause::Iterator cit(*qr.clause);
+        while(cit.hasNext()) {
+          Literal* lit2=cit.next();
+          if(qr.literal==lit2) {
+            continue;
+          }
+          if(_ordering.compare(eqLitS, lit2)==Ordering::LESS) {
+            isMax=false;
+            break;
+          }
+        }
+        if(isMax) {
+          //	  RSTAT_CTR_INC("bw subsumptions prevented by tlCheck");
+          //The demodulation is this case which doesn't preserve completeness:
+          //s = t     s = t1 \/ C
+          //---------------------
+          //     t = t1 \/ C
+          //where t > t1 and s = t > C
+          return BwSimplificationRecord(0);
+        }
       }
-
     }
 
     Literal* resLit=EqHelper::replace(qr.literal,lhsS,rhsS);
@@ -203,13 +201,9 @@ struct BackwardDemodulation::ResultFn
       return BwSimplificationRecord(qr.clause);
     }
 
-
-    Inference* inf = new Inference2(Inference::BACKWARD_DEMODULATION, _cl, qr.clause);
-    Unit::InputType inpType = (Unit::InputType)
-	Int::max(_cl->inputType(), qr.clause->inputType());
-
+    Inference* inf = new Inference2(Inference::Rule::BACKWARD_DEMODULATION, qr.clause, _cl);
     unsigned cLen=qr.clause->length();
-    Clause* res = new(cLen) Clause(cLen, inpType, inf);
+    Clause* res = new(cLen) Clause(cLen, inf);
 
     (*res)[0]=resLit;
 
@@ -217,7 +211,7 @@ struct BackwardDemodulation::ResultFn
     for(unsigned i=0;i<cLen;i++) {
       Literal* curr=(*qr.clause)[i];
       if(curr!=qr.literal) {
-	(*res)[next++] = curr;
+        (*res)[next++] = curr;
       }
     }
     ASS_EQ(next,cLen);

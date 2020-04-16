@@ -107,11 +107,8 @@ bool ForwardLiteralRewriting::perform(Clause* cl, Clause*& replacement, ClauseIt
       }
       */
 
-      Inference* inf = new Inference2(Inference::FORWARD_LITERAL_REWRITING, cl, premise);
-      Unit::InputType inpType = (Unit::InputType)
-	Int::max(cl->inputType(), premise->inputType());
-
-      Clause* res = new(clen) Clause(clen, inpType, inf);
+      Inference* inf = new Inference2(Inference::Rule::FORWARD_LITERAL_REWRITING, cl, premise);
+      Clause* res = new(clen) Clause(clen, inf);
 
       (*res)[0]=rhsS;
 

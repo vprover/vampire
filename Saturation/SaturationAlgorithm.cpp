@@ -31,6 +31,7 @@
 #include "Lib/Timer.hpp"
 #include "Lib/VirtualIterator.hpp"
 #include "Lib/System.hpp"
+#include "Lib/STL.hpp"
 
 #include "Indexing/LiteralIndexingStructure.hpp"
 
@@ -89,6 +90,7 @@
 #include "SaturationAlgorithm.hpp"
 #include "ManCSPassiveClauseContainer.hpp"
 #include "AWPassiveClauseContainer.hpp"
+#include "PredicateSplitPassiveClauseContainer.hpp"
 #include "Discount.hpp"
 #include "LRS.hpp"
 #include "Otter.hpp"
@@ -108,6 +110,68 @@ using namespace Saturation;
 
 SaturationAlgorithm* SaturationAlgorithm::s_instance = 0;
 
+std::unique_ptr<PassiveClauseContainer> makeLevel0(bool isOutermost, const Options& opt, vstring name)
+{
+  return Lib::make_unique<AWPassiveClauseContainer>(isOutermost, opt, name + "AWQ");
+}
+
+std::unique_ptr<PassiveClauseContainer> makeLevel1(bool isOutermost, const Options& opt, vstring name)
+{
+  if (opt.useTheorySplitQueues())
+  {
+    Lib::vvector<std::unique_ptr<PassiveClauseContainer>> queues;
+    auto cutoffs = opt.theorySplitQueueCutoffs();
+    for (unsigned i = 0; i < cutoffs.size(); i++)
+    {
+      auto queueName = name + "ThSQ" + Int::toString(cutoffs[i]) + ":";
+      queues.push_back(makeLevel0(false, opt, queueName));
+    }
+    return Lib::make_unique<TheoryMultiSplitPassiveClauseContainer>(isOutermost, opt, name + "ThSQ", std::move(queues));
+  }
+  else
+  {
+    return makeLevel0(isOutermost, opt, name);
+  }
+}
+
+std::unique_ptr<PassiveClauseContainer> makeLevel2(bool isOutermost, const Options& opt, vstring name)
+{
+  if (opt.useAvatarSplitQueues())
+  {
+    Lib::vvector<std::unique_ptr<PassiveClauseContainer>> queues;
+    auto cutoffs = opt.avatarSplitQueueCutoffs();
+    for (unsigned i = 0; i < cutoffs.size(); i++)
+    {
+      auto queueName = name + "AvSQ" + Int::toString(cutoffs[i]) + ":";
+      queues.push_back(makeLevel1(false, opt, queueName));
+    }
+    return Lib::make_unique<AvatarMultiSplitPassiveClauseContainer>(isOutermost, opt, name + "AvSQ", std::move(queues));
+  }
+  else
+  {
+    return makeLevel1(isOutermost, opt, name);
+  }
+}
+
+std::unique_ptr<PassiveClauseContainer> makeLevel3(bool isOutermost, const Options& opt, vstring name)
+{
+  if (opt.useSineLevelSplitQueues())
+  {
+    Lib::vvector<std::unique_ptr<PassiveClauseContainer>> queues;
+    auto cutoffs = opt.sineLevelSplitQueueCutoffs();
+    for (unsigned i = 0; i < cutoffs.size(); i++)
+    {
+      auto queueName = name + "SLSQ" + Int::toString(cutoffs[i]) + ":";
+      queues.push_back(makeLevel2(false, opt, queueName));
+    }
+    return Lib::make_unique<SineLevelMultiSplitPassiveClauseContainer>(isOutermost, opt, name + "SLSQ", std::move(queues));
+  }
+  else
+  {
+    return makeLevel2(isOutermost, opt, name);
+  }
+}
+
 /**
  * Create a SaturationAlgorithm object
  *
@@ -116,7 +180,6 @@ SaturationAlgorithm* SaturationAlgorithm::s_instance = 0;
  */
 SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
   : MainLoop(prb, opt),
-    _limits(opt),
     _clauseActivationInProgress(false),
     _fwSimplifiers(0), _bwSimplifiers(0), _splitter(0),
     _consFinder(0), _labelFinder(0), _symEl(0), _answerLiteralManager(0),
@@ -142,15 +205,15 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
   _completeOptionSettings = opt.complete(prb);
 
   _unprocessed = new UnprocessedClauseContainer();
+
   if (opt.useManualClauseSelection())
   {
-    _passive = new ManCSPassiveClauseContainer(opt);
+    _passive = Lib::make_unique<ManCSPassiveClauseContainer>(true, opt);
   }
   else
   {
-    _passive = new AWPassiveClauseContainer(opt);
+    _passive = makeLevel3(true, opt, "");
   }
-    
   _active = new ActiveClauseContainer(opt);
 
   _active->attach(this);
@@ -170,10 +233,6 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
     //_active->addedEvent.subscribe(_extensionality, &ExtensionalityClauseContainer::addIfExtensionality);
   } else {
     _extensionality = 0;
-  }
-  
-  if (opt.maxWeight()) {
-    _limits.setLimits(0,opt.maxWeight(),true);
   }
 
   s_instance=this;
@@ -222,7 +281,6 @@ SaturationAlgorithm::~SaturationAlgorithm()
 
   delete _unprocessed;
   delete _active;
-  delete _passive;
 }
 
 void SaturationAlgorithm::tryUpdateFinalClauseCount()
@@ -233,8 +291,8 @@ void SaturationAlgorithm::tryUpdateFinalClauseCount()
   if (!inst) {
     return;
   }
-  env.statistics->finalActiveClauses = inst->_active->size();
-  env.statistics->finalPassiveClauses = inst->_passive->size();
+  env.statistics->finalActiveClauses = inst->_active->sizeEstimate();
+  env.statistics->finalPassiveClauses = inst->_passive->sizeEstimate();
   if (inst->_extensionality != 0) {
     env.statistics->finalExtensionalityClauses = inst->_extensionality->size();
   }
@@ -255,22 +313,6 @@ ClauseIterator SaturationAlgorithm::activeClauses()
   LiteralIndexingStructure* gis=getIndexManager()->getGeneratingLiteralIndexingStructure();
   return pvi( getMappingIterator(gis->getAll(), SLQueryResult::ClauseExtractFn()) );
 }
-
-ClauseIterator SaturationAlgorithm::passiveClauses()
-{
-  return _passive->iterator();
-}
-
-size_t SaturationAlgorithm::activeClauseCount()
-{
-  return _active->size();
-}
-
-size_t SaturationAlgorithm::passiveClauseCount()
-{
-  return _passive->size();
-}
-
 
 /**
  * A function that is called when a clause is added to the active clause container.
@@ -558,31 +600,29 @@ int SaturationAlgorithm::elapsedTime()
 void SaturationAlgorithm::addInputClause(Clause* cl)
 {
   CALL("SaturationAlgorithm::addInputClause");
-  ASS_LE(cl->inputType(),Clause::CLAIM); // larger input types should not appear in proof search
-
-  cl->markInput();
+  ASS_LE(Inference::toNumber(cl->inference()->inputType()),Inference::toNumber(Inference::InputType::CLAIM)); // larger input types should not appear in proof search
 
   if (_symEl) {
     _symEl->onInputClause(cl);
   }
 
   bool sosForAxioms = _opt.sos() == Options::Sos::ON || _opt.sos() == Options::Sos::ALL; 
-  sosForAxioms = sosForAxioms && cl->inputType()==Clause::AXIOM;
+  sosForAxioms = sosForAxioms && cl->inference()->inputType()==Inference::InputType::AXIOM;
 
   bool sosForTheory = _opt.sos() == Options::Sos::THEORY && _opt.sosTheoryLimit() == 0;
 
   if (_opt.sineToAge()) {
-    unsigned level = cl->getSineLevel();
+    unsigned level = cl->inference()->getSineLevel();
     // cout << "Adding " << cl->toString() << " level " << level;
     if (level == UINT_MAX) {
-      level = env.maxClausePriority;
+      level = env.maxSineLevel-1; // as the next available (unused) value
       // cout << " -> " << level;
     }
     // cout << endl;
     cl->setAge(level);
   }
 
-  if (sosForAxioms || (cl->isTheoryAxiom() && sosForTheory)){
+  if (sosForAxioms || (cl->inference()->isTheoryAxiom() && sosForTheory)){
     addInputSOSClause(cl);
   } else {
     addNewClause(cl);
@@ -619,7 +659,7 @@ LiteralSelector& SaturationAlgorithm::getSosLiteralSelector()
 void SaturationAlgorithm::addInputSOSClause(Clause* cl)
 {
   CALL("SaturationAlgorithm::addInputSOSClause");
-  ASS_EQ(cl->inputType(),Clause::AXIOM);
+  ASS_EQ(Inference::toNumber(cl->inference()->inputType()),Inference::toNumber(Inference::InputType::AXIOM));
 
   //we add an extra reference until the clause is added to some container, so that
   //it won't get deleted during some code e.g. in the onNewClause handler
@@ -699,10 +739,10 @@ Clause* SaturationAlgorithm::doImmediateSimplification(Clause* cl0)
 {
   CALL("SaturationAlgorithm::doImmediateSimplification");
 
-  static bool sosTheoryLimit = _opt.sos()==Options::Sos::THEORY;
-  static unsigned sosTheoryLimitDepth = _opt.sosTheoryLimit();
+  static bool sosTheoryLimit = (_opt.sos()==Options::Sos::THEORY);
+  static unsigned sosTheoryLimitAge = _opt.sosTheoryLimit();
 
-  if(sosTheoryLimit && cl0->isTheoryDescendant() && cl0->inference()->maxDepth() > sosTheoryLimitDepth){
+  if(sosTheoryLimit && cl0->inference()->isPureTheoryDescendant() && cl0->age() > sosTheoryLimitAge){
     return 0;
   }
 
@@ -715,11 +755,6 @@ Clause* SaturationAlgorithm::doImmediateSimplification(Clause* cl0)
     }
     onClauseReduction(cl, simplCl, 0);
     return 0;
-  }
-
-  if (cl != cl0 && cl0->isInput()) {
-    //immediate simplifications maintain the state of a clause as input
-    cl->markInput();
   }
 
   return cl;
@@ -839,13 +874,13 @@ void SaturationAlgorithm::handleEmptyClause(Clause* cl)
   if (isRefutation(cl)) {
     onNonRedundantClause(cl);
 
-    if(cl->isTheoryDescendant() ){
+    if(cl->inference()->isPureTheoryDescendant()) {
       ASSERTION_VIOLATION_REP("A pure theory descendant is empty, which means theory axioms are inconsistent");
       reportSpiderFail();
       // this is a poor way of handling this in release mode but it prevents unsound proofs
       throw MainLoop::MainLoopFinishedException(Statistics::REFUTATION_NOT_FOUND);
     }
-    if(cl->inputType() == Unit::AXIOM){
+    if(cl->inference()->inputType() == Inference::InputType::AXIOM){
       UIHelper::setConjectureInProof(false);
     }
 
@@ -875,7 +910,7 @@ bool SaturationAlgorithm::forwardSimplify(Clause* cl)
 {
   CALL("SaturationAlgorithm::forwardSimplify");
 
-  if (!getLimits()->fulfillsLimits(cl)) {
+  if (!_passive->fulfilsAgeLimit(cl) && !_passive->fulfilsWeightLimit(cl)) {
     RSTAT_CTR_INC("clauses discarded by weight limit in forward simplification");
     env.statistics->discardedNonRedundantClauses++;
     return false;

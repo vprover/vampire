@@ -148,11 +148,10 @@ Clause* SDHelper::generateSubsumptionResolutionClause(Clause* cl, Literal* resLi
 {
   CALL("generateSubsumptionResolutionClause");
 
-  Inference* inference = new Inference2(Inference::SUBSUMPTION_RESOLUTION, cl, mcl);
-  Unit::InputType inputType = std::max(cl->inputType(), mcl->inputType());
+  Inference* inference = new Inference2(Inference::Rule::SUBSUMPTION_RESOLUTION, cl, mcl);
 
   unsigned newLen = cl->length() - 1;
-  Clause* newCl = new(newLen) Clause(newLen, inputType, inference);
+  Clause* newCl = new(newLen) Clause(newLen, inference);
 
   unsigned j = 0;
   for (unsigned i = 0; i < cl->length(); ++i) {

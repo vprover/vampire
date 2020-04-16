@@ -124,9 +124,8 @@ Clause* FastCondensation::simplify(Clause* cl)
       }
       if(MatchingUtils::match(cLit, (*cl)[mIndex], false, cbinder)) {
 	unsigned newLen=clen-1;
-	Inference* inf = new Inference1(Inference::CONDENSATION, cl);
-	Unit::InputType inpType = cl->inputType();
-	Clause* res = new(newLen) Clause(newLen, inpType, inf);
+	Inference* inf = new Inference1(Inference::Rule::CONDENSATION, cl);
+	Clause* res = new(newLen) Clause(newLen, inf);
 
 	unsigned ri=0;
 	for(unsigned ci=0;ci<clen;ci++) {
