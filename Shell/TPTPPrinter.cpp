@@ -528,7 +528,7 @@ vstring TPTPPrinter::toString (const Unit* unit)
   }
 
   if (unit->isClause()) {
-    prefix = "cnf";
+    prefix = env.statistics->higherOrder ? "thf" : "cnf";
     main = static_cast<const Clause*>(unit)->toTPTPString();
   }
   else {
