@@ -149,14 +149,14 @@ ImmediateSimplificationEngine* MainLoop::createISE(Problem& prb, const Options& 
     res->addFront(new ChoiceDefinitionISE());
   }
 
-  //if(prb.hasLogicalProxy() && !env.options->addProxyAxioms()){
+  if((prb.hasLogicalProxy() || prb.hasBoolVar()) && !env.options->addProxyAxioms()){
     res->addFrontMany(new ProxyElimination::ProxyEliminationISE());
     res->addFront(new ProxyElimination::ORIMPANDRemovalISE());
     res->addFront(new ProxyElimination::NOTRemovalISE());   
     res->addFront(new ProxyElimination::EQUALSRemovalISE());   
     res->addFront(new ProxyElimination::PISIGMARemovalISE());    
     res->addFront(new BoolSimp());
-  //}
+  }
 
   // Only add if there are distinct groups 
   if(prb.hasEquality() && env.signature->hasDistinctGroups()) {

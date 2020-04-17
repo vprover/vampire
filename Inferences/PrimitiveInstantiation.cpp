@@ -98,7 +98,7 @@ struct PrimitiveInstantiation::ResultFn
   DECL_RETURN_TYPE(Clause*);
   OWN_RETURN_TYPE operator() (TermQueryResult tqr){
     const int QUERY = 0;
-    
+
     ResultSubstitutionSP subst = tqr.substitution;
 
     unsigned cLen = _cl->length(); 
@@ -113,9 +113,11 @@ struct PrimitiveInstantiation::ResultFn
     }
 
     res->setAge(_cl->age()+1);
-    //cout << "into prim " + _cl->toString() << endl;
-    //cout << "out of prim " + res->toString() << endl;
-
+    if(_cl->number() == 58){
+      cout << "into prim " + _cl->toString() << endl;
+      cout << "out of prim " + res->toString() << endl;
+    }
+    env.statistics->primitiveInstantiations++;  
     return res;
   }
   
@@ -150,7 +152,10 @@ ClauseIterator PrimitiveInstantiation::generateClauses(Clause* premise)
 {
   CALL("PrimitiveInstantiation::generateClauses");
 
-  //cout << "PrimitiveInstantiation with " << premise->toString() << endl;
+  if(premise->number() == 58){
+    cout << "PrimitiveInstantiation with " << premise->toString() << endl;
+  }
+
   
   //is this correct?
   auto it1 = premise->getSelectedLiteralIterator();

@@ -144,6 +144,11 @@ public:
   unsigned backwardSubVarSup;
   unsigned selfSubVarSup;
   unsigned negativeExtensionality;
+  unsigned primitiveInstantiations;
+  unsigned choiceInstances;
+  unsigned proxyEliminations;
+  unsigned leibnizElims;
+  unsigned booleanSimps;
 
   // Simplifying inferences
   /** number of duplicate literals deleted */

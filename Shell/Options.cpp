@@ -3004,8 +3004,10 @@ bool Options::complete(const Problem& prb) const
   bool unitEquality = prop.category() == Property::UEQ;
   bool hasEquality = (prop.equalityAtoms() != 0);
 
-  if((prop.hasCombs() || prop.hasAppliedVar()) && 
-    !_addCombAxioms.actualValue && !_combinatorySuperposition.actualValue) {
+  if((prop.hasCombs() || prop.hasAppliedVar()) /* && 
+    !_addCombAxioms.actualValue && !_combinatorySuperposition.actualValue*/) {
+    //TODO make a more complex more precise case here
+    //There are instance where we are complete
     return false;
   }
 

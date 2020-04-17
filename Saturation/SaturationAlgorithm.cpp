@@ -435,7 +435,7 @@ void SaturationAlgorithm::onClauseRetained(Clause* cl)
  * Called whenever a clause is simplified or deleted at any point of the
  * saturation algorithm
  */
-void SaturationAlgorithm::onClauseReduction(Clause* cl, Clause* replacement, Clause* premise, bool forward)
+void SaturationAlgorithm::onClauseReduction(Clause* cl, ClauseIterator replacements, Clause* premise, bool forward)
 {
   CALL("SaturationAlgorithm::onClauseReduction/5");
   ASS(cl);
@@ -449,10 +449,10 @@ void SaturationAlgorithm::onClauseReduction(Clause* cl, Clause* replacement, Cla
     premises=ClauseIterator::getEmpty();
   }
 
-  onClauseReduction(cl, replacement, premises, forward);
+  onClauseReduction(cl, replacements, premises, forward);
 }
 
-void SaturationAlgorithm::onClauseReduction(Clause* cl, Clause* replacement,
+void SaturationAlgorithm::onClauseReduction(Clause* cl, ClauseIterator replacements,
     ClauseIterator premises, bool forward)
 {
   CALL("SaturationAlgorithm::onClauseReduction/4");
@@ -462,10 +462,20 @@ void SaturationAlgorithm::onClauseReduction(Clause* cl, Clause* replacement,
   premStack.reset();
   premStack.loadFromIterator(premises);
 
+  static ClauseStack repStack;
+  repStack.reset();
+  repStack.loadFromIterator(replacements);
+
+  Clause* replacement = repStack.size() ? repStack[0] : 0;
+
   if (env.options->showReductions()) {
     env.beginOutput();
     env.out() << "[SA] " << (forward ? "forward" : "backward") << " reduce: " << cl->toString() << endl;
-    if(replacement){ env.out() << "     replaced by " << replacement->toString() << endl; }
+    ClauseStack::Iterator rit(repStack);
+    while(rit.hasNext()){
+      Clause* replacement = rit.next();
+      if(replacement){ env.out() << "      replaced by " << replacement->toString() << endl; }
+    }
     ClauseStack::Iterator pit(premStack);
     while(pit.hasNext()){
       Clause* premise = pit.next();
@@ -479,6 +489,7 @@ void SaturationAlgorithm::onClauseReduction(Clause* cl, Clause* replacement,
   }
 
   if (replacement) {
+    //TODO fix this
     onParenthood(replacement, cl);
     while (premStack.isNonEmpty()) {
       onParenthood(replacement, premStack.pop());
@@ -619,7 +630,7 @@ simpl_start:
   Clause* simplCl=_immediateSimplifier->simplify(cl);
   if (simplCl != cl) {
     if (!simplCl) {
-      onClauseReduction(cl, 0, 0);
+      onClauseReduction(cl, ClauseIterator::getEmpty(), 0);
       goto fin;
     }
 
@@ -627,7 +638,7 @@ simpl_start:
     cl->decRefCnt(); //now cl is referenced from simplCl, so after removing the extra reference, it won't be destroyed
 
     onNewClause(simplCl);
-    onClauseReduction(cl, simplCl, 0);
+    onClauseReduction(cl, pvi(getSingletonIterator(simplCl)), 0);
     cl=simplCl;
     goto simpl_start;
   }
@@ -688,6 +699,10 @@ Clause* SaturationAlgorithm::doImmediateSimplification(Clause* cl0)
 
   static bool sosTheoryLimit = _opt.sos()==Options::Sos::THEORY;
   static unsigned sosTheoryLimitDepth = _opt.sosTheoryLimit();
+  static ClauseStack repStack;
+  repStack.reset();
+
+  SplitSet* splitSet = 0;
 
   if(sosTheoryLimit && cl0->isTheoryDescendant() && cl0->inference()->maxDepth() > sosTheoryLimitDepth){
     return 0;
@@ -699,10 +714,17 @@ Clause* SaturationAlgorithm::doImmediateSimplification(Clause* cl0)
   if(cIt.hasNext()){
     while(cIt.hasNext()){
       Clause* simpedCl = cIt.next();
+      if(!splitSet){
+        splitSet = simpedCl->splits();
+      } else {
+        ASS(splitSet->isSubsetOf(simpedCl->splits()));
+        ASS(simpedCl->splits()->isSubsetOf(splitSet));
+      }
       ASS(simpedCl != cl);
+      repStack.push(simpedCl);
       addNewClause(simpedCl);
     }
-    onClauseReduction(cl, 0, 0);
+    onClauseReduction(cl, pvi( ClauseStack::Iterator(repStack)), 0);
     return 0;
   }
 
@@ -711,7 +733,7 @@ Clause* SaturationAlgorithm::doImmediateSimplification(Clause* cl0)
     if (simplCl) {
       addNewClause(simplCl);
     }
-    onClauseReduction(cl, simplCl, 0);
+    onClauseReduction(cl, pvi(getSingletonIterator(simplCl)), 0);
     return 0;
   }
 
@@ -886,7 +908,7 @@ bool SaturationAlgorithm::forwardSimplify(Clause* cl)
         if (replacement) {
           addNewClause(replacement);
         }
-        onClauseReduction(cl, replacement, premises);
+        onClauseReduction(cl, pvi(getSingletonIterator(replacement)), premises);
 
         return false;
       }
@@ -929,7 +951,7 @@ void SaturationAlgorithm::backwardSimplify(Clause* cl)
       if (replacement) {
 	addNewClause(replacement);
       }
-      onClauseReduction(redundant, replacement, cl, false);
+      onClauseReduction(redundant, pvi(getSingletonIterator(replacement)), cl, false);
 
       //we must remove the redundant clause before adding its replacement,
       //as otherwise the redundant one might demodulate the replacement into
@@ -1374,7 +1396,9 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     gie->addFront(new ArgCong());
     gie->addFront(new NegativeExt());//TODO add option
     gie->addFront(new Narrow());
-    gie->addFront(new PrimitiveInstantiation()); //TODO only add in some cases
+    if(prb.hasBoolVar()){
+      gie->addFront(new PrimitiveInstantiation()); //TODO only add in some cases
+    }
     if(!opt.pragmatic()){
       gie->addFront(new SubVarSup());
     }
@@ -1397,7 +1421,8 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   /*if (opt.extensionalityResolution() != Options::ExtensionalityResolution::OFF) {
     gie->addFront(new ExtensionalityResolution());
   }*/
-  if (opt.FOOLParamodulation() || (prb.hasApp() && prb.hasFOOL())) {
+  //check problem is higher-order AYB
+  if (opt.FOOLParamodulation() || (/*prb.hasApp() &&*/ prb.hasFOOL())) {
     gie->addFront(new FOOLParamodulation());
   }
 

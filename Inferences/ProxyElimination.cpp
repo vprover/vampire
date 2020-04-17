@@ -145,6 +145,19 @@ TermList ProxyElimination::sigmaRemoval(TermList sigmaTerm, TermList expsrt){
         varSorts.insert(varTypePair.first.var(), varTypePair.second);
       }
     }
+  } else {
+    varSorts.insert(sigmaTerm.var(), expsrt);
+    if(expsrt.isTerm()){
+      VariableIterator2 vit(expsrt.term());
+      while(vit.hasNext()){
+        pair<TermList, TermList> varTypePair = vit.next();
+        if(!varSorts.find(varTypePair.first.var())){
+          varSorts.insert(varTypePair.first.var(), varTypePair.second);
+        }
+      }
+    } else {
+      varSorts.insert(expsrt.var(), Term::superSort());
+    }
   }
 
   static Stack<TermList> argSorts;
@@ -361,7 +374,7 @@ Clause* ProxyElimination::ORIMPANDRemovalISE::simplify(Clause* c)
       Literal* newLit2 = Literal::createEquality(true, lhs2, rhs2, Term::boolSort());
       Clause* res = replaceLit2(c, lit, newLit1, new Inference1(Inference::BINARY_CONN_ELIMINATION, c), newLit2);
       res->setAge(c->age());
-      //env.statistics->holORIMPANDsimplifications++;
+      env.statistics->proxyEliminations++;  
       return res;
     }
   }
@@ -385,7 +398,7 @@ Clause* ProxyElimination::NOTRemovalISE::simplify(Clause* c)
       newLit = Literal::createEquality(polarity, lhs, rhs, Term::boolSort());//Check this in particular polarity, AYB
       Clause* res = replaceLit2(c, lit, newLit, new Inference1(Inference::HOL_NOT_ELIMINATION, c));//Change inference AYB
       res->setAge(c->age());
-      //env.statistics->holNOTsimplifications++;
+      env.statistics->proxyEliminations++;  
       return res;
     }
   }
@@ -408,7 +421,7 @@ Clause* ProxyElimination::EQUALSRemovalISE::simplify(Clause* c)
       Literal *newLit = Literal::createEquality(polarity, lhs, rhs, sort);//Check this in particular polarity, AYB
       Clause* res = replaceLit2(c, lit, newLit, new Inference1(Inference::HOL_EQUALITY_ELIMINATION, c));//Change inference AYB
       res->setAge(c->age());
-      //env.statistics->holEQAULSignatureimplifications++;
+      env.statistics->proxyEliminations++;  
       //cout << "The premise is " + c->toString() << endl;
       //cout << "The conclusion is " + res->toString() << endl; 
       return res;
@@ -447,7 +460,7 @@ Clause* ProxyElimination::PISIGMARemovalISE::simplify(Clause* c)
       }           
       res->setAge(c->age());
 
-      //env.statistics->holPISIGMAsimplifications++;
+      env.statistics->proxyEliminations++;  
       return res;
     }
   }
@@ -539,6 +552,9 @@ struct ProxyElimination::ProxyEliminationISE::ProxyEliminationIterator
       }else{
         _count = 4; //Iterator returns nothing (Must be a better way of doing this!)
       }
+    }
+    if(!_count){
+      env.statistics->proxyEliminations++;  
     }
   }
 

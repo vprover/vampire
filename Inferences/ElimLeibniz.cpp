@@ -189,6 +189,7 @@ afterLoop:
     clauses.push(c);
   }  
 
+  env.statistics->leibnizElims++;
   return pvi(getUniquePersistentIterator(ClauseStack::Iterator(clauses)));
 
 }

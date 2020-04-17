@@ -67,8 +67,8 @@ Clause* Choice::createChoiceAxiom(TermList op, TermList set)
     fvars = fvars->tail();
   }
   TermList freshVar = TermList(max+1, false);
-  TermList t1 = ApplicativeHelper::createAppTerm(setType, set, freshVar);
 
+  TermList t1 = ApplicativeHelper::createAppTerm(setType, set, freshVar);
   TermList t2 = ApplicativeHelper::createAppTerm(opType, op, set);
   t2 =  ApplicativeHelper::createAppTerm(setType, set, t2);
 
@@ -90,7 +90,7 @@ struct Choice::AxiomsIterator
     ASS(term.isTerm());
     _set = *term.term()->nthArgument(3);
     _headSort = Term::arrowSort(*term.term()->nthArgument(0),*term.term()->nthArgument(1));
-    _resultSort = ApplicativeHelper::getResultSort(_headSort);
+    _resultSort = ApplicativeHelper::getResultApplieadToNArgs(_headSort, 1);
 
     DHSet<unsigned>* ops = env.signature->getChoiceOperators();
     DHSet<unsigned>::Iterator opsIt(*ops);
@@ -129,6 +129,7 @@ struct Choice::AxiomsIterator
 
     _inBetweenNextandHasNext = false;
     Clause* c = createChoiceAxiom(_nextChoiceOperator, _set); 
+    env.statistics->choiceInstances++;
     return c;
   }
 private:
@@ -151,6 +152,7 @@ struct Choice::ResultFn
       return pvi(AxiomsIterator(term));
     } else {
       Clause* axiom = createChoiceAxiom(op, *term.term()->nthArgument(3));
+      env.statistics->choiceInstances++;
       return pvi(getSingletonIterator(axiom));
     }
   }
@@ -174,8 +176,10 @@ struct Choice::IsChoiceTerm
  
     static RobSubstitution subst;
     subst.reset();
+
+    subst.reset();
     return ((head.isVar() || env.signature->isChoiceOperator(head.term()->functor())) &&
-           subst.match(sort,0,headSort,0));
+           subst.match(sort,0,headSort,1));
 
   }
 };

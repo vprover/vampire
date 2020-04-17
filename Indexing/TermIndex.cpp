@@ -181,25 +181,31 @@ void PrimitiveInstantiationIndex::populateIndex()
   TermList s1 = TermList(0, false);  
   TermList x = TermList(1, false);
   TermList y = TermList(2, false);
-
+  
+  unsigned k_comb = env.signature->getCombinator(Signature::K_COMB);
   unsigned v_and = env.signature->getBinaryProxy("vAND");
   unsigned v_or = env.signature->getBinaryProxy("vOR");
   unsigned v_imp = env.signature->getBinaryProxy("vIMP");
   unsigned v_not = env.signature->getNotProxy();
   unsigned v_equals = env.signature->getEqualityProxy();
 
+  TermList kcomb = TermList(Term::create2(k_comb, Term::boolSort(), s1));
   TermList vand = TermList(Term::createConstant(v_and));
   TermList vor = TermList(Term::createConstant(v_or));
   TermList vimp = TermList(Term::createConstant(v_imp));
   TermList vnot = TermList(Term::createConstant(v_not));
   TermList vequals = TermList(Term::create1(v_equals, s1));
-
+ 
+  TermList kTerm1 = AH::createAppTerm3(srtOf(kcomb), kcomb, TermList(Term::foolFalse()), x);
+  TermList kTerm2 = AH::createAppTerm3(srtOf(kcomb), kcomb, TermList(Term::foolTrue()), x);
   TermList andTerm = AH::createAppTerm3(srtOf(vand), vand, x, y);
   TermList orTerm = AH::createAppTerm3(srtOf(vor), vor, x, y);
   TermList impTerm = AH::createAppTerm3(srtOf(vimp), vimp, x, y);
   TermList notTerm = AH::createAppTerm(srtOf(vnot), vnot, x);
   TermList equalsTerm = AH::createAppTerm3(srtOf(vequals), vequals, x, y);
 
+  _is->insert(kTerm1, 0, 0);
+  _is->insert(kTerm2, 0, 0);
   _is->insert(andTerm, 0, 0);
   _is->insert(orTerm, 0, 0);
   _is->insert(impTerm, 0, 0);

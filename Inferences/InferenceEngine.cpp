@@ -274,6 +274,7 @@ bool ChoiceDefinitionISE::is_of_form_xfx(Literal* lit, TermList x, TermList& f){
     ApplicativeHelper::getHeadAndArgs(arg, f, args);
     return (!f.isVar() && args.size() == 1 && args[0] == x);
   }
+  return false;
 }
 
 Clause* DuplicateLiteralRemovalISE::simplify(Clause* c)

@@ -37,6 +37,7 @@
 #include "Kernel/Signature.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/TermIterators.hpp"
+#include "Kernel/ApplicativeHelper.hpp"
 
 #include "Options.hpp"
 #include "Statistics.hpp"
@@ -550,7 +551,13 @@ void Property::scan(Literal* lit, int polarity, unsigned cLen, bool goal)
   CALL("Property::scan(const Literal*...)");
 
   if (lit->isEquality()) {
-    scanSort(SortHelper::getEqualityArgumentSort(lit));
+    TermList eqSort = SortHelper::getEqualityArgumentSort(lit);
+    TermList lhs = *lit->nthArgument(0);
+    TermList rhs = *lit->nthArgument(1);
+    if((lhs.isVar() || rhs.isVar()) && eqSort == Term::boolSort()){
+      _hasBoolVar = true;
+    }
+    scanSort(eqSort);
   }
   else {
     _symbolsInFormula->insert(-lit->functor());
@@ -641,10 +648,9 @@ void Property::scan(TermList ts,bool unit,bool goal)
 
     if(func->app()){
       _hasApp = true;
-      TermList firstArg = *t->nthArgument(2);
-      if(firstArg.isVar()){
-        _hasAppliedVar = true;
-        if(SortHelper::getResultSort(t) == Term::boolSort()){
+      if(SortHelper::getResultSort(t) == Term::boolSort()){
+        TermList head = ApplicativeHelper::getHead(ts);
+        if(head.isVar()){
           _hasBoolVar = true;
         }
       }
@@ -657,10 +663,10 @@ void Property::scan(TermList ts,bool unit,bool goal)
     }
 
     int arity = t->arity();
-    OperatorType* type = func->fnType();
     for (int i = 0; i < arity; i++) {
-      scanSort(type->arg(i));
+      scanSort(SortHelper::getArgSort(t, i));
     }
+    scanSort(SortHelper::getResultSort(t));
 
     if (arity > _maxFunArity) {
       _maxFunArity = arity;

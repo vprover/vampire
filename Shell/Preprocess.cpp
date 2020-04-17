@@ -577,7 +577,8 @@ void Preprocess::naming(Problem& prb)
 
   env.statistics->phase=Statistics::NAMING;
   UnitList::DelIterator us(prb.units());
-  Naming naming(_options.naming(),false, prb.hasApp()); // For now just force eprPreservingNaming to be false, should update Naming
+  //TODO fix the below
+  Naming naming(_options.naming(),false, true/*prb.hasApp()*/); // For now just force eprPreservingNaming to be false, should update Naming
   while (us.hasNext()) {
     Unit* u = us.next();
     if (u->isClause()) {
