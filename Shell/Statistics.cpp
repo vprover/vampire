@@ -407,8 +407,6 @@ void Statistics::print(ostream& out)
   out << "------------------------------\n";
 
   SEPARATOR;
-  if (TheorySubclauseAnalyser::instance) 
-    TheorySubclauseAnalyser::instance->dumpStats(out);
 
 #undef SEPARATOR
 #undef COND_OUT
@@ -416,6 +414,9 @@ void Statistics::print(ostream& out)
   if (env.options && env.options->timeStatistics()) {
     TimeCounter::printReport(out);
   }
+
+  if (TheorySubclauseAnalyser::instance) 
+    TheorySubclauseAnalyser::instance->dumpStats(out);
 
 }
 

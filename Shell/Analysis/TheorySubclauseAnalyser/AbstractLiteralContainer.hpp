@@ -53,10 +53,11 @@ public:
       // auto &&elems = pair.second;
       // ASS_REP(size > 0, size);
 
-      out << "[ equivalence class ]" 
-          << "\t" << container_name
-          << "\t" << size
-          << "\t" << total << "\t";
+      out << "[ equivalence class ]";
+      out << "\t" << container_name;
+      out << "\t" << size;
+      out << "\t" << total;
+      out << "\t";
       // Equiv::dump(out, **min_element(elems.begin(), elems.end()));
       Equiv::dump(out, *pair.first.get());
       out << endl;

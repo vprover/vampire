@@ -17,6 +17,9 @@
 #include "Lib/Environment.hpp"
 #include "Lib/macro_magic.h"
 #include "Shell/Analysis/TheorySubclauseAnalyser.hpp"
+// #define ASS_(x) if (!(x)) {cout << endl << "######################### ASSERTION violation " << #x << endl;} ASS(x)
+#define ASS_(x) ASS(x)
+
 
 #define _TAIL(x, ...) __VA_ARGS__
 
@@ -42,7 +45,7 @@ public:
       out = n_vars++;
       map.insert(decltype(map)::value_type(v, out));
     } else {
-      ASS(it->first == v);
+      ASS_(it->first == v);
       out = it->second;
     }
     return out;
@@ -86,16 +89,6 @@ template <class A> CmpResult compare_ground(A l, A r) {
   if (l > r)
     return CMP_GREATER;
   return CMP_EQUIV;
-}
-
-IntegerConstantType toIntegerConstant(const Term& t) {
-  IntegerConstantType out;
-#if VDEBUG
-  auto res = 
-#endif
-    theory->tryInterpretConstant(&t, out);
-  ASS(res)
-  return out;
 }
 
 template <class A, class Config> struct gen_comparator<vvec<A>, Config> {
@@ -306,7 +299,21 @@ public:
 
   bool isUnaryMinus() const { return Theory::isUnaryMinus(this->interpret()); }
 
+  IntegerConstantType toIntegerConstant() const {
+    IntegerConstantType out;
+    Term* trm = Term::createConstant(functor);
+// #if VDEBUG
+    auto res = 
+// #endif
+      theory->tryInterpretConstant(trm, out);
+    if (!res) throw;
+    ASS_(res)
+    // cout << "%==============================" << out << endl
+    return out;
+  }
+
   template <class A, class Config> friend struct gen_comparator;
+
   OPERATORS(Function, x.functor)
 };
 
@@ -371,8 +378,8 @@ public:
       auto &t = AbsTerm::from(*term.nthArgument(i));
       _args.push_back(t);
     }
-    ASS(!term.isSpecial())
-    ASS(!term.isLiteral())
+    ASS_(!term.isSpecial())
+    ASS_(!term.isLiteral())
     ASS_REP(!_fun.isUnaryMinus() || _args.size() == 1, term.functionName())
   }
 
@@ -382,7 +389,7 @@ public:
         x->integrityCheck();
       }
     }
-    ASS(!_fun.isPlus() || _args.size() > 0)
+    ASS_(!_fun.isPlus() || _args.size() > 0)
   }
 
   bool isNumberConstant() const {
@@ -410,7 +417,7 @@ public:
   void pushMinus() override {
     CALL("ACTerm::pushMinus")
     if (_fun.isUnaryMinus()) {
-      ASS(_args.size() == 1);
+      ASS_(_args.size() == 1);
       if (auto x = dynamic_cast<ACTerm *>(&_args[0].get())) {
         auto minus = _fun;
         if (x->_fun.isPlus()) {
@@ -434,6 +441,10 @@ public:
     for (auto a : _args) {
       a.get().pushMinus();
     }
+  }
+
+  IntegerConstantType toIntegerConstant() const {
+    return _fun.toIntegerConstant();
   }
 
   void sortCommut() override;
@@ -508,7 +519,7 @@ public:
          *   l   -- r --     -- x --   -- r --
          *   -- this ---     ------ this -----
          */
-        ASS(r->_args.size() == 2);
+        ASS_(r->_args.size() == 2);
         auto mul = _fun;
         auto add = r->_fun;
         auto &a = l;
@@ -556,7 +567,7 @@ template <class F1, class F2> void match(const AbsTerm &term, F1 f1, F2 f2) {
   if (auto t = dynamic_cast<const ACTerm *>(&term)) {
     return f1(*t);
   } else {
-    ASS(dynamic_cast<const AbsVarTerm *>(&term));
+    ASS_(dynamic_cast<const AbsVarTerm *>(&term));
     return f2(*static_cast<const AbsVarTerm *>(&term));
   }
 }
@@ -736,7 +747,7 @@ IMPL_GEN_COMPARATOR(ACTerm, {
   auto r_num = rhs.isNumberConstant();
 
   if (l_num && r_num) 
-    return Config::CmpNumberConsts::compare_number_consts(toIntegerConstant(lhs), toIntegerConstant(rhs));
+    return Config::CmpNumberConsts::compare_number_consts(lhs.toIntegerConstant(), rhs.toIntegerConstant());
   if (l_num && !r_num)
     return CMP_LESS;
   if (!l_num && r_num)
@@ -792,37 +803,50 @@ void gen_dump(ostream &out, const AbsTerm &trm, rect_map &map) {
 template <class D>
 void gen_dump(ostream &out, const ACTerm &trm, rect_map &map) {
 
-  if (D::CmpUninterpreted::special() && !trm.isInterpreted())
+  if (D::CmpUninterpreted::special() && !trm.isInterpreted()) {
     return D::CmpUninterpreted::dumpUninterpreted(out, trm, map);
 
-  if (trm.isNumberConstant())
-    return D::CmpNumberConsts::dumpNumberConstant(out, trm, map);
+  } else if (trm.isNumberConstant()) {
+    IntegerConstantType i = trm.toIntegerConstant();
+    return D::CmpNumberConsts::dumpNumberConstant(out, i, map);
 
-  out << trm._fun;
-  if (trm._args.size() > 0) {
-    dumpTuple(out, trm._args, [&](ostream &out, const AbsTerm &t) {
-      gen_dump<D>(out, t, map);
-    });
+  } else {
+    /* normal term */
+    out << trm._fun;
+    if (trm._args.size() > 0) {
+      dumpTuple(out, trm._args, [&](ostream &out, const AbsTerm &t) {
+        gen_dump<D>(out, t, map);
+      });
+    }
   }
 }
 
 struct CmpNumberConstsNop {
-  static CmpResult compare_number_consts(const IntegerConstantType &lhs, const IntegerConstantType &rhs) {
+  static CmpResult compare_number_consts(IntegerConstantType lhs, IntegerConstantType rhs) {
     return CMP_EQUIV;
   }
-  static void dumpNumberConstant(ostream &out, const ACTerm &lit, rect_map &) {
+  static void dumpNumberConstant(ostream &out, IntegerConstantType lit, rect_map &) {
     out << "c";
   }
 };
 
 
 struct CmpNumberConstsIsZero {
-  static CmpResult compare_number_consts(const IntegerConstantType &lhs, const IntegerConstantType &rhs) {
-    auto isZero = [](const IntegerConstantType &x) { return x == IntegerConstantType(0); };
+  static bool isZero(IntegerConstantType x) {
+    static IntegerConstantType ZERO = IntegerConstantType(0); 
+    return x == ZERO;
+  }
+  static CmpResult compare_number_consts(IntegerConstantType lhs, IntegerConstantType rhs) {
+    // return CMP_EQUIV;
     return compare_ground(!isZero(lhs), !isZero(rhs));
   }
-  static void dumpNumberConstant(ostream &out, const ACTerm &lit, rect_map &) {
-    out << "c";
+  static void dumpNumberConstant(ostream &out, IntegerConstantType lit, rect_map &) {
+      // out << "0";
+    if (isZero(lit)) {
+      out << "0";
+    } else {
+      out << "c";
+    }
   }
 };
 
@@ -928,7 +952,7 @@ struct LitEquiv4::Config {
 struct LitEquiv5::Config {
   using CmpUninterpreted = CmpUninterpretedEquiv;
   using CmpVars = CmpVarsMatch;
-  using CmpNumberConsts = CmpNumberConstsZero;
+  using CmpNumberConsts = CmpNumberConstsIsZero;
 };
 
 #define __IMPL_LIT_EQUIV__COMPARE(i)                                           \
@@ -997,7 +1021,7 @@ bool isTheoryTerm_L(const TermList &t) {
   if (t.isTerm()) {
     return interpretedFun(*t.term());
   } else {
-    ASS(t.isVar());
+    ASS_(t.isVar());
     return false;
   }
 }
@@ -1042,7 +1066,7 @@ void TheorySubclauseAnalyser::addClause(Clause &c) {
   if (!c.isTheoryAxiom() && !c.isTheoryDescendant()) {
     auto &scl = maxTheorySubclause(c);
     for (auto l : scl.literals()) {
-      // l->normalize();
+      l->normalize();
       l->rectify();
       _total++;
 #define INSERT(i) _eq##i.insert(l);
@@ -1065,7 +1089,7 @@ void TheorySubclauseAnalyser::dumpStats(ostream &out) const {
   out << endl;
   out << endl;
 
-  MAP(DUMP, 1, 4, 5)
+  MAP(DUMP, 4)
 #undef DUMP
 }
 
@@ -1087,7 +1111,7 @@ void AbsLiteral::normalize() {
     t.normalize();
   }
   if (predicate.isEquality()) {
-    ASS(terms.size() == 2);
+    ASS_(terms.size() == 2);
     auto rect = rect_maps();
     struct Config {
       using CmpUninterpreted = CmpUninterpretedVarsMatch;
@@ -1117,16 +1141,16 @@ template <> struct Debug::print_debug<CmpResult> {
   void operator()(ostream &out, const CmpResult &a) const {
     switch (a) {
     case CMP_EQUIV:
-      cout << "EQUIV";
+      out << "EQUIV";
       break;
     case CMP_LESS:
-      cout << "LESS";
+      out << "LESS";
       break;
     case CMP_GREATER:
-      cout << "GREATER";
+      out << "GREATER";
       break;
     case CMP_NONE:
-      cout << "NONE";
+      out << "NONE";
       break;
     }
   }
