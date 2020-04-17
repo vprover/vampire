@@ -73,10 +73,10 @@
 
 #include "Saturation/ExtensionalityClauseContainer.hpp"
 
-#include "Shell/Analysis/TheorySubclauseAnalyser.hpp"
 #include "Shell/AnswerExtractor.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
+#include "Shell/Analysis/TheorySubclauseAnalyser.hpp"
 #include "Shell/UIHelper.hpp"
 
 #include "Splitter.hpp"
@@ -95,19 +95,9 @@
 using namespace Lib;
 using namespace Kernel;
 using namespace Shell;
-using namespace Shell::Analysis;
 using namespace Saturation;
+using namespace Shell::Analysis;
 
-
-struct Dbg {
-  vstring value;
-  Dbg(vstring value) : value(value) {
-    cout << "begin: " << value << endl;
-  }
-  ~Dbg(){
-    cout << "end:   " << value << endl;
-  }
-};
 /** Print information changes in clause containers */
 #define REPORT_CONTAINERS 0
 /** Print information about performed forward simplifications */
@@ -412,7 +402,6 @@ void SaturationAlgorithm::onNewClause(Clause* cl)
   if (_answerLiteralManager) {
     _answerLiteralManager->onNewClause(cl);
   }
-
 }
 
 void SaturationAlgorithm::onNewUsefulPropositionalClause(Clause* c)
@@ -779,14 +768,14 @@ void SaturationAlgorithm::newClausesToUnprocessed()
     case Clause::NONE:
       addUnprocessedClause(cl);
       break;
+#if VDEBUG
     case Clause::SELECTED:
     case Clause::ACTIVE:
-#if VDEBUG
       cout << "FAIL: " << cl->toString() << endl;
       //such clauses should not appear as new ones
       cout << cl->toString() << endl;
-#endif
       ASSERTION_VIOLATION_REP(cl->store());
+#endif
     }
     cl->decRefCnt(); //belongs to _newClauses.popWithoutDec()
   }
@@ -825,7 +814,6 @@ void SaturationAlgorithm::addUnprocessedClause(Clause* cl)
     return;
   }
 
-  {
   if (cl->isEmpty()) {
     handleEmptyClause(cl);
     return;
@@ -833,7 +821,6 @@ void SaturationAlgorithm::addUnprocessedClause(Clause* cl)
 
   cl->setStore(Clause::UNPROCESSED);
   _unprocessed->add(cl);
-
 
   if (TheorySubclauseAnalyser::instance && cl) {
     TheorySubclauseAnalyser::instance->addClause(*cl);
