@@ -60,8 +60,8 @@ template <class A, class Config> struct gen_comparator {
 
 template <class A, class Config> struct state_wrapped_comparator_std {
   rect_maps &map;
-  state_wrapped_comparator_std(rect_maps &map) : map(map) {}
-  bool operator()(A const &l, A const &r) {
+  state_wrapped_comparator_std(rect_maps& map) : map(map) {}
+  bool operator()(A const& l, A const& r) {
     return gen_comparator<A, Config>{}(l, r, map) == CMP_LESS;
   }
 };
@@ -86,16 +86,6 @@ template <class A> CmpResult compare_ground(A l, A r) {
   if (l > r)
     return CMP_GREATER;
   return CMP_EQUIV;
-}
-
-IntegerConstantType toIntegerConstant(const Term& t) {
-  IntegerConstantType out;
-#if VDEBUG
-  auto res = 
-#endif
-    theory->tryInterpretConstant(&t, out);
-  ASS(res)
-  return out;
 }
 
 template <class A, class Config> struct gen_comparator<vvec<A>, Config> {
@@ -146,34 +136,35 @@ template <class A, class Config> struct gen_comparator<rc<A>, Config> {
   }
 };
 
+
 /** ============= lexicographical comparison ================== **/
 
 namespace __lex_cmp {
 
-template <class Fn, class A, class... Fs> struct lex_ {
-  static CmpResult cmp(Fn f, A l, A h, Fs... fs);
-};
+  template <class Fn, class A, class... Fs> struct lex_ {
+    static CmpResult cmp(Fn f, A l, A h, Fs... fs);
+  };
 
-template <class Fn, class A> struct lex_<Fn, A> {
-  static CmpResult cmp(Fn f, A l, A r) { return CMP_EQUIV; }
-};
+  template <class Fn, class A> struct lex_<Fn, A> {
+    static CmpResult cmp(Fn f, A l, A r) { return CMP_EQUIV; }
+  };
 
-template <class Fn, class A, class F, class... Fs>
-struct lex_<Fn, A, F, Fs...> {
-  static CmpResult cmp(Fn cmp, A l, A r, F field, Fs... rest) {
-    auto c = cmp.template cmp<decltype(field(l))>(field(l), field(r));
-    switch (c) {
-    case CMP_LESS:
-    case CMP_GREATER:
-    case CMP_NONE:
-      return c;
-    case CMP_EQUIV:
-      return lex_<Fn, A, Fs...>::cmp(cmp, l, r, rest...);
+  template <class Fn, class A, class F, class... Fs>
+  struct lex_<Fn, A, F, Fs...> {
+    static CmpResult cmp(Fn cmp, A l, A r, F field, Fs... rest) {
+      auto c = cmp.template cmp<decltype(field(l))>(field(l), field(r));
+      switch (c) {
+      case CMP_LESS:
+      case CMP_GREATER:
+      case CMP_NONE:
+        return c;
+      case CMP_EQUIV:
+        return lex_<Fn, A, Fs...>::cmp(cmp, l, r, rest...);
+      }
     }
-  }
-};
+  };
 
-} // namespace __lex_cmp
+}
 
 template <class Fn, class A, class... Fs>
 CmpResult lex_cmp(Fn f, A l, A r, Fs... fs) {
@@ -183,31 +174,31 @@ CmpResult lex_cmp(Fn f, A l, A r, Fs... fs) {
 /** ============= subclass comparison ================== **/
 
 namespace __subclass_cmp {
-template <class Fn, class A, class... Bs> struct _subclass_cmp {
-  static CmpResult cmp(Fn f, const A &lhs, const A &rhs);
-};
+  template <class Fn, class A, class... Bs> struct _subclass_cmp {
+    static CmpResult cmp(Fn f, const A &lhs, const A &rhs);
+  };
 
-template <class Fn, class A> struct _subclass_cmp<Fn, A> {
-  static CmpResult cmp(Fn f, const A &lhs, const A &rhs) { ASSERTION_VIOLATION }
-};
+  template <class Fn, class A> struct _subclass_cmp<Fn, A> {
+    static CmpResult cmp(Fn f, const A &lhs, const A &rhs) { ASSERTION_VIOLATION }
+  };
 
-template <class Fn, class A, class B, class... Bs>
-struct _subclass_cmp<Fn, A, B, Bs...> {
-  static CmpResult cmp(Fn f, const A &l, const A &r) {
-    const B *lhs = dynamic_cast<const B *>(&l);
-    const B *rhs = dynamic_cast<const B *>(&r);
-    if (lhs && rhs) {
-      return f.template cmp<B>(*lhs, *rhs);
-    } else if (lhs && !rhs) {
-      return CMP_LESS;
-    } else if (!lhs && rhs) {
-      return CMP_GREATER;
-    } else {
-      return _subclass_cmp<Fn, A, Bs...>::cmp(f, l, r);
+  template <class Fn, class A, class B, class... Bs>
+  struct _subclass_cmp<Fn, A, B, Bs...> {
+    static CmpResult cmp(Fn f, const A &l, const A &r) {
+      const B *lhs = dynamic_cast<const B *>(&l);
+      const B *rhs = dynamic_cast<const B *>(&r);
+      if (lhs && rhs) {
+        return f.template cmp<B>(*lhs, *rhs);
+      } else if (lhs && !rhs) {
+        return CMP_LESS;
+      } else if (!lhs && rhs) {
+        return CMP_GREATER;
+      } else {
+        return _subclass_cmp<Fn, A, Bs...>::cmp(f, l, r);
+      }
     }
-  }
-};
-} // namespace __subclass_cmp
+  };
+}
 
 template <class Fn, class A, class... As>
 CmpResult subclass_cmp(Fn f, const A &lhs, const A &rhs) {
@@ -227,7 +218,8 @@ CmpResult subclass_cmp(Fn f, const A &lhs, const A &rhs) {
   TIE_OP(>, CLASS, __VA_ARGS__)                                                \
   TIE_OP(<=, CLASS, __VA_ARGS__)                                               \
   TIE_OP(>=, CLASS, __VA_ARGS__)                                               \
-  TIE_OP(==, CLASS, __VA_ARGS__)
+  TIE_OP(==, CLASS, __VA_ARGS__)                                               \
+
 
 /** ============= utility term datatypes ================== **/
 
@@ -323,9 +315,7 @@ public:
   AbsVarTerm(unsigned var) : _var(var) {}
   ~AbsVarTerm() {}
 
-  inline void write(ostream &out, rect_map &map) const {
-    out << "X" << map.get(_var);
-  }
+  inline void write(ostream& out, rect_map& map) const { out << "X" << map.get(_var); } 
 
   void write(ostream &out) const override { out << "X" << _var; }
 
@@ -347,252 +337,7 @@ public:
   friend struct CmpVarsEqual;
 };
 
-AbsTerm::~AbsTerm() {}
-
-class ACTerm : public AbsTerm {
-public:
-  CLASS_NAME(ACTerm);
-  USE_ALLOCATOR(ACTerm);
-
-private:
-  Function _fun;
-  typedef vvec<refw<AbsTerm>> args_t;
-  args_t _args;
-
-public:
-  ACTerm(Function fun, std::initializer_list<refw<AbsTerm>> ts)
-      : _fun(fun), _args(args_t(ts)) {}
-
-  ACTerm(Function fun, args_t ts) : _fun(fun), _args(ts) {}
-  ~ACTerm() {}
-
-  ACTerm(Term &term) : _fun(term.functor()), _args(args_t()) {
-    for (auto i = 0; i < term.arity(); i++) {
-      auto &t = AbsTerm::from(*term.nthArgument(i));
-      _args.push_back(t);
-    }
-    ASS(!term.isSpecial())
-    ASS(!term.isLiteral())
-    ASS_REP(!_fun.isUnaryMinus() || _args.size() == 1, term.functionName())
-  }
-
-  void integrityCheck() {
-    for (auto a : _args) {
-      if (auto x = dynamic_cast<ACTerm *>(&a.get())) {
-        x->integrityCheck();
-      }
-    }
-    ASS(!_fun.isPlus() || _args.size() > 0)
-  }
-
-  bool isNumberConstant() const {
-    return Theory::isNumberConstant(_fun.interpret());
-  }
-
-  bool uninterpreted() const {
-    return _fun.interpret() == Theory::INVALID_INTERPRETATION;
-  }
-
-  void normalize() override {
-    pushMinus();
-    distributeLeft();
-    distributeRight();
-    mergeAssoc();
-    sortCommut();
-  }
-
-  void rectify(rect_map &r) override {
-    for (auto &t : _args) {
-      t.get().rectify(r);
-    }
-  }
-
-  void pushMinus() override {
-    CALL("ACTerm::pushMinus")
-    if (_fun.isUnaryMinus()) {
-      ASS(_args.size() == 1);
-      if (auto x = dynamic_cast<ACTerm *>(&_args[0].get())) {
-        auto minus = _fun;
-        if (x->_fun.isPlus()) {
-          _fun = x->_fun;
-          /*  -(x + y + ..) => (-x) + (-y) + ...  */
-          _args.clear();
-          _args.reserve(x->_args.size());
-          for (AbsTerm &a : x->_args) {
-            _args.push_back(*new ACTerm(minus, {a}));
-          }
-          x->_args.clear();
-          delete x;
-
-        } else if (x->_fun.isTimes()) {
-          /*  -(x * y * ..) => (-x) * y * ...  */
-          x->_args[0] =
-              *new ACTerm(minus, {x->_args[0]}); // TODO: add * (-1) instead
-        }
-      }
-    }
-    for (auto a : _args) {
-      a.get().pushMinus();
-    }
-  }
-
-  void sortCommut() override;
-
-  void mergeAssoc() override {
-    CALL("ACTerm::mergeAssoc")
-    for (auto arg : _args) {
-      arg.get().mergeAssoc();
-    }
-
-    if (_fun.isAssoc()) { // TODO performance
-      vvec<refw<AbsTerm>> new_args;
-      new_args.reserve(_args.size());
-      for (int i = 0; i < _args.size(); i++) {
-        auto arg = dynamic_cast<ACTerm *>(&_args[i].get());
-        if (arg && arg->_fun == _fun) {
-          /* merge */
-          new_args.reserve(new_args.capacity() + arg->_args.size() - 1);
-          for (auto arg_ : arg->_args) {
-            new_args.push_back(arg_);
-          }
-          arg->_args.clear();
-          //                    delete arg;
-        } else {
-          /* do not merge */
-          new_args.push_back(_args[i]);
-        }
-      }
-      _args.clear();
-      _args = new_args;
-    }
-  }
-  vset<unsigned> var_set() const {
-    vset<unsigned> v;
-    var_set(v);
-    return v;
-  }
-  void var_set(vset<unsigned> &vs) const override {
-    for (auto &t : _args) {
-      t.get().var_set(vs);
-    }
-  }
-
-  void vars(vvec<unsigned> &v, on_unsigned_t onUninterpreted) const override {
-    if (uninterpreted()) {
-      onUninterpreted(*this, v);
-    } else {
-      for (auto &t : _args) {
-        t.get().vars(v, onUninterpreted);
-      }
-    }
-  }
-
-  void distributeLeft() override {
-    CALL("ACTerm::distributeLeft")
-    distribute(0, 1, [](AbsTerm &x) { x.distributeLeft(); });
-  }
-
-  void distributeRight() override {
-    CALL("ACTerm::distributeRight")
-    distribute(1, 0, [](AbsTerm &x) { x.distributeRight(); });
-  }
-
-  template <class Fn> void distribute(size_t fst, size_t snd, Fn rec) {
-    if (_args.size() == 2) {
-      AbsTerm &l = _args[fst];
-      AbsTerm &r_ = _args[snd];
-      auto r = dynamic_cast<ACTerm *>(&r_);
-
-      if (r && _fun.leftDistributiveOver(r->_fun)) {
-        /*   a * (b + c)  => (a * b) + (a * c)
-         *   l   -- r --     -- x --   -- r --
-         *   -- this ---     ------ this -----
-         */
-        ASS(r->_args.size() == 2);
-        auto mul = _fun;
-        auto add = r->_fun;
-        auto &a = l;
-        auto &b = r->_args[fst];
-        auto &c = r->_args[snd];
-
-        auto &x = *new ACTerm(mul, {a, b});
-        x._args[fst] = a;
-        x._args[snd] = b;
-
-        r->_fun = mul;
-        r->_args[fst] = a;
-        r->_args[snd] = c;
-
-        this->_fun = add;
-        this->_args[fst] = x;
-        this->_args[snd] = *r;
-
-        rec(x);
-        rec(*r);
-      } else {
-
-        rec(l);
-        rec(r_);
-      }
-    } else {
-      for (AbsTerm &a : _args) {
-        rec(a);
-      }
-    }
-  }
-  inline bool isInterpreted() const {
-    return _fun.interpret() != Theory::INVALID_INTERPRETATION;
-  }
-
-public:
-  virtual void write(ostream &out) const override;
-  template <class A, class Config> friend struct gen_comparator;
-  OPERATORS(ACTerm, !x.isInterpreted(), !x.isNumberConstant(), x._fun, x._args)
-  template <class D>
-  friend void gen_dump(ostream &out, const ACTerm &trm, rect_map &map);
-};
-
-template <class F1, class F2> void match(const AbsTerm &term, F1 f1, F2 f2) {
-  if (auto t = dynamic_cast<const ACTerm *>(&term)) {
-    return f1(*t);
-  } else {
-    ASS(dynamic_cast<const AbsVarTerm *>(&term));
-    return f2(*static_cast<const AbsVarTerm *>(&term));
-  }
-}
-Signature::Symbol &fnSym(const Term &t) {
-  return *env.signature->getFunction(t.functor());
-}
-
-bool interpretedFun(const Term &t) { return fnSym(t).interpreted(); }
-AbsTerm &AbsTerm::from(TermList &t) {
-  if (t.isVar()) {
-    t.var();
-    return *new AbsVarTerm(t.var());
-  } else {
-    return *new ACTerm(*t.term());
-  }
-}
-
-#define TRY_CMP(OP, CLASS)                                                     \
-  {                                                                            \
-    if (auto l = dynamic_cast<const CLASS *>(&lhs)) {                          \
-      if (auto r = dynamic_cast<const CLASS *>(&rhs)) {                        \
-        const CLASS &l_ = *l;                                                  \
-        const CLASS &r_ = *r;                                                  \
-        if (l_ OP r_)                                                          \
-          return true;                                                         \
-      } else {                                                                 \
-        return true;                                                           \
-      }                                                                        \
-    }                                                                          \
-  }
-
-/* utility datatypes */
-class AbsLiteral {
-public:
-  CLASS_NAME(AbsLiteral)
-  USE_ALLOCATOR(AbsLiteral)
+AbsTerm::~AbsTerm() {
 
   bool positive;
   Predicate predicate;
@@ -774,23 +519,455 @@ void dumpTuple(ostream &out, Range r, Dump d) {
   out << ")";
 }
 
-template <class D>
-void gen_dump(ostream &out, const AbsLiteral &lit, rect_map &map) {
+class ACTerm : public AbsTerm {
+public:
+  CLASS_NAME(ACTerm);
+  USE_ALLOCATOR(ACTerm);
+
+private:
+  Function _fun;
+  typedef vvec<refw<AbsTerm>> args_t;
+  args_t _args;
+
+public:
+  ACTerm(Function fun, std::initializer_list<refw<AbsTerm>> ts)
+      : _fun(fun), _args(args_t(ts)) {}
+
+  ACTerm(Function fun, args_t ts) : _fun(fun), _args(ts) {}
+  ~ACTerm() {}
+
+  ACTerm(Term &term) : _fun(term.functor()), _args(args_t()) {
+    for (auto i = 0; i < term.arity(); i++) {
+      auto &t = AbsTerm::from(*term.nthArgument(i));
+      _args.push_back(t);
+    }
+    ASS(!term.isSpecial())
+    ASS(!term.isLiteral())
+    ASS_REP(!_fun.isUnaryMinus() || _args.size() == 1, term.functionName())
+  }
+
+  void integrityCheck() {
+    for (auto a : _args) {
+      if (auto x = dynamic_cast<ACTerm *>(&a.get())) {
+        x->integrityCheck();
+      }
+    }
+    ASS(!_fun.isPlus() || _args.size() > 0)
+  }
+
+  bool isNumberConstant() const {
+    return Theory::isNumberConstant(_fun.interpret());
+  }
+
+  bool uninterpreted() const {
+    return _fun.interpret() == Theory::INVALID_INTERPRETATION;
+  }
+
+  void normalize() override {
+    pushMinus();
+    distributeLeft();
+    distributeRight();
+    mergeAssoc();
+    sortCommut();
+  }
+  void rectify(rect_map &r) override {
+    for (auto &t : _args) {
+      t.get().rectify(r);
+    }
+  }
+
+  void pushMinus() override {
+    CALL("ACTerm::pushMinus")
+    if (_fun.isUnaryMinus()) {
+      ASS(_args.size() == 1);
+      if (auto x = dynamic_cast<ACTerm *>(&_args[0].get())) {
+        auto minus = _fun;
+        if (x->_fun.isPlus()) {
+          _fun = x->_fun;
+          /*  -(x + y + ..) => (-x) + (-y) + ...  */
+          _args.clear();
+          _args.reserve(x->_args.size());
+          for (AbsTerm &a : x->_args) {
+            _args.push_back(*new ACTerm(minus, {a}));
+          }
+          x->_args.clear();
+          delete x;
+
+        } else if (x->_fun.isTimes()) {
+          /*  -(x * y * ..) => (-x) * y * ...  */
+          x->_args[0] =
+              *new ACTerm(minus, {x->_args[0]}); // TODO: add * (-1) instead
+        }
+      }
+    }
+    for (auto a : _args) {
+      a.get().pushMinus();
+    }
+  }
+
+  void sortCommut() override; 
+
+
+  void mergeAssoc() override {
+    CALL("ACTerm::mergeAssoc")
+    for (auto arg : _args) {
+      arg.get().mergeAssoc();
+    }
+
+    if (_fun.isAssoc()) { // TODO performance
+      vvec<refw<AbsTerm>> new_args;
+      new_args.reserve(_args.size());
+      for (int i = 0; i < _args.size(); i++) {
+        auto arg = dynamic_cast<ACTerm *>(&_args[i].get());
+        if (arg && arg->_fun == _fun) {
+          /* merge */
+          new_args.reserve(new_args.capacity() + arg->_args.size() - 1);
+          for (auto arg_ : arg->_args) {
+            new_args.push_back(arg_);
+          }
+          arg->_args.clear();
+          //                    delete arg;
+        } else {
+          /* do not merge */
+          new_args.push_back(_args[i]);
+        }
+      }
+      _args.clear();
+      _args = new_args;
+    }
+  }
+  vset<unsigned> var_set() const { 
+    vset<unsigned> v;
+    var_set(v);
+    return v;
+  }
+  void var_set(vset<unsigned> &vs) const override {
+    for (auto &t : _args) {
+      t.get().var_set(vs);
+    }
+  }
+
+  void vars(vvec<unsigned> &v, on_unsigned_t onUninterpreted) const override {
+    if (uninterpreted()) {
+      onUninterpreted(*this, v);
+    } else {
+      for (auto &t : _args) {
+        t.get().vars(v, onUninterpreted);
+      }
+    }
+  }
+
+  void distributeLeft() override {
+    CALL("ACTerm::distributeLeft")
+    distribute(0, 1, [](AbsTerm &x) { x.distributeLeft(); });
+  }
+
+  void distributeRight() override {
+    CALL("ACTerm::distributeRight")
+    distribute(1, 0, [](AbsTerm &x) { x.distributeRight(); });
+  }
+
+  template <class Fn> void distribute(size_t fst, size_t snd, Fn rec) {
+    if (_args.size() == 2) {
+      AbsTerm &l = _args[fst];
+      AbsTerm &r_ = _args[snd];
+      auto r = dynamic_cast<ACTerm *>(&r_);
+
+      if (r && _fun.leftDistributiveOver(r->_fun)) {
+        /*   a * (b + c)  => (a * b) + (a * c)
+         *   l   -- r --     -- x --   -- r --
+         *   -- this ---     ------ this -----
+         */
+        ASS(r->_args.size() == 2);
+        auto mul = _fun;
+        auto add = r->_fun;
+        auto &a = l;
+        auto &b = r->_args[fst];
+        auto &c = r->_args[snd];
+
+        auto &x = *new ACTerm(mul, {a, b});
+        x._args[fst] = a;
+        x._args[snd] = b;
+
+        r->_fun = mul;
+        r->_args[fst] = a;
+        r->_args[snd] = c;
+
+        this->_fun = add;
+        this->_args[fst] = x;
+        this->_args[snd] = *r;
+
+        rec(x);
+        rec(*r);
+      } else {
+
+        rec(l);
+        rec(r_);
+      }
+    } else {
+      for (AbsTerm &a : _args) {
+        rec(a);
+      }
+    }
+  }
+  inline bool isInterpreted() const {
+    return _fun.interpret() != Theory::INVALID_INTERPRETATION;
+  }
+
+public:
+  virtual void write(ostream &out) const override;  
+  template <class A, class Config> friend struct gen_comparator;
+  OPERATORS(ACTerm, !x.isInterpreted(), !x.isNumberConstant(),  x._fun, x._args)
+  template<class D>
+  friend void gen_dump(ostream& out, const ACTerm& trm, rect_map& map);
+};
+
+template<class F1, class F2>
+void match(const AbsTerm& term, F1 f1, F2 f2) {
+  if (auto t = dynamic_cast<const ACTerm*>(&term)) {
+    return f1(*t);
+  } else {
+    ASS(dynamic_cast<const AbsVarTerm*>(&term));
+    return f2(*static_cast<const AbsVarTerm*>( &term ));
+  }
+}
+Signature::Symbol &fnSym(const Term &t) {
+  return *env.signature->getFunction(t.functor());
+}
+
+bool interpretedFun(const Term &t) { return fnSym(t).interpreted(); }
+AbsTerm &AbsTerm::from(TermList &t) {
+  if (t.isVar()) {
+    t.var();
+    return *new AbsVarTerm(t.var());
+  } else {
+    return *new ACTerm(*t.term());
+  }
+}
+
+#define TRY_CMP(OP, CLASS)                                                     \
+  {                                                                            \
+    if (auto l = dynamic_cast<const CLASS *>(&lhs)) {                          \
+      if (auto r = dynamic_cast<const CLASS *>(&rhs)) {                        \
+        const CLASS &l_ = *l;                                                  \
+        const CLASS &r_ = *r;                                                  \
+        if (l_ OP r_)                                                          \
+          return true;                                                         \
+      } else {                                                                 \
+        return true;                                                           \
+      }                                                                        \
+    }                                                                          \
+  }
+
+/* utility datatypes */
+class AbsLiteral {
+public:
+  CLASS_NAME(AbsLiteral)
+  USE_ALLOCATOR(AbsLiteral)
+
+  bool positive;
+  Predicate predicate;
+  vvec<refw<AbsTerm>> terms; // TODO destructor
+
+  explicit AbsLiteral(Literal *l)
+      : positive(l->isPositive()), predicate(l->functor()),
+        terms(vvec<refw<AbsTerm>>()) {
+    terms.reserve(l->arity());
+    for (auto i = 0; i < l->arity(); i++) {
+      auto &t = AbsTerm::from(*l->nthArgument(i));
+      terms.push_back(t);
+    }
+  }
+
+  void normalize();
+  void rectify();
+
+  AbsLiteral(bool positive, Predicate pred, vvec<refw<AbsTerm>> terms)
+      : positive(positive), predicate(pred), terms(terms) {}
+
+  template <class A, class Config> friend struct gen_comparator;
+
+  OPERATORS(AbsLiteral, x.predicate, x.positive, x.terms);
+};
+
+ostream &operator<<(ostream &out, const AbsLiteral &lit);
+
+CmpResult LitEquiv1::compare(const AbsLiteral &lhs, const AbsLiteral &rhs) {
+
+  return CMP_EQUIV;
+}
+
+void LitEquiv1::dump(ostream& out, const AbsLiteral& lit) {
+  out << "*";
+}
+
+struct cmp_eq {
+  template <class A> CmpResult cmp(const A &l, const A &r) {
+    if (l == r) {
+      return CMP_NONE;
+    } else {
+      return CMP_EQUIV;
+    }
+  }
+};
+
+struct cmp_less {
+  template <class A> CmpResult cmp(const A &l, const A &r) {
+    if (l < r)
+      return CMP_LESS;
+    else if (r < l)
+      return CMP_GREATER;
+    else if (l == r)
+      return CMP_EQUIV;
+    else
+      return CMP_NONE;
+  }
+};
+bool operator<(const AbsTerm &lhs, const AbsTerm &rhs) {
+  auto r =
+      subclass_cmp<cmp_less, AbsTerm, AbsVarTerm, ACTerm>(cmp_less{}, lhs, rhs);
+  return r == CMP_LESS;
+}
+
+bool operator==(const AbsTerm &lhs, const AbsTerm &rhs) {
+  auto r =
+      subclass_cmp<cmp_eq, AbsTerm, AbsVarTerm, ACTerm>(cmp_eq{}, lhs, rhs);
+  return r == CMP_EQUIV;
+}
+
+ostream &operator<<(ostream &out, AbsTerm &t) {
+  t.write(out);
+  return out;
+}
+
+/* === comparisons based on equivalence classes  === */
+
+template <class Config> struct gen_comparator<AbsLiteral, Config> {
+  CmpResult operator()(const AbsLiteral &lhs, const AbsLiteral &rhs,
+                       rect_maps &map) const {
+
+#define CLOSURE(t) , [](const AbsLiteral &x) { return t; }
+
+    return lex_cmp(state_wrapped_comparator_poly<Config>(map), lhs,
+                   rhs MAP(CLOSURE, x.positive, x.predicate, x.terms));
+
+#undef CLSR
+  }
+};
+
+template <class Config> struct gen_comparator<AbsTerm, Config> {
+  CmpResult operator()(const AbsTerm &lhs, const AbsTerm &rhs,
+                       rect_maps &map) const {
+
+    auto r =
+        subclass_cmp<state_wrapped_comparator_poly<Config>, AbsTerm, AbsVarTerm,
+                     ACTerm>(state_wrapped_comparator_poly<Config>(map), lhs, rhs);
+    return r;
+  }
+};
+#define SUB_COMPARATORS Config
+// #define SUB_COMPARATORS CmpUninterpreted, CmpVars, CmpNumberConsts
+#define FINEST_COMPARATOR                                                      \
+  gen_comparator<LitEquiv4::Config> {}
+
+#define APPLY_CMP_RECTIFIED_TY(l, r, ty)                                       \
+  gen_comparator<ty, Config>{}(l, r, map)
+#define APPLY_CMP_RECTIFIED(l, r) APPLY_CMP_RECTIFIED_TY(l, r, decltype(l))
+
+#define IMPL_GEN_COMPARATOR_GROUND(CLASS)                                      \
+  template <class Config> struct gen_comparator<CLASS, Config> {                 \
+    CmpResult operator()(const CLASS &lhs, const CLASS &rhs,                   \
+                         rect_maps &map) const {                               \
+      return compare_ground<CLASS>(lhs, rhs);                                  \
+    }                                                                          \
+  };
+
+IMPL_GEN_COMPARATOR_GROUND(bool)
+IMPL_GEN_COMPARATOR_GROUND(Predicate)
+IMPL_GEN_COMPARATOR_GROUND(Function)
+
+#define IMPL_GEN_COMPARATOR(CLASS, ...)                                        \
+  template <class Config>      \
+  struct gen_comparator<CLASS, Config> {                              \
+    CmpResult operator()(const CLASS &lhs, const CLASS &rhs,                   \
+                         rect_maps &map) const __VA_ARGS__                     \
+  };
+
+IMPL_GEN_COMPARATOR(ACTerm, {
+
+  if (Config::CmpUninterpreted::special()) {
+    auto l_unint = !lhs.isInterpreted();
+    auto r_unint = !rhs.isInterpreted();
+
+    /* number constants are all equiv */
+    if (l_unint && r_unint)
+      return Config::CmpUninterpreted::cmp_uninterpreted(lhs, rhs, map);
+    if (!l_unint && r_unint)
+      return CMP_LESS;
+    if (l_unint && !r_unint)
+      return CMP_GREATER;
+  }
+
+  auto l_num = lhs.isNumberConstant();
+  auto r_num = rhs.isNumberConstant();
+
+  /* number constants are all equiv */
+  if (l_num && r_num)
+    return Config::CmpNumberConsts::compare_number_consts(lhs, rhs);
+  if (l_num && !r_num)
+    return CMP_LESS;
+  if (!l_num && r_num)
+    return CMP_GREATER;
+
+  auto c = APPLY_CMP_RECTIFIED(lhs._fun, rhs._fun);
+  switch (c) {
+  case CMP_LESS:
+  case CMP_GREATER:
+    return c;
+  case CMP_NONE:
+    ASSERTION_VIOLATION
+  case CMP_EQUIV:;
+  }
+
+  /* both interpreted terms */
+  return APPLY_CMP_RECTIFIED(lhs._args, rhs._args);
+
+})
+
+/* === dumping out equivalence class represnentativs  === */
+
+template<class Range, class Dump>
+void dumpTuple(ostream& out, Range r, Dump d) {
+  out << "(";
+  auto i = r.begin();
+  auto end = r.end();
+  if (i != end) {
+    d(out, *i);
+    i++;
+    for (; i != end; i++) {
+      out << ", ";
+      d(out, *i);
+    }
+  }
+  out << ")";
+}
+
+template<class D>
+void gen_dump(ostream& out, const AbsLiteral& lit, rect_map& map){
   out << (lit.positive ? " " : "!");
   out << lit.predicate;
-  dumpTuple(out, lit.terms,
-            [&](ostream &out, const AbsTerm &t) { gen_dump<D>(out, t, map); });
+  dumpTuple(out, lit.terms, [&](ostream& out, const AbsTerm& t) {gen_dump<D>(out, t, map);});
 }
 
-template <class D>
-void gen_dump(ostream &out, const AbsTerm &trm, rect_map &map) {
-  match(
-      trm, [&](const ACTerm &t) { gen_dump<D>(out, t, map); },
-      [&](const AbsVarTerm &t) { t.write(out, map); }); // TODO factor out
+template<class D>
+void gen_dump(ostream& out, const AbsTerm& trm, rect_map& map) {
+      match(trm, 
+          [&](const ACTerm& t) { gen_dump<D>(out, t, map); },
+          [&](const AbsVarTerm& t) { t.write(out, map); } ); // TODO factor out
 }
 
-template <class D>
-void gen_dump(ostream &out, const ACTerm &trm, rect_map &map) {
+template<class D>
+void gen_dump(ostream& out, const ACTerm& trm, rect_map& map) {
 
   if (D::CmpUninterpreted::special() && !trm.isInterpreted())
     return D::CmpUninterpreted::dumpUninterpreted(out, trm, map);
@@ -800,28 +977,16 @@ void gen_dump(ostream &out, const ACTerm &trm, rect_map &map) {
 
   out << trm._fun;
   if (trm._args.size() > 0) {
-    dumpTuple(out, trm._args, [&](ostream &out, const AbsTerm &t) {
-      gen_dump<D>(out, t, map);
-    });
+    dumpTuple(out, trm._args, [&](ostream& out, const AbsTerm& t) {gen_dump<D>(out, t, map);});
   }
+
 }
 
 struct CmpNumberConstsNop {
-  static CmpResult compare_number_consts(const IntegerConstantType &lhs, const IntegerConstantType &rhs) {
+  static CmpResult compare_number_consts(const ACTerm &lhs, const ACTerm &rhs) {
     return CMP_EQUIV;
   }
-  static void dumpNumberConstant(ostream &out, const ACTerm &lit, rect_map &) {
-    out << "c";
-  }
-};
-
-
-struct CmpNumberConstsIsZero {
-  static CmpResult compare_number_consts(const IntegerConstantType &lhs, const IntegerConstantType &rhs) {
-    auto isZero = [](const IntegerConstantType &x) { return x == IntegerConstantType(0); };
-    return compare_ground(!isZero(lhs), !isZero(rhs));
-  }
-  static void dumpNumberConstant(ostream &out, const ACTerm &lit, rect_map &) {
+  static void dumpNumberConstant(ostream& out, const ACTerm& lit, rect_map&) {
     out << "c";
   }
 };
@@ -853,11 +1018,11 @@ struct CmpUninterpretedEquiv {
                                      rect_maps &map) {
     ASSERTION_VIOLATION
   }
-  static void dumpUninterpreted(ostream &out, const ACTerm &lit,
-                                rect_map &map) {
+  static void dumpUninterpreted(ostream& out, const ACTerm& lit, rect_map& map) {
     ASSERTION_VIOLATION
   }
 };
+
 
 struct CmpUninterpretedVarsMatch {
   static bool special() { return true; }
@@ -885,13 +1050,12 @@ struct CmpUninterpretedVarsMatch {
 
     return CMP_EQUIV;
   }
-  static void dumpUninterpreted(ostream &out, const ACTerm &lit,
-                                rect_map &map) {
+  static void dumpUninterpreted(ostream& out, const ACTerm& lit, rect_map& map) {
     out << "?";
-    dumpTuple(out, lit.var_set(),
-              [&](ostream &out, unsigned v) { AbsVarTerm(v).write(out, map); });
+    dumpTuple(out, lit.var_set(), [&](ostream& out, unsigned v) { AbsVarTerm(v).write(out, map); } );
   }
 };
+
 
 struct CmpUninterpretedNop {
   static bool special() { return true; }
@@ -899,58 +1063,57 @@ struct CmpUninterpretedNop {
                                      rect_maps &map) {
     return CMP_EQUIV;
   }
-  static void dumpUninterpreted(ostream &out, const ACTerm &lit,
-                                rect_map &map) {
+  static void dumpUninterpreted(ostream& out, const ACTerm& lit, rect_map& map) {
     out << "?(...)";
   }
 };
 
-IMPL_GEN_COMPARATOR(AbsVarTerm,
-                    { return Config::CmpVars::cmp_vars(lhs, rhs, map); })
+
+
+IMPL_GEN_COMPARATOR(AbsVarTerm, { return Config::CmpVars::cmp_vars(lhs, rhs, map); })
 
 struct LitEquiv2::Config {
   using CmpUninterpreted = CmpUninterpretedNop;
-  using CmpVars = CmpVarsNop;
-  using CmpNumberConsts = CmpNumberConstsNop;
+  using CmpVars          = CmpVarsNop;
+  using CmpNumberConsts  = CmpNumberConstsNop;
 };
 struct LitEquiv3::Config {
   using CmpUninterpreted = CmpUninterpretedNop;
-  using CmpVars = CmpVarsMatch;
-  using CmpNumberConsts = CmpNumberConstsNop;
+  using CmpVars          = CmpVarsMatch;
+  using CmpNumberConsts  = CmpNumberConstsNop;
 };
 
 struct LitEquiv4::Config {
   using CmpUninterpreted = CmpUninterpretedVarsMatch;
-  using CmpVars = CmpVarsMatch;
-  using CmpNumberConsts = CmpNumberConstsIsZero;
+  using CmpVars          = CmpVarsMatch;
+  using CmpNumberConsts  = CmpNumberConstsNop;
 };
 
 struct LitEquiv5::Config {
   using CmpUninterpreted = CmpUninterpretedEquiv;
-  using CmpVars = CmpVarsMatch;
-  using CmpNumberConsts = CmpNumberConstsZero;
+  using CmpVars          = CmpVarsMatch;
+  using CmpNumberConsts  = CmpNumberConstsNop;
 };
 
-#define __IMPL_LIT_EQUIV__COMPARE(i)                                           \
-  CmpResult LitEquiv##i::compare(const AbsLiteral &lhs,                        \
-                                 const AbsLiteral &rhs) {                      \
-                                                                               \
-    rect_maps map = rect_maps();                                               \
-    using Config = LitEquiv##i::Config;                                        \
-    return APPLY_CMP_RECTIFIED_TY(lhs, rhs, AbsLiteral);                       \
-  }                                                                            \
-  void LitEquiv##i::dump(ostream &out, const AbsLiteral &lit) {                \
-                                                                               \
-    auto map = rect_map();                                                     \
-    gen_dump<LitEquiv##i::Config>(out, lit, map);                              \
-  }
+#define __IMPL_LIT_EQUIV__COMPARE(i) \
+  CmpResult LitEquiv ## i::compare(const AbsLiteral &lhs, const AbsLiteral &rhs) { \
+   \
+    rect_maps map = rect_maps(); \
+    using Config = LitEquiv##i::Config; \
+    return APPLY_CMP_RECTIFIED_TY(lhs, rhs, AbsLiteral); \
+  } \
+  void LitEquiv ## i::dump(ostream& out, const AbsLiteral &lit) { \
+   \
+    auto map = rect_map(); \
+    gen_dump<LitEquiv##i::Config>(out, lit, map); \
+  } \
 
 MAP(__IMPL_LIT_EQUIV__COMPARE, EQ_CLASSES)
 
 ostream &operator<<(ostream &out, const AbsLiteral &lit) {
   out << (lit.positive ? " " : "!");
   out << lit.predicate;
-  dumpTuple(out, lit.terms, [](ostream &out, const AbsTerm &t) { out << t; });
+  dumpTuple(out, lit.terms, [](ostream& out, const AbsTerm& t) { out << t; });
   return out;
 }
 
@@ -1042,7 +1205,7 @@ void TheorySubclauseAnalyser::addClause(Clause &c) {
   if (!c.isTheoryAxiom() && !c.isTheoryDescendant()) {
     auto &scl = maxTheorySubclause(c);
     for (auto l : scl.literals()) {
-      // l->normalize();
+      l->normalize();
       l->rectify();
       _total++;
 #define INSERT(i) _eq##i.insert(l);
@@ -1060,12 +1223,13 @@ void TheorySubclauseAnalyser::addClause(Clause &c) {
 
 void TheorySubclauseAnalyser::dumpStats(ostream &out) const {
 
-#define DUMP(i) _eq##i.serialize(EQ_CLASS_NAME_##i, _total, out);
+#define DUMP(i)                                                                \
+  _eq##i.serialize(EQ_CLASS_NAME_##i, _total, out);
 
   out << endl;
   out << endl;
 
-  MAP(DUMP, 1, 4, 5)
+  MAP(DUMP, 1,4,5)
 #undef DUMP
 }
 
@@ -1082,7 +1246,7 @@ AbsLiteral &create_abs_lit(bool positive, unsigned functor,
 }
 
 void AbsLiteral::normalize() {
-  CALL("AbsLiteral::normalize()");
+ CALL("AbsLiteral::normalize()");
   for (AbsTerm &t : terms) {
     t.normalize();
   }
@@ -1091,11 +1255,10 @@ void AbsLiteral::normalize() {
     auto rect = rect_maps();
     struct Config {
       using CmpUninterpreted = CmpUninterpretedVarsMatch;
-      using CmpVars = CmpVarsMatch;
-      using CmpNumberConsts = CmpNumberConstsNop;
+      using CmpVars          = CmpVarsMatch;
+      using CmpNumberConsts  = CmpNumberConstsNop;
     };
-    if (gen_comparator<AbsTerm, Config>{}(terms[0], terms[1], rect) ==
-        CMP_GREATER) {
+    if (gen_comparator<AbsTerm, Config>{}(terms[0], terms[1], rect) == CMP_GREATER) {
       std::swap(terms[0], terms[1]);
     }
   }
@@ -1132,10 +1295,12 @@ template <> struct Debug::print_debug<CmpResult> {
   }
 };
 
-#define IMPL_PRINT_DEBUG_DEFAULT(CLASS)                                        \
-  template <> struct Debug::print_debug<CLASS> {                               \
-    void operator()(ostream &out, const CLASS &a) const { out << a; }          \
-  };
+#define IMPL_PRINT_DEBUG_DEFAULT(CLASS) \
+  template <> struct Debug::print_debug<CLASS> { \
+    void operator()(ostream &out, const CLASS &a) const { \
+      out << a; \
+    } \
+  }; \
 
 IMPL_PRINT_DEBUG_DEFAULT(AbsTerm)
 IMPL_PRINT_DEBUG_DEFAULT(Function)
@@ -1149,24 +1314,21 @@ void ACTerm::sortCommut() {
   if (_fun.isCommut()) {
     rect_maps map = rect_maps();
     // sort(_args.begin(), _args.end());
-    struct Config {
+    struct Config  {
       using CmpUninterpreted = CmpUninterpretedVarsMatch;
       using CmpVars = CmpVarsMatch;
       using CmpNumberConsts = CmpNumberConstsNop;
     };
-    sort(_args.begin(), _args.end(),
-         state_wrapped_comparator_std<AbsTerm, Config>(map));
+    sort(_args.begin(), _args.end(), state_wrapped_comparator_std<AbsTerm, Config>(map));
   }
 }
-void ACTerm::write(ostream &out) const {
+void ACTerm::write(ostream& out) const {
   out << _fun;
   if (_args.size() > 0) {
-    dumpTuple(out, _args, [](ostream &out, AbsTerm &t) { out << t; });
+    dumpTuple(out, _args, [](ostream& out, AbsTerm& t) { out << t; });
   }
 }
-void normalize_absliteral(AbsLiteral &lit) { lit.normalize(); }
-bool equal_absliteral(const AbsLiteral &l, const AbsLiteral &r) {
-  return l == r;
-}
+void normalize_absliteral(AbsLiteral& lit) { lit.normalize(); }
+bool equal_absliteral(const AbsLiteral& l,const AbsLiteral& r) { return l == r; }
 
 #endif
