@@ -85,18 +85,24 @@ public:
 template<class ConstantType>
 struct num_traits;
 
-template<> struct num_traits<IntegerConstantType> {
-  const Sorts::DefaultSorts sort = Sorts::SRT_INTEGER;
-  const Theory::Interpretation uminus = Theory::INT_UNARY_MINUS;
-  const Theory::Interpretation plus = Theory::INT_PLUS;
-  const Theory::Interpretation mul = Theory::INT_MULTIPLY;
-  const IntegerConstantType zero = IntegerConstantType(0);
-  bool isZero(const TermList& l) const {
-    auto out = l.tag() == REF && theory->representConstant(zero) == l.term();
-      return out;
-  }
-  const IntegerConstantType one = IntegerConstantType(1);
-};
+#define IMPL_NUM_TRAITS(CamelCase, LONG, SHORT)  \
+  template<> struct num_traits<CamelCase ## ConstantType> { \
+    using ConstantType = CamelCase ## ConstantType; \
+    const Sorts::DefaultSorts sort = Sorts::SRT_ ## LONG; \
+    const Theory::Interpretation uminus = Theory::SHORT ## _UNARY_MINUS; \
+    const Theory::Interpretation plus = Theory::SHORT ## _PLUS; \
+    const Theory::Interpretation mul = Theory::SHORT ## _MULTIPLY; \
+    const ConstantType zero = CamelCase ## ConstantType(0); \
+    const ConstantType one = CamelCase ## ConstantType(1); \
+    bool isZero(const TermList& l) const { \
+      auto out = l.tag() == REF && theory->representConstant(zero) == l.term(); \
+      return out; \
+    } \
+  }; \
+
+IMPL_NUM_TRAITS(Rational, RATIONAL, RAT )
+IMPL_NUM_TRAITS(Real    , REAL    , REAL)
+IMPL_NUM_TRAITS(Integer , INTEGER , INT )
 
 /**
  * We want to evaluate terms up to AC e.g. (1+a)+1 -> a+2 ... the standard evaluation
