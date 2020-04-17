@@ -370,7 +370,7 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/SMTFormula.o\
          Shell/FOOLElimination.o\
          Shell/Statistics.o\
-	 Shell/Analysis/TheorySubclauseAnalyser.o\
+         Shell/Analysis/TheorySubclauseAnalyser.o\
          Shell/SubexpressionIterator.o\
          Shell/SymbolDefinitionInlining.o\
          Shell/SymbolOccurrenceReplacement.o\
@@ -516,7 +516,7 @@ OTHER_CL_DEP = Indexing/FormulaIndex.o\
 	       SAT/TWLSolver.o\
 	       SAT/VariableSelector.o	
 
-VAMP_DIRS := Api Debug DP Lib Lib/Sys Kernel FMB Indexing Inferences InstGen Shell CASC Shell/LTB SAT Saturation Test UnitTests VUtils Parse Minisat Minisat/core Minisat/mtl Minisat/simp Minisat/utils
+VAMP_DIRS := Api Debug DP Lib Lib/Sys Kernel FMB Indexing Inferences InstGen Shell CASC Shell/LTB SAT Saturation Test UnitTests VUtils Parse Minisat Minisat/core Minisat/mtl Minisat/simp Minisat/utils Shell/Analysis
 
 VAMP_BASIC := $(MINISAT_OBJ) $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(BP_VD_OBJ) $(BP_VL_OBJ) $(BP_VLS_OBJ) $(BP_VSOL_OBJ) $(BP_VT_OBJ) $(BP_MPS_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VIG_OBJ) $(VSAT_OBJ) $(DP_OBJ) $(VST_OBJ) $(VS_OBJ) $(PARSE_OBJ) $(VFMB_OBJ)
 #VCLAUSIFY_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VSAT_OBJ) $(VST_OBJ) $(VS_OBJ) $(VT_OBJ)
@@ -580,8 +580,8 @@ CONF_ID := obj/$(shell echo -n "$(BRANCH) $(XFLAGS)"|sum|cut -d ' ' -f1)X
 obj:
 	-mkdir obj
 obj/%X: | obj
-	-mkdir $@
-	-cd $@ ; mkdir $(VAMP_DIRS); cd .. 
+	-mkdir -p $@
+	-cd $@ ; mkdir -p $(VAMP_DIRS); cd .. 
 
 #cancel the implicit rule
 %.o : %.cpp
