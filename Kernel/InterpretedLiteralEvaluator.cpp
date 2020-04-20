@@ -88,17 +88,19 @@ struct num_traits;
 #define IMPL_NUM_TRAITS(CamelCase, LONG, SHORT)  \
   template<> struct num_traits<CamelCase ## ConstantType> { \
     using ConstantType = CamelCase ## ConstantType; \
-    const Sorts::DefaultSorts sort = Sorts::SRT_ ## LONG; \
-    const Theory::Interpretation uminus = Theory::SHORT ## _UNARY_MINUS; \
-    const Theory::Interpretation plus = Theory::SHORT ## _PLUS; \
-    const Theory::Interpretation mul = Theory::SHORT ## _MULTIPLY; \
-    const ConstantType zero = CamelCase ## ConstantType(0); \
-    const ConstantType one = CamelCase ## ConstantType(1); \
+    static const Sorts::DefaultSorts sort = Sorts::SRT_ ## LONG; \
+    static const Theory::Interpretation uminus = Theory::SHORT ## _UNARY_MINUS; \
+    static const Theory::Interpretation plus = Theory::SHORT ## _PLUS; \
+    static const Theory::Interpretation mul = Theory::SHORT ## _MULTIPLY; \
+    constexpr static ConstantType zero = CamelCase ## ConstantType(0); \
+    constexpr static ConstantType one = CamelCase ## ConstantType(1); \
     bool isZero(const TermList& l) const { \
       auto out = l.tag() == REF && theory->representConstant(zero) == l.term(); \
       return out; \
     } \
   }; \
+  constexpr CamelCase ## ConstantType num_traits<CamelCase ## ConstantType>::one;\
+  constexpr CamelCase ## ConstantType num_traits<CamelCase ## ConstantType>::zero;\
 
 IMPL_NUM_TRAITS(Rational, RATIONAL, RAT )
 IMPL_NUM_TRAITS(Real    , REAL    , REAL)
@@ -193,6 +195,7 @@ struct IntLess {
   const unsigned functor;
   using ConstantType = IntegerConstantType; 
   const num_traits<ConstantType> num = num_traits<ConstantType>{};
+  using number = num_traits<ConstantType>;
 
   IntLess() : functor(env.signature->getInterpretingSymbol(Theory::INT_LESS)) { }
 
@@ -211,8 +214,8 @@ struct IntLess {
   // TODO $less(0,$sum(X0,1))
   Literal* normalizeUninterpreted(bool polarity, TermList lhs, TermList rhs) const {
     const num_traits<ConstantType> num = num_traits<ConstantType>{};
-    auto one  = TermList(theory->representConstant(num.one));
-    auto zero = TermList(theory->representConstant(num.zero));
+    auto one  = TermList(theory->representConstant(number::one));
+    auto zero = TermList(theory->representConstant(number::zero));
     if (polarity) {
       return Literal::create2(functor, 
               /* polarity */ true, 

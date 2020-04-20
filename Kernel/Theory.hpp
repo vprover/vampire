@@ -52,7 +52,7 @@ public:
   typedef int InnerType;
 
   IntegerConstantType() {}
-  IntegerConstantType(InnerType v) : _val(v) {}
+  constexpr IntegerConstantType(InnerType v) : _val(v) {}
   explicit IntegerConstantType(const vstring& str);
 
   IntegerConstantType operator+(const IntegerConstantType& num) const;
@@ -154,7 +154,7 @@ struct RationalConstantType {
 
   RationalConstantType(InnerType num, InnerType den);
   RationalConstantType(const vstring& num, const vstring& den);
-  RationalConstantType(InnerType num); //assuming den=1
+  constexpr RationalConstantType(InnerType num) : _num(num), _den(1) {} //assuming den=1
 
   RationalConstantType operator+(const RationalConstantType& num) const;
   RationalConstantType operator-(const RationalConstantType& num) const;
@@ -230,8 +230,8 @@ public:
 
   RealConstantType() {}
   explicit RealConstantType(const vstring& number);
-  explicit RealConstantType(int number);
-  explicit RealConstantType(const RationalConstantType& rat) : RationalConstantType(rat) {}
+  explicit constexpr RealConstantType(const RationalConstantType& rat) : RationalConstantType(rat) {}
+  explicit constexpr RealConstantType(typename IntegerConstantType::InnerType number) : RealConstantType(RationalConstantType(number)) {}
 
   RealConstantType operator+(const RealConstantType& num) const
   { return RealConstantType(RationalConstantType::operator+(num)); }
