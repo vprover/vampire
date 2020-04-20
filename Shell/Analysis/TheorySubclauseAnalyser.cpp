@@ -17,8 +17,8 @@
 #include "Lib/Environment.hpp"
 #include "Lib/macro_magic.h"
 #include "Shell/Analysis/TheorySubclauseAnalyser.hpp"
-// #define ASS_(x) if (!(x)) {cout << endl << "######################### ASSERTION violation " << #x << endl;} ASS(x)
-#define ASS_(x) ASS(x)
+#define ASS_(x) if (!(x)) {cout << endl << "######################### ASSERTION violation " << #x << endl; throw "assertion violation";}
+// #define ASS_(x) ASS(x)
 
 
 #define _TAIL(x, ...) __VA_ARGS__
@@ -302,11 +302,7 @@ public:
   IntegerConstantType toIntegerConstant() const {
     IntegerConstantType out;
     Term* trm = Term::createConstant(functor);
-// #if VDEBUG
-    auto res = 
-// #endif
-      theory->tryInterpretConstant(trm, out);
-    if (!res) throw;
+    bool res = theory->tryInterpretConstant(trm, out);
     ASS_(res)
     // cout << "%==============================" << out << endl
     return out;
@@ -841,7 +837,6 @@ struct CmpNumberConstsIsZero {
     return compare_ground(!isZero(lhs), !isZero(rhs));
   }
   static void dumpNumberConstant(ostream &out, IntegerConstantType lit, rect_map &) {
-      // out << "0";
     if (isZero(lit)) {
       out << "0";
     } else {
