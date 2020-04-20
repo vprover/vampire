@@ -88,102 +88,124 @@ struct num_traits;
 #define IMPL_NUM_TRAITS(CamelCase, LONG, SHORT)  \
   template<> struct num_traits<CamelCase ## ConstantType> { \
     using ConstantType = CamelCase ## ConstantType; \
-    const Sorts::DefaultSorts sort = Sorts::SRT_ ## LONG; \
-    const Theory::Interpretation uminus = Theory::SHORT ## _UNARY_MINUS; \
-    const Theory::Interpretation plus = Theory::SHORT ## _PLUS; \
-    const Theory::Interpretation mul = Theory::SHORT ## _MULTIPLY; \
-    const ConstantType zero = CamelCase ## ConstantType(0); \
-    const ConstantType one = CamelCase ## ConstantType(1); \
+    static const Sorts::DefaultSorts sort = Sorts::SRT_ ## LONG; \
+    static const Theory::Interpretation uminus = Theory::SHORT ## _UNARY_MINUS; \
+    static const Theory::Interpretation plus = Theory::SHORT ## _PLUS; \
+    static const Theory::Interpretation mul = Theory::SHORT ## _MULTIPLY; \
+    constexpr static ConstantType zero = CamelCase ## ConstantType(0); \
+    constexpr static ConstantType one = CamelCase ## ConstantType(1); \
     bool isZero(const TermList& l) const { \
       auto out = l.tag() == REF && theory->representConstant(zero) == l.term(); \
       return out; \
     } \
   }; \
+  constexpr CamelCase ## ConstantType num_traits<CamelCase ## ConstantType>::one;\
+  constexpr CamelCase ## ConstantType num_traits<CamelCase ## ConstantType>::zero;\
 
 IMPL_NUM_TRAITS(Rational, RATIONAL, RAT )
 IMPL_NUM_TRAITS(Real    , REAL    , REAL)
 IMPL_NUM_TRAITS(Integer , INTEGER , INT )
 
+
+  /* Traverses the given term. Only the subtree parts where pred is true are traversed.
+   * For every traversed term where pred is *not* true, action is applied.
+   *
+   * The argument functions shall have the following signatures:
+   * bool pred(Term&)
+   * void action(TermList)
+   */
+template<class Fn, class Predicate> 
+void stackTraverseIf(TermList term, Predicate pred, Fn action) {
+
+  Stack<TermList> todo;
+  todo.push(term);
+
+  while(!todo.isEmpty()){
+    TermList t = todo.pop();
+    if(t.isTerm()) {
+      auto& trm = *t.term();
+      if (pred(trm)) {
+        for (auto i = 0; i < trm.arity(); i++) {
+          todo.push(trm[i]);
+        }
+      } else {
+        action(t);
+      }
+    } else {
+      action(t);
+    }
+  }
+}
+
+
 /**
- * We want to evaluate terms up to AC e.g. (1+a)+1 -> a+2 ... the standard evaluation
- * will not do this. The idea here is to collapse the term tree into a list of terms
- * and, combine together the numbers, and then rebuild a term
+ * We want to smplify terms that are interpred by abelian groups. e.g. (1+a)+1 -> 2 + a ... 
+ * the standard evaluation will not do this. 
  *
- * @author Giles
+ * Additionally evaluator has a weekly normalizing behaviour. Namely it re-brackets sums, such that the lhs 
+ * of the operation is always a non-operator term. Further all interpreted constants will be collapsed into 
+ * the 'left-most' term. The left most term is ommited if it is the identity element.
+ *
+ * x + ( y + ( t + 4 ) + r ) + 5  ==> ( ( (9 + x) + y ) + t ) + r
+ * x + ( y + 0 )                  ==> x + y
+ *
+ * (The name of this class comes from the Associative Commutative operation of the Group)
+ *
+ * @author Giles (refactorings by joe-hauns)
  * @since 06/12/18
  */
-template<class Operator>
+template<class AbelianGroup>
 class InterpretedLiteralEvaluator::ACFunEvaluator
    : public Evaluator
 {
 public:
-CLASS_NAME(InterpretedLiteralEvaluator::ACFunEvaluator<Operator>);
-  USE_ALLOCATOR(InterpretedLiteralEvaluator::ACFunEvaluator<Operator>);
+CLASS_NAME(InterpretedLiteralEvaluator::ACFunEvaluator<AbelianGroup>);
+  USE_ALLOCATOR(InterpretedLiteralEvaluator::ACFunEvaluator<AbelianGroup>);
 
-  using ConstantType = typename Operator::ConstantType;
+  using ConstantType = typename AbelianGroup::ConstantType;
 
-  ACFunEvaluator() : _fun(env.signature->getInterpretingSymbol(Operator::interpreation)) { }
+  ACFunEvaluator() : _fun(env.signature->getInterpretingSymbol(AbelianGroup::interpreation)) { }
   const unsigned _fun; 
 
   virtual bool canEvaluateFunc(unsigned func) { return func == _fun; }
 
-  virtual bool tryEvaluateFunc(Term* trm, TermList& res) { // TODO make const
-     _DEBUG( "ACFunEvaluator::tryEvaluateFunc " << trm->toString() );
+  virtual bool tryEvaluateFunc(Term* trm, TermList& res) { 
+    _DEBUG( "ACFunEvaluator::tryEvaluateFunc " << trm->toString() );
     ASS_EQ(trm->functor(),_fun);
     ASS_EQ(trm->arity(),2);
 
-    Stack<TermList*> todo;
-    Stack<TermList*> done;
-    todo.push(trm->nthArgument(0));
-    todo.push(trm->nthArgument(1));
+    ConstantType acc = AbelianGroup::IDENTITY;
+    Stack<TermList> keep;
+    stackTraverseIf(TermList(trm), 
+        /* we traverse only the parts with the same operation */
+        [&](Term& t){ return t.functor() == _fun; },
+        [&](TermList t) {
+          ConstantType c;
+          /* we eval constant parts */
+          if (t.isTerm() && theory->tryInterpretConstant(t.term(), c)) {
+            acc = AbelianGroup::groundEval(acc, c);
+          } else {
+            keep.push(t);
+          }
+        });
 
-    while(!todo.isEmpty()){
-      TermList* t = todo.pop();
-      if(t->isTerm() && t->term()->functor() == _fun){
-        todo.push(t->term()->nthArgument(0));
-        todo.push(t->term()->nthArgument(1));
+    if (acc != AbelianGroup::IDENTITY) {
+      keep.push(TermList(theory->representConstant(acc)));
+    }
+
+    auto iter = Stack<TermList>::Iterator(keep);
+    if (!iter.hasNext()) {
+      res = TermList(theory->representConstant(AbelianGroup::IDENTITY));
+      return TermList(trm) != res;
+    } else {
+      TermList out = iter.next();
+      while (iter.hasNext()) {
+        auto t = iter.next();
+        out = TermList(Term::create2(_fun, out, t));
       }
-      else{
-       done.push(t);
-      }
+      res = out;
+      return TermList(trm) != res;
     }
-    ASS(done.length()>1);
-
-    Stack<TermList*> keep;
-    ConstantType acc = Operator::IDENTITY;
-    int acc_cnt = 0;
-    for(TermList* t : done){ 
-	_DEBUG( "considering " << t->toString() );
-        ConstantType c;
-      if(t->isTerm() && theory->tryInterpretConstant(t->term(),c)){
-        acc = Operator::groundEval(acc, c);
-	_DEBUG( "evaluated to " << tmp.term()->toString() );
-        acc_cnt++;
-      } else { 
-        keep.push(t); }
-    } 
-    if(keep.length() == done.length() || 
-       (keep.length() == done.length()-1 && acc_cnt==1)){ 
-	_DEBUG( "nothing was reduced" );
-      return false; 
-    }
- 
-    // a bit of a hack, we might need a pointer to this below, to have uniform treatment of all the TermLists
-    TermList accT(theory->representConstant(acc));
-
-    // Now build a new term from kept and acc (if not identity)
-    // We keep acc if it is identity and if there's no other terms
-    if(Operator::IDENTITY!=acc || keep.length()==0) {
-      keep.push(&accT); // Safe because we just use this pointer locally
-    }
-    ASS(keep.length()>0);
-    Stack<TermList*>::BottomFirstIterator kit(keep);
-    res = *kit.next();
-    while(kit.hasNext()){
-      TermList* t = kit.next(); 
-      res = TermList(Term::create2(_fun,res,*t));
-    }
-    return true;
   }
 };
 
@@ -193,6 +215,7 @@ struct IntLess {
   const unsigned functor;
   using ConstantType = IntegerConstantType; 
   const num_traits<ConstantType> num = num_traits<ConstantType>{};
+  using number = num_traits<ConstantType>;
 
   IntLess() : functor(env.signature->getInterpretingSymbol(Theory::INT_LESS)) { }
 
@@ -210,9 +233,8 @@ struct IntLess {
 
   // TODO $less(0,$sum(X0,1))
   Literal* normalizeUninterpreted(bool polarity, TermList lhs, TermList rhs) const {
-    const num_traits<ConstantType> num = num_traits<ConstantType>{};
-    auto one  = TermList(theory->representConstant(num.one));
-    auto zero = TermList(theory->representConstant(num.zero));
+    auto one  = TermList(theory->representConstant(number::one));
+    auto zero = TermList(theory->representConstant(number::zero));
     if (polarity) {
       return Literal::create2(functor, 
               /* polarity */ true, 
@@ -513,7 +535,6 @@ public:
       else if(arity==2){
         // If one argument is not a constant and the other is zero, one or minus one then
         // we might have some special cases
-
         T arg2;
         TermList arg2Trm = *trm->nthArgument(1);
 
@@ -1086,18 +1107,18 @@ protected:
 };
 
 template<Theory::Interpretation op>
-struct Operator;
+struct AbelianGroup;
 
-/** Creates an instance of struct Operatory<oper>, for the use in ACFunEvaluator. */
+/** Creates an instance of struct AbelianGroup<oper>, for the use in ACFunEvaluator. */
 #define IMPL_OPERATOR(oper, type, identity, eval) \
-  template<> struct Operator<oper> { \
+  template<> struct AbelianGroup<oper> { \
     const static Theory::Interpretation interpreation = oper; \
     using ConstantType = type; \
     const static type IDENTITY; \
     static type groundEval(type l, type r) { return eval; } \
     /*const static unsigned FUNCTOR;*/ \
   }; \
-  const type     Operator<oper>::IDENTITY = identity; \
+  const type     AbelianGroup<oper>::IDENTITY = identity; \
 
 /* int opeators */
 IMPL_OPERATOR(Theory::INT_MULTIPLY, IntegerConstantType, IntegerConstantType(1), l * r)
@@ -1134,12 +1155,12 @@ InterpretedLiteralEvaluator::InterpretedLiteralEvaluator()
 
   // Special AC evaluators are added to be tried first for Plus and Multiply
 
-  _evals.push(new ACFunEvaluator<Operator<Theory::INT_PLUS>>()); 
-  _evals.push(new ACFunEvaluator<Operator<Theory::INT_MULTIPLY>>());
-  _evals.push(new ACFunEvaluator<Operator<Theory::RAT_PLUS>>());
-  _evals.push(new ACFunEvaluator<Operator<Theory::RAT_MULTIPLY>> ());
-  _evals.push(new ACFunEvaluator<Operator<Theory::REAL_PLUS>> ());
-  _evals.push(new ACFunEvaluator<Operator<Theory::REAL_MULTIPLY>> ());
+  _evals.push(new ACFunEvaluator<AbelianGroup<Theory::INT_PLUS>>()); 
+  _evals.push(new ACFunEvaluator<AbelianGroup<Theory::INT_MULTIPLY>>());
+  _evals.push(new ACFunEvaluator<AbelianGroup<Theory::RAT_PLUS>>());
+  _evals.push(new ACFunEvaluator<AbelianGroup<Theory::RAT_MULTIPLY>> ());
+  _evals.push(new ACFunEvaluator<AbelianGroup<Theory::REAL_PLUS>> ());
+  _evals.push(new ACFunEvaluator<AbelianGroup<Theory::REAL_MULTIPLY>> ());
 
   _evals.push(new InequalityNormalizer<IntLess>());
 
@@ -1569,7 +1590,8 @@ TermList InterpretedLiteralEvaluator::transformSubterm(TermList trm)
 {
   CALL("InterpretedLiteralEvaluator::transformSubterm");
 
-  _DEBUG( "transformSubterm for " << trm.toString() );
+  DEBUG( "transformSubterm for " << trm.toString() );
+
 
   if (!trm.isTerm()) { return trm; }
   Term* t = trm.term();
@@ -1581,6 +1603,8 @@ TermList InterpretedLiteralEvaluator::transformSubterm(TermList trm)
     if (funcEv->tryEvaluateFunc(t, res)) {
 	return res;
     }
+  } else {
+    DEBUG("no transformer")
   }
   return trm;
 }

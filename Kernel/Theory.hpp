@@ -52,7 +52,7 @@ public:
   typedef int InnerType;
 
   IntegerConstantType() {}
-  IntegerConstantType(InnerType v) : _val(v) {}
+  constexpr IntegerConstantType(InnerType v) : _val(v) {}
   explicit IntegerConstantType(const vstring& str);
 
   IntegerConstantType operator+(const IntegerConstantType& num) const;
@@ -154,7 +154,7 @@ struct RationalConstantType {
 
   RationalConstantType(InnerType num, InnerType den);
   RationalConstantType(const vstring& num, const vstring& den);
-  RationalConstantType(InnerType num); //assuming den=1
+  constexpr RationalConstantType(InnerType num) : _num(num), _den(1) {} //assuming den=1
 
   RationalConstantType operator+(const RationalConstantType& num) const;
   RationalConstantType operator-(const RationalConstantType& num) const;
@@ -230,8 +230,8 @@ public:
 
   RealConstantType() {}
   explicit RealConstantType(const vstring& number);
-  explicit RealConstantType(int number);
-  explicit RealConstantType(const RationalConstantType& rat) : RationalConstantType(rat) {}
+  explicit constexpr RealConstantType(const RationalConstantType& rat) : RationalConstantType(rat) {}
+  explicit constexpr RealConstantType(typename IntegerConstantType::InnerType number) : RealConstantType(RationalConstantType(number)) {}
 
   RealConstantType operator+(const RealConstantType& num) const
   { return RealConstantType(RationalConstantType::operator+(num)); }
@@ -288,7 +288,6 @@ public:
     //predicates
     EQUAL,
 
-    INT_CONST,
     INT_IS_INT,
     INT_IS_RAT,
     INT_IS_REAL,
@@ -298,7 +297,6 @@ public:
     INT_LESS_EQUAL,
     INT_DIVIDES,
 
-    RAT_CONST,
     RAT_IS_INT,
     RAT_IS_RAT,
     RAT_IS_REAL,
@@ -307,7 +305,6 @@ public:
     RAT_LESS,
     RAT_LESS_EQUAL,
 
-    REAL_CONST,
     REAL_IS_INT,
     REAL_IS_RAT,
     REAL_IS_REAL,
@@ -431,20 +428,8 @@ public:
     return res;
   }
 
-  static bool isNumberConstant(Interpretation i){
-    return i == INT_CONST || i == RAT_CONST || i == REAL_CONST;
-  }
-
-  static bool isUnaryMinus(Interpretation i){
-    return i == INT_UNARY_MINUS || i == RAT_UNARY_MINUS || i == REAL_UNARY_MINUS;
-  }
-
   static bool isPlus(Interpretation i){
     return i == INT_PLUS || i == RAT_PLUS || i == REAL_PLUS;
-  }
-
-  static bool isTimes(Interpretation i){
-    return i == INT_MULTIPLY || i == RAT_MULTIPLY || i == REAL_MULTIPLY;
   }
 
   static vstring getInterpretationName(Interpretation i);

@@ -237,13 +237,6 @@ RationalConstantType::RationalConstantType(const vstring& num, const vstring& de
   init(InnerType(num), InnerType(den));
 }
 
-RationalConstantType::RationalConstantType(InnerType num)
-{
-  CALL("RationalConstantType::RationalConstantType");
-
-  init(num, IntegerConstantType(1));
-}
-
 void RationalConstantType::init(InnerType num, InnerType den)
 {
   CALL("RationalConstantType::init");
@@ -463,7 +456,6 @@ bool RealConstantType::parseDouble(const vstring& num, RationalConstantType& res
   return true;
 }
 
-RealConstantType::RealConstantType(int number) : RealConstantType(RationalConstantType(number)) {}
 
 RealConstantType::RealConstantType(const vstring& number)
 {
