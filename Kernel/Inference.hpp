@@ -196,6 +196,8 @@ enum class InferenceRule : unsigned char {
   EVALUATION,
   /** interpreted simplification inference */
   INTERPRETED_SIMPLIFICATION,
+  //** Flatten a clause to separate theory literals */
+  THEORY_FLATTENING,
   /** inference rule for term algebras (no equality between terms of different constructors)*/
   TERM_ALGEBRA_DISTINCTNESS,
   /** inference rule for term algebras (injectivity of constructors)*/
@@ -286,8 +288,6 @@ enum class InferenceRule : unsigned char {
   /** Introduction of formula to convert formulas used as argument positions.
    *  Such formulas have the form F->f(x)=1 or ~F->f(x)=0 */
   BOOLEAN_TERM_ENCODING,
-  //** Flatten a clause to separate theory literals */
-  THEORY_FLATTENING,
   /** Elimination of FOOL expressions that makes a formula not syntactically first-order */
   FOOL_ELIMINATION,
   /** Elimination of $ite expressions */
