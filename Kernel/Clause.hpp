@@ -347,6 +347,8 @@ public:
   unsigned varCnt();
   unsigned maxVar(); // useful to create fresh variables w.r.t. the clause
 
+  unsigned numPositiveLiterals(); // number of positive literals in the clause
+
 protected:
   /** number of literals */
   unsigned _length : 20;

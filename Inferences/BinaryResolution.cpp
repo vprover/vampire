@@ -158,11 +158,16 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
   // we already know the age here so we can immediately conclude whether the clause fulfils the age limit
   // since we have not built the clause yet we compute lower bounds on the weight of the clause after each step and recheck whether the weight-limit can still be fulfilled.
   unsigned wlb=0;//weight lower bound
+  unsigned numPositiveLiteralsLowerBound = // lower bound on number of positive literals, don't know at this point whether duplicate positive literals will occur
+      Int::max(queryLit->isPositive() ? queryCl->numPositiveLiterals()-1 : queryCl->numPositiveLiterals(),
+              qr.literal->isPositive() ? qr.clause->numPositiveLiterals()-1 : qr.clause->numPositiveLiterals());
+
   Inference inf(GeneratingInference2(withConstraints?
       InferenceRule::CONSTRAINED_RESOLUTION:InferenceRule::RESOLUTION,queryCl, qr.clause));
   Inference::Destroyer inf_destroyer(inf); // will call destroy on inf when coming out of scope unless disabled
 
-  bool needsToFulfilWeightLimit = passiveClauseContainer && !passiveClauseContainer->fulfilsAgeLimit(wlb, inf) && passiveClauseContainer->weightLimited();
+  bool needsToFulfilWeightLimit = passiveClauseContainer && !passiveClauseContainer->fulfilsAgeLimit(wlb, numPositiveLiteralsLowerBound, inf) && passiveClauseContainer->weightLimited();
+
   if(needsToFulfilWeightLimit) {
     for(unsigned i=0;i<clength;i++) {
       Literal* curr=(*queryCl)[i];
@@ -176,7 +181,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
         wlb+=curr->weight();
       }
     }
-    if(!passiveClauseContainer->fulfilsWeightLimit(wlb, inf)) {
+    if(!passiveClauseContainer->fulfilsWeightLimit(wlb, numPositiveLiteralsLowerBound, inf)) {
       RSTAT_CTR_INC("binary resolutions skipped for weight limit before building clause");
       env.statistics->discardedNonRedundantClauses++;
       return 0;
@@ -244,7 +249,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
       Literal* newLit=qr.substitution->applyToQuery(curr);
       if(needsToFulfilWeightLimit) {
         wlb+=newLit->weight() - curr->weight();
-        if(!passiveClauseContainer->fulfilsWeightLimit(wlb, res->inference())) {
+        if(!passiveClauseContainer->fulfilsWeightLimit(wlb, numPositiveLiteralsLowerBound, res->inference())) {
           RSTAT_CTR_INC("binary resolutions skipped for weight limit while building clause");
           env.statistics->discardedNonRedundantClauses++;
           res->destroy();
@@ -282,7 +287,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
       Literal* newLit = qr.substitution->applyToResult(curr);
       if(needsToFulfilWeightLimit) {
         wlb+=newLit->weight() - curr->weight();
-        if(!passiveClauseContainer->fulfilsWeightLimit(wlb, res->inference())) {
+        if(!passiveClauseContainer->fulfilsWeightLimit(wlb, numPositiveLiteralsLowerBound, res->inference())) {
           RSTAT_CTR_INC("binary resolutions skipped for weight limit while building clause");
           env.statistics->discardedNonRedundantClauses++;
           res->destroy();
