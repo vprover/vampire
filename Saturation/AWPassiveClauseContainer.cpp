@@ -539,6 +539,7 @@ bool AWPassiveClauseContainer::childrenPotentiallyFulfilLimits(Clause* cl, unsig
 bool AWPassiveClauseContainer::setLimits(unsigned newAgeSelectionMaxAge, unsigned newAgeSelectionMaxWeight, unsigned newWeightSelectionMaxWeight, unsigned newWeightSelectionMaxAge)
 {
   CALL("AWPassiveClauseContainer::setLimits");
+
   bool atLeastOneTightened = false;
   if(newAgeSelectionMaxAge != _ageSelectionMaxAge || newAgeSelectionMaxWeight != _ageSelectionMaxWeight) {
     if(newAgeSelectionMaxAge < _ageSelectionMaxAge) {
@@ -563,16 +564,21 @@ bool AWPassiveClauseContainer::setLimits(unsigned newAgeSelectionMaxAge, unsigne
 
 bool AWPassiveClauseContainer::ageLimited() const
 {
+  CALL("AWPassiveClauseContainer::ageLimited");
+
   return _ageSelectionMaxAge != UINT_MAX && _ageSelectionMaxWeight != UINT_MAX;
 }
 
 bool AWPassiveClauseContainer::weightLimited() const
 {
+  CALL("AWPassiveClauseContainer::weightLimited");
   return _weightSelectionMaxWeight != UINT_MAX && _weightSelectionMaxAge != UINT_MAX;
 }
 
 bool AWPassiveClauseContainer::fulfilsAgeLimit(Clause* cl) const
 {
+  CALL("AWPassiveClauseContainer::fulfilsAgeLimit(Clause*)");
+
   // don't want to reuse fulfilsAgeLimit(unsigned age,..) here, since we don't want to recompute weightForClauseSelection
   unsigned age = cl->age();
   unsigned weightForClauseSelection = cl->weightForClauseSelection(_opt);
@@ -581,6 +587,8 @@ bool AWPassiveClauseContainer::fulfilsAgeLimit(Clause* cl) const
 
 bool AWPassiveClauseContainer::fulfilsAgeLimit(unsigned w, unsigned numPositiveLiterals, const Inference& inference) const
 {
+  CALL("AWPassiveClauseContainer::fulfilsAgeLimit(unsigned, unsigned, const Inference&)");
+
   const unsigned age = inference.age();
   const unsigned numeralWeight = 0; // heuristic: we don't want to compute the numeral weight during estimates and conservatively assume that it is 0.
   const unsigned splitWeight = 0; // also conservatively assuming 0
@@ -596,6 +604,8 @@ bool AWPassiveClauseContainer::fulfilsAgeLimit(unsigned w, unsigned numPositiveL
 
 bool AWPassiveClauseContainer::fulfilsWeightLimit(Clause* cl) const
 {
+  CALL("AWPassiveClauseContainer::fulfilsWeightLimit(Clause*)");
+
   // don't want to reuse fulfilsWeightLimit(unsigned w,..) here, since we don't want to recompute weightForClauseSelection
   unsigned weightForClauseSelection = cl->weightForClauseSelection(_opt);
   unsigned age = cl->age();
@@ -604,6 +614,8 @@ bool AWPassiveClauseContainer::fulfilsWeightLimit(Clause* cl) const
 
 bool AWPassiveClauseContainer::fulfilsWeightLimit(unsigned w, unsigned numPositiveLiterals, const Inference& inference) const
 {
+  CALL("AWPassiveClauseContainer::fulfilsWeightLimit(unsigned, unsigned, const Inference&)");
+
   const unsigned age = inference.age();
   const unsigned numeralWeight = 0; // heuristic: we don't want to compute the numeral weight during estimates and conservatively assume that it is 0.
   const unsigned splitWeight = 0; // also conservatively assuming 0
