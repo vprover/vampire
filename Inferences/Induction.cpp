@@ -331,14 +331,15 @@ void InductionClauseIterator::performMathInductionOne(Clause* premise, Literal* 
   cnf.clausify(NNF::ennf(fu1), hyp_clauses);
   cnf.clausify(NNF::ennf(fu2), hyp_clauses);
 
+  ScopedPtr<RobSubstitution> subst = new RobSubstitution();
+
   // Now perform resolution between lit and the hyp_clauses on clit, which should be contained in each clause!
   Stack<Clause*>::Iterator cit(hyp_clauses);
   while(cit.hasNext()){
     Clause* c = cit.next();
-    //TODO destroy this?
-    RobSubstitution* subst = new RobSubstitution();
     subst->unify(TermList(lit),0,TermList(Ly->literal()),1);
-    SLQueryResult qr(lit,premise,ResultSubstitution::fromSubstitution(subst,1,0));
+    SLQueryResult qr(lit,premise,ResultSubstitution::fromSubstitution(subst.ptr(),1,0));
+    subst->reset();
     Clause* r = BinaryResolution::generateClause(c,Ly->literal(),qr,*env.options);
     _clauses.push(r);
   }
