@@ -120,8 +120,8 @@ public:
     CALL("Factoring::ResultsFn::operator()");
 
     unsigned newLength = _cLen-1;
-    Inference* inf = new Inference1(Inference::Rule::FACTORING, _cl);
-    Clause* res = new(newLength) Clause(newLength, inf);
+    Clause* res = new(newLength) Clause(newLength,
+        GeneratingInference1(InferenceRule::FACTORING,_cl));
 
     unsigned next = 0;
     Literal* skipped=arg.first;
@@ -153,9 +153,7 @@ public:
     }
     ASS_EQ(next,newLength);
 
-    res->setAge(_cl->age()+1);
     env.statistics->factoring++;
-
     return res;
   }
 private:

@@ -301,7 +301,7 @@ void CLTBModeLearning::loadIncludes()
 
       UnitList::Iterator fuit(funits);
       while (fuit.hasNext()) {
-        fuit.next()->inference()->markIncluded();
+        fuit.next()->inference().markIncluded();
       }
       theoryAxioms=UnitList::concat(funits,theoryAxioms);
     }

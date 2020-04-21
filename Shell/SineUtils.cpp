@@ -309,7 +309,7 @@ void SineSelector::updateDefRelation(Unit* u)
 
   if (!sit.hasNext()) {
     if(_justForSineLevels){
-      u->inference()->setSineLevel(0);
+      u->inference().setSineLevel(0);
       //cout << "set level for a non-symboler " << u->toString() << " as " << "(0)" << endl;
     }
     _unitsWithoutSymbols.push(u);
@@ -409,8 +409,8 @@ bool SineSelector::perform(UnitList*& units)
   while (uit2.hasNext()) {
     numberUnitsLeftOut++;
     Unit* u=uit2.next();
-    bool performSelection= _onIncluded ? u->inference()->included() : ((u->inference()->inputType()==Inference::InputType::AXIOM)
-                            || (env.options->guessTheGoal() != Options::GoalGuess::OFF && u->inference()->inputType()==Inference::InputType::ASSUMPTION));
+    bool performSelection= _onIncluded ? u->included() : ((u->inputType()==UnitInputType::AXIOM)
+                            || (env.options->guessTheGoal() != Options::GoalGuess::OFF && u->inputType()==UnitInputType::ASSUMPTION));
     if (performSelection) { // register the unit for later
       updateDefRelation(u);
     }
@@ -420,7 +420,7 @@ bool SineSelector::perform(UnitList*& units)
       newlySelected.push_back(u);
 
       if(_justForSineLevels) {
-        u->inference()->setSineLevel(0);
+        u->inference().setSineLevel(0);
         //cout << "set level for " << u->toString() << " as " << "(0)" << endl;
       }
     }
@@ -482,7 +482,7 @@ bool SineSelector::perform(UnitList*& units)
         newlySelected.push_back(du);
 
         if(_justForSineLevels){
-          du->inference()->setSineLevel(env.maxSineLevel);
+          du->inference().setSineLevel(env.maxSineLevel);
           //cout << "set level for " << du->toString() << " in iteration as " << env.maxClausePriority << endl;
         }
       }
@@ -663,8 +663,8 @@ void SineTheorySelector::perform(UnitList*& units)
   UnitList::Iterator uit2(units);
   while (uit2.hasNext()) {
     Unit* u=uit2.next();
-    bool performSelection= sineOnIncluded ? u->inference()->included() : ((u->inference()->inputType()==Inference::InputType::AXIOM)
-                   || (env.options->guessTheGoal() != Options::GoalGuess::OFF && u->inference()->inputType()==Inference::InputType::ASSUMPTION));
+    bool performSelection= sineOnIncluded ? u->included() : ((u->inputType()==UnitInputType::AXIOM)
+                   || (env.options->guessTheGoal() != Options::GoalGuess::OFF && u->inputType()==UnitInputType::ASSUMPTION));
 
     if (performSelection) {
       updateDefRelation(u);

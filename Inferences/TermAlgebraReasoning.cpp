@@ -46,7 +46,7 @@ using namespace Lib;
 namespace Inferences {
 
   // copy clause c, replacing literal a by b
-  Clause* replaceLit(Clause *c, Literal *a, Literal *b, Inference *inf)
+  Clause* replaceLit(Clause *c, Literal *a, Literal *b, const Inference& inf)
   {
     CALL("replaceLit");
 
@@ -61,8 +61,8 @@ namespace Inferences {
     return res;
   }
 
-  // copy clause c, with the exception of the ith literal
-  Clause* removeLit(Clause *c, unsigned i, Inference *inf)
+  // copy clause c, with the exception of the i-th literal
+  Clause* removeLit(Clause *c, unsigned i, const Inference& inf)
   {
     CALL("removeLit");
 
@@ -129,7 +129,7 @@ namespace Inferences {
   {
     CALL("DistinctnessISE::simplify");
 
-    if (c->inference()->isPureTheoryDescendant())
+    if (c->isPureTheoryDescendant())
       return c;
     
     int length = c->length();
@@ -138,8 +138,7 @@ namespace Inferences {
       if (distinctConstructorsEquality(lit)) {
         if (lit->isPositive()) {
           // equality of the form f(x) = g(y), delete literal from clause
-          Clause* res = removeLit(c, i, new Inference1(Inference::Rule::TERM_ALGEBRA_DISTINCTNESS, c));
-          res->setAge(c->age());
+          Clause* res = removeLit(c, i, SimplifyingInference1(InferenceRule::TERM_ALGEBRA_DISTINCTNESS, c));
           env.statistics->taDistinctnessSimplifications++;
           return res;
         } else {
@@ -181,10 +180,6 @@ namespace Inferences {
     {
       CALL("InjectivityGIE::SubtermIterator::next()");
 
-      Clause *res;
-      Inference *inf = new Inference1(Inference::Rule::TERM_ALGEBRA_INJECTIVITY_GENERATING, _clause);
-      
-      
       // from the clause f(x1 ... xn) = f(y1 .. yn) \/ C, we create
       // a new clause xi = yi \/ C. In this case, next() can be
       // called n times to create the n relevant conclusions.
@@ -193,9 +188,8 @@ namespace Inferences {
                                            *_lit->nthArgument(1)->term()->nthArgument(_index),
                                            _type->arg(_index));
       
-      res = replaceLit(_clause, _lit, l, inf);
+      Clause * res = replaceLit(_clause, _lit, l, GeneratingInference1(InferenceRule::TERM_ALGEBRA_INJECTIVITY_GENERATING, _clause));
       _index++;
-      res->setAge(_clause->age()+1);
       env.statistics->taInjectivitySimplifications++;
       return res;
     }
@@ -240,7 +234,7 @@ namespace Inferences {
   {
     CALL("InjectivityISE::simplify");
     
-    if (c->inference()->isPureTheoryDescendant())
+    if (c->isPureTheoryDescendant())
       return c;
 
     int length = c->length();
@@ -253,8 +247,7 @@ namespace Inferences {
                                                     *lit->nthArgument(0)->term()->nthArgument(0),
                                                     *lit->nthArgument(1)->term()->nthArgument(0),
                                                     type->arg(0));
-          Clause* res = replaceLit(c, lit, newlit, new Inference1(Inference::Rule::TERM_ALGEBRA_INJECTIVITY_SIMPLIFYING, c));
-          res->setAge(c->age());
+          Clause* res = replaceLit(c, lit, newlit, SimplifyingInference1(InferenceRule::TERM_ALGEBRA_INJECTIVITY_SIMPLIFYING, c));
           env.statistics->taInjectivitySimplifications++;
           return res;
         }
@@ -292,7 +285,7 @@ namespace Inferences {
   {
     CALL("NegativeInjectivityISE::simplify");
 
-    if (c->inference()->isPureTheoryDescendant())
+    if (c->isPureTheoryDescendant())
       return c;
 
     int length = c->length();
@@ -303,7 +296,7 @@ namespace Inferences {
         unsigned oldLength = c->length();
         unsigned arity = lit->nthArgument(0)->term()->arity();
         unsigned newLength = oldLength + arity - 1;
-        Clause* res = new(newLength) Clause(newLength,new Inference1(Inference::Rule::TERM_ALGEBRA_INJECTIVITY_SIMPLIFYING, c));
+        Clause* res = new(newLength) Clause(newLength,SimplifyingInference1(InferenceRule::TERM_ALGEBRA_INJECTIVITY_SIMPLIFYING, c));
         Literal *newLit = Literal::createEquality(false,
                                                   *lit->nthArgument(0)->term()->nthArgument(0),
                                                   *lit->nthArgument(1)->term()->nthArgument(0),
@@ -320,7 +313,6 @@ namespace Inferences {
                                            type->arg(i));
           (*res)[oldLength + i - 1] = newLit;
         }
-        res->setAge(c->age());
         env.statistics->taNegativeInjectivitySimplifications++;
 
         return res;
@@ -377,8 +369,9 @@ namespace Inferences {
       while (premises.hasNext()) {
         UnitList::push(premises.next(), ulpremises);
       }
-      Inference* inf = new InferenceMany(Inference::Rule::TERM_ALGEBRA_ACYCLICITY, ulpremises);
-      Clause* res = new(length) Clause(length,inf);
+      Clause* res = new(length) Clause(length,GeneratingInferenceMany(InferenceRule::TERM_ALGEBRA_ACYCLICITY, ulpremises));
+      // MS: to preserve the original semantics (although it looks slightly suspicious)
+      res->setAge(_premise->age() + 1);
 
       premises.reset(qres->premises);
       unsigned i = 0;
@@ -404,7 +397,6 @@ namespace Inferences {
       ASS (!clausesTheta.hasNext());
       ASS_EQ(i, length);
 
-      res->setAge(_premise->age() + 1);
       return res;
     }
   private:
@@ -524,8 +516,7 @@ namespace Inferences {
                                                 *_lit->nthArgument(_leftSide ? 0 : 1),
                                                 *_subterms.pop(),
                                                 _sort);
-      Clause* res = replaceLit(_clause, _lit, newlit, new Inference1(Inference::Rule::TERM_ALGEBRA_ACYCLICITY, _clause));
-      res->setAge(_clause->age() + 1);
+      Clause* res = replaceLit(_clause, _lit, newlit, GeneratingInference1(InferenceRule::TERM_ALGEBRA_ACYCLICITY, _clause));
       env.statistics->taAcyclicityGeneratedDisequalities++;
       return res;
     }

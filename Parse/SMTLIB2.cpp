@@ -904,7 +904,7 @@ void SMTLIB2::readDefineFun(const vstring& name, LExprList* iArgs, LExpr* oSort,
 
   Formula* fla = new AtomicFormula(Literal::createEquality(true,lhs,rhs,rangeSort));
 
-  FormulaUnit* fu = new FormulaUnit(fla, new Inference0(Inference::InputType::ASSUMPTION, Inference::Rule::INPUT));
+  FormulaUnit* fu = new FormulaUnit(fla, FromInput(UnitInputType::ASSUMPTION));
 
   UnitList::push(fu, _formulas);
 }
@@ -2303,7 +2303,7 @@ void SMTLIB2::readAssert(LExpr* body)
     USER_ERROR("Asserted expression of non-boolean sort "+body->toString());
   }
 
-  FormulaUnit* fu = new FormulaUnit(fla, new Inference0(Inference::InputType::ASSUMPTION, Inference::Rule::INPUT));
+  FormulaUnit* fu = new FormulaUnit(fla, FromInput(UnitInputType::ASSUMPTION));
   UnitList::push(fu, _formulas);
 }
 
@@ -2321,9 +2321,9 @@ void SMTLIB2::readAssertNot(LExpr* body)
     USER_ERROR("Asserted expression of non-boolean sort "+body->toString());
   }
 
-  FormulaUnit* fu = new FormulaUnit(fla, new Inference0(Inference::InputType::CONJECTURE, Inference::Rule::INPUT));
+  FormulaUnit* fu = new FormulaUnit(fla, FromInput(UnitInputType::CONJECTURE));
   fu = new FormulaUnit(new NegatedFormula(fla),
-                       new Inference1(Inference::Rule::NEGATED_CONJECTURE, fu));
+                       FormulaTransformation(InferenceRule::NEGATED_CONJECTURE, fu));
   UnitList::push(fu, _formulas);
 }
 

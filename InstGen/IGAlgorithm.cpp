@@ -274,9 +274,9 @@ Clause* IGAlgorithm::getFORefutation(SATClause* satRefutation, SATClauseList* sa
 
   UnitList* prems = SATInference::getFOPremises(satRefutation);
 
-  Inference* foInf = satPremises ? // does our SAT solver support postponed minimization?
-      new InferenceFromSatRefutation(Inference::Rule::SAT_INSTGEN_REFUTATION, prems, satPremises) :
-      new InferenceMany(Inference::Rule::SAT_INSTGEN_REFUTATION, prems);
+  Inference foInf(FromSatRefutation(InferenceRule::SAT_INSTGEN_REFUTATION, prems,
+          // satPremises may be nullptr already, if our solver does not support minimization
+          env.options->minimizeSatProofs() ? satPremises : nullptr));
 
   Clause* foRef = Clause::fromIterator(LiteralIterator::getEmpty(), foInf);
   return foRef;
@@ -398,11 +398,9 @@ void IGAlgorithm::finishGeneratingClause(Clause* orig, ResultSubstitution& subst
 {
   CALL("IGAlgorithm::finishGeneratingClause");
 
-  Inference* inf = new Inference1(Inference::Rule::INSTANCE_GENERATION, orig);
-
-  Clause* res = Clause::fromStack(genLits, inf);
-  int newAge = max(orig->age(), otherCl->age())+1;
-  res->setAge(newAge);
+  Clause* res = Clause::fromStack(genLits, GeneratingInference1(InferenceRule::INSTANCE_GENERATION, orig));
+  // make age also depend on the age of otherCl
+  res->setAge(max(orig->age(), otherCl->age())+1);
 
   env.statistics->instGenGeneratedClauses++;
   bool added = addClause(res);

@@ -244,9 +244,8 @@ namespace Indexing
       CALL("AcyclicityIndex::applySubstitution");
       
       unsigned clen = c->length();
-      Inference* inf = new Inference1(Inference::Rule::INSTANTIATION, c);
       Clause* res = new(clen) Clause(clen,
-                                     inf);
+          GeneratingInference1(InferenceRule::INSTANTIATION, c));
 
       for (unsigned i = 0; i < clen; i++) {
         (*res)[i] = _subst->apply((*c)[i], index);

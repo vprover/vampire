@@ -152,16 +152,17 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
   bool withConstraints = !constraints.isEmpty() && !constraints->isEmpty();
   unsigned clength = queryCl->length();
   unsigned dlength = qr.clause->length();
-  unsigned newAge=Int::max(queryCl->age(),qr.clause->age())+1;
 
   // LRS-specific optimization:
   // check whether we can conclude that the resulting clause will be discarded by LRS since it does not fulfil the age/weight limits (in which case we can discard the clause)
   // we already know the age here so we can immediately conclude whether the clause fulfils the age limit
   // since we have not built the clause yet we compute lower bounds on the weight of the clause after each step and recheck whether the weight-limit can still be fulfilled.
   unsigned wlb=0;//weight lower bound
-  ScopedPtr<Inference> infSp(new Inference2((withConstraints?Inference::Rule::CONSTRAINED_RESOLUTION:Inference::Rule::RESOLUTION),queryCl, qr.clause));
+  Inference inf(GeneratingInference2(withConstraints?
+      InferenceRule::CONSTRAINED_RESOLUTION:InferenceRule::RESOLUTION,queryCl, qr.clause));
+  Inference::Destroyer inf_destroyer(inf); // will call destroy on inf when coming out of scope unless disabled
 
-  bool needsToFulfilWeightLimit = passiveClauseContainer && !passiveClauseContainer->fulfilsAgeLimit(newAge, wlb, infSp.ptr()) && passiveClauseContainer->weightLimited();
+  bool needsToFulfilWeightLimit = passiveClauseContainer && !passiveClauseContainer->fulfilsAgeLimit(wlb, inf) && passiveClauseContainer->weightLimited();
   if(needsToFulfilWeightLimit) {
     for(unsigned i=0;i<clength;i++) {
       Literal* curr=(*queryCl)[i];
@@ -175,7 +176,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
         wlb+=curr->weight();
       }
     }
-    if(!passiveClauseContainer->fulfilsWeightLimit(wlb, newAge, infSp.ptr())) {
+    if(!passiveClauseContainer->fulfilsWeightLimit(wlb, inf)) {
       RSTAT_CTR_INC("binary resolutions skipped for weight limit before building clause");
       env.statistics->discardedNonRedundantClauses++;
       return 0;
@@ -185,7 +186,8 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
   unsigned conlength = withConstraints ? constraints->size() : 0;
   unsigned newLength = clength+dlength-2+conlength;
 
-  Clause* res = new(newLength) Clause(newLength, infSp.release()); // the inference object owned by res from now on
+  inf_destroyer.disable(); // ownership passed to the the clause below
+  Clause* res = new(newLength) Clause(newLength, inf); // the inference object owned by res from now on
 
   Literal* queryLitAfter = 0;
   if (ord && queryCl->numSelected() > 1) {
@@ -242,7 +244,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
       Literal* newLit=qr.substitution->applyToQuery(curr);
       if(needsToFulfilWeightLimit) {
         wlb+=newLit->weight() - curr->weight();
-        if(!passiveClauseContainer->fulfilsWeightLimit(wlb, newAge, res->inference())) {
+        if(!passiveClauseContainer->fulfilsWeightLimit(wlb, res->inference())) {
           RSTAT_CTR_INC("binary resolutions skipped for weight limit while building clause");
           env.statistics->discardedNonRedundantClauses++;
           res->destroy();
@@ -280,7 +282,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
       Literal* newLit = qr.substitution->applyToResult(curr);
       if(needsToFulfilWeightLimit) {
         wlb+=newLit->weight() - curr->weight();
-        if(!passiveClauseContainer->fulfilsWeightLimit(wlb, newAge, res->inference())) {
+        if(!passiveClauseContainer->fulfilsWeightLimit(wlb, res->inference())) {
           RSTAT_CTR_INC("binary resolutions skipped for weight limit while building clause");
           env.statistics->discardedNonRedundantClauses++;
           res->destroy();
@@ -306,7 +308,6 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
     }
   }
 
-  res->setAge(newAge);
   if(withConstraints){
     env.statistics->cResolution++;
   }

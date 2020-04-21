@@ -93,14 +93,12 @@ FormulaUnit* Rectify::rectify (FormulaUnit* unit0, bool removeUnusedVars)
   VarList* vars = rect._free;
 
   if (f != g) {
-    unit = new FormulaUnit(g,
-        Inference::newFormulaTransformation(Inference::Rule::RECTIFY,unit));
+    unit = new FormulaUnit(g,FormulaTransformation(InferenceRule::RECTIFY,unit));
   }
 
   if (VarList::isNonEmpty(vars)) {
     //TODO do we know the sorts of vars?
-    unit = new FormulaUnit(new QuantifiedFormula(FORALL,vars,0,g),
-        Inference::newFormulaTransformation(Inference::Rule::CLOSURE,unit));
+    unit = new FormulaUnit(new QuantifiedFormula(FORALL,vars,0,g),FormulaTransformation(InferenceRule::CLOSURE,unit));
   }
   return unit;
 } // Rectify::rectify (Unit& unit)

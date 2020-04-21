@@ -124,8 +124,8 @@ InductionClauseIterator::InductionClauseIterator(Clause* premise)
 
 
   if((!unitOnly || premise->length()==1) && 
-     (all || ( (goal || goal_plus) && premise->inference()->derivedFromGoal())) &&
-     (maxD == 0 || premise->inference()->inductionDepth() < maxD)
+     (all || ( (goal || goal_plus) && premise->derivedFromGoal())) &&
+     (maxD == 0 || premise->inference().inductionDepth() < maxD)
     )
   {
     for(unsigned i=0;i<premise->length();i++){
@@ -321,12 +321,12 @@ void InductionClauseIterator::performMathInductionOne(Clause* premise, Literal* 
   NewCNF cnf(0);
   cnf.setForInduction();
   Stack<Clause*> hyp_clauses;
-  unsigned prev_depth = premise->inference()->inductionDepth();
-  Inference* inf1 = new Inference0(Inference::InputType::AXIOM,Inference::Rule::INDUCTION_AXIOM);
-  inf1->setInductionDepth(prev_depth+1);
+  unsigned prev_depth = premise->inference().inductionDepth();
+  Inference inf1 = TheoryAxiom(InferenceRule::INDUCTION_AXIOM);
+  inf1.setInductionDepth(prev_depth+1);
   FormulaUnit* fu1 = new FormulaUnit(hyp1,inf1);
-  Inference* inf2 = new Inference0(Inference::InputType::AXIOM,Inference::Rule::INDUCTION_AXIOM);
-  inf2->setInductionDepth(prev_depth+1);
+  Inference inf2 = TheoryAxiom(InferenceRule::INDUCTION_AXIOM);
+  inf2.setInductionDepth(prev_depth+1);
   FormulaUnit* fu2 = new FormulaUnit(hyp2,inf2);
   cnf.clausify(NNF::ennf(fu1), hyp_clauses);
   cnf.clausify(NNF::ennf(fu2), hyp_clauses);
@@ -441,8 +441,8 @@ void InductionClauseIterator::performStructInductionOne(Clause* premise, Literal
   NewCNF cnf(0);
   cnf.setForInduction();
   Stack<Clause*> hyp_clauses;
-  Inference* inf = new Inference0(Inference::InputType::AXIOM,Inference::Rule::INDUCTION_AXIOM);
-  inf->setInductionDepth(premise->inference()->inductionDepth()+1);
+  Inference inf = TheoryAxiom(InferenceRule::INDUCTION_AXIOM);
+  inf.setInductionDepth(premise->inference().inductionDepth()+1);
   FormulaUnit* fu = new FormulaUnit(hypothesis,inf);
   cnf.clausify(NNF::ennf(fu), hyp_clauses);
 
@@ -549,8 +549,8 @@ void InductionClauseIterator::performStructInductionTwo(Clause* premise, Literal
   NewCNF cnf(0);
   cnf.setForInduction();
   Stack<Clause*> hyp_clauses;
-  Inference* inf = new Inference0(Inference::InputType::AXIOM,Inference::Rule::INDUCTION_AXIOM);
-  inf->setInductionDepth(premise->inference()->inductionDepth()+1);
+  Inference inf = TheoryAxiom(InferenceRule::INDUCTION_AXIOM);
+  inf.setInductionDepth(premise->inference().inductionDepth()+1);
   FormulaUnit* fu = new FormulaUnit(hypothesis,inf);
   cnf.clausify(NNF::ennf(fu), hyp_clauses);
 
@@ -695,8 +695,8 @@ void InductionClauseIterator::performStructInductionThree(Clause* premise, Liter
   NewCNF cnf(0);
   cnf.setForInduction();
   Stack<Clause*> hyp_clauses;
-  Inference* inf = new Inference0(Inference::InputType::AXIOM,Inference::Rule::INDUCTION_AXIOM);
-  inf->setInductionDepth(premise->inference()->inductionDepth()+1);
+  Inference inf = TheoryAxiom(InferenceRule::INDUCTION_AXIOM);
+  inf.setInductionDepth(premise->inference().inductionDepth()+1);
   FormulaUnit* fu = new FormulaUnit(hypothesis,inf);
   cnf.clausify(NNF::ennf(fu), hyp_clauses);
 

@@ -103,16 +103,15 @@ FormulaUnit* Skolem::skolemiseImpl (FormulaUnit* unit)
     return unit;
   }
 
-  UnitList* premiseList = new UnitList(unit,_skolimizingDefinitions);
+  UnitList* premiseList = new UnitList(unit,_skolimizingDefinitions); // making sure unit is the last inserted, i.e. first in the list
 
-  Inference* inf = new InferenceMany(Inference::Rule::SKOLEMIZE,premiseList);
-  FormulaUnit* res = new FormulaUnit(g, inf);
+  FormulaUnit* res = new FormulaUnit(g,FormulaTransformationMany(InferenceRule::SKOLEMIZE,premiseList));
 
   ASS(_introducedSkolemFuns.isNonEmpty());
   while(_introducedSkolemFuns.isNonEmpty()) {
     unsigned fn = _introducedSkolemFuns.pop();
     InferenceStore::instance()->recordIntroducedSymbol(res,true,fn);
-    if(unit->inference()->derivedFromGoal()){
+    if(unit->derivedFromGoal()){
       env.signature->getFunction(fn)->markInGoal();
     }
   }
@@ -454,7 +453,7 @@ Formula* Skolem::skolemise (Formula* f)
           def = new QuantifiedFormula(FORALL,var_args,nullptr,def);
         }
 
-        Unit* defUnit = new FormulaUnit(def, new Inference0(Inference::InputType::AXIOM,Inference::Rule::CHOICE_AXIOM));
+        Unit* defUnit = new FormulaUnit(def,TheoryAxiom(InferenceRule::CHOICE_AXIOM));
         UnitList::push(defUnit,_skolimizingDefinitions);
       }
 

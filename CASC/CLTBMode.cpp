@@ -273,7 +273,7 @@ void CLTBMode::loadIncludes()
 
       UnitList::Iterator fuit(funits);
       while (fuit.hasNext()) {
-        fuit.next()->inference()->markIncluded();
+        fuit.next()->inference().markIncluded();
       }
       theoryAxioms=UnitList::concat(funits,theoryAxioms);
     }
@@ -327,7 +327,7 @@ void CLTBMode::learnFromSolutionFile(vstring& solnFileName)
     UnitList::DelIterator it(solnUnits);
     while (it.hasNext()) {
       Unit* unit = it.next();
-      if (unit->inference()->inputType()==Inference::InputType::AXIOM){
+      if (unit->inputType()==UnitInputType::AXIOM){
         if (sources->find(unit)){
           if (sources->get(unit)->isFile()){
             vstring name = static_cast<Parse::TPTP::FileSourceRecord*>(sources->get(unit))->nameInFile;

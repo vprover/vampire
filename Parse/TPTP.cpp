@@ -1279,35 +1279,35 @@ void TPTP::fof(bool fo)
 
   _isQuestion = false;
   if(_modelDefinition){
-    _lastInputType = Inference::InputType::MODEL_DEFINITION;
+    _lastInputType = UnitInputType::MODEL_DEFINITION;
   }
   else if (tp == "axiom" || tp == "plain") {
-    _lastInputType = Inference::InputType::AXIOM;
+    _lastInputType = UnitInputType::AXIOM;
   }
   else if(tp == "extensionality"){
     // this will be transformed to just AXIOM after clausification
-    _lastInputType = Inference::InputType::EXTENSIONALITY_AXIOM;
+    _lastInputType = UnitInputType::EXTENSIONALITY_AXIOM;
   }
   else if (tp == "definition") {
-    _lastInputType = Inference::InputType::AXIOM;
+    _lastInputType = UnitInputType::AXIOM;
   }
   else if (tp == "conjecture") {
     _containsConjecture = true;
-    _lastInputType = Inference::InputType::CONJECTURE;
+    _lastInputType = UnitInputType::CONJECTURE;
   }
   else if (tp == "question") {
     _isQuestion = true;
     _containsConjecture = true;
-    _lastInputType = Inference::InputType::CONJECTURE;
+    _lastInputType = UnitInputType::CONJECTURE;
   }
   else if (tp == "negated_conjecture") {
-    _lastInputType = Inference::InputType::NEGATED_CONJECTURE;
+    _lastInputType = UnitInputType::NEGATED_CONJECTURE;
   }
   else if (tp == "hypothesis" || tp == "theorem" || tp == "lemma") {
-    _lastInputType = Inference::InputType::ASSUMPTION;
+    _lastInputType = UnitInputType::ASSUMPTION;
   }
   else if (tp == "claim") {
-    _lastInputType = Inference::InputType::CLAIM;
+    _lastInputType = UnitInputType::CLAIM;
   }
   else if (tp == "assumption" || tp == "unknown") {
     // MS: we were silently dropping these until now. I wonder why...
@@ -1403,36 +1403,36 @@ void TPTP::tff()
   _bools.push(true); // to denote that it is an FOF formula
   _isQuestion = false;
   if (tp == "axiom" || tp == "plain") {
-    _lastInputType = Inference::InputType::AXIOM;
+    _lastInputType = UnitInputType::AXIOM;
   }
   else if (tp == "extensionality"){
     // this will be transformed to just AXIOM after clausification
-    _lastInputType = Inference::InputType::EXTENSIONALITY_AXIOM;
+    _lastInputType = UnitInputType::EXTENSIONALITY_AXIOM;
   }
   else if (tp == "definition") {
-    _lastInputType = Inference::InputType::AXIOM;
+    _lastInputType = UnitInputType::AXIOM;
   }
   else if (tp == "conjecture") {
     _containsConjecture = true;
-    _lastInputType = Inference::InputType::CONJECTURE;
+    _lastInputType = UnitInputType::CONJECTURE;
   }
   else if (tp == "question") {
     _isQuestion = true;
     _containsConjecture = true;
-    _lastInputType = Inference::InputType::CONJECTURE;
+    _lastInputType = UnitInputType::CONJECTURE;
   }
   else if (tp == "negated_conjecture") {
-    _lastInputType = Inference::InputType::NEGATED_CONJECTURE;
+    _lastInputType = UnitInputType::NEGATED_CONJECTURE;
   }
   else if (tp == "hypothesis" || tp == "theorem" || tp == "lemma") {
-    _lastInputType = Inference::InputType::ASSUMPTION;
+    _lastInputType = UnitInputType::ASSUMPTION;
   }
   else if (tp == "assumption" || tp == "unknown") {
     // MS: we were silently dropping these until now. I wonder why...
     PARSE_ERROR((vstring)"Unsupported unit type '" + tp + "' found",start);
   }
   else if (tp == "claim") {
-    _lastInputType = Inference::InputType::CLAIM;
+    _lastInputType = UnitInputType::CLAIM;
   }
   else {
     PARSE_ERROR((vstring)"unit type, such as axiom or definition expected but " + tp + " found",
@@ -3027,7 +3027,7 @@ void TPTP::endFof()
   Unit* unit;
   if (isFof) { // fof() or tff()
     env.statistics->inputFormulas++;
-    unit = new FormulaUnit(f,new Inference0(_lastInputType,Inference::Rule::INPUT));
+    unit = new FormulaUnit(f,FromInput(_lastInputType));
     unit->setInheritedColor(_currentColor);
   }
   else { // cnf()
@@ -3073,7 +3073,7 @@ void TPTP::endFof()
 	USER_ERROR((vstring)"input formula not in CNF: " + f->toString());
       }
     }
-    unit = Clause::fromStack(lits,new Inference0(_lastInputType,Inference::Rule::INPUT));
+    unit = Clause::fromStack(lits,FromInput(_lastInputType));
     unit->setInheritedColor(_currentColor);
   }
 
@@ -3089,11 +3089,11 @@ void TPTP::endFof()
   cout << "Unit: " << unit->toString() << "\n";
 #endif
   if (!_inputs.isEmpty()) {
-    unit->inference()->markIncluded();
+    unit->inference().markIncluded();
   }
 
   switch (_lastInputType) {
-  case Inference::InputType::CONJECTURE:
+  case UnitInputType::CONJECTURE:
     if(!isFof) USER_ERROR("conjecture is not allowed in cnf");
     if(_seenConjecture) USER_ERROR("Vampire only supports a single conjecture in a problem");
     _seenConjecture=true;
@@ -3115,7 +3115,7 @@ void TPTP::endFof()
                                 g->sorts(),
 				new BinaryFormula(IMP,g->subformula(),new AtomicFormula(a)));
       unit = new FormulaUnit(f,
-			     new Inference1(Inference::Rule::ANSWER_LITERAL,unit));
+			     FormulaTransformation(InferenceRule::ANSWER_LITERAL,unit));
     }
     else {
       Formula::VarList* vs = f->freeVariables();
@@ -3127,11 +3127,11 @@ void TPTP::endFof()
 	f = new NegatedFormula(new QuantifiedFormula(FORALL,vs,0,f));
       }
       unit = new FormulaUnit(f,
-			     new Inference1(Inference::Rule::NEGATED_CONJECTURE,unit));
+			     FormulaTransformation(InferenceRule::NEGATED_CONJECTURE,unit));
     }
     break;
 
-  case Inference::InputType::CLAIM:
+  case UnitInputType::CLAIM:
     {
       bool added;
       unsigned pred = env.signature->addPredicate(nm,0,added);
@@ -3149,7 +3149,7 @@ void TPTP::endFof()
       }
       f = new BinaryFormula(IFF,claim,f);
       unit = new FormulaUnit(f,
-			     new Inference1(Inference::Rule::CLAIM_DEFINITION,unit));
+          FormulaTransformation(InferenceRule::CLAIM_DEFINITION,unit));
     }
     break;
 

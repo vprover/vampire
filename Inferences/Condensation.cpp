@@ -140,18 +140,16 @@ Clause* Condensation::simplify(Clause* cl)
       }
 
       if(success) {
-	Inference* inf = new Inference1(Inference::Rule::CONDENSATION, cl);
-	Clause* res = new(newLen) Clause(newLen, inf);
-	Renaming norm;
+        Clause* res = new(newLen) Clause(newLen, SimplifyingInference1(InferenceRule::CONDENSATION, cl));
+        Renaming norm;
 
-	for(unsigned i=0;i<newLen;i++) {
-	  //(*res)[i] = norm.normalize(newLits[i]);
-	  (*res)[i] = newLits[i];
-	}
+        for(unsigned i=0;i<newLen;i++) {
+          //(*res)[i] = norm.normalize(newLits[i]);
+          (*res)[i] = newLits[i];
+        }
 
-	res->setAge(cl->age());
-	env.statistics->condensations++;
-	return res;
+        env.statistics->condensations++;
+        return res;
       }
     }
   }

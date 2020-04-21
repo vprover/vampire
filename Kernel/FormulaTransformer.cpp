@@ -368,8 +368,7 @@ FormulaUnit* LocalFormulaUnitTransformer::transform(FormulaUnit* unit)
   if(f==newForm) {
     return unit;
   }
-  Inference* inf = Inference::newFormulaTransformation(_rule, unit);
-  return new FormulaUnit(newForm, inf);
+  return new FormulaUnit(newForm, FormulaTransformation(_rule, unit));
 }
 
 
@@ -487,8 +486,7 @@ bool ScanAndApplyLiteralTransformer::apply(FormulaUnit* unit, Unit*& res)
   UnitList::pushFromIterator(UnitStack::Iterator(prems), premLst);
   UnitList::push(unit, premLst);
 
-  Inference* inf = new InferenceMany(_infRule, premLst);
-  res = new FormulaUnit(newForm, inf);
+  res = new FormulaUnit(newForm, FormulaTransformationMany(_infRule, premLst));
 
   return true;
 }
@@ -523,8 +521,7 @@ bool ScanAndApplyLiteralTransformer::apply(Clause* cl, Unit*& res)
   UnitList::pushFromIterator(UnitStack::Iterator(prems), premLst);
   UnitList::push(cl, premLst);
 
-  Inference* inf = new InferenceMany(_infRule, premLst);
-  res = Clause::fromIterator(LiteralStack::Iterator(lits), inf);
+  res = Clause::fromIterator(LiteralStack::Iterator(lits), FormulaTransformationMany(_infRule, premLst));
   return true;
 }
 

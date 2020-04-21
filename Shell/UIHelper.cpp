@@ -371,7 +371,7 @@ void UIHelper::outputResult(ostream& out)
         out << "% SZS output end Proof for " << env.options->problemName() << endl << flush;
       }
       // outputProof could have triggered proof minimization which might have cause inductionDepth to change (in fact, decrease)
-      env.statistics->maxInductionDepth = env.statistics->refutation->inference()->inductionDepth();
+      env.statistics->maxInductionDepth = env.statistics->refutation->inference().inductionDepth();
     }
     if (env.options->showInterpolant()!=Options::InterpolantMode::OFF) {
       ASS(env.statistics->refutation->isClause());

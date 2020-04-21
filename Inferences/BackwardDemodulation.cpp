@@ -201,9 +201,8 @@ struct BackwardDemodulation::ResultFn
       return BwSimplificationRecord(qr.clause);
     }
 
-    Inference* inf = new Inference2(Inference::Rule::BACKWARD_DEMODULATION, qr.clause, _cl);
     unsigned cLen=qr.clause->length();
-    Clause* res = new(cLen) Clause(cLen, inf);
+    Clause* res = new(cLen) Clause(cLen, SimplifyingInference2(InferenceRule::BACKWARD_DEMODULATION, qr.clause, _cl));
 
     (*res)[0]=resLit;
 
@@ -216,7 +215,6 @@ struct BackwardDemodulation::ResultFn
     }
     ASS_EQ(next,cLen);
 
-    res->setAge(qr.clause->age());
     env.statistics->backwardDemodulations++;
 
     _removed->insert(qr.clause);

@@ -25,6 +25,9 @@
 
 #include "Debug/Tracer.hpp"
 #include "Kernel/Term.hpp"
+#include "Kernel/Clause.hpp"
+#include "SAT/SATInference.hpp"
+#include "SAT/MinisatInterfacing.hpp"
 
 #include "Inference.hpp"
 
@@ -32,67 +35,288 @@ using namespace Kernel;
 
 
 /**
- * Return InputType of which should be a formula that has
+ * Return UnitInputType of which should be a formula that has
  * units of types @c t1 and @c t2 as premises.
  */
-Inference::InputType Inference::getInputType(InputType t1, InputType t2)
+UnitInputType Kernel::getInputType(UnitInputType t1, UnitInputType t2)
 {
-  CALL("Unit::getInputType");
+  CALL("getInputType");
 
-  return static_cast<Inference::InputType>(std::max(toNumber(t1), toNumber(t2)));
+  return static_cast<UnitInputType>(std::max(toNumber(t1), toNumber(t2)));
 }
 
 /**
- * Return InputType of which should be a formula that has
+ * Return UnitInputType of which should be a formula that has
  * @c units as premises.
  *
  * @c units must be a non-empty list.
  */
-Inference::InputType Inference::getInputType(UnitList* units)
+UnitInputType Kernel::getInputType(UnitList* units)
 {
-  CALL("Unit::getInputType");
+  CALL("Inference::getInputType");
   ASS(units);
 
   UnitList::Iterator uit(units);
   ALWAYS(uit.hasNext());
-  InputType res = uit.next()->inference()->inputType();
+  UnitInputType res = uit.next()->inputType();
 
   while(uit.hasNext()) {
-    res = getInputType(res, uit.next()->inference()->inputType());
+    res = Kernel::getInputType(res, uit.next()->inputType());
   }
   return res;
 }
 
-Inference::Inference(InputType inputType, Rule r) :
-    _inputType(inputType), _rule(r),
-    _included(false),
-    _inductionDepth(0),
-    _sineLevel(std::numeric_limits<decltype(_sineLevel)>::max()),
-    _splits(nullptr) {}
+/**
+ * To be kept around in _ptr2 of INFERENCE_FROM_SAT_REFUTATION
+ **/
+struct FromSatRefutationInfo {
+  CLASS_NAME(FromSatRefutationInfo);
+  USE_ALLOCATOR(FromSatRefutationInfo);
 
-Inference* Inference::newFormulaTransformation(Rule r, Unit* premise)
+  FromSatRefutationInfo(const FromSatRefutation& fsr) : _satPremises(fsr._satPremises), _usedAssumptions(fsr._usedAssumptions)
+  { ASS(_satPremises); }
+
+  SAT::SATClauseList* _satPremises;
+  SAT::SATLiteralStack _usedAssumptions; // possibly an empty stack
+};
+
+
+void Inference::destroyDirectlyOwned()
 {
-  CALL("Inference::newFormulaTransformation/2");
+  CALL("Inference::destroyDirectlyOwned");
 
-  ASS(isFormulaTransformation(r));
-  ASS(!premise->isClause());
+  switch(_kind) {
+    case Kind::INFERENCE_FROM_SAT_REFUTATION:
+      delete static_cast<FromSatRefutationInfo*>(_ptr2);
+      // intentionally fall further
+    case Kind::INFERENCE_MANY:
+      UnitList::destroy(static_cast<UnitList*>(_ptr1));
+    default:
+      ;
+  }
+}
 
-  Inference* res =  new Inference1(r,premise);
-  res->_included = premise->inference()->_included;
+void Inference::destroy()
+{
+  CALL("Inference::destroy");
 
-  return res;
+  switch(_kind) {
+    case Kind::INFERENCE_012:
+      if (_ptr1) static_cast<Unit*>(_ptr1)->decRefCnt();
+      if (_ptr2) static_cast<Unit*>(_ptr2)->decRefCnt();
+      break;
+    case Kind::INFERENCE_FROM_SAT_REFUTATION:
+      delete static_cast<FromSatRefutationInfo*>(_ptr2);
+      // intentionally fall further
+    case Kind::INFERENCE_MANY:
+      UnitList* it=static_cast<UnitList*>(_ptr1);
+      while(it) {
+        it->head()->decRefCnt();
+        it=it->tail();
+      }
+
+      UnitList::destroy(static_cast<UnitList*>(_ptr1));
+      break;
+  }
+}
+
+Inference::Inference(const FromSatRefutation& fsr) {
+  CALL("Inference::Inference(FromSatRefutation)");
+
+  initMany(fsr._rule,fsr._premises);
+
+  ASS_REP(isSatRefutationRule(fsr._rule),ruleName(fsr._rule));
+
+  if (fsr._satPremises == nullptr) {
+    return; // SAT solver did not support minimization anyway
+  }
+
+  _kind = Kind::INFERENCE_FROM_SAT_REFUTATION;
+  _ptr2 = new FromSatRefutationInfo(fsr);
 }
 
 /**
- * Create an inference object with multiple premises
+ * Return an iterator for an inference with zero premises.
+ * @since 04/01/2008 Torrevieja
  */
-InferenceMany::InferenceMany(Rule rule,UnitList* premises)
-  : Inference(InputType::AXIOM /* the minimal element; we later compute maximum over premises*/,rule),
-    _premises(premises)
+Inference::Iterator Inference::iterator() const
 {
-  CALL("InferenceMany::InferenceMany");
+  CALL("Inference::iterator");
 
-  UnitList* it=_premises;
+  Iterator it;
+  switch(_kind) {
+    case Kind::INFERENCE_012:
+      it.integer=0;
+      break;
+    case Kind::INFERENCE_MANY:
+    case Kind::INFERENCE_FROM_SAT_REFUTATION:
+      it.pointer = _ptr1;
+      break;
+  }
+
+  return it;
+}
+
+/**
+ * True if there exists the next parent.
+ * @since 04/01/2008 Torrevieja
+ */
+bool Inference::hasNext(Iterator& it) const
+{
+  CALL("Inference::hasNext");
+
+  switch(_kind) {
+    case Kind::INFERENCE_012:
+      switch(it.integer) {
+      case 0:
+        return (_ptr1 != nullptr);
+      case 1:
+        return (_ptr2 != nullptr);
+      case 2:
+        return false;
+      default:
+        ASSERTION_VIOLATION;
+        return false;
+      }
+      break;
+    case Kind::INFERENCE_MANY:
+    case Kind::INFERENCE_FROM_SAT_REFUTATION:
+      return (it.pointer != nullptr);
+  }
+}
+
+/**
+ * Return the next parent.
+ * @since 04/01/2008 Torrevieja
+ */
+Unit* Inference::next(Iterator& it) const
+{
+  CALL("Inference::next");
+
+  switch(_kind) {
+    case Kind::INFERENCE_012:
+      switch(it.integer) {
+      case 0:
+        it.integer++;
+        return static_cast<Unit*>(_ptr1);
+      case 1:
+        it.integer++;
+        return static_cast<Unit*>(_ptr2);
+      default:
+        ASSERTION_VIOLATION;
+        return nullptr;
+      }
+      break;
+    case Kind::INFERENCE_MANY:
+    case Kind::INFERENCE_FROM_SAT_REFUTATION:
+      UnitList* lst = static_cast<UnitList*>(it.pointer);
+      it.pointer = lst->tail();
+      return lst->head();
+      break;
+  }
+} // Inference::next
+
+void Inference::updateStatistics()
+{
+  CALL("Inference::updateStatistics");
+
+  switch(_kind) {
+    case Kind::INFERENCE_012:
+      if (_ptr1 == nullptr) {
+        /* Inference0 does not update (it does not have parents anyway).
+        * So if any of Inference0's statistics have been set externally during
+        * proof search, update statistics won't reset these "hacky" values.
+        * (C.f., inductionDepth assigned in AVATAR to AVATAR_DEFINITION
+        * and thus later propagated to AVATAR_COMPONENT, AVATAR_SPLIT_CLAUSE, and transitively to AVATAR_REFUTATION,
+        * and similarly inductionDepth assigned to INDUCTION "hypothesis" formulas in Induction.)
+        */
+      } else if (_ptr2 == nullptr) {
+        _inductionDepth = static_cast<Unit*>(_ptr1)->inference().inductionDepth();
+      } else {
+        _inductionDepth = max(static_cast<Unit*>(_ptr1)->inference().inductionDepth(),
+            static_cast<Unit*>(_ptr2)->inference().inductionDepth());
+      }
+
+      break;
+    case Kind::INFERENCE_MANY:
+    case Kind::INFERENCE_FROM_SAT_REFUTATION:
+      _inductionDepth = 0;
+      UnitList* it= static_cast<UnitList*>(_ptr1);
+      while(it) {
+        _inductionDepth = max(_inductionDepth,it->head()->inference().inductionDepth());
+        it=it->tail();
+      }
+      break;
+  }
+}
+
+void Inference::init0(UnitInputType inputType, InferenceRule r)
+{
+  CALL("Inference::init0");
+
+  initDefault(inputType,r);
+  _kind = Kind::INFERENCE_012;
+  _ptr1 = nullptr;
+  _ptr2 = nullptr;
+
+  computeTheoryRunningSums();
+
+  _isPureTheoryDescendant = isTheoryAxiom();
+
+  //_inductionDepth = 0 from initDefault (or set externally)
+  //_sineLevel = MAX from initDefault (or set externally)
+}
+
+void Inference::init1(InferenceRule r, Unit* premise)
+{
+  CALL("Inference::init1");
+
+  initDefault(premise->inputType(),r);
+
+  _kind = Kind::INFERENCE_012;
+  _ptr1 = premise;
+  _ptr2 = nullptr;
+
+  premise->incRefCnt();
+
+  computeTheoryRunningSums();
+  _isPureTheoryDescendant = premise->isPureTheoryDescendant();
+  _sineLevel = premise->getSineLevel();
+
+  updateStatistics();
+}
+
+void Inference::init2(InferenceRule r, Unit* premise1, Unit* premise2)
+{
+  CALL("Inference::init2");
+
+  initDefault(getInputType(premise1->inputType(),premise2->inputType()),r);
+
+  _kind = Kind::INFERENCE_012;
+  _ptr1 = premise1;
+  _ptr2 = premise2;
+
+  premise1->incRefCnt();
+  premise2->incRefCnt();
+
+  computeTheoryRunningSums();
+  _isPureTheoryDescendant = premise1->isPureTheoryDescendant() && premise2->isPureTheoryDescendant();
+  _sineLevel = min(premise1->getSineLevel(),premise2->getSineLevel());
+
+  updateStatistics();
+}
+
+void Inference::initMany(InferenceRule r, UnitList* premises)
+{
+  CALL("Inference::initMany");
+
+  initDefault(UnitInputType::AXIOM /* the minimal element; we later compute maximum over premises*/,r);
+
+  _kind = Kind::INFERENCE_MANY;
+  _ptr1 = premises;
+  _ptr2 = nullptr;
+
+  UnitList* it= premises;
   while(it) {
     it->head()->incRefCnt();
     it=it->tail();
@@ -100,14 +324,14 @@ InferenceMany::InferenceMany(Rule rule,UnitList* premises)
 
   computeTheoryRunningSums();
 
-  if (_premises) {
+  if (premises) {
     _isPureTheoryDescendant = true;
-    it=_premises;
+    it=premises;
     while(it) {
-      Inference* inf = it->head()->inference();
-      _inputType = getInputType(_inputType,inf->inputType());
-      _isPureTheoryDescendant &= inf->isPureTheoryDescendant();
-      _sineLevel = min(_sineLevel,it->head()->inference()->getSineLevel());
+      const Inference& inf = it->head()->inference();
+      _inputType = getInputType(_inputType,inf.inputType());
+      _isPureTheoryDescendant &= inf.isPureTheoryDescendant();
+      _sineLevel = min(_sineLevel,inf.getSineLevel());
       it=it->tail();
     }
   } else {
@@ -117,224 +341,254 @@ InferenceMany::InferenceMany(Rule rule,UnitList* premises)
   updateStatistics();
 }
 
-void InferenceMany::updateStatistics()
-{
-  CALL("InferenceMany::updateRunningStatistics");
+Inference::Inference(const FromInput& fi) {
+  CALL("Inference::Inference(FromInput)");
 
-  _inductionDepth = 0;
-  UnitList*  it=_premises;
+  init0(fi.inputType,InferenceRule::INPUT);
+}
+
+Inference::Inference(const TheoryAxiom& ta) {
+  CALL("Inference::Inference(TheoryAxiom)");
+
+  init0(UnitInputType::AXIOM,ta.rule);
+  ASS_REP(isTheoryAxiomRule(ta.rule),ruleName(ta.rule));
+}
+
+Inference::Inference(const FormulaTransformation& ft) {
+  CALL("Inference::Inference(FormulaTransformation)");
+
+  init1(ft.rule,ft.premise);
+
+  ASS_REP(isFormulaTransformation(ft.rule),ruleName(ft.rule));
+  ASS(!ft.premise->isClause());
+
+  _included = ft.premise->included();
+}
+
+Inference::Inference(const FormulaTransformationMany& ft) {
+  CALL("Inference::Inference(FormulaTransformationMany)");
+
+  initMany(ft.rule,ft.premises);
+
+  ASS_REP(isFormulaTransformation(ft.rule),ruleName(ft.rule));
+  ASS_NEQ(ft.premises,UnitList::empty());
+  ASS(!ft.premises->head()->isClause()); // TODO: assert also for all others?
+
+  _included = ft.premises->head()->included();
+}
+
+Inference::Inference(const GeneratingInference1& gi) {
+  CALL("Inference::Inference(GeneratingInference1)");
+
+  init1(gi.rule,gi.premise);
+
+  ASS_REP(isGeneratingInferenceRule(gi.rule),ruleName(gi.rule));
+  ASS(gi.premise->isClause());
+
+  _age = gi.premise->age()+1;
+}
+
+Inference::Inference(const GeneratingInference2& gi) {
+  CALL("Inference::Inference(GeneratingInference2)");
+
+  init2(gi.rule,gi.premise1,gi.premise2);
+
+  ASS_REP(isGeneratingInferenceRule(gi.rule),ruleName(gi.rule));
+  ASS(gi.premise1->isClause());
+  ASS(gi.premise2->isClause());
+
+  _age = std::max(gi.premise1->age(),gi.premise2->age())+1;
+}
+
+Inference::Inference(const GeneratingInferenceMany& gi) {
+  CALL("Inference::Inference(GeneratingInferenceMany)");
+
+  initMany(gi.rule,gi.premises);
+
+  ASS_REP(isGeneratingInferenceRule(gi.rule),ruleName(gi.rule));
+  _age = 0;
+  UnitList* it= gi.premises;
   while(it) {
-    Inference* inf = it->head()->inference();
-    _inductionDepth = max(_inductionDepth,inf->inductionDepth());
+    Unit* prem = it->head();
+    ASS(prem->isClause());
+    _age = std::max(_age,prem->inference().age());
     it=it->tail();
   }
+  _age++;
 }
 
-/**
- * Destroy an inference with no premises.
- * @since 04/01/2008 Torrevieja
- */
-void Inference0::destroy()
-{
-  CALL ("Inference::destroy");
-  delete this;
+Inference::Inference(const SimplifyingInference1& si) {
+  CALL("Inference::Inference(SimplifyingInference1)");
+
+  init1(si.rule,si.premise);
+
+  ASS_REP(isSimplifyingInferenceRule(si.rule),ruleName(si.rule));
+  ASS(si.premise->isClause());
+
+  _age = si.premise->age();
 }
 
-/**
- * Destroy an inference with a single premise.
- * @since 04/01/2008 Torrevieja
- */
-void Inference1::destroy()
-{
-  CALL ("Inference1::destroy");
-  _premise1->decRefCnt();
-  delete this;
+Inference::Inference(const SimplifyingInference2& si) {
+  CALL("Inference::Inference(SimplifyingInference2)");
+
+  init2(si.rule,si.premise1,si.premise2);
+
+  ASS_REP(isSimplifyingInferenceRule(si.rule),ruleName(si.rule));
+  ASS(si.premise1->isClause());
+  ASS(si.premise2->isClause());
+
+  _age = si.premise1->age();
 }
 
-/**
- * Destroy an inference with two premises.
- * @since 07/01/2008 Torrevieja
- */
-void Inference2::destroy()
-{
-  CALL ("Inference2::destroy");
-  _premise1->decRefCnt();
-  _premise2->decRefCnt();
-  delete this;
+Inference::Inference(const SimplifyingInferenceMany& si) {
+  CALL("Inference::Inference(SimplifyingInferenceMany)");
+
+  initMany(si.rule,si.premises);
+
+  ASS_REP(isSimplifyingInferenceRule(si.rule),ruleName(si.rule));
+  ASS_NEQ(si.premises,UnitList::empty());
+  ASS(si.premises->head()->isClause()); // TODO: assert also for all others?
+
+  _age = si.premises->head()->inference().age();
 }
 
-/**
- * Destroy an inference with many premises.
- * @since 04/01/2008 Torrevieja
- */
-void InferenceMany::destroy()
+Inference::Inference(const NonspecificInference0& gi) {
+  CALL("Inference::Inference(GenericInference0)");
+
+  init0(gi.inputType,gi.rule);
+}
+
+Inference::Inference(const NonspecificInference1& gi) {
+  CALL("Inference::Inference(GenericInference1)");
+
+  init1(gi.rule,gi.premise);
+}
+
+Inference::Inference(const NonspecificInference2& gi) {
+  CALL("Inference::Inference(GenericInference2)");
+
+  init2(gi.rule,gi.premise1,gi.premise2);
+}
+
+Inference::Inference(const NonspecificInferenceMany& gi) {
+  CALL("Inference::Inference(GenericInferenceMany)");
+
+  initMany(gi.rule,gi.premises);
+}
+
+void Inference::minimizePremises()
 {
-  CALL ("InferenceMany::destroy");
-  UnitList* it=_premises;
-  while(it) {
-    it->head()->decRefCnt();
-    it=it->tail();
+  CALL("Inference::minimizePremises");
+
+  if (_kind != Kind::INFERENCE_FROM_SAT_REFUTATION)
+    return;
+  if (_ptr2 == nullptr)
+    return; // already minimized
+
+  TimeCounter tc(TC_SAT_PROOF_MINIMIZATION);
+
+  FromSatRefutationInfo* info = static_cast<FromSatRefutationInfo*>(_ptr2);
+
+  SATClauseList* minimized = MinisatInterfacing::minimizePremiseList(info->_satPremises,info->_usedAssumptions);
+
+  SATClause* newSatRef = new(0) SATClause(0);
+  newSatRef->setInference(new PropInference(minimized));
+
+  UnitList* newFOPrems = SATInference::getFOPremises(newSatRef);
+
+  // cout << "Minimized from " << _premises->length() << " to " << newFOPrems->length() << endl;
+
+  // "release" the old list
+  {
+    UnitList* it = static_cast<UnitList*>(_ptr1);
+    while(it) {
+      it->head()->decRefCnt();
+      it=it->tail();
+    }
   }
 
-  delete this;
+  // assign and keep the new one
+  {
+    _ptr1 = newFOPrems;
+    UnitList* it= newFOPrems;
+    while(it) {
+      it->head()->incRefCnt();
+      it=it->tail();
+    }
+  }
+
+  newSatRef->destroy(); // deletes also the inference and with it the list minimized, but not the clauses inside
+
+  delete info;
+  _ptr2 = nullptr;
 }
 
-/**
- * Return an iterator for an inference with zero premises.
- * @since 04/01/2008 Torrevieja
- */
-Inference::Iterator Inference0::iterator() const
+void Inference::computeTheoryRunningSums()
 {
-  Iterator it;
-#if VDEBUG
-  it.integer=0;
-#endif
-  return it;
+  CALL("Inference::computeTheoryRunningSums");
+
+  Inference::Iterator parentIt = iterator();
+
+  // inference without parents
+  if (!hasNext(parentIt))
+  {
+    th_ancestors = isTheoryAxiom() ? 1.0 : 0.0;
+    all_ancestors = 1.0;
+  }
+  else
+  {
+    // for simplifying inferences, propagate running sums of main premise
+    if (isSimplifyingInferenceRule(_rule))
+    {
+      // all simplifying inferences save the main premise as first premise
+      Unit* mainPremise = next(parentIt);
+      th_ancestors = mainPremise->inference().th_ancestors;
+      all_ancestors = mainPremise->inference().all_ancestors;
+    }
+    // for non-simplifying inferences, compute running sums as sum over all parents
+    else
+    {
+      th_ancestors = 0.0;
+      all_ancestors = 0.0; // there is going to be at least one, eventually
+      while (hasNext(parentIt))
+      {
+        Unit *parent = next(parentIt);
+        th_ancestors += parent->inference().th_ancestors;
+        all_ancestors += parent->inference().all_ancestors;
+      }
+    }
+  }
 }
-
-/**
- * Return an iterator for an inference with one premise.
- * @since 04/01/2008 Torrevieja
- */
-Inference::Iterator Inference1::iterator() const
-{
-  Iterator it;
-  it.integer = 1;
-  return it;
-}
-
-/**
- * Return an iterator for an inference with two premises.
- * @since 07/01/2008 Torrevieja
- */
-Inference::Iterator Inference2::iterator() const
-{
-  Iterator it;
-  it.integer = 0;
-  return it;
-}
-
-/**
- * Return an iterator for an inference with many premises.
- * @since 04/01/2008 Torrevieja
- */
-Inference::Iterator InferenceMany::iterator() const
-{
-  Iterator it;
-  it.pointer = _premises;
-  return it;
-}
-
-/**
- * True if there exists the next parent.
- * @since 04/01/2008 Torrevieja
- */
-bool Inference0::hasNext(Iterator&) const
-{
-  return false;
-}
-
-/**
- * True if there exists the next parent.
- * @since 04/01/2008 Torrevieja
- */
-bool Inference1::hasNext(Iterator& it) const
-{
-  return it.integer;
-}
-
-/**
- * True if there exists the next parent.
- * @since 07/01/2008 Torrevieja
- */
-bool Inference2::hasNext(Iterator& it) const
-{
-  return it.integer < 2;
-}
-
-/**
- * True if there exists the next parent.
- * @since 04/01/2008 Torrevieja
- */
-bool InferenceMany::hasNext(Iterator& it) const
-{
-  return it.pointer;
-}
-
-/**
- * Return the next parent.
- * @since 04/01/2008 Torrevieja
- */
-Unit* Inference0::next(Iterator&) const
-{
-#if VDEBUG
-  ASSERTION_VIOLATION;
-#endif
-  return 0;
-} // Inference::next
-
-/**
- * Return the next parent.
- * @since 04/01/2008 Torrevieja
- */
-Unit* Inference1::next(Iterator& it) const
-{
-  ASS(it.integer);
-  it.integer = 0;
-  return _premise1;
-} // InferenceMany::next
-
-/**
- * Return the next parent.
- * @since 07/01/2008 Torrevieja
- */
-Unit* Inference2::next(Iterator& it) const
-{
-  ASS(it.integer >= 0);
-  ASS(it.integer < 2);
-  return it.integer++ ? _premise2 : _premise1;
-} // InferenceMany::next
-
-/**
- * Return the next parent.
- * @since 04/01/2008 Torrevieja
- */
-Unit* InferenceMany::next(Iterator& it) const
-{
-  ASS(it.pointer);
-  UnitList* lst = reinterpret_cast<UnitList*>(it.pointer);
-  it.pointer = lst->tail();
-  return lst->head();
-} // InferenceMany::next
 
 /**
  * Return the rule name, such as "binary resolution".
  * @since 04/01/2008 Torrevieja
  */
-vstring Inference::ruleName(Rule rule)
+vstring Kernel::ruleName(InferenceRule rule)
 {
-  CALL("Inference::ruleName");
+  CALL("Kernel::ruleName");
 
   switch (rule) {
-  case Rule::INPUT:
+  case InferenceRule::INPUT:
     return "input";
-  case Rule::NEGATED_CONJECTURE:
+  case InferenceRule::NEGATED_CONJECTURE:
     return "negated conjecture";
-  case Rule::ANSWER_LITERAL:
+  case InferenceRule::ANSWER_LITERAL:
+  case InferenceRule::ANSWER_LITERAL_RESOLVER:
     return "answer literal";
-  case Rule::RECTIFY:
+  case InferenceRule::RECTIFY:
     return "rectify";
-  case Rule::CLOSURE:
+  case InferenceRule::CLOSURE:
     return "closure";
-  case Rule::FLATTEN:
+  case InferenceRule::FLATTEN:
     return "flattening";
-  case Rule::FOOL_ELIMINATION:
+  case InferenceRule::FOOL_ELIMINATION:
     return "fool elimination";
-  case Rule::FOOL_ITE_ELIMINATION:
+  case InferenceRule::FOOL_ITE_ELIMINATION:
     return "fool $ite elimination";
-  case Rule::FOOL_LET_ELIMINATION:
+  case InferenceRule::FOOL_LET_ELIMINATION:
     return "fool $let elimination";
-  case Rule::FOOL_PARAMODULATION:
+  case InferenceRule::FOOL_PARAMODULATION:
     return "fool paramodulation";
 //  case CHOICE_AXIOM:
 //  case MONOTONE_REPLACEMENT:
@@ -350,11 +604,11 @@ vstring Inference::ruleName(Rule rule)
 //  case IMP_TO_OR:
 //  case IFF_TO_AND:
 //  case XOR_TO_AND:
-  case Rule::REORDER_LITERALS:
+  case InferenceRule::REORDER_LITERALS:
     return "literal reordering";
-  case Rule::ENNF:
+  case InferenceRule::ENNF:
     return "ennf transformation";
-  case Rule::NNF:
+  case InferenceRule::NNF:
     return "nnf transformation";
 //  case DUMMY_QUANTIFIER_REMOVAL:
 //  case FORALL_AND:
@@ -366,221 +620,221 @@ vstring Inference::ruleName(Rule rule)
 //  case REORDER_EQ:
 //  case HALF_EQUIV:
 //  case MINISCOPE:
-  case Rule::CLAUSIFY:
+  case InferenceRule::CLAUSIFY:
     return "cnf transformation";
-  case Rule::FORMULIFY:
+  case InferenceRule::FORMULIFY:
     return "formulify";
-  case Rule::REMOVE_DUPLICATE_LITERALS:
+  case InferenceRule::REMOVE_DUPLICATE_LITERALS:
     return "duplicate literal removal";
-  case Rule::SKOLEMIZE:
+  case InferenceRule::SKOLEMIZE:
     return "skolemisation";
-  case Rule::RESOLUTION:
+  case InferenceRule::RESOLUTION:
     return "resolution";
-  case Rule::CONSTRAINED_RESOLUTION:
+  case InferenceRule::CONSTRAINED_RESOLUTION:
     return "constrained resolution";
-  case Rule::EQUALITY_PROXY_REPLACEMENT:
+  case InferenceRule::EQUALITY_PROXY_REPLACEMENT:
     return "equality proxy replacement";
-  case Rule::EQUALITY_PROXY_AXIOM1:
+  case InferenceRule::EQUALITY_PROXY_AXIOM1:
     return "equality proxy definition";
-  case Rule::EQUALITY_PROXY_AXIOM2:
+  case InferenceRule::EQUALITY_PROXY_AXIOM2:
     return "equality proxy axiom";
-  case Rule::EXTENSIONALITY_RESOLUTION:
+  case InferenceRule::EXTENSIONALITY_RESOLUTION:
     return "extensionality resolution";
-  case Rule::DEFINITION_UNFOLDING:
+  case InferenceRule::DEFINITION_UNFOLDING:
     return "definition unfolding";
-  case Rule::DEFINITION_FOLDING:
+  case InferenceRule::DEFINITION_FOLDING:
     return "definition folding";
-  case Rule::PREDICATE_DEFINITION:
+  case InferenceRule::PREDICATE_DEFINITION:
     return "predicate definition introduction";
-  case Rule::PREDICATE_DEFINITION_UNFOLDING:
+  case InferenceRule::PREDICATE_DEFINITION_UNFOLDING:
     return "predicate definition unfolding";
-  case Rule::PREDICATE_DEFINITION_MERGING:
+  case InferenceRule::PREDICATE_DEFINITION_MERGING:
     return "predicate definition merging";
-  case Rule::REDUCE_FALSE_TRUE:
+  case InferenceRule::REDUCE_FALSE_TRUE:
     return "true and false elimination";
 
-  case Rule::TRIVIAL_INEQUALITY_REMOVAL:
+  case InferenceRule::TRIVIAL_INEQUALITY_REMOVAL:
     return "trivial inequality removal";
-  case Rule::FACTORING:
+  case InferenceRule::FACTORING:
     return "factoring";
-  case Rule::CONSTRAINED_FACTORING:
+  case InferenceRule::CONSTRAINED_FACTORING:
     return "constrained factoring";
-  case Rule::SUBSUMPTION_RESOLUTION:
+  case InferenceRule::SUBSUMPTION_RESOLUTION:
     return "subsumption resolution";
-  case Rule::SUPERPOSITION:
+  case InferenceRule::SUPERPOSITION:
     return "superposition";
-  case Rule::CONSTRAINED_SUPERPOSITION:
+  case InferenceRule::CONSTRAINED_SUPERPOSITION:
     return "constrained superposition";
-  case Rule::EQUALITY_FACTORING:
+  case InferenceRule::EQUALITY_FACTORING:
     return "equality factoring";
-  case Rule::EQUALITY_RESOLUTION:
+  case InferenceRule::EQUALITY_RESOLUTION:
+  case InferenceRule::EQUALITY_RESOLUTION_WITH_DELETION:
     return "equality resolution";
-  case Rule::FORWARD_DEMODULATION:
+  case InferenceRule::FORWARD_DEMODULATION:
     return "forward demodulation";
-  case Rule::BACKWARD_DEMODULATION:
+  case InferenceRule::BACKWARD_DEMODULATION:
     return "backward demodulation";
-  case Rule::FORWARD_LITERAL_REWRITING:
+  case InferenceRule::FORWARD_LITERAL_REWRITING:
     return "forward literal rewriting";
-  case Rule::INNER_REWRITING:
+  case InferenceRule::INNER_REWRITING:
     return "inner rewriting";
-  case Rule::CONDENSATION:
+  case InferenceRule::CONDENSATION:
     return "condensation";
-  case Rule::THEORY_NORMALIZATION:
+  case InferenceRule::THEORY_NORMALIZATION:
     return "theory normalization";
-  case Rule::EVALUATION:
+  case InferenceRule::EVALUATION:
     return "evaluation";
-  case Rule::INTERPRETED_SIMPLIFICATION:
+  case InferenceRule::INTERPRETED_SIMPLIFICATION:
     return "interpreted simplification";
-  case Rule::UNUSED_PREDICATE_DEFINITION_REMOVAL:
+  case InferenceRule::UNUSED_PREDICATE_DEFINITION_REMOVAL:
     return "unused predicate definition removal";
-  case Rule::PURE_PREDICATE_REMOVAL:
+  case InferenceRule::PURE_PREDICATE_REMOVAL:
     return "pure predicate removal";
-  case Rule::INEQUALITY_SPLITTING:
+  case InferenceRule::INEQUALITY_SPLITTING:
     return "inequality splitting";
-  case Rule::INEQUALITY_SPLITTING_NAME_INTRODUCTION:
+  case InferenceRule::INEQUALITY_SPLITTING_NAME_INTRODUCTION:
     return "inequality splitting name introduction";
-  case Rule::GROUNDING:
+  case InferenceRule::GROUNDING:
     return "grounding";
-  case Rule::EQUALITY_AXIOM:
+  case InferenceRule::EQUALITY_AXIOM:
     return "equality axiom";
-  case Rule::CHOICE_AXIOM:
+  case InferenceRule::CHOICE_AXIOM:
     return "choice axiom";
-  case Rule::SAT_CONFLICT_CLAUSE:
-    return "sat conflict clause";
-  case Rule::SIMPLIFY_PROVER_DISTINCT_NUMBERS_AXIOM:
+  case InferenceRule::SIMPLIFY_PROVER_DISTINCT_NUMBERS_AXIOM:
     return "distinct numbers";
-  case Rule::GENERIC_THEORY_AXIOM:
-  case Rule::THEORY_AXIOM_COMMUTATIVITY:
-  case Rule::THEORY_AXIOM_ASSOCIATIVITY:
-  case Rule::THEORY_AXIOM_RIGHT_IDENTINTY:
-  case Rule::THEORY_AXIOM_LEFT_IDENTINTY:
-  case Rule::THEORY_AXIOM_INVERSE_OP_OP_INVERSES:
-  case Rule::THEORY_AXIOM_INVERSE_OP_UNIT:
-  case Rule::THEORY_AXIOM_INVERSE_ASSOC:
-  case Rule::THEORY_AXIOM_NONREFLEX:
-  case Rule::THEORY_AXIOM_TRANSITIVITY:
-  case Rule::THEORY_AXIOM_ORDER_TOTALALITY:
-  case Rule::THEORY_AXIOM_ORDER_MONOTONICITY:
-  case Rule::THEORY_AXIOM_PLUS_ONE_GREATER:
-  case Rule::THEORY_AXIOM_ORDER_PLUS_ONE_DICHOTOMY:
-  case Rule::THEORY_AXIOM_MINUS_MINUS_X:
-  case Rule::THEORY_AXIOM_TIMES_ZERO:
-  case Rule::THEORY_AXIOM_DISTRIBUTIVITY:
-  case Rule::THEORY_AXIOM_DIVISIBILITY:
-  case Rule::THEORY_AXIOM_MODULO_MULTIPLY:
-  case Rule::THEORY_AXIOM_MODULO_POSITIVE:
-  case Rule::THEORY_AXIOM_MODULO_SMALL:
-  case Rule::THEORY_AXIOM_DIVIDES_MULTIPLY:
-  case Rule::THEORY_AXIOM_NONDIVIDES_SKOLEM:
-  case Rule::THEORY_AXIOM_ABS_EQUALS:
-  case Rule::THEORY_AXIOM_ABS_MINUS_EQUALS:
-  case Rule::THEORY_AXIOM_QUOTIENT_NON_ZERO:
-  case Rule::THEORY_AXIOM_QUOTIENT_MULTIPLY:
-  case Rule::THEORY_AXIOM_EXTRA_INTEGER_ORDERING:
-  case Rule::THEORY_AXIOM_FLOOR_SMALL:
-  case Rule::THEORY_AXIOM_FLOOR_BIG:
-  case Rule::THEORY_AXIOM_CEILING_BIG:
-  case Rule::THEORY_AXIOM_CEILING_SMALL:
-  case Rule::THEORY_AXIOM_TRUNC1:
-  case Rule::THEORY_AXIOM_TRUNC2:
-  case Rule::THEORY_AXIOM_TRUNC3:
-  case Rule::THEORY_AXIOM_TRUNC4:
-  case Rule::THEORY_AXIOM_ARRAY_EXTENSIONALITY:
-  case Rule::THEORY_AXIOM_BOOLEAN_ARRAY_EXTENSIONALITY:
-  case Rule::THEORY_AXIOM_BOOLEAN_ARRAY_WRITE1:
-  case Rule::THEORY_AXIOM_BOOLEAN_ARRAY_WRITE2:
-  case Rule::THEORY_AXIOM_ARRAY_WRITE1:
-  case Rule::THEORY_AXIOM_ARRAY_WRITE2:
+  case InferenceRule::THEORY_TAUTOLOGY_SAT_CONFLICT:
+    return "theory tautology sat conflict";
+  case InferenceRule::GENERIC_THEORY_AXIOM:
+  case InferenceRule::THA_COMMUTATIVITY:
+  case InferenceRule::THA_ASSOCIATIVITY:
+  case InferenceRule::THA_RIGHT_IDENTINTY:
+  case InferenceRule::THA_LEFT_IDENTINTY:
+  case InferenceRule::THA_INVERSE_OP_OP_INVERSES:
+  case InferenceRule::THA_INVERSE_OP_UNIT:
+  case InferenceRule::THA_INVERSE_ASSOC:
+  case InferenceRule::THA_NONREFLEX:
+  case InferenceRule::THA_TRANSITIVITY:
+  case InferenceRule::THA_ORDER_TOTALALITY:
+  case InferenceRule::THA_ORDER_MONOTONICITY:
+  case InferenceRule::THA_PLUS_ONE_GREATER:
+  case InferenceRule::THA_ORDER_PLUS_ONE_DICHOTOMY:
+  case InferenceRule::THA_MINUS_MINUS_X:
+  case InferenceRule::THA_TIMES_ZERO:
+  case InferenceRule::THA_DISTRIBUTIVITY:
+  case InferenceRule::THA_DIVISIBILITY:
+  case InferenceRule::THA_MODULO_MULTIPLY:
+  case InferenceRule::THA_MODULO_POSITIVE:
+  case InferenceRule::THA_MODULO_SMALL:
+  case InferenceRule::THA_DIVIDES_MULTIPLY:
+  case InferenceRule::THA_NONDIVIDES_SKOLEM:
+  case InferenceRule::THA_ABS_EQUALS:
+  case InferenceRule::THA_ABS_MINUS_EQUALS:
+  case InferenceRule::THA_QUOTIENT_NON_ZERO:
+  case InferenceRule::THA_QUOTIENT_MULTIPLY:
+  case InferenceRule::THA_EXTRA_INTEGER_ORDERING:
+  case InferenceRule::THA_FLOOR_SMALL:
+  case InferenceRule::THA_FLOOR_BIG:
+  case InferenceRule::THA_CEILING_BIG:
+  case InferenceRule::THA_CEILING_SMALL:
+  case InferenceRule::THA_TRUNC1:
+  case InferenceRule::THA_TRUNC2:
+  case InferenceRule::THA_TRUNC3:
+  case InferenceRule::THA_TRUNC4:
+  case InferenceRule::THA_ARRAY_EXTENSIONALITY:
+  case InferenceRule::THA_BOOLEAN_ARRAY_EXTENSIONALITY:
+  case InferenceRule::THA_BOOLEAN_ARRAY_WRITE1:
+  case InferenceRule::THA_BOOLEAN_ARRAY_WRITE2:
+  case InferenceRule::THA_ARRAY_WRITE1:
+  case InferenceRule::THA_ARRAY_WRITE2:
     return "theory axiom";
-  case Rule::TERM_ALGEBRA_ACYCLICITY_AXIOM:
+  case InferenceRule::TERM_ALGEBRA_ACYCLICITY_AXIOM:
     return "term algebras acyclicity";
-  case Rule::TERM_ALGEBRA_DISCRIMINATION_AXIOM:
+  case InferenceRule::TERM_ALGEBRA_DISCRIMINATION_AXIOM:
     return "term algebras discriminators";
-  case Rule::TERM_ALGEBRA_DISTINCTNESS_AXIOM:
+  case InferenceRule::TERM_ALGEBRA_DISTINCTNESS_AXIOM:
     return "term algebras distinctness";
-  case Rule::TERM_ALGEBRA_EXHAUSTIVENESS_AXIOM:
+  case InferenceRule::TERM_ALGEBRA_EXHAUSTIVENESS_AXIOM:
     return "term algebras exhaustiveness";
-  case Rule::TERM_ALGEBRA_INJECTIVITY_AXIOM:
+  case InferenceRule::TERM_ALGEBRA_INJECTIVITY_AXIOM:
     return "term algebras injectivity";
-  case Rule::FOOL_AXIOM_TRUE_NEQ_FALSE:
-  case Rule::FOOL_AXIOM_ALL_IS_TRUE_OR_FALSE:
+  case InferenceRule::FOOL_AXIOM_TRUE_NEQ_FALSE:
+  case InferenceRule::FOOL_AXIOM_ALL_IS_TRUE_OR_FALSE:
     return "fool axiom";
-  case Rule::EXTERNAL_THEORY_AXIOM:
+  case InferenceRule::EXTERNAL_THEORY_AXIOM:
     return "external theory axiom";
-  case Rule::TERM_ALGEBRA_ACYCLICITY:
+  case InferenceRule::TERM_ALGEBRA_ACYCLICITY:
     return "term algebras acyclicity";
-  case Rule::TERM_ALGEBRA_DISTINCTNESS:
+  case InferenceRule::TERM_ALGEBRA_DISTINCTNESS:
     return "term algebras distinctness";
-  case Rule::TERM_ALGEBRA_INJECTIVITY_GENERATING:
-  case Rule::TERM_ALGEBRA_INJECTIVITY_SIMPLIFYING:
+  case InferenceRule::TERM_ALGEBRA_INJECTIVITY_GENERATING:
+  case InferenceRule::TERM_ALGEBRA_INJECTIVITY_SIMPLIFYING:
     return "term algebras injectivity";
-  case Rule::THEORY_FLATTENING:
+  case InferenceRule::THEORY_FLATTENING:
     return "theory flattening";
-  case Rule::BOOLEAN_TERM_ENCODING:
+  case InferenceRule::BOOLEAN_TERM_ENCODING:
     return "boolean term encoding";
-  case Rule::AVATAR_DEFINITION:
+  case InferenceRule::AVATAR_DEFINITION:
     return "avatar definition";
-  case Rule::AVATAR_COMPONENT:
+  case InferenceRule::AVATAR_COMPONENT:
     return "avatar component clause";
-  case Rule::AVATAR_REFUTATION:
+  case InferenceRule::AVATAR_REFUTATION:
     return "avatar sat refutation";
-  case Rule::AVATAR_SPLIT_CLAUSE:
+  case InferenceRule::AVATAR_SPLIT_CLAUSE:
     return "avatar split clause";
-  case Rule::AVATAR_CONTRADICTION_CLAUSE:
+  case InferenceRule::AVATAR_CONTRADICTION_CLAUSE:
     return "avatar contradiction clause";
-  case Rule::SAT_COLOR_ELIMINATION:
+  case InferenceRule::SAT_COLOR_ELIMINATION:
     return "sat color elimination";
-  case Rule::GENERAL_SPLITTING_COMPONENT:
+  case InferenceRule::GENERAL_SPLITTING_COMPONENT:
     return "general splitting component introduction";
-  case Rule::GENERAL_SPLITTING:
+  case InferenceRule::GENERAL_SPLITTING:
     return "general splitting";
 
 
-  case Rule::COLOR_UNBLOCKING:
+  case InferenceRule::COLOR_UNBLOCKING:
     return "color unblocking";
-  case Rule::INSTANCE_GENERATION:
+  case InferenceRule::INSTANCE_GENERATION:
     return "instance generation";
-  case Rule::UNIT_RESULTING_RESOLUTION:
+  case InferenceRule::UNIT_RESULTING_RESOLUTION:
     return "unit resulting resolution";
-  case Rule::HYPER_SUPERPOSITION_SIMPLIFYING:
-  case Rule::HYPER_SUPERPOSITION_GENERATING:
+  case InferenceRule::HYPER_SUPERPOSITION_SIMPLIFYING:
+  case InferenceRule::HYPER_SUPERPOSITION_GENERATING:
     return "hyper superposition";
-  case Rule::GLOBAL_SUBSUMPTION:
+  case InferenceRule::GLOBAL_SUBSUMPTION:
     return "global subsumption";
-  case Rule::SAT_INSTGEN_REFUTATION:
+  case InferenceRule::SAT_INSTGEN_REFUTATION:
     return "sat instgen refutation";
-  case Rule::DISTINCT_EQUALITY_REMOVAL:
+  case InferenceRule::DISTINCT_EQUALITY_REMOVAL:
     return "distinct equality removal";
-  case Rule::EXTERNAL:
+  case InferenceRule::EXTERNAL:
     return "external";
-  case Rule::CLAIM_DEFINITION:
+  case InferenceRule::CLAIM_DEFINITION:
     return "claim definition";
-  case Rule::BFNT_FLATTENING:
+  case InferenceRule::BFNT_FLATTENING:
     return "bfnt flattening";
-  case Rule::BFNT_DISTINCT:
+  case InferenceRule::BFNT_DISTINCT:
     return "bfnt distinct";
-  case Rule::BFNT_TOTALITY:
+  case InferenceRule::BFNT_TOTALITY:
     return "bfnt totality";
-  case Rule::FMB_FLATTENING:
+  case InferenceRule::FMB_FLATTENING:
     return "flattening (finite model building)";
-  case Rule::FMB_FUNC_DEF:
+  case InferenceRule::FMB_FUNC_DEF:
     return "functional definition (finite model building)";
-  case Rule::FMB_DEF_INTRO:
+  case InferenceRule::FMB_DEF_INTRO:
     return "definition introduction (finite model building)";
-  case Rule::ADD_SORT_PREDICATES:
+  case InferenceRule::ADD_SORT_PREDICATES:
     return "add sort predicates";
-  case Rule::ADD_SORT_FUNCTIONS:
+  case InferenceRule::ADD_SORT_FUNCTIONS:
     return "add sort functions";
-  case Rule::INSTANTIATION:
+  case InferenceRule::INSTANTIATION:
     return "instantiation";
-  case Rule::MODEL_NOT_FOUND:
+  case InferenceRule::MODEL_NOT_FOUND:
     return "finite model not found";
-  case Rule::INDUCTION_AXIOM:
+  case InferenceRule::INDUCTION_AXIOM:
     return "induction hypothesis";
   default:
     ASSERTION_VIOLATION;
     return "!UNKNOWN INFERENCE RULE!";
   }
 } // Inference::name()
-
 

@@ -164,8 +164,8 @@ FormulaUnit* FOOLElimination::apply(FormulaUnit* unit) {
    * from the rectifiedUnit and the generated definitions
    * (similarly to how this is done with Naming)
    */
-  Inference* inference = Inference::newFormulaTransformation(Inference::Rule::FOOL_ELIMINATION, rectifiedUnit);
-  FormulaUnit* processedUnit = new FormulaUnit(processedFormula, inference);
+  FormulaUnit* processedUnit = new FormulaUnit(processedFormula,
+      FormulaTransformation(InferenceRule::FOOL_ELIMINATION, rectifiedUnit));
 
   if (env.options->showPreprocessing()) {
     env.beginOutput();
@@ -546,9 +546,8 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         }
 
         // add both definitions
-        Inference* iteInference = new Inference1(Inference::Rule::FOOL_ITE_ELIMINATION, _unit);
-        addDefinition(new FormulaUnit(thenImplication, iteInference));
-        addDefinition(new FormulaUnit(elseImplication, iteInference));
+        addDefinition(new FormulaUnit(thenImplication, NonspecificInference1(InferenceRule::FOOL_ITE_ELIMINATION, _unit)));
+        addDefinition(new FormulaUnit(elseImplication, NonspecificInference1(InferenceRule::FOOL_ITE_ELIMINATION, _unit)));
 
         if (context == FORMULA_CONTEXT) {
           formulaResult = freshPredicateApplication;
@@ -656,8 +655,8 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         }
 
         // add the introduced definition
-        Inference* letInference = new Inference1(Inference::Rule::FOOL_LET_ELIMINATION, _unit);
-        addDefinition(new FormulaUnit(freshSymbolDefinition, letInference));
+        addDefinition(new FormulaUnit(freshSymbolDefinition,
+            NonspecificInference1(InferenceRule::FOOL_LET_ELIMINATION, _unit)));
 
         TermList contents = *term->nthArgument(0); // deliberately unprocessed here
 
@@ -727,8 +726,8 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         }
 
         // add the introduced definition
-        Inference* inference = new Inference1(Inference::Rule::FOOL_ELIMINATION, _unit);
-        addDefinition(new FormulaUnit(freshSymbolDefinition, inference));
+        addDefinition(new FormulaUnit(freshSymbolDefinition,
+            NonspecificInference1(InferenceRule::FOOL_ELIMINATION, _unit)));
 
         termResult = freshSymbolApplication;
         break;
