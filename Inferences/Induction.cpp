@@ -25,6 +25,7 @@
 #include "Lib/Environment.hpp"
 #include "Lib/Set.hpp"
 #include "Lib/Array.hpp"
+#include "Lib/ScopedPtr.hpp"
 
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Signature.hpp"
@@ -331,7 +332,7 @@ void InductionClauseIterator::performMathInductionOne(Clause* premise, Literal* 
   cnf.clausify(NNF::ennf(fu1), hyp_clauses);
   cnf.clausify(NNF::ennf(fu2), hyp_clauses);
 
-  ScopedPtr<RobSubstitution> subst = new RobSubstitution();
+  ScopedPtr<RobSubstitution> subst(new RobSubstitution());
 
   // Now perform resolution between lit and the hyp_clauses on clit, which should be contained in each clause!
   Stack<Clause*>::Iterator cit(hyp_clauses);
