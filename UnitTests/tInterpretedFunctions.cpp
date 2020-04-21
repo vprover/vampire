@@ -536,6 +536,17 @@ TEST_FUN(normalize_less_4) {
     );
 }
 
+
+TEST_FUN(normalize_less_5) {
+  TERM_FUNCTIONS(INT)
+  check_eval(
+      /* b < a */
+      lt(x,y),
+      /* 0 < a - b */
+      lt(0, add(y, uminus(x)))
+    );
+}
+
 TEST_FUN(normalize_less_equal_1) {
   TERM_FUNCTIONS(INT)
   check_eval(
