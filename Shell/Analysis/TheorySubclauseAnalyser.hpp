@@ -28,6 +28,7 @@
 class AbsTerm;
 struct rect_map;
 
+class AbsClause;
 class AbsLiteral;
 
 AbsLiteral& create_abs_lit(bool positive, unsigned functor, vvec<refw<AbsTerm>> terms);
@@ -44,8 +45,8 @@ public:
   friend ostream &operator<<(ostream &out, const AbsTerm &t);
 
   virtual void normalize() = 0;
-  virtual void rectify(rect_map& r) = 0;
-  void rectify();
+  // virtual void rectify(rect_map& r) = 0;
+  // void rectify();
   virtual void distributeLeft() = 0;
   virtual void distributeRight() = 0;
   virtual void mergeAssoc() = 0;
@@ -63,14 +64,10 @@ public:
   virtual void vars(vvec<unsigned> &v, on_unsigned_t onUnisgned) const = 0;
 
   /** adds all variables contained in this term to @b v. */
-  virtual void var_set(vset<unsigned> &vs) const = 0;
+  virtual void var_set(vset<AbsVarTerm> &vs) const = 0;
 
   /** returns all variables contained in this term to @b v. */
-  vset<unsigned> var_set() const {
-    vset<unsigned> out;
-    var_set(out);
-    return out;
-  }
+  vset<AbsVarTerm> var_set() const;
 
   /** returns all variables contained in this term , ordered as they occur in
    * the term.
@@ -91,6 +88,7 @@ public:
   static void term(int t);
   static AbsTerm &var(int t);
   static AbsTerm &fun(unsigned functor, vvec<refw<AbsTerm>> args);
+  virtual bool interpreted() const = 0;
   friend bool operator<(const AbsTerm &, const AbsTerm &);
 };
 
@@ -100,30 +98,40 @@ enum CmpResult {
   CMP_EQUIV,
   CMP_NONE,
 };
-#define EQ_CLASSES 2,3,4,5
-#define EQ_CLASSES_ 1,2,3,4,5
+#define EQ_CLASSES 4,5
+#define EQ_CLASSES_ 1,4,5
 
-#define DECLARE_EQ_CLASS(i)                                                    \
+#define DECLARE__LIT_EQUIV(i)                                                    \
   struct LitEquiv##i { \
-      struct Config; \
-      static void dump(std::ostream& out, const AbsLiteral&) ; \
-      static CmpResult compare(AbsLiteral const&, AbsLiteral const&) ; \
+    struct Config; \
+    static void dump(std::ostream& out, const AbsClause&) ; \
+    static CmpResult compare(AbsClause const&, AbsClause const&) ; \
     using less = struct {                                                      \
-      bool operator()(const rc<AbsLiteral> &lhs,                               \
-                      const rc<AbsLiteral> &rhs) const {\
+      bool operator()(const rc<AbsClause> &lhs,                               \
+                      const rc<AbsClause> &rhs) const {\
         return LitEquiv##i::compare(*lhs.get(),*rhs.get()) == CMP_LESS;\
       }                        \
     };                                                                         \
   };                                                          \
-  template <> struct EquivalenceClass<LitEquiv##i> {                           \
-    using less = struct {                                                      \
-      bool operator()(const rc<AbsLiteral> &lhs,                               \
-                      const rc<AbsLiteral> &rhs) const;                        \
-    };                                                                         \
-  };
 
-MAP(DECLARE_EQ_CLASS, EQ_CLASSES_)
-#undef DECLARE_EQ_CLASS
+MAP(DECLARE__LIT_EQUIV, EQ_CLASSES_)
+#undef DECLARE_LIT_EQUIV
+
+
+// template<class LitEquiv>
+// struct ClauseEquiv { 
+//   struct Config; 
+//   static void dump(std::ostream& out, const AbsLiteral&) {
+//
+//   }
+//   static CmpResult compare(AbsLiteral const&, AbsLiteral const&) ; 
+//   using less = struct {                                                      
+//     bool operator()(const rc<AbsLiteral> &lhs,                               
+//                     const rc<AbsLiteral> &rhs) const {
+//       return compare(*lhs.get(),*rhs.get()) == CMP_LESS;
+//     }                        
+//   };                                                                         
+// };                                                          
 
 using namespace Kernel;
 namespace Shell {
@@ -156,7 +164,7 @@ private:
   size_t _total;
 
 #define DECLARE_EQ_CLAS_MEMBERS(i)                                             \
-  using equiv_t_##i = Container<rc<AbsLiteral>, LitEquiv##i>;                  \
+  using equiv_t_##i = Container<rc<AbsClause>, LitEquiv##i>;                  \
   equiv_t_##i _eq##i;
 
   MAP(DECLARE_EQ_CLAS_MEMBERS, EQ_CLASSES_)

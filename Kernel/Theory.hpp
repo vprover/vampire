@@ -318,6 +318,7 @@ public:
     INT_SUCCESSOR,
     INT_UNARY_MINUS,
     INT_PLUS,  // sum in TPTP
+    INT_CONST,
     INT_MINUS, // difference in TPTP
     INT_MULTIPLY,
     INT_QUOTIENT_E,
@@ -334,6 +335,7 @@ public:
 
     RAT_UNARY_MINUS,
     RAT_PLUS, // sum in TPTP
+    RAT_CONST,
     RAT_MINUS,// difference in TPTP
     RAT_MULTIPLY,
     RAT_QUOTIENT,
@@ -350,6 +352,7 @@ public:
 
     REAL_UNARY_MINUS,
     REAL_PLUS,  // plus in TPTP
+    REAL_CONST,
     REAL_MINUS, // difference in TPTP
     REAL_MULTIPLY,
     REAL_QUOTIENT,
@@ -428,9 +431,10 @@ public:
     return res;
   }
 
-  static bool isPlus(Interpretation i){
-    return i == INT_PLUS || i == RAT_PLUS || i == REAL_PLUS;
-  }
+  static bool isPlus(Interpretation i){ return i == INT_PLUS || i == RAT_PLUS || i == REAL_PLUS; }
+  static bool isTimes(Interpretation i){ return i == INT_MULTIPLY|| i == RAT_MULTIPLY|| i == REAL_MULTIPLY; }
+  static bool isNumberConstant(Interpretation i){ return i == INT_CONST || i == RAT_CONST || i == REAL_CONST; }
+  static bool isUnaryMinus(Interpretation i){ return i == INT_UNARY_MINUS || i == RAT_UNARY_MINUS || i == REAL_UNARY_MINUS; }
 
   static vstring getInterpretationName(Interpretation i);
   static unsigned getArity(Interpretation i);
