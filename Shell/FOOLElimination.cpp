@@ -165,7 +165,7 @@ FormulaUnit* FOOLElimination::apply(FormulaUnit* unit) {
    * (similarly to how this is done with Naming)
    */
   FormulaUnit* processedUnit = new FormulaUnit(processedFormula,
-      FormulaTransformation(InferenceRule::FOOL_ELIMINATION, rectifiedUnit));
+      NonspecificInference1(InferenceRule::FOOL_ELIMINATION, rectifiedUnit));
 
   if (env.options->showPreprocessing()) {
     env.beginOutput();
