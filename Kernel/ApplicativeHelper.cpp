@@ -253,7 +253,7 @@ void ApplicativeHelper::getHeadAndArgs(const Term* term, TermList& head, Deque<T
 
 TermList ApplicativeHelper::getHead(TermList t)
 {
-  CALL ("getHead");
+  CALL("ApplicativeHelper::getHead");
   
   if(!t.isTerm()){
     return t; 
@@ -261,7 +261,7 @@ TermList ApplicativeHelper::getHead(TermList t)
 
   while(env.signature->getFunction(t.term()->functor())->app()){
     t = *t.term()->nthArgument(2);
-    if(!t.isTerm()){ break; } 
+    if(!t.isTerm() || t.term()->isSpecial()){ break; } 
   }
   return t;
 }

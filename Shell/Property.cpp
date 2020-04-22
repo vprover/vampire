@@ -236,7 +236,7 @@ void Property::add(UnitList* units)
 void Property::scan(Unit* unit)
 {
   CALL("Property::scan(const Unit*)");
-
+  
   ASS(_symbolsInFormula);
   _symbolsInFormula->reset();
 
@@ -517,7 +517,8 @@ void Property::scanSort(TermList sort)
     return;
   } */
   
-  if(sort == Term::boolSort()){
+  TermList resultSort = ApplicativeHelper::getResultSort(sort);
+  if(resultSort == Term::boolSort()){
     _hasFOOL = true;
   }
 
@@ -615,6 +616,7 @@ void Property::scan(TermList ts,bool unit,bool goal)
     _variablesInThisClause++;
     return;
   }
+
 
   ASS(ts.isTerm());
   Term* t = ts.term();

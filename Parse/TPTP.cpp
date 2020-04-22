@@ -1724,7 +1724,8 @@ void TPTP::endHolFormula()
     return;
   case PI:
   case SIGMA: {
-    ASSERTION_VIOLATION;
+    //ASSERTION_VIOLATION;
+    USER_ERROR("At the moment Vampire HOL cannot parse pi (!!) and sigma (??) operators");
   }
 
   case FORALL:

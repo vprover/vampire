@@ -1232,6 +1232,12 @@ void Options::Options::init()
     _lookup.insert(&_functionExtensionality);
     _functionExtensionality.tag(OptionTag::INFERENCES);
 
+    _equalityToEquivalence = BoolOptionValue("equality_to_equiv","e2e",false);
+    _equalityToEquivalence.description=
+    "Equality between boolean terms changed to equivalence \n"
+    "t1 : $o = t2 : $o is changed to t1 <=> t2";    
+    _lookup.insert(&_equalityToEquivalence);
+    _equalityToEquivalence.tag(OptionTag::OTHER);
 //*********************** InstGen  ***********************
 
     _globalSubsumption = BoolOptionValue("global_subsumption","gs",false);
@@ -3004,8 +3010,8 @@ bool Options::complete(const Problem& prb) const
   bool unitEquality = prop.category() == Property::UEQ;
   bool hasEquality = (prop.equalityAtoms() != 0);
 
-  if((prop.hasCombs() || prop.hasAppliedVar()) /* && 
-    !_addCombAxioms.actualValue && !_combinatorySuperposition.actualValue*/) {
+  if((prop.hasCombs() || prop.hasAppliedVar())  && 
+    !_addCombAxioms.actualValue && !_combinatorySuperposition.actualValue) {
     //TODO make a more complex more precise case here
     //There are instance where we are complete
     return false;

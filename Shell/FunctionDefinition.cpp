@@ -87,12 +87,18 @@ struct FunctionDefinition::Def
   bool strict;
 
   bool twoConstDef;
+
   /** first defined function that is used in @b rhs, or -1 if there isn't such */
   int containedFn;
 
   int examinedArg;
 
   IntList* dependentFns;
+
+  bool lhsIsBool(){
+    return (env.signature->isFoolConstantSymbol(true , fun) ||
+            env.signature->isFoolConstantSymbol(false, fun));
+  }
 
   /**
    * If @b mark==SAFE or @b mark==UNFOLDED, contains @b bool array such that
@@ -254,6 +260,15 @@ void FunctionDefinition::removeAllDefinitions(Problem& prb)
   }
 }
 
+void FunctionDefinition::reverse(Def* def){
+  CALL("FunctionDefinition::reverse");
+  ASS(def->twoConstDef);
+  Term* temp = def->lhs;
+  def->lhs = def->rhs;
+  def->rhs = temp;
+  def->fun = def->lhs->functor();
+}
+
 /**
  * When possible, unfold function definitions in @b units and remove them
  * Return true iff the list of units was modified.
@@ -265,20 +280,30 @@ bool FunctionDefinition::removeAllDefinitions(UnitList*& units)
   UnitList::DelIterator scanIterator(units);
   while(scanIterator.hasNext()) {
     Clause* cl=static_cast<Clause*>(scanIterator.next());
+    //cout << "the clause is " + cl->toString() << endl;
     ASS(cl->isClause());
     Def* d=isFunctionDefinition(cl);
     if(d) {
       d->defCl=cl;
       bool inserted = false;
       if(_defs.insert(d->fun, d)) {
-        //	cout<<"Found: "<<(*(*d->defCl)[0])<<endl;
+        //cout<<"Found: "<<(*(*d->defCl)[0])<<endl;
         inserted = true;
         scanIterator.del();
+      } else if(_defs.get(d->fun)->twoConstDef){
+        Def* d2;
+        _defs.pop(d->fun, d2);
+        reverse(d2);
+        if(!d2->lhsIsBool() && _defs.insert(d2->fun, d2)){
+          _defs.insert(d->fun, d);
+          inserted = true;
+          scanIterator.del();
+        } else {
+          reverse(d2); //back to original orientation
+          ALWAYS(_defs.insert(d2->fun, d2));
+        }
       } else if(d->twoConstDef){
-         Term* temp = d->lhs;
-         d->lhs = d->rhs;
-         d->rhs = temp;
-         d->fun = d->lhs->functor();
+         reverse(d);
          if(_defs.insert(d->fun, d)) {
            inserted = true;
            scanIterator.del();
@@ -868,7 +893,7 @@ FunctionDefinition::defines (Term* lhs, Term* rhs)
   if (occurs(f,*rhs)) {
     return 0;
   }
-  if (lhs->arity() == 0) {
+  if (!lhs->arity()) {
     if(env.signature->isFoolConstantSymbol(true , f) ||
        env.signature->isFoolConstantSymbol(false, f)){
       return 0;

@@ -151,7 +151,7 @@ FormulaUnit* FOOLElimination::apply(FormulaUnit* unit) {
   }
 
   FormulaUnit* rectifiedUnit = Rectify::rectify(unit);
-
+  
   Formula* formula = rectifiedUnit->formula();
 
   _unit = rectifiedUnit;
@@ -206,7 +206,7 @@ Formula* FOOLElimination::process(Formula* formula) {
        * between FOOL boolean terms.
        */
 
-      if (literal->isEquality() /*&& !_higherOrder*/) { 
+      if (literal->isEquality() && env.options->equalityToEquivalence()) { 
         //when in higher-order, we never convert equality to equivalence
         ASS_EQ(literal->arity(), 2); // can there be equality between several terms?
         TermList lhs = *literal->nthArgument(0);

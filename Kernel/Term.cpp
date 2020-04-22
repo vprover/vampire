@@ -519,7 +519,7 @@ vstring Term::headToString() const
           varList += ss.next().toString(); 
         }
         varList += "]";        
-        return "^" + varList + " : " + lambdaExp.toString();
+        return "(^" + varList + " : " + lambdaExp.toString() + ")";
       }
       default:
         ASSERTION_VIOLATION;

@@ -419,7 +419,9 @@ void Preprocess::preprocess(Problem& prb)
      TrivialPredicateRemover().apply(prb);
    }
 */
-   if (_options.generalSplitting()!=Options::RuleActivity::OFF) {
+
+   //TODO currently general splitting is broken for higher-order problems
+   if (!prb.hasFOOL() && !prb.hasApp() && _options.generalSplitting()!=Options::RuleActivity::OFF) {
      env.statistics->phase=Statistics::GENERAL_SPLITTING;
      if (env.options->showPreprocessing())
        env.out() << "general splitting" << std::endl;
