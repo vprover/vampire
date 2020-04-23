@@ -32,7 +32,11 @@
 
 #include "InterpretedLiteralEvaluator.hpp"
 
+#if VDEBUG
 #define IDEBUG 1
+#else
+#define IDEBUG 0
+#endif
 
 #if IDEBUG
 #define _DEBUG(...) 
