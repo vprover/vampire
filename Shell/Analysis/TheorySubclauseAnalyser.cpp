@@ -352,7 +352,7 @@ public:
 
   IntegerConstantType toInt() const {
     IntegerConstantType out;
-    ALWAYS(theory->tryInterpretConstant(Term::createConstant(functor), out))
+    ALWAYS(theory->tryInterpretConstant(Term::createConstant(functor), out));
     return out;
   }
 
