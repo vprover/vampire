@@ -25,16 +25,19 @@
 #include "Lib/Int.hpp"
 
 #include "Signature.hpp"
+#include "SortHelper.hpp"
 #include "Sorts.hpp"
 #include "TermIterators.hpp"
 #include "Term.hpp"
 #include "Theory.hpp"
+#include <tuple>
+
 
 #include "InterpretedLiteralEvaluator.hpp"
 
 #if VDEBUG
 #define IDEBUG 1
-#else
+#else 
 #define IDEBUG 0
 #endif
 
@@ -98,9 +101,16 @@ struct num_traits;
     static const Theory::Interpretation mul = Theory::SHORT ## _MULTIPLY; \
     constexpr static ConstantType zero = CamelCase ## ConstantType(0); \
     constexpr static ConstantType one = CamelCase ## ConstantType(1); \
-    bool isZero(const TermList& l) const { \
-      auto out = l.tag() == REF && theory->representConstant(zero) == l.term(); \
-      return out; \
+    static const Term* oneTerm() { \
+      const static Term* trm = theory->representConstant(one);   \
+      return trm; \
+    } \
+    static const Term* zeroTerm() { \
+      const static Term* trm = theory->representConstant(zero);   \
+      return trm; \
+    } \
+    static bool isZero(const TermList& l) { \
+      return l.tag() == REF && zeroTerm() == l.term(); \
     } \
   }; \
   constexpr CamelCase ## ConstantType num_traits<CamelCase ## ConstantType>::one;\
@@ -115,7 +125,7 @@ IMPL_NUM_TRAITS(Integer , INTEGER , INT )
    * For every traversed term where pred is *not* true, action is applied.
    *
    * The argument functions shall have the following signatures:
-   * bool pred(Term&)
+   * bool pred(const Term&)
    * void action(TermList)
    */
 template<class Fn, class Predicate> 
@@ -213,100 +223,66 @@ CLASS_NAME(InterpretedLiteralEvaluator::ACFunEvaluator<AbelianGroup>);
   }
 };
 
-struct IntLess { 
-  // const Theory::Interpretation interpreation = Theory::INT_LESS; 
-  const bool IS_STRICT = true; 
-  const unsigned functor;
+class IntLess { 
   using ConstantType = IntegerConstantType; 
-  const num_traits<ConstantType> num = num_traits<ConstantType>{};
   using number = num_traits<ConstantType>;
 
-  IntLess() : functor(env.signature->getInterpretingSymbol(Theory::INT_LESS)) { }
+  IntLess() { }
 
-  TermList minus(TermList t) const {
+  static const TermList minus(TermList t) {
     CALL("InterpretedLiteralEvaluator::InequalityNormalizer::minus");
-    return TermList(Term::create1(env.signature->getInterpretingSymbol(num.uminus), t));
+    return TermList(Term::create1(env.signature->getInterpretingSymbol(number::uminus), t));
   }
 
-  TermList plus(TermList lhs, TermList rhs) const {
-    const num_traits<ConstantType> num = num_traits<ConstantType>{};
+  static const TermList plus(TermList lhs, TermList rhs) {
     CALL("InterpretedLiteralEvaluator::InequalityNormalizer::plus");
-    return TermList(Term::create2(env.signature->getInterpretingSymbol(num.plus), lhs, rhs));
+    return TermList(Term::create2(env.signature->getInterpretingSymbol(number::plus), lhs, rhs));
+  }
+
+  static unsigned functor() {
+    const static unsigned functor = env.signature->getInterpretingSymbol(Theory::INT_LESS);
+    return functor;
   }
 
 
   // TODO $less(0,$sum(X0,1))
-  Literal* normalizeUninterpreted(bool polarity, TermList lhs, TermList rhs) const {
+  static Literal* normalizeUninterpreted(bool polarity, TermList lhs, TermList rhs) {
     auto one  = TermList(theory->representConstant(number::one));
     auto zero = TermList(theory->representConstant(number::zero));
     if (polarity) {
-      return Literal::create2(functor, 
+      return Literal::create2(functor(), 
               /* polarity */ true, 
               zero,
               plus(rhs, minus(lhs)));
     } else {
       /* ~(l < r) ==> (r <= l) ==> r - 1 < l ==> 0 < l - r + 1 */
-      return Literal::create2(functor,
+      return Literal::create2(functor(),
               /* polarity */ true, 
               zero,
               plus(plus(lhs, one), minus(rhs)));
     }
   }
 
-  bool operator()(const ConstantType& lhs, const ConstantType& rhs) const {
-    return lhs < rhs;
+public:
+  static Literal* normalize(Literal* in) {
+    CALL("IntLess::normalize");
+    ASS(theory->interpretPredicate(in->functor()) == Interpretation::INT_LESS);
+    auto lhs = *in->nthArgument(0);
+    auto polarity = in->polarity();
+
+    if (number::isZero(lhs) && polarity) {
+      /* nothing to do */
+      return in;
+    } else {
+      auto rhs = *in->nthArgument(1);
+      DEBUG("\t\tin " << *in);
+      Literal* out = normalizeUninterpreted(polarity, lhs, rhs);
+      DEBUG("\t\tin " << *in);
+      return out;
+    }
   }
 }; 
 
-
-/** Normalizes inequalities 
- *      a < b ==> 0 < b - a 
- * and evaluates ones that consist constants only.
- */
-template<class Inequality>
-class InterpretedLiteralEvaluator::InequalityNormalizer 
-  : public Evaluator 
-{
-  const Inequality _ineq;
-  using ConstantType = typename Inequality::ConstantType;
-
-public:
-  CLASS_NAME(InterpretedLiteralEvaluator::InequalityNormalizer<Inequality>);
-  USE_ALLOCATOR(InterpretedLiteralEvaluator::InequalityNormalizer<Inequality>);
-
-  InequalityNormalizer() : _ineq(Inequality()) { }
-
-  bool canEvaluatePred(unsigned pred) override 
-  {
-    return pred == _ineq.functor;
-  }
-
-  PredEvalResult tryEvaluatePred(Literal* lit_) override
-  {
-    CALL("InterpretedLiteralEvaluator::InequalityNormalizer::tryEvaluatePred");
-    ASS(lit_);
-    auto& lit = *lit_;
-    ASS_EQ(lit.functor(), _ineq.functor);
-    ASS_EQ(lit.arity(), 2);
-    auto lhs = lit[0];
-    auto rhs = lit[1];
-    ConstantType l;
-    ConstantType r;
-    if (lhs == rhs) {
-      auto raw = !_ineq.IS_STRICT;
-      return PredEvalResult::trivial(lit.polarity() == raw);
-    } else if (theory->tryInterpretConstant(lhs, l) 
-        && theory->tryInterpretConstant(rhs, r)) { 
-      return PredEvalResult::trivial(lit.polarity() == _ineq(l, r));
-    } else if (_ineq.num.isZero(lhs)) {
-      return PredEvalResult::nop();
-    } else {
-      return PredEvalResult::simplified( _ineq.normalizeUninterpreted(lit.polarity(), lhs,rhs));
-    }
-  }
-
-
-};
 
 /**
  * Interpreted equality has to be treated specially. We do not have separate
@@ -537,6 +513,9 @@ public:
         }
       }
       else if(arity==2){
+
+        // TODO handle addition x + -x ==> 0
+
         // If one argument is not a constant and the other is zero, one or minus one then
         // we might have some special cases
         T arg2;
@@ -1166,8 +1145,6 @@ InterpretedLiteralEvaluator::InterpretedLiteralEvaluator()
   _evals.push(new ACFunEvaluator<AbelianGroup<Theory::REAL_PLUS>> ());
   _evals.push(new ACFunEvaluator<AbelianGroup<Theory::REAL_MULTIPLY>> ());
 
-  _evals.push(new InequalityNormalizer<IntLess>());
-
   }
 
   _funEvaluators.ensure(0);
@@ -1502,6 +1479,116 @@ bool InterpretedLiteralEvaluator::balanceDivide(Interpretation multiply,
     return false;    
 }
 
+using InversionPath = Stack<unsigned>;
+
+// TODO document me
+template<class ConstantType> 
+Stack<tuple<unsigned, InversionPath>> rebalancingPossibilities(const Literal& lit) 
+{
+  // Stack<tuple<unsigned, InversionPath>> out;
+
+  // Stack<tuple<TermList, TermList, TermList>> out;
+  // Stack<TermList> traverser;
+  // // stackTraverseIf(TermList(lit), 
+  // //     [](const Term& t) { return ConstantType::getSort() == SortHelper::getArgSort(&t, ) })
+  // for (int i = 0; i < lit.arity(); i++) {
+  //   traverser.push(TermList(lit[i]);
+  //   while (!traverser.isEmpty()) {
+  //     auto t = traverser.pop();
+  //     if (t.isTerm()) {
+  //     auto t = t.term();
+  //     for (int j=0; j<t.arity(); j++) {
+  //       if (num_traits<ConstantType>::canInvertTerm(t.term(), i)) {
+  //         todo.push(t[i]);
+  //       }
+  //     }
+  //     }
+  //   }
+  // }
+  //
+  // return out;
+  ASSERTION_VIOLATION
+}
+
+// TODO document me
+template<class ConstantType> 
+bool balance(const Literal& in, Literal*& result) 
+{
+  for (auto t : rebalancingPossibilities<ConstantType>(in)) {
+    // auto target_lhs = get<0>(t);
+    // auto unwrap     = get<1>(t);
+    // auto wrap       = get<2>(t);
+    // DEBUG("trying rebalancing on " << target_lhs);
+
+    //TODO implement
+  }
+  ASSERTION_VIOLATION
+  return false;
+}
+
+// TODO document me
+Literal& balance(Literal& in)
+{
+  /* we only rebalance equalities */
+  if (!in.isEquality()) {
+    return in;
+
+  } else {
+    ASS(in.arity() == 2);
+    unsigned sort;
+    if (!SortHelper::tryGetResultSort(in[0], sort) &&
+        !SortHelper::tryGetResultSort(in[1], sort)) {
+      return in;
+    } else {
+
+      Literal* out;
+      switch (sort) {
+#define _CASE(SRT, ConstantType) \
+        case Sorts::SRT: \
+          if (!balance<ConstantType>(in, out)){ \
+            return in; \
+          } 
+        _CASE(SRT_REAL    ,    RealConstantType)
+        _CASE(SRT_INTEGER , IntegerConstantType)
+        _CASE(SRT_RATIONAL,RationalConstantType)
+#undef _CASE
+        default: return in;
+      }
+      return *out;
+    }
+  }
+}
+
+class LiteralNormalizer 
+{
+  // static bool canNormalizePred(Theory::Interpretation pred);
+  // static bool canNormalize(const Literal& l)
+  // {
+  //   return canNormalize(env.signature->getPredicate(l.getPredicate))
+  // }
+
+public:
+  static Literal* normalize(Literal* in) {
+    CALL("LiteralNormalizer::normalize");
+    auto functor = in->functor();
+
+    if (theory->isInterpretedPredicate(functor)) {
+      auto i = theory->interpretPredicate(functor);
+
+      switch (i) {
+        case Interpretation::INT_LESS: 
+          return IntLess::normalize(in);
+
+        default: 
+          return in;
+      }
+    } else {
+      /* uninterpreted predicate */
+      return in;
+    }
+  }
+};
+
 /**
  * Used to evaluate a literal, setting isConstant, resLit and resConst in the process
  *
@@ -1516,13 +1603,18 @@ bool InterpretedLiteralEvaluator::evaluate(Literal* lit, bool& isConstant, Liter
   DEBUG( "evaluate " << lit->toString() );
 
   // This tries to transform each subterm using tryEvaluateFunc (see transform Subterm below)
-  resLit = TermTransformerTransformTransformed::transform(lit);
 
-  _DEBUG( "transformed " << resLit->toString() );
+  resLit = LiteralNormalizer::normalize(lit);
+  DEBUG( "\t0 ==> " << *resLit );
+
+  resLit = TermTransformerTransformTransformed::transform( resLit);
   DEBUG( "\t1 ==> " << *resLit );
 
   // If it can be balanced we balance it
   // A predicate on constants will not be balancable
+#if 0
+  resLit = &Kernel::balance(*resLit);
+#else // not NEW_BALANCE
   if(balancable(resLit)){
       Literal* new_resLit=resLit;
 #if VDEBUG
@@ -1532,6 +1624,7 @@ bool InterpretedLiteralEvaluator::evaluate(Literal* lit, bool& isConstant, Liter
       ASS(balance_result || resLit==new_resLit);
       resLit=new_resLit;
   }
+#endif
   DEBUG( "\t2 ==> " << *resLit );
 
   // // If resLit contains variables the predicate cannot be interpreted
@@ -1559,27 +1652,28 @@ bool InterpretedLiteralEvaluator::evaluate(Literal* lit, bool& isConstant, Liter
   Evaluator* predEv = getPredEvaluator(pred);
   if (predEv) {
     auto r = predEv->tryEvaluatePred(resLit);
+
     switch (r.status) {
       case PredEvalResult::Nop: 
         break;
+
       case PredEvalResult::Simplified: 
         // resLit = r.simplified_val;
         resLit = TermTransformerTransformTransformed::transform(r.simplified_val);
-        isConstant = false;
-        return true;
+        break;
+
       case PredEvalResult::Trivial: 
         isConstant = true;
         resConst = r.trivial_val;
+        DEBUG( "\t3 ==> " << resConst );
         return true;
+
     }
   }
-  DEBUG( "\t3 ==> " << *resLit );
-
-  if (resLit!=lit) {
-    isConstant = false;
-    return true;
-  }
-  return false;
+  isConstant = false;
+  auto out = resLit != lit;
+  DEBUG( "\t3 ==> " << *resLit << "(did evaluate: " << out << ")" );
+  return out;
 }
 
 
@@ -1608,7 +1702,7 @@ TermList InterpretedLiteralEvaluator::transformSubterm(TermList trm)
 	return res;
     }
   } else {
-    DEBUG("no transformer")
+    _DEBUG("no transformer")
   }
   return trm;
 }

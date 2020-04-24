@@ -350,6 +350,14 @@ public:
     return Theory::isPlus(i) || Theory::isTimes(i);
   }
 
+  IntegerConstantType toInt() const {
+    IntegerConstantType out;
+    ALWAYS(theory->tryInterpretConstant(Term::createConstant(functor), out))
+    return out;
+  }
+
+
+
   bool leftDistributiveOver(const Function &other) const {
     return Theory::isTimes(this->interpret()) &&
            Theory::isPlus(other.interpret());
@@ -626,6 +634,14 @@ public:
   friend void gen_dump(ostream &out, const ACTerm &trm, rect_map &map);
 };
 
+template <class F1, class F2> bool matchB(const AbsTerm &term, F1 f1, F2 f2) {
+  if (auto t = dynamic_cast<const ACTerm *>(&term)) {
+    return f1(*t);
+  } else {
+    ASS_(dynamic_cast<const AbsVarTerm *>(&term));
+    return f2(*static_cast<const AbsVarTerm *>(&term));
+  }
+}
 template <class F1, class F2> void match(const AbsTerm &term, F1 f1, F2 f2) {
   if (auto t = dynamic_cast<const ACTerm *>(&term)) {
     return f1(*t);
@@ -742,30 +758,45 @@ public:
 
     decltype(abstractions(c)) out;
     for (int cur = 0; cur < lits.size(); cur++) {
-      auto var_set_ = [] (const rc<AbsLiteral>& lit, vars_t& set) {
-        if (!set.present()) {
-          set = vars_t(vset<AbsVarTerm>());
+      auto current = lits[cur];
+      DBG(current)
+      ASS_REP((!current->predicate.interpreted()
+        || current->predicate.interpret() != Interpretation::INT_LESS
+        || matchB(current->terms[0],
+          [](const ACTerm& t) { return t.toIntegerConstant() == IntegerConstantType(0); },
+          [](const AbsVarTerm&) {return true;}
+          )), current)
+      // ASS((!theory->isInterpretedPredicate(current.symbol.interpret) 
+      //     || theory->interpretPredicate(current->functor()) != Interpretation::INT_LESS
+      //     || theory->interpretConstant(current->nthArgument(0)) == IntegerConstantType(0))
+      //     )
+
+      if (current->isTheoryLiteral()) {
+        auto var_set_ = [] (const rc<AbsLiteral>& lit, vars_t& set) {
+          if (!set.present()) {
+            set = vars_t(vset<AbsVarTerm>());
+          }
+          lit->var_set(set.get());
+        };
+        vars_t theoryVars = vars_t();
+        vars_t uninterpretedVars = vars_t();
+        for (int i = 0; i < lits.size(); i++) {
+          if (i != cur) {
+            auto l = lits[i];
+            var_set_(l, l->isTheoryLiteral() 
+                ? theoryVars 
+                : uninterpretedVars);
+          }
         }
-        lit->var_set(set.get());
-      };
-      vars_t theoryVars = vars_t();
-      vars_t uninterpretedVars = vars_t();
-      for (int i = 0; i < lits.size(); i++) {
-        if (i != cur) {
-          auto l = lits[i];
-          var_set_(l, l->isTheoryLiteral() 
-              ? theoryVars 
-              : uninterpretedVars);
-        }
+        // auto to_var_vec = [] (vset<AbsVarTerm> in) -> vvec<refw<AbsTerm>> {
+        //   vvec<refw<AbsTerm>> out;
+        //   for (auto v : in) {
+        //     out.push_back(*new AbsVarTerm(v));
+        //   }
+        //   return out;
+        // };
+        out.push_back(*new AbsClause(current, theoryVars, uninterpretedVars));
       }
-      // auto to_var_vec = [] (vset<AbsVarTerm> in) -> vvec<refw<AbsTerm>> {
-      //   vvec<refw<AbsTerm>> out;
-      //   for (auto v : in) {
-      //     out.push_back(*new AbsVarTerm(v));
-      //   }
-      //   return out;
-      // };
-      out.push_back(*new AbsClause(lits[cur], theoryVars, uninterpretedVars));
     }
     return out; 
   }
