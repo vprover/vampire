@@ -18,7 +18,14 @@
 #include "Lib/macro_magic.h"
 #include "Shell/Analysis/TheorySubclauseAnalyser.hpp"
 #define ASS_(x) if (!(x)) {cout << endl << "######################### ASSERTION violation " << #x << endl; throw "assertion violation";}
+#if VDEBUG
+#define ASS_REP_(x, v) if (!(x)) {cout << endl << "######################### ASSERTION violation " << #x << endl; cout << v << endl; throw;}
+#else
+#define ASS_REP_(x, v) if (!(x)) {cout << endl << "######################### ASSERTION violation " << #x << endl; cout << v << endl;}
+#endif
 // #define ASS_(x) ASS(x)
+
+struct ClauseRest;
 
 template<class A>
 struct optional {
@@ -38,6 +45,7 @@ struct optional {
 };
 
 bool isTheoryLiteral(const Literal &lit);
+ostream &operator<<(ostream &out, const AbsLiteral &lit);
 
 #define _TAIL(x, ...) __VA_ARGS__
 
@@ -128,8 +136,6 @@ CmpResult gen_compare_container(const Container &lhs, const Container &rhs,
   return CMP_EQUIV;
 }
 
-
-
 #define IMPL_GEN_COMPARE_CONTAINER(container) \
   template <class A, class Config> struct gen_comparator<container<A>, Config> { \
     CmpResult operator()(const container<A> &lhs, const container<A> &rhs, \
@@ -140,37 +146,11 @@ CmpResult gen_compare_container(const Container &lhs, const Container &rhs,
 
 IMPL_GEN_COMPARE_CONTAINER(vvec)
 
-template <class A, class Config> struct gen_comparator<vset<A>, Config> { 
-  using container = vset<A>;
-  CmpResult operator()(const container &lhs_, const container &rhs_, 
-                       rect_maps &map) const { 
-
-    container lhs;
-    for (auto x : lhs_) {
-      lhs.insert(map.l.get(x));
-    }
-    container rhs;
-    for (auto x : rhs_) {
-      rhs.insert(map.r.get(x));
-    }
-    return gen_compare_container<container, Config>(lhs, rhs, map); 
-  } 
-}; 
-
-
 template <class A, class Config> struct gen_comparator<optional<A>, Config> { 
   using container = optional<A>;
   CmpResult operator()(const container &lhs, const container &rhs, 
                        rect_maps &map) const { 
 
-    // container lhs;
-    // for (auto x : lhs) {
-    //   lhs.insert(map.l.get(x));
-    // }
-    // container rhs;
-    // for (auto x : rhs) {
-    //   rhs.insert(map.r.get(x));
-    // }
     if (lhs.present() && rhs.present()) 
       return gen_comparator<A, Config>{}(lhs.get(), rhs.get(), map); 
     if (!lhs.present() && rhs.present()) return CMP_LESS;
@@ -420,7 +400,7 @@ public:
   friend struct CmpVarsMatch;
   friend struct CmpVarsEqual;
   friend struct rect_map;
-  friend void gen_dump(ostream &out, const vset<AbsVarTerm> &vars, rect_map &map);
+  friend void gen_dump(ostream &out, const vset<AbsVarTerm> &rest, rect_map &map);
 };
 
 AbsTerm::~AbsTerm() {}
@@ -512,6 +492,10 @@ public:
     for (auto a : _args) {
       a.get().pushMinus();
     }
+  }
+
+  bool isInterpretedConstant() const {
+    return _fun.isInterpretedConstant() && _args.size() == 0;
   }
 
   IntegerConstantType toIntegerConstant() const {
@@ -731,19 +715,25 @@ public:
   OPERATORS(AbsLiteral, x.predicate, x.positive, x.terms);
 };
 
+struct ClauseRest {
+  using varset = vset<AbsVarTerm>;
+  varset vars;
+  bool moreVars;
+  ClauseRest() : vars(varset()), moreVars(false) {}
+};
+
 class AbsClause {
-  using vars_t = optional<vset<AbsVarTerm>>;
   rc<AbsLiteral> _lit;
-  vars_t _thryVars;
-  vars_t _unintVars;
+  optional<ClauseRest> _thryVars;
+  optional<ClauseRest> _unintVars;
 
 public:
   CLASS_NAME(AbsClause)
   USE_ALLOCATOR(AbsClause)
 
   AbsClause( rc<AbsLiteral> lit,
-            vars_t thryVars,
-            vars_t unintVars 
+            optional<ClauseRest> thryVars,
+            optional<ClauseRest> unintVars 
             ) : _lit(lit), _thryVars(thryVars), _unintVars(unintVars) {}
 
   static vvec<refw<AbsClause>> abstractions(const Clause& c) { 
@@ -758,43 +748,41 @@ public:
 
     decltype(abstractions(c)) out;
     for (int cur = 0; cur < lits.size(); cur++) {
+      auto view_vars = vset<AbsVarTerm>();
       auto current = lits[cur];
-      DBG(current)
-      ASS_REP((!current->predicate.interpreted()
+      current->var_set(view_vars);
+
+      ASS_REP_((!current->predicate.interpreted()
         || current->predicate.interpret() != Interpretation::INT_LESS
         || matchB(current->terms[0],
-          [](const ACTerm& t) { return t.toIntegerConstant() == IntegerConstantType(0); },
+          [](const ACTerm& t) { return t.isInterpretedConstant() && t.toIntegerConstant() == IntegerConstantType(0); },
           [](const AbsVarTerm&) {return true;}
-          )), current)
-      // ASS((!theory->isInterpretedPredicate(current.symbol.interpret) 
-      //     || theory->interpretPredicate(current->functor()) != Interpretation::INT_LESS
-      //     || theory->interpretConstant(current->nthArgument(0)) == IntegerConstantType(0))
-      //     )
+          )), ( *current ))
 
       if (current->isTheoryLiteral()) {
-        auto var_set_ = [] (const rc<AbsLiteral>& lit, vars_t& set) {
-          if (!set.present()) {
-            set = vars_t(vset<AbsVarTerm>());
+        auto add_to_vars = [&] (const rc<AbsLiteral>& lit, optional<ClauseRest>& out) {
+          if (!out.present()) {
+            out = optional<ClauseRest>(ClauseRest());
           }
-          lit->var_set(set.get());
+          auto intermed = vset<AbsVarTerm>();
+          lit->var_set(intermed);
+          for (auto v : view_vars) {
+            if (intermed.find(v) != intermed.end())
+              out.get().vars.insert(v);
+            else 
+              out.get().moreVars = true;
+          }
         };
-        vars_t theoryVars = vars_t();
-        vars_t uninterpretedVars = vars_t();
+        auto theoryVars = optional<ClauseRest>();
+        auto uninterpretedVars = optional<ClauseRest>();
         for (int i = 0; i < lits.size(); i++) {
           if (i != cur) {
             auto l = lits[i];
-            var_set_(l, l->isTheoryLiteral() 
+            add_to_vars(l, l->isTheoryLiteral() 
                 ? theoryVars 
                 : uninterpretedVars);
           }
         }
-        // auto to_var_vec = [] (vset<AbsVarTerm> in) -> vvec<refw<AbsTerm>> {
-        //   vvec<refw<AbsTerm>> out;
-        //   for (auto v : in) {
-        //     out.push_back(*new AbsVarTerm(v));
-        //   }
-        //   return out;
-        // };
         out.push_back(*new AbsClause(current, theoryVars, uninterpretedVars));
       }
     }
@@ -814,7 +802,6 @@ public:
 // }
 
 
-ostream &operator<<(ostream &out, const AbsLiteral &lit);
 
 CmpResult LitEquiv1::compare(const AbsClause &lhs, const AbsClause &rhs) {
   return CMP_EQUIV;
@@ -899,6 +886,7 @@ template <class Config> struct gen_comparator<AbsTerm, Config> {
   };
 
 IMPL_GEN_COMPARATOR_GROUND(bool)
+IMPL_GEN_COMPARATOR_GROUND(unsigned)
 IMPL_GEN_COMPARATOR_GROUND(Predicate)
 IMPL_GEN_COMPARATOR_GROUND(Function)
 
@@ -907,6 +895,26 @@ IMPL_GEN_COMPARATOR_GROUND(Function)
     CmpResult operator()(const CLASS &lhs, const CLASS &rhs,                   \
                          rect_maps &map) const __VA_ARGS__                     \
   };
+
+
+template <class Config> struct gen_comparator<vset<AbsVarTerm>, Config> { 
+  using container = vset<AbsVarTerm>;
+  CmpResult operator()(const container &lhs_, const container &rhs_, 
+                       rect_maps &map) const { 
+
+    vset<unsigned> lhs;
+    for (auto x : lhs_) {
+      lhs.insert(map.l.get(x)._var);
+    }
+    vset<unsigned> rhs;
+    for (auto x : rhs_) {
+      rhs.insert(map.r.get(x)._var);
+    }
+    return gen_compare_container<vset<unsigned>, Config>(lhs, rhs, map); 
+  } 
+}; 
+
+
 
 IMPL_GEN_COMPARATOR(ACTerm, {
   if (Config::CmpUninterpreted::special()) {
@@ -945,6 +953,15 @@ IMPL_GEN_COMPARATOR(ACTerm, {
   /* both interpreted terms */
   return APPLY_CMP_RECTIFIED(lhs._args, rhs._args);
 })
+
+IMPL_GEN_COMPARATOR(ClauseRest, {
+    return lex_cmp(state_wrapped_comparator_poly<Config>(map), 
+        lhs, rhs,
+        [](const ClauseRest& l) { return l.vars; },
+        [](const ClauseRest& l) { return l.moreVars; });
+    })
+
+
 
 #define RETURN_ON_STRICT_INEQ(x)  \
   auto c = x; \
@@ -1003,14 +1020,8 @@ void dumpTuple(ostream &out, Range r, Dump d) {
 //
 // }
 
-void gen_dump(ostream &out, const vset<AbsVarTerm> &vars, rect_map &map) {
-  vset<AbsVarTerm> s;
-  for (auto v : vars) {
-    s.insert(map.get(v));
-  }
-  dumpTuple(out, s,
-            [&](ostream &out, AbsVarTerm v) { out << "X" << v._var; });
-}
+
+void gen_dump(ostream &out, const ClauseRest &vars, rect_map &map);
 
 template <class D>
 void gen_dump(ostream &out, const AbsClause &cl, rect_map &map) {
@@ -1151,8 +1162,9 @@ struct CmpUninterpretedVarsMatch {
   }
   static void dumpUninterpreted(ostream &out, const ACTerm &lit,
                                 rect_map &map) {
-    out << "?";
+    out << "?(";
     gen_dump(out, lit.var_set(), map);
+    out << ")";
     // dumpTuple(out, lit.var_set(),
     //           [&](ostream &out, AbsVarTerm v) { v.write(out, map); });
   }
@@ -1430,7 +1442,7 @@ AbsVarTerm rect_map::get(const AbsVarTerm& v){
     ASS_(it->first == v._var);
     out = it->second;
   }
-  return AbsVarTerm(v);
+  return AbsVarTerm(out);
 }
 
 vset<AbsVarTerm> AbsTerm::var_set() const {
@@ -1438,4 +1450,42 @@ vset<AbsVarTerm> AbsTerm::var_set() const {
   var_set(out);
   return out;
 }
+
+void gen_dump(ostream &out, const vset<AbsVarTerm> &vars, rect_map &map) {
+  vset<AbsVarTerm> s;
+  for (auto v : vars) {
+    s.insert(map.get(v));
+  }
+  dumpJoined(", ", out, s,
+            [&](ostream &out, AbsVarTerm v) { out << "X" << v._var; });
+}
+
+
+void gen_dump(ostream &out, const ClauseRest &rest, rect_map &map) {
+  out << "[";
+  gen_dump(out, rest.vars, map);
+  if (rest.moreVars) {
+
+    if (rest.vars.size() != 0)
+      out << ", ";
+
+    out << "...";
+  }
+  out << "]";
+  // vset<AbsVarTerm> s;
+  // for (auto v : rest.vars) {
+  //   s.insert(map.get(v));
+  // }
+  // if (rest.moreVars) {
+  //   for (auto v : s) {
+  //     out << "X" << v._var << ", ";
+  //   }
+  //   out << "...";
+  // } else {
+  //   dumpJoined(", ", out, s,
+  //             [&](ostream &out, AbsVarTerm v) { out << "X" << v._var; });
+  // }
+}
+
+
 #endif
