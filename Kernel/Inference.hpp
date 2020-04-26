@@ -257,7 +257,8 @@ enum class InferenceRule : unsigned char {
 
   /** equality proxy replacement */
   EQUALITY_PROXY_REPLACEMENT,
-
+  /** definition of the equality proxy predicate in the form E(x,y) <=> x=y */
+  EQUALITY_PROXY_AXIOM1,
   /** equality proxy axioms such as E(x,x) or ~E(x,y) \/ x=y */
   EQUALITY_PROXY_AXIOM2,
   /** unfolding by definitions f(x1,...,xn)=t */
@@ -343,21 +344,21 @@ enum class InferenceRule : unsigned char {
   /* Adding sort functions */
   ADD_SORT_FUNCTIONS,
 
-  /* Induction hypothesis*/
-  INDUCTION_AXIOM,
-
-  /** a not further specified theory axiom internally added by the class TheoryAxioms. */
-  GENERIC_THEORY_AXIOM,
-  /** A (first-order) tautology generated on behalf of a decision procedure,
-   * whose propositional counterpart becomes a conflict clause in a sat solver */
-  THEORY_TAUTOLOGY_SAT_CONFLICT,
-  /* the unit clause against which the Answer is extracted in the last step */
-  ANSWER_LITERAL_RESOLVER,
-  /** definition of the equality proxy predicate in the form E(x,y) <=> x=y */
-  EQUALITY_PROXY_AXIOM1,
   /** a premise to skolemization */
   CHOICE_AXIOM,
 
+  /* Induction hypothesis*/
+  INDUCTION_AXIOM,
+
+  /* the unit clause against which the Answer is extracted in the last step */
+  ANSWER_LITERAL_RESOLVER,
+
+  /** A (first-order) tautology generated on behalf of a decision procedure,
+   * whose propositional counterpart becomes a conflict clause in a sat solver */
+  THEORY_TAUTOLOGY_SAT_CONFLICT,
+
+  /** a not further specified theory axiom internally added by the class TheoryAxioms. */
+  GENERIC_THEORY_AXIOM, // CAREFUL: adding rules here influences the theory_split_queue heuristic
   /** Some specific groups of axioms coming from TheoryAxioms.cpp" */
   THA_COMMUTATIVITY,
   THA_ASSOCIATIVITY,
@@ -603,7 +604,8 @@ public:
   Inference(const FromInput& fi);
 
   /* Theory axioms are automatically of inputType AXIOM.
-   * Should be understood more generally as "the things vampire adds to the input to help axiomatize various background theories"
+   * and the corresponding rule should satisfy isTheoryAxiomRule
+   * CAREFUL: extending what TheoryAxiomRule is influences the theory_split_queue heuristic
    **/
   Inference(const TheoryAxiom& ta);
 
@@ -695,6 +697,8 @@ public:
    * The caller is responsible to ensure that parents are updated before children.
    **/
   void updateStatistics();
+
+   vstring toString() const;
 
   /**
    * To implement lazy minimization of proofs coming from a SAT solver

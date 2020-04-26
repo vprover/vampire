@@ -480,7 +480,7 @@ Clause* AnswerLiteralManager::getResolverClause(unsigned pred)
     args.push(TermList(i, false));
   }
   Literal* lit = Literal::create(pred, arity, true, false, args.begin());
-  res = Clause::fromIterator(getSingletonIterator(lit),TheoryAxiom(InferenceRule::ANSWER_LITERAL_RESOLVER));
+  res = Clause::fromIterator(getSingletonIterator(lit),NonspecificInference0(UnitInputType::AXIOM,InferenceRule::ANSWER_LITERAL_RESOLVER));
 
   _resolverClauses.insert(pred, res);
   return res;

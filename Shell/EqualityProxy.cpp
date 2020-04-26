@@ -372,7 +372,7 @@ unsigned EqualityProxy::getProxyPredicate(unsigned sort)
   Formula* defForm = new BinaryFormula(IFF, new AtomicFormula(proxyLit), new AtomicFormula(eqLit));
   Formula* quantDefForm = Formula::quantify(defForm);
 
-  FormulaUnit* defUnit = new FormulaUnit(quantDefForm,TheoryAxiom(InferenceRule::EQUALITY_PROXY_AXIOM1));
+  FormulaUnit* defUnit = new FormulaUnit(quantDefForm,NonspecificInference0(UnitInputType::AXIOM,InferenceRule::EQUALITY_PROXY_AXIOM1));
 
   s_proxyPremises[sort] = defUnit;
   InferenceStore::instance()->recordIntroducedSymbol(defUnit, false, newPred);

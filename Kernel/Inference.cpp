@@ -250,6 +250,38 @@ void Inference::updateStatistics()
   }
 }
 
+vstring Inference::toString() const
+{
+  CALL("Inference::toString");
+
+  vstring result;
+
+  switch(_kind) {
+    case Kind::INFERENCE_012:
+      result = "INFERENCE_012, (";
+      break;
+    case Kind::INFERENCE_MANY:
+      result = "INFERENCE_MANY, (";
+      break;
+    case Kind::INFERENCE_FROM_SAT_REFUTATION:
+      result = "INFERENCE_FROM_SAT_REFUTATION, (";
+      break;
+  }
+  result += ruleName(_rule);
+  result += "), it: " + Int::toString(toNumber(_inputType));
+
+  result += ", incl: " + Int::toString(_included);
+  result += ", ptd: " + Int::toString(_isPureTheoryDescendant);
+  result += ", id: " + Int::toString(_inductionDepth);
+  result += ", sl: " + Int::toString(_sineLevel);
+  result += ", age: " + Int::toString(_age);
+  result += ", thAx:" + Int::toString((int)(th_ancestors));
+  result += ", allAx:" + Int::toString((int)(all_ancestors));
+
+  return result;
+}
+
+
 void Inference::init0(UnitInputType inputType, InferenceRule r)
 {
   CALL("Inference::init0");

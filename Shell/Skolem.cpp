@@ -453,7 +453,7 @@ Formula* Skolem::skolemise (Formula* f)
           def = new QuantifiedFormula(FORALL,var_args,nullptr,def);
         }
 
-        Unit* defUnit = new FormulaUnit(def,TheoryAxiom(InferenceRule::CHOICE_AXIOM));
+        Unit* defUnit = new FormulaUnit(def,NonspecificInference0(UnitInputType::AXIOM,InferenceRule::CHOICE_AXIOM));
         UnitList::push(defUnit,_skolimizingDefinitions);
       }
 
