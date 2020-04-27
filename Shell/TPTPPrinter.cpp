@@ -40,6 +40,8 @@
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Clause.hpp"
 
+#include "Statistics.hpp"
+
 #include "TPTPPrinter.hpp"
 
 #include "Forwards.hpp"
