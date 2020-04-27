@@ -105,6 +105,7 @@ enum CmpResult {
   struct LitEquiv##i { \
     struct Config; \
     static void dump(std::ostream& out, const AbsClause&) ; \
+    static void dump_raw(std::ostream& out, const AbsClause&) ; \
     static CmpResult compare(AbsClause const&, AbsClause const&) ; \
     using less = struct {                                                      \
       bool operator()(const rc<AbsClause> &lhs,                               \

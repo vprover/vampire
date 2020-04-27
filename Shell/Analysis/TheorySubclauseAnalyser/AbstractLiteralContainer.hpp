@@ -58,8 +58,9 @@ public:
       out << "\t" << size;
       out << "\t" << total;
       out << "\t";
-      // Equiv::dump(out, **min_element(elems.begin(), elems.end()));
       Equiv::dump(out, *pair.first.get());
+      out << "\t";
+      Equiv::dump_raw(out, *pair.first.get());
       out << endl;
     }
   }

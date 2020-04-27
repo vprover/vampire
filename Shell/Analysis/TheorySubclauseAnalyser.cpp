@@ -46,6 +46,7 @@ struct optional {
 
 bool isTheoryLiteral(const Literal &lit);
 ostream &operator<<(ostream &out, const AbsLiteral &lit);
+ostream &operator<<(ostream &out, const AbsClause &lit);
 
 #define _TAIL(x, ...) __VA_ARGS__
 
@@ -373,6 +374,7 @@ private:
   unsigned _var;
 
 public:
+  friend struct CmpUninterpretedVarsMatch;
   bool interpreted() const override { return false; }
   explicit AbsVarTerm(unsigned var) : _var(var) {}
   ~AbsVarTerm() {}
@@ -791,6 +793,7 @@ public:
   template <class A, class Config> friend struct gen_comparator;
   template <class D>
   friend void gen_dump(ostream &out, const AbsClause &cl, rect_map &map);
+  friend ostream &operator<<(ostream &out, const AbsClause &cl);
 };
 
 // ostream &operator<<(ostream &out, AbsClause const &t) {
@@ -923,7 +926,7 @@ IMPL_GEN_COMPARATOR(ACTerm, {
 
     /* number constants are all equiv */
     if (l_unint && r_unint)
-      return Config::CmpUninterpreted::cmp_uninterpreted(lhs, rhs, map);
+      return Config::CmpUninterpreted::template cmp_uninterpreted<Config>(lhs, rhs, map);
     if (!l_unint && r_unint)
       return CMP_LESS;
     if (l_unint && !r_unint)
@@ -1124,6 +1127,7 @@ struct CmpVarsMatch {
 
 struct CmpUninterpretedEquiv {
   static bool special() { return false; }
+  template<class Config>
   static CmpResult cmp_uninterpreted(const ACTerm &lhs, const ACTerm &rhs,
                                      rect_maps &map) {
     ASSERTION_VIOLATION
@@ -1136,29 +1140,40 @@ struct CmpUninterpretedEquiv {
 
 struct CmpUninterpretedVarsMatch {
   static bool special() { return true; }
+  template<class Config>
   static CmpResult cmp_uninterpreted(const ACTerm &lhs, const ACTerm &rhs,
                                      rect_maps &map) {
-    auto l = static_cast<const AbsTerm &>(lhs).var_set();
-    auto r = static_cast<const AbsTerm &>(rhs).var_set();
-    if (l.size() < r.size())
-      return CMP_LESS;
-    if (l.size() > r.size())
-      return CMP_GREATER;
-    auto li = l.begin();
-    auto ri = r.begin();
+#define MAP_SET(lr) \
+      vset<unsigned> lr;\
+      for( auto v : static_cast<const AbsTerm &>(lr ## hs).var_set()) { \
+        lr.insert(map.lr.get(v)._var); \
+      } 
 
-    while (li != l.end()) {
-      auto vl = map.l.get(*li);
-      auto vr = map.r.get(*ri);
-      if (vl < vr)
-        return CMP_LESS;
-      if (vl > vr)
-        return CMP_GREATER;
-      ri++;
-      li++;
-    }
+    MAP_SET(l)
+    MAP_SET(r)
+    return gen_compare_container<decltype(l), Config>(l,r,map);
 
-    return CMP_EQUIV;
+    // auto l = static_cast<const AbsTerm &>(lhs).var_set();
+    // auto r = static_cast<const AbsTerm &>(rhs).var_set();
+    // if (l.size() < r.size())
+    //   return CMP_LESS;
+    // if (l.size() > r.size())
+    //   return CMP_GREATER;
+    // auto li = l.begin();
+    // auto ri = r.begin();
+    //
+    // while (li != l.end()) {
+    //   auto vl = map.l.get(*li);
+    //   auto vr = map.r.get(*ri);
+    //   if (vl < vr)
+    //     return CMP_LESS;
+    //   if (vl > vr)
+    //     return CMP_GREATER;
+    //   ri++;
+    //   li++;
+    // }
+    //
+    // return CMP_EQUIV;
   }
   static void dumpUninterpreted(ostream &out, const ACTerm &lit,
                                 rect_map &map) {
@@ -1172,6 +1187,7 @@ struct CmpUninterpretedVarsMatch {
 
 struct CmpUninterpretedNop {
   static bool special() { return true; }
+  template<class Config>
   static CmpResult cmp_uninterpreted(const ACTerm &lhs, const ACTerm &rhs,
                                      rect_maps &map) {
     return CMP_EQUIV;
@@ -1217,9 +1233,12 @@ struct LitEquiv5::Config {
     using Config = LitEquiv##i::Config;                                        \
     return APPLY_CMP_RECTIFIED_TY(lhs, rhs, AbsClause);                       \
   }                                                                            \
-  void LitEquiv##i::dump(ostream &out, const AbsClause &lit) {                \
+  void LitEquiv##i::dump_raw(ostream &out, const AbsClause &cl) {                \
+    out << cl;                              \
+  } \
+  void LitEquiv##i::dump(ostream &out, const AbsClause &cl) {                \
     auto map = rect_map();                                                     \
-    gen_dump<LitEquiv##i::Config>(out, lit, map);                              \
+    gen_dump<LitEquiv##i::Config>(out, cl, map);                              \
   }
 
 MAP(__IMPL_LIT_EQUIV__COMPARE, EQ_CLASSES)
@@ -1472,20 +1491,32 @@ void gen_dump(ostream &out, const ClauseRest &rest, rect_map &map) {
     out << "...";
   }
   out << "]";
-  // vset<AbsVarTerm> s;
-  // for (auto v : rest.vars) {
-  //   s.insert(map.get(v));
-  // }
-  // if (rest.moreVars) {
-  //   for (auto v : s) {
-  //     out << "X" << v._var << ", ";
-  //   }
-  //   out << "...";
-  // } else {
-  //   dumpJoined(", ", out, s,
-  //             [&](ostream &out, AbsVarTerm v) { out << "X" << v._var; });
-  // }
 }
 
+ostream &operator<<(ostream &out, const ClauseRest &rest) {
+  out << "[";
+  dumpJoined(", ", out, rest.vars,
+            [&](ostream &out, AbsVarTerm v) { out << v; });
+  if (rest.moreVars) {
+
+    if (rest.vars.size() != 0)
+      out << ", ";
+
+    out << "...";
+  }
+  out << "]";
+  return out;
+}
+
+ostream &operator<<(ostream &out, const AbsClause &cl) {
+  out << *cl._lit;
+  if (cl._thryVars.present()) {
+    out  << " | T" << cl._thryVars.get();
+  } 
+  if (cl._unintVars.present()) {
+    out  << " | C" << cl._unintVars.get();
+  } 
+  return out;
+}
 
 #endif
