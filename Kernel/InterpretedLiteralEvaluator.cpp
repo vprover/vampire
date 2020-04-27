@@ -263,7 +263,7 @@ CLASS_NAME(InterpretedLiteralEvaluator::ACFunEvaluator<AbelianGroup>);
 class IntLess { 
   using number = num_traits<IntegerConstantType>;
 
-  static Literal* normalizeUninterpreted(bool polarity, TermList lhs, TermList rhs) {
+  static Literal* normalizedLit(bool polarity, TermList lhs, TermList rhs) {
     auto one  = TermList(number::oneT());
     auto zero = TermList(number::zeroT());
     if (polarity) {
@@ -279,23 +279,23 @@ class IntLess {
               number::add(number::add(lhs, one), number::minus(rhs)));
     }
   }
+  inline static bool isNormalized(Literal* in) {
+    return number::isZero(*in->nthArgument(0)) && in->polarity();
+  }
 
 public:
   static Literal* normalize(Literal* in) {
     CALL("IntLess::normalize");
     ASS(theory->interpretPredicate(in->functor()) == Interpretation::INT_LESS);
-    auto lhs = *in->nthArgument(0);
-    auto polarity = in->polarity();
 
-    if (number::isZero(lhs) && polarity) {
+    if (isNormalized(in)) {
       /* nothing to do */
       return in;
     } else {
-      auto rhs = *in->nthArgument(1);
-      DEBUG("\t\tin " << *in);
-      Literal* out = normalizeUninterpreted(polarity, lhs, rhs);
-      DEBUG("\t\tin " << *in);
-      return out;
+      return normalizedLit(
+          in->polarity(),
+          *in->nthArgument(0), 
+          *in->nthArgument(1));
     }
   }
 }; 
