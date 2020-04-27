@@ -91,30 +91,64 @@ public:
 //TODO refactor to own file
 template<class ConstantType>
 struct num_traits;
+#define IMPL_NUM_TRAITS__TERMLIST_ARGS_1 TermList t
+#define IMPL_NUM_TRAITS__TERMLIST_EXPR_1          t
+#define IMPL_NUM_TRAITS__TERMLIST_ARGS_2 TermList l, TermList r
+#define IMPL_NUM_TRAITS__TERMLIST_EXPR_2          l,          r
+
+#define IMPL_NUM_TRAITS__INTERPRETED_SYMBOL(name, SORT_SHORT, _INTERPRETATION) \
+    static const Theory::Interpretation name ## I = Theory::SORT_SHORT ## _INTERPRETATION; \
+      \
+    static unsigned name ## F() { \
+      static const unsigned functor = env.signature->getInterpretingSymbol(name ## I);\
+      return functor; \
+    }\
+
+
+#define IMPL_NUM_TRAITS__INTERPRETED_PRED(name, SORT_SHORT, _INTERPRETATION, arity) \
+    IMPL_NUM_TRAITS__INTERPRETED_SYMBOL(name, SORT_SHORT, _INTERPRETATION) \
+                                          \
+    static Literal* name(bool polarity, IMPL_NUM_TRAITS__TERMLIST_ARGS_ ## arity) {  \
+      return Literal::create( \
+                  polarity, \
+                  name##F(),  \
+                  { IMPL_NUM_TRAITS__TERMLIST_EXPR_ ## arity }); \
+    } \
+
+
+#define IMPL_NUM_TRAITS__INTERPRETED_FUN(name, SORT_SHORT, _INTERPRETATION, arity) \
+    IMPL_NUM_TRAITS__INTERPRETED_SYMBOL(name, SORT_SHORT, _INTERPRETATION) \
+                                          \
+    static TermList name(IMPL_NUM_TRAITS__TERMLIST_ARGS_ ## arity) {  \
+      return TermList( \
+          Term::create( \
+            name##F(),  \
+            { IMPL_NUM_TRAITS__TERMLIST_EXPR_ ## arity })); \
+    } \
+
+#define IMPL_NUM_TRAITS__SPECIAL_CONSTANT(name, value, isName) \
+    constexpr static ConstantType name = ConstantType(value); \
+    static Term* name ## T() { \
+      static Term* trm = theory->representConstant(name);   \
+      return trm; \
+    } \
+    static bool isName(const TermList& l) { \
+      return l.tag() == REF && name ## T() == l.term(); \
+    } \
 
 #define IMPL_NUM_TRAITS(CamelCase, LONG, SHORT)  \
   template<> struct num_traits<CamelCase ## ConstantType> { \
-    using ConstantType = CamelCase ## ConstantType; \
-    static const Sorts::DefaultSorts sort = Sorts::SRT_ ## LONG; \
-    static const Theory::Interpretation minusI = Theory::SHORT ## _UNARY_MINUS; \
-    static const Theory::Interpretation addI = Theory::SHORT ## _PLUS; \
-    static const Theory::Interpretation mulI = Theory::SHORT ## _MULTIPLY; \
-    static TermList minus(TermList t) { return TermList(Term::create(env.signature->getInterpretingSymbol(minusI), { t })); } \
-    static TermList mul(TermList l, TermList r) { return TermList(Term::create(env.signature->getInterpretingSymbol(mulI), {l, r})); } \
-    static TermList add(TermList l, TermList r) { return TermList(Term::create(env.signature->getInterpretingSymbol(addI), {l, r})); } \
-    constexpr static ConstantType zero = CamelCase ## ConstantType(0); \
-    constexpr static ConstantType one = CamelCase ## ConstantType(1); \
-    static Term* oneTerm() { \
-      static Term* trm = theory->representConstant(one);   \
-      return trm; \
-    } \
-    static Term* zeroTerm() { \
-      static Term* trm = theory->representConstant(zero);   \
-      return trm; \
-    } \
-    static bool isZero(const TermList& l) { \
-      return l.tag() == REF && zeroTerm() == l.term(); \
-    } \
+    using ConstantType = CamelCase ## ConstantType;                 \
+    static const Sorts::DefaultSorts sort = Sorts::SRT_ ## LONG;    \
+                                                                    \
+    IMPL_NUM_TRAITS__INTERPRETED_PRED(less, SHORT, _LESS, 2) \
+                                      \
+    IMPL_NUM_TRAITS__INTERPRETED_FUN(minus, SHORT, _UNARY_MINUS, 1) \
+    IMPL_NUM_TRAITS__INTERPRETED_FUN(add  , SHORT, _PLUS       , 2) \
+    IMPL_NUM_TRAITS__INTERPRETED_FUN(mul  , SHORT, _MULTIPLY   , 2) \
+                                                                    \
+    IMPL_NUM_TRAITS__SPECIAL_CONSTANT(one , 1, isOne )              \
+    IMPL_NUM_TRAITS__SPECIAL_CONSTANT(zero, 0, isZero)              \
   }; \
   constexpr CamelCase ## ConstantType num_traits<CamelCase ## ConstantType>::one;\
   constexpr CamelCase ## ConstantType num_traits<CamelCase ## ConstantType>::zero;\
@@ -227,41 +261,22 @@ CLASS_NAME(InterpretedLiteralEvaluator::ACFunEvaluator<AbelianGroup>);
 };
 
 class IntLess { 
-  using ConstantType = IntegerConstantType; 
-  using number = num_traits<ConstantType>;
+  using number = num_traits<IntegerConstantType>;
 
-  IntLess() { }
-
-  static const TermList minus(TermList t) {
-    CALL("InterpretedLiteralEvaluator::InequalityNormalizer::minus");
-    return TermList(Term::create1(env.signature->getInterpretingSymbol(number::minusI), t));
-  }
-
-  static const TermList plus(TermList lhs, TermList rhs) {
-    CALL("InterpretedLiteralEvaluator::InequalityNormalizer::plus");
-    return TermList(Term::create2(env.signature->getInterpretingSymbol(number::addI), lhs, rhs));
-  }
-
-  static unsigned functor() {
-    const static unsigned functor = env.signature->getInterpretingSymbol(Theory::INT_LESS);
-    return functor;
-  }
-
-  // TODO $less(0,$sum(X0,1))
   static Literal* normalizeUninterpreted(bool polarity, TermList lhs, TermList rhs) {
-    auto one  = TermList(theory->representConstant(number::one));
-    auto zero = TermList(theory->representConstant(number::zero));
+    auto one  = TermList(number::oneT());
+    auto zero = TermList(number::zeroT());
     if (polarity) {
-      return Literal::create2(functor(), 
+      return number::less(
               /* polarity */ true, 
               zero,
-              plus(rhs, minus(lhs)));
+              number::add(rhs, number::minus(lhs)));
     } else {
       /* ~(l < r) ==> (r <= l) ==> r - 1 < l ==> 0 < l - r + 1 */
-      return Literal::create2(functor(),
+      return number::less(
               /* polarity */ true, 
               zero,
-              plus(plus(lhs, one), minus(rhs)));
+              number::add(number::add(lhs, one), number::minus(rhs)));
     }
   }
 
@@ -462,7 +477,7 @@ public:
   TypedEvaluator() {}
 
   bool isZero(T arg) const { return number::zero == arg; }
-  TermList getZero() const {return TermList(number::zeroTerm()); }
+  TermList getZero() const {return TermList(number::zeroT()); }
   bool isOne(T arg) const { return number::one == arg; }
   bool isMinusOne(T arg) const { return typename number::ConstantType(-1) == arg; }
   TermList invert(TermList t) const { return number::minus(t); }
