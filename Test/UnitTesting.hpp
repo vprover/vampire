@@ -188,15 +188,20 @@ private:
 #define UT_AUX_NAME_STR_(ID) UT_AUX_NAME_STR__(ID)
 #define UT_AUX_NAME_STR UT_AUX_NAME_STR_(UNIT_ID)
 
-#define UT_AUX_ADDER_NAME__(ID,LINE) _ut_aux_adder_##ID##_##LINE##_
-#define UT_AUX_ADDER_NAME_(ID,LINE) UT_AUX_ADDER_NAME__(ID,LINE)
-#define UT_AUX_ADDER_NAME UT_AUX_ADDER_NAME_(UNIT_ID, __LINE__)
+#define UT_AUX_ADDER_NAME__(ID,LINE,NAME) _ut_aux_adder_##ID##_##LINE##_##NAME##_
+#define UT_AUX_ADDER_NAME_(ID,LINE,NAME) UT_AUX_ADDER_NAME__(ID,LINE,NAME)
+#define UT_AUX_ADDER_NAME(NAME) UT_AUX_ADDER_NAME_(UNIT_ID, __LINE__,NAME)
 
 
 #define UT_CREATE Test::TestUnit UT_AUX_NAME(UT_AUX_NAME_STR)
 
+// #define TEST_FUN_MULTI_PER_LINE(name, id_in_line)   \
+//   void name(); \
+//   Test::TU_Aux_Test_Adder _ut_aux_adder_##ID##_##LINE##_##id_in_line(UT_AUX_NAME,name,#name); \
+//   void name()
+
 #define TEST_FUN(name)  void name(); \
-			Test::TU_Aux_Test_Adder UT_AUX_ADDER_NAME(UT_AUX_NAME,name,#name); \
+			Test::TU_Aux_Test_Adder UT_AUX_ADDER_NAME(name)(UT_AUX_NAME,name,#name); \
 			void name()
 
 }
