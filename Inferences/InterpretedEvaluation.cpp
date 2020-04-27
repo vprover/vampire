@@ -68,7 +68,7 @@ bool InterpretedEvaluation::simplifyLiteral(Literal* lit,
 {
   CALL("InterpretedEvaluation::evaluateLiteral");
 
-  if(lit->arity()==0 || !lit->hasInterpretedConstants()) {
+  if(lit->arity()==0) {
     //we have no interpreted predicates of zero arity
     return false;
   }
@@ -96,6 +96,7 @@ Clause* InterpretedEvaluation::simplify(Clause* cl)
   // that they are simplified as much as possible (since they are potentially written by
   // users unfamiliar with theorem proving, in contrast to our internally added axioms).
   if(cl->isTheoryAxiom()) return cl;
+
 
   static DArray<Literal*> newLits(32);
   unsigned clen=cl->length();
@@ -140,7 +141,9 @@ Clause* InterpretedEvaluation::simplify(Clause* cl)
 
   env.statistics->evaluations++;
 
-  //cout << "evaluated " << cl->toString() << " to " << res->toString() << endl;
+#if VDEBUG
+  cout << "evaluated " << cl->toString() << " to " << res->toString() << endl;
+#endif
 
   return res;
 }
