@@ -110,8 +110,8 @@ struct num_traits;
                                           \
     static Literal* name(bool polarity, IMPL_NUM_TRAITS__TERMLIST_ARGS_ ## arity) {  \
       return Literal::create( \
-                  polarity, \
                   name##F(),  \
+                  polarity, \
                   { IMPL_NUM_TRAITS__TERMLIST_EXPR_ ## arity }); \
     } \
 

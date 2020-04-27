@@ -350,13 +350,23 @@ public:
 
   bool isUnaryMinus() const { return Theory::isUnaryMinus(this->interpret()); }
 
-  IntegerConstantType toIntegerConstant() const {
-    IntegerConstantType out;
-    Term* trm = Term::createConstant(functor);
-    bool res = theory->tryInterpretConstant(trm, out);
-    ASS_(res)
+  bool isZero() const {
+
+#define TRY_CONSTANT(IntegerConstantType) \
+    { \
+    IntegerConstantType out; \
+    Term* trm = Term::createConstant(functor); \
+    bool res = theory->tryInterpretConstant(trm, out); \
+    if (res) return out == IntegerConstantType(0);\
+    }
+
+    TRY_CONSTANT(IntegerConstantType)
+    TRY_CONSTANT(RealConstantType)
+    TRY_CONSTANT(RationalConstantType)
+
+    ASSERTION_VIOLATION
+
     // cout << "%==============================" << out << endl
-    return out;
   }
 
   template <class A, class Config> friend struct gen_comparator;
@@ -500,8 +510,8 @@ public:
     return _fun.isInterpretedConstant() && _args.size() == 0;
   }
 
-  IntegerConstantType toIntegerConstant() const {
-    return _fun.toIntegerConstant();
+  bool isZero() const {
+    return _fun.isZero();
   }
 
   void sortCommut() override;
@@ -754,12 +764,12 @@ public:
       auto current = lits[cur];
       current->var_set(view_vars);
 
-      ASS_REP_((!current->predicate.interpreted()
-        || current->predicate.interpret() != Interpretation::INT_LESS
-        || matchB(current->terms[0],
-          [](const ACTerm& t) { return t.isInterpretedConstant() && t.toIntegerConstant() == IntegerConstantType(0); },
-          [](const AbsVarTerm&) {return true;}
-          )), ( *current ))
+      // ASS_REP_((!current->predicate.interpreted()
+      //   || current->predicate.interpret() != Interpretation::INT_LESS
+      //   || matchB(current->terms[0],
+      //     [](const ACTerm& t) { return t.isInterpretedConstant() && t.toIntegerConstant() == IntegerConstantType(0); },
+      //     [](const AbsVarTerm&) {return true;}
+      //     )), ( *current ))
 
       if (current->isTheoryLiteral()) {
         auto add_to_vars = [&] (const rc<AbsLiteral>& lit, optional<ClauseRest>& out) {
@@ -937,7 +947,7 @@ IMPL_GEN_COMPARATOR(ACTerm, {
   auto r_num = rhs.isNumberConstant();
 
   if (l_num && r_num) 
-    return Config::CmpNumberConsts::compare_number_consts(lhs.toIntegerConstant(), rhs.toIntegerConstant());
+    return Config::CmpNumberConsts::compare_number_consts(lhs, rhs);
   if (l_num && !r_num)
     return CMP_LESS;
   if (!l_num && r_num)
@@ -1062,8 +1072,7 @@ void gen_dump(ostream &out, const ACTerm &trm, rect_map &map) {
     return D::CmpUninterpreted::dumpUninterpreted(out, trm, map);
 
   } else if (trm.isNumberConstant()) {
-    IntegerConstantType i = trm.toIntegerConstant();
-    return D::CmpNumberConsts::dumpNumberConstant(out, i, map);
+    return D::CmpNumberConsts::dumpNumberConstant(out, trm, map);
 
   } else {
     /* normal term */
@@ -1077,26 +1086,26 @@ void gen_dump(ostream &out, const ACTerm &trm, rect_map &map) {
 }
 
 struct CmpNumberConstsNop {
-  static CmpResult compare_number_consts(IntegerConstantType lhs, IntegerConstantType rhs) {
+  static CmpResult compare_number_consts(const ACTerm& lhs, const ACTerm& rhs) {
     return CMP_EQUIV;
   }
-  static void dumpNumberConstant(ostream &out, IntegerConstantType lit, rect_map &) {
+  static void dumpNumberConstant(ostream &out, const ACTerm& lit, rect_map &) {
     out << "c";
   }
 };
 
 
 struct CmpNumberConstsIsZero {
-  static bool isZero(IntegerConstantType x) {
-    static IntegerConstantType ZERO = IntegerConstantType(0); 
-    return x == ZERO;
-  }
-  static CmpResult compare_number_consts(IntegerConstantType lhs, IntegerConstantType rhs) {
+  // static bool isZero(ACTerm x) {
+  //   static IntegerConstantType ZERO = IntegerConstantType(0); 
+  //   return x == ZERO;
+  // }
+  static CmpResult compare_number_consts(const ACTerm& lhs, const ACTerm& rhs) {
     // return CMP_EQUIV;
-    return compare_ground(!isZero(lhs), !isZero(rhs));
+    return compare_ground(!lhs.isZero(), !rhs.isZero());
   }
-  static void dumpNumberConstant(ostream &out, IntegerConstantType lit, rect_map &) {
-    if (isZero(lit)) {
+  static void dumpNumberConstant(ostream &out, const ACTerm& lit, rect_map &) {
+    if (lit.isZero()) {
       out << "0";
     } else {
       out << "c";
