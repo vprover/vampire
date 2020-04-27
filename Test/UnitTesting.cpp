@@ -144,14 +144,17 @@ bool UnitTesting::runUnit(TestUnit* unit, ostream& out)
  */
 bool UnitTesting::spawnTest(TestProc proc)
 {
-  pid_t fres = Multiprocessing::instance()->fork();
+
+  auto mp = Multiprocessing::instance();
+  pid_t fres = mp->fork();
   if(!fres) {
     proc();
     _exit(0); // don't call parent's atexit! 
+  } else {
+    int childRes;
+    Multiprocessing::instance()->waitForParticularChildTermination(fres, childRes);
+    return  childRes == 0;
   }
-  int childRes;
-  Multiprocessing::instance()->waitForParticularChildTermination(fres, childRes);
-  return  childRes == 0;
 }
 
 bool UnitTesting::runAllTests(ostream& out)
