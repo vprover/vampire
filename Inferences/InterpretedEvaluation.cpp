@@ -144,7 +144,9 @@ Clause* InterpretedEvaluation::simplify(Clause* cl)
   res->setAge(cl->age());
   env.statistics->evaluations++;
 
+#if VDEBUG
   cout << "evaluated " << cl->toString() << " to " << res->toString() << endl;
+#endif
 
   return res;
 }
