@@ -92,6 +92,8 @@ struct Choice::AxiomsIterator
     _headSort = Term::arrowSort(*term.term()->nthArgument(0),*term.term()->nthArgument(1));
     _resultSort = ApplicativeHelper::getResultApplieadToNArgs(_headSort, 1);
 
+    //cout << "the result sort is " + _resultSort.toString() << endl;
+
     DHSet<unsigned>* ops = env.signature->getChoiceOperators();
     DHSet<unsigned>::Iterator opsIt(*ops);
     _choiceOps.loadFromIterator(opsIt);
@@ -109,14 +111,24 @@ struct Choice::AxiomsIterator
       unsigned op = _choiceOps.getOneKey();
       _choiceOps.remove(op);
       OperatorType* type = env.signature->getFunction(op)->fnType();
-      if(type->typeArgsArity()){
-        _nextChoiceOperator = TermList(Term::create1(op, _resultSort));
+      
+      static RobSubstitution subst;
+      static TermStack typeArgs;
+      typeArgs.reset();
+      subst.reset();
+
+      for(int i = type->typeArgsArity() -1; i >= 0; i--){
+        TermList typeArg = TermList((unsigned)i, false);
+        typeArgs.push(typeArg);
+      }
+      Term* choiceOp = Term::create(op, typeArgs.size(), typeArgs.begin());
+      TermList choiceOpSort = SortHelper::getResultSort(choiceOp);
+      if(subst.unify(choiceOpSort, 0, _headSort, 1)){
+        _nextChoiceOperator = TermList(choiceOp);
+        _opApplied = subst.apply(_nextChoiceOperator, 0);
+        _setApplied = subst.apply(_set, 1);
         _inBetweenNextandHasNext = true;
         return true;
-      } else if(type->result() == _headSort) {
-        _nextChoiceOperator = TermList(Term::createConstant(op));
-        _inBetweenNextandHasNext = true;
-        return true;        
       }
     }
      
@@ -126,14 +138,16 @@ struct Choice::AxiomsIterator
   OWN_ELEMENT_TYPE next()
   {
     CALL("Choice::AxiomsIterator::next()");
-
     _inBetweenNextandHasNext = false;
-    Clause* c = createChoiceAxiom(_nextChoiceOperator, _set); 
+    Clause* c = createChoiceAxiom(_opApplied, _setApplied); 
     env.statistics->choiceInstances++;
     return c;
   }
+
 private:
   DHSet<unsigned> _choiceOps;
+  TermList _opApplied;
+  TermList _setApplied;
   TermList _nextChoiceOperator;
   TermList _resultSort;
   TermList _headSort;

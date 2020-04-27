@@ -280,7 +280,6 @@ bool FunctionDefinition::removeAllDefinitions(UnitList*& units)
   UnitList::DelIterator scanIterator(units);
   while(scanIterator.hasNext()) {
     Clause* cl=static_cast<Clause*>(scanIterator.next());
-    //cout << "the clause is " + cl->toString() << endl;
     ASS(cl->isClause());
     Def* d=isFunctionDefinition(cl);
     if(d) {
@@ -304,7 +303,7 @@ bool FunctionDefinition::removeAllDefinitions(UnitList*& units)
         }
       } else if(d->twoConstDef){
          reverse(d);
-         if(_defs.insert(d->fun, d)) {
+         if(!d->lhsIsBool() && _defs.insert(d->fun, d)) {
            inserted = true;
            scanIterator.del();
          }    

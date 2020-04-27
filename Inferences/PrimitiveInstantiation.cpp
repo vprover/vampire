@@ -113,10 +113,6 @@ struct PrimitiveInstantiation::ResultFn
     }
 
     res->setAge(_cl->age()+1);
-    if(_cl->number() == 58){
-      cout << "into prim " + _cl->toString() << endl;
-      cout << "out of prim " + res->toString() << endl;
-    }
     env.statistics->primitiveInstantiations++;  
     return res;
   }
@@ -151,11 +147,6 @@ private:
 ClauseIterator PrimitiveInstantiation::generateClauses(Clause* premise)
 {
   CALL("PrimitiveInstantiation::generateClauses");
-
-  if(premise->number() == 58){
-    cout << "PrimitiveInstantiation with " << premise->toString() << endl;
-  }
-
   
   //is this correct?
   auto it1 = premise->getSelectedLiteralIterator();

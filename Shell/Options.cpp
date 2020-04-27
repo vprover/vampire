@@ -1238,6 +1238,14 @@ void Options::Options::init()
     "t1 : $o = t2 : $o is changed to t1 <=> t2";    
     _lookup.insert(&_equalityToEquivalence);
     _equalityToEquivalence.tag(OptionTag::OTHER);
+
+    _complexBooleanReasoning = BoolOptionValue("complex_bool_reasoning","cbe",true);
+    _complexBooleanReasoning.description=
+    "Switches on primitive instantiation and elimination of leibniz equality";
+    _complexBooleanReasoning.reliesOn(_addCombAxioms.is(equal(false)));    
+    _lookup.insert(&_complexBooleanReasoning);
+    _complexBooleanReasoning.tag(OptionTag::INFERENCES);
+
 //*********************** InstGen  ***********************
 
     _globalSubsumption = BoolOptionValue("global_subsumption","gs",false);

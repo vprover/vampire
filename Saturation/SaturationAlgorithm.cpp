@@ -1396,12 +1396,13 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     gie->addFront(new ArgCong());
     gie->addFront(new NegativeExt());//TODO add option
     gie->addFront(new Narrow());
-    if(prb.hasBoolVar()){
-      gie->addFront(new PrimitiveInstantiation()); //TODO only add in some cases
-    }
     if(!opt.pragmatic()){
       gie->addFront(new SubVarSup());
     }
+  }
+
+  if(opt.complexBooleanReasoning() && prb.hasBoolVar()){
+    gie->addFront(new PrimitiveInstantiation()); //TODO only add in some cases
     gie->addFront(new ElimLeibniz());
   }
 

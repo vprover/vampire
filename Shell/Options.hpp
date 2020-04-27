@@ -2120,7 +2120,8 @@ public:
   int maxXXNarrows() const { return _maximumXXNarrows.actualValue; }
   FunctionExtensionality functionExtensionality() const { return _functionExtensionality.actualValue; }
   bool equalityToEquivalence () const { return _equalityToEquivalence.actualValue; } 
-  
+  bool complexBooleanReasoning () const { return _complexBooleanReasoning.actualValue; }
+
 private:
     
     /**
@@ -2504,6 +2505,7 @@ private:
   IntOptionValue  _maximumXXNarrows;
   ChoiceOptionValue<FunctionExtensionality> _functionExtensionality;
   BoolOptionValue _equalityToEquivalence;
+  BoolOptionValue _complexBooleanReasoning;
 }; // class Options
 
 // Allow printing of enums
