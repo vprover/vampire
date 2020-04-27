@@ -300,7 +300,8 @@ public:
 
   Term() throw();
   explicit Term(const Term& t) throw();
-  static Term* create(unsigned function, unsigned arity, TermList* args);
+  static Term* create(unsigned function, unsigned arity, const TermList* args);
+  static Term* create(unsigned fn, std::initializer_list<TermList> args);
   static Term* create(Term* t,TermList* args);
   static Term* createNonShared(Term* t,TermList* args);
   static Term* createNonShared(Term* t);
