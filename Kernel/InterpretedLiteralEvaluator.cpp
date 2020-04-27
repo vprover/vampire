@@ -222,7 +222,7 @@ CLASS_NAME(InterpretedLiteralEvaluator::ACFunEvaluator<AbelianGroup>);
 
   virtual bool tryEvaluateFunc(Term* trm, TermList& res) { 
     _DEBUG( "ACFunEvaluator::tryEvaluateFunc " << trm->toString() );
-    ASS_EQ(trm->functor(),_fun);
+    ASS_EQ(trm->functor(), _fun);
     ASS_EQ(trm->arity(),2);
 
     ConstantType acc = AbelianGroup::IDENTITY;
@@ -260,12 +260,58 @@ CLASS_NAME(InterpretedLiteralEvaluator::ACFunEvaluator<AbelianGroup>);
   }
 };
 
-class IntLess { 
-  using number = num_traits<IntegerConstantType>;
+template<class Inequality>
+class InequalityNormalizer {
+
+public:
+  static Literal* normalize(Literal* in) {
+    CALL("IntLess::normalize");
+    ASS(in->functor() == Inequality::functor());
+
+    if (Inequality::isNormalized(in)) {
+      /* nothing to do */
+      return in;
+    } else {
+      return Inequality::normalizedLit(
+          in->polarity(),
+          *in->nthArgument(0), 
+          *in->nthArgument(1));
+    }
+  }
+
+};
+
+template<class ConstantType>
+class FracLess { 
+  template<class Inequality> friend class InequalityNormalizer;
+
+  using number = num_traits<ConstantType>;
+  inline static unsigned functor() { return number::lessF(); }
 
   static Literal* normalizedLit(bool polarity, TermList lhs, TermList rhs) {
-    auto one  = TermList(number::oneT());
-    auto zero = TermList(number::zeroT());
+    static auto zero = TermList(number::zeroT());
+    return number::less(
+              polarity,
+              zero,
+              number::add(rhs, number::minus(lhs)));
+  }
+
+  inline static bool isNormalized(Literal* in) {
+    return number::isZero(*in->nthArgument(0));
+  }
+
+}; 
+
+
+class IntLess { 
+  template<class Inequality> friend class InequalityNormalizer;
+
+  using number = num_traits<IntegerConstantType>;
+  inline static unsigned functor() { return number::lessF(); }
+
+  static Literal* normalizedLit(bool polarity, TermList lhs, TermList rhs) {
+    static auto one  = TermList(number::oneT());
+    static auto zero = TermList(number::zeroT());
     if (polarity) {
       return number::less(
               /* polarity */ true, 
@@ -279,25 +325,11 @@ class IntLess {
               number::add(number::add(lhs, one), number::minus(rhs)));
     }
   }
+
   inline static bool isNormalized(Literal* in) {
     return number::isZero(*in->nthArgument(0)) && in->polarity();
   }
 
-public:
-  static Literal* normalize(Literal* in) {
-    CALL("IntLess::normalize");
-    ASS(theory->interpretPredicate(in->functor()) == Interpretation::INT_LESS);
-
-    if (isNormalized(in)) {
-      /* nothing to do */
-      return in;
-    } else {
-      return normalizedLit(
-          in->polarity(),
-          *in->nthArgument(0), 
-          *in->nthArgument(1));
-    }
-  }
 }; 
 
 
@@ -1558,7 +1590,13 @@ public:
 
       switch (i) {
         case Interpretation::INT_LESS: 
-          return IntLess::normalize(in);
+          return InequalityNormalizer<IntLess>::normalize(in);
+
+        case Interpretation::RAT_LESS: 
+          return InequalityNormalizer<FracLess<RationalConstantType>>::normalize(in);
+
+        case Interpretation::REAL_LESS: 
+          return InequalityNormalizer<FracLess<RealConstantType>>::normalize(in);
 
         default: 
           return in;
