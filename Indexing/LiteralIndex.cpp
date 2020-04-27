@@ -126,7 +126,8 @@ void FwSubsSimplifyingLiteralIndex::handleClause(Clause* c, bool adding)
   for(unsigned i=1;i<clen;i++) {
     Literal* curr=(*c)[i];
     unsigned currVal=curr->weight()-curr->getDistinctVars();
-    if(currVal>bestVal || (currVal==bestVal && curr>best) ) {
+    if(currVal>bestVal || (currVal==bestVal &&
+        curr->getId()<best->getId()) ) { // this part is just an arbitrary tie-break (but we use getId to make it deterministic)
       best=curr;
       bestVal=currVal;
     }
