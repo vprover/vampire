@@ -136,6 +136,12 @@ Literal& _neq(TermWrapper lhs, TermWrapper rhs, unsigned s) {
   return *Literal::createEquality(false, lhs, rhs, s); 
 }
 
+#define INT_FROM_INT(x) x
+#define REAL_FROM_INT(x) real(x)
+#define INT_FROM_FRAC 
+#define REAL_FROM_FRAC auto frac = [](int a, int b) -> TermWrapper { return real(a,b); };
+#define _ECHO(x) x
+#define CAT(x,y) _ECHO(x ## y)
 
 #define TERM_FUNCTIONS(sort)  \
   _Pragma("GCC diagnostic push") \
@@ -148,6 +154,8 @@ Literal& _neq(TermWrapper lhs, TermWrapper rhs, unsigned s) {
     auto uminus = [](TermWrapper lhs) -> TermWrapper { return _uminus(lhs,  Theory::Interpretation::sort ## _UNARY_MINUS); }; \
     auto add = [](TermWrapper lhs, TermWrapper rhs) -> TermWrapper { return _add(lhs,rhs, Theory::Interpretation::sort ## _PLUS); }; \
     auto f = [](TermWrapper args) -> TermWrapper { return _f(args, _TO_SORT_ ## sort); }; \
+    auto i = [](int k) -> TermWrapper { return sort ## _FROM_INT(k); }; \
+    sort ## _FROM_FRAC \
     RELATION(gt, Theory::Interpretation::sort ## _GREATER)\
     RELATION(geq, Theory::Interpretation::sort ## _GREATER_EQUAL)\
     RELATION(lt, Theory::Interpretation::sort ## _LESS)\
@@ -282,37 +290,53 @@ void check_eval(Literal& orig, const Literal& expected) {
 
 }
 
-#ifdef TEST_EVAL
-// Interpret x*2=5
-TEST_FUN(rebalance_var_1) { 
-  TERM_FUNCTIONS(REAL)
-  check_eval(
-      eq(mul(real(2), x), real(5)),
-      eq(real(5,2), x)
-    );
-}
+//TODO add rationals
+/** Tests for evalutions that should only be successful for reals/rationals and not for integers. */
+#define FRACTIONAL_TEST(name, formula, expected) \
+  TEST_FUN(name ## _int) { \
+    TERM_FUNCTIONS(INT); \
+    check_no_succ(( formula )); \
+  } \
+  TEST_FUN(name ## _real) { \
+    TERM_FUNCTIONS(REAL); \
+    check_eval(( formula ), ( expected )); \
+  } \
 
-TEST_FUN(rebalance_var_2) { 
-  TERM_FUNCTIONS(INT)
-  check_eval(
-      eq(add(2, x), 4),
-      eq(2, x)
-    );
-}
+//TODO add rationals
+#define ALL_NUMBERS_TEST(name, formula, expected) \
+  TEST_FUN(name ## _int) { \
+    TERM_FUNCTIONS(INT); \
+    check_eval(( formula ), ( expected )); \
+  } \
+  TEST_FUN(name ## _real) { \
+    TERM_FUNCTIONS(REAL); \
+    check_eval(( formula ), ( expected )); \
+  } \
 
+FRACTIONAL_TEST(rebalance_var_1
+    , eq(mul(i(2), x), i(5))
+    , eq(frac(5,2), x)
+    )
+
+ALL_NUMBERS_TEST(rebalance_var_2
+    , eq(add(i(2), x), i(4))
+    , eq(i(2), x)
+    );
+
+  //TODO continue here
 TEST_FUN(partial_eval_add_1) { 
   TERM_FUNCTIONS(INT)
   check_eval(
-      eq(add(2, add(x, add(3, 7))), y),
-      eq(add(x, 12), y)
+      eq(add(i(2), add(x, add(i(3), i(7)))), y),
+      eq(add(i(12), x), y)
     );
 }
 
 TEST_FUN(partial_eval_add_2) { 
   TERM_FUNCTIONS(INT)
   check_eval(
-      eq(add(2, add(add(8, x), add(3, 7))), y),
-      eq(add(x, 20), y)
+      eq(add(i(2), add(add(i(8), x), add(i(3), i(7)))), y),
+      eq(add(i(20), x), y)
     );
 }
 
@@ -320,7 +344,7 @@ TEST_FUN(partial_eval_add_3) {
   TERM_FUNCTIONS(INT)
   check_eval(
       eq(add(2, add(add(uminus(8), x), add(3, 7))), y),
-      eq(add(x, 4), y)
+      eq(add(4, x), y)
     );
 }
 
@@ -328,9 +352,11 @@ TEST_FUN(partial_eval_add_4) {
   TERM_FUNCTIONS(INT)
   check_eval(
       eq(uminus(add(2, add(add(8, x), add(3, 7)))), y),
-      eq(add(uminus(x), -4), y)
+      eq(add(-20, uminus(x)), y)
     );
 }
+
+#if 0 // NOT (YET) SUPPORTED
 
 TEST_FUN(partial_eval_add_mul_1) { 
   TERM_FUNCTIONS(INT)
@@ -349,19 +375,73 @@ TEST_FUN(partial_eval_add_mul_2) {
     );
 }
 
-TEST_FUN(rebalance_var_uninter) { 
+#endif
+
+TEST_FUN(rebalance_var_uninter_1) { 
   TERM_FUNCTIONS(REAL)
   check_eval(
       eq(add(real(2), x), a()),
-      eq(add(a(), real(-2)), x)
+      eq(add(real(-2), a()), x)
     );
-
 }
-#endif
+
+
+TEST_FUN(rebalance_var_uninter_2) { 
+  TERM_FUNCTIONS(INT)
+  check_eval(
+      eq(add(2, x), a()),
+      eq(add(-2, a()), x)
+    );
+}
+
+FRACTIONAL_TEST(rebalance_var_uninter_4
+    , eq(mul(x, i(2)), a())
+    , eq(x, mul(frac(1, 2), a()))
+    )
+
+FRACTIONAL_TEST(rebalance_var_uninter_5
+    , eq(mul(x, i(2)), i(1))
+    , eq(x, frac(1, 2))
+    )
+
+  //TODO 2*x = 4 * y ==> x = 2 * y for ints
+
+TEST_FUN(rebalance_mul_zero_1) {
+  TERM_FUNCTIONS(REAL)
+  check_eval(
+      eq(x, mul(i(0), y))
+    , eq(x, i(0))
+    );
+}
+
+TEST_FUN(rebalance_mul_zero_2) {
+  TERM_FUNCTIONS(REAL)
+  check_eval(
+      eq(a(), mul(i(0), x))
+    , eq(a(), i(0))
+    );
+}
+
+TEST_FUN(rebalance_mul_zero_3) {
+  TERM_FUNCTIONS(REAL)
+  check_eval(
+      eq(i(3), add(mul(i(0), x), i(4)))
+    , false
+    );
+}
+
+
+TEST_FUN(rebalance_multiple_vars) {
+  TERM_FUNCTIONS(REAL)
+  check_eval(
+      eq(add(x, uminus(y)), f(y))
+    , eq(x, add(y, f(y)))
+    );
+}
+
 
 TEST_FUN(literal_to_const_1) {
   TERM_FUNCTIONS(REAL)
-
   // Interpret 2.5*2=5
   check_eval(
       eq(mul(real(5,2), real(2)), real(5)),
@@ -414,10 +494,22 @@ TEST_FUN(literal_to_const_5) {
     );
 }
 
+TEST_FUN(literal_to_const_6) {
+  TERM_FUNCTIONS(INT)
+  check_eval(
+      lt(i(0), i(0)),
+      false
+    );  
+  check_eval(
+      neg(lt(i(0), i(0))),
+      true
+    );
+}
+
 #ifdef TEST_EVAL
 
 
-TEST_FUN(literal_to_const_5) { 
+TEST_FUN(literal_to_const_7) { 
   TERM_FUNCTIONS(REAL)
   // Interpret 13*a > 13*a
   check_eval(
@@ -426,7 +518,7 @@ TEST_FUN(literal_to_const_5) {
     );
 }
 
-TEST_FUN(literal_to_const_6) {
+TEST_FUN(literal_to_const_8) {
   TERM_FUNCTIONS(REAL)
 
   // Interpret 3*a > 13*a
@@ -436,7 +528,7 @@ TEST_FUN(literal_to_const_6) {
     );
 }
 
-TEST_FUN(literal_to_const_7) {
+TEST_FUN(literal_to_const_9) {
   TERM_FUNCTIONS(REAL)
 
   // Interpret 18*a > 13*a
