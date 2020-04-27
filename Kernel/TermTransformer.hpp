@@ -54,6 +54,7 @@ protected:
 
 /**
  * TODO: WTF the name?
+ *   --> rename to SumbtermEvaluator?
  */
 class TermTransformerTransformTransformed {
 public:
