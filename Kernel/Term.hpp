@@ -767,12 +767,13 @@ public:
   void setPolarity(bool positive)
   { _args[0]._info.polarity = positive ? 1 : 0; }
   static Literal* create(unsigned predicate, unsigned arity, bool polarity,
-	  bool commutative, TermList* args);
+	  bool commutative, const TermList* args);
   static Literal* create(Literal* l,bool polarity);
   static Literal* create(Literal* l,TermList* args);
   static Literal* createEquality(bool polarity, TermList arg1, TermList arg2, unsigned sort);
   static Literal* create1(unsigned predicate, bool polarity, TermList arg);
   static Literal* create2(unsigned predicate, bool polarity, TermList arg1, TermList arg2);
+  static Literal* create(unsigned fn, bool polarity, std::initializer_list<TermList> args);
 
   static Literal* flattenOnArgument(const Literal*,int argumentNumber);
 

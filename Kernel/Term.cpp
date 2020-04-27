@@ -996,7 +996,7 @@ Term* Term::create2(unsigned fn, TermList arg1, TermList arg2)
 
 Term* Term::create(unsigned fn, std::initializer_list<TermList> args)
 {
-  CALL("Term::create");
+  CALL("Term::create/initializer_list");
 
   return Term::create(fn, args.size(), args.begin());
 }
@@ -1124,7 +1124,7 @@ bool Literal::headersMatch(Literal* l1, Literal* l2, bool complementary)
 /** Create a new literal, and insert it into the sharing
  *  structure if all arguments are shared.
  */
-Literal* Literal::create(unsigned predicate, unsigned arity, bool polarity, bool commutative, TermList* args)
+Literal* Literal::create(unsigned predicate, unsigned arity, bool polarity, bool commutative, const TermList* args)
 {
   CALL("Literal::create/4");
   ASS_G(predicate, 0); //equality is to be created by createEquality
@@ -1212,6 +1212,7 @@ Literal* Literal::create(Literal* l,TermList* args)
   return m;
 } // Literal::create
 
+
 /**
  * Return a new equality literal, with polarity @b polarity and
  * arguments @b arg1 and @b arg2. These arguments must be of sort @c sort.
@@ -1282,6 +1283,14 @@ Literal* Literal::create2(unsigned predicate, bool polarity, TermList arg1, Term
   TermList args[] = {arg1, arg2};
   return Literal::create(predicate, 2, polarity, false, args);
 }
+
+Literal* Literal::create(unsigned pred, bool polarity, std::initializer_list<TermList> args)
+{
+  CALL("Term::create/initializer_list");
+
+  return Literal::create(pred, args.size(), polarity, false, args.begin());
+}
+
 
 
 /** create a new term and copy from t the relevant part of t's content */
