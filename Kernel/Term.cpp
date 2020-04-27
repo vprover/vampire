@@ -791,7 +791,7 @@ Term* Term::create(Term* t,TermList* args)
 /** Create a new complex term, and insert it into the sharing
  *  structure if all arguments are shared.
  */
-Term* Term::create(unsigned function, unsigned arity, TermList* args)
+Term* Term::create(unsigned function, unsigned arity, const TermList* args)
 {
   CALL("Term::create/3");
   ASS_EQ(env.signature->functionArity(function), arity);
@@ -802,8 +802,8 @@ Term* Term::create(unsigned function, unsigned arity, TermList* args)
   bool share = true;
   TermList* ss = s->args();
 
-  TermList* curArg = args;
-  TermList* argStopper = args+arity;
+  const TermList* curArg = args;
+  const TermList* argStopper = args+arity;
   while (curArg!=argStopper) {
     *ss = *curArg;
     --ss;
@@ -1013,6 +1013,14 @@ Term* Term::create2(unsigned fn, TermList arg1, TermList arg2)
 
   TermList args[] = {arg1, arg2};
   return Term::create(fn, 2, args);
+}
+
+
+Term* Term::create(unsigned fn, std::initializer_list<TermList> args)
+{
+  CALL("Term::create");
+
+  return Term::create(fn, args.size(), args.begin());
 }
 
 /**

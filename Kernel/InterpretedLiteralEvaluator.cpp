@@ -96,17 +96,20 @@ struct num_traits;
   template<> struct num_traits<CamelCase ## ConstantType> { \
     using ConstantType = CamelCase ## ConstantType; \
     static const Sorts::DefaultSorts sort = Sorts::SRT_ ## LONG; \
-    static const Theory::Interpretation uminus = Theory::SHORT ## _UNARY_MINUS; \
-    static const Theory::Interpretation plus = Theory::SHORT ## _PLUS; \
-    static const Theory::Interpretation mul = Theory::SHORT ## _MULTIPLY; \
+    static const Theory::Interpretation minusI = Theory::SHORT ## _UNARY_MINUS; \
+    static const Theory::Interpretation addI = Theory::SHORT ## _PLUS; \
+    static const Theory::Interpretation mulI = Theory::SHORT ## _MULTIPLY; \
+    static TermList minus(TermList t) { return TermList(Term::create(env.signature->getInterpretingSymbol(minusI), { t })); } \
+    static TermList mul(TermList l, TermList r) { return TermList(Term::create(env.signature->getInterpretingSymbol(mulI), {l, r})); } \
+    static TermList add(TermList l, TermList r) { return TermList(Term::create(env.signature->getInterpretingSymbol(addI), {l, r})); } \
     constexpr static ConstantType zero = CamelCase ## ConstantType(0); \
     constexpr static ConstantType one = CamelCase ## ConstantType(1); \
-    static const Term* oneTerm() { \
-      const static Term* trm = theory->representConstant(one);   \
+    static Term* oneTerm() { \
+      static Term* trm = theory->representConstant(one);   \
       return trm; \
     } \
-    static const Term* zeroTerm() { \
-      const static Term* trm = theory->representConstant(zero);   \
+    static Term* zeroTerm() { \
+      static Term* trm = theory->representConstant(zero);   \
       return trm; \
     } \
     static bool isZero(const TermList& l) { \
@@ -231,19 +234,18 @@ class IntLess {
 
   static const TermList minus(TermList t) {
     CALL("InterpretedLiteralEvaluator::InequalityNormalizer::minus");
-    return TermList(Term::create1(env.signature->getInterpretingSymbol(number::uminus), t));
+    return TermList(Term::create1(env.signature->getInterpretingSymbol(number::minusI), t));
   }
 
   static const TermList plus(TermList lhs, TermList rhs) {
     CALL("InterpretedLiteralEvaluator::InequalityNormalizer::plus");
-    return TermList(Term::create2(env.signature->getInterpretingSymbol(number::plus), lhs, rhs));
+    return TermList(Term::create2(env.signature->getInterpretingSymbol(number::addI), lhs, rhs));
   }
 
   static unsigned functor() {
     const static unsigned functor = env.signature->getInterpretingSymbol(Theory::INT_LESS);
     return functor;
   }
-
 
   // TODO $less(0,$sum(X0,1))
   static Literal* normalizeUninterpreted(bool polarity, TermList lhs, TermList rhs) {
@@ -275,7 +277,10 @@ public:
       return in;
     } else {
       auto rhs = *in->nthArgument(1);
-      return normalizeUninterpreted(polarity, lhs, rhs);
+      DEBUG("\t\tin " << *in);
+      Literal* out = normalizeUninterpreted(polarity, lhs, rhs);
+      DEBUG("\t\tin " << *in);
+      return out;
     }
   }
 }; 
@@ -452,20 +457,18 @@ class InterpretedLiteralEvaluator::TypedEvaluator : public Evaluator
 {
 public:
   using Value = T;
+  using number = num_traits<Value>;
 
   TypedEvaluator() {}
 
-  // TODO unvirtualize methods
-  virtual bool isZero(T arg) = 0;
-  virtual TermList getZero() = 0;
-  virtual bool isOne(T arg) = 0;
-  virtual bool isMinusOne(T arg) = 0;
-
-  virtual TermList invert(TermList t) = 0;
-
-  virtual bool isAddition(Interpretation interp) = 0;
-  virtual bool isProduct(Interpretation interp) = 0;
-  virtual bool isDivision(Interpretation interp) = 0;
+  bool isZero(T arg) const { return number::zero == arg; }
+  TermList getZero() const {return TermList(number::zeroTerm()); }
+  bool isOne(T arg) const { return number::one == arg; }
+  bool isMinusOne(T arg) const { return typename number::ConstantType(-1) == arg; }
+  TermList invert(TermList t) const { return number::minus(t); }
+  bool isAddition(Interpretation interp) const { return interp == number::addI; }
+  bool isProduct(Interpretation interp) const  { return interp == number::mulI; }
+  virtual bool isDivision(Interpretation interp) const = 0;
 
   virtual bool canEvaluate(Interpretation interp)
   {
@@ -502,7 +505,7 @@ public:
       if (arity==1) {
         if (theory->tryInterpretConstant(arg1Trm, arg1)){
           if (!tryEvaluateUnaryFunc(itp, arg1, resNum)) { return false;}
-        } else if (itp == num.uminus){ 
+        } else if (itp == num.minusI){ 
           const unsigned umin = trm->functor();
           return trySimplifyUnaryMinus(umin, arg1Trm, res);
         } else{ 
@@ -647,8 +650,7 @@ protected:
    */
   bool trySimplifyUnaryMinus(const unsigned& uminus_functor, const TermList& inner, TermList& result)
   { 
-    const auto num = num_traits<Value>{};
-    ASS_EQ(uminus_functor, env.signature->getInterpretingSymbol(num.uminus));
+    ASS_EQ(uminus_functor, env.signature->getInterpretingSymbol(number::minusI));
     if (inner.isTerm()) {
       /* complex term */
       auto& t = *inner.term();
@@ -656,19 +658,22 @@ protected:
 
         /* interpreted function */
         auto itp = theory->interpretFunction(t.functor());
-        if (itp == num.uminus) {
-          ASS_EQ(t.arity(), 1);
-          result = t[0];
-          return true;
-        } else if (itp == num.plus) {
-          ASS_EQ(t.arity(), 2);
-          result = TermList(Term::create2(t.functor(), 
-              simplifyUnaryMinus(uminus_functor, t[0]),
-              simplifyUnaryMinus(uminus_functor, t[1])));
-          return true; 
-        } else {
-          /* interpreted function for which minus is not handled minus is not handled */
-          return false;
+        switch (itp) {
+          case number::minusI:
+            ASS_EQ(t.arity(), 1);
+            result = t[0];
+            return true;
+
+          case number::addI:
+            ASS_EQ(t.arity(), 2);
+            result = TermList(Term::create2(t.functor(), 
+                simplifyUnaryMinus(uminus_functor, t[0]),
+                simplifyUnaryMinus(uminus_functor, t[1])));
+            return true; 
+
+          default:
+            /* interpreted function for which minus is not handled minus is not handled */
+            return false;
         }
 
       } else {
@@ -716,19 +721,7 @@ class InterpretedLiteralEvaluator::IntEvaluator : public TypedEvaluator<IntegerC
 {
 protected:
 
-  virtual bool isZero(IntegerConstantType arg){ return arg.toInner()==0;}
-  virtual TermList getZero(){ return TermList(theory->representConstant(IntegerConstantType(0))); }
-  virtual bool isOne(IntegerConstantType arg){ return arg.toInner()==1;}
-  virtual bool isMinusOne(IntegerConstantType arg){ return arg.toInner()==-1;}
-
-  virtual TermList invert(TermList t){ 
-    unsigned um = env.signature->getInterpretingSymbol(Theory::INT_UNARY_MINUS);
-    return TermList(Term::create1(um,t)); 
-  }
-
-  virtual bool isAddition(Interpretation interp){ return interp==Theory::INT_PLUS; }
-  virtual bool isProduct(Interpretation interp){ return interp==Theory::INT_MULTIPLY;}
-  virtual bool isDivision(Interpretation interp){ 
+  virtual bool isDivision(Interpretation interp) const { 
     return interp==Theory::INT_QUOTIENT_E || interp==Theory::INT_QUOTIENT_T || 
            interp==Theory::INT_QUOTIENT_F; 
   }
@@ -835,19 +828,7 @@ protected:
 class InterpretedLiteralEvaluator::RatEvaluator : public TypedEvaluator<RationalConstantType>
 {
 protected:
-  virtual bool isZero(RationalConstantType arg){ return arg.isZero();}
-  virtual TermList getZero(){ return TermList(theory->representConstant(RationalConstantType(0,1))); }
-  virtual bool isOne(RationalConstantType arg) { return arg.numerator()==arg.denominator();}
-  virtual bool isMinusOne(RationalConstantType arg) { return arg.numerator() == -arg.denominator();}
-
-  virtual TermList invert(TermList t){ 
-    unsigned um = env.signature->getInterpretingSymbol(Theory::RAT_UNARY_MINUS);
-    return TermList(Term::create1(um,t));                      
-  }
-
-  virtual bool isAddition(Interpretation interp){ return interp==Theory::RAT_PLUS; }
-  virtual bool isProduct(Interpretation interp){ return interp==Theory::RAT_MULTIPLY;}
-  virtual bool isDivision(Interpretation interp){ 
+  virtual bool isDivision(Interpretation interp) const { 
     return interp==Theory::RAT_QUOTIENT || interp==Theory::RAT_QUOTIENT_E || 
            interp==Theory::RAT_QUOTIENT_T || interp==Theory::RAT_QUOTIENT_F;
   }
@@ -962,19 +943,7 @@ protected:
 class InterpretedLiteralEvaluator::RealEvaluator : public TypedEvaluator<RealConstantType>
 {
 protected:
-  virtual bool isZero(RealConstantType arg){ return arg.isZero();}
-  virtual TermList getZero(){ return TermList(theory->representConstant(RealConstantType(RationalConstantType(0, 1)))); }
-  virtual bool isOne(RealConstantType arg) { return arg.numerator()==arg.denominator();}
-  virtual bool isMinusOne(RealConstantType arg) { return arg.numerator() == -arg.denominator();}
-
-  virtual TermList invert(TermList t){ 
-    unsigned um = env.signature->getInterpretingSymbol(Theory::REAL_UNARY_MINUS);
-    return TermList(Term::create1(um,t));                      
-  }
-
-  virtual bool isAddition(Interpretation interp){ return interp==Theory::REAL_PLUS; }
-  virtual bool isProduct(Interpretation interp){ return interp==Theory::REAL_MULTIPLY;}
-  virtual bool isDivision(Interpretation interp){ 
+  virtual bool isDivision(Interpretation interp) const { 
     return interp==Theory::REAL_QUOTIENT || interp==Theory::REAL_QUOTIENT_E ||
            interp==Theory::REAL_QUOTIENT_T || interp==Theory::REAL_QUOTIENT_F;
   }
@@ -1600,18 +1569,17 @@ bool InterpretedLiteralEvaluator::evaluate(Literal* lit, bool& isConstant, Liter
   DEBUG( "evaluate " << lit->toString() );
 
   // This tries to transform each subterm using tryEvaluateFunc (see transform Subterm below)
-  resLit = TermTransformerTransformTransformed::transform(
-        LiteralNormalizer::normalize(lit)
-      );
 
-  _DEBUG( "transformed " << resLit->toString() );
+  resLit = LiteralNormalizer::normalize(lit);
+  DEBUG( "\t0 ==> " << *resLit );
+
+  resLit = TermTransformerTransformTransformed::transform( resLit);
   DEBUG( "\t1 ==> " << *resLit );
 
   // If it can be balanced we balance it
   // A predicate on constants will not be balancable
 #if 0
   resLit = &Kernel::balance(*resLit);
-  DEBUG( "\t2 ==> " << *resLit );
 #else // not NEW_BALANCE
   if(balancable(resLit)){
       Literal* new_resLit=resLit;
@@ -1623,6 +1591,7 @@ bool InterpretedLiteralEvaluator::evaluate(Literal* lit, bool& isConstant, Liter
       resLit=new_resLit;
   }
 #endif
+  DEBUG( "\t2 ==> " << *resLit );
 
   // // If resLit contains variables the predicate cannot be interpreted
   // VariableIterator vit(lit);
@@ -1657,24 +1626,20 @@ bool InterpretedLiteralEvaluator::evaluate(Literal* lit, bool& isConstant, Liter
       case PredEvalResult::Simplified: 
         // resLit = r.simplified_val;
         resLit = TermTransformerTransformTransformed::transform(r.simplified_val);
-        isConstant = false;
-        return true;
+        break;
 
       case PredEvalResult::Trivial: 
         isConstant = true;
         resConst = r.trivial_val;
+        DEBUG( "\t3 ==> " << resConst );
         return true;
 
     }
   }
-  DEBUG( "\t3 ==> " << *resLit );
-
-  if (resLit!=lit) {
-    isConstant = false;
-    return true;
-  } else {
-    return false;
-  }
+  isConstant = false;
+  auto out = resLit != lit;
+  DEBUG( "\t3 ==> " << *resLit << "(did evaluate: " << out << ")" );
+  return out;
 }
 
 
