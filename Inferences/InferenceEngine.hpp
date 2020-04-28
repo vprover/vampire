@@ -224,7 +224,7 @@ public:
   CLASS_NAME(CompositeISE);
   USE_ALLOCATOR(CompositeISE);
 
-  CompositeISE() : _inners(0) {}
+  CompositeISE() : _inners(0), _innersMany(0) {}
   virtual ~CompositeISE();
   void addFront(ImmediateSimplificationEngine* fse);
   void addFrontMany(ImmediateSimplificationEngine* fse);
