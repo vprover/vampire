@@ -643,7 +643,6 @@ endef
 
 EXEC_DEF_PREREQ = Makefile
 
-
 vampire_dbg vampire_rel vampire_dbg_static vampire_dbg_gcov vampire_rel_static vampire_rel_gcov vampire_z3_dbg vampire_z3_rel vampire_z3_dbg_static vampire_z3_dbg_gcov vampire_z3_rel_static vampire_z3_rel_gcov: $(VAMPIRE_OBJ) $(EXEC_DEF_PREREQ)
 	$(COMPILE_CMD)
 
@@ -676,6 +675,26 @@ libvapi libvapi_dbg: $(LIBVAPI_OBJ) $(EXEC_DEF_PREREQ)
 
 test_libvapi: $(CONF_ID)/test_libvapi.o $(EXEC_DEF_PREREQ)
 	$(CXX) $(CXXFLAGS) $(filter %.o, $^) -o $@ -lvapi -L. -Wl,-R,\$$ORIGIN
+
+compile_commands:
+	mkdir compile_commands
+
+compile_commands/%.o: compile_commands
+	mkdir -p $(dir $@)
+	echo $(CXX) $(CXXFLAGS) -c $*.cpp -D __STDC_LIMIT_MACROS -D __STDC_FORMAT_MACROS -MMD -MF $(CONF_ID)/$*.d > $@
+
+compile_commands.json: $(foreach x, $(VAMPIRE_DEP), compile_commands/$x)
+	echo '[' > $@
+	for f in $(VAMPIRE_DEP);\
+	do\
+	  echo '  {';\
+	  echo '    "directory": "$(PWD)",';\
+	  echo '    "command"  : "'$$(cat compile_commands/$$f)'",';\
+	  echo '    "file"     : "'$$f'"';\
+	  echo '  },';\
+	done | sed '$$d' >> $@
+	echo '  }'>> $@
+	echo ']' >> $@
 
 clausify_src:
 	rm -rf $@
