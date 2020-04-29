@@ -205,6 +205,8 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/Inference.o\
         Kernel/InferenceStore.o\
         Kernel/InterpretedLiteralEvaluator.o\
+	Kernel/num_traits.o\
+        Kernel/Rebalancing.o\
         Kernel/KBO.o\
         Kernel/KBOForEPR.o\
         Kernel/LiteralSelector.o\
@@ -461,6 +463,8 @@ LIB_DEP = Indexing/TermSharing.o\
 	  Kernel/FormulaUnit.o\
 	  Kernel/FormulaVarIterator.o\
 	  Kernel/InterpretedLiteralEvaluator.o\
+	  Kernel/Rebalancing.o\
+	  Kernel/num_traits.o\
 	  Kernel/Inference.o\
 	  Kernel/InferenceStore.o\
 	  Kernel/Problem.o\

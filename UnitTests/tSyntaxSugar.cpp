@@ -24,12 +24,10 @@ TEST_FUN(some_meaningful_testname) {
 }
 
 TEST_FUN(some_other_meaningful_testname) {
-  THEORY_SYNTAX_SUGAR(REAL)
+  THEORY_SYNTAX_SUGAR(RAT)
 
   TermList t = mul(x, frac(7,3));
 
   perform_test(t);
 }
-
-
 

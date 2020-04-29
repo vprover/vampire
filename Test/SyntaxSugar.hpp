@@ -16,6 +16,7 @@
 
 #include "Indexing/TermSharing.hpp"
 #include "Kernel/Signature.hpp"
+#include "Kernel/Sorts.hpp"
 
 #define __CLSR_RELATION(name, inter) \
   auto name = [](TermWrapper lhs, TermWrapper rhs) -> Literal&  {  \

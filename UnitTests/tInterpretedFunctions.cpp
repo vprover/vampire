@@ -111,10 +111,6 @@ void check_no_succ(Literal& orig) {
   auto success = eval.evaluate(src,constant,result,constantTrue, sideConditions);
 
   CHECK_EQ(success, false, "unexpectedly evaluation was successful", orig.toString());
-  // CHECK_EQ(result, NULL, "result was set", orig.toString());
-  // CHECK_EQ(sideConditions.isEmpty(), true, "non-empty side condictions", orig.toString());
-  // CHECK_EQ(constant, true, "result not evaluated to constant", orig.toString());
-  // CHECK_EQ(constantTrue, expected, "result not evaluated to constant", orig.toString());
 }
 
 
@@ -155,51 +151,38 @@ void check_eval(Literal& orig, const Literal& expected) {
   CHECK_EQ(sideConditions.isEmpty(), true, "non-empty side condictions", orig.toString());
   CHECK_NE(result, NULL, "result not set", orig.toString());
   CHECK_EQ(*result, expected, "unexpected evaluation result", orig.toString());
-  // check(Indexing::TermSharing::equals(result, &expected), "unexpected evaluation", 
-  //     orig.toString(), "\t->\t", result->toString(), "\tis not\t", expected.toString());
-
 }
 
 /** Tests for evalutions that should only be successful for reals/rationals and not for integers. */
 #define FRACTIONAL_TEST(name, formula, expected) \
-  TEST_FUN(name ## _int) { \
-    THEORY_SYNTAX_SUGAR(INT); \
-    check_no_succ(( formula )); \
-  } \
-  TEST_FUN(name ## _real) { \
-    THEORY_SYNTAX_SUGAR(REAL); \
-    check_eval(( formula ), ( expected )); \
-  } \
-  TEST_FUN(name ## _rat) { \
-    THEORY_SYNTAX_SUGAR(RAT); \
-    check_eval(( formula ), ( expected )); \
-  } \
+    TEST_FUN(name ## _ ## INT) { \
+      THEORY_SYNTAX_SUGAR(INT); \
+      check_no_succ(( formula )); \
+    }\
+    TEST_FUN(name ## _ ## REAL) { \
+      THEORY_SYNTAX_SUGAR(REAL); \
+      check_eval(( formula ), ( expected )); \
+    }\
+    TEST_FUN(name ## _ ## RAT) { \
+      THEORY_SYNTAX_SUGAR(RAT); \
+      check_eval(( formula ), ( expected )); \
+    } \
 
 #define ALL_NUMBERS_TEST(name, formula, expected) \
-  TEST_FUN(name ## _int) { \
-    THEORY_SYNTAX_SUGAR(INT); \
-    check_eval(( formula ), ( expected )); \
-  } \
-  TEST_FUN(name ## _real) { \
-    THEORY_SYNTAX_SUGAR(REAL); \
-    check_eval(( formula ), ( expected )); \
-  } \
-  TEST_FUN(name ## _rat) { \
-    THEORY_SYNTAX_SUGAR(RAT); \
-    check_eval(( formula ), ( expected )); \
-  } \
+    TEST_FUN(name ## _ ## INT) { \
+      THEORY_SYNTAX_SUGAR(INT); \
+      check_eval(( formula ), ( expected )); \
+    } \
+    TEST_FUN(name ## _ ## REAL) { \
+      THEORY_SYNTAX_SUGAR(REAL); \
+      check_eval(( formula ), ( expected )); \
+    } \
+    TEST_FUN(name ## _ ## RAT) { \
+      THEORY_SYNTAX_SUGAR(RAT); \
+      check_eval(( formula ), ( expected )); \
+    } \
 
-FRACTIONAL_TEST(rebalance_var_1
-    , eq(mul(2, x), 5)
-    , eq(frac(5,2), x)
-    )
-
-ALL_NUMBERS_TEST(rebalance_var_2
-    , eq(add(2, x), 4)
-    , eq(x, 2)
-    );
-
-  //TODO continue here
+//TODO continue here
 TEST_FUN(partial_eval_add_1) { 
   THEORY_SYNTAX_SUGAR(INT)
   check_eval(
@@ -253,68 +236,21 @@ TEST_FUN(partial_eval_add_mul_2) {
 
 #endif
 
-TEST_FUN(rebalance_var_uninter_1) { 
-  THEORY_SYNTAX_SUGAR(REAL)
-  check_eval(
-      eq(add(2, x), a),
-      eq(add(-2, a), x)
-    );
-}
-
-
-TEST_FUN(rebalance_var_uninter_2) { 
-  THEORY_SYNTAX_SUGAR(INT)
-  check_eval(
-      eq(add(2, x), a),
-      eq(add(-2, a), x)
-    );
-}
-
-FRACTIONAL_TEST(rebalance_var_uninter_4
-    , eq(mul(x, 2), a)
-    , eq(x, mul(frac(1, 2), a))
-    )
-
-FRACTIONAL_TEST(rebalance_var_uninter_5
-    , eq(mul(x, 2), 1)
-    , eq(x, frac(1, 2))
-    )
-
-  //TODO 2*x = 4 * y ==> x = 2 * y for ints
-
-TEST_FUN(rebalance_mul_zero_1) {
-  THEORY_SYNTAX_SUGAR(REAL)
-  check_eval(
-      eq(x, mul(0, y))
-    , eq(x, 0)
-    );
-}
-
-TEST_FUN(rebalance_mul_zero_2) {
-  THEORY_SYNTAX_SUGAR(REAL)
-  check_eval(
-      eq(a, mul(0, x))
+ALL_NUMBERS_TEST(simpl_times_zero_0
+    , eq(a, mul(0, y))
     , eq(a, 0)
     );
-}
 
-TEST_FUN(rebalance_mul_zero_3) {
-  THEORY_SYNTAX_SUGAR(REAL)
-  check_eval(
-      eq(3, add(mul(0, x), 4))
+
+ALL_NUMBERS_TEST(simpl_times_zero_1
+    , eq(x, mul(0, y))
+    , eq(x, 0)
+    );
+
+ALL_NUMBERS_TEST(simpl_times_zero_2
+    , eq(3, add(mul(0, x), 4))
     , false
     );
-}
-
-
-TEST_FUN(rebalance_multiple_vars) {
-  THEORY_SYNTAX_SUGAR(REAL)
-  check_eval(
-      eq(add(x, minus(y)), f(y))
-    , eq(x, add(y, f(y)))
-    );
-}
-
 
 TEST_FUN(literal_to_const_1) {
   THEORY_SYNTAX_SUGAR(REAL)
@@ -627,6 +563,10 @@ TEST_FUN(eval_double_minus_2) {
       true);
 };
 
+ALL_NUMBERS_TEST(eval_inverse_1 
+    , eq(1, add(x, minus(x)))
+    , false
+    )
 
 // a = -(-x)
 TEST_FUN(eval_double_minus_3) {
@@ -643,7 +583,7 @@ TEST_FUN(eval_double_minus_4) {
   THEORY_SYNTAX_SUGAR(INT)
   check_eval(
       eq(4, minus(add(minus(x), 4))),
-      eq(8, x) );
+      eq(4, add(-4, x)) );
 };
 
 TEST_FUN(eval_remove_identity_1) {
