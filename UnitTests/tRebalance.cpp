@@ -28,12 +28,19 @@ bool any(Range range, Pred p) {
 
 using expected_t = tuple<TermList, TermList>;
 
+template<class ConstantType>
 void test_rebalance(Literal& lit, initializer_list<expected_t> expected);
+
+#define __TO_CONSTANT_TYPE_INT  IntegerConstantType
+#define __TO_CONSTANT_TYPE_RAT  RationalConstantType
+#define __TO_CONSTANT_TYPE_REAL RealConstantType
+#define ToConstantType(type)  __TO_CONSTANT_TYPE_ ## type
+
 
 #define TEST_REBALANCE(name, type, equality, __list) \
     TEST_FUN(name ## _ ## type) { \
       THEORY_SYNTAX_SUGAR(type) \
-      test_rebalance((equality), __expand ## __list); \
+      test_rebalance<ToConstantType(type)>((equality), __expand ## __list); \
     } \
 
 
@@ -122,10 +129,12 @@ std::ostream& operator<<(std::ostream& out, initializer_list<expected_t> expecte
   }
   return out;
 }
-std::ostream& operator<<(std::ostream& out, const Balance& x) {
+template<class A>
+std::ostream& operator<<(std::ostream& out, const Balance<A>& x) {
   return out << "\t" << x.lhs() << "\t->\t" << x.buildRhs() << "\n";
 }
-std::ostream& operator<<(std::ostream& out, const Balancer& b) {
+template<class A>
+std::ostream& operator<<(std::ostream& out, const Balancer<A>& b) {
   for (auto x : b) {
     out << x;
   }
@@ -133,11 +142,12 @@ std::ostream& operator<<(std::ostream& out, const Balancer& b) {
 }
 
 
+template<class A>
 void test_rebalance(Literal& lit, initializer_list<expected_t> expected) {
   ASS(lit.isEquality());
 
   unsigned cnt = 0;
-  for (auto b : Balancer(lit)) {
+  for (auto b : Balancer<A>(lit)) {
     
     if (!any(expected, [&](const expected_t& ex) -> bool 
           { return get<0>(ex) == b.lhs() && get<1>(ex) == b.buildRhs(); }
@@ -150,7 +160,7 @@ void test_rebalance(Literal& lit, initializer_list<expected_t> expected) {
     cnt++;
   }
   if (cnt != expected.size()) {
-      cout << "unexpected results in balancer: \n" << Balancer(lit) << endl;
+      cout << "unexpected results in balancer: \n" << Balancer<A>(lit) << endl;
       cout << "expected: \n" << expected << endl;
   }
 }
