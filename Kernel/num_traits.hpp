@@ -1,12 +1,64 @@
 #ifndef __NUM_TRAITS_H__
 #define __NUM_TRAITS_H__
+
 #include "Term.hpp"
 #include "Theory.hpp"
 
 namespace Kernel {
 
-//TODO document
-template<class A>
+/** This struct provides a unified interface to the "number" theories. i.e. these 
+ * are the theories of integers, rationals, and reals.
+ *
+ * For each ConstantType in {IntegerConstantType, RationalConstantType, RealConstantType},
+ * there is a specialisation num_traits<ConstantType> which provides functions for building 
+ * terms and literals, accessing the functor/interpretation of some predicate or function. 
+ *
+ * There are associated constants for the related Sorts::DefaultSorts values, constexpr s 
+ * to pattern match on interpretations and special constants (like zero and one), etc.
+ *
+ * =====
+ *
+ * To access the functor of some symbol "sym", there is a function 
+ * static unsigned symF();
+ *
+ * e.g.: num_traits<IntegerConstantType>::lessF()
+ *       num_traits<IntegerConstantType>::addF()
+ *
+ * =====
+ *
+ * To access the interpretation of some symbol "sym", there is a constant 
+ * static Theory::Interpretation symI;
+ *
+ * e.g.: num_traits<IntegerConstantType>::lessI // == Theory::Interpretation INT_LESS;
+ *       num_traits<IntegerConstantType>::addI  // == Theory::Interpretation INT_PLUS;
+ *
+ * =====
+ *
+ * To build a term from some function symbol "sym", there is a function
+ * static TermList static sym(TermList...);
+ *
+ * e.g.: num_traits<IntegerConstantType>::add(lhs, rhs) 
+ *
+ * =====
+ *
+ * To build a literal from some predicate symbol "sym", there is a function
+ * static Literal* static sym(bool polarity, TermList...);
+ *
+ * e.g.: num_traits<IntegerConstantType>::less(true, lhs, rhs) 
+ *
+ * =====
+ *
+ * For a special constant cons there is 
+ * constexpr static ConstantType cons;
+ *
+ * e.g.: num_traits<IntegerConstantType>::zero;
+ *
+ * =====
+ *
+ * For a complete picture build the doxygen documentaion.
+ *
+ */
+template<class ConstantType>
 struct num_traits;
 
 #define IMPL_NUM_TRAITS__TERMLIST_ARGS_1 TermList t
@@ -44,7 +96,6 @@ struct num_traits;
             name##F(),  \
             { IMPL_NUM_TRAITS__TERMLIST_EXPR_ ## arity })); \
     } \
-
 
 #define IMPL_NUM_TRAITS__SPECIAL_CONSTANT(name, value, isName) \
     constexpr static ConstantType name = ConstantType(value); \
