@@ -1,8 +1,10 @@
 #ifndef __NUM_TRAITS_H__
 #define __NUM_TRAITS_H__
 
+#include "Forwards.hpp"
 #include "Term.hpp"
 #include "Theory.hpp"
+#include "Signature.hpp"
 
 namespace Kernel {
 
@@ -121,8 +123,16 @@ struct num_traits;
     IMPL_NUM_TRAITS__SPECIAL_CONSTANT(one , 1, isOne )              \
     IMPL_NUM_TRAITS__SPECIAL_CONSTANT(zero, 0, isZero)              \
   }; \
+
+#define __INSTANTIATE_NUM_TRAITS(CamelCase) \
   constexpr CamelCase ## ConstantType num_traits<CamelCase ## ConstantType>::one;\
   constexpr CamelCase ## ConstantType num_traits<CamelCase ## ConstantType>::zero;\
+
+#define __INSTANTIATE_NUM_TRAITS_ALL \
+  __INSTANTIATE_NUM_TRAITS(Rational) \
+  __INSTANTIATE_NUM_TRAITS(Real    ) \
+  __INSTANTIATE_NUM_TRAITS(Integer ) \
+
 
 IMPL_NUM_TRAITS(Rational, RATIONAL, RAT )
 IMPL_NUM_TRAITS(Real    , REAL    , REAL)
