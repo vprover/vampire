@@ -30,7 +30,7 @@
 #include "TermIterators.hpp"
 #include "Term.hpp"
 #include "Theory.hpp"
-#include <tuple>
+#include "num_traits.hpp"
 
 
 #include "InterpretedLiteralEvaluator.hpp"
@@ -87,76 +87,6 @@ public:
   virtual bool tryEvaluateFunc(Term* trm, TermList& res) { return false; }
   virtual PredEvalResult tryEvaluatePred(Literal* trm)  { return PredEvalResult::nop(); }
 };
-
-//TODO refactor to own file
-template<class ConstantType>
-struct num_traits;
-#define IMPL_NUM_TRAITS__TERMLIST_ARGS_1 TermList t
-#define IMPL_NUM_TRAITS__TERMLIST_EXPR_1          t
-#define IMPL_NUM_TRAITS__TERMLIST_ARGS_2 TermList l, TermList r
-#define IMPL_NUM_TRAITS__TERMLIST_EXPR_2          l,          r
-
-#define IMPL_NUM_TRAITS__INTERPRETED_SYMBOL(name, SORT_SHORT, _INTERPRETATION) \
-    static const Theory::Interpretation name ## I = Theory::SORT_SHORT ## _INTERPRETATION; \
-      \
-    static unsigned name ## F() { \
-      static const unsigned functor = env.signature->getInterpretingSymbol(name ## I);\
-      return functor; \
-    }\
-
-
-#define IMPL_NUM_TRAITS__INTERPRETED_PRED(name, SORT_SHORT, _INTERPRETATION, arity) \
-    IMPL_NUM_TRAITS__INTERPRETED_SYMBOL(name, SORT_SHORT, _INTERPRETATION) \
-                                          \
-    static Literal* name(bool polarity, IMPL_NUM_TRAITS__TERMLIST_ARGS_ ## arity) {  \
-      return Literal::create( \
-                  name##F(),  \
-                  polarity, \
-                  { IMPL_NUM_TRAITS__TERMLIST_EXPR_ ## arity }); \
-    } \
-
-
-#define IMPL_NUM_TRAITS__INTERPRETED_FUN(name, SORT_SHORT, _INTERPRETATION, arity) \
-    IMPL_NUM_TRAITS__INTERPRETED_SYMBOL(name, SORT_SHORT, _INTERPRETATION) \
-                                          \
-    static TermList name(IMPL_NUM_TRAITS__TERMLIST_ARGS_ ## arity) {  \
-      return TermList( \
-          Term::create( \
-            name##F(),  \
-            { IMPL_NUM_TRAITS__TERMLIST_EXPR_ ## arity })); \
-    } \
-
-#define IMPL_NUM_TRAITS__SPECIAL_CONSTANT(name, value, isName) \
-    constexpr static ConstantType name = ConstantType(value); \
-    static Term* name ## T() { \
-      static Term* trm = theory->representConstant(name);   \
-      return trm; \
-    } \
-    static bool isName(const TermList& l) { \
-      return l.tag() == REF && name ## T() == l.term(); \
-    } \
-
-#define IMPL_NUM_TRAITS(CamelCase, LONG, SHORT)  \
-  template<> struct num_traits<CamelCase ## ConstantType> { \
-    using ConstantType = CamelCase ## ConstantType;                 \
-    static const Sorts::DefaultSorts sort = Sorts::SRT_ ## LONG;    \
-                                                                    \
-    IMPL_NUM_TRAITS__INTERPRETED_PRED(less, SHORT, _LESS, 2) \
-                                      \
-    IMPL_NUM_TRAITS__INTERPRETED_FUN(minus, SHORT, _UNARY_MINUS, 1) \
-    IMPL_NUM_TRAITS__INTERPRETED_FUN(add  , SHORT, _PLUS       , 2) \
-    IMPL_NUM_TRAITS__INTERPRETED_FUN(mul  , SHORT, _MULTIPLY   , 2) \
-                                                                    \
-    IMPL_NUM_TRAITS__SPECIAL_CONSTANT(one , 1, isOne )              \
-    IMPL_NUM_TRAITS__SPECIAL_CONSTANT(zero, 0, isZero)              \
-  }; \
-  constexpr CamelCase ## ConstantType num_traits<CamelCase ## ConstantType>::one;\
-  constexpr CamelCase ## ConstantType num_traits<CamelCase ## ConstantType>::zero;\
-
-IMPL_NUM_TRAITS(Rational, RATIONAL, RAT )
-IMPL_NUM_TRAITS(Real    , REAL    , REAL)
-IMPL_NUM_TRAITS(Integer , INTEGER , INT )
-
 
   /* Traverses the given term. Only the subtree parts where pred is true are traversed.
    * For every traversed term where pred is *not* true, action is applied.
@@ -1492,85 +1422,38 @@ bool InterpretedLiteralEvaluator::balanceDivide(Interpretation multiply,
     return false;    
 }
 
-using InversionPath = Stack<unsigned>;
-
-// TODO document me
-template<class ConstantType> 
-Stack<tuple<unsigned, InversionPath>> rebalancingPossibilities(const Literal& lit) 
-{
-  // Stack<tuple<unsigned, InversionPath>> out;
-
-  // Stack<tuple<TermList, TermList, TermList>> out;
-  // Stack<TermList> traverser;
-  // // stackTraverseIf(TermList(lit), 
-  // //     [](const Term& t) { return ConstantType::getSort() == SortHelper::getArgSort(&t, ) })
-  // for (int i = 0; i < lit.arity(); i++) {
-  //   traverser.push(TermList(lit[i]);
-  //   while (!traverser.isEmpty()) {
-  //     auto t = traverser.pop();
-  //     if (t.isTerm()) {
-  //     auto t = t.term();
-  //     for (int j=0; j<t.arity(); j++) {
-  //       if (num_traits<ConstantType>::canInvertTerm(t.term(), i)) {
-  //         todo.push(t[i]);
-  //       }
-  //     }
-  //     }
-  //   }
-  // }
-  //
-  // return out;
-  ASSERTION_VIOLATION
-}
-
-// TODO document me
-template<class ConstantType> 
-bool balance(const Literal& in, Literal*& result) 
-{
-  for (auto t : rebalancingPossibilities<ConstantType>(in)) {
-    // auto target_lhs = get<0>(t);
-    // auto unwrap     = get<1>(t);
-    // auto wrap       = get<2>(t);
-    // DEBUG("trying rebalancing on " << target_lhs);
-
-    //TODO implement
-  }
-  ASSERTION_VIOLATION
-  return false;
-}
-
-// TODO document me
-Literal& balance(Literal& in)
-{
-  /* we only rebalance equalities */
-  if (!in.isEquality()) {
-    return in;
-
-  } else {
-    ASS(in.arity() == 2);
-    unsigned sort;
-    if (!SortHelper::tryGetResultSort(in[0], sort) &&
-        !SortHelper::tryGetResultSort(in[1], sort)) {
-      return in;
-    } else {
-
-      Literal* out;
-      switch (sort) {
-#define _CASE(SRT, ConstantType) \
-        case Sorts::SRT: \
-          if (!balance<ConstantType>(in, out)){ \
-            return in; \
-          } 
-        _CASE(SRT_REAL    ,    RealConstantType)
-        _CASE(SRT_INTEGER , IntegerConstantType)
-        _CASE(SRT_RATIONAL,RationalConstantType)
-#undef _CASE
-        default: return in;
-      }
-      return *out;
-    }
-  }
-}
+// // TODO document me
+// Literal& balance(Literal& in)
+// {
+//   /* we only rebalance equalities */
+//   if (!in.isEquality()) {
+//     return in;
+//
+//   } else {
+//     ASS(in.arity() == 2);
+//     unsigned sort;
+//     if (!SortHelper::tryGetResultSort(in[0], sort) &&
+//         !SortHelper::tryGetResultSort(in[1], sort)) {
+//       return in;
+//     } else {
+//
+//       Literal* out;
+//       switch (sort) {
+// #define _CASE(SRT, ConstantType) \
+//         case Sorts::SRT: \
+//           if (!balance<ConstantType>(in, out)){ \
+//             return in; \
+//           } 
+//         _CASE(SRT_REAL    ,    RealConstantType)
+//         _CASE(SRT_INTEGER , IntegerConstantType)
+//         _CASE(SRT_RATIONAL,RationalConstantType)
+// #undef _CASE
+//         default: return in;
+//       }
+//       return *out;
+//     }
+//   }
+// }
 
 class LiteralNormalizer 
 {
