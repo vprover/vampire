@@ -31,6 +31,7 @@
 #include "Kernel/InterpretedLiteralEvaluator.hpp"
 
 #include "Test/UnitTesting.hpp"
+#include "Test/SyntaxSugar.hpp"
 
 #define UNIT_ID interpFunc
 UT_CREATE;
@@ -43,118 +44,6 @@ using namespace Shell;
 #define TEST_FAIL exit(-1);
 #define OUT cout
 // #define TEST_FAIL OUT << "FAIL" << endl;
-
-#define x  TermWrapper(TermList::var(0))
-#define y TermWrapper(TermList::var(1))
-#define RELATION(name, inter) \
-  auto name = [](TermWrapper lhs, TermWrapper rhs) -> Literal&  {  \
-    return *Literal::create2(env.signature->addInterpretedPredicate(inter, #name),  \
-        true, lhs,rhs);  \
-  }; \
- 
- 
-#define INT_FROM_FRAC 
-#define REAL_FROM_FRAC \
-  auto frac = [](int a, int b) -> TermWrapper {   \
-    return TermList(theory->representConstant(RealConstantType(RationalConstantType(a,b)))); \
-  }; 
-#define RAT_FROM_FRAC \
-  auto frac = [](int a, int b) -> TermWrapper {   \
-    return TermList(theory->representConstant(RationalConstantType(a,b))); \
-  }; 
-
-#define _TO_SORT_RAT Sorts::SRT_RATIONAL
-#define _TO_SORT_INT Sorts::SRT_INTEGER
-#define _TO_SORT_REAL Sorts::SRT_REAL
-
-#define _CONSTANT_TYPE_INT  IntegerConstantType
-#define _CONSTANT_TYPE_REAL RealConstantType
-#define _CONSTANT_TYPE_RAT  RationalConstantType
-#define ToConstantType(sort) _CONSTANT_TYPE_ ## sort
- 
-#define ARGS_DECL(Type, arity) ARGS_DECL_ ## arity(Type)
-#define ARGS_DECL_1(Type) Type arg0_ 
-#define ARGS_DECL_2(Type) Type arg0_ , Type arg1_ 
-
-#define ARGS_EXPR(Type, arity) ARGS_EXPR_ ## arity(Type)
-#define ARGS_EXPR_1(Type) arg0_
-#define ARGS_EXPR_2(Type) arg0_, arg1_
-
-#define FUN_CLSR_INTERPRETED(arity, mul, INT, _MULTIPLY) \
-    auto mul = [](ARGS_DECL(TermWrapper, arity)) -> TermWrapper {  \
-      return TermList(Term::create ## arity( \
-            env.signature->addInterpretedFunction(Theory::Interpretation:: INT ## _MULTIPLY, #mul),\
-            ARGS_EXPR(Type, arity))\
-          );\
-    }; \
-
-#define FUN_CLSR_UNINTERPRETED(f, sort) \
-  auto f = [](TermWrapper args) -> TermWrapper  {  \
-    unsigned f = env.signature->addFunction("f",1);  \
-    static bool set = false;  \
-    if (!set) {  \
-      env.signature->getFunction(f)->setType(OperatorType::getFunctionType({ sort }, sort));  \
-      set = true;  \
-    }  \
-    return TermList(Term::create1(f, args));  \
-  };  \
-
-#define UNINTERPRETED_CONSTANT(name, sort) \
-  TermWrapper name = 0;\
-  { \
-    unsigned f = env.signature->addFunction(#name,0);  \
-    static bool set = false;  \
-    if (!set) {  \
-      env.signature->getFunction(f)->setType(OperatorType::getFunctionType({},sort));  \
-      set = true;  \
-    }  \
-    name = TermWrapper(TermList(Term::createConstant(f)));  \
-  }  \
-
-#define TERM_FUNCTIONS(sort)  \
-  _Pragma("GCC diagnostic push") \
-  _Pragma("GCC diagnostic ignored \"-Wunused\"") \
-    \
-    class TermWrapper { \
-      TermList _term; \
-    public: \
-      TermWrapper(int i) : TermWrapper(TermList(theory->representConstant(ToConstantType(sort) (i)))) { }; \
-      TermWrapper(TermList t) : _term(t) {} \
-      operator TermList() {return _term;} \
-     \
-      static TermWrapper var(int i) {   \
-        return TermList::var(i);   \
-      }  \
-     \
-      static TermWrapper real(int i) {  \
-        return TermList(theory->representConstant(RealConstantType(RationalConstantType(i))));  \
-      }  \
-       \
-      static TermWrapper real(int a, int b) {  \
-        return TermList(theory->representConstant(RealConstantType(RationalConstantType(a,b))));  \
-      }  \
-      Literal& operator==(TermWrapper rhs) { \
-        return *Literal::createEquality(true, *this, rhs, _TO_SORT_ ## sort);  \
-      } \
-    }; \
-   \
-    auto eq = [](TermWrapper lhs, TermWrapper rhs) -> Literal&  { return *Literal::createEquality(true, lhs, rhs, _TO_SORT_ ## sort); };  \
-    auto neq = [](TermWrapper lhs, TermWrapper rhs) -> Literal&  { return *Literal::createEquality(false, lhs, rhs, _TO_SORT_ ## sort); };  \
-    auto neg = [](Literal& l) -> Literal&  {  \
-      return *Literal::create(&l, !l.polarity()); \
-    };  \
-    UNINTERPRETED_CONSTANT(a, _TO_SORT_ ## sort) \
-    UNINTERPRETED_CONSTANT(b, _TO_SORT_ ## sort) \
-    FUN_CLSR_INTERPRETED(2, mul, sort, _MULTIPLY) \
-    FUN_CLSR_INTERPRETED(2, add, sort, _PLUS) \
-    FUN_CLSR_INTERPRETED(1, minus, sort, _UNARY_MINUS) \
-    FUN_CLSR_UNINTERPRETED(f, _TO_SORT_ ## sort) \
-    sort ## _FROM_FRAC \
-    RELATION(gt, Theory::Interpretation::sort ## _GREATER)\
-    RELATION(geq, Theory::Interpretation::sort ## _GREATER_EQUAL)\
-    RELATION(lt, Theory::Interpretation::sort ## _LESS)\
-    RELATION(leq, Theory::Interpretation::sort ## _LESS_EQUAL)\
-  _Pragma("GCC diagnostic pop") \
 
 namespace __Dumper {
   template<class... As>
@@ -274,29 +163,29 @@ void check_eval(Literal& orig, const Literal& expected) {
 /** Tests for evalutions that should only be successful for reals/rationals and not for integers. */
 #define FRACTIONAL_TEST(name, formula, expected) \
   TEST_FUN(name ## _int) { \
-    TERM_FUNCTIONS(INT); \
+    THEORY_SYNTAX_SUGAR(INT); \
     check_no_succ(( formula )); \
   } \
   TEST_FUN(name ## _real) { \
-    TERM_FUNCTIONS(REAL); \
+    THEORY_SYNTAX_SUGAR(REAL); \
     check_eval(( formula ), ( expected )); \
   } \
   TEST_FUN(name ## _rat) { \
-    TERM_FUNCTIONS(RAT); \
+    THEORY_SYNTAX_SUGAR(RAT); \
     check_eval(( formula ), ( expected )); \
   } \
 
 #define ALL_NUMBERS_TEST(name, formula, expected) \
   TEST_FUN(name ## _int) { \
-    TERM_FUNCTIONS(INT); \
+    THEORY_SYNTAX_SUGAR(INT); \
     check_eval(( formula ), ( expected )); \
   } \
   TEST_FUN(name ## _real) { \
-    TERM_FUNCTIONS(REAL); \
+    THEORY_SYNTAX_SUGAR(REAL); \
     check_eval(( formula ), ( expected )); \
   } \
   TEST_FUN(name ## _rat) { \
-    TERM_FUNCTIONS(RAT); \
+    THEORY_SYNTAX_SUGAR(RAT); \
     check_eval(( formula ), ( expected )); \
   } \
 
@@ -312,7 +201,7 @@ ALL_NUMBERS_TEST(rebalance_var_2
 
   //TODO continue here
 TEST_FUN(partial_eval_add_1) { 
-  TERM_FUNCTIONS(INT)
+  THEORY_SYNTAX_SUGAR(INT)
   check_eval(
       eq(add(2, add(x, add(3, 7))), y),
       eq(add(12, x), y)
@@ -320,7 +209,7 @@ TEST_FUN(partial_eval_add_1) {
 }
 
 TEST_FUN(partial_eval_add_2) { 
-  TERM_FUNCTIONS(INT)
+  THEORY_SYNTAX_SUGAR(INT)
   check_eval(
       eq(add(2, add(add(8, x), add(3, 7))), y),
       eq(add(20, x), y)
@@ -328,7 +217,7 @@ TEST_FUN(partial_eval_add_2) {
 }
 
 TEST_FUN(partial_eval_add_3) { 
-  TERM_FUNCTIONS(INT)
+  THEORY_SYNTAX_SUGAR(INT)
   check_eval(
       eq(add(2, add(add(minus(8), x), add(3, 7))), y),
       eq(add(4, x), y)
@@ -336,7 +225,7 @@ TEST_FUN(partial_eval_add_3) {
 }
 
 TEST_FUN(partial_eval_add_4) { 
-  TERM_FUNCTIONS(INT)
+  THEORY_SYNTAX_SUGAR(INT)
   check_eval(
       eq(minus(add(2, add(add(8, x), add(3, 7)))), y),
       eq(add(-20, minus(x)), y)
@@ -346,7 +235,7 @@ TEST_FUN(partial_eval_add_4) {
 #if 0 // NOT (YET) SUPPORTED
 
 TEST_FUN(partial_eval_add_mul_1) { 
-  TERM_FUNCTIONS(INT)
+  THEORY_SYNTAX_SUGAR(INT)
     /* -21 + 7 * (3 + x) = y */
   check_eval(
       eq(x, add(-21, mul(7, add(3,y)))),
@@ -355,7 +244,7 @@ TEST_FUN(partial_eval_add_mul_1) {
 }
 
 TEST_FUN(partial_eval_add_mul_2) { 
-  TERM_FUNCTIONS(INT)
+  THEORY_SYNTAX_SUGAR(INT)
   check_eval(
       eq(mul(7,x), add(-21, mul(7, add(3,x)))),
       true
@@ -365,7 +254,7 @@ TEST_FUN(partial_eval_add_mul_2) {
 #endif
 
 TEST_FUN(rebalance_var_uninter_1) { 
-  TERM_FUNCTIONS(REAL)
+  THEORY_SYNTAX_SUGAR(REAL)
   check_eval(
       eq(add(2, x), a),
       eq(add(-2, a), x)
@@ -374,7 +263,7 @@ TEST_FUN(rebalance_var_uninter_1) {
 
 
 TEST_FUN(rebalance_var_uninter_2) { 
-  TERM_FUNCTIONS(INT)
+  THEORY_SYNTAX_SUGAR(INT)
   check_eval(
       eq(add(2, x), a),
       eq(add(-2, a), x)
@@ -394,7 +283,7 @@ FRACTIONAL_TEST(rebalance_var_uninter_5
   //TODO 2*x = 4 * y ==> x = 2 * y for ints
 
 TEST_FUN(rebalance_mul_zero_1) {
-  TERM_FUNCTIONS(REAL)
+  THEORY_SYNTAX_SUGAR(REAL)
   check_eval(
       eq(x, mul(0, y))
     , eq(x, 0)
@@ -402,7 +291,7 @@ TEST_FUN(rebalance_mul_zero_1) {
 }
 
 TEST_FUN(rebalance_mul_zero_2) {
-  TERM_FUNCTIONS(REAL)
+  THEORY_SYNTAX_SUGAR(REAL)
   check_eval(
       eq(a, mul(0, x))
     , eq(a, 0)
@@ -410,7 +299,7 @@ TEST_FUN(rebalance_mul_zero_2) {
 }
 
 TEST_FUN(rebalance_mul_zero_3) {
-  TERM_FUNCTIONS(REAL)
+  THEORY_SYNTAX_SUGAR(REAL)
   check_eval(
       eq(3, add(mul(0, x), 4))
     , false
@@ -419,7 +308,7 @@ TEST_FUN(rebalance_mul_zero_3) {
 
 
 TEST_FUN(rebalance_multiple_vars) {
-  TERM_FUNCTIONS(REAL)
+  THEORY_SYNTAX_SUGAR(REAL)
   check_eval(
       eq(add(x, minus(y)), f(y))
     , eq(x, add(y, f(y)))
@@ -428,7 +317,7 @@ TEST_FUN(rebalance_multiple_vars) {
 
 
 TEST_FUN(literal_to_const_1) {
-  TERM_FUNCTIONS(REAL)
+  THEORY_SYNTAX_SUGAR(REAL)
   // Interpret 2.5*2=5
   check_eval(
       eq(mul(frac(5,2), 2), 5),
@@ -437,7 +326,7 @@ TEST_FUN(literal_to_const_1) {
 }
 
 TEST_FUN(literal_to_const_2) {
-  TERM_FUNCTIONS(REAL)
+  THEORY_SYNTAX_SUGAR(REAL)
   check_eval(
       eq(mul(frac(5,2), 2), 6),
       false 
@@ -445,7 +334,7 @@ TEST_FUN(literal_to_const_2) {
 }
 
 TEST_FUN(literal_to_const_3) {
-  TERM_FUNCTIONS(INT)
+  THEORY_SYNTAX_SUGAR(INT)
 
   // Interpret 3*2 < 5
   check_eval(
@@ -462,7 +351,7 @@ TEST_FUN(literal_to_const_3) {
 }
 
 TEST_FUN(literal_to_const_4) {
-  TERM_FUNCTIONS(REAL)
+  THEORY_SYNTAX_SUGAR(REAL)
 
   // Interpret 3*2 > 5
   check_eval(
@@ -473,7 +362,7 @@ TEST_FUN(literal_to_const_4) {
 }
 
 TEST_FUN(literal_to_const_5) {
-  TERM_FUNCTIONS(REAL)
+  THEORY_SYNTAX_SUGAR(REAL)
   // Interpret 3*2 > 13
   check_eval(
       gt(mul(3,2),13),
@@ -482,7 +371,7 @@ TEST_FUN(literal_to_const_5) {
 }
 
 TEST_FUN(literal_to_const_6) {
-  TERM_FUNCTIONS(INT)
+  THEORY_SYNTAX_SUGAR(INT)
   check_eval(
       lt(0, 0),
       false
@@ -497,7 +386,7 @@ TEST_FUN(literal_to_const_6) {
 
 
 TEST_FUN(literal_to_const_7) { 
-  TERM_FUNCTIONS(REAL)
+  THEORY_SYNTAX_SUGAR(REAL)
   // Interpret 13*a > 13*a
   check_eval(
       gt(add(mul(3,a), x),add(mul(3, a), x)),
@@ -506,7 +395,7 @@ TEST_FUN(literal_to_const_7) {
 }
 
 TEST_FUN(literal_to_const_8) {
-  TERM_FUNCTIONS(REAL)
+  THEORY_SYNTAX_SUGAR(REAL)
 
   // Interpret 3*a > 13*a
   check_eval(
@@ -516,7 +405,7 @@ TEST_FUN(literal_to_const_8) {
 }
 
 TEST_FUN(literal_to_const_9) {
-  TERM_FUNCTIONS(REAL)
+  THEORY_SYNTAX_SUGAR(REAL)
 
   // Interpret 18*a > 13*a
   check_eval(
@@ -527,7 +416,7 @@ TEST_FUN(literal_to_const_9) {
 
 // Interpret 5.0 = 2.0 * y(5.0)
 TEST_FUN(rebalance_uninterpreted) {
-  TERM_FUNCTIONS(REAL)
+  THEORY_SYNTAX_SUGAR(REAL)
 
   check_eval(
       eq(5, mul(2,f(5))),
@@ -538,7 +427,7 @@ TEST_FUN(rebalance_uninterpreted) {
 
 // Interpret x = -x
 TEST_FUN(minus_x_eq_x) {
-  TERM_FUNCTIONS(REAL)
+  THEORY_SYNTAX_SUGAR(REAL)
 
   check_eval(
       eq(x, minus(x)),
@@ -547,7 +436,7 @@ TEST_FUN(minus_x_eq_x) {
 }
 
 TEST_FUN(minus_x_neq_x) {
-  TERM_FUNCTIONS(REAL)
+  THEORY_SYNTAX_SUGAR(REAL)
 
   check_eval(
       neq(x, minus(x)),
@@ -558,7 +447,7 @@ TEST_FUN(minus_x_neq_x) {
 
 // Interpret k*x = 0
 TEST_FUN(k_x_eq_0) {
-  TERM_FUNCTIONS(REAL)
+  THEORY_SYNTAX_SUGAR(REAL)
 
   check_eval(
       eq(mul(5,x), 0),
@@ -575,7 +464,7 @@ TEST_FUN(k_x_eq_0) {
 #endif
 
 TEST_FUN(normalize_less_1) {
-  TERM_FUNCTIONS(INT)
+  THEORY_SYNTAX_SUGAR(INT)
   check_eval(
       /* 5 < 2 * x */
       lt(5, mul(2,x)),
@@ -585,7 +474,7 @@ TEST_FUN(normalize_less_1) {
 }
 
 TEST_FUN(normalize_less_2) {
-  TERM_FUNCTIONS(INT)
+  THEORY_SYNTAX_SUGAR(INT)
   check_eval(
       /* 5 < a * x */
       lt(5, mul(a,x)),
@@ -595,7 +484,7 @@ TEST_FUN(normalize_less_2) {
 }
 
 TEST_FUN(normalize_less_3) {
-  TERM_FUNCTIONS(INT)
+  THEORY_SYNTAX_SUGAR(INT)
   check_eval(
       /* b < a * x */
       lt(b, mul(a,x)),
@@ -606,7 +495,7 @@ TEST_FUN(normalize_less_3) {
 }
 
 TEST_FUN(normalize_less_4) {
-  TERM_FUNCTIONS(INT)
+  THEORY_SYNTAX_SUGAR(INT)
   check_eval(
       /* b < a */
       lt(b, a),
@@ -617,7 +506,7 @@ TEST_FUN(normalize_less_4) {
 
 
 TEST_FUN(normalize_less_5) {
-  TERM_FUNCTIONS(INT)
+  THEORY_SYNTAX_SUGAR(INT)
   check_eval(
       /* b < a */
       lt(x,y),
@@ -627,7 +516,7 @@ TEST_FUN(normalize_less_5) {
 }
 
 TEST_FUN(normalize_less_equal_1) {
-  TERM_FUNCTIONS(INT)
+  THEORY_SYNTAX_SUGAR(INT)
   check_eval(
       /* ~(x < 5) */
       neg(lt(x, 5)),
@@ -637,7 +526,7 @@ TEST_FUN(normalize_less_equal_1) {
 }
 
 TEST_FUN(normalize_less_equal_2) {
-  TERM_FUNCTIONS(INT)
+  THEORY_SYNTAX_SUGAR(INT)
     /* 0 <= x + 1*/
   check_eval(
       neg(lt(x, a)),
@@ -651,7 +540,7 @@ TEST_FUN(normalize_less_equal_2) {
 }
 
 TEST_FUN(test_normalize_stable) {
-  TERM_FUNCTIONS(INT)
+  THEORY_SYNTAX_SUGAR(INT)
     /* 0 <= x + 1*/
   // check_eval(
   //     leq(0, add(x, 1)),
@@ -664,7 +553,7 @@ TEST_FUN(test_normalize_stable) {
 
 #ifdef TEST_EVAL
 TEST_FUN(x_eq_kx_1) {
-  TERM_FUNCTIONS(INT)
+  THEORY_SYNTAX_SUGAR(INT)
   check_eval(
       eq(x, mul(x, 3)),
       eq(0, x)
@@ -672,7 +561,7 @@ TEST_FUN(x_eq_kx_1) {
 }
 
 TEST_FUN(x_eq_k_plus_x_1) {
-  TERM_FUNCTIONS(INT)
+  THEORY_SYNTAX_SUGAR(INT)
   check_eval(
       eq(x, add(x, y)),
       eq(y, 0)
@@ -681,7 +570,7 @@ TEST_FUN(x_eq_k_plus_x_1) {
 
 
 TEST_FUN(x_eq_k_plus_x_2) {
-  TERM_FUNCTIONS(INT)
+  THEORY_SYNTAX_SUGAR(INT)
   check_eval(
       eq(x, add(x, 1)),
       false
@@ -689,7 +578,7 @@ TEST_FUN(x_eq_k_plus_x_2) {
 }
 
 TEST_FUN(k_eq_x_plus_x_1) {
-  TERM_FUNCTIONS(INT)
+  THEORY_SYNTAX_SUGAR(INT)
   check_eval(
       eq(mul(2, a), add(x, x)),
       eq(a, x)
@@ -698,7 +587,7 @@ TEST_FUN(k_eq_x_plus_x_1) {
 
 // Interpret -x > x
 TEST_FUN(x_gt_minus_x) {
-  TERM_FUNCTIONS(REAL)
+  THEORY_SYNTAX_SUGAR(REAL)
 
   check_eval(
       gt(x, minus(x)),
@@ -717,7 +606,7 @@ TEST_FUN(x_gt_minus_x) {
 
 // x = -(-x)
 TEST_FUN(eval_double_minus_1) {
-  TERM_FUNCTIONS(INT)
+  THEORY_SYNTAX_SUGAR(INT)
 
   check_eval(
       eq(x, minus(minus(x))),
@@ -727,11 +616,9 @@ TEST_FUN(eval_double_minus_1) {
       false);
 };
 
-
 // x < -(-x)
 TEST_FUN(eval_double_minus_2) {
-  TERM_FUNCTIONS(INT)
-
+  THEORY_SYNTAX_SUGAR(INT)
   check_eval(
       lt(x, minus(minus(x))),
       false);
@@ -743,8 +630,7 @@ TEST_FUN(eval_double_minus_2) {
 
 // a = -(-x)
 TEST_FUN(eval_double_minus_3) {
-  TERM_FUNCTIONS(INT)
-
+  THEORY_SYNTAX_SUGAR(INT)
   check_eval(
       eq(a, minus(minus(x))),
       eq(a, x));
@@ -754,14 +640,14 @@ TEST_FUN(eval_double_minus_3) {
 // 4 = -(-x + 4)
 // ==> 4 = x + (-4)
 TEST_FUN(eval_double_minus_4) {
-  TERM_FUNCTIONS(INT)
+  THEORY_SYNTAX_SUGAR(INT)
   check_eval(
       eq(4, minus(add(minus(x), 4))),
       eq(8, x) );
 };
 
 TEST_FUN(eval_remove_identity_1) {
-  TERM_FUNCTIONS(INT)
+  THEORY_SYNTAX_SUGAR(INT)
   check_eval(
       lt(0, add(0, minus(x))),
       lt(0, minus(x))
@@ -769,7 +655,7 @@ TEST_FUN(eval_remove_identity_1) {
 };
 
 TEST_FUN(eval_remove_identity_2) {
-  TERM_FUNCTIONS(INT)
+  THEORY_SYNTAX_SUGAR(INT)
   check_eval(
       eq(0, f(add(0, minus(mul(x, mul(1, y)))))),
       eq(0, f(minus(mul(x,y))))
