@@ -1512,22 +1512,22 @@ bool InterpretedLiteralEvaluator::evaluate(Literal* lit, bool& isConstant, Liter
   resLit = TermTransformerTransformTransformed::transform( resLit);
   DEBUG( "\t1 ==> " << *resLit );
 
-  // If it can be balanced we balance it
-  // A predicate on constants will not be balancable
-#if 0
-  resLit = &Kernel::balance(*resLit);
-#else // not NEW_BALANCE
-  if(balancable(resLit)){
-      Literal* new_resLit=resLit;
-#if VDEBUG
-      bool balance_result = 
-#endif
-        balance(resLit,new_resLit,sideConditions);
-      ASS(balance_result || resLit==new_resLit);
-      resLit=new_resLit;
-  }
-#endif
-  DEBUG( "\t2 ==> " << *resLit );
+//   // If it can be balanced we balance it
+//   // A predicate on constants will not be balancable
+// #if 0
+//   resLit = &Kernel::balance(*resLit);
+// #else // not NEW_BALANCE
+//   if(balancable(resLit)){
+//       Literal* new_resLit=resLit;
+// #if VDEBUG
+//       bool balance_result = 
+// #endif
+//         balance(resLit,new_resLit,sideConditions);
+//       ASS(balance_result || resLit==new_resLit);
+//       resLit=new_resLit;
+//   }
+// #endif
+//   DEBUG( "\t2 ==> " << *resLit );
 
   // // If resLit contains variables the predicate cannot be interpreted
   // VariableIterator vit(lit);
