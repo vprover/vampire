@@ -130,7 +130,7 @@ std::ostream& operator<<(std::ostream& out, initializer_list<expected_t> expecte
   return out;
 }
 template<class A>
-std::ostream& operator<<(std::ostream& out, const Balance<A>& x) {
+std::ostream& operator<<(std::ostream& out, const BalanceIter<A>& x) {
   return out << "\t" << x.lhs() << "\t->\t" << x.buildRhs() << "\n";
 }
 template<class A>

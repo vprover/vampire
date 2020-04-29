@@ -10,15 +10,15 @@ namespace Kernel {
     template<class ConstantType> class BalanceIter;
     template<class ConstantType> class Balance;
 
-    template<class ConstantType> 
+    template<class C> 
     class Balancer {
       const Literal& _lit;
     public:
       Balancer(const Literal& l);
-      BalanceIter<ConstantType> begin() const;
-      BalanceIter<ConstantType> end() const;
+      BalanceIter<C> begin() const;
+      BalanceIter<C> end() const;
     };
-    template<class ConstantType> 
+    template<class C> 
     class BalanceIter {
 
       struct Node {
@@ -26,22 +26,18 @@ namespace Kernel {
         const Term& term;
       };
 
-      Stack<Node> path;
+      Stack<Node> _path;
 
-      // const Balancer<ConstantType>& balancer;
-      friend class Balancer<ConstantType>;
-      BalanceIter(const Balancer<ConstantType>&);
+      // const Balancer<C>& balancer;
+      friend class Balancer<C>;
+      BalanceIter(const Balancer<C>&);
 
     public:
       void operator++();
-      Balance<ConstantType> operator*() const;
-      template<class C>
-      friend bool operator!=(const BalanceIter<C>&, const BalanceIter<C>&);
-    };
+      const BalanceIter& operator*() const;
+      template<class D>
+      friend bool operator!=(const BalanceIter<D>&, const BalanceIter<D>&);
 
-    template<class ConstantType> 
-    class Balance {
-    public:
       TermList lhs() const;
       TermList buildRhs() const;
       Literal& build() const;
@@ -67,51 +63,52 @@ namespace Rebalancing {
 #define UNIMPLEMENTED \
   ASSERTION_VIOLATION
 
-template<class Cons> 
-Balancer<Cons>::Balancer(const Literal& l) : _lit(l) { }
+template<class C> 
+Balancer<C>::Balancer(const Literal& l) : _lit(l) { }
 
-template<class Cons> 
-BalanceIter<Cons>::BalanceIter(const Balancer<Cons>& balancer) {
+template<class C> 
+BalanceIter<C>::BalanceIter(const Balancer<C>& balancer) : _path(Stack<Node>()) {
   UNIMPLEMENTED
 }
 
-template<class Cons> 
-BalanceIter<Cons> Balancer<Cons>::begin() const {
-  return BalanceIter<Cons>(*this);
+template<class C> 
+BalanceIter<C> Balancer<C>::begin() const {
+  return BalanceIter<C>(*this);
 }
 
-template<class Cons> 
-BalanceIter<Cons> Balancer<Cons>::end() const {
+template<class C> 
+BalanceIter<C> Balancer<C>::end() const {
   UNIMPLEMENTED
 }
 
-template<class Cons> 
-void BalanceIter<Cons>::operator++() { 
+template<class C> 
+void BalanceIter<C>::operator++() { 
   UNIMPLEMENTED 
 }
 
-template<class Cons> 
-Balance<Cons> BalanceIter<Cons>::operator*() const { 
+template<class C> 
+const BalanceIter<C>& BalanceIter<C>::operator*() const { 
+  ASS(!_path.isEmpty());
+  return *this;
+}
+
+template<class C> 
+bool operator!=(const BalanceIter<C>& lhs, const BalanceIter<C>& rhs) { 
   UNIMPLEMENTED
 }
 
-template<class Cons> 
-bool operator!=(const BalanceIter<Cons>& lhs, const BalanceIter<Cons>& rhs) { 
-  UNIMPLEMENTED
-}
-
-template<class Cons> 
-TermList Balance<Cons>::lhs() const { 
+template<class C> 
+TermList BalanceIter<C>::lhs() const { 
   UNIMPLEMENTED
 }
    
-template<class Cons> 
-TermList Balance<Cons>::buildRhs() const { 
+template<class C> 
+TermList BalanceIter<C>::buildRhs() const { 
   UNIMPLEMENTED
 }
        
-template<class Cons> 
-Literal& Balance<Cons>::build() const { 
+template<class C> 
+Literal& BalanceIter<C>::build() const { 
   UNIMPLEMENTED
 }
 
