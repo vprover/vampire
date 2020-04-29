@@ -44,83 +44,8 @@ using namespace Shell;
 #define OUT cout
 // #define TEST_FAIL OUT << "FAIL" << endl;
 
-#define x  TermList::var(0)
-#define y TermList::var(1)
-
-class TermWrapper {
-  TermList _term;
-public:
-  TermWrapper(int i);
-  TermWrapper(TermList t) : _term(t) {}
-  operator TermList() {return _term;}
-};
-
-TermWrapper _mul(TermWrapper lhs, TermWrapper rhs, Theory::Interpretation inter_mult) { 
-  return TermList( 
-      Term::create2(env.signature->addInterpretedFunction(inter_mult, "mul"),  
-        lhs, 
-        rhs)); 
-} 
- 
-TermWrapper _uminus(TermWrapper lhs, Theory::Interpretation uminus) { 
-  return TermList( 
-      Term::create1(env.signature->addInterpretedFunction(uminus, "minus"),  
-        lhs)); 
-} 
- 
-TermWrapper _add(TermWrapper lhs, TermWrapper rhs, Theory::Interpretation add_inter) { 
-  return TermList( 
-      Term::create2(env.signature->addInterpretedFunction(add_inter, "$sum"),  
-        lhs, 
-        rhs)); 
-} 
-
-#define constant(name) \
-  TermWrapper _constant_ ## name (unsigned sort) {  \
-    unsigned f = env.signature->addFunction(#name,0);  \
-    static bool set = false;  \
-    if (!set) {  \
-      env.signature->getFunction(f)->setType(OperatorType::getFunctionType({},sort));  \
-      set = true;  \
-    }  \
-    return TermList(Term::createConstant(f));  \
-  } 
-
-constant(a)
-constant(b)
- 
-TermWrapper _f(TermWrapper args, unsigned sort) { 
-  unsigned f = env.signature->addFunction("f",1); 
-  static bool set = false; 
-  if (!set) { 
-    env.signature->getFunction(f)->setType(OperatorType::getFunctionType({ sort }, sort)); 
-    set = true; 
-  } 
-  return TermList(Term::create1(f, args)); 
-} 
- 
-TermWrapper num(int i) { 
-  return TermList(theory->representConstant(IntegerConstantType(i))); 
-} 
- 
-TermWrapper var(int i) {  
-  return TermList::var(i);  
-} 
- 
-TermWrapper real(int i) { 
-  return TermList(theory->representConstant(RealConstantType(RationalConstantType(i)))); 
-} 
-
-TermWrapper::TermWrapper(int i) : TermWrapper(num(i)) { }
- 
-TermWrapper real(int a, int b) { 
-  return TermList(theory->representConstant(RealConstantType(RationalConstantType(a,b)))); 
-} 
- 
-Literal& neg(Literal& l) { 
-  return *Literal::create(&l, !l.polarity());
-} 
-
+#define x  TermWrapper(TermList::var(0))
+#define y TermWrapper(TermList::var(1))
 #define RELATION(name, inter) \
   auto name = [](TermWrapper lhs, TermWrapper rhs) -> Literal&  {  \
     return *Literal::create2(env.signature->addInterpretedPredicate(inter, #name),  \
@@ -128,33 +53,102 @@ Literal& neg(Literal& l) {
   }; \
  
  
-Literal& _eq(TermWrapper lhs, TermWrapper rhs, unsigned s) { 
-  return *Literal::createEquality(true, lhs, rhs, s); 
-} 
- 
-Literal& _neq(TermWrapper lhs, TermWrapper rhs, unsigned s) { 
-  return *Literal::createEquality(false, lhs, rhs, s); 
-}
-
-#define INT_FROM_INT(x) x
-#define REAL_FROM_INT(x) real(x)
 #define INT_FROM_FRAC 
-#define REAL_FROM_FRAC auto frac = [](int a, int b) -> TermWrapper { return real(a,b); };
-#define _ECHO(x) x
-#define CAT(x,y) _ECHO(x ## y)
+#define REAL_FROM_FRAC \
+  auto frac = [](int a, int b) -> TermWrapper {   \
+    return TermList(theory->representConstant(RealConstantType(RationalConstantType(a,b)))); \
+  }; 
+#define RAT_FROM_FRAC \
+  auto frac = [](int a, int b) -> TermWrapper {   \
+    return TermList(theory->representConstant(RationalConstantType(a,b))); \
+  }; 
+
+#define _TO_SORT_RAT Sorts::SRT_RATIONAL
+#define _TO_SORT_INT Sorts::SRT_INTEGER
+#define _TO_SORT_REAL Sorts::SRT_REAL
+
+#define _CONSTANT_TYPE_INT  IntegerConstantType
+#define _CONSTANT_TYPE_REAL RealConstantType
+#define _CONSTANT_TYPE_RAT  RationalConstantType
+#define ToConstantType(sort) _CONSTANT_TYPE_ ## sort
+ 
+#define ARGS_DECL(Type, arity) ARGS_DECL_ ## arity(Type)
+#define ARGS_DECL_1(Type) Type arg0_ 
+#define ARGS_DECL_2(Type) Type arg0_ , Type arg1_ 
+
+#define ARGS_EXPR(Type, arity) ARGS_EXPR_ ## arity(Type)
+#define ARGS_EXPR_1(Type) arg0_
+#define ARGS_EXPR_2(Type) arg0_, arg1_
+
+#define FUN_CLSR_INTERPRETED(arity, mul, INT, _MULTIPLY) \
+    auto mul = [](ARGS_DECL(TermWrapper, arity)) -> TermWrapper {  \
+      return TermList(Term::create ## arity( \
+            env.signature->addInterpretedFunction(Theory::Interpretation:: INT ## _MULTIPLY, #mul),\
+            ARGS_EXPR(Type, arity))\
+          );\
+    }; \
+
+#define FUN_CLSR_UNINTERPRETED(f, sort) \
+  auto f = [](TermWrapper args) -> TermWrapper  {  \
+    unsigned f = env.signature->addFunction("f",1);  \
+    static bool set = false;  \
+    if (!set) {  \
+      env.signature->getFunction(f)->setType(OperatorType::getFunctionType({ sort }, sort));  \
+      set = true;  \
+    }  \
+    return TermList(Term::create1(f, args));  \
+  };  \
+
+#define UNINTERPRETED_CONSTANT(name, sort) \
+  TermWrapper name = 0;\
+  { \
+    unsigned f = env.signature->addFunction(#name,0);  \
+    static bool set = false;  \
+    if (!set) {  \
+      env.signature->getFunction(f)->setType(OperatorType::getFunctionType({},sort));  \
+      set = true;  \
+    }  \
+    name = TermWrapper(TermList(Term::createConstant(f)));  \
+  }  \
 
 #define TERM_FUNCTIONS(sort)  \
   _Pragma("GCC diagnostic push") \
   _Pragma("GCC diagnostic ignored \"-Wunused\"") \
-    auto eq = [](TermWrapper lhs, TermWrapper rhs) -> Literal&  { return _eq(lhs,rhs, _TO_SORT_ ## sort); };  \
-    auto neq = [](TermWrapper lhs, TermWrapper rhs) -> Literal& {  return _neq(lhs,rhs,_TO_SORT_ ## sort); };  \
-    auto a = []() -> TermWrapper { return _constant_a(_TO_SORT_ ## sort); }; \
-    auto b = []() -> TermWrapper { return _constant_b(_TO_SORT_ ## sort); }; \
-    auto mul = [](TermWrapper lhs, TermWrapper rhs) -> TermWrapper {  return _mul(lhs,rhs,Theory::Interpretation:: sort ## _MULTIPLY); }; \
-    auto uminus = [](TermWrapper lhs) -> TermWrapper { return _uminus(lhs,  Theory::Interpretation::sort ## _UNARY_MINUS); }; \
-    auto add = [](TermWrapper lhs, TermWrapper rhs) -> TermWrapper { return _add(lhs,rhs, Theory::Interpretation::sort ## _PLUS); }; \
-    auto f = [](TermWrapper args) -> TermWrapper { return _f(args, _TO_SORT_ ## sort); }; \
-    auto i = [](int k) -> TermWrapper { return sort ## _FROM_INT(k); }; \
+    \
+    class TermWrapper { \
+      TermList _term; \
+    public: \
+      TermWrapper(int i) : TermWrapper(TermList(theory->representConstant(ToConstantType(sort) (i)))) { }; \
+      TermWrapper(TermList t) : _term(t) {} \
+      operator TermList() {return _term;} \
+     \
+      static TermWrapper var(int i) {   \
+        return TermList::var(i);   \
+      }  \
+     \
+      static TermWrapper real(int i) {  \
+        return TermList(theory->representConstant(RealConstantType(RationalConstantType(i))));  \
+      }  \
+       \
+      static TermWrapper real(int a, int b) {  \
+        return TermList(theory->representConstant(RealConstantType(RationalConstantType(a,b))));  \
+      }  \
+      Literal& operator==(TermWrapper rhs) { \
+        return *Literal::createEquality(true, *this, rhs, _TO_SORT_ ## sort);  \
+      } \
+    }; \
+   \
+    auto eq = [](TermWrapper lhs, TermWrapper rhs) -> Literal&  { return *Literal::createEquality(true, lhs, rhs, _TO_SORT_ ## sort); };  \
+    auto neq = [](TermWrapper lhs, TermWrapper rhs) -> Literal&  { return *Literal::createEquality(false, lhs, rhs, _TO_SORT_ ## sort); };  \
+    auto neg = [](Literal& l) -> Literal&  {  \
+      return *Literal::create(&l, !l.polarity()); \
+    };  \
+    UNINTERPRETED_CONSTANT(a, _TO_SORT_ ## sort) \
+    UNINTERPRETED_CONSTANT(b, _TO_SORT_ ## sort) \
+    FUN_CLSR_INTERPRETED(2, mul, sort, _MULTIPLY) \
+    FUN_CLSR_INTERPRETED(2, add, sort, _PLUS) \
+    FUN_CLSR_INTERPRETED(1, minus, sort, _UNARY_MINUS) \
+    FUN_CLSR_UNINTERPRETED(f, _TO_SORT_ ## sort) \
     sort ## _FROM_FRAC \
     RELATION(gt, Theory::Interpretation::sort ## _GREATER)\
     RELATION(geq, Theory::Interpretation::sort ## _GREATER_EQUAL)\
@@ -162,9 +156,6 @@ Literal& _neq(TermWrapper lhs, TermWrapper rhs, unsigned s) {
     RELATION(leq, Theory::Interpretation::sort ## _LESS_EQUAL)\
   _Pragma("GCC diagnostic pop") \
 
-#define _TO_SORT_INT Sorts::SRT_INTEGER
-#define _TO_SORT_REAL Sorts::SRT_REAL
- 
 namespace __Dumper {
   template<class... As>
   struct Dumper {
@@ -196,16 +187,6 @@ void check(bool b, const char* msg, As... vs) {
     // OUT << endl;
     // OUT << msg << ": ";
     // dump_all(vs...);
-    // OUT << endl;
-    TEST_FAIL
-  }
-}
-
-template<class A>
-void check_eq(A l, A r, const char* msg, const Literal& input) {
-  if (l != r) {
-    // OUT << endl;
-    // std::OUT << msg << ". input: " << input << "\t is: " << l << "\t expected: " << r;
     // OUT << endl;
     TEST_FAIL
   }
@@ -290,7 +271,6 @@ void check_eval(Literal& orig, const Literal& expected) {
 
 }
 
-//TODO add rationals
 /** Tests for evalutions that should only be successful for reals/rationals and not for integers. */
 #define FRACTIONAL_TEST(name, formula, expected) \
   TEST_FUN(name ## _int) { \
@@ -301,8 +281,11 @@ void check_eval(Literal& orig, const Literal& expected) {
     TERM_FUNCTIONS(REAL); \
     check_eval(( formula ), ( expected )); \
   } \
+  TEST_FUN(name ## _rat) { \
+    TERM_FUNCTIONS(RAT); \
+    check_eval(( formula ), ( expected )); \
+  } \
 
-//TODO add rationals
 #define ALL_NUMBERS_TEST(name, formula, expected) \
   TEST_FUN(name ## _int) { \
     TERM_FUNCTIONS(INT); \
@@ -312,38 +295,42 @@ void check_eval(Literal& orig, const Literal& expected) {
     TERM_FUNCTIONS(REAL); \
     check_eval(( formula ), ( expected )); \
   } \
+  TEST_FUN(name ## _rat) { \
+    TERM_FUNCTIONS(RAT); \
+    check_eval(( formula ), ( expected )); \
+  } \
 
 FRACTIONAL_TEST(rebalance_var_1
-    , eq(mul(i(2), x), i(5))
+    , eq(mul(2, x), 5)
     , eq(frac(5,2), x)
     )
 
 ALL_NUMBERS_TEST(rebalance_var_2
-    , eq(add(i(2), x), i(4))
-    , eq(i(2), x)
+    , eq(add(2, x), 4)
+    , eq(x, 2)
     );
 
   //TODO continue here
 TEST_FUN(partial_eval_add_1) { 
   TERM_FUNCTIONS(INT)
   check_eval(
-      eq(add(i(2), add(x, add(i(3), i(7)))), y),
-      eq(add(i(12), x), y)
+      eq(add(2, add(x, add(3, 7))), y),
+      eq(add(12, x), y)
     );
 }
 
 TEST_FUN(partial_eval_add_2) { 
   TERM_FUNCTIONS(INT)
   check_eval(
-      eq(add(i(2), add(add(i(8), x), add(i(3), i(7)))), y),
-      eq(add(i(20), x), y)
+      eq(add(2, add(add(8, x), add(3, 7))), y),
+      eq(add(20, x), y)
     );
 }
 
 TEST_FUN(partial_eval_add_3) { 
   TERM_FUNCTIONS(INT)
   check_eval(
-      eq(add(2, add(add(uminus(8), x), add(3, 7))), y),
+      eq(add(2, add(add(minus(8), x), add(3, 7))), y),
       eq(add(4, x), y)
     );
 }
@@ -351,8 +338,8 @@ TEST_FUN(partial_eval_add_3) {
 TEST_FUN(partial_eval_add_4) { 
   TERM_FUNCTIONS(INT)
   check_eval(
-      eq(uminus(add(2, add(add(8, x), add(3, 7)))), y),
-      eq(add(-20, uminus(x)), y)
+      eq(minus(add(2, add(add(8, x), add(3, 7)))), y),
+      eq(add(-20, minus(x)), y)
     );
 }
 
@@ -380,8 +367,8 @@ TEST_FUN(partial_eval_add_mul_2) {
 TEST_FUN(rebalance_var_uninter_1) { 
   TERM_FUNCTIONS(REAL)
   check_eval(
-      eq(add(real(2), x), a()),
-      eq(add(real(-2), a()), x)
+      eq(add(2, x), a),
+      eq(add(-2, a), x)
     );
 }
 
@@ -389,18 +376,18 @@ TEST_FUN(rebalance_var_uninter_1) {
 TEST_FUN(rebalance_var_uninter_2) { 
   TERM_FUNCTIONS(INT)
   check_eval(
-      eq(add(2, x), a()),
-      eq(add(-2, a()), x)
+      eq(add(2, x), a),
+      eq(add(-2, a), x)
     );
 }
 
 FRACTIONAL_TEST(rebalance_var_uninter_4
-    , eq(mul(x, i(2)), a())
-    , eq(x, mul(frac(1, 2), a()))
+    , eq(mul(x, 2), a)
+    , eq(x, mul(frac(1, 2), a))
     )
 
 FRACTIONAL_TEST(rebalance_var_uninter_5
-    , eq(mul(x, i(2)), i(1))
+    , eq(mul(x, 2), 1)
     , eq(x, frac(1, 2))
     )
 
@@ -409,23 +396,23 @@ FRACTIONAL_TEST(rebalance_var_uninter_5
 TEST_FUN(rebalance_mul_zero_1) {
   TERM_FUNCTIONS(REAL)
   check_eval(
-      eq(x, mul(i(0), y))
-    , eq(x, i(0))
+      eq(x, mul(0, y))
+    , eq(x, 0)
     );
 }
 
 TEST_FUN(rebalance_mul_zero_2) {
   TERM_FUNCTIONS(REAL)
   check_eval(
-      eq(a(), mul(i(0), x))
-    , eq(a(), i(0))
+      eq(a, mul(0, x))
+    , eq(a, 0)
     );
 }
 
 TEST_FUN(rebalance_mul_zero_3) {
   TERM_FUNCTIONS(REAL)
   check_eval(
-      eq(i(3), add(mul(i(0), x), i(4)))
+      eq(3, add(mul(0, x), 4))
     , false
     );
 }
@@ -434,7 +421,7 @@ TEST_FUN(rebalance_mul_zero_3) {
 TEST_FUN(rebalance_multiple_vars) {
   TERM_FUNCTIONS(REAL)
   check_eval(
-      eq(add(x, uminus(y)), f(y))
+      eq(add(x, minus(y)), f(y))
     , eq(x, add(y, f(y)))
     );
 }
@@ -444,7 +431,7 @@ TEST_FUN(literal_to_const_1) {
   TERM_FUNCTIONS(REAL)
   // Interpret 2.5*2=5
   check_eval(
-      eq(mul(real(5,2), real(2)), real(5)),
+      eq(mul(frac(5,2), 2), 5),
       true 
     );
 }
@@ -452,7 +439,7 @@ TEST_FUN(literal_to_const_1) {
 TEST_FUN(literal_to_const_2) {
   TERM_FUNCTIONS(REAL)
   check_eval(
-      eq(mul(real(5,2), real(2)), real(6)),
+      eq(mul(frac(5,2), 2), 6),
       false 
     );
 }
@@ -479,7 +466,7 @@ TEST_FUN(literal_to_const_4) {
 
   // Interpret 3*2 > 5
   check_eval(
-      gt(mul(real(3),real(2)),real(5)),
+      gt(mul(3,2),5),
       true
     );
 
@@ -489,7 +476,7 @@ TEST_FUN(literal_to_const_5) {
   TERM_FUNCTIONS(REAL)
   // Interpret 3*2 > 13
   check_eval(
-      gt(mul(real(3),real(2)),real(13)),
+      gt(mul(3,2),13),
       false
     );
 }
@@ -497,11 +484,11 @@ TEST_FUN(literal_to_const_5) {
 TEST_FUN(literal_to_const_6) {
   TERM_FUNCTIONS(INT)
   check_eval(
-      lt(i(0), i(0)),
+      lt(0, 0),
       false
     );  
   check_eval(
-      neg(lt(i(0), i(0))),
+      neg(lt(0, 0)),
       true
     );
 }
@@ -513,7 +500,7 @@ TEST_FUN(literal_to_const_7) {
   TERM_FUNCTIONS(REAL)
   // Interpret 13*a > 13*a
   check_eval(
-      gt(add(mul(real(3),a()), x),add(mul(real(3), a()), x)),
+      gt(add(mul(3,a), x),add(mul(3, a), x)),
       false
     );
 }
@@ -523,7 +510,7 @@ TEST_FUN(literal_to_const_8) {
 
   // Interpret 3*a > 13*a
   check_eval(
-      gt(mul(real(3),a()),mul(real(13), a())),
+      gt(mul(3,a),mul(13, a)),
       false
     );
 }
@@ -533,7 +520,7 @@ TEST_FUN(literal_to_const_9) {
 
   // Interpret 18*a > 13*a
   check_eval(
-      gt(mul(real(18),a()),mul(real(13), a())),
+      gt(mul(18,a),mul(13, a)),
       true
     );
 }
@@ -543,8 +530,8 @@ TEST_FUN(rebalance_uninterpreted) {
   TERM_FUNCTIONS(REAL)
 
   check_eval(
-      eq(real(5), mul(real(2),f(real(5)))),
-      eq(f(real(5)), real(5,2))
+      eq(5, mul(2,f(5))),
+      eq(f(5), frac(5,2))
     );
 
 }
@@ -554,8 +541,8 @@ TEST_FUN(minus_x_eq_x) {
   TERM_FUNCTIONS(REAL)
 
   check_eval(
-      eq(x, uminus(x)),
-      eq(x, real(0))
+      eq(x, minus(x)),
+      eq(x, 0)
     );
 }
 
@@ -563,8 +550,8 @@ TEST_FUN(minus_x_neq_x) {
   TERM_FUNCTIONS(REAL)
 
   check_eval(
-      neq(x, uminus(x)),
-      neq(x, real(0))
+      neq(x, minus(x)),
+      neq(x, 0)
     );
 
 };
@@ -574,13 +561,13 @@ TEST_FUN(k_x_eq_0) {
   TERM_FUNCTIONS(REAL)
 
   check_eval(
-      eq(mul(real(5),x), real(0)),
-      eq(x, real(0))
+      eq(mul(5,x), 0),
+      eq(x, 0)
     );
 
   check_eval(
-      eq(mul(real(5),a()), real(0)),
-      eq(a(), real(0))
+      eq(mul(5,a), 0),
+      eq(a, 0)
     );
 
 };
@@ -601,9 +588,9 @@ TEST_FUN(normalize_less_2) {
   TERM_FUNCTIONS(INT)
   check_eval(
       /* 5 < a * x */
-      lt(5, mul(a(),x)),
+      lt(5, mul(a,x)),
       /* 0 < a * x - 5 */
-      lt(0, add(-5, mul(a(),x)))
+      lt(0, add(-5, mul(a,x)))
     );
 }
 
@@ -611,9 +598,9 @@ TEST_FUN(normalize_less_3) {
   TERM_FUNCTIONS(INT)
   check_eval(
       /* b < a * x */
-      lt(b(), mul(a(),x)),
+      lt(b, mul(a,x)),
      /* 0 < a * x - b */
-      lt(0, add(mul(a(),x), uminus(b())))
+      lt(0, add(mul(a,x), minus(b)))
     );
 
 }
@@ -622,9 +609,9 @@ TEST_FUN(normalize_less_4) {
   TERM_FUNCTIONS(INT)
   check_eval(
       /* b < a */
-      lt(b(), a()),
+      lt(b, a),
       /* 0 < a - b */
-      lt(0, add(a(), uminus(b())))
+      lt(0, add(a, minus(b)))
     );
 }
 
@@ -635,7 +622,7 @@ TEST_FUN(normalize_less_5) {
       /* b < a */
       lt(x,y),
       /* 0 < a - b */
-      lt(0, add(y, uminus(x)))
+      lt(0, add(y, minus(x)))
     );
 }
 
@@ -653,13 +640,13 @@ TEST_FUN(normalize_less_equal_2) {
   TERM_FUNCTIONS(INT)
     /* 0 <= x + 1*/
   check_eval(
-      neg(lt(x, a())),
+      neg(lt(x, a)),
       /* !(x < a) 
        * <-> a <= x 
        * <-> a - 1 < x 
        * <-> 0 < x + 1 - a
        */
-      lt(0, add(add(1, x), uminus(a())))
+      lt(0, add(add(1, x), minus(a)))
       );
 }
 
@@ -704,8 +691,8 @@ TEST_FUN(x_eq_k_plus_x_2) {
 TEST_FUN(k_eq_x_plus_x_1) {
   TERM_FUNCTIONS(INT)
   check_eval(
-      eq(mul(2, a()), add(x, x)),
-      eq(a(), x)
+      eq(mul(2, a), add(x, x)),
+      eq(a, x)
       );
 }
 
@@ -714,13 +701,13 @@ TEST_FUN(x_gt_minus_x) {
   TERM_FUNCTIONS(REAL)
 
   check_eval(
-      gt(x, uminus(x)),
-      gt(x, real(0))
+      gt(x, minus(x)),
+      gt(x, 0)
     );
 
   check_eval(
-      gt(uminus(x), x),
-      gt(real(0), x)
+      gt(minus(x), x),
+      gt(0, x)
     );
 };
 
@@ -733,10 +720,10 @@ TEST_FUN(eval_double_minus_1) {
   TERM_FUNCTIONS(INT)
 
   check_eval(
-      eq(x, uminus(uminus(x))),
+      eq(x, minus(minus(x))),
       true);
   check_eval(
-      neg(eq(x, uminus(uminus(x)))),
+      neg(eq(x, minus(minus(x)))),
       false);
 };
 
@@ -746,10 +733,10 @@ TEST_FUN(eval_double_minus_2) {
   TERM_FUNCTIONS(INT)
 
   check_eval(
-      lt(x, uminus(uminus(x))),
+      lt(x, minus(minus(x))),
       false);
   check_eval(
-      neg(lt(x, uminus(uminus(x)))),
+      neg(lt(x, minus(minus(x)))),
       true);
 };
 
@@ -759,8 +746,8 @@ TEST_FUN(eval_double_minus_3) {
   TERM_FUNCTIONS(INT)
 
   check_eval(
-      eq(a(), uminus(uminus(x))),
-      eq(a(), x));
+      eq(a, minus(minus(x))),
+      eq(a, x));
 };
 
 
@@ -769,23 +756,23 @@ TEST_FUN(eval_double_minus_3) {
 TEST_FUN(eval_double_minus_4) {
   TERM_FUNCTIONS(INT)
   check_eval(
-      eq(4, uminus(add(uminus(x), 4))),
+      eq(4, minus(add(minus(x), 4))),
       eq(8, x) );
 };
 
 TEST_FUN(eval_remove_identity_1) {
   TERM_FUNCTIONS(INT)
   check_eval(
-      lt(0, add(0, uminus(x))),
-      lt(0, uminus(x))
+      lt(0, add(0, minus(x))),
+      lt(0, minus(x))
       );
 };
 
 TEST_FUN(eval_remove_identity_2) {
   TERM_FUNCTIONS(INT)
   check_eval(
-      eq(0, f(add(0, uminus(mul(x, mul(1, y)))))),
-      eq(0, f(uminus(mul(x,y))))
+      eq(0, f(add(0, minus(mul(x, mul(1, y)))))),
+      eq(0, f(minus(mul(x,y))))
       );
 };
 
