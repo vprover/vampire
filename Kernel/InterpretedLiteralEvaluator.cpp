@@ -31,19 +31,21 @@
 #include "Term.hpp"
 #include "Theory.hpp"
 #include "num_traits.hpp"
+#include "Debug/Tracer.hpp"
 
 
 #include "InterpretedLiteralEvaluator.hpp"
 
 #if VDEBUG
-#define IDEBUG 1
+#define IDEBUG 0
+// #define IDEBUG 1
 #else 
 #define IDEBUG 0
 #endif
 
 #if IDEBUG
 #define _DEBUG(...) 
-#define DEBUG(...) cout << __VA_ARGS__ << endl;
+#define DEBUG(...) DBG(__VA_ARGS__)
 #else 
 #define DEBUG(...)
 #define _DEBUG(...)
@@ -151,7 +153,7 @@ CLASS_NAME(InterpretedLiteralEvaluator::ACFunEvaluator<AbelianGroup>);
   virtual bool canEvaluateFunc(unsigned func) { return func == _fun; }
 
   virtual bool tryEvaluateFunc(Term* trm, TermList& res) { 
-    _DEBUG( "ACFunEvaluator::tryEvaluateFunc " << trm->toString() );
+    CALL( "ACFunEvaluator::tryEvaluateFunc()" );
     ASS_EQ(trm->functor(), _fun);
     ASS_EQ(trm->arity(),2);
 
@@ -466,7 +468,7 @@ public:
     ASS(theory->isInterpretedFunction(trm));
     const auto num = num_traits<Value>{};
 
-    _DEBUG( "try evaluate " << trm->toString() );
+    _DEBUG( "try evaluate ", trm->toString() );
 
     try {
       Interpretation itp = theory->interpretFunction(trm);
@@ -555,7 +557,7 @@ public:
     }
     catch(ArithmeticException)
     {
-       _DEBUG( "ArithmeticException" );
+       DEBUG( "ArithmeticException" );
       return false;
     }
   }
@@ -627,7 +629,7 @@ protected:
    */
   bool trySimplifyUnaryMinus(const unsigned& uminus_functor, const TermList& inner, TermList& result)
   { 
-    DEBUG("trySimplifyUnaryMinus(uminus(" << inner << "))")
+    DEBUG("trySimplifyUnaryMinus(uminus(", inner, "))")
     ASS_EQ(uminus_functor, env.signature->getInterpretingSymbol(number::minusI));
     if (inner.isTerm()) {
       /* complex term */
@@ -1167,7 +1169,7 @@ bool InterpretedLiteralEvaluator::balance(Literal* lit,Literal*& resLit,Stack<Li
   CALL("InterpretedLiteralEvaluator::balance");
   ASS(balancable(lit));
 
-  _DEBUG( "try balance " << lit->toString() );
+  _DEBUG( "try balance ", lit->toString() );
 
   ASS(theory->isInterpretedPredicate(lit->functor()));
 
@@ -1491,6 +1493,11 @@ public:
     }
   }
 };
+TermList InterpretedLiteralEvaluator::evaluate(TermList t) {
+  if (t.isTerm())
+    t = TermList(TermTransformerTransformTransformed::transform(t.term()));
+  return InterpretedLiteralEvaluator::transformSubterm(t);
+}
 
 /**
  * Used to evaluate a literal, setting isConstant, resLit and resConst in the process
@@ -1503,15 +1510,15 @@ bool InterpretedLiteralEvaluator::evaluate(Literal* lit, bool& isConstant, Liter
 {
   CALL("InterpretedLiteralEvaluator::evaluate");
 
-  DEBUG( "evaluate " << lit->toString() );
+  DEBUG( "evaluate ", lit->toString() );
 
   // This tries to transform each subterm using tryEvaluateFunc (see transform Subterm below)
 
   resLit = LiteralNormalizer::normalize(lit);
-  DEBUG( "\t0 ==> " << *resLit );
+  DEBUG( "\t0 ==> ", resLit->toString() );
 
   resLit = TermTransformerTransformTransformed::transform( resLit);
-  DEBUG( "\t1 ==> " << *resLit );
+  DEBUG( "\t1 ==> ", resLit->toString() );
 
 //   // If it can be balanced we balance it
 //   // A predicate on constants will not be balancable
@@ -1528,7 +1535,7 @@ bool InterpretedLiteralEvaluator::evaluate(Literal* lit, bool& isConstant, Liter
 //       resLit=new_resLit;
 //   }
 // #endif
-//   DEBUG( "\t2 ==> " << *resLit );
+//   DEBUG( "\t2 ==> ", *resLit );
 
   // // If resLit contains variables the predicate cannot be interpreted
   // VariableIterator vit(lit);
@@ -1546,7 +1553,7 @@ bool InterpretedLiteralEvaluator::evaluate(Literal* lit, bool& isConstant, Liter
   //     return (lit!=resLit);
   //   } 
   // }
-  // _DEBUG( resLit->toString()<< " is ground and interpreted, evaluating..." );
+  // _DEBUG( resLit->toString(, " is ground and interpreted, evaluating..." );
 
 
   unsigned pred = resLit->functor();
@@ -1568,14 +1575,14 @@ bool InterpretedLiteralEvaluator::evaluate(Literal* lit, bool& isConstant, Liter
       case PredEvalResult::Trivial: 
         isConstant = true;
         resConst = r.trivial_val;
-        DEBUG( "\t3 ==> " << resConst );
+        DEBUG( "\t3 ==> ", resConst );
         return true;
 
     }
   }
   isConstant = false;
   auto out = resLit != lit;
-  DEBUG( "\t3 ==> " << *resLit << "(did evaluate: " << out << ")" );
+  DEBUG( "\t3 ==> ", resLit->toString(), "(did evaluate: ", out, ")" );
   return out;
 }
 
@@ -1590,8 +1597,9 @@ bool InterpretedLiteralEvaluator::evaluate(Literal* lit, bool& isConstant, Liter
 TermList InterpretedLiteralEvaluator::transformSubterm(TermList trm)
 {
   CALL("InterpretedLiteralEvaluator::transformSubterm");
+  // Debug::Tracer::printStack(cout);
 
-  DEBUG( "transformSubterm for " << trm.toString() );
+  DEBUG( "transformSubterm for ", trm.toString() );
 
 
   if (!trm.isTerm()) { return trm; }
@@ -1605,7 +1613,7 @@ TermList InterpretedLiteralEvaluator::transformSubterm(TermList trm)
 	return res;
     }
   } else {
-    _DEBUG("no transformer")
+    DEBUG("no transformer")
   }
   return trm;
 }

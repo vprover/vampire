@@ -19,7 +19,7 @@ using namespace Inverters;
 #define __expand__frac(...) { __VA_ARGS__ }
 #define __expand__int(...)  { __VA_ARGS__ }
 #define __expand__list(...) { __VA_ARGS__ }
-#define bal(l,r) expected_t(l,r)
+#define bal(l,r) expected_t(l, TermWrapper(r))
 
 template<class Range, class Pred>
 bool any(Range range, Pred p) {
@@ -95,8 +95,8 @@ TEST_REBALANCE_ALL(multi_var_1
 TEST_REBALANCE_SPLIT(multi_var_2
     , eq(mul(x, 4), mul(y, 2))
     , __frac( 
-        bal(y, mul(2, x))
-      , bal(x, div(x, 2))
+        bal(y, mul(2,         x))
+      , bal(x, mul(frac(1,2), y))
     )
     , __frac( 
         bal(y, mul(2, x))
@@ -108,10 +108,10 @@ TEST_REBALANCE_SPLIT(multi_var_3
     , eq(mul(x, 2), y)
     , __frac(
         bal(x, mul(frac(1, 2), y))
-      , bal(y, mul(x, 2))
+      , bal(y, mul(2, x))
     )
     , __int( 
-      bal(y, mul(x, 2))
+      bal(y, mul(2, x))
     ))
 
 TEST_REBALANCE_SPLIT(multi_var_4
@@ -127,7 +127,7 @@ TEST_REBALANCE_ALL(rebalance_multiple_vars
     , eq(add(x, minus(y)), f(y))
     , __list(
         bal(x, add(f(y), y))
-      , bal(y, add(x, minus(f(y))))
+      , bal(y, add(minus(f(y)), x))
     ))
 
 TEST_REBALANCE_SPLIT(div_zero_1
@@ -178,12 +178,12 @@ void test_rebalance(Literal& lit, initializer_list<expected_t> expected) {
   ASS(lit.isEquality());
   using balancer_t = Balancer<NumberTheoryInverter<A>>;
   auto simplified = [](TermList t) -> TermList { 
+    // DBG("simplifying ", t)
     static InterpretedLiteralEvaluator e = InterpretedLiteralEvaluator();
-    cout << t << endl;
     if (t.isTerm()) {
-      t = TermList(e.transform(t.term()));
+      t = e.evaluate(t);
     }
-    cout << t << endl;
+    // DBG("end simplifying ", t)
     return t;
   };
 
@@ -213,8 +213,12 @@ void test_rebalance(Literal& lit, initializer_list<expected_t> expected) {
   if (cnt != expected.size()) {
       cout << "case: " << lit << endl;
       cout << "unexpected results in balancer:" << endl;
-      for (auto r : results) {
-        cout << "\t" << get<0>(r) << "\t->\t" << get<1>(r) << endl;
+      if (results.isEmpty()) {
+        cout << "\t< nothing >" << endl;
+      } else {
+        for (auto r : results) {
+          cout << "\t" << get<0>(r) << "\t->\t" << get<1>(r) << endl;
+        }
       }
       cout << "expected: \n" << expected << endl;
       exit(-1);

@@ -35,7 +35,7 @@
 namespace Kernel {
 
 class InterpretedLiteralEvaluator
-  :  public TermTransformerTransformTransformed 
+  :  private TermTransformerTransformTransformed 
 {
 public:
   CLASS_NAME(InterpretedLiteralEvaluator);
@@ -46,6 +46,7 @@ public:
 
   // TODO: `Literal*` -> `const Literal&` ?
   bool evaluate(Literal* lit, bool& isConstant, Literal*& resLit, bool& resConst,Stack<Literal*>& sideConditions);
+  TermList evaluate(TermList);
 protected:
   class Evaluator;
   class EqualityEvaluator;
