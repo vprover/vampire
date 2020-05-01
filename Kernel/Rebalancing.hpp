@@ -7,8 +7,8 @@
 #include "SortHelper.hpp"
 
 
-#define DEBUG(...) //CallDbg::writeIndent(cout) << __VA_ARGS__ << endl;
-#define DEBUG_ME DEBUG("############  "  << _path << " -> " << derefPath() << " litIndex: " << _litIndex)
+#define DEBUG(...) CallDbg::writeIndent(cout) << __VA_ARGS__ << endl;
+#define DEBUG_ME DEBUG(_balancer._lit << " @"<< _litIndex  << " " << _path << " --> " << derefPath())
 
 #define CALL_DBG(...) CALL(__VA_ARGS__); CallDbg x(__VA_ARGS__); 
 
@@ -27,7 +27,7 @@ struct CallDbg {
   }  
   ~CallDbg() {
     indent--;
-    DEBUG("END   " << _msg)
+    // DEBUG("END   " << _msg)
   }
 };
 unsigned CallDbg::indent = 0;
@@ -163,59 +163,74 @@ template<class C> bool BalanceIter<C>::canInvert() const
     || C::canInvert(_path.top().term(), _path.top().index);
 }
 
+/** moves to the next invertible point in the term */
 template<class C> void BalanceIter<C>::incrementPath() 
 { 
   CALL_DBG("BalanceIter::incrementPath")
 
   // auto canInvert = [this]() -> bool { return derefPath().isTerm() && derefPath().term()->arity() > 0  && true; };//TODO
   auto peak = [&]() -> Node& { return _path.top(); };
+  auto incPeak = [&]() {
+     ++peak().index;
+     DEBUG("peakIndex := " << peak().index);
+  };
+  auto incLit = [&]() {
+    _litIndex++;
+    DEBUG("_litIndex := " << _litIndex)
+  };
+  auto inc = [&]() {
+    if (_path.isEmpty()) 
+      incLit();
+    else 
+      incPeak();
+  };
+  do {
+    DEBUG_ME
 
-  if ( /* inspect subterms iff */
-      /* 1) we can build an inversion */
-      canInvert()  
-      /* 2) the subterm is a non-constant complex term */
-      && derefPath().isTerm()  && derefPath().term()->arity() > 0) {
-    DEBUG("push")
-    _path.push(Node {
-        ._term = derefPath().term(),
-        .index = 0,
-    });
-    return;
-  } else {
-    while (true) {
+    if ( derefPath().isTerm()  && derefPath().term()->arity() > 0) {
+
+      DEBUG("push")
+      _path.push(Node {
+          ._term = derefPath().term(),
+          .index = 0,
+      });
+
+    } else {
+      DEBUG("inc")
+
       if (_path.isEmpty()) {
-        _litIndex++;
-        DEBUG("_litIndex := " << _litIndex)
-        if (_litIndex > 1) {
-          /* we have already inspected the full literal */
-          return;
-
-        } else {
-          /* we need to inspect one side of the equality */
-          // ASS(_balancer._lit[_litIndex].isTerm());
-          // _path.push(Node {
-          //     ._term = _balancer._lit[_litIndex].term(),
-          //     .index = 0,
-          // });
-          return;
-        }
+        incLit();
+        // if (_litIndex > 1) {
+        //   /* we have already inspected the full literal */
+        //   return;
+        //
+        // } else {
+        //   /* we need to inspect one side of the equality */
+        //   // ASS(_balancer._lit[_litIndex].isTerm());
+        //   // _path.push(Node {
+        //   //     ._term = _balancer._lit[_litIndex].term(),
+        //   //     .index = 0,
+        //   // });
+        //   return;
+        // }
 
       } else {
         /* we inspecte the next term in the same side of the equality */
-        auto index = ++peak().index;
-        DEBUG("peakIndex := " << peak().index)
-        if (index >= peak().term().arity()) {
-          /* index invalidated.  */
-          _path.pop();
-          DEBUG("pop()")
 
-        } else {
-
-          return;
-        }
+          incPeak();
+          if (peak().index >= peak().term().arity()) {
+            /* index invalidated.  */
+            
+            do {
+                auto x = _path.pop();
+                DEBUG("pop(): " << x)
+                inc();
+                
+            } while (!_path.isEmpty() && peak().index >= peak().term().arity());
+          }
       }
     }
-  }
+  } while (!canInvert());
 }
 
 template<class C> void BalanceIter<C>::findNextVar() 
@@ -239,6 +254,7 @@ template<class C> void BalanceIter<C>::operator++() {
 template<class C> 
 const BalanceIter<C>& BalanceIter<C>::operator*() const { 
   CALL_DBG("BalanceIter::operator*")
+  DEBUG(lhs())
   return *this;
 }
 
@@ -254,10 +270,10 @@ bool operator!=(const BalanceIter<C>& lhs, const BalanceIter<C>& rhs) {
 template<class C> 
 TermList BalanceIter<C>::lhs() const 
 {
-  CALL_DBG("BalanceIter::lhs")
+  // CALL_DBG("BalanceIter::lhs")
   auto out = derefPath();
   ASS_REP(out.isVar(), out);
-  DEBUG(out)
+  // DEBUG(out)
   return out;
 }
    
