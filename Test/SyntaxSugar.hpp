@@ -145,8 +145,12 @@
     class TermWrapper { \
       TermList _term; \
     public: \
-      TermWrapper(int i) : TermWrapper(TermList(theory->representConstant(__CONSTANT_TYPE_ ## sort (i)))) { }; \
-      TermWrapper(TermList t) : _term(t) {} \
+      TermWrapper(int i) : TermWrapper(TermList(theory->representConstant(__CONSTANT_TYPE_ ## sort (i)))) { \
+        ASS_REP(!_term.isEmpty(), _term); \
+      }; \
+      TermWrapper(TermList t) : _term(t) { \
+        ASS_REP(!_term.isEmpty(), _term); \
+      } \
       operator TermList() {return _term;} \
     }; \
    \
