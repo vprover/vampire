@@ -65,7 +65,7 @@ MainLoopResult Z3MainLoop::runImpl()
    Clause* cl = cit.next();
 
    if(cl->varCnt() > 0){
-     ASS(cl->inference()->isTheoryAxiom());
+     ASS(cl->isTheoryAxiom());
      continue;
    }
 

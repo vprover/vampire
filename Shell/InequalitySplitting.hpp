@@ -46,7 +46,7 @@ public:
 
 private:
   Clause* trySplitClause(Clause* cl);
-  Literal* splitLiteral(Literal* lit, Inference::InputType inpType, Clause*& premise);
+  Literal* splitLiteral(Literal* lit, UnitInputType inpType, Clause*& premise);
 
   Literal* makeNameLiteral(unsigned predNum, TermList arg, bool polarity);
 

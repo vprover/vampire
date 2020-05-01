@@ -148,10 +148,9 @@ Clause* SDHelper::generateSubsumptionResolutionClause(Clause* cl, Literal* resLi
 {
   CALL("generateSubsumptionResolutionClause");
 
-  Inference* inference = new Inference2(Inference::Rule::SUBSUMPTION_RESOLUTION, cl, mcl);
-
   unsigned newLen = cl->length() - 1;
-  Clause* newCl = new(newLen) Clause(newLen, inference);
+  Clause* newCl = new(newLen) Clause(newLen,
+      SimplifyingInference2(InferenceRule::SUBSUMPTION_RESOLUTION, cl, mcl));
 
   unsigned j = 0;
   for (unsigned i = 0; i < cl->length(); ++i) {
@@ -165,8 +164,6 @@ Clause* SDHelper::generateSubsumptionResolutionClause(Clause* cl, Literal* resLi
   // We should have skipped exactly one literal, namely resLit.
   // (it should never appear twice because we apply duplicate literal removal before subsumption resolution)
   ASS_EQ(j, newLen);
-
-  newCl->setAge(cl->age());
 
   return newCl;
 }

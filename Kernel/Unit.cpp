@@ -58,11 +58,10 @@ void Unit::onPreprocessingEnd()
 }
 
 /** New unit of a given kind */
-Unit::Unit(Kind kind,Inference* inf)
+Unit::Unit(Kind kind,const Inference& inf)
   : _number(++_lastNumber),
     _kind(kind),
     _inheritedColor(COLOR_INVALID),
-    _included(0),
     _inference(inf)
 {
 } // Unit::Unit
@@ -217,12 +216,12 @@ vstring Unit::inferenceAsString() const
 #if 1
   InferenceStore& infS = *InferenceStore::instance();
 
-  Inference::Rule rule;
+  InferenceRule rule;
   UnitIterator parents;
   Unit* us = const_cast<Unit*>(this);
   parents = infS.getParents(us, rule);
 
-  vstring result = (vstring)"[" + Inference::ruleName(rule);
+  vstring result = (vstring)"[" + ruleName(rule);
   bool first = true;
   while (parents.hasNext()) {
     Unit* parent = parents.next();

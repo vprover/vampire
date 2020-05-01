@@ -172,6 +172,25 @@ std::unique_ptr<PassiveClauseContainer> makeLevel3(bool isOutermost, const Optio
   }
 }
 
+std::unique_ptr<PassiveClauseContainer> makeLevel4(bool isOutermost, const Options& opt, vstring name)
+{
+  if (opt.usePositiveLiteralSplitQueues())
+  {
+    Lib::vvector<std::unique_ptr<PassiveClauseContainer>> queues;
+    Lib::vvector<float> cutoffs = opt.positiveLiteralSplitQueueCutoffs();
+    for (unsigned i = 0; i < cutoffs.size(); i++)
+    {
+      auto queueName = name + "PLSQ" + Int::toString(cutoffs[i]) + ":";
+      queues.push_back(makeLevel3(false, opt, queueName));
+    }
+    return Lib::make_unique<PositiveLiteralMultiSplitPassiveClauseContainer>(isOutermost, opt, name + "PLSQ", std::move(queues));
+  }
+  else
+  {
+    return makeLevel3(isOutermost, opt, name);
+  }
+}
+
 /**
  * Create a SaturationAlgorithm object
  *
@@ -212,7 +231,7 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
   }
   else
   {
-    _passive = makeLevel3(true, opt, "");
+    _passive = makeLevel4(true, opt, "");
   }
   _active = new ActiveClauseContainer(opt);
 
@@ -600,19 +619,19 @@ int SaturationAlgorithm::elapsedTime()
 void SaturationAlgorithm::addInputClause(Clause* cl)
 {
   CALL("SaturationAlgorithm::addInputClause");
-  ASS_LE(Inference::toNumber(cl->inference()->inputType()),Inference::toNumber(Inference::InputType::CLAIM)); // larger input types should not appear in proof search
+  ASS_LE(toNumber(cl->inputType()),toNumber(UnitInputType::CLAIM)); // larger input types should not appear in proof search
 
   if (_symEl) {
     _symEl->onInputClause(cl);
   }
 
   bool sosForAxioms = _opt.sos() == Options::Sos::ON || _opt.sos() == Options::Sos::ALL; 
-  sosForAxioms = sosForAxioms && cl->inference()->inputType()==Inference::InputType::AXIOM;
+  sosForAxioms = sosForAxioms && cl->inputType()==UnitInputType::AXIOM;
 
   bool sosForTheory = _opt.sos() == Options::Sos::THEORY && _opt.sosTheoryLimit() == 0;
 
   if (_opt.sineToAge()) {
-    unsigned level = cl->inference()->getSineLevel();
+    unsigned level = cl->getSineLevel();
     // cout << "Adding " << cl->toString() << " level " << level;
     if (level == UINT_MAX) {
       level = env.maxSineLevel-1; // as the next available (unused) value
@@ -622,7 +641,7 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
     cl->setAge(level);
   }
 
-  if (sosForAxioms || (cl->inference()->isTheoryAxiom() && sosForTheory)){
+  if (sosForAxioms || (cl->isTheoryAxiom() && sosForTheory)){
     addInputSOSClause(cl);
   } else {
     addNewClause(cl);
@@ -659,7 +678,7 @@ LiteralSelector& SaturationAlgorithm::getSosLiteralSelector()
 void SaturationAlgorithm::addInputSOSClause(Clause* cl)
 {
   CALL("SaturationAlgorithm::addInputSOSClause");
-  ASS_EQ(Inference::toNumber(cl->inference()->inputType()),Inference::toNumber(Inference::InputType::AXIOM));
+  ASS_EQ(toNumber(cl->inputType()),toNumber(UnitInputType::AXIOM));
 
   //we add an extra reference until the clause is added to some container, so that
   //it won't get deleted during some code e.g. in the onNewClause handler
@@ -742,7 +761,7 @@ Clause* SaturationAlgorithm::doImmediateSimplification(Clause* cl0)
   static bool sosTheoryLimit = (_opt.sos()==Options::Sos::THEORY);
   static unsigned sosTheoryLimitAge = _opt.sosTheoryLimit();
 
-  if(sosTheoryLimit && cl0->inference()->isPureTheoryDescendant() && cl0->age() > sosTheoryLimitAge){
+  if(sosTheoryLimit && cl0->isPureTheoryDescendant() && cl0->age() > sosTheoryLimitAge){
     return 0;
   }
 
@@ -874,13 +893,13 @@ void SaturationAlgorithm::handleEmptyClause(Clause* cl)
   if (isRefutation(cl)) {
     onNonRedundantClause(cl);
 
-    if(cl->inference()->isPureTheoryDescendant()) {
+    if(cl->isPureTheoryDescendant()) {
       ASSERTION_VIOLATION_REP("A pure theory descendant is empty, which means theory axioms are inconsistent");
       reportSpiderFail();
       // this is a poor way of handling this in release mode but it prevents unsound proofs
       throw MainLoop::MainLoopFinishedException(Statistics::REFUTATION_NOT_FOUND);
     }
-    if(cl->inference()->inputType() == Inference::InputType::AXIOM){
+    if(cl->inputType() == UnitInputType::AXIOM){
       UIHelper::setConjectureInProof(false);
     }
 
@@ -1094,9 +1113,9 @@ bool SaturationAlgorithm::activate(Clause* cl)
 
       addNewClause(genCl);
 
-      Inference::Iterator iit=genCl->inference()->iterator();
-      while (genCl->inference()->hasNext(iit)) {
-        Unit* premUnit=genCl->inference()->next(iit);
+      Inference::Iterator iit=genCl->inference().iterator();
+      while (genCl->inference().hasNext(iit)) {
+        Unit* premUnit=genCl->inference().next(iit);
         ASS(premUnit->isClause());
         Clause* premCl=static_cast<Clause*>(premUnit);
 

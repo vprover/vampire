@@ -661,8 +661,8 @@ isRedundant:
           return true;
         }
 
-        Inference* inference = new Inference2(Inference::Rule::BACKWARD_SUBSUMPTION_DEMODULATION, mainCl, sideCl);
-        Clause* newCl = new(mainCl->length()) Clause(mainCl->length(), inference);
+        Clause* newCl = new(mainCl->length()) Clause(mainCl->length(),
+            SimplifyingInference2(InferenceRule::BACKWARD_SUBSUMPTION_DEMODULATION, mainCl, sideCl));
 
         for (unsigned i = 0; i < mainCl->length(); ++i) {
           if (i == dli) {
@@ -672,7 +672,6 @@ isRedundant:
           }
         }
 
-        newCl->setAge(mainCl->age());
         env.statistics->backwardSubsumptionDemodulations++;
 
         replacement = newCl;

@@ -75,6 +75,8 @@ Environment::~Environment()
 {
   CALL("Environment::~Environment");
 
+  Timer::setTimeLimitEnforcement(false);
+
   //in the usual cases the _outputDepth should be zero at this point, but in case of
   //thrown exceptions this might not be true.
 //  ASS_EQ(_outputDepth,0);

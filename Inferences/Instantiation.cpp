@@ -320,10 +320,8 @@ struct Instantiation::ResultFn
   {
     CALL("Instantiation::ResultFn::operator()");
 
-    Inference* inf = new Inference1(Inference::Rule::INSTANTIATION,_cl);
     unsigned clen = _cl->length();
-    Clause* res = new(clen) Clause(clen,inf);
-    res->setAge(_cl->age()+1);
+    Clause* res = new(clen) Clause(clen,GeneratingInference1(InferenceRule::INSTANTIATION,_cl));
 
     for(unsigned i=0;i<clen;i++){
       (*res)[i] = SubstHelper::apply((*_cl)[i],sub);

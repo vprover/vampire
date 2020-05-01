@@ -122,7 +122,7 @@ void SAT2FO::collectAssignment(SATSolver& solver, LiteralStack& res) const
   }
 }
 
-SATClause* SAT2FO::createConflictClause(LiteralStack& unsatCore, Inference::Rule rule)
+SATClause* SAT2FO::createConflictClause(LiteralStack& unsatCore, InferenceRule rule)
 {
   CALL("SAT2FO::createConflictClause");
 
@@ -133,7 +133,7 @@ SATClause* SAT2FO::createConflictClause(LiteralStack& unsatCore, Inference::Rule
     Literal* ul = ucit.next();
     negStack.push(Literal::complementaryLiteral(ul));
   }
-  Clause* foConfl = Clause::fromStack(negStack, new Inference0(Inference::InputType::AXIOM,rule));
+  Clause* foConfl = Clause::fromStack(negStack,NonspecificInference0(UnitInputType::AXIOM,rule));
   return toSAT(foConfl);
 }
 

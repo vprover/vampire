@@ -50,12 +50,14 @@ private:
 
 void ManCSPassiveClauseContainer::add(Clause* cl)
 {
+  CALL("ManCSPassiveClauseContainer::add");
   clauses.push_back(cl);
   addedEvent.fire(cl);
 }
 
 void ManCSPassiveClauseContainer::remove(Clause* cl)
 {
+  CALL("ManCSPassiveClauseContainer::remove");
   ASS(cl->store()==Clause::PASSIVE);
 
   auto it = std::find(clauses.begin(),clauses.end(),cl);
@@ -68,6 +70,7 @@ void ManCSPassiveClauseContainer::remove(Clause* cl)
 
 Clause* ManCSPassiveClauseContainer::popSelected()
 {
+  CALL("ManCSPassiveClauseContainer::popSelected");
   ASS(!clauses.empty());
 
   std::vector<Clause*>::iterator selectedClauseIt;

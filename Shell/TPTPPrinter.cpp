@@ -175,18 +175,18 @@ void TPTPPrinter::printTffWrapper(Unit* u, vstring bodyStr)
     tgt() << "u_" << u->number();
   }
   tgt() << ", ";
-  switch(u->inference()->inputType()) {
-  case Inference::InputType::AXIOM:
+  switch(u->inputType()) {
+  case UnitInputType::AXIOM:
     tgt() << "axiom"; break;
-  case Inference::InputType::ASSUMPTION:
+  case UnitInputType::ASSUMPTION:
     tgt() << "hypothesis"; break;
-  case Inference::InputType::CONJECTURE:
+  case UnitInputType::CONJECTURE:
     tgt() << "conjecture"; break;
-  case Inference::InputType::NEGATED_CONJECTURE:
+  case UnitInputType::NEGATED_CONJECTURE:
     tgt() << "negated_conjecture"; break;
-  case Inference::InputType::CLAIM:
+  case UnitInputType::CLAIM:
     tgt() << "claim"; break;
-  case Inference::InputType::EXTENSIONALITY_AXIOM:
+  case UnitInputType::EXTENSIONALITY_AXIOM:
     tgt() << "extensionality"; break;
   default:
      ASSERTION_VIOLATION;
@@ -524,12 +524,12 @@ vstring TPTPPrinter::toString (const Unit* unit)
 
   bool negate_formula = false;
   vstring kind;
-  switch (unit->inference()->inputType()) {
-  case Inference::InputType::ASSUMPTION:
+  switch (unit->inputType()) {
+  case UnitInputType::ASSUMPTION:
     kind = "hypothesis";
     break;
 
-  case Inference::InputType::CONJECTURE:
+  case UnitInputType::CONJECTURE:
     if(unit->isClause()) {
       kind = "negated_conjecture";
     }
@@ -539,11 +539,11 @@ vstring TPTPPrinter::toString (const Unit* unit)
     }
     break;
 
-  case Inference::InputType::EXTENSIONALITY_AXIOM:
+  case UnitInputType::EXTENSIONALITY_AXIOM:
     kind = "extensionality";
     break;
 
-  case Inference::InputType::NEGATED_CONJECTURE:
+  case UnitInputType::NEGATED_CONJECTURE:
     kind = "negated_conjecture";
     break;
 

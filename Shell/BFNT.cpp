@@ -232,7 +232,7 @@ Clause* BFNT::apply(Clause* cl)
     // save v1 = v2
     result.push(Literal::create2(_proxy,true,v1,v2));
   }
-  return updated ? Clause::fromStack(result,new Inference1(Inference::Rule::BFNT_FLATTENING,cl))
+  return updated ? Clause::fromStack(result, NonspecificInference1(InferenceRule::BFNT_FLATTENING,cl))
                   : cl;
 } // BFNT::apply
 
@@ -275,7 +275,7 @@ Clause* BFNT::resolveNegativeVariableEqualities(Clause* cl)
     diffVar = true;
     Substitution subst;
     subst.bind(v1,*v2);
-    cl = new(n) Clause(n,new Inference1(Inference::Rule::EQUALITY_RESOLUTION,cl));
+    cl = new(n) Clause(n,NonspecificInference1(InferenceRule::EQUALITY_RESOLUTION,cl));
     for (int i = n-1;i >= 0;i--) {
       Literal* lit = SubstHelper::apply<Substitution>(lits[i],subst);
       (*cl)[i] = lit;
@@ -283,7 +283,7 @@ Clause* BFNT::resolveNegativeVariableEqualities(Clause* cl)
     }
   }
   if (!diffVar) { // only X != X found, we should still perform the inference
-    cl = new(n) Clause(n,new Inference1(Inference::Rule::EQUALITY_RESOLUTION,cl));
+    cl = new(n) Clause(n,NonspecificInference1(InferenceRule::EQUALITY_RESOLUTION,cl));
     for (int i = n-1;i >= 0;i--) {
       (*cl)[i] = lits[i];
     }
@@ -327,7 +327,7 @@ UnitList* BFNT::create(unsigned modelSize)
       if (i == j) continue;
       TermList c2(cs[j]);
       // create c1 != c2
-      Clause* cls = new(1) Clause(1,new Inference0(Inference::InputType::AXIOM,Inference::Rule::BFNT_DISTINCT));
+      Clause* cls = new(1) Clause(1,NonspecificInference0(UnitInputType::AXIOM,InferenceRule::BFNT_DISTINCT));
       (*cls)[0] = Literal::create2(_proxy,false,c1,c2);
 #if BNFT_SHOW_TRANSFORMED
       cout << "EqProxy: " << cls->toString() << "\n";
@@ -368,7 +368,7 @@ UnitList* BFNT::create(unsigned modelSize)
       lits.push(Literal::create(pred,arity,true,false,args.begin()));
     }
     result = new UnitList(Clause::fromStack(lits,
-					    new Inference0(Inference::InputType::AXIOM,Inference::Rule::BFNT_TOTALITY)),
+					    NonspecificInference0(UnitInputType::AXIOM,InferenceRule::BFNT_TOTALITY)),
 			  result);
 #if BNFT_TPTP_TRANSFORMED
     cout << TPTP::toString(result->head()) << "\n";

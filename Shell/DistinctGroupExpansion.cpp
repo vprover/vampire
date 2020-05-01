@@ -89,7 +89,7 @@ bool DistinctGroupExpansion::apply(UnitList*& units)
           env.out() << "  expansion adding " << expansion->toString() << endl;
         }
         // Currently we just say that these are from the Input, not $distinct or theory of ints
-        UnitList::push(new FormulaUnit(expansion, new Inference0(Inference::InputType::AXIOM,Inference::Rule::INPUT)),units);
+        UnitList::push(new FormulaUnit(expansion, FromInput(UnitInputType::AXIOM)),units);
       }
       else someLeft=true;
     }

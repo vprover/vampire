@@ -790,12 +790,9 @@ partial_check_end:
     Stack<Literal*>::Iterator tit(_theoryLits);
     while(tit.hasNext()){ cout << "\t" << tit.next()->toString() << endl;}
 #endif
-    Inference* inf_inst = new Inference1(Inference::Rule::INSTANTIATION,_cl);
-    Clause* inst = new(_cl->length()) Clause(_cl->length(),inf_inst);
-
-    Inference* inf_simp = new Inference1(Inference::Rule::INTERPRETED_SIMPLIFICATION,inst);
+    Clause* inst = new(_cl->length()) Clause(_cl->length(),GeneratingInference1(InferenceRule::INSTANTIATION,_cl));
     unsigned newLen = _cl->length() - _theoryLits.size();
-    Clause* res = new(newLen) Clause(newLen,inf_simp);
+    Clause* res = new(newLen) Clause(newLen,SimplifyingInference1(InferenceRule::INTERPRETED_SIMPLIFICATION,inst));
 
 #if VDEBUG
     unsigned skip = 0;
@@ -821,7 +818,6 @@ partial_check_end:
       _splitter->onNewClause(inst);
     }
 
-    res->setAge(_premise->age()+1);
     env.statistics->theoryInstSimp++;
 #if DPRINT
     cout << "to get " << res->toString() << endl;
@@ -843,7 +839,7 @@ ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise,bool& premiseR
 {
   CALL("TheoryInstAndSimp::generateClauses");
 
-  if(premise->inference()->isPureTheoryDescendant()){ return ClauseIterator::getEmpty(); }
+  if(premise->isPureTheoryDescendant()){ return ClauseIterator::getEmpty(); }
 
   static Options::TheoryInstSimp thi = env.options->theoryInstAndSimp();
 

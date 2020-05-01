@@ -30,6 +30,7 @@
 
 #include "Lib/List.hpp"
 #include "Lib/VString.hpp"
+#include "Kernel/Inference.hpp"
 
 namespace Kernel {
 
@@ -71,11 +72,23 @@ public:
   unsigned number() const { return _number; }
 
   /** Return the inference of this unit */
-  Inference* inference() { return _inference; }
-  /** Return the inference of this unit */
-  const Inference* inference() const { return _inference; }
-  /** Set a new inference object (the old one not destroyed). */
-  void setInference(Inference* inf) { _inference = inf; }
+  Inference& inference() { return _inference; }
+  const Inference& inference() const { return _inference; }
+
+  /** return the input type of the unit */
+  UnitInputType inputType() const { return _inference.inputType(); }
+  /** set the input type of the unit */
+  void setInputType(UnitInputType it) { _inference.setInputType(it); }
+  /** return true if inputType relates to a goal **/
+  bool derivedFromGoal() const { return _inference.derivedFromGoal(); }
+  /** see isPureTheoryDescendant in Inference.cpp */
+  bool isPureTheoryDescendant() const { return _inference.isPureTheoryDescendant(); }
+  /** see isTheoryAxiom in Inference.cpp */
+  bool isTheoryAxiom() const { return _inference.isTheoryAxiom(); }
+
+  unsigned char getSineLevel() const { return _inference.getSineLevel(); }
+  /** true if the unit is read from a TPTP included file  */
+  bool included() const { return _inference.included(); }
 
   /** Return the inherited color of the unit or COLOR_INVALID
    * if there isn't an inherited color.
@@ -117,11 +130,6 @@ public:
    */
   void decRefCnt();
 
-  /** mark the unit as read from a TPTP included file  */
-  inline void markIncluded() {_included = 1;}
-  /** true if the unit is read from a TPTP included file  */
-  inline bool included() const {return _included;}
-
   /** Return true iff unit was created during preprocessing
    * (and not during the run of the saturation algorithm) */
   inline bool isFromPreprocessing()
@@ -138,14 +146,14 @@ protected:
   unsigned _number;
   /** Kind  */
   unsigned _kind : 1;
+
   /** used in interpolation to denote parents of what color have been used */
   unsigned _inheritedColor : 2;
-  /** true if the unit is read from a TPTP included file  */
-  unsigned _included : 1;
-  /** inference used to obtain the unit */
-  Inference* _inference;
 
-  Unit(Kind kind,Inference* inf);
+  /** inference used to obtain the unit */
+  Inference _inference;
+
+  Unit(Kind kind, const Inference& inf);
 
   /** Used to enumerate units */
   static unsigned _lastNumber;

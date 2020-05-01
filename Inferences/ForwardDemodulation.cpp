@@ -196,8 +196,8 @@ bool ForwardDemodulation::perform(Clause* cl, Clause*& replacement, ClauseIterat
 	  return true;
 	}
 
-	Inference* inf = new Inference2(Inference::Rule::FORWARD_DEMODULATION, cl, qr.clause);
-	Clause* res = new(cLen) Clause(cLen, inf);
+	Clause* res = new(cLen) Clause(cLen,
+	  SimplifyingInference2(InferenceRule::FORWARD_DEMODULATION, cl, qr.clause));
 
 	(*res)[0]=resLit;
 
@@ -210,7 +210,6 @@ bool ForwardDemodulation::perform(Clause* cl, Clause*& replacement, ClauseIterat
 	}
 	ASS_EQ(next,cLen);
 
-	res->setAge(cl->age());
 	env.statistics->forwardDemodulations++;
 
 	premises = pvi( getSingletonIterator(qr.clause));

@@ -538,7 +538,7 @@ private:
   /** stack of unprocessed states */
   Stack<State> _states;
   /** input type of the last read unit */ // it must be int since -1 can be used as a value
-  Inference::InputType _lastInputType;
+  UnitInputType _lastInputType;
   /** true if the last read unit is a question */ 
   bool _isQuestion;
   /** true if the last read unit is fof() or cnf() due to a subtle difference

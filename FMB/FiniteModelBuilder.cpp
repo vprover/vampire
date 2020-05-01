@@ -1753,7 +1753,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
             _sortModelSizes[s] = _distinctSortSizes[_sortedSignature->parents[s]];
           }
         } else {
-          Clause* empty = new(0) Clause(0,new Inference0(Inference::InputType::AXIOM,Inference::Rule::MODEL_NOT_FOUND));
+          Clause* empty = new(0) Clause(0,NonspecificInference0(UnitInputType::AXIOM,InferenceRule::MODEL_NOT_FOUND));
           return MainLoopResult(Statistics::REFUTATION,empty);
         }
       } else { // i.e. (!_xmass)
@@ -1792,7 +1792,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
 
         if (!_dsaEnumerator->increaseModelSizes(_distinctSortSizes,_distinctSortMaxs)) {
           if (_dsaEnumerator->isFmbComplete(_distinctSortSizes.size())) {
-            Clause* empty = new(0) Clause(0,new Inference0(Inference::InputType::AXIOM,Inference::Rule::MODEL_NOT_FOUND));
+            Clause* empty = new(0) Clause(0,NonspecificInference0(UnitInputType::AXIOM,InferenceRule::MODEL_NOT_FOUND));
             return MainLoopResult(Statistics::REFUTATION,empty);
           } else {
             if(outputAllowed()) {
@@ -2234,7 +2234,7 @@ ppModelLabel:
             //cout << predDefGround << endl;
             try{
               bool res = model.evaluate(
-                new FormulaUnit(predDefGround,new Inference0(Inference::InputType::AXIOM, Inference::Rule::INPUT)));
+                new FormulaUnit(predDefGround, NonspecificInference0(UnitInputType::AXIOM, InferenceRule::INPUT)));
               if(!polarity) res=!res;
               model.addPredicateDefinition(f,grounding,res);
             }

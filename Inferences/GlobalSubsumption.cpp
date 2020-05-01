@@ -247,20 +247,19 @@ Clause* GlobalSubsumption::perform(Clause* cl, Stack<Unit*>& prems)
           UnitList::push(us, premList);
         }
         
-        SATClauseList* satPremises = solver.getRefutationPremiseList();
+        SATClauseList* satPremises = env.options->minimizeSatProofs() ?
+            solver.getRefutationPremiseList() : nullptr; // getRefutationPremiseList may be nullptr already, if our solver does not support minimization
 
-        Inference* inf = satPremises ? // does our SAT solver support postponed minimization?
-             new InferenceFromSatRefutation(Inference::Rule::GLOBAL_SUBSUMPTION, premList, satPremises, failedFinal) :
-             new InferenceMany(Inference::Rule::GLOBAL_SUBSUMPTION, premList);
-
-        inf->setInputType(cl->inference()->inputType()); // don't propagate inputType from the whole big (non-minimized) set of premises
-        // (which probably already contains a piece of the conjecture)
+        Inference inf(FromSatRefutation(InferenceRule::GLOBAL_SUBSUMPTION, premList, satPremises, failedFinal));
+        // CAREFUL:
+        // FromSatRefutation does not automatically propagate age
+        inf.setAge(cl->age());
+        // also, let's not propagate inputType from the whole big (non-minimized) set of premises (which probably already contains a piece of the conjecture)
+        inf.setInputType(cl->inputType());
+        // Splitter will set replacement's splitSet, so we don't have to do it here
 
         Clause* replacement = Clause::fromIterator(LiteralStack::BottomFirstIterator(survivors),inf);
-        replacement->setAge(cl->age());
-        
-        // Splitter will set replacement's splitSet, so we don't have to do it here
-                
+
         env.statistics->globalSubsumption++;
         ASS_L(replacement->length(), clen);
         

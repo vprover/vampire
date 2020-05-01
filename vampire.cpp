@@ -458,7 +458,7 @@ void preprocessMode(bool theory)
   while (units.hasNext()) {
     Unit* u = units.next();
     if (!env.options->showFOOL()) {
-      if (u->inference()->rule() == Inference::Rule::FOOL_AXIOM_TRUE_NEQ_FALSE || u->inference()->rule() == Inference::Rule::FOOL_AXIOM_ALL_IS_TRUE_OR_FALSE) {
+      if (u->inference().rule() == InferenceRule::FOOL_AXIOM_TRUE_NEQ_FALSE || u->inference().rule() == InferenceRule::FOOL_AXIOM_ALL_IS_TRUE_OR_FALSE) {
         continue;
       }
     }
@@ -467,8 +467,8 @@ void preprocessMode(bool theory)
       Formula* f = u->getFormula();
 
       // CONJECTURE as inputType is evil, as it cannot occur multiple times
-      if (u->inference()->inputType() == Inference::InputType::CONJECTURE) {
-        u->inference()->setInputType(Inference::InputType::NEGATED_CONJECTURE);
+      if (u->inference().inputType() == UnitInputType::CONJECTURE) {
+        u->inference().setInputType(UnitInputType::NEGATED_CONJECTURE);
       }
 
       FormulaUnit* fu = new FormulaUnit(f,u->inference()); // we are stealing u's inference which is not nice
@@ -720,13 +720,13 @@ void clausifyMode(bool theory)
     if (!cl) {
       continue;
     }
-    printed_conjecture |= cl->inference()->inputType() == Inference::InputType::CONJECTURE || cl->inference()->inputType() == Inference::InputType::NEGATED_CONJECTURE;
+    printed_conjecture |= cl->inputType() == UnitInputType::CONJECTURE || cl->inputType() == UnitInputType::NEGATED_CONJECTURE;
     if (theory) {
       Formula* f = Formula::fromClause(cl);
 
       // CONJECTURE as inputType is evil, as it cannot occur multiple times
-      if (cl->inference()->inputType() == Inference::InputType::CONJECTURE) {
-        cl->inference()->setInputType(Inference::InputType::NEGATED_CONJECTURE);
+      if (cl->inference().inputType() == UnitInputType::CONJECTURE) {
+        cl->inference().setInputType(UnitInputType::NEGATED_CONJECTURE);
       }
 
       FormulaUnit* fu = new FormulaUnit(f,cl->inference()); // we are stealing cl's inference, which is not nice!
@@ -737,7 +737,7 @@ void clausifyMode(bool theory)
   }
   if(!printed_conjecture && UIHelper::haveConjecture()){
     unsigned p = env.signature->addFreshPredicate(0,"p");
-    Clause* c = new(2) Clause(2,new Inference0(Inference::InputType::NEGATED_CONJECTURE,Inference::Rule::INPUT));
+    Clause* c = new(2) Clause(2,NonspecificInference0(UnitInputType::NEGATED_CONJECTURE,InferenceRule::INPUT));
     (*c)[0] = Literal::create(p,0,true,false,0);
     (*c)[1] = Literal::create(p,0,false,false,0);
     env.out() << TPTPPrinter::toString(c) << "\n";
@@ -844,7 +844,6 @@ void groundingMode()
 int main(int argc, char* argv[])
 {
   CALL ("main");
-
 
   System::registerArgv0(argv[0]);
   System::setSignalHandlers();

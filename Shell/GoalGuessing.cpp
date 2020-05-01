@@ -74,7 +74,7 @@ bool GoalGuessing::apply(UnitList*& units)
 
     if(_checkPosition){
       if(u->number() == Unit::getLastParsingNumber()){
-        u->inference()->setInputType(Inference::InputType::NEGATED_CONJECTURE);
+        u->inference().setInputType(UnitInputType::NEGATED_CONJECTURE);
         modified=true;
       }
     }
@@ -97,7 +97,7 @@ bool GoalGuessing::apply(Clause* cl)
 {
   CALL("GoalGuessing::apply(Clause* cl)");
 
-  if(cl->inference()->isPureTheoryDescendant()){ return false; }
+  if(cl->isPureTheoryDescendant()){ return false; }
 
   unsigned clen = cl->length();
   bool looksLikeGoal = false;
@@ -105,7 +105,7 @@ bool GoalGuessing::apply(Clause* cl)
     Literal* lit = (*cl)[i];
     looksLikeGoal |= apply(lit); // need to consider all as apply(Lit) may update signature
   }
-  if(looksLikeGoal){ cl->inference()->setInputType(Inference::InputType::NEGATED_CONJECTURE); }
+  if(looksLikeGoal){ cl->inference().setInputType(UnitInputType::NEGATED_CONJECTURE); }
   return looksLikeGoal; 
 }
 bool GoalGuessing::apply(FormulaUnit* fu)
@@ -130,7 +130,7 @@ bool GoalGuessing::apply(FormulaUnit* fu)
       looksLikeGoal |= apply(sf->literal()); // need to consider all as apply(Lit) may update signature
     }
   }
-  if(looksLikeGoal){ fu->inference()->setInputType(Inference::InputType::NEGATED_CONJECTURE); }
+  if(looksLikeGoal){ fu->inference().setInputType(UnitInputType::NEGATED_CONJECTURE); }
   return looksLikeGoal;
 }
 

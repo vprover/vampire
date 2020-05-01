@@ -137,49 +137,4 @@ FOConversionInference::~FOConversionInference()
   _origin->decRefCnt();
 }
 
-/////////////////////////
-
-void InferenceFromSatRefutation::minimizePremises() {
-  CALL("InferenceFromSatRefutation::minimizePremises");
-
-  if (_minimized) {
-    return;
-  }
-
-  TimeCounter tc(TC_SAT_PROOF_MINIMIZATION);
-
-  SATClauseList* minimized = MinisatInterfacing::minimizePremiseList(_satPremises,_usedAssumptions);
-
-  SATClause* newSatRef = new(0) SATClause(0);
-  newSatRef->setInference(new PropInference(minimized));
-
-  UnitList* newFOPrems = SATInference::getFOPremises(newSatRef);
-
-  // cout << "Minimized from " << _premises->length() << " to " << newFOPrems->length() << endl;
-
-  // "release" the old list
-  {
-    UnitList* it=_premises;
-    while(it) {
-      it->head()->decRefCnt();
-      it=it->tail();
-    }
-  }
-
-  // assign and keep the new one
-  {
-    _premises = newFOPrems;
-    UnitList* it=_premises;
-    while(it) {
-      it->head()->incRefCnt();
-      it=it->tail();
-    }
-  }
-
-  newSatRef->destroy(); // deletes also the inference and with it the list minimized, but not the clauses inside
-
-  _minimized = true;
-}
-
-
 }

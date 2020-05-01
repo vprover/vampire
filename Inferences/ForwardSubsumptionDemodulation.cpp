@@ -610,8 +610,8 @@ isRedundant:
                 return true;
               }
 
-              Inference* inference = new Inference2(Inference::Rule::FORWARD_SUBSUMPTION_DEMODULATION, cl, mcl);
-              Clause* newCl = new(cl->length()) Clause(cl->length(), inference);
+              Clause* newCl = new(cl->length()) Clause(cl->length(),
+                  SimplifyingInference2(InferenceRule::FORWARD_SUBSUMPTION_DEMODULATION, cl, mcl));
 
               for (unsigned i = 0; i < cl->length(); ++i) {
                 if (i == dli) {
@@ -621,7 +621,6 @@ isRedundant:
                 }
               }
 
-              newCl->setAge(cl->age());
               env.statistics->forwardSubsumptionDemodulations++;
 
               premises = pvi(getSingletonIterator(mcl));

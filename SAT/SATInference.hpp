@@ -28,6 +28,41 @@
 #include "Lib/List.hpp"
 #include "SATClause.hpp"
 
+namespace Kernel {
+
+using namespace SAT;
+
+/**
+ * To initialize a first order inference coming from a SAT refutation.
+ * Possibly the SAT refutation was unnecessarily too large
+ * and may be minimized before the final proof outputting.
+ */
+struct FromSatRefutation {
+  /**
+   * The inherited first order part (@b premises) must be already given,
+   * but it is expected that it is much larger than necessary.
+   *
+   * A list of @b satPremises is just taken
+   * (no memory responsibility overtaken; the list must survive till the minimization call),
+   * a stack of @b usedAssumptions is copied.
+   */
+  FromSatRefutation(InferenceRule rule, UnitList* premises, SATClauseList* satPremises, const SATLiteralStack& usedAssumptions) :
+    _rule(rule), _premises(premises), _satPremises(satPremises), _usedAssumptions(usedAssumptions) {}
+
+  /**
+   * Constructor versions with no assumptions.
+   */
+  FromSatRefutation(InferenceRule rule, UnitList* premises, SATClauseList* satPremises) :
+      _rule(rule), _premises(premises), _satPremises(satPremises) {}
+
+  InferenceRule _rule;
+  UnitList* _premises;
+  SATClauseList* _satPremises; // may be a nullptr, in which case no minimization will be possible
+  SATLiteralStack _usedAssumptions; // possibly an empty stack
+};
+
+}
+
 namespace SAT {
 
 using namespace Kernel;
@@ -107,43 +142,6 @@ public:
 
   virtual InfType getType() const { return ASSUMPTION; }
 };
-
-/**
- * A first order inference coming from a SAT refutation.
- * Possibly the SAT refutation was unnecessarily too large
- * and may be minimized before the final proof outputting.
- */
-class InferenceFromSatRefutation : public Kernel::InferenceMany
-{
-public:
-  /**
-   * The inherited first order part (@b premises) must be already given,
-   * but it is expected that it is much larger than necessary.
-   *
-   * A list of @b satPremises is just taken
-   * (no memory responsibility overtaken; the list must survive till the minimization call),
-   * a stack of @b usedAssumptions is copied.
-   */
-  InferenceFromSatRefutation(Rule rule, UnitList* premises, SATClauseList* satPremises, const SATLiteralStack& usedAssumptions) :
-    InferenceMany(rule,premises), _minimized(!env.options->minimizeSatProofs()), _satPremises(satPremises), _usedAssumptions(usedAssumptions) {}
-
-  /**
-   * Constructor versions with no assumptions.
-   */
-  InferenceFromSatRefutation(Rule rule, UnitList* premises, SATClauseList* satPremises) :
-      InferenceMany(rule,premises), _minimized(!env.options->minimizeSatProofs()), _satPremises(satPremises) {}
-
-  virtual void minimizePremises() override;
-
-  CLASS_NAME(InferenceFromSatRefutation);
-  USE_ALLOCATOR(InferenceFromSatRefutation);
-
-protected:
-  bool _minimized;
-  SATClauseList* _satPremises;
-  SATLiteralStack _usedAssumptions;
-};
-
 
 /**
  * Collect first-order premises of @c cl into @c res. Make sure that elements in @c res are unique.

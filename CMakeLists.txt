@@ -601,7 +601,7 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/BlockedClauseElimination.cpp
     Shell/Token.cpp
     Shell/TPTPPrinter.cpp
-    Shell/TrivialPredicateRemover.cpp
+    #Shell/TrivialPredicateRemover.cpp
     Shell/UIHelper.cpp
     Shell/VarManager.cpp
     #Shell/ConstantRemover.cpp
@@ -672,7 +672,7 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/BlockedClauseElimination.hpp
     Shell/Token.hpp
     Shell/TPTPPrinter.hpp
-    Shell/TrivialPredicateRemover.hpp
+    #Shell/TrivialPredicateRemover.hpp
     Shell/UIHelper.hpp
     Shell/VarManager.hpp
     #Shell/ConstantRemover.hpp
