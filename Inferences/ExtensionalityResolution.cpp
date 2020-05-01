@@ -253,8 +253,7 @@ Clause* ExtensionalityResolution::performExtensionalityResolution(
   unsigned otherLen = otherCl->length();
   
   unsigned newLength = otherLen + extLen - 2;
-  Inference* inf = new Inference2(Inference::Rule::EXTENSIONALITY_RESOLUTION, extCl, otherCl);
-  Clause* res = new(newLength) Clause(newLength, inf);
+  Clause* res = new(newLength) Clause(newLength, GeneratingInference2(InferenceRule::EXTENSIONALITY_RESOLUTION, extCl, otherCl));
 
   unsigned next = 0;
 
@@ -274,7 +273,6 @@ Clause* ExtensionalityResolution::performExtensionalityResolution(
     
   ASS_EQ(next,newLength);
   counter++;
-  res->setAge(max(extCl->age(),otherCl->age())+1);
      
   return res;
 }

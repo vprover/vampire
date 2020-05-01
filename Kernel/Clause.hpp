@@ -52,8 +52,6 @@ using namespace Lib;
  * besides calling a constructor:
  * - Fill the Clause with Literals
  * - Increase a relevant counter in the env.statistics object
- * - Set Clause's age if it is not supposed to be zero
- *
  */
 class Clause
   : public Unit
@@ -84,15 +82,15 @@ public:
     SELECTED = 4u
   };
 
-  Clause(unsigned length,Inference* inf);
+  Clause(unsigned length,const Inference& inf);
 
   void* operator new(size_t,unsigned length);
   void operator delete(void* ptr,unsigned length);
 
-  static Clause* fromStack(const Stack<Literal*>& lits, Inference* inf);
+  static Clause* fromStack(const Stack<Literal*>& lits, const Inference& inf);
 
   template<class Iter>
-  static Clause* fromIterator(Iter litit, Inference* inf)
+  static Clause* fromIterator(Iter litit, const Inference& inf)
   {
     CALL("Clause::fromIterator");
 
@@ -141,13 +139,12 @@ public:
 
   /** Return the clause store */
   Store store() const { return _store; }
-
   void setStore(Store s);
 
-  /** Return the age */
-  unsigned age() const { return _age; }
+   /** Return the age */
+  unsigned age() const { return inference().age(); }
   /** Set the age to @b a */
-  void setAge(unsigned a) { _age = a; }
+  void setAge(unsigned a) { inference().setAge(a); }
 
   /** Return the number of selected literals */
   unsigned numSelected() const { return _numSelected; }
@@ -251,7 +248,7 @@ public:
   void assertValid();
 #endif
 
-  SplitSet* splits() const { return _inference->splits(); }
+  SplitSet* splits() const { return _inference.splits(); }
   bool noSplits() const;
 
   /**
@@ -264,7 +261,7 @@ public:
   void setSplits(SplitSet* splits) {
     CALL("Clause::setSplits");
     ASS(_weight == 0);
-    _inference->setSplits(splits);
+    _inference.setSplits(splits);
   }
   
   int getNumActiveSplits() const { return _numActiveSplits; }
@@ -365,19 +362,18 @@ protected:
   unsigned _extensionalityTag : 1;
   /** Clause is a splitting component. */
   unsigned _component : 1;
-  /** Induction depth **/
-  unsigned _inductionDepth : 5;
+
+  /** storage class */
+  Store _store : 3;
 
   /** number of selected literals */
-  unsigned _numSelected;
-  /** age */
-  unsigned _age;
+  unsigned _numSelected : 20;
+
   /** weight */
   mutable unsigned _weight;
   /** weight for clause selection */
   unsigned _weightForClauseSelection;
-  /** storage class */
-  Store _store;
+
   /** number of references to this clause */
   unsigned _refCnt;
   /** for splitting: timestamp marking when has the clause been reduced or restored by splitting */

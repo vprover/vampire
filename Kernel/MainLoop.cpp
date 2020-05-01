@@ -66,7 +66,7 @@ void MainLoopResult::updateStatistics()
   env.statistics->refutation = refutation;
   env.statistics->saturatedSet = saturatedSet;
   if(refutation) {
-    env.statistics->maxInductionDepth = refutation->inference()->inductionDepth();
+    env.statistics->maxInductionDepth = refutation->inference().inductionDepth();
   }
 }
 

@@ -48,6 +48,7 @@ using namespace Indexing;
 
 void ClauseContainer::addClauses(ClauseIterator cit)
 {
+  CALL("ClauseContainer::addClauses");
   while (cit.hasNext()) {
     add(cit.next());
   }
@@ -58,6 +59,7 @@ void ClauseContainer::addClauses(ClauseIterator cit)
 
 void RandomAccessClauseContainer::removeClauses(ClauseIterator cit)
 {
+  CALL("RandomAccessClauseContainer::removeClauses");
   while (cit.hasNext()) {
     remove(cit.next());
   }
@@ -185,6 +187,7 @@ void ActiveClauseContainer::add(Clause* c)
  */
 void ActiveClauseContainer::remove(Clause* c)
 {
+  CALL("ActiveClauseContainer::remove");
   ASS(c->store()==Clause::ACTIVE);
 
   _size--;

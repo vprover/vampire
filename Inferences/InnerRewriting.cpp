@@ -55,8 +55,7 @@ bool InnerRewriting::perform(Clause* cl, Clause*& replacement, ClauseIterator& p
               return true;
             }
 
-            Inference* inf = new Inference1(Inference::Rule::INNER_REWRITING, cl);
-            Clause* res = new(len) Clause(len, inf);
+            Clause* res = new(len) Clause(len,SimplifyingInference1(InferenceRule::INNER_REWRITING, cl));
 
             for (unsigned k = 0; k < len; k++) {
               if (k == i) {
@@ -77,7 +76,6 @@ bool InnerRewriting::perform(Clause* cl, Clause*& replacement, ClauseIterator& p
               }
             }
 
-            res->setAge(cl->age());
             env.statistics->innerRewrites++;
 
             replacement = res;

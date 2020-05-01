@@ -228,7 +228,7 @@ void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, DArray<
 
       Term* fX = Term::create(f,arity,vars.begin());
       Literal* pfX = Literal::create1(p,true,TermList(fX));
-      Clause* fINs = new(1) Clause(1,new Inference0(Inference::InputType::AXIOM,Inference::Rule::INPUT));
+      Clause* fINs = new(1) Clause(1,NonspecificInference0(UnitInputType::AXIOM,InferenceRule::INPUT));
       (*fINs)[0] = pfX;
       ClauseList::push(fINs,newAxioms);
       ASS(SortHelper::areSortsValid(fINs));
@@ -238,7 +238,7 @@ void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, DArray<
     unsigned skolemConstant = env.signature->addSkolemFunction(0);
     env.signature->getFunction(skolemConstant)->setType(OperatorType::getConstantsType(s));
     Literal* psk = Literal::create1(p,true,TermList(Term::createConstant(skolemConstant)));
-    Clause* nonEmpty = new(1) Clause(1,new Inference0(Inference::InputType::AXIOM,Inference::Rule::INPUT));
+    Clause* nonEmpty = new(1) Clause(1,NonspecificInference0(UnitInputType::AXIOM,InferenceRule::INPUT));
     (*nonEmpty)[0] = psk;
     ClauseList::push(nonEmpty,newAxioms);
     ASS(SortHelper::areSortsValid(nonEmpty));
@@ -284,7 +284,7 @@ void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, DArray<
        }
 
        Clause* replacement = Clause::fromStack(literals,
-                                   new Inference1(Inference::Rule::ADD_SORT_PREDICATES, cl));
+                                   NonspecificInference1(InferenceRule::ADD_SORT_PREDICATES, cl));
 
        ASS(SortHelper::areSortsValid(replacement));
        ClauseList::push(replacement,newAxioms);
@@ -384,7 +384,7 @@ void Monotonicity::addSortFunctions(bool withMon, ClauseList*& clauses)
 
      if(changed){
        Clause* replacement = Clause::fromStack(literals,
-                                   new Inference1(Inference::Rule::ADD_SORT_FUNCTIONS, cl));
+                                   NonspecificInference1(InferenceRule::ADD_SORT_FUNCTIONS, cl));
        //cout << "C " << cl->toString() << endl;
        //cout << "R " << replacement->toString() << endl;
        ASS(SortHelper::areSortsValid(replacement));

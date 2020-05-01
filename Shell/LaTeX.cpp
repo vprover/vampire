@@ -138,12 +138,12 @@ vstring LaTeX::refutationToString(Unit* ref)
   while(outKernel.isNonEmpty()) {
     Unit* cs=outKernel.pop();
       Clause* cl= cs->asClause();
-      Inference* inf = cl->inference();
+      Inference& inf = cl->inference();
 
       res+=toStringAsInference(cl);
-      Inference::Iterator it = inf->iterator();
-      while (inf->hasNext(it)) {
-	Unit* prem=inf->next(it);
+      Inference::Iterator it = inf.iterator();
+      while (inf.hasNext(it)) {
+	Unit* prem=inf.next(it);
 	if(prem->isClause() ) {
 	  //this branch is for clauses that were inserted as input into the SaturationAlgorithm object
           //Giles. Removed bdds from this, but not sure if this is redundant anyway given the previous comment.
@@ -164,12 +164,12 @@ vstring LaTeX::refutationToString(Unit* ref)
 
   while(outShell.isNonEmpty()) {
     Unit* unit=outShell.pop();
-    Inference* inf = unit->inference();
+    Inference& inf = unit->inference();
 
     res+=toStringAsInference(unit);
-    Inference::Iterator it = inf->iterator();
-    while (inf->hasNext(it)) {
-      Unit* prem=inf->next(it);
+    Inference::Iterator it = inf.iterator();
+    while (inf.hasNext(it)) {
+      Unit* prem=inf.next(it);
       if(!handledShell.contains(prem)) {
 	handledShell.insert(prem);
 	outShell.push(prem);
@@ -575,7 +575,7 @@ vstring LaTeX::toStringAsInference(Unit* cs, InferenceStore::FullInference* inf)
     res += "\\rightarrow ";
   }
   res += getClauseLatexId(cs)
-    +"$, "+Inference::ruleName(inf->rule)+"]\\\\*[-2ex]\n";
+    +"$, "+ruleName(inf->rule)+"]\\\\*[-2ex]\n";
 
   res += "\\[\\begin{VampireInference}\n";
 
@@ -608,35 +608,35 @@ vstring LaTeX::toStringAsInference(Unit* unit)
 {
   CALL("LaTeX::toStringAsInference(Unit* unit)");
 
-  Inference* inf = unit->inference();
+  Inference& inf = unit->inference();
 
   vstring res("[$");
 
   bool hasParents=false;
-  Inference::Iterator it = inf->iterator();
-  while (inf->hasNext(it)) {
+  Inference::Iterator it = inf.iterator();
+  while (inf.hasNext(it)) {
     hasParents=true;
-    Unit* prem=inf->next(it);
+    Unit* prem=inf.next(it);
     res += Int::toString(prem->number());
-    if(inf->hasNext(it)) {
+    if(inf.hasNext(it)) {
 	res += ",";
     }
   }
   if(hasParents) {
     res += "\\rightarrow ";
   }
-  res += Int::toString(unit->number())+"$, "+Inference::ruleName(inf->rule())+"]\\\\*[-2ex]\n";
+  res += Int::toString(unit->number())+"$, "+ruleName(inf.rule())+"]\\\\*[-2ex]\n";
 
   res += "\\[\\begin{VampireInference}\n";
 
   if(hasParents) {
-    it = inf->iterator();
-    while (inf->hasNext(it)) {
-	Unit* prem=inf->next(it);
+    it = inf.iterator();
+    while (inf.hasNext(it)) {
+	Unit* prem=inf.next(it);
       res += "\\begin{VampirePremise}%\n~~";
       res += toString(prem);
       res += "\n\\end{VampirePremise}\n";
-	if(inf->hasNext(it)) {
+	if(inf.hasNext(it)) {
 	  res += "\\VPremiseSeparator\n";
 	}
     }

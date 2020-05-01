@@ -710,9 +710,7 @@ Clause* FunctionDefinition::applyDefinitions(Clause* cl)
     UnitList::push(defCl, premises);
   }
   UnitList::push(cl, premises);
-  Inference* inf = new InferenceMany(Inference::Rule::DEFINITION_UNFOLDING, premises);
-
-  Clause* res = new(clen) Clause(clen, inf);
+  Clause* res = new(clen) Clause(clen, NonspecificInferenceMany(InferenceRule::DEFINITION_UNFOLDING, premises));
   res->setAge(cl->age());
 
   for(unsigned i=0;i<clen;i++) {
@@ -746,7 +744,7 @@ FunctionDefinition::Def*
 FunctionDefinition::isFunctionDefinition (Unit& unit)
 {
   CALL("FunctionDefinition::isFunctionDefinition(const Unit&)");
-  if(unit.inference()->derivedFromGoal() && env.options->ignoreConjectureInPreprocessing()){
+  if(unit.derivedFromGoal() && env.options->ignoreConjectureInPreprocessing()){
     return 0;
   }
 

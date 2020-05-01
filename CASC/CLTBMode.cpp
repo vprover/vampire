@@ -268,12 +268,12 @@ void CLTBMode::loadIncludes()
       parser.parse();
       UnitList* funits = parser.units();
       if (parser.containsConjecture()) {
-	USER_ERROR("Axiom file " + fname + " contains a conjecture.");
+        USER_ERROR("Axiom file " + fname + " contains a conjecture.");
       }
 
       UnitList::Iterator fuit(funits);
       while (fuit.hasNext()) {
-	fuit.next()->markIncluded();
+        fuit.next()->inference().markIncluded();
       }
       theoryAxioms=UnitList::concat(funits,theoryAxioms);
     }
@@ -327,7 +327,7 @@ void CLTBMode::learnFromSolutionFile(vstring& solnFileName)
     UnitList::DelIterator it(solnUnits);
     while (it.hasNext()) {
       Unit* unit = it.next();
-      if (unit->inference()->inputType()==Inference::InputType::AXIOM){
+      if (unit->inputType()==UnitInputType::AXIOM){
         if (sources->find(unit)){
           if (sources->get(unit)->isFile()){
             vstring name = static_cast<Parse::TPTP::FileSourceRecord*>(sources->get(unit))->nameInFile;

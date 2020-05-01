@@ -53,7 +53,7 @@ private:
   unsigned bestQueue(float featureValue) const;
 
   virtual float evaluateFeature(Clause* cl) const = 0;
-  virtual float evaluateFeatureEstimate(unsigned numPositiveLiterals, Inference* inference) const = 0;
+  virtual float evaluateFeatureEstimate(unsigned numPositiveLiterals, const Inference& inf) const = 0;
 
   /*
    * LRS specific methods for computation of Limits
@@ -82,13 +82,14 @@ public:
 
   bool fulfilsAgeLimit(Clause* cl) const override;
   // note: w here denotes the weight as returned by weight().
+  // age is to be recovered from inference
   // this method internally takes care of computing the corresponding weightForClauseSelection.
-  bool fulfilsAgeLimit(unsigned age, unsigned w, unsigned numPositiveLiterals, Inference* inference) const override;
+  bool fulfilsAgeLimit(unsigned w, unsigned numPositiveLiterals, const Inference& inference) const override;
   bool fulfilsWeightLimit(Clause* cl) const override;
   // note: w here denotes the weight as returned by weight().
+  // age is to be recovered from inference
   // this method internally takes care of computing the corresponding weightForClauseSelection.
-  bool fulfilsWeightLimit(unsigned w, unsigned age, unsigned numPositiveLiterals, Inference* inference) const override;
-
+  bool fulfilsWeightLimit(unsigned w, unsigned numPositiveLiterals, const Inference& inference) const override;
   bool childrenPotentiallyFulfilLimits(Clause* cl, unsigned upperBoundNumSelLits) const override;
   
 }; // class PredicateSplitPassiveClauseContainer
@@ -100,7 +101,7 @@ public:
 
 private:
   float evaluateFeature(Clause* cl) const override;
-  float evaluateFeatureEstimate(unsigned numPositiveLiterals, Inference* inference) const override;
+  float evaluateFeatureEstimate(unsigned numPositiveLiterals, const Inference& inf) const override;
 };
 
 class AvatarMultiSplitPassiveClauseContainer : public PredicateSplitPassiveClauseContainer
@@ -110,7 +111,7 @@ public:
 
 private:
   float evaluateFeature(Clause* cl) const override;
-  float evaluateFeatureEstimate(unsigned numPositiveLiterals, Inference* inference) const override;
+  float evaluateFeatureEstimate(unsigned numPositiveLiterals, const Inference& inf) const override;
 };
 
 class SineLevelMultiSplitPassiveClauseContainer : public PredicateSplitPassiveClauseContainer
@@ -120,7 +121,7 @@ public:
 
 private:
   float evaluateFeature(Clause* cl) const override;
-  float evaluateFeatureEstimate(unsigned numPositiveLiterals, Inference* inference) const override;
+  float evaluateFeatureEstimate(unsigned numPositiveLiterals, const Inference& inf) const override;
 };
 
 class PositiveLiteralMultiSplitPassiveClauseContainer : public PredicateSplitPassiveClauseContainer
@@ -130,7 +131,7 @@ public:
 
 private:
   float evaluateFeature(Clause* cl) const override;
-  float evaluateFeatureEstimate(unsigned numPositiveLiterals, Inference* inference) const override;
+  float evaluateFeatureEstimate(unsigned numPositiveLiterals, const Inference& inf) const override;
 };
 
 };

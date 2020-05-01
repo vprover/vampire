@@ -133,8 +133,7 @@ struct EqualityFactoring::ResultFn
       return 0;
     }
 
-    Inference* inf = new Inference1(Inference::Rule::EQUALITY_FACTORING, _cl);
-    Clause* res = new(_cLen) Clause(_cLen, inf);
+    Clause* res = new(_cLen) Clause(_cLen, GeneratingInference1(InferenceRule::EQUALITY_FACTORING, _cl));
 
     (*res)[0]=Literal::createEquality(false, sRHSS, fRHSS, srt);
 
@@ -164,7 +163,6 @@ struct EqualityFactoring::ResultFn
     }
     ASS_EQ(next,_cLen);
 
-    res->setAge(_cl->age()+1);
     env.statistics->equalityFactoring++;
 
     return res;

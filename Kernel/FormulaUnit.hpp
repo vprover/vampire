@@ -46,7 +46,7 @@ class FormulaUnit
 {
 public:
   /** New unit of a given kind */
-  FormulaUnit(Formula* f,Inference* inf)
+  FormulaUnit(Formula* f,const Inference& inf)
     : Unit(FORMULA,inf),
       _formula(f), _cachedColor(COLOR_INVALID), _cachedWeight(0)
   {}

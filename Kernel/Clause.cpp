@@ -66,18 +66,17 @@ bool Clause::_auxInUse = false;
 
 
 /** New clause */
-Clause::Clause(unsigned length,Inference* inf)
+Clause::Clause(unsigned length,const Inference& inf)
   : Unit(Unit::CLAUSE,inf),
     _length(length),
     _color(COLOR_INVALID),
     _extensionality(false),
     _extensionalityTag(false),
     _component(false),
+    _store(NONE),
     _numSelected(0),
-    _age(0),
     _weight(0),
     _weightForClauseSelection(0),
-    _store(NONE),
     _refCnt(0),
     _reductionTimestamp(0),
     _literalPositions(0),
@@ -85,10 +84,10 @@ Clause::Clause(unsigned length,Inference* inf)
     _auxTimestamp(0)
 {
   // MS: TODO: not sure if this belongs here and whether EXTENSIONALITY_AXIOM input types ever appear anywhere (as a vampire-extension TPTP formula role)
-  if(inf->inputType() == Inference::InputType::EXTENSIONALITY_AXIOM){
+  if(inference().inputType() == UnitInputType::EXTENSIONALITY_AXIOM){
     //cout << "Setting extensionality" << endl;
     _extensionalityTag = true;
-    inf->setInputType(Inference::InputType::AXIOM);
+    inference().setInputType(UnitInputType::AXIOM);
   }
 }
 
@@ -145,7 +144,7 @@ void Clause::destroyExceptInferenceObject()
 }
 
 
-Clause* Clause::fromStack(const Stack<Literal*>& lits, Inference* inf)
+Clause* Clause::fromStack(const Stack<Literal*>& lits, const Inference& inf)
 {
   CALL("Clause::fromStack");
 
@@ -171,12 +170,11 @@ Clause* Clause::fromClause(Clause* c)
 {
   CALL("Clause::fromClause");
 
-  Inference* inf = new Inference1(Inference::Rule::REORDER_LITERALS, c);
-  Clause* res = fromIterator(Clause::Iterator(*c), inf);
+  Clause* res = fromIterator(Clause::Iterator(*c), SimplifyingInference1(InferenceRule::REORDER_LITERALS, c));
 
-  res->setAge(c->age());
-  //res->setProp(c->prop());
-  res->setSplits(c->splits());
+  if (c->splits()) {
+    res->setSplits(c->splits());
+  }
 
   return res;
 }
@@ -210,19 +208,19 @@ void Clause::destroy()
   static Stack<Clause*> toDestroy(32);
   Clause* cl = this;
   for(;;) {
-    Inference::Iterator it = cl->_inference->iterator();
-    while (cl->_inference->hasNext(it)) {
-      Unit* refU = cl->_inference->next(it);
+    Inference::Iterator it = cl->_inference.iterator();
+    while (cl->_inference.hasNext(it)) {
+      Unit* refU = cl->_inference.next(it);
       if (!refU->isClause()) {
-	continue;
+        continue;
       }
       Clause* refCl = static_cast<Clause*> (refU);
       refCl->_refCnt--;
       if (refCl->shouldBeDestroyed()) {
-	toDestroy.push(refCl);
+        toDestroy.push(refCl);
       }
     }
-    delete cl->_inference;
+    cl->_inference.destroyDirectlyOwned();
     cl->destroyExceptInferenceObject();
     if (toDestroy.isEmpty()) {
       break;
@@ -332,7 +330,7 @@ bool Clause::noSplits() const
 {
   CALL("Clause::noSplits");
 
-  return !_inference->splits() || _inference->splits()->isEmpty();
+  return !_inference.splits() || _inference.splits()->isEmpty();
 }
 
 /**
@@ -408,7 +406,7 @@ vstring Clause::toString() const
     // print statistics: each entry should have the form key:value
     result += vstring(" {");
       
-    result += vstring("a:") + Int::toString(_age);
+    result += vstring("a:") + Int::toString(age());
     unsigned weight = (_weight ? _weight : computeWeight());
     result += vstring(",w:") + Int::toString(weight);
     
@@ -425,19 +423,19 @@ vstring Clause::toString() const
       result += vstring(",col:") + Int::toString(color());
     }
 
-    if(_inference->derivedFromGoal()){
+    if(derivedFromGoal()){
       result += vstring(",goal:1");
     }
-    if(_inference->isPureTheoryDescendant()){
+    if(isPureTheoryDescendant()){
       result += vstring(",ptD:1");
     }
 
     if(env.options->induction() != Shell::Options::Induction::NONE){
-      result += vstring(",inD:") + Int::toString(_inference->inductionDepth());
+      result += vstring(",inD:") + Int::toString(_inference.inductionDepth());
     }
-    result += ",thAx:" + Int::toString((int)(_inference->th_ancestors));
-    result += ",allAx:" + Int::toString((int)(_inference->all_ancestors));
-    result += ",thDist:" + Int::toString( _inference->th_ancestors * env.options->theorySplitQueueExpectedRatioDenom() - _inference->all_ancestors);
+    result += ",thAx:" + Int::toString((int)(_inference.th_ancestors));
+    result += ",allAx:" + Int::toString((int)(_inference.all_ancestors));
+    result += ",thDist:" + Int::toString( _inference.th_ancestors * env.options->theorySplitQueueExpectedRatioDenom() - _inference.all_ancestors);
     result += vstring("}");
   }
 
@@ -608,7 +606,7 @@ unsigned Clause::computeWeightForClauseSelection(const Options& opt) const
     numeralWeight = getNumeralWeight();
   }
 
-  bool derivedFromGoal = _inference->derivedFromGoal();
+  bool derivedFromGoal = Unit::derivedFromGoal();
   if(derivedFromGoal && opt.restrictNWCtoGC()){
     bool found = false;
     for(unsigned i=0;i<_length;i++){

@@ -95,7 +95,7 @@ Clause* InterpretedEvaluation::simplify(Clause* cl)
   // whether we should skip those externally added theory axioms, since it is not clear
   // that they are simplified as much as possible (since they are potentially written by
   // users unfamiliar with theorem proving, in contrast to our internally added axioms).
-  if(cl->inference()->isTheoryAxiom()) return cl;
+  if(cl->isTheoryAxiom()) return cl;
 
   static DArray<Literal*> newLits(32);
   unsigned clen=cl->length();
@@ -132,14 +132,12 @@ Clause* InterpretedEvaluation::simplify(Clause* cl)
   newLits.expand(clen+sideConditions.length());
   while(side.hasNext()){ newLits[next++]=side.next();}
   int newLength = next;
-  Inference* inf = new Inference1(Inference::Rule::EVALUATION, cl);
-  Clause* res = new(newLength) Clause(newLength, inf);
+  Clause* res = new(newLength) Clause(newLength,SimplifyingInference1(InferenceRule::EVALUATION, cl));
 
   for(int i=0;i<newLength;i++) {
     (*res)[i] = newLits[i];
   }
 
-  res->setAge(cl->age());
   env.statistics->evaluations++;
 
   //cout << "evaluated " << cl->toString() << " to " << res->toString() << endl;

@@ -67,7 +67,7 @@ void CNF::clausify (Unit* unit,Stack<Clause*>& stack)
     {
       // create an empty clause and push it in the stack
       Clause* clause = new(0) Clause(0,
-				     new Inference1(Inference::Rule::CLAUSIFY,unit));
+				     FormulaTransformation(InferenceRule::CLAUSIFY,unit));
       stack.push(clause);
     }
     return;
@@ -96,7 +96,7 @@ void CNF::clausify (Formula* f)
       // collect the clause
       int length = _literals.length();
       Clause* clause = new(length) Clause(length,
-          new Inference1(Inference::Rule::CLAUSIFY,_unit));
+          FormulaTransformation(InferenceRule::CLAUSIFY,_unit));
       for (int i = length-1;i >= 0;i--) {
 	(*clause)[i] = _literals[i];
       }
