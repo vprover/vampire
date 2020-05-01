@@ -438,9 +438,9 @@ public:
 
   TypedEvaluator() {}
 
-  bool isZero(T arg) const { return number::zero == arg; }
-  TermList getZero() const {return TermList(number::zeroT()); }
-  bool isOne(T arg) const { return number::one == arg; }
+  bool isZero(T arg) const { return number::zeroC == arg; }
+  TermList getZero() const {return number::zero(); }
+  bool isOne(T arg) const { return number::oneC == arg; }
   bool isMinusOne(T arg) const { return typename number::ConstantType(-1) == arg; }
   TermList invert(TermList t) const { return number::minus(t); }
   bool isAddition(Interpretation interp) const { return interp == number::addI; }
@@ -627,6 +627,7 @@ protected:
    */
   bool trySimplifyUnaryMinus(const unsigned& uminus_functor, const TermList& inner, TermList& result)
   { 
+    DEBUG("trySimplifyUnaryMinus(uminus(" << inner << "))")
     ASS_EQ(uminus_functor, env.signature->getInterpretingSymbol(number::minusI));
     if (inner.isTerm()) {
       /* complex term */
