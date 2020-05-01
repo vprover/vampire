@@ -18,6 +18,13 @@ namespace Kernel {
         static bool canInvert(Interpretation i, const Term& t, unsigned index);
       public:
 
+        static TermList invert(const Term& t, unsigned index, TermList toWrap);
+        // {
+        //   auto fun = t.functor();
+        //   ASS(theory->isInterpretedFunction(fun))
+        //
+        // }
+
         static bool canInvert(const Term& t, unsigned index) {
           auto fun = t.functor();
 
@@ -34,7 +41,7 @@ namespace Kernel {
         }
       };
 
-#define IMPL_NUM_THEORY_INVERTER(Frac, ...) \
+#define IMPL_NUM_THEORY_INVERTER_CAN_INVERT(Frac, ...) \
       template<> bool NumberTheoryInverter<Frac ## ConstantType>::canInvert( \
           Interpretation inter,  \
           const Term& t,  \
@@ -48,21 +55,64 @@ namespace Kernel {
         } \
       }; \
 
-      IMPL_NUM_THEORY_INVERTER(Rational, 
-          case number::addI: 
-          case number::minusI: 
-          case number::mulI: 
-            return true; 
-        )
+#define IMPL_NUM_THEORY_INVERTER_INVERT(Frac, ...) \
+      template<> TermList NumberTheoryInverter<Frac ## ConstantType>::invert( \
+          const Term& t,  \
+          unsigned index, \
+          TermList toWrap )  \
+      { \
+        auto fun = t.functor(); \
+        ASS(theory->isInterpretedFunction(fun)) \
+        switch (theory->interpretFunction(fun)) { \
+            __VA_ARGS__ \
+          default: \
+            ASSERTION_VIOLATION; \
+        } \
+      }; \
 
-      IMPL_NUM_THEORY_INVERTER(Real, 
-          case number::addI: 
-          case number::minusI: 
-          case number::mulI: 
-            return true; 
-        )
+#define __INVERT_ADD \
+    case number::addI:  \
+      return number::add(toWrap, number::minus(t[1 - index])); \
 
-      IMPL_NUM_THEORY_INVERTER(Integer, 
+#define __INVERT_MUL \
+    case number::mulI:  \
+      return number::mul(toWrap, number::div(number::one(), t[1 - index]));
+
+#define __INVERT_MINUS \
+    case number::minusI:  \
+      return number::minus(toWrap); \
+
+
+      template<class number>
+      bool nonZero(const TermList& t) {
+        typename number::ConstantType c;
+        return theory->tryInterpretConstant(t,c) && number::zeroC != c;
+      }
+
+#define IMPL_NUM_THEORY_INVERTER_FRAC(Frac) \
+      IMPL_NUM_THEORY_INVERTER_INVERT(Frac,  \
+          __INVERT_ADD \
+          __INVERT_MINUS \
+          __INVERT_MUL \
+          ) \
+      IMPL_NUM_THEORY_INVERTER_CAN_INVERT(Frac, \
+          case number::addI: \
+          case number::minusI: \
+            return true; \
+          case number::mulI: \
+            return nonZero<number>(t[1 - index]);\
+        )\
+
+      IMPL_NUM_THEORY_INVERTER_FRAC(Rational)
+      IMPL_NUM_THEORY_INVERTER_FRAC(Real)
+
+
+      IMPL_NUM_THEORY_INVERTER_INVERT(Integer, 
+          __INVERT_ADD
+          __INVERT_MINUS
+          )
+
+      IMPL_NUM_THEORY_INVERTER_CAN_INVERT(Integer, 
           case number::addI: 
           case number::minusI: 
             return true; 

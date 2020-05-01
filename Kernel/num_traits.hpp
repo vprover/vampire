@@ -51,9 +51,9 @@ namespace Kernel {
  * =====
  *
  * For a special constant cons there is 
- * constexpr static ConstantType cons;
+ * constexpr static ConstantType consC;
  *
- * e.g.: num_traits<IntegerConstantType>::zero;
+ * e.g.: num_traits<IntegerConstantType>::zeroC;
  *
  * =====
  *
@@ -100,12 +100,16 @@ struct num_traits;
     } \
 
 #define IMPL_NUM_TRAITS__SPECIAL_CONSTANT(name, value, isName) \
-    constexpr static ConstantType name = ConstantType(value); \
-    static Term* name ## T() { \
-      static Term* trm = theory->representConstant(name);   \
+    constexpr static ConstantType name ## C = ConstantType(value); \
+    static Term* name ## T() {  /* TODO refactor to const& Term */ \
+      static Term* trm = theory->representConstant(name ## C);   \
       return trm; \
     } \
+    static TermList name() { \
+      return TermList(name ## T()); \
+    } \
     static bool isName(const TermList& l) { \
+      return l == name(); \
       return l.tag() == REF && name ## T() == l.term(); \
     } \
 
@@ -119,20 +123,27 @@ struct num_traits;
     IMPL_NUM_TRAITS__INTERPRETED_FUN(minus, SHORT, _UNARY_MINUS, 1) \
     IMPL_NUM_TRAITS__INTERPRETED_FUN(add  , SHORT, _PLUS       , 2) \
     IMPL_NUM_TRAITS__INTERPRETED_FUN(mul  , SHORT, _MULTIPLY   , 2) \
+    __NUM_TRAITS_IF_FRAC(SHORT, \
+        IMPL_NUM_TRAITS__INTERPRETED_FUN(div, SHORT, _QUOTIENT, 2)\
+    ) \
                                                                     \
     IMPL_NUM_TRAITS__SPECIAL_CONSTANT(one , 1, isOne )              \
     IMPL_NUM_TRAITS__SPECIAL_CONSTANT(zero, 0, isZero)              \
   }; \
 
 #define __INSTANTIATE_NUM_TRAITS(CamelCase) \
-  constexpr CamelCase ## ConstantType num_traits<CamelCase ## ConstantType>::one;\
-  constexpr CamelCase ## ConstantType num_traits<CamelCase ## ConstantType>::zero;\
+  constexpr CamelCase ## ConstantType num_traits<CamelCase ## ConstantType>::oneC;\
+  constexpr CamelCase ## ConstantType num_traits<CamelCase ## ConstantType>::zeroC;\
 
 #define __INSTANTIATE_NUM_TRAITS_ALL \
   __INSTANTIATE_NUM_TRAITS(Rational) \
   __INSTANTIATE_NUM_TRAITS(Real    ) \
   __INSTANTIATE_NUM_TRAITS(Integer ) \
 
+#define __NUM_TRAITS_IF_FRAC(sort, ...) __NUM_TRAITS_IF_FRAC_ ## sort (__VA_ARGS__)
+#define __NUM_TRAITS_IF_FRAC_INT(...) 
+#define __NUM_TRAITS_IF_FRAC_REAL(...) __VA_ARGS__
+#define __NUM_TRAITS_IF_FRAC_RAT(...) __VA_ARGS__
 
 IMPL_NUM_TRAITS(Rational, RATIONAL, RAT )
 IMPL_NUM_TRAITS(Real    , REAL    , REAL)

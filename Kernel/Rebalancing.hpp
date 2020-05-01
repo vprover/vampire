@@ -7,7 +7,7 @@
 #include "SortHelper.hpp"
 
 
-#define DEBUG(...) CallDbg::writeIndent(cout) << __VA_ARGS__ << endl;
+#define DEBUG(...) //CallDbg::writeIndent(cout) << __VA_ARGS__ << endl;
 #define DEBUG_ME DEBUG(_balancer._lit << " @"<< _litIndex  << " " << _path << " --> " << derefPath())
 
 #define CALL_DBG(...) CALL(__VA_ARGS__); CallDbg x(__VA_ARGS__); 
@@ -200,19 +200,6 @@ template<class C> void BalanceIter<C>::incrementPath()
 
       if (_path.isEmpty()) {
         incLit();
-        // if (_litIndex > 1) {
-        //   /* we have already inspected the full literal */
-        //   return;
-        //
-        // } else {
-        //   /* we need to inspect one side of the equality */
-        //   // ASS(_balancer._lit[_litIndex].isTerm());
-        //   // _path.push(Node {
-        //   //     ._term = _balancer._lit[_litIndex].term(),
-        //   //     .index = 0,
-        //   // });
-        //   return;
-        // }
 
       } else {
         /* we inspecte the next term in the same side of the equality */
@@ -222,8 +209,8 @@ template<class C> void BalanceIter<C>::incrementPath()
             /* index invalidated.  */
             
             do {
-                auto x = _path.pop();
-                DEBUG("pop(): " << x)
+                _path.pop();
+                DEBUG("pop()")
                 inc();
                 
             } while (!_path.isEmpty() && peak().index >= peak().term().arity());
@@ -279,7 +266,12 @@ TermList BalanceIter<C>::lhs() const
    
 template<class C> 
 TermList BalanceIter<C>::buildRhs() const { 
-  UNIMPLEMENTED
+  ASS(_balancer._lit.arity() == 2 && _litIndex < 2)
+  TermList rhs = _balancer._lit[1 - _litIndex];
+  for (auto n : _path) {
+    rhs = C::invert(n.term(), n.index, rhs);
+  }
+  return rhs;
 }
        
 template<class C> 
