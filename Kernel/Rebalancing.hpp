@@ -2,16 +2,13 @@
 #define __REBALANCING_H__
 
 #include <iostream>
-#include "num_traits.hpp"
-
 #include "Lib/Environment.hpp"
 #include "Forwards.hpp"
+#include "SortHelper.hpp"
 
-#include "Rebalancing.hpp"
-#include "num_traits.hpp"
 
 #define DEBUG(...) //CallDbg::writeIndent(cout) << __VA_ARGS__ << endl;
-#define DEBUG_ME DEBUG("############  "  << _path << " -> " << pointedAt() << " litIndex: " << _litIndex)
+#define DEBUG_ME DEBUG("############  "  << _path << " -> " << derefPath() << " litIndex: " << _litIndex)
 
 #define CALL_DBG(...) CALL(__VA_ARGS__); CallDbg x(__VA_ARGS__); 
 
@@ -38,9 +35,9 @@ unsigned CallDbg::indent = 0;
 namespace Kernel {
   namespace Rebalancing {
 
-    template<class ConstantType> class Balancer;
-    template<class ConstantType> class BalanceIter;
-    template<class ConstantType> class Balance;
+    template<class FunctionInverter> class Balancer;
+    template<class FunctionInverter> class BalanceIter;
+    template<class FunctionInverter> class Balance;
 
     template<class C> 
     class Balancer {
@@ -75,7 +72,6 @@ namespace Kernel {
      * }
      */
     template<class C> class BalanceIter {
-      using number = num_traits<C>;
 
       /* "call-stack". top of the stack is the term that is currently being traversed. */
       Stack<Node> _path;
@@ -89,8 +85,9 @@ namespace Kernel {
 
       bool inRange() const;
       void findNextVar();
-      TermList pointedAt() const;
-      void incrementPtr();
+      TermList derefPath() const;
+      void incrementPath();
+      bool canInvert() const;
     public:
       void operator++();
       const BalanceIter& operator*() const;
@@ -147,7 +144,7 @@ template<class C> bool BalanceIter<C>::inRange() const
   return _litIndex < 2;
 }
 
-template<class C> TermList BalanceIter<C>::pointedAt() const 
+template<class C> TermList BalanceIter<C>::derefPath() const 
 { 
   ASS(_litIndex < 2);
   if (_path.isEmpty()) {
@@ -159,55 +156,65 @@ template<class C> TermList BalanceIter<C>::pointedAt() const
   }
 }
 
+template<class C> bool BalanceIter<C>::canInvert() const 
+{
+  
+  return _path.isEmpty() /* <- we can 'invert' an equality by doing nothing*/
+    || C::canInvert(_path.top().term(), _path.top().index);
+}
 
-template<class C> void BalanceIter<C>::incrementPtr() 
+template<class C> void BalanceIter<C>::incrementPath() 
 { 
-  CALL_DBG("BalanceIter::incrementPtr")
+  CALL_DBG("BalanceIter::incrementPath")
 
-  auto canInvert = [this]() -> bool { return pointedAt().isTerm() && pointedAt().term()->arity() > 0  && true; };//TODO
+  // auto canInvert = [this]() -> bool { return derefPath().isTerm() && derefPath().term()->arity() > 0  && true; };//TODO
   auto peak = [&]() -> Node& { return _path.top(); };
 
-  if (canInvert()) {
+  if ( /* inspect subterms iff */
+      /* 1) we can build an inversion */
+      canInvert()  
+      /* 2) the subterm is a non-constant complex term */
+      && derefPath().isTerm()  && derefPath().term()->arity() > 0) {
     DEBUG("push")
     _path.push(Node {
-        ._term = pointedAt().term(),
+        ._term = derefPath().term(),
         .index = 0,
     });
     return;
   } else {
-  while (true) {
-    if (_path.isEmpty()) {
-      _litIndex++;
-      DEBUG("_litIndex := " << _litIndex)
-      if (_litIndex > 1) {
-        /* we have already inspected the full literal */
-        return;
+    while (true) {
+      if (_path.isEmpty()) {
+        _litIndex++;
+        DEBUG("_litIndex := " << _litIndex)
+        if (_litIndex > 1) {
+          /* we have already inspected the full literal */
+          return;
+
+        } else {
+          /* we need to inspect one side of the equality */
+          // ASS(_balancer._lit[_litIndex].isTerm());
+          // _path.push(Node {
+          //     ._term = _balancer._lit[_litIndex].term(),
+          //     .index = 0,
+          // });
+          return;
+        }
 
       } else {
-        /* we need to inspect one side of the equality */
-        // ASS(_balancer._lit[_litIndex].isTerm());
-        // _path.push(Node {
-        //     ._term = _balancer._lit[_litIndex].term(),
-        //     .index = 0,
-        // });
-        return;
-      }
+        /* we inspecte the next term in the same side of the equality */
+        auto index = ++peak().index;
+        DEBUG("peakIndex := " << peak().index)
+        if (index >= peak().term().arity()) {
+          /* index invalidated.  */
+          _path.pop();
+          DEBUG("pop()")
 
-    } else {
-      /* we inspecte the next term in the same side of the equality */
-      auto index = ++peak().index;
-      DEBUG("peakIndex := " << peak().index)
-      if (index >= peak().term().arity()) {
-        /* index invalidated.  */
-        _path.pop();
-        DEBUG("pop()")
+        } else {
 
-      } else {
-
-        return;
+          return;
+        }
       }
     }
-  }
   }
 }
 
@@ -215,25 +222,15 @@ template<class C> void BalanceIter<C>::findNextVar()
 { 
   CALL_DBG("BalanceIter::findNextVar")
 
-  while(inRange() && !pointedAt().isVar() ) {
+  while(inRange() && !derefPath().isVar() ) {
     DEBUG_ME
-    incrementPtr();
+    incrementPath();
   }
 }
 
 template<class C> void BalanceIter<C>::operator++() { 
   CALL_DBG("BalanceIter::operator++")
-  // DEBUG_ME
-  incrementPtr();
-  // if (_path.isEmpty()) {
-  //   ASS(_litIndex < 2)
-  //   _litIndex++;
-  // } else {
-  //   _path.top().index += 1;
-  //   if (_path.top().index >= _path.top().term().arity()) {
-  //     _path.pop();
-  //   }
-  // }
+  incrementPath();
   if (inRange())
     findNextVar();
 }
@@ -258,7 +255,7 @@ template<class C>
 TermList BalanceIter<C>::lhs() const 
 {
   CALL_DBG("BalanceIter::lhs")
-  auto out = pointedAt();
+  auto out = derefPath();
   ASS_REP(out.isVar(), out);
   DEBUG(out)
   return out;
@@ -271,7 +268,7 @@ TermList BalanceIter<C>::buildRhs() const {
        
 template<class C> 
 Literal& BalanceIter<C>::build() const { 
-  return Literal::createEquality(_balancer._lit.polarity(), lhs(), buildRhs(), number::sort);
+  return Literal::createEquality(_balancer._lit.polarity(), lhs(), buildRhs(), SortHelper::getTermSort(lhs(), &_balancer._lit));
 }
 
 std::ostream& operator<<(std::ostream& out, const Node& n) {

@@ -4,6 +4,7 @@
 #include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
 #include "Kernel/Rebalancing.hpp"
+#include "Kernel/Rebalancing/Inverters.hpp"
 #include "Indexing/TermSharing.hpp"
 
 #define UNIT_ID Rebalancing
@@ -11,6 +12,7 @@ UT_CREATE;
 using namespace std;
 using namespace Kernel;
 using namespace Rebalancing;
+using namespace Inverters;
 
 
 #define __expand__frac(...) { __VA_ARGS__ }
@@ -146,9 +148,10 @@ std::ostream& operator<<(std::ostream& out, const Balancer<A>& b) {
 template<class A>
 void test_rebalance(Literal& lit, initializer_list<expected_t> expected) {
   ASS(lit.isEquality());
+  using balancer_t = Balancer<NumberInverter<A>>;
 
   unsigned cnt = 0;
-  for (auto b : Balancer<A>(lit)) {
+  for (auto b : balancer_t(lit)) {
     
     if (!any(expected, [&](const expected_t& ex) -> bool 
           // { return get<0>(ex) == b.lhs() && get<1>(ex) == b.buildRhs(); }
@@ -162,7 +165,7 @@ void test_rebalance(Literal& lit, initializer_list<expected_t> expected) {
     cnt++;
   }
   if (cnt != expected.size()) {
-      cout << "unexpected results in balancer: \n" << Balancer<A>(lit) << endl;
+      cout << "unexpected results in balancer: \n" << balancer_t(lit) << endl;
       cout << "expected: \n" << expected << endl;
       exit(-1);
   }
