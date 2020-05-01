@@ -161,6 +161,7 @@
     __CLSR_CONS_UNINTERPRETED(a, __TO_SORT_ ## sort) \
     __CLSR_CONS_UNINTERPRETED(b, __TO_SORT_ ## sort) \
     __CLSR_CONS_UNINTERPRETED(c, __TO_SORT_ ## sort) \
+    __IF_FRAC(sort, __CLSR_FUN_INTERPRETED(2, div, sort, _QUOTIENT)) \
     __CLSR_FUN_INTERPRETED(2, mul, sort, _MULTIPLY) \
     __CLSR_FUN_INTERPRETED(2, add, sort, _PLUS) \
     __CLSR_FUN_INTERPRETED(1, minus, sort, _UNARY_MINUS) \
@@ -171,5 +172,10 @@
     __CLSR_RELATION(lt, Theory::Interpretation::sort ## _LESS)\
     __CLSR_RELATION(leq, Theory::Interpretation::sort ## _LESS_EQUAL)\
   _Pragma("GCC diagnostic pop") \
+
+#define __IF_FRAC(sort, ...) __IF_FRAC_##sort(__VA_ARGS__)
+#define __IF_FRAC_INT(...)
+#define __IF_FRAC_RAT(...) __VA_ARGS__
+#define __IF_FRAC_REAL(...) __VA_ARGS__
 
 #endif // __TEST__SYNTAX_SUGAR__H__

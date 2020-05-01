@@ -92,11 +92,16 @@ TEST_REBALANCE_ALL(multi_var_1
       , bal(y, x)
     ))
 
-TEST_REBALANCE_ALL(multi_var_2
+TEST_REBALANCE_SPLIT(multi_var_2
     , eq(mul(x, 4), mul(y, 2))
-    , __list( 
+    , __frac( 
         bal(y, mul(2, x))
-    ))
+      , bal(x, div(x, 2))
+    )
+    , __frac( 
+        bal(y, mul(2, x))
+    )
+    )
 
 
 TEST_REBALANCE_SPLIT(multi_var_3
@@ -148,24 +153,31 @@ std::ostream& operator<<(std::ostream& out, const Balancer<A>& b) {
 template<class A>
 void test_rebalance(Literal& lit, initializer_list<expected_t> expected) {
   ASS(lit.isEquality());
-  using balancer_t = Balancer<NumberInverter<A>>;
+  using balancer_t = Balancer<NumberTheoryInverter<A>>;
 
+  Stack<TermList> results;
   unsigned cnt = 0;
   for (auto b : balancer_t(lit)) {
+
+    results.push(b.lhs());
     
     if (!any(expected, [&](const expected_t& ex) -> bool 
           // { return get<0>(ex) == b.lhs() && get<1>(ex) == b.buildRhs(); }
           { return get<0>(ex) == b.lhs(); } //TODO check rhs
       )) {
+      cout << "case: " << lit << endl;
       cout << "unexpected entry in balancer: \n" << b << endl;
       cout << "expected: \n" << expected << endl;
       exit(-1);
-    }
-
+    } 
     cnt++;
   }
   if (cnt != expected.size()) {
-      cout << "unexpected results in balancer: \n" << balancer_t(lit) << endl;
+      cout << "case: " << lit << endl;
+      cout << "unexpected results in balancer:" << endl;
+      for (auto r : results) {
+        cout << "\t" << r << endl;
+      }
       cout << "expected: \n" << expected << endl;
       exit(-1);
   }
