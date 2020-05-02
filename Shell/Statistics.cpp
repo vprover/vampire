@@ -127,6 +127,7 @@ Statistics::Statistics()
     combDescendants(0),
     proxyDescendants(0), 
     holAxiomDescendants(0),
+    higherOrder(0),
     generatedClauses(0),
     passiveClauses(0),
     activeClauses(0),

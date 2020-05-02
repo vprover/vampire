@@ -132,6 +132,7 @@ void TPTP::parse()
       break;
     case THF:
       _isThf = true;
+      env.statistics->higherOrder = true;
     case TFF:
       _isFof = false;
       tff();
@@ -1611,7 +1612,8 @@ void TPTP::holTerm()
 
   vstring name = tok.content;
 
-  if(name.at(0) == '$'){
+  //AYB hack
+  if(name.at(0) == '$' && name != "$o" && name != "$i"){
     USER_ERROR("vampire higher-order is currently not compatible with theory reasoning");
   }
 
@@ -5188,6 +5190,7 @@ void TPTP::printStacks() {
   if   (!bit.hasNext()) cout << " <empty>";
   while (bit.hasNext()) cout << " " << bit.next();
   cout << endl;
+  */
 
   Stack<TermList>::Iterator tit(_termLists);
   cout << "Terms:";
@@ -5201,6 +5204,7 @@ void TPTP::printStacks() {
   while (fit.hasNext()) cout << " " << fit.next()->toString();
   cout << endl;
 
+  /*
   Stack<Formula::VarList*>::Iterator vlit(_varLists);
   cout << "Var lists:";
   if   (!vlit.hasNext()) cout << " <empty>";

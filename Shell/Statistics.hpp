@@ -204,6 +204,7 @@ public:
   unsigned combDescendants;
   unsigned proxyDescendants;
   unsigned holAxiomDescendants;
+  bool higherOrder;
 
   // Saturation
   /** all clauses ever occurring in the unprocessed queue */

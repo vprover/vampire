@@ -225,7 +225,7 @@ void Preprocess::preprocess(Problem& prb)
     }
   }*/
 
-  if (prb.hasFOOL() || prb.hasApp()) {//or lambda
+  if (prb.hasFOOL() || env.statistics->higherOrder) {//or lambda
     // This is the point to extend the signature with $$true and $$false
     // If we don't have fool then these constants get in the way (a lot)
 
@@ -422,7 +422,7 @@ void Preprocess::preprocess(Problem& prb)
 
    //Both general splitting and equality proxy ought to removed from a higher-order schedule
    //TODO currently general splitting is broken for higher-order problems
-   if (!prb.hasFOOL() && !prb.hasApp() && _options.generalSplitting()!=Options::RuleActivity::OFF) {
+   if (!env.statistics->higherOrder && _options.generalSplitting()!=Options::RuleActivity::OFF) {
      env.statistics->phase=Statistics::GENERAL_SPLITTING;
      if (env.options->showPreprocessing())
        env.out() << "general splitting" << std::endl;
@@ -432,7 +432,7 @@ void Preprocess::preprocess(Problem& prb)
    }
 
    //TODO currently general splitting is broken for higher-order problems
-   if (!prb.hasFOOL() && !prb.hasApp() && _options.equalityProxy()!=Options::EqualityProxy::OFF && prb.mayHaveEquality()) {
+   if (!env.statistics->higherOrder && _options.equalityProxy()!=Options::EqualityProxy::OFF && prb.mayHaveEquality()) {
      env.statistics->phase=Statistics::EQUALITY_PROXY;
      if (env.options->showPreprocessing())
        env.out() << "equality proxy" << std::endl;
@@ -582,7 +582,7 @@ void Preprocess::naming(Problem& prb)
   env.statistics->phase=Statistics::NAMING;
   UnitList::DelIterator us(prb.units());
   //TODO fix the below
-  Naming naming(_options.naming(),false, true/*prb.hasApp()*/); // For now just force eprPreservingNaming to be false, should update Naming
+  Naming naming(_options.naming(),false, env.statistics->higherOrder); // For now just force eprPreservingNaming to be false, should update Naming
   while (us.hasNext()) {
     Unit* u = us.next();
     if (u->isClause()) {
@@ -712,7 +712,7 @@ void Preprocess::preprocess3 (Problem& prb)
   UnitList::DelIterator us(prb.units());
   while (us.hasNext()) {
     Unit* u = us.next();
-    Unit* v = preprocess3(u, prb.hasApp());
+    Unit* v = preprocess3(u, env.statistics->higherOrder);
     if (u!=v) {
       us.replace(v);
       modified = true;
