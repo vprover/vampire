@@ -634,7 +634,15 @@ bool MLMatcher::Impl::nextMatch()
       }
       md->nextAlts[s_currBLit]++;
       s_currBLit++;
-      if(s_currBLit == md->len) { break; }
+      if(s_currBLit == md->len) {
+        if(md->resolvedLit && s_matchRecord[1] >= md->len) {
+          s_currBLit--;
+          continue;
+        }
+
+        s_currBLit--;  // prepare for next round
+        return true;
+      }
       md->nextAlts[s_currBLit]=0;
     } else {
       // No alt left for currBLit, backtrack
@@ -653,13 +661,7 @@ bool MLMatcher::Impl::nextMatch()
 
   } // while (true)
 
-  if(md->resolvedLit && s_matchRecord[1] >= md->len) {
-    s_currBLit--;
-    return nextMatch();
-  }
-
-  s_currBLit--;  // prepare for next round
-  return true;
+  ASSERTION_VIOLATION; // unreachable
 }
 
 
