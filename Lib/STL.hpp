@@ -23,6 +23,7 @@
 #include <map>
 #include <memory>
 #include <set>
+#include <type_traits>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
@@ -69,7 +70,11 @@ using vvector = std::vector<T, STLAllocator<T>>;
  * Helper function that does not exist in C++11 yet.
  * Replace with std::make_unique once we switch to C++14 or later.
  */
-template<typename T, typename... Args>
+template< typename T
+        , typename... Args
+        , // make_unique should only be defined for non-array types, according to the C++14 standard
+          typename std::enable_if<!std::is_array<T>::value, int>::type = 0
+        >
 std::unique_ptr<T> make_unique(Args&&... args)
 {
     return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
