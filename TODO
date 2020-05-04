@@ -24,6 +24,10 @@ TODO:
   What about
     1) x+y != 5 \/ C[x]
 
+
+    TODO:
+    - inversion 6 + 2x = 6y ==> x = 3y - 3
+
   ============ Simplification rule: Rebalancing
     2) C[y + t] -> C[y]
        C[c * y + t + ...] -> C[y]

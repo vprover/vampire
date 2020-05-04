@@ -37,7 +37,31 @@ namespace Kernel {
 
     template<class FunctionInverter> class Balancer;
     template<class FunctionInverter> class BalanceIter;
-    template<class FunctionInverter> class Balance;
+
+
+    struct Node;
+    class InversionContext;
+
+    struct Node {
+      Node(const Term& term, unsigned index) : _term(&term), _index(index) {}
+      const Term& term() const { return *_term; }
+      unsigned index() const { return _index; };
+
+      TermList operator*() const { 
+        ASS(inBounds());
+        return *_term->nthArgument(_index);
+      }      
+
+      bool inBounds() const { 
+        return _index < _term->arity();
+      }
+
+    private:
+      template<class C>
+      friend class BalanceIter;
+      Term const* const _term;
+      unsigned _index;
+    };
 
     template<class C> 
     class Balancer {
@@ -47,12 +71,6 @@ namespace Kernel {
       Balancer(const Literal& l);
       BalanceIter<C> begin() const;
       BalanceIter<C> end() const;
-    };
-
-    struct Node {
-      unsigned index;
-      Term const* const _term;
-      const Term& term() const { return *_term; }
     };
 
     std::ostream& operator<<(std::ostream& out, const Node&);
@@ -83,7 +101,7 @@ namespace Kernel {
       friend class Balancer<C>;
       BalanceIter(const Balancer<C>&, bool end);
 
-      bool inRange() const;
+      bool inBounds() const;
       void findNextVar();
       TermList derefPath() const;
       void incrementPath();
@@ -98,6 +116,23 @@ namespace Kernel {
       TermList buildRhs() const;
       Literal& build() const;
     };
+
+    class InversionContext {
+      const Term& _toInvert;
+      const TermList _toWrap;
+      const unsigned _unwrapIdx;
+      public: 
+      InversionContext(const Term& toInvert, unsigned unwrapIdx, const TermList toWrap) : 
+        _toInvert(toInvert),
+        _toWrap(toWrap),
+        _unwrapIdx(unwrapIdx)
+      { }
+      TermList toWrap() const { return _toWrap; }
+      TermList toUnwrap() const { return _toInvert[_unwrapIdx]; }
+      const Term& topTerm() const { return _toInvert; }
+      unsigned topIdx() const { return _unwrapIdx; }
+    };
+
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////// IMPLEMENTATION
@@ -139,7 +174,7 @@ BalanceIter<C> Balancer<C>::end() const {
 }
 
 
-template<class C> bool BalanceIter<C>::inRange() const
+template<class C> bool BalanceIter<C>::inBounds() const
 { 
   return _litIndex < 2;
 }
@@ -152,15 +187,18 @@ template<class C> TermList BalanceIter<C>::derefPath() const
 
   } else {
     auto node = _path.top();
-    return node.term()[node.index];
+    return node.term()[node.index()];
   }
 }
 
 template<class C> bool BalanceIter<C>::canInvert() const 
 {
-  
-  return _path.isEmpty() /* <- we can 'invert' an equality by doing nothing*/
-    || C::canInvert(_path.top().term(), _path.top().index);
+  if (_path.isEmpty())
+    return true;/* <- we can 'invert' an equality by doing nothing*/
+  else {
+    auto ctxt = InversionContext(_path.top().term(), _path.top().index(), _balancer._lit[1 - _litIndex]);
+    return C::canInvertTop(ctxt);
+  }
 }
 
 /** moves to the next invertible point in the term */
@@ -171,8 +209,8 @@ template<class C> void BalanceIter<C>::incrementPath()
   // auto canInvert = [this]() -> bool { return derefPath().isTerm() && derefPath().term()->arity() > 0  && true; };//TODO
   auto peak = [&]() -> Node& { return _path.top(); };
   auto incPeak = [&]() {
-     ++peak().index;
-     DEBUG("peakIndex := " << peak().index);
+     ++peak()._index;
+     DEBUG("peakIndex := " << peak().index());
   };
   auto incLit = [&]() {
     _litIndex++;
@@ -190,10 +228,7 @@ template<class C> void BalanceIter<C>::incrementPath()
     if ( derefPath().isTerm()  && derefPath().term()->arity() > 0) {
 
       DEBUG("push")
-      _path.push(Node {
-          ._term = derefPath().term(),
-          .index = 0,
-      });
+      _path.push(Node(*derefPath().term(), 0));
 
     } else {
       DEBUG("inc")
@@ -205,7 +240,7 @@ template<class C> void BalanceIter<C>::incrementPath()
         /* we inspecte the next term in the same side of the equality */
 
           incPeak();
-          if (peak().index >= peak().term().arity()) {
+          if (!peak().inBounds()) {
             /* index invalidated.  */
             
             do {
@@ -213,18 +248,18 @@ template<class C> void BalanceIter<C>::incrementPath()
                 DEBUG("pop()")
                 inc();
                 
-            } while (!_path.isEmpty() && peak().index >= peak().term().arity());
+            } while (!_path.isEmpty() && !peak().inBounds());
           }
       }
     }
-  } while (!canInvert());
+  } while (!canInvert() && inBounds());
 }
 
 template<class C> void BalanceIter<C>::findNextVar() 
 { 
   CALL_DBG("BalanceIter::findNextVar")
 
-  while(inRange() && !derefPath().isVar() ) {
+  while(inBounds() && !derefPath().isVar() ) {
     DEBUG_ME
     incrementPath();
   }
@@ -233,7 +268,7 @@ template<class C> void BalanceIter<C>::findNextVar()
 template<class C> void BalanceIter<C>::operator++() { 
   CALL_DBG("BalanceIter::operator++")
   incrementPath();
-  if (inRange())
+  if (inBounds())
     findNextVar();
 }
 
@@ -249,7 +284,7 @@ template<class C>
 bool operator!=(const BalanceIter<C>& lhs, const BalanceIter<C>& rhs) { 
   CALL_DBG("BalanceIter::operator!=")
   ASS(rhs._path.isEmpty());
-  auto out = lhs.inRange();//!lhs._path.isEmpty() || lhs._litIndex != 2;
+  auto out = lhs.inBounds();//!lhs._path.isEmpty() || lhs._litIndex != 2;
   return out;
 }
 
@@ -269,7 +304,8 @@ TermList BalanceIter<C>::buildRhs() const {
   ASS(_balancer._lit.arity() == 2 && _litIndex < 2)
   TermList rhs = _balancer._lit[1 - _litIndex];
   for (auto n : _path) {
-    rhs = C::invert(n.term(), n.index, rhs);
+    auto ctxt = InversionContext(n.term(), n.index(), rhs);
+    rhs = C::invertTop(ctxt);
   }
   return rhs;
 }
@@ -280,7 +316,7 @@ Literal& BalanceIter<C>::build() const {
 }
 
 std::ostream& operator<<(std::ostream& out, const Node& n) {
-  out << n.term() << "@" << n.index;
+  out << n.term() << "@" << n.index();
   return out;
 }
 
