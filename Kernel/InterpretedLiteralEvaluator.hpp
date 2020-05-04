@@ -41,7 +41,7 @@ public:
   CLASS_NAME(InterpretedLiteralEvaluator);
   USE_ALLOCATOR(InterpretedLiteralEvaluator);
   
-  InterpretedLiteralEvaluator();
+  InterpretedLiteralEvaluator(bool doNormalize = true);
   ~InterpretedLiteralEvaluator();
 
   // TODO: `Literal*` -> `const Literal&` ?
@@ -94,6 +94,7 @@ protected:
 private:
   template<class Fn>
   Evaluator* getEvaluator(unsigned func, DArray<Evaluator*>& evaluators, Fn canEval);
+  const bool _normalize;
 };
 
 

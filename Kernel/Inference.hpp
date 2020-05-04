@@ -326,7 +326,9 @@ public:
     /* Induction hypothesis*/
     INDUCTION,
     /* Inductive strengthening*/
-    INDUCTIVE_STRENGTH
+    INDUCTIVE_STRENGTH,
+    /* rewriting by theory equalties 3x != 6 \/ C[x] ==> C[2] */
+    REBALANCING_ELIMINIATION,
   }; // class Inference::Rule
 
   explicit Inference(Rule r);

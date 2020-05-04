@@ -43,7 +43,7 @@ public:
   CLASS_NAME(InterpretedEvaluation);
   USE_ALLOCATOR(InterpretedEvaluation);
 
-  InterpretedEvaluation();
+  InterpretedEvaluation(bool doNormalize = true);
   virtual ~InterpretedEvaluation();
 
   Clause* simplify(Clause* cl);

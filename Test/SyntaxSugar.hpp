@@ -178,7 +178,6 @@
     __CLSR_RELATION(geq, Theory::Interpretation::sort ## _GREATER_EQUAL)\
     __CLSR_RELATION(lt, Theory::Interpretation::sort ## _LESS)\
     __CLSR_RELATION(leq, Theory::Interpretation::sort ## _LESS_EQUAL)\
-    Inference __infInput = Kernel::Inference(Inference::INPUT); \
   _Pragma("GCC diagnostic pop") \
 
 #define __IF_FRAC(sort, ...) __IF_FRAC_##sort(__VA_ARGS__)

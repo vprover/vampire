@@ -1066,7 +1066,7 @@ IMPL_OPERATOR(Theory::REAL_PLUS, RealConstantType, RealConstantType(RationalCons
 //
 // This is where the evaluators defined above are used.
 
-InterpretedLiteralEvaluator::InterpretedLiteralEvaluator()
+InterpretedLiteralEvaluator::InterpretedLiteralEvaluator(bool doNormalize) : _normalize(doNormalize)
 {
   CALL("InterpretedLiteralEvaluator::InterpretedLiteralEvaluator");
 
@@ -1494,6 +1494,7 @@ public:
   }
 };
 TermList InterpretedLiteralEvaluator::evaluate(TermList t) {
+  CALL("InterpretedLiteralEvaluator::evaluate")
   if (t.isTerm())
     t = TermList(TermTransformerTransformTransformed::transform(t.term()));
   return InterpretedLiteralEvaluator::transformSubterm(t);
@@ -1514,7 +1515,8 @@ bool InterpretedLiteralEvaluator::evaluate(Literal* lit, bool& isConstant, Liter
 
   // This tries to transform each subterm using tryEvaluateFunc (see transform Subterm below)
 
-  resLit = LiteralNormalizer::normalize(lit);
+  resLit = _normalize ? LiteralNormalizer::normalize(lit)
+                      : lit;
   DEBUG( "\t0 ==> ", resLit->toString() );
 
   resLit = TermTransformerTransformTransformed::transform( resLit);

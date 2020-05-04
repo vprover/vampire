@@ -3,6 +3,7 @@
 #include "Test/SyntaxSugar.hpp"
 #include "Indexing/TermSharing.hpp"
 #include "Inferences/RebalancingElimination.hpp"
+#include "Inferences/InterpretedEvaluation.hpp"
 
 #define UNIT_ID RebalancingElimination
 UT_CREATE;
@@ -65,8 +66,7 @@ bool exactlyEq(const Clause& lhs, const Clause& rhs, const Stack<unsigned>& perm
 
 bool permEq(const Clause& lhs, const Clause& rhs, Stack<unsigned>& perm, unsigned idx) {
   if (exactlyEq(lhs, rhs, perm)) {
-    cout << perm << endl;
-  return true;
+    return true;
   }
   for (int i = idx; i < perm.size(); i++) {
     swap(perm[i], perm[idx]);
@@ -96,21 +96,24 @@ bool operator!=(const Clause& lhs, const Clause& rhs) {
 }
 
 
+
 void test_eliminate_na(Clause& toSimplify) {
-  auto inf = RebalancingElimination();
-  auto res = inf.simplify(&toSimplify);
-  if (res != NULL) {
+  static RebalancingElimination inf = RebalancingElimination();
+  static InterpretedEvaluation ev = InterpretedEvaluation(false);
+  auto res = ev.simplify(inf.simplify(&toSimplify));
+  if (res != &toSimplify ) {
     cout  << endl;
     cout << "[     case ]: " << toSimplify.toString() << endl;
     cout << "[       is ]: " << res->toString() << endl;
-    cout << "[ expected ]: < nothing >" << endl;
+    cout << "[ expected ]: < nop >" << endl;
     exit(-1);
   }
 }
 
 void test_eliminate(Clause& toSimplify, const Clause& expected) {
-  auto inf = RebalancingElimination();
-  auto res = inf.simplify(&toSimplify);
+  static RebalancingElimination inf = RebalancingElimination();
+  static InterpretedEvaluation ev = InterpretedEvaluation(false);
+  auto res = ev.simplify(inf.simplify(&toSimplify));
   if (!res || *res != expected) {
     cout  << endl;
     cout << "[     case ]: " << toSimplify.toString() << endl;
@@ -134,7 +137,7 @@ void test_eliminate(Clause& toSimplify, const Clause& expected) {
 
 TEST_ELIMINATE(test_1
     , clause({  neq(mul(3, x), 6), lt(x, y)  })
-    , clause({  lt(3, y)  })
+    , clause({  lt(2, y)  })
     )
 
 TEST_ELIMINATE_NA(test_2
@@ -143,7 +146,7 @@ TEST_ELIMINATE_NA(test_2
 
 TEST_ELIMINATE(test_3
     , clause({  neq(mul(3, x), 6), lt(x, x)  })
-    , clause({  lt(3, 3)  })
+    , clause({  /* lt(2, 2) */  }) 
     )
 
 TEST_ELIMINATE(test_uninterpreted
