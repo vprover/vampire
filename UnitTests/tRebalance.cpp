@@ -201,7 +201,7 @@ std::ostream& operator<<(std::ostream& out, const Balancer<A>& b) {
 template<class A>
 void test_rebalance(Literal& lit, initializer_list<expected_t> expected) {
   ASS(lit.isEquality());
-  using balancer_t = Balancer<NumberTheoryInverter<A>>;
+  using balancer_t = Balancer<NumberTheoryInverter>;
   auto simplified = [](TermList t) -> TermList { 
     // DBG("simplifying ", t)
     static InterpretedLiteralEvaluator e = InterpretedLiteralEvaluator();
