@@ -205,6 +205,8 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/Inference.o\
         Kernel/InferenceStore.o\
         Kernel/InterpretedLiteralEvaluator.o\
+        Kernel/Rebalancing.o\
+        Kernel/Rebalancing/Inverters.o\
 	Kernel/num_traits.o\
         Kernel/KBO.o\
         Kernel/KBOForEPR.o\
@@ -294,7 +296,8 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/TermAlgebraReasoning.o\
          Inferences/TheoryInstAndSimp.o\
          Inferences/Induction.o\
-         Inferences/URResolution.o
+         Inferences/URResolution.o \
+         Inferences/RebalancingElimination.o
 #         Inferences/CTFwSubsAndRes.o\
 
 VSAT_OBJ=SAT/ClauseDisposer.o\
@@ -461,6 +464,8 @@ LIB_DEP = Indexing/TermSharing.o\
 	  Kernel/FormulaUnit.o\
 	  Kernel/FormulaVarIterator.o\
 	  Kernel/InterpretedLiteralEvaluator.o\
+	  Kernel/Rebalancing.o\
+	  Kernel/Rebalancing/Inverters.o\
 	  Kernel/num_traits.o\
 	  Kernel/Inference.o\
 	  Kernel/InferenceStore.o\
@@ -516,7 +521,7 @@ OTHER_CL_DEP = Indexing/FormulaIndex.o\
 	       SAT/TWLSolver.o\
 	       SAT/VariableSelector.o	
 
-VAMP_DIRS := Api Debug DP Lib Lib/Sys Kernel FMB Indexing Inferences InstGen Shell CASC Shell/LTB SAT Saturation Test UnitTests VUtils Parse Minisat Minisat/core Minisat/mtl Minisat/simp Minisat/utils
+VAMP_DIRS := Api Debug DP Lib Lib/Sys Kernel FMB Indexing Inferences InstGen Shell CASC Shell/LTB SAT Saturation Test UnitTests VUtils Parse Minisat Minisat/core Minisat/mtl Minisat/simp Minisat/utils Kernel/Rebalancing
 
 VAMP_BASIC := $(MINISAT_OBJ) $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(BP_VD_OBJ) $(BP_VL_OBJ) $(BP_VLS_OBJ) $(BP_VSOL_OBJ) $(BP_VT_OBJ) $(BP_MPS_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VIG_OBJ) $(VSAT_OBJ) $(DP_OBJ) $(VST_OBJ) $(VS_OBJ) $(PARSE_OBJ) $(VFMB_OBJ)
 #VCLAUSIFY_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VSAT_OBJ) $(VST_OBJ) $(VS_OBJ) $(VT_OBJ)
@@ -587,6 +592,7 @@ obj/%X: | obj
 %.o : %.cpp
 
 $(CONF_ID)/%.o : %.cpp | $(CONF_ID)
+	mkdir -p `dirname $@`
 	$(CXX) $(CXXFLAGS) -c -o $@ $*.cpp -D __STDC_LIMIT_MACROS -D __STDC_FORMAT_MACROS -MMD -MF $(CONF_ID)/$*.d
 
 %.o : %.c 
