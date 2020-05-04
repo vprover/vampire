@@ -105,6 +105,18 @@ TEST_REBALANCE_SPLIT(multi_var_2
 
 
 TEST_REBALANCE_SPLIT(multi_var_3
+    , eq(mul(x, 6), mul(y, 2))
+    , __frac( 
+        bal(y, mul(3,         x))
+      , bal(x, mul(frac(1,3), y))
+    )
+    , __frac( 
+        bal(y, mul(3, x))
+    )
+    )
+
+
+TEST_REBALANCE_SPLIT(multi_var_4
     , eq(mul(x, 2), y)
     , __frac(
         bal(x, mul(frac(1, 2), y))
@@ -114,7 +126,7 @@ TEST_REBALANCE_SPLIT(multi_var_3
       bal(y, mul(2, x))
     ))
 
-TEST_REBALANCE_SPLIT(multi_var_4
+TEST_REBALANCE_SPLIT(multi_var_5
     , eq(mul(x, 2), mul(y, 3))
     , __frac(
         bal(x, mul(frac(3, 2), y))
