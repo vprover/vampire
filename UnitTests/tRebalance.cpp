@@ -166,6 +166,19 @@ TEST_REBALANCE_SPLIT(div_zero_4
     , __frac()
     )
 
+TEST_REBALANCE_SPLIT(div_zero_5
+    , eq(mul(0, x), 0)
+    , __int()
+    , __frac()
+    )
+
+TEST_REBALANCE_ALL(div_zero_6
+    , eq(mul(2, x), 0)
+    , __list( 
+          bal(x, 0)
+      )
+    )
+
 std::ostream& operator<<(std::ostream& out, initializer_list<expected_t> expected) {
   for (auto x : expected ) {
     out << "\t" << get<0>(x) << "\t->\t" << get<1>(x) << "\n";

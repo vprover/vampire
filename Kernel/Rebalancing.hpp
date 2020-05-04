@@ -7,30 +7,10 @@
 #include "SortHelper.hpp"
 
 
-#define DEBUG(...) //CallDbg::writeIndent(cout) << __VA_ARGS__ << endl;
-#define DEBUG_ME DEBUG(_balancer._lit << " @"<< _litIndex  << " " << _path << " --> " << derefPath())
+#define DEBUG(...) // DBG(__VA_ARGS__)
+#define DEBUG_ME DEBUG(_balancer._lit.toString(), " @ ", _litIndex , " ", _path, " --> ", derefPath())
 
-#define CALL_DBG(...) CALL(__VA_ARGS__); CallDbg x(__VA_ARGS__); 
-
-struct CallDbg {
-  static unsigned indent; 
-  const char* const _msg;
-  static std::ostream& writeIndent(std::ostream& out) {
-    for (auto i = 0; i < indent; i++) {
-      out << "\t";
-    }
-    return out;
-  }
-  CallDbg(decltype(_msg) msg)  : _msg(msg) {
-    DEBUG("START " << _msg)
-    indent++;
-  }  
-  ~CallDbg() {
-    indent--;
-    // DEBUG("END   " << _msg)
-  }
-};
-unsigned CallDbg::indent = 0;
+#define CALL_DBG(...) CALL(__VA_ARGS__)
 
 namespace Kernel {
   namespace Rebalancing {
@@ -157,7 +137,7 @@ template<class C> BalanceIter<C>::BalanceIter(const Balancer<C>& balancer, bool 
   if (end) {
     DEBUG("end")
   } else {
-    DEBUG(balancer._lit);
+    DEBUG("begin(", balancer._lit.toString(), ")");
     ASS(balancer._lit.isEquality())
     findNextVar();
   }
@@ -210,11 +190,11 @@ template<class C> void BalanceIter<C>::incrementPath()
   auto peak = [&]() -> Node& { return _path.top(); };
   auto incPeak = [&]() {
      ++peak()._index;
-     DEBUG("peakIndex := " << peak().index());
+     DEBUG("peakIndex := ", peak().index());
   };
   auto incLit = [&]() {
     _litIndex++;
-    DEBUG("_litIndex := " << _litIndex)
+    DEBUG("_litIndex := ", _litIndex)
   };
   auto inc = [&]() {
     if (_path.isEmpty()) 
@@ -313,11 +293,6 @@ TermList BalanceIter<C>::buildRhs() const {
 template<class C> 
 Literal& BalanceIter<C>::build() const { 
   return Literal::createEquality(_balancer._lit.polarity(), lhs(), buildRhs(), SortHelper::getTermSort(lhs(), &_balancer._lit));
-}
-
-std::ostream& operator<<(std::ostream& out, const Node& n) {
-  out << n.term() << "@" << n.index();
-  return out;
 }
 
 } // namespace Rebalancing
