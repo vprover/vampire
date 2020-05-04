@@ -47,11 +47,10 @@ using namespace Lib;
 using namespace Kernel;
 
 
-InterpretedEvaluation::InterpretedEvaluation()
+InterpretedEvaluation::InterpretedEvaluation(bool doNormalize) :
+  _simpl(new InterpretedLiteralEvaluator(doNormalize))
 {
   CALL("InterpretedEvaluation::InterpretedEvaluation");
-
-  _simpl = new InterpretedLiteralEvaluator();
 }
 
 InterpretedEvaluation::~InterpretedEvaluation()

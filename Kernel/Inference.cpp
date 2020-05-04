@@ -864,6 +864,10 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "finite model not found";
   case InferenceRule::INDUCTION_AXIOM:
     return "induction hypothesis";
+  case INDUCTIVE_STRENGTH:
+    return "inductive strengthening";
+  case REBALANCING_ELIMINIATION:
+    return "rebalancing elimination";
   default:
     ASSERTION_VIOLATION;
     return "!UNKNOWN INFERENCE RULE!";
