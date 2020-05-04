@@ -252,9 +252,11 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
           // Note that we should always apply Forward Subsumption if possible,
           // because it is a deletion rule; and Forward Subsumption should be performed before FSD.
 #if VDEBUG && FSD_VDEBUG_REDUNDANCY_ASSERTIONS
-          OverlayBinder tmpBinder;
-          matcher.getBindings(tmpBinder.base());
-          ASS(SDHelper::substClauseIsSmallerOrEqual(mcl, tmpBinder, cl, ordering));
+          if (getOptions().literalComparisonMode() != Options::LiteralComparisonMode::REVERSE) {
+            OverlayBinder tmpBinder;
+            matcher.getBindings(tmpBinder.base());
+            ASS(SDHelper::substClauseIsSmallerOrEqual(mcl, tmpBinder, cl, ordering));
+          }
 #endif
           ASS(replacement == nullptr);
           premises = pvi(getSingletonIterator(mcl));
@@ -527,7 +529,9 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
                     // Here, we have subsumption
                     ASS_EQ(binder.applyTo(eqLit), dlit);  // eqLitS == dlit
 #if VDEBUG && FSD_VDEBUG_REDUNDANCY_ASSERTIONS
-                    ASS(SDHelper::substClauseIsSmallerOrEqual(mcl, binder, cl, ordering));
+                    if (getOptions().literalComparisonMode() != Options::LiteralComparisonMode::REVERSE) {
+                      ASS(SDHelper::substClauseIsSmallerOrEqual(mcl, binder, cl, ordering));
+                    }
 #endif
                     ASS(replacement == nullptr);
                     premises = pvi(getSingletonIterator(mcl));
@@ -540,10 +544,12 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
                     ASS(SDHelper::checkForSubsumptionResolution(cl, SDClauseMatches{mcl,cl_miniIndex}, dlit));
                     replacement = SDHelper::generateSubsumptionResolutionClause(cl, dlit, mcl);
 #if VDEBUG && FSD_VDEBUG_REDUNDANCY_ASSERTIONS
-                    // Note that mclθ < cl does not always hold here,
-                    // but we don't need it to ensure redundancy of cl
-                    // because cl is already entailed by replacement alone
-                    ASS(SDHelper::clauseIsSmaller(replacement, cl, ordering));
+                    if (getOptions().literalComparisonMode() != Options::LiteralComparisonMode::REVERSE) {
+                      // Note that mclθ < cl does not always hold here,
+                      // but we don't need it to ensure redundancy of cl
+                      // because cl is already entailed by replacement alone
+                      ASS(SDHelper::clauseIsSmaller(replacement, cl, ordering));
+                    }
 #endif
                     premises = pvi(getSingletonIterator(mcl));
                     env.statistics->forwardSubsumptionResolution++;
