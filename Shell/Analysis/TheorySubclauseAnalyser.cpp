@@ -44,7 +44,7 @@ struct optional {
   optional() : _present(false) {}
 };
 
-bool isTheoryLiteral(const Literal &lit);
+// bool isTheoryLiteral(const Literal &lit);
 ostream &operator<<(ostream &out, const AbsLiteral &lit);
 ostream &operator<<(ostream &out, const AbsClause &lit);
 
@@ -413,6 +413,8 @@ public:
   friend struct CmpVarsEqual;
   friend struct rect_map;
   friend void gen_dump(ostream &out, const vset<AbsVarTerm> &rest, rect_map &map);
+
+  
 };
 
 AbsTerm::~AbsTerm() {}
@@ -459,6 +461,13 @@ public:
     return Theory::isNumberConstant(_fun.interpret());
   }
 
+  bool isGround() const {
+    for (auto t : _args) {
+      if (!t.get().isGround()) return false;
+    }
+    return false;
+  }
+
   bool uninterpreted() const {
     return _fun.interpret() == Theory::INVALID_INTERPRETATION;
   }
@@ -497,7 +506,7 @@ public:
         } else if (x->_fun.isTimes()) {
           /*  -(x * y * ..) => (-x) * y * ...  */
           x->_args[0] =
-              *new ACTerm(minus, {x->_args[0]}); // TODO: add * (-1) instead
+              *new ACTerm(minus, {x->_args[0]}); 
         }
       }
     }
@@ -522,7 +531,7 @@ public:
       arg.get().mergeAssoc();
     }
 
-    if (_fun.isAssoc()) { // TODO performance
+    if (_fun.isAssoc()) {
       vvec<refw<AbsTerm>> new_args;
       new_args.reserve(_args.size());
       for (int i = 0; i < _args.size(); i++) {
@@ -630,7 +639,7 @@ public:
   friend void gen_dump(ostream &out, const ACTerm &trm, rect_map &map);
 };
 
-template <class F1, class F2> bool matchB(const AbsTerm &term, F1 f1, F2 f2) {
+template <class A, class F1, class F2> A match(const AbsTerm &term, F1 f1, F2 f2) {
   if (auto t = dynamic_cast<const ACTerm *>(&term)) {
     return f1(*t);
   } else {
@@ -638,7 +647,7 @@ template <class F1, class F2> bool matchB(const AbsTerm &term, F1 f1, F2 f2) {
     return f2(*static_cast<const AbsVarTerm *>(&term));
   }
 }
-template <class F1, class F2> void match(const AbsTerm &term, F1 f1, F2 f2) {
+template <class F1, class F2> void match_(const AbsTerm &term, F1 f1, F2 f2) {
   if (auto t = dynamic_cast<const ACTerm *>(&term)) {
     return f1(*t);
   } else {
@@ -692,11 +701,20 @@ public:
       auto &t = AbsTerm::from(*l->nthArgument(i));
       terms.push_back(t);
     }
+    orientEquality();
   }
 
   void var_set(vset<AbsVarTerm>& out) const;
   void normalize();
-  // void rectify(rect_map& map);
+  void orientEquality();
+  bool isGround() const {
+    for (auto t : terms) {
+      if (!t.get().isGround()) {
+        return false;
+      }
+    }
+    return true;
+  }
 
   /**
    * returns whether this is a theory literal. A literal @b lit is a theory
@@ -709,7 +727,8 @@ public:
       if (predicate.interpret() == Interpretation::EQUAL) {
         AbsTerm& l = terms[0];
         AbsTerm& r = terms[1];
-        return l.interpreted() || r.interpreted();
+        return (l.interpreted() && !l.isNumberConstant() )  //TODO check if this makes sens (isNumberConstant)
+            || (r.interpreted() && !r.isNumberConstant());
       } else {
         /* some interpeted predicate */
         return true;
@@ -760,18 +779,13 @@ public:
 
     decltype(abstractions(c)) out;
     for (int cur = 0; cur < lits.size(); cur++) {
-      auto view_vars = vset<AbsVarTerm>();
       auto current = lits[cur];
-      current->var_set(view_vars);
 
-      // ASS_REP_((!current->predicate.interpreted()
-      //   || current->predicate.interpret() != Interpretation::INT_LESS
-      //   || matchB(current->terms[0],
-      //     [](const ACTerm& t) { return t.isInterpretedConstant() && t.toIntegerConstant() == IntegerConstantType(0); },
-      //     [](const AbsVarTerm&) {return true;}
-      //     )), ( *current ))
+      if (current->isTheoryLiteral() && !current->isGround()) {
 
-      if (current->isTheoryLiteral()) {
+        auto view_vars = vset<AbsVarTerm>();
+        current->var_set(view_vars);
+
         auto add_to_vars = [&] (const rc<AbsLiteral>& lit, optional<ClauseRest>& out) {
           if (!out.present()) {
             out = optional<ClauseRest>(ClauseRest());
@@ -1052,19 +1066,58 @@ void gen_dump(ostream &out, const AbsClause &cl, rect_map &map) {
 }
 template <class D>
 void gen_dump(ostream &out, const AbsLiteral &lit, rect_map &map) {
-  out << (lit.positive ? " " : "!");
-  out << lit.predicate;
-  dumpTuple(out, lit.terms,
-            [&](ostream &out, const AbsTerm &t) { gen_dump<D>(out, t, map); });
+
+#define INFIX_REL_TY(INT_LESS, op) \
+      case Interpretation::INT_LESS: \
+          ASS(lit._args.size() == 2); \
+          if (!lit.positive) { out << "!("; } \
+          else { out << "  "; } \
+          gen_dump<D>(out, lit.terms[0], map); \
+          out << op; \
+          gen_dump<D>(out, lit.terms[1], map); \
+          if (!lit.positive) { out << ")"; } \
+          return;
+
+#define INFIX_REL(LESS, op) \
+    INFIX_REL_TY(INT_ ## LESS, op) \
+    INFIX_REL_TY(RAT_ ## LESS, op) \
+    INFIX_REL_TY(REAL_## LESS, op) \
+ 
+  switch (lit.predicate.interpret()) {
+    INFIX_REL(LESS         , "<" )
+    INFIX_REL(LESS_EQUAL   , "<=")
+    INFIX_REL(GREATER      , ">" )
+    INFIX_REL(GREATER_EQUAL, ">=")
+    case Interpretation::EQUAL:
+      gen_dump<D>(out, lit.terms[0], map);
+      out << (lit.positive ? " " : "!");
+      out << "=";
+      gen_dump<D>(out, lit.terms[1], map);
+      return;
+    default:
+      out << (lit.positive ? " " : "!");
+      out << lit.predicate;
+      dumpTuple(out, lit.terms,
+                [&](ostream &out, const AbsTerm &t) { gen_dump<D>(out, t, map); });
+      return;
+  }
 }
 
 template <class D>
 void gen_dump(ostream &out, const AbsTerm &trm, rect_map &map) {
-  match(
+  match_(
       trm, [&](const ACTerm &t) { gen_dump<D>(out, t, map); },
-      [&](const AbsVarTerm &t) { t.write(out, map); }); // TODO factor out
+      [&](const AbsVarTerm &t) { t.write(out, map); }); 
 }
 
+// template <class D>
+// void gen_dump_infix(ostream &out, const ACTerm &l, vstring& op, const ACTerm &r, rect_map &map) {
+//   out << "(";
+//   gen_dump<D>(out, l, map);
+//   out << op;
+//   gen_dump<D>(out, l, map);
+//   out << ")";
+// }
 template <class D>
 void gen_dump(ostream &out, const ACTerm &trm, rect_map &map) {
 
@@ -1075,13 +1128,34 @@ void gen_dump(ostream &out, const ACTerm &trm, rect_map &map) {
     return D::CmpNumberConsts::dumpNumberConstant(out, trm, map);
 
   } else {
-    /* normal term */
-    out << trm._fun;
-    if (trm._args.size() > 0) {
-      dumpTuple(out, trm._args, [&](ostream &out, const AbsTerm &t) {
-        gen_dump<D>(out, t, map);
-      });
-    }
+
+#define INFIX_OP_TY(INT, PLUS, op) \
+      case Interpretation::INT ## _ ## PLUS: \
+          ASS(trm.terms.size() == 2); \
+          out << "("; \
+          gen_dump<D>(out, trm._args[0], map); \
+          out << op; \
+          gen_dump<D>(out, trm._args[1], map); \
+          out << ")"; \
+          return;
+
+#define INFIX_OP(PLUS, op) \
+    INFIX_OP_TY(INT, PLUS, op) \
+    INFIX_OP_TY(RAT, PLUS, op) \
+    INFIX_OP_TY(REAL, PLUS, op) \
+    
+    switch (trm._fun.interpret()) {
+        INFIX_OP(PLUS, "+")
+        INFIX_OP(MULTIPLY, "*")
+      default:
+        /* normal term */
+        out << trm._fun;
+        if (trm._args.size() > 0) {
+          dumpTuple(out, trm._args, [&](ostream &out, const AbsTerm &t) {
+            gen_dump<D>(out, t, map);
+          });
+        }
+    } 
   }
 }
 
@@ -1186,9 +1260,9 @@ struct CmpUninterpretedVarsMatch {
   }
   static void dumpUninterpreted(ostream &out, const ACTerm &lit,
                                 rect_map &map) {
-    out << "?(";
+    out << "u[";
     gen_dump(out, lit.var_set(), map);
-    out << ")";
+    out << "]";
     // dumpTuple(out, lit.var_set(),
     //           [&](ostream &out, AbsVarTerm v) { v.write(out, map); });
   }
@@ -1203,7 +1277,7 @@ struct CmpUninterpretedNop {
   }
   static void dumpUninterpreted(ostream &out, const ACTerm &lit,
                                 rect_map &map) {
-    out << "?(...)";
+    out << "u[...]";
   }
 };
 
@@ -1233,7 +1307,6 @@ struct LitEquiv5::Config {
   using CmpNumberConsts = CmpNumberConstsIsZero;
 };
 
-//TODO here
 #define __IMPL_LIT_EQUIV__COMPARE(i)                                           \
   CmpResult LitEquiv##i::compare(const AbsClause &lhs,                        \
                                  const AbsClause &rhs) {                      \
@@ -1277,19 +1350,19 @@ bool isTheoryTerm_L(const TermList &t) {
 
 
 
-/**
- * returns whether @b lit is a theory literal. A literal @b lit is a theory
- * literal iff (any of)
- * - the predicate symbol is interpreted
- * - it is an equality literal with at least on theory term
- */
-bool isTheoryLiteral(Literal &lit) {
-  Signature::Symbol &sym = *env.signature->getPredicate(lit.functor());
-  const TermList *args = lit.args();
-  return sym.interpreted() && (!lit.isEquality() || isTheoryTerm_L(*args) ||
-                               isTheoryTerm_L(*args->next()));
-}
-
+// /**
+//  * returns whether @b lit is a theory literal. A literal @b lit is a theory
+//  * literal iff (any of)
+//  * - the predicate symbol is interpreted
+//  * - it is an equality literal with at least on theory term
+//  */
+// bool isTheoryLiteral(Literal &lit) {
+//   Signature::Symbol &sym = *env.signature->getPredicate(lit.functor());
+//   const TermList *args = lit.args();
+//   return sym.interpreted() && (!lit.isEquality() || isTheoryTerm_L(*args) ||
+//                                isTheoryTerm_L(*args->next()));
+// }
+//
 // vvec<refw<AbsClause>> absTheorySubclauses(Clause const &c) {
 //   vvec<Literal *> lits;
 //   for (int i = 0; i < c.length(); i++) {
@@ -1378,6 +1451,11 @@ void AbsLiteral::normalize() {
   for (AbsTerm &t : terms) {
     t.normalize();
   }
+  orientEquality();
+}
+
+void AbsLiteral::orientEquality() {
+  CALL("AbsLiteral::orientEquality()");
   if (predicate.isEquality()) {
     ASS_(terms.size() == 2);
     auto rect = rect_maps();
@@ -1528,4 +1606,17 @@ ostream &operator<<(ostream &out, const AbsClause &cl) {
   return out;
 }
 
+bool AbsTerm::isGround() const {
+  return match <bool>(*this
+      , [](const ACTerm& t) {return t.isGround();}
+      , [](const AbsVarTerm& t) {return true;}
+      );
+}
+
+bool AbsTerm::isNumberConstant() const {
+  return match <bool>(*this
+      , [](const ACTerm& t) {return t.isNumberConstant();}
+      , [](const AbsVarTerm& t) {return false;}
+      );
+}
 #endif

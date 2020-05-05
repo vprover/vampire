@@ -53,6 +53,8 @@ public:
   virtual void sortCommut() = 0;
   virtual void pushMinus() = 0;
   virtual void write(ostream &out) const = 0;
+  bool isNumberConstant() const;
+  bool isGround() const;
 
   using on_unsigned_t = void (*)(const ACTerm &, vvec<unsigned> &);
   /** adds all variables contained in this term to @b v, ordered as they occur
