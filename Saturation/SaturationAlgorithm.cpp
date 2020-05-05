@@ -76,6 +76,7 @@
 #include "Shell/AnswerExtractor.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
+#include "Shell/Analysis/TheorySubclauseAnalyser.hpp"
 #include "Shell/UIHelper.hpp"
 
 #include "Splitter.hpp"
@@ -95,6 +96,7 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Shell;
 using namespace Saturation;
+using namespace Shell::Analysis;
 
 /** Print information changes in clause containers */
 #define REPORT_CONTAINERS 0
@@ -819,6 +821,10 @@ void SaturationAlgorithm::addUnprocessedClause(Clause* cl)
 
   cl->setStore(Clause::UNPROCESSED);
   _unprocessed->add(cl);
+
+  if (TheorySubclauseAnalyser::instance && cl) {
+    TheorySubclauseAnalyser::instance->addClause(*cl);
+  }
 }
 
 /**

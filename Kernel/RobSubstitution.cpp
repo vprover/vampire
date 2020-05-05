@@ -936,9 +936,9 @@ public:
       _state=FINISHED;
 #if VDEBUG
       break;
+#endif
     default:
       ASSERTION_VIOLATION;
-#endif
     }
     ASS(_state!=FINISHED || _bdata.isEmpty());
     return _state!=FINISHED;

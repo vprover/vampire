@@ -1,0 +1,15 @@
+[package]
+name = "theory_subclause_analysis"
+version = "0.1.0"
+authors = ["Johannes Schoisswohl <johannes.schoisswohl@myotis.at>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+benchmark_runner = { git = "https://github.com/joe-hauns/benchmark_runner", rev = "5e25ff10bc4bc6917941bba7eb0d3d68ee90b847" }
+# benchmark_runner = { path = "/Users/jo/Programming/projects/benchmark_runner" }
+itertools = "0.9"
+async-trait = "0.1"
+async-std = "1.5"
+rayon = "1.1"

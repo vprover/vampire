@@ -33,6 +33,7 @@
 #include "Lib/Timer.hpp"
 
 #include "Shell/UIHelper.hpp"
+#include "Shell/Analysis/TheorySubclauseAnalyser.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
@@ -49,6 +50,7 @@ using namespace std;
 using namespace Lib;
 using namespace Saturation;
 using namespace Shell;
+using namespace Shell::Analysis;
 
 /**
  * Initialise statistics.
@@ -158,6 +160,9 @@ Statistics::Statistics()
     phase(INITIALIZATION)
 {
 } // Statistics::Statistics
+
+Statistics::~Statistics() 
+{ }
 
 void Statistics::explainRefutationNotFound(ostream& out)
 {
@@ -401,12 +406,18 @@ void Statistics::print(ostream& out)
   addCommentSignForSZS(out);
   out << "------------------------------\n";
 
+  SEPARATOR;
+
 #undef SEPARATOR
 #undef COND_OUT
 
   if (env.options && env.options->timeStatistics()) {
     TimeCounter::printReport(out);
   }
+
+  if (TheorySubclauseAnalyser::instance) 
+    TheorySubclauseAnalyser::instance->dumpStats(out);
+
 }
 
 const char* Statistics::phaseToString(ExecutionPhase p)

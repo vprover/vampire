@@ -36,7 +36,7 @@ using namespace Kernel;
 using namespace Shell;
 
 
-#warning compile-time broken test: interpNorm1
+#warning compile-time broken test
 /*
 TEST_FUN(interpNorm1)
 {

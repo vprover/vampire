@@ -219,6 +219,9 @@ class Signature
     OperatorType* fnType() const;
     OperatorType* predType() const;
 
+
+    /** Return the interpreted function that corresponds to this symbol */
+    virtual inline Interpretation getInterpretation() const { return Theory::INVALID_INTERPRETATION; }
     CLASS_NAME(Signature::Symbol);
     USE_ALLOCATOR(Symbol);
   }; // class Symbol
@@ -239,11 +242,9 @@ class Signature
       CALL("InterpretedSymbol");
     }
 
+    Interpretation getInterpretation() const override { ASS_REP(interpreted(), _name); return _interp; }
     CLASS_NAME(Signature::InterpretedSymbol);
     USE_ALLOCATOR(InterpretedSymbol);
-
-    /** Return the interpreted function that corresponds to this symbol */
-    inline Interpretation getInterpretation() const { ASS_REP(interpreted(), _name); return _interp; }
   };
 
   class IntegerSymbol
@@ -262,6 +263,7 @@ class Signature
 
       setType(OperatorType::getConstantsType(Sorts::SRT_INTEGER));
     }
+      virtual inline Interpretation getInterpretation() const { return Theory::INT_CONST; }
     CLASS_NAME(Signature::IntegerSymbol);
     USE_ALLOCATOR(IntegerSymbol);
   };
@@ -282,6 +284,7 @@ class Signature
 
       setType(OperatorType::getConstantsType(Sorts::SRT_RATIONAL));
     }
+      virtual inline Interpretation getInterpretation() const { return Theory::RAT_CONST; }
     CLASS_NAME(Signature::RationalSymbol);
     USE_ALLOCATOR(RationalSymbol);
   };
@@ -302,6 +305,7 @@ class Signature
 
       setType(OperatorType::getConstantsType(Sorts::SRT_REAL));
     }
+      virtual inline Interpretation getInterpretation() const { return Theory::REAL_CONST; }
     CLASS_NAME(Signature::RealSymbol);
     USE_ALLOCATOR(RealSymbol);
   };
