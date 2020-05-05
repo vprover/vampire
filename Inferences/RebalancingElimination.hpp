@@ -10,7 +10,7 @@ public:
   Clause *simplify(Clause *cl);
 
 private:
-  Clause *rewrite(const Clause &cl, TermList find, TermList replace,
+  Clause *rewrite(Clause &cl, TermList find, TermList replace,
                   unsigned skipLiteral) const;
 };
 } // namespace Inferences

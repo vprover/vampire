@@ -56,10 +56,10 @@ Clause* RebalancingElimination::simplify(Clause* in)
   return out;
 }
 
-Clause* RebalancingElimination::rewrite(const Clause& cl, TermList find, TermList replace, unsigned skipLiteral) const 
+Clause* RebalancingElimination::rewrite(Clause& cl, TermList find, TermList replace, unsigned skipLiteral) const 
 {
   CALL("RebalancingElimination::rewrite")
-  static Inference inf = Inference(Kernel::Inference::Rule::REBALANCING_ELIMINIATION);
+  Inference& inf = *new Inference1(Kernel::Inference::Rule::REBALANCING_ELIMINIATION, &cl);
 
   auto sz = cl.size() - 1;
   Clause& out = *new(sz) Clause(sz, cl.inputType(), &inf); 
