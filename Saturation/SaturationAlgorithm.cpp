@@ -1027,8 +1027,11 @@ void SaturationAlgorithm::removeActiveOrPassiveClause(Clause* cl)
 
   switch(cl->store()) {
   case Clause::PASSIVE:
+  {
+    TimeCounter tc(TC_PASSIVE_CONTAINER_MAINTENANCE);
     _passive->remove(cl);
     break;
+  }
   case Clause::ACTIVE:
     _active->remove(cl);
     break;
@@ -1049,7 +1052,10 @@ void SaturationAlgorithm::addToPassive(Clause* cl)
   cl->setStore(Clause::PASSIVE);
   env.statistics->passiveClauses++;
 
-  _passive->add(cl);
+  {
+    TimeCounter tc(TC_PASSIVE_CONTAINER_MAINTENANCE);
+    _passive->add(cl);
+  }
 }
 
 /**
@@ -1255,7 +1261,11 @@ void SaturationAlgorithm::doOneAlgorithmStep()
     throw MainLoopFinishedException(res);
   }
 
-  Clause* cl = _passive->popSelected();
+  Clause* cl = nullptr;
+  {
+    TimeCounter tc(TC_PASSIVE_CONTAINER_MAINTENANCE);
+    cl = _passive->popSelected();
+  }
   ASS_EQ(cl->store(),Clause::PASSIVE);
   cl->setStore(Clause::SELECTED);
 

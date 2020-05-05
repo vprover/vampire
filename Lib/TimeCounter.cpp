@@ -405,6 +405,9 @@ void TimeCounter::outputSingleStat(TimeCounterUnit tcu, ostream& out)
   case TC_LITERAL_SELECTION:
     out << "literal selection";
     break;
+  case TC_PASSIVE_CONTAINER_MAINTENANCE:
+    out << "passive container maintenance";
+    break;
   case TC_THEORY_INST_SIMP:
     out << "theory instantiation and simplification";
     break;
