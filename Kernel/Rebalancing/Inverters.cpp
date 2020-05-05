@@ -1,8 +1,10 @@
 #include "Inverters.hpp"
+#include "Debug/Tracer.hpp"
 
 namespace Kernel {
 namespace Rebalancing {
 namespace Inverters {
+#define DEBUG(...) //DBG(__VA_ARGS__)
 
 #define CASE_INVERT(sort, fun, expr)                                           \
   case num_traits<sort>::fun##I: {                                             \
@@ -28,6 +30,7 @@ bool NumberTheoryInverter::canInvertTop(const InversionContext &ctxt) {
   auto &t = ctxt.topTerm();
   auto fun = t.functor();
 
+  DEBUG("canInvert ", ctxt.topTerm().toString(), "@", ctxt.topIdx())
   if (theory->isInterpretedFunction(fun)) {
     auto inter = theory->interpretFunction(fun);
     switch (inter) {
@@ -41,6 +44,7 @@ bool NumberTheoryInverter::canInvertTop(const InversionContext &ctxt) {
     DBG("WARNING: unknown interpreted function: ", t.toString())
     return false;
   } else { /* cannot invert uninterpreted functions */
+    DEBUG("no")
     return false;
   }
 }
@@ -72,6 +76,7 @@ TermList NumberTheoryInverter::invertTop(const InversionContext &ctxt) {
   auto index = ctxt.topIdx();
   auto toWrap = ctxt.toWrap();
   auto fun = t.functor();
+  DEBUG("inverting ", ctxt.topTerm().toString())
   ASS(theory->isInterpretedFunction(fun))
   switch (theory->interpretFunction(fun)) {
     CASE_DO_INVERT_ALL(add, number::add(toWrap, number::minus(t[1 - index])))
@@ -89,10 +94,10 @@ TermList NumberTheoryInverter::invertTop(const InversionContext &ctxt) {
  *       ^^  ctxt.toUnwrap()
  */
 struct IntMulInversion {
-  IntegerConstantType a;
   TermList t1;
-  IntegerConstantType b;
   TermList t2;
+  IntegerConstantType a;
+  IntegerConstantType b;
 };
 
 bool tryInvertMulInt(const InversionContext &ctxt, IntMulInversion &inv) {
@@ -120,8 +125,8 @@ bool tryInvertMulInt(const InversionContext &ctxt, IntMulInversion &inv) {
           inv = IntMulInversion{
               .t1 = ctxt.toUnwrap(),
               .t2 = wrap[1 - i],
-              .b = b,
               .a = a,
+              .b = b,
           };
           return true;
         }

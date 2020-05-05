@@ -179,6 +179,12 @@ TEST_REBALANCE_ALL(div_zero_6
       )
     )
 
+  TEST_REBALANCE_ALL(bug_1
+      , neq(f(mul(16, z)), y)
+      , __list(
+        bal(y, f(mul(16, z)))
+      ))
+
 std::ostream& operator<<(std::ostream& out, initializer_list<expected_t> expected) {
   for (auto x : expected ) {
     out << "\t" << get<0>(x) << "\t->\t" << get<1>(x) << "\n";

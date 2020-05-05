@@ -7,7 +7,7 @@
 #include "SortHelper.hpp"
 
 
-#define DEBUG(...) // DBG(__VA_ARGS__)
+#define DEBUG(...) //DBG(__VA_ARGS__)
 #define DEBUG_ME DEBUG(_balancer._lit.toString(), " @ ", _litIndex , " ", _path, " --> ", derefPath())
 
 #define CALL_DBG(...) CALL(__VA_ARGS__)
@@ -173,12 +173,15 @@ template<class C> TermList BalanceIter<C>::derefPath() const
 
 template<class C> bool BalanceIter<C>::canInvert() const 
 {
-  if (_path.isEmpty())
+  // auto ctxt = _path.isEmpty() ? InversionContext(_balancer._lit[_litIndex], _)
+  //   : InversionContext(_path.top().term(), _path.top().index(), _balancer._lit[1 - _litIndex]);
+  if (_path.isEmpty()) {
     return true;/* <- we can 'invert' an equality by doing nothing*/
-  else {
+  } else {
     auto ctxt = InversionContext(_path.top().term(), _path.top().index(), _balancer._lit[1 - _litIndex]);
     return C::canInvertTop(ctxt);
   }
+  // return C::canInvertTop(ctxt);
 }
 
 /** moves to the next invertible point in the term */
@@ -205,7 +208,9 @@ template<class C> void BalanceIter<C>::incrementPath()
   do {
     DEBUG_ME
 
-    if ( derefPath().isTerm()  && derefPath().term()->arity() > 0) {
+    if ( derefPath().isTerm()  
+        && derefPath().term()->arity() > 0 
+        && canInvert()) {
 
       DEBUG("push")
       _path.push(Node(*derefPath().term(), 0));
