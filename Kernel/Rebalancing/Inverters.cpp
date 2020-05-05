@@ -1,4 +1,5 @@
 #include "Inverters.hpp"
+#include "Debug/Tracer.hpp"
 
 namespace Kernel {
 namespace Rebalancing {
