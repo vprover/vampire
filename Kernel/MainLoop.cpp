@@ -149,7 +149,9 @@ ImmediateSimplificationEngine* MainLoop::createISE(Problem& prb, const Options& 
     }
   }
   if(prb.hasInterpretedOperations() || prb.hasInterpretedEquality()) {
+#ifndef __ANALYSIS_USE_OLD_IMPLEMENTATION__TODO__
     res->addFront(new RebalancingElimination()); //TODO ok here
+#endif
     res->addFront(new InterpretedEvaluation());
   }
   if(prb.hasEquality()) {
