@@ -7,6 +7,7 @@
 #include "Lib/json.hpp"
 #include "Kernel/Signature.hpp"
 #include <vector>
+#include <fstream>
 
 using namespace nlohmann;
 using namespace Kernel;
@@ -213,16 +214,25 @@ unsigned serialize<Function>(map<const void*, unsigned>& indices,std::map<unsign
 
 void SearchSpaceDumper::dumpFile(const vstring& out) const 
 {
-  cout << "######################################### dump " << env.options->searchSpaceOutput() << endl;
+  CALL("SearchSpaceDumper::dumpFile")
+  DBG("dumping searchspace to file ", env.options->searchSpaceOutput());
   BYPASSING_ALLOCATOR
   std::map<const void*, unsigned> indices;
   std::map<unsigned, unsigned> functors;
   std::vector<json> objs;
 
+  DBG("serializing...");
   for (auto c : _clauses) {
     serialize(indices, functors, objs, *c);
   }
-  cout << json(objs) << endl;
+  DBG("writing...");
+  fstream file;
+  file.open(out.c_str(), ios_base::out);
+  file << json(objs) << endl;
+  file.flush();
+  file.close();
+
+  DBG("finished.");
   
   // pk.pack(std::string("Log message .packer 1"));
   // pk.pack(std::string("Log message ... 2"));
