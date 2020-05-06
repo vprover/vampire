@@ -47,39 +47,43 @@ SearchSpaceDumper::~SearchSpaceDumper()
 //   };
 // }
 
-#define SETUP_SERIAlIZE(self) \
+#define SETUP_SERIAlIZE(key, map, key_t) \
   BYPASSING_ALLOCATOR \
-  const void* ref = &self; \
-  auto iter = indices.find(ref); \
-  if (iter != indices.end()) { \
+  key_t ref = key; \
+  auto iter = map.find(ref); \
+  if (iter != map.end()) { \
     return iter->second; \
   } \
   auto idx = objects.size(); \
-  indices[&self] = idx; \
+  map[ref] = idx; \
   objects.push_back(json()); \
 
 template<class A>
-unsigned serialize(map<const void*, unsigned>& indices, vector<json>& objects, const A& self);
+unsigned serialize(map<const void*, unsigned>& indices, map<unsigned, unsigned>& functors, vector<json>& objects, const A& self);
 
 struct polymorphic_serialize {
   map<const void*, unsigned>& indices;
+  map<unsigned, unsigned>& functors;
   vector<json>& objects;
   template<class B>
-  unsigned operator()(const B& ser) { return serialize(indices, objects, ser); }
+  unsigned operator()(const B& ser) { return serialize(indices, functors, objects, ser); }
 };
 
 template<class A>
-unsigned serialize(map<const void*, unsigned>& indices, vector<json>& objects, const A& self) {
-  SETUP_SERIAlIZE(self)
+unsigned serialize(map<const void*, unsigned>& indices, std::map<unsigned, unsigned>& functors, vector<json>& objects, const A& self) {
+  SETUP_SERIAlIZE(&self, indices, const void*)
 
   objects[idx] = _serialize(self, polymorphic_serialize{ 
       .indices = indices,
+      .functors = functors,
       .objects = objects, 
       });
 
   return idx;
 }
 
+struct Function;
+struct Predicate;
 struct Predicate {
   unsigned functor;
 };
@@ -153,7 +157,7 @@ template<class Ser> json _serialize(const TermList& self, Ser serial) {
 
 template<class Ser> json _serialize(const Clause& self, Ser serial) {
   json j;
-  j["thryDesc"] = self.isTheoryDescendant();
+  j["thry_desc"] = self.isTheoryDescendant();
 
   json lits = json::array();
   for (int i = 0; i < self.size(); i++) {
@@ -193,15 +197,30 @@ template<class Ser> json _serialize(const Literal& self, Ser serial) {
 //   return idx;
 // }
 
+template<>
+unsigned serialize<Function>(map<const void*, unsigned>& indices,std::map<unsigned, unsigned>& functors, vector<json>& objects, const Function& self) {
+  SETUP_SERIAlIZE(self.functor, functors, unsigned)
+
+  objects[idx] = _serialize(self, polymorphic_serialize{ 
+      .indices = indices,
+      .functors = functors,
+      .objects = objects, 
+      });
+
+  return idx;
+}
+
+
 void SearchSpaceDumper::dumpFile(const vstring& out) const 
 {
   cout << "######################################### dump " << env.options->searchSpaceOutput() << endl;
   BYPASSING_ALLOCATOR
   std::map<const void*, unsigned> indices;
+  std::map<unsigned, unsigned> functors;
   std::vector<json> objs;
 
   for (auto c : _clauses) {
-    serialize(indices, objs, *c);
+    serialize(indices, functors, objs, *c);
   }
   cout << json(objs) << endl;
   
