@@ -32,6 +32,7 @@ public:
   USE_ALLOCATOR(Otter);
 
   Otter(Problem& prb, const Options& opt);
+  virtual ~Otter();
 
   ClauseContainer* getSimplifyingClauseContainer() override;
 

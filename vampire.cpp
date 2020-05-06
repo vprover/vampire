@@ -521,6 +521,11 @@ void vampireMode()
   if (env.options->mode() == Options::Mode::CONSEQUENCE_ELIMINATION) {
     env.options->setUnusedPredicateDefinitionRemoval(false);
   }
+#ifdef __FEATURE_SEARCH_SPACE_DUMPER
+  if (env.options->searchSpaceOutput() != "") {
+    SearchSpaceDumper::init();
+  }
+#endif
 
   doProving();
 
@@ -532,6 +537,7 @@ void vampireMode()
       || env.statistics->terminationReason == Statistics::SATISFIABLE) {
       vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
   }
+
 } // vampireMode
 
 void spiderMode()

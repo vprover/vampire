@@ -2005,6 +2005,9 @@ public:
   int selection() const { return _selection.actualValue; }
   void setSelection(int v) { _selection.actualValue=v;}
   vstring latexOutput() const { return _latexOutput.actualValue; }
+#ifdef __FEATURE_SEARCH_SPACE_DUMPER
+  vstring searchSpaceOutput() const { return _searchSpaceOutput.actualValue; }
+#endif 
   bool latexUseDefault() const { return _latexUseDefaultSymbols.actualValue; }
   LiteralComparisonMode literalComparisonMode() const { return _literalComparisonMode.actualValue; }
   bool forwardSubsumptionResolution() const { return _forwardSubsumptionResolution.actualValue; }
@@ -2454,6 +2457,9 @@ private:
   BoolOptionValue _inductionOnComplexTerms;
 
   StringOptionValue _latexOutput;
+#ifdef __FEATURE_SEARCH_SPACE_DUMPER
+  StringOptionValue _searchSpaceOutput; 
+#endif
   BoolOptionValue _latexUseDefaultSymbols;
 
   ChoiceOptionValue<LiteralComparisonMode> _literalComparisonMode;

@@ -90,6 +90,8 @@ public:
     expand();
   } // Set::Set
 
+  Set(Set&& other) = default;
+
   /** Deallocate the set */
   inline ~Set ()
   {
