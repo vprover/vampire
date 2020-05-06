@@ -179,6 +179,8 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
 
 /**
  * Destroy the SaturationAlgorithm object
+ *
+ * TODO saturation algorithm destructor is never called.
  */
 SaturationAlgorithm::~SaturationAlgorithm()
 {
@@ -819,6 +821,13 @@ void SaturationAlgorithm::addUnprocessedClause(Clause* cl)
 
   cl->setStore(Clause::UNPROCESSED);
   _unprocessed->add(cl);
+
+#ifdef __FEATURE_SEARCH_SPACE_DUMPER
+  if (auto d = SearchSpaceDumper::instance()) {
+    d->add(cl);
+  }
+#endif
+
 }
 
 /**

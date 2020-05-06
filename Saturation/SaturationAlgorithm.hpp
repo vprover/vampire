@@ -43,6 +43,9 @@
 #include "Inferences/TheoryInstAndSimp.hpp"
 
 #include "Saturation/ExtensionalityClauseContainer.hpp"
+#ifdef __FEATURE_SEARCH_SPACE_DUMPER
+#  include "Shell/SearchSpaceDumper.hpp"
+#endif
 
 #include "Limits.hpp"
 

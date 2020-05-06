@@ -45,6 +45,7 @@ public:
   LRS(Problem& prb, const Options& opt)
   : Otter(prb, opt), _limitsEverActive(false) {}
 
+  virtual ~LRS() {}
 
 protected:
 

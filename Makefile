@@ -146,7 +146,7 @@ endif
 ################################################################
 
 CXX = g++
-CXXFLAGS = $(XFLAGS) -Wall -std=c++11  $(INCLUDES) # -Wno-unknown-warning-option for clang
+CXXFLAGS = $(XFLAGS) -Wall -std=c++11  $(INCLUDES) $(OTHER_FLAGS) # -Wno-unknown-warning-option for clang
 
 CC = gcc 
 CCFLAGS = -Wall -O3 -DNDBLSCR -DNLGLOG -DNDEBUG -DNCHKSOL -DNLGLPICOSAT 
@@ -374,6 +374,7 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/SMTFormula.o\
          Shell/FOOLElimination.o\
          Shell/Statistics.o\
+         Shell/SearchSpaceDumper.o\
          Shell/SubexpressionIterator.o\
          Shell/SymbolDefinitionInlining.o\
          Shell/SymbolOccurrenceReplacement.o\
@@ -486,6 +487,7 @@ LIB_DEP = Indexing/TermSharing.o\
 	  Shell/Options.o\
 	  Shell/Property.o\
 	  Shell/Statistics.o\
+	  Shell/SearchSpaceDumper.o\
 	  Shell/GlobalOptions.o\
 	  version.o
 	  # ClausifierDependencyFix.o\
@@ -686,18 +688,18 @@ test_libvapi: $(CONF_ID)/test_libvapi.o $(EXEC_DEF_PREREQ)
 compile_commands:
 	mkdir compile_commands
 
-compile_commands/%.o: compile_commands
-	mkdir -p $(dir $@)
-	echo $(CXX) $(CXXFLAGS) -c $*.cpp -D __STDC_LIMIT_MACROS -D __STDC_FORMAT_MACROS -MMD -MF $(CONF_ID)/$*.d > $@
+# compile_commands/%.o: compile_commands
+# 	mkdir -p $(dir $@)
+# 	echo $(CXX) $(CXXFLAGS) -c $*.cpp -D __STDC_LIMIT_MACROS -D __STDC_FORMAT_MACROS -MMD -MF $(CONF_ID)/$*.d > $@
 
-compile_commands.json: $(foreach x, $(VAMPIRE_DEP), compile_commands/$x)
+compile_commands.json: #$(foreach x, $(VAMPIRE_DEP), compile_commands/$x)
 	echo '[' > $@
 	for f in $(VAMPIRE_DEP);\
 	do\
 	  echo '  {';\
 	  echo '    "directory": "$(PWD)",';\
-	  echo '    "command"  : "'$$(cat compile_commands/$$f)'",';\
-	  echo '    "file"     : "'$$f'"';\
+	  echo '    "command"  : "'$(CXX) $(CXXFLAGS) -o $${f} -c $${f/.o/.cpp}'",';\
+	  echo '    "file"     : "'$${f/.o/.cpp}'"';\
 	  echo '  },';\
 	done | sed '$$d' >> $@
 	echo '  }'>> $@

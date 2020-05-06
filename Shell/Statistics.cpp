@@ -31,6 +31,7 @@
 #include "Lib/Environment.hpp"
 #include "Lib/TimeCounter.hpp"
 #include "Lib/Timer.hpp"
+#include "Shell/SearchSpaceDumper.hpp"
 
 #include "Shell/UIHelper.hpp"
 
@@ -181,6 +182,14 @@ void Statistics::explainRefutationNotFound(ostream& out)
 
 void Statistics::print(ostream& out)
 {
+
+#ifdef __FEATURE_SEARCH_SPACE_DUMPER
+  if (auto d = SearchSpaceDumper::instance()) {
+    d->dumpFile(env.options->searchSpaceOutput());
+    delete d;
+  }
+#endif
+
   if (env.options->statistics()==Options::Statistics::NONE) {
     return;
   }
@@ -408,6 +417,7 @@ void Statistics::print(ostream& out)
     TimeCounter::printReport(out);
   }
 }
+
 
 const char* Statistics::phaseToString(ExecutionPhase p)
 {

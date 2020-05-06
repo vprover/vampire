@@ -597,6 +597,13 @@ void Options::Options::init()
     _lookup.insert(&_latexOutput);
     _latexOutput.tag(OptionTag::OUTPUT);
 
+#ifdef __FEATURE_SEARCH_SPACE_DUMPER
+    _searchSpaceOutput = StringOptionValue("search_space_dump","",""); 
+    _searchSpaceOutput.description="All clauses encountered during proof search will be dumped to this file in MessagePack format ( https://msgpack.org/ ).";
+    _lookup.insert(&_searchSpaceOutput);
+    _searchSpaceOutput.tag(OptionTag::OUTPUT);
+#endif
+
     _latexUseDefaultSymbols = BoolOptionValue("latex_use_default_symbols","",true);
     _latexUseDefaultSymbols.description="Interpretted symbols such as product have default LaTeX symbols"
         " that can be used. They can be overriden in the normal way. This option can turn them off";

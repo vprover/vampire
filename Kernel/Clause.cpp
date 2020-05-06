@@ -52,6 +52,10 @@
 #undef RSTAT_COLLECTION
 #define RSTAT_COLLECTION 1
 
+#ifdef __FEATURE_SEARCH_SPACE_DUMPER
+#include <msgpack.hpp>
+#endif
+
 namespace Kernel
 {
 

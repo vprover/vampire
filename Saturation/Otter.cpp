@@ -42,6 +42,11 @@ Otter::Otter(Problem& prb, const Options& opt)
 {
 }
 
+Otter::~Otter()
+{
+  DBG("~Otter()")
+}
+
 ClauseContainer* Otter::getSimplifyingClauseContainer()
 {
   return &_simplCont;

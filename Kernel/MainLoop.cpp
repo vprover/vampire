@@ -198,6 +198,7 @@ MainLoop* MainLoop::createFromOptions(Problem& prb, const Options& opt)
     break;
 #endif
   default:
+    DBG("lala");
     res = SaturationAlgorithm::createFromOptions(prb, opt);
     break;
   }

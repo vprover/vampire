@@ -67,7 +67,9 @@ public:
   USE_ALLOCATOR(MainLoop);
 
   MainLoop(Problem& prb, const Options& opt) : _prb(prb), _opt(opt) {}
-  virtual ~MainLoop() {}
+  virtual ~MainLoop() {
+    cout << "deleting mainloop" << endl;
+  }
 
 
   MainLoopResult run();
