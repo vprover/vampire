@@ -5,9 +5,14 @@
 #include "Lib/Environment.hpp"
 #include "Shell/Options.hpp"
 #include "Lib/json.hpp"
+#include "Kernel/Signature.hpp"
+#include <vector>
+
 using namespace nlohmann;
 using namespace Kernel;
 using namespace Shell;
+using namespace std;
+using Symbol =  Signature::Symbol;
 
 #define UNIMPLEMENTED ASSERTION_VIOLATION
 
@@ -35,34 +40,170 @@ SearchSpaceDumper::~SearchSpaceDumper()
   }
 }
 
-json toJson(const Literal& l) {
-  BYPASSING_ALLOCATOR
-  return {
-    { "pos", l.isPositive() },
-  };
+// unsigned serialize(map<void*, unsigned> indices, vector<json>& objects, const Literal& l) {
+//   BYPASSING_ALLOCATOR
+//     
+//     { "pos", l.isPositive() },
+//   };
+// }
+
+#define SETUP_SERIAlIZE(self) \
+  BYPASSING_ALLOCATOR \
+  const void* ref = &self; \
+  auto iter = indices.find(ref); \
+  if (iter != indices.end()) { \
+    return iter->second; \
+  } \
+  auto idx = objects.size(); \
+  indices[&self] = idx; \
+  objects.push_back(json()); \
+
+template<class A>
+unsigned serialize(map<const void*, unsigned>& indices, vector<json>& objects, const A& self);
+
+struct polymorphic_serialize {
+  map<const void*, unsigned>& indices;
+  vector<json>& objects;
+  template<class B>
+  unsigned operator()(const B& ser) { return serialize(indices, objects, ser); }
+};
+
+template<class A>
+unsigned serialize(map<const void*, unsigned>& indices, vector<json>& objects, const A& self) {
+  SETUP_SERIAlIZE(self)
+
+  objects[idx] = _serialize(self, polymorphic_serialize{ 
+      .indices = indices,
+      .objects = objects, 
+      });
+
+  return idx;
 }
 
-json toJson(const Clause& cl) {
-  BYPASSING_ALLOCATOR
+struct Predicate {
+  unsigned functor;
+};
+
+struct Function {
+  unsigned functor;
+};
+
+// template<class Ser> json _serializeInterpreted(const Functor& functor, Ser serial) {
+//   if (theo)
+// }
+#define __SER_CONST__Predicate 
+
+#define __SER_CONST__Function_(ConstantType) \
+  { \
+    ConstantType c; \
+    if (theory->tryInterpretConstant(&fun, c)) { \
+      return true; \
+    } \
+  } \
+
+bool isIntConstant(const Term& fun) {
+  __SER_CONST__Function_(IntegerConstantType)
+  __SER_CONST__Function_(RationalConstantType)
+  __SER_CONST__Function_(RealConstantType)
+  return false;
+}
+
+#define __SER_CONST__Function \
+  j["intConst"] = isIntConstant(self.functor);
+
+#define _SERIALIZE_FUN_PRED(pred, Predicate) \
+template<class Ser> json _serialize(const Predicate& self, Ser serial) { \
+  json j; \
+  j["name"] = env.signature->get ## Predicate(self.functor)->name(); \
+  json inter; \
+  if (theory->isInterpreted ## Predicate(self.functor)) { \
+    inter = theory->interpret ## Predicate(self.functor);\
+  } \
+  j["inter"] = inter; \
+  return {pred, j}; \
+} \
+
+_SERIALIZE_FUN_PRED("pred", Predicate)
+_SERIALIZE_FUN_PRED("fun", Function)
+
+template<class Ser> json _serialize(const Term& self, Ser serial) {
   json j;
-  j["thryDesc"] = cl.isTheoryDescendant();
-  json lits = json::array();
-  for (int i = 0; i < cl.size(); i++) {
-    lits[i] = toJson(*cl[i]);
+  Function fun = {.functor = self.functor()};
+  j["fun"] = serial(fun);
+  vector<unsigned> terms;
+  for (int i = 0; i < self.arity(); i++) {
+    terms.push_back(serial(self[i]));
   }
-  j["lits"] = lits;
-
-  return j;
+  j["terms"] = terms;
+  j["numConst"] = isIntConstant(self);
+  return { "cterm", j };
 }
+
+template<class Ser> json _serialize(const TermList& self, Ser serial) {
+  json j; 
+  if (self.isTerm()) {
+    j = serial(*self.term());
+  } else if (self.isVar()) {
+    j = { "var", self.var()};
+  } else {
+    ASSERTION_VIOLATION
+  }
+  return { "term", j };
+}
+
+template<class Ser> json _serialize(const Clause& self, Ser serial) {
+  json j;
+  j["thryDesc"] = self.isTheoryDescendant();
+
+  json lits = json::array();
+  for (int i = 0; i < self.size(); i++) {
+    lits[i] = serial(*self[i]);
+  }
+
+  j["lits"] = lits;
+  return { "clause", j };
+}
+
+
+template<class Ser> json _serialize(const Literal& self, Ser serial) {
+  json j;
+  j["pos"] = self.isPositive();
+  Predicate p {.functor = self.functor()};
+  j["pred"] = serial(p);
+  vector<unsigned> terms;
+  for (int i = 0; i < self.arity(); i++) {
+    terms.push_back(serial(self[i]));
+  }
+  j["terms"] = terms;
+  return { "lit", j };
+}
+
+// unsigned serialize(map<const void*, unsigned> indices, vector<json>& objects, const Clause& self) {
+//   SETUP_SERIAlIZE(self)
+//
+//   json j;
+//   j["thryDesc"] = self.isTheoryDescendant();
+//   json lits = json::array();
+//   // for (int i = 0; i < self.size(); i++) {
+//   //   lits[i] = toJson(*self[i]);
+//   // }
+//   j["lits"] = lits;
+//   objects[idx] = { "clause" , j };
+//
+//   return idx;
+// }
 
 void SearchSpaceDumper::dumpFile(const vstring& out) const 
 {
   cout << "######################################### dump " << env.options->searchSpaceOutput() << endl;
   BYPASSING_ALLOCATOR
+  std::map<const void*, unsigned> indices;
+  std::vector<json> objs;
 
   for (auto c : _clauses) {
-    cout << toJson(*c) << endl;
+    serialize(indices, objs, *c);
   }
+  cout << json(objs) << endl;
   
   // pk.pack(std::string("Log message .packer 1"));
   // pk.pack(std::string("Log message ... 2"));
