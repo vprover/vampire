@@ -41,46 +41,57 @@ SearchSpaceDumper::~SearchSpaceDumper()
   }
 }
 
-#define SETUP_SERIAlIZE(key, map, key_t) \
+#define SETUP_SERIALIZE_CACHED(key_t, key, use_cache) \
   BYPASSING_ALLOCATOR \
   key_t ref = key; \
-  auto iter = map.find(ref); \
-  if (iter != map.end()) { \
+  auto& cache = caches.use_cache; \
+  auto iter = cache.find(ref); \
+  if (iter != cache.end()) { \
     return iter->second; \
   } \
-  auto idx = objects.size(); \
-  map[ref] = idx; \
-  objects.push_back(json()); \
+  auto idx = caches.serialized.size(); \
+  cache[ref] = idx; \
+  caches.serialized.push_back(json()); \
+
+#define SETUP_SERIALIZE_UNCACHED(key_t, key, use_cache) \
+  BYPASSING_ALLOCATOR \
+  auto idx = caches.serialized.size(); \
+  caches.serialized.push_back(json()); \
+
+#define __SERIALIZE_SIG(Type) \
+  polymorphic_serialize& caches, \
+  const Type& self \
+
+struct polymorphic_serialize;
 
 template<class A>
-unsigned serialize(map<const void*, unsigned>& indices, map<unsigned, unsigned>& functors, vector<json>& objects, const A& self);
+unsigned serialize(__SERIALIZE_SIG(A));
 
 struct polymorphic_serialize {
+
   map<const void*, unsigned>& indices;
-  map<unsigned, unsigned>& functors;
-  vector<json>& objects;
+  map<unsigned, unsigned>& functions;
+  map<unsigned, unsigned>& predicates;
+  vector<json>& serialized;
+
   template<class B>
-  unsigned operator()(const B& ser) { return serialize(indices, functors, objects, ser); }
+  unsigned operator()(const B& ser) { return serialize(*this, ser); }
 };
 
-template<class A>
-unsigned serialize(map<const void*, unsigned>& indices, std::map<unsigned, unsigned>& functors, vector<json>& objects, const A& self) {
-  SETUP_SERIAlIZE(&self, indices, const void*)
-
-  auto ser = _serialize(self, polymorphic_serialize{ 
-    .indices = indices,
-    .functors = functors,
-    .objects = objects, 
-  });
-
-  json j;
-  j[get<0>(ser)] = get<1>(ser);
-
-  objects[idx] = j;
-
-
-  return idx;
-}
+// template<class A>
+// unsigned serialize(__SERIALIZE_SIG(A)) {
+//   SETUP_SERIALIZE(&self, indices, const void*)
+//
+//   auto ser = _serialize(self, caches);
+//
+//   json j;
+//   j[get<0>(ser)] = get<1>(ser);
+//
+//   caches.serialized[idx] = j;
+//
+//
+//   return idx;
+// }
 
 struct Function;
 struct Predicate;
@@ -139,14 +150,14 @@ template<class Ser> tuple<const char*, json> _serialize(const Term& self, Ser se
     terms.push_back(serial(self[i]));
   }
   j["terms"] = terms;
-  j["numConst"] = isIntConstant(self);
+  j["num_const"] = isIntConstant(self);
   return { "Cterm", j };
 }
 
 template<class Ser> tuple<const char*, json> _serialize(const TermList& self, Ser serial) {
   json j; 
   if (self.isTerm()) {
-    j = serial(*self.term());
+    j["Cterm"] = serial(*self.term());
   } else if (self.isVar()) {
     j["Var"] = self.var();
   } else {
@@ -176,29 +187,47 @@ template<class Ser> tuple<const char*, json> _serialize(const Literal& self, Ser
   j["pred"] = serial(p);
   vector<unsigned> terms;
   for (int i = 0; i < self.arity(); i++) {
-    terms.push_back(serial(self[i]));
+    auto x  = serial(self[i]);
+    // DBG(self[i].toString()," -> ", x)
+    terms.push_back(x);
   }
   j["terms"] = terms;
   return { "Lit", j };
 }
 
-template<>
-unsigned serialize<Function>(map<const void*, unsigned>& indices,std::map<unsigned, unsigned>& functors, vector<json>& objects, const Function& self) {
-  SETUP_SERIAlIZE(self.functor, functors, unsigned)
+#define __SERIALIZE(cached, key_t, key, cache) \
+    SETUP_SERIALIZE_ ## cached(key_t, key, cache) \
+   \
+    auto ser = _serialize(self, caches); \
+   \
+    json j; \
+    j[get<0>(ser)] = get<1>(ser); \
+   \
+    caches.serialized[idx] = j; \
+   \
+    return idx; \
 
-  auto ser = _serialize(self, polymorphic_serialize{ 
-    .indices = indices,
-    .functors = functors,
-    .objects = objects, 
-  });
+#define CACHED_SERIALIZE(Type, key_t, key, cache) \
+  template<> \
+  unsigned serialize<Type>(__SERIALIZE_SIG(Type)) {\
+    __SERIALIZE(CACHED, key_t, key, cache) \
+  } \
 
-  json j;
-  j[get<0>(ser)] = get<1>(ser);
+#define UNCACHED_SERIALIZE(Type, key_t, key, cache) \
+  template<> \
+  unsigned serialize<Type>(__SERIALIZE_SIG(Type)) {\
+    __SERIALIZE(UNCACHED, key_t, key, cache) \
+  } \
 
-  objects[idx] = j;
 
-  return idx;
-}
+CACHED_SERIALIZE(Function, unsigned, self.functor, functions)
+CACHED_SERIALIZE(Predicate, unsigned, self.functor, predicates)
+CACHED_SERIALIZE(Term, const void*, &self, indices)
+CACHED_SERIALIZE(Clause, const void*, &self, indices)
+CACHED_SERIALIZE(Literal, const void*, &self, indices)
+UNCACHED_SERIALIZE(TermList, -, -, -)
+
+
 
 
 void SearchSpaceDumper::dumpFile(const vstring& out) const 
@@ -207,18 +236,26 @@ void SearchSpaceDumper::dumpFile(const vstring& out) const
   DBG("dumping searchspace to file ", env.options->searchSpaceOutput());
   BYPASSING_ALLOCATOR
   std::map<const void*, unsigned> indices;
-  std::map<unsigned, unsigned> functors;
-  std::vector<json> objs;
+  std::map<unsigned, unsigned> predicates;
+  std::map<unsigned, unsigned> functions;
+  std::vector<json> serialized;
+
+  auto caches = polymorphic_serialize {
+    .indices = indices,
+    .functions = functions,
+    .predicates = predicates,
+    .serialized = serialized,
+  };
 
   DBG("serializing...");
   for (auto c : _clauses) {
-    serialize(indices, functors, objs, *c);
+    serialize(caches, *c);
   }
   DBG("writing...");
   cout << out.c_str() << endl;
   ofstream f{ out.c_str() };
-  // f << json(objs) << endl;
-  f << json(objs).dump(3) << endl; 
+  // f << json(serialized) << endl;
+  f << json(serialized).dump(3) << endl; 
 
   DBG("finished.");
   
