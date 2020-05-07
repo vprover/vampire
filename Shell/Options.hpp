@@ -2113,6 +2113,7 @@ public:
   bool addCombAxioms() const { return _addCombAxioms.actualValue; }
   bool addProxyAxioms() const { return _addProxyAxioms.actualValue; }
   bool combinatorySup() const { return _combinatorySuperposition.actualValue; }
+  bool negExt() const { return _negativeExt.actualValue; }
   bool choiceAxiom() const { return _choiceAxiom.actualValue; }
   bool injectivityReasoning() const { return _injectivity.actualValue; }
   bool pragmatic() const { return _pragmatic.actualValue; }
@@ -2495,6 +2496,7 @@ private:
   BoolOptionValue _addCombAxioms;
   BoolOptionValue _addProxyAxioms;
   BoolOptionValue _combinatorySuperposition;
+  BoolOptionValue _negativeExt;
   BoolOptionValue _choiceAxiom;
   BoolOptionValue _injectivity;
   BoolOptionValue _pragmatic;

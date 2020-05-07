@@ -1368,8 +1368,10 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
 
   if(opt.combinatorySup()){
+    if(opt.negExt()){
+      gie->addFront(new NegativeExt());//TODO add option     
+    }
     gie->addFront(new ArgCong());
-    gie->addFront(new NegativeExt());//TODO add option
     gie->addFront(new Narrow());
     if(!opt.pragmatic()){
       gie->addFront(new SubVarSup());
