@@ -182,7 +182,8 @@ void UIHelper::outputSaturatedSet(ostream& out, UnitIterator uit)
 
   addCommentSignForSZS(out);
   out << "# SZS output start Saturation." << endl;
-
+  outputSymbolDeclarations(out);
+  
   while (uit.hasNext()) {
     Unit* cl = uit.next();
     out << TPTPPrinter::toString(cl) << endl;

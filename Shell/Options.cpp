@@ -1197,7 +1197,7 @@ void Options::Options::init()
     _combinatorySuperposition.reliesOn(_addCombAxioms.is(equal(false))); //no point having two together
     _combinatorySuperposition.tag(OptionTag::INFERENCES);
 
-    _negativeExt = BoolOptionValue("neg_ext","nege",false);
+    _negativeExt = BoolOptionValue("neg_ext","nege",true);
     _negativeExt.description="negative extensionality";
     _lookup.insert(&_negativeExt);
     _negativeExt.tag(OptionTag::INFERENCES);
