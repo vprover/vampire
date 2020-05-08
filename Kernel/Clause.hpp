@@ -141,7 +141,9 @@ public:
   void destroyExceptInferenceObject();
   vstring literalsOnlyToString() const;
   vstring toString() const;
-  vstring toTPTPString() const;
+  vstring toTPTPString();
+  vstring getQuantifiedStr();
+  vstring getQuantifiedStr(Set<unsigned>& vars, vstring inner, DHMap<unsigned,TermList>& t_map);
   vstring toNiceString() const;
 
   /** Return the clause store */

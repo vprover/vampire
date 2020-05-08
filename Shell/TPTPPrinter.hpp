@@ -46,7 +46,7 @@ public:
   void print(Unit* u);
   void printAsClaim(vstring name, Unit* u);
 
-  static vstring toString(const Unit*);
+  static vstring toString(Unit*);
   static vstring toString(const Formula*);
   static vstring toString(const Term*);
   static vstring toString(const Literal*);

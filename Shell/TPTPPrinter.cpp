@@ -490,7 +490,7 @@ vstring TPTPPrinter::toString(const Formula* formula)
  * TPTP role conjecture. If it is a clause, just output it as
  * is, with the role negated_conjecture.
  */
-vstring TPTPPrinter::toString (const Unit* unit)
+vstring TPTPPrinter::toString (Unit* unit)
 {
   CALL("TPTPPrinter::toString(const Unit*)");
 //  const Inference* inf = unit->inference();
@@ -531,7 +531,7 @@ vstring TPTPPrinter::toString (const Unit* unit)
 
   if (unit->isClause()) {
     prefix = env.statistics->higherOrder ? "thf" : "cnf";
-    main = static_cast<const Clause*>(unit)->toTPTPString();
+    main = static_cast<Clause*>(unit)->toTPTPString();
   }
   else {
     prefix = "tff";

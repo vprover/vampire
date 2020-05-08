@@ -435,13 +435,72 @@ vstring Clause::literalsOnlyToString() const
  *
  * The split history is omitted.
  */
-vstring Clause::toTPTPString() const
+vstring Clause::toTPTPString()
 {
   CALL("Clause::toTPTPString()");
 
-  vstring result = literalsOnlyToString();
+  vstring result = getQuantifiedStr();
 
   return result;
+}
+
+/**
+ * Return @b inner quantified over variables in @b vars
+ *
+ * It is caller's responsibility to ensure that variables in @b vars are unique.
+ */
+vstring Clause::getQuantifiedStr(Set<unsigned>& vars, vstring inner, DHMap<unsigned,TermList>& t_map) {
+  CALL("getQuantifiedStr(VarContainer, vstring, map)");
+
+  VirtualIterator<unsigned> vit=pvi( getContentIterator(vars) );
+  vstring varStr;
+  bool first=true;
+  while(vit.hasNext()) {
+    unsigned var =vit.next();
+    if (!first) {
+      varStr+=",";
+    }
+    vstring ty="";
+    TermList t;
+    if(t_map.find(var,t) && t!=Term::defaultSort()){
+      //TODO should assert that we are in tff mode here
+      ty=":" + t.toString();
+    }
+    varStr+=vstring("X")+Int::toString(var)+ty;
+    first=false;
+  }
+
+  if (first) {
+    //we didn't quantify any variable
+    return inner;
+  }
+  return "( ! ["+varStr+"] : ("+inner+") )";
+
+}
+
+
+/**
+ * Return vstring containing quantified unit @b u.
+ */
+vstring Clause::getQuantifiedStr()
+{
+  CALL("getQuantifiedStr()");
+
+  Set<unsigned> vars;
+  vstring res;
+  DHMap<unsigned,TermList> t_map;
+  SortHelper::collectVariableSorts(this,t_map);
+
+  for(unsigned i=0;i<_length;i++) {
+    TermVarIterator vit( (*this)[i] ); //TODO update iterator for two var lits?
+    while(vit.hasNext()) {
+      unsigned var=vit.next();
+      vars.insert(var);
+    }
+  }
+  res= literalsOnlyToString();
+
+  return getQuantifiedStr(vars, res, t_map);
 }
 
 /**
