@@ -42,19 +42,16 @@ class RequestedIndex final
     RequestedIndex& operator=(RequestedIndex const&) = delete;
 
     // Moving transfers ownership of the index
-    RequestedIndex(RequestedIndex&& other)
+    RequestedIndex(RequestedIndex&& other) noexcept
       : _index{exchange(other._index, nullptr)}
       , _type{other._type}
       , _indexManager{exchange(other._indexManager, nullptr)}
     { }
 
     // Moving transfers ownership of the index
-    RequestedIndex& operator=(RequestedIndex&& other)
+    RequestedIndex& operator=(RequestedIndex&& other) noexcept
     {
-      release();  // need to release this index before overwriting fields with the other
-      _index = exchange(other._index, nullptr);
-      _type = other._type;
-      _indexManager = exchange(other._indexManager, nullptr);
+      this->swap(other);
       return *this;
     }
 
@@ -99,6 +96,14 @@ class RequestedIndex final
     {
       ASS(_index);
       return _index;
+    }
+
+    void swap(RequestedIndex& other)
+    {
+      using std::swap;
+      swap(_index, other._index);
+      swap(_type, other._type);
+      swap(_indexManager, other._indexManager);
     }
 
   private:
