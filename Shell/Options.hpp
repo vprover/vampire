@@ -827,21 +827,24 @@ private:
      *
      * @author Giles
      */
-    struct AbstractOptionValue{
-        
+    struct AbstractOptionValue {
+
         CLASS_NAME(AbstractOptionValue);
         USE_ALLOCATOR(AbstractOptionValue);
-        
+
         AbstractOptionValue(){}
         AbstractOptionValue(vstring l,vstring s) :
         longName(l), shortName(s), experimental(false), is_set(false),_should_copy(true), _tag(OptionTag::LAST_TAG), supress_problemconstraints(false) {}
 
         // Never copy an OptionValue... the Constraint system would break
-    private:
-        AbstractOptionValue(const AbstractOptionValue& that);
-    public:
+        AbstractOptionValue(const AbstractOptionValue&) = delete;
+        AbstractOptionValue& operator=(const AbstractOptionValue&) = delete;
+
         // however move-assigment is needed for all the assigns in Options::init()
+        AbstractOptionValue(AbstractOptionValue&&) = default;
         AbstractOptionValue& operator= (AbstractOptionValue && ) = default;
+
+        virtual ~AbstractOptionValue() = default;
 
         // This is the main method, it sets the value of the option using an input string
         // Returns false if we cannot set (will cause a UserError in Options::set)
