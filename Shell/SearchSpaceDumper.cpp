@@ -101,30 +101,98 @@ struct Predicate {
 
 struct Function {
   unsigned functor;
+  const Term& term;
 };
 
-// template<class Ser> tuple<const char*, json> _serializeInterpreted(const Functor& functor, Ser serial) {
-//   if (theo)
-// }
 #define __SER_CONST__Predicate 
 
-#define __SER_CONST__Function_(ConstantType) \
+#define __SER_CONST__Function_(ConstantType, key, ...) \
   { \
     ConstantType c; \
     if (theory->tryInterpretConstant(&fun, c)) { \
-      return true; \
+      json j; \
+      j[key] = __VA_ARGS__; \
+      return j; \
     } \
   } \
 
-bool isIntConstant(const Term& fun) {
-  __SER_CONST__Function_(IntegerConstantType)
-  __SER_CONST__Function_(RationalConstantType)
-  __SER_CONST__Function_(RealConstantType)
-  return false;
+json trySerializeNumber(const Term& fun) {
+  __SER_CONST__Function_(IntegerConstantType, "Int", c.toInner())
+  __SER_CONST__Function_(RationalConstantType, "Rat", vector<int>{ c.numerator().toInner(), c.denominator().toInner() })
+  __SER_CONST__Function_(RealConstantType, "Real", vector<int>{ c.numerator().toInner(), c.denominator().toInner() })
+  return json();
 }
 
-#define __SER_CONST__Function \
-  j["int_const"] = isIntConstant(self.functor);
+const char* serializeInterpretation(Interpretation i) {
+#define CASE(pref, suff, expr) \
+  case Kernel::Theory::Interpretation::pref ## suff: return expr; \
+
+#define NUM_CASES(SORT) \
+    CASE(SORT, _GREATER , "Greater") \
+    CASE(SORT, _GREATER_EQUAL , "GreaterEqual") \
+    CASE(SORT, _LESS , "Less") \
+    CASE(SORT, _LESS_EQUAL , "LessEqual") \
+ \
+    CASE(SORT, _UNARY_MINUS, "Neg") \
+    CASE(SORT, _PLUS, "Add") \
+    CASE(SORT, _MINUS, "Sub") \
+    CASE(SORT, _MULTIPLY, "Mul") \
+    CASE(SORT, _QUOTIENT_E, "QuotientE") \
+    CASE(SORT, _QUOTIENT_T, "QuotientT") \
+    CASE(SORT, _QUOTIENT_F, "QuotientF") \
+    CASE(SORT, _REMAINDER_E, "RemainderE") \
+    CASE(SORT, _REMAINDER_T, "RemainderT") \
+    CASE(SORT, _REMAINDER_F, "RemainderF") \
+    CASE(SORT, _FLOOR, "Floor") \
+    CASE(SORT, _CEILING, "Ceiling") \
+    CASE(SORT, _TRUNCATE, "Truncate") \
+    CASE(SORT, _ROUND, "Round") \
+
+
+#define _CONVERSIONS(SORT, _CONV_, str) \
+  CASE(INT, _CONV_##SORT, str) \
+  CASE(RAT, _CONV_##SORT, str) \
+  CASE(REAL, _CONV_##SORT, str) \
+
+#define CONVERSIONS(_CONV_, str) \
+    _CONVERSIONS(INT , _CONV_, str) \
+    _CONVERSIONS(RAT , _CONV_, str) \
+    _CONVERSIONS(REAL, _CONV_, str) \
+
+#define FRAC_CASES(SORT) \
+  CASE(SORT, _QUOTIENT, "Quot")
+
+  switch (i) {
+    case Kernel::Theory::Interpretation::EQUAL: return "Eq";
+    case Kernel::Theory::Interpretation::INVALID_INTERPRETATION: return "Invalid";
+
+    /* integers */
+    NUM_CASES(INT)
+    CASE(INT , _ABS    , "Abs")
+    CASE(INT, _DIVIDES, "Divides") 
+    CASE(INT, _SUCCESSOR , "Successor") 
+
+    /* rationals */
+    NUM_CASES(RAT)
+    FRAC_CASES(RAT)
+
+    /* reals */
+    NUM_CASES(REAL)
+    FRAC_CASES(REAL)
+
+    /* numeric conversion functions */
+    CONVERSIONS(_IS_, "IsType")
+    CONVERSIONS(_TO_, "ToType")
+
+    /* arrays */
+    CASE(ARRAY, _SELECT, "Select")
+    CASE(ARRAY_BOOL, _SELECT, "Select")
+    CASE(ARRAY, _STORE, "Store")
+  }
+}
+
+#define IF_FUN_Predicate(...)
+#define IF_FUN_Function(...) __VA_ARGS__
 
 #define _SERIALIZE_FUN_PRED(pred, Predicate) \
 template<class Ser> tuple<const char*, json> _serialize(const Predicate& self, Ser serial) { \
@@ -132,8 +200,14 @@ template<class Ser> tuple<const char*, json> _serialize(const Predicate& self, S
   j["name"] = env.signature->get ## Predicate(self.functor)->name(); \
   json inter; \
   if (theory->isInterpreted ## Predicate(self.functor)) { \
-    inter = theory->interpret ## Predicate(self.functor);\
+    inter = serializeInterpretation(theory->interpret ## Predicate(self.functor));\
   } \
+  IF_FUN_ ## Predicate (\
+    else { \
+      inter = trySerializeNumber(self.term); \
+    } \
+  ) \
+  \
   j["inter"] = inter; \
   return {pred, j}; \
 } \
@@ -143,14 +217,13 @@ _SERIALIZE_FUN_PRED("Fun", Function)
 
 template<class Ser> tuple<const char*, json> _serialize(const Term& self, Ser serial) {
   json j;
-  Function fun = {.functor = self.functor()};
+  Function fun = {.functor = self.functor(), .term = self};
   j["fun"] = serial(fun);
   vector<unsigned> terms;
   for (int i = 0; i < self.arity(); i++) {
     terms.push_back(serial(self[i]));
   }
   j["terms"] = terms;
-  j["num_const"] = isIntConstant(self);
   return { "Cterm", j };
 }
 
