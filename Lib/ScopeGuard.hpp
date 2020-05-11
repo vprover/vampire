@@ -49,11 +49,14 @@ class ScopeGuard final
 
     ScopeGuard& operator=(ScopeGuard&& other)
     {
-      if (active) {
-        execute();
+      if (this != &other) {
+        if (active) {
+          // TODO: should moving into an active ScopeGuard be an error?
+          execute();
+        }
+        f = std::move(other.f);
+        active = exchange(other.active, false);
       }
-      f = std::move(other.f);
-      active = exchange(other.active, false);
       return *this;
     }
 
@@ -67,6 +70,7 @@ class ScopeGuard final
   private:
     void execute()
     {
+      active = false;
       if (!stackUnwindingInProgress()) {
         // ~ScopeGuard called normally
         f();
