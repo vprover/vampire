@@ -27,6 +27,8 @@ namespace Lib
 {
 
 
+/// Calls the given function when the ScopeGuard goes out of scope (i.e., is destructed).
+/// The given function is called exactly once.
 template <typename Callable>
 class ScopeGuard final
 {
@@ -47,18 +49,12 @@ class ScopeGuard final
       , f{std::move(other.f)}
     { }
 
-    ScopeGuard& operator=(ScopeGuard&& other)
-    {
-      if (this != &other) {
-        if (active) {
-          // TODO: should moving into an active ScopeGuard be an error?
-          execute();
-        }
-        f = std::move(other.f);
-        active = exchange(other.active, false);
-      }
-      return *this;
-    }
+    // Disallow moving into a ScopeGuard.
+    // The reason is that if the LHS is still active, we should call execute() before moving
+    // (to uphold the guarantee that f() is called exactly once).
+    // However, this behaviour is somewhat unexpected for the user since it is not the point
+    // where the guard goes out of scope.
+    ScopeGuard& operator=(ScopeGuard&& other) = delete;
 
     ~ScopeGuard()
     {
