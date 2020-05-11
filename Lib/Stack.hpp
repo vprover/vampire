@@ -108,7 +108,7 @@ public:
     loadFromIterator(BottomFirstIterator(const_cast<Stack&>(s)));
   }
 
-  Stack(Stack&& s)
+  Stack(Stack&& s) noexcept
   {
     CALL("Stack::Stack(Stack&& s)");
 
@@ -152,17 +152,11 @@ public:
     return *this;
   }
 
-  Stack& operator=(Stack&& s)
+  Stack& operator=(Stack&& s) noexcept
   {
     CALL("Stack::operator=&&");
 
-    if(&s == this) {
-      return *this;
-    }
-    reset();
-
     std::swap(*this,s);
-
     return *this;
   }
 
@@ -760,7 +754,7 @@ struct Relocator<Stack<C> >
       Stack<C>* newStack=new(newAddr) Stack<C>( sz );
 
       for(size_t i=0;i<sz;i++) {
-	newStack->push((*oldStack)[i]);
+        newStack->push(std::move((*oldStack)[i]));
       }
 
       oldStack->~Stack<C>();
