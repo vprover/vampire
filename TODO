@@ -1,6 +1,6 @@
 TODO:
   ============ Simplification rule: Rebalancing
-    Equality resolution*
+    Equality resolution* -> Done
 
     s != t | C[X]
     -------------  if s != t can be rewritten to X != r
@@ -20,6 +20,7 @@ TODO:
 
 
     Yields a most general instantiation.
+    ==> Done.
 
   What about
     1) x+y != 5 \/ C[x]
@@ -27,10 +28,23 @@ TODO:
 
     TODO:
     - inversion 6 + 2x = 6y ==> x = 3y - 3
+    ==> Done.
 
-  ============ Simplification rule: Rebalancing
+  ============ Simplification rule: Linear expression simplification
     2) C[y + t] -> C[y]
        C[c * y + t + ...] -> C[y]
+
+  ============ UWA extension
+    3)
+      uwa + equality resolution to handle:
+       f(X + 1) != f(0)
+      uwa + eq factoring
+
+  ============ UWA extension
+    4) Normalization:
+         c * -u[X0] ==> -c * u[X0]
+         c != ((c * X0) + (c * X0)) | C[X0, ...]
+
 
 
 Keep in mind:
@@ -47,3 +61,34 @@ READ:
 IDEAS: 
   - Weak normal form for multiplication ( a / b ==> a * (1/b) )
   - permit sideconditions for rebalancing equalities. 
+
+    s != t | C[X]
+    -------------  if s != t can be rewritten to X != r
+        C[r]
+
+      X0 * t != s can be rewritten to X0 != s/t  
+          if definitelyNonZero(t)
+        where definitelyNonZero(t) 
+          - if searchspace contains unit literal t != 0
+          - if searchspace contains unit literal t  = c for some non-zero integer c
+          - if searchspace contains unit literal t > 0
+          - if searchspace contains unit literal t < c for some integer c <= zero
+          - if searchspace contains unit literal t > c for some integer c >= zero
+          - if clause `context` C[X] contains literal t  = >
+          - if clause `context` C[X] contains literal t != c for some non-zero integer c
+          - if clause `context` C[X] contains literal t >= c for some non-zero integer c (in normal form)
+          - if clause `context` C[X] contains literal t >= c for some integer c <= zero
+          - if clause `context` C[X] contains literal t <= c for some integer c >= zero
+
+          - if context contains t[X0] != uminus(t[X1])
+      
+      f(X0) != t can be rewritten to X0 != g[t]  
+          - if context contains g[f(X0)] = X0
+
+          61| 	0.26	(u[] * X0)  = u[X0]
+            => could derive inversion of rhs
+
+          66| 	0.21	(c * X0)  = u[X0]
+            => could derive inversion of rhs
+
+
