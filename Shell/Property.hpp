@@ -235,6 +235,7 @@ public:
   bool hasAppliedVar() const { return _hasAppliedVar; }
   bool hasBoolVar() const { return _hasBoolVar; }
   bool hasLogicalProxy() const { return _hasLogicalProxy; }
+  bool hasPolymorphicSym() const { return _hasPolymorphicSym; }
   /*bool usesSort(unsigned sort) const { 
     CALL("Property::usesSort");
     if(_usesSort.size() <= sort) return false;
@@ -348,6 +349,7 @@ public:
   bool _hasAppliedVar;
   bool _hasBoolVar;
   bool _hasLogicalProxy;
+  bool _hasPolymorphicSym;
 
   bool _onlyFiniteDomainDatatypes;
   bool _knownInfiniteDomain;

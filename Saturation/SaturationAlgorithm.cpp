@@ -127,7 +127,7 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
     _consFinder(0), _labelFinder(0), _symEl(0),/* _answerLiteralManager(0),
     _instantiation(0),*/
 #if VZ3
-    _theoryInstSimp(0),
+  //  _theoryInstSimp(0),
 #endif
     _generatedClauseCount(0),
     _activationLimit(0)
@@ -1043,9 +1043,9 @@ bool SaturationAlgorithm::activate(Clause* cl)
   bool redundant=false;
   ClauseIterator instances = ClauseIterator::getEmpty();
 #if VZ3
-  if(_theoryInstSimp){
+  /*if(_theoryInstSimp){
     instances = _theoryInstSimp->generateClauses(cl,redundant);
-  }
+  }*/
 #endif
   if(redundant){ 
     removeActiveOrPassiveClause(cl);

@@ -146,7 +146,7 @@ private:
   SAT2FO& sat2fo;
 
   //DHMap<unsigned,Z3_sort> _sorts;
-  z3::sort getz3sort(unsigned s);
+  z3::sort getz3sort(TermList s);
 
   // Helper funtions for the translation
   z3::expr to_int(z3::expr e) {
@@ -169,15 +169,15 @@ private:
         return ite(e >= 0, to_int(e), ceiling(e));
   }
 
-  void addTruncatedOperations(z3::expr_vector, Interpretation qi, Interpretation ti, unsigned srt);
-  void addFloorOperations(z3::expr_vector, Interpretation qi, Interpretation ti, unsigned srt);
+  //void addTruncatedOperations(z3::expr_vector, Interpretation qi, Interpretation ti, unsigned srt);
+  //void addFloorOperations(z3::expr_vector, Interpretation qi, Interpretation ti, unsigned srt);
   void addIntNonZero(z3::expr);
   void addRealNonZero(z3::expr);
 
 public:
   // not sure why this one is public
   z3::expr getz3expr(Term* trm,bool islit,bool&nameExpression, bool withGuard=false);
-  Term* evaluateInModel(Term* trm);
+//  Term* evaluateInModel(Term* trm);
 private:
   z3::expr getRepresentation(SATLiteral lit,bool withGuard);
 

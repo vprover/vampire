@@ -61,7 +61,7 @@
 #include "LambdaElimination.hpp"
 //#include "TheoryAxioms.hpp"
 //#include "TheoryFlattening.hpp"
-//#include "BlockedClauseElimination.hpp"
+#include "BlockedClauseElimination.hpp"
 #include "TrivialPredicateRemover.hpp"
 
 #include "UIHelper.hpp"
@@ -176,15 +176,6 @@ void Preprocess::preprocess(Problem& prb)
     env.signature->addChoiceOperator(env.signature->getChoice());
   }
 
-  // reorder units
-  if (_options.normalize()) {
-    env.statistics->phase=Statistics::NORMALIZATION;
-    if (env.options->showPreprocessing()){
-      env.beginOutput();
-      env.out() << "normalization" << std::endl;
-    }
-    Normalisation().normalise(prb);
-  }
 
   if (env.options->showPreprocessing()) {
     env.beginOutput();
@@ -194,6 +185,15 @@ void Preprocess::preprocess(Problem& prb)
       Unit* u = uit.next();
       env.out() << "[PP] input: " << u->toString() << std::endl;
     }
+  }
+
+  // reorder units
+  if (_options.normalize()) {
+    env.statistics->phase=Statistics::NORMALIZATION;
+    if (env.options->showPreprocessing()){
+      env.out() << "normalization" << std::endl;
+    }
+    Normalisation().normalise(prb);
   }
 
   //we ensure that in the beginning we have a valid property object, to
@@ -333,6 +333,8 @@ void Preprocess::preprocess(Problem& prb)
 
     newCnf(prb);
   } else { */
+
+
     if (prb.mayHaveFormulas() && _options.naming()) {
       if (env.options->showPreprocessing())
         env.out() << "naming" << std::endl;
@@ -448,16 +450,17 @@ void Preprocess::preprocess(Problem& prb)
 
      TheoryFlattening tf;
      tf.apply(prb);
-   }
+   }*/
 
-   if (_options.blockedClauseElimination()) {
+   //bce hasn't been updated to deal with polymorphism
+   if (_options.blockedClauseElimination() && !prb.hasPolymorphicSym()) {
      env.statistics->phase=Statistics::BLOCKED_CLAUSE_ELIMINATION;
      if(env.options->showPreprocessing())
        env.out() << "blocked clause elimination" << std::endl;
 
      BlockedClauseElimination bce;
      bce.apply(prb);
-   }*/
+   }
 
    if (env.options->showPreprocessing()) {
      UnitList::Iterator uit(prb.units());

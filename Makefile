@@ -386,6 +386,7 @@ VS_OBJ = Shell/CommandLine.o\
          Shell/UIHelper.o\
          Shell/VarManager.o\
          Shell/Lexer.o\
+         Shell/BlockedClauseElimination.o\
          Shell/Preprocess.o\
          version.o
 #         Shell/InterpretedNormalizer.o\
@@ -398,7 +399,6 @@ VS_OBJ = Shell/CommandLine.o\
 #         Shell/TheoryAxioms.o\
 #         Shell/TheoryFinder.o\
 #         Shell/TheoryFlattening.o\
-#         Shell/BlockedClauseElimination.o\
 #         Shell/PARSER_TKV.o\
 #         Shell/SMTLEX.o\
 #         Shell/SMTPAR.o\
@@ -421,8 +421,8 @@ PARSE_OBJ = Parse/TPTP.o
 #            Parse/SMTLIB2.o\
             
 
-DP_OBJ = DP/ShortConflictMetaDP.o
-#         DP/SimpleCongruenceClosure.o
+DP_OBJ = DP/ShortConflictMetaDP.o\
+         DP/SimpleCongruenceClosure.o
 
 LTB_OBJ = Shell/LTB/Builder.o\
           Shell/LTB/Selector.o\

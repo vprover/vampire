@@ -43,7 +43,7 @@
 #include "SAT/SATSolver.hpp"
 
 #include "DP/DecisionProcedure.hpp"
-//#include "DP/SimpleCongruenceClosure.hpp"
+#include "DP/SimpleCongruenceClosure.hpp"
 
 #include "Lib/Allocator.hpp"
 
@@ -108,7 +108,7 @@ private:
   SATSolverSCP _solver;
   ScopedPtr<DecisionProcedure> _dp;
   // use a separate copy of the decision procedure for ccModel computations and fill it up only with equalities
-  //ScopedPtr<SimpleCongruenceClosure> _dpModel;
+  ScopedPtr<SimpleCongruenceClosure> _dpModel;
   
   /**
    * Contains selected component names (splitlevels)

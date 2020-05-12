@@ -162,6 +162,7 @@ bool Normalisation::lessThan (Unit* u1, Unit* u2)
   }
   return lessThan(static_cast<FormulaUnit*>(u1)->formula(),
 		  static_cast<FormulaUnit*>(u2)->formula());
+
 } // Normalisation::lessThan(const Unit*...)
 
 /**
@@ -532,14 +533,22 @@ Comparison Normalisation::compare(Term* t1, Term* t2)
     }
   }*/
 
+  if (t1->shared() && t2->shared()) {
+    comp = compare((int)t1->weight(),(int)t2->weight());
+    if (comp != EQUAL) {
+      return comp;
+    }
+
+    comp = compare((int)t1->vars(),(int)t2->vars());
+    if (comp != EQUAL) {
+      return comp;
+    }
+  }
+
   int f1 = t1->functor();
   int f2 = t2->functor();
   if (f1 != f2) {
     comp = compare((int)t1->arity(),(int)t2->arity());
-    if (comp != EQUAL) {
-      return comp;
-    }
-    comp = compare((int)t1->vars(),(int)t2->vars());
     if (comp != EQUAL) {
       return comp;
     }

@@ -228,7 +228,7 @@ SATSolver::VarAssignment Z3Interfacing::getAssignment(unsigned var)
   return DONT_CARE;
 }
 
-Term* Z3Interfacing::evaluateInModel(Term* trm)
+/*Term* Z3Interfacing::evaluateInModel(Term* trm)
 {
   CALL("Z3Interfacing::evaluateInModel");
 
@@ -282,7 +282,7 @@ Term* Z3Interfacing::evaluateInModel(Term* trm)
   }
 
   return 0;
-}
+}*/
 
 bool Z3Interfacing::isZeroImplied(unsigned var)
 {
@@ -307,27 +307,27 @@ SATClause* Z3Interfacing::getZeroImpliedCertificate(unsigned)
 }
 
 //TODO: should handle function/predicate types really
-z3::sort Z3Interfacing::getz3sort(unsigned s)
+z3::sort Z3Interfacing::getz3sort(TermList s)
 {
   CALL("Z3Interfacing::getz3sort");
   BYPASSING_ALLOCATOR;
   // Deal with known sorts differently
-  if(s==Sorts::SRT_BOOL) return _context.bool_sort();
-  if(s==Sorts::SRT_INTEGER) return _context.int_sort();
-  if(s==Sorts::SRT_REAL) return _context.real_sort(); 
-  if(s==Sorts::SRT_RATIONAL) return _context.real_sort(); // Drop notion of rationality 
+  if(s==Term::boolSort()) return _context.bool_sort();
+  //if(s==Sorts::SRT_INTEGER) return _context.int_sort();
+  //if(s==Sorts::SRT_REAL) return _context.real_sort(); 
+  //if(s==Sorts::SRT_RATIONAL) return _context.real_sort(); // Drop notion of rationality 
 
   // Deal with arrays
-  if(env.sorts->isOfStructuredSort(s,Sorts::StructuredSort::ARRAY)){
+  /*if(env.sorts->isOfStructuredSort(s,Sorts::StructuredSort::ARRAY)){
     
     z3::sort index_sort = getz3sort(env.sorts->getArraySort(s)->getIndexSort());
     z3::sort value_sort = getz3sort(env.sorts->getArraySort(s)->getInnerSort());
  
     return _context.array_sort(index_sort,value_sort);
-  } 
+  }*/
 
   // Use new interface for uninterpreted sorts, I think this is not less efficient
-  return _context.uninterpreted_sort(Lib::Int::toString(s).c_str());
+  return _context.uninterpreted_sort(s.toString().c_str());
 /*
   // If sort exists, return it
   if(_sorts.find(s)){
@@ -357,14 +357,14 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
   //cout << "getz3expr of " << trm->toString() << endl;
 
     Signature::Symbol* symb; 
-    unsigned range_sort;
+    TermList range_sort;
     OperatorType* type;
     bool is_equality = false;
     if(isLit){
       symb = env.signature->getPredicate(trm->functor());
       OperatorType* ptype = symb->predType();
       type = ptype;
-      range_sort = Sorts::SRT_BOOL;
+      range_sort = Term::boolSort();
       // check for equality
       if(trm->functor()==0){
          is_equality=true;
@@ -374,12 +374,12 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
       symb = env.signature->getFunction(trm->functor());
       OperatorType* ftype = symb->fnType();
       type = ftype;
-      range_sort = ftype->result();
+      range_sort = SortHelper::getResultSort(trm);
     }
 
     //if constant treat specially
     if(trm->arity()==0){
-      if(symb->integerConstant()){
+      /*if(symb->integerConstant()){
         IntegerConstantType value = symb->integerValue();
         return _context.int_val(value.toInner());
       }
@@ -390,14 +390,14 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
       if(symb->rationalConstant()){
         RationalConstantType value = symb->rationalValue();
         return _context.real_val(value.numerator().toInner(),value.denominator().toInner());
-      }
+      }*/
       if(!isLit && env.signature->isFoolConstantSymbol(true,trm->functor())){
         return _context.bool_val(true);
       }
       if(!isLit && env.signature->isFoolConstantSymbol(false,trm->functor())){
         return _context.bool_val(false);
       }
-      if (symb->overflownConstant()) {
+      /*if (symb->overflownConstant()) {
         // too large for native representation, but z3 should cope
 
         switch (symb->fnType()->result()) {
@@ -411,7 +411,7 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
           ;
           // intentional fallthrough; the input is fof (and not tff), so let's just treat this as a constant
         }
-      }
+      }*/
 
       // If not value then create constant symbol
       //cout << "HERE " << env.sorts->sortName(range_sort) << " for " << symb->name() << endl; 
@@ -442,7 +442,7 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
     // Currently do not deal with all intepreted operations, should extend 
     // - constants dealt with above
     // - unary funs/preds like is_rat interpretation unclear
-    if(symb->interpreted()){
+    /*if(symb->interpreted()){
       Interpretation interp = static_cast<Signature::InterpretedSymbol*>(symb)->getInterpretation();
       bool skip=false; 
       unsigned argsToPop=theory->getArity(interp);
@@ -678,11 +678,11 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
         return ret;
       } 
 
-    }
+    }*/
     //TODO check domain_sorts for args in equality and interpretted?
     z3::sort_vector domain_sorts = z3::sort_vector(_context);
     for(unsigned i=0;i<type->arity();i++){
-      domain_sorts.push_back(getz3sort(type->arg(i)));
+      domain_sorts.push_back(getz3sort(SortHelper::getArgSort(trm, i)));
     }
     z3::symbol name = _context.str_symbol(symb->name().c_str());
     z3::func_decl f = _context.function(name,domain_sorts,getz3sort(range_sort));
@@ -819,7 +819,7 @@ void Z3Interfacing::addRealNonZero(z3::expr t)
  * uninterpreted
  *
  **/
-void Z3Interfacing::addTruncatedOperations(z3::expr_vector args, Interpretation qi, Interpretation ti, unsigned srt) 
+/*void Z3Interfacing::addTruncatedOperations(z3::expr_vector args, Interpretation qi, Interpretation ti, unsigned srt) 
 {
   CALL("Z3Interfacing::addTruncatedOperations");
   
@@ -879,11 +879,11 @@ void Z3Interfacing::addTruncatedOperations(z3::expr_vector args, Interpretation 
     z3::expr five = implies( (e2!=0), ( ((e2*truncate(e1/e2))+ r_e1_e2) == e1 ) );
     _solver.add(five);
   }
-}
+}*/
 /**
  *
  **/ 
-void Z3Interfacing::addFloorOperations(z3::expr_vector args, Interpretation qi, Interpretation ti, unsigned srt)
+/*void Z3Interfacing::addFloorOperations(z3::expr_vector args, Interpretation qi, Interpretation ti, unsigned srt)
 {
   CALL("Z3Interfacing::addFloorOperations");
 
@@ -930,7 +930,7 @@ void Z3Interfacing::addFloorOperations(z3::expr_vector args, Interpretation qi, 
     _solver.add(five);
   }
 
-}
+}*/
 
 
 } // namespace SAT

@@ -89,6 +89,7 @@ Property::Property()
     _hasAppliedVar(false),
     _hasBoolVar(false),
     _hasLogicalProxy(false),
+    _hasPolymorphicSym(false),
     _onlyFiniteDomainDatatypes(true),
     _knownInfiniteDomain(false),
     _allClausesGround(true),
@@ -579,8 +580,12 @@ void Property::scan(Literal* lit, int polarity, unsigned cLen, bool goal)
     }
 
     OperatorType* type = pred->predType();
+    if(type->typeArgsArity()){
+      _hasPolymorphicSym = true;
+    }
+
     for (int i=0; i<arity; i++) {
-      scanSort(type->arg(i));
+      scanSort(SortHelper::getArgSort(lit, i));
     }
   }
 
@@ -662,6 +667,11 @@ void Property::scan(TermList ts,bool unit,bool goal)
       _hasCombs = true;
     } else if(func->proxy() != Signature::NOT_PROXY){
       _hasLogicalProxy = true;
+    }
+
+    OperatorType* type = func->fnType();
+    if(!func->app() && type->typeArgsArity()){
+      _hasPolymorphicSym = true;
     }
 
     int arity = t->arity();
