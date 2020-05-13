@@ -473,12 +473,17 @@ ALL_NUMBERS_TEST(polynomial__merge_consts_2,
 
 ALL_NUMBERS_TEST(polynomial__merge_consts_3,
       p(add(add(mul(6, a), mul(y, 3)), mul(5, a))),
-      p(add(mul(11, a), mul(3,y)))
+      p(add(mul(11, a), mul(3, y)))
       )
 
 ALL_NUMBERS_TEST(polynomial__push_unary_minus,
       p(minus(mul(a, 7))),
       p(mul(-7, a))
+      )
+
+ALL_NUMBERS_TEST(polynomial__sorting,
+      p(mul(mul(7, x), a)),
+      p(mul(7, mul(a, x)))
       )
 
 // TODO: cases x = k * x <-> k = 1 | x = 0 

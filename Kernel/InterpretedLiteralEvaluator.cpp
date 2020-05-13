@@ -1137,6 +1137,51 @@ protected:
 
 };
 
+template<class num>
+struct mul_traits {
+  using number = num;
+  using ConstantType = typename number::ConstantType;
+  static const Interpretation inter = number::mulI;
+  static ConstantType identity() { return number::oneC;}
+  static ConstantType groundEval(ConstantType l, ConstantType r) { return l * r; }
+  static unsigned functor() { return number::mulF(); }
+  static TermList iterate(int cnt, TermList t) { 
+    if (cnt == 0) {
+      return TermList(theory->representConstant(identity()));
+    } else {
+      ASS(cnt > 0);
+      TermList out = t;
+      for (int i = 1; i < cnt; i++) {
+        out = TermList(number::mul(t, out));
+      }
+      return out;
+    }
+  }
+};
+
+template<class num>
+struct add_traits {
+  using number = num;
+  using ConstantType = typename number::ConstantType;
+  static constexpr Interpretation inter = number::addI;
+  static ConstantType identity() { return number::zeroC;}
+  static ConstantType groundEval(ConstantType l, ConstantType r) { return l + r; }
+  static unsigned functor() { return number::addF(); }
+  static TermList iterate(int cnt, TermList t) { 
+    switch(cnt) {
+      case 0:
+        return number::zero();
+
+      case 1:
+        return t;
+
+      default:
+        TermList c = TermList(theory->representConstant(ConstantType(cnt)));
+        return TermList(number::mul(c, t));
+    }
+  }
+};
+
 template<Theory::Interpretation op>
 struct CommutativeMonoid;
 
@@ -1883,30 +1928,27 @@ int _sort_terms(TermList lhs, TermList rhs);
 
 int _sort_terms(const Term& lhs, const Term& rhs) {
 
-  auto l_fun = lhs.functor();
-  auto r_fun = rhs.functor();
+  int l_fun = lhs.functor();
+  int r_fun = rhs.functor();
 
-  auto l_thry = theory->isInterpretedFunction(l_fun);
-  auto r_thry = theory->isInterpretedFunction(r_fun);
-  auto cmp_thry = l_thry - r_thry;
+  int l_thry = theory->isInterpretedFunction(l_fun);
+  int r_thry = theory->isInterpretedFunction(r_fun);
+  int cmp_thry = l_thry - r_thry;
 
   if (cmp_thry != 0) return cmp_thry;
   if (l_thry) {
     ASS(r_thry)
 
-    auto l_inter = theory->interpretFunction(l_fun);
-    auto r_inter = theory->interpretFunction(r_fun);
-    auto cmp_inter = l_inter - r_inter;
+    int l_inter = theory->interpretFunction(l_fun);
+    int r_inter = theory->interpretFunction(r_fun);
+    int cmp_inter = l_inter - r_inter;
 
     if (cmp_inter != 0) return cmp_inter;
 
   } else {
     ASS(!l_thry && !r_thry)
  
-    auto l_fun = lhs.functor();
-    auto r_fun = rhs.functor();
-
-    auto cmp_fun = l_fun - r_fun;
+    int cmp_fun = l_fun - r_fun;
     if (cmp_fun != 0) return cmp_fun;
  }
 
@@ -1935,7 +1977,7 @@ int _sort_terms(TermList lhs, TermList rhs) {
     return _sort_terms(*lhs.term(), *rhs.term());
   } else {
     ASS(lhs.isVar() && rhs.isVar());
-    return lhs.var() - rhs.var();
+    return int(lhs.var()) - int(rhs.var());
   }
 
 }
@@ -1948,8 +1990,9 @@ TermList NewEvaluator::evaluateCommutativeMonoid(Term* orig, TermList* args) con
 
     const unsigned fun = CommutativeMonoid::functor();
 
-    ConstantType acc = CommutativeMonoid::IDENTITY;
-    Stack<TermList> keep;
+    ConstantType acc = CommutativeMonoid::identity();
+    DHMap<TermList, int> map;
+    // Stack<TermList> keep;
     auto traverse = [&](TermList t) {
       DEBUG("arg: ", t)
       return stackTraverseIf(t,
@@ -1961,29 +2004,46 @@ TermList NewEvaluator::evaluateCommutativeMonoid(Term* orig, TermList* args) con
           if (t.isTerm() && theory->tryInterpretConstant(t.term(), c)) {
             acc = CommutativeMonoid::groundEval(acc, c);
           } else {
-            keep.push(t);
+            int* value;
+            map.getValuePtr(t, value, 0);
+            // DBG(*value, " x ", t);
+            (*value) += 1;
+            // keep.push(t);
           }
         });
     };
+
     traverse(args[1]);
     traverse(args[0]);
 
-    DBG("sorting: ", keep)
-    std::sort(keep.begin(), keep.end(), [](TermList lhs, TermList rhs) -> bool {return sort_terms(lhs,rhs);});
-    DBG("sorted : ", keep)
+    Stack<TermList> keep;
+    {
+      decltype(map)::Iterator iter(map);
+      while (iter.hasNext()) {
+        TermList t;
+        int cnt;
+        iter.next(t, cnt);
+        if (cnt != 0) {
+          keep.push(CommutativeMonoid::iterate(cnt, t));
+        }
+      }
+    }
 
-    if (acc != CommutativeMonoid::IDENTITY) {
+    if (acc != CommutativeMonoid::identity()) {
       keep.push(TermList(theory->representConstant(acc)));
     }
 
-    auto iter = Stack<TermList>::Iterator(keep);
+    //TODO make it possile to turn off sorting
+    std::sort(keep.begin(), keep.end(), [](TermList lhs, TermList rhs) -> bool {return sort_terms(lhs,rhs);});
+
+    auto iter = Stack<TermList>::BottomFirstIterator(keep);
     if (!iter.hasNext()) {
-      return TermList(theory->representConstant(CommutativeMonoid::IDENTITY));
+      return TermList(theory->representConstant(CommutativeMonoid::identity()));
     } else {
       TermList out = iter.next();
       while (iter.hasNext()) {
         auto t = iter.next();
-        out = TermList(Term::create2(fun, out, t));
+        out = TermList(Term::create2(fun, t, out));
       }
       DEBUG("out: ", out)
       return out;
@@ -2039,7 +2099,7 @@ TermList NewEvaluator::evaluateCommutativeMonoid(Term* orig, TermList* args) con
   template<> TermList NewEvaluator::evaluateFun<num_traits<Const>::name##I>(Term* orig, TermList* args) const  \
   { \
     CALL("NewEvaluator::evaluateFun<num_traits<" #Const ">::" #name "I>(Term*, TermList*)") \
-    auto out = evaluateCommutativeMonoid<CommutativeMonoid<num_traits<Const>::name##I>>(orig, args);  \
+    auto out = evaluateCommutativeMonoid<name ## _traits<num_traits<Const>>>(orig, args);  \
     DEBUG(orig->toString(), "->", out) \
     return out; \
   } \
@@ -2278,6 +2338,8 @@ LitEvalResult NewEvaluator::evaluate(Literal* lit) const {
 }
 
 LitEvalResult NewEvaluator::evaluateStep(Literal* lit) const {
+  CALL("NewEvaluator::evaluateStep(Literal* term)")
+  DEBUG("evaluating: ", lit->toString());
 
 #define HANDLE_CASE(INTER) case Interpretation::INTER: return evaluateLit<Interpretation::INTER>(lit); 
 #define IGNORE_CASE(INTER) case Interpretation::INTER: return lit;
