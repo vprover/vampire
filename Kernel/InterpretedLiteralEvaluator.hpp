@@ -125,17 +125,17 @@ public:
 
 private:
   LitEvalResult evaluateStep(Literal* in) const;
-  TermList evaluateStep(TermList in) const;
-  TermList evaluateStep(Term* in) const;
+  // TermList evaluateStep(TermList in) const;
+  TermList evaluateStep(Term* orig, TermList* evaluatedArgs) const;
 
   template<Theory::Interpretation inter>
   LitEvalResult evaluateLit(Literal* lit) const;
 
   template<Theory::Interpretation inter>
-  TermList evaluateFun(Term* term) const;
+  TermList evaluateFun(Term* orig, TermList* evaluatedArgs) const;
 
   template<class CommutativeMonoid>
-  TermList evaluateCommutativeMonoid(Term* lit) const;
+  TermList evaluateCommutativeMonoid(Term* orig, TermList* evaluatedArgs) const;
 
   template<class ConstantType, class EvalIneq> 
   LitEvalResult evaluateInequality(Literal* lit, bool strict, EvalIneq evalIneq) const;
@@ -147,10 +147,10 @@ private:
   LitEvalResult tryEvalConstant2(Literal* lit, EvalGround fun) const;
 
   template<class ConstantType, class EvalGround>
-  TermList tryEvalConstant1(Term* lit, EvalGround fun) const;
+  TermList tryEvalConstant1(Term* orig, TermList* evaluatedArgs, EvalGround fun) const;
 
   template<class ConstantType, class EvalGround>
-  TermList tryEvalConstant2(Term* lit, EvalGround fun) const;
+  TermList tryEvalConstant2(Term* orig, TermList* evaluatedArgs, EvalGround fun) const;
 };
 }
 
