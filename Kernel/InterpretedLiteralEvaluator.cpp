@@ -32,6 +32,7 @@
 #include "Theory.hpp"
 #include "num_traits.hpp"
 #include "Debug/Tracer.hpp"
+#include <algorithm>
 
 
 #include "InterpretedLiteralEvaluator.hpp"
@@ -1872,10 +1873,72 @@ template<> LitEvalResult NewEvaluator::evaluateLit<Interpretation::INT_DIVIDES>(
   });
 }
 
-
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// AC_FUNCTIONS
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//TODO sorting is ver inefficient. Indeterministic sorting instead?
+int _sort_terms(const Term& lhs, const TermList& rhs);
+int _sort_terms(TermList lhs, TermList rhs);
+
+int _sort_terms(const Term& lhs, const Term& rhs) {
+
+  auto l_fun = lhs.functor();
+  auto r_fun = rhs.functor();
+
+  auto l_thry = theory->isInterpretedFunction(l_fun);
+  auto r_thry = theory->isInterpretedFunction(r_fun);
+  auto cmp_thry = l_thry - r_thry;
+
+  if (cmp_thry != 0) return cmp_thry;
+  if (l_thry) {
+    ASS(r_thry)
+
+    auto l_inter = theory->interpretFunction(l_fun);
+    auto r_inter = theory->interpretFunction(r_fun);
+    auto cmp_inter = l_inter - r_inter;
+
+    if (cmp_inter != 0) return cmp_inter;
+
+  } else {
+    ASS(!l_thry && !r_thry)
+ 
+    auto l_fun = lhs.functor();
+    auto r_fun = rhs.functor();
+
+    auto cmp_fun = l_fun - r_fun;
+    if (cmp_fun != 0) return cmp_fun;
+ }
+
+  ASS(lhs.arity() == rhs.arity())
+  for (int i = 0; i < lhs.arity(); i++) {
+    auto cmp = _sort_terms(lhs[i], rhs[i]);
+    if (cmp != 0) {
+      return cmp;
+    }
+  }
+  return 0;
+}
+
+bool sort_terms(TermList lhs, TermList rhs) {
+  return _sort_terms(lhs, rhs) < 0;
+}
+
+int _sort_terms(TermList lhs, TermList rhs) {
+  auto l_trm = lhs.isTerm();
+  auto r_trm = rhs.isTerm();
+  auto cmp_trm = l_trm - r_trm;
+  if (cmp_trm != 0) return cmp_trm;
+
+  if (l_trm) {
+    ASS(r_trm);
+    return _sort_terms(*lhs.term(), *rhs.term());
+  } else {
+    ASS(lhs.isVar() && rhs.isVar());
+    return lhs.var() - rhs.var();
+  }
+
+}
 
 template<class CommutativeMonoid> 
 TermList NewEvaluator::evaluateCommutativeMonoid(Term* orig, TermList* args) const {
@@ -1902,8 +1965,12 @@ TermList NewEvaluator::evaluateCommutativeMonoid(Term* orig, TermList* args) con
           }
         });
     };
-    traverse(args[0]);
     traverse(args[1]);
+    traverse(args[0]);
+
+    DBG("sorting: ", keep)
+    std::sort(keep.begin(), keep.end(), [](TermList lhs, TermList rhs) -> bool {return sort_terms(lhs,rhs);});
+    DBG("sorted : ", keep)
 
     if (acc != CommutativeMonoid::IDENTITY) {
       keep.push(TermList(theory->representConstant(acc)));
@@ -1922,6 +1989,51 @@ TermList NewEvaluator::evaluateCommutativeMonoid(Term* orig, TermList* args) con
       return out;
     }
 }
+
+
+// template<class number> 
+// TermList evaluateAdd(TermList evaluatedLhs, TermList evaluatedRhs) const {
+//     CALL("NewEvaluator::evaluateCommutativeMonoid(TermList* args)")
+//     using ConstantType = typename CommutativeMonoid::ConstantType;
+//
+//     const unsigned fun = CommutativeMonoid::functor();
+//
+//     ConstantType acc = CommutativeMonoid::IDENTITY;
+//     Stack<TermList> keep;
+//     auto traverse = [&](TermList t) {
+//       return stackTraverseIf(t,
+//         /* we traverse only the parts with the same operation */
+//         [&](Term& t){ return t.functor() == fun; },
+//         [&](TermList t) {
+//           ConstantType c;
+//           /* we eval constant parts */
+//           if (t.isTerm() && theory->tryInterpretConstant(t.term(), c)) {
+//             acc = CommutativeMonoid::groundEval(acc, c);
+//           } else {
+//             keep.push(t);
+//           }
+//         });
+//     };
+//     traverse(args[1]);
+//     traverse(args[0]);
+//
+//     if (acc != CommutativeMonoid::IDENTITY) {
+//       keep.push(TermList(theory->representConstant(acc)));
+//     }
+//
+//     auto iter = Stack<TermList>::Iterator(keep);
+//     if (!iter.hasNext()) {
+//       return TermList(theory->representConstant(CommutativeMonoid::IDENTITY));
+//     } else {
+//       TermList out = iter.next();
+//       while (iter.hasNext()) {
+//         auto t = iter.next();
+//         out = TermList(Term::create2(fun, out, t));
+//       }
+//       DEBUG("out: ", out)
+//       return out;
+//     }
+// }
 
 #define __IMPL_COMMUTATIVE_MONOID(Const, name) \
   template<> TermList NewEvaluator::evaluateFun<num_traits<Const>::name##I>(Term* orig, TermList* args) const  \
@@ -1971,15 +2083,18 @@ TermList evaluateUnaryMinus(TermList inner_) {
     if (theory->isInterpretedFunction(&inner)) {
       switch (theory->interpretFunction(inner.functor())) {
         case number::addI:
+          // NORMALIZATION
           // TODO de-recursify
           return number::add(
               evaluateUnaryMinus<number>(inner[0]),
               evaluateUnaryMinus<number>(inner[1])
               );
-        // case number::mulI:
-        //   // should only happen when we enable normalization
-        //   // we normalize multiplications to 
-        //   return;
+        case number::mulI:
+          // NORMALIZATION
+          return number::mul(
+              evaluateUnaryMinus<number>(inner[0]),
+              inner[1]
+              );
         case number::minusI:
           return inner[0];
         default: 

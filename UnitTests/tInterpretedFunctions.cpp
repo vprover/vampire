@@ -447,8 +447,8 @@ ALL_NUMBERS_TEST(eval_remove_identity_1,
       )
 
 ALL_NUMBERS_TEST(eval_remove_identity_2,
-      eq(0, f(add(0, minus(mul(x, mul(1, y)))))),
-      eq(0, f(minus(mul(x,y))))
+      eq(0, f(add(0, mul(x, mul(1, y))))),
+      eq(0, f(mul(x,y)))
       )
 
 ALL_NUMBERS_TEST(polynomial__normalize_uminus_1,
@@ -474,6 +474,11 @@ ALL_NUMBERS_TEST(polynomial__merge_consts_2,
 ALL_NUMBERS_TEST(polynomial__merge_consts_3,
       p(add(add(mul(6, a), mul(y, 3)), mul(5, a))),
       p(add(mul(11, a), mul(3,y)))
+      )
+
+ALL_NUMBERS_TEST(polynomial__push_unary_minus,
+      p(minus(mul(a, 7))),
+      p(mul(-7, a))
       )
 
 // TODO: cases x = k * x <-> k = 1 | x = 0 
