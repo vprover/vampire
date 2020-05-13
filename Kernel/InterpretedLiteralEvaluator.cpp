@@ -45,7 +45,7 @@
 
 #if IDEBUG
 #define _DEBUG(...) 
-#define DEBUG(...) DBG(__VA_ARGS__)
+#define DEBUG(...) //DBG(__VA_ARGS__)
 #else 
 #define DEBUG(...)
 #define _DEBUG(...)
@@ -1902,7 +1902,7 @@ TermList NewEvaluator::evaluateCommutativeMonoid(Term* trm) const {
             keep.push(t);
           }
         });
-    DBG("keep: ", keep)
+    // DEBUG("keep: ", keep)
 
     if (acc != CommutativeMonoid::IDENTITY) {
       keep.push(TermList(theory->representConstant(acc)));
@@ -1917,7 +1917,7 @@ TermList NewEvaluator::evaluateCommutativeMonoid(Term* trm) const {
         auto t = iter.next();
         out = TermList(Term::create2(fun, out, t));
       }
-      DBG("out: ", out)
+      DEBUG("out: ", out)
       return out;
     }
 }
@@ -1925,9 +1925,9 @@ TermList NewEvaluator::evaluateCommutativeMonoid(Term* trm) const {
 #define __IMPL_COMMUTATIVE_MONOID(Const, name) \
   template<> TermList NewEvaluator::evaluateFun<num_traits<Const>::name##I>(Term* trm) const  \
   { \
-    CALL("NewEvaluator::evaluateFun<num_traits<Const>::" #name "I>(Term* trm)") \
+    CALL("NewEvaluator::evaluateFun<num_traits<" #Const ">::" #name "I>(Term* trm)") \
     auto out = evaluateCommutativeMonoid<CommutativeMonoid<num_traits<Const>::name##I>>(trm);  \
-    DBG(trm->toString(), "->", out) \
+    DEBUG(trm->toString(), "->", out) \
     return out; \
   } \
 
@@ -1942,6 +1942,61 @@ TermList NewEvaluator::evaluateCommutativeMonoid(Term* trm) const {
 
 #undef IMPL_COMMUTATIVE_MONOIDS
 #undef __IMPL_COMMUTATIVE_MONOID
+
+ 
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/// UNARY_MINUS 
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+template<class number>
+TermList evaluateUnaryMinus(Term* term) {
+  using Const = typename number::ConstantType;
+
+  auto inner_ = *term->nthArgument(0);
+  if (inner_.isVar()) {
+    return number::minus(TermList(inner_));
+
+  } else {
+    ASS(inner_.isTerm());
+
+    auto inner = inner_.term();
+    Const c;
+    if (theory->isInterpretedFunction(inner)) {
+      switch (theory->interpretFunction(inner->functor())) {
+        // case number::addI:
+        // case number::mulI:
+        //   // should only happen when we enable normalization
+        //   // we normalize multiplications to 
+        //   return;
+        case number::minusI:
+          return *inner->nthArgument(0);
+        default: 
+          return number::minus(TermList(inner));
+      }
+    } else if (theory->tryInterpretConstant(inner, c)) {
+      return TermList(theory->representConstant(-c));
+    } else {
+        return number::minus(TermList(inner));
+    }
+  }
+  ASSERTION_VIOLATION
+}
+
+#define IMPL_UNARY_MINUS(Const) \
+  template<> TermList NewEvaluator::evaluateFun<num_traits<Const>::minusI>(Term* trm) const  \
+  { \
+    CALL("NewEvaluator::evaluateFun<num_traits<" #Const ">::minusI>(Term* trm)") \
+    auto out = evaluateUnaryMinus<num_traits<Const>>(trm);  \
+    DEBUG(trm->toString(), "\t->\t", out) \
+    return out; \
+  } \
+
+  IMPL_UNARY_MINUS(RealConstantType    )
+  IMPL_UNARY_MINUS(RationalConstantType)
+  IMPL_UNARY_MINUS(IntegerConstantType )
+
+#undef IMPL_UNARY_MINUS
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2012,18 +2067,7 @@ IMPL_EVAL_UNARY(IntegerConstantType, INT_ROUND   , x)
   IMPL_NUM_CVT(RationalConstantType, RAT )
   IMPL_NUM_CVT(IntegerConstantType , INT )
 
-#undef IMPL_TO_INT
- 
-/////////////////// UNARY_MINUS 
-
-#define IMPL_UNARY_MINUS(Const, NUM) \
-    IMPL_EVAL_UNARY(Const, NUM ## _UNARY_MINUS, -x) \
-
-  IMPL_UNARY_MINUS(RealConstantType    , REAL)
-  IMPL_UNARY_MINUS(RationalConstantType, RAT )
-  IMPL_UNARY_MINUS(IntegerConstantType , INT )
-
-#undef IMPL_TO_INT
+#undef IMPL_NUM_CVT
 
 /////////////////// QUOTIENT 
 //
@@ -2033,7 +2077,7 @@ IMPL_EVAL_UNARY(IntegerConstantType, INT_ROUND   , x)
   IMPL_QUOTIENT(RealConstantType    , REAL)
   IMPL_QUOTIENT(RationalConstantType, RAT )
 
-#undef IMPL_TO_INT
+#undef IMPL_QUOTIENT
  
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2175,25 +2219,74 @@ TermList NewEvaluator::evaluateStep(TermList term) const {
 }
 
 TermList NewEvaluator::evaluate(Term* term) const {
-  // TODO: continue
-  // Stack<TermList> recurse;
-  // recurse.push(TermList(term));
-  // while (!recurse.isEmpty()) {
-  //   auto x = recurse.pop();
-  //   if (x.isTerm()) {
-  //     auto term = x.term();
-  //     for (int i = 0; i < term->arity(); i++) {
-  //       recurse.push(*term->nthArgument(i));
-  //     }
-  //     // if (term->arity() == 0) {
-  //     //
-  //     // }
-  //     recurse.push()
-  //   } else {
-  //
-  //   }
-  // }
-  return evaluateStep(term); 
+  CALL("NewEvaluator::evaluate(Term* term)")
+  DEBUG("evaluating ", term->toString())
+
+  static Stack<TermList*> position(8);
+
+  static Stack<Term*> terms(8);
+  static Stack<TermList> args(8);
+
+  args.reset();
+  position.reset();
+  terms.reset();
+
+  position.push(term->args());
+  terms.push(term);
+
+  TermList* cur;
+  do {
+
+    cur = position.pop();
+    // DBG("recursing on ", *cur)
+
+    // DBG("args: ", args)
+
+    if (!cur->isEmpty()) {
+      // DBG("shifting index: ", *cur, "\t-> ", *cur->next());
+
+      position.push(cur->next());
+
+      if(cur->isVar()) {
+        // DBG("evaluating var")
+        TermList dest = evaluateStep(*cur);
+        args.push(dest);
+
+      } else {
+        ASS(cur->isTerm());
+        Term* t = cur->term();
+        terms.push(t);
+        position.push(t->args());
+      }
+
+
+
+    } else /* cur->isEmpty() */ { 
+
+      ASS(!terms.isEmpty()) 
+
+      Term* orig=terms.pop();
+
+      TermList* argLst = 0;
+      if (orig->arity()) {
+        //here we assume, that stack is an array with
+        //second topmost element as &top()-1, third at
+        //&top()-2, etc...
+        argLst=&args.top() - (orig->arity()-1);
+        args.truncate(args.length() - orig->arity());
+      }
+
+      auto t = Term::create(orig,argLst);
+      // DBG("evaluating ", t->toString())
+      args.push(evaluateStep(t));
+      
+    }
+
+  // } while (!( cur->isEmpty() && terms.isEmpty() ));
+  } while (!position.isEmpty());
+  ASS_REP(position.isEmpty(), position)
+
+  return args.pop(); 
 }
 
 TermList NewEvaluator::evaluateStep(Term* term) const {
