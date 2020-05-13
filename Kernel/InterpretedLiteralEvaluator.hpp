@@ -31,6 +31,7 @@
 
 #include "TermTransformer.hpp"
 #include "Theory.hpp"
+#include "Shell/Options.hpp"
 
 namespace Kernel {
 
