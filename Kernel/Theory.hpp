@@ -124,7 +124,10 @@ public:
   bool isNegative(){ return _val<0; }
 
   static IntegerConstantType floor(RationalConstantType rat);
+  static IntegerConstantType floor(IntegerConstantType rat);
+
   static IntegerConstantType ceiling(RationalConstantType rat);
+  static IntegerConstantType ceiling(IntegerConstantType rat);
 
   static Comparison comparePrecedence(IntegerConstantType n1, IntegerConstantType n2);
 

@@ -118,7 +118,10 @@ struct num_traits;
     using ConstantType = CamelCase ## ConstantType;                 \
     static const Sorts::DefaultSorts sort = Sorts::SRT_ ## LONG;    \
                                                                     \
-    IMPL_NUM_TRAITS__INTERPRETED_PRED(less, SHORT, _LESS, 2) \
+    IMPL_NUM_TRAITS__INTERPRETED_PRED(less,    SHORT, _LESS,          2) \
+    IMPL_NUM_TRAITS__INTERPRETED_PRED(leq,     SHORT, _LESS_EQUAL,    2) \
+    IMPL_NUM_TRAITS__INTERPRETED_PRED(greater, SHORT, _GREATER,       2) \
+    IMPL_NUM_TRAITS__INTERPRETED_PRED(geq,     SHORT, _GREATER_EQUAL, 2) \
                                       \
     IMPL_NUM_TRAITS__INTERPRETED_FUN(minus, SHORT, _UNARY_MINUS, 1) \
     IMPL_NUM_TRAITS__INTERPRETED_FUN(add  , SHORT, _PLUS       , 2) \

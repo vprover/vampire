@@ -44,7 +44,6 @@ public:
   InterpretedLiteralEvaluator(bool doNormalize = true);
   ~InterpretedLiteralEvaluator();
 
-  // TODO: `Literal*` -> `const Literal&` ?
   bool evaluate(Literal* lit, bool& isConstant, Literal*& resLit, bool& resConst,Stack<Literal*>& sideConditions);
   TermList evaluate(TermList);
 protected:
@@ -52,6 +51,7 @@ protected:
   class EqualityEvaluator;
   class ConversionEvaluator;
   template<class T> class ACFunEvaluator;
+  template<class T> class PolynomialNormalizer;
   template<class T> class InequalityNormalizer;
   template<class T> class TypedEvaluator;
   class IntEvaluator;
@@ -97,7 +97,61 @@ private:
   const bool _normalize;
 };
 
+class LitEvalResult {
+public:
+  enum Tag {
+    Trivial,
+    NonTrivial,
+  };
+  Tag tag() const { return _tag; }
+  bool trivialValue() const { return _trivial; }
+  Literal* nonTrivialValue() const { return _nonTrivial; }
 
+  LitEvalResult(bool value): _tag(Tag::Trivial), _trivial(value) {}
+  LitEvalResult(Literal* value): _tag(Tag::NonTrivial), _nonTrivial(value) {}
+private:
+  const Tag _tag;
+  const union {
+    bool _trivial;
+    Literal* _nonTrivial;
+  };
+};
+struct NewEvaluator {
+
+public:
+  LitEvalResult evaluate(Literal* in) const;
+  TermList evaluate(TermList in) const;
+  TermList evaluate(Term* in) const;
+
+private:
+  LitEvalResult evaluateStep(Literal* in) const;
+  TermList evaluateStep(TermList in) const;
+  TermList evaluateStep(Term* in) const;
+
+  template<Theory::Interpretation inter>
+  LitEvalResult evaluateLit(Literal* lit) const;
+
+  template<Theory::Interpretation inter>
+  TermList evaluateFun(Term* term) const;
+
+  template<class CommutativeMonoid>
+  TermList evaluateCommutativeMonoid(Term* lit) const;
+
+  template<class ConstantType, class EvalIneq> 
+  LitEvalResult evaluateInequality(Literal* lit, bool strict, EvalIneq evalIneq) const;
+
+  template<class ConstantType, class EvalGround>
+  LitEvalResult tryEvalConstant1(Literal* lit, EvalGround fun) const;
+
+  template<class ConstantType, class EvalGround>
+  LitEvalResult tryEvalConstant2(Literal* lit, EvalGround fun) const;
+
+  template<class ConstantType, class EvalGround>
+  TermList tryEvalConstant1(Term* lit, EvalGround fun) const;
+
+  template<class ConstantType, class EvalGround>
+  TermList tryEvalConstant2(Term* lit, EvalGround fun) const;
+};
 }
 
 #endif // __InterpretedLiteralEvaluator__

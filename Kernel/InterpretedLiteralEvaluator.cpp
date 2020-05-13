@@ -24,7 +24,7 @@
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
 
-#include "Signature.hpp"
+#include "Signature.hpp" 
 #include "SortHelper.hpp"
 #include "Sorts.hpp"
 #include "TermIterators.hpp"
@@ -120,9 +120,115 @@ void stackTraverseIf(TermList term, Predicate pred, Fn action) {
   }
 }
 
+struct TermTraverser {
+    struct Node {
+      Term* term;
+      unsigned idx;
+    };
+
+    Node _cur;
+    Stack<Node> _stack;
+
+    bool inBounds() const {
+      return _cur.idx < _cur.term->arity();
+    }
+
+  public:
+
+    TermList operator*() const {
+      return *_cur.term->nthArgument(_cur.idx);
+    }
+
+    void operator++() {
+      _cur.idx++;
+      while(!inBounds()) {
+        if (_stack.isEmpty()) return;
+        _cur = _stack.pop();
+      }
+    }
+
+    void push() {
+      ASS(inBounds())
+      auto _new_term = (**this);
+      ASS(_new_term.isTerm())
+      auto new_term = _new_term.term();
+      ASS(new_term->arity() > 0)
+      _cur.idx++;
+      _stack.push(_cur);
+      _cur.term = new_term;
+      _cur.idx = 0;
+    }
+
+    bool hasNext() const {
+      return !_stack.isEmpty() || inBounds();
+    }
+};
+
+
+// /**
+//  * TODO document
+//  *
+//  * @author joe-hauns
+//  * @since 12/05/20
+//  */
+// template<class ConstantType>
+// class InterpretedLiteralEvaluator::PolynomialNormalizer
+//    : public Evaluator
+// {
+// public:
+// CLASS_NAME(InterpretedLiteralEvaluator::ACFunEvaluator<ConstantType>);
+//   USE_ALLOCATOR(InterpretedLiteralEvaluator::ACFunEvaluator<ConstantType>);
+//
+//   using number = num_traits<ConstantType>;
+//
+//   PolynomialNormalizer() : _addF(number::addF()) { }
+//   const unsigned _addF; 
+//
+//   virtual bool canEvaluateFunc(unsigned func) { return func == _addF; }
+//
+//   virtual bool tryEvaluateFunc(Term* trm, TermList& res) { 
+//     CALL( "ACFunEvaluator::tryEvaluateFunc()" );
+//     ASS_EQ(trm->functor(), _fun);
+//     ASS_EQ(trm->arity(),2);
+//
+//     ConstantType acc = ConstantType::zero;
+//     Stack<TermList> keep;
+//     stackTraverseIf(TermList(trm), 
+//         /* we traverse only the parts with the same operation */
+//         [&](Term& t){ return t.functor() == _fun; },
+//         [&](TermList t) {
+//           ConstantType c;
+//           /* we eval constant parts */
+//           if (t.isTerm() && theory->tryInterpretConstant(t.term(), c)) {
+//             acc = CommutativeMonoid::groundEval(acc, c);
+//           } else {
+//             keep.push(t);
+//           }
+//         });
+//
+//     if (acc != CommutativeMonoid::IDENTITY) {
+//       keep.push(TermList(theory->representConstant(acc)));
+//     }
+//
+//     auto iter = Stack<TermList>::Iterator(keep);
+//     if (!iter.hasNext()) {
+//       res = TermList(theory->representConstant(CommutativeMonoid::IDENTITY));
+//       return TermList(trm) != res;
+//     } else {
+//       TermList out = iter.next();
+//       while (iter.hasNext()) {
+//         auto t = iter.next();
+//         out = TermList(Term::create2(_fun, out, t));
+//       }
+//       res = out;
+//       return TermList(trm) != res;
+//     }
+//   }
+// };
+
 
 /**
- * We want to smplify terms that are interpred by abelian groups. e.g. (1+a)+1 -> 2 + a ... 
+ * We want to smplify terms that are interpred by commutative monoids. e.g. (1+a)+1 -> 2 + a ... 
  * the standard evaluation will not do this. 
  *
  * Additionally evaluator has a weekly normalizing behaviour. Namely it re-brackets sums, such that the lhs 
@@ -132,22 +238,22 @@ void stackTraverseIf(TermList term, Predicate pred, Fn action) {
  * x + ( y + ( t + 4 ) + r ) + 5  ==> ( ( (9 + x) + y ) + t ) + r
  * x + ( y + 0 )                  ==> x + y
  *
- * (The name of this class comes from the Associative Commutative operation of the Group)
+ * (The name of this class comes from the Associative Commutative operation of the Monoid)
  *
  * @author Giles (refactorings by joe-hauns)
  * @since 06/12/18
  */
-template<class AbelianGroup>
+template<class CommutativeMonoid>
 class InterpretedLiteralEvaluator::ACFunEvaluator
    : public Evaluator
 {
 public:
-CLASS_NAME(InterpretedLiteralEvaluator::ACFunEvaluator<AbelianGroup>);
-  USE_ALLOCATOR(InterpretedLiteralEvaluator::ACFunEvaluator<AbelianGroup>);
+CLASS_NAME(InterpretedLiteralEvaluator::ACFunEvaluator<CommutativeMonoid>);
+  USE_ALLOCATOR(InterpretedLiteralEvaluator::ACFunEvaluator<CommutativeMonoid>);
 
-  using ConstantType = typename AbelianGroup::ConstantType;
+  using ConstantType = typename CommutativeMonoid::ConstantType;
 
-  ACFunEvaluator() : _fun(env.signature->getInterpretingSymbol(AbelianGroup::interpreation)) { }
+  ACFunEvaluator() : _fun(env.signature->getInterpretingSymbol(CommutativeMonoid::interpreation)) { }
   const unsigned _fun; 
 
   virtual bool canEvaluateFunc(unsigned func) { return func == _fun; }
@@ -157,7 +263,7 @@ CLASS_NAME(InterpretedLiteralEvaluator::ACFunEvaluator<AbelianGroup>);
     ASS_EQ(trm->functor(), _fun);
     ASS_EQ(trm->arity(),2);
 
-    ConstantType acc = AbelianGroup::IDENTITY;
+    ConstantType acc = CommutativeMonoid::IDENTITY;
     Stack<TermList> keep;
     stackTraverseIf(TermList(trm), 
         /* we traverse only the parts with the same operation */
@@ -166,19 +272,19 @@ CLASS_NAME(InterpretedLiteralEvaluator::ACFunEvaluator<AbelianGroup>);
           ConstantType c;
           /* we eval constant parts */
           if (t.isTerm() && theory->tryInterpretConstant(t.term(), c)) {
-            acc = AbelianGroup::groundEval(acc, c);
+            acc = CommutativeMonoid::groundEval(acc, c);
           } else {
             keep.push(t);
           }
         });
 
-    if (acc != AbelianGroup::IDENTITY) {
+    if (acc != CommutativeMonoid::IDENTITY) {
       keep.push(TermList(theory->representConstant(acc)));
     }
 
     auto iter = Stack<TermList>::Iterator(keep);
     if (!iter.hasNext()) {
-      res = TermList(theory->representConstant(AbelianGroup::IDENTITY));
+      res = TermList(theory->representConstant(CommutativeMonoid::IDENTITY));
       return TermList(trm) != res;
     } else {
       TermList out = iter.next();
@@ -1036,18 +1142,18 @@ protected:
 };
 
 template<Theory::Interpretation op>
-struct AbelianGroup;
+struct CommutativeMonoid;
 
-/** Creates an instance of struct AbelianGroup<oper>, for the use in ACFunEvaluator. */
+/** Creates an instance of struct CommutativeMonoid<oper>, for the use in ACFunEvaluator. */
 #define IMPL_OPERATOR(oper, type, identity, eval) \
-  template<> struct AbelianGroup<oper> { \
+  template<> struct CommutativeMonoid<oper> { \
     const static Theory::Interpretation interpreation = oper; \
     using ConstantType = type; \
     const static type IDENTITY; \
     static type groundEval(type l, type r) { return eval; } \
     /*const static unsigned FUNCTOR;*/ \
   }; \
-  const type     AbelianGroup<oper>::IDENTITY = identity; \
+  const type     CommutativeMonoid<oper>::IDENTITY = identity; \
 
 /* int opeators */
 IMPL_OPERATOR(Theory::INT_MULTIPLY, IntegerConstantType, IntegerConstantType(1), l * r)
@@ -1084,12 +1190,12 @@ InterpretedLiteralEvaluator::InterpretedLiteralEvaluator(bool doNormalize) : _no
 
   // Special AC evaluators are added to be tried first for Plus and Multiply
 
-  _evals.push(new ACFunEvaluator<AbelianGroup<Theory::INT_PLUS>>()); 
-  _evals.push(new ACFunEvaluator<AbelianGroup<Theory::INT_MULTIPLY>>());
-  _evals.push(new ACFunEvaluator<AbelianGroup<Theory::RAT_PLUS>>());
-  _evals.push(new ACFunEvaluator<AbelianGroup<Theory::RAT_MULTIPLY>> ());
-  _evals.push(new ACFunEvaluator<AbelianGroup<Theory::REAL_PLUS>> ());
-  _evals.push(new ACFunEvaluator<AbelianGroup<Theory::REAL_MULTIPLY>> ());
+  _evals.push(new ACFunEvaluator<CommutativeMonoid<Theory::INT_PLUS>>()); 
+  _evals.push(new ACFunEvaluator<CommutativeMonoid<Theory::INT_MULTIPLY>>());
+  _evals.push(new ACFunEvaluator<CommutativeMonoid<Theory::RAT_PLUS>>());
+  _evals.push(new ACFunEvaluator<CommutativeMonoid<Theory::RAT_MULTIPLY>> ());
+  _evals.push(new ACFunEvaluator<CommutativeMonoid<Theory::REAL_PLUS>> ());
+  _evals.push(new ACFunEvaluator<CommutativeMonoid<Theory::REAL_MULTIPLY>> ());
 
   }
 
@@ -1669,4 +1775,492 @@ InterpretedLiteralEvaluator::Evaluator* InterpretedLiteralEvaluator::getPredEval
        [] (Evaluator* ev, unsigned i) {return ev->canEvaluatePred(i); });
 }
 
+}
+
+namespace Kernel {
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/// Equality
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+template<class number> inline LitEvalResult interpret_equality(Literal* lit, bool polarity, TermList lhs, TermList rhs) {
+  using Const = typename number::ConstantType;
+  Const l;
+  Const r;
+  if (theory->tryInterpretConstant(lhs, l) && theory->tryInterpretConstant(rhs, r)) {
+    return polarity == (l == r);
+  } else {
+    return Literal::createEquality(lit->polarity(), lhs, rhs, number::sort);
+  }
+}
+
+template<> LitEvalResult NewEvaluator::evaluateLit<Interpretation::EQUAL>(Literal* lit) const {
+  auto lhs = *lit->nthArgument(0);
+  auto rhs = *lit->nthArgument(1);
+  if (lhs == rhs) return lit->polarity();
+  auto sort =  SortHelper::getEqualityArgumentSort(lit);
+  switch (sort) {
+    case Sorts::SRT_INTEGER:  return interpret_equality<num_traits<IntegerConstantType>>(lit, lit->polarity(), lhs, rhs);
+    case Sorts::SRT_RATIONAL: return interpret_equality<num_traits<RationalConstantType>>(lit, lit->polarity(), lhs, rhs);
+    case Sorts::SRT_REAL:     return interpret_equality<num_traits<RealConstantType>>(lit, lit->polarity(), lhs, rhs);
+                             //TODO lift to term algebras
+    default:
+      return Literal::createEquality(lit->polarity(), lhs, rhs, sort);
+  }
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/// Inequalities
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+template<class ConstantType, class EvalIneq> LitEvalResult NewEvaluator::evaluateInequality(Literal* lit, bool strict, EvalIneq evalIneq) const {
+  ASS(lit->arity() == 2);
+  auto lhs = *lit->nthArgument(0);
+  auto rhs = *lit->nthArgument(1);
+  if (lhs == rhs) return lit->polarity() != strict;
+  ConstantType l;
+  ConstantType r;
+  if (theory->tryInterpretConstant(lhs, l) && theory->tryInterpretConstant(rhs, r)) {
+    return lit->polarity() == evalIneq(l, r);
+  } else {
+    return lit;
+  }
+}
+
+#define __IMPL_INEQ(Const, name, STRICT, op) \
+  template<> LitEvalResult NewEvaluator::evaluateLit<num_traits<Const>::name ## I>(Literal* lit) const \
+  { return evaluateInequality<Const>(lit, STRICT, [](Const l, Const r) {return l op r;}); } \
+
+#define IMPL_INEQUALTIES(Const) \
+   /*                inequality| is strict? | operator */ \
+  __IMPL_INEQ(Const, less      ,   true     ,  <        ) \
+  __IMPL_INEQ(Const, leq       ,   false    ,  <=       ) \
+  __IMPL_INEQ(Const, greater   ,   true     ,  >        ) \
+  __IMPL_INEQ(Const, geq       ,   false    ,  >=       ) \
+
+
+IMPL_INEQUALTIES(RationalConstantType)
+IMPL_INEQUALTIES(RealConstantType) 
+IMPL_INEQUALTIES(IntegerConstantType)
+
+#undef  IMPL_NUM_EVALS
+#undef  __IMPL_INEQ
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/// INT_IS_RAT and similar functions
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//TODO
+#define __IMPL_NUM_IS_NUM(INT, RAT) \
+  template<> LitEvalResult NewEvaluator::evaluateLit<Interpretation::INT ## _IS_ ## RAT>(Literal* lit) const { \
+    return lit; \
+  } \
+
+#define IMPL_NUM_IS_NUM(NUM) \
+    __IMPL_NUM_IS_NUM(NUM, RAT) \
+    __IMPL_NUM_IS_NUM(NUM, REAL) \
+    __IMPL_NUM_IS_NUM(NUM, INT) \
+
+IMPL_NUM_IS_NUM(INT)
+IMPL_NUM_IS_NUM(RAT)
+IMPL_NUM_IS_NUM(REAL)
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/// INT_DIVIDES
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+template<> LitEvalResult NewEvaluator::evaluateLit<Interpretation::INT_DIVIDES>(Literal* lit) const {
+  return tryEvalConstant2<IntegerConstantType>(lit, [](IntegerConstantType l, IntegerConstantType r) { 
+      return (r % l) == 0;
+  });
+}
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/// AC_FUNCTIONS
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+template<class CommutativeMonoid> 
+TermList NewEvaluator::evaluateCommutativeMonoid(Term* trm) const {
+  CALL("NewEvaluator::evaluateCommutativeMonoid(Term* trm)")
+    using ConstantType = typename CommutativeMonoid::ConstantType;
+
+    CALL( "ACFunEvaluator::tryEvaluateFunc()" );
+    const unsigned fun = trm->functor();
+
+    ConstantType acc = CommutativeMonoid::IDENTITY;
+    Stack<TermList> keep;
+    stackTraverseIf(TermList(trm), 
+        /* we traverse only the parts with the same operation */
+        [&](Term& t){ return t.functor() == fun; },
+        [&](TermList t) {
+          ConstantType c;
+          /* we eval constant parts */
+          if (t.isTerm() && theory->tryInterpretConstant(t.term(), c)) {
+            acc = CommutativeMonoid::groundEval(acc, c);
+          } else {
+            keep.push(t);
+          }
+        });
+    DBG("keep: ", keep)
+
+    if (acc != CommutativeMonoid::IDENTITY) {
+      keep.push(TermList(theory->representConstant(acc)));
+    }
+
+    auto iter = Stack<TermList>::Iterator(keep);
+    if (!iter.hasNext()) {
+      return TermList(theory->representConstant(CommutativeMonoid::IDENTITY));
+    } else {
+      TermList out = iter.next();
+      while (iter.hasNext()) {
+        auto t = iter.next();
+        out = TermList(Term::create2(fun, out, t));
+      }
+      DBG("out: ", out)
+      return out;
+    }
+}
+
+#define __IMPL_COMMUTATIVE_MONOID(Const, name) \
+  template<> TermList NewEvaluator::evaluateFun<num_traits<Const>::name##I>(Term* trm) const  \
+  { \
+    CALL("NewEvaluator::evaluateFun<num_traits<Const>::" #name "I>(Term* trm)") \
+    auto out = evaluateCommutativeMonoid<CommutativeMonoid<num_traits<Const>::name##I>>(trm);  \
+    DBG(trm->toString(), "->", out) \
+    return out; \
+  } \
+
+#define IMPL_COMMUTATIVE_MONOIDS(Const) \
+  __IMPL_COMMUTATIVE_MONOID(Const, add) \
+  __IMPL_COMMUTATIVE_MONOID(Const, mul) \
+
+
+  IMPL_COMMUTATIVE_MONOIDS(RationalConstantType)
+  IMPL_COMMUTATIVE_MONOIDS(RealConstantType)
+  IMPL_COMMUTATIVE_MONOIDS(IntegerConstantType)
+
+#undef IMPL_COMMUTATIVE_MONOIDS
+#undef __IMPL_COMMUTATIVE_MONOID
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/// Functions that are only handled for constants
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+#define IMPL_EVAL_UNARY(Const, INTER, expr) \
+  template<> TermList NewEvaluator::evaluateFun<Interpretation::INTER>(Term* trm) const   \
+  {  return tryEvalConstant1<Const>(trm, [] (Const x) { return expr; }); } 
+
+#define IMPL_EVAL_BINARY(Const, INTER, expr) \
+  template<> TermList NewEvaluator::evaluateFun<Interpretation::INTER>(Term* trm) const   \
+  {  return tryEvalConstant2<Const>(trm, [] (Const l, Const r) { return expr; }); } 
+
+
+/////////////////// Integer only functions
+
+IMPL_EVAL_UNARY(IntegerConstantType, INT_ABS      , x >= 0 ? x : -x)
+IMPL_EVAL_UNARY(IntegerConstantType, INT_SUCCESSOR, x + 1          )
+
+/////////////////// INT_QUOTIENT_E and friends
+
+#define IMPL_QUOTIENT_REMAINDER(Const, NUM, SUFFIX) \
+  IMPL_EVAL_BINARY(Const, NUM ##  _QUOTIENT_ ## SUFFIX,  l.quotient ## SUFFIX(r)) \
+  IMPL_EVAL_BINARY(Const, NUM ## _REMAINDER_ ## SUFFIX,  l - (l.quotient ## SUFFIX (r)*r)) \
+
+#define IMPL_QUOTIENT_REMAINDERS(Const, NUM) \
+  IMPL_QUOTIENT_REMAINDER(Const, NUM, E) \
+  IMPL_QUOTIENT_REMAINDER(Const, NUM, T) \
+  IMPL_QUOTIENT_REMAINDER(Const, NUM, F) \
+  IMPL_EVAL_BINARY(Const, NUM ## _MINUS, l - r) \
+
+  IMPL_QUOTIENT_REMAINDERS(RealConstantType    , REAL)
+  IMPL_QUOTIENT_REMAINDERS(RationalConstantType, RAT )
+  IMPL_QUOTIENT_REMAINDERS(IntegerConstantType , INT )
+
+#undef IMPL_QUOTIENT_REMAINDER
+#undef IMPL_QUOTIENT_REMAINDERS
+
+/////////////////// INT_FLOOR and friends
+
+// have no effect for ints
+IMPL_EVAL_UNARY(IntegerConstantType, INT_FLOOR   , x)
+IMPL_EVAL_UNARY(IntegerConstantType, INT_CEILING , x)
+IMPL_EVAL_UNARY(IntegerConstantType, INT_TRUNCATE, x)
+IMPL_EVAL_UNARY(IntegerConstantType, INT_ROUND   , x)
+
+// same impl for fractionals
+#define IMPL_FRAC_FLOOR_FRIENDS(Const, NUM) \
+  IMPL_EVAL_UNARY(Const, NUM ## _FLOOR, x.floor()) \
+  IMPL_EVAL_UNARY(Const, NUM ## _CEILING, x.ceiling()) \
+  IMPL_EVAL_UNARY(Const, NUM ## _TRUNCATE, x.truncate()) \
+
+  IMPL_FRAC_FLOOR_FRIENDS(RealConstantType    , REAL)
+  IMPL_FRAC_FLOOR_FRIENDS(RationalConstantType, RAT)
+
+#undef IMPL_EVAL_FRAC_FLOOR_FRIENDS
+ 
+/////////////////// RAT_TO_INT and friends
+
+#define IMPL_NUM_CVT(Const, NUM) \
+    IMPL_EVAL_UNARY(Const, NUM ## _TO_INT, IntegerConstantType::floor(x)) \
+    IMPL_EVAL_UNARY(Const, NUM ## _TO_RAT, RationalConstantType(x)) \
+    IMPL_EVAL_UNARY(Const, NUM ## _TO_REAL, RealConstantType(x)) \
+
+  IMPL_NUM_CVT(RealConstantType    , REAL)
+  IMPL_NUM_CVT(RationalConstantType, RAT )
+  IMPL_NUM_CVT(IntegerConstantType , INT )
+
+#undef IMPL_TO_INT
+ 
+/////////////////// UNARY_MINUS 
+
+#define IMPL_UNARY_MINUS(Const, NUM) \
+    IMPL_EVAL_UNARY(Const, NUM ## _UNARY_MINUS, -x) \
+
+  IMPL_UNARY_MINUS(RealConstantType    , REAL)
+  IMPL_UNARY_MINUS(RationalConstantType, RAT )
+  IMPL_UNARY_MINUS(IntegerConstantType , INT )
+
+#undef IMPL_TO_INT
+
+/////////////////// QUOTIENT 
+//
+#define IMPL_QUOTIENT(Const, NUM) \
+    IMPL_EVAL_BINARY(Const, NUM ## _QUOTIENT, l / r) \
+
+  IMPL_QUOTIENT(RealConstantType    , REAL)
+  IMPL_QUOTIENT(RationalConstantType, RAT )
+
+#undef IMPL_TO_INT
+ 
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/// Helper functions
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+template<class ConstantType, class EvalGround>
+LitEvalResult NewEvaluator::tryEvalConstant1(Literal* lit, EvalGround fun) const {
+  auto lhs = *lit->nthArgument(0);
+  ConstantType l;
+  if (theory->tryInterpretConstant(lhs, l)) {
+    return fun(l);
+  } else {
+    return lit;
+  }
+}
+
+
+template<class ConstantType, class EvalGround>
+LitEvalResult NewEvaluator::tryEvalConstant2(Literal* lit, EvalGround fun) const {
+  auto lhs = *lit->nthArgument(0);
+  auto rhs = *lit->nthArgument(1);
+  ConstantType l;
+  ConstantType r;
+  if (theory->tryInterpretConstant(lhs, l) && theory->tryInterpretConstant(rhs, r)) {
+    return fun(l,r);
+  } else {
+    return lit;
+  }
+}
+
+
+template<class ConstantType, class EvalGround>
+TermList NewEvaluator::tryEvalConstant1(Term* lit, EvalGround fun) const {
+  auto lhs = *lit->nthArgument(0);
+  ConstantType l;
+  if (theory->tryInterpretConstant(lhs, l)) {
+    return TermList(theory->representConstant(fun(l)));
+  } else {
+    return TermList(lit);
+  }
+}
+
+
+template<class ConstantType, class EvalGround>
+TermList NewEvaluator::tryEvalConstant2(Term* lit, EvalGround fun) const {
+  auto lhs = *lit->nthArgument(0);
+  auto rhs = *lit->nthArgument(1);
+  ConstantType l;
+  ConstantType r;
+  if (theory->tryInterpretConstant(lhs, l) && theory->tryInterpretConstant(rhs, r)) {
+    return TermList(theory->representConstant(fun(l,r)));
+  } else {
+    return TermList(lit);
+  }
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/// Main literal evaluation
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+LitEvalResult NewEvaluator::evaluate(Literal* lit) const {
+  Stack<TermList> terms;
+  //TODO reserve arity
+  for (int i = 0; i < lit->arity(); i++) {
+    terms.push(evaluate(*lit->nthArgument(i)));
+  }
+  return evaluateStep(Literal::create(lit, terms.begin()));
+}
+
+LitEvalResult NewEvaluator::evaluateStep(Literal* lit) const {
+
+#define HANDLE_CASE(INTER) case Interpretation::INTER: return evaluateLit<Interpretation::INTER>(lit); 
+#define IGNORE_CASE(INTER) case Interpretation::INTER: return lit;
+#define HANDLE_NUM_CASES(NUM) \
+      HANDLE_CASE(NUM ## _IS_INT) \
+      HANDLE_CASE(NUM ## _IS_RAT) \
+      HANDLE_CASE(NUM ## _IS_REAL) \
+      HANDLE_CASE(NUM ## _GREATER) \
+      HANDLE_CASE(NUM ## _GREATER_EQUAL) \
+      HANDLE_CASE(NUM ## _LESS) \
+      HANDLE_CASE(NUM ## _LESS_EQUAL) 
+
+  //TODO create function theory->tryInterpret(Predicate|Function)
+  auto sym = env.signature->getPredicate(lit->functor());
+  if (sym->interpreted()) {
+    auto inter = static_cast<Signature::InterpretedSymbol*>(sym)->getInterpretation();
+
+    switch (inter) {
+      /* polymorphic */
+      HANDLE_CASE(EQUAL)
+
+      /* common number predicates */
+      HANDLE_NUM_CASES(INT)
+      HANDLE_NUM_CASES(RAT)
+      HANDLE_NUM_CASES(REAL)
+
+      /* integer predicates */
+      HANDLE_CASE(INT_DIVIDES)
+
+      default:
+        DBG("WARNING: unexpected interpreted predicate: ", lit->toString())
+        ASSERTION_VIOLATION
+        return lit;
+    }
+  } else {
+    return lit;
+  }
+
+#undef HANDLE_CASE
+#undef IGNORE_CASE
+#undef HANDLE_NUM_CASES
+}
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/// Main Term
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+TermList NewEvaluator::evaluate(TermList term) const {
+  if (term.isTerm()) {
+    return evaluate(term.term()); 
+  } else {
+    ASS_REP(term.isVar(), term);
+    /* single variables can't be simplified */
+    return term;
+  }
+}
+
+TermList NewEvaluator::evaluateStep(TermList term) const {
+  if (term.isTerm()) {
+    return evaluateStep(term.term()); 
+  } else {
+    ASS_REP(term.isVar(), term);
+    /* single variables can't be simplified */
+    return term;
+  }
+}
+
+TermList NewEvaluator::evaluate(Term* term) const {
+  // TODO: continue
+  // Stack<TermList> recurse;
+  // recurse.push(TermList(term));
+  // while (!recurse.isEmpty()) {
+  //   auto x = recurse.pop();
+  //   if (x.isTerm()) {
+  //     auto term = x.term();
+  //     for (int i = 0; i < term->arity(); i++) {
+  //       recurse.push(*term->nthArgument(i));
+  //     }
+  //     // if (term->arity() == 0) {
+  //     //
+  //     // }
+  //     recurse.push()
+  //   } else {
+  //
+  //   }
+  // }
+  return evaluateStep(term); 
+}
+
+TermList NewEvaluator::evaluateStep(Term* term) const {
+
+
+#define HANDLE_CASE(INTER) case Interpretation::INTER: return evaluateFun<Interpretation::INTER>(term); 
+#define IGNORE_CASE(INTER) case Interpretation::INTER: return TermList(term);
+
+#define HANDLE_NUM_CASES(NUM) \
+    HANDLE_CASE(NUM ## _UNARY_MINUS) \
+    HANDLE_CASE(NUM ## _PLUS) \
+    HANDLE_CASE(NUM ## _MINUS) \
+    HANDLE_CASE(NUM ## _MULTIPLY) \
+    HANDLE_CASE(NUM ## _QUOTIENT_E) \
+    HANDLE_CASE(NUM ## _QUOTIENT_T) \
+    HANDLE_CASE(NUM ## _QUOTIENT_F) \
+    HANDLE_CASE(NUM ## _REMAINDER_E) \
+    HANDLE_CASE(NUM ## _REMAINDER_T) \
+    HANDLE_CASE(NUM ## _REMAINDER_F) \
+    HANDLE_CASE(NUM ## _FLOOR) \
+    HANDLE_CASE(NUM ## _CEILING) \
+    HANDLE_CASE(NUM ## _TRUNCATE) \
+    HANDLE_CASE(NUM ## _TO_INT) \
+    HANDLE_CASE(NUM ## _TO_RAT) \
+    HANDLE_CASE(NUM ## _TO_REAL) \
+
+  //TODO de-recursify
+  auto sym = env.signature->getFunction(term->functor());
+  if (sym->interpreted()) {
+    auto inter = static_cast<Signature::InterpretedSymbol*>(sym)->getInterpretation();
+    switch (inter) {
+
+      /* common number functions*/
+      HANDLE_NUM_CASES(INT)
+      HANDLE_NUM_CASES(RAT)
+      HANDLE_NUM_CASES(REAL)
+
+      /* integer functions */
+      HANDLE_CASE(INT_SUCCESSOR)
+      HANDLE_CASE(INT_ABS)
+
+      /* rational functions */
+      HANDLE_CASE(RAT_QUOTIENT)
+      IGNORE_CASE(RAT_ROUND)  //TODO
+
+      /* real functions */
+      HANDLE_CASE(REAL_QUOTIENT)
+      IGNORE_CASE(REAL_ROUND)  //TODO
+
+      /* ignored */
+      IGNORE_CASE(ARRAY_SELECT)
+      IGNORE_CASE(ARRAY_BOOL_SELECT)
+      IGNORE_CASE(ARRAY_STORE)
+
+      default:
+        ASS_REP(theory->isInterpretedNumber(term), "unexpected interpreted predicate: " + term->toString())
+        return TermList(term);
+
+    }
+
+  } else {
+      return TermList(term);
+  }
+}
+
+
+#undef HANDLE_CASE
+#undef IGNORE_CASE
+#undef HANDLE_NUM_CASES
 }

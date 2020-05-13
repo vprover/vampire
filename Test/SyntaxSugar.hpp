@@ -63,13 +63,24 @@
 
 #define __CLSR_FUN_UNINTERPRETED(f, sort) \
   auto f = [](TermWrapper args) -> TermWrapper  {  \
-    unsigned f = env.signature->addFunction("f",1);  \
+    unsigned f = env.signature->addFunction(#f,1);  \
     static bool set = false;  \
     if (!set) {  \
       env.signature->getFunction(f)->setType(OperatorType::getFunctionType({ sort }, sort));  \
       set = true;  \
     }  \
     return TermList(Term::create1(f, args));  \
+  };  \
+
+#define __CLSR_PRED_UNINTERPRETED(p, sort) \
+  auto p = [](TermWrapper args) -> Literal&  {  \
+    unsigned p = env.signature->addPredicate(#p, 1);  \
+    static bool set = false;  \
+    if (!set) {  \
+      env.signature->getPredicate(p)->setType(OperatorType::getPredicateType({ sort }));  \
+      set = true;  \
+    }  \
+    return *Literal::create1(p, true, args); \
   };  \
 
 #define __CLSR_CONS_UNINTERPRETED(name, sort) \
@@ -173,6 +184,9 @@
     __CLSR_FUN_INTERPRETED(2, add, sort, _PLUS) \
     __CLSR_FUN_INTERPRETED(1, minus, sort, _UNARY_MINUS) \
     __CLSR_FUN_UNINTERPRETED(f, __TO_SORT_ ## sort) \
+    __CLSR_PRED_UNINTERPRETED(p, __TO_SORT_ ## sort) \
+    __CLSR_PRED_UNINTERPRETED(q, __TO_SORT_ ## sort) \
+    __CLSR_PRED_UNINTERPRETED(r, __TO_SORT_ ## sort) \
     __FROM_FRAC_ ## sort \
     __CLSR_RELATION(gt, Theory::Interpretation::sort ## _GREATER)\
     __CLSR_RELATION(geq, Theory::Interpretation::sort ## _GREATER_EQUAL)\

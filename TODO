@@ -47,18 +47,34 @@ TODO:
 
 
 
-Keep in mind:
+=========================================== Keep in mind:
 1) semantic subsumption
-    c >= 1    
-    c != 0 can be deleted
+    k >= 1    
+    k != 0 can be deleted
+2) evaluation/simplification 
+  2.1)
 
-READ: 
+    c*x = x \/ C
+    --------------
+      x = 0 \/ C
+
+    equivalent to
+
+    c*x = 0 \/ C
+    --------------
+      x = 0 \/ C
+
+  2.2)
+    x > -x ==> x < 0
+
+
+=========================================== READ: 
   - Conflict Resolution. Korovin, Voronkov, Tsiskaridze
   - Implementing Conflict Resolution.
   - LASCA Linear Arithmetic Superposition Calculus
   - Bound Propagation (?)
 
-IDEAS: 
+=========================================== IDEAS: 
   - Weak normal form for multiplication ( a / b ==> a * (1/b) )
   - permit sideconditions for rebalancing equalities. 
 
@@ -91,4 +107,5 @@ IDEAS:
           66| 	0.21	(c * X0)  = u[X0]
             => could derive inversion of rhs
 
+    X = X + Y can be rewritten to Y = 0
 

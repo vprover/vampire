@@ -170,6 +170,11 @@ TEST_ELIMINATE(test_multiplesteps_2
     , clause({  lt(4, f(1))  })
     )
 
+TEST_ELIMINATE(test_simplified_rebalance_1
+    , clause({  neq(x, add(x,y)), lt(a, y)  })
+    , clause({  lt(a, 0)  })
+    )
+
   // x  !=4 \/ x+y != 5 \/ C[x]
   // 5-y!=4             \/ C[5-y]
   //                    \/ C[5]

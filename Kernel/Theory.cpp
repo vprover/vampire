@@ -140,6 +140,9 @@ bool IntegerConstantType::operator>(const IntegerConstantType& num) const
   return _val>num._val;
 }
 
+IntegerConstantType IntegerConstantType::floor(IntegerConstantType x)
+{ return x; }
+
 IntegerConstantType IntegerConstantType::floor(RationalConstantType rat)
 {
   CALL("IntegerConstantType::floor");
@@ -159,6 +162,10 @@ IntegerConstantType IntegerConstantType::floor(RationalConstantType rat)
   }
   return res;
 }
+
+IntegerConstantType IntegerConstantType::ceiling(IntegerConstantType x)
+{ return x; }
+
 IntegerConstantType IntegerConstantType::ceiling(RationalConstantType rat)
 {
   CALL("IntegerConstantType::ceiling");

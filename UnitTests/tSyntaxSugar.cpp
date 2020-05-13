@@ -31,3 +31,17 @@ TEST_FUN(some_other_meaningful_testname) {
   perform_test(t);
 }
 
+
+TEST_FUN(meaningful_testname_2) {
+  THEORY_SYNTAX_SUGAR(RAT)
+
+  /* uninterprted predicate p, q, r */
+  Literal& l1 = p(mul(x, frac(7,3)));
+  Literal& l2 = q(x);
+  Literal& l3 = r(3);
+
+  perform_test(l1);
+  perform_test(l2);
+  perform_test(l3);
+}
+
