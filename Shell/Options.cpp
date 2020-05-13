@@ -953,24 +953,23 @@ void Options::Options::init()
            _inequalityNormalization.description="Enable normalizing of inequalities like s < t ==> 0 < t - s.";
            _lookup.insert(&_inequalityNormalization);
            _inequalityNormalization.tag(OptionTag::INFERENCES);
-           _inequalityNormalization.setExperimental();
  
            _rebalancingElimination = BoolOptionValue("rebalancing_elimination","rebalance",false);
            _rebalancingElimination.description=
-                  "Enable the immideate simplification \"Rebalancing Elimination\":"
-                  "s != t | C[X] "
-                  "-------------  if s != t can be rewritten to X != r "
-                  "    C[r] "
-                  ""
-                  "example:" 
-                  ""
-                  "6 * X0 != 2 * X1 | p(X0, X1)" 
-                  "------------------------------- since 6 * X0 != 2 * X1 can be rewritten to X0 = 2 * X1 / 6" 
+                  "Enable the immideate simplification \"Rebalancing Elimination\":\n"
+                  "\n"
+                  "s != t | C[X] \n"
+                  "-------------  if s != t can be rewritten to X != r \n"
+                  "    C[r] \n"
+                  "\n"
+                  "example:\n"
+                  "\n"
+                  "6 * X0 != 2 * X1 | p(X0, X1)\n"
+                  "-------------------------------\n"
                   "  p(2 * X1 / 6, X1)";
 
            _lookup.insert(&_rebalancingElimination);
            _rebalancingElimination.tag(OptionTag::INFERENCES);
-           _rebalancingElimination.setExperimental();
 
 
             _induction = ChoiceOptionValue<Induction>("induction","ind",Induction::NONE,
