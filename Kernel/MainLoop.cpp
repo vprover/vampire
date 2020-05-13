@@ -149,8 +149,9 @@ ImmediateSimplificationEngine* MainLoop::createISE(Problem& prb, const Options& 
     }
   }
   if(prb.hasInterpretedOperations() || prb.hasInterpretedEquality()) {
-    res->addFront(new RebalancingElimination()); //TODO ok here
-    res->addFront(new InterpretedEvaluation());
+    if (env.options->rebalancingElimination())
+      res->addFront(new RebalancingElimination()); 
+    res->addFront(new InterpretedEvaluation(env.options->inequalityNormalization()));
   }
   if(prb.hasEquality()) {
     res->addFront(new TrivialInequalitiesRemovalISE());

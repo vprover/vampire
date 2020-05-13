@@ -758,7 +758,7 @@ public:
     DECAY,
     CONVERGE
   };
-    
+
     //==========================================================
     // The Internals
     //==========================================================
@@ -2131,6 +2131,8 @@ public:
   bool getIteInlineLet() const { return _inlineLet.actualValue; }
 
   bool useManualClauseSelection() const { return _manualClauseSelection.actualValue; }
+  bool inequalityNormalization() const { return _inequalityNormalization.actualValue; }
+  bool rebalancingElimination() const { return _rebalancingElimination.actualValue; }
 
 private:
     
@@ -2516,6 +2518,9 @@ private:
   BoolOptionValue _inlineLet;
 
   BoolOptionValue _manualClauseSelection;
+
+  BoolOptionValue _inequalityNormalization;
+  BoolOptionValue _rebalancingElimination;
 
 
 }; // class Options
