@@ -1950,11 +1950,15 @@ TermList NewEvaluator::evaluateCommutativeMonoid(Term* orig, TermList* args) con
 /// UNARY_MINUS 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+struct RecursionState {
+
+};
+
 template<class number>
-TermList evaluateUnaryMinus(Term* orig, TermList* evaluatedArgs) {
+TermList evaluateUnaryMinus(TermList inner_) {
   using Const = typename number::ConstantType;
 
-  auto inner_ = evaluatedArgs[0];
+  // auto inner_ = evaluatedArgs[0];
 
   if (inner_.isVar()) {
     return number::minus(TermList(inner_));
@@ -1962,34 +1966,38 @@ TermList evaluateUnaryMinus(Term* orig, TermList* evaluatedArgs) {
   } else {
     ASS(inner_.isTerm());
 
-    auto inner = inner_.term();
+    auto& inner = *inner_.term();
     Const c;
-    if (theory->isInterpretedFunction(inner)) {
-      switch (theory->interpretFunction(inner->functor())) {
-        // case number::addI:
+    if (theory->isInterpretedFunction(&inner)) {
+      switch (theory->interpretFunction(inner.functor())) {
+        case number::addI:
+          // TODO de-recursify
+          return number::add(
+              evaluateUnaryMinus<number>(inner[0]),
+              evaluateUnaryMinus<number>(inner[1])
+              );
         // case number::mulI:
         //   // should only happen when we enable normalization
         //   // we normalize multiplications to 
         //   return;
         case number::minusI:
-          return *inner->nthArgument(0);
+          return inner[0];
         default: 
-          return number::minus(TermList(inner));
+          return number::minus(inner_);
       }
-    } else if (theory->tryInterpretConstant(inner, c)) {
+    } else if (theory->tryInterpretConstant(&inner, c)) {
       return TermList(theory->representConstant(-c));
     } else {
-        return number::minus(TermList(inner));
+        return number::minus(inner_);
     }
   }
-  ASSERTION_VIOLATION
 }
 
 #define IMPL_UNARY_MINUS(Const) \
   template<> TermList NewEvaluator::evaluateFun<num_traits<Const>::minusI>(Term* orig, TermList* evaluatedArgs) const  \
   { \
     CALL("NewEvaluator::evaluateFun<num_traits<" #Const ">::minusI>(Term* trm, TermList* evaluatedArgs)") \
-    auto out = evaluateUnaryMinus<num_traits<Const>>(orig, evaluatedArgs);  \
+    auto out = evaluateUnaryMinus<num_traits<Const>>(evaluatedArgs[0]);  \
     DEBUG(orig->toString(), "\t->\t", out) \
     return out; \
   } \

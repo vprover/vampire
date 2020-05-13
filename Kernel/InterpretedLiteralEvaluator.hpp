@@ -124,6 +124,7 @@ public:
   TermList evaluate(Term* in) const;
 
 private:
+  struct RecursionState;
   LitEvalResult evaluateStep(Literal* in) const;
   // TermList evaluateStep(TermList in) const;
   TermList evaluateStep(Term* orig, TermList* evaluatedArgs) const;
