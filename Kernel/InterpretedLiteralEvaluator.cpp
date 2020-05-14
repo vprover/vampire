@@ -2099,8 +2099,9 @@ TermEvalResult NewEvaluator::evaluateCommutativeMonoid(Term* orig, TermEvalResul
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 template<class number>
-TermList _evaluateUnaryMinus(TermList& inner_) {
+TermList _evaluateUnaryMinus(TermList inner_) {
     using Const = typename number::ConstantType;
+    // DBG("uminus(", inner_, ")")
 
     // auto inner_ = evaluatedArgs[0];
 
@@ -2142,7 +2143,7 @@ TermList _evaluateUnaryMinus(TermList& inner_) {
 
 template<class number>
 TermEvalResult evaluateUnaryMinus(TermEvalResult& inner_) {
-  return TermEvalResult::left(inner_.unwrapLeft());
+  return TermEvalResult::left(_evaluateUnaryMinus<number>(inner_.unwrapLeft()));
 }
 
 #define IMPL_UNARY_MINUS(Const) \
