@@ -216,10 +216,16 @@ public:
     return *this;
   }
   friend std::ostream& operator<<(std::ostream& out, const Either& self) {
-    return self.collapse<std::ostream&>(
-        [&](const A& a) { return out << "Left(" << a << ")"; },
-        [&](const B& b) { return out << "Right(" << b << ")"; }
-        );
+    switch (self._tag) {
+      case Left:
+        return out << "Left(" << self._cont._left << ")";
+      case Right:
+        return out << "Right(" << self._cont._right << ")";
+#if VDEBUG
+      case Uninit:
+        return out << "Either::Uninit";
+#endif
+    }
   }
   Either() 
 #if VDEBUG

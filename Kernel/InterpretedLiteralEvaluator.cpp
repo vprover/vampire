@@ -1822,6 +1822,10 @@ struct Polynom {
   TermList toTerm() const {
     ASSERTION_VIOLATION
   }
+
+  friend std::ostream& operator<<(std::ostream& out, const Polynom& self) {
+    ASSERTION_VIOLATION
+  }
 };
 } // namespace Kernel 
 
@@ -2151,7 +2155,7 @@ TermEvalResult evaluateUnaryMinus(TermEvalResult& inner_) {
   { \
     CALL("NewEvaluator::evaluateFun<num_traits<" #Const ">::minusI>(Term* trm, TermEvalResult* evaluatedArgs)") \
     auto out = evaluateUnaryMinus<num_traits<Const>>(evaluatedArgs[0]);  \
-    DEBUG(orig->toString(), "\t->\t", out) \
+    DBG(orig->toString(), "\t->\t", out) \
     return out; \
   } \
 

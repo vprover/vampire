@@ -104,7 +104,7 @@ class Tracer {
 public:
   /* prints a message with indent in the of the same size as the current _depth */
   template<class... A>
-  static void printDbg(A... msg)
+  static void printDbg(const A&... msg)
   {
     for (int i = 0; i< _depth; i++) {
       cout << "\t";
