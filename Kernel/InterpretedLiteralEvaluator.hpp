@@ -31,6 +31,7 @@
 
 #include "TermTransformer.hpp"
 #include "Theory.hpp"
+#include "Lib/Either.hpp"
 
 namespace Kernel {
 
@@ -116,6 +117,10 @@ private:
     Literal* _nonTrivial;
   };
 };
+
+struct Polynom;
+//  TODO continue here
+using TermEvalResult = Lib::Either<TermList, Polynom>;
 struct NewEvaluator {
 
 public:
@@ -126,17 +131,17 @@ public:
 private:
   struct RecursionState;
   LitEvalResult evaluateStep(Literal* in) const;
-  // TermList evaluateStep(TermList in) const;
-  TermList evaluateStep(Term* orig, TermList* evaluatedArgs) const;
+
+  TermEvalResult evaluateStep(Term* orig, TermEvalResult* evaluatedArgs) const;
 
   template<Theory::Interpretation inter>
   LitEvalResult evaluateLit(Literal* lit) const;
 
   template<Theory::Interpretation inter>
-  TermList evaluateFun(Term* orig, TermList* evaluatedArgs) const;
+  TermEvalResult evaluateFun(Term* orig, TermEvalResult* evaluatedArgs) const;
 
   template<class CommutativeMonoid>
-  TermList evaluateCommutativeMonoid(Term* orig, TermList* evaluatedArgs) const;
+  TermEvalResult evaluateCommutativeMonoid(Term* orig, TermEvalResult* evaluatedArgs) const;
 
   template<class ConstantType, class EvalIneq> 
   LitEvalResult evaluateInequality(Literal* lit, bool strict, EvalIneq evalIneq) const;
@@ -148,10 +153,10 @@ private:
   LitEvalResult tryEvalConstant2(Literal* lit, EvalGround fun) const;
 
   template<class ConstantType, class EvalGround>
-  TermList tryEvalConstant1(Term* orig, TermList* evaluatedArgs, EvalGround fun) const;
+  TermEvalResult tryEvalConstant1(Term* orig, TermEvalResult* evaluatedArgs, EvalGround fun) const;
 
   template<class ConstantType, class EvalGround>
-  TermList tryEvalConstant2(Term* orig, TermList* evaluatedArgs, EvalGround fun) const;
+  TermEvalResult tryEvalConstant2(Term* orig, TermEvalResult* evaluatedArgs, EvalGround fun) const;
 };
 }
 

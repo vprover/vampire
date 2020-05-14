@@ -33,7 +33,9 @@
 #include "num_traits.hpp"
 #include "Debug/Tracer.hpp"
 #include <algorithm>
+#include "Lib/Either.hpp"
 
+#define UNIMPL ASSERTION_VIOLATION
 
 #include "InterpretedLiteralEvaluator.hpp"
 
@@ -1823,6 +1825,54 @@ InterpretedLiteralEvaluator::Evaluator* InterpretedLiteralEvaluator::getPredEval
 namespace Kernel {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/// BEGIN OF NEW IMPLEMENTATION
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+using namespace Lib;
+
+struct Polynom {
+  // struct Coeff {
+  //   union Content {
+  //     IntegerConstantType _int;
+  //     RationalConstantType _rat;
+  //     RealConstantType _real;
+  //     Content() {}
+  //   } _cont;
+  //   enum Tag {
+  //     Int,
+  //     Rat,
+  //     Real,
+  //   } _tag;
+  //   ~Coeff() {
+  //     switch (_tag){
+  //       case Int: 
+  //         _cont._int.~IntegerConstantType();
+  //         break;
+  //       case Rat: 
+  //         _cont._rat.~RationalConstantType();
+  //         break;
+  //       case Real: 
+  //         _cont._real.~RealConstantType();
+  //         break;
+  //     }
+  //   }
+  // };
+  //
+  // DHMap<TermList, Coeff> coeffs;
+  //
+  // ~Polynom() {
+  //   coeffs.~DHMap();
+  // }
+
+  TermList toTerm() const {
+    ASSERTION_VIOLATION
+  }
+};
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Equality
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -1983,123 +2033,90 @@ int _sort_terms(TermList lhs, TermList rhs) {
 }
 
 template<class CommutativeMonoid> 
-TermList NewEvaluator::evaluateCommutativeMonoid(Term* orig, TermList* args) const {
-    CALL("NewEvaluator::evaluateCommutativeMonoid(TermList* args)")
-    DEBUG("orig: ", orig->toString())
-    using ConstantType = typename CommutativeMonoid::ConstantType;
+TermEvalResult NewEvaluator::evaluateCommutativeMonoid(Term* orig, TermEvalResult* args) const {
+  
+  return args[0].map(
+      [&](TermList lhs) {
 
-    const unsigned fun = CommutativeMonoid::functor();
+      return args[1].map(
+          [&](TermList rhs) {
 
-    ConstantType acc = CommutativeMonoid::identity();
-    DHMap<TermList, int> map;
-    // Stack<TermList> keep;
-    auto traverse = [&](TermList t) {
-      DEBUG("arg: ", t)
-      return stackTraverseIf(t,
-        /* we traverse only the parts with the same operation */
-        [&](Term& t){ return t.functor() == fun; },
-        [&](TermList t) {
-          ConstantType c;
-          /* we eval constant parts */
-          if (t.isTerm() && theory->tryInterpretConstant(t.term(), c)) {
-            acc = CommutativeMonoid::groundEval(acc, c);
-          } else {
-            int* value;
-            map.getValuePtr(t, value, 0);
-            // DBG(*value, " x ", t);
-            (*value) += 1;
-            // keep.push(t);
+            CALL("NewEvaluator::evaluateCommutativeMonoid(TermList* args)")
+              DEBUG("orig: ", orig->toString())
+              using ConstantType = typename CommutativeMonoid::ConstantType;
+
+              const unsigned fun = CommutativeMonoid::functor();
+
+              ConstantType acc = CommutativeMonoid::identity();
+              DHMap<TermList, int> map;
+              // Stack<TermList> keep;
+              auto traverse = [&](TermList t) {
+                DEBUG("arg: ", t)
+                return stackTraverseIf(t,
+                  /* we traverse only the parts with the same operation */
+                  [&](Term& t){ return t.functor() == fun; },
+                  [&](TermList t) {
+                    ConstantType c;
+                    /* we eval constant parts */
+                    if (t.isTerm() && theory->tryInterpretConstant(t.term(), c)) {
+                      acc = CommutativeMonoid::groundEval(acc, c);
+                    } else {
+                      int* value;
+                      map.getValuePtr(t, value, 0);
+                      // DBG(*value, " x ", t);
+                      (*value) += 1;
+                      // keep.push(t);
+                    }
+                  });
+              };
+
+              traverse(rhs);
+              traverse(lhs);
+
+              Stack<TermList> keep;
+              {
+                decltype(map)::Iterator iter(map);
+                while (iter.hasNext()) {
+                  TermList t;
+                  int cnt;
+                  iter.next(t, cnt);
+                  if (cnt != 0) {
+                    keep.push(CommutativeMonoid::iterate(cnt, t));
+                  }
+                }
+              }
+
+              if (acc != CommutativeMonoid::identity()) {
+                keep.push(TermList(theory->representConstant(acc)));
+              }
+
+              //TODO make it possile to turn off sorting
+              std::sort(keep.begin(), keep.end(), [](TermList lhs, TermList rhs) -> bool {return sort_terms(lhs,rhs);});
+
+              auto iter = Stack<TermList>::BottomFirstIterator(keep);
+              if (!iter.hasNext()) {
+                return TermEvalResult::left(TermList(theory->representConstant(CommutativeMonoid::identity())));
+              } else {
+                TermList out = iter.next();
+                while (iter.hasNext()) {
+                  auto t = iter.next();
+                  out = TermList(Term::create2(fun, t, out));
+                }
+                DEBUG("out: ", out)
+                return TermEvalResult::left(out);
+              }
           }
-        });
-    };
-
-    traverse(args[1]);
-    traverse(args[0]);
-
-    Stack<TermList> keep;
-    {
-      decltype(map)::Iterator iter(map);
-      while (iter.hasNext()) {
-        TermList t;
-        int cnt;
-        iter.next(t, cnt);
-        if (cnt != 0) {
-          keep.push(CommutativeMonoid::iterate(cnt, t));
+        ,[](Polynom p) -> TermEvalResult { UNIMPL  });
         }
-      }
-    }
-
-    if (acc != CommutativeMonoid::identity()) {
-      keep.push(TermList(theory->representConstant(acc)));
-    }
-
-    //TODO make it possile to turn off sorting
-    std::sort(keep.begin(), keep.end(), [](TermList lhs, TermList rhs) -> bool {return sort_terms(lhs,rhs);});
-
-    auto iter = Stack<TermList>::BottomFirstIterator(keep);
-    if (!iter.hasNext()) {
-      return TermList(theory->representConstant(CommutativeMonoid::identity()));
-    } else {
-      TermList out = iter.next();
-      while (iter.hasNext()) {
-        auto t = iter.next();
-        out = TermList(Term::create2(fun, t, out));
-      }
-      DEBUG("out: ", out)
-      return out;
-    }
+        ,[](Polynom p) -> TermEvalResult {UNIMPL});
 }
 
 
-// template<class number> 
-// TermList evaluateAdd(TermList evaluatedLhs, TermList evaluatedRhs) const {
-//     CALL("NewEvaluator::evaluateCommutativeMonoid(TermList* args)")
-//     using ConstantType = typename CommutativeMonoid::ConstantType;
-//
-//     const unsigned fun = CommutativeMonoid::functor();
-//
-//     ConstantType acc = CommutativeMonoid::IDENTITY;
-//     Stack<TermList> keep;
-//     auto traverse = [&](TermList t) {
-//       return stackTraverseIf(t,
-//         /* we traverse only the parts with the same operation */
-//         [&](Term& t){ return t.functor() == fun; },
-//         [&](TermList t) {
-//           ConstantType c;
-//           /* we eval constant parts */
-//           if (t.isTerm() && theory->tryInterpretConstant(t.term(), c)) {
-//             acc = CommutativeMonoid::groundEval(acc, c);
-//           } else {
-//             keep.push(t);
-//           }
-//         });
-//     };
-//     traverse(args[1]);
-//     traverse(args[0]);
-//
-//     if (acc != CommutativeMonoid::IDENTITY) {
-//       keep.push(TermList(theory->representConstant(acc)));
-//     }
-//
-//     auto iter = Stack<TermList>::Iterator(keep);
-//     if (!iter.hasNext()) {
-//       return TermList(theory->representConstant(CommutativeMonoid::IDENTITY));
-//     } else {
-//       TermList out = iter.next();
-//       while (iter.hasNext()) {
-//         auto t = iter.next();
-//         out = TermList(Term::create2(fun, out, t));
-//       }
-//       DEBUG("out: ", out)
-//       return out;
-//     }
-// }
-
 #define __IMPL_COMMUTATIVE_MONOID(Const, name) \
-  template<> TermList NewEvaluator::evaluateFun<num_traits<Const>::name##I>(Term* orig, TermList* args) const  \
+  template<> TermEvalResult NewEvaluator::evaluateFun<num_traits<Const>::name##I>(Term* orig, TermEvalResult* args) const  \
   { \
-    CALL("NewEvaluator::evaluateFun<num_traits<" #Const ">::" #name "I>(Term*, TermList*)") \
-    auto out = evaluateCommutativeMonoid<name ## _traits<num_traits<Const>>>(orig, args);  \
+    CALL("NewEvaluator::evaluateFun<num_traits<" #Const ">::" #name "I>(Term*, TermEvalResult*)") \
+    TermEvalResult out = evaluateCommutativeMonoid<name ## _traits<num_traits<Const>>>(orig, args);  \
     DEBUG(orig->toString(), "->", out) \
     return out; \
   } \
@@ -2122,56 +2139,57 @@ TermList NewEvaluator::evaluateCommutativeMonoid(Term* orig, TermList* args) con
 /// UNARY_MINUS 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-struct RecursionState {
-
-};
-
 template<class number>
-TermList evaluateUnaryMinus(TermList inner_) {
-  using Const = typename number::ConstantType;
+TermList _evaluateUnaryMinus(TermList& inner_) {
+    using Const = typename number::ConstantType;
 
-  // auto inner_ = evaluatedArgs[0];
+    // auto inner_ = evaluatedArgs[0];
 
-  if (inner_.isVar()) {
-    return number::minus(TermList(inner_));
+    if (inner_.isVar()) {
+      return number::minus(TermList(inner_));
 
-  } else {
-    ASS(inner_.isTerm());
+    } else {
+      ASS(inner_.isTerm());
 
-    auto& inner = *inner_.term();
-    Const c;
-    if (theory->isInterpretedFunction(&inner)) {
-      switch (theory->interpretFunction(inner.functor())) {
-        case number::addI:
-          // NORMALIZATION
-          // TODO de-recursify
-          return number::add(
-              evaluateUnaryMinus<number>(inner[0]),
-              evaluateUnaryMinus<number>(inner[1])
-              );
-        case number::mulI:
-          // NORMALIZATION
-          return number::mul(
-              evaluateUnaryMinus<number>(inner[0]),
-              inner[1]
-              );
-        case number::minusI:
-          return inner[0];
-        default: 
+      auto& inner = *inner_.term();
+      Const c;
+      if (theory->isInterpretedFunction(&inner)) {
+        switch (theory->interpretFunction(inner.functor())) {
+          case number::addI:
+            // NORMALIZATION
+            // TODO de-recursify
+            return number::add(
+                _evaluateUnaryMinus<number>(inner[0]),
+                _evaluateUnaryMinus<number>(inner[1])
+                );
+          case number::mulI:
+            // NORMALIZATION
+            return number::mul(
+                _evaluateUnaryMinus<number>(inner[0]),
+                inner[1]
+                );
+          case number::minusI:
+            return inner[0];
+          default: 
+            return number::minus(inner_);
+        }
+      } else if (theory->tryInterpretConstant(&inner, c)) {
+        return TermList(theory->representConstant(-c));
+      } else {
           return number::minus(inner_);
       }
-    } else if (theory->tryInterpretConstant(&inner, c)) {
-      return TermList(theory->representConstant(-c));
-    } else {
-        return number::minus(inner_);
     }
-  }
+}
+
+template<class number>
+TermEvalResult evaluateUnaryMinus(TermEvalResult& inner_) {
+  return TermEvalResult::left(inner_.unwrapLeft());
 }
 
 #define IMPL_UNARY_MINUS(Const) \
-  template<> TermList NewEvaluator::evaluateFun<num_traits<Const>::minusI>(Term* orig, TermList* evaluatedArgs) const  \
+  template<> TermEvalResult NewEvaluator::evaluateFun<num_traits<Const>::minusI>(Term* orig, TermEvalResult* evaluatedArgs) const  \
   { \
-    CALL("NewEvaluator::evaluateFun<num_traits<" #Const ">::minusI>(Term* trm, TermList* evaluatedArgs)") \
+    CALL("NewEvaluator::evaluateFun<num_traits<" #Const ">::minusI>(Term* trm, TermEvalResult* evaluatedArgs)") \
     auto out = evaluateUnaryMinus<num_traits<Const>>(evaluatedArgs[0]);  \
     DEBUG(orig->toString(), "\t->\t", out) \
     return out; \
@@ -2190,11 +2208,11 @@ TermList evaluateUnaryMinus(TermList inner_) {
 
 
 #define IMPL_EVAL_UNARY(Const, INTER, expr) \
-  template<> TermList NewEvaluator::evaluateFun<Interpretation::INTER>(Term* orig, TermList* evaluatedArgs) const   \
+  template<> TermEvalResult NewEvaluator::evaluateFun<Interpretation::INTER>(Term* orig, TermEvalResult* evaluatedArgs) const   \
   {  return tryEvalConstant1<Const>(orig, evaluatedArgs, [] (Const x) { return expr; }); } 
 
 #define IMPL_EVAL_BINARY(Const, INTER, expr) \
-  template<> TermList NewEvaluator::evaluateFun<Interpretation::INTER>(Term* orig, TermList* evaluatedArgs) const   \
+  template<> TermEvalResult NewEvaluator::evaluateFun<Interpretation::INTER>(Term* orig, TermEvalResult* evaluatedArgs) const   \
   {  return tryEvalConstant2<Const>(orig, evaluatedArgs, [] (Const l, Const r) { return expr; }); } 
 
 
@@ -2296,31 +2314,31 @@ LitEvalResult NewEvaluator::tryEvalConstant2(Literal* lit, EvalGround fun) const
 
 
 template<class ConstantType, class EvalGround>
-TermList NewEvaluator::tryEvalConstant1(Term* orig, TermList* evaluatedArgs, EvalGround fun) const {
+TermEvalResult NewEvaluator::tryEvalConstant1(Term* orig, TermEvalResult* evaluatedArgs, EvalGround fun) const {
 
-  auto lhs = evaluatedArgs[0];
-
+  TermList lhs = evaluatedArgs[0].unwrapLeft();
   ConstantType l;
   if (theory->tryInterpretConstant(lhs, l)) {
-    return TermList(theory->representConstant(fun(l)));
+    return TermEvalResult::left(TermList(theory->representConstant(fun(l))));
   } else {
-    return TermList(orig);
+    return TermEvalResult::left(TermList(orig));
   }
 }
 
 
 template<class ConstantType, class EvalGround>
-TermList NewEvaluator::tryEvalConstant2(Term* orig, TermList* evaluatedArgs, EvalGround fun) const {
+TermEvalResult NewEvaluator::tryEvalConstant2(Term* orig, TermEvalResult* evaluatedArgs, EvalGround fun) const {
 
-  auto lhs = evaluatedArgs[0];
-  auto rhs = evaluatedArgs[1];
+  TermList lhs = evaluatedArgs[0].unwrapLeft();
+  TermList rhs = evaluatedArgs[1].unwrapLeft();
 
   ConstantType l;
   ConstantType r;
-  if (theory->tryInterpretConstant(lhs, l) && theory->tryInterpretConstant(rhs, r)) {
-    return TermList(theory->representConstant(fun(l,r)));
+  if (theory->tryInterpretConstant(lhs, l) 
+      && theory->tryInterpretConstant(rhs, r)) {
+    return TermEvalResult::left(TermList(theory->representConstant(fun(l,r))));
   } else {
-    return TermList(orig);
+    return TermEvalResult::left(TermList(orig));
   }
 }
 
@@ -2399,7 +2417,7 @@ TermList NewEvaluator::evaluate(TermList term) const {
   }
 }
 
-// TermList NewEvaluator::evaluateStep(TermList term) const {
+// TermEvalResult NewEvaluator::evaluateStep(TermList term) const {
 //   if (term.isTerm()) {
 //     return evaluateStep(term.term()); 
 //   } else {
@@ -2408,7 +2426,6 @@ TermList NewEvaluator::evaluate(TermList term) const {
 //     return term;
 //   }
 // }
-
 TermList NewEvaluator::evaluate(Term* term) const {
   CALL("NewEvaluator::evaluate(Term* term)")
   DEBUG("evaluating ", term->toString())
@@ -2416,7 +2433,7 @@ TermList NewEvaluator::evaluate(Term* term) const {
   static Stack<TermList*> position(8);
 
   static Stack<Term*> terms(8);
-  static Stack<TermList> args(8);
+  static Stack<TermEvalResult> args(8);
 
   args.reset();
   position.reset();
@@ -2429,9 +2446,6 @@ TermList NewEvaluator::evaluate(Term* term) const {
   do {
 
     cur = position.pop();
-    // DBG("recursing on ", *cur)
-
-    // DBG("args: ", args)
 
     if (!cur->isEmpty()) {
 
@@ -2439,7 +2453,7 @@ TermList NewEvaluator::evaluate(Term* term) const {
 
       if(cur->isVar()) {
         // variables are not evaluated
-        args.push(*cur);
+        args.push(TermEvalResult::left(*cur));
 
       } else {
         ASS(cur->isTerm());
@@ -2456,7 +2470,7 @@ TermList NewEvaluator::evaluate(Term* term) const {
 
       Term* orig=terms.pop();
 
-      TermList* argLst = 0;
+      TermEvalResult* argLst = 0;
       if (orig->arity() != 0) {
         //here we assume, that stack is an array with
         //second topmost element as &top()-1, third at
@@ -2468,7 +2482,7 @@ TermList NewEvaluator::evaluate(Term* term) const {
       // auto t = Term::create(orig,argLst);
       auto res = evaluateStep(orig, argLst);
       DEBUG("evaluated: ", orig->toString(), " -> ", res);
-      args.push(res);
+      args.push(std::move(res));
       
     }
 
@@ -2476,15 +2490,42 @@ TermList NewEvaluator::evaluate(Term* term) const {
   } while (!position.isEmpty());
   ASS_REP(position.isEmpty(), position)
 
-  return args.pop(); 
+  return args.pop().collapse<TermList>(
+      [](TermList l) { return l; },
+      [](Polynom p) -> TermList{UNIMPL}
+      ); 
 }
 
-TermList NewEvaluator::evaluateStep(Term* orig, TermList* args) const {
-  CALL("NewEvaluator::evaluateStep(Term* orig, TermList* args)")
+
+inline TermList createTerm(unsigned fun, const Signature::Symbol& sym, TermEvalResult* evaluatedArgs) {
+  Stack<TermList> args;
+  //TODO reserve
+
+  auto& op = *sym.fnType();
+  auto arity = op.arity();
+  for (int i = 0; i < arity; i++) {
+    args.push(evaluatedArgs[0].toLeft(
+      [&](const Polynom& p) { 
+        return p.toTerm();
+      }));
+      // [&](const Polynom& p) { 
+      //   switch (op.arg(i)) {
+      //     case Sorts::SRT_INTEGER: return p.toTerm<num_traits<IntegerConstantType>>();
+      //     case Sorts::SRT_RATIONAL: return p.toTerm<num_traits<RationalConstantType>>();
+      //     case Sorts::SRT_REAL: return p.toTerm<num_traits<RealConstantType>>();
+      //     default: ASSERTION_VIOLATION
+      //   }
+      //   })
+  }
+  return TermList(Term::create(fun, arity, args.begin()));
+}
+
+TermEvalResult NewEvaluator::evaluateStep(Term* orig, TermEvalResult* args) const {
+  CALL("NewEvaluator::evaluateStep(Term* orig, TermEvalResult* args)")
   DEBUG("evaluateStep(", orig->toString(), ")")
 
 #define HANDLE_CASE(INTER) case Interpretation::INTER: return evaluateFun<Interpretation::INTER>(orig, args); 
-#define IGNORE_CASE(INTER) case Interpretation::INTER: return TermList(Term::create(orig, args));
+#define IGNORE_CASE(INTER) case Interpretation::INTER: return TermEvalResult::left(createTerm(functor, *sym, args));
 
 #define HANDLE_NUM_CASES(NUM) \
     HANDLE_CASE(NUM ## _UNARY_MINUS) \
@@ -2505,7 +2546,10 @@ TermList NewEvaluator::evaluateStep(Term* orig, TermList* args) const {
     HANDLE_CASE(NUM ## _TO_REAL) \
 
   //TODO de-recursify
-  auto sym = env.signature->getFunction(orig->functor());
+  auto functor = orig->functor();
+  auto sym = env.signature->getFunction(functor);
+  // const unsigned sort = sym->fnType()->result();
+
   if (sym->interpreted()) {
     auto inter = static_cast<Signature::InterpretedSymbol*>(sym)->getInterpretation();
     switch (inter) {
@@ -2534,12 +2578,13 @@ TermList NewEvaluator::evaluateStep(Term* orig, TermList* args) const {
 
       default:
         ASS_REP(theory->isInterpretedNumber(orig), "unexpected interpreted function: " + orig->toString())
-        return TermList(Term::create(orig, args));
+        // return TermList(Term::create(orig, args));
+        return TermEvalResult::left(createTerm(functor, *sym, args));
 
     }
 
   } else {
-      return TermList(Term::create(orig, args));
+      return TermEvalResult::left(createTerm(functor, *sym, args));
   }
 }
 
