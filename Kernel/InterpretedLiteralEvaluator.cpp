@@ -34,6 +34,7 @@
 #include "Debug/Tracer.hpp"
 #include <algorithm>
 #include "Lib/Either.hpp"
+#include "Lib/StdWrappers.hpp"
 
 #define UNIMPL ASSERTION_VIOLATION
 
@@ -48,7 +49,6 @@
 
 #define _DEBUG(...) 
 #define DEBUG(...) //DBG(__VA_ARGS__)
-
 namespace Kernel
 {
 using namespace Lib;
@@ -163,66 +163,6 @@ struct TermTraverser {
 };
 
 
-// /**
-//  * TODO document
-//  *
-//  * @author joe-hauns
-//  * @since 12/05/20
-//  */
-// template<class ConstantType>
-// class InterpretedLiteralEvaluator::PolynomialNormalizer
-//    : public Evaluator
-// {
-// public:
-// CLASS_NAME(InterpretedLiteralEvaluator::ACFunEvaluator<ConstantType>);
-//   USE_ALLOCATOR(InterpretedLiteralEvaluator::ACFunEvaluator<ConstantType>);
-//
-//   using number = num_traits<ConstantType>;
-//
-//   PolynomialNormalizer() : _addF(number::addF()) { }
-//   const unsigned _addF; 
-//
-//   virtual bool canEvaluateFunc(unsigned func) { return func == _addF; }
-//
-//   virtual bool tryEvaluateFunc(Term* trm, TermList& res) { 
-//     CALL( "ACFunEvaluator::tryEvaluateFunc()" );
-//     ASS_EQ(trm->functor(), _fun);
-//     ASS_EQ(trm->arity(),2);
-//
-//     ConstantType acc = ConstantType::zero;
-//     Stack<TermList> keep;
-//     stackTraverseIf(TermList(trm), 
-//         /* we traverse only the parts with the same operation */
-//         [&](Term& t){ return t.functor() == _fun; },
-//         [&](TermList t) {
-//           ConstantType c;
-//           /* we eval constant parts */
-//           if (t.isTerm() && theory->tryInterpretConstant(t.term(), c)) {
-//             acc = CommutativeMonoid::groundEval(acc, c);
-//           } else {
-//             keep.push(t);
-//           }
-//         });
-//
-//     if (acc != CommutativeMonoid::IDENTITY) {
-//       keep.push(TermList(theory->representConstant(acc)));
-//     }
-//
-//     auto iter = Stack<TermList>::Iterator(keep);
-//     if (!iter.hasNext()) {
-//       res = TermList(theory->representConstant(CommutativeMonoid::IDENTITY));
-//       return TermList(trm) != res;
-//     } else {
-//       TermList out = iter.next();
-//       while (iter.hasNext()) {
-//         auto t = iter.next();
-//         out = TermList(Term::create2(_fun, out, t));
-//       }
-//       res = out;
-//       return TermList(trm) != res;
-//     }
-//   }
-// };
 
 
 /**
@@ -1822,7 +1762,7 @@ InterpretedLiteralEvaluator::Evaluator* InterpretedLiteralEvaluator::getPredEval
 
 }
 
-namespace Kernel {
+
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1831,45 +1771,71 @@ namespace Kernel {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 using namespace Lib;
+using namespace Lib::StdWrappers;
 
+
+namespace Kernel {
 struct Polynom {
-  // struct Coeff {
-  //   union Content {
-  //     IntegerConstantType _int;
-  //     RationalConstantType _rat;
-  //     RealConstantType _real;
-  //     Content() {}
-  //   } _cont;
-  //   enum Tag {
-  //     Int,
-  //     Rat,
-  //     Real,
-  //   } _tag;
-  //   ~Coeff() {
-  //     switch (_tag){
-  //       case Int: 
-  //         _cont._int.~IntegerConstantType();
-  //         break;
-  //       case Rat: 
-  //         _cont._rat.~RationalConstantType();
-  //         break;
-  //       case Real: 
-  //         _cont._real.~RealConstantType();
-  //         break;
-  //     }
-  //   }
-  // };
-  //
-  // DHMap<TermList, Coeff> coeffs;
-  //
+  struct Coeff {
+    union Content {
+      IntegerConstantType _int;
+      RationalConstantType _rat;
+      RealConstantType _real;
+      Content() {}
+    } _cont;
+    enum Tag {
+      Int,
+      Rat,
+      Real,
+    } _tag;
+    ~Coeff() {
+      switch (_tag){
+        case Int: 
+          _cont._int.~IntegerConstantType();
+          break;
+        case Rat: 
+          _cont._rat.~RationalConstantType();
+          break;
+        case Real: 
+          _cont._real.~RealConstantType();
+          break;
+      }
+    }
+  };
+
+  Coeff _const;
+  DHMap<TermList, Coeff> _coeffs;
+
   // ~Polynom() {
   //   coeffs.~DHMap();
+  // }
+
+  // Polynom(Polynom&& other) : _const(std::move(other._const)), _coeffs(std::move(other._coeffs)) {}
+  Polynom(Polynom&& other) = default;
+  Polynom& operator=(Polynom&& other)  = default;
+  // Polynom& operator=(Polynom&& other)  {
+  //   _const = std::move(other._const);
+  //   _coeffs = std::move(other._coeffs);
+  //   return *this;
   // }
 
   TermList toTerm() const {
     ASSERTION_VIOLATION
   }
 };
+} // namespace Kernel 
+
+template<>
+struct std::allocator_traits<alloc<Kernel::TermEvalResult>> {
+  void construct(alloc<Kernel::TermEvalResult>& a, Kernel::TermEvalResult* p) {
+    *p = Kernel::TermEvalResult::uninit();
+  }
+  void construct(alloc<Kernel::TermEvalResult>& a, Kernel::TermEvalResult* p, Kernel::TermEvalResult&& rv) {
+    *p = std::move(rv);
+  }
+};
+
+namespace Kernel {
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2035,80 +2001,73 @@ int _sort_terms(TermList lhs, TermList rhs) {
 template<class CommutativeMonoid> 
 TermEvalResult NewEvaluator::evaluateCommutativeMonoid(Term* orig, TermEvalResult* args) const {
   
-  return args[0].map(
-      [&](TermList lhs) {
+  auto lhs = args[0].unwrapLeft();
+  auto rhs = args[1].unwrapLeft();
 
-      return args[1].map(
-          [&](TermList rhs) {
+    CALL("NewEvaluator::evaluateCommutativeMonoid(TermList* args)")
+      DEBUG("orig: ", orig->toString())
+      using ConstantType = typename CommutativeMonoid::ConstantType;
 
-            CALL("NewEvaluator::evaluateCommutativeMonoid(TermList* args)")
-              DEBUG("orig: ", orig->toString())
-              using ConstantType = typename CommutativeMonoid::ConstantType;
+      const unsigned fun = CommutativeMonoid::functor();
 
-              const unsigned fun = CommutativeMonoid::functor();
+      ConstantType acc = CommutativeMonoid::identity();
+      DHMap<TermList, int> map;
+      // Stack<TermList> keep;
+      auto traverse = [&](TermList t) {
+        DEBUG("arg: ", t)
+        return stackTraverseIf(t,
+          /* we traverse only the parts with the same operation */
+          [&](Term& t){ return t.functor() == fun; },
+          [&](TermList t) {
+            ConstantType c;
+            /* we eval constant parts */
+            if (t.isTerm() && theory->tryInterpretConstant(t.term(), c)) {
+              acc = CommutativeMonoid::groundEval(acc, c);
+            } else {
+              int* value;
+              map.getValuePtr(t, value, 0);
+              // DBG(*value, " x ", t);
+              (*value) += 1;
+              // keep.push(t);
+            }
+          });
+      };
 
-              ConstantType acc = CommutativeMonoid::identity();
-              DHMap<TermList, int> map;
-              // Stack<TermList> keep;
-              auto traverse = [&](TermList t) {
-                DEBUG("arg: ", t)
-                return stackTraverseIf(t,
-                  /* we traverse only the parts with the same operation */
-                  [&](Term& t){ return t.functor() == fun; },
-                  [&](TermList t) {
-                    ConstantType c;
-                    /* we eval constant parts */
-                    if (t.isTerm() && theory->tryInterpretConstant(t.term(), c)) {
-                      acc = CommutativeMonoid::groundEval(acc, c);
-                    } else {
-                      int* value;
-                      map.getValuePtr(t, value, 0);
-                      // DBG(*value, " x ", t);
-                      (*value) += 1;
-                      // keep.push(t);
-                    }
-                  });
-              };
+      traverse(rhs);
+      traverse(lhs);
 
-              traverse(rhs);
-              traverse(lhs);
-
-              Stack<TermList> keep;
-              {
-                decltype(map)::Iterator iter(map);
-                while (iter.hasNext()) {
-                  TermList t;
-                  int cnt;
-                  iter.next(t, cnt);
-                  if (cnt != 0) {
-                    keep.push(CommutativeMonoid::iterate(cnt, t));
-                  }
-                }
-              }
-
-              if (acc != CommutativeMonoid::identity()) {
-                keep.push(TermList(theory->representConstant(acc)));
-              }
-
-              //TODO make it possile to turn off sorting
-              std::sort(keep.begin(), keep.end(), [](TermList lhs, TermList rhs) -> bool {return sort_terms(lhs,rhs);});
-
-              auto iter = Stack<TermList>::BottomFirstIterator(keep);
-              if (!iter.hasNext()) {
-                return TermEvalResult::left(TermList(theory->representConstant(CommutativeMonoid::identity())));
-              } else {
-                TermList out = iter.next();
-                while (iter.hasNext()) {
-                  auto t = iter.next();
-                  out = TermList(Term::create2(fun, t, out));
-                }
-                DEBUG("out: ", out)
-                return TermEvalResult::left(out);
-              }
+      Stack<TermList> keep;
+      {
+        decltype(map)::Iterator iter(map);
+        while (iter.hasNext()) {
+          TermList t;
+          int cnt;
+          iter.next(t, cnt);
+          if (cnt != 0) {
+            keep.push(CommutativeMonoid::iterate(cnt, t));
           }
-        ,[](Polynom p) -> TermEvalResult { UNIMPL  });
         }
-        ,[](Polynom p) -> TermEvalResult {UNIMPL});
+      }
+
+      if (acc != CommutativeMonoid::identity()) {
+        keep.push(TermList(theory->representConstant(acc)));
+      }
+
+      //TODO make it possile to turn off sorting
+      std::sort(keep.begin(), keep.end(), [](TermList lhs, TermList rhs) -> bool {return sort_terms(lhs,rhs);});
+
+      auto iter = Stack<TermList>::BottomFirstIterator(keep);
+      if (!iter.hasNext()) {
+        return TermEvalResult::left(TermList(theory->representConstant(CommutativeMonoid::identity())));
+      } else {
+        TermList out = iter.next();
+        while (iter.hasNext()) {
+          auto t = iter.next();
+          out = TermList(Term::create2(fun, t, out));
+        }
+        DEBUG("out: ", out)
+        return TermEvalResult::left(out);
+      }
 }
 
 
@@ -2426,6 +2385,7 @@ TermList NewEvaluator::evaluate(TermList term) const {
 //     return term;
 //   }
 // }
+
 TermList NewEvaluator::evaluate(Term* term) const {
   CALL("NewEvaluator::evaluate(Term* term)")
   DEBUG("evaluating ", term->toString())
@@ -2433,9 +2393,9 @@ TermList NewEvaluator::evaluate(Term* term) const {
   static Stack<TermList*> position(8);
 
   static Stack<Term*> terms(8);
-  static Stack<TermEvalResult> args(8);
+  static vector<TermEvalResult> args;
 
-  args.reset();
+  args.clear();
   position.reset();
   terms.reset();
 
@@ -2453,7 +2413,7 @@ TermList NewEvaluator::evaluate(Term* term) const {
 
       if(cur->isVar()) {
         // variables are not evaluated
-        args.push(TermEvalResult::left(*cur));
+        args.push_back(TermEvalResult::left(*cur));
 
       } else {
         ASS(cur->isTerm());
@@ -2475,14 +2435,14 @@ TermList NewEvaluator::evaluate(Term* term) const {
         //here we assume, that stack is an array with
         //second topmost element as &top()-1, third at
         //&top()-2, etc...
-        argLst=&args.top() - (orig->arity()-1);
-        args.truncate(args.length() - orig->arity());
+        argLst=&args[args.size() - 1] - (orig->arity()-1);
       }
 
       // auto t = Term::create(orig,argLst);
       auto res = evaluateStep(orig, argLst);
+      args.resize(args.size() - orig->arity());
       DEBUG("evaluated: ", orig->toString(), " -> ", res);
-      args.push(std::move(res));
+      args.push_back(std::move(res));
       
     }
 
@@ -2490,10 +2450,14 @@ TermList NewEvaluator::evaluate(Term* term) const {
   } while (!position.isEmpty());
   ASS_REP(position.isEmpty(), position)
 
-  return args.pop().collapse<TermList>(
-      [](TermList l) { return l; },
-      [](Polynom p) -> TermList{UNIMPL}
+  ASS(args.size() == 1);
+  TermEvalResult out = TermEvalResult::uninit();
+  std::move(args.begin(), args.end(), &out);
+  auto out_ = out.collapse<TermList>(
+      [](TermList&& l) { return l; },
+      [](Polynom&& p) -> TermList{ UNIMPL }
       ); 
+  return out_;
 }
 
 

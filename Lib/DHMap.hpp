@@ -524,6 +524,10 @@ public:
     return it.nextKey();
   }
 
+  /** move assignment operator */
+  DHMap& operator=(DHMap&& obj) = default;
+
+
 private:
   struct Entry
   {

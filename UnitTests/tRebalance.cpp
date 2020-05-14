@@ -220,7 +220,7 @@ void test_rebalance(Literal& lit, initializer_list<expected_t> expected) {
 
   Stack<expected_t> results;
   unsigned cnt = 0;
-  for (auto bal : balancer_t(lit)) {
+  for (auto& bal : balancer_t(lit)) {
 
     auto lhs = bal.lhs();
     // auto rhs = bal.buildRhs();
