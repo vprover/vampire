@@ -148,7 +148,6 @@ public:
     }
   Either& operator=(Either&& other) {
     CALL("Either::opearator=(Either&& other)")
-    DBG("Either::opearator=(Either&& other)")
     if (_tag == other._tag) {
       switch (_tag) {
         case Left:
@@ -185,10 +184,6 @@ public:
     }
   }
   Either() : Either(A(), Move{}) {}
-  // {
-  //   DBG("Either::Either()")
-  //     Debug::Tracer::printStack(std::cout);
-  // }
 private:
 
   enum Tag {

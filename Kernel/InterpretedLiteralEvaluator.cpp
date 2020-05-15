@@ -35,6 +35,7 @@
 #include <algorithm>
 #include "Lib/Either.hpp"
 #include "Lib/StdWrappers.hpp"
+#include <utility>
 
 #define UNIMPL ASSERTION_VIOLATION
 
@@ -48,7 +49,7 @@
 #endif
 
 #define _DEBUG(...) 
-#define DEBUG(...) DBG(__VA_ARGS__)
+#define DEBUG(...) //DBG(__VA_ARGS__)
 namespace Kernel
 {
 using namespace Lib;
@@ -1773,17 +1774,35 @@ InterpretedLiteralEvaluator::Evaluator* InterpretedLiteralEvaluator::getPredEval
 using namespace Lib;
 using namespace Lib::StdWrappers;
 
-
 namespace Kernel {
+
+bool expensive_sort_terms(TermList lhs, TermList rhs);
+
 template<class number>
 struct Polynom {
 
   struct Monom {
+#if VDEBUG
+    struct expensive_term_comparison {
+      bool operator()(TermList lhs, TermList rhs) const {
+        return expensive_sort_terms(lhs, rhs);
+      }
+    };
+#endif
 
-    StdWrappers::map<TermList, int> _factors;
+    StdWrappers::map<TermList, int
+#if VDEBUG
+      , expensive_term_comparison
+#endif
+       > _factors;
     using monom_pair = typename decltype(_factors)::value_type;
 
+    bool isOne() const {
+      return _factors.begin() == _factors.end();
+    }
+
     TermList toTerm() const {
+      CALL("Monom::toTerm()")
       auto iter = _factors.begin();
       if (iter == _factors.end()) {
         return number::one();
@@ -1799,14 +1818,19 @@ struct Polynom {
 
         ASS(iter->second != 0);
         auto out = mul_n_times(iter->first, iter->first, iter->second - 1);
+        // DBG("out: ", out)
         iter++;
         for(; iter != _factors.end(); iter++)  {
           out = mul_n_times(out, iter->first, iter->second);
+        // DBG("out: ", out)
         }
         return out;
       }
     }
 
+    // empty monom == 1
+    Monom() : _factors(decltype(_factors)()) {
+    }
     Monom(TermList t) : _factors(decltype(_factors)()) {
       _factors.insert(monom_pair(t, 1));
     }
@@ -1824,29 +1848,171 @@ struct Polynom {
         return out;
       }
     }
+
+    Monom clone() const {
+      return Monom(*this);
+    }
+
     friend bool operator<(const Monom& l, const Monom& r) {
       return l._factors < r._factors;
     }
+
     friend bool operator==(const Monom& l, const Monom& r) {
       return l._factors == r._factors;
     }
 
     Monom& operator=(Monom&&) = default;
     Monom(Monom&&) = default;
+
+    friend Monom operator*(const Monom& lhs, const Monom& rhs) {
+    Monom out;
+    // TODO memoization
+    auto pos = out._factors.begin();
+    auto l = lhs._factors.begin();
+    auto r = rhs._factors.begin();
+    auto insert = [&](TermList term, int value) {
+      if (value != 0)
+        pos = out._factors.insert(pos, make_pair(term, value));
+    };
+    while (l != lhs._factors.end() && r != rhs._factors.end() ) {
+      // DBG("l: ", l->first)
+      // DBG("r: ", r->first)
+      if (l->first == r->first) {
+        //add up
+        insert(l->first, l->second + r->second);
+        l++;
+        r++;
+      } else if (l->first < r->first) {
+        // insert l
+        insert(l->first, l->second);
+        l++;
+      } else {
+        // insert r
+        insert(r->first, r->second);
+        r++;
+      }
+    }
+    while (l != lhs._factors.end()) {
+      insert(l->first, l->second);
+      l++;
+    }
+    while (r != rhs._factors.end()) {
+      insert(r->first, r->second);
+      r++;
+    }
+    ASS(l == lhs._factors.end() && r == rhs._factors.end());
+    return out;
+  }
+    //   Monom out;
+    //   // TODO memoization
+    //   auto pos = out._factors.begin();
+    //   auto l = lhs._factors.begin();
+    //   auto r = rhs._factors.begin();
+    //   while (l != lhs._factors.end() && r != rhs._factors.end() ) {
+    //     // DBG("l: ", l->first)
+    //     // DBG("r: ", r->first)
+    //     if (l->first == r->first) {
+    //       //add up
+    //       auto value = l->second + r->second;
+    //       if (value != 0) {
+    //         pos = out._factors.insert(pos, make_pair( l->first, value));
+    //       }
+    //       l++;
+    //       r++;
+    //     } else if (l->first < r->first) {
+    //       // insert l
+    //       pos = out._factors.insert(pos, *l++);
+    //     } else {
+    //       // insert r
+    //       pos = out._factors.insert(pos, *r++);
+    //     }
+    //   }
+    //
+    //   while (l != lhs._factors.end()) {
+    //     pos = out._factors.insert(pos,*l++);
+    //   }
+    //   while (r != rhs._factors.end()) {
+    //     pos = out._factors.insert(pos,*r++);
+    //   }
+    //   ASS(l == lhs._factors.end() && r == rhs._factors.end());
+    //   return out;
+    // }
+
+    private:
+    Monom(const Monom&) = default;
   };
 
 
   using Coeff = typename number::ConstantType;
-  Coeff _const;
   StdWrappers::map<Monom, Coeff> _coeffs;
   using poly_pair = typename decltype(_coeffs)::value_type;
 
   void multiply(Coeff c) {
     CALL("Polynom::multiply")
-    _const = c * _const;
     for (auto& pair : _coeffs) {
       pair.second = c * pair.second;
     }
+  }
+
+  friend Polynom operator+(const Polynom& lhs, const Polynom& rhs) {
+    CALL("Polynom::operator+")
+    // DBG("Polynom::operator+")
+
+    Polynom out;
+    // TODO memoization
+    auto pos = out._coeffs.begin();
+    auto l = lhs._coeffs.begin();
+    auto r = rhs._coeffs.begin();
+    auto insert = [&](const Monom& monom, Coeff value) {
+      if (value != number::zeroC)
+      pos = out._coeffs.insert(pos, make_pair(monom.clone(), value));
+    };
+    while (l != lhs._coeffs.end() && r != rhs._coeffs.end() ) {
+      // DBG("l: ", l->first)
+      // DBG("r: ", r->first)
+      if (l->first == r->first) {
+        //add up
+        insert(l->first, l->second + r->second);
+        l++;
+        r++;
+      } else if (l->first < r->first) {
+        // insert l
+        insert(l->first, l->second);
+        l++;
+      } else {
+        // insert r
+        insert(r->first, r->second);
+        r++;
+      }
+    }
+    while (l != lhs._coeffs.end()) {
+      insert(l->first, l->second);
+      l++;
+    }
+    while (r != rhs._coeffs.end()) {
+      insert(r->first, r->second);
+      r++;
+    }
+    ASS(l == lhs._coeffs.end() && r == rhs._coeffs.end());
+    return out;
+  }
+
+  friend Polynom operator*(const Polynom& lhs, const Polynom& rhs) {
+    CALL("Polynom::operator*")
+    // DBG("Polynom::operator*")
+    //TODO memoization
+    Polynom out;
+    for (auto& l : lhs._coeffs) {
+      for (auto& r : rhs._coeffs) {
+        // DBG("l: ", l.first)
+        // DBG("r: ", r.first)
+        out._coeffs.insert(make_pair(std::move(l.first * r.first), l.second * r.second));
+        // out._coeffs.emplace(std::piecewise_construct,
+        //     std::forward_as_tuple(l * r),
+        //     std::forward_as_tuple(coeff));
+      }
+    }
+    return out;
   }
 
   // void set(TermList t, Coeff c) {
@@ -1875,7 +2041,7 @@ struct Polynom {
     }
   }
 
-  Polynom(Coeff coeff, TermList t) : _const(Coeff(0)), _coeffs(decltype(_coeffs)())  { 
+  Polynom(Coeff coeff, TermList t) : _coeffs(decltype(_coeffs)())  { 
     // _coeffs.insert(std::move(poly_pair(std::move(Monom(t)), coeff)));
     _coeffs.emplace(std::piecewise_construct,
         std::forward_as_tuple(Monom(t)),
@@ -1883,15 +2049,20 @@ struct Polynom {
     // DBG("Polynom(Coeff, TermList) -> ", *this)
   }
 
-  Polynom(Coeff constant) : _const(constant), _coeffs(decltype(_coeffs)())  { 
+  Polynom(Coeff constant) : _coeffs(decltype(_coeffs)())  { 
+    if (constant != number::zeroC)
+      _coeffs.insert(make_pair(Monom(), constant));
+      // _coeffs.emplace(std::piecewise_construct,
+      //     std::forward_as_tuple(Monom()),
+      //     std::forward_as_tuple(constant));
     // DBG("Polynom(Coeff) -> ", *this)
   }
 
+  Polynom() : _coeffs(decltype(_coeffs)()) {}
   Polynom(Polynom&& other) = default;
 
   Polynom& operator=(Polynom&& other) {
     CALL("Polynom::operator=(Polynom&&)")
-    _const = std::move(other._const);
     _coeffs = std::move(other._coeffs);
     return *this;
   }
@@ -1899,27 +2070,50 @@ struct Polynom {
   static TermList toTerm(const Polynom& self) {
     CALL("Polynom::toTerm() const")
     auto trm = [](const poly_pair& x) -> TermList { 
-      return TermList(number::mul(TermList( theory->representConstant(x.second) ), x.first.toTerm())); 
+
+      if (x.first.isOne()) {  
+        /* the pair is a plain number */
+        return TermList( theory->representConstant(x.second) );
+
+      } else if (x.second == number::constant(1)) {
+        /* the pair is an uninterpreted term */
+        return x.first.toTerm();
+
+      } else if (x.second == number::constant(-1)) {
+        return TermList(number::minus(x.first.toTerm()));
+
+      } else {
+        return TermList(number::mul(TermList( theory->representConstant(x.second) ), x.first.toTerm())); 
+      }
+
     };
 
     auto iter = self._coeffs.begin(); 
     if (iter == self._coeffs.end()) {
-      return TermList(theory->representConstant(self._const));
+      return TermList(number::zero());
     } else {
       auto out = trm(*iter);
+      // DBG("out: ", out)
       iter++;
       for (; iter != self._coeffs.end(); iter++) {
         // auto x = *iter;
         out = number::add(out, trm(*iter));
+      // DBG("out: ", out)
       }
       return out;
     }
   }
 
   friend std::ostream& operator<<(std::ostream& out, const Polynom& self) {
-    out << self._const;
-    for (auto& p : self._coeffs) {
-      out << " + " << p.first << " * " << p.second;
+    auto iter = self._coeffs.begin();
+    if ( iter == self._coeffs.end() ) {
+      out << "0" << endl;
+    } else {
+      out << iter->first << " * " << iter->second;
+      iter++;
+      for (; iter != self._coeffs.end(); iter++) {
+        out << " + " << iter->first << " * " << iter->second;
+      }
     }
     return out;
   }
@@ -1946,12 +2140,6 @@ struct AnyPoly {
         ) {
       CALL("AnyPoly(Real)")
     }
-
-  template<class Const>
-  void multiply(Const c) {
-    CALL("AnyPoly::multiply")
-    return (( poly<Const>& ) *this).multiply(c);
-  }
 
   template<class Const> const poly<Const>& ref() const;
 
@@ -1980,6 +2168,12 @@ struct AnyPoly {
   void set(TermList t, Const c) {
     CALL("AnyPoly::set")
     return ref_mut<Const>().set(t,c);
+  }
+
+  template<class Const>
+  void multiply(Const c) {
+    CALL("AnyPoly::multiply")
+    return ref_mut<Const>().multiply(c);
   }
 
   template<class Const>
@@ -2155,10 +2349,10 @@ template<> LitEvalResult NewEvaluator::evaluateLit<Interpretation::INT_DIVIDES>(
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 //TODO sorting is ver inefficient. Indeterministic sorting instead?
-int _sort_terms(const Term& lhs, const TermList& rhs);
-int _sort_terms(TermList lhs, TermList rhs);
+int _expensive_sort_terms(const Term& lhs, const TermList& rhs);
+int _expensive_sort_terms(TermList lhs, TermList rhs);
 
-int _sort_terms(const Term& lhs, const Term& rhs) {
+int _expensive_sort_terms(const Term& lhs, const Term& rhs) {
 
   int l_fun = lhs.functor();
   int r_fun = rhs.functor();
@@ -2186,7 +2380,7 @@ int _sort_terms(const Term& lhs, const Term& rhs) {
 
   ASS(lhs.arity() == rhs.arity())
   for (int i = 0; i < lhs.arity(); i++) {
-    auto cmp = _sort_terms(lhs[i], rhs[i]);
+    auto cmp = _expensive_sort_terms(lhs[i], rhs[i]);
     if (cmp != 0) {
       return cmp;
     }
@@ -2194,11 +2388,11 @@ int _sort_terms(const Term& lhs, const Term& rhs) {
   return 0;
 }
 
-bool sort_terms(TermList lhs, TermList rhs) {
-  return _sort_terms(lhs, rhs) < 0;
+bool expensive_sort_terms(TermList lhs, TermList rhs) {
+  return _expensive_sort_terms(lhs, rhs) > 0;
 }
 
-int _sort_terms(TermList lhs, TermList rhs) {
+int _expensive_sort_terms(TermList lhs, TermList rhs) {
   auto l_trm = lhs.isTerm();
   auto r_trm = rhs.isTerm();
   auto cmp_trm = l_trm - r_trm;
@@ -2206,7 +2400,7 @@ int _sort_terms(TermList lhs, TermList rhs) {
 
   if (l_trm) {
     ASS(r_trm);
-    return _sort_terms(*lhs.term(), *rhs.term());
+    return _expensive_sort_terms(*lhs.term(), *rhs.term());
   } else {
     ASS(lhs.isVar() && rhs.isVar());
     return int(lhs.var()) - int(rhs.var());
@@ -2270,7 +2464,7 @@ TermEvalResult NewEvaluator::evaluateCommutativeMonoid(Term* orig, TermEvalResul
       }
 
       //TODO make it possile to turn off sorting
-      std::sort(keep.begin(), keep.end(), [](TermList lhs, TermList rhs) -> bool {return sort_terms(lhs,rhs);});
+      std::sort(keep.begin(), keep.end(), [](TermList lhs, TermList rhs) -> bool {return expensive_sort_terms(lhs,rhs);});
 
       auto iter = Stack<TermList>::BottomFirstIterator(keep);
       if (!iter.hasNext()) {
@@ -2287,26 +2481,26 @@ TermEvalResult NewEvaluator::evaluateCommutativeMonoid(Term* orig, TermEvalResul
 }
 
 
-#define __IMPL_COMMUTATIVE_MONOID(Const, name) \
-  template<> TermEvalResult NewEvaluator::evaluateFun<num_traits<Const>::name##I>(Term* orig, TermEvalResult* args) const  \
-  { \
-    CALL("NewEvaluator::evaluateFun<num_traits<" #Const ">::" #name "I>(Term*, TermEvalResult*)") \
-    TermEvalResult out = evaluateCommutativeMonoid<name ## _traits<num_traits<Const>>>(orig, args);  \
-    DEBUG(orig->toString(), "->", out) \
-    return out; \
-  } \
-
-#define IMPL_COMMUTATIVE_MONOIDS(Const) \
-  __IMPL_COMMUTATIVE_MONOID(Const, add) \
-  __IMPL_COMMUTATIVE_MONOID(Const, mul) \
-
-
-  IMPL_COMMUTATIVE_MONOIDS(RationalConstantType)
-  IMPL_COMMUTATIVE_MONOIDS(RealConstantType)
-  IMPL_COMMUTATIVE_MONOIDS(IntegerConstantType)
-
-#undef IMPL_COMMUTATIVE_MONOIDS
-#undef __IMPL_COMMUTATIVE_MONOID
+// #define __IMPL_COMMUTATIVE_MONOID(Const, name) \
+//   template<> TermEvalResult NewEvaluator::evaluateFun<num_traits<Const>::name##I>(Term* orig, TermEvalResult* args) const  \
+//   { \
+//     CALL("NewEvaluator::evaluateFun<num_traits<" #Const ">::" #name "I>(Term*, TermEvalResult*)") \
+//     TermEvalResult out = evaluateCommutativeMonoid<name ## _traits<num_traits<Const>>>(orig, args);  \
+//     DEBUG(orig->toString(), "->", out) \
+//     return out; \
+//   } \
+//
+// #define IMPL_COMMUTATIVE_MONOIDS(Const) \
+//   __IMPL_COMMUTATIVE_MONOID(Const, add) \
+//   /*__IMPL_COMMUTATIVE_MONOID(Const, mul)*/ \
+//
+//
+//   IMPL_COMMUTATIVE_MONOIDS(RationalConstantType)
+//   IMPL_COMMUTATIVE_MONOIDS(RealConstantType)
+//   IMPL_COMMUTATIVE_MONOIDS(IntegerConstantType)
+//
+// #undef IMPL_COMMUTATIVE_MONOIDS
+// #undef __IMPL_COMMUTATIVE_MONOID
 
  
 
@@ -2359,17 +2553,12 @@ TermList _evaluateUnaryMinus(TermList inner_) {
 
 template<class number>
 TermEvalResult evaluateUnaryMinus(TermEvalResult& inner) {
-  // return TermEvalResult::left(_evaluateUnaryMinus<number>(inner.unwrapLeft()));
   auto out = inner.map(
       [](TermList&& t) { 
         return TermEvalResult::rightMv(AnyPoly(
             Polynom<number>(
                 number::constant(-1), t
               )));
-        // Polynom<number> p(number::zeroC);
-        // AnyPoly out(std::move(p));
-        // out.set(t, number::constant(-1));
-        // return TermEvalResult::rightMv(std::move(out));
       },
       [](AnyPoly&& p) {
         p.multiply(number::constant(-1));
@@ -2392,6 +2581,101 @@ TermEvalResult evaluateUnaryMinus(TermEvalResult& inner) {
 
 #undef IMPL_UNARY_MINUS
 
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/// MULTIPLY
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+template<class number>
+Polynom<number> evaluateMul(TermEvalResult&& lhs, TermEvalResult&& rhs) {
+  using Const = typename number::ConstantType;
+  using poly = Polynom<number>;
+
+  auto l = lhs.collapse<poly>(
+      [](TermList&& t) { 
+        return poly(number::constant(1), t);
+      },
+      [](AnyPoly&& p) {
+        return std::move(p.ref_mut<Const>());
+      });
+
+  auto r = rhs.collapse<poly>(
+      [](TermList&& t) { 
+        return poly(number::constant(1), t);
+      },
+      [](AnyPoly&& p) {
+        return std::move(p.ref_mut<Const>());
+      });
+
+  return l * r;
+}
+
+
+#define IMPL_MULTIPLY(Const) \
+  template<> TermEvalResult NewEvaluator::evaluateFun<num_traits<Const>::mulI>(Term* orig, TermEvalResult* evaluatedArgs) const  \
+  { \
+    CALL("NewEvaluator::evaluateFun<num_traits<" #Const ">::mulI>(Term* trm, TermEvalResult* evaluatedArgs)") \
+    return TermEvalResult::rightMv(AnyPoly(evaluateMul<num_traits<Const>>(std::move(evaluatedArgs[0]), std::move(evaluatedArgs[1])))); \
+  } \
+
+  IMPL_MULTIPLY(RealConstantType    )
+  IMPL_MULTIPLY(RationalConstantType)
+  IMPL_MULTIPLY(IntegerConstantType )
+
+#undef IMPL_MULTIPLY
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/// ADD 
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+template<class number>
+Polynom<number> evaluateAdd(TermEvalResult&& lhs, TermEvalResult&& rhs) {
+  using Const = typename number::ConstantType;
+  using poly = Polynom<number>;
+
+  auto l = lhs.collapse<poly>(
+      [](TermList&& t) { 
+        return poly(number::constant(1), t);
+      },
+      [](AnyPoly&& p) {
+        return std::move(p.ref_mut<Const>());
+      });
+
+  auto r = rhs.collapse<poly>(
+      [](TermList&& t) { 
+        return poly(number::constant(1), t);
+      },
+      [](AnyPoly&& p) {
+        return std::move(p.ref_mut<Const>());
+      });
+
+  return l + r;
+}
+
+
+#define IMPL_ADD(Const) \
+  template<> TermEvalResult NewEvaluator::evaluateFun<num_traits<Const>::addI>(Term* orig, TermEvalResult* evaluatedArgs) const  \
+  { \
+    CALL("NewEvaluator::evaluateFun<num_traits<" #Const ">::addI>(Term* trm, TermEvalResult* evaluatedArgs)") \
+    return TermEvalResult::rightMv(AnyPoly(evaluateAdd<num_traits<Const>>(std::move(evaluatedArgs[0]), std::move(evaluatedArgs[1])))); \
+  } \
+
+  IMPL_ADD(RealConstantType    )
+  IMPL_ADD(RationalConstantType)
+  IMPL_ADD(IntegerConstantType )
+
+#undef IMPL_ADD
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/// Number Constants 
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+template<class number>
+TermEvalResult evaluateConst(typename number::ConstantType c) {
+  return TermEvalResult::rightMv(AnyPoly(Polynom<number>(c)));
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Functions that are only handled for constants
@@ -2637,11 +2921,9 @@ TermList NewEvaluator::evaluate(Term* term) const {
   TermList* cur;
   do {
 
-    DBG("pop")
     cur = position.pop();
 
     if (!cur->isEmpty()) {
-      DBG("finished cur")
 
       position.push(cur->next());
 
@@ -2659,7 +2941,6 @@ TermList NewEvaluator::evaluate(Term* term) const {
 
 
     } else /* cur->isEmpty() */ { 
-      DBG("cur non-empty")
 
       ASS(!terms.isEmpty()) 
 
@@ -2675,19 +2956,15 @@ TermList NewEvaluator::evaluate(Term* term) const {
 
       // auto t = Term::create(orig,argLst);
       auto res = evaluateStep(orig, argLst);
-      DBG("resizing ...");
       args.resize(args.size() - orig->arity());
       DEBUG("evaluated: ", orig->toString(), " -> ", res);
       args.emplace_back(std::move(res));
-      DBG("lala 3")
     }
-    DBG("lala 4")
 
   // } while (!( cur->isEmpty() && terms.isEmpty() ));
   } while (!position.isEmpty());
   ASS_REP(position.isEmpty(), position)
     
-  DBG("lala 6")
 
   ASS(args.size() == 1);
   TermEvalResult out = TermEvalResult::left( TermList() );
@@ -2701,7 +2978,6 @@ TermList NewEvaluator::evaluate(Term* term) const {
       [](TermList&& l) { return l; },
       [](AnyPoly&& p) -> TermList{ return p.toTerm_(); }
       ); 
-  DBG("lala 7")
   return out_;
 }
 
@@ -2732,10 +3008,18 @@ inline TermList createTerm(unsigned fun, const Signature::Symbol& sym, TermEvalR
 
 TermEvalResult NewEvaluator::evaluateStep(Term* orig, TermEvalResult* args) const {
   CALL("NewEvaluator::evaluateStep(Term* orig, TermEvalResult* args)")
-  DEBUG("evaluateStep(", orig->toString(), ")")
 
 #define HANDLE_CASE(INTER) case Interpretation::INTER: return evaluateFun<Interpretation::INTER>(orig, args); 
 #define IGNORE_CASE(INTER) case Interpretation::INTER: return TermEvalResult::left(createTerm(functor, *sym, args));
+
+
+#define HANDLE_CONSTANT_CASE(Num) \
+  { \
+    Num ## ConstantType c; \
+    if (theory->tryInterpretConstant(orig, c)) { \
+      return evaluateConst<num_traits<Num ## ConstantType>>(c); \
+    } \
+  } \
 
 #define HANDLE_NUM_CASES(NUM) \
     HANDLE_CASE(NUM ## _UNARY_MINUS) \
@@ -2787,7 +3071,12 @@ TermEvalResult NewEvaluator::evaluateStep(Term* orig, TermEvalResult* args) cons
       IGNORE_CASE(ARRAY_STORE)
 
       default:
-        ASS_REP(theory->isInterpretedNumber(orig), "unexpected interpreted function: " + orig->toString())
+        if (theory->isInterpretedNumber(orig)) {
+          HANDLE_CONSTANT_CASE(Integer)
+          HANDLE_CONSTANT_CASE(Rational)
+          HANDLE_CONSTANT_CASE(Real)
+        }
+        ASS_REP(false, "unexpected interpreted function: " + orig->toString())
         // return TermList(Term::create(orig, args));
         return TermEvalResult::left(createTerm(functor, *sym, args));
 

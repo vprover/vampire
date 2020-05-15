@@ -140,6 +140,9 @@ private:
   template<Theory::Interpretation inter>
   TermEvalResult evaluateFun(Term* orig, TermEvalResult* evaluatedArgs) const;
 
+  // template<class number>
+  // TermEvalResult evaluateConst(typename number::ConstantType c) const;
+
   template<class CommutativeMonoid>
   TermEvalResult evaluateCommutativeMonoid(Term* orig, TermEvalResult* evaluatedArgs) const;
 
