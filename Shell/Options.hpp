@@ -1922,6 +1922,8 @@ public:
   TheoryInstSimp theoryInstAndSimp() const { return _theoryInstAndSimp.actualValue; }
 #endif
   UnificationWithAbstraction unificationWithAbstraction() const { return _unificationWithAbstraction.actualValue; }
+  void setUWA(UnificationWithAbstraction value){ _unificationWithAbstraction.actualValue = value; } 
+  bool fixUWA() const { return _fixUWA.actualValue; }
   bool useACeval() const { return _useACeval.actualValue;}
 
   bool unusedPredicateDefinitionRemoval() const { return _unusedPredicateDefinitionRemoval.actualValue; }
