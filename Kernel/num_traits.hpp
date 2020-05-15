@@ -133,6 +133,7 @@ struct num_traits;
     IMPL_NUM_TRAITS__SPECIAL_CONSTANT(one , 1, isOne )              \
     IMPL_NUM_TRAITS__SPECIAL_CONSTANT(zero, 0, isZero)              \
     static ConstantType constant(int i) { return ConstantType(i); } \
+    static const char* name() {return #CamelCase;} \
   }; \
 
 #define __INSTANTIATE_NUM_TRAITS(CamelCase) \

@@ -1781,6 +1781,7 @@ struct Polynom {
   using Coeff = typename number::ConstantType;
   Coeff _const;
   StdWrappers::map<TermList, Coeff> _coeffs;
+  using pair = typename decltype(_coeffs)::value_type;
 
   void multiply(Coeff c) {
     CALL("Polynom::multiply")
@@ -1795,7 +1796,6 @@ struct Polynom {
     auto iter = _coeffs.find(t);
     if (iter == _coeffs.end()) {
       // _coeffs.insert({t, c});
-      using pair = typename decltype(_coeffs)::value_type;
       _coeffs.insert(pair( t, c ));
     } else {
       _coeffs[t] = c;
@@ -1812,10 +1812,6 @@ struct Polynom {
     }
   }
 
-  // Polynom() : _coeffs(decltype(_coeffs)()) {
-  //   DBG("Polynom()")
-  // }
-
   Polynom(Coeff constant) : _const(constant), _coeffs(decltype(_coeffs)())  { 
     DBG("Polynom(Coeff) -> ", *this)
   }
@@ -1829,8 +1825,23 @@ struct Polynom {
     return *this;
   }
 
-  TermList toTerm() const {
-    UNIMPL
+  static TermList toTerm(const Polynom& self) {
+    CALL("Polynom::toTerm() const")
+    auto trm = [](const pair& x) -> TermList { 
+      return TermList(number::mul(TermList( theory->representConstant(x.second) ), x.first)); 
+    };
+
+    auto iter = self._coeffs.begin(); 
+    if (iter == self._coeffs.end()) {
+      return TermList(theory->representConstant(self._const));
+    } else {
+      auto out = trm(*iter);
+      for (; iter != self._coeffs.end(); iter++) {
+        // auto x = *iter;
+        out = number::add(out, trm(*iter));
+      }
+      return out;
+    }
   }
 
   friend std::ostream& operator<<(std::ostream& out, const Polynom& self) {
@@ -1849,23 +1860,19 @@ struct AnyPoly {
   using self_t = Either< poly<IntegerConstantType> , Either< poly<RationalConstantType> , poly<RealConstantType> >>;
   self_t self; 
 
-  operator poly<IntegerConstantType>&() { return self.unwrapLeft();  }
-  operator poly<RationalConstantType>&() { return self.unwrapRight().unwrapLeft();  }
-  operator poly<RealConstantType>&() { return self.unwrapRight().unwrapRight();  }
-
     explicit AnyPoly(poly<IntegerConstantType>&& x) : self(self_t::leftMv(std::move(x))) {
-      DBG("AnyPoly(Int)")
+      CALL("AnyPoly(Int)")
     }
     explicit AnyPoly(poly<RationalConstantType>&& x ) : self(
         self_t::rightMv(self_t::right_t::leftMv(std::move(x)))
         ) {
 
-      DBG("AnyPoly(Rat)")
+      CALL("AnyPoly(Rat)")
     }
     explicit AnyPoly(poly<RealConstantType>&& x ) : self(
         self_t::rightMv(self_t::right_t::rightMv(std::move(x)))
         ) {
-      DBG("AnyPoly(Real)")
+      CALL("AnyPoly(Real)")
     }
 
   template<class Const>
@@ -1874,20 +1881,62 @@ struct AnyPoly {
     return (( poly<Const>& ) *this).multiply(c);
   }
 
+  template<class Const> const poly<Const>& ref() const;
+
+  template<> const poly<IntegerConstantType>& ref<IntegerConstantType>() const 
+  { return self.unwrapLeft();  }
+
+  template<> const poly<RationalConstantType>& ref<RationalConstantType>() const 
+  { return self.unwrapRight().unwrapLeft();  }
+
+  template<> const poly<RealConstantType>& ref<RealConstantType>() const 
+  { return self.unwrapRight().unwrapRight();  }
+
+
+  template<class Const> poly<Const>& ref_mut();
+
+  template<> poly<IntegerConstantType>& ref_mut<IntegerConstantType>() 
+  { return self.unwrapLeft();  }
+
+  template<> poly<RationalConstantType>& ref_mut<RationalConstantType>() 
+  { return self.unwrapRight().unwrapLeft();  }
+
+  template<> poly<RealConstantType>& ref_mut<RealConstantType>() 
+  { return self.unwrapRight().unwrapRight();  }
+
   template<class Const>
   void set(TermList t, Const c) {
     CALL("AnyPoly::set")
-    return (( poly<Const>& ) *this).set(t,c);
+    return ref_mut<Const>().set(t,c);
   }
 
   template<class Const>
   Const get(TermList t) {
     CALL("AnyPoly::get")
-    return (( poly<Const>& ) *this).get(t);
+    return ref_mut<Const>().get(t);
   }
 
+  template<class Const>
   TermList toTerm() const {
-    UNIMPL
+    CALL("AnyPoly::toTerm")
+    return poly<Const>::toTerm(ref<Const>());
+  }
+
+  TermList toTerm_() const {
+    CALL("AnyPoly::toTerm_")
+
+    if (self.isLeft()) {
+      using ty = typename self_t::left_t::Coeff;
+      return toTerm<ty>();
+
+    } else if (self.unwrapRight().isLeft()) {
+      using ty = typename self_t::right_t::left_t::Coeff;
+      return toTerm<ty>();
+
+    } else {
+      using ty = typename self_t::right_t::right_t::Coeff;
+      return toTerm<ty>();
+    }
   }
 
   friend std::ostream& operator<<(std::ostream& out, const AnyPoly& x) {
@@ -1901,6 +1950,9 @@ struct AnyPoly {
     }
     return out;
   }
+  AnyPoly& operator=(AnyPoly&&) = default;
+  AnyPoly(AnyPoly&&) = default;
+private:
 };
 } // namespace Kernel 
 
@@ -2236,23 +2288,17 @@ TermList _evaluateUnaryMinus(TermList inner_) {
 template<class number>
 TermEvalResult evaluateUnaryMinus(TermEvalResult& inner) {
   // return TermEvalResult::left(_evaluateUnaryMinus<number>(inner.unwrapLeft()));
-  DBG(inner)
   auto out = inner.map(
       [](TermList&& t) { 
         Polynom<number> p(number::zeroC);
-        DBG("lala 1")
         AnyPoly out(std::move(p));
-        DBG("lala 2")
         out.set(t, number::constant(-1));
-        DBG("lala 3")
         return TermEvalResult::rightMv(std::move(out));
       },
       [](AnyPoly&& p) {
         p.multiply(number::constant(-1));
         return TermEvalResult::rightMv(std::move(p));
       });
-  DBG("lala");
-  DBG(out);
   return out;
 }
 
@@ -2261,7 +2307,6 @@ TermEvalResult evaluateUnaryMinus(TermEvalResult& inner) {
   { \
     CALL("NewEvaluator::evaluateFun<num_traits<" #Const ">::minusI>(Term* trm, TermEvalResult* evaluatedArgs)") \
     auto out = evaluateUnaryMinus<num_traits<Const>>(evaluatedArgs[0]);  \
-    DBG(orig->toString(), "\t->\t", out) \
     return out; \
   } \
 
@@ -2573,10 +2618,14 @@ TermList NewEvaluator::evaluate(Term* term) const {
   std::move(std::make_move_iterator(args.begin()),
             std::make_move_iterator(args.end()),
             &out);
+  // std::move(std::make_move_iterator(args.begin()),
+  //           std::make_move_iterator(args.end()),
+  //           &out);
   auto out_ = out.collapse<TermList>(
       [](TermList&& l) { return l; },
-      [](AnyPoly&& p) -> TermList{ return p.toTerm(); }
+      [](AnyPoly&& p) -> TermList{ return p.toTerm_(); }
       ); 
+  DBG("lala 7")
   return out_;
 }
 
@@ -2590,7 +2639,8 @@ inline TermList createTerm(unsigned fun, const Signature::Symbol& sym, TermEvalR
   for (int i = 0; i < arity; i++) {
     args.push(evaluatedArgs[0].toLeft(
       [&](const AnyPoly& p) { 
-        return p.toTerm();
+      //TODO dispatch on sort of symbol
+        return p.toTerm_();
       }));
       // [&](const AnyPoly& p) { 
       //   switch (op.arg(i)) {

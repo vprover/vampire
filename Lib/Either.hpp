@@ -37,11 +37,13 @@ public:
 
   const A& unwrapLeft() const {
     ASS(_tag == Left);
+    DBG("unwarpLeft()", *this);
     return _cont._left;
   }
 
   const B& unwrapRight() const {
     ASS(_tag == Right);
+    DBG("unwarpRight()", *this);
     return _cont._right;
   }
 
@@ -152,11 +154,11 @@ public:
     if (_tag == other._tag) {
       switch (_tag) {
         case Left:
-          _cont = std::move(other._cont._left);
+          _cont.mvAsgn(std::move(other._cont._left));
           break;
 
         case Right:
-          _cont = std::move(other._cont._right);
+          _cont.mvAsgn(std::move(other._cont._right));
           break;
       }
     } else {
@@ -201,15 +203,14 @@ private:
     B _right;
     Content() {}
     ~Content() {}
+    Content(A&& left) : _left(std::move(left)){}
+    Content(B&& right) : _right(std::move(right)){}
     Content(A left) : _left(left){}
     Content(B right) : _right(right){}
     Content(A&& left, Move) : _left(std::move(left)){}
     Content(B&& right, Move) : _right(std::move(right)){}
-    Content(A&& left) : _left(std::move(left)){}
-    Content(B&& right) : _right(std::move(right)){}
-    Content& operator=(A&& left) { _left = std::move(left); return *this; }
-    Content& operator=(B&& right) { _right = std::move(right); return *this; }
-    // Content(Content&& c) = default;
+    Content& mvAsgn(A&& left) { _left = std::move(left); return *this; }
+    Content& mvAsgn(B&& right) { _right = std::move(right); return *this; }
   } _cont;
 
   Either(A&& lft, Move) : _tag(Left), _cont(std::move(lft), Move{}) {}
