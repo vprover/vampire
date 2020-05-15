@@ -13,13 +13,34 @@ class Either {
   struct Copy{};
 
 public:
+  using left_t = A;
+  using right_t = B;
 
-  A unwrapLeft() {
+  bool isRight() const {
+    return _tag == Right;
+  }
+
+  bool isLeft() const {
+    return _tag == Left;
+  }
+
+  A& unwrapLeft() {
     ASS(_tag == Left);
     return _cont._left;
   }
 
-  B unwrapRight() {
+  B& unwrapRight() {
+    ASS(_tag == Right);
+    return _cont._right;
+  }
+
+
+  const A& unwrapLeft() const {
+    ASS(_tag == Left);
+    return _cont._left;
+  }
+
+  const B& unwrapRight() const {
     ASS(_tag == Right);
     return _cont._right;
   }

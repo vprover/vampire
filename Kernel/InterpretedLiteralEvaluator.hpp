@@ -118,9 +118,9 @@ private:
   };
 };
 
-struct Polynom;
+struct AnyPoly;
 //  TODO continue here
-using TermEvalResult = Lib::Either<TermList, Polynom>;
+using TermEvalResult = Lib::Either<TermList, AnyPoly>;
 struct NewEvaluator {
 
 public:
