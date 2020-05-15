@@ -6,89 +6,12 @@
 namespace Lib {
 
 
-// template<class A, class B>
-// union Either {
-// private:
-//
-//   enum Tag {
-//     Left,
-//     Right,
-//   };
-//
-//   A unwrapLeft()  {
-//     ASS(tag() == Left);
-//     return _left._value;
-//   }
-//   A unwrapRight()  {
-//     ASS(tag() == Right);
-//     return _right._value;
-//   }
-//   bool isLeft() const {
-//     return tag() == Left;
-//   }
-//
-//   Either(int, A left) : _left{Left, left} {}
-//   Either(void*, B right) : _right{Right, right} {}
-//
-//   Tag tag() const {
-//     return _left.tag();
-//   }
-//
-//   struct {Tag _tag; A _value;} _left;
-//   struct {Tag _tag; B _value;} _right;
-//
-// public:
-//
-//   template<class Ret, class Fl, class Fr> 
-//   Ret collapse(Fl l, Fr r)const  {
-//     return isLeft() 
-//       ? l(unwrapLeft())
-//       : r(unwrapRight());
-//     }
-//
-//   template<class Fl, class Fr> 
-//   void match(Fl l, Fr r) const {
-//     return collapse<void,Fl,Fr>(l,r);
-//   }
-//
-//
-//   template<class Fr> 
-//   A toLeft(Fr r) const {
-//     return collapse<A>([](A a) { return a; }, r);
-//   }
-//
-//
-//   template<class Fl> 
-//   B toRight(Fl l) const {
-//     return collapse<B>(l, [](B x) { return x; });
-//   }
-//
-//   template<class Fl, class Fr> 
-//   Either map(Fl l, Fr r) const {
-//     return collapse<Either>(l, r);
-//   }
-//
-//   static Either<A,B> left(A left) {
-//     return Either(int(0), left);
-//   }
-//
-//   static Either<A,B> right(B right) {
-//     return Either((void*)(0), right);
-//   }
-//
-//   ~Either() {
-//     if (isLeft()) {
-//       _left._value.~A();
-//     } else {
-//       _right._value.~B();
-//     }
-//   }
-//
-//
-// };
-
 template<class A, class B>
 class Either {
+
+  struct Move{};
+  struct Copy{};
+
 public:
 
   A unwrapLeft() {
@@ -108,10 +31,6 @@ public:
         return l(std::move(_cont._left));
       case Right: 
         return r(std::move(_cont._right));
-#if VDEBUG
-      case Uninit:
-        ASSERTION_VIOLATION
-#endif
     }
   }
 
@@ -122,10 +41,6 @@ public:
         return l(std::move(_cont._left));
       case Right: 
         return r(std::move(_cont._right));
-#if VDEBUG
-      case Uninit:
-        ASSERTION_VIOLATION
-#endif
     }
   }
 
@@ -179,6 +94,14 @@ public:
     return Either(r);
   }
 
+  static Either<A,B> rightMv(B&& r) {
+    return Either(std::move(r), Move{});
+  }
+
+  static Either<A,B> leftMv(A&& l) {
+    return Either(std::move(l), Move{});
+  }
+
   static Either<A,B> uninit() {
     return Either();
   }
@@ -191,27 +114,44 @@ public:
       case Right:
         _cont._right.~B();
         break;
-#if VDEBUG
-      case Uninit:
-        ASSERTION_VIOLATION
-#endif
     }
   }
 
-  Either(Either&& other) : _tag(other._tag)
+  Either(Either&& other) //: _tag(other._tag)
     {
       if (other._tag == Left) {
-        _cont = std::move(other._cont._left);
+        new(this) Either(std::move(other._cont._left), Move{});
       } else {
-        _cont = std::move(other._cont._right);
+        new(this) Either(std::move(other._cont._right), Move{});
       }
     }
   Either& operator=(Either&& other) {
-    _tag = other._tag;
-    if (other._tag == Left) {
-      _cont = std::move(other._cont._left);
+    CALL("Either::opearator=(Either&& other)")
+    DBG("Either::opearator=(Either&& other)")
+    if (_tag == other._tag) {
+      switch (_tag) {
+        case Left:
+          _cont = std::move(other._cont._left);
+          break;
+
+        case Right:
+          _cont = std::move(other._cont._right);
+          break;
+      }
     } else {
-      _cont = std::move(other._cont._right);
+      switch (_tag) {
+
+        case Left:
+          _cont._left.~A();
+          new(this) Either(std::move(other._cont._right), Move{});
+          break;
+
+        case Right:
+          _cont._right.~B();
+          new(this) Either(std::move(other._cont._left), Move{});
+          break;
+
+      }
     }
     return *this;
   }
@@ -221,25 +161,18 @@ public:
         return out << "Left(" << self._cont._left << ")";
       case Right:
         return out << "Right(" << self._cont._right << ")";
-#if VDEBUG
-      case Uninit:
-        return out << "Either::Uninit";
-#endif
     }
   }
-  Either() 
-#if VDEBUG
-    : _tag(Uninit) 
-#endif
-  {}
+  Either() : Either(A(), Move{}) {}
+  // {
+  //   DBG("Either::Either()")
+  //     Debug::Tracer::printStack(std::cout);
+  // }
 private:
 
   enum Tag {
     Left,
     Right,
-#if VDEBUG
-    Uninit,
-#endif 
   };
   Tag _tag;
   union Content {
@@ -249,6 +182,8 @@ private:
     ~Content() {}
     Content(A left) : _left(left){}
     Content(B right) : _right(right){}
+    Content(A&& left, Move) : _left(std::move(left)){}
+    Content(B&& right, Move) : _right(std::move(right)){}
     Content(A&& left) : _left(std::move(left)){}
     Content(B&& right) : _right(std::move(right)){}
     Content& operator=(A&& left) { _left = std::move(left); return *this; }
@@ -256,6 +191,12 @@ private:
     // Content(Content&& c) = default;
   } _cont;
 
+  Either(A&& lft, Move) : _tag(Left), _cont(std::move(lft), Move{}) {}
+  Either(B&& rght, Move) : _tag(Right), _cont(std::move(rght), Move{}) {}
+  Either(A lft, Copy) : _tag(Left), _cont(lft) {}
+  Either(B rght, Copy) : _tag(Right), _cont(rght) {}
+  Either(A&& lft) : _tag(Left), _cont(std::move(lft)) {}
+  Either(B&& rght) : _tag(Right), _cont(std::move(rght)) {}
   Either(A lft) : _tag(Left), _cont(lft) {}
   Either(B rght) : _tag(Right), _cont(rght) {}
 };

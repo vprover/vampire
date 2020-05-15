@@ -48,7 +48,7 @@
 #endif
 
 #define _DEBUG(...) 
-#define DEBUG(...) //DBG(__VA_ARGS__)
+#define DEBUG(...) DBG(__VA_ARGS__)
 namespace Kernel
 {
 using namespace Lib;
@@ -1782,12 +1782,22 @@ struct Polynom {
       RationalConstantType _rat;
       RealConstantType _real;
       Content() {}
+      Content(IntegerConstantType i) : _int(i){}
+      Content(RationalConstantType r) : _rat(r) {}
+      Content(RealConstantType r) : _real(r) {}
+      operator IntegerConstantType(){ return _int; }
+      operator RationalConstantType(){ return _rat; }
+      operator RealConstantType(){ return _real; }
     } _cont;
     enum Tag {
       Int,
       Rat,
       Real,
     } _tag;
+    Coeff(IntegerConstantType i) : _cont(i), _tag(Int){  }
+    Coeff(RationalConstantType r) : _cont(r), _tag(Rat) {}
+    Coeff(RealConstantType r) : _cont(r), _tag(Real) {}
+    Coeff(){}
     ~Coeff() {
       switch (_tag){
         case Int: 
@@ -1801,18 +1811,108 @@ struct Polynom {
           break;
       }
     }
+
+    Coeff(Coeff&& other) {
+      _tag = other._tag;
+      switch (_tag) {
+        case Int: 
+          _cont._int = std::move(other._cont._int);
+          break;
+        case Rat: 
+          _cont._rat = std::move(other._cont._rat);
+          break;
+        case Real: 
+          _cont._real = std::move(other._cont._real);
+          break;
+      }
+    }
+
+
+    Coeff& operator=(Coeff&& other) {
+      CALL("Coeff::operator=(Coeff&&)")
+      DBG("moving coeff: ", other)
+      _tag = other._tag;
+      switch (_tag) {
+        case Int: 
+          _cont._int = std::move(other._cont._int);
+          break;
+        case Rat: 
+          _cont._rat = std::move(other._cont._rat);
+          break;
+        case Real: 
+          _cont._real = std::move(other._cont._real);
+          break;
+      }
+      return *this;
+    }
+
+    friend std::ostream& operator<<(std::ostream& out, const Coeff& self) {
+      switch (self._tag) {
+        case Int: return out << self._cont._int;
+        case Rat: return out << self._cont._rat;
+        case Real: return out << self._cont._real;
+      }
+    }
   };
 
   Coeff _const;
-  DHMap<TermList, Coeff> _coeffs;
+  // DHMap<TermList, Coeff> _coeffs;
+  StdWrappers::map<TermList, Coeff> _coeffs;
 
-  // ~Polynom() {
-  //   coeffs.~DHMap();
-  // }
+  template<class ConstantType>
+  void multiply(ConstantType c) {
+    CALL("Polynom::multiply")
+    _const = c * _const._cont;
+    for (auto& pair : _coeffs) {
+      pair.second = c * pair.second._cont;
+    }
+  }
 
+  template<class Const>
+  void set(TermList t, Const c) {
+    CALL("Polynom::set")
+    auto iter = _coeffs.find(t);
+    if (iter == _coeffs.end()) {
+      // _coeffs.insert({t, c});
+      _coeffs.insert(decltype(_coeffs)::value_type( t, c ));
+    } else {
+      _coeffs[t] = c;
+    }
+  }
+
+  template<class Const>
+  Const get(TermList t) {
+    CALL("Polynom::get")
+    auto iter = _coeffs.find(t);
+    if (iter == _coeffs.end()) {
+      return Const(0);
+    } else {
+      return iter->second;
+    }
+  }
+
+
+  Polynom() : _coeffs(decltype(_coeffs)()) {
+    DBG("Polynom()")
+  }
+
+  template<class ConstantType>
+  Polynom(ConstantType c) : _const(c), _coeffs(decltype(_coeffs)())  { 
+    DBG("Polynom(ConstantType) -> ", *this)
+  }
   // Polynom(Polynom&& other) : _const(std::move(other._const)), _coeffs(std::move(other._coeffs)) {}
   Polynom(Polynom&& other) = default;
-  Polynom& operator=(Polynom&& other)  = default;
+  Polynom& operator=(Polynom&& other) {
+    CALL("Polynom::operator=(Polynom&&)")
+    DBG("mvAsgn");
+    DBG("moving: ", *this , " <- " , other);
+    _const = std::move(other._const);
+    DBG("moving coeffs...");
+    // for (auto& c : other._coeffs)
+    _coeffs = std::move(other._coeffs);
+    DBG("finished moving coeffs");
+    return *this;
+  }
   // Polynom& operator=(Polynom&& other)  {
   //   _const = std::move(other._const);
   //   _coeffs = std::move(other._coeffs);
@@ -1824,23 +1924,40 @@ struct Polynom {
   }
 
   friend std::ostream& operator<<(std::ostream& out, const Polynom& self) {
-    ASSERTION_VIOLATION
+    out << self._const;
+    for (auto& p : self._coeffs) {
+      out << " + " << p.first << " * " << p.second;
+    }
+    return out;
   }
 };
 } // namespace Kernel 
 
-template<>
-struct std::allocator_traits<alloc<Kernel::TermEvalResult>> {
-  void construct(alloc<Kernel::TermEvalResult>& a, Kernel::TermEvalResult* p) {
-    *p = Kernel::TermEvalResult::uninit();
-  }
-  void construct(alloc<Kernel::TermEvalResult>& a, Kernel::TermEvalResult* p, Kernel::TermEvalResult&& rv) {
-    *p = std::move(rv);
-  }
-};
+// template<>
+// struct std::allocator_traits<alloc<Kernel::TermEvalResult>> {
+//   void construct(alloc<Kernel::TermEvalResult>& a, Kernel::TermEvalResult* p) {
+//     // *p = Kernel::TermEvalResult::uninit();
+//     // *p = std::move(Kernel::TermEvalResult::left(Kernel::TermList()));
+//     ASSERTION_VIOLATION
+//     // *p = std::move(Kernel::TermEvalResult::left(Kernel::TermList()));
+//   }
+//   template<class T>
+//   // using rebind_alloc = alloc<T>;
+//   using rebind_alloc = vector<Kernel::TermEvalResult>::allocator_type;
+//   // void construct(alloc<Kernel::TermEvalResult>& a, Kernel::TermEvalResult* p, Kernel::TermEvalResult&& rv) {
+//   //   *p = std::move(rv);
+//   // }
+// };
+
+// template<>
+// Kernel::TermEvalResult::Either() { ASSERTION_VIOLATION }
 
 namespace Kernel {
 
+
+  // class TermEvalResult : public Either<Kernel::TermList, Kernel::Polynom> {
+  //   TermEvalResult() : Either() {ASSERTION_VIOLATION}
+  // };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Equality
@@ -2146,8 +2263,25 @@ TermList _evaluateUnaryMinus(TermList inner_) {
 }
 
 template<class number>
-TermEvalResult evaluateUnaryMinus(TermEvalResult& inner_) {
-  return TermEvalResult::left(_evaluateUnaryMinus<number>(inner_.unwrapLeft()));
+TermEvalResult evaluateUnaryMinus(TermEvalResult& inner) {
+  // return TermEvalResult::left(_evaluateUnaryMinus<number>(inner.unwrapLeft()));
+  DBG(inner)
+  auto out = inner.map(
+      [](TermList&& t) { 
+        DBG("lala")
+        Polynom out(number::zeroC);
+        DBG("lala")
+        out.set(t, number::constant(-1));
+        DBG("lala")
+        return TermEvalResult::rightMv(std::move(out));
+      },
+      [](Polynom&& p) {
+        p.multiply(number::constant(-1));
+        return TermEvalResult::rightMv(std::move(p));
+      });
+  DBG("lala");
+  DBG(out);
+  return out;
 }
 
 #define IMPL_UNARY_MINUS(Const) \
@@ -2410,15 +2544,17 @@ TermList NewEvaluator::evaluate(Term* term) const {
   TermList* cur;
   do {
 
+    DBG("pop")
     cur = position.pop();
 
     if (!cur->isEmpty()) {
+      DBG("finished cur")
 
       position.push(cur->next());
 
       if(cur->isVar()) {
         // variables are not evaluated
-        args.push_back(TermEvalResult::left(*cur));
+        args.emplace_back(TermEvalResult::left(*cur));
 
       } else {
         ASS(cur->isTerm());
@@ -2430,6 +2566,7 @@ TermList NewEvaluator::evaluate(Term* term) const {
 
 
     } else /* cur->isEmpty() */ { 
+      DBG("cur non-empty")
 
       ASS(!terms.isEmpty()) 
 
@@ -2445,19 +2582,25 @@ TermList NewEvaluator::evaluate(Term* term) const {
 
       // auto t = Term::create(orig,argLst);
       auto res = evaluateStep(orig, argLst);
+      DBG("resizing ...");
       args.resize(args.size() - orig->arity());
       DEBUG("evaluated: ", orig->toString(), " -> ", res);
-      args.push_back(std::move(res));
-      
+      args.emplace_back(std::move(res));
+      DBG("lala 3")
     }
+    DBG("lala 4")
 
   // } while (!( cur->isEmpty() && terms.isEmpty() ));
   } while (!position.isEmpty());
   ASS_REP(position.isEmpty(), position)
+    
+  DBG("lala 6")
 
   ASS(args.size() == 1);
-  TermEvalResult out = TermEvalResult::uninit();
-  std::move(args.begin(), args.end(), &out);
+  TermEvalResult out = TermEvalResult::rightMv( Polynom() );
+  std::move(std::make_move_iterator(args.begin()),
+            std::make_move_iterator(args.end()),
+            &out);
   auto out_ = out.collapse<TermList>(
       [](TermList&& l) { return l; },
       [](Polynom&& p) -> TermList{ UNIMPL }
