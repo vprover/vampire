@@ -1775,13 +1775,71 @@ using namespace Lib::StdWrappers;
 
 
 namespace Kernel {
-
 template<class number>
 struct Polynom {
+
+  struct Monom {
+
+    StdWrappers::map<TermList, int> _factors;
+    using monom_pair = typename decltype(_factors)::value_type;
+
+    TermList toTerm() const {
+      auto iter = _factors.begin();
+      if (iter == _factors.end()) {
+        return number::one();
+      } else {
+
+        auto mul_n_times = [](TermList wrap, TermList t, int cnt) {
+          TermList out = wrap;
+          for (int i = 0; i < cnt; i++) {
+            out = number::mul(t, out);
+          }
+          return out;
+        };
+
+        ASS(iter->second != 0);
+        auto out = mul_n_times(iter->first, iter->first, iter->second - 1);
+        iter++;
+        for(; iter != _factors.end(); iter++)  {
+          out = mul_n_times(out, iter->first, iter->second);
+        }
+        return out;
+      }
+    }
+
+    Monom(TermList t) : _factors(decltype(_factors)()) {
+      _factors.insert(monom_pair(t, 1));
+    }
+
+    friend std::ostream& operator<<(std::ostream& out, const Monom& self) {
+      if (self._factors.size() == 0) {
+        return out << "1";
+      } else {
+        auto iter  = self._factors.begin();
+        out << iter->first << "^" << iter->second;
+        iter++;
+        for (; iter != self._factors.end(); iter++) {
+          out << " * " << iter->first << "^" << iter->second;
+        }
+        return out;
+      }
+    }
+    friend bool operator<(const Monom& l, const Monom& r) {
+      return l._factors < r._factors;
+    }
+    friend bool operator==(const Monom& l, const Monom& r) {
+      return l._factors == r._factors;
+    }
+
+    Monom& operator=(Monom&&) = default;
+    Monom(Monom&&) = default;
+  };
+
+
   using Coeff = typename number::ConstantType;
   Coeff _const;
-  StdWrappers::map<TermList, Coeff> _coeffs;
-  using pair = typename decltype(_coeffs)::value_type;
+  StdWrappers::map<Monom, Coeff> _coeffs;
+  using poly_pair = typename decltype(_coeffs)::value_type;
 
   void multiply(Coeff c) {
     CALL("Polynom::multiply")
@@ -1791,16 +1849,21 @@ struct Polynom {
     }
   }
 
-  void set(TermList t, Coeff c) {
-    CALL("Polynom::set")
-    auto iter = _coeffs.find(t);
-    if (iter == _coeffs.end()) {
-      // _coeffs.insert({t, c});
-      _coeffs.insert(pair( t, c ));
-    } else {
-      _coeffs[t] = c;
-    }
-  }
+  // void set(TermList t, Coeff c) {
+  //   CALL("Polynom::set")
+  //   bool isZero =  c == number::zeroC;
+  //   if (isZero) {
+  //     _coeffs.erase(t);
+  //     
+  //   } else {
+  //     auto iter = _coeffs.find(t);
+  //     if (iter == _coeffs.end()) {
+  //       _coeffs.insert(std::move(poly_pair( t, c )));
+  //     } else {
+  //       iter->second = c;
+  //     }
+  //   }
+  // }
 
   Coeff get(TermList t) {
     CALL("Polynom::get")
@@ -1812,8 +1875,16 @@ struct Polynom {
     }
   }
 
+  Polynom(Coeff coeff, TermList t) : _const(Coeff(0)), _coeffs(decltype(_coeffs)())  { 
+    // _coeffs.insert(std::move(poly_pair(std::move(Monom(t)), coeff)));
+    _coeffs.emplace(std::piecewise_construct,
+        std::forward_as_tuple(Monom(t)),
+        std::forward_as_tuple(coeff));
+    // DBG("Polynom(Coeff, TermList) -> ", *this)
+  }
+
   Polynom(Coeff constant) : _const(constant), _coeffs(decltype(_coeffs)())  { 
-    DBG("Polynom(Coeff) -> ", *this)
+    // DBG("Polynom(Coeff) -> ", *this)
   }
 
   Polynom(Polynom&& other) = default;
@@ -1827,8 +1898,8 @@ struct Polynom {
 
   static TermList toTerm(const Polynom& self) {
     CALL("Polynom::toTerm() const")
-    auto trm = [](const pair& x) -> TermList { 
-      return TermList(number::mul(TermList( theory->representConstant(x.second) ), x.first)); 
+    auto trm = [](const poly_pair& x) -> TermList { 
+      return TermList(number::mul(TermList( theory->representConstant(x.second) ), x.first.toTerm())); 
     };
 
     auto iter = self._coeffs.begin(); 
@@ -1836,6 +1907,7 @@ struct Polynom {
       return TermList(theory->representConstant(self._const));
     } else {
       auto out = trm(*iter);
+      iter++;
       for (; iter != self._coeffs.end(); iter++) {
         // auto x = *iter;
         out = number::add(out, trm(*iter));
@@ -2290,10 +2362,14 @@ TermEvalResult evaluateUnaryMinus(TermEvalResult& inner) {
   // return TermEvalResult::left(_evaluateUnaryMinus<number>(inner.unwrapLeft()));
   auto out = inner.map(
       [](TermList&& t) { 
-        Polynom<number> p(number::zeroC);
-        AnyPoly out(std::move(p));
-        out.set(t, number::constant(-1));
-        return TermEvalResult::rightMv(std::move(out));
+        return TermEvalResult::rightMv(AnyPoly(
+            Polynom<number>(
+                number::constant(-1), t
+              )));
+        // Polynom<number> p(number::zeroC);
+        // AnyPoly out(std::move(p));
+        // out.set(t, number::constant(-1));
+        // return TermEvalResult::rightMv(std::move(out));
       },
       [](AnyPoly&& p) {
         p.multiply(number::constant(-1));

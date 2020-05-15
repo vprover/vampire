@@ -37,13 +37,11 @@ public:
 
   const A& unwrapLeft() const {
     ASS(_tag == Left);
-    DBG("unwarpLeft()", *this);
     return _cont._left;
   }
 
   const B& unwrapRight() const {
     ASS(_tag == Right);
-    DBG("unwarpRight()", *this);
     return _cont._right;
   }
 
