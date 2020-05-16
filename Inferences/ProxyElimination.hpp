@@ -94,6 +94,16 @@ public:
     Kernel::Clause* simplify(Kernel::Clause* c);
   };
 
+  class NOTRemovalGIE
+    : public GeneratingInferenceEngine
+  {
+  public:
+    CLASS_NAME(NOTRemovalGIE);
+    USE_ALLOCATOR(NOTRemovalGIE);
+    
+    ClauseIterator generateClauses(Kernel::Clause* c);
+  };
+
   /*
     Simplification rules:
 

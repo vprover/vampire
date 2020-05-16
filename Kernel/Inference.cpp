@@ -517,6 +517,8 @@ vstring Inference::ruleName(Rule rule)
     return "equality proxy clausification";
   case BOOL_SIMP:
     return "boolean simplification";
+  case EQ_TO_DISEQ:
+    return "bool equality to disequality";
   case PRIMITIVE_INSTANTIATION:
     return "primitive instantiation";
   case LEIBNIZ_ELIMINATION:

@@ -153,7 +153,9 @@ ImmediateSimplificationEngine* MainLoop::createISE(Problem& prb, const Options& 
       env.statistics->higherOrder && !env.options->addProxyAxioms()){
     res->addFrontMany(new ProxyElimination::ProxyEliminationISE());
     res->addFront(new ProxyElimination::ORIMPANDRemovalISE());
-    res->addFront(new ProxyElimination::NOTRemovalISE());   
+    if(!env.options->booleanEqTrick()){
+      res->addFront(new ProxyElimination::NOTRemovalISE());   
+    }
     res->addFront(new ProxyElimination::EQUALSRemovalISE());   
     res->addFront(new ProxyElimination::PISIGMARemovalISE());    
     res->addFront(new BoolSimp());

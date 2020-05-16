@@ -54,6 +54,7 @@
 #include "Inferences/CTFwSubsAndRes.hpp"
 #include "Inferences/EqualityFactoring.hpp"
 #include "Inferences/EqualityResolution.hpp"
+#include "Inferences/BoolEqToDiseq.hpp"
 //#include "Inferences/ExtensionalityResolution.hpp"
 #include "Inferences/FOOLParamodulation.hpp"
 #include "Inferences/Injectivity.hpp"
@@ -74,6 +75,7 @@
 #include "Inferences/Choice.hpp"
 #include "Inferences/ElimLeibniz.hpp"
 #include "Inferences/SubVarSup.hpp"
+#include "Inferences/ProxyElimination.hpp"
 #include "Inferences/URResolution.hpp"
 //#include "Inferences/Instantiation.hpp"
 //#include "Inferences/TheoryInstAndSimp.hpp"
@@ -1399,6 +1401,12 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     if(!opt.pragmatic()){
       gie->addFront(new SubVarSup());
     }
+  }
+
+  if(prb.hasFOOL() &&
+    env.statistics->higherOrder && env.options->booleanEqTrick()){
+    gie->addFront(new ProxyElimination::NOTRemovalGIE());
+    gie->addFront(new BoolEqToDiseq());
   }
 
   if(opt.complexBooleanReasoning() && prb.hasBoolVar()){

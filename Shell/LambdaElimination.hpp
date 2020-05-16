@@ -38,8 +38,13 @@ public:
   static void addChoiceAxiom(Problem& prb);
   static Literal* toEquality(TermList booleanTerm, bool polarity);
   
+  class TermListComparator {
+  public:
+    bool lessThan(TermList t1, TermList t2);
+  };
+
 private:
-  
+
   /*********************************************
   * Lambda and application elimination functions
   *********************************************/

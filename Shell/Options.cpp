@@ -1232,6 +1232,13 @@ void Options::Options::init()
     _lookup.insert(&_functionExtensionality);
     _functionExtensionality.tag(OptionTag::INFERENCES);
 
+    _lazyClausification = ChoiceOptionValue<LazyClausification>("lazy_cnf","lc",LazyClausification::OFF,
+                                                                          {"off", "simplify", "generate"});
+    _lazyClausification.description="Clausify the problem lazily. When set to 'simplify' clausification rules";
+                                    "are simplifcation rules. Otherwise are generating rules";
+    _lookup.insert(&_lazyClausification);
+    _lazyClausification.tag(OptionTag::OTHER);
+
     _equalityToEquivalence = BoolOptionValue("equality_to_equiv","e2e",false);
     _equalityToEquivalence.description=
     "Equality between boolean terms changed to equivalence \n"
@@ -1242,9 +1249,18 @@ void Options::Options::init()
     _complexBooleanReasoning = BoolOptionValue("complex_bool_reasoning","cbe",true);
     _complexBooleanReasoning.description=
     "Switches on primitive instantiation and elimination of leibniz equality";
-    _complexBooleanReasoning.reliesOn(_addCombAxioms.is(equal(false)));    
+    _complexBooleanReasoning.reliesOn(_addProxyAxioms.is(equal(false)));    
     _lookup.insert(&_complexBooleanReasoning);
-    _complexBooleanReasoning.tag(OptionTag::INFERENCES);
+    _complexBooleanReasoning.tag(OptionTag::OTHER);
+
+    _booleanEqTrick = BoolOptionValue("bool_eq_trick","bet",false);
+    _booleanEqTrick.description=
+    "Replace an equality between boolean terms such as: "
+    "t = s with a disequality t != vnot(s)"
+    "theory is that this can help with EqRes";
+    _lookup.insert(&_booleanEqTrick);
+    _booleanEqTrick.tag(OptionTag::OTHER);
+
 
 //*********************** InstGen  ***********************
 

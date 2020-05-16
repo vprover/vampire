@@ -407,6 +407,29 @@ Clause* ProxyElimination::NOTRemovalISE::simplify(Clause* c)
   return c;
 } 
 
+
+ClauseIterator ProxyElimination::NOTRemovalGIE::generateClauses(Clause* c)
+{
+  CALL("NOTRemovalGIE::generateClauses");
+  
+  int length = c->length();
+  for (int i = length - 1; i >= 0; i--) {
+    TermList lhs, rhs;
+    bool polarity;
+    Literal *lit = (*c)[i];
+    if (isNOTEquality(lit, lhs, rhs, polarity)) {
+      Literal *newLit;
+      newLit = Literal::createEquality(polarity, lhs, rhs, Term::boolSort());//Check this in particular polarity, AYB
+      Clause* res = replaceLit2(c, lit, newLit, new Inference1(Inference::HOL_NOT_ELIMINATION, c));//Change inference AYB
+      res->setAge(c->age());
+      env.statistics->proxyEliminations++;  
+      return pvi(getSingletonIterator(res));
+    }
+  }
+
+  return ClauseIterator::getEmpty() ;
+} 
+
 Clause* ProxyElimination::EQUALSRemovalISE::simplify(Clause* c)
 {
   CALL("EQUALSRemovalISE::simplify");
@@ -495,8 +518,9 @@ struct ProxyElimination::ProxyEliminationISE::ProxyEliminationIterator
     TermList lhs = *lit->nthArgument(0);
     TermList rhs = *lit->nthArgument(1);
 
+    //could turn this into an inference rule when using Eqtrick?
     if(litSort == Term::boolSort() && isBoolValue(lhs) == -1 && 
-      isBoolValue(rhs) == -1){
+      isBoolValue(rhs) == -1 && !env.options->booleanEqTrick()){
       if(lit->polarity()){
         _constant = Signature::IFF;
       } else {
@@ -506,7 +530,7 @@ struct ProxyElimination::ProxyEliminationISE::ProxyEliminationIterator
       _terms.push(rhs);
       _rhsIsTrue = true;
       _rhsIsFalse = false;
-      _rhsIsTerm = false; 
+      _rhsIsTerm = false;
     } else if (cnst) {     
            
       TermList otherTermt = *lit->nthArgument(1 - cnst->onRight);

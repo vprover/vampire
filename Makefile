@@ -300,6 +300,7 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/PrimitiveInstantiation.o\
          Inferences/Choice.o\
          Inferences/ElimLeibniz.o\
+         Inferences/BoolEqToDiseq.o
 #         Inferences/EquationalTautologyRemoval.o\
 #	 Inferences/Instantiation.o\
 #         Inferences/ExtensionalityResolution.o\

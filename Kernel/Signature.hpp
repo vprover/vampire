@@ -120,7 +120,7 @@ class Signature
     /** marks numbers too large to represent natively */
     unsigned _overflownConstant : 1;
     /** marks term algebra constructors */
-    unsigned _termAlgebraCons : 1;
+    //unsigned _termAlgebraCons : 1;
     /** Either a FunctionType of a PredicateType object */
     mutable OperatorType* _type;
     /** List of distinct groups the constant is a member of, all members of a distinct group should be distinct from each other */
@@ -205,7 +205,7 @@ class Signature
     /** Return true iff symbol is an overflown constant */
     inline bool overflownConstant() const { return _overflownConstant; }
     /** Return true iff symbol is a term algebra constructor */
-    inline bool termAlgebraCons() const { return _termAlgebraCons; }
+    inline bool termAlgebraCons() const { return false; /*_termAlgebraCons;*/ }
 
     /** Increase the usage count of this symbol **/
     inline void incUsageCnt(){ _usageCount++; }

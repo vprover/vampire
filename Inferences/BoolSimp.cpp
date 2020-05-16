@@ -60,21 +60,16 @@ Clause* BoolSimp::simplify(Clause* premise) {
     literalPosition++;
   }
 
-  // If we reached this point, it means that there was no boolean terms we are
-  // interested in, so we don't infer anything
   return premise;
 
-  substitution:
+substitution:
 
-  // Found a boolean term! Create the C[true] \/ s = false clause
   unsigned conclusionLength = premise->length();
   Inference* inference = new Inference1(Inference::BOOL_SIMP, premise);
 
   Clause* conclusion = new(conclusionLength) Clause(conclusionLength, premise->inputType(), inference);
   conclusion->setAge(premise->age() + 1);
 
-  // Copy the literals from the premise except for the one at `literalPosition`,
-  // that has the occurrence of `booleanTerm` replaced with false
   for (unsigned i = 0; i < conclusion->length(); i++) {
     (*conclusion)[i] = i == literalPosition ? EqHelper::replace((*premise)[i], subTerm, simpedSubTerm) : (*premise)[i];
   }

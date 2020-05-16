@@ -748,6 +748,12 @@ public:
     ABSTRACTION = 2
   }; 
 
+  enum class LazyClausification : unsigned int {
+    OFF = 0,
+    ON_SIMP = 1,
+    ON_GEN = 2
+  };
+
     //==========================================================
     // The Internals
     //==========================================================
@@ -2119,8 +2125,10 @@ public:
   bool choiceReasoning() const { return _choiceReasoning.actualValue; }
   int maxXXNarrows() const { return _maximumXXNarrows.actualValue; }
   FunctionExtensionality functionExtensionality() const { return _functionExtensionality.actualValue; }
+  LazyClausification lazyClausification() const { return _lazyClausification.actualValue; }
   bool equalityToEquivalence () const { return _equalityToEquivalence.actualValue; } 
   bool complexBooleanReasoning () const { return _complexBooleanReasoning.actualValue; }
+  bool booleanEqTrick() const { return _booleanEqTrick.actualValue; }
 
 private:
     
@@ -2504,8 +2512,10 @@ private:
   BoolOptionValue _choiceReasoning;
   IntOptionValue  _maximumXXNarrows;
   ChoiceOptionValue<FunctionExtensionality> _functionExtensionality;
+  ChoiceOptionValue<LazyClausification> _lazyClausification;
   BoolOptionValue _equalityToEquivalence;
   BoolOptionValue _complexBooleanReasoning;
+  BoolOptionValue _booleanEqTrick;
 }; // class Options
 
 // Allow printing of enums

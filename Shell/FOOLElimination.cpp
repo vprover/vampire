@@ -184,6 +184,18 @@ FormulaUnit* FOOLElimination::apply(FormulaUnit* unit) {
 Formula* FOOLElimination::process(Formula* formula) {
   CALL("FOOLElimination::process(Formula*)");
 
+  if(env.options->lazyClausification() != Options::LazyClausification::OFF){
+    LambdaElimination le = LambdaElimination(_varSorts);
+    TermList proxifiedFormula = le.processBeyondLambda(formula);
+    Formula* processedFormula = toEquality(proxifiedFormula);
+
+    if (env.options->showPreprocessing()) {
+      reportProcessed(formula->toString(), processedFormula->toString());
+    }
+
+    return processedFormula;
+  }
+
   switch (formula->connective()) {
     case LITERAL: {
       Literal* literal = formula->literal();
@@ -207,7 +219,6 @@ Formula* FOOLElimination::process(Formula* formula) {
        */
 
       if (literal->isEquality() && env.options->equalityToEquivalence()) { 
-        //when in higher-order, we never convert equality to equivalence
         ASS_EQ(literal->arity(), 2); // can there be equality between several terms?
         TermList lhs = *literal->nthArgument(0);
         TermList rhs = *literal->nthArgument(1);

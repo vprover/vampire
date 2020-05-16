@@ -132,6 +132,20 @@ public:
   virtual Clause* simplify(Clause* cl) = 0;
 };
 
+
+class SimplificationEngine
+: public InferenceEngine
+{
+public:
+  /**
+   * Perform simplification on @b cl
+   *
+   * The difference between this an immediate simplification is that it is delayed 
+   * in the saturation loop
+   */
+  virtual ClauseIterator perform(Clause* cl) = 0;
+};
+
 class ForwardSimplificationEngine
 : public InferenceEngine
 {

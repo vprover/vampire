@@ -11,6 +11,7 @@
 
 #include "Lib/Environment.hpp"
 #include "Lib/Deque.hpp"
+#include "Lib/Sort.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/FormulaUnit.hpp"
@@ -21,6 +22,7 @@
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/ApplicativeHelper.hpp"
 #include "Kernel/SKIKBO.hpp"
+#include "Kernel/TermIterators.hpp"
 
 #include "Skolem.hpp"
 #include "Options.hpp"
@@ -36,37 +38,67 @@ using namespace Shell;
 typedef ApplicativeHelper AH;
 
 
-/*void LambdaElimination::addFunctionExtensionalityAxioms(UnitList*& units){
-  CALL("LambdaElimination::addFunctionExtensionalityAxioms");
+/**
+ * Return true if t1 is less than t2 in some arbitrary
+ * total ordering.
+ *
+ * Is used just for normalization of commutative term and
+ * literal arguments.
+ */
+bool LambdaElimination::TermListComparator::lessThan(TermList t1, TermList t2)
+{
+  CALL("TermListComparator::lessThan");
 
+  if(t1.tag()!=t2.tag()) {
+    return t1.tag() < t2.tag();
+  }
+  if(!t2.isTerm()) {
+    return t2.content() > t1.content();
+  }
+  Term* trm1=t1.term();
+  Term* trm2=t2.term();
+  if(trm1->functor()!=trm2->functor()) {
+    return trm1->functor()<trm2->functor();
+  }
+  if(trm1->weight()!=trm2->weight()) {
+    return trm1->weight()<trm2->weight();
+  }
+  if(trm1->vars()!=trm2->vars()) {
+    return trm1->vars()<trm2->vars();
+  }
 
-}*/
+  //To avoid non-determinism, now we'll compare the terms lexicographicaly.
+  static DisagreementSetIterator dsit;
+  dsit.reset(trm1, trm2, false);
 
-/*void LambdaElimination::addBooleanExtensionalityAxiom(UnitList*& units){
-  CALL("LambdaElimination::addBooleanExtensionalityAxiom");
-   
-  Formula* boolExtAxiom;  
-  
-  TermList var1 = TermList(0, false);
-  TermList var2 = TermList(1, false);
-  List<int>* varList = new List<int>(var1.var());
-  List<unsigned>* sortList = new List<unsigned>(Sorts::SRT_BOOL);
-  varList = varList->addLast(varList, var2.var());
-  sortList = sortList->addLast(sortList, Sorts::SRT_BOOL);
+  if(!dsit.hasNext()) {
+    ASS_EQ(trm1,trm2);
+    return false;
+  }
 
-  boolExtAxiom = new BinaryFormula(IFF, toEquality(var1) , toEquality(var2));
-  boolExtAxiom = new BinaryFormula(IMP, boolExtAxiom , createEquality(var1, var2, Sorts::SRT_BOOL));
-  boolExtAxiom = new QuantifiedFormula(FORALL, varList,sortList, boolExtAxiom); 
-
-  Inference* boolExtInf;
-  boolExtInf = new Inference(Inference::BOOL_EXT_AXIOM);
-  
-  addAxiom(new FormulaUnit(boolExtAxiom, boolExtInf, Unit::AXIOM), true);  
-  
-  addAxiomsToUnits(units);
-  return;  
-  
-}*/
+  pair<TermList, TermList> diff=dsit.next();
+  TermList st1=diff.first;
+  TermList st2=diff.second;
+  if(st1.isTerm()) {
+    if(st2.isTerm()) {
+      unsigned f1=st1.term()->functor();
+      unsigned f2=st2.term()->functor();
+      ASS_NEQ(f1,f2);
+      return f1<f2;
+    } else {
+      return false;
+    }
+  } else {
+    if(st2.isTerm()) {
+      return true;
+    } else {
+      ASS_NEQ(st1.var(),st2.var());
+      return st1.var()<st2.var();
+    }
+  }
+  ASSERTION_VIOLATION;
+  return false;
+}
 
 
 TermList LambdaElimination::processBeyondLambda(Formula* formula)
@@ -112,7 +144,14 @@ TermList LambdaElimination::processBeyondLambda(Formula* formula)
 
       TermList form1 = processBeyondLambda(lhs);
       TermList form2 = processBeyondLambda(rhs);
- 
+
+      TermListComparator tlc;
+      if((conn == IFF || conn == XOR) && tlc.lessThan(form2, form1)){
+        TermList temp = form1;
+        form1 = form2;
+        form2 = temp;
+      }
+
       return AH::createAppTerm3(sortOf(constant), constant, form1, form2);;
     }
     case AND:
@@ -122,21 +161,19 @@ TermList LambdaElimination::processBeyondLambda(Formula* formula)
       vstring name = (conn == AND ? "vAND" : "vOR");
       constant = TermList(Term::createConstant(env.signature->getBinaryProxy(name)));
       
-      TermList form;
-
-      unsigned count = 1;
+      TermListComparator tlc;
+      unsigned length = FormulaList::length(formula->args());
+      Sort<TermList,TermListComparator> srt(length, tlc);
       while(argsIt.hasNext()){
-        Formula* arg = argsIt.next();
-        form = processBeyondLambda(arg);
-        if(count == 1){
-          appTerm = AH::createAppTerm(sortOf(constant), constant, form);
-        }else if(count == 2){
-          appTerm = AH::createAppTerm(sortOf(appTerm), appTerm, form);
-        }else{
-          appTerm = AH::createAppTerm3(sortOf(constant), constant, appTerm, form);
-        }
-        count++;
+        srt.add(processBeyondLambda(argsIt.next()));
       }
+      srt.sort();
+
+      appTerm = AH::createAppTerm3(sortOf(constant), constant, srt[0], srt[1]);
+      for(unsigned i = 2; i < length; i++){
+        appTerm = AH::createAppTerm3(sortOf(constant), constant, appTerm, srt[i]);
+      }
+
       return appTerm;                           
     }
     case NOT: {
