@@ -27,6 +27,7 @@
 #include "Kernel/Signature.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/Sorts.hpp"
+#include "Kernel/PolynomialNormalizer.hpp"
 
 #include "Kernel/InterpretedLiteralEvaluator.hpp"
 
@@ -100,7 +101,7 @@ void check(bool b, const char* msg, As... vs) {
 
 void check_no_succ(Literal& orig) {
 
-  auto eval = NewEvaluator();
+  auto eval = PolynomialNormalizer();
 
   // bool constant;
   // Literal* result = NULL;
@@ -110,7 +111,7 @@ void check_no_succ(Literal& orig) {
   Literal* src = Literal::create(&orig, orig.polarity());
   // auto success = eval.evaluate(src,constant,result,constantTrue, sideConditions);
   auto res = eval.evaluate(src);
-  auto nop = res.tag() == LitEvalResult::NonTrivial && res.nonTrivialValue() == src;
+  auto nop = res.isLeft() && res.unwrapLeft() == src;
 
   CHECK_EQ(nop, true, "unexpectedly evaluation was successful", orig.toString());
 }
@@ -118,28 +119,14 @@ void check_no_succ(Literal& orig) {
 
 void check_eval(Literal& orig, bool expected) {
 
-  auto eval = NewEvaluator();
-
-  // auto eval = InterpretedLiteralEvaluator();
-  //
-  // bool constant;
-  // Literal* result = NULL;
-  // bool constantTrue;
+  auto eval = PolynomialNormalizer();
 
   auto sideConditions = Stack<Literal*>();
   Literal* src = Literal::create(&orig, orig.polarity());
-  // auto success = eval.evaluate(src,constant,result,constantTrue, sideConditions);
-
-  // CHECK_EQ(success, true, "evaluation failed", orig.toString());
-  // CHECK_EQ(sideConditions.isEmpty(), true, "non-empty side condictions", orig.toString());
-  // CHECK_NE(result, NULL, "result not set", orig.toString());
-  // CHECK_EQ(constant, true, "result not evaluated to constant", orig.toString());
-  // CHECK_EQ(constantTrue, expected, "result not evaluated to constant", orig.toString());
 
   auto result = eval.evaluate(src);
-  // auto nop = result.tag() == LitEvalResult::NonTrivial && result.nonTrivialValue() == src;
-  CHECK_EQ(result.tag(), LitEvalResult::Trivial, "non-trivial evaluation result", orig.toString())
-  CHECK_EQ(result.trivialValue(), expected, "result not evaluated to constant", orig.toString())
+  CHECK_EQ(result.isRight(), true, "non-trivial evaluation result", orig.toString())
+  CHECK_EQ(result.unwrapRight(), expected, "result not evaluated to constant", orig.toString())
 }
 
 bool operator==(const Literal& lhs, const Literal& rhs) {
@@ -148,29 +135,14 @@ bool operator==(const Literal& lhs, const Literal& rhs) {
 
 void check_eval(Literal& orig, const Literal& expected) {
 
-  auto eval = NewEvaluator();
+  auto eval = PolynomialNormalizer();
 
   auto sideConditions = Stack<Literal*>();
   Literal* src = Literal::create(&orig, orig.polarity());
 
   auto result = eval.evaluate(src);
-  CHECK_EQ(result.tag(), LitEvalResult::NonTrivial, "trivial evaluation result", orig.toString())
-  CHECK_EQ(*result.nonTrivialValue(), expected, "result not evaluated correctly", orig.toString())
-
-  // auto eval = InterpretedLiteralEvaluator();
-  //
-  // bool constant;
-  // Literal* result = nullptr;
-  // bool constantTrue;
-  //
-  // auto sideConditions = Stack<Literal*>();
-  // auto success = eval.evaluate(&orig,constant,result,constantTrue, sideConditions);
-  //
-  // CHECK_EQ(success, true, "evaluation failed", orig.toString());
-  // CHECK_EQ(sideConditions.isEmpty(), true, "non-empty side condictions", orig.toString());
-  // CHECK_NE(result, NULL, "result not set", orig.toString());
-  // CHECK_EQ(*result, expected, "unexpected evaluation result", orig.toString());
-
+  CHECK_EQ(result.isLeft(), true, "trivial evaluation result", orig.toString())
+  CHECK_EQ(*result.unwrapLeft(), expected, "result not evaluated correctly", orig.toString())
 }
 
 /** Tests for evalutions that should only be successful for reals/rationals and not for integers. */
