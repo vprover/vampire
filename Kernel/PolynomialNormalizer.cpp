@@ -1,10 +1,12 @@
 #include "PolynomialNormalizer.hpp"
 #include "Debug/Tracer.hpp"
+#include "Lib/STLAllocator.hpp"
+#include <map>
+#include <vector>
 
 #define DEBUG(...) //DBG(__VA_ARGS__)
 
 using namespace Lib;
-using namespace Lib::StdWrappers;
 
 namespace Kernel {
 
@@ -82,10 +84,23 @@ int _expensive_sort_terms(TermList lhs, TermList rhs) {
 
 #endif // VDEBUG
 
+struct compare_terms {
+  bool operator()(TermList lhs, TermList rhs) const {
+#if VDEBUG
+    return expensive_sort_terms(lhs,rhs);
+#else
+    return lhs < rhs;
+#endif // VDEBUG
+  }
+};
+
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Data structures
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+template<class K, class V, class Compare = std::less<K>> using map  = std::map<K, V, Compare, STLAllocator<std::pair<const K, V > > >;
+template<class t> using vector  = std::vector<t, STLAllocator<t>>;
 
 /**
  * A polynomial of a specific interpreted number sort. The type parameter is expected to be an instance of num_traits<...>, 
@@ -96,11 +111,7 @@ struct Polynom {
 
   struct Monom {
 
-    StdWrappers::map<TermList, int
-#if VDEBUG
-      , expensive_term_comparison
-#endif
-       > _factors;
+    map<TermList, int , compare_terms > _factors;
     using monom_pair = typename decltype(_factors)::value_type;
 
     bool isOne() const {
@@ -216,7 +227,7 @@ struct Polynom {
 
 
   using Coeff = typename number::ConstantType;
-  StdWrappers::map<Monom, Coeff> _coeffs;
+  map<Monom, Coeff> _coeffs;
   using poly_pair = typename decltype(_coeffs)::value_type;
 
   void multiply(Coeff c) {

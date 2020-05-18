@@ -81,6 +81,7 @@ public :
  }
 
     //    construction/destruction
+    inline void construct(pointer p, T&& t) { new(p) T(std::move(t)); }
     inline void construct(pointer p, const T& t) { new(p) T(t); }
     inline void destroy(pointer p) { p->~T(); }
 
