@@ -273,17 +273,6 @@ ALL_NUMBERS_TEST(literal_to_const_11,
       false
     )
 
-// Interpret x = -x
-ALL_NUMBERS_TEST(minus_x_eq_x,
-      eq(x, minus(x)),
-      eq(x, 0)
-    )
-
-ALL_NUMBERS_TEST(minus_x_neq_x,
-      neq(x, minus(x)),
-      neq(x, 0)
-    )
-
 #ifdef NORMALIZE_LESS //TODO
 TEST_FUN(normalize_less_1) {
   THEORY_SYNTAX_SUGAR(INT)
@@ -374,11 +363,6 @@ TEST_FUN(test_normalize_stable) {
 }
 #endif // NORMALIZE_LESS // TODO
 
-ALL_NUMBERS_TEST(misc_1,
-      eq(mul(2, a), add(x, x)),
-      eq(a, x)
-      )
-
 // x = -(-x)
 ALL_NUMBERS_TEST(eval_double_minus_1_1, 
       eq(x, minus(minus(x))),
@@ -453,9 +437,40 @@ ALL_NUMBERS_TEST(polynomial__push_unary_minus,
       p(mul(-7, a))
       )
 
-ALL_NUMBERS_TEST(polynomial__sorting,
+ALL_NUMBERS_TEST(polynomial__sorting_1,
       p(mul(mul(7, x), a)),
       p(mul(7, mul(x, a)))
+      )
+
+ALL_NUMBERS_TEST(polynomial__sorting_2,
+      p(mul(mul(7, mul(y, x)), a)),
+      p(mul(7, mul(x, mul(y,a))))
+      )
+
+ALL_NUMBERS_TEST(polynomial__sorting_3,
+      p(mul(add(x,add(x, y)), add(x, add(a,x)))),
+    /* (x + x +y) * (x + a + x) */
+    /* ==> (2x + y) * (2x + a) */
+    /* ==> (2x + y) * (2x + a) */
+    /* ==> (4x^2 + 2xy) + (2ax + ay) */
+    /* ==> 4x^2 + 2xy + 2ax + ay */
+      p(add(mul(4, mul(x,x)), add(mul(2, mul(x,y)), add(mul(2,mul(x,a)), mul(y,a)))))
+      )
+
+ALL_NUMBERS_TEST(polynomial__sorting_4,
+      p(mul(add(x, 1), add(x, -1))),
+      /* (x + 1) * (x - 1) */
+      p(add(-1, mul(x,x)))
+      )
+
+ALL_NUMBERS_TEST(polynomial__sorting_5,
+      p(add(add(b,a),c)),
+      p(add(a,add(b,c)))
+      )
+
+ALL_NUMBERS_TEST(polynomial__sorting_6,
+      p(mul(mul(b,a),c)),
+      p(mul(a,mul(b,c)))
       )
 
 // TODO: cases x = k * x <-> k = 1 | x = 0 

@@ -3,6 +3,8 @@
 #include "Lib/STLAllocator.hpp"
 #include <map>
 #include <vector>
+#include <stack>
+#include <forward_list>
 
 #define DEBUG(...) //DBG(__VA_ARGS__)
 
@@ -48,8 +50,16 @@ int _expensive_sort_terms(const Term& lhs, const Term& rhs) {
   } else {
     ASS(!l_thry && !r_thry)
  
-    int cmp_fun = l_fun - r_fun;
-    if (cmp_fun != 0) return cmp_fun;
+    const vstring& lname = env.signature->getFunction(l_fun)->name();
+    const vstring& rname = env.signature->getFunction(r_fun)->name();
+    if (l_fun == r_fun) {
+
+    } else if (lname < rname) {
+      return -1;
+    } else {
+      return 1;
+    }
+    // if (cmp_fun != 0) return cmp_fun;
  }
 
   ASS(lhs.arity() == rhs.arity())
@@ -63,7 +73,9 @@ int _expensive_sort_terms(const Term& lhs, const Term& rhs) {
 }
 
 bool expensive_sort_terms(TermList lhs, TermList rhs) {
-  return _expensive_sort_terms(lhs, rhs) > 0;
+  auto out = _expensive_sort_terms(lhs, rhs) < 0;
+  // DBG("comparing: ", lhs, " < ", rhs, " ==> ", out);
+  return out;
 }
 
 int _expensive_sort_terms(TermList lhs, TermList rhs) {
@@ -87,10 +99,11 @@ int _expensive_sort_terms(TermList lhs, TermList rhs) {
 struct compare_terms {
   bool operator()(TermList lhs, TermList rhs) const {
 #if VDEBUG
-    return expensive_sort_terms(lhs,rhs);
+    auto out = expensive_sort_terms(lhs,rhs);
 #else
-    return lhs < rhs;
+    auto out = lhs < rhs;
 #endif // VDEBUG
+    return out;
   }
 };
 
@@ -101,6 +114,47 @@ struct compare_terms {
 
 template<class K, class V, class Compare = std::less<K>> using map  = std::map<K, V, Compare, STLAllocator<std::pair<const K, V > > >;
 template<class t> using vector  = std::vector<t, STLAllocator<t>>;
+template<class t> using stack  = std::stack<t, STLAllocator<t>>;
+template<class t> using forward_list  = std::forward_list<t, STLAllocator<t>>;
+
+template<class T>
+class fwd_list_iter {
+public:
+  using iterator = typename forward_list<T>::iterator;
+
+  static fwd_list_iter end(forward_list<T>& prods) {
+    return fwd_list_iter ( prods.end()) ;
+  }
+
+  friend bool operator!=(const fwd_list_iter& self, const iterator& iter) {
+    return self.cur != iter;
+  }
+  T& operator*() { return *cur; }
+  T* operator->() { return &*cur; }
+  // const typename prods_t::value_type & operator*() const { return *cur; }
+
+  void operator++() {
+    cur++;
+    before++;
+  }
+  void erase(forward_list<T>& prods) {
+    cur++;
+    prods.erase_after(before);
+  }
+
+private:
+  iterator cur;
+  iterator before;
+private:
+  explicit fwd_list_iter(iterator end) : cur(end) {
+
+  }
+public:
+  fwd_list_iter(forward_list<T>& prods) : cur(prods.begin()), before(prods.before_begin()) {
+    
+  }
+};
+
 
 /**
  * A polynomial of a specific interpreted number sort. The type parameter is expected to be an instance of num_traits<...>, 
@@ -111,8 +165,30 @@ struct Polynom {
 
   struct Monom {
 
-    map<TermList, int , compare_terms > _factors;
+    struct WrappedTermList {
+      TermList inner;
+      explicit WrappedTermList(TermList t) : inner(t) { }
+
+      friend bool operator<(WrappedTermList lhs, WrappedTermList rhs) {
+        return compare_terms{}(lhs.inner,rhs.inner);
+      }
+
+      friend bool operator==(WrappedTermList lhs, WrappedTermList rhs) {
+        return lhs.inner == rhs.inner;
+      }
+    };
+
+    // map<TermList, int , compare_terms > _factors;
+    vector<tuple<WrappedTermList, int>> _factors;
     using monom_pair = typename decltype(_factors)::value_type;
+
+    static TermList getTerm(const typename decltype(_factors)::value_type& pair) {
+      return std::get<0>(pair).inner;
+    }
+
+    static int getCount(const typename decltype(_factors)::value_type& pair) {
+      return std::get<1>(pair);
+    }
 
     bool isOne() const {
       return _factors.begin() == _factors.end();
@@ -120,8 +196,9 @@ struct Polynom {
 
     TermList toTerm() const {
       CALL("Monom::toTerm()")
-      auto iter = _factors.begin();
-      if (iter == _factors.end()) {
+      // DBG("Monom::toTerm(): ", *this)
+      auto iter = _factors.rbegin();
+      if (iter == _factors.rend()) {
         return number::one();
       } else {
 
@@ -133,13 +210,11 @@ struct Polynom {
           return out;
         };
 
-        ASS(iter->second != 0);
-        auto out = mul_n_times(iter->first, iter->first, iter->second - 1);
-        // DBG("out: ", out)
+        ASS(getCount(*iter) != 0);
+        auto out = mul_n_times(getTerm(*iter), getTerm(*iter), getCount(*iter) - 1);
         iter++;
-        for(; iter != _factors.end(); iter++)  {
-          out = mul_n_times(out, iter->first, iter->second);
-        // DBG("out: ", out)
+        for(; iter != _factors.rend(); iter++)  {
+          out = mul_n_times(out, getTerm(*iter), getCount(*iter));
         }
         return out;
       }
@@ -149,7 +224,7 @@ struct Polynom {
     Monom() : _factors(decltype(_factors)()) {
     }
     Monom(TermList t) : _factors(decltype(_factors)()) {
-      _factors.insert(monom_pair(t, 1));
+      _factors.emplace_back(make_tuple(t, 1));
     }
 
     friend std::ostream& operator<<(std::ostream& out, const Monom& self) {
@@ -157,10 +232,10 @@ struct Polynom {
         return out << "1";
       } else {
         auto iter  = self._factors.begin();
-        out << iter->first << "^" << iter->second;
+        out << getTerm(*iter) << "^" << getCount(*iter);
         iter++;
         for (; iter != self._factors.end(); iter++) {
-          out << " * " << iter->first << "^" << iter->second;
+          out << " * " << getTerm(*iter) << "^" << getCount(*iter);
         }
         return out;
       }
@@ -171,7 +246,13 @@ struct Polynom {
     }
 
     friend bool operator<(const Monom& l, const Monom& r) {
-      return l._factors < r._factors;
+      if (l._factors.size() < r._factors.size()) {
+        return true;
+      } else if (l._factors.size() > r._factors.size()) {
+        return false;
+      } else {
+        return  l._factors < r._factors;
+      }
     }
 
     friend bool operator==(const Monom& l, const Monom& r) {
@@ -184,37 +265,34 @@ struct Polynom {
     friend Monom operator*(const Monom& lhs, const Monom& rhs) {
       Monom out;
       // TODO memoization
-      auto pos = out._factors.begin();
       auto l = lhs._factors.begin();
       auto r = rhs._factors.begin();
       auto insert = [&](TermList term, int value) {
         if (value != 0)
-          pos = out._factors.insert(pos, make_pair(term, value));
+          out._factors.emplace_back(make_pair(term, value));
       };
       while (l != lhs._factors.end() && r != rhs._factors.end() ) {
-        // DBG("l: ", l->first)
-        // DBG("r: ", r->first)
-        if (l->first == r->first) {
+        if (getTerm(*l) == getTerm(*r) ) {
           //add up
-          insert(l->first, l->second + r->second);
+          insert(getTerm(*l) , getCount(*l) + getCount(*r));
           l++;
           r++;
-        } else if (l->first < r->first) {
+        } else if (compare_terms{}(getTerm(*l), getTerm(*r)) ) {
           // insert l
-          insert(l->first, l->second);
+          insert(getTerm(*l) , getCount(*l));
           l++;
         } else {
           // insert r
-          insert(r->first, r->second);
+          insert(getTerm(*r) , getCount(*r));
           r++;
         }
       }
       while (l != lhs._factors.end()) {
-        insert(l->first, l->second);
+        insert(getTerm(*l) , getCount(*l));
         l++;
       }
       while (r != rhs._factors.end()) {
-        insert(r->first, r->second);
+        insert(getTerm(*r) , getCount(*r));
         r++;
       }
       ASS(l == lhs._factors.end() && r == rhs._factors.end());
@@ -227,14 +305,27 @@ struct Polynom {
 
 
   using Coeff = typename number::ConstantType;
-  map<Monom, Coeff> _coeffs;
+  vector<tuple<Monom, Coeff>> _coeffs;
+  // map<Monom, Coeff> _coeffs;
   using poly_pair = typename decltype(_coeffs)::value_type;
 
   void multiply(Coeff c) {
     CALL("Polynom::multiply")
     for (auto& pair : _coeffs) {
-      pair.second = c * pair.second;
+      getCoeffMut(pair) = c * getCoeff(pair);
     }
+  }
+
+  static const Monom& getMonom(const poly_pair& pair) {
+    return std::get<0>(pair);
+  }
+
+  static const Coeff& getCoeff(const poly_pair& pair) {
+    return std::get<1>(pair);
+  }
+
+  static Coeff& getCoeffMut(poly_pair& pair) {
+    return std::get<1>(pair);
   }
 
   friend Polynom operator+(const Polynom& lhs, const Polynom& rhs) {
@@ -244,77 +335,120 @@ struct Polynom {
     Polynom out;
     // TODO memoization
     // TODO unify with Monom::operator+
-    auto pos = out._coeffs.begin();
     auto l = lhs._coeffs.begin();
     auto r = rhs._coeffs.begin();
     auto insert = [&](const Monom& monom, Coeff value) {
       if (value != number::zeroC)
-      pos = out._coeffs.insert(pos, make_pair(monom.clone(), value));
+        out._coeffs.emplace_back(make_pair(monom.clone(), value));
     };
     while (l != lhs._coeffs.end() && r != rhs._coeffs.end() ) {
-      // DBG("l: ", l->first)
-      // DBG("r: ", r->first)
-      if (l->first == r->first) {
+      if (getMonom(*l) == getMonom(*r)) {
         //add up
-        insert(l->first, l->second + r->second);
+        insert(getMonom(*l), getCoeff(*l) + getCoeff(*r));
         l++;
         r++;
-      } else if (l->first < r->first) {
+      } else if (getMonom(*l)< getMonom(*r)) {
         // insert l
-        insert(l->first, l->second);
+        insert(getMonom(*l), getCoeff(*l));
         l++;
       } else {
         // insert r
-        insert(r->first, r->second);
+        insert(getMonom(*r), getCoeff(*r));
         r++;
       }
     }
     while (l != lhs._coeffs.end()) {
-      insert(l->first, l->second);
+      insert(getMonom(*l), getCoeff(*l));
       l++;
     }
     while (r != rhs._coeffs.end()) {
-      insert(r->first, r->second);
+      insert(getMonom(*r), getCoeff(*r));
       r++;
     }
     ASS(l == lhs._coeffs.end() && r == rhs._coeffs.end());
+    out.integrity();
     return out;
   }
 
   friend Polynom operator*(const Polynom& lhs, const Polynom& rhs) {
     CALL("Polynom::operator*")
     // DBG("Polynom::operator*")
+    // DBG("lhs: ", lhs)
+    // DBG("rhs: ", rhs)
     //TODO memoization
     Polynom out;
-    for (auto& l : lhs._coeffs) {
-      for (auto& r : rhs._coeffs) {
-        out._coeffs.insert(make_pair(std::move(l.first * r.first), l.second * r.second));
+
+
+    forward_list<vector<poly_pair>> prods;
+    //TODO reserve size
+
+    for (auto l = lhs._coeffs.rbegin(); l != lhs._coeffs.rend(); l++) {
+      vector<poly_pair> prod;
+      for (auto r = rhs._coeffs.rbegin(); r != rhs._coeffs.rend(); r++) {
+        prod.emplace_back(std::move(poly_pair(std::move(getMonom(*l) *  getMonom(*r)), getCoeff(*l) * getCoeff(*r))));
       }
+      prods.emplace_front(std::move(prod));
     }
+
+    using prods_t = decltype(prods);
+    using iterator = typename prods_t::iterator;
+
+    while (!prods.empty()) {
+      out.integrity();
+      using fwd_iter = fwd_list_iter<typename decltype(prods)::value_type>;
+
+      fwd_iter min_(prods);
+      // DBG("prods size: ", std::count_if(prods.begin(), prods.end(), [](const typename decltype(prods)::value_type&){return true;}))
+      for (auto i = fwd_iter(prods); i != prods.end(); ++i) {
+        if (getMonom(i->back()) < getMonom(min_->back())) {
+          min_ = i;
+        }
+      }
+      // DBG("found min")
+
+      ASS(min_ != prods.end())
+      ASS(!min_->empty())
+
+      auto min_pair = std::move(min_->back());
+      min_->pop_back();
+      if (min_->empty()) {
+        min_.erase(prods);
+      }
+
+      auto min = std::move(std::get<0>(min_pair));
+      auto coeff = std::move(getCoeff(min_pair));
+
+      auto iter = fwd_iter(prods);
+      while (iter != prods.end()) {
+        auto& p = *iter;
+        if (getMonom(p.back()) == min) {
+          // DBG("found coeff: ", getCoeff(p.back()))
+          coeff = coeff + getCoeff(p.back());
+          p.pop_back();
+        }
+        if (p.empty()) {
+          // DBG("erasing")
+          iter.erase(prods);
+        } else {
+          ++iter;
+        }
+      }
+      // DBG("coeff: ", coeff)
+      if (coeff != number::zeroC)
+        out._coeffs.emplace_back(poly_pair(std::move(min), coeff));
+    }
+
+    out.integrity();
     return out;
   }
 
-  Coeff get(TermList t) {
-    CALL("Polynom::get")
-    auto iter = _coeffs.find(t);
-    if (iter == _coeffs.end()) {
-      return Coeff(0);
-    } else {
-      return iter->second;
-    }
-  }
-
   Polynom(Coeff coeff, TermList t) : _coeffs(decltype(_coeffs)())  { 
-    // _coeffs.insert(std::move(poly_pair(std::move(Monom(t)), coeff)));
-    _coeffs.emplace(std::piecewise_construct,
-        std::forward_as_tuple(Monom(t)),
-        std::forward_as_tuple(coeff));
-    // DBG("Polynom(Coeff, TermList) -> ", *this)
+    _coeffs.emplace_back(poly_pair(std::move(Monom(t)), coeff));
   }
 
   Polynom(Coeff constant) : _coeffs(decltype(_coeffs)())  { 
     if (constant != number::zeroC)
-      _coeffs.insert(make_pair(Monom(), constant));
+      _coeffs.emplace_back(poly_pair(Monom(), constant));
   }
 
   Polynom() : _coeffs(decltype(_coeffs)()) {}
@@ -326,38 +460,52 @@ struct Polynom {
     return *this;
   }
 
+  void integrity() const {
+#if VDEBUG
+    if (_coeffs.size() > 0) {
+      auto iter = this->_coeffs.begin();
+      auto last = iter++;
+      while (iter != _coeffs.end()) {
+        ASS_REP(getMonom(*last) < getMonom(*iter), *this);
+        last = iter++;
+      }
+      // DBG("ok: ", *this)
+    }
+#endif
+
+  }
+
   static TermList toTerm(const Polynom& self) {
     CALL("Polynom::toTerm() const")
+    // DBG("Polynom::toTerm(): ", self)
+    self.integrity();
+    // DBG("toTerm: ", self)
     auto trm = [](const poly_pair& x) -> TermList { 
 
-      if (x.first.isOne()) {  
+      if (getMonom(x).isOne()) {  
         /* the pair is a plain number */
-        return TermList( theory->representConstant(x.second) );
+        return TermList( theory->representConstant(getCoeff(x)) );
 
-      } else if (x.second == number::constant(1)) {
+      } else if (getCoeff(x)== number::constant(1)) {
         /* the pair is an uninterpreted term */
-        return x.first.toTerm();
+        return getMonom(x).toTerm();
 
-      } else if (x.second == number::constant(-1)) {
-        return TermList(number::minus(x.first.toTerm()));
+      } else if (getCoeff(x)== number::constant(-1)) {
+        return TermList(number::minus(getMonom(x).toTerm()));
 
       } else {
-        return TermList(number::mul(TermList( theory->representConstant(x.second) ), x.first.toTerm())); 
+        return TermList(number::mul(TermList( theory->representConstant(getCoeff(x)) ), getMonom(x).toTerm())); 
       }
-
     };
 
-    auto iter = self._coeffs.begin(); 
-    if (iter == self._coeffs.end()) {
+    auto iter = self._coeffs.rbegin(); 
+    if (iter == self._coeffs.rend()) {
       return TermList(number::zero());
     } else {
       auto out = trm(*iter);
-      // DBG("out: ", out)
       iter++;
-      for (; iter != self._coeffs.end(); iter++) {
-        // auto x = *iter;
-        out = number::add(out, trm(*iter));
-      // DBG("out: ", out)
+      for (; iter != self._coeffs.rend(); iter++) {
+        out = number::add(trm(*iter), out);
       }
       return out;
     }
@@ -368,10 +516,10 @@ struct Polynom {
     if ( iter == self._coeffs.end() ) {
       out << "0" << endl;
     } else {
-      out << iter->first << " * " << iter->second;
+      out << getMonom(*iter)<< " * " << getCoeff(*iter);
       iter++;
       for (; iter != self._coeffs.end(); iter++) {
-        out << " + " << iter->first << " * " << iter->second;
+        out << " + " << getMonom(*iter)<< " * " << getCoeff(*iter);
       }
     }
     return out;
@@ -1088,9 +1236,13 @@ TermEvalResult PolynomialNormalizer::evaluateStep(Term* orig, TermEvalResult* ar
 }
 
 
-//TODO
+// TODO
 // - include division (?)
 // - include binary minus
+// - integrate in simplification rule (evaluation simpl)
+// - integrate in rebalancing elimination
+//     test this case:
+//     - eq(mul(2, a), add(x, x)) =====>  eq(a, x)
 
 #undef HANDLE_CASE
 #undef IGNORE_CASE
