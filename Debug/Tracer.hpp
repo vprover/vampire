@@ -132,6 +132,7 @@ public:
               { command };
 
 #else // ! VDEBUG
+#  define DBG(...)
 #  define CALL(Fun) 
 #  define CALLC(Fun,check) 
 #  define CONTROL(description)
