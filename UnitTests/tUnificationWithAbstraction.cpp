@@ -29,6 +29,7 @@
 #include "Kernel/Term.hpp"
 #include "Kernel/Sorts.hpp"
 #include "Kernel/SortHelper.hpp"
+#include "Kernel/RobSubstitution.hpp"
 
 #include "Indexing/Index.hpp"
 #include "Indexing/LiteralSubstitutionTree.hpp"
@@ -133,22 +134,79 @@ LiteralIndexingStructure* getBasicIndex()
 
 }
 
+void reportMatches(LiteralIndexingStructure* index, Literal* qlit)
+{
+  SLQueryResultIterator it= index->getUnificationsWithConstraints(qlit,false,true);
+  cout << endl;
+  while(it.hasNext()){
+    SLQueryResult qr = it.next();
+    cout << qr.clause->toString() << " matches with constraints "<< endl;
+    auto constraints = qr.constraints;
+    for(unsigned i=0;i<constraints->size();i++){
+      pair<TermList,TermList> con = (*constraints)[i];
+      TermList qT = qr.substitution->applyToQuery(con.first);
+      TermList rT = qr.substitution->applyToResult(con.second);
 
-TEST_FUN(index)
+      cout << "> "<< qT.toString() << "!=" << rT.toString() << endl;
+    }
+  }
+  cout << endl;
+}
+
+// This test demonstrates the current issue. The constraints produced depend on
+TEST_FUN(current_issue)
 {
   env.options->setUWA(Options::UnificationWithAbstraction::ALL); 
 
   LiteralIndexingStructure* index = getBasicIndex();
 
-  //Literal* qlit = pred("p",var(0),Sorts::SRT_INTEGER);
   Literal* qlit = pred("p",int_plus(int_constant("b"),number("2")));
-  SLQueryResultIterator it= index->getUnificationsWithConstraints(qlit,false,true);
+
+  reportMatches(index,qlit);
+  // Currently this produces
+  //1. p($sum(1,1)) [input] matches with constraints 
+  //> $sum(b,2)!=$sum(1,1)
+  //2. p($sum(1,a)) [input] matches with constraints 
+  //> $sum(b,2)!=$sum(1,a)
+
+  index->insert(qlit,unit(qlit));
+
+  reportMatches(index,qlit);
+  // Whereas this produces
+  //2. p($sum(1,a)) [input] matches with constraints 
+  //> b!=1
+  //> 2!=a
+  //1. p($sum(1,1)) [input] matches with constraints 
+  //> b!=1
+  //> 2!=1
+  //3. p($sum(b,2)) [input] matches with constraints 
+}
+
+static const int NORM_QUERY_BANK=2;
+static const int NORM_RESULT_BANK=3;
+void reportRobUnify(TermList a, TermList b)
+{
   cout << endl;
-  while(it.hasNext()){
-    SLQueryResult qr = it.next();
-    cout << qr.clause->toString() << endl;
-    auto constraints;
+  cout << "Unifying " << a.toString() << " with " << b.toString() << endl;
+  RobSubstitution sub;
+  bool result = sub.unify(a,NORM_QUERY_BANK,b,NORM_RESULT_BANK);
+  cout << "Result is " << result << endl;
+  if(result){
+    cout << "> Substitution is " << sub.toString() << endl;
   }
   cout << endl;
+}
+
+
+TEST_FUN(using_robsub)
+{
+  env.options->setUWA(Options::UnificationWithAbstraction::ALL);
+
+  TermList b_plus_two = int_plus(int_constant("b"),number("2"));
+  TermList one_plus_a = int_plus(number("1"),int_constant("a"));
+  TermList x_plus_two = int_plus(var(0),number("2"));
+
+  reportRobUnify(b_plus_two,x_plus_two);
+  reportRobUnify(b_plus_two,one_plus_a);
 
 }

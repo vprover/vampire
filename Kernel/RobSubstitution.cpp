@@ -22,6 +22,7 @@
  */
 
 #include "Lib/Environment.hpp"
+#include "Shell/Options.hpp"
 
 #include "Lib/Hash.hpp"
 #include "Lib/DArray.hpp"
@@ -43,6 +44,7 @@
 #include "RobSubstitution.hpp"
 
 #if VDEBUG
+#include "Kernel/Signature.hpp"
 #include "Lib/Int.hpp"
 #include "Debug/Tracer.hpp"
 #include <iostream>
@@ -348,6 +350,12 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2)
   EncStore encountered;
   encountered.reset();
 
+  // Just get whether we want to produce constraints the first time unify is called
+  // this assumes options is not changed after initial options parsing
+  // TODO: For generality this should be part of RobSubstitution constructor
+  // TODO: add use_constraints to matching as well as unify
+  static bool use_constraints = (env.options->unificationWithAbstraction() != Shell::Options::UnificationWithAbstraction::OFF);
+
   for(;;) {
     TermSpec dt1=derefBound(t1);
     TermSpec dt2=derefBound(t2);
@@ -401,8 +409,10 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2)
         	  encountered.insert(itm);
         	}
             } else {
-              mismatch=true;
-              break;
+              if(use_constraints && !introduceConstraint(tsss,tstt)){
+                mismatch=true;
+                break;
+              }
             }
           }
 
@@ -551,6 +561,67 @@ bool RobSubstitution::match(TermSpec base, TermSpec instance)
   }
 
   return !mismatch;
+}
+
+bool RobSubstitution::introduceConstraint(TermSpec ts1, TermSpec ts2)
+{
+ CALL("RobSubstitution::introducConstraint");
+ cout << " introduceConstraint for " << ts1.term.toString() << " and " << ts2.term.toString() << endl;
+
+
+ TermList st = apply(ts1.term,ts1.index);
+ TermList tt = apply(ts2.term,ts2.index);
+
+ static Shell::Options::UnificationWithAbstraction opt = env.options->unificationWithAbstraction();
+   
+ bool okay = st.isTerm() && tt.isTerm();
+
+ if(okay){
+
+      bool queryInterp = (theory->isInterpretedFunction(st) || theory->isInterpretedConstant(st));
+      bool nodeInterp = (theory->isInterpretedFunction(tt) || theory->isInterpretedConstant(tt));
+      bool bothNumbers = (theory->isInterpretedConstant(st) && theory->isInterpretedConstant(tt));
+
+      switch(opt){
+        case Shell::Options::UnificationWithAbstraction::INTERP_ONLY:
+          okay &= (queryInterp && nodeInterp && !bothNumbers);
+          break;
+        case Shell::Options::UnificationWithAbstraction::ONE_INTERP:
+          okay &= !bothNumbers && (queryInterp || nodeInterp);
+          break;
+        case Shell::Options::UnificationWithAbstraction::CONSTANT:
+          okay &= !bothNumbers && (queryInterp || nodeInterp);
+          okay &= (queryInterp || env.signature->functionArity(st.term()->functor()));
+          okay &= (nodeInterp || env.signature->functionArity(tt.term()->functor()));
+          break; 
+        case Shell::Options::UnificationWithAbstraction::ALL:
+        case Shell::Options::UnificationWithAbstraction::FIXED:
+        case Shell::Options::UnificationWithAbstraction::GROUND:
+          break;
+        default:
+          ASSERTION_VIOLATION;
+      }
+      // ALL means no restrictions
+     if(okay){
+#if VDEBUG
+        cout << "Add Constraint " << st.toString() << " =  " << tt.toString() << endl;
+        cout << "Without translation " << ts1.term.toString() << " = " << ts2.term.toString() << endl;
+        cout << "SUB " << endl << toString() << endl; 
+#endif
+
+        unsigned x = 1000;//tree->_nextVar++;
+        TermList nodeVar = TermList(x,true);
+        bindSpecialVar(x,ts2.term,ts2.index);
+#if VDEBUG
+        cout << "constraint " << ts1.term.toString() << " = " << nodeVar.toString() << endl;
+#endif
+        pair<TermList,TermList> constraint = make_pair(ts1.term,nodeVar);
+        //constraints.backtrackablePush(constraint,bd);
+        return true;
+      }
+  }
+
+ return false;
 }
 
 

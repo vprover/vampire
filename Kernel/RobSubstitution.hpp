@@ -235,6 +235,7 @@ private:
   void makeEqual(VarSpec v1, VarSpec v2, TermSpec target);
   void unifyUnbound(VarSpec v, TermSpec ts);
   bool occurs(VarSpec vs, TermSpec ts);
+  bool introduceConstraint(TermSpec ts1, TermSpec ts2);
 
   VarSpec getAuxVar(VarSpec target)
   {
