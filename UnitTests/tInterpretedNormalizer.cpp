@@ -36,11 +36,9 @@ using namespace Kernel;
 using namespace Shell;
 
 
-#warning compile-time broken test: interpNorm1
-/*
 TEST_FUN(interpNorm1)
 {
-  unsigned succ = theory->getFnNum(Theory::INT_SUCCESSOR);
+  unsigned succ = env.signature->getInterpretingSymbol(Theory::INT_SUCCESSOR);
   TermList two(theory->representConstant(IntegerConstantType(2)));
   TermList twoS(Term::create1(succ, two));
   Literal* lit = Literal::createEquality(true, twoS, twoS, Sorts::SRT_INTEGER);
@@ -54,4 +52,3 @@ TEST_FUN(interpNorm1)
   Clause* norm = static_cast<Clause*>(prb.units()->head());
   cout << norm->toString() << endl;
 }
-*/
