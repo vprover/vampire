@@ -25,38 +25,9 @@ Clause& clause(std::initializer_list<reference_wrapper<Literal>> ls) {
   return out; 
 }
 
-// bool exactlyEq(const Term& lhs, const Term& rhs);
-//
-// bool exactlyEq(const TermList& lhs, const TermList& rhs) {
-//   if(lhs.tag() != rhs.tag()) return false;
-//   if(lhs.isTerm())  return exactlyEq(*lhs.term(), *rhs.term());
-//   if(lhs.isVar())  return lhs.var() == rhs.var();
-//   ASSERTION_VIOLATION
-// }
-//
-// bool exactlyEq(const Term& lhs, const Term& rhs) {
-//   if (lhs.functor() != rhs.functor()) return false;
-//   if (lhs.arity() != rhs.arity()) return false;
-//   for (int i = 0; i<lhs.arity(); i++) {
-//     if (!exactlyEq(lhs[i], rhs[i])) return false;
-//   }
-//   return true;
-// }
-//
-// bool exactlyEq(const Literal& lhs, const Literal& rhs) {
-//   if (lhs.polarity() != rhs.polarity())  return false;
-//   if (lhs.functor() != rhs.functor()) return false;
-//   if (lhs.arity() != rhs.arity()) return false;
-//   for (int i = 0; i<lhs.arity(); i++) {
-//     if (!exactlyEq(lhs[i], rhs[i])) return false;
-//   }
-//   return true;
-// }
-
 bool exactlyEq(const Clause& lhs, const Clause& rhs, const Stack<unsigned>& perm) {
   for (int j = 0; j < perm.size(); j++) {
     if (!Indexing::TermSharing::equals(lhs[j], rhs[perm[j]])) {
-    // if (!exactlyEq(*lhs[j], *rhs[perm[j]])) {
       return false;
     }
   }
