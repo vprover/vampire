@@ -182,6 +182,8 @@ bool Inference::hasNext(Iterator& it) const
     case Kind::INFERENCE_MANY:
     case Kind::INFERENCE_FROM_SAT_REFUTATION:
       return (it.pointer != nullptr);
+    default:
+      ASSERTION_VIOLATION;
   }
 }
 
@@ -208,11 +210,14 @@ Unit* Inference::next(Iterator& it) const
       }
       break;
     case Kind::INFERENCE_MANY:
-    case Kind::INFERENCE_FROM_SAT_REFUTATION:
+    case Kind::INFERENCE_FROM_SAT_REFUTATION: {
       UnitList* lst = static_cast<UnitList*>(it.pointer);
       it.pointer = lst->tail();
       return lst->head();
-      break;
+    }
+    default:
+      ASSERTION_VIOLATION;
+      return nullptr;
   }
 } // Inference::next
 

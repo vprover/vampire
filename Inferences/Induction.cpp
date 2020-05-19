@@ -89,7 +89,7 @@ Literal* LiteralSubsetReplacement::transformSubset() {
   _iteration++;
   static unsigned maxSubsetSize = env.options->maxInductionGenSubsetSize();
   // Note: __builtin_popcount() is a GCC built-in function.
-  int setBits = __builtin_popcount(_iteration);
+  unsigned setBits = __builtin_popcount(_iteration);
   // Skip this iteration if not all bits are set, but more than maxSubset are set.
   while ((_iteration <= _maxIterations) &&
          ((maxSubsetSize > 0) && (setBits < _occurrences) && (setBits > maxSubsetSize))) {
