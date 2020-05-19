@@ -68,6 +68,7 @@ TODO:
     x > -x ==> x < 0
     -x != x ==> x != 0
     -x == x ==> x == 0
+    minus(X0) != X0
 
 3) unwrapping around equalities
   2 * a = 2 * X0 =====> a = X0  
