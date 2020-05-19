@@ -349,6 +349,8 @@ enum class InferenceRule : unsigned char {
 
   /* Induction hypothesis*/
   INDUCTION_AXIOM,
+  /* Generalized nduction hypothesis*/
+  GEN_INDUCTION_AXIOM,
 
   /* the unit clause against which the Answer is extracted in the last step */
   ANSWER_LITERAL_RESOLVER,
@@ -421,7 +423,7 @@ enum class InferenceRule : unsigned char {
   INTERNAL_THEORY_AXIOM_LAST,
   /** a theory axiom which is not generated internally in Vampire */
   EXTERNAL_THEORY_AXIOM
-}; // class Inference::Rule
+}; // class InferenceRule
 
 inline std::underlying_type<InferenceRule>::type toNumber(InferenceRule r) { return static_cast<std::underlying_type<InferenceRule>::type>(r); }
 

@@ -138,6 +138,8 @@ public:
   unsigned induction;
   unsigned maxInductionDepth;
   unsigned inductionInProof;
+  unsigned generalizedInduction;
+  unsigned generalizedInductionInProof;
 
   // Simplifying inferences
   /** number of duplicate literals deleted */

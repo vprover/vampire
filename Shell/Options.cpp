@@ -1131,6 +1131,13 @@ void Options::Options::init()
             _maxInductionGenSubsetSize.addHardConstraint(lessThan(10u));
             _lookup.insert(&_maxInductionGenSubsetSize);
 
+            _inductionOnComplexTerms = BoolOptionValue("induction_on_complex_terms","indoct",false);
+            _inductionOnComplexTerms.description = "Apply induction on complex (ground) terms vs. only on constants";
+            _inductionOnComplexTerms.setExperimental();
+            _inductionOnComplexTerms.tag(OptionTag::INFERENCES);
+            _inductionOnComplexTerms.reliesOn(_induction.is(notEqual(Induction::NONE)));
+            _lookup.insert(&_inductionOnComplexTerms);
+
 	    _instantiation = ChoiceOptionValue<Instantiation>("instantiation","inst",Instantiation::OFF,{"off","on"});
 	    _instantiation.description = "Heuristically instantiate variables";
 	    _instantiation.tag(OptionTag::INFERENCES);
