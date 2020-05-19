@@ -954,8 +954,8 @@ void Options::Options::init()
            _lookup.insert(&_inequalityNormalization);
            _inequalityNormalization.tag(OptionTag::INFERENCES);
  
-           _rebalancingElimination = BoolOptionValue("rebalancing_elimination","rebalance",false);
-           _rebalancingElimination.description=
+           _gaussianVariableElimination = BoolOptionValue("gaussian_variable_elimination","gve",false);
+           _gaussianVariableElimination.description=
                   "Enable the immideate simplification \"Rebalancing Elimination\":\n"
                   "\n"
                   "s != t | C[X] \n"
@@ -968,8 +968,8 @@ void Options::Options::init()
                   "-------------------------------\n"
                   "  p(2 * X1 / 6, X1)";
 
-           _lookup.insert(&_rebalancingElimination);
-           _rebalancingElimination.tag(OptionTag::INFERENCES);
+           _lookup.insert(&_gaussianVariableElimination);
+           _gaussianVariableElimination.tag(OptionTag::INFERENCES);
 
 
             _induction = ChoiceOptionValue<Induction>("induction","ind",Induction::NONE,

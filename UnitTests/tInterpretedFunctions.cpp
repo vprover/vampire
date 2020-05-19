@@ -153,32 +153,44 @@ void check_eval(Literal& orig, const Literal& expected) {
   CHECK_EQ(*result, expected, "unexpected evaluation result", orig.toString());
 }
 
+#define ADDITIONAL_FUNCTIONS \
+      _Pragma("GCC diagnostic push") \
+      _Pragma("GCC diagnostic ignored \"-Wunused\"") \
+        THEORY_SYNTAX_SUGAR_FUN(f, 1) \
+      _Pragma("GCC diagnostic pop") \
+
 /** Tests for evalutions that should only be successful for reals/rationals and not for integers. */
 #define FRACTIONAL_TEST(name, formula, expected) \
     TEST_FUN(name ## _ ## INT) { \
       THEORY_SYNTAX_SUGAR(INT); \
+      ADDITIONAL_FUNCTIONS \
       check_no_succ(( formula )); \
     }\
     TEST_FUN(name ## _ ## REAL) { \
       THEORY_SYNTAX_SUGAR(REAL); \
+      ADDITIONAL_FUNCTIONS \
       check_eval(( formula ), ( expected )); \
     }\
     TEST_FUN(name ## _ ## RAT) { \
       THEORY_SYNTAX_SUGAR(RAT); \
+      ADDITIONAL_FUNCTIONS \
       check_eval(( formula ), ( expected )); \
     } \
 
 #define ALL_NUMBERS_TEST(name, formula, expected) \
     TEST_FUN(name ## _ ## INT) { \
       THEORY_SYNTAX_SUGAR(INT); \
+      ADDITIONAL_FUNCTIONS \
       check_eval(( formula ), ( expected )); \
     } \
     TEST_FUN(name ## _ ## REAL) { \
       THEORY_SYNTAX_SUGAR(REAL); \
+      ADDITIONAL_FUNCTIONS \
       check_eval(( formula ), ( expected )); \
     } \
     TEST_FUN(name ## _ ## RAT) { \
       THEORY_SYNTAX_SUGAR(RAT); \
+      ADDITIONAL_FUNCTIONS \
       check_eval(( formula ), ( expected )); \
     } \
 
@@ -596,6 +608,7 @@ TEST_FUN(eval_remove_identity_1) {
 
 TEST_FUN(eval_remove_identity_2) {
   THEORY_SYNTAX_SUGAR(INT)
+      ADDITIONAL_FUNCTIONS \
   check_eval(
       eq(0, f(add(0, minus(mul(x, mul(1, y)))))),
       eq(0, f(minus(mul(x,y))))

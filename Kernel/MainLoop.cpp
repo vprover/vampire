@@ -34,7 +34,7 @@
 #include "Inferences/TermAlgebraReasoning.hpp"
 #include "Inferences/TautologyDeletionISE.hpp"
 #include "Inferences/EquationalTautologyRemoval.hpp"
-#include "Inferences/RebalancingElimination.hpp"
+#include "Inferences/GaussianVariableElimination.hpp"
 
 #include "InstGen/IGAlgorithm.hpp"
 
@@ -149,8 +149,8 @@ ImmediateSimplificationEngine* MainLoop::createISE(Problem& prb, const Options& 
     }
   }
   if(prb.hasInterpretedOperations() || prb.hasInterpretedEquality()) {
-    if (env.options->rebalancingElimination())
-      res->addFront(new RebalancingElimination()); 
+    if (env.options->gaussianVariableElimination())
+      res->addFront(new GaussianVariableElimination()); 
     res->addFront(new InterpretedEvaluation(env.options->inequalityNormalization()));
   }
   if(prb.hasEquality()) {

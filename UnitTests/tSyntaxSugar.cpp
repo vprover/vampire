@@ -31,3 +31,14 @@ TEST_FUN(some_other_meaningful_testname) {
   perform_test(t);
 }
 
+
+TEST_FUN(add_uninterpreted_stuff) {
+  THEORY_SYNTAX_SUGAR(RAT)
+  THEORY_SYNTAX_SUGAR_FUN (fn, 2)
+  THEORY_SYNTAX_SUGAR_PRED(relation, 2)
+
+  Literal& t = relation(x, fn(frac(7,3), x));
+
+  perform_test(t);
+}
+

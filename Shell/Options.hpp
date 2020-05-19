@@ -2132,7 +2132,7 @@ public:
 
   bool useManualClauseSelection() const { return _manualClauseSelection.actualValue; }
   bool inequalityNormalization() const { return _inequalityNormalization.actualValue; }
-  bool rebalancingElimination() const { return _rebalancingElimination.actualValue; }
+  bool gaussianVariableElimination() const { return _gaussianVariableElimination.actualValue; }
 
 private:
     
@@ -2520,7 +2520,7 @@ private:
   BoolOptionValue _manualClauseSelection;
 
   BoolOptionValue _inequalityNormalization;
-  BoolOptionValue _rebalancingElimination;
+  BoolOptionValue _gaussianVariableElimination;
 
 
 }; // class Options
