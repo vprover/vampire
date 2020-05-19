@@ -1,4 +1,4 @@
-#include "RebalancingElimination.hpp"
+#include "GaussianVariableElimination.hpp"
 #include "Kernel/Rebalancing.hpp"
 #include "Kernel/Rebalancing/Inverters.hpp"
 #include "Kernel/Clause.hpp"
@@ -11,9 +11,9 @@
 namespace Inferences {
   using Balancer = Kernel::Rebalancing::Balancer<Kernel::Rebalancing::Inverters::NumberTheoryInverter>;
 
-Clause* RebalancingElimination::simplify(Clause* in) 
+Clause* GaussianVariableElimination::simplify(Clause* in) 
 {
-  CALL("RebalancingElimination::simplify")
+  CALL("GaussianVariableElimination::simplify")
   ASS(in)
   Clause* out = in;
   
@@ -56,9 +56,9 @@ Clause* RebalancingElimination::simplify(Clause* in)
   return out;
 }
 
-Clause* RebalancingElimination::rewrite(Clause& cl, TermList find, TermList replace, unsigned skipLiteral) const 
+Clause* GaussianVariableElimination::rewrite(Clause& cl, TermList find, TermList replace, unsigned skipLiteral) const 
 {
-  CALL("RebalancingElimination::rewrite")
+  CALL("GaussianVariableElimination::rewrite")
   Inference& inf = *new Inference1(Kernel::Inference::Rule::REBALANCING_ELIMINIATION, &cl);
 
   auto sz = cl.size() - 1;

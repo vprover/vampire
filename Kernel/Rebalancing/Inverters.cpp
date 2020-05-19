@@ -40,6 +40,7 @@ bool NumberTheoryInverter::canInvertTop(const InversionContext &ctxt) {
       CASE_INVERT_INT(mul, canInvertMulInt(ctxt))
       CASE_INVERT_INT(add, true)
       CASE_INVERT_INT(minus, true)
+      default:;
     }
     DBG("WARNING: unknown interpreted function: ", t.toString())
     return false;
