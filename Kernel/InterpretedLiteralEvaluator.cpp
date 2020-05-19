@@ -56,7 +56,7 @@ namespace Kernel
 using namespace Lib;
 
 struct PredEvalResult {
-  enum {
+  enum status_t {
     Simplified,
     Trivial,
     Nop,
@@ -65,9 +65,14 @@ struct PredEvalResult {
     bool trivial_val;
     Literal* simplified_val;
   };
-  static PredEvalResult nop() {return  PredEvalResult {.status = Nop}; }
-  static PredEvalResult trivial(bool value) {return  PredEvalResult {.status = Trivial, .trivial_val = value}; }
-  static PredEvalResult simplified(Literal* value) {return  PredEvalResult {.status = Simplified, .simplified_val = value}; }
+  static PredEvalResult nop() {return  PredEvalResult(Nop); }
+  static PredEvalResult trivial(bool value) {return  PredEvalResult (value); }
+  static PredEvalResult simplified(Literal* value) {return  PredEvalResult (value); }
+
+private:
+  explicit PredEvalResult(bool value) : status(Trivial), trivial_val(value) {}
+  explicit PredEvalResult(Literal* value) : status(Simplified), simplified_val(value) {}
+  explicit PredEvalResult(status_t stat) : status(stat) {}
 };
 
 /**
