@@ -42,7 +42,7 @@ bool NumberTheoryInverter::canInvertTop(const InversionContext &ctxt) {
       CASE_INVERT_INT(minus, true)
       default:;
     }
-    DBG("WARNING: unknown interpreted function: ", t.toString())
+    // DBG("WARNING: unknown interpreted function: ", t.toString())
     return false;
   } else { /* cannot invert uninterpreted functions */
     DEBUG("no")
