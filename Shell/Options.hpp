@@ -171,7 +171,7 @@ public:
      * the problem name is equal to "unknown". The problem name can
      * be set to a specific value using setProblemName().
      */
-    vstring problemName () const { return _problemName.actualValue; }
+    const vstring& problemName () const { return _problemName.actualValue; }
     void setProblemName(vstring str) { _problemName.actualValue = str; }
     
     void setInputFile(const vstring& newVal){ _inputFile.set(newVal); }
