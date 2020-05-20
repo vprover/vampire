@@ -140,9 +140,7 @@ Clause* InterpretedEvaluation::simplify(Clause* cl)
 
   env.statistics->evaluations++;
 
-#if VDEBUG
-  cout << "evaluated " << cl->toString() << " to " << res->toString() << endl;
-#endif
+  // DBG("evaluated ", cl->toString(), " to ", res->toString());
 
   return res;
 }
