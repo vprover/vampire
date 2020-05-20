@@ -1175,6 +1175,9 @@ void MLMatcherSD::init(Literal** baseLits, unsigned baseLen, Clause* instance, L
 
 MLMatcherSD::~MLMatcherSD() = default;
 
+MLMatcherSD::MLMatcherSD(MLMatcherSD&&) noexcept = default;
+MLMatcherSD& MLMatcherSD::operator=(MLMatcherSD&&) noexcept = default;
+
 bool MLMatcherSD::nextMatch()
 {
   ASS(m_impl);

@@ -110,8 +110,8 @@ class MLMatcherSD final
     MLMatcherSD& operator=(MLMatcherSD const&) = delete;
 
     // Moving works by moving the pointer m_impl
-    MLMatcherSD(MLMatcherSD&&) = default;
-    MLMatcherSD& operator=(MLMatcherSD&&) = default;
+    MLMatcherSD(MLMatcherSD&&) noexcept;
+    MLMatcherSD& operator=(MLMatcherSD&&) noexcept;
 
   private:
     class Impl;
