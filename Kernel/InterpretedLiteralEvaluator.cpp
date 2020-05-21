@@ -174,7 +174,7 @@ CLASS_NAME(InterpretedLiteralEvaluator::ACFunEvaluator<AbelianGroup>);
       keep.push(TermList(theory->representConstant(acc)));
     }
 
-    auto iter = Stack<TermList>::Iterator(keep);
+    auto iter = Stack<TermList>::BottomFirstIterator(keep);
     if (!iter.hasNext()) {
       res = TermList(theory->representConstant(AbelianGroup::IDENTITY));
       return TermList(trm) != res;
@@ -182,7 +182,7 @@ CLASS_NAME(InterpretedLiteralEvaluator::ACFunEvaluator<AbelianGroup>);
       TermList out = iter.next();
       while (iter.hasNext()) {
         auto t = iter.next();
-        out = TermList(Term::create2(_fun, out, t));
+        out = TermList(Term::create2(_fun, t, out));
       }
       res = out;
       return TermList(trm) != res;
