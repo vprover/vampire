@@ -53,16 +53,21 @@ TermList var(unsigned i)
 {
   return TermList(i,false);
 }
-TermList constant(vstring name,unsigned srt)
+unsigned function_symbol(vstring name,unsigned arity,unsigned srt)
 {
   bool added;
-  unsigned c = env.signature->addFunction(name,0,added);
+  unsigned f = env.signature->addFunction(name,arity,added);
   if(added){
-    Signature::Symbol* symbol = env.signature->getFunction(c);
-    OperatorType* ot = OperatorType::getConstantsType(srt); 
+    Signature::Symbol* symbol = env.signature->getFunction(f);
+    OperatorType* ot = OperatorType::getFunctionTypeTypeUniformRange(arity,srt,srt);
     symbol->setType(ot); 
   }
-  Term* t = Term::create(c,0,0); 
+  return f; 
+}
+TermList constant(vstring name,unsigned srt)
+{
+  unsigned c =  function_symbol(name,0,srt);
+  Term* t = Term::create(c,0,0);
   return TermList(t);
 }
 TermList int_constant(vstring name)
@@ -138,16 +143,19 @@ void reportMatches(LiteralIndexingStructure* index, Literal* qlit)
 {
   SLQueryResultIterator it= index->getUnificationsWithConstraints(qlit,false,true);
   cout << endl;
+  cout << "Unify with " << qlit->toString() << endl;
   while(it.hasNext()){
     SLQueryResult qr = it.next();
-    cout << qr.clause->toString() << " matches with constraints "<< endl;
+    cout << qr.clause->toString() << " matches with substitution: "<< endl;
+    cout << qr.substitution->tryGetRobSubstitution()->toString() << endl;
+    cout << "and constraints: "<< endl;
     auto constraints = qr.constraints;
     for(unsigned i=0;i<constraints->size();i++){
       pair<TermList,TermList> con = (*constraints)[i];
       TermList qT = qr.substitution->applyToQuery(con.first);
       TermList rT = qr.substitution->applyToResult(con.second);
 
-      cout << "> "<< qT.toString() << "!=" << rT.toString() << endl;
+      cout << "> "<< qT.toString() << "!=" << rT.toString() << "\t\t from " << con.first.toString() << "!=" << con.second.toString() << endl;
     }
   }
   cout << endl;
@@ -184,19 +192,46 @@ TEST_FUN(current_issue)
 
 static const int NORM_QUERY_BANK=2;
 static const int NORM_RESULT_BANK=3;
+
+struct testMismatchHandler : MismatchHandler
+{
+testMismatchHandler(Stack<UnificationConstraint>* c) : _constraints(c) {}
+bool handle(RobSubstitution* subst, TermList query, unsigned index1, TermList node, unsigned index2){
+    ASS(index1 == NORM_QUERY_BANK && index2 == NORM_RESULT_BANK);
+    static unsigned _var = 0;
+    unsigned x = _var++;
+    TermList nodeVar = TermList(x,true);
+    subst->bindSpecialVar(x,node,index2);
+    pair<TermList,TermList> constraint = make_pair(query,nodeVar);
+    _constraints->push(constraint);
+    return true;
+}
+Stack<UnificationConstraint>* _constraints;
+};
+
 void reportRobUnify(TermList a, TermList b)
 {
   cout << endl;
   cout << "Unifying " << a.toString() << " with " << b.toString() << endl;
   RobSubstitution sub;
-  bool result = sub.unify(a,NORM_QUERY_BANK,b,NORM_RESULT_BANK);
+  Stack<UnificationConstraint> constraints;
+  //MismatchHandler* hndlr = new testMismatchHandler(&constraints);
+  MismatchHandler* hndlr = new UWAMismatchHandler(constraints);
+  bool result = sub.unify(a,NORM_QUERY_BANK,b,NORM_RESULT_BANK,hndlr);
   cout << "Result is " << result << endl;
   if(result){
-    cout << "> Substitution is " << sub.toString() << endl;
+    cout << "> Substitution is " << endl << sub.toString();
+    cout << "> Constraints are:" << endl;
+    auto rs = ResultSubstitution::fromSubstitution(&sub,NORM_QUERY_BANK,NORM_RESULT_BANK);
+    for(unsigned i=0;i<constraints.size();i++){
+      pair<TermList,TermList> con = (constraints)[i];
+      TermList qT = rs->applyToQuery(con.first);
+      TermList rT = rs->applyToResult(con.second);
+      cout << "> "<< qT.toString() << "!=" << rT.toString() << "\t\t from " << con.first.toString() << "!=" << con.second.toString() << endl;
+    }
   }
   cout << endl;
 }
-
 
 TEST_FUN(using_robsub)
 {
@@ -208,5 +243,30 @@ TEST_FUN(using_robsub)
 
   reportRobUnify(b_plus_two,x_plus_two);
   reportRobUnify(b_plus_two,one_plus_a);
+
+}
+
+
+TEST_FUN(complex_case)
+{
+  env.options->setUWA(Options::UnificationWithAbstraction::ALL);
+
+  // The complex case is where we have a variable that needs to be instantiated elsewhere
+  // e.g. unifying f(f(g(X),X),f(Y,a)) with f(f(1,2),(3,g(Z)))
+ 
+  unsigned f = function_symbol("f",2,Sorts::SRT_INTEGER); 
+  unsigned g = function_symbol("g",1,Sorts::SRT_INTEGER); 
+  TermList query = TermList(Term::create2(f,TermList(Term::create2(f,TermList(Term::create1(g,var(0))),var(0))), 
+  					    TermList(Term::create2(f,var(1),TermList(constant("a",Sorts::SRT_INTEGER))))));
+  TermList node  = TermList(Term::create2(f,TermList(Term::create2(f,number("1"),number("2"))),
+  					    TermList(Term::create2(f,number("3"),TermList(Term::create1(g,var(1)))))));
+
+  reportRobUnify(query,node);
+
+  LiteralIndexingStructure* index = new LiteralSubstitutionTree(true); 
+  Literal* nlit = pred("p",node);
+  index->insert(nlit,unit(nlit));
+  Literal* qlit = pred("p",query);
+  reportMatches(index,qlit);
 
 }

@@ -925,6 +925,23 @@ bool SubstitutionTree::UnificationsIterator::enter(Node* n, BacktrackData& bd)
   return success;
 }
 
+
+bool SubstitutionTree::SubstitutionTreeMismatchHandler::introduceConstraint(RobSubstitution* subst,TermList query,unsigned index1, TermList node,unsigned index2)
+{
+    CALL("SubstitutionTree::MismatchHandler::introduceConstraint");
+        unsigned x = _tree->_nextVar++;
+        TermList nodeVar = TermList(x,true);
+        subst->bindSpecialVar(x,node,index2);
+#if VDEBUG
+        //cout << "bindSpecialVar " << x << " to " << node.toString() << " in " << index1 << endl;
+        //cout << "constraint " << query.toString() << " = " << nodeVar.toString() << endl;
+#endif
+        pair<TermList,TermList> constraint = make_pair(query,nodeVar);
+        _constraints.backtrackablePush(constraint,_bd);
+        return true;
+}
+
+
 /**
  * TODO: explain properly what associate does
  * called from enter(...)
@@ -933,68 +950,14 @@ bool SubstitutionTree::UnificationsIterator::associate(TermList query, TermList 
 {
   CALL("SubstitutionTree::UnificationsIterator::associate");
 
-  // check for syntactic (robinson) unifiability
-  bool result = subst.unify(query,NORM_QUERY_BANK,node,NORM_RESULT_BANK);
-
-#if VDEBUG
-  if(tag && result){
-    cout << "unify " << query.toString() << " and " << node.toString() << endl;
+  // TODO is this the best way to do this? 
+  SubstitutionTreeMismatchHandler* h = 0; 
+  SubstitutionTreeMismatchHandler tmph(constraints,tree,bd);
+  if(useConstraints){
+    h = &tmph;
   }
-#endif
+  bool result = subst.unify(query,NORM_QUERY_BANK,node,NORM_RESULT_BANK,h);
 
-  // if unification with abstraction enabled and no syntactic unifier exists
-  if(useConstraints && !result){
-    TermList queryTranslated = subst.apply(query,NORM_QUERY_BANK);
-    TermList nodeTranslated = subst.apply(node,NORM_RESULT_BANK);
-
-    static Options::UnificationWithAbstraction opt = env.options->unificationWithAbstraction();
-    
-    bool okay = queryTranslated.isTerm() && nodeTranslated.isTerm();
-
-    if(okay){
-
-      bool queryInterp = (theory->isInterpretedFunction(queryTranslated) || theory->isInterpretedConstant(queryTranslated)); 
-      bool nodeInterp = (theory->isInterpretedFunction(nodeTranslated) || theory->isInterpretedConstant(nodeTranslated)); 
-      bool bothNumbers = (theory->isInterpretedConstant(queryTranslated) && theory->isInterpretedConstant(nodeTranslated));
-    
-      switch(opt){
-        case Options::UnificationWithAbstraction::INTERP_ONLY:
-          okay &= (queryInterp && nodeInterp && !bothNumbers); 
-          break;
-        case Options::UnificationWithAbstraction::ONE_INTERP:
-          okay &= !bothNumbers && (queryInterp || nodeInterp);
-          break;
-        case Options::UnificationWithAbstraction::CONSTANT:
-          okay &= !bothNumbers && (queryInterp || nodeInterp);
-          okay &= (queryInterp || env.signature->functionArity(queryTranslated.term()->functor()));
-          okay &= (nodeInterp || env.signature->functionArity(nodeTranslated.term()->functor()));
-          break;  
-        case Options::UnificationWithAbstraction::ALL:
-        case Options::UnificationWithAbstraction::GROUND:
-          break;
-        default:
-          ASSERTION_VIOLATION; 
-      }
-      // ALL means no restrictions
-
-      if(okay){
-
-        //cout << "Add Constraint " << queryTranslated.toString() << " =  " << nodeTranslated.toString() << endl;
-        //cout << "Without translation " << query.toString() << " = " << node.toString() << endl;
-        //cout << "SUB " << endl << subst.toString() << endl; 
-
-        unsigned x = tree->_nextVar++;
-        TermList nodeVar = TermList(x,true);
-        subst.bindSpecialVar(x,node,NORM_RESULT_BANK);
-#if VDEBUG
-        //cout << "constraint " << query.toString() << " = " << nodeVar.toString() << endl;
-#endif
-        pair<TermList,TermList> constraint = make_pair(query,nodeVar);
-        constraints.backtrackablePush(constraint,bd);
-        return true;
-      }
-    }
-  }
   return result;
 }
 

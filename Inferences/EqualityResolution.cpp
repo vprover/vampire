@@ -26,6 +26,7 @@
 #include "Lib/VirtualIterator.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/PairUtils.hpp"
+#include "Lib/Stack.hpp"
 
 #include "Lib/Environment.hpp"
 #include "Shell/Statistics.hpp"
@@ -75,7 +76,10 @@ struct EqualityResolution::ResultFn
 
     static RobSubstitution subst;
     subst.reset();
-    if(!subst.unify(*lit->nthArgument(0),0,*lit->nthArgument(1),0)) {
+    static Stack<UnificationConstraint> constraints;
+    constraints.reset();
+    MismatchHandler* hndlr = new UWAMismatchHandler(constraints);
+    if(!subst.unify(*lit->nthArgument(0),0,*lit->nthArgument(1),1,hndlr)) {
       return 0;
     }
     unsigned newLen=_cLen-1;

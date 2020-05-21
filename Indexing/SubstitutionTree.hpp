@@ -806,6 +806,19 @@ public:
     Stack<NodeAlgorithm> _nodeTypes;
   };
 
+class SubstitutionTreeMismatchHandler : public UWAMismatchHandler 
+{
+public:
+  SubstitutionTreeMismatchHandler(Stack<UnificationConstraint>& c,SubstitutionTree* t,BacktrackData& bd) : 
+    UWAMismatchHandler(c), _constraints(c), _tree(t), _bd(bd) {}
+  //virtual bool handle(RobSubstitution* subst, TermList query, unsigned index1, TermList node, unsigned index2);
+private:
+  virtual bool introduceConstraint(RobSubstitution* subst, TermList t1,unsigned index1, TermList t2,unsigned index2);
+  Stack<UnificationConstraint>& _constraints;
+  SubstitutionTree* _tree;
+  BacktrackData& _bd;
+};
+
   class UnificationsIterator
   : public IteratorCore<QueryResult>
   {
