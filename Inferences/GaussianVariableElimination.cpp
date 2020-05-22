@@ -6,7 +6,7 @@
 #include "Kernel/InterpretedLiteralEvaluator.hpp"
 #include "Inferences/InterpretedEvaluation.hpp"
 
-#define DEBUG(...) // DBG(__VA_ARGS__)
+#define DEBUG(...)  //DBG(__VA_ARGS__)
 
 namespace Inferences {
   using Balancer = Kernel::Rebalancing::Balancer<Kernel::Rebalancing::Inverters::NumberTheoryInverter>;

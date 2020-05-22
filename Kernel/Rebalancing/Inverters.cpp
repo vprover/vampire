@@ -73,6 +73,8 @@ bool NumberTheoryInverter::canInvertTop(const InversionContext &ctxt) {
   CASE_DO_INVERT(IntegerConstantType, fun, expr)
 
 TermList NumberTheoryInverter::invertTop(const InversionContext &ctxt) {
+  CALL("NumberTheoryInverter::invertTop")
+  // DBG("inverting: ", ctxt.topTerm().toString())
   auto &t = ctxt.topTerm();
   auto index = ctxt.topIdx();
   auto toWrap = ctxt.toWrap();
@@ -107,54 +109,74 @@ bool tryInvertMulInt(const InversionContext &ctxt, IntMulInversion &inv) {
 
   auto a_ = ctxt.topTerm()[1 - ctxt.topIdx()];
   IntegerConstantType a;
-  if (ctxt.toWrap().isTerm() && theory->tryInterpretConstant(a_, a)) {
+  if ( theory->tryInterpretConstant(a_, a)) {
+    if (a == IntegerConstantType(1)) {
+      inv = IntMulInversion {
+        .t1 = ctxt.toUnwrap(),
+        .t2 = ctxt.toWrap(),
+        .a = IntegerConstantType(1),
+        .b = IntegerConstantType(1),
+      };
+      return true;
 
-    auto &wrap = *ctxt.toWrap().term();
-    ASS(ctxt.topTerm().arity() == 2)
-    /* (a * t1) = f(...)
-     *             ^^^^^^ wrap
-     */
+    } else if (a == IntegerConstantType(-1)) {
+      inv = IntMulInversion {
+        .t1 = ctxt.toUnwrap(),
+        .t2 = ctxt.toWrap(),
+        .a = IntegerConstantType(-1),
+        .b = IntegerConstantType(1),
+      };
+      return true;
 
-    IntegerConstantType b;
-
-    if (wrap.functor() == ctxt.topTerm().functor()) {
-      /* (a * t1) = (_ * _)
-       *            ^^^^^^^ wrap
+    } else if (ctxt.toWrap().isTerm()) {
+      auto &wrap = *ctxt.toWrap().term();
+      ASS(ctxt.topTerm().arity() == 2)
+      /* (a * t1) = f(...)
+       *             ^^^^^^ wrap
        */
-      for (int i = 0; i < 2; i++) {
-        if (theory->tryInterpretConstant(wrap[i], b) && a.divides(b)) {
+
+      IntegerConstantType b;
+
+      if (wrap.functor() == ctxt.topTerm().functor()) {
+        /* (a * t1) = (_ * _)
+         *            ^^^^^^^ wrap
+         */
+        for (int i = 0; i < 2; i++) {
+          if (theory->tryInterpretConstant(wrap[i], b) && a.divides(b)) {
+            inv = IntMulInversion{
+                .t1 = ctxt.toUnwrap(),
+                .t2 = wrap[1 - i],
+                .a = a,
+                .b = b,
+            };
+            return true;
+          }
+        }
+      } else if (theory->tryInterpretConstant(&wrap, b)) {
+
+        /* (a * t1) = b * 1
+         *            ^ wrap
+         */
+        if (a.divides(b)) {
+
           inv = IntMulInversion{
               .t1 = ctxt.toUnwrap(),
-              .t2 = wrap[1 - i],
+              .t2 = number::one(),
               .a = a,
               .b = b,
           };
           return true;
+        } else if (b == number::zeroC && a != number::zeroC) {
+          inv = IntMulInversion{
+              .t1 = ctxt.toUnwrap(),
+              .t2 = number::zero(),
+              .a = a,
+              .b = b,
+          };
+          return true;
+        } else {
+          return false;
         }
-      }
-    } else if (theory->tryInterpretConstant(&wrap, b)) {
-
-      /* (a * t1) = b * 1
-       *            ^ wrap
-       */
-      if (a.divides(b)) {
-        inv = IntMulInversion{
-            .t1 = ctxt.toUnwrap(),
-            .t2 = number::one(),
-            .a = a,
-            .b = b,
-        };
-        return true;
-      } else if (b == number::zeroC && a != number::zeroC) {
-        inv = IntMulInversion{
-            .t1 = ctxt.toUnwrap(),
-            .t2 = number::zero(),
-            .a = a,
-            .b = b,
-        };
-        return true;
-      } else {
-        return false;
       }
     }
   }
@@ -164,7 +186,9 @@ bool tryInvertMulInt(const InversionContext &ctxt, IntMulInversion &inv) {
 TermList doInvertMulInt(const InversionContext &ctxt) {
   using number = num_traits<IntegerConstantType>;
   IntMulInversion inv;
-  ALWAYS(tryInvertMulInt(ctxt, inv));
+  if (!tryInvertMulInt(ctxt, inv)) {
+    ASSERTION_VIOLATION
+  }
   /** (a * t1) = (t2 * b)
    * ===================== where a * c = b
    *  t1 = (t2 * c)
