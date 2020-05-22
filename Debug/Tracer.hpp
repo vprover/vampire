@@ -49,23 +49,6 @@ enum ControlPointKind {
   CP_MID
 }; // enum ControlPointKind
 
-
-template<class... As>
-struct _printDbg {
-  void operator()(const As&... msg);
-};
-
-template<> struct _printDbg<>{
-  void operator()() { }
-};
-
-template<class A, class... As> struct _printDbg<A, As...>{
-  void operator()(const A& a, const As&... as) {
-    cout << a;
-    _printDbg<As...>{}(as...);
-  }
-};
-
 class Tracer {
  public:
   explicit Tracer (const char* fun);
@@ -104,14 +87,35 @@ class Tracer {
 public:
   /* prints a message with indent in the of the same size as the current _depth */
   template<class... A>
-  static void printDbg(A... msg)
-  {
-    for (int i = 0; i< _depth; i++) {
-      cout << "\t";
-    }
-    _printDbg<A...>{}(msg...);
+  static void printDbg(A... msg);
+};
+
+template<class... As>
+struct _printDbg {
+  void operator()(const As&... msg);
+};
+
+template<> struct _printDbg<>{
+  void operator()() { }
+};
+
+template<class A, class... As> struct _printDbg<A, As...>{
+  void operator()(const A& a, const As&... as) {
+    cout << a;
+    _printDbg<As...>{}(as...);
   }
 };
+
+template<class... A> void Tracer::printDbg(A... msg)
+{
+  for (int i = 0; i< _depth; i++) {
+    cout << "  ";
+  }
+  cout << _lastControlPoint << ": ";
+
+  _printDbg<A...>{}(msg...);
+}
+
 
 } // namespace Debug
 
