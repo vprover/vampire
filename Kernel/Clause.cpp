@@ -686,7 +686,7 @@ unsigned Clause::numPositiveLiterals()
   for (int i = 0; i < _length; i++)
   {
     Literal *lit = (*this)[i];
-    if (lit->isPositive())
+    if (!lit->isPositive())
     {
       count++;
     }
