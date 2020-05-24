@@ -403,7 +403,7 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2,MismatchHandler* hndlr)
         	  encountered.insert(itm);
         	}
             } else {
-              if(hndlr && !handleMismatch(tsss,tstt,hndlr)){
+              if(!hndlr || !handleMismatch(tsss,tstt,hndlr)){
                 mismatch=true;
                 break;
               }
@@ -560,7 +560,6 @@ bool RobSubstitution::match(TermSpec base, TermSpec instance)
 bool RobSubstitution::handleMismatch(TermSpec ts1, TermSpec ts2,MismatchHandler* hndlr)
 {
  CALL("RobSubstitution::handleMismatch");
- //cout << " handleMismatch for " << ts1.term.toString() << " and " << ts2.term.toString() << endl;
  return hndlr->handle(this,ts1.term,ts1.index,ts2.term,ts2.index);
 }
 

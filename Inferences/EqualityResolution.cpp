@@ -30,6 +30,7 @@
 
 #include "Lib/Environment.hpp"
 #include "Shell/Statistics.hpp"
+#include "Shell/Options.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/Unit.hpp"
@@ -38,6 +39,8 @@
 #include "Kernel/EqHelper.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Kernel/LiteralSelector.hpp"
+#include "Kernel/SortHelper.hpp"
+
 #include "Saturation/SaturationAlgorithm.hpp"
 
 #include "EqualityResolution.hpp"
@@ -79,10 +82,12 @@ struct EqualityResolution::ResultFn
     static Stack<UnificationConstraint> constraints;
     constraints.reset();
     MismatchHandler* hndlr = new UWAMismatchHandler(constraints);
+    cout << "UNIFY " << lit->nthArgument(0)->toString() << " and " << lit->nthArgument(1)->toString() << endl;
     if(!subst.unify(*lit->nthArgument(0),0,*lit->nthArgument(1),1,hndlr)) {
       return 0;
     }
-    unsigned newLen=_cLen-1;
+    cout << "HERE" << endl;
+    unsigned newLen=_cLen-1 + constraints.length();
 
     Clause* res = new(newLen) Clause(newLen, GeneratingInference1(InferenceRule::EQUALITY_RESOLUTION, _cl));
 
@@ -111,6 +116,27 @@ struct EqualityResolution::ResultFn
 
         (*res)[next++] = currAfter;
       }
+    }
+    for(unsigned i=0;i<constraints.length();i++){
+      pair<pair<TermList,unsigned>,pair<TermList,unsigned>> con = (constraints)[i];
+      TermList qT = subst.apply(con.first.first,con.first.second);
+      TermList rT = subst.apply(con.second.first,con.second.second);
+
+      unsigned sort = SortHelper::getResultSort(rT.term());
+      Literal* constraint = Literal::createEquality(false,qT,rT,sort);      
+
+      static Options::UnificationWithAbstraction uwa = env.options->unificationWithAbstraction();
+      if(uwa==Options::UnificationWithAbstraction::GROUND &&
+         !constraint->ground() &&
+         (!theory->isInterpretedFunction(qT) && !theory->isInterpretedConstant(qT)) &&
+         (!theory->isInterpretedFunction(rT) && !theory->isInterpretedConstant(rT))){
+
+        // the unification was between two uninterpreted things that were not ground 
+        res->destroy();
+        return 0;
+      }
+
+      (*res)[next++] = constraint;
     }
     ASS_EQ(next,newLen);
 

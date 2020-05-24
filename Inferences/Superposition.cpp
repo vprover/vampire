@@ -611,10 +611,10 @@ Clause* Superposition::performSuperposition(
   }
   if(hasConstraints){
     for(unsigned i=0;i<constraints->size();i++){
-      pair<TermList,TermList> con = (*constraints)[i];
+      pair<pair<TermList,unsigned>,pair<TermList,unsigned>> con = (*constraints)[i];
 
-      TermList qT = subst->applyToQuery(con.first);
-      TermList rT = subst->applyToResult(con.second);
+      TermList qT = subst->applyTo(con.first.first,con.first.second);
+      TermList rT = subst->applyTo(con.second.first,con.second.second);
 
       unsigned sort = SortHelper::getResultSort(rT.term());
       Literal* constraint = Literal::createEquality(false,qT,rT,sort);

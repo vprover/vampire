@@ -929,14 +929,7 @@ bool SubstitutionTree::UnificationsIterator::enter(Node* n, BacktrackData& bd)
 bool SubstitutionTree::SubstitutionTreeMismatchHandler::introduceConstraint(RobSubstitution* subst,TermList query,unsigned index1, TermList node,unsigned index2)
 {
     CALL("SubstitutionTree::MismatchHandler::introduceConstraint");
-        unsigned x = _tree->_nextVar++;
-        TermList nodeVar = TermList(x,true);
-        subst->bindSpecialVar(x,node,index2);
-#if VDEBUG
-        //cout << "bindSpecialVar " << x << " to " << node.toString() << " in " << index1 << endl;
-        //cout << "constraint " << query.toString() << " = " << nodeVar.toString() << endl;
-#endif
-        pair<TermList,TermList> constraint = make_pair(query,nodeVar);
+        auto constraint = make_pair(make_pair(query,index1),make_pair(node,index2));
         _constraints.backtrackablePush(constraint,_bd);
         return true;
 }

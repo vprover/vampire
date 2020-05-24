@@ -151,11 +151,11 @@ void reportMatches(LiteralIndexingStructure* index, Literal* qlit)
     cout << "and constraints: "<< endl;
     auto constraints = qr.constraints;
     for(unsigned i=0;i<constraints->size();i++){
-      pair<TermList,TermList> con = (*constraints)[i];
-      TermList qT = qr.substitution->applyToQuery(con.first);
-      TermList rT = qr.substitution->applyToResult(con.second);
+      auto con = (*constraints)[i];
+      TermList qT = qr.substitution->applyTo(con.first.first,con.first.second);
+      TermList rT = qr.substitution->applyTo(con.second.first,con.second.second);
 
-      cout << "> "<< qT.toString() << "!=" << rT.toString() << "\t\t from " << con.first.toString() << "!=" << con.second.toString() << endl;
+      cout << "> "<< qT.toString() << "!=" << rT.toString() << "\t\t from " << con.first.first.toString() << "!=" << con.second.first.toString() << endl;
     }
   }
   cout << endl;
@@ -202,7 +202,7 @@ bool handle(RobSubstitution* subst, TermList query, unsigned index1, TermList no
     unsigned x = _var++;
     TermList nodeVar = TermList(x,true);
     subst->bindSpecialVar(x,node,index2);
-    pair<TermList,TermList> constraint = make_pair(query,nodeVar);
+    auto constraint = make_pair(make_pair(query,index1),make_pair(nodeVar,index2));
     _constraints->push(constraint);
     return true;
 }
@@ -224,10 +224,11 @@ void reportRobUnify(TermList a, TermList b)
     cout << "> Constraints are:" << endl;
     auto rs = ResultSubstitution::fromSubstitution(&sub,NORM_QUERY_BANK,NORM_RESULT_BANK);
     for(unsigned i=0;i<constraints.size();i++){
-      pair<TermList,TermList> con = (constraints)[i];
-      TermList qT = rs->applyToQuery(con.first);
-      TermList rT = rs->applyToResult(con.second);
-      cout << "> "<< qT.toString() << "!=" << rT.toString() << "\t\t from " << con.first.toString() << "!=" << con.second.toString() << endl;
+      auto con = (constraints)[i];
+      TermList qT = sub.apply(con.first.first,con.first.second);
+      TermList rT = sub.apply(con.second.first,con.second.second);
+
+      cout << "> "<< qT.toString() << "!=" << rT.toString() << "\t\t from " << con.first.first.toString() << "!=" << con.second.first.toString() << endl;
     }
   }
   cout << endl;
