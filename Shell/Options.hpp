@@ -1975,6 +1975,7 @@ public:
   IntroducedSymbolPrecedence introducedSymbolPrecedence() const { return _introducedSymbolPrecedence.actualValue; }
   const vstring& functionPrecedence() const { return _functionPrecedence.actualValue; }
   const vstring& predicatePrecedence() const { return _predicatePrecedence.actualValue; }
+  const vstring& customKBOWeights() const { return _customKBOWeights.actualValue; }
   // Return time limit in deciseconds, or 0 if there is no time limit
   int timeLimitInDeciseconds() const { return _timeLimitInDeciseconds.actualValue; }
   size_t memoryLimit() const { return _memoryLimit.actualValue; }
@@ -2521,6 +2522,7 @@ private:
   ChoiceOptionValue<IntroducedSymbolPrecedence> _introducedSymbolPrecedence;
   StringOptionValue _functionPrecedence;
   StringOptionValue _predicatePrecedence;
+  StringOptionValue _customKBOWeights;
 
   StringOptionValue _testId;
   ChoiceOptionValue<Output> _outputMode;
@@ -2549,7 +2551,7 @@ private:
 
   SelectionOptionValue _selection;
   SelectionOptionValue _instGenSelection;
-    
+
   InputFileOptionValue _inputFile;
 
   BoolOptionValue _newCNF;

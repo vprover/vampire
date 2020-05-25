@@ -28,6 +28,8 @@
 #include "CustomKBO.hpp"
 #include "Signature.hpp"
 
+#include <cstdlib>
+
 #define COLORED_WEIGHT_BOOST 0x10000
 
 namespace Kernel {
@@ -44,8 +46,8 @@ class CustomKBO::State
 {
 public:
   /** Initialise the state */
-  State(CustomKBO* kbo)
-    : _kbo(*kbo)
+  State(CustomKBO const& kbo)
+    : _kbo(kbo)
   {}
 
   void init()
@@ -85,7 +87,7 @@ private:
   /** First comparison result */
   Result _lexResult;
   /** The ordering used */
-  CustomKBO& _kbo;
+  CustomKBO const& _kbo;
   /** The variable counters */
 }; // class CustomKBO::State
 
@@ -290,13 +292,94 @@ void CustomKBO::State::traverse(Term* t1, Term* t2)
  */
 CustomKBO::CustomKBO(Problem& prb, const Options& opt)
  : PrecedenceOrdering(prb, opt)
+ , _symbolWeights()
 {
   CALL("CustomKBO::CustomKBO");
 
   _variableWeight = 1;
   _defaultSymbolWeight = 1;
 
-  _state=new State(this);
+  _state=new State(*this);
+
+  // TODO: extract into separate function that takes a string argument.
+  // Parse weights from option string, example: f=5,g/2=27
+  vmap<unsigned, int> weights;
+  vstring const& weights_str = opt.customKBOWeights();
+  const char* s = weights_str.data();
+  const char* s_end = s + weights_str.length();
+  while (s < s_end) {
+    // Read name
+    const char* s2 = s;
+    while (s2 < s_end && *s2 != '=') {
+      s2 += 1;
+    }
+    if (s2 == s_end) {
+      USER_ERROR("error parsing symbol weights: expected '='");
+    }
+    vstring name(s, s2 - s);
+    s = s2 + 1;
+    std::cerr << "name = " << name << std::endl;
+
+    // TODO: parse arity
+
+    // Read weight
+    char *w_end;
+    int weight = std::strtol(s, &w_end, 10);
+    if (errno != 0) {
+      int e = errno;
+      errno = 0;
+      vstring msg = vstring("error parsing symbol weights: unable to parse weight at \"") + s + "\" (" + std::strerror(e) + ")";
+      USER_ERROR(msg);
+    }
+    s = w_end;
+
+    std::cerr << "weight = " << weight << std::endl;
+
+    // delimiter after weight
+    if (s < s_end && *s != ',') {
+      USER_ERROR("error parsing symbol weights: expected ','");
+    }
+    s += 1;
+
+    // Find function number
+    // Note that Signature only stores (function, arity) pairs,
+    // so we do this the hacky way by iterating over all registered functions.
+    bool found = false;
+    for (unsigned fn = 0; fn < env.signature->functions(); ++fn) {
+      if (env.signature->functionName(fn) == name) {
+        if (found) {
+          vstringstream msg;
+          msg << "error parsing symbol weights: name \"" << name
+            << "\" is ambigous, please specify arity as well "
+            << "(example: " << name << "/2=" << weight << ")";
+          USER_ERROR(msg.str());
+        }
+        found = true;
+        const auto res = weights.insert({fn, weight});
+        bool inserted = res.second;
+        if (!inserted) {
+          USER_ERROR("error parsing symbol weights: weight for symbol \"" + name + "\" has been specified twice");
+        }
+      }
+    }
+    if (!found) {
+      USER_ERROR("error parsing symbol weights: function symbol \"" + name + "\" is not present in the signature");
+    }
+  }
+
+  if (!weights.empty()) {
+    unsigned max_fn = weights.rbegin()->first;
+    _symbolWeights.resize(max_fn + 1, _defaultSymbolWeight);
+    for (auto p : weights) {
+      _symbolWeights[p.first] = p.second;
+    }
+  }
+
+  std::cerr << "symbolWeights = [ ";
+  for (auto it = _symbolWeights.cbegin(); it != _symbolWeights.cend(); ++it) {
+    std::cerr << *it << " ";
+  }
+  std::cerr << "]" << std::endl;
 }
 
 CustomKBO::~CustomKBO()
@@ -405,6 +488,9 @@ Ordering::Result CustomKBO::compare(TermList tl1, TermList tl2) const
 int CustomKBO::functionSymbolWeight(unsigned fun) const
 {
   int weight = _defaultSymbolWeight;
+  if (fun < _symbolWeights.size()) {
+    weight = _symbolWeights[fun];
+  }
 
   if(env.signature->functionColored(fun)) {
     weight *= COLORED_WEIGHT_BOOST;

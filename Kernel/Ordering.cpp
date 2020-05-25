@@ -40,6 +40,7 @@
 #include "Shell/Property.hpp"
 
 #include "LPO.hpp"
+#include "CustomKBO.hpp"
 #include "KBO.hpp"
 #include "KBOForEPR.hpp"
 #include "Problem.hpp"
@@ -127,6 +128,9 @@ Ordering* Ordering::create(Problem& prb, const Options& opt)
 
   switch (env.options->termOrdering()) {
   case Options::TermOrdering::KBO:
+    if (!opt.customKBOWeights().empty()) {
+      return new CustomKBO(prb, opt);
+    }
     // KBOForEPR does not support colors; TODO fix this!
     if(prb.getProperty()->maxFunArity()==0 && !env.colorUsed) {
       return new KBOForEPR(prb, opt);

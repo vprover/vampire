@@ -1919,6 +1919,12 @@ void Options::Options::init()
     _predicatePrecedence.setExperimental();
     _lookup.insert(&_predicatePrecedence);
 
+    _customKBOWeights = StringOptionValue("custom_kbo_weights","kbow","");
+    _customKBOWeights.description = "Explicitly set symbol weights for KBO. Example: \"P=3,f=10,g=5\"";
+    _customKBOWeights.reliesOn(_termOrdering.is(equal(TermOrdering::KBO)));
+    _customKBOWeights.setExperimental();
+    _lookup.insert(&_customKBOWeights);
+
     _symbolPrecedenceBoost = ChoiceOptionValue<SymbolPrecedenceBoost>("symbol_precedence_boost","spb",SymbolPrecedenceBoost::NONE,
                                      {"none","goal","units","goal_then_units"});
     _symbolPrecedenceBoost.description = "";

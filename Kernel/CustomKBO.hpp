@@ -25,10 +25,7 @@
 #ifndef __CustomKBO__
 #define __CustomKBO__
 
-#include "Forwards.hpp"
-
-#include "Lib/DArray.hpp"
-
+#include "Lib/STL.hpp"
 #include "Ordering.hpp"
 
 namespace Kernel {
@@ -57,8 +54,9 @@ protected:
   class State;
   /** Weight of variables */
   int _variableWeight;
-  /** Weight of function symbols not occurring in the
-   * signature */
+  /** Weight of function symbols specified with option --custom_kbo_weights */
+  vvector<int> _symbolWeights;
+  /** Weight of function symbols for which no weight has been specified */
   int _defaultSymbolWeight;
 
   int functionSymbolWeight(unsigned fun) const;
