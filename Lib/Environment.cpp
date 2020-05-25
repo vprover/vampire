@@ -121,6 +121,10 @@ bool Environment::timeLimitReached() const
  */
 int Environment::remainingTime() const
 {
+  // If time limit is set to 0 then assume we always have a minute left
+  if(options->timeLimitInDeciseconds() == 0){
+    return 60000;
+  }
   return options->timeLimitInDeciseconds()*100 - timer->elapsedMilliseconds();
 }
 

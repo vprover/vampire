@@ -102,7 +102,11 @@ void CommandLine::interpret (Options& options)
       options.setInputFile(arg);
     }
   }
-  options.setForcedOptionValues();
+  // Don't force options if in Portfolio mode as the
+  // forced options should apply to inner strategies only
+  if(options.mode() != Options::Mode::PORTFOLIO){
+    options.setForcedOptionValues();
+  }
   options.checkGlobalOptionConstraints();
   if(options.encodeStrategy()){
     cout << options.generateEncodedOptions();
