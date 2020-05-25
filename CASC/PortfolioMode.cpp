@@ -225,7 +225,6 @@ void PortfolioMode::getExtraSchedules(Property& prop, Schedule& old, Schedule& e
    // Always try these
    extra_opts.push("sp=frequency");
    extra_opts.push("avsq=on");
-   extra_opts.push("slsq=on");
    extra_opts.push("plsq=on");
 
    // If contains integers, rationals and reals
@@ -240,6 +239,10 @@ void PortfolioMode::getExtraSchedules(Property& prop, Schedule& old, Schedule& e
    // If in SMT-COMP mode try guessing the goal
    if(env.options->schedule() == Options::Schedule::SMTCOMP){
     extra_opts.push("gtg=exists_all");
+   }
+   else{
+   // Don't try this in SMT-COMP mode
+    extra_opts.push("slsq=on");
    }
 
    // If using Datatypes try induction
