@@ -195,6 +195,7 @@ VLS_OBJ= Lib/Sys/Multiprocessing.o\
 VK_OBJ= Kernel/Clause.o\
         Kernel/ClauseQueue.o\
         Kernel/ColorHelper.o\
+        Kernel/CustomKBO.o\
         Kernel/EqHelper.o\
         Kernel/FlatTerm.o\
         Kernel/Formula.o\

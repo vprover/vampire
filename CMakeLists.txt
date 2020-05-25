@@ -246,6 +246,7 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/Clause.cpp
     Kernel/ClauseQueue.cpp
     Kernel/ColorHelper.cpp
+    Kernel/CustomKBO.cpp
     Kernel/ELiteralSelector.cpp
     Kernel/EqHelper.cpp
     Kernel/FlatTerm.cpp
