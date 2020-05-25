@@ -1232,12 +1232,16 @@ void Options::Options::init()
     _lookup.insert(&_functionExtensionality);
     _functionExtensionality.tag(OptionTag::INFERENCES);
 
-    _lazyClausification = ChoiceOptionValue<LazyClausification>("lazy_cnf","lc",LazyClausification::OFF,
-                                                                          {"off", "simplify", "generate"});
-    _lazyClausification.description="Clausify the problem lazily. When set to 'simplify' clausification rules";
-                                    "are simplifcation rules. Otherwise are generating rules";
-    _lookup.insert(&_lazyClausification);
-    _lazyClausification.tag(OptionTag::OTHER);
+    _clausificationOnTheFly = ChoiceOptionValue<CNFOnTheFly>("cnf_on_the_fly","cnfonf",CNFOnTheFly::EAGER,
+                                                                          {"eager", 
+                                                                          "lazy_gen", 
+                                                                          "lazy_simp",
+                                                                          "lazy_not_gen", 
+                                                                          "lazy_not_gen_be_off", 
+                                                                          "lazy_not_be_gen"});
+    _clausificationOnTheFly.description="Various options linked to clausification on the fly";
+    _lookup.insert(&_clausificationOnTheFly);
+    _clausificationOnTheFly.tag(OptionTag::OTHER);
 
     _equalityToEquivalence = BoolOptionValue("equality_to_equiv","e2e",false);
     _equalityToEquivalence.description=

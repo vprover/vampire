@@ -151,6 +151,7 @@ Index* IndexManager::create(IndexType t)
   TermIndexingStructure* tis;
 
   bool isGenerating;
+  //bool attachContainer = true;
   static bool useConstraints = env.options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF;
   static bool extByAbs = env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION;
   switch(t) {
@@ -215,7 +216,13 @@ Index* IndexManager::create(IndexType t)
     res=new SubVarSupLHSIndex(tis, _alg->getOrdering(), _alg->getOptions());
     isGenerating = true;
     break;
-    
+  
+  case SKOLEMISING_FORMULA_INDEX:
+    tis=new TermSubstitutionTree();
+    res=new SkolemisingFormulaIndex(tis);
+    isGenerating = false;
+    break;
+
   case NARROWING_INDEX:
     tis=new TermSubstitutionTree();
     res=new NarrowingIndex(tis); 
@@ -276,11 +283,13 @@ Index* IndexManager::create(IndexType t)
   default:
     INVALID_OPERATION("Unsupported IndexType.");
   }
-  if(isGenerating) {
-    res->attachContainer(_alg->getGeneratingClauseContainer());
-  }
-  else {
-    res->attachContainer(_alg->getSimplifyingClauseContainer());
-  }
+  //if(attachContainer){
+    if(isGenerating) {
+      res->attachContainer(_alg->getGeneratingClauseContainer());
+    }
+    else {
+      res->attachContainer(_alg->getSimplifyingClauseContainer());
+    }
+  //}
   return res;
 }

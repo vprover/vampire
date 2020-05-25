@@ -38,18 +38,6 @@ class BoolEqToDiseq : public GeneratingInferenceEngine
 
     ClauseIterator generateClauses(Clause* premise);
 
-    bool isBool(TermList t){
-      return isTrue(t) || isFalse(t);
-    }
-
-    bool isTrue(TermList term){
-      return term.isTerm() && env.signature->isFoolConstantSymbol(true, term.term()->functor());
-    }
-
-    bool isFalse(TermList term){
-      return term.isTerm() && env.signature->isFoolConstantSymbol(false, term.term()->functor());
-    }
-
 };
 
 }

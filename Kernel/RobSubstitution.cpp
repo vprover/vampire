@@ -240,14 +240,15 @@ void RobSubstitution::addToConstraints(const VarSpec& v1, const VarSpec& v2)
 
   if(t1spec.sameTermContent(t2spec)){ return; }
 
-  TTPair p = make_pair(t1spec, t2spec);
+  //TTPair p = make_pair(t1spec, t2spec);
   //cout << "adding <" + t1->toString() + ", " + t2->toString() + "> to constraints" << endl;
-  if(!_constraints.contains(p)){
-    _constraints.insert(p);
+
+  //if(!_constraints.contains(p)){
+    _constraints.push(make_pair(t1spec, t2spec)/*p*/);
     if(bdIsRecording()) {
-      bdAdd(new ConstraintBacktrackObject(this, p));
+      bdAdd(new ConstraintBacktrackObject(this));
     }   
-  }
+  //}
 }
 
 

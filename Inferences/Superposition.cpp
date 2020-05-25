@@ -466,7 +466,7 @@ Clause* Superposition::performSuperposition(
   typedef RobSubstitution::TTPair ConPair;
   RobSubstitution* sub = subst->tryGetRobSubstitution();
   unsigned cLength = sub->constraintsSize();
-  const Set<ConPair>& constraints2 = sub->constraints();
+  const Stack<ConPair>& constraints2 = sub->constraints();
   ASS(!cLength || !isTypeSub);
 
 
@@ -672,10 +672,9 @@ Clause* Superposition::performSuperposition(
   }
 
   if(cLength){
-    Set<ConPair>::Iterator it(constraints2);
     ConPair con;
-    while(it.hasNext()){
-      con = it.next();
+    for(unsigned i = 0; i < constraints2.size(); i++){
+      con = constraints2[i];
       //TODO WARNING VERY HACKY! Want to apply to normalised banks
       TermList qT = subst->tryGetRobSubstitution()->apply(TermList(con.first.term), con.first.index);
       TermList rT = subst->tryGetRobSubstitution()->apply(TermList(con.second.term), con.second.index);

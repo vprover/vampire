@@ -75,7 +75,7 @@
 #include "Inferences/Choice.hpp"
 #include "Inferences/ElimLeibniz.hpp"
 #include "Inferences/SubVarSup.hpp"
-#include "Inferences/ProxyElimination.hpp"
+#include "Inferences/CNFOnTheFly.hpp"
 #include "Inferences/URResolution.hpp"
 //#include "Inferences/Instantiation.hpp"
 //#include "Inferences/TheoryInstAndSimp.hpp"
@@ -125,7 +125,7 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
   : MainLoop(prb, opt),
     _limits(opt),
     _clauseActivationInProgress(false),
-    _fwSimplifiers(0), _bwSimplifiers(0), _splitter(0),
+    _fwSimplifiers(0), _simplifiers(0), _bwSimplifiers(0), _splitter(0),
     _consFinder(0), _labelFinder(0), _symEl(0),/* _answerLiteralManager(0),
     _instantiation(0),*/
 #if VZ3
@@ -210,6 +210,11 @@ SaturationAlgorithm::~SaturationAlgorithm()
 
   while (_fwSimplifiers) {
     ForwardSimplificationEngine* fse = FwSimplList::pop(_fwSimplifiers);
+    fse->detach();
+    delete fse;
+  }
+  while (_simplifiers) {
+    SimplificationEngine* fse = SimplList::pop(_simplifiers);
     fse->detach();
     delete fse;
   }
@@ -897,6 +902,8 @@ bool SaturationAlgorithm::forwardSimplify(Clause* cl)
     return false;
   }
 
+  static ClauseStack repStack;
+
   FwSimplList::Iterator fsit(_fwSimplifiers);
 
   while (fsit.hasNext()) {
@@ -912,6 +919,29 @@ bool SaturationAlgorithm::forwardSimplify(Clause* cl)
         }
         onClauseReduction(cl, pvi(getSingletonIterator(replacement)), premises);
 
+        return false;
+      }
+    }
+  }
+
+  repStack.reset();
+  SimplList::Iterator sit(_simplifiers);
+
+  while (sit.hasNext()) {
+    SimplificationEngine* se=sit.next();
+
+    {
+      Clause* replacement = 0;
+      ClauseIterator results = se->perform(cl);
+
+      if (results.hasNext()) {
+        while(results.hasNext()){
+          Clause* simpedCl = results.next();
+          ASS(simpedCl != cl);
+          repStack.push(simpedCl);
+          addNewClause(simpedCl);
+        }
+        onClauseReduction(cl, pvi(ClauseStack::Iterator(repStack)), 0);
         return false;
       }
     }
@@ -1329,6 +1359,12 @@ void SaturationAlgorithm::addForwardSimplifierToFront(ForwardSimplificationEngin
   fwSimplifier->attach(this);
 }
 
+void SaturationAlgorithm::addSimplifierToFront(SimplificationEngine* simplifier)
+{
+  SimplList::push(simplifier, _simplifiers);
+  simplifier->attach(this);
+}
+
 /**
  * Add a backward simplifier, so that it is applied before the
  * simplifiers that were added before it. The object takes ownership
@@ -1405,7 +1441,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
 
   if(prb.hasFOOL() &&
     env.statistics->higherOrder && env.options->booleanEqTrick()){
-    gie->addFront(new ProxyElimination::NOTRemovalGIE());
+  //  gie->addFront(new ProxyElimination::NOTRemovalGIE());
     gie->addFront(new BoolEqToDiseq());
   }
 
@@ -1431,8 +1467,15 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     gie->addFront(new ExtensionalityResolution());
   }*/
   //check problem is higher-order AYB
-  if (opt.FOOLParamodulation() || (/*prb.hasApp() &&*/ prb.hasFOOL())) {
+  if (opt.FOOLParamodulation() && (/*prb.hasApp() &&*/ prb.hasFOOL())) {
     gie->addFront(new FOOLParamodulation());
+  }
+
+  if((prb.hasLogicalProxy() || prb.hasBoolVar() || prb.hasFOOL()) &&
+      env.statistics->higherOrder && !env.options->addProxyAxioms()){
+    if(env.options->cnfOnTheFly() != Options::CNFOnTheFly::EAGER){
+      gie->addFront(new LazyClausificationGIE());
+    }
   }
 
   if (opt.injectivityReasoning()) {
@@ -1458,6 +1501,15 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   res->setGeneratingInferenceEngine(gie);
 
   res->setImmediateSimplificationEngine(createISE(prb, opt));
+
+  //create simplification engine
+
+  if((prb.hasLogicalProxy() || prb.hasBoolVar() || prb.hasFOOL()) &&
+      env.statistics->higherOrder && !env.options->addProxyAxioms()){
+    if(env.options->cnfOnTheFly() != Options::CNFOnTheFly::EAGER){
+      res->addSimplifierToFront(new LazyClausification());
+    }
+  }  
 
   // create forward simplification engine
   if (prb.hasEquality() && opt.innerRewriting()) {

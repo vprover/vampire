@@ -279,6 +279,16 @@ Signature::Combinator ApplicativeHelper::getComb (const TermList head)
   return env.signature->getFunction(head.term()->functor())->combinator();
 }
 
+Signature::Proxy ApplicativeHelper::getProxy(const TermList t)
+{
+  CALL("ApplicativeHelper::getProxy");
+  if(t.isVar()){
+    return Signature::NOT_PROXY;
+  }
+  return env.signature->getFunction(t.term()->functor())->proxy();
+}
+
+
 bool ApplicativeHelper::isApp(const Term* t)
 {
   CALL("ApplicativeHelper::isApp(Term*)");
@@ -344,7 +354,20 @@ bool ApplicativeHelper::isOverApplied(TermList head, unsigned argNum){
 
 }
 
+bool ApplicativeHelper::isBool(TermList t){
+  CALL("ApplicativeHelper::isBool");
+  return isTrue(t) || isFalse(t);
+}
 
+bool ApplicativeHelper::isTrue(TermList term){
+  CALL("ApplicativeHelper::isTrue");
+  return term.isTerm() && env.signature->isFoolConstantSymbol(true, term.term()->functor());
+}
+
+bool ApplicativeHelper::isFalse(TermList term){
+  CALL("ApplicativeHelper::isFalse");
+  return term.isTerm() && env.signature->isFoolConstantSymbol(false, term.term()->functor());
+}
 
 bool ApplicativeHelper::isSafe(TermStack& args)
 {

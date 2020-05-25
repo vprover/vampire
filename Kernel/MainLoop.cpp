@@ -35,7 +35,7 @@
 #include "Inferences/TautologyDeletionISE.hpp"
 #include "Inferences/CombinatorDemodISE.hpp"
 #include "Inferences/CombinatorNormalisationISE.hpp"
-#include "Inferences/ProxyElimination.hpp"
+#include "Inferences/CNFOnTheFly.hpp"
 #include "Inferences/BoolSimp.hpp"
 //#include "Inferences/EquationalTautologyRemoval.hpp"
 
@@ -151,14 +151,10 @@ ImmediateSimplificationEngine* MainLoop::createISE(Problem& prb, const Options& 
 
   if((prb.hasLogicalProxy() || prb.hasBoolVar() || prb.hasFOOL()) &&
       env.statistics->higherOrder && !env.options->addProxyAxioms()){
-    res->addFrontMany(new ProxyElimination::ProxyEliminationISE());
-    res->addFront(new ProxyElimination::ORIMPANDRemovalISE());
-    if(!env.options->booleanEqTrick()){
-      res->addFront(new ProxyElimination::NOTRemovalISE());   
+    res->addFront(new IFFXORRewriterISE());
+    if(env.options->cnfOnTheFly() == Options::CNFOnTheFly::EAGER){
+      res->addFrontMany(new EagerClausificationISE());
     }
-    res->addFront(new ProxyElimination::EQUALSRemovalISE());   
-    res->addFront(new ProxyElimination::PISIGMARemovalISE());    
-    res->addFront(new BoolSimp());
   }
 
   // Only add if there are distinct groups 

@@ -85,6 +85,7 @@ public:
   void setLabelFinder(LabelFinder* finder){ _labelFinder = finder; }
 
   void addForwardSimplifierToFront(ForwardSimplificationEngine* fwSimplifier);
+  void addSimplifierToFront(SimplificationEngine* simplifier);
   void addBackwardSimplifierToFront(BackwardSimplificationEngine* bwSimplifier);
 
 
@@ -199,6 +200,9 @@ protected:
 
   typedef List<ForwardSimplificationEngine*> FwSimplList;
   FwSimplList* _fwSimplifiers;
+
+  typedef List<SimplificationEngine*> SimplList;
+  SimplList* _simplifiers;
 
   typedef List<BackwardSimplificationEngine*> BwSimplList;
   BwSimplList* _bwSimplifiers;

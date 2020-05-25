@@ -295,7 +295,7 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/Superposition.o\
          Inferences/TautologyDeletionISE.o\
          Inferences/URResolution.o\
-         Inferences/ProxyElimination.o\
+         Inferences/CNFOnTheFly.o\
          Inferences/BoolSimp.o\
          Inferences/PrimitiveInstantiation.o\
          Inferences/Choice.o\
@@ -479,7 +479,7 @@ LIB_DEP = Indexing/TermSharing.o\
 	  Kernel/InferenceStore.o\
 	  Kernel/Problem.o\
 	  Kernel/SortHelper.o\
-    Kernel/ApplicativeHelper.o\
+      Kernel/ApplicativeHelper.o\
 	  Kernel/Sorts.o\
 	  Kernel/Signature.o\
 	  Kernel/SubformulaIterator.o\

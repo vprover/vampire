@@ -748,10 +748,13 @@ public:
     ABSTRACTION = 2
   }; 
 
-  enum class LazyClausification : unsigned int {
-    OFF = 0,
-    ON_SIMP = 1,
-    ON_GEN = 2
+  enum class CNFOnTheFly : unsigned int {
+    EAGER = 0,
+    LAZY_GEN = 1,
+    LAZY_SIMP = 2,
+    LAZY_SIMP_NOT_GEN = 3,
+    LAZY_SIMP_NOT_GEN_BOOL_EQ_OFF = 4,
+    LAZY_SIMP_NOT_GEN_BOOL_EQ_GEN = 5
   };
 
     //==========================================================
@@ -2125,7 +2128,7 @@ public:
   bool choiceReasoning() const { return _choiceReasoning.actualValue; }
   int maxXXNarrows() const { return _maximumXXNarrows.actualValue; }
   FunctionExtensionality functionExtensionality() const { return _functionExtensionality.actualValue; }
-  LazyClausification lazyClausification() const { return _lazyClausification.actualValue; }
+  CNFOnTheFly cnfOnTheFly() const { return _clausificationOnTheFly.actualValue; }
   bool equalityToEquivalence () const { return _equalityToEquivalence.actualValue; } 
   bool complexBooleanReasoning () const { return _complexBooleanReasoning.actualValue; }
   bool booleanEqTrick() const { return _booleanEqTrick.actualValue; }
@@ -2512,7 +2515,7 @@ private:
   BoolOptionValue _choiceReasoning;
   IntOptionValue  _maximumXXNarrows;
   ChoiceOptionValue<FunctionExtensionality> _functionExtensionality;
-  ChoiceOptionValue<LazyClausification> _lazyClausification;
+  ChoiceOptionValue<CNFOnTheFly> _clausificationOnTheFly;
   BoolOptionValue _equalityToEquivalence;
   BoolOptionValue _complexBooleanReasoning;
   BoolOptionValue _booleanEqTrick;

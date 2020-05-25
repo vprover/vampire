@@ -267,6 +267,12 @@ void NarrowingIndex::populateIndex()
   _is->insert(lhsI, iLit, 0);  
 }
 
+void SkolemisingFormulaIndex::insertFormula(TermList formula, TermList skolem)
+{
+  CALL("SkolemisingFormulaIndex::handleFormul");
+  _is->insert(formula, skolem);
+}
+
 void DemodulationSubtermIndex::handleClause(Clause* c, bool adding)
 {
   CALL("DemodulationSubtermIndex::handleClause");

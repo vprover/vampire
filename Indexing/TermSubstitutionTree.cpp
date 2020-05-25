@@ -52,6 +52,25 @@ TermSubstitutionTree::TermSubstitutionTree(bool useC, bool rfSubs)
   }
 }
 
+void TermSubstitutionTree::insert(TermList t, TermList trm)
+{
+  CALL("TermSubstitutionTree::insert(TermList)");
+
+  ASS(t.isTerm());
+  LeafData ld(0, 0, trm);
+  Term* term=t.term();
+
+  Term* normTerm=Renaming::normalize(term);
+
+  BindingMap svBindings;
+  getBindings(normTerm, svBindings);
+
+  unsigned rootNodeIndex=getRootNodeIndex(normTerm);
+
+  SubstitutionTree::insert(&_nodes[rootNodeIndex], svBindings, ld);
+}
+
+
 void TermSubstitutionTree::insert(TermList t, Literal* lit, Clause* cls)
 {
   CALL("TermSubstitutionTree::insert");

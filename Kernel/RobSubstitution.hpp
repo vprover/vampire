@@ -214,7 +214,7 @@ public:
     int index;
   };
   typedef pair<TermSpec,TermSpec> TTPair;
-  typedef Set<TTPair> UnifConstraints;
+  typedef Stack<TTPair> UnifConstraints;
 
   const UnifConstraints& constraints() const { return _constraints; }
 
@@ -229,7 +229,7 @@ public:
   };
 
 private:
-  /** Copy constructor is private and without a body, because we don't want any. */
+  /** Copy constructor is private a+nd without a body, because we don't want any. */
   RobSubstitution(const RobSubstitution& obj);
   /** operator= is private and without a body, because we don't want any. */
   RobSubstitution& operator=(const RobSubstitution& obj);
@@ -330,20 +330,19 @@ private:
   : public BacktrackObject
   {
   public: 
-    ConstraintBacktrackObject(RobSubstitution* subst, TTPair con)
-    : _subst(subst), _con(con)
+    ConstraintBacktrackObject(RobSubstitution* subst)
+    : _subst(subst)
     {}
     
     void backtrack()
     {
-      ALWAYS(_subst->_constraints.remove(_con));
+      _subst->_constraints.pop();
     }
 
     CLASS_NAME(RobSubstitution::ConstraintBacktrackObject);
     USE_ALLOCATOR(ConstraintBacktrackObject);
   private:
     RobSubstitution* _subst;
-    TTPair _con;
   };
 
   template<class Fn>

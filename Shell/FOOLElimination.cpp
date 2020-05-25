@@ -184,7 +184,7 @@ FormulaUnit* FOOLElimination::apply(FormulaUnit* unit) {
 Formula* FOOLElimination::process(Formula* formula) {
   CALL("FOOLElimination::process(Formula*)");
 
-  if(env.options->lazyClausification() != Options::LazyClausification::OFF){
+  if(env.options->cnfOnTheFly() != Options::CNFOnTheFly::EAGER){
     LambdaElimination le = LambdaElimination(_varSorts);
     TermList proxifiedFormula = le.processBeyondLambda(formula);
     Formula* processedFormula = toEquality(proxifiedFormula);

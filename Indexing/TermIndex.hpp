@@ -150,6 +150,19 @@ protected:
   void populateIndex();
 };
 
+
+class SkolemisingFormulaIndex
+: public TermIndex
+{
+public:
+  CLASS_NAME(SkolemisingFormulaIndex);  
+  USE_ALLOCATOR(SkolemisingFormulaIndex);
+  
+  SkolemisingFormulaIndex(TermIndexingStructure* is) : TermIndex(is)
+  {}
+  void insertFormula(TermList formula, TermList name);
+};
+
 /**
  * Term index for backward demodulation
  */

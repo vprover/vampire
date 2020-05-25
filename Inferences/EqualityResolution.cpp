@@ -100,7 +100,7 @@ struct EqualityResolution::ResultFn
 
     typedef RobSubstitution::TTPair ConPair;
     unsigned cLength = subst.constraintsSize();
-    const Set<ConPair>& constraints = subst.constraints();
+    const Stack<ConPair>& constraints = subst.constraints();
 
     //cout << "equalityResolution with " + _cl->toString() << endl;
     //cout << "The literal is " + lit->toString() << endl;
@@ -138,10 +138,9 @@ struct EqualityResolution::ResultFn
       }
     }
     if(cLength){
-      Set<ConPair>::Iterator it(constraints);
       ConPair con;
-      while(it.hasNext()){
-        con = it.next();
+      for(unsigned i = 0; i < constraints.size(); i++){
+        con = constraints[i];
         TermList qT = subst.apply(TermList(con.first.term), 0);
         TermList rT = subst.apply(TermList(con.second.term), 0);
 

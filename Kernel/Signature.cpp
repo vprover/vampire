@@ -25,6 +25,7 @@
 #include "Lib/Int.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/DistinctGroupExpansion.hpp"
+#include "Kernel/SortHelper.hpp"
 
 #include "Signature.hpp"
 
@@ -723,6 +724,25 @@ unsigned Signature::getChoice(){
   }
   return choice;
 }
+
+void Signature::incrementFormulaCount(Term* t){
+  CALL("Signature::incrementFormulaCount");
+  ASS(SortHelper::getResultSort(t) == Term::boolSort());
+
+  if(_formulaCounts.find(t)){
+    _formulaCounts.set(t, _formulaCounts.get(t) + 1);
+  } else {
+    _formulaCounts.set(t, 1);
+  }
+}
+
+unsigned Signature::formulaCount(Term* t){
+  CALL("Signature::formulaCount");
+  ASS(_formulaCounts.find(t));
+  
+  return _formulaCounts.get(t);
+}
+
 
 /**
  * If a predicate with this name and arity exists, return its number.

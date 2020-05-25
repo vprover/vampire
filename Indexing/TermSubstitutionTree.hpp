@@ -48,6 +48,7 @@ public:
 
   void insert(TermList t, Literal* lit, Clause* cls);
   void remove(TermList t, Literal* lit, Clause* cls);
+  void insert(TermList t, TermList trm);
 
   bool generalizationExists(TermList t);
 

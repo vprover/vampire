@@ -145,7 +145,7 @@ struct EqualityFactoring::ResultFn
 
     typedef RobSubstitution::TTPair ConPair;
     unsigned cLength = subst.constraintsSize();
-    const Set<ConPair>& constraints = subst.constraints();
+    const Stack<ConPair>& constraints = subst.constraints();
 
     TermList sLHSS=subst.apply(sLHS,0);
     TermList sRHSS=subst.apply(sRHS,0);
@@ -188,10 +188,9 @@ struct EqualityFactoring::ResultFn
       }
     }
     if(cLength){
-      Set<ConPair>::Iterator it(constraints);
       ConPair con;
-      while(it.hasNext()){
-        con = it.next();
+      for(unsigned i = 0; i < constraints.size(); i++){
+        con = constraints[i];
         TermList qT = subst.apply(TermList(con.first.term), 0);
         TermList rT = subst.apply(TermList(con.second.term), 0);
 

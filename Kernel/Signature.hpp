@@ -771,6 +771,9 @@ class Signature
     return comb;
   }
 
+  void incrementFormulaCount(Term* t);
+  unsigned formulaCount(Term* t);
+
 
   //bool isTermAlgebraSort(unsigned sort) { return _termAlgebras.find(sort); }
   //Shell::TermAlgebra *getTermAlgebraOfSort(unsigned sort) { return _termAlgebras.get(sort); }
@@ -787,6 +790,7 @@ class Signature
 
 private:
   Stack<TermList> _dividesNvalues;
+  DHMap<Term*, unsigned> _formulaCounts;
 
   bool _foolConstantsDefined;
   unsigned _foolTrue;

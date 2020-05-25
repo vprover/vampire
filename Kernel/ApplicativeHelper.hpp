@@ -39,7 +39,7 @@ public:
   };
 
   ApplicativeHelper() {};
-
+  
   static TermList createAppTerm(TermList sort, TermList arg1, TermList arg2);
   static TermList createAppTerm(TermList s1, TermList s2, TermList arg1, TermList arg2, bool shared = true);
   static TermList createAppTerm3(TermList sort, TermList arg1, TermList arg2, TermList arg3);
@@ -57,6 +57,7 @@ public:
   static void getHeadSortAndArgs(TermList term, TermList& head, TermList& headSort, TermStack& args); 
   static bool isComb(const TermList t);
   static Signature::Combinator getComb(const TermList t);
+  static Signature::Proxy getProxy(const TermList t);
   static TermList getHead(TermList t);
   static bool isApp(const Term* t); 
   static bool isType(const Term* t);
@@ -67,6 +68,9 @@ public:
   static bool isOverApplied(TermList head, unsigned argNum);
   static bool isSafe(TermStack& args);
   static TermList replaceFunctionalAndBooleanSubterms(Term* term, FuncSubtermMap* fsm);
+  static bool isBool(TermList t);
+  static bool isTrue(TermList term);
+  static bool isFalse(TermList term);
 
 private:
 
