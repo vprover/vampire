@@ -285,14 +285,10 @@ public:
     }
   }
 
-  /**
-   * If there is no value stored under @b key in the map,
-   * insert pair (key,value) and return true. Otherwise,
-   * return false.
-   */
-  bool insert(Key key, const Val& val)
+  /** same as @b insert but using move semantics instead of copying */
+  bool emplace(Key key, Val&& val)
   {
-    CALL("DHMap::insert");
+    CALL("DHMap::emplace");
     ensureExpanded();
     Entry* e=findEntryToInsert(key);
     bool exists = e->_info.timestamp==_timestamp && !e->_info.deleted;
@@ -307,10 +303,23 @@ public:
       }
       e->_info.deleted=0;
       e->_key=key;
-      e->_val=val;
+      e->_val=std::move(val);
       _size++;
     }
     return !exists;
+
+  }
+
+  /**
+   * If there is no value stored under @b key in the map,
+   * insert pair (key,value) and return true. Otherwise,
+   * return false.
+   * This function copies copies @b val.
+   */
+  bool insert(Key key, const Val& val)
+  {
+    CALL("DHMap::insert");
+    return emplace(key, Val(val));
   }
 
   /**
