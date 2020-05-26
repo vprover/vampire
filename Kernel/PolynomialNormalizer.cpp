@@ -4,7 +4,6 @@
 #include <map>
 #include <vector>
 #include <stack>
-#include <forward_list>
 
 #define DEBUG(...) //DBG(__VA_ARGS__)
 
@@ -115,45 +114,6 @@ struct compare_terms {
 template<class K, class V, class Compare = std::less<K>> using map  = std::map<K, V, Compare, STLAllocator<std::pair<const K, V > > >;
 template<class t> using vector  = std::vector<t, STLAllocator<t>>;
 template<class t> using stack  = std::stack<t, STLAllocator<t>>;
-template<class t> using forward_list  = std::forward_list<t, STLAllocator<t>>;
-
-template<class T>
-class fwd_list_iter {
-public:
-  using iterator = typename forward_list<T>::iterator;
-
-  static fwd_list_iter end(forward_list<T>& prods) {
-    return fwd_list_iter ( prods.end()) ;
-  }
-
-  friend bool operator!=(const fwd_list_iter& self, const iterator& iter) {
-    return self.cur != iter;
-  }
-  T& operator*() { return *cur; }
-  T* operator->() { return &*cur; }
-  // const typename prods_t::value_type & operator*() const { return *cur; }
-
-  void operator++() {
-    cur++;
-    before++;
-  }
-  void erase(forward_list<T>& prods) {
-    cur++;
-    prods.erase_after(before);
-  }
-
-private:
-  iterator cur;
-  iterator before;
-private:
-  explicit fwd_list_iter(iterator end) : cur(end) {
-
-  }
-public:
-  fwd_list_iter(forward_list<T>& prods) : cur(prods.begin()), before(prods.before_begin()) {
-    
-  }
-};
 
 
 /**
