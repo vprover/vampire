@@ -57,7 +57,7 @@ const char* FOOLElimination::BOOL_PREFIX = "bG";
 // The default input type of introduced definitions
 const Unit::InputType FOOLElimination::DEFINITION_INPUT_TYPE = Unit::AXIOM;
 
-FOOLElimination::FOOLElimination() : _defs(0), _higherOrder(0) {}
+FOOLElimination::FOOLElimination() : _defs(0), _higherOrder(0), _polymorphic(0) {}
 
 bool FOOLElimination::needsElimination(FormulaUnit* unit) {
   CALL("FOOLElimination::needsElimination");
@@ -108,6 +108,7 @@ void FOOLElimination::apply(Problem& prb)  {
   CALL("FOOLElimination::apply(Problem*)");
 
   _higherOrder = prb.hasApp();
+  _polymorphic = prb.hasPolymorphicSym();
   apply(prb.units());
   prb.reportFOOLEliminated();
   prb.invalidateProperty();
@@ -184,7 +185,8 @@ FormulaUnit* FOOLElimination::apply(FormulaUnit* unit) {
 Formula* FOOLElimination::process(Formula* formula) {
   CALL("FOOLElimination::process(Formula*)");
 
-  if(env.options->cnfOnTheFly() != Options::CNFOnTheFly::EAGER){
+  if(env.options->cnfOnTheFly() != Options::CNFOnTheFly::EAGER &&
+     !_polymorphic){
     LambdaElimination le = LambdaElimination(_varSorts);
     TermList proxifiedFormula = le.processBeyondLambda(formula);
     Formula* processedFormula = toEquality(proxifiedFormula);

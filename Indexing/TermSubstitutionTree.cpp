@@ -44,9 +44,10 @@ namespace Indexing
 using namespace Lib;
 using namespace Kernel;
 
-TermSubstitutionTree::TermSubstitutionTree(bool useC, bool rfSubs)
+TermSubstitutionTree::TermSubstitutionTree(bool useC, bool rfSubs, bool extra)
 : SubstitutionTree(env.signature->functions(),useC, rfSubs), _replaceFuncSubterms(rfSubs)
 {
+  _extra = extra;
   if(rfSubs){
     _funcSubtermsByType = new TypeSubstitutionTree();
   }
@@ -57,7 +58,7 @@ void TermSubstitutionTree::insert(TermList t, TermList trm)
   CALL("TermSubstitutionTree::insert(TermList)");
 
   ASS(t.isTerm());
-  LeafData ld(0, 0, trm);
+  LeafData ld(0, 0, t, trm);
   Term* term=t.term();
 
   Term* normTerm=Renaming::normalize(term);
@@ -292,10 +293,19 @@ TermQueryResultIterator TermSubstitutionTree::getInstances(TermList t,
 struct TermSubstitutionTree::TermQueryResultFn
 {
   DECL_RETURN_TYPE(TermQueryResult);
+
+  TermQueryResultFn(bool extra = false){
+    _extra = extra;
+  }
+
   OWN_RETURN_TYPE operator() (const QueryResult& qr) {
-    return TermQueryResult(qr.first.first->term, qr.first.first->literal,
+    TermList trm = _extra ? qr.first.first->extraTerm : qr.first.first->term;
+    return TermQueryResult(trm, qr.first.first->literal,
 	    qr.first.first->clause, qr.first.second,qr.second);
   }
+
+private:
+  bool _extra;
 };
 
 template<class Iterator>
@@ -318,7 +328,7 @@ TermQueryResultIterator TermSubstitutionTree::getResultIterator(Term* trm,
     else{
       VirtualIterator<QueryResult> qrit=vi( new Iterator(this, root, trm, retrieveSubstitutions,false,false, 
                                                          withConstraints, &_functionalSubtermMap) );
-      result = pvi( getMappingIterator(qrit, TermQueryResultFn()) );
+      result = pvi( getMappingIterator(qrit, TermQueryResultFn(_extra)) );
     }
   }
 

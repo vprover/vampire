@@ -1472,7 +1472,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
 
   if((prb.hasLogicalProxy() || prb.hasBoolVar() || prb.hasFOOL()) &&
-      env.statistics->higherOrder && !env.options->addProxyAxioms()){
+      env.statistics->higherOrder && !prb.hasPolymorphicSym()){
     if(env.options->cnfOnTheFly() != Options::CNFOnTheFly::EAGER){
       gie->addFront(new LazyClausificationGIE());
     }
@@ -1505,7 +1505,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   //create simplification engine
 
   if((prb.hasLogicalProxy() || prb.hasBoolVar() || prb.hasFOOL()) &&
-      env.statistics->higherOrder && !env.options->addProxyAxioms()){
+      env.statistics->higherOrder && !prb.hasPolymorphicSym()){
     if(env.options->cnfOnTheFly() != Options::CNFOnTheFly::EAGER){
       res->addSimplifierToFront(new LazyClausification());
     }

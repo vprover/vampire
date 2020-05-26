@@ -56,6 +56,7 @@ private:
   /** A list of definitions, produced during preprocessing */
   UnitList* _defs;
   bool _higherOrder;
+  bool _polymorphic;
  
   /** Add a new definitions to _defs */
   void addDefinition(FormulaUnit* unit);

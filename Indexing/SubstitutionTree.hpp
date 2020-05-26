@@ -96,10 +96,12 @@ public:
 
   struct LeafData {
     LeafData() {}
+    LeafData(Clause* cls, Literal* literal, TermList term, TermList extraTerm)
+    : clause(cls), literal(literal), term(term), extraTerm(extraTerm) {}
     LeafData(Clause* cls, Literal* literal, TermList term)
-    : clause(cls), literal(literal), term(term) {}
+    : clause(cls), literal(literal), term(term) { extraTerm.makeEmpty();}
     LeafData(Clause* cls, Literal* literal)
-    : clause(cls), literal(literal) { term.makeEmpty(); }
+    : clause(cls), literal(literal) { term.makeEmpty(); extraTerm.makeEmpty(); }
     inline
     bool operator==(const LeafData& o)
     { return clause==o.clause && literal==o.literal && term==o.term; }
@@ -107,6 +109,7 @@ public:
     Clause* clause;
     Literal* literal;
     TermList term;
+    TermList extraTerm;
 
     vstring toString(){
       vstring ret = "LD " + literal->toString();// + " in " + clause->literalsOnlyToString();

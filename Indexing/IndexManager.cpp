@@ -218,7 +218,7 @@ Index* IndexManager::create(IndexType t)
     break;
   
   case SKOLEMISING_FORMULA_INDEX:
-    tis=new TermSubstitutionTree();
+    tis=new TermSubstitutionTree(false, false, true);
     res=new SkolemisingFormulaIndex(tis);
     isGenerating = false;
     break;

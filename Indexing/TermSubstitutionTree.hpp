@@ -44,7 +44,7 @@ public:
   CLASS_NAME(TermSubstitutionTree);
   USE_ALLOCATOR(TermSubstitutionTree);
 
-  TermSubstitutionTree(bool useC=false, bool replaceFunctionalSubterms = false);
+  TermSubstitutionTree(bool useC=false, bool replaceFunctionalSubterms = false, bool extra = false);
 
   void insert(TermList t, Literal* lit, Clause* cls);
   void remove(TermList t, Literal* lit, Clause* cls);
@@ -104,6 +104,7 @@ private:
   typedef SkipList<LeafData,LDComparator> LDSkipList;
   LDSkipList _vars;
 
+  bool _extra;
   bool _replaceFuncSubterms;
 
   FuncSubtermMap _functionalSubtermMap;
