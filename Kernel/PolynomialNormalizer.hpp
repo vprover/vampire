@@ -20,26 +20,6 @@
 
 namespace Kernel {
 
-// class LitEvalResult {
-// public:
-//   enum Tag {
-//     Trivial,
-//     NonTrivial,
-//   };
-//   Tag tag() const { return _tag; }
-//   bool trivialValue() const { return _trivial; }
-//   Literal* nonTrivialValue() const { return _nonTrivial; }
-//
-//   LitEvalResult(bool value): _tag(Tag::Trivial), _trivial(value) {}
-//   LitEvalResult(Literal* value): _tag(Tag::NonTrivial), _nonTrivial(value) {}
-// private:
-//   const Tag _tag;
-//   const union {
-//     bool _trivial;
-//     Literal* _nonTrivial;
-//   };
-// };
-
 
 struct AnyPoly;
 //  TODO continue here

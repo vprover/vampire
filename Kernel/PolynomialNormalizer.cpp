@@ -259,6 +259,7 @@ struct Polynom {
       return l._factors == r._factors;
     }
 
+    public:
     Monom& operator=(Monom&&) = default;
     Monom(Monom&&) = default;
 
@@ -370,74 +371,39 @@ struct Polynom {
     return out;
   }
 
-  friend Polynom operator*(const Polynom& lhs, const Polynom& rhs) {
-    CALL("Polynom::operator*")
-    // DBG("Polynom::operator*")
+  friend Polynom poly_mul(const Polynom& lhs, const Polynom& rhs) {
+
+    CALL("Polynom::poly_mul")
+    //TODO memoization
     // DBG("lhs: ", lhs)
     // DBG("rhs: ", rhs)
-    //TODO memoization
+
+    map<Monom, Coeff> prods;
+
+    for (auto& l : lhs._coeffs) {
+      for (auto& r : rhs._coeffs) {
+        Monom monom = getMonom(l) * getMonom(r);
+        auto coeff = getCoeff(l) * getCoeff(r);
+        // DBG("adding ", monom, " -> ", coeff);
+        auto res = prods.emplace(make_pair(move(monom), coeff));
+        if (!res.second) {
+          auto& iter = res.first;
+          // DBG("exits: ", iter->first, " -> ", iter->second);
+          ASS(iter != prods.end());
+          iter->second = iter->second + coeff;
+          // DBG("new:   ", iter->first, " -> ", iter->second);
+        }
+      }
+    }
     Polynom out;
-
-
-    forward_list<vector<poly_pair>> prods;
-    //TODO reserve size
-
-    for (auto l = lhs._coeffs.rbegin(); l != lhs._coeffs.rend(); l++) {
-      vector<poly_pair> prod;
-      for (auto r = rhs._coeffs.rbegin(); r != rhs._coeffs.rend(); r++) {
-        prod.emplace_back(std::move(poly_pair(std::move(getMonom(*l) *  getMonom(*r)), getCoeff(*l) * getCoeff(*r))));
+    out._coeffs.reserve(prods.size());
+    for (auto iter = prods.begin(); iter != prods.end(); iter++) {
+      auto coeff = iter->second;
+      if (coeff != number::zeroC) {
+        out._coeffs.emplace_back(poly_pair(iter->first.clone(), coeff));
       }
-      prods.emplace_front(std::move(prod));
     }
-
-    using prods_t = decltype(prods);
-    using iterator = typename prods_t::iterator;
-
-    while (!prods.empty()) {
-      out.integrity();
-      using fwd_iter = fwd_list_iter<typename decltype(prods)::value_type>;
-
-      fwd_iter min_(prods);
-      // DBG("prods size: ", std::count_if(prods.begin(), prods.end(), [](const typename decltype(prods)::value_type&){return true;}))
-      for (auto i = fwd_iter(prods); i != prods.end(); ++i) {
-        if (getMonom(i->back()) < getMonom(min_->back())) {
-          min_ = i;
-        }
-      }
-      // DBG("found min")
-
-      ASS(min_ != prods.end())
-      ASS(!min_->empty())
-
-      auto min_pair = std::move(min_->back());
-      min_->pop_back();
-      if (min_->empty()) {
-        min_.erase(prods);
-      }
-
-      auto min = std::move(std::get<0>(min_pair));
-      auto coeff = std::move(getCoeff(min_pair));
-
-      auto iter = fwd_iter(prods);
-      while (iter != prods.end()) {
-        auto& p = *iter;
-        if (getMonom(p.back()) == min) {
-          // DBG("found coeff: ", getCoeff(p.back()))
-          coeff = coeff + getCoeff(p.back());
-          p.pop_back();
-        }
-        if (p.empty()) {
-          // DBG("erasing")
-          iter.erase(prods);
-        } else {
-          ++iter;
-        }
-      }
-      // DBG("coeff: ", coeff)
-      if (coeff != number::zeroC)
-        out._coeffs.emplace_back(poly_pair(std::move(min), coeff));
-    }
-
+    // DBG("out: ", out)
     out.integrity();
     return out;
   }
@@ -770,7 +736,7 @@ Polynom<number> evaluateMul(TermEvalResult&& lhs, TermEvalResult&& rhs) {
         return std::move(p.ref_mut<Const>());
       });
 
-  return l * r;
+  return poly_mul(l, r);
 }
 
 
