@@ -162,10 +162,16 @@ public:
  */
 template<class number>
 struct Polynom {
+    USE_ALLOCATOR(Polynom<number>)
+    CLASS_NAME(Polynom<number>)
 
   struct Monom {
+      USE_ALLOCATOR(Monom)
+      CLASS_NAME(Monom)
 
     struct WrappedTermList {
+      USE_ALLOCATOR(WrappedTermList)
+      CLASS_NAME(WrappedTermList)
       TermList inner;
       explicit WrappedTermList(TermList t) : inner(t) { }
 
@@ -190,13 +196,12 @@ struct Polynom {
       return std::get<1>(pair);
     }
 
-    bool isOne() const {
+    bool isOne() const  {
       return _factors.begin() == _factors.end();
     }
 
     TermList toTerm() const {
       CALL("Monom::toTerm()")
-      // DBG("Monom::toTerm(): ", *this)
       auto iter = _factors.rbegin();
       if (iter == _factors.rend()) {
         return number::one();
@@ -300,14 +305,14 @@ struct Polynom {
       return out;
     }
 
-    private:
+  private:
+    // Monom(const Monom& other) : _factors(other._factors) {}
     Monom(const Monom&) = default;
   };
 
 
   using Coeff = typename number::ConstantType;
   vector<tuple<Monom, Coeff>> _coeffs;
-  // map<Monom, Coeff> _coeffs;
   using poly_pair = typename decltype(_coeffs)::value_type;
 
   void multiply(Coeff c) {
@@ -329,9 +334,8 @@ struct Polynom {
     return std::get<1>(pair);
   }
 
-  friend Polynom operator+(const Polynom& lhs, const Polynom& rhs) {
-    CALL("Polynom::operator+")
-    // DBG("Polynom::operator+")
+  friend Polynom poly_add(const Polynom& lhs, const Polynom& rhs) {
+    CALL("Polynom::poly_add")
 
     Polynom out;
     // TODO memoization
@@ -374,6 +378,7 @@ struct Polynom {
   friend Polynom poly_mul(const Polynom& lhs, const Polynom& rhs) {
 
     CALL("Polynom::poly_mul")
+    DBG("Polynom::poly_mul")
     //TODO memoization
     // DBG("lhs: ", lhs)
     // DBG("rhs: ", rhs)
@@ -409,22 +414,26 @@ struct Polynom {
   }
 
   Polynom(Coeff coeff, TermList t) : _coeffs(decltype(_coeffs)())  { 
+    CALL("Polynom::Polynom(Coeff, TermList)")
+    DBG("Polynom::Polynom(Coeff, TermList)")
     _coeffs.emplace_back(poly_pair(std::move(Monom(t)), coeff));
   }
 
   Polynom(Coeff constant) : _coeffs(decltype(_coeffs)())  { 
+    CALL("Polynom::Polynom(Coeff)")
     if (constant != number::zeroC)
       _coeffs.emplace_back(poly_pair(Monom(), constant));
+    DBG("Polynom::Polynom(Coeff) = ", *this)
   }
 
-  Polynom() : _coeffs(decltype(_coeffs)()) {}
+  Polynom() : _coeffs(decltype(_coeffs)()) {
+    CALL("Polynom::Polynom()")
+    DBG("Polynom::Polynom()")
+  }
+
   Polynom(Polynom&& other) = default;
 
-  Polynom& operator=(Polynom&& other) {
-    CALL("Polynom::operator=(Polynom&&)")
-    _coeffs = std::move(other._coeffs);
-    return *this;
-  }
+  Polynom& operator=(Polynom&& other) = default;
 
   void integrity() const {
 #if VDEBUG
@@ -490,52 +499,55 @@ struct Polynom {
     }
     return out;
   }
+
 };
 
 struct AnyPoly {
   
   template<class C>
   using poly = Polynom<num_traits<C>>;
-  using self_t = Either< poly<IntegerConstantType> , Either< poly<RationalConstantType> , poly<RealConstantType> >>;
+  using self_t = Coproduct< poly<IntegerConstantType> , poly<RationalConstantType> , poly<RealConstantType> >;
   self_t self; 
 
-    explicit AnyPoly(poly<IntegerConstantType>&& x) : self(self_t::leftMv(std::move(x))) {
+    explicit AnyPoly(poly<IntegerConstantType>&& x) : self(self_t::variant<0>(std::move(x))) {
       CALL("AnyPoly(Int)")
     }
-    explicit AnyPoly(poly<RationalConstantType>&& x ) : self(
-        self_t::rightMv(self_t::right_t::leftMv(std::move(x)))
-        ) {
-
+    explicit AnyPoly(poly<RationalConstantType>&& x ) : self(self_t::variant<1>(std::move(x))) {
       CALL("AnyPoly(Rat)")
     }
-    explicit AnyPoly(poly<RealConstantType>&& x ) : self(
-        self_t::rightMv(self_t::right_t::rightMv(std::move(x)))
-        ) {
+    explicit AnyPoly(poly<RealConstantType>&& x ) : self(self_t::variant<2>(std::move(x))) {
       CALL("AnyPoly(Real)")
     }
 
   template<class Const> const poly<Const>& ref() const;
 
   template<> const poly<IntegerConstantType>& ref<IntegerConstantType>() const 
-  { return self.unwrapLeft();  }
-
+  { return self.unwrap<0>();  }
   template<> const poly<RationalConstantType>& ref<RationalConstantType>() const 
-  { return self.unwrapRight().unwrapLeft();  }
-
+  { return self.unwrap<1>();  }
   template<> const poly<RealConstantType>& ref<RealConstantType>() const 
-  { return self.unwrapRight().unwrapRight();  }
-
+  { return self.unwrap<2>();  }
 
   template<class Const> poly<Const>& ref_mut();
 
   template<> poly<IntegerConstantType>& ref_mut<IntegerConstantType>() 
-  { return self.unwrapLeft();  }
-
-  template<> poly<RationalConstantType>& ref_mut<RationalConstantType>() 
-  { return self.unwrapRight().unwrapLeft();  }
-
+  { return self.unwrap<0>();  }
+  template<> poly<RationalConstantType>& ref_mut<RationalConstantType>()
+  { return self.unwrap<1>();  }
   template<> poly<RealConstantType>& ref_mut<RealConstantType>() 
-  { return self.unwrapRight().unwrapRight();  }
+  { return self.unwrap<2>();  }
+
+
+  // template<class Const> poly<Const>& ref_mut();
+  //
+  // template<> poly<IntegerConstantType>& ref_mut<IntegerConstantType>() 
+  // { return self.unwrapLeft();  }
+  //
+  // template<> poly<RationalConstantType>& ref_mut<RationalConstantType>() 
+  // { return self.unwrapRight().unwrapLeft();  }
+  //
+  // template<> poly<RealConstantType>& ref_mut<RealConstantType>() 
+  // { return self.unwrapRight().unwrapRight();  }
 
   template<class Const>
   void set(TermList t, Const c) {
@@ -558,34 +570,43 @@ struct AnyPoly {
   template<class Const>
   TermList toTerm() const {
     CALL("AnyPoly::toTerm")
+    DBG("AnyPoly::toTerm")
     return poly<Const>::toTerm(ref<Const>());
   }
 
   TermList toTerm_() const {
     CALL("AnyPoly::toTerm_")
+    DBG("AnyPoly::toTerm_")
 
-    if (self.isLeft()) {
-      using ty = typename self_t::left_t::Coeff;
+    if (self.is<0>()) {
+    // if (self.isLeft()) {
+      // using ty = typename self_t::left_t::Coeff;
+      using ty = typename self_t::type<0>::value::Coeff;
       return toTerm<ty>();
 
-    } else if (self.unwrapRight().isLeft()) {
-      using ty = typename self_t::right_t::left_t::Coeff;
+    } else if (self.is<1>()) {
+    // } else if (self.unwrapRight().isLeft()) {
+      // using ty = typename self_t::right_t::left_t::Coeff;
+      using ty = typename self_t::type<1>::value::Coeff;
       return toTerm<ty>();
 
     } else {
-      using ty = typename self_t::right_t::right_t::Coeff;
+      ASS(self.is<2>())
+      // using ty = typename self_t::right_t::right_t::Coeff;
+      using ty = typename self_t::type<2>::value::Coeff;
       return toTerm<ty>();
     }
   }
 
   friend std::ostream& operator<<(std::ostream& out, const AnyPoly& x) {
     auto& self = x.self;
-    if (self.isLeft()) {
-      out << self.unwrapLeft();
-    } else if (self.unwrapRight().isLeft()) {
-      out << self.unwrapRight().unwrapLeft();
+    if (self.is<0>()) {
+    // if (self.isLeft()) {
+      out << self.unwrap<0>();
+    } else if (self.is<1>()) {
+      out << self.unwrap<1>();
     } else {
-      out << self.unwrapRight().unwrapRight();
+      out << self.unwrap<2>();
     }
     return out;
   }
@@ -760,26 +781,34 @@ Polynom<number> evaluateMul(TermEvalResult&& lhs, TermEvalResult&& rhs) {
 
 template<class number>
 Polynom<number> evaluateAdd(TermEvalResult&& lhs, TermEvalResult&& rhs) {
+  CALL("Polynom<number> evaluateAdd(TermEvalResult&& lhs, TermEvalResult&& rhs)")
   using Const = typename number::ConstantType;
   using poly = Polynom<number>;
 
-  auto l = lhs.collapse<poly>(
-      [](TermList&& t) { 
-        return poly(number::constant(1), t);
-      },
-      [](AnyPoly&& p) {
-        return std::move(p.ref_mut<Const>());
-      });
+  poly out;
+  {
+    poly l = lhs.collapse<poly>(
+        [](TermList&& t) { 
+          return poly(number::constant(1), t);
+        },
+        [](AnyPoly&& p) {
+          return std::move(p.ref_mut<Const>());
+        });
 
-  auto r = rhs.collapse<poly>(
-      [](TermList&& t) { 
-        return poly(number::constant(1), t);
-      },
-      [](AnyPoly&& p) {
-        return std::move(p.ref_mut<Const>());
-      });
-
-  return l + r;
+    poly r = rhs.collapse<poly>(
+        [](TermList&& t) { 
+          return poly(number::constant(1), t);
+        },
+        [](AnyPoly&& p) {
+          return std::move(p.ref_mut<Const>());
+        });
+    
+    DBG("lala 0.1")
+    out = poly_add(l, r);
+    DBG("lala 0.2")
+  }
+  DBG("lala 0.3")
+  return out;
 }
 
 
@@ -787,7 +816,12 @@ Polynom<number> evaluateAdd(TermEvalResult&& lhs, TermEvalResult&& rhs) {
   template<> TermEvalResult PolynomialNormalizer::evaluateFun<num_traits<Const>::addI>(Term* orig, TermEvalResult* evaluatedArgs) const  \
   { \
     CALL("PolynomialNormalizer::evaluateFun<num_traits<" #Const ">::addI>(Term* trm, TermEvalResult* evaluatedArgs)") \
-    return TermEvalResult::rightMv(AnyPoly(evaluateAdd<num_traits<Const>>(std::move(evaluatedArgs[0]), std::move(evaluatedArgs[1])))); \
+    DBG("lala 1") \
+    auto poly = evaluateAdd<num_traits<Const>>(std::move(evaluatedArgs[0]), std::move(evaluatedArgs[1])); \
+    DBG("lala 2") \
+    auto out = TermEvalResult::rightMv(AnyPoly(std::move(poly))); \
+    DBG("lala 3") \
+    return out; \
   } \
 
   IMPL_ADD(RealConstantType    )

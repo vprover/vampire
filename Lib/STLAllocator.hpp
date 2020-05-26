@@ -26,10 +26,8 @@
  * @author Martin Suda
  */
 
-
-#ifndef __STLAllocator__
-#define __STLAllocator__
-
+#ifndef __STLAllocator__ 
+#define __STLAllocator__ 
 #include <limits>
 
 #include "Lib/Allocator.hpp"
@@ -68,11 +66,11 @@ public :
 
     //    memory allocation
     inline pointer allocate(size_type cnt, 
-       typename std::allocator<void>::const_pointer = 0) { 
+      typename std::allocator<void>::const_pointer = 0) { 
       return reinterpret_cast<pointer>(ALLOC_KNOWN(cnt*sizeof(T),"STLAllocator<T>"));           
     }
     inline void deallocate(pointer p, size_type cnt) { 
-        DEALLOC_KNOWN(p,cnt * sizeof(T),"STLAllocator<T>");
+      DEALLOC_KNOWN(p,cnt * sizeof(T),"STLAllocator<T>");
     }
 
     //    size
