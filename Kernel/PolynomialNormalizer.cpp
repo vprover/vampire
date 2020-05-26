@@ -378,10 +378,9 @@ struct Polynom {
   friend Polynom poly_mul(const Polynom& lhs, const Polynom& rhs) {
 
     CALL("Polynom::poly_mul")
-    DBG("Polynom::poly_mul")
     //TODO memoization
-    // DBG("lhs: ", lhs)
-    // DBG("rhs: ", rhs)
+    DEBUG("lhs: ", lhs)
+    DEBUG("rhs: ", rhs)
 
     map<Monom, Coeff> prods;
 
@@ -389,14 +388,11 @@ struct Polynom {
       for (auto& r : rhs._coeffs) {
         Monom monom = getMonom(l) * getMonom(r);
         auto coeff = getCoeff(l) * getCoeff(r);
-        // DBG("adding ", monom, " -> ", coeff);
         auto res = prods.emplace(make_pair(move(monom), coeff));
         if (!res.second) {
           auto& iter = res.first;
-          // DBG("exits: ", iter->first, " -> ", iter->second);
           ASS(iter != prods.end());
           iter->second = iter->second + coeff;
-          // DBG("new:   ", iter->first, " -> ", iter->second);
         }
       }
     }
@@ -408,14 +404,13 @@ struct Polynom {
         out._coeffs.emplace_back(poly_pair(iter->first.clone(), coeff));
       }
     }
-    // DBG("out: ", out)
+    DEBUG("out: ", out)
     out.integrity();
     return out;
   }
 
   Polynom(Coeff coeff, TermList t) : _coeffs(decltype(_coeffs)())  { 
     CALL("Polynom::Polynom(Coeff, TermList)")
-    DBG("Polynom::Polynom(Coeff, TermList)")
     _coeffs.emplace_back(poly_pair(std::move(Monom(t)), coeff));
   }
 
@@ -423,12 +418,10 @@ struct Polynom {
     CALL("Polynom::Polynom(Coeff)")
     if (constant != number::zeroC)
       _coeffs.emplace_back(poly_pair(Monom(), constant));
-    DBG("Polynom::Polynom(Coeff) = ", *this)
   }
 
   Polynom() : _coeffs(decltype(_coeffs)()) {
     CALL("Polynom::Polynom()")
-    DBG("Polynom::Polynom()")
   }
 
   Polynom(Polynom&& other) = default;
@@ -444,17 +437,13 @@ struct Polynom {
         ASS_REP(getMonom(*last) < getMonom(*iter), *this);
         last = iter++;
       }
-      // DBG("ok: ", *this)
     }
 #endif
-
   }
 
   static TermList toTerm(const Polynom& self) {
     CALL("Polynom::toTerm() const")
-    // DBG("Polynom::toTerm(): ", self)
     self.integrity();
-    // DBG("toTerm: ", self)
     auto trm = [](const poly_pair& x) -> TermList { 
 
       if (getMonom(x).isOne()) {  
@@ -509,15 +498,15 @@ struct AnyPoly {
   using self_t = Coproduct< poly<IntegerConstantType> , poly<RationalConstantType> , poly<RealConstantType> >;
   self_t self; 
 
-    explicit AnyPoly(poly<IntegerConstantType>&& x) : self(self_t::variant<0>(std::move(x))) {
-      CALL("AnyPoly(Int)")
-    }
-    explicit AnyPoly(poly<RationalConstantType>&& x ) : self(self_t::variant<1>(std::move(x))) {
-      CALL("AnyPoly(Rat)")
-    }
-    explicit AnyPoly(poly<RealConstantType>&& x ) : self(self_t::variant<2>(std::move(x))) {
-      CALL("AnyPoly(Real)")
-    }
+  explicit AnyPoly(poly<IntegerConstantType>&& x) : self(self_t::variant<0>(std::move(x))) {
+    CALL("AnyPoly(Int)")
+  }
+  explicit AnyPoly(poly<RationalConstantType>&& x ) : self(self_t::variant<1>(std::move(x))) {
+    CALL("AnyPoly(Rat)")
+  }
+  explicit AnyPoly(poly<RealConstantType>&& x ) : self(self_t::variant<2>(std::move(x))) {
+    CALL("AnyPoly(Real)")
+  }
 
   template<class Const> const poly<Const>& ref() const;
 
@@ -570,13 +559,11 @@ struct AnyPoly {
   template<class Const>
   TermList toTerm() const {
     CALL("AnyPoly::toTerm")
-    DBG("AnyPoly::toTerm")
     return poly<Const>::toTerm(ref<Const>());
   }
 
   TermList toTerm_() const {
     CALL("AnyPoly::toTerm_")
-    DBG("AnyPoly::toTerm_")
 
     if (self.is<0>()) {
     // if (self.isLeft()) {
@@ -785,30 +772,23 @@ Polynom<number> evaluateAdd(TermEvalResult&& lhs, TermEvalResult&& rhs) {
   using Const = typename number::ConstantType;
   using poly = Polynom<number>;
 
-  poly out;
-  {
-    poly l = lhs.collapse<poly>(
-        [](TermList&& t) { 
-          return poly(number::constant(1), t);
-        },
-        [](AnyPoly&& p) {
-          return std::move(p.ref_mut<Const>());
-        });
+  poly l = lhs.collapse<poly>(
+      [](TermList&& t) { 
+        return poly(number::constant(1), t);
+      },
+      [](AnyPoly&& p) {
+        return std::move(p.ref_mut<Const>());
+      });
 
-    poly r = rhs.collapse<poly>(
-        [](TermList&& t) { 
-          return poly(number::constant(1), t);
-        },
-        [](AnyPoly&& p) {
-          return std::move(p.ref_mut<Const>());
-        });
-    
-    DBG("lala 0.1")
-    out = poly_add(l, r);
-    DBG("lala 0.2")
-  }
-  DBG("lala 0.3")
-  return out;
+  poly r = rhs.collapse<poly>(
+      [](TermList&& t) { 
+        return poly(number::constant(1), t);
+      },
+      [](AnyPoly&& p) {
+        return std::move(p.ref_mut<Const>());
+      });
+  
+  return poly_add(l, r);
 }
 
 
@@ -816,11 +796,8 @@ Polynom<number> evaluateAdd(TermEvalResult&& lhs, TermEvalResult&& rhs) {
   template<> TermEvalResult PolynomialNormalizer::evaluateFun<num_traits<Const>::addI>(Term* orig, TermEvalResult* evaluatedArgs) const  \
   { \
     CALL("PolynomialNormalizer::evaluateFun<num_traits<" #Const ">::addI>(Term* trm, TermEvalResult* evaluatedArgs)") \
-    DBG("lala 1") \
     auto poly = evaluateAdd<num_traits<Const>>(std::move(evaluatedArgs[0]), std::move(evaluatedArgs[1])); \
-    DBG("lala 2") \
     auto out = TermEvalResult::rightMv(AnyPoly(std::move(poly))); \
-    DBG("lala 3") \
     return out; \
   } \
 
@@ -984,8 +961,7 @@ TermEvalResult PolynomialNormalizer::tryEvalConstant2(Term* orig, TermEvalResult
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 LitEvalResult PolynomialNormalizer::evaluate(Literal* lit) const {
-  Stack<TermList> terms;
-  //TODO reserve arity
+  Stack<TermList> terms(lit->arity());
   for (int i = 0; i < lit->arity(); i++) {
     terms.push(evaluate(*lit->nthArgument(i)));
   }
@@ -1110,13 +1086,9 @@ TermList PolynomialNormalizer::evaluate(Term* term) const {
 
       TermEvalResult* argLst = 0;
       if (orig->arity() != 0) {
-        //here we assume, that stack is an array with
-        //second topmost element as &top()-1, third at
-        //&top()-2, etc...
-        argLst=&args[args.size() - 1] - (orig->arity()-1);
+        argLst=&args[args.size() - orig->arity()];
       }
 
-      // auto t = Term::create(orig,argLst);
       auto res = evaluateStep(orig, argLst);
       args.resize(args.size() - orig->arity());
       DEBUG("evaluated: ", orig->toString(), " -> ", res);
@@ -1141,15 +1113,14 @@ TermList PolynomialNormalizer::evaluate(Term* term) const {
 
 
 inline TermList createTerm(unsigned fun, const Signature::Symbol& sym, TermEvalResult* evaluatedArgs) {
-  Stack<TermList> args;
-  //TODO reserve
+  Stack<TermList> args(sym.arity());
+  // args.reserve;
 
   auto& op = *sym.fnType();
   auto arity = op.arity();
   for (int i = 0; i < arity; i++) {
     args.push(evaluatedArgs[0].toLeft(
       [&](const AnyPoly& p) { 
-      //TODO dispatch on sort of symbol
         return p.toTerm_();
       }));
   }
@@ -1234,7 +1205,6 @@ TermEvalResult PolynomialNormalizer::evaluateStep(Term* orig, TermEvalResult* ar
       return TermEvalResult::left(createTerm(functor, *sym, args));
   }
 }
-
 
 // TODO
 // - include division (?)
