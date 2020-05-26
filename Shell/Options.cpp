@@ -938,7 +938,7 @@ void Options::Options::init()
     _avatarSplitQueueCutoffs.tag(OptionTag::AVATAR);
     _avatarSplitQueueCutoffs.setExperimental();
 
-    _avatarSplitQueueRatios = StringOptionValue("avatar_split_queue_ratios", "avsqr", "1,2");
+    _avatarSplitQueueRatios = StringOptionValue("avatar_split_queue_ratios", "avsqr", "1,1");
     _avatarSplitQueueRatios.description = "The ratios for picking clauses from the split-queues using weighted round robin. If a queue is empty, the clause will be picked from the next non-empty queue to the right. Note that this option implicitly also sets the number of queues.";
     _lookup.insert(&_avatarSplitQueueRatios);
     _avatarSplitQueueRatios.reliesOn(_useAvatarSplitQueues.is(equal(true)));
@@ -957,14 +957,14 @@ void Options::Options::init()
     _lookup.insert(&_useSineLevelSplitQueues);
     _useSineLevelSplitQueues.tag(OptionTag::SATURATION);
 
-    _sineLevelSplitQueueCutoffs = StringOptionValue("sine_level_split_queue_cutoffs", "slsqc", "0");
+    _sineLevelSplitQueueCutoffs = StringOptionValue("sine_level_split_queue_cutoffs", "slsqc", "0,1");
     _sineLevelSplitQueueCutoffs.description = "The cutoff-values for the sine-level-split-queues (the cutoff value for the last queue is omitted, since it has to be infinity).";
     _lookup.insert(&_sineLevelSplitQueueCutoffs);
     _sineLevelSplitQueueCutoffs.reliesOn(_useSineLevelSplitQueues.is(equal(true)));
     _sineLevelSplitQueueCutoffs.tag(OptionTag::SATURATION);
     _sineLevelSplitQueueCutoffs.setExperimental();
 
-    _sineLevelSplitQueueRatios = StringOptionValue("sine_level_split_queue_ratios", "slsqr", "1,3");
+    _sineLevelSplitQueueRatios = StringOptionValue("sine_level_split_queue_ratios", "slsqr", "1,2,3");
     _sineLevelSplitQueueRatios.description = "The ratios for picking clauses from the sine-level-split-queues using weighted round robin. If a queue is empty, the clause will be picked from the next non-empty queue to the right. Note that this option implicitly also sets the number of queues.";
     _lookup.insert(&_sineLevelSplitQueueRatios);
     _sineLevelSplitQueueRatios.reliesOn(_useSineLevelSplitQueues.is(equal(true)));
@@ -983,21 +983,21 @@ void Options::Options::init()
     _lookup.insert(&_usePositiveLiteralSplitQueues);
     _usePositiveLiteralSplitQueues.tag(OptionTag::SATURATION);
 
-    _positiveLiteralSplitQueueCutoffs = StringOptionValue("positive_literal_split_queue_cutoffs", "plsqc", "1,2");
+    _positiveLiteralSplitQueueCutoffs = StringOptionValue("positive_literal_split_queue_cutoffs", "plsqc", "0");
     _positiveLiteralSplitQueueCutoffs.description = "The cutoff-values for the positive-literal-split-queues (the cutoff value for the last queue is omitted, since it has to be infinity).";
     _lookup.insert(&_positiveLiteralSplitQueueCutoffs);
     _positiveLiteralSplitQueueCutoffs.reliesOn(_usePositiveLiteralSplitQueues.is(equal(true)));
     _positiveLiteralSplitQueueCutoffs.tag(OptionTag::SATURATION);
     _positiveLiteralSplitQueueCutoffs.setExperimental();
 
-    _positiveLiteralSplitQueueRatios = StringOptionValue("positive_literal_split_queue_ratios", "plsqr", "5,5,1");
+    _positiveLiteralSplitQueueRatios = StringOptionValue("positive_literal_split_queue_ratios", "plsqr", "1,4");
     _positiveLiteralSplitQueueRatios.description = "The ratios for picking clauses from the positive-literal-split-queues using weighted round robin. If a queue is empty, the clause will be picked from the next non-empty queue to the right. Note that this option implicitly also sets the number of queues.";
     _lookup.insert(&_positiveLiteralSplitQueueRatios);
     _positiveLiteralSplitQueueRatios.reliesOn(_usePositiveLiteralSplitQueues.is(equal(true)));
     _positiveLiteralSplitQueueRatios.tag(OptionTag::SATURATION);
     _positiveLiteralSplitQueueRatios.setExperimental();
 
-    _positiveLiteralSplitQueueLayeredArrangement = BoolOptionValue("positive_literal_split_queue_layered_arrangement","plsql",true);
+    _positiveLiteralSplitQueueLayeredArrangement = BoolOptionValue("positive_literal_split_queue_layered_arrangement","plsql",false);
     _positiveLiteralSplitQueueLayeredArrangement.description = "If turned on, use a layered arrangement to split clauses into queues. Otherwise use a tammet-style-arrangement.";
     _lookup.insert(&_positiveLiteralSplitQueueLayeredArrangement);
     _positiveLiteralSplitQueueLayeredArrangement.reliesOn(_usePositiveLiteralSplitQueues.is(equal(true)));
