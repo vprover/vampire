@@ -77,7 +77,6 @@ public:
     return collapse<void>(l,r);
   }
 
-
   template<class Fr> 
   A toLeft(Fr r) const {
     return collapse<A>([](A x) {return x; }, r);
@@ -140,6 +139,14 @@ public:
     }
   }
 
+  explicit Either(const Either& other) : _tag(other._tag)
+  {
+      if (other._tag == Left) {
+        new(&_cont._left) A(other._cont._left);
+      } else {
+        new(&_cont._right) B(other._cont._right);
+      }
+  }
   Either(Either&& other) //: _tag(other._tag)
     {
       if (other._tag == Left) {
@@ -307,6 +314,9 @@ union VariadicUnion<> {
   void destroy(unsigned idx) {
     ASSERTION_VIOLATION_REP(idx)
   }
+  void initClone(unsigned idx, const VariadicUnion& other) {
+    ASSERTION_VIOLATION_REP(idx)
+  }
   void initMove(unsigned idx, VariadicUnion&& other) {
     ASSERTION_VIOLATION_REP(idx)
   }
@@ -339,6 +349,14 @@ union VariadicUnion<A, As...> {
     }
   }
 
+  void initClone(unsigned idx, const VariadicUnion& other) {
+    if (idx == 0) {
+      ::new(&_head) A(other._head);
+    } else {
+      _tail.initClone(idx - 1, other._tail);
+    }
+  }
+
   void initMove(unsigned idx, VariadicUnion&& other) {
     if (idx == 0) {
       ::new(&_head) A(std::move(other._head));
@@ -359,7 +377,6 @@ union VariadicUnion<A, As...> {
   template<unsigned idx, class...Bs>
   friend struct init;
   VariadicUnion(){}
-
 };
 
 
@@ -433,10 +450,12 @@ public:
     return *this;
   }
 
+  Coproduct(const Coproduct& other) : _tag(other._tag) {
+    _content.initClone(other._tag, other._content);
+  }
   Coproduct(Coproduct&& other) : _tag(other._tag) {
     CALL("Coproduc(Coproduct&& other)")
     _content.initMove(other._tag, std::move(other._content));
-    _tag = other._tag;
   }
 
   ~Coproduct() {

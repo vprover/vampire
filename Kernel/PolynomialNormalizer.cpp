@@ -246,9 +246,9 @@ struct Polynom {
       }
     }
 
-    Monom clone() const {
-      return Monom(*this);
-    }
+    // Monom clone() const {
+    //   return Monom(*this);
+    // }
 
     friend bool operator<(const Monom& l, const Monom& r) {
       if (l._factors.size() < r._factors.size()) {
@@ -305,9 +305,9 @@ struct Polynom {
       return out;
     }
 
+    explicit Monom(const Monom&) = default;
   private:
     // Monom(const Monom& other) : _factors(other._factors) {}
-    Monom(const Monom&) = default;
   };
 
 
@@ -344,7 +344,7 @@ struct Polynom {
     auto r = rhs._coeffs.begin();
     auto insert = [&](const Monom& monom, Coeff value) {
       if (value != number::zeroC)
-        out._coeffs.emplace_back(make_pair(monom.clone(), value));
+        out._coeffs.emplace_back(make_pair(Monom(monom), value));
     };
     while (l != lhs._coeffs.end() && r != rhs._coeffs.end() ) {
       if (getMonom(*l) == getMonom(*r)) {
@@ -401,7 +401,7 @@ struct Polynom {
     for (auto iter = prods.begin(); iter != prods.end(); iter++) {
       auto coeff = iter->second;
       if (coeff != number::zeroC) {
-        out._coeffs.emplace_back(poly_pair(iter->first.clone(), coeff));
+        out._coeffs.emplace_back(poly_pair(Monom(iter->first), coeff)); // TODO try implicit copy
       }
     }
     DEBUG("out: ", out)
@@ -425,6 +425,7 @@ struct Polynom {
   }
 
   Polynom(Polynom&& other) = default;
+  explicit Polynom(const Polynom&) = default;
 
   Polynom& operator=(Polynom&& other) = default;
 
@@ -526,18 +527,6 @@ struct AnyPoly {
   template<> poly<RealConstantType>& ref_mut<RealConstantType>() 
   { return self.unwrap<2>();  }
 
-
-  // template<class Const> poly<Const>& ref_mut();
-  //
-  // template<> poly<IntegerConstantType>& ref_mut<IntegerConstantType>() 
-  // { return self.unwrapLeft();  }
-  //
-  // template<> poly<RationalConstantType>& ref_mut<RationalConstantType>() 
-  // { return self.unwrapRight().unwrapLeft();  }
-  //
-  // template<> poly<RealConstantType>& ref_mut<RealConstantType>() 
-  // { return self.unwrapRight().unwrapRight();  }
-
   template<class Const>
   void set(TermList t, Const c) {
     CALL("AnyPoly::set")
@@ -599,6 +588,7 @@ struct AnyPoly {
   }
   AnyPoly& operator=(AnyPoly&&) = default;
   AnyPoly(AnyPoly&&) = default;
+  explicit AnyPoly(const AnyPoly&) = default;
 private:
 };
 } // namespace Kernel 
@@ -1043,27 +1033,36 @@ TermList PolynomialNormalizer::evaluate(TermList term) const {
 TermList PolynomialNormalizer::evaluate(Term* term) const {
   CALL("PolynomialNormalizer::evaluate(Term* term)")
   DEBUG("evaluating ", term->toString())
+  static DHMap<Term*, TermEvalResult> memo;
 
-  static Stack<TermList*> position(8);
+  static Stack<TermList*> recursion(8);
 
   static Stack<Term*> terms(8);
   static vector<TermEvalResult> args;
 
   args.clear();
-  position.reset();
+  recursion.reset();
   terms.reset();
 
-  position.push(term->args());
+  recursion.push(term->args());
   terms.push(term);
 
-  TermList* cur;
-  while (!position.isEmpty()) {
+  // auto clone = [] (TermEvalResult t) {
+  //   return res.template collapse<TermEvalResult>(
+  //             [](const TermList& x) { return x; },
+  //             [](const AnyPoly& x) { return x.clone(); }
+  //       );
+  // };
 
-    cur = position.pop();
+
+  TermList* cur;
+  while (!recursion.isEmpty()) {
+
+    cur = recursion.pop();
 
     if (!cur->isEmpty()) {
 
-      position.push(cur->next());
+      recursion.push(cur->next());
 
       if(cur->isVar()) {
         // variables are not evaluated
@@ -1071,11 +1070,16 @@ TermList PolynomialNormalizer::evaluate(Term* term) const {
 
       } else {
         ASS(cur->isTerm());
-        Term* t = cur->term();
-        terms.push(t);
-        position.push(t->args());
-      }
 
+        Term* t = cur->term();
+        TermEvalResult* cached = memo.findPtr(t);
+        if (cached != nullptr) {
+          args.emplace_back(TermEvalResult(*cached));
+        } else {
+          terms.push(t);
+          recursion.push(t->args());
+        }
+      }
 
 
     } else /* cur->isEmpty() */ { 
@@ -1084,19 +1088,28 @@ TermList PolynomialNormalizer::evaluate(Term* term) const {
 
       Term* orig=terms.pop();
 
-      TermEvalResult* argLst = 0;
-      if (orig->arity() != 0) {
-        argLst=&args[args.size() - orig->arity()];
-      }
+      auto cached = memo.findPtr(orig);
+      TermEvalResult res;
+      if (cached) {
+        res = TermEvalResult(*cached);
+        // args.emplace_back(TermEvalResult(*cached));
 
-      auto res = evaluateStep(orig, argLst);
+      } else {
+        TermEvalResult* argLst = 0;
+        if (orig->arity() != 0) {
+          argLst=&args[args.size() - orig->arity()];
+        }
+
+        res = evaluateStep(orig, argLst);
+        ALWAYS(memo.emplace(orig, TermEvalResult(res)))
+        DEBUG("evaluated: ", orig->toString(), " -> ", res);
+      }
       args.resize(args.size() - orig->arity());
-      DEBUG("evaluated: ", orig->toString(), " -> ", res);
       args.emplace_back(std::move(res));
     }
 
   }
-  ASS_REP(position.isEmpty(), position)
+  ASS_REP(recursion.isEmpty(), recursion)
     
 
   ASS(args.size() == 1);

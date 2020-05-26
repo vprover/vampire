@@ -473,6 +473,16 @@ ALL_NUMBERS_TEST(polynomial__sorting_6,
       p(mul(a,mul(b,c)))
       )
 
+ALL_NUMBERS_TEST(eval_test_cached_1,
+      p(mul(mul(mul(b,a),c), mul(mul(b,a),c))),
+      p(mul(a,mul(a,mul(b,mul(b,mul(c,c))))))
+      )
+
+ALL_NUMBERS_TEST(eval_test_cached_2,
+      eq(mul(mul(b,a),c), f(mul(mul(b,a),c))),
+      eq(mul(a,mul(b,c)), f(mul(a,mul(b,c))))
+      )
+
 // TODO: cases x = k * x <-> k = 1 | x = 0 
 // TODO: cases x = k + x <-> k = 0 
 // TODO: cases x + x = k <->  = k/2
