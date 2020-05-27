@@ -2,10 +2,14 @@
 #include "Debug/Tracer.hpp"
 #include "Lib/STLAllocator.hpp"
 #include <map>
+#include <unordered_set>
+#include <unordered_map>
 #include <vector>
 #include <stack>
 
-#define DEBUG(...) //DBG(__VA_ARGS__)
+#define DEBUG(...) // DBG(__VA_ARGS__)
+
+#define TODO throw "TODO";
 
 using namespace Lib;
 
@@ -112,22 +116,22 @@ struct compare_terms {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 template<class K, class V, class Compare = std::less<K>> using map  = std::map<K, V, Compare, STLAllocator<std::pair<const K, V > > >;
+
+template<
+    class Key,
+    class Hash = std::hash<Key>,
+    class KeyEqual = std::equal_to<Key>
+> using unordered_set = std::unordered_set<Key, Hash, KeyEqual, STLAllocator<Key>>;
+
+template<
+    class Key,
+    class V,
+    class Hash = std::hash<Key>,
+    class KeyEqual = std::equal_to<Key>
+> using unordered_map = std::unordered_map<Key, V, Hash, KeyEqual, STLAllocator<std::pair<const Key, V>>>;
+
 template<class t> using vector  = std::vector<t, STLAllocator<t>>;
 template<class t> using stack  = std::stack<t, STLAllocator<t>>;
-
-
-/**
- * A polynomial of a specific interpreted number sort. The type parameter is expected to be an instance of num_traits<...>, 
- * defined in num_traits.hpp.
- */
-template<class number>
-struct Polynom {
-    USE_ALLOCATOR(Polynom<number>)
-    CLASS_NAME(Polynom<number>)
-
-  struct Monom {
-      USE_ALLOCATOR(Monom)
-      CLASS_NAME(Monom)
 
     struct WrappedTermList {
       USE_ALLOCATOR(WrappedTermList)
@@ -142,11 +146,74 @@ struct Polynom {
       friend bool operator==(WrappedTermList lhs, WrappedTermList rhs) {
         return lhs.inner == rhs.inner;
       }
+      size_t hash() const {
+        return TermListHash::hash(inner);
+      }
     };
 
-    // map<TermList, int , compare_terms > _factors;
+
+
+template<class number>
+class Monom { 
+public:
+  using Coeff = typename number::ConstantType;
+  class MonomInner;
+  struct hasher;
+private:
+  MonomInner const& _inner;
+  static unordered_map<MonomInner, MonomInner*, hasher> monoms;
+  // operator const MonomInner&() const { return *_inner; }
+public:
+
+  bool isOne() const {return _inner.isOne();}
+
+  TermList toTerm() const {return _inner.toTerm();}
+
+  friend bool operator<(const Monom& lhs, const Monom& rhs) { return lhs._inner < rhs._inner; }
+
+  friend bool operator==(const Monom& lhs, const Monom& rhs) {return &lhs._inner == &rhs._inner;}
+
+  friend ostream& operator<<(ostream& out, const Monom& m) {return out << m._inner;}
+
+  Monom(const MonomInner& inner) : _inner(inner) {}
+
+  Monom(TermList t) : _inner(MonomInner::create(MonomInner(t))) {}
+
+  Monom() : _inner(MonomInner::create(MonomInner())) {}
+
+  static Monom monom_mul(const Monom& lhs, const Monom& rhs) {
+    return Monom(MonomInner::monom_mul(lhs._inner, rhs._inner));
+  }
+
+  class MonomInner {
     vector<tuple<WrappedTermList, int>> _factors;
-    using monom_pair = typename decltype(_factors)::value_type;
+    friend class Monom;
+
+    // empty monom == 1
+    static const MonomInner& create(const MonomInner& self) {
+      CALL("MonomInner::create(MonomInner&&)")
+      auto pos = monoms.find(self);
+      if (pos == monoms.end()) {
+        auto alloc = new MonomInner(self);
+        auto res = monoms.emplace(make_pair(std::move(self), alloc));
+        ASS(res.second);
+        pos = res.first;
+      } else {
+      }
+      return *pos->second;
+    }
+    MonomInner() : _factors(decltype(_factors)()) {
+    }
+
+    MonomInner(TermList t) : _factors(decltype(_factors)()) {
+      _factors.emplace_back(make_tuple(t, 1));
+    }
+
+    public:
+
+      USE_ALLOCATOR(MonomInner)
+      CLASS_NAME(MonomInner)
+      using monom_pair = typename decltype(_factors)::value_type;
 
     static TermList getTerm(const typename decltype(_factors)::value_type& pair) {
       return std::get<0>(pair).inner;
@@ -161,8 +228,9 @@ struct Polynom {
     }
 
     TermList toTerm() const {
-      CALL("Monom::toTerm()")
-      auto iter = _factors.rbegin();
+      //TODO memo
+      CALL("MonomInner::toTerm()")
+        auto iter = _factors.rbegin();
       if (iter == _factors.rend()) {
         return number::one();
       } else {
@@ -184,15 +252,7 @@ struct Polynom {
         return out;
       }
     }
-
-    // empty monom == 1
-    Monom() : _factors(decltype(_factors)()) {
-    }
-    Monom(TermList t) : _factors(decltype(_factors)()) {
-      _factors.emplace_back(make_tuple(t, 1));
-    }
-
-    friend std::ostream& operator<<(std::ostream& out, const Monom& self) {
+    friend std::ostream& operator<<(std::ostream& out, const MonomInner& self) {
       if (self._factors.size() == 0) {
         return out << "1";
       } else {
@@ -206,11 +266,7 @@ struct Polynom {
       }
     }
 
-    // Monom clone() const {
-    //   return Monom(*this);
-    // }
-
-    friend bool operator<(const Monom& l, const Monom& r) {
+    friend bool operator<(const MonomInner& l, const MonomInner& r) {
       if (l._factors.size() < r._factors.size()) {
         return true;
       } else if (l._factors.size() > r._factors.size()) {
@@ -220,17 +276,16 @@ struct Polynom {
       }
     }
 
-    friend bool operator==(const Monom& l, const Monom& r) {
+    friend bool operator==(const MonomInner& l, const MonomInner& r) {
       return l._factors == r._factors;
     }
 
     public:
-    Monom& operator=(Monom&&) = default;
-    Monom(Monom&&) = default;
+    MonomInner& operator=(MonomInner&&) = default;
+    MonomInner(MonomInner&&) = default;
 
-    friend Monom operator*(const Monom& lhs, const Monom& rhs) {
-      Monom out;
-      // TODO memoization
+    static const MonomInner& monom_mul(const MonomInner& lhs, const MonomInner& rhs) {
+      MonomInner out;
       auto l = lhs._factors.begin();
       auto r = rhs._factors.begin();
       auto insert = [&](TermList term, int value) {
@@ -262,18 +317,46 @@ struct Polynom {
         r++;
       }
       ASS(l == lhs._factors.end() && r == rhs._factors.end());
-      return out;
+      return MonomInner::create(std::move(out));
     }
 
-    explicit Monom(const Monom&) = default;
-  private:
-    // Monom(const Monom& other) : _factors(other._factors) {}
+    explicit MonomInner(const MonomInner&) = default;
+    private:
   };
+  struct hasher {
+    size_t operator()(Monom::MonomInner const& x) const noexcept {
+      size_t out = 0;
+      for (auto f : x._factors) {
+        out ^= std::get<0>(f).hash();
+        out ^= std::hash<int>{}(std::get<1>(f));
+        out <<= 1;
+      }
+      return out;
+    }
+  };
+};
 
 
+/**
+ * A polynomial of a specific interpreted number sort. The type parameter is expected to be an instance of num_traits<...>, 
+ * defined in num_traits.hpp.
+ */
+template<class number>
+class Polynom {
+public:
+  USE_ALLOCATOR(Polynom<number>)
+  CLASS_NAME(Polynom<number>)
   using Coeff = typename number::ConstantType;
+  using Monom = Monom<number>;
+  friend struct std::hash<Polynom<number>>;
+
+private:
+  // static unordered_map<Polynom<number>, Polynom<number> const *const > polys;
   vector<tuple<Monom, Coeff>> _coeffs;
   using poly_pair = typename decltype(_coeffs)::value_type;
+
+public:
+
 
   void multiply(Coeff c) {
     CALL("Polynom::multiply")
@@ -346,7 +429,7 @@ struct Polynom {
 
     for (auto& l : lhs._coeffs) {
       for (auto& r : rhs._coeffs) {
-        Monom monom = getMonom(l) * getMonom(r);
+        Monom monom = Monom::monom_mul( getMonom(l), getMonom(r));
         auto coeff = getCoeff(l) * getCoeff(r);
         auto res = prods.emplace(make_pair(move(monom), coeff));
         if (!res.second) {
@@ -673,28 +756,50 @@ TermEvalResult evaluateUnaryMinus(TermEvalResult& inner) {
 /// MULTIPLY
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-template<class number>
-Polynom<number> evaluateMul(TermEvalResult&& lhs, TermEvalResult&& rhs) {
+template<class number> 
+TermEvalResult PolynomialNormalizer::evaluateMul(TermEvalResult&& lhs, TermEvalResult&& rhs) const 
+{
   using Const = typename number::ConstantType;
   using poly = Polynom<number>;
+  if (_usePolyMul) {
+    auto l = lhs.collapse<poly>(
+        [](TermList&& t) { 
+          return poly(number::constant(1), t);
+        },
+        [](AnyPoly&& p) {
+          return std::move(p.ref_mut<Const>());
+        });
 
-  auto l = lhs.collapse<poly>(
-      [](TermList&& t) { 
-        return poly(number::constant(1), t);
-      },
-      [](AnyPoly&& p) {
-        return std::move(p.ref_mut<Const>());
-      });
+    auto r = rhs.collapse<poly>(
+        [](TermList&& t) { 
+          return poly(number::constant(1), t);
+        },
+        [](AnyPoly&& p) {
+          return std::move(p.ref_mut<Const>());
+        });
 
-  auto r = rhs.collapse<poly>(
-      [](TermList&& t) { 
-        return poly(number::constant(1), t);
-      },
-      [](AnyPoly&& p) {
-        return std::move(p.ref_mut<Const>());
-      });
+    return TermEvalResult::rightMv(AnyPoly(poly_mul(l, r)));
+  } else {
 
-  return poly_mul(l, r);
+    auto toTerm = [](TermEvalResult&& res) {
+      return res.collapse<TermList>(
+        [](TermList&& t) { 
+          return t;
+        },
+        [](AnyPoly&& p) {
+          return p.toTerm_();
+        });
+    };
+
+    auto l = toTerm(std::move(lhs));
+    auto r = toTerm(std::move(rhs));
+
+    if ( WrappedTermList(r) < WrappedTermList(l) ) {
+      std::swap(l,r);
+    }
+
+    return TermEvalResult::leftMv(TermList(number::mul(l, r)));
+  }
 }
 
 
@@ -702,7 +807,7 @@ Polynom<number> evaluateMul(TermEvalResult&& lhs, TermEvalResult&& rhs) {
   template<> TermEvalResult PolynomialNormalizer::evaluateFun<num_traits<Const>::mulI>(Term* orig, TermEvalResult* evaluatedArgs) const  \
   { \
     CALL("PolynomialNormalizer::evaluateFun<num_traits<" #Const ">::mulI>(Term* trm, TermEvalResult* evaluatedArgs)") \
-    return TermEvalResult::rightMv(AnyPoly(evaluateMul<num_traits<Const>>(std::move(evaluatedArgs[0]), std::move(evaluatedArgs[1])))); \
+    return evaluateMul<num_traits<Const>>(std::move(evaluatedArgs[0]), std::move(evaluatedArgs[1])); \
   } \
 
   IMPL_MULTIPLY(RealConstantType    )
@@ -1007,14 +1112,6 @@ TermList PolynomialNormalizer::evaluate(Term* term) const {
   recursion.push(term->args());
   terms.push(term);
 
-  // auto clone = [] (TermEvalResult t) {
-  //   return res.template collapse<TermEvalResult>(
-  //             [](const TermList& x) { return x; },
-  //             [](const AnyPoly& x) { return x.clone(); }
-  //       );
-  // };
-
-
   TermList* cur;
   while (!recursion.isEmpty()) {
 
@@ -1191,3 +1288,10 @@ TermEvalResult PolynomialNormalizer::evaluateStep(Term* orig, TermEvalResult* ar
 #undef IGNORE_CASE
 #undef HANDLE_NUM_CASES
 }
+
+#define INSTANTIATE_STATICS(Integer) \
+  template<> decltype(Kernel::Polynom<Kernel::num_traits<Kernel::Integer ## ConstantType>>::Monom::monoms) Kernel::Polynom<Kernel::num_traits<Kernel::Integer ## ConstantType>>::Monom::monoms = decltype(Kernel::Polynom<Kernel::num_traits<Kernel::Integer ## ConstantType>>::Monom::monoms)();
+
+INSTANTIATE_STATICS(Integer)
+INSTANTIATE_STATICS(Rational)
+INSTANTIATE_STATICS(Real)

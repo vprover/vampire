@@ -101,7 +101,7 @@ void check(bool b, const char* msg, As... vs) {
 
 void check_no_succ(Literal& orig) {
 
-  auto eval = PolynomialNormalizer();
+  auto eval = PolynomialNormalizer(true);
 
   // bool constant;
   // Literal* result = NULL;
@@ -119,7 +119,7 @@ void check_no_succ(Literal& orig) {
 
 void check_eval(Literal& orig, bool expected) {
 
-  auto eval = PolynomialNormalizer();
+  auto eval = PolynomialNormalizer(true);
 
   auto sideConditions = Stack<Literal*>();
   Literal* src = Literal::create(&orig, orig.polarity());
@@ -135,7 +135,7 @@ bool operator==(const Literal& lhs, const Literal& rhs) {
 
 void check_eval(Literal& orig, const Literal& expected) {
 
-  auto eval = PolynomialNormalizer();
+  auto eval = PolynomialNormalizer(true);
 
   auto sideConditions = Stack<Literal*>();
   Literal* src = Literal::create(&orig, orig.polarity());

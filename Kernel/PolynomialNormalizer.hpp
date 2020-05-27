@@ -22,12 +22,12 @@ namespace Kernel {
 
 
 struct AnyPoly;
-//  TODO continue here
 using TermEvalResult = Lib::Either<TermList, AnyPoly>;
 using LitEvalResult  = Lib::Either<Literal*, bool>;
-struct PolynomialNormalizer {
-
+class PolynomialNormalizer {
+  const bool _usePolyMul;
 public:
+  PolynomialNormalizer(bool usePolyMul) : _usePolyMul(usePolyMul) {}
   LitEvalResult evaluate(Literal* in) const;
   TermList evaluate(TermList in) const;
   TermList evaluate(Term* in) const;
@@ -59,6 +59,7 @@ private:
   template<class ConstantType, class EvalGround>
   TermEvalResult tryEvalConstant1(Term* orig, TermEvalResult* evaluatedArgs, EvalGround fun) const;
 
+  template<class number> TermEvalResult evaluateMul(TermEvalResult&& lhs, TermEvalResult&& rhs) const;
   template<class ConstantType, class EvalGround>
   TermEvalResult tryEvalConstant2(Term* orig, TermEvalResult* evaluatedArgs, EvalGround fun) const;
 };
