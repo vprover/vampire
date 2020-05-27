@@ -130,6 +130,7 @@ public:
   static IntegerConstantType ceiling(IntegerConstantType rat);
 
   static Comparison comparePrecedence(IntegerConstantType n1, IntegerConstantType n2);
+  size_t hash() const;
 
   vstring toString() const;
 private:
@@ -207,6 +208,7 @@ struct RationalConstantType {
 
   const InnerType& numerator() const { return _num; }
   const InnerType& denominator() const { return _den; }
+  size_t hash() const;
 
   static Comparison comparePrecedence(RationalConstantType n1, RationalConstantType n2);
 
@@ -260,6 +262,7 @@ public:
 
   vstring toNiceString() const;
 
+  size_t hash() const;
   static Comparison comparePrecedence(RealConstantType n1, RealConstantType n2);
 private:
   static bool parseDouble(const vstring& num, RationalConstantType& res);

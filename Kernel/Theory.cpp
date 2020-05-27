@@ -1878,6 +1878,18 @@ vstring Theory::tryGetInterpretedLaTeXName(unsigned func, bool pred,bool polarit
 
 }
 
+size_t IntegerConstantType::hash() const {
+  return std::hash<decltype(_val)>{}(_val);
+}
+
+size_t RationalConstantType::hash() const {
+  return (denominator().hash() << 1) ^ numerator().hash();
+}
+
+size_t RealConstantType::hash() const {
+  return (denominator().hash() << 1) ^ numerator().hash();
+}
+
 }
 
 

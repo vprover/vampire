@@ -162,7 +162,7 @@ public:
 private:
   MonomInner const& _inner;
   static unordered_map<MonomInner, MonomInner*, hasher> monoms;
-  // operator const MonomInner&() const { return *_inner; }
+
 public:
 
   bool isOne() const {return _inner.isOne();}
@@ -172,6 +172,7 @@ public:
   friend bool operator<(const Monom& lhs, const Monom& rhs) { return lhs._inner < rhs._inner; }
 
   friend bool operator==(const Monom& lhs, const Monom& rhs) {return &lhs._inner == &rhs._inner;}
+  size_t hash() const { return std::hash<size_t>{}((size_t)&_inner); }
 
   friend ostream& operator<<(ostream& out, const Monom& m) {return out << m._inner;}
 
@@ -343,196 +344,239 @@ public:
  */
 template<class number>
 class Polynom {
+  class PolynomInner;
+
+  struct hasher;
+  PolynomInner const& _inner;
+  static unordered_map<PolynomInner, PolynomInner*, hasher> polynoms;
 public:
-  USE_ALLOCATOR(Polynom<number>)
-  CLASS_NAME(Polynom<number>)
   using Coeff = typename number::ConstantType;
   using Monom = Monom<number>;
-  friend struct std::hash<Polynom<number>>;
+
+  friend ostream& operator<<(ostream& out, const Polynom& self) { return out << self._inner; }
+  static TermList toTerm(const Polynom& self) { return PolynomInner::toTerm(self._inner); }
+  static Polynom poly_mul(const Polynom& lhs, const Polynom& rhs) {
+    return Polynom(PolynomInner::poly_mul(lhs._inner, rhs._inner));
+  }
+  static Polynom poly_add(const Polynom& lhs, const Polynom& rhs) {
+    return Polynom(PolynomInner::poly_add(lhs._inner, rhs._inner));
+  }
+
+  Polynom(Coeff coeff, TermList t) : _inner(PolynomInner::create(PolynomInner(coeff, t))) {}
+  Polynom(Coeff constant) : _inner(PolynomInner::create(constant)) {}
+  Polynom(const PolynomInner& inner) : _inner(inner){} 
 
 private:
-  // static unordered_map<Polynom<number>, Polynom<number> const *const > polys;
-  vector<tuple<Monom, Coeff>> _coeffs;
-  using poly_pair = typename decltype(_coeffs)::value_type;
 
-public:
+  class PolynomInner {
+  public:
+    USE_ALLOCATOR(PolynomInner)
+    CLASS_NAME(PolynomInner)
 
+  private:
+    // static unordered_map<PolynomInner<number>, PolynomInner<number> const *const > polys;
+    vector<tuple<Monom, Coeff>> _coeffs;
+    using poly_pair = typename decltype(_coeffs)::value_type;
 
-  void multiply(Coeff c) {
-    CALL("Polynom::multiply")
-    for (auto& pair : _coeffs) {
-      getCoeffMut(pair) = c * getCoeff(pair);
+  public:
+    static const PolynomInner& create(PolynomInner&& self_) {
+      auto self = std::move(self_);
+      const PolynomInner& x = self;
+      CALL("PolynomInner::create(PolynomInner&&)")
+      auto pos = polynoms.find(x);
+      if (pos == polynoms.end()) {
+        auto alloc = new PolynomInner(std::move(self));
+        auto res = polynoms.emplace(make_pair(PolynomInner(*alloc), alloc));
+        ASS(res.second);
+        pos = res.first;
+      }
+      return *pos->second;
     }
-  }
 
-  static const Monom& getMonom(const poly_pair& pair) {
-    return std::get<0>(pair);
-  }
+    friend bool operator==(const PolynomInner& lhs, const PolynomInner& rhs) {
+      return lhs._coeffs == rhs._coeffs;
+    }
 
-  static const Coeff& getCoeff(const poly_pair& pair) {
-    return std::get<1>(pair);
-  }
+    static const Monom& getMonom(const poly_pair& pair) {
+      return std::get<0>(pair);
+    }
 
-  static Coeff& getCoeffMut(poly_pair& pair) {
-    return std::get<1>(pair);
-  }
+    static const Coeff& getCoeff(const poly_pair& pair) {
+      return std::get<1>(pair);
+    }
 
-  friend Polynom poly_add(const Polynom& lhs, const Polynom& rhs) {
-    CALL("Polynom::poly_add")
+    static Coeff& getCoeffMut(poly_pair& pair) {
+      return std::get<1>(pair);
+    }
 
-    Polynom out;
-    // TODO memoization
-    // TODO unify with Monom::operator+
-    auto l = lhs._coeffs.begin();
-    auto r = rhs._coeffs.begin();
-    auto insert = [&](const Monom& monom, Coeff value) {
-      if (value != number::zeroC)
-        out._coeffs.emplace_back(make_pair(Monom(monom), value));
-    };
-    while (l != lhs._coeffs.end() && r != rhs._coeffs.end() ) {
-      if (getMonom(*l) == getMonom(*r)) {
-        //add up
-        insert(getMonom(*l), getCoeff(*l) + getCoeff(*r));
-        l++;
-        r++;
-      } else if (getMonom(*l)< getMonom(*r)) {
-        // insert l
+    static const PolynomInner& poly_add(const PolynomInner& lhs, const PolynomInner& rhs) {
+      CALL("PolynomInner::poly_add")
+
+      PolynomInner out;
+      // TODO memoization
+      // TODO unify with Monom::operator+
+      auto l = lhs._coeffs.begin();
+      auto r = rhs._coeffs.begin();
+      auto insert = [&](const Monom& monom, Coeff value) {
+        if (value != number::zeroC)
+          out._coeffs.emplace_back(make_pair(Monom(monom), value));
+      };
+      while (l != lhs._coeffs.end() && r != rhs._coeffs.end() ) {
+        if (getMonom(*l) == getMonom(*r)) {
+          //add up
+          insert(getMonom(*l), getCoeff(*l) + getCoeff(*r));
+          l++;
+          r++;
+        } else if (getMonom(*l)< getMonom(*r)) {
+          // insert l
+          insert(getMonom(*l), getCoeff(*l));
+          l++;
+        } else {
+          // insert r
+          insert(getMonom(*r), getCoeff(*r));
+          r++;
+        }
+      }
+      while (l != lhs._coeffs.end()) {
         insert(getMonom(*l), getCoeff(*l));
         l++;
-      } else {
-        // insert r
+      }
+      while (r != rhs._coeffs.end()) {
         insert(getMonom(*r), getCoeff(*r));
         r++;
       }
+      ASS(l == lhs._coeffs.end() && r == rhs._coeffs.end());
+      out.integrity();
+      return PolynomInner::create(std::move(out));
     }
-    while (l != lhs._coeffs.end()) {
-      insert(getMonom(*l), getCoeff(*l));
-      l++;
-    }
-    while (r != rhs._coeffs.end()) {
-      insert(getMonom(*r), getCoeff(*r));
-      r++;
-    }
-    ASS(l == lhs._coeffs.end() && r == rhs._coeffs.end());
-    out.integrity();
-    return out;
-  }
 
-  friend Polynom poly_mul(const Polynom& lhs, const Polynom& rhs) {
+    static const PolynomInner& poly_mul(const PolynomInner& lhs, const PolynomInner& rhs) {
 
-    CALL("Polynom::poly_mul")
-    //TODO memoization
-    DEBUG("lhs: ", lhs)
-    DEBUG("rhs: ", rhs)
+      CALL("PolynomInner::poly_mul")
+      DEBUG("lhs: ", lhs)
+      DEBUG("rhs: ", rhs)
 
-    map<Monom, Coeff> prods;
+      map<Monom, Coeff> prods;
 
-    for (auto& l : lhs._coeffs) {
-      for (auto& r : rhs._coeffs) {
-        Monom monom = Monom::monom_mul( getMonom(l), getMonom(r));
-        auto coeff = getCoeff(l) * getCoeff(r);
-        auto res = prods.emplace(make_pair(move(monom), coeff));
-        if (!res.second) {
-          auto& iter = res.first;
-          ASS(iter != prods.end());
-          iter->second = iter->second + coeff;
+      for (auto& l : lhs._coeffs) {
+        for (auto& r : rhs._coeffs) {
+          Monom monom = Monom::monom_mul( getMonom(l), getMonom(r));
+          auto coeff = getCoeff(l) * getCoeff(r);
+          auto res = prods.emplace(make_pair(move(monom), coeff));
+          if (!res.second) {
+            auto& iter = res.first;
+            ASS(iter != prods.end());
+            iter->second = iter->second + coeff;
+          }
         }
       }
-    }
-    Polynom out;
-    out._coeffs.reserve(prods.size());
-    for (auto iter = prods.begin(); iter != prods.end(); iter++) {
-      auto coeff = iter->second;
-      if (coeff != number::zeroC) {
-        out._coeffs.emplace_back(poly_pair(Monom(iter->first), coeff)); // TODO try implicit copy
+      PolynomInner out;
+      out._coeffs.reserve(prods.size());
+      for (auto iter = prods.begin(); iter != prods.end(); iter++) {
+        auto coeff = iter->second;
+        if (coeff != number::zeroC) {
+          out._coeffs.emplace_back(poly_pair(Monom(iter->first), coeff)); // TODO try implicit copy
+        }
       }
+      DEBUG("out: ", out)
+      out.integrity();
+      return PolynomInner::create(std::move(out));
     }
-    DEBUG("out: ", out)
-    out.integrity();
-    return out;
-  }
 
-  Polynom(Coeff coeff, TermList t) : _coeffs(decltype(_coeffs)())  { 
-    CALL("Polynom::Polynom(Coeff, TermList)")
-    _coeffs.emplace_back(poly_pair(std::move(Monom(t)), coeff));
-  }
+    PolynomInner(Coeff coeff, TermList t) : _coeffs(decltype(_coeffs)())  { 
+      CALL("PolynomInner::PolynomInner(Coeff, TermList)")
+      _coeffs.emplace_back(poly_pair(std::move(Monom(t)), coeff));
+    }
 
-  Polynom(Coeff constant) : _coeffs(decltype(_coeffs)())  { 
-    CALL("Polynom::Polynom(Coeff)")
-    if (constant != number::zeroC)
-      _coeffs.emplace_back(poly_pair(Monom(), constant));
-  }
+    PolynomInner(Coeff constant) : _coeffs(decltype(_coeffs)())  { 
+      CALL("PolynomInner::PolynomInner(Coeff)")
+      if (constant != number::zeroC)
+        _coeffs.emplace_back(poly_pair(Monom(), constant));
+    }
 
-  Polynom() : _coeffs(decltype(_coeffs)()) {
-    CALL("Polynom::Polynom()")
-  }
+    PolynomInner() : _coeffs(decltype(_coeffs)()) {
+      CALL("PolynomInner::PolynomInner()")
+    }
 
-  Polynom(Polynom&& other) = default;
-  explicit Polynom(const Polynom&) = default;
+    PolynomInner(PolynomInner&& other) = default;
+    explicit PolynomInner(const PolynomInner&) = default;
 
-  Polynom& operator=(Polynom&& other) = default;
+    PolynomInner& operator=(PolynomInner&& other) = default;
 
-  void integrity() const {
+    void integrity() const {
 #if VDEBUG
-    if (_coeffs.size() > 0) {
-      auto iter = this->_coeffs.begin();
-      auto last = iter++;
-      while (iter != _coeffs.end()) {
-        ASS_REP(getMonom(*last) < getMonom(*iter), *this);
-        last = iter++;
+      if (_coeffs.size() > 0) {
+        auto iter = this->_coeffs.begin();
+        auto last = iter++;
+        while (iter != _coeffs.end()) {
+          ASS_REP(getMonom(*last) < getMonom(*iter), *this);
+          last = iter++;
+        }
+      }
+#endif
+    }
+
+    static TermList toTerm(const PolynomInner& self) {
+      CALL("PolynomInner::toTerm() const")
+      self.integrity();
+      auto trm = [](const poly_pair& x) -> TermList { 
+
+        if (getMonom(x).isOne()) {  
+          /* the pair is a plain number */
+          return TermList( theory->representConstant(getCoeff(x)) );
+
+        } else if (getCoeff(x)== number::constant(1)) {
+          /* the pair is an uninterpreted term */
+          return getMonom(x).toTerm();
+
+        } else if (getCoeff(x)== number::constant(-1)) {
+          return TermList(number::minus(getMonom(x).toTerm()));
+
+        } else {
+          return TermList(number::mul(TermList( theory->representConstant(getCoeff(x)) ), getMonom(x).toTerm())); 
+        }
+      };
+
+      auto iter = self._coeffs.rbegin(); 
+      if (iter == self._coeffs.rend()) {
+        return TermList(number::zero());
+      } else {
+        auto out = trm(*iter);
+        iter++;
+        for (; iter != self._coeffs.rend(); iter++) {
+          out = number::add(trm(*iter), out);
+        }
+        return out;
       }
     }
-#endif
-  }
 
-  static TermList toTerm(const Polynom& self) {
-    CALL("Polynom::toTerm() const")
-    self.integrity();
-    auto trm = [](const poly_pair& x) -> TermList { 
-
-      if (getMonom(x).isOne()) {  
-        /* the pair is a plain number */
-        return TermList( theory->representConstant(getCoeff(x)) );
-
-      } else if (getCoeff(x)== number::constant(1)) {
-        /* the pair is an uninterpreted term */
-        return getMonom(x).toTerm();
-
-      } else if (getCoeff(x)== number::constant(-1)) {
-        return TermList(number::minus(getMonom(x).toTerm()));
-
+    friend std::ostream& operator<<(std::ostream& out, const PolynomInner& self) {
+      auto iter = self._coeffs.begin();
+      if ( iter == self._coeffs.end() ) {
+        out << "0" << endl;
       } else {
-        return TermList(number::mul(TermList( theory->representConstant(getCoeff(x)) ), getMonom(x).toTerm())); 
-      }
-    };
-
-    auto iter = self._coeffs.rbegin(); 
-    if (iter == self._coeffs.rend()) {
-      return TermList(number::zero());
-    } else {
-      auto out = trm(*iter);
-      iter++;
-      for (; iter != self._coeffs.rend(); iter++) {
-        out = number::add(trm(*iter), out);
+        out << getMonom(*iter)<< " * " << getCoeff(*iter);
+        iter++;
+        for (; iter != self._coeffs.end(); iter++) {
+          out << " + " << getMonom(*iter)<< " * " << getCoeff(*iter);
+        }
       }
       return out;
     }
-  }
 
-  friend std::ostream& operator<<(std::ostream& out, const Polynom& self) {
-    auto iter = self._coeffs.begin();
-    if ( iter == self._coeffs.end() ) {
-      out << "0" << endl;
-    } else {
-      out << getMonom(*iter)<< " * " << getCoeff(*iter);
-      iter++;
-      for (; iter != self._coeffs.end(); iter++) {
-        out << " + " << getMonom(*iter)<< " * " << getCoeff(*iter);
+    friend struct hasher;
+  };
+  struct hasher {
+    size_t operator()(Polynom::PolynomInner const& x) const noexcept {
+      size_t out = 0;
+      for (auto c : x._coeffs) {
+        out ^= PolynomInner::getMonom(c).hash();
+        out ^= PolynomInner::getCoeff(c).hash();
+        out <<= 1;
       }
+      return out;
     }
-    return out;
-  }
-
+  };
 };
 
 struct AnyPoly {
@@ -576,11 +620,11 @@ struct AnyPoly {
     return ref_mut<Const>().set(t,c);
   }
 
-  template<class Const>
-  void multiply(Const c) {
-    CALL("AnyPoly::multiply")
-    return ref_mut<Const>().multiply(c);
-  }
+  // template<class Const>
+  // void multiply(Const c) {
+  //   CALL("AnyPoly::multiply")
+  //   return ref_mut<Const>().multiply(c);
+  // }
 
   template<class Const>
   Const get(TermList t) {
@@ -724,15 +768,16 @@ template<> LitEvalResult PolynomialNormalizer::evaluateLit<Interpretation::INT_D
 template<class number>
 TermEvalResult evaluateUnaryMinus(TermEvalResult& inner) {
   auto out = inner.map(
-      [](TermList&& t) { 
+      [](const TermList& t) { 
         return TermEvalResult::rightMv(AnyPoly(
-            Polynom<number>(
-                number::constant(-1), t
-              )));
+            Polynom<number>( number::constant(-1), t)
+            ));
       },
-      [](AnyPoly&& p) {
-        p.multiply(number::constant(-1));
-        return TermEvalResult::rightMv(std::move(p));
+      [](const AnyPoly& p) {
+        // p.multiply(number::constant(-1)); 
+        auto minusOne = Polynom<number>(number::constant(-1));
+        auto out = Polynom<number>::poly_mul(minusOne, p.ref<typename number::ConstantType>());//TODO speed this up
+        return TermEvalResult::rightMv(AnyPoly(std::move(out)));
       });
   return out;
 }
@@ -778,7 +823,7 @@ TermEvalResult PolynomialNormalizer::evaluateMul(TermEvalResult&& lhs, TermEvalR
           return std::move(p.ref_mut<Const>());
         });
 
-    return TermEvalResult::rightMv(AnyPoly(poly_mul(l, r)));
+    return TermEvalResult::rightMv(AnyPoly(poly::poly_mul(l, r)));
   } else {
 
     auto toTerm = [](TermEvalResult&& res) {
@@ -843,7 +888,7 @@ Polynom<number> evaluateAdd(TermEvalResult&& lhs, TermEvalResult&& rhs) {
         return std::move(p.ref_mut<Const>());
       });
   
-  return poly_add(l, r);
+  return poly::poly_add(l, r);
 }
 
 
@@ -1289,8 +1334,12 @@ TermEvalResult PolynomialNormalizer::evaluateStep(Term* orig, TermEvalResult* ar
 #undef HANDLE_NUM_CASES
 }
 
+#define INSTANTIATE_STATIC(value) \
+  template<> decltype(value) value = decltype(value)();
+
 #define INSTANTIATE_STATICS(Integer) \
-  template<> decltype(Kernel::Polynom<Kernel::num_traits<Kernel::Integer ## ConstantType>>::Monom::monoms) Kernel::Polynom<Kernel::num_traits<Kernel::Integer ## ConstantType>>::Monom::monoms = decltype(Kernel::Polynom<Kernel::num_traits<Kernel::Integer ## ConstantType>>::Monom::monoms)();
+  INSTANTIATE_STATIC(Kernel::Monom  <Kernel::num_traits<Kernel::Integer ## ConstantType>>::monoms  ) \
+  INSTANTIATE_STATIC(Kernel::Polynom<Kernel::num_traits<Kernel::Integer ## ConstantType>>::polynoms)
 
 INSTANTIATE_STATICS(Integer)
 INSTANTIATE_STATICS(Rational)
