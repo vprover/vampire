@@ -864,13 +864,11 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "finite model not found";
   case InferenceRule::INDUCTION_AXIOM:
     return "induction hypothesis";
-  case INDUCTIVE_STRENGTH:
-    return "inductive strengthening";
-  case GAUSSIAN_VARIABLE_ELIMINIATION:
+  case InferenceRule::GAUSSIAN_VARIABLE_ELIMINIATION:
     return "gaussian variable elimination";
-  default:
-    ASSERTION_VIOLATION;
-    return "!UNKNOWN INFERENCE RULE!";
   }
+  ASSERTION_VIOLATION;
+  /* moved outside of the case split to get a compiler warning */
+  return "!UNKNOWN INFERENCE RULE!";
 } // Inference::name()
 

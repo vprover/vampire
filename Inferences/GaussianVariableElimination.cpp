@@ -58,11 +58,12 @@ Clause* GaussianVariableElimination::simplify(Clause* in)
 
 Clause* GaussianVariableElimination::rewrite(Clause& cl, TermList find, TermList replace, unsigned skipLiteral) const 
 {
-  CALL("GaussianVariableElimination::rewrite")
-  Inference& inf = *new Inference1(Kernel::Inference::Rule::GAUSSIAN_VARIABLE_ELIMINIATION, &cl);
+  CALL("GaussianVariableElimination::rewrite");
+  // Inference& inf = *new Inference1(Kernel::InferenceRule::GAUSSIAN_VARIABLE_ELIMINIATION, &cl);
+  Inference inf(SimplifyingInference1(Kernel::InferenceRule::GAUSSIAN_VARIABLE_ELIMINIATION, &cl));
 
   auto sz = cl.size() - 1;
-  Clause& out = *new(sz) Clause(sz, cl.inputType(), &inf); 
+  Clause& out = *new(sz) Clause(sz, inf); 
   for (int i = 0; i < skipLiteral; i++) {
     out[i] = EqHelper::replace(cl[i], find, replace);
   }
@@ -71,9 +72,8 @@ Clause* GaussianVariableElimination::rewrite(Clause& cl, TermList find, TermList
     out[i] = EqHelper::replace(cl[i+1], find, replace);
   }
 
-  // for (int i = 0; i < sz; i++) {
-  //   Lit
-  // }
+  out.setSplits(cl.splits());
+  ASS_EQ(out.splits(), cl.splits())
   
   return &out;
 }
