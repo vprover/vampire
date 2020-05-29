@@ -59,7 +59,7 @@ Clause* GaussianVariableElimination::simplify(Clause* in)
 Clause* GaussianVariableElimination::rewrite(Clause& cl, TermList find, TermList replace, unsigned skipLiteral) const 
 {
   CALL("GaussianVariableElimination::rewrite")
-  Inference& inf = *new Inference1(Kernel::Inference::Rule::REBALANCING_ELIMINIATION, &cl);
+  Inference& inf = *new Inference1(Kernel::Inference::Rule::GAUSSIAN_VARIABLE_ELIMINIATION, &cl);
 
   auto sz = cl.size() - 1;
   Clause& out = *new(sz) Clause(sz, cl.inputType(), &inf); 

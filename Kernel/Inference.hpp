@@ -359,7 +359,7 @@ enum class InferenceRule : unsigned char {
     /* Inductive strengthening*/
     INDUCTIVE_STRENGTH,
     /* rewriting by theory equalties 3x != 6 \/ C[x] ==> C[2] */
-    REBALANCING_ELIMINIATION,
+    GAUSSIAN_VARIABLE_ELIMINIATION,
   }; // class Inference::Rule
 
   explicit Inference(Rule r);
