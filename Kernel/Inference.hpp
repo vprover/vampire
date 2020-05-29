@@ -660,7 +660,6 @@ public:
   * the FromSatRefutationInfo of INFERENCE_FROM_SAT_REFUTATION).
   */
   void destroyDirectlyOwned();
-
   /**
    * Decrease reference counters in referred units.
    *

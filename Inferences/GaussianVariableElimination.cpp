@@ -73,7 +73,6 @@ Clause* GaussianVariableElimination::rewrite(Clause& cl, TermList find, TermList
   }
 
   out.setSplits(cl.splits());
-  ASS_EQ(out.splits(), cl.splits())
   
   return &out;
 }

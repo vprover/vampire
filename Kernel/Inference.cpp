@@ -868,7 +868,7 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "gaussian variable elimination";
   }
   ASSERTION_VIOLATION;
-  /* moved outside of the case split to get a compiler warning */
+  /* moved outside of the case statement to get a compiler warning */
   return "!UNKNOWN INFERENCE RULE!";
 } // Inference::name()
 
