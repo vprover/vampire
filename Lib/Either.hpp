@@ -421,6 +421,7 @@ public:
   Self& operator=(const Self& other) {
     _content.destroy(_tag);
     _tag = other._tag;
+    _content.initClone(_tag, other._content);
   }
 
   template<unsigned idx>
@@ -453,6 +454,7 @@ public:
   Coproduct(const Coproduct& other) : _tag(other._tag) {
     _content.initClone(other._tag, other._content);
   }
+
   Coproduct(Coproduct&& other) : _tag(other._tag) {
     CALL("Coproduc(Coproduct&& other)")
     _content.initMove(other._tag, std::move(other._content));

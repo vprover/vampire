@@ -1,11 +1,13 @@
 #include "PolynomialNormalizer.hpp"
 #include "Debug/Tracer.hpp"
 #include "Lib/STLAllocator.hpp"
+#include "Lib/Optional.hpp"
 #include <map>
 #include <unordered_set>
 #include <unordered_map>
 #include <vector>
 #include <stack>
+#include "Ordering.hpp"
 
 #define DEBUG(...) // DBG(__VA_ARGS__)
 
@@ -18,7 +20,6 @@ namespace Kernel {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// TERM SORTING (ONLY IN DEBUG MODE)
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
 #if VDEBUG
 bool expensive_sort_terms(TermList lhs, TermList rhs);
 
@@ -76,6 +77,9 @@ int _expensive_sort_terms(const Term& lhs, const Term& rhs) {
 }
 
 bool expensive_sort_terms(TermList lhs, TermList rhs) {
+  // auto out = Kernel::Ordering::s_globalOrdering::compare(lhs, rhs);
+  // // DBG("comparing: ", lhs, " < ", rhs, " ==> ", out);
+  // return out == LESS;
   auto out = _expensive_sort_terms(lhs, rhs) < 0;
   // DBG("comparing: ", lhs, " < ", rhs, " ==> ", out);
   return out;
@@ -84,7 +88,7 @@ bool expensive_sort_terms(TermList lhs, TermList rhs) {
 int _expensive_sort_terms(TermList lhs, TermList rhs) {
   auto l_trm = lhs.isTerm();
   auto r_trm = rhs.isTerm();
-  auto cmp_trm = l_trm - r_trm;
+  auto cmp_trm = r_trm - l_trm;
   if (cmp_trm != 0) return cmp_trm;
 
   if (l_trm) {
@@ -133,23 +137,65 @@ template<
 template<class t> using vector  = std::vector<t, STLAllocator<t>>;
 template<class t> using stack  = std::stack<t, STLAllocator<t>>;
 
-    struct WrappedTermList {
-      USE_ALLOCATOR(WrappedTermList)
-      CLASS_NAME(WrappedTermList)
-      TermList inner;
-      explicit WrappedTermList(TermList t) : inner(t) { }
+template<class A, class B, class Add, class Filter>
+vector<tuple<A, B>> merge_sort_with(const vector<tuple<A, B>>& lhs, const vector<tuple<A, B>>& rhs, Add add, Filter filter) {
+    CALL("PolynomInner::poly_add")
 
-      friend bool operator<(WrappedTermList lhs, WrappedTermList rhs) {
-        return compare_terms{}(lhs.inner,rhs.inner);
-      }
-
-      friend bool operator==(WrappedTermList lhs, WrappedTermList rhs) {
-        return lhs.inner == rhs.inner;
-      }
-      size_t hash() const {
-        return TermListHash::hash(inner);
-      }
+    vector<tuple<A,B>> out;
+    auto l = lhs.begin();
+    auto r = rhs.begin();
+    auto insert = [&](const A& key, B value) {
+      if (filter(value))
+        out.emplace_back(make_tuple(A(key), value));
     };
+    auto fst = [](const tuple<A,B>& x) { return get<0>(x); };
+    auto snd = [](const tuple<A,B>& x) { return get<1>(x); };
+    while (l != lhs.end() && r != rhs.end() ) {
+      if (fst(*l) == fst(*r)) {
+        //add up
+        insert(fst(*l), add(snd(*l), snd(*r)));
+        l++;
+        r++;
+      } else if (fst(*l)< fst(*r)) {
+        // insert l
+        insert(fst(*l), snd(*l));
+        l++;
+      } else {
+        // insert r
+        insert(fst(*r), snd(*r));
+        r++;
+      }
+    }
+    while (l != lhs.end()) {
+      insert(fst(*l), snd(*l));
+      l++;
+    }
+    while (r != rhs.end()) {
+      insert(fst(*r), snd(*r));
+      r++;
+    }
+    ASS(l == lhs.end() && r == rhs.end());
+    return std::move(out);
+}
+
+
+struct WrappedTermList {
+  USE_ALLOCATOR(WrappedTermList)
+  CLASS_NAME(WrappedTermList)
+  TermList inner;
+  explicit WrappedTermList(TermList t) : inner(t) { }
+
+  friend bool operator<(WrappedTermList lhs, WrappedTermList rhs) {
+    return lhs.inner < rhs.inner;
+  }
+
+  friend bool operator==(WrappedTermList lhs, WrappedTermList rhs) {
+    return lhs.inner == rhs.inner;
+  }
+  size_t hash() const {
+    return TermListHash::hash(inner);
+  }
+};
 
 
 
@@ -159,56 +205,69 @@ public:
   using Coeff = typename number::ConstantType;
   class MonomInner;
   struct hasher;
+  Monom& operator=(const Monom&) = default;
+  Monom(Monom&&) = default;
 private:
-  MonomInner const& _inner;
+  MonomInner* _inner;
   static unordered_map<MonomInner, MonomInner*, hasher> monoms;
 
 public:
 
-  bool isOne() const {return _inner.isOne();}
+  bool isOne() const {return _inner->isOne();}
 
-  TermList toTerm() const {return _inner.toTerm();}
+  TermList toTerm() {return _inner->toTerm();}
 
   friend bool operator<(const Monom& lhs, const Monom& rhs) { return lhs._inner < rhs._inner; }
+  bool expensive_cmp(Monom& rhs) {
+    // DBG("lhs: ", *this)
+    // DBG("rhs: ", rhs)
+    // DBG("less: ", expensive_sort_terms(this->toTerm(), rhs.toTerm()));
+    // return expensive_sort_terms(this->toTerm(), rhs.toTerm());
+    return expensive_sort_terms(this->toTerm(), rhs.toTerm());
+  }
 
-  friend bool operator==(const Monom& lhs, const Monom& rhs) {return &lhs._inner == &rhs._inner;}
-  size_t hash() const { return std::hash<size_t>{}((size_t)&_inner); }
+  friend bool operator==(const Monom& lhs, const Monom& rhs) {return lhs._inner == rhs._inner;}
+  size_t hash() const { return std::hash<size_t>{}((size_t) _inner); }
 
-  friend ostream& operator<<(ostream& out, const Monom& m) {return out << m._inner;}
+  friend ostream& operator<<(ostream& out, const Monom& m) {return out << *m._inner;}
 
-  Monom(const MonomInner& inner) : _inner(inner) {}
+  Monom(const Monom& other) : _inner(other._inner) {}
+  Monom& operator=(Monom&& other) = default;  
+  Monom(MonomInner* inner) : _inner(inner) {}
+  Monom() : _inner(MonomInner::create(MonomInner())) {}
 
   Monom(TermList t) : _inner(MonomInner::create(MonomInner(t))) {}
 
-  Monom() : _inner(MonomInner::create(MonomInner())) {}
 
   static Monom monom_mul(const Monom& lhs, const Monom& rhs) {
-    return Monom(MonomInner::monom_mul(lhs._inner, rhs._inner));
+    return Monom(MonomInner::monom_mul(*lhs._inner, *rhs._inner));
   }
 
+  // Monom& operator=(Monom&&) = default;
   class MonomInner {
     vector<tuple<WrappedTermList, int>> _factors;
+    Optional<TermList> _toTerm;
     friend class Monom;
 
     // empty monom == 1
-    static const MonomInner& create(const MonomInner& self) {
+    static MonomInner* create(MonomInner&& self) {
       CALL("MonomInner::create(MonomInner&&)")
       auto pos = monoms.find(self);
       if (pos == monoms.end()) {
         auto alloc = new MonomInner(self);
         auto res = monoms.emplace(make_pair(std::move(self), alloc));
-        ASS(res.second);
+        ASS_REP(res.second, *alloc);
         pos = res.first;
       } else {
       }
-      return *pos->second;
-    }
-    MonomInner() : _factors(decltype(_factors)()) {
+      return pos->second;
     }
 
-    MonomInner(TermList t) : _factors(decltype(_factors)()) {
-      _factors.emplace_back(make_tuple(t, 1));
-    }
+    MonomInner() : _factors(decltype(_factors)()) { }
+
+    MonomInner(decltype(_factors) factors) : _factors(factors) { }
+
+    MonomInner(TermList t) : _factors {make_tuple(WrappedTermList(t), 1)}  { }
 
     public:
 
@@ -228,31 +287,45 @@ public:
       return _factors.begin() == _factors.end();
     }
 
-    TermList toTerm() const {
-      //TODO memo
-      CALL("MonomInner::toTerm()")
-        auto iter = _factors.rbegin();
-      if (iter == _factors.rend()) {
-        return number::one();
-      } else {
+    static TermList pairToTerm(const monom_pair& pair) {
+      auto cnt = getCount(pair);
+      ASS_REP(cnt > 0, cnt)
 
-        auto mul_n_times = [](TermList wrap, TermList t, int cnt) {
-          TermList out = wrap;
-          for (int i = 0; i < cnt; i++) {
-            out = number::mul(t, out);
+      auto trm = getTerm(pair);
+      auto out = trm;
+      for (auto i = 1; i < cnt; i++) {
+        out = number::mul(trm, out);
+      }
+      return out;
+    }
+
+    TermList toTerm() {
+      CALL("MonomInner::toTerm()")
+      return _toTerm.unwrapOrInit([&]() {
+
+        if (_factors.size() == 0) {
+          return number::one();
+        } else {
+
+          vector<TermList> factors(_factors.size());
+          using elem_t = const typename decltype(_factors)::value_type&;
+
+          transform(begin(_factors), end(_factors), begin(factors), MonomInner::pairToTerm);
+
+          sort(begin(factors), end(factors), expensive_sort_terms );
+
+          auto iter = factors.rbegin();
+
+          auto out = *iter;
+          iter++;
+          for(; iter != factors.rend(); iter++)  {
+            out = number::mul(*iter, out); 
           }
           return out;
-        };
-
-        ASS(getCount(*iter) != 0);
-        auto out = mul_n_times(getTerm(*iter), getTerm(*iter), getCount(*iter) - 1);
-        iter++;
-        for(; iter != _factors.rend(); iter++)  {
-          out = mul_n_times(out, getTerm(*iter), getCount(*iter));
         }
-        return out;
-      }
+      });
     }
+
     friend std::ostream& operator<<(std::ostream& out, const MonomInner& self) {
       if (self._factors.size() == 0) {
         return out << "1";
@@ -285,44 +358,13 @@ public:
     MonomInner& operator=(MonomInner&&) = default;
     MonomInner(MonomInner&&) = default;
 
-    static const MonomInner& monom_mul(const MonomInner& lhs, const MonomInner& rhs) {
-      MonomInner out;
-      auto l = lhs._factors.begin();
-      auto r = rhs._factors.begin();
-      auto insert = [&](TermList term, int value) {
-        if (value != 0)
-          out._factors.emplace_back(make_pair(term, value));
-      };
-      while (l != lhs._factors.end() && r != rhs._factors.end() ) {
-        if (getTerm(*l) == getTerm(*r) ) {
-          //add up
-          insert(getTerm(*l) , getCount(*l) + getCount(*r));
-          l++;
-          r++;
-        } else if (compare_terms{}(getTerm(*l), getTerm(*r)) ) {
-          // insert l
-          insert(getTerm(*l) , getCount(*l));
-          l++;
-        } else {
-          // insert r
-          insert(getTerm(*r) , getCount(*r));
-          r++;
-        }
-      }
-      while (l != lhs._factors.end()) {
-        insert(getTerm(*l) , getCount(*l));
-        l++;
-      }
-      while (r != rhs._factors.end()) {
-        insert(getTerm(*r) , getCount(*r));
-        r++;
-      }
-      ASS(l == lhs._factors.end() && r == rhs._factors.end());
-      return MonomInner::create(std::move(out));
+    static MonomInner* monom_mul(const MonomInner& lhs, const MonomInner& rhs) {
+      return MonomInner::create(MonomInner(merge_sort_with(lhs._factors,rhs._factors,
+             [](int l, int r) { return l + r; },
+             [](int l) { return l != 0; })));
     }
 
     explicit MonomInner(const MonomInner&) = default;
-    private:
   };
   struct hasher {
     size_t operator()(Monom::MonomInner const& x) const noexcept {
@@ -347,14 +389,14 @@ class Polynom {
   class PolynomInner;
 
   struct hasher;
-  PolynomInner const& _inner;
+  PolynomInner & _inner;
   static unordered_map<PolynomInner, PolynomInner*, hasher> polynoms;
 public:
   using Coeff = typename number::ConstantType;
   using Monom = Monom<number>;
 
   friend ostream& operator<<(ostream& out, const Polynom& self) { return out << self._inner; }
-  static TermList toTerm(const Polynom& self) { return PolynomInner::toTerm(self._inner); }
+  static TermList toTerm(Polynom& self) { return PolynomInner::toTerm(self._inner); }
   static Polynom poly_mul(const Polynom& lhs, const Polynom& rhs) {
     return Polynom(PolynomInner::poly_mul(lhs._inner, rhs._inner));
   }
@@ -364,7 +406,7 @@ public:
 
   Polynom(Coeff coeff, TermList t) : _inner(PolynomInner::create(PolynomInner(coeff, t))) {}
   Polynom(Coeff constant) : _inner(PolynomInner::create(constant)) {}
-  Polynom(const PolynomInner& inner) : _inner(inner){} 
+  Polynom(PolynomInner& inner) : _inner(inner){} 
 
 private:
 
@@ -376,10 +418,11 @@ private:
   private:
     // static unordered_map<PolynomInner<number>, PolynomInner<number> const *const > polys;
     vector<tuple<Monom, Coeff>> _coeffs;
+    Optional<TermList> _toTerm;
     using poly_pair = typename decltype(_coeffs)::value_type;
 
   public:
-    static const PolynomInner& create(PolynomInner&& self_) {
+    static PolynomInner& create(PolynomInner&& self_) {
       auto self = std::move(self_);
       const PolynomInner& x = self;
       CALL("PolynomInner::create(PolynomInner&&)")
@@ -387,7 +430,7 @@ private:
       if (pos == polynoms.end()) {
         auto alloc = new PolynomInner(std::move(self));
         auto res = polynoms.emplace(make_pair(PolynomInner(*alloc), alloc));
-        ASS(res.second);
+        ASS_REP(res.second, *alloc);
         pos = res.first;
       }
       return *pos->second;
@@ -395,6 +438,10 @@ private:
 
     friend bool operator==(const PolynomInner& lhs, const PolynomInner& rhs) {
       return lhs._coeffs == rhs._coeffs;
+    }
+
+    static Monom& getMonom(poly_pair& pair) {
+      return std::get<0>(pair);
     }
 
     static const Monom& getMonom(const poly_pair& pair) {
@@ -409,48 +456,16 @@ private:
       return std::get<1>(pair);
     }
 
-    static const PolynomInner& poly_add(const PolynomInner& lhs, const PolynomInner& rhs) {
+    static PolynomInner& poly_add(const PolynomInner& lhs, const PolynomInner& rhs) {
       CALL("PolynomInner::poly_add")
 
-      PolynomInner out;
-      // TODO memoization
-      // TODO unify with Monom::operator+
-      auto l = lhs._coeffs.begin();
-      auto r = rhs._coeffs.begin();
-      auto insert = [&](const Monom& monom, Coeff value) {
-        if (value != number::zeroC)
-          out._coeffs.emplace_back(make_pair(Monom(monom), value));
-      };
-      while (l != lhs._coeffs.end() && r != rhs._coeffs.end() ) {
-        if (getMonom(*l) == getMonom(*r)) {
-          //add up
-          insert(getMonom(*l), getCoeff(*l) + getCoeff(*r));
-          l++;
-          r++;
-        } else if (getMonom(*l)< getMonom(*r)) {
-          // insert l
-          insert(getMonom(*l), getCoeff(*l));
-          l++;
-        } else {
-          // insert r
-          insert(getMonom(*r), getCoeff(*r));
-          r++;
-        }
-      }
-      while (l != lhs._coeffs.end()) {
-        insert(getMonom(*l), getCoeff(*l));
-        l++;
-      }
-      while (r != rhs._coeffs.end()) {
-        insert(getMonom(*r), getCoeff(*r));
-        r++;
-      }
-      ASS(l == lhs._coeffs.end() && r == rhs._coeffs.end());
-      out.integrity();
-      return PolynomInner::create(std::move(out));
+      return PolynomInner::create(PolynomInner(merge_sort_with(lhs._coeffs, rhs._coeffs, 
+              [](Coeff l, Coeff r){ return l + r; },
+              [](Coeff x){ return x != number::zeroC; }
+            )));
     }
 
-    static const PolynomInner& poly_mul(const PolynomInner& lhs, const PolynomInner& rhs) {
+    static PolynomInner& poly_mul(const PolynomInner& lhs, const PolynomInner& rhs) {
 
       CALL("PolynomInner::poly_mul")
       DEBUG("lhs: ", lhs)
@@ -475,7 +490,7 @@ private:
       for (auto iter = prods.begin(); iter != prods.end(); iter++) {
         auto coeff = iter->second;
         if (coeff != number::zeroC) {
-          out._coeffs.emplace_back(poly_pair(Monom(iter->first), coeff)); // TODO try implicit copy
+          out._coeffs.emplace_back(poly_pair(iter->first, coeff)); 
         }
       }
       DEBUG("out: ", out)
@@ -494,8 +509,9 @@ private:
         _coeffs.emplace_back(poly_pair(Monom(), constant));
     }
 
+    PolynomInner(decltype(_coeffs) coeffs) : _coeffs(coeffs) { }
+
     PolynomInner() : _coeffs(decltype(_coeffs)()) {
-      CALL("PolynomInner::PolynomInner()")
     }
 
     PolynomInner(PolynomInner&& other) = default;
@@ -516,38 +532,46 @@ private:
 #endif
     }
 
-    static TermList toTerm(const PolynomInner& self) {
+    static TermList toTerm(PolynomInner& self) {
       CALL("PolynomInner::toTerm() const")
-      self.integrity();
-      auto trm = [](const poly_pair& x) -> TermList { 
+      return self._toTerm.unwrapOrInit([&]() {
+        // self.integrity();
+        
+        auto trm = [](poly_pair& x) -> TermList { 
 
-        if (getMonom(x).isOne()) {  
-          /* the pair is a plain number */
-          return TermList( theory->representConstant(getCoeff(x)) );
+          if (getMonom(x).isOne()) {  
+            /* the pair is a plain number */
+            return TermList( theory->representConstant(getCoeff(x)) );
 
-        } else if (getCoeff(x)== number::constant(1)) {
-          /* the pair is an uninterpreted term */
-          return getMonom(x).toTerm();
+          } else if (getCoeff(x)== number::constant(1)) {
+            /* the pair is an uninterpreted term */
+            return getMonom(x).toTerm();
 
-        } else if (getCoeff(x)== number::constant(-1)) {
-          return TermList(number::minus(getMonom(x).toTerm()));
+          } else if (getCoeff(x)== number::constant(-1)) {
+            return TermList(number::minus(getMonom(x).toTerm()));
 
+          } else {
+            return TermList(number::mul(TermList( theory->representConstant(getCoeff(x)) ), getMonom(x).toTerm())); 
+          }
+        };
+
+        vector<TermList> coeffs(self._coeffs.size());
+        transform(begin(self._coeffs),end(self._coeffs), begin(coeffs), trm);
+
+        sort(begin(coeffs), end(coeffs), expensive_sort_terms);
+
+        auto iter = coeffs.rbegin(); 
+        if (iter == coeffs.rend()) {
+          return TermList(number::zero());
         } else {
-          return TermList(number::mul(TermList( theory->representConstant(getCoeff(x)) ), getMonom(x).toTerm())); 
+          auto out = *iter;
+          iter++;
+          for (; iter != coeffs.rend(); iter++) {
+            out = number::add(*iter, out);
+          }
+          return out;
         }
-      };
-
-      auto iter = self._coeffs.rbegin(); 
-      if (iter == self._coeffs.rend()) {
-        return TermList(number::zero());
-      } else {
-        auto out = trm(*iter);
-        iter++;
-        for (; iter != self._coeffs.rend(); iter++) {
-          out = number::add(trm(*iter), out);
-        }
-        return out;
-      }
+      });
     }
 
     friend std::ostream& operator<<(std::ostream& out, const PolynomInner& self) {
@@ -633,12 +657,12 @@ struct AnyPoly {
   }
 
   template<class Const>
-  TermList toTerm() const {
+  TermList toTerm() {
     CALL("AnyPoly::toTerm")
-    return poly<Const>::toTerm(ref<Const>());
+    return poly<Const>::toTerm(ref_mut<Const>());
   }
 
-  TermList toTerm_() const {
+  TermList toTerm_() {
     CALL("AnyPoly::toTerm_")
 
     if (self.is<0>()) {
@@ -1235,7 +1259,7 @@ inline TermList createTerm(unsigned fun, const Signature::Symbol& sym, TermEvalR
   auto arity = op.arity();
   for (int i = 0; i < arity; i++) {
     args.push(evaluatedArgs[0].toLeft(
-      [&](const AnyPoly& p) { 
+      [](AnyPoly&& p) { 
         return p.toTerm_();
       }));
   }

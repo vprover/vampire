@@ -1,3 +1,22 @@
+
+Talk to giles:
+-> how to reorder things in evaluation?
+  b + ( a + c ) might be bigger than a + ( b + c ) if precedence is different
+  sorting might normalize b + ( x + y ) ===> b + ( y + x ), but it's not smaller.
+  a + ( b + 3 ) might be bigger than (2 + ( 1 + ( a +  b) )) in LPO if a < 2. (it needs to be bigger since it might be introduced during proof search, right?)
+  -> ideas: 
+
+    1) order by total arbitrary ordering
+    -> check for simplification after evaluating
+
+    2) order by simpl ordering. 
+    -> helps in case of LPO and KBO (as they are implemented right now)
+    -> problem: only topological ordering possible 
+    -> comparisons expensive 
+    -> sorting expensive
+
+-> check whether a + ( b + c ) < (a + b) + c for the ordering and normalize to (a + b) + c instead of (a + (b + c)) if not.
+
 TODO:
   ============ Simplification rule: Rebalancing
     Equality resolution* -> Done
@@ -44,6 +63,7 @@ TODO:
     4) Normalization:
          c * -u[X0] ==> -c * u[X0]
          c != ((c * X0) + (c * X0)) | C[X0, ...]
+
 
 
 

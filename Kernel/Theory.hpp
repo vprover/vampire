@@ -52,6 +52,9 @@ public:
   typedef int InnerType;
 
   IntegerConstantType() {}
+  IntegerConstantType(IntegerConstantType&&) = default;
+  IntegerConstantType(const IntegerConstantType&) = default;
+  IntegerConstantType& operator=(const IntegerConstantType&) = default;
   constexpr IntegerConstantType(InnerType v) : _val(v) {}
   explicit IntegerConstantType(const vstring& str);
 
@@ -155,6 +158,9 @@ struct RationalConstantType {
   static unsigned getSort() { return Sorts::SRT_RATIONAL; }
 
   RationalConstantType() {}
+  RationalConstantType(RationalConstantType&&) = default;
+  RationalConstantType(const RationalConstantType&) = default;
+  RationalConstantType& operator=(const RationalConstantType&) = default;
 
   RationalConstantType(InnerType num, InnerType den);
   RationalConstantType(const vstring& num, const vstring& den);
@@ -234,6 +240,10 @@ public:
   static unsigned getSort() { return Sorts::SRT_REAL; }
 
   RealConstantType() {}
+  RealConstantType(RealConstantType&&) = default;
+  RealConstantType(const RealConstantType&) = default;
+  RealConstantType& operator=(const RealConstantType&) = default;
+
   explicit RealConstantType(const vstring& number);
   explicit constexpr RealConstantType(const RationalConstantType& rat) : RationalConstantType(rat) {}
   explicit constexpr RealConstantType(typename IntegerConstantType::InnerType number) : RealConstantType(RationalConstantType(number)) {}

@@ -87,7 +87,7 @@ void check(bool b, const char* msg, As... vs) {
     OUT << endl; \
     OUT << msg << endl; \
     OUT << "[   case   ] " << test_case << endl; \
-    OUT << "[    is    ] " << #is << " = " << is << endl; \
+    OUT << "[    is    ] " << #is << " =  " << is << endl; \
     OUT << "[ expected ] " << #is << " " #op << " " << expected << endl; \
     OUT << endl; \
     TEST_FAIL \
@@ -429,7 +429,7 @@ ALL_NUMBERS_TEST(polynomial__merge_consts_2,
 
 ALL_NUMBERS_TEST(polynomial__merge_consts_3,
       p(add(add(mul(6, a), mul(y, 3)), mul(5, a))),
-      p(add(mul(3, y), mul(11, a)))
+      p(add(mul(11, a), mul(3, y)))
       )
 
 ALL_NUMBERS_TEST(polynomial__push_unary_minus,
@@ -439,12 +439,12 @@ ALL_NUMBERS_TEST(polynomial__push_unary_minus,
 
 ALL_NUMBERS_TEST(polynomial__sorting_1,
       p(mul(mul(7, x), a)),
-      p(mul(7, mul(x, a)))
+      p(mul(7, mul(a, x)))
       )
 
 ALL_NUMBERS_TEST(polynomial__sorting_2,
       p(mul(mul(7, mul(y, x)), a)),
-      p(mul(7, mul(x, mul(y,a))))
+      p(mul(7, mul(a, mul(x,y))))
       )
 
 ALL_NUMBERS_TEST(polynomial__sorting_3,
@@ -454,7 +454,12 @@ ALL_NUMBERS_TEST(polynomial__sorting_3,
     /* ==> (2x + y) * (2x + a) */
     /* ==> (4x^2 + 2xy) + (2ax + ay) */
     /* ==> 4x^2 + 2xy + 2ax + ay */
-      p(add(mul(4, mul(x,x)), add(mul(2, mul(x,y)), add(mul(2,mul(x,a)), mul(y,a)))))
+      // p(add(mul(4, mul(x,x)), add(mul(2, mul(x,y)), add(mul(2,mul(x,a)), mul(y,a)))))
+      p(add(mul(a,y),
+        add(mul(2,mul(a,x)), 
+        add(mul(4, mul(x,x)), 
+            mul(2, mul(x,y))
+            ))))
       )
 
 ALL_NUMBERS_TEST(polynomial__sorting_4,
