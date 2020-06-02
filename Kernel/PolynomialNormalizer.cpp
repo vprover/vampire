@@ -11,6 +11,7 @@
 
 #define TODO throw "TODO";
 
+
 using namespace Lib;
 
 namespace Kernel {
@@ -597,12 +598,6 @@ struct AnyPoly {
     return ref_mut<Const>().set(t,c);
   }
 
-  // template<class Const>
-  // void multiply(Const c) {
-  //   CALL("AnyPoly::multiply")
-  //   return ref_mut<Const>().multiply(c);
-  // }
-
   template<class Const>
   Const get(TermList t) {
     CALL("AnyPoly::get")
@@ -619,20 +614,15 @@ struct AnyPoly {
     CALL("AnyPoly::toTerm_")
 
     if (self.is<0>()) {
-    // if (self.isLeft()) {
-      // using ty = typename self_t::left_t::Coeff;
       using ty = typename self_t::type<0>::value::Coeff;
       return toTerm<ty>();
 
     } else if (self.is<1>()) {
-    // } else if (self.unwrapRight().isLeft()) {
-      // using ty = typename self_t::right_t::left_t::Coeff;
       using ty = typename self_t::type<1>::value::Coeff;
       return toTerm<ty>();
 
     } else {
       ASS(self.is<2>())
-      // using ty = typename self_t::right_t::right_t::Coeff;
       using ty = typename self_t::type<2>::value::Coeff;
       return toTerm<ty>();
     }
@@ -641,7 +631,6 @@ struct AnyPoly {
   friend std::ostream& operator<<(std::ostream& out, const AnyPoly& x) {
     auto& self = x.self;
     if (self.is<0>()) {
-    // if (self.isLeft()) {
       out << self.unwrap<0>();
     } else if (self.is<1>()) {
       out << self.unwrap<1>();
@@ -655,11 +644,15 @@ struct AnyPoly {
   explicit AnyPoly(const AnyPoly&) = default;
 private:
 };
-} // namespace Kernel 
 
-namespace Kernel {
-
-
+  class TermEvalResult : public Coproduct<TermList, AnyPoly> {
+  public:
+    using super_t = Coproduct<Kernel::TermList, Kernel::AnyPoly>;
+    TermEvalResult() : Coproduct(Coproduct::template variant<0>(Kernel::TermList())) {}
+    TermEvalResult(super_t     && super) : Coproduct(std::move(super)) {}
+    TermEvalResult(super_t      & super) : Coproduct(          super ) {}
+    TermEvalResult(super_t const& super) : Coproduct(          super ) {}
+  };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Equality
@@ -670,16 +663,16 @@ template<class number> inline LitEvalResult interpret_equality(Literal* lit, boo
   Const l;
   Const r;
   if (theory->tryInterpretConstant(lhs, l) && theory->tryInterpretConstant(rhs, r)) {
-    return LitEvalResult::right(polarity == (l == r));
+    return LitEvalResult::template variant<1>(polarity == (l == r));
   } else {
-    return LitEvalResult::left(Literal::createEquality(lit->polarity(), lhs, rhs, number::sort));
+    return LitEvalResult::template variant<0>(Literal::createEquality(lit->polarity(), lhs, rhs, number::sort));
   }
 }
 
 template<> LitEvalResult PolynomialNormalizer::evaluateLit<Interpretation::EQUAL>(Literal* lit) const {
   auto lhs = *lit->nthArgument(0);
   auto rhs = *lit->nthArgument(1);
-  if (lhs == rhs) return LitEvalResult::right(lit->polarity());
+  if (lhs == rhs) return LitEvalResult::template variant<1>(lit->polarity());
   auto sort =  SortHelper::getEqualityArgumentSort(lit);
   switch (sort) {
     case Sorts::SRT_INTEGER:  return interpret_equality<num_traits<IntegerConstantType>>(lit, lit->polarity(), lhs, rhs);
@@ -687,7 +680,7 @@ template<> LitEvalResult PolynomialNormalizer::evaluateLit<Interpretation::EQUAL
     case Sorts::SRT_REAL:     return interpret_equality<num_traits<RealConstantType>>(lit, lit->polarity(), lhs, rhs);
                              //TODO lift to term algebras
     default:
-      return LitEvalResult::right(Literal::createEquality(lit->polarity(), lhs, rhs, sort));
+      return LitEvalResult::template variant<1>(Literal::createEquality(lit->polarity(), lhs, rhs, sort));
   }
 }
 
@@ -699,13 +692,13 @@ template<class ConstantType, class EvalIneq> LitEvalResult PolynomialNormalizer:
   ASS(lit->arity() == 2);
   auto lhs = *lit->nthArgument(0);
   auto rhs = *lit->nthArgument(1);
-  if (lhs == rhs) return LitEvalResult::right(lit->polarity() != strict);
+  if (lhs == rhs) return LitEvalResult::template variant<1>(lit->polarity() != strict);
   ConstantType l;
   ConstantType r;
   if (theory->tryInterpretConstant(lhs, l) && theory->tryInterpretConstant(rhs, r)) {
-    return LitEvalResult::right(lit->polarity() == evalIneq(l, r));
+    return LitEvalResult::template variant<1>(lit->polarity() == evalIneq(l, r));
   } else {
-    return LitEvalResult::left(lit);
+    return LitEvalResult::template variant<0>(lit);
   }
 }
 
@@ -746,7 +739,7 @@ template<class number>
 TermEvalResult evaluateUnaryMinus(TermEvalResult& inner) {
   auto out = inner.map(
       [](const TermList& t) { 
-        return TermEvalResult::rightMv(AnyPoly(
+        return TermEvalResult::template variant<1>(AnyPoly(
             Polynom<number>( number::constant(-1), t)
             ));
       },
@@ -754,7 +747,7 @@ TermEvalResult evaluateUnaryMinus(TermEvalResult& inner) {
         // p.multiply(number::constant(-1)); 
         auto minusOne = Polynom<number>(number::constant(-1));
         auto out = Polynom<number>::poly_mul(minusOne, p.ref<typename number::ConstantType>());//TODO speed this up
-        return TermEvalResult::rightMv(AnyPoly(std::move(out)));
+        return TermEvalResult::template variant<1>(AnyPoly(std::move(out)));
       });
   return out;
 }
@@ -784,7 +777,7 @@ TermEvalResult PolynomialNormalizer::evaluateMul(TermEvalResult&& lhs, TermEvalR
   using Const = typename number::ConstantType;
   using poly = Polynom<number>;
   if (_usePolyMul) {
-    auto l = lhs.collapse<poly>(
+    auto l = std::move(lhs).collapse<poly>(
         [](TermList&& t) { 
           return poly(number::constant(1), t);
         },
@@ -792,7 +785,7 @@ TermEvalResult PolynomialNormalizer::evaluateMul(TermEvalResult&& lhs, TermEvalR
           return std::move(p.ref_mut<Const>());
         });
 
-    auto r = rhs.collapse<poly>(
+    auto r = std::move(rhs).collapse<poly>(
         [](TermList&& t) { 
           return poly(number::constant(1), t);
         },
@@ -800,11 +793,11 @@ TermEvalResult PolynomialNormalizer::evaluateMul(TermEvalResult&& lhs, TermEvalR
           return std::move(p.ref_mut<Const>());
         });
 
-    return TermEvalResult::rightMv(AnyPoly(poly::poly_mul(l, r)));
+    return TermEvalResult::template variant<1>(AnyPoly(poly::poly_mul(l, r)));
   } else {
 
     auto toTerm = [](TermEvalResult&& res) {
-      return res.collapse<TermList>(
+      return std::move(res).collapse<TermList>(
         [](TermList&& t) { 
           return t;
         },
@@ -820,7 +813,7 @@ TermEvalResult PolynomialNormalizer::evaluateMul(TermEvalResult&& lhs, TermEvalR
       std::swap(l,r);
     }
 
-    return TermEvalResult::leftMv(TermList(number::mul(l, r)));
+    return TermEvalResult::template variant<0>(TermList(number::mul(l, r)));
   }
 }
 
@@ -849,7 +842,7 @@ Polynom<number> evaluateAdd(TermEvalResult&& lhs, TermEvalResult&& rhs) {
   using Const = typename number::ConstantType;
   using poly = Polynom<number>;
 
-  poly l = lhs.collapse<poly>(
+  poly l = std::move(lhs).collapse<poly>(
       [](TermList&& t) { 
         return poly(number::constant(1), t);
       },
@@ -857,7 +850,7 @@ Polynom<number> evaluateAdd(TermEvalResult&& lhs, TermEvalResult&& rhs) {
         return std::move(p.ref_mut<Const>());
       });
 
-  poly r = rhs.collapse<poly>(
+  poly r = std::move(rhs).collapse<poly>(
       [](TermList&& t) { 
         return poly(number::constant(1), t);
       },
@@ -874,7 +867,7 @@ Polynom<number> evaluateAdd(TermEvalResult&& lhs, TermEvalResult&& rhs) {
   { \
     CALL("PolynomialNormalizer::evaluateFun<num_traits<" #Const ">::addI>(Term* trm, TermEvalResult* evaluatedArgs)") \
     auto poly = evaluateAdd<num_traits<Const>>(std::move(evaluatedArgs[0]), std::move(evaluatedArgs[1])); \
-    auto out = TermEvalResult::rightMv(AnyPoly(std::move(poly))); \
+    auto out = TermEvalResult::template variant<1>(AnyPoly(std::move(poly))); \
     return out; \
   } \
 
@@ -891,7 +884,7 @@ Polynom<number> evaluateAdd(TermEvalResult&& lhs, TermEvalResult&& rhs) {
 
 template<class number>
 TermEvalResult evaluateConst(typename number::ConstantType c) {
-  return TermEvalResult::rightMv(AnyPoly(Polynom<number>(c)));
+  return TermEvalResult::template variant<1>(AnyPoly(Polynom<number>(c)));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -983,9 +976,9 @@ LitEvalResult PolynomialNormalizer::tryEvalConstant1(Literal* lit, EvalGround fu
   auto lhs = *lit->nthArgument(0);
   ConstantType l;
   if (theory->tryInterpretConstant(lhs, l)) {
-    return LitEvalResult::right(fun(l));
+    return LitEvalResult::template variant<1>(fun(l));
   } else {
-    return LitEvalResult::left(lit);
+    return LitEvalResult::template variant<0>(lit);
   }
 }
 
@@ -997,9 +990,9 @@ LitEvalResult PolynomialNormalizer::tryEvalConstant2(Literal* lit, EvalGround fu
   ConstantType l;
   ConstantType r;
   if (theory->tryInterpretConstant(lhs, l) && theory->tryInterpretConstant(rhs, r)) {
-    return LitEvalResult::right(fun(l,r));
+    return LitEvalResult::template variant<1>(fun(l,r));
   } else {
-    return LitEvalResult::left(lit);
+    return LitEvalResult::template variant<0>(lit);
   }
 }
 
@@ -1007,12 +1000,12 @@ LitEvalResult PolynomialNormalizer::tryEvalConstant2(Literal* lit, EvalGround fu
 template<class ConstantType, class EvalGround>
 TermEvalResult PolynomialNormalizer::tryEvalConstant1(Term* orig, TermEvalResult* evaluatedArgs, EvalGround fun) const {
 
-  TermList lhs = evaluatedArgs[0].unwrapLeft();
+  TermList lhs = evaluatedArgs[0].template unwrap<0>();
   ConstantType l;
   if (theory->tryInterpretConstant(lhs, l)) {
-    return TermEvalResult::left(TermList(theory->representConstant(fun(l))));
+    return TermEvalResult::template variant<0>(TermList(theory->representConstant(fun(l))));
   } else {
-    return TermEvalResult::left(TermList(orig));
+    return TermEvalResult::template variant<0>(TermList(orig));
   }
 }
 
@@ -1020,16 +1013,16 @@ TermEvalResult PolynomialNormalizer::tryEvalConstant1(Term* orig, TermEvalResult
 template<class ConstantType, class EvalGround>
 TermEvalResult PolynomialNormalizer::tryEvalConstant2(Term* orig, TermEvalResult* evaluatedArgs, EvalGround fun) const {
 
-  TermList lhs = evaluatedArgs[0].unwrapLeft();
-  TermList rhs = evaluatedArgs[1].unwrapLeft();
+  TermList lhs = evaluatedArgs[0].template unwrap<0>();
+  TermList rhs = evaluatedArgs[1].template unwrap<0>();
 
   ConstantType l;
   ConstantType r;
   if (theory->tryInterpretConstant(lhs, l) 
       && theory->tryInterpretConstant(rhs, r)) {
-    return TermEvalResult::left(TermList(theory->representConstant(fun(l,r))));
+    return TermEvalResult::template variant<0>(TermList(theory->representConstant(fun(l,r))));
   } else {
-    return TermEvalResult::left(TermList(orig));
+    return TermEvalResult::template variant<0>(TermList(orig));
   }
 }
 
@@ -1050,7 +1043,7 @@ LitEvalResult PolynomialNormalizer::evaluateStep(Literal* lit) const {
   DEBUG("evaluating: ", lit->toString());
 
 #define HANDLE_CASE(INTER) case Interpretation::INTER: return evaluateLit<Interpretation::INTER>(lit); 
-#define IGNORE_CASE(INTER) case Interpretation::INTER: return LitEvalResult::left(lit);
+#define IGNORE_CASE(INTER) case Interpretation::INTER: return LitEvalResult::template variant<0>(lit);
 #define HANDLE_NUM_CASES(NUM) \
       IGNORE_CASE(NUM ## _IS_INT) /* TODO */ \
       IGNORE_CASE(NUM ## _IS_RAT) /* TODO */ \
@@ -1080,10 +1073,10 @@ LitEvalResult PolynomialNormalizer::evaluateStep(Literal* lit) const {
       default:
         DBG("WARNING: unexpected interpreted predicate: ", lit->toString())
         ASSERTION_VIOLATION
-        return LitEvalResult::left(lit);
+        return LitEvalResult::template variant<0>(lit);
     }
   } else {
-    return LitEvalResult::left( lit );
+    return LitEvalResult::template variant<0>( lit );
   }
 
 #undef HANDLE_CASE
@@ -1145,7 +1138,7 @@ TermList PolynomialNormalizer::evaluate(Term* term) const {
 
       if(cur->isVar()) {
         // variables are not evaluated
-        args.emplace_back(TermEvalResult::left(*cur));
+        args.emplace_back(TermEvalResult::template variant<0>(*cur));
 
       } else {
         ASS(cur->isTerm());
@@ -1208,11 +1201,11 @@ TermList PolynomialNormalizer::evaluate(Term* term) const {
     
 
   ASS(args.size() == 1);
-  TermEvalResult out = TermEvalResult::left( TermList() );
+  TermEvalResult out = TermEvalResult::template variant<0>( TermList() );
   std::move(std::make_move_iterator(args.begin()),
             std::make_move_iterator(args.end()),
             &out);
-  auto out_ = out.collapse<TermList>(
+  auto out_ = std::move(out).collapse<TermList>(
       [](TermList&& l) { return l; },
       [](AnyPoly&& p) -> TermList{ return p.toTerm_(); }
       ); 
@@ -1227,10 +1220,10 @@ inline TermList createTerm(unsigned fun, const Signature::Symbol& sym, TermEvalR
   auto& op = *sym.fnType();
   auto arity = op.arity();
   for (int i = 0; i < arity; i++) {
-    args.push(evaluatedArgs[0].toLeft(
-      [](AnyPoly&& p) { 
-        return p.toTerm_();
-      }));
+    args.push(std::move(evaluatedArgs[0]).collapse<TermList>(
+      [](TermList&& t) {return t;},
+      [](AnyPoly&& p) { return p.toTerm_(); }
+        ));
   }
   return TermList(Term::create(fun, arity, args.begin()));
 }
@@ -1239,7 +1232,7 @@ TermEvalResult PolynomialNormalizer::evaluateStep(Term* orig, TermEvalResult* ar
   CALL("PolynomialNormalizer::evaluateStep(Term* orig, TermEvalResult* args)")
 
 #define HANDLE_CASE(INTER) case Interpretation::INTER: return evaluateFun<Interpretation::INTER>(orig, args); 
-#define IGNORE_CASE(INTER) case Interpretation::INTER: return TermEvalResult::left(createTerm(functor, *sym, args));
+#define IGNORE_CASE(INTER) case Interpretation::INTER: return TermEvalResult::template variant<0>(createTerm(functor, *sym, args));
 
 
 #define HANDLE_CONSTANT_CASE(Num) \
@@ -1305,12 +1298,12 @@ TermEvalResult PolynomialNormalizer::evaluateStep(Term* orig, TermEvalResult* ar
         }
         ASS_REP(false, "unexpected interpreted function: " + orig->toString())
         // return TermList(Term::create(orig, args));
-        return TermEvalResult::left(createTerm(functor, *sym, args));
+        return TermEvalResult::template variant<0>(createTerm(functor, *sym, args));
 
     }
 
   } else {
-      return TermEvalResult::left(createTerm(functor, *sym, args));
+      return TermEvalResult::template variant<0>(createTerm(functor, *sym, args));
   }
 }
 

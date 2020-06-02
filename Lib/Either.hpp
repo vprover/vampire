@@ -7,225 +7,6 @@
 
 namespace Lib {
 
-
-template<class A, class B>
-class Either {
-
-  struct Move{};
-  struct Copy{};
-
-public:
-  using left_t = A;
-  using right_t = B;
-
-  bool isRight() const {
-    return _tag == Right;
-  }
-
-  bool isLeft() const {
-    return _tag == Left;
-  }
-
-  A& unwrapLeft() {
-    ASS(_tag == Left);
-    return _cont._left;
-  }
-
-  B& unwrapRight() {
-    ASS(_tag == Right);
-    return _cont._right;
-  }
-
-
-  const A& unwrapLeft() const {
-    ASS(_tag == Left);
-    return _cont._left;
-  }
-
-  const B& unwrapRight() const {
-    ASS(_tag == Right);
-    return _cont._right;
-  }
-
-  template<class Ret, class Fl, class Fr> 
-  Ret collapse(Fl l, Fr r) const  {
-    switch (_tag) {
-      case Left:
-        return l(std::move(_cont._left));
-      case Right: 
-        return r(std::move(_cont._right));
-    }
-  }
-
-  template<class Ret, class Fl, class Fr> 
-  Ret collapse(Fl l, Fr r) {
-    switch (_tag) {
-      case Left:
-        return l(std::move(_cont._left));
-      case Right: 
-        return r(std::move(_cont._right));
-    }
-  }
-
-  template<class Fl, class Fr> 
-  void match(Fl l, Fr r) const {
-    return collapse<void>(l,r);
-  }
-
-  template<class Fl, class Fr> 
-  void match(Fl l, Fr r) {
-    return collapse<void>(l,r);
-  }
-
-  template<class Fr> 
-  A toLeft(Fr r) const {
-    return collapse<A>([](A x) {return x; }, r);
-  }
-
-  template<class Fr> 
-  A toLeft(Fr r) {
-    return collapse<A>([](A x) {return x; }, r);
-  }
-
-  template<class Fl> 
-  B toRight(Fl l) const {
-    return collapse<B>(l, [](B x) {return x; });
-  }
-
-  template<class Fl> 
-  B toRight(Fl l) {
-    return collapse<B>(l, [](B x) {return x; });
-  }
-
-
-  template<class Fl, class Fr> 
-  Either map(Fl l, Fr r) const {
-    return collapse<Either>(l,r);
-  }
-
-  template<class Fl, class Fr> 
-  Either map(Fl l, Fr r) {
-    return collapse<Either>(l,r);
-  }
-
-  static Either<A,B> left(A l) {
-    return Either(l);
-  }
-
-  static Either<A,B> right(B r) {
-    return Either(r);
-  }
-
-  static Either<A,B> rightMv(B&& r) {
-    return Either(std::move(r), Move{});
-  }
-
-  static Either<A,B> leftMv(A&& l) {
-    return Either(std::move(l), Move{});
-  }
-
-  static Either<A,B> uninit() {
-    return Either();
-  }
-
-  ~Either() {
-    switch(_tag) {
-      case Left:
-        _cont._left.~A();
-        break;
-      case Right:
-        _cont._right.~B();
-        break;
-    }
-  }
-
-  explicit Either(const Either& other) : _tag(other._tag)
-  {
-      if (other._tag == Left) {
-        new(&_cont._left) A(other._cont._left);
-      } else {
-        new(&_cont._right) B(other._cont._right);
-      }
-  }
-  Either(Either&& other) //: _tag(other._tag)
-    {
-      if (other._tag == Left) {
-        new(this) Either(std::move(other._cont._left), Move{});
-      } else {
-        new(this) Either(std::move(other._cont._right), Move{});
-      }
-    }
-  Either& operator=(Either&& other) {
-    CALL("Either::opearator=(Either&& other)")
-    if (_tag == other._tag) {
-      switch (_tag) {
-        case Left:
-          _cont.mvAsgn(std::move(other._cont._left));
-          break;
-
-        case Right:
-          _cont.mvAsgn(std::move(other._cont._right));
-          break;
-      }
-    } else {
-      switch (_tag) {
-
-        case Left:
-          _cont._left.~A();
-          new(this) Either(std::move(other._cont._right), Move{});
-          break;
-
-        case Right:
-          _cont._right.~B();
-          new(this) Either(std::move(other._cont._left), Move{});
-          break;
-
-      }
-    }
-    return *this;
-  }
-  friend std::ostream& operator<<(std::ostream& out, const Either& self) {
-    switch (self._tag) {
-      case Left:
-        return out << "Left(" << self._cont._left << ")";
-      case Right:
-        return out << "Right(" << self._cont._right << ")";
-    }
-  }
-  Either() : Either(A(), Move{}) {}
-private:
-
-  enum Tag {
-    Left,
-    Right,
-  };
-  Tag _tag;
-  union Content {
-    A _left;
-    B _right;
-    Content() {}
-    ~Content() {}
-    Content(A&& left) : _left(std::move(left)){}
-    Content(B&& right) : _right(std::move(right)){}
-    Content(A left) : _left(left){}
-    Content(B right) : _right(right){}
-    Content(A&& left, Move) : _left(std::move(left)){}
-    Content(B&& right, Move) : _right(std::move(right)){}
-    Content& mvAsgn(A&& left) { _left = std::move(left); return *this; }
-    Content& mvAsgn(B&& right) { _right = std::move(right); return *this; }
-  } _cont;
-
-  Either(A&& lft, Move) : _tag(Left), _cont(std::move(lft), Move{}) {}
-  Either(B&& rght, Move) : _tag(Right), _cont(std::move(rght), Move{}) {}
-  Either(A lft, Copy) : _tag(Left), _cont(lft) {}
-  Either(B rght, Copy) : _tag(Right), _cont(rght) {}
-  Either(A&& lft) : _tag(Left), _cont(std::move(lft)) {}
-  Either(B&& rght) : _tag(Right), _cont(std::move(rght)) {}
-  Either(A lft) : _tag(Left), _cont(lft) {}
-  Either(B rght) : _tag(Right), _cont(rght) {}
-};
-
-
 template<class... As>
 class Coproduct {
   unsigned _tag;
@@ -242,8 +23,9 @@ template<unsigned idx, class A>
 struct Inj {
   using inner_t = A;
   A _value;
-  // Inj(A value) : _value(value){}   
-  Inj(A&& value) : _value(std::move(value)){}   
+  Inj(A       & value) : _value(value){}   
+  Inj(A const & value) : _value(value){}   
+  Inj(A      && value) : _value(std::move(value)){}   
 };
 
 template<class... As>
@@ -314,9 +96,16 @@ union VariadicUnion<> {
   void destroy(unsigned idx) {
     ASSERTION_VIOLATION_REP(idx)
   }
+
   void initClone(unsigned idx, const VariadicUnion& other) {
     ASSERTION_VIOLATION_REP(idx)
   }
+
+
+  template<class R> R apply(unsigned idx)      & { ASSERTION_VIOLATION_REP(idx) }
+  template<class R> R apply(unsigned idx)     && { ASSERTION_VIOLATION_REP(idx) }
+  template<class R> R apply(unsigned idx) const& { ASSERTION_VIOLATION_REP(idx) }
+
   void initMove(unsigned idx, VariadicUnion&& other) {
     ASSERTION_VIOLATION_REP(idx)
   }
@@ -354,6 +143,34 @@ union VariadicUnion<A, As...> {
       ::new(&_head) A(other._head);
     } else {
       _tail.initClone(idx - 1, other._tail);
+    }
+  }
+
+
+  template<class R, class F, class... Fs>
+  R apply(unsigned idx, F f, Fs... fs) & {
+    if (idx == 0) {
+      return f(_head);
+    } else {
+      return _tail.template apply<R>(idx - 1, fs...);
+    }
+  }
+
+  template<class R, class F, class... Fs>
+  R apply(unsigned idx, F f, Fs... fs) const& {
+    if (idx == 0) {
+      return f(_head);
+    } else {
+      return _tail.template apply<R>(idx - 1, fs...);
+    }
+  }
+
+  template<class R, class F, class... Fs>
+  R apply(unsigned idx, F f, Fs... fs) && {
+    if (idx == 0) {
+      return f(std::move(_head));
+    } else {
+      return std::move(_tail).template apply<R>(idx - 1, fs...);
     }
   }
 
@@ -413,10 +230,14 @@ public:
     return __unwrap<idx, A, As...>{}(_content);
   }
 
-  template<unsigned idx> 
-  static Coproduct variant(typename va_idx<idx, A, As...>::type&& value) {
-    return Coproduct(Inj<idx, typename va_idx<idx, A, As...>::type>(std::move(value)));
-  }
+  template<unsigned idx> static Coproduct variant(typename va_idx<idx, A, As...>::type&& value) 
+  { return Coproduct(Inj<idx, typename va_idx<idx, A, As...>::type>(std::move(value))); }
+
+  template<unsigned idx> static Coproduct variant(const typename va_idx<idx, A, As...>::type& value) 
+  { return Coproduct(Inj<idx, typename va_idx<idx, A, As...>::type>(value)); }
+
+  template<unsigned idx> static Coproduct variant(typename va_idx<idx, A, As...>::type& value) 
+  { return Coproduct(Inj<idx, typename va_idx<idx, A, As...>::type>(value)); }
 
   Self& operator=(const Self& other) {
     _content.destroy(_tag);
@@ -430,6 +251,16 @@ public:
     CALL("Coproduct::Coprodct(Inj<...>&&)")
     init<idx, A, As...>{}(_content, std::move(value._value));
   }
+
+  template<class Ret, class... F> Ret collapse(F... fs) const& { return _content.template apply<Ret>(_tag, fs...); }
+  template<class Ret, class... F> Ret collapse(F... fs)      & { return _content.template apply<Ret>(_tag, fs...); }
+  template<class Ret, class... F> Ret collapse(F... fs)     && { return std::move(_content).template apply<Ret>(_tag, fs...); }
+
+  template<class... F> Coproduct map(F... fs) const& { return collapse<Coproduct>(fs...); }
+  template<class... F> Coproduct map(F... fs)     && { return collapse<Coproduct>(fs...); }
+  template<class... F> Coproduct map(F... fs)      & { return collapse<Coproduct>(fs...); }
+
+
 
   friend bool operator==(const Coproduct& lhs, const Coproduct& rhs) {
     if (lhs._tag != rhs._tag) {

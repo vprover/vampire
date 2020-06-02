@@ -111,7 +111,7 @@ void check_no_succ(Literal& orig) {
   Literal* src = Literal::create(&orig, orig.polarity());
   // auto success = eval.evaluate(src,constant,result,constantTrue, sideConditions);
   auto res = eval.evaluate(src);
-  auto nop = res.isLeft() && res.unwrapLeft() == src;
+  auto nop = res.template is<0>() && res.template unwrap<0>() == src;
 
   CHECK_EQ(nop, true, "unexpectedly evaluation was successful", orig.toString());
 }
@@ -125,8 +125,8 @@ void check_eval(Literal& orig, bool expected) {
   Literal* src = Literal::create(&orig, orig.polarity());
 
   auto result = eval.evaluate(src);
-  CHECK_EQ(result.isRight(), true, "non-trivial evaluation result", orig.toString())
-  CHECK_EQ(result.unwrapRight(), expected, "result not evaluated to constant", orig.toString())
+  CHECK_EQ(result.template is<1>(), true, "non-trivial evaluation result", orig.toString())
+  CHECK_EQ(result.template unwrap<1>(), expected, "result not evaluated to constant", orig.toString())
 }
 
 bool operator==(const Literal& lhs, const Literal& rhs) {
@@ -141,8 +141,8 @@ void check_eval(Literal& orig, const Literal& expected) {
   Literal* src = Literal::create(&orig, orig.polarity());
 
   auto result = eval.evaluate(src);
-  CHECK_EQ(result.isLeft(), true, "trivial evaluation result", orig.toString())
-  CHECK_EQ(*result.unwrapLeft(), expected, "result not evaluated correctly", orig.toString())
+  CHECK_EQ(result.template is<0>(), true, "trivial evaluation result", orig.toString())
+  CHECK_EQ(*result.template unwrap<0>(), expected, "result not evaluated correctly", orig.toString())
 }
 
 /** Tests for evalutions that should only be successful for reals/rationals and not for integers. */

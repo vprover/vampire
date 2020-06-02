@@ -16,16 +16,6 @@ public:
   Optional() : _self(Coproduct<A,Unit>::template variant<1>(Unit{})) {}
   Optional(A&& content) : _self(Coproduct<A,Unit>::template variant<0>(std::move(content))) {}
 
-  // template<class T>
-  // static Optional<T> some(T value) {
-  //   return Optional(Coproduct<A,Unit>::template variant<0>(value));
-  // }
-  //
-  // template<class T>
-  // static Optional<T> none() {
-  //   return Optional(Coproduct<A,Unit>::template variant<1>(Unit{}));
-  // }
-
   bool isSome() const { return _self.template is<0>();  }
   bool isNone() const { return _self.template is<1>();  }
   const A& unwrap() const { return _self.template unwrap<0>();  }

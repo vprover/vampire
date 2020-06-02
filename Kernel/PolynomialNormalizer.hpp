@@ -22,8 +22,8 @@ namespace Kernel {
 
 
 struct AnyPoly;
-using TermEvalResult = Lib::Either<TermList, AnyPoly>;
-using LitEvalResult  = Lib::Either<Literal*, bool>;
+class TermEvalResult;
+using LitEvalResult  = Lib::Coproduct<Literal*, bool>;
 class PolynomialNormalizer {
   const bool _usePolyMul;
 public:
