@@ -42,7 +42,10 @@ namespace Kernel {
  * Exception to be thrown when the requested operation cannot be performed,
  * e.g. because of overflow of a native type.
  */
-class ArithmeticException : public ThrowableBase {};
+class ArithmeticException : public ThrowableBase { };
+
+class MachineArithmeticException : public ArithmeticException {  };
+class DivByZeroException  : public ArithmeticException {  };
 
 class IntegerConstantType
 {
@@ -78,13 +81,13 @@ public:
   }
 
   float realDivide(const IntegerConstantType& num) const { 
-    if(num._val==0) throw ArithmeticException();
+    if(num._val==0) throw DivByZeroException();
     return ((float)_val)/num._val; 
   }
   int intDivide(const IntegerConstantType& num) const {
       CALL("IntegerConstantType::intDivide");
       ASS(num.divides(*this));
-      if(num._val==0){ throw ArithmeticException(); }
+      if(num._val==0){ throw DivByZeroException(); }
       return _val/num._val;
   }
   // TODO: shouldn't we always be using intDivide for quotientE - when are they different (apart from real rounding)?

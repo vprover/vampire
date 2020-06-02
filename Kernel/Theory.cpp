@@ -52,8 +52,7 @@ IntegerConstantType::IntegerConstantType(const vstring& str)
   CALL("IntegerConstantType::IntegerConstantType(vstring)");
 
   if (!Int::stringToInt(str, _val)) {
-    //TODO: raise exception only on overflow, the proper syntax should be guarded by assertion
-    throw ArithmeticException();
+    throw MachineArithmeticException();
   }
 }
 
@@ -63,7 +62,7 @@ IntegerConstantType IntegerConstantType::operator+(const IntegerConstantType& nu
 
   InnerType res;
   if (!Int::safePlus(_val, num._val, res)) {
-    throw ArithmeticException();
+    throw MachineArithmeticException();
   }
   return IntegerConstantType(res);
 }
@@ -74,7 +73,7 @@ IntegerConstantType IntegerConstantType::operator-(const IntegerConstantType& nu
 
   InnerType res;
   if (!Int::safeMinus(_val, num._val, res)) {
-    throw ArithmeticException();
+    throw MachineArithmeticException();
   }
   return IntegerConstantType(res);
 }
@@ -85,7 +84,7 @@ IntegerConstantType IntegerConstantType::operator-() const
 
   InnerType res;
   if (!Int::safeUnaryMinus(_val, res)) {
-    throw ArithmeticException();
+    throw MachineArithmeticException();
   }
   return IntegerConstantType(res);
 }
@@ -96,7 +95,7 @@ IntegerConstantType IntegerConstantType::operator*(const IntegerConstantType& nu
 
   InnerType res;
   if (!Int::safeMultiply(_val, num._val, res)) {
-    throw ArithmeticException();
+    throw MachineArithmeticException();
   }
   return IntegerConstantType(res);
 }
@@ -107,7 +106,7 @@ IntegerConstantType IntegerConstantType::operator/(const IntegerConstantType& nu
 
   //TODO: check if division corresponds to the TPTP semantic
   if (num._val==0) {
-    throw ArithmeticException();
+    throw DivByZeroException();
   }
   if(_val == numeric_limits<InnerType>::min() && num._val == -1){
     throw ArithmeticException();
@@ -121,7 +120,7 @@ IntegerConstantType IntegerConstantType::operator%(const IntegerConstantType& nu
 
   //TODO: check if modulo corresponds to the TPTP semantic
   if (num._val==0) {
-    throw ArithmeticException();
+    throw DivByZeroException();
   }
   return IntegerConstantType(_val%num._val);
 }
@@ -246,7 +245,7 @@ void RationalConstantType::init(InnerType num, InnerType den)
   cannonize();
 
   // Dividing by zero is bad!
-  if(_den.toInner()==0) throw ArithmeticException();
+  if(_den.toInner()==0) throw DivByZeroException();
 }
 
 RationalConstantType RationalConstantType::operator+(const RationalConstantType& o) const
@@ -469,8 +468,7 @@ RealConstantType::RealConstantType(const vstring& number)
 
   double numDbl;
   if (!Int::stringToDouble(number, numDbl)) {
-    //TODO: raise exception only on overflow, the proper syntax should be guarded by assertion
-    throw ArithmeticException();
+    throw MachineArithmeticException();
   }
   InnerType denominator = 1;
   while(::floor(numDbl)!=numDbl) {
@@ -481,7 +479,7 @@ RealConstantType::RealConstantType(const vstring& number)
   InnerType::InnerType numerator = static_cast<InnerType::InnerType>(numDbl);
   if (numerator!=numDbl) {
     //the numerator part of double doesn't fit inside the inner integer type
-    throw ArithmeticException();
+    throw MachineArithmeticException();
   }
   init(numerator, denominator);
 }

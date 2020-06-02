@@ -491,7 +491,6 @@ public:
       }
       else if(arity==2){
 
-        // TODO handle addition x + -x ==> 0
 
         // If one argument is not a constant and the other is zero, one or minus one then
         // we might have some special cases
@@ -1599,7 +1598,7 @@ TermList InterpretedLiteralEvaluator::transformSubterm(TermList trm)
   CALL("InterpretedLiteralEvaluator::transformSubterm");
   // Debug::Tracer::printStack(cout);
 
-  DEBUG( "transformSubterm for ", trm.toString() );
+  // DEBUG( "transformSubterm for ", trm.toString() );
 
 
   if (!trm.isTerm()) { return trm; }
