@@ -3,8 +3,6 @@
 #include "Lib/STLAllocator.hpp"
 #include "Lib/Optional.hpp"
 #include <map>
-#include <unordered_set>
-#include <unordered_map>
 #include <vector>
 #include <stack>
 #include "Ordering.hpp"
@@ -20,6 +18,7 @@ namespace Kernel {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// TERM SORTING (ONLY IN DEBUG MODE)
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 #if VDEBUG
 bool expensive_sort_terms(TermList lhs, TermList rhs);
 
@@ -77,11 +76,7 @@ int _expensive_sort_terms(const Term& lhs, const Term& rhs) {
 }
 
 bool expensive_sort_terms(TermList lhs, TermList rhs) {
-  // auto out = Kernel::Ordering::s_globalOrdering::compare(lhs, rhs);
-  // // DBG("comparing: ", lhs, " < ", rhs, " ==> ", out);
-  // return out == LESS;
   auto out = _expensive_sort_terms(lhs, rhs) < 0;
-  // DBG("comparing: ", lhs, " < ", rhs, " ==> ", out);
   return out;
 }
 
@@ -120,19 +115,6 @@ struct compare_terms {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 template<class K, class V, class Compare = std::less<K>> using map  = std::map<K, V, Compare, STLAllocator<std::pair<const K, V > > >;
-
-template<
-    class Key,
-    class Hash = std::hash<Key>,
-    class KeyEqual = std::equal_to<Key>
-> using unordered_set = std::unordered_set<Key, Hash, KeyEqual, STLAllocator<Key>>;
-
-template<
-    class Key,
-    class V,
-    class Hash = std::hash<Key>,
-    class KeyEqual = std::equal_to<Key>
-> using unordered_map = std::unordered_map<Key, V, Hash, KeyEqual, STLAllocator<std::pair<const Key, V>>>;
 
 template<class t> using vector  = std::vector<t, STLAllocator<t>>;
 template<class t> using stack  = std::stack<t, STLAllocator<t>>;
@@ -179,37 +161,18 @@ vector<tuple<A, B>> merge_sort_with(const vector<tuple<A, B>>& lhs, const vector
 }
 
 
-struct WrappedTermList {
-  USE_ALLOCATOR(WrappedTermList)
-  CLASS_NAME(WrappedTermList)
-  TermList inner;
-  explicit WrappedTermList(TermList t) : inner(t) { }
-
-  friend bool operator<(WrappedTermList lhs, WrappedTermList rhs) {
-    return lhs.inner < rhs.inner;
-  }
-
-  friend bool operator==(WrappedTermList lhs, WrappedTermList rhs) {
-    return lhs.inner == rhs.inner;
-  }
-  size_t hash() const {
-    return TermListHash::hash(inner);
-  }
-};
-
-
-
 template<class number>
 class Monom { 
 public:
   using Coeff = typename number::ConstantType;
   class MonomInner;
-  struct hasher;
+  struct Hasher;
   Monom& operator=(const Monom&) = default;
   Monom(Monom&&) = default;
+
 private:
   MonomInner* _inner;
-  static unordered_map<MonomInner, MonomInner*, hasher> monoms;
+  static Map<MonomInner, MonomInner*, Hasher> monoms;
 
 public:
 
@@ -219,10 +182,6 @@ public:
 
   friend bool operator<(const Monom& lhs, const Monom& rhs) { return lhs._inner < rhs._inner; }
   bool expensive_cmp(Monom& rhs) {
-    // DBG("lhs: ", *this)
-    // DBG("rhs: ", rhs)
-    // DBG("less: ", expensive_sort_terms(this->toTerm(), rhs.toTerm()));
-    // return expensive_sort_terms(this->toTerm(), rhs.toTerm());
     return expensive_sort_terms(this->toTerm(), rhs.toTerm());
   }
 
@@ -245,29 +204,24 @@ public:
 
   // Monom& operator=(Monom&&) = default;
   class MonomInner {
-    vector<tuple<WrappedTermList, int>> _factors;
+    vector<tuple<TermList, int>> _factors;
     Optional<TermList> _toTerm;
     friend class Monom;
 
     // empty monom == 1
     static MonomInner* create(MonomInner&& self) {
       CALL("MonomInner::create(MonomInner&&)")
-      auto pos = monoms.find(self);
-      if (pos == monoms.end()) {
-        auto alloc = new MonomInner(self);
-        auto res = monoms.emplace(make_pair(std::move(self), alloc));
-        ASS_REP(res.second, *alloc);
-        pos = res.first;
-      } else {
-      }
-      return pos->second;
+      return monoms.getOrInit(MonomInner(self),
+          [=](MonomInner** toInit) {*toInit = new MonomInner(std::move(self));});
     }
 
+  public:
     MonomInner() : _factors(decltype(_factors)()) { }
+    private:
 
     MonomInner(decltype(_factors) factors) : _factors(factors) { }
 
-    MonomInner(TermList t) : _factors {make_tuple(WrappedTermList(t), 1)}  { }
+    MonomInner(TermList t) : _factors {make_tuple(t, 1)}  { }
 
     public:
 
@@ -276,7 +230,7 @@ public:
       using monom_pair = typename decltype(_factors)::value_type;
 
     static TermList getTerm(const typename decltype(_factors)::value_type& pair) {
-      return std::get<0>(pair).inner;
+      return std::get<0>(pair);
     }
 
     static int getCount(const typename decltype(_factors)::value_type& pair) {
@@ -308,7 +262,6 @@ public:
         } else {
 
           vector<TermList> factors(_factors.size());
-          using elem_t = const typename decltype(_factors)::value_type&;
 
           transform(begin(_factors), end(_factors), begin(factors), MonomInner::pairToTerm);
 
@@ -355,6 +308,7 @@ public:
     }
 
     public:
+
     MonomInner& operator=(MonomInner&&) = default;
     MonomInner(MonomInner&&) = default;
 
@@ -365,16 +319,22 @@ public:
     }
 
     explicit MonomInner(const MonomInner&) = default;
+    explicit MonomInner(MonomInner&) = default;
   };
-  struct hasher {
-    size_t operator()(Monom::MonomInner const& x) const noexcept {
-      size_t out = 0;
+  struct Hasher {
+
+    static unsigned hash(Monom::MonomInner const& x) noexcept {
+      unsigned out = 0;
       for (auto f : x._factors) {
-        out ^= std::get<0>(f).hash();
+        out ^= TermListHash::hash(std::get<0>(f));
         out ^= std::hash<int>{}(std::get<1>(f));
         out <<= 1;
       }
       return out;
+    }
+
+    static bool equals(Monom::MonomInner const& lhs, Monom::MonomInner const& rhs) noexcept {
+      return lhs == rhs;
     }
   };
 };
@@ -388,9 +348,9 @@ template<class number>
 class Polynom {
   class PolynomInner;
 
-  struct hasher;
+  struct Hasher;
   PolynomInner & _inner;
-  static unordered_map<PolynomInner, PolynomInner*, hasher> polynoms;
+  static Map<PolynomInner, PolynomInner*, Hasher> polynoms;
 public:
   using Coeff = typename number::ConstantType;
   using Monom = Monom<number>;
@@ -416,24 +376,14 @@ private:
     CLASS_NAME(PolynomInner)
 
   private:
-    // static unordered_map<PolynomInner<number>, PolynomInner<number> const *const > polys;
     vector<tuple<Monom, Coeff>> _coeffs;
     Optional<TermList> _toTerm;
     using poly_pair = typename decltype(_coeffs)::value_type;
 
   public:
-    static PolynomInner& create(PolynomInner&& self_) {
-      auto self = std::move(self_);
-      const PolynomInner& x = self;
-      CALL("PolynomInner::create(PolynomInner&&)")
-      auto pos = polynoms.find(x);
-      if (pos == polynoms.end()) {
-        auto alloc = new PolynomInner(std::move(self));
-        auto res = polynoms.emplace(make_pair(PolynomInner(*alloc), alloc));
-        ASS_REP(res.second, *alloc);
-        pos = res.first;
-      }
-      return *pos->second;
+    static PolynomInner& create(PolynomInner&& self) {
+      return *polynoms.getOrInit(PolynomInner(self), 
+          [=](PolynomInner** toInit) { *toInit = new PolynomInner(std::move(self)); });
     }
 
     friend bool operator==(const PolynomInner& lhs, const PolynomInner& rhs) {
@@ -588,17 +538,20 @@ private:
       return out;
     }
 
-    friend struct hasher;
+    friend struct Hasher;
   };
-  struct hasher {
-    size_t operator()(Polynom::PolynomInner const& x) const noexcept {
-      size_t out = 0;
+  struct Hasher {
+    static unsigned hash(Polynom::PolynomInner const& x) noexcept {
+      unsigned out = 0;
       for (auto c : x._coeffs) {
         out ^= PolynomInner::getMonom(c).hash();
         out ^= PolynomInner::getCoeff(c).hash();
         out <<= 1;
       }
       return out;
+    }
+    static bool equals(Polynom::PolynomInner const& lhs, Polynom::PolynomInner const& rhs) {
+      return lhs == rhs;
     }
   };
 };
@@ -863,7 +816,7 @@ TermEvalResult PolynomialNormalizer::evaluateMul(TermEvalResult&& lhs, TermEvalR
     auto l = toTerm(std::move(lhs));
     auto r = toTerm(std::move(rhs));
 
-    if ( WrappedTermList(r) < WrappedTermList(l) ) {
+    if ( r < l ) {
       std::swap(l,r);
     }
 
@@ -1167,7 +1120,7 @@ TermList PolynomialNormalizer::evaluate(TermList term) const {
 TermList PolynomialNormalizer::evaluate(Term* term) const {
   CALL("PolynomialNormalizer::evaluate(Term* term)")
   DEBUG("evaluating ", term->toString())
-  static DHMap<Term*, TermEvalResult> memo;
+  static Map<Term*, TermEvalResult> memo;
 
   static Stack<TermList*> recursion(8);
 
@@ -1198,12 +1151,13 @@ TermList PolynomialNormalizer::evaluate(Term* term) const {
         ASS(cur->isTerm());
 
         Term* t = cur->term();
-        TermEvalResult* cached = memo.findPtr(t);
-        if (cached != nullptr) {
-          args.emplace_back(TermEvalResult(*cached));
+
+        auto cached = memo.getPtr(t);
+        if (cached == nullptr) {
+           terms.push(t);
+           recursion.push(t->args());
         } else {
-          terms.push(t);
-          recursion.push(t->args());
+          args.emplace_back(TermEvalResult(*cached)); 
         }
       }
 
@@ -1214,24 +1168,39 @@ TermList PolynomialNormalizer::evaluate(Term* term) const {
 
       Term* orig=terms.pop();
 
-      auto cached = memo.findPtr(orig);
-      TermEvalResult res;
-      if (cached) {
-        res = TermEvalResult(*cached);
-        // args.emplace_back(TermEvalResult(*cached));
+      TermEvalResult& res = memo.getOrInit(std::move(orig), 
+          [&](TermEvalResult* toInit){ 
 
-      } else {
-        TermEvalResult* argLst = 0;
-        if (orig->arity() != 0) {
-          argLst=&args[args.size() - orig->arity()];
-        }
+            TermEvalResult* argLst = 0;
+            if (orig->arity() != 0) {
+              argLst=&args[args.size() - orig->arity()];
+            }
 
-        res = evaluateStep(orig, argLst);
-        ALWAYS(memo.emplace(orig, TermEvalResult(res)))
-        DEBUG("evaluated: ", orig->toString(), " -> ", res);
-      }
+            ::new(toInit) TermEvalResult(evaluateStep(orig,argLst));
+          });
+
+      DEBUG("evaluated: ", orig->toString(), " -> ", res);
+
+      // auto cached = memo.findPtr(orig);
+      // TermEvalResult res;
+      // if (cached) {
+      //   res = TermEvalResult(*cached);
+      //   // args.emplace_back(TermEvalResult(*cached));
+      //
+      // } else {
+      //   TermEvalResult* argLst = 0;
+      //   if (orig->arity() != 0) {
+      //     argLst=&args[args.size() - orig->arity()];
+      //   }
+      //
+      //   res = evaluateStep(orig, argLst);
+      //   ALWAYS(memo.emplace(orig, TermEvalResult(res)))
+      //   DEBUG("evaluated: ", orig->toString(), " -> ", res);
+      // }
+
       args.resize(args.size() - orig->arity());
-      args.emplace_back(std::move(res));
+      args.emplace_back(TermEvalResult(res));
+      
     }
 
   }

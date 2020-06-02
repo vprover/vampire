@@ -165,10 +165,8 @@ public:
   { return _content==t._content; }
   inline bool operator!=(const TermList& t) const
   { return _content!=t._content; }
-  inline bool operator<(const TermList& t) const
-  { return _content<t._content; }
-  inline bool operator>(const TermList& t) const
-  { return _content>t._content; }
+
+  friend bool operator<(const TermList& lhs, const TermList& rhs);
 
 private:
   vstring asArgsToString() const;
