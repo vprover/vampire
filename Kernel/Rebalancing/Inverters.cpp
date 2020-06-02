@@ -74,6 +74,7 @@ bool NumberTheoryInverter::canInvertTop(const InversionContext &ctxt) {
 
 TermList NumberTheoryInverter::invertTop(const InversionContext &ctxt) {
   CALL("NumberTheoryInverter::invertTop")
+  ASS(canInvertTop(ctxt))
   // DBG("inverting: ", ctxt.topTerm().toString())
   auto &t = ctxt.topTerm();
   auto index = ctxt.topIdx();
@@ -82,124 +83,51 @@ TermList NumberTheoryInverter::invertTop(const InversionContext &ctxt) {
   DEBUG("inverting ", ctxt.topTerm().toString())
   ASS(theory->isInterpretedFunction(fun))
   switch (theory->interpretFunction(fun)) {
+
     CASE_DO_INVERT_ALL(add, number::add(toWrap, number::minus(t[1 - index])))
     CASE_DO_INVERT_ALL(minus, number::minus(toWrap))
+
     CASE_DO_INVERT_FRAC(
         mul, number::mul(toWrap, number::div(number::one(), t[1 - index])))
     CASE_DO_INVERT_INT(mul, doInvertMulInt(ctxt))
+
   default:
     ASSERTION_VIOLATION;
   }
 };
 
-/** (a * t1) = (t2 * b)
- *  ^^^^^^^^ ctxt.topTerm()
- *       ^^  ctxt.toUnwrap()
- */
-struct IntMulInversion {
-  TermList t1;
-  TermList t2;
-  IntegerConstantType a;
-  IntegerConstantType b;
-};
-
-bool tryInvertMulInt(const InversionContext &ctxt, IntMulInversion &inv) {
-
+bool tryInvertMulInt(const InversionContext &ctxt, TermList &out) {
+  CALL("tryInvertMulInt(..)")
   using number = num_traits<IntegerConstantType>;
 
   auto a_ = ctxt.topTerm()[1 - ctxt.topIdx()];
   IntegerConstantType a;
   if ( theory->tryInterpretConstant(a_, a)) {
     if (a == IntegerConstantType(1)) {
-      inv = IntMulInversion {
-        .t1 = ctxt.toUnwrap(),
-        .t2 = ctxt.toWrap(),
-        .a = IntegerConstantType(1),
-        .b = IntegerConstantType(1),
-      };
+      out = ctxt.toWrap();
       return true;
 
     } else if (a == IntegerConstantType(-1)) {
-      inv = IntMulInversion {
-        .t1 = ctxt.toUnwrap(),
-        .t2 = ctxt.toWrap(),
-        .a = IntegerConstantType(-1),
-        .b = IntegerConstantType(1),
-      };
+      out = number::minus(ctxt.toWrap());
       return true;
-
-    } else if (ctxt.toWrap().isTerm()) {
-      auto &wrap = *ctxt.toWrap().term();
-      ASS(ctxt.topTerm().arity() == 2)
-      /* (a * t1) = f(...)
-       *             ^^^^^^ wrap
-       */
-
-      IntegerConstantType b;
-
-      if (wrap.functor() == ctxt.topTerm().functor()) {
-        /* (a * t1) = (_ * _)
-         *            ^^^^^^^ wrap
-         */
-        for (int i = 0; i < 2; i++) {
-          if (theory->tryInterpretConstant(wrap[i], b) && a.divides(b)) {
-            inv = IntMulInversion{
-                .t1 = ctxt.toUnwrap(),
-                .t2 = wrap[1 - i],
-                .a = a,
-                .b = b,
-            };
-            return true;
-          }
-        }
-      } else if (theory->tryInterpretConstant(&wrap, b)) {
-
-        /* (a * t1) = b * 1
-         *            ^ wrap
-         */
-        if (a.divides(b)) {
-
-          inv = IntMulInversion{
-              .t1 = ctxt.toUnwrap(),
-              .t2 = number::one(),
-              .a = a,
-              .b = b,
-          };
-          return true;
-        } else if (b == number::zeroC && a != number::zeroC) {
-          inv = IntMulInversion{
-              .t1 = ctxt.toUnwrap(),
-              .t2 = number::zero(),
-              .a = a,
-              .b = b,
-          };
-          return true;
-        } else {
-          return false;
-        }
-      }
+    } else {
+      return false;
     }
+  } else {
+    return false;
   }
-  return false;
 }
 
 TermList doInvertMulInt(const InversionContext &ctxt) {
-  using number = num_traits<IntegerConstantType>;
-  IntMulInversion inv;
-  if (!tryInvertMulInt(ctxt, inv)) {
-    ASSERTION_VIOLATION
-  }
-  /** (a * t1) = (t2 * b)
-   * ===================== where a * c = b
-   *  t1 = (t2 * c)
-   */
-  ASS(inv.a.divides(inv.b) || inv.b == number::zeroC);
-  auto c = theory->representConstant(inv.b / inv.a);
-  return number::mul(inv.t2, TermList(c));
+  DBG("doInvertMulInt(", ctxt, ")")
+  TermList out;
+  ALWAYS(tryInvertMulInt(ctxt, out)) 
+  return out;
 }
 
 bool canInvertMulInt(const InversionContext &ctxt) {
-  IntMulInversion _inv;
+  CALL("canInvertMulInt(const InversionContext&)")
+  TermList _inv;
   return tryInvertMulInt(ctxt, _inv);
 }
 
