@@ -111,7 +111,8 @@ template<class... A> void Tracer::printDbg(A... msg)
   for (int i = 0; i< _depth; i++) {
     cout << "  ";
   }
-  cout << _lastControlPoint << ": ";
+  // cout << _lastControlPoint << ": ";
+  cout << _current->_fun << ": ";
 
   _printDbg<A...>{}(msg...);
 }
@@ -122,10 +123,11 @@ template<class... A> void Tracer::printDbg(A... msg)
 #  define AUX_CALL_(SEED,Fun) Debug::Tracer _tmp_##SEED##_(Fun);
 #  define AUX_CALL(SEED,Fun) AUX_CALL_(SEED,Fun)
 #  define CALL(Fun) AUX_CALL(__LINE__,Fun)
-#  define DBG(...) \
+#  define DBG(...) {\
   std::cout << "[ debug ] " << __FILE__ <<  "@" << __LINE__ << ":";\
   Debug::Tracer::printDbg(__VA_ARGS__); \
-  std::cout << std::endl;
+  std::cout << std::endl; \
+  }
 #  define CALLC(Fun,check) if (check){ AUX_CALL(__LINE__,Fun) }
 #  define CONTROL(description) Debug::Tracer::controlPoint(description)
 #  define AFTER(number,command) \
@@ -136,7 +138,7 @@ template<class... A> void Tracer::printDbg(A... msg)
               { command };
 
 #else // ! VDEBUG
-#  define DBG(...)
+#  define DBG(...) {}
 #  define CALL(Fun) 
 #  define CALLC(Fun,check) 
 #  define CONTROL(description)
