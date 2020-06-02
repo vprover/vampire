@@ -15,8 +15,8 @@ using namespace Inferences;
 
 //TODO factor out
 Clause& clause(std::initializer_list<reference_wrapper<Literal>> ls) { 
-  static Inference testInf = Kernel::Inference(Inference::INPUT); 
-  Clause& out = *new(ls.size()) Clause(ls.size(), Kernel::Unit::InputType::ASSUMPTION, &testInf); 
+  static Inference testInf = Kernel::NonspecificInference0(UnitInputType::ASSUMPTION, InferenceRule::INPUT); 
+  Clause& out = *new(ls.size()) Clause(ls.size(), testInf); 
   auto l = ls.begin(); 
   for (int i = 0; i < ls.size(); i++) { 
     out[i] = &l->get(); 
@@ -67,11 +67,22 @@ bool operator!=(const Clause& lhs, const Clause& rhs) {
 }
 
 
+Clause* exhaustiveGve(Clause* in) {
 
-void test_eliminate_na(Clause& toSimplify) {
   static GaussianVariableElimination inf = GaussianVariableElimination();
   static InterpretedEvaluation ev = InterpretedEvaluation(false);
-  auto res = ev.simplify(inf.simplify(&toSimplify));
+  Clause* last = in;
+  Clause* latest = in;
+  do {
+    last = latest;
+    latest = ev.simplify(inf.simplify(last));
+  } while (latest != last);
+  return latest;
+}
+
+
+void test_eliminate_na(Clause& toSimplify) {
+  auto res = exhaustiveGve(&toSimplify);
   if (res != &toSimplify ) {
     cout  << endl;
     cout << "[     case ]: " << toSimplify.toString() << endl;
@@ -82,9 +93,7 @@ void test_eliminate_na(Clause& toSimplify) {
 }
 
 void test_eliminate(Clause& toSimplify, const Clause& expected) {
-  static GaussianVariableElimination inf = GaussianVariableElimination();
-  static InterpretedEvaluation ev = InterpretedEvaluation(false);
-  auto res = ev.simplify(inf.simplify(&toSimplify));
+  auto res = exhaustiveGve(&toSimplify);
   if (!res || *res != expected) {
     cout  << endl;
     cout << "[     case ]: " << toSimplify.toString() << endl;

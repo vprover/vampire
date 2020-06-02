@@ -108,8 +108,9 @@ bool tryInvertMulInt(const InversionContext &ctxt, TermList &out) {
       return true;
 
     } else if (a == IntegerConstantType(-1)) {
-      out = number::minus(ctxt.toWrap());
+      out = number::mul(a_, ctxt.toWrap());
       return true;
+
     } else {
       return false;
     }
@@ -119,7 +120,7 @@ bool tryInvertMulInt(const InversionContext &ctxt, TermList &out) {
 }
 
 TermList doInvertMulInt(const InversionContext &ctxt) {
-  DBG("doInvertMulInt(", ctxt, ")")
+  CALL("doInvertMulInt(...)")
   TermList out;
   ALWAYS(tryInvertMulInt(ctxt, out)) 
   return out;

@@ -80,6 +80,7 @@ bool ScheduleExecutor::run(const Schedule &schedule, int terminationTime)
       pid_t process;
       if(!item.started())
       {
+        // DBG("spawning schedule ", item.code())
         process = spawn(item.code(), terminationTime);
       }
       else

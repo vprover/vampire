@@ -102,6 +102,7 @@ namespace Kernel {
       const TermList _toWrap;
       const unsigned _unwrapIdx;
       public: 
+      friend std::ostream& operator<<(std::ostream& out, const InversionContext&);
       InversionContext(const Term& toInvert, unsigned unwrapIdx, const TermList toWrap) : 
         _toInvert(toInvert),
         _toWrap(toWrap),
@@ -173,6 +174,7 @@ template<class C> TermList BalanceIter<C>::derefPath() const
 
 template<class C> bool BalanceIter<C>::canInvert() const 
 {
+  CALL("Balancer::canInver()")
   if (_path.isEmpty()) {
     DEBUG("can invert empty")
     return true;/* <- we can 'invert' an equality by doing nothing*/
