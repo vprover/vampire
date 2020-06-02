@@ -15,7 +15,6 @@ Clause* GaussianVariableElimination::simplify(Clause* in)
 {
   CALL("GaussianVariableElimination::simplify")
   ASS(in)
-  Clause* out = in;
   
   auto performStep = [&](Clause& cl) -> Clause& {
 
@@ -27,6 +26,7 @@ Clause* GaussianVariableElimination::simplify(Clause* in)
           /* found a rebalancing: lhs = rhs[lhs, ...] */
           auto lhs = b.lhs();
           auto rhs = b.buildRhs();
+          //TODO simplify here
           ASS_REP(lhs.isVar(), lhs);
 
           if (!rhs.containsSubterm(lhs)) {
@@ -42,18 +42,17 @@ Clause* GaussianVariableElimination::simplify(Clause* in)
 
   };
 
-  while(true) {
-    Clause* step = &performStep(*out);
-    if (step == out) 
-      break;
-    else 
-      out = step;
-  }
+  return &performStep(*in);
+  // Clause* out = in;
+  // while(true) {
+  //   Clause* step = &performStep(*out);
+  //   if (step == out) 
+  //     break;
+  //   else 
+  //     out = step;
+  // }
 
-
-  // static InterpretedEvaluation ev = InterpretedEvaluation();
-  // return ev.simplify(out);
-  return out;
+  // return out;
 }
 
 Clause* GaussianVariableElimination::rewrite(Clause& cl, TermList find, TermList replace, unsigned skipLiteral) const 
@@ -72,8 +71,6 @@ Clause* GaussianVariableElimination::rewrite(Clause& cl, TermList find, TermList
     out[i] = EqHelper::replace(cl[i+1], find, replace);
   }
 
-  out.setSplits(cl.splits());
-  
   return &out;
 }
 
