@@ -26,12 +26,19 @@ class TermEvalResult;
 using LitEvalResult  = Lib::Coproduct<Literal*, bool>;
 
 namespace PolynomialNormalizerConfig {
+
+  template<class Ord = std::less<TermList>>
   struct Simplification { 
-    constexpr static bool usePolyMul = true;
-  };
-  struct Normalization { 
+    using Ordering = Ord;
     constexpr static bool usePolyMul = false;
   };
+
+  template<class Ord = std::less<TermList>>
+  struct Normalization { 
+    using Ordering = Ord;
+    constexpr static bool usePolyMul = true;
+  };
+
 }
 
 template<class Config>

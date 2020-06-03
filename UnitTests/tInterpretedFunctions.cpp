@@ -100,17 +100,133 @@ void check(bool b, const char* msg, As... vs) {
   __CHECK(==, __VA_ARGS__)
 
 
+bool expensive_sort_terms(TermList lhs, TermList rhs);
+
+struct expensive_term_comparison {
+  bool operator()(TermList lhs, TermList rhs) const {
+    return expensive_sort_terms(lhs, rhs);
+  }
+};
+
+int _expensive_sort_terms(const Term& lhs, const TermList& rhs);
+int _expensive_sort_terms(TermList lhs, TermList rhs);
+
+int _expensive_sort_terms(const Term& lhs, const Term& rhs) {
+  CALL("_expensive_sort_terms")
+  // DBG(lhs, " < ", rhs)
+  auto run = [&]() {
+
+
+  int l_fun = lhs.functor();
+  int r_fun = rhs.functor();
+
+  int l_thry = theory->isInterpretedFunction(l_fun);
+  int r_thry = theory->isInterpretedFunction(r_fun);
+  int cmp_thry = l_thry - r_thry;
+
+  if (cmp_thry != 0) return cmp_thry;
+  if (l_thry) {
+    ASS(r_thry)
+
+    int l_inter = theory->interpretFunction(l_fun);
+    int r_inter = theory->interpretFunction(r_fun);
+    int cmp_inter = l_inter - r_inter;
+
+    if (cmp_inter != 0) return cmp_inter;
+
+  } else {
+    ASS(!l_thry && !r_thry)
+#define TRY_NUM(IntegerConstantType) \
+    { \
+      IntegerConstantType l; \
+      IntegerConstantType r; \
+      bool li = theory->tryInterpretConstant(&lhs, l); \
+      bool ri = theory->tryInterpretConstant(&rhs, r); \
+      int i = li - ri; \
+      if (i != 0) return i; \
+      if (li && l - r != IntegerConstantType(0)) {\
+        return l - r > IntegerConstantType(0) ? 1 : -1;  \
+      }\
+    } \
+
+    TRY_NUM(IntegerConstantType)
+    TRY_NUM(RealConstantType)
+    TRY_NUM(RationalConstantType)
+ 
+    const vstring& lname = env.signature->getFunction(l_fun)->name();
+    const vstring& rname = env.signature->getFunction(r_fun)->name();
+    if (l_fun == r_fun) {
+
+    } else if (lname < rname) {
+      return -1;
+    } else {
+      return 1;
+    }
+
+    // if (cmp_fun != 0) return cmp_fun;
+ }
+
+  ASS(lhs.arity() == rhs.arity())
+  for (int i = 0; i < lhs.arity(); i++) {
+    auto cmp = _expensive_sort_terms(lhs[i], rhs[i]);
+    if (cmp != 0) {
+      return cmp;
+    }
+  }
+  return 0;
+  };
+  auto out = run();
+  // DBG("=> ", out);
+  return out;
+}
+
+bool expensive_sort_terms(TermList lhs, TermList rhs) {
+  // DBG("comparing: ", lhs, " < ", rhs)
+  auto out = _expensive_sort_terms(lhs, rhs) < 0;
+  return out;
+}
+
+int _expensive_sort_terms(TermList lhs, TermList rhs) {
+  CALL("_expensive_sort_terms(TermList)")
+  // DBG(lhs, " < ", rhs)
+  auto run = [&](){
+
+  auto l_trm = lhs.isTerm();
+  auto r_trm = rhs.isTerm();
+  auto cmp_trm = int(r_trm) - int(l_trm);
+  if (cmp_trm != 0) return cmp_trm;
+
+  if (l_trm) {
+    ASS(r_trm);
+    return _expensive_sort_terms(*lhs.term(), *rhs.term());
+  } else {
+    ASS(lhs.isVar() && rhs.isVar());
+    return int(lhs.var()) - int(rhs.var());
+  }
+
+  };
+  auto out = run();
+  // DBG("==> ", out);
+  return out;
+
+}
+
+
+
+
+struct TestOrdering {
+  bool operator()(const TermList& lhs, const TermList& rhs) const noexcept {
+    return expensive_sort_terms(lhs, rhs);
+  }
+};
+
+#define NORMALIZER PolynomialNormalizer<PolynomialNormalizerConfig::Normalization<TestOrdering>>()
+
 void check_no_succ(Literal& orig) {
 
-  auto eval = PolynomialNormalizer<PolynomialNormalizerConfig::Normalization>();
+  auto eval = NORMALIZER;
 
-  // bool constant;
-  // Literal* result = NULL;
-  // bool constantTrue;
-  //
-  // auto sideConditions = Stack<Literal*>();
   Literal* src = Literal::create(&orig, orig.polarity());
-  // auto success = eval.evaluate(src,constant,result,constantTrue, sideConditions);
   auto res = eval.evaluate(src);
   auto nop = res.template is<0>() && res.template unwrap<0>() == src;
 
@@ -120,7 +236,7 @@ void check_no_succ(Literal& orig) {
 
 void check_eval(Literal& orig, bool expected) {
 
-  auto eval = PolynomialNormalizer<PolynomialNormalizerConfig::Normalization>();
+  auto eval = NORMALIZER;
 
   auto sideConditions = Stack<Literal*>();
   Literal* src = Literal::create(&orig, orig.polarity());
@@ -136,7 +252,7 @@ bool operator==(const Literal& lhs, const Literal& rhs) {
 
 void check_eval(Literal& orig, const Literal& expected) {
 
-  auto eval = PolynomialNormalizer<PolynomialNormalizerConfig::Normalization>();
+  auto eval = NORMALIZER;
 
   auto sideConditions = Stack<Literal*>();
   Literal* src = Literal::create(&orig, orig.polarity());
