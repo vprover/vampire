@@ -90,6 +90,7 @@ Property::Property()
     _hasBoolVar(false),
     _hasLogicalProxy(false),
     _hasPolymorphicSym(false),
+    _quantifiesOverPolymorphicVar(false),
     _onlyFiniteDomainDatatypes(true),
     _knownInfiniteDomain(false),
     _allClausesGround(true),
@@ -456,11 +457,41 @@ void Property::scan(Formula* f, int polarity)
       break;
     }
     case FORALL:
+      if(!_quantifiesOverPolymorphicVar){
+        Formula::VarList* vars = f->vars();
+        Formula::VarList::Iterator vit(vars);
+
+        TermList s;
+        while(vit.hasNext()){
+          int v = vit.next();
+          if(SortHelper::tryGetVariableSort(v, f->qarg(), s)){
+            if(s.isTerm() && env.signature->getFunction(s.term()->functor())->super()){
+              _quantifiesOverPolymorphicVar = true;
+              break;
+            }
+          }
+        }    
+      }
       if (polarity != -1) {
         _allQuantifiersEssentiallyExistential = false;
       }
       break;
     case EXISTS:
+      if(!_quantifiesOverPolymorphicVar){
+        Formula::VarList* vars = f->vars();
+        Formula::VarList::Iterator vit(vars);
+
+        TermList s;
+        while(vit.hasNext()){
+          int v = vit.next();
+          if(SortHelper::tryGetVariableSort(v, f->qarg(), s)){
+            if(s.isTerm() && env.signature->getFunction(s.term()->functor())->super()){
+              _quantifiesOverPolymorphicVar = true;
+              break;
+            }
+          }
+        }    
+      }
       if (polarity != 1) {
         _allQuantifiersEssentiallyExistential = false;
       }

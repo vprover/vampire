@@ -152,6 +152,7 @@ ImmediateSimplificationEngine* MainLoop::createISE(Problem& prb, const Options& 
   if((prb.hasLogicalProxy() || prb.hasBoolVar() || prb.hasFOOL()) &&
       env.statistics->higherOrder && !env.options->addProxyAxioms()){
     res->addFront(new IFFXORRewriterISE());
+    res->addFront(new BoolSimp());
     if(env.options->cnfOnTheFly() == Options::CNFOnTheFly::EAGER){
       res->addFrontMany(new EagerClausificationISE());
     }

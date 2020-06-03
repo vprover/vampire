@@ -253,7 +253,7 @@ void ApplicativeHelper::getHeadAndArgs(const Term* term, TermList& head, Deque<T
 
 TermList ApplicativeHelper::getHead(TermList t)
 {
-  CALL("ApplicativeHelper::getHead");
+  CALL("ApplicativeHelper::getHead(TermList)");
   
   if(!t.isTerm()){
     return t; 
@@ -264,6 +264,19 @@ TermList ApplicativeHelper::getHead(TermList t)
     if(!t.isTerm() || t.term()->isSpecial()){ break; } 
   }
   return t;
+}
+
+TermList ApplicativeHelper::getHead(Term* t)
+{
+  CALL("ApplicativeHelper::getHead(Term*)");
+  
+  TermList trm = TermList(t);
+  while(env.signature->getFunction(t->functor())->app()){
+    trm = *t->nthArgument(2);
+    if(!trm.isTerm() || trm.term()->isSpecial()){ break; }
+    t = trm.term(); 
+  }
+  return trm;
 }
 
 bool ApplicativeHelper::isComb(const TermList head)

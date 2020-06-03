@@ -184,8 +184,8 @@ ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaInde
         resultStack.push(res);
         goto afterLoop;
       } else {
-        Literal* l1 = Literal::createEquality(true, args[1], troo, boolSort);
-        Literal* l2 = Literal::createEquality(true, args[0], fols, boolSort);
+        Literal* l2 = Literal::createEquality(true, args[1], troo, boolSort);
+        Literal* l1 = Literal::createEquality(true, args[0], fols, boolSort);
         Inference* inf1 = new Inference1(convert(prox), c);
         Inference* inf2 = new Inference1(convert(prox), c);
         Clause* res1 = replaceLits(c, lit, l1, inf1);
@@ -209,7 +209,8 @@ ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaInde
     }
 
     if((prox == Signature::NOT) && (args.size())){
-      Literal* l1 = Literal::createEquality(1 - lit->polarity(), args[0], boolVal, boolSort);
+      TermList rhs = positive ? fols : troo;
+      Literal* l1 = Literal::createEquality(true, args[0], rhs, boolSort);
       Inference *inf = new Inference1(convert(prox), c);      
       Clause* res = replaceLits(c, lit, l1, inf);
       res->setAge(c->age()+1);
@@ -218,6 +219,7 @@ ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaInde
     }
 
     if((prox == Signature::PI || prox == Signature::SIGMA ) && (args.size())){
+      TermList rhs = positive ? troo : fols; 
       TermList srt = *SortHelper::getResultSort(head.term()).term()->nthArgument(0);
       TermList newTerm;
       Inference *inf;
@@ -246,7 +248,7 @@ ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaInde
         }
         inf = new Inference1(convert(Signature::SIGMA), c);
       }
-      Literal* l1 = Literal::createEquality(positive, newTerm, troo, boolSort);
+      Literal* l1 = Literal::createEquality(true, newTerm, rhs, boolSort);
       Clause* res = replaceLits(c, lit, l1, inf);
       res->setAge(c->age()+1);
       resultStack.push(res);

@@ -151,7 +151,7 @@ Index* IndexManager::create(IndexType t)
   TermIndexingStructure* tis;
 
   bool isGenerating;
-  //bool attachContainer = true;
+  bool attachPassive = false;
   static bool useConstraints = env.options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF;
   static bool extByAbs = env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION;
   switch(t) {
@@ -223,6 +223,12 @@ Index* IndexManager::create(IndexType t)
     isGenerating = false;
     break;
 
+  case RENAMING_FORMULA_INDEX:
+    tis=new TermSubstitutionTree(false, false, true);
+    res=new RenamingFormulaIndex(tis);
+    attachPassive = true;
+    break;
+
   case NARROWING_INDEX:
     tis=new TermSubstitutionTree();
     res=new NarrowingIndex(tis); 
@@ -284,10 +290,11 @@ Index* IndexManager::create(IndexType t)
     INVALID_OPERATION("Unsupported IndexType.");
   }
   //if(attachContainer){
-    if(isGenerating) {
+    if(attachPassive){
+      res->attachContainer(_alg->getPassiveClauseContainer());
+    } else if(isGenerating) {
       res->attachContainer(_alg->getGeneratingClauseContainer());
-    }
-    else {
+    } else {
       res->attachContainer(_alg->getSimplifyingClauseContainer());
     }
   //}

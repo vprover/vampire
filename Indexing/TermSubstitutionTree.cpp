@@ -59,6 +59,22 @@ void TermSubstitutionTree::insert(TermList t, TermList trm)
 
   ASS(t.isTerm());
   LeafData ld(0, 0, t, trm);
+  insert(t, ld);
+}
+
+void TermSubstitutionTree::insert(TermList t, TermList trm, Literal* lit, Clause* cls)
+{
+  CALL("TermSubstitutionTree::insert(TermList)");
+
+  LeafData ld(cls, lit, t, trm);
+  insert(t, ld);
+}
+
+void TermSubstitutionTree::insert(TermList t, LeafData ld)
+{
+  CALL("TermSubstitutionTree::insert");
+
+  ASS(t.isTerm());
   Term* term=t.term();
 
   Term* normTerm=Renaming::normalize(term);
@@ -68,7 +84,7 @@ void TermSubstitutionTree::insert(TermList t, TermList trm)
 
   unsigned rootNodeIndex=getRootNodeIndex(normTerm);
 
-  SubstitutionTree::insert(&_nodes[rootNodeIndex], svBindings, ld);
+  SubstitutionTree::insert(&_nodes[rootNodeIndex], svBindings, ld);  
 }
 
 

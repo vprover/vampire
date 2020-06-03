@@ -1432,7 +1432,7 @@ void Splitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* re
   }
   SplitSet* diff=unionAll->subtract(cl->splits());      
         
-  ASS(allSplitLevelsActive(diff));
+  ASS_REP(allSplitLevelsActive(diff), cl->toString());
 
   if(diff->isEmpty()) {
     // unconditionally reduced

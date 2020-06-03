@@ -59,6 +59,7 @@ public:
   static Signature::Combinator getComb(const TermList t);
   static Signature::Proxy getProxy(const TermList t);
   static TermList getHead(TermList t);
+  static TermList getHead(Term* t);  
   static bool isApp(const Term* t); 
   static bool isType(const Term* t);
   static bool isArrowType(const Term* t);

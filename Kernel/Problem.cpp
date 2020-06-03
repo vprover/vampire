@@ -312,6 +312,7 @@ void Problem::readDetailsFromProperty() const
   _hasInterpretedEquality = _property->hasInterpretedEquality();
   _hasLogicalProxy = _property->hasLogicalProxy();
   _hasPolymorphicSym = _property->hasPolymorphicSym();
+  _quantifiesOverPolymorphicVar = _property->quantifiesOverPolymorphicVar();
   _hasBoolVar = _property->hasBoolVar();
 
   _mayHaveFormulas = _hasFormulas.value();
@@ -362,6 +363,7 @@ void Problem::invalidateByRemoval()
   _hasAppliedVar.mightBecameFalse();
   _hasLogicalProxy.mightBecameFalse();
   _hasPolymorphicSym.mightBecameFalse();
+  _quantifiesOverPolymorphicVar.mightBecameFalse();
   _hasBoolVar.mightBecameFalse();
   _hasInterpretedEquality.mightBecameFalse();
 }
@@ -473,6 +475,14 @@ bool Problem::hasPolymorphicSym() const
 
   if(!_hasPolymorphicSym.known()) { refreshProperty(); }
   return _hasPolymorphicSym.value();
+}
+
+bool Problem::quantifiesOverPolymorphicVar() const
+{
+  CALL(" Problem::quantifiesOverPolymorphicVar");
+
+  if(!_quantifiesOverPolymorphicVar.known()) { refreshProperty(); }
+  return _quantifiesOverPolymorphicVar.value();
 }
 
 ///////////////////////

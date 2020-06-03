@@ -106,6 +106,7 @@ Term* TermSharing::insert(Term* t)
     bool hasInterpretedConstants=t->arity()==0 &&
 	env.signature->getFunction(t->functor())->interpreted();
     Color color = COLOR_TRANSPARENT;
+
     if(env.options->combinatorySup() && !AH::isType(t)){ 
       int maxRedLength = -1;
       TermList head;

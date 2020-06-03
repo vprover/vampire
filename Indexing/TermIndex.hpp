@@ -160,7 +160,22 @@ public:
   
   SkolemisingFormulaIndex(TermIndexingStructure* is) : TermIndex(is)
   {}
-  void insertFormula(TermList formula, TermList name);
+  void insertFormula(TermList formula, TermList skolem);
+};
+
+
+class RenamingFormulaIndex
+: public TermIndex
+{
+public:
+  CLASS_NAME(RenamingFormulaIndex);  
+  USE_ALLOCATOR(RenamingFormulaIndex);
+  
+  RenamingFormulaIndex(TermIndexingStructure* is) : TermIndex(is)
+  {}
+  void insertFormula(TermList formula, TermList name, Literal* lit, Clause* cls);
+protected:
+  void handleClause(Clause* c, bool adding);
 };
 
 /**

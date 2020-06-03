@@ -76,6 +76,7 @@
 #include "Inferences/ElimLeibniz.hpp"
 #include "Inferences/SubVarSup.hpp"
 #include "Inferences/CNFOnTheFly.hpp"
+#include "Inferences/RenamingOnTheFly.hpp"
 #include "Inferences/URResolution.hpp"
 //#include "Inferences/Instantiation.hpp"
 //#include "Inferences/TheoryInstAndSimp.hpp"
@@ -717,6 +718,15 @@ Clause* SaturationAlgorithm::doImmediateSimplification(Clause* cl0)
 
   Clause* cl=cl0;
 
+  Clause* simplCl=_immediateSimplifier->simplify(cl);
+  if (simplCl != cl) {
+    if (simplCl) {
+      addNewClause(simplCl);
+    }
+    onClauseReduction(cl, pvi(getSingletonIterator(simplCl)), 0);
+    return 0;
+  }
+
   ClauseIterator cIt=_immediateSimplifier->simplifyMany(cl);
   if(cIt.hasNext()){
     while(cIt.hasNext()){
@@ -732,15 +742,6 @@ Clause* SaturationAlgorithm::doImmediateSimplification(Clause* cl0)
       addNewClause(simpedCl);
     }
     onClauseReduction(cl, pvi( ClauseStack::Iterator(repStack)), 0);
-    return 0;
-  }
-
-  Clause* simplCl=_immediateSimplifier->simplify(cl);
-  if (simplCl != cl) {
-    if (simplCl) {
-      addNewClause(simplCl);
-    }
-    onClauseReduction(cl, pvi(getSingletonIterator(simplCl)), 0);
     return 0;
   }
 
@@ -762,7 +763,7 @@ Clause* SaturationAlgorithm::doImmediateSimplification(Clause* cl0)
 void SaturationAlgorithm::addNewClause(Clause* cl)
 {
   CALL("SaturationAlgorithm::addNewClause");
-  
+
   //we increase the reference counter here so that the clause wouldn't
   //get destroyed during handling in the onNewClause handler
   //(there the control flow goes out of the SaturationAlgorithm class,
@@ -902,8 +903,6 @@ bool SaturationAlgorithm::forwardSimplify(Clause* cl)
     return false;
   }
 
-  static ClauseStack repStack;
-
   FwSimplList::Iterator fsit(_fwSimplifiers);
 
   while (fsit.hasNext()) {
@@ -924,6 +923,8 @@ bool SaturationAlgorithm::forwardSimplify(Clause* cl)
     }
   }
 
+  static ClauseStack repStack;
+
   repStack.reset();
   SimplList::Iterator sit(_simplifiers);
 
@@ -931,7 +932,6 @@ bool SaturationAlgorithm::forwardSimplify(Clause* cl)
     SimplificationEngine* se=sit.next();
 
     {
-      Clause* replacement = 0;
       ClauseIterator results = se->perform(cl);
 
       if (results.hasNext()) {
@@ -1427,7 +1427,9 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   if (prb.hasEquality()) {
     gie->addFront(new EqualityFactoring());
     gie->addFront(new EqualityResolution());
-    gie->addFront(new Superposition());
+    if(env.options->superposition()){
+      gie->addFront(new Superposition());
+    }
   }
 
   if(opt.combinatorySup()){
@@ -1472,7 +1474,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
 
   if((prb.hasLogicalProxy() || prb.hasBoolVar() || prb.hasFOOL()) &&
-      env.statistics->higherOrder && !prb.hasPolymorphicSym()){
+      env.statistics->higherOrder && !prb.quantifiesOverPolymorphicVar()){
     if(env.options->cnfOnTheFly() != Options::CNFOnTheFly::EAGER){
       gie->addFront(new LazyClausificationGIE());
     }
@@ -1505,10 +1507,11 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   //create simplification engine
 
   if((prb.hasLogicalProxy() || prb.hasBoolVar() || prb.hasFOOL()) &&
-      env.statistics->higherOrder && !prb.hasPolymorphicSym()){
+      env.statistics->higherOrder && !prb.quantifiesOverPolymorphicVar()){
     if(env.options->cnfOnTheFly() != Options::CNFOnTheFly::EAGER){
       res->addSimplifierToFront(new LazyClausification());
     }
+    //res->addSimplifierToFront(new RenamingOnTheFly());
   }  
 
   // create forward simplification engine

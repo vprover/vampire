@@ -145,12 +145,12 @@ TermList LambdaElimination::processBeyondLambda(Formula* formula)
       TermList form1 = processBeyondLambda(lhs);
       TermList form2 = processBeyondLambda(rhs);
 
-      TermListComparator tlc;
+      /*TermListComparator tlc;
       if((conn == IFF || conn == XOR) && tlc.lessThan(form2, form1)){
         TermList temp = form1;
         form1 = form2;
         form2 = temp;
-      }
+      }*/
 
       return AH::createAppTerm3(sortOf(constant), constant, form1, form2);;
     }
@@ -161,7 +161,7 @@ TermList LambdaElimination::processBeyondLambda(Formula* formula)
       vstring name = (conn == AND ? "vAND" : "vOR");
       constant = TermList(Term::createConstant(env.signature->getBinaryProxy(name)));
       
-      TermListComparator tlc;
+      /*TermListComparator tlc;
       unsigned length = FormulaList::length(formula->args());
       Sort<TermList,TermListComparator> srt(length, tlc);
       while(argsIt.hasNext()){
@@ -172,8 +172,21 @@ TermList LambdaElimination::processBeyondLambda(Formula* formula)
       appTerm = AH::createAppTerm3(sortOf(constant), constant, srt[0], srt[1]);
       for(unsigned i = 2; i < length; i++){
         appTerm = AH::createAppTerm3(sortOf(constant), constant, appTerm, srt[i]);
+      }*/
+      TermList form;
+      unsigned count = 1;
+      while(argsIt.hasNext()){
+        Formula* arg = argsIt.next();
+        form = processBeyondLambda(arg);
+        if(count == 1){
+          appTerm = AH::createAppTerm(sortOf(constant), constant, form);
+        }else if(count == 2){
+          appTerm = AH::createAppTerm(sortOf(appTerm), appTerm, form);
+        }else{
+          appTerm = AH::createAppTerm3(sortOf(constant), constant, appTerm, form);
+        }
+        count++;
       }
-
       return appTerm;                           
     }
     case NOT: {

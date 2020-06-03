@@ -2132,6 +2132,7 @@ public:
   bool equalityToEquivalence () const { return _equalityToEquivalence.actualValue; } 
   bool complexBooleanReasoning () const { return _complexBooleanReasoning.actualValue; }
   bool booleanEqTrick() const { return _booleanEqTrick.actualValue; }
+  bool superposition() const {return _superposition.actualValue; }
 
 private:
     
@@ -2519,6 +2520,7 @@ private:
   BoolOptionValue _equalityToEquivalence;
   BoolOptionValue _complexBooleanReasoning;
   BoolOptionValue _booleanEqTrick;
+  BoolOptionValue _superposition;
 }; // class Options
 
 // Allow printing of enums

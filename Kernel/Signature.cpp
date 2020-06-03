@@ -730,17 +730,41 @@ void Signature::incrementFormulaCount(Term* t){
   ASS(SortHelper::getResultSort(t) == Term::boolSort());
 
   if(_formulaCounts.find(t)){
-    _formulaCounts.set(t, _formulaCounts.get(t) + 1);
+    int count =  _formulaCounts.get(t);
+    if(count != -1){
+      _formulaCounts.set(t, count + 1);
+    }
   } else {
     _formulaCounts.set(t, 1);
   }
 }
 
+void Signature::decrementFormulaCount(Term* t){
+  CALL("Signature::incrementFormulaCount");
+  ASS(SortHelper::getResultSort(t) == Term::boolSort());
+
+  ASS(_formulaCounts.find(t))
+  int count = _formulaCounts.get(t);
+  if(count != -1){
+    _formulaCounts.set(t, count - 1);
+  }
+}
+
+void Signature::formulaNamed(Term* t){
+  CALL("Signature::formulaNamed");
+  ASS(SortHelper::getResultSort(t) == Term::boolSort());
+
+  ASS(_formulaCounts.find(t));
+  _formulaCounts.set(t, -1);
+}
+
 unsigned Signature::formulaCount(Term* t){
   CALL("Signature::formulaCount");
-  ASS(_formulaCounts.find(t));
   
-  return _formulaCounts.get(t);
+  if(_formulaCounts.find(t)){
+    return _formulaCounts.get(t);
+  }
+  return 0;
 }
 
 

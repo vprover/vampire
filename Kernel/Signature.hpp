@@ -772,6 +772,8 @@ class Signature
   }
 
   void incrementFormulaCount(Term* t);
+  void decrementFormulaCount(Term* t);
+  void formulaNamed(Term* t);
   unsigned formulaCount(Term* t);
 
 
@@ -790,7 +792,7 @@ class Signature
 
 private:
   Stack<TermList> _dividesNvalues;
-  DHMap<Term*, unsigned> _formulaCounts;
+  DHMap<Term*, int> _formulaCounts;
 
   bool _foolConstantsDefined;
   unsigned _foolTrue;

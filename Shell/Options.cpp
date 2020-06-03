@@ -1265,6 +1265,12 @@ void Options::Options::init()
     _lookup.insert(&_booleanEqTrick);
     _booleanEqTrick.tag(OptionTag::OTHER);
 
+    _superposition = BoolOptionValue("superposition","sup",true);
+    _superposition.description=
+    "Control superposition. Only used in higher-order strategies";
+    _lookup.insert(&_superposition);
+    _superposition.tag(OptionTag::INFERENCES);
+
 
 //*********************** InstGen  ***********************
 

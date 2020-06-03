@@ -767,6 +767,12 @@ bool SortHelper::tryGetVariableSort(TermList var, Term* t0, TermList& result)
       }
       continue;
     }*/
+    if(t->isFormula()){
+      Formula* f = t->getSpecialData()->getFormula();
+      if(tryGetVariableSort(var.var(), f, result)){
+        return true;
+      }
+    }
     if (t->isLambda()) {
       TermList sort = t->getSpecialData()->getLambdaExpSort();
       TermList lambdaTerm = t->getSpecialData()->getLambdaExp();
@@ -790,6 +796,8 @@ bool SortHelper::tryGetVariableSort(TermList var, Term* t0, TermList& result)
     int idx = 0;
     TermList* args = t->args();
     while (!args->isEmpty()) {
+//      cout << "The arg is " + args->toString() << endl;
+//      cout << "the var is " + var.toString() << endl;
       if (*args==var) {
         result = getArgSort(t, idx);
         return true;

@@ -102,6 +102,7 @@ public:
 
   virtual ClauseContainer* getSimplifyingClauseContainer() = 0;
   virtual ClauseContainer* getGeneratingClauseContainer() { return _active; }
+  virtual ClauseContainer* getPassiveClauseContainer() { return _passive; }
   /*ExtensionalityClauseContainer* getExtensionalityClauseContainer() {
     return _extensionality;
   }*/

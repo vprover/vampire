@@ -269,9 +269,42 @@ void NarrowingIndex::populateIndex()
 
 void SkolemisingFormulaIndex::insertFormula(TermList formula, TermList skolem)
 {
-  CALL("SkolemisingFormulaIndex::handleFormul");
+  CALL("SkolemisingFormulaIndex::insertFormula");
   _is->insert(formula, skolem);
 }
+
+void RenamingFormulaIndex::insertFormula(TermList formula, TermList name,
+                                         Literal* lit, Clause* cls)
+{
+  CALL("RenamingFormulaIndex::insertFormula");
+  _is->insert(formula, name, lit, cls);
+}
+
+void RenamingFormulaIndex::handleClause(Clause* c, bool adding)
+{
+  CALL("RenamingFormulaIndex::handleClause");
+
+  typedef ApplicativeHelper AH;
+
+  for (unsigned i=0; i<c->length(); i++) {
+    Literal* lit=(*c)[i];
+    IteratorCore<TermList>* it = new NonVariableNonTypeIterator(lit);
+
+    while (it->hasNext()) {
+      TermList trm = it->next();
+      Term* t = trm.term();
+      if(SortHelper::getResultSort(t) == Term::boolSort() && 
+         AH::getProxy(AH::getHead(t)) != Signature::NOT_PROXY){
+        if(adding){
+          env.signature->incrementFormulaCount(t);
+        } else {
+          env.signature->decrementFormulaCount(t);          
+        }
+      }
+    }
+  }
+}
+
 
 void DemodulationSubtermIndex::handleClause(Clause* c, bool adding)
 {
