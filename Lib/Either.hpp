@@ -7,6 +7,11 @@
 
 namespace Lib {
 
+#define FOR_REF_QUALIFIER(macro) \
+  macro(const&,          ) \
+  macro(     &,          ) \
+  macro(    &&, std::move) \
+
 template<class... As>
 class Coproduct {
   unsigned _tag;
@@ -102,6 +107,14 @@ union VariadicUnion<> {
   }
 
 
+#define DEFINE_APPLY_POLY(__REF, __MOVE) \
+  template<class R, class F> R applyPoly(unsigned idx, F f) __REF { ASSERTION_VIOLATION_REP(idx) } 
+
+  FOR_REF_QUALIFIER(DEFINE_APPLY_POLY)
+#undef DEFINE_APPLY_POLY
+  // template<class R> R applyPoly(unsigned idx)     && { ASSERTION_VIOLATION_REP(idx) }
+  // template<class R> R applyPoly(unsigned idx) const& { ASSERTION_VIOLATION_REP(idx) }
+
   template<class R> R apply(unsigned idx)      & { ASSERTION_VIOLATION_REP(idx) }
   template<class R> R apply(unsigned idx)     && { ASSERTION_VIOLATION_REP(idx) }
   template<class R> R apply(unsigned idx) const& { ASSERTION_VIOLATION_REP(idx) }
@@ -147,32 +160,52 @@ union VariadicUnion<A, As...> {
   }
 
 
-  template<class R, class F, class... Fs>
-  R apply(unsigned idx, F f, Fs... fs) & {
-    if (idx == 0) {
-      return f(_head);
-    } else {
-      return _tail.template apply<R>(idx - 1, fs...);
-    }
-  }
 
-  template<class R, class F, class... Fs>
-  R apply(unsigned idx, F f, Fs... fs) const& {
-    if (idx == 0) {
-      return f(_head);
-    } else {
-      return _tail.template apply<R>(idx - 1, fs...);
-    }
-  }
 
-  template<class R, class F, class... Fs>
-  R apply(unsigned idx, F f, Fs... fs) && {
-    if (idx == 0) {
-      return f(std::move(_head));
-    } else {
-      return std::move(_tail).template apply<R>(idx - 1, fs...);
-    }
-  }
+// #define APPLY_DEF(__REF, __MOVE) \
+//   template<class R, class F, class... Fs> \
+//   R apply(unsigned idx, F f, Fs... fs) REF {
+//     if (idx == 0) { \
+//       return f(_head); \
+//     } else { \
+//       return _tail.template apply<R>(idx - 1, fs...); \
+//     }
+//   }
+//
+//   template<class R, class F, class... Fs>
+//   R apply(unsigned idx, F f, Fs... fs) const& {
+//     if (idx == 0) {
+//       return f(_head);
+//     } else {
+//       return _tail.template apply<R>(idx - 1, fs...);
+//     }
+//   }
+
+#define DEFINE_APPLY_POLY(__REF, __MOVE) \
+  template<class R, class F> \
+  R applyPoly(unsigned idx, F f) __REF { \
+    if (idx == 0) { \
+      return f(__MOVE(_head)); \
+    } else { \
+      return __MOVE(_tail).template applyPoly<R>(idx - 1, f); \
+    } \
+  } \
+
+  FOR_REF_QUALIFIER(DEFINE_APPLY_POLY)
+#undef DEFINE_APPLY
+
+#define DEFINE_APPLY(__REF, __MOVE) \
+  template<class R, class F, class... Fs> \
+  R apply(unsigned idx, F f, Fs... fs) __REF { \
+    if (idx == 0) { \
+      return f(__MOVE(_head)); \
+    } else { \
+      return __MOVE(_tail).template apply<R>(idx - 1, fs...); \
+    } \
+  } \
+
+  FOR_REF_QUALIFIER(DEFINE_APPLY)
+#undef DEFINE_APPLY
 
   void initMove(unsigned idx, VariadicUnion&& other) {
     if (idx == 0) {
@@ -206,13 +239,18 @@ class Coproduct<A, As...> {
 public:
   static constexpr unsigned size = Coproduct<As...>::size + 1;
 
-  template<unsigned idx>
-  struct type {
-    using value = typename va_idx<idx, A, As...>::type;
-  };
+  template<unsigned idx> struct type { using value = typename va_idx<idx, A, As...>::type; };
+  template<class B> struct idx_of { static constexpr unsigned value = Coproduct<As...>::template idx_of<B>::value + 1; };
+  template<>        struct idx_of<A> { static constexpr unsigned value = 0; };
 
   template<unsigned idx> bool is() const
   { static_assert(idx < size, "out of bounds"); return _tag == idx; }
+
+  template<class B> const B& as() const&
+  { 
+    // TODO static assertions
+    return unwrap<idx_of<B>::value>(); 
+  }
 
   template<unsigned idx> 
   typename va_idx<idx, A, As...>::type& unwrap()
@@ -239,7 +277,7 @@ public:
   template<unsigned idx> static Coproduct variant(typename va_idx<idx, A, As...>::type& value) 
   { return Coproduct(Inj<idx, typename va_idx<idx, A, As...>::type>(value)); }
 
-  Self& operator=(const Self& other) {
+  Coproduct& operator=(const Coproduct& other) {
     _content.destroy(_tag);
     _tag = other._tag;
     _content.initClone(_tag, other._content);
@@ -255,6 +293,10 @@ public:
   template<class Ret, class... F> Ret collapse(F... fs) const& { return _content.template apply<Ret>(_tag, fs...); }
   template<class Ret, class... F> Ret collapse(F... fs)      & { return _content.template apply<Ret>(_tag, fs...); }
   template<class Ret, class... F> Ret collapse(F... fs)     && { return std::move(_content).template apply<Ret>(_tag, fs...); }
+
+  template<class Ret, class F> Ret collapsePoly(F f) const& { return _content.template applyPoly<Ret>(_tag, f); }
+  template<class Ret, class F> Ret collapsePoly(F f)      & { return _content.template applyPoly<Ret>(_tag, f); }
+  template<class Ret, class F> Ret collapsePoly(F f)     && { return std::move(_content).template applyPoly<Ret>(_tag, f); }
 
   template<class... F> Coproduct map(F... fs) const& { return collapse<Coproduct>(fs...); }
   template<class... F> Coproduct map(F... fs)     && { return collapse<Coproduct>(fs...); }
@@ -293,6 +335,17 @@ public:
 
   ~Coproduct() {
     _content.destroy(_tag);
+  }
+private:
+  struct __writeToStream {
+    unsigned _tag;
+    std::ostream& out;
+    template<class B> std::ostream& operator()(const B& b) { 
+      return out<< "Coproduct<" << _tag << ">(" << b << ")"; }
+  };
+public:
+  friend std::ostream& operator<<(std::ostream& out, const Coproduct& self) {
+    return self.collapsePoly<std::ostream&>(__writeToStream{ self._tag, out });
   }
 
 };
