@@ -804,11 +804,7 @@ struct AnyPoly {
 private:
 };
 
-class AnyNumber : public Coproduct<IntegerConstantType, RationalConstantType, RealConstantType> {
-
-};
-
-class TermEvalResult : public Coproduct<TermList, AnyPoly, AnyNumber> {
+class TermEvalResult : public Coproduct<TermList, AnyPoly> {
 // class TermEvalResult : public Coproduct<TermList, AnyPoly> {
 public:
   TermEvalResult() : Coproduct(Coproduct::template variant<0>(Kernel::TermList())) {}
@@ -912,7 +908,6 @@ TermEvalResult evaluateUnaryMinus(TermEvalResult& inner) {
         auto out = Polynom<number>::poly_mul(minusOne, p.ref<typename number::ConstantType>());//TODO speed this up
         return TermEvalResult::template variant<1>(AnyPoly(std::move(out)));
       }
-      , [](const AnyNumber& n) -> TermEvalResult { TODO }
       );
   return out;
 }
@@ -946,7 +941,6 @@ TermEvalResult PolynomialNormalizer::evaluateMul(TermEvalResult&& lhs, TermEvalR
       return std::move(x).collapse<poly>(
           [](TermList&& t) { return poly(number::constant(1), t); }
         , [](AnyPoly&& p) { return std::move(p.ref_mut<Const>()); }
-        , [](AnyNumber&& n) -> poly { TODO }
         );
     };
 
@@ -958,7 +952,6 @@ TermEvalResult PolynomialNormalizer::evaluateMul(TermEvalResult&& lhs, TermEvalR
       return std::move(res).collapse<TermList>(
           [](TermList && t) { return t; }
         , [](AnyPoly  && p) { return p.toTerm_(); }
-        , [](AnyNumber&& n) -> TermList { TODO }
         );
     };
 
@@ -1001,13 +994,11 @@ Polynom<number> evaluateAdd(TermEvalResult&& lhs, TermEvalResult&& rhs) {
   poly l = std::move(lhs).collapse<poly>(
         [](TermList && t) { return poly(number::constant(1), t); }
       , [](AnyPoly  && p) { return std::move(p.ref_mut<Const>()); }
-      , [](AnyNumber&& n) -> poly { TODO }
       );
 
   poly r = std::move(rhs).collapse<poly>(
         [](TermList&& t) { return poly(number::constant(1), t); }
       , [](AnyPoly&& p) { return std::move(p.ref_mut<Const>()); }
-      , [](AnyNumber&& n) -> poly { TODO }
       );
   
   return poly::poly_add(l, r);
@@ -1360,7 +1351,6 @@ TermList PolynomialNormalizer::evaluate(Term* term) const {
   auto out_ = std::move(out).collapse<TermList>(
         [](TermList&& l) { return l; }
       , [](AnyPoly&& p) -> TermList{ return p.toTerm_(); }
-      , [](AnyNumber&& p) -> TermList {TODO}
       ); 
   return out_;
 }
@@ -1376,7 +1366,6 @@ inline TermList createTerm(unsigned fun, const Signature::Symbol& sym, TermEvalR
     args.push(std::move(evaluatedArgs[0]).collapse<TermList>(
         [](TermList&& t) {return t;}
       , [](AnyPoly&& p) { return p.toTerm_(); }
-      , [](AnyNumber&& p) -> TermList {TODO}
         ));
   }
   return TermList(Term::create(fun, arity, args.begin()));
