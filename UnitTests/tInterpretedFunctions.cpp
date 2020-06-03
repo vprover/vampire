@@ -99,9 +99,10 @@ void check(bool b, const char* msg, As... vs) {
 #define CHECK_EQ(...) \
   __CHECK(==, __VA_ARGS__)
 
+
 void check_no_succ(Literal& orig) {
 
-  auto eval = PolynomialNormalizer(true);
+  auto eval = PolynomialNormalizer<PolynomialNormalizerConfig::Normalization>();
 
   // bool constant;
   // Literal* result = NULL;
@@ -119,7 +120,7 @@ void check_no_succ(Literal& orig) {
 
 void check_eval(Literal& orig, bool expected) {
 
-  auto eval = PolynomialNormalizer(true);
+  auto eval = PolynomialNormalizer<PolynomialNormalizerConfig::Normalization>();
 
   auto sideConditions = Stack<Literal*>();
   Literal* src = Literal::create(&orig, orig.polarity());
@@ -135,7 +136,7 @@ bool operator==(const Literal& lhs, const Literal& rhs) {
 
 void check_eval(Literal& orig, const Literal& expected) {
 
-  auto eval = PolynomialNormalizer(true);
+  auto eval = PolynomialNormalizer<PolynomialNormalizerConfig::Normalization>();
 
   auto sideConditions = Stack<Literal*>();
   Literal* src = Literal::create(&orig, orig.polarity());
