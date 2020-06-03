@@ -424,12 +424,12 @@ ALL_NUMBERS_TEST(polynomial__merge_consts_1,
 
 ALL_NUMBERS_TEST(polynomial__merge_consts_2,
       p(add(add(mul(6, x), mul(y, 3)), mul(5, x))),
-      p(add(mul(11, x), mul(3,y)))
+      p(add(mul(3,y), mul(11, x)))
       )
 
 ALL_NUMBERS_TEST(polynomial__merge_consts_3,
       p(add(add(mul(6, a), mul(y, 3)), mul(5, a))),
-      p(add(mul(11, a), mul(3, y)))
+      p(add(mul(3, y), mul(11, a)))
       )
 
 ALL_NUMBERS_TEST(polynomial__push_unary_minus,
@@ -457,8 +457,8 @@ ALL_NUMBERS_TEST(polynomial__sorting_3,
       // p(add(mul(4, mul(x,x)), add(mul(2, mul(x,y)), add(mul(2,mul(x,a)), mul(y,a)))))
       p(add(mul(a,y),
         add(mul(2,mul(a,x)), 
-        add(mul(4, mul(x,x)), 
-            mul(2, mul(x,y))
+        add(mul(2, mul(x,y)),
+            mul(4, mul(x,x)) 
             ))))
       )
 

@@ -33,6 +33,10 @@ int _expensive_sort_terms(const Term& lhs, const TermList& rhs);
 int _expensive_sort_terms(TermList lhs, TermList rhs);
 
 int _expensive_sort_terms(const Term& lhs, const Term& rhs) {
+  CALL("_expensive_sort_terms")
+  // DBG(lhs, " < ", rhs)
+  auto run = [&]() {
+
 
   int l_fun = lhs.functor();
   int r_fun = rhs.functor();
@@ -53,6 +57,22 @@ int _expensive_sort_terms(const Term& lhs, const Term& rhs) {
 
   } else {
     ASS(!l_thry && !r_thry)
+#define TRY_NUM(IntegerConstantType) \
+    { \
+      IntegerConstantType l; \
+      IntegerConstantType r; \
+      bool li = theory->tryInterpretConstant(&lhs, l); \
+      bool ri = theory->tryInterpretConstant(&rhs, r); \
+      int i = li - ri; \
+      if (i != 0) return i; \
+      if (li && l - r != IntegerConstantType(0)) {\
+        return l - r > IntegerConstantType(0) ? 1 : -1;  \
+      }\
+    } \
+
+    TRY_NUM(IntegerConstantType)
+    TRY_NUM(RealConstantType)
+    TRY_NUM(RationalConstantType)
  
     const vstring& lname = env.signature->getFunction(l_fun)->name();
     const vstring& rname = env.signature->getFunction(r_fun)->name();
@@ -63,6 +83,7 @@ int _expensive_sort_terms(const Term& lhs, const Term& rhs) {
     } else {
       return 1;
     }
+
     // if (cmp_fun != 0) return cmp_fun;
  }
 
@@ -74,17 +95,26 @@ int _expensive_sort_terms(const Term& lhs, const Term& rhs) {
     }
   }
   return 0;
+  };
+  auto out = run();
+  // DBG("=> ", out);
+  return out;
 }
 
 bool expensive_sort_terms(TermList lhs, TermList rhs) {
+  // DBG("comparing: ", lhs, " < ", rhs)
   auto out = _expensive_sort_terms(lhs, rhs) < 0;
   return out;
 }
 
 int _expensive_sort_terms(TermList lhs, TermList rhs) {
+  CALL("_expensive_sort_terms(TermList)")
+  // DBG(lhs, " < ", rhs)
+  auto run = [&](){
+
   auto l_trm = lhs.isTerm();
   auto r_trm = rhs.isTerm();
-  auto cmp_trm = r_trm - l_trm;
+  auto cmp_trm = int(r_trm) - int(l_trm);
   if (cmp_trm != 0) return cmp_trm;
 
   if (l_trm) {
@@ -94,6 +124,11 @@ int _expensive_sort_terms(TermList lhs, TermList rhs) {
     ASS(lhs.isVar() && rhs.isVar());
     return int(lhs.var()) - int(rhs.var());
   }
+
+  };
+  auto out = run();
+  // DBG("==> ", out);
+  return out;
 
 }
 
@@ -262,11 +297,20 @@ public:
           return number::one();
         } else {
 
-          vector<TermList> factors(_factors.size());
+          vector<TermList> factors;
+          auto sz = 0;
+          for(auto& f : _factors) {
+            sz += getCount(f);
+          }
+          factors.reserve(sz);
 
-          transform(begin(_factors), end(_factors), begin(factors), MonomInner::pairToTerm);
+          for (auto f : _factors) {
+            for (auto i = 0; i < getCount(f); i++) {
+              factors.push_back(getTerm(f));
+            }
+          }
 
-          sort(begin(factors), end(factors), expensive_sort_terms );
+          sort(begin(factors), end(factors), expensive_sort_terms);
 
           auto iter = factors.rbegin();
 
@@ -645,14 +689,18 @@ struct AnyPoly {
 private:
 };
 
-  class TermEvalResult : public Coproduct<TermList, AnyPoly> {
-  public:
-    using super_t = Coproduct<Kernel::TermList, Kernel::AnyPoly>;
-    TermEvalResult() : Coproduct(Coproduct::template variant<0>(Kernel::TermList())) {}
-    TermEvalResult(super_t     && super) : Coproduct(std::move(super)) {}
-    TermEvalResult(super_t      & super) : Coproduct(          super ) {}
-    TermEvalResult(super_t const& super) : Coproduct(          super ) {}
-  };
+class AnyNumber : Coproduct<IntegerConstantType, RationalConstantType, RealConstantType> {
+
+};
+
+class TermEvalResult : public Coproduct<TermList, AnyPoly, AnyNumber> {
+// class TermEvalResult : public Coproduct<TermList, AnyPoly> {
+public:
+  TermEvalResult() : Coproduct(Coproduct::template variant<0>(Kernel::TermList())) {}
+  TermEvalResult(Coproduct     && super) : Coproduct(std::move(super)) {}
+  TermEvalResult(Coproduct      & super) : Coproduct(          super ) {}
+  TermEvalResult(Coproduct const& super) : Coproduct(          super ) {}
+};
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Equality
@@ -738,17 +786,19 @@ template<> LitEvalResult PolynomialNormalizer::evaluateLit<Interpretation::INT_D
 template<class number>
 TermEvalResult evaluateUnaryMinus(TermEvalResult& inner) {
   auto out = inner.map(
-      [](const TermList& t) { 
+        [](const TermList& t) { 
         return TermEvalResult::template variant<1>(AnyPoly(
             Polynom<number>( number::constant(-1), t)
             ));
-      },
-      [](const AnyPoly& p) {
+      }
+      , [](const AnyPoly& p) {
         // p.multiply(number::constant(-1)); 
         auto minusOne = Polynom<number>(number::constant(-1));
         auto out = Polynom<number>::poly_mul(minusOne, p.ref<typename number::ConstantType>());//TODO speed this up
         return TermEvalResult::template variant<1>(AnyPoly(std::move(out)));
-      });
+      }
+      , [](const AnyNumber& n) -> TermEvalResult { TODO }
+      );
   return out;
 }
 
@@ -777,33 +827,24 @@ TermEvalResult PolynomialNormalizer::evaluateMul(TermEvalResult&& lhs, TermEvalR
   using Const = typename number::ConstantType;
   using poly = Polynom<number>;
   if (_usePolyMul) {
-    auto l = std::move(lhs).collapse<poly>(
-        [](TermList&& t) { 
-          return poly(number::constant(1), t);
-        },
-        [](AnyPoly&& p) {
-          return std::move(p.ref_mut<Const>());
-        });
+    auto to_poly = [](TermEvalResult&& x) -> poly {
+      return std::move(x).collapse<poly>(
+          [](TermList&& t) { return poly(number::constant(1), t); }
+        , [](AnyPoly&& p) { return std::move(p.ref_mut<Const>()); }
+        , [](AnyNumber&& n) -> poly { TODO }
+        );
+    };
 
-    auto r = std::move(rhs).collapse<poly>(
-        [](TermList&& t) { 
-          return poly(number::constant(1), t);
-        },
-        [](AnyPoly&& p) {
-          return std::move(p.ref_mut<Const>());
-        });
-
-    return TermEvalResult::template variant<1>(AnyPoly(poly::poly_mul(l, r)));
+    return TermEvalResult::template variant<1>(AnyPoly(
+          poly::poly_mul(to_poly(std::move(lhs)), to_poly(std::move(rhs)))));
   } else {
 
     auto toTerm = [](TermEvalResult&& res) {
       return std::move(res).collapse<TermList>(
-        [](TermList&& t) { 
-          return t;
-        },
-        [](AnyPoly&& p) {
-          return p.toTerm_();
-        });
+          [](TermList && t) { return t; }
+        , [](AnyPoly  && p) { return p.toTerm_(); }
+        , [](AnyNumber&& n) -> TermList { TODO }
+        );
     };
 
     auto l = toTerm(std::move(lhs));
@@ -843,20 +884,16 @@ Polynom<number> evaluateAdd(TermEvalResult&& lhs, TermEvalResult&& rhs) {
   using poly = Polynom<number>;
 
   poly l = std::move(lhs).collapse<poly>(
-      [](TermList&& t) { 
-        return poly(number::constant(1), t);
-      },
-      [](AnyPoly&& p) {
-        return std::move(p.ref_mut<Const>());
-      });
+        [](TermList && t) { return poly(number::constant(1), t); }
+      , [](AnyPoly  && p) { return std::move(p.ref_mut<Const>()); }
+      , [](AnyNumber&& n) -> poly { TODO }
+      );
 
   poly r = std::move(rhs).collapse<poly>(
-      [](TermList&& t) { 
-        return poly(number::constant(1), t);
-      },
-      [](AnyPoly&& p) {
-        return std::move(p.ref_mut<Const>());
-      });
+        [](TermList&& t) { return poly(number::constant(1), t); }
+      , [](AnyPoly&& p) { return std::move(p.ref_mut<Const>()); }
+      , [](AnyNumber&& n) -> poly { TODO }
+      );
   
   return poly::poly_add(l, r);
 }
@@ -1071,7 +1108,7 @@ LitEvalResult PolynomialNormalizer::evaluateStep(Literal* lit) const {
       HANDLE_CASE(INT_DIVIDES)
 
       default:
-        DBG("WARNING: unexpected interpreted predicate: ", lit->toString())
+        // DBG("WARNING: unexpected interpreted predicate: ", lit->toString())
         ASSERTION_VIOLATION
         return LitEvalResult::template variant<0>(lit);
     }
@@ -1206,8 +1243,9 @@ TermList PolynomialNormalizer::evaluate(Term* term) const {
             std::make_move_iterator(args.end()),
             &out);
   auto out_ = std::move(out).collapse<TermList>(
-      [](TermList&& l) { return l; },
-      [](AnyPoly&& p) -> TermList{ return p.toTerm_(); }
+        [](TermList&& l) { return l; }
+      , [](AnyPoly&& p) -> TermList{ return p.toTerm_(); }
+      , [](AnyNumber&& p) -> TermList {TODO}
       ); 
   return out_;
 }
@@ -1221,8 +1259,9 @@ inline TermList createTerm(unsigned fun, const Signature::Symbol& sym, TermEvalR
   auto arity = op.arity();
   for (int i = 0; i < arity; i++) {
     args.push(std::move(evaluatedArgs[0]).collapse<TermList>(
-      [](TermList&& t) {return t;},
-      [](AnyPoly&& p) { return p.toTerm_(); }
+        [](TermList&& t) {return t;}
+      , [](AnyPoly&& p) { return p.toTerm_(); }
+      , [](AnyNumber&& p) -> TermList {TODO}
         ));
   }
   return TermList(Term::create(fun, arity, args.begin()));
