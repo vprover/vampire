@@ -81,12 +81,27 @@ struct EqualityResolution::ResultFn
     subst.reset();
     static Stack<UnificationConstraint> constraints;
     constraints.reset();
-    MismatchHandler* hndlr = new UWAMismatchHandler(constraints);
+    MismatchHandler* hndlr = 0;
+    // We only care about non-trivial constraints where the top-sybmol of the two literals are the same
+    // and therefore a constraint can be created between arguments
+    //TODO add check on UWA option?
+    //TODO delete handler? Or instead of creating memory perhaps we just need a NullHandlr
+    if(lit->nthArgument(0)->isTerm() && lit->nthArgument(1)->isTerm() &&
+       lit->nthArgument(0)->term()->functor() == lit->nthArgument(1)->term()->functor()){
+      hndlr = new UWAMismatchHandler(constraints);
+    }
     cout << "UNIFY " << lit->nthArgument(0)->toString() << " and " << lit->nthArgument(1)->toString() << endl;
     if(!subst.unify(*lit->nthArgument(0),0,*lit->nthArgument(1),1,hndlr)) {
       return 0;
     }
-    cout << "HERE" << endl;
+    cout << "HERE with subst " << subst.toString() << endl;
+    cout << " and constraints " << endl;
+    for(unsigned i=0;i<constraints.size();i++){
+      auto con = constraints[i];
+      cout << "> " << con.first.first.toString() << "!=" << con.second.first.toString() << endl;
+    }
+
+
     unsigned newLen=_cLen-1 + constraints.length();
 
     Clause* res = new(newLen) Clause(newLen, GeneratingInference1(InferenceRule::EQUALITY_RESOLUTION, _cl));
@@ -103,6 +118,7 @@ struct EqualityResolution::ResultFn
       Literal* curr=(*_cl)[i];
       if(curr!=lit) {
         Literal* currAfter = subst.apply(curr, 0);
+        cout << curr->toString() << " becomes " << currAfter->toString() << endl;
 
         if (litAfter) {
           TimeCounter tc(TC_LITERAL_ORDER_AFTERCHECK);
@@ -119,8 +135,8 @@ struct EqualityResolution::ResultFn
     }
     for(unsigned i=0;i<constraints.length();i++){
       pair<pair<TermList,unsigned>,pair<TermList,unsigned>> con = (constraints)[i];
-      TermList qT = subst.apply(con.first.first,con.first.second);
-      TermList rT = subst.apply(con.second.first,con.second.second);
+      TermList qT = subst.apply(con.first.first,0);
+      TermList rT = subst.apply(con.second.first,0);
 
       unsigned sort = SortHelper::getResultSort(rT.term());
       Literal* constraint = Literal::createEquality(false,qT,rT,sort);      

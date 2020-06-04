@@ -662,6 +662,8 @@ TermList RobSubstitution::apply(TermList trm, int index) const
   }
   ASS(toDo.isEmpty() && toDoIndex.isEmpty() && terms.isEmpty() && args.length()==1);
   known.reset();
+
+
   return args.pop();
 }
 
