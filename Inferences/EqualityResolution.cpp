@@ -98,7 +98,7 @@ struct EqualityResolution::ResultFn
       UWAMismatchHandler h(constraints);
       hndlr = &h;
     }
-    if(!subst.unify(*lit->nthArgument(0),0,*lit->nthArgument(1),1,hndlr)){ 
+    if(!subst.unify(*lit->nthArgument(0),0,*lit->nthArgument(1),0,hndlr)){ 
       return 0; 
     }
 
@@ -119,7 +119,6 @@ struct EqualityResolution::ResultFn
       Literal* curr=(*_cl)[i];
       if(curr!=lit) {
         Literal* currAfter = subst.apply(curr, 0);
-        cout << curr->toString() << " becomes " << currAfter->toString() << endl;
 
         if (litAfter) {
           TimeCounter tc(TC_LITERAL_ORDER_AFTERCHECK);
