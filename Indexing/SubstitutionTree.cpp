@@ -943,15 +943,11 @@ bool SubstitutionTree::UnificationsIterator::associate(TermList query, TermList 
 {
   CALL("SubstitutionTree::UnificationsIterator::associate");
 
-  // TODO is this the best way to do this? 
-  SubstitutionTreeMismatchHandler* h = 0; 
-  SubstitutionTreeMismatchHandler tmph(constraints,tree,bd);
-  if(useConstraints){
-    h = &tmph;
-  }
-  bool result = subst.unify(query,NORM_QUERY_BANK,node,NORM_RESULT_BANK,h);
-
-  return result;
+  if(useConstraints){ 
+    SubstitutionTreeMismatchHandler hndlr(constraints,tree,bd);
+    return subst.unify(query,NORM_QUERY_BANK,node,NORM_RESULT_BANK,&hndlr);
+  } 
+  return subst.unify(query,NORM_QUERY_BANK,node,NORM_RESULT_BANK);
 }
 
 SubstitutionTree::NodeIterator

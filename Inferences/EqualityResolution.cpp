@@ -81,24 +81,25 @@ struct EqualityResolution::ResultFn
     subst.reset();
     static Stack<UnificationConstraint> constraints;
     constraints.reset();
-    MismatchHandler* hndlr = 0;
+    static Options::UnificationWithAbstraction uwa = env.options->unificationWithAbstraction();
+    bool use_handler = uwa != Options::UnificationWithAbstraction::OFF;
+
     // We only care about non-trivial constraints where the top-sybmol of the two literals are the same
     // and therefore a constraint can be created between arguments
-    //TODO add check on UWA option?
-    //TODO delete handler? Or instead of creating memory perhaps we just need a NullHandlr
-    if(lit->nthArgument(0)->isTerm() && lit->nthArgument(1)->isTerm() &&
-       lit->nthArgument(0)->term()->functor() == lit->nthArgument(1)->term()->functor()){
-      hndlr = new UWAMismatchHandler(constraints);
+    if(use_handler && 
+       lit->nthArgument(0)->isTerm() && lit->nthArgument(1)->isTerm() &&
+       lit->nthArgument(0)->term()->functor() == lit->nthArgument(1)->term()->functor())
+    {
+      use_handler = false;
     }
-    cout << "UNIFY " << lit->nthArgument(0)->toString() << " and " << lit->nthArgument(1)->toString() << endl;
-    if(!subst.unify(*lit->nthArgument(0),0,*lit->nthArgument(1),1,hndlr)) {
-      return 0;
+  
+    MismatchHandler* hndlr = 0;
+    if(use_handler){
+      UWAMismatchHandler h(constraints);
+      hndlr = &h;
     }
-    cout << "HERE with subst " << subst.toString() << endl;
-    cout << " and constraints " << endl;
-    for(unsigned i=0;i<constraints.size();i++){
-      auto con = constraints[i];
-      cout << "> " << con.first.first.toString() << "!=" << con.second.first.toString() << endl;
+    if(!subst.unify(*lit->nthArgument(0),0,*lit->nthArgument(1),1,hndlr)){ 
+      return 0; 
     }
 
 
@@ -141,7 +142,6 @@ struct EqualityResolution::ResultFn
       unsigned sort = SortHelper::getResultSort(rT.term());
       Literal* constraint = Literal::createEquality(false,qT,rT,sort);      
 
-      static Options::UnificationWithAbstraction uwa = env.options->unificationWithAbstraction();
       if(uwa==Options::UnificationWithAbstraction::GROUND &&
          !constraint->ground() &&
          (!theory->isInterpretedFunction(qT) && !theory->isInterpretedConstant(qT)) &&

@@ -77,14 +77,14 @@ bool RobSubstitution::unify(TermList t1,int index1, TermList t2, int index2, Mis
  *
  * @b t1 and @b t2 can be either terms or literals.
  */
-bool RobSubstitution::unifyArgs(Term* t1,int index1, Term* t2, int index2)
+bool RobSubstitution::unifyArgs(Term* t1,int index1, Term* t2, int index2, MismatchHandler* hndlr)
 {
   CALL("RobSubstitution::unifyArgs");
   ASS_EQ(t1->functor(),t2->functor());
 
   TermList t1TL(t1);
   TermList t2TL(t2);
-  return unify(TermSpec(t1TL,index1), TermSpec(t2TL,index2));
+  return unify(TermSpec(t1TL,index1), TermSpec(t2TL,index2),hndlr);
 }
 
 bool RobSubstitution::match(TermList base,int baseIndex,
@@ -403,7 +403,7 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2,MismatchHandler* hndlr)
         	  encountered.insert(itm);
         	}
             } else {
-              if(!hndlr || !handleMismatch(tsss,tstt,hndlr)){
+              if(hndlr && !hndlr->handle(this,tsss.term,tsss.index,tstt.term,tstt.index)){
                 mismatch=true;
                 break;
               }
@@ -555,12 +555,6 @@ bool RobSubstitution::match(TermSpec base, TermSpec instance)
   }
 
   return !mismatch;
-}
-
-bool RobSubstitution::handleMismatch(TermSpec ts1, TermSpec ts2,MismatchHandler* hndlr)
-{
- CALL("RobSubstitution::handleMismatch");
- return hndlr->handle(this,ts1.term,ts1.index,ts2.term,ts2.index);
 }
 
 
