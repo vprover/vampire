@@ -126,8 +126,13 @@ Clause* InterpretedEvaluation::simplify(Clause* cl)
           continue;
         }
       }
+      
       newLits[next++]=res;
-      ASS_EQ(_ordering.compare(res, lit), Ordering::Result::LESS) 
+      if (_ordering.compare(res, lit) != Ordering::Result::LESS) {
+        DBG("lit: ", lit->toString())
+        DBG("res: ", res->toString())
+        ASSERTION_VIOLATION
+      }
     }
     if(!modified) {
       return cl;

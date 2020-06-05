@@ -155,6 +155,7 @@ CLASS_NAME(InterpretedLiteralEvaluator::ACFunEvaluator<AbelianGroup>);
     ASS_EQ(trm->functor(), _fun);
     ASS_EQ(trm->arity(),2);
 
+    unsigned nums = 0;
     ConstantType acc = AbelianGroup::IDENTITY;
     Stack<TermList> keep;
     stackTraverseIf(TermList(trm), 
@@ -165,10 +166,12 @@ CLASS_NAME(InterpretedLiteralEvaluator::ACFunEvaluator<AbelianGroup>);
           /* we eval constant parts */
           if (t.isTerm() && theory->tryInterpretConstant(t.term(), c)) {
             acc = AbelianGroup::groundEval(acc, c);
+            nums++;
           } else {
             keep.push(t);
           }
         });
+    if (nums <= 1) return false;
 
     if (acc != AbelianGroup::IDENTITY) {
       keep.push(TermList(theory->representConstant(acc)));
