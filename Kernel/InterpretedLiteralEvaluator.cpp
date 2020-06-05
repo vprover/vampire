@@ -641,12 +641,12 @@ protected:
             result = t[0];
             return true;
 
-          case number::addI:
-            ASS_EQ(t.arity(), 2);
-            result = TermList(Term::create2(t.functor(), 
-                simplifyUnaryMinus(uminus_functor, t[0]),
-                simplifyUnaryMinus(uminus_functor, t[1])));
-            return true; 
+          // case number::addI:
+          //   ASS_EQ(t.arity(), 2);
+          //   result = TermList(Term::create2(t.functor(), 
+          //       simplifyUnaryMinus(uminus_functor, t[0]),
+          //       simplifyUnaryMinus(uminus_functor, t[1])));
+          //   return true; 
 
           default:
             /* interpreted function for which minus is not handled minus is not handled */
