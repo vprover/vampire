@@ -169,7 +169,7 @@ class TermList;
 typedef VirtualIterator<TermList> TermIterator;
 typedef Stack<TermList> TermStack;
 
-typedef pair<pair<TermList,unsigned>,pair<TermList,unsigned>> UnificationConstraint;
+typedef std::pair<std::pair<TermList,unsigned>,std::pair<TermList,unsigned>> UnificationConstraint;
 typedef Lib::SmartPtr<Stack<UnificationConstraint>> UnificationConstraintStackSP;
 
 class Term;
