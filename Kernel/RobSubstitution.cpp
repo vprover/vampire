@@ -403,7 +403,7 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2,MismatchHandler* hndlr)
         	  encountered.insert(itm);
         	}
             } else {
-              if(hndlr && !hndlr->handle(this,tsss.term,tsss.index,tstt.term,tstt.index)){
+              if(!hndlr || !hndlr->handle(this,tsss.term,tsss.index,tstt.term,tstt.index)){
                 mismatch=true;
                 break;
               }
