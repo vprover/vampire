@@ -1481,7 +1481,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
 
   res->setGeneratingInferenceEngine(gie);
 
-  res->setImmediateSimplificationEngine(createISE(prb, opt));
+  res->setImmediateSimplificationEngine(createISE(prb, opt, res->getOrdering()));
 
   // create forward simplification engine
   if (prb.hasEquality() && opt.innerRewriting()) {
@@ -1563,7 +1563,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
 /**
  * Create local clause simplifier for problem @c prb according to options @c opt
  */
-ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, const Options& opt)
+ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, const Options& opt, Ordering& ordering)
 {
   CALL("MainLoop::createImmediateSE");
 
@@ -1599,7 +1599,7 @@ ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, cons
     if (env.options->gaussianVariableElimination()) {
       res->addFront(new GaussianVariableElimination()); 
     }
-    res->addFront(new InterpretedEvaluation(env.options->inequalityNormalization()));
+    res->addFront(new InterpretedEvaluation(env.options->inequalityNormalization(), ordering));
   }
   if(prb.hasEquality()) {
     res->addFront(new TrivialInequalitiesRemovalISE());

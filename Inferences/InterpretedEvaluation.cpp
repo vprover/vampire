@@ -27,6 +27,7 @@
 #include "Lib/Environment.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Int.hpp"
+#include "Kernel/Ordering.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/Inference.hpp"
@@ -47,8 +48,9 @@ using namespace Lib;
 using namespace Kernel;
 
 
-InterpretedEvaluation::InterpretedEvaluation(bool doNormalize) :
-  _simpl(new InterpretedLiteralEvaluator(doNormalize))
+InterpretedEvaluation::InterpretedEvaluation(bool doNormalize, Ordering& ordering) :
+  _simpl(new InterpretedLiteralEvaluator(doNormalize)),
+  _ordering(ordering)
 {
   CALL("InterpretedEvaluation::InterpretedEvaluation");
 }
@@ -125,11 +127,13 @@ Clause* InterpretedEvaluation::simplify(Clause* cl)
         }
       }
       newLits[next++]=res;
+      ASS_EQ(_ordering.compare(res, lit), Ordering::Result::LESS) 
     }
     if(!modified) {
       return cl;
     }
 
+    ASS(sideConditions.isEmpty())
     Stack<Literal*>::Iterator side(sideConditions);
     newLits.expand(clen+sideConditions.length());
     while(side.hasNext()){ newLits[next++]=side.next();}
@@ -141,11 +145,8 @@ Clause* InterpretedEvaluation::simplify(Clause* cl)
     }
 
     env.statistics->evaluations++;
+    return res; 
 
-    // DBG("evaluated ", cl->toString(), " to ", res->toString());
-
-    return res;
- 
   } catch (MachineArithmeticException) {
     /* overflow while evaluating addition, subtraction, etc. */
     return cl;
