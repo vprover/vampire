@@ -48,6 +48,13 @@
 #include "Kernel/SubformulaIterator.hpp"
 #include "Kernel/Unit.hpp"
 
+#include "Inferences/InterpretedEvaluation.hpp"
+#include "Inferences/GaussianVariableElimination.hpp"
+#include "Inferences/EquationalTautologyRemoval.hpp"
+#include "Inferences/Condensation.hpp"
+#include "Inferences/FastCondensation.hpp"
+#include "Inferences/DistinctEqualitySimplifier.hpp"
+
 #include "Inferences/InferenceEngine.hpp"
 #include "Inferences/BackwardDemodulation.hpp"
 #include "Inferences/BackwardSubsumptionResolution.hpp"
@@ -1552,3 +1559,55 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
   return res;
 } // SaturationAlgorithm::createFromOptions
+
+/**
+ * Create local clause simplifier for problem @c prb according to options @c opt
+ */
+ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, const Options& opt)
+{
+  CALL("MainLoop::createImmediateSE");
+
+  CompositeISE* res=new CompositeISE();
+
+  if(prb.hasEquality() && opt.equationalTautologyRemoval()) {
+    res->addFront(new EquationalTautologyRemoval());
+  }
+
+  switch(opt.condensation()) {
+  case Options::Condensation::ON:
+    res->addFront(new Condensation());
+    break;
+  case Options::Condensation::FAST:
+    res->addFront(new FastCondensation());
+    break;
+  case Options::Condensation::OFF:
+    break;
+  }
+
+  // Only add if there are distinct groups 
+  if(prb.hasEquality() && env.signature->hasDistinctGroups()) {
+    res->addFront(new DistinctEqualitySimplifier());
+  }
+  if(prb.hasEquality() && env.signature->hasTermAlgebras()) {
+    if (opt.termAlgebraInferences()) {
+      res->addFront(new DistinctnessISE());
+      res->addFront(new InjectivityISE());
+      res->addFront(new NegativeInjectivityISE());
+    }
+  }
+  if(prb.hasInterpretedOperations() || prb.hasInterpretedEquality()) {
+    if (env.options->gaussianVariableElimination()) {
+      res->addFront(new GaussianVariableElimination()); 
+    }
+    res->addFront(new InterpretedEvaluation(env.options->inequalityNormalization()));
+  }
+  if(prb.hasEquality()) {
+    res->addFront(new TrivialInequalitiesRemovalISE());
+  }
+  res->addFront(new TautologyDeletionISE());
+  res->addFront(new DuplicateLiteralRemovalISE());
+
+  return res;
+}
+
+

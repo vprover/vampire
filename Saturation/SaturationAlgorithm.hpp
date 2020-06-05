@@ -230,6 +230,8 @@ protected:
   unsigned _generatedClauseCount;
 
   unsigned _activationLimit;
+private:
+  static ImmediateSimplificationEngine* createISE(Problem& prb, const Options& opt);
 };
 
 
