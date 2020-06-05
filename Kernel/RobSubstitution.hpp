@@ -31,6 +31,7 @@
 #include "Lib/DHMap.hpp"
 #include "Lib/Backtrackable.hpp"
 #include "Term.hpp"
+#include "MismatchHandler.hpp"
 
 #if VDEBUG
 
@@ -58,10 +59,10 @@ public:
 	  Literal* instance, int instanceIndex, bool complementary);
   SubstIterator unifiers(Literal* l1, int l1Index, Literal* l2, int l2Index, bool complementary);
 
-  bool unify(TermList t1,int index1, TermList t2, int index2);
+  bool unify(TermList t1,int index1, TermList t2, int index2, MismatchHandler* hndlr=0);
   bool match(TermList base,int baseIndex, TermList instance, int instanceIndex);
 
-  bool unifyArgs(Term* t1,int index1, Term* t2, int index2);
+  bool unifyArgs(Term* t1,int index1, Term* t2, int index2, MismatchHandler* hndlr=0);
   bool matchArgs(Term* base,int baseIndex, Term* instance, int instanceIndex);
 
   void denormalize(const Renaming& normalizer, int normalIndex, int denormalizedIndex);
@@ -230,7 +231,7 @@ private:
   void bindVar(const VarSpec& var, const VarSpec& to);
   VarSpec root(VarSpec v) const;
   bool match(TermSpec base, TermSpec instance);
-  bool unify(TermSpec t1, TermSpec t2);
+  bool unify(TermSpec t1, TermSpec t2,MismatchHandler* hndlr);
   bool handleDifferentTops(TermSpec t1, TermSpec t2, Stack<TTPair>& toDo, TermList* ct);
   void makeEqual(VarSpec v1, VarSpec v2, TermSpec target);
   void unifyUnbound(VarSpec v, TermSpec ts);

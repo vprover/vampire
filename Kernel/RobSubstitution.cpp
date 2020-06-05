@@ -22,6 +22,7 @@
  */
 
 #include "Lib/Environment.hpp"
+#include "Shell/Options.hpp"
 
 #include "Lib/Hash.hpp"
 #include "Lib/DArray.hpp"
@@ -43,6 +44,7 @@
 #include "RobSubstitution.hpp"
 
 #if VDEBUG
+#include "Kernel/Signature.hpp"
 #include "Lib/Int.hpp"
 #include "Debug/Tracer.hpp"
 #include <iostream>
@@ -64,10 +66,10 @@ const int RobSubstitution::UNBOUND_INDEX=-1;
 /**
  * Unify @b t1 and @b t2, and return true iff it was successful.
  */
-bool RobSubstitution::unify(TermList t1,int index1, TermList t2, int index2)
+bool RobSubstitution::unify(TermList t1,int index1, TermList t2, int index2, MismatchHandler* hndlr)
 {
   CALL("RobSubstitution::unify/4");
-  return unify(TermSpec(t1,index1), TermSpec(t2,index2));
+  return unify(TermSpec(t1,index1), TermSpec(t2,index2),hndlr);
 }
 
 /**
@@ -75,14 +77,14 @@ bool RobSubstitution::unify(TermList t1,int index1, TermList t2, int index2)
  *
  * @b t1 and @b t2 can be either terms or literals.
  */
-bool RobSubstitution::unifyArgs(Term* t1,int index1, Term* t2, int index2)
+bool RobSubstitution::unifyArgs(Term* t1,int index1, Term* t2, int index2, MismatchHandler* hndlr)
 {
   CALL("RobSubstitution::unifyArgs");
   ASS_EQ(t1->functor(),t2->functor());
 
   TermList t1TL(t1);
   TermList t2TL(t2);
-  return unify(TermSpec(t1TL,index1), TermSpec(t2TL,index2));
+  return unify(TermSpec(t1TL,index1), TermSpec(t2TL,index2),hndlr);
 }
 
 bool RobSubstitution::match(TermList base,int baseIndex,
@@ -328,7 +330,7 @@ bool RobSubstitution::occurs(VarSpec vs, TermSpec ts)
   }
 }
 
-bool RobSubstitution::unify(TermSpec t1, TermSpec t2)
+bool RobSubstitution::unify(TermSpec t1, TermSpec t2,MismatchHandler* hndlr)
 {
   CALL("RobSubstitution::unify/2");
 
@@ -401,8 +403,10 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2)
         	  encountered.insert(itm);
         	}
             } else {
-              mismatch=true;
-              break;
+              if(hndlr && !hndlr->handle(this,tsss.term,tsss.index,tstt.term,tstt.index)){
+                mismatch=true;
+                break;
+              }
             }
           }
 
@@ -652,6 +656,8 @@ TermList RobSubstitution::apply(TermList trm, int index) const
   }
   ASS(toDo.isEmpty() && toDoIndex.isEmpty() && terms.isEmpty() && args.length()==1);
   known.reset();
+
+
   return args.pop();
 }
 

@@ -168,6 +168,10 @@ typedef Stack<ConstraintRCPtr> ConstraintRCStack;
 class TermList;
 typedef VirtualIterator<TermList> TermIterator;
 typedef Stack<TermList> TermStack;
+
+typedef pair<pair<TermList,unsigned>,pair<TermList,unsigned>> UnificationConstraint;
+typedef Lib::SmartPtr<Stack<UnificationConstraint>> UnificationConstraintStackSP;
+
 class Term;
 class Literal;
 typedef List<Literal*> LiteralList;
