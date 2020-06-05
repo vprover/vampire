@@ -146,7 +146,7 @@ TEST_REBALANCE_ALL(rebalance_multiple_vars
     , eq(add(x, minus(y)), f(y))
     , __list(
         bal(x, add(f(y), y))
-      , bal(y, add(minus(f(y)), x))
+      , bal(y, minus(add(f(y), minus(x))))
     ))
 
 TEST_REBALANCE_SPLIT(div_zero_1

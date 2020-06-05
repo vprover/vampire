@@ -113,7 +113,8 @@ Literal* pred(vstring p, TermList t)
 }
 Clause* unit(Literal* lit)
 {
-  Clause * cl = new(1) Clause(1,Unit::AXIOM,new Inference(Inference::INPUT));
+  static Inference testInf = Kernel::NonspecificInference0(UnitInputType::ASSUMPTION, InferenceRule::INPUT); 
+  Clause * cl = new(1) Clause(1,testInf);
   (* cl)[0] = lit;
   return cl;
 }

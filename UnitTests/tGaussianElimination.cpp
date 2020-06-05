@@ -4,6 +4,7 @@
 #include "Indexing/TermSharing.hpp"
 #include "Inferences/GaussianVariableElimination.hpp"
 #include "Inferences/InterpretedEvaluation.hpp"
+#include "Kernel/Ordering.hpp"
 
 #define UNIT_ID GaussianVariableElimination
 UT_CREATE;
@@ -69,8 +70,14 @@ bool operator!=(const Clause& lhs, const Clause& rhs) {
 
 Clause* exhaustiveGve(Clause* in) {
 
+  struct FakeOrdering : Kernel::Ordering {
+    virtual Result compare(Literal*, Literal*) const override { return Kernel::Ordering::LESS; }
+    virtual Result compare(TermList, TermList) const override {ASSERTION_VIOLATION}
+    virtual Comparison compareFunctors(unsigned, unsigned) const override {ASSERTION_VIOLATION}
+  };
+  static FakeOrdering ord;
   static GaussianVariableElimination inf = GaussianVariableElimination();
-  static InterpretedEvaluation ev = InterpretedEvaluation(false);
+  static InterpretedEvaluation ev = InterpretedEvaluation(false, ord);
   Clause* last = in;
   Clause* latest = in;
   do {
