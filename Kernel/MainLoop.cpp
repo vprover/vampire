@@ -151,11 +151,17 @@ ImmediateSimplificationEngine* MainLoop::createISE(Problem& prb, const Options& 
 
   if((prb.hasLogicalProxy() || prb.hasBoolVar() || prb.hasFOOL()) &&
       env.statistics->higherOrder && !env.options->addProxyAxioms()){
-    res->addFront(new IFFXORRewriterISE());
-    res->addFront(new BoolSimp());
     if(env.options->cnfOnTheFly() == Options::CNFOnTheFly::EAGER){
-      res->addFrontMany(new EagerClausificationISE());
+      res->addFrontMany(new ProxyISE());
+      res->addFront(new OrImpAndProxyISE());
+      res->addFront(new NotProxyISE());   
+      res->addFront(new EqualsProxyISE());   
+      res->addFront(new PiSigmaProxyISE());
+      //res->addFrontMany(new EagerClausificationISE());
+    } else {
+      res->addFront(new IFFXORRewriterISE());
     }
+    res->addFront(new BoolSimp());
   }
 
   // Only add if there are distinct groups 

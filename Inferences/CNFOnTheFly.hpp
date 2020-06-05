@@ -111,68 +111,61 @@ private:
   SkolemisingFormulaIndex* _formulaIndex;
 };
 
-/*class NOTRemovalGIE
-  : public GeneratingInferenceEngine
-{
-public:
-  CLASS_NAME(NOTRemovalGIE);
-  USE_ALLOCATOR(NOTRemovalGIE);
-  
-  ClauseIterator generateClauses(Kernel::Clause* c);
-};*/
-/*
-class EQUALSRemovalISE
-   : public ImmediateSimplificationEngine
-{
-
-public:
-  CLASS_NAME(EQUALSRemovalISE);
-  USE_ALLOCATOR(EQUALSRemovalISE);
-  
-  bool isEQUALSApp(Literal* lit, TermList &t1, TermList &t2, bool &positive, TermList &sort);
-  Kernel::Clause* simplify(Kernel::Clause* c);        
-};
-
-
-class ORIMPANDRemovalISE
+class NotProxyISE
   : public ImmediateSimplificationEngine
 {
-
 public:
-  CLASS_NAME(ORIMPANDRemovalISE);
-  USE_ALLOCATOR(ORIMPANDRemovalISE);
+  CLASS_NAME(NotProxyISE);
+  USE_ALLOCATOR(NotProxyISE);
   
-  bool appOfORorIMPorAND(Literal* lit, TermList &lhs1, TermList &rhs1, TermList &lhs2, TermList &rhs2);  
   Kernel::Clause* simplify(Kernel::Clause* c);
 };
 
 
-class PISIGMARemovalISE
+class EqualsProxyISE
+   : public ImmediateSimplificationEngine
+{
+
+public:
+  CLASS_NAME(EqualsProxyISE);
+  USE_ALLOCATOR(EqualsProxyISE);
+  
+  Kernel::Clause* simplify(Kernel::Clause* c);        
+};
+
+
+class OrImpAndProxyISE
+  : public ImmediateSimplificationEngine
+{
+
+public:
+  CLASS_NAME(OrImpAndProxyISE);
+  USE_ALLOCATOR(OrImpAndProxyISE);
+  
+  Kernel::Clause* simplify(Kernel::Clause* c);
+};
+
+
+class PiSigmaProxyISE
    : public ImmediateSimplificationEngine
 {
   
 public:
-  CLASS_NAME(PISIGMARemovalISE);
-  USE_ALLOCATOR(PISIGMARemovalISE);
+  CLASS_NAME(PiSigmaProxyISE);
+  USE_ALLOCATOR(PiSigmaProxyISE);
   
-  bool isPISIGMAapp(Literal* lit, TermList &t1, TermList &rhs, bool &applyPIrule, TermList &srt1);  
   Kernel::Clause* simplify(Kernel::Clause* c);     
 };
 
 
-class ProxyEliminationISE 
+class ProxyISE 
   : public ImmediateSimplificationEngine {
   public:
-    CLASS_NAME(ProxyEliminationISE);
-    USE_ALLOCATOR(ProxyEliminationISE);
+    CLASS_NAME(ProxyISE);
+    USE_ALLOCATOR(ProxyISE);
     ClauseIterator simplifyMany(Clause* c);
     Clause* simplify(Clause* c){ NOT_IMPLEMENTED; }
-
-  private:
-    struct ProxyEliminationIterator;
-    struct ProxyEliminationFn;
-
-};*/
+};
 
 
 }
