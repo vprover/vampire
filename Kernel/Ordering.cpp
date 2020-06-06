@@ -381,18 +381,20 @@ Ordering::Result PrecedenceOrdering::compareFunctionPrecedences(unsigned fun1, u
         fun1 >= _functions ? (int)(reverse ? -fun1 : fun1) : _functionPrecedences[fun1],
         fun2 >= _functions ? (int)(reverse ? -fun2 : fun2) : _functionPrecedences[fun2] ));
   }
+  ASS(s1->interpreted())
   if(!s2->interpreted()) {
     return LESS;
   }
+  // both interpreted
   if(s1->arity()) {
     if(!s2->arity()) {
-      return GREATER;
+      return LESS;
     }
     //two interpreted functions
     return fromComparison(Int::compare(fun1, fun2));
   }
   if(s2->arity()) {
-    return LESS;
+    return GREATER;
   }
   //two interpreted constants
 
@@ -430,6 +432,7 @@ Ordering::Result PrecedenceOrdering::compareFunctionPrecedences(unsigned fun1, u
     ASSERTION_VIOLATION;
     cmpRes = Int::compare(fun1, fun2);
   }
+
   return fromComparison(cmpRes);
 }
 
