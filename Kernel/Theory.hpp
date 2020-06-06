@@ -87,15 +87,19 @@ public:
       if(num._val==0){ throw ArithmeticException(); }
       return _val/num._val;
   }
-  // TODO: shouldn't we always be using intDivide for quotientE - when are they different (apart from real rounding)?
   IntegerConstantType quotientE(const IntegerConstantType& num) const { 
     CALL("IntegerConstantType::quotientE");
+
+    // Just do intDivide as realDivide may have rounding errors
+    return IntegerConstantType(intDivide(num));
+/*
     //cout << "quotientE " << _val << " and " << num._val << endl;
     if(num.divides(*this)){
       return IntegerConstantType(intDivide(num));
     }
     if(num._val>0) return IntegerConstantType(::floor(realDivide(num)));
     else return IntegerConstantType(::ceil(realDivide(num)));
+*/
   }
   IntegerConstantType quotientT(const IntegerConstantType& num) const { 
     if(num.divides(*this)){
