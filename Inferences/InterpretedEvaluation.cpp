@@ -128,11 +128,18 @@ Clause* InterpretedEvaluation::simplify(Clause* cl)
       }
       
       newLits[next++]=res;
+#if VDEBUG
       if (_ordering.compare(res, lit) != Ordering::Result::LESS) {
         DBG("lit: ", lit->toString())
         DBG("res: ", res->toString())
+        DBG("cmp: ", _ordering.compare(res, lit))
+        DBG("     LESS:    ", Ordering::Result::LESS)
+        DBG("     GREATER: ", Ordering::Result::GREATER)
+        DBG("     EQUAL:   ", Ordering::Result::EQUAL)
+        DBG("     INCOMPARABLE: ", Ordering::Result::INCOMPARABLE)
         ASSERTION_VIOLATION
       }
+#endif
     }
     if(!modified) {
       return cl;
