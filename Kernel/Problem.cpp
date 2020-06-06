@@ -290,8 +290,8 @@ void Problem::refreshProperty() const
   }
   _propertyValid = true;
   _property = Property::scan(_units);
+  ASS(_property);
   _property->setSMTLIBLogic(getSMTLIBLogic());
-
   readDetailsFromProperty();
 }
 

@@ -897,6 +897,15 @@ void SaturationAlgorithm::handleEmptyClause(Clause* cl)
       // this is a poor way of handling this in release mode but it prevents unsound proofs
       throw MainLoop::MainLoopFinishedException(Statistics::REFUTATION_NOT_FOUND);
     }
+
+    //TODO - warning, derivedFromInput currently inefficient
+    if(!cl->derivedFromInput()){
+      ASSERTION_VIOLATION_REP("The proof does not contain any input clauses.");
+      reportSpiderFail();
+      // this is a poor way of handling this in release mode but it prevents unsound proofs
+      throw MainLoop::MainLoopFinishedException(Statistics::REFUTATION_NOT_FOUND);
+    }
+
     if(cl->inputType() == UnitInputType::AXIOM){
       UIHelper::setConjectureInProof(false);
     }

@@ -132,6 +132,7 @@ public:
     _smtlibLogic = smtLibLogic;
   }
   SMTLIBLogic getSMTLIBLogic() const {
+    CALL("Problem::getSMTLIBLogic");
     return _smtlibLogic;
   }
 

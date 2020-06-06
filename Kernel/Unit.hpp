@@ -86,6 +86,9 @@ public:
   /** see isTheoryAxiom in Inference.cpp */
   bool isTheoryAxiom() const { return _inference.isTheoryAxiom(); }
 
+  /** return true if there is an input node in the deriviation  */
+  bool derivedFromInput() const;
+
   unsigned char getSineLevel() const { return _inference.getSineLevel(); }
   /** true if the unit is read from a TPTP included file  */
   bool included() const { return _inference.included(); }
