@@ -759,6 +759,8 @@ void Clause::assertValid()
   }
 }
 
+#endif
+
 bool Clause::contains(Literal* lit)
 {
   for (int i = _length-1; i >= 0; i--) {
@@ -768,7 +770,5 @@ bool Clause::contains(Literal* lit)
   }
   return false;
 }
-
-#endif
 
 }

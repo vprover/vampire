@@ -243,8 +243,8 @@ public:
 
   VirtualIterator<unsigned> getVariableIterator();
 
-#if VDEBUG
   bool contains(Literal* lit);
+#if VDEBUG
   void assertValid();
 #endif
 
