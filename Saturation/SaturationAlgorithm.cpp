@@ -1129,10 +1129,13 @@ bool SaturationAlgorithm::activate(Clause* cl)
       Inference::Iterator iit=genCl->inference().iterator();
       while (genCl->inference().hasNext(iit)) {
         Unit* premUnit=genCl->inference().next(iit);
-        ASS(premUnit->isClause());
-        Clause* premCl=static_cast<Clause*>(premUnit);
-
-        onParenthood(genCl, premCl);
+        // Now we can get generated clauses having parents that are not clauses
+        // Indeed, from induction we can have generated clauses whose parents do 
+        // not include the activated clause
+        if(premUnit->isClause()){
+          Clause* premCl=static_cast<Clause*>(premUnit);
+          onParenthood(genCl, premCl);
+        }
       }
     }
 

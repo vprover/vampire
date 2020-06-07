@@ -252,6 +252,42 @@ void InductionClauseIterator::process(Clause* premise, Literal* lit)
    }
 }
 
+void InductionClauseIterator::produceClauses(Clause* premise, Literal* origLit, Formula* hypothesis, Literal* conclusion, InferenceRule rule)
+{
+  CALL("InductionClauseIterator::produceClauses");
+  NewCNF cnf(0);
+  cnf.setForInduction();
+  Stack<Clause*> hyp_clauses;
+  //TODO: Induction hypothesis not technically a TheoryAxiom - check
+  //Inference inf = TheoryAxiom(rule);
+  Inference inf = NonspecificInference0(UnitInputType::AXIOM,rule);
+  inf.setInductionDepth(premise->inference().inductionDepth()+1);
+  FormulaUnit* fu = new FormulaUnit(hypothesis,inf);
+  cnf.clausify(NNF::ennf(fu), hyp_clauses);
+
+  //cout << "Clausify " << fu->toString() << endl;
+
+  // Now perform resolution between origLit and the hyp_clauses on conclusion if conclusion in the clause
+  // If conclusion not in the clause then the clause is a definition from clausification and just keep
+  Stack<Clause*>::Iterator cit(hyp_clauses);
+  while(cit.hasNext()){
+    Clause* c = cit.next();
+    if(c->contains(conclusion)){
+      static ResultSubstitutionSP identity = ResultSubstitutionSP(new IdentitySubstitution());
+      SLQueryResult qr(origLit,premise,identity);
+      Clause* r = BinaryResolution::generateClause(c,conclusion,qr,*env.options);
+      _clauses.push(r);
+    }
+    else{
+      _clauses.push(c);
+    }
+  }
+  env.statistics->induction++;
+  if (rule == InferenceRule::GEN_INDUCTION_AXIOM) {
+    env.statistics->generalizedInduction++;
+  }
+}
+
 // deal with integer constants using two hypotheses
 // (L[0] & (![X] : (X>=0 & L[X]) -> L[x+1])) -> (![Y] : Y>=0 -> L[Y])
 // (L[0] & (![X] : (X<=0 & L[X]) -> L[x-1])) -> (![Y] : Y<=0 -> L[Y])
@@ -259,6 +295,12 @@ void InductionClauseIterator::process(Clause* premise, Literal* lit)
 void InductionClauseIterator::performMathInductionOne(Clause* premise, Literal* origLit, Literal* lit, Term* term, InferenceRule rule) 
 {
   CALL("InductionClauseIterator::performMathInductionOne");
+
+  // This may not work. 
+  // At least it doesn't properly handle definitions coming out of NewCNF
+  NOT_IMPLEMENTED;
+
+  return;
 
   //cout << "PERFORM INDUCTION on " << env.signature->functionName(c) << endl;
 
@@ -451,29 +493,7 @@ void InductionClauseIterator::performStructInductionOne(Clause* premise, Literal
                             Formula::quantify(indPremise),
                             Formula::quantify(new AtomicFormula(conclusion)));
 
-  NewCNF cnf(0);
-  cnf.setForInduction();
-  Stack<Clause*> hyp_clauses;
-  Inference inf = TheoryAxiom(rule);
-  inf.setInductionDepth(premise->inference().inductionDepth()+1);
-  FormulaUnit* fu = new FormulaUnit(hypothesis,inf);
-  cnf.clausify(NNF::ennf(fu), hyp_clauses);
-
-  //cout << "Clausify " << fu->toString() << endl;
-
-  // Now perform resolution between origLit and the hyp_clauses on conclusion, which should be contained in each clause!
-  Stack<Clause*>::Iterator cit(hyp_clauses);
-  while(cit.hasNext()){
-    Clause* c = cit.next();
-    static ResultSubstitutionSP identity = ResultSubstitutionSP(new IdentitySubstitution());
-    SLQueryResult qr(origLit,premise,identity);
-    Clause* r = BinaryResolution::generateClause(c,conclusion,qr,*env.options);
-    _clauses.push(r);
-  }
-  env.statistics->induction++;
-  if (rule == InferenceRule::GEN_INDUCTION_AXIOM) {
-    env.statistics->generalizedInduction++;
-  }
+  produceClauses(premise, origLit, hypothesis, conclusion, rule);
 }
 
 /**
@@ -562,29 +582,7 @@ void InductionClauseIterator::performStructInductionTwo(Clause* premise, Literal
   FormulaList* orf = new FormulaList(exists,new FormulaList(Formula::quantify(new AtomicFormula(conclusion)),FormulaList::empty()));
   Formula* hypothesis = new JunctionFormula(Connective::OR,orf);
 
-  NewCNF cnf(0);
-  cnf.setForInduction();
-  Stack<Clause*> hyp_clauses;
-  Inference inf = TheoryAxiom(rule);
-  inf.setInductionDepth(premise->inference().inductionDepth()+1);
-  FormulaUnit* fu = new FormulaUnit(hypothesis,inf);
-  cnf.clausify(NNF::ennf(fu), hyp_clauses);
-
-  //cout << "Clausify " << fu->toString() << endl;
-
-  // Now perform resolution between origLit and the hyp_clauses on conclusion, which should be contained in each clause!
-  Stack<Clause*>::Iterator cit(hyp_clauses);
-  while(cit.hasNext()){
-    Clause* c = cit.next();
-    static ResultSubstitutionSP identity = ResultSubstitutionSP(new IdentitySubstitution());
-    SLQueryResult qr(origLit,premise,identity);
-    Clause* r = BinaryResolution::generateClause(c,conclusion,qr,*env.options);
-    _clauses.push(r);
-  }
-  env.statistics->induction++;  
-  if (rule == InferenceRule::GEN_INDUCTION_AXIOM) {
-    env.statistics->generalizedInduction++;
-  }
+  produceClauses(premise, origLit, hypothesis, conclusion, rule);
 }
 
 /*
@@ -708,30 +706,7 @@ void InductionClauseIterator::performStructInductionThree(Clause* premise, Liter
   Formula* hypothesis = new JunctionFormula(Connective::OR,orf);
 
   //cout << hypothesis->toString() << endl;
-
-  NewCNF cnf(0);
-  cnf.setForInduction();
-  Stack<Clause*> hyp_clauses;
-  Inference inf = TheoryAxiom(rule);
-  inf.setInductionDepth(premise->inference().inductionDepth()+1);
-  FormulaUnit* fu = new FormulaUnit(hypothesis,inf);
-  cnf.clausify(NNF::ennf(fu), hyp_clauses);
-
-  //cout << "Clausify " << fu->toString() << endl;
-
-  // Now perform resolution between origLit and the hyp_clauses on conclusion, which should be contained in each clause!
-  Stack<Clause*>::Iterator cit(hyp_clauses);
-  while(cit.hasNext()){
-    Clause* c = cit.next();
-    static ResultSubstitutionSP identity = ResultSubstitutionSP(new IdentitySubstitution());
-    SLQueryResult qr(origLit,premise,identity);
-    Clause* r = BinaryResolution::generateClause(c,conclusion,qr,*env.options);
-    _clauses.push(r);
-  }
-  env.statistics->induction++; 
-  if (rule == InferenceRule::GEN_INDUCTION_AXIOM) {
-    env.statistics->generalizedInduction++;
-  }
+  produceClauses(premise, origLit, hypothesis, conclusion, rule);
 }
 
 bool InductionClauseIterator::notDone(Literal* lit, Term* term)
