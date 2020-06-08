@@ -106,9 +106,6 @@ inline typename IntegerConstantType::InnerType divideOrThrow(typename IntegerCon
     if (!Int::safeDivide(lhs,rhs, out))
       throw ArithmeticException();
     return out;
-    // if (rhs == 0) 
-    //   throw ArithmeticException();
-    // return lhs / rhs;
 }
 
 int IntegerConstantType::intDivide(const IntegerConstantType& num) const 

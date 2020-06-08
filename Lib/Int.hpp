@@ -233,6 +233,7 @@ class Int
     CALL("Int::safeDivide");
     if (arg2 == 0) return false;
 
+    // check for 2 complement 
     if (numeric_limits<int>::min() != -numeric_limits<int>::max())  {
       if (arg1 == numeric_limits<int>::min() && arg2 == -1)  {
         res = 1;
