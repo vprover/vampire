@@ -59,7 +59,7 @@ namespace Kernel
 using namespace std;
 using namespace Lib;
 
-const int RobSubstitution::AUX_INDEX=-3;
+//const int RobSubstitution::AUX_INDEX=-3;
 const int RobSubstitution::SPECIAL_INDEX=-2;
 const int RobSubstitution::UNBOUND_INDEX=-1;
 
@@ -149,7 +149,7 @@ bool RobSubstitution::isUnbound(VarSpec v) const
 
 /**
  * If special variable @b specialVar is bound to a proper term,
- * return a term, thjat has the same top functor. Otherwise
+ * return a term, that has the same top functor. Otherwise
  * return an arbitrary variable.
  */
 TermList RobSubstitution::getSpecialVarTop(unsigned specialVar) const
@@ -192,6 +192,12 @@ RobSubstitution::TermSpec RobSubstitution::derefBound(TermSpec t) const
   }
 }
 
+/**
+ * If @b v is a bound variable then return the term or root variable
+ * it is bound to. Otherwise, return the next unbound variable in the
+ * UNBOUND_INDEX. This effectively names unbound variables apart from
+ * any variables in the range of bound variables.
+ */
 RobSubstitution::TermSpec RobSubstitution::deref(VarSpec v) const
 {
   CALL("RobSubstitution::deref");
@@ -216,7 +222,7 @@ void RobSubstitution::bind(const VarSpec& v, const TermSpec& b)
   ASSERT_VALID(b.term);
   //Aux terms don't contain special variables, ergo
   //should be shared.
-  ASS(!b.term.isTerm() || b.index!=AUX_INDEX || b.term.term()->shared());
+  //ASS(!b.term.isTerm() || b.index!=AUX_INDEX || b.term.term()->shared());
   ASS_NEQ(v.index, UNBOUND_INDEX);
 
   if(bdIsRecording()) {
@@ -246,6 +252,8 @@ RobSubstitution::VarSpec RobSubstitution::root(VarSpec v) const
   }
 }
 
+/* Not currently used
+
 void RobSubstitution::makeEqual(VarSpec v1, VarSpec v2, TermSpec target)
 {
   CALL("RobSubstitution::makeEqual");
@@ -264,7 +272,9 @@ void RobSubstitution::makeEqual(VarSpec v1, VarSpec v2, TermSpec target)
     bind(v1,target);
   }
 }
+*/
 
+/* Not currently used
 void RobSubstitution::unifyUnbound(VarSpec v, TermSpec ts)
 {
   CALL("RobSubstitution::unifyUnbound");
@@ -282,6 +292,7 @@ void RobSubstitution::unifyUnbound(VarSpec v, TermSpec ts)
     bind(v,ts);
   }
 }
+*/
 
 
 void RobSubstitution::swap(TermSpec& ts1, TermSpec& ts2)
@@ -346,16 +357,27 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2,MismatchHandler* hndlr)
   static Stack<TermList*> subterms(64);
   ASS(toDo.isEmpty() && subterms.isEmpty());
 
+  // Save encountered unification pairs to avoid
+  // recomputing their unification
   typedef DHSet<TTPair,TTPairHash> EncStore;
   EncStore encountered;
   encountered.reset();
 
+  // Iteratively resolve unification pairs in toDo
+  // the current pair is always in t1 and t2 with their dereferenced
+  // version in dt1 and dt2
   for(;;) {
     TermSpec dt1=derefBound(t1);
     TermSpec dt2=derefBound(t2);
 
+    // If they have the same content then skip
+    // (note that sameTermContent is best-effort)
     if(dt1.sameTermContent(dt2)) {
-    } else if(dt1.isVar()) {
+    } 
+    // Deal with the case where eithe rare variables
+    // Do an occurs-check and note that the variable 
+    // cannot be currently bound as we already dereferenced
+    else if(dt1.isVar()) {
       VarSpec v1=getVarSpec(dt1);
       if(occurs(v1, dt2)) {
 	mismatch=true;
@@ -370,13 +392,21 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2,MismatchHandler* hndlr)
       }
       bind(v2,dt1);
     } else {
+    // Case where both are terms
       TermList* ss=&dt1.term;
       TermList* tt=&dt2.term;
 
+      ASS(subterms.isEmpty());
+
+      // Generate todo unification pairs by traversing subterms
+      // until those subterms either definitely don't unify (report mismatch)
+      // or until we need to unify them to check 
       for (;;) {
         TermSpec tsss(*ss,dt1.index);
         TermSpec tstt(*tt,dt2.index);
 
+        // If they don't have the same content but have the same top functor
+        // then we need to get their subterm arguments and check those
         if (!tsss.sameTermContent(tstt) && TermList::sameTopFunctor(*ss,*tt)) {
           ASS(ss->isTerm() && tt->isTerm());
 
@@ -392,6 +422,9 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2,MismatchHandler* hndlr)
             subterms.push(tt->next());
           }
         } else {
+          // If they do have the same top functor then their content is the same and
+          // we can ignore. Otherwise, if one is a variable we create a unification 
+          // pair and if neither are variables we consult the mismatch handler
           if (! TermList::sameTopFunctor(*ss,*tt)) {
             if(ss->isVar()||tt->isVar()) {
               TTPair itm(tsss,tstt);
@@ -423,7 +456,7 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2,MismatchHandler* hndlr)
       }
     }
 
-    if(toDo.isEmpty()) {
+    if(toDo.isEmpty() || mismatch) {
       break;
     }
     t1=toDo.top().first;
