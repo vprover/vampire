@@ -34,6 +34,7 @@
 #include "Lib/Stack.hpp"
 #include "Lib/Set.hpp"
 #include "Lib/Int.hpp"
+#include "Lib/STL.hpp"
 
 #include "Indexing/TermSharing.hpp"
 
@@ -323,7 +324,7 @@ size_t Term::countSubtermOccurrences(TermList subterm) {
 
 bool TermList::containsAllVariablesOf(TermList t)
 {
-  CALL("Term::containsAllVariablesOf");
+  CALL("TermList::containsAllVariablesOf");
   Set<TermList> vars;
   TermIterator oldVars=Term::getVariableIterator(*this);
   while (oldVars.hasNext()) {
@@ -359,6 +360,35 @@ bool Term::containsAllVariablesOf(Term* t)
       return false;
     }
   }
+  return true;
+}
+
+bool TermList::containsAllVariableOccurrencesOf(TermList t)
+{
+  CALL("TermList:containsAllVariableOccurrencesOf");
+  // varBalance[x] = (#occurrences of x in this) - (#occurrences of x in t)
+  static vunordered_map<unsigned int, int> varBalance(16);
+  varBalance.clear();
+
+  static VariableIterator vit;
+
+  // collect own vars
+  vit.reset(*this);
+  while (vit.hasNext()) {
+    int& bal = varBalance[vit.next().content()];
+    bal += 1;
+  }
+
+  // check that collected vars do not occur more often in t
+  vit.reset(t);
+  while (vit.hasNext()) {
+    int& bal = varBalance[vit.next().content()];
+    bal -= 1;
+    if (bal < 0) {
+      return false;
+    }
+  }
+
   return true;
 }
 

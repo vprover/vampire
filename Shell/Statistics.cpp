@@ -45,7 +45,6 @@
 #include "Statistics.hpp"
 
 
-using namespace std;
 using namespace Lib;
 using namespace Saturation;
 using namespace Shell;
@@ -88,6 +87,8 @@ Statistics::Statistics()
     induction(0),
     maxInductionDepth(0),
     inductionInProof(0),
+    generalizedInduction(0),
+    generalizedInductionInProof(0),
     duplicateLiterals(0),
     trivialInequalities(0),
     forwardSubsumptionResolution(0),
@@ -96,6 +97,10 @@ Statistics::Statistics()
     forwardDemodulationsToEqTaut(0),
     backwardDemodulations(0),
     backwardDemodulationsToEqTaut(0),
+    forwardSubsumptionDemodulations(0),
+    forwardSubsumptionDemodulationsToEqTaut(0),
+    backwardSubsumptionDemodulations(0),
+    backwardSubsumptionDemodulationsToEqTaut(0),
     forwardLiteralRewrites(0),
     condensations(0),
     globalSubsumption(0),
@@ -281,6 +286,7 @@ void Statistics::print(ostream& out)
   HEADING("Simplifying Inferences",duplicateLiterals+trivialInequalities+
       forwardSubsumptionResolution+backwardSubsumptionResolution+
       forwardDemodulations+backwardDemodulations+forwardLiteralRewrites+
+      forwardSubsumptionDemodulations+backwardSubsumptionDemodulations+
       condensations+globalSubsumption+evaluations+innerRewrites);
   COND_OUT("Duplicate literals", duplicateLiterals);
   COND_OUT("Trivial inequalities", trivialInequalities);
@@ -288,6 +294,8 @@ void Statistics::print(ostream& out)
   COND_OUT("Bw subsumption resolutions", backwardSubsumptionResolution);
   COND_OUT("Fw demodulations", forwardDemodulations);
   COND_OUT("Bw demodulations", backwardDemodulations);
+  COND_OUT("Fw subsumption demodulations", forwardSubsumptionDemodulations);
+  COND_OUT("Bw subsumption demodulations", backwardSubsumptionDemodulations);
   COND_OUT("Fw literal rewrites", forwardLiteralRewrites);
   COND_OUT("Inner rewrites", innerRewrites);
   COND_OUT("Condensations", condensations);
@@ -298,6 +306,7 @@ void Statistics::print(ostream& out)
 
   HEADING("Deletion Inferences",simpleTautologies+equationalTautologies+
       forwardSubsumed+backwardSubsumed+forwardDemodulationsToEqTaut+
+      forwardSubsumptionDemodulationsToEqTaut+backwardSubsumptionDemodulationsToEqTaut+
       backwardDemodulationsToEqTaut+innerRewritesToEqTaut);
   COND_OUT("Simple tautologies", simpleTautologies);
   COND_OUT("Equational tautologies", equationalTautologies);
@@ -306,6 +315,8 @@ void Statistics::print(ostream& out)
   COND_OUT("Backward subsumptions", backwardSubsumed);
   COND_OUT("Fw demodulations to eq. taut.", forwardDemodulationsToEqTaut);
   COND_OUT("Bw demodulations to eq. taut.", backwardDemodulationsToEqTaut);
+  COND_OUT("Fw subsumption demodulations to eq. taut.", forwardSubsumptionDemodulationsToEqTaut);
+  COND_OUT("Bw subsumption demodulations to eq. taut.", backwardSubsumptionDemodulationsToEqTaut);
   COND_OUT("Inner rewrites to eq. taut.", innerRewritesToEqTaut);
   SEPARATOR;
 
@@ -336,6 +347,8 @@ void Statistics::print(ostream& out)
   COND_OUT("Induction",induction);
   COND_OUT("MaxInductionDepth",maxInductionDepth);
   COND_OUT("InductionStepsInProof",inductionInProof);
+  COND_OUT("GeneralizedInduction",generalizedInduction);
+  COND_OUT("GeneralizedInductionInProof",generalizedInductionInProof);
   SEPARATOR;
 
   HEADING("Term algebra simplifications",taDistinctnessSimplifications+

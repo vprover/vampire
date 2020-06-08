@@ -938,7 +938,7 @@ void Options::Options::init()
     _avatarSplitQueueCutoffs.tag(OptionTag::AVATAR);
     _avatarSplitQueueCutoffs.setExperimental();
 
-    _avatarSplitQueueRatios = StringOptionValue("avatar_split_queue_ratios", "avsqr", "1,2");
+    _avatarSplitQueueRatios = StringOptionValue("avatar_split_queue_ratios", "avsqr", "1,1");
     _avatarSplitQueueRatios.description = "The ratios for picking clauses from the split-queues using weighted round robin. If a queue is empty, the clause will be picked from the next non-empty queue to the right. Note that this option implicitly also sets the number of queues.";
     _lookup.insert(&_avatarSplitQueueRatios);
     _avatarSplitQueueRatios.reliesOn(_useAvatarSplitQueues.is(equal(true)));
@@ -957,14 +957,14 @@ void Options::Options::init()
     _lookup.insert(&_useSineLevelSplitQueues);
     _useSineLevelSplitQueues.tag(OptionTag::SATURATION);
 
-    _sineLevelSplitQueueCutoffs = StringOptionValue("sine_level_split_queue_cutoffs", "slsqc", "0");
+    _sineLevelSplitQueueCutoffs = StringOptionValue("sine_level_split_queue_cutoffs", "slsqc", "0,1");
     _sineLevelSplitQueueCutoffs.description = "The cutoff-values for the sine-level-split-queues (the cutoff value for the last queue is omitted, since it has to be infinity).";
     _lookup.insert(&_sineLevelSplitQueueCutoffs);
     _sineLevelSplitQueueCutoffs.reliesOn(_useSineLevelSplitQueues.is(equal(true)));
     _sineLevelSplitQueueCutoffs.tag(OptionTag::SATURATION);
     _sineLevelSplitQueueCutoffs.setExperimental();
 
-    _sineLevelSplitQueueRatios = StringOptionValue("sine_level_split_queue_ratios", "slsqr", "1,3");
+    _sineLevelSplitQueueRatios = StringOptionValue("sine_level_split_queue_ratios", "slsqr", "1,2,3");
     _sineLevelSplitQueueRatios.description = "The ratios for picking clauses from the sine-level-split-queues using weighted round robin. If a queue is empty, the clause will be picked from the next non-empty queue to the right. Note that this option implicitly also sets the number of queues.";
     _lookup.insert(&_sineLevelSplitQueueRatios);
     _sineLevelSplitQueueRatios.reliesOn(_useSineLevelSplitQueues.is(equal(true)));
@@ -983,21 +983,21 @@ void Options::Options::init()
     _lookup.insert(&_usePositiveLiteralSplitQueues);
     _usePositiveLiteralSplitQueues.tag(OptionTag::SATURATION);
 
-    _positiveLiteralSplitQueueCutoffs = StringOptionValue("positive_literal_split_queue_cutoffs", "plsqc", "1,2");
+    _positiveLiteralSplitQueueCutoffs = StringOptionValue("positive_literal_split_queue_cutoffs", "plsqc", "0");
     _positiveLiteralSplitQueueCutoffs.description = "The cutoff-values for the positive-literal-split-queues (the cutoff value for the last queue is omitted, since it has to be infinity).";
     _lookup.insert(&_positiveLiteralSplitQueueCutoffs);
     _positiveLiteralSplitQueueCutoffs.reliesOn(_usePositiveLiteralSplitQueues.is(equal(true)));
     _positiveLiteralSplitQueueCutoffs.tag(OptionTag::SATURATION);
     _positiveLiteralSplitQueueCutoffs.setExperimental();
 
-    _positiveLiteralSplitQueueRatios = StringOptionValue("positive_literal_split_queue_ratios", "plsqr", "5,5,1");
+    _positiveLiteralSplitQueueRatios = StringOptionValue("positive_literal_split_queue_ratios", "plsqr", "1,4");
     _positiveLiteralSplitQueueRatios.description = "The ratios for picking clauses from the positive-literal-split-queues using weighted round robin. If a queue is empty, the clause will be picked from the next non-empty queue to the right. Note that this option implicitly also sets the number of queues.";
     _lookup.insert(&_positiveLiteralSplitQueueRatios);
     _positiveLiteralSplitQueueRatios.reliesOn(_usePositiveLiteralSplitQueues.is(equal(true)));
     _positiveLiteralSplitQueueRatios.tag(OptionTag::SATURATION);
     _positiveLiteralSplitQueueRatios.setExperimental();
 
-    _positiveLiteralSplitQueueLayeredArrangement = BoolOptionValue("positive_literal_split_queue_layered_arrangement","plsql",true);
+    _positiveLiteralSplitQueueLayeredArrangement = BoolOptionValue("positive_literal_split_queue_layered_arrangement","plsql",false);
     _positiveLiteralSplitQueueLayeredArrangement.description = "If turned on, use a layered arrangement to split clauses into queues. Otherwise use a tammet-style-arrangement.";
     _lookup.insert(&_positiveLiteralSplitQueueLayeredArrangement);
     _positiveLiteralSplitQueueLayeredArrangement.reliesOn(_usePositiveLiteralSplitQueues.is(equal(true)));
@@ -1154,6 +1154,13 @@ void Options::Options::init()
             _maxInductionGenSubsetSize.addHardConstraint(lessThan(10u));
             _lookup.insert(&_maxInductionGenSubsetSize);
 
+            _inductionOnComplexTerms = BoolOptionValue("induction_on_complex_terms","indoct",false);
+            _inductionOnComplexTerms.description = "Apply induction on complex (ground) terms vs. only on constants";
+            _inductionOnComplexTerms.setExperimental();
+            _inductionOnComplexTerms.tag(OptionTag::INFERENCES);
+            _inductionOnComplexTerms.reliesOn(_induction.is(notEqual(Induction::NONE)));
+            _lookup.insert(&_inductionOnComplexTerms);
+
 	    _instantiation = ChoiceOptionValue<Instantiation>("instantiation","inst",Instantiation::OFF,{"off","on"});
 	    _instantiation.description = "Heuristically instantiate variables";
 	    _instantiation.tag(OptionTag::INFERENCES);
@@ -1192,6 +1199,20 @@ void Options::Options::init()
 	    _backwardSubsumptionResolution.tag(OptionTag::INFERENCES);
 	    _backwardSubsumptionResolution.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->Or<Subsumption>(_instGenWithResolution.is(equal(true))));
 	    _backwardSubsumptionResolution.setRandomChoices({"on","off"});
+
+            _backwardSubsumptionDemodulation = BoolOptionValue("backward_subsumption_demodulation", "bsd", false);
+            _backwardSubsumptionDemodulation.description = "Perform backward subsumption demodulation.";
+            _lookup.insert(&_backwardSubsumptionDemodulation);
+            _backwardSubsumptionDemodulation.tag(OptionTag::INFERENCES);
+            _backwardSubsumptionDemodulation.addProblemConstraint(hasEquality());
+            _backwardSubsumptionDemodulation.setRandomChoices({"on","off"});
+
+            _backwardSubsumptionDemodulationMaxMatches = UnsignedOptionValue("backward_subsumption_demodulation_max_matches", "bsdmm", 0);
+            _backwardSubsumptionDemodulationMaxMatches.description = "Maximum number of multi-literal matches to consider in backward subsumption demodulation. 0 means to try all matches (until first success).";
+            _lookup.insert(&_backwardSubsumptionDemodulationMaxMatches);
+            _backwardSubsumptionDemodulationMaxMatches.tag(OptionTag::INFERENCES);
+            _backwardSubsumptionDemodulationMaxMatches.setRandomChoices({"0", "1", "3"});
+            _backwardSubsumptionDemodulationMaxMatches.setExperimental();
 
 	    _binaryResolution = BoolOptionValue("binary_resolution","br",true);
 	    _binaryResolution.description=
@@ -1339,8 +1360,22 @@ void Options::Options::init()
     _forwardSubsumptionResolution.description="Perform forward subsumption resolution.";
     _lookup.insert(&_forwardSubsumptionResolution);
     _forwardSubsumptionResolution.tag(OptionTag::INFERENCES);
-    _forwardSubsumptionResolution    .reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->Or<bool>(_instGenWithResolution.is(equal(true))));
+    _forwardSubsumptionResolution.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->Or<bool>(_instGenWithResolution.is(equal(true))));
     _forwardSubsumptionResolution.setRandomChoices({"on","off"});
+
+    _forwardSubsumptionDemodulation = BoolOptionValue("forward_subsumption_demodulation", "fsd", false);
+    _forwardSubsumptionDemodulation.description = "Perform forward subsumption demodulation.";
+    _lookup.insert(&_forwardSubsumptionDemodulation);
+    _forwardSubsumptionDemodulation.tag(OptionTag::INFERENCES);
+    _forwardSubsumptionDemodulation.addProblemConstraint(hasEquality());
+    _forwardSubsumptionDemodulation.setRandomChoices({"off","on"});
+
+    _forwardSubsumptionDemodulationMaxMatches = UnsignedOptionValue("forward_subsumption_demodulation_max_matches", "fsdmm", 0);
+    _forwardSubsumptionDemodulationMaxMatches.description = "Maximum number of multi-literal matches to consider in forward subsumption demodulation. 0 means to try all matches (until first success).";
+    _lookup.insert(&_forwardSubsumptionDemodulationMaxMatches);
+    _forwardSubsumptionDemodulationMaxMatches.tag(OptionTag::INFERENCES);
+    _forwardSubsumptionDemodulationMaxMatches.setRandomChoices({"0", "1", "3"});
+    _forwardSubsumptionDemodulationMaxMatches.setExperimental();
 
     _hyperSuperposition = BoolOptionValue("hyper_superposition","",false);
     _hyperSuperposition.description=

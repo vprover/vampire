@@ -255,6 +255,27 @@ void Unit::assertValid()
   }
 }
 
+// TODO this could be more efficient. Although expected cost is log(n) where n is length of proof
+bool Unit::derivedFromInput() const
+{
+  CALL("Unit::derivedFromInput");
+
+  // Depth-first search of derivation - it's likely that we'll hit an input clause as soon
+  // as we hit the top
+  Stack<Inference*> todo; 
+  todo.push(&const_cast<Inference&>(_inference)); 
+  while(!todo.isEmpty()){
+    Inference* inf = todo.pop();
+    if(inf->rule() == InferenceRule::INPUT){
+      return true;
+    }
+    Inference::Iterator it = inf->iterator();
+    while(inf->hasNext(it)){ todo.push(&(inf->next(it)->inference())); }
+  }
+
+  return false;
+}
+
 std::ostream& Kernel::operator<<(ostream& out, const Unit& u)
 {
   return out << u.toString();

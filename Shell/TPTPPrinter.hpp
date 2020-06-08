@@ -45,6 +45,7 @@ public:
 
   void print(Unit* u);
   void printAsClaim(vstring name, Unit* u);
+  void printWithRole(vstring name, vstring role, Unit* u, bool includeSplitLevels = true);
 
   static vstring toString(const Unit*);
   static vstring toString(const Formula*);
@@ -53,7 +54,7 @@ public:
 
 private:
 
-  vstring getBodyStr(Unit* u);
+  vstring getBodyStr(Unit* u, bool includeSplitLevels);
 
   void ensureHeadersPrinted(Unit* u);
   void outputSymbolTypeDefinitions(unsigned symNumber, bool function);

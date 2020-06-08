@@ -182,6 +182,8 @@ bool Inference::hasNext(Iterator& it) const
     case Kind::INFERENCE_MANY:
     case Kind::INFERENCE_FROM_SAT_REFUTATION:
       return (it.pointer != nullptr);
+    default:
+      ASSERTION_VIOLATION;
   }
 }
 
@@ -208,11 +210,14 @@ Unit* Inference::next(Iterator& it) const
       }
       break;
     case Kind::INFERENCE_MANY:
-    case Kind::INFERENCE_FROM_SAT_REFUTATION:
+    case Kind::INFERENCE_FROM_SAT_REFUTATION: {
       UnitList* lst = static_cast<UnitList*>(it.pointer);
       it.pointer = lst->tail();
       return lst->head();
-      break;
+    }
+    default:
+      ASSERTION_VIOLATION;
+      return nullptr;
   }
 } // Inference::next
 
@@ -706,6 +711,10 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "forward demodulation";
   case InferenceRule::BACKWARD_DEMODULATION:
     return "backward demodulation";
+  case InferenceRule::FORWARD_SUBSUMPTION_DEMODULATION:
+    return "forward subsumption demodulation";
+  case InferenceRule::BACKWARD_SUBSUMPTION_DEMODULATION:
+    return "backward subsumption demodulation";
   case InferenceRule::FORWARD_LITERAL_REWRITING:
     return "forward literal rewriting";
   case InferenceRule::INNER_REWRITING:
@@ -864,6 +873,8 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "finite model not found";
   case InferenceRule::INDUCTION_AXIOM:
     return "induction hypothesis";
+  case InferenceRule::GEN_INDUCTION_AXIOM:
+    return "generalized induction hypothesis";
   case InferenceRule::GAUSSIAN_VARIABLE_ELIMINIATION:
     return "gaussian variable elimination";
 

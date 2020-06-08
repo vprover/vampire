@@ -145,113 +145,139 @@ bool PortfolioMode::performStrategy(Shell::Property* property)
 
   Schedule main;
   Schedule fallback;
+  Schedule main_extra;
+  Schedule fallback_extra;
 
   getSchedules(*property,main,fallback);
+  getExtraSchedules(*property,main,main_extra,true,3);
+  getExtraSchedules(*property,fallback,fallback_extra,true,3);
 
-  // simply insert fallback after main
-  Schedule::BottomFirstIterator it(fallback);
-  main.loadFromIterator(it);
+  // Normally we do main fallback main_extra fallback_extra
+  // However, in SMTCOMP mode the fallback is universal for all
+  // logics e.g. it's not very strong. Therefore, in SMTCOMP
+  // mode we do main main_extra fallback fallback_extra
+ 
+  Stack<Schedule> schedules;
+  if(env.options->schedule() == Options::Schedule::SMTCOMP){
+    schedules.push(fallback_extra);
+    schedules.push(fallback);
+    schedules.push(main_extra);
+    schedules.push(main);
+  }
+  else{
+    schedules.push(fallback_extra);
+    schedules.push(main_extra);
+    schedules.push(fallback);
+    schedules.push(main);
+  }
 
   int terminationTime = env.remainingTime()/100;
 
-  if (terminationTime <= 0) {
-    return false;
-  }
+  while(terminationTime > 0) {
+    // After running for the first time we replace schedules
+    // by copies with x2 time limits and do this forever
+    // We build these next_schedules as we go
+    Stack<Schedule> next_schedules;
 
-  if(!runSchedule(main,terminationTime)){
-    Schedule extra;
-    getExtraSchedules(*property,extra);
-    terminationTime = env.remainingTime()/100;
-    if (terminationTime <= 0) {
-      return false;
+    Stack<Schedule>::Iterator sit(schedules);
+    while(sit.hasNext() && terminationTime > 0){
+      Schedule s = sit.next();
+      if(runSchedule(s,terminationTime)){ return true; }
+      Schedule ns;
+      getExtraSchedules(*property,s,ns,false,2);
+      next_schedules.push(ns);
+      terminationTime = env.remainingTime()/100;
     }
-    return runSchedule(extra,terminationTime); 
+
+    schedules = next_schedules;
   }
-  else{ return true;}
+  return false;
 }
 
-void PortfolioMode::getExtraSchedules(Property& prop, Schedule& extra)
+/**
+ * The idea here is to create extra schedules based on the existing schedules
+ * There are two motivations
+ *  1. Sometimes the provided schedules don't fill the given time limit
+ *  2. Sometimes we have new options that are not yet included in the schedules
+ *
+ * This function will
+ *  1. Increase the time limit of existing strategies (by time_multiplier)
+ *  2. Add extra options to existing strategies (if add_extra is true)
+ *
+ * The expectation is that the extra_opts is updated before each competition submission
+ *
+ * IMPORTANT - every time we add something to extra_opts we are multiplying the length of the old schedule. For example,
+ * if the old schedule takes 60 seconds to run and the length of extra_opts is 10 then extra could take 10 minutes to run
+ * of course, many of the new strategies might fail immediately due to inconsistent constraints etc but in general we want
+ * to keep extra_opts for important new additions only.
+ *
+ * @author Giles
+ **/
+void PortfolioMode::getExtraSchedules(Property& prop, Schedule& old, Schedule& extra, bool add_extra, int time_multiplier)
 {
   CALL("PortfolioMode::getExtraSchedules");
-  // Currently just implement something interesting for SMTCOMP
-  // For everything else just return the main schedule with all times expanded
-  if(env.options->schedule() == Options::Schedule::SMTCOMP){
 
-    Schedule main;
-    Schedule fallback;
+  // Add new extra_opts here
+  Stack<vstring> extra_opts;
 
-    getSchedules(prop,main,fallback);     
-    Schedule::BottomFirstIterator fit(fallback);
-    main.loadFromIterator(fit);
+  if(add_extra){
 
-    Stack<vstring> extra_opts;
-    extra_opts.push("sp=frequency");
+   // Always try these
+   extra_opts.push("sp=frequency");
+   extra_opts.push("avsq=on");
+   extra_opts.push("plsq=on");
+
+   // If contains integers, rationals and reals
+   if(prop.props() & (Property::PR_HAS_INTEGERS | Property::PR_HAS_RATS | Property::PR_HAS_REALS)){
     extra_opts.push("tha=some");
     extra_opts.push("sos=theory:sstl=5");
-    extra_opts.push("gtg=exists_all");
     extra_opts.push("uwa=fixed:uwaf=on");
-    if(prop.getSMTLIBLogic() == SMT_UFDT || prop.getSMTLIBLogic() == SMT_AUFDTLIA || 
-       prop.getSMTLIBLogic() == SMT_UFDTNIA || prop.getSMTLIBLogic() == SMT_UFDTLIA){
-      extra_opts.push("gtg=exists_all:ind=all");
-      extra_opts.push("gtg=exists_all:ind=all:sik=all");
-      extra_opts.push("gtg=exists_all:ind=all:sik=all:indmd=1");
-    }
+    extra_opts.push("thsq=on");
+    extra_opts.push("thsq=on:thsqd=16");
+   }
 
-    Schedule::Iterator it(main);
-    while(it.hasNext()){
+   // If in SMT-COMP mode try guessing the goal
+   if(env.options->schedule() == Options::Schedule::SMTCOMP){
+    extra_opts.push("gtg=exists_all");
+   }
+   else{
+   // Don't try this in SMT-COMP mode
+    extra_opts.push("slsq=on");
+   }
+
+   // If using Datatypes try induction
+   if(prop.props() & (Property::PR_HAS_DT_CONSTRUCTORS | Property::PR_HAS_CDT_CONSTRUCTORS)){
+    extra_opts.push("ind=struct");
+    extra_opts.push("gtg=exists_all:ind=struct");
+    extra_opts.push("ind=struct:sik=all");
+    extra_opts.push("ind=struct:sik=all:indmd=1");
+    extra_opts.push("ind=struct:indgen=on");
+    extra_opts.push("ind=struct:indgen=on:indoct=on");
+   }
+
+  }
+
+  Schedule::BottomFirstIterator it(old);
+  while(it.hasNext()){
       vstring s = it.next();
+      // try and grab time string
       vstring ts = s.substr(s.find_last_of("_")+1,vstring::npos);
       int t;
       if(Lib::Int::stringToInt(ts,t)){
         vstring prefix = s.substr(0,s.find_last_of("_")); 
 
+        // Add a copy with increased time limit
+        vstring new_s = prefix + "_" + Lib::Int::toString(t*time_multiplier);
+        extra.push(new_s);
+
+        // Add copies with new extra options (keeping the old time limit) 
         Stack<vstring>::Iterator addit(extra_opts);
         while(addit.hasNext()){
-          s = prefix + ":" + addit.next() + "_" + Lib::Int::toString(t*3);
-          extra.push(s);
+          vstring new_s = prefix + ":" + addit.next() + "_" + Lib::Int::toString(t);
+          extra.push(new_s);
         }
       }
       else{ASSERTION_VIOLATION;}
-    }
-
-
-
-  }
-  else{
-    // grab main and fallback and iterate through multiplying time limit by 3
-    Schedule main;
-    Schedule fallback;
-
-    getSchedules(prop,main,fallback);    
-    Schedule::BottomFirstIterator fit(fallback);
-    main.loadFromIterator(fit);
-
-    Stack<vstring> extra_opts;
-    extra_opts.push("");
-    // contains integers, rationals and reals
-    if(prop.props() & (524288ul | 1048576ul | 2097152ul)){
-      extra_opts.push("tha=some");
-      extra_opts.push("sos=theory:sstl=5");
-      extra_opts.push("uwa=fixed:uwaf=on");
-    }
-
-    Schedule::Iterator it(main);
-    while(it.hasNext()){
-      vstring s = it.next();
-      vstring ts = s.substr(s.find_last_of("_")+1,vstring::npos);
-      int t;
-      if(Lib::Int::stringToInt(ts,t)){
-        vstring prefix = s.substr(0,s.find_last_of("_"));
-        Stack<vstring>::Iterator addit(extra_opts);
-        while(addit.hasNext()){
-          s = prefix + ":" + addit.next() + "_" + Lib::Int::toString(t*3);
-          extra.push(s);
-        }
-
-      }
-      else{ASSERTION_VIOLATION;}
-    }
-
   }
 
 }

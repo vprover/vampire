@@ -171,7 +171,7 @@ public:
      * the problem name is equal to "unknown". The problem name can
      * be set to a specific value using setProblemName().
      */
-    vstring problemName () const { return _problemName.actualValue; }
+    const vstring& problemName () const { return _problemName.actualValue; }
     void setProblemName(vstring str) { _problemName.actualValue = str; }
     
     void setInputFile(const vstring& newVal){ _inputFile.set(newVal); }
@@ -1942,6 +1942,8 @@ public:
   LiteralComparisonMode literalComparisonMode() const { return _literalComparisonMode.actualValue; }
   bool forwardSubsumptionResolution() const { return _forwardSubsumptionResolution.actualValue; }
   //void setForwardSubsumptionResolution(bool newVal) { _forwardSubsumptionResolution = newVal; }
+  bool forwardSubsumptionDemodulation() const { return _forwardSubsumptionDemodulation.actualValue; }
+  unsigned forwardSubsumptionDemodulationMaxMatches() const { return _forwardSubsumptionDemodulationMaxMatches.actualValue; }
   Demodulation forwardDemodulation() const { return _forwardDemodulation.actualValue; }
   bool binaryResolution() const { return _binaryResolution.actualValue; }
   bool bfnt() const { return _bfnt.actualValue; }
@@ -1959,6 +1961,8 @@ public:
   Subsumption backwardSubsumption() const { return _backwardSubsumption.actualValue; }
   //void setBackwardSubsumption(Subsumption newVal) { _backwardSubsumption = newVal; }
   Subsumption backwardSubsumptionResolution() const { return _backwardSubsumptionResolution.actualValue; }
+  bool backwardSubsumptionDemodulation() const { return _backwardSubsumptionDemodulation.actualValue; }
+  unsigned backwardSubsumptionDemodulationMaxMatches() const { return _backwardSubsumptionDemodulationMaxMatches.actualValue; }
   bool forwardSubsumption() const { return _forwardSubsumption.actualValue; }
   bool forwardLiteralRewriting() const { return _forwardLiteralRewriting.actualValue; }
   int lrsFirstTimeCheck() const { return _lrsFirstTimeCheck.actualValue; }
@@ -2077,6 +2081,7 @@ public:
   bool inductionUnitOnly() const { return _inductionUnitOnly.actualValue; }
   bool inductionGen() const { return _inductionGen.actualValue; }
   unsigned maxInductionGenSubsetSize() const { return _maxInductionGenSubsetSize.actualValue; }
+  bool inductionOnComplexTerms() const {return _inductionOnComplexTerms.actualValue;}
 
   float instGenBigRestartRatio() const { return _instGenBigRestartRatio.actualValue; }
   bool instGenPassiveReactivation() const { return _instGenPassiveReactivation.actualValue; }
@@ -2286,6 +2291,8 @@ private:
   ChoiceOptionValue<Demodulation> _backwardDemodulation;
   ChoiceOptionValue<Subsumption> _backwardSubsumption;
   ChoiceOptionValue<Subsumption> _backwardSubsumptionResolution;
+  BoolOptionValue _backwardSubsumptionDemodulation;
+  UnsignedOptionValue _backwardSubsumptionDemodulationMaxMatches;
   BoolOptionValue _bfnt;
   BoolOptionValue _binaryResolution;
   BoolOptionValue _bpCollapsingPropagation;
@@ -2336,6 +2343,8 @@ private:
   BoolOptionValue _forwardLiteralRewriting;
   BoolOptionValue _forwardSubsumption;
   BoolOptionValue _forwardSubsumptionResolution;
+  BoolOptionValue _forwardSubsumptionDemodulation;
+  UnsignedOptionValue _forwardSubsumptionDemodulationMaxMatches;
   ChoiceOptionValue<FunctionDefinitionElimination> _functionDefinitionElimination;
   IntOptionValue _functionNumber;
   
@@ -2387,6 +2396,7 @@ private:
   BoolOptionValue _inductionUnitOnly;
   BoolOptionValue _inductionGen;
   UnsignedOptionValue _maxInductionGenSubsetSize;
+  BoolOptionValue _inductionOnComplexTerms;
 
   StringOptionValue _latexOutput;
   BoolOptionValue _latexUseDefaultSymbols;

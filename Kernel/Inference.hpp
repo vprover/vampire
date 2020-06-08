@@ -155,8 +155,6 @@ enum class InferenceRule : unsigned char {
 //     HALF_EQUIV,
 //     /** miniscoping */
 //     MINISCOPE,
-  /** choice axiom */
-
   /** normalizing inference */
   THEORY_NORMALIZATION,
 
@@ -186,6 +184,10 @@ enum class InferenceRule : unsigned char {
   FORWARD_DEMODULATION,
   /** backward demodulation inference */
   BACKWARD_DEMODULATION,
+  /** forward subsumption demodulation inference */
+  FORWARD_SUBSUMPTION_DEMODULATION,
+  /** backward subsumption demodulation inference */
+  BACKWARD_SUBSUMPTION_DEMODULATION,
   /** forward literal rewriting inference */
   FORWARD_LITERAL_REWRITING,
   /** inner rewriting */
@@ -351,6 +353,8 @@ enum class InferenceRule : unsigned char {
 
   /* Induction hypothesis*/
   INDUCTION_AXIOM,
+  /* Generalized nduction hypothesis*/
+  GEN_INDUCTION_AXIOM,
 
   /* the unit clause against which the Answer is extracted in the last step */
   ANSWER_LITERAL_RESOLVER,
@@ -423,7 +427,7 @@ enum class InferenceRule : unsigned char {
   INTERNAL_THEORY_AXIOM_LAST,
   /** a theory axiom which is not generated internally in Vampire */
   EXTERNAL_THEORY_AXIOM
-}; // class Inference::Rule
+}; // class InferenceRule
 
 inline std::underlying_type<InferenceRule>::type toNumber(InferenceRule r) { return static_cast<std::underlying_type<InferenceRule>::type>(r); }
 

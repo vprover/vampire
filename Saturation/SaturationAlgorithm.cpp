@@ -58,6 +58,7 @@
 #include "Inferences/InferenceEngine.hpp"
 #include "Inferences/BackwardDemodulation.hpp"
 #include "Inferences/BackwardSubsumptionResolution.hpp"
+#include "Inferences/BackwardSubsumptionDemodulation.hpp"
 #include "Inferences/BinaryResolution.hpp"
 #include "Inferences/CTFwSubsAndRes.hpp"
 #include "Inferences/EqualityFactoring.hpp"
@@ -68,6 +69,7 @@
 #include "Inferences/ForwardDemodulation.hpp"
 #include "Inferences/ForwardLiteralRewriting.hpp"
 #include "Inferences/ForwardSubsumptionAndResolution.hpp"
+#include "Inferences/ForwardSubsumptionDemodulation.hpp"
 #include "Inferences/GlobalSubsumption.hpp"
 #include "Inferences/HyperSuperposition.hpp"
 #include "Inferences/InnerRewriting.hpp"
@@ -904,6 +906,15 @@ void SaturationAlgorithm::handleEmptyClause(Clause* cl)
       // this is a poor way of handling this in release mode but it prevents unsound proofs
       throw MainLoop::MainLoopFinishedException(Statistics::REFUTATION_NOT_FOUND);
     }
+
+    //TODO - warning, derivedFromInput currently inefficient
+    if(!cl->derivedFromInput()){
+      ASSERTION_VIOLATION_REP("The proof does not contain any input clauses.");
+      reportSpiderFail();
+      // this is a poor way of handling this in release mode but it prevents unsound proofs
+      throw MainLoop::MainLoopFinishedException(Statistics::REFUTATION_NOT_FOUND);
+    }
+
     if(cl->inputType() == UnitInputType::AXIOM){
       UIHelper::setConjectureInProof(false);
     }
@@ -1127,10 +1138,13 @@ bool SaturationAlgorithm::activate(Clause* cl)
       Inference::Iterator iit=genCl->inference().iterator();
       while (genCl->inference().hasNext(iit)) {
         Unit* premUnit=genCl->inference().next(iit);
-        ASS(premUnit->isClause());
-        Clause* premCl=static_cast<Clause*>(premUnit);
-
-        onParenthood(genCl, premCl);
+        // Now we can get generated clauses having parents that are not clauses
+        // Indeed, from induction we can have generated clauses whose parents do 
+        // not include the activated clause
+        if(premUnit->isClause()){
+          Clause* premCl=static_cast<Clause*>(premUnit);
+          onParenthood(genCl, premCl);
+        }
       }
     }
 
@@ -1497,6 +1511,14 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     res->addForwardSimplifierToFront(new ForwardLiteralRewriting());
   }
   if (prb.hasEquality()) {
+    // NOTE:
+    // fsd should be performed after forward subsumption,
+    // because every successful forward subsumption will lead to a (useless) match in fsd.
+    if (opt.forwardSubsumptionDemodulation()) {
+      res->addForwardSimplifierToFront(new ForwardSubsumptionDemodulation(false));
+    }
+  }
+  if (prb.hasEquality()) {
     switch(opt.forwardDemodulation()) {
     case Options::Demodulation::ALL:
     case Options::Demodulation::PREORDERED:
@@ -1538,6 +1560,9 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
       ASSERTION_VIOLATION;
 #endif
     }
+  }
+  if (prb.hasEquality() && opt.backwardSubsumptionDemodulation()) {
+    res->addBackwardSimplifierToFront(new BackwardSubsumptionDemodulation());
   }
   if (opt.backwardSubsumption() != Options::Subsumption::OFF) {
     bool byUnitsOnly=opt.backwardSubsumption()==Options::Subsumption::UNIT_ONLY;
