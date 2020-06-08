@@ -711,6 +711,10 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "forward demodulation";
   case InferenceRule::BACKWARD_DEMODULATION:
     return "backward demodulation";
+  case InferenceRule::FORWARD_SUBSUMPTION_DEMODULATION:
+    return "forward subsumption demodulation";
+  case InferenceRule::BACKWARD_SUBSUMPTION_DEMODULATION:
+    return "backward subsumption demodulation";
   case InferenceRule::FORWARD_LITERAL_REWRITING:
     return "forward literal rewriting";
   case InferenceRule::INNER_REWRITING:

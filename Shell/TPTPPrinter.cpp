@@ -59,7 +59,7 @@ void TPTPPrinter::print(Unit* u)
 {
   CALL("TPTPPrinter::print");
 
-  vstring body = getBodyStr(u);
+  vstring body = getBodyStr(u, true);
 
   beginOutput();
   ensureHeadersPrinted(u);
@@ -75,14 +75,18 @@ void TPTPPrinter::print(Unit* u)
 void TPTPPrinter::printAsClaim(vstring name, Unit* u)
 {
   CALL("TPTPPrinter::printAsClaim");
-  vstring body = getBodyStr(u);
+  printWithRole(name, "claim", u);
+}
+
+void TPTPPrinter::printWithRole(vstring name, vstring role, Unit* u, bool includeSplitLevels)
+{
+  CALL("TPTPPrinter::printWithRole");
+
+  vstring body = getBodyStr(u, includeSplitLevels);
 
   beginOutput();
-
   ensureHeadersPrinted(u);
-
-  tgt() << "tff(" << name << ", claim, " << body << ")." << endl;
-
+  tgt() << "tff(" << name << ", " << role << ", " << body << ")." << endl;
   endOutput();
 }
 
@@ -91,7 +95,7 @@ void TPTPPrinter::printAsClaim(vstring name, Unit* u)
  * @param u
  * @return the body vstring
  */
-vstring TPTPPrinter::getBodyStr(Unit* u)
+vstring TPTPPrinter::getBodyStr(Unit* u, bool includeSplitLevels)
 {
   CALL("TPTPPrinter::getBodyStr");
 
@@ -139,11 +143,11 @@ vstring TPTPPrinter::getBodyStr(Unit* u)
       res << ')';
     }
 
-    if(!cl->noSplits()) {
+    if(includeSplitLevels && !cl->noSplits()) {
       SplitSet::Iterator sit(*cl->splits());
       while(sit.hasNext()) {
-	SplitLevel split = sit.next();
-	res << " | " << "$splitLevel" << split;
+        SplitLevel split = sit.next();
+        res << " | " << "$splitLevel" << split;
       }
     }
   }
@@ -208,6 +212,8 @@ void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, bool function)
   }
   if(function && theory->isInterpretedConstant(symNumber)) { return; }
 
+  if (function && sym->overflownConstant()) { return; }
+
   if(sym->interpreted()) {
     Interpretation interp = static_cast<Signature::InterpretedSymbol*>(sym)->getInterpretation();
     switch(interp) {
@@ -225,7 +231,10 @@ void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, bool function)
       << sym->name() << ": ";
 
   unsigned arity = sym->arity();
-  if(arity>0) {
+  if (arity == 1) {
+    tgt() << env.sorts->sortName(type->arg(0)) << " > ";
+  }
+  else if (arity > 1) {
     tgt() << "(";
     for(unsigned i=0; i<arity; i++) {
       if(i>0) {
@@ -235,12 +244,14 @@ void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, bool function)
     }
     tgt() << ") > ";
   }
+
   if(function) {
     tgt() << env.sorts->sortName(sym->fnType()->result());
   }
   else {
     tgt() << "$o";
   }
+
   tgt() << " )." << endl;
 }
 
@@ -266,11 +277,10 @@ void TPTPPrinter::ensureNecesarySorts()
     sym = env.signature->getFunction(i);
     type = sym->fnType();
     unsigned arity = sym->arity();
-    if (arity > 0) {
-      for (unsigned i = 0; i < arity; i++) {
-	if(! List<unsigned>::member(type->arg(i), _usedSorts))
-          List<unsigned>::push(type->arg(i), _usedSorts);
-      }
+    // NOTE: for function types, the last entry (i.e., type->arg(arity)) contains the type of the result
+    for (unsigned i = 0; i <= arity; i++) {
+      if(! List<unsigned>::member(type->arg(i), _usedSorts))
+        List<unsigned>::push(type->arg(i), _usedSorts);
     }
   }
   //check the sorts of the predicates and collect information about used sorts
