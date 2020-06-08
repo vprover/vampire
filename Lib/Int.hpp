@@ -239,10 +239,9 @@ class Int
         res = 1;
         return true;
       }
-    } else {
-      res = arg1 / arg2;
-      return true;
-    }
+    } 
+    res = arg1 / arg2;
+    return true;
   }
 };
 
