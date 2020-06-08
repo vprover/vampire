@@ -266,6 +266,7 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/Matcher.cpp
     Kernel/MaximalLiteralSelector.cpp
     Kernel/MLMatcher.cpp
+    Kernel/MLMatcherSD.cpp
     Kernel/MLVariant.cpp
     Kernel/Ordering.cpp
     Kernel/Ordering_Equality.cpp
@@ -392,6 +393,7 @@ source_group(indexing_source_files FILES ${VAMPIRE_INDEXING_SOURCES})
 
 set(VAMPIRE_INFERENCE_SOURCES
     Inferences/BackwardDemodulation.cpp
+    Inferences/BackwardSubsumptionDemodulation.cpp
     Inferences/BackwardSubsumptionResolution.cpp
     Inferences/BinaryResolution.cpp
     Inferences/Condensation.cpp
@@ -406,6 +408,7 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/ForwardDemodulation.cpp
     Inferences/ForwardLiteralRewriting.cpp
     Inferences/ForwardSubsumptionAndResolution.cpp
+    Inferences/ForwardSubsumptionDemodulation.cpp
     Inferences/GlobalSubsumption.cpp
     Inferences/HyperSuperposition.cpp
     Inferences/InnerRewriting.cpp
@@ -442,6 +445,7 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/Instantiation.hpp
     Inferences/InterpretedEvaluation.hpp
     Inferences/SLQueryBackwardSubsumption.hpp
+    Inferences/SubsumptionDemodulationHelper.cpp
     Inferences/Superposition.hpp
     Inferences/TautologyDeletionISE.hpp
     Inferences/TermAlgebraReasoning.hpp

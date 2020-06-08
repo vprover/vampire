@@ -1177,6 +1177,20 @@ void Options::Options::init()
 	    _backwardSubsumptionResolution.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->Or<Subsumption>(_instGenWithResolution.is(equal(true))));
 	    _backwardSubsumptionResolution.setRandomChoices({"on","off"});
 
+            _backwardSubsumptionDemodulation = BoolOptionValue("backward_subsumption_demodulation", "bsd", false);
+            _backwardSubsumptionDemodulation.description = "Perform backward subsumption demodulation.";
+            _lookup.insert(&_backwardSubsumptionDemodulation);
+            _backwardSubsumptionDemodulation.tag(OptionTag::INFERENCES);
+            _backwardSubsumptionDemodulation.addProblemConstraint(hasEquality());
+            _backwardSubsumptionDemodulation.setRandomChoices({"on","off"});
+
+            _backwardSubsumptionDemodulationMaxMatches = UnsignedOptionValue("backward_subsumption_demodulation_max_matches", "bsdmm", 0);
+            _backwardSubsumptionDemodulationMaxMatches.description = "Maximum number of multi-literal matches to consider in backward subsumption demodulation. 0 means to try all matches (until first success).";
+            _lookup.insert(&_backwardSubsumptionDemodulationMaxMatches);
+            _backwardSubsumptionDemodulationMaxMatches.tag(OptionTag::INFERENCES);
+            _backwardSubsumptionDemodulationMaxMatches.setRandomChoices({"0", "1", "3"});
+            _backwardSubsumptionDemodulationMaxMatches.setExperimental();
+
 	    _binaryResolution = BoolOptionValue("binary_resolution","br",true);
 	    _binaryResolution.description=
 		  "Standard binary resolution i.e.\n"
@@ -1323,8 +1337,22 @@ void Options::Options::init()
     _forwardSubsumptionResolution.description="Perform forward subsumption resolution.";
     _lookup.insert(&_forwardSubsumptionResolution);
     _forwardSubsumptionResolution.tag(OptionTag::INFERENCES);
-    _forwardSubsumptionResolution    .reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->Or<bool>(_instGenWithResolution.is(equal(true))));
+    _forwardSubsumptionResolution.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->Or<bool>(_instGenWithResolution.is(equal(true))));
     _forwardSubsumptionResolution.setRandomChoices({"on","off"});
+
+    _forwardSubsumptionDemodulation = BoolOptionValue("forward_subsumption_demodulation", "fsd", false);
+    _forwardSubsumptionDemodulation.description = "Perform forward subsumption demodulation.";
+    _lookup.insert(&_forwardSubsumptionDemodulation);
+    _forwardSubsumptionDemodulation.tag(OptionTag::INFERENCES);
+    _forwardSubsumptionDemodulation.addProblemConstraint(hasEquality());
+    _forwardSubsumptionDemodulation.setRandomChoices({"off","on"});
+
+    _forwardSubsumptionDemodulationMaxMatches = UnsignedOptionValue("forward_subsumption_demodulation_max_matches", "fsdmm", 0);
+    _forwardSubsumptionDemodulationMaxMatches.description = "Maximum number of multi-literal matches to consider in forward subsumption demodulation. 0 means to try all matches (until first success).";
+    _lookup.insert(&_forwardSubsumptionDemodulationMaxMatches);
+    _forwardSubsumptionDemodulationMaxMatches.tag(OptionTag::INFERENCES);
+    _forwardSubsumptionDemodulationMaxMatches.setRandomChoices({"0", "1", "3"});
+    _forwardSubsumptionDemodulationMaxMatches.setExperimental();
 
     _hyperSuperposition = BoolOptionValue("hyper_superposition","",false);
     _hyperSuperposition.description=

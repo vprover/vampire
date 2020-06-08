@@ -23,6 +23,7 @@
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/LiteralComparators.hpp"
+#include "Kernel/LiteralByMatchability.hpp"
 #include "Kernel/Matcher.hpp"
 #include "Kernel/MLVariant.hpp"
 #include "Kernel/Ordering.hpp"
@@ -111,28 +112,56 @@ void SimplifyingLiteralIndex::handleClause(Clause* c, bool adding)
   }
 }
 
+
 void FwSubsSimplifyingLiteralIndex::handleClause(Clause* c, bool adding)
 {
   CALL("FwSubsSimplifyingLiteralIndex::handleClause");
 
-  unsigned clen=c->length();
-  if(clen<2) {
+  if (c->length() < 2) {
     return;
   }
+
   TimeCounter tc(TC_FORWARD_SUBSUMPTION_INDEX_MAINTENANCE);
 
-  Literal* best=(*c)[0];
-  unsigned bestVal=best->weight()-best->getDistinctVars();
-  for(unsigned i=1;i<clen;i++) {
-    Literal* curr=(*c)[i];
-    unsigned currVal=curr->weight()-curr->getDistinctVars();
-    if(currVal>bestVal || (currVal==bestVal &&
-        curr->getId()<best->getId()) ) { // this part is just an arbitrary tie-break (but we use getId to make it deterministic)
-      best=curr;
-      bestVal=currVal;
+  Literal* best = LiteralByMatchability::find_least_matchable_in(c).lit();
+  handleLiteral(best, c, adding);
+}
+
+void FSDLiteralIndex::handleClause(Clause* c, bool adding)
+{
+  CALL("FSDLiteralIndex::handleClause");
+
+  if (c->length() < 2) {
+    return;
+  }
+
+  TimeCounter tc(TC_FORWARD_SUBSUMPTION_DEMODULATION_INDEX_MAINTENANCE);
+
+  bool hasPosEquality = false;
+  for (unsigned i = 0; i < c->length(); ++i) {
+    Literal *lit = (*c)[i];
+    if (lit->isEquality() && lit->isPositive()) {
+      hasPosEquality = true;
+      break;
     }
   }
-  handleLiteral(best, c, adding);
+  if (!hasPosEquality) {
+    // We only need clauses with at least one positive equality for subsumption demodulation
+    return;
+  }
+
+  auto res = LiteralByMatchability::find_two_least_matchable_in(c);
+  Literal* best = res.first.lit();
+  Literal* secondBest = res.second.lit();
+  if (!best->isEquality() || !best->isPositive()) {
+    handleLiteral(best, c, adding);
+  } else if (!secondBest->isEquality() || !secondBest->isPositive()) {
+    handleLiteral(secondBest, c, adding);
+  } else {
+    // both are positive equalities, so we need to add both
+    handleLiteral(best, c, adding);
+    handleLiteral(secondBest, c, adding);
+  }
 }
 
 void UnitClauseLiteralIndex::handleClause(Clause* c, bool adding)

@@ -51,6 +51,7 @@
 #include "Inferences/InferenceEngine.hpp"
 #include "Inferences/BackwardDemodulation.hpp"
 #include "Inferences/BackwardSubsumptionResolution.hpp"
+#include "Inferences/BackwardSubsumptionDemodulation.hpp"
 #include "Inferences/BinaryResolution.hpp"
 #include "Inferences/CTFwSubsAndRes.hpp"
 #include "Inferences/EqualityFactoring.hpp"
@@ -61,6 +62,7 @@
 #include "Inferences/ForwardDemodulation.hpp"
 #include "Inferences/ForwardLiteralRewriting.hpp"
 #include "Inferences/ForwardSubsumptionAndResolution.hpp"
+#include "Inferences/ForwardSubsumptionDemodulation.hpp"
 #include "Inferences/GlobalSubsumption.hpp"
 #include "Inferences/HyperSuperposition.hpp"
 #include "Inferences/InnerRewriting.hpp"
@@ -1502,6 +1504,14 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     res->addForwardSimplifierToFront(new ForwardLiteralRewriting());
   }
   if (prb.hasEquality()) {
+    // NOTE:
+    // fsd should be performed after forward subsumption,
+    // because every successful forward subsumption will lead to a (useless) match in fsd.
+    if (opt.forwardSubsumptionDemodulation()) {
+      res->addForwardSimplifierToFront(new ForwardSubsumptionDemodulation(false));
+    }
+  }
+  if (prb.hasEquality()) {
     switch(opt.forwardDemodulation()) {
     case Options::Demodulation::ALL:
     case Options::Demodulation::PREORDERED:
@@ -1543,6 +1553,9 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
       ASSERTION_VIOLATION;
 #endif
     }
+  }
+  if (prb.hasEquality() && opt.backwardSubsumptionDemodulation()) {
+    res->addBackwardSimplifierToFront(new BackwardSubsumptionDemodulation());
   }
   if (opt.backwardSubsumption() != Options::Subsumption::OFF) {
     bool byUnitsOnly=opt.backwardSubsumption()==Options::Subsumption::UNIT_ONLY;
