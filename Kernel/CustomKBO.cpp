@@ -287,40 +287,54 @@ void CustomKBO::State::traverse(Term* t1, Term* t2)
 }
 
 
-/**
- * Create a CustomKBO object.
- */
-CustomKBO::CustomKBO(Problem& prb, const Options& opt)
- : PrecedenceOrdering(prb, opt)
- , _symbolWeights()
-{
-  CALL("CustomKBO::CustomKBO");
 
-  _variableWeight = 1;
-  _defaultSymbolWeight = 1;
 
-  _state=new State(*this);
+namespace {
 
-  // TODO: extract into separate function that takes a string argument.
-  // Parse weights from option string, example: f=5,g/2=27
+/// Parse symbol weights from option string, example: f=5,g/2=27.
+/// Returns a map from function symbol numbers to weights.
+vmap<unsigned, int> parseSymbolWeights(vstring const& weights_str) {
   vmap<unsigned, int> weights;
-  vstring const& weights_str = opt.customKBOWeights();
   const char* s = weights_str.data();
   const char* s_end = s + weights_str.length();
   while (s < s_end) {
     // Read name
     const char* s2 = s;
-    while (s2 < s_end && *s2 != '=') {
+    while (s2 < s_end && *s2 != '=' && *s2 != '/') {
       s2 += 1;
     }
     if (s2 == s_end) {
-      USER_ERROR("error parsing symbol weights: expected '='");
+      USER_ERROR("error parsing symbol weights: expected '=' or '/'");
     }
     vstring name(s, s2 - s);
-    s = s2 + 1;
-    std::cerr << "name = " << name << std::endl;
+    s = s2;
+    std::cerr << "name   = " << name << std::endl;
 
-    // TODO: parse arity
+    if (s == s_end) {
+      USER_ERROR("error parsing symbol weights: expected '/' or weight");
+    }
+
+    // Read arity if specified
+    int arity = -1;
+    if (*s == '/') {
+      s += 1;
+      char *a_end;
+      arity = std::strtol(s, &a_end, 10);
+      if (errno != 0) {
+        int e = errno;
+        errno = 0;
+        vstring msg = vstring("error parsing symbol weights: unable to parse arity at \"") + s + "\" (" + std::strerror(e) + ")";
+        USER_ERROR(msg);
+      }
+      s = a_end;
+      std::cerr << "arity  = " << arity << std::endl;
+      if (*s != '=') {
+        USER_ERROR("error parsing symbol weights: expected '='");
+      }
+      s += 1;
+    } else {
+      s += 1;
+    }
 
     // Read weight
     char *w_end;
@@ -367,6 +381,27 @@ CustomKBO::CustomKBO(Problem& prb, const Options& opt)
     }
   }
 
+  return weights;
+}  // parseSymbolWeights
+
+}  // namespace
+
+
+/**
+ * Create a CustomKBO object.
+ */
+CustomKBO::CustomKBO(Problem& prb, const Options& opt)
+ : PrecedenceOrdering(prb, opt)
+ , _symbolWeights()
+{
+  CALL("CustomKBO::CustomKBO");
+
+  _variableWeight = 1;
+  _defaultSymbolWeight = 1;
+
+  _state=new State(*this);
+
+  auto weights = parseSymbolWeights(opt.customKBOWeights());
   if (!weights.empty()) {
     unsigned max_fn = weights.rbegin()->first;
     _symbolWeights.resize(max_fn + 1, _defaultSymbolWeight);
