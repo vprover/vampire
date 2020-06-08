@@ -155,19 +155,16 @@ IntegerConstantType IntegerConstantType::quotientT(const IntegerConstantType& nu
 
 bool IntegerConstantType::divides(const IntegerConstantType& num) const 
 {
-    CALL("IntegerConstantType:divides");
-    // if this is zero it shouldn't divide anything, if num is zero dividing it doesn't make sense
-    if(_val==0){ return false; }
-    if(num._val == 0){ return true; }
-    // if this is bigger than num then the result cannot be an integer
-    if(_val > num._val){ return false; }
-    // now we only need to check the absolute value
-    int safeVal=_val;
-    if (_val < 0 && ! Lib::Int::safeUnaryMinus<int>(_val,safeVal)) {
-      return false;
-    }
-    return (num._val % safeVal ==0);
+  CALL("IntegerConstantType:divides");
+  if (_val == 0) { return false; }
+  if (num._val == _val) { return true; }
+  if (num._val == numeric_limits<decltype(num._val)>::min() 
+      || _val == numeric_limits<decltype(num._val)>::min()) {
+    throw ArithmeticException();
+  } else {
+    return ( abs(num._val) % abs(_val) ) == 0;
   }
+}
 
 IntegerConstantType IntegerConstantType::operator/(const IntegerConstantType& num) const
 {
