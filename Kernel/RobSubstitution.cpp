@@ -419,7 +419,7 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2)
       }
     }
 
-    if(toDo.isEmpty()) {
+    if(toDo.isEmpty() || mismatch) {
       break;
     }
     t1=toDo.top().first;
