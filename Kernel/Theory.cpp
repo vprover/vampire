@@ -101,6 +101,77 @@ IntegerConstantType IntegerConstantType::operator*(const IntegerConstantType& nu
   return IntegerConstantType(res);
 }
 
+inline typename IntegerConstantType::InnerType divideOrThrow(typename IntegerConstantType::InnerType lhs, typename IntegerConstantType::InnerType rhs) {
+    typename IntegerConstantType::InnerType out;
+    if (!Int::safeDivide(lhs,rhs, out))
+      throw ArithmeticException();
+    return out;
+    // if (rhs == 0) 
+    //   throw ArithmeticException();
+    // return lhs / rhs;
+}
+
+int IntegerConstantType::intDivide(const IntegerConstantType& num) const 
+{
+    CALL("IntegerConstantType::intDivide");
+    ASS(num.divides(*this));
+    return divideOrThrow(_val, num._val);
+}
+
+/**
+ * specification from TPTP:
+ * quotient_e(N,D) - the Euclidean quotient, which has a non-negative remainder. If D is positive then $quotient_e(N,D) is the floor (in the type of N and D) of the real division N/D, and if D is negative then $quotient_e(N,D) is the ceiling of N/D.
+ */
+IntegerConstantType IntegerConstantType::quotientE(const IntegerConstantType& num) const
+{ 
+  CALL("IntegerConstantType::quotientE");
+  auto quot = IntegerConstantType(divideOrThrow(this->_val, num._val));
+  if (num.divides(*this)) {
+    return quot;
+  } else {
+    // quot was truncated
+    if (num._val > 0) {
+      /* use floor */
+      return quot < 0 ? quot - 1 : quot;
+    } else {
+      /* use ceiling */
+      return quot > 0 ? quot + 1 : quot;
+    }
+  }
+}
+
+IntegerConstantType IntegerConstantType::quotientF(const IntegerConstantType& num) const
+{ 
+  if(num.divides(*this)){
+    return IntegerConstantType(intDivide(num));
+  }
+  return IntegerConstantType(::floor(realDivide(num)));
+}
+
+IntegerConstantType IntegerConstantType::quotientT(const IntegerConstantType& num) const
+{ 
+  if(num.divides(*this)){
+    return IntegerConstantType(intDivide(num));
+  }
+  return IntegerConstantType(::trunc(realDivide(num)));
+}
+
+bool IntegerConstantType::divides(const IntegerConstantType& num) const 
+{
+    CALL("IntegerConstantType:divides");
+    // if this is zero it shouldn't divide anything, if num is zero dividing it doesn't make sense
+    if(_val==0){ return false; }
+    if(num._val == 0){ return true; }
+    // if this is bigger than num then the result cannot be an integer
+    if(_val > num._val){ return false; }
+    // now we only need to check the absolute value
+    int safeVal=_val;
+    if (_val < 0 && ! Lib::Int::safeUnaryMinus<int>(_val,safeVal)) {
+      return false;
+    }
+    return (num._val % safeVal ==0);
+  }
+
 IntegerConstantType IntegerConstantType::operator/(const IntegerConstantType& num) const
 {
   CALL("IntegerConstantType::operator/");
