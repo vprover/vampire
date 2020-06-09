@@ -41,6 +41,7 @@
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/DistinctGroupExpansion.hpp"
+#include "Shell/UIHelper.hpp"
 
 #include "Indexing/TermSharing.hpp"
 
@@ -685,14 +686,30 @@ void TPTP::skipWhiteSpacesAndComments()
 
     case '%': // end-of-line comment
     resetChars();
-    for (;;) {
-      int c = getChar(0);
+    for (int n=0;;n++) {
+      int c = getChar(n);
       if (c == 0) {
+        resetChars();
+        getChar(0);
 	return;
       }
-      resetChars();
       if (c == '\n') {
         _lineNumber++;
+#if VDEBUG
+        // Only check for Status if in preamble before any units read
+        if(_units.list() == 0){
+          _chars[n]='\0';
+          vstring cline(_chars.content());
+          if(cline.find("Status")!=vstring::npos){
+             if(cline.find("Theorem")!=vstring::npos){ UIHelper::setExpecting(false); }
+             else if(cline.find("Unsatisfiable")!=vstring::npos){ UIHelper::setExpecting(false); }
+             else if(cline.find("ContradictoryAxioms")!=vstring::npos){ UIHelper::setExpecting(true); }
+             else if(cline.find("Satisfiable")!=vstring::npos){ UIHelper::setExpecting(true); }
+             else if(cline.find("CounterSatisfiable")!=vstring::npos){ UIHelper::setExpecting(true); }
+          }
+        }
+#endif
+        resetChars();
 	break;
       }
     }
