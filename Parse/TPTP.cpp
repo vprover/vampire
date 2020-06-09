@@ -701,11 +701,11 @@ void TPTP::skipWhiteSpacesAndComments()
           _chars[n]='\0';
           vstring cline(_chars.content());
           if(cline.find("Status")!=vstring::npos){
-             if(cline.find("Theorem")!=vstring::npos){ UIHelper::setExpecting(false); }
-             else if(cline.find("Unsatisfiable")!=vstring::npos){ UIHelper::setExpecting(false); }
-             else if(cline.find("ContradictoryAxioms")!=vstring::npos){ UIHelper::setExpecting(true); }
-             else if(cline.find("Satisfiable")!=vstring::npos){ UIHelper::setExpecting(true); }
-             else if(cline.find("CounterSatisfiable")!=vstring::npos){ UIHelper::setExpecting(true); }
+             if(cline.find("Theorem")!=vstring::npos){ UIHelper::setExpectingUnsat(); }
+             else if(cline.find("Unsatisfiable")!=vstring::npos){ UIHelper::setExpectingUnsat(); }
+             else if(cline.find("ContradictoryAxioms")!=vstring::npos){ UIHelper::setExpectingUnsat(); }
+             else if(cline.find("Satisfiable")!=vstring::npos){ UIHelper::setExpectingSat(); }
+             else if(cline.find("CounterSatisfiable")!=vstring::npos){ UIHelper::setExpectingSat(); }
           }
         }
 #endif
