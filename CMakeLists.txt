@@ -423,7 +423,7 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/InferenceEngine.cpp
     Inferences/Instantiation.cpp
     Inferences/InterpretedEvaluation.cpp
-    Kernel/num_traits.cpp
+    Kernel/NumTraits.cpp
     Inferences/GaussianVariableElimination.cpp
     Kernel/Rebalancing.cpp
     Kernel/Rebalancing/Inverters.cpp
@@ -454,7 +454,7 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/InferenceEngine.hpp
     Inferences/Instantiation.hpp
     Inferences/InterpretedEvaluation.hpp
-    Kernel/num_traits.cpp
+    Kernel/NumTraits.cpp
     Inferences/GaussianVariableElimination.hpp
     Kernel/Rebalancing.hpp
     Kernel/Rebalancing/Inverters.hpp
