@@ -140,26 +140,6 @@ Clause* InterpretedEvaluation::simplify(Clause* cl)
         DBG("     GREATER: ", Ordering::Result::GREATER)
         DBG("     EQUAL:   ", Ordering::Result::EQUAL)
         DBG("     INCOMPARABLE: ", Ordering::Result::INCOMPARABLE)
-
-        // using Num = num_traits<IntegerConstantType>;
-        //
-        //
-        // auto lhs = TermList(theory->representConstant(Num::ConstantType(-1)));
-        // auto rhs = TermList(Num::minus(TermList(theory->representConstant(Num::ConstantType(1)))));
-        // {
-        //   DBG("cmp: ", _ordering.compare( lhs, rhs));
-        // }
-        // auto x0 = TermList::var(0);
-        // auto lsum = TermList(Num::add(x0,lhs));
-        // auto rsum = TermList(Num::add(x0,rhs));
-        // DBG("cmp: ", _ordering.compare( lsum, rsum))
-        // auto tree = lit->functor();
-        // auto x5 = TermList::var(5);
-        // auto ltree = Literal::create2(tree, false, lhs, x5);
-        // auto rtree = Literal::create2(tree, false, rhs, x5);
-        // DBG("cmp: ", _ordering.compare( ltree, rtree))
-        // DBG("cmp: ", _ordering.compare( ltree, rtree))
-
         ASSERTION_VIOLATION
       }
 #endif

@@ -30,7 +30,7 @@
 #include "TermIterators.hpp"
 #include "Term.hpp"
 #include "Theory.hpp"
-#include "num_traits.hpp"
+#include "NumTraits.hpp"
 #include "Debug/Tracer.hpp"
 
 
@@ -218,7 +218,7 @@ template<class ConstantType>
 class FracLess { 
   template<class Inequality> friend class InequalityNormalizer;
 
-  using number = num_traits<ConstantType>;
+  using number = NumTraits<ConstantType>;
   inline static unsigned functor() { return number::lessF(); }
 
   static Literal* normalizedLit(bool polarity, TermList lhs, TermList rhs) {
@@ -239,7 +239,7 @@ class FracLess {
 class IntLess { 
   template<class Inequality> friend class InequalityNormalizer;
 
-  using number = num_traits<IntegerConstantType>;
+  using number = NumTraits<IntegerConstantType>;
   inline static unsigned functor() { return number::lessF(); }
 
   static Literal* normalizedLit(bool polarity, TermList lhs, TermList rhs) {
@@ -437,7 +437,7 @@ class InterpretedLiteralEvaluator::TypedEvaluator : public Evaluator
 {
 public:
   using Value = T;
-  using number = num_traits<Value>;
+  using number = NumTraits<Value>;
 
   TypedEvaluator() {}
 
@@ -467,7 +467,7 @@ public:
   {
     CALL("InterpretedLiteralEvaluator::tryEvaluateFunc");
     ASS(theory->isInterpretedFunction(trm));
-    const auto num = num_traits<Value>{};
+    const auto num = NumTraits<Value>{};
 
     _DEBUG( "try evaluate ", trm->toString() );
 

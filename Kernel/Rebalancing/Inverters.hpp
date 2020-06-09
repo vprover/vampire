@@ -6,7 +6,7 @@
 #include "Kernel/Rebalancing.hpp"
 #include <iostream>
 
-#include "Kernel/num_traits.hpp"
+#include "Kernel/NumTraits.hpp"
 
 namespace Kernel {
 namespace Rebalancing {

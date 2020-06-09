@@ -12,7 +12,7 @@ namespace Kernel {
  * are the theories of integers, rationals, and reals.
  *
  * For each ConstantType in {IntegerConstantType, RationalConstantType, RealConstantType},
- * there is a specialisation num_traits<ConstantType> which provides functions for building 
+ * there is a specialisation NumTraits<ConstantType> which provides functions for building 
  * terms and literals, accessing the functor/interpretation of some predicate or function. 
  *
  * There are associated constants for the related Sorts::DefaultSorts values, constexpr s 
@@ -23,37 +23,37 @@ namespace Kernel {
  * To access the functor of some symbol "sym", there is a function 
  * static unsigned symF();
  *
- * e.g.: num_traits<IntegerConstantType>::lessF()
- *       num_traits<IntegerConstantType>::addF()
+ * e.g.: NumTraits<IntegerConstantType>::lessF()
+ *       NumTraits<IntegerConstantType>::addF()
  *
  * =====
  *
  * To access the interpretation of some symbol "sym", there is a constant 
  * static Theory::Interpretation symI;
  *
- * e.g.: num_traits<IntegerConstantType>::lessI // == Theory::Interpretation INT_LESS;
- *       num_traits<IntegerConstantType>::addI  // == Theory::Interpretation INT_PLUS;
+ * e.g.: NumTraits<IntegerConstantType>::lessI // == Theory::Interpretation INT_LESS;
+ *       NumTraits<IntegerConstantType>::addI  // == Theory::Interpretation INT_PLUS;
  *
  * =====
  *
  * To build a term from some function symbol "sym", there is a function
  * static TermList static sym(TermList...);
  *
- * e.g.: num_traits<IntegerConstantType>::add(lhs, rhs) 
+ * e.g.: NumTraits<IntegerConstantType>::add(lhs, rhs) 
  *
  * =====
  *
  * To build a literal from some predicate symbol "sym", there is a function
  * static Literal* static sym(bool polarity, TermList...);
  *
- * e.g.: num_traits<IntegerConstantType>::less(true, lhs, rhs) 
+ * e.g.: NumTraits<IntegerConstantType>::less(true, lhs, rhs) 
  *
  * =====
  *
  * For a special constant cons there is 
  * constexpr static ConstantType consC;
  *
- * e.g.: num_traits<IntegerConstantType>::zeroC;
+ * e.g.: NumTraits<IntegerConstantType>::zeroC;
  *
  * =====
  *
@@ -61,7 +61,7 @@ namespace Kernel {
  *
  */
 template<class ConstantType>
-struct num_traits;
+struct NumTraits;
 
 #define IMPL_NUM_TRAITS__TERMLIST_ARGS_1 TermList t
 #define IMPL_NUM_TRAITS__TERMLIST_EXPR_1          t
@@ -114,7 +114,7 @@ struct num_traits;
     } \
 
 #define IMPL_NUM_TRAITS(CamelCase, LONG, SHORT)  \
-  template<> struct num_traits<CamelCase ## ConstantType> { \
+  template<> struct NumTraits<CamelCase ## ConstantType> { \
     using ConstantType = CamelCase ## ConstantType;                 \
     static const Sorts::DefaultSorts sort = Sorts::SRT_ ## LONG;    \
                                                                     \
@@ -132,8 +132,8 @@ struct num_traits;
   }; \
 
 #define __INSTANTIATE_NUM_TRAITS(CamelCase) \
-  constexpr CamelCase ## ConstantType num_traits<CamelCase ## ConstantType>::oneC;\
-  constexpr CamelCase ## ConstantType num_traits<CamelCase ## ConstantType>::zeroC;\
+  constexpr CamelCase ## ConstantType NumTraits<CamelCase ## ConstantType>::oneC;\
+  constexpr CamelCase ## ConstantType NumTraits<CamelCase ## ConstantType>::zeroC;\
 
 #define __INSTANTIATE_NUM_TRAITS_ALL \
   __INSTANTIATE_NUM_TRAITS(Rational) \

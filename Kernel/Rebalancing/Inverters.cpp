@@ -7,10 +7,10 @@ namespace Inverters {
 #define DEBUG(...) //DBG(__VA_ARGS__)
 
 #define CASE_INVERT(sort, fun, expr)                                           \
-  case num_traits<sort>::fun##I: {                                             \
+  case NumTraits<sort>::fun##I: {                                             \
     _Pragma("GCC diagnostic push") \
     _Pragma("GCC diagnostic ignored \"-Wunused-local-typedef\"") \
-    using number = num_traits<sort>;                                           \
+    using number = NumTraits<sort>;                                           \
     _Pragma("GCC diagnostic pop") \
     return expr;                                                               \
   }
@@ -53,10 +53,10 @@ bool NumberTheoryInverter::canInvertTop(const InversionContext &ctxt) {
 
 
 #define CASE_DO_INVERT(sort, fun, expr)                                        \
-  case num_traits<sort>::fun##I: {                                             \
+  case NumTraits<sort>::fun##I: {                                             \
     _Pragma("GCC diagnostic push") \
     _Pragma("GCC diagnostic ignored \"-Wunused-local-typedef\"") \
-    using number = num_traits<sort>;                                           \
+    using number = NumTraits<sort>;                                           \
     return expr;                                                               \
     _Pragma("GCC diagnostic pop") \
   }
@@ -98,7 +98,7 @@ TermList NumberTheoryInverter::invertTop(const InversionContext &ctxt) {
 
 bool tryInvertMulInt(const InversionContext &ctxt, TermList &out) {
   CALL("tryInvertMulInt(..)")
-  using number = num_traits<IntegerConstantType>;
+  using number = NumTraits<IntegerConstantType>;
 
   auto a_ = ctxt.topTerm()[1 - ctxt.topIdx()];
   IntegerConstantType a;
