@@ -43,7 +43,7 @@
 #ifdef __clang__
 #  define __IGNORE_WEXCEPTIONS(...) __PUSH_DIAGNOSTICS("GCC diagnostic ignored \"-Wexceptions\"", __VA_ARGS__)
 #else // __clang__
-#  define __IGNORE_WEXCEPTIONS(...) 
+#  define __IGNORE_WEXCEPTIONS(...)  __VA_ARGS__
 #endif // __clang__
 
 //#undef CONCAT
