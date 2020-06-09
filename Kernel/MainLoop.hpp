@@ -114,7 +114,6 @@ public:
 
   static bool isRefutation(Clause* cl);
 protected:
-  static ImmediateSimplificationEngine* createISE(Problem& prb, const Options& opt);
 
   /**
    * This function is called after all initialization of the main loop

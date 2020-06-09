@@ -268,12 +268,12 @@ void CLTBMode::loadIncludes()
       parser.parse();
       UnitList* funits = parser.units();
       if (parser.containsConjecture()) {
-	USER_ERROR("Axiom file " + fname + " contains a conjecture.");
+        USER_ERROR("Axiom file " + fname + " contains a conjecture.");
       }
 
       UnitList::Iterator fuit(funits);
       while (fuit.hasNext()) {
-	fuit.next()->markIncluded();
+        fuit.next()->inference().markIncluded();
       }
       theoryAxioms=UnitList::concat(funits,theoryAxioms);
     }
@@ -327,7 +327,7 @@ void CLTBMode::learnFromSolutionFile(vstring& solnFileName)
     UnitList::DelIterator it(solnUnits);
     while (it.hasNext()) {
       Unit* unit = it.next();
-      if (unit->inputType()==Unit::AXIOM){
+      if (unit->inputType()==UnitInputType::AXIOM){
         if (sources->find(unit)){
           if (sources->get(unit)->isFile()){
             vstring name = static_cast<Parse::TPTP::FileSourceRecord*>(sources->get(unit))->nameInFile;
@@ -684,7 +684,6 @@ void CLTBProblem::searchForProof(int terminationTime,int timeLimit,const Categor
 
   Stack<unsigned> cutoffs;
   if (env.options->ltbLearning() != Options::LTBLearning::OFF){
-    env.clausePriorities = new DHMap<const Unit*,unsigned>();
 
     if (parent->_biasedLearning){
       unsigned cutoff = parent->_learnedFormulasMaxCount/2;
@@ -693,8 +692,6 @@ void CLTBProblem::searchForProof(int terminationTime,int timeLimit,const Categor
         //cout << "create cutoff " << cutoff << endl;
         cutoff /= 2;
       }
-
-      env.maxClausePriority = cutoffs.length();
     }
   }
 
@@ -721,36 +718,6 @@ void CLTBProblem::searchForProof(int terminationTime,int timeLimit,const Categor
     UIHelper::setConjecturePresence(parser.containsConjecture());
     prb.addUnits(probUnits);
 
-    // Now we iterate over all units in the problem and populate
-    // clausePriorities from learnedFormulas
-    if (env.options->ltbLearning() != Options::LTBLearning::OFF){
-      unsigned learnedAdded = 0;
-      UnitList::Iterator uit(prb.units());
-      while (uit.hasNext()){
-        Unit* u = uit.next();
-        if (u->inputType()!=Unit::AXIOM) continue;
-        vstring name;
-        if (Parse::TPTP::findAxiomName(u,name)){
-          if (parent->_learnedFormulas.contains(name)){
-            learnedAdded++;
-            unsigned priority = 1;
-            if (parent->_biasedLearning){
-              ASS(parent->_learnedFormulasCount.find(name));
-              unsigned count = parent->_learnedFormulasCount.get(name);
-              for(;;priority++){
-                if (cutoffs[priority-1] <= count) break;
-              }
-            }
-            env.clausePriorities->insert(u,priority);
-            //cout << "insert " << name << " with " << priority << endl;
-          }
-        }
-        else{ 
-          ASSERTION_VIOLATION; 
-        }
-      }
-      cout << "Marked " << learnedAdded << " as learned formulas" << endl;
-    }
     env.options->setOutputAxiomNames(outputAxiomValue);
   }
 

@@ -61,15 +61,38 @@
           );\
     }; \
 
-#define __CLSR_FUN_UNINTERPRETED(f, sort) \
-  auto f = [](TermWrapper args) -> TermWrapper  {  \
-    unsigned f = env.signature->addFunction(#f,1);  \
+#define __REPEAT_1(sort) sort
+#define __REPEAT_2(sort) sort, __REPEAT_1(sort)
+#define __REPEAT_3(sort) sort, __REPEAT_2(sort)
+#define __REPEAT_4(sort) sort, __REPEAT_3(sort)
+#define __REPEAT_5(sort) sort, __REPEAT_4(sort)
+#define __REPEAT_6(sort) sort, __REPEAT_5(sort)
+#define __REPEAT_7(sort) sort, __REPEAT_6(sort)
+#define __REPEAT_8(sort) sort, __REPEAT_7(sort)
+#define __REPEAT_9(sort) sort, __REPEAT_8(sort)
+#define __REPEAT_10(sort) sort, __REPEAT_9(sort)
+#define __REPEAT(arity, sort) __REPEAT_ ## arity(sort)
+
+#define __CLSR_FUN_UNINTERPRETED(arity, f, sort) \
+  auto f = [&](__ARGS_DECL(TermWrapper, arity)) -> TermWrapper  {  \
+    unsigned f = env.signature->addFunction(#f, arity);  \
     static bool set = false;  \
     if (!set) {  \
-      env.signature->getFunction(f)->setType(OperatorType::getFunctionType({ sort }, sort));  \
+      env.signature->getFunction(f)->setType(OperatorType::getFunctionType({ __REPEAT(arity, sort) }, sort));  \
       set = true;  \
     }  \
-    return TermList(Term::create1(f, args));  \
+    return TermList(Term::create(f, {__ARGS_EXPR(TermWrapper, arity)}));  \
+  };  \
+
+#define __CLSR_PRED_UNINTERPRETED(arity, p, sort) \
+  auto p = [&](__ARGS_DECL(TermWrapper, arity)) -> Literal&  {  \
+    unsigned p = env.signature->addPredicate(#p, arity);  \
+    static bool set = false;  \
+    if (!set) {  \
+      env.signature->getPredicate(p)->setType(OperatorType::getPredicateType({ __REPEAT(arity, sort) }));  \
+      set = true;  \
+    }  \
+    return *Literal::create(p, true, {__ARGS_EXPR(TermWrapper, arity)}); \
   };  \
 
 #define __CLSR_PRED_UNINTERPRETED(p, sort) \
@@ -123,7 +146,6 @@
  * mul   ... interpreted multiplication
  * add   ... interpreted addition
  * minus ... interpreted unary minus
- * f     ... uninterpreted function with arity 1
  *
  * Closures for literals:
  * gt   ... interpreted greater relation
@@ -176,6 +198,7 @@
     auto x = TermWrapper(TermList::var(0));\
     auto y = TermWrapper(TermList::var(1));\
     auto z = TermWrapper(TermList::var(2));\
+    auto __sort = __TO_SORT_ ## sort; \
     __CLSR_CONS_UNINTERPRETED(a, __TO_SORT_ ## sort) \
     __CLSR_CONS_UNINTERPRETED(b, __TO_SORT_ ## sort) \
     __CLSR_CONS_UNINTERPRETED(c, __TO_SORT_ ## sort) \
@@ -183,16 +206,18 @@
     __CLSR_FUN_INTERPRETED(2, mul, sort, _MULTIPLY) \
     __CLSR_FUN_INTERPRETED(2, add, sort, _PLUS) \
     __CLSR_FUN_INTERPRETED(1, minus, sort, _UNARY_MINUS) \
-    __CLSR_FUN_UNINTERPRETED(f, __TO_SORT_ ## sort) \
-    __CLSR_PRED_UNINTERPRETED(p, __TO_SORT_ ## sort) \
-    __CLSR_PRED_UNINTERPRETED(q, __TO_SORT_ ## sort) \
-    __CLSR_PRED_UNINTERPRETED(r, __TO_SORT_ ## sort) \
     __FROM_FRAC_ ## sort \
     __CLSR_RELATION(gt, Theory::Interpretation::sort ## _GREATER)\
     __CLSR_RELATION(geq, Theory::Interpretation::sort ## _GREATER_EQUAL)\
     __CLSR_RELATION(lt, Theory::Interpretation::sort ## _LESS)\
     __CLSR_RELATION(leq, Theory::Interpretation::sort ## _LESS_EQUAL)\
   _Pragma("GCC diagnostic pop") \
+
+#define THEORY_SYNTAX_SUGAR_FUN(f, arity) \
+    __CLSR_FUN_UNINTERPRETED(arity, f, __sort)
+
+#define THEORY_SYNTAX_SUGAR_PRED(rel, arity) \
+    __CLSR_PRED_UNINTERPRETED(arity, rel, __sort)
 
 #define __IF_FRAC(sort, ...) __IF_FRAC_##sort(__VA_ARGS__)
 #define __IF_FRAC_INT(...)

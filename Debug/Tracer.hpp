@@ -49,23 +49,6 @@ enum ControlPointKind {
   CP_MID
 }; // enum ControlPointKind
 
-
-template<class... As>
-struct _printDbg {
-  void operator()(const As&... msg);
-};
-
-template<> struct _printDbg<>{
-  void operator()() { }
-};
-
-template<class A, class... As> struct _printDbg<A, As...>{
-  void operator()(const A& a, const As&... as) {
-    cout << a;
-    _printDbg<As...>{}(as...);
-  }
-};
-
 class Tracer {
  public:
   explicit Tracer (const char* fun);
@@ -104,24 +87,47 @@ class Tracer {
 public:
   /* prints a message with indent in the of the same size as the current _depth */
   template<class... A>
-  static void printDbg(const A&... msg)
-  {
-    for (int i = 0; i< _depth; i++) {
-      cout << "\t";
-    }
-    _printDbg<A...>{}(msg...);
+  static void printDbg(const A&... msg);
+};
+
+template<class... As>
+struct _printDbg {
+  void operator()(const As&... msg);
+};
+
+template<> struct _printDbg<>{
+  void operator()() { }
+};
+
+template<class A, class... As> struct _printDbg<A, As...>{
+  void operator()(const A& a, const As&... as) {
+    cout << a;
+    _printDbg<As...>{}(as...);
   }
 };
+
+template<class... A> void Tracer::printDbg(const A&... msg)
+{
+  for (int i = 0; i< _depth; i++) {
+    cout << "  ";
+  }
+  // cout << _lastControlPoint << ": ";
+  cout << _current->_fun << ": ";
+
+  _printDbg<A...>{}(msg...);
+}
+
 
 } // namespace Debug
 
 #  define AUX_CALL_(SEED,Fun) Debug::Tracer _tmp_##SEED##_(Fun);
 #  define AUX_CALL(SEED,Fun) AUX_CALL_(SEED,Fun)
 #  define CALL(Fun) AUX_CALL(__LINE__,Fun)
-#  define DBG(...) \
+#  define DBG(...) {\
   std::cout << "[ debug ] " << __FILE__ <<  "@" << __LINE__ << ":";\
   Debug::Tracer::printDbg(__VA_ARGS__); \
-  std::cout << std::endl;
+  std::cout << std::endl; \
+  }
 #  define CALLC(Fun,check) if (check){ AUX_CALL(__LINE__,Fun) }
 #  define CONTROL(description) Debug::Tracer::controlPoint(description)
 #  define AFTER(number,command) \
@@ -132,6 +138,7 @@ public:
               { command };
 
 #else // ! VDEBUG
+#  define DBG(...) {}
 #  define CALL(Fun) 
 #  define CALLC(Fun,check) 
 #  define CONTROL(description)

@@ -168,6 +168,10 @@ typedef Stack<ConstraintRCPtr> ConstraintRCStack;
 class TermList;
 typedef VirtualIterator<TermList> TermIterator;
 typedef Stack<TermList> TermStack;
+
+typedef std::pair<std::pair<TermList,unsigned>,std::pair<TermList,unsigned>> UnificationConstraint;
+typedef Lib::SmartPtr<Stack<UnificationConstraint>> UnificationConstraintStackSP;
+
 class Term;
 class Literal;
 typedef List<Literal*> LiteralList;
@@ -320,7 +324,6 @@ typedef Lib::SmartPtr<PassiveClauseContainer> PassiveClauseContainerSP;
 
 class ActiveClauseContainer;
 
-class Limits;
 class Splitter;
 class ConsequenceFinder;
 class LabelFinder;

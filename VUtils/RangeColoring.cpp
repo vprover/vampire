@@ -142,7 +142,7 @@ void TermColoring::applyToDerivation(UnitStack& inp, UnitStack& out)
       newInf = new InferenceMany(origInf->rule(), newPrems);
     }
     else {
-      newInf = new Inference(origInf->rule());
+      newInf = new Inference0(origInf->rule());
     }
 
     FormulaUnit* newUnit = new FormulaUnit(newForm, newInf, fu->inputType());

@@ -275,10 +275,6 @@ SineSelector::SineSelector(const Options& opt)
 {
   CALL("SineSelector::SineSelector/0");
 
-  if(opt.sineSelection()==Options::SineSelection::PRIORITY) {
-    env.clausePriorities = new DHMap<const Unit*,unsigned>();
-  }
-
   init();
 }
 
@@ -312,12 +308,9 @@ void SineSelector::updateDefRelation(Unit* u)
   SymIdIterator sit=_symExtr.extractSymIds(u);
 
   if (!sit.hasNext()) {
-    if(env.clausePriorities){
-      env.clausePriorities->insert(u,1);
-    }
-    if(env.clauseSineLevels){
-      env.clauseSineLevels->insert(u,1);
-      // cout << "set level for a non-symboler " << u->toString() << " as " << "(1)" << endl;
+    if(_justForSineLevels){
+      u->inference().setSineLevel(0);
+      //cout << "set level for a non-symboler " << u->toString() << " as " << "(0)" << endl;
     }
     _unitsWithoutSymbols.push(u);
     return;
@@ -416,23 +409,19 @@ bool SineSelector::perform(UnitList*& units)
   while (uit2.hasNext()) {
     numberUnitsLeftOut++;
     Unit* u=uit2.next();
-    bool performSelection= _onIncluded ? u->included() : ((u->inputType()==Unit::AXIOM)
-                            || (env.options->guessTheGoal() != Options::GoalGuess::OFF && u->inputType()==Unit::ASSUMPTION));
+    bool performSelection= _onIncluded ? u->included() : ((u->inputType()==UnitInputType::AXIOM)
+                            || (env.options->guessTheGoal() != Options::GoalGuess::OFF && u->inputType()==UnitInputType::ASSUMPTION));
     if (performSelection) { // register the unit for later
       updateDefRelation(u);
     }
-    else { // goal units are immediately taken
+    else { // goal units are immediately taken (well, non-axiom, to by more precise. Includes ASSUMPTION, which cl->isGoal() does not take into account)
       selected.insert(u);
       selectedStack.push(u);
       newlySelected.push_back(u);
 
-      if(env.clausePriorities && !env.clausePriorities->find(u)){
-        env.clausePriorities->insert(u,1);
-        //cout << "set priority for " << u->toString() << " as " << (1) << endl;
-      }
-      if(env.clauseSineLevels && !env.clauseSineLevels->find(u)) {
-        env.clauseSineLevels->insert(u,1);
-        // cout << "set level for " << u->toString() << " as " << "(1)" << endl;
+      if(_justForSineLevels) {
+        u->inference().setSineLevel(0);
+        //cout << "set level for " << u->toString() << " as " << "(0)" << endl;
       }
     }
   }
@@ -454,7 +443,11 @@ bool SineSelector::perform(UnitList*& units)
 	break;
       }
       ASS(!_depthLimit || depth<_depthLimit);
-      env.maxClausePriority++;
+      if(_justForSineLevels){
+        if (env.maxSineLevel < std::numeric_limits<decltype(env.maxSineLevel)>::max()) { // saturate at 255 or something
+          env.maxSineLevel++;
+        }
+      }
       // cout << "Time to inc" << endl;
 
       if (newlySelected.isNonEmpty()) {
@@ -473,7 +466,7 @@ bool SineSelector::perform(UnitList*& units)
         unsigned functor;
         SineSymbolExtractor::decodeSymId(sym,pred,functor);
         if (pred && !env.predicateSineLevels->find(functor)) {
-          env.predicateSineLevels->insert(functor,env.maxClausePriority);
+          env.predicateSineLevels->insert(functor,env.maxSineLevel);
           // cout << "set level of predicate " << functor << " i.e. " << env.signature->predicateName(functor) << " to " << env.maxClausePriority << endl;
         }
       }
@@ -488,14 +481,9 @@ bool SineSelector::perform(UnitList*& units)
         selectedStack.push(du);
         newlySelected.push_back(du);
 
-        // If in LTB mode we may already have added du with a priority
-        if(env.clausePriorities && !env.clausePriorities->find(du)){
-          env.clausePriorities->insert(du,env.maxClausePriority);
-          //cout << "set priority for " << du->toString() << " as " << env.maxClausePriority << endl;
-        }
-        if(env.clauseSineLevels && !env.clauseSineLevels->find(du)){
-          env.clauseSineLevels->insert(du,env.maxClausePriority+1);
-          // cout << "set level for " << du->toString() << " in iteration as " << env.maxClausePriority+1 << endl;
+        if(_justForSineLevels){
+          du->inference().setSineLevel(env.maxSineLevel);
+          //cout << "set level for " << du->toString() << " in iteration as " << env.maxClausePriority << endl;
         }
       }
       //all defining units for the symbol sym were selected,
@@ -506,14 +494,7 @@ bool SineSelector::perform(UnitList*& units)
   }
 
   if (_justForSineLevels) {
-    UnitList::Iterator uit(units);
-    while (uit.hasNext()) {
-      Unit* u=uit.next();
-      if(env.clauseSineLevels && !env.clauseSineLevels->find(u)) {
-        env.clauseSineLevels->insert(u,UINT_MAX);
-      }
-    }
-
+    // units we did not touch will by default keep their sineLevel == UINT_MAX
     return false;
   }
 
@@ -528,29 +509,6 @@ bool SineSelector::perform(UnitList*& units)
   while (selectedStack.isNonEmpty()) {
     UnitList::push(selectedStack.pop(), units);
   }
-
-
-#if VDEBUG
-if(env.clausePriorities){
-  UnitList::Iterator selIt(units);
-  bool allSelectedProcessed = true;
-  //bool maxSeen = false;
-  while (selIt.hasNext()) {
-    Unit* u = selIt.next();
-    if(!env.clausePriorities->find(u)){
-      //cout << "Missing " << u->toString() << endl;
-      allSelectedProcessed=false;
-    }
-    else{
-      //if(env.maxClausePriority == env.clausePriorities->get(u)){
-      //  maxSeen=true;
-      //}
-    } 
-  }
-  ASS(allSelectedProcessed);
-  //ASS(maxSeen);
-}
-#endif
 
 #if SINE_PRINT_SELECTED
   UnitList::Iterator selIt(units);
@@ -603,13 +561,6 @@ void SineTheorySelector::updateDefRelation(Unit* u)
   SymIdIterator sit0=_symExtr.extractSymIds(u);
 
   if (!sit0.hasNext()) {
-
-    if(env.clausePriorities){
-      env.clausePriorities->insert(u,1);
-    }
-    if(env.clauseSineLevels){
-      env.clauseSineLevels->insert(u,1);
-    }
 
     _unitsWithoutSymbols.push(u);
     return;
@@ -712,8 +663,8 @@ void SineTheorySelector::perform(UnitList*& units)
   UnitList::Iterator uit2(units);
   while (uit2.hasNext()) {
     Unit* u=uit2.next();
-    bool performSelection= sineOnIncluded ? u->included() : ((u->inputType()==Unit::AXIOM)
-                   || (env.options->guessTheGoal() != Options::GoalGuess::OFF && u->inputType()==Unit::ASSUMPTION));
+    bool performSelection= sineOnIncluded ? u->included() : ((u->inputType()==UnitInputType::AXIOM)
+                   || (env.options->guessTheGoal() != Options::GoalGuess::OFF && u->inputType()==UnitInputType::ASSUMPTION));
 
     if (performSelection) {
       updateDefRelation(u);

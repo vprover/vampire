@@ -42,6 +42,10 @@ void test_rebalance(Literal& lit, initializer_list<expected_t> expected);
 #define TEST_REBALANCE(name, type, equality, __list) \
     TEST_FUN(name ## _ ## type) { \
       THEORY_SYNTAX_SUGAR(type) \
+      _Pragma("GCC diagnostic push") \
+      _Pragma("GCC diagnostic ignored \"-Wunused\"") \
+        THEORY_SYNTAX_SUGAR_FUN(f, 1) \
+      _Pragma("GCC diagnostic pop") \
       test_rebalance<ToConstantType(type)>((equality), __expand ## __list); \
     } \
 
@@ -66,11 +70,12 @@ TEST_REBALANCE_SPLIT(constants_1
     )
     , __int( ))
 
-TEST_REBALANCE_ALL(constants_2,
+TEST_REBALANCE_SPLIT(constants_2,
     eq(mul(2, x), 4),
-    __list(
+    __frac(
         bal(x, 2)
-    ))
+    ),
+    __int())
 
 TEST_REBALANCE_ALL(uninterpreted_1
     , eq(add(2, x), a)
@@ -85,12 +90,14 @@ TEST_REBALANCE_SPLIT(uninterpreted_2
     )
     , __int( ))
 
-TEST_REBALANCE_ALL(multi_var_1
+TEST_REBALANCE_SPLIT(multi_var_1
     , eq(mul(x, 2), mul(y, 2))
-    , __list(
+    , __frac(
         bal(x, y)
       , bal(y, x)
-    ))
+    )
+    , __int( )
+    )
 
 TEST_REBALANCE_SPLIT(multi_var_2
     , eq(mul(x, 4), mul(y, 2))
@@ -98,8 +105,8 @@ TEST_REBALANCE_SPLIT(multi_var_2
         bal(y, mul(2,         x))
       , bal(x, mul(frac(1,2), y))
     )
-    , __frac( 
-        bal(y, mul(2, x))
+    , __int( 
+        // bal(y, mul(2, x))
     )
     )
 
@@ -111,7 +118,7 @@ TEST_REBALANCE_SPLIT(multi_var_3
       , bal(x, mul(frac(1,3), y))
     )
     , __frac( 
-        bal(y, mul(3, x))
+        // bal(y, mul(3, x))
     )
     )
 
@@ -139,7 +146,7 @@ TEST_REBALANCE_ALL(rebalance_multiple_vars
     , eq(add(x, minus(y)), f(y))
     , __list(
         bal(x, add(f(y), y))
-      , bal(y, add(minus(f(y)), x))
+      , bal(y, minus(add(f(y), minus(x))))
     ))
 
 TEST_REBALANCE_SPLIT(div_zero_1
@@ -172,18 +179,28 @@ TEST_REBALANCE_SPLIT(div_zero_5
     , __frac()
     )
 
-TEST_REBALANCE_ALL(div_zero_6
+TEST_REBALANCE_SPLIT(div_zero_6
     , eq(mul(2, x), 0)
-    , __list( 
+    , __frac( 
           bal(x, 0)
       )
+    , __int()
     )
 
-  TEST_REBALANCE_ALL(bug_1
-      , neq(f(mul(16, z)), y)
-      , __list(
-        bal(y, f(mul(16, z)))
-      ))
+TEST_REBALANCE_ALL(bug_1
+    , neq(f(mul(16, z)), y)
+    , __list(
+      bal(y, f(mul(16, z)))
+    ))
+
+
+TEST_REBALANCE_ALL(bug_2
+    , neq(add(x,mul(-1,x)), y)
+    , __list(
+        bal(y, add(x,mul(-1,x)))
+      , bal(x, add(y, minus(mul(-1,x))))
+      , bal(x, mul(-1, add(y, minus(x))))
+    ))
 
 std::ostream& operator<<(std::ostream& out, initializer_list<expected_t> expected) {
   for (auto x : expected ) {

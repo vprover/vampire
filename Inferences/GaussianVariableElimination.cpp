@@ -1,4 +1,4 @@
-#include "RebalancingElimination.hpp"
+#include "GaussianVariableElimination.hpp"
 #include "Kernel/Rebalancing.hpp"
 #include "Kernel/Rebalancing/Inverters.hpp"
 #include "Kernel/Clause.hpp"
@@ -6,16 +6,15 @@
 #include "Kernel/InterpretedLiteralEvaluator.hpp"
 #include "Inferences/InterpretedEvaluation.hpp"
 
-#define DEBUG(...) // DBG(__VA_ARGS__)
+#define DEBUG(...)  //DBG(__VA_ARGS__)
 
 namespace Inferences {
   using Balancer = Kernel::Rebalancing::Balancer<Kernel::Rebalancing::Inverters::NumberTheoryInverter>;
 
-Clause* RebalancingElimination::simplify(Clause* in) 
+Clause* GaussianVariableElimination::simplify(Clause* in) 
 {
-  CALL("RebalancingElimination::simplify")
+  CALL("GaussianVariableElimination::simplify")
   ASS(in)
-  Clause* out = in;
   
   auto performStep = [&](Clause& cl) -> Clause& {
 
@@ -27,6 +26,7 @@ Clause* RebalancingElimination::simplify(Clause* in)
           /* found a rebalancing: lhs = rhs[lhs, ...] */
           auto lhs = b.lhs();
           auto rhs = b.buildRhs();
+          //TODO simplify here
           ASS_REP(lhs.isVar(), lhs);
 
           if (!rhs.containsSubterm(lhs)) {
@@ -42,27 +42,27 @@ Clause* RebalancingElimination::simplify(Clause* in)
 
   };
 
-  while(true) {
-    Clause* step = &performStep(*out);
-    if (step == out) 
-      break;
-    else 
-      out = step;
-  }
+  return &performStep(*in);
+  // Clause* out = in;
+  // while(true) {
+  //   Clause* step = &performStep(*out);
+  //   if (step == out) 
+  //     break;
+  //   else 
+  //     out = step;
+  // }
 
-
-  // static InterpretedEvaluation ev = InterpretedEvaluation();
-  // return ev.simplify(out);
-  return out;
+  // return out;
 }
 
-Clause* RebalancingElimination::rewrite(Clause& cl, TermList find, TermList replace, unsigned skipLiteral) const 
+Clause* GaussianVariableElimination::rewrite(Clause& cl, TermList find, TermList replace, unsigned skipLiteral) const 
 {
-  CALL("RebalancingElimination::rewrite")
-  Inference& inf = *new Inference1(Kernel::Inference::Rule::REBALANCING_ELIMINIATION, &cl);
+  CALL("GaussianVariableElimination::rewrite");
+  // Inference& inf = *new Inference1(Kernel::InferenceRule::GAUSSIAN_VARIABLE_ELIMINIATION, &cl);
+  Inference inf(SimplifyingInference1(Kernel::InferenceRule::GAUSSIAN_VARIABLE_ELIMINIATION, &cl));
 
   auto sz = cl.size() - 1;
-  Clause& out = *new(sz) Clause(sz, cl.inputType(), &inf); 
+  Clause& out = *new(sz) Clause(sz, inf); 
   for (int i = 0; i < skipLiteral; i++) {
     out[i] = EqHelper::replace(cl[i], find, replace);
   }
@@ -71,10 +71,6 @@ Clause* RebalancingElimination::rewrite(Clause& cl, TermList find, TermList repl
     out[i] = EqHelper::replace(cl[i+1], find, replace);
   }
 
-  // for (int i = 0; i < sz; i++) {
-  //   Lit
-  // }
-  
   return &out;
 }
 

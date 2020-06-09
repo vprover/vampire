@@ -48,6 +48,7 @@ using namespace Indexing;
 
 void ClauseContainer::addClauses(ClauseIterator cit)
 {
+  CALL("ClauseContainer::addClauses");
   while (cit.hasNext()) {
     add(cit.next());
   }
@@ -58,6 +59,7 @@ void ClauseContainer::addClauses(ClauseIterator cit)
 
 void RandomAccessClauseContainer::removeClauses(ClauseIterator cit)
 {
+  CALL("RandomAccessClauseContainer::removeClauses");
   while (cit.hasNext()) {
     remove(cit.next());
   }
@@ -75,8 +77,8 @@ void RandomAccessClauseContainer::attach(SaturationAlgorithm* salg)
   ASS(!_salg);
 
   _salg=salg;
-  _limitChangeSData=_salg->getLimits()->changedEvent.subscribe(
-      this, &PassiveClauseContainer::onLimitsUpdated);
+  _limitChangeSData=_salg->getPassiveClauseContainer()->changedEvent.subscribe(
+      this, &RandomAccessClauseContainer::onLimitsUpdated);
 }
 /**
  * Detach from the SaturationAlgorithm object.
@@ -124,7 +126,46 @@ Clause* UnprocessedClauseContainer::pop()
   return res;
 }
 
+void PassiveClauseContainer::updateLimits(long long estReachableCnt)
+{
+  CALL("PassiveClauseContainer::updateLimits");
+  ASS_GE(estReachableCnt,0);
 
+  bool atLeastOneLimitTightened;
+
+  // optimization: if the estimated number of clause-selections is higher than the number of clauses in passive,
+  // we already conclude that we will select all clauses, so we set the limits accordingly.
+  if (estReachableCnt > static_cast<long long>(sizeEstimate())) {
+    atLeastOneLimitTightened = setLimitsToMax();
+    if (atLeastOneLimitTightened) {
+      onLimitsUpdated();
+    }
+    return;
+  }
+  // otherwise we run the simulation and set the limits accordingly
+  else
+  {
+    Clause::requestAux();
+
+    simulationInit();
+
+    long long remains=estReachableCnt;
+    while (simulationHasNext() && remains > 0)
+    {
+      simulationPopSelected();
+      remains--;
+    }
+
+    atLeastOneLimitTightened = setLimitsFromSimulation();
+
+    Clause::releaseAux();
+  }
+
+  if (atLeastOneLimitTightened) {
+    // trigger a change event, in order to notify both passive and active clause-containers
+    changedEvent.fire();
+  }
+}
 
 /////////////////   ActiveClauseContainer   //////////////////////
 
@@ -146,33 +187,27 @@ void ActiveClauseContainer::add(Clause* c)
  */
 void ActiveClauseContainer::remove(Clause* c)
 {
+  CALL("ActiveClauseContainer::remove");
   ASS(c->store()==Clause::ACTIVE);
 
   _size--;
   removedEvent.fire(c);
 } // Active::ClauseContainer::remove
 
-void ActiveClauseContainer::onLimitsUpdated(LimitsChangeType change)
+void ActiveClauseContainer::onLimitsUpdated()
 {
   CALL("ActiveClauseContainer::onLimitsUpdated");
 
-  if (change==LIMITS_LOOSENED) {
-    return;
-  }
   LiteralIndexingStructure* gis=getSaturationAlgorithm()->getIndexManager()
       ->getGeneratingLiteralIndexingStructure();
   if (!gis) {
     return;
   }
-  Limits* limits=getSaturationAlgorithm()->getLimits();
-
+  auto limits=getSaturationAlgorithm()->getPassiveClauseContainer();
   ASS(limits);
   if (!limits->ageLimited() || !limits->weightLimited()) {
     return;
   }
-
-  unsigned ageLimit=limits->ageLimit();
-  unsigned weightLimit=limits->weightLimit();
 
   static DHSet<Clause*> checked;
   static Stack<Clause*> toRemove(64);
@@ -183,33 +218,13 @@ void ActiveClauseContainer::onLimitsUpdated(LimitsChangeType change)
   while (rit.hasNext()) {
     Clause* cl=rit.next().clause;
     ASS(cl);
-    if (cl->age()<ageLimit || checked.contains(cl)) {
+    if (checked.contains(cl)) {
       continue;
     }
     checked.insert(cl);
 
-    bool shouldRemove;
-    if (cl->age()>ageLimit) {
-      shouldRemove=cl->getEffectiveWeight(_opt)>weightLimit;
-    }
-    else {
-      unsigned selCnt=cl->numSelected();
-      unsigned maxSelWeight=0;
-      for(unsigned i=0;i<selCnt;i++) {
-        maxSelWeight=max((*cl)[i]->weight(),maxSelWeight);
-      }
-      // This weight() value now includes splitWeights (if the appropriate option is set, 
-      //                                                which it didn't before)
-      // Makes sense as weight() is used like this elsewhere to reflect whether
-      // the clause is used.
-      // Note that the idea behind this branch seems to be that we want to check if
-      //  the clause is still too heavy without the heaviest selected literal.
-      //  Increasing weight() will make this more likely, increasing the liklihood of
-      //  highly dependent clauses being discarded (in LRS)
-      shouldRemove=cl->weight()-(int)maxSelWeight>=weightLimit;
-    }
-
-    if (shouldRemove) {
+    if (!limits->childrenPotentiallyFulfilLimits(cl, cl->numSelected()))
+    {
       ASS(cl->store()==Clause::ACTIVE);
       toRemove.push(cl);
     }

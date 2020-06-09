@@ -262,28 +262,44 @@ void check_eval(Literal& orig, const Literal& expected) {
   CHECK_EQ(*result.template unwrap<0>(), expected, "result not evaluated correctly", orig.toString())
 }
 
+#define ADDITIONAL_FUNCTIONS \
+      _Pragma("GCC diagnostic push") \
+      _Pragma("GCC diagnostic ignored \"-Wunused\"") \
+        THEORY_SYNTAX_SUGAR_FUN(f, 1) \
+      _Pragma("GCC diagnostic pop") \
+
 /** Tests for evalutions that should only be successful for reals/rationals and not for integers. */
 #define FRACTIONAL_TEST(name, formula, expected) \
+    TEST_FUN(name ## _ ## INT) { \
+      THEORY_SYNTAX_SUGAR(INT); \
+      ADDITIONAL_FUNCTIONS \
+      check_no_succ(( formula )); \
+    }\
     TEST_FUN(name ## _ ## REAL) { \
       THEORY_SYNTAX_SUGAR(REAL); \
+      ADDITIONAL_FUNCTIONS \
       check_eval(( formula ), ( expected )); \
     }\
     TEST_FUN(name ## _ ## RAT) { \
       THEORY_SYNTAX_SUGAR(RAT); \
+      ADDITIONAL_FUNCTIONS \
       check_eval(( formula ), ( expected )); \
     } \
 
 #define ALL_NUMBERS_TEST(name, formula, expected) \
     TEST_FUN(name ## _ ## INT) { \
       THEORY_SYNTAX_SUGAR(INT); \
+      ADDITIONAL_FUNCTIONS \
       check_eval(( formula ), ( expected )); \
     } \
     TEST_FUN(name ## _ ## REAL) { \
       THEORY_SYNTAX_SUGAR(REAL); \
+      ADDITIONAL_FUNCTIONS \
       check_eval(( formula ), ( expected )); \
     } \
     TEST_FUN(name ## _ ## RAT) { \
       THEORY_SYNTAX_SUGAR(RAT); \
+      ADDITIONAL_FUNCTIONS \
       check_eval(( formula ), ( expected )); \
     } \
 

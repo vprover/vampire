@@ -42,20 +42,50 @@ public:
   CLASS_NAME(ManCSPassiveClauseContainer);
   USE_ALLOCATOR(ManCSPassiveClauseContainer);
 
-  ManCSPassiveClauseContainer(const Options& opt) {}
+  ManCSPassiveClauseContainer(bool isOutermost, const Shell::Options& opt) : PassiveClauseContainer(isOutermost, opt) {}
   virtual ~ManCSPassiveClauseContainer(){}
   
-  virtual unsigned size() const;
-  bool isEmpty() const;
-  ClauseIterator iterator();
-
-  void add(Clause* cl);
-  void remove(Clause* cl);
-
-  Clause* popSelected();
+  unsigned sizeEstimate() const override;
+  bool isEmpty() const override;
+  void add(Clause* cl) override;
+  void remove(Clause* cl) override;
+  Clause* popSelected() override;
   
 private:
   std::vector<Clause*> clauses;
+
+  /*
+   * LRS specific methods for computation of Limits
+   */
+public:
+  void simulationInit() override {}
+  bool simulationHasNext() override { return false; }
+  void simulationPopSelected() override {}
+
+  // returns whether at least one of the limits was tightened
+  bool setLimitsToMax() override { return false; }
+  // returns whether at least one of the limits was tightened
+  bool setLimitsFromSimulation() override { return false; }
+
+  void onLimitsUpdated() override {}
+
+  /*
+   * LRS specific methods and fields for usage of limits
+   */
+  bool ageLimited() const override { return false; }
+  bool weightLimited() const override { return false; }
+
+  bool fulfilsAgeLimit(Clause* c) const override { return true; }
+  // note: w here denotes the weight as returned by weight().
+  // this method internally takes care of computing the corresponding weightForClauseSelection.
+
+  bool fulfilsAgeLimit(unsigned w, unsigned numPositiveLiterals, const Inference& inference) const override { return true; }
+  bool fulfilsWeightLimit(Clause* cl) const override { return true; }
+  // note: w here denotes the weight as returned by weight().
+  // this method internally takes care of computing the corresponding weightForClauseSelection.
+  bool fulfilsWeightLimit(unsigned w, unsigned numPositiveLiterals, const Inference& inference) const override { return true; }
+
+  bool childrenPotentiallyFulfilLimits(Clause* cl, unsigned upperBoundNumSelLits) const override { return true; }
 };
 
 }

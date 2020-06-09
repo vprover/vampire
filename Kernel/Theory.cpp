@@ -52,8 +52,7 @@ IntegerConstantType::IntegerConstantType(const vstring& str)
   CALL("IntegerConstantType::IntegerConstantType(vstring)");
 
   if (!Int::stringToInt(str, _val)) {
-    //TODO: raise exception only on overflow, the proper syntax should be guarded by assertion
-    throw ArithmeticException();
+    throw MachineArithmeticException();
   }
 }
 
@@ -63,7 +62,7 @@ IntegerConstantType IntegerConstantType::operator+(const IntegerConstantType& nu
 
   InnerType res;
   if (!Int::safePlus(_val, num._val, res)) {
-    throw ArithmeticException();
+    throw MachineArithmeticException();
   }
   return IntegerConstantType(res);
 }
@@ -74,7 +73,7 @@ IntegerConstantType IntegerConstantType::operator-(const IntegerConstantType& nu
 
   InnerType res;
   if (!Int::safeMinus(_val, num._val, res)) {
-    throw ArithmeticException();
+    throw MachineArithmeticException();
   }
   return IntegerConstantType(res);
 }
@@ -85,7 +84,7 @@ IntegerConstantType IntegerConstantType::operator-() const
 
   InnerType res;
   if (!Int::safeUnaryMinus(_val, res)) {
-    throw ArithmeticException();
+    throw MachineArithmeticException();
   }
   return IntegerConstantType(res);
 }
@@ -96,9 +95,74 @@ IntegerConstantType IntegerConstantType::operator*(const IntegerConstantType& nu
 
   InnerType res;
   if (!Int::safeMultiply(_val, num._val, res)) {
-    throw ArithmeticException();
+    throw MachineArithmeticException();
   }
   return IntegerConstantType(res);
+}
+
+inline typename IntegerConstantType::InnerType divideOrThrow(typename IntegerConstantType::InnerType lhs, typename IntegerConstantType::InnerType rhs) {
+    typename IntegerConstantType::InnerType out;
+    if (!Int::safeDivide(lhs,rhs, out))
+      throw ArithmeticException();
+    return out;
+}
+
+int IntegerConstantType::intDivide(const IntegerConstantType& num) const 
+{
+    CALL("IntegerConstantType::intDivide");
+    ASS(num.divides(*this));
+    return divideOrThrow(_val, num._val);
+}
+
+/**
+ * specification from TPTP:
+ * quotient_e(N,D) - the Euclidean quotient, which has a non-negative remainder. If D is positive then $quotient_e(N,D) is the floor (in the type of N and D) of the real division N/D, and if D is negative then $quotient_e(N,D) is the ceiling of N/D.
+ */
+IntegerConstantType IntegerConstantType::quotientE(const IntegerConstantType& num) const
+{ 
+  CALL("IntegerConstantType::quotientE");
+  auto quot = IntegerConstantType(divideOrThrow(this->_val, num._val));
+  if (num.divides(*this)) {
+    return quot;
+  } else {
+    // quot was truncated
+    if (num._val > 0) {
+      /* use floor */
+      return quot < 0 ? quot - 1 : quot;
+    } else {
+      /* use ceiling */
+      return quot > 0 ? quot + 1 : quot;
+    }
+  }
+}
+
+IntegerConstantType IntegerConstantType::quotientF(const IntegerConstantType& num) const
+{ 
+  if(num.divides(*this)){
+    return IntegerConstantType(intDivide(num));
+  }
+  return IntegerConstantType(::floor(realDivide(num)));
+}
+
+IntegerConstantType IntegerConstantType::quotientT(const IntegerConstantType& num) const
+{ 
+  if(num.divides(*this)){
+    return IntegerConstantType(intDivide(num));
+  }
+  return IntegerConstantType(::trunc(realDivide(num)));
+}
+
+bool IntegerConstantType::divides(const IntegerConstantType& num) const 
+{
+  CALL("IntegerConstantType:divides");
+  if (_val == 0) { return false; }
+  if (num._val == _val) { return true; }
+  if (num._val == numeric_limits<decltype(num._val)>::min() 
+      || _val == numeric_limits<decltype(num._val)>::min()) {
+    throw ArithmeticException();
+  } else {
+    return ( abs(num._val) % abs(_val) ) == 0;
+  }
 }
 
 IntegerConstantType IntegerConstantType::operator/(const IntegerConstantType& num) const
@@ -107,7 +171,7 @@ IntegerConstantType IntegerConstantType::operator/(const IntegerConstantType& nu
 
   //TODO: check if division corresponds to the TPTP semantic
   if (num._val==0) {
-    throw ArithmeticException();
+    throw DivByZeroException();
   }
   if(_val == numeric_limits<InnerType>::min() && num._val == -1){
     throw ArithmeticException();
@@ -121,7 +185,7 @@ IntegerConstantType IntegerConstantType::operator%(const IntegerConstantType& nu
 
   //TODO: check if modulo corresponds to the TPTP semantic
   if (num._val==0) {
-    throw ArithmeticException();
+    throw DivByZeroException();
   }
   return IntegerConstantType(_val%num._val);
 }
@@ -253,7 +317,7 @@ void RationalConstantType::init(InnerType num, InnerType den)
   cannonize();
 
   // Dividing by zero is bad!
-  if(_den.toInner()==0) throw ArithmeticException();
+  if(_den.toInner()==0) throw DivByZeroException();
 }
 
 RationalConstantType RationalConstantType::operator+(const RationalConstantType& o) const
@@ -476,8 +540,7 @@ RealConstantType::RealConstantType(const vstring& number)
 
   double numDbl;
   if (!Int::stringToDouble(number, numDbl)) {
-    //TODO: raise exception only on overflow, the proper syntax should be guarded by assertion
-    throw ArithmeticException();
+    throw MachineArithmeticException();
   }
   InnerType denominator = 1;
   while(::floor(numDbl)!=numDbl) {
@@ -488,7 +551,7 @@ RealConstantType::RealConstantType(const vstring& number)
   InnerType::InnerType numerator = static_cast<InnerType::InnerType>(numDbl);
   if (numerator!=numDbl) {
     //the numerator part of double doesn't fit inside the inner integer type
-    throw ArithmeticException();
+    throw MachineArithmeticException();
   }
   init(numerator, denominator);
 }

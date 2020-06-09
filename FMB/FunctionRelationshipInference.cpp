@@ -334,7 +334,7 @@ void FunctionRelationshipInference::addClaim(Formula* conjecture, ClauseList*& n
     CALL("FunctionRelationshipInference::addClaim");
     
     FormulaUnit* fu = new FormulaUnit(conjecture,
-                      new Inference(Inference::INPUT),Unit::CONJECTURE); //TODO create new Inference kind?
+                      FromInput(UnitInputType::CONJECTURE)); //TODO create new Inference kind?
 
     fu = Rectify::rectify(fu);
     fu = NNF::ennf(fu);

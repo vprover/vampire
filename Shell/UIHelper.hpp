@@ -80,6 +80,8 @@ public:
   static bool satisfiableStatusWasAlreadyOutput;
 
 private:
+  static bool s_expecting_sat;
+  static bool s_expecting_unsat;
 
   static bool s_haveConjecture;
   static bool s_proofHasConjecture;

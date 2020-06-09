@@ -29,6 +29,8 @@
 #ifndef __STLAllocator__ 
 #define __STLAllocator__ 
 #include <limits>
+#include <memory>
+#include <utility>
 
 #include "Lib/Allocator.hpp"
 
@@ -79,8 +81,8 @@ public :
     }
 
     //    construction/destruction
-    inline void construct(pointer p, T&& t) { new(p) T(std::move(t)); }
-    inline void construct(pointer p, const T& t) { new(p) T(t); }
+    template <typename... Args>
+    inline void construct(pointer p, Args&&... args) { new(p) T(std::forward<Args>(args)...); }
     inline void destroy(pointer p) { p->~T(); }
 
     inline bool operator==(STLAllocator const&) const { return true; }

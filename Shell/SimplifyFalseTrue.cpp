@@ -58,12 +58,7 @@ FormulaUnit* SimplifyFalseTrue::simplify (FormulaUnit* unit)
     return unit;
   }
 
-  FormulaUnit* res = new FormulaUnit(g,
-			 new Inference1(Inference::REDUCE_FALSE_TRUE,unit),
-			 unit->inputType());
-  if(unit->included()) {
-    res->markIncluded();
-  }
+  FormulaUnit* res = new FormulaUnit(g,FormulaTransformation(InferenceRule::REDUCE_FALSE_TRUE,unit));
   if (env.options->showPreprocessing()) {
     env.beginOutput();
     env.out() << "[PP] simplify in: " << unit->toString() << std::endl;

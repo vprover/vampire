@@ -152,6 +152,7 @@ public:
   unsigned weight() const;
   bool containsSubterm(TermList v);
   bool containsAllVariablesOf(TermList t);
+  bool containsAllVariableOccurrencesOf(TermList t);
 
   bool isSafe() const;
 
@@ -537,6 +538,7 @@ public:
 
   bool containsSubterm(TermList v);
   bool containsAllVariablesOf(Term* t);
+  size_t countSubtermOccurrences(TermList subterm);
   /** Return true if term has no non-constant functions as subterms */
   bool isShallow() const;
 
@@ -887,6 +889,11 @@ private:
   static Literal* createVariableEquality(bool polarity, TermList arg1, TermList arg2, unsigned variableSort);
 
 }; // class Literal
+
+// TODO used in some proofExtra output
+//      find a better place for this?
+bool positionIn(TermList& subterm,TermList* term, vstring& position);
+bool positionIn(TermList& subterm,Term* term, vstring& position);
 
 struct TermListHash {
   static unsigned hash(TermList t) {

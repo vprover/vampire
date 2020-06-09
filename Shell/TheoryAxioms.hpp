@@ -29,6 +29,8 @@
 #include "Kernel/Theory.hpp"
 #include "Options.hpp"
 
+#include <initializer_list>
+
 namespace Shell {
 
 using namespace Lib;
@@ -115,11 +117,7 @@ private:
      recursive) */
   bool addSubtermDefinitions(unsigned subtermPredicate, TermAlgebraConstructor* c);
 
-  void addTheoryUnitClause(Literal* lit, unsigned level);
-  void addTheoryUnitClause(Literal* lit, Inference* inf, unsigned level);
-  void addTheoryNonUnitClause(Literal* lit1, Literal* lit2,unsigned level);
-  void addTheoryNonUnitClause(Literal* lit1, Literal* lit2, Literal* lit3,unsigned level);
-  void addTheoryNonUnitClause(Literal* lit1, Literal* lit2, Literal* lit3, Literal* lit4,unsigned level);
+  void addTheoryClauseFromLits(std::initializer_list<Literal*> lits, InferenceRule rule, unsigned level);
   void addAndOutputTheoryUnit(Unit* unit, unsigned level);
 };
 

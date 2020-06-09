@@ -26,9 +26,11 @@
 #include "Lib/VirtualIterator.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/PairUtils.hpp"
+#include "Lib/Stack.hpp"
 
 #include "Lib/Environment.hpp"
 #include "Shell/Statistics.hpp"
+#include "Shell/Options.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/Unit.hpp"
@@ -37,6 +39,8 @@
 #include "Kernel/EqHelper.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Kernel/LiteralSelector.hpp"
+#include "Kernel/SortHelper.hpp"
+
 #include "Saturation/SaturationAlgorithm.hpp"
 
 #include "EqualityResolution.hpp"
@@ -75,13 +79,33 @@ struct EqualityResolution::ResultFn
 
     static RobSubstitution subst;
     subst.reset();
-    if(!subst.unify(*lit->nthArgument(0),0,*lit->nthArgument(1),0)) {
-      return 0;
-    }
-    unsigned newLen=_cLen-1;
+    static Stack<UnificationConstraint> constraints;
+    constraints.reset();
+    static Options::UnificationWithAbstraction uwa = env.options->unificationWithAbstraction();
+    bool use_handler = uwa != Options::UnificationWithAbstraction::OFF;
 
-    Inference* inf = new Inference1(Inference::EQUALITY_RESOLUTION, _cl);
-    Clause* res = new(newLen) Clause(newLen, _cl->inputType(), inf);
+    // We only care about non-trivial constraints where the top-sybmol of the two literals are the same
+    // and therefore a constraint can be created between arguments
+    if(use_handler && 
+       lit->nthArgument(0)->isTerm() && lit->nthArgument(1)->isTerm() &&
+       lit->nthArgument(0)->term()->functor() == lit->nthArgument(1)->term()->functor())
+    {
+      use_handler = false;
+    }
+  
+    MismatchHandler* hndlr = 0;
+    if(use_handler){
+      UWAMismatchHandler h(constraints);
+      hndlr = &h;
+    }
+    if(!subst.unify(*lit->nthArgument(0),0,*lit->nthArgument(1),0,hndlr)){ 
+      return 0; 
+    }
+
+
+    unsigned newLen=_cLen-1 + constraints.length();
+
+    Clause* res = new(newLen) Clause(newLen, GeneratingInference1(InferenceRule::EQUALITY_RESOLUTION, _cl));
 
     Literal* litAfter = 0;
 
@@ -109,9 +133,28 @@ struct EqualityResolution::ResultFn
         (*res)[next++] = currAfter;
       }
     }
+    for(unsigned i=0;i<constraints.length();i++){
+      pair<pair<TermList,unsigned>,pair<TermList,unsigned>> con = (constraints)[i];
+      TermList qT = subst.apply(con.first.first,0);
+      TermList rT = subst.apply(con.second.first,0);
+
+      unsigned sort = SortHelper::getResultSort(rT.term());
+      Literal* constraint = Literal::createEquality(false,qT,rT,sort);      
+
+      if(uwa==Options::UnificationWithAbstraction::GROUND &&
+         !constraint->ground() &&
+         (!theory->isInterpretedFunction(qT) && !theory->isInterpretedConstant(qT)) &&
+         (!theory->isInterpretedFunction(rT) && !theory->isInterpretedConstant(rT))){
+
+        // the unification was between two uninterpreted things that were not ground 
+        res->destroy();
+        return 0;
+      }
+
+      (*res)[next++] = constraint;
+    }
     ASS_EQ(next,newLen);
 
-    res->setAge(_cl->age()+1);
     env.statistics->equalityResolution++;
 
     return res;

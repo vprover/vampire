@@ -32,16 +32,13 @@ TEST_FUN(some_other_meaningful_testname) {
 }
 
 
-TEST_FUN(meaningful_testname_2) {
+TEST_FUN(add_uninterpreted_stuff) {
   THEORY_SYNTAX_SUGAR(RAT)
+  THEORY_SYNTAX_SUGAR_FUN (fn, 2)
+  THEORY_SYNTAX_SUGAR_PRED(relation, 2)
 
-  /* uninterprted predicate p, q, r */
-  Literal& l1 = p(mul(x, frac(7,3)));
-  Literal& l2 = q(x);
-  Literal& l3 = r(3);
+  Literal& t = relation(x, fn(frac(7,3), x));
 
-  perform_test(l1);
-  perform_test(l2);
-  perform_test(l3);
+  perform_test(t);
 }
 

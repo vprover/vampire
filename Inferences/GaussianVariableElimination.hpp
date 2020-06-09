@@ -2,10 +2,10 @@
 #include "Lib/Set.hpp"
 
 namespace Inferences {
-class RebalancingElimination : public ImmediateSimplificationEngine {
+class GaussianVariableElimination : public ImmediateSimplificationEngine {
 public:
-  CLASS_NAME(RebalancingElimination);
-  USE_ALLOCATOR(RebalancingElimination);
+  CLASS_NAME(GaussianVariableElimination);
+  USE_ALLOCATOR(GaussianVariableElimination);
 
   Clause *simplify(Clause *cl);
 

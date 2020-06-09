@@ -314,8 +314,8 @@ public:
 
 
 /**
- * A polynomial of a specific interpreted number sort. The type parameter is expected to be an instance of num_traits<...>, 
- * defined in num_traits.hpp.
+ * A polynomial of a specific interpreted number sort. The type parameter is expected to be an instance of NumTraits<...>, 
+ * defined in NumTraits.hpp.
  */
 template<class number>
 class Polynom {
@@ -666,7 +666,7 @@ private:
 struct AnyPoly {
   
   template<class C>
-  using poly = Polynom<num_traits<C>>;
+  using poly = Polynom<NumTraits<C>>;
   using self_t = Coproduct< poly<IntegerConstantType> , poly<RationalConstantType> , poly<RealConstantType> >;
   self_t self; 
 
@@ -783,9 +783,9 @@ template<> LitEvalResult evaluateLit<Interpretation::EQUAL>(Literal* lit) {
   if (lhs == rhs) return LitEvalResult::template variant<1>(lit->polarity());
   auto sort =  SortHelper::getEqualityArgumentSort(lit);
   switch (sort) {
-    case Sorts::SRT_INTEGER:  return interpret_equality<num_traits<IntegerConstantType>>(lit, lit->polarity(), lhs, rhs);
-    case Sorts::SRT_RATIONAL: return interpret_equality<num_traits<RationalConstantType>>(lit, lit->polarity(), lhs, rhs);
-    case Sorts::SRT_REAL:     return interpret_equality<num_traits<RealConstantType>>(lit, lit->polarity(), lhs, rhs);
+    case Sorts::SRT_INTEGER:  return interpret_equality<NumTraits<IntegerConstantType>>(lit, lit->polarity(), lhs, rhs);
+    case Sorts::SRT_RATIONAL: return interpret_equality<NumTraits<RationalConstantType>>(lit, lit->polarity(), lhs, rhs);
+    case Sorts::SRT_REAL:     return interpret_equality<NumTraits<RealConstantType>>(lit, lit->polarity(), lhs, rhs);
                              //TODO lift to term algebras
     default:
       return LitEvalResult::template variant<1>(Literal::createEquality(lit->polarity(), lhs, rhs, sort));
@@ -811,7 +811,7 @@ template<class ConstantType, class EvalIneq> LitEvalResult evaluateInequality(Li
 }
 
 #define __IMPL_INEQ(Const, name, STRICT, op) \
-  template<> LitEvalResult evaluateLit<num_traits<Const>::name ## I>(Literal* lit) \
+  template<> LitEvalResult evaluateLit<NumTraits<Const>::name ## I>(Literal* lit) \
   { return evaluateInequality<Const>(lit, STRICT, [](Const l, Const r) {return l op r;}); } \
 
 #define IMPL_INEQUALTIES(Const) \
@@ -863,8 +863,8 @@ TermEvalResult evaluateUnaryMinus(TermEvalResult& inner) {
 }
 
 #define IMPL_UNARY_MINUS(Const) \
-  IMPL_EVALUATE_FUN(num_traits<Const>::minusI, {\
-    return evaluateUnaryMinus<num_traits<Const>, Config>(evaluatedArgs[0]);  \
+  IMPL_EVALUATE_FUN(NumTraits<Const>::minusI, {\
+    return evaluateUnaryMinus<NumTraits<Const>, Config>(evaluatedArgs[0]);  \
   })
 
   IMPL_UNARY_MINUS(RealConstantType    )
@@ -897,8 +897,8 @@ template<class number, class Config> TermEvalResult evaluateMul(TermEvalResult&&
 
 
 #define IMPL_MULTIPLY(Const) \
-  IMPL_EVALUATE_FUN(num_traits<Const>::mulI, { \
-    return evaluateMul<num_traits<Const>, Config>(std::move(evaluatedArgs[0]), std::move(evaluatedArgs[1])); \
+  IMPL_EVALUATE_FUN(NumTraits<Const>::mulI, { \
+    return evaluateMul<NumTraits<Const>, Config>(std::move(evaluatedArgs[0]), std::move(evaluatedArgs[1])); \
   }) \
 
   IMPL_MULTIPLY(RealConstantType    )
@@ -933,8 +933,8 @@ Polynom<number> evaluateAdd(TermEvalResult&& lhs, TermEvalResult&& rhs) {
 
 
 #define IMPL_ADD(Const) \
-  IMPL_EVALUATE_FUN(num_traits<Const>::addI, { \
-    auto poly = evaluateAdd<num_traits<Const>>(std::move(evaluatedArgs[0]), std::move(evaluatedArgs[1])); \
+  IMPL_EVALUATE_FUN(NumTraits<Const>::addI, { \
+    auto poly = evaluateAdd<NumTraits<Const>>(std::move(evaluatedArgs[0]), std::move(evaluatedArgs[1])); \
     auto out = TermEvalResult::template variant<1>(AnyPoly(std::move(poly))); \
     return out; \
   }) \
@@ -1281,7 +1281,7 @@ template<class Config> TermEvalResult PolynomialNormalizer<Config>::evaluateStep
   { \
     Num ## ConstantType c; \
     if (theory->tryInterpretConstant(orig, c)) { \
-      return evaluateConst<num_traits<Num ## ConstantType>>(c); \
+      return evaluateConst<NumTraits<Num ## ConstantType>>(c); \
     } \
   } \
 
@@ -1366,8 +1366,8 @@ template<class Config> TermEvalResult PolynomialNormalizer<Config>::evaluateStep
   template<> decltype(value) value = decltype(value)();
 
 #define INSTANTIATE_STATICS(Integer) \
-  INSTANTIATE_STATIC(Kernel::Monom  <Kernel::num_traits<Kernel::Integer ## ConstantType>>::monoms  ) \
-  INSTANTIATE_STATIC(Kernel::Polynom<Kernel::num_traits<Kernel::Integer ## ConstantType>>::polynoms)
+  INSTANTIATE_STATIC(Kernel::Monom  <Kernel::NumTraits<Kernel::Integer ## ConstantType>>::monoms  ) \
+  INSTANTIATE_STATIC(Kernel::Polynom<Kernel::NumTraits<Kernel::Integer ## ConstantType>>::polynoms)
 
 INSTANTIATE_STATICS(Integer)
 INSTANTIATE_STATICS(Rational)

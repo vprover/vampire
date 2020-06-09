@@ -8,7 +8,7 @@
 #include "TermIterators.hpp"
 #include "Term.hpp"
 #include "Theory.hpp"
-#include "num_traits.hpp"
+#include "NumTraits.hpp"
 #include "Debug/Tracer.hpp"
 #include "Lib/Either.hpp"
 #include <algorithm>

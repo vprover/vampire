@@ -2,10 +2,11 @@
 #include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
 #include "Indexing/TermSharing.hpp"
-#include "Inferences/RebalancingElimination.hpp"
+#include "Inferences/GaussianVariableElimination.hpp"
 #include "Inferences/InterpretedEvaluation.hpp"
+#include "Kernel/Ordering.hpp"
 
-#define UNIT_ID RebalancingElimination
+#define UNIT_ID GaussianVariableElimination
 UT_CREATE;
 using namespace std;
 using namespace Kernel;
@@ -15,8 +16,8 @@ using namespace Inferences;
 
 //TODO factor out
 Clause& clause(std::initializer_list<reference_wrapper<Literal>> ls) { 
-  static Inference testInf = Kernel::Inference(Inference::INPUT); 
-  Clause& out = *new(ls.size()) Clause(ls.size(), Kernel::Unit::InputType::ASSUMPTION, &testInf); 
+  static Inference testInf = Kernel::NonspecificInference0(UnitInputType::ASSUMPTION, InferenceRule::INPUT); 
+  Clause& out = *new(ls.size()) Clause(ls.size(), testInf); 
   auto l = ls.begin(); 
   for (int i = 0; i < ls.size(); i++) { 
     out[i] = &l->get(); 
@@ -25,38 +26,9 @@ Clause& clause(std::initializer_list<reference_wrapper<Literal>> ls) {
   return out; 
 }
 
-// bool exactlyEq(const Term& lhs, const Term& rhs);
-//
-// bool exactlyEq(const TermList& lhs, const TermList& rhs) {
-//   if(lhs.tag() != rhs.tag()) return false;
-//   if(lhs.isTerm())  return exactlyEq(*lhs.term(), *rhs.term());
-//   if(lhs.isVar())  return lhs.var() == rhs.var();
-//   ASSERTION_VIOLATION
-// }
-//
-// bool exactlyEq(const Term& lhs, const Term& rhs) {
-//   if (lhs.functor() != rhs.functor()) return false;
-//   if (lhs.arity() != rhs.arity()) return false;
-//   for (int i = 0; i<lhs.arity(); i++) {
-//     if (!exactlyEq(lhs[i], rhs[i])) return false;
-//   }
-//   return true;
-// }
-//
-// bool exactlyEq(const Literal& lhs, const Literal& rhs) {
-//   if (lhs.polarity() != rhs.polarity())  return false;
-//   if (lhs.functor() != rhs.functor()) return false;
-//   if (lhs.arity() != rhs.arity()) return false;
-//   for (int i = 0; i<lhs.arity(); i++) {
-//     if (!exactlyEq(lhs[i], rhs[i])) return false;
-//   }
-//   return true;
-// }
-
 bool exactlyEq(const Clause& lhs, const Clause& rhs, const Stack<unsigned>& perm) {
   for (int j = 0; j < perm.size(); j++) {
     if (!Indexing::TermSharing::equals(lhs[j], rhs[perm[j]])) {
-    // if (!exactlyEq(*lhs[j], *rhs[perm[j]])) {
       return false;
     }
   }
@@ -96,11 +68,28 @@ bool operator!=(const Clause& lhs, const Clause& rhs) {
 }
 
 
+Clause* exhaustiveGve(Clause* in) {
+
+  struct FakeOrdering : Kernel::Ordering {
+    virtual Result compare(Literal*, Literal*) const override { return Kernel::Ordering::LESS; }
+    virtual Result compare(TermList, TermList) const override {ASSERTION_VIOLATION}
+    virtual Comparison compareFunctors(unsigned, unsigned) const override {ASSERTION_VIOLATION}
+  };
+  static FakeOrdering ord;
+  static GaussianVariableElimination inf = GaussianVariableElimination();
+  static InterpretedEvaluation ev = InterpretedEvaluation(false, ord);
+  Clause* last = in;
+  Clause* latest = in;
+  do {
+    last = latest;
+    latest = ev.simplify(inf.simplify(last));
+  } while (latest != last);
+  return latest;
+}
+
 
 void test_eliminate_na(Clause& toSimplify) {
-  static RebalancingElimination inf = RebalancingElimination();
-  static InterpretedEvaluation ev = InterpretedEvaluation(false);
-  auto res = ev.simplify(inf.simplify(&toSimplify));
+  auto res = exhaustiveGve(&toSimplify);
   if (res != &toSimplify ) {
     cout  << endl;
     cout << "[     case ]: " << toSimplify.toString() << endl;
@@ -111,9 +100,7 @@ void test_eliminate_na(Clause& toSimplify) {
 }
 
 void test_eliminate(Clause& toSimplify, const Clause& expected) {
-  static RebalancingElimination inf = RebalancingElimination();
-  static InterpretedEvaluation ev = InterpretedEvaluation(false);
-  auto res = ev.simplify(inf.simplify(&toSimplify));
+  auto res = exhaustiveGve(&toSimplify);
   if (!res || *res != expected) {
     cout  << endl;
     cout << "[     case ]: " << toSimplify.toString() << endl;
@@ -126,12 +113,20 @@ void test_eliminate(Clause& toSimplify, const Clause& expected) {
 #define TEST_ELIMINATE(name, toSimplify, expected) \
   TEST_FUN(name) { \
     THEORY_SYNTAX_SUGAR(REAL) \
+      _Pragma("GCC diagnostic push") \
+      _Pragma("GCC diagnostic ignored \"-Wunused\"") \
+        THEORY_SYNTAX_SUGAR_FUN(f, 1) \
+      _Pragma("GCC diagnostic pop") \
     test_eliminate((toSimplify),(expected)); \
   }
 
 #define TEST_ELIMINATE_NA(name, toSimplify) \
   TEST_FUN(name) { \
     THEORY_SYNTAX_SUGAR(REAL) \
+      _Pragma("GCC diagnostic push") \
+      _Pragma("GCC diagnostic ignored \"-Wunused\"") \
+        THEORY_SYNTAX_SUGAR_FUN(f, 1) \
+      _Pragma("GCC diagnostic pop") \
     test_eliminate_na((toSimplify)); \
   }
 

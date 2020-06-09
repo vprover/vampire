@@ -107,11 +107,7 @@ bool ForwardLiteralRewriting::perform(Clause* cl, Clause*& replacement, ClauseIt
       }
       */
 
-      Inference* inf = new Inference2(Inference::FORWARD_LITERAL_REWRITING, cl, premise);
-      Unit::InputType inpType = (Unit::InputType)
-	Int::max(cl->inputType(), premise->inputType());
-
-      Clause* res = new(clen) Clause(clen, inpType, inf);
+      Clause* res = new(clen) Clause(clen, SimplifyingInference2(InferenceRule::FORWARD_LITERAL_REWRITING, cl, premise));
 
       (*res)[0]=rhsS;
 
@@ -124,7 +120,6 @@ bool ForwardLiteralRewriting::perform(Clause* cl, Clause*& replacement, ClauseIt
       }
       ASS_EQ(next,clen);
 
-      res->setAge(cl->age());
       env.statistics->forwardLiteralRewrites++;
 
       premises = pvi( getSingletonIterator(premise));

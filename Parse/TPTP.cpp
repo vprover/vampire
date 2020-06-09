@@ -1279,40 +1279,39 @@ void TPTP::fof(bool fo)
 
   _isQuestion = false;
   if(_modelDefinition){
-    _lastInputType = Unit::MODEL_DEFINITION;
+    _lastInputType = UnitInputType::MODEL_DEFINITION;
   }
   else if (tp == "axiom" || tp == "plain") {
-    _lastInputType = Unit::AXIOM;
+    _lastInputType = UnitInputType::AXIOM;
   }
   else if(tp == "extensionality"){
     // this will be transformed to just AXIOM after clausification
-    _lastInputType = Unit::EXTENSIONALITY_AXIOM;
+    _lastInputType = UnitInputType::EXTENSIONALITY_AXIOM;
   }
   else if (tp == "definition") {
-    _lastInputType = Unit::AXIOM;
+    _lastInputType = UnitInputType::AXIOM;
   }
   else if (tp == "conjecture") {
     _containsConjecture = true;
-    _lastInputType = Unit::CONJECTURE;
+    _lastInputType = UnitInputType::CONJECTURE;
   }
   else if (tp == "question") {
     _isQuestion = true;
     _containsConjecture = true;
-    _lastInputType = Unit::CONJECTURE;
+    _lastInputType = UnitInputType::CONJECTURE;
   }
   else if (tp == "negated_conjecture") {
-    _lastInputType = Unit::NEGATED_CONJECTURE;
+    _lastInputType = UnitInputType::NEGATED_CONJECTURE;
   }
   else if (tp == "hypothesis" || tp == "theorem" || tp == "lemma") {
-    _lastInputType = Unit::ASSUMPTION;
-  }
-  else if (tp == "assumption" || tp == "unknown") {
-    // assumptions are not used, so we assign them a non-existing input type and then
-    // not include them in the input
-    _lastInputType = -1;
+    _lastInputType = UnitInputType::ASSUMPTION;
   }
   else if (tp == "claim") {
-    _lastInputType = Unit::CLAIM;
+    _lastInputType = UnitInputType::CLAIM;
+  }
+  else if (tp == "assumption" || tp == "unknown") {
+    // MS: we were silently dropping these until now. I wonder why...
+    PARSE_ERROR((vstring)"Unsupported unit type '" + tp + "' found",start);
   }
   else {
     PARSE_ERROR((vstring)"unit type, such as axiom or definition expected but " + tp + " found",
@@ -1380,9 +1379,10 @@ void TPTP::tff()
       // now we know that this is a new type declaration
       bool added;
       env.sorts->addSort(nm,added,false);
-      if (!added) {
-	PARSE_ERROR("Sort name must be unique",tok);
-      }
+      // GR: Multiple identical type declarations for a symbol are allowed
+      //if (!added) {
+      //  PARSE_ERROR("Sort name must be unique",tok);
+      //}
       resetToks();
       while (lpars--) {
 	consumeToken(T_RPAR);
@@ -1403,37 +1403,36 @@ void TPTP::tff()
   _bools.push(true); // to denote that it is an FOF formula
   _isQuestion = false;
   if (tp == "axiom" || tp == "plain") {
-    _lastInputType = Unit::AXIOM;
+    _lastInputType = UnitInputType::AXIOM;
   }
   else if (tp == "extensionality"){
     // this will be transformed to just AXIOM after clausification
-    _lastInputType = Unit::EXTENSIONALITY_AXIOM;
+    _lastInputType = UnitInputType::EXTENSIONALITY_AXIOM;
   }
   else if (tp == "definition") {
-    _lastInputType = Unit::AXIOM;
+    _lastInputType = UnitInputType::AXIOM;
   }
   else if (tp == "conjecture") {
     _containsConjecture = true;
-    _lastInputType = Unit::CONJECTURE;
+    _lastInputType = UnitInputType::CONJECTURE;
   }
   else if (tp == "question") {
     _isQuestion = true;
     _containsConjecture = true;
-    _lastInputType = Unit::CONJECTURE;
+    _lastInputType = UnitInputType::CONJECTURE;
   }
   else if (tp == "negated_conjecture") {
-    _lastInputType = Unit::NEGATED_CONJECTURE;
+    _lastInputType = UnitInputType::NEGATED_CONJECTURE;
   }
   else if (tp == "hypothesis" || tp == "theorem" || tp == "lemma") {
-    _lastInputType = Unit::ASSUMPTION;
+    _lastInputType = UnitInputType::ASSUMPTION;
   }
   else if (tp == "assumption" || tp == "unknown") {
-    // assumptions are not used, so we assign them a non-existing input type and then
-    // not include them in the input
-    _lastInputType = -1;
+    // MS: we were silently dropping these until now. I wonder why...
+    PARSE_ERROR((vstring)"Unsupported unit type '" + tp + "' found",start);
   }
   else if (tp == "claim") {
-    _lastInputType = Unit::CLAIM;
+    _lastInputType = UnitInputType::CLAIM;
   }
   else {
     PARSE_ERROR((vstring)"unit type, such as axiom or definition expected but " + tp + " found",
@@ -3021,10 +3020,6 @@ void TPTP::endFof()
   bool isFof = _bools.pop();
   Formula* f = _formulas.pop();
   vstring nm = _strings.pop(); // unit name
-  if (_lastInputType == -1) {
-    // assumption, they are not used
-    return;
-  }
   if (_allowedNames && !_allowedNames->contains(nm)) {
     return;
   }
@@ -3032,7 +3027,7 @@ void TPTP::endFof()
   Unit* unit;
   if (isFof) { // fof() or tff()
     env.statistics->inputFormulas++;
-    unit = new FormulaUnit(f,new Inference(Inference::INPUT),(Unit::InputType)_lastInputType);
+    unit = new FormulaUnit(f,FromInput(_lastInputType));
     unit->setInheritedColor(_currentColor);
   }
   else { // cnf()
@@ -3078,7 +3073,7 @@ void TPTP::endFof()
 	USER_ERROR((vstring)"input formula not in CNF: " + f->toString());
       }
     }
-    unit = Clause::fromStack(lits,(Unit::InputType)_lastInputType,new Inference(Inference::INPUT));
+    unit = Clause::fromStack(lits,FromInput(_lastInputType));
     unit->setInheritedColor(_currentColor);
   }
 
@@ -3094,11 +3089,11 @@ void TPTP::endFof()
   cout << "Unit: " << unit->toString() << "\n";
 #endif
   if (!_inputs.isEmpty()) {
-    unit->markIncluded();
+    unit->inference().markIncluded();
   }
 
   switch (_lastInputType) {
-  case Unit::CONJECTURE:
+  case UnitInputType::CONJECTURE:
     if(!isFof) USER_ERROR("conjecture is not allowed in cnf");
     if(_seenConjecture) USER_ERROR("Vampire only supports a single conjecture in a problem");
     _seenConjecture=true;
@@ -3120,8 +3115,7 @@ void TPTP::endFof()
                                 g->sorts(),
 				new BinaryFormula(IMP,g->subformula(),new AtomicFormula(a)));
       unit = new FormulaUnit(f,
-			     new Inference1(Inference::ANSWER_LITERAL,unit),
-			     Unit::CONJECTURE);
+			     FormulaTransformation(InferenceRule::ANSWER_LITERAL,unit));
     }
     else {
       Formula::VarList* vs = f->freeVariables();
@@ -3133,12 +3127,11 @@ void TPTP::endFof()
 	f = new NegatedFormula(new QuantifiedFormula(FORALL,vs,0,f));
       }
       unit = new FormulaUnit(f,
-			     new Inference1(Inference::NEGATED_CONJECTURE,unit),
-			     Unit::CONJECTURE);
+			     FormulaTransformation(InferenceRule::NEGATED_CONJECTURE,unit));
     }
     break;
 
-  case Unit::CLAIM:
+  case UnitInputType::CLAIM:
     {
       bool added;
       unsigned pred = env.signature->addPredicate(nm,0,added);
@@ -3156,8 +3149,7 @@ void TPTP::endFof()
       }
       f = new BinaryFormula(IFF,claim,f);
       unit = new FormulaUnit(f,
-			     new Inference1(Inference::CLAIM_DEFINITION,unit),
-			     Unit::ASSUMPTION);
+          FormulaTransformation(InferenceRule::CLAIM_DEFINITION,unit));
     }
     break;
 
@@ -3209,22 +3201,32 @@ void TPTP::endTff()
   Signature::Symbol* symbol;
   if (isPredicate) {
     unsigned pred = env.signature->addPredicate(name, arity, added);
-    if (!added) {
-      USER_ERROR("Predicate symbol type is declared after its use: " + name);
-    }
     symbol = env.signature->getPredicate(pred);
-    if (arity != 0) {
-      symbol->setType(ot);
+    if (!added) {
+      // GR: Multiple identical type declarations for a symbol are allowed
+      if(symbol->predType() != ot){
+        USER_ERROR("Predicate symbol type is declared after its use: " + name);
+      }
+    }
+    else{
+      if (arity != 0) {
+        symbol->setType(ot);
+      }
     }
   } else {
     unsigned fun = arity == 0
                    ? addUninterpretedConstant(name, _overflow, added)
                    : env.signature->addFunction(name, arity, added);
-    if (!added) {
-      USER_ERROR("Function symbol type is declared after its use: " + name);
-    }
     symbol = env.signature->getFunction(fun);
-    symbol->setType(ot);
+    if (!added) {
+      // GR: Multiple identical type declarations for a symbol are allowed
+      if(symbol->fnType() != ot){
+        USER_ERROR("Function symbol type is declared after its use: " + name);
+      }
+    }
+    else{
+      symbol->setType(ot);
+    }
   }
 } // endTff
 

@@ -36,3 +36,4 @@ valgrind.supp
 *.smt2
 *.cnf
 tags
+cmake-build

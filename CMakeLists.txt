@@ -5,13 +5,13 @@ project(Vampire)
 # require the compiler to use C++11
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
-#static
-option(BUILD_SHARED_LIBS "Build an executable dynamically linking to libraries instead of a statically-linked one (static not working on Mac)" ON)
-if (NOT BUILD_SHARED_LIBS)
-  SET(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
-  SET(CMAKE_EXE_LINKER_FLAGS "-static")
-endif()
+set(VAMPIRE_BINARY "vampire")
+set(VAMPIRE_BINARY_BUILD "_rel")
+set(VAMPIRE_BINARY_STATIC "")
+set(VAMPIRE_BINARY_Z3 "")
+set(VAMPIRE_BINARY_HASH "")
+set(VAMPIRE_BINARY_BRANCH "")
+set(VAMPIRE_BINARY_REV_COUNT "")
 
 #debug flags
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DVDEBUG=1 -DUNIX_USE_SIGALRM=1 -DGNUMP=0 ")
@@ -20,7 +20,19 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -DVDEBUG=0")
 if(NOT CMAKE_BUILD_TYPE)
   message(STATUS "Setting build type to 'Release' as none was specified.")
   set(CMAKE_BUILD_TYPE "Release" CACHE
-      STRING "Choose the type of build." FORCE)
+    STRING "Choose the type of build." FORCE)
+elseif (CMAKE_BUILD_TYPE STREQUAL "Debug")
+  set(VAMPIRE_BINARY_BUILD "_dbg")
+else()
+  set(VAMPIRE_BINARY_BUILD "_${CMAKE_BUILD_TYPE}")
+endif()
+
+#static
+option(BUILD_SHARED_LIBS "Build an executable dynamically linking to libraries instead of a statically-linked one (static not working on Mac)" ON)
+if (NOT BUILD_SHARED_LIBS)
+  SET(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
+  SET(CMAKE_EXE_LINKER_FLAGS "-static")
+  set(VAMPIRE_BINARY_STATIC "_static")
 endif()
 
 # support sourcetrail
@@ -43,10 +55,12 @@ add_compile_options(
 # -- see also https://cmake.org/pipermail/cmake/2016-May/063452.html
 if(CMAKE_COMPILER_IS_GNUCXX)
   add_compile_options("-Wno-terminate")
+  add_compile_options("-D__STDC_FORMAT_MACROS=1")
 endif()
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")  # use MATCHES instead of equality because the value is "AppleClang" on macOS
   add_compile_options("-Wno-exceptions")
 endif()
+message("compiler: " ${CMAKE_CXX_COMMAND})
 
 
 
@@ -216,6 +230,7 @@ set(VAMPIRE_LIB_SOURCES
     Lib/Vector.hpp
     Lib/VirtualIterator.hpp
     Lib/VString.hpp
+    Lib/STL.hpp
     )
 source_group(lib_source_files FILES ${VAMPIRE_LIB_SOURCES})
 
@@ -244,6 +259,7 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/Inference.cpp
     Kernel/InferenceStore.cpp
     Kernel/InterpretedLiteralEvaluator.cpp
+    Kernel/Rebalancing.cpp
     Kernel/KBO.cpp
     Kernel/KBOForEPR.cpp
     Kernel/LiteralSelector.cpp
@@ -253,12 +269,14 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/Matcher.cpp
     Kernel/MaximalLiteralSelector.cpp
     Kernel/MLMatcher.cpp
+    Kernel/MLMatcherSD.cpp
     Kernel/MLVariant.cpp
     Kernel/Ordering.cpp
     Kernel/Ordering_Equality.cpp
     Kernel/Problem.cpp
     Kernel/Renaming.cpp
     Kernel/RobSubstitution.cpp
+    Kernel/MismatchHandler.cpp
     Kernel/Signature.cpp
     Kernel/SortHelper.cpp
     Kernel/Sorts.cpp
@@ -293,6 +311,7 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/Inference.hpp
     Kernel/InferenceStore.hpp
     Kernel/InterpretedLiteralEvaluator.hpp
+    Kernel/Rebalancing.cpp
     Kernel/KBO.hpp
     Kernel/KBOForEPR.hpp
     Kernel/LiteralComparators.hpp
@@ -309,6 +328,7 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/RCClauseStack.hpp
     Kernel/Renaming.hpp
     Kernel/RobSubstitution.hpp
+    Kernel/MismatchHandler.hpp
     Kernel/Signature.hpp
     Kernel/SortHelper.hpp
     Kernel/Sorts.hpp
@@ -379,6 +399,7 @@ source_group(indexing_source_files FILES ${VAMPIRE_INDEXING_SOURCES})
 
 set(VAMPIRE_INFERENCE_SOURCES
     Inferences/BackwardDemodulation.cpp
+    Inferences/BackwardSubsumptionDemodulation.cpp
     Inferences/BackwardSubsumptionResolution.cpp
     Inferences/BinaryResolution.cpp
     Inferences/Condensation.cpp
@@ -393,6 +414,7 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/ForwardDemodulation.cpp
     Inferences/ForwardLiteralRewriting.cpp
     Inferences/ForwardSubsumptionAndResolution.cpp
+    Inferences/ForwardSubsumptionDemodulation.cpp
     Inferences/GlobalSubsumption.cpp
     Inferences/HyperSuperposition.cpp
     Inferences/InnerRewriting.cpp
@@ -401,6 +423,10 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/InferenceEngine.cpp
     Inferences/Instantiation.cpp
     Inferences/InterpretedEvaluation.cpp
+    Kernel/NumTraits.cpp
+    Inferences/GaussianVariableElimination.cpp
+    Kernel/Rebalancing.cpp
+    Kernel/Rebalancing/Inverters.cpp
     Inferences/SLQueryBackwardSubsumption.cpp
     Inferences/Superposition.cpp
     Inferences/TautologyDeletionISE.cpp
@@ -428,7 +454,12 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/InferenceEngine.hpp
     Inferences/Instantiation.hpp
     Inferences/InterpretedEvaluation.hpp
+    Kernel/NumTraits.cpp
+    Inferences/GaussianVariableElimination.hpp
+    Kernel/Rebalancing.hpp
+    Kernel/Rebalancing/Inverters.hpp
     Inferences/SLQueryBackwardSubsumption.hpp
+    Inferences/SubsumptionDemodulationHelper.cpp
     Inferences/Superposition.hpp
     Inferences/TautologyDeletionISE.hpp
     Inferences/TermAlgebraReasoning.hpp
@@ -508,6 +539,7 @@ set(VAMPIRE_SATURATION_SOURCES
     Saturation/SaturationAlgorithm.cpp
     Saturation/Splitter.cpp
     Saturation/SymElOutput.cpp
+    Saturation/PredicateSplitPassiveClauseContainer.cpp
     Saturation/AWPassiveClauseContainer.hpp
     Saturation/ClauseContainer.hpp
     Saturation/ConsequenceFinder.hpp
@@ -521,6 +553,7 @@ set(VAMPIRE_SATURATION_SOURCES
     Saturation/SaturationAlgorithm.hpp
     Saturation/Splitter.hpp
     Saturation/SymElOutput.hpp
+    Saturation/PredicateSplitPassiveClauseContainer.hpp
     )
 source_group(saturation_source_files FILES ${VAMPIRE_SATURATION_SOURCES})
 
@@ -582,7 +615,7 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/BlockedClauseElimination.cpp
     Shell/Token.cpp
     Shell/TPTPPrinter.cpp
-    Shell/TrivialPredicateRemover.cpp
+    #Shell/TrivialPredicateRemover.cpp
     Shell/UIHelper.cpp
     Shell/VarManager.cpp
     #Shell/ConstantRemover.cpp
@@ -653,7 +686,7 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/BlockedClauseElimination.hpp
     Shell/Token.hpp
     Shell/TPTPPrinter.hpp
-    Shell/TrivialPredicateRemover.hpp
+    #Shell/TrivialPredicateRemover.hpp
     Shell/UIHelper.hpp
     Shell/VarManager.hpp
     #Shell/ConstantRemover.hpp
@@ -779,22 +812,59 @@ else ()
   add_library(Z3 SHARED IMPORTED)
   set_property(TARGET Z3 PROPERTY IMPORTED_LOCATION ${Z3_LIBRARY})
   target_compile_definitions(vampire PRIVATE VZ3=1)
+  set(VAMPIRE_BINARY_Z3 "_z3")
 endif()
-
-
-
-
 
 #################################################################
 # automated generation of Vampire revision information from git #
 #################################################################
-set(VAMPIRE_VERSION_NUMBER "4.3.0")
+set(VAMPIRE_VERSION_NUMBER "4.4.0")
 
 execute_process(
+    COMMAND git rev-parse --is-inside-work-tree
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE GIT_IS_REPOSITORY
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+
+if (GIT_IS_REPOSITORY STREQUAL "true")
+
+  execute_process(
     COMMAND git log -1 --format=%h\ on\ %ci
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     OUTPUT_VARIABLE GIT_COMMIT_DESCRIPTION
     OUTPUT_STRIP_TRAILING_WHITESPACE
     )
+
+  execute_process(
+    COMMAND git rev-parse --abbrev-ref HEAD
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE GIT_BRANCH
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+
+  execute_process(
+    COMMAND git rev-list HEAD --count
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE GIT_REV_COUNT
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+
+  execute_process(
+    COMMAND git log -1 --format=%h
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE GIT_COMMIT_HASH
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+
+  set(VAMPIRE_BINARY_HASH "_${GIT_COMMIT_HASH}")
+  set(VAMPIRE_BINARY_BRANCH "_${GIT_BRANCH}")
+  set(VAMPIRE_BINARY_REV_COUNT "_${GIT_REV_COUNT}")
+endif()
+
+################# set binary name #######################
+set(VAMPIRE_BINARY "vampire${VAMPIRE_BINARY_Z3}${VAMPIRE_BINARY_BUILD}${VAMPIRE_BINARY_STATIC}${VAMPIRE_BINARY_BRANCH}${VAMPIRE_BINARY_REV_COUNT}")
+message(STATUS "Setting binary name to " "${VAMPIRE_BINARY}")
+set_target_properties(vampire PROPERTIES OUTPUT_NAME ${VAMPIRE_BINARY})
 
 configure_file(version.cpp.in version.cpp)

@@ -88,7 +88,7 @@ void timeLimitReached()
 
       if (szsOutputMode()) {
         env.out() << "% SZS status Timeout for "
-                        << (env.options ? env.options->problemName() : "unknown") << endl;
+                        << (env.options ? env.options->problemName().c_str() : "unknown") << endl;
       }
     } else // the actual child
       if (env.statistics) {

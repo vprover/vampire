@@ -193,11 +193,8 @@ Clause* ForwardSubsumptionAndResolution::generateSubsumptionResolutionClause(Cla
   int clen = cl->length();
   int nlen = clen-1;
 
-  Inference* inf = new Inference2(Inference::SUBSUMPTION_RESOLUTION, cl, baseClause);
-  Unit::InputType inpType = (Unit::InputType)
-  	max(cl->inputType(), baseClause->inputType());
-
-  Clause* res = new(nlen) Clause(nlen, inpType, inf);
+  Clause* res = new(nlen) Clause(nlen,
+      SimplifyingInference2(InferenceRule::SUBSUMPTION_RESOLUTION, cl, baseClause));
 
   int next = 0;
   bool found=false;
@@ -212,8 +209,6 @@ Clause* ForwardSubsumptionAndResolution::generateSubsumptionResolutionClause(Cla
       found=true;
     }
   }
-
-  res->setAge(cl->age());
 
   return res;
 }

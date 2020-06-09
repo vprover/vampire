@@ -33,7 +33,7 @@
 #   VZ3              - compile with Z3
 
 GNUMPF = 0
-DBG_FLAGS = -g -O1 -fsanitize=address -fno-omit-frame-pointer -DUSE_SYSTEM_ALLOCATION=1 -DVDEBUG=1 -DCHECK_LEAKS=0 -DUNIX_USE_SIGALRM=1 -DGNUMP=$(GNUMPF)# debugging for spider 
+DBG_FLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DUNIX_USE_SIGALRM=1 -DGNUMP=$(GNUMPF)# debugging for spider 
 # DELETEMEin2017: the bug with gcc-6.2 and problems in ClauseQueue could be also fixed by adding -fno-tree-ch
 REL_FLAGS = -O6 -DVDEBUG=0 -DGNUMP=$(GNUMPF)# no debugging 
 GCOV_FLAGS = -O0 --coverage #-pedantic
@@ -207,7 +207,7 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/InterpretedLiteralEvaluator.o\
         Kernel/Rebalancing.o\
         Kernel/Rebalancing/Inverters.o\
-	Kernel/num_traits.o\
+	Kernel/NumTraits.o\
         Kernel/KBO.o\
         Kernel/KBOForEPR.o\
         Kernel/LiteralSelector.o\
@@ -219,12 +219,14 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/SpassLiteralSelector.o\
         Kernel/ELiteralSelector.o\
         Kernel/MLMatcher.o\
+        Kernel/MLMatcherSD.o\
         Kernel/MLVariant.o\
         Kernel/Ordering.o\
         Kernel/Ordering_Equality.o\
         Kernel/Problem.o\
         Kernel/Renaming.o\
         Kernel/RobSubstitution.o\
+        Kernel/MismatchHandler.o\
         Kernel/Signature.o\
         Kernel/SortHelper.o\
         Kernel/Sorts.o\
@@ -271,6 +273,7 @@ VIG_OBJ = InstGen/IGAlgorithm.o\
 
 VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/BackwardSubsumptionResolution.o\
+         Inferences/BackwardSubsumptionDemodulation.o\
          Inferences/BinaryResolution.o\
          Inferences/Condensation.o\
          Inferences/DistinctEqualitySimplifier.o\
@@ -283,6 +286,8 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/ForwardDemodulation.o\
          Inferences/ForwardLiteralRewriting.o\
          Inferences/ForwardSubsumptionAndResolution.o\
+         Inferences/SubsumptionDemodulationHelper.o\
+         Inferences/ForwardSubsumptionDemodulation.o\
          Inferences/GlobalSubsumption.o\
          Inferences/HyperSuperposition.o\
          Inferences/InnerRewriting.o\
@@ -297,7 +302,7 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/TheoryInstAndSimp.o\
          Inferences/Induction.o\
          Inferences/URResolution.o \
-         Inferences/RebalancingElimination.o
+         Inferences/GaussianVariableElimination.o
 #         Inferences/CTFwSubsAndRes.o\
 
 VSAT_OBJ=SAT/ClauseDisposer.o\
@@ -321,6 +326,7 @@ VSAT_OBJ=SAT/ClauseDisposer.o\
 #         SAT/SingleWatchSAT.o
 
 VST_OBJ= Saturation/AWPassiveClauseContainer.o\
+         Saturation/PredicateSplitPassiveClauseContainer.o\
          Saturation/ClauseContainer.o\
          Saturation/ConsequenceFinder.o\
          Saturation/Discount.o\
@@ -466,7 +472,7 @@ LIB_DEP = Indexing/TermSharing.o\
 	  Kernel/InterpretedLiteralEvaluator.o\
 	  Kernel/Rebalancing.o\
 	  Kernel/Rebalancing/Inverters.o\
-	  Kernel/num_traits.o\
+	  Kernel/NumTraits.o\
 	  Kernel/Inference.o\
 	  Kernel/InferenceStore.o\
 	  Kernel/Problem.o\
@@ -577,7 +583,7 @@ version.cpp: .git/HEAD .git/index Makefile
 # separate directory for object files implementation
 
 # different directory for each configuration, so there is no need for "make clean"
-SED_CMD='s/^[(]HEAD$$/detached/'      #
+SED_CMD='s/.*[(].*/detached/' # if branch name contains an opening bracket, replace it with detached (in order to avoid a crash during linking). This covers at least the case '(HEAD' occuring if one is in detached state, and '(no' occuring if one currently performs a rebase.
 BRANCH=$(shell git branch | grep "\*" | cut -d ' ' -f 2 | sed -e $(SED_CMD)  )
 COM_CNT=$(shell git rev-list HEAD --count)
 CONF_ID := obj/$(shell echo -n "$(BRANCH) $(XFLAGS)"|sum|cut -d ' ' -f1)X

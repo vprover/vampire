@@ -231,7 +231,7 @@ Unit* ProofSimplifier::transformUnit(Unit* u)
   }
   Formula* form = _fsh.aigToFormula(simplA);
   form = Flattening::flatten(form);
-  FormulaUnit* res = new FormulaUnit(form, new Inference(Inference::TAUTOLOGY_INTRODUCTION), u->inputType());
+  FormulaUnit* res = new FormulaUnit(form, new Inference0(Inference::TAUTOLOGY_INTRODUCTION), u->inputType());
   return res;
 }
 

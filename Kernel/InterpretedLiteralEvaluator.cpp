@@ -30,7 +30,7 @@
 #include "TermIterators.hpp"
 #include "Term.hpp"
 #include "Theory.hpp"
-#include "num_traits.hpp"
+#include "NumTraits.hpp"
 #include "Debug/Tracer.hpp"
 #include <algorithm>
 #include "Lib/Either.hpp"
@@ -41,20 +41,19 @@
 #include "InterpretedLiteralEvaluator.hpp"
 
 #if VDEBUG
-// #define IDEBUG 0
-#define IDEBUG 1
-#else 
-#define IDEBUG 0
-#endif
-
 #define _DEBUG(...) 
 #define DEBUG(...) //DBG(__VA_ARGS__)
+#else 
+#define DEBUG(...)
+#define _DEBUG(...)
+#endif
+
 namespace Kernel
 {
 using namespace Lib;
 
 struct PredEvalResult {
-  enum {
+  enum status_t {
     Simplified,
     Trivial,
     Nop,
@@ -63,9 +62,14 @@ struct PredEvalResult {
     bool trivial_val;
     Literal* simplified_val;
   };
-  static PredEvalResult nop() {return  PredEvalResult {.status = Nop}; }
-  static PredEvalResult trivial(bool value) {return  PredEvalResult {.status = Trivial, .trivial_val = value}; }
-  static PredEvalResult simplified(Literal* value) {return  PredEvalResult {.status = Simplified, .simplified_val = value}; }
+  static PredEvalResult nop() {return  PredEvalResult(Nop); }
+  static PredEvalResult trivial(bool value) {return  PredEvalResult (value); }
+  static PredEvalResult simplified(Literal* value) {return  PredEvalResult (value); }
+
+private:
+  explicit PredEvalResult(bool value) : status(Trivial), trivial_val(value) {}
+  explicit PredEvalResult(Literal* value) : status(Simplified), simplified_val(value) {}
+  explicit PredEvalResult(status_t stat) : status(stat) {}
 };
 
 /**
@@ -201,6 +205,7 @@ CLASS_NAME(InterpretedLiteralEvaluator::ACFunEvaluator<CommutativeMonoid>);
     ASS_EQ(trm->functor(), _fun);
     ASS_EQ(trm->arity(),2);
 
+    unsigned nums = 0;
     ConstantType acc = CommutativeMonoid::IDENTITY;
     Stack<TermList> keep;
     stackTraverseIf(TermList(trm), 
@@ -211,16 +216,18 @@ CLASS_NAME(InterpretedLiteralEvaluator::ACFunEvaluator<CommutativeMonoid>);
           /* we eval constant parts */
           if (t.isTerm() && theory->tryInterpretConstant(t.term(), c)) {
             acc = CommutativeMonoid::groundEval(acc, c);
+            nums++;
           } else {
             keep.push(t);
           }
         });
+    if (nums <= 1) return false;
 
     if (acc != CommutativeMonoid::IDENTITY) {
       keep.push(TermList(theory->representConstant(acc)));
     }
 
-    auto iter = Stack<TermList>::Iterator(keep);
+    auto iter = Stack<TermList>::BottomFirstIterator(keep);
     if (!iter.hasNext()) {
       res = TermList(theory->representConstant(CommutativeMonoid::IDENTITY));
       return TermList(trm) != res;
@@ -228,7 +235,7 @@ CLASS_NAME(InterpretedLiteralEvaluator::ACFunEvaluator<CommutativeMonoid>);
       TermList out = iter.next();
       while (iter.hasNext()) {
         auto t = iter.next();
-        out = TermList(Term::create2(_fun, out, t));
+        out = TermList(Term::create2(_fun, t, out));
       }
       res = out;
       return TermList(trm) != res;
@@ -261,7 +268,7 @@ template<class ConstantType>
 class FracLess { 
   template<class Inequality> friend class InequalityNormalizer;
 
-  using number = num_traits<ConstantType>;
+  using number = NumTraits<ConstantType>;
   inline static unsigned functor() { return number::lessF(); }
 
   static Literal* normalizedLit(bool polarity, TermList lhs, TermList rhs) {
@@ -282,7 +289,7 @@ class FracLess {
 class IntLess { 
   template<class Inequality> friend class InequalityNormalizer;
 
-  using number = num_traits<IntegerConstantType>;
+  using number = NumTraits<IntegerConstantType>;
   inline static unsigned functor() { return number::lessF(); }
 
   static Literal* normalizedLit(bool polarity, TermList lhs, TermList rhs) {
@@ -480,7 +487,7 @@ class InterpretedLiteralEvaluator::TypedEvaluator : public Evaluator
 {
 public:
   using Value = T;
-  using number = num_traits<Value>;
+  using number = NumTraits<Value>;
 
   TypedEvaluator() {}
 
@@ -510,7 +517,7 @@ public:
   {
     CALL("InterpretedLiteralEvaluator::tryEvaluateFunc");
     ASS(theory->isInterpretedFunction(trm));
-    const auto num = num_traits<Value>{};
+    const auto num = NumTraits<Value>{};
 
     _DEBUG( "try evaluate ", trm->toString() );
 
@@ -537,7 +544,6 @@ public:
       }
       else if(arity==2){
 
-        // TODO handle addition x + -x ==> 0
 
         // If one argument is not a constant and the other is zero, one or minus one then
         // we might have some special cases
@@ -688,12 +694,12 @@ protected:
             result = t[0];
             return true;
 
-          case number::addI:
-            ASS_EQ(t.arity(), 2);
-            result = TermList(Term::create2(t.functor(), 
-                simplifyUnaryMinus(uminus_functor, t[0]),
-                simplifyUnaryMinus(uminus_functor, t[1])));
-            return true; 
+          // case number::addI:
+          //   ASS_EQ(t.arity(), 2);
+          //   result = TermList(Term::create2(t.functor(), 
+          //       simplifyUnaryMinus(uminus_functor, t[0]),
+          //       simplifyUnaryMinus(uminus_functor, t[1])));
+          //   return true; 
 
           default:
             /* interpreted function for which minus is not handled minus is not handled */
@@ -1129,16 +1135,16 @@ struct CommutativeMonoid;
 
 /** Creates an instance of struct CommutativeMonoid<oper>, for the use in ACFunEvaluator. */
 #define IMPL_OPERATOR(oper, type, identity, eval) \
-  template<> struct CommutativeMonoid<num_traits<type>::oper##I> { \
+  template<> struct CommutativeMonoid<NumTraits<type>::oper##I> { \
     using ConstantType = type; \
-    using number = num_traits<type>; \
+    using number = NumTraits<type>; \
     const static Theory::Interpretation interpreation = number::oper##I; \
     static unsigned functor() { return number::oper##F(); } \
     const static type IDENTITY; \
     static type groundEval(type l, type r) { return eval; } \
     /*const static unsigned FUNCTOR;*/ \
   }; \
-  const type     CommutativeMonoid<num_traits<type>::oper##I>::IDENTITY = identity; \
+  const type     CommutativeMonoid<NumTraits<type>::oper##I>::IDENTITY = identity; \
 
 /* int opeators */
 IMPL_OPERATOR(mul, IntegerConstantType, IntegerConstantType(1), l * r)
@@ -1692,7 +1698,7 @@ TermList InterpretedLiteralEvaluator::transformSubterm(TermList trm)
   CALL("InterpretedLiteralEvaluator::transformSubterm");
   // Debug::Tracer::printStack(cout);
 
-  DEBUG( "transformSubterm for ", trm.toString() );
+  // DEBUG( "transformSubterm for ", trm.toString() );
 
 
   if (!trm.isTerm()) { return trm; }
