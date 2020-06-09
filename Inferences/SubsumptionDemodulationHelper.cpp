@@ -195,7 +195,7 @@ SDHelper::ClauseComparisonResult SDHelper::clauseCompare(Literal* const lits1[],
   // Sort input by pointer value
   // NOTE: we use std::less<> because the C++ standard guarantees it is a total order on pointer types.
   //       (the built-in operator< is not required to be a total order for pointer types.)
-  std::less<Literal*> const lit_ptr_less;
+  std::less<Literal*> const lit_ptr_less {};
   std::sort(c1.begin(), c1.end(), lit_ptr_less);
   std::sort(c2.begin(), c2.end(), lit_ptr_less);
 

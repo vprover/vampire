@@ -35,7 +35,7 @@ class ScopeGuard final
   public:
     explicit ScopeGuard(Callable&& f)
       : active{true}
-      , f{std::forward<Callable>(f)}
+      , f(std::forward<Callable>(f))
     { }
 
     ScopeGuard() = delete;
@@ -46,7 +46,7 @@ class ScopeGuard final
 
     ScopeGuard(ScopeGuard&& other)
       : active{exchange(other.active, false)}
-      , f{std::move(other.f)}
+      , f(std::move(other.f))
     { }
 
     // Disallow moving into a ScopeGuard.

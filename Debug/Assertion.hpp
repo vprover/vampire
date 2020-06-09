@@ -40,7 +40,11 @@
     __VA_ARGS__ \
     _Pragma("GCC diagnostic pop") \
 
-#define __IGNORE_WEXCEPTIONS(...) __PUSH_DIAGNOSTICS("GCC diagnostic ignored \"-Wexceptions\"", __VA_ARGS__)
+#ifdef __clang__
+#  define __IGNORE_WEXCEPTIONS(...) __PUSH_DIAGNOSTICS("GCC diagnostic ignored \"-Wexceptions\"", __VA_ARGS__)
+#else // __clang__
+#  define __IGNORE_WEXCEPTIONS(...) 
+#endif // __clang__
 
 //#undef CONCAT
 
