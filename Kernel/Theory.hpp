@@ -63,56 +63,15 @@ public:
   IntegerConstantType operator%(const IntegerConstantType& num) const;
 
   // true if this divides num
-  bool divides(const IntegerConstantType& num) const {
-    CALL("IntegerConstantType:divides");
-    // if this is zero it shouldn't divide anything, if num is zero dividing it doesn't make sense
-    if(_val==0 || num._val==0){ return false; }
-    // if this is bigger than num then the result cannot be an integer
-    if(_val > num._val){ return false; }
-    // now we only need to check the absolute value
-    int safeVal=_val;
-    if (_val < 0 && ! Lib::Int::safeUnaryMinus<int>(_val,safeVal)) {
-      return false;
-    }
-    return (num._val % safeVal ==0);
-  }
-
+  bool divides(const IntegerConstantType& num) const ;
   float realDivide(const IntegerConstantType& num) const { 
     if(num._val==0) throw ArithmeticException();
     return ((float)_val)/num._val; 
   }
-  int intDivide(const IntegerConstantType& num) const {
-      CALL("IntegerConstantType::intDivide");
-      ASS(num.divides(*this));
-      if(num._val==0){ throw ArithmeticException(); }
-      return _val/num._val;
-  }
-  IntegerConstantType quotientE(const IntegerConstantType& num) const { 
-    CALL("IntegerConstantType::quotientE");
-
-    // Just do intDivide as realDivide may have rounding errors
-    return IntegerConstantType(intDivide(num));
-/*
-    //cout << "quotientE " << _val << " and " << num._val << endl;
-    if(num.divides(*this)){
-      return IntegerConstantType(intDivide(num));
-    }
-    if(num._val>0) return IntegerConstantType(::floor(realDivide(num)));
-    else return IntegerConstantType(::ceil(realDivide(num)));
-*/
-  }
-  IntegerConstantType quotientT(const IntegerConstantType& num) const { 
-    if(num.divides(*this)){
-      return IntegerConstantType(intDivide(num));
-    }
-    return IntegerConstantType(::trunc(realDivide(num)));
-  }
-  IntegerConstantType quotientF(const IntegerConstantType& num) const { 
-    if(num.divides(*this)){
-      return IntegerConstantType(intDivide(num));
-    }
-    return IntegerConstantType(::floor(realDivide(num)));
-  }
+  int intDivide(const IntegerConstantType& num) const ;  
+  IntegerConstantType quotientE(const IntegerConstantType& num) const; 
+  IntegerConstantType quotientT(const IntegerConstantType& num) const;
+  IntegerConstantType quotientF(const IntegerConstantType& num) const; 
 
   bool operator==(const IntegerConstantType& num) const;
   bool operator>(const IntegerConstantType& num) const;
