@@ -68,6 +68,10 @@ public:
     return _logic;
   }
 
+  const vstring& getStatus() const {
+    return _statusStr;
+  }
+
 private:
 
   static const char * s_smtlibLogicNameStrings[];
