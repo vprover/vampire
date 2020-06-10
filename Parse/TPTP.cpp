@@ -696,8 +696,8 @@ void TPTP::skipWhiteSpacesAndComments()
       if (c == '\n') {
         _lineNumber++;
 #if VDEBUG
-        // Only check for Status if in preamble before any units read
-        if(_units.list() == 0){
+        // Only check for Status if in preamble before any units read (also only in the top level file, not in includes)
+        if(_units.list() == 0 && _inputs.isEmpty()){
           _chars[n]='\0';
           vstring cline(_chars.content());
           if(cline.find("Status")!=vstring::npos){
