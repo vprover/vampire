@@ -266,15 +266,11 @@ void check_eval(Literal& orig, const Literal& expected) {
       _Pragma("GCC diagnostic push") \
       _Pragma("GCC diagnostic ignored \"-Wunused\"") \
         THEORY_SYNTAX_SUGAR_FUN(f, 1) \
+        THEORY_SYNTAX_SUGAR_PRED(p, 1) \
       _Pragma("GCC diagnostic pop") \
 
 /** Tests for evalutions that should only be successful for reals/rationals and not for integers. */
 #define FRACTIONAL_TEST(name, formula, expected) \
-    TEST_FUN(name ## _ ## INT) { \
-      THEORY_SYNTAX_SUGAR(INT); \
-      ADDITIONAL_FUNCTIONS \
-      check_no_succ(( formula )); \
-    }\
     TEST_FUN(name ## _ ## REAL) { \
       THEORY_SYNTAX_SUGAR(REAL); \
       ADDITIONAL_FUNCTIONS \

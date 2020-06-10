@@ -95,17 +95,6 @@
     return *Literal::create(p, true, {__ARGS_EXPR(TermWrapper, arity)}); \
   };  \
 
-#define __CLSR_PRED_UNINTERPRETED(p, sort) \
-  auto p = [](TermWrapper args) -> Literal&  {  \
-    unsigned p = env.signature->addPredicate(#p, 1);  \
-    static bool set = false;  \
-    if (!set) {  \
-      env.signature->getPredicate(p)->setType(OperatorType::getPredicateType({ sort }));  \
-      set = true;  \
-    }  \
-    return *Literal::create1(p, true, args); \
-  };  \
-
 #define __CLSR_CONS_UNINTERPRETED(name, sort) \
   TermWrapper name = 0;\
   { \
