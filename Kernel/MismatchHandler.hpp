@@ -41,7 +41,7 @@ public:
 class UWAMismatchHandler : public MismatchHandler
 {
 public:
-  UWAMismatchHandler(Stack<UnificationConstraint>& c) : constraints(c), specialVar(0) {}
+  UWAMismatchHandler(Stack<UnificationConstraint>& c) : constraints(c) /*, specialVar(0)*/ {}
   virtual bool handle(RobSubstitution* sub, TermList t1, unsigned index1, TermList t2, unsigned index2);
 
   CLASS_NAME(UWAMismatchHandler);
@@ -52,7 +52,7 @@ private:
   virtual bool introduceConstraint(RobSubstitution* subst,TermList t1,unsigned index1, TermList t2, unsigned index2);
 
   Stack<UnificationConstraint>& constraints;
-  unsigned specialVar;
+  // unsigned specialVar;
 };
 
 }
