@@ -30,12 +30,13 @@ TEST_FUN(test_00) {
   for (int i = -100; i < 100; i++) {
     for (int j = -100; j < 100; j++) {
       if (j != 0) {
-        DBGE(i)
-        DBGE(j)
-        DBGE(quotientE(i, j));
-        DBGE(remainderE(i, j));
+        // DBGE(i)
+        // DBGE(j)
+        DBG();
         auto q = quotientE(i, j);
         auto r = remainderE(i, j);
+        DBG("quotientE (", i,", ", j,")\t= ", q);
+        DBG("remainderE(", i,", ", j,")\t= ", r);
         ASS_EQ(q * j + r, i)
         ASS(0 <= r && r < abs(j))
       }
