@@ -193,7 +193,7 @@ public:
   CLASS_NAME(ActiveClauseContainer);
   USE_ALLOCATOR(ActiveClauseContainer);
 
-  ActiveClauseContainer(const Shell::Options& opt) : _size(0), _opt(opt) {}
+  ActiveClauseContainer(const Shell::Options& opt) : _size(0)/*, _opt(opt)*/ {}
 
   void add(Clause* c) override;
   void remove(Clause* c) override;
@@ -204,7 +204,7 @@ protected:
   void onLimitsUpdated() override;
 private:
   unsigned _size;
-  const Shell::Options& _opt;
+  // const Shell::Options& _opt;
 };
 
 
