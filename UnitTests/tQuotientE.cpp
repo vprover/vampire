@@ -11,7 +11,7 @@ IntegerConstantType quotientE(int lhs, int rhs) {
 }
 
 IntegerConstantType remainderE(int lhs, int rhs) {
-  return IntegerConstantType(lhs) - (IntegerConstantType(lhs).quotientE(rhs) * IntegerConstantType(rhs));
+  return IntegerConstantType(lhs).remainderE(rhs);
 }
 
 bool operator==(IntegerConstantType lhs, int rhs) {
@@ -26,12 +26,10 @@ bool operator<=(int lhs, IntegerConstantType rhs) {
   return IntegerConstantType(lhs) <= rhs;
 }
 
-TEST_FUN(test_00) {
+TEST_FUN(check_spec) {
   for (int i = -100; i < 100; i++) {
     for (int j = -100; j < 100; j++) {
       if (j != 0) {
-        // DBGE(i)
-        // DBGE(j)
         DBG();
         auto q = quotientE(i, j);
         auto r = remainderE(i, j);
@@ -43,6 +41,4 @@ TEST_FUN(test_00) {
     }
   }
 }
-
-
 

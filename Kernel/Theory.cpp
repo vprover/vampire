@@ -103,7 +103,7 @@ IntegerConstantType IntegerConstantType::operator*(const IntegerConstantType& nu
 inline typename IntegerConstantType::InnerType divideOrThrow(typename IntegerConstantType::InnerType lhs, typename IntegerConstantType::InnerType rhs) {
     typename IntegerConstantType::InnerType out;
     if (!Int::safeDivide(lhs,rhs, out))
-      throw ArithmeticException();
+      throw MachineArithmeticException();
     return out;
 }
 
@@ -114,6 +114,21 @@ int IntegerConstantType::intDivide(const IntegerConstantType& num) const
     return divideOrThrow(_val, num._val);
 }
 
+IntegerConstantType IntegerConstantType::remainderE(const IntegerConstantType& num) const
+{
+  CALL("IntegerConstantType::remainderE");
+  (void) divideOrThrow(_val, num._val);
+  auto mod = IntegerConstantType(this->_val % num._val);
+  if (mod < 0) {
+    if (num._val >= 0) {
+      mod = mod + num;
+    } else {
+      mod = mod - num;
+    }
+  }
+  return mod;
+}
+
 /**
  * specification from TPTP:
  * quotient_e(N,D) - the Euclidean quotient, which has a non-negative remainder. If D is positive then $quotient_e(N,D) is the floor (in the type of N and D) of the real division N/D, and if D is negative then $quotient_e(N,D) is the ceiling of N/D.
@@ -121,19 +136,7 @@ int IntegerConstantType::intDivide(const IntegerConstantType& num) const
 IntegerConstantType IntegerConstantType::quotientE(const IntegerConstantType& num) const
 { 
   CALL("IntegerConstantType::quotientE");
-  auto quot = IntegerConstantType(divideOrThrow(this->_val, num._val));
-  if (num.divides(*this)) {
-    return quot;
-  } else {
-    // quot was truncated
-    if (num._val > 0) {
-      /* use floor */
-      return quot < 0 ? quot - 1 : quot;
-    } else {
-      /* use ceiling */
-      return quot > 0 ? quot + 1 : quot;
-    }
-  }
+  return (*this - this->remainderE(num)).intDivide(num);
 }
 
 IntegerConstantType IntegerConstantType::quotientF(const IntegerConstantType& num) const
@@ -165,6 +168,7 @@ bool IntegerConstantType::divides(const IntegerConstantType& num) const
   }
 }
 
+//TODO remove this operator. We already have 4 other ways of dividing integers, which are required due to the semantics of TPTP and SMTCOMP.
 IntegerConstantType IntegerConstantType::operator/(const IntegerConstantType& num) const
 {
   CALL("IntegerConstantType::operator/");
@@ -179,6 +183,7 @@ IntegerConstantType IntegerConstantType::operator/(const IntegerConstantType& nu
   return IntegerConstantType(_val/num._val);
 }
 
+//TODO remove this operator. We already have 3 other ways of computing the remainder, required by the semantics of TPTP and SMTCOMP.
 IntegerConstantType IntegerConstantType::operator%(const IntegerConstantType& num) const
 {
   CALL("IntegerConstantType::operator%");
@@ -394,8 +399,8 @@ void RationalConstantType::cannonize()
 
   InnerType gcd = Int::gcd(_num.toInner(), _den.toInner());
   if (gcd!=1) {
-    _num = _num/gcd;
-    _den = _den/gcd;
+    _num = _num.intDivide(gcd);
+    _den = _den.intDivide(gcd);
   }
   if (_den<0) {
     _num = -_num;

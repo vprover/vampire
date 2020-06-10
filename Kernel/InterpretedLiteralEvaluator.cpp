@@ -762,7 +762,7 @@ protected:
       return true;
     // The remainder is left - (quotient * right)
     case Theory::INT_REMAINDER_E:
-      res = arg1 - (arg1.quotientE(arg2)*arg2);
+      res = arg1.remainderE(arg2);
       return true;
     case Theory::INT_REMAINDER_T:
       res = arg1 - (arg1.quotientT(arg2)*arg2);
@@ -794,7 +794,7 @@ protected:
       res = arg1<=arg2;
       return true;
     case Theory::INT_DIVIDES:
-      res = (arg2%arg1)==0;
+      res = arg1.divides(arg2);
       return true;
     default:
       return false;
