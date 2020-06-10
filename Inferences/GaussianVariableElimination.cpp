@@ -5,6 +5,7 @@
 #include "Kernel/EqHelper.hpp"
 #include "Kernel/InterpretedLiteralEvaluator.hpp"
 #include "Inferences/InterpretedEvaluation.hpp"
+#include "Kernel/PolynomialNormalizer.hpp"
 
 #define DEBUG(...)  //DBG(__VA_ARGS__)
 
@@ -13,6 +14,7 @@ namespace Inferences {
 
 Clause* GaussianVariableElimination::simplify(Clause* in) 
 {
+  auto ev = PolynomialNormalizer<PolynomialNormalizerConfig::Simplification<>>();
   CALL("GaussianVariableElimination::simplify")
   ASS(in)
 
@@ -26,9 +28,10 @@ Clause* GaussianVariableElimination::simplify(Clause* in)
         /* found a rebalancing: lhs = rhs[lhs, ...] */
         auto lhs = b.lhs();
         auto rhs = b.buildRhs();
-        //TODO simplify here
         ASS_REP(lhs.isVar(), lhs);
 
+        // TODO check whether evaluation here makes sense
+        rhs = ev.evaluate(rhs);
         if (!rhs.containsSubterm(lhs)) {
           /* lhs = rhs[...] */
           DEBUG(lhs, " -> ", rhs);

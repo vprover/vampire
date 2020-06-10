@@ -80,13 +80,13 @@ TEST_REBALANCE_SPLIT(constants_2,
 TEST_REBALANCE_ALL(uninterpreted_1
     , eq(add(2, x), a)
     , __list(
-        bal(x, add(-2, a))
+        bal(x, add(a, -2))
     ))
 
 TEST_REBALANCE_SPLIT(uninterpreted_2
     , eq(mul(x, 2), a)
     , __frac(
-      bal(x, mul(frac(1, 2), a))
+      bal(x, mul(a, frac(1, 2)))
     )
     , __int( ))
 
@@ -126,11 +126,11 @@ TEST_REBALANCE_SPLIT(multi_var_3
 TEST_REBALANCE_SPLIT(multi_var_4
     , eq(mul(x, 2), y)
     , __frac(
-        bal(x, mul(frac(1, 2), y))
-      , bal(y, mul(2, x))
+        bal(x, mul(y, frac(1, 2)))
+      , bal(y, mul(x , 2))
     )
     , __int( 
-      bal(y, mul(2, x))
+      bal(y, mul(x, 2))
     ))
 
 TEST_REBALANCE_SPLIT(multi_var_5
@@ -193,9 +193,13 @@ TEST_REBALANCE_ALL(bug_1
       bal(y, f(mul(16, z)))
     ))
 
-
-TEST_REBALANCE_ALL(bug_2
+TEST_REBALANCE_SPLIT(bug_2
     , neq(add(x,mul(-1,x)), y)
+    , __list(
+        bal(y, add(x,mul(-1,x)))
+      , bal(x, add(y, minus(mul(-1,x))))
+      , bal(x, mul( add(y, minus(x)), -1))
+    )
     , __list(
         bal(y, add(x,mul(-1,x)))
       , bal(x, add(y, minus(mul(-1,x))))
