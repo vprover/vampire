@@ -171,6 +171,11 @@ template <class A, class... As> union VariadicUnion<A, As...> {
   VariadicUnion() {}
 };
 
+
+  template <class B, class A, class... As> struct idx_of {
+    static constexpr unsigned value = idx_of<B, As...>::value + 1;
+  };
+  template <class A, class... As> struct idx_of<A, A, As...> { static constexpr unsigned value = 0; };
 template <class A, class... As> class Coproduct<A, As...> {
   unsigned _tag;
 
@@ -183,12 +188,6 @@ public:
   template <unsigned idx> struct type {
     using value = typename va_idx<idx, A, As...>::type;
   };
-  template <class B> struct idx_of {
-    static constexpr unsigned value =
-        Coproduct<As...>::template idx_of<B>::value + 1;
-  };
-  template <> struct idx_of<A> { static constexpr unsigned value = 0; };
-
   template <unsigned idx> bool is() const {
     static_assert(idx < size, "out of bounds");
     return _tag == idx;
@@ -251,7 +250,7 @@ public:
                                                                                \
   template <class B> inline B REF as() REF {                                   \
     /* TODO static assertions */                                               \
-    return unwrap<idx_of<B>::value>();                                         \
+    return unwrap<idx_of<B, A, As...>::value>();                                         \
   }                                                                            \
                                                                                \
   template <unsigned idx>                                                      \
@@ -289,9 +288,10 @@ private:
 
 public:
   friend std::ostream &operator<<(std::ostream &out, const Coproduct &self) {
-    return self.collapsePoly<std::ostream &>(__writeToStream{self._tag, out});
+    return self.template collapsePoly<std::ostream &>(__writeToStream{self._tag, out});
   }
 };
+
 
 } // namespace Lib
 #endif // __LIB_EITHER__H__
