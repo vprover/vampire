@@ -228,7 +228,7 @@ class Int
     return true;
   }
 
-  static bool safeDivide(int arg1, int arg2, int& res)
+  inline static bool safeDivide(int arg1, int arg2, int& res)
   {
     CALL("Int::safeDivide");
     if (arg2 == 0) return false;

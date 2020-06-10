@@ -65,8 +65,6 @@ public:
   IntegerConstantType operator-(const IntegerConstantType& num) const;
   IntegerConstantType operator-() const;
   IntegerConstantType operator*(const IntegerConstantType& num) const;
-  IntegerConstantType operator/(const IntegerConstantType& num) const;
-  IntegerConstantType operator%(const IntegerConstantType& num) const;
 
   // true if this divides num
   bool divides(const IntegerConstantType& num) const ;
@@ -75,6 +73,7 @@ public:
     return ((float)_val)/num._val; 
   }
   int intDivide(const IntegerConstantType& num) const ;  
+  IntegerConstantType remainderE(const IntegerConstantType& num) const; 
   IntegerConstantType quotientE(const IntegerConstantType& num) const; 
   IntegerConstantType quotientT(const IntegerConstantType& num) const;
   IntegerConstantType quotientF(const IntegerConstantType& num) const; 
@@ -104,6 +103,8 @@ public:
   vstring toString() const;
 private:
   InnerType _val;
+  IntegerConstantType operator/(const IntegerConstantType& num) const;
+  IntegerConstantType operator%(const IntegerConstantType& num) const;
 };
 
 inline

@@ -15,44 +15,31 @@ Clause* GaussianVariableElimination::simplify(Clause* in)
 {
   CALL("GaussianVariableElimination::simplify")
   ASS(in)
+
+  auto& cl = *in;
   
-  auto performStep = [&](Clause& cl) -> Clause& {
+  for(int i = 0; i < cl.size(); i++) {
+    auto& lit = *cl[i];
+    if (lit.isEquality() && lit.isNegative()) { 
+      for (auto b : Balancer(lit)) {
 
-    for(int i = 0; i < cl.size(); i++) {
-      auto& lit = *cl[i];
-      if (lit.isEquality() && lit.isNegative()) { 
-        for (auto b : Balancer(lit)) {
+        /* found a rebalancing: lhs = rhs[lhs, ...] */
+        auto lhs = b.lhs();
+        auto rhs = b.buildRhs();
+        //TODO simplify here
+        ASS_REP(lhs.isVar(), lhs);
 
-          /* found a rebalancing: lhs = rhs[lhs, ...] */
-          auto lhs = b.lhs();
-          auto rhs = b.buildRhs();
-          //TODO simplify here
-          ASS_REP(lhs.isVar(), lhs);
+        if (!rhs.containsSubterm(lhs)) {
+          /* lhs = rhs[...] */
+          DEBUG(lhs, " -> ", rhs);
 
-          if (!rhs.containsSubterm(lhs)) {
-            /* lhs = rhs[...] */
-            DEBUG(lhs, " -> ", rhs);
-
-            return *rewrite(cl, lhs, rhs, i);
-          }
+          return rewrite(cl, lhs, rhs, i);
         }
       }
     }
-    return cl;
+  }
 
-  };
-
-  return &performStep(*in);
-  // Clause* out = in;
-  // while(true) {
-  //   Clause* step = &performStep(*out);
-  //   if (step == out) 
-  //     break;
-  //   else 
-  //     out = step;
-  // }
-
-  // return out;
+  return in;
 }
 
 Clause* GaussianVariableElimination::rewrite(Clause& cl, TermList find, TermList replace, unsigned skipLiteral) const 
