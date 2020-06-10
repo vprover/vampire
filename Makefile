@@ -205,6 +205,8 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/Inference.o\
         Kernel/InferenceStore.o\
         Kernel/InterpretedLiteralEvaluator.o\
+	Kernel/PolynomialNormalizer.o\
+	Kernel/Polynomial.o\
         Kernel/Rebalancing.o\
         Kernel/Rebalancing/Inverters.o\
 	Kernel/NumTraits.o\
@@ -295,6 +297,7 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/InferenceEngine.o\
 	 Inferences/Instantiation.o\
          Inferences/InterpretedEvaluation.o\
+         Inferences/PolynomialNormalization.o\
          Inferences/SLQueryBackwardSubsumption.o\
          Inferences/Superposition.o\
          Inferences/TautologyDeletionISE.o\
@@ -470,6 +473,8 @@ LIB_DEP = Indexing/TermSharing.o\
 	  Kernel/FormulaUnit.o\
 	  Kernel/FormulaVarIterator.o\
 	  Kernel/InterpretedLiteralEvaluator.o\
+	  Kernel/PolynomialNormalizer.o\
+	  Kernel/Polynomial.o\
 	  Kernel/Rebalancing.o\
 	  Kernel/Rebalancing/Inverters.o\
 	  Kernel/NumTraits.o\
