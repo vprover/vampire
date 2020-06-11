@@ -349,6 +349,10 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/Unit.hpp
     Kernel/LPO.cpp
     Kernel/LPO.hpp
+    Kernel/Polynomial.hpp
+    Kernel/PolynomialNormalizer.hpp
+    Kernel/Polynomial.cpp
+    Kernel/PolynomialNormalizer.cpp
     )
 source_group(kernel_source_files FILES ${VAMPIRE_KERNEL_SOURCES})
 
