@@ -280,7 +280,10 @@ private:
   Inner _inner;
   static Map<ComplexPolynom, ComplexPolynom*, Hasher> polynoms;
 
+
 public:
+  bool isCoeff() const& { return _inner.template is<1>(); }
+  Coeff unwrapCoeff() const& { return _inner.template unwrap<1>(); }
 
   friend ostream& operator<<(ostream& out, const Polynom& self) { 
     self._inner.template match<void>(
@@ -636,6 +639,7 @@ struct AnyPoly : public Coproduct< Polynom<NumTraits<IntegerConstantType>> , Pol
     CALL("AnyPoly::toTerm")
     return poly<Const>::template toTerm<Config>(as<poly<Const>>());
   }
+
 
   template<class Config>
   TermList toTerm_() {

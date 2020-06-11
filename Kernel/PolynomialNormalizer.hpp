@@ -32,6 +32,8 @@ public:
   TermEvalResult(Coproduct     && super) : Coproduct(std::move(super)) {}
   TermEvalResult(Coproduct      & super) : Coproduct(          super ) {}
   TermEvalResult(Coproduct const& super) : Coproduct(          super ) {}
+  bool isPoly() const& { return is<1>(); }
+  AnyPoly const& asPoly() const& { return unwrap<1>(); }
 };
 
 class LitEvalResult : public Lib::Coproduct<Literal*, bool> {

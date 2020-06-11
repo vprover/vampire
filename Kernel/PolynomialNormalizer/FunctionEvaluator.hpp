@@ -38,30 +38,33 @@ LitEvalResult tryEvalConstant2(Literal* lit, EvalGround fun) {
 template<class ConstantType, class EvalGround>
 TermEvalResult tryEvalConstant1(Term* orig, TermEvalResult* evaluatedArgs, EvalGround fun) {
 
-  TermList lhs = evaluatedArgs[0].template unwrap<0>();
-  ConstantType l;
-  if (theory->tryInterpretConstant(lhs, l)) {
-    return TermEvalResult::template variant<0>(TermList(theory->representConstant(fun(l))));
-  } else {
-    return TermEvalResult::template variant<0>(TermList(orig));
+  using Number = NumTraits<ConstantType>;
+  using NumberOut = NumTraits<typename result_of<EvalGround(ConstantType)>::type>;
+
+  if (evaluatedArgs[0].isPoly()) {
+    auto poly = evaluatedArgs[0].template as<AnyPoly>().template as<Polynom<Number>>();
+    if (poly.isCoeff()) {
+      return TermEvalResult::template variant<1>(AnyPoly(Polynom<NumberOut>(fun(poly.unwrapCoeff()))));
+    }
   }
+
+  return TermEvalResult::template variant<0>(TermList(orig));
 }
 
 
 template<class ConstantType, class EvalGround>
 TermEvalResult tryEvalConstant2(Term* orig, TermEvalResult* evaluatedArgs, EvalGround fun) {
+  using Number = NumTraits<ConstantType>;
+  using NumberOut = NumTraits<typename result_of<EvalGround(ConstantType, ConstantType)>::type>;
 
-  TermList lhs = evaluatedArgs[0].template unwrap<0>();
-  TermList rhs = evaluatedArgs[1].template unwrap<0>();
-
-  ConstantType l;
-  ConstantType r;
-  if (theory->tryInterpretConstant(lhs, l) 
-      && theory->tryInterpretConstant(rhs, r)) {
-    return TermEvalResult::template variant<0>(TermList(theory->representConstant(fun(l,r))));
-  } else {
-    return TermEvalResult::template variant<0>(TermList(orig));
+  if (evaluatedArgs[0].isPoly() && evaluatedArgs[1].isPoly()) {
+    auto lhs = evaluatedArgs[0].template as<AnyPoly>().template as<Polynom<Number>>();
+    auto rhs = evaluatedArgs[1].template as<AnyPoly>().template as<Polynom<Number>>();
+    if (lhs.isCoeff() && rhs.isCoeff()) {
+      return TermEvalResult::template variant<1>(AnyPoly(Polynom<NumberOut>(fun(lhs.unwrapCoeff(), rhs.unwrapCoeff()))));
+    }
   }
+  return TermEvalResult::template variant<0>(TermList(orig));
 }
 
 
@@ -120,9 +123,7 @@ TermEvalResult evaluateUnaryMinus(TermEvalResult& inner) {
 
 template<class Number, class Config> TermEvalResult evaluateMul(TermEvalResult&& lhs, TermEvalResult&& rhs) 
 {
-  // TODO parametrize usePolyMul
   using Poly = Polynom<Number>;
-  using Const = typename Poly::Coeff;
 
   auto to_poly = [](TermEvalResult&& x) -> Poly {
     return std::move(x).match<Poly>(
@@ -155,7 +156,6 @@ template<class Number, class Config> TermEvalResult evaluateMul(TermEvalResult&&
 template<class Number>
 Polynom<Number> evaluateAdd(TermEvalResult&& lhs, TermEvalResult&& rhs) {
   CALL("Polynom<Number> evaluateAdd(TermEvalResult&& lhs, TermEvalResult&& rhs)")
-  using Const = typename Number::ConstantType;
   using Poly = Polynom<Number>;
 
   Poly l = std::move(lhs).match<Poly>(
@@ -189,9 +189,9 @@ Polynom<Number> evaluateAdd(TermEvalResult&& lhs, TermEvalResult&& rhs) {
 /// Functions that are only handled for constants
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#define IMPL_EVAL_UNARY(Const, INTER, expr) \
+#define IMPL_EVAL_UNARY(Const, INTER, clsr) \
   IMPL_EVALUATE_FUN(Interpretation::INTER, { \
-    return tryEvalConstant1<Const>(orig, evaluatedArgs, [] (Const x) { return expr; });  \
+    return tryEvalConstant1<Const>(orig, evaluatedArgs, clsr);  \
   } )
 
 #define IMPL_EVAL_BINARY(Const, INTER, expr) \
@@ -202,8 +202,8 @@ Polynom<Number> evaluateAdd(TermEvalResult&& lhs, TermEvalResult&& rhs) {
 
 /////////////////// Integer only functions
 
-IMPL_EVAL_UNARY(IntegerConstantType, INT_ABS      , x >= 0 ? x : -x)
-IMPL_EVAL_UNARY(IntegerConstantType, INT_SUCCESSOR, x + 1          )
+IMPL_EVAL_UNARY(IntegerConstantType, INT_ABS      , [] (IntegerConstantType x) -> IntegerConstantType { return x >= 0 ? x : -x; })
+IMPL_EVAL_UNARY(IntegerConstantType, INT_SUCCESSOR, [] (IntegerConstantType x) -> IntegerConstantType { return x >= 0 ? x : -x; })
 
 /////////////////// INT_QUOTIENT_E and friends
 
@@ -227,16 +227,16 @@ IMPL_EVAL_UNARY(IntegerConstantType, INT_SUCCESSOR, x + 1          )
 /////////////////// INT_FLOOR and friends
 
 // have no effect for ints
-IMPL_EVAL_UNARY(IntegerConstantType, INT_FLOOR   , x)
-IMPL_EVAL_UNARY(IntegerConstantType, INT_CEILING , x)
-IMPL_EVAL_UNARY(IntegerConstantType, INT_TRUNCATE, x)
-IMPL_EVAL_UNARY(IntegerConstantType, INT_ROUND   , x)
+IMPL_EVAL_UNARY(IntegerConstantType, INT_FLOOR   , [] (IntegerConstantType x) -> IntegerConstantType { return x; })
+IMPL_EVAL_UNARY(IntegerConstantType, INT_CEILING , [] (IntegerConstantType x) -> IntegerConstantType { return x; })
+IMPL_EVAL_UNARY(IntegerConstantType, INT_TRUNCATE, [] (IntegerConstantType x) -> IntegerConstantType { return x; })
+IMPL_EVAL_UNARY(IntegerConstantType, INT_ROUND   , [] (IntegerConstantType x) -> IntegerConstantType { return x; })
 
 // same impl for fractionals
 #define IMPL_FRAC_FLOOR_FRIENDS(Const, NUM) \
-  IMPL_EVAL_UNARY(Const, NUM ## _FLOOR, x.floor()) \
-  IMPL_EVAL_UNARY(Const, NUM ## _CEILING, x.ceiling()) \
-  IMPL_EVAL_UNARY(Const, NUM ## _TRUNCATE, x.truncate()) \
+  IMPL_EVAL_UNARY(Const, NUM ## _FLOOR   , [](Const x) -> Const { return x.floor();   }) \
+  IMPL_EVAL_UNARY(Const, NUM ## _CEILING , [](Const x) -> Const { return x.ceiling(); }) \
+  IMPL_EVAL_UNARY(Const, NUM ## _TRUNCATE, [](Const x) -> Const { return x.truncate();}) \
 
   IMPL_FRAC_FLOOR_FRIENDS(RealConstantType    , REAL)
   IMPL_FRAC_FLOOR_FRIENDS(RationalConstantType, RAT)
@@ -246,9 +246,9 @@ IMPL_EVAL_UNARY(IntegerConstantType, INT_ROUND   , x)
 /////////////////// RAT_TO_INT and friends
 
 #define IMPL_NUM_CVT(Const, NUM) \
-    IMPL_EVAL_UNARY(Const, NUM ## _TO_INT, IntegerConstantType::floor(x)) \
-    IMPL_EVAL_UNARY(Const, NUM ## _TO_RAT, RationalConstantType(x)) \
-    IMPL_EVAL_UNARY(Const, NUM ## _TO_REAL, RealConstantType(x)) \
+    IMPL_EVAL_UNARY(Const, NUM ## _TO_INT, [](Const x) -> IntegerConstantType  { return IntegerConstantType::floor(x); }) \
+    IMPL_EVAL_UNARY(Const, NUM ## _TO_RAT, [](Const x) -> RationalConstantType { return RationalConstantType(x);       }) \
+    IMPL_EVAL_UNARY(Const, NUM ## _TO_REAL,[](Const x) -> RealConstantType     { return RealConstantType(x);           }) \
 
   IMPL_NUM_CVT(RealConstantType    , REAL)
   IMPL_NUM_CVT(RationalConstantType, RAT )

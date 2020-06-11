@@ -255,6 +255,7 @@ public:
                                                                                \
   template <unsigned idx>                                                      \
   inline typename va_idx<idx, A, As...>::type REF unwrap() REF {               \
+    CALL("Coproduct::unwrap() " #REF );                                \
     static_assert(idx < size, "out of bounds");                                \
     ASS(idx == _tag);                                                          \
     return __unwrap<idx, A, As...>{}(MOVE(_content));                          \
