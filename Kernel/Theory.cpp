@@ -118,6 +118,10 @@ IntegerConstantType IntegerConstantType::remainderE(const IntegerConstantType& n
 {
   CALL("IntegerConstantType::remainderE");
 
+  if (num._val == 0) {
+    throw MachineArithmeticException();
+  }
+
   if (this->_val == numeric_limits<IntegerConstantType::InnerType>::min() && num._val == -1) {
     return 0;
   }
@@ -141,7 +145,7 @@ IntegerConstantType IntegerConstantType::quotientE(const IntegerConstantType& nu
 { 
   CALL("IntegerConstantType::quotientE");
 
-  if (this->_val == numeric_limits<IntegerConstantType::InnerType>::min() && num._val == -1) {
+  if (num._val == 0 || (this->_val == numeric_limits<IntegerConstantType::InnerType>::min() && num._val == -1)) {
     throw MachineArithmeticException();
   }
 

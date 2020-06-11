@@ -32,10 +32,9 @@ TEST_FUN(check_spec) {
   for (int j = std::numeric_limits<int>::min();;) {
     for (int i = std::numeric_limits<int>::min();; ) {
 
-      if (j != 0) {
         DBG();
 
-        bool qOK = true;
+        bool bothOK = true;
 
         IntegerConstantType q;
         try {
@@ -43,13 +42,19 @@ TEST_FUN(check_spec) {
           DBG("quotientE (", i,", ", j,")\t= ", q);
         } catch (const MachineArithmeticException&) {
           DBG("quotientE (", i,", ", j,")\t= MachineArithmeticException");
-          qOK = false;
+          bothOK = false;
         }
 
-        IntegerConstantType r = remainderE(i, j);
-        DBG("remainderE(", i,", ", j,")\t= ", r);
+        IntegerConstantType r;
+        try {
+	 r = remainderE(i, j);
+         DBG("remainderE(", i,", ", j,")\t= ", r);
+	} catch (const MachineArithmeticException&) {
+	 DBG("remainderE(", i,", ", j,")\t= MachineArithmeticException");
+	 bothOK = false;
+	}
 
-        if (qOK) {
+        if (bothOK) {
           // do the math 64 bit
           long long int I = i;
           long long int J = j;
@@ -59,7 +64,6 @@ TEST_FUN(check_spec) {
           ASS_EQ(Q * J + R, I)
           ASS(0 <= R && R < abs(J))
         }
-      }
 
       if (i == std::numeric_limits<int>::max()) {
         break;
