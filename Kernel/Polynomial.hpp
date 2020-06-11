@@ -269,7 +269,7 @@ template<class number>
 class Polynom {
 public:
   using Coeff = typename number::ConstantType;
-  using Monom = Monom<number>;
+  using PMonom = Monom<number>;
 
 private:
   class ComplexPolynom;
@@ -309,7 +309,7 @@ public:
                     } else {
                       auto l = ComplexPolynom::template toTerm<Config>(*lhs);
                       auto r = ComplexPolynom::template toTerm<Config>(*rhs);
-                      return Polynom(ComplexPolynom::create(ComplexPolynom(Monom(l,r))));
+                      return Polynom(ComplexPolynom::create(ComplexPolynom(PMonom(l,r))));
                     }
                   }
                 , [&](Coeff           const& rhs) { return ComplexPolynom::coeff_poly_mul(rhs, lhs); }
@@ -351,28 +351,28 @@ private:
     CLASS_NAME(ComplexPolynom)
 
   private:
-    vector<tuple<Monom, Coeff>> _coeffs;
+    vector<tuple<PMonom, Coeff>> _coeffs;
     Lib::Optional<TermList> _toTerm;
     using poly_pair = typename decltype(_coeffs)::value_type;
 
   public:
 
-    ComplexPolynom(Coeff coeff, Monom&& t) : _coeffs(decltype(_coeffs)())  { 
+    ComplexPolynom(Coeff coeff, PMonom&& t) : _coeffs(decltype(_coeffs)())  { 
       _coeffs.emplace_back(poly_pair(std::move(t), coeff));
     }
 
-    ComplexPolynom(Monom&& t) : _coeffs(decltype(_coeffs)())  { 
+    ComplexPolynom(PMonom&& t) : _coeffs(decltype(_coeffs)())  { 
       _coeffs.emplace_back(poly_pair(std::move(t), Coeff(1)));
     }
 
-    ComplexPolynom(Coeff coeff, TermList t) : ComplexPolynom(coeff, Monom(t))  { 
-      // _coeffs.emplace_back(poly_pair(Monom(t), coeff));
+    ComplexPolynom(Coeff coeff, TermList t) : ComplexPolynom(coeff, PMonom(t))  { 
+      // _coeffs.emplace_back(poly_pair(PMonom(t), coeff));
     }
 
     ComplexPolynom(Coeff constant) : _coeffs(decltype(_coeffs)())  { 
       CALL("ComplexPolynom::ComplexPolynom(Coeff)")
       if (constant != number::zeroC)
-        _coeffs.emplace_back(poly_pair(Monom(), constant));
+        _coeffs.emplace_back(poly_pair(PMonom(), constant));
     }
 
     ComplexPolynom(decltype(_coeffs) coeffs) : _coeffs(coeffs) { }
@@ -395,11 +395,11 @@ private:
       return lhs._coeffs == rhs._coeffs;
     }
 
-    static Monom& getMonom(poly_pair& pair) {
+    static PMonom& getMonom(poly_pair& pair) {
       return std::get<0>(pair);
     }
 
-    static const Monom& getMonom(const poly_pair& pair) {
+    static const PMonom& getMonom(const poly_pair& pair) {
       return std::get<0>(pair);
     }
 
@@ -456,9 +456,9 @@ private:
         }
       } else {
         newPoly._coeffs.reserve(oldPoly._coeffs.size() + 1);
-        newPoly._coeffs.push_back(poly_pair(Monom(), coeff));
+        newPoly._coeffs.push_back(poly_pair(PMonom(), coeff));
         for (auto& f : oldPoly._coeffs) {
-          // newPoly.push_back(poly_pair(Monom(getMonom(p), getMonom())))
+          // newPoly.push_back(poly_pair(PMonom(getMonom(p), getMonom())))
           newPoly._coeffs.push_back(poly_pair(f));
         }
       }
@@ -484,7 +484,7 @@ private:
 
         newPoly._coeffs.reserve(old._coeffs.size());
         for (auto& p : old._coeffs) {
-          newPoly._coeffs.push_back(poly_pair(Monom(getMonom(p)), coeff * getCoeff(p)));
+          newPoly._coeffs.push_back(poly_pair(PMonom(getMonom(p)), coeff * getCoeff(p)));
         }
 
         return Polynom(ComplexPolynom::create(std::move(newPoly)));
@@ -497,11 +497,12 @@ private:
       DEBUG("lhs: ", lhs);
       DEBUG("rhs: ", rhs);
 
-      map<Monom, Coeff> prods;
+      //TODO use Map instead
+      map<PMonom, Coeff> prods;
 
       for (auto& l : lhs._coeffs) {
         for (auto& r : rhs._coeffs) {
-          Monom monom = Monom::monom_mul( getMonom(l), getMonom(r));
+          PMonom monom = PMonom::monom_mul( getMonom(l), getMonom(r));
           auto coeff = getCoeff(l) * getCoeff(r);
           auto res = prods.emplace(make_pair(move(monom), coeff));
           if (!res.second) {
@@ -612,57 +613,28 @@ private:
 };
 
 
-struct AnyPoly {
+struct AnyPoly : public Coproduct< Polynom<NumTraits<IntegerConstantType>> , Polynom<NumTraits<RationalConstantType>> , Polynom<NumTraits<RealConstantType>> > 
+{
   
   template<class C>
   using poly = Polynom<NumTraits<C>>;
-  using self_t = Coproduct< poly<IntegerConstantType> , poly<RationalConstantType> , poly<RealConstantType> >;
-  self_t self; 
+  //using Self = Coproduct< poly<IntegerConstantType> , poly<RationalConstantType> , poly<RealConstantType> >;
+  //Self self; 
 
-  explicit AnyPoly(poly<IntegerConstantType>&& x) : self(self_t::variant<0>(std::move(x))) {
+  explicit AnyPoly(poly<IntegerConstantType>&& x) : Coproduct(variant<0>(std::move(x))) {
     CALL("AnyPoly(Int)")
   }
-  explicit AnyPoly(poly<RationalConstantType>&& x ) : self(self_t::variant<1>(std::move(x))) {
+  explicit AnyPoly(poly<RationalConstantType>&& x ) : Coproduct(variant<1>(std::move(x))) {
     CALL("AnyPoly(Rat)")
   }
-  explicit AnyPoly(poly<RealConstantType>&& x ) : self(self_t::variant<2>(std::move(x))) {
+  explicit AnyPoly(poly<RealConstantType>&& x ) : Coproduct(variant<2>(std::move(x))) {
     CALL("AnyPoly(Real)")
-  }
-
-  template<class Const> const poly<Const>& ref() const;
-
-  template<> const poly<IntegerConstantType>& ref<IntegerConstantType>() const 
-  { return self.unwrap<0>();  }
-  template<> const poly<RationalConstantType>& ref<RationalConstantType>() const 
-  { return self.unwrap<1>();  }
-  template<> const poly<RealConstantType>& ref<RealConstantType>() const 
-  { return self.unwrap<2>();  }
-
-  template<class Const> poly<Const>& ref_mut();
-
-  template<> poly<IntegerConstantType>& ref_mut<IntegerConstantType>() 
-  { return self.unwrap<0>();  }
-  template<> poly<RationalConstantType>& ref_mut<RationalConstantType>()
-  { return self.unwrap<1>();  }
-  template<> poly<RealConstantType>& ref_mut<RealConstantType>() 
-  { return self.unwrap<2>();  }
-
-  template<class Const>
-  void set(TermList t, Const c) {
-    CALL("AnyPoly::set")
-    return ref_mut<Const>().set(t,c);
-  }
-
-  template<class Const>
-  Const get(TermList t) {
-    CALL("AnyPoly::get")
-    return ref_mut<Const>().get(t);
   }
 
   template<class Const, class Config>
   TermList toTerm() {
     CALL("AnyPoly::toTerm")
-    return poly<Const>::template toTerm<Config>(ref_mut<Const>());
+    return poly<Const>::template toTerm<Config>(as<poly<Const>>());
   }
 
   template<class Config>
@@ -670,23 +642,23 @@ struct AnyPoly {
     CALL("AnyPoly::toTerm_")
       //TODO replace with match
 
-    if (self.is<0>()) {
-      using ty = typename self_t::type<0>::value::Coeff;
+    if (is<0>()) {
+      using ty = typename type<0>::value::Coeff;
       return toTerm<ty, Config>();
 
-    } else if (self.is<1>()) {
-      using ty = typename self_t::type<1>::value::Coeff;
+    } else if (is<1>()) {
+      using ty = typename type<1>::value::Coeff;
       return toTerm<ty, Config>();
 
     } else {
-      ASS(self.is<2>())
-      using ty = typename self_t::type<2>::value::Coeff;
+      ASS(is<2>())
+      using ty = typename type<2>::value::Coeff;
       return toTerm<ty, Config>();
     }
   }
 
-  friend std::ostream& operator<<(std::ostream& out, const AnyPoly& x) {
-    auto& self = x.self;
+  friend std::ostream& operator<<(std::ostream& out, const AnyPoly& self) {
+    //auto& self = x.self;
     if (self.is<0>()) {
       out << self.unwrap<0>();
     } else if (self.is<1>()) {
