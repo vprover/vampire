@@ -216,14 +216,14 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
   unsigned next = 0;
   if(withConstraints){
   for(unsigned i=0;i<constraints->size();i++){
-      pair<TermList,TermList> con = (*constraints)[i]; 
+      pair<pair<TermList,unsigned>,pair<TermList,unsigned>> con = (*constraints)[i]; 
 
 #if VDEBUG
       //cout << "con pair " << con.first.toString() << " , " << con.second.toString() << endl;
 #endif
 
-      TermList qT = qr.substitution->applyToQuery(con.first);
-      TermList rT = qr.substitution->applyToResult(con.second);
+      TermList qT = qr.substitution->applyTo(con.first.first,con.first.second);
+      TermList rT = qr.substitution->applyTo(con.second.first,con.second.second);
 
       unsigned sort = SortHelper::getResultSort(rT.term()); 
       Literal* constraint = Literal::createEquality(false,qT,rT,sort);

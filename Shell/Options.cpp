@@ -1054,6 +1054,29 @@ void Options::Options::init()
            _useACeval.tag(OptionTag::INFERENCES);
            _lookup.insert(&_useACeval);
            _useACeval.setExperimental();
+ 
+           _inequalityNormalization = BoolOptionValue("normalize_inequalities","norm_ineq",false);
+           _inequalityNormalization.description="Enable normalizing of inequalities like s < t ==> 0 < t - s.";
+           _lookup.insert(&_inequalityNormalization);
+           _inequalityNormalization.tag(OptionTag::INFERENCES);
+ 
+           _gaussianVariableElimination = BoolOptionValue("gaussian_variable_elimination","gve",false);
+           _gaussianVariableElimination.description=
+                  "Enable the immideate simplification \"Rebalancing Elimination\":\n"
+                  "\n"
+                  "s != t | C[X] \n"
+                  "-------------  if s != t can be rewritten to X != r \n"
+                  "    C[r] \n"
+                  "\n"
+                  "example:\n"
+                  "\n"
+                  "6 * X0 != 2 * X1 | p(X0, X1)\n"
+                  "-------------------------------\n"
+                  "  p(2 * X1 / 6, X1)";
+
+           _lookup.insert(&_gaussianVariableElimination);
+           _gaussianVariableElimination.tag(OptionTag::INFERENCES);
+
 
             _induction = ChoiceOptionValue<Induction>("induction","ind",Induction::NONE,
                                 {"none","struct","math","both"});

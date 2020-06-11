@@ -21,12 +21,15 @@
  * Implements class InterpretedEvaluation.
  */
 
+#include "Shell/Options.hpp"
+
 #include "Lib/Exception.hpp"
 #include "Lib/DArray.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Int.hpp"
+#include "Kernel/Ordering.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/Inference.hpp"
@@ -47,11 +50,11 @@ using namespace Lib;
 using namespace Kernel;
 
 
-InterpretedEvaluation::InterpretedEvaluation()
+InterpretedEvaluation::InterpretedEvaluation(bool doNormalize, Ordering& ordering) :
+  _simpl(new InterpretedLiteralEvaluator(doNormalize)),
+  _ordering(ordering)
 {
   CALL("InterpretedEvaluation::InterpretedEvaluation");
-
-  _simpl = new InterpretedLiteralEvaluator();
 }
 
 InterpretedEvaluation::~InterpretedEvaluation()
@@ -68,7 +71,7 @@ bool InterpretedEvaluation::simplifyLiteral(Literal* lit,
 {
   CALL("InterpretedEvaluation::evaluateLiteral");
 
-  if(lit->arity()==0 || !lit->hasInterpretedConstants()) {
+  if(lit->arity()==0) {
     //we have no interpreted predicates of zero arity
     return false;
   }
@@ -85,64 +88,84 @@ bool InterpretedEvaluation::simplifyLiteral(Literal* lit,
 Clause* InterpretedEvaluation::simplify(Clause* cl)
 {
   CALL("InterpretedEvaluation::perform");
+  try { 
 
-  TimeCounter tc(TC_INTERPRETED_EVALUATION);
 
-  // do not evaluate theory axioms
-  // TODO: We want to skip the evaluation of theory axioms, because we already assume that
-  // internally added theory axioms are simplified as much as possible. Note that the 
-  // isTheoryAxiom-check also returns true for externally added theory axioms. It is unclear
-  // whether we should skip those externally added theory axioms, since it is not clear
-  // that they are simplified as much as possible (since they are potentially written by
-  // users unfamiliar with theorem proving, in contrast to our internally added axioms).
-  if(cl->isTheoryAxiom()) return cl;
+    TimeCounter tc(TC_INTERPRETED_EVALUATION);
 
-  static DArray<Literal*> newLits(32);
-  unsigned clen=cl->length();
-  bool modified=false;
-  newLits.ensure(clen);
-  unsigned next=0;
-  Stack<Literal*> sideConditions;
-  for(unsigned li=0;li<clen; li++) {
-    Literal* lit=(*cl)[li];
-    Literal* res;
-    bool constant, constTrue;
-    bool litMod=simplifyLiteral(lit, constant, res, constTrue,sideConditions);
-    if(!litMod) {
-      newLits[next++]=lit;
-      continue;
-    }
-    modified=true;
-    if(constant) {
-      if(constTrue) {
-        //cout << "evaluate " << cl->toString() << " to true" << endl;
-	env.statistics->evaluations++;
-	return 0;
-      } else {
-	continue;
+    // do not evaluate theory axioms
+    // TODO: We want to skip the evaluation of theory axioms, because we already assume that
+    // internally added theory axioms are simplified as much as possible. Note that the 
+    // isTheoryAxiom-check also returns true for externally added theory axioms. It is unclear
+    // whether we should skip those externally added theory axioms, since it is not clear
+    // that they are simplified as much as possible (since they are potentially written by
+    // users unfamiliar with theorem proving, in contrast to our internally added axioms).
+    if(cl->isTheoryAxiom()) return cl;
+
+
+    static DArray<Literal*> newLits(32);
+    unsigned clen=cl->length();
+    bool modified=false;
+    newLits.ensure(clen);
+    unsigned next=0;
+    Stack<Literal*> sideConditions;
+    for(unsigned li=0;li<clen; li++) {
+      Literal* lit=(*cl)[li];
+      Literal* res;
+      bool constant, constTrue;
+      bool litMod=simplifyLiteral(lit, constant, res, constTrue,sideConditions);
+      if(!litMod) {
+        newLits[next++]=lit;
+        continue;
       }
+      modified=true;
+      if(constant) {
+        if(constTrue) {
+          //cout << "evaluate " << cl->toString() << " to true" << endl;
+          env.statistics->evaluations++;
+          return 0;
+        } else {
+          continue;
+        }
+      }
+      
+      newLits[next++]=res;
+#if VDEBUG
+      if (env.options->literalComparisonMode() != Options::LiteralComparisonMode::REVERSE 
+          && _ordering.compare(res, lit) != Ordering::Result::LESS) {
+        DBG("res: ", res->toString())
+        DBG("lit: ", lit->toString())
+        DBG("cmp: ", _ordering.compare(res, lit))
+        DBG("     LESS:    ", Ordering::Result::LESS)
+        DBG("     GREATER: ", Ordering::Result::GREATER)
+        DBG("     EQUAL:   ", Ordering::Result::EQUAL)
+        DBG("     INCOMPARABLE: ", Ordering::Result::INCOMPARABLE)
+        ASSERTION_VIOLATION
+      }
+#endif
     }
-    newLits[next++]=res;
-  }
-  if(!modified) {
+    if(!modified) {
+      return cl;
+    }
+
+    ASS(sideConditions.isEmpty())
+    Stack<Literal*>::Iterator side(sideConditions);
+    newLits.expand(clen+sideConditions.length());
+    while(side.hasNext()){ newLits[next++]=side.next();}
+    int newLength = next;
+    Clause* res = new(newLength) Clause(newLength,SimplifyingInference1(InferenceRule::EVALUATION, cl));
+
+    for(int i=0;i<newLength;i++) {
+      (*res)[i] = newLits[i];
+    }
+
+    env.statistics->evaluations++;
+    return res; 
+
+  } catch (MachineArithmeticException) {
+    /* overflow while evaluating addition, subtraction, etc. */
     return cl;
   }
-
-  Stack<Literal*>::Iterator side(sideConditions);
-  newLits.expand(clen+sideConditions.length());
-  while(side.hasNext()){ newLits[next++]=side.next();}
-  int newLength = next;
-  Clause* res = new(newLength) Clause(newLength,SimplifyingInference1(InferenceRule::EVALUATION, cl));
-
-  for(int i=0;i<newLength;i++) {
-    (*res)[i] = newLits[i];
-  }
-
-  env.statistics->evaluations++;
-
-  //cout << "evaluated " << cl->toString() << " to " << res->toString() << endl;
-
-  return res;
 }
 
 }

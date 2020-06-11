@@ -41,8 +41,6 @@ using namespace Kernel;
 using namespace Lib;
 using namespace Saturation;
 
-typedef pair<TermList,TermList> UnificationConstraint;
-typedef Lib::SmartPtr<Stack<UnificationConstraint>> UnificationConstraintStackSP;
 
 /**
  * Class of objects which contain results of single literal queries.

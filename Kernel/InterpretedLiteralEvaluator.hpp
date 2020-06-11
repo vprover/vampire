@@ -31,6 +31,7 @@
 
 #include "TermTransformer.hpp"
 #include "Theory.hpp"
+#include "Shell/Options.hpp"
 
 namespace Kernel {
 
@@ -41,15 +42,18 @@ public:
   CLASS_NAME(InterpretedLiteralEvaluator);
   USE_ALLOCATOR(InterpretedLiteralEvaluator);
   
-  InterpretedLiteralEvaluator();
+  InterpretedLiteralEvaluator(bool doNormalize = true);
   ~InterpretedLiteralEvaluator();
 
+  // TODO: `Literal*` -> `const Literal&` ?
   bool evaluate(Literal* lit, bool& isConstant, Literal*& resLit, bool& resConst,Stack<Literal*>& sideConditions);
+  TermList evaluate(TermList);
 protected:
   class Evaluator;
   class EqualityEvaluator;
   class ConversionEvaluator;
   template<class T> class ACFunEvaluator;
+  template<class T> class InequalityNormalizer;
   template<class T> class TypedEvaluator;
   class IntEvaluator;
   class RatEvaluator;
@@ -88,6 +92,10 @@ protected:
   bool balanceDivide(Interpretation multiply, 
                        Term* AmultiplyB, TermList* A, TermList C, TermList& result, bool& swap, Stack<Literal*>& sideConditions);
   
+private:
+  template<class Fn>
+  Evaluator* getEvaluator(unsigned func, DArray<Evaluator*>& evaluators, Fn canEval);
+  const bool _normalize;
 };
 
 

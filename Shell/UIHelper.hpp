@@ -79,6 +79,8 @@ public:
    */
   static bool satisfiableStatusWasAlreadyOutput;
 
+  static void setExpectingSat(){ s_expecting_sat=true; }
+  static void setExpectingUnsat(){ s_expecting_unsat=true; }
 private:
   static bool s_expecting_sat;
   static bool s_expecting_unsat;

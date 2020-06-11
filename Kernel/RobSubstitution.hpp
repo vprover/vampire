@@ -31,6 +31,7 @@
 #include "Lib/DHMap.hpp"
 #include "Lib/Backtrackable.hpp"
 #include "Term.hpp"
+#include "MismatchHandler.hpp"
 
 #if VDEBUG
 
@@ -52,16 +53,16 @@ public:
   CLASS_NAME(RobSubstitution);
   USE_ALLOCATOR(RobSubstitution);
   
-  RobSubstitution() : _nextUnboundAvailable(0),_nextAuxAvailable(0) {}
+  RobSubstitution() : _nextUnboundAvailable(0) {} //,_nextAuxAvailable(0) {}
 
   SubstIterator matches(Literal* base, int baseIndex,
 	  Literal* instance, int instanceIndex, bool complementary);
   SubstIterator unifiers(Literal* l1, int l1Index, Literal* l2, int l2Index, bool complementary);
 
-  bool unify(TermList t1,int index1, TermList t2, int index2);
+  bool unify(TermList t1,int index1, TermList t2, int index2, MismatchHandler* hndlr=0);
   bool match(TermList base,int baseIndex, TermList instance, int instanceIndex);
 
-  bool unifyArgs(Term* t1,int index1, Term* t2, int index2);
+  bool unifyArgs(Term* t1,int index1, Term* t2, int index2, MismatchHandler* hndlr=0);
   bool matchArgs(Term* base,int baseIndex, Term* instance, int instanceIndex);
 
   void denormalize(const Renaming& normalizer, int normalIndex, int denormalizedIndex);
@@ -76,7 +77,7 @@ public:
   void reset()
   {
     _bank.reset();
-    _nextAuxAvailable=0;
+    //_nextAuxAvailable=0;
     _nextUnboundAvailable=0;
   }
   /**
@@ -143,13 +144,14 @@ public:
       static unsigned hash(VarSpec& o);
     };
   };
+  /** Specifies an instance of a term (i.e. (term, variable bank) pair */
   struct TermSpec
   {
-    /** Create a new VarSpec struct */
+    /** Create a new TermSpec struct */
     TermSpec() {}
-    /** Create a new VarSpec struct */
+    /** Create a new TermSpec struct */
     TermSpec(TermList term, int index) : term(term), index(index) {}
-    /** Create a new VarSpec struct */
+    /** Create a new TermSpec struct from a VarSpec*/
     explicit TermSpec(const VarSpec& vs) : index(vs.index)
     {
       if(index==SPECIAL_INDEX) {
@@ -218,7 +220,7 @@ private:
   RobSubstitution& operator=(const RobSubstitution& obj);
 
 
-  static const int AUX_INDEX;
+  //static const int AUX_INDEX;
   static const int SPECIAL_INDEX;
   static const int UNBOUND_INDEX;
 
@@ -230,12 +232,13 @@ private:
   void bindVar(const VarSpec& var, const VarSpec& to);
   VarSpec root(VarSpec v) const;
   bool match(TermSpec base, TermSpec instance);
-  bool unify(TermSpec t1, TermSpec t2);
-  bool handleDifferentTops(TermSpec t1, TermSpec t2, Stack<TTPair>& toDo, TermList* ct);
-  void makeEqual(VarSpec v1, VarSpec v2, TermSpec target);
-  void unifyUnbound(VarSpec v, TermSpec ts);
+  bool unify(TermSpec t1, TermSpec t2,MismatchHandler* hndlr);
+  //bool handleDifferentTops(TermSpec t1, TermSpec t2, Stack<TTPair>& toDo, TermList* ct);
+  //void makeEqual(VarSpec v1, VarSpec v2, TermSpec target);
+  //void unifyUnbound(VarSpec v, TermSpec ts);
   bool occurs(VarSpec vs, TermSpec ts);
 
+/* Not currently used
   VarSpec getAuxVar(VarSpec target)
   {
     CALL("RobSubstitution::getAuxVar");
@@ -246,6 +249,7 @@ private:
     bindVar(res, target);
     return res;
   }
+*/
   inline
   VarSpec getVarSpec(TermSpec ts) const
   {
@@ -258,7 +262,7 @@ private:
     if(tl.isSpecialVar()) {
       return VarSpec(tl.var(), SPECIAL_INDEX);
     } else {
-      ASS(index!=AUX_INDEX || tl.var()<_nextAuxAvailable);
+      //ASS(index!=AUX_INDEX || tl.var()<_nextAuxAvailable);
       return VarSpec(tl.var(), index);
     }
   }
@@ -268,10 +272,11 @@ private:
 
   mutable BankType _bank;
 
-  DHMap<int, int> _denormIndexes;
+  // Unused
+  //DHMap<int, int> _denormIndexes;
 
   mutable unsigned _nextUnboundAvailable;
-  unsigned _nextAuxAvailable;
+  //unsigned _nextAuxAvailable;
 
   class BindingBacktrackObject
   : public BacktrackObject

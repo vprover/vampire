@@ -210,6 +210,8 @@ enum class InferenceRule : unsigned char {
   GLOBAL_SUBSUMPTION, // CEREFUL: the main premise is not necessarily the first one!
   /** distinct equality removal */
   DISTINCT_EQUALITY_REMOVAL,
+  /** simplification eliminating variables by rewriting arithmetic equalities: e.g.: 6 = 3 x \/ L[x] => L[2] */
+  GAUSSIAN_VARIABLE_ELIMINIATION,
   /** the last simplifying inference marker --
     inferences between GENERIC_SIMPLIFYING_INFERNCE and INTERNAL_SIMPLIFYING_INFERNCE_LAST will be automatically understood simplifying
     (see also isSimplifyingInferenceRule) */
@@ -662,7 +664,6 @@ public:
   * the FromSatRefutationInfo of INFERENCE_FROM_SAT_REFUTATION).
   */
   void destroyDirectlyOwned();
-
   /**
    * Decrease reference counters in referred units.
    *

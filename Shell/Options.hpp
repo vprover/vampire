@@ -758,7 +758,7 @@ public:
     DECAY,
     CONVERGE
   };
-    
+
     //==========================================================
     // The Internals
     //==========================================================
@@ -1922,6 +1922,8 @@ public:
   TheoryInstSimp theoryInstAndSimp() const { return _theoryInstAndSimp.actualValue; }
 #endif
   UnificationWithAbstraction unificationWithAbstraction() const { return _unificationWithAbstraction.actualValue; }
+  void setUWA(UnificationWithAbstraction value){ _unificationWithAbstraction.actualValue = value; } 
+  bool fixUWA() const { return _fixUWA.actualValue; }
   bool useACeval() const { return _useACeval.actualValue;}
 
   bool unusedPredicateDefinitionRemoval() const { return _unusedPredicateDefinitionRemoval.actualValue; }
@@ -2151,6 +2153,8 @@ public:
   bool getIteInlineLet() const { return _inlineLet.actualValue; }
 
   bool useManualClauseSelection() const { return _manualClauseSelection.actualValue; }
+  bool inequalityNormalization() const { return _inequalityNormalization.actualValue; }
+  bool gaussianVariableElimination() const { return _gaussianVariableElimination.actualValue; }
 
 private:
     
@@ -2559,6 +2563,9 @@ private:
   BoolOptionValue _inlineLet;
 
   BoolOptionValue _manualClauseSelection;
+
+  BoolOptionValue _inequalityNormalization;
+  BoolOptionValue _gaussianVariableElimination;
 
 
 }; // class Options

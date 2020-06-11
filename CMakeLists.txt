@@ -55,10 +55,12 @@ add_compile_options(
 # -- see also https://cmake.org/pipermail/cmake/2016-May/063452.html
 if(CMAKE_COMPILER_IS_GNUCXX)
   add_compile_options("-Wno-terminate")
+  add_compile_options("-D__STDC_FORMAT_MACROS=1")
 endif()
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")  # use MATCHES instead of equality because the value is "AppleClang" on macOS
   add_compile_options("-Wno-exceptions")
 endif()
+message("compiler: " ${CMAKE_CXX_COMMAND})
 
 
 
@@ -257,6 +259,7 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/Inference.cpp
     Kernel/InferenceStore.cpp
     Kernel/InterpretedLiteralEvaluator.cpp
+    Kernel/Rebalancing.cpp
     Kernel/KBO.cpp
     Kernel/KBOForEPR.cpp
     Kernel/LiteralSelector.cpp
@@ -273,6 +276,7 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/Problem.cpp
     Kernel/Renaming.cpp
     Kernel/RobSubstitution.cpp
+    Kernel/MismatchHandler.cpp
     Kernel/Signature.cpp
     Kernel/SortHelper.cpp
     Kernel/Sorts.cpp
@@ -307,6 +311,7 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/Inference.hpp
     Kernel/InferenceStore.hpp
     Kernel/InterpretedLiteralEvaluator.hpp
+    Kernel/Rebalancing.cpp
     Kernel/KBO.hpp
     Kernel/KBOForEPR.hpp
     Kernel/LiteralComparators.hpp
@@ -323,6 +328,7 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/RCClauseStack.hpp
     Kernel/Renaming.hpp
     Kernel/RobSubstitution.hpp
+    Kernel/MismatchHandler.hpp
     Kernel/Signature.hpp
     Kernel/SortHelper.hpp
     Kernel/Sorts.hpp
@@ -417,6 +423,10 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/InferenceEngine.cpp
     Inferences/Instantiation.cpp
     Inferences/InterpretedEvaluation.cpp
+    Kernel/NumTraits.cpp
+    Inferences/GaussianVariableElimination.cpp
+    Kernel/Rebalancing.cpp
+    Kernel/Rebalancing/Inverters.cpp
     Inferences/SLQueryBackwardSubsumption.cpp
     Inferences/Superposition.cpp
     Inferences/TautologyDeletionISE.cpp
@@ -444,6 +454,10 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/InferenceEngine.hpp
     Inferences/Instantiation.hpp
     Inferences/InterpretedEvaluation.hpp
+    Kernel/NumTraits.cpp
+    Inferences/GaussianVariableElimination.hpp
+    Kernel/Rebalancing.hpp
+    Kernel/Rebalancing/Inverters.hpp
     Inferences/SLQueryBackwardSubsumption.hpp
     Inferences/SubsumptionDemodulationHelper.cpp
     Inferences/Superposition.hpp
