@@ -1,7 +1,6 @@
 #include "Kernel/Polynomial.hpp"
 
 
-
 #define INSTANTIATE_STATIC(value) \
   template<> decltype(value) value = decltype(value)();
 

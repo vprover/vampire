@@ -2,6 +2,8 @@
 #include "Kernel/Clause.hpp"
 #include "Kernel/Ordering.hpp"
 
+#define DEBUG(...) // DBG(__VA_ARGS__)
+
 namespace Inferences {
 
 Clause* PolynomialNormalization::simplify(Clause* cl_) {
@@ -24,15 +26,30 @@ Clause* PolynomialNormalization::simplify(Clause* cl_) {
         }
       } else {
         Literal* simplLit = simpl.unwrapLiteral();
-        if (_ordering.compare(simplLit, cl[i]) == Ordering::Result::LESS) {
+
+        auto cmp = _ordering.compare(simplLit, cl[i]);
+
+        if (env.options->literalComparisonMode() == Options::LiteralComparisonMode::REVERSE && cl[i]->isNegative())  {
+          //TODO this is so ugly. We should make a constraint between these options
+          cmp = Ordering::reverse(cmp);
+        }
+        switch(cmp) {
+
+        case Ordering::Result::LESS:
           //TODO shall we add an assertion here?
           out.push(simplLit);
           changed = true;
-        } else {
-          DBG(*cl[i])
-          DBG(*simplLit)
-          ASS_EQ(cl[i], simplLit)
+          break;
+        case Ordering::Result::INCOMPARABLE:
+        case Ordering::Result::EQUAL:
           out.push(cl[i]);
+          break;
+        case Ordering::GREATER:
+          DBG("orig:  ", *cl[i])
+          DBG("simpl: ", *simplLit)
+          { ASSERTION_VIOLATION }
+        default:
+          { ASSERTION_VIOLATION }
         }
       }
     } catch (MachineArithmeticException) {
@@ -44,9 +61,9 @@ Clause* PolynomialNormalization::simplify(Clause* cl_) {
   if (!changed) {
     return cl_;
   } else {
-
     auto result = Clause::fromStack(out, SimplifyingInference1(InferenceRule::EVALUATION, cl_));
-    DBG("finished ", *result)
+    DEBUG("in:  ", *cl_)
+    DEBUG("out: ", *result)
     return result;
   }
 }
