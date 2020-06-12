@@ -279,7 +279,7 @@ inline TermList createTerm(unsigned fun, const Signature::Symbol& sym, TermEvalR
   auto& op = *sym.fnType();
   auto arity = op.arity();
   for (int i = 0; i < arity; i++) {
-    args.push(std::move(evaluatedArgs[0]).match<TermList>(
+    args.push(std::move(evaluatedArgs[i]).match<TermList>(
         [](TermList&& t) {return t;}
       , [](AnyPoly&& p) { return p.template toTerm_<Config>(); }
         ));
@@ -290,6 +290,7 @@ inline TermList createTerm(unsigned fun, const Signature::Symbol& sym, TermEvalR
 
 template<class Config> TermEvalResult PolynomialNormalizer<Config>::evaluateStep(Term* orig, TermEvalResult* args) const {
   CALL("PolynomialNormalizer::evaluateStep(Term* orig, TermEvalResult* args)")
+  DEBUG("evaluating ", *orig)
 
 #define HANDLE_CASE(INTER) case Interpretation::INTER: return FunctionEvaluator<Interpretation::INTER>::evaluate<Config>(orig, args); 
 #define IGNORE_CASE(INTER) case Interpretation::INTER: return TermEvalResult::template variant<0>(createTerm<Config>(functor, *sym, args));

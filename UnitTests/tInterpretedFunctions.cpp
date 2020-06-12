@@ -266,6 +266,7 @@ void check_eval(Literal& orig, const Literal& expected) {
       _Pragma("GCC diagnostic push") \
       _Pragma("GCC diagnostic ignored \"-Wunused\"") \
         THEORY_SYNTAX_SUGAR_FUN(f, 1) \
+        THEORY_SYNTAX_SUGAR_FUN(f2, 2) \
         THEORY_SYNTAX_SUGAR_PRED(p, 1) \
       _Pragma("GCC diagnostic pop") \
 
@@ -615,6 +616,11 @@ ALL_NUMBERS_TEST(eval_test_cached_1,
 ALL_NUMBERS_TEST(eval_test_cached_2,
       eq(mul(mul(b,a),c), f(mul(mul(b,a),c))),
       eq(mul(a,mul(b,c)), f(mul(a,mul(b,c))))
+      )
+
+ALL_NUMBERS_TEST(bug_1,
+      p(f2(a,b)),
+      p(f2(a,b)),
       )
 
 // TODO: cases x = k * x <-> k = 1 | x = 0 
