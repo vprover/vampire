@@ -618,9 +618,14 @@ ALL_NUMBERS_TEST(eval_test_cached_2,
       eq(mul(a,mul(b,c)), f(mul(a,mul(b,c))))
       )
 
-ALL_NUMBERS_TEST(bug_1,
+ALL_NUMBERS_TEST(eval_bug_1,
       p(f2(a,b)),
-      p(f2(a,b)),
+      p(f2(a,b))
+      )
+
+ALL_NUMBERS_TEST(eval_bug_2,
+      eq(mul(x,mul(y,z)), mul(mul(x,y),z)),
+      true
       )
 
 // TODO: cases x = k * x <-> k = 1 | x = 0 

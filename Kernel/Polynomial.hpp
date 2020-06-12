@@ -307,7 +307,7 @@ public:
           [&](ComplexPolynom* const& lhs) { 
             return rhs._inner.template match<Polynom>(
                   [&](ComplexPolynom* const& rhs) { 
-                    if(Config::usePolyMul) {
+                    if(Config::usePolyMul || lhs->nSummands() == 1 || rhs->nSummands() == 1) {
                       return Polynom(ComplexPolynom::poly_mul(*lhs, *rhs)); 
                     } else {
                       auto l = ComplexPolynom::template toTerm<Config>(*lhs);
@@ -385,6 +385,7 @@ private:
 
     ComplexPolynom(ComplexPolynom&& other) = default;
     explicit ComplexPolynom(const ComplexPolynom&) = default;
+    unsigned nSummands() const& { return _coeffs.size(); }
 
     ComplexPolynom& operator=(ComplexPolynom&& other) = default;
 

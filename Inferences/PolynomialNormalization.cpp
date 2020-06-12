@@ -8,6 +8,8 @@ Clause* PolynomialNormalization::simplify(Clause* cl_) {
   auto& cl = *cl_;
   Stack<Literal*> out(cl.size());
 
+  bool changed = false;
+
   for (int i = 0; i < cl.size(); i++) {
 
     try {
@@ -25,7 +27,11 @@ Clause* PolynomialNormalization::simplify(Clause* cl_) {
         if (_ordering.compare(simplLit, cl[i]) == Ordering::Result::LESS) {
           //TODO shall we add an assertion here?
           out.push(simplLit);
+          changed = true;
         } else {
+          DBG(*cl[i])
+          DBG(*simplLit)
+          ASS_EQ(cl[i], simplLit)
           out.push(cl[i]);
         }
       }
@@ -35,7 +41,14 @@ Clause* PolynomialNormalization::simplify(Clause* cl_) {
   }
 
 
-  return Clause::fromStack(out, SimplifyingInference1(InferenceRule::EVALUATION, cl_));
+  if (!changed) {
+    return cl_;
+  } else {
+
+    auto result = Clause::fromStack(out, SimplifyingInference1(InferenceRule::EVALUATION, cl_));
+    DBG("finished ", *result)
+    return result;
+  }
 }
 
 PolynomialNormalization::~PolynomialNormalization() {}

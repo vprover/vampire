@@ -18,7 +18,7 @@
 
 #ifndef __POLYNOMIAL_NORMALIZER_HPP__
 #define __POLYNOMIAL_NORMALIZER_HPP__
-#define DEBUG(...) //DBG(__VA_ARGS__)
+#define DEBUG(...) DBG(__VA_ARGS__)
 
 namespace Kernel {
 
