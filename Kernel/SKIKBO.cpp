@@ -647,9 +647,7 @@ Ordering::Result SKIKBO::compare(TermList tl1, TermList tl2) const
 {
   CALL("SKIKBO::compare(TermList)");
 
-  //cout << "comparing " + tl1.toString() << endl;
-  //cout << "with " + tl2.toString() << endl;
-
+  //bool print = false;
   if(tl1==tl2) {
     return EQUAL;
   }
@@ -666,7 +664,9 @@ Ordering::Result SKIKBO::compare(TermList tl1, TermList tl2) const
 
   VarCondRes varCond = compareVariables(tl1, tl2);
 
-  if(varCond == INCOMP){ return INCOMPARABLE; }
+  if(varCond == INCOMP){ 
+    return INCOMPARABLE; 
+  }
   
   unsigned tl1RedLen = getMaxRedLength(tl1);
   unsigned tl2RedLen = getMaxRedLength(tl2);
@@ -710,9 +710,11 @@ Ordering::Result SKIKBO::compare(TermList tl1, TermList tl2) const
     state->traverse(aat2,-1);
   }
   Result res=state->result(aat1,aat2);
-  /*if(res == LESS){ cout << tl1.toString() + " < " + tl2.toString() << endl; }
-  if(res == GREATER){ cout << tl1.toString() + " > " + tl2.toString() << endl; }
-  if(res == INCOMPARABLE){ cout << tl1.toString() + " <> " + tl2.toString() << endl; }*/
+  /*if(print){
+    if(res == LESS){ cout << tl1.toString() + " < " + tl2.toString() << endl; }
+    if(res == GREATER){ cout << tl1.toString() + " > " + tl2.toString() << endl; }
+    if(res == INCOMPARABLE){ cout << tl1.toString() + " <> " + tl2.toString() << endl; }
+  }*/
 #if VDEBUG
   _state=state;
 #endif
@@ -736,12 +738,6 @@ unsigned SKIKBO::maximumReductionLength(Term* term)
   TermList head;
   unsigned length = 0;
 
-  auto addToEvaluate = [&toEvaluate] (TermList t) { 
-    if(!t.isVar()){
-      toEvaluate.push(t.term());
-    }
-  }; 
-
   toEvaluate.push(term);
   while(!toEvaluate.isEmpty()){
     args.reset(); 
@@ -749,13 +745,22 @@ unsigned SKIKBO::maximumReductionLength(Term* term)
     AH::getHeadAndArgs(evaluating, head, args);
     if(!AH::isComb(head) || AH::isUnderApplied(head, args.size())){
       while(!args.isEmpty()){
-        addToEvaluate(args.pop());
+        TermList t = args.pop();
+        if(!t.isVar()){
+          toEvaluate.push(t.term());
+        }
       }
     } else {
       if(AH::getComb(head) == Signature::K_COMB){
-        addToEvaluate(args[args.size()-2]); 
-      }      
-      addToEvaluate(reduce(args, head));
+        TermList t = args[args.size()-2];
+        if(!t.isVar()){
+          toEvaluate.push(t.term());
+        }
+      }
+      TermList t = reduce(args, head);
+      if(!t.isVar()){
+        toEvaluate.push(t.term());
+      }
       length++;
     }
   }

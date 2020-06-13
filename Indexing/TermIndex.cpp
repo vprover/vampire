@@ -173,16 +173,26 @@ void PrimitiveInstantiationIndex::populateIndex()
  
   typedef ApplicativeHelper AH;
 
+  static Options::PISet set = env.options->piSet();
+
   auto srtOf = [] (TermList t) { 
     ASS(t.isTerm());
     return SortHelper::getResultSort(t.term());
   };
 
+  TermList boolS = Term::boolSort();
+
   TermList s1 = TermList(0, false);  
   TermList x = TermList(1, false);
   TermList y = TermList(2, false);
   
+  TermList bool_bool = Term::arrowSort(boolS, boolS);
+  TermList s1_bool = Term::arrowSort(s1, boolS);
+  TermList args1[] = {s1, boolS, boolS};
+  TermList args2[] = {s1, s1_bool, s1_bool};
+
   unsigned k_comb = env.signature->getCombinator(Signature::K_COMB);
+  unsigned b_comb = env.signature->getCombinator(Signature::B_COMB);
   unsigned v_and = env.signature->getBinaryProxy("vAND");
   unsigned v_or = env.signature->getBinaryProxy("vOR");
   unsigned v_imp = env.signature->getBinaryProxy("vIMP");
@@ -190,6 +200,8 @@ void PrimitiveInstantiationIndex::populateIndex()
   unsigned v_equals = env.signature->getEqualityProxy();
 
   TermList kcomb = TermList(Term::create2(k_comb, Term::boolSort(), s1));
+  TermList bcomb1 = TermList(Term::create(b_comb, 3, args1));
+  TermList bcomb2 = TermList(Term::create(b_comb, 3, args2));
   TermList vand = TermList(Term::createConstant(v_and));
   TermList vor = TermList(Term::createConstant(v_or));
   TermList vimp = TermList(Term::createConstant(v_imp));
@@ -203,14 +215,38 @@ void PrimitiveInstantiationIndex::populateIndex()
   TermList impTerm = AH::createAppTerm3(srtOf(vimp), vimp, x, y);
   TermList notTerm = AH::createAppTerm(srtOf(vnot), vnot, x);
   TermList equalsTerm = AH::createAppTerm3(srtOf(vequals), vequals, x, y);
+  TermList trm = AH::createAppTerm(srtOf(bcomb1), bcomb1, vnot);
+  TermList notEqualsTerm = AH::createAppTerm3(srtOf(bcomb2), bcomb2, trm, vequals);
+  notEqualsTerm = AH::createAppTerm3(srtOf(notEqualsTerm), notEqualsTerm, x, y);
 
-  _is->insert(kTerm1, 0, 0);
-  _is->insert(kTerm2, 0, 0);
-  _is->insert(andTerm, 0, 0);
-  _is->insert(orTerm, 0, 0);
-  _is->insert(impTerm, 0, 0);
-  _is->insert(notTerm, 0, 0);
-  _is->insert(equalsTerm, 0, 0);   
+  if(set == Options::PISet::ALL){
+    _is->insert(kTerm1, 0, 0);
+    _is->insert(kTerm2, 0, 0);
+    _is->insert(andTerm, 0, 0);
+    _is->insert(orTerm, 0, 0);
+    _is->insert(impTerm, 0, 0);
+    _is->insert(notTerm, 0, 0);
+    _is->insert(equalsTerm, 0, 0); 
+    _is->insert(notEqualsTerm, 0, 0);
+  } else if (set == Options::PISet::ALL_EXCEPT_NOT_EQ){
+    _is->insert(kTerm1, 0, 0);
+    _is->insert(kTerm2, 0, 0);
+    _is->insert(andTerm, 0, 0);
+    _is->insert(orTerm, 0, 0);
+    _is->insert(impTerm, 0, 0);
+    _is->insert(notTerm, 0, 0);
+    _is->insert(equalsTerm, 0, 0); 
+  } else if (set == Options::PISet::FALSE_TRUE_NOT){
+    _is->insert(kTerm1, 0, 0);
+    _is->insert(kTerm2, 0, 0);
+    _is->insert(notTerm, 0, 0);    
+  } else if (set == Options::PISet::FALSE_TRUE_NOT_EQ_NOT_EQ){
+    _is->insert(kTerm1, 0, 0);
+    _is->insert(kTerm2, 0, 0);
+    _is->insert(notTerm, 0, 0);
+    _is->insert(equalsTerm, 0, 0); 
+    _is->insert(notEqualsTerm, 0, 0);
+  }  
 }
 
 void NarrowingIndex::populateIndex()

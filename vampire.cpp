@@ -900,6 +900,20 @@ int main(int argc, char* argv[])
       }
       break;
 
+    case Options::Mode::CASC_HOL:
+      env.options->setIgnoreMissing(Options::IgnoreMissing::WARN);
+      env.options->setSchedule(Options::Schedule::CASC_HOL_2020);
+      env.options->setOutputMode(Options::Output::SZS);
+      env.options->setProof(Options::Proof::TPTP);
+      env.options->setMulticore(0); // use all available cores
+      env.options->setOutputAxiomNames(true);
+      env.options->setMemoryLimit(128000);
+
+      if (CASC::PortfolioMode::perform(1.00)) {
+        vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
+      }
+      break;
+
     case Options::Mode::CASC_SAT:
       env.options->setIgnoreMissing(Options::IgnoreMissing::WARN);
       env.options->setSchedule(Options::Schedule::CASC_SAT);

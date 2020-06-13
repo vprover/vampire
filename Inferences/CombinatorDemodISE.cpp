@@ -52,15 +52,24 @@ Clause* CombinatorDemodISE::simplify(Clause* c)
 
  // cout << "into CombinatorDemodISE " + c->toString() << endl;
 
+  unsigned length = 0;
+  unsigned length0;
+  unsigned length1;
+
   for(unsigned i = 0; i < c->length(); i++){
     Literal* lit = (*c)[i];
     ASS(lit->isEquality());
     TermList t0 = *lit->nthArgument(0);
     TermList t1 = *lit->nthArgument(1);
     
-    TermList t0r = t0.isVar() ? t0 : reduce(t0);
-    TermList t1r = t1.isVar() ? t1 : reduce(t1);      
+    length0 = 0;
+    length1 = 0;
+
+    TermList t0r = t0.isVar() ? t0 : reduce(t0, length0);
+    TermList t1r = t1.isVar() ? t1 : reduce(t1, length1);      
     
+    length = length + length0 + length1;
+
     if((t0r != t0) || (t1r != t1)){
       modified = true;
       newLit = Literal::createEquality(lit->polarity(), TermList(t0r), TermList(t1r), SortHelper::getResultSort(t0.term()));
@@ -77,6 +86,7 @@ Clause* CombinatorDemodISE::simplify(Clause* c)
   Inference* inference = new Inference1(Inference::COMBINATOR_DEMOD, c);
   Clause* newC = Clause::fromStack(litStack, c->inputType(), inference);
   newC->setAge(c->age());
+  newC->increaseReductions(length);
   /*if(c->number() == 1620){
     cout << "out of CombinatorDemodISE " + newC->toString() << endl;
   }*/
@@ -84,7 +94,7 @@ Clause* CombinatorDemodISE::simplify(Clause* c)
   return newC;
 }
 
-TermList CombinatorDemodISE::reduce(TermList t)
+TermList CombinatorDemodISE::reduce(TermList t, unsigned& length)
 {
   CALL("CombinatorDemodISE::reduce");
   
@@ -141,6 +151,7 @@ TermList CombinatorDemodISE::reduce(TermList t)
     TermList tl= argIts.top()->next();
     bool reduced = headNormalForm(tl);
     if(reduced){
+      length++;
       modified.setTop(true);
     }
     if (tl.isVar()) {

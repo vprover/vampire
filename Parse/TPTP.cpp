@@ -1393,16 +1393,20 @@ void TPTP::tff()
       if (tok.tag == T_TTYPE) {
         resetToks();
         unsigned arity = getConstructorArity();
-        bool added;
+        bool added = false;
         unsigned fun = arity == 0
             ? addUninterpretedConstant(nm, _overflow, added)
             : env.signature->addFunction(nm, arity, added);
-        if (!added) {
-          PARSE_ERROR("Type constructor name must be unique",tok);
-        }
         Signature::Symbol* symbol = env.signature->getFunction(fun);
-        symbol->setType(OperatorType::getFunctionTypeUniformRange(arity, Term::superSort(), Term::superSort(), VList::empty()));         
-        _typeConstructorArities.insert(nm, arity);
+        OperatorType* ot = OperatorType::getFunctionTypeUniformRange(arity, Term::superSort(), Term::superSort(), VList::empty());
+        if (!added) {
+          if(symbol->fnType() != ot){
+            PARSE_ERROR("Type constructor declared with two different types",tok);
+          }
+        } else{
+          symbol->setType(ot);  
+          _typeConstructorArities.insert(nm, arity);
+        }       
         //cout << "added type constuctor " + nm + " of type " + symbol->fnType()->toString() << endl;
         while (lpars--) {
           consumeToken(T_RPAR);
@@ -3735,25 +3739,33 @@ void TPTP::endTff()
   Signature::Symbol* symbol;
   if (isPredicate) {
     unsigned pred = env.signature->addPredicate(name, arity, added);
-    if (!added) {
-      USER_ERROR("Predicate symbol type is declared after its use: " + name);
-    }
     symbol = env.signature->getPredicate(pred);
-    if (arity != 0) {
-      symbol->setType(ot);
+    if (!added) {
+      if(symbol->predType() != ot){
+        USER_ERROR("Predicate symbol type is declared after its use: " + name);
+      }
+    } 
+    else {
+      if (arity != 0) {
+        symbol->setType(ot);
+      }
     }
   } else {
     unsigned fun = arity == 0
                    ? addUninterpretedConstant(name, _overflow, added)
                    : env.signature->addFunction(name, arity, added);
-    if (!added) {
-      USER_ERROR("Function symbol type is declared after its use: " + name);
-    }   
     symbol = env.signature->getFunction(fun);
-    symbol->setType(ot);
-    if(_isThf){
-      if(!_typeArities.insert(name, ot->typeArgsArity())){
-        USER_ERROR("Symbol " + name + " used with different type arities");
+    if (!added) {
+      if(symbol->fnType() != ot){
+        USER_ERROR("Function symbol type is declared after its use: " + name);
+      }
+    }
+    else {   
+      symbol->setType(ot);
+      if(_isThf){
+        if(!_typeArities.insert(name, ot->typeArgsArity())){
+          USER_ERROR("Symbol " + name + " used with different type arities");
+        }
       }
     }
     //cout << "added: " + symbol->name() + " of type " + ot->toString() + " and functor " << fun << endl;

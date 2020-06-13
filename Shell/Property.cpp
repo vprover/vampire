@@ -686,7 +686,8 @@ void Property::scan(TermList ts,bool unit,bool goal)
 
     if(func->app()){
       _hasApp = true;
-      if(SortHelper::getResultSort(t) == Term::boolSort()){
+      TermList sort = SortHelper::getResultSort(t);
+      if(ApplicativeHelper::getResultSort(sort) == Term::boolSort()){
         TermList head = ApplicativeHelper::getHead(ts);
         if(head.isVar()){
           _hasBoolVar = true;
@@ -697,6 +698,13 @@ void Property::scan(TermList ts,bool unit,bool goal)
     if(func->combinator() != Signature::NOT_COMB){
       _hasCombs = true;
     } else if(func->proxy() != Signature::NOT_PROXY){
+      if(func->proxy() == Signature::PI || func->proxy() == Signature::SIGMA){
+        ASS(t->arity() == 1);
+        TermList sort = *t->nthArgument(0);
+        if(ApplicativeHelper::getResultSort(sort) == Term::boolSort()){
+          _hasBoolVar = true;
+        }
+      }
       _hasLogicalProxy = true;
     }
 

@@ -152,6 +152,16 @@ bool WeightQueue::lessThan(Clause* c1,Clause* c2)
 {
   CALL("WeightQueue::lessThan");
 
+  if(env.options->prioritiseClausesProducedByLongReduction()){
+    if(c1->reductions() < c2->reductions()){
+      return false;
+    }
+
+    if(c2->reductions() < c1->reductions()){
+      return true;
+    }
+  }
+
   Comparison weightCmp=AWPassiveClauseContainer::compareWeight(c1, c2, _opt);
   if (weightCmp!=EQUAL) {
     return weightCmp==LESS;

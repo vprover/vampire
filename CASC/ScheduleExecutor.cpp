@@ -53,15 +53,16 @@ bool ScheduleExecutor::run(const Schedule &schedule, int terminationTime)
 {
   CALL("ScheduleExecutor::run");
 
-  PriorityQueue<Item> queue;
-  Schedule::BottomFirstIterator it(schedule);
+  Stack<Item> queue;
+  Schedule::TopFirstIterator it(schedule);
 
   // insert all strategies into the queue
-  while(it.hasNext())
-  {
-    vstring code = it.next();
+  //while(it.hasNext())
+ // {
+  for(int i = schedule.size() -1; i >=0; i--){
+    vstring code = schedule[i];
     float priority = _policy->staticPriority(code);
-    queue.insert(priority, code);
+    queue.push(Item(code));
   }
 
   typedef List<pid_t> Pool;
@@ -111,7 +112,7 @@ bool ScheduleExecutor::run(const Schedule &schedule, int terminationTime)
     {
       pool = Pool::remove(process, pool);
       float priority = _policy->dynamicPriority(process);
-      queue.insert(priority, Item(process));
+      queue.push(Item(process));
     }
 
     // pool empty and queue exhausted - we failed

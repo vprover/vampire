@@ -37,6 +37,7 @@
 #include "Inferences/CombinatorNormalisationISE.hpp"
 #include "Inferences/CNFOnTheFly.hpp"
 #include "Inferences/BoolSimp.hpp"
+#include "Inferences/CasesSimp.hpp"
 //#include "Inferences/EquationalTautologyRemoval.hpp"
 
 //#include "InstGen/IGAlgorithm.hpp"
@@ -162,6 +163,10 @@ ImmediateSimplificationEngine* MainLoop::createISE(Problem& prb, const Options& 
       res->addFront(new IFFXORRewriterISE());
     }
     res->addFront(new BoolSimp());
+  }
+
+  if (prb.hasFOOL() && opt.casesSimp() && !opt.FOOLParamodulation()) {
+    res->addFrontMany(new CasesSimp());
   }
 
   // Only add if there are distinct groups 

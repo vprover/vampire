@@ -296,6 +296,7 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/TautologyDeletionISE.o\
          Inferences/URResolution.o\
          Inferences/CNFOnTheFly.o\
+         Inferences/CasesSimp.o\
          Inferences/RenamingOnTheFly.o\
          Inferences/BoolSimp.o\
          Inferences/PrimitiveInstantiation.o\

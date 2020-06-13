@@ -258,11 +258,10 @@ void PortfolioMode::getSchedules(Property& prop, Schedule& quick, Schedule& fall
     break;
   case Options::Schedule::CASC_2018:
   case Options::Schedule::CASC:
-    if(env.options->pragmatic()){
-      Schedules::getCasc2018PragmaticHOSchedule(prop,quick,fallback); //big hack! 
-    } else{
-      Schedules::getCasc2018Schedule(prop,quick,fallback);
-    }
+    Schedules::getCasc2018Schedule(prop,quick,fallback);
+    break;
+  case Options::Schedule::CASC_HOL_2020:
+    Schedules::getHigherOrderSchedule2020(quick,fallback);
     break;
   case Options::Schedule::CASC_SAT_2014:
     Schedules::getCascSat2014Schedule(prop,quick,fallback);

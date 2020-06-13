@@ -235,6 +235,14 @@ public:
       _XXNarrows++; 
     }
   }
+
+  unsigned reductions() const { return _reductions; }
+  void setReductions(unsigned n){
+    _reductions = n;
+  }
+  void increaseReductions(unsigned n){
+    _reductions += n;
+  }
   
   bool skip() const;
 
@@ -405,6 +413,8 @@ protected:
   unsigned _inductionDepth : 5;
   /** number of XX' narrows carried out on clause */
   unsigned _XXNarrows : 3;
+  /** number of weak reductions in the history of this clause */
+  unsigned _reductions;
 
   /** number of selected literals */
   unsigned _numSelected;

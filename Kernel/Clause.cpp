@@ -82,6 +82,7 @@ Clause::Clause(unsigned length,InputType it,Inference* inf)
     _holAxiomsDescendant(false),
     _inductionDepth(0),
     _XXNarrows(0),
+    _reductions(0),
     _numSelected(0),
     _age(0),
     _weight(0),
@@ -94,7 +95,6 @@ Clause::Clause(unsigned length,InputType it,Inference* inf)
     _numActiveSplits(0),
     _auxTimestamp(0)
 {
-
   if(it == Unit::EXTENSIONALITY_AXIOM){
     //cout << "Setting extensionality" << endl;
     _extensionalityTag = true;
@@ -121,17 +121,34 @@ Clause::Clause(unsigned length,InputType it,Inference* inf)
     _theoryDescendant=td;
     _inductionDepth=id;
   }
-  
   if(env.options->maxXXNarrows() > 0){
     unsigned parentMax = 0;
     Inference::Iterator it = inf->iterator();
     while(inf->hasNext(it)){
       Unit* parent = inf->next(it);
-      if(parent->isClause() && static_cast<Clause*>(parent)->XXNarrows() > parentMax){
-        parentMax = static_cast<Clause*>(parent)->XXNarrows();
+      if(parent->isClause()){
+        Clause* p = static_cast<Clause*>(parent);
+        if(p->XXNarrows() > parentMax){
+          parentMax = p->XXNarrows();
+        }
       }      
     }
     setXXNarrows(parentMax);    
+  }
+
+  if(env.options->prioritiseClausesProducedByLongReduction()){
+    unsigned parentMax = 0;
+    Inference::Iterator it = inf->iterator();
+    while(inf->hasNext(it)){
+      Unit* parent = inf->next(it);
+      if(parent->isClause()){
+        Clause* p = static_cast<Clause*>(parent);
+        if(p->reductions() > parentMax){
+          parentMax = p->reductions();
+        }
+      }      
+    }
+    setReductions(parentMax);    
   }
 
   if(env.options->addCombAxioms() || env.options->addProxyAxioms()){
@@ -164,7 +181,6 @@ Clause::Clause(unsigned length,InputType it,Inference* inf)
       setHolAxiomsDescendant(true); 
     }
   }
-
 }
 
 /**

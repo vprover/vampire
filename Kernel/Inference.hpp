@@ -364,7 +364,9 @@ public:
 
     PRIMITIVE_INSTANTIATION,
 
-    LEIBNIZ_ELIMINATION 
+    LEIBNIZ_ELIMINATION,
+
+    CASES_SIMP
   }; // class Inference::Rule
 
   explicit Inference(Rule r);

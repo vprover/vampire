@@ -46,6 +46,7 @@
 #include "Lib/System.hpp"
 
 #include "Shell/UIHelper.hpp"
+#include "Shell/Statistics.hpp"
 
 #include "Kernel/Problem.hpp"
 #include "Kernel/Signature.hpp"
@@ -108,6 +109,7 @@ void Options::Options::init()
     _mode = ChoiceOptionValue<Mode>("mode","",Mode::VAMPIRE,
                                     {"axiom_selection",
                                         "casc",
+                                        "casc_hol",
                                         "casc_sat",
                                         "casc_ltb",
                                         "clausify",
@@ -154,6 +156,7 @@ void Options::Options::init()
          "casc_sat_2016",
          "casc_sat_2017",
          "casc_sat_2018",
+         "casc_hol_2020",
          "ltb_2014",
          "ltb_2014_mzr",
          "ltb_default_2017",
@@ -181,6 +184,7 @@ void Options::Options::init()
     _lookup.insert(&_schedule);
     _schedule.reliesOnHard(_mode.is(equal(Mode::CASC)->
         Or(_mode.is(equal(Mode::CASC_SAT)))->
+        Or(_mode.is(equal(Mode::CASC_HOL)))->
         Or(_mode.is(equal(Mode::SMTCOMP)))->
         Or(_mode.is(equal(Mode::PORTFOLIO)))));
 
@@ -190,6 +194,7 @@ void Options::Options::init()
     _multicore.reliesOnHard(_mode.is(equal(Mode::CASC)->
         Or(_mode.is(equal(Mode::CASC_SAT)))->
         Or(_mode.is(equal(Mode::SMTCOMP)))->
+        Or(_mode.is(equal(Mode::CASC_HOL)))->
         Or(_mode.is(equal(Mode::PORTFOLIO)))));
 
     _ltbLearning = ChoiceOptionValue<LTBLearning>("ltb_learning","ltbl",LTBLearning::OFF,{"on","off","biased"});
@@ -1208,6 +1213,10 @@ void Options::Options::init()
     _choiceReasoning.reliesOn(_choiceAxiom.is(equal(false))); //no point having two together
     _choiceReasoning.tag(OptionTag::INFERENCES);
 
+    _priortyToLongReducts = BoolOptionValue("priority_to_long_reducts","ptlr",false);
+    _priortyToLongReducts.description="give priority to clauses produced by lengthy reductions";
+    _lookup.insert(&_priortyToLongReducts);
+    _priortyToLongReducts.tag(OptionTag::OTHER);
 
     _injectivity = BoolOptionValue("injectivity","inj",false);
     _injectivity.description="Attempts to identify injective functions and postulates a left-inverse";
@@ -1238,10 +1247,21 @@ void Options::Options::init()
                                                                           "lazy_simp",
                                                                           "lazy_not_gen", 
                                                                           "lazy_not_gen_be_off", 
-                                                                          "lazy_not_be_gen"});
+                                                                          "lazy_not_be_gen",
+                                                                          "off"});
     _clausificationOnTheFly.description="Various options linked to clausification on the fly";
     _lookup.insert(&_clausificationOnTheFly);
     _clausificationOnTheFly.tag(OptionTag::OTHER);
+
+
+    _piSet = ChoiceOptionValue<PISet>("prim_inst_set","piset",PISet::ALL_EXCEPT_NOT_EQ,
+                                                                        {"all", 
+                                                                        "all_but_not_eq", 
+                                                                        "false_true_not",
+                                                                        "small_set"});
+    _piSet.description="Controls the set of equations to use in primitive instantiation";
+    _lookup.insert(&_piSet);
+    _piSet.tag(OptionTag::OTHER);
 
     _equalityToEquivalence = BoolOptionValue("equality_to_equiv","e2e",false);
     _equalityToEquivalence.description=
@@ -1270,6 +1290,13 @@ void Options::Options::init()
     "Control superposition. Only used in higher-order strategies";
     _lookup.insert(&_superposition);
     _superposition.tag(OptionTag::INFERENCES);
+
+    _casesSimp = BoolOptionValue("cases_simp","cs",false);
+    _casesSimp.description=
+    "FOOL Paramodulation with two conclusion as a simplification";
+    _casesSimp.reliesOn(_FOOLParamodulation.is(equal(false)));
+    _lookup.insert(&_casesSimp);
+    _casesSimp.tag(OptionTag::INFERENCES);
 
 
 //*********************** InstGen  ***********************
@@ -2999,6 +3026,11 @@ bool Options::complete(const Problem& prb) const
 {
   CALL("Options::complete");
 
+  if(env.statistics->higherOrder){
+    //safer for competition
+    return false;
+  }
+ 
   if (_showInterpolant.actualValue != InterpolantMode::OFF) {
     return false;
   }

@@ -523,6 +523,8 @@ vstring Inference::ruleName(Rule rule)
     return "primitive instantiation";
   case LEIBNIZ_ELIMINATION:
     return "leibniz equality elimination";
+  case CASES_SIMP:
+    return "cases simplifying";
   default:
     ASSERTION_VIOLATION;
     return "!UNKNOWN INFERENCE RULE!";

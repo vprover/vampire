@@ -1,6 +1,6 @@
 
 /*
- * File CombinatorDemodISE.hpp.
+ * File FOOLParamodulation.hpp.
  *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
@@ -17,33 +17,27 @@
  * licence, which we will make an effort to provide. 
  */
 /**
- * @file CombinatorDemodISE.hpp
- * Defines class CombinatorDemodISE.
+ * @file FOOLParamodulation.hpp
+ * Defines class FOOLParamodulation.
  */
 
-
-#ifndef __CombinatorDemodISE__
-#define __CombinatorDemodISE__
+#ifndef __CASES_SIMP__
+#define __CASES_SIMP__
 
 #include "Forwards.hpp"
+
 #include "InferenceEngine.hpp"
 
 namespace Inferences {
 
-class CombinatorDemodISE
-: public ImmediateSimplificationEngine
-{
-public:
-  CLASS_NAME(CombinatorDemodISE);
-  USE_ALLOCATOR(CombinatorDemodISE);
-
-  CombinatorDemodISE(){}
-  Clause* simplify(Clause* cl);
-private:
-   TermList reduce(TermList t, unsigned& length);
-   bool headNormalForm(TermList& t);
+class CasesSimp : public ImmediateSimplificationEngine {
+  public:
+    CLASS_NAME(CasesSimp);
+    USE_ALLOCATOR(CasesSimp);
+    ClauseIterator simplifyMany(Clause* premise);
+    Clause* simplify(Clause* premise){ NOT_IMPLEMENTED; }
 };
 
-};
+}
 
-#endif /* __CombinatorDemodISE__ */
+#endif

@@ -782,7 +782,6 @@ void SaturationAlgorithm::newClausesToUnprocessed()
 
   while (_newClauses.isNonEmpty()) {
     Clause* cl=_newClauses.popWithoutDec();
-
     switch(cl->store())
     {
     case Clause::UNPROCESSED:
@@ -1102,7 +1101,6 @@ bool SaturationAlgorithm::activate(Clause* cl)
 
     while (toAdd.hasNext()) {
       Clause* genCl=toAdd.next();
-
       addNewClause(genCl);
 
       Inference::Iterator iit=genCl->inference()->iterator();
@@ -1469,13 +1467,14 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     gie->addFront(new ExtensionalityResolution());
   }*/
   //check problem is higher-order AYB
-  if (opt.FOOLParamodulation() && (/*prb.hasApp() &&*/ prb.hasFOOL())) {
+  if (opt.FOOLParamodulation() && prb.hasFOOL() && !opt.casesSimp()) {
     gie->addFront(new FOOLParamodulation());
   }
 
   if((prb.hasLogicalProxy() || prb.hasBoolVar() || prb.hasFOOL()) &&
       env.statistics->higherOrder && !prb.quantifiesOverPolymorphicVar()){
-    if(env.options->cnfOnTheFly() != Options::CNFOnTheFly::EAGER){
+    if(env.options->cnfOnTheFly() != Options::CNFOnTheFly::EAGER &&
+       env.options->cnfOnTheFly() != Options::CNFOnTheFly::OFF){
       gie->addFront(new LazyClausificationGIE());
     }
   }
@@ -1508,7 +1507,8 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
 
   if((prb.hasLogicalProxy() || prb.hasBoolVar() || prb.hasFOOL()) &&
       env.statistics->higherOrder && !prb.quantifiesOverPolymorphicVar()){
-    if(env.options->cnfOnTheFly() != Options::CNFOnTheFly::EAGER){
+    if(env.options->cnfOnTheFly() != Options::CNFOnTheFly::EAGER &&
+       env.options->cnfOnTheFly() != Options::CNFOnTheFly::OFF){
       res->addSimplifierToFront(new LazyClausification());
     }
     //res->addSimplifierToFront(new RenamingOnTheFly());
