@@ -93,13 +93,24 @@ struct EqualityResolution::ResultFn
       use_handler = false;
     }
   
-    MismatchHandler* hndlr = 0;
+/*
+    UWAMismatchHandler* hndlr = 0;
     if(use_handler){
       UWAMismatchHandler h(constraints);
       hndlr = &h;
     }
     if(!subst.unify(*lit->nthArgument(0),0,*lit->nthArgument(1),0,hndlr)){ 
       return 0; 
+    }
+*/
+    if(use_handler){
+      UWAMismatchHandler hndlr(constraints);
+      if(!subst.unify(*lit->nthArgument(0),0,*lit->nthArgument(1),0,&hndlr)){ 
+        return 0;
+      }
+    }
+    else if(!subst.unify(*lit->nthArgument(0),0,*lit->nthArgument(1),0)){
+      return 0;
     }
 
 
