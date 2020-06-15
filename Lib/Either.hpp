@@ -5,14 +5,6 @@
 #include "Debug/Tracer.hpp"
 #include <memory>
 
-struct HardAssertionViolation { };
-
-#define HARD_ASSERT(cond)                                                      \
-  if (!(cond)){                                                                 \
-    DBG(__FILE__, "@", __LINE__)\
-    throw HardAssertionViolation{}; \
-  }\
-
 namespace Lib {
 
 #define FOR_REF_QUALIFIER(macro)                                               \

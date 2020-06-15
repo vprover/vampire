@@ -41,13 +41,9 @@ TermEvalResult tryEvalConstant1(Term* orig, TermEvalResult* evaluatedArgs, EvalG
   using Number = NumTraits<ConstantType>;
   using NumberOut = NumTraits<typename result_of<EvalGround(ConstantType)>::type>;
 
-  DBG("lala 1")
   auto& x = evaluatedArgs[0];
-  DBG("lala 2")
-    x.isPoly();
-  DBG("lala 3")
   if (x.isPoly()) {
-    auto poly = evaluatedArgs[0].template as<AnyPoly>().template as<Polynom<Number>>();
+    auto poly = x.template as<AnyPoly>().template as<Polynom<Number>>();
     if (poly.isCoeff()) {
       return TermEvalResult::template variant<1>(AnyPoly(Polynom<NumberOut>(fun(poly.unwrapCoeff()))));
     }

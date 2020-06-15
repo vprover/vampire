@@ -419,8 +419,8 @@ private:
 
     static Polynom poly_add(const ComplexPolynom& lhs, const ComplexPolynom& rhs) {
       CALL("ComplexPolynom::poly_add")
-      DBG("lhs: ", lhs)
-      DBG("rhs: ", rhs)
+      // DBG("lhs: ", lhs)
+      // DBG("rhs: ", rhs)
       ASS(!lhs._coeffs.empty())
       ASS(!rhs._coeffs.empty())
       auto newCoeffs = merge_sort_with(lhs._coeffs, rhs._coeffs, 

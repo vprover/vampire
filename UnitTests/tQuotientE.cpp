@@ -30,11 +30,11 @@ TEST_FUN(check_spec) {
   for (int i = -100; i < 100; i++) {
     for (int j = -100; j < 100; j++) {
       if (j != 0) {
-        DBG();
+        //DBG();
         auto q = quotientE(i, j);
         auto r = remainderE(i, j);
-        DBG("quotientE (", i,", ", j,")\t= ", q);
-        DBG("remainderE(", i,", ", j,")\t= ", r);
+        //DBG("quotientE (", i,", ", j,")\t= ", q);
+        //DBG("remainderE(", i,", ", j,")\t= ", r);
         ASS_EQ(q * j + r, i)
         ASS(0 <= r && r < abs(j))
       }
