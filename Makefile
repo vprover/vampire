@@ -206,7 +206,6 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/InferenceStore.o\
         Kernel/InterpretedLiteralEvaluator.o\
 	Kernel/PolynomialNormalizer.o\
-	Kernel/Polynomial.o\
         Kernel/Rebalancing.o\
         Kernel/Rebalancing/Inverters.o\
 	Kernel/NumTraits.o\
@@ -474,7 +473,6 @@ LIB_DEP = Indexing/TermSharing.o\
 	  Kernel/FormulaVarIterator.o\
 	  Kernel/InterpretedLiteralEvaluator.o\
 	  Kernel/PolynomialNormalizer.o\
-	  Kernel/Polynomial.o\
 	  Kernel/Rebalancing.o\
 	  Kernel/Rebalancing/Inverters.o\
 	  Kernel/NumTraits.o\

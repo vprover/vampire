@@ -81,7 +81,8 @@ public:
 
 private:
   MonomInner* _inner;
-  static Map<MonomInner, MonomInner*, Hasher> monoms;
+  using Cache = Map<MonomInner, MonomInner*, Hasher>;
+  static Cache monoms;
 
 public:
 
@@ -278,7 +279,8 @@ private:
 
   using Inner = Coproduct<ComplexPolynom*, Coeff>;
   Inner _inner;
-  static Map<ComplexPolynom, ComplexPolynom*, Hasher> polynoms;
+  using Cache = Map<ComplexPolynom, ComplexPolynom*, Hasher>;
+  static Cache polynoms;
 
 
 public:
@@ -679,7 +681,14 @@ struct AnyPoly : public Coproduct< Polynom<NumTraits<IntegerConstantType>> , Pol
 private:
 };
 
+
+template<class Number> typename Polynom<Number>::Cache Polynom<Number>::polynoms;
+template<class Number> typename Monom  <Number>::Cache Monom  <Number>::monoms;
+
+
 } // namespace Kernel
+
+
 
 #undef DEBUG
 

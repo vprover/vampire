@@ -154,6 +154,11 @@ IMPL_NUM_TRAITS(Rational, RATIONAL, RAT )
 IMPL_NUM_TRAITS(Real    , REAL    , REAL)
 IMPL_NUM_TRAITS(Integer , INTEGER , INT )
 
+#define FOR_NUM_TRAITS(macro) \
+  macro(Kernel::NumTraits<Kernel:: IntegerConstantType>) \
+  macro(Kernel::NumTraits<Kernel::    RealConstantType>) \
+  macro(Kernel::NumTraits<Kernel::RationalConstantType>) \
+
 
 }
 #endif // __NUM_TRAITS_H__
