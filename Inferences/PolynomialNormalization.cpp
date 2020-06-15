@@ -14,8 +14,9 @@ Clause* PolynomialNormalization::simplify(Clause* cl_) {
 
   for (int i = 0; i < cl.size(); i++) {
 
+    auto orig = cl[i];
     try {
-      auto simpl = _normalizer.evaluate(cl[i]);
+      auto simpl = _normalizer.evaluate(orig);
 
       if (simpl.isConstant()) {
         bool trivialValue = simpl.unwrapConstant();
@@ -27,12 +28,18 @@ Clause* PolynomialNormalization::simplify(Clause* cl_) {
       } else {
         Literal* simplLit = simpl.unwrapLiteral();
 
-        if (simplLit != cl[i]) {
-          changed = true;
-        }
-        out.push(simplLit);
 
-        // auto cmp = _ordering.compare(simplLit, cl[i]);
+        auto cmp = _ordering.compare(simplLit, orig);
+        if (cmp == Ordering::Result::LESS) {
+
+          if (simplLit != orig) {
+            changed = true;
+          }
+          out.push(simplLit);
+
+        } else {
+          out.push(orig);
+        }
 
 
         // if (env.options->literalComparisonMode() == Options::LiteralComparisonMode::REVERSE && cl[i]->isNegative())  {
@@ -59,7 +66,7 @@ Clause* PolynomialNormalization::simplify(Clause* cl_) {
         // }
       }
     } catch (MachineArithmeticException) {
-      out.push(cl[i]);
+      out.push(orig);
     }
   }
 
