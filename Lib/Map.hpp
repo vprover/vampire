@@ -259,7 +259,6 @@ private:
   Val& insert(Key&& key, Val&& val,unsigned code)
   {
     CALL("Map::insert/2");
-    // DBG("inserting k: ", key, " v: ", val);
 
     Entry* entry;
     for (entry = firstEntryForCode(code); entry->occupied(); entry = nextEntry(entry)) {
@@ -491,7 +490,6 @@ public:
       while (! current->occupied()) {
         current ++;
       }
-      DBG("moving  k: ", current->key, " v: ", current->value, "( ", remaining, " / ", _noOfEntries, " )");
       // now current is occupied
       insert(std::move(current->key),std::move(current->value),current->code);
       current ++;
