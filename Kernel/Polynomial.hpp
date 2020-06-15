@@ -419,17 +419,19 @@ private:
 
     static Polynom poly_add(const ComplexPolynom& lhs, const ComplexPolynom& rhs) {
       CALL("ComplexPolynom::poly_add")
+      DBG("lhs: ", lhs)
+      DBG("rhs: ", rhs)
       ASS(!lhs._coeffs.empty())
       ASS(!rhs._coeffs.empty())
       auto newCoeffs = merge_sort_with(lhs._coeffs, rhs._coeffs, 
               [](Coeff l, Coeff r){ return l + r; },
               [](Coeff x){ return x != number::zeroC; }
             );
-      // if (newCoeffs.empty())  {
-      //   return Polynom(Coeff(0));
-      // } else {
+      if (newCoeffs.empty())  {
+        return Polynom(Coeff(0));
+      } else {
         return Polynom(ComplexPolynom::create(ComplexPolynom(std::move(newCoeffs))));
-      // }
+      }
     }
 
     inline static ComplexPolynom* add(Coeff coeff, ComplexPolynom* old_) {
