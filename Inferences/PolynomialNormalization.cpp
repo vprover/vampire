@@ -27,30 +27,36 @@ Clause* PolynomialNormalization::simplify(Clause* cl_) {
       } else {
         Literal* simplLit = simpl.unwrapLiteral();
 
-        auto cmp = _ordering.compare(simplLit, cl[i]);
-
-        if (env.options->literalComparisonMode() == Options::LiteralComparisonMode::REVERSE && cl[i]->isNegative())  {
-          //TODO this is so ugly. We should make a constraint between these options
-          cmp = Ordering::reverse(cmp);
-        }
-        switch(cmp) {
-
-        case Ordering::Result::LESS:
-          //TODO shall we add an assertion here?
-          out.push(simplLit);
+        if (simplLit != cl[i]) {
           changed = true;
-          break;
-        case Ordering::Result::INCOMPARABLE:
-        case Ordering::Result::EQUAL:
-          out.push(cl[i]);
-          break;
-        case Ordering::GREATER:
-          DBG("orig:  ", *cl[i])
-          DBG("simpl: ", *simplLit)
-          { ASSERTION_VIOLATION }
-        default:
-          { ASSERTION_VIOLATION }
         }
+        out.push(simplLit);
+
+        // auto cmp = _ordering.compare(simplLit, cl[i]);
+
+
+        // if (env.options->literalComparisonMode() == Options::LiteralComparisonMode::REVERSE && cl[i]->isNegative())  {
+        //   //TODO this is so ugly. We should make a constraint between these options
+        //   cmp = Ordering::reverse(cmp);
+        // }
+        // switch(cmp) {
+        //
+        // case Ordering::Result::LESS:
+        //   //TODO shall we add an assertion here?
+        //   out.push(simplLit);
+        //   changed = true;
+        //   break;
+        // case Ordering::Result::INCOMPARABLE:
+        // case Ordering::Result::EQUAL:
+        //   out.push(cl[i]);
+        //   break;
+        // case Ordering::GREATER:
+        //   DBG("orig:  ", *cl[i])
+        //   DBG("simpl: ", *simplLit)
+        //   { ASSERTION_VIOLATION }
+        // default:
+        //   { ASSERTION_VIOLATION }
+        // }
       }
     } catch (MachineArithmeticException) {
       out.push(cl[i]);
