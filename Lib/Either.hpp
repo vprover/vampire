@@ -5,11 +5,14 @@
 #include "Debug/Tracer.hpp"
 #include <memory>
 
-struct HardAssertionViolation {};
+struct HardAssertionViolation { };
 
 #define HARD_ASSERT(cond)                                                      \
-  if (!(cond))                                                                 \
-    throw HardAssertionViolation{};
+  if (!(cond)){                                                                 \
+    DBG(__FILE__, "@", __LINE__)\
+    throw HardAssertionViolation{}; \
+  }\
+
 namespace Lib {
 
 #define FOR_REF_QUALIFIER(macro)                                               \
@@ -219,16 +222,17 @@ public:
   Coproduct(Inj<idx, typename va_idx<idx, A, As...>::type> &&value)
       : _tag(idx) {
     CALL("Coproduct::Coprodct(Inj<...>&&)")
+    static_assert(idx < size, "out of bounds");
     init<idx, A, As...>{}(_content, std::move(value._value));
   }
 
 #define REF_POLYMORPIHIC(REF, MOVE)                                            \
   template <class Ret, class... F> inline Ret match(F... fs) REF {             \
-    HARD_ASSERT(_tag <= size)                                                  \
+    ASS_REP(_tag <= size, _tag);                                                  \
     return MOVE(_content).template apply<Ret>(_tag, fs...);                    \
   }                                                                            \
   template <class Ret, class F> inline Ret collapsePoly(F f) REF {             \
-    HARD_ASSERT(_tag <= size)                                                  \
+    ASS_REP(_tag <= size, _tag);                                                  \
     return MOVE(_content).template applyPoly<Ret>(_tag, f);                    \
   }                                                                            \
   template <class... F> inline Coproduct map(F... fs) REF {                    \
@@ -237,6 +241,7 @@ public:
                                                                                \
   Coproduct &operator=(Coproduct REF other) {                                  \
     CALL("Coproduct& operator=(Coproduct " #REF "other)")                      \
+    ASS_REP(other._tag <= size, other._tag);                                            \
     _content.destroy(_tag);                                                    \
     _content.init(other._tag, MOVE(other._content));                           \
     _tag = other._tag;                                                         \
@@ -245,6 +250,7 @@ public:
                                                                                \
   Coproduct(Coproduct REF other) : _tag(other._tag) {                          \
     CALL("Coproduc(Coproduct " #REF " other)")                                 \
+    ASS_REP(other._tag <= size, other._tag);                                            \
     _content.init(other._tag, MOVE(other._content));                           \
   }                                                                            \
                                                                                \
@@ -257,7 +263,7 @@ public:
   inline typename va_idx<idx, A, As...>::type REF unwrap() REF {               \
     CALL("Coproduct::unwrap() " #REF );                                \
     static_assert(idx < size, "out of bounds");                                \
-    ASS(idx == _tag);                                                          \
+    ASS_EQ(idx, _tag);                                                          \
     return __unwrap<idx, A, As...>{}(MOVE(_content));                          \
   }
 

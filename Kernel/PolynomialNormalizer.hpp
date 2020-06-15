@@ -28,7 +28,7 @@ namespace Kernel {
  */
 class TermEvalResult : public Lib::Coproduct<TermList, AnyPoly> {
 public:
-  TermEvalResult() : Coproduct(Coproduct::template variant<0>(Kernel::TermList())) {}
+  TermEvalResult() : Coproduct(Coproduct::template variant<0>(Kernel::TermList())) { }
   TermEvalResult(Coproduct     && super) : Coproduct(std::move(super)) {}
   TermEvalResult(Coproduct      & super) : Coproduct(          super ) {}
   TermEvalResult(Coproduct const& super) : Coproduct(          super ) {}
