@@ -140,6 +140,12 @@ void ProvingHelper::runVampire(Problem& prb, const Options& opt)
     env.endOutput();
   }
 
+  //this point is reached both by the vampire mode (single strategy) and the portfolio mode (strategy schedule) when inside a strategy
+  /* Set random seed one more time, this time in the title of "seed for proof search".
+   * This should help improve reproducibility when using vampire mode + "--decode" to reply a behavior of a strat from a schedule
+   */
+  Lib::Random::setSeed(opt.randomSeed());
+
   env.statistics->phase=Statistics::SATURATION;
   ScopedPtr<MainLoop> salg(MainLoop::createFromOptions(prb, opt));
 
