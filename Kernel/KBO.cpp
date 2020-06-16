@@ -24,6 +24,7 @@
  */
 
 #include "Debug/Tracer.hpp"
+#include "Kernel/NumTraits.hpp"
 
 
 #include "Lib/Environment.hpp"
@@ -411,6 +412,12 @@ Ordering::Result KBO::compare(TermList tl1, TermList tl2) const
 
 int KBO::functionSymbolWeight(unsigned fun) const
 {
+  // TODO make an option 
+ 
+  if (fun == NumTraits< IntegerConstantType>::minusF()) { return 0; }
+  if (fun == NumTraits<RationalConstantType>::minusF()) { return 0; }
+  if (fun == NumTraits<    RealConstantType>::minusF()) { return 0; }
+
   int weight = _defaultSymbolWeight;
 
   if(env.signature->functionColored(fun)) {
