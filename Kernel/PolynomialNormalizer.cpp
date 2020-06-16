@@ -104,3 +104,9 @@ template<> LitEvalResult evaluateLit<Interpretation::INT_DIVIDES>(Literal* lit) 
 #undef IGNORE_CASE
 #undef HANDLE_NUM_CASES
 }
+
+// void Lib::integrity<Kernel::TermEvalResult>::check(const Kernel::TermEvalResult& self, const char* file, int line) {
+//   integrity<Lib::Coproduct<Kernel::TermList, Kernel::AnyPoly>>::check(self, file, line);
+// }
+
+

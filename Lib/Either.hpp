@@ -3,6 +3,9 @@
 
 #include "Debug/Assertion.hpp"
 #include "Debug/Tracer.hpp"
+// #if VDEBUG
+// #include "Map.hpp" // TODO remove this
+// #endif // VDEBUG
 #include <memory>
 
 namespace Lib {
@@ -289,8 +292,28 @@ public:
   friend std::ostream &operator<<(std::ostream &out, const Coproduct &self) {
     return self.template collapsePoly<std::ostream &>(__writeToStream{self._tag, out});
   }
+#if VDEBUG
+// TODO remove this
+  template<class C>
+friend struct integrity;
+#endif
 };
 
+// #if VDEBUG
+// // TODO remove this
+//
+// template<class... As> 
+// struct integrity<Coproduct<As...>>  {
+//   static void check(const Coproduct<As...>& self, const char* file, int line) {
+//     auto size = Coproduct<As...>::size;
+//     if (self._tag >= size) {
+//       DBG(file,"@",line)
+//       ASS_G(size, self._tag)
+//     }
+//   }
+// };
+// #endif // VDEBUG
 
 } // namespace Lib
+
 #endif // __LIB_EITHER__H__

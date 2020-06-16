@@ -36,6 +36,7 @@ public:
   AnyPoly const& asPoly() const& { return unwrap<1>(); }
 };
 
+
 class LitEvalResult : public Lib::Coproduct<Literal*, bool> {
 private:
   explicit LitEvalResult(Coproduct&& l) : Coproduct(std::move(l)) {}
@@ -190,6 +191,7 @@ template<class Config> TermList PolynomialNormalizer<Config>::evaluate(Term* ter
   CALL("PolynomialNormalizer::evaluate(Term* term)")
   DEBUG("evaluating ", term->toString())
   static Map<Term*, TermEvalResult> memo;
+  // memo.integrity_check(__FILE__,__LINE__);
 
   static Stack<TermList*> recursion(8);
 
@@ -222,6 +224,7 @@ template<class Config> TermList PolynomialNormalizer<Config>::evaluate(Term* ter
         Term* t = cur->term();
 
         auto cached = memo.getPtr(t);
+        // memo.integrity_check(__FILE__,__LINE__);
         if (cached == nullptr) {
            terms.push(t);
            recursion.push(t->args());
@@ -237,20 +240,20 @@ template<class Config> TermList PolynomialNormalizer<Config>::evaluate(Term* ter
 
       Term* orig=terms.pop();
 
+        // memo.integrity_check(__FILE__,__LINE__);
+
       TermEvalResult& res = memo.getOrInit(std::move(orig), 
           [&](TermEvalResult* toInit){ 
-
             TermEvalResult* argLst = NULL;
             if (orig->arity() != 0) {
               ASS(args.size() >= orig->arity());
               argLst=&args[args.size() - orig->arity()];
-              // for (int i = 0; i < args.size(); i++) {
-              //   args[i].is<1>();
-              // }
             }
 
-            ::new(toInit) TermEvalResult(evaluateStep(orig,argLst));
+            auto eval = evaluateStep(orig,argLst);
+            ::new(toInit) TermEvalResult(std::move(eval));
           });
+        // memo.integrity_check(__FILE__,__LINE__);
 
       DEBUG("evaluated: ", orig->toString(), " -> ", res);
 
@@ -329,50 +332,56 @@ template<class Config> TermEvalResult PolynomialNormalizer<Config>::evaluateStep
   auto functor = orig->functor();
   auto sym = env.signature->getFunction(functor);
 
-  if (sym->interpreted()) {
-    if (sym->interpretedNumber()) {
-        HANDLE_CONSTANT_CASE(Integer)
-        HANDLE_CONSTANT_CASE(Rational)
-        HANDLE_CONSTANT_CASE(Real)
-        ASS_REP(false, "unexpected interpreted number: " + orig->toString())
-    } else {
-      auto inter = static_cast<Signature::InterpretedSymbol*>(sym)->getInterpretation();
-      switch (inter) {
+  try {
+    if (sym->interpreted()) {
+      if (sym->interpretedNumber()) {
+          HANDLE_CONSTANT_CASE(Integer)
+          HANDLE_CONSTANT_CASE(Rational)
+          HANDLE_CONSTANT_CASE(Real)
+          ASS_REP(false, "unexpected interpreted number: " + orig->toString())
+      } else {
+        auto inter = static_cast<Signature::InterpretedSymbol*>(sym)->getInterpretation();
+        switch (inter) {
 
-        /* common number functions*/
-        HANDLE_NUM_CASES(INT)
-        HANDLE_NUM_CASES(RAT)
-        HANDLE_NUM_CASES(REAL)
+          /* common number functions*/
+          HANDLE_NUM_CASES(INT)
+          HANDLE_NUM_CASES(RAT)
+          HANDLE_NUM_CASES(REAL)
 
-        /* integer functions */
-        HANDLE_CASE(INT_SUCCESSOR)
-        HANDLE_CASE(INT_ABS)
+          /* integer functions */
+          HANDLE_CASE(INT_SUCCESSOR)
+          HANDLE_CASE(INT_ABS)
 
-        /* rational functions */
-        HANDLE_CASE(RAT_QUOTIENT)
-        IGNORE_CASE(RAT_ROUND)  //TODO
+          /* rational functions */
+          HANDLE_CASE(RAT_QUOTIENT)
+          IGNORE_CASE(RAT_ROUND)  //TODO
 
-        /* real functions */
-        HANDLE_CASE(REAL_QUOTIENT)
-        IGNORE_CASE(REAL_ROUND)  //TODO
+          /* real functions */
+          HANDLE_CASE(REAL_QUOTIENT)
+          IGNORE_CASE(REAL_ROUND)  //TODO
 
-        /* ignored */
-        IGNORE_CASE(ARRAY_SELECT)
-        IGNORE_CASE(ARRAY_BOOL_SELECT)
-        IGNORE_CASE(ARRAY_STORE)
+          /* ignored */
+          IGNORE_CASE(ARRAY_SELECT)
+          IGNORE_CASE(ARRAY_BOOL_SELECT)
+          IGNORE_CASE(ARRAY_STORE)
 
-        default:
-          ASS_REP(false, "unexpected interpreted function: " + orig->toString())
+          default:
+            ASS_REP(false, "unexpected interpreted function: " + orig->toString())
+        }
       }
-    }
 
-  } 
+    } 
+  } catch (MachineArithmeticException) { /* nop */ }
   return TermEvalResult::template variant<0>(createTerm<Config>(functor, *sym, args));
 }
 
 
 
 } // Kernel.hpp
-
 #undef DEBUG
+
+
+// template<> struct Lib::integrity<Kernel::TermEvalResult>  {
+//   static void check(const Kernel::TermEvalResult& self, const char* file, int line);
+// };
 #endif // __POLYNOMIAL_NORMALIZER_HPP__
