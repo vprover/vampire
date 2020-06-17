@@ -31,7 +31,7 @@ Clause* GaussianVariableElimination::simplify(Clause* in)
         ASS_REP(lhs.isVar(), lhs);
 
         // TODO check whether evaluation here makes sense
-        rhs = ev.evaluate(rhs);
+        // rhs = ev.evaluate(rhs);
         if (!rhs.containsSubterm(lhs)) {
           /* lhs = rhs[...] */
           DEBUG(lhs, " -> ", rhs);
