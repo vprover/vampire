@@ -229,30 +229,30 @@ private:
 
 #define __IGNORE_WUNUSED(...) __PUSH_DIAGNOSTICS("GCC diagnostic ignored \"-Wreturn-type\"", __VA_ARGS__)
 
-#define ASS(Cond) 
+#define ASS(Cond)  {}
 #define ALWAYS(Cond) (void) ( Cond );
 #define NEVER(Cond) (void) ( Cond );
 
-#define ASS_REP(Cond, ReportedVal)
-#define ASS_REP2(Cond, ReportedVal, ReportedVal2)
+#define ASS_REP(Cond, ReportedVal) {}
+#define ASS_REP2(Cond, ReportedVal, ReportedVal2) {}
 
-#define ASS_EQ(VAL1,VAL2)
-#define ASS_NEQ(VAL1,VAL2)
-#define ASS_STR_EQ(VAL1,VAL2)
+#define ASS_EQ(VAL1,VAL2) {}
+#define ASS_NEQ(VAL1,VAL2) {}
+#define ASS_STR_EQ(VAL1,VAL2) {}
 
-#define ASS_G(VAL1,VAL2)
-#define ASS_L(VAL1,VAL2)
-#define ASS_GE(VAL1,VAL2)
-#define ASS_LE(VAL1,VAL2)
+#define ASS_G(VAL1,VAL2) {}
+#define ASS_L(VAL1,VAL2) {}
+#define ASS_GE(VAL1,VAL2) {}
+#define ASS_LE(VAL1,VAL2) {}
 
-#define ASS_ALLOC_TYPE(PTR,TYPE)
-#define ASS_METHOD(OBJ,METHOD)
+#define ASS_ALLOC_TYPE(PTR,TYPE) {}
+#define ASS_METHOD(OBJ,METHOD) {}
 
 #define ASSERTION_VIOLATION 
 #define ASSERTION_VIOLATION_REP(Val) ASSERTION_VIOLATION
 #define ASSERTION_VIOLATION_REP2(Val1,Val2)  ASSERTION_VIOLATION
 
-#define ASSERT_VALID(obj)
+#define ASSERT_VALID(obj) {}
 
 #endif // VDEBUG
 
