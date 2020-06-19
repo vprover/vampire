@@ -415,7 +415,7 @@ public:
   void setId(unsigned id)
   {
     _id = id;
-  } // setWeight
+  } // setId
 
   /** Set (shared) term's id */
   unsigned getId() const

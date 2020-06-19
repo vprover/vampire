@@ -26,6 +26,8 @@
 #include "Shell/Options.hpp"
 #include "Shell/DistinctGroupExpansion.hpp"
 
+#include <cstdlib>
+
 #include "Signature.hpp"
 
 using namespace std;
@@ -39,7 +41,13 @@ const unsigned Signature::STRING_DISTINCT_GROUP = 0;
  * @since 03/05/2013 train London-Manchester, argument numericConstant added
  * @author Andrei Voronkov
  */
-Signature::Symbol::Symbol(const vstring& nm,unsigned arity, bool interpreted, bool stringConstant,bool numericConstant, bool overflownConstant)
+Signature::Symbol::Symbol(const vstring& nm,
+                          unsigned arity,
+                          unsigned weight,
+                          bool interpreted,
+                          bool stringConstant,
+                          bool numericConstant,
+                          bool overflownConstant)
   : _name(nm),
     _arity(arity),
     _interpreted(interpreted ? 1 : 0),
@@ -61,7 +69,8 @@ Signature::Symbol::Symbol(const vstring& nm,unsigned arity, bool interpreted, bo
     _inGoal(0),
     _inUnit(0),
     _inductionSkolem(0),
-    _skolem(0)
+    _skolem(0),
+    _weight(weight)
 {
   CALL("Signature::Symbol::Symbol");
   ASS(!stringConstant || arity==0);
@@ -221,6 +230,14 @@ Signature::Signature ():
     _termAlgebras()
 {
   CALL("Signature::Signature");
+} // Signature::Signature
+
+void Signature::init()
+{
+  initSymbolWeights();
+
+  // addInterpretedPredicate checks _initialized so we already set it to true here
+  _initialized = true;
 
   // initialize equality
   addInterpretedPredicate(Theory::EQUAL, OperatorType::getPredicateType(2), "=");
@@ -230,7 +247,12 @@ Signature::Signature ():
   unsigned aux;
   aux = createDistinctGroup();
   ASS_EQ(STRING_DISTINCT_GROUP, aux);
-} // Signature::Signature
+}
+
+void Signature::checkInit() const
+{
+  ASS_REP(_initialized, "Signature::init() has not been called yet!");
+}
 
 /**
  * Destroy a Signature.
@@ -270,7 +292,7 @@ unsigned Signature::addIntegerConstant(const vstring& number,bool defaultSort)
   }
 
   result = _funs.length();
-  Symbol* sym = new Symbol(name,0,false,false,true);
+  Symbol* sym = new Symbol(name,0,WEIGHT_TODO,false,false,true);
   /*
   sym->addToDistinctGroup(INTEGER_DISTINCT_GROUP,result);
   if(defaultSort){ 
@@ -328,7 +350,7 @@ unsigned Signature::addRationalConstant(const vstring& numerator, const vstring&
     return result;
   }
   result = _funs.length();
-  Symbol* sym = new Symbol(name,0,false,false,true);
+  Symbol* sym = new Symbol(name,0,WEIGHT_TODO,false,false,true);
   /*
   if(defaultSort){ 
     sym->addToDistinctGroup(STRING_DISTINCT_GROUP,result); // numbers are distinct from strings
@@ -376,7 +398,7 @@ unsigned Signature::addRealConstant(const vstring& number,bool defaultSort)
     return result;
   }
   result = _funs.length();
-  Symbol* sym = new Symbol(value.toNiceString(),0,false,false,true);
+  Symbol* sym = new Symbol(value.toNiceString(),0,WEIGHT_TODO,false,false,true);
   /*
   if(defaultSort){ 
     sym->addToDistinctGroup(STRING_DISTINCT_GROUP,result); // numbers are distinct from strings
@@ -411,6 +433,7 @@ unsigned Signature::addInterpretedFunction(Interpretation interpretation, Operat
 {
   CALL("Signature::addInterpretedFunction(Interpretation,OperatorType*,const vstring&)");
   ASS(Theory::isFunction(interpretation));
+  checkInit();
 
   Theory::MonomorphisedInterpretation mi = std::make_pair(interpretation,type);
 
@@ -425,8 +448,12 @@ unsigned Signature::addInterpretedFunction(Interpretation interpretation, Operat
   vstring symbolKey = name+"_i"+Int::toString(interpretation)+(Theory::isPolymorphic(interpretation) ? type->toString() : "");
   ASS(!_funNames.find(symbolKey));
 
+  unsigned arity = Theory::getArity(interpretation);
+  unsigned weight = getFunctionSymbolWeight(name, arity);
+  std::cerr << "Signature::addInterpretedFunction(" << name << ", " << arity << "); weight = " << weight << std::endl;
+
   unsigned fnNum = _funs.length();
-  InterpretedSymbol* sym = new InterpretedSymbol(name, interpretation);
+  InterpretedSymbol* sym = new InterpretedSymbol(name, interpretation, weight);
   _funs.push(sym);
   _funNames.insert(symbolKey, fnNum);
   ALWAYS(_iSymbols.insert(mi, fnNum));
@@ -444,6 +471,7 @@ unsigned Signature::addInterpretedPredicate(Interpretation interpretation, Opera
 {
   CALL("Signature::addInterpretedPredicate(Interpretation,OperatorType*,const vstring&)");
   ASS(!Theory::isFunction(interpretation));
+  checkInit();
 
   // cout << "addInterpretedPredicate " << (type ? type->toString() : "nullptr") << " " << name << endl;
 
@@ -463,8 +491,12 @@ unsigned Signature::addInterpretedPredicate(Interpretation interpretation, Opera
 
   ASS(!_predNames.find(symbolKey));
 
+  unsigned arity = Theory::getArity(interpretation);
+  unsigned weight = getPredicateSymbolWeight(name, arity);
+  std::cerr << "Signature::addInterpretedPredicate(" << name << ", " << arity << "); weight = " << weight << std::endl;
+
   unsigned predNum = _preds.length();
-  InterpretedSymbol* sym = new InterpretedSymbol(name, interpretation);
+  InterpretedSymbol* sym = new InterpretedSymbol(name, interpretation, weight);
   _preds.push(sym);
   _predNames.insert(symbolKey,predNum);
   ALWAYS(_iSymbols.insert(mi, predNum));
@@ -591,6 +623,7 @@ unsigned Signature::addFunction (const vstring& name,
 				 bool overflowConstant)
 {
   CALL("Signature::addFunction");
+  checkInit();
 
   vstring symbolKey = key(name,arity);
   unsigned result;
@@ -613,7 +646,9 @@ unsigned Signature::addFunction (const vstring& name,
   }
 
   result = _funs.length();
-  _funs.push(new Symbol(name, arity, false, false, false, overflowConstant));
+  unsigned weight = getFunctionSymbolWeight(name, arity);
+  std::cerr << "Signature::addFunction(" << name << ", " << arity << "); weight = " << weight << std::endl;
+  _funs.push(new Symbol(name, arity, weight, false, false, false, overflowConstant));
   _funNames.insert(symbolKey, result);
   added = true;
   return result;
@@ -637,7 +672,7 @@ unsigned Signature::addStringConstant(const vstring& name)
   _strings++;
   vstring quotedName = "\"" + name + "\"";
   result = _funs.length();
-  Symbol* sym = new Symbol(quotedName,0,false,true);
+  Symbol* sym = new Symbol(quotedName,0,WEIGHT_TODO,false,true);
   sym->addToDistinctGroup(STRING_DISTINCT_GROUP,result);
   _funs.push(sym);
   _funNames.insert(symbolKey,result);
@@ -662,6 +697,7 @@ unsigned Signature::addPredicate (const vstring& name,
 				  bool& added)
 {
   CALL("Signature::addPredicate");
+  checkInit();
 
   vstring symbolKey = key(name,arity);
   unsigned result;
@@ -684,7 +720,9 @@ unsigned Signature::addPredicate (const vstring& name,
   }
 
   result = _preds.length();
-  _preds.push(new Symbol(name,arity));
+  unsigned weight = getPredicateSymbolWeight(name, arity);
+  std::cerr << "Signature::addPredicate(" << name << ", " << arity << "); weight = " << weight << std::endl;
+  _preds.push(new Symbol(name,arity,weight));
   _predNames.insert(symbolKey,result);
   added = true;
   return result;
@@ -1042,4 +1080,259 @@ bool Signature::charNeedsQuoting(char c, bool first)
   default:
     return true;
   }
+}
+
+
+namespace {
+
+/// Character allowed to appear unquoted in names
+/// (alphanumeric + underscore)
+bool isNameChar(char c) {
+  // We don't use std::isalnum because apparently that's locale-specific.
+  return ('a' <= c && c <= 'z')
+    || ('A' <= c && c <= 'Z')
+    || ('0' <= c && c <= '9')
+    || (c == '_');
+}
+
+bool isQuoteChar(char c) {
+  return c == '"' || c == '\'';
+}
+
+/// Parse a name.
+/// The first argument will be advanced until the character immediately after the parsed name.
+/// All non-alphanumeric characters in the name must be quoted (using either single or double quotes).
+vstring parseName(char const*& s, char const* const s_end)
+{
+  CALL("Signature/parseName");
+  char const* const s_begin = s;
+  size_t skipped_chars = 0;
+  while (s < s_end) {
+    if (isNameChar(*s)) {
+      s += 1;  // ok, next character
+    } else if (isQuoteChar(*s)) {
+      // parse quoted substring
+      char const quote_end = *s;
+      s += 1; skipped_chars += 1;  // skip opening quote
+      while (s < s_end && *s != quote_end) { s += 1; }
+      if (s == s_end) { USER_ERROR("parseName: quote not closed"); }
+      ASS_EQ(*s, quote_end);
+      s += 1; skipped_chars += 1;  // skip closing quote
+    } else {
+      // neither quote nor alphanumeric -> done
+      break;
+    }
+  }
+  ASS(s == s_end || (!isNameChar(*s) && !isQuoteChar(*s)));
+  vstring name;
+  size_t const name_len = s - s_begin - skipped_chars;
+  name.reserve(name_len);
+  for (char const* it = s_begin; it < s; ++it) {
+    if (isQuoteChar(*it)) {
+      char const quote_end = *it;
+      while (true) {
+        ++it;
+        ASS(it < s);
+        if (*it == quote_end) {
+          ++it;
+          break;
+        } else {
+          name.push_back(*it);
+        }
+      }
+    } else {
+      ASS(isNameChar(*it));
+      name.push_back(*it);
+    }
+  }
+  return name;
+}  // parseName
+
+/// Parse a decimal number.
+/// s must be null-terminated.
+/// The first argument will be advanced until the character immediately after the parsed number.
+unsigned parseNumber(char const*& s, char const* const what = "number")
+{
+  CALL("Signature/parseNumber");
+  char *n_end;
+  unsigned long n = std::strtoul(s, &n_end, 10);
+  if (errno != 0) {
+    int e = errno;
+    errno = 0;
+    vstringstream msg;
+    msg << "parseNumber: unable to parse " << what << " at ";
+    msg << "\"" << s << "\" ";
+    msg << "(" << std::strerror(e) << ")";
+    USER_ERROR(msg.str());
+  }
+  s = n_end;
+  if (n > std::numeric_limits<unsigned>::max()) {
+    // outside of range of 'unsigned'
+    vstringstream msg;
+    msg << "parseNumber: number too large: " << n;
+    USER_ERROR(msg.str());
+  }
+  return n;
+}  // parseNumber
+
+}  // namespace
+
+/// Parse symbol weights from option string, example: f=5,g/2=27.
+/// Returns a map from (arity, name) to weights.
+/// Entries without arity are inserted with arity == unsigned::max()
+vmap<std::pair<unsigned, vstring>, unsigned> Signature::parseSymbolWeights(vstring const& weights_str)
+{
+  CALL("Signature::parseSymbolWeights");
+  try {
+    auto err_expected = [](char const* expected, char const* got = nullptr) {
+      vstringstream msg;
+      msg << "expected " << expected;
+      if (got != nullptr) {
+        msg << " but got \"" << got << "\"";
+      }
+      USER_ERROR(msg.str());
+    };
+
+    std::cerr << "parseSymbolWeights: " << weights_str << std::endl;
+    vmap<std::pair<unsigned, vstring>, unsigned> weights;
+    const char* s = weights_str.data();
+    const char* s_end = s + weights_str.length();
+    while (s < s_end) {
+      // Read name
+      vstring name = parseName(s, s_end);
+      if (s == s_end) {
+        err_expected("'=' or '/'");
+      }
+      std::cerr << "name   = " << name << std::endl;
+
+      // Read arity if specified
+      unsigned arity = arity_unspecified();
+      if (*s == '/') {
+        s += 1;
+        arity = parseNumber(s, "arity");
+        std::cerr << "arity  = " << arity << std::endl;
+        if (arity == arity_unspecified()) {
+          vstringstream msg;
+          msg << "cannot use arity due to internal constraints: " << arity;
+          USER_ERROR(msg.str());
+        }
+      } else {
+        // do nothing (arity is optional)
+      }
+
+      // Read weight
+      unsigned weight = -1;
+      if (*s == '=') {
+        s += 1;
+        weight = parseNumber(s, "weight");
+        std::cerr << "weight = " << weight << std::endl;
+      } else {
+        if (arity == arity_unspecified()) {
+          err_expected("'=' or '/'", s);
+        } else {
+          err_expected("'='", s);
+        }
+      }
+
+      // Skip delimiter between entries, if any
+      if (s < s_end && *s != ',') {
+        err_expected("','", s);
+      }
+      s += 1;
+
+      // Insert parsed entry
+      const auto res = weights.insert({{arity,name}, weight});
+      bool inserted = res.second;
+      if (!inserted) {
+        vstringstream msg;
+        msg << "weight for symbol \"" << name << "\" ";
+        if (arity != arity_unspecified()) {
+          msg << "and arity " << arity << " ";
+        }
+        msg << "has been specified twice";
+        USER_ERROR(msg.str());
+      }
+    }
+
+    return weights;
+  }
+  catch (Lib::UserErrorException const& e) {
+    vstringstream msg;
+    msg << "while parsing symbol weights: " << e.msg();
+    USER_ERROR(msg.str());
+  }
+}  // Signature::parseSymbolWeights
+
+unsigned Signature::getVariableWeight() const
+{
+  CALL("Signature::getVariableWeight");
+  checkInit();
+  ASS_REP(_weightsInitialized, "Signature::initSymbolWeights() has not been called yet!");
+  return _variableWeight;
+}
+
+unsigned Signature::getDefaultSymbolWeight() const
+{
+  CALL("Signature::getDefaultSymbolWeight");
+  checkInit();
+  ASS_REP(_weightsInitialized, "Signature::initSymbolWeights() has not been called yet!");
+  return _defaultSymbolWeight;
+}
+
+unsigned Signature::getFunctionSymbolWeight(vstring const& name, unsigned arity) const
+{
+  CALL("Signature::getFunctionSymbolWeight");
+  checkInit();
+  ASS_REP(_weightsInitialized, "Signature::initSymbolWeights() has not been called yet!");
+  auto it = _functionSymbolWeights.find({arity, name});
+  if (it != _functionSymbolWeights.end()) {
+    // name/arity=w was given in the option
+    return it->second;
+  } else {
+    it = _functionSymbolWeights.find({arity_unspecified(), name});
+    if (it != _functionSymbolWeights.end()) {
+      // name=w was given in the option
+      return it->second;
+    } else {
+      // No weight was given
+      return _defaultSymbolWeight;
+    }
+  }
+}
+
+unsigned Signature::getPredicateSymbolWeight(vstring const& name, unsigned arity) const
+{
+  CALL("Signature::getPredicateSymbolWeight");
+  checkInit();
+  ASS_REP(_weightsInitialized, "Signature::initSymbolWeights() has not been called yet!");
+  auto it = _predicateSymbolWeights.find({arity, name});
+  if (it != _predicateSymbolWeights.end()) {
+    // name/arity=w was given in the option
+    return it->second;
+  } else {
+    it = _predicateSymbolWeights.find({arity_unspecified(), name});
+    if (it != _predicateSymbolWeights.end()) {
+      // name=w was given in the option
+      return it->second;
+    } else {
+      // No weight was given
+      return _defaultSymbolWeight;
+    }
+  }
+}
+
+void Signature::initSymbolWeights()
+{
+  CALL("Signature::initSymbolWeights");
+
+  if (_weightsInitialized) {
+    return;
+  }
+
+  _variableWeight = env.options->variableWeight();
+  _defaultSymbolWeight = env.options->defaultSymbolWeight();
+  _functionSymbolWeights = parseSymbolWeights(env.options->functionWeights());
+  _predicateSymbolWeights = parseSymbolWeights(env.options->predicateWeights());
+
+  _weightsInitialized = true;
 }

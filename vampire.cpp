@@ -857,6 +857,8 @@ int main(int argc, char* argv[])
     Shell::CommandLine cl(argc, argv);
     cl.interpret(*env.options);
 
+    env.signature->init();
+
     // If any of these options are set then we just need to output and exit
     if (env.options->showHelp() ||
         env.options->showOptions() ||

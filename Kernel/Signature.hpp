@@ -51,6 +51,9 @@ namespace Kernel {
 using namespace std;
 using namespace Lib;
 
+#define WEIGHT_TODO (1)  // TODO where this constant is used we still have to decide properly what to do with the weight
+
+
 /**
  * Class implementing signatures
  */
@@ -105,10 +108,20 @@ class Signature
     unsigned _inductionSkolem : 1;
     /** if skolem function in general **/
     unsigned _skolem : 1;
+    /** symbol weight for KBO */
+    unsigned _weight;
 
   public:
+    unsigned getWeight() const { return _weight; }
+
     /** standard constructor */
-    Symbol(const vstring& nm,unsigned arity, bool interpreted=false, bool stringConstant=false,bool numericConstant=false,bool overflownConstant=false);
+    Symbol(const vstring& nm,
+           unsigned arity,
+           unsigned weight,
+           bool interpreted=false,
+           bool stringConstant=false,
+           bool numericConstant=false,
+           bool overflownConstant=false);
     void destroyFnSymbol();
     void destroyPredSymbol();
 
@@ -233,8 +246,8 @@ class Signature
 
   public:
 
-    InterpretedSymbol(const vstring& nm, Interpretation interp)
-    : Symbol(nm, Theory::getArity(interp), true), _interp(interp)
+    InterpretedSymbol(const vstring& nm, Interpretation interp, unsigned weight)
+    : Symbol(nm, Theory::getArity(interp), weight, true), _interp(interp)
     {
       CALL("InterpretedSymbol");
     }
@@ -256,7 +269,7 @@ class Signature
 
   public:
     IntegerSymbol(const IntegerConstantType& val)
-    : Symbol(val.toString(), 0, true), _intValue(val)
+    : Symbol(val.toString(), 0, WEIGHT_TODO, true), _intValue(val)
     {
       CALL("IntegerSymbol");
 
@@ -276,7 +289,7 @@ class Signature
 
   public:
     RationalSymbol(const RationalConstantType& val)
-    : Symbol(val.toString(), 0, true), _ratValue(val)
+    : Symbol(val.toString(), 0, WEIGHT_TODO, true), _ratValue(val)
     {
       CALL("RationalSymbol");
 
@@ -296,7 +309,7 @@ class Signature
 
   public:
     RealSymbol(const RealConstantType& val)
-    : Symbol((env.options->proof() == Shell::Options::Proof::PROOFCHECK) ? "$to_real("+val.toString()+")" : val.toNiceString(), 0, true), _realValue(val)
+    : Symbol((env.options->proof() == Shell::Options::Proof::PROOFCHECK) ? "$to_real("+val.toString()+")" : val.toNiceString(), 0, WEIGHT_TODO, true), _realValue(val)
     {
       CALL("RealSymbol");
 
@@ -460,6 +473,10 @@ class Signature
   Signature();
   ~Signature();
 
+  /// Signature::init() must be called after the options have been parsed
+  /// but before any symbol are added!
+  void init();
+
   CLASS_NAME(Signature);
   USE_ALLOCATOR(Signature);
 
@@ -522,6 +539,9 @@ class Signature
   static bool symbolNeedsQuoting(vstring name, bool interpreted, unsigned arity);
 
 private:
+  bool _initialized = false;
+  void checkInit() const;
+
   Stack<TermList> _dividesNvalues;
 
   bool _foolConstantsDefined;
@@ -582,11 +602,43 @@ private:
 
   /**
    * Map from sorts to the associated term algebra, if applicable for the sort
-   */ 
+   */
   DHMap<unsigned, Shell::TermAlgebra*> _termAlgebras;
 
   void defineOptionTermAlgebra(unsigned optionSort);
   void defineEitherTermAlgebra(unsigned eitherSort);
+
+private:
+  /** Weight of variables */
+  unsigned _variableWeight;
+  /** Weight of function symbols as specified by the option --function_weights.
+   *  We use string keys in the map to allow specifying weights for symbols that
+   *  are only introduced later (e.g., Skolem functions).
+   *
+   *  Mapping:
+   *    (n, "f") -> w                     for specifications with arity: f/n=w
+   *    (arity_unspecified(), "f") -> w   for specifications without arity: f=w
+   *
+   *  Specifications without arity are used as fallback if no precise specification exists.
+   */
+  vmap<std::pair<unsigned, vstring>, unsigned> _functionSymbolWeights;
+  /** Weight of predicate symbols as specified by the option --predicate_weights. */
+  vmap<std::pair<unsigned, vstring>, unsigned> _predicateSymbolWeights;
+  /** Weight of symbols for which no weight has been specified explicitly */
+  unsigned _defaultSymbolWeight;
+
+  bool _weightsInitialized = false;   // TODO: remove, this is redundant now (use checkInit() instead)
+
+  static vmap<std::pair<unsigned, vstring>, unsigned> parseSymbolWeights(vstring const& weights_str);
+  unsigned static constexpr arity_unspecified() { return std::numeric_limits<unsigned>::max(); }
+
+public:
+  void initSymbolWeights();
+  unsigned getVariableWeight() const;
+  unsigned getDefaultSymbolWeight() const;
+  unsigned getFunctionSymbolWeight(vstring const& name, unsigned arity) const;
+  unsigned getPredicateSymbolWeight(vstring const& name, unsigned arity) const;
+
 }; // class Signature
 
 }

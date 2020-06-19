@@ -67,7 +67,7 @@ public:
 
   static bool isThrown() { return s_exceptionCounter!=0; }
   static bool isThrownDuringExceptionHandling() { return s_exceptionCounter>1; }
-  vstring msg() { return _message; }
+  vstring const& msg() const { return _message; }
 protected:
   /** Default constructor, required for some subclasses, made protected
    * so that it cannot be called directly */

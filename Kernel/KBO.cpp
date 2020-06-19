@@ -51,8 +51,8 @@ class KBO::State
 {
 public:
   /** Initialise the state */
-  State(KBO* kbo)
-    : _kbo(*kbo)
+  State(KBO const& kbo)
+    : _kbo(kbo)
   {}
 
   void init()
@@ -92,7 +92,7 @@ private:
   /** First comparison result */
   Result _lexResult;
   /** The ordering used */
-  KBO& _kbo;
+  KBO const& _kbo;
   /** The variable counters */
 }; // class KBO::State
 
@@ -300,10 +300,16 @@ KBO::KBO(Problem& prb, const Options& opt)
 {
   CALL("KBO::KBO");
 
-  _variableWeight = 1;
-  _defaultSymbolWeight = 1;
+  _variableWeight = env.signature->getVariableWeight();
+  _defaultSymbolWeight = env.signature->getDefaultSymbolWeight();
 
-  _state=new State(this);
+  // TODO:
+  // check conditions on weights and emit warning if violated.
+  // - if w(f) = 0 for unary f, then f larger than everything else in precedence,
+  // - variable weight smaller than weight of all constants,
+  // - anything else?
+
+  _state = new State(*this);
 }
 
 KBO::~KBO()
@@ -409,9 +415,10 @@ Ordering::Result KBO::compare(TermList tl1, TermList tl2) const
   return res;
 }
 
-int KBO::functionSymbolWeight(unsigned fun) const
+unsigned KBO::functionSymbolWeight(unsigned fun) const
 {
-  int weight = _defaultSymbolWeight;
+  Signature::Symbol const* fnSymbol = env.signature->getFunction(fun);
+  unsigned weight = fnSymbol->getWeight();
 
   if(env.signature->functionColored(fun)) {
     weight *= COLORED_WEIGHT_BOOST;

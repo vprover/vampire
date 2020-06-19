@@ -1919,11 +1919,35 @@ void Options::Options::init()
     _predicatePrecedence.setExperimental();
     _lookup.insert(&_predicatePrecedence);
 
-    _customKBOWeights = StringOptionValue("custom_kbo_weights","kbow","");
-    _customKBOWeights.description = "Explicitly set symbol weights for KBO. Example: \"P=3,f=10,g=5\"";
-    _customKBOWeights.reliesOn(_termOrdering.is(equal(TermOrdering::KBO)));
-    _customKBOWeights.setExperimental();
-    _lookup.insert(&_customKBOWeights);
+    _functionWeights = StringOptionValue("function_weights", "fw", "");
+    _functionWeights.description =
+        "Explicitly set the weights of function symbols. "
+        "Example: \"f=10,g=5\", or \"f/1=10,f/2=5\" if names without arity are ambiguous";
+    _functionWeights.reliesOn(_termOrdering.is(equal(TermOrdering::KBO)));
+    _functionWeights.setExperimental();
+    _lookup.insert(&_functionWeights);
+
+    _predicateWeights = StringOptionValue("predicate_weights", "pw", "");
+    _predicateWeights.description =
+        "Explicitly set the weights of predicate symbols. "
+        "Example: \"P=10,Q=5\", or \"P/1=10,P/2=5\" if names without arity are ambiguous";
+    _predicateWeights.reliesOn(_termOrdering.is(equal(TermOrdering::KBO)));
+    _predicateWeights.setExperimental();
+    _lookup.insert(&_predicateWeights);
+
+    _variableWeight = UnsignedOptionValue("variable_weight", "vw", 1);
+    _variableWeight.description = "Set the weight of variables";
+    _variableWeight.setExperimental();
+    _variableWeight.reliesOn(_termOrdering.is(equal(TermOrdering::KBO)));
+    _lookup.insert(&_variableWeight);
+
+    _defaultSymbolWeight = UnsignedOptionValue("default_weight", "dw", 1);
+    _defaultSymbolWeight.description =
+      "Set the default symbol weight "
+      "(this is used for symbols for which no weight has been explicitly specified)";
+    _defaultSymbolWeight.setExperimental();
+    _defaultSymbolWeight.reliesOn(_termOrdering.is(equal(TermOrdering::KBO)));
+    _lookup.insert(&_defaultSymbolWeight);
 
     _symbolPrecedenceBoost = ChoiceOptionValue<SymbolPrecedenceBoost>("symbol_precedence_boost","spb",SymbolPrecedenceBoost::NONE,
                                      {"none","goal","units","goal_then_units"});

@@ -26,10 +26,6 @@
 #ifndef __KBO__
 #define __KBO__
 
-#include "Forwards.hpp"
-
-#include "Lib/DArray.hpp"
-
 #include "Ordering.hpp"
 
 namespace Kernel {
@@ -57,20 +53,16 @@ protected:
 
   class State;
   /** Weight of variables */
-  int _variableWeight;
-  /** Weight of function symbols not occurring in the
-   * signature */
-  int _defaultSymbolWeight;
+  unsigned _variableWeight;
+  /** Weight of function symbols not occurring in the signature */
+  unsigned _defaultSymbolWeight;
 
-  int functionSymbolWeight(unsigned fun) const;
+  unsigned functionSymbolWeight(unsigned fun) const;
 
   bool allConstantsHeavierThanVariables() const { return false; }
   bool existsZeroWeightUnaryFunction() const { return false; }
 
-
-  /**
-   * State used for comparing terms and literals
-   */
+  /** State used for comparing terms and literals */
   mutable State* _state;
 };
 

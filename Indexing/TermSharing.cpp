@@ -97,24 +97,24 @@ Term* TermSharing::insert(Term* t)
 
   _termInsertions++;
   Term* s = _terms.insert(t);
-   if (s == t) {
-    unsigned weight = 1;
+  if (s == t) {
+    Signature::Symbol const* fnSymbol = env.signature->getFunction(t->functor());
+    unsigned weight = fnSymbol->getWeight();
     unsigned vars = 0;
-    bool hasInterpretedConstants=t->arity()==0 &&
-	env.signature->getFunction(t->functor())->interpreted();
+    bool hasInterpretedConstants = t->arity()==0 && fnSymbol->interpreted();
     Color color = COLOR_TRANSPARENT;
     for (TermList* tt = t->args(); ! tt->isEmpty(); tt = tt->next()) {
       if (tt->isVar()) {
           ASS(tt->isOrdinaryVar());
           vars++;
-          weight += 1;
+          weight += env.signature->getVariableWeight();
       }
-      else 
+      else
       {
           ASS_REP(tt->term()->shared(), tt->term()->toString());
-          
+
           Term* r = tt->term();
-    
+
           vars += r->vars();
           weight += r->weight();
           if (env.colorUsed) {
@@ -181,7 +181,8 @@ Literal* TermSharing::insert(Literal* t)
   _literalInsertions++;
   Literal* s = _literals.insert(t);
   if (s == t) {
-    unsigned weight = 1;
+    Signature::Symbol const* predSymbol = env.signature->getPredicate(t->functor());
+    unsigned weight = predSymbol->getWeight();
     unsigned vars = 0;
     Color color = COLOR_TRANSPARENT;
     bool hasInterpretedConstants=false;
@@ -189,7 +190,7 @@ Literal* TermSharing::insert(Literal* t)
       if (tt->isVar()) {
 	ASS(tt->isOrdinaryVar());
 	vars++;
-	weight += 1;
+	weight += env.signature->getVariableWeight();
       }
       else {
 	ASS_REP(tt->term()->shared(), tt->term()->toString());
@@ -259,7 +260,9 @@ Literal* TermSharing::insertVariableEquality(Literal* t,unsigned sort)
   if (s == t) {
     t->markShared();
     t->setId(_totalLiterals);
-    t->setWeight(3);
+    Signature::Symbol const* eqSymbol = env.signature->getPredicate(0);
+    ASS_EQ(eqSymbol->name(), "=");
+    t->setWeight(eqSymbol->getWeight() + 2*env.signature->getVariableWeight());
     if (env.colorUsed) {
       t->setColor(COLOR_TRANSPARENT);
     }
