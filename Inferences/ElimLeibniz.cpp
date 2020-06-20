@@ -51,16 +51,18 @@ using namespace Indexing;
 using namespace Saturation;
 
 
+typedef ApplicativeHelper AH;
+
 bool ElimLeibniz::polarity(Literal* lit) {
   CALL("ElimLeibniz::polarity");
 
   TermList lhs = *lit->nthArgument(0);
   TermList rhs = *lit->nthArgument(1);
-  ASS(isBool(lhs)  || isBool(rhs));
-  if(isBool(lhs)){ 
-    return lit->polarity() == isTrue(lhs);
+  ASS(AH::isBool(lhs)  || AH::isBool(rhs));
+  if(AH::isBool(lhs)){ 
+    return lit->polarity() == AH::isTrue(lhs);
   }
-  return lit->polarity() == isTrue(rhs);
+  return lit->polarity() == AH::isTrue(rhs);
 }
 
 bool ElimLeibniz::isPair(Literal* l1, Literal* l2){
@@ -77,7 +79,7 @@ ElimLeibniz::LeibEqRec ElimLeibniz::getLiteralInfo(Literal* lit){
 
   TermList lhs = *lit->nthArgument(0);
   TermList rhs = *lit->nthArgument(1);
-  TermList nonBooleanSide = isBool(rhs) ? lhs : rhs;
+  TermList nonBooleanSide = AH::isBool(rhs) ? lhs : rhs;
   ASS(nonBooleanSide.isTerm());
   Term* term = nonBooleanSide.term();
 
@@ -115,7 +117,6 @@ ClauseIterator ElimLeibniz::generateClauses(Clause* premise)
 {
   CALL("ElimLeibniz::generateClauses");
 
-  typedef ApplicativeHelper AH;
   typedef SortHelper SH;
 
   static TermStack args;
@@ -131,10 +132,10 @@ ClauseIterator ElimLeibniz::generateClauses(Clause* premise)
     Literal* lit = (*premise)[i];
     TermList lhs = *lit->nthArgument(0);
     TermList rhs = *lit->nthArgument(1);
-    if(!isBool(lhs) && !isBool(rhs)){ continue; } 
-    TermList nonBooleanSide = isBool(rhs) ? lhs : rhs;
+    if(!AH::isBool(lhs) && !AH::isBool(rhs)){ continue; } 
+    TermList nonBooleanSide = AH::isBool(rhs) ? lhs : rhs;
 
-    ApplicativeHelper::getHeadAndArgs(nonBooleanSide, head, args);
+    AH::getHeadAndArgs(nonBooleanSide, head, args);
     if(!head.isVar() || args.size() != 1){ continue; }
     
     bool pol = polarity(lit);

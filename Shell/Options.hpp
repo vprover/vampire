@@ -767,6 +767,13 @@ public:
     FALSE_TRUE_NOT_EQ_NOT_EQ = 3
   };
 
+  enum class Narrow : unsigned int {
+    ALL = 0,
+    SK = 1,
+    SKI = 2,
+    OFF = 3
+  };
+
 
     //==========================================================
     // The Internals
@@ -2142,11 +2149,13 @@ public:
   FunctionExtensionality functionExtensionality() const { return _functionExtensionality.actualValue; }
   CNFOnTheFly cnfOnTheFly() const { return _clausificationOnTheFly.actualValue; }
   PISet piSet() const { return _piSet.actualValue; }
+  Narrow narrow() const { return _narrow.actualValue; }
   bool equalityToEquivalence () const { return _equalityToEquivalence.actualValue; } 
   bool complexBooleanReasoning () const { return _complexBooleanReasoning.actualValue; }
   bool booleanEqTrick() const { return _booleanEqTrick.actualValue; }
   bool superposition() const {return _superposition.actualValue; }
   bool casesSimp() const { return _casesSimp.actualValue; }
+  bool newTautologyDel() const { return _newTautologyDel.actualValue; }
 
 private:
     
@@ -2533,11 +2542,13 @@ private:
   ChoiceOptionValue<FunctionExtensionality> _functionExtensionality;
   ChoiceOptionValue<CNFOnTheFly> _clausificationOnTheFly;
   ChoiceOptionValue<PISet> _piSet;
+  ChoiceOptionValue<Narrow> _narrow;
   BoolOptionValue _equalityToEquivalence;
   BoolOptionValue _complexBooleanReasoning;
   BoolOptionValue _booleanEqTrick;
   BoolOptionValue _superposition;
   BoolOptionValue _casesSimp;
+  BoolOptionValue _newTautologyDel;
 }; // class Options
 
 // Allow printing of enums

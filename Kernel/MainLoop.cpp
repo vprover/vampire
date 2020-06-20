@@ -187,6 +187,9 @@ ImmediateSimplificationEngine* MainLoop::createISE(Problem& prb, const Options& 
     res->addFront(new TrivialInequalitiesRemovalISE());
   }
   res->addFront(new TautologyDeletionISE());
+  if(env.options->newTautologyDel()){
+    res->addFront(new TautologyDeletionISE2());
+  }
   res->addFront(new DuplicateLiteralRemovalISE());
 
   return res;

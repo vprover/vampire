@@ -1433,7 +1433,9 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   if(opt.combinatorySup()){
     gie->addFront(new ArgCong());
     gie->addFront(new NegativeExt());//TODO add option
-    gie->addFront(new Narrow());
+    if(opt.narrow() != Options::Narrow::OFF){
+      gie->addFront(new Narrow());
+    }
     if(!opt.pragmatic()){
       gie->addFront(new SubVarSup());
     }

@@ -48,18 +48,6 @@ class ElimLeibniz : public GeneratingInferenceEngine
       TermList arg;
     };
 
-    bool isBool(TermList t){
-      return isTrue(t) || isFalse(t);
-    }
-
-    bool isTrue(TermList term){
-      return term.isTerm() && env.signature->isFoolConstantSymbol(true, term.term()->functor());
-    }
-
-    bool isFalse(TermList term){
-      return term.isTerm() && env.signature->isFoolConstantSymbol(false, term.term()->functor());
-    }
-
     bool polarity(Literal* lit);
 
     bool isPair(Literal* l1, Literal* l2);

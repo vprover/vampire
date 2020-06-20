@@ -255,6 +255,8 @@ void NarrowingIndex::populateIndex()
  
   typedef ApplicativeHelper AH;
 
+  static Options::Narrow set = env.options->narrow();
+
   auto srtOf = [] (TermList t) { 
      ASS(t.isTerm());
      return SortHelper::getResultSort(t.term());
@@ -296,11 +298,20 @@ void NarrowingIndex::populateIndex()
   TermList lhsI = AH::createAppTerm(srtOf(constant), constant, x);  
   Literal* iLit = Literal::createEquality(true, lhsI, x, s1);
  
-  _is->insert(lhsS, sLit, 0);
-  _is->insert(lhsC, cLit, 0);
-  _is->insert(lhsB, bLit, 0);
-  _is->insert(lhsK, kLit, 0);
-  _is->insert(lhsI, iLit, 0);  
+  if(set == Options::Narrow::ALL){
+    _is->insert(lhsS, sLit, 0);
+    _is->insert(lhsC, cLit, 0);
+    _is->insert(lhsB, bLit, 0);
+    _is->insert(lhsK, kLit, 0);
+    _is->insert(lhsI, iLit, 0);  
+  } else if (set == Options::Narrow::SKI) {
+    _is->insert(lhsS, sLit, 0);
+    _is->insert(lhsK, kLit, 0);
+    _is->insert(lhsI, iLit, 0);  
+  } else if (set == Options::Narrow::SK){
+    _is->insert(lhsS, sLit, 0);
+    _is->insert(lhsK, kLit, 0); 
+  }
 }
 
 void SkolemisingFormulaIndex::insertFormula(TermList formula, TermList skolem)

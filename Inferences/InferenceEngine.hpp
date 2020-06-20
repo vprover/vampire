@@ -299,17 +299,6 @@ public:
 
   Clause* simplify(Clause* cl);
 
-  bool isBool(TermList t){
-    return isTrue(t) || isFalse(t);
-  }
-
-  bool isTrue(TermList term){
-    return term.isTerm() && env.signature->isFoolConstantSymbol(true, term.term()->functor());
-  }
-
-  bool isFalse(TermList term){
-    return term.isTerm() && env.signature->isFoolConstantSymbol(false, term.term()->functor());
-  }
   bool isPositive(Literal* lit);
  
   bool is_of_form_xy(Literal* lit,  TermList& x);
@@ -322,6 +311,16 @@ class DuplicateLiteralRemovalISE
 public:
   CLASS_NAME(DuplicateLiteralRemovalISE);
   USE_ALLOCATOR(DuplicateLiteralRemovalISE);
+
+  Clause* simplify(Clause* cl);
+};
+
+class TautologyDeletionISE2
+: public ImmediateSimplificationEngine
+{
+public:
+  CLASS_NAME(TautologyDeletionISE2);
+  USE_ALLOCATOR(TautologyDeletionISE2);
 
   Clause* simplify(Clause* cl);
 };

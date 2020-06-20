@@ -1263,6 +1263,17 @@ void Options::Options::init()
     _lookup.insert(&_piSet);
     _piSet.tag(OptionTag::OTHER);
 
+
+    _narrow = ChoiceOptionValue<Narrow>("narrow","narr",Narrow::ALL,
+                                                             {"all", 
+                                                              "sk", 
+                                                              "ski",
+                                                              "off"});
+    _narrow.description="Controls the set of combinator equations to use in narrowing";
+    _lookup.insert(&_narrow);
+    _narrow.tag(OptionTag::INFERENCES);
+
+
     _equalityToEquivalence = BoolOptionValue("equality_to_equiv","e2e",false);
     _equalityToEquivalence.description=
     "Equality between boolean terms changed to equivalence \n"
@@ -1297,6 +1308,13 @@ void Options::Options::init()
     _casesSimp.reliesOn(_FOOLParamodulation.is(equal(false)));
     _lookup.insert(&_casesSimp);
     _casesSimp.tag(OptionTag::INFERENCES);
+
+
+    _newTautologyDel = BoolOptionValue("new_taut_del","ntd",false);
+    _newTautologyDel.description=
+    "delete clauses with literals of the form false != true or t = true \/ t = false";
+    _lookup.insert(&_newTautologyDel);
+    _newTautologyDel.tag(OptionTag::INFERENCES);
 
 
 //*********************** InstGen  ***********************
