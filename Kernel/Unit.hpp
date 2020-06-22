@@ -88,6 +88,10 @@ public:
 
   /** return true if there is an input node in the deriviation  */
   bool derivedFromInput() const;
+  /** return true if there is a node in the derivation that is derivedFromGoal
+      this is a current workaround for the fact that GS doesn't always set the
+      correct inputType **/
+  bool derivedFromGoalCheck() const;
 
   unsigned char getSineLevel() const { return _inference.getSineLevel(); }
   /** true if the unit is read from a TPTP included file  */
