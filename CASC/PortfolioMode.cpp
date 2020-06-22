@@ -226,12 +226,12 @@ void PortfolioMode::getExtraSchedules(Property& prop, Schedule& old, Schedule& e
    extra_opts.push("sp=frequency");
    extra_opts.push("avsq=on");
    extra_opts.push("plsq=on");
+   extra_opts.push("bsd=on:fsd=on");
 
    // If contains integers, rationals and reals
    if(prop.props() & (Property::PR_HAS_INTEGERS | Property::PR_HAS_RATS | Property::PR_HAS_REALS)){
-    extra_opts.push("tha=some");
+    extra_opts.push("gve=on");
     extra_opts.push("sos=theory:sstl=5");
-    extra_opts.push("uwa=fixed:uwaf=on");
     extra_opts.push("thsq=on");
     extra_opts.push("thsq=on:thsqd=16");
    }

@@ -117,7 +117,15 @@ int IntegerConstantType::intDivide(const IntegerConstantType& num) const
 IntegerConstantType IntegerConstantType::remainderE(const IntegerConstantType& num) const
 {
   CALL("IntegerConstantType::remainderE");
-  (void) divideOrThrow(_val, num._val);
+
+  if (num._val == 0) {
+    throw MachineArithmeticException();
+  }
+
+  if (this->_val == numeric_limits<IntegerConstantType::InnerType>::min() && num._val == -1) {
+    return 0;
+  }
+
   auto mod = IntegerConstantType(this->_val % num._val);
   if (mod < 0) {
     if (num._val >= 0) {
@@ -136,7 +144,34 @@ IntegerConstantType IntegerConstantType::remainderE(const IntegerConstantType& n
 IntegerConstantType IntegerConstantType::quotientE(const IntegerConstantType& num) const
 { 
   CALL("IntegerConstantType::quotientE");
-  return (*this - this->remainderE(num)).intDivide(num);
+
+  if (num._val == 0 || (this->_val == numeric_limits<IntegerConstantType::InnerType>::min() && num._val == -1)) {
+    throw MachineArithmeticException();
+  }
+
+  // as in remainderE
+  auto mod = IntegerConstantType(this->_val % num._val);
+
+  // return (*this - this->remainderE(num)).intDivide(num); // the clean definition; but we don't want to subtract for small *this
+
+  if (mod < 0) {
+    // as in remainderE -- effectively adjust for the computation of the positive mod
+    if (num._val >= 0) {
+      return (*this - mod).intDivide(num)-1;
+    } else {
+      return (*this - mod).intDivide(num)+1;
+    }
+  } else {
+    if (*this < 0) { // we don't want to subtract a positive mod, counterbalance with num, adjusting with +/-1
+      if (num._val >= 0) {
+        return (*this + num - mod).intDivide(num)-1;
+      } else {
+        return (*this - num - mod).intDivide(num)+1;
+      }
+    } else {
+      return (*this - mod).intDivide(num);
+    }
+  }
 }
 
 IntegerConstantType IntegerConstantType::quotientF(const IntegerConstantType& num) const
@@ -160,11 +195,10 @@ bool IntegerConstantType::divides(const IntegerConstantType& num) const
   CALL("IntegerConstantType:divides");
   if (_val == 0) { return false; }
   if (num._val == _val) { return true; }
-  if (num._val == numeric_limits<decltype(num._val)>::min() 
-      || _val == numeric_limits<decltype(num._val)>::min()) {
-    throw ArithmeticException();
+  if (num._val == numeric_limits<decltype(num._val)>::min() && _val == -1) {
+    return true;
   } else {
-    return ( abs(num._val) % abs(_val) ) == 0;
+    return ( num._val % _val == 0);
   }
 }
 
