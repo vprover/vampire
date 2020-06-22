@@ -37,7 +37,7 @@ All compile flags are added as additional arguments to cmake - for example
   
   Please refer to `README-CMake.md` for detailed instructions on how to build Z3 using
   cmake. Notable options are:
-  * `-DBUILD_LIBZ3_SHARED=0`: static library
+  * `-DZ3_BUILD_LIBZ3_SHARED=0`: static library (z3 up to version 4.8.7 needs `-DBUILD_LIBZ3_SHARED=0` instead)
   * `-DCMAKE_INSTALL_PREFIX=/opt/z3-devel`: installation path
 
 ## Other Features ##

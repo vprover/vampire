@@ -908,15 +908,19 @@ void SaturationAlgorithm::handleEmptyClause(Clause* cl)
       throw MainLoop::MainLoopFinishedException(Statistics::REFUTATION_NOT_FOUND);
     }
 
-    //TODO - warning, derivedFromInput currently inefficient
+    //TODO - warning, derivedFromInput potentially inefficient
     if(!cl->derivedFromInput()){
       ASSERTION_VIOLATION_REP("The proof does not contain any input clauses.");
       reportSpiderFail();
       // this is a poor way of handling this in release mode but it prevents unsound proofs
       throw MainLoop::MainLoopFinishedException(Statistics::REFUTATION_NOT_FOUND);
     }
+    
 
-    if(cl->inputType() == UnitInputType::AXIOM){
+    // Global Subsumption doesn't set the input type the way we want so we can't do this for now
+    // TODO think of a better fix
+    //if(cl->inputType() == UnitInputType::AXIOM){
+    if(UIHelper::haveConjecture() && !cl->derivedFromGoalCheck()){
       UIHelper::setConjectureInProof(false);
     }
 

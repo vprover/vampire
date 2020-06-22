@@ -823,7 +823,7 @@ endif()
 #################################################################
 # automated generation of Vampire revision information from git #
 #################################################################
-set(VAMPIRE_VERSION_NUMBER "4.4.0")
+set(VAMPIRE_VERSION_NUMBER "4.5.0")
 
 execute_process(
     COMMAND git rev-parse --is-inside-work-tree
