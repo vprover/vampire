@@ -450,7 +450,7 @@ unsigned Signature::addInterpretedFunction(Interpretation interpretation, Operat
 
   unsigned arity = Theory::getArity(interpretation);
   unsigned weight = getFunctionSymbolWeight(name, arity);
-  std::cerr << "Signature::addInterpretedFunction(" << name << ", " << arity << "); weight = " << weight << std::endl;
+  // std::cerr << "Signature::addInterpretedFunction(" << name << ", " << arity << "); weight = " << weight << std::endl;
 
   unsigned fnNum = _funs.length();
   InterpretedSymbol* sym = new InterpretedSymbol(name, interpretation, weight);
@@ -493,7 +493,7 @@ unsigned Signature::addInterpretedPredicate(Interpretation interpretation, Opera
 
   unsigned arity = Theory::getArity(interpretation);
   unsigned weight = getPredicateSymbolWeight(name, arity);
-  std::cerr << "Signature::addInterpretedPredicate(" << name << ", " << arity << "); weight = " << weight << std::endl;
+  // std::cerr << "Signature::addInterpretedPredicate(" << name << ", " << arity << "); weight = " << weight << std::endl;
 
   unsigned predNum = _preds.length();
   InterpretedSymbol* sym = new InterpretedSymbol(name, interpretation, weight);
@@ -647,7 +647,7 @@ unsigned Signature::addFunction (const vstring& name,
 
   result = _funs.length();
   unsigned weight = getFunctionSymbolWeight(name, arity);
-  std::cerr << "Signature::addFunction(" << name << ", " << arity << "); weight = " << weight << std::endl;
+  // std::cerr << "Signature::addFunction(" << name << ", " << arity << "); weight = " << weight << std::endl;
   _funs.push(new Symbol(name, arity, weight, false, false, false, overflowConstant));
   _funNames.insert(symbolKey, result);
   added = true;
@@ -721,7 +721,7 @@ unsigned Signature::addPredicate (const vstring& name,
 
   result = _preds.length();
   unsigned weight = getPredicateSymbolWeight(name, arity);
-  std::cerr << "Signature::addPredicate(" << name << ", " << arity << "); weight = " << weight << std::endl;
+  // std::cerr << "Signature::addPredicate(" << name << ", " << arity << "); weight = " << weight << std::endl;
   _preds.push(new Symbol(name,arity,weight));
   _predNames.insert(symbolKey,result);
   added = true;
@@ -1193,7 +1193,7 @@ vmap<std::pair<unsigned, vstring>, unsigned> Signature::parseSymbolWeights(vstri
       USER_ERROR(msg.str());
     };
 
-    std::cerr << "parseSymbolWeights: " << weights_str << std::endl;
+    // std::cerr << "parseSymbolWeights: " << weights_str << std::endl;
     vmap<std::pair<unsigned, vstring>, unsigned> weights;
     const char* s = weights_str.data();
     const char* s_end = s + weights_str.length();
@@ -1203,14 +1203,14 @@ vmap<std::pair<unsigned, vstring>, unsigned> Signature::parseSymbolWeights(vstri
       if (s == s_end) {
         err_expected("'=' or '/'");
       }
-      std::cerr << "name   = " << name << std::endl;
+      // std::cerr << "name   = " << name << std::endl;
 
       // Read arity if specified
       unsigned arity = arity_unspecified();
       if (*s == '/') {
         s += 1;
         arity = parseNumber(s, "arity");
-        std::cerr << "arity  = " << arity << std::endl;
+        // std::cerr << "arity  = " << arity << std::endl;
         if (arity == arity_unspecified()) {
           vstringstream msg;
           msg << "cannot use arity due to internal constraints: " << arity;
@@ -1225,7 +1225,7 @@ vmap<std::pair<unsigned, vstring>, unsigned> Signature::parseSymbolWeights(vstri
       if (*s == '=') {
         s += 1;
         weight = parseNumber(s, "weight");
-        std::cerr << "weight = " << weight << std::endl;
+        // std::cerr << "weight = " << weight << std::endl;
       } else {
         if (arity == arity_unspecified()) {
           err_expected("'=' or '/'", s);
