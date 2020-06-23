@@ -734,6 +734,13 @@ void Options::Options::init()
     _lookup.insert(&_showInduction);
     _showInduction.tag(OptionTag::OUTPUT);
 
+    _showOrdering = BoolOptionValue("show_ordering","",false);
+    _showOrdering.description =
+      "Print information about the ordering "
+      "(in particular, weights and precedence of symbols)";
+    _lookup.insert(&_showOrdering);
+    _showOrdering.tag(OptionTag::OUTPUT);
+
     _manualClauseSelection = BoolOptionValue("manual_cs","",false);
     _manualClauseSelection.description="Run Vampire interactively by manually picking the clauses to be selected";
     _lookup.insert(&_manualClauseSelection);

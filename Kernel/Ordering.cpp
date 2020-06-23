@@ -303,7 +303,7 @@ int PrecedenceOrdering::predicateLevel (unsigned pred) const
   } else {
     return basic;
   }
-} // LPO::predicateLevel
+} // PrecedenceOrdering::predicateLevel
 
 
 /**
@@ -323,7 +323,7 @@ int PrecedenceOrdering::predicatePrecedence (unsigned pred) const
     return intp ? res+1 : res+NONINTERPRETED_PRECEDENCE_BOOST;
   }
   return res;
-} // LPO::predicatePrecedences
+} // PrecedenceOrdering::predicatePrecedences
 
 Comparison PrecedenceOrdering::compareFunctors(unsigned fun1, unsigned fun2) const
 {
@@ -702,13 +702,21 @@ PrecedenceOrdering::PrecedenceOrdering(Problem& prb, const Options& opt)
       }
     }
 
-    
+    if (env.options->showOrdering()) {
+      env.beginOutput();
+      env.out() << "% Function precedence, smallest first:";
+      for (unsigned i = 0; i < _functions; i++) {
+        env.out() << " " << env.signature->functionName(aux[i]);
+      }
+      env.out() << '\n';
+      env.endOutput();
+    }
+
     /*cout << "Function precedences:" << endl;
     for(unsigned i=0;i<_functions;i++){
       cout << env.signature->functionName(aux[i]) << " ";
     }
     cout << endl;*/
-    
 
     /*
     cout << "Function precedence: ";
@@ -721,7 +729,7 @@ PrecedenceOrdering::PrecedenceOrdering(Problem& prb, const Options& opt)
     for(unsigned i=0;i<_functions;i++) {
       _functionPrecedences[aux[i]]=i;
     }
-  }
+  }  // if (_functions)
 
   aux.initFromIterator(getRangeIterator(0u, _predicates), _predicates);
 
@@ -762,6 +770,17 @@ PrecedenceOrdering::PrecedenceOrdering(Problem& prb, const Options& opt)
         break;
     }
   }
+
+  if (env.options->showOrdering()) {
+    env.beginOutput();
+    env.out() << "% Predicate precedence, smallest first:";
+    for (unsigned i = 0; i < _predicates; i++) {
+      env.out() << " " << env.signature->predicateName(aux[i]);
+    }
+    env.out() << '\n';
+    env.endOutput();
+  }
+
   /*
   cout << "Predicate precedences:" << endl;
   for(unsigned i=0;i<_predicates;i++){
@@ -822,8 +841,30 @@ PrecedenceOrdering::PrecedenceOrdering(Problem& prb, const Options& opt)
       //equality proxy predicates have the highest level (lower than colored predicates)
       _predicateLevels[i]=_predicates+2;
     }
-
   }
-}
 
+  if (env.options->showOrdering()) {
+    int minLevel = std::numeric_limits<int>::max();
+    int maxLevel = std::numeric_limits<int>::min();
+    for (unsigned i = 0; i < _predicates; ++i) {
+      if (_predicateLevels[i] < minLevel) {
+        minLevel = _predicateLevels[i];
+      }
+      if (_predicateLevels[i] > maxLevel) {
+        maxLevel = _predicateLevels[i];
+      }
+    }
+    env.beginOutput();
+    for (int lvl = minLevel; lvl <= maxLevel; ++lvl) {
+      env.out() << "% Predicate level " << lvl << ":";
+      for (unsigned i = 0; i < _predicates; ++i) {
+        if (_predicateLevels[i] == lvl) {
+          env.out() << " " << env.signature->predicateName(i);
+        }
+      }
+      env.out() << '\n';
+    }
+    env.endOutput();
+  }
 
+}  // PrecedenceOrdering::PrecedenceOrdering

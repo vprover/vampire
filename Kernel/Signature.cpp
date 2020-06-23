@@ -1334,5 +1334,32 @@ void Signature::initSymbolWeights()
   _functionSymbolWeights = parseSymbolWeights(env.options->functionWeights());
   _predicateSymbolWeights = parseSymbolWeights(env.options->predicateWeights());
 
+  if (env.options->showOrdering()) {
+    env.beginOutput();
+    env.out() << "% Weight of variables: " << _variableWeight << '\n';
+    for (auto const& entry : _predicateSymbolWeights) {
+      vstring const& name = entry.first.second;
+      unsigned int arity = entry.first.first;
+      unsigned int weight = entry.second;
+      env.out() << "% Weight of predicate " << name;
+      if (arity != arity_unspecified()) {
+        env.out() << '/' << entry.first.first;
+      }
+      env.out() << ": " << entry.second << '\n';
+    }
+    for (auto const& entry : _functionSymbolWeights) {
+      vstring const& name = entry.first.second;
+      unsigned int arity = entry.first.first;
+      unsigned int weight = entry.second;
+      env.out() << "% Weight of function " << name;
+      if (arity != arity_unspecified()) {
+        env.out() << '/' << entry.first.first;
+      }
+      env.out() << ": " << entry.second << '\n';
+    }
+    env.out() << "% Weight of other symbols: " << _defaultSymbolWeight << '\n';
+    env.endOutput();
+  }
+
   _weightsInitialized = true;
 }
