@@ -305,6 +305,16 @@ public:
 
   template<class Config>
   inline static Polynom poly_mul(const Polynom& lhs, const Polynom& rhs) {
+    auto mul_poly_coeff = [](Coeff c, ComplexPolynom* const& p) -> Polynom {
+        if (Config::usePolyMul) {
+          //  poly mul is allowed 
+          return ComplexPolynom::coeff_poly_mul(c, p); 
+        } else {
+          // we convert the complex poly to a term and build a monom
+          auto factor = ComplexPolynom::template toTerm<Config>(*p);
+          return Polynom(ComplexPolynom::create(ComplexPolynom(c,factor)));
+        }
+    };
     //  l * r 
     return lhs._inner.template match<Polynom>(
           [&](ComplexPolynom* const& lhs) { 
@@ -322,7 +332,11 @@ public:
                       return Polynom(ComplexPolynom::create(ComplexPolynom(PMonom(l,r))));
                     }
                   }
-                , [&](Coeff           const& rhs) { return ComplexPolynom::coeff_poly_mul(rhs, lhs); }
+                , [&](Coeff           const& rhs) { 
+
+                    return mul_poly_coeff(rhs, lhs);
+
+                  }
                 );
           }
         , [&](Coeff const& lhs) { 
@@ -330,14 +344,7 @@ public:
             return rhs._inner.template match<Polynom>(
                   [&](ComplexPolynom* const& rhs) { 
                     //  n * ( r1 + r2 + ... )
-                    if (Config::usePolyMul){
-                      //  poly mul is allowed 
-                      return ComplexPolynom::coeff_poly_mul(lhs, rhs); 
-                    } else {
-                      // we convert the complex poly to a term and build a monom
-                      auto r = ComplexPolynom::template toTerm<Config>(*rhs);
-                      return Polynom(ComplexPolynom::create(ComplexPolynom(lhs,r)));
-                    }
+                    return mul_poly_coeff(lhs, rhs);
                   }
                 , [&](Coeff           const& rhs) { 
                     // n * m
