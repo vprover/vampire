@@ -106,7 +106,6 @@ public:
   Monom(TermList t) : _inner(MonomInner::create(MonomInner(t))) {}
   Monom(TermList factor1, TermList factor2) : _inner(MonomInner::create(MonomInner(factor1, factor2))) { }
 
-
   static Monom monom_mul(const Monom& lhs, const Monom& rhs) {
     return Monom(MonomInner::monom_mul(*lhs._inner, *rhs._inner));
   }
@@ -131,6 +130,7 @@ public:
     MonomInner(decltype(_factors) factors) : _factors(factors) { }
 
     MonomInner(TermList t) : _factors { make_tuple(t, 1)}  { }
+
     MonomInner(TermList t1, TermList t2) 
       : _factors(t1 == t2 ? decltype(_factors) ({ make_tuple(t1, 2)}) : 
                  t1 <  t2 ? decltype(_factors) ({ make_tuple(t1,1), make_tuple(t2,1)}) :
@@ -336,7 +336,7 @@ public:
                     } else {
                       // we convert the complex poly to a term and build a monom
                       auto r = ComplexPolynom::template toTerm<Config>(*rhs);
-                      return Polynom(ComplexPolynom::create(ComplexPolynom(PMonom(lhs,r))));
+                      return Polynom(ComplexPolynom::create(ComplexPolynom(lhs,r)));
                     }
                   }
                 , [&](Coeff           const& rhs) { 
