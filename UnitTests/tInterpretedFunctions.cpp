@@ -347,6 +347,11 @@ ALL_NUMBERS_TEST(simpl_times_zero_2
     , false
     );
 
+FRACTIONAL_TEST(literal_to_const_0,
+      eq(0, 31),
+      false 
+      )
+
 FRACTIONAL_TEST(literal_to_const_1,
       eq(mul(frac(5,2), 2), 5),
       true 
@@ -627,6 +632,7 @@ ALL_NUMBERS_TEST(eval_bug_2,
       eq(mul(x,mul(y,z)), mul(mul(x,y),z)),
       true
       )
+// lG93(X0,X1,X2) = $sum($product(13.0,X2),$sum($product(-10.0,X1),$product(X0,-20.0)))
 
 // TODO: cases x = k * x <-> k = 1 | x = 0 
 // TODO: cases x = k + x <-> k = 0 
