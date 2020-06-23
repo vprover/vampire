@@ -381,8 +381,12 @@ private:
 
   public:
 
-    ComplexPolynom(Coeff coeff, PMonom&& t) : _coeffs(decltype(_coeffs)())  { 
-      _coeffs.emplace_back(poly_pair(std::move(t), coeff));
+    ComplexPolynom(Coeff coeff, PMonom&& t) 
+      : _coeffs(coeff == number::zeroC 
+        ? decltype(_coeffs)() 
+        : decltype(_coeffs){ make_pair(std::move(t), coeff) })  
+    { 
+      // _coeffs.emplace_back(poly_pair(std::move(t), coeff));
     }
 
     ComplexPolynom(PMonom&& t) : _coeffs(decltype(_coeffs)())  { 
@@ -440,8 +444,8 @@ private:
       CALL("ComplexPolynom::poly_add")
       // DBG("lhs: ", lhs)
       // DBG("rhs: ", rhs)
-      ASS(!lhs._coeffs.empty())
-      ASS(!rhs._coeffs.empty())
+      // ASS(!lhs._coeffs.empty())
+      // ASS(!rhs._coeffs.empty())
       auto newCoeffs = merge_sort_with(lhs._coeffs, rhs._coeffs, 
               [](Coeff l, Coeff r){ return l + r; },
               [](Coeff x){ return x != number::zeroC; }
