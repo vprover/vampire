@@ -305,13 +305,18 @@ public:
 
   template<class Config>
   inline static Polynom poly_mul(const Polynom& lhs, const Polynom& rhs) {
+    //  l * r 
     return lhs._inner.template match<Polynom>(
           [&](ComplexPolynom* const& lhs) { 
+            //  ( l1 + l2 + ... ) * r 
             return rhs._inner.template match<Polynom>(
                   [&](ComplexPolynom* const& rhs) { 
+                    //  ( l1 + l2 + ... ) * ( r1 + r2 + ... )
                     if(Config::usePolyMul || (lhs->nSummands() == 1 && rhs->nSummands() == 1 )) {
+                      //  poly mul is allowed or ( l1 ) * ( r1 ) 
                       return Polynom(ComplexPolynom::poly_mul(*lhs, *rhs)); 
                     } else {
+                      // we just wrap the two terms 
                       auto l = ComplexPolynom::template toTerm<Config>(*lhs);
                       auto r = ComplexPolynom::template toTerm<Config>(*rhs);
                       return Polynom(ComplexPolynom::create(ComplexPolynom(PMonom(l,r))));
@@ -321,9 +326,23 @@ public:
                 );
           }
         , [&](Coeff const& lhs) { 
+            //  n * r 
             return rhs._inner.template match<Polynom>(
-                  [&](ComplexPolynom* const& rhs) { return ComplexPolynom::coeff_poly_mul(lhs, rhs); }
-                , [&](Coeff           const& rhs) { return Polynom(lhs * rhs); }
+                  [&](ComplexPolynom* const& rhs) { 
+                    //  n * ( r1 + r2 + ... )
+                    if (Config::usePolyMul){
+                      //  poly mul is allowed 
+                      return ComplexPolynom::coeff_poly_mul(lhs, rhs); 
+                    } else {
+                      // we convert the complex poly to a term and build a monom
+                      auto r = ComplexPolynom::template toTerm<Config>(*rhs);
+                      return Polynom(ComplexPolynom::create(ComplexPolynom(PMonom(lhs,r))));
+                    }
+                  }
+                , [&](Coeff           const& rhs) { 
+                    // n * m
+                    return Polynom(lhs * rhs); 
+                  }
                 );
         });
   }
