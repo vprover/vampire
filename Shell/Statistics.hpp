@@ -173,6 +173,10 @@ public:
   unsigned evaluations;
   /** number of interpreted simplifications */
   unsigned interpretedSimplifications;
+  /** number of simplifications actually performed by PolynomialNormalizer */
+  unsigned polyNormalizerSimplSuccess;
+  /** number of simplifications attempts by PolynomialNormalizer */
+  unsigned polyNormalizerSimplAttempts;
   /** number of (proper) inner rewrites */
   unsigned innerRewrites;
   /** number of inner rewrites into equational tautologies */
