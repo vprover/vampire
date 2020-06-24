@@ -219,24 +219,25 @@ struct TestOrdering {
     return expensive_sort_terms(lhs, rhs);
   }
 };
-
 #define NORMALIZER PolynomialNormalizer<PolynomialNormalizerConfig::Normalization<TestOrdering>>()
 
-void check_no_succ(Literal& orig) {
+// template<class NormalizerConfig>
+// void check_no_succ(Literal& orig) {
+//
+//   auto eval = PolynomialNormalizer<NormalizerConfig>();
+//
+//   Literal* src = Literal::create(&orig, orig.polarity());
+//   auto res = eval.evaluate(src);
+//   auto nop = res.template is<0>() && res.template unwrap<0>() == src;
+//
+//   CHECK_EQ(nop, true, "unexpectedly evaluation was successful", orig.toString());
+// }
 
-  auto eval = NORMALIZER;
 
-  Literal* src = Literal::create(&orig, orig.polarity());
-  auto res = eval.evaluate(src);
-  auto nop = res.template is<0>() && res.template unwrap<0>() == src;
-
-  CHECK_EQ(nop, true, "unexpectedly evaluation was successful", orig.toString());
-}
-
-
+template<class NormalizerConfig>
 void check_eval(Literal& orig, bool expected) {
 
-  auto eval = NORMALIZER;
+  auto eval = PolynomialNormalizer<NormalizerConfig>();
 
   auto sideConditions = Stack<Literal*>();
   Literal* src = Literal::create(&orig, orig.polarity());
@@ -250,9 +251,10 @@ bool operator==(const Literal& lhs, const Literal& rhs) {
   return Indexing::TermSharing::equals(&lhs, &rhs);
 }
 
+template<class NormalizerConfig>
 void check_eval(Literal& orig, const Literal& expected) {
 
-  auto eval = NORMALIZER;
+  auto eval = PolynomialNormalizer<NormalizerConfig>();
 
   auto sideConditions = Stack<Literal*>();
   Literal* src = Literal::create(&orig, orig.polarity());
@@ -270,140 +272,138 @@ void check_eval(Literal& orig, const Literal& expected) {
         THEORY_SYNTAX_SUGAR_PRED(p, 1) \
       _Pragma("GCC diagnostic pop") \
 
-/** Tests for evalutions that should only be successful for reals/rationals and not for integers. */
-#define FRACTIONAL_TEST(name, formula, expected) \
-    TEST_FUN(name ## _ ## REAL) { \
-      THEORY_SYNTAX_SUGAR(REAL); \
+
+#define MK_TEST(normalizer_conf, name, num, formula, expected) \
+    TEST_FUN(name ## _ ## num) { \
+      THEORY_SYNTAX_SUGAR(num); \
       ADDITIONAL_FUNCTIONS \
-      check_eval(( formula ), ( expected )); \
+      check_eval<normalizer_conf>(( formula ), ( expected )); \
     }\
-    TEST_FUN(name ## _ ## RAT) { \
-      THEORY_SYNTAX_SUGAR(RAT); \
-      ADDITIONAL_FUNCTIONS \
-      check_eval(( formula ), ( expected )); \
-    } \
 
-#define ALL_NUMBERS_TEST(name, formula, expected) \
-    TEST_FUN(name ## _ ## INT) { \
-      THEORY_SYNTAX_SUGAR(INT); \
-      ADDITIONAL_FUNCTIONS \
-      check_eval(( formula ), ( expected )); \
-    } \
-    TEST_FUN(name ## _ ## REAL) { \
-      THEORY_SYNTAX_SUGAR(REAL); \
-      ADDITIONAL_FUNCTIONS \
-      check_eval(( formula ), ( expected )); \
-    } \
-    TEST_FUN(name ## _ ## RAT) { \
-      THEORY_SYNTAX_SUGAR(RAT); \
-      ADDITIONAL_FUNCTIONS \
-      check_eval(( formula ), ( expected )); \
-    } \
+#define MK_TESTS_SIMPLIFY(name, num, formula, expected) \
+  MK_TEST(PolynomialNormalizerConfig::Simplification<TestOrdering>, name ## _simpl, num, formula, expected) \
+  MK_TEST(PolynomialNormalizerConfig::Normalization <TestOrdering>, name ## _norm, num, formula, expected) \
 
-ALL_NUMBERS_TEST(partial_eval_add_1,
+#define MK_TESTS_NORMALIZE(name, num, formula, expected) \
+  MK_TEST(PolynomialNormalizerConfig::Normalization <TestOrdering>, name, num, formula, expected) \
+
+#define MK_TESTS(normalizer_type, name, num, formula, expected) \
+  MK_TESTS_ ## normalizer_type (name, num, formula, expected)
+
+/** Tests for evalutions that should only be successful for reals/rationals and not for integers. */
+#define TEST_FRACTIONAL_NUM_TYPES(norm_conf, name, formula, expected) \
+  MK_TESTS(norm_conf, name, REAL, formula, expected)\
+  MK_TESTS(norm_conf, name, RAT , formula, expected)\
+
+#define TEST_ALL_NUM_TYPES(norm_conf, name, formula, expected) \
+  MK_TESTS(norm_conf, name, REAL, formula, expected)\
+  MK_TESTS(norm_conf, name, RAT , formula, expected)\
+  MK_TESTS(norm_conf, name, INT , formula, expected)\
+
+TEST_ALL_NUM_TYPES(SIMPLIFY, partial_eval_add_1,
       eq(add(2, add(x, add(3, 7))), y),
       eq(add(12, x), y)
   )
 
-ALL_NUMBERS_TEST(partial_eval_add_2,
+TEST_ALL_NUM_TYPES(SIMPLIFY, partial_eval_add_2,
       eq(add(2, add(add(8, x), add(3, 7))), y),
       eq(add(20, x), y)
 )
 
-ALL_NUMBERS_TEST(partial_eval_add_3,
+TEST_ALL_NUM_TYPES(SIMPLIFY, partial_eval_add_3,
       eq(add(2, add(add(minus(8), x), add(3, 7))), y),
       eq(add(4, x), y)
     )
 
-ALL_NUMBERS_TEST(partial_eval_add_4,
+TEST_ALL_NUM_TYPES(NORMALIZE, partial_eval_add_4,
       eq(minus(add(2, add(add(8, x), add(3, 7)))), y),
       eq(add(-20, minus(x)), y)
     )
 
-ALL_NUMBERS_TEST(partial_eval_add_5,
+TEST_ALL_NUM_TYPES(SIMPLIFY, partial_eval_add_5,
     /* -21 + 7 * (3 + x) = y */
       eq(x, add(-21, mul(7, add(3,y)))),
       eq(x, mul(7,y))
     )
 
-ALL_NUMBERS_TEST(partial_eval_add_6,
+TEST_ALL_NUM_TYPES(SIMPLIFY, partial_eval_add_6,
       eq(mul(7,x), add(-21, mul(7, add(3,x)))),
       true
     )
 
-ALL_NUMBERS_TEST(simpl_times_zero_0
+TEST_ALL_NUM_TYPES(SIMPLIFY, simpl_times_zero_0
     , eq(a, mul(0, y))
     , eq(a, 0)
     );
 
 
-ALL_NUMBERS_TEST(simpl_times_zero_1
+TEST_ALL_NUM_TYPES(SIMPLIFY, simpl_times_zero_1
     , eq(x, mul(0, y))
     , eq(x, 0)
     );
 
-ALL_NUMBERS_TEST(simpl_times_zero_2
+TEST_ALL_NUM_TYPES(SIMPLIFY, simpl_times_zero_2
     , eq(3, add(mul(0, x), 4))
     , false
     );
 
-FRACTIONAL_TEST(literal_to_const_0,
+TEST_FRACTIONAL_NUM_TYPES(SIMPLIFY, literal_to_const_0,
       eq(0, 31),
       false 
       )
 
-FRACTIONAL_TEST(literal_to_const_1,
+TEST_FRACTIONAL_NUM_TYPES(SIMPLIFY, literal_to_const_1,
       eq(mul(frac(5,2), 2), 5),
       true 
       )
 
-FRACTIONAL_TEST(literal_to_const_2,
+TEST_FRACTIONAL_NUM_TYPES(SIMPLIFY, literal_to_const_2,
       eq(mul(frac(5,2), 2), 6),
       false 
     )
 
-FRACTIONAL_TEST(literal_to_const_3,
+TEST_FRACTIONAL_NUM_TYPES(SIMPLIFY, literal_to_const_3,
       lt(mul(3,2),5),
       false
     )
 
   // Interpret 3*2 < 5
-FRACTIONAL_TEST(literal_to_const_4,
+TEST_FRACTIONAL_NUM_TYPES(SIMPLIFY, literal_to_const_4,
       neg(lt(mul(3,2),5)),
       true
     )
 
-ALL_NUMBERS_TEST(literal_to_const_5,
+TEST_ALL_NUM_TYPES(SIMPLIFY, literal_to_const_5,
       gt(mul(3,2),5),
       true
     )
 
-ALL_NUMBERS_TEST(literal_to_const_6,
+TEST_ALL_NUM_TYPES(SIMPLIFY, literal_to_const_6,
       gt(mul(3,2),13),
       false
     )
 
-ALL_NUMBERS_TEST(literal_to_const_7,
+TEST_ALL_NUM_TYPES(SIMPLIFY, literal_to_const_7,
       lt(0, 0),
       false
     );  
 
-ALL_NUMBERS_TEST(literal_to_const_8,
+TEST_ALL_NUM_TYPES(SIMPLIFY, literal_to_const_8,
       neg(lt(0, 0)),
       true
     )
 
-ALL_NUMBERS_TEST(literal_to_const_9,
+TEST_ALL_NUM_TYPES(SIMPLIFY, literal_to_const_9,
       gt(mul(3,a),mul(3, a)),
       false
     )
 
-ALL_NUMBERS_TEST(literal_to_const_10,
+TEST_ALL_NUM_TYPES(SIMPLIFY, literal_to_const_10,
       gt(add(mul(3,a), x),add(mul(3, a), x)),
       false
     )
 
-ALL_NUMBERS_TEST(literal_to_const_11,
+TEST_ALL_NUM_TYPES(SIMPLIFY, literal_to_const_11,
       gt(add(x, mul(3,a)),add(mul(3, a), x)),
       false
     )
@@ -485,104 +485,104 @@ TEST_FUN(normalize_less_equal_2) {
       );
 }
 
-TEST_FUN(test_normalize_stable) {
-  THEORY_SYNTAX_SUGAR(INT)
-    /* 0 <= x + 1*/
-  // check_eval(
-  //     leq(0, add(x, 1)),
-  //     leq(0, add(x, 1))
-      // );
-  check_no_succ(
-      lt(0, add(1, x))
-      );
-}
+// TEST_FUN(test_normalize_stable) {
+//   THEORY_SYNTAX_SUGAR(INT)
+//     /* 0 <= x + 1*/
+//   // check_eval(
+//   //     leq(0, add(x, 1)),
+//   //     leq(0, add(x, 1))
+//       // );
+//   check_no_succ(
+//       lt(0, add(1, x))
+//       );
+// }
 #endif // NORMALIZE_LESS // TODO
 
 // x = -(-x)
-ALL_NUMBERS_TEST(eval_double_minus_1_1, 
+TEST_ALL_NUM_TYPES(SIMPLIFY, eval_double_minus_1_1, 
       eq(x, minus(minus(x))),
       true)
 
-ALL_NUMBERS_TEST(eval_double_minus_1_2, 
+TEST_ALL_NUM_TYPES(SIMPLIFY, eval_double_minus_1_2, 
       neg(eq(x, minus(minus(x)))),
       false)
 
 // x < -(-x)
-ALL_NUMBERS_TEST(eval_double_minus_2_1, 
+TEST_ALL_NUM_TYPES(SIMPLIFY, eval_double_minus_2_1, 
       lt(x, minus(minus(x))),
       false)
-ALL_NUMBERS_TEST(eval_double_minus_2_2, 
+TEST_ALL_NUM_TYPES(SIMPLIFY, eval_double_minus_2_2, 
       neg(lt(x, minus(minus(x)))),
       true)
 
-ALL_NUMBERS_TEST(eval_inverse_1 
+TEST_ALL_NUM_TYPES(SIMPLIFY, eval_inverse_1 
     , eq(1, add(x, minus(x)))
     , false
     )
 
 // a = -(-x)
-ALL_NUMBERS_TEST(eval_double_minus_3,
+TEST_ALL_NUM_TYPES(SIMPLIFY, eval_double_minus_3,
       eq(a, minus(minus(x))),
       eq(a, x))
 
 
 // 4 = -(-x + 4)
 // ==> 4 = x + (-4)
-ALL_NUMBERS_TEST(eval_double_minus_4,
+TEST_ALL_NUM_TYPES(SIMPLIFY, eval_double_minus_4,
       eq(4, minus(add(minus(x), 4))),
       eq(4, add(-4, x)) )
 
-ALL_NUMBERS_TEST(eval_remove_identity_1,
+TEST_ALL_NUM_TYPES(SIMPLIFY, eval_remove_identity_1,
       lt(0, add(0, minus(x))),
       lt(0, minus(x))
       )
 
-ALL_NUMBERS_TEST(eval_remove_identity_2,
+TEST_ALL_NUM_TYPES(SIMPLIFY, eval_remove_identity_2,
       eq(0, f(add(0, mul(x, mul(1, y))))),
       eq(0, f(mul(x,y)))
       )
 
-ALL_NUMBERS_TEST(polynomial__normalize_uminus_1,
+TEST_ALL_NUM_TYPES(SIMPLIFY, polynomial__normalize_uminus_1,
       p(mul(7, minus(f(x)))),
       p(mul(-7, f(x)))
       )
 
-ALL_NUMBERS_TEST(polynomial__normalize_uminus_2,
+TEST_ALL_NUM_TYPES(SIMPLIFY, polynomial__normalize_uminus_2,
       p(mul(minus(f(x)), 7)),
       p(mul(-7, f(x)))
       )
 
-ALL_NUMBERS_TEST(polynomial__merge_consts_1,
+TEST_ALL_NUM_TYPES(SIMPLIFY, polynomial__merge_consts_1,
       p(add(mul(6, x), mul(5, x))),
       p(mul(11, x))
       )
 
-ALL_NUMBERS_TEST(polynomial__merge_consts_2,
+TEST_ALL_NUM_TYPES(SIMPLIFY, polynomial__merge_consts_2,
       p(add(add(mul(6, x), mul(y, 3)), mul(5, x))),
       p(add(mul(3,y), mul(11, x)))
       )
 
-ALL_NUMBERS_TEST(polynomial__merge_consts_3,
+TEST_ALL_NUM_TYPES(SIMPLIFY, polynomial__merge_consts_3,
       p(add(add(mul(6, a), mul(y, 3)), mul(5, a))),
       p(add(mul(3, y), mul(11, a)))
       )
 
-ALL_NUMBERS_TEST(polynomial__push_unary_minus,
+TEST_ALL_NUM_TYPES(SIMPLIFY, polynomial__push_unary_minus,
       p(minus(mul(a, 7))),
       p(mul(-7, a))
       )
 
-ALL_NUMBERS_TEST(polynomial__sorting_1,
+TEST_ALL_NUM_TYPES(SIMPLIFY, polynomial__sorting_1,
       p(mul(mul(7, x), a)),
       p(mul(7, mul(a, x)))
       )
 
-ALL_NUMBERS_TEST(polynomial__sorting_2,
+TEST_ALL_NUM_TYPES(SIMPLIFY, polynomial__sorting_2,
       p(mul(mul(7, mul(y, x)), a)),
       p(mul(7, mul(a, mul(x,y))))
       )
 
-ALL_NUMBERS_TEST(polynomial__sorting_3,
+TEST_ALL_NUM_TYPES(NORMALIZE, polynomial__sorting_3,
       p(mul(add(x,add(x, y)), add(x, add(a,x)))),
     /* (x + x +y) * (x + a + x) */
     /* ==> (2x + y) * (2x + a) */
@@ -597,38 +597,38 @@ ALL_NUMBERS_TEST(polynomial__sorting_3,
             ))))
       )
 
-ALL_NUMBERS_TEST(polynomial__sorting_4,
+TEST_ALL_NUM_TYPES(SIMPLIFY, polynomial__sorting_4,
       p(mul(add(x, 1), add(x, -1))),
       /* (x + 1) * (x - 1) */
       p(add(-1, mul(x,x)))
       )
 
-ALL_NUMBERS_TEST(polynomial__sorting_5,
+TEST_ALL_NUM_TYPES(SIMPLIFY, polynomial__sorting_5,
       p(add(add(b,a),c)),
       p(add(a,add(b,c)))
       )
 
-ALL_NUMBERS_TEST(polynomial__sorting_6,
+TEST_ALL_NUM_TYPES(SIMPLIFY, polynomial__sorting_6,
       p(mul(mul(b,a),c)),
       p(mul(a,mul(b,c)))
       )
 
-ALL_NUMBERS_TEST(eval_test_cached_1,
+TEST_ALL_NUM_TYPES(SIMPLIFY, eval_test_cached_1,
       p(mul(mul(mul(b,a),c), mul(mul(b,a),c))),
       p(mul(a,mul(a,mul(b,mul(b,mul(c,c))))))
       )
 
-ALL_NUMBERS_TEST(eval_test_cached_2,
+TEST_ALL_NUM_TYPES(SIMPLIFY, eval_test_cached_2,
       eq(mul(mul(b,a),c), f(mul(mul(b,a),c))),
       eq(mul(a,mul(b,c)), f(mul(a,mul(b,c))))
       )
 
-ALL_NUMBERS_TEST(eval_bug_1,
+TEST_ALL_NUM_TYPES(SIMPLIFY, eval_bug_1,
       p(f2(a,b)),
       p(f2(a,b))
       )
 
-ALL_NUMBERS_TEST(eval_bug_2,
+TEST_ALL_NUM_TYPES(SIMPLIFY, eval_bug_2,
       eq(mul(x,mul(y,z)), mul(mul(x,y),z)),
       true
       )
