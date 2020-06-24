@@ -1,8 +1,9 @@
 #include "Inferences/PolynomialNormalization.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/Ordering.hpp"
+#include "Shell/Statistics.hpp"
 
-#define DEBUG(...) DBG(__VA_ARGS__)
+#define DEBUG(...) //DBG(__VA_ARGS__)
 
 namespace Inferences {
 
@@ -18,11 +19,15 @@ Clause* PolynomialNormalization::simplify(Clause* cl_) {
 
     auto orig = cl[i];
     try {
+      env.statistics->polyNormalizerSimplAttempts++;
       auto simpl = _normalizer.evaluate(orig);
 
       if (simpl.isConstant()) {
+        env.statistics->polyNormalizerSimplSuccess++;
+
         bool trivialValue = simpl.unwrapConstant();
         if (trivialValue) {
+          /* clause is a tautology and can be deleted */
           return NULL;
         } else {
           /* do not add the literal to the output stack */
@@ -35,9 +40,11 @@ Clause* PolynomialNormalization::simplify(Clause* cl_) {
         auto cmp = _ordering.compare(simplLit, orig);
         if (cmp == Ordering::Result::LESS) {
 
-          if (simplLit != orig) {
+          ASS(simplLit != orig)
+          //if (simplLit != orig) {
+            env.statistics->polyNormalizerSimplSuccess++;
             changed = true;
-          }
+          //}
           out.push(simplLit);
 
         } else {
