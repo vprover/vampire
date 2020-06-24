@@ -19,10 +19,10 @@ Clause* PolynomialNormalization::simplify(Clause* cl_) {
 
     auto orig = cl[i];
     try {
-      env.statistics->polyNormalizerSimplAttempts++;
       auto simpl = _normalizer.evaluate(orig);
 
       if (simpl.isConstant()) {
+        env.statistics->polyNormalizerSimplAttempts++;
         env.statistics->polyNormalizerSimplSuccess++;
 
         bool trivialValue = simpl.unwrapConstant();
@@ -35,7 +35,8 @@ Clause* PolynomialNormalization::simplify(Clause* cl_) {
         }
       } else {
         Literal* simplLit = simpl.unwrapLiteral();
-
+        if (simplLit != orig)
+          env.statistics->polyNormalizerSimplAttempts++;
 
         auto cmp = _ordering.compare(simplLit, orig);
         if (cmp == Ordering::Result::LESS) {
