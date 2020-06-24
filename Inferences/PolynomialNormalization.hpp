@@ -27,6 +27,7 @@ public:
   Clause* simplify(Clause* cl);
 private:
 
+  // PolynomialNormalizer<PolynomialNormalizerConfig::Normalization<>> _normalizer;
   PolynomialNormalizer<PolynomialNormalizerConfig::Simplification<>> _normalizer;
   Ordering& _ordering;
 };
