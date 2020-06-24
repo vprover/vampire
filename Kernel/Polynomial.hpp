@@ -289,8 +289,8 @@ public:
 
   friend ostream& operator<<(ostream& out, const Polynom& self) { 
     self._inner.template match<void>(
-          [&](ComplexPolynom* poly) { out << *poly; }
-        , [&](Coeff self          ) { out << self; }
+          [&](ComplexPolynom* poly) { out << "  poly " << *poly; }
+        , [&](Coeff self          ) { out << "number " << self; }
         );
     return out;
   }
@@ -305,14 +305,21 @@ public:
 
   template<class Config>
   inline static Polynom poly_mul(const Polynom& lhs, const Polynom& rhs) {
+    CALL("Polynom::poly_mul(const Polynom& lhs, const Polynom& rhs)")
+    DEBUG("lhs: ", lhs);
+    DEBUG("rhs: ", rhs);
     auto mul_poly_coeff = [](Coeff c, ComplexPolynom* const& p) -> Polynom {
-        if (Config::usePolyMul) {
+        if (Config::usePolyMul || c == Coeff(1) || c == Coeff(-1) || p->nSummands() == 1) {
           //  poly mul is allowed 
           return ComplexPolynom::coeff_poly_mul(c, p); 
         } else {
           // we convert the complex poly to a term and build a monom
           auto factor = ComplexPolynom::template toTerm<Config>(*p);
-          return Polynom(ComplexPolynom::create(ComplexPolynom(c,factor)));
+          if (c == Coeff(0)) {
+            return Polynom(c);
+          } else  {
+            return Polynom(ComplexPolynom::create(ComplexPolynom(c,factor)));
+          }
         }
     };
     //  l * r 
@@ -449,10 +456,10 @@ private:
 
     static Polynom poly_add(const ComplexPolynom& lhs, const ComplexPolynom& rhs) {
       CALL("ComplexPolynom::poly_add")
-      // DBG("lhs: ", lhs)
-      // DBG("rhs: ", rhs)
-      // ASS(!lhs._coeffs.empty())
-      // ASS(!rhs._coeffs.empty())
+      DEBUG("lhs: ", lhs)
+      DEBUG("rhs: ", rhs)
+      ASS(!lhs._coeffs.empty())
+      ASS(!rhs._coeffs.empty())
       auto newCoeffs = merge_sort_with(lhs._coeffs, rhs._coeffs, 
               [](Coeff l, Coeff r){ return l + r; },
               [](Coeff x){ return x != number::zeroC; }
@@ -466,6 +473,8 @@ private:
 
     inline static ComplexPolynom* add(Coeff coeff, ComplexPolynom* old_) {
       CALL("ComplexPolynom::add(Coeff coeff, const ComplexPolynom& old) ")
+      DEBUG("lhs: ", coeff)
+      DEBUG("rhs: ", *old_)
       const auto& oldPoly = *old_;
 
       ASS(!oldPoly._coeffs.empty())
@@ -474,6 +483,7 @@ private:
       } 
 
       ComplexPolynom newPoly;
+      ASS(!getMonom(oldPoly._coeffs[0]).isOne() || oldPoly._coeffs.size() != 1)
       if (getMonom(oldPoly._coeffs[0]).isOne()) {
         ASS(oldPoly._coeffs.begin() != oldPoly._coeffs.end())
 
@@ -501,8 +511,8 @@ private:
         }
       }
 
-      // DBG("in : ", oldPoly, "\t+\t", coeff)
-      // DBG("out: ", newPoly)
+      // DEBUG("in : ", oldPoly, "\t+\t", coeff)
+      // DEBUG("out: ", newPoly)
 
       return ComplexPolynom::create(std::move(newPoly));
     }
@@ -621,6 +631,7 @@ private:
     friend std::ostream& operator<<(std::ostream& out, const ComplexPolynom& self) {
       auto iter = self._coeffs.begin();
       if ( iter == self._coeffs.end() ) {
+        ASSERTION_VIOLATION
         out << "0";
       } else {
         out << getMonom(*iter)<< " * " << getCoeff(*iter);

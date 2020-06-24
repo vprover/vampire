@@ -320,13 +320,13 @@ TEST_ALL_NUM_TYPES(NORMALIZE, partial_eval_add_4,
       eq(add(-20, minus(x)), y)
     )
 
-TEST_ALL_NUM_TYPES(SIMPLIFY, partial_eval_add_5,
+TEST_ALL_NUM_TYPES(NORMALIZE, partial_eval_add_5,
     /* -21 + 7 * (3 + x) = y */
       eq(x, add(-21, mul(7, add(3,y)))),
       eq(x, mul(7,y))
     )
 
-TEST_ALL_NUM_TYPES(SIMPLIFY, partial_eval_add_6,
+TEST_ALL_NUM_TYPES(NORMALIZE, partial_eval_add_6,
       eq(mul(7,x), add(-21, mul(7, add(3,x)))),
       true
     )
@@ -597,7 +597,7 @@ TEST_ALL_NUM_TYPES(NORMALIZE, polynomial__sorting_3,
             ))))
       )
 
-TEST_ALL_NUM_TYPES(SIMPLIFY, polynomial__sorting_4,
+TEST_ALL_NUM_TYPES(NORMALIZE, polynomial__sorting_4,
       p(mul(add(x, 1), add(x, -1))),
       /* (x + 1) * (x - 1) */
       p(add(-1, mul(x,x)))
