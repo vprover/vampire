@@ -388,7 +388,7 @@ Inference::Inference(const TheoryAxiom& ta) {
   CALL("Inference::Inference(TheoryAxiom)");
 
   init0(UnitInputType::AXIOM,ta.rule);
-  ASS_REP(isTheoryAxiomRule(ta.rule),ruleName(ta.rule));
+  ASS_REP(isInternalTheoryAxiomRule(ta.rule) || isExternalTheoryAxiomRule(ta.rule), ruleName(ta.rule));
 }
 
 Inference::Inference(const FormulaTransformation& ft) {
