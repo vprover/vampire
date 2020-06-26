@@ -55,23 +55,29 @@ public:
 protected:
   Result comparePredicates(Literal* l1, Literal* l2) const override;
 
+  using Weight = unsigned;
   class State;
   /** Weight of variables */
-  int _variableWeight;
+  const Weight _variableWeight;
   /** Weight of function symbols not occurring in the
    * signature */
-  int _defaultSymbolWeight;
+  const Weight _defaultSymbolWeight;
 
-  int functionSymbolWeight(unsigned fun) const;
+  // int functionSymbolWeight(unsigned fun) const;
+  int symbolWeight(Term* t) const;
 
   bool allConstantsHeavierThanVariables() const { return false; }
   bool existsZeroWeightUnaryFunction() const { return false; }
 
+  template<class IsColored, class GetSymNumber> 
+  void initWeights(const char* weightNames, Stack<Weight>& ws, unsigned nWeights, IsColored colored, GetSymNumber number, const vstring& file) const;
 
   /**
    * State used for comparing terms and literals
    */
   mutable State* _state;
+  Stack<Weight> _funcWeights;
+  Stack<Weight> _predWeights;
 };
 
 }

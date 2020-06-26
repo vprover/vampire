@@ -568,6 +568,31 @@ unsigned Signature::getFunctionNumber(const vstring& name, unsigned arity) const
   return _funNames.get(key(name, arity));
 }
 
+bool Signature::tryGetFunctionNumber(const vstring& name, unsigned arity, unsigned& out) const
+{
+  CALL("Signature::tryGetFunctionNumber");
+  auto* value = _predNames.getPtr(key(name, arity));
+  if (value != NULL) {
+    out = *value;
+    return true;
+  } else {
+    return false;
+  }
+}
+
+bool Signature::tryGetPredicateNumber(const vstring& name, unsigned arity, unsigned& out) const
+{
+  CALL("Signature::tryGetPredicateNumber");
+  auto* value = _predNames.getPtr(key(name, arity));
+  if (value != NULL) {
+    out = *value;
+    return true;
+  } else {
+    return false;
+  }
+}
+
+
 unsigned Signature::getPredicateNumber(const vstring& name, unsigned arity) const
 {
   CALL("Signature::getPredicateNumber");

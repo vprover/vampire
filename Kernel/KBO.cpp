@@ -30,6 +30,7 @@
 #include "Lib/Comparison.hpp"
 
 #include "Shell/Options.hpp"
+#include <fstream>
 
 #include "Term.hpp"
 #include "KBO.hpp"
@@ -202,7 +203,7 @@ void KBO::State::traverse(TermList tl,int coef)
   Term* t=tl.term();
   ASSERT_VALID(*t);
 
-  _weightDiff+=_kbo.functionSymbolWeight(t->functor())*coef;
+  _weightDiff+=_kbo.symbolWeight(t)*coef;
 
   if(!t->arity()) {
     return;
@@ -215,7 +216,7 @@ void KBO::State::traverse(TermList tl,int coef)
       stack.push(ts->next());
     }
     if(ts->isTerm()) {
-      _weightDiff+=_kbo.functionSymbolWeight(ts->term()->functor())*coef;
+      _weightDiff+=_kbo.symbolWeight(t)*coef;
       if(ts->term()->arity()) {
 	stack.push(ts->term()->args());
       }
@@ -291,17 +292,88 @@ void KBO::State::traverse(Term* t1, Term* t2)
   ASS_EQ(depth,0);
 }
 
+// unsigned nFuncs() {
+//   return env.signature->functions();
+// }
+// unsigned nPreds() {
+//   return env.signature->predicates();
+// }
+
+template<class IsColored, class GetSymNumber> 
+void KBO::initWeights(const char* weightNames, Stack<Weight>& weights, unsigned nWeights, IsColored colored, GetSymNumber number, const vstring& f) const {
+  static_assert(std::is_same<typename std::result_of<IsColored(unsigned)>::type, bool>::value, "invalid signature of closusure");
+  static_assert(std::is_same<typename std::result_of<GetSymNumber(const vstring&, unsigned, unsigned&)>::type, bool>::value, "invalid signature of closusure");
+  BYPASSING_ALLOCATOR
+
+  for (int i = 0; i < nWeights; i++) {
+    weights.push(colored(i) 
+          ? _defaultSymbolWeight * COLORED_WEIGHT_BOOST 
+          : _defaultSymbolWeight);
+  }
+
+  if (f.empty()) {
+    return;
+  }
+
+  ifstream file(f.c_str());
+  if (!file.is_open()) {
+    vstringstream msg;
+    msg << "failed to open file " << f;
+    throw UserErrorException(msg.str());
+  }
+
+  for (vstring ln; getline(file, ln);) {
+    vstringstream lnstr(ln);
+    vstring name;
+    unsigned arity;
+    unsigned weight;
+    bool err = !(lnstr >> name >> arity >> weight);
+    if (err) {
+      vstringstream msg;
+      msg << "failed to read line from file " << f << std::endl;
+      msg << "expected syntax: '<name> <arity> <weight>'"<< std::endl;
+      msg << "e.g.:            '$add   2       4'"  << std::endl;
+      throw Lib::UserErrorException(msg.str());
+    } 
+    unsigned i; 
+    if (number(name, arity, i)) {
+      weights[i] = colored(i) 
+        ? weight * COLORED_WEIGHT_BOOST
+        : weight;
+    } else {
+      vstringstream msg_str;
+      msg_str << "no " << weightNames << " '" << name << "' with arity " << arity;
+      vstring msg = msg_str.str();
+      throw Lib::UserErrorException(msg);
+    }
+  }
+}
 
 /**
  * Create a KBO object.
  */
 KBO::KBO(Problem& prb, const Options& opt)
  : PrecedenceOrdering(prb, opt)
+ , _variableWeight(1)
+ , _defaultSymbolWeight(1)
+ , _funcWeights(Stack<Weight>(env.signature->functions()))
+ , _predWeights(Stack<Weight>(env.signature->predicates()))
 {
   CALL("KBO::KBO");
 
-  _variableWeight = 1;
-  _defaultSymbolWeight = 1;
+  initWeights("function", _funcWeights, env.signature->functions(), 
+      [](unsigned i ) -> bool {return env.signature->functionColored(i);}, 
+      [](const vstring& sym, unsigned arity, unsigned& out) -> bool {
+        return env.signature->tryGetFunctionNumber(sym,arity, out);
+      }, 
+      opt.functionWeights());
+
+  initWeights("predicate", _predWeights, env.signature->predicates(), 
+      [](unsigned i ) -> bool {return env.signature->predicateColored(i);}, 
+      [](const vstring& sym, unsigned arity, unsigned& out) -> bool {
+        return env.signature->tryGetPredicateNumber(sym,arity, out);
+      }, 
+      opt.predicateWeights());
 
   _state=new State(this);
 }
@@ -311,6 +383,8 @@ KBO::~KBO()
   CALL("KBO::~KBO");
 
   delete _state;
+  // DEALLOC_KNOWN(_funcWeights, _nFuncs * sizeof(Weight), "Weight");
+  // DEALLOC_KNOWN(_predWeights, _nPreds * sizeof(Weight), "Weight");
 }
 
 /**
@@ -409,15 +483,24 @@ Ordering::Result KBO::compare(TermList tl1, TermList tl2) const
   return res;
 }
 
-int KBO::functionSymbolWeight(unsigned fun) const
+int KBO::symbolWeight(Term* t) const
 {
-  int weight = _defaultSymbolWeight;
-
-  if(env.signature->functionColored(fun)) {
-    weight *= COLORED_WEIGHT_BOOST;
+  auto i = t->functor();
+  if (t->isLiteral()) {
+    if (i >= _predWeights.size()) {
+      /* symbol introduced during proof search */
+      return _defaultSymbolWeight;
+    } else {
+      return _predWeights[i];
+    }
+  } else {
+    if (i >= _funcWeights.size()) {
+      /* symbol introduced during proof search */
+      return _defaultSymbolWeight;
+    } else {
+      return _funcWeights[i];
+    }
   }
-
-  return weight;
 }
 
 
