@@ -44,10 +44,12 @@ class KBO
 : public PrecedenceOrdering
 {
 public:
+  using Weight = unsigned;
   CLASS_NAME(KBO);
   USE_ALLOCATOR(KBO);
 
   KBO(Problem& prb, const Options& opt);
+  KBO(Stack<KBO::Weight> funcWeights, Stack<Weight> predWeights, DArray<int> funcPrec, DArray<int> predPrec, DArray<int> predLevels, bool reverseLCM);
   virtual ~KBO();
 
   using PrecedenceOrdering::compare;
@@ -55,7 +57,7 @@ public:
 protected:
   Result comparePredicates(Literal* l1, Literal* l2) const override;
 
-  using Weight = unsigned;
+
   class State;
   /** Weight of variables */
   const Weight _variableWeight;
@@ -70,14 +72,15 @@ protected:
   bool existsZeroWeightUnaryFunction() const { return false; }
 
   template<class IsColored, class GetSymNumber> 
-  void initWeights(const char* weightNames, Stack<Weight>& ws, unsigned nWeights, IsColored colored, GetSymNumber number, const vstring& file) const;
+  Stack<Weight> weightsFromOpts(const char* weightNames, unsigned nWeights, IsColored colored, GetSymNumber number, const vstring& file) const;
 
+
+  Stack<Weight> _funcWeights;
+  Stack<Weight> _predWeights;
   /**
    * State used for comparing terms and literals
    */
   mutable State* _state;
-  Stack<Weight> _funcWeights;
-  Stack<Weight> _predWeights;
 };
 
 }

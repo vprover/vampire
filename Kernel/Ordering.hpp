@@ -170,6 +170,11 @@ protected:
   virtual Result comparePredicates(Literal* l1,Literal* l2) const = 0;
   
   PrecedenceOrdering(Problem& prb, const Options& opt);
+  PrecedenceOrdering(DArray<int> funcPrec, DArray<int> predPrec, DArray<int> predLevels, bool reverseLCM);
+
+  static DArray<int> funcPrecFromOpts(Problem& prb, const Options& opt);
+  static DArray<int> predPrecFromOpts(Problem& prb, const Options& opt);
+  static DArray<int> predLevelsFromOpts(Problem& prb, const Options& opt);
 
   Result compareFunctionPrecedences(unsigned fun1, unsigned fun2) const;
 

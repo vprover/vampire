@@ -300,7 +300,8 @@ void KBO::State::traverse(Term* t1, Term* t2)
 // }
 
 template<class IsColored, class GetSymNumber> 
-void KBO::initWeights(const char* weightNames, Stack<Weight>& weights, unsigned nWeights, IsColored colored, GetSymNumber number, const vstring& f) const {
+Stack<KBO::Weight> KBO::weightsFromOpts(const char* weightNames, unsigned nWeights, IsColored colored, GetSymNumber number, const vstring& f) const {
+  Stack<KBO::Weight> weights(nWeights);
   static_assert(std::is_same<typename std::result_of<IsColored(unsigned)>::type, bool>::value, "invalid signature of closusure");
   static_assert(std::is_same<typename std::result_of<GetSymNumber(const vstring&, unsigned, unsigned&)>::type, bool>::value, "invalid signature of closusure");
   BYPASSING_ALLOCATOR
@@ -312,7 +313,7 @@ void KBO::initWeights(const char* weightNames, Stack<Weight>& weights, unsigned 
   }
 
   if (f.empty()) {
-    return;
+    return weights;
   }
 
   ifstream file(f.c_str());
@@ -347,7 +348,17 @@ void KBO::initWeights(const char* weightNames, Stack<Weight>& weights, unsigned 
       throw Lib::UserErrorException(msg);
     }
   }
+  return weights;
 }
+
+KBO::KBO(Stack<KBO::Weight> funcWeights, Stack<KBO::Weight> predWeights, DArray<int> funcPrec, DArray<int> predPrec, DArray<int> predLevels, bool reverseLCM)
+  : PrecedenceOrdering(funcPrec, predPrec, predLevels, reverseLCM)
+  , _variableWeight(1)
+  , _defaultSymbolWeight(1)
+  , _funcWeights(funcWeights)
+  , _predWeights(predWeights)
+  , _state(new State(this))
+{ }
 
 /**
  * Create a KBO object.
@@ -356,26 +367,21 @@ KBO::KBO(Problem& prb, const Options& opt)
  : PrecedenceOrdering(prb, opt)
  , _variableWeight(1)
  , _defaultSymbolWeight(1)
- , _funcWeights(Stack<Weight>(env.signature->functions()))
- , _predWeights(Stack<Weight>(env.signature->predicates()))
-{
-  CALL("KBO::KBO");
-
-  initWeights("function", _funcWeights, env.signature->functions(), 
+ , _funcWeights(weightsFromOpts("function", env.signature->functions(), 
       [](unsigned i ) -> bool {return env.signature->functionColored(i);}, 
       [](const vstring& sym, unsigned arity, unsigned& out) -> bool {
         return env.signature->tryGetFunctionNumber(sym,arity, out);
       }, 
-      opt.functionWeights());
-
-  initWeights("predicate", _predWeights, env.signature->predicates(), 
+      opt.functionWeights()))
+ , _predWeights(weightsFromOpts("predicate", env.signature->predicates(), 
       [](unsigned i ) -> bool {return env.signature->predicateColored(i);}, 
       [](const vstring& sym, unsigned arity, unsigned& out) -> bool {
         return env.signature->tryGetPredicateNumber(sym,arity, out);
       }, 
-      opt.predicateWeights());
-
-  _state=new State(this);
+      opt.predicateWeights()))
+ , _state(new State(this))
+{
+  CALL("KBO::KBO(Prb&, Opts&)");
 }
 
 KBO::~KBO()

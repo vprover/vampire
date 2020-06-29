@@ -640,23 +640,45 @@ static void loadPermutationFromString(DArray<unsigned>& p, const vstring& str) {
 /**
  * Create a PrecedenceOrdering object.
  */
+PrecedenceOrdering::PrecedenceOrdering(DArray<int> funcPrec, DArray<int> predPrec, DArray<int> predLevels, bool reverseLCM)
+  : _predicates(predPrec.size()),
+    _functions(funcPrec.size()),
+    _predicateLevels(predLevels),
+    _predicatePrecedences(predPrec),
+    _functionPrecedences(funcPrec),
+    _reverseLCM(reverseLCM)
+{
+  CALL("PrecedenceOrdering::PrecedenceOrdering");
+  ASS_EQ(env.signature->predicates(), _predicates);
+  ASS_EQ(env.signature->functions(), _functions);
+  //TODO assert that funcPred & predPrec are premutations
+}
+
+/**
+ * Create a PrecedenceOrdering object.
+ */
 PrecedenceOrdering::PrecedenceOrdering(Problem& prb, const Options& opt)
-  : _predicates(env.signature->predicates()),
-    _functions(env.signature->functions()),
-    _predicateLevels(_predicates),
-    _predicatePrecedences(_predicates),
-    _functionPrecedences(_functions)
+  : PrecedenceOrdering(
+      funcPrecFromOpts(prb, opt),
+      predPrecFromOpts(prb, opt),
+      predLevelsFromOpts(prb, opt),
+      opt.literalComparisonMode()==Shell::Options::LiteralComparisonMode::REVERSE
+  )
 {
   CALL("PrecedenceOrdering::PrecedenceOrdering");
   ASS_G(_predicates, 0);
 
+}
+
+DArray<int> PrecedenceOrdering::funcPrecFromOpts(Problem& prb, const Options& opt) {
+  unsigned nFunctions = env.signature->functions();
+  DArray<unsigned> aux(nFunctions);
   // Make sure we (re-)compute usageCnt's for all the symbols;
   // in particular, the sP's (the Tseitin predicates) and sK's (the Skolem functions), which only exists since preprocessing.
   prb.getProperty();
 
-  DArray<unsigned> aux(32);
-  if(_functions) {
-    aux.initFromIterator(getRangeIterator(0u, _functions), _functions);
+  if(nFunctions) {
+    aux.initFromIterator(getRangeIterator(0u, nFunctions), nFunctions);
 
     if (!opt.functionPrecedence().empty()) {
       BYPASSING_ALLOCATOR;
@@ -686,8 +708,8 @@ PrecedenceOrdering::PrecedenceOrdering(Problem& prb, const Options& opt)
       case Shell::Options::SymbolPrecedence::OCCURRENCE:
         break;
       case Shell::Options::SymbolPrecedence::SCRAMBLE:
-        for(unsigned i=0;i<_functions;i++){
-          unsigned j = Random::getInteger(_functions-i)+i;
+        for(unsigned i=0;i<nFunctions;i++){
+          unsigned j = Random::getInteger(nFunctions-i)+i;
           unsigned tmp = aux[j];
           aux[j]=aux[i];
           aux[i]=tmp;
@@ -698,7 +720,7 @@ PrecedenceOrdering::PrecedenceOrdering(Problem& prb, const Options& opt)
 
     
     /*cout << "Function precedences:" << endl;
-    for(unsigned i=0;i<_functions;i++){
+    for(unsigned i=0;i<nFunctions;i++){
       cout << env.signature->functionName(aux[i]) << " ";
     }
     cout << endl;*/
@@ -706,18 +728,25 @@ PrecedenceOrdering::PrecedenceOrdering(Problem& prb, const Options& opt)
 
     /*
     cout << "Function precedence: ";
-    for(unsigned i=0;i<_functions;i++){
+    for(unsigned i=0;i<nFunctions;i++){
       cout << aux[i] << ",";
     }
     cout << endl;
     */
 
-    for(unsigned i=0;i<_functions;i++) {
-      _functionPrecedences[aux[i]]=i;
-    }
   }
 
-  aux.initFromIterator(getRangeIterator(0u, _predicates), _predicates);
+  DArray<int>  functionPrecedences(nFunctions);
+  for(unsigned i=0;i<nFunctions;i++) {
+    functionPrecedences[aux[i]]=i;
+  }
+  return functionPrecedences;
+}
+
+DArray<int> PrecedenceOrdering::predPrecFromOpts(Problem& prb, const Options& opt) {
+  unsigned nPredicates = env.signature->predicates();
+  DArray<unsigned> aux(nPredicates);
+  aux.initFromIterator(getRangeIterator(0u, nPredicates), nPredicates);
 
   if (!opt.predicatePrecedence().empty()) {
     BYPASSING_ALLOCATOR;
@@ -747,8 +776,8 @@ PrecedenceOrdering::PrecedenceOrdering(Problem& prb, const Options& opt)
     case Shell::Options::SymbolPrecedence::OCCURRENCE:
       break;
       case Shell::Options::SymbolPrecedence::SCRAMBLE:
-        for(unsigned i=0;i<_predicates;i++){
-          unsigned j = Random::getInteger(_predicates-i)+i;
+        for(unsigned i=0;i<nPredicates;i++){
+          unsigned j = Random::getInteger(nPredicates-i)+i;
           unsigned tmp = aux[j];
           aux[j]=aux[i];
           aux[i]=tmp;
@@ -758,66 +787,72 @@ PrecedenceOrdering::PrecedenceOrdering(Problem& prb, const Options& opt)
   }
   /*
   cout << "Predicate precedences:" << endl;
-  for(unsigned i=0;i<_predicates;i++){
+  for(unsigned i=0;i<nPredicates;i++){
     cout << env.signature->predicateName(aux[i]) << " "; 
   }
   cout << endl;
   */
   /*
   cout << "Predicate precedence: ";
-  for(unsigned i=0;i<_predicates;i++){
+  for(unsigned i=0;i<nPredicates;i++){
     cout << aux[i] << ",";
   }
   cout << endl;
   */
 
-  for(unsigned i=0;i<_predicates;i++) {
-    _predicatePrecedences[aux[i]]=i;
+  DArray<int> predicatePrecedences(nPredicates);
+  for(unsigned i=0;i<nPredicates;i++) {
+    predicatePrecedences[aux[i]]=i;
   }
+  return predicatePrecedences;
+}
+
+DArray<int> PrecedenceOrdering::predLevelsFromOpts(Problem& prb, const Options& opt) {
+
+  unsigned nPredicates = env.signature->predicates();
+  DArray<int> predicateLevels(nPredicates);
 
   switch(opt.literalComparisonMode()) {
   case Shell::Options::LiteralComparisonMode::STANDARD:
-    _predicateLevels.init(_predicates, 1);
+    predicateLevels.init(nPredicates, 1);
     break;
   case Shell::Options::LiteralComparisonMode::PREDICATE:
   case Shell::Options::LiteralComparisonMode::REVERSE:
-    for(unsigned i=1;i<_predicates;i++) {
-      _predicateLevels[i]=_predicatePrecedences[i]+1;
+    auto predicatePrecedences = predPrecFromOpts(prb,opt); // TODO this is inefficient in the constructor, but it is only used during initializiation. Is it okay then?
+    for(unsigned i=1;i<nPredicates;i++) {
+      predicateLevels[i]=predicatePrecedences[i]+1;
     }
     break;
   }
   //equality is on the lowest level
-  _predicateLevels[0]=0;
+  predicateLevels[0]=0;
 
   if (env.predicateSineLevels) {
     // predicateSineLevels start from zero
     unsigned bound = env.maxSineLevel; // this is at least as large as the maximal value of a predicateSineLevel
     bool reverse = (opt.sineToPredLevels() == Options::PredicateSineLevels::ON); // the ON, i.e. reasonable, version wants low sine levels mapping to high predicateLevels
 
-    for(unsigned i=1;i<_predicates;i++) { // starting from 1, keeping _predicateLevels[0]=0;
+    for(unsigned i=1;i<nPredicates;i++) { // starting from 1, keeping predicateLevels[0]=0;
       unsigned level;
       if (!env.predicateSineLevels->find(i,level)) {
         level = bound;
       }
-      _predicateLevels[i] = reverse ? (bound - level + 1) : level;
-      // cout << "setting predicate level of " << env.signature->predicateName(i) << " to " << _predicateLevels[i] << endl;
+      predicateLevels[i] = reverse ? (bound - level + 1) : level;
+      // cout << "setting predicate level of " << env.signature->predicateName(i) << " to " << predicateLevels[i] << endl;
     }
   }
 
-  _reverseLCM = opt.literalComparisonMode()==Shell::Options::LiteralComparisonMode::REVERSE;
-
-  for(unsigned i=1;i<_predicates;i++) {
+  for(unsigned i=1;i<nPredicates;i++) {
     Signature::Symbol* predSym = env.signature->getPredicate(i);
     //consequence-finding name predicates have the lowest level
     if(predSym->label()) {
-      _predicateLevels[i]=-1;
+      predicateLevels[i]=-1;
     }
     else if(predSym->equalityProxy()) {
       //equality proxy predicates have the highest level (lower than colored predicates)
-      _predicateLevels[i]=_predicates+2;
+      predicateLevels[i]=nPredicates+2;
     }
 
   }
+  return predicateLevels;
 }
-
-
