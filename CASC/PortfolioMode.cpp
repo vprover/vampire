@@ -543,14 +543,14 @@ void PortfolioMode::runSlice(Options& strategyOpt)
 
   bool outputResult = false;
   if (!resultValue) {
-    _syncSemaphore.dec(SEM_LOCK); // will block for all accept the first to enter
+    // only successfull vampires get here
+    _syncSemaphore.dec(SEM_LOCK); // will block for all accept the first to enter (make sure it's until it has finished printing!)
 
     if (!_syncSemaphore.get(SEM_PRINTED)) {
       _syncSemaphore.set(SEM_PRINTED,1);
       outputResult = true;
     }
 
-    _syncSemaphore.inc(SEM_LOCK); // would be also released after the processes' death, but we are polite and do it already here
   }
 
   if((outputAllowed() && resultValue) || outputResult) { // we can report on every failure, but only once on success
@@ -569,6 +569,10 @@ void PortfolioMode::runSlice(Options& strategyOpt)
   }
 
   STOP_CHECKING_FOR_ALLOCATOR_BYPASSES;
+
+  if(outputResult){
+    _syncSemaphore.inc(SEM_LOCK); // would be also released after the processes' death, but we are polite and do it already here
+  }
 
   exit(resultValue);
 } // runSlice
