@@ -110,23 +110,23 @@ void test_eliminate(Clause& toSimplify, const Clause& expected) {
   }
 }
 
-#define TEST_ELIMINATE(name, toSimplify, expected) \
-  TEST_FUN(name) { \
+#define SUGAR \
     THEORY_SYNTAX_SUGAR(REAL) \
       _Pragma("GCC diagnostic push") \
       _Pragma("GCC diagnostic ignored \"-Wunused\"") \
         THEORY_SYNTAX_SUGAR_FUN(f, 1) \
+        THEORY_SYNTAX_SUGAR_PRED(p, 1) \
       _Pragma("GCC diagnostic pop") \
-    test_eliminate((toSimplify),(expected)); \
+ 
+#define TEST_ELIMINATE(name, toSimplify, expected) \
+  TEST_FUN(name) { \
+   SUGAR \
+   test_eliminate((toSimplify),(expected)); \
   }
 
 #define TEST_ELIMINATE_NA(name, toSimplify) \
   TEST_FUN(name) { \
-    THEORY_SYNTAX_SUGAR(REAL) \
-      _Pragma("GCC diagnostic push") \
-      _Pragma("GCC diagnostic ignored \"-Wunused\"") \
-        THEORY_SYNTAX_SUGAR_FUN(f, 1) \
-      _Pragma("GCC diagnostic pop") \
+    SUGAR \
     test_eliminate_na((toSimplify)); \
   }
 
@@ -142,6 +142,12 @@ TEST_ELIMINATE_NA(test_2
 TEST_ELIMINATE(test_3
     , clause({  neq(mul(3, x), 6), lt(x, x)  })
     , clause({  /* lt(2, 2) */  }) 
+    )
+
+  // 2x + y = x + y ==> 0 = 2x + y - x - y ==> 0 = x
+TEST_ELIMINATE(test_4
+    , clause({  neq(add(mul(2, x), y), add(x, y)), p(x) })
+    , clause({  p(0)  })
     )
 
 TEST_ELIMINATE(test_uninterpreted
