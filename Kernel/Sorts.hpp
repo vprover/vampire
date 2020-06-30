@@ -152,6 +152,7 @@ public:
 
   unsigned typeArgsArity() const { return VarList::length(_vars); }
   unsigned arity() const { return _key->length()-1 + typeArgsArity(); }
+  bool isEqual(OperatorType* ot) const;
 
   TermList arg(unsigned idx) const
   {

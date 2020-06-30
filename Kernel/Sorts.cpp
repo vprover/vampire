@@ -208,6 +208,36 @@ vstring OperatorType::toString() const
       (isPredicateType() ? "$o" : result().toString());
 }
 
+bool OperatorType::isEqual(OperatorType* ot) const
+{
+  CALL("OperatorType::isEqual");
+
+  unsigned arityThis = arity();
+  unsigned arityOt = ot->arity();
+
+  if(arityThis != arityOt){
+    return false;
+  }
+
+  if(isFunctionType() && !ot->isFunctionType()){
+    return false;
+  }
+
+  for(unsigned i = 0; i < arityThis; i++){
+    if(arg(i) != ot->arg(i)){
+      return false;
+    }
+  }
+
+  if(isFunctionType()){
+    if(result() != ot->result()){
+      return false;
+    }
+  }
+
+  return true;
+}
+
 /**
  * True if all arguments of this type have sort @c str
  * and so is the result sort if we are talking about a function type.

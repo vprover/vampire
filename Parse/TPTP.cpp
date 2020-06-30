@@ -1400,7 +1400,7 @@ void TPTP::tff()
         Signature::Symbol* symbol = env.signature->getFunction(fun);
         OperatorType* ot = OperatorType::getFunctionTypeUniformRange(arity, Term::superSort(), Term::superSort(), VList::empty());
         if (!added) {
-          if(symbol->fnType() != ot){
+          if(!symbol->fnType()->isEqual(ot)){
             PARSE_ERROR("Type constructor declared with two different types",tok);
           }
         } else{
@@ -3741,7 +3741,7 @@ void TPTP::endTff()
     unsigned pred = env.signature->addPredicate(name, arity, added);
     symbol = env.signature->getPredicate(pred);
     if (!added) {
-      if(symbol->predType() != ot){
+      if(!symbol->predType()->isEqual(ot)){
         USER_ERROR("Predicate symbol type is declared after its use: " + name);
       }
     } 
@@ -3756,7 +3756,7 @@ void TPTP::endTff()
                    : env.signature->addFunction(name, arity, added);
     symbol = env.signature->getFunction(fun);
     if (!added) {
-      if(symbol->fnType() != ot){
+      if(!symbol->fnType()->isEqual(ot)){
         USER_ERROR("Function symbol type is declared after its use: " + name);
       }
     }
