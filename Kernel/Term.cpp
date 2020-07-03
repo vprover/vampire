@@ -999,6 +999,21 @@ Term* Term::createTuple(Term* tupleTerm) {
   return s;
 }
 
+Term* Term::createMatch(unsigned int arity, TermList* elements) {
+  CALL("Term::createMatch");
+  Term* s = new(0, sizeof(SpecialTermData)) Term;
+  s->makeSymbol(SF_MATCH, arity);
+  TermList* ss = s->args();
+
+  for (int i = 0; i < arity; i++) {
+    ASS(!elements[i].isEmpty());
+    *ss = elements[i];
+    ss = ss->next();
+  }
+  ASS(ss->isEmpty());
+  return s;
+}
+
 /** Create a new complex term, copy from @b t its function symbol and arity.
  *  Initialize its arguments by a dummy special variable.
  */

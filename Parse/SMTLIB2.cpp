@@ -1528,7 +1528,8 @@ void SMTLIB2::parseMatchBegin(LExpr* exp)
   if (!lRdr.hasNext()) {
     complainAboutArgShortageOrWrongSorts(MATCH,exp);
   }
-  vstring argName = lRdr.readAtom();
+  LExpr* matchedAtom = lRdr.readNext();
+  vstring matched = matchedAtom->str;
 
   // and the list of cases
   if (!lRdr.hasNext()) {
@@ -1546,19 +1547,26 @@ void SMTLIB2::parseMatchBegin(LExpr* exp)
 
   // but we start by asserting the match argument
   TermLookup* lookup = _scopes.pop();
-  SortedTerm argTerm;
-  if (!lookup->find(argName,argTerm)) {
+  SortedTerm matchedTerm;
+  if (!lookup->find(matched,matchedTerm)) {
     complainAboutArgShortageOrWrongSorts(MATCH,exp);
   }
+
+  std::set<unsigned int> ctorSignatures;
+
   // we then parse all cases
   while (casesRdr.hasNext()) {
     LExprList* pair = casesRdr.readList();
     LispListReader pRdr(pair);
 
     LExpr* pattern = pRdr.readNext();
-    
-    TermLookup* innerLookup = lookup;
-    parseMatchPattern(pattern, argTerm.second, innerLookup);
+
+    // copy lookup
+    TermLookup* innerLookup = new TermLookup(*lookup);
+    unsigned int functor;
+    if (parseMatchPattern(pattern, matchedTerm.second, innerLookup, functor)) {
+      ctorSignatures.insert(functor);
+    }
     LExpr* body = pRdr.readNext();
 
     _scopes.push(innerLookup);
@@ -1566,9 +1574,22 @@ void SMTLIB2::parseMatchBegin(LExpr* exp)
     _todo.push(make_pair(PO_PARSE,body));
     pRdr.acceptEOL();
   }
+
+  // _scopes.push(lookup);
+  _todo.push(make_pair(PO_PARSE,matchedAtom));
+
+  // check for exhaustiveness of the term algebra of this term
+  TermAlgebra *ta = env.signature->getTermAlgebraOfSort(matchedTerm.second);
+  for (unsigned int i = 0; i < ta->nConstructors(); i++) {
+    if (ctorSignatures.count(ta->constructor(i)->functor()) == 0) {
+      USER_ERROR("Match expression for '"+matched+"' does not contain all constructors from corresponding term algebra");
+    }
+  }
 }
 
-void SMTLIB2::parseMatchPattern(LExpr* exp, unsigned int sort, TermLookup* lookup)
+// returns true if expression is a constructor term,
+// in this case functor is assigned the proper signature id
+bool SMTLIB2::parseMatchPattern(LExpr* exp, unsigned int sort, TermLookup* lookup, unsigned int& functor)
 {
   CALL("SMTLIB2::parseMatchPattern");
 
@@ -1577,7 +1598,8 @@ void SMTLIB2::parseMatchPattern(LExpr* exp, unsigned int sort, TermLookup* looku
     const vstring& consName = tRdr.readAtom();
 
     if (isTermAlgebraConstructor(consName)) {
-      auto fn = env.signature->getFunction(_declaredFunctions.get(consName).first);
+      auto id = _declaredFunctions.get(consName).first;
+      auto fn = env.signature->getFunction(id);
       //TODO: improve error messages here
       if (fn->fnType()->result() != sort) {
         complainAboutArgShortageOrWrongSorts(MATCH,exp);
@@ -1585,35 +1607,44 @@ void SMTLIB2::parseMatchPattern(LExpr* exp, unsigned int sort, TermLookup* looku
       unsigned argcnt = 0;
       while (tRdr.hasNext()) {
         auto arg = tRdr.readNext();
-        parseMatchPattern(arg, fn->fnType()->arg(argcnt), lookup);
+        unsigned int unused;
+        parseMatchPattern(arg, fn->fnType()->arg(argcnt), lookup, unused);
         argcnt++;
       }
       if (argcnt != fn->fnType()->arity()) {
         complainAboutArgShortageOrWrongSorts(MATCH,exp);
       }
-      return;
+      functor = id;
+      return true;
     }
     USER_ERROR("'"+consName+"' is not a datatype constructor");
   // base constructor or variable
   } else {
-    vstring& id = exp->str;
+    vstring& exp_str = exp->str;
 
-    if (isTermAlgebraConstructor(id)) {
-      auto fn = env.signature->getFunction(_declaredFunctions.get(id).first);
+    if (isTermAlgebraConstructor(exp_str)) {
+      auto id = _declaredFunctions.get(exp_str).first;
+      auto fn = env.signature->getFunction(id);
       //TODO: improve error messages here
       if (fn->fnType()->result() != sort || fn->fnType()->arity() != 0) {
         complainAboutArgShortageOrWrongSorts(MATCH,exp);
       }
-    } else if (id == UNDERSCORE) {
+      functor = id;
+      return true;
+    }
+    
+    // variable
+    if (exp_str == UNDERSCORE) {
       // nothing to do here
     } else {
       TermList arg = TermList(_nextVar++, false);
 
-      if (!lookup->insert(id, make_pair(arg, sort))) {
-        USER_ERROR("Multiple occurrence of variable "+id+" in match expression");
+      if (!lookup->insert(exp_str, make_pair(arg, sort))) {
+        USER_ERROR("Multiple occurrence of variable "+exp_str+" in match expression");
       }
     }
   }
+  return false;
 }
 
 void SMTLIB2::parseMatchEnd(LExpr* exp)
@@ -1627,49 +1658,42 @@ void SMTLIB2::parseMatchEnd(LExpr* exp)
   const vstring& theMatchAtom = lRdr.readAtom();
   ASS_EQ(getBuiltInTermSymbol(theMatchAtom),TS_MATCH);
 
-  vstring argName = lRdr.readAtom();
+  vstring matched = lRdr.readAtom();
   LispListReader casesRdr(lRdr.readList());
 
-  TermLookup* lookup = _scopes.pop();
+  TermList matchedTerm;
+  auto matchedTermSort = _results.pop().asTerm(matchedTerm);
 
-  std::vector<TermList> results;
+  unsigned int cases;
   while (casesRdr.hasNext()) {
-    // there has to be the body result:
+    cases++;
+    casesRdr.readNext();
+  }
+
+  DArray<TermList> elements(cases+1);
+  elements[0] = matchedTerm;
+  unsigned int sort;
+  for (unsigned int i = 0; i < cases; i++) {
     TermList pattern;
     unsigned patternSort = _results.pop().asTerm(pattern);
     TermList body;
-    unsigned bodySort = _results.pop().asTerm(body);
-
-    LExprList* pair = casesRdr.readList();
-    LispListReader pRdr(pair);
+    sort = _results.pop().asTerm(body);
 
     LOG2("CASE pattern ",pattern.toString());
     LOG2("CASE body    ",body.toString());
 
-    ALWAYS(lookup->find(argName));
-    auto arg = lookup->get(argName);
-    TermList argTerm = TermList(arg.second, false);
-    ASS_EQ(patternSort, arg.second);
+    ASS_EQ(patternSort, matchedTermSort);
 
-    DArray<TermList> elements(3);
-    elements[0] = argTerm;
-    elements[1] = pattern;
-    elements[2] = body;
-    DArray<unsigned> sorts(3);
-    sorts[0] = arg.second;
-    sorts[1] = patternSort;
-    sorts[2] = bodySort;
- 
-    auto caseTuple = TermList(Term::createTuple(3, sorts.begin(), elements.begin()));
-    results.push_back(caseTuple);
+    elements[2*i + 1] = pattern;
+    elements[2*(i+1)] = body;
+
+    delete _scopes.pop();
   }
 
-  ASS(!results.empty());
-  // auto sort = results[0].term()->
+  auto match = TermList(Term::createMatch(elements.size(), elements.begin()));
+  _results.push(ParseResult(sort,match));
 
-  // _results.push(ParseResult(letSort,let));
-
-  delete lookup;
+  delete _scopes.pop();
 }
 
 void SMTLIB2::parseQuantBegin(LExpr* exp)

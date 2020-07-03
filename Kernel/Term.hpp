@@ -231,7 +231,8 @@ public:
   static const unsigned SF_FORMULA = 0xFFFFFFFD;
   static const unsigned SF_TUPLE = 0xFFFFFFFC;
   static const unsigned SF_LET_TUPLE = 0xFFFFFFFB;
-  static const unsigned SPECIAL_FUNCTOR_LOWER_BOUND = 0xFFFFFFFB;
+  static const unsigned SF_MATCH = 0xFFFFFFFA;
+  static const unsigned SPECIAL_FUNCTOR_LOWER_BOUND = 0xFFFFFFFA;
 
   class SpecialTermData
   {
@@ -262,6 +263,9 @@ public:
         size_t binding;
         unsigned sort;
       } _letTupleData;
+      struct {
+        unsigned int sort;
+      } _matchData;
     };
     /** Return pointer to the term to which this object is attached */
     const Term* getTerm() const { return reinterpret_cast<const Term*>(this+1); }
@@ -317,6 +321,7 @@ public:
   static Term* createFormula(Formula* formula);
   static Term* createTuple(unsigned arity, unsigned* sorts, TermList* elements);
   static Term* createTuple(Term* tupleTerm);
+  static Term* createMatch(unsigned int arity, TermList* elements);
   static Term* create1(unsigned fn, TermList arg);
   static Term* create2(unsigned fn, TermList arg1, TermList arg2);
 

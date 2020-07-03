@@ -386,9 +386,8 @@ private:
   void parseLetEnd(LExpr* exp);
 
   void parseMatchBegin(LExpr* exp);
+  bool parseMatchPattern(LExpr* exp, unsigned int sort, TermLookup* lookup, unsigned int& functor);
   void parseMatchEnd(LExpr* exp);
-
-  void parseMatchPattern(LExpr* exp, unsigned int sort, TermLookup* lookup);
 
   void parseQuantBegin(LExpr* exp);
 
