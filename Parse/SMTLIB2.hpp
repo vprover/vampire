@@ -226,6 +226,7 @@ private:
     TS_DIV,
     TS_ITE,
     TS_LET,
+    TS_MATCH,
     TS_MOD,
     TS_SELECT,
     TS_STORE,
@@ -245,6 +246,11 @@ private:
    * Is the given vstring a built-in FormulaSymbol, built-in TermSymbol or a declared function?
    */
   bool isAlreadyKnownFunctionSymbol(const vstring& name);
+
+  /**
+   * Is the given vstring a constructor for any of the term algebras?
+   */
+  bool isTermAlgebraConstructor(const vstring& name);
 
   /** <vampire signature id, is_function flag (otherwise it is a predicate) > */
   typedef std::pair<unsigned,bool> DeclaredFunction;
@@ -272,6 +278,8 @@ private:
    * Defining a function extends the signature and adds the new function's definition into _formulas.
    */
   void readDefineFun(const vstring& name, LExprList* iArgs, LExpr* oSort, LExpr* body);
+
+  void readDefineFunRec(const vstring& name, LExprList* iArgs, LExpr* oSort, LExpr* body);
 
   void readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool codatatype = false);
 
@@ -359,7 +367,8 @@ private:
     PO_CHECK_ARITY,        // takes LExpr* (again the whole, just for error reporting)
     // these two are intermediate cases for handling let
     PO_LET_PREPARE_LOOKUP, // takes LExpr* (the whole let expression again, why not)
-    PO_LET_END             // takes LExpr* (the whole let expression again, why not)
+    PO_LET_END,            // takes LExpr* (the whole let expression again, why not)
+    PO_MATCH_END
   };
   /**
    * Main smtlib term parsing stack.
@@ -375,6 +384,11 @@ private:
   void parseLetBegin(LExpr* exp);
   void parseLetPrepareLookup(LExpr* exp);
   void parseLetEnd(LExpr* exp);
+
+  void parseMatchBegin(LExpr* exp);
+  void parseMatchEnd(LExpr* exp);
+
+  void parseMatchPattern(LExpr* exp, unsigned int sort, TermLookup* lookup);
 
   void parseQuantBegin(LExpr* exp);
 

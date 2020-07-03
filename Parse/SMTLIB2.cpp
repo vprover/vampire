@@ -215,6 +215,19 @@ void SMTLIB2::readBenchmark(LExprList* bench)
       continue;
     }
 
+    if (ibRdr.tryAcceptAtom("define-fun-rec")) {
+      vstring name = ibRdr.readAtom();
+      LExprList* iArgs = ibRdr.readList();
+      LExpr* oSort = ibRdr.readNext();
+      LExpr* body = ibRdr.readNext();
+
+      readDefineFunRec(name,iArgs,oSort,body);
+
+      ibRdr.acceptEOL();
+
+      continue;
+    }
+
     if (ibRdr.tryAcceptAtom("assert")) {
       readAssert(ibRdr.readNext());
 
@@ -727,6 +740,7 @@ SMTLIB2::FormulaSymbol SMTLIB2::getBuiltInFormulaSymbol(const vstring& str)
 }
 
 static const char* LET = "let";
+static const char* MATCH = "match";
 
 const char * SMTLIB2::s_termSymbolNameStrings[] = {
     "*",
@@ -737,6 +751,7 @@ const char * SMTLIB2::s_termSymbolNameStrings[] = {
     "div",
     "ite",
     LET,
+    MATCH,
     "mod",
     "select",
     "store",
@@ -772,6 +787,18 @@ bool SMTLIB2::isAlreadyKnownFunctionSymbol(const vstring& name)
 
   if (_declaredFunctions.find(name)) {
     return true;
+  }
+
+  return false;
+}
+
+bool SMTLIB2::isTermAlgebraConstructor(const vstring& name)
+{
+  CALL("SMTLIB2::isTermAlgebraConstructor");
+
+  if (_declaredFunctions.find(name)) {
+    DeclaredFunction& f = _declaredFunctions.get(name);
+    return (f.second && env.signature->getTermAlgebraConstructor(f.first));
   }
 
   return false;
@@ -898,6 +925,78 @@ void SMTLIB2::readDefineFun(const vstring& name, LExprList* iArgs, LExpr* oSort,
 
   // Only after parsing, so that the definition cannot be recursive
   DeclaredFunction fun = declareFunctionOrPredicate(name,rangeSort,argSorts);
+
+  unsigned symbIdx = fun.first;
+  bool isTrueFun = fun.second;
+
+  TermList lhs;
+  if (isTrueFun) {
+    lhs = TermList(Term::create(symbIdx,args.size(),args.begin()));
+  } else {
+    Formula* frm = new AtomicFormula(Literal::create(symbIdx,args.size(),true,false,args.begin()));
+    lhs = TermList(Term::createFormula(frm));
+  }
+
+  Formula* fla = new AtomicFormula(Literal::createEquality(true,lhs,rhs,rangeSort));
+
+  FormulaUnit* fu = new FormulaUnit(fla, FromInput(UnitInputType::ASSUMPTION));
+
+  UnitList::push(fu, _formulas);
+}
+
+void SMTLIB2::readDefineFunRec(const vstring& name, LExprList* iArgs, LExpr* oSort, LExpr* body)
+{
+  CALL("SMTLIB2::readDefineFunRec");
+
+  if (isAlreadyKnownFunctionSymbol(name)) {
+    USER_ERROR("Redeclaring function symbol: "+name);
+  }
+
+  unsigned rangeSort = declareSort(oSort);
+
+  _nextVar = 0;
+  ASS(_scopes.isEmpty());
+  TermLookup* lookup = new TermLookup();
+
+  static Stack<unsigned> argSorts;
+  argSorts.reset();
+
+  static Stack<TermList> args;
+  args.reset();
+
+  LispListReader iaRdr(iArgs);
+  while (iaRdr.hasNext()) {
+    LExprList* pair = iaRdr.readList();
+    LispListReader pRdr(pair);
+
+    vstring vName = pRdr.readAtom();
+    unsigned vSort = declareSort(pRdr.readNext());
+
+    pRdr.acceptEOL();
+
+    TermList arg = TermList(_nextVar++, false);
+    args.push(arg);
+
+    if (!lookup->insert(vName,make_pair(arg,vSort))) {
+      USER_ERROR("Multiple occurrence of variable "+vName+" in the definition of function "+name);
+    }
+
+    argSorts.push(vSort);
+  }
+
+  _scopes.push(lookup);
+
+  // Declare before parsing, since it's a recursive function
+  DeclaredFunction fun = declareFunctionOrPredicate(name,rangeSort,argSorts);
+
+  ParseResult res = parseTermOrFormula(body);
+
+  delete _scopes.pop();
+
+  TermList rhs;
+  if (res.asTerm(rhs) != rangeSort) {
+    USER_ERROR("Defined function body "+body->toString()+" has different sort than declared "+oSort->toString());
+  }
 
   unsigned symbIdx = fun.first;
   bool isTrueFun = fun.second;
@@ -1406,6 +1505,169 @@ void SMTLIB2::parseLetEnd(LExpr* exp)
   }
 
   _results.push(ParseResult(letSort,let));
+
+  delete lookup;
+}
+
+static const char* UNDERSCORE = "_";
+
+void SMTLIB2::parseMatchBegin(LExpr* exp)
+{
+  CALL("SMTLIB2::parseMatchBegin");
+
+  LOG2("parseMatchBegin  ",exp->toString());
+
+  ASS(exp->isList());
+  LispListReader lRdr(exp->list);
+
+  // the match atom
+  const vstring& theMatchAtom = lRdr.readAtom();
+  ASS_EQ(theMatchAtom,MATCH);
+
+  // now, there should be an argument
+  if (!lRdr.hasNext()) {
+    complainAboutArgShortageOrWrongSorts(MATCH,exp);
+  }
+  vstring argName = lRdr.readAtom();
+
+  // and the list of cases
+  if (!lRdr.hasNext()) {
+    complainAboutArgShortageOrWrongSorts(MATCH,exp);
+  }
+  LispListReader casesRdr(lRdr.readList());
+
+  // and that's it
+  lRdr.acceptEOL();
+
+  // now read the following bottom up:
+
+  // this will later create the actual match term and kill the lookup
+  _todo.push(make_pair(PO_MATCH_END,exp));
+
+  // but we start by asserting the match argument
+  TermLookup* lookup = _scopes.pop();
+  SortedTerm argTerm;
+  if (!lookup->find(argName,argTerm)) {
+    complainAboutArgShortageOrWrongSorts(MATCH,exp);
+  }
+  // we then parse all cases
+  while (casesRdr.hasNext()) {
+    LExprList* pair = casesRdr.readList();
+    LispListReader pRdr(pair);
+
+    LExpr* pattern = pRdr.readNext();
+    
+    TermLookup* innerLookup = lookup;
+    parseMatchPattern(pattern, argTerm.second, innerLookup);
+    LExpr* body = pRdr.readNext();
+
+    _scopes.push(innerLookup);
+    _todo.push(make_pair(PO_PARSE,pattern));
+    _todo.push(make_pair(PO_PARSE,body));
+    pRdr.acceptEOL();
+  }
+}
+
+void SMTLIB2::parseMatchPattern(LExpr* exp, unsigned int sort, TermLookup* lookup)
+{
+  CALL("SMTLIB2::parseMatchPattern");
+
+  if (exp->isList()) {
+    LispListReader tRdr(exp);
+    const vstring& consName = tRdr.readAtom();
+
+    if (isTermAlgebraConstructor(consName)) {
+      auto fn = env.signature->getFunction(_declaredFunctions.get(consName).first);
+      //TODO: improve error messages here
+      if (fn->fnType()->result() != sort) {
+        complainAboutArgShortageOrWrongSorts(MATCH,exp);
+      }
+      unsigned argcnt = 0;
+      while (tRdr.hasNext()) {
+        auto arg = tRdr.readNext();
+        parseMatchPattern(arg, fn->fnType()->arg(argcnt), lookup);
+        argcnt++;
+      }
+      if (argcnt != fn->fnType()->arity()) {
+        complainAboutArgShortageOrWrongSorts(MATCH,exp);
+      }
+      return;
+    }
+    USER_ERROR("'"+consName+"' is not a datatype constructor");
+  // base constructor or variable
+  } else {
+    vstring& id = exp->str;
+
+    if (isTermAlgebraConstructor(id)) {
+      auto fn = env.signature->getFunction(_declaredFunctions.get(id).first);
+      //TODO: improve error messages here
+      if (fn->fnType()->result() != sort || fn->fnType()->arity() != 0) {
+        complainAboutArgShortageOrWrongSorts(MATCH,exp);
+      }
+    } else if (id == UNDERSCORE) {
+      // nothing to do here
+    } else {
+      TermList arg = TermList(_nextVar++, false);
+
+      if (!lookup->insert(id, make_pair(arg, sort))) {
+        USER_ERROR("Multiple occurrence of variable "+id+" in match expression");
+      }
+    }
+  }
+}
+
+void SMTLIB2::parseMatchEnd(LExpr* exp)
+{
+  CALL("SMTLIB2::parseMatchEnd");
+  LOG2("PO_MATCH_END ",exp->toString());
+
+  // so we know it is let
+  ASS(exp->isList());
+  LispListReader lRdr(exp->list);
+  const vstring& theMatchAtom = lRdr.readAtom();
+  ASS_EQ(getBuiltInTermSymbol(theMatchAtom),TS_MATCH);
+
+  vstring argName = lRdr.readAtom();
+  LispListReader casesRdr(lRdr.readList());
+
+  TermLookup* lookup = _scopes.pop();
+
+  std::vector<TermList> results;
+  while (casesRdr.hasNext()) {
+    // there has to be the body result:
+    TermList pattern;
+    unsigned patternSort = _results.pop().asTerm(pattern);
+    TermList body;
+    unsigned bodySort = _results.pop().asTerm(body);
+
+    LExprList* pair = casesRdr.readList();
+    LispListReader pRdr(pair);
+
+    LOG2("CASE pattern ",pattern.toString());
+    LOG2("CASE body    ",body.toString());
+
+    ALWAYS(lookup->find(argName));
+    auto arg = lookup->get(argName);
+    TermList argTerm = TermList(arg.second, false);
+    ASS_EQ(patternSort, arg.second);
+
+    DArray<TermList> elements(3);
+    elements[0] = argTerm;
+    elements[1] = pattern;
+    elements[2] = body;
+    DArray<unsigned> sorts(3);
+    sorts[0] = arg.second;
+    sorts[1] = patternSort;
+    sorts[2] = bodySort;
+ 
+    auto caseTuple = TermList(Term::createTuple(3, sorts.begin(), elements.begin()));
+    results.push_back(caseTuple);
+  }
+
+  ASS(!results.empty());
+  // auto sort = results[0].term()->
+
+  // _results.push(ParseResult(letSort,let));
 
   delete lookup;
 }
@@ -2075,8 +2337,6 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
   }
 }
 
-static const char* UNDERSCORE = "_";
-
 void SMTLIB2::parseRankedFunctionApplication(LExpr* exp)
 {
   CALL("SMTLIB2::parseRankedFunctionApplication");
@@ -2200,6 +2460,11 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body)
               continue;
             }
 
+            if (id == MATCH) {
+              parseMatchBegin(exp);
+              continue;
+            }
+
             if (id == EXCLAMATION) {
               parseAnnotatedTerm(exp);
               continue;
@@ -2287,6 +2552,10 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body)
       case PO_LET_END:
         parseLetEnd(exp);
         continue;
+      case PO_MATCH_END: {
+        parseMatchEnd(exp);
+        continue;
+      }
     }
   }
 
