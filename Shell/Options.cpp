@@ -2714,7 +2714,7 @@ bool Options::InputFileOptionValue::setValue(const vstring& value)
 
   //update the problem name
 
-  int length = value.length() - 1;
+  int length = value.length();
   const char* name = value.c_str();
 
   int b = length - 1;
@@ -2723,12 +2723,12 @@ bool Options::InputFileOptionValue::setValue(const vstring& value)
   }
   b++;
 
-  int e = length-1;
+  int e = length - 1;
   while (e >= b && name[e] != '.') {
     e--;
   }
   if (e < b) {
-    e = length-1;
+    e = length;
   }
 
   parent->_problemName.actualValue=value.substr(b,e-b);
