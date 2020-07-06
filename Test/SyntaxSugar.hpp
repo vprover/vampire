@@ -74,15 +74,19 @@
 #define __REPEAT(arity, sort) __REPEAT_ ## arity(sort)
 
 #define __CLSR_FUN_UNINTERPRETED(arity, f, sort) \
-  auto f = [&](__ARGS_DECL(TermWrapper, arity)) -> TermWrapper  {  \
-    unsigned f = env.signature->addFunction(#f, arity);  \
-    static bool set = false;  \
-    if (!set) {  \
-      env.signature->getFunction(f)->setType(OperatorType::getFunctionType({ __REPEAT(arity, sort) }, sort));  \
-      set = true;  \
-    }  \
-    return TermList(Term::create(f, {__ARGS_EXPR(TermWrapper, arity)}));  \
-  };  \
+  class __ ##  f ## __CLASS { \
+    unsigned _functor;\
+  public:\
+    __ ##  f ## __CLASS(unsigned sort)  \
+     : _functor(env.signature->addFunction(#f, arity)) { \
+      env.signature->getFunction(_functor)->setType(OperatorType::getFunctionType({ __REPEAT(arity, sort) }, sort));  \
+    }\
+    TermWrapper operator()(__ARGS_DECL(TermWrapper, arity)) {  \
+      return TermList(Term::create(_functor, {__ARGS_EXPR(TermWrapper, arity)}));  \
+    };  \
+    unsigned functor() const { return _functor; } \
+  };\
+  auto f = __ ##  f ## __CLASS(sort);
 
 #define __CLSR_PRED_UNINTERPRETED(arity, p, sort) \
   auto p = [&](__ARGS_DECL(TermWrapper, arity)) -> Literal&  {  \
@@ -95,17 +99,41 @@
     return *Literal::create(p, true, {__ARGS_EXPR(TermWrapper, arity)}); \
   };  \
 
-#define __CLSR_CONS_UNINTERPRETED(name, sort) \
-  TermWrapper name = 0;\
-  { \
-    unsigned f = env.signature->addFunction(#name,0);  \
-    static bool set = false;  \
-    if (!set) {  \
-      env.signature->getFunction(f)->setType(OperatorType::getFunctionType({},sort));  \
-      set = true;  \
-    }  \
-    name = TermWrapper(TermList(Term::createConstant(f)));  \
-  }  \
+#define __CLSR_CONST_UNINTERPRETED(name, sort) \
+  class __ ## name ## __CLASS { \
+    TermWrapper _self; \
+    public: \
+    __ ## name ## __CLASS(const char* name, unsigned s)   \
+      : _self( TermWrapper::createConstant(#name, s) ) \
+    { } \
+    \
+    operator TermList() { return _self; } \
+    operator TermWrapper() { return _self; } \
+    unsigned functor() { return _self.toTerm().term()->functor(); } \
+  }; \
+  auto name = __ ## name ## __CLASS(#name, sort);
+
+#define __TERM_WRAPPER_CLASS(...) \
+    class TermWrapper { \
+      TermList _term; \
+    public: \
+      TermWrapper(TermList t) : _term(t) { \
+        ASS_REP(!_term.isEmpty(), _term); \
+      } \
+      operator TermList() {return _term;} \
+      TermList toTerm() {return _term;} \
+      static TermWrapper createConstant(const char* name, unsigned sort) { \
+        unsigned f = env.signature->addFunction(name,0);  \
+        env.signature->getFunction(f)->setType(OperatorType::getFunctionType({},sort));  \
+        return TermWrapper(TermList(Term::createConstant(f)));  \
+      } \
+      __VA_ARGS__ \
+    }; \
+
+#define __DEFAULT_VARS \
+    auto x = TermWrapper(TermList::var(0));\
+    auto y = TermWrapper(TermList::var(1));\
+    auto z = TermWrapper(TermList::var(2));\
 
 
 /** tldr: For examples on usage see UnitTesting/tSyntaxSugar.cpp
@@ -166,31 +194,23 @@
 #define THEORY_SYNTAX_SUGAR(sort)  \
   _Pragma("GCC diagnostic push") \
   _Pragma("GCC diagnostic ignored \"-Wunused\"") \
+    auto __default_sort = __TO_SORT_ ## sort; \
     \
-    class TermWrapper { \
-      TermList _term; \
-    public: \
+    __TERM_WRAPPER_CLASS( \
       TermWrapper(int i) : TermWrapper(TermList(theory->representConstant(__CONSTANT_TYPE_ ## sort (i)))) { \
         ASS_REP(!_term.isEmpty(), _term); \
       }; \
-      TermWrapper(TermList t) : _term(t) { \
-        ASS_REP(!_term.isEmpty(), _term); \
-      } \
-      operator TermList() {return _term;} \
-    }; \
-   \
+    )\
+      \
     auto eq = [](TermWrapper lhs, TermWrapper rhs) -> Literal&  { return *Literal::createEquality(true, lhs, rhs, __TO_SORT_ ## sort); };  \
     auto neq = [](TermWrapper lhs, TermWrapper rhs) -> Literal&  { return *Literal::createEquality(false, lhs, rhs, __TO_SORT_ ## sort); };  \
     auto neg = [](Literal& l) -> Literal&  {  \
       return *Literal::create(&l, !l.polarity()); \
     };  \
-    auto x = TermWrapper(TermList::var(0));\
-    auto y = TermWrapper(TermList::var(1));\
-    auto z = TermWrapper(TermList::var(2));\
-    auto __sort = __TO_SORT_ ## sort; \
-    __CLSR_CONS_UNINTERPRETED(a, __TO_SORT_ ## sort) \
-    __CLSR_CONS_UNINTERPRETED(b, __TO_SORT_ ## sort) \
-    __CLSR_CONS_UNINTERPRETED(c, __TO_SORT_ ## sort) \
+    __DEFAULT_VARS \
+    __CLSR_CONST_UNINTERPRETED(a, __TO_SORT_ ## sort) \
+    __CLSR_CONST_UNINTERPRETED(b, __TO_SORT_ ## sort) \
+    __CLSR_CONST_UNINTERPRETED(c, __TO_SORT_ ## sort) \
     __IF_FRAC(sort, __CLSR_FUN_INTERPRETED(2, div, sort, _QUOTIENT)) \
     __CLSR_FUN_INTERPRETED(2, mul, sort, _MULTIPLY) \
     __CLSR_FUN_INTERPRETED(2, add, sort, _PLUS) \
@@ -203,10 +223,27 @@
   _Pragma("GCC diagnostic pop") \
 
 #define THEORY_SYNTAX_SUGAR_FUN(f, arity) \
-    __CLSR_FUN_UNINTERPRETED(arity, f, __sort)
+    __CLSR_FUN_UNINTERPRETED(arity, f, __default_sort)
 
 #define THEORY_SYNTAX_SUGAR_PRED(rel, arity) \
-    __CLSR_PRED_UNINTERPRETED(arity, rel, __sort)
+    __CLSR_PRED_UNINTERPRETED(arity, rel, __default_sort)
+
+#define FOF_SYNTAX_SUGAR \
+  _Pragma("GCC diagnostic push") \
+  _Pragma("GCC diagnostic ignored \"-Wunused\"") \
+    __TERM_WRAPPER_CLASS() \
+    auto __default_sort = env.sorts->addSort("alpha", false); \
+    __DEFAULT_VARS \
+  _Pragma("GCC diagnostic pop") \
+
+#define FOF_SYNTAX_SUGAR_PRED(f, arity) \
+    __CLSR_PRED_UNINTERPRETED(arity, rel, __default_sort)
+
+#define FOF_SYNTAX_SUGAR_FUN(f, arity) \
+    __CLSR_FUN_UNINTERPRETED(arity, f, __default_sort)
+
+#define FOF_SYNTAX_SUGAR_CONST(a) \
+    __CLSR_CONST_UNINTERPRETED(a, __default_sort) \
 
 #define __IF_FRAC(sort, ...) __IF_FRAC_##sort(__VA_ARGS__)
 #define __IF_FRAC_INT(...)

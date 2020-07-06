@@ -106,6 +106,7 @@ private:
  */
 Ordering::Result KBO::State::result(Term* t1, Term* t2)
 {
+  CALL("KBO::State::result")
   Result res;
   if(_weightDiff) {
     res=_weightDiff>0 ? GREATER : LESS;
@@ -216,14 +217,16 @@ void KBO::State::traverse(TermList tl,int coef)
       stack.push(ts->next());
     }
     if(ts->isTerm()) {
-      _weightDiff+=_kbo.symbolWeight(t)*coef;
-      if(ts->term()->arity()) {
-	stack.push(ts->term()->args());
+      auto term = ts->term();
+      _weightDiff+=_kbo.symbolWeight(term)*coef;
+      if(term->arity()) {
+	stack.push(term->args());
       }
     } else {
       ASS_METHOD(*ts,isOrdinaryVar());
+      auto var = ts->var();
       _weightDiff+=_kbo._variableWeight*coef;
-      recordVariable(ts->var(), coef);
+      recordVariable(var, coef);
     }
     if(stack.isEmpty()) {
       break;
@@ -300,16 +303,16 @@ void KBO::State::traverse(Term* t1, Term* t2)
 // }
 
 template<class IsColored, class GetSymNumber> 
-Stack<KBO::Weight> KBO::weightsFromOpts(const char* weightNames, unsigned nWeights, IsColored colored, GetSymNumber number, const vstring& f) const {
-  Stack<KBO::Weight> weights(nWeights);
+DArray<KBO::Weight> KBO::weightsFromOpts(const char* weightNames, unsigned nWeights, IsColored colored, GetSymNumber number, const vstring& f) const {
+  DArray<KBO::Weight> weights(nWeights);
   static_assert(std::is_same<typename std::result_of<IsColored(unsigned)>::type, bool>::value, "invalid signature of closusure");
   static_assert(std::is_same<typename std::result_of<GetSymNumber(const vstring&, unsigned, unsigned&)>::type, bool>::value, "invalid signature of closusure");
   BYPASSING_ALLOCATOR
 
   for (int i = 0; i < nWeights; i++) {
-    weights.push(colored(i) 
+    weights[i] = colored(i) 
           ? _defaultSymbolWeight * COLORED_WEIGHT_BOOST 
-          : _defaultSymbolWeight);
+          : _defaultSymbolWeight;
   }
 
   if (f.empty()) {
@@ -351,14 +354,27 @@ Stack<KBO::Weight> KBO::weightsFromOpts(const char* weightNames, unsigned nWeigh
   return weights;
 }
 
-KBO::KBO(Stack<KBO::Weight> funcWeights, Stack<KBO::Weight> predWeights, DArray<int> funcPrec, DArray<int> predPrec, DArray<int> predLevels, bool reverseLCM)
+KBO::KBO(DArray<KBO::Weight> funcWeights, DArray<KBO::Weight> predWeights, DArray<int> funcPrec, DArray<int> predPrec, DArray<int> predLevels, bool reverseLCM)
   : PrecedenceOrdering(funcPrec, predPrec, predLevels, reverseLCM)
   , _variableWeight(1)
   , _defaultSymbolWeight(1)
   , _funcWeights(funcWeights)
   , _predWeights(predWeights)
   , _state(new State(this))
-{ }
+{ 
+  auto isMinimal = [&] (unsigned f) -> bool {
+    // DBGE(_functionPrecedences[f])
+    return _functionPrecedences[f] == 0;
+  };
+  for (int i = 0; i < _funcWeights.size(); i++) {
+    auto arity = env.signature->getFunction(i)->arity();
+    if (_funcWeights[i] < _variableWeight && arity == 0) {
+      throw UserErrorException("weight of constants must be greater or equal to the variable weight");
+    } else if (_funcWeights[i] == 0 && arity == 1 && !isMinimal(i)) {
+      throw UserErrorException("a unary function of weight zero must be minimal wrt. the precedence ordering");
+    }
+  }
+}
 
 /**
  * Create a KBO object.

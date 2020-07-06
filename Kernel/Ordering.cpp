@@ -637,6 +637,21 @@ static void loadPermutationFromString(DArray<unsigned>& p, const vstring& str) {
   }
 }
 
+bool isPremutation(const DArray<int>& xs) {
+  CALL("isPermutation");
+  DArray<int> cnts(xs.size()); 
+  cnts.init(xs.size(), 0);
+  for (int i = 0; i < xs.size(); i++) {
+    cnts[xs[i]] += 1;
+  }
+  for (int i = 0; i < xs.size(); i++) {
+    if (cnts[xs[i]] != 1) {
+      return false;
+    }
+  }
+  return true;
+}
+
 /**
  * Create a PrecedenceOrdering object.
  */
@@ -652,6 +667,8 @@ PrecedenceOrdering::PrecedenceOrdering(DArray<int> funcPrec, DArray<int> predPre
   ASS_EQ(env.signature->predicates(), _predicates);
   ASS_EQ(env.signature->functions(), _functions);
   //TODO assert that funcPred & predPrec are premutations
+  ASS(isPremutation(_functionPrecedences))
+  ASS(isPremutation(_predicatePrecedences))
 }
 
 /**

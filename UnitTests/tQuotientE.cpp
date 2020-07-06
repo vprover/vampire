@@ -6,7 +6,6 @@
 
 #define UNIT_ID QuotientE
 UT_CREATE;
-#define DBGE(x) DBG(#x, "\t=\t", x)
 
 IntegerConstantType quotientE(int lhs, int rhs) {
   return IntegerConstantType(lhs).quotientE(rhs);

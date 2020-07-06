@@ -49,7 +49,7 @@ public:
   USE_ALLOCATOR(KBO);
 
   KBO(Problem& prb, const Options& opt);
-  KBO(Stack<KBO::Weight> funcWeights, Stack<Weight> predWeights, DArray<int> funcPrec, DArray<int> predPrec, DArray<int> predLevels, bool reverseLCM);
+  KBO(DArray<KBO::Weight> funcWeights, DArray<Weight> predWeights, DArray<int> funcPrec, DArray<int> predPrec, DArray<int> predLevels, bool reverseLCM);
   virtual ~KBO();
 
   using PrecedenceOrdering::compare;
@@ -72,11 +72,11 @@ protected:
   bool existsZeroWeightUnaryFunction() const { return false; }
 
   template<class IsColored, class GetSymNumber> 
-  Stack<Weight> weightsFromOpts(const char* weightNames, unsigned nWeights, IsColored colored, GetSymNumber number, const vstring& file) const;
+  DArray<Weight> weightsFromOpts(const char* weightNames, unsigned nWeights, IsColored colored, GetSymNumber number, const vstring& file) const;
 
 
-  Stack<Weight> _funcWeights;
-  Stack<Weight> _predWeights;
+  DArray<Weight> _funcWeights;
+  DArray<Weight> _predWeights;
   /**
    * State used for comparing terms and literals
    */
