@@ -299,6 +299,8 @@ enum class InferenceRule : unsigned char {
   FOOL_ITE_ELIMINATION,
   /** Elimination of $let expressions */
   FOOL_LET_ELIMINATION,
+  /** Elimination of $match expressions */
+  FOOL_MATCH_ELIMINATION,
   /** result of general splitting */
   GENERAL_SPLITTING,
   /** component introduced by general splitting */

@@ -115,6 +115,7 @@ bool SortHelper::getResultSortOrMasterVariable(const Term* t, unsigned& resultSo
     case Term::SF_LET:
     case Term::SF_LET_TUPLE:
     case Term::SF_ITE:
+    case Term::SF_MATCH:
       resultSort = t->getSpecialData()->getSort();
       return true;
     case Term::SF_FORMULA:
@@ -412,6 +413,19 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,unsig
             newTask.t = sd->getTupleTerm();
             todo.push(newTask);
           } break;
+
+          case Term::SF_MATCH: {
+            CollectTask newTask;
+
+            newTask.fncTag = COLLECT_TERMLIST;
+            newTask.contextSort = task.contextSort;
+
+            for (unsigned int i = 0; i < term->arity(); i++) {
+              newTask.ts = *term->nthArgument(i);
+              todo.push(newTask);
+            }
+            break;
+          }
 
       #if VDEBUG
           default:
@@ -722,6 +736,20 @@ bool SortHelper::tryGetVariableSort(TermList var, Term* t0, unsigned& result)
     if (t->isITE()) {
       // if its in the condition, it is in a subformula to be iterated over by tryGetVariableSort(unsigned var, Formula* f, ...
       ASS_EQ(t->arity(),2);
+      if (*t->nthArgument(0) == var || *t->nthArgument(1) == var) {
+        result = t->getSpecialData()->getSort();
+        return true;
+      }
+      continue;
+    }
+    if (t->isMatch()) {
+      ASS_EQ(t->arity()%2,1);
+      for (unsigned int i = 0; i < t->arity(); i++) {
+        auto arg = t->nthArgument(i);
+        if (*arg == var && tryGetResultSort(*arg, result)) {
+          return true;
+        }
+      }
       if (*t->nthArgument(0) == var || *t->nthArgument(1) == var) {
         result = t->getSpecialData()->getSort();
         return true;

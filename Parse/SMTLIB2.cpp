@@ -1689,7 +1689,7 @@ void SMTLIB2::parseMatchEnd(LExpr* exp)
     delete _scopes.pop();
   }
 
-  auto match = TermList(Term::createMatch(elements.size(), elements.begin()));
+  auto match = TermList(Term::createMatch(sort, elements.size(), elements.begin()));
   _results.push(ParseResult(sort,match));
 }
 

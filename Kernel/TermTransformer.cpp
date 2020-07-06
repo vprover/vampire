@@ -206,6 +206,21 @@ Term* TermTransformer::transformSpecial(Term* term)
       }
     }
 
+    case Term::SF_MATCH: {
+      DArray<TermList> terms(term->arity());
+      bool unchanged = true;
+      for (unsigned int i = 0; i < term->arity(); i++) {
+        TermList subterm = transform(*term->nthArgument(i));
+        unchanged = unchanged && (subterm == *term->nthArgument(i));
+        terms[i] = subterm;
+      }
+
+      if (unchanged) {
+        return term;
+      }
+      return Term::createMatch(sd->getSort(), term->arity(), terms.begin());
+    }
+
   }
   ASSERTION_VIOLATION_REP(term->toString());
   return nullptr;

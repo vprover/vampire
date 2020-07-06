@@ -530,6 +530,25 @@ vstring Term::headToString() const
 
         return "$let([" + typesList + "], [" + symbolsList + "] := " + binding.toString() + ", ";
       }
+      case Term::SF_MATCH: {
+        // ASS_EQ(arity(), 0);
+        // Term* term = sd->getMatchTerm();
+        ASS_EQ(arity()%2, 1);
+        auto matched = nthArgument(0);
+
+        vstring patternBodyList = "";
+        for (unsigned i = 1; i < arity(); i+=2) {
+          auto pattern = nthArgument(i);
+          auto body = nthArgument(i+1);
+          patternBodyList += "(" + matched->toString() + "=" + pattern->toString() + ")"
+            + " => " + body->toString();
+          if (i != arity() - 2) {
+            patternBodyList += ", ";
+          }
+        }
+
+        return "$match([" + patternBodyList + "], ";
+      }
       default:
         ASSERTION_VIOLATION;
     }
@@ -999,11 +1018,12 @@ Term* Term::createTuple(Term* tupleTerm) {
   return s;
 }
 
-Term* Term::createMatch(unsigned int arity, TermList* elements) {
+Term* Term::createMatch(unsigned int sort, unsigned int arity, TermList* elements) {
   CALL("Term::createMatch");
-  Term* s = new(0, sizeof(SpecialTermData)) Term;
+  Term* s = new(arity, sizeof(SpecialTermData)) Term;
   s->makeSymbol(SF_MATCH, arity);
   TermList* ss = s->args();
+  s->getSpecialData()->_matchData.sort = sort;
 
   for (int i = 0; i < arity; i++) {
     ASS(!elements[i].isEmpty());
@@ -1011,6 +1031,7 @@ Term* Term::createMatch(unsigned int arity, TermList* elements) {
     ss = ss->next();
   }
   ASS(ss->isEmpty());
+
   return s;
 }
 
@@ -1154,7 +1175,8 @@ bool Term::isBoolean() const {
         return false;
       case SF_ITE:
       case SF_LET:
-      case SF_LET_TUPLE: {
+      case SF_LET_TUPLE:
+      case SF_MATCH: {
         const TermList *ts = term->nthArgument(0);
         if (!ts->isTerm()) {
           return false;

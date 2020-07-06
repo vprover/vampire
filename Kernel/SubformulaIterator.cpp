@@ -214,6 +214,12 @@ bool SubformulaIterator::hasNext ()
             _reserve = new Element(tupleTerm, polarity, rest);
             break;
           }
+          case Term::SF_MATCH: {
+            // TODO: term->args is already handled, anything else to do here?
+            delete _reserve;
+            _reserve = rest;
+            break;
+          }
 #if VDEBUG
           default:
             ASSERTION_VIOLATION;

@@ -265,6 +265,7 @@ public:
       } _letTupleData;
       struct {
         unsigned int sort;
+        Term* term;
       } _matchData;
     };
     /** Return pointer to the term to which this object is attached */
@@ -294,12 +295,15 @@ public:
           return _letData.sort;
         case SF_LET_TUPLE:
           return _letTupleData.sort;
+        case SF_MATCH:
+          return _matchData.sort;
         default:
           ASSERTION_VIOLATION_REP(getType());
       }
     }
     Formula* getFormula() const { ASS_EQ(getType(), SF_FORMULA); return _formulaData.formula; }
     Term* getTupleTerm() const { return _tupleData.term; }
+    Term* getMatchTerm() const { return _matchData.term; }
   };
 
 
@@ -321,7 +325,7 @@ public:
   static Term* createFormula(Formula* formula);
   static Term* createTuple(unsigned arity, unsigned* sorts, TermList* elements);
   static Term* createTuple(Term* tupleTerm);
-  static Term* createMatch(unsigned int arity, TermList* elements);
+  static Term* createMatch(unsigned int sort, unsigned int arity, TermList* elements);
   static Term* create1(unsigned fn, TermList arg);
   static Term* create2(unsigned fn, TermList arg1, TermList arg2);
 
@@ -571,6 +575,7 @@ public:
   bool isLet() const { return functor() == SF_LET; }
   bool isTupleLet() const { return functor() == SF_LET_TUPLE; }
   bool isTuple() const { return functor() == SF_TUPLE; }
+  bool isMatch() const { return functor() == SF_MATCH; }
   bool isFormula() const { return functor() == SF_FORMULA; }
   bool isBoolean() const;
   /** Return pointer to structure containing extra data for special terms such as
