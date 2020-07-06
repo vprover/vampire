@@ -37,6 +37,7 @@ namespace Shell {
        arity, and for each argument: the name of its destructor and
        its sort*/
     TermAlgebraConstructor(unsigned functor, Lib::Array<unsigned> destructors);
+    TermAlgebraConstructor(unsigned functor, std::initializer_list<unsigned> destructors);
     TermAlgebraConstructor(unsigned functor, unsigned discriminator, Lib::Array<unsigned> destructors);
     ~TermAlgebraConstructor() {}
 
@@ -83,6 +84,12 @@ namespace Shell {
     TermAlgebra(unsigned sort,
                 unsigned n,
                 TermAlgebraConstructor** constrs,
+                bool allowsCyclicTerms = false);
+    TermAlgebra(unsigned sort,
+                Lib::Array<TermAlgebraConstructor*> constrs,
+                bool allowsCyclicTerms = false);
+    TermAlgebra(unsigned sort,
+                std::initializer_list<TermAlgebraConstructor*> constrs,
                 bool allowsCyclicTerms = false);
     ~TermAlgebra() {}
 

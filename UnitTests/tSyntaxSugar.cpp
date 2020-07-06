@@ -35,9 +35,10 @@ TEST_FUN(some_other_meaningful_testname) {
 TEST_FUN(add_uninterpreted_stuff) {
   THEORY_SYNTAX_SUGAR(RAT)
   THEORY_SYNTAX_SUGAR_FUN (fn, 2)
+  THEORY_SYNTAX_SUGAR_FUN (f, 1)
   THEORY_SYNTAX_SUGAR_PRED(relation, 2)
 
-  Literal& t = relation(x, fn(frac(7,3), x));
+  Literal& t = relation(x, fn(frac(7,3), f(x)));
 
   perform_test(t);
 }

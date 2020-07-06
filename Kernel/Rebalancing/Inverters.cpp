@@ -29,6 +29,7 @@ bool NumberTheoryInverter::canInvertTop(const InversionContext &ctxt) {
   CALL("NumberTheoryInverter::canInvertTop")
   auto &t = ctxt.topTerm();
   auto fun = t.functor();
+  auto sym = env.signature->getFunction(fun);
 
   DEBUG("canInvert ", ctxt.topTerm().toString(), "@", ctxt.topIdx())
   if (theory->isInterpretedFunction(fun)) {
@@ -44,6 +45,8 @@ bool NumberTheoryInverter::canInvertTop(const InversionContext &ctxt) {
     }
     // DBG("WARNING: unknown interpreted function: ", t.toString())
     return false;
+  } else if (sym->termAlgebraCons()) { 
+    return true;
   } else { /* cannot invert uninterpreted functions */
     DEBUG("no")
     return false;
@@ -81,18 +84,26 @@ TermList NumberTheoryInverter::invertTop(const InversionContext &ctxt) {
   auto toWrap = ctxt.toWrap();
   auto fun = t.functor();
   DEBUG("inverting ", ctxt.topTerm().toString())
-  ASS(theory->isInterpretedFunction(fun))
-  switch (theory->interpretFunction(fun)) {
+  if(theory->isInterpretedFunction(fun)) {
+    switch (theory->interpretFunction(fun)) {
 
-    CASE_DO_INVERT_ALL(add, number::add(toWrap, number::minus(t[1 - index])))
-    CASE_DO_INVERT_ALL(minus, number::minus(toWrap))
+      CASE_DO_INVERT_ALL(add, number::add(toWrap, number::minus(t[1 - index])))
+      CASE_DO_INVERT_ALL(minus, number::minus(toWrap))
 
-    CASE_DO_INVERT_FRAC(
-        mul, number::mul(toWrap, number::div(number::one(), t[1 - index])))
-    CASE_DO_INVERT_INT(mul, doInvertMulInt(ctxt))
+      CASE_DO_INVERT_FRAC(
+          mul, number::mul(toWrap, number::div(number::one(), t[1 - index])))
+      CASE_DO_INVERT_INT(mul, doInvertMulInt(ctxt))
 
-  default:
-    ASSERTION_VIOLATION;
+    default:
+      ASSERTION_VIOLATION;
+    }
+  } else {
+    // must be a term algebra sort
+    auto sym = env.signature->getFunction(fun);
+    ASS_REP(sym->termAlgebraCons(), sym);
+    auto ctor = env.signature->getTermAlgebraConstructor(fun);
+    auto dtor = ctor->destructorFunctor(index);
+    return TermList(Term::create1(dtor, toWrap));
   }
 };
 

@@ -57,6 +57,20 @@ public:
     }
   }
 
+  inline
+  Array (std::initializer_list<C> contents)
+    : Array(contents.size()) 
+  {
+    auto iter = contents.begin();
+    int i = 0;
+    while(iter != contents.end()) {
+      ASS(i < _capacity)
+      _array[i] = std::move(*iter);
+      iter++;
+      i++;
+    }
+  }
+
   /**
    * Copy-construct array, by copying the content.
    */

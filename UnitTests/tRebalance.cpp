@@ -7,10 +7,12 @@
 #include "Kernel/Rebalancing/Inverters.hpp"
 #include "Indexing/TermSharing.hpp"
 #include "Kernel/InterpretedLiteralEvaluator.hpp"
+#include "Shell/TermAlgebra.hpp"
 
 #define UNIT_ID Rebalancing
 UT_CREATE;
 using namespace std;
+using namespace Shell;
 using namespace Kernel;
 using namespace Rebalancing;
 using namespace Inverters;
@@ -31,13 +33,35 @@ bool any(Range range, Pred p) {
 
 using expected_t = tuple<TermList, TermList>;
 
-template<class ConstantType>
+// template<class ConstantType>
 void test_rebalance(Literal& lit, initializer_list<expected_t> expected);
 
 #define __TO_CONSTANT_TYPE_INT  IntegerConstantType
 #define __TO_CONSTANT_TYPE_RAT  RationalConstantType
 #define __TO_CONSTANT_TYPE_REAL RealConstantType
 #define ToConstantType(type)  __TO_CONSTANT_TYPE_ ## type
+
+#define TEST_LIST(test_name, equality, __list) \
+    TEST_FUN(test_name) {            \
+      THEORY_SYNTAX_SUGAR(RAT) \
+      _Pragma("GCC diagnostic push") \
+      _Pragma("GCC diagnostic ignored \"-Wunused\"") \
+        SYNTAX_SUGAR_SORT(list) \
+        SYNTAX_SUGAR_CONST(nil, list) \
+        SYNTAX_SUGAR_CONST(t, list) \
+        SYNTAX_SUGAR_FUN(cons,    2, {__default_sort, list}, list) \
+        SYNTAX_SUGAR_FUN(uncons1, 1, {list      }, __default_sort) \
+        SYNTAX_SUGAR_FUN(uncons2, 1, {list      }, list) \
+        env.signature->getFunction(nil .functor())->markTermAlgebraCons(); \
+        env.signature->getFunction(cons.functor())->markTermAlgebraCons(); \
+        env.signature->addTermAlgebra(new TermAlgebra(list, { \
+            new TermAlgebraConstructor(nil.functor(),  {}), \
+            new TermAlgebraConstructor(cons.functor(),  {uncons1.functor(), uncons2.functor()}), \
+          })); \
+      _Pragma("GCC diagnostic pop") \
+      test_rebalance((equality), __expand ## __list); \
+    } \
+
 
 #define TEST_REBALANCE(name, type, equality, __list) \
     TEST_FUN(name ## _ ## type) { \
@@ -46,7 +70,7 @@ void test_rebalance(Literal& lit, initializer_list<expected_t> expected);
       _Pragma("GCC diagnostic ignored \"-Wunused\"") \
         THEORY_SYNTAX_SUGAR_FUN(f, 1) \
       _Pragma("GCC diagnostic pop") \
-      test_rebalance<ToConstantType(type)>((equality), __expand ## __list); \
+      test_rebalance((equality), __expand ## __list); \
     } \
 
 
@@ -202,6 +226,30 @@ TEST_REBALANCE_ALL(bug_2
       , bal(x, mul(-1, add(y, minus(x))))
     ))
 
+/** 
+ * cons(x, y) = t
+ * ==> x = uncons1(t)
+ * ==> y = uncons2(t)
+ */
+TEST_LIST(rebalance_list_01
+    , neq(cons(x, y), t)
+    , __list(
+        bal(y, uncons2(t))
+      , bal(x, uncons1(t))
+    ))
+
+/** 
+ * cons(x + 1, y) = t
+ * ==> x = uncons1(t) - 1
+ * ==> y = uncons2(t)
+ */
+TEST_LIST(rebalance_list_02
+    , neq(cons(add(x, 1), y), t)
+    , __list(
+        bal(y, uncons2(t))
+      , bal(x, add(uncons1(t), -1))
+    ))
+
 std::ostream& operator<<(std::ostream& out, initializer_list<expected_t> expected) {
   for (auto x : expected ) {
     out << "\t" << get<0>(x) << "\t->\t" << get<1>(x) << "\n";
@@ -328,7 +376,7 @@ bool eqModAC(TermList lhs, TermList rhs) {
 }
 
 
-template<class A>
+// template<class A>
 void test_rebalance(Literal& lit, initializer_list<expected_t> expected) {
   ASS(lit.isEquality());
   using balancer_t = Balancer<NumberTheoryInverter>;
