@@ -1546,13 +1546,14 @@ void SMTLIB2::parseMatchBegin(LExpr* exp)
   _todo.push(make_pair(PO_MATCH_END,exp));
 
   // but we start by asserting the match argument
-  TermLookup* lookup = _scopes.pop();
   SortedTerm matchedTerm;
-  if (!lookup->find(matched,matchedTerm)) {
+  if (!_scopes.top()->find(matched,matchedTerm)) {
     complainAboutArgShortageOrWrongSorts(MATCH,exp);
   }
 
-  std::set<unsigned int> ctorSignatures;
+  Set<unsigned int> ctorSignatures;
+
+  _todo.push(make_pair(PO_PARSE,matchedAtom));
 
   // we then parse all cases
   while (casesRdr.hasNext()) {
@@ -1562,26 +1563,23 @@ void SMTLIB2::parseMatchBegin(LExpr* exp)
     LExpr* pattern = pRdr.readNext();
 
     // copy lookup
-    TermLookup* innerLookup = new TermLookup(*lookup);
+    TermLookup* lookup = new TermLookup;
     unsigned int functor;
-    if (parseMatchPattern(pattern, matchedTerm.second, innerLookup, functor)) {
+    if (parseMatchPattern(pattern, matchedTerm.second, lookup, functor)) {
       ctorSignatures.insert(functor);
     }
     LExpr* body = pRdr.readNext();
 
-    _scopes.push(innerLookup);
+    _scopes.push(lookup);
     _todo.push(make_pair(PO_PARSE,pattern));
     _todo.push(make_pair(PO_PARSE,body));
     pRdr.acceptEOL();
   }
 
-  // _scopes.push(lookup);
-  _todo.push(make_pair(PO_PARSE,matchedAtom));
-
   // check for exhaustiveness of the term algebra of this term
   TermAlgebra *ta = env.signature->getTermAlgebraOfSort(matchedTerm.second);
   for (unsigned int i = 0; i < ta->nConstructors(); i++) {
-    if (ctorSignatures.count(ta->constructor(i)->functor()) == 0) {
+    if (!ctorSignatures.contains(ta->constructor(i)->functor())) {
       USER_ERROR("Match expression for '"+matched+"' does not contain all constructors from corresponding term algebra");
     }
   }
@@ -1663,14 +1661,15 @@ void SMTLIB2::parseMatchEnd(LExpr* exp)
 
   TermList matchedTerm;
   auto matchedTermSort = _results.pop().asTerm(matchedTerm);
+  LOG2("CASE matched ", matchedTerm.toString());
 
-  unsigned int cases;
+  unsigned int cases = 0;
   while (casesRdr.hasNext()) {
     cases++;
     casesRdr.readNext();
   }
 
-  DArray<TermList> elements(cases+1);
+  DArray<TermList> elements(2*cases+1);
   elements[0] = matchedTerm;
   unsigned int sort;
   for (unsigned int i = 0; i < cases; i++) {
@@ -1692,8 +1691,6 @@ void SMTLIB2::parseMatchEnd(LExpr* exp)
 
   auto match = TermList(Term::createMatch(elements.size(), elements.begin()));
   _results.push(ParseResult(sort,match));
-
-  delete _scopes.pop();
 }
 
 void SMTLIB2::parseQuantBegin(LExpr* exp)
