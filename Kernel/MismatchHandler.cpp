@@ -77,7 +77,6 @@ bool UWAMismatchHandler::checkUWA(TermList t1, TermList t2)
           okay &= (t2Interp || env.signature->functionArity(t2.term()->functor()));
           break; 
         case Shell::Options::UnificationWithAbstraction::ALL:
-        case Shell::Options::UnificationWithAbstraction::FIXED:
         case Shell::Options::UnificationWithAbstraction::GROUND:
           break;
         default:

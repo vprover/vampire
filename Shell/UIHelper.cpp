@@ -230,6 +230,7 @@ Problem* UIHelper::getInputProblem(const Options& opts)
 
   UnitList* units;
   switch (opts.inputSyntax()) {
+/*
   case Options::InputSyntax::SIMPLIFY:
   {
     Shell::LispLexer lexer(*input);
@@ -239,6 +240,7 @@ Problem* UIHelper::getInputProblem(const Options& opts)
     units = simplify.units(expr);
   }
   break;
+*/
   case Options::InputSyntax::TPTP:
     {
       Parse::TPTP parser(*input);
@@ -253,20 +255,22 @@ Problem* UIHelper::getInputProblem(const Options& opts)
       s_haveConjecture=parser.containsConjecture();
     }
     break;
+/*
   case Options::InputSyntax::SMTLIB:
-    /*  {
+      {
         Parse::SMTLIB parser(opts);
         parser.parse(*input);
         units = parser.getFormulas();
         s_haveConjecture=true;
       }
-      break; */
+      break; 
     if (outputAllowed()) {
       env.beginOutput();
       addCommentSignForSZS(env.out());
       env.out() << "Vampire no longer supports the old smtlib format, trying with smtlib2 instead." << endl;
       env.endOutput();
     }
+*/
   case Options::InputSyntax::SMTLIB2:
   {
 	  Parse::SMTLIB2 parser(opts);

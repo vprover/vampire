@@ -171,22 +171,22 @@ bool PortfolioMode::performStrategy(Shell::Property* property)
     schedules.push(main);
   }
 
-  int terminationTime = env.remainingTime()/100;
+  int remainingTime = env.remainingTime()/100;
 
-  while(terminationTime > 0) {
+  while(remainingTime > 0) {
     // After running for the first time we replace schedules
     // by copies with x2 time limits and do this forever
     // We build these next_schedules as we go
     Stack<Schedule> next_schedules;
 
     Stack<Schedule>::Iterator sit(schedules);
-    while(sit.hasNext() && terminationTime > 0){
+    while(sit.hasNext() && remainingTime > 0){
       Schedule s = sit.next();
-      if(runSchedule(s,terminationTime)){ return true; }
+      if(runSchedule(s)){ return true; }
       Schedule ns;
       getExtraSchedules(*property,s,ns,false,2);
       next_schedules.push(ns);
-      terminationTime = env.remainingTime()/100;
+      remainingTime = env.remainingTime()/100;
     }
 
     schedules = next_schedules;
@@ -399,9 +399,6 @@ void PortfolioMode::getSchedules(Property& prop, Schedule& quick, Schedule& fall
   }
 }
 
-static unsigned milliToDeci(unsigned timeInMiliseconds) {
-  return timeInMiliseconds/100;
-}
 
 // Simple one-after-the-other priority.
 float PortfolioProcessPriorityPolicy::staticPriority(vstring sliceCode)
@@ -422,14 +419,11 @@ PortfolioSliceExecutor::PortfolioSliceExecutor(PortfolioMode *mode)
   : _mode(mode)
 {}
 
-void PortfolioSliceExecutor::runSlice
-  (vstring sliceCode, int terminationTime)
+void PortfolioSliceExecutor::runSlice(vstring sliceCode,int remainingTime)
 {
   vstring chopped;
   int sliceTime = _mode->getSliceTime(sliceCode, chopped);
 
-  int elapsedTime = milliToDeci(env.timer->elapsedMilliseconds());
-  int remainingTime = terminationTime - elapsedTime;
   if (sliceTime > remainingTime)
   {
     sliceTime = remainingTime;
@@ -455,7 +449,7 @@ void PortfolioSliceExecutor::runSlice
  * Run a schedule.
  * Return true if a proof was found, otherwise return false.
  */
-bool PortfolioMode::runSchedule(Schedule& schedule, int terminationTime)
+bool PortfolioMode::runSchedule(Schedule& schedule)
 {
   CALL("PortfolioMode::runSchedule");
 
@@ -465,7 +459,7 @@ bool PortfolioMode::runSchedule(Schedule& schedule, int terminationTime)
   PortfolioSliceExecutor executor(this);
   ScheduleExecutor sched(&policy, &executor);
 
-  return sched.run(schedule, terminationTime);
+  return sched.run(schedule);
 }
 
 /**

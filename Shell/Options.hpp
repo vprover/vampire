@@ -203,6 +203,7 @@ public:
         DEVELOPMENT,
         OUTPUT,
         INST_GEN,
+	FMB,
         SAT,
         AVATAR,
         INFERENCES,
@@ -229,8 +230,7 @@ public:
     ONE_INTERP,
     CONSTANT,
     ALL,
-    GROUND,
-    FIXED
+    GROUND
   };
 
   enum class Induction : unsigned int {
@@ -390,12 +390,12 @@ public:
    */
   enum class InputSyntax : unsigned int {
     /** syntax of the Simplify prover */
-    SIMPLIFY = 0,
+    //SIMPLIFY = 0,
     /** syntax of SMTLIB1.2 */
-    SMTLIB = 1,
-    SMTLIB2 = 2,
+    //SMTLIB = 1,
+    SMTLIB2 = 0,
     /** syntax of the TPTP prover */
-    TPTP = 3, 
+    TPTP = 1, 
     //HUMAN = 4, 
     //MPS = 5, 
     //NETLIB = 6
@@ -882,7 +882,7 @@ private:
         
         // For use in showOptions and explainOption
         //virtual void output(vstringstream& out) const {
-        virtual void output(ostream& out) const {
+        virtual void output(ostream& out,bool linewrap) const {
             CALL("Options::AbstractOptionValue::output");
             out << "--" << longName;
             if(!shortName.empty()){ out << " (-"<<shortName<<")"; }
@@ -892,6 +892,7 @@ private:
               out << "\t[experimental]" << endl;
             }
             
+
             if(!description.empty()){
                 // Break a the description into lines where there have been at least 70 characters
                 // on the line at the next space
@@ -900,7 +901,7 @@ private:
                 for(const char* p = description.c_str();*p;p++){
                     out << *p;
                     count++;
-                    if(count>70 && *p==' '){
+                    if(linewrap && count>70 && *p==' '){
                         out << endl << '\t';
                         count=0;
                     }
@@ -1033,9 +1034,9 @@ private:
         }
         virtual bool checkProblemConstraints(Property* prop);
         
-        virtual void output(ostream& out) const {
+        virtual void output(ostream& out, bool linewrap) const {
             CALL("Options::OptionValue::output");
-            AbstractOptionValue::output(out);
+            AbstractOptionValue::output(out,linewrap);
             out << "\tdefault: " << getStringOfValue(defaultValue) << endl;
         }
        
@@ -1079,8 +1080,8 @@ private:
             return true;
         }
         
-        virtual void output(ostream& out) const {
-            AbstractOptionValue::output(out);
+        virtual void output(ostream& out,bool linewrap) const {
+            AbstractOptionValue::output(out,linewrap);
             out << "\tdefault: " << choices[static_cast<unsigned>(this->defaultValue)];
             out << endl;
             string values_header = "values: ";
@@ -1094,7 +1095,7 @@ private:
                 else{
                     out << ",";
                     vstring next = choices[i];
-                    if(next.size()+count>60){ // next.size() will be <70, how big is a tab?
+                    if(linewrap && next.size()+count>60){ // next.size() will be <70, how big is a tab?
                         out << endl << "\t";
                         for(unsigned j=0;j<values_header.size();j++){out << " ";}
                         count = 0;
@@ -1215,8 +1216,8 @@ char sep;
 int defaultOtherValue;
 int otherValue;
 
-virtual void output(ostream& out) const override {
-    AbstractOptionValue::output(out);
+virtual void output(ostream& out,bool linewrap) const override {
+    AbstractOptionValue::output(out,linewrap);
     out << "\tdefault left: " << defaultValue << endl;
     out << "\tdefault right: " << defaultOtherValue << endl;
 }
@@ -1266,8 +1267,8 @@ OptionValue(l,s,def){};
 
 bool setValue(const vstring& value);
 
-virtual void output(ostream& out) const {
-    AbstractOptionValue::output(out);
+virtual void output(ostream& out,bool linewrap) const {
+    AbstractOptionValue::output(out,linewrap);
     out << "\tdefault: " << defaultValue << endl;;
 }
 
@@ -1290,8 +1291,8 @@ OptionValue(l,s,def), parent(p){};
 
 bool setValue(const vstring& value);
 
-virtual void output(ostream& out) const {
-    AbstractOptionValue::output(out);
+virtual void output(ostream& out,bool linewrap) const {
+    AbstractOptionValue::output(out,linewrap);
     out << "\tdefault: " << defaultValue << endl;;
 }
 virtual vstring getStringOfValue(vstring value) const{ return value; }
@@ -1330,9 +1331,9 @@ OptionValue(l,s,def) {};
 
 bool setValue(const vstring& value);
 
-virtual void output(ostream& out) const {
+virtual void output(ostream& out,bool linewrap) const {
     CALL("Options::TimeLimitOptionValue::output");
-    AbstractOptionValue::output(out);
+    AbstractOptionValue::output(out,linewrap);
     out << "\tdefault: " << defaultValue << "d" << endl;
 }
 virtual vstring getStringOfValue(int value) const{ return Lib::Int::toString(value)+"d"; }
@@ -1909,6 +1910,7 @@ public:
   void setShowNonconstantSkolemFunctionTrace(bool newVal) { _showNonconstantSkolemFunctionTrace.actualValue = newVal; }
   InterpolantMode showInterpolant() const { return _showInterpolant.actualValue; }
   bool showOptions() const { return _showOptions.actualValue; }
+  bool lineWrapInShowOptions() const { return _showOptionsLineWrap.actualValue; }
   bool showExperimentalOptions() const { return _showExperimentalOptions.actualValue; }
   bool showHelp() const { return _showHelp.actualValue; }
   vstring explainOption() const { return _explainOption.actualValue; }
@@ -2053,7 +2055,7 @@ public:
   //void setInterpretedSimplification(bool val) { _interpretedSimplification = val; }
   Condensation condensation() const { return _condensation.actualValue; }
   RuleActivity generalSplitting() const { return _generalSplitting.actualValue; }
-  vstring namePrefix() const { return _namePrefix.actualValue; }
+  //vstring namePrefix() const { return _namePrefix.actualValue; }
   bool timeStatistics() const { return _timeStatistics.actualValue; }
   bool splitting() const { return _splitting.actualValue; }
   void setSplitting(bool value){ _splitting.actualValue=value; }
@@ -2472,6 +2474,7 @@ private:
   BoolOptionValue _showNewPropositional;
   BoolOptionValue _showNonconstantSkolemFunctionTrace;
   BoolOptionValue _showOptions;
+  BoolOptionValue _showOptionsLineWrap;
   BoolOptionValue _showExperimentalOptions;
   BoolOptionValue _showHelp;
   BoolOptionValue _printAllTheoryAxioms;
