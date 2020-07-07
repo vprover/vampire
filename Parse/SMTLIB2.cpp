@@ -1547,7 +1547,18 @@ void SMTLIB2::parseMatchBegin(LExpr* exp)
 
   // but we start by asserting the match argument
   SortedTerm matchedTerm;
-  if (!_scopes.top()->find(matched,matchedTerm)) {
+  Scopes::Iterator sIt(_scopes);
+  bool foundMatched = false;
+  while (sIt.hasNext()) {
+    TermLookup* lookup = sIt.next();
+
+    if (lookup->find(matched,matchedTerm)) {
+      foundMatched = true;
+      break;
+    }
+  }
+
+  if (!foundMatched) {
     complainAboutArgShortageOrWrongSorts(MATCH,exp);
   }
 
@@ -1689,7 +1700,7 @@ void SMTLIB2::parseMatchEnd(LExpr* exp)
     delete _scopes.pop();
   }
 
-  auto match = TermList(Term::createMatch(sort, elements.size(), elements.begin()));
+  auto match = TermList(Term::createMatch(sort, matchedTermSort, elements.size(), elements.begin()));
   _results.push(ParseResult(sort,match));
 }
 

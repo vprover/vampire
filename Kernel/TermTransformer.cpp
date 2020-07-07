@@ -218,7 +218,7 @@ Term* TermTransformer::transformSpecial(Term* term)
       if (unchanged) {
         return term;
       }
-      return Term::createMatch(sd->getSort(), term->arity(), terms.begin());
+      return Term::createMatch(sd->getSort(), sd->getMatchedSort(), term->arity(), terms.begin());
     }
 
   }

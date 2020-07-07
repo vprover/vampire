@@ -625,6 +625,8 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "fool $ite elimination";
   case InferenceRule::FOOL_LET_ELIMINATION:
     return "fool $let elimination";
+  case InferenceRule::FOOL_MATCH_ELIMINATION:
+    return "fool $match elimination";
   case InferenceRule::FOOL_PARAMODULATION:
     return "fool paramodulation";
 //  case CHOICE_AXIOM:

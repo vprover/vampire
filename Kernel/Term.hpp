@@ -265,7 +265,7 @@ public:
       } _letTupleData;
       struct {
         unsigned int sort;
-        Term* term;
+        unsigned int matchedSort;
       } _matchData;
     };
     /** Return pointer to the term to which this object is attached */
@@ -303,7 +303,7 @@ public:
     }
     Formula* getFormula() const { ASS_EQ(getType(), SF_FORMULA); return _formulaData.formula; }
     Term* getTupleTerm() const { return _tupleData.term; }
-    Term* getMatchTerm() const { return _matchData.term; }
+    unsigned int getMatchedSort() const { return _matchData.matchedSort; }
   };
 
 
@@ -325,7 +325,7 @@ public:
   static Term* createFormula(Formula* formula);
   static Term* createTuple(unsigned arity, unsigned* sorts, TermList* elements);
   static Term* createTuple(Term* tupleTerm);
-  static Term* createMatch(unsigned int sort, unsigned int arity, TermList* elements);
+  static Term* createMatch(unsigned int sort, unsigned int matchedSort, unsigned int arity, TermList* elements);
   static Term* create1(unsigned fn, TermList arg);
   static Term* create2(unsigned fn, TermList arg1, TermList arg2);
 

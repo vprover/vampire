@@ -531,8 +531,6 @@ vstring Term::headToString() const
         return "$let([" + typesList + "], [" + symbolsList + "] := " + binding.toString() + ", ";
       }
       case Term::SF_MATCH: {
-        // ASS_EQ(arity(), 0);
-        // Term* term = sd->getMatchTerm();
         ASS_EQ(arity()%2, 1);
         auto matched = nthArgument(0);
 
@@ -1018,12 +1016,13 @@ Term* Term::createTuple(Term* tupleTerm) {
   return s;
 }
 
-Term* Term::createMatch(unsigned int sort, unsigned int arity, TermList* elements) {
+Term* Term::createMatch(unsigned int sort, unsigned int matchedSort, unsigned int arity, TermList* elements) {
   CALL("Term::createMatch");
   Term* s = new(arity, sizeof(SpecialTermData)) Term;
   s->makeSymbol(SF_MATCH, arity);
   TermList* ss = s->args();
   s->getSpecialData()->_matchData.sort = sort;
+  s->getSpecialData()->_matchData.matchedSort = matchedSort;
 
   for (int i = 0; i < arity; i++) {
     ASS(!elements[i].isEmpty());

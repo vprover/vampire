@@ -234,7 +234,7 @@ Term* Rectify::rectifySpecialTerm(Term* t)
     if (unchanged) {
       return t;
     }
-    return Term::createMatch(sd->getSort(), t->arity(), terms.begin());
+    return Term::createMatch(sd->getSort(), sd->getMatchedSort(), t->arity(), terms.begin());
   }
   default:
     ASSERTION_VIOLATION;

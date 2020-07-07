@@ -418,10 +418,18 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,unsig
             CollectTask newTask;
 
             newTask.fncTag = COLLECT_TERMLIST;
-            newTask.contextSort = task.contextSort;
+            auto matchedSort = term->getSpecialData()->getMatchedSort();
 
-            for (unsigned int i = 0; i < term->arity(); i++) {
+            newTask.ts = *term->nthArgument(0);
+            newTask.contextSort = matchedSort;
+            todo.push(newTask);
+            for (unsigned int i = 1; i < term->arity(); i+=2) {
               newTask.ts = *term->nthArgument(i);
+              newTask.contextSort = matchedSort;
+              todo.push(newTask);
+
+              newTask.ts = *term->nthArgument(i+1);
+              newTask.contextSort = task.contextSort;
               todo.push(newTask);
             }
             break;

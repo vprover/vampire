@@ -750,7 +750,9 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
 
         TermList matchedTerm;
         Formula* matchedFormula;
-        process(*term->nthArgument(0), context, matchedTerm, matchedFormula);
+        Context matchedContext = term->nthArgument(0)->isTerm()
+          && term->nthArgument(0)->term()->isBoolean() ? FORMULA_CONTEXT : TERM_CONTEXT;
+        process(*term->nthArgument(0), matchedContext, matchedTerm, matchedFormula);
 
         unsigned resultSort = 0;
         if (context == TERM_CONTEXT) {
@@ -768,17 +770,17 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         for (unsigned int i = 1; i < term->arity(); i+=2) {
           TermList patternTerm;
           Formula* patternFormula;
-          process(*term->nthArgument(i), context, patternTerm, patternFormula);
+          process(*term->nthArgument(i), matchedContext, patternTerm, patternFormula);
           // build v = pi
-          Formula* head = buildEq(context, matchedFormula, patternFormula,
-                                  matchedTerm, patternTerm, resultSort);
+          Formula* head = buildEq(matchedContext, matchedFormula, patternFormula,
+                                  matchedTerm, patternTerm, sd->getMatchedSort());
 
           TermList bodyTerm;
           Formula* bodyFormula;
           process(*term->nthArgument(i+1), context, bodyTerm, bodyFormula);
           // build g(X1, ..., Xn) == bi
           Formula* body = buildEq(context, freshPredicateApplication, bodyFormula,
-                                    freshFunctionApplication, bodyTerm, resultSort);
+                                  freshFunctionApplication, bodyTerm, resultSort);
           // build (v = pi => g(X1, ..., Xn) == bi)
           Formula* impl = new BinaryFormula(IMP, head, body);
 
