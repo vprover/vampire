@@ -12,7 +12,7 @@ namespace Inverters {
     _Pragma("GCC diagnostic ignored \"-Wunused-local-typedef\"") \
     using number = NumTraits<sort>;                                           \
     _Pragma("GCC diagnostic pop") \
-    return expr;                                                               \
+    expr;                                                               \
   }
 
 #define CASE_INVERT_INT(fun, expr) CASE_INVERT(IntegerConstantType, fun, expr)
@@ -25,6 +25,36 @@ bool canInvertMulInt(const InversionContext &ctxt);
 TermList doInvertMulInt(const InversionContext &ctxt);
 template <class number> bool nonZero(const TermList &t);
 
+#define CASE_PREDICATE \
+  case Theory::Interpretation::EQUAL: \
+  \
+  case Theory::Interpretation::INT_IS_INT: \
+  case Theory::Interpretation::INT_IS_RAT: \
+  case Theory::Interpretation::INT_IS_REAL: \
+  case Theory::Interpretation::INT_GREATER: \
+  case Theory::Interpretation::INT_GREATER_EQUAL: \
+  case Theory::Interpretation::INT_LESS: \
+  case Theory::Interpretation::INT_LESS_EQUAL: \
+  case Theory::Interpretation::INT_DIVIDES: \
+  \
+  case Theory::Interpretation::RAT_IS_INT: \
+  case Theory::Interpretation::RAT_IS_RAT: \
+  case Theory::Interpretation::RAT_IS_REAL: \
+  case Theory::Interpretation::RAT_GREATER: \
+  case Theory::Interpretation::RAT_GREATER_EQUAL: \
+  case Theory::Interpretation::RAT_LESS: \
+  case Theory::Interpretation::RAT_LESS_EQUAL: \
+  \
+  case Theory::Interpretation::REAL_IS_INT: \
+  case Theory::Interpretation::REAL_IS_RAT: \
+  case Theory::Interpretation::REAL_IS_REAL: \
+  case Theory::Interpretation::REAL_GREATER: \
+  case Theory::Interpretation::REAL_GREATER_EQUAL: \
+  case Theory::Interpretation::REAL_LESS: \
+  case Theory::Interpretation::REAL_LESS_EQUAL \
+
+
+
 bool NumberTheoryInverter::canInvertTop(const InversionContext &ctxt) {
   CALL("NumberTheoryInverter::canInvertTop")
   auto &t = ctxt.topTerm();
@@ -35,13 +65,18 @@ bool NumberTheoryInverter::canInvertTop(const InversionContext &ctxt) {
   if (theory->isInterpretedFunction(fun)) {
     auto inter = theory->interpretFunction(fun);
     switch (inter) {
-      CASE_INVERT_FRAC(add, true)
-      CASE_INVERT_FRAC(minus, true)
-      CASE_INVERT_FRAC(mul, nonZero<number>(t[1 - ctxt.topIdx()]))
-      CASE_INVERT_INT(mul, canInvertMulInt(ctxt))
-      CASE_INVERT_INT(add, true)
-      CASE_INVERT_INT(minus, true)
-      default:;
+      CASE_INVERT_FRAC(add  , return true)
+      CASE_INVERT_INT (add  , return true)
+      CASE_INVERT_FRAC(minus, return true)
+      CASE_INVERT_INT (minus, return true)
+      CASE_INVERT_FRAC(mul  , return nonZero<number>(t[1 - ctxt.topIdx()]))
+      CASE_INVERT_INT (mul  , return canInvertMulInt(ctxt))
+    case Theory::Interpretation::ARRAY_STORE:
+      /* store(t, i, x) = s ==> x = select(s, i) */
+      return ctxt.topIdx() == 2;
+    default:;
+    // CASE_PREDICATE:
+    //   {ASSERTION_VIOLATION}
     }
     // DBG("WARNING: unknown interpreted function: ", t.toString())
     return false;
@@ -94,6 +129,18 @@ TermList NumberTheoryInverter::invertTop(const InversionContext &ctxt) {
           mul, number::mul(toWrap, number::div(number::one(), t[1 - index])))
       CASE_DO_INVERT_INT(mul, doInvertMulInt(ctxt))
 
+      case Theory::Interpretation::ARRAY_STORE: 
+      {
+        ASS(ctxt.topIdx() == 2)
+        /*              store(t, i, x) = s ==> x = select(s, i) */
+        /* auto toWrap:                  ^                      */
+        /* auto& t:     ^^^^^^^^^^^^^^                          */
+        auto& store = *env.signature->getFunction(t.functor())->fnType();
+        auto select = env.signature->getInterpretingSymbol(
+            Theory::Interpretation::ARRAY_SELECT, 
+            OperatorType::getFunctionType({ store.arg(0), store.arg(1) }, store.arg(2)));
+        return TermList(Term::create2(select, toWrap, *t.nthArgument(1)));
+      }
     default:
       ASSERTION_VIOLATION;
     }

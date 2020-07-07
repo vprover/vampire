@@ -70,14 +70,6 @@
 #define __ARGS_EXPR_9(Type) __ARGS_EXPR_8(Type), arg8_
 #define __ARGS_EXPR_10(Type) __ARGS_EXPR_9(Type), arg9_
 
-#define __CLSR_FUN_INTERPRETED(arity, mul, INT, _MULTIPLY) \
-    auto mul = [](__ARGS_DECL(TermWrapper, arity)) -> TermWrapper {  \
-      return TermList(Term::create ## arity( \
-            env.signature->addInterpretedFunction(Theory::Interpretation:: INT ## _MULTIPLY, #mul),\
-            __ARGS_EXPR(Type, arity))\
-          );\
-    }; \
-
 #define __REPEAT_1(sort) sort
 #define __REPEAT_2(sort) sort, __REPEAT_1(sort)
 #define __REPEAT_3(sort) sort, __REPEAT_2(sort)
@@ -90,20 +82,30 @@
 #define __REPEAT_10(sort) sort, __REPEAT_9(sort)
 #define __REPEAT(arity, sort) __REPEAT_ ## arity(sort)
 
-#define __CLSR_FUN_UNINTERPRETED(n_args, f, ...) \
+#define __CLSR_FUN(n_args, f, funct) \
   class __ ##  f ## __CLASS { \
     unsigned _functor;\
   public:\
-    __ ##  f ## __CLASS(OperatorType* op)  \
-     : _functor(env.signature->addFunction(#f, op->arity())) { \
-      env.signature->getFunction(_functor)->setType(op);  \
+    __ ##  f ## __CLASS(unsigned functor)  \
+     : _functor(functor) { \
     }\
     TermWrapper operator()(__ARGS_DECL(TermWrapper, n_args)) {  \
       return TermList(Term::create(_functor, {__ARGS_EXPR(TermWrapper, n_args)}));  \
     };  \
     unsigned functor() const { return _functor; } \
   };\
-  auto f = __ ##  f ## __CLASS(OperatorType::getFunctionType(__VA_ARGS__));
+  auto f = __ ##  f ## __CLASS(funct);
+
+
+#define __CLSR_FUN_NUMBER(arity, mul, INT, _MULTIPLY) \
+   __CLSR_FUN(arity, mul,  \
+       env.signature->addInterpretedFunction(Theory::Interpretation:: INT ## _MULTIPLY, #mul)) \
+
+#define __CLSR_FUN_UNINTERPRETED(n_args, f, ...) \
+  env.signature->getFunction(env.signature->addFunction(#f, n_args))  \
+               ->setType(OperatorType::getFunctionType(__VA_ARGS__)); \
+  __CLSR_FUN(n_args, f, \
+      env.signature->getFunctionNumber(#f, n_args))
 
 #define __CLSR_PRED_UNINTERPRETED(arity, p, sort) \
   auto p = [&](__ARGS_DECL(TermWrapper, arity)) -> Literal&  {  \
@@ -212,6 +214,7 @@
   _Pragma("GCC diagnostic push") \
   _Pragma("GCC diagnostic ignored \"-Wunused\"") \
     auto __default_sort = __TO_SORT_ ## sort; \
+    auto sort = __TO_SORT_ ## sort; \
     \
     __TERM_WRAPPER_CLASS( \
       TermWrapper(int i) : TermWrapper(TermList(theory->representConstant(__CONSTANT_TYPE_ ## sort (i)))) { \
@@ -236,10 +239,10 @@
     __CLSR_CONST_UNINTERPRETED(a, __TO_SORT_ ## sort) \
     __CLSR_CONST_UNINTERPRETED(b, __TO_SORT_ ## sort) \
     __CLSR_CONST_UNINTERPRETED(c, __TO_SORT_ ## sort) \
-    __IF_FRAC(sort, __CLSR_FUN_INTERPRETED(2, div, sort, _QUOTIENT)) \
-    __CLSR_FUN_INTERPRETED(2, mul, sort, _MULTIPLY) \
-    __CLSR_FUN_INTERPRETED(2, add, sort, _PLUS) \
-    __CLSR_FUN_INTERPRETED(1, minus, sort, _UNARY_MINUS) \
+    __IF_FRAC(sort, __CLSR_FUN_NUMBER(2, div, sort, _QUOTIENT)) \
+    __CLSR_FUN_NUMBER(2, mul, sort, _MULTIPLY) \
+    __CLSR_FUN_NUMBER(2, add, sort, _PLUS) \
+    __CLSR_FUN_NUMBER(1, minus, sort, _UNARY_MINUS) \
     __FROM_FRAC_ ## sort \
     __CLSR_RELATION(gt, Theory::Interpretation::sort ## _GREATER)\
     __CLSR_RELATION(geq, Theory::Interpretation::sort ## _GREATER_EQUAL)\
@@ -248,6 +251,17 @@
   _Pragma("GCC diagnostic pop") \
 
 ////////////////////
+
+#define ARRAY_SYNTAX_SUGAR(arraySrt, idx, cont) \
+    auto arraySrt = env.sorts->addArraySort(idx, cont); \
+    __CLSR_FUN(3, store, env.signature->getInterpretingSymbol( \
+          Theory::Interpretation::ARRAY_STORE, \
+          OperatorType::getFunctionType({arraySrt, idx, cont}, arraySrt)) \
+        ) \
+    __CLSR_FUN(2, select, env.signature->getInterpretingSymbol( \
+          Theory::Interpretation::ARRAY_SELECT, \
+          OperatorType::getFunctionType({arraySrt, idx}, cont)) \
+        ) \
 
 #define SYNTAX_SUGAR_SORT(name) \
     auto name = env.sorts->addSort(#name, false); \

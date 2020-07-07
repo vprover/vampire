@@ -1,6 +1,3 @@
-
-
-
 #include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
 #include "Kernel/Rebalancing.hpp"
@@ -58,6 +55,20 @@ void test_rebalance(Literal& lit, initializer_list<expected_t> expected);
             new TermAlgebraConstructor(nil.functor(),  {}), \
             new TermAlgebraConstructor(cons.functor(),  {uncons1.functor(), uncons2.functor()}), \
           })); \
+      _Pragma("GCC diagnostic pop") \
+      test_rebalance((equality), __expand ## __list); \
+    } \
+
+#define TEST_ARRAY(test_name, equality, __list) \
+    TEST_FUN(test_name) {            \
+      THEORY_SYNTAX_SUGAR(RAT) \
+      _Pragma("GCC diagnostic push") \
+      _Pragma("GCC diagnostic ignored \"-Wunused\"") \
+        SYNTAX_SUGAR_SORT(idxSrt) \
+        ARRAY_SYNTAX_SUGAR(array, idxSrt, RAT) \
+        SYNTAX_SUGAR_CONST(t, array) \
+        SYNTAX_SUGAR_CONST(u, array) \
+        SYNTAX_SUGAR_CONST(i, idxSrt) \
       _Pragma("GCC diagnostic pop") \
       test_rebalance((equality), __expand ## __list); \
     } \
@@ -249,6 +260,17 @@ TEST_LIST(rebalance_list_02
         bal(y, uncons2(t))
       , bal(x, add(uncons1(t), -1))
     ))
+
+/** 
+ * store(t, i, x+1) = u
+ * ==> x = select(u, i) - 1
+ */
+TEST_ARRAY(rebalance_array_01
+    , neq(store(t, i, add(x, 1)), u)
+    , __list(
+        bal(x, add(select(u,i), -1))
+    ))
+
 
 std::ostream& operator<<(std::ostream& out, initializer_list<expected_t> expected) {
   for (auto x : expected ) {
