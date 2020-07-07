@@ -1559,12 +1559,19 @@ void SMTLIB2::parseMatchBegin(LExpr* exp)
   }
 
   if (!foundMatched) {
-    complainAboutArgShortageOrWrongSorts(MATCH,exp);
+    USER_ERROR("Unrecognized match term '"+matched+"' in expression '"+exp->toString()+"'");
+  }
+
+  TermAlgebra *ta = env.signature->getTermAlgebraOfSort(matchedTerm.second);
+  if (ta == nullptr) {
+    USER_ERROR("Match term '"+matched+"' is not of a term algebra type in expression '"+exp->toString()+"'");
   }
 
   Set<unsigned int> ctorSignatures;
 
   _todo.push(make_pair(PO_PARSE,matchedAtom));
+
+  bool containsVarPattern = false;
 
   // we then parse all cases
   while (casesRdr.hasNext()) {
@@ -1578,6 +1585,8 @@ void SMTLIB2::parseMatchBegin(LExpr* exp)
     unsigned int functor;
     if (parseMatchPattern(pattern, matchedTerm.second, lookup, functor)) {
       ctorSignatures.insert(functor);
+    } else {
+      containsVarPattern = true;
     }
     LExpr* body = pRdr.readNext();
 
@@ -1587,11 +1596,17 @@ void SMTLIB2::parseMatchBegin(LExpr* exp)
     pRdr.acceptEOL();
   }
 
+  // if there is at least one variable
+  // pattern, exhaustiveness is guaranteed
+  if (containsVarPattern) {
+    return;
+  }
+
   // check for exhaustiveness of the term algebra of this term
-  TermAlgebra *ta = env.signature->getTermAlgebraOfSort(matchedTerm.second);
   for (unsigned int i = 0; i < ta->nConstructors(); i++) {
     if (!ctorSignatures.contains(ta->constructor(i)->functor())) {
-      USER_ERROR("Match expression for '"+matched+"' does not contain all constructors from corresponding term algebra");
+      USER_ERROR("Match expression for '"+matched+"' does not contain all constructors or "\
+        "at least a variable from corresponding term algebra in expression '"+exp->toString()+"'");
     }
   }
 }
@@ -1609,9 +1624,9 @@ bool SMTLIB2::parseMatchPattern(LExpr* exp, unsigned int sort, TermLookup* looku
     if (isTermAlgebraConstructor(consName)) {
       auto id = _declaredFunctions.get(consName).first;
       auto fn = env.signature->getFunction(id);
-      //TODO: improve error messages here
       if (fn->fnType()->result() != sort) {
-        complainAboutArgShortageOrWrongSorts(MATCH,exp);
+        USER_ERROR("Match pattern '"+exp->toString()+"' is not the same type "\
+          "as matched pattern or constructor selector");
       }
       unsigned argcnt = 0;
       while (tRdr.hasNext()) {
@@ -1621,7 +1636,8 @@ bool SMTLIB2::parseMatchPattern(LExpr* exp, unsigned int sort, TermLookup* looku
         argcnt++;
       }
       if (argcnt != fn->fnType()->arity()) {
-        complainAboutArgShortageOrWrongSorts(MATCH,exp);
+        USER_ERROR("Constructor '"+consName+"' has the wrong number of "\
+          "arguments in match pattern '"+exp->toString()+"'");
       }
       functor = id;
       return true;
@@ -1634,9 +1650,9 @@ bool SMTLIB2::parseMatchPattern(LExpr* exp, unsigned int sort, TermLookup* looku
     if (isTermAlgebraConstructor(exp_str)) {
       auto id = _declaredFunctions.get(exp_str).first;
       auto fn = env.signature->getFunction(id);
-      //TODO: improve error messages here
       if (fn->fnType()->result() != sort || fn->fnType()->arity() != 0) {
-        complainAboutArgShortageOrWrongSorts(MATCH,exp);
+        USER_ERROR("Constructor '"+exp_str+"' is not a base "\
+          "constructor or is of the wrong type");
       }
       functor = id;
       return true;
@@ -1649,7 +1665,7 @@ bool SMTLIB2::parseMatchPattern(LExpr* exp, unsigned int sort, TermLookup* looku
       TermList arg = TermList(_nextVar++, false);
 
       if (!lookup->insert(exp_str, make_pair(arg, sort))) {
-        USER_ERROR("Multiple occurrence of variable "+exp_str+" in match expression");
+        USER_ERROR("Variable '"+exp_str+"' has already been defined");
       }
     }
   }
