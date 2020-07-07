@@ -29,6 +29,7 @@
 #include "Debug/Assertion.hpp"
 
 #include "Lib/Allocator.hpp"
+#include <initializer_list>
 
 namespace Lib {
 
