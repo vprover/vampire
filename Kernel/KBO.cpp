@@ -362,16 +362,28 @@ KBO::KBO(DArray<KBO::Weight> funcWeights, DArray<KBO::Weight> predWeights, DArra
   , _predWeights(predWeights)
   , _state(new State(this))
 { 
-  auto isMinimal = [&] (unsigned f) -> bool {
-    // DBGE(_functionPrecedences[f])
-    return _functionPrecedences[f] == 0;
-  };
+  auto minimalFunctions = DArray<long int>(env.sorts->count());
+  minimalFunctions.init(env.sorts->count(), -1);
   for (int i = 0; i < _funcWeights.size(); i++) {
+
+    auto sort = env.signature->getFunction(i)->fnType()->result();
     auto arity = env.signature->getFunction(i)->arity();
+
+    /* register min function */
+    if (minimalFunctions[sort] == -1) {
+      minimalFunctions[sort] = i;
+    } 
+
+    /* check kbo-releated constraints */
     if (_funcWeights[i] < _variableWeight && arity == 0) {
-      throw UserErrorException("weight of constants must be greater or equal to the variable weight");
-    } else if (_funcWeights[i] == 0 && arity == 1 && !isMinimal(i)) {
-      throw UserErrorException("a unary function of weight zero must be minimal wrt. the precedence ordering");
+      vstringstream msg;
+      msg << "weight of constants must be greater or equal to the variable weight (" << _variableWeight << ")";
+      throw UserErrorException(msg.str());
+
+    } else if (_funcWeights[i] == 0 && arity == 1 && minimalFunctions[sort] != i) {
+      vstringstream msg;
+      msg << "a unary function of weight zero (i.e.: " << env.signature->getFunction(i)->name() << ") must be minimal wrt. the precedence ordering";
+      throw UserErrorException(msg.str());
     }
   }
 }
