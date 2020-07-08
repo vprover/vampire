@@ -1925,12 +1925,12 @@ void Options::Options::init()
     _introducedSymbolPrecedence.tag(OptionTag::SATURATION);
 
     _functionWeights = StringOptionValue("function_weights","fw","");
-    _functionWeights.description = "Path to a file that defines weights for KBO for function symbols. Each line in the file is expected to contain a function name, followed by a space character and then a positive integer, that is symbols weight. Function symbols that are not present in the file default to weight 1.";
+    _functionWeights.description = "Path to a file that defines weights for KBO for function symbols. Each line in the file is expected to contain a function name, followed by the functions arity, and a positive integer, that specifies symbols weight. Symbols that are not present in the file default to weight 1.\ne.g.:\n$add 2 2\n$mul 2 7";
     _functionWeights.setExperimental();
     _lookup.insert(&_functionWeights);
 
     _predicateWeights = StringOptionValue("predicate_weights","pw","");
-    _predicateWeights.description = "Path to a file that defines weights for KBO for predicate symbols. Each line in the file is expected to contain a predicate name, followed by a space character and then a positive integer, that is symbols weight. Function symbols that are not present in the file default to weight 1.";
+    _predicateWeights.description = "Path to a file that defines weights for KBO for predicate symbols. Each line in the file is expected to contain a predicate name, followed by the predicates arity and a positive integer, that specifies symbols weight. Symbols that are not present in the file default to weight 1.\ne.g.:\n$less 2 5\n$greater 2 3";
     _predicateWeights.setExperimental();
     _lookup.insert(&_predicateWeights);
 
