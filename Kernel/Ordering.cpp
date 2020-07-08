@@ -666,7 +666,6 @@ PrecedenceOrdering::PrecedenceOrdering(DArray<int> funcPrec, DArray<int> predPre
   CALL("PrecedenceOrdering::PrecedenceOrdering");
   ASS_EQ(env.signature->predicates(), _predicates);
   ASS_EQ(env.signature->functions(), _functions);
-  //TODO assert that funcPred & predPrec are premutations
   ASS(isPremutation(_functionPrecedences))
   ASS(isPremutation(_predicatePrecedences))
 }
