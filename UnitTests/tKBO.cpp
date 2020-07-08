@@ -116,8 +116,8 @@ TEST_FUN(kbo_test04) {
 
 TEST_FUN(kbo_test05) {
   FOF_SYNTAX_SUGAR
-  FOF_SYNTAX_SUGAR_FUN  (f, 1)
   FOF_SYNTAX_SUGAR_FUN  (g, 1)
+  FOF_SYNTAX_SUGAR_FUN  (f, 1)
 
   auto ord = kbo(weights(make_pair(f, 0u)), weights());
 
@@ -144,24 +144,24 @@ TEST_FUN(kbo_test07) {
 
 TEST_FUN(kbo_test08) {
   FOF_SYNTAX_SUGAR
-  FOF_SYNTAX_SUGAR_FUN (f, 1)
   FOF_SYNTAX_SUGAR_FUN (g, 1)
+  FOF_SYNTAX_SUGAR_FUN (f, 1)
 
   auto ord = kbo(weights(make_pair(f, 0u), make_pair(g, 1u)), weights());
 
-  ASS_EQ(ord.compare(g(f(x)), f(g(x))), Ordering::Result::GREATER)
+  ASS_EQ(ord.compare(g(f(x)), f(g(x))), Ordering::Result::LESS)
 }
 
 TEST_FUN(kbo_test09) {
   FOF_SYNTAX_SUGAR
-  FOF_SYNTAX_SUGAR_FUN (g, 1)
   FOF_SYNTAX_SUGAR_FUN (f, 1)
+  FOF_SYNTAX_SUGAR_FUN (g, 1)
 
   try {
     auto ord = kbo(weights(make_pair(g, 1u), make_pair(f, 0u)), weights());
     ASSERTION_VIOLATION
   } catch (UserErrorException e) {
-    /* f is not minimal wrt precedence but has weight 0 */
+    /* f is not maximal wrt precedence but has weight 0 */
   }
 }
 
@@ -174,18 +174,18 @@ TEST_FUN(kbo_test10) {
     auto ord = kbo(weights(make_pair(a, 0u)), weights());
     ASSERTION_VIOLATION
   } catch (UserErrorException e) {
-    /* constant weights must be greater or equal to variable weight */
+    /* constant must be greater or equal to variable weight */
   }
 }
 
 TEST_FUN(kbo_test11) {
   FOF_SYNTAX_SUGAR
-  FOF_SYNTAX_SUGAR_FUN (f, 1)
   FOF_SYNTAX_SUGAR_FUN (g, 1)
+  FOF_SYNTAX_SUGAR_FUN (f, 1)
 
   auto ord = kbo(weights(make_pair(f, 0u), make_pair(g, 1u)), weights());
 
-  ASS_EQ(ord.compare(g(f(x)), f(g(x))), Ordering::Result::GREATER)
+  ASS_EQ(ord.compare(g(f(x)), f(g(x))), Ordering::Result::LESS)
 }
 
 TEST_FUN(kbo_test12) {
@@ -210,12 +210,56 @@ TEST_FUN(kbo_test13) {
 
 TEST_FUN(kbo_test14) {
   FOF_SYNTAX_SUGAR
-  FOF_SYNTAX_SUGAR_FUN (u, 1)
   FOF_SYNTAX_SUGAR_CONST(a)
   FOF_SYNTAX_SUGAR_FUN (f, 2)
   FOF_SYNTAX_SUGAR_FUN (g, 1)
+  FOF_SYNTAX_SUGAR_FUN (u, 1)
 
   auto ord = kbo(weights(make_pair(a,1u), make_pair(u,0u)), weights());
 
-  ASS_EQ(ord.compare(f(g(x),g(a)), f(x,g(a))), Ordering::Result::GREATER)
+  ASS_EQ(ord.compare(u(f(g(x),g(a))), u(f(x,g(a)))), Ordering::Result::GREATER)
+}
+
+TEST_FUN(kbo_test15) {
+  FOF_SYNTAX_SUGAR
+  FOF_SYNTAX_SUGAR_CONST(a)
+  FOF_SYNTAX_SUGAR_FUN (f, 2)
+  FOF_SYNTAX_SUGAR_FUN (g, 1)
+  FOF_SYNTAX_SUGAR_FUN (u, 1)
+
+  auto ord = kbo(weights(make_pair(a,1u), make_pair(u,0u)), weights());
+
+  ASS_EQ(ord.compare(u(f(g(u(x)),g(a))), u(f(x,g(a)))), Ordering::Result::GREATER)
+}
+
+TEST_FUN(kbo_test16) {
+  FOF_SYNTAX_SUGAR
+  FOF_SYNTAX_SUGAR_CONST(a)
+  FOF_SYNTAX_SUGAR_FUN (u, 1)
+
+  auto ord = kbo(weights(make_pair(a,1u), make_pair(u,0u)), weights());
+
+  ASS_EQ(ord.compare(u(x), x), Ordering::Result::GREATER)
+}
+
+TEST_FUN(kbo_test17) {
+  FOF_SYNTAX_SUGAR
+  FOF_SYNTAX_SUGAR_CONST(a)
+  FOF_SYNTAX_SUGAR_FUN (f, 1)
+  FOF_SYNTAX_SUGAR_FUN (u, 1)
+
+  auto ord = kbo(weights(make_pair(a,1u), make_pair(u,0u)), weights());
+
+  ASS_EQ(ord.compare(u(f(x)), f(x)), Ordering::Result::GREATER)
+}
+
+TEST_FUN(kbo_test18) {
+  FOF_SYNTAX_SUGAR
+  FOF_SYNTAX_SUGAR_CONST(a)
+  FOF_SYNTAX_SUGAR_FUN (f, 1)
+  FOF_SYNTAX_SUGAR_FUN (u, 1)
+
+  auto ord = kbo(weights(make_pair(a,1u), make_pair(u,0u)), weights());
+
+  ASS_EQ(ord.compare(f(u(x)), f(x)), Ordering::Result::GREATER)
 }

@@ -69,7 +69,6 @@ protected:
   int symbolWeight(Term* t) const;
 
   bool allConstantsHeavierThanVariables() const { return false; }
-  bool existsZeroWeightUnaryFunction() const { return false; }
 
   template<class IsColored, class GetSymNumber> 
   DArray<Weight> weightsFromOpts(const char* weightNames, unsigned nWeights, IsColored colored, GetSymNumber number, const vstring& file) const;

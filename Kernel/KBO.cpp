@@ -362,17 +362,26 @@ KBO::KBO(DArray<KBO::Weight> funcWeights, DArray<KBO::Weight> predWeights, DArra
   , _predWeights(predWeights)
   , _state(new State(this))
 { 
-  auto minimalFunctions = DArray<long int>(env.sorts->count());
-  minimalFunctions.init(env.sorts->count(), -1);
-  for (int i = 0; i < _funcWeights.size(); i++) {
+  auto nFunctions = _funcWeights.size();
+  auto maximalFunctions = DArray<long int>(env.sorts->count());
+  maximalFunctions.init(env.sorts->count(), -1);
 
+  for (int i = 0; i < nFunctions; i++) {
+    auto sort = env.signature->getFunction(i)->fnType()->result();
+    /* register min function */
+    auto maxFn = maximalFunctions[sort];
+    if (maxFn == -1) {
+      maximalFunctions[sort] = i;
+    } else {
+      if (compareFunctionPrecedences(maxFn, i)) {
+        maximalFunctions[sort] = i;
+      }
+    }
+  }
+
+  for (int i = 0; i < nFunctions; i++) {
     auto sort = env.signature->getFunction(i)->fnType()->result();
     auto arity = env.signature->getFunction(i)->arity();
-
-    /* register min function */
-    if (minimalFunctions[sort] == -1) {
-      minimalFunctions[sort] = i;
-    } 
 
     /* check kbo-releated constraints */
     if (_funcWeights[i] < _variableWeight && arity == 0) {
@@ -380,9 +389,9 @@ KBO::KBO(DArray<KBO::Weight> funcWeights, DArray<KBO::Weight> predWeights, DArra
       msg << "weight of constants must be greater or equal to the variable weight (" << _variableWeight << ")";
       throw UserErrorException(msg.str());
 
-    } else if (_funcWeights[i] == 0 && arity == 1 && minimalFunctions[sort] != i) {
+    } else if (_funcWeights[i] == 0 && arity == 1 && maximalFunctions[sort] != i) {
       vstringstream msg;
-      msg << "a unary function of weight zero (i.e.: " << env.signature->getFunction(i)->name() << ") must be minimal wrt. the precedence ordering";
+      msg << "a unary function of weight zero (i.e.: " << env.signature->getFunction(i)->name() << ") must be maximal wrt. the precedence ordering";
       throw UserErrorException(msg.str());
     }
   }
@@ -476,18 +485,10 @@ Ordering::Result KBO::compare(TermList tl1, TermList tl2) const
     return EQUAL;
   }
   if(tl1.isOrdinaryVar()) {
-    if(existsZeroWeightUnaryFunction()) {
-      NOT_IMPLEMENTED;
-    } else {
-      return tl2.containsSubterm(tl1) ? LESS : INCOMPARABLE;
-    }
+    return tl2.containsSubterm(tl1) ? LESS : INCOMPARABLE;
   }
   if(tl2.isOrdinaryVar()) {
-    if(existsZeroWeightUnaryFunction()) {
-      NOT_IMPLEMENTED;
-    } else {
-      return tl1.containsSubterm(tl2) ? GREATER : INCOMPARABLE;
-    }
+    return tl1.containsSubterm(tl2) ? GREATER : INCOMPARABLE;
   }
 
   ASS(tl1.isTerm());
