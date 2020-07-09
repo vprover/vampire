@@ -227,6 +227,21 @@ class Int
     res=mres;
     return true;
   }
+
+  inline static bool safeDivide(int arg1, int arg2, int& res)
+  {
+    CALL("Int::safeDivide");
+    if (arg2 == 0) return false;
+
+    // check for 2 complement representation
+    if (numeric_limits<int>::min() != -numeric_limits<int>::max())  {
+      if (arg1 == numeric_limits<int>::min() && arg2 == -1)  {
+        return false;
+      }
+    }
+    res = arg1 / arg2;
+    return true;
+  }
 };
 
 

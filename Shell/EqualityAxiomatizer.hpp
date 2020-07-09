@@ -38,7 +38,7 @@ using namespace Kernel;
 /**
  * Adds specified equality axioms.
  *
- * We scan the problem and avoi adding unnecessary axioms (for functions
+ * We scan the problem and avoid adding unnecessary axioms (for functions
  * and predicates that do not appear in the problem, and for sorts that do
  * not occur in any equalities).
  */

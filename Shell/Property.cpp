@@ -300,7 +300,8 @@ void Property::scan(Clause* clause)
       }
     }
 
-    bool goal = (clause->inputType()==Unit::CONJECTURE || clause->inputType()==Unit::NEGATED_CONJECTURE);
+    bool goal = (clause->inputType()==UnitInputType::CONJECTURE ||
+        clause->inputType()==UnitInputType::NEGATED_CONJECTURE);
     bool unit = (clause->length() == 1);
 
     // 1 for context polarity, only used in formulas
@@ -327,7 +328,7 @@ void Property::scan(Clause* clause)
     _pureEquationalClauses ++;
   }
 
-  if (clause->inputType() == Unit::AXIOM) {
+  if (clause->inputType() == UnitInputType::AXIOM) {
     _axiomClauses ++;
     if ( literals == 1) {
       _unitAxioms ++;
@@ -386,7 +387,7 @@ void Property::scan(FormulaUnit* unit)
   CALL("Property::scan(const FormulaUnit*)");
 
 
-  if (unit->inputType() == Unit::AXIOM) {
+  if (unit->inputType() == UnitInputType::AXIOM) {
     _axiomFormulas ++;
   }
   else {

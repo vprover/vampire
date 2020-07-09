@@ -293,6 +293,20 @@ public:
                 }
             }
         }
+        void remove(TermList t)
+        {
+            CALL("SubstitutionTree::ChildBySortHelper::remove");
+            if(!t.isTerm()){ return;}
+            unsigned srt;
+            if(SortHelper::tryGetResultSort(t,srt)){
+                if(srt > Sorts::SRT_DEFAULT && srt < Sorts::FIRST_USER_SORT){
+                    unsigned f = t.term()->functor();
+                    if(bySort[srt].remove(f)){
+                        bySortTerms[srt].remove(t);
+                    }
+                }
+            }
+        }
         
     };// class SubstitutionTree::ChildBySortHelper
     
@@ -581,6 +595,9 @@ public:
     void remove(TermList t)
     {
       _nodes.remove(t);
+      if(_childBySortHelper){
+        _childBySortHelper->remove(t);
+      }
     }
 
     CLASS_NAME(SubstitutionTree::SListIntermediateNode);
@@ -788,6 +805,19 @@ public:
     Stack<unsigned> _specVarNumbers;
     Stack<NodeAlgorithm> _nodeTypes;
   };
+
+class SubstitutionTreeMismatchHandler : public UWAMismatchHandler 
+{
+public:
+  SubstitutionTreeMismatchHandler(Stack<UnificationConstraint>& c,SubstitutionTree* t,BacktrackData& bd) : 
+    UWAMismatchHandler(c), _constraints(c), /*_tree(t),*/ _bd(bd) {}
+  //virtual bool handle(RobSubstitution* subst, TermList query, unsigned index1, TermList node, unsigned index2);
+private:
+  virtual bool introduceConstraint(RobSubstitution* subst, TermList t1,unsigned index1, TermList t2,unsigned index2);
+  Stack<UnificationConstraint>& _constraints;
+  // SubstitutionTree* _tree;
+  BacktrackData& _bd;
+};
 
   class UnificationsIterator
   : public IteratorCore<QueryResult>

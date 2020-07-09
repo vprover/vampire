@@ -49,7 +49,7 @@ public:
   void attach(SaturationAlgorithm* salg);
   void detach();
 
-  static Clause* generateClause(Clause* queryCl, Literal* queryLit, SLQueryResult res, const Options& opts, Limits* limits=0, Ordering* ord=0, LiteralSelector* ls = 0);
+  static Clause* generateClause(Clause* queryCl, Literal* queryLit, SLQueryResult res, const Options& opts, PassiveClauseContainer* passive=0, Ordering* ord=0, LiteralSelector* ls = 0);
   ClauseIterator generateClauses(Clause* premise);
 
 private:

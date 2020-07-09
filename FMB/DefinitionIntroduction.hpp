@@ -107,8 +107,7 @@ namespace FMB {
       }
 
       if(anyUpdated){
-        Clause* cl = Clause::fromStack(lits,c->inputType(),
-                     new Inference1(Inference::FMB_DEF_INTRO,c));
+        Clause* cl = Clause::fromStack(lits,NonspecificInference1(InferenceRule::FMB_DEF_INTRO,c));
          _processed.push(cl);
       }else{
          _processed.push(c);
@@ -160,8 +159,7 @@ namespace FMB {
           static Stack<Literal*> lstack;
           lstack.reset();
           lstack.push(l);
-          Clause* def = Clause::fromStack(lstack,from->inputType(),
-                    new Inference1(Inference::FMB_DEF_INTRO,from));
+          Clause* def = Clause::fromStack(lstack,NonspecificInference1(InferenceRule::FMB_DEF_INTRO,from));
 
           //cout << "creating def " << def->toString() << endl;
           _processed.push(def); 

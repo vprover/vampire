@@ -34,6 +34,7 @@
 #include "Lib/Stack.hpp"
 #include "Lib/Set.hpp"
 #include "Lib/Int.hpp"
+#include "Lib/STL.hpp"
 
 #include "Indexing/TermSharing.hpp"
 
@@ -92,7 +93,7 @@ void Term::destroy ()
 
   size_t sz = sizeof(Term)+_arity*sizeof(TermList);
   void* mem = this;
-  mem = reinterpret_cast<void*>(reinterpret_cast<char*>(mem)+getPreDataSize());
+  mem = reinterpret_cast<void*>(reinterpret_cast<char*>(mem)+getPreDataSize()); // MS: shouldn't here be "-getPreDataSize()" to complement the "operator new" above?
   DEALLOC_KNOWN(mem,sz,"Term");
 } // Term::destroy
 
@@ -299,9 +300,31 @@ bool Term::containsSubterm(TermList trm)
   }
 }
 
+size_t Term::countSubtermOccurrences(TermList subterm) {
+  CALL("Term::countSubtermOccurrences");
+
+  size_t res = 0;
+
+  unsigned stWeight = subterm.isTerm() ? subterm.term()->weight() : 1;
+  SubtermIterator stit(this);
+  while(stit.hasNext()) {
+    TermList t = stit.next();
+    if(t==subterm) {
+      res++;
+      stit.right();
+    }
+    else if(t.isTerm()) {
+      if(t.term()->weight()<=stWeight) {
+        stit.right();
+      }
+    }
+  }
+  return res;
+}
+
 bool TermList::containsAllVariablesOf(TermList t)
 {
-  CALL("Term::containsAllVariablesOf");
+  CALL("TermList::containsAllVariablesOf");
   Set<TermList> vars;
   TermIterator oldVars=Term::getVariableIterator(*this);
   while (oldVars.hasNext()) {
@@ -337,6 +360,35 @@ bool Term::containsAllVariablesOf(Term* t)
       return false;
     }
   }
+  return true;
+}
+
+bool TermList::containsAllVariableOccurrencesOf(TermList t)
+{
+  CALL("TermList:containsAllVariableOccurrencesOf");
+  // varBalance[x] = (#occurrences of x in this) - (#occurrences of x in t)
+  static vunordered_map<unsigned int, int> varBalance(16);
+  varBalance.clear();
+
+  static VariableIterator vit;
+
+  // collect own vars
+  vit.reset(*this);
+  while (vit.hasNext()) {
+    int& bal = varBalance[vit.next().content()];
+    bal += 1;
+  }
+
+  // check that collected vars do not occur more often in t
+  vit.reset(t);
+  while (vit.hasNext()) {
+    int& bal = varBalance[vit.next().content()];
+    bal -= 1;
+    if (bal < 0) {
+      return false;
+    }
+  }
+
   return true;
 }
 
@@ -769,7 +821,7 @@ Term* Term::create(Term* t,TermList* args)
 /** Create a new complex term, and insert it into the sharing
  *  structure if all arguments are shared.
  */
-Term* Term::create(unsigned function, unsigned arity, TermList* args)
+Term* Term::create(unsigned function, unsigned arity, const TermList* args)
 {
   CALL("Term::create/3");
   ASS_EQ(env.signature->functionArity(function), arity);
@@ -780,8 +832,8 @@ Term* Term::create(unsigned function, unsigned arity, TermList* args)
   bool share = true;
   TermList* ss = s->args();
 
-  TermList* curArg = args;
-  TermList* argStopper = args+arity;
+  const TermList* curArg = args;
+  const TermList* argStopper = args+arity;
   while (curArg!=argStopper) {
     *ss = *curArg;
     --ss;
@@ -993,6 +1045,14 @@ Term* Term::create2(unsigned fn, TermList arg1, TermList arg2)
   return Term::create(fn, 2, args);
 }
 
+
+Term* Term::create(unsigned fn, std::initializer_list<TermList> args)
+{
+  CALL("Term::create/initializer_list");
+
+  return Term::create(fn, args.size(), args.begin());
+}
+
 /**
  * Create singleton FOOL constants
  */ 
@@ -1116,7 +1176,7 @@ bool Literal::headersMatch(Literal* l1, Literal* l2, bool complementary)
 /** Create a new literal, and insert it into the sharing
  *  structure if all arguments are shared.
  */
-Literal* Literal::create(unsigned predicate, unsigned arity, bool polarity, bool commutative, TermList* args)
+Literal* Literal::create(unsigned predicate, unsigned arity, bool polarity, bool commutative, const TermList* args)
 {
   CALL("Literal::create/4");
   ASS_G(predicate, 0); //equality is to be created by createEquality
@@ -1204,6 +1264,7 @@ Literal* Literal::create(Literal* l,TermList* args)
   return m;
 } // Literal::create
 
+
 /**
  * Return a new equality literal, with polarity @b polarity and
  * arguments @b arg1 and @b arg2. These arguments must be of sort @c sort.
@@ -1274,6 +1335,14 @@ Literal* Literal::create2(unsigned predicate, bool polarity, TermList arg1, Term
   TermList args[] = {arg1, arg2};
   return Literal::create(predicate, 2, polarity, false, args);
 }
+
+Literal* Literal::create(unsigned pred, bool polarity, std::initializer_list<TermList> args)
+{
+  CALL("Term::create/initializer_list");
+
+  return Literal::create(pred, args.size(), polarity, false, args.begin());
+}
+
 
 
 /** create a new term and copy from t the relevant part of t's content */
@@ -1431,3 +1500,50 @@ Literal* Literal::flattenOnArgument(const Literal* lit,int n)
 
   return env.sharing->insert(newLiteral);
 } // Literal::flattenOnArgument
+
+
+bool Kernel::positionIn(TermList& subterm,TermList* term,vstring& position)
+{
+  CALL("positionIn(TermList)");
+   //cout << "positionIn " << subterm.toString() << " in " << term->toString() << endl;
+
+  if(!term->isTerm()){
+    if(subterm.isTerm()) return false;
+    if (term->var()==subterm.var()){
+      position = "1";
+      return true;
+    }
+    return false;
+  }
+  return positionIn(subterm,term->term(),position);
+}
+
+bool Kernel::positionIn(TermList& subterm,Term* term,vstring& position)
+{
+  CALL("positionIn(Term)");
+  //cout << "positionIn " << subterm.toString() << " in " << term->toString() << endl;
+
+  if(subterm.isTerm() && subterm.term()==term){
+    position = "1";
+    return true;
+  }
+  if(term->arity()==0) return false;
+
+  unsigned pos=1;
+  TermList* ts = term->args();
+  while(true){
+    if(*ts==subterm){
+      position=Lib::Int::toString(pos);
+      return true;
+    }
+    if(positionIn(subterm,ts,position)){
+      position = Lib::Int::toString(pos) + "." + position;
+      return true;
+    }
+    pos++;
+    ts = ts->next();
+    if(ts->isEmpty()) break;
+  }
+
+  return false;
+}

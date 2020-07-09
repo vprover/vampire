@@ -135,6 +135,9 @@ ostream& addCommentSignForSZS(ostream& out)
 bool UIHelper::s_haveConjecture=false;
 bool UIHelper::s_proofHasConjecture=true;
 
+bool UIHelper::s_expecting_sat=false;
+bool UIHelper::s_expecting_unsat=false;
+
 void UIHelper::outputAllPremises(ostream& out, UnitList* units, vstring prefix)
 {
   CALL("UIHelper::outputAllPremises");
@@ -227,6 +230,7 @@ Problem* UIHelper::getInputProblem(const Options& opts)
 
   UnitList* units;
   switch (opts.inputSyntax()) {
+/*
   case Options::InputSyntax::SIMPLIFY:
   {
     Shell::LispLexer lexer(*input);
@@ -236,6 +240,7 @@ Problem* UIHelper::getInputProblem(const Options& opts)
     units = simplify.units(expr);
   }
   break;
+*/
   case Options::InputSyntax::TPTP:
     {
       Parse::TPTP parser(*input);
@@ -250,20 +255,22 @@ Problem* UIHelper::getInputProblem(const Options& opts)
       s_haveConjecture=parser.containsConjecture();
     }
     break;
+/*
   case Options::InputSyntax::SMTLIB:
-    /*  {
+      {
         Parse::SMTLIB parser(opts);
         parser.parse(*input);
         units = parser.getFormulas();
         s_haveConjecture=true;
       }
-      break; */
+      break; 
     if (outputAllowed()) {
       env.beginOutput();
       addCommentSignForSZS(env.out());
       env.out() << "Vampire no longer supports the old smtlib format, trying with smtlib2 instead." << endl;
       env.endOutput();
     }
+*/
   case Options::InputSyntax::SMTLIB2:
   {
 	  Parse::SMTLIB2 parser(opts);
@@ -273,6 +280,15 @@ Problem* UIHelper::getInputProblem(const Options& opts)
 	  units = parser.getFormulas();
     smtLibLogic = parser.getLogic();
 	  s_haveConjecture=false;
+
+#if VDEBUG
+	  const vstring& expected_status = parser.getStatus();
+	  if (expected_status == "sat") {
+	    s_expecting_sat = true;
+	  } else if (expected_status == "unsat") {
+	    s_expecting_unsat = true;
+	  }
+#endif
 
 	  break;
   }
@@ -329,7 +345,7 @@ static void printInterpolationProofTask(ostream& out, Formula* intp, Color avoid
     }
   }
 
-  FormulaUnit* intpUnit = new FormulaUnit(negate ? new NegatedFormula(intp) : intp,new Inference(Inference::INPUT),Unit::CONJECTURE);
+  FormulaUnit* intpUnit = new FormulaUnit(negate ? new NegatedFormula(intp) : intp,new Inference0(Inference::INPUT),Unit::CONJECTURE);
   out << TPTPPrinter::toString(intpUnit) << "\n";
 }
 */
@@ -370,6 +386,8 @@ void UIHelper::outputResult(ostream& out)
       if (szsOutputMode()) {
         out << "% SZS output end Proof for " << env.options->problemName() << endl << flush;
       }
+      // outputProof could have triggered proof minimization which might have cause inductionDepth to change (in fact, decrease)
+      env.statistics->maxInductionDepth = env.statistics->refutation->inference().inductionDepth();
     }
     if (env.options->showInterpolant()!=Options::InterpolantMode::OFF) {
       ASS(env.statistics->refutation->isClause());
@@ -430,6 +448,9 @@ void UIHelper::outputResult(ostream& out)
       LaTeX formatter;
       latexOut << formatter.refutationToString(env.statistics->refutation);
     }
+
+    ASS(!s_expecting_sat);
+
     break;
   case Statistics::TIME_LIMIT:
     if(env.options->outputMode() == Options::Output::SMTCOMP){
@@ -472,6 +493,9 @@ void UIHelper::outputResult(ostream& out)
       return;
     }
     outputSatisfiableResult(out);
+
+    ASS(!s_expecting_unsat);
+
     break;
   case Statistics::SAT_SATISFIABLE:
     outputSatisfiableResult(out);

@@ -26,14 +26,9 @@
 #include "Lib/SmartPtr.hpp"
 #include "Lib/System.hpp"
 
-#include "Inferences/Condensation.hpp"
-#include "Inferences/DistinctEqualitySimplifier.hpp"
-#include "Inferences/FastCondensation.hpp"
 #include "Inferences/InferenceEngine.hpp"
-#include "Inferences/InterpretedEvaluation.hpp"
 #include "Inferences/TermAlgebraReasoning.hpp"
 #include "Inferences/TautologyDeletionISE.hpp"
-#include "Inferences/EquationalTautologyRemoval.hpp"
 
 #include "InstGen/IGAlgorithm.hpp"
 
@@ -65,8 +60,8 @@ void MainLoopResult::updateStatistics()
   env.statistics->terminationReason = terminationReason;
   env.statistics->refutation = refutation;
   env.statistics->saturatedSet = saturatedSet;
-  if(refutation && refutation->isClause() && env.statistics->maxInductionDepth==0){
-    env.statistics->maxInductionDepth = static_cast<Clause*>(refutation)->inductionDepth();
+  if(refutation) {
+    env.statistics->maxInductionDepth = refutation->inference().inductionDepth();
   }
 }
 
@@ -110,53 +105,6 @@ bool MainLoop::isRefutation(Clause* cl)
   CALL("MainLoop::isRefutation");
 
   return cl->isEmpty() && cl->noSplits();
-}
-
-/**
- * Create local clause simplifier for problem @c prb according to options @c opt
- */
-ImmediateSimplificationEngine* MainLoop::createISE(Problem& prb, const Options& opt)
-{
-  CALL("MainLoop::createImmediateSE");
-
-  CompositeISE* res=new CompositeISE();
-
-  if(prb.hasEquality() && opt.equationalTautologyRemoval()) {
-    res->addFront(new EquationalTautologyRemoval());
-  }
-
-  switch(opt.condensation()) {
-  case Options::Condensation::ON:
-    res->addFront(new Condensation());
-    break;
-  case Options::Condensation::FAST:
-    res->addFront(new FastCondensation());
-    break;
-  case Options::Condensation::OFF:
-    break;
-  }
-
-  // Only add if there are distinct groups 
-  if(prb.hasEquality() && env.signature->hasDistinctGroups()) {
-    res->addFront(new DistinctEqualitySimplifier());
-  }
-  if(prb.hasEquality() && env.signature->hasTermAlgebras()) {
-    if (opt.termAlgebraInferences()) {
-      res->addFront(new DistinctnessISE());
-      res->addFront(new InjectivityISE());
-      res->addFront(new NegativeInjectivityISE());
-    }
-  }
-  if(prb.hasInterpretedOperations() || prb.hasInterpretedEquality()) {
-    res->addFront(new InterpretedEvaluation());
-  }
-  if(prb.hasEquality()) {
-    res->addFront(new TrivialInequalitiesRemovalISE());
-  }
-  res->addFront(new TautologyDeletionISE());
-  res->addFront(new DuplicateLiteralRemovalISE());
-
-  return res;
 }
 
 MainLoop* MainLoop::createFromOptions(Problem& prb, const Options& opt)

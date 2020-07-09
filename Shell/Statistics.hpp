@@ -35,8 +35,6 @@
 
 #include "Lib/Allocator.hpp"
 
-//#include "Kernel/Assignment.hpp"
-//#include "Kernel/Constraint.hpp"
 
 extern const char* VERSION_STRING;
 
@@ -46,7 +44,6 @@ namespace Kernel {
 
 namespace Shell {
 
-using namespace std;
 using namespace Kernel;
 using namespace Solving;
 
@@ -138,6 +135,8 @@ public:
   unsigned induction;
   unsigned maxInductionDepth;
   unsigned inductionInProof;
+  unsigned generalizedInduction;
+  unsigned generalizedInductionInProof;
 
   // Simplifying inferences
   /** number of duplicate literals deleted */
@@ -156,6 +155,14 @@ public:
   unsigned backwardDemodulations;
   /** number of backward demodulations into equational tautologies */
   unsigned backwardDemodulationsToEqTaut;
+  /** number of forward subsumption demodulations */
+  unsigned forwardSubsumptionDemodulations;
+  /** number of forward subsumption demodulations into equational tautologies */
+  unsigned forwardSubsumptionDemodulationsToEqTaut;
+  /** number of backward subsumption demodulations */
+  unsigned backwardSubsumptionDemodulations;
+  /** number of backward subsumption demodulations into equational tautologies */
+  unsigned backwardSubsumptionDemodulationsToEqTaut;
   /** number of forward literal rewrites */
   unsigned forwardLiteralRewrites;
   /** number of condensations */
@@ -382,7 +389,6 @@ public:
     SINE_SELECTION,
     INCLUDING_THEORY_AXIOMS,
     PREPROCESS_1,
-    EQUALITY_PROPAGATION,
     PREDIACTE_DEFINITION_MERGING,
     PREDICATE_DEFINITION_INLINING,
     UNUSED_PREDICATE_DEFINITION_REMOVAL,

@@ -33,7 +33,7 @@
 #   VZ3              - compile with Z3
 
 GNUMPF = 0
-DBG_FLAGS = -g -O1 -fsanitize=address -fno-omit-frame-pointer -DUSE_SYSTEM_ALLOCATION=1 -DVDEBUG=1 -DCHECK_LEAKS=0 -DUNIX_USE_SIGALRM=1 -DGNUMP=$(GNUMPF)# debugging for spider 
+DBG_FLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DUNIX_USE_SIGALRM=1 -DGNUMP=$(GNUMPF)# debugging for spider 
 # DELETEMEin2017: the bug with gcc-6.2 and problems in ClauseQueue could be also fixed by adding -fno-tree-ch
 REL_FLAGS = -O6 -DVDEBUG=0 -DGNUMP=$(GNUMPF)# no debugging 
 GCOV_FLAGS = -O0 --coverage #-pedantic
@@ -146,7 +146,7 @@ endif
 ################################################################
 
 CXX = g++
-CXXFLAGS = $(XFLAGS) -Wall -std=c++11 -Wno-terminate $(INCLUDES) # -Wno-unknown-warning-option for clang
+CXXFLAGS = $(XFLAGS) -Wall -std=c++11  $(INCLUDES) # -Wno-unknown-warning-option for clang
 
 CC = gcc 
 CCFLAGS = -Wall -O3 -DNDBLSCR -DNLGLOG -DNDEBUG -DNCHKSOL -DNLGLPICOSAT 
@@ -205,6 +205,9 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/Inference.o\
         Kernel/InferenceStore.o\
         Kernel/InterpretedLiteralEvaluator.o\
+        Kernel/Rebalancing.o\
+        Kernel/Rebalancing/Inverters.o\
+	Kernel/NumTraits.o\
         Kernel/KBO.o\
         Kernel/KBOForEPR.o\
         Kernel/LiteralSelector.o\
@@ -216,12 +219,14 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/SpassLiteralSelector.o\
         Kernel/ELiteralSelector.o\
         Kernel/MLMatcher.o\
+        Kernel/MLMatcherSD.o\
         Kernel/MLVariant.o\
         Kernel/Ordering.o\
         Kernel/Ordering_Equality.o\
         Kernel/Problem.o\
         Kernel/Renaming.o\
         Kernel/RobSubstitution.o\
+        Kernel/MismatchHandler.o\
         Kernel/Signature.o\
         Kernel/SortHelper.o\
         Kernel/Sorts.o\
@@ -268,6 +273,7 @@ VIG_OBJ = InstGen/IGAlgorithm.o\
 
 VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/BackwardSubsumptionResolution.o\
+         Inferences/BackwardSubsumptionDemodulation.o\
          Inferences/BinaryResolution.o\
          Inferences/Condensation.o\
          Inferences/DistinctEqualitySimplifier.o\
@@ -280,6 +286,8 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/ForwardDemodulation.o\
          Inferences/ForwardLiteralRewriting.o\
          Inferences/ForwardSubsumptionAndResolution.o\
+         Inferences/SubsumptionDemodulationHelper.o\
+         Inferences/ForwardSubsumptionDemodulation.o\
          Inferences/GlobalSubsumption.o\
          Inferences/HyperSuperposition.o\
          Inferences/InnerRewriting.o\
@@ -293,7 +301,8 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/TermAlgebraReasoning.o\
          Inferences/TheoryInstAndSimp.o\
          Inferences/Induction.o\
-         Inferences/URResolution.o
+         Inferences/URResolution.o \
+         Inferences/GaussianVariableElimination.o
 #         Inferences/CTFwSubsAndRes.o\
 
 VSAT_OBJ=SAT/ClauseDisposer.o\
@@ -317,6 +326,7 @@ VSAT_OBJ=SAT/ClauseDisposer.o\
 #         SAT/SingleWatchSAT.o
 
 VST_OBJ= Saturation/AWPassiveClauseContainer.o\
+         Saturation/PredicateSplitPassiveClauseContainer.o\
          Saturation/ClauseContainer.o\
          Saturation/ConsequenceFinder.o\
          Saturation/Discount.o\
@@ -460,6 +470,9 @@ LIB_DEP = Indexing/TermSharing.o\
 	  Kernel/FormulaUnit.o\
 	  Kernel/FormulaVarIterator.o\
 	  Kernel/InterpretedLiteralEvaluator.o\
+	  Kernel/Rebalancing.o\
+	  Kernel/Rebalancing/Inverters.o\
+	  Kernel/NumTraits.o\
 	  Kernel/Inference.o\
 	  Kernel/InferenceStore.o\
 	  Kernel/Problem.o\
@@ -514,7 +527,7 @@ OTHER_CL_DEP = Indexing/FormulaIndex.o\
 	       SAT/TWLSolver.o\
 	       SAT/VariableSelector.o	
 
-VAMP_DIRS := Api Debug DP Lib Lib/Sys Kernel FMB Indexing Inferences InstGen Shell CASC Shell/LTB SAT Saturation Test UnitTests VUtils Parse Minisat Minisat/core Minisat/mtl Minisat/simp Minisat/utils
+VAMP_DIRS := Api Debug DP Lib Lib/Sys Kernel FMB Indexing Inferences InstGen Shell CASC Shell/LTB SAT Saturation Test UnitTests VUtils Parse Minisat Minisat/core Minisat/mtl Minisat/simp Minisat/utils Kernel/Rebalancing
 
 VAMP_BASIC := $(MINISAT_OBJ) $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(BP_VD_OBJ) $(BP_VL_OBJ) $(BP_VLS_OBJ) $(BP_VSOL_OBJ) $(BP_VT_OBJ) $(BP_MPS_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VIG_OBJ) $(VSAT_OBJ) $(DP_OBJ) $(VST_OBJ) $(VS_OBJ) $(PARSE_OBJ) $(VFMB_OBJ)
 #VCLAUSIFY_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VSAT_OBJ) $(VST_OBJ) $(VS_OBJ) $(VT_OBJ)
@@ -544,7 +557,7 @@ all:#default make disabled
 ################################################################
 # automated generation of Vampire revision information
 
-VERSION_NUMBER = 4.4.0
+VERSION_NUMBER = 4.5.0
 
 # We extract the revision number from svn every time the svn meta-data are modified
 # (that's why there is the dependency on .svn/entries) 
@@ -570,7 +583,7 @@ version.cpp: .git/HEAD .git/index Makefile
 # separate directory for object files implementation
 
 # different directory for each configuration, so there is no need for "make clean"
-SED_CMD='s/^[(]HEAD$$/detached/'      #
+SED_CMD='s/.*[(].*/detached/' # if branch name contains an opening bracket, replace it with detached (in order to avoid a crash during linking). This covers at least the case '(HEAD' occuring if one is in detached state, and '(no' occuring if one currently performs a rebase.
 BRANCH=$(shell git branch | grep "\*" | cut -d ' ' -f 2 | sed -e $(SED_CMD)  )
 COM_CNT=$(shell git rev-list HEAD --count)
 CONF_ID := obj/$(shell echo -n "$(BRANCH) $(XFLAGS)"|sum|cut -d ' ' -f1)X
@@ -585,6 +598,7 @@ obj/%X: | obj
 %.o : %.cpp
 
 $(CONF_ID)/%.o : %.cpp | $(CONF_ID)
+	mkdir -p `dirname $@`
 	$(CXX) $(CXXFLAGS) -c -o $@ $*.cpp -D __STDC_LIMIT_MACROS -D __STDC_FORMAT_MACROS -MMD -MF $(CONF_ID)/$*.d
 
 %.o : %.c 
@@ -642,7 +656,6 @@ endef
 
 EXEC_DEF_PREREQ = Makefile
 
-
 vampire_dbg vampire_rel vampire_dbg_static vampire_dbg_gcov vampire_rel_static vampire_rel_gcov vampire_z3_dbg vampire_z3_rel vampire_z3_dbg_static vampire_z3_dbg_gcov vampire_z3_rel_static vampire_z3_rel_gcov: $(VAMPIRE_OBJ) $(EXEC_DEF_PREREQ)
 	$(COMPILE_CMD)
 
@@ -675,6 +688,26 @@ libvapi libvapi_dbg: $(LIBVAPI_OBJ) $(EXEC_DEF_PREREQ)
 
 test_libvapi: $(CONF_ID)/test_libvapi.o $(EXEC_DEF_PREREQ)
 	$(CXX) $(CXXFLAGS) $(filter %.o, $^) -o $@ -lvapi -L. -Wl,-R,\$$ORIGIN
+
+compile_commands:
+	mkdir compile_commands
+
+compile_commands/%.o: compile_commands
+	mkdir -p $(dir $@)
+	echo $(CXX) $(CXXFLAGS) -c $*.cpp -D __STDC_LIMIT_MACROS -D __STDC_FORMAT_MACROS -MMD -MF $(CONF_ID)/$*.d > $@
+
+compile_commands.json: $(foreach x, $(VAMPIRE_DEP), compile_commands/$x)
+	echo '[' > $@
+	for f in $(VAMPIRE_DEP);\
+	do\
+	  echo '  {';\
+	  echo '    "directory": "$(PWD)",';\
+	  echo '    "command"  : "'$$(cat compile_commands/$$f)'",';\
+	  echo '    "file"     : "'$$f'"';\
+	  echo '  },';\
+	done | sed '$$d' >> $@
+	echo '  }'>> $@
+	echo ']' >> $@
 
 clausify_src:
 	rm -rf $@

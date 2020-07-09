@@ -7273,39 +7273,7 @@ void Schedules::getSmtcomp2016Schedule(const Property& property, Schedule& quick
     fallback.push("dis+1011_10_gs=on:gsem=off:nm=64:nwc=1:sos=all:av=off:tha=off_3000");
     return;
 
-  case SMT_ALL:
-  case SMT_AUFDTLIA:
-  case SMT_UFDTNIA:
-  case SMT_AUFNIA:
-  case SMT_UFDT:
-  case SMT_UFDTLIA:
-  case SMT_BV:
-  case SMT_UFBV:
-
-  case SMT_QF_ABV:
-  case SMT_QF_ALIA:
-  case SMT_QF_ANIA:
-  case SMT_QF_AUFBV:
-  case SMT_QF_AUFLIA:
-  case SMT_QF_AUFNIA:
-  case SMT_QF_AX:
-  case SMT_QF_BV:
-  case SMT_QF_IDL:
-  case SMT_QF_LIA:
-  case SMT_QF_LIRA:
-  case SMT_QF_LRA:
-  case SMT_QF_NIA:
-  case SMT_QF_NIRA:
-  case SMT_QF_NRA:
-  case SMT_QF_RDL:
-  case SMT_QF_UF:
-  case SMT_QF_UFBV:
-  case SMT_QF_UFIDL:
-  case SMT_QF_UFLIA:
-  case SMT_QF_UFLRA:
-  case SMT_QF_UFNIA:
-  case SMT_QF_UFNRA:
-  case SMT_UNDEFINED:
+  default:
     throw UserErrorException("This version cannot be used with this logic!");
   }
 }
@@ -13213,9 +13181,7 @@ void Schedules::getSmtcomp2017Schedule(const Property& property, Schedule& quick
   case SMT_BV:
   case SMT_UFBV:
     throw UserErrorException("Sorry, we don't deal with bit-vectors!");
-  case SMT_UNDEFINED:
-  case SMT_AUFNIA:
-  case SMT_UFDTNIA:
+  default:
     throw UserErrorException("This version cannot be used with this logic!");
   }
 
@@ -13499,13 +13465,17 @@ void Schedules::getSmtcomp2018Schedule(const Property& property, Schedule& quick
 {
   switch (property.getSMTLIBLogic()) {
   case SMT_AUFDTLIA:
+  case SMT_AUFDTLIRA: // Add new logic here even though probably not best schedule
+  case SMT_AUFDTNIRA: // Add new logic here even though probably not best schedule
     quick.push("lrs+1010_5:4_afp=100000:afq=1.2:anc=none:cond=on:fsr=off:ile=on:irw=on:nm=64:nwc=1:stl=30:sac=on:sp=occurrence:urr=on_9");
     quick.push("dis+11_5_add=large:afr=on:afp=10000:afq=1.2:anc=none:gs=on:gsem=on:ile=on:irw=on:lma=on:lwlo=on:nm=64:nwc=1:sas=z3:sos=all:sac=on:sp=reverse_arity:urr=on:updr=off_273");
     quick.push("dis+1011_2:3_add=large:afr=on:afp=40000:afq=1.0:anc=none:br=off:cond=on:gs=on:gsem=on:ile=on:irw=on:lma=on:lwlo=on:nwc=1:sos=on:sac=on:sp=occurrence:tac=axiom:tar=off:urr=on:updr=off_264");
     break;
 
   case SMT_UFDTLIA:
+  case SMT_UFDTLIRA: // Add new logic here even though probably not best schedule
   case SMT_UFDTNIA:
+  case SMT_UFDTNIRA: // Add new logic here even though probably not best schedule
     quick.push("dis+1011_2:3_add=large:afr=on:afp=40000:afq=1.0:anc=none:br=off:cond=on:gs=on:gsem=on:ile=on:irw=on:lma=on:lwlo=on:nwc=1:sos=on:sac=on:sp=occurrence:tac=axiom:tar=off:urr=on:updr=off_2");
     quick.push("lrs+11_7_add=off:afr=on:afp=40000:afq=1.1:amm=off:anc=none:bsr=on:br=off:fde=unused:gs=on:gsem=on:inw=on:ile=on:irw=on:lma=on:nm=64:nwc=1:stl=30:sos=all:sac=on:urr=on:updr=off:uhcvi=on_5");
     quick.push("dis+1004_1_add=off:afr=on:afp=1000:afq=1.1:amm=off:anc=none:bd=off:fde=none:gs=on:gsaa=from_current:gsem=on:ile=on:irw=on:lwlo=on:nm=64:newcnf=on:nwc=1:sas=z3:sp=occurrence:tac=light:tar=off:tha=off:thi=all:urr=on:uhcvi=on_6");
