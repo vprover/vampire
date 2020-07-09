@@ -79,8 +79,6 @@ void Options::Options::init()
 {
    CALL("Options::init");
 
-   BYPASSING_ALLOCATOR; // Necessary because of use of std::function
-
    // some options that were not give names previously
     _forceIncompleteness = BoolOptionValue("force_incompleteness","",false);
     _equivalentVariableRemoval = BoolOptionValue("equivalentVariableRemoval","",true);
@@ -181,18 +179,12 @@ void Options::Options::init()
          "smtcomp_2018"});
     _schedule.description = "Schedule to be run by the portfolio mode. casc and smtcomp usually point to the most recent schedule in that category. Note that some old schedules may contain option values that are no longer supported - see ignore_missing.";
     _lookup.insert(&_schedule);
-    _schedule.reliesOnHard(_mode.is(equal(Mode::CASC)->
-        Or(_mode.is(equal(Mode::CASC_SAT)))->
-        Or(_mode.is(equal(Mode::SMTCOMP)))->
-        Or(_mode.is(equal(Mode::PORTFOLIO)))));
+    _schedule.reliesOnHard(Or(_mode.is(equal(Mode::CASC)),_mode.is(equal(Mode::CASC_SAT)),_mode.is(equal(Mode::SMTCOMP)),_mode.is(equal(Mode::PORTFOLIO))));
 
     _multicore = UnsignedOptionValue("cores","",1);
     _multicore.description = "When running in portfolio modes (including casc or smtcomp modes) specify the number of cores, set to 0 to use maximum";
     _lookup.insert(&_multicore);
-    _multicore.reliesOnHard(_mode.is(equal(Mode::CASC)->
-        Or(_mode.is(equal(Mode::CASC_SAT)))->
-        Or(_mode.is(equal(Mode::SMTCOMP)))->
-        Or(_mode.is(equal(Mode::PORTFOLIO)))));
+    _multicore.reliesOnHard(Or(_mode.is(equal(Mode::CASC)),_mode.is(equal(Mode::CASC_SAT)),_mode.is(equal(Mode::SMTCOMP)),_mode.is(equal(Mode::PORTFOLIO))));
 
     _ltbLearning = ChoiceOptionValue<LTBLearning>("ltb_learning","ltbl",LTBLearning::OFF,{"on","off","biased"});
     _ltbLearning.description = "Perform learning in LTB mode";
@@ -220,7 +212,7 @@ void Options::Options::init()
       "set, whatever order they have been given in. A random number of options will be selected "
       " and set with a safe (possibly default) value.";
     _lookup.insert(&_randomStrategy);
-    _randomStrategy.reliesOnHard(_mode.is(equal(Mode::VAMPIRE)->Or(_mode.is(equal(Mode::RANDOM_STRATEGY)))));
+    _randomStrategy.reliesOnHard(Or(_mode.is(equal(Mode::VAMPIRE)),_mode.is(equal(Mode::RANDOM_STRATEGY))));
     _randomStrategy.tag(OptionTag::DEVELOPMENT);
 
     _forbiddenOptions = StringOptionValue("forbidden_options","","");
@@ -562,7 +554,7 @@ void Options::Options::init()
     _sineTolerance.description="SInE tolerance parameter (sometimes referred to as 'benevolence')";
     _lookup.insert(&_sineTolerance);
     _sineTolerance.tag(OptionTag::PREPROCESSING);
-    _sineTolerance.addConstraint(equal(0.0f)->Or(greaterThanEq(1.0f) ));
+    _sineTolerance.addConstraint(Or(equal(0.0f),greaterThanEq(1.0f) ));
     // Captures that if the value is not 1.0 then sineSelection must be on
     _sineTolerance.reliesOn(_sineSelection.is(notEqual(SineSelection::OFF)));
     _sineTolerance.setRandomChoices({"1.0","1.2","1.5","2.0","3.0","5.0"});
@@ -670,15 +662,15 @@ void Options::Options::init()
     _sineToAgeGeneralityThreshold = UnsignedOptionValue("sine_to_age_generality_threshold","s2agt",0);
     _lookup.insert(&_sineToAgeGeneralityThreshold);
     _sineToAgeGeneralityThreshold.tag(OptionTag::DEVELOPMENT);
-    _sineToAgeGeneralityThreshold.reliesOn(_sineToAge.is(equal(true)->Or(_sineToPredLevels.is(notEqual(PredicateSineLevels::OFF)))));
+    _sineToAgeGeneralityThreshold.reliesOn(Or(_sineToAge.is(equal(true)),_sineToPredLevels.is(notEqual(PredicateSineLevels::OFF))));
 
     // Like generality threshold for SiNE, except used by the sine2age trick
     _sineToAgeTolerance = FloatOptionValue("sine_to_age_tolerance","s2at",1.0);
     _lookup.insert(&_sineToAgeTolerance);
     _sineToAgeTolerance.tag(OptionTag::DEVELOPMENT);
-    _sineToAgeTolerance.addConstraint(equal(0.0f)->Or(greaterThanEq(1.0f) ));
+    _sineToAgeTolerance.addConstraint(Or(equal(0.0f),greaterThanEq(1.0f)));
     // Captures that if the value is not 1.0 then sineSelection must be on
-    _sineToAgeTolerance.reliesOn(_sineToAge.is(equal(true)->Or(_sineToPredLevels.is(notEqual(PredicateSineLevels::OFF)))));
+    _sineToAgeTolerance.reliesOn(Or(_sineToAge.is(equal(true)),_sineToPredLevels.is(notEqual(PredicateSineLevels::OFF))));
     _sineToAgeTolerance.setRandomChoices({"1.0","1.2","1.5","2.0","3.0","5.0"});
 
     _showSplitting = BoolOptionValue("show_splitting","",false);
@@ -878,7 +870,7 @@ void Options::Options::init()
 
     _lookup.insert(&_selection);
     _selection.tag(OptionTag::SATURATION);
-    _selection.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->Or<int>(_instGenWithResolution.is(equal(true))));
+    _selection.reliesOn(Or(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN)),_instGenWithResolution.is(equal(true))));
     _selection.setRandomChoices(And(isRandSat(),saNotInstGen()),{"0","1","2","3","4","10","11","-1","-2","-3","-4","-10","-11"});
     _selection.setRandomChoices({"0","1","2","3","4","10","11","1002","1003","1004","1010","1011","-1","-2","-3","-4","-10","-11","-1002","-1003","-1004","-1010"});
 
@@ -896,7 +888,7 @@ void Options::Options::init()
     "there will be w selected based on weight.";
     _lookup.insert(&_ageWeightRatio);
     _ageWeightRatio.tag(OptionTag::SATURATION);
-    _ageWeightRatio.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->Or<int>(_instGenWithResolution.is(equal(true))));
+    _ageWeightRatio.reliesOn(Or(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN)),_instGenWithResolution.is(equal(true))));
     _ageWeightRatio.setRandomChoices({"8:1","5:1","4:1","3:1","2:1","3:2","5:4","1","2:3","2","3","4","5","6","7","8","10","12","14","16","20","24","28","32","40","50","64","128","1024"});
 
 
@@ -1104,14 +1096,14 @@ void Options::Options::init()
                                  StructuralInductionKind::ONE,{"one","two","three","all"});
             _structInduction.description="The kind of structural induction applied";
             _structInduction.tag(OptionTag::INFERENCES);
-            _structInduction.reliesOn(_induction.is(equal(Induction::STRUCTURAL))->Or<StructuralInductionKind>(_induction.is(equal(Induction::BOTH))));
+            _structInduction.reliesOn(Or(_induction.is(equal(Induction::STRUCTURAL)),_induction.is(equal(Induction::BOTH))));
             _lookup.insert(&_structInduction);
 
             _mathInduction = ChoiceOptionValue<MathInductionKind>("math_induction_kind","mik",
                                  MathInductionKind::ONE,{"one","two","all"});
             _mathInduction.description="The kind of mathematical induction applied";
             _mathInduction.tag(OptionTag::INFERENCES);
-            _mathInduction.reliesOn(_induction.is(equal(Induction::MATHEMATICAL))->Or<MathInductionKind>(_induction.is(equal(Induction::BOTH))));
+            _mathInduction.reliesOn(Or(_induction.is(equal(Induction::MATHEMATICAL)),_induction.is(equal(Induction::BOTH))));
             //_lookup.insert(&_mathInduction);
 
             _inductionChoice = ChoiceOptionValue<InductionChoice>("induction_choice","indc",InductionChoice::ALL,
@@ -1183,7 +1175,7 @@ void Options::Options::init()
 	    _lookup.insert(&_backwardDemodulation);
 	    _backwardDemodulation.tag(OptionTag::INFERENCES);
 	    _backwardDemodulation.addProblemConstraint(hasEquality());
-	    _backwardDemodulation.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->Or<Demodulation>(_instGenWithResolution.is(equal(true))));
+	    _backwardDemodulation.reliesOn(Or(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN)),_instGenWithResolution.is(equal(true))));
 	    _backwardDemodulation.setRandomChoices({"all","off"});
 
 	    _backwardSubsumption = ChoiceOptionValue<Subsumption>("backward_subsumption","bs",
@@ -1192,7 +1184,7 @@ void Options::Options::init()
 		     "Perform subsumption deletion of kept clauses by newly derived clauses. Unit_only means that the subsumption will be performed only by unit clauses";
 	    _lookup.insert(&_backwardSubsumption);
 	    _backwardSubsumption.tag(OptionTag::INFERENCES);
-	    _backwardSubsumption.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->Or<Subsumption>(_instGenWithResolution.is(equal(true))));
+	    _backwardSubsumption.reliesOn(Or(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN)),_instGenWithResolution.is(equal(true))));
 	    _backwardSubsumption.setRandomChoices({"on","off"});
 
 	    _backwardSubsumptionResolution = ChoiceOptionValue<Subsumption>("backward_subsumption_resolution","bsr",
@@ -1201,7 +1193,7 @@ void Options::Options::init()
 		     "Perform subsumption resolution on kept clauses using newly derived clauses. Unit_only means that the subsumption resolution will be performed only by unit clauses";
 	    _lookup.insert(&_backwardSubsumptionResolution);
 	    _backwardSubsumptionResolution.tag(OptionTag::INFERENCES);
-	    _backwardSubsumptionResolution.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->Or<Subsumption>(_instGenWithResolution.is(equal(true))));
+	    _backwardSubsumptionResolution.reliesOn(Or(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN)),_instGenWithResolution.is(equal(true))));
 	    _backwardSubsumptionResolution.setRandomChoices({"on","off"});
 
             _backwardSubsumptionDemodulation = BoolOptionValue("backward_subsumption_demodulation", "bsd", false);
@@ -1238,7 +1230,7 @@ void Options::Options::init()
 		     "Perform condensation. If 'fast' is specified, we only perform condensations that are easy to check for.";
 	    _lookup.insert(&_condensation);
 	    _condensation.tag(OptionTag::INFERENCES);
-	    _condensation.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->Or<Condensation>(_instGenWithResolution.is(equal(true))));
+	    _condensation.reliesOn(Or(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN)),_instGenWithResolution.is(equal(true))));
 	    _condensation.setRandomChoices({"on","off","fast"});
 
 	    _demodulationRedundancyCheck = BoolOptionValue("demodulation_redundancy_check","drc",true);
@@ -1251,7 +1243,7 @@ void Options::Options::init()
 		     "where t > t1 and s = t > C (RHS replaced)";
 	    _lookup.insert(&_demodulationRedundancyCheck);
 	    _demodulationRedundancyCheck.tag(OptionTag::INFERENCES);
-	    _demodulationRedundancyCheck.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->Or<bool>(_instGenWithResolution.is(equal(true))));
+	    _demodulationRedundancyCheck.reliesOn(Or(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN)),_instGenWithResolution.is(equal(true))));
 	    _demodulationRedundancyCheck.addProblemConstraint(hasEquality());
 	    _demodulationRedundancyCheck.setRandomChoices({"on","off"});
 
@@ -1350,7 +1342,7 @@ void Options::Options::init()
     _lookup.insert(&_forwardLiteralRewriting);
     _forwardLiteralRewriting.tag(OptionTag::INFERENCES);
     _forwardLiteralRewriting.addProblemConstraint(hasNonUnits());
-    _forwardLiteralRewriting.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->Or<bool>(_instGenWithResolution.is(equal(true))));
+    _forwardLiteralRewriting.reliesOn(Or(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN)),_instGenWithResolution.is(equal(true))));
     _forwardLiteralRewriting.setRandomChoices({"on","off"});
 
     _forwardSubsumption = BoolOptionValue("forward_subsumption","fs",true);
@@ -1363,7 +1355,8 @@ void Options::Options::init()
     _forwardSubsumptionResolution.description="Perform forward subsumption resolution.";
     _lookup.insert(&_forwardSubsumptionResolution);
     _forwardSubsumptionResolution.tag(OptionTag::INFERENCES);
-    _forwardSubsumptionResolution.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->Or<bool>(_instGenWithResolution.is(equal(true))));
+
+    _forwardSubsumptionResolution.reliesOn(Or(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN)),_instGenWithResolution.is(equal(true))));
     _forwardSubsumptionResolution.setRandomChoices({"on","off"});
 
     _forwardSubsumptionDemodulation = BoolOptionValue("forward_subsumption_demodulation", "fsd", false);
@@ -1422,7 +1415,7 @@ void Options::Options::init()
     _lookup.insert(&_superpositionFromVariables);
     _superpositionFromVariables.tag(OptionTag::INFERENCES);
     _superpositionFromVariables.addProblemConstraint(hasEquality());
-    _superpositionFromVariables.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->Or<bool>(_instGenWithResolution.is(equal(true))));
+    _superpositionFromVariables.reliesOn(Or(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN)),_instGenWithResolution.is(equal(true))));
     _superpositionFromVariables.setRandomChoices({"on","off"});
 
 //*********************** InstGen  ***********************
@@ -1467,7 +1460,7 @@ void Options::Options::init()
     "Determines how often a big restart (instance generation starts from input clauses) will be performed. Small restart means all clauses generated so far are processed again.";
     _lookup.insert(&_instGenBigRestartRatio);
     _instGenBigRestartRatio.tag(OptionTag::INST_GEN);
-    _instGenBigRestartRatio.addConstraint(greaterThanEq(0.0f)->And(lessThanEq(1.0f)));
+    _instGenBigRestartRatio.addConstraint(And(greaterThanEq(0.0f),lessThanEq(1.0f)));
     // Captures that this is only non-default when saturationAlgorithm is instgen
     _instGenBigRestartRatio.reliesOn(_saturationAlgorithm.is(equal(SaturationAlgorithm::INST_GEN)));
     _instGenBigRestartRatio.setRandomChoices({"0.0","0.1","0.2","0.3","0.4","0.5","0.6","0.7","0.8","0.9","1.0"});
@@ -2200,17 +2193,17 @@ bool Options::OptionHasValue::check(Property*p){
  * Static functions to help specify random choice values
  */
 
-Options::OptionProblemConstraint* Options::isRandOn(){
-      return new OptionHasValue("random_strategy","on");
+Options::OptionProblemConstraintUP Options::isRandOn(){
+      return OptionProblemConstraintUP(new OptionHasValue("random_strategy","on"));
 }
-Options::OptionProblemConstraint* Options::isRandSat(){
-      return new OptionHasValue("random_strategy","sat");
+Options::OptionProblemConstraintUP Options::isRandSat(){
+      return OptionProblemConstraintUP(new OptionHasValue("random_strategy","sat"));
 }
-Options::OptionProblemConstraint* Options::saNotInstGen(){
-      return new OptionHasValue("sa","inst_gen");
+Options::OptionProblemConstraintUP Options::saNotInstGen(){
+      return OptionProblemConstraintUP(new OptionHasValue("sa","inst_gen"));
 }
-Options::OptionProblemConstraint* Options::isBfnt(){
-      return new OptionHasValue("bfnt","on");
+Options::OptionProblemConstraintUP Options::isBfnt(){
+      return OptionProblemConstraintUP(new OptionHasValue("bfnt","on"));
 }
 
 /**
@@ -2433,7 +2426,7 @@ template<typename T>
 bool Options::OptionValue<T>::randomize(Property* prop){
   CALL("Options::OptionValue::randomize()");
 
-  DArray<vstring>* choices = 0;
+  DArray<vstring>* choices = nullptr;
   if(env.options->randomStrategy()==RandomStrategy::NOCHECK) prop=0;
 
   // Only randomize if we have a property and need it or don't have one and don't need it!
@@ -2442,15 +2435,16 @@ bool Options::OptionValue<T>::randomize(Property* prop){
     ){
     return false;
   }
-  // Note that if we supressed the problem constraints
+  // Note that if we suppressed the problem constraints
   // the checks will be skipped
 
   //Search for the first set of random choices that is valid
   Stack<RandEntry>::BottomFirstIterator entry_it(rand_choices);
   while(entry_it.hasNext()){
-    auto entry = entry_it.next();
+    auto& entry = entry_it.next();
     if(!entry.first || (prop && entry.first->check(prop))){
-      choices = entry.second;
+      choices = entry.second.get();
+      break;
     }  
   }
   if(!choices || choices->size()==0) return false; // no valid choices
@@ -2465,33 +2459,33 @@ bool Options::OptionValue<T>::randomize(Property* prop){
 template<typename T>
 bool Options::OptionValue<T>::checkConstraints(){
      CALL("Options::OptionValue::checkConstraints");
-     typename Lib::Stack<OptionValueConstraint<T>*>::Iterator it(_constraints);
+     typename Lib::Stack<OptionValueConstraintUP<T>>::Iterator it(_constraints);
      while(it.hasNext()){
-       OptionValueConstraint<T>* con = it.next();
-       if(!con->check(this)){
+       const OptionValueConstraintUP<T>& con = it.next();
+       if(!con->check(*this)){
 
          if(env.options->mode()==Mode::SPIDER){
            reportSpiderFail();
-           USER_ERROR("\nBroken Constraint: "+con->msg(this));
+           USER_ERROR("\nBroken Constraint: "+con->msg(*this));
          }
 
          if(con->isHard()){ 
            if(env.options->randomStrategy()!=RandomStrategy::OFF)
               return false; // Skip warning for Hard
-           USER_ERROR("\nBroken Constraint: "+con->msg(this)); 
+           USER_ERROR("\nBroken Constraint: "+con->msg(*this));
          }
          switch(env.options->getBadOptionChoice()){
            case BadOption::HARD :
-               USER_ERROR("\nBroken Constraint: "+con->msg(this));
+               USER_ERROR("\nBroken Constraint: "+con->msg(*this));
            case BadOption::SOFT :
-               cout << "WARNING Broken Constraint: "+con->msg(this) << endl;
+               cout << "WARNING Broken Constraint: "+con->msg(*this) << endl;
                return false;
            case BadOption::FORCED :
                if(con->force(this)){
-                 cout << "Forced constraint " + con->msg(this) << endl;
+                 cout << "Forced constraint " + con->msg(*this) << endl;
                  break;
                }else{
-                 USER_ERROR("\nCould not force Constraint: "+con->msg(this));
+                 USER_ERROR("\nCould not force Constraint: "+con->msg(*this));
                }
            case BadOption::OFF: 
              return false;
@@ -2506,9 +2500,9 @@ template<typename T>
 bool Options::OptionValue<T>::checkProblemConstraints(Property* prop){
     CALL("Options::OptionValue::checkProblemConstraints");
 
-    Lib::Stack<OptionProblemConstraint*>::Iterator it(_prob_constraints);
+    Lib::Stack<OptionProblemConstraintUP>::Iterator it(_prob_constraints);
     while(it.hasNext()){
-      OptionProblemConstraint* con = it.next();
+      OptionProblemConstraintUP& con = it.next();
       // Constraint should hold whenever the option is set
       if(is_set && !con->check(prop)){
 
@@ -2528,47 +2522,10 @@ bool Options::OptionValue<T>::checkProblemConstraints(Property* prop){
     return true;
 }
 
-
 template<typename T>
-Options::WrappedConstraint<T>* Options::OptionValue<T>::is(OptionValueConstraint<T>* c)
+Options::AbstractWrappedConstraintUP Options::OptionValue<T>::is(OptionValueConstraintUP<T> c)
 {
-    return new WrappedConstraint<T>(this,c);
-}
-
-template<typename T>
-template<typename S, typename R>
-Options::OptionValueConstraint<S>* Options::WrappedConstraint<T>::And(WrappedConstraint<R>* another)
-{
-    return new AndWrapper<S>(new UnWrappedConstraint<S,T>(this), new UnWrappedConstraint<S,R>(another));
-}
-template<typename T>
-template<typename S, typename R>
-Options::OptionValueConstraint<S>* Options::WrappedConstraint<T>::Or(WrappedConstraint<R>* another)
-{
-    return new OrWrapper<S>(new UnWrappedConstraint<S,T>(this), new UnWrappedConstraint<S,R>(another));
-}
-
-template<typename T>
-Options::OptionValueConstraint<T>* Options::OptionValueConstraint<T>::And(OptionValueConstraint<T>* another)
-{
-    return new AndWrapper<T>(this,another);
-}
-template<typename T>
-Options::OptionValueConstraint<T>* Options::OptionValueConstraint<T>::Or(OptionValueConstraint<T>* another)
-{
-    return new OrWrapper<T>(this,another);
-}
-template<typename T>
-template<typename S>
-Options::OptionValueConstraint<T>* Options::OptionValueConstraint<T>::And(WrappedConstraint<S>* another)
-{
-    return new AndWrapper<T>(this,new UnWrappedConstraint<T,S>(another));
-}
-template<typename T>
-template<typename S>
-Options::OptionValueConstraint<T>* Options::OptionValueConstraint<T>::Or(WrappedConstraint<S>* another)
-{
-    return new OrWrapper<T>(this,new UnWrappedConstraint<T,S>(another));
+    return AbstractWrappedConstraintUP(new WrappedConstraint<T>(*this,std::move(c)));
 }
 
 /**

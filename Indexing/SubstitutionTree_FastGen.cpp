@@ -104,6 +104,8 @@ protected:
   ArrayMap<TermList>* _bindings;
 };
 
+const unsigned SubstitutionTree::GenMatcher::BACKTRACK_SEPARATOR;
+
 /**
  * Binding structure to be passed to the @b MatchingUtils::matchArgs
  * method.
