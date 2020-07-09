@@ -398,7 +398,9 @@ Clause* TautologyDeletionISE2::simplify(Clause* c)
       (AH::isTrue(lhs) != AH::isTrue(rhs))){
       //false != true
       return 0;
-    }
+    } else if(AH::isBool(lhs) && AH::isBool(rhs)){
+      continue;
+    } 
 
     if(AH::isBool(lhs)){
       AH::isTrue(lhs) == lit->polarity() ? posLits.push(lit) : negLits.push(lit); 
@@ -420,7 +422,7 @@ Clause* TautologyDeletionISE2::simplify(Clause* c)
       if(AH::isBool(negNonBooleanSide)){
         negNonBooleanSide = *negLit->nthArgument(1);
       }
-      ASS(!AH::isBool(negNonBooleanSide));
+      ASS_REP(!AH::isBool(negNonBooleanSide), negLit->toString());
       if(posNonBooleanSide == negNonBooleanSide){
         //t = true \/ t = false
         //t = true \/ t != true

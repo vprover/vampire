@@ -93,6 +93,7 @@
 #include "SAT/TWLSolver.hpp"
 #include "SAT/Preprocess.hpp"
 
+#include <thread>
 //#include "FMB/ModelCheck.hpp"
 
 #if GNUMP
@@ -900,7 +901,7 @@ int main(int argc, char* argv[])
       }
       break;
 
-    case Options::Mode::CASC_HOL:
+    case Options::Mode::CASC_HOL: {
       env.options->setIgnoreMissing(Options::IgnoreMissing::WARN);
       env.options->setSchedule(Options::Schedule::CASC_HOL_2020);
       env.options->setOutputMode(Options::Output::SZS);
@@ -909,11 +910,14 @@ int main(int argc, char* argv[])
       env.options->setOutputAxiomNames(true);
       env.options->setMemoryLimit(128000);
 
-      if (CASC::PortfolioMode::perform(1.00)) {
+      unsigned int nthreads = std::thread::hardware_concurrency();
+      float slowness = 1.00 + (0.03 * nthreads);
+ 
+      if (CASC::PortfolioMode::perform(slowness)) {
         vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       }
       break;
-
+    }
     case Options::Mode::CASC_SAT:
       env.options->setIgnoreMissing(Options::IgnoreMissing::WARN);
       env.options->setSchedule(Options::Schedule::CASC_SAT);

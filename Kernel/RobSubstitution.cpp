@@ -395,7 +395,7 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2)
   static Stack<TermList*> subterms(64);
   ASS(toDo.isEmpty() && subterms.isEmpty());
 
-  typedef DHSet<TTPair,TTPairHash> EncStore;
+  typedef DHSet<TTPair,TTPairHash, TTPairHash> EncStore;
   EncStore encountered;
   encountered.reset();
 
