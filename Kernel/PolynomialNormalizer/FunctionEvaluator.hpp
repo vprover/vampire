@@ -22,20 +22,6 @@ TermEvalResult tryEvalConstant2(Term* orig, TermEvalResult* evaluatedArgs, EvalG
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 template<class ConstantType, class EvalGround>
-LitEvalResult tryEvalConstant2(Literal* lit, EvalGround fun) {
-  auto lhs = *lit->nthArgument(0);
-  auto rhs = *lit->nthArgument(1);
-  ConstantType l;
-  ConstantType r;
-  if (theory->tryInterpretConstant(lhs, l) && theory->tryInterpretConstant(rhs, r)) {
-    return LitEvalResult::constant(fun(l,r));
-  } else {
-    return LitEvalResult::literal(lit);
-  }
-}
-
-
-template<class ConstantType, class EvalGround>
 TermEvalResult tryEvalConstant1(Term* orig, TermEvalResult* evaluatedArgs, EvalGround fun) {
 
   using Number = NumTraits<ConstantType>;
@@ -70,15 +56,15 @@ TermEvalResult tryEvalConstant2(Term* orig, TermEvalResult* evaluatedArgs, EvalG
 
 
 
-#define IMPL_EVALUATE_FUN(interpretation, ...)\
-  template<>  \
-  struct FunctionEvaluator<interpretation> { \
-    template<class Config> \
-    static TermEvalResult evaluate(Term* orig, TermEvalResult* evaluatedArgs) \
-    { \
-      CALL("FunctionEvaluator<" #interpretation ">::evaluate(Term*,TermEvalResult*)"); \
-      __VA_ARGS__ \
-    } \
+#define IMPL_EVALUATE_FUN(interpretation, ...)                                             \
+  template<>                                                                               \
+  struct FunctionEvaluator<interpretation> {                                               \
+    template<class Config>                                                                 \
+    static TermEvalResult evaluate(Term* orig, TermEvalResult* evaluatedArgs)              \
+    {                                                                                      \
+      CALL("FunctionEvaluator<" #interpretation ">::evaluate(Term*,TermEvalResult*)");     \
+      __VA_ARGS__                                                                          \
+    }                                                                                      \
   };
 
 
@@ -106,9 +92,9 @@ TermEvalResult evaluateUnaryMinus(TermEvalResult& inner) {
 }
 
 
-#define IMPL_UNARY_MINUS(Const) \
-  IMPL_EVALUATE_FUN(NumTraits<Const>::minusI, {\
-    return evaluateUnaryMinus<NumTraits<Const>, Config>(evaluatedArgs[0]);  \
+#define IMPL_UNARY_MINUS(Const)                                                            \
+  IMPL_EVALUATE_FUN(NumTraits<Const>::minusI, {                                            \
+    return evaluateUnaryMinus<NumTraits<Const>, Config>(evaluatedArgs[0]);                 \
   })
 
   IMPL_UNARY_MINUS(RealConstantType    )
@@ -138,10 +124,11 @@ template<class Number, class Config> TermEvalResult evaluateMul(TermEvalResult&&
 }
 
 
-#define IMPL_MULTIPLY(Const) \
-  IMPL_EVALUATE_FUN(NumTraits<Const>::mulI, { \
-    return evaluateMul<NumTraits<Const>, Config>(std::move(evaluatedArgs[0]), std::move(evaluatedArgs[1])); \
-  }) \
+#define IMPL_MULTIPLY(Const)                                                               \
+  IMPL_EVALUATE_FUN(NumTraits<Const>::mulI, {                                              \
+    return evaluateMul<NumTraits<Const>, Config>(std::move(evaluatedArgs[0])               \
+        , std::move(evaluatedArgs[1]));                                                    \
+  })                                                                                       \
 
   IMPL_MULTIPLY(RealConstantType    )
   IMPL_MULTIPLY(RationalConstantType)
@@ -173,12 +160,12 @@ Polynom<Number> evaluateAdd(TermEvalResult&& lhs, TermEvalResult&& rhs) {
 }
 
 
-#define IMPL_ADD(Const) \
-  IMPL_EVALUATE_FUN(NumTraits<Const>::addI, { \
+#define IMPL_ADD(Const)                                                                    \
+  IMPL_EVALUATE_FUN(NumTraits<Const>::addI, {                                              \
     auto Poly = evaluateAdd<NumTraits<Const>>(std::move(evaluatedArgs[0]), std::move(evaluatedArgs[1])); \
-    auto out = TermEvalResult::template variant<1>(AnyPoly(std::move(Poly))); \
-    return out; \
-  }) \
+    auto out = TermEvalResult::template variant<1>(AnyPoly(std::move(Poly)));              \
+    return out;                                                                            \
+  })                                                                                       \
 
   IMPL_ADD(RealConstantType    )
   IMPL_ADD(RationalConstantType)
@@ -190,13 +177,13 @@ Polynom<Number> evaluateAdd(TermEvalResult&& lhs, TermEvalResult&& rhs) {
 /// Functions that are only handled for constants
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#define IMPL_EVAL_UNARY(Const, INTER, clsr) \
-  IMPL_EVALUATE_FUN(Interpretation::INTER, { \
-    return tryEvalConstant1<Const>(orig, evaluatedArgs, clsr);  \
+#define IMPL_EVAL_UNARY(Const, INTER, clsr)                                                \
+  IMPL_EVALUATE_FUN(Interpretation::INTER, {                                               \
+    return tryEvalConstant1<Const>(orig, evaluatedArgs, clsr);                             \
   } )
 
-#define IMPL_EVAL_BINARY(Const, INTER, expr) \
-  IMPL_EVALUATE_FUN(Interpretation::INTER, { \
+#define IMPL_EVAL_BINARY(Const, INTER, expr)                                               \
+  IMPL_EVALUATE_FUN(Interpretation::INTER, {                                               \
     return tryEvalConstant2<Const>(orig, evaluatedArgs, [] (Const l, Const r) { return expr; }); \
   } )
 
@@ -208,15 +195,15 @@ IMPL_EVAL_UNARY(IntegerConstantType, INT_SUCCESSOR, [] (IntegerConstantType x) -
 
 /////////////////// INT_QUOTIENT_E and friends
 
-#define IMPL_QUOTIENT_REMAINDER(Const, NUM, SUFFIX) \
-  IMPL_EVAL_BINARY(Const, NUM ##  _QUOTIENT_ ## SUFFIX,  l.quotient ## SUFFIX(r)) \
+#define IMPL_QUOTIENT_REMAINDER(Const, NUM, SUFFIX)                                        \
+  IMPL_EVAL_BINARY(Const, NUM ##  _QUOTIENT_ ## SUFFIX,  l.quotient ## SUFFIX(r))          \
   IMPL_EVAL_BINARY(Const, NUM ## _REMAINDER_ ## SUFFIX,  l - (l.quotient ## SUFFIX (r)*r)) \
 
-#define IMPL_QUOTIENT_REMAINDERS(Const, NUM) \
-  IMPL_QUOTIENT_REMAINDER(Const, NUM, E) \
-  IMPL_QUOTIENT_REMAINDER(Const, NUM, T) \
-  IMPL_QUOTIENT_REMAINDER(Const, NUM, F) \
-  IMPL_EVAL_BINARY(Const, NUM ## _MINUS, l - r) \
+#define IMPL_QUOTIENT_REMAINDERS(Const, NUM)                                               \
+  IMPL_QUOTIENT_REMAINDER(Const, NUM, E)                                                   \
+  IMPL_QUOTIENT_REMAINDER(Const, NUM, T)                                                   \
+  IMPL_QUOTIENT_REMAINDER(Const, NUM, F)                                                   \
+  IMPL_EVAL_BINARY(Const, NUM ## _MINUS, l - r)                                            \
 
   IMPL_QUOTIENT_REMAINDERS(RealConstantType    , REAL)
   IMPL_QUOTIENT_REMAINDERS(RationalConstantType, RAT )
@@ -234,10 +221,10 @@ IMPL_EVAL_UNARY(IntegerConstantType, INT_TRUNCATE, [] (IntegerConstantType x) ->
 IMPL_EVAL_UNARY(IntegerConstantType, INT_ROUND   , [] (IntegerConstantType x) -> IntegerConstantType { return x; })
 
 // same impl for fractionals
-#define IMPL_FRAC_FLOOR_FRIENDS(Const, NUM) \
-  IMPL_EVAL_UNARY(Const, NUM ## _FLOOR   , [](Const x) -> Const { return x.floor();   }) \
-  IMPL_EVAL_UNARY(Const, NUM ## _CEILING , [](Const x) -> Const { return x.ceiling(); }) \
-  IMPL_EVAL_UNARY(Const, NUM ## _TRUNCATE, [](Const x) -> Const { return x.truncate();}) \
+#define IMPL_FRAC_FLOOR_FRIENDS(Const, NUM)                                                \
+  IMPL_EVAL_UNARY(Const, NUM ## _FLOOR   , [](Const x) -> Const { return x.floor();   })   \
+  IMPL_EVAL_UNARY(Const, NUM ## _CEILING , [](Const x) -> Const { return x.ceiling(); })   \
+  IMPL_EVAL_UNARY(Const, NUM ## _TRUNCATE, [](Const x) -> Const { return x.truncate();})   \
 
   IMPL_FRAC_FLOOR_FRIENDS(RealConstantType    , REAL)
   IMPL_FRAC_FLOOR_FRIENDS(RationalConstantType, RAT)
@@ -246,7 +233,7 @@ IMPL_EVAL_UNARY(IntegerConstantType, INT_ROUND   , [] (IntegerConstantType x) ->
  
 /////////////////// RAT_TO_INT and friends
 
-#define IMPL_NUM_CVT(Const, NUM) \
+#define IMPL_NUM_CVT(Const, NUM)                                                           \
     IMPL_EVAL_UNARY(Const, NUM ## _TO_INT, [](Const x) -> IntegerConstantType  { return IntegerConstantType::floor(x); }) \
     IMPL_EVAL_UNARY(Const, NUM ## _TO_RAT, [](Const x) -> RationalConstantType { return RationalConstantType(x);       }) \
     IMPL_EVAL_UNARY(Const, NUM ## _TO_REAL,[](Const x) -> RealConstantType     { return RealConstantType(x);           }) \
@@ -259,8 +246,8 @@ IMPL_EVAL_UNARY(IntegerConstantType, INT_ROUND   , [] (IntegerConstantType x) ->
 
 /////////////////// QUOTIENT 
 //
-#define IMPL_QUOTIENT(Const, NUM) \
-    IMPL_EVAL_BINARY(Const, NUM ## _QUOTIENT, l / r) \
+#define IMPL_QUOTIENT(Const, NUM)                                                          \
+    IMPL_EVAL_BINARY(Const, NUM ## _QUOTIENT, l / r)                                       \
 
   IMPL_QUOTIENT(RealConstantType    , REAL)
   IMPL_QUOTIENT(RationalConstantType, RAT )

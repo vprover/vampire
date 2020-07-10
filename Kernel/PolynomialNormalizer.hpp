@@ -18,7 +18,7 @@
 
 #ifndef __POLYNOMIAL_NORMALIZER_HPP__
 #define __POLYNOMIAL_NORMALIZER_HPP__
-#define DEBUG(...) //DBG(__VA_ARGS__)
+#define DEBUG(...) DBG(__VA_ARGS__)
 
 namespace Kernel {
 
@@ -34,6 +34,13 @@ public:
   TermEvalResult(Coproduct const& super) : Coproduct(          super ) {}
   bool isPoly() const& { return is<1>(); }
   AnyPoly const& asPoly() const& { return unwrap<1>(); }
+  AnyPoly      & asPoly()      & { return unwrap<1>(); }
+  template<class Config>
+  TermList toTerm() { return match<TermList> ( 
+      [](TermList& t) { return t; },
+      [](AnyPoly& p) { return p.template toTerm_<Config>(); }
+      );
+  }
 };
 
 
@@ -71,22 +78,22 @@ template<class Config>
 class PolynomialNormalizer {
 public:
   LitEvalResult evaluate(Literal* in) const;
-  TermList evaluate(TermList in) const;
-  TermList evaluate(Term* in) const;
+  TermEvalResult evaluate(TermList in) const;
+  TermEvalResult evaluate(Term* in) const;
 
 private:
   struct RecursionState;
-  LitEvalResult evaluateStep(Literal* in) const;
+  LitEvalResult evaluateStep(Literal* orig, TermEvalResult* evaluatedArgs) const;
 
   TermEvalResult evaluateStep(Term* orig, TermEvalResult* evaluatedArgs) const;
 };
 
-
-/**
- * For every Theory::Interpretation that represents a predicate one specialization of this template function must be provided.
- */
-template<Theory::Interpretation inter> 
-LitEvalResult evaluateLit(Literal* lit);
+//
+// /**
+//  * For every Theory::Interpretation that represents a predicate one specialization of this template function must be provided.
+//  */
+// template<Theory::Interpretation inter> 
+// LitEvalResult evaluateLit(Literal* orig, TermEvalResult* evaluatedArgs);
 
 /**
  * For every Theory::Interpretation that represents a function one specialization of this struct must be provided.
@@ -100,26 +107,49 @@ struct FunctionEvaluator {
 };
 
 
+template<Theory::Interpretation inter>
+struct PredicateEvaluator {
+  template<class PolynomialNormalizerConfig>
+  static LitEvalResult evaluate(Literal* orig, TermEvalResult* evaluatedArgs);
+};
+
 #include "Kernel/PolynomialNormalizer/FunctionEvaluator.hpp"
+#include "Kernel/PolynomialNormalizer/PredicateEvaluator.hpp"
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Implementation of literal evaluation
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+template<class Config>
+inline Literal* createLiteral(Literal* orig, TermEvalResult* evaluatedArgs) {
+  auto arity = orig->arity();
+
+  Stack<TermList> args(arity);
+  for (int i = 0; i < arity; i++) {
+    args.push(std::move(evaluatedArgs[i]).match<TermList>(
+      [](TermList&& t) { return t;                            },
+      [](AnyPoly&&  p) { return p.template toTerm_<Config>(); }
+      ));
+  }
+  return Literal::create(orig, args.begin());
+}
+
+
 template<class Config> LitEvalResult PolynomialNormalizer<Config>::evaluate(Literal* lit) const {
-  Stack<TermList> terms(lit->arity());
+  Stack<TermEvalResult> terms(lit->arity());
   for (int i = 0; i < lit->arity(); i++) {
     terms.push(evaluate(*lit->nthArgument(i)));
   }
-  return evaluateStep(Literal::create(lit, terms.begin()));
+  return evaluateStep(lit, terms.begin());
 }
+#define DEBUG(...) DBG(__VA_ARGS__)
 
-template<class Config> LitEvalResult PolynomialNormalizer<Config>::evaluateStep(Literal* lit) const {
+template<class Config> LitEvalResult PolynomialNormalizer<Config>::evaluateStep(Literal* orig, TermEvalResult* evaluatedArgs) const {
   CALL("PolynomialNormalizer::evaluateStep(Literal* term)")
-  DEBUG("evaluating: ", lit->toString());
+  DEBUG("evaluating: ", orig->toString());
 
-#define HANDLE_CASE(INTER) case Interpretation::INTER: return evaluateLit<Interpretation::INTER>(lit); 
-#define IGNORE_CASE(INTER) case Interpretation::INTER: return LitEvalResult::literal(lit);
+#define HANDLE_CASE(INTER) case Interpretation::INTER: return PredicateEvaluator<Interpretation::INTER>::evaluate<Config>(orig, evaluatedArgs); 
+#define IGNORE_CASE(INTER) case Interpretation::INTER: return LitEvalResult::literal(createLiteral<Config>(orig, evaluatedArgs));
 #define HANDLE_NUM_CASES(NUM) \
       IGNORE_CASE(NUM ## _IS_INT) /* TODO */ \
       IGNORE_CASE(NUM ## _IS_RAT) /* TODO */ \
@@ -130,7 +160,7 @@ template<class Config> LitEvalResult PolynomialNormalizer<Config>::evaluateStep(
       HANDLE_CASE(NUM ## _LESS_EQUAL) 
 
   //TODO create function theory->tryInterpret(Predicate|Function)
-  auto sym = env.signature->getPredicate(lit->functor());
+  auto sym = env.signature->getPredicate(orig->functor());
   if (sym->interpreted()) {
     auto inter = static_cast<Signature::InterpretedSymbol*>(sym)->getInterpretation();
 
@@ -149,10 +179,13 @@ template<class Config> LitEvalResult PolynomialNormalizer<Config>::evaluateStep(
       default:
         // DBG("WARNING: unexpected interpreted predicate: ", lit->toString())
         ASSERTION_VIOLATION
-        return LitEvalResult::literal(lit);
+          DBG("lala 1")
+        return LitEvalResult::literal(createLiteral<Config>(orig, evaluatedArgs));
     }
   } else {
-    return LitEvalResult::literal( lit );
+          DBG("lala 2")
+            DBG(evaluatedArgs[0])
+    return LitEvalResult::literal(createLiteral<Config>(orig, evaluatedArgs));
   }
 
 #undef HANDLE_CASE
@@ -177,17 +210,17 @@ TermEvalResult evaluateConst(typename number::ConstantType c) {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-template<class Config> TermList PolynomialNormalizer<Config>::evaluate(TermList term) const {
+template<class Config> TermEvalResult PolynomialNormalizer<Config>::evaluate(TermList term) const {
   if (term.isTerm()) {
     return evaluate(term.term()); 
   } else {
     ASS_REP(term.isVar(), term);
     /* single variables can't be simplified */
-    return term;
+    return TermEvalResult::variant<0>(term);
   }
 }
 
-template<class Config> TermList PolynomialNormalizer<Config>::evaluate(Term* term) const {
+template<class Config> TermEvalResult PolynomialNormalizer<Config>::evaluate(Term* term) const {
   CALL("PolynomialNormalizer::evaluate(Term* term)")
   DEBUG("evaluating ", term->toString())
   static Map<Term*, TermEvalResult> memo;
@@ -271,11 +304,12 @@ template<class Config> TermList PolynomialNormalizer<Config>::evaluate(Term* ter
   std::move(std::make_move_iterator(args.begin()),
             std::make_move_iterator(args.end()),
             &out);
-  auto out_ = std::move(out).match<TermList>(
-        [](TermList&& l) { return l; }
-      , [](AnyPoly&&  p) { return p.template toTerm_<Config>(); }
-      ); 
-  return out_;
+  return out;
+  // auto out_ = std::move(out).match<TermList>(
+  //       [](TermList&& l) { return l; }
+  //     , [](AnyPoly&&  p) { return p.template toTerm_<Config>(); }
+  //     ); 
+  // return out_;
 }
 
 
@@ -294,6 +328,7 @@ inline TermList createTerm(unsigned fun, const Signature::Symbol& sym, TermEvalR
   return TermList(Term::create(fun, arity, args.begin()));
 }
 
+#define DEBUG(...) DBG(__VA_ARGS__)
 
 template<class Config> TermEvalResult PolynomialNormalizer<Config>::evaluateStep(Term* orig, TermEvalResult* args) const {
   CALL("PolynomialNormalizer::evaluateStep(Term* orig, TermEvalResult* args)")
@@ -370,8 +405,9 @@ template<class Config> TermEvalResult PolynomialNormalizer<Config>::evaluateStep
         }
       }
 
-    } 
+    }
   } catch (MachineArithmeticException) { /* nop */ }
+  // /* uninterpreted or evaluation failed */
   return TermEvalResult::template variant<0>(createTerm<Config>(functor, *sym, args));
 }
 
@@ -381,7 +417,4 @@ template<class Config> TermEvalResult PolynomialNormalizer<Config>::evaluateStep
 #undef DEBUG
 
 
-// template<> struct Lib::integrity<Kernel::TermEvalResult>  {
-//   static void check(const Kernel::TermEvalResult& self, const char* file, int line);
-// };
 #endif // __POLYNOMIAL_NORMALIZER_HPP__

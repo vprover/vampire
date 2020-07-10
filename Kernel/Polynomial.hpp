@@ -282,9 +282,13 @@ private:
   using Cache = Map<ComplexPolynom, ComplexPolynom*, Hasher>;
   static Cache polynoms;
 
+  const ComplexPolynom&     isComplex() const& { return _inner.template is<0>(); }
+  const ComplexPolynom& unwrapComplex() const& { return _inner.template unwrap<0>(); }
 
 public:
+  // TODO rename to isNumber
   bool isCoeff() const& { return _inner.template is<1>(); }
+  // TODO rename to unwrapNumber
   Coeff unwrapCoeff() const& { return _inner.template unwrap<1>(); }
 
   friend ostream& operator<<(ostream& out, const Polynom& self) { 
@@ -294,6 +298,20 @@ public:
         );
     return out;
   }
+
+  static std::pair<Polynom, Polynom> cancel(Polynom& lhs, Polynom& rhs) {
+   // TODO
+    return make_pair(lhs,rhs);
+  }
+
+  template<class Config>
+  TermList toTerm() { 
+    return _inner.template match<TermList>(
+          [](ComplexPolynom* self) { return ComplexPolynom::template toTerm<Config>(*self); }
+        , [](Coeff self          ) { return TermList(theory->representConstant(self)); }
+        );
+  }
+
   template<class Config>
   static TermList toTerm(Polynom& self) { 
     return self._inner.template match<TermList>(
@@ -301,6 +319,7 @@ public:
         , [](Coeff self          ) { return TermList(theory->representConstant(self)); }
         );
   }
+
 public:
 
   template<class Config>
@@ -344,6 +363,7 @@ public:
         });
   }
 
+  Polynom(TermList t) : Polynom(Coeff(1), t) {}
   Polynom(Coeff coeff, TermList t) : _inner(Inner::template variant<0>(ComplexPolynom::create(ComplexPolynom(coeff, t)))) {}
   explicit Polynom(Coeff constant)          : _inner(Inner::template variant<1>(constant)) {}
   explicit Polynom(ComplexPolynom* inner)   : _inner(Inner::template variant<0>(inner)) {} 
