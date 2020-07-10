@@ -598,9 +598,9 @@ ALL_NUMBERS_TEST(polynomial__sorting_3,
       )
 
 ALL_NUMBERS_TEST(polynomial__sorting_4,
-      p(mul(add(x, 1), add(x, -1))),
+      p((x + 1) * (x + -1)),
       /* (x + 1) * (x - 1) */
-      p(add(-1, mul(x,x)))
+      p(add(-1, (x * x)))
       )
 
 ALL_NUMBERS_TEST(polynomial__sorting_5,
@@ -609,18 +609,18 @@ ALL_NUMBERS_TEST(polynomial__sorting_5,
       )
 
 ALL_NUMBERS_TEST(polynomial__sorting_6,
-      p(mul(mul(b,a),c)),
-      p(mul(a,mul(b,c)))
+      p((b * a) * c),
+      p(a * (b * c))
       )
 
 ALL_NUMBERS_TEST(eval_test_cached_1,
-      p(mul(mul(mul(b,a),c), mul(mul(b,a),c))),
-      p(mul(a,mul(a,mul(b,mul(b,mul(c,c))))))
+      p(((b * a) * c) *  ((b * a) * c)),
+      p(a * (a * (b * (b * (c * c)))))
       )
 
 ALL_NUMBERS_TEST(eval_test_cached_2,
-      eq(mul(mul(b,a),c), f(mul(mul(b,a),c))),
-      eq(mul(a,mul(b,c)), f(mul(a,mul(b,c))))
+      (b * a) * c == f((b * a) * c),
+      a * (b * c) == f(a * (b * c))
       )
 
 ALL_NUMBERS_TEST(eval_bug_1,
@@ -629,11 +629,64 @@ ALL_NUMBERS_TEST(eval_bug_1,
       )
 
 ALL_NUMBERS_TEST(eval_bug_2,
-      eq(mul(x,mul(y,z)), mul(mul(x,y),z)),
+      x * (y * z) == (x * y) *z,
       true
       )
+
+ALL_NUMBERS_TEST(eval_bug_3,
+      x + (y + z) != (x + y) + z,
+      false
+      )
+
+ALL_NUMBERS_TEST(eval_cancellation_1,
+    x + y == a + y,
+    x     == a
+    )
+
+ALL_NUMBERS_TEST(eval_cancellation_2,
+    x + 3 == a + 2,
+    x + 1 == a
+    )
+
+ALL_NUMBERS_TEST(eval_cancellation_3,
+    x + (b * 3) == a + (b * 2),
+    x + b == a
+    )
+
+ALL_NUMBERS_TEST(eval_cancellation_4,
+    x + (y * 3) == a + (y * 2),
+    x + y == a
+    )
+
+ALL_NUMBERS_TEST(eval_cancellation_5,
+    x + (y * 3) + z + b == a + (y * 2) + z + (b * 3),
+    x +  y      + z     == a           + z + (b * 2)
+    )
+
+// ALL_NUMBERS_TEST(eval_cancellation_6_nop,
+//         x  == x * -1,
+//         x  == minus(x)
+//     // x + y  == a + (b * -4) or x + y  == a + (b * -4)
+//     // x + y + (b * 4)  == a or x + y  == a + (b * -4)
+//     )
+
+ALL_NUMBERS_TEST(eval_cancellation_7,
+    a * y * 6 == a * y * 2,
+    a * y * 3 == a * y 
+    )
+
+
+ALL_NUMBERS_TEST(eval_cancellation_8,
+    a * y * -2 == a * y * -1,
+    a * y * 2 == a * y 
+    )
+
+//       x + 3 = a + 2         ==> x + 1 = a
+//       x + 3 * b = a + 2 * b ==> x + b = a
+
+
 // lG93(X0,X1,X2) = $sum($product(13.0,X2),$sum($product(-10.0,X1),$product(X0,-20.0)))
 
 // TODO: cases x = k * x <-> k = 1 | x = 0 
 // TODO: cases x = k + x <-> k = 0 
-// TODO: cases x + x = k <->  = k/2
+// TODO: cases x + x = k <->  = k/

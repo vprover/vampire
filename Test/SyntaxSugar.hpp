@@ -22,7 +22,7 @@
 
 #define __CLSR_RELATION(name, inter) \
   auto name = [](TermWrapper lhs, TermWrapper rhs) -> Literal&  {  \
-    return *Literal::create2(env.signature->addInterpretedPredicate(inter, #name),  \
+    return *Literal::create2(env.signature->getInterpretingSymbol(inter),  \
         true, lhs,rhs);  \
   }; \
  
@@ -56,7 +56,7 @@
 #define __CLSR_FUN_INTERPRETED(arity, mul, INT, _MULTIPLY) \
     auto mul = [](__ARGS_DECL(TermWrapper, arity)) -> TermWrapper {  \
       return TermList(Term::create ## arity( \
-            env.signature->addInterpretedFunction(Theory::Interpretation:: INT ## _MULTIPLY, #mul),\
+            env.signature->getInterpretingSymbol(Theory::Interpretation:: INT ## _MULTIPLY),\
             __ARGS_EXPR(Type, arity))\
           );\
     }; \
@@ -177,6 +177,18 @@
         ASS_REP(!_term.isEmpty(), _term); \
       } \
       operator TermList() {return _term;} \
+      TermWrapper operator*(TermWrapper other) { \
+        return TermList(Term::create2(env.signature->getInterpretingSymbol(Theory::sort ## _MULTIPLY), *this, other)); \
+      }        \
+      TermWrapper operator+(TermWrapper other) { \
+        return TermList(Term::create2(env.signature->getInterpretingSymbol(Theory::sort ## _PLUS), *this, other)); \
+      } \
+      Literal& operator==(TermWrapper other) { \
+        return *Literal::createEquality(true, *this, other, __TO_SORT_ ## sort); \
+      } \
+      Literal& operator!=(TermWrapper other) { \
+        return *Literal::createEquality(false, *this, other, __TO_SORT_ ## sort); \
+      } \
     }; \
    \
     auto eq = [](TermWrapper lhs, TermWrapper rhs) -> Literal&  { return *Literal::createEquality(true, lhs, rhs, __TO_SORT_ ## sort); };  \
