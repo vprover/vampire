@@ -106,7 +106,7 @@ void stackTraverseIf(TermList term, Predicate pred, Fn action) {
     if(t.isTerm()) {
       auto& trm = *t.term();
       if (pred(trm)) {
-        for (auto i = 0; i < trm.arity(); i++) {
+        for (unsigned i = 0; i < trm.arity(); i++) {
           todo.push(trm[i]);
         }
       } else {
@@ -120,12 +120,12 @@ void stackTraverseIf(TermList term, Predicate pred, Fn action) {
 
 
 /**
- * We want to smplify terms that are interpred by abelian groups. e.g. (1+a)+1 -> 2 + a ... 
+ * We want to simplify terms that are interpreted by abelian groups. e.g. (1+a)+1 -> 2 + a ...
  * the standard evaluation will not do this. 
  *
  * Additionally evaluator has a weekly normalizing behaviour. Namely it re-brackets sums, such that the lhs 
  * of the operation is always a non-operator term. Further all interpreted constants will be collapsed into 
- * the 'left-most' term. The left most term is ommited if it is the identity element.
+ * the 'left-most' term. The left most term is omitted if it is the identity element.
  *
  * x + ( y + ( t + 4 ) + r ) + 5  ==> ( ( (9 + x) + y ) + t ) + r
  * x + ( y + 0 )                  ==> x + y
@@ -1425,38 +1425,40 @@ bool InterpretedLiteralEvaluator::balanceDivide(Interpretation multiply,
     return false;    
 }
 
-// // TODO document me
-// Literal& balance(Literal& in)
-// {
-//   /* we only rebalance equalities */
-//   if (!in.isEquality()) {
-//     return in;
-//
-//   } else {
-//     ASS(in.arity() == 2);
-//     unsigned sort;
-//     if (!SortHelper::tryGetResultSort(in[0], sort) &&
-//         !SortHelper::tryGetResultSort(in[1], sort)) {
-//       return in;
-//     } else {
-//
-//       Literal* out;
-//       switch (sort) {
-// #define _CASE(SRT, ConstantType) \
-//         case Sorts::SRT: \
-//           if (!balance<ConstantType>(in, out)){ \
-//             return in; \
-//           } 
-//         _CASE(SRT_REAL    ,    RealConstantType)
-//         _CASE(SRT_INTEGER , IntegerConstantType)
-//         _CASE(SRT_RATIONAL,RationalConstantType)
-// #undef _CASE
-//         default: return in;
-//       }
-//       return *out;
-//     }
-//   }
-// }
+/*
+ // TODO document me
+ Literal& balance(Literal& in)
+ {
+   // we only rebalance equalities
+   if (!in.isEquality()) {
+     return in;
+
+   } else {
+     ASS(in.arity() == 2);
+     unsigned sort;
+     if (!SortHelper::tryGetResultSort(in[0], sort) &&
+         !SortHelper::tryGetResultSort(in[1], sort)) {
+       return in;
+     } else {
+
+       Literal* out;
+       switch (sort) {
+ #define _CASE(SRT, ConstantType) \
+         case Sorts::SRT: \
+           if (!balance<ConstantType>(in, out)){ \
+             return in; \
+           }
+         _CASE(SRT_REAL    ,    RealConstantType)
+         _CASE(SRT_INTEGER , IntegerConstantType)
+         _CASE(SRT_RATIONAL,RationalConstantType)
+ #undef _CASE
+         default: return in;
+       }
+       return *out;
+     }
+   }
+ }
+*/
 
 class LiteralNormalizer 
 {

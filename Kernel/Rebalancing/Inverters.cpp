@@ -9,7 +9,7 @@ namespace Inverters {
 #define CASE_INVERT(sort, fun, expr)                                           \
   case NumTraits<sort>::fun##I: {                                             \
     _Pragma("GCC diagnostic push") \
-    _Pragma("GCC diagnostic ignored \"-Wunused-local-typedef\"") \
+    _Pragma("GCC diagnostic ignored \"-Wunused-local-typedefs\"") \
     using number = NumTraits<sort>;                                           \
     _Pragma("GCC diagnostic pop") \
     return expr;                                                               \
@@ -55,7 +55,7 @@ bool NumberTheoryInverter::canInvertTop(const InversionContext &ctxt) {
 #define CASE_DO_INVERT(sort, fun, expr)                                        \
   case NumTraits<sort>::fun##I: {                                             \
     _Pragma("GCC diagnostic push") \
-    _Pragma("GCC diagnostic ignored \"-Wunused-local-typedef\"") \
+    _Pragma("GCC diagnostic ignored \"-Wunused-local-typedefs\"") \
     using number = NumTraits<sort>;                                           \
     return expr;                                                               \
     _Pragma("GCC diagnostic pop") \

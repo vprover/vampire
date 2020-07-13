@@ -201,7 +201,7 @@ void BackwardSubsumptionDemodulation::performWithQueryLit(Clause* sideCl, Litera
 #endif
 
   bool mustPredInit = false;
-  bool mustPredActive = false;
+  // bool mustPredActive = false;
   unsigned mustPred;
 
   SLQueryResultIterator rit = _index->getInstances(candidateQueryLit, false, false);
@@ -268,12 +268,14 @@ void BackwardSubsumptionDemodulation::performWithQueryLit(Clause* sideCl, Litera
           mustPred = pred;
         }
       }
+      /*
       if (mustPred == 0) {
         // for positive equality we need to have skipped at least in the remaining literals
         mustPredActive = (numPosEqs >= 2);
       } else {
         mustPredActive = true;
       }
+      */
     }
     bool haveMustPred = false;
     for (unsigned ii = 0; ii < candidate->length(); ++ii) {
