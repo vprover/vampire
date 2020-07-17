@@ -26,6 +26,7 @@
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/Substitution.hpp"
+#include "Kernel/TermIterators.hpp"
 
 #include "Lib/Environment.hpp"
 #include "Lib/Metaiterators.hpp"
@@ -574,6 +575,42 @@ namespace Inferences {
     auto it2 = getMappingIterator(it1, SubtermDisequalityFn(c));
     auto it3 = getFlattenedIterator(it2);
     return pvi(it3);
+  }
+
+  Clause* TwoSuccessorsISE::simplify(Clause* c)
+  {
+    CALL("TwoSuccessorsISE::simplify");
+
+    auto natTA = env.signature->getNat();
+    auto zero = natTA->getZeroConstructor()->functor();
+    auto succ = natTA->getSuccConstructor()->functor();
+
+    int length = c->length();
+    for (int i = 0; i < length; i++)
+    {
+      Literal *lit = (*c)[i];
+      NonVariableIterator nvi(lit);
+      while (nvi.hasNext()) {
+        TermList tl = nvi.next();
+        ASS(tl.isTerm());
+        auto t1 = tl.term();
+        if (t1->functor() == succ && t1->nthArgument(0)->isTerm())
+        {
+          auto t2 = t1->nthArgument(0)->term();
+          if (t2->functor() == succ) {
+            // found an occurence s(s(...)), so remove clause
+            return 0;
+          }
+          else if (t2->functor() == zero) {
+            // found an occurence s(0), so remove clause
+            return 0;
+          }
+        }
+      }
+    }
+
+    // no occurences s(s(...)) found, so keep clause
+    return c;
   }
  
 }

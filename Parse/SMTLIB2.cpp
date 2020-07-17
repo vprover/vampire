@@ -193,6 +193,21 @@ void SMTLIB2::readBenchmark(LExprList* bench)
       continue;
     }
 
+    if (ibRdr.tryAcceptAtom("declare-nat"))
+    {
+      vstring nat = ibRdr.readAtom();
+      vstring zero = ibRdr.readAtom();
+      vstring succ = ibRdr.readAtom();
+      vstring pred = ibRdr.readAtom();
+      vstring less = ibRdr.readAtom();
+
+      readDeclareNat(nat, zero, succ, pred, less);
+
+      ibRdr.acceptEOL();
+
+      continue;
+    }
+
     if (ibRdr.tryAcceptAtom("declare-codatatypes")) {
       LExprList* sorts = ibRdr.readList();
       LExprList* datatypes = ibRdr.readList();
@@ -1022,6 +1037,39 @@ void SMTLIB2::readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool 
 
     env.signature->addTermAlgebra(ta);
   }
+}
+
+void SMTLIB2::readDeclareNat(const vstring& nat, const vstring& zero, const vstring& succ, const vstring& pred, const vstring& less)
+{
+  _declaredSorts.insert(nat, 0);
+  bool added;
+  unsigned natSort = env.sorts->addSort(nat + "()",  added, false); // TODO: why false? shouldn't it be interpreted?
+
+  ASS(added);
+
+  Stack<TermAlgebraConstructor*> constructors;
+
+  Stack<vstring> destructorNamesZero;
+  Stack<unsigned> destructorArgSortsZero;
+  auto zeroConstructor = buildTermAlgebraConstructor(zero, natSort, destructorNamesZero, destructorArgSortsZero);
+  constructors.push(zeroConstructor);
+
+  Stack<vstring> destructorNamesSucc;
+  destructorNamesSucc.push(pred);
+  Stack<unsigned> destructorArgSortsSucc;
+  destructorArgSortsSucc.push(natSort);
+  auto succConstructor = buildTermAlgebraConstructor(succ, natSort, destructorNamesSucc, destructorArgSortsSucc);
+  constructors.push(succConstructor);
+
+  TermAlgebra* ta = new TermAlgebra(natSort, constructors.size(), constructors.begin(), false);
+  env.signature->addTermAlgebra(ta);
+
+  Stack<unsigned> argSorts;
+  argSorts.push(natSort);
+  argSorts.push(natSort);
+  auto pair = declareFunctionOrPredicate(less, Sorts::SRT_BOOL, argSorts);
+  NatTermAlgebra* nta = new NatTermAlgebra(ta, pair.first);
+  env.signature->setNat(nta);
 }
 
 TermAlgebraConstructor* SMTLIB2::buildTermAlgebraConstructor(vstring constrName, unsigned taSort,

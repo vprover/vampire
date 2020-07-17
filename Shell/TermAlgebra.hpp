@@ -26,6 +26,7 @@
 #include "Lib/Array.hpp"
 #include "Lib/VString.hpp"
 #include "Kernel/Sorts.hpp"
+#include "Kernel/Term.hpp"
 
 namespace Shell {
   class TermAlgebraConstructor {
@@ -114,6 +115,51 @@ namespace Shell {
     bool _allowsCyclicTerms;
     ConstructorArray _constrs;
   };
+
+  class BadNatTermAlgebra : public Lib::Exception {
+    public:
+      explicit BadNatTermAlgebra(char const* msg)
+        : Lib::Exception(msg)
+      { }
+  };
+
+  class NatTermAlgebra {
+    public:
+      CLASS_NAME(NatTermAlgebra);
+      USE_ALLOCATOR(NatTermAlgebra);
+
+      /** May throw BadNatTermAlgebra */
+      NatTermAlgebra(TermAlgebra* ta, unsigned lessPredicate);
+
+      TermAlgebra* termAlgebra() { return _ta; }
+      TermAlgebraConstructor* getZeroConstructor() { return _zero; }
+      TermAlgebraConstructor* getSuccConstructor() { return _succ; }
+      /** $less for nat */
+      unsigned getLessPredicate() { return _lessPredicate; }
+
+      /*
+       * Convenience methods for generating interpreted terms and predicates
+       */
+      Kernel::TermList createZero()
+      {
+        return Kernel::TermList(Kernel::Term::create(_zero->functor(), 0, 0));
+      }
+      Kernel::TermList createSucc(Kernel::TermList arg)
+      {
+        return Kernel::TermList(Kernel::Term::create1(_succ->functor(), arg));
+      }
+      Kernel::Literal* createLess(bool polarity, Kernel::TermList lhs, Kernel::TermList rhs)
+      {
+        return Kernel::Literal::create2(_lessPredicate, polarity, lhs, rhs);
+      }
+
+    private:
+      TermAlgebra* _ta;
+      TermAlgebraConstructor* _zero;
+      TermAlgebraConstructor* _succ;
+      unsigned _lessPredicate;
+  };
+
 }
 
 #endif

@@ -150,7 +150,20 @@ private:
   struct LiteralIterator;
   struct SubtermDisequalityIterator;
 };
+
+// hack: deletion rule which removes each clause containing at least one term of either the form s(s(...)) or the form s(0).
+class TwoSuccessorsISE
+  : public ImmediateSimplificationEngine
+{
+
+public:
+  CLASS_NAME(TwoSuccessorsISE);
+  USE_ALLOCATOR(TwoSuccessorsISE);
   
+  Kernel::Clause* simplify(Kernel::Clause* c);
+};
+
+
 };
 
 #endif

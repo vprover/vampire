@@ -28,6 +28,7 @@
 
 #include "Kernel/Theory.hpp"
 #include "Options.hpp"
+#include "Shell/TermAlgebra.hpp"
 
 #include <initializer_list>
 
@@ -117,6 +118,14 @@ private:
      recursive) */
   bool addSubtermDefinitions(unsigned subtermPredicate, TermAlgebraConstructor* c);
 
+  // nat axioms
+  void addZeroSmallestElementAxiom(NatTermAlgebra* nat);
+  void addDefineSubEqAxiom(NatTermAlgebra* nat);
+  void addMonotonicityAxiom(NatTermAlgebra* nat);
+  void addTransitivityAxioms(NatTermAlgebra* nat);
+  void addTotalityAxiom(NatTermAlgebra* nat);
+  void addDisjointnessAxioms(NatTermAlgebra* nat);
+  
   void addTheoryClauseFromLits(std::initializer_list<Literal*> lits, InferenceRule rule, unsigned level);
   void addAndOutputTheoryUnit(Unit* unit, unsigned level);
 };
