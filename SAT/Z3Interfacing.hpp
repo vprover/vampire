@@ -26,6 +26,12 @@
 
 #if VZ3
 
+/* an (imperfect and under development) version of tracing the Z3 interface
+ *  so that vampire can be "factored-out" of runs which cause particular Z3
+ *  behaviour. Should be useful for producing MWEs for the Z3 people.
+ */
+#define PRINT_CPP(X) // cout << X << endl;
+
 #include "Lib/DHMap.hpp"
 
 #include "SATSolver.hpp"
@@ -196,11 +202,17 @@ private:
 
   z3::expr getNameExpr(unsigned var){
     vstring name = "v"+Lib::Int::toString(var);
+
+    PRINT_CPP("z3::expr nm = c.bool_const(\""<< name << "\");")
+
     return  _context.bool_const(name.c_str());
   }
   // careful: keep native constants' names distinct from the above ones (hence the "c"-prefix below)
   z3::expr getNameConst(const vstring& symbName, z3::sort srt){
     vstring name = "c"+symbName;
+
+    PRINT_CPP("z3::expr e = c.constant(\""<< name << "\",s);")
+
     return _context.constant(name.c_str(),srt);
   }
 
