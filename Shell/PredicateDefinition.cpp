@@ -909,6 +909,9 @@ void PredicateDefinition::count (TermList ts,int add, Unit* unit)
         count(TermList(sd->getTupleTerm()), add, unit);
         break;
 
+      case Term::SF_MATCH:
+        break; // args are handled later
+
       default:
         ASSERTION_VIOLATION;
     }

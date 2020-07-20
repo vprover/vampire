@@ -151,10 +151,15 @@ void NewCNF::process(Literal* literal, Occurrences &occurrences) {
   Stack<TermList> thenBranches;
   Stack<TermList> elseBranches;
 
+  Stack<unsigned> matchVariables;
+  Stack<List<Formula*>*> matchConditions;
+  Stack<List<TermList>*> matchBranches;
+
   Stack<TermList> arguments;
   Term::Iterator ait(literal);
   while (ait.hasNext()) {
-    arguments.push(findITEs(ait.next(), variables, conditions, thenBranches, elseBranches));
+    arguments.push(findITEs(ait.next(), variables, conditions, thenBranches, elseBranches,
+                            matchVariables, matchConditions, matchBranches));
   }
   Literal* processedLiteral = Literal::create(literal, arguments.begin());
 
@@ -162,7 +167,7 @@ void NewCNF::process(Literal* literal, Occurrences &occurrences) {
   List<LPair>::push(make_pair(processedLiteral, List<GenLit>::empty()),
                     literals);
 
-  LOG4("Found", variables.size(), "variable(s) inside", literal->toString());
+  LOG4("Found", variables.size(), "variable(s) for ITEs inside", literal->toString());
   LOG3("Replacing it by", processedLiteral->toString(), "with variable substitutions");
 
   unsigned iteCounter = 0;
@@ -237,6 +242,45 @@ void NewCNF::process(Literal* literal, Occurrences &occurrences) {
     iteCounter++;
   }
 
+  LOG4("Found", matchVariables.size(), "variable(s) for matches inside", literal->toString());
+  LOG3("Replacing it by", processedLiteral->toString(), "with variable substitutions");
+
+  while (matchVariables.isNonEmpty()) {
+    unsigned matchVar          = matchVariables.pop();
+    List<Formula*>* conditions = matchConditions.pop();
+    List<TermList>* branches   = matchBranches.pop();
+
+    List<LPair>* processedLiterals(0);
+
+    List<Formula*>::Iterator condIt(conditions);
+    List<TermList>::Iterator branchIt(branches);
+
+    while (List<LPair>::isNonEmpty(literals)) {
+      LPair p = List<LPair>::pop(literals);
+      Literal* literal = p.first;
+      List<GenLit>* gls = p.second;
+
+      while (condIt.hasNext()) {
+        ASS(branchIt.hasNext());
+
+        auto condition = condIt.next();
+        auto branch = branchIt.next();
+        enqueue(condition);
+
+        GenLit negCondition = GenLit(condition, NEGATIVE);
+
+        Substitution subst;
+        subst.bind(matchVar, branch);
+
+        Literal* branchLiteral = SubstHelper::apply(literal, subst);
+
+        List<LPair>::push(make_pair(
+          branchLiteral, List<GenLit>::cons(negCondition, gls)), processedLiterals);
+      }
+    }
+    literals = processedLiterals;
+  }
+
   ASS(variables.isEmpty());
   ASS(conditions.isEmpty());
   ASS(thenBranches.isEmpty());
@@ -261,7 +305,9 @@ void NewCNF::process(Literal* literal, Occurrences &occurrences) {
 }
 
 TermList NewCNF::findITEs(TermList ts, Stack<unsigned> &variables, Stack<Formula*> &conditions,
-                          Stack<TermList> &thenBranches, Stack<TermList> &elseBranches)
+                          Stack<TermList> &thenBranches, Stack<TermList> &elseBranches,
+                          Stack<unsigned> &matchVariables, Stack<List<Formula*>*> &matchConditions,
+                          Stack<List<TermList>*> &matchBranches)
 {
   CALL("NewCNF::findITEs");
 
@@ -275,7 +321,8 @@ TermList NewCNF::findITEs(TermList ts, Stack<unsigned> &variables, Stack<Formula
 
     Term::Iterator it(term);
     while (it.hasNext()) {
-      arguments.push(findITEs(it.next(), variables, conditions, thenBranches, elseBranches));
+      arguments.push(findITEs(it.next(), variables, conditions, thenBranches, elseBranches,
+                              matchVariables, matchConditions, matchBranches));
     }
 
     unsigned proj;
@@ -313,12 +360,35 @@ TermList NewCNF::findITEs(TermList ts, Stack<unsigned> &variables, Stack<Formula
     case Term::SF_LET_TUPLE: {
       TermList contents = *term->nthArgument(0);
       TermList processedLet = eliminateLet(sd, contents);
-      return findITEs(processedLet, variables, conditions, thenBranches, elseBranches);
+      return findITEs(processedLet, variables, conditions, thenBranches, elseBranches,
+                      matchVariables, matchConditions, matchBranches);
     }
 
     case Term::SF_TUPLE: {
       TermList tupleTerm = TermList(sd->getTupleTerm());
-      return findITEs(tupleTerm, variables, conditions, thenBranches, elseBranches);
+      return findITEs(tupleTerm, variables, conditions, thenBranches, elseBranches,
+                      matchVariables, matchConditions, matchBranches);
+    }
+
+    case Term::SF_MATCH: {
+      sort = sd->getSort();
+      auto matched = *term->nthArgument(0);
+      List<Formula*>* mconditions(0);
+      List<TermList>* mbranches(0);
+      for (unsigned int i = 1; i < term->arity(); i+=2) {
+        auto pattern = *term->nthArgument(i);
+        auto body = *term->nthArgument(i+1);
+        Formula* condition = new AtomicFormula(
+          Literal::createEquality(POSITIVE, matched, pattern, sd->getMatchedSort()));
+        List<Formula*>::push(condition, mconditions);
+        List<TermList>::push(body, mbranches);
+      }
+      matchConditions.push(mconditions);
+      matchBranches.push(mbranches);
+
+      unsigned var = createFreshVariable(sort);
+      matchVariables.push(var);
+      return TermList(var, false);
     }
 
     default:
@@ -570,6 +640,30 @@ void NewCNF::processITE(Formula* condition, Formula* thenBranch, Formula* elseBr
       introduceExtendedGenClause(occ, GenLit(condition, conditionSign), GenLit(branch, occ.sign()));
     }
   }
+}
+
+void NewCNF::processMatch(Term::SpecialTermData* sd, Term* term, Occurrences &occurrences)
+{
+  CALL("NewCNF::processMatch");
+  auto matched = *term->nthArgument(0);
+
+  for (unsigned int i = 1; i < term->arity(); i+=2) {
+    auto pattern = *term->nthArgument(i);
+    auto body = *term->nthArgument(i+1);
+    Formula* condition = new AtomicFormula(
+      Literal::createEquality(POSITIVE, matched, pattern, sd->getMatchedSort()));
+    auto branch = BoolTermFormula::create(body);
+
+    enqueue(condition);
+    enqueue(branch);
+
+    Occurrences::Iterator occit(occurrences);
+    while (occit.hasNext()) {
+      Occurrence occ = occit.next();
+      introduceExtendedGenClause(occ, GenLit(condition, NEGATIVE), GenLit(branch, occ.sign()));
+    }
+  }
+  while (occurrences.isNonEmpty()) { pop(occurrences); }
 }
 
 TermList NewCNF::eliminateLet(Term::SpecialTermData *sd, TermList contents)
@@ -1098,6 +1192,10 @@ void NewCNF::processBoolterm(TermList ts, Occurrences &occurrences)
     case Term::SF_LET:
     case Term::SF_LET_TUPLE:
       processLet(sd, *term->nthArgument(0), occurrences);
+      break;
+
+    case Term::SF_MATCH:
+      processMatch(sd, term, occurrences);
       break;
 
     default:

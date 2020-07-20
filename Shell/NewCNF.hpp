@@ -650,6 +650,7 @@ private:
   void processConstant(bool constant, Occurrences &occurrences);
   void processBoolVar(SIGN sign, unsigned var, Occurrences &occurrences);
   void processITE(Formula* condition, Formula* thenBranch, Formula* elseBranch, Occurrences &occurrences);
+  void processMatch(Term::SpecialTermData* sd, Term* term, Occurrences &occurrences);
   void processLet(Term::SpecialTermData* sd, TermList contents, Occurrences &occurrences);
   TermList eliminateLet(Term::SpecialTermData *sd, TermList contents);
 
@@ -657,7 +658,9 @@ private:
   TermList inlineLetBinding(unsigned symbol, Formula::VarList *bindingVariables, TermList binding, TermList contents);
 
   TermList findITEs(TermList ts, Stack<unsigned> &variables, Stack<Formula*> &conditions,
-                                 Stack<TermList> &thenBranches, Stack<TermList> &elseBranches);
+                                 Stack<TermList> &thenBranches, Stack<TermList> &elseBranches,
+                                 Stack<unsigned> &matchVariables, Stack<List<Formula*>*> &matchConditions,
+                                 Stack<List<TermList>*> &matchBranches);
 
   unsigned createFreshVariable(unsigned sort);
   void createFreshVariableRenaming(unsigned oldVar, unsigned freshVar);
