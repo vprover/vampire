@@ -2068,6 +2068,7 @@ public:
   void setAgeRatio(int v){ _ageWeightRatio.actualValue = v; }
   int weightRatio() const { return _ageWeightRatio.otherValue; }
   bool useLemmaPredicateLiteralSelection() const { return _useLemmaPredicateLiteralSelection.actualValue; }
+  bool useSuccessorDeletionRule() const { return _useSuccessorDeletionRule.actualValue; }
   bool useTheorySplitQueues() const { return _useTheorySplitQueues.actualValue; }
   Lib::vvector<int> theorySplitQueueRatios() const;
   Lib::vvector<float> theorySplitQueueCutoffs() const;
@@ -2347,6 +2348,7 @@ private:
 	ChoiceOptionValue<AgeWeightRatioShape> _ageWeightRatioShape;
 	UnsignedOptionValue _ageWeightRatioShapeFrequency;
   BoolOptionValue _useLemmaPredicateLiteralSelection;
+  BoolOptionValue _useSuccessorDeletionRule;
   BoolOptionValue _useTheorySplitQueues;
   StringOptionValue _theorySplitQueueRatios;
   StringOptionValue _theorySplitQueueCutoffs;

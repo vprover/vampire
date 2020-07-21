@@ -902,10 +902,15 @@ void Options::Options::init()
     _lookup.insert(&_ageWeightRatioShapeFrequency);
     _ageWeightRatioShapeFrequency.tag(OptionTag::SATURATION);
 
-    _useLemmaPredicateLiteralSelection = BoolOptionValue("lemma_literal_selection","lls",true);
+    _useLemmaPredicateLiteralSelection = BoolOptionValue("lemma_literal_selection","lls",false);
     _useLemmaPredicateLiteralSelection.description = "Turn on clause selection using multiple queues containing different clauses (split by amount of theory reasoning)";
     _lookup.insert(&_useLemmaPredicateLiteralSelection);
     _useLemmaPredicateLiteralSelection.tag(OptionTag::SATURATION);
+
+    _useSuccessorDeletionRule = BoolOptionValue("custom_successor_deletion","csd",false);
+    _useSuccessorDeletionRule.description = "Turn on custom deletion rule for the trace logic domain, which deletes all clauses containing terms of the form s(0) and terms of the form s(s(t)), for arbitrary subterms t";
+    _lookup.insert(&_useSuccessorDeletionRule);
+    _useSuccessorDeletionRule.tag(OptionTag::INFERENCES);
 
     _useTheorySplitQueues = BoolOptionValue("theory_split_queue","thsq",false);
     _useTheorySplitQueues.description = "Turn on clause selection using multiple queues containing different clauses (split by amount of theory reasoning)";

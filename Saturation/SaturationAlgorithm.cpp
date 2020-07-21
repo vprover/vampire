@@ -1636,7 +1636,7 @@ ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, cons
   res->addFront(new TautologyDeletionISE());
   res->addFront(new DuplicateLiteralRemovalISE());
 
-  if(prb.hasEquality() && env.signature->getNat() != nullptr) {
+  if(prb.hasEquality() && env.signature->getNat() != nullptr && env.options->useSuccessorDeletionRule()) {
     res->addFront(new TwoSuccessorsISE());
   }
 
