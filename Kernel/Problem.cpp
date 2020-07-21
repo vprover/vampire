@@ -88,6 +88,8 @@ Problem::~Problem()
   if(_property) { delete _property; }
 
   //TODO: decrease reference counter of clauses (but make sure there's no segfault...)
+
+  UnitList::destroy(_units);
 }
 
 /**
