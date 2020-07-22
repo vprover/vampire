@@ -1009,7 +1009,9 @@ void SMTLIB2::readDefineFunRec(const vstring& name, LExprList* iArgs, LExpr* oSo
     lhs = TermList(Term::createFormula(frm));
   }
 
-  Formula* fla = new AtomicFormula(Literal::createEquality(true,lhs,rhs,rangeSort));
+  auto lit = Literal::createEquality(true,lhs,rhs,rangeSort);
+  lit->makeRecFuncDef();
+  Formula* fla = new AtomicFormula(lit);
 
   FormulaUnit* fu = new FormulaUnit(fla, FromInput(UnitInputType::ASSUMPTION));
 

@@ -356,6 +356,7 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/GeneralSplitting.o\
          Shell/GoalGuessing.o\
          Shell/Grounding.o\
+         Shell/InductionHelper.o\
          Shell/InequalitySplitting.o\
          Shell/InterpolantMinimizer.o\
          Shell/InterpolantMinimizerNew.o\

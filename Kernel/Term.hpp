@@ -476,6 +476,16 @@ public:
     return _isTwoVarEquality;
   }
 
+  void makeRecFuncDef()
+  {
+    _isRecFuncDef = true;
+  }
+
+  bool isRecFuncDef() const
+  {
+    return _isRecFuncDef;
+  }
+
   const vstring& functionName() const;
 
   /** True if the term is, in fact, a literal */
@@ -653,6 +663,8 @@ protected:
   unsigned _isTwoVarEquality : 1;
   /** Weight of the symbol */
   unsigned _weight;
+  /** If true, the literal defines a recursive function */
+  unsigned _isRecFuncDef : 1;
   union {
     /** If _isTwoVarEquality is false, this value is valid and contains
      * number of occurrences of variables */

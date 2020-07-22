@@ -41,6 +41,7 @@
 #include "Flattening.hpp"
 #include "FunctionDefinition.hpp"
 #include "GeneralSplitting.hpp"
+#include "InductionHelper.hpp"
 #include "InequalitySplitting.hpp"
 #include "InterpretedNormalizer.hpp"
 #include "Naming.hpp"
@@ -211,6 +212,11 @@ void Preprocess::preprocess(Problem& prb)
 
       TheoryAxioms(prb).apply();
     }
+  }
+
+  if (_options.induction() == Options::Induction::BOTH ||
+      _options.induction() == Options::Induction::STRUCTURAL) {
+    InductionHelper::preprocess(prb);
   }
 
   if (prb.hasFOOL()) {
