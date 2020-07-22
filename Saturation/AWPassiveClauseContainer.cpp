@@ -301,10 +301,16 @@ Clause* AWPassiveClauseContainer::popSelected()
   if (selByWeight) {
     _balance -= _ageRatio;
     cl = _weightQueue.pop();
+
+    cl->setWeightSelected();
+
     _ageQueue.remove(cl);
   } else {
     _balance += _weightRatio;
     cl = _ageQueue.pop();
+
+    cl->setAgeSelected();
+
     _weightQueue.remove(cl);
   }
 

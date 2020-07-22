@@ -78,6 +78,8 @@ Clause::Clause(unsigned length,const Inference& inf)
     _weight(0),
     _weightForClauseSelection(0),
     _refCnt(0),
+    _selected(0),
+    _weightSelected(0),
     _reductionTimestamp(0),
     _literalPositions(0),
     _numActiveSplits(0),
@@ -403,6 +405,16 @@ vstring Clause::toString() const
   result += " " + inferenceAsString();
 
   if(env.options->proofExtra()!=Options::ProofExtra::OFF){
+    if (_selected) {
+      if (_weightSelected) {
+        result = "WeiSel " + result;
+      } else {
+        result = "AgeSel " + result;
+      }
+    } else {
+      result = "       " + result;
+    }
+
     // print statistics: each entry should have the form key:value
     result += vstring(" {");
       

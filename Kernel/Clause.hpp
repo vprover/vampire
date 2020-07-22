@@ -271,6 +271,16 @@ public:
 
   VirtualIterator<vstring> toSimpleClauseStrings();
 
+  void setWeightSelected() {
+    _selected = 1;
+    _weightSelected = 1;
+  }
+
+  void setAgeSelected() {
+    _selected = 1;
+    _weightSelected = 0;
+  }
+
   void setAux()
   {
     ASS(_auxInUse);
@@ -375,7 +385,10 @@ protected:
   unsigned _weightForClauseSelection;
 
   /** number of references to this clause */
-  unsigned _refCnt;
+  unsigned _refCnt : 30;
+  unsigned _selected : 1;
+  unsigned _weightSelected : 1;
+
   /** for splitting: timestamp marking when has the clause been reduced or restored by splitting */
   unsigned _reductionTimestamp;
   /** a map that translates Literal* to its index in the clause */
