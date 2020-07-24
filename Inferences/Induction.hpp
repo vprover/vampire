@@ -122,6 +122,9 @@ private:
   void performStructInductionTwo(Clause* premise, Literal* origLit, Literal* lit, Term* t, InferenceRule rule);
   void performStructInductionThree(Clause* premise, Literal* origLit, Literal* lit, Term* t, InferenceRule rule);
 
+  void selectInductionScheme(Clause* premise, Literal* lit, Set<Term*>& activeTerms);
+  void findActiveSubterms(Term* term, Set<Term*>& activeTerms);
+
   bool notDone(Literal* lit, Term* t);
   Term* getPlaceholderForTerm(Term* t);
 

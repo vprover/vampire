@@ -515,8 +515,9 @@ class Signature
   VirtualIterator<Shell::TermAlgebra*> termAlgebrasIterator() const { return _termAlgebras.range(); }
   Shell::TermAlgebraConstructor* getTermAlgebraConstructor(unsigned functor);
 
-  Shell::InductionScheme* getInductionScheme(unsigned fn) { return _inductionSchemes.get(fn); }
-  void addInductionScheme(unsigned fn, Shell::InductionScheme *scheme) { _inductionSchemes.insert(fn, scheme); }
+  bool hasInductionTemplate(unsigned fn) { return _inductionTemplates.find(fn); }
+  Shell::InductionTemplate* getInductionTemplate(unsigned fn) { return _inductionTemplates.get(fn); }
+  void addInductionTemplate(unsigned fn, Shell::InductionTemplate *templ) { _inductionTemplates.insert(fn, templ); }
 
   void recordDividesNvalue(TermList n){
     _dividesNvalues.push(n);
@@ -592,7 +593,7 @@ private:
   void defineOptionTermAlgebra(unsigned optionSort);
   void defineEitherTermAlgebra(unsigned eitherSort);
 
-  DHMap<unsigned, Shell::InductionScheme*> _inductionSchemes;
+  DHMap<unsigned, Shell::InductionTemplate*> _inductionTemplates;
 }; // class Signature
 
 }

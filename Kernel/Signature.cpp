@@ -219,7 +219,7 @@ Signature::Signature ():
     _rationals(0),
     _reals(0),
     _termAlgebras(),
-    _inductionSchemes()
+    _inductionTemplates()
 {
   CALL("Signature::Signature");
 

@@ -3,35 +3,43 @@
 
 #include "Forwards.hpp"
 #include "Kernel/Term.hpp"
+#include "Lib/Set.hpp"
 
 namespace Shell {
 
-class RecursiveCase {
+class RDescription {
 public:
-  RecursiveCase(Kernel::List<Kernel::TermList>* hypotheses, Kernel::TermList step);
+  RDescription(Kernel::List<Kernel::TermList>* recursiveCalls,
+               Kernel::TermList step,
+               Kernel::Formula* cond);
 
   Lib::vstring toString() const;
+  Kernel::List<Kernel::TermList>::Iterator getRecursiveCalls() const;
+  Kernel::TermList getStep() const;
 
 private:
-  Kernel::List<Kernel::TermList>* _hypotheses;
+  Kernel::List<Kernel::TermList>* _recursiveCalls;
   Kernel::TermList _step;
+  Kernel::Formula* _condition;
 };
 
-class InductionScheme {
+class InductionTemplate {
 public:
-  CLASS_NAME(InductionScheme);
-  USE_ALLOCATOR(InductionScheme);
+  CLASS_NAME(InductionTemplate);
+  USE_ALLOCATOR(InductionTemplate);
 
-  InductionScheme();
+  InductionTemplate();
 
-  void addBaseCase(Kernel::TermList c);
-  void addRecursiveCase(RecursiveCase c);
+  void addRDescription(RDescription desc);
+  void postprocess();
+
+  Lib::Set<unsigned>* getInductionVariables() const;
 
   Lib::vstring toString() const;
 
 private:
-  Kernel::List<Kernel::TermList>* _baseCases;
-  Kernel::List<RecursiveCase>* _recursiveCases;
+  Kernel::List<RDescription>* _rDescriptions;
+  Lib::Set<unsigned>* _inductionVariables;
 };
 
 class InductionHelper {
@@ -40,9 +48,9 @@ public:
 
 private:
   static void preprocess(Kernel::UnitList*& units);
-  static void processBody(Kernel::TermList& body, Kernel::TermList& header, InductionScheme*& scheme);
+  static void processBody(Kernel::TermList& body, Kernel::TermList& header, InductionTemplate*& templ);
 
-  static bool processCase(const unsigned recFun, Kernel::TermList& body, Kernel::List<Kernel::TermList>*& hypotheses);
+  static void processCase(const unsigned recFun, Kernel::TermList& body, Kernel::List<Kernel::TermList>*& recursiveCalls);
   static unsigned findMatchedArgument(unsigned matched, Kernel::TermList& header);
 };
 

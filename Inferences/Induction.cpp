@@ -174,7 +174,7 @@ void InductionClauseIterator::process(Clause* premise, Literal* lit)
       while(it.hasNext()){
         TermList ts = it.next();
         if(!ts.term()){ continue; }
-        unsigned f = ts.term()->functor(); 
+        unsigned f = ts.term()->functor();
         if((complexTermsAllowed || env.signature->functionArity(f)==0) &&
            (
                all
@@ -220,6 +220,13 @@ void InductionClauseIterator::process(Clause* premise, Literal* lit)
           } while (generalize && (ilit = subsetReplacement.transformSubset(rule)));
         }
       }
+      ta_terms.reset();
+      selectInductionScheme(premise, lit, ta_terms);
+      // Set<Term*>::Iterator outiter(ta_terms);
+      // while(outiter.hasNext()){
+      //   Term* t = outiter.next();
+      //   cout << t->toString() << endl;
+      // }
       Set<Term*>::Iterator citer2(ta_terms);
       while(citer2.hasNext()){
         Term* t = citer2.next();
@@ -746,6 +753,58 @@ Term* InductionClauseIterator::getPlaceholderForTerm(Term* t) {
     env.signature->getFunction(placeholderConstNumber)->setType(OperatorType::getConstantsType(ot->result()));
   }
   return Term::createConstant(placeholderConstNumber);
+}
+
+void InductionClauseIterator::selectInductionScheme(Clause* premise, Literal* lit, Set<Term*>& activeTerms) {
+  CALL("InductionClauseIterator::selectInductionScheme");
+
+  SubtermIterator it(lit);
+  Set<Term*> all_sk;
+  while (it.hasNext()){
+    TermList ts = it.next();
+    if (!ts.term()) {
+      continue;
+    }
+
+    auto term = ts.term();
+    unsigned f = term->functor();
+
+    if (env.signature->getFunction(f)->skolem()) {
+      all_sk.insert(ts.term());
+      return;
+    }
+
+    findActiveSubterms(term, activeTerms);
+  }
+}
+
+void InductionClauseIterator::findActiveSubterms(Term* term, Set<Term*>& activeTerms) {
+  CALL("InductionClauseIterator::findActiveSubterms");
+
+  unsigned f = term->functor();
+
+  if (env.signature->getFunction(f)->skolem()) {
+    activeTerms.insert(term);
+    return;
+  }
+
+  if (!env.signature->hasInductionTemplate(f)) {
+    return;
+  }
+  auto templ = env.signature->getInductionTemplate(f);
+
+  auto indVars = templ->getInductionVariables();
+
+  Term::Iterator argIt(term);
+  unsigned i = 0;
+  while (argIt.hasNext()) {
+    auto arg = argIt.next();
+
+    if (indVars->contains(i)) {
+      findActiveSubterms(arg.term(), activeTerms);
+    }
+    i++;
+  }
 }
 
 }

@@ -27,15 +27,19 @@ Term* copyTerm(Term* other) {
   return Term::createNonShared(other, args.begin());
 }
 
-RecursiveCase::RecursiveCase(List<TermList>* hypotheses, TermList step)
-  : _hypotheses(hypotheses),
-    _step(step)
+RDescription::RDescription(List<TermList>* recursiveCalls, TermList step, Formula* cond)
+  : _recursiveCalls(recursiveCalls),
+    _step(step),
+    _condition(cond)
 {}
 
-Lib::vstring RecursiveCase::toString() const
+Lib::vstring RDescription::toString() const
 {
-  Lib::vstring str = "((";
-  List<TermList>::Iterator it(_hypotheses);
+  List<TermList>::Iterator it(_recursiveCalls);
+  Lib::vstring str = "";
+  if (it.hasNext()) {
+    str = "((";
+  }
   while (it.hasNext()) {
     str+=it.next().toString();
     if (it.hasNext()) {
@@ -46,36 +50,79 @@ Lib::vstring RecursiveCase::toString() const
   return str;
 }
 
-InductionScheme::InductionScheme()
-  : _baseCases(0),
-    _recursiveCases(0)
+List<TermList>::Iterator RDescription::getRecursiveCalls() const
+{
+  return List<TermList>::Iterator(_recursiveCalls);
+}
+
+TermList RDescription::getStep() const
+{
+  return _step;
+}
+
+InductionTemplate::InductionTemplate()
+  : _rDescriptions(0),
+    _inductionVariables(new Set<unsigned>())
 {}
 
-void InductionScheme::addBaseCase(TermList c)
+void InductionTemplate::addRDescription(RDescription desc)
 {
-  List<TermList>::push(c, _baseCases);
+  List<RDescription>::push(desc, _rDescriptions);
 }
 
-void InductionScheme::addRecursiveCase(RecursiveCase c)
+vstring InductionTemplate::toString() const
 {
-  List<RecursiveCase>::push(c, _recursiveCases);
-}
-
-Lib::vstring InductionScheme::toString() const
-{
-  Lib::vstring str;
-  List<TermList>::Iterator baseIt(_baseCases);
-  while (baseIt.hasNext()) {
-    str+=baseIt.next().toString()+" & ";
-  }
-  List<RecursiveCase>::Iterator recIt(_recursiveCases);
-  while (recIt.hasNext()) {
-    str+=recIt.next().toString();
-    if (baseIt.hasNext()) {
+  vstring str;
+  List<RDescription>::Iterator rIt(_rDescriptions);
+  while (rIt.hasNext()) {
+    str+=rIt.next().toString();
+    if (rIt.hasNext()) {
       str+=" & ";
     }
   }
+  Set<unsigned>::Iterator posIt(*_inductionVariables);
+  str+=" with inductive positions: (";
+  while (posIt.hasNext()) {
+    str+=to_string(posIt.next()).c_str();
+    if (posIt.hasNext()) {
+      str+=",";
+    }
+  }
+  str+=")";
   return str;
+}
+
+Set<unsigned>* InductionTemplate::getInductionVariables() const
+{
+  return _inductionVariables;
+}
+
+void InductionTemplate::postprocess() {
+  ASS(_rDescriptions != nullptr);
+
+  List<RDescription>::Iterator rIt(_rDescriptions);
+  while (rIt.hasNext()) {
+    auto r = rIt.next();
+    auto cIt = r.getRecursiveCalls();
+    auto step = r.getStep().term();
+    while (cIt.hasNext()) {
+      Term::Iterator argIt1(cIt.next().term());
+      Term::Iterator argIt2(step);
+      unsigned i = 0;
+      while (argIt1.hasNext()) {
+        ASS(argIt2.hasNext());
+        auto t1 = argIt1.next();
+        auto t2 = argIt2.next();
+        if (t1 != t2 && t2.containsSubterm(t1)) {
+          _inductionVariables->insert(i);
+          cout << t2.toString() << " properly contains " << t1.toString() << endl;
+        } else {
+          cout << t2.toString() << " does not properly contain " << t1.toString() << endl;
+        }
+        i++;
+      }
+    }
+  }
 }
 
 void InductionHelper::preprocess(Problem& prb)
@@ -109,38 +156,38 @@ void InductionHelper::preprocess(UnitList*& units)
     auto lhs = lit->nthArgument(0);
     auto rhs = lit->nthArgument(1);
     auto lhterm = lhs->term();
-    ASS(!lhterm->isSpecial());
-
-    vvector<TermList> args;
-    Term::Iterator argit(lhterm);
-    while (argit.hasNext()) {
-        auto arg = argit.next();
-        args.push_back(arg);
+    if (lhterm->isFormula()) {
+      lhterm = lhterm->getSpecialData()->getFormula()->literal();
     }
-    InductionScheme* scheme = new InductionScheme();
-    processBody(*rhs, *lhs, scheme);
+    cout << lhterm->toString() << " " << rhs->toString() << endl;
+
+    InductionTemplate* templ = new InductionTemplate();
+    TermList term(lhterm);
+    processBody(*rhs, term, templ);
+    templ->postprocess();
     
     cout << "Recursive function: " << lit->toString()
-         << ", with induction scheme: " << scheme->toString() << endl;
-    env.signature->addInductionScheme(lhterm->functor(), scheme);
+         << ", with induction template: " << templ->toString() << endl;
+    env.signature->addInductionTemplate(lhterm->functor(), templ);
   }
 }
 
-void InductionHelper::processBody(TermList& body, TermList& header, InductionScheme*& scheme)
+void InductionHelper::processBody(TermList& body, TermList& header, InductionTemplate*& templ)
 {
   if (body.isVar()) {
-    scheme->addBaseCase(header);
+    RDescription desc(nullptr, header, nullptr);
+    templ->addRDescription(desc);
     return;
   }
   auto term = body.term();
   if (!term->isSpecial()) {
-    List<TermList>* hypotheses(0);
-    if (processCase(header.term()->functor(), body, hypotheses)) {
-      scheme->addRecursiveCase(RecursiveCase(hypotheses, header));
-    } else {
-      scheme->addBaseCase(header);
-    }
-  } else if (term->isMatch()) {
+    List<TermList>* recursiveCalls(0);
+    processCase(header.term()->functor(), body, recursiveCalls);
+    RDescription desc(recursiveCalls, header, nullptr);
+    templ->addRDescription(desc);
+  }
+  else if (term->isMatch())
+  {
     auto matchedVar = term->nthArgument(0)->var();
     unsigned index = findMatchedArgument(matchedVar, header);
     ASS(index < header.term()->arity());
@@ -158,34 +205,50 @@ void InductionHelper::processBody(TermList& body, TermList& header, InductionSch
         SubstHelper::apply(copiedHeader->args()[index].term(), subst);
       }
       TermList t(copiedHeader);
-      processBody(*matchBody, t, scheme);
+      processBody(*matchBody, t, templ);
+    }
+  } else if (term->isFormula()) {
+    auto formula = term->getSpecialData()->getFormula();
+    switch (formula->connective()) {
+      case LITERAL: {
+        TermList lit(formula->literal());
+        processBody(lit, header, templ);
+        break;
+      }
+      case TRUE:
+      case FALSE: {
+        RDescription desc(nullptr, header, nullptr);
+        templ->addRDescription(desc);
+        break;
+      }
+      case BOOL_TERM:
+      case IFF:
+      case FORALL:
+      case EXISTS:
+#if VDEBUG
+      default:
+        ASSERTION_VIOLATION;
+#endif
     }
   }
 }
 
-// returns true if the case is recursive
-bool InductionHelper::processCase(const unsigned recFun, TermList& body, List<TermList>*& hypotheses)
+void InductionHelper::processCase(const unsigned recFun, TermList& body, List<TermList>*& recursiveCalls)
 {
   if (!body.isTerm()) {
-    return false;
+    return;
   }
 
   auto term = body.term();
   if (term->functor() == recFun) {
-    List<TermList>::push(body, hypotheses);
-    // TODO(mhajdu): recursive calls in args? 
-    return true;
+    List<TermList>::push(body, recursiveCalls);
   }
 
   Term::Iterator it(term);
-  bool recursive = false;
   while (it.hasNext()) {
     auto n = it.next();
-    if (processCase(recFun, n, hypotheses)) {
-      recursive = true;
-    }
+    processCase(recFun, n, recursiveCalls);
   }
-  return recursive;
 }
 
 unsigned InductionHelper::findMatchedArgument(unsigned matched, TermList& header)
@@ -209,6 +272,5 @@ unsigned InductionHelper::findMatchedArgument(unsigned matched, TermList& header
   }
   return i;
 }
-
 
 } // Shell
