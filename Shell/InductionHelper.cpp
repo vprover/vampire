@@ -150,6 +150,14 @@ InductionTemplate* InductionScheme::getTemplate() const
   return _templ;
 }
 
+vstring InductionScheme::toString() const
+{
+  vstring str;
+  str+="Term: "+_t->toString()+
+    +"\nScheme: "+_templ->toString();
+  return str;
+}
+
 void InductionHelper::preprocess(Problem& prb)
 {
   preprocess(prb.units());
@@ -181,7 +189,8 @@ void InductionHelper::preprocess(UnitList*& units)
     auto lhs = lit->nthArgument(0);
     auto rhs = lit->nthArgument(1);
     auto lhterm = lhs->term();
-    if (lhterm->isFormula()) {
+    bool isPred = lhterm->isFormula();
+    if (isPred) {
       lhterm = lhterm->getSpecialData()->getFormula()->literal();
     }
     cout << lhterm->toString() << " " << rhs->toString() << endl;
@@ -190,10 +199,10 @@ void InductionHelper::preprocess(UnitList*& units)
     TermList term(lhterm);
     processBody(*rhs, term, templ);
     templ->postprocess();
-    
-    cout << "Recursive function: " << lit->toString()
-         << ", with induction template: " << templ->toString() << endl;
-    env.signature->addInductionTemplate(lhterm->functor(), templ);
+
+    cout << "Recursive function: " << lit->toString() << " functor " << lhterm->functor()
+         << ", predicate " << isPred << ", with induction template: " << templ->toString() << endl;
+    env.signature->addInductionTemplate(lhterm->functor(), isPred, templ);
   }
 }
 

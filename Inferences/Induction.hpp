@@ -136,6 +136,10 @@ private:
 
   void instantiateScheme(Clause* premise, Literal* origLit, InferenceRule rule, InductionScheme* scheme);
   void replaceFreeVars(TermList t, unsigned& currVar, Map<unsigned, unsigned>& varMap);
+  void mergeSchemes(List<InductionScheme*>*& schemes);
+  bool checkSubsumption(InductionScheme* sch1, InductionScheme* sch2);
+  List<Term*>* getSubstitutedTerms(Term* term, Term* step, Term* recursiveCall, DArray<bool>::Iterator indVarIt);
+  bool checkAllContained(List<Term*>* lst1, List<Term*>* lst2);
 
   bool notDone(Literal* lit, Term* t);
   Term* getPlaceholderForTerm(Term* t);

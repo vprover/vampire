@@ -775,22 +775,27 @@ void InductionClauseIterator::selectInductionScheme(Clause* premise, Literal* li
   Set<unsigned> possibleIndVars;
   List<InductionScheme*>* schemes(0);
 
-  termStack.push(lit->nthArgument(0)->term());
-  termStack.push(lit->nthArgument(1)->term());
+  if (lit->isEquality()) {
+    termStack.push(lit->nthArgument(0)->term());
+    termStack.push(lit->nthArgument(1)->term());
+  } else {
+    termStack.push(lit);
+  }
   while (termStack.isNonEmpty()) {
     auto curr = termStack.pop();
 
     unsigned f = curr->functor();
+    bool isPred = curr->isLiteral() || curr->isBoolean();
 
     if (env.signature->getFunction(f)->skolem()) {
       activeTerms.insert(curr);
       continue;
     }
 
-    if (!env.signature->hasInductionTemplate(f)) {
+    if (!env.signature->hasInductionTemplate(f, isPred)) {
       continue;
     }
-    const auto templ = env.signature->getInductionTemplate(f);
+    const auto templ = env.signature->getInductionTemplate(f, isPred);
     const auto& indVars = templ->getInductionVariables();
 
     Term::Iterator argIt(curr);
@@ -814,8 +819,6 @@ void InductionClauseIterator::selectInductionScheme(Clause* premise, Literal* li
     }
 
     if (match) {
-      // cout << "Found induction template for term " << curr->toString()
-      //      << ": " << templ->toString() << endl;
       List<InductionScheme*>::push(new InductionScheme(curr, templ), schemes);
     }
   }
@@ -828,11 +831,13 @@ void InductionClauseIterator::selectInductionScheme(Clause* premise, Literal* li
   }
   cout << endl;
 
+  mergeSchemes(schemes);
+
   List<InductionScheme*>::Iterator schIt(schemes);
   cout << "Suggested induction schemes for literal " << lit->toString() << endl;
   while (schIt.hasNext()) {
     auto scheme = schIt.next();
-    cout << scheme->getTerm()->toString() << " " << scheme->getTemplate()->toString() << endl;
+    cout << scheme->toString() << endl;
     instantiateScheme(premise, lit, rule, scheme);
   }
   cout << "Done" << endl;
@@ -970,6 +975,116 @@ void InductionClauseIterator::replaceFreeVars(TermList t, unsigned& currVar, Map
       currVar++;
     }
   }
+}
+
+void InductionClauseIterator::mergeSchemes(List<InductionScheme*>*& schemes)
+{
+  List<InductionScheme*>::Iterator schIt(schemes);
+  while (schIt.hasNext()) {
+    auto scheme = schIt.next();
+    auto schIt2 = schIt;
+
+    while (schIt2.hasNext()) {
+      auto other = schIt2.next();
+      if (checkSubsumption(scheme, other)) {
+        cout << scheme->toString() << " is subsumed by " << other->toString() << endl;
+        schemes = List<InductionScheme*>::remove(scheme, schemes);
+        break;
+      }
+      if (checkSubsumption(other, scheme)) {
+        cout << other->toString() << " is subsumed by " << scheme->toString() << endl;
+        if (schIt.peekAtNext() == other) {
+          schIt.next();
+        }
+        schemes = List<InductionScheme*>::remove(other, schemes);
+      }
+    }
+  }
+}
+
+bool InductionClauseIterator::checkSubsumption(InductionScheme* sch1, InductionScheme* sch2)
+{
+  auto t1 = sch1->getTerm();
+  auto t2 = sch2->getTerm();
+  auto templ1 = sch1->getTemplate();
+  auto templ2 = sch2->getTemplate();
+
+  List<RDescription>::Iterator rdescIt1(templ1->getRDescriptions());
+  while (rdescIt1.hasNext()) {
+    auto rdesc1 = rdescIt1.next();
+    DArray<bool>::Iterator indVarIt1(templ1->getInductionVariables());
+    auto recCallIt1 = rdesc1.getRecursiveCalls();
+    while (recCallIt1.hasNext()) {
+      auto recCall1 = recCallIt1.next();
+      auto substTerms1 = getSubstitutedTerms(t1, rdesc1.getStep().term(), recCall1.term(), indVarIt1);
+
+      List<RDescription>::Iterator rdescIt2(templ2->getRDescriptions());
+      while (rdescIt2.hasNext()) {
+        auto rdesc2 = rdescIt2.next();
+        DArray<bool>::Iterator indVarIt2(templ2->getInductionVariables());
+
+        auto recCallIt2 = rdesc2.getRecursiveCalls();
+        while (recCallIt2.hasNext()) {
+          auto recCall2 = recCallIt2.next();
+          auto substTerms2 = getSubstitutedTerms(t2, rdesc2.getStep().term(), recCall2.term(), indVarIt2);
+
+          if (!checkAllContained(substTerms1, substTerms2)) {
+            return false;
+          }
+        }
+      }
+    }
+  }
+  return true;
+}
+
+List<Term*>* InductionClauseIterator::getSubstitutedTerms(Term* term, Term* step, Term* recursiveCall, DArray<bool>::Iterator indVarIt)
+{
+  List<Term*>* res(0);
+  Term::Iterator termIt(term);
+  Term::Iterator stepIt(step);
+  Term::Iterator recIt(recursiveCall);
+
+  while (termIt.hasNext()) {
+    ASS(stepIt.hasNext() && recIt.hasNext() && indVarIt.hasNext());
+
+    auto termArg = termIt.next();
+    auto stepArg = stepIt.next();
+    auto recArg = recIt.next();
+    auto isIndVar = indVarIt.next();
+    if (!isIndVar) {
+      continue;
+    }
+    VarReplacement vr(recArg.var(), termArg);
+    List<Term*>::push(vr.transform(stepArg.term()), res);
+  }
+
+  return res;
+}
+
+bool InductionClauseIterator::checkAllContained(List<Term*>* lst1, List<Term*>* lst2)
+{
+  List<Term*>::Iterator it1(lst1);
+  while (it1.hasNext()) {
+    auto t1 = it1.next();
+    cout << "Checking for containment of " << t1->toString() << endl;
+    List<Term*>::Iterator it2(lst2);
+    bool found = false;
+
+    while (it2.hasNext()) {
+      auto t2 = it2.next();
+      cout << "with " << t2->toString() << endl;
+      if (t2->containsSubterm(TermList(t1))) {
+        cout << "contained!" << endl;
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      return false;
+    }
+  }
+  return true;
 }
 
 }

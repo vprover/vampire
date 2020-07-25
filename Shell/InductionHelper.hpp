@@ -53,6 +53,8 @@ public:
   Kernel::Term* getTerm() const;
   InductionTemplate* getTemplate() const;
 
+  Lib::vstring toString() const;
+
 private:
   Kernel::Term* _t;
   InductionTemplate* _templ;
