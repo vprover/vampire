@@ -33,13 +33,29 @@ public:
   void addRDescription(RDescription desc);
   void postprocess();
 
-  Lib::Set<unsigned>* getInductionVariables() const;
+  const Lib::DArray<bool>& getInductionVariables() const;
+  Kernel::List<RDescription>::Iterator getRDescriptions() const;
 
   Lib::vstring toString() const;
 
 private:
   Kernel::List<RDescription>* _rDescriptions;
-  Lib::Set<unsigned>* _inductionVariables;
+  Lib::DArray<bool> _inductionVariables;
+};
+
+class InductionScheme {
+public:
+  CLASS_NAME(InductionScheme);
+  USE_ALLOCATOR(InductionScheme);
+
+  InductionScheme(Kernel::Term* t, InductionTemplate* templ);
+
+  Kernel::Term* getTerm() const;
+  InductionTemplate* getTemplate() const;
+
+private:
+  Kernel::Term* _t;
+  InductionTemplate* _templ;
 };
 
 class InductionHelper {

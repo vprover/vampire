@@ -37,7 +37,8 @@ Lib::vstring RDescription::toString() const
 {
   List<TermList>::Iterator it(_recursiveCalls);
   Lib::vstring str = "";
-  if (it.hasNext()) {
+  bool empty = !it.hasNext();
+  if (!empty) {
     str = "((";
   }
   while (it.hasNext()) {
@@ -46,7 +47,10 @@ Lib::vstring RDescription::toString() const
       str+=" & ";
     }
   }
-  str+=") => "+_step.toString()+")";
+  if (!empty) {
+    str+=") => ";
+  }
+  str+=_step.toString()+")";
   return str;
 }
 
@@ -62,7 +66,7 @@ TermList RDescription::getStep() const
 
 InductionTemplate::InductionTemplate()
   : _rDescriptions(0),
-    _inductionVariables(new Set<unsigned>())
+    _inductionVariables()
 {}
 
 void InductionTemplate::addRDescription(RDescription desc)
@@ -80,7 +84,7 @@ vstring InductionTemplate::toString() const
       str+=" & ";
     }
   }
-  Set<unsigned>::Iterator posIt(*_inductionVariables);
+  DArray<bool>::Iterator posIt(_inductionVariables);
   str+=" with inductive positions: (";
   while (posIt.hasNext()) {
     str+=to_string(posIt.next()).c_str();
@@ -92,14 +96,20 @@ vstring InductionTemplate::toString() const
   return str;
 }
 
-Set<unsigned>* InductionTemplate::getInductionVariables() const
+const DArray<bool>& InductionTemplate::getInductionVariables() const
 {
   return _inductionVariables;
+}
+
+List<RDescription>::Iterator InductionTemplate::getRDescriptions() const
+{
+  return List<RDescription>::Iterator(_rDescriptions);
 }
 
 void InductionTemplate::postprocess() {
   ASS(_rDescriptions != nullptr);
 
+  _inductionVariables.init(_rDescriptions->head().getStep().term()->arity(), false);
   List<RDescription>::Iterator rIt(_rDescriptions);
   while (rIt.hasNext()) {
     auto r = rIt.next();
@@ -114,7 +124,7 @@ void InductionTemplate::postprocess() {
         auto t1 = argIt1.next();
         auto t2 = argIt2.next();
         if (t1 != t2 && t2.containsSubterm(t1)) {
-          _inductionVariables->insert(i);
+          _inductionVariables[i] = true;
           cout << t2.toString() << " properly contains " << t1.toString() << endl;
         } else {
           cout << t2.toString() << " does not properly contain " << t1.toString() << endl;
@@ -123,6 +133,21 @@ void InductionTemplate::postprocess() {
       }
     }
   }
+}
+
+InductionScheme::InductionScheme(Term* t, InductionTemplate* templ)
+  : _t(t),
+    _templ(templ)
+{}
+
+Term* InductionScheme::getTerm() const
+{
+  return _t;
+}
+
+InductionTemplate* InductionScheme::getTemplate() const
+{
+  return _templ;
 }
 
 void InductionHelper::preprocess(Problem& prb)

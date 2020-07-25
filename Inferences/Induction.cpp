@@ -58,6 +58,15 @@ namespace Inferences
 using namespace Kernel;
 using namespace Lib; 
 
+TermList VarReplacement::transformSubterm(TermList trm)
+{
+  CALL("VarReplacement::transformSubterm");
+
+  if(trm.isVar() && trm.var()==_v) {
+    return _r;
+  }
+  return trm;
+}
 
 TermList TermReplacement::transformSubterm(TermList trm)
 {
@@ -221,7 +230,10 @@ void InductionClauseIterator::process(Clause* premise, Literal* lit)
         }
       }
       ta_terms.reset();
-      selectInductionScheme(premise, lit, ta_terms);
+      InferenceRule rule = InferenceRule::INDUCTION_AXIOM;
+      selectInductionScheme(premise,lit,rule);
+      return;
+
       // Set<Term*>::Iterator outiter(ta_terms);
       // while(outiter.hasNext()){
       //   Term* t = outiter.next();
@@ -755,55 +767,208 @@ Term* InductionClauseIterator::getPlaceholderForTerm(Term* t) {
   return Term::createConstant(placeholderConstNumber);
 }
 
-void InductionClauseIterator::selectInductionScheme(Clause* premise, Literal* lit, Set<Term*>& activeTerms) {
+void InductionClauseIterator::selectInductionScheme(Clause* premise, Literal* lit, InferenceRule rule) {
   CALL("InductionClauseIterator::selectInductionScheme");
 
-  SubtermIterator it(lit);
-  Set<Term*> all_sk;
-  while (it.hasNext()){
-    TermList ts = it.next();
-    if (!ts.term()) {
+  Stack<Term*> termStack;
+  Set<Term*> activeTerms;
+  Set<unsigned> possibleIndVars;
+  List<InductionScheme*>* schemes(0);
+
+  termStack.push(lit->nthArgument(0)->term());
+  termStack.push(lit->nthArgument(1)->term());
+  while (termStack.isNonEmpty()) {
+    auto curr = termStack.pop();
+
+    unsigned f = curr->functor();
+
+    if (env.signature->getFunction(f)->skolem()) {
+      activeTerms.insert(curr);
       continue;
     }
 
-    auto term = ts.term();
-    unsigned f = term->functor();
+    if (!env.signature->hasInductionTemplate(f)) {
+      continue;
+    }
+    const auto templ = env.signature->getInductionTemplate(f);
+    const auto& indVars = templ->getInductionVariables();
 
-    if (env.signature->getFunction(f)->skolem()) {
-      all_sk.insert(ts.term());
-      return;
+    Term::Iterator argIt(curr);
+    DArray<bool>::Iterator indVarIt(indVars);
+    bool match = true;
+    while (argIt.hasNext()) {
+      auto arg = argIt.next();
+      auto isIndVar = indVarIt.next();
+
+      if (!isIndVar) {
+        continue;
+      }
+
+      termStack.push(arg.term());
+      if (!arg.isVar()) {
+        auto func = arg.term()->functor();
+        if (!env.signature->getFunction(func)->skolem()) {
+          match = false;
+        }
+      }
     }
 
-    findActiveSubterms(term, activeTerms);
+    if (match) {
+      // cout << "Found induction template for term " << curr->toString()
+      //      << ": " << templ->toString() << endl;
+      List<InductionScheme*>::push(new InductionScheme(curr, templ), schemes);
+    }
   }
+  SubtermIterator it(lit);
+
+  Set<Term*>::Iterator actIt(activeTerms);
+  cout << "Active terms: ";
+  while (actIt.hasNext()) {
+    cout << actIt.next()->toString() << " ";
+  }
+  cout << endl;
+
+  List<InductionScheme*>::Iterator schIt(schemes);
+  cout << "Suggested induction schemes for literal " << lit->toString() << endl;
+  while (schIt.hasNext()) {
+    auto scheme = schIt.next();
+    cout << scheme->getTerm()->toString() << " " << scheme->getTemplate()->toString() << endl;
+    instantiateScheme(premise, lit, rule, scheme);
+  }
+  cout << "Done" << endl;
 }
 
-void InductionClauseIterator::findActiveSubterms(Term* term, Set<Term*>& activeTerms) {
-  CALL("InductionClauseIterator::findActiveSubterms");
+void InductionClauseIterator::instantiateScheme(Clause* premise, Literal* lit, InferenceRule rule, InductionScheme* scheme)
+{
+  CALL("InductionClauseIterator::instantiateScheme"); 
 
-  unsigned f = term->functor();
+  FormulaList* formulas = FormulaList::empty();
 
-  if (env.signature->getFunction(f)->skolem()) {
-    activeTerms.insert(term);
-    return;
-  }
+  Literal* clit = Literal::complementaryLiteral(lit);
+  unsigned var = 0;
 
-  if (!env.signature->hasInductionTemplate(f)) {
-    return;
-  }
-  auto templ = env.signature->getInductionTemplate(f);
+  auto templ = scheme->getTemplate();
+  auto term = scheme->getTerm();
+  auto it = templ->getRDescriptions();
+  const auto& indVars = templ->getInductionVariables();
 
-  auto indVars = templ->getInductionVariables();
+  while (it.hasNext()) {
+    Map<unsigned, unsigned> varMap;
+    auto desc = it.next();
+    auto step = desc.getStep();
+    // cout << "Step " << step.toString() << endl;
+    Formula* left = nullptr;
+    Formula* right = nullptr;
+    auto formula = Formula::quantify(new AtomicFormula(clit));
 
-  Term::Iterator argIt(term);
-  unsigned i = 0;
-  while (argIt.hasNext()) {
-    auto arg = argIt.next();
+    Term::Iterator termIt(term);
+    Term::Iterator stepIt(step.term());
+    DArray<bool>::Iterator indVarIt(indVars);
+    while (termIt.hasNext()) {
+      ASS(stepIt.hasNext());
+      auto argTerm = termIt.next();
+      auto argStep = stepIt.next();
+      auto isIndVar = indVarIt.next();
+      if (!isIndVar) {
+        continue;
+      }
 
-    if (indVars->contains(i)) {
-      findActiveSubterms(arg.term(), activeTerms);
+      replaceFreeVars(argStep, var, varMap);
+
+      // cout << "Replacing in step " << argTerm.toString() << " with " << argStep << endl;
+      TermReplacement cr(argTerm.term(),argStep);
+      right = cr.transform(formula);
     }
-    i++;
+
+    FormulaList* hyp = FormulaList::empty();
+    auto recCalls = desc.getRecursiveCalls();
+    List<TermList>::Iterator recCallsIt(recCalls);
+    while (recCallsIt.hasNext()) {
+      auto recCall = recCallsIt.next();
+      // cout << "Recursive call " << recCall.toString() << endl;
+      Term::Iterator termIt(term);
+      Term::Iterator recCallIt(recCall.term());
+
+      DArray<bool>::Iterator indVarIt2(indVars);
+      while (termIt.hasNext()) {
+        ASS(recCallIt.hasNext());
+        auto argTerm = termIt.next();
+        auto argRecCall = recCallIt.next();
+        auto isIndVar = indVarIt2.next();
+        if (!isIndVar) {
+          continue;
+        }
+
+        auto formula = Formula::quantify(new AtomicFormula(clit));
+        // cout << "Replacing in hypothesis " << argTerm.toString() << " with " << argRecCall << endl;
+        TermReplacement cr(argTerm.term(),argRecCall);
+        hyp = new FormulaList(cr.transform(formula),hyp);
+      }
+    }
+
+    auto l = FormulaList::length(hyp);
+    Formula* res = nullptr;
+    if (l == 0) {
+      // base case
+      res = right;
+    } else {
+      if (l == 1) {
+        left = hyp->head();
+      } else {
+        left = new JunctionFormula(Connective::AND,hyp);
+      }
+      res = new BinaryFormula(Connective::IMP,left,right);
+    }
+
+    Map<unsigned, unsigned>::Iterator varIt(varMap);
+    while (varIt.hasNext()) {
+      unsigned var, replaced;
+      varIt.next(var, replaced);
+      VarReplacement cr(var,TermList(replaced,false));
+      res = cr.transform(res);
+    }
+    formulas = new FormulaList(res, formulas);
+  }
+
+  ASS_G(FormulaList::length(formulas), 0);
+  Formula* indPremise = FormulaList::length(formulas) > 1 ? new JunctionFormula(Connective::AND,formulas)
+                                                          : formulas->head();
+
+  Literal* conclusion = clit;
+  Term::Iterator termIt(term);
+  DArray<bool>::Iterator indVarIt(indVars);
+  while (termIt.hasNext()) {
+    auto t = termIt.next();
+    auto isIndVar = indVarIt.next();
+    if (!isIndVar) {
+      continue;
+    }
+
+    if (t.isTerm()) {
+      TermReplacement cr(t.term(),TermList(var++,false));
+      conclusion = cr.transform(clit);
+    }
+  }
+  Formula* hypothesis = new BinaryFormula(Connective::IMP,
+                            Formula::quantify(indPremise),
+                            Formula::quantify(new AtomicFormula(conclusion)));
+
+  // cout << "Induction formula: " << hypothesis->toString() << endl;
+
+  produceClauses(premise, lit, hypothesis, conclusion, rule);
+}
+
+void InductionClauseIterator::replaceFreeVars(TermList t, unsigned& currVar, Map<unsigned, unsigned>& varMap) {
+  if (t.isVar()) {
+    if (!varMap.find(t.var())) {
+      varMap.insert(t.var(), currVar++);
+    }
+  } else {
+    Term::Iterator it(t.term());
+    while (it.hasNext()) {
+      replaceFreeVars(it.next(), currVar, varMap);
+      currVar++;
+    }
   }
 }
 

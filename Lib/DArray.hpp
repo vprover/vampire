@@ -442,7 +442,7 @@ public:
   public:
     DECL_ELEMENT_TYPE(C);
     inline Iterator() : _next(0), _afterLast(0) {}
-    inline Iterator(DArray& arr) : _next(arr._array),
+    inline Iterator(const DArray& arr) : _next(arr._array),
     _afterLast(arr._array+arr._size) {}
     inline bool hasNext() { return _next!=_afterLast; }
     inline C next() { return *(_next++); }
