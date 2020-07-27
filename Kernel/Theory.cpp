@@ -580,7 +580,14 @@ RealConstantType::RealConstantType(const vstring& number)
     numDbl *= 10;
   }
 
+  if (numDbl > numeric_limits<InnerType::InnerType>::max() ||
+      numDbl < numeric_limits<InnerType::InnerType>::min()) {
+    //the numerator part of double doesn't fit inside the inner integer type
+    throw MachineArithmeticException();
+  }
+
   InnerType::InnerType numerator = static_cast<InnerType::InnerType>(numDbl);
+  // the test below should now never trigger (thanks to the one above), but we include it to preserve the original semantics
   if (numerator!=numDbl) {
     //the numerator part of double doesn't fit inside the inner integer type
     throw MachineArithmeticException();
