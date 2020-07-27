@@ -127,8 +127,15 @@ Ordering* Ordering::create(Problem& prb, const Options& opt)
 
   switch (env.options->termOrdering()) {
   case Options::TermOrdering::KBO:
-    // KBOForEPR does not support colors; TODO fix this!
-    if(prb.getProperty()->maxFunArity()==0 && !env.colorUsed) {
+    // KBOForEPR does not support 
+    // - colors
+    // - user specified symbol weights
+    // TODO fix this! 
+    if(prb.getProperty()->maxFunArity()==0 
+        && !env.colorUsed
+        && env.options->predicateWeights() == ""
+        && env.options->functionWeights() == ""
+        ) {
       return new KBOForEPR(prb, opt);
     }
     return new KBO(prb, opt);
@@ -297,7 +304,7 @@ int PrecedenceOrdering::predicateLevel (unsigned pred) const
   } else {
     return basic;
   }
-} // LPO::predicateLevel
+} // PrecedenceOrdering::predicateLevel
 
 
 /**
@@ -317,7 +324,7 @@ int PrecedenceOrdering::predicatePrecedence (unsigned pred) const
     return intp ? res+1 : res+NONINTERPRETED_PRECEDENCE_BOOST;
   }
   return res;
-} // LPO::predicatePrecedences
+} // PrecedenceOrdering::predicatePrecedences
 
 Comparison PrecedenceOrdering::compareFunctors(unsigned fun1, unsigned fun2) const
 {

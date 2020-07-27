@@ -1943,6 +1943,7 @@ void Options::Options::init()
       "===== end of example =====\n"
       ;
     _functionWeights.setExperimental();
+    _functionWeights.reliesOn(_termOrdering.is(equal(TermOrdering::KBO)));
     _lookup.insert(&_functionWeights);
 
     _predicateWeights = StringOptionValue("predicate_weights","pw","");
@@ -1961,8 +1962,8 @@ void Options::Options::init()
       "===== end of example =====\n"
       ;
     _predicateWeights.setExperimental();
+    _predicateWeights.reliesOn(_termOrdering.is(equal(TermOrdering::KBO)));
     _lookup.insert(&_predicateWeights);
-
 
     _functionPrecedence = StringOptionValue("function_precendence","fp","");
     _functionPrecedence.description = "A name of a file with an explicit user specified precedence on function symbols.";
