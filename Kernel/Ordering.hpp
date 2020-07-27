@@ -162,7 +162,7 @@ class PrecedenceOrdering
 : public Ordering
 {
 public:
-  Result compare(Literal* l1,Literal* l2) const override;
+  Result compare(Literal* l1, Literal* l2) const override;
   Comparison compareFunctors(unsigned fun1, unsigned fun2) const override;
 
 protected:

@@ -37,8 +37,11 @@ DArray<int> predLevels() {
   return out;
 }
 
-KBO kbo(const Map<unsigned, KBO::Weight>& funcs, const Map<unsigned, KBO::Weight>& preds) {
-  auto toWeightMap = [](const Map<unsigned, KBO::Weight>& xs, unsigned sz) -> KBO::WeightMap {
+KBO kbo(unsigned introducedSymbolWeight, 
+    unsigned variableWeight, 
+    const Map<unsigned, KBO::Weight>& funcs, 
+    const Map<unsigned, KBO::Weight>& preds) {
+  auto toWeightMap = [=](const Map<unsigned, KBO::Weight>& xs, unsigned sz) -> KBO::WeightMap {
     DArray<KBO::Weight> out(sz);
     for (int i = 0; i < sz; i++) {
       auto w = xs.getPtr(i);
@@ -46,8 +49,8 @@ KBO kbo(const Map<unsigned, KBO::Weight>& funcs, const Map<unsigned, KBO::Weight
     }
     return KBO::WeightMap {
       ._weights = out,
-      ._introducedSymbolWeight = 1,
-      ._variableWeight = 1,
+      ._introducedSymbolWeight = introducedSymbolWeight,
+      ._variableWeight         = variableWeight,
     };
   };
   
@@ -60,6 +63,9 @@ KBO kbo(const Map<unsigned, KBO::Weight>& funcs, const Map<unsigned, KBO::Weight
 }
 
 
+KBO kbo(const Map<unsigned, KBO::Weight>& funcs, const Map<unsigned, KBO::Weight>& preds) {
+  return kbo(1, 1, funcs, preds);
+}
 
 void __weights(Map<unsigned, KBO::Weight>& ws) {
 }
@@ -82,8 +88,7 @@ Map<unsigned, KBO::Weight> weights(pair<As, KBO::Weight>... as) {
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////// TEST CASES //////////////////////////////////
 //
-// How to read this test cases:
-//
+// How to read the test cases in this file:
 //
 TEST_FUN(kbo_test01) {
   FOF_SYNTAX_SUGAR             // <- macro to initialize some syntax sugar for creating terms over a single uninterpreted sort
@@ -95,7 +100,7 @@ TEST_FUN(kbo_test01) {
 
   auto ord = kbo( 
       weights( // <- function symbol weights
-        make_pair(f, 10u) // <- sets the weight of the function f to 10
+        make_pair(f, 10u), // <- sets the weight of the function f to 10
         make_pair(c, 1u ) // <- sets the weight of the constant c to 1
         // other functions/constants default to weight 1
       ), 
@@ -108,19 +113,6 @@ TEST_FUN(kbo_test01) {
 //
 //
 ////////////////////////////////////////////////////////////////////////////////
-
-
-TEST_FUN(kbo_test01) {
-  FOF_SYNTAX_SUGAR
-  FOF_SYNTAX_SUGAR_FUN  (f, 1)
-  FOF_SYNTAX_SUGAR_FUN  (g, 1)
-  FOF_SYNTAX_SUGAR_CONST(c)
-
-  auto ord = kbo(weights(make_pair(f, 10u)), weights());
-
-  ASS_EQ(ord.compare(f(c), g(c)), Ordering::Result::GREATER)
-}
-
 
 TEST_FUN(kbo_test02) {
   FOF_SYNTAX_SUGAR
@@ -307,13 +299,72 @@ TEST_FUN(kbo_test18) {
 
 TEST_FUN(kbo_test19) {
   FOF_SYNTAX_SUGAR
+  FOF_SYNTAX_SUGAR_FUN (f, 1)
+  FOF_SYNTAX_SUGAR_FUN (g, 1)
+  FOF_SYNTAX_SUGAR_PRED(p, 1)
+
+  auto ord = kbo(
+      weights(
+        make_pair(f,2u), 
+        make_pair(g,3u)
+      ), 
+      weights(
+        make_pair(p,2u)
+      ));
+
+  ASS_EQ(ord.compare(p(f(g(x))), p(g(f(x)))), Ordering::Result::LESS)
+}
+
+TEST_FUN(kbo_test20) {
+  FOF_SYNTAX_SUGAR
   FOF_SYNTAX_SUGAR_CONST(a)
 
   try {
-    auto ord = kbo(weights(make_pair(a, 0u)), weights());
+    auto ord = kbo(
+        10, // <- introduced symbol weight
+        10, // <- variable weight
+        weights(
+          make_pair(a,1u)
+        ), 
+        weights());
+    ASSERTION_VIOLATION
+  } catch (UserErrorException) {
+    /* constants must have smaller or equal weight compared to variables */
+  }
+}
+
+TEST_FUN(kbo_test21) {
+  FOF_SYNTAX_SUGAR
+  FOF_SYNTAX_SUGAR_CONST(a)
+  FOF_SYNTAX_SUGAR_CONST(b)
+
+  auto ord = kbo(
+      10, // <- introduced symbol weight
+      10, // <- variable weight
+      weights(
+        make_pair(a,11u),
+        make_pair(b,12u)
+      ), 
+      weights());
+
+  ASS_EQ(ord.compare(a, b), Ordering::Result::LESS)
+}
+
+TEST_FUN(kbo_test22) {
+  FOF_SYNTAX_SUGAR
+  FOF_SYNTAX_SUGAR_CONST(a)
+
+  try {
+    auto ord = kbo(
+        9, // <- introduced symbol weight
+        10, // <- variable weight
+        weights(
+          make_pair(a,12u)
+        ), 
+        weights());
     ASSERTION_VIOLATION
   } catch (UserErrorException e) {
-    /* constant must be greater or equal to variable weight */
+    /* introduced symbol weight must be greater or equal to the variable weight */
   }
 }
 
