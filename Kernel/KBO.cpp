@@ -195,7 +195,7 @@ void KBO::State::traverse(TermList tl,int coef)
   CALL("KBO::State::traverse(TermList...)");
 
   if(tl.isOrdinaryVar()) {
-    _weightDiff+=_kbo._variableWeight*coef;
+    _weightDiff += _kbo._funcWeights._variableWeight * coef;
     recordVariable(tl.var(), coef);
     return;
   }
@@ -225,7 +225,7 @@ void KBO::State::traverse(TermList tl,int coef)
     } else {
       ASS_METHOD(*ts,isOrdinaryVar());
       auto var = ts->var();
-      _weightDiff+=_kbo._variableWeight*coef;
+      _weightDiff += _kbo._funcWeights._variableWeight * coef;
       recordVariable(var, coef);
     }
     if(stack.isEmpty()) {
@@ -303,66 +303,141 @@ void KBO::State::traverse(Term* t1, Term* t2)
 // }
 
 template<class IsColored, class GetSymNumber> 
-DArray<KBO::Weight> KBO::weightsFromOpts(const char* weightNames, unsigned nWeights, IsColored colored, GetSymNumber number, const vstring& f) const {
+KBO::WeightMap KBO::weightsFromOpts(
+    const char* weightNames, 
+    unsigned nWeights, 
+    IsColored colored, 
+    GetSymNumber number, 
+    const vstring& filename) const {
   DArray<KBO::Weight> weights(nWeights);
   static_assert(std::is_same<typename std::result_of<IsColored(unsigned)>::type, bool>::value, "invalid signature of closusure");
   static_assert(std::is_same<typename std::result_of<GetSymNumber(const vstring&, unsigned, unsigned&)>::type, bool>::value, "invalid signature of closusure");
   BYPASSING_ALLOCATOR
 
-  for (int i = 0; i < nWeights; i++) {
-    weights[i] = colored(i) 
-          ? _defaultSymbolWeight * COLORED_WEIGHT_BOOST 
-          : _defaultSymbolWeight;
-  }
+  ///////////////////////// parsing helper functions ///////////////////////// 
+ 
+  /** opens the file with name f or throws a UserError on failure  */
+  auto openFile = [](const vstring& f) -> ifstream {
+    ifstream file(f.c_str());
+    if (!file.is_open()) {
+      throw UserErrorException("failed to open file ", f);
+    }
+    return file;
+  };
 
-  if (f.empty()) {
-    return weights;
-  }
+#define SPECIAL_WEIGHT_IDENT_VAR            "$var"
+#define SPECIAL_WEIGHT_IDENT_INTRODUCED     "$introduced"
+#define SPECIAL_WEIGHT_IDENT_DEFAULT_WEIGHT "$default"
 
-  ifstream file(f.c_str());
-  if (!file.is_open()) {
-    vstringstream msg;
-    msg << "failed to open file " << f;
-    throw UserErrorException(msg.str());
-  }
+  auto parseDefaultSymbolWeight = [&openFile](const vstring& fname) -> unsigned {
+    if (!fname.empty()) {
+      auto file = openFile(fname);
+      for (vstring ln; getline(file, ln);) {
+        unsigned dflt;
+        vstring special_name;
+        bool err = !(vstringstream(ln) >> special_name >> dflt);
+        if (!err && special_name == SPECIAL_WEIGHT_IDENT_DEFAULT_WEIGHT) {
+          return dflt;
+        }
+      }
+    }
+    return 1; // the default defaultSymbolWeight ;) 
+  };
 
-  for (vstring ln; getline(file, ln);) {
+  /** tries to parse line of the form `<special_name> <weight>` */
+  auto tryParseSpecialLine = [](const vstring& ln, unsigned& variableWeight, unsigned& introducedWeight) -> bool {
     vstringstream lnstr(ln);
+
+    vstring name;
+    unsigned weight;
+    bool ok = !!(lnstr >> name >> weight);
+    if (ok) {
+           if (name == SPECIAL_WEIGHT_IDENT_DEFAULT_WEIGHT) { /* handled in parseDefaultSymbolWeight */ }
+      else if (name == SPECIAL_WEIGHT_IDENT_VAR           ) { variableWeight   = weight; } 
+      else if (name == SPECIAL_WEIGHT_IDENT_INTRODUCED    ) { introducedWeight = weight; } 
+      else {
+        throw Lib::UserErrorException("no special symbol with name '", name, "' (existing ones: " SPECIAL_WEIGHT_IDENT_VAR ", " SPECIAL_WEIGHT_IDENT_INTRODUCED " )");
+      }
+    }
+    return ok;
+  };
+
+  /** tries to parse line of the form `<name> <arity> <weight>` */
+  auto tryParseNormalLine = [&](const vstring& ln) -> bool {
+    vstringstream lnstr(ln);
+
     vstring name;
     unsigned arity;
     unsigned weight;
-    bool err = !(lnstr >> name >> arity >> weight);
-    if (err) {
-      vstringstream msg;
-      msg << "failed to read line from file " << f << std::endl;
-      msg << "expected syntax: '<name> <arity> <weight>'"<< std::endl;
-      msg << "e.g.:            '$add   2       4'"  << std::endl;
-      throw Lib::UserErrorException(msg.str());
-    } 
-    unsigned i; 
-    if (number(name, arity, i)) {
-      weights[i] = colored(i) 
-        ? weight * COLORED_WEIGHT_BOOST
-        : weight;
-    } else {
-      vstringstream msg_str;
-      msg_str << "no " << weightNames << " '" << name << "' with arity " << arity;
-      vstring msg = msg_str.str();
-      throw Lib::UserErrorException(msg);
+    bool ok = !!(lnstr >> name >> arity >> weight);
+    if (ok) {
+      unsigned i; 
+      if (number(name, arity, i)) {
+        weights[i] = colored(i) 
+          ? weight * COLORED_WEIGHT_BOOST
+          : weight;
+      } else {
+        throw Lib::UserErrorException("no ", weightNames, " '", name, "' with arity ", arity);
+      }
+    }
+    return ok;
+  };
+
+  ///////////////////////// actual parsing ///////////////////////// 
+
+  auto defaultSymbolWeight = parseDefaultSymbolWeight(filename);
+
+  for (int i = 0; i < nWeights; i++) {
+    weights[i] = colored(i) 
+          ? defaultSymbolWeight * COLORED_WEIGHT_BOOST 
+          : defaultSymbolWeight;
+  }
+
+  unsigned introducedWeight = defaultSymbolWeight;
+  unsigned variableWeight   = defaultSymbolWeight;
+
+  if (!filename.empty()) {
+    auto file = openFile(filename);
+
+    for (vstring ln; getline(file, ln);) {
+      if (!tryParseNormalLine(ln) && !tryParseSpecialLine(ln, variableWeight, introducedWeight)) {
+        throw Lib::UserErrorException(
+               "failed to read line from file ",   filename, "\n",
+               "expected syntax: '<name> <arity> <weight>'", "\n",
+               "e.g.:            '$add   2       4       '", "\n",
+               "or syntax: '<special_name> <weight>'"      , "\n",
+               "e.g.:      '$var           7       '"      , "\n"
+        );
+      } 
     }
   }
-  return weights;
+
+  return WeightMap {
+    ._introducedSymbolWeight = introducedWeight,
+    ._variableWeight         = variableWeight,
+    ._weights                = weights,
+  };
+
 }
 
-KBO::KBO(DArray<KBO::Weight> funcWeights, DArray<KBO::Weight> predWeights, DArray<int> funcPrec, DArray<int> predPrec, DArray<int> predLevels, bool reverseLCM)
-  : PrecedenceOrdering(funcPrec, predPrec, predLevels, reverseLCM)
-  , _variableWeight(1)
-  , _defaultSymbolWeight(1)
+KBO::KBO(
+    // KBO params
+    WeightMap funcWeights, 
+    WeightMap predWeights, 
+
+    // precedence ordering params
+    DArray<int> funcPrec, 
+    DArray<int> predPrec, 
+    DArray<int> predLevels, 
+
+    // other
+    bool reverseLCM
+  ) : PrecedenceOrdering(funcPrec, predPrec, predLevels, reverseLCM)
   , _funcWeights(funcWeights)
   , _predWeights(predWeights)
   , _state(new State(this))
 { 
-  auto nFunctions = _funcWeights.size();
+  auto nFunctions = _funcWeights._weights.size();
   auto maximalFunctions = DArray<long int>(env.sorts->count());
   maximalFunctions.init(env.sorts->count(), -1);
 
@@ -379,21 +454,27 @@ KBO::KBO(DArray<KBO::Weight> funcWeights, DArray<KBO::Weight> predWeights, DArra
     }
   }
 
+  ////////////////// check kbo-releated constraints //////////////////
+
   for (int i = 0; i < nFunctions; i++) {
     auto sort = env.signature->getFunction(i)->fnType()->result();
     auto arity = env.signature->getFunction(i)->arity();
 
-    /* check kbo-releated constraints */
-    if (_funcWeights[i] < _variableWeight && arity == 0) {
-      vstringstream msg;
-      msg << "weight of constants must be greater or equal to the variable weight (" << _variableWeight << ")";
-      throw UserErrorException(msg.str());
+    if (_funcWeights._weights[i] < _funcWeights._variableWeight && arity == 0) {
+      throw UserErrorException("weight of constants must be greater or equal to the variable weight (", _funcWeights._variableWeight, ")");
 
-    } else if (_funcWeights[i] == 0 && arity == 1 && maximalFunctions[sort] != i) {
-      vstringstream msg;
-      msg << "a unary function of weight zero (i.e.: " << env.signature->getFunction(i)->name() << ") must be maximal wrt. the precedence ordering";
-      throw UserErrorException(msg.str());
+    } else if (_funcWeights.symbolWeight(i) == 0 && arity == 1 && maximalFunctions[sort] != i) {
+      throw UserErrorException( "a unary function of weight zero (i.e.: ", env.signature->getFunction(i)->name(), ") must be maximal wrt. the precedence ordering");
+
     }
+  }
+
+  if (_funcWeights._introducedSymbolWeight < _funcWeights._variableWeight) {
+    throw UserErrorException("weight of introduced function symbols must be greater than the variable weight (= ", _funcWeights._variableWeight, "), since there might be new constant symbols introduced during proof search.");
+  }
+
+  if (_funcWeights._variableWeight <= 0) {
+    throw new UserErrorException("variable weight must be greater than zero");
   }
 }
 
@@ -402,8 +483,6 @@ KBO::KBO(DArray<KBO::Weight> funcWeights, DArray<KBO::Weight> predWeights, DArra
  */
 KBO::KBO(Problem& prb, const Options& opt)
  : PrecedenceOrdering(prb, opt)
- , _variableWeight(1)
- , _defaultSymbolWeight(1)
  , _funcWeights(weightsFromOpts("function", env.signature->functions(), 
       [](unsigned i ) -> bool {return env.signature->functionColored(i);}, 
       [](const vstring& sym, unsigned arity, unsigned& out) -> bool {
@@ -426,8 +505,6 @@ KBO::~KBO()
   CALL("KBO::~KBO");
 
   delete _state;
-  // DEALLOC_KNOWN(_funcWeights, _nFuncs * sizeof(Weight), "Weight");
-  // DEALLOC_KNOWN(_predWeights, _nPreds * sizeof(Weight), "Weight");
 }
 
 /**
@@ -520,21 +597,22 @@ Ordering::Result KBO::compare(TermList tl1, TermList tl2) const
 
 int KBO::symbolWeight(Term* t) const
 {
-  auto i = t->functor();
-  if (t->isLiteral()) {
-    if (i >= _predWeights.size()) {
-      /* symbol introduced during proof search */
-      return _defaultSymbolWeight;
-    } else {
-      return _predWeights[i];
-    }
+  return (t->isLiteral() ? _predWeights
+                         : _funcWeights ).symbolWeight(t);
+}
+
+KBO::Weight KBO::WeightMap::symbolWeight(Term* t) const 
+{
+  return symbolWeight(t->functor());
+}
+
+KBO::Weight KBO::WeightMap::symbolWeight(unsigned functor) const 
+{
+  if (functor >= _weights.size()) {
+    /* symbol introduced during proof search */
+    return _introducedSymbolWeight;
   } else {
-    if (i >= _funcWeights.size()) {
-      /* symbol introduced during proof search */
-      return _defaultSymbolWeight;
-    } else {
-      return _funcWeights[i];
-    }
+    return _weights[functor];
   }
 }
 

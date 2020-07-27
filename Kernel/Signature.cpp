@@ -571,7 +571,7 @@ unsigned Signature::getFunctionNumber(const vstring& name, unsigned arity) const
 bool Signature::tryGetFunctionNumber(const vstring& name, unsigned arity, unsigned& out) const
 {
   CALL("Signature::tryGetFunctionNumber");
-  auto* value = _predNames.getPtr(key(name, arity));
+  auto* value = _funNames.getPtr(key(name, arity));
   if (value != NULL) {
     out = *value;
     return true;

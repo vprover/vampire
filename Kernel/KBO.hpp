@@ -44,12 +44,42 @@ class KBO
 : public PrecedenceOrdering
 {
 public:
-  using Weight = unsigned;
   CLASS_NAME(KBO);
   USE_ALLOCATOR(KBO);
 
+  using Weight = unsigned;
+
+  struct WeightMap {
+    DArray<Weight> _weights;
+
+    /** Weight of function symbols not occurring in the signature, i.e. that are introduced during proof search */
+    Weight _introducedSymbolWeight;
+
+    /** Weight of variables 
+     * (note: this field is dead code for the WeightMap '_predWeights', and only present since it makes the 
+     * parsing and initializing code more uniform, and therefore simpler) 
+     */
+    const Weight _variableWeight;
+
+
+    Weight symbolWeight(Term*    t      ) const;
+    Weight symbolWeight(unsigned functor) const;
+  };
+
   KBO(Problem& prb, const Options& opt);
-  KBO(DArray<KBO::Weight> funcWeights, DArray<Weight> predWeights, DArray<int> funcPrec, DArray<int> predPrec, DArray<int> predLevels, bool reverseLCM);
+  KBO(
+      // KBO params
+      WeightMap funcWeights, 
+      WeightMap predWeights, 
+
+      // precedence ordering params
+      DArray<int> funcPrec, 
+      DArray<int> predPrec, 
+      DArray<int> predLevels,
+
+      // other
+      bool reverseLCM);
+
   virtual ~KBO();
 
   using PrecedenceOrdering::compare;
@@ -59,23 +89,18 @@ protected:
 
 
   class State;
-  /** Weight of variables */
-  const Weight _variableWeight;
-  /** Weight of function symbols not occurring in the
-   * signature */
-  const Weight _defaultSymbolWeight;
 
   // int functionSymbolWeight(unsigned fun) const;
   int symbolWeight(Term* t) const;
 
-  bool allConstantsHeavierThanVariables() const { return false; }
+private:
+
+  WeightMap _funcWeights;
+  WeightMap _predWeights;
 
   template<class IsColored, class GetSymNumber> 
-  DArray<Weight> weightsFromOpts(const char* weightNames, unsigned nWeights, IsColored colored, GetSymNumber number, const vstring& file) const;
+  WeightMap weightsFromOpts(const char* weightNames, unsigned nWeights, IsColored colored, GetSymNumber number, const vstring& file) const;
 
-
-  DArray<Weight> _funcWeights;
-  DArray<Weight> _predWeights;
   /**
    * State used for comparing terms and literals
    */

@@ -1925,12 +1925,41 @@ void Options::Options::init()
     _introducedSymbolPrecedence.tag(OptionTag::SATURATION);
 
     _functionWeights = StringOptionValue("function_weights","fw","");
-    _functionWeights.description = "Path to a file that defines weights for KBO for function symbols. Each line in the file is expected to contain a function name, followed by the functions arity, and a positive integer, that specifies symbols weight. Symbols that are not present in the file default to weight 1.\ne.g.:\n$add 2 2\n$mul 2 7";
+    _functionWeights.description = 
+      "Path to a file that defines weights for KBO for function symbols. Each line in the file is expected to contain a function name, followed by the functions arity, and a positive integer, that specifies symbols weight.\n"
+      "\n"
+      "Additionally there are special values that can be specified:\n"
+      "- `$default    <number>` specifies the default symbol weight, that is used for all symbols not present in the file (if not specified 0 is used)\n"
+      "- `$introduced <number>` specifies the weight used for symbols introduced during preprocessing or proof search\n"
+      "- `$var        <number>` specifies the weight used for variables"
+      "\n"
+      "\n"
+      "===== example ============\n"
+      "$add 2 2\n"
+      "$mul 2 7\n"
+      "f    1 2\n"
+      "$default 2\n"
+      "$var     2\n"
+      "===== end of example =====\n"
+      ;
     _functionWeights.setExperimental();
     _lookup.insert(&_functionWeights);
 
     _predicateWeights = StringOptionValue("predicate_weights","pw","");
-    _predicateWeights.description = "Path to a file that defines weights for KBO for predicate symbols. Each line in the file is expected to contain a predicate name, followed by the predicates arity and a positive integer, that specifies symbols weight. Symbols that are not present in the file default to weight 1.\ne.g.:\n$less 2 5\n$greater 2 3";
+    _predicateWeights.description = 
+      "Path to a file that defines weights for KBO for predicate symbols. Each line in the file is expected to contain a predicate name, followed by the predicates arity and a positive integer, that specifies symbols weight.\n"
+      "\n"
+      "Additionally there are special values that can be specified:\n"
+      "`$default <number>`    specifies the default symbol weight, that is used for all symbols not present in the file (if not specified 0 is used)\n"
+      "`$introduced <number>` specifies the weight used for symbols introduced during preprocessing or proof search\n"
+      "\n"
+      "\n"
+      "===== example ============\n"
+      "$less    2 5\n"
+      "$greater 2 3\n"
+      "r        2 10\n"
+      "===== end of example =====\n"
+      ;
     _predicateWeights.setExperimental();
     _lookup.insert(&_predicateWeights);
 
