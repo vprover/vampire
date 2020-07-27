@@ -675,7 +675,11 @@ PrecedenceOrdering::PrecedenceOrdering(DArray<int> funcPrec, DArray<int> predPre
  */
 PrecedenceOrdering::PrecedenceOrdering(Problem& prb, const Options& opt)
   : PrecedenceOrdering(
-      funcPrecFromOpts(prb, opt),
+      ( 
+         // Make sure we (re-)compute usageCnt's for all the symbols;
+         // in particular, the sP's (the Tseitin predicates) and sK's (the Skolem functions), which only exists since preprocessing.
+         prb.getProperty(),
+         funcPrecFromOpts(prb, opt)),
       predPrecFromOpts(prb, opt),
       predLevelsFromOpts(prb, opt),
       opt.literalComparisonMode()==Shell::Options::LiteralComparisonMode::REVERSE
@@ -683,15 +687,11 @@ PrecedenceOrdering::PrecedenceOrdering(Problem& prb, const Options& opt)
 {
   CALL("PrecedenceOrdering::PrecedenceOrdering");
   ASS_G(_predicates, 0);
-
 }
 
 DArray<int> PrecedenceOrdering::funcPrecFromOpts(Problem& prb, const Options& opt) {
   unsigned nFunctions = env.signature->functions();
   DArray<unsigned> aux(nFunctions);
-  // Make sure we (re-)compute usageCnt's for all the symbols;
-  // in particular, the sP's (the Tseitin predicates) and sK's (the Skolem functions), which only exists since preprocessing.
-  prb.getProperty();
 
   if(nFunctions) {
     aux.initFromIterator(getRangeIterator(0u, nFunctions), nFunctions);
