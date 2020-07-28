@@ -445,6 +445,7 @@ public:
     inline Iterator(const DArray& arr) : _next(arr._array),
     _afterLast(arr._array+arr._size) {}
     inline bool hasNext() { return _next!=_afterLast; }
+    inline C peekAtNext() { return *_next; }
     inline C next() { return *(_next++); }
   private:
    C* _next;

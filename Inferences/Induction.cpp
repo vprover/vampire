@@ -866,17 +866,12 @@ void InductionClauseIterator::instantiateScheme(Clause* premise, Literal* lit, I
     Formula* right = nullptr;
     auto formula = Formula::quantify(new AtomicFormula(clit));
 
-    Term::Iterator termIt(term);
-    Term::Iterator stepIt(step.term());
-    DArray<bool>::Iterator indVarIt(indVars);
+    IteratorByInductiveVariables termIt(term, indVars);
+    IteratorByInductiveVariables stepIt(step.term(), indVars);
     while (termIt.hasNext()) {
       ASS(stepIt.hasNext());
       auto argTerm = termIt.next();
       auto argStep = stepIt.next();
-      auto isIndVar = indVarIt.next();
-      if (!isIndVar) {
-        continue;
-      }
 
       replaceFreeVars(argStep, var, varMap);
 
@@ -891,18 +886,13 @@ void InductionClauseIterator::instantiateScheme(Clause* premise, Literal* lit, I
     while (recCallsIt.hasNext()) {
       auto recCall = recCallsIt.next();
       // cout << "Recursive call " << recCall.toString() << endl;
-      Term::Iterator termIt(term);
-      Term::Iterator recCallIt(recCall.term());
+      IteratorByInductiveVariables termIt(term, indVars);
+      IteratorByInductiveVariables recCallIt(recCall.term(), indVars);
 
-      DArray<bool>::Iterator indVarIt2(indVars);
       while (termIt.hasNext()) {
         ASS(recCallIt.hasNext());
         auto argTerm = termIt.next();
         auto argRecCall = recCallIt.next();
-        auto isIndVar = indVarIt2.next();
-        if (!isIndVar) {
-          continue;
-        }
 
         auto formula = Formula::quantify(new AtomicFormula(clit));
         // cout << "Replacing in hypothesis " << argTerm.toString() << " with " << argRecCall << endl;
@@ -940,14 +930,9 @@ void InductionClauseIterator::instantiateScheme(Clause* premise, Literal* lit, I
                                                           : formulas->head();
 
   Literal* conclusion = clit;
-  Term::Iterator termIt(term);
-  DArray<bool>::Iterator indVarIt(indVars);
+  IteratorByInductiveVariables termIt(term, indVars);
   while (termIt.hasNext()) {
     auto t = termIt.next();
-    auto isIndVar = indVarIt.next();
-    if (!isIndVar) {
-      continue;
-    }
 
     if (t.isTerm()) {
       TermReplacement cr(t.term(),TermList(var++,false));
@@ -1008,25 +993,27 @@ bool InductionClauseIterator::checkSubsumption(InductionScheme* sch1, InductionS
   auto t2 = sch2->getTerm();
   auto templ1 = sch1->getTemplate();
   auto templ2 = sch2->getTemplate();
+  // TODO(mhajdu): is lazy check enough?
+  if (templ1 == templ2) {
+    return true;
+  }
 
   List<RDescription>::Iterator rdescIt1(templ1->getRDescriptions());
   while (rdescIt1.hasNext()) {
     auto rdesc1 = rdescIt1.next();
-    DArray<bool>::Iterator indVarIt1(templ1->getInductionVariables());
     auto recCallIt1 = rdesc1.getRecursiveCalls();
     while (recCallIt1.hasNext()) {
       auto recCall1 = recCallIt1.next();
-      auto substTerms1 = getSubstitutedTerms(t1, rdesc1.getStep().term(), recCall1.term(), indVarIt1);
+      auto substTerms1 = getSubstitutedTerms(t1, rdesc1.getStep().term(), recCall1.term(), templ1->getInductionVariables());
 
       List<RDescription>::Iterator rdescIt2(templ2->getRDescriptions());
       while (rdescIt2.hasNext()) {
         auto rdesc2 = rdescIt2.next();
-        DArray<bool>::Iterator indVarIt2(templ2->getInductionVariables());
 
         auto recCallIt2 = rdesc2.getRecursiveCalls();
         while (recCallIt2.hasNext()) {
           auto recCall2 = recCallIt2.next();
-          auto substTerms2 = getSubstitutedTerms(t2, rdesc2.getStep().term(), recCall2.term(), indVarIt2);
+          auto substTerms2 = getSubstitutedTerms(t2, rdesc2.getStep().term(), recCall2.term(), templ2->getInductionVariables());
 
           if (!checkAllContained(substTerms1, substTerms2)) {
             return false;
@@ -1038,23 +1025,19 @@ bool InductionClauseIterator::checkSubsumption(InductionScheme* sch1, InductionS
   return true;
 }
 
-List<Term*>* InductionClauseIterator::getSubstitutedTerms(Term* term, Term* step, Term* recursiveCall, DArray<bool>::Iterator indVarIt)
+List<Term*>* InductionClauseIterator::getSubstitutedTerms(Term* term, Term* step, Term* recursiveCall, const DArray<bool>& indVars)
 {
   List<Term*>* res(0);
-  Term::Iterator termIt(term);
-  Term::Iterator stepIt(step);
-  Term::Iterator recIt(recursiveCall);
+  IteratorByInductiveVariables termIt(term, indVars);
+  IteratorByInductiveVariables stepIt(step, indVars);
+  IteratorByInductiveVariables recIt(recursiveCall, indVars);
 
   while (termIt.hasNext()) {
-    ASS(stepIt.hasNext() && recIt.hasNext() && indVarIt.hasNext());
+    ASS(stepIt.hasNext() && recIt.hasNext());
 
     auto termArg = termIt.next();
     auto stepArg = stepIt.next();
     auto recArg = recIt.next();
-    auto isIndVar = indVarIt.next();
-    if (!isIndVar) {
-      continue;
-    }
     VarReplacement vr(recArg.var(), termArg);
     List<Term*>::push(vr.transform(stepArg.term()), res);
   }

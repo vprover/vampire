@@ -12,19 +12,44 @@ using namespace Kernel;
 namespace Shell {
 
 Term* copyTerm(Term* other) {
+  ASS(!other->isSpecial());
   DArray<TermList> args(other->arity());
   Term::Iterator argIt(other);
   unsigned j = 0;
   while (argIt.hasNext()) {
     auto t = argIt.next();
     if (t.isTerm()) {
-      args[j] = TermList(copyTerm(argIt.next().term()));
+      args[j] = TermList(copyTerm(t.term()));
     } else {
       args[j] = TermList(t.var(), !t.isOrdinaryVar());
     }
     j++;
   }
-  return Term::createNonShared(other, args.begin());
+  Term* res = nullptr;
+  if (other->isLiteral()) {
+    res = Literal::createNonShared(static_cast<Literal*>(other), args.begin());
+  } else {
+    res = Term::createNonShared(other, args.begin());
+  }
+  // TODO(mhajdu): workaround, do smth about it
+  res->markShared();
+  return res;
+}
+
+bool IteratorByInductiveVariables::hasNext() {
+  ASS(_it.hasNext() == _indVarIt.hasNext());
+
+  while (_indVarIt.hasNext() && !_indVarIt.peekAtNext()) {
+    _indVarIt.next();
+    _it.next();
+  }
+  return _indVarIt.hasNext();
+}
+
+TermList IteratorByInductiveVariables::next() {
+  ASS(hasNext());
+  _indVarIt.next();
+  return _it.next();
 }
 
 RDescription::RDescription(List<TermList>* recursiveCalls, TermList step, Formula* cond)
@@ -39,7 +64,7 @@ Lib::vstring RDescription::toString() const
   Lib::vstring str = "";
   bool empty = !it.hasNext();
   if (!empty) {
-    str = "((";
+    str+="(";
   }
   while (it.hasNext()) {
     str+=it.next().toString();
@@ -50,7 +75,7 @@ Lib::vstring RDescription::toString() const
   if (!empty) {
     str+=") => ";
   }
-  str+=_step.toString()+")";
+  str+=_step.toString();
   return str;
 }
 
@@ -78,10 +103,11 @@ vstring InductionTemplate::toString() const
 {
   vstring str;
   List<RDescription>::Iterator rIt(_rDescriptions);
+  str+="RDescriptions:";
   while (rIt.hasNext()) {
     str+=rIt.next().toString();
     if (rIt.hasNext()) {
-      str+=" & ";
+      str+="; ";
     }
   }
   DArray<bool>::Iterator posIt(_inductionVariables);
@@ -193,7 +219,6 @@ void InductionHelper::preprocess(UnitList*& units)
     if (isPred) {
       lhterm = lhterm->getSpecialData()->getFormula()->literal();
     }
-    cout << lhterm->toString() << " " << rhs->toString() << endl;
 
     InductionTemplate* templ = new InductionTemplate();
     TermList term(lhterm);
@@ -214,7 +239,7 @@ void InductionHelper::processBody(TermList& body, TermList& header, InductionTem
     return;
   }
   auto term = body.term();
-  if (!term->isSpecial()) {
+  if (!term->isSpecial() || term->isFormula()) {
     List<TermList>* recursiveCalls(0);
     processCase(header.term()->functor(), body, recursiveCalls);
     RDescription desc(recursiveCalls, header, nullptr);
@@ -231,38 +256,16 @@ void InductionHelper::processBody(TermList& body, TermList& header, InductionTem
       auto matchBody = term->nthArgument(i+1);
       auto copiedHeader = copyTerm(header.term());
 
-      if (copiedHeader->args()[index].isVar()) {
-        copiedHeader->args()[index] = *pattern;
+      auto arg = copiedHeader->nthArgument(index);
+      if (arg->isVar()) {
+        *arg = *pattern;
       } else {
         Substitution subst;
         subst.bind(matchedVar, pattern->term());
-        SubstHelper::apply(copiedHeader->args()[index].term(), subst);
+        SubstHelper::apply(arg->term(), subst, true);
       }
       TermList t(copiedHeader);
       processBody(*matchBody, t, templ);
-    }
-  } else if (term->isFormula()) {
-    auto formula = term->getSpecialData()->getFormula();
-    switch (formula->connective()) {
-      case LITERAL: {
-        TermList lit(formula->literal());
-        processBody(lit, header, templ);
-        break;
-      }
-      case TRUE:
-      case FALSE: {
-        RDescription desc(nullptr, header, nullptr);
-        templ->addRDescription(desc);
-        break;
-      }
-      case BOOL_TERM:
-      case IFF:
-      case FORALL:
-      case EXISTS:
-#if VDEBUG
-      default:
-        ASSERTION_VIOLATION;
-#endif
     }
   }
 }
@@ -278,10 +281,39 @@ void InductionHelper::processCase(const unsigned recFun, TermList& body, List<Te
     List<TermList>::push(body, recursiveCalls);
   }
 
-  Term::Iterator it(term);
-  while (it.hasNext()) {
-    auto n = it.next();
-    processCase(recFun, n, recursiveCalls);
+  if (term->isFormula()) {
+    auto formula = term->getSpecialData()->getFormula();
+    switch (formula->connective()) {
+      case LITERAL: {
+        TermList lit(formula->literal());
+        processCase(recFun, lit, recursiveCalls);
+        break;
+      }
+      case AND:
+      case OR: {
+        FormulaList::Iterator it(formula->args());
+        while (it.hasNext()) {
+          // TODO(mhajdu): maybe don't create a new Term here
+          TermList ft(Term::createFormula(it.next()));
+          processCase(recFun, ft, recursiveCalls);
+        }
+        break;
+      }
+      case TRUE:
+      case FALSE: {
+        break;
+      }
+#if VDEBUG
+      default:
+        ASSERTION_VIOLATION;
+#endif
+    }
+  } else {
+    Term::Iterator it(term);
+    while (it.hasNext()) {
+      auto n = it.next();
+      processCase(recFun, n, recursiveCalls);
+    }
   }
 }
 

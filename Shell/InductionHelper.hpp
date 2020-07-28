@@ -7,6 +7,22 @@
 
 namespace Shell {
 
+class IteratorByInductiveVariables
+{
+public:
+  IteratorByInductiveVariables(Kernel::Term* term,
+                               const Lib::DArray<bool>& indVars)
+    : _it(term), _indVarIt(indVars)
+  {}
+
+  bool hasNext();
+  Kernel::TermList next();
+
+private:
+  Kernel::Term::Iterator _it;
+  Lib::DArray<bool>::Iterator _indVarIt;
+};
+
 class RDescription {
 public:
   RDescription(Kernel::List<Kernel::TermList>* recursiveCalls,

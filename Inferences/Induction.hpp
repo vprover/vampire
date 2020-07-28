@@ -138,7 +138,7 @@ private:
   void replaceFreeVars(TermList t, unsigned& currVar, Map<unsigned, unsigned>& varMap);
   void mergeSchemes(List<InductionScheme*>*& schemes);
   bool checkSubsumption(InductionScheme* sch1, InductionScheme* sch2);
-  List<Term*>* getSubstitutedTerms(Term* term, Term* step, Term* recursiveCall, DArray<bool>::Iterator indVarIt);
+  List<Term*>* getSubstitutedTerms(Term* term, Term* step, Term* recursiveCall, const DArray<bool>& indVars);
   bool checkAllContained(List<Term*>* lst1, List<Term*>* lst2);
 
   bool notDone(Literal* lit, Term* t);
