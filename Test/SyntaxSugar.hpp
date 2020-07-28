@@ -16,6 +16,8 @@
 #include "Lib/Environment.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/Clause.hpp"
+#include "Kernel/SortHelper.hpp"
+#include "Kernel/NumTraits.hpp"
 
 #include "Indexing/TermSharing.hpp"
 #include "Kernel/Signature.hpp"
@@ -26,17 +28,6 @@
     return *Literal::create2(env.signature->getInterpretingSymbol(inter),  true, lhs,rhs);                              \
   };                                                                                                                    \
  
- 
-#define __FROM_FRAC_INT 
-#define __FROM_FRAC_REAL                                                                                                \
-  auto frac = [](int a, int b) -> TermWrapper {                                                                         \
-    return TermList(theory->representConstant(RealConstantType(RationalConstantType(a,b))));                            \
-  }; 
-#define __FROM_FRAC_RAT                                                                                                 \
-  auto frac = [](int a, int b) -> TermWrapper {                                                                         \
-    return TermList(theory->representConstant(RationalConstantType(a,b)));                                              \
-  }; 
-
 #define __TO_SORT_RAT Sorts::SRT_RATIONAL
 #define __TO_SORT_INT Sorts::SRT_INTEGER
 #define __TO_SORT_REAL Sorts::SRT_REAL
@@ -73,70 +64,20 @@
 #define __REPEAT_10(sort) sort, __REPEAT_9(sort)
 #define __REPEAT(arity, sort) __REPEAT_ ## arity(sort)
 
-#define __DECLARE_FUNC(arity, f, sort)                                                                                  \
-  class __ ##  f ## __CLASS {                                                                                           \
-    unsigned _functor;                                                                                                  \
-  public:                                                                                                               \
-    __ ##  f ## __CLASS(unsigned sort)                                                                                  \
-     : _functor(env.signature->addFunction(#f, arity)) {                                                                \
-      env.signature->getFunction(_functor)->setType(OperatorType::getFunctionType({ __REPEAT(arity, sort) }, sort));    \
-    }                                                                                                                   \
-    TermWrapper operator()(__ARGS_DECL(TermWrapper, arity)) {                                                           \
-      return TermList(Term::create(_functor, {__ARGS_EXPR(TermWrapper, arity)}));                                       \
-    };                                                                                                                  \
-    unsigned functor() const { return _functor; }                                                                       \
-  };                                                                                                                    \
-  auto f = __ ##  f ## __CLASS(sort);
-
-#define __DECLARE_PRED(arity, f, sort)                                                                                  \
-  class __ ##  f ## __CLASS {                                                                                           \
-    unsigned _functor;                                                                                                  \
-  public:                                                                                                               \
-    __ ##  f ## __CLASS(unsigned sort)                                                                                  \
-     : _functor(env.signature->addPredicate(#f, arity)) {                                                               \
-      env.signature->getPredicate(_functor)->setType(OperatorType::getPredicateType({ __REPEAT(arity, sort) }));        \
-    }                                                                                                                   \
-    LiteralWrapper operator()(__ARGS_DECL(TermWrapper, arity)) {                                                              \
-      return Literal::create(_functor, true, {__ARGS_EXPR(TermWrapper, arity)});                                       \
-    };                                                                                                                  \
-    unsigned functor() const { return _functor; }                                                                       \
-  };                                                                                                                    \
-  auto f = __ ##  f ## __CLASS(sort);
+#define __DECLARE_FUNC(arity, f, sort) Function<decltype(sort), __REPEAT(arity, decltype(sort))> f(#f, sort, __REPEAT(arity, sort));
+#define __DECLARE_PRED(arity, f, sort) Predicate<               __REPEAT(arity, decltype(sort))> f(#f,       __REPEAT(arity, sort));
 
 #define __DECLARE_CONST(name, sort)                                                                                     \
-  class __ ## name ## __CLASS : public TermWrapper {                                                                                         \
+  class __ ## name ## __CLASS : public Trm<decltype(sort)>                                                              \
+  {                                                                                                                     \
     public:                                                                                                             \
-    __ ## name ## __CLASS(const char* name, unsigned s)                                                                 \
-      : TermWrapper( TermWrapper::createConstant(#name, s) )                                                                  \
+    __ ## name ## __CLASS(const char* name, decltype(sort) s)                                                                 \
+      : Trm( Trm::createConstant(#name, s) )                                                                  \
     { }                                                                                                                 \
                                                                                                                         \
     unsigned functor() { return toTerm().term()->functor(); }                                                     \
   };                                                                                                                    \
   auto name = __ ## name ## __CLASS(#name, sort);
-
-#define __TERM_WRAPPER_CLASS(...)                                                                                       \
-    class LiteralWrapper;                                                                                               \
-    class TermWrapper {                                                                                                 \
-      TermList _term;                                                                                                   \
-    public:                                                                                                             \
-      TermWrapper(TermList t) : _term(t) {                                                                              \
-        ASS_REP(!_term.isEmpty(), _term);                                                                               \
-      }                                                                                                                 \
-      operator TermList() {return _term;}                                                                               \
-      TermList toTerm() {return _term;}                                                                                 \
-      static TermWrapper createConstant(const char* name, unsigned sort) {                                              \
-        unsigned f = env.signature->addFunction(name,0);                                                                \
-        env.signature->getFunction(f)->setType(OperatorType::getFunctionType({},sort));                                 \
-        return TermWrapper(TermList(Term::createConstant(f)));                                                          \
-      }                                                                                                                 \
-      __VA_ARGS__                                                                                                       \
-    };                                                                                                                  \
-    class LiteralWrapper {                                                                                              \
-      Literal* _literal;                                                                                                \
-    public:                                                                                                             \
-      LiteralWrapper(Literal* l) : _literal(l) {  }                                                                     \
-      operator Literal&() {return *_literal;}                                                                           \
-    };                                                                                                                  \
 
 #define __DEFAULT_VARS                                                                                                  \
     auto x = TermWrapper(TermList::var(0));                                                                             \
@@ -202,35 +143,9 @@
 #define THEORY_SYNTAX_SUGAR(sort)                                                                                       \
   _Pragma("GCC diagnostic push")                                                                                        \
   _Pragma("GCC diagnostic ignored \"-Wunused\"")                                                                        \
-    auto __default_sort = __TO_SORT_ ## sort;                                                                           \
-                                                                                                                        \
-    __TERM_WRAPPER_CLASS(                                                                                               \
-      TermWrapper(int i) : TermWrapper(TermList(theory->representConstant(__CONSTANT_TYPE_ ## sort (i)))) {             \
-        ASS_REP(!_term.isEmpty(), _term);                                                                               \
-      };                                                                                                                \
-                                                                                                                        \
-      Literal&       operator==(TermWrapper rhs) {                                                                      \
-        auto lhs = *this;                                                                                               \
-        return *Literal::createEquality(true, lhs, rhs, __TO_SORT_ ## sort);                                            \
-      }                                                                                                                 \
-                                                                                                                        \
-      Literal&       operator!=(TermWrapper rhs) {                                                                      \
-        auto lhs = *this;                                                                                               \
-        return *Literal::createEquality(false, lhs, rhs, __TO_SORT_ ## sort);                                           \
-      }                                                                                                                 \
-                                                                                                                        \
-      TermWrapper operator+(TermWrapper rhs) {                                                                          \
-        auto lhs = *this;                                                                                               \
-        auto fn = env.signature->getInterpretingSymbol(Theory::Interpretation:: sort ## _PLUS);                         \
-        return TermList(Term::create2(fn, lhs, rhs));                                                                   \
-      }                                                                                                                 \
-                                                                                                                        \
-      TermWrapper operator*(TermWrapper rhs) {                                                                          \
-        auto lhs = *this;                                                                                               \
-        auto fn = env.signature->getInterpretingSymbol(Theory::Interpretation:: sort ## _MULTIPLY);                     \
-        return TermList(Term::create2(fn, lhs, rhs));                                                                   \
-      }                                                                                                                 \
-    )                                                                                                                   \
+    using DefaultSort = NumTraits<__CONSTANT_TYPE_ ## sort>;                                                            \
+    using TermWrapper = Trm<DefaultSort>;                                                                               \
+    DefaultSort __defaultSort;                                                                                          \
                                                                                                                         \
     auto eq = [](TermWrapper lhs, TermWrapper rhs) -> Literal&  {                                                       \
       return *Literal::createEquality(true, lhs, rhs, __TO_SORT_ ## sort);                                              \
@@ -241,48 +156,188 @@
     auto neg = [](Literal& l) -> Literal&  {                                                                            \
       return *Literal::create(&l, !l.polarity());                                                                       \
     };                                                                                                                  \
+    \
     __DEFAULT_VARS                                                                                                      \
-    __DECLARE_CONST(a, __TO_SORT_ ## sort)                                                                              \
-    __DECLARE_CONST(b, __TO_SORT_ ## sort)                                                                              \
-    __DECLARE_CONST(c, __TO_SORT_ ## sort)                                                                              \
-    __IF_FRAC(sort, __CLSR_FUN_INTERPRETED(2, div, sort, _QUOTIENT))                                                    \
+    __DECLARE_CONST(a, __defaultSort)                                                                             \
+    __DECLARE_CONST(b, __defaultSort)                                                                                   \
+    __DECLARE_CONST(c, __defaultSort)                                                                                   \
+    __IF_FRAC(sort,                         \
+      auto frac = [](int num, int den) -> TermWrapper {                                                                         \
+        return DefaultSort::constantTl(num, den); \
+      }; \
+    )                                                    \
     __CLSR_FUN_INTERPRETED(2, mul, sort, _MULTIPLY)                                                                     \
     __CLSR_FUN_INTERPRETED(2, add, sort, _PLUS)                                                                         \
     __CLSR_FUN_INTERPRETED(1, minus, sort, _UNARY_MINUS)                                                                \
-    __FROM_FRAC_ ## sort                                                                                                \
     __CLSR_RELATION(gt, Theory::Interpretation::sort ## _GREATER)                                                       \
     __CLSR_RELATION(geq, Theory::Interpretation::sort ## _GREATER_EQUAL)                                                \
     __CLSR_RELATION(lt, Theory::Interpretation::sort ## _LESS)                                                          \
     __CLSR_RELATION(leq, Theory::Interpretation::sort ## _LESS_EQUAL)                                                   \
   _Pragma("GCC diagnostic pop")                                                                                         \
 
-#define THEORY_SYNTAX_SUGAR_FUN(f, arity)  __DECLARE_FUNC(arity, f, __default_sort)
-#define THEORY_SYNTAX_SUGAR_PRED(f, arity) __DECLARE_PRED(arity, f, __default_sort)
-#define THEORY_SYNTAX_SUGAR_CONST(f)       __DECLARE_CONST(      f, __default_sort)
+#define THEORY_SYNTAX_SUGAR_FUN(f, arity)  __DECLARE_FUNC(arity, f, __defaultSort)
+#define THEORY_SYNTAX_SUGAR_PRED(f, arity) __DECLARE_PRED(arity, f, __defaultSort)
+#define THEORY_SYNTAX_SUGAR_CONST(f)       __DECLARE_CONST(      f, __defaultSort)
 
 #define FOF_SYNTAX_SUGAR                                                                                                \
   _Pragma("GCC diagnostic push")                                                                                        \
   _Pragma("GCC diagnostic ignored \"-Wunused\"")                                                                        \
-    __TERM_WRAPPER_CLASS()                                                                                              \
-    auto __default_sort = env.sorts->addSort("alpha", false);                                                           \
+    using DefaultSort = UninterpretedTraits;                                                            \
+    using TermWrapper = Trm<DefaultSort>;                                                                               \
+    DefaultSort __defaultSort(env.sorts->addSort("alpha", false));                                       \
     __DEFAULT_VARS                                                                                                      \
   _Pragma("GCC diagnostic pop")                                                                                         \
 
-#define FOF_SYNTAX_SUGAR_PRED(f, arity) __DECLARE_PRED(arity, f, __default_sort)
-#define FOF_SYNTAX_SUGAR_FUN(f, arity)  __DECLARE_FUNC(arity, f, __default_sort)
-#define FOF_SYNTAX_SUGAR_CONST(f)       __DECLARE_CONST(      f, __default_sort)
+#define FOF_SYNTAX_SUGAR_PRED(f, arity) __DECLARE_PRED(arity, f, __defaultSort)
+#define FOF_SYNTAX_SUGAR_FUN(f, arity)  __DECLARE_FUNC(arity, f, __defaultSort)
+#define FOF_SYNTAX_SUGAR_CONST(f)       __DECLARE_CONST(      f, __defaultSort)
 
 #define __IF_FRAC(sort, ...) __IF_FRAC_##sort(__VA_ARGS__)
 #define __IF_FRAC_INT(...)
 #define __IF_FRAC_RAT(...) __VA_ARGS__
 #define __IF_FRAC_REAL(...) __VA_ARGS__
 
-template<class Sort>
+struct UninterpretedTraits 
+{
+  unsigned _srtNumber;
+
+public:
+  unsigned sortNumber() const { return _srtNumber; }
+};
+
+template<class SortTraits>
 class Trm 
 {
   TermList _trm;
+
 public:
-  Trm(TermList trm) : _trm(trm) {}
+  /* works only if SortTraits is a NumTraits specialization */
+  Trm(int trm) : _trm(SortTraits::constantTl(trm)) {  }
+
+  Trm(TermList trm) : _trm(trm)
+  { ASS_REP(!_trm.isEmpty(), _trm);  }
+
+  /** implicit conversion */ 
+  operator TermList() {return _trm;}
+
+  /** explicit conversion */ 
+  TermList toTerm() { return _trm;} 
+
+  static Trm createConstant(const char* name, SortTraits s) {
+    unsigned f = env.signature->addFunction(name,0);                                                                
+    env.signature->getFunction(f)->setType(OperatorType::getFunctionType({}, s.sortNumber())); 
+    return Trm(TermList(Term::createConstant(f)));                                                          
+  }                                                                                                                 
+
+  static Trm createConstant(const char* name) {
+    return createConstant(name, SortTraits{});
+  }                                                                                                                 
 };
 
+class Lit
+{
+  Literal* _lit;
+public:
+  Lit(Literal* lit) : _lit(lit) {}
+  operator Literal&() { return *_lit; }
+};
+
+////////////////////////// operators to create terms ////////////////////////// 
+
+template<class Number> Trm<Number> operator+(Trm<Number> lhs, Trm<Number> rhs)  { return Number::add(lhs, rhs); }  
+template<class Number> Trm<Number> operator*(Trm<Number> lhs, Trm<Number> rhs)  { return Number::mul(lhs, rhs); }  
+template<class Number> Trm<Number> operator/(Trm<Number> lhs, Trm<Number> rhs)  { return Number::div(lhs, rhs); }  
+
+#define __IMPL_NUMBER_OPERATOR(op, result_t) \
+  template<class Number> result_t operator op(int lhs, Trm<Number> rhs) { return Trm<Number>(lhs) op rhs; } \
+  template<class Number> result_t operator op(Trm<Number> lhs, int rhs) { return lhs op Trm<Number>(rhs); } \
+
+__IMPL_NUMBER_OPERATOR(+, Trm<Number>)
+__IMPL_NUMBER_OPERATOR(*, Trm<Number>)
+__IMPL_NUMBER_OPERATOR(/, Trm<Number>)
+
+
+template<class Number> 
+Trm<Number> operator-(Trm<Number> x) 
+{
+  return Number::minus(x);
+}
+
+////////////////////////// operators to create literals ////////////////////////// 
+
+template<class Sort> 
+Lit operator==(Trm<Sort> lhs, Trm<Sort> rhs) 
+{
+  unsigned sort;
+  ALWAYS(SortHelper::tryGetResultSort(lhs, sort) || SortHelper::tryGetResultSort(rhs, sort));
+  return Literal::createEquality(true, lhs, rhs, sort);
+}
+
+inline Lit operator~(Lit lit) 
+{
+  Literal& l = lit;
+  return Literal::create(&l, !l.polarity());
+}
+
+template<class Sort> 
+Lit operator!=(Trm<Sort> lhs, Trm<Sort> rhs) 
+{
+  return ~(lhs == rhs);
+}
+
+__IMPL_NUMBER_OPERATOR(==, Lit)
+__IMPL_NUMBER_OPERATOR(!=, Lit)
+
+
+template<class ResultSort, class... ArgSorts>
+class Function {
+  unsigned _functor;
+
+public:
+  Function(const char* name, ResultSort r, ArgSorts... args) 
+  {
+    BYPASSING_ALLOCATOR
+    std::vector<unsigned> as = { args.sortNumber()... };
+    _functor = env.signature->addFunction(name, as.size());
+    env.signature
+      ->getFunction(_functor)
+      ->setType(OperatorType::getFunctionType(as.size(), &as[0], r.sortNumber()));    
+  }
+
+  Trm<ResultSort> operator()(Trm<ArgSorts>... args) const {
+    BYPASSING_ALLOCATOR
+    std::vector<TermList> as = { Trm<ArgSorts>(args).toTerm()... };
+    return TermList(Term::create(_functor, 
+        as.size(), 
+        &as[0] ));
+  }
+};
+
+template<class... ArgSorts>
+class Predicate {
+  unsigned _functor;
+
+public:
+  Predicate(const char* name, ArgSorts... args) 
+  {
+    BYPASSING_ALLOCATOR
+    std::vector<unsigned> as = { args.sortNumber()... };
+    _functor = env.signature->addPredicate(name, as.size());
+    env.signature
+      ->getPredicate(_functor)
+      ->setType(OperatorType::getPredicateType(as.size(), &as[0]));    
+  }
+
+  Lit operator()(Trm<ArgSorts>... args) const {
+    BYPASSING_ALLOCATOR
+    std::vector<TermList> as = { Trm<ArgSorts>(args).toTerm()... };
+    return Literal::create(_functor, 
+        as.size(), 
+        /* polarity */ true, 
+        /* commutative */ false, 
+        &as[0] );
+  }
+};
+
+     
 #endif // __TEST__SYNTAX_SUGAR__H__

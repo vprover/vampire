@@ -117,6 +117,7 @@ struct NumTraits;
   template<> struct NumTraits<CamelCase ## ConstantType> { \
     using ConstantType = CamelCase ## ConstantType;                 \
     static const Sorts::DefaultSorts sort = Sorts::SRT_ ## LONG;    \
+    static unsigned sortNumber() { return NumTraits::sort; }; \
                                                                     \
     IMPL_NUM_TRAITS__INTERPRETED_PRED(less,    SHORT, _LESS,          2) \
     IMPL_NUM_TRAITS__INTERPRETED_PRED(leq,     SHORT, _LESS_EQUAL,    2) \
@@ -128,11 +129,18 @@ struct NumTraits;
     IMPL_NUM_TRAITS__INTERPRETED_FUN(mul  , SHORT, _MULTIPLY   , 2) \
     __NUM_TRAITS_IF_FRAC(SHORT, \
         IMPL_NUM_TRAITS__INTERPRETED_FUN(div, SHORT, _QUOTIENT, 2)\
+        static ConstantType constant(int num, int den) { return ConstantType(num, den); } \
+        static Term* constantT(int num, int den) { return theory->representConstant(constant(num, den)); } \
+        static TermList constantTl(int num, int den) { return TermList(constantT(num, den)); } \
     ) \
                                                                     \
     IMPL_NUM_TRAITS__SPECIAL_CONSTANT(one , 1, isOne )              \
     IMPL_NUM_TRAITS__SPECIAL_CONSTANT(zero, 0, isZero)              \
+    \
     static ConstantType constant(int i) { return ConstantType(i); } \
+    static Term* constantT(int i) { return theory->representConstant(constant(i)); } \
+    static TermList constantTl(int i) { return TermList(constantT(i)); } \
+    \
     static const char* name() {return #CamelCase;} \
   }; \
 
@@ -159,6 +167,9 @@ IMPL_NUM_TRAITS(Integer , INTEGER , INT )
   macro(Kernel::NumTraits<Kernel::    RealConstantType>) \
   macro(Kernel::NumTraits<Kernel::RationalConstantType>) \
 
+using IntTraits  = NumTraits< IntegerConstantType>;
+using RatTraits  = NumTraits<RationalConstantType>;
+using RealTraits = NumTraits<    RealConstantType>;
 
 }
 #endif // __NUM_TRAITS_H__
