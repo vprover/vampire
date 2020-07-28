@@ -92,6 +92,7 @@ public:
   TermList toTerm() {return _inner->template toTerm<Config>();}
 
   friend bool operator<(const Monom& lhs, const Monom& rhs) { return lhs._inner < rhs._inner; }
+  friend bool operator>(const Monom& lhs, const Monom& rhs) { return lhs._inner > rhs._inner; }
 
   friend bool operator==(const Monom& lhs, const Monom& rhs) {return lhs._inner == rhs._inner;}
   size_t hash() const { return std::hash<size_t>{}((size_t) _inner); }
@@ -227,6 +228,8 @@ public:
       }
     }
 
+    friend bool operator>(const MonomInner& l, const MonomInner& r) { return r < l; }
+
     friend bool operator==(const MonomInner& l, const MonomInner& r) {
       return l._factors == r._factors;
     }
@@ -277,13 +280,16 @@ private:
 
   struct Hasher;
 
+  // optimization in order to make handle polynomials that are only a single number more efficiently
   using Inner = Coproduct<ComplexPolynom*, Coeff>;
   Inner _inner;
   using Cache = Map<ComplexPolynom, ComplexPolynom*, Hasher>;
   static Cache polynoms;
 
-  const ComplexPolynom&     isComplex() const& { return _inner.template is<0>(); }
-  const ComplexPolynom& unwrapComplex() const& { return _inner.template unwrap<0>(); }
+  bool                      isComplex() const& { return _inner.template is<0>(); }
+  // TODO use pointer instead of references here (?)
+  const ComplexPolynom& unwrapComplex() const& { return *_inner.template unwrap<0>(); }
+        ComplexPolynom& unwrapComplex()      & { return *_inner.template unwrap<0>(); }
 
 public:
   // TODO rename to isNumber
@@ -299,9 +305,154 @@ public:
     return out;
   }
 
+#define DBGE(x) //DBG(#x " = ", x)
+
+private:
+
+  static std::pair<Polynom, Polynom> cancel_(Coeff oldl, Coeff oldr) {
+    auto zero = number::zeroC;
+    if (oldl >= zero && oldr >= zero) {
+      // cancelation simplifies:
+      //    10 ~~  8 ==> 2 ~~ 0 
+      if (oldl > oldr) {
+        return make_pair(Polynom(oldl - oldr), Polynom(zero));
+      } else {
+        return make_pair(Polynom(zero), Polynom(oldr - oldl));
+      }
+    } else if (oldl < zero && oldr < zero) {
+      // cancelation simplifies:
+      //   -10 ~~ -8 ==> 0 ~~ 2 
+      if (oldl < oldr) {
+        return make_pair(Polynom(zero), Polynom(oldr - oldl));
+      } else {
+        return make_pair(Polynom(oldl - oldr), Polynom(zero));
+      }
+    } else {
+      // cancelation does not simplify.
+      //   -10 ~~  8 ==> 0 ~~ 18  
+      //    10 ~~ -8 ==> 18 ~~ 0  
+      return make_pair(Polynom(oldl),Polynom(oldr));
+    }
+  }
+
+  static std::pair<Polynom, Polynom> cancel_(Coeff oldl, ComplexPolynom& oldr) {
+
+    auto fstCoeff = oldr._coeffs[0];
+    if (!oldr.getMonom(fstCoeff).isOne()) {
+      // oldr does not contain a constant term
+      return make_pair(Polynom(oldl),Polynom(oldr));
+    } 
+
+    auto numr = oldr.getCoeff(fstCoeff);
+    // auto zero = number::zeroC;
+    // auto sameSign = (oldl <= zero) == (numr <= zero);
+
+    //   consider: 
+    //   -10 + x ~~  8 ==> -18 + x ~~ 0
+    //            OR   ==>       x ~~ 18
+    //            both cases do not simplify wrt KBO
+    //
+    // TODO resolve this strictly non-simplifying behaviour
+    //      same applies to cancel_(ComplexPolynom&, ComplexPolynom& oldl)
+
+    return make_pair(Polynom(oldl - numr), Polynom(ComplexPolynom::create(ComplexPolynom(typename ComplexPolynom::CoeffVec(++oldr._coeffs.begin(), oldr._coeffs.end())))));
+  }
+
+  static std::pair<Polynom, Polynom> cancel_(ComplexPolynom& oldl, Coeff oldr) {
+    auto flipped = cancel_(oldr, oldl);
+    return make_pair(std::move(get<1>(flipped)), std::move(get<0>(flipped)));
+  }
+
+  static std::pair<Polynom, Polynom> cancel_(ComplexPolynom& oldl, ComplexPolynom& oldr) {
+    using CoeffVec = typename ComplexPolynom::CoeffVec;
+    auto zero = number::zeroC;
+    auto itl = oldl._coeffs.begin();
+    auto itr = oldr._coeffs.begin();
+    auto endl = oldl._coeffs.end();
+    auto endr = oldr._coeffs.end();
+    auto push = [](CoeffVec& vec, const PMonom& m, Coeff c) {
+      vec.emplace_back(make_pair(PMonom(m), c));
+    };
+    CoeffVec newl;
+    CoeffVec newr;
+    while(itl != endl && itr !=  endr) {
+      auto cl = oldl.getCoeff(*itl);
+      auto cr = oldr.getCoeff(*itr);
+      auto& ml = oldl.getMonom(*itl);
+      auto& mr = oldr.getMonom(*itr);
+      if (ml == mr) {
+        auto& m = ml;
+        ASS_NEQ(cl, zero);
+        ASS_NEQ(cr, zero);
+        if (cl == cr) {
+          // 10 x + ... ~~  10 x + ... ==> ... ~~ ... 
+        } else if (cl > zero && cr > zero) {
+          // 10 x + ... ~~  8 x + ... ==> 2 x + ... ~~ ... 
+          if  ( cl > cr ) {
+            push(newl, m, cl - cr);
+          } else {
+            push(newr, m, cr - cl);
+          }
+        } else if (cl < zero && cr < zero) {
+          // -10 x + ... ~~  -8 x + ... ==> -2 x + ... ~~ ... 
+          if  ( cl < cr ) {
+            push(newl, m, cl - cr);
+          } else {
+            push(newr, m, cr - cl);
+          }
+        } else {
+          if (cl < zero) {
+            // -10 x + ... ~~  8 x + ... ==> ... ~~ 18 x + ... 
+            push(newr, m, cr - cl);
+          } else {
+            //  10 x + ... ~~ -8 x + ... ==> 18 x + ... ~~ ... 
+            push(newl, m, cl - cr);
+          }
+        }
+        itl++;
+        itr++;
+        //TODO
+      } else if (ml < mr) {
+        push(newl, ml, cl);
+        itl++;
+      } else {
+        ASS(ml > mr)
+        push(newr, mr, cr);
+        itr++;
+      }
+    }
+    for(; itl != endl; itl++) {
+      push(newl, get<0>(*itl), get<1>(*itl));
+    }
+    for(; itr != endr; itr++) {
+      push(newr, get<0>(*itr), get<1>(*itr));
+    }
+    return make_pair(
+        Polynom(ComplexPolynom::create(ComplexPolynom(std::move(newl)))),
+        Polynom(ComplexPolynom::create(ComplexPolynom(std::move(newr))))
+      ); 
+  }
+
+public:
+
   static std::pair<Polynom, Polynom> cancel(Polynom& lhs, Polynom& rhs) {
-   // TODO
-    return make_pair(lhs,rhs);
+    // only dispatiching is going on here
+    DBGE(lhs)
+    DBGE(rhs)
+    if (lhs.isCoeff()) {
+      if (rhs.isCoeff()) {
+        return cancel_(lhs.unwrapCoeff(), rhs.unwrapCoeff());
+      } else {
+        return cancel_(lhs.unwrapCoeff(), rhs.unwrapComplex());
+      }
+    } else {
+      ASS(lhs.isComplex())
+      if (rhs.isCoeff()) {
+        return cancel_(lhs.unwrapComplex(), rhs.unwrapCoeff());
+      } else {
+        return cancel_(lhs.unwrapComplex(), rhs.unwrapComplex());
+      }
+    }
   }
 
   template<class Config>
@@ -367,16 +518,19 @@ public:
   Polynom(Coeff coeff, TermList t) : _inner(Inner::template variant<0>(ComplexPolynom::create(ComplexPolynom(coeff, t)))) {}
   explicit Polynom(Coeff constant)          : _inner(Inner::template variant<1>(constant)) {}
   explicit Polynom(ComplexPolynom* inner)   : _inner(Inner::template variant<0>(inner)) {} 
+  explicit Polynom(ComplexPolynom& inner)   : _inner(Inner::template variant<0>(&inner)) {} 
 
 private:
 
   class ComplexPolynom {
+    friend class Polynom;
   public:
     USE_ALLOCATOR(ComplexPolynom)
     CLASS_NAME(ComplexPolynom)
 
   private:
-    vector<tuple<PMonom, Coeff>> _coeffs;
+    using CoeffVec = vector<tuple<PMonom, Coeff>>;
+    CoeffVec _coeffs;
     Lib::Optional<TermList> _toTerm;
     using poly_pair = typename decltype(_coeffs)::value_type;
 

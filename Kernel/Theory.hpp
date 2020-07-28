@@ -246,6 +246,19 @@ private:
 
 };
 
+inline bool operator<(const RealConstantType& lhs ,const RealConstantType& rhs) { 
+  return static_cast<const RationalConstantType&>(lhs) < static_cast<const RationalConstantType&>(rhs);
+}
+inline bool operator>(const RealConstantType& lhs, const RealConstantType& rhs) {
+  return static_cast<const RationalConstantType&>(lhs) > static_cast<const RationalConstantType&>(rhs);
+}
+inline bool operator<=(const RealConstantType& lhs, const RealConstantType& rhs) {
+  return static_cast<const RationalConstantType&>(lhs) <= static_cast<const RationalConstantType&>(rhs);
+}
+inline bool operator>=(const RealConstantType& lhs, const RealConstantType& rhs) {
+  return static_cast<const RationalConstantType&>(lhs) >= static_cast<const RationalConstantType&>(rhs);
+}
+
 inline
 std::ostream& operator<< (ostream& out, const RealConstantType& val) {
   return out << val.toString();

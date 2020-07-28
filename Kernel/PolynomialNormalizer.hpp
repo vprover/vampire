@@ -18,7 +18,7 @@
 
 #ifndef __POLYNOMIAL_NORMALIZER_HPP__
 #define __POLYNOMIAL_NORMALIZER_HPP__
-#define DEBUG(...) DBG(__VA_ARGS__)
+#define DEBUG(...) //DBG(__VA_ARGS__)
 
 namespace Kernel {
 
@@ -142,7 +142,6 @@ template<class Config> LitEvalResult PolynomialNormalizer<Config>::evaluate(Lite
   }
   return evaluateStep(lit, terms.begin());
 }
-#define DEBUG(...) DBG(__VA_ARGS__)
 
 template<class Config> LitEvalResult PolynomialNormalizer<Config>::evaluateStep(Literal* orig, TermEvalResult* evaluatedArgs) const {
   CALL("PolynomialNormalizer::evaluateStep(Literal* term)")
@@ -179,12 +178,9 @@ template<class Config> LitEvalResult PolynomialNormalizer<Config>::evaluateStep(
       default:
         // DBG("WARNING: unexpected interpreted predicate: ", lit->toString())
         ASSERTION_VIOLATION
-          DBG("lala 1")
         return LitEvalResult::literal(createLiteral<Config>(orig, evaluatedArgs));
     }
   } else {
-          DBG("lala 2")
-            DBG(evaluatedArgs[0])
     return LitEvalResult::literal(createLiteral<Config>(orig, evaluatedArgs));
   }
 
@@ -328,7 +324,6 @@ inline TermList createTerm(unsigned fun, const Signature::Symbol& sym, TermEvalR
   return TermList(Term::create(fun, arity, args.begin()));
 }
 
-#define DEBUG(...) DBG(__VA_ARGS__)
 
 template<class Config> TermEvalResult PolynomialNormalizer<Config>::evaluateStep(Term* orig, TermEvalResult* args) const {
   CALL("PolynomialNormalizer::evaluateStep(Term* orig, TermEvalResult* args)")
