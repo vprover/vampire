@@ -146,33 +146,21 @@
     using DefaultSort = NumTraits<__CONSTANT_TYPE_ ## sort>;                                                            \
     using TermWrapper = Trm<DefaultSort>;                                                                               \
     DefaultSort __defaultSort;                                                                                          \
-                                                                                                                        \
-    auto eq = [](TermWrapper lhs, TermWrapper rhs) -> Literal&  {                                                       \
-      return *Literal::createEquality(true, lhs, rhs, __TO_SORT_ ## sort);                                              \
-    };                                                                                                                  \
-    auto neq = [](TermWrapper lhs, TermWrapper rhs) -> Literal&  {                                                      \
-      return *Literal::createEquality(false, lhs, rhs, __TO_SORT_ ## sort);                                             \
-    };                                                                                                                  \
-    auto neg = [](Literal& l) -> Literal&  {                                                                            \
-      return *Literal::create(&l, !l.polarity());                                                                       \
-    };                                                                                                                  \
     \
     __DEFAULT_VARS                                                                                                      \
     __DECLARE_CONST(a, __defaultSort)                                                                             \
     __DECLARE_CONST(b, __defaultSort)                                                                                   \
     __DECLARE_CONST(c, __defaultSort)                                                                                   \
+      auto num2trm = [](int num) -> TermWrapper {                                                                         \
+        return num; \
+      }; \
     __IF_FRAC(sort,                         \
       auto frac = [](int num, int den) -> TermWrapper {                                                                         \
         return DefaultSort::constantTl(num, den); \
       }; \
     )                                                    \
     __CLSR_FUN_INTERPRETED(2, mul, sort, _MULTIPLY)                                                                     \
-    __CLSR_FUN_INTERPRETED(2, add, sort, _PLUS)                                                                         \
     __CLSR_FUN_INTERPRETED(1, minus, sort, _UNARY_MINUS)                                                                \
-    __CLSR_RELATION(gt, Theory::Interpretation::sort ## _GREATER)                                                       \
-    __CLSR_RELATION(geq, Theory::Interpretation::sort ## _GREATER_EQUAL)                                                \
-    __CLSR_RELATION(lt, Theory::Interpretation::sort ## _LESS)                                                          \
-    __CLSR_RELATION(leq, Theory::Interpretation::sort ## _LESS_EQUAL)                                                   \
   _Pragma("GCC diagnostic pop")                                                                                         \
 
 #define THEORY_SYNTAX_SUGAR_FUN(f, arity)  __DECLARE_FUNC(arity, f, __defaultSort)
@@ -239,7 +227,7 @@ class Lit
   Literal* _lit;
 public:
   Lit(Literal* lit) : _lit(lit) {}
-  operator Literal&() { return *_lit; }
+  operator Literal*() const { return _lit; }
 };
 
 ////////////////////////// operators to create terms ////////////////////////// 
@@ -273,10 +261,16 @@ Lit operator==(Trm<Sort> lhs, Trm<Sort> rhs)
   return Literal::createEquality(true, lhs, rhs, sort);
 }
 
+
+template<class Number> Lit operator< (Trm<Number> lhs, Trm<Number> rhs) { return Number::less   (true, lhs, rhs); }
+template<class Number> Lit operator<=(Trm<Number> lhs, Trm<Number> rhs) { return Number::leq    (true, lhs, rhs); }
+template<class Number> Lit operator> (Trm<Number> lhs, Trm<Number> rhs) { return Number::greater(true, lhs, rhs); }
+template<class Number> Lit operator>=(Trm<Number> lhs, Trm<Number> rhs) { return Number::geq    (true, lhs, rhs); }
+
 inline Lit operator~(Lit lit) 
 {
-  Literal& l = lit;
-  return Literal::create(&l, !l.polarity());
+  Literal* l = lit;
+  return Literal::create(l, !l->polarity());
 }
 
 template<class Sort> 
@@ -287,6 +281,10 @@ Lit operator!=(Trm<Sort> lhs, Trm<Sort> rhs)
 
 __IMPL_NUMBER_OPERATOR(==, Lit)
 __IMPL_NUMBER_OPERATOR(!=, Lit)
+__IMPL_NUMBER_OPERATOR(< , Lit)
+__IMPL_NUMBER_OPERATOR(<=, Lit)
+__IMPL_NUMBER_OPERATOR(> , Lit)
+__IMPL_NUMBER_OPERATOR(>=, Lit)
 
 
 template<class ResultSort, class... ArgSorts>

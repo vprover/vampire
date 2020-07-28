@@ -15,6 +15,17 @@ using namespace Kernel;
 using namespace Rebalancing;
 using namespace Inverters;
 
+// TODO inline these macros
+#define add(a,b) (a + b)
+#define mul(a,b) (a * b)
+#define minus(a) -(a)
+#define lt(a,b) (a < b)
+#define gt(a,b) (a > b)
+#define leq(a,b) (a <= b)
+#define geq(a,b) (a >= b)
+#define neg(a)   ~(a)
+#define eq(a,b)  (a == b)
+#define neq(a,b) (a != b)
 
 #define __expand__frac(...) { __VA_ARGS__ }
 #define __expand__int(...)  { __VA_ARGS__ }
@@ -32,7 +43,7 @@ bool any(Range range, Pred p) {
 using expected_t = tuple<TermList, TermList>;
 
 template<class ConstantType>
-void test_rebalance(Literal& lit, initializer_list<expected_t> expected);
+void test_rebalance(Literal* lit, initializer_list<expected_t> expected);
 
 #define __TO_CONSTANT_TYPE_INT  IntegerConstantType
 #define __TO_CONSTANT_TYPE_RAT  RationalConstantType
@@ -226,7 +237,8 @@ std::ostream& operator<<(std::ostream& out, const Balancer<A>& b) {
 
 
 template<class A>
-void test_rebalance(Literal& lit, initializer_list<expected_t> expected) {
+void test_rebalance(Literal* lit_, initializer_list<expected_t> expected) {
+  Literal& lit = *lit_;
   ASS(lit.isEquality());
   using balancer_t = Balancer<NumberTheoryInverter>;
   auto simplified = [](TermList t) -> TermList { 

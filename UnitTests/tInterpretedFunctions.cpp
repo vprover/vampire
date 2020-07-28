@@ -46,6 +46,18 @@ using namespace Shell;
 #define OUT cout
 // #define TEST_FAIL OUT << "FAIL" << endl;
 
+// TODO inline these macros
+#define add(a,b) (a + b)
+#define mul(a,b) (a * b)
+#define minus(a) -(a)
+#define lt(a,b) (a < b)
+#define gt(a,b) (a > b)
+#define leq(a,b) (a <= b)
+#define geq(a,b) (a >= b)
+#define neg(a)   ~(a)
+#define eq(a,b)  (a == b)
+#define neq(a,b) (a != b)
+
 namespace __Dumper {
   template<class... As>
   struct Dumper {
@@ -234,7 +246,8 @@ void check_no_succ(Literal& orig) {
 }
 
 
-void check_eval(Literal& orig, bool expected) {
+void check_eval(Lit orig_, bool expected) {
+  Literal& orig = *orig_;
 
   auto eval = NORMALIZER;
 
@@ -250,7 +263,9 @@ bool operator==(const Literal& lhs, const Literal& rhs) {
   return Indexing::TermSharing::equals(&lhs, &rhs);
 }
 
-void check_eval(Literal& orig, const Literal& expected) {
+void check_eval(Lit orig_, Lit expected_) {
+  Literal& orig = *orig_;
+  const Literal& expected = *expected_;
 
   auto eval = NORMALIZER;
 
@@ -348,7 +363,7 @@ ALL_NUMBERS_TEST(simpl_times_zero_2
     );
 
 FRACTIONAL_TEST(literal_to_const_0,
-      eq(0, 31),
+      num2trm(0) == 31,
       false 
       )
 
@@ -363,33 +378,33 @@ FRACTIONAL_TEST(literal_to_const_2,
     )
 
 FRACTIONAL_TEST(literal_to_const_3,
-      lt(mul(3,2),5),
+      (num2trm(3) * num2trm(2) < 5),
       false
     )
 
   // Interpret 3*2 < 5
 FRACTIONAL_TEST(literal_to_const_4,
-      neg(lt(mul(3,2),5)),
+      ~((num2trm(3) * 2) < 5),
       true
     )
 
 ALL_NUMBERS_TEST(literal_to_const_5,
-      gt(mul(3,2),5),
+      (num2trm(3) * 2) > 5,
       true
     )
 
 ALL_NUMBERS_TEST(literal_to_const_6,
-      gt(mul(3,2),13),
+      ((num2trm(3) * 2) > 13),
       false
     )
 
 ALL_NUMBERS_TEST(literal_to_const_7,
-      lt(0, 0),
+      num2trm(0) < 0,
       false
     );  
 
 ALL_NUMBERS_TEST(literal_to_const_8,
-      neg(lt(0, 0)),
+      ~(num2trm(0) < 0),
       true
     )
 
@@ -530,7 +545,7 @@ ALL_NUMBERS_TEST(eval_double_minus_3,
 // ==> 4 = x + (-4)
 ALL_NUMBERS_TEST(eval_double_minus_4,
       eq(4, minus(add(minus(x), 4))),
-      eq(4, add(-4, x)) )
+      eq(8, x) )
 
 ALL_NUMBERS_TEST(eval_remove_identity_1,
       lt(0, add(0, minus(x))),
@@ -638,48 +653,79 @@ ALL_NUMBERS_TEST(eval_bug_3,
       false
       )
 
+ALL_NUMBERS_TEST(eval_cancellation_0,
+    x + 1 == 2,
+    x     == 1
+    )
+
 ALL_NUMBERS_TEST(eval_cancellation_1,
+    x + (-1) == -2,
+    x        == -1
+    )
+
+ALL_NUMBERS_TEST(eval_cancellation_2,
     x + y == a + y,
     x     == a
     )
 
-ALL_NUMBERS_TEST(eval_cancellation_2,
+ALL_NUMBERS_TEST(eval_cancellation_3,
     x + 3 == a + 2,
-    x + 1 == a
+    x + 1 ==     a
+    // 3 + x == 2 + a,
+    // 1 + x ==     a
     )
 
-ALL_NUMBERS_TEST(eval_cancellation_3,
+ALL_NUMBERS_TEST(eval_cancellation_4,
     x + (b * 3) == a + (b * 2),
     x + b == a
     )
 
-ALL_NUMBERS_TEST(eval_cancellation_4,
+ALL_NUMBERS_TEST(eval_cancellation_5,
     x + (y * 3) == a + (y * 2),
     x + y == a
     )
 
-ALL_NUMBERS_TEST(eval_cancellation_5,
+ALL_NUMBERS_TEST(eval_cancellation_6,
     x + (y * 3) + z + b == a + (y * 2) + z + (b * 3),
     x +  y      + z     == a           + z + (b * 2)
     )
 
-// ALL_NUMBERS_TEST(eval_cancellation_6_nop,
+// ALL_NUMBERS_TEST(eval_cancellation_7_nop,
 //         x  == x * -1,
 //         x  == minus(x)
 //     // x + y  == a + (b * -4) or x + y  == a + (b * -4)
 //     // x + y + (b * 4)  == a or x + y  == a + (b * -4)
 //     )
 
-ALL_NUMBERS_TEST(eval_cancellation_7,
+ALL_NUMBERS_TEST(eval_cancellation_8,
     a * y * 6 == a * y * 2,
     a * y * 3 == a * y 
     )
 
 
-ALL_NUMBERS_TEST(eval_cancellation_8,
+ALL_NUMBERS_TEST(eval_cancellation_9,
     a * y * -2 == a * y * -1,
     a * y * 2 == a * y 
     )
+
+void lala() {
+  using IntTrm = Trm<IntTraits>;
+  Trm<int> t = RealTraits::zero();
+  auto a = IntTrm::createConstant("a");
+  auto b = IntTrm::createConstant("b");
+
+  IntTrm x = a + b;
+
+  IntTrm y = a * b;
+  
+  IntTrm lala = 3;
+  IntTrm lala2 = -a;
+
+  Lit l = x == y;
+  Lit m = x != y;
+  Lit l1 = x != (y + 3);
+  Lit l2 = x != (3 + y);
+}
 
 //       x + 3 = a + 2         ==> x + 1 = a
 //       x + 3 * b = a + 2 * b ==> x + b = a

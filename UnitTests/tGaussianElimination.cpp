@@ -14,13 +14,27 @@ using namespace Inferences;
 
 #include "Test/SyntaxSugar.hpp"
 
+
+// TODO inline these macros
+#define add(a,b) (a + b)
+#define mul(a,b) (a * b)
+#define minus(a) -(a)
+#define lt(a,b) (a < b)
+#define gt(a,b) (a > b)
+#define leq(a,b) (a <= b)
+#define geq(a,b) (a >= b)
+#define neg(a)   ~(a)
+#define eq(a,b)  (a == b)
+#define neq(a,b) (a != b)
+
 //TODO factor out
-Clause& clause(std::initializer_list<reference_wrapper<Literal>> ls) { 
+Clause& clause(std::initializer_list<Lit> ls) { 
   static Inference testInf = Kernel::NonspecificInference0(UnitInputType::ASSUMPTION, InferenceRule::INPUT); 
   Clause& out = *new(ls.size()) Clause(ls.size(), testInf); 
   auto l = ls.begin(); 
   for (int i = 0; i < ls.size(); i++) { 
-    out[i] = &l->get(); 
+    Literal* literal = *l;
+    out[i] = literal; 
     l++; 
   }
   return out; 
