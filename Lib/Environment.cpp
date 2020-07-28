@@ -61,6 +61,8 @@ Environment::Environment()
     _priorityOutput(0),
     _pipe(0)
 {
+  START_CHECKING_FOR_ALLOCATOR_BYPASSES;
+
   options = new Options;
   statistics = new Statistics;  
   sorts = new Sorts;
