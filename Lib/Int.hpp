@@ -145,6 +145,17 @@ class Int
     return true;
   }
 
+  static unsigned safeAbs(const int num)
+  {
+    CALL("Int::safeAbs");
+
+    if(num == numeric_limits<int>::min()) { // = -2147483648
+      return (unsigned)num; // = 2147483648
+    }
+    // abs works for all other values
+    return abs(num);
+  }
+
   /**
    * If arg1+arg2 does not overflow, return true and save the sum to res.
    * Otherwise, return false.

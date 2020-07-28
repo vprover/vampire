@@ -530,14 +530,13 @@ unsigned Clause::splitWeight() const
  * @since 04/05/2013 Manchester, updated to use new NonVariableIterator
  * @author Andrei Voronkov
  */
-unsigned Clause::getNumeralWeight() const
-{
+unsigned Clause::getNumeralWeight() const {
   CALL("Clause::getNumeralWeight");
 
-  unsigned res=0;
+  unsigned res = 0;
   Iterator litIt(*this);
   while (litIt.hasNext()) {
-    Literal* lit=litIt.next();
+    Literal* lit = litIt.next();
     if (!lit->hasInterpretedConstants()) {
       continue;
     }
@@ -545,34 +544,33 @@ unsigned Clause::getNumeralWeight() const
     while (nvi.hasNext()) {
       const Term* t = nvi.next().term();
       if (t->arity() != 0) {
-	continue;
+        continue;
       }
       IntegerConstantType intVal;
-      if (theory->tryInterpretConstant(t,intVal)) {
-	int w = BitUtils::log2(abs(intVal.toInner()))-1;
-	if (w > 0) {
-	  res += w;
-	}
-	continue;
+      if (theory->tryInterpretConstant(t, intVal)) {
+        int w = BitUtils::log2(Int::safeAbs(intVal.toInner())) - 1;
+        if (w > 0) {
+          res += w;
+        }
+        continue;
       }
       RationalConstantType ratVal;
       RealConstantType realVal;
       bool haveRat = false;
-      if (theory->tryInterpretConstant(t,ratVal)) {
-	haveRat = true;
-      }
-      else if (theory->tryInterpretConstant(t,realVal)) {
-	ratVal = RationalConstantType(realVal);
-	haveRat = true;
+      if (theory->tryInterpretConstant(t, ratVal)) {
+        haveRat = true;
+      } else if (theory->tryInterpretConstant(t, realVal)) {
+        ratVal = RationalConstantType(realVal);
+        haveRat = true;
       }
       if (!haveRat) {
-	continue;
+        continue;
       }
-      int wN = BitUtils::log2(abs(ratVal.numerator().toInner()))-1;
-      int wD = BitUtils::log2(abs(ratVal.denominator().toInner()))-1;
+      int wN = BitUtils::log2(Int::safeAbs(ratVal.numerator().toInner())) - 1;
+      int wD = BitUtils::log2(Int::safeAbs(ratVal.denominator().toInner())) - 1;
       int v = wN + wD;
       if (v > 0) {
-	res += v;
+        res += v;
       }
     }
   }
