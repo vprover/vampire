@@ -384,7 +384,7 @@ FRACTIONAL_TEST(literal_to_const_3,
 
   // Interpret 3*2 < 5
 FRACTIONAL_TEST(literal_to_const_4,
-      ~((num2trm(3) * 2) < 5),
+      ~(num2trm(3) * 2 < 5),
       true
     )
 
@@ -669,15 +669,13 @@ ALL_NUMBERS_TEST(eval_cancellation_2,
     )
 
 ALL_NUMBERS_TEST(eval_cancellation_3,
-    x + 3 == a + 2,
-    x + 1 ==     a
-    // 3 + x == 2 + a,
-    // 1 + x ==     a
+    3 + x == 2 + a,
+    1 + x ==     a
     )
 
 ALL_NUMBERS_TEST(eval_cancellation_4,
     x + (b * 3) == a + (b * 2),
-    x + b == a
+    b + x == a
     )
 
 ALL_NUMBERS_TEST(eval_cancellation_5,
@@ -687,7 +685,7 @@ ALL_NUMBERS_TEST(eval_cancellation_5,
 
 ALL_NUMBERS_TEST(eval_cancellation_6,
     x + (y * 3) + z + b == a + (y * 2) + z + (b * 3),
-    x +  y      + z     == a           + z + (b * 2)
+    x +  y              == a               +  2 * b
     )
 
 // ALL_NUMBERS_TEST(eval_cancellation_7_nop,
@@ -699,33 +697,14 @@ ALL_NUMBERS_TEST(eval_cancellation_6,
 
 ALL_NUMBERS_TEST(eval_cancellation_8,
     a * y * 6 == a * y * 2,
-    a * y * 3 == a * y 
+    4 * a * x == 0
     )
 
 
 ALL_NUMBERS_TEST(eval_cancellation_9,
-    a * y * -2 == a * y * -1,
-    a * y * 2 == a * y 
+    a * y * -1 == a * y * -2,
+     -(a * x)  == 0 
     )
-
-void lala() {
-  using IntTrm = Trm<IntTraits>;
-  Trm<int> t = RealTraits::zero();
-  auto a = IntTrm::createConstant("a");
-  auto b = IntTrm::createConstant("b");
-
-  IntTrm x = a + b;
-
-  IntTrm y = a * b;
-  
-  IntTrm lala = 3;
-  IntTrm lala2 = -a;
-
-  Lit l = x == y;
-  Lit m = x != y;
-  Lit l1 = x != (y + 3);
-  Lit l2 = x != (3 + y);
-}
 
 //       x + 3 = a + 2         ==> x + 1 = a
 //       x + 3 * b = a + 2 * b ==> x + b = a
