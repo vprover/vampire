@@ -439,7 +439,7 @@ template<class SigTraits> KBO::WeightMap KBO::weightsFromFile(const Options& opt
 
   auto defaultSymbolWeight = parseDefaultSymbolWeight(filename);
 
-  for (int i = 0; i < SigTraits::nSymbols(); i++) {
+  for (unsigned i = 0; i < SigTraits::nSymbols(); i++) {
     weights[i] = SigTraits::isColored(i) 
           ? defaultSymbolWeight * COLORED_WEIGHT_BOOST 
           : defaultSymbolWeight;
@@ -493,7 +493,7 @@ KBO::KBO(
   auto maximalFunctions = DArray<long int>(env.sorts->count());
   maximalFunctions.init(env.sorts->count(), -1);
 
-  for (int i = 0; i < nFunctions; i++) {
+  for (unsigned i = 0; i < nFunctions; i++) {
     auto sort = env.signature->getFunction(i)->fnType()->result();
     /* register min function */
     auto maxFn = maximalFunctions[sort];
@@ -508,7 +508,7 @@ KBO::KBO(
 
   ////////////////// check kbo-releated constraints //////////////////
 
-  for (int i = 0; i < nFunctions; i++) {
+  for (unsigned i = 0; i < nFunctions; i++) {
     auto sort = env.signature->getFunction(i)->fnType()->result();
     auto arity = env.signature->getFunction(i)->arity();
 
@@ -662,7 +662,7 @@ KBO::WeightMap KBO::WeightMap::randomized(unsigned maxWeight, Random random)
   unsigned introducedWeight = random(variableWeight, maxWeight);
 
   DArray<KBO::Weight> weights(nSym);
-  for (int i = 0; i < nSym; i++) {
+  for (unsigned i = 0; i < nSym; i++) {
     if (SigTraits::isConstantSymbol(i)) {
       weights[i] = random(variableWeight, maxWeight);
     } else if (SigTraits::isUnaryFunction(i)) {
@@ -698,12 +698,25 @@ KBO::Weight KBO::WeightMap::symbolWeight(unsigned functor) const
 template<class SigTraits>
 void KBO::showConcrete_(ostream& out) const  
 {
+  out << "% Weights of " << SigTraits::symbolKindName() << " (line format: `<name> <arity> <weight>`)" << std::endl;
   out << "% ===== begin of " << SigTraits::symbolKindName() << " weights ===== " << std::endl;
+  
 
-  for (int i = 0; i < SigTraits::nSymbols(); i++) {
-    auto sym = SigTraits::getSymbol(i);
-    out << "% " << sym->name() << " " << sym->arity() << " " << getWeightMap<SigTraits>().symbolWeight(i) << std::endl;
+
+  auto& map = getWeightMap<SigTraits>();
+  DArray<unsigned> functors;
+  functors.initFromIterator(getRangeIterator(0u,SigTraits::nSymbols()),SigTraits::nSymbols());
+  std::sort(&functors[0], &functors[functors.size() - 1], 
+      [&](unsigned l, unsigned r) { return map.symbolWeight(l) < map.symbolWeight(r); });
+
+  for (unsigned i = 0; i < SigTraits::nSymbols(); i++) {
+    auto functor = functors[i];
+    auto sym = SigTraits::getSymbol(functor);
+    out << "% " << sym->name() << " " << sym->arity() << " " << map.symbolWeight(functor) << std::endl;
   }
+
+  out << "% " SPECIAL_WEIGHT_IDENT_VAR        " " << getWeightMap<SigTraits>()._variableWeight         << std::endl;
+  out << "% " SPECIAL_WEIGHT_IDENT_INTRODUCED " " << getWeightMap<SigTraits>()._introducedSymbolWeight << std::endl;
 
   out << "% ===== end of " << SigTraits::symbolKindName() << " weights ===== " << std::endl;
 

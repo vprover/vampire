@@ -658,10 +658,10 @@ bool isPremutation(const DArray<int>& xs) {
   CALL("isPermutation");
   DArray<int> cnts(xs.size()); 
   cnts.init(xs.size(), 0);
-  for (int i = 0; i < xs.size(); i++) {
+  for (unsigned i = 0; i < xs.size(); i++) {
     cnts[xs[i]] += 1;
   }
-  for (int i = 0; i < xs.size(); i++) {
+  for (unsigned i = 0; i < xs.size(); i++) {
     if (cnts[xs[i]] != 1) {
       return false;
     }
@@ -894,12 +894,13 @@ void PrecedenceOrdering::show(ostream& out) const
 {
   CALL("PrecedenceOrdering::show(ostream& out)")
   {
+    out << "% Function precedences, smallest symbols first (line format: `<name> <arity>`) " << std::endl;
     out << "% ===== begin of function precedences ===== " << std::endl;
     DArray<unsigned> functors;
 
     functors.initFromIterator(getRangeIterator(0u,env.signature->functions()),env.signature->functions());
     std::sort(&functors[0], &functors[functors.size() - 1], [&](unsigned l, unsigned r) { return this->compareFunctionPrecedences(l,r); });
-    for (int i = 0; i < functors.size(); i++) {
+    for (unsigned i = 0; i < functors.size(); i++) {
       auto sym = env.signature->getFunction(i);
       out << "% " << sym->name() << " " << sym->arity() << std::endl;
     }
@@ -910,13 +911,40 @@ void PrecedenceOrdering::show(ostream& out) const
   out << "%" << std::endl;
 
   {
+    out << "% Predicate precedences, smallest symbols first (line format `<name> <arity>`) " << std::endl;
     out << "% ===== begin of predicate precedences ===== " << std::endl;
 
-    out << "%" << std::endl;
-    out << "% < not implemented >" << std::endl;
-    out << "%" << std::endl;
+    DArray<unsigned> functors;
+    functors.initFromIterator(getRangeIterator(0u,env.signature->predicates()),env.signature->predicates());
+    std::sort(&functors[0], &functors[functors.size() - 1], 
+        [&](unsigned l, unsigned r) { return _predicatePrecedences[l] < _predicatePrecedences[r]; });
+    for (unsigned i = 0; i < functors.size(); i++) {
+      auto sym = env.signature->getPredicate(i);
+      out << "% " << sym->name() << " " << sym->arity() << std::endl;
+    }
 
     out << "% ===== end of predicate precedences ===== " << std::endl;
   }
+
+  out << "%" << std::endl;
+
+  {
+    out << "% Predicate levels (line format: `<name> <arity> <level>`)" << std::endl;
+    out << "% ===== begin of predicate levels ===== " << std::endl;
+
+    DArray<unsigned> functors;
+    functors.initFromIterator(getRangeIterator(0u,env.signature->predicates()),env.signature->predicates());
+    std::sort(&functors[0], &functors[functors.size() - 1], 
+        [&](unsigned l, unsigned r) { return _predicateLevels[l] < _predicateLevels[r]; });
+    for (unsigned i = 0; i < functors.size(); i++) {
+      auto sym = env.signature->getPredicate(i);
+      out << "% " << sym->name() << " " << sym->arity() << " " << _predicateLevels[i] << std::endl;
+    }
+
+    out << "% ===== end of predicate precedences ===== " << std::endl;
+  }
+
+  out << "%" << std::endl;
+
   showConcrete(out);
 }

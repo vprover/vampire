@@ -106,7 +106,7 @@ void stackTraverseIf(TermList term, Predicate pred, Fn action) {
     if(t.isTerm()) {
       auto& trm = *t.term();
       if (pred(trm)) {
-        for (auto i = 0; i < trm.arity(); i++) {
+        for (int i = 0; i < trm.arity(); i++) {
           todo.push(trm[i]);
         }
       } else {
