@@ -58,42 +58,6 @@ using namespace Shell;
 #define eq(a,b)  (a == b)
 #define neq(a,b) (a != b)
 
-namespace __Dumper {
-  template<class... As>
-  struct Dumper {
-    static void dump(As... as);
-  };
-
-  template<>
-  struct Dumper<> {
-    static void dump() { }
-  };
-
-  template<class A, class... As>
-  struct Dumper<A, As...> {
-    static void dump(A a, As... as) {
-      OUT << a;
-      Dumper<As...>::dump(as...);
-    }
-  };
-}
-
-template<class... As>
-void dump_all(As... as) {
-  __Dumper::Dumper<As...>::dump(as...);
-}
-
-template<class... As>
-void check(bool b, const char* msg, As... vs) {
-  if (!b) {
-    // OUT << endl;
-    // OUT << msg << ": ";
-    // dump_all(vs...);
-    // OUT << endl;
-    TEST_FAIL
-  }
-}
-
 #define __CHECK(op, is, expected, msg, test_case) \
   if (!(( is ) op ( expected ))) { \
     OUT << endl; \
@@ -105,101 +69,80 @@ void check(bool b, const char* msg, As... vs) {
     TEST_FAIL \
   } \
 
-#define CHECK_NE(...) \
-  __CHECK(!=, __VA_ARGS__)
+#define CHECK_NE(...) __CHECK(!=, __VA_ARGS__) 
+#define CHECK_EQ(...) __CHECK(==, __VA_ARGS__)
 
-#define CHECK_EQ(...) \
-  __CHECK(==, __VA_ARGS__)
-
-
-bool expensive_sort_terms(TermList lhs, TermList rhs);
-
-struct expensive_term_comparison {
-  bool operator()(TermList lhs, TermList rhs) const {
-    return expensive_sort_terms(lhs, rhs);
-  }
-};
-
-int _expensive_sort_terms(const Term& lhs, const TermList& rhs);
-int _expensive_sort_terms(TermList lhs, TermList rhs);
-
-int _expensive_sort_terms(const Term& lhs, const Term& rhs) {
-  CALL("_expensive_sort_terms")
+int testTermOrdering(TermList lhs, TermList rhs);
+int testTermOrdering(const Term& lhs, const Term& rhs) {
+  CALL("testTermOrdering")
   // DBG(lhs, " < ", rhs)
   auto run = [&]() {
+    int l_fun = lhs.functor();
+    int r_fun = rhs.functor();
 
+    int l_thry = theory->isInterpretedFunction(l_fun);
+    int r_thry = theory->isInterpretedFunction(r_fun);
+    int cmp_thry = l_thry - r_thry;
 
-  int l_fun = lhs.functor();
-  int r_fun = rhs.functor();
+    if (cmp_thry != 0) return cmp_thry;
+    if (l_thry) {
+      ASS(r_thry)
 
-  int l_thry = theory->isInterpretedFunction(l_fun);
-  int r_thry = theory->isInterpretedFunction(r_fun);
-  int cmp_thry = l_thry - r_thry;
+      int l_inter = theory->interpretFunction(l_fun);
+      int r_inter = theory->interpretFunction(r_fun);
+      int cmp_inter = l_inter - r_inter;
 
-  if (cmp_thry != 0) return cmp_thry;
-  if (l_thry) {
-    ASS(r_thry)
+      if (cmp_inter != 0) return cmp_inter;
 
-    int l_inter = theory->interpretFunction(l_fun);
-    int r_inter = theory->interpretFunction(r_fun);
-    int cmp_inter = l_inter - r_inter;
-
-    if (cmp_inter != 0) return cmp_inter;
-
-  } else {
-    ASS(!l_thry && !r_thry)
-#define TRY_NUM(IntegerConstantType) \
-    { \
-      IntegerConstantType l; \
-      IntegerConstantType r; \
-      bool li = theory->tryInterpretConstant(&lhs, l); \
-      bool ri = theory->tryInterpretConstant(&rhs, r); \
-      int i = li - ri; \
-      if (i != 0) return i; \
-      if (li && l - r != IntegerConstantType(0)) {\
-        return l - r > IntegerConstantType(0) ? 1 : -1;  \
-      }\
-    } \
-
-    TRY_NUM(IntegerConstantType)
-    TRY_NUM(RealConstantType)
-    TRY_NUM(RationalConstantType)
- 
-    const vstring& lname = env.signature->getFunction(l_fun)->name();
-    const vstring& rname = env.signature->getFunction(r_fun)->name();
-    if (l_fun == r_fun) {
-
-    } else if (lname < rname) {
-      return -1;
     } else {
-      return 1;
-    }
+      ASS(!l_thry && !r_thry)
 
-    // if (cmp_fun != 0) return cmp_fun;
- }
+#     define TRY_NUM(IntegerConstantType) \
+        { \
+          IntegerConstantType l; \
+          IntegerConstantType r; \
+          bool li = theory->tryInterpretConstant(&lhs, l); \
+          bool ri = theory->tryInterpretConstant(&rhs, r); \
+          int i = li - ri; \
+          if (i != 0) return i; \
+          if (li && l - r != IntegerConstantType(0)) {\
+            return l - r > IntegerConstantType(0) ? 1 : -1;  \
+          }\
+        } \
 
-  ASS(lhs.arity() == rhs.arity())
-  for (int i = 0; i < lhs.arity(); i++) {
-    auto cmp = _expensive_sort_terms(lhs[i], rhs[i]);
-    if (cmp != 0) {
-      return cmp;
+      TRY_NUM(IntegerConstantType)
+      TRY_NUM(RealConstantType)
+      TRY_NUM(RationalConstantType)
+   
+      const vstring& lname = env.signature->getFunction(l_fun)->name();
+      const vstring& rname = env.signature->getFunction(r_fun)->name();
+      if (l_fun == r_fun) {
+
+      } else if (lname < rname) {
+        return -1;
+      } else {
+        return 1;
+      }
+
+      // if (cmp_fun != 0) return cmp_fun;
+   }
+
+    ASS(lhs.arity() == rhs.arity())
+    for (int i = 0; i < lhs.arity(); i++) {
+      auto cmp = testTermOrdering(lhs[i], rhs[i]);
+      if (cmp != 0) {
+        return cmp;
+      }
     }
-  }
-  return 0;
+    return 0;
   };
   auto out = run();
   // DBG("=> ", out);
   return out;
 }
 
-bool expensive_sort_terms(TermList lhs, TermList rhs) {
-  // DBG("comparing: ", lhs, " < ", rhs)
-  auto out = _expensive_sort_terms(lhs, rhs) < 0;
-  return out;
-}
-
-int _expensive_sort_terms(TermList lhs, TermList rhs) {
-  CALL("_expensive_sort_terms(TermList)")
+int testTermOrdering(TermList lhs, TermList rhs) {
+  CALL("testTermOrdering(TermList)")
   // DBG(lhs, " < ", rhs)
   auto run = [&](){
 
@@ -210,7 +153,7 @@ int _expensive_sort_terms(TermList lhs, TermList rhs) {
 
   if (l_trm) {
     ASS(r_trm);
-    return _expensive_sort_terms(*lhs.term(), *rhs.term());
+    return testTermOrdering(*lhs.term(), *rhs.term());
   } else {
     ASS(lhs.isVar() && rhs.isVar());
     return int(lhs.var()) - int(rhs.var());
@@ -223,12 +166,10 @@ int _expensive_sort_terms(TermList lhs, TermList rhs) {
 
 }
 
-
-
-
 struct TestOrdering {
   bool operator()(const TermList& lhs, const TermList& rhs) const noexcept {
-    return expensive_sort_terms(lhs, rhs);
+    // DBG("comparing: ", lhs, " < ", rhs)
+    return testTermOrdering(lhs, rhs) < 0;
   }
 };
 
