@@ -125,6 +125,7 @@ Ordering* Ordering::create(Problem& prb, const Options& opt)
 {
   CALL("Ordering::create");
 
+  Ordering* out;
   switch (env.options->termOrdering()) {
   case Options::TermOrdering::KBO:
     // KBOForEPR does not support 
@@ -136,14 +137,23 @@ Ordering* Ordering::create(Problem& prb, const Options& opt)
         && env.options->predicateWeights() == ""
         && env.options->functionWeights() == ""
         ) {
-      return new KBOForEPR(prb, opt);
+      out = new KBOForEPR(prb, opt);
+    } else {
+      out = new KBO(prb, opt);
     }
-    return new KBO(prb, opt);
+    break;
   case Options::TermOrdering::LPO:
-    return new LPO(prb, opt);
+    out = new LPO(prb, opt);
+    break;
   default:
     ASSERTION_VIOLATION;
   }
+  if (opt.showSimplOrdering()) {
+    env.beginOutput();
+    out->show(env.out());
+    env.endOutput();
+  }
+  return out;
 }
 
 
@@ -878,4 +888,35 @@ DArray<int> PrecedenceOrdering::predLevelsFromOpts(Problem& prb, const Options& 
 
   }
   return predicateLevels;
+}
+
+void PrecedenceOrdering::show(ostream& out) const 
+{
+  CALL("PrecedenceOrdering::show(ostream& out)")
+  {
+    out << "% ===== begin of function precedences ===== " << std::endl;
+    DArray<unsigned> functors;
+
+    functors.initFromIterator(getRangeIterator(0u,env.signature->functions()),env.signature->functions());
+    std::sort(&functors[0], &functors[functors.size() - 1], [&](unsigned l, unsigned r) { return this->compareFunctionPrecedences(l,r); });
+    for (int i = 0; i < functors.size(); i++) {
+      auto sym = env.signature->getFunction(i);
+      out << "% " << sym->name() << " " << sym->arity() << std::endl;
+    }
+
+    out << "% ===== end of function precedences ===== " << std::endl;
+  }
+
+  out << "%" << std::endl;
+
+  {
+    out << "% ===== begin of predicate precedences ===== " << std::endl;
+
+    out << "%" << std::endl;
+    out << "% < not implemented >" << std::endl;
+    out << "%" << std::endl;
+
+    out << "% ===== end of predicate precedences ===== " << std::endl;
+  }
+  showConcrete(out);
 }

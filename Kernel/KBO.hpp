@@ -86,6 +86,7 @@ public:
       bool reverseLCM);
 
   virtual ~KBO();
+  void showConcrete(ostream&) const override;
 
   using PrecedenceOrdering::compare;
   Result compare(TermList tl1, TermList tl2) const override;
@@ -103,8 +104,11 @@ private:
   WeightMap _funcWeights;
   WeightMap _predWeights;
 
+  template<class SigTraits> const WeightMap& getWeightMap() const;
   template<class SigTraits> WeightMap weightsFromOpts(const Options& opts) const;
   template<class SigTraits> WeightMap weightsFromFile(const Options& opts) const;
+  template<class SigTraits> 
+  void showConcrete_(ostream&) const;
 
   /**
    * State used for comparing terms and literals

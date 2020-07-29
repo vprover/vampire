@@ -316,6 +316,9 @@ struct PredSigTraits {
 
   static bool isConstantSymbol(unsigned functor) 
   { return false; } 
+
+  static Signature::Symbol* getSymbol(unsigned functor) 
+  { return env.signature->getPredicate(functor); } 
 };
 
 
@@ -340,6 +343,9 @@ struct FuncSigTraits {
 
   static bool isConstantSymbol(unsigned functor) 
   { return env.signature->getFunction(functor)->arity() == 0; } 
+
+  static Signature::Symbol* getSymbol(unsigned functor) 
+  { return env.signature->getFunction(functor); } 
 };
 
 template<class SigTraits> 
@@ -689,5 +695,30 @@ KBO::Weight KBO::WeightMap::symbolWeight(unsigned functor) const
   }
 }
 
+template<class SigTraits>
+void KBO::showConcrete_(ostream& out) const  
+{
+  out << "% ===== begin of " << SigTraits::symbolKindName() << " weights ===== " << std::endl;
+
+  for (int i = 0; i < SigTraits::nSymbols(); i++) {
+    auto sym = SigTraits::getSymbol(i);
+    out << "% " << sym->name() << " " << sym->arity() << " " << getWeightMap<SigTraits>().symbolWeight(i) << std::endl;
+  }
+
+  out << "% ===== end of " << SigTraits::symbolKindName() << " weights ===== " << std::endl;
+
+}
+void KBO::showConcrete(ostream& out) const  
+{
+  showConcrete_<FuncSigTraits>(out);
+  out << "%" << std::endl;
+  showConcrete_<PredSigTraits>(out);
+}
+
+template<> const KBO::WeightMap& KBO::getWeightMap<FuncSigTraits>() const 
+{ return _funcWeights; }
+
+template<> const KBO::WeightMap& KBO::getWeightMap<PredSigTraits>() const 
+{ return _predWeights; }
 
 }
