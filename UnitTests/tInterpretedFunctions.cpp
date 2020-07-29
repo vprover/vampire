@@ -41,22 +41,11 @@ using namespace std;
 using namespace Lib;
 using namespace Kernel;
 using namespace Shell;
+/////////////////////////////////////////////// Helper functions ///////////////////////////////////////////////////////
 
 #define TEST_FAIL exit(-1);
 #define OUT cout
 // #define TEST_FAIL OUT << "FAIL" << endl;
-
-// TODO inline these macros
-#define add(a,b) (a + b)
-#define mul(a,b) (a * b)
-#define minus(a) -(a)
-#define lt(a,b) (a < b)
-#define gt(a,b) (a > b)
-#define leq(a,b) (a <= b)
-#define geq(a,b) (a >= b)
-#define neg(a)   ~(a)
-#define eq(a,b)  (a == b)
-#define neq(a,b) (a != b)
 
 #define __CHECK(op, is, expected, msg, test_case) \
   if (!(( is ) op ( expected ))) { \
@@ -256,66 +245,68 @@ void check_eval(Lit orig_, Lit expected_) {
       check_eval(( formula ), ( expected )); \
     } \
 
+/////////////////////////////////////////////// Test cases ///////////////////////////////////////////////////////
+
 ALL_NUMBERS_TEST(partial_eval_add_1,
-      eq(add(2, add(x, add(3, 7))), y),
-      eq(add(12, x), y)
+      2 + (x + (3 + 7)) == y, /* <- term to evaluate/normalize */
+      12 + x            == y  /* <- expected result */
   )
 
 ALL_NUMBERS_TEST(partial_eval_add_2,
-      eq(add(2, add(add(8, x), add(3, 7))), y),
-      eq(add(20, x), y)
+      ((2 + ((8 + x) + (3 + 7))) == y),
+      ((20 + x) == y)
 )
 
 ALL_NUMBERS_TEST(partial_eval_add_3,
-      eq(add(2, add(add(minus(8), x), add(3, 7))), y),
-      eq(add(4, x), y)
+      ((2 + ((-(8) + x) + (3 + 7))) == y),
+      ((4 + x) == y)
     )
 
 ALL_NUMBERS_TEST(partial_eval_add_4,
-      eq(minus(add(2, add(add(8, x), add(3, 7)))), y),
-      eq(add(-20, minus(x)), y)
+      (-((2 + ((8 + x) + (3 + 7)))) == y),
+      ((-20 + -(x)) == y)
     )
 
 ALL_NUMBERS_TEST(partial_eval_add_5,
-    /* -21 + 7 * (3 + x) = y */
-      eq(x, add(-21, mul(7, add(3,y)))),
-      eq(x, mul(7,y))
+
+      (x == (-21 + (7 * (3 + y)))),
+      (x == (7 * y))
     )
 
 ALL_NUMBERS_TEST(partial_eval_add_6,
-      eq(mul(7,x), add(-21, mul(7, add(3,x)))),
+      ((7 * x) == (-21 + (7 * (3 + x)))),
       true
     )
 
 ALL_NUMBERS_TEST(simpl_times_zero_0
-    , eq(a, mul(0, y))
-    , eq(a, 0)
+    , (a == (0 * y))
+    , (a == 0)
     );
 
 
 ALL_NUMBERS_TEST(simpl_times_zero_1
-    , eq(x, mul(0, y))
-    , eq(x, 0)
+    , (x == (0 * y))
+    , (x == 0)
     );
 
 ALL_NUMBERS_TEST(simpl_times_zero_2
-    , eq(3, add(mul(0, x), 4))
+    , (3 == ((0 * x) + 4))
     , false
     );
 
 FRACTIONAL_TEST(literal_to_const_0,
       num(0) == 31,
-      false 
+      false
       )
 
 FRACTIONAL_TEST(literal_to_const_1,
-      eq(mul(frac(5,2), 2), 5),
-      true 
+      ((frac(5,2) * 2) == 5),
+      true
       )
 
 FRACTIONAL_TEST(literal_to_const_2,
-      eq(mul(frac(5,2), 2), 6),
-      false 
+      ((frac(5,2) * 2) == 6),
+      false
     )
 
 FRACTIONAL_TEST(literal_to_const_3,
@@ -323,7 +314,7 @@ FRACTIONAL_TEST(literal_to_const_3,
       false
     )
 
-  // Interpret 3*2 < 5
+
 FRACTIONAL_TEST(literal_to_const_4,
       ~(num(3) * 2 < 5),
       true
@@ -342,7 +333,7 @@ ALL_NUMBERS_TEST(literal_to_const_6,
 ALL_NUMBERS_TEST(literal_to_const_7,
       num(0) < 0,
       false
-    );  
+    );
 
 ALL_NUMBERS_TEST(literal_to_const_8,
       ~(num(0) < 0),
@@ -350,48 +341,43 @@ ALL_NUMBERS_TEST(literal_to_const_8,
     )
 
 ALL_NUMBERS_TEST(literal_to_const_9,
-      gt(mul(3,a),mul(3, a)),
+      ((3 * a) > (3 * a)),
       false
     )
 
 ALL_NUMBERS_TEST(literal_to_const_10,
-      gt(add(mul(3,a), x),add(mul(3, a), x)),
+      (((3 * a) + x) > ((3 * a) + x)),
       false
     )
 
 ALL_NUMBERS_TEST(literal_to_const_11,
-      gt(add(x, mul(3,a)),add(mul(3, a), x)),
+      ((x + (3 * a)) > ((3 * a) + x)),
       false
     )
+
 
 #ifdef NORMALIZE_LESS //TODO
 TEST_FUN(normalize_less_1) {
   THEORY_SYNTAX_SUGAR(INT)
   check_eval(
-      /* 5 < 2 * x */
-      lt(5, mul(2,x)),
-      /* 0 < 2 * x - 5 */
-      lt(0, add(-5, mul(2,x)))
+      (5 < (2 * x)),
+      (0 < (-5 + (2 * x)))
     );
 }
 
 TEST_FUN(normalize_less_2) {
   THEORY_SYNTAX_SUGAR(INT)
   check_eval(
-      /* 5 < a * x */
-      lt(5, mul(a,x)),
-      /* 0 < a * x - 5 */
-      lt(0, add(-5, mul(a,x)))
+      (5 < (a * x)),
+      (0 < (-5 + (a * x)))
     );
 }
 
 TEST_FUN(normalize_less_3) {
   THEORY_SYNTAX_SUGAR(INT)
   check_eval(
-      /* b < a * x */
-      lt(b, mul(a,x)),
-     /* 0 < a * x - b */
-      lt(0, add(mul(a,x), minus(b)))
+      (b < (a * x)),
+      (0 < ((a * x) + -(b)))
     );
 
 }
@@ -399,10 +385,8 @@ TEST_FUN(normalize_less_3) {
 TEST_FUN(normalize_less_4) {
   THEORY_SYNTAX_SUGAR(INT)
   check_eval(
-      /* b < a */
-      lt(b, a),
-      /* 0 < a - b */
-      lt(0, add(a, minus(b)))
+      (b < a),
+      (0 < (a + -(b)))
     );
 }
 
@@ -410,158 +394,132 @@ TEST_FUN(normalize_less_4) {
 TEST_FUN(normalize_less_5) {
   THEORY_SYNTAX_SUGAR(INT)
   check_eval(
-      /* b < a */
-      lt(x,y),
-      /* 0 < a - b */
-      lt(0, add(y, minus(x)))
+      (x < y),
+      (0 < (y + -(x)))
     );
 }
 
 TEST_FUN(normalize_less_equal_1) {
   THEORY_SYNTAX_SUGAR(INT)
   check_eval(
-      /* ~(x < 5) */
-      neg(lt(x, 5)),
-      /* 0 <  x - 4 */
-      lt(0, add(-4, x))
+      ~((x < 5)),
+      (0 < (-4 + x))
     );
 }
 
 TEST_FUN(normalize_less_equal_2) {
   THEORY_SYNTAX_SUGAR(INT)
-    /* 0 <= x + 1*/
   check_eval(
-      neg(lt(x, a)),
-      /* !(x < a) 
-       * <-> a <= x 
-       * <-> a - 1 < x 
-       * <-> 0 < x + 1 - a
-       */
-      lt(0, add(add(1, x), minus(a)))
+      ~((x < a)),
+      (0 < ((1 + x) + -(a)))
       );
 }
 
 TEST_FUN(test_normalize_stable) {
   THEORY_SYNTAX_SUGAR(INT)
-    /* 0 <= x + 1*/
-  // check_eval(
-  //     leq(0, add(x, 1)),
-  //     leq(0, add(x, 1))
-      // );
   check_no_succ(
-      lt(0, add(1, x))
+      (0 < (1 + x))
       );
 }
+
 #endif // NORMALIZE_LESS // TODO
 
-// x = -(-x)
-ALL_NUMBERS_TEST(eval_double_minus_1_1, 
-      eq(x, minus(minus(x))),
+ALL_NUMBERS_TEST(eval_double_minus_1_1,
+      (x == -(-(x))),
       true)
 
-ALL_NUMBERS_TEST(eval_double_minus_1_2, 
-      neg(eq(x, minus(minus(x)))),
+ALL_NUMBERS_TEST(eval_double_minus_1_2,
+      ~((x == -(-(x)))),
       false)
 
-// x < -(-x)
-ALL_NUMBERS_TEST(eval_double_minus_2_1, 
-      lt(x, minus(minus(x))),
+
+ALL_NUMBERS_TEST(eval_double_minus_2_1,
+      (x < -(-(x))),
       false)
-ALL_NUMBERS_TEST(eval_double_minus_2_2, 
-      neg(lt(x, minus(minus(x)))),
+ALL_NUMBERS_TEST(eval_double_minus_2_2,
+      ~((x < -(-(x)))),
       true)
 
-ALL_NUMBERS_TEST(eval_inverse_1 
-    , eq(1, add(x, minus(x)))
+ALL_NUMBERS_TEST(eval_inverse_1
+    , (1 == (x + -(x)))
     , false
     )
 
-// a = -(-x)
+
 ALL_NUMBERS_TEST(eval_double_minus_3,
-      eq(a, minus(minus(x))),
-      eq(a, x))
+      (a == -(-(x))),
+      (a == x))
 
 
-// 4 = -(-x + 4)
-// ==> 4 = x + (-4)
+
+
 ALL_NUMBERS_TEST(eval_double_minus_4,
-      eq(4, minus(add(minus(x), 4))),
-      eq(8, x) )
+      (4 == -((-(x) + 4))),
+      (8 == x) )
 
 ALL_NUMBERS_TEST(eval_remove_identity_1,
-      lt(0, add(0, minus(x))),
-      lt(0, minus(x))
+      (0 < (0 + -(x))),
+      (0 < -(x))
       )
 
 ALL_NUMBERS_TEST(eval_remove_identity_2,
-      eq(0, f(add(0, mul(x, mul(1, y))))),
-      eq(0, f(mul(x,y)))
+      (0 == f((0 + (x * (1 * y))))),
+      (0 == f((x * y)))
       )
 
 ALL_NUMBERS_TEST(polynomial__normalize_uminus_1,
-      p(mul(7, minus(f(x)))),
-      p(mul(-7, f(x)))
+      p((7 * -(f(x)))),
+      p((-7 * f(x)))
       )
 
 ALL_NUMBERS_TEST(polynomial__normalize_uminus_2,
-      p(mul(minus(f(x)), 7)),
-      p(mul(-7, f(x)))
+      p((-(f(x)) * 7)),
+      p((-7 * f(x)))
       )
 
 ALL_NUMBERS_TEST(polynomial__merge_consts_1,
-      p(add(mul(6, x), mul(5, x))),
-      p(mul(11, x))
+      p(((6 * x) + (5 * x))),
+      p((11 * x))
       )
 
 ALL_NUMBERS_TEST(polynomial__merge_consts_2,
-      p(add(add(mul(6, x), mul(y, 3)), mul(5, x))),
-      p(add(mul(3,y), mul(11, x)))
+      p((((6 * x) + (y * 3)) + (5 * x))),
+      p(((3 * y) + (11 * x)))
       )
 
 ALL_NUMBERS_TEST(polynomial__merge_consts_3,
-      p(add(add(mul(6, a), mul(y, 3)), mul(5, a))),
-      p(add(mul(3, y), mul(11, a)))
+      p((((6 * a) + (y * 3)) + (5 * a))),
+      p(((3 * y) + (11 * a)))
       )
 
 ALL_NUMBERS_TEST(polynomial__push_unary_minus,
-      p(minus(mul(a, 7))),
-      p(mul(-7, a))
+      p(-((a * 7))),
+      p((-7 * a))
       )
 
 ALL_NUMBERS_TEST(polynomial__sorting_1,
-      p(mul(mul(7, x), a)),
-      p(mul(7, mul(a, x)))
+      p(((7 * x) * a)),
+      p((7 * (a * x)))
       )
 
 ALL_NUMBERS_TEST(polynomial__sorting_2,
-      p(mul(mul(7, mul(y, x)), a)),
-      p(mul(7, mul(a, mul(x,y))))
+      p(((7 * (y * x)) * a)),
+      p((7 * (a * (x * y))))
       )
 
 ALL_NUMBERS_TEST(polynomial__sorting_3,
-      p(mul(add(x,add(x, y)), add(x, add(a,x)))),
-    /* (x + x +y) * (x + a + x) */
-    /* ==> (2x + y) * (2x + a) */
-    /* ==> (2x + y) * (2x + a) */
-    /* ==> (4x^2 + 2xy) + (2ax + ay) */
-    /* ==> 4x^2 + 2xy + 2ax + ay */
-      // p(add(mul(4, mul(x,x)), add(mul(2, mul(x,y)), add(mul(2,mul(x,a)), mul(y,a)))))
-      p(add(mul(a,y),
-        add(mul(2,mul(a,x)), 
-        add(mul(2, mul(x,y)),
-            mul(4, mul(x,x)) 
-            ))))
+      p(((x + (x + y)) * (x + (a + x)))),
+      p(((a * y) + ((2 * (a * x)) + ((2 * (x * y)) + (4 * (x * x))))))
       )
 
 ALL_NUMBERS_TEST(polynomial__sorting_4,
       p((x + 1) * (x + -1)),
-      /* (x + 1) * (x - 1) */
-      p(add(-1, (x * x)))
+      p((-1 + (x * x)))
       )
 
 ALL_NUMBERS_TEST(polynomial__sorting_5,
-      p(add(add(b,a),c)),
-      p(add(a,add(b,c)))
+      p(((b + a) + c)),
+      p((a + (b + c)))
       )
 
 ALL_NUMBERS_TEST(polynomial__sorting_6,
@@ -570,7 +528,7 @@ ALL_NUMBERS_TEST(polynomial__sorting_6,
       )
 
 ALL_NUMBERS_TEST(eval_test_cached_1,
-      p(((b * a) * c) *  ((b * a) * c)),
+      p(((b * a) * c) * ((b * a) * c)),
       p(a * (a * (b * (b * (c * c)))))
       )
 
@@ -585,7 +543,7 @@ ALL_NUMBERS_TEST(eval_bug_1,
       )
 
 ALL_NUMBERS_TEST(eval_bug_2,
-      x * (y * z) == (x * y) *z,
+      x * (y * z) == (x * y) * z,
       true
       )
 
@@ -596,22 +554,22 @@ ALL_NUMBERS_TEST(eval_bug_3,
 
 ALL_NUMBERS_TEST(eval_cancellation_0,
     x + 1 == 2,
-    x     == 1
+    x == 1
     )
 
 ALL_NUMBERS_TEST(eval_cancellation_1,
     x + (-1) == -2,
-    x        == -1
+    x == -1
     )
 
 ALL_NUMBERS_TEST(eval_cancellation_2,
     x + y == a + y,
-    x     == a
+    x == a
     )
 
 ALL_NUMBERS_TEST(eval_cancellation_3,
     3 + x == 2 + a,
-    1 + x ==     a
+    1 + x == a
     )
 
 ALL_NUMBERS_TEST(eval_cancellation_4,
@@ -626,15 +584,8 @@ ALL_NUMBERS_TEST(eval_cancellation_5,
 
 ALL_NUMBERS_TEST(eval_cancellation_6,
     x + (y * 3) + z + b == a + (y * 2) + z + (b * 3),
-    x +  y              == a               +  2 * b
+    x + y == a + 2 * b
     )
-
-// ALL_NUMBERS_TEST(eval_cancellation_7_nop,
-//         x  == x * -1,
-//         x  == minus(x)
-//     // x + y  == a + (b * -4) or x + y  == a + (b * -4)
-//     // x + y + (b * 4)  == a or x + y  == a + (b * -4)
-//     )
 
 ALL_NUMBERS_TEST(eval_cancellation_8,
     a * y * 6 == a * y * 2,
@@ -644,7 +595,7 @@ ALL_NUMBERS_TEST(eval_cancellation_8,
 
 ALL_NUMBERS_TEST(eval_cancellation_9,
     a * y * -1 == a * y * -2,
-     -(a * x)  == 0 
+     -(a * x) == 0
     )
 
 //       x + 3 = a + 2         ==> x + 1 = a
