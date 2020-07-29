@@ -1552,9 +1552,7 @@ void SMTLIB2::parseMatchBegin(LExpr* exp)
   Scopes::Iterator sIt(_scopes);
   bool foundMatched = false;
   while (sIt.hasNext()) {
-    TermLookup* lookup = sIt.next();
-
-    if (lookup->find(matched,matchedTerm)) {
+    if (sIt.next()->find(matched,matchedTerm)) {
       foundMatched = true;
       break;
     }
@@ -1659,13 +1657,21 @@ bool SMTLIB2::parseMatchPattern(LExpr* exp, unsigned int sort, TermLookup* looku
       functor = id;
       return true;
     }
-    
+
     // variable
     if (exp_str == UNDERSCORE) {
       // nothing to do here
     } else {
       TermList arg = TermList(_nextVar++, false);
 
+      // Check variable in earlier lookups
+      Scopes::Iterator sIt(_scopes);
+      while (sIt.hasNext()) {
+        SortedTerm tmp;
+        if (sIt.next()->find(exp_str, tmp)) {
+          USER_ERROR("Variable '"+exp_str+"' has already been defined");
+        }
+      }
       if (!lookup->insert(exp_str, make_pair(arg, sort))) {
         USER_ERROR("Variable '"+exp_str+"' has already been defined");
       }
