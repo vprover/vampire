@@ -552,51 +552,75 @@ ALL_NUMBERS_TEST(eval_bug_3,
       false
       )
 
-ALL_NUMBERS_TEST(eval_cancellation_0,
+ALL_NUMBERS_TEST(eval_cancellation_add_0,
     x + 1 == 2,
     x == 1
     )
 
-ALL_NUMBERS_TEST(eval_cancellation_1,
+ALL_NUMBERS_TEST(eval_cancellation_add_1,
     x + (-1) == -2,
     x == -1
     )
 
-ALL_NUMBERS_TEST(eval_cancellation_2,
+ALL_NUMBERS_TEST(eval_cancellation_add_2,
     x + y == a + y,
     x == a
     )
 
-ALL_NUMBERS_TEST(eval_cancellation_3,
+ALL_NUMBERS_TEST(eval_cancellation_add_3,
     3 + x == 2 + a,
     1 + x == a
     )
 
-ALL_NUMBERS_TEST(eval_cancellation_4,
+ALL_NUMBERS_TEST(eval_cancellation_add_4,
     x + (b * 3) == a + (b * 2),
     b + x == a
     )
 
-ALL_NUMBERS_TEST(eval_cancellation_5,
+ALL_NUMBERS_TEST(eval_cancellation_add_5,
     x + (y * 3) == a + (y * 2),
     x + y == a
     )
 
-ALL_NUMBERS_TEST(eval_cancellation_6,
+ALL_NUMBERS_TEST(eval_cancellation_add_6,
     x + (y * 3) + z + b == a + (y * 2) + z + (b * 3),
     x + y == a + 2 * b
     )
 
-ALL_NUMBERS_TEST(eval_cancellation_8,
+ALL_NUMBERS_TEST(eval_cancellation_add_8,
     a * y * 6 == a * y * 2,
-    4 * a * x == 0
+    4 * (a * y) == 0
     )
 
-
-ALL_NUMBERS_TEST(eval_cancellation_9,
+ALL_NUMBERS_TEST(eval_cancellation_add_9,
     a * y * -1 == a * y * -2,
-     -(a * x) == 0
+    0 == -(a * y)
     )
+
+// not yet implemented:
+// ALL_NUMBERS_TEST(eval_cancellation_mul_0,
+//     x == a * x,
+//     1 == a
+//     )
+//
+// ALL_NUMBERS_TEST(eval_cancellation_mul_1,
+//     2 * x == a * x,
+//     2 == a
+//     )
+//
+// ALL_NUMBERS_TEST(eval_cancellation_mul_2,
+//     b * 2 * x == a * x * b,
+//     /* dividing by ( b * x ) */
+//     2 == a
+//     )
+//
+// ALL_NUMBERS_TEST(eval_cancellation_mul_3,
+//     b * 2 * x + x == a * x * b, 
+//     /* dividing by x */
+//     2 * b + 1     == a * b
+//     )
+
+
 
 //       x + 3 = a + 2         ==> x + 1 = a
 //       x + 3 * b = a + 2 * b ==> x + b = a
