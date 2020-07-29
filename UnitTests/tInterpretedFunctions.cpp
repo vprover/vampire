@@ -304,7 +304,7 @@ ALL_NUMBERS_TEST(simpl_times_zero_2
     );
 
 FRACTIONAL_TEST(literal_to_const_0,
-      num2trm(0) == 31,
+      num(0) == 31,
       false 
       )
 
@@ -319,33 +319,33 @@ FRACTIONAL_TEST(literal_to_const_2,
     )
 
 FRACTIONAL_TEST(literal_to_const_3,
-      (num2trm(3) * num2trm(2) < 5),
+      (num(3) * num(2) < 5),
       false
     )
 
   // Interpret 3*2 < 5
 FRACTIONAL_TEST(literal_to_const_4,
-      ~(num2trm(3) * 2 < 5),
+      ~(num(3) * 2 < 5),
       true
     )
 
 ALL_NUMBERS_TEST(literal_to_const_5,
-      (num2trm(3) * 2) > 5,
+      (num(3) * 2) > 5,
       true
     )
 
 ALL_NUMBERS_TEST(literal_to_const_6,
-      ((num2trm(3) * 2) > 13),
+      ((num(3) * 2) > 13),
       false
     )
 
 ALL_NUMBERS_TEST(literal_to_const_7,
-      num2trm(0) < 0,
+      num(0) < 0,
       false
     );  
 
 ALL_NUMBERS_TEST(literal_to_const_8,
-      ~(num2trm(0) < 0),
+      ~(num(0) < 0),
       true
     )
 

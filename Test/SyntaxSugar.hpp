@@ -64,20 +64,9 @@
 #define __REPEAT_10(sort) sort, __REPEAT_9(sort)
 #define __REPEAT(arity, sort) __REPEAT_ ## arity(sort)
 
-#define __DECLARE_FUNC(arity, f, sort) Function<decltype(sort), __REPEAT(arity, decltype(sort))> f(#f, sort, __REPEAT(arity, sort));
-#define __DECLARE_PRED(arity, f, sort) Predicate<               __REPEAT(arity, decltype(sort))> f(#f,       __REPEAT(arity, sort));
-
-#define __DECLARE_CONST(name, sort)                                                                                     \
-  class __ ## name ## __CLASS : public Trm<decltype(sort)>                                                              \
-  {                                                                                                                     \
-    public:                                                                                                             \
-    __ ## name ## __CLASS(const char* name, decltype(sort) s)                                                                 \
-      : Trm( Trm::createConstant(#name, s) )                                                                  \
-    { }                                                                                                                 \
-                                                                                                                        \
-    unsigned functor() { return toTerm().term()->functor(); }                                                     \
-  };                                                                                                                    \
-  auto name = __ ## name ## __CLASS(#name, sort);
+#define __DECLARE_CONST(      f, sort) ConstSugar<decltype(sort)                                 > f(#f, sort);
+#define __DECLARE_FUNC(arity, f, sort)  FuncSugar<decltype(sort), __REPEAT(arity, decltype(sort))> f(#f, sort, __REPEAT(arity, sort));
+#define __DECLARE_PRED(arity, f, sort)  PredSugar<                __REPEAT(arity, decltype(sort))> f(#f,       __REPEAT(arity, sort));
 
 #define __DEFAULT_VARS                                                                                                  \
     auto x = TermWrapper(TermList::var(0));                                                                             \
@@ -96,8 +85,13 @@
  *
  * The macro is meant to be called within a TEST_FUN(...){...} block to import the syntax sugar for 
  * the corresponding test case. It provides a class TermWrapper that implicitly converts number literals 
- * to terms in the corresponding sort, and closures to build complex terms. Further it sets some C++ variables 
- * to variable terms and some to constant terms.
+ * to terms in the corresponding sort, and operators to build complex terms and literals. Further it sets 
+ * some (C++) variables to variable terms and some to constant terms.
+ *
+ * Additionally the macros `THEORY_SYNTAX_SUGAR_FUN`, `THEORY_SYNTAX_SUGAR_CONST`, and `THEORY_SYNTAX_SUGAR_PRED` can be 
+ * used to declare uninterpreted functions/predicates/constants over the sort.
+ *
+ * These are the automatically defined operators and variables
  *
  * local variables:
  * x ... variable X0
@@ -108,37 +102,32 @@
  * b ... constant b
  * c ... constant c
  *
- * Closures for complex terms:
- * mul   ... interpreted multiplication
- * add   ... interpreted addition
- * minus ... interpreted unary minus
+ * Operators for creating complex terms:
+ * operator* ... interpreted multiplication
+ * operator+ ... interpreted addition
+ * operator- ... interpreted unary minus
  *
- * Closures for literals:
- * gt   ... interpreted greater relation
- * geq  ... interpreted greater or equal relation
- * lt   ... interpreted less relation
- * leq  ... interpreted less or equal relation
- * eq   ... interpreted equality relation
- * neq  ... interpreted equality relation
+ * Operators for creating literals:
+ * operator>   ... interpreted greater relation
+ * operator>=  ... interpreted greater or equal relation
+ * operator<   ... interpreted less relation
+ * operator<=  ... interpreted less or equal relation
+ * operator==  ... interpreted equality relation
+ * operator!=  ... interpreted equality relation
+ * operator~   ... flipping a literal's polarity
  *
  * Other closures:
  * frac(int,int) ... creates a fractional interpreted constant (only for REAL, and RAT)
- * neg(Literal)  ... negates a literal
+ * num(int)      ... explicity converts a number to an interpreted constant 
+ *                   this can be needed in order to prevent the compiler from pre-evaluating integer expressions.
+ *                   e.g. {
+ *                      Literal* l1 = (a == (3 * 2));
+ *                                          ^^^^^^^ this will be evaluated to 6 before transforming it into a term
+ *                                                  in order to prevent this we can write:
+ *                      Literal* l2 = (a == (num(3) * 2));
+ *                   }
  *
- *
- * For examples ses:
- *
- * TEST_FUN(some_meaningful_testname) {
- *   THEORY_SYNTAX_SUGAR(REAL)
- *   Literal& lit = neq(lt(0, mul(x, frac(7,1))));
- *   ... some tests with this literal ...
- * }
- *
- * TEST_FUN(some_other_meaningful_testname) {
- *   THEORY_SYNTAX_SUGAR(REAL)
- *   TermList lit = mul(x, frac(7,1));
- *   ... some tests with this literal ...
- * }
+ * For examples see UnitTesting/tSyntaxSugar.cpp.
  */
 #define THEORY_SYNTAX_SUGAR(sort)                                                                                       \
   _Pragma("GCC diagnostic push")                                                                                        \
@@ -146,19 +135,17 @@
     using DefaultSort = NumTraits<__CONSTANT_TYPE_ ## sort>;                                                            \
     using TermWrapper = Trm<DefaultSort>;                                                                               \
     DefaultSort __defaultSort;                                                                                          \
-    \
+                                                                                                                        \
     __DEFAULT_VARS                                                                                                      \
-    __DECLARE_CONST(a, __defaultSort)                                                                             \
+    __DECLARE_CONST(a, __defaultSort)                                                                                   \
     __DECLARE_CONST(b, __defaultSort)                                                                                   \
     __DECLARE_CONST(c, __defaultSort)                                                                                   \
-      auto num2trm = [](int num) -> TermWrapper {                                                                         \
-        return num; \
-      }; \
-    __IF_FRAC(sort,                         \
-      auto frac = [](int num, int den) -> TermWrapper {                                                                         \
-        return DefaultSort::constantTl(num, den); \
-      }; \
-    )                                                    \
+      auto num = [](int n) -> TermWrapper {  return n; };                                                               \
+    __IF_FRAC(sort,                                                                                                     \
+      auto frac = [](int num, int den) -> TermWrapper {                                                                 \
+        return DefaultSort::constantTl(num, den);                                                                       \
+      };                                                                                                                \
+    )                                                                                                                   \
     __CLSR_FUN_INTERPRETED(2, mul, sort, _MULTIPLY)                                                                     \
     __CLSR_FUN_INTERPRETED(1, minus, sort, _UNARY_MINUS)                                                                \
   _Pragma("GCC diagnostic pop")                                                                                         \
@@ -170,9 +157,9 @@
 #define FOF_SYNTAX_SUGAR                                                                                                \
   _Pragma("GCC diagnostic push")                                                                                        \
   _Pragma("GCC diagnostic ignored \"-Wunused\"")                                                                        \
-    using DefaultSort = UninterpretedTraits;                                                            \
+    using DefaultSort = UninterpretedTraits;                                                                            \
     using TermWrapper = Trm<DefaultSort>;                                                                               \
-    DefaultSort __defaultSort(env.sorts->addSort("alpha", false));                                       \
+    DefaultSort __defaultSort(env.sorts->addSort("alpha", false));                                                      \
     __DEFAULT_VARS                                                                                                      \
   _Pragma("GCC diagnostic pop")                                                                                         \
 
@@ -200,16 +187,18 @@ class Trm
 
 public:
   /* works only if SortTraits is a NumTraits specialization */
-  Trm(int trm) : _trm(SortTraits::constantTl(trm)) {  }
+  Trm(int trm) 
+    : _trm(SortTraits::constantTl(trm)) {  }
 
-  Trm(TermList trm) : _trm(trm)
+  Trm(TermList trm) 
+    : _trm(trm)
   { ASS_REP(!_trm.isEmpty(), _trm);  }
 
   /** implicit conversion */ 
-  operator TermList() {return _trm;}
+  operator TermList() const {return _trm;}
 
   /** explicit conversion */ 
-  TermList toTerm() { return _trm;} 
+  TermList toTerm() const { return _trm;} 
 
   static Trm createConstant(const char* name, SortTraits s) {
     unsigned f = env.signature->addFunction(name,0);                                                                
@@ -236,9 +225,9 @@ template<class Number> Trm<Number> operator+(Trm<Number> lhs, Trm<Number> rhs)  
 template<class Number> Trm<Number> operator*(Trm<Number> lhs, Trm<Number> rhs)  { return Number::mul(lhs, rhs); }  
 template<class Number> Trm<Number> operator/(Trm<Number> lhs, Trm<Number> rhs)  { return Number::div(lhs, rhs); }  
 
-#define __IMPL_NUMBER_OPERATOR(op, result_t) \
-  template<class Number> result_t operator op(int lhs, Trm<Number> rhs) { return Trm<Number>(lhs) op rhs; } \
-  template<class Number> result_t operator op(Trm<Number> lhs, int rhs) { return lhs op Trm<Number>(rhs); } \
+#define __IMPL_NUMBER_OPERATOR(op, result_t)                                                                            \
+  template<class Number> result_t operator op(int lhs, Trm<Number> rhs) { return Trm<Number>(lhs) op rhs; }             \
+  template<class Number> result_t operator op(Trm<Number> lhs, int rhs) { return lhs op Trm<Number>(rhs); }             \
 
 __IMPL_NUMBER_OPERATOR(+, Trm<Number>)
 __IMPL_NUMBER_OPERATOR(*, Trm<Number>)
@@ -288,11 +277,11 @@ __IMPL_NUMBER_OPERATOR(>=, Lit)
 
 
 template<class ResultSort, class... ArgSorts>
-class Function {
+class FuncSugar {
   unsigned _functor;
 
 public:
-  Function(const char* name, ResultSort r, ArgSorts... args) 
+  FuncSugar(const char* name, ResultSort r, ArgSorts... args) 
   {
     BYPASSING_ALLOCATOR
     std::vector<unsigned> as = { args.sortNumber()... };
@@ -309,14 +298,25 @@ public:
         as.size(), 
         &as[0] ));
   }
+  unsigned functor() const { return _functor; }
+};
+
+template<class SortTraits>
+class ConstSugar : public Trm<SortTraits> 
+{
+public:
+  ConstSugar(const char* name, SortTraits s) 
+    : Trm<SortTraits>(Trm<SortTraits>::createConstant(name, s).toTerm()) 
+  { }
+  unsigned functor() const { return this->toTerm().term()->functor(); }
 };
 
 template<class... ArgSorts>
-class Predicate {
+class PredSugar {
   unsigned _functor;
 
 public:
-  Predicate(const char* name, ArgSorts... args) 
+  PredSugar(const char* name, ArgSorts... args) 
   {
     BYPASSING_ALLOCATOR
     std::vector<unsigned> as = { args.sortNumber()... };
@@ -335,6 +335,7 @@ public:
         /* commutative */ false, 
         &as[0] );
   }
+  unsigned functor() const { return _functor; }
 };
 
      
