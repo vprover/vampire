@@ -58,16 +58,6 @@ namespace Inferences
 using namespace Kernel;
 using namespace Lib; 
 
-TermList VarReplacement::transformSubterm(TermList trm)
-{
-  CALL("VarReplacement::transformSubterm");
-
-  if(trm.isVar() && trm.var()==_v) {
-    return _r;
-  }
-  return trm;
-}
-
 TermList TermReplacement::transformSubterm(TermList trm)
 {
   CALL("TermReplacement::transformSubterm");
@@ -831,16 +821,12 @@ void InductionClauseIterator::selectInductionScheme(Clause* premise, Literal* li
   }
   cout << endl;
 
-  mergeSchemes(schemes);
+  InductionHelper::filterSchemes(schemes);
 
   List<InductionScheme*>::Iterator schIt(schemes);
-  cout << "Suggested induction schemes for literal " << lit->toString() << endl;
   while (schIt.hasNext()) {
-    auto scheme = schIt.next();
-    cout << scheme->toString() << endl;
-    instantiateScheme(premise, lit, rule, scheme);
+    instantiateScheme(premise, lit, rule, schIt.next());
   }
-  cout << "Done" << endl;
 }
 
 void InductionClauseIterator::instantiateScheme(Clause* premise, Literal* lit, InferenceRule rule, InductionScheme* scheme)
@@ -860,43 +846,33 @@ void InductionClauseIterator::instantiateScheme(Clause* premise, Literal* lit, I
   while (it.hasNext()) {
     Map<unsigned, unsigned> varMap;
     auto desc = it.next();
-    auto step = desc.getStep();
-    // cout << "Step " << step.toString() << endl;
     Formula* left = nullptr;
-    Formula* right = nullptr;
-    auto formula = Formula::quantify(new AtomicFormula(clit));
+    Formula* right = Formula::quantify(new AtomicFormula(clit));
 
+    // First replace the arguments of the term we induct on
+    // with the current step case and create new variables
+    // for each variable in the step case
     IteratorByInductiveVariables termIt(term, indVars);
-    IteratorByInductiveVariables stepIt(step.term(), indVars);
+    IteratorByInductiveVariables stepIt(desc.getStep().term(), indVars);
     while (termIt.hasNext()) {
-      ASS(stepIt.hasNext());
-      auto argTerm = termIt.next();
       auto argStep = stepIt.next();
-
       replaceFreeVars(argStep, var, varMap);
 
-      // cout << "Replacing in step " << argTerm.toString() << " with " << argStep << endl;
-      TermReplacement cr(argTerm.term(),argStep);
-      right = cr.transform(formula);
+      TermReplacement cr(termIt.next().term(),argStep);
+      right = cr.transform(right);
     }
 
+    // Then we replace the arguments of the term with the
+    // corresponding recursive cases for this step case
     FormulaList* hyp = FormulaList::empty();
-    auto recCalls = desc.getRecursiveCalls();
-    List<TermList>::Iterator recCallsIt(recCalls);
+    List<TermList>::Iterator recCallsIt(desc.getRecursiveCalls());
     while (recCallsIt.hasNext()) {
-      auto recCall = recCallsIt.next();
-      // cout << "Recursive call " << recCall.toString() << endl;
       IteratorByInductiveVariables termIt(term, indVars);
-      IteratorByInductiveVariables recCallIt(recCall.term(), indVars);
+      IteratorByInductiveVariables recCallIt(recCallsIt.next().term(), indVars);
 
       while (termIt.hasNext()) {
-        ASS(recCallIt.hasNext());
-        auto argTerm = termIt.next();
-        auto argRecCall = recCallIt.next();
-
+        TermReplacement cr(termIt.next().term(),recCallIt.next());
         auto formula = Formula::quantify(new AtomicFormula(clit));
-        // cout << "Replacing in hypothesis " << argTerm.toString() << " with " << argRecCall << endl;
-        TermReplacement cr(argTerm.term(),argRecCall);
         hyp = new FormulaList(cr.transform(formula),hyp);
       }
     }
@@ -915,6 +891,8 @@ void InductionClauseIterator::instantiateScheme(Clause* premise, Literal* lit, I
       res = new BinaryFormula(Connective::IMP,left,right);
     }
 
+    // Finally we replace all variables of
+    // the cases with the new variables
     Map<unsigned, unsigned>::Iterator varIt(varMap);
     while (varIt.hasNext()) {
       unsigned var, replaced;
@@ -960,114 +938,6 @@ void InductionClauseIterator::replaceFreeVars(TermList t, unsigned& currVar, Map
       currVar++;
     }
   }
-}
-
-void InductionClauseIterator::mergeSchemes(List<InductionScheme*>*& schemes)
-{
-  List<InductionScheme*>::Iterator schIt(schemes);
-  while (schIt.hasNext()) {
-    auto scheme = schIt.next();
-    auto schIt2 = schIt;
-
-    while (schIt2.hasNext()) {
-      auto other = schIt2.next();
-      if (checkSubsumption(scheme, other)) {
-        cout << scheme->toString() << " is subsumed by " << other->toString() << endl;
-        schemes = List<InductionScheme*>::remove(scheme, schemes);
-        break;
-      }
-      if (checkSubsumption(other, scheme)) {
-        cout << other->toString() << " is subsumed by " << scheme->toString() << endl;
-        if (schIt.peekAtNext() == other) {
-          schIt.next();
-        }
-        schemes = List<InductionScheme*>::remove(other, schemes);
-      }
-    }
-  }
-}
-
-bool InductionClauseIterator::checkSubsumption(InductionScheme* sch1, InductionScheme* sch2)
-{
-  auto t1 = sch1->getTerm();
-  auto t2 = sch2->getTerm();
-  auto templ1 = sch1->getTemplate();
-  auto templ2 = sch2->getTemplate();
-  // TODO(mhajdu): is lazy check enough?
-  if (templ1 == templ2) {
-    return true;
-  }
-
-  List<RDescription>::Iterator rdescIt1(templ1->getRDescriptions());
-  while (rdescIt1.hasNext()) {
-    auto rdesc1 = rdescIt1.next();
-    auto recCallIt1 = rdesc1.getRecursiveCalls();
-    while (recCallIt1.hasNext()) {
-      auto recCall1 = recCallIt1.next();
-      auto substTerms1 = getSubstitutedTerms(t1, rdesc1.getStep().term(), recCall1.term(), templ1->getInductionVariables());
-
-      List<RDescription>::Iterator rdescIt2(templ2->getRDescriptions());
-      while (rdescIt2.hasNext()) {
-        auto rdesc2 = rdescIt2.next();
-
-        auto recCallIt2 = rdesc2.getRecursiveCalls();
-        while (recCallIt2.hasNext()) {
-          auto recCall2 = recCallIt2.next();
-          auto substTerms2 = getSubstitutedTerms(t2, rdesc2.getStep().term(), recCall2.term(), templ2->getInductionVariables());
-
-          if (!checkAllContained(substTerms1, substTerms2)) {
-            return false;
-          }
-        }
-      }
-    }
-  }
-  return true;
-}
-
-List<Term*>* InductionClauseIterator::getSubstitutedTerms(Term* term, Term* step, Term* recursiveCall, const DArray<bool>& indVars)
-{
-  List<Term*>* res(0);
-  IteratorByInductiveVariables termIt(term, indVars);
-  IteratorByInductiveVariables stepIt(step, indVars);
-  IteratorByInductiveVariables recIt(recursiveCall, indVars);
-
-  while (termIt.hasNext()) {
-    ASS(stepIt.hasNext() && recIt.hasNext());
-
-    auto termArg = termIt.next();
-    auto stepArg = stepIt.next();
-    auto recArg = recIt.next();
-    VarReplacement vr(recArg.var(), termArg);
-    List<Term*>::push(vr.transform(stepArg.term()), res);
-  }
-
-  return res;
-}
-
-bool InductionClauseIterator::checkAllContained(List<Term*>* lst1, List<Term*>* lst2)
-{
-  List<Term*>::Iterator it1(lst1);
-  while (it1.hasNext()) {
-    auto t1 = it1.next();
-    cout << "Checking for containment of " << t1->toString() << endl;
-    List<Term*>::Iterator it2(lst2);
-    bool found = false;
-
-    while (it2.hasNext()) {
-      auto t2 = it2.next();
-      cout << "with " << t2->toString() << endl;
-      if (t2->containsSubterm(TermList(t1))) {
-        cout << "contained!" << endl;
-        found = true;
-        break;
-      }
-    }
-    if (!found) {
-      return false;
-    }
-  }
-  return true;
 }
 
 }

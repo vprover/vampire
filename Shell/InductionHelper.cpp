@@ -36,6 +36,16 @@ Term* copyTerm(Term* other) {
   return res;
 }
 
+TermList VarReplacement::transformSubterm(TermList trm)
+{
+  CALL("VarReplacement::transformSubterm");
+
+  if(trm.isVar() && trm.var()==_v) {
+    return _r;
+  }
+  return trm;
+}
+
 bool IteratorByInductiveVariables::hasNext() {
   ASS(_it.hasNext() == _indVarIt.hasNext());
 
@@ -231,6 +241,32 @@ void InductionHelper::preprocess(UnitList*& units)
   }
 }
 
+
+void InductionHelper::filterSchemes(List<InductionScheme*>*& schemes)
+{
+  List<InductionScheme*>::Iterator schIt(schemes);
+  while (schIt.hasNext()) {
+    auto scheme = schIt.next();
+    auto schIt2 = schIt;
+
+    while (schIt2.hasNext()) {
+      auto other = schIt2.next();
+      if (checkSubsumption(scheme, other)) {
+        cout << scheme->toString() << " is subsumed by " << other->toString() << endl;
+        schemes = List<InductionScheme*>::remove(scheme, schemes);
+        break;
+      }
+      if (checkSubsumption(other, scheme)) {
+        cout << other->toString() << " is subsumed by " << scheme->toString() << endl;
+        if (schIt.peekAtNext() == other) {
+          schIt.next();
+        }
+        schemes = List<InductionScheme*>::remove(other, schemes);
+      }
+    }
+  }
+}
+
 void InductionHelper::processBody(TermList& body, TermList& header, InductionTemplate*& templ)
 {
   if (body.isVar()) {
@@ -337,6 +373,85 @@ unsigned InductionHelper::findMatchedArgument(unsigned matched, TermList& header
     i++;
   }
   return i;
+}
+
+bool InductionHelper::checkSubsumption(InductionScheme* sch1, InductionScheme* sch2)
+{
+  auto t1 = sch1->getTerm();
+  auto t2 = sch2->getTerm();
+  auto templ1 = sch1->getTemplate();
+  auto templ2 = sch2->getTemplate();
+
+  List<RDescription>::Iterator rdescIt1(templ1->getRDescriptions());
+  while (rdescIt1.hasNext()) {
+    auto rdesc1 = rdescIt1.next();
+    auto recCallIt1 = rdesc1.getRecursiveCalls();
+    while (recCallIt1.hasNext()) {
+      auto recCall1 = recCallIt1.next();
+      auto substTerms1 = getSubstitutedTerms(t1, rdesc1.getStep().term(), recCall1.term(), templ1->getInductionVariables());
+
+      List<RDescription>::Iterator rdescIt2(templ2->getRDescriptions());
+      while (rdescIt2.hasNext()) {
+        auto rdesc2 = rdescIt2.next();
+
+        auto recCallIt2 = rdesc2.getRecursiveCalls();
+        while (recCallIt2.hasNext()) {
+          auto recCall2 = recCallIt2.next();
+          auto substTerms2 = getSubstitutedTerms(t2, rdesc2.getStep().term(), recCall2.term(), templ2->getInductionVariables());
+
+          if (!checkAllContained(substTerms1, substTerms2)) {
+            return false;
+          }
+        }
+      }
+    }
+  }
+  return true;
+}
+
+List<Term*>* InductionHelper::getSubstitutedTerms(Term* term, Term* step, Term* recursiveCall, const DArray<bool>& indVars)
+{
+  List<Term*>* res(0);
+  IteratorByInductiveVariables termIt(term, indVars);
+  IteratorByInductiveVariables stepIt(step, indVars);
+  IteratorByInductiveVariables recIt(recursiveCall, indVars);
+
+  while (termIt.hasNext()) {
+    ASS(stepIt.hasNext() && recIt.hasNext());
+
+    auto termArg = termIt.next();
+    auto stepArg = stepIt.next();
+    auto recArg = recIt.next();
+    VarReplacement vr(recArg.var(), termArg);
+    List<Term*>::push(vr.transform(stepArg.term()), res);
+  }
+
+  return res;
+}
+
+bool InductionHelper::checkAllContained(List<Term*>* lst1, List<Term*>* lst2)
+{
+  List<Term*>::Iterator it1(lst1);
+  while (it1.hasNext()) {
+    auto t1 = it1.next();
+    cout << "Checking for containment of " << t1->toString() << endl;
+    List<Term*>::Iterator it2(lst2);
+    bool found = false;
+
+    while (it2.hasNext()) {
+      auto t2 = it2.next();
+      cout << "with " << t2->toString() << endl;
+      if (t2->containsSubterm(TermList(t1))) {
+        cout << "contained!" << endl;
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      return false;
+    }
+  }
+  return true;
 }
 
 } // Shell

@@ -3,9 +3,20 @@
 
 #include "Forwards.hpp"
 #include "Kernel/Term.hpp"
+#include "Kernel/TermTransformer.hpp"
 #include "Lib/Set.hpp"
 
 namespace Shell {
+
+class VarReplacement : public Kernel::TermTransformer {
+public:
+  VarReplacement(unsigned var, Kernel::TermList r) : _v(var), _r(r) {}
+  Kernel::TermList transformSubterm(Kernel::TermList trm) override;
+
+private:
+  unsigned _v;
+  Kernel::TermList _r;
+};
 
 class IteratorByInductiveVariables
 {
@@ -79,6 +90,7 @@ private:
 class InductionHelper {
 public:
   static void preprocess(Kernel::Problem& prb);
+  static void filterSchemes(Lib::List<InductionScheme*>*& schemes);
 
 private:
   static void preprocess(Kernel::UnitList*& units);
@@ -86,6 +98,11 @@ private:
 
   static void processCase(const unsigned recFun, Kernel::TermList& body, Kernel::List<Kernel::TermList>*& recursiveCalls);
   static unsigned findMatchedArgument(unsigned matched, Kernel::TermList& header);
+
+  static bool checkSubsumption(InductionScheme* sch1, InductionScheme* sch2);
+  static Lib::List<Kernel::Term*>* getSubstitutedTerms(Kernel::Term* term, Kernel::Term* step,
+                                                  Kernel::Term* recursiveCall, const Lib::DArray<bool>& indVars);
+  static bool checkAllContained(Lib::List<Kernel::Term*>* lst1, Lib::List<Kernel::Term*>* lst2);
 };
 
 } // Shell

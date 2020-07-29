@@ -38,16 +38,6 @@ namespace Inferences
 using namespace Kernel;
 using namespace Saturation;
 
-class VarReplacement : public TermTransformer {
-public:
-  VarReplacement(unsigned var, TermList r) : _v(var), _r(r) {}
-  TermList transformSubterm(TermList trm) override;
-
-private:
-  unsigned _v;
-  TermList _r;
-};
-
 class TermReplacement : public TermTransformer {
 
 public:
@@ -136,10 +126,6 @@ private:
 
   void instantiateScheme(Clause* premise, Literal* origLit, InferenceRule rule, InductionScheme* scheme);
   void replaceFreeVars(TermList t, unsigned& currVar, Map<unsigned, unsigned>& varMap);
-  void mergeSchemes(List<InductionScheme*>*& schemes);
-  bool checkSubsumption(InductionScheme* sch1, InductionScheme* sch2);
-  List<Term*>* getSubstitutedTerms(Term* term, Term* step, Term* recursiveCall, const DArray<bool>& indVars);
-  bool checkAllContained(List<Term*>* lst1, List<Term*>* lst2);
 
   bool notDone(Literal* lit, Term* t);
   Term* getPlaceholderForTerm(Term* t);
