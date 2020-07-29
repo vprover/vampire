@@ -112,6 +112,7 @@ bool Environment::timeLimitReached() const
   if (options->timeLimitInDeciseconds() &&
       timer->elapsedDeciseconds() > options->timeLimitInDeciseconds()) {
     statistics->terminationReason = Shell::Statistics::TIME_LIMIT;
+    Timer::setTimeLimitEnforcement(false);
     return true;
   }
   return false;
