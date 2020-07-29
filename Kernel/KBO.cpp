@@ -295,23 +295,68 @@ void KBO::State::traverse(Term* t1, Term* t2)
   ASS_EQ(depth,0);
 }
 
-// unsigned nFuncs() {
-//   return env.signature->functions();
-// }
-// unsigned nPreds() {
-//   return env.signature->predicates();
-// }
+struct PredSigTraits {
+  static const char* symbolKindName() 
+  { return "predicate"; }
 
-template<class IsColored, class GetSymNumber> 
-KBO::WeightMap KBO::weightsFromOpts(
-    const char* weightNames, 
-    unsigned nWeights, 
-    IsColored colored, 
-    GetSymNumber number, 
-    const vstring& filename) const {
-  DArray<KBO::Weight> weights(nWeights);
-  static_assert(std::is_same<typename std::result_of<IsColored(unsigned)>::type, bool>::value, "invalid signature of closusure");
-  static_assert(std::is_same<typename std::result_of<GetSymNumber(const vstring&, unsigned, unsigned&)>::type, bool>::value, "invalid signature of closusure");
+  static unsigned nSymbols() 
+  { return env.signature->predicates(); }
+
+  static bool isColored(unsigned functor) 
+  { return env.signature->predicateColored(functor);}
+
+  static bool tryGetFunctor(const vstring& sym, unsigned arity, unsigned& out) 
+  { return env.signature->tryGetPredicateNumber(sym,arity, out); }
+
+  static const vstring& weightFileName(const Options& opts) 
+  { return opts.predicateWeights(); } 
+
+  static bool isUnaryFunction (unsigned functor) 
+  { return false; }
+
+  static bool isConstantSymbol(unsigned functor) 
+  { return false; } 
+};
+
+
+struct FuncSigTraits {
+  static const char* symbolKindName() 
+  { return "function"; }
+
+  static unsigned nSymbols() 
+  { return env.signature->functions(); } 
+
+  static bool isColored(unsigned functor) 
+  { return env.signature->functionColored(functor);}
+
+  static bool tryGetFunctor(const vstring& sym, unsigned arity, unsigned& out) 
+  { return env.signature->tryGetFunctionNumber(sym,arity, out); }
+
+  static const vstring& weightFileName(const Options& opts) 
+  { return opts.functionWeights(); } 
+
+  static bool isUnaryFunction (unsigned functor) 
+  { return env.signature->getFunction(functor)->arity() == 1; } 
+
+  static bool isConstantSymbol(unsigned functor) 
+  { return env.signature->getFunction(functor)->arity() == 0; } 
+};
+
+template<class SigTraits> 
+KBO::WeightMap KBO::weightsFromOpts(const Options& opts) const {
+  auto& str = SigTraits::weightFileName(opts);
+  if (str.empty()) {
+    return WeightMap::dflt<SigTraits>();
+  } else if (str == "$random") {
+    return WeightMap::randomized<SigTraits>(1 << 16, 
+        [](unsigned min, unsigned max) { return min + Random::getInteger(max - min); });
+  } else {
+    return weightsFromFile<SigTraits>(opts);
+  }
+}
+
+template<class SigTraits> KBO::WeightMap KBO::weightsFromFile(const Options& opts) const {
+  DArray<KBO::Weight> weights(SigTraits::nSymbols());
   BYPASSING_ALLOCATOR
 
   ///////////////////////// parsing helper functions ///////////////////////// 
@@ -372,23 +417,24 @@ KBO::WeightMap KBO::weightsFromOpts(
     bool ok = !!(lnstr >> name >> arity >> weight);
     if (ok) {
       unsigned i; 
-      if (number(name, arity, i)) {
-        weights[i] = colored(i) 
+      if (SigTraits::tryGetFunctor(name, arity, i)) {
+        weights[i] = SigTraits::isColored(i) 
           ? weight * COLORED_WEIGHT_BOOST
           : weight;
       } else {
-        throw Lib::UserErrorException("no ", weightNames, " '", name, "' with arity ", arity);
+        throw Lib::UserErrorException("no ", SigTraits::symbolKindName(), " '", name, "' with arity ", arity);
       }
     }
     return ok;
   };
 
   ///////////////////////// actual parsing ///////////////////////// 
+  auto& filename = SigTraits::weightFileName(opts);
 
   auto defaultSymbolWeight = parseDefaultSymbolWeight(filename);
 
-  for (int i = 0; i < nWeights; i++) {
-    weights[i] = colored(i) 
+  for (int i = 0; i < SigTraits::nSymbols(); i++) {
+    weights[i] = SigTraits::isColored(i) 
           ? defaultSymbolWeight * COLORED_WEIGHT_BOOST 
           : defaultSymbolWeight;
   }
@@ -396,26 +442,26 @@ KBO::WeightMap KBO::weightsFromOpts(
   unsigned introducedWeight = defaultSymbolWeight;
   unsigned variableWeight   = defaultSymbolWeight;
 
-  if (!filename.empty()) {
-    auto file = openFile(filename);
+  ASS_REP(!filename.empty(), filename);
 
-    for (vstring ln; getline(file, ln);) {
-      if (!tryParseNormalLine(ln) && !tryParseSpecialLine(ln, variableWeight, introducedWeight)) {
-        throw Lib::UserErrorException(
-               "failed to read line from file ",   filename, "\n",
-               "expected syntax: '<name> <arity> <weight>'", "\n",
-               "e.g.:            '$add   2       4       '", "\n",
-               "or syntax: '<special_name> <weight>'"      , "\n",
-               "e.g.:      '$var           7       '"      , "\n"
-        );
-      } 
-    }
+  auto file = openFile(filename);
+
+  for (vstring ln; getline(file, ln);) {
+    if (!tryParseNormalLine(ln) && !tryParseSpecialLine(ln, variableWeight, introducedWeight)) {
+      throw Lib::UserErrorException(
+             "failed to read line from file ",   filename, "\n",
+             "expected syntax: '<name> <arity> <weight>'", "\n",
+             "e.g.:            '$add   2       4       '", "\n",
+             "or syntax: '<special_name> <weight>'"      , "\n",
+             "e.g.:      '$var           7       '"      , "\n"
+      );
+    } 
   }
 
   return WeightMap {
+    ._weights                = weights,
     ._introducedSymbolWeight = introducedWeight,
     ._variableWeight         = variableWeight,
-    ._weights                = weights,
   };
 
 }
@@ -481,20 +527,10 @@ KBO::KBO(
 /**
  * Create a KBO object.
  */
-KBO::KBO(Problem& prb, const Options& opt)
- : PrecedenceOrdering(prb, opt)
- , _funcWeights(weightsFromOpts("function", env.signature->functions(), 
-      [](unsigned i ) -> bool {return env.signature->functionColored(i);}, 
-      [](const vstring& sym, unsigned arity, unsigned& out) -> bool {
-        return env.signature->tryGetFunctionNumber(sym,arity, out);
-      }, 
-      opt.functionWeights()))
- , _predWeights(weightsFromOpts("predicate", env.signature->predicates(), 
-      [](unsigned i ) -> bool {return env.signature->predicateColored(i);}, 
-      [](const vstring& sym, unsigned arity, unsigned& out) -> bool {
-        return env.signature->tryGetPredicateNumber(sym,arity, out);
-      }, 
-      opt.predicateWeights()))
+KBO::KBO(Problem& prb, const Options& opts)
+ : PrecedenceOrdering(prb, opts)
+ , _funcWeights(weightsFromOpts<FuncSigTraits>(opts))
+ , _predWeights(weightsFromOpts<PredSigTraits>(opts))
  , _state(new State(this))
 {
   CALL("KBO::KBO(Prb&, Opts&)");
@@ -599,6 +635,43 @@ int KBO::symbolWeight(Term* t) const
 {
   return (t->isLiteral() ? _predWeights
                          : _funcWeights ).symbolWeight(t);
+}
+
+template<class SigTraits>
+KBO::WeightMap KBO::WeightMap::dflt()
+{
+  return WeightMap {
+    ._weights                = DArray<Weight>::initialized(SigTraits::nSymbols(), 1),
+    ._introducedSymbolWeight = 1,
+    ._variableWeight         = 1,
+  };
+}
+
+template<class SigTraits, class Random>
+KBO::WeightMap KBO::WeightMap::randomized(unsigned maxWeight, Random random)
+{
+  auto nSym = SigTraits::nSymbols();
+
+  unsigned variableWeight   = random(1,              maxWeight);
+  unsigned introducedWeight = random(variableWeight, maxWeight);
+
+  DArray<KBO::Weight> weights(nSym);
+  for (int i = 0; i < nSym; i++) {
+    if (SigTraits::isConstantSymbol(i)) {
+      weights[i] = random(variableWeight, maxWeight);
+    } else if (SigTraits::isUnaryFunction(i)) {
+      // TODO support one zero-weight-unary-function per sort
+      weights[i] = random(1, maxWeight); 
+    } else {
+      weights[i] = random(0, maxWeight);
+    }
+  }
+
+  return WeightMap {
+    ._weights                = weights,
+    ._introducedSymbolWeight = introducedWeight,
+    ._variableWeight         = variableWeight,
+  };
 }
 
 KBO::Weight KBO::WeightMap::symbolWeight(Term* t) const 

@@ -50,6 +50,7 @@ public:
   using Weight = unsigned;
 
   struct WeightMap {
+    friend class KBO;
     DArray<Weight> _weights;
 
     /** Weight of function symbols not occurring in the signature, i.e. that are introduced during proof search */
@@ -64,6 +65,10 @@ public:
 
     Weight symbolWeight(Term*    t      ) const;
     Weight symbolWeight(unsigned functor) const;
+
+  private:
+    template<class SigTraits              > static WeightMap dflt();
+    template<class SigTraits, class Random> static WeightMap randomized(unsigned maxWeight, Random random);
   };
 
   KBO(Problem& prb, const Options& opt);
@@ -98,8 +103,8 @@ private:
   WeightMap _funcWeights;
   WeightMap _predWeights;
 
-  template<class IsColored, class GetSymNumber> 
-  WeightMap weightsFromOpts(const char* weightNames, unsigned nWeights, IsColored colored, GetSymNumber number, const vstring& file) const;
+  template<class SigTraits> WeightMap weightsFromOpts(const Options& opts) const;
+  template<class SigTraits> WeightMap weightsFromFile(const Options& opts) const;
 
   /**
    * State used for comparing terms and literals
