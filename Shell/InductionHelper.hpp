@@ -5,8 +5,25 @@
 #include "Kernel/Term.hpp"
 #include "Kernel/TermTransformer.hpp"
 #include "Lib/Set.hpp"
+#include "Lib/STL.hpp"
 
 namespace Shell {
+
+using TermPosition = Lib::vvector<unsigned>;
+
+Lib::vstring positionToString(const TermPosition& pos);
+
+class PositionalTermReplacement {
+public:
+  PositionalTermReplacement(Kernel::Term* o, Kernel::TermList r, TermPosition p) : _o(o), _r(r), _p(p) {} 
+  Kernel::TermList replaceIn(Kernel::TermList trm);
+private:
+  Kernel::TermList replaceIn(Kernel::TermList trm, TermPosition rest);
+
+  Kernel::Term* _o;
+  Kernel::TermList _r;
+  TermPosition _p;
+};
 
 class VarReplacement : public Kernel::TermTransformer {
 public:
@@ -75,16 +92,21 @@ public:
   CLASS_NAME(InductionScheme);
   USE_ALLOCATOR(InductionScheme);
 
-  InductionScheme(Kernel::Term* t, InductionTemplate* templ);
+  InductionScheme(Kernel::Term* t, TermPosition pos, InductionTemplate* templ);
 
-  Kernel::Term* getTerm() const;
+  void addTermPosPair(Kernel::Term* t, TermPosition pos);
+  void addActiveOccurrences(Lib::vmap<Kernel::TermList, Lib::vvector<TermPosition>> m);
+
+  Lib::List<pair<Kernel::Term*,TermPosition>>::Iterator getTermPosPairs() const;
   InductionTemplate* getTemplate() const;
+  Lib::vmap<Kernel::TermList, Lib::vvector<TermPosition>> getActiveOccurrences() const;
 
   Lib::vstring toString() const;
 
 private:
-  Kernel::Term* _t;
+  Lib::List<pair<Kernel::Term*,TermPosition>>* _termPosPairs;
   InductionTemplate* _templ;
+  Lib::vmap<Kernel::TermList, Lib::vvector<TermPosition>> _activeOccurrences;
 };
 
 class InductionHelper {

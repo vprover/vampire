@@ -36,6 +36,47 @@ Term* copyTerm(Term* other) {
   return res;
 }
 
+vstring positionToString(const TermPosition& pos) {
+  vstring str;
+  for (const auto& p : pos) {
+    str+=Lib::Int::toString(p)+'.';
+  }
+  return str;
+}
+
+TermList PositionalTermReplacement::replaceIn(TermList trm)
+{
+  return replaceIn(trm, _p);
+}
+
+TermList PositionalTermReplacement::replaceIn(TermList trm, vvector<unsigned> rest)
+{
+  if (rest.empty()) {
+    ASS(trm == TermList(_o));
+    return _r;
+  }
+
+  ASS(trm.term()->arity() > 0);
+  Term::Iterator it(trm.term());
+  vvector<TermList> args(trm.term()->arity());
+  unsigned i = 0;
+  while (it.hasNext()) {
+    auto arg = it.next();
+    if (rest.front() == i+1) {
+      vvector<unsigned> c(rest.begin()+1, rest.end());
+      args[i] = replaceIn(arg, c);
+    } else {
+      args[i] = arg;
+    }
+    i++;
+  }
+
+  if (trm.term()->isLiteral()) {
+    return TermList(Literal::createNonShared(static_cast<Literal*>(trm.term()), args.data()));
+  }
+  return TermList(Term::createNonShared(trm.term(), args.data()));
+}
+
 TermList VarReplacement::transformSubterm(TermList trm)
 {
   CALL("VarReplacement::transformSubterm");
@@ -161,9 +202,9 @@ void InductionTemplate::postprocess() {
         auto t2 = argIt2.next();
         if (t1 != t2 && t2.containsSubterm(t1)) {
           _inductionVariables[i] = true;
-          cout << t2.toString() << " properly contains " << t1.toString() << endl;
+          // cout << t2.toString() << " properly contains " << t1.toString() << endl;
         } else {
-          cout << t2.toString() << " does not properly contain " << t1.toString() << endl;
+          // cout << t2.toString() << " does not properly contain " << t1.toString() << endl;
         }
         i++;
       }
@@ -171,14 +212,27 @@ void InductionTemplate::postprocess() {
   }
 }
 
-InductionScheme::InductionScheme(Term* t, InductionTemplate* templ)
-  : _t(t),
-    _templ(templ)
-{}
-
-Term* InductionScheme::getTerm() const
+InductionScheme::InductionScheme(Term* t, vvector<unsigned> pos, InductionTemplate* templ)
+  : _termPosPairs(0),
+    _templ(templ),
+    _activeOccurrences()
 {
-  return _t;
+  addTermPosPair(t, pos);
+}
+
+void InductionScheme::addTermPosPair(Term* t, vvector<unsigned> pos)
+{
+  List<pair<Term*,vvector<unsigned>>>::push(make_pair(t, pos), _termPosPairs);
+}
+
+void InductionScheme::addActiveOccurrences(vmap<TermList, vvector<TermPosition>> m)
+{
+  _activeOccurrences = m;
+}
+
+List<pair<Term*,vvector<unsigned>>>::Iterator InductionScheme::getTermPosPairs() const
+{
+  return List<pair<Term*,vvector<unsigned>>>::Iterator(_termPosPairs);
 }
 
 InductionTemplate* InductionScheme::getTemplate() const
@@ -186,11 +240,33 @@ InductionTemplate* InductionScheme::getTemplate() const
   return _templ;
 }
 
+vmap<TermList, vvector<TermPosition>> InductionScheme::getActiveOccurrences() const
+{
+  return _activeOccurrences;
+}
+
 vstring InductionScheme::toString() const
 {
   vstring str;
-  str+="Term: "+_t->toString()+
-    +"\nScheme: "+_templ->toString();
+  str+="Terms: ";
+  auto it = getTermPosPairs();
+  while (it.hasNext()) {
+    auto pair = it.next();
+    str+=pair.first->toString()+" in pos ";
+    List<unsigned>::Iterator lit();
+    for (const auto& p : pair.second) {
+      str+=Lib::Int::toString(p)+".";
+    }
+    str+="; ";
+  }
+  str+="Scheme: "+_templ->toString()+"; ";
+  str+="Active occurrences: ";
+  for (const auto& kv : _activeOccurrences) {
+    str+="term: "+kv.first.toString()+" positions: ";
+    for (const auto& pos : kv.second) {
+      str+=positionToString(pos)+" ";
+    }
+  }
   return str;
 }
 
@@ -235,8 +311,8 @@ void InductionHelper::preprocess(UnitList*& units)
     processBody(*rhs, term, templ);
     templ->postprocess();
 
-    cout << "Recursive function: " << lit->toString() << " functor " << lhterm->functor()
-         << ", predicate " << isPred << ", with induction template: " << templ->toString() << endl;
+    // cout << "Recursive function: " << lit->toString() << " functor " << lhterm->functor()
+    //      << ", predicate " << isPred << ", with induction template: " << templ->toString() << endl;
     env.signature->addInductionTemplate(lhterm->functor(), isPred, templ);
   }
 }
@@ -252,12 +328,22 @@ void InductionHelper::filterSchemes(List<InductionScheme*>*& schemes)
     while (schIt2.hasNext()) {
       auto other = schIt2.next();
       if (checkSubsumption(scheme, other)) {
-        cout << scheme->toString() << " is subsumed by " << other->toString() << endl;
+        // cout << scheme->toString() << " is subsumed by " << other->toString() << endl;
+        auto termPosIt = scheme->getTermPosPairs();
+        while (termPosIt.hasNext()) {
+          auto p = termPosIt.next();
+          other->addTermPosPair(p.first, p.second);
+        }
         schemes = List<InductionScheme*>::remove(scheme, schemes);
         break;
       }
       if (checkSubsumption(other, scheme)) {
-        cout << other->toString() << " is subsumed by " << scheme->toString() << endl;
+        // cout << other->toString() << " is subsumed by " << scheme->toString() << endl;
+        auto termPosIt = other->getTermPosPairs();
+        while (termPosIt.hasNext()) {
+          auto p = termPosIt.next();
+          scheme->addTermPosPair(p.first, p.second);
+        }
         if (schIt.peekAtNext() == other) {
           schIt.next();
         }
@@ -377,8 +463,9 @@ unsigned InductionHelper::findMatchedArgument(unsigned matched, TermList& header
 
 bool InductionHelper::checkSubsumption(InductionScheme* sch1, InductionScheme* sch2)
 {
-  auto t1 = sch1->getTerm();
-  auto t2 = sch2->getTerm();
+  // at this stage only one term should be in each scheme
+  auto t1 = sch1->getTermPosPairs().next().first;
+  auto t2 = sch2->getTermPosPairs().next().first;
   auto templ1 = sch1->getTemplate();
   auto templ2 = sch2->getTemplate();
 
@@ -434,15 +521,15 @@ bool InductionHelper::checkAllContained(List<Term*>* lst1, List<Term*>* lst2)
   List<Term*>::Iterator it1(lst1);
   while (it1.hasNext()) {
     auto t1 = it1.next();
-    cout << "Checking for containment of " << t1->toString() << endl;
+    // cout << "Checking for containment of " << t1->toString() << endl;
     List<Term*>::Iterator it2(lst2);
     bool found = false;
 
     while (it2.hasNext()) {
       auto t2 = it2.next();
-      cout << "with " << t2->toString() << endl;
+      // cout << "with " << t2->toString() << endl;
       if (t2->containsSubterm(TermList(t1))) {
-        cout << "contained!" << endl;
+        // cout << "contained!" << endl;
         found = true;
         break;
       }

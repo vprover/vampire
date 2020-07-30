@@ -760,25 +760,32 @@ Term* InductionClauseIterator::getPlaceholderForTerm(Term* t) {
 void InductionClauseIterator::selectInductionScheme(Clause* premise, Literal* lit, InferenceRule rule) {
   CALL("InductionClauseIterator::selectInductionScheme");
 
-  Stack<Term*> termStack;
-  Set<Term*> activeTerms;
+  // Term with its position
+  Stack<pair<Term*, vvector<unsigned>>> termStack;
   Set<unsigned> possibleIndVars;
   List<InductionScheme*>* schemes(0);
+  vmap<TermList, vvector<TermPosition>> activeOccurrenceMap;
 
   if (lit->isEquality()) {
-    termStack.push(lit->nthArgument(0)->term());
-    termStack.push(lit->nthArgument(1)->term());
+    vvector<unsigned> p1;
+    vvector<unsigned> p2;
+    p1.push_back(1);
+    p2.push_back(2);
+    termStack.push(make_pair(lit->nthArgument(0)->term(), p1));
+    termStack.push(make_pair(lit->nthArgument(1)->term(), p2));
   } else {
-    termStack.push(lit);
+    vvector<unsigned> p;
+    termStack.push(make_pair(lit, p));
   }
   while (termStack.isNonEmpty()) {
-    auto curr = termStack.pop();
+    auto pair = termStack.pop();
+    auto curr = pair.first;
 
     unsigned f = curr->functor();
     bool isPred = curr->isLiteral() || curr->isBoolean();
 
     if (env.signature->getFunction(f)->skolem()) {
-      activeTerms.insert(curr);
+      activeOccurrenceMap[TermList(curr)].push_back(pair.second);
       continue;
     }
 
@@ -791,15 +798,19 @@ void InductionClauseIterator::selectInductionScheme(Clause* premise, Literal* li
     Term::Iterator argIt(curr);
     DArray<bool>::Iterator indVarIt(indVars);
     bool match = true;
+    unsigned i = 0;
     while (argIt.hasNext()) {
       auto arg = argIt.next();
       auto isIndVar = indVarIt.next();
+      i++;
 
       if (!isIndVar) {
         continue;
       }
 
-      termStack.push(arg.term());
+      auto p = pair.second;
+      p.push_back(i);
+      termStack.push(make_pair(arg.term(), p));
       if (!arg.isVar()) {
         auto func = arg.term()->functor();
         if (!env.signature->getFunction(func)->skolem()) {
@@ -809,75 +820,181 @@ void InductionClauseIterator::selectInductionScheme(Clause* premise, Literal* li
     }
 
     if (match) {
-      List<InductionScheme*>::push(new InductionScheme(curr, templ), schemes);
+      List<InductionScheme*>::push(new InductionScheme(curr, pair.second, templ), schemes);
     }
   }
-  SubtermIterator it(lit);
-
-  Set<Term*>::Iterator actIt(activeTerms);
-  cout << "Active terms: ";
-  while (actIt.hasNext()) {
-    cout << actIt.next()->toString() << " ";
-  }
-  cout << endl;
 
   InductionHelper::filterSchemes(schemes);
 
   List<InductionScheme*>::Iterator schIt(schemes);
   while (schIt.hasNext()) {
-    instantiateScheme(premise, lit, rule, schIt.next());
+    auto scheme = schIt.next();
+    scheme->addActiveOccurrences(activeOccurrenceMap);
+    // cout << "Induction scheme: " << scheme << " " << scheme->toString() << endl;
+    instantiateScheme(premise, lit, rule, scheme);
   }
 }
 
 void InductionClauseIterator::instantiateScheme(Clause* premise, Literal* lit, InferenceRule rule, InductionScheme* scheme)
 {
-  CALL("InductionClauseIterator::instantiateScheme"); 
+  CALL("InductionClauseIterator::instantiateScheme");
 
   FormulaList* formulas = FormulaList::empty();
 
-  Literal* clit = Literal::complementaryLiteral(lit);
+  // Literal* clit = Literal::complementaryLiteral(lit);
   unsigned var = 0;
 
   auto templ = scheme->getTemplate();
-  auto term = scheme->getTerm();
+  auto activeOccurrences = scheme->getActiveOccurrences();
   auto it = templ->getRDescriptions();
   const auto& indVars = templ->getInductionVariables();
 
   while (it.hasNext()) {
     Map<unsigned, unsigned> varMap;
     auto desc = it.next();
-    Formula* left = nullptr;
-    Formula* right = Formula::quantify(new AtomicFormula(clit));
+    FormulaList* hyp = FormulaList::empty();
+    auto replaceLit = lit;
+    Set<Term*> substTerms;
 
-    // First replace the arguments of the term we induct on
-    // with the current step case and create new variables
-    // for each variable in the step case
-    IteratorByInductiveVariables termIt(term, indVars);
-    IteratorByInductiveVariables stepIt(desc.getStep().term(), indVars);
-    while (termIt.hasNext()) {
-      auto argStep = stepIt.next();
-      replaceFreeVars(argStep, var, varMap);
+    auto termPosPairs = scheme->getTermPosPairs();
+    while (termPosPairs.hasNext()) {
+      auto p = termPosPairs.next();
+      auto term = p.first;
+      // First replace the arguments of the term we induct on
+      // with the current step case and create new variables
+      // for each variable in the step case
 
-      TermReplacement cr(termIt.next().term(),argStep);
-      right = cr.transform(right);
+      IteratorByInductiveVariables termIt(term, indVars);
+      IteratorByInductiveVariables stepIt(desc.getStep().term(), indVars);
+
+      while (termIt.hasNext()) {
+        auto argTerm = termIt.next();
+        auto argStep = stepIt.next();
+        if (substTerms.contains(argTerm.term())) {
+          continue;
+        }
+        replaceFreeVars(argStep, var, varMap);
+        for (const auto& pos : activeOccurrences[argTerm]) {
+          PositionalTermReplacement tr(argTerm.term(), argStep, pos);
+          replaceLit = static_cast<Literal*>(tr.replaceIn(TermList(replaceLit)).term());
+        }
+        substTerms.insert(argTerm.term());//, argStep.term());
+      }
+      // Term::Iterator termIt(term);
+      // Term::Iterator stepIt(desc.getStep().term());
+      // DArray<bool>::Iterator indVarIt(indVars);
+
+      // Do not use TermReplacement here because we only need to change
+      // that one particular argument occurrence, not all of them
+      // DArray<TermList> args(term->arity());
+      // unsigned i = 0;
+      // while (termIt.hasNext()) {
+      //   auto argTerm = termIt.next();
+      //   auto argStep = stepIt.next();
+      //   auto isIndVar = indVarIt.next();
+      //   if (!isIndVar) {
+      //     args[i++] = argTerm;
+      //     continue;
+      //   }
+
+      //   // replace the induction arg with the step
+      //   // in the term we induct on
+      //   replaceFreeVars(argStep, var, varMap);
+      //   args[i++] = argStep;
+      // }
+
+      // auto replaceTerm = term;
+      // if (term->isLiteral()) {
+      //   replaceTerm = Literal::create(static_cast<Literal*>(term), args.begin());
+      // } else {
+      //   replaceTerm = Term::create(term, args.begin());
+      // }
+
+      // PositionalTermReplacement tr(term, TermList(replaceTerm), p.second);
+      // replaceLit = static_cast<Literal*>(tr.replaceIn(TermList(replaceLit)).term());
     }
+    Formula* right = /*Formula::quantify*/(new AtomicFormula(Literal::complementaryLiteral(replaceLit)));
 
     // Then we replace the arguments of the term with the
     // corresponding recursive cases for this step case
-    FormulaList* hyp = FormulaList::empty();
     List<TermList>::Iterator recCallsIt(desc.getRecursiveCalls());
     while (recCallsIt.hasNext()) {
-      IteratorByInductiveVariables termIt(term, indVars);
-      IteratorByInductiveVariables recCallIt(recCallsIt.next().term(), indVars);
+      auto replaceLit = lit;
+      auto recCall = recCallsIt.next();
+      Set<Term*> substTermsRec;
 
-      while (termIt.hasNext()) {
-        TermReplacement cr(termIt.next().term(),recCallIt.next());
-        auto formula = Formula::quantify(new AtomicFormula(clit));
-        hyp = new FormulaList(cr.transform(formula),hyp);
+      termPosPairs = scheme->getTermPosPairs();
+      while (termPosPairs.hasNext()) {
+        auto p = termPosPairs.next();
+        auto term = p.first;
+
+        IteratorByInductiveVariables termIt(term, indVars);
+        IteratorByInductiveVariables recCallIt(recCall.term(), indVars);
+
+        while (termIt.hasNext()) {
+          auto argTerm = termIt.next();
+          auto argRecCall = recCallIt.next();
+          if (substTermsRec.contains(argTerm.term())) {
+            continue;
+          }
+          for (const auto& pos : activeOccurrences[argTerm]) {
+            PositionalTermReplacement tr(argTerm.term(), argRecCall, pos);
+            replaceLit = static_cast<Literal*>(tr.replaceIn(TermList(replaceLit)).term());
+          }
+          substTermsRec.insert(argTerm.term());//, argRecCall.term());
+        }
+
+        // Term::Iterator termIt(term);
+        // Term::Iterator recCallIt(recCall.term());
+        // DArray<bool>::Iterator indVarIt(indVars);
+
+        // DArray<TermList> args(term->arity());
+        // unsigned i = 0;
+        // while (termIt.hasNext()) {
+        //   auto argTerm = termIt.next();
+        //   auto argRecCall = recCallIt.next();
+        //   auto isIndVar = indVarIt.next();
+        //   if (!isIndVar) {
+        //     args[i++] = argTerm;
+        //     continue;
+        //   }
+
+        //   // replace the induction arg with the step
+        //   // in the term we induct on
+        //   replaceFreeVars(argRecCall, var, varMap);
+        //   args[i++] = argRecCall;
+        // }
+
+        // auto replaceTerm = term;
+        // if (term->isLiteral()) {
+        //   replaceTerm = Literal::create(static_cast<Literal*>(term), args.begin());
+        // } else {
+        //   replaceTerm = Term::create(term, args.begin());
+        // }
+
+        // PositionalTermReplacement tr(term, TermList(replaceTerm), p.second);
+        // replaceLit = static_cast<Literal*>(tr.replaceIn(TermList(replaceLit)).term());
       }
+      auto formula = /*Formula::quantify*/(new AtomicFormula(Literal::complementaryLiteral(replaceLit)));
+      hyp = new FormulaList(formula,hyp);
     }
 
+    // IteratorByInductiveVariables termIt(term, indVars);
+    // IteratorByInductiveVariables stepIt(desc.getStep().term(), indVars);
+    // while (termIt.hasNext()) {
+    //   auto argStep = stepIt.next();
+    //   auto argTerm = termIt.next();
+
+    //   unsigned occ;
+    //   ASS(activeOccurrences.find(argTerm, occ));
+    //   if (occ > 1 && lit->countSubtermOccurrences(argTerm) == occ) {
+    //     TermReplacement cr(argTerm.term(),argStep);
+    //     replaceTerm = cr.transform(replaceTerm);
+    //   }
+    // }
+
     auto l = FormulaList::length(hyp);
+    Formula* left = nullptr;
     Formula* res = nullptr;
     if (l == 0) {
       // base case
@@ -902,21 +1019,55 @@ void InductionClauseIterator::instantiateScheme(Clause* premise, Literal* lit, I
     }
     formulas = new FormulaList(res, formulas);
   }
-
   ASS_G(FormulaList::length(formulas), 0);
   Formula* indPremise = FormulaList::length(formulas) > 1 ? new JunctionFormula(Connective::AND,formulas)
                                                           : formulas->head();
 
-  Literal* conclusion = clit;
-  IteratorByInductiveVariables termIt(term, indVars);
-  while (termIt.hasNext()) {
-    auto t = termIt.next();
-
-    if (t.isTerm()) {
-      TermReplacement cr(t.term(),TermList(var++,false));
-      conclusion = cr.transform(clit);
+  auto replaceLit = lit;
+  auto termPosPairs = scheme->getTermPosPairs();
+  Map<vstring, unsigned> termToVarMap;
+  Set<Term*> substTerms;
+  while (termPosPairs.hasNext()) {
+    auto p = termPosPairs.next();
+    auto term = p.first;
+    IteratorByInductiveVariables termIt(term, indVars);
+    while (termIt.hasNext()) {
+      auto t = termIt.next();
+      if (substTerms.contains(t.term())) {
+        continue;
+      }
+      if (!termToVarMap.find(t.toString())) {
+        termToVarMap.insert(t.toString(), var++);
+      }
+      TermList r(termToVarMap.get(t.toString()),false);
+      for (const auto& pos : activeOccurrences[t]) {
+        PositionalTermReplacement tr(t.term(), r, pos);
+        replaceLit = static_cast<Literal*>(tr.replaceIn(TermList(replaceLit)).term());
+      }
+      substTerms.insert(t.term());//, r.term());
     }
+
+    // Term::Iterator termIt(term);
+    // DArray<bool>::Iterator indVarIt(indVars);
+    // unsigned i = 0;
+    // while (termIt.hasNext()) {
+    //   auto t = termIt.next();
+    //   auto isIndVar = indVarIt.next();
+    //   i++;
+    //   if (!isIndVar) {
+    //     continue;
+    //   }
+
+    //   auto pos = p.second;
+    //   pos.push_back(i);
+    //   if (!termToVarMap.find(t)) {
+    //     termToVarMap.insert(t, var++);
+    //   }
+    //   PositionalTermReplacement cr(t.term(), TermList(termToVarMap.get(t),false), pos);
+    //   replaceLit = static_cast<Literal*>(cr.replaceIn(TermList(replaceLit)).term());
+    // }
   }
+  Literal* conclusion = Literal::complementaryLiteral(replaceLit);
   Formula* hypothesis = new BinaryFormula(Connective::IMP,
                             Formula::quantify(indPremise),
                             Formula::quantify(new AtomicFormula(conclusion)));
