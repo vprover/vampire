@@ -117,12 +117,29 @@ int TautologyDeletionISE::compare(Literal* l1,Literal* l2)
   TermList* ts1 = l1->args();
   TermList* ts2 = l2->args();
   while (! ts1->isEmpty()) {
-    unsigned c1 = ts1->content();
-    unsigned c2 = ts2->content();
-    if (c1 < c2) {
+    unsigned varOrId1;
+    unsigned varOrId2;
+
+    if (ts1->isVar()) {
+      if (ts2->isVar()) { // both variables, let's compare them
+        varOrId1 = ts1->var();
+        varOrId2 = ts2->var();
+      } else {
+        return -1;
+      }
+    } else {
+      if (ts2->isVar()) {
+        return 1;
+      } else { // neither is var, let's compare the ids
+        varOrId1 = ts1->term()->getId();
+        varOrId2 = ts2->term()->getId();
+      }
+    }
+
+    if (varOrId1 < varOrId2) {
       return -1;
     }
-    if (c1 > c2) {
+    if (varOrId1 > varOrId2) {
       return 1;
     }
     ts1 = ts1->next();

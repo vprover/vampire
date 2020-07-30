@@ -122,8 +122,10 @@ ScopeGuard<Callable> make_scope_guard(Callable&& f)
   auto ON_SCOPE_EXIT_CONCAT(on_scope_exit_guard_on_line_,__LINE__) = make_scope_guard([&]() { stmt; });
 
 // We don't need make_scope_guard in C++14 or later:
-// #define ON_SCOPE_EXIT(stmt) \
-//   ScopeGuard ON_SCOPE_EXIT_CONCAT(on_scope_exit_guard_on_line_,__LINE__){[&]() { stmt; }};
+/*
+#define ON_SCOPE_EXIT(stmt) \
+  ScopeGuard ON_SCOPE_EXIT_CONCAT(on_scope_exit_guard_on_line_,__LINE__){[&]() { stmt; }};
+*/
 
 }
 

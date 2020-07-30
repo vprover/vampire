@@ -108,7 +108,7 @@ template<class A, class... As> struct _printDbg<A, As...>{
 
 template<class... A> void Tracer::printDbg(A... msg)
 {
-  for (int i = 0; i< _depth; i++) {
+  for (unsigned i = 0; i< _depth; i++) {
     cout << "  ";
   }
   // cout << _lastControlPoint << ": ";
