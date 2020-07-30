@@ -1931,9 +1931,9 @@ void Options::Options::init()
 
     _functionWeights = StringOptionValue("function_weights","fw","");
     _functionWeights.description = 
-      "Path to a file that defines weights for KBO for function symbols, or '$random'.\n"
+      "Path to a file that defines weights for KBO for function symbols, or 'random'.\n"
       "\n"
-      "If '$random' is used the weights will be assigned randomly.\n"
+      "If 'random' is used the weights will be assigned randomly.\n"
       "\n"
       "If the option is a file path, each line in the file is expected to contain a function name, followed by the functions arity, and a positive integer, that specifies symbols weight.\n"
       "\n"
@@ -1959,7 +1959,9 @@ void Options::Options::init()
 
     _predicateWeights = StringOptionValue("predicate_weights","pw","");
     _predicateWeights.description = 
-      "Path to a file that defines weights for KBO for predicate symbols, or '$random'.\n"
+      "Path to a file that defines weights for KBO for predicate symbols, or 'random'.\n"
+      "\n"
+      "If 'random' is used the weights will be assigned randomly.\n"
       "\n"
       "If the option is a file path, each line in the file is expected to contain a predicate name, followed by the predicates arity and a positive integer, that specifies symbols weight.\n"
       "\n"
