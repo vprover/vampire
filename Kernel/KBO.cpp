@@ -38,6 +38,11 @@
 
 #define COLORED_WEIGHT_BOOST 0x10000
 
+#define SPECIAL_WEIGHT_FILENAME_RANDOM      "$random"
+#define SPECIAL_WEIGHT_IDENT_VAR            "$var"
+#define SPECIAL_WEIGHT_IDENT_INTRODUCED     "$introduced"
+#define SPECIAL_WEIGHT_IDENT_DEFAULT_WEIGHT "$default"
+
 namespace Kernel {
 
 using namespace Lib;
@@ -353,7 +358,7 @@ KBO::WeightMap KBO::weightsFromOpts(const Options& opts) const {
   auto& str = SigTraits::weightFileName(opts);
   if (str.empty()) {
     return WeightMap::dflt<SigTraits>();
-  } else if (str == "$random") {
+  } else if (str == SPECIAL_WEIGHT_FILENAME_RANDOM) {
     return WeightMap::randomized<SigTraits>(1 << 16, 
         [](unsigned min, unsigned max) { return min + Random::getInteger(max - min); });
   } else {
@@ -375,10 +380,6 @@ template<class SigTraits> KBO::WeightMap KBO::weightsFromFile(const Options& opt
     }
     return file;
   };
-
-#define SPECIAL_WEIGHT_IDENT_VAR            "$var"
-#define SPECIAL_WEIGHT_IDENT_INTRODUCED     "$introduced"
-#define SPECIAL_WEIGHT_IDENT_DEFAULT_WEIGHT "$default"
 
   auto parseDefaultSymbolWeight = [&openFile](const vstring& fname) -> unsigned {
     if (!fname.empty()) {
