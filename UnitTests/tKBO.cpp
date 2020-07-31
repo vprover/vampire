@@ -36,26 +36,41 @@ DArray<int> predLevels() {
   out.init(out.size(), 1);
   return out;
 }
+using namespace Kernel;
+
+template<class SigTraits>
+KBO::WeightMap<SigTraits> toWeightMap(unsigned introducedSymbolWeight, KBO::SpecialWeights<SigTraits> ws, const Map<unsigned, KBO::Weight>& xs, unsigned sz) 
+{
+  auto df = KBO::WeightMap<SigTraits>::dflt();
+  df._specialWeights = ws;
+
+  DArray<KBO::Weight> out(sz);
+  for (int i = 0; i < sz; i++) {
+    auto w = xs.getPtr(i);
+    out[i] = w == NULL ? df.symbolWeight(i) : *w;
+  }
+  return  {
+    ._weights = out,
+    ._introducedSymbolWeight = introducedSymbolWeight,
+    ._specialWeights         = ws,
+  };
+}
 
 KBO kbo(unsigned introducedSymbolWeight, 
     unsigned variableWeight, 
     const Map<unsigned, KBO::Weight>& funcs, 
     const Map<unsigned, KBO::Weight>& preds) {
-  auto toWeightMap = [=](const Map<unsigned, KBO::Weight>& xs, unsigned sz) -> KBO::WeightMap {
-    DArray<KBO::Weight> out(sz);
-    for (int i = 0; i < sz; i++) {
-      auto w = xs.getPtr(i);
-      out[i] = w == NULL ? 1 : *w;
-    }
-    return KBO::WeightMap {
-      ._weights = out,
-      ._introducedSymbolWeight = introducedSymbolWeight,
-      ._variableWeight         = variableWeight,
-    };
-  };
-  
-  return KBO(toWeightMap(funcs, env.signature->functions()), 
-             toWeightMap(preds, env.signature->predicates()), 
+ 
+  return KBO(toWeightMap<FuncSigTraits>(introducedSymbolWeight, { 
+          ._variableWeight = variableWeight ,
+          ._numInt  = variableWeight,
+          ._numRat  = variableWeight,
+          ._numReal = variableWeight,
+        }, funcs, env.signature->functions()), 
+             toWeightMap<PredSigTraits>(introducedSymbolWeight,
+               KBO::SpecialWeights<PredSigTraits>::dflt(), 
+               preds,
+               env.signature->predicates()), 
              funcPrec(), 
              predPrec(), 
              predLevels(),

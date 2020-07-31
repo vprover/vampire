@@ -74,6 +74,7 @@ Clause* exhaustiveGve(Clause* in) {
     virtual Result compare(Literal*, Literal*) const override { return Kernel::Ordering::LESS; }
     virtual Result compare(TermList, TermList) const override {ASSERTION_VIOLATION}
     virtual Comparison compareFunctors(unsigned, unsigned) const override {ASSERTION_VIOLATION}
+    virtual void show(ostream&) const override {ASSERTION_VIOLATION}
   };
   static FakeOrdering ord;
   static GaussianVariableElimination inf = GaussianVariableElimination();

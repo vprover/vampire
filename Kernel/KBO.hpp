@@ -123,8 +123,8 @@ public:
     Weight symbolWeight(Term*    t      ) const;
     Weight symbolWeight(unsigned functor) const;
 
-  private:
                            static WeightMap dflt();
+  private:
     template<class Random> static WeightMap randomized(unsigned maxWeight, Random random);
   };
 
