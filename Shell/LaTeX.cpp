@@ -222,7 +222,7 @@ vstring LaTeX::toString (Formula* f) const
 
   static vstring names [] =
   { "", " \\Vand ", " \\Vor ", " \\Vimp ", " \\Viff ", " \\Vxor ",
-	  "\\neg ", "\\forall ", "\\exists ", "\bot", "\top"};
+	  "\\neg ", "\\forall ", "\\exists ", "\bot", "\top", "", ""};
 
   Connective c = f->connective();
   vstring con = names[(int)c];
@@ -421,7 +421,8 @@ vstring LaTeX::symbolToString (unsigned num, bool pred) const
 #define LENGTH 8004
   char newName[LENGTH]; // LaTeX name of this symbol
   char* name = newName;
-  const char* nm = symbolName.substr(0,8000).c_str();
+  auto substr = symbolName.substr(0,8000);
+  const char* nm = substr.c_str();
   // finding end of the name
   const char* end = nm;
   while (*end) {
