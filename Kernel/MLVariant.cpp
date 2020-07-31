@@ -157,7 +157,7 @@ bool createLiteralBindings(Literal* baseLit, LiteralList* alts, Clause* instCl,
 
       //add index of the literal in instance clause at
       //the end of the binding sequence
-      new(altBindingData++) TermList((size_t)instCl->getLiteralPosition(alit));
+      *(altBindingData++) = (size_t)instCl->getLiteralPosition(alit);
     }
   }
   return true;

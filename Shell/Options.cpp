@@ -2102,12 +2102,16 @@ void Options::copyValuesFrom(const Options& that)
 }
 Options::Options(const Options& that)
 {
+  CALL("Options::Options(const Options& that)");
+
   init();
   copyValuesFrom(that);
 }
 
 Options& Options::operator=(const Options& that)
 {
+  CALL("Options& Options::operator=(const Options& that)");
+
   if(this==&that) return *this;
   copyValuesFrom(that);
   return *this;
