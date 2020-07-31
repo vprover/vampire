@@ -45,11 +45,11 @@ public:
   virtual ~TermTransformer() {}
   Term* transform(Term* term);
   Literal* transform(Literal* lit);
+  Formula* transform(Formula* f);
 protected:
   virtual TermList transformSubterm(TermList trm) = 0;
   Term* transformSpecial(Term* specialTerm);
   TermList transform(TermList ts);
-  Formula* transform(Formula* f);
 };
 
 /**

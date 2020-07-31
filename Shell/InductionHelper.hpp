@@ -53,6 +53,9 @@ private:
 
 class RDescription {
 public:
+  CLASS_NAME(RDescription);
+  USE_ALLOCATOR(RDescription);
+
   RDescription(Kernel::List<Kernel::TermList>* recursiveCalls,
                Kernel::TermList step,
                Kernel::Formula* cond);
@@ -64,6 +67,26 @@ public:
 private:
   Kernel::List<Kernel::TermList>* _recursiveCalls;
   Kernel::TermList _step;
+  Kernel::Formula* _condition;
+};
+
+class RDescriptionInst {
+public:
+  CLASS_NAME(RDescriptionInst);
+  USE_ALLOCATOR(RDescriptionInst);
+
+  RDescriptionInst(Kernel::List<Kernel::vmap<Kernel::TermList, Kernel::TermList>>* recursiveCalls,
+                   Kernel::vmap<Kernel::TermList, Kernel::TermList> step,
+                   Kernel::Formula* cond);
+
+  Kernel::List<Kernel::vmap<Kernel::TermList, Kernel::TermList>>* getRecursiveCalls() const;
+  Kernel::vmap<Kernel::TermList, Kernel::TermList>& getStep();
+
+  Lib::vstring toString() const;
+
+private:
+  Kernel::List<Kernel::vmap<Kernel::TermList, Kernel::TermList>>* _recursiveCalls;
+  Kernel::vmap<Kernel::TermList, Kernel::TermList> _step;
   Kernel::Formula* _condition;
 };
 
@@ -92,21 +115,23 @@ public:
   CLASS_NAME(InductionScheme);
   USE_ALLOCATOR(InductionScheme);
 
-  InductionScheme(Kernel::Term* t, TermPosition pos, InductionTemplate* templ);
+  InductionScheme();
 
-  void addTermPosPair(Kernel::Term* t, TermPosition pos);
+  void init(Kernel::Term* term, Kernel::List<RDescription>::Iterator rdescIt, const Lib::DArray<bool>& indVars);
   void addActiveOccurrences(Lib::vmap<Kernel::TermList, Lib::vvector<TermPosition>> m);
 
-  Lib::List<pair<Kernel::Term*,TermPosition>>::Iterator getTermPosPairs() const;
-  InductionTemplate* getTemplate() const;
+  Kernel::List<RDescriptionInst>::Iterator getRDescriptionInstances() const;
   Lib::vmap<Kernel::TermList, Lib::vvector<TermPosition>> getActiveOccurrences() const;
+  unsigned getMaxVar() const;
 
   Lib::vstring toString() const;
 
 private:
-  Lib::List<pair<Kernel::Term*,TermPosition>>* _termPosPairs;
-  InductionTemplate* _templ;
+  void replaceFreeVars(Kernel::TermList t, unsigned& currVar, Lib::Map<unsigned, unsigned>& varMap);
+
+  Kernel::List<RDescriptionInst>* _rDescriptionInstances;
   Lib::vmap<Kernel::TermList, Lib::vvector<TermPosition>> _activeOccurrences;
+  unsigned _maxVar;
 };
 
 class InductionHelper {
@@ -121,10 +146,12 @@ private:
   static void processCase(const unsigned recFun, Kernel::TermList& body, Kernel::List<Kernel::TermList>*& recursiveCalls);
   static unsigned findMatchedArgument(unsigned matched, Kernel::TermList& header);
 
-  static bool checkSubsumption(InductionScheme* sch1, InductionScheme* sch2);
+  static bool checkSubsumption(InductionScheme* sch1, InductionScheme* sch2, bool onlyCheckIntersection = false);
   static Lib::List<Kernel::Term*>* getSubstitutedTerms(Kernel::Term* term, Kernel::Term* step,
-                                                  Kernel::Term* recursiveCall, const Lib::DArray<bool>& indVars);
-  static bool checkAllContained(Lib::List<Kernel::Term*>* lst1, Lib::List<Kernel::Term*>* lst2);
+                                                  Kernel::Term* recursiveCall, const Lib::DArray<bool>& indVars,
+                                                  unsigned& currVar, Kernel::Map<pair<Kernel::Term*, unsigned>, Lib::vvector<unsigned>>& varMap);
+  static bool checkAllContained(Lib::List<Kernel::Term*>* lst1, Lib::List<Kernel::Term*>* lst2, bool onlyCheckIntersection = false);
+  static void mergeSchemes(InductionScheme* sch1, InductionScheme* sch2);
 };
 
 } // Shell

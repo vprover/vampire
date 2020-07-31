@@ -123,9 +123,7 @@ private:
   void performStructInductionThree(Clause* premise, Literal* origLit, Literal* lit, Term* t, InferenceRule rule);
 
   void selectInductionScheme(Clause* premise, Literal* origLit, InferenceRule rule);
-
   void instantiateScheme(Clause* premise, Literal* origLit, InferenceRule rule, InductionScheme* scheme);
-  void replaceFreeVars(TermList t, unsigned& currVar, Map<unsigned, unsigned>& varMap);
 
   bool notDone(Literal* lit, Term* t);
   Term* getPlaceholderForTerm(Term* t);
