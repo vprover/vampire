@@ -109,8 +109,10 @@ struct NumTraits;
       return TermList(name ## T());                                                                                     \
     }                                                                                                                   \
     static bool isName(const TermList& l) {                                                                             \
-      return l == name();                                                                                               \
-      return l.tag() == REF && name ## T() == l.term();                                                                 \
+      /* TODO */                                                                                                       \
+      ASSERTION_VIOLATION                                                                                              \
+      /*return l == name(); */                                                                                              \
+      /*return l.tag() == REF && name ## T() == l.term(); */                                                                \
     }                                                                                                                   \
 
 #define IMPL_NUM_TRAITS(CamelCase, LONG, SHORT)                                                                         \
