@@ -47,6 +47,78 @@ using namespace Lib;
 struct PredSigTraits;
 struct FuncSigTraits;
 
+
+using KboWeight = unsigned;
+
+/** 
+ * Contains special weights for, variables and interpreted functions for SigTraits == FuncSigTraits, 
+ * and nothing for SigTraits == PredSigTraits 
+ */
+template<class SigTraits>
+struct KboSpecialWeights;
+
+template<>
+struct KboSpecialWeights<PredSigTraits> 
+{ 
+  inline bool tryAssign(const vstring& name, unsigned weight) 
+  { return false; }
+
+  inline static KboSpecialWeights dflt() 
+  { return { }; }
+
+  bool tryGetWeight(unsigned functor, unsigned& weight) const;
+};
+
+template<>
+struct KboSpecialWeights<FuncSigTraits> 
+{
+  KboWeight _variableWeight;
+  KboWeight _numInt;
+  KboWeight _numRat;
+  KboWeight _numReal;
+  inline bool tryAssign(const vstring& name, unsigned weight) 
+  {
+    if (name == SPECIAL_WEIGHT_IDENT_VAR     ) { _variableWeight = weight; return true; } 
+    if (name == SPECIAL_WEIGHT_IDENT_NUM_INT ) { _numInt  = weight; return true; } 
+    if (name == SPECIAL_WEIGHT_IDENT_NUM_REAL) { _numReal = weight; return true; } 
+    if (name == SPECIAL_WEIGHT_IDENT_NUM_RAT ) { _numRat  = weight; return true; } 
+    return false;
+  }
+
+  inline static KboSpecialWeights dflt() 
+  { 
+    return { 
+      ._variableWeight = 1, 
+      ._numInt  = 1,
+      ._numRat  = 1,
+      ._numReal = 1,
+    }; 
+  }
+
+  bool tryGetWeight(unsigned functor, unsigned& weight) const;
+};
+
+
+template<class SigTraits>
+struct KboWeightMap {
+  friend class KBO;
+  DArray<KboWeight> _weights;
+
+  /** KboWeight of function symbols not occurring in the signature, i.e. that are introduced during proof search */
+  KboWeight _introducedSymbolWeight;
+
+  /** Special weights that are only present for function/predicate symbols. */
+  KboSpecialWeights<SigTraits> _specialWeights;
+
+  KboWeight symbolWeight(Term*    t      ) const;
+  KboWeight symbolWeight(unsigned functor) const;
+
+                         static KboWeightMap dflt();
+private:
+  template<class Random> static KboWeightMap randomized(unsigned maxWeight, Random random);
+};
+
+
 /**
  * Class for instances of the Knuth-Bendix orderings
  * @since 30/04/2008 flight Brussels-Tel Aviv
@@ -58,81 +130,11 @@ public:
   CLASS_NAME(KBO);
   USE_ALLOCATOR(KBO);
 
-  using Weight = unsigned;
-
-  /** 
-   * Contains special weights for, variables and interpreted functions for SigTraits == FuncSigTraits, 
-   * and nothing for SigTraits == PredSigTraits 
-   */
-  template<class SigTraits>
-  struct SpecialWeights;
-
-  template<>
-  struct SpecialWeights<PredSigTraits> 
-  { 
-    inline bool tryAssign(const vstring& name, unsigned weight) 
-    { return false; }
-
-    inline static SpecialWeights dflt() 
-    { return { }; }
-
-    bool tryGetWeight(unsigned functor, unsigned& weight) const;
-  };
-
-  template<>
-  struct SpecialWeights<FuncSigTraits> 
-  {
-    Weight _variableWeight;
-    Weight _numInt;
-    Weight _numRat;
-    Weight _numReal;
-    inline bool tryAssign(const vstring& name, unsigned weight) 
-    {
-      if (name == SPECIAL_WEIGHT_IDENT_VAR     ) { _variableWeight = weight; return true; } 
-      if (name == SPECIAL_WEIGHT_IDENT_NUM_INT ) { _numInt  = weight; return true; } 
-      if (name == SPECIAL_WEIGHT_IDENT_NUM_REAL) { _numReal = weight; return true; } 
-      if (name == SPECIAL_WEIGHT_IDENT_NUM_RAT ) { _numRat  = weight; return true; } 
-      return false;
-    }
-
-    inline static SpecialWeights dflt() 
-    { 
-      return { 
-        ._variableWeight = 1, 
-        ._numInt  = 1,
-        ._numRat  = 1,
-        ._numReal = 1,
-      }; 
-    }
-
-    bool tryGetWeight(unsigned functor, unsigned& weight) const;
-  };
-
-
-  template<class SigTraits>
-  struct WeightMap {
-    friend class KBO;
-    DArray<Weight> _weights;
-
-    /** Weight of function symbols not occurring in the signature, i.e. that are introduced during proof search */
-    Weight _introducedSymbolWeight;
-
-    /** Special weights that are only present for function/predicate symbols. */
-    SpecialWeights<SigTraits> _specialWeights;
-
-    Weight symbolWeight(Term*    t      ) const;
-    Weight symbolWeight(unsigned functor) const;
-
-                           static WeightMap dflt();
-  private:
-    template<class Random> static WeightMap randomized(unsigned maxWeight, Random random);
-  };
-
   KBO(Problem& prb, const Options& opt);
   KBO(
       // KBO params
-      WeightMap<FuncSigTraits> funcWeights, 
-      WeightMap<PredSigTraits> predWeights, 
+      KboWeightMap<FuncSigTraits> funcWeights, 
+      KboWeightMap<PredSigTraits> predWeights, 
 
       // precedence ordering params
       DArray<int> funcPrec, 
@@ -159,12 +161,12 @@ protected:
 
 private:
 
-  WeightMap<FuncSigTraits> _funcWeights;
-  WeightMap<PredSigTraits> _predWeights;
+  KboWeightMap<FuncSigTraits> _funcWeights;
+  KboWeightMap<PredSigTraits> _predWeights;
 
-  template<class SigTraits> const WeightMap<SigTraits>& getWeightMap() const;
-  template<class SigTraits> WeightMap<SigTraits> weightsFromOpts(const Options& opts) const;
-  template<class SigTraits> WeightMap<SigTraits> weightsFromFile(const Options& opts) const;
+  template<class SigTraits> const KboWeightMap<SigTraits>& getWeightMap() const;
+  template<class SigTraits> KboWeightMap<SigTraits> weightsFromOpts(const Options& opts) const;
+  template<class SigTraits> KboWeightMap<SigTraits> weightsFromFile(const Options& opts) const;
 
   template<class SigTraits> 
   void showConcrete_(ostream&) const;

@@ -39,12 +39,12 @@ DArray<int> predLevels() {
 using namespace Kernel;
 
 template<class SigTraits>
-KBO::WeightMap<SigTraits> toWeightMap(unsigned introducedSymbolWeight, KBO::SpecialWeights<SigTraits> ws, const Map<unsigned, KBO::Weight>& xs, unsigned sz) 
+KboWeightMap<SigTraits> toWeightMap(unsigned introducedSymbolWeight, KboSpecialWeights<SigTraits> ws, const Map<unsigned, KboWeight>& xs, unsigned sz) 
 {
-  auto df = KBO::WeightMap<SigTraits>::dflt();
+  auto df = KboWeightMap<SigTraits>::dflt();
   df._specialWeights = ws;
 
-  DArray<KBO::Weight> out(sz);
+  DArray<KboWeight> out(sz);
   for (int i = 0; i < sz; i++) {
     auto w = xs.getPtr(i);
     out[i] = w == NULL ? df.symbolWeight(i) : *w;
@@ -58,8 +58,8 @@ KBO::WeightMap<SigTraits> toWeightMap(unsigned introducedSymbolWeight, KBO::Spec
 
 KBO kbo(unsigned introducedSymbolWeight, 
     unsigned variableWeight, 
-    const Map<unsigned, KBO::Weight>& funcs, 
-    const Map<unsigned, KBO::Weight>& preds) {
+    const Map<unsigned, KboWeight>& funcs, 
+    const Map<unsigned, KboWeight>& preds) {
  
   return KBO(toWeightMap<FuncSigTraits>(introducedSymbolWeight, { 
           ._variableWeight = variableWeight ,
@@ -68,7 +68,7 @@ KBO kbo(unsigned introducedSymbolWeight,
           ._numReal = variableWeight,
         }, funcs, env.signature->functions()), 
              toWeightMap<PredSigTraits>(introducedSymbolWeight,
-               KBO::SpecialWeights<PredSigTraits>::dflt(), 
+               KboSpecialWeights<PredSigTraits>::dflt(), 
                preds,
                env.signature->predicates()), 
              funcPrec(), 
@@ -78,22 +78,22 @@ KBO kbo(unsigned introducedSymbolWeight,
 }
 
 
-KBO kbo(const Map<unsigned, KBO::Weight>& funcs, const Map<unsigned, KBO::Weight>& preds) {
+KBO kbo(const Map<unsigned, KboWeight>& funcs, const Map<unsigned, KboWeight>& preds) {
   return kbo(1, 1, funcs, preds);
 }
 
-void __weights(Map<unsigned, KBO::Weight>& ws) {
+void __weights(Map<unsigned, KboWeight>& ws) {
 }
 
 template<class A, class... As>
-void __weights(Map<unsigned, KBO::Weight>& ws, pair<A, KBO::Weight> a, pair<As, KBO::Weight>... as) {
+void __weights(Map<unsigned, KboWeight>& ws, pair<A, KboWeight> a, pair<As, KboWeight>... as) {
   ws.insert(get<0>(a).functor(), get<1>(a));
   __weights(ws, as...);
 }
 
 template<class... As>
-Map<unsigned, KBO::Weight> weights(pair<As, KBO::Weight>... as) {
-  Map<unsigned, KBO::Weight> out;
+Map<unsigned, KboWeight> weights(pair<As, KboWeight>... as) {
+  Map<unsigned, KboWeight> out;
   __weights(out, as...);
   return out;
 }

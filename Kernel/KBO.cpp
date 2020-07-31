@@ -350,22 +350,22 @@ struct FuncSigTraits {
 
 
 template<class SigTraits> 
-KBO::WeightMap<SigTraits> KBO::weightsFromOpts(const Options& opts) const 
+KboWeightMap<SigTraits> KBO::weightsFromOpts(const Options& opts) const 
 {
   auto& str = SigTraits::weightFileName(opts);
   if (str.empty()) {
-    return WeightMap<SigTraits>::dflt();
+    return KboWeightMap<SigTraits>::dflt();
   } else if (str == SPECIAL_WEIGHT_FILENAME_RANDOM) {
-    return WeightMap<SigTraits>::randomized(1 << 16, 
+    return KboWeightMap<SigTraits>::randomized(1 << 16, 
         [](unsigned min, unsigned max) { return min + Random::getInteger(max - min); });
   } else {
     return weightsFromFile<SigTraits>(opts);
   }
 }
 
-template<class SigTraits> KBO::WeightMap<SigTraits> KBO::weightsFromFile(const Options& opts) const 
+template<class SigTraits> KboWeightMap<SigTraits> KBO::weightsFromFile(const Options& opts) const 
 {
-  DArray<KBO::Weight> weights(SigTraits::nSymbols());
+  DArray<KboWeight> weights(SigTraits::nSymbols());
   BYPASSING_ALLOCATOR
 
   ///////////////////////// parsing helper functions ///////////////////////// 
@@ -395,7 +395,7 @@ template<class SigTraits> KBO::WeightMap<SigTraits> KBO::weightsFromFile(const O
   };
 
   /** tries to parse line of the form `<special_name> <weight>` */
-  auto tryParseSpecialLine = [](const vstring& ln, unsigned& introducedWeight, SpecialWeights<SigTraits>& specialWeights) -> bool {
+  auto tryParseSpecialLine = [](const vstring& ln, unsigned& introducedWeight, KboSpecialWeights<SigTraits>& specialWeights) -> bool {
     vstringstream lnstr(ln);
 
     vstring name;
@@ -445,7 +445,7 @@ template<class SigTraits> KBO::WeightMap<SigTraits> KBO::weightsFromFile(const O
   }
 
   unsigned introducedWeight = defaultSymbolWeight;
-  auto specialWeights = SpecialWeights<SigTraits>::dflt();
+  auto specialWeights = KboSpecialWeights<SigTraits>::dflt();
 
   ASS(!filename.empty());
 
@@ -463,7 +463,7 @@ template<class SigTraits> KBO::WeightMap<SigTraits> KBO::weightsFromFile(const O
     } 
   }
 
-  return WeightMap<SigTraits> {
+  return KboWeightMap<SigTraits> {
     ._weights                = weights,
     ._introducedSymbolWeight = introducedWeight,
     ._specialWeights         = specialWeights,
@@ -473,8 +473,8 @@ template<class SigTraits> KBO::WeightMap<SigTraits> KBO::weightsFromFile(const O
 
 KBO::KBO(
     // KBO params
-    WeightMap<FuncSigTraits> funcWeights, 
-    WeightMap<PredSigTraits> predWeights, 
+    KboWeightMap<FuncSigTraits> funcWeights, 
+    KboWeightMap<PredSigTraits> predWeights, 
 
     // precedence ordering params
     DArray<int> funcPrec, 
@@ -662,18 +662,18 @@ int KBO::symbolWeight(Term* t) const
 }
 
 template<class SigTraits>
-KBO::WeightMap<SigTraits> KBO::WeightMap<SigTraits>::dflt()
+KboWeightMap<SigTraits> KboWeightMap<SigTraits>::dflt()
 {
-  return WeightMap {
-    ._weights                = DArray<Weight>::initialized(SigTraits::nSymbols(), 1),
+  return KboWeightMap {
+    ._weights                = DArray<KboWeight>::initialized(SigTraits::nSymbols(), 1),
     ._introducedSymbolWeight = 1,
-    ._specialWeights         = SpecialWeights<SigTraits>::dflt(),
+    ._specialWeights         = KboSpecialWeights<SigTraits>::dflt(),
   };
 }
 
 template<>
 template<class Random>
-KBO::WeightMap<FuncSigTraits> KBO::WeightMap<FuncSigTraits>::randomized(unsigned maxWeight, Random random)
+KboWeightMap<FuncSigTraits> KboWeightMap<FuncSigTraits>::randomized(unsigned maxWeight, Random random)
 {
   using SigTraits = FuncSigTraits;
   auto nSym = SigTraits::nSymbols();
@@ -684,7 +684,7 @@ KBO::WeightMap<FuncSigTraits> KBO::WeightMap<FuncSigTraits>::randomized(unsigned
   unsigned numRat           = random(variableWeight, maxWeight);
   unsigned numReal          = random(variableWeight, maxWeight);
 
-  DArray<KBO::Weight> weights(nSym);
+  DArray<KboWeight> weights(nSym);
   for (unsigned i = 0; i < nSym; i++) {
     if (SigTraits::isConstantSymbol(i)) {
       weights[i] = random(variableWeight, maxWeight);
@@ -696,10 +696,10 @@ KBO::WeightMap<FuncSigTraits> KBO::WeightMap<FuncSigTraits>::randomized(unsigned
     }
   }
 
-  return WeightMap {
+  return KboWeightMap {
     ._weights                = weights,
     ._introducedSymbolWeight = introducedWeight,
-    ._specialWeights         = SpecialWeights<FuncSigTraits> {
+    ._specialWeights         = KboSpecialWeights<FuncSigTraits> {
       ._variableWeight = variableWeight,
       ._numInt     =  numInt,
       ._numRat     =  numRat,
@@ -710,33 +710,33 @@ KBO::WeightMap<FuncSigTraits> KBO::WeightMap<FuncSigTraits>::randomized(unsigned
 
 template<>
 template<class Random>
-KBO::WeightMap<PredSigTraits> KBO::WeightMap<PredSigTraits>::randomized(unsigned maxWeight, Random random)
+KboWeightMap<PredSigTraits> KboWeightMap<PredSigTraits>::randomized(unsigned maxWeight, Random random)
 {
   using SigTraits = FuncSigTraits;
   auto nSym = SigTraits::nSymbols();
 
   unsigned introducedWeight = random(0, maxWeight);
 
-  DArray<KBO::Weight> weights(nSym);
+  DArray<KboWeight> weights(nSym);
   for (unsigned i = 0; i < nSym; i++) {
     weights[i] = random(0, maxWeight);
   }
 
-  return WeightMap {
+  return KboWeightMap {
     ._weights                = weights,
     ._introducedSymbolWeight = introducedWeight,
-    ._specialWeights         = SpecialWeights<PredSigTraits>{},
+    ._specialWeights         = KboSpecialWeights<PredSigTraits>{},
   };
 }
 
 template<class SigTraits>
-KBO::Weight KBO::WeightMap<SigTraits>::symbolWeight(Term* t) const
+KboWeight KboWeightMap<SigTraits>::symbolWeight(Term* t) const
 {
   return symbolWeight(t->functor());
 }
 
 template<class SigTraits>
-KBO::Weight KBO::WeightMap<SigTraits>::symbolWeight(unsigned functor) const
+KboWeight KboWeightMap<SigTraits>::symbolWeight(unsigned functor) const
 {
   unsigned weight;
   if (!_specialWeights.tryGetWeight(functor, weight)) {
@@ -746,10 +746,10 @@ KBO::Weight KBO::WeightMap<SigTraits>::symbolWeight(unsigned functor) const
   return weight;
 }
 
-void showSpecialWeights(const KBO::SpecialWeights<PredSigTraits>& ws, ostream& out) 
+void showSpecialWeights(const KboSpecialWeights<PredSigTraits>& ws, ostream& out) 
 { }
 
-void showSpecialWeights(const KBO::SpecialWeights<FuncSigTraits>& ws, ostream& out) 
+void showSpecialWeights(const KboSpecialWeights<FuncSigTraits>& ws, ostream& out) 
 { 
   out << "% " SPECIAL_WEIGHT_IDENT_VAR        " " << ws._variableWeight         << std::endl;
   out << "% " SPECIAL_WEIGHT_IDENT_NUM_REAL   " " << ws._numReal                << std::endl;
@@ -791,20 +791,20 @@ void KBO::showConcrete(ostream& out) const
   showConcrete_<PredSigTraits>(out);
 }
 
-template<> const KBO::WeightMap<FuncSigTraits>& KBO::getWeightMap<FuncSigTraits>() const 
+template<> const KboWeightMap<FuncSigTraits>& KBO::getWeightMap<FuncSigTraits>() const 
 { return _funcWeights; }
 
-template<> const KBO::WeightMap<PredSigTraits>& KBO::getWeightMap<PredSigTraits>() const 
+template<> const KboWeightMap<PredSigTraits>& KBO::getWeightMap<PredSigTraits>() const 
 { return _predWeights; }
 
 
 
-bool KBO::SpecialWeights<PredSigTraits>::tryGetWeight(unsigned functor, unsigned& weight) const
+bool KboSpecialWeights<PredSigTraits>::tryGetWeight(unsigned functor, unsigned& weight) const
 {
   return false;
 }
 
-bool KBO::SpecialWeights<FuncSigTraits>::tryGetWeight(unsigned functor, unsigned& weight) const
+bool KboSpecialWeights<FuncSigTraits>::tryGetWeight(unsigned functor, unsigned& weight) const
 {
   auto sym = env.signature->getFunction(functor);
   if (sym->integerConstant())  { weight = _numInt;  return true; }
