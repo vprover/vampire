@@ -37,6 +37,7 @@
 #include "LookaheadLiteralSelector.hpp"
 #include "SpassLiteralSelector.hpp"
 #include "ELiteralSelector.hpp"
+#include "RndLiteralSelector.hpp"
 
 #include "LiteralComparators.hpp"
 
@@ -141,12 +142,14 @@ LiteralSelector* LiteralSelector::getSelector(const Ordering& ordering, const Op
     res = new ELiteralSelector(ordering, options,static_cast<ELiteralSelector::Values>(absNum-30));
     break;
 
+  case 666: res = new RndLiteralSelector(ordering, options,true /*complete*/); break;
+
   case 1002: res = new BestLiteralSelector<Comparator2>(ordering, options); break;
   case 1003: res = new BestLiteralSelector<Comparator3>(ordering, options); break;
   case 1004: res = new BestLiteralSelector<Comparator4>(ordering, options); break;
   case 1010: res = new BestLiteralSelector<Comparator10>(ordering, options); break;
-
   case 1011: res = new LookaheadLiteralSelector(false, ordering, options); break;
+  case 1666: res = new RndLiteralSelector(ordering, options,false /*incomplete*/); break;
 
   default:
     INVALID_OPERATION("Undefined selection function");
