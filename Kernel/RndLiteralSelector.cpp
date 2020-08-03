@@ -1,6 +1,6 @@
 
 /*
- * File SpassLiteralSelector.cpp.
+ * File RndLiteralSelector.cpp.
  *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
@@ -17,8 +17,8 @@
  * licence, which we will make an effort to provide. 
  */
 /**
- * @file SpassLiteralSelector.cpp
- * Implements class SpassLiteralSelector.
+ * @file RndLiteralSelector.cpp
+ * Implements class RndLiteralSelector.
  */
 
 #include <algorithm>
