@@ -73,8 +73,6 @@ public:
    */
   bool isPositiveForSelection(Literal* l) const;
 
-  static void reversePredicatePolarity(unsigned pred, bool reverse);
-
   /**
    * Return true if literal @b l is negative for the purpose of
    * literal selection
@@ -115,8 +113,6 @@ private:
    * @see isPositiveForSelection
    */
   bool _reversePolarity;
-
-  static ZIArray<bool> _reversePredicate;
 };
 
 /**
