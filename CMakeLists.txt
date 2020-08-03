@@ -249,6 +249,7 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/SortHelper.cpp
     Kernel/OperatorType.cpp
     Kernel/SpassLiteralSelector.cpp
+    Kernel/RndLiteralSelector.cpp    
     Kernel/SubformulaIterator.cpp
     Kernel/Substitution.cpp
     Kernel/Term.cpp
@@ -299,6 +300,7 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/SortHelper.hpp
     Kernel/OperatorType.hpp
     Kernel/SpassLiteralSelector.hpp
+    Kernel/RndLiteralSelector.hpp    
     Kernel/SubformulaIterator.hpp
     Kernel/SubstHelper.hpp
     Kernel/Substitution.hpp

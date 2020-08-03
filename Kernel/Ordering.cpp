@@ -217,25 +217,25 @@ void Ordering::removeNonMaximal(LiteralList*& lits) const
 {
   CALL("Ordering::removeNonMaximal");
 
-  LiteralList** ptr1=&lits;
-  while(*ptr1) {
-    LiteralList** ptr2=&(*ptr1)->tailReference();
-    while(*ptr2 && *ptr1) {
-      Ordering::Result res=compare((*ptr1)->head(), (*ptr2)->head());
+  LiteralList** ptr1 = &lits;
+  while (*ptr1) {
+    LiteralList** ptr2 = &(*ptr1)->tailReference();
+    while (*ptr2 && *ptr1) {
+      Ordering::Result res = compare((*ptr1)->head(), (*ptr2)->head());
 
-      if(res==Ordering::GREATER || res==Ordering::GREATER_EQ || res==Ordering::EQUAL) {
-	LiteralList::pop(*ptr2);
-	continue;
-      } else if(res==Ordering::LESS || res==Ordering::LESS_EQ) {
-	LiteralList::pop(*ptr1);
-	goto topLevelContinue;
+      if (res == Ordering::GREATER || res == Ordering::GREATER_EQ
+          || res == Ordering::EQUAL) {
+        LiteralList::pop(*ptr2);
+        continue;
+      } else if (res == Ordering::LESS || res == Ordering::LESS_EQ) {
+        LiteralList::pop(*ptr1);
+        goto topLevelContinue;
       }
-      ptr2=&(*ptr2)->tailReference();
+      ptr2 = &(*ptr2)->tailReference();
     }
-    ptr1=&(*ptr1)->tailReference();
-topLevelContinue: ;
+    ptr1 = &(*ptr1)->tailReference();
+    topLevelContinue: ;
   }
-
 }
 
 Ordering::Result Ordering::getEqualityArgumentOrder(Literal* eq) const
