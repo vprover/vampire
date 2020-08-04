@@ -10,7 +10,7 @@
 #include "Theory.hpp"
 #include "NumTraits.hpp"
 #include "Debug/Tracer.hpp"
-#include "Lib/Either.hpp"
+#include "Lib/Coproduct.hpp"
 #include <algorithm>
 #include <utility>
 #include "Kernel/Polynomial.hpp"

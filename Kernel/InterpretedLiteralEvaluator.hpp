@@ -31,7 +31,7 @@
 
 #include "TermTransformer.hpp"
 #include "Theory.hpp"
-#include "Lib/Either.hpp"
+#include "Lib/Coproduct.hpp"
 #include "Shell/Options.hpp"
 
 namespace Kernel {

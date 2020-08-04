@@ -1,7 +1,7 @@
 #ifndef __OPTIONAL_H__
 #define __OPTIONAL_H__
 
-#include "Lib/Either.hpp"
+#include "Lib/Coproduct.hpp"
 
 
 namespace Lib {

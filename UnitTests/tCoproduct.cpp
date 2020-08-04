@@ -1,4 +1,4 @@
-#include "Lib/Either.hpp"
+#include "Lib/Coproduct.hpp"
 #include "Test/UnitTesting.hpp"
 
 

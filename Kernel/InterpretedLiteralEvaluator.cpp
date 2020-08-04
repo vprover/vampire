@@ -33,7 +33,6 @@
 #include "NumTraits.hpp"
 #include "Debug/Tracer.hpp"
 #include <algorithm>
-#include "Lib/Either.hpp"
 #include <utility>
 
 #define UNIMPL ASSERTION_VIOLATION

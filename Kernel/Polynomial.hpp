@@ -4,7 +4,7 @@
 #include "Lib/STLAllocator.hpp"
 #include "Kernel/NumTraits.hpp"
 #include <vector>
-#include "Lib/Either.hpp"
+#include "Lib/Coproduct.hpp"
 #include "Lib/Optional.hpp"
 #include "Lib/Map.hpp"
 #include "Kernel/Theory.hpp"

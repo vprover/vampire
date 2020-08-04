@@ -205,7 +205,6 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/Inference.o\
         Kernel/InferenceStore.o\
         Kernel/InterpretedLiteralEvaluator.o\
-	Kernel/PolynomialNormalizer.o\
         Kernel/Rebalancing.o\
         Kernel/Rebalancing/Inverters.o\
 	Kernel/NumTraits.o\
