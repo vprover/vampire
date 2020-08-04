@@ -243,6 +243,9 @@ bool IntegerConstantType::operator>(const IntegerConstantType& num) const
   return _val>num._val;
 }
 
+IntegerConstantType IntegerConstantType::floor(IntegerConstantType x)
+{ return x; }
+
 IntegerConstantType IntegerConstantType::floor(RationalConstantType rat)
 {
   CALL("IntegerConstantType::floor");
@@ -262,6 +265,10 @@ IntegerConstantType IntegerConstantType::floor(RationalConstantType rat)
   }
   return res;
 }
+
+IntegerConstantType IntegerConstantType::ceiling(IntegerConstantType x)
+{ return x; }
+
 IntegerConstantType IntegerConstantType::ceiling(RationalConstantType rat)
 {
   CALL("IntegerConstantType::ceiling");
@@ -1971,6 +1978,18 @@ vstring Theory::tryGetInterpretedLaTeXName(unsigned func, bool pred,bool polarit
 
   return "";
 
+}
+
+size_t IntegerConstantType::hash() const {
+  return std::hash<decltype(_val)>{}(_val);
+}
+
+size_t RationalConstantType::hash() const {
+  return (denominator().hash() << 1) ^ numerator().hash();
+}
+
+size_t RealConstantType::hash() const {
+  return (denominator().hash() << 1) ^ numerator().hash();
 }
 
 }

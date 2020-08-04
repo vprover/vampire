@@ -56,7 +56,8 @@ Ordering::Result LPO::comparePredicates(Literal* l1, Literal *l2) const
   unsigned p2 = l2->functor();
 
   if (p1 == p2) {
-    ASS_EQ(l1->isNegative(), l1->isNegative())
+    ASS_EQ(l1->isNegative(), l1->isNegative()) // this assertion is meaningless. 
+    //maybe:  ASS_EQ(l1->isNegative(), l2->isNegative())
 
     // compare arguments in lexicographic order
     for (unsigned i = 0; i < l1->arity(); i++) {

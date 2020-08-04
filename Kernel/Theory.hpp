@@ -55,6 +55,9 @@ public:
   typedef int InnerType;
 
   IntegerConstantType() {}
+  IntegerConstantType(IntegerConstantType&&) = default;
+  IntegerConstantType(const IntegerConstantType&) = default;
+  IntegerConstantType& operator=(const IntegerConstantType&) = default;
   constexpr IntegerConstantType(InnerType v) : _val(v) {}
   explicit IntegerConstantType(const vstring& str);
 
@@ -89,9 +92,13 @@ public:
   bool isNegative(){ return _val<0; }
 
   static IntegerConstantType floor(RationalConstantType rat);
+  static IntegerConstantType floor(IntegerConstantType rat);
+
   static IntegerConstantType ceiling(RationalConstantType rat);
+  static IntegerConstantType ceiling(IntegerConstantType rat);
 
   static Comparison comparePrecedence(IntegerConstantType n1, IntegerConstantType n2);
+  size_t hash() const;
 
   vstring toString() const;
 private:
@@ -118,6 +125,9 @@ struct RationalConstantType {
   static unsigned getSort() { return Sorts::SRT_RATIONAL; }
 
   RationalConstantType() {}
+  RationalConstantType(RationalConstantType&&) = default;
+  RationalConstantType(const RationalConstantType&) = default;
+  RationalConstantType& operator=(const RationalConstantType&) = default;
 
   RationalConstantType(InnerType num, InnerType den);
   RationalConstantType(const vstring& num, const vstring& den);
@@ -171,6 +181,7 @@ struct RationalConstantType {
 
   const InnerType& numerator() const { return _num; }
   const InnerType& denominator() const { return _den; }
+  size_t hash() const;
 
   static Comparison comparePrecedence(RationalConstantType n1, RationalConstantType n2);
 
@@ -196,8 +207,13 @@ public:
   static unsigned getSort() { return Sorts::SRT_REAL; }
 
   RealConstantType() {}
+  RealConstantType(RealConstantType&&) = default;
+  RealConstantType(const RealConstantType&) = default;
+  RealConstantType& operator=(const RealConstantType&) = default;
+
   explicit RealConstantType(const vstring& number);
   explicit constexpr RealConstantType(const RationalConstantType& rat) : RationalConstantType(rat) {}
+  RealConstantType(int num, int den) : RationalConstantType(num, den) {}
   explicit constexpr RealConstantType(typename IntegerConstantType::InnerType number) : RealConstantType(RationalConstantType(number)) {}
 
   RealConstantType operator+(const RealConstantType& num) const
@@ -224,11 +240,25 @@ public:
 
   vstring toNiceString() const;
 
+  size_t hash() const;
   static Comparison comparePrecedence(RealConstantType n1, RealConstantType n2);
 private:
   static bool parseDouble(const vstring& num, RationalConstantType& res);
 
 };
+
+inline bool operator<(const RealConstantType& lhs ,const RealConstantType& rhs) { 
+  return static_cast<const RationalConstantType&>(lhs) < static_cast<const RationalConstantType&>(rhs);
+}
+inline bool operator>(const RealConstantType& lhs, const RealConstantType& rhs) {
+  return static_cast<const RationalConstantType&>(lhs) > static_cast<const RationalConstantType&>(rhs);
+}
+inline bool operator<=(const RealConstantType& lhs, const RealConstantType& rhs) {
+  return static_cast<const RationalConstantType&>(lhs) <= static_cast<const RationalConstantType&>(rhs);
+}
+inline bool operator>=(const RealConstantType& lhs, const RealConstantType& rhs) {
+  return static_cast<const RationalConstantType&>(lhs) >= static_cast<const RationalConstantType&>(rhs);
+}
 
 inline
 std::ostream& operator<< (ostream& out, const RealConstantType& val) {

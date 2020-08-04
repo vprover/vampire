@@ -27,145 +27,196 @@
 #include "Kernel/Signature.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/Sorts.hpp"
+#include "Kernel/PolynomialNormalizer.hpp"
 
 #include "Kernel/InterpretedLiteralEvaluator.hpp"
 
 #include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
 
-#define UNIT_ID interpFunc
+#define UNIT_ID InterpretedFunctions
 UT_CREATE;
 
 using namespace std;
 using namespace Lib;
 using namespace Kernel;
 using namespace Shell;
+/////////////////////////////////////////////// Helper functions ///////////////////////////////////////////////////////
 
 #define TEST_FAIL exit(-1);
 #define OUT cout
 // #define TEST_FAIL OUT << "FAIL" << endl;
-
-namespace __Dumper {
-  template<class... As>
-  struct Dumper {
-    static void dump(As... as);
-  };
-
-  template<>
-  struct Dumper<> {
-    static void dump() { }
-  };
-
-  template<class A, class... As>
-  struct Dumper<A, As...> {
-    static void dump(A a, As... as) {
-      OUT << a;
-      Dumper<As...>::dump(as...);
-    }
-  };
-}
-
-template<class... As>
-void dump_all(As... as) {
-  __Dumper::Dumper<As...>::dump(as...);
-}
-
-template<class... As>
-void check(bool b, const char* msg, As... vs) {
-  if (!b) {
-    // OUT << endl;
-    // OUT << msg << ": ";
-    // dump_all(vs...);
-    // OUT << endl;
-    TEST_FAIL
-  }
-}
 
 #define __CHECK(op, is, expected, msg, test_case) \
   if (!(( is ) op ( expected ))) { \
     OUT << endl; \
     OUT << msg << endl; \
     OUT << "[   case   ] " << test_case << endl; \
-    OUT << "[    is    ] " << #is << " = " << is << endl; \
+    OUT << "[    is    ] " << #is << " =  " << is << endl; \
     OUT << "[ expected ] " << #is << " " #op << " " << expected << endl; \
     OUT << endl; \
     TEST_FAIL \
   } \
 
-#define CHECK_NE(...) \
-  __CHECK(!=, __VA_ARGS__)
+#define CHECK_NE(...) __CHECK(!=, __VA_ARGS__) 
+#define CHECK_EQ(...) __CHECK(==, __VA_ARGS__)
 
-#define CHECK_EQ(...) \
-  __CHECK(==, __VA_ARGS__)
+int testTermOrdering(TermList lhs, TermList rhs);
+int testTermOrdering(const Term& lhs, const Term& rhs) {
+  CALL("testTermOrdering")
+  // DBG(lhs, " < ", rhs)
+  auto run = [&]() {
+    int l_fun = lhs.functor();
+    int r_fun = rhs.functor();
+
+    int l_thry = theory->isInterpretedFunction(l_fun);
+    int r_thry = theory->isInterpretedFunction(r_fun);
+    int cmp_thry = l_thry - r_thry;
+
+    if (cmp_thry != 0) return cmp_thry;
+    if (l_thry) {
+      ASS(r_thry)
+
+      int l_inter = theory->interpretFunction(l_fun);
+      int r_inter = theory->interpretFunction(r_fun);
+      int cmp_inter = l_inter - r_inter;
+
+      if (cmp_inter != 0) return cmp_inter;
+
+    } else {
+      ASS(!l_thry && !r_thry)
+
+#     define TRY_NUM(IntegerConstantType) \
+        { \
+          IntegerConstantType l; \
+          IntegerConstantType r; \
+          bool li = theory->tryInterpretConstant(&lhs, l); \
+          bool ri = theory->tryInterpretConstant(&rhs, r); \
+          int i = li - ri; \
+          if (i != 0) return i; \
+          if (li && l - r != IntegerConstantType(0)) {\
+            return l - r > IntegerConstantType(0) ? 1 : -1;  \
+          }\
+        } \
+
+      TRY_NUM(IntegerConstantType)
+      TRY_NUM(RealConstantType)
+      TRY_NUM(RationalConstantType)
+   
+      const vstring& lname = env.signature->getFunction(l_fun)->name();
+      const vstring& rname = env.signature->getFunction(r_fun)->name();
+      if (l_fun == r_fun) {
+
+      } else if (lname < rname) {
+        return -1;
+      } else {
+        return 1;
+      }
+
+      // if (cmp_fun != 0) return cmp_fun;
+   }
+
+    ASS(lhs.arity() == rhs.arity())
+    for (int i = 0; i < lhs.arity(); i++) {
+      auto cmp = testTermOrdering(lhs[i], rhs[i]);
+      if (cmp != 0) {
+        return cmp;
+      }
+    }
+    return 0;
+  };
+  auto out = run();
+  // DBG("=> ", out);
+  return out;
+}
+
+int testTermOrdering(TermList lhs, TermList rhs) {
+  CALL("testTermOrdering(TermList)")
+  // DBG(lhs, " < ", rhs)
+  auto run = [&](){
+
+  auto l_trm = lhs.isTerm();
+  auto r_trm = rhs.isTerm();
+  auto cmp_trm = int(r_trm) - int(l_trm);
+  if (cmp_trm != 0) return cmp_trm;
+
+  if (l_trm) {
+    ASS(r_trm);
+    return testTermOrdering(*lhs.term(), *rhs.term());
+  } else {
+    ASS(lhs.isVar() && rhs.isVar());
+    return int(lhs.var()) - int(rhs.var());
+  }
+
+  };
+  auto out = run();
+  // DBG("==> ", out);
+  return out;
+
+}
+
+struct TestOrdering {
+  bool operator()(const TermList& lhs, const TermList& rhs) const noexcept {
+    // DBG("comparing: ", lhs, " < ", rhs)
+    return testTermOrdering(lhs, rhs) < 0;
+  }
+};
+
+#define NORMALIZER PolynomialNormalizer<PolynomialNormalizerConfig::Normalization<TestOrdering>>()
 
 void check_no_succ(Literal& orig) {
 
-  auto eval = InterpretedLiteralEvaluator();
+  auto eval = NORMALIZER;
 
-  bool constant;
-  Literal* result = NULL;
-  bool constantTrue;
-
-  auto sideConditions = Stack<Literal*>();
   Literal* src = Literal::create(&orig, orig.polarity());
-  auto success = eval.evaluate(src,constant,result,constantTrue, sideConditions);
+  auto res = eval.evaluate(src);
+  auto nop = res.template is<0>() && res.template unwrap<0>() == src;
 
-  CHECK_EQ(success, false, "unexpectedly evaluation was successful", orig.toString());
+  CHECK_EQ(nop, true, "unexpectedly evaluation was successful", orig.toString());
 }
 
 
-void check_eval(Literal& orig, bool expected) {
+void check_eval(Lit orig_, bool expected) {
+  Literal& orig = *orig_;
 
-  auto eval = InterpretedLiteralEvaluator();
-
-  bool constant;
-  Literal* result = NULL;
-  bool constantTrue;
+  auto eval = NORMALIZER;
 
   auto sideConditions = Stack<Literal*>();
   Literal* src = Literal::create(&orig, orig.polarity());
-  auto success = eval.evaluate(src,constant,result,constantTrue, sideConditions);
 
-  CHECK_EQ(success, true, "evaluation failed", orig.toString());
-  CHECK_EQ(sideConditions.isEmpty(), true, "non-empty side condictions", orig.toString());
-  CHECK_NE(result, NULL, "result not set", orig.toString());
-  CHECK_EQ(constant, true, "result not evaluated to constant", orig.toString());
-  CHECK_EQ(constantTrue, expected, "result not evaluated to constant", orig.toString());
+  auto result = eval.evaluate(src);
+  CHECK_EQ(result.template is<1>(), true, "non-trivial evaluation result", orig.toString())
+  CHECK_EQ(result.template unwrap<1>(), expected, "result not evaluated to constant", orig.toString())
 }
 
 bool operator==(const Literal& lhs, const Literal& rhs) {
   return Indexing::TermSharing::equals(&lhs, &rhs);
 }
 
-void check_eval(Literal& orig, const Literal& expected) {
-  auto eval = InterpretedLiteralEvaluator();
+void check_eval(Lit orig_, Lit expected_) {
+  Literal& orig = *orig_;
+  const Literal& expected = *expected_;
 
-  bool constant;
-  Literal* result = nullptr;
-  bool constantTrue;
+  auto eval = NORMALIZER;
 
   auto sideConditions = Stack<Literal*>();
-  auto success = eval.evaluate(&orig,constant,result,constantTrue, sideConditions);
+  Literal* src = Literal::create(&orig, orig.polarity());
 
-  CHECK_EQ(success, true, "evaluation failed", orig.toString());
-  CHECK_EQ(sideConditions.isEmpty(), true, "non-empty side condictions", orig.toString());
-  CHECK_NE(result, NULL, "result not set", orig.toString());
-  CHECK_EQ(*result, expected, "unexpected evaluation result", orig.toString());
+  auto result = eval.evaluate(src);
+  CHECK_EQ(result.template is<0>(), true, "trivial evaluation result", orig.toString())
+  CHECK_EQ(*result.template unwrap<0>(), expected, "result not evaluated correctly", orig.toString())
 }
 
 #define ADDITIONAL_FUNCTIONS \
       _Pragma("GCC diagnostic push") \
       _Pragma("GCC diagnostic ignored \"-Wunused\"") \
         THEORY_SYNTAX_SUGAR_FUN(f, 1) \
+        THEORY_SYNTAX_SUGAR_FUN(f2, 2) \
+        THEORY_SYNTAX_SUGAR_PRED(p, 1) \
       _Pragma("GCC diagnostic pop") \
 
 /** Tests for evalutions that should only be successful for reals/rationals and not for integers. */
 #define FRACTIONAL_TEST(name, formula, expected) \
-    TEST_FUN(name ## _ ## INT) { \
-      THEORY_SYNTAX_SUGAR(INT); \
-      ADDITIONAL_FUNCTIONS \
-      check_no_succ(( formula )); \
-    }\
     TEST_FUN(name ## _ ## REAL) { \
       THEORY_SYNTAX_SUGAR(REAL); \
       ADDITIONAL_FUNCTIONS \
@@ -194,250 +245,139 @@ void check_eval(Literal& orig, const Literal& expected) {
       check_eval(( formula ), ( expected )); \
     } \
 
-//TODO continue here
-TEST_FUN(partial_eval_add_1) { 
-  THEORY_SYNTAX_SUGAR(INT)
-  check_eval(
-      eq(add(2, add(x, add(3, 7))), y),
-      eq(add(12, x), y)
-    );
-}
+/////////////////////////////////////////////// Test cases ///////////////////////////////////////////////////////
 
-TEST_FUN(partial_eval_add_2) { 
-  THEORY_SYNTAX_SUGAR(INT)
-  check_eval(
-      eq(add(2, add(add(8, x), add(3, 7))), y),
-      eq(add(20, x), y)
-    );
-}
+ALL_NUMBERS_TEST(partial_eval_add_1,
+      2 + (x + (3 + 7)) == y, /* <- term to evaluate/normalize */
+      12 + x            == y  /* <- expected result */
+  )
 
-TEST_FUN(partial_eval_add_3) { 
-  THEORY_SYNTAX_SUGAR(INT)
-  check_eval(
-      eq(add(2, add(add(minus(8), x), add(3, 7))), y),
-      eq(add(4, x), y)
-    );
-}
+ALL_NUMBERS_TEST(partial_eval_add_2,
+      ((2 + ((8 + x) + (3 + 7))) == y),
+      ((20 + x) == y)
+)
 
-TEST_FUN(partial_eval_add_4) { 
-  THEORY_SYNTAX_SUGAR(INT)
-  check_eval(
-      eq(minus(add(2, add(add(8, x), add(3, 7)))), y),
-      eq(add(-20, minus(x)), y)
-    );
-}
+ALL_NUMBERS_TEST(partial_eval_add_3,
+      ((2 + ((-(8) + x) + (3 + 7))) == y),
+      ((4 + x) == y)
+    )
 
-#if 0 // NOT (YET) SUPPORTED
+ALL_NUMBERS_TEST(partial_eval_add_4,
+      (-((2 + ((8 + x) + (3 + 7)))) == y),
+      ((-20 + -(x)) == y)
+    )
 
-TEST_FUN(partial_eval_add_mul_1) { 
-  THEORY_SYNTAX_SUGAR(INT)
-    /* -21 + 7 * (3 + x) = y */
-  check_eval(
-      eq(x, add(-21, mul(7, add(3,y)))),
-      eq(x, mul(7,y))
-    );
-}
+ALL_NUMBERS_TEST(partial_eval_add_5,
 
-TEST_FUN(partial_eval_add_mul_2) { 
-  THEORY_SYNTAX_SUGAR(INT)
-  check_eval(
-      eq(mul(7,x), add(-21, mul(7, add(3,x)))),
+      (x == (-21 + (7 * (3 + y)))),
+      (x == (7 * y))
+    )
+
+ALL_NUMBERS_TEST(partial_eval_add_6,
+      ((7 * x) == (-21 + (7 * (3 + x)))),
       true
-    );
-}
-
-#endif
+    )
 
 ALL_NUMBERS_TEST(simpl_times_zero_0
-    , eq(a, mul(0, y))
-    , eq(a, 0)
+    , (a == (0 * y))
+    , (a == 0)
     );
 
 
 ALL_NUMBERS_TEST(simpl_times_zero_1
-    , eq(x, mul(0, y))
-    , eq(x, 0)
+    , (x == (0 * y))
+    , (x == 0)
     );
 
 ALL_NUMBERS_TEST(simpl_times_zero_2
-    , eq(3, add(mul(0, x), 4))
+    , (3 == ((0 * x) + 4))
     , false
     );
 
-TEST_FUN(literal_to_const_1) {
-  THEORY_SYNTAX_SUGAR(REAL)
-  // Interpret 2.5*2=5
-  check_eval(
-      eq(mul(frac(5,2), 2), 5),
-      true 
-    );
-}
-
-TEST_FUN(literal_to_const_2) {
-  THEORY_SYNTAX_SUGAR(REAL)
-  check_eval(
-      eq(mul(frac(5,2), 2), 6),
-      false 
-    );
-}
-
-TEST_FUN(literal_to_const_3) {
-  THEORY_SYNTAX_SUGAR(INT)
-
-  // Interpret 3*2 < 5
-  check_eval(
-      lt(mul(3,2),5),
+FRACTIONAL_TEST(literal_to_const_0,
+      num(0) == 31,
       false
-    );
+      )
 
-  // Interpret 3*2 < 5
-  check_eval(
-      neg(lt(mul(3,2),5)),
+FRACTIONAL_TEST(literal_to_const_1,
+      ((frac(5,2) * 2) == 5),
       true
-    );
+      )
 
-}
+FRACTIONAL_TEST(literal_to_const_2,
+      ((frac(5,2) * 2) == 6),
+      false
+    )
 
-TEST_FUN(literal_to_const_4) {
-  THEORY_SYNTAX_SUGAR(REAL)
+FRACTIONAL_TEST(literal_to_const_3,
+      (num(3) * num(2) < 5),
+      false
+    )
 
-  // Interpret 3*2 > 5
-  check_eval(
-      gt(mul(3,2),5),
+
+FRACTIONAL_TEST(literal_to_const_4,
+      ~(num(3) * 2 < 5),
       true
-    );
+    )
 
-}
-
-TEST_FUN(literal_to_const_5) {
-  THEORY_SYNTAX_SUGAR(REAL)
-  // Interpret 3*2 > 13
-  check_eval(
-      gt(mul(3,2),13),
-      false
-    );
-}
-
-TEST_FUN(literal_to_const_6) {
-  THEORY_SYNTAX_SUGAR(INT)
-  check_eval(
-      lt(0, 0),
-      false
-    );  
-  check_eval(
-      neg(lt(0, 0)),
+ALL_NUMBERS_TEST(literal_to_const_5,
+      (num(3) * 2) > 5,
       true
-    );
-}
+    )
 
-#ifdef TEST_EVAL
+ALL_NUMBERS_TEST(literal_to_const_6,
+      ((num(3) * 2) > 13),
+      false
+    )
 
-
-TEST_FUN(literal_to_const_7) { 
-  THEORY_SYNTAX_SUGAR(REAL)
-  // Interpret 13*a > 13*a
-  check_eval(
-      gt(add(mul(3,a), x),add(mul(3, a), x)),
+ALL_NUMBERS_TEST(literal_to_const_7,
+      num(0) < 0,
       false
     );
-}
 
-TEST_FUN(literal_to_const_8) {
-  THEORY_SYNTAX_SUGAR(REAL)
-
-  // Interpret 3*a > 13*a
-  check_eval(
-      gt(mul(3,a),mul(13, a)),
-      false
-    );
-}
-
-TEST_FUN(literal_to_const_9) {
-  THEORY_SYNTAX_SUGAR(REAL)
-
-  // Interpret 18*a > 13*a
-  check_eval(
-      gt(mul(18,a),mul(13, a)),
+ALL_NUMBERS_TEST(literal_to_const_8,
+      ~(num(0) < 0),
       true
-    );
-}
+    )
 
-// Interpret 5.0 = 2.0 * y(5.0)
-TEST_FUN(rebalance_uninterpreted) {
-  THEORY_SYNTAX_SUGAR(REAL)
+ALL_NUMBERS_TEST(literal_to_const_9,
+      ((3 * a) > (3 * a)),
+      false
+    )
 
-  check_eval(
-      eq(5, mul(2,f(5))),
-      eq(f(5), frac(5,2))
-    );
+ALL_NUMBERS_TEST(literal_to_const_10,
+      (((3 * a) + x) > ((3 * a) + x)),
+      false
+    )
 
-}
+ALL_NUMBERS_TEST(literal_to_const_11,
+      ((x + (3 * a)) > ((3 * a) + x)),
+      false
+    )
 
-// Interpret x = -x
-TEST_FUN(minus_x_eq_x) {
-  THEORY_SYNTAX_SUGAR(REAL)
 
-  check_eval(
-      eq(x, minus(x)),
-      eq(x, 0)
-    );
-}
-
-TEST_FUN(minus_x_neq_x) {
-  THEORY_SYNTAX_SUGAR(REAL)
-
-  check_eval(
-      neq(x, minus(x)),
-      neq(x, 0)
-    );
-
-};
-
-// Interpret k*x = 0
-TEST_FUN(k_x_eq_0) {
-  THEORY_SYNTAX_SUGAR(REAL)
-
-  check_eval(
-      eq(mul(5,x), 0),
-      eq(x, 0)
-    );
-
-  check_eval(
-      eq(mul(5,a), 0),
-      eq(a, 0)
-    );
-
-};
-
-#endif
-
+#ifdef NORMALIZE_LESS //TODO
 TEST_FUN(normalize_less_1) {
   THEORY_SYNTAX_SUGAR(INT)
   check_eval(
-      /* 5 < 2 * x */
-      lt(5, mul(2,x)),
-      /* 0 < 2 * x - 5 */
-      lt(0, add(-5, mul(2,x)))
+      (5 < (2 * x)),
+      (0 < (-5 + (2 * x)))
     );
 }
 
 TEST_FUN(normalize_less_2) {
   THEORY_SYNTAX_SUGAR(INT)
   check_eval(
-      /* 5 < a * x */
-      lt(5, mul(a,x)),
-      /* 0 < a * x - 5 */
-      lt(0, add(-5, mul(a,x)))
+      (5 < (a * x)),
+      (0 < (-5 + (a * x)))
     );
 }
 
 TEST_FUN(normalize_less_3) {
   THEORY_SYNTAX_SUGAR(INT)
   check_eval(
-      /* b < a * x */
-      lt(b, mul(a,x)),
-     /* 0 < a * x - b */
-      lt(0, add(mul(a,x), minus(b)))
+      (b < (a * x)),
+      (0 < ((a * x) + -(b)))
     );
 
 }
@@ -445,10 +385,8 @@ TEST_FUN(normalize_less_3) {
 TEST_FUN(normalize_less_4) {
   THEORY_SYNTAX_SUGAR(INT)
   check_eval(
-      /* b < a */
-      lt(b, a),
-      /* 0 < a - b */
-      lt(0, add(a, minus(b)))
+      (b < a),
+      (0 < (a + -(b)))
     );
 }
 
@@ -456,166 +394,240 @@ TEST_FUN(normalize_less_4) {
 TEST_FUN(normalize_less_5) {
   THEORY_SYNTAX_SUGAR(INT)
   check_eval(
-      /* b < a */
-      lt(x,y),
-      /* 0 < a - b */
-      lt(0, add(y, minus(x)))
+      (x < y),
+      (0 < (y + -(x)))
     );
 }
 
 TEST_FUN(normalize_less_equal_1) {
   THEORY_SYNTAX_SUGAR(INT)
   check_eval(
-      /* ~(x < 5) */
-      neg(lt(x, 5)),
-      /* 0 <  x - 4 */
-      lt(0, add(-4, x))
+      ~((x < 5)),
+      (0 < (-4 + x))
     );
 }
 
 TEST_FUN(normalize_less_equal_2) {
   THEORY_SYNTAX_SUGAR(INT)
-    /* 0 <= x + 1*/
   check_eval(
-      neg(lt(x, a)),
-      /* !(x < a) 
-       * <-> a <= x 
-       * <-> a - 1 < x 
-       * <-> 0 < x + 1 - a
-       */
-      lt(0, add(add(1, x), minus(a)))
+      ~((x < a)),
+      (0 < ((1 + x) + -(a)))
       );
 }
 
 TEST_FUN(test_normalize_stable) {
   THEORY_SYNTAX_SUGAR(INT)
-    /* 0 <= x + 1*/
-  // check_eval(
-  //     leq(0, add(x, 1)),
-  //     leq(0, add(x, 1))
-      // );
   check_no_succ(
-      lt(0, add(1, x))
+      (0 < (1 + x))
       );
 }
 
-#ifdef TEST_EVAL
-TEST_FUN(x_eq_kx_1) {
-  THEORY_SYNTAX_SUGAR(INT)
-  check_eval(
-      eq(x, mul(x, 3)),
-      eq(0, x)
-      );
-}
+#endif // NORMALIZE_LESS // TODO
 
-TEST_FUN(x_eq_k_plus_x_1) {
-  THEORY_SYNTAX_SUGAR(INT)
-  check_eval(
-      eq(x, add(x, y)),
-      eq(y, 0)
-      );
-}
+ALL_NUMBERS_TEST(eval_double_minus_1_1,
+      (x == -(-(x))),
+      true)
+
+ALL_NUMBERS_TEST(eval_double_minus_1_2,
+      ~((x == -(-(x)))),
+      false)
 
 
-TEST_FUN(x_eq_k_plus_x_2) {
-  THEORY_SYNTAX_SUGAR(INT)
-  check_eval(
-      eq(x, add(x, 1)),
-      false
-      );
-}
+ALL_NUMBERS_TEST(eval_double_minus_2_1,
+      (x < -(-(x))),
+      false)
+ALL_NUMBERS_TEST(eval_double_minus_2_2,
+      ~((x < -(-(x)))),
+      true)
 
-TEST_FUN(k_eq_x_plus_x_1) {
-  THEORY_SYNTAX_SUGAR(INT)
-  check_eval(
-      eq(mul(2, a), add(x, x)),
-      eq(a, x)
-      );
-}
-
-// Interpret -x > x
-TEST_FUN(x_gt_minus_x) {
-  THEORY_SYNTAX_SUGAR(REAL)
-
-  check_eval(
-      gt(x, minus(x)),
-      gt(x, 0)
-    );
-
-  check_eval(
-      gt(minus(x), x),
-      gt(0, x)
-    );
-};
-
-
-#endif
-
-
-// x = -(-x)
-TEST_FUN(eval_double_minus_1) {
-  THEORY_SYNTAX_SUGAR(INT)
-
-  check_eval(
-      eq(x, minus(minus(x))),
-      true);
-  check_eval(
-      neg(eq(x, minus(minus(x)))),
-      false);
-};
-
-// x < -(-x)
-TEST_FUN(eval_double_minus_2) {
-  THEORY_SYNTAX_SUGAR(INT)
-  check_eval(
-      lt(x, minus(minus(x))),
-      false);
-  check_eval(
-      neg(lt(x, minus(minus(x)))),
-      true);
-};
-
-ALL_NUMBERS_TEST(eval_inverse_1 
-    , eq(1, add(x, minus(x)))
+ALL_NUMBERS_TEST(eval_inverse_1
+    , (1 == (x + -(x)))
     , false
     )
 
-// a = -(-x)
-TEST_FUN(eval_double_minus_3) {
-  THEORY_SYNTAX_SUGAR(INT)
-  check_eval(
-      eq(a, minus(minus(x))),
-      eq(a, x));
-};
+
+ALL_NUMBERS_TEST(eval_double_minus_3,
+      (a == -(-(x))),
+      (a == x))
 
 
-// 4 = -(-x + 4)
-// ==> 4 = x + (-4)
-TEST_FUN(eval_double_minus_4) {
-  THEORY_SYNTAX_SUGAR(INT)
-  check_eval(
-      eq(4, minus(add(minus(x), 4))),
-      eq(4, add(-4, x)) );
-};
 
-TEST_FUN(eval_remove_identity_1) {
-  THEORY_SYNTAX_SUGAR(INT)
-  check_eval(
-      lt(0, add(0, minus(x))),
-      lt(0, minus(x))
-      );
-};
 
-TEST_FUN(eval_remove_identity_2) {
-  THEORY_SYNTAX_SUGAR(INT)
-      ADDITIONAL_FUNCTIONS \
-  check_eval(
-      eq(0, f(add(0, minus(mul(x, mul(1, y)))))),
-      eq(0, f(minus(mul(x,y))))
-      );
-};
+ALL_NUMBERS_TEST(eval_double_minus_4,
+      (4 == -((-(x) + 4))),
+      (8 == x) )
 
+ALL_NUMBERS_TEST(eval_remove_identity_1,
+      (0 < (0 + -(x))),
+      (0 < -(x))
+      )
+
+ALL_NUMBERS_TEST(eval_remove_identity_2,
+      (0 == f((0 + (x * (1 * y))))),
+      (0 == f((x * y)))
+      )
+
+ALL_NUMBERS_TEST(polynomial__normalize_uminus_1,
+      p((7 * -(f(x)))),
+      p((-7 * f(x)))
+      )
+
+ALL_NUMBERS_TEST(polynomial__normalize_uminus_2,
+      p((-(f(x)) * 7)),
+      p((-7 * f(x)))
+      )
+
+ALL_NUMBERS_TEST(polynomial__merge_consts_1,
+      p(((6 * x) + (5 * x))),
+      p((11 * x))
+      )
+
+ALL_NUMBERS_TEST(polynomial__merge_consts_2,
+      p((((6 * x) + (y * 3)) + (5 * x))),
+      p(((3 * y) + (11 * x)))
+      )
+
+ALL_NUMBERS_TEST(polynomial__merge_consts_3,
+      p((((6 * a) + (y * 3)) + (5 * a))),
+      p(((3 * y) + (11 * a)))
+      )
+
+ALL_NUMBERS_TEST(polynomial__push_unary_minus,
+      p(-((a * 7))),
+      p((-7 * a))
+      )
+
+ALL_NUMBERS_TEST(polynomial__sorting_1,
+      p(((7 * x) * a)),
+      p((7 * (a * x)))
+      )
+
+ALL_NUMBERS_TEST(polynomial__sorting_2,
+      p(((7 * (y * x)) * a)),
+      p((7 * (a * (x * y))))
+      )
+
+ALL_NUMBERS_TEST(polynomial__sorting_3,
+      p(((x + (x + y)) * (x + (a + x)))),
+      p(((a * y) + ((2 * (a * x)) + ((2 * (x * y)) + (4 * (x * x))))))
+      )
+
+ALL_NUMBERS_TEST(polynomial__sorting_4,
+      p((x + 1) * (x + -1)),
+      p((-1 + (x * x)))
+      )
+
+ALL_NUMBERS_TEST(polynomial__sorting_5,
+      p(((b + a) + c)),
+      p((a + (b + c)))
+      )
+
+ALL_NUMBERS_TEST(polynomial__sorting_6,
+      p((b * a) * c),
+      p(a * (b * c))
+      )
+
+ALL_NUMBERS_TEST(eval_test_cached_1,
+      p(((b * a) * c) * ((b * a) * c)),
+      p(a * (a * (b * (b * (c * c)))))
+      )
+
+ALL_NUMBERS_TEST(eval_test_cached_2,
+      (b * a) * c == f((b * a) * c),
+      a * (b * c) == f(a * (b * c))
+      )
+
+ALL_NUMBERS_TEST(eval_bug_1,
+      p(f2(a,b)),
+      p(f2(a,b))
+      )
+
+ALL_NUMBERS_TEST(eval_bug_2,
+      x * (y * z) == (x * y) * z,
+      true
+      )
+
+ALL_NUMBERS_TEST(eval_bug_3,
+      x + (y + z) != (x + y) + z,
+      false
+      )
+
+ALL_NUMBERS_TEST(eval_cancellation_add_0,
+    x + 1 == 2,
+    x == 1
+    )
+
+ALL_NUMBERS_TEST(eval_cancellation_add_1,
+    x + (-1) == -2,
+    x == -1
+    )
+
+ALL_NUMBERS_TEST(eval_cancellation_add_2,
+    x + y == a + y,
+    x == a
+    )
+
+ALL_NUMBERS_TEST(eval_cancellation_add_3,
+    3 + x == 2 + a,
+    1 + x == a
+    )
+
+ALL_NUMBERS_TEST(eval_cancellation_add_4,
+    x + (b * 3) == a + (b * 2),
+    b + x == a
+    )
+
+ALL_NUMBERS_TEST(eval_cancellation_add_5,
+    x + (y * 3) == a + (y * 2),
+    x + y == a
+    )
+
+ALL_NUMBERS_TEST(eval_cancellation_add_6,
+    x + (y * 3) + z + b == a + (y * 2) + z + (b * 3),
+    x + y == a + 2 * b
+    )
+
+ALL_NUMBERS_TEST(eval_cancellation_add_8,
+    a * y * 6 == a * y * 2,
+    4 * (a * y) == 0
+    )
+
+ALL_NUMBERS_TEST(eval_cancellation_add_9,
+    a * y * -1 == a * y * -2,
+    0 == -(a * y)
+    )
+
+// not yet implemented:
+// ALL_NUMBERS_TEST(eval_cancellation_mul_0,
+//     x == a * x,
+//     1 == a
+//     )
+//
+// ALL_NUMBERS_TEST(eval_cancellation_mul_1,
+//     2 * x == a * x,
+//     2 == a
+//     )
+//
+// ALL_NUMBERS_TEST(eval_cancellation_mul_2,
+//     b * 2 * x == a * x * b,
+//     /* dividing by ( b * x ) */
+//     2 == a
+//     )
+//
+// ALL_NUMBERS_TEST(eval_cancellation_mul_3,
+//     b * 2 * x + x == a * x * b, 
+//     /* dividing by x */
+//     2 * b + 1     == a * b
+//     )
+
+
+
+//       x + 3 = a + 2         ==> x + 1 = a
+//       x + 3 * b = a + 2 * b ==> x + b = a
+
+
+// lG93(X0,X1,X2) = $sum($product(13.0,X2),$sum($product(-10.0,X1),$product(X0,-20.0)))
 
 // TODO: cases x = k * x <-> k = 1 | x = 0 
 // TODO: cases x = k + x <-> k = 0 
-// TODO: cases x + x = k <->  = k/2
+// TODO: cases x + x = k <->  = k/

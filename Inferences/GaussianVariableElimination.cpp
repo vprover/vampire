@@ -5,6 +5,7 @@
 #include "Kernel/EqHelper.hpp"
 #include "Kernel/InterpretedLiteralEvaluator.hpp"
 #include "Inferences/InterpretedEvaluation.hpp"
+#include "Kernel/PolynomialNormalizer.hpp"
 
 #define DEBUG(...)  //DBG(__VA_ARGS__)
 
@@ -13,46 +14,35 @@ namespace Inferences {
 
 Clause* GaussianVariableElimination::simplify(Clause* in) 
 {
+  auto ev = PolynomialNormalizer<PolynomialNormalizerConfig::Simplification<>>();
   CALL("GaussianVariableElimination::simplify")
   ASS(in)
+
+  auto& cl = *in;
   
-  auto performStep = [&](Clause& cl) -> Clause& {
+  for(int i = 0; i < cl.size(); i++) {
+    auto& lit = *cl[i];
+    if (lit.isEquality() && lit.isNegative()) { 
+      for (auto b : Balancer(lit)) {
 
-    for(int i = 0; i < cl.size(); i++) {
-      auto& lit = *cl[i];
-      if (lit.isEquality() && lit.isNegative()) { 
-        for (auto b : Balancer(lit)) {
+        /* found a rebalancing: lhs = rhs[lhs, ...] */
+        auto lhs = b.lhs();
+        auto rhs = b.buildRhs();
+        ASS_REP(lhs.isVar(), lhs);
 
-          /* found a rebalancing: lhs = rhs[lhs, ...] */
-          auto lhs = b.lhs();
-          auto rhs = b.buildRhs();
-          //TODO simplify here
-          ASS_REP(lhs.isVar(), lhs);
+        // TODO check whether evaluation here makes sense
+        // rhs = ev.evaluate(rhs);
+        if (!rhs.containsSubterm(lhs)) {
+          /* lhs = rhs[...] */
+          DEBUG(lhs, " -> ", rhs);
 
-          if (!rhs.containsSubterm(lhs)) {
-            /* lhs = rhs[...] */
-            DEBUG(lhs, " -> ", rhs);
-
-            return *rewrite(cl, lhs, rhs, i);
-          }
+          return rewrite(cl, lhs, rhs, i);
         }
       }
     }
-    return cl;
+  }
 
-  };
-
-  return &performStep(*in);
-  // Clause* out = in;
-  // while(true) {
-  //   Clause* step = &performStep(*out);
-  //   if (step == out) 
-  //     break;
-  //   else 
-  //     out = step;
-  // }
-
-  // return out;
+  return in;
 }
 
 Clause* GaussianVariableElimination::rewrite(Clause& cl, TermList find, TermList replace, unsigned skipLiteral) const 

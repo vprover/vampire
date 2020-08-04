@@ -1,3 +1,4 @@
+
 /**! This file contains macros to provide syntax sugar for building formulas,
  * terms, etc. for test cases.
  *
@@ -16,28 +17,17 @@
 #include "Kernel/Inference.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/SortHelper.hpp"
+#include "Kernel/NumTraits.hpp"
 
 #include "Indexing/TermSharing.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/Sorts.hpp"
 
-#define __CLSR_RELATION(name, inter) \
-  auto name = [](TermWrapper lhs, TermWrapper rhs) -> Literal&  {  \
-    return *Literal::create2(env.signature->addInterpretedPredicate(inter, #name),  \
-        true, lhs,rhs);  \
-  }; \
+#define __CLSR_RELATION(name, inter)                                                                                    \
+  auto name = [](TermWrapper lhs, TermWrapper rhs) -> Literal&  {                                                       \
+    return *Literal::create2(env.signature->getInterpretingSymbol(inter),  true, lhs,rhs);                              \
+  };                                                                                                                    \
  
- 
-#define __FROM_FRAC_INT 
-#define __FROM_FRAC_REAL \
-  auto frac = [](int a, int b) -> TermWrapper {   \
-    return TermList(theory->representConstant(RealConstantType(RationalConstantType(a,b)))); \
-  }; 
-#define __FROM_FRAC_RAT \
-  auto frac = [](int a, int b) -> TermWrapper {   \
-    return TermList(theory->representConstant(RationalConstantType(a,b))); \
-  }; 
-
 #define __TO_SORT_RAT Sorts::SRT_RATIONAL
 #define __TO_SORT_INT Sorts::SRT_INTEGER
 #define __TO_SORT_REAL Sorts::SRT_REAL
@@ -48,27 +38,19 @@
  
 #define __ARGS_DECL(Type, arity) __ARGS_DECL_ ## arity(Type)
 #define __ARGS_DECL_1(Type) Type arg0_ 
-#define __ARGS_DECL_2(Type) __ARGS_DECL_1(Type) , Type arg1_ 
-#define __ARGS_DECL_3(Type) __ARGS_DECL_2(Type) , Type arg2_ 
-#define __ARGS_DECL_4(Type) __ARGS_DECL_3(Type) , Type arg3_ 
-#define __ARGS_DECL_5(Type) __ARGS_DECL_4(Type) , Type arg4_ 
-#define __ARGS_DECL_6(Type) __ARGS_DECL_5(Type) , Type arg5_ 
-#define __ARGS_DECL_7(Type) __ARGS_DECL_6(Type) , Type arg6_ 
-#define __ARGS_DECL_8(Type) __ARGS_DECL_7(Type) , Type arg7_ 
-#define __ARGS_DECL_9(Type) __ARGS_DECL_8(Type) , Type arg8_ 
-#define __ARGS_DECL_10(Type) __ARGS_DECL_9(Type) , Type arg9_ 
+#define __ARGS_DECL_2(Type) Type arg0_ , Type arg1_ 
 
 #define __ARGS_EXPR(Type, arity) __ARGS_EXPR_ ## arity(Type)
 #define __ARGS_EXPR_1(Type) arg0_
-#define __ARGS_EXPR_2(Type) __ARGS_EXPR_1(Type), arg1_
-#define __ARGS_EXPR_3(Type) __ARGS_EXPR_2(Type), arg2_
-#define __ARGS_EXPR_4(Type) __ARGS_EXPR_3(Type), arg3_
-#define __ARGS_EXPR_5(Type) __ARGS_EXPR_4(Type), arg4_
-#define __ARGS_EXPR_6(Type) __ARGS_EXPR_5(Type), arg5_
-#define __ARGS_EXPR_7(Type) __ARGS_EXPR_6(Type), arg6_
-#define __ARGS_EXPR_8(Type) __ARGS_EXPR_7(Type), arg7_
-#define __ARGS_EXPR_9(Type) __ARGS_EXPR_8(Type), arg8_
-#define __ARGS_EXPR_10(Type) __ARGS_EXPR_9(Type), arg9_
+#define __ARGS_EXPR_2(Type) arg0_, arg1_
+
+#define __CLSR_FUN_INTERPRETED(arity, mul, INT, _MULTIPLY)                                                              \
+    auto mul = [](__ARGS_DECL(TermWrapper, arity)) -> TermWrapper {                                                     \
+      return TermList(Term::create ## arity(                                                                            \
+            env.signature->getInterpretingSymbol(Theory::Interpretation:: INT ## _MULTIPLY),                            \
+            __ARGS_EXPR(Type, arity))                                                                                   \
+          );                                                                                                            \
+    };                                                                                                                  \
 
 #define __REPEAT_1(sort) sort
 #define __REPEAT_2(sort) sort, __REPEAT_1(sort)
@@ -82,77 +64,14 @@
 #define __REPEAT_10(sort) sort, __REPEAT_9(sort)
 #define __REPEAT(arity, sort) __REPEAT_ ## arity(sort)
 
-#define __CLSR_FUN(n_args, f, funct) \
-  class __ ##  f ## __CLASS { \
-    unsigned _functor;\
-  public:\
-    __ ##  f ## __CLASS(unsigned functor)  \
-     : _functor(functor) { \
-    }\
-    TermWrapper operator()(__ARGS_DECL(TermWrapper, n_args)) {  \
-      return TermList(Term::create(_functor, {__ARGS_EXPR(TermWrapper, n_args)}));  \
-    };  \
-    unsigned functor() const { return _functor; } \
-  };\
-  auto f = __ ##  f ## __CLASS(funct);
+#define __DECLARE_CONST(      f, sort) ConstSugar<decltype(sort)                                 > f(#f, sort);
+#define __DECLARE_FUNC(arity, f, sort)  FuncSugar<decltype(sort), __REPEAT(arity, decltype(sort))> f(#f, sort, __REPEAT(arity, sort));
+#define __DECLARE_PRED(arity, f, sort)  PredSugar<                __REPEAT(arity, decltype(sort))> f(#f,       __REPEAT(arity, sort));
 
-
-#define __CLSR_FUN_NUMBER(arity, mul, INT, _MULTIPLY) \
-   __CLSR_FUN(arity, mul,  \
-       env.signature->addInterpretedFunction(Theory::Interpretation:: INT ## _MULTIPLY, #mul)) \
-
-#define __CLSR_FUN_UNINTERPRETED(n_args, f, ...) \
-  env.signature->getFunction(env.signature->addFunction(#f, n_args))  \
-               ->setType(OperatorType::getFunctionType(__VA_ARGS__)); \
-  __CLSR_FUN(n_args, f, \
-      env.signature->getFunctionNumber(#f, n_args))
-
-#define __CLSR_PRED_UNINTERPRETED(arity, p, sort) \
-  auto p = [&](__ARGS_DECL(TermWrapper, arity)) -> Literal&  {  \
-    unsigned p = env.signature->addPredicate(#p, arity);  \
-    static bool set = false;  \
-    if (!set) {  \
-      env.signature->getPredicate(p)->setType(OperatorType::getPredicateType({ __REPEAT(arity, sort) }));  \
-      set = true;  \
-    }  \
-    return *Literal::create(p, true, {__ARGS_EXPR(TermWrapper, arity)}); \
-  };  \
-
-#define __CLSR_CONST_UNINTERPRETED(name, sort) \
-  class __ ## name ## __CLASS { \
-    TermWrapper _self; \
-    public: \
-    __ ## name ## __CLASS(const char* name, unsigned s)   \
-      : _self( TermWrapper::createConstant(#name, s) ) \
-    { } \
-    \
-    operator TermList() { return _self; } \
-    operator TermWrapper() { return _self; } \
-    unsigned functor() { return _self.toTerm().term()->functor(); } \
-  }; \
-  auto name = __ ## name ## __CLASS(#name, sort);
-
-#define __TERM_WRAPPER_CLASS(...) \
-    class TermWrapper { \
-      TermList _term; \
-    public: \
-      TermWrapper(TermList t) : _term(t) { \
-        ASS_REP(!_term.isEmpty(), _term); \
-      } \
-      operator TermList() {return _term;} \
-      TermList toTerm() {return _term;} \
-      static TermWrapper createConstant(const char* name, unsigned sort) { \
-        unsigned f = env.signature->addFunction(name,0);  \
-        env.signature->getFunction(f)->setType(OperatorType::getFunctionType({},sort));  \
-        return TermWrapper(TermList(Term::createConstant(f)));  \
-      } \
-      __VA_ARGS__ \
-    }; \
-
-#define __DEFAULT_VARS \
-    auto x = TermWrapper(TermList::var(0));\
-    auto y = TermWrapper(TermList::var(1));\
-    auto z = TermWrapper(TermList::var(2));\
+#define __DEFAULT_VARS                                                                                                  \
+    auto x = TermWrapper(TermList::var(0));                                                                             \
+    auto y = TermWrapper(TermList::var(1));                                                                             \
+    auto z = TermWrapper(TermList::var(2));                                                                             \
 
 
 /** tldr: For examples on usage see UnitTesting/tSyntaxSugar.cpp
@@ -166,8 +85,13 @@
  *
  * The macro is meant to be called within a TEST_FUN(...){...} block to import the syntax sugar for 
  * the corresponding test case. It provides a class TermWrapper that implicitly converts number literals 
- * to terms in the corresponding sort, and closures to build complex terms. Further it sets some C++ variables 
- * to variable terms and some to constant terms.
+ * to terms in the corresponding sort, and operators to build complex terms and literals. Further it sets 
+ * some (C++) variables to variable terms and some to constant terms.
+ *
+ * Additionally the macros `THEORY_SYNTAX_SUGAR_FUN`, `THEORY_SYNTAX_SUGAR_CONST`, and `THEORY_SYNTAX_SUGAR_PRED` can be 
+ * used to declare uninterpreted functions/predicates/constants over the sort.
+ *
+ * These are the automatically defined operators and variables
  *
  * local variables:
  * x ... variable X0
@@ -178,133 +102,241 @@
  * b ... constant b
  * c ... constant c
  *
- * Closures for complex terms:
- * mul   ... interpreted multiplication
- * add   ... interpreted addition
- * minus ... interpreted unary minus
+ * Operators for creating complex terms:
+ * operator* ... interpreted multiplication
+ * operator+ ... interpreted addition
+ * operator- ... interpreted unary minus
  *
- * Closures for literals:
- * gt   ... interpreted greater relation
- * geq  ... interpreted greater or equal relation
- * lt   ... interpreted less relation
- * leq  ... interpreted less or equal relation
- * eq   ... interpreted equality relation
- * neq  ... interpreted equality relation
+ * Operators for creating literals:
+ * operator>   ... interpreted greater relation
+ * operator>=  ... interpreted greater or equal relation
+ * operator<   ... interpreted less relation
+ * operator<=  ... interpreted less or equal relation
+ * operator==  ... interpreted equality relation
+ * operator!=  ... interpreted equality relation
+ * operator~   ... flipping a literal's polarity
  *
  * Other closures:
  * frac(int,int) ... creates a fractional interpreted constant (only for REAL, and RAT)
- * neg(Literal)  ... negates a literal
+ * num(int)      ... explicity converts a number to an interpreted constant 
+ *                   this can be needed in order to prevent the compiler from pre-evaluating integer expressions.
+ *                   e.g. {
+ *                      Literal* l1 = (a == (3 * 2));
+ *                                          ^^^^^^^ this will be evaluated to 6 before transforming it into a term
+ *                                                  in order to prevent this we can write:
+ *                      Literal* l2 = (a == (num(3) * 2));
+ *                   }
  *
- *
- * For examples ses:
- *
- * TEST_FUN(some_meaningful_testname) {
- *   THEORY_SYNTAX_SUGAR(REAL)
- *   Literal& lit = neq(lt(0, mul(x, frac(7,1))));
- *   ... some tests with this literal ...
- * }
- *
- * TEST_FUN(some_other_meaningful_testname) {
- *   THEORY_SYNTAX_SUGAR(REAL)
- *   TermList lit = mul(x, frac(7,1));
- *   ... some tests with this literal ...
- * }
+ * For examples see UnitTesting/tSyntaxSugar.cpp.
  */
-#define THEORY_SYNTAX_SUGAR(sort)  \
-  _Pragma("GCC diagnostic push") \
-  _Pragma("GCC diagnostic ignored \"-Wunused\"") \
-    auto __default_sort = __TO_SORT_ ## sort; \
-    auto sort = __TO_SORT_ ## sort; \
-    \
-    __TERM_WRAPPER_CLASS( \
-      TermWrapper(int i) : TermWrapper(TermList(theory->representConstant(__CONSTANT_TYPE_ ## sort (i)))) { \
-        ASS_REP(!_term.isEmpty(), _term); \
-      }; \
-    )\
-      \
-    auto eq = [](TermWrapper lhs, TermWrapper rhs) -> Literal&  {  \
-      unsigned srt; \
-      ALWAYS(SortHelper::tryGetResultSort(lhs, srt)  \
-          || SortHelper::tryGetResultSort(rhs, srt)); \
-      return *Literal::createEquality(true, lhs, rhs, srt);  \
-    };   \
-\
-    auto neg = [](Literal& l) -> Literal&  {  \
-      return *Literal::create(&l, !l.polarity()); \
-    };  \
-    auto neq = [&](TermWrapper lhs, TermWrapper rhs) -> Literal&  { \
-      return neg(eq(lhs,rhs)); \
-    };  \
-    __DEFAULT_VARS \
-    __CLSR_CONST_UNINTERPRETED(a, __TO_SORT_ ## sort) \
-    __CLSR_CONST_UNINTERPRETED(b, __TO_SORT_ ## sort) \
-    __CLSR_CONST_UNINTERPRETED(c, __TO_SORT_ ## sort) \
-    __IF_FRAC(sort, __CLSR_FUN_NUMBER(2, div, sort, _QUOTIENT)) \
-    __CLSR_FUN_NUMBER(2, mul, sort, _MULTIPLY) \
-    __CLSR_FUN_NUMBER(2, add, sort, _PLUS) \
-    __CLSR_FUN_NUMBER(1, minus, sort, _UNARY_MINUS) \
-    __FROM_FRAC_ ## sort \
-    __CLSR_RELATION(gt, Theory::Interpretation::sort ## _GREATER)\
-    __CLSR_RELATION(geq, Theory::Interpretation::sort ## _GREATER_EQUAL)\
-    __CLSR_RELATION(lt, Theory::Interpretation::sort ## _LESS)\
-    __CLSR_RELATION(leq, Theory::Interpretation::sort ## _LESS_EQUAL)\
-  _Pragma("GCC diagnostic pop") \
+#define THEORY_SYNTAX_SUGAR(sort)                                                                                       \
+  _Pragma("GCC diagnostic push")                                                                                        \
+  _Pragma("GCC diagnostic ignored \"-Wunused\"")                                                                        \
+    using DefaultSort = NumTraits<__CONSTANT_TYPE_ ## sort>;                                                            \
+    using TermWrapper = Trm<DefaultSort>;                                                                               \
+    DefaultSort __defaultSort;                                                                                          \
+                                                                                                                        \
+    __DEFAULT_VARS                                                                                                      \
+    __DECLARE_CONST(a, __defaultSort)                                                                                   \
+    __DECLARE_CONST(b, __defaultSort)                                                                                   \
+    __DECLARE_CONST(c, __defaultSort)                                                                                   \
+      auto num = [](int n) -> TermWrapper {  return n; };                                                               \
+    __IF_FRAC(sort,                                                                                                     \
+      auto frac = [](int num, int den) -> TermWrapper {                                                                 \
+        return DefaultSort::constantTl(num, den);                                                                       \
+      };                                                                                                                \
+    )                                                                                                                   \
+    __CLSR_FUN_INTERPRETED(2, mul, sort, _MULTIPLY)                                                                     \
+    __CLSR_FUN_INTERPRETED(1, minus, sort, _UNARY_MINUS)                                                                \
+  _Pragma("GCC diagnostic pop")                                                                                         \
 
-////////////////////
+#define THEORY_SYNTAX_SUGAR_FUN(f, arity)  __DECLARE_FUNC(arity, f, __defaultSort)
+#define THEORY_SYNTAX_SUGAR_PRED(f, arity) __DECLARE_PRED(arity, f, __defaultSort)
+#define THEORY_SYNTAX_SUGAR_CONST(f)       __DECLARE_CONST(      f, __defaultSort)
 
-#define ARRAY_SYNTAX_SUGAR(arraySrt, idx, cont) \
-    auto arraySrt = env.sorts->addArraySort(idx, cont); \
-    __CLSR_FUN(3, store, env.signature->getInterpretingSymbol( \
-          Theory::Interpretation::ARRAY_STORE, \
-          OperatorType::getFunctionType({arraySrt, idx, cont}, arraySrt)) \
-        ) \
-    __CLSR_FUN(2, select, env.signature->getInterpretingSymbol( \
-          Theory::Interpretation::ARRAY_SELECT, \
-          OperatorType::getFunctionType({arraySrt, idx}, cont)) \
-        ) \
+#define FOF_SYNTAX_SUGAR                                                                                                \
+  _Pragma("GCC diagnostic push")                                                                                        \
+  _Pragma("GCC diagnostic ignored \"-Wunused\"")                                                                        \
+    using DefaultSort = UninterpretedTraits;                                                                            \
+    using TermWrapper = Trm<DefaultSort>;                                                                               \
+    DefaultSort __defaultSort(env.sorts->addSort("alpha", false));                                                      \
+    __DEFAULT_VARS                                                                                                      \
+  _Pragma("GCC diagnostic pop")                                                                                         \
 
-#define SYNTAX_SUGAR_SORT(name) \
-    auto name = env.sorts->addSort(#name, false); \
-
-#define SYNTAX_SUGAR_CONST(f, srt) \
-    __CLSR_CONST_UNINTERPRETED(f, srt)
-
-#define SYNTAX_SUGAR_FUN(f, arity, ...) \
-    __CLSR_FUN_UNINTERPRETED(arity, f, __VA_ARGS__)
-
-////////////////////
-
-#define THEORY_SYNTAX_SUGAR_CONST(f) \
-    __CLSR_CONST_UNINTERPRETED(f, __default_sort)
-
-#define THEORY_SYNTAX_SUGAR_FUN(f, arity) \
-    __CLSR_FUN_UNINTERPRETED(arity, f, { __REPEAT(arity, __default_sort) }, __default_sort)
-
-#define THEORY_SYNTAX_SUGAR_PRED(rel, arity) \
-    __CLSR_PRED_UNINTERPRETED(arity, rel, __default_sort)
-
-////////////////////
-
-#define FOF_SYNTAX_SUGAR \
-  _Pragma("GCC diagnostic push") \
-  _Pragma("GCC diagnostic ignored \"-Wunused\"") \
-    __TERM_WRAPPER_CLASS() \
-    auto __default_sort = env.sorts->addSort("alpha", false); \
-    __DEFAULT_VARS \
-  _Pragma("GCC diagnostic pop") \
-
-#define FOF_SYNTAX_SUGAR_PRED(f, arity) \
-    __CLSR_PRED_UNINTERPRETED(arity, rel, __default_sort)
-
-#define FOF_SYNTAX_SUGAR_FUN(f, arity) \
-    __CLSR_FUN_UNINTERPRETED(arity, f, __default_sort)
-
-#define FOF_SYNTAX_SUGAR_CONST(a) \
-    __CLSR_CONST_UNINTERPRETED(a, __default_sort) \
+#define FOF_SYNTAX_SUGAR_PRED(f, arity) __DECLARE_PRED(arity, f, __defaultSort)
+#define FOF_SYNTAX_SUGAR_FUN(f, arity)  __DECLARE_FUNC(arity, f, __defaultSort)
+#define FOF_SYNTAX_SUGAR_CONST(f)       __DECLARE_CONST(      f, __defaultSort)
 
 #define __IF_FRAC(sort, ...) __IF_FRAC_##sort(__VA_ARGS__)
 #define __IF_FRAC_INT(...)
 #define __IF_FRAC_RAT(...) __VA_ARGS__
 #define __IF_FRAC_REAL(...) __VA_ARGS__
 
+struct UninterpretedTraits 
+{
+  unsigned _srtNumber;
+
+public:
+  unsigned sortNumber() const { return _srtNumber; }
+};
+
+template<class SortTraits>
+class Trm 
+{
+  TermList _trm;
+
+public:
+  /* works only if SortTraits is a NumTraits specialization */
+  Trm(int trm) 
+    : _trm(SortTraits::constantTl(trm)) {  }
+
+  Trm(TermList trm) 
+    : _trm(trm)
+  { ASS_REP(!_trm.isEmpty(), _trm);  }
+
+  /** implicit conversion */ 
+  operator TermList() const {return _trm;}
+
+  /** explicit conversion */ 
+  TermList toTerm() const { return _trm;} 
+
+  static Trm createConstant(const char* name, SortTraits s) {
+    unsigned f = env.signature->addFunction(name,0);                                                                
+    env.signature->getFunction(f)->setType(OperatorType::getFunctionType({}, s.sortNumber())); 
+    return Trm(TermList(Term::createConstant(f)));                                                          
+  }                                                                                                                 
+
+  static Trm createConstant(const char* name) {
+    return createConstant(name, SortTraits{});
+  }                                                                                                                 
+};
+
+class Lit
+{
+  Literal* _lit;
+public:
+  Lit(Literal* lit) : _lit(lit) {}
+  operator Literal*() const { return _lit; }
+};
+
+////////////////////////// operators to create terms ////////////////////////// 
+
+template<class Number> Trm<Number> operator+(Trm<Number> lhs, Trm<Number> rhs)  { return Number::add(lhs, rhs); }  
+template<class Number> Trm<Number> operator*(Trm<Number> lhs, Trm<Number> rhs)  { return Number::mul(lhs, rhs); }  
+template<class Number> Trm<Number> operator/(Trm<Number> lhs, Trm<Number> rhs)  { return Number::div(lhs, rhs); }  
+
+#define __IMPL_NUMBER_OPERATOR(op, result_t)                                                                            \
+  template<class Number> result_t operator op(int lhs, Trm<Number> rhs) { return Trm<Number>(lhs) op rhs; }             \
+  template<class Number> result_t operator op(Trm<Number> lhs, int rhs) { return lhs op Trm<Number>(rhs); }             \
+
+__IMPL_NUMBER_OPERATOR(+, Trm<Number>)
+__IMPL_NUMBER_OPERATOR(*, Trm<Number>)
+__IMPL_NUMBER_OPERATOR(/, Trm<Number>)
+
+
+template<class Number> 
+Trm<Number> operator-(Trm<Number> x) 
+{
+  return Number::minus(x);
+}
+
+////////////////////////// operators to create literals ////////////////////////// 
+
+template<class Sort> 
+Lit operator==(Trm<Sort> lhs, Trm<Sort> rhs) 
+{
+  unsigned sort;
+  ALWAYS(SortHelper::tryGetResultSort(lhs, sort) || SortHelper::tryGetResultSort(rhs, sort));
+  return Literal::createEquality(true, lhs, rhs, sort);
+}
+
+
+template<class Number> Lit operator< (Trm<Number> lhs, Trm<Number> rhs) { return Number::less   (true, lhs, rhs); }
+template<class Number> Lit operator<=(Trm<Number> lhs, Trm<Number> rhs) { return Number::leq    (true, lhs, rhs); }
+template<class Number> Lit operator> (Trm<Number> lhs, Trm<Number> rhs) { return Number::greater(true, lhs, rhs); }
+template<class Number> Lit operator>=(Trm<Number> lhs, Trm<Number> rhs) { return Number::geq    (true, lhs, rhs); }
+
+inline Lit operator~(Lit lit) 
+{
+  Literal* l = lit;
+  return Literal::create(l, !l->polarity());
+}
+
+template<class Sort> 
+Lit operator!=(Trm<Sort> lhs, Trm<Sort> rhs) 
+{
+  return ~(lhs == rhs);
+}
+
+__IMPL_NUMBER_OPERATOR(==, Lit)
+__IMPL_NUMBER_OPERATOR(!=, Lit)
+__IMPL_NUMBER_OPERATOR(< , Lit)
+__IMPL_NUMBER_OPERATOR(<=, Lit)
+__IMPL_NUMBER_OPERATOR(> , Lit)
+__IMPL_NUMBER_OPERATOR(>=, Lit)
+
+
+template<class ResultSort, class... ArgSorts>
+class FuncSugar {
+  unsigned _functor;
+
+public:
+  FuncSugar(const char* name, ResultSort r, ArgSorts... args) 
+  {
+    BYPASSING_ALLOCATOR
+    std::vector<unsigned> as = { args.sortNumber()... };
+    _functor = env.signature->addFunction(name, as.size());
+    env.signature
+      ->getFunction(_functor)
+      ->setType(OperatorType::getFunctionType(as.size(), &as[0], r.sortNumber()));    
+  }
+
+  Trm<ResultSort> operator()(Trm<ArgSorts>... args) const {
+    BYPASSING_ALLOCATOR
+    std::vector<TermList> as = { Trm<ArgSorts>(args).toTerm()... };
+    return TermList(Term::create(_functor, 
+        as.size(), 
+        &as[0] ));
+  }
+  unsigned functor() const { return _functor; }
+};
+
+template<class SortTraits>
+class ConstSugar : public Trm<SortTraits> 
+{
+public:
+  ConstSugar(const char* name, SortTraits s) 
+    : Trm<SortTraits>(Trm<SortTraits>::createConstant(name, s).toTerm()) 
+  { }
+  unsigned functor() const { return this->toTerm().term()->functor(); }
+};
+
+template<class... ArgSorts>
+class PredSugar {
+  unsigned _functor;
+
+public:
+  PredSugar(const char* name, ArgSorts... args) 
+  {
+    BYPASSING_ALLOCATOR
+    std::vector<unsigned> as = { args.sortNumber()... };
+    _functor = env.signature->addPredicate(name, as.size());
+    env.signature
+      ->getPredicate(_functor)
+      ->setType(OperatorType::getPredicateType(as.size(), &as[0]));    
+  }
+
+  Lit operator()(Trm<ArgSorts>... args) const {
+    BYPASSING_ALLOCATOR
+    std::vector<TermList> as = { Trm<ArgSorts>(args).toTerm()... };
+    return Literal::create(_functor, 
+        as.size(), 
+        /* polarity */ true, 
+        /* commutative */ false, 
+        &as[0] );
+  }
+  unsigned functor() const { return _functor; }
+};
+
+     
 #endif // __TEST__SYNTAX_SUGAR__H__

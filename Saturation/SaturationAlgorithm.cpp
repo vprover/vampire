@@ -49,6 +49,7 @@
 #include "Kernel/Unit.hpp"
 
 #include "Inferences/InterpretedEvaluation.hpp"
+#include "Inferences/PolynomialNormalization.hpp"
 #include "Inferences/GaussianVariableElimination.hpp"
 #include "Inferences/EquationalTautologyRemoval.hpp"
 #include "Inferences/Condensation.hpp"
@@ -1628,7 +1629,16 @@ ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, cons
     if (env.options->gaussianVariableElimination()) {
       res->addFront(new GaussianVariableElimination()); 
     }
-    res->addFront(new InterpretedEvaluation(env.options->inequalityNormalization(), ordering));
+
+    using Ev = Options::EvaluationMode;
+    switch (env.options->evaluationMode()) {
+      case Ev::SIMPLE: 
+        res->addFront(new InterpretedEvaluation(env.options->inequalityNormalization(), ordering));
+        break;
+      case Ev::POLYNOMIAL:
+        res->addFront(new PolynomialNormalization(ordering));
+        break;
+    }
   }
   if(prb.hasEquality()) {
     res->addFront(new TrivialInequalitiesRemovalISE());

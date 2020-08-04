@@ -1924,6 +1924,19 @@ void Options::Options::init()
     _lookup.insert(&_introducedSymbolPrecedence);
     _introducedSymbolPrecedence.tag(OptionTag::SATURATION);
 
+    _evaluationMode = ChoiceOptionValue<EvaluationMode>("evaluation","ev",
+                                                        EvaluationMode::SIMPLE,
+                                                        {"simple","polynomial"});
+    _evaluationMode.description=
+    "Choses the algorithm used to simplify interpreted integer, rational, and real terms. \
+                                 \
+    - simple: will only evaluate expressions built from interpreted constants only.\
+    - polynomial: will evaluate abstract expressions to a weak polynomial normal form. This is more powerful but may fail in some cases where the resulting polynomial is not strictly smaller than the initial one wrt. the simplification ordering. \
+    ";
+    _lookup.insert(&_evaluationMode);
+    _evaluationMode.tag(OptionTag::SATURATION);
+    _evaluationMode.setExperimental();
+
     _functionPrecedence = StringOptionValue("function_precendence","fp","");
     _functionPrecedence.description = "A name of a file with an explicit user specified precedence on function symbols.";
     _functionPrecedence.setExperimental();

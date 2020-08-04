@@ -110,4 +110,115 @@ SAT::SATClause* TestUtils::buildSATClause(unsigned len,...)
   return SATClause::fromStack(lits);
 }
 
+template<class List, class Eq>
+bool __permEq(const List& lhs, const List& rhs, Eq elemEq, DArray<unsigned>& perm, unsigned idx) {
+  auto checkPerm = [&] (const List& lhs, const List& rhs, DArray<unsigned>& perm) {
+    ASS_EQ(lhs.size(), perm.size());
+    ASS_EQ(rhs.size(), perm.size());
+
+    for (int i = 0; i < perm.size(); i++) {
+      if (!elemEq(lhs[i], rhs[perm[i]])) return false;
+    }
+    return true;
+  };
+  if (checkPerm(lhs, rhs, perm)) {
+    return true;
+  }
+  for (int i = idx; i < perm.size(); i++) {
+    swap(perm[i], perm[idx]);
+
+
+    if (__permEq(lhs,rhs, elemEq, perm, idx+1)) return true;
+
+    swap(perm[i], perm[idx]);
+  }
+
+  return false;
+}
+
+
+template<class List, class Eq>
+bool TestUtils::permEq(const List& lhs, const List& rhs, Eq elemEq) 
+{
+  ASS_EQ(lhs.size(), rhs.size());
+  DArray<unsigned> perm(lhs.size());
+  for (int i = 0; i < lhs.size(); i++) {
+    perm[i] = i;
+  }
+  return __permEq(lhs, rhs, elemEq, perm, 0);
+}
+
+
+bool TestUtils::isAC(Theory::Interpretation i) 
+{
+  switch (i) {
+#define NUM_CASE(oper) \
+    case Kernel::Theory::INT_  ## oper: \
+    case Kernel::Theory::REAL_ ## oper: \
+    case Kernel::Theory::RAT_  ## oper
+
+    NUM_CASE(PLUS):
+    NUM_CASE(MULTIPLY):
+      return true;
+    default: 
+      return false;
+
+#undef NUM_CASE
+  }
+}
+
+
+bool TestUtils::eqModAC(TermList lhs, TermList rhs) 
+{
+
+  void __collect(unsigned functor, Term* t, Stack<TermList>& out) {
+    ASS_EQ(t->functor(), functor);
+    for (int i = 0; i < t->arity(); i++) {
+      auto trm = t->nthArgument(i);
+      if (trm->isVar()) {
+        out.push(*trm);
+      } else {
+        ASS(trm->isTerm());
+        if (trm->term()->functor() == functor) {
+          __collect(functor, trm->term(), out);
+        } else {
+          out.push(*trm);
+        }
+      }
+    }
+  }
+
+  Stack<TermList> collect(unsigned functor, Term* t) {
+    Stack<TermList> out;
+    __collect(functor, t, out);
+    return out;
+  }
+
+
+  if (lhs.isVar() && rhs.isVar()) {
+    return lhs.var() == rhs.var();
+  } else if (lhs.isTerm() && rhs.isTerm()) {
+    auto& l = *lhs.term();
+    auto& r = *rhs.term();
+    if ( l.functor() != r.functor() ) return false;
+    auto fun = l.functor();
+    if (theory->isInterpretedFunction(fun) && isAC(theory->interpretFunction(fun))) {
+      Stack<TermList> lstack = collect(fun, &l);
+      Stack<TermList> rstack = collect(fun, &r);
+      return permEq(lstack, rstack, [](TermList l, TermList r) -> bool {
+            return eqModAC(l, r);
+      });
+    } else {
+      for (int i = 0; i < l.arity(); i++) {
+        if (!eqModAC(*l.nthArgument(i), *r.nthArgument(i))) {
+          return false;
+        }
+      }
+      return true;
+    }
+  } else {
+    return false;
+  }
+}
+
 }

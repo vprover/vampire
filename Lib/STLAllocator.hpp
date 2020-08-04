@@ -26,10 +26,8 @@
  * @author Martin Suda
  */
 
-
-#ifndef __STLAllocator__
-#define __STLAllocator__
-
+#ifndef __STLAllocator__ 
+#define __STLAllocator__ 
 #include <limits>
 #include <memory>
 #include <utility>
@@ -70,17 +68,17 @@ public :
 
     //    memory allocation
     inline pointer allocate(size_type cnt, 
-       typename std::allocator<void>::const_pointer = 0) { 
-      return reinterpret_cast<pointer>(ALLOC_UNKNOWN(cnt*sizeof(T),"STLAllocator<T>"));           
+      typename std::allocator<void>::const_pointer = 0) { 
+      return reinterpret_cast<pointer>(ALLOC_KNOWN(cnt*sizeof(T),"STLAllocator<T>"));           
     }
-    inline void deallocate(pointer p, size_type) { 
-        DEALLOC_UNKNOWN(p,"STLAllocator<T>");
+    inline void deallocate(pointer p, size_type cnt) { 
+      DEALLOC_KNOWN(p,cnt * sizeof(T),"STLAllocator<T>");
     }
 
     //    size
     inline size_type max_size() const { 
         return std::numeric_limits<size_type>::max() / sizeof(T);
- }
+    }
 
     //    construction/destruction
     template <typename... Args>

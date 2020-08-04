@@ -753,6 +753,12 @@ public:
     POSITION = 5
   };
 
+  enum class EvaluationMode : unsigned int {
+    SIMPLE,
+    POLYNOMIAL,
+  };
+
+
   enum class AgeWeightRatioShape {
     CONSTANT,
     DECAY,
@@ -2156,6 +2162,7 @@ public:
 
   bool useManualClauseSelection() const { return _manualClauseSelection.actualValue; }
   bool inequalityNormalization() const { return _inequalityNormalization.actualValue; }
+  EvaluationMode evaluationMode() const { return _evaluationMode.actualValue; }
   bool gaussianVariableElimination() const { return _gaussianVariableElimination.actualValue; }
 
 private:
@@ -2528,6 +2535,7 @@ private:
   ChoiceOptionValue<SymbolPrecedence> _symbolPrecedence;
   ChoiceOptionValue<SymbolPrecedenceBoost> _symbolPrecedenceBoost;
   ChoiceOptionValue<IntroducedSymbolPrecedence> _introducedSymbolPrecedence;
+  ChoiceOptionValue<EvaluationMode> _evaluationMode;
   StringOptionValue _functionPrecedence;
   StringOptionValue _predicatePrecedence;
 

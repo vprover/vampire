@@ -32,25 +32,24 @@ TEST_FUN(check_spec) {
   for (int j = std::numeric_limits<int>::min();;) {
     for (int i = std::numeric_limits<int>::min();; ) {
 
-        DBG();
 
         bool bothOK = true;
 
         IntegerConstantType q;
         try {
           q = quotientE(i, j);
-          DBG("quotientE (", i,", ", j,")\t= ", q);
+          // DBG("quotientE (", i,", ", j,")\t= ", q);
         } catch (const MachineArithmeticException&) {
-          DBG("quotientE (", i,", ", j,")\t= MachineArithmeticException");
+          // DBG("quotientE (", i,", ", j,")\t= MachineArithmeticException");
           bothOK = false;
         }
 
         IntegerConstantType r;
         try {
 	 r = remainderE(i, j);
-         DBG("remainderE(", i,", ", j,")\t= ", r);
+         // DBG("remainderE(", i,", ", j,")\t= ", r);
 	} catch (const MachineArithmeticException&) {
-	 DBG("remainderE(", i,", ", j,")\t= MachineArithmeticException");
+	 // DBG("remainderE(", i,", ", j,")\t= MachineArithmeticException");
 	 bothOK = false;
 	}
 

@@ -1,19 +1,31 @@
+
+
+
 #include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
 #include "Kernel/Rebalancing.hpp"
 #include "Kernel/Rebalancing/Inverters.hpp"
 #include "Indexing/TermSharing.hpp"
 #include "Kernel/InterpretedLiteralEvaluator.hpp"
-#include "Shell/TermAlgebra.hpp"
 
 #define UNIT_ID Rebalancing
 UT_CREATE;
 using namespace std;
-using namespace Shell;
 using namespace Kernel;
 using namespace Rebalancing;
 using namespace Inverters;
 
+// TODO inline these macros
+#define add(a,b) (a + b)
+#define mul(a,b) (a * b)
+#define minus(a) -(a)
+#define lt(a,b) (a < b)
+#define gt(a,b) (a > b)
+#define leq(a,b) (a <= b)
+#define geq(a,b) (a >= b)
+#define neg(a)   ~(a)
+#define eq(a,b)  (a == b)
+#define neq(a,b) (a != b)
 
 #define __expand__frac(...) { __VA_ARGS__ }
 #define __expand__int(...)  { __VA_ARGS__ }
@@ -30,49 +42,13 @@ bool any(Range range, Pred p) {
 
 using expected_t = tuple<TermList, TermList>;
 
-// template<class ConstantType>
-void test_rebalance(Literal& lit, initializer_list<expected_t> expected);
+template<class ConstantType>
+void test_rebalance(Literal* lit, initializer_list<expected_t> expected);
 
 #define __TO_CONSTANT_TYPE_INT  IntegerConstantType
 #define __TO_CONSTANT_TYPE_RAT  RationalConstantType
 #define __TO_CONSTANT_TYPE_REAL RealConstantType
 #define ToConstantType(type)  __TO_CONSTANT_TYPE_ ## type
-
-#define TEST_LIST(test_name, equality, __list) \
-    TEST_FUN(test_name) {            \
-      THEORY_SYNTAX_SUGAR(RAT) \
-      _Pragma("GCC diagnostic push") \
-      _Pragma("GCC diagnostic ignored \"-Wunused\"") \
-        SYNTAX_SUGAR_SORT(list) \
-        SYNTAX_SUGAR_CONST(nil, list) \
-        SYNTAX_SUGAR_CONST(t, list) \
-        SYNTAX_SUGAR_FUN(cons,    2, {__default_sort, list}, list) \
-        SYNTAX_SUGAR_FUN(uncons1, 1, {list      }, __default_sort) \
-        SYNTAX_SUGAR_FUN(uncons2, 1, {list      }, list) \
-        env.signature->getFunction(nil .functor())->markTermAlgebraCons(); \
-        env.signature->getFunction(cons.functor())->markTermAlgebraCons(); \
-        env.signature->addTermAlgebra(new TermAlgebra(list, { \
-            new TermAlgebraConstructor(nil.functor(),  {}), \
-            new TermAlgebraConstructor(cons.functor(),  {uncons1.functor(), uncons2.functor()}), \
-          })); \
-      _Pragma("GCC diagnostic pop") \
-      test_rebalance((equality), __expand ## __list); \
-    } \
-
-#define TEST_ARRAY(test_name, equality, __list) \
-    TEST_FUN(test_name) {            \
-      THEORY_SYNTAX_SUGAR(RAT) \
-      _Pragma("GCC diagnostic push") \
-      _Pragma("GCC diagnostic ignored \"-Wunused\"") \
-        SYNTAX_SUGAR_SORT(idxSrt) \
-        ARRAY_SYNTAX_SUGAR(array, idxSrt, RAT) \
-        SYNTAX_SUGAR_CONST(t, array) \
-        SYNTAX_SUGAR_CONST(u, array) \
-        SYNTAX_SUGAR_CONST(i, idxSrt) \
-      _Pragma("GCC diagnostic pop") \
-      test_rebalance((equality), __expand ## __list); \
-    } \
-
 
 #define TEST_REBALANCE(name, type, equality, __list) \
     TEST_FUN(name ## _ ## type) { \
@@ -81,7 +57,7 @@ void test_rebalance(Literal& lit, initializer_list<expected_t> expected);
       _Pragma("GCC diagnostic ignored \"-Wunused\"") \
         THEORY_SYNTAX_SUGAR_FUN(f, 1) \
       _Pragma("GCC diagnostic pop") \
-      test_rebalance((equality), __expand ## __list); \
+      test_rebalance<ToConstantType(type)>((equality), __expand ## __list); \
     } \
 
 
@@ -115,13 +91,13 @@ TEST_REBALANCE_SPLIT(constants_2,
 TEST_REBALANCE_ALL(uninterpreted_1
     , eq(add(2, x), a)
     , __list(
-        bal(x, add(-2, a))
+        bal(x, add(a, -2))
     ))
 
 TEST_REBALANCE_SPLIT(uninterpreted_2
     , eq(mul(x, 2), a)
     , __frac(
-      bal(x, mul(frac(1, 2), a))
+      bal(x, mul(a, frac(1, 2)))
     )
     , __int( ))
 
@@ -161,11 +137,11 @@ TEST_REBALANCE_SPLIT(multi_var_3
 TEST_REBALANCE_SPLIT(multi_var_4
     , eq(mul(x, 2), y)
     , __frac(
-        bal(x, mul(frac(1, 2), y))
-      , bal(y, mul(2, x))
+        bal(x, mul(y, frac(1, 2)))
+      , bal(y, mul(x , 2))
     )
     , __int( 
-      bal(y, mul(2, x))
+      bal(y, mul(x, 2))
     ))
 
 TEST_REBALANCE_SPLIT(multi_var_5
@@ -228,49 +204,18 @@ TEST_REBALANCE_ALL(bug_1
       bal(y, f(mul(16, z)))
     ))
 
-
-TEST_REBALANCE_ALL(bug_2
+TEST_REBALANCE_SPLIT(bug_2
     , neq(add(x,mul(-1,x)), y)
+    , __list(
+        bal(y, add(x,mul(-1,x)))
+      , bal(x, add(y, minus(mul(-1,x))))
+      , bal(x, mul( add(y, minus(x)), -1))
+    )
     , __list(
         bal(y, add(x,mul(-1,x)))
       , bal(x, add(y, minus(mul(-1,x))))
       , bal(x, mul(-1, add(y, minus(x))))
     ))
-
-/** 
- * cons(x, y) = t
- * ==> x = uncons1(t)
- * ==> y = uncons2(t)
- */
-TEST_LIST(rebalance_list_01
-    , neq(cons(x, y), t)
-    , __list(
-        bal(y, uncons2(t))
-      , bal(x, uncons1(t))
-    ))
-
-/** 
- * cons(x + 1, y) = t
- * ==> x = uncons1(t) - 1
- * ==> y = uncons2(t)
- */
-TEST_LIST(rebalance_list_02
-    , neq(cons(add(x, 1), y), t)
-    , __list(
-        bal(y, uncons2(t))
-      , bal(x, add(uncons1(t), -1))
-    ))
-
-/** 
- * store(t, i, x+1) = u
- * ==> x = select(u, i) - 1
- */
-TEST_ARRAY(rebalance_array_01
-    , neq(store(t, i, add(x, 1)), u)
-    , __list(
-        bal(x, add(select(u,i), -1))
-    ))
-
 
 std::ostream& operator<<(std::ostream& out, initializer_list<expected_t> expected) {
   for (auto x : expected ) {
@@ -278,12 +223,10 @@ std::ostream& operator<<(std::ostream& out, initializer_list<expected_t> expecte
   }
   return out;
 }
-
 template<class A>
 std::ostream& operator<<(std::ostream& out, const BalanceIter<A>& x) {
   return out << "\t" << x.lhs() << "\t->\t" << x.buildRhs() << endl;
 }
-
 template<class A>
 std::ostream& operator<<(std::ostream& out, const Balancer<A>& b) {
   for (auto x : b) {
@@ -292,114 +235,10 @@ std::ostream& operator<<(std::ostream& out, const Balancer<A>& b) {
   return out;
 }
 
-template<class List, class Eq>
-bool __permEq(const List& lhs, const List& rhs, Eq elemEq, DArray<unsigned>& perm, unsigned idx) {
-  auto checkPerm = [&] (const List& lhs, const List& rhs, DArray<unsigned>& perm) {
-    ASS_EQ(lhs.size(), perm.size());
-    ASS_EQ(rhs.size(), perm.size());
 
-    for (int i = 0; i < perm.size(); i++) {
-      if (!elemEq(lhs[i], rhs[perm[i]])) return false;
-    }
-    return true;
-  };
-  if (checkPerm(lhs, rhs, perm)) {
-    return true;
-  }
-  for (int i = idx; i < perm.size(); i++) {
-    swap(perm[i], perm[idx]);
-
-    
-    if (__permEq(lhs,rhs, elemEq, perm, idx+1)) return true;
-
-    swap(perm[i], perm[idx]);
-  }
-
-  return false;
-}
-
-
-template<class List, class Eq>
-bool permEq(const List& lhs, const List& rhs, Eq elemEq) {
-  ASS_EQ(lhs.size(), rhs.size());
-  DArray<unsigned> perm(lhs.size());
-  for (int i = 0; i < lhs.size(); i++) {
-    perm[i] = i;
-  }
-  return __permEq(lhs, rhs, elemEq, perm, 0);
-}
-
-void __collect(unsigned functor, Term* t, Stack<TermList>& out) {
-  ASS_EQ(t->functor(), functor);
-  for (int i = 0; i < t->arity(); i++) {
-    auto trm = t->nthArgument(i);
-    if (trm->isVar()) {
-      out.push(*trm);
-    } else {
-      ASS(trm->isTerm());
-      if (trm->term()->functor() == functor) {
-        __collect(functor, trm->term(), out);
-      } else {
-        out.push(*trm);
-      }
-    }
-  }
-}
-
-Stack<TermList> collect(unsigned functor, Term* t) {
-  Stack<TermList> out;
-  __collect(functor, t, out);
-  return out;
-}
-
-
-
-bool isAC(Theory::Interpretation i) {
-  switch (i) {
-#define NUM_CASE(oper) \
-    case Kernel::Theory::INT_  ## oper: \
-    case Kernel::Theory::REAL_ ## oper: \
-    case Kernel::Theory::RAT_  ## oper
-
-    NUM_CASE(PLUS):
-    NUM_CASE(MULTIPLY):
-      return true;
-    default: 
-      return false;
-  }
-}
-
-
-bool eqModAC(TermList lhs, TermList rhs) {
-  if (lhs.isVar() && rhs.isVar()) {
-    return lhs.var() == rhs.var();
-  } else if (lhs.isTerm() && rhs.isTerm()) {
-    auto& l = *lhs.term();
-    auto& r = *rhs.term();
-    if ( l.functor() != r.functor() ) return false;
-    auto fun = l.functor();
-    if (theory->isInterpretedFunction(fun) && isAC(theory->interpretFunction(fun))) {
-      Stack<TermList> lstack = collect(fun, &l);
-      Stack<TermList> rstack = collect(fun, &r);
-      return permEq(lstack, rstack, [](TermList l, TermList r) -> bool {
-            return eqModAC(l, r);
-      });
-    } else {
-      for (int i = 0; i < l.arity(); i++) {
-        if (!eqModAC(*l.nthArgument(i), *r.nthArgument(i))) {
-          return false;
-        }
-      }
-      return true;
-    }
-  } else {
-    return false;
-  }
-}
-
-
-// template<class A>
-void test_rebalance(Literal& lit, initializer_list<expected_t> expected) {
+template<class A>
+void test_rebalance(Literal* lit_, initializer_list<expected_t> expected) {
+  Literal& lit = *lit_;
   ASS(lit.isEquality());
   using balancer_t = Balancer<NumberTheoryInverter>;
   auto simplified = [](TermList t) -> TermList { 
@@ -414,7 +253,7 @@ void test_rebalance(Literal& lit, initializer_list<expected_t> expected) {
 
   Stack<expected_t> results;
   unsigned cnt = 0;
-  for (auto bal : balancer_t(lit)) {
+  for (auto& bal : balancer_t(lit)) {
 
     auto lhs = bal.lhs();
     // auto rhs = bal.buildRhs();
@@ -423,7 +262,7 @@ void test_rebalance(Literal& lit, initializer_list<expected_t> expected) {
     results.push(expected_t(lhs, rhs));
     
     if (!any(expected, [&](const expected_t& ex) -> bool 
-          { return get<0>(ex) == lhs && eqModAC(get<1>(ex), rhs); }
+          { return get<0>(ex) == lhs && get<1>(ex) == rhs; }
       )) {
 
       cout << "case: " << lit << endl;

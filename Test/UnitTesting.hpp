@@ -120,6 +120,7 @@ public:
   TestUnit(const char* id);
 
   const char* id() { return _id; }
+  bool get(const char* id, Test& out);
 
   void addTest(TestProc proc, const char* name)
   { TestList::push(Test(proc, name), _tests); }
