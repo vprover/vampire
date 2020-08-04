@@ -173,6 +173,19 @@ Ordering::Result Ordering::fromComparison(Comparison c)
   }
 }
 
+Comparison Ordering::intoComparison(Ordering::Result r)
+{
+  CALL("Ordering::intoComparison");
+
+  switch(r) {
+  case Ordering::Result::GREATER: return Lib::GREATER;
+  case Ordering::Result::EQUAL:   return Lib::EQUAL;
+  case Ordering::Result::LESS:    return Lib::LESS;
+  default:
+    ASSERTION_VIOLATION;
+  }
+}
+
 const char* Ordering::resultToString(Result r)
 {
   CALL("Ordering::resultToString");
@@ -899,7 +912,7 @@ void PrecedenceOrdering::show(ostream& out) const
     DArray<unsigned> functors;
 
     functors.initFromIterator(getRangeIterator(0u,env.signature->functions()),env.signature->functions());
-    std::sort(&functors[0], &functors[functors.size() - 1], [&](unsigned l, unsigned r) { return this->compareFunctionPrecedences(l,r); });
+    functors.sort(closureComparator([&](unsigned l, unsigned r){ return intoComparison(compareFunctionPrecedences(l,r)); }));
     for (unsigned i = 0; i < functors.size(); i++) {
       auto sym = env.signature->getFunction(i);
       out << "% " << sym->name() << " " << sym->arity() << std::endl;
@@ -916,8 +929,7 @@ void PrecedenceOrdering::show(ostream& out) const
 
     DArray<unsigned> functors;
     functors.initFromIterator(getRangeIterator(0u,env.signature->predicates()),env.signature->predicates());
-    std::sort(&functors[0], &functors[functors.size() - 1], 
-        [&](unsigned l, unsigned r) { return _predicatePrecedences[l] < _predicatePrecedences[r]; });
+    functors.sort(closureComparator([&](unsigned l, unsigned r) { return Int::compare(_predicatePrecedences[l], _predicatePrecedences[r]); }));
     for (unsigned i = 0; i < functors.size(); i++) {
       auto sym = env.signature->getPredicate(i);
       out << "% " << sym->name() << " " << sym->arity() << std::endl;
@@ -934,8 +946,8 @@ void PrecedenceOrdering::show(ostream& out) const
 
     DArray<unsigned> functors;
     functors.initFromIterator(getRangeIterator(0u,env.signature->predicates()),env.signature->predicates());
-    std::sort(&functors[0], &functors[functors.size() - 1], 
-        [&](unsigned l, unsigned r) { return _predicateLevels[l] < _predicateLevels[r]; });
+    functors.sort(closureComparator([&](unsigned l, unsigned r) { return Int::compare(_predicateLevels[l], _predicateLevels[r]); }));
+
     for (unsigned i = 0; i < functors.size(); i++) {
       auto sym = env.signature->getPredicate(i);
       out << "% " << sym->name() << " " << sym->arity() << " " << _predicateLevels[i] << std::endl;

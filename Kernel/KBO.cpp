@@ -756,7 +756,6 @@ void showSpecialWeights(const KboSpecialWeights<FuncSigTraits>& ws, ostream& out
   out << "% " SPECIAL_WEIGHT_IDENT_NUM_RAT    " " << ws._numRat                 << std::endl;
   out << "% " SPECIAL_WEIGHT_IDENT_NUM_INT    " " << ws._numInt                 << std::endl;
 }
-
 template<class SigTraits>
 void KBO::showConcrete_(ostream& out) const  
 {
@@ -764,12 +763,10 @@ void KBO::showConcrete_(ostream& out) const
   out << "% ===== begin of " << SigTraits::symbolKindName() << " weights ===== " << std::endl;
   
 
-
   auto& map = getWeightMap<SigTraits>();
   DArray<unsigned> functors;
   functors.initFromIterator(getRangeIterator(0u,SigTraits::nSymbols()),SigTraits::nSymbols());
-  std::sort(&functors[0], &functors[functors.size() - 1], 
-      [&](unsigned l, unsigned r) { return map.symbolWeight(l) < map.symbolWeight(r); });
+  functors.sort(closureComparator([&](unsigned l, unsigned r) { return Int::compare(map.symbolWeight(l), map.symbolWeight(r)); }));
 
   for (unsigned i = 0; i < SigTraits::nSymbols(); i++) {
     auto functor = functors[i];
