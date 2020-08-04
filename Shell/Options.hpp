@@ -930,18 +930,22 @@ private:
         typedef pair<OptionProblemConstraintUP,vstringDArrayUP> RandEntry;
 
         void setRandomChoices(std::initializer_list<vstring> list){
+          CALL("AbstractOptionValue::setRandomChoices(std::initializer_list<vstring> list)");
           rand_choices.push(RandEntry(OptionProblemConstraintUP(),toArray(list)));
         }
         void setRandomChoices(std::initializer_list<vstring> list,
                               std::initializer_list<vstring> list_sat){
+          CALL("AbstractOptionValue::setRandomChoices(std::initializer_list<vstring> list, std::initializer_list<vstring> list_sat)");
           rand_choices.push(RandEntry(isRandOn(),toArray(list)));
           rand_choices.push(RandEntry(isRandSat(),toArray(list_sat)));
         }
         void setRandomChoices(OptionProblemConstraintUP c,
                               std::initializer_list<vstring> list){
+          CALL("AbstractOptionValue::setRandomChoices(OptionProblemConstraintUP c, std::initializer_list<vstring> list)");
           rand_choices.push(RandEntry(std::move(c),toArray(list)));
         }
         void setNoPropertyRandomChoices(std::initializer_list<vstring> list){
+          CALL("AbstractOptionValue::setNoPropertyRandomChoices(std::initializer_list<vstring> list)");
           rand_choices.push(RandEntry(OptionProblemConstraintUP(),toArray(list)));
           supress_problemconstraints=true;
         }
@@ -1751,49 +1755,71 @@ bool _hard;
      */
     
     struct OptionProblemConstraint{
-        virtual bool check(Property* p) = 0;
-        virtual vstring msg() = 0;
-        virtual ~OptionProblemConstraint() {};
+      CLASS_NAME(OptionProblemConstraint);
+      USE_ALLOCATOR(OptionProblemConstraint);
+
+      virtual bool check(Property* p) = 0;
+      virtual vstring msg() = 0;
+      virtual ~OptionProblemConstraint() {};
     };
     
     struct CategoryCondition : OptionProblemConstraint{
-        CategoryCondition(Property::Category c,bool h) : cat(c), has(h) {}
-        bool check(Property*p){
-            CALL("Options::CategoryCondition::check");
-            ASS(p);
-            return has ? p->category()==cat : p->category()!=cat;
-        }
-        vstring msg(){ 
-          vstring m =" not useful for property ";
-          if(has) m+="not";
-          return m+" in category "+Property::categoryToString(cat);
-        }
-        Property::Category cat;
-        bool has;
+      CLASS_NAME(CategoryCondition);
+      USE_ALLOCATOR(CategoryCondition);
+
+      CategoryCondition(Property::Category c,bool h) : cat(c), has(h) {}
+      bool check(Property*p){
+          CALL("Options::CategoryCondition::check");
+          ASS(p);
+          return has ? p->category()==cat : p->category()!=cat;
+      }
+      vstring msg(){
+        vstring m =" not useful for property ";
+        if(has) m+="not";
+        return m+" in category "+Property::categoryToString(cat);
+      }
+      Property::Category cat;
+      bool has;
     };
+
     struct UsesEquality : OptionProblemConstraint{
-        bool check(Property*p){
-          CALL("Options::UsesEquality::check");
-          ASS(p)
-          return (p->equalityAtoms() != 0);
-        }
-        vstring msg(){ return " only useful with equality"; }
+      CLASS_NAME(UsesEquality);
+      USE_ALLOCATOR(UsesEquality);
+
+      bool check(Property*p){
+        CALL("Options::UsesEquality::check");
+        ASS(p)
+        return (p->equalityAtoms() != 0);
+      }
+      vstring msg(){ return " only useful with equality"; }
     };
+
     struct HasNonUnits : OptionProblemConstraint{
-        bool check(Property*p){
-          CALL("Options::HasNonUnits::check");
-          return (p->clauses()-p->unitClauses())!=0; 
-        }
-        vstring msg(){ return " only useful with non-unit clauses"; }
+      CLASS_NAME(HasNonUnits);
+      USE_ALLOCATOR(HasNonUnits);
+
+      bool check(Property*p){
+        CALL("Options::HasNonUnits::check");
+        return (p->clauses()-p->unitClauses())!=0;
+      }
+      vstring msg(){ return " only useful with non-unit clauses"; }
     };
+
     struct HasPredicates : OptionProblemConstraint{
-        bool check(Property*p){
-          CALL("Options::HasPredicates::check");
-          return (p->category()==Property::PEQ || p->category()==Property::UEQ);
-        }
-        vstring msg(){ return " only useful with predicates"; }
+      CLASS_NAME(HasPredicates);
+      USE_ALLOCATOR(HasPredicates);
+
+      bool check(Property*p){
+        CALL("Options::HasPredicates::check");
+        return (p->category()==Property::PEQ || p->category()==Property::UEQ);
+      }
+      vstring msg(){ return " only useful with predicates"; }
     };
+
     struct AtomConstraint : OptionProblemConstraint{
+      CLASS_NAME(AtomConstraint);
+      USE_ALLOCATOR(AtomConstraint);
+
       AtomConstraint(int a,bool g) : atoms(a),greater(g) {}
       int atoms;
       bool greater;
@@ -1834,6 +1860,9 @@ bool _hard;
     // set of options will not be randomized and some will be randomized first
 
     struct OptionHasValue : OptionProblemConstraint{
+      CLASS_NAME(OptionHasValue);
+      USE_ALLOCATOR(OptionHasValue);
+
       OptionHasValue(vstring ov,vstring v) : option_value(ov),value(v) {}
       bool check(Property*p);
       vstring msg(){ return option_value+" has value "+value; } 
@@ -1842,6 +1871,9 @@ bool _hard;
     };
 
     struct ManyOptionProblemConstraints : OptionProblemConstraint {
+      CLASS_NAME(ManyOptionProblemConstraints);
+      USE_ALLOCATOR(ManyOptionProblemConstraints);
+
       ManyOptionProblemConstraints(bool a) : is_and(a) {}
 
       bool check(Property*p){

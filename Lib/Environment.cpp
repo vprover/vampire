@@ -61,6 +61,8 @@ Environment::Environment()
     _priorityOutput(0),
     _pipe(0)
 {
+  START_CHECKING_FOR_ALLOCATOR_BYPASSES;
+
   options = new Options;
   statistics = new Statistics;  
   sorts = new Sorts;
@@ -110,6 +112,7 @@ bool Environment::timeLimitReached() const
   if (options->timeLimitInDeciseconds() &&
       timer->elapsedDeciseconds() > options->timeLimitInDeciseconds()) {
     statistics->terminationReason = Shell::Statistics::TIME_LIMIT;
+    Timer::setTimeLimitEnforcement(false);
     return true;
   }
   return false;

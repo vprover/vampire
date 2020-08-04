@@ -58,6 +58,8 @@ Z3Interfacing::Z3Interfacing(const Shell::Options& opts,SAT2FO& s2f, bool unsatC
   CALL("Z3Interfacing::Z3Interfacing");
   _solver.reset();
 
+  z3::set_param("rewriter.expand_store_eq", "true");
+
     z3::params p(_context);
   if (_unsatCoreForAssumptions) {
     p.set(":unsat-core", true);
