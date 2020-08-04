@@ -5,6 +5,7 @@
 #include "Inferences/GaussianVariableElimination.hpp"
 #include "Inferences/InterpretedEvaluation.hpp"
 #include "Kernel/Ordering.hpp"
+#include "Inferences/PolynomialNormalization.hpp"
 
 #define UNIT_ID GaussianVariableElimination
 UT_CREATE;
@@ -15,26 +16,13 @@ using namespace Inferences;
 #include "Test/SyntaxSugar.hpp"
 
 
-// TODO inline these macros
-#define add(a,b) (a + b)
-#define mul(a,b) (a * b)
-#define minus(a) -(a)
-#define lt(a,b) (a < b)
-#define gt(a,b) (a > b)
-#define leq(a,b) (a <= b)
-#define geq(a,b) (a >= b)
-#define neg(a)   ~(a)
-#define eq(a,b)  (a == b)
-#define neq(a,b) (a != b)
-
 //TODO factor out
-Clause& clause(std::initializer_list<Lit> ls) { 
+Clause& clause(std::initializer_list<Literal*> ls) { 
   static Inference testInf = Kernel::NonspecificInference0(UnitInputType::ASSUMPTION, InferenceRule::INPUT); 
   Clause& out = *new(ls.size()) Clause(ls.size(), testInf); 
   auto l = ls.begin(); 
   for (int i = 0; i < ls.size(); i++) { 
-    Literal* literal = *l;
-    out[i] = literal; 
+    out[i] = *l; 
     l++; 
   }
   return out; 
@@ -85,15 +73,22 @@ bool operator!=(const Clause& lhs, const Clause& rhs) {
 Clause* exhaustiveGve(Clause* in) {
 
   struct FakeOrdering : Kernel::Ordering {
-    virtual Result compare(Literal*, Literal*) const override { return Kernel::Ordering::LESS; }
+    virtual Result compare(Literal* l, Literal* r) const override { 
+      if (l == r) {
+        return Kernel::Ordering::EQUAL; 
+      } else {
+        return Kernel::Ordering::LESS; 
+      }
+    }
     virtual Result compare(TermList, TermList) const override {ASSERTION_VIOLATION}
     virtual Comparison compareFunctors(unsigned, unsigned) const override {ASSERTION_VIOLATION}
   };
   static FakeOrdering ord;
   static GaussianVariableElimination inf = GaussianVariableElimination();
-  static InterpretedEvaluation ev = InterpretedEvaluation(false, ord);
-  Clause* last = in;
-  Clause* latest = in;
+  // static InterpretedEvaluation ev = InterpretedEvaluation(false, ord);
+  static PolynomialNormalization ev(ord);
+  Clause* last = ev.simplify(in);
+  Clause* latest = ev.simplify(in);
   do {
     last = latest;
     latest = ev.simplify(inf.simplify(last));
@@ -124,64 +119,65 @@ void test_eliminate(Clause& toSimplify, const Clause& expected) {
   }
 }
 
-#define TEST_ELIMINATE(name, toSimplify, expected) \
-  TEST_FUN(name) { \
+#define SUGAR \
     THEORY_SYNTAX_SUGAR(REAL) \
       _Pragma("GCC diagnostic push") \
       _Pragma("GCC diagnostic ignored \"-Wunused\"") \
         THEORY_SYNTAX_SUGAR_FUN(f, 1) \
+        THEORY_SYNTAX_SUGAR_PRED(p, 1) \
       _Pragma("GCC diagnostic pop") \
-    test_eliminate((toSimplify),(expected)); \
+ 
+#define TEST_ELIMINATE(name, toSimplify, expected) \
+  TEST_FUN(name) { \
+   SUGAR \
+   test_eliminate((toSimplify),(expected)); \
   }
 
 #define TEST_ELIMINATE_NA(name, toSimplify) \
   TEST_FUN(name) { \
-    THEORY_SYNTAX_SUGAR(REAL) \
-      _Pragma("GCC diagnostic push") \
-      _Pragma("GCC diagnostic ignored \"-Wunused\"") \
-        THEORY_SYNTAX_SUGAR_FUN(f, 1) \
-      _Pragma("GCC diagnostic pop") \
+    SUGAR \
     test_eliminate_na((toSimplify)); \
   }
 
 TEST_ELIMINATE(test_1
-    , clause({  neq(mul(3, x), 6), lt(x, y)  })
-    , clause({  lt(2, y)  })
+    , clause({  3 * x != 6, x < y  })
+    , clause({  2 < y  })
     )
 
 TEST_ELIMINATE_NA(test_2
-    , clause({ eq(mul(3, x), 6), lt(x, y) })
+    , clause({ 3 * x == 6, x < y })
     )
 
 TEST_ELIMINATE(test_3
-    , clause({  neq(mul(3, x), 6), lt(x, x)  })
-    , clause({  /* lt(2, 2) */  }) 
+    , clause({  3 * x != 6, x < x  })
+    , clause({  /* 2 < 2 */  }) 
+    )
+
+  // 2x + y = x + y ==> 0 = 2x + y - x - y ==> 0 = x
+TEST_ELIMINATE(test_4
+    , clause({  2 * x + y != (x + y), p(x) })
+    , clause({  p(0)  })
     )
 
 TEST_ELIMINATE(test_uninterpreted
-    , clause({  neq(mul(3, f(x)), y), lt(x, y)  })
-    , clause({  lt(x, mul(3, f(x)))  })
+    , clause({  3 * f(x) != y, x < y  })
+    , clause({  x < 3 * f(x)  })
     )
 
   // x!=4 \/ x+y != 5 \/ C[x]
   //         4+y != 5 \/ C[4]
   //                     C[4]
 TEST_ELIMINATE(test_multiplesteps_1
-    , clause({  neq(x, 4), neq(add(x,y), 5), lt(x, f(x))  })
-    , clause({  lt(4, f(4))  })
+    , clause({  x != 4, x + y != 5, x < f(x)  })
+    , clause({  4 < f(4)  })
     )
 
   // x!=4 \/ x+y != 5 \/ C[x,y]
   //         4+y != 5 \/ C[4,y]
   //                     C[4,1]
 TEST_ELIMINATE(test_multiplesteps_2
-    , clause({  neq(x, 4), neq(add(x,y), 5), lt(x, f(y))  })
-    , clause({  lt(4, f(1))  })
-    )
-
-TEST_ELIMINATE(test_simplified_rebalance_1
-    , clause({  neq(x, add(x,y)), lt(a, y)  })
-    , clause({  lt(a, 0)  })
+    , clause({  x != 4, x + y !=  5, x < f(y)  })
+    , clause({  4 < f(1)  })
     )
 
   // x  !=4 \/ x+y != 5 \/ C[x]
