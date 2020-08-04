@@ -55,8 +55,14 @@ bool UWAMismatchHandler::checkUWA(TermList t1, TermList t2)
 
     if(!(t1.isTerm() && t2.isTerm())) return false;
 
-    bool t1Interp = (theory->isInterpretedFunction(t1) || theory->isInterpretedConstant(t1));
-    bool t2Interp = (theory->isInterpretedFunction(t2) || theory->isInterpretedConstant(t2));
+    auto isInterpreted = [](Term* t) -> bool { 
+      return theory->isInterpretedFunction(t) 
+        || theory->isInterpretedConstant(t) 
+        || env.signature->getFunction(t->functor())->termAlgebraCons();
+    };
+
+    bool t1Interp = isInterpreted(t1.term());
+    bool t2Interp = isInterpreted(t2.term());
     bool bothNumbers = (theory->isInterpretedConstant(t1) && theory->isInterpretedConstant(t2));
 
     bool okay = true;
