@@ -29,7 +29,7 @@
 #include "Kernel/Formula.hpp"
 #include "Kernel/Unit.hpp"
 
-#include "Shell/AIG.hpp"
+// #include "Shell/AIG.hpp"
 
 #include "SAT/SATClause.hpp"
 #include "SAT/SATLiteral.hpp"
@@ -42,52 +42,52 @@ namespace Test
 using namespace Kernel;
 using namespace Shell;
 
-Formula* TestUtils::getUniqueFormula(UnitList* units)
-{
-  CALL("TestUtils::getUniqueFormula(UnitList*)");
-
-  FormulaList* forms = 0;
-  UnitList::Iterator uit(units);
-  while(uit.hasNext()) {
-    Unit* u = uit.next();
-    Formula* form = u->getFormula();
-    FormulaList::push(form, forms);
-  }
-  Formula* conj;
-  if(forms==0) {
-    conj = new Formula(true);
-  }
-  else if(forms->tail()==0) {
-    conj = forms->head();
-  }
-  else {
-    conj = new JunctionFormula(AND, forms);
-  }
-
-  static AIGFormulaSharer sharer;
-  return sharer.apply(conj).first;
-}
-
-Formula* TestUtils::getUniqueFormula(Api::AnnotatedFormulaIterator afit)
-{
-  CALL("TestUtils::getUniqueFormula(Api::AnnotatedFormulaIterator)");
-
-  UnitList* units = 0;
-  while(afit.hasNext()) {
-    Api::AnnotatedFormula af = afit.next();
-    UnitList::push(static_cast<Unit*>(af), units);
-  }
-  Formula* res = getUniqueFormula(units);
-  units->destroy();
-  return res;
-}
-
-Formula* TestUtils::getUniqueFormula(Api::Problem prb)
-{
-  CALL("TestUtils::getUniqueFormula(Api::Problem)");
-
-  return TestUtils::getUniqueFormula(prb.formulas());
-}
+// Formula* TestUtils::getUniqueFormula(UnitList* units)
+// {
+//   CALL("TestUtils::getUniqueFormula(UnitList*)");
+//
+//   FormulaList* forms = 0;
+//   UnitList::Iterator uit(units);
+//   while(uit.hasNext()) {
+//     Unit* u = uit.next();
+//     Formula* form = u->getFormula();
+//     FormulaList::push(form, forms);
+//   }
+//   Formula* conj;
+//   if(forms==0) {
+//     conj = new Formula(true);
+//   }
+//   else if(forms->tail()==0) {
+//     conj = forms->head();
+//   }
+//   else {
+//     conj = new JunctionFormula(AND, forms);
+//   }
+//
+//   static AIGFormulaSharer sharer;
+//   return sharer.apply(conj).first;
+// }
+//
+// Formula* TestUtils::getUniqueFormula(Api::AnnotatedFormulaIterator afit)
+// {
+//   CALL("TestUtils::getUniqueFormula(Api::AnnotatedFormulaIterator)");
+//
+//   UnitList* units = 0;
+//   while(afit.hasNext()) {
+//     Api::AnnotatedFormula af = afit.next();
+//     UnitList::push(static_cast<Unit*>(af), units);
+//   }
+//   Formula* res = getUniqueFormula(units);
+//   units->destroy();
+//   return res;
+// }
+//
+// Formula* TestUtils::getUniqueFormula(Api::Problem prb)
+// {
+//   CALL("TestUtils::getUniqueFormula(Api::Problem)");
+//
+//   return TestUtils::getUniqueFormula(prb.formulas());
+// }
 
 SAT::SATClause* TestUtils::buildSATClause(unsigned len,...)
 {
@@ -159,6 +159,7 @@ bool TestUtils::isAC(Theory::Interpretation i)
 
     NUM_CASE(PLUS):
     NUM_CASE(MULTIPLY):
+    case Kernel::Theory::EQUAL:
       return true;
     default: 
       return false;
@@ -167,33 +168,42 @@ bool TestUtils::isAC(Theory::Interpretation i)
   }
 }
 
-
-bool TestUtils::eqModAC(TermList lhs, TermList rhs) 
+bool TestUtils::eqModAC(const Kernel::Clause* lhs, const Kernel::Clause* rhs)
 {
+  return permEq(*lhs, *rhs, [](Literal* l, Literal* r) -> bool { return TestUtils::eqModAC(l, r); });
+}
 
-  void __collect(unsigned functor, Term* t, Stack<TermList>& out) {
-    ASS_EQ(t->functor(), functor);
-    for (int i = 0; i < t->arity(); i++) {
-      auto trm = t->nthArgument(i);
-      if (trm->isVar()) {
-        out.push(*trm);
+bool TestUtils::eqModAC(Kernel::Literal* lhs, Kernel::Literal* rhs)
+{
+  return TestUtils::eqModAC(TermList(lhs), TermList(rhs)); 
+}
+
+void __collect(unsigned functor, Term* t, Stack<TermList>& out) {
+  ASS_EQ(t->functor(), functor);
+  for (int i = 0; i < t->arity(); i++) {
+    auto trm = t->nthArgument(i);
+    if (trm->isVar()) {
+      out.push(*trm);
+    } else {
+      ASS(trm->isTerm());
+      if (trm->term()->functor() == functor) {
+        __collect(functor, trm->term(), out);
       } else {
-        ASS(trm->isTerm());
-        if (trm->term()->functor() == functor) {
-          __collect(functor, trm->term(), out);
-        } else {
-          out.push(*trm);
-        }
+        out.push(*trm);
       }
     }
   }
+}
 
-  Stack<TermList> collect(unsigned functor, Term* t) {
-    Stack<TermList> out;
-    __collect(functor, t, out);
-    return out;
-  }
+Stack<TermList> collect(unsigned functor, Term* t) {
+  Stack<TermList> out;
+  __collect(functor, t, out);
+  return out;
+}
 
+
+bool TestUtils::eqModAC(TermList lhs, TermList rhs) 
+{
 
   if (lhs.isVar() && rhs.isVar()) {
     return lhs.var() == rhs.var();

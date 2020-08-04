@@ -25,6 +25,7 @@
 #define __TestUtils__
 
 #include "Forwards.hpp"
+#include "Kernel/Theory.hpp"
 
 #include "Api/FormulaBuilder.hpp"
 #include "Api/Problem.hpp"
@@ -33,10 +34,10 @@ namespace Test {
 
 class TestUtils {
 public:
-  static Kernel::Formula* getUniqueFormula(Kernel::UnitList* units);
-  static Kernel::Formula* getUniqueFormula(Api::AnnotatedFormulaIterator afit);
-  static Kernel::Formula* getUniqueFormula(Api::Problem prb);
-  
+  // static Kernel::Formula* getUniqueFormula(Kernel::UnitList* units);
+  // static Kernel::Formula* getUniqueFormula(Api::AnnotatedFormulaIterator afit);
+  // static Kernel::Formula* getUniqueFormula(Api::Problem prb);
+
   /** 
    * Tests whether two terms are equal modulo associativity and commutativity.
    * Whether a method is assoc and commut is checked with `TestUtils::isAC(..)`
@@ -44,6 +45,15 @@ public:
    * !!! exponential runtime !!!
    */
   static bool eqModAC(Kernel::TermList lhs, Kernel::TermList rhs);
+
+  /** 
+   * Tests whether two clauses are equal. All permutations of the clauses are tested. Variable renamings are 
+   * not taken into account (i.e.: { p(x) } is NOT equal to { p(y) } for this function).
+   *
+   * !!! exponential runtime !!!
+   */
+  static bool eqModAC(const Kernel::Clause* lhs, const Kernel::Clause* rhs);
+  static bool eqModAC(Kernel::Literal* lhs, Kernel::Literal* rhs);
 
   /**
    * The ... are len of integers, positive -- positive polarity, negative -- negative polarity.
@@ -62,7 +72,7 @@ private:
    *    - `bool operator(const elem_type&, const elem_type&)`
    */
   template<class List, class Eq> 
-  bool permEq(const List& lhs, const List& rhs, Eq elemEq);
+  static bool permEq(const List& lhs, const List& rhs, Eq elemEq);
 
   /** returns whether the function f is associative and commutative */
   static bool isAC(Kernel::Theory::Interpretation f);

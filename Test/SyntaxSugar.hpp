@@ -338,5 +338,16 @@ public:
   unsigned functor() const { return _functor; }
 };
 
-     
+
+inline Clause& clause(std::initializer_list<Literal*> ls) { 
+  static Inference testInf = Kernel::NonspecificInference0(UnitInputType::ASSUMPTION, InferenceRule::INPUT); 
+  Clause& out = *new(ls.size()) Clause(ls.size(), testInf); 
+  auto l = ls.begin(); 
+  for (int i = 0; i < ls.size(); i++) { 
+    out[i] = *l; 
+    l++; 
+  }
+  return out; 
+}
+
 #endif // __TEST__SYNTAX_SUGAR__H__

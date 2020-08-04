@@ -7,68 +7,16 @@
 #include "Kernel/Ordering.hpp"
 #include "Inferences/PolynomialNormalization.hpp"
 
+#include "Test/SyntaxSugar.hpp"
+#include "Test/TestUtils.hpp"
+
 #define UNIT_ID GaussianVariableElimination
 UT_CREATE;
+
 using namespace std;
 using namespace Kernel;
 using namespace Inferences;
-
-#include "Test/SyntaxSugar.hpp"
-
-
-//TODO factor out
-Clause& clause(std::initializer_list<Literal*> ls) { 
-  static Inference testInf = Kernel::NonspecificInference0(UnitInputType::ASSUMPTION, InferenceRule::INPUT); 
-  Clause& out = *new(ls.size()) Clause(ls.size(), testInf); 
-  auto l = ls.begin(); 
-  for (int i = 0; i < ls.size(); i++) { 
-    out[i] = *l; 
-    l++; 
-  }
-  return out; 
-}
-
-bool exactlyEq(const Clause& lhs, const Clause& rhs, const Stack<unsigned>& perm) {
-  for (int j = 0; j < perm.size(); j++) {
-    if (!Indexing::TermSharing::equals(lhs[j], rhs[perm[j]])) {
-      return false;
-    }
-  }
-  return true;
-}
-
-
-bool permEq(const Clause& lhs, const Clause& rhs, Stack<unsigned>& perm, unsigned idx) {
-  if (exactlyEq(lhs, rhs, perm)) {
-    return true;
-  }
-  for (int i = idx; i < perm.size(); i++) {
-    swap(perm[i], perm[idx]);
-
-    
-    if (permEq(lhs,rhs, perm, idx+1)) return true;
-
-    swap(perm[i], perm[idx]);
-  }
-
-  return false;
-}
-
-//TODO factor out
-bool operator==(const Clause& lhs, const Clause& rhs) {
-  if (lhs.size() != rhs.size()) return false;
-
-  Stack<unsigned> perm;
-  for (int i = 0; i<lhs.size(); i++) {
-    perm.push(i);
-  }
-  return permEq(lhs, rhs, perm, 0);
-
-}
-bool operator!=(const Clause& lhs, const Clause& rhs) {
-  return !(lhs == rhs);
-}
-
+using namespace Test;
 
 Clause* exhaustiveGve(Clause* in) {
 
@@ -110,7 +58,7 @@ void test_eliminate_na(Clause& toSimplify) {
 
 void test_eliminate(Clause& toSimplify, const Clause& expected) {
   auto res = exhaustiveGve(&toSimplify);
-  if (!res || *res != expected) {
+  if (!res || !TestUtils::eqModAC(res, &expected)) {
     cout  << endl;
     cout << "[     case ]: " << toSimplify.toString() << endl;
     cout << "[       is ]: " << res->toString() << endl;
@@ -139,34 +87,27 @@ void test_eliminate(Clause& toSimplify, const Clause& expected) {
     test_eliminate_na((toSimplify)); \
   }
 
-TEST_ELIMINATE(test_1
+TEST_ELIMINATE(gve_test_1
     , clause({  3 * x != 6, x < y  })
     , clause({  2 < y  })
     )
 
-TEST_ELIMINATE_NA(test_2
+TEST_ELIMINATE_NA(gve_test_2
     , clause({ 3 * x == 6, x < y })
     )
 
-TEST_ELIMINATE(test_3
+TEST_ELIMINATE(gve_test_3
     , clause({  3 * x != 6, x < x  })
     , clause({  /* 2 < 2 */  }) 
     )
 
   // 2x + y = x + y ==> 0 = 2x + y - x - y ==> 0 = x
-TEST_ELIMINATE(test_4
-    , clause({  2 * x + y != (x + y), p(x) })
+TEST_ELIMINATE(gve_test_4
+    , clause({  2 * x + y != x + y, p(x) })
     , clause({  p(0)  })
     )
 
-  // 2x + y = x + y ==> 0 = 2x + y - x - y ==> 0 = x
-// temporary commented out. working on new-eval branch already
-// TEST_ELIMINATE(test_4
-//     , clause({  neq(add(mul(2, x), y), add(x, y)), p(x) })
-//     , clause({  p(0)  })
-//     )
-
-TEST_ELIMINATE(test_uninterpreted
+TEST_ELIMINATE(gve_test_uninterpreted
     , clause({  3 * f(x) != y, x < y  })
     , clause({  x < 3 * f(x)  })
     )
@@ -174,7 +115,7 @@ TEST_ELIMINATE(test_uninterpreted
   // x!=4 \/ x+y != 5 \/ C[x]
   //         4+y != 5 \/ C[4]
   //                     C[4]
-TEST_ELIMINATE(test_multiplesteps_1
+TEST_ELIMINATE(gve_test_multiplesteps_1
     , clause({  x != 4, x + y != 5, x < f(x)  })
     , clause({  4 < f(4)  })
     )
@@ -182,7 +123,7 @@ TEST_ELIMINATE(test_multiplesteps_1
   // x!=4 \/ x+y != 5 \/ C[x,y]
   //         4+y != 5 \/ C[4,y]
   //                     C[4,1]
-TEST_ELIMINATE(test_multiplesteps_2
+TEST_ELIMINATE(gve_test_multiplesteps_2
     , clause({  x != 4, x + y !=  5, x < f(y)  })
     , clause({  4 < f(1)  })
     )

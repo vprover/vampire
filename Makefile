@@ -444,8 +444,8 @@ VT_OBJ = Test/CheckedSatSolver.o\
          Test/CompitOutput.o\
          Test/Compit2Output.o\
          Test/Output.o\
-         Test/UnitTesting.o
-#         Test/TestUtils.o\         
+         Test/UnitTesting.o\
+         Test/TestUtils.o\
  #Test/CheckedFwSimplifier.o\
 
 VUT_OBJ = $(patsubst %.cpp,%.o,$(wildcard UnitTests/*.cpp))

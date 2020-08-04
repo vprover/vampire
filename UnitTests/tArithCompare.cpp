@@ -19,6 +19,7 @@
 
 
 #include "Test/UnitTesting.hpp"
+#include "Test/TestUtils.hpp"
 #include "Kernel/Theory.hpp"
 
 #define UNIT_ID arithCompareTest
