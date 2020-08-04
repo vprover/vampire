@@ -395,6 +395,7 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/VarManager.o\
          Shell/Lexer.o\
          Shell/Preprocess.o\
+         Shell/UnificationWithAbstractionConfig.o\
          version.o
 #         Shell/PARSER_TKV.o\
 #         Shell/SMTLEX.o\
@@ -493,6 +494,7 @@ LIB_DEP = Indexing/TermSharing.o\
 	  Shell/Property.o\
 	  Shell/Statistics.o\
 	  Shell/GlobalOptions.o\
+          Shell/UnificationWithAbstractionConfig.o\
 	  version.o
 	  # ClausifierDependencyFix.o\
 

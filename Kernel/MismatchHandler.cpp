@@ -32,6 +32,7 @@
 #include "RobSubstitution.hpp"
 
 #include "MismatchHandler.hpp"
+#include "Shell/UnificationWithAbstractionConfig.hpp"
 
 namespace Kernel
 {
@@ -55,14 +56,8 @@ bool UWAMismatchHandler::checkUWA(TermList t1, TermList t2)
 
     if(!(t1.isTerm() && t2.isTerm())) return false;
 
-    auto isInterpreted = [](Term* t) -> bool { 
-      return theory->isInterpretedFunction(t) 
-        || theory->isInterpretedConstant(t) 
-        || env.signature->getFunction(t->functor())->termAlgebraCons();
-    };
-
-    bool t1Interp = isInterpreted(t1.term());
-    bool t2Interp = isInterpreted(t2.term());
+    bool t1Interp = Shell::UnificationWithAbstractionConfig::isInterpreted(t1.term());
+    bool t2Interp = Shell::UnificationWithAbstractionConfig::isInterpreted(t2.term());
     bool bothNumbers = (theory->isInterpretedConstant(t1) && theory->isInterpretedConstant(t2));
 
     bool okay = true;

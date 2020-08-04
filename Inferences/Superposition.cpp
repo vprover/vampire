@@ -50,6 +50,7 @@
 #include "Shell/Statistics.hpp"
 
 #include "Superposition.hpp"
+#include "Shell/UnificationWithAbstractionConfig.hpp"
 
 #if VDEBUG
 #include <iostream>
@@ -622,8 +623,8 @@ Clause* Superposition::performSuperposition(
       static Options::UnificationWithAbstraction uwa = env.options->unificationWithAbstraction();
       if(uwa==Options::UnificationWithAbstraction::GROUND && 
          !constraint->ground() &&
-         (!theory->isInterpretedFunction(qT) && !theory->isInterpretedConstant(qT)) &&
-         (!theory->isInterpretedFunction(rT) && !theory->isInterpretedConstant(rT))){
+         (!UnificationWithAbstractionConfig::isInterpreted(qT) 
+          && !UnificationWithAbstractionConfig::isInterpreted(rT) )) {
 
         // the unification was between two uninterpreted things that were not ground 
         res->destroy();

@@ -686,6 +686,8 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/BlockedClauseElimination.hpp
     Shell/Token.hpp
     Shell/TPTPPrinter.hpp
+    Shell/UnificationWithAbstractionConfig.hpp
+    Shell/UnificationWithAbstractionConfig.cpp
     #Shell/TrivialPredicateRemover.hpp
     Shell/UIHelper.hpp
     Shell/VarManager.hpp

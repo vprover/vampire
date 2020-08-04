@@ -44,6 +44,7 @@
 #include "Saturation/SaturationAlgorithm.hpp"
 
 #include "EqualityResolution.hpp"
+#include "Shell/UnificationWithAbstractionConfig.hpp"
 
 #if VDEBUG
 #include <iostream>
@@ -144,8 +145,8 @@ struct EqualityResolution::ResultFn
 
       if(uwa==Options::UnificationWithAbstraction::GROUND &&
          !constraint->ground() &&
-         (!theory->isInterpretedFunction(qT) && !theory->isInterpretedConstant(qT)) &&
-         (!theory->isInterpretedFunction(rT) && !theory->isInterpretedConstant(rT))){
+         !UnificationWithAbstractionConfig::isInterpreted(qT) && 
+         !UnificationWithAbstractionConfig::isInterpreted(rT) ) {
 
         // the unification was between two uninterpreted things that were not ground 
         res->destroy();
