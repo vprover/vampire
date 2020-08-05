@@ -67,11 +67,14 @@ struct NotApplicable
 #define REGISTER_SIMPL_TESTER(t) using SimplTester = t;
 
 #define TEST_SIMPLIFY(name, ...)                                                                                        \
+        TEST_SIMPLIFY_WITH_SUGAR(name, SIMPL_SUGAR, __VA_ARGS__) 
+
+#define TEST_SIMPLIFY_WITH_SUGAR(name, syntax_sugar, ...)                                                               \
   TEST_FUN(name) {                                                                                                      \
     SimplTester simpl;                                                                                                  \
     _Pragma("GCC diagnostic push")                                                                                      \
     _Pragma("GCC diagnostic ignored \"-Wunused\"")                                                                      \
-      SIMPL_SUGAR                                                                                                       \
+      syntax_sugar                                                                                                      \
     _Pragma("GCC diagnostic pop")                                                                                       \
     __VA_ARGS__.run(simpl);                                                                                             \
   }                                                                                                                     \
