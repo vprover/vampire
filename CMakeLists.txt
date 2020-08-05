@@ -426,6 +426,7 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/Instantiation.cpp
     Inferences/InterpretedEvaluation.cpp
     Inferences/PolynomialNormalization.cpp
+    Inferences/ArithmeticSubtermGeneralization.cpp
     Kernel/NumTraits.cpp
     Inferences/GaussianVariableElimination.cpp
     Kernel/Rebalancing.cpp
@@ -458,6 +459,7 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/Instantiation.hpp
     Inferences/InterpretedEvaluation.hpp
     Inferences/PolynomialNormalization.hpp
+    Inferences/ArithmeticSubtermGeneralization.hpp
     Kernel/NumTraits.cpp
     Inferences/GaussianVariableElimination.hpp
     Kernel/Rebalancing.hpp

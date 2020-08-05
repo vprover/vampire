@@ -5,7 +5,7 @@
 #include "Inferences/GaussianVariableElimination.hpp"
 #include "Inferences/InterpretedEvaluation.hpp"
 #include "Kernel/Ordering.hpp"
-#include "Inferences/PolynomialNormalization.hpp"
+#include "Inferences/ArithmeticSubtermGeneralization.hpp"
 
 #include "Test/SyntaxSugar.hpp"
 #include "Test/TestUtils.hpp"
@@ -30,8 +30,7 @@ public:
 
   virtual Kernel::Clause* simplify(Kernel::Clause* in) const override 
   {
-    // ASSERTION_VIOLATION //TODO
-    return in;
+    return ArithmeticSubtermGeneralization().simplify(in);
   }
 };
 
@@ -39,7 +38,6 @@ REGISTER_SIMPL_TESTER(SimplificationTester)
 
 #define SIMPL_SUGAR_(num)                                                                                               \
   THEORY_SYNTAX_SUGAR(num)                                                                                              \
-  THEORY_SYNTAX_SUGAR_FUN(f, 1)                                                                                         \
   THEORY_SYNTAX_SUGAR_PRED(p, 1)                                                                                        \
   THEORY_SYNTAX_SUGAR_PRED(p1, 1)                                                                                       \
   THEORY_SYNTAX_SUGAR_PRED(p2, 1)                                                                                       \
