@@ -281,3 +281,6 @@ TEST_SIMPLIFY_INTEGER(multi_var_08,
       //                 { p1(6 * x), p2(        2 * y    ) }  by  y -> -3x + y - 1
       .expected = clause({ p1(6 * x), p2(        2 * y    ) }), 
     })
+
+// TODO: what about { y = 0 \/ p(y*x) } ===> { p(x) }
+// TODO: what about { p(f*x) } ===> { p(x) } if f isNonZero

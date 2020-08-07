@@ -1571,6 +1571,44 @@ struct GetSecondOfPair {
   }
 };
 
+template<class Iter>
+class IterTraits
+{
+  Iter _iter;
+public:
+  DECL_ELEMENT_TYPE(ELEMENT_TYPE(Iter));
+
+  explicit IterTraits(Iter iter) : _iter(iter) {}
+
+  ELEMENT_TYPE(Iter) next() { return _iter.next(); }
+  bool hasNext() { return _iter.hasNext(); }
+
+  template<class F>
+  void forEach(F f) 
+  {
+    while (hasNext()) {
+      f(next());
+    }
+  }
+
+  template<class Container>
+  Container collect() 
+  {
+    Container c;
+    while (hasNext()) {
+      c.insert(next());
+    }
+    return c;
+  }
+  
+};
+
+template<class Iter>
+IterTraits<Iter> iterTraits(Iter i) 
+{
+  return IterTraits(i);
+}
+
 ///@}
 
 }
