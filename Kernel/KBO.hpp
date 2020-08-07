@@ -146,7 +146,8 @@ public:
 
   virtual ~KBO();
   void showConcrete(ostream&) const override;
-  void checkAdmissibility() const;
+  template<class HandleError>
+  void checkAdmissibility(HandleError handle) const;
 
   using PrecedenceOrdering::compare;
   Result compare(TermList tl1, TermList tl2) const override;

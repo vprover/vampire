@@ -1922,6 +1922,15 @@ void Options::Options::init()
     _lookup.insert(&_introducedSymbolPrecedence);
     _introducedSymbolPrecedence.tag(OptionTag::SATURATION);
 
+    _kboAdmissabilityCheck = ChoiceOptionValue<KboAdmissibilityCheck>(
+        "kbo_admissibility_check", "", KboAdmissibilityCheck::ERROR,
+                                     {"error","warning" });
+    _kboAdmissabilityCheck.description = "Choose to emmit a warning instead of throwing an exception if the weight function and precedence ordering for kbo are not compatible.";
+    _kboAdmissabilityCheck.setExperimental();
+    _kboAdmissabilityCheck.reliesOn(_termOrdering.is(equal(TermOrdering::KBO)));
+    _lookup.insert(&_kboAdmissabilityCheck);
+
+
     _functionWeights = StringOptionValue("function_weights","fw","");
     _functionWeights.description = 
       "Path to a file that defines weights for KBO for function symbols, or 'random'.\n"

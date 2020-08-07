@@ -363,7 +363,8 @@ KboWeightMap<SigTraits> KBO::weightsFromOpts(const Options& opts) const
   }
 }
 
-template<class SigTraits> KboWeightMap<SigTraits> KBO::weightsFromFile(const Options& opts) const 
+template<class SigTraits> 
+KboWeightMap<SigTraits> KBO::weightsFromFile(const Options& opts) const 
 {
   DArray<KboWeight> weights(SigTraits::nSymbols());
   BYPASSING_ALLOCATOR
@@ -471,6 +472,14 @@ template<class SigTraits> KboWeightMap<SigTraits> KBO::weightsFromFile(const Opt
 
 }
 
+void throwError(UserErrorException e) { throw e; }
+void warnError(UserErrorException e) { 
+  env.beginOutput();
+  env.out() << "WARNING: Your KBO is probably not well-founded. Reason: " << e.msg() << std::endl;
+  env.endOutput();
+}
+
+
 KBO::KBO(
     // KBO params
     KboWeightMap<FuncSigTraits> funcWeights, 
@@ -488,10 +497,11 @@ KBO::KBO(
   , _predWeights(predWeights)
   , _state(new State(this))
 { 
-  checkAdmissibility();
+  checkAdmissibility(throwError);
 }
 
-void KBO::checkAdmissibility() const 
+template<class HandleError>
+void KBO::checkAdmissibility(HandleError handle) const 
 {
   auto nFunctions = _funcWeights._weights.size();
   auto maximalFunctions = DArray<long int>(env.sorts->count());
@@ -518,16 +528,16 @@ void KBO::checkAdmissibility() const
     auto arity = env.signature->getFunction(i)->arity();
 
     if (_funcWeights._weights[i] < varWght && arity == 0) {
-      throw UserErrorException("weight of constants must be greater or equal to the variable weight (", varWght, ")");
+      handle(UserErrorException("weight of constants (i.e. ", env.signature->getFunction(i)->name(), ") must be greater or equal to the variable weight (", varWght, ")"));
 
     } else if (_funcWeights.symbolWeight(i) == 0 && arity == 1 && maximalFunctions[sort] != i) {
-      throw UserErrorException( "a unary function of weight zero (i.e.: ", env.signature->getFunction(i)->name(), ") must be maximal wrt. the precedence ordering");
+      handle(UserErrorException( "a unary function of weight zero (i.e.: ", env.signature->getFunction(i)->name(), ") must be maximal wrt. the precedence ordering"));
 
     }
   }
 
   if (_funcWeights._introducedSymbolWeight < varWght) {
-    throw UserErrorException("weight of introduced function symbols must be greater than the variable weight (= ", varWght, "), since there might be new constant symbols introduced during proof search.");
+    handle(UserErrorException("weight of introduced function symbols must be greater than the variable weight (= ", varWght, "), since there might be new constant symbols introduced during proof search."));
   }
 
 
@@ -535,14 +545,13 @@ void KBO::checkAdmissibility() const
     || _funcWeights._specialWeights._numInt  < varWght
     || _funcWeights._specialWeights._numRat  < varWght
       ) {
-    throw UserErrorException("weight of (number) constant symbols must be >= variable weight (", varWght, ").");
+    handle(UserErrorException("weight of (number) constant symbols must be >= variable weight (", varWght, ")."));
   }
 
   if (varWght <= 0) {
-    throw UserErrorException("variable weight must be greater than zero");
+    handle(UserErrorException("variable weight must be greater than zero"));
   }
 }
-
 
 
 /**
@@ -555,7 +564,10 @@ KBO::KBO(Problem& prb, const Options& opts)
  , _state(new State(this))
 {
   CALL("KBO::KBO(Prb&, Opts&)");
-  checkAdmissibility();
+  if (opts.kboAdmissabilityCheck() == Options::KboAdmissibilityCheck::ERROR)
+    checkAdmissibility(throwError);
+  else
+    checkAdmissibility(warnError);
 }
 
 KBO::~KBO()
