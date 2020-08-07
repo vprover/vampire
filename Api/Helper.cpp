@@ -400,7 +400,6 @@ vstring DefaultHelperCore::toString (const Kernel::Unit* unit0) const
 struct DefaultHelperCore::Var2NameMapper
 {
   Var2NameMapper(DefaultHelperCore& a) : aux(a) {}
-  DECL_RETURN_TYPE(vstring);
   vstring operator()(unsigned v)
   {
     return aux.getVarName(v);

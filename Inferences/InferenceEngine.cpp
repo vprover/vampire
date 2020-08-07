@@ -151,10 +151,9 @@ void CompositeISE::detach()
 
 struct GeneratingFunctor
 {
-  DECL_RETURN_TYPE(ClauseIterator);
 
   GeneratingFunctor(Clause* cl) : cl(cl) {}
-  OWN_RETURN_TYPE operator() (GeneratingInferenceEngine* gie)
+  ClauseIterator operator() (GeneratingInferenceEngine* gie)
   { return gie->generateClauses(cl); }
   Clause* cl;
 };

@@ -153,6 +153,18 @@ public:
     }
   }
 
+
+  /**
+   * Create a new stack with the contents of the itererator.
+   */
+  template<class It>
+  static Stack fromIterator(It it) {
+    CALL("Stack::fromIterator");
+    Stack s;
+    s.loadFromIterator(it);
+    return s;
+  }
+
   /**
    * Return a reference to the n-th element of the stack.
    */

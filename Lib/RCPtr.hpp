@@ -130,8 +130,7 @@ public:
 
   struct UnRCFunctor
   {
-    DECL_RETURN_TYPE(T*);
-    OWN_RETURN_TYPE operator()(const RCPtr& p) const {
+    T* operator()(const RCPtr& p) const {
       return p.ptr();
     }
   };

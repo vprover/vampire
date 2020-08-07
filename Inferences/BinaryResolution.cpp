@@ -83,12 +83,11 @@ struct BinaryResolution::UnificationsFn
 {
   UnificationsFn(GeneratingLiteralIndex* index,bool cU)
   : _index(index),_unificationWithAbstraction(cU) {}
-  DECL_RETURN_TYPE(VirtualIterator<pair<Literal*, SLQueryResult> >);
-  OWN_RETURN_TYPE operator()(Literal* lit)
+  VirtualIterator<pair<Literal*, SLQueryResult> > operator()(Literal* lit)
   {
     if(lit->isEquality()) {
       //Binary resolution is not performed with equality literals
-      return OWN_RETURN_TYPE::getEmpty();
+      return VirtualIterator<pair<Literal*, SLQueryResult> >::getEmpty();
     }
     if(_unificationWithAbstraction){
       return pvi( pushPairIntoRightIterator(lit, _index->getUnificationsWithConstraints(lit, true)) );
@@ -104,8 +103,7 @@ struct BinaryResolution::ResultFn
 {
   ResultFn(Clause* cl, PassiveClauseContainer* passiveClauseContainer, bool afterCheck, Ordering* ord, LiteralSelector& selector, BinaryResolution& parent)
   : _cl(cl), _passiveClauseContainer(passiveClauseContainer), _afterCheck(afterCheck), _ord(ord), _selector(selector), _parent(parent) {}
-  DECL_RETURN_TYPE(Clause*);
-  OWN_RETURN_TYPE operator()(pair<Literal*, SLQueryResult> arg)
+  Clause* operator()(pair<Literal*, SLQueryResult> arg)
   {
     CALL("BinaryResolution::ResultFn::operator()");
 

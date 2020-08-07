@@ -113,7 +113,6 @@ private:
 
 struct VariableIteratorFn
 {
-  DECL_RETURN_TYPE(VirtualIterator<TermList>);
   VirtualIterator<TermList> operator()(Term* t)
   {
     return vi( new VariableIterator(t) );
@@ -131,7 +130,6 @@ struct VariableIteratorFn
 
 struct OrdVarNumberExtractorFn
 {
-  DECL_RETURN_TYPE(unsigned);
   unsigned operator()(TermList t)
   {
     CALL("OrdVarNumberExtractorFn::operator()");

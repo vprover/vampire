@@ -141,8 +141,7 @@ void ExtensionalityClauseContainer::add(ExtensionalityClause c) {
 struct ExtensionalityClauseContainer::ActiveFilterFn
 {
   ActiveFilterFn(ExtensionalityClauseContainer& parent) : _parent(parent) {}
-  DECL_RETURN_TYPE(bool);
-  OWN_RETURN_TYPE operator()(ExtensionalityClause extCl)
+  bool operator()(ExtensionalityClause extCl)
   {
     CALL("ExtensionalityClauseContainer::ActiveFilterFn::operator()");
     

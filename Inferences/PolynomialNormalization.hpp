@@ -21,15 +21,21 @@ public:
   CLASS_NAME(PolynomialNormalization);
   USE_ALLOCATOR(PolynomialNormalization);
 
-  PolynomialNormalization(Ordering& ordering) : _ordering(ordering) {}
+  /* will not check whether it performed an actual simplification */
+  PolynomialNormalization() : _ordering(nullptr) {}
+
+  /* 
+   * will use the simplification ordering in order to check whether 
+   * its transformation were an actual simplification 
+   */
+  PolynomialNormalization(Ordering& ordering) : _ordering(&ordering) {}
   virtual ~PolynomialNormalization();
 
   Clause* simplify(Clause* cl);
 private:
 
-  // PolynomialNormalizer<PolynomialNormalizerConfig::Normalization<>> _normalizer;
   PolynomialNormalizer<PolynomialNormalizerConfig::Simplification<>> _normalizer;
-  Ordering& _ordering;
+  Ordering* _ordering;
 };
 
 };

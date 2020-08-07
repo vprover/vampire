@@ -204,8 +204,7 @@ TermQueryResultIterator TermSubstitutionTree::getInstances(TermList t,
  */
 struct TermSubstitutionTree::TermQueryResultFn
 {
-  DECL_RETURN_TYPE(TermQueryResult);
-  OWN_RETURN_TYPE operator() (const QueryResult& qr) {
+  TermQueryResult operator() (const QueryResult& qr) {
     return TermQueryResult(qr.first.first->term, qr.first.first->literal,
 	    qr.first.first->clause, qr.first.second,qr.second);
   }
@@ -246,8 +245,7 @@ TermQueryResultIterator TermSubstitutionTree::getResultIterator(Term* trm,
 
 struct TermSubstitutionTree::LDToTermQueryResultFn
 {
-  DECL_RETURN_TYPE(TermQueryResult);
-  OWN_RETURN_TYPE operator() (const LeafData& ld) {
+  TermQueryResult operator() (const LeafData& ld) {
     return TermQueryResult(ld.term, ld.literal, ld.clause);
   }
 };
@@ -262,8 +260,7 @@ struct TermSubstitutionTree::LDToTermQueryResultWithSubstFn
     _subst=RobSubstitutionSP(new RobSubstitution());
     _constraints=UnificationConstraintStackSP(new Stack<UnificationConstraint>());
   }
-  DECL_RETURN_TYPE(TermQueryResult);
-  OWN_RETURN_TYPE operator() (const LeafData& ld) {
+  TermQueryResult operator() (const LeafData& ld) {
     if(_withConstraints){
       return TermQueryResult(ld.term, ld.literal, ld.clause,
             ResultSubstitution::fromSubstitution(_subst.ptr(),
@@ -284,8 +281,7 @@ private:
 
 struct TermSubstitutionTree::LeafToLDIteratorFn
 {
-  DECL_RETURN_TYPE(LDIterator);
-  OWN_RETURN_TYPE operator() (Leaf* l) {
+  LDIterator operator() (Leaf* l) {
     CALL("TermSubstitutionTree::LeafToLDIteratorFn()");
     return l->allChildren();
   }

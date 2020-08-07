@@ -33,21 +33,18 @@ namespace Lib {
 template<typename P>
 struct FirstOfPairFn
 {
-  DECL_RETURN_TYPE(typename P::first_type);
-  OWN_RETURN_TYPE operator()(P p) { return p.first; }
+  typename P::first_type operator()(P p) { return p.first; }
 };
 
 template<typename P>
 struct SecondOfPairFn
 {
-  DECL_RETURN_TYPE(typename P::second_type);
-  OWN_RETURN_TYPE operator()(P p) { return p.second; }
+  typename P::second_type operator()(P p) { return p.second; }
 };
 
 template<typename C, typename D>
 struct PairRightPushingFn
 {
-  DECL_RETURN_TYPE(pair<C,D>);
   PairRightPushingFn(C c) : _c(c) {}
   pair<C,D> operator()(D d) { return pair<C,D>(_c,d); }
 private:
@@ -57,9 +54,8 @@ private:
 template<typename C, class D>
 struct PairLeftPushingFn
 {
-  DECL_RETURN_TYPE(pair<C,D>);
   PairLeftPushingFn(D d): _d(d) {}
-  OWN_RETURN_TYPE operator()(C c) { return pair<C,D>(c,_d); }
+  pair<C,D> operator()(C c) { return pair<C,D>(c,_d); }
 private:
   D _d;
 };
@@ -115,8 +111,7 @@ RightPushedPair<C,D> pushPairIntoRightIterable(pair<C, D> obj)
 template<typename C, typename D>
 struct PushPairIntoRightIterableFn
 {
-  DECL_RETURN_TYPE(RightPushedPair<C,D>);
-  OWN_RETURN_TYPE operator()(pair<C, D> obj)
+  RightPushedPair<C,D> operator()(pair<C, D> obj)
   {
     return pushPairIntoRightIterable(obj);
   }

@@ -875,6 +875,8 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "induction hypothesis";
   case InferenceRule::GEN_INDUCTION_AXIOM:
     return "generalized induction hypothesis";
+  case InferenceRule::ARITHMETIC_SUBTERM_GENERALIZATION:
+    return "arithmetic subterm generalization";
   case InferenceRule::GAUSSIAN_VARIABLE_ELIMINIATION:
     return "gaussian variable elimination";
 
