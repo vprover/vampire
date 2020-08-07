@@ -539,7 +539,7 @@ void KBO::checkAdmissibility() const
   }
 
   if (varWght <= 0) {
-    throw new UserErrorException("variable weight must be greater than zero");
+    throw UserErrorException("variable weight must be greater than zero");
   }
 }
 
