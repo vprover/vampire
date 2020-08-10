@@ -177,6 +177,7 @@ struct UninterpretedTraits
   unsigned _srtNumber;
 
 public:
+  UninterpretedTraits(unsigned srtNumber) : _srtNumber(srtNumber) {}
   unsigned sortNumber() const { return _srtNumber; }
 };
 

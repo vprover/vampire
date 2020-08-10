@@ -71,3 +71,15 @@ TEST_FUN(create_equalities) {
   perform_test(l1, l2);
 }
 
+
+TEST_FUN(create_unitnterpreted) {
+  FOF_SYNTAX_SUGAR             /* <-- imports syntax sugar for an uninterpreted sort alpha */
+  FOF_SYNTAX_SUGAR_FUN  (f, 2) /* <-- creates an uninterpreted  function over the unitererpreted sort alpha with arity 2 */
+  FOF_SYNTAX_SUGAR_PRED (p, 1) /* <-- creates an uninterpreted predicate over the unitererpreted sort alpha with arity 2 */
+  FOF_SYNTAX_SUGAR_CONST(c)    /* <-- creates an uninterpreted  constant of sort alpha*/
+
+  Literal* l1 = f(c, x) == y;
+  Literal* l2 = p(z);
+
+  perform_test(l1, l2);
+}
