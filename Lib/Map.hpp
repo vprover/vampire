@@ -342,10 +342,8 @@ public:
 
  
   /**
-   * Gen the entry at the position @b key or initialize it with the closure @b init.
-   * @b init will be called with a pointer to an unsigned chunk of memory:
-   *
-   * void init(Value* toInit) { ... }
+   * Find the entry with key @b key, or initialize it with the function init otherwise.
+   * @b init must have the signature `Val init() {...}`
    */
   template<class InitFun>
   Val& getOrInit(Key&& key, InitFun init)
@@ -368,7 +366,8 @@ public:
     // entry is not occupied
     _noOfEntries++;
     entry->key = std::move(key);
-    init(&entry->value);
+    ::new(&entry->value) Val(init());
+    //init(&entry->value);
     entry->code = code;
     return entry->value;
   } 

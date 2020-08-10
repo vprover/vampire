@@ -122,7 +122,8 @@ public:
     static MonomInner* create(MonomInner&& self) {
       CALL("MonomInner::create(MonomInner&&)")
       return monoms.getOrInit(MonomInner(self),
-          [=](MonomInner** toInit) {*toInit = new MonomInner(std::move(self));});
+          [=]() { return new MonomInner(std::move(self)); });
+          // [=](MonomInner** toInit) {*toInit = new MonomInner(std::move(self));});
     }
 
   public:
@@ -568,7 +569,8 @@ private:
 
     static ComplexPolynom* create(ComplexPolynom&& self) {
       return polynoms.getOrInit(ComplexPolynom(self), 
-          [=](ComplexPolynom** toInit) { *toInit = new ComplexPolynom(std::move(self)); });
+          [=]() { return new ComplexPolynom(std::move(self)); });
+          // [=](ComplexPolynom** toInit) { *toInit = new ComplexPolynom(std::move(self)); });
     }
 
     friend bool operator==(const ComplexPolynom& lhs, const ComplexPolynom& rhs) {
@@ -818,6 +820,7 @@ struct AnyPoly : public Coproduct< Polynom<NumTraits<IntegerConstantType>> , Pol
     CALL("AnyPoly::toTerm")
     return poly<Const>::template toTerm<Config>(as<poly<Const>>());
   }
+
 
 
   template<class Config>

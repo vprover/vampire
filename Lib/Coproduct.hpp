@@ -1,16 +1,15 @@
 #ifndef __LIB_EITHER__H__
 #define __LIB_EITHER__H__
 
+#define MACRO_EXPANSION true
+
 #include "Debug/Assertion.hpp"
 #include "Debug/Tracer.hpp"
-// #if VDEBUG
-// #include "Map.hpp" // TODO remove this
-// #endif // VDEBUG
 #include <memory>
 
 namespace Lib {
 
-#define FOR_REF_QUALIFIER(macro)                                               \
+#define FOR_REF_QUALIFIER(macro)                                                                                        \
   macro(const &, ) macro(&, ) macro(&&, std::move)
 
 template <class... As> class Coproduct {
@@ -45,9 +44,9 @@ template <unsigned idx, class A, class... As> struct va_idx<idx, A, As...> {
 template <unsigned idx, class... As> struct __unwrap {};
 
 template <class A, class... As> struct __unwrap<0, A, As...> {
-#define ref_polymorphic(REF, MOVE)                                             \
-  A REF operator()(VariadicUnion<A, As...> REF self) const {                   \
-    return MOVE(self._head);                                                   \
+#define ref_polymorphic(REF, MOVE)                                                                                      \
+  A REF operator()(VariadicUnion<A, As...> REF self) const {                                                            \
+    return MOVE(self._head);                                                                                            \
   }
 
   FOR_REF_QUALIFIER(ref_polymorphic)
@@ -55,10 +54,10 @@ template <class A, class... As> struct __unwrap<0, A, As...> {
 };
 
 template <unsigned idx, class A, class... As> struct __unwrap<idx, A, As...> {
-#define ref_polymorphic(REF, MOVE)                                             \
-  typename va_idx<idx - 1, As...>::type REF operator()(                        \
-      VariadicUnion<A, As...> REF self) const {                                \
-    return __unwrap<idx - 1, As...>{}(MOVE(self._tail));                       \
+#define ref_polymorphic(REF, MOVE)                                                                                      \
+  typename va_idx<idx - 1, As...>::type REF operator()(                                                                 \
+      VariadicUnion<A, As...> REF self) const {                                                                         \
+    return __unwrap<idx - 1, As...>{}(MOVE(self._tail));                                                                \
   }
 
   FOR_REF_QUALIFIER(ref_polymorphic)
@@ -87,15 +86,15 @@ template <> union VariadicUnion<> {
   ~VariadicUnion() {}
   void destroy(unsigned idx) { ASSERTION_VIOLATION_REP(idx) }
 
-#define ref_polymorphic(REF, MOVE)                                             \
-                                                                               \
-  template <class R, class F> R applyPoly(unsigned idx, F f) REF {             \
-    ASSERTION_VIOLATION_REP(idx)                                               \
-  }                                                                            \
-  void init(unsigned idx, VariadicUnion REF other) {                           \
-    ASSERTION_VIOLATION_REP(idx)                                               \
-  }                                                                            \
-                                                                               \
+#define ref_polymorphic(REF, MOVE)                                                                                      \
+                                                                                                                        \
+  template <class R, class F> R applyPoly(unsigned idx, F f) REF {                                                      \
+    ASSERTION_VIOLATION_REP(idx)                                                                                        \
+  }                                                                                                                     \
+  void init(unsigned idx, VariadicUnion REF other) {                                                                    \
+    ASSERTION_VIOLATION_REP(idx)                                                                                        \
+  }                                                                                                                     \
+                                                                                                                        \
   template <class R> R apply(unsigned idx) REF{ASSERTION_VIOLATION_REP(idx)}
 
   FOR_REF_QUALIFIER(ref_polymorphic)
@@ -129,29 +128,29 @@ template <class A, class... As> union VariadicUnion<A, As...> {
     }
   }
 
-#define ref_polymorphic(REF, MOVE)                                             \
-  template <class R, class F> inline R applyPoly(unsigned idx, F f) REF {      \
-    if (idx == 0) {                                                            \
-      return f(MOVE(_head));                                                   \
-    } else {                                                                   \
-      return MOVE(_tail).template applyPoly<R>(idx - 1, f);                    \
-    }                                                                          \
-  }                                                                            \
-                                                                               \
-  template <class R, class F, class... Fs>                                     \
-  inline R apply(unsigned idx, F f, Fs... fs) REF {                            \
-    if (idx == 0) {                                                            \
-      return f(MOVE(_head));                                                   \
-    } else {                                                                   \
-      return MOVE(_tail).template apply<R>(idx - 1, fs...);                    \
-    }                                                                          \
-  }                                                                            \
-  void init(unsigned idx, VariadicUnion REF other) {                           \
-    if (idx == 0) {                                                            \
-      ::new (&_head) A(MOVE(other._head));                                     \
-    } else {                                                                   \
-      MOVE(_tail).init(idx - 1, MOVE(other._tail));                            \
-    }                                                                          \
+#define ref_polymorphic(REF, MOVE)                                                                                      \
+  template <class R, class F> inline R applyPoly(unsigned idx, F f) REF {                                               \
+    if (idx == 0) {                                                                                                     \
+      return f(MOVE(_head));                                                                                            \
+    } else {                                                                                                            \
+      return MOVE(_tail).template applyPoly<R>(idx - 1, f);                                                             \
+    }                                                                                                                   \
+  }                                                                                                                     \
+                                                                                                                        \
+  template <class R, class F, class... Fs>                                                                              \
+  inline R apply(unsigned idx, F f, Fs... fs) REF {                                                                     \
+    if (idx == 0) {                                                                                                     \
+      return f(MOVE(_head));                                                                                            \
+    } else {                                                                                                            \
+      return MOVE(_tail).template apply<R>(idx - 1, fs...);                                                             \
+    }                                                                                                                   \
+  }                                                                                                                     \
+  void init(unsigned idx, VariadicUnion REF other) {                                                                    \
+    if (idx == 0) {                                                                                                     \
+      ::new (&_head) A(MOVE(other._head));                                                                              \
+    } else {                                                                                                            \
+      MOVE(_tail).init(idx - 1, MOVE(other._tail));                                                                     \
+    }                                                                                                                   \
   }
 
   FOR_REF_QUALIFIER(ref_polymorphic)
@@ -191,12 +190,6 @@ public:
     return _tag == idx;
   }
 
-  // template <unsigned idx> typename va_idx<idx, A, As...>::type &unwrap() {
-  //   static_assert(idx < size, "out of bounds");
-  //   ASS(idx == _tag);
-  //   return __unwrap<idx, A, As...>{}(_content);
-  // }
-
   template <unsigned idx>
   static Coproduct variant(typename va_idx<idx, A, As...>::type &&value) {
     return Coproduct(
@@ -221,45 +214,52 @@ public:
     init<idx, A, As...>{}(_content, std::move(value._value));
   }
 
-#define REF_POLYMORPIHIC(REF, MOVE)                                            \
-  template <class Ret, class... F> inline Ret match(F... fs) REF {             \
-    ASS_REP(_tag <= size, _tag);                                                  \
-    return MOVE(_content).template apply<Ret>(_tag, fs...);                    \
-  }                                                                            \
-  template <class Ret, class F> inline Ret collapsePoly(F f) REF {             \
-    ASS_REP(_tag <= size, _tag);                                                  \
-    return MOVE(_content).template applyPoly<Ret>(_tag, f);                    \
-  }                                                                            \
-  template <class... F> inline Coproduct map(F... fs) REF {                    \
-    return match<Coproduct>(fs...);                                            \
-  }                                                                            \
-                                                                               \
-  Coproduct &operator=(Coproduct REF other) {                                  \
-    CALL("Coproduct& operator=(Coproduct " #REF "other)")                      \
-    ASS_REP(other._tag <= size, other._tag);                                            \
-    _content.destroy(_tag);                                                    \
-    _content.init(other._tag, MOVE(other._content));                           \
-    _tag = other._tag;                                                         \
-    return *this;                                                              \
-  }                                                                            \
-                                                                               \
-  Coproduct(Coproduct REF other) : _tag(other._tag) {                          \
-    CALL("Coproduc(Coproduct " #REF " other)")                                 \
-    ASS_REP(other._tag <= size, other._tag);                                            \
-    _content.init(other._tag, MOVE(other._content));                           \
-  }                                                                            \
-                                                                               \
-  template <class B> inline B REF as() REF {                                   \
-    /* TODO static assertions */                                               \
-    return unwrap<idx_of<B, A, As...>::value>();                                         \
-  }                                                                            \
-                                                                               \
-  template <unsigned idx>                                                      \
-  inline typename va_idx<idx, A, As...>::type REF unwrap() REF {               \
-    CALL("Coproduct::unwrap() " #REF );                                \
-    static_assert(idx < size, "out of bounds");                                \
-    ASS_EQ(idx, _tag);                                                          \
-    return __unwrap<idx, A, As...>{}(MOVE(_content));                          \
+
+  // TODO: get rid of the type parameter Ret here.
+#define REF_POLYMORPIHIC(REF, MOVE)                                                                                     \
+  template <class Ret, class... F> inline Ret match(F... fs) REF {                                                      \
+    ASS_REP(_tag <= size, _tag);                                                                                        \
+    return MOVE(_content).template apply<Ret>(_tag, fs...);                                                             \
+  }                                                                                                                     \
+  template <class Ret, class F> inline Ret collapsePoly(F f) REF {                                                      \
+    ASS_REP(_tag <= size, _tag);                                                                                        \
+    return MOVE(_content).template applyPoly<Ret>(_tag, f);                                                             \
+  }                                                                                                                     \
+  template <class... F> inline Coproduct map(F... fs) REF {                                                             \
+    return match<Coproduct>(fs...);                                                                                     \
+  }                                                                                                                     \
+                                                                                                                        \
+  Coproduct &operator=(Coproduct REF other) {                                                                           \
+    CALL("Coproduct& operator=(Coproduct " #REF "other)")                                                               \
+    ASS_REP(other._tag <= size, other._tag);                                                                            \
+    _content.destroy(_tag);                                                                                             \
+    _content.init(other._tag, MOVE(other._content));                                                                    \
+    _tag = other._tag;                                                                                                  \
+    return *this;                                                                                                       \
+  }                                                                                                                     \
+                                                                                                                        \
+  Coproduct(Coproduct REF other) : _tag(other._tag) {                                                                   \
+    CALL("Coproduc(Coproduct " #REF " other)")                                                                          \
+    ASS_REP(other._tag <= size, other._tag);                                                                            \
+    _content.init(other._tag, MOVE(other._content));                                                                    \
+  }                                                                                                                     \
+                                                                                                                        \
+  template<class B>                                                                                                     \
+  explicit Coproduct(B REF b)                                                                                           \
+    : Coproduct(variant<idx_of<B, A, As...>::value>(MOVE(b)))                                                           \
+  { }                                                                                                                   \
+                                                                                                                        \
+  template <class B> inline B REF as() REF {                                                                            \
+    /* TODO static assertions */                                                                                        \
+    return unwrap<idx_of<B, A, As...>::value>();                                                                        \
+  }                                                                                                                     \
+                                                                                                                        \
+  template <unsigned idx>                                                                                               \
+  inline typename va_idx<idx, A, As...>::type REF unwrap() REF {                                                        \
+    CALL("Coproduct::unwrap() " #REF );                                                                                 \
+    static_assert(idx < size, "out of bounds");                                                                         \
+    ASS_EQ(idx, _tag);                                                                                                  \
+    return __unwrap<idx, A, As...>{}(MOVE(_content));                                                                   \
   }
 
   FOR_REF_QUALIFIER(REF_POLYMORPIHIC)
@@ -292,27 +292,7 @@ public:
   friend std::ostream &operator<<(std::ostream &out, const Coproduct &self) {
     return self.template collapsePoly<std::ostream &>(__writeToStream{self._tag, out});
   }
-#if VDEBUG
-// TODO remove this
-  template<class C>
-friend struct integrity;
-#endif
 };
-
-// #if VDEBUG
-// // TODO remove this
-//
-// template<class... As> 
-// struct integrity<Coproduct<As...>>  {
-//   static void check(const Coproduct<As...>& self, const char* file, int line) {
-//     auto size = Coproduct<As...>::size;
-//     if (self._tag >= size) {
-//       DBG(file,"@",line)
-//       ASS_G(size, self._tag)
-//     }
-//   }
-// };
-// #endif // VDEBUG
 
 } // namespace Lib
 

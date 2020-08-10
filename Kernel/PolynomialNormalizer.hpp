@@ -14,6 +14,7 @@
 #include <algorithm>
 #include <utility>
 #include "Kernel/Polynomial.hpp"
+#include <type_traits>
 
 
 #ifndef __POLYNOMIAL_NORMALIZER_HPP__
@@ -29,6 +30,7 @@ namespace Kernel {
 class TermEvalResult : public Lib::Coproduct<TermList, AnyPoly> {
 public:
   TermEvalResult() : Coproduct(Coproduct::template variant<0>(Kernel::TermList())) { }
+  explicit TermEvalResult(TermList t) : Coproduct(t) {}
   TermEvalResult(Coproduct     && super) : Coproduct(std::move(super)) {}
   TermEvalResult(Coproduct      & super) : Coproduct(          super ) {}
   TermEvalResult(Coproduct const& super) : Coproduct(          super ) {}
@@ -43,8 +45,208 @@ public:
   }
 };
 
+class Variable 
+{
+  unsigned _num;
+public: 
+  explicit Variable(unsigned num) : _num(num) {}
+  unsigned id() const { return _num; }
+};
 
-class LitEvalResult : public Lib::Coproduct<Literal*, bool> {
+
+class FuncId 
+{
+  unsigned _num;
+public: 
+  explicit FuncId(unsigned num) : _num(num) {}
+  unsigned arity() { return env.signature->getFunction(_num)->arity(); }
+};
+
+
+/** 
+ * Smart pointer for aggressively shared objects.
+ * TODO document, factor out.
+ */
+template<class T>
+class Shared
+{
+  T* _elem;
+  static Map<T, T*> _cached;
+
+public:
+
+  explicit Shared(T&& t);
+
+  template<class U>
+  friend bool operator==(Shared<U> const& l, Shared<U> const& r)
+  { return l._elem == r._elem; }
+
+  template<class U>
+  friend bool operator!=(Shared<U> const& l, Shared<U> const& r)
+  { return l._elem != r._elem; }
+
+  operator T const&() const& { return *_elem; }
+};
+
+
+class PolyNf;
+
+/**
+ * Represents an ordenary complex term. In the PolyNF term tree.
+ */
+class FuncTerm 
+{
+  FuncId _fun;
+  Stack<PolyNf> _args;
+public:
+  FuncTerm(FuncId f, Stack<PolyNf>&& args) : _fun(f), _args(std::move(args)) { }
+};
+
+/**
+ * Represents the polynomial normal form of a term, that is used for performing several simplifications and evaluations.
+ *
+ * TODO add more documentation
+ */
+class PolyNf : Lib::Coproduct<Shared<FuncTerm>, Variable, AnyPoly>
+{
+  PolyNf(Shared<FuncTerm> t) : Coproduct(t) {}
+  PolyNf(Variable t) : Coproduct(t) {}
+  PolyNf(AnyPoly  t) : Coproduct(t) {}
+public:
+  PolyNf normalize(TermList t);
+};
+
+inline PolyNf PolyNf::normalize(TermList t) 
+{
+  if (t.isVar())  {
+    return Variable(t.var());
+  } else {
+    // if (AnyPoly::isPoly(t.term())) {
+    //   return AnyPoly::normalize(t.term());
+    // } else {
+    //   FuncId func(t.term()->functor())
+    //   return FuncTerm(
+    //         func, 
+    //         t.term().args(),
+    //         func.arity()
+    //       )
+    // }
+  }
+}
+
+namespace Memo {
+
+  template<class EvalFn>
+  struct None 
+  {
+    using Result = typename std::result_of<EvalFn(Variable)>::type;
+    template<class Init> Result getOrInit(Term* _orig, Init init) { return init(); }
+    Result* getPtr(Term* _orig) { return nullptr; }
+  };
+
+  template<class EvalFn>
+  class Hashed 
+  {
+    using Result = typename std::result_of<EvalFn(Variable)>::type;
+
+    Map<Term*, Result> _memo;
+
+  public:
+    Hashed() : _memo(decltype(_memo)()) {}
+    template<class Init> Result getOrInit(Term* orig, Init init) { return _memo.getOrInit(std::move(orig), init); }
+    Result* getPtr(Term* orig) { return _memo.getPtr(orig); }
+  };
+
+}
+
+/** TODO document */
+template<class EvalFn, class Memo = Memo::None<EvalFn>>
+typename std::result_of<EvalFn(Variable)>::type evaluateBottomUp(Term* term, EvalFn evaluateStep, Memo& memo) 
+{
+  using Result = typename std::result_of<EvalFn(Variable)>::type;
+
+  static_assert(std::is_same<typename std::result_of<EvalFn(Term*, Result*)>::type
+                            ,Result                                               >::value
+                            ,"EvalFn must be of signature `Result evaluateStep(Term*, Result*)`");
+  CALL("PolynomialNormalizer::evaluate(Term* term)")
+
+  static Stack<TermList*> recursion(8);
+  // static Map<Term*, Result> memo;
+
+  static Stack<Term*> terms(8);
+  static vector<TermEvalResult> args;
+
+  recursion.push(term->args());
+  terms.push(term);
+
+  TermList* cur;
+  while (!recursion.isEmpty()) {
+
+    cur = recursion.pop();
+
+    if (!cur->isEmpty()) {
+
+      recursion.push(cur->next());
+
+      if(cur->isVar()) {
+        // variables are not evaluated
+        args.emplace_back(evaluateStep(Variable(cur->var())));
+
+      } else {
+        ASS(cur->isTerm());
+
+        Term* t = cur->term();
+
+        auto cached = memo.getPtr(t);
+        if (cached == nullptr) {
+           terms.push(t);
+           recursion.push(t->args());
+        } else {
+          args.emplace_back(*cached); 
+        }
+      }
+
+
+    } else /* cur->isEmpty() */ { 
+
+      ASS(!terms.isEmpty()) 
+
+      Term* orig = terms.pop();
+
+      Result eval = memo.getOrInit(std::move(orig), 
+          [&](){ 
+            TermEvalResult* argLst = NULL;
+            if (orig->arity() != 0) {
+              ASS(args.size() >= orig->arity());
+              argLst=&args[args.size() - orig->arity()];
+            }
+
+            return evaluateStep(orig,argLst);
+            // ::new(toInit) Result(std::move(eval));
+          });
+
+      DEBUG("evaluated: ", orig->toString(), " -> ", eval);
+
+      args.resize(args.size() - orig->arity());
+      args.emplace_back(std::move(eval));
+    }
+
+  }
+  ASS_REP(recursion.isEmpty(), recursion)
+    
+
+  ASS(args.size() == 1);
+  // TermEvalResult out = TermEvalResult::template variant<0>( TermList() );
+  // std::move(std::make_move_iterator(args.begin()),
+  //           std::make_move_iterator(args.end()),
+  //           &out);
+  Result out = std::move(args[0]);
+  args.clear();
+  return std::move(out);
+}
+
+class LitEvalResult : public Lib::Coproduct<Literal*, bool> 
+{
 private:
   explicit LitEvalResult(Coproduct&& l) : Coproduct(std::move(l)) {}
 public:
@@ -217,95 +419,18 @@ template<class Config> TermEvalResult PolynomialNormalizer<Config>::evaluate(Ter
 }
 
 template<class Config> TermEvalResult PolynomialNormalizer<Config>::evaluate(Term* term) const {
-  CALL("PolynomialNormalizer::evaluate(Term* term)")
-  DEBUG("evaluating ", term->toString())
-  static Map<Term*, TermEvalResult> memo;
-  // memo.integrity_check(__FILE__,__LINE__);
+  struct Eval 
+  {
+    const PolynomialNormalizer& norm;
+    TermEvalResult operator()(Variable v) 
+    { return TermEvalResult(TermList::var(v.id())); }
 
-  static Stack<TermList*> recursion(8);
+    TermEvalResult operator()(Term* t, TermEvalResult* ts) 
+    { return norm.evaluateStep(t, ts); }
+  };
 
-  static Stack<Term*> terms(8);
-  static vector<TermEvalResult> args;
-
-  args.clear();
-  recursion.reset();
-  terms.reset();
-
-  recursion.push(term->args());
-  terms.push(term);
-
-  TermList* cur;
-  while (!recursion.isEmpty()) {
-
-    cur = recursion.pop();
-
-    if (!cur->isEmpty()) {
-
-      recursion.push(cur->next());
-
-      if(cur->isVar()) {
-        // variables are not evaluated
-        args.emplace_back(TermEvalResult::template variant<0>(*cur));
-
-      } else {
-        ASS(cur->isTerm());
-
-        Term* t = cur->term();
-
-        auto cached = memo.getPtr(t);
-        // memo.integrity_check(__FILE__,__LINE__);
-        if (cached == nullptr) {
-           terms.push(t);
-           recursion.push(t->args());
-        } else {
-          args.emplace_back(TermEvalResult(*cached)); 
-        }
-      }
-
-
-    } else /* cur->isEmpty() */ { 
-
-      ASS(!terms.isEmpty()) 
-
-      Term* orig=terms.pop();
-
-        // memo.integrity_check(__FILE__,__LINE__);
-
-      TermEvalResult& res = memo.getOrInit(std::move(orig), 
-          [&](TermEvalResult* toInit){ 
-            TermEvalResult* argLst = NULL;
-            if (orig->arity() != 0) {
-              ASS(args.size() >= orig->arity());
-              argLst=&args[args.size() - orig->arity()];
-            }
-
-            auto eval = evaluateStep(orig,argLst);
-            ::new(toInit) TermEvalResult(std::move(eval));
-          });
-        // memo.integrity_check(__FILE__,__LINE__);
-
-      DEBUG("evaluated: ", orig->toString(), " -> ", res);
-
-      args.resize(args.size() - orig->arity());
-      args.emplace_back(TermEvalResult(res));
-      
-    }
-
-  }
-  ASS_REP(recursion.isEmpty(), recursion)
-    
-
-  ASS(args.size() == 1);
-  TermEvalResult out = TermEvalResult::template variant<0>( TermList() );
-  std::move(std::make_move_iterator(args.begin()),
-            std::make_move_iterator(args.end()),
-            &out);
-  return out;
-  // auto out_ = std::move(out).match<TermList>(
-  //       [](TermList&& l) { return l; }
-  //     , [](AnyPoly&&  p) { return p.template toTerm_<Config>(); }
-  //     ); 
-  // return out_;
+  static Memo::Hashed<Eval> memo;
+  return evaluateBottomUp(term, Eval{ *this }, memo);
 }
 
 
