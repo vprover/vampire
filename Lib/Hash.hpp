@@ -25,6 +25,7 @@
 #define __Hash__
 
 #include <utility>
+#include <functional>
 
 #include "Forwards.hpp"
 #include "VString.hpp"
@@ -53,6 +54,15 @@ struct StackHash {
     }
     return res;
   }
+};
+
+template<class T>
+struct StlHash {
+  static unsigned hash(const T& self) 
+  { return std::hash<T>{}(self); }
+
+  static bool equals(const T& lhs, const T& rhs) 
+  { return lhs == rhs; }
 };
 
 template<class ElementHash>
