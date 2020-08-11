@@ -72,6 +72,10 @@ struct StlHash {
   { return lhs == rhs; }
 };
 
+template<class T>
+size_t stlHash(const T& self) 
+{ return std::hash<T>{}(self); }
+
 template<class ElementHash>
 struct VectorHash {
   template<typename T>

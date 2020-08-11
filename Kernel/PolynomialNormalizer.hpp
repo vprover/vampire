@@ -17,6 +17,7 @@
 #include <type_traits>
 #include <functional>
 #include "Lib/Hash.hpp"
+#include "Lib/UniqueShared.hpp"
 
 
 #ifndef __POLYNOMIAL_NORMALIZER_HPP__
@@ -98,7 +99,7 @@ public:
   friend struct std::hash<FuncTerm>;
 };
 
-using PolyNfSuper = Lib::Coproduct<Shared<FuncTerm>, Variable, AnyPoly>;
+using PolyNfSuper = Lib::Coproduct<UniqueShared<FuncTerm>, Variable, AnyPoly>;
 /**
  * Represents the polynomial normal form of a term, that is used for performing several simplifications and evaluations.
  *
@@ -106,7 +107,7 @@ using PolyNfSuper = Lib::Coproduct<Shared<FuncTerm>, Variable, AnyPoly>;
  */
 class PolyNf : public PolyNfSuper
 {
-  PolyNf(Shared<FuncTerm> t) : Coproduct(t) {}
+  PolyNf(UniqueShared<FuncTerm> t) : Coproduct(t) {}
   PolyNf(Variable t) : Coproduct(t) {}
   PolyNf(AnyPoly  t) : Coproduct(t) {}
 public:
@@ -256,7 +257,7 @@ inline PolyNf PolyNf::normalize(TermList t)
       FuncId func(orig->functor());
       Stack<PolyNf> s(func.arity());
       s.loadFromIterator(getArrayishObjectIterator(evaluatedArgs, func.arity()));
-      return shared(FuncTerm(
+      return unique(FuncTerm(
             func, 
             std::move(s)
           ));
