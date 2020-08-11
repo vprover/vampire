@@ -41,6 +41,13 @@ struct HashUtils
    * http://www.boost.org/doc/libs/1_35_0/doc/html/boost/hash_combine_id241013.html
    */
   static unsigned combine(unsigned h1, unsigned h2) { return h1 ^ (h2 + 0x9e3779b9 + (h1 << 6) + (h1 >> 2)); }
+
+  /** 
+   * Combine n hashes for n > 2.
+   * Since 11/08/2020
+   */
+  template<class... Ts> static unsigned combine(unsigned h1, unsigned h2, unsigned h3, Ts... ts) 
+  { return combine(h1, combine(h2, h3, ts...)); }
 };
 
 template<class ElementHash>
