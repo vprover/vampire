@@ -37,3 +37,6 @@ valgrind.supp
 *.cnf
 tags
 cmake-build
+.exrc
+.clang-format
+.clangd
