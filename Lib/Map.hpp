@@ -58,6 +58,8 @@ protected:
     /** Create a new entry */
     inline Entry ()
       : code(0)
+      // , key  (uninitialized<Key>())
+      // , value(uninitialized<Val>())
     {
     } // Map::Entry::Entry
 
@@ -72,10 +74,36 @@ protected:
 
     /** Hash code, 0 if not occupied */
     unsigned code;
+
+    /** this wrapper is required in order to leave the storage realy unininitialized, which is 
+     * 1) a performance boost, and
+     * 2) required in order to make Map work with types that do not have a default-constructor 
+     */
+    template<class T> using MaybeUninit = typename std::aligned_storage<sizeof(T), alignof(T)>::type;
+
     /** The key of this cell (if any) */
-    Key key;
+    MaybeUninit<Key> _key;
+
     /** The value in this cell (if any) */
-    Val value;
+    MaybeUninit<Val> _value;
+
+    /* unwrap the wrapper type */
+    Val      & value()      & { ASS(code); return *reinterpret_cast<Val*>(&_value); }
+    Val     && value()     && { ASS(code); return *reinterpret_cast<Val*>(&_value); }
+    Val const& value() const& { ASS(code); return *reinterpret_cast<Val*>(&_value); }
+    Key      &   key()      & { ASS(code); return *reinterpret_cast<Key*>(&_key);   }
+    Key     &&   key()     && { ASS(code); return *reinterpret_cast<Key*>(&_key);   }
+    Key const&   key() const& { ASS(code); return *reinterpret_cast<Key*>(&_key);   }
+
+    /** initialize value underlying the wrapper type */
+    void init(Key&& key, Val&& val, unsigned code)
+    {
+      ASS_REP(this->code == 0, this->code)
+      ASS(code != 0)
+      ::new(&_key  ) Key(std::move(key));
+      ::new(&_value) Val(std::move(val));
+      this->code = code;
+    }
   }; // class Map::Entry
 
  public:
@@ -125,8 +153,8 @@ protected:
     }
     Entry* entry;
     for (entry = firstEntryForCode(code); entry->occupied(); entry = nextEntry(entry)) {
-      if (entry->code == code && Hash::equals(entry->key,key)) {
-        found = entry->value;
+      if (entry->code == code && Hash::equals(entry->key(),key)) {
+        found = entry->value();
         return true;
       }
     }
@@ -151,8 +179,8 @@ protected:
     }
     Entry* entry;
     for (entry = firstEntryForCode(code); entry->occupied(); entry = nextEntry(entry)) {
-      if (entry->code == code && Hash::equals(entry->key,key)) {
-        return &entry->value;
+      if (entry->code == code && Hash::equals(entry->key(),key)) {
+        return &entry->value();
       }
     }
     return nullptr;
@@ -174,8 +202,8 @@ protected:
     }
     Entry* entry;
     for (entry = firstEntryForCode(code); entry->occupied(); entry = nextEntry(entry)) {
-      if (entry->code == code && Hash::equals(entry->key,key)) {
-        return &entry->value;
+      if (entry->code == code && Hash::equals(entry->key(),key)) {
+        return &entry->value();
       }
     }
     return nullptr;
@@ -196,11 +224,11 @@ protected:
       code = 1;
     }
     Entry* entry;
-    for (entry = firstEntryForCode(code); !Hash::equals(entry->key,key); entry = nextEntry(entry)) {
+    for (entry = firstEntryForCode(code); !Hash::equals(entry->key(),key); entry = nextEntry(entry)) {
       ASS(entry->occupied());
     }
     ASS(entry->occupied());
-    return entry->value;
+    return entry->value();
   } // Map::get
 
   /**
@@ -262,16 +290,14 @@ private:
 
     Entry* entry;
     for (entry = firstEntryForCode(code); entry->occupied(); entry = nextEntry(entry)) {
-      if (entry->code == code && Hash::equals(entry->key,key)) {
-        return entry->value;
+      if (entry->code == code && Hash::equals(entry->key(),key)) {
+        return entry->value();
       }
     }
     // entry is not occupied
     _noOfEntries++;
-    ::new(&entry->key) Key(std::move(key));
-    ::new(&entry->value) Val(std::move(val));
-    entry->code = code;
-    return entry->value;
+    entry->init(std::move(key), std::move(val), code);
+    return entry->value();
   } // Map::insert
 
 public:
@@ -297,16 +323,14 @@ public:
     }
     Entry* entry;
     for (entry = firstEntryForCode(code); entry->occupied(); entry = nextEntry(entry)) {
-      if (entry->code == code && Hash::equals(entry->key, key)) {
-        entry->value = val;
+      if (entry->code == code && Hash::equals(entry->key(), key)) {
+        entry->value() = val;
         return true;
       }
     }
     // entry is not occupied
     _noOfEntries++;
-    entry->key = key;
-    entry->value = val;
-    entry->code = code;
+    entry->init(std::move(key), std::move(val), code);
     return false;
   } // Map::replaceOrInsert
 
@@ -330,8 +354,8 @@ public:
     }
     Entry* entry;
     for (entry = firstEntryForCode(code); entry->occupied(); entry = nextEntry(entry)) {
-      if (entry->code == code && Hash::equals(entry->key, key)) {
-        entry->value = val;
+      if (entry->code == code && Hash::equals(entry->key(), key)) {
+        entry->value() = val;
         return;
       }
     }
@@ -359,17 +383,14 @@ public:
     }
     Entry* entry;
     for (entry = firstEntryForCode(code); entry->occupied(); entry = nextEntry(entry)) {
-      if (entry->code == code && Hash::equals(entry->key, key)) {
-        return entry->value;
+      if (entry->code == code && Hash::equals(entry->key(), key)) {
+        return entry->value();
       }
     }
     // entry is not occupied
     _noOfEntries++;
-    entry->key = std::move(key);
-    ::new(&entry->value) Val(init());
-    //init(&entry->value);
-    entry->code = code;
-    return entry->value;
+    entry->init(std::move(key), init(), code);
+    return entry->value();
   } 
 
   /**
@@ -391,17 +412,15 @@ public:
     }
     Entry* entry;
     for (entry = firstEntryForCode(code); entry->occupied(); entry = nextEntry(entry)) {
-      if (entry->code == code && Hash::equals(entry->key, key)) {
-        pval = &entry->value;
+      if (entry->code == code && Hash::equals(entry->key(), key)) {
+        pval = &entry->value();
         return false;
       }
     }
     // entry is not occupied
     _noOfEntries++;
-    entry->key = key;
-    entry->value = initial;
-    entry->code = code;
-    pval = &entry->value;
+    entry->init(key, initial, code);
+    pval = &entry->value();
     return true;
   }
   
@@ -490,7 +509,7 @@ public:
         current ++;
       }
       // now current is occupied
-      insert(std::move(current->key),std::move(current->value),current->code);
+      insert(std::move(current->key()),std::move(current->value()),current->code);
       current ++;
       remaining --;
     }
@@ -537,7 +556,7 @@ public:
     {
       ASS(_next != _last);
       ASS(_next->occupied());
-      Val result = _next->value;
+      Val result = _next->value();
       _next++;
       return result;
     }
@@ -552,8 +571,8 @@ public:
       ASS(_next != _last);
       ASS(_next->occupied());
 			
-      val = _next->value;
-      key = _next->key;
+      val = _next->value();
+      key = _next->key();
       _next++;
     }
   private:
