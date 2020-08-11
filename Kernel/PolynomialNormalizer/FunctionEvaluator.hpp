@@ -75,14 +75,15 @@ TermEvalResult tryEvalConstant2(Term* orig, TermEvalResult* evaluatedArgs, EvalG
 template<class Number, class Config>
 TermEvalResult evaluateUnaryMinus(TermEvalResult& inner) {
   auto out = inner.match<TermEvalResult>(
-        [](const TermList& t) { 
+        [](TermList& t) { 
         return TermEvalResult::template variant<1>(AnyPoly(
             Polynom<Number>( Number::constant(-1), t)
             ));
       }
-      , [](const AnyPoly& p) {
+      , [](AnyPoly& p) {
+        auto minusOne = Polynom<Number>(Number::constant(-1));
         auto out = Polynom<Number>::template poly_mul<Config>(
-              Polynom<Number>(Number::constant(-1))
+              minusOne
             , p.as<Polynom<Number>>());
 
         return TermEvalResult::template variant<1>(AnyPoly(std::move(out)));
@@ -118,9 +119,11 @@ template<class Number, class Config> TermEvalResult evaluateMul(TermEvalResult&&
       , [](AnyPoly&& p) { return std::move(p.as<Poly>()); }
       );
   };
+  auto l = to_poly(std::move(lhs));
+  auto r = to_poly(std::move(rhs));
 
   return TermEvalResult::template variant<1>(AnyPoly(
-        Poly::template poly_mul<Config>(to_poly(std::move(lhs)), to_poly(std::move(rhs)))));
+        Poly::template poly_mul<Config>(l, r)));
 }
 
 

@@ -15,6 +15,8 @@
 #include <utility>
 #include "Kernel/Polynomial.hpp"
 #include <type_traits>
+#include <functional>
+#include "Lib/Hash.hpp"
 
 
 #ifndef __POLYNOMIAL_NORMALIZER_HPP__
@@ -51,6 +53,9 @@ class Variable
 public: 
   explicit Variable(unsigned num) : _num(num) {}
   unsigned id() const { return _num; }
+  friend bool operator==(Variable lhs, Variable rhs) 
+  { return lhs._num == rhs._num; }
+  friend struct std::hash<Variable>;
 };
 
 
@@ -60,36 +65,19 @@ class FuncId
 public: 
   explicit FuncId(unsigned num) : _num(num) {}
   unsigned arity() { return env.signature->getFunction(_num)->arity(); }
+
+  friend bool operator==(FuncId const& lhs, FuncId const& rhs) 
+  { return lhs._num == rhs._num; }
+
+  friend bool operator!=(FuncId const& lhs, FuncId const& rhs) 
+  { return !(lhs == rhs); }
+
+  friend struct std::hash<FuncId>;
 };
-
-
-/** 
- * Smart pointer for aggressively shared objects.
- * TODO document, factor out.
- */
-template<class T>
-class Shared
-{
-  T* _elem;
-  static Map<T, T*> _cached;
-
-public:
-
-  explicit Shared(T&& t);
-
-  template<class U>
-  friend bool operator==(Shared<U> const& l, Shared<U> const& r)
-  { return l._elem == r._elem; }
-
-  template<class U>
-  friend bool operator!=(Shared<U> const& l, Shared<U> const& r)
-  { return l._elem != r._elem; }
-
-  operator T const&() const& { return *_elem; }
-};
-
 
 class PolyNf;
+
+bool operator==(PolyNf const& lhs, PolyNf const& rhs);
 
 /**
  * Represents an ordenary complex term. In the PolyNF term tree.
@@ -100,40 +88,38 @@ class FuncTerm
   Stack<PolyNf> _args;
 public:
   FuncTerm(FuncId f, Stack<PolyNf>&& args) : _fun(f), _args(std::move(args)) { }
+
+  friend bool operator==(FuncTerm const& lhs, FuncTerm const& rhs) 
+  { return lhs._fun == rhs._fun && lhs._args == rhs._args; }
+
+  friend bool operator!=(FuncTerm const& lhs, FuncTerm const& rhs) 
+  { return !(lhs == rhs); }
+
+  friend struct std::hash<FuncTerm>;
 };
 
+using PolyNfSuper = Lib::Coproduct<Shared<FuncTerm>, Variable, AnyPoly>;
 /**
  * Represents the polynomial normal form of a term, that is used for performing several simplifications and evaluations.
  *
  * TODO add more documentation
  */
-class PolyNf : Lib::Coproduct<Shared<FuncTerm>, Variable, AnyPoly>
+class PolyNf : public PolyNfSuper
 {
   PolyNf(Shared<FuncTerm> t) : Coproduct(t) {}
   PolyNf(Variable t) : Coproduct(t) {}
   PolyNf(AnyPoly  t) : Coproduct(t) {}
 public:
   PolyNf normalize(TermList t);
+
+  friend bool operator==(PolyNf const& lhs, PolyNf const& rhs) 
+  { return static_cast<Coproduct const&>(lhs) == static_cast<Coproduct const&>(rhs); }
+
+  friend bool operator!=(PolyNf const& lhs, PolyNf const& rhs) 
+  { return !(lhs == rhs); }
+
+  friend struct std::hash<PolyNf>;
 };
-
-inline PolyNf PolyNf::normalize(TermList t) 
-{
-  if (t.isVar())  {
-    return Variable(t.var());
-  } else {
-    // if (AnyPoly::isPoly(t.term())) {
-    //   return AnyPoly::normalize(t.term());
-    // } else {
-    //   FuncId func(t.term()->functor())
-    //   return FuncTerm(
-    //         func, 
-    //         t.term().args(),
-    //         func.arity()
-    //       )
-    // }
-  }
-}
-
 namespace Memo {
 
   template<class EvalFn>
@@ -159,22 +145,39 @@ namespace Memo {
 
 }
 
+
+template<class T>
+T assertionViolation() {ASSERTION_VIOLATION}
+
 /** TODO document */
 template<class EvalFn, class Memo = Memo::None<EvalFn>>
-typename std::result_of<EvalFn(Variable)>::type evaluateBottomUp(Term* term, EvalFn evaluateStep, Memo& memo) 
+typename std::result_of<EvalFn(Variable)>::type evaluateBottomUp(TermList term_, EvalFn evaluateStep, Memo& memo) 
 {
   using Result = typename std::result_of<EvalFn(Variable)>::type;
 
   static_assert(std::is_same<typename std::result_of<EvalFn(Term*, Result*)>::type
                             ,Result                                               >::value
                             ,"EvalFn must be of signature `Result evaluateStep(Term*, Result*)`");
-  CALL("PolynomialNormalizer::evaluate(Term* term)")
+  CALL("PolynomialNormalizer::evaluate(TermList)")
+  if (term_.isVar()) {
+    return evaluateStep(Variable(term_.var())); //TODO memo variables as well.
+  }
+  Term* term = term_.term();
+  
+  /** only used in order to be able to create a fake default constructor for Result, that is required by
+   * std::vector::resize. The constructor will actually never be called.
+   */
+  struct ResultWrapper : Result
+  {
+    ResultWrapper(Result     && res) : Result(std::move(res)) {  }
+    ResultWrapper(Result      & res) : Result(          res ) {  }
+    ResultWrapper(Result const& res) : Result(          res ) {  }
+    ResultWrapper() : Result(assertionViolation<Result>()) {  }
+  };
 
   static Stack<TermList*> recursion(8);
-  // static Map<Term*, Result> memo;
-
   static Stack<Term*> terms(8);
-  static vector<TermEvalResult> args;
+  static vector<ResultWrapper> args;
 
   recursion.push(term->args());
   terms.push(term);
@@ -215,10 +218,10 @@ typename std::result_of<EvalFn(Variable)>::type evaluateBottomUp(Term* term, Eva
 
       Result eval = memo.getOrInit(std::move(orig), 
           [&](){ 
-            TermEvalResult* argLst = NULL;
+            Result* argLst = NULL;
             if (orig->arity() != 0) {
               ASS(args.size() >= orig->arity());
-              argLst=&args[args.size() - orig->arity()];
+              argLst=static_cast<Result*>(&args[args.size() - orig->arity()]);
             }
 
             return evaluateStep(orig,argLst);
@@ -236,14 +239,33 @@ typename std::result_of<EvalFn(Variable)>::type evaluateBottomUp(Term* term, Eva
     
 
   ASS(args.size() == 1);
-  // TermEvalResult out = TermEvalResult::template variant<0>( TermList() );
-  // std::move(std::make_move_iterator(args.begin()),
-  //           std::make_move_iterator(args.end()),
-  //           &out);
   Result out = std::move(args[0]);
   args.clear();
   return std::move(out);
 }
+
+inline PolyNf PolyNf::normalize(TermList t) 
+{
+  // using Result = Coproduct<PolyNf, >;
+
+  struct Eval 
+  {
+    PolyNf operator()(Variable v) { return v; }
+    PolyNf operator()(Term* orig, PolyNf* evaluatedArgs) 
+    {
+      FuncId func(orig->functor());
+      Stack<PolyNf> s(func.arity());
+      s.loadFromIterator(getArrayishObjectIterator(evaluatedArgs, func.arity()));
+      return shared(FuncTerm(
+            func, 
+            std::move(s)
+          ));
+    }
+  };
+  Memo::None<Eval> memo;
+  return evaluateBottomUp(t, Eval{}, memo);
+}
+
 
 class LitEvalResult : public Lib::Coproduct<Literal*, bool> 
 {
@@ -430,7 +452,7 @@ template<class Config> TermEvalResult PolynomialNormalizer<Config>::evaluate(Ter
   };
 
   static Memo::Hashed<Eval> memo;
-  return evaluateBottomUp(term, Eval{ *this }, memo);
+  return evaluateBottomUp(TermList(term), Eval{ *this }, memo);
 }
 
 
@@ -536,5 +558,36 @@ template<class Config> TermEvalResult PolynomialNormalizer<Config>::evaluateStep
 } // Kernel.hpp
 #undef DEBUG
 
+
+template<class T> struct std::hash<Lib::Stack<T>> 
+{
+  size_t operator()(Lib::Stack<T> const& s) const 
+  { return StackHash<StlHash<T>>::hash(s); }
+};
+
+template<> struct std::hash<Kernel::FuncId> 
+{
+  size_t operator()(Kernel::FuncId const& f) const 
+  { return std::hash<unsigned>{}(f._num); }
+};
+
+template<> struct std::hash<Kernel::FuncTerm> 
+{
+  size_t operator()(Kernel::FuncTerm const& f) const 
+  { return Lib::HashUtils::combine(std::hash<Kernel::FuncId>{}(f._fun), std::hash<Stack<Kernel::PolyNf>>{}(f._args));  }
+};
+
+
+template<> struct std::hash<Kernel::PolyNf> 
+{
+  size_t operator()(Kernel::PolyNf const& f) const 
+  { return std::hash<Kernel::PolyNfSuper>{}(f); }
+};
+
+template<> struct std::hash<Kernel::Variable>
+{
+  size_t operator()(Kernel::Variable const& self)
+  { return std::hash<unsigned>{}(self._num); }
+};
 
 #endif // __POLYNOMIAL_NORMALIZER_HPP__
