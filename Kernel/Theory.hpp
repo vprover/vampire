@@ -578,4 +578,26 @@ extern Theory* theory;
 
 }
 
+template<>
+struct std::hash<Kernel::IntegerConstantType>
+{
+  size_t operator()(Kernel::IntegerConstantType const& self) const noexcept 
+  { return self.hash(); }
+};
+
+template<>
+struct std::hash<Kernel::RationalConstantType>
+{
+  size_t operator()(Kernel::RationalConstantType const& self) const noexcept 
+  { return self.hash(); }
+};
+
+
+template<>
+struct std::hash<Kernel::RealConstantType>
+{
+  size_t operator()(Kernel::RealConstantType const& self) const noexcept 
+  { return self.hash(); }
+};
+
 #endif // __Theory__

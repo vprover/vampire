@@ -5,7 +5,9 @@
 
 #include "Debug/Assertion.hpp"
 #include "Debug/Tracer.hpp"
+#include "Lib/Hash.hpp"
 #include <memory>
+#include <functional>
 
 namespace Lib {
 
@@ -169,10 +171,15 @@ template <class A, class... As> union VariadicUnion<A, As...> {
 };
 
 
-  template <class B, class A, class... As> struct idx_of {
-    static constexpr unsigned value = idx_of<B, As...>::value + 1;
-  };
-  template <class A, class... As> struct idx_of<A, A, As...> { static constexpr unsigned value = 0; };
+template <class B, class A, class... As> struct idx_of {
+  static constexpr unsigned value = idx_of<B, As...>::value + 1;
+};
+
+template <class A, class... As> struct idx_of<A, A, As...> { 
+  static constexpr unsigned value = 0; 
+};
+
+
 template <class A, class... As> class Coproduct<A, As...> {
   unsigned _tag;
 
@@ -292,8 +299,26 @@ public:
   friend std::ostream &operator<<(std::ostream &out, const Coproduct &self) {
     return self.template collapsePoly<std::ostream &>(__writeToStream{self._tag, out});
   }
+  friend struct std::hash<Coproduct>;
 };
 
 } // namespace Lib
+
+struct __PolyHash {
+  template<class T>
+  size_t operator()(T const& t) const
+  { return std::hash<T>{}(t); }
+};
+
+template<class... Ts> struct std::hash<Lib::Coproduct<Ts...>>
+{
+  size_t operator()(Lib::Coproduct<Ts...> const& self) const 
+  { 
+
+    return Lib::HashUtils::combine(std::hash<unsigned>{}(self._tag), self.template collapsePoly<size_t>(__PolyHash{})); 
+  }
+};
+
+
 
 #endif // __LIB_EITHER__H__
