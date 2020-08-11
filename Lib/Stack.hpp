@@ -258,6 +258,24 @@ public:
     _cursor++;
   } // Stack::push()
 
+
+  /**
+   * Push new element on the stack (move semantics version).
+   * @since 11/08/2020 
+   */
+  inline
+  void pushMv(C&& elem)
+  {
+    CALL("Stack::push");
+
+    if (_cursor == _end) {
+      expand();
+    }
+    ASS(_cursor < _end);
+    ::new(_cursor) C(std::move(elem));
+    _cursor++;
+  } // Stack::pushMv()
+
   /**
    * Pop the stack and return the popped element.
    * @since 11/03/2006 Bellevue
