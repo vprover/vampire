@@ -136,7 +136,7 @@ void stackTraverseIf(TermList term, Predicate pred, Fn action) {
  * @since 06/12/18
  */
 template<class AbelianGroup>
-class InterpretedLiteralEvaluator::ACFunEvaluator
+  class InterpretedLiteralEvaluator::ACFunEvaluator
    : public Evaluator
 {
 public:

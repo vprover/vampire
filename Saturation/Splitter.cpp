@@ -1453,7 +1453,7 @@ void Splitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* re
   if(replacement) {
     unionAll = replacement->splits();
     ASS(forAll(premises, 
-            [replacement,this] (Clause* premise) { 
+            [replacement] (Clause* premise) { 
               //SplitSet* difference = premise->splits()->subtract(replacement->splits());
               //if(difference->isEmpty()) return true; // isSubsetOf true
               // Now check if those in the difference are zero implied

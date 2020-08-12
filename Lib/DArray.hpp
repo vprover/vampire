@@ -256,6 +256,14 @@ public:
   /** Return the ensured size of the array */
   inline size_t size() const { return _size; }
 
+  /** Creates a new array that is initialized with @b value on every position */
+  static DArray initialized(size_t count, const C& value=C()) {
+    CALL("DArray::initialized");
+    DArray out(count);
+    out.init(count, value);
+    return out;
+  }
+
   /** Ensure that the array's size is at least @b count and
    * initialize first @b count elements of the array to @b value. */
   void init(size_t count, const C& value=C()) {

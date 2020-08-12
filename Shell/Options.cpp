@@ -741,6 +741,11 @@ void Options::Options::init()
     _lookup.insert(&_showInduction);
     _showInduction.tag(OptionTag::OUTPUT);
 
+    _showSimplOrdering = BoolOptionValue("show_ordering","",false);
+    _showSimplOrdering.description = "Display the used simplification ordering's parameters.";
+    _lookup.insert(&_showSimplOrdering);
+    _showSimplOrdering.tag(OptionTag::OUTPUT);
+
     _manualClauseSelection = BoolOptionValue("manual_cs","",false);
     _manualClauseSelection.description="Run Vampire interactively by manually picking the clauses to be selected";
     _lookup.insert(&_manualClauseSelection);
@@ -1916,6 +1921,46 @@ void Options::Options::init()
     _introducedSymbolPrecedence.description="Decides where to place symbols introduced during proof search in the symbol precedence";
     _lookup.insert(&_introducedSymbolPrecedence);
     _introducedSymbolPrecedence.tag(OptionTag::SATURATION);
+
+    _kboAdmissabilityCheck = ChoiceOptionValue<KboAdmissibilityCheck>(
+        "kbo_admissibility_check", "", KboAdmissibilityCheck::ERROR,
+                                     {"error","warning" });
+    _kboAdmissabilityCheck.description = "Choose to emmit a warning instead of throwing an exception if the weight function and precedence ordering for kbo are not compatible.";
+    _kboAdmissabilityCheck.setExperimental();
+    _kboAdmissabilityCheck.reliesOn(_termOrdering.is(equal(TermOrdering::KBO)));
+    _lookup.insert(&_kboAdmissabilityCheck);
+
+
+    _functionWeights = StringOptionValue("function_weights","fw","");
+    _functionWeights.description = 
+      "Path to a file that defines weights for KBO for function symbols, or 'random'.\n"
+      "\n"
+      "If 'random' is used the weights will be assigned randomly.\n"
+      "\n"
+      "If the option is a file path, each line in the file is expected to contain a function name, followed by the functions arity, and a positive integer, that specifies symbols weight.\n"
+      "\n"
+      "Additionally there are special values that can be specified:\n"
+      "- `$default    <number>` specifies the default symbol weight, that is used for all symbols not present in the file (if not specified 0 is used)\n"
+      "- `$introduced <number>` specifies the weight used for symbols introduced during preprocessing or proof search\n"
+      "- `$var        <number>` specifies the weight used for variables\n"
+      "- `$int        <number>` specifies the weight used for integer constants\n"
+      "- `$rat        <number>` specifies the weight used for rational constants\n"
+      "- `$real       <number>` specifies the weight used for real constants\n"
+      "\n"
+      "\n"
+      "===== example ============\n"
+      "$add 2 2\n"
+      "$mul 2 7\n"
+      "f    1 2\n"
+      "$default 2\n"
+      "$var     2\n"
+      "===== end of example =====\n"
+      "\n"
+      "If this option is empty all weights default to 1.\n"
+      ;
+    _functionWeights.setExperimental();
+    _functionWeights.reliesOn(_termOrdering.is(equal(TermOrdering::KBO)));
+    _lookup.insert(&_functionWeights);
 
     _functionPrecedence = StringOptionValue("function_precendence","fp","");
     _functionPrecedence.description = "A name of a file with an explicit user specified precedence on function symbols.";

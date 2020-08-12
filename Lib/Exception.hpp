@@ -41,12 +41,34 @@ class ThrowableBase
 {
 };
 
+template<class... Ms> 
+struct OutputAll;
+
+template<class M, class... Ms> 
+struct OutputAll<M,Ms...> {
+  static void apply(ostream& out, M m, Ms... ms) {
+    out << m;
+    OutputAll<Ms...>::apply(out, ms...);
+  }
+};
+
+template<> 
+struct OutputAll<> {
+  static void apply(ostream& out) { }
+};
+
 /**
  * Abstract class Exception. It is the base class for
  * several concrete classes.
  */
 class Exception : public ThrowableBase
 {
+  template<class... Msg>
+  vstring toString(Msg... msg){
+    vstringstream out;
+    OutputAll<Msg...>::apply(out, msg...);
+    return out.str();
+  }
 public:
   /** Create an exception with a given error message */
   explicit Exception (const char* msg)
@@ -56,6 +78,12 @@ public:
   explicit Exception (const vstring msg)
     : _message(msg)
   { s_exceptionCounter++; }
+
+  template<class... Msg>
+  explicit Exception(Msg... msg) 
+   : Exception(toString(msg...))
+  { }
+
   virtual void cry (ostream&);
   virtual ~Exception()
   {
@@ -67,7 +95,7 @@ public:
 
   static bool isThrown() { return s_exceptionCounter!=0; }
   static bool isThrownDuringExceptionHandling() { return s_exceptionCounter>1; }
-  vstring msg() { return _message; }
+  const vstring& msg() { return _message; }
 protected:
   /** Default constructor, required for some subclasses, made protected
    * so that it cannot be called directly */
@@ -96,6 +124,10 @@ class UserErrorException
  public:
   UserErrorException (const char* msg)
     : Exception(msg)
+  {}
+  template<class... Msgs>
+  UserErrorException (Msgs... ms)
+    : Exception(ms...)
   {}
   UserErrorException (const vstring msg)
     : Exception(msg)

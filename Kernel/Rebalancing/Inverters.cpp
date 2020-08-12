@@ -6,12 +6,12 @@ namespace Rebalancing {
 namespace Inverters {
 #define DEBUG(...) //DBG(__VA_ARGS__)
 
+template<class A> void __ignoreWarnUnusedLocalTypedefHack() {}
+
 #define CASE_INVERT(sort, fun, expr)                                           \
-  case NumTraits<sort>::fun##I: {                                             \
-    _Pragma("GCC diagnostic push") \
-    _Pragma("GCC diagnostic ignored \"-Wunused-local-typedefs\"") \
-    using number = NumTraits<sort>;                                           \
-    _Pragma("GCC diagnostic pop") \
+  case NumTraits<sort>::fun##I: {                                              \
+    using number = NumTraits<sort>;                                            \
+    __ignoreWarnUnusedLocalTypedefHack<number>();                              \
     return expr;                                                               \
   }
 
@@ -50,15 +50,11 @@ bool NumberTheoryInverter::canInvertTop(const InversionContext &ctxt) {
   }
 }
 
-
-
 #define CASE_DO_INVERT(sort, fun, expr)                                        \
-  case NumTraits<sort>::fun##I: {                                             \
-    _Pragma("GCC diagnostic push") \
-    _Pragma("GCC diagnostic ignored \"-Wunused-local-typedefs\"") \
-    using number = NumTraits<sort>;                                           \
+  case NumTraits<sort>::fun##I: {                                              \
+    using number = NumTraits<sort>;                                            \
+    __ignoreWarnUnusedLocalTypedefHack<number>();                              \
     return expr;                                                               \
-    _Pragma("GCC diagnostic pop") \
   }
 
 #define CASE_DO_INVERT_FRAC(fun, expr)                                         \
