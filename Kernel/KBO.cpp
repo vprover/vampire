@@ -295,6 +295,7 @@ void KBO::State::traverse(Term* t1, Term* t2)
   ASS_EQ(depth,0);
 }
 
+#if __KBO__CUSTOM_PREDICATE_WEIGHTS__
 struct PredSigTraits {
   static const char* symbolKindName() 
   { return "predicate"; }
@@ -320,6 +321,7 @@ struct PredSigTraits {
   static Signature::Symbol* getSymbol(unsigned functor) 
   { return env.signature->getPredicate(functor); } 
 };
+#endif
 
 
 struct FuncSigTraits {
@@ -483,7 +485,9 @@ void warnError(UserErrorException e) {
 KBO::KBO(
     // KBO params
     KboWeightMap<FuncSigTraits> funcWeights, 
+#if __KBO__CUSTOM_PREDICATE_WEIGHTS__
     KboWeightMap<PredSigTraits> predWeights, 
+#endif
 
     // precedence ordering params
     DArray<int> funcPrec, 
@@ -494,7 +498,9 @@ KBO::KBO(
     bool reverseLCM
   ) : PrecedenceOrdering(funcPrec, predPrec, predLevels, reverseLCM)
   , _funcWeights(funcWeights)
+#if __KBO__CUSTOM_PREDICATE_WEIGHTS__
   , _predWeights(predWeights)
+#endif
   , _state(new State(this))
 { 
   checkAdmissibility(throwError);
@@ -560,7 +566,9 @@ void KBO::checkAdmissibility(HandleError handle) const
 KBO::KBO(Problem& prb, const Options& opts)
  : PrecedenceOrdering(prb, opts)
  , _funcWeights(weightsFromOpts<FuncSigTraits>(opts))
+#if __KBO__CUSTOM_PREDICATE_WEIGHTS__
  , _predWeights(weightsFromOpts<PredSigTraits>(opts))
+#endif
  , _state(new State(this))
 {
   CALL("KBO::KBO(Prb&, Opts&)");
@@ -667,9 +675,11 @@ Ordering::Result KBO::compare(TermList tl1, TermList tl2) const
 
 int KBO::symbolWeight(Term* t) const
 {
+#if __KBO__CUSTOM_PREDICATE_WEIGHTS__
   if (t->isLiteral()) 
     return _predWeights.symbolWeight(t);
   else 
+#endif
     return _funcWeights.symbolWeight(t);
 }
 
@@ -720,6 +730,7 @@ KboWeightMap<FuncSigTraits> KboWeightMap<FuncSigTraits>::randomized(unsigned max
   };
 }
 
+#if __KBO__CUSTOM_PREDICATE_WEIGHTS__
 template<>
 template<class Random>
 KboWeightMap<PredSigTraits> KboWeightMap<PredSigTraits>::randomized(unsigned maxWeight, Random random)
@@ -740,6 +751,7 @@ KboWeightMap<PredSigTraits> KboWeightMap<PredSigTraits>::randomized(unsigned max
     ._specialWeights         = KboSpecialWeights<PredSigTraits>{},
   };
 }
+#endif
 
 template<class SigTraits>
 KboWeight KboWeightMap<SigTraits>::symbolWeight(Term* t) const
@@ -758,8 +770,10 @@ KboWeight KboWeightMap<SigTraits>::symbolWeight(unsigned functor) const
   return weight;
 }
 
+#if __KBO__CUSTOM_PREDICATE_WEIGHTS__
 void showSpecialWeights(const KboSpecialWeights<PredSigTraits>& ws, ostream& out) 
 { }
+#endif
 
 void showSpecialWeights(const KboSpecialWeights<FuncSigTraits>& ws, ostream& out) 
 { 
@@ -796,22 +810,26 @@ void KBO::showConcrete_(ostream& out) const
 void KBO::showConcrete(ostream& out) const  
 {
   showConcrete_<FuncSigTraits>(out);
+#if __KBO__CUSTOM_PREDICATE_WEIGHTS__
   out << "%" << std::endl;
   showConcrete_<PredSigTraits>(out);
+#endif
 }
 
 template<> const KboWeightMap<FuncSigTraits>& KBO::getWeightMap<FuncSigTraits>() const 
 { return _funcWeights; }
 
+#if __KBO__CUSTOM_PREDICATE_WEIGHTS__
 template<> const KboWeightMap<PredSigTraits>& KBO::getWeightMap<PredSigTraits>() const 
 { return _predWeights; }
+#endif
 
 
 
+#if __KBO__CUSTOM_PREDICATE_WEIGHTS__
 bool KboSpecialWeights<PredSigTraits>::tryGetWeight(unsigned functor, unsigned& weight) const
-{
-  return false;
-}
+{ return false; }
+#endif
 
 bool KboSpecialWeights<FuncSigTraits>::tryGetWeight(unsigned functor, unsigned& weight) const
 {

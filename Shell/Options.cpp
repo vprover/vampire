@@ -1962,31 +1962,6 @@ void Options::Options::init()
     _functionWeights.reliesOn(_termOrdering.is(equal(TermOrdering::KBO)));
     _lookup.insert(&_functionWeights);
 
-    _predicateWeights = StringOptionValue("predicate_weights","pw","");
-    _predicateWeights.description = 
-      "Path to a file that defines weights for KBO for predicate symbols, or 'random'.\n"
-      "\n"
-      "If 'random' is used the weights will be assigned randomly.\n"
-      "\n"
-      "If the option is a file path, each line in the file is expected to contain a predicate name, followed by the predicates arity and a positive integer, that specifies symbols weight.\n"
-      "\n"
-      "Additionally there are special values that can be specified:\n"
-      "`$default <number>`    specifies the default symbol weight, that is used for all symbols not present in the file (if not specified 0 is used)\n"
-      "`$introduced <number>` specifies the weight used for symbols introduced during preprocessing or proof search\n"
-      "\n"
-      "\n"
-      "===== example ============\n"
-      "$less    2 5\n"
-      "$greater 2 3\n"
-      "r        2 10\n"
-      "===== end of example =====\n"
-      "\n"
-      "If this option is empty all weights default to 1.\n"
-      ;
-    _predicateWeights.setExperimental();
-    _predicateWeights.reliesOn(_termOrdering.is(equal(TermOrdering::KBO)));
-    _lookup.insert(&_predicateWeights);
-
     _functionPrecedence = StringOptionValue("function_precendence","fp","");
     _functionPrecedence.description = "A name of a file with an explicit user specified precedence on function symbols.";
     _functionPrecedence.setExperimental();

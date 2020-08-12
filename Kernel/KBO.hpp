@@ -40,11 +40,15 @@
 #define SPECIAL_WEIGHT_IDENT_NUM_RAT        "$rat"
 #define SPECIAL_WEIGHT_IDENT_NUM_REAL       "$real"
 
+#define __KBO__CUSTOM_PREDICATE_WEIGHTS__ 0
+
 namespace Kernel {
 
 using namespace Lib;
 
+#if __KBO__CUSTOM_PREDICATE_WEIGHTS__
 struct PredSigTraits;
+#endif
 struct FuncSigTraits;
 
 
@@ -57,6 +61,8 @@ using KboWeight = unsigned;
 template<class SigTraits>
 struct KboSpecialWeights;
 
+#if __KBO__CUSTOM_PREDICATE_WEIGHTS__
+
 template<>
 struct KboSpecialWeights<PredSigTraits> 
 { 
@@ -68,6 +74,8 @@ struct KboSpecialWeights<PredSigTraits>
 
   bool tryGetWeight(unsigned functor, unsigned& weight) const;
 };
+
+#endif
 
 template<>
 struct KboSpecialWeights<FuncSigTraits> 
@@ -134,7 +142,10 @@ public:
   KBO(
       // KBO params
       KboWeightMap<FuncSigTraits> funcWeights, 
+
+#if __KBO__CUSTOM_PREDICATE_WEIGHTS__
       KboWeightMap<PredSigTraits> predWeights, 
+#endif
 
       // precedence ordering params
       DArray<int> funcPrec, 
@@ -163,7 +174,9 @@ protected:
 private:
 
   KboWeightMap<FuncSigTraits> _funcWeights;
+#if __KBO__CUSTOM_PREDICATE_WEIGHTS__
   KboWeightMap<PredSigTraits> _predWeights;
+#endif
 
   template<class SigTraits> const KboWeightMap<SigTraits>& getWeightMap() const;
   template<class SigTraits> KboWeightMap<SigTraits> weightsFromOpts(const Options& opts) const;
