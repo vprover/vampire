@@ -186,8 +186,7 @@ vstring RDescriptionInst::toString() const
 
 InductionTemplate::InductionTemplate()
   : _rDescriptions(0),
-    _inductionVariables(),
-    _maxVar(0)
+    _inductionVariables()
 {}
 
 void InductionTemplate::addRDescription(RDescription desc)
@@ -228,11 +227,6 @@ List<RDescription>::Iterator InductionTemplate::getRDescriptions() const
   return List<RDescription>::Iterator(_rDescriptions);
 }
 
-unsigned InductionTemplate::getMaxVar() const
-{
-  return _maxVar;
-}
-
 void InductionTemplate::postprocess() {
   ASS(_rDescriptions != nullptr);
 
@@ -259,13 +253,6 @@ void InductionTemplate::postprocess() {
         i++;
       }
     }
-    IntList::Iterator vIt(step->freeVariables());
-    while (vIt.hasNext()) {
-      auto var = vIt.next();
-      if (var >= _maxVar) {
-        _maxVar = var+1;
-      }
-    }
   }
 }
 
@@ -276,8 +263,9 @@ InductionScheme::InductionScheme()
 {
 }
 
-void InductionScheme::init(unsigned var, Term* t, List<RDescription>::Iterator rdescIt, const Lib::DArray<bool>& indVars)
+void InductionScheme::init(Term* t, List<RDescription>::Iterator rdescIt, const Lib::DArray<bool>& indVars)
 {
+  unsigned var = 0;
   while (rdescIt.hasNext()) {
     Map<unsigned, unsigned> varMap;
     auto desc = rdescIt.next();
@@ -320,11 +308,11 @@ void InductionScheme::init(unsigned var, Term* t, List<RDescription>::Iterator r
         if (recCallSubst.count(argTerm) > 0) {
           continue;
         }
-        Map<unsigned, unsigned>::Iterator varIt(varMap);
         if (argRecCall.isVar()) {
           recCallSubst.insert(make_pair(argTerm, TermList(varMap.get(argRecCall.var()), false)));
         } else {
           auto res = argRecCall.term();
+          Map<unsigned, unsigned>::Iterator varIt(varMap);
           while (varIt.hasNext()) {
             unsigned var, replaced;
             varIt.next(var, replaced);
@@ -394,7 +382,6 @@ void InductionScheme::replaceFreeVars(TermList t, unsigned& currVar, Map<unsigne
     Term::Iterator it(t.term());
     while (it.hasNext()) {
       replaceFreeVars(it.next(), currVar, varMap);
-      currVar++;
     }
   }
 }

@@ -111,14 +111,12 @@ public:
 
   const Lib::DArray<bool>& getInductionVariables() const;
   Kernel::List<RDescription>::Iterator getRDescriptions() const;
-  unsigned getMaxVar() const;
 
   Lib::vstring toString() const;
 
 private:
   Kernel::List<RDescription>* _rDescriptions;
   Lib::DArray<bool> _inductionVariables;
-  unsigned _maxVar;
 };
 
 class InductionScheme {
@@ -128,7 +126,7 @@ public:
 
   InductionScheme();
 
-  void init(unsigned var, Kernel::Term* term, Kernel::List<RDescription>::Iterator rdescIt, const Lib::DArray<bool>& indVars);
+  void init(Kernel::Term* term, Kernel::List<RDescription>::Iterator rdescIt, const Lib::DArray<bool>& indVars);
   void addActiveOccurrences(Lib::vmap<Kernel::TermList, Lib::vvector<TermPosition>> m);
   void setMaxVar(unsigned maxVar);
 

@@ -819,7 +819,7 @@ void InductionClauseIterator::selectInductionScheme(Clause* premise, Literal* li
 
     if (match) {
       auto scheme = new InductionScheme();
-      scheme->init(templ->getMaxVar(), curr, templ->getRDescriptions(), templ->getInductionVariables());
+      scheme->init(curr, templ->getRDescriptions(), templ->getInductionVariables());
       List<InductionScheme*>::push(scheme, schemes);
     }
   }
@@ -839,12 +839,26 @@ void InductionClauseIterator::selectInductionScheme(Clause* premise, Literal* li
   }
 }
 
+Literal* replaceActiveOccurrences(Literal* replaceLit,
+                              vmap<TermList, vvector<TermPosition>>& activeOccurrences,
+                              TermList t, TermList r) {
+  if (activeOccurrences[t].size() > 1) {
+    for (const auto& pos : activeOccurrences[t]) {
+      PositionalTermReplacement tr(t.term(), r, pos);
+      replaceLit = static_cast<Literal*>(tr.replaceIn(TermList(replaceLit)).term());
+    }
+  } else {
+    TermReplacement tr(t.term(), r);
+    replaceLit = tr.transform(replaceLit);
+  }
+  return replaceLit;
+}
+
 void InductionClauseIterator::instantiateScheme(Clause* premise, Literal* lit, InferenceRule rule, InductionScheme* scheme)
 {
   CALL("InductionClauseIterator::instantiateScheme");
 
   FormulaList* formulas = FormulaList::empty();
-  unsigned var = scheme->getMaxVar();
 
   auto it = scheme->getRDescriptionInstances();
   auto activeOccurrences = scheme->getActiveOccurrences();
@@ -853,16 +867,7 @@ void InductionClauseIterator::instantiateScheme(Clause* premise, Literal* lit, I
     auto desc = it.next();
     auto replaceLit = lit;
     for (auto kv : desc.getStep()) {
-      auto t = kv.first;
-      if (activeOccurrences[t].size() > 1) {
-        for (const auto& pos : activeOccurrences[t]) {
-          PositionalTermReplacement tr(t.term(), kv.second, pos);
-          replaceLit = static_cast<Literal*>(tr.replaceIn(TermList(replaceLit)).term());
-        }
-      } else {
-        TermReplacement tr(t.term(), kv.second);
-        replaceLit = tr.transform(replaceLit);
-      }
+      replaceLit = replaceActiveOccurrences(replaceLit, activeOccurrences, kv.first, kv.second);
     }
     Formula* right = new AtomicFormula(Literal::complementaryLiteral(replaceLit));
 
@@ -873,35 +878,11 @@ void InductionClauseIterator::instantiateScheme(Clause* premise, Literal* lit, I
 
     while (recCallsIt.hasNext()) {
       auto replaceLit = lit;
-      auto recCall = recCallsIt.next();
-      for (auto& kv : recCall) {
-        auto t = kv.first;
-        if (activeOccurrences[t].size() > 1) {
-          for (const auto& pos : activeOccurrences[t]) {
-            PositionalTermReplacement tr(t.term(), kv.second, pos);
-            replaceLit = static_cast<Literal*>(tr.replaceIn(TermList(replaceLit)).term());
-          }
-        } else {
-          TermReplacement tr(t.term(), kv.second);
-          replaceLit = tr.transform(replaceLit);
-        }
+      for (auto& kv : recCallsIt.next()) {
+        replaceLit = replaceActiveOccurrences(replaceLit, activeOccurrences, kv.first, kv.second);
       }
       hyp = new FormulaList(new AtomicFormula(Literal::complementaryLiteral(replaceLit)),hyp);
     }
-
-    // IteratorByInductiveVariables termIt(term, indVars);
-    // IteratorByInductiveVariables stepIt(desc.getStep().term(), indVars);
-    // while (termIt.hasNext()) {
-    //   auto argStep = stepIt.next();
-    //   auto argTerm = termIt.next();
-
-    //   unsigned occ;
-    //   ASS(activeOccurrences.find(argTerm, occ));
-    //   if (occ > 1 && lit->countSubtermOccurrences(argTerm) == occ) {
-    //     TermReplacement cr(argTerm.term(),argStep);
-    //     replaceTerm = cr.transform(replaceTerm);
-    //   }
-    // }
 
     auto l = FormulaList::length(hyp);
     Formula* left = nullptr;
@@ -926,6 +907,7 @@ void InductionClauseIterator::instantiateScheme(Clause* premise, Literal* lit, I
   auto replaceLit = lit;
   Map<TermList, unsigned> termToVarMap;
   it = scheme->getRDescriptionInstances();
+  unsigned var = scheme->getMaxVar();
   while (it.hasNext()) {
     auto desc = it.next();
     for (const auto& kv : desc.getStep()) {
@@ -935,15 +917,7 @@ void InductionClauseIterator::instantiateScheme(Clause* premise, Literal* lit, I
       }
       termToVarMap.insert(t, var++);
       TermList r(termToVarMap.get(t),false);
-      if (activeOccurrences[t].size() > 1) {
-        for (auto& pos : activeOccurrences[t]) {
-          PositionalTermReplacement tr(t.term(), r, pos);
-          replaceLit = static_cast<Literal*>(tr.replaceIn(TermList(replaceLit)).term());
-        }
-      } else {
-        TermReplacement tr(t.term(), r);
-        replaceLit = tr.transform(replaceLit);
-      }
+      replaceLit = replaceActiveOccurrences(replaceLit, activeOccurrences, t, r);
     }
   }
   Literal* conclusion = Literal::complementaryLiteral(replaceLit);
