@@ -91,8 +91,11 @@ TermList VarReplacement::transformSubterm(TermList trm)
 {
   CALL("VarReplacement::transformSubterm");
 
-  if(trm.isVar() && trm.var()==_v) {
-    return _r;
+  if(trm.isVar()) {
+    if (!_varMap.find(trm.var())) {
+      _varMap.insert(trm.var(), _v++);
+    }
+    return TermList(_varMap.get(trm.var()), false);
   }
   return trm;
 }
@@ -274,23 +277,27 @@ void InductionScheme::init(Term* t, List<RDescription>::Iterator rdescIt, const 
     IteratorByInductiveVariables termIt(t, indVars);
     IteratorByInductiveVariables stepIt(desc.getStep().term(), indVars);
 
+    bool mismatch = false;
     while (termIt.hasNext()) {
       auto argTerm = termIt.next();
       auto argStep = stepIt.next();
       if (stepSubst.count(argTerm) > 0) {
+        if (stepSubst[argTerm].isTerm() && argStep.isTerm() &&
+            stepSubst[argTerm].term()->functor() != argStep.term()->functor()) {
+          mismatch = true;
+          break;
+        }
         continue;
       }
-      replaceFreeVars(argStep, var, varMap);
-      Map<unsigned, unsigned>::Iterator varIt(varMap);
-      auto res = argStep.term();
-      while (varIt.hasNext()) {
-        unsigned var, replaced;
-        varIt.next(var, replaced);
-        VarReplacement cr(var,TermList(replaced,false));
-        res = cr.transform(res);
-      }
+      VarReplacement cr(varMap, var);
+      auto res = cr.transform(argStep.term());
       stepSubst.insert(make_pair(argTerm, TermList(res)));
-      // cout << stepSubst[argTerm].toString() << endl;
+    }
+    if (mismatch) {
+      // We cannot properly create this case because
+      // there is a mismatch between the ctors for
+      // a substituted term
+      continue;
     }
 
     auto recCallSubstList = List<vmap<TermList,TermList>>::empty();
@@ -311,17 +318,10 @@ void InductionScheme::init(Term* t, List<RDescription>::Iterator rdescIt, const 
         if (argRecCall.isVar()) {
           recCallSubst.insert(make_pair(argTerm, TermList(varMap.get(argRecCall.var()), false)));
         } else {
-          auto res = argRecCall.term();
-          Map<unsigned, unsigned>::Iterator varIt(varMap);
-          while (varIt.hasNext()) {
-            unsigned var, replaced;
-            varIt.next(var, replaced);
-            VarReplacement cr(var,TermList(replaced,false));
-            res = cr.transform(res);
-          }
+          VarReplacement cr(varMap, var);
+          auto res = cr.transform(argRecCall.term());
           recCallSubst.insert(make_pair(argTerm, TermList(res)));
         }
-        // cout << recCallSubst.get(argTerm).toString() << endl;
       }
       List<vmap<TermList,TermList>>::push(recCallSubst, recCallSubstList);
     }
@@ -371,19 +371,6 @@ vstring InductionScheme::toString() const
     }
   }
   return str;
-}
-
-void InductionScheme::replaceFreeVars(TermList t, unsigned& currVar, Map<unsigned, unsigned>& varMap) {
-  if (t.isVar()) {
-    if (!varMap.find(t.var())) {
-      varMap.insert(t.var(), currVar++);
-    }
-  } else {
-    Term::Iterator it(t.term());
-    while (it.hasNext()) {
-      replaceFreeVars(it.next(), currVar, varMap);
-    }
-  }
 }
 
 void InductionHelper::preprocess(Problem& prb)

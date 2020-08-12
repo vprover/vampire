@@ -36,12 +36,12 @@ private:
 
 class VarReplacement : public Kernel::TermTransformer {
 public:
-  VarReplacement(unsigned var, Kernel::TermList r) : _v(var), _r(r) {}
+  VarReplacement(Kernel::Map<unsigned, unsigned>& varMap, unsigned& v) : _varMap(varMap), _v(v) {}
   Kernel::TermList transformSubterm(Kernel::TermList trm) override;
 
 private:
-  unsigned _v;
-  Kernel::TermList _r;
+  Kernel::Map<unsigned, unsigned>& _varMap;
+  unsigned& _v;
 };
 
 class IteratorByInductiveVariables
