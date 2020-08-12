@@ -3,8 +3,13 @@
 
 #include <functional>
 #include "Lib/Map.hpp"
+#include "Debug/Tracer.hpp"
 
 namespace Lib {
+
+
+template<class T>
+struct UniqueSharedPtrComparison ;
 
 /** 
  * Smart pointer for aggressively sharing objects.
@@ -16,7 +21,7 @@ namespace Lib {
  *
  * Further T must be copy constructible. // TODO get rid of this restriction
  */
-template<class T>
+template<class T, class DfltComparison = UniqueSharedPtrComparison<T> >
 class UniqueShared 
 {
   using Cache = Map<T, T*, StlHash<T>>;
@@ -56,34 +61,50 @@ public:
 
   T const& operator*() const& { return *_elem; }
   T      & operator*()      & { return *_elem; }
-  T     && operator*()     && { return *_elem; }
 
   /** implicit conversions */
   operator T const&() const& { return *_elem; }
-  operator T      &()      & { return *_elem; }
-  operator T     &&()     && { return *_elem; }
+  operator T      &()      & { return           *_elem ; }
 
-  friend std::ostream& operator<<(std::ostream& out, UniqueShared& self) 
+  friend std::ostream& operator<<(std::ostream& out, const UniqueShared& self) 
   { return out << *self._elem; }
 
-  template<class U> 
-  friend UniqueShared<U> unique(U&& t);
-  friend struct std::hash<UniqueShared<T>>;
-};
+  template<class U, class Cmp> friend UniqueShared<U, Cmp> unique(U&& t);
+  friend struct std::hash<UniqueShared<T, DfltComparison>>;
+
+  template<class U> friend struct UniqueSharedPtrComparison;
+}; // class UniqueShared
 
 /** instantiating the cache */
-template<class T> typename UniqueShared<T>::Cache UniqueShared<T>::_cached;
+template<class T, class Cmp> typename UniqueShared<T, Cmp>::Cache UniqueShared<T, Cmp>::_cached;
+
+template<class T>
+struct UniqueSharedPtrComparison 
+{
+  template<class Cmp>
+  bool operator()(const UniqueShared<T, Cmp>& lhs, const UniqueShared<T, Cmp>& rhs) const
+  { return lhs._elem < rhs._elem; }
+};
+
 
 /** function to create a UniqueShared<T> ergonomically (with the help of type deduction) */
-template<class T> UniqueShared<T> unique(T&& t) 
-{ return UniqueShared<T>(std::move(t)); }
+template<class T, class Cmp = UniqueSharedPtrComparison<T>> 
+UniqueShared<T, Cmp> unique(T&& t) 
+{ return UniqueShared<T, Cmp>(std::move(t)); }
 
 } // namespace Lib
 
-template<class T> struct std::hash<Lib::UniqueShared<T>> 
+template<class T, class Cmp> struct std::hash<Lib::UniqueShared<T, Cmp>> 
 {
-  size_t operator()(Lib::UniqueShared<T> const& self) const 
+  size_t operator()(Lib::UniqueShared<T, Cmp> const& self) const 
   { return std::hash<size_t>{}((size_t) self._elem); }
+};
+
+
+template<class T, class Cmp> struct std::less<Lib::UniqueShared<T, Cmp>> 
+{
+  bool operator()(Lib::UniqueShared<T, Cmp> const& lhs, Lib::UniqueShared<T, Cmp> const& rhs) const 
+  { return Cmp{}(lhs, rhs); }
 };
 
 #endif // __UNIQUE_SHARED_HPP__

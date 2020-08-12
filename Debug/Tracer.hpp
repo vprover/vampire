@@ -142,6 +142,7 @@ template<class... A> void Tracer::printDbg(const char* file, int line, const A&.
 #  define AUX_CALL(SEED,Fun) AUX_CALL_(SEED,Fun)
 #  define CALL(Fun) AUX_CALL(__LINE__,Fun)
 #  define DBG(...) { Debug::Tracer::printDbg(__FILE__, __LINE__, __VA_ARGS__); }
+#  define DBGE(x) DBG(#x " = ", x)
 #  define CALLC(Fun,check) if (check){ AUX_CALL(__LINE__,Fun) }
 #  define CONTROL(description) Debug::Tracer::controlPoint(description)
 #  define AFTER(number,command) \
@@ -153,6 +154,7 @@ template<class... A> void Tracer::printDbg(const char* file, int line, const A&.
 
 #else // ! VDEBUG
 #  define DBG(...) {}
+#  define DBGE(x) {}
 #  define CALL(Fun) 
 #  define CALLC(Fun,check) 
 #  define CONTROL(description)

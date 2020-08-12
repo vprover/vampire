@@ -1,6 +1,6 @@
 
 template<class CommutativeMonoid>
-TermEvalResult evaluateCommutativeMonoid(Term* orig, TermEvalResult* evaluatedArgs) ;
+PolyNf evaluateCommutativeMonoid(Term* orig, PolyNf* evaluatedArgs) ;
 
 template<class ConstantType, class EvalIneq> 
 LitEvalResult evaluateInequality(Literal* lit, bool strict, EvalIneq evalIneq) ;
@@ -9,20 +9,24 @@ template<class ConstantType, class EvalGround>
 LitEvalResult tryEvalConstant2(Literal* lit, EvalGround fun);
 
 template<class ConstantType, class EvalGround>
-TermEvalResult tryEvalConstant1(Term* orig, TermEvalResult* evaluatedArgs, EvalGround fun);
+PolyNf tryEvalConstant1(Term* orig, PolyNf* evaluatedArgs, EvalGround fun);
 
 template<class Number> 
-TermEvalResult evaluateMul(TermEvalResult&& lhs, TermEvalResult&& rhs);
+PolyNf evaluateMul(PolyNf&& lhs, PolyNf&& rhs);
 
 template<class ConstantType, class EvalGround>
-TermEvalResult tryEvalConstant2(Term* orig, TermEvalResult* evaluatedArgs, EvalGround fun);
+PolyNf tryEvalConstant2(Term* orig, PolyNf* evaluatedArgs, EvalGround fun);
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Helper functions
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+//TODO unify tryEvalConstant1 and tryEvalConstant2 
+
 template<class ConstantType, class EvalGround>
-TermEvalResult tryEvalConstant1(Term* orig, TermEvalResult* evaluatedArgs, EvalGround fun) {
+PolyNf tryEvalConstant1(Term* orig, PolyNf* evaluatedArgs, EvalGround fun) {
+  auto func = FuncId(orig->functor());
+  ASS_EQ(func.arity(), 1)
 
   using Number = NumTraits<ConstantType>;
   using NumberOut = NumTraits<typename result_of<EvalGround(ConstantType)>::type>;
@@ -31,16 +35,19 @@ TermEvalResult tryEvalConstant1(Term* orig, TermEvalResult* evaluatedArgs, EvalG
   if (x.isPoly()) {
     auto poly = x.template as<AnyPoly>().template as<Polynom<Number>>();
     if (poly.isCoeff()) {
-      return TermEvalResult::template variant<1>(AnyPoly(Polynom<NumberOut>(fun(poly.unwrapCoeff()))));
+      return AnyPoly(Polynom<NumberOut>(fun(poly.unwrapCoeff())));
     }
   }
 
-  return TermEvalResult::template variant<0>(TermList(orig));
+  return unique(FuncTerm(func, Stack<PolyNf>{  evaluatedArgs[0] }));
 }
 
 
 template<class ConstantType, class EvalGround>
-TermEvalResult tryEvalConstant2(Term* orig, TermEvalResult* evaluatedArgs, EvalGround fun) {
+PolyNf tryEvalConstant2(Term* orig, PolyNf* evaluatedArgs, EvalGround fun) {
+  auto func = FuncId(orig->functor());
+  ASS_EQ(func.arity(), 2)
+
   using Number = NumTraits<ConstantType>;
   using NumberOut = NumTraits<typename result_of<EvalGround(ConstantType, ConstantType)>::type>;
 
@@ -48,10 +55,11 @@ TermEvalResult tryEvalConstant2(Term* orig, TermEvalResult* evaluatedArgs, EvalG
     auto lhs = evaluatedArgs[0].template as<AnyPoly>().template as<Polynom<Number>>();
     auto rhs = evaluatedArgs[1].template as<AnyPoly>().template as<Polynom<Number>>();
     if (lhs.isCoeff() && rhs.isCoeff()) {
-      return TermEvalResult::template variant<1>(AnyPoly(Polynom<NumberOut>(fun(lhs.unwrapCoeff(), rhs.unwrapCoeff()))));
+      return AnyPoly(Polynom<NumberOut>(fun(lhs.unwrapCoeff(), rhs.unwrapCoeff())));
     }
   }
-  return TermEvalResult::template variant<0>(TermList(orig));
+
+  return unique(FuncTerm(func, Stack<PolyNf>{  evaluatedArgs[0], evaluatedArgs[1] }));
 }
 
 
@@ -60,9 +68,9 @@ TermEvalResult tryEvalConstant2(Term* orig, TermEvalResult* evaluatedArgs, EvalG
   template<>                                                                               \
   struct FunctionEvaluator<interpretation> {                                               \
     template<class Config>                                                                 \
-    static TermEvalResult evaluate(Term* orig, TermEvalResult* evaluatedArgs)              \
+    static PolyNf evaluate(Term* orig, PolyNf* evaluatedArgs)              \
     {                                                                                      \
-      CALL("FunctionEvaluator<" #interpretation ">::evaluate(Term*,TermEvalResult*)");     \
+      CALL("FunctionEvaluator<" #interpretation ">::evaluate(Term*,PolyNf*)");     \
       __VA_ARGS__                                                                          \
     }                                                                                      \
   };
@@ -73,22 +81,18 @@ TermEvalResult tryEvalConstant2(Term* orig, TermEvalResult* evaluatedArgs, EvalG
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 template<class Number, class Config>
-TermEvalResult evaluateUnaryMinus(TermEvalResult& inner) {
-  auto out = inner.match<TermEvalResult>(
-        [](TermList& t) { 
-        return TermEvalResult::template variant<1>(AnyPoly(
-            Polynom<Number>( Number::constant(-1), t)
-            ));
-      }
-      , [](AnyPoly& p) {
+PolyNf evaluateUnaryMinus(PolyNf& inner) {
+  auto out = inner.match<PolyNf>(
+      [](UniqueShared<FuncTerm>& t) { return AnyPoly(Polynom<Number>(Number::constant(-1), t)); }, 
+      [](              Variable& t) { return AnyPoly(Polynom<Number>(Number::constant(-1), t)); }, 
+      [](AnyPoly& p) {
         auto minusOne = Polynom<Number>(Number::constant(-1));
         auto out = Polynom<Number>::template poly_mul<Config>(
               minusOne
             , p.as<Polynom<Number>>());
 
-        return TermEvalResult::template variant<1>(AnyPoly(std::move(out)));
-      }
-      );
+        return AnyPoly(std::move(out));
+      });
   return out;
 }
 
@@ -109,21 +113,21 @@ TermEvalResult evaluateUnaryMinus(TermEvalResult& inner) {
 /// MULTIPLY
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-template<class Number, class Config> TermEvalResult evaluateMul(TermEvalResult&& lhs, TermEvalResult&& rhs) 
+template<class number>
+Polynom<number> toPoly(PolyNf x) {
+  using Poly = Polynom<number>;
+  return x.match<Poly>(
+      [](UniqueShared<FuncTerm> const& t) { return Poly(PolyNf(t)); }, 
+      [](Variable               const& t) { return Poly(PolyNf(t)); }, 
+      [](AnyPoly                const& p) { return p.as<Poly>();    }
+    );
+};
+
+template<class Number, class Config> PolyNf evaluateMul(PolyNf&& lhs, PolyNf&& rhs) 
 {
-  using Poly = Polynom<Number>;
-
-  auto to_poly = [](TermEvalResult&& x) -> Poly {
-    return std::move(x).match<Poly>(
-        [](TermList&& t) { return Poly(Number::constant(1), t); }
-      , [](AnyPoly&& p) { return std::move(p.as<Poly>()); }
-      );
-  };
-  auto l = to_poly(std::move(lhs));
-  auto r = to_poly(std::move(rhs));
-
-  return TermEvalResult::template variant<1>(AnyPoly(
-        Poly::template poly_mul<Config>(l, r)));
+  auto l = toPoly<Number>(lhs);
+  auto r = toPoly<Number>(rhs);
+  return AnyPoly(Polynom<Number>::template poly_mul<Config>(l, r));
 }
 
 
@@ -145,29 +149,22 @@ template<class Number, class Config> TermEvalResult evaluateMul(TermEvalResult&&
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 template<class Number>
-Polynom<Number> evaluateAdd(TermEvalResult&& lhs, TermEvalResult&& rhs) {
-  CALL("Polynom<Number> evaluateAdd(TermEvalResult&& lhs, TermEvalResult&& rhs)")
+Polynom<Number> evaluateAdd(PolyNf&& lhs, PolyNf&& rhs) {
+  CALL("Polynom<Number> evaluateAdd(PolyNf&& lhs, PolyNf&& rhs)")
   using Poly = Polynom<Number>;
 
-  Poly l = std::move(lhs).match<Poly>(
-        [](TermList && t) { return Poly(Number::constant(1), t); }
-      , [](AnyPoly  && p) { return std::move(p.as<Poly>()); }
-      );
-
-  Poly r = std::move(rhs).match<Poly>(
-        [](TermList&& t) { return Poly(Number::constant(1), t); }
-      , [](AnyPoly&& p) { return std::move(p.as<Poly>()); }
-      );
-  
-  return Poly::poly_add(l, r);
+  return Poly::poly_add(
+      toPoly<Number>(lhs), 
+      toPoly<Number>(rhs));
 }
 
 
 #define IMPL_ADD(Const)                                                                    \
   IMPL_EVALUATE_FUN(NumTraits<Const>::addI, {                                              \
-    auto Poly = evaluateAdd<NumTraits<Const>>(std::move(evaluatedArgs[0]), std::move(evaluatedArgs[1])); \
-    auto out = TermEvalResult::template variant<1>(AnyPoly(std::move(Poly)));              \
-    return out;                                                                            \
+    return AnyPoly( \
+        evaluateAdd<NumTraits<Const>>( \
+          std::move(evaluatedArgs[0]),  \
+          std::move(evaluatedArgs[1]))); \
   })                                                                                       \
 
   IMPL_ADD(RealConstantType    )

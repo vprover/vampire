@@ -10,333 +10,93 @@
 #include "Kernel/Theory.hpp"
 #include <map> // TODO replace by Map
 #include "Lib/UniqueShared.hpp"
+#include "Kernel/NumTraits.hpp"
 
 #define DEBUG(...) //DBG(__VA_ARGS__)
 
-
 namespace Kernel {
-template<class t> using vector  = std::vector<t, Lib::STLAllocator<t>>;
-template<class K, class V, class Compare = std::less<K>> using map  = std::map<K, V, Compare, STLAllocator<std::pair<const K, V > > >;
 
-/** Merges two map-like vectors into a new map-like vector. 
- * A vector is map-like if has key-value pairs as entry, is sorted by keys and each key is unique within the vector.
- *
- * If there is a key present in both lhs and rhs, the corresponding the two corresponding values will be combined 
- * with the closure @b add. After that the result of combining is then used as argument for @b filter() and will 
- * be discarded if filter returns false.
- */
-template<class A, class B, class Add, class Filter>
-vector<tuple<A, B>> merge_sort_with(const vector<tuple<A, B>>& lhs, const vector<tuple<A, B>>& rhs, Add add, Filter filter) {
-    CALL("merge_sort_with()")
-
-    vector<tuple<A,B>> out;
-    /* is needed at least */
-    out.reserve(max(lhs.size(), rhs.size()));
-    auto l = lhs.begin();
-    auto r = rhs.begin();
-    auto insert = [&](const A& key, B value) {
-      ASS(filter(value));
-      out.emplace_back(make_tuple(A(key), value));
-    };
-    auto fst = [](const tuple<A,B>& x) { return get<0>(x); };
-    auto snd = [](const tuple<A,B>& x) { return get<1>(x); };
-    while (l != lhs.end() && r != rhs.end() ) {
-      if (fst(*l) == fst(*r)) {
-        //add up
-        auto sum = add(snd(*l), snd(*r));
-        if (filter(sum))
-          insert(fst(*l), sum);
-        l++;
-        r++;
-      } else if (fst(*l)< fst(*r)) {
-        // insert l
-        insert(fst(*l), snd(*l));
-        l++;
-      } else {
-        // insert r
-        insert(fst(*r), snd(*r));
-        r++;
-      }
-    }
-    while (l != lhs.end()) {
-      insert(fst(*l), snd(*l));
-      l++;
-    }
-    while (r != rhs.end()) {
-      insert(fst(*r), snd(*r));
-      r++;
-    }
-    ASS(l == lhs.end() && r == rhs.end());
-    return std::move(out);
-}
-
-template<class number>
-class Monom 
+class Variable 
 {
-  vector<tuple<TermList, int>> _factors;
-  Lib::Optional<TermList> _toTerm;
-  friend struct std::hash<Monom>;
+  unsigned _num;
+public: 
+  explicit Variable(unsigned num) : _num(num) {}
+  unsigned id() const { return _num; }
+  friend bool operator==(Variable lhs, Variable rhs) 
+  { return lhs._num == rhs._num; }
 
-public:
-  Monom() : _factors(decltype(_factors)()) { }
-  Monom(TermList t) : _factors { make_tuple(t, 1)}  { }
-  Monom(TermList t1, TermList t2) 
-    : _factors(t1 == t2 ? decltype(_factors) ({ make_tuple(t1, 2)}) : 
-               t1 <  t2 ? decltype(_factors) ({ make_tuple(t1,1), make_tuple(t2,1)}) :
-                          decltype(_factors) ({ make_tuple(t2,1), make_tuple(t1,1)}) 
-                          )  { }
-private:
+  friend struct std::hash<Variable>;
 
-  Monom(decltype(_factors) factors) : _factors(factors) { }
+  friend bool operator<(Variable const& lhs, Variable const& rhs)
+  { return lhs._num < rhs._num; }
 
-public:
+  friend std::ostream& operator<<(std::ostream& out, const Variable& self) 
+  { return out << "X" << self._num; }
 
-  USE_ALLOCATOR(Monom)
-  CLASS_NAME(Monom)
-  using monom_pair = typename decltype(_factors)::value_type;
-
-  static TermList getTerm(const typename decltype(_factors)::value_type& pair) {
-    return std::get<0>(pair);
-  }
-
-  static int getCount(const typename decltype(_factors)::value_type& pair) {
-    return std::get<1>(pair);
-  }
-
-  bool isOne() const 
-  { return _factors.begin() == _factors.end(); }
-
-  static TermList pairToTerm(const monom_pair& pair) {
-    auto cnt = getCount(pair);
-    ASS_REP(cnt > 0, cnt)
-
-    auto trm = getTerm(pair);
-    auto out = trm;
-    for (auto i = 1; i < cnt; i++) {
-      out = number::mul(trm, out);
-    }
-    return out;
-  }
-
-  template<class Config>
-  TermList toTerm() {
-    CALL("Monom::toTerm()")
-    return _toTerm.unwrapOrInit([&]() {
-
-      if (_factors.size() == 0) {
-        return number::one();
-      } else {
-
-        vector<TermList> factors;
-        auto sz = 0;
-        for(auto& f : _factors) {
-          sz += getCount(f);
-        }
-        factors.reserve(sz);
-
-        for (auto f : _factors) {
-          for (auto i = 0; i < getCount(f); i++) {
-            factors.push_back(getTerm(f));
-          }
-        }
-
-        sort(begin(factors), end(factors), typename Config::Ordering{});
-
-        auto iter = factors.rbegin();
-
-        auto out = *iter;
-        iter++;
-        for(; iter != factors.rend(); iter++)  {
-          out = number::mul(*iter, out); 
-        }
-        return out;
-      }
-    });
-  }
-
-  friend std::ostream& operator<<(std::ostream& out, const Monom& self) {
-    if (self._factors.size() == 0) {
-      return out << "1";
-    } else {
-      auto iter  = self._factors.begin();
-      out << getTerm(*iter) << "^" << getCount(*iter);
-      iter++;
-      for (; iter != self._factors.end(); iter++) {
-        out << " * " << getTerm(*iter) << "^" << getCount(*iter);
-      }
-      return out;
-    }
-  }
-
-  friend bool operator<(const Monom& l, const Monom& r) {
-    if (l._factors.size() < r._factors.size()) {
-      return true;
-    } else if (l._factors.size() > r._factors.size()) {
-      return false;
-    } else {
-      return  l._factors < r._factors;
-    }
-  }
-
-  friend bool operator>(const Monom& l, const Monom& r) { return r < l; }
-
-  friend bool operator==(const Monom& l, const Monom& r) {
-    return l._factors == r._factors;
-  }
-
-  public:
-
-  Monom& operator=(Monom&&) = default;
-  Monom(Monom&&) = default;
-
-  static UniqueShared<Monom> monom_mul(const Monom& lhs, const Monom& rhs) 
-  {
-    return unique(Monom(merge_sort_with(lhs._factors,rhs._factors,
-           [](int l, int r) { return l + r; },
-           [](int l) { return l != 0; })));
-  }
-
-  explicit Monom(const Monom&) = default;
-  explicit Monom(Monom&) = default;
+  template<class Ord> TermList toTerm()
+  { return TermList::var(id()); }
 };
 
-template<class number>
-class ComplexPolynom 
+
+class FuncId 
 {
-  friend struct std::hash<ComplexPolynom>;
-  template<class NumTraits> friend class Polynom;
+  unsigned _num;
+  
+  Signature::Symbol* symbol() const { return env.signature->getFunction(_num); }
+public: 
+  explicit FuncId(unsigned num) : _num(num) {}
+  unsigned arity() { return symbol()->arity(); }
 
-  using Coeff = typename number::ConstantType;
-  using PMonom = UniqueShared<Monom<number>>;
+  friend bool operator==(FuncId const& lhs, FuncId const& rhs) 
+  { return lhs._num == rhs._num; }
+
+  friend bool operator!=(FuncId const& lhs, FuncId const& rhs) 
+  { return !(lhs == rhs); }
+
+  friend struct std::hash<FuncId>;
+
+  friend std::ostream& operator<<(std::ostream& out, const FuncId& self) 
+  { return out << self.symbol()->name(); }
+
+  unsigned id() const 
+  { return _num; }
+};
+
+class PolyNf;
+template<class number> class ComplexPolynom;
+template<class number> class        Polynom;
+template<class number> class        Monom;
+using MonomTerm = PolyNf;
+template<class number> using poly_pair = tuple<UniqueShared<Monom<number>>, typename number::ConstantType>;
+struct AnyPoly;
+
+
+std::ostream& operator<<(std::ostream& out, const PolyNf& self);
+
+bool operator==(PolyNf const& lhs, PolyNf const& rhs);
+
+/**
+ * Represents an ordenary complex term. In the PolyNF term tree.
+ */
+class FuncTerm 
+{
+  FuncId _fun;
+  Stack<PolyNf> _args;
 public:
-  USE_ALLOCATOR(ComplexPolynom)
-  CLASS_NAME(ComplexPolynom)
+  FuncTerm(FuncId f, Stack<PolyNf>&& args) : _fun(f), _args(std::move(args)) { }
+  FuncTerm(FuncId f, PolyNf* args) : _fun(f), _args(Stack<PolyNf>::fromIterator(getArrayishObjectIterator(args, f.arity()))) { }
 
-private:
-  using CoeffVec = vector<tuple<PMonom, Coeff>>;
-  CoeffVec _coeffs;
-  Lib::Optional<TermList> _toTerm;
-  using poly_pair = typename decltype(_coeffs)::value_type;
+  friend bool operator==(FuncTerm const& lhs, FuncTerm const& rhs) 
+  { return lhs._fun == rhs._fun && lhs._args == rhs._args; }
 
-public:
+  friend bool operator!=(FuncTerm const& lhs, FuncTerm const& rhs) 
+  { return !(lhs == rhs); }
 
-  ComplexPolynom(Coeff coeff, PMonom&& t) : _coeffs(decltype(_coeffs)()) 
-  { _coeffs.emplace_back(poly_pair(std::move(t), coeff)); }
+  friend struct std::hash<FuncTerm>;
 
-  ComplexPolynom(PMonom&& t) : _coeffs(decltype(_coeffs)())  
-  { _coeffs.emplace_back(poly_pair(std::move(t), Coeff(1))); }
+  friend std::ostream& operator<<(std::ostream& out, const FuncTerm& self) ;
 
-  ComplexPolynom(Coeff coeff, TermList t) : ComplexPolynom(coeff, unique(Monom<number>(t))) { }
-
-  ComplexPolynom(Coeff constant) : _coeffs(decltype(_coeffs)())  
-  {
-    CALL("ComplexPolynom::ComplexPolynom(Coeff)")
-    if (constant != number::zeroC)
-      _coeffs.emplace_back(poly_pair(unique(Monom<number>()), constant));
-  }
-
-  ComplexPolynom(decltype(_coeffs) coeffs) : _coeffs(coeffs) { }
-
-  ComplexPolynom() : _coeffs(decltype(_coeffs)()) { }
-
-  ComplexPolynom(ComplexPolynom&& other) = default;
-  explicit ComplexPolynom(const ComplexPolynom&) = default;
-  unsigned nSummands() const& { return _coeffs.size(); }
-
-  ComplexPolynom& operator=(ComplexPolynom&& other) = default;
-
-
-  friend bool operator==(const ComplexPolynom& lhs, const ComplexPolynom& rhs) {
-    return lhs._coeffs == rhs._coeffs;
-  }
-
-  static PMonom& getMonom(poly_pair& pair) {
-    return std::get<0>(pair);
-  }
-
-  static const PMonom& getMonom(const poly_pair& pair) {
-    return std::get<0>(pair);
-  }
-
-  static const Coeff& getCoeff(const poly_pair& pair) {
-    return std::get<1>(pair);
-  }
-
-  static Coeff& getCoeffMut(poly_pair& pair) {
-    return std::get<1>(pair);
-  }
-
-  void integrity() const {
-#if VDEBUG
-    if (_coeffs.size() > 0) {
-      auto iter = this->_coeffs.begin();
-      auto last = iter++;
-      while (iter != _coeffs.end()) {
-        ASS_REP(getMonom(*last) < getMonom(*iter), *this);
-        last = iter++;
-      }
-    }
-#endif
-  }
-
-  template<class Config>
-  static TermList toTerm(ComplexPolynom& self) {
-    CALL("ComplexPolynom::toTerm() const")
-    return self._toTerm.unwrapOrInit([&]() {
-      // self.integrity();
-      
-      auto trm = [](poly_pair& x) -> TermList { 
-        using Self = ComplexPolynom;
-
-        if (Self::getMonom(x)->isOne()) {  
-          /* the pair is a plain number */
-          return TermList( theory->representConstant(Self::getCoeff(x)) );
-
-        } else if (Self::getCoeff(x)== number::constant(1)) {
-          /* the pair is an uninterpreted term */
-          return Self::getMonom(x)->template toTerm<Config>();
-
-        } else if (Self::getCoeff(x)== number::constant(-1)) {
-          return TermList(number::minus(Self::getMonom(x)->template toTerm<Config>()));
-
-        } else {
-          return TermList(number::mul(TermList( theory->representConstant(Self::getCoeff(x)) ), Self::getMonom(x)->template toTerm<Config>())); 
-        }
-      };
-
-      vector<TermList> coeffs(self._coeffs.size());
-      transform(begin(self._coeffs),end(self._coeffs), begin(coeffs), trm);
-
-      sort(begin(coeffs), end(coeffs), typename Config::Ordering{});
-
-      auto iter = coeffs.rbegin(); 
-      if (iter == coeffs.rend()) {
-        return TermList(number::zero());
-      } else {
-        auto out = *iter;
-        iter++;
-        for (; iter != coeffs.rend(); iter++) {
-          out = number::add(*iter, out);
-        }
-        return out;
-      }
-    });
-  }
-
-  friend std::ostream& operator<<(std::ostream& out, const ComplexPolynom& self) {
-    auto iter = self._coeffs.begin();
-    if ( iter == self._coeffs.end() ) {
-      out << "0";
-    } else {
-      out << self.getMonom(*iter)<< " * " << self.getCoeff(*iter);
-      iter++;
-      for (; iter != self._coeffs.end(); iter++) {
-        out << " + " << self.getMonom(*iter)<< " * " << self.getCoeff(*iter);
-      }
-    }
-    return out;
-  }
-
+  template<class Ord> TermList toTerm();
 };
 
 /**
@@ -348,8 +108,7 @@ class Polynom
 {
 public:
   using Coeff = typename number::ConstantType;
-  using PMonom = Monom<number>;
-  using poly_pair = typename ComplexPolynom<number>::poly_pair;
+  using poly_pair = Kernel::poly_pair<number>;
 
 private:
   friend struct std::hash<Polynom>;
@@ -357,7 +116,7 @@ private:
 
 
   // optimization in order to make handle polynomials that are only a single number more efficiently
-  using Inner = Coproduct<UniqueShared<ComplexPolynom<number>>, Coeff>;
+  using Inner = Coproduct<UniqueShared<ComplexPolynom<number> >, Coeff>;
   Inner _inner;
 
   bool                      isComplex() const& { return _inner.template is<0>(); }
@@ -381,14 +140,11 @@ public:
     return out;
   }
 
-#define DBGE(x) //DBG(#x " = ", x)
 
 private:
 
   static Polynom<number> poly_add(const ComplexPolynom<number>& lhs, const ComplexPolynom<number>& rhs) {
     CALL("ComplexPolynom::poly_add")
-    // DBG("lhs: ", lhs)
-    // DBG("rhs: ", rhs)
     ASS(!lhs._coeffs.empty())
     ASS(!rhs._coeffs.empty())
     auto newCoeffs = merge_sort_with(lhs._coeffs, rhs._coeffs, 
@@ -439,8 +195,6 @@ private:
       }
     }
 
-    // DBG("in : ", oldPoly, "\t+\t", coeff)
-    // DBG("out: ", newPoly)
 
     return unique(std::move(newPoly));
   }
@@ -472,13 +226,15 @@ private:
     CALL("ComplexPolynom::poly_mul");
     DEBUG("lhs: ", lhs);
     DEBUG("rhs: ", rhs);
+    lhs.integrity();
+    rhs.integrity();
 
     //TODO use Map instead
-    map<UniqueShared<PMonom>, Coeff> prods;
+    map<UniqueShared<Monom<number>>, Coeff> prods;
 
     for (auto& l : lhs._coeffs) {
       for (auto& r : rhs._coeffs) {
-        auto monom = unique(PMonom::monom_mul( lhs.getMonom(l), rhs.getMonom(r)));
+        auto monom = unique(Monom<number>::monom_mul( lhs.getMonom(l), rhs.getMonom(r)));
         auto coeff = lhs.getCoeff(l) * rhs.getCoeff(r);
         auto res = prods.emplace(make_pair(std::move(monom), coeff));
         if (!res.second) {
@@ -488,6 +244,7 @@ private:
         }
       }
     }
+
     ComplexPolynom<number> out;
     out._coeffs.reserve(prods.size());
     for (auto iter = prods.begin(); iter != prods.end(); iter++) {
@@ -497,6 +254,7 @@ private:
       }
     }
     DEBUG("out: ", out);
+    std::sort(out._coeffs.begin(), out._coeffs.end());
     out.integrity();
     return unique(std::move(out));
   }
@@ -565,7 +323,7 @@ private:
     auto itr = oldr._coeffs.begin();
     auto endl = oldl._coeffs.end();
     auto endr = oldr._coeffs.end();
-    auto push = [](CoeffVec& vec, const PMonom& m, Coeff c) {
+    auto push = [](CoeffVec& vec, const Monom<number>& m, Coeff c) {
       vec.emplace_back(make_pair(unique(Monom<number>(m)), c));
     };
     CoeffVec newl;
@@ -573,8 +331,8 @@ private:
     while(itl != endl && itr !=  endr) {
       auto cl = oldl.getCoeff(*itl);
       auto cr = oldr.getCoeff(*itr);
-      auto& ml = oldl.getMonom(*itl);
-      auto& mr = oldr.getMonom(*itr);
+      const UniqueShared<Monom<number>>& ml = oldl.getMonom(*itl);
+      const UniqueShared<Monom<number>>& mr = oldr.getMonom(*itr);
       if (ml == mr) {
         auto& m = ml;
         ASS_NEQ(cl, zero);
@@ -631,8 +389,6 @@ public:
 
   static std::pair<Polynom, Polynom> cancel(Polynom& lhs, Polynom& rhs) {
     // only dispatiching is going on here
-    DBGE(lhs)
-    DBGE(rhs)
     if (lhs.isCoeff()) {
       if (rhs.isCoeff()) {
         return cancel_(lhs.unwrapCoeff(), rhs.unwrapCoeff());
@@ -652,15 +408,19 @@ public:
   template<class Config>
   TermList toTerm() { 
     return _inner.template match<TermList>(
-          [](UniqueShared<ComplexPolynom<number>> self) { return ComplexPolynom<number>::template toTerm<Config>(self); }
-        , [](Coeff self          ) { return TermList(theory->representConstant(self)); }
+
+          [](UniqueShared<ComplexPolynom<number>> self) 
+          { return self->template toTerm<Config>(); },
+
+          [](Coeff self ) 
+          { return TermList(theory->representConstant(self)); }
         );
   }
 
   template<class Config>
   static TermList toTerm(Polynom& self) { 
     return self._inner.template match<TermList>(
-          [](UniqueShared<ComplexPolynom<number>> self) { return ComplexPolynom<number>::template toTerm<Config>(self); }
+          [](UniqueShared<ComplexPolynom<number>> self) { return self->template toTerm<Config>(); }
         , [](Coeff self          ) { return TermList(theory->representConstant(self)); }
         );
   }
@@ -668,30 +428,8 @@ public:
 public:
 
   template<class Config>
-  inline static Polynom poly_mul(Polynom& lhs, Polynom& rhs) 
-  {
-    return lhs._inner.template match<Polynom>(
-          [&](UniqueShared<ComplexPolynom<number>> & lhs) { 
-            return rhs._inner.template match<Polynom>(
-                  [&](UniqueShared<ComplexPolynom<number>> & rhs) { 
-                    if(Config::usePolyMul || (lhs->nSummands() == 1 && rhs->nSummands() == 1 )) {
-                      return Polynom(poly_mul(lhs, rhs)); 
-                    } else {
-                      auto l = ComplexPolynom<number>::template toTerm<Config>(*lhs);
-                      auto r = ComplexPolynom<number>::template toTerm<Config>(*rhs);
-                      return Polynom(unique(ComplexPolynom<number>(unique(Monom<number>(l,r)))));
-                    }
-                  }
-                , [&](Coeff           & rhs) { return coeff_poly_mul(rhs, lhs); }
-                );
-          }
-        , [&](Coeff & lhs) { 
-            return rhs._inner.template match<Polynom>(
-                  [&](UniqueShared<ComplexPolynom<number>> & rhs) { return coeff_poly_mul(lhs, rhs); }
-                , [&](Coeff           & rhs) { return Polynom(lhs * rhs); }
-                );
-        });
-  }
+  inline static Polynom poly_mul(Polynom& lhs, Polynom& rhs) ;
+  
 
   inline static Polynom poly_add(const Polynom& lhs, const Polynom& rhs) {
     return lhs._inner.template match<Polynom>(
@@ -709,16 +447,54 @@ public:
         });
   }
 
-  Polynom(TermList t) : Polynom(Coeff(1), t) {}
-  Polynom(Coeff coeff, TermList t) : _inner(Inner::template variant<0>(unique(ComplexPolynom<number>(coeff, t)))) {}
-  explicit Polynom(Coeff constant)          : _inner(Inner::template variant<1>(constant)) {}
+public:
+  Polynom(UniqueShared<Monom<number>> t) : Polynom(Coeff(1), t) {}
+  Polynom(MonomTerm&& t) : Polynom(Coeff(1), t) {}
+  Polynom(Coeff coeff, MonomTerm t);
+  Polynom(Coeff coeff, UniqueShared<Monom<number> > t);
+  explicit Polynom(Coeff constant)          : _inner(Inner(constant)) {}
   explicit Polynom(UniqueShared<ComplexPolynom<number>> inner)   : _inner(Inner::template variant<0>(inner)) {} 
   // explicit Polynom(ComplexPolynom<number>& inner)   : _inner(Inner::template variant<0>(inner)) {} 
+  // template<class UniqueComplexPolynomOrdering>
+  // struct PolynomOrdering {
+  //     CoproductOrdering<UniqueComplexPolynomOrdering, std::less<Variable>, std::less<AnyPoly> > self{};
+  // }
 
+  friend bool operator<(const Polynom& lhs, const Polynom& rhs)
+  { 
+    return std::less<Inner>{}(lhs._inner, rhs._inner);
+    // using PolyT = UniqueShared<ComplexPolynom<number>>;
+    // return CoproductOrdering<typename PolyT::PtrComparison, std::less<Coeff>>{}(lhs._inner,rhs._inner);
+  }
 private:
+}; // class Polynom
+
+
+template<class T, class Ord>
+struct MonoToTerm 
+{
+  TermList operator()(T& t) const
+  { return t.template toTerm<Ord>(); }
 };
 
-using AnyPolySuper = Coproduct< Polynom<NumTraits<IntegerConstantType>> , Polynom<NumTraits<RationalConstantType>> , Polynom<NumTraits<RealConstantType>> > ;
+template<class T, class Ord, class UniqueSharedOrd>
+struct MonoToTerm<UniqueShared<T, UniqueSharedOrd>, Ord>
+{
+  TermList operator()(UniqueShared<T, UniqueSharedOrd>& t) const
+  { return t->template toTerm<Ord>(); }
+};
+
+template<class Ord> struct PolyToTerm
+{
+  template<class T> 
+  TermList operator()(T& t) const
+  { return MonoToTerm<T,Ord>{}(t); }
+};
+
+using AnyPolySuper = Coproduct< 
+  Polynom<NumTraits<IntegerConstantType>>, 
+  Polynom<NumTraits<RationalConstantType>>, 
+  Polynom<NumTraits<RealConstantType>> > ;
 struct AnyPoly : public AnyPolySuper
 {
   
@@ -740,8 +516,6 @@ struct AnyPoly : public AnyPolySuper
     CALL("AnyPoly::toTerm")
     return poly<Const>::template toTerm<Config>(as<poly<Const>>());
   }
-
-
 
   template<class Config>
   TermList toTerm_() {
@@ -765,9 +539,458 @@ struct AnyPoly : public AnyPolySuper
   AnyPoly(AnyPoly&&) = default;
   explicit AnyPoly(const AnyPoly&) = default;
   friend struct std::hash<AnyPoly>;
-private:
+
+  template<class Ord> TermList toTerm()
+  { return collapsePoly<TermList>(PolyToTerm<Ord>{}); }
 };
 
+
+template<class t> using vector  = std::vector<t, Lib::STLAllocator<t>>;
+template<class K, class V, class Compare = std::less<K>> using map  = std::map<K, V, Compare, STLAllocator<std::pair<const K, V > > >;
+
+/** Merges two map-like vectors into a new map-like vector. 
+ * A vector is map-like if has key-value pairs as entry, is sorted by keys and each key is unique within the vector.
+ *
+ * If there is a key present in both lhs and rhs, the corresponding the two corresponding values will be combined 
+ * with the closure @b add. After that the result of combining is then used as argument for @b filter() and will 
+ * be discarded if filter returns false.
+ */
+template<class A, class B, class Add, class Filter>
+vector<tuple<A, B>> merge_sort_with(const vector<tuple<A, B>>& lhs, const vector<tuple<A, B>>& rhs, Add add, Filter filter) {
+    CALL("merge_sort_with()")
+
+    vector<tuple<A,B>> out;
+    /* is needed at least */
+    out.reserve(max(lhs.size(), rhs.size()));
+    auto l = lhs.begin();
+    auto r = rhs.begin();
+    auto insert = [&](const A& key, B value) {
+      ASS(filter(value));
+      out.emplace_back(make_tuple(A(key), value));
+    };
+    auto fst = [](const tuple<A,B>& x) { return get<0>(x); };
+    auto snd = [](const tuple<A,B>& x) { return get<1>(x); };
+    while (l != lhs.end() && r != rhs.end() ) {
+      if (fst(*l) == fst(*r)) {
+        //add up
+        auto sum = add(snd(*l), snd(*r));
+        if (filter(sum))
+          insert(fst(*l), sum);
+        l++;
+        r++;
+      } else if (fst(*l) < fst(*r)) {
+        // insert l
+        insert(fst(*l), snd(*l));
+        l++;
+      } else {
+        // insert r
+        insert(fst(*r), snd(*r));
+        r++;
+      }
+    }
+    while (l != lhs.end()) {
+      insert(fst(*l), snd(*l));
+      l++;
+    }
+    while (r != rhs.end()) {
+      insert(fst(*r), snd(*r));
+      r++;
+    }
+    ASS(l == lhs.end() && r == rhs.end());
+    return std::move(out);
+}
+
+
+// template<class T, class Cmp>
+// TermList template<class Ord> PolyToTerm<Ord>::toTerm<UniqueShared<T, Cmp> (UniqueShared<T,Cmp>& t) 
+// { return t->toTerm(); }
+
+using PolyNfSuper = Lib::Coproduct<UniqueShared<FuncTerm>, Variable, AnyPoly>;
+
+/**
+ * Represents the polynomial normal form of a term, that is used for performing several simplifications and evaluations.
+ *
+ * TODO add more documentation
+ */
+class PolyNf : public PolyNfSuper
+{
+public:
+  PolyNf(UniqueShared<FuncTerm> t) : Coproduct(t) {}
+  PolyNf(Variable               t) : Coproduct(t) {}
+  PolyNf(AnyPoly                t) : Coproduct(t) {}
+  PolyNf normalize(TermList t);
+
+  friend bool operator==(PolyNf const& lhs, PolyNf const& rhs) 
+  { return static_cast<Coproduct const&>(lhs) == static_cast<Coproduct const&>(rhs); }
+
+  friend bool operator!=(PolyNf const& lhs, PolyNf const& rhs) 
+  { return !(lhs == rhs); }
+
+  friend struct std::hash<PolyNf>;
+  friend std::ostream& operator<<(std::ostream& out, const PolyNf& self)
+  { return out << static_cast<Coproduct const&>(self); }
+
+  bool    isPoly() const { return is<2>(); }
+  AnyPoly const& asPoly() const& { return unwrap<2>(); }
+  AnyPoly     && asPoly()     && { return std::move(unwrap<2>()); }
+  AnyPoly      & asPoly()      & { return unwrap<2>(); }
+
+  template<class Ord> TermList toTerm()
+  { return collapsePoly<TermList>(PolyToTerm<Ord>{}); }
+};
+
+inline bool operator<(const PolyNf& lhs, const PolyNf& rhs)  // TODO get rid of that and use the vampire sorting method 
+{ return std::less<PolyNfSuper>{}(lhs,rhs); }
+
+template<class number>
+class Monom 
+{
+  // using MonomTermOrdering = PolyNfOrdering<UniqueShared<PolyNf>::PtrComparison>;
+  using MonomTermOrdering = std::less<MonomTerm>;
+  vector<tuple<MonomTerm, int>> _factors;
+  Lib::Optional<TermList> _toTerm;
+  friend struct std::hash<Monom>;
+
+public:
+  Monom() : _factors(decltype(_factors)()) { }
+  Monom(MonomTerm t) : _factors { make_tuple(t, 1)}  { }
+  Monom(MonomTerm t1, MonomTerm t2) 
+    : _factors(t1 == t2 ? decltype(_factors) ({ make_tuple(t1, 2)}) : 
+               MonomTermOrdering{}(t1, t2) ? decltype(_factors) ({ make_tuple(t1,1), make_tuple(t2,1)}) :
+                          decltype(_factors) ({ make_tuple(t2,1), make_tuple(t1,1)}) 
+                          )  { }
+private:
+
+  Monom(decltype(_factors) factors) : _factors(factors) { }
+
+public:
+
+  USE_ALLOCATOR(Monom)
+  CLASS_NAME(Monom)
+  using monom_pair = typename decltype(_factors)::value_type;
+
+  static MonomTerm getTerm(const typename decltype(_factors)::value_type& pair) 
+  { return std::get<0>(pair); }
+
+  static int getCount(const typename decltype(_factors)::value_type& pair) 
+  { return std::get<1>(pair); }
+
+  bool isOne() const 
+  { return _factors.begin() == _factors.end(); }
+
+  friend std::ostream& operator<<(std::ostream& out, const Monom& self) {
+    if (self._factors.size() == 0) {
+      return out << "1";
+    } else {
+      auto iter  = self._factors.begin();
+      out << getTerm(*iter) << "^" << getCount(*iter);
+      iter++;
+      for (; iter != self._factors.end(); iter++) {
+        out << " * " << getTerm(*iter) << "^" << getCount(*iter);
+      }
+      return out;
+    }
+  }
+
+  friend bool operator<(const Monom& l, const Monom& r) {
+    if (l._factors.size() < r._factors.size()) {
+      return true;
+    } else if (l._factors.size() > r._factors.size()) {
+      return false;
+    } else {
+      return  l._factors < r._factors;
+    }
+  }
+
+  friend bool operator>(const Monom& l, const Monom& r) { return r < l; }
+
+  friend bool operator==(const Monom& l, const Monom& r) {
+    return l._factors == r._factors;
+  }
+
+  public:
+
+  Monom& operator=(Monom&&) = default;
+  Monom(Monom&&) = default;
+
+  static UniqueShared<Monom> monom_mul(const Monom& lhs, const Monom& rhs) 
+  {
+    return unique(Monom(merge_sort_with(lhs._factors,rhs._factors,
+           [](int l, int r) { return l + r; },
+           [](int l) { return l != 0; })));
+  }
+
+  explicit Monom(const Monom&) = default;
+  explicit Monom(Monom&) = default;
+
+  friend class Polynom<number>;
+  friend class ComplexPolynom<number>;
+
+  template<class Config> TermList toTerm() {
+    CALL("Monom::toTerm()")
+      //
+    // TODO replace caching by generic memoization
+    return _toTerm.unwrapOrInit([&]() {
+
+      if (_factors.size() == 0) {
+        return number::one();
+      } else {
+
+        vector<TermList> factors;
+        auto sz = 0;
+        for(auto& f : _factors) {
+          sz += getCount(f);
+        }
+        factors.reserve(sz);
+
+        for (auto f : _factors) {
+          for (auto i = 0; i < getCount(f); i++) {
+            factors.push_back(getTerm(f).template toTerm<Config>());
+          }
+        }
+
+        sort(begin(factors), end(factors), typename Config::Ordering{});
+
+        auto iter = factors.rbegin();
+
+        auto out = *iter;
+        iter++;
+        for(; iter != factors.rend(); iter++)  {
+          out = number::mul(*iter, out); 
+        }
+        return out;
+      }
+    });
+  }
+
+};
+
+template<class number>
+class ComplexPolynom 
+{
+  friend struct std::hash<ComplexPolynom>;
+  template<class NumTraits> friend class Polynom;
+
+  using Coeff = typename number::ConstantType;
+  using PMonomInner = Monom<number>;
+  using SharedMonom = UniqueShared<PMonomInner>;
+public:
+  USE_ALLOCATOR(ComplexPolynom)
+  CLASS_NAME(ComplexPolynom)
+
+private:
+  using poly_pair = Kernel::poly_pair<number>;
+  using CoeffVec = vector<poly_pair>;
+  CoeffVec _coeffs;
+  Lib::Optional<TermList> _toTerm;
+
+public:
+
+  // ComplexPolynom(Coeff coeff, PMonom t) : _coeffs(decltype(_coeffs)()) 
+  // { _coeffs.emplace_back(poly_pair(std::move(t), coeff)); }
+
+  ComplexPolynom(Coeff coeff, SharedMonom t) : _coeffs(decltype(_coeffs)()) 
+  { _coeffs.emplace_back(poly_pair(std::move(t), coeff)); }
+
+  ComplexPolynom(SharedMonom&& t) : _coeffs(decltype(_coeffs)())  
+  { _coeffs.emplace_back(poly_pair(std::move(t), Coeff(1))); }
+
+  ComplexPolynom(Coeff coeff, MonomTerm t);
+
+  ComplexPolynom(Coeff constant) : _coeffs(decltype(_coeffs)())  
+  {
+    CALL("ComplexPolynom::ComplexPolynom(Coeff)")
+    if (constant != number::zeroC)
+      _coeffs.emplace_back(poly_pair(unique(Monom<number>()), constant));
+  }
+
+  ComplexPolynom(decltype(_coeffs) coeffs) : _coeffs(coeffs) { }
+
+  ComplexPolynom() : _coeffs(decltype(_coeffs)()) { }
+
+  ComplexPolynom(ComplexPolynom&& other) = default;
+  explicit ComplexPolynom(const ComplexPolynom&) = default;
+  unsigned nSummands() const& { return _coeffs.size(); }
+
+  ComplexPolynom& operator=(ComplexPolynom&& other) = default;
+
+
+  friend bool operator==(const ComplexPolynom& lhs, const ComplexPolynom& rhs) {
+    return lhs._coeffs == rhs._coeffs;
+  }
+
+  static SharedMonom& getMonom(poly_pair& pair) {
+    return std::get<0>(pair);
+  }
+
+  static const SharedMonom& getMonom(const poly_pair& pair) {
+    return std::get<0>(pair);
+  }
+
+  static const Coeff& getCoeff(const poly_pair& pair) {
+    return std::get<1>(pair);
+  }
+
+  static Coeff& getCoeffMut(poly_pair& pair) {
+    return std::get<1>(pair);
+  }
+
+  void integrity() const {
+#if VDEBUG
+    if (_coeffs.size() > 0) {
+      auto iter = this->_coeffs.begin();
+      auto last = iter++;
+      while (iter != _coeffs.end()) {
+        ASS_REP(getMonom(*last) < getMonom(*iter), *this);
+        last = iter++;
+      }
+    }
+#endif
+  }
+
+  template<class Config>
+  TermList toTerm() {
+    CALL("ComplexPolynom::toTerm()")
+    auto& self = *this;
+    return self._toTerm.unwrapOrInit([&]() {
+      // self.integrity();
+      
+      auto trm = [](poly_pair& x) -> TermList { 
+        using Self = ComplexPolynom;
+
+        if (Self::getMonom(x)->isOne()) {  
+          /* the pair is a plain number */
+          return TermList( theory->representConstant(Self::getCoeff(x)) );
+
+        } else if (Self::getCoeff(x)== number::constant(1)) {
+          /* the pair is an uninterpreted term */
+          return Self::getMonom(x)->template toTerm<Config>();
+
+        } else if (Self::getCoeff(x)== number::constant(-1)) {
+          return TermList(number::minus(Self::getMonom(x)->template toTerm<Config>()));
+
+        } else {
+          return TermList(number::mul(TermList( theory->representConstant(Self::getCoeff(x)) ), Self::getMonom(x)->template toTerm<Config>())); 
+        }
+      };
+
+      vector<TermList> coeffs(self._coeffs.size());
+      transform(begin(self._coeffs),end(self._coeffs), begin(coeffs), trm);
+
+      sort(begin(coeffs), end(coeffs), typename Config::Ordering{});
+
+      auto iter = coeffs.rbegin(); 
+      if (iter == coeffs.rend()) {
+        return TermList(number::zero());
+      } else {
+        auto out = *iter;
+        iter++;
+        for (; iter != coeffs.rend(); iter++) {
+          out = number::add(*iter, out);
+        }
+        return out;
+      }
+    });
+  }
+
+  friend std::ostream& operator<<(std::ostream& out, const ComplexPolynom& self) {
+    auto iter = self._coeffs.begin();
+    if ( iter == self._coeffs.end() ) {
+      out << "0";
+    } else {
+      out << self.getMonom(*iter)<< " * " << self.getCoeff(*iter);
+      iter++;
+      for (; iter != self._coeffs.end(); iter++) {
+        out << " + " << self.getMonom(*iter)<< " * " << self.getCoeff(*iter);
+      }
+    }
+    return out;
+
+  }
+
+};
+
+
+inline std::ostream& operator<<(std::ostream& out, const FuncTerm& self) 
+{ 
+  out << self._fun;
+  auto& stack = self._args;
+  Stack<PolyNf>::ConstIterator iter(stack);
+
+  if (iter.hasNext()) {
+    out << "(" << iter.next();
+    while (iter.hasNext()) {
+      out << ", " << iter.next();
+    }
+    out << ")";
+  }
+
+  return out;
+}
+
+
+template<class number>
+Kernel::Polynom<number>::Polynom(Coeff coeff, MonomTerm t) 
+  : _inner(Inner(unique(ComplexPolynom<number>(coeff, t))))
+{  }
+
+
+template<class number>
+Kernel::Polynom<number>::Polynom(Coeff coeff, UniqueShared<Monom<number>> t) 
+  : _inner(Inner(unique(ComplexPolynom<number>(coeff, t))))
+{  }
+
+template<class number>
+Kernel::ComplexPolynom<number>::ComplexPolynom(Coeff coeff, MonomTerm t) 
+  : ComplexPolynom(coeff, unique(Monom<number>(t))) 
+{ }
+
+template<class number>
+template<class Config>
+Polynom<number> Polynom<number>::poly_mul(Polynom& lhs, Polynom& rhs) 
+{
+    return lhs._inner.template match<Polynom>(
+          [&](UniqueShared<ComplexPolynom<number>> & lhs) { 
+            return rhs._inner.template match<Polynom>(
+                  [&](UniqueShared<ComplexPolynom<number>> & rhs) { 
+                    if(Config::usePolyMul || (lhs->nSummands() == 1 && rhs->nSummands() == 1 )) {
+                      return Polynom(poly_mul(lhs, rhs)); 
+                    } else {
+                      auto wrapPoly = 
+                        [](UniqueShared<ComplexPolynom<number> >& t) -> PolyNf 
+                        { return PolyNf(AnyPoly(Polynom(t))); };
+
+                      return Polynom(unique(Monom<number>(wrapPoly(lhs), wrapPoly(rhs))));
+                      // return Polynom(ComplexPolynom<number>(unique(Monom<number>(PolyNf(AnyPoly(Polynom<number>(lhs))), PolyNf(AnyPoly(Polynom<number>(rhs)))))));
+                      // auto wrap = [](Polynom p) -> PolyNf {
+                      //   return PolyNf(unique(AnyPoly(p)));
+                      // };
+                      // auto l = unique(ComplexPolynom<number>::template toTerm<Config>(*lhs));
+                      // auto r = unique(ComplexPolynom<number>::template toTerm<Config>(*rhs));
+                      // return Polynom(unique(ComplexPolynom<number>(unique(Monom<number>(l,r)))));
+                      // return Polynom(unique(ComplexPolynom<number>(unique(Monom<number>(l,r)))));
+                    }
+                  }
+                , [&](Coeff           & rhs) { return coeff_poly_mul(rhs, lhs); }
+                );
+          }
+        , [&](Coeff & lhs) { 
+            return rhs._inner.template match<Polynom>(
+                  [&](UniqueShared<ComplexPolynom<number>> & rhs) { return coeff_poly_mul(lhs, rhs); }
+                , [&](Coeff           & rhs) { return Polynom(lhs * rhs); }
+                );
+        });
+  }
+
+template<class Ord> TermList FuncTerm::toTerm()
+{ 
+  // TODO get rid of recursion
+  Stack<TermList> args(_args.size());
+  for (auto arg : _args) {
+    args.push(arg.template toTerm<Ord>());
+  }
+  return TermList(Term::create(_fun.id(), args.size(), args.begin())); 
+}
 
 } // namespace Kernel
 
@@ -778,6 +1001,13 @@ template<class NumTraits> struct std::hash<Kernel::Polynom<NumTraits>>
   { return std::hash<decltype(self._inner)>{}(self._inner); }
 };
 
+
+
+template<> struct std::less<Kernel::AnyPoly> 
+{
+  bool operator()(Kernel::AnyPoly const& lhs, Kernel::AnyPoly const& rhs) const 
+  { return PolymorphicCoproductOrdering<std::less>{}(lhs,rhs); }
+};
 
 
 template<> struct std::hash<Kernel::AnyPoly> 
@@ -817,15 +1047,13 @@ struct std::hash<Kernel::Monom<NumTraits>>
     unsigned out = HashUtils::combine(84586,10);
     for (auto f : x._factors) {
       out = HashUtils::combine(
-            TermListHash::hash(std::get<0>(f)),
+            stlHash(std::get<0>(f)),
             stlHash(std::get<1>(f)),
             out);
     }
     return out;
   }
 };
-
-
 
 #undef DEBUG
 

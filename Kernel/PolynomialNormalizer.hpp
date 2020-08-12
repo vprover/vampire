@@ -26,101 +26,21 @@
 
 namespace Kernel {
 
+//   explicit TermEvalResult(TermList t) : Coproduct(t) {}
+//   TermEvalResult(Coproduct     && super) : Coproduct(std::move(super)) {}
+//   TermEvalResult(Coproduct      & super) : Coproduct(          super ) {}
+//   TermEvalResult(Coproduct const& super) : Coproduct(          super ) {}
+//   bool isPoly() const& { return is<1>(); }
+//   AnyPoly const& asPoly() const& { return unwrap<1>(); }
+//   AnyPoly      & asPoly()      & { return unwrap<1>(); }
+//   template<class Config>
+//   TermList toTerm() { return match<TermList> ( 
+//       [](TermList& t) { return t; },
+//       [](AnyPoly& p) { return p.template toTerm_<Config>(); }
+//       );
+//   }
+// };
 
-/**
- * A tagged union that is either a plain TermList, or a polynomial.
- */
-class TermEvalResult : public Lib::Coproduct<TermList, AnyPoly> {
-public:
-  TermEvalResult() : Coproduct(Coproduct::template variant<0>(Kernel::TermList())) { }
-  explicit TermEvalResult(TermList t) : Coproduct(t) {}
-  TermEvalResult(Coproduct     && super) : Coproduct(std::move(super)) {}
-  TermEvalResult(Coproduct      & super) : Coproduct(          super ) {}
-  TermEvalResult(Coproduct const& super) : Coproduct(          super ) {}
-  bool isPoly() const& { return is<1>(); }
-  AnyPoly const& asPoly() const& { return unwrap<1>(); }
-  AnyPoly      & asPoly()      & { return unwrap<1>(); }
-  template<class Config>
-  TermList toTerm() { return match<TermList> ( 
-      [](TermList& t) { return t; },
-      [](AnyPoly& p) { return p.template toTerm_<Config>(); }
-      );
-  }
-};
-
-class Variable 
-{
-  unsigned _num;
-public: 
-  explicit Variable(unsigned num) : _num(num) {}
-  unsigned id() const { return _num; }
-  friend bool operator==(Variable lhs, Variable rhs) 
-  { return lhs._num == rhs._num; }
-  friend struct std::hash<Variable>;
-};
-
-
-class FuncId 
-{
-  unsigned _num;
-public: 
-  explicit FuncId(unsigned num) : _num(num) {}
-  unsigned arity() { return env.signature->getFunction(_num)->arity(); }
-
-  friend bool operator==(FuncId const& lhs, FuncId const& rhs) 
-  { return lhs._num == rhs._num; }
-
-  friend bool operator!=(FuncId const& lhs, FuncId const& rhs) 
-  { return !(lhs == rhs); }
-
-  friend struct std::hash<FuncId>;
-};
-
-class PolyNf;
-
-bool operator==(PolyNf const& lhs, PolyNf const& rhs);
-
-/**
- * Represents an ordenary complex term. In the PolyNF term tree.
- */
-class FuncTerm 
-{
-  FuncId _fun;
-  Stack<PolyNf> _args;
-public:
-  FuncTerm(FuncId f, Stack<PolyNf>&& args) : _fun(f), _args(std::move(args)) { }
-
-  friend bool operator==(FuncTerm const& lhs, FuncTerm const& rhs) 
-  { return lhs._fun == rhs._fun && lhs._args == rhs._args; }
-
-  friend bool operator!=(FuncTerm const& lhs, FuncTerm const& rhs) 
-  { return !(lhs == rhs); }
-
-  friend struct std::hash<FuncTerm>;
-};
-
-using PolyNfSuper = Lib::Coproduct<UniqueShared<FuncTerm>, Variable, AnyPoly>;
-/**
- * Represents the polynomial normal form of a term, that is used for performing several simplifications and evaluations.
- *
- * TODO add more documentation
- */
-class PolyNf : public PolyNfSuper
-{
-  PolyNf(UniqueShared<FuncTerm> t) : Coproduct(t) {}
-  PolyNf(Variable t) : Coproduct(t) {}
-  PolyNf(AnyPoly  t) : Coproduct(t) {}
-public:
-  PolyNf normalize(TermList t);
-
-  friend bool operator==(PolyNf const& lhs, PolyNf const& rhs) 
-  { return static_cast<Coproduct const&>(lhs) == static_cast<Coproduct const&>(rhs); }
-
-  friend bool operator!=(PolyNf const& lhs, PolyNf const& rhs) 
-  { return !(lhs == rhs); }
-
-  friend struct std::hash<PolyNf>;
-};
 namespace Memo {
 
   template<class EvalFn>
@@ -247,7 +167,7 @@ typename std::result_of<EvalFn(Variable)>::type evaluateBottomUp(TermList term_,
 
 inline PolyNf PolyNf::normalize(TermList t) 
 {
-  // using Result = Coproduct<PolyNf, >;
+  // using Result = Coproduct<PolyNf, Vec<>;
 
   struct Eval 
   {
@@ -303,14 +223,14 @@ template<class Config>
 class PolynomialNormalizer {
 public:
   LitEvalResult evaluate(Literal* in) const;
-  TermEvalResult evaluate(TermList in) const;
-  TermEvalResult evaluate(Term* in) const;
+  PolyNf evaluate(TermList in) const;
+  PolyNf evaluate(Term* in) const;
 
 private:
   struct RecursionState;
-  LitEvalResult evaluateStep(Literal* orig, TermEvalResult* evaluatedArgs) const;
+  LitEvalResult evaluateStep(Literal* orig, PolyNf* evaluatedArgs) const;
 
-  TermEvalResult evaluateStep(Term* orig, TermEvalResult* evaluatedArgs) const;
+  PolyNf evaluateStep(Term* orig, PolyNf* evaluatedArgs) const;
 };
 
 //
@@ -318,7 +238,7 @@ private:
 //  * For every Theory::Interpretation that represents a predicate one specialization of this template function must be provided.
 //  */
 // template<Theory::Interpretation inter> 
-// LitEvalResult evaluateLit(Literal* orig, TermEvalResult* evaluatedArgs);
+// LitEvalResult evaluateLit(Literal* orig, PolyNf* evaluatedArgs);
 
 /**
  * For every Theory::Interpretation that represents a function one specialization of this struct must be provided.
@@ -328,14 +248,14 @@ private:
 template<Theory::Interpretation inter>
 struct FunctionEvaluator {
   template<class PolynomialNormalizerConfig>
-  static TermEvalResult evaluate(Term* orig, TermEvalResult* evaluatedArgs);
+  static PolyNf evaluate(Term* orig, PolyNf* evaluatedArgs);
 };
 
 
 template<Theory::Interpretation inter>
 struct PredicateEvaluator {
   template<class PolynomialNormalizerConfig>
-  static LitEvalResult evaluate(Literal* orig, TermEvalResult* evaluatedArgs);
+  static LitEvalResult evaluate(Literal* orig, PolyNf* evaluatedArgs);
 };
 
 #include "Kernel/PolynomialNormalizer/FunctionEvaluator.hpp"
@@ -346,29 +266,26 @@ struct PredicateEvaluator {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 template<class Config>
-inline Literal* createLiteral(Literal* orig, TermEvalResult* evaluatedArgs) {
+inline Literal* createLiteral(Literal* orig, PolyNf* evaluatedArgs) {
   auto arity = orig->arity();
 
   Stack<TermList> args(arity);
   for (int i = 0; i < arity; i++) {
-    args.push(std::move(evaluatedArgs[i]).match<TermList>(
-      [](TermList&& t) { return t;                            },
-      [](AnyPoly&&  p) { return p.template toTerm_<Config>(); }
-      ));
+    args.push(evaluatedArgs[i].template toTerm<Config>());
   }
   return Literal::create(orig, args.begin());
 }
 
 
 template<class Config> LitEvalResult PolynomialNormalizer<Config>::evaluate(Literal* lit) const {
-  Stack<TermEvalResult> terms(lit->arity());
+  Stack<PolyNf> terms(lit->arity());
   for (int i = 0; i < lit->arity(); i++) {
     terms.push(evaluate(*lit->nthArgument(i)));
   }
   return evaluateStep(lit, terms.begin());
 }
 
-template<class Config> LitEvalResult PolynomialNormalizer<Config>::evaluateStep(Literal* orig, TermEvalResult* evaluatedArgs) const {
+template<class Config> LitEvalResult PolynomialNormalizer<Config>::evaluateStep(Literal* orig, PolyNf* evaluatedArgs) const {
   CALL("PolynomialNormalizer::evaluateStep(Literal* term)")
   DEBUG("evaluating: ", orig->toString());
 
@@ -420,10 +337,8 @@ template<class Config> LitEvalResult PolynomialNormalizer<Config>::evaluateStep(
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 template<class number>
-TermEvalResult evaluateConst(typename number::ConstantType c) {
-  return TermEvalResult::template variant<1>(AnyPoly(Polynom<number>(c)));
-}
-
+PolyNf evaluateConst(typename number::ConstantType c) 
+{ return AnyPoly(Polynom<number>(c)); }
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -431,54 +346,36 @@ TermEvalResult evaluateConst(typename number::ConstantType c) {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-template<class Config> TermEvalResult PolynomialNormalizer<Config>::evaluate(TermList term) const {
-  if (term.isTerm()) {
-    return evaluate(term.term()); 
-  } else {
-    ASS_REP(term.isVar(), term);
-    /* single variables can't be simplified */
-    return TermEvalResult::variant<0>(term);
-  }
-}
-
-template<class Config> TermEvalResult PolynomialNormalizer<Config>::evaluate(Term* term) const {
+template<class Config> PolyNf PolynomialNormalizer<Config>::evaluate(TermList term) const {
   struct Eval 
   {
     const PolynomialNormalizer& norm;
-    TermEvalResult operator()(Variable v) 
-    { return TermEvalResult(TermList::var(v.id())); }
+    PolyNf operator()(Variable v) 
+    { return v; }
 
-    TermEvalResult operator()(Term* t, TermEvalResult* ts) 
+    PolyNf operator()(Term* t, PolyNf* ts) 
     { return norm.evaluateStep(t, ts); }
   };
 
   static Memo::Hashed<Eval> memo;
-  return evaluateBottomUp(TermList(term), Eval{ *this }, memo);
+  return evaluateBottomUp(term, Eval{ *this }, memo);
 }
+
+template<class Config> PolyNf PolynomialNormalizer<Config>::evaluate(Term* term) const 
+{ return evaluate(TermList(term)); }
 
 
 template<class Config>
-inline TermList createTerm(unsigned fun, const Signature::Symbol& sym, TermEvalResult* evaluatedArgs) {
-  Stack<TermList> args(sym.arity());
-
-  auto& op = *sym.fnType();
-  auto arity = op.arity();
-  for (int i = 0; i < arity; i++) {
-    args.push(std::move(evaluatedArgs[i]).match<TermList>(
-        [](TermList&& t) {return t;}
-      , [](AnyPoly&& p) { return p.template toTerm_<Config>(); }
-        ));
-  }
-  return TermList(Term::create(fun, arity, args.begin()));
-}
+inline PolyNf createTerm(unsigned fun, PolyNf* evaluatedArgs) 
+{ return unique(FuncTerm(FuncId(fun), evaluatedArgs)); }
 
 
-template<class Config> TermEvalResult PolynomialNormalizer<Config>::evaluateStep(Term* orig, TermEvalResult* args) const {
-  CALL("PolynomialNormalizer::evaluateStep(Term* orig, TermEvalResult* args)")
+template<class Config> PolyNf PolynomialNormalizer<Config>::evaluateStep(Term* orig, PolyNf* args) const {
+  CALL("PolynomialNormalizer::evaluateStep(Term* orig, PolyNf* args)")
   DEBUG("evaluating ", *orig)
 
 #define HANDLE_CASE(INTER) case Interpretation::INTER: return FunctionEvaluator<Interpretation::INTER>::evaluate<Config>(orig, args); 
-#define IGNORE_CASE(INTER) case Interpretation::INTER: return TermEvalResult::template variant<0>(createTerm<Config>(functor, *sym, args));
+#define IGNORE_CASE(INTER) case Interpretation::INTER: return createTerm<Config>(functor, args);
 
 
 #define HANDLE_CONSTANT_CASE(Num) \
@@ -551,7 +448,7 @@ template<class Config> TermEvalResult PolynomialNormalizer<Config>::evaluateStep
     }
   } catch (MachineArithmeticException) { /* nop */ }
   // /* uninterpreted or evaluation failed */
-  return TermEvalResult::template variant<0>(createTerm<Config>(functor, *sym, args));
+  return createTerm<Config>(functor, args);
 }
 
 

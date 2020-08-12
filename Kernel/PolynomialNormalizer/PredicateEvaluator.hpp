@@ -18,9 +18,9 @@ template<class C> using Poly = Polynom<NumTraits<C>>;
   template<>  \
   struct PredicateEvaluator<interpretation> { \
     template<class Config> \
-    static LitEvalResult evaluate(Literal* orig, TermEvalResult* evaluatedArgs) \
+    static LitEvalResult evaluate(Literal* orig, PolyNf* evaluatedArgs) \
     { \
-      CALL("PredicateEvaluator<" #interpretation ">::evaluate(Literal*,TermEvalResult*)"); \
+      CALL("PredicateEvaluator<" #interpretation ">::evaluate(Literal*,PolyNf*)"); \
       __VA_ARGS__ \
     } \
   };
@@ -31,9 +31,10 @@ template<class C> using Poly = Polynom<NumTraits<C>>;
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 template<class NormalizerConfig, class ConstantType, class EvalGround>
-LitEvalResult tryEvalConstant2(Literal* orig, TermEvalResult* evaluatedArgs, EvalGround fun) {
-  auto& lhs = evaluatedArgs[0].asPoly().as<Poly<ConstantType>>();;
-  auto& rhs = evaluatedArgs[1].asPoly().as<Poly<ConstantType>>();;
+LitEvalResult tryEvalConstant2(Literal* orig, PolyNf* evaluatedArgs, EvalGround fun) 
+{
+  auto& lhs = evaluatedArgs[0].asPoly().template as<Poly<ConstantType>>();;
+  auto& rhs = evaluatedArgs[1].asPoly().template as<Poly<ConstantType>>();;
   if (lhs.isCoeff() && rhs.isCoeff()) {
     return LitEvalResult::constant(fun(lhs.unwrapCoeff(), rhs.unwrapCoeff()));
   } else {
@@ -77,12 +78,12 @@ using IntPoly = Polynom<NumTraits<IntegerConstantType>>;
 using RatPoly = Polynom<NumTraits<RationalConstantType>>;
 using RealPoly = Polynom<NumTraits<RealConstantType>>;
 
-template<class PolyType> PolyType cvtPoly(TermEvalResult& t) {
-  return t.match<PolyType>(
-      [](TermList& t) { return PolyType(t); },
-      [](AnyPoly&  p) { return PolyType(p.as<PolyType>()); }
-      );
-}
+// template<class PolyType> PolyType cvtPoly(PolyNf& t) {
+//   return t.match<PolyType>(
+//       [](TermList& t) { return PolyType(t); },
+//       [](AnyPoly&  p) { return PolyType(p.as<PolyType>()); }
+//       );
+// }
 
 IMPL_EVALUATE_PRED(Interpretation::EQUAL,
   auto& lhs = evaluatedArgs[0];
@@ -95,21 +96,21 @@ IMPL_EVALUATE_PRED(Interpretation::EQUAL,
   if (shallCancel) {
     switch (sort) {
     case Sorts::SRT_INTEGER:
-      return interpret_equality<Config>(polarity, cvtPoly<IntPoly>(lhs), cvtPoly<IntPoly>(rhs));
+      return interpret_equality<Config>(polarity, toPoly<IntTraits>(lhs), toPoly<IntTraits>(rhs));
     case Sorts::SRT_RATIONAL:
-      return interpret_equality<Config>(polarity, cvtPoly<RatPoly>(lhs), cvtPoly<RatPoly>(rhs));
+      return interpret_equality<Config>(polarity, toPoly<RatTraits>(lhs), toPoly<RatTraits>(rhs));
     case Sorts::SRT_REAL:
-      return interpret_equality<Config>(polarity, cvtPoly<RealPoly>(lhs), cvtPoly<RealPoly>(rhs));
+      return interpret_equality<Config>(polarity, toPoly<RealTraits>(lhs), toPoly<RealTraits>(rhs));
       default:
       // polynomials can only be of number sorts
         ASSERTION_VIOLATION
     }
   } else {
-    auto l = lhs.as<TermList>();
-    auto r = rhs.as<TermList>();
-    if (l == r) {
+    if (lhs == rhs) {
       return LitEvalResult::constant(polarity);
     } else {
+      auto l = lhs.template toTerm<Config>();
+      auto r = rhs.template toTerm<Config>();
       return LitEvalResult::literal(Literal::createEquality(polarity, l, r, sort));
     }
   }
@@ -120,12 +121,12 @@ IMPL_EVALUATE_PRED(Interpretation::EQUAL,
 /// Inequalities
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-template<class NormalizerConfig, class ConstantType, class EvalIneq> LitEvalResult evaluateInequality(Literal* orig, TermEvalResult* evaluatedArgs, bool strict, EvalIneq evalIneq) {
+template<class NormalizerConfig, class ConstantType, class EvalIneq> LitEvalResult evaluateInequality(Literal* orig, PolyNf* evaluatedArgs, bool strict, EvalIneq evalIneq) {
   ASS(orig->arity() == 2);
 
 
-  auto lhs_ = cvtPoly<Poly<ConstantType>>(evaluatedArgs[0]);
-  auto rhs_ = cvtPoly<Poly<ConstantType>>(evaluatedArgs[1]);
+  auto lhs_ = toPoly<NumTraits<ConstantType>>(evaluatedArgs[0]);
+  auto rhs_ = toPoly<NumTraits<ConstantType>>(evaluatedArgs[1]);
 
   // auto shallCancel = lhs.isPoly() || rhs.isPoly();
   auto res = Poly<ConstantType>::cancel(lhs_, rhs_);
@@ -137,6 +138,7 @@ template<class NormalizerConfig, class ConstantType, class EvalIneq> LitEvalResu
   if (lhs.isCoeff() && rhs.isCoeff()) {
     return LitEvalResult::constant(polarity == evalIneq(lhs.unwrapCoeff(), rhs.unwrapCoeff()));
   } else {
+
     TermList lTerm = lhs.template toTerm<NormalizerConfig>();
     TermList rTerm = rhs.template toTerm<NormalizerConfig>();;
     if (lTerm == rTerm) return LitEvalResult::constant(polarity != strict);
@@ -193,7 +195,7 @@ IMPL_EVALUATE_PRED(Interpretation::INT_DIVIDES,
 #undef HANDLE_NUM_CASES
 // }
 
-// void Lib::integrity<Kernel::TermEvalResult>::check(const Kernel::TermEvalResult& self, const char* file, int line) {
+// void Lib::integrity<Kernel::PolyNf>::check(const Kernel::PolyNf& self, const char* file, int line) {
 //   integrity<Lib::Coproduct<Kernel::TermList, Kernel::AnyPoly>>::check(self, file, line);
 // }
 

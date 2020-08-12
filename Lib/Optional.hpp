@@ -66,6 +66,14 @@ public:
 
 };
 
+template<class T> Optional<T> some(T const& t) { return Optional<T>(t);            }
+template<class T> Optional<T> some(T     && t) { return Optional<T>(std::move(t)); }
+template<class T> Optional<T> some(T      & t) { return Optional<T>(t);            }
+
+template<class T>
+Optional<T> none() 
+{ return Optional<T>(); }
+
 }
 
 #endif // __OPTIONAL_H__

@@ -108,7 +108,6 @@ public:
     loadFromIterator(BottomFirstIterator(const_cast<Stack&>(s)));
   }
 
-
   /** De-allocate the stack
    * @since 13/01/2008 Manchester
    */
@@ -151,6 +150,18 @@ public:
     while(it.hasNext()) {
       push(it.next());
     }
+  }
+
+
+  /**
+   * Put all elements of an iterator onto the stack.
+   */
+  template<class It>
+  static Stack fromIterator(It it) {
+    CALL("Stack::fromIterator");
+    Stack out;
+    out.loadFromIterator(it);
+    return out;
   }
 
   /**
@@ -738,6 +749,17 @@ public:
     out << " ]";
     return out;
   }
+
+  Stack(std::initializer_list<C> cont)
+   : Stack(cont.size())
+  {
+    CALL("Stack::Stack(initializer_list<C>)");
+
+    for (auto const& x : cont) {
+      push(x);
+    }
+  }
+
 };
 
 template<typename C>

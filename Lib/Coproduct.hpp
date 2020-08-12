@@ -179,8 +179,11 @@ template <class A, class... As> struct idx_of<A, A, As...> {
   static constexpr unsigned value = 0; 
 };
 
+template<class... Ords> struct CoproductOrdering;
+template<template<class> class Ord> struct PolymorphicCoproductOrdering;
 
-template <class A, class... As> class Coproduct<A, As...> {
+template <class A, class... As> class Coproduct<A, As...> 
+{
   unsigned _tag;
 
   VariadicUnion<A, As...> _content;
@@ -296,11 +299,178 @@ private:
   };
 
 public:
+
   friend std::ostream &operator<<(std::ostream &out, const Coproduct &self) {
     return self.template collapsePoly<std::ostream &>(__writeToStream{self._tag, out});
   }
   friend struct std::hash<Coproduct>;
+
+  template<class... Ords> friend struct CoproductOrdering;
+
+}; // class Coproduct<A, As...> 
+
+
+namespace TypeList {
+
+#define MP(f, ...) typename f < __VA_ARGS__ >:: result
+
+  template<class... As>
+  struct TypeList;
+
+  template<template<class...> class HKT, class A> 
+  struct Into;
+
+  template<template<class...> class HKT, class... As> 
+  struct Into<HKT, TypeList<As...> >
+  { using result = HKT<As...>; };
+
+  template<class A, class B> 
+  struct Concat;
+
+  template<class... As, class... Bs> 
+  struct Concat<TypeList<As...>, TypeList<Bs...>>
+  { using result = TypeList<As..., Bs...>; };
+
+
+  template<class ZipFn, class A, class B>
+  struct Zip;
+
+  template<class ZipFn>
+  struct Zip<ZipFn, TypeList<>, TypeList<>>
+  { using result = TypeList<>; };
+
+
+  template<class ZipFn, class A, class... As, class B, class... Bs>
+  struct Zip<ZipFn, TypeList<A, As...>, TypeList<B, Bs...> >
+  {
+    using result = MP(Concat, TypeList<typename std::result_of<ZipFn(A, B)>::type>, MP(Zip, ZipFn, TypeList<As...>, TypeList<Bs...>));
+  };
+
+  template<unsigned i, class A> struct Get;
+
+  template<class A, class... As> struct Get<0, TypeList<A, As...>>
+  { using result = A; };
+
+  template<unsigned i, class A, class... As> struct Get<i, TypeList<A, As...>>
+  { using result = MP(Get, i - 1, TypeList<As...>); };
+
+} // namespace TypeList
+
+
+}
+
+#include "Optional.hpp"
+
+namespace Lib {
+  
+using namespace TypeList;
+
+
+template<unsigned idx>
+struct TryUnwrap
+{
+  template<class... As>
+  static Optional<Coproduct<As...>> apply(Coproduct<As...> c)
+  { 
+    if (c._tag == idx) return some(Coproduct<As...>::template variant<idx>(c.template unwrap<idx>()));
+    else return TryUnwrap<idx - 1>::apply(c);
+  }
 };
+
+template<>
+struct TryUnwrap<0>
+{
+  template<class... As>
+  static Optional<MP(Get, 0, TypeList<As...>)> apply(Coproduct<As...> c)
+  { 
+    if (c._tag == 0) return some(c.template unwrap<0>());
+    ASSERTION_VIOLATION
+  }
+};
+
+
+
+template<unsigned n, unsigned m> struct ZipHelper 
+{
+  template<class ZipFn, class... As>
+  static Optional<MP(Into, Coproduct, MP(Zip, ZipFn, TypeList<As const&...>, TypeList<As const&...>))> apply(
+        ZipFn zipFn,
+        Coproduct<As...> const& lhs, 
+        Coproduct<As...> const& rhs)
+  {
+    using Result = MP(Into, Coproduct, MP(Zip, ZipFn, TypeList<As const&...>, TypeList<As const&...>));
+
+    if (lhs.template is<n>()) {
+      return some(Result::template variant<n>(zipFn(
+              lhs.template unwrap<n>(),
+              rhs.template unwrap<n>()
+            )));
+    }
+    else return ZipHelper<n + 1, m>::apply(zipFn, lhs, rhs);
+  }
+};
+
+template<unsigned n> struct ZipHelper<n, n> 
+{
+  template<class ZipFn, class... As>
+  static Optional<MP(Into, Coproduct, MP(Zip, ZipFn, TypeList<As const&...>, TypeList<As const&...>))> apply(
+        ZipFn zipFn,
+        Coproduct<As...> const& lhs, 
+        Coproduct<As...> const& rhs)
+  { ASSERTION_VIOLATION }
+};
+
+
+template<class ZipFn, class... As>
+Optional<MP(Into, Coproduct, MP(Zip, ZipFn, TypeList<As const&...>, TypeList<As const&...>))> zipWith(
+      ZipFn zipFn,
+      Coproduct<As...> const& lhs, 
+      Coproduct<As...> const& rhs)
+{
+  constexpr unsigned sz = Coproduct<As...>::size;
+  return ZipHelper<0, sz>::template apply<ZipFn, As...>(zipFn, lhs, rhs);
+}
+
+template<class F>
+struct PairFn 
+{
+  F f;
+  template<class A, class B>
+  typename std::result_of<F(A,B)>::type operator()(const std::pair<const A&,const B&>& elems) const
+  { return f(std::get<0>(elems), std::get<1>(elems));  }
+};
+
+template<class F>
+PairFn<F> pairFn(F f) { return { f }; }
+
+struct ConstPair {
+  template<class A, class B>
+  std::pair<const A&, const B&> operator()(const A& a, const B& b) const 
+  { return std::pair<A const&, B const&>(a,b); }
+};
+
+template<class... Ords> struct CoproductOrdering 
+{
+  template<class... As>
+  bool operator()(Coproduct<As...> const& lhs, Coproduct<As...> const& rhs) const
+  { 
+    CALL("CoproductOrdering::operator()(Coproduct<As...> const&, Coproduct<As...> const&)")
+    if (lhs._tag < rhs._tag) return true;
+    if (lhs._tag > rhs._tag) return false;
+
+    return zipWith(ConstPair{}, lhs, rhs).unwrap()
+        .template match<bool>(pairFn(Ords{})...);
+  }
+};
+
+
+template<template<class> class Ord> struct PolymorphicCoproductOrdering
+{
+  template<class... As>
+  bool operator()(Coproduct<As...> const& lhs, Coproduct<As...> const& rhs) const
+  { return CoproductOrdering<Ord<As>...>{}(lhs,rhs); }
+};
+
 
 } // namespace Lib
 
@@ -319,6 +489,13 @@ template<class... Ts> struct std::hash<Lib::Coproduct<Ts...>>
   }
 };
 
+
+template<class... As>
+struct std::less<Lib::Coproduct<As...> >
+{
+  bool operator()(const Lib::Coproduct<As...>& lhs, const Lib::Coproduct<As...>& rhs)
+  { return Lib::PolymorphicCoproductOrdering<std::less>{}(lhs,rhs); }
+};
 
 
 #endif // __LIB_EITHER__H__
