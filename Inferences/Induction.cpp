@@ -819,7 +819,7 @@ void InductionClauseIterator::selectInductionScheme(Clause* premise, Literal* li
 
     if (match) {
       auto scheme = new InductionScheme();
-      scheme->init(curr, templ->getRDescriptions(), templ->getInductionVariables());
+      scheme->init(templ->getMaxVar(), curr, templ->getRDescriptions(), templ->getInductionVariables());
       List<InductionScheme*>::push(scheme, schemes);
     }
   }
@@ -854,9 +854,14 @@ void InductionClauseIterator::instantiateScheme(Clause* premise, Literal* lit, I
     auto replaceLit = lit;
     for (auto kv : desc.getStep()) {
       auto t = kv.first;
-      for (const auto& pos : activeOccurrences[t]) {
-        PositionalTermReplacement tr(t.term(), kv.second, pos);
-        replaceLit = static_cast<Literal*>(tr.replaceIn(TermList(replaceLit)).term());
+      if (activeOccurrences[t].size() > 1) {
+        for (const auto& pos : activeOccurrences[t]) {
+          PositionalTermReplacement tr(t.term(), kv.second, pos);
+          replaceLit = static_cast<Literal*>(tr.replaceIn(TermList(replaceLit)).term());
+        }
+      } else {
+        TermReplacement tr(t.term(), kv.second);
+        replaceLit = tr.transform(replaceLit);
       }
     }
     Formula* right = new AtomicFormula(Literal::complementaryLiteral(replaceLit));
@@ -871,9 +876,14 @@ void InductionClauseIterator::instantiateScheme(Clause* premise, Literal* lit, I
       auto recCall = recCallsIt.next();
       for (auto& kv : recCall) {
         auto t = kv.first;
-        for (const auto& pos : activeOccurrences[t]) {
-          PositionalTermReplacement tr(t.term(), kv.second, pos);
-          replaceLit = static_cast<Literal*>(tr.replaceIn(TermList(replaceLit)).term());
+        if (activeOccurrences[t].size() > 1) {
+          for (const auto& pos : activeOccurrences[t]) {
+            PositionalTermReplacement tr(t.term(), kv.second, pos);
+            replaceLit = static_cast<Literal*>(tr.replaceIn(TermList(replaceLit)).term());
+          }
+        } else {
+          TermReplacement tr(t.term(), kv.second);
+          replaceLit = tr.transform(replaceLit);
         }
       }
       hyp = new FormulaList(new AtomicFormula(Literal::complementaryLiteral(replaceLit)),hyp);
@@ -925,9 +935,14 @@ void InductionClauseIterator::instantiateScheme(Clause* premise, Literal* lit, I
       }
       termToVarMap.insert(t, var++);
       TermList r(termToVarMap.get(t),false);
-      for (auto& pos : activeOccurrences[t]) {
-        PositionalTermReplacement tr(t.term(), r, pos);
-        replaceLit = static_cast<Literal*>(tr.replaceIn(TermList(replaceLit)).term());
+      if (activeOccurrences[t].size() > 1) {
+        for (auto& pos : activeOccurrences[t]) {
+          PositionalTermReplacement tr(t.term(), r, pos);
+          replaceLit = static_cast<Literal*>(tr.replaceIn(TermList(replaceLit)).term());
+        }
+      } else {
+        TermReplacement tr(t.term(), r);
+        replaceLit = tr.transform(replaceLit);
       }
     }
   }

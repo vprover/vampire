@@ -77,6 +77,16 @@ TermList PositionalTermReplacement::replaceIn(TermList trm, vvector<unsigned> re
   return TermList(Term::createNonShared(trm.term(), args.data()));
 }
 
+TermList VarShiftReplacement::transformSubterm(TermList trm)
+{
+  CALL("VarShiftReplacement::transformSubterm");
+
+  if(trm.isVar()) {
+    return TermList(trm.var()+_shift, trm.isSpecialVar());
+  }
+  return trm;
+}
+
 TermList VarReplacement::transformSubterm(TermList trm)
 {
   CALL("VarReplacement::transformSubterm");
@@ -148,7 +158,7 @@ RDescriptionInst::RDescriptionInst(List<vmap<TermList, TermList>>* recursiveCall
     _condition(cond)
 {}
 
-List<vmap<TermList, TermList>>* RDescriptionInst::getRecursiveCalls() const
+List<vmap<TermList, TermList>>*& RDescriptionInst::getRecursiveCalls()
 {
   return _recursiveCalls;
 }
@@ -176,7 +186,8 @@ vstring RDescriptionInst::toString() const
 
 InductionTemplate::InductionTemplate()
   : _rDescriptions(0),
-    _inductionVariables()
+    _inductionVariables(),
+    _maxVar(0)
 {}
 
 void InductionTemplate::addRDescription(RDescription desc)
@@ -217,6 +228,11 @@ List<RDescription>::Iterator InductionTemplate::getRDescriptions() const
   return List<RDescription>::Iterator(_rDescriptions);
 }
 
+unsigned InductionTemplate::getMaxVar() const
+{
+  return _maxVar;
+}
+
 void InductionTemplate::postprocess() {
   ASS(_rDescriptions != nullptr);
 
@@ -243,18 +259,25 @@ void InductionTemplate::postprocess() {
         i++;
       }
     }
+    IntList::Iterator vIt(step->freeVariables());
+    while (vIt.hasNext()) {
+      auto var = vIt.next();
+      if (var >= _maxVar) {
+        _maxVar = var+1;
+      }
+    }
   }
 }
 
 InductionScheme::InductionScheme()
   : _rDescriptionInstances(0),
-    _activeOccurrences()
+    _activeOccurrences(),
+    _maxVar(0)
 {
 }
 
-void InductionScheme::init(Term* t, List<RDescription>::Iterator rdescIt, const Lib::DArray<bool>& indVars)
+void InductionScheme::init(unsigned var, Term* t, List<RDescription>::Iterator rdescIt, const Lib::DArray<bool>& indVars)
 {
-  unsigned var = 0;
   while (rdescIt.hasNext()) {
     Map<unsigned, unsigned> varMap;
     auto desc = rdescIt.next();
@@ -324,9 +347,14 @@ void InductionScheme::addActiveOccurrences(vmap<TermList, vvector<TermPosition>>
   _activeOccurrences = m;
 }
 
-List<RDescriptionInst>::Iterator InductionScheme::getRDescriptionInstances() const
+void InductionScheme::setMaxVar(unsigned maxVar)
 {
-  return List<RDescriptionInst>::Iterator(_rDescriptionInstances);
+  _maxVar = maxVar;
+}
+
+List<RDescriptionInst>::RefIterator InductionScheme::getRDescriptionInstances() const
+{
+  return List<RDescriptionInst>::RefIterator(_rDescriptionInstances);
 }
 
 vmap<TermList, vvector<TermPosition>> InductionScheme::getActiveOccurrences() const
@@ -656,13 +684,16 @@ bool containsUpToVariableRenaming(TermList container, TermList contained) {
 
 bool InductionHelper::checkSubsumption(InductionScheme* sch1, InductionScheme* sch2, bool onlyCheckIntersection)
 {
-  List<RDescriptionInst>::Iterator rdescIt1(sch1->getRDescriptionInstances());
+  auto rdescIt1 = sch1->getRDescriptionInstances();
   while (rdescIt1.hasNext()) {
     auto rdesc1 = rdescIt1.next();
     auto contained = false;
-    List<RDescriptionInst>::Iterator rdescIt2(sch2->getRDescriptionInstances());
+    auto rdescIt2 = sch2->getRDescriptionInstances();
     while (rdescIt2.hasNext()) {
       auto rdesc2 = rdescIt2.next();
+      if ((rdesc2.getRecursiveCalls() == nullptr) != (rdesc1.getRecursiveCalls() == nullptr)) {
+        continue;
+      }
       auto m2 = rdesc2.getStep();
       bool contained1 = true;
       for (const auto& kv : rdesc1.getStep()) {
@@ -690,37 +721,68 @@ bool InductionHelper::checkSubsumption(InductionScheme* sch1, InductionScheme* s
   return true;
 }
 
+TermList shiftVarsUp(TermList t, unsigned shift) {
+  if (t.isVar()) {
+    return TermList(t.var()+shift, t.isSpecialVar());
+  }
+  VarShiftReplacement vr(shift);
+  return TermList(vr.transform(t.term()));
+}
+
 void InductionHelper::mergeSchemes(InductionScheme* sch1, InductionScheme* sch2) {
-  // List<RDescriptionInst>::Iterator rdescIt1(sch1->getRDescriptionInstances());
-  // while (rdescIt1.hasNext()) {
-  //   auto rdesc1 = rdescIt1.next();
-  //   List<RDescriptionInst>::Iterator rdescIt2(sch2->getRDescriptionInstances());
-  //   while (rdescIt2.hasNext()) {
-  //     auto rdesc2 = rdescIt2.next();
-  //     auto m2 = rdesc2.getStep();
-  //     bool contained1 = false;
-  //     for (const auto& kv : rdesc1.getStep()) {
-  //       if (m2.count(kv.first) == 0) {
-  //         if (onlyCheckIntersection) {
-  //           contained1 = true;
-  //         }
-  //         break;
-  //       }
-  //       auto s2 = m2[kv.first];
-  //       if (containsUpToVariableRenaming(s2, kv.second)) {
-  //         contained1 = true;
-  //         break;
-  //       }
-  //     }
-  //     if (contained1) {
-  //       contained = true;
-  //     }
-  //   }
-  //   if (!contained) {
-  //     return false;
-  //   }
-  // }
-  // return true;
+  auto rdescIt1 = sch1->getRDescriptionInstances();
+  auto maxVar = sch2->getMaxVar();
+  while (rdescIt1.hasNext()) {
+    auto rdesc1 = rdescIt1.next();
+    auto rdescIt2 = sch2->getRDescriptionInstances();
+    while (rdescIt2.hasNext()) {
+      auto& rdesc2 = rdescIt2.next();
+      bool base1 = rdesc1.getRecursiveCalls() == nullptr;
+      bool base2 = rdesc2.getRecursiveCalls() == nullptr;
+      if (base1 != base2) {
+        continue;
+      }
+      auto m2 = rdesc2.getStep();
+      bool contained = true;
+      // if (!base1 && !base2) {
+        for (const auto& kv : rdesc1.getStep()) {
+          if (m2.count(kv.first) == 0) {
+            continue;
+          }
+          auto s2 = m2[kv.first];
+          if (!containsUpToVariableRenaming(s2, kv.second)) {
+            contained = false;
+            break;
+          }
+        }
+      // }
+      if (contained) {
+        for (const auto& kv : rdesc1.getStep()) {
+          if (m2.count(kv.first) == 0) {
+            rdesc2.getStep().insert(
+              make_pair(shiftVarsUp(kv.first, maxVar), shiftVarsUp(kv.second, maxVar)));
+          }
+        }
+        auto mergedRecCalls = List<vmap<TermList,TermList>>::empty();
+        List<vmap<TermList,TermList>>::Iterator it1(rdesc1.getRecursiveCalls());
+        while (it1.hasNext()) {
+          auto recCall1 = it1.next();
+          List<vmap<TermList,TermList>>::Iterator it2(rdesc2.getRecursiveCalls());
+          while (it2.hasNext()) {
+            auto recCall2 = it2.next();
+            for (const auto& kv : recCall1) {
+              auto mergedRecCall = recCall2;
+              mergedRecCall.insert(
+                make_pair(shiftVarsUp(kv.first, maxVar), shiftVarsUp(kv.second, maxVar)));
+              List<vmap<TermList,TermList>>::push(mergedRecCall, mergedRecCalls);
+            }
+          }
+        }
+        rdesc2.getRecursiveCalls() = mergedRecCalls;
+      }
+    }
+  }
+  sch2->setMaxVar(sch2->getMaxVar()+maxVar);
 }
 
 } // Shell

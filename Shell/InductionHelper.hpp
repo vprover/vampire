@@ -25,6 +25,15 @@ private:
   TermPosition _p;
 };
 
+class VarShiftReplacement : public Kernel::TermTransformer {
+public:
+  VarShiftReplacement(unsigned shift) : _shift(shift) {}
+  Kernel::TermList transformSubterm(Kernel::TermList trm) override;
+
+private:
+  unsigned _shift;
+};
+
 class VarReplacement : public Kernel::TermTransformer {
 public:
   VarReplacement(unsigned var, Kernel::TermList r) : _v(var), _r(r) {}
@@ -79,7 +88,7 @@ public:
                    Kernel::vmap<Kernel::TermList, Kernel::TermList> step,
                    Kernel::Formula* cond);
 
-  Kernel::List<Kernel::vmap<Kernel::TermList, Kernel::TermList>>* getRecursiveCalls() const;
+  Kernel::List<Kernel::vmap<Kernel::TermList, Kernel::TermList>>*& getRecursiveCalls();
   Kernel::vmap<Kernel::TermList, Kernel::TermList>& getStep();
 
   Lib::vstring toString() const;
@@ -102,12 +111,14 @@ public:
 
   const Lib::DArray<bool>& getInductionVariables() const;
   Kernel::List<RDescription>::Iterator getRDescriptions() const;
+  unsigned getMaxVar() const;
 
   Lib::vstring toString() const;
 
 private:
   Kernel::List<RDescription>* _rDescriptions;
   Lib::DArray<bool> _inductionVariables;
+  unsigned _maxVar;
 };
 
 class InductionScheme {
@@ -117,10 +128,11 @@ public:
 
   InductionScheme();
 
-  void init(Kernel::Term* term, Kernel::List<RDescription>::Iterator rdescIt, const Lib::DArray<bool>& indVars);
+  void init(unsigned var, Kernel::Term* term, Kernel::List<RDescription>::Iterator rdescIt, const Lib::DArray<bool>& indVars);
   void addActiveOccurrences(Lib::vmap<Kernel::TermList, Lib::vvector<TermPosition>> m);
+  void setMaxVar(unsigned maxVar);
 
-  Kernel::List<RDescriptionInst>::Iterator getRDescriptionInstances() const;
+  Kernel::List<RDescriptionInst>::RefIterator getRDescriptionInstances() const;
   Lib::vmap<Kernel::TermList, Lib::vvector<TermPosition>> getActiveOccurrences() const;
   unsigned getMaxVar() const;
 
