@@ -26,6 +26,8 @@
 
 #include "Forwards.hpp"
 #include "Kernel/Theory.hpp"
+#include "Kernel/Signature.hpp"
+#include "Lib/Environment.hpp"
 
 #include "Api/FormulaBuilder.hpp"
 #include "Api/Problem.hpp"
@@ -61,6 +63,7 @@ public:
   static SAT::SATClause* buildSATClause(unsigned len,...);
 
 
+
 private:
   /**
    * Tests whether there is a permutation pi s.t. pi(lhs) == rhs, where elements are compared by
@@ -76,7 +79,36 @@ private:
 
   /** returns whether the function f is associative and commutative */
   static bool isAC(Kernel::Theory::Interpretation f);
+  static bool isAC(Kernel::Term* f);
 };
+
+/** 
+ * Newtype for pretty-printing objects. 
+ *
+ * Usage: 
+ * std::cout << pretty(obj) << std::endl;
+ */
+template<class T>
+class Pretty {
+  const T& _self;
+public:
+  Pretty(const T& t) : _self(t) {}
+
+  std::ostream& prettyPrint(std::ostream& out) const
+  { return out << _self; }
+
+  template<class U>
+  friend Pretty<U> pretty(const U& t);
+};
+
+
+template<class U>
+Pretty<U> pretty(const U& t) 
+{ return Pretty<U>(t); }
+
+template<class U>
+std::ostream& operator<<(std::ostream& out, const Pretty<U>& self)
+{  return self.prettyPrint(out); }
 
 }
 

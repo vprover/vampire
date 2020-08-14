@@ -1,6 +1,6 @@
 
-#include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
+#include "Forwards.hpp"
 
 #include "Signature.hpp" 
 #include "SortHelper.hpp"
@@ -13,77 +13,202 @@
 #include "Lib/Coproduct.hpp"
 #include <algorithm>
 #include <utility>
-#include "Kernel/Polynomial.hpp"
 #include <type_traits>
 #include <functional>
 #include "Lib/Hash.hpp"
 #include "Lib/UniqueShared.hpp"
+#include "Lib/Environment.hpp"
 
 
 #ifndef __POLYNOMIAL_NORMALIZER_HPP__
 #define __POLYNOMIAL_NORMALIZER_HPP__
-#define DEBUG(...) //DBG(__VA_ARGS__)
+#define DEBUG(...) // DBG(__VA_ARGS__)
 
 namespace Kernel {
-
-//   explicit TermEvalResult(TermList t) : Coproduct(t) {}
-//   TermEvalResult(Coproduct     && super) : Coproduct(std::move(super)) {}
-//   TermEvalResult(Coproduct      & super) : Coproduct(          super ) {}
-//   TermEvalResult(Coproduct const& super) : Coproduct(          super ) {}
-//   bool isPoly() const& { return is<1>(); }
-//   AnyPoly const& asPoly() const& { return unwrap<1>(); }
-//   AnyPoly      & asPoly()      & { return unwrap<1>(); }
-//   template<class Config>
-//   TermList toTerm() { return match<TermList> ( 
-//       [](TermList& t) { return t; },
-//       [](AnyPoly& p) { return p.template toTerm_<Config>(); }
-//       );
-//   }
-// };
 
 namespace Memo {
 
   template<class EvalFn>
   struct None 
   {
-    using Result = typename std::result_of<EvalFn(Variable)>::type;
-    template<class Init> Result getOrInit(Term* _orig, Init init) { return init(); }
-    Result* getPtr(Term* _orig) { return nullptr; }
+    using Result = typename EvalFn::Result;
+    using Arg    = typename EvalFn::Arg;
+    Result* getPtr(Arg _orig) { return nullptr; }
+    template<class Init> Result getOrInit(Arg orig, Init init) { return init(); }
   };
 
   template<class EvalFn>
   class Hashed 
   {
-    using Result = typename std::result_of<EvalFn(Variable)>::type;
+    using Result = typename EvalFn::Result;
+    using Arg    = typename EvalFn::Arg;
 
-    Map<Term*, Result> _memo;
+    Map<Arg, Result> _memo;
 
   public:
     Hashed() : _memo(decltype(_memo)()) {}
-    template<class Init> Result getOrInit(Term* orig, Init init) { return _memo.getOrInit(std::move(orig), init); }
-    Result* getPtr(Term* orig) { return _memo.getPtr(orig); }
+
+    template<class Init> Result getOrInit(Arg orig, Init init) 
+    { return _memo.getOrInit(std::move(orig), init); }
+
+    Result* getPtr(const Arg& orig) 
+    { return _memo.getPtr(orig); }
   };
 
-}
+} // namespace Memo
+} // namespace Kernel
+#include "Kernel/Polynomial.hpp"
 
+
+namespace Kernel {
 
 template<class T>
 T assertionViolation() {ASSERTION_VIOLATION}
 
+template<class A> 
+struct ChildIter
+{
+  A next();
+  bool hasNext();
+  A self();
+  unsigned nChildren();
+};
+
+template<>
+struct ChildIter<TermList>
+{
+  TermList _self;
+  unsigned _idx;
+
+  ChildIter(TermList self) : _self(self), _idx(0)
+  {}
+
+  TermList next() 
+  {
+    ASS(hasNext());
+    return *_self.term()->nthArgument(_idx++);
+  }
+  bool hasNext() const 
+  { return _self.isTerm() && _idx < _self.term()->arity(); }
+
+  unsigned nChildren() const 
+  { return _self.isVar() ? 0 : _self.term()->arity(); }
+
+  TermList self() const 
+  { return _self; }
+};
+
+
+POLYMORPHIC_FUNCTION(bool    , hasNext  , const& t,) { return t.hasNext();   }
+POLYMORPHIC_FUNCTION(PolyNf  , next     ,      & t,) { return t.next();      }
+POLYMORPHIC_FUNCTION(unsigned, nChildren, const& t,) { return t.nChildren(); }
+POLYMORPHIC_FUNCTION(PolyNf  , self     , const& t,) { return PolyNf(t._self);       }
+
+template<>
+struct ChildIter<PolyNf>
+{
+  struct PolynomialChildIter 
+  {
+    AnyPoly _self;
+    unsigned _idx1;
+    unsigned _idx2;
+    unsigned _nChildren;
+
+    PolynomialChildIter(AnyPoly self) : _self(self), _idx1(0), _idx2(0), _nChildren(0)
+    {
+      while (_idx1 < _self.nSummands() && _self.nFactors(_idx1) == 0) {
+        _idx1++;
+      }
+      for (unsigned i = 0; i < _self.nSummands(); i++) {
+        _nChildren += self.nFactors(i);
+      }
+    }
+
+    bool hasNext() const
+    { return _idx1 < _self.nSummands(); }
+
+    PolyNf next() 
+    { 
+      auto out = _self.termAt(_idx1, _idx2++);
+      if (_idx2 >= _self.nFactors(_idx1)) {
+        _idx1++;
+        while (_idx1 < _self.nSummands() && _self.nFactors(_idx1) == 0) {
+          _idx1++;
+        }
+        _idx2 = 0;
+      }
+      return out;
+    }
+
+    unsigned nChildren() const
+    { return _nChildren; }
+  };
+
+  struct FuncTermChildIter 
+  {
+
+    UniqueShared<FuncTerm> _self;
+    unsigned _idx;
+
+    FuncTermChildIter(UniqueShared<FuncTerm> self) : _self(self), _idx(0) {}
+
+    bool hasNext() const
+    { return _idx < _self->arity(); }
+
+    PolyNf next() 
+    { return _self->arg(_idx++); }
+
+    unsigned nChildren() const
+    { return _self->arity(); }
+  };
+
+
+  struct VariableChildIter 
+  {
+    Variable _self;
+    VariableChildIter(Variable self) : _self(self) {}
+
+    bool hasNext() const
+    { return false; }
+
+    PolyNf next() 
+    { ASSERTION_VIOLATION }
+
+    unsigned nChildren() const
+    { return 0; }
+  };
+
+  using Inner = Coproduct<FuncTermChildIter, VariableChildIter, PolynomialChildIter>;
+  Inner _self;
+
+  ChildIter(PolyNf self) : _self(self.template match<Inner>(
+        [&](UniqueShared<FuncTerm> self) { return Inner(FuncTermChildIter( self ));            },
+        [&](Variable               self) { return Inner(VariableChildIter( self ));            },
+        [&](AnyPoly                self) { return Inner(PolynomialChildIter(std::move(self))); }
+      ))
+  {}
+
+  PolyNf next() 
+  { ASS(hasNext()); return _self.template collapsePoly<PolyNf>(Polymorphic::next{}); }
+
+  bool hasNext() const 
+  { return _self.template collapsePoly<bool>(Polymorphic::hasNext{}); }
+
+  unsigned nChildren() const 
+  { return _self.template collapsePoly<unsigned>(Polymorphic::nChildren{}); }
+
+  PolyNf self() const 
+  { return _self.template collapsePoly<PolyNf>(Polymorphic::self{}); }
+};
+
 /** TODO document */
 template<class EvalFn, class Memo = Memo::None<EvalFn>>
-typename std::result_of<EvalFn(Variable)>::type evaluateBottomUp(TermList term_, EvalFn evaluateStep, Memo& memo) 
+typename EvalFn::Result evaluateBottomUp(typename EvalFn::Arg term, EvalFn evaluateStep, Memo& memo) 
 {
-  using Result = typename std::result_of<EvalFn(Variable)>::type;
+  CALL("evaluateBottomUp(...)")
+  using Result = typename EvalFn::Result;
+  using Arg    = typename EvalFn::Arg;
 
-  static_assert(std::is_same<typename std::result_of<EvalFn(Term*, Result*)>::type
-                            ,Result                                               >::value
-                            ,"EvalFn must be of signature `Result evaluateStep(Term*, Result*)`");
-  CALL("PolynomialNormalizer::evaluate(TermList)")
-  if (term_.isVar()) {
-    return evaluateStep(Variable(term_.var())); //TODO memo variables as well.
-  }
-  Term* term = term_.term();
   
   /** only used in order to be able to create a fake default constructor for Result, that is required by
    * std::vector::resize. The constructor will actually never be called.
@@ -96,95 +221,80 @@ typename std::result_of<EvalFn(Variable)>::type evaluateBottomUp(TermList term_,
     ResultWrapper() : Result(assertionViolation<Result>()) {  }
   };
 
-  static Stack<TermList*> recursion(8);
-  static Stack<Term*> terms(8);
-  static vector<ResultWrapper> args;
+  /* recursion state. Contains a stack of items that are being recursed on. */
+  Stack<ChildIter<Arg>> recState;
+  vector<ResultWrapper> recResults;
 
-  recursion.push(term->args());
-  terms.push(term);
+  recState.push(ChildIter<Arg>(term));
 
-  TermList* cur;
-  while (!recursion.isEmpty()) {
+  while (!recState.isEmpty()) {
 
-    cur = recursion.pop();
+    if (recState.top().hasNext()) {
+      Arg t = recState.top().next();
 
-    if (!cur->isEmpty()) {
-
-      recursion.push(cur->next());
-
-      if(cur->isVar()) {
-        // variables are not evaluated
-        args.emplace_back(evaluateStep(Variable(cur->var())));
-
+      auto cached = memo.getPtr(t);
+      if (cached == nullptr) {
+         recState.push(ChildIter<Arg>(t));
       } else {
-        ASS(cur->isTerm());
-
-        Term* t = cur->term();
-
-        auto cached = memo.getPtr(t);
-        if (cached == nullptr) {
-           terms.push(t);
-           recursion.push(t->args());
-        } else {
-          args.emplace_back(*cached); 
-        }
+        recResults.emplace_back(*cached); 
       }
 
+    } else { 
 
-    } else /* cur->isEmpty() */ { 
+      ChildIter<Arg> orig = recState.pop();
 
-      ASS(!terms.isEmpty()) 
-
-      Term* orig = terms.pop();
-
-      Result eval = memo.getOrInit(std::move(orig), 
+      Result eval = memo.getOrInit(std::move(orig.self()),
           [&](){ 
             Result* argLst = NULL;
-            if (orig->arity() != 0) {
-              ASS(args.size() >= orig->arity());
-              argLst=static_cast<Result*>(&args[args.size() - orig->arity()]);
+            if (orig.nChildren() != 0) {
+              ASS_GE(recResults.size(), orig.nChildren());
+              argLst = static_cast<Result*>(&recResults[recResults.size() - orig.nChildren()]);
             }
-
-            return evaluateStep(orig,argLst);
-            // ::new(toInit) Result(std::move(eval));
+            return evaluateStep(orig.self(), argLst);
           });
 
-      DEBUG("evaluated: ", orig->toString(), " -> ", eval);
+      DEBUG("evaluated: ", orig.self(), " -> ", eval);
 
-      args.resize(args.size() - orig->arity());
-      args.emplace_back(std::move(eval));
+      recResults.resize(recResults.size() - orig.nChildren());
+      recResults.emplace_back(std::move(eval));
     }
 
   }
-  ASS_REP(recursion.isEmpty(), recursion)
+  ASS(recState.isEmpty())
     
 
-  ASS(args.size() == 1);
-  Result out = std::move(args[0]);
-  args.clear();
+  ASS(recResults.size() == 1);
+  Result out = std::move(recResults[0]);
+  recResults.clear();
   return std::move(out);
 }
 
 inline PolyNf PolyNf::normalize(TermList t) 
 {
+
+
+
+ 
   // using Result = Coproduct<PolyNf, Vec<>;
 
-  struct Eval 
-  {
-    PolyNf operator()(Variable v) { return v; }
-    PolyNf operator()(Term* orig, PolyNf* evaluatedArgs) 
-    {
-      FuncId func(orig->functor());
-      Stack<PolyNf> s(func.arity());
-      s.loadFromIterator(getArrayishObjectIterator(evaluatedArgs, func.arity()));
-      return unique(FuncTerm(
-            func, 
-            std::move(s)
-          ));
-    }
-  };
-  Memo::None<Eval> memo;
-  return evaluateBottomUp(t, Eval{}, memo);
+  // struct Eval 
+  // {
+  //   PolyNf operator()(Variable v) { return v; }
+  //   PolyNf operator()(Term* orig, PolyNf* evaluatedArgs) 
+  //   {
+  //     FuncId func(orig->functor());
+  //     Stack<PolyNf> s(func.arity());
+  //     s.loadFromIterator(getArrayishObjectIterator(evaluatedArgs, func.arity()));
+  //     return unique(FuncTerm(
+  //           func, 
+  //           std::move(s)
+  //         ));
+  //   }
+  // };
+  // Memo::None<Eval> memo;
+  // return evaluateBottomUp(t, Eval{}, memo);
+  // TODO implement
+  ASSERTION_VIOLATION
 }
 
 
@@ -350,13 +460,19 @@ template<class Config> PolyNf PolynomialNormalizer<Config>::evaluate(TermList te
   struct Eval 
   {
     const PolynomialNormalizer& norm;
-    PolyNf operator()(Variable v) 
-    { return v; }
 
-    PolyNf operator()(Term* t, PolyNf* ts) 
-    { return norm.evaluateStep(t, ts); }
+    using Result = PolyNf;
+    using Arg    = TermList;
+
+    PolyNf operator()(TermList t, PolyNf* ts) 
+    { 
+      if (t.isVar()) {
+        return PolyNf(Variable(t.var()));
+      } else {
+        return norm.evaluateStep(t.term(), ts); 
+      }
+    }
   };
-
   static Memo::Hashed<Eval> memo;
   return evaluateBottomUp(term, Eval{ *this }, memo);
 }

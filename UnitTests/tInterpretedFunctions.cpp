@@ -28,6 +28,7 @@
 #include "Kernel/Term.hpp"
 #include "Kernel/Sorts.hpp"
 #include "Kernel/PolynomialNormalizer.hpp"
+#include "Test/TestUtils.hpp"
 
 #include "Kernel/InterpretedLiteralEvaluator.hpp"
 
@@ -39,27 +40,35 @@ UT_CREATE;
 
 using namespace std;
 using namespace Lib;
+using namespace Test;
 using namespace Kernel;
 using namespace Shell;
 /////////////////////////////////////////////// Helper functions ///////////////////////////////////////////////////////
+
+
+bool equalityCheck(Literal& l, Literal& r) 
+{ return TestUtils::eqModAC(&l,&r); }
+
+bool equalityCheck(bool l, bool r) 
+{ return l == r; }
 
 #define TEST_FAIL exit(-1);
 #define OUT cout
 // #define TEST_FAIL OUT << "FAIL" << endl;
 
 #define __CHECK(op, is, expected, msg, test_case) \
-  if (!(( is ) op ( expected ))) { \
+  if (!(op equalityCheck( is, expected))) { \
     OUT << endl; \
     OUT << msg << endl; \
-    OUT << "[   case   ] " << test_case << endl; \
-    OUT << "[    is    ] " << #is << " =  " << is << endl; \
-    OUT << "[ expected ] " << #is << " " #op << " " << expected << endl; \
+    OUT << "[   case   ] " << pretty(test_case) << endl; \
+    OUT << "[    is    ] " << #is << " =  " << pretty(is) << endl; \
+    OUT << "[ expected ] " << #is << " " #op "=" << " " << pretty(expected) << endl; \
     OUT << endl; \
     TEST_FAIL \
   } \
 
-#define CHECK_NE(...) __CHECK(!=, __VA_ARGS__) 
-#define CHECK_EQ(...) __CHECK(==, __VA_ARGS__)
+#define CHECK_NE(...) __CHECK(! , __VA_ARGS__) 
+#define CHECK_EQ(...) __CHECK(  , __VA_ARGS__)
 
 int testTermOrdering(TermList lhs, TermList rhs);
 int testTermOrdering(const Term& lhs, const Term& rhs) {
@@ -172,7 +181,7 @@ void check_no_succ(Literal& orig) {
   auto res = eval.evaluate(src);
   auto nop = res.template is<0>() && res.template unwrap<0>() == src;
 
-  CHECK_EQ(nop, true, "unexpectedly evaluation was successful", orig.toString());
+  CHECK_EQ(nop, true, "unexpectedly evaluation was successful", orig);
 }
 
 
@@ -185,17 +194,17 @@ void check_eval(Lit orig_, bool expected) {
   Literal* src = Literal::create(&orig, orig.polarity());
 
   auto result = eval.evaluate(src);
-  CHECK_EQ(result.template is<1>(), true, "non-trivial evaluation result", orig.toString())
-  CHECK_EQ(result.template unwrap<1>(), expected, "result not evaluated to constant", orig.toString())
+  CHECK_EQ(result.template is<1>(), true, "non-trivial evaluation result", orig)
+  CHECK_EQ(result.template unwrap<1>(), expected, "result not evaluated to constant", orig)
 }
 
-bool operator==(const Literal& lhs, const Literal& rhs) {
-  return Indexing::TermSharing::equals(&lhs, &rhs);
-}
+// bool operator==(const Literal& lhs, const Literal& rhs) {
+//   return Indexing::TermSharing::equals(&lhs, &rhs);
+// }
 
 void check_eval(Lit orig_, Lit expected_) {
   Literal& orig = *orig_;
-  const Literal& expected = *expected_;
+  Literal& expected = *expected_;
 
   auto eval = NORMALIZER;
 
@@ -203,8 +212,8 @@ void check_eval(Lit orig_, Lit expected_) {
   Literal* src = Literal::create(&orig, orig.polarity());
 
   auto result = eval.evaluate(src);
-  CHECK_EQ(result.template is<0>(), true, "trivial evaluation result", orig.toString())
-  CHECK_EQ(*result.template unwrap<0>(), expected, "result not evaluated correctly", orig.toString())
+  CHECK_EQ(result.template is<0>(), true, "trivial evaluation result", orig)
+  CHECK_EQ(*result.template unwrap<0>(), expected, "result not evaluated correctly", orig)
 }
 
 #define ADDITIONAL_FUNCTIONS \
