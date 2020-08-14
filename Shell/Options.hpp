@@ -244,6 +244,7 @@ public:
     ONE,
     TWO,
     THREE,
+    FOUR,
     ALL
   };
   enum class MathInductionKind : unsigned int {

@@ -1093,7 +1093,7 @@ void Options::Options::init()
             //_induction.setRandomChoices
 
             _structInduction = ChoiceOptionValue<StructuralInductionKind>("structural_induction_kind","sik",
-                                 StructuralInductionKind::ONE,{"one","two","three","all"});
+                                 StructuralInductionKind::ONE,{"one","two","three","four","all"});
             _structInduction.description="The kind of structural induction applied";
             _structInduction.tag(OptionTag::INFERENCES);
             _structInduction.reliesOn(Or(_induction.is(equal(Induction::STRUCTURAL)),_induction.is(equal(Induction::BOTH))));

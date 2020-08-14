@@ -122,7 +122,7 @@ private:
   void performStructInductionTwo(Clause* premise, Literal* origLit, Literal* lit, Term* t, InferenceRule rule);
   void performStructInductionThree(Clause* premise, Literal* origLit, Literal* lit, Term* t, InferenceRule rule);
 
-  void selectInductionScheme(Clause* premise, Literal* origLit, InferenceRule rule);
+  void performStructInductionFour(Clause* premise, Literal* origLit, InferenceRule rule);
   void instantiateScheme(Clause* premise, Literal* origLit, InferenceRule rule, InductionScheme* scheme);
 
   bool notDone(Literal* lit, Term* t);

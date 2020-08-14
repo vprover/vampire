@@ -11,70 +11,45 @@ using namespace Kernel;
 
 namespace Shell {
 
-Term* copyTerm(Term* other) {
-  ASS(!other->isSpecial());
-  DArray<TermList> args(other->arity());
-  Term::Iterator argIt(other);
-  unsigned j = 0;
-  while (argIt.hasNext()) {
-    auto t = argIt.next();
-    if (t.isTerm()) {
-      args[j] = TermList(copyTerm(t.term()));
-    } else {
-      args[j] = TermList(t.var(), !t.isOrdinaryVar());
-    }
-    j++;
-  }
-  Term* res = nullptr;
-  if (other->isLiteral()) {
-    res = Literal::createNonShared(static_cast<Literal*>(other), args.begin());
-  } else {
-    res = Term::createNonShared(other, args.begin());
-  }
-  // TODO(mhajdu): workaround, do smth about it
-  res->markShared();
-  return res;
-}
-
-vstring positionToString(const TermPosition& pos) {
-  vstring str;
-  for (const auto& p : pos) {
-    str+=Lib::Int::toString(p)+'.';
-  }
-  return str;
-}
-
-TermList PositionalTermReplacement::replaceIn(TermList trm)
+TermList TermListReplacement::transformSubterm(TermList trm)
 {
-  return replaceIn(trm, _p);
-}
+  CALL("TermListReplacement::transformSubterm");
 
-TermList PositionalTermReplacement::replaceIn(TermList trm, vvector<unsigned> rest)
-{
-  if (rest.empty()) {
-    ASS(trm == TermList(_o));
+  if(trm.isVar() && _o.isVar() && trm.var() == _o.var()) {
     return _r;
   }
 
-  ASS(trm.term()->arity() > 0);
-  Term::Iterator it(trm.term());
-  vvector<TermList> args(trm.term()->arity());
-  unsigned i = 0;
-  while (it.hasNext()) {
-    auto arg = it.next();
-    if (rest.front() == i+1) {
-      vvector<unsigned> c(rest.begin()+1, rest.end());
-      args[i] = replaceIn(arg, c);
-    } else {
-      args[i] = arg;
-    }
-    i++;
+  if(trm.isTerm() && _o.isTerm() && trm.term()==_o.term()){
+    return _r;
+  }
+  return trm;
+}
+
+TermList TermOccurrenceReplacement::transformSubterm(Kernel::TermList trm)
+{
+  CALL("TermOccurrenceReplacement::transformSubterm");
+
+  if (trm.isVar() || _r.count(trm) == 0) {
+    return trm;
   }
 
-  if (trm.term()->isLiteral()) {
-    return TermList(Literal::createNonShared(static_cast<Literal*>(trm.term()), args.data()));
+  if (_c.count(trm) == 0) {
+    _c.insert(make_pair(trm, 0));
+  } else {
+    _c[trm]++;
   }
-  return TermList(Term::createNonShared(trm.term(), args.data()));
+
+  const auto& r = _r.at(trm);
+  const auto& o = _o.at(trm);
+  if (o.size() == 1) {
+    return r;
+  }
+  for (const auto& p : o) {
+    if (p == _c[trm]) {
+      return r;
+    }
+  }
+  return trm;
 }
 
 TermList VarShiftReplacement::transformSubterm(TermList trm)
@@ -100,20 +75,28 @@ TermList VarReplacement::transformSubterm(TermList trm)
   return trm;
 }
 
-bool IteratorByInductiveVariables::hasNext() {
+bool IteratorByInductiveVariables::hasNext()
+{
   ASS(_it.hasNext() == _indVarIt.hasNext());
 
   while (_indVarIt.hasNext() && !_indVarIt.peekAtNext()) {
     _indVarIt.next();
     _it.next();
+    _c++;
   }
   return _indVarIt.hasNext();
 }
 
-TermList IteratorByInductiveVariables::next() {
+TermList IteratorByInductiveVariables::next()
+{
   ASS(hasNext());
   _indVarIt.next();
   return _it.next();
+}
+
+unsigned IteratorByInductiveVariables::count()
+{
+  return _c;
 }
 
 RDescription::RDescription(List<TermList>* recursiveCalls, TermList step, Formula* cond)
@@ -230,7 +213,8 @@ List<RDescription>::Iterator InductionTemplate::getRDescriptions() const
   return List<RDescription>::Iterator(_rDescriptions);
 }
 
-void InductionTemplate::postprocess() {
+void InductionTemplate::postprocess()
+{
   ASS(_rDescriptions != nullptr);
 
   _inductionVariables.init(_rDescriptions->head().getStep().term()->arity(), false);
@@ -268,6 +252,8 @@ InductionScheme::InductionScheme()
 
 void InductionScheme::init(Term* t, List<RDescription>::Iterator rdescIt, const Lib::DArray<bool>& indVars)
 {
+  CALL("InductionScheme::init");
+
   unsigned var = 0;
   while (rdescIt.hasNext()) {
     Map<unsigned, unsigned> varMap;
@@ -287,6 +273,11 @@ void InductionScheme::init(Term* t, List<RDescription>::Iterator rdescIt, const 
           mismatch = true;
           break;
         }
+        continue;
+      }
+      // there may be induction variables which
+      // don't change in some cases
+      if (argStep.isVar()) {
         continue;
       }
       VarReplacement cr(varMap, var);
@@ -316,7 +307,21 @@ void InductionScheme::init(Term* t, List<RDescription>::Iterator rdescIt, const 
           continue;
         }
         if (argRecCall.isVar()) {
-          recCallSubst.insert(make_pair(argTerm, TermList(varMap.get(argRecCall.var()), false)));
+          // first we check if this variable corresponds to at least one complex term 
+          // in the step (it is an induction variable position but may not be
+          // changed in this case)
+          IteratorByInductiveVariables stepIt(desc.getStep().term(), indVars);
+          bool found = false;
+          while (stepIt.hasNext()) {
+            auto argStep = stepIt.next();
+            if (argStep != argRecCall && argStep.containsSubterm(argRecCall)) {
+              found = true;
+              break;
+            }
+          }
+          if (found) {
+            recCallSubst.insert(make_pair(argTerm, TermList(varMap.get(argRecCall.var()), false)));
+          }
         } else {
           VarReplacement cr(varMap, var);
           auto res = cr.transform(argRecCall.term());
@@ -325,12 +330,17 @@ void InductionScheme::init(Term* t, List<RDescription>::Iterator rdescIt, const 
       }
       List<vmap<TermList,TermList>>::push(recCallSubst, recCallSubstList);
     }
-    List<RDescriptionInst>::push(RDescriptionInst(recCallSubstList, stepSubst, nullptr), _rDescriptionInstances);
+    addRDescriptionInstance(RDescriptionInst(recCallSubstList, stepSubst, nullptr));
   }
   _maxVar = var;
 }
 
-void InductionScheme::addActiveOccurrences(vmap<TermList, vvector<TermPosition>> m)
+void InductionScheme::addRDescriptionInstance(RDescriptionInst inst)
+{
+  List<RDescriptionInst>::push(inst, _rDescriptionInstances);
+}
+
+void InductionScheme::addActiveOccurrences(vmap<TermList, vvector<unsigned>> m)
 {
   _activeOccurrences = m;
 }
@@ -345,7 +355,7 @@ List<RDescriptionInst>::RefIterator InductionScheme::getRDescriptionInstances() 
   return List<RDescriptionInst>::RefIterator(_rDescriptionInstances);
 }
 
-vmap<TermList, vvector<TermPosition>> InductionScheme::getActiveOccurrences() const
+vmap<TermList, vvector<unsigned>> InductionScheme::getActiveOccurrences() const
 {
   return _activeOccurrences;
 }
@@ -367,7 +377,7 @@ vstring InductionScheme::toString() const
   for (const auto& kv : _activeOccurrences) {
     str+="term: "+kv.first.toString()+" positions: ";
     for (const auto& pos : kv.second) {
-      str+=positionToString(pos)+" ";
+      str+=Int::toString(pos)+" ";
     }
   }
   return str;
@@ -425,13 +435,15 @@ void InductionHelper::preprocess(UnitList*& units)
 
 void InductionHelper::filterSchemes(List<InductionScheme*>*& schemes)
 {
-  List<InductionScheme*>::Iterator schIt(schemes);
+  CALL("InductionHelper::filterSchemes");
+
+  List<InductionScheme*>::RefIterator schIt(schemes);
   while (schIt.hasNext()) {
-    auto scheme = schIt.next();
+    auto& scheme = schIt.next();
     auto schIt2 = schIt;
 
     while (schIt2.hasNext()) {
-      auto other = schIt2.next();
+      auto& other = schIt2.next();
       if (checkSubsumption(scheme, other)) {
         if(env.options->showInduction()){
           env.beginOutput();
@@ -455,19 +467,19 @@ void InductionHelper::filterSchemes(List<InductionScheme*>*& schemes)
           env.out() << "[Induction] induction scheme " << scheme->toString() << " can be merged into " << other->toString() << endl;
           env.endOutput();
         }
-        mergeSchemes(scheme, other);
-        schemes = List<InductionScheme*>::remove(scheme, schemes);
+        // mergeSchemes(scheme, other);
+        // schemes = List<InductionScheme*>::remove(scheme, schemes);
       } else if (checkSubsumption(other, scheme, true)) {
         if(env.options->showInduction()){
           env.beginOutput();
           env.out() << "[Induction] induction scheme " << other->toString() << " can be merged into " << scheme->toString() << endl;
           env.endOutput();
         }
-        if (schIt.peekAtNext() == other) {
-          schIt.next();
-        }
-        mergeSchemes(other, scheme);
-        schemes = List<InductionScheme*>::remove(other, schemes);
+        // if (schIt.peekAtNext() == other) {
+        //   schIt.next();
+        // }
+        // mergeSchemes(other, scheme);
+        // schemes = List<InductionScheme*>::remove(other, schemes);
       }
     }
   }
@@ -496,17 +508,8 @@ void InductionHelper::processBody(TermList& body, TermList& header, InductionTem
     for (unsigned i = 1; i < term->arity(); i+=2) {
       auto pattern = term->nthArgument(i);
       auto matchBody = term->nthArgument(i+1);
-      auto copiedHeader = copyTerm(header.term());
-
-      auto arg = copiedHeader->nthArgument(index);
-      if (arg->isVar()) {
-        *arg = *pattern;
-      } else {
-        Substitution subst;
-        subst.bind(matchedVar, pattern->term());
-        SubstHelper::apply(arg->term(), subst, true);
-      }
-      TermList t(copiedHeader);
+      TermListReplacement tr(TermList(matchedVar,false), *pattern);
+      TermList t(tr.transform(header.term()));
       processBody(*matchBody, t, templ);
     }
   }
@@ -703,60 +706,104 @@ TermList shiftVarsUp(TermList t, unsigned shift) {
   return TermList(vr.transform(t.term()));
 }
 
-void InductionHelper::mergeSchemes(InductionScheme* sch1, InductionScheme* sch2) {
+void InductionHelper::mergeSchemes(InductionScheme* sch1, InductionScheme*& sch2) {
+  auto res = new InductionScheme();
   auto rdescIt1 = sch1->getRDescriptionInstances();
   auto maxVar = sch2->getMaxVar();
+  unsigned var = 0;
   while (rdescIt1.hasNext()) {
     auto rdesc1 = rdescIt1.next();
     auto rdescIt2 = sch2->getRDescriptionInstances();
     while (rdescIt2.hasNext()) {
+      Map<unsigned, unsigned> varMap;
       auto& rdesc2 = rdescIt2.next();
-      bool base1 = rdesc1.getRecursiveCalls() == nullptr;
-      bool base2 = rdesc2.getRecursiveCalls() == nullptr;
-      if (base1 != base2) {
-        continue;
-      }
-      auto m2 = rdesc2.getStep();
-      bool contained = true;
-      // if (!base1 && !base2) {
-        for (const auto& kv : rdesc1.getStep()) {
-          if (m2.count(kv.first) == 0) {
-            continue;
-          }
-          auto s2 = m2[kv.first];
-          if (!containsUpToVariableRenaming(s2, kv.second)) {
-            contained = false;
-            break;
-          }
-        }
+      // bool base1 = rdesc1.getRecursiveCalls() == nullptr;
+      // bool base2 = rdesc2.getRecursiveCalls() == nullptr;
+      // if (base1 || base2) {
+      //   continue;
       // }
-      if (contained) {
-        for (const auto& kv : rdesc1.getStep()) {
-          if (m2.count(kv.first) == 0) {
-            rdesc2.getStep().insert(
-              make_pair(shiftVarsUp(kv.first, maxVar), shiftVarsUp(kv.second, maxVar)));
-          }
+      auto m2 = rdesc2.getStep();
+
+      auto desc = rdesc2;
+      for (const auto& kv : rdesc1.getStep()) {
+        if (m2.count(kv.first) == 0) {
+          desc.getStep().insert(
+            make_pair(shiftVarsUp(kv.first, maxVar), shiftVarsUp(kv.second, maxVar)));
         }
-        auto mergedRecCalls = List<vmap<TermList,TermList>>::empty();
-        List<vmap<TermList,TermList>>::Iterator it1(rdesc1.getRecursiveCalls());
+      }
+      for (auto& kv : desc.getStep()) {
+        VarReplacement cr(varMap, var);
+        kv.second = TermList(cr.transform(kv.second.term()));
+      }
+      auto mergedRecCalls = List<vmap<TermList,TermList>>::empty();
+      List<vmap<TermList,TermList>>::Iterator it1(rdesc1.getRecursiveCalls());
+      if (!it1.hasNext()) {
+        List<vmap<TermList,TermList>>::Iterator it2(rdesc2.getRecursiveCalls());
+        while (it2.hasNext()) {
+          auto recCall2 = it2.next();
+          for (auto& kv : recCall2) {
+            if (kv.second.isVar()) {
+              kv.second = TermList(varMap.get(kv.second.var()), false);
+            } else {
+              VarReplacement cr(varMap, var);
+              kv.second = TermList(cr.transform(kv.second.term()));
+            }
+          }
+          List<vmap<TermList,TermList>>::push(recCall2, mergedRecCalls);
+        }
+      } else {
         while (it1.hasNext()) {
           auto recCall1 = it1.next();
           List<vmap<TermList,TermList>>::Iterator it2(rdesc2.getRecursiveCalls());
-          while (it2.hasNext()) {
-            auto recCall2 = it2.next();
+          if (!it2.hasNext()) {
+            vmap<TermList,TermList> mergedRecCall;
             for (const auto& kv : recCall1) {
-              auto mergedRecCall = recCall2;
-              mergedRecCall.insert(
-                make_pair(shiftVarsUp(kv.first, maxVar), shiftVarsUp(kv.second, maxVar)));
+              if (kv.second.isVar()) {
+                mergedRecCall.insert(
+                  make_pair(kv.first, TermList(varMap.get(kv.second.var()+maxVar), false)));
+              } else {
+                VarReplacement cr(varMap, var);
+                auto t = shiftVarsUp(kv.second, maxVar);
+                mergedRecCall.insert(
+                  make_pair(kv.first, cr.transform(t.term())));
+              }
+            }
+            List<vmap<TermList,TermList>>::push(mergedRecCall, mergedRecCalls);
+          } else {
+            while (it2.hasNext()) {
+              auto mergedRecCall = it2.next();
+              for (auto& kv : mergedRecCall) {
+                if (kv.second.isVar()) {
+                  kv.second = TermList(varMap.get(kv.second.var()), false);
+                } else {
+                  VarReplacement cr(varMap, var);
+                  kv.second = TermList(cr.transform(kv.second.term()));
+                }
+              }
+              for (const auto& kv : recCall1) {
+                if (kv.second.isVar()) {
+                  mergedRecCall.insert(
+                    make_pair(kv.first, TermList(varMap.get(kv.second.var()+maxVar), false)));
+                } else {
+                  VarReplacement cr(varMap, var);
+                  auto t = shiftVarsUp(kv.second, maxVar);
+                  mergedRecCall.insert(
+                    make_pair(kv.first, cr.transform(t.term())));
+                }
+              }
               List<vmap<TermList,TermList>>::push(mergedRecCall, mergedRecCalls);
             }
           }
         }
-        rdesc2.getRecursiveCalls() = mergedRecCalls;
       }
+      desc.getRecursiveCalls() = mergedRecCalls;
+      res->addRDescriptionInstance(desc);
     }
   }
-  sch2->setMaxVar(sch2->getMaxVar()+maxVar);
+  res->setMaxVar(var);
+  cout << "Merged scheme: " << res->toString() << endl;
+  delete sch2;
+  sch2 = res;
 }
 
 } // Shell

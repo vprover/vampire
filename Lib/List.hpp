@@ -559,6 +559,11 @@ public:
       return result;
     }
 
+    inline C peekAtNext()
+    {
+      return _lst->head();
+    }
+
     /** True if there is a next element. */
     inline bool hasNext() const
     { return isNonEmpty(_lst); }

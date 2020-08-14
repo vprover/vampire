@@ -9,20 +9,27 @@
 
 namespace Shell {
 
-using TermPosition = Lib::vvector<unsigned>;
+using namespace Kernel;
 
-Lib::vstring positionToString(const TermPosition& pos);
-
-class PositionalTermReplacement {
+class TermListReplacement : public TermTransformer {
 public:
-  PositionalTermReplacement(Kernel::Term* o, Kernel::TermList r, TermPosition p) : _o(o), _r(r), _p(p) {} 
-  Kernel::TermList replaceIn(Kernel::TermList trm);
+  TermListReplacement(TermList o, TermList r) : _o(o), _r(r) {} 
+  virtual TermList transformSubterm(TermList trm);
 private:
-  Kernel::TermList replaceIn(Kernel::TermList trm, TermPosition rest);
+  TermList _o;
+  TermList _r;
+};
 
-  Kernel::Term* _o;
-  Kernel::TermList _r;
-  TermPosition _p;
+class TermOccurrenceReplacement : public Kernel::TermTransformer {
+public:
+  TermOccurrenceReplacement(const Lib::vmap<Kernel::TermList, Kernel::TermList>& r,
+                            const Lib::vmap<Kernel::TermList, Lib::vvector<unsigned>>& o) : _r(r), _o(o), _c() {} 
+  Kernel::TermList transformSubterm(Kernel::TermList trm) override;
+
+private:
+  const Lib::vmap<Kernel::TermList, Kernel::TermList>& _r;
+  const Lib::vmap<Kernel::TermList, Lib::vvector<unsigned>>& _o;
+  Lib::vmap<Kernel::TermList, unsigned> _c;
 };
 
 class VarShiftReplacement : public Kernel::TermTransformer {
@@ -49,15 +56,17 @@ class IteratorByInductiveVariables
 public:
   IteratorByInductiveVariables(Kernel::Term* term,
                                const Lib::DArray<bool>& indVars)
-    : _it(term), _indVarIt(indVars)
+    : _it(term), _indVarIt(indVars), _c(0)
   {}
 
   bool hasNext();
   Kernel::TermList next();
+  unsigned count();
 
 private:
   Kernel::Term::Iterator _it;
   Lib::DArray<bool>::Iterator _indVarIt;
+  unsigned _c;
 };
 
 class RDescription {
@@ -127,11 +136,12 @@ public:
   InductionScheme();
 
   void init(Kernel::Term* term, Kernel::List<RDescription>::Iterator rdescIt, const Lib::DArray<bool>& indVars);
-  void addActiveOccurrences(Lib::vmap<Kernel::TermList, Lib::vvector<TermPosition>> m);
+  void addRDescriptionInstance(RDescriptionInst inst);
+  void addActiveOccurrences(Lib::vmap<Kernel::TermList, Lib::vvector<unsigned>> m);
   void setMaxVar(unsigned maxVar);
 
   Kernel::List<RDescriptionInst>::RefIterator getRDescriptionInstances() const;
-  Lib::vmap<Kernel::TermList, Lib::vvector<TermPosition>> getActiveOccurrences() const;
+  Lib::vmap<Kernel::TermList, Lib::vvector<unsigned>> getActiveOccurrences() const;
   unsigned getMaxVar() const;
 
   Lib::vstring toString() const;
@@ -140,7 +150,7 @@ private:
   void replaceFreeVars(Kernel::TermList t, unsigned& currVar, Lib::Map<unsigned, unsigned>& varMap);
 
   Kernel::List<RDescriptionInst>* _rDescriptionInstances;
-  Lib::vmap<Kernel::TermList, Lib::vvector<TermPosition>> _activeOccurrences;
+  Lib::vmap<Kernel::TermList, Lib::vvector<unsigned>> _activeOccurrences;
   unsigned _maxVar;
 };
 
@@ -161,7 +171,7 @@ private:
                                                   Kernel::Term* recursiveCall, const Lib::DArray<bool>& indVars,
                                                   unsigned& currVar, Kernel::Map<pair<Kernel::Term*, unsigned>, Lib::vvector<unsigned>>& varMap);
   static bool checkAllContained(Lib::List<Kernel::Term*>* lst1, Lib::List<Kernel::Term*>* lst2, bool onlyCheckIntersection = false);
-  static void mergeSchemes(InductionScheme* sch1, InductionScheme* sch2);
+  static void mergeSchemes(InductionScheme* sch1, InductionScheme*& sch2);
 };
 
 } // Shell

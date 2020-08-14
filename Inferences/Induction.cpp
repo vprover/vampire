@@ -172,6 +172,7 @@ void InductionClauseIterator::process(Clause* premise, Literal* lit)
       SubtermIterator it(lit);
       while(it.hasNext()){
         TermList ts = it.next();
+        // TODO: this should be ts.isTerm
         if(!ts.term()){ continue; }
         unsigned f = ts.term()->functor();
         if((complexTermsAllowed || env.signature->functionArity(f)==0) &&
@@ -219,16 +220,7 @@ void InductionClauseIterator::process(Clause* premise, Literal* lit)
           } while (generalize && (ilit = subsetReplacement.transformSubset(rule)));
         }
       }
-      ta_terms.reset();
-      InferenceRule rule = InferenceRule::INDUCTION_AXIOM;
-      selectInductionScheme(premise,lit,rule);
-      return;
 
-      // Set<Term*>::Iterator outiter(ta_terms);
-      // while(outiter.hasNext()){
-      //   Term* t = outiter.next();
-      //   cout << t->toString() << endl;
-      // }
       Set<Term*>::Iterator citer2(ta_terms);
       while(citer2.hasNext()){
         Term* t = citer2.next();
@@ -257,7 +249,12 @@ void InductionClauseIterator::process(Clause* premise, Literal* lit)
             }
           } while (generalize && (ilit = subsetReplacement.transformSubset(rule)));
         }
-      } 
+      }
+      static bool four = env.options->structInduction() == Options::StructuralInductionKind::FOUR ||
+                        env.options->structInduction() == Options::StructuralInductionKind::ALL;
+      if(four){
+        performStructInductionFour(premise,lit,InferenceRule::INDUCTION_AXIOM);
+      }
    }
 }
 
@@ -757,59 +754,48 @@ Term* InductionClauseIterator::getPlaceholderForTerm(Term* t) {
   return Term::createConstant(placeholderConstNumber);
 }
 
-void InductionClauseIterator::selectInductionScheme(Clause* premise, Literal* lit, InferenceRule rule) {
-  CALL("InductionClauseIterator::selectInductionScheme");
-
-  // Term with its position
-  Stack<pair<Term*, TermPosition>> termStack;
-  Set<unsigned> possibleIndVars;
-  List<InductionScheme*>* schemes(0);
-  vmap<TermList, vvector<TermPosition>> activeOccurrenceMap;
-
-  if (lit->isEquality()) {
-    TermPosition p1 = { 1 };
-    TermPosition p2 = { 2 };
-    termStack.push(make_pair(lit->nthArgument(0)->term(), p1));
-    termStack.push(make_pair(lit->nthArgument(1)->term(), p2));
-  } else {
-    TermPosition p;
-    termStack.push(make_pair(lit, p));
+void processIteration(TermList curr, bool active, vmap<TermList, unsigned>& currOccMap,
+  vmap<TermList, vvector<unsigned>>& actOccMap,
+  Stack<bool>& actStack, List<InductionScheme*>*& schemes)
+{
+  if (!curr.isTerm()) {
+    return;
   }
-  while (termStack.isNonEmpty()) {
-    auto pair = termStack.pop();
-    auto curr = pair.first;
+  auto t = curr.term();
 
-    unsigned f = curr->functor();
-    bool isPred = curr->isLiteral();
+  unsigned f = t->functor();
+  bool isPred = t->isLiteral();
 
-    if (env.signature->getFunction(f)->skolem()) {
-      activeOccurrenceMap[TermList(curr)].push_back(pair.second);
-      continue;
+  if (env.signature->getFunction(f)->skolem()) {
+    if (currOccMap.count(curr) == 0) {
+      currOccMap.insert(make_pair(curr, 0));
+      actOccMap.insert(make_pair(curr, vvector<unsigned>()));
     }
-
-    if (!env.signature->hasInductionTemplate(f, isPred)) {
-      continue;
+    if (active) {
+      actOccMap[curr].push_back(currOccMap[curr]);
     }
+    currOccMap[curr]++;
+    return;
+  }
+
+  if (env.signature->hasInductionTemplate(f, isPred)) {
     const auto templ = env.signature->getInductionTemplate(f, isPred);
     const auto& indVars = templ->getInductionVariables();
 
-    Term::Iterator argIt(curr);
+    DArray<bool>::ReversedIterator it(indVars);
+    while (it.hasNext()) {
+      actStack.push(it.next() && active);
+    }
+
+    if (!active) {
+      return;
+    }
+    Term::Iterator argIt(t);
     DArray<bool>::Iterator indVarIt(indVars);
     bool match = true;
-    unsigned i = 0;
     while (argIt.hasNext()) {
       auto arg = argIt.next();
-      auto isIndVar = indVarIt.next();
-      i++;
-
-      if (!isIndVar) {
-        continue;
-      }
-
-      auto p = pair.second;
-      p.push_back(i);
-      termStack.push(make_pair(arg.term(), p));
-      if (!arg.isVar()) {
+      if (indVarIt.next() && !arg.isVar()) {
         auto func = arg.term()->functor();
         if (!env.signature->getFunction(func)->skolem()) {
           match = false;
@@ -819,17 +805,43 @@ void InductionClauseIterator::selectInductionScheme(Clause* premise, Literal* li
 
     if (match) {
       auto scheme = new InductionScheme();
-      scheme->init(curr, templ->getRDescriptions(), templ->getInductionVariables());
+      scheme->init(t, templ->getRDescriptions(), templ->getInductionVariables());
       List<InductionScheme*>::push(scheme, schemes);
     }
+  } else {
+    for (unsigned i = 0; i < t->arity(); i++) {
+      actStack.push(false);
+    }
   }
+}
+
+void InductionClauseIterator::performStructInductionFour(Clause* premise, Literal* lit, InferenceRule rule) {
+  CALL("InductionClauseIterator::performStructInductionFour");
+
+  List<InductionScheme*>* schemes(0);
+  vmap<TermList, unsigned> currOccMap;
+  vmap<TermList, vvector<unsigned>> actOccMap;
+  Stack<bool> actStack;
+  if (lit->isEquality()) {
+    actStack.push(true);
+    actStack.push(true);
+  } else {
+    processIteration(TermList(lit), true, currOccMap, actOccMap, actStack, schemes);
+  }
+  SubtermIterator it(lit);
+  while(it.hasNext()){
+    TermList curr = it.next();
+    bool active = actStack.pop();
+    processIteration(curr, active, currOccMap, actOccMap, actStack, schemes);
+  }
+  ASS(actStack.isEmpty());
 
   InductionHelper::filterSchemes(schemes);
 
   List<InductionScheme*>::Iterator schIt(schemes);
   while (schIt.hasNext()) {
     auto scheme = schIt.next();
-    scheme->addActiveOccurrences(activeOccurrenceMap);
+    scheme->addActiveOccurrences(actOccMap);
     if(env.options->showInduction()){
       env.beginOutput();
       env.out() << "[Induction] generated scheme " << scheme->toString() << endl;
@@ -837,21 +849,6 @@ void InductionClauseIterator::selectInductionScheme(Clause* premise, Literal* li
     }
     instantiateScheme(premise, lit, rule, scheme);
   }
-}
-
-Literal* replaceActiveOccurrences(Literal* replaceLit,
-                              vmap<TermList, vvector<TermPosition>>& activeOccurrences,
-                              TermList t, TermList r) {
-  if (activeOccurrences[t].size() > 1) {
-    for (const auto& pos : activeOccurrences[t]) {
-      PositionalTermReplacement tr(t.term(), r, pos);
-      replaceLit = static_cast<Literal*>(tr.replaceIn(TermList(replaceLit)).term());
-    }
-  } else {
-    TermReplacement tr(t.term(), r);
-    replaceLit = tr.transform(replaceLit);
-  }
-  return replaceLit;
 }
 
 void InductionClauseIterator::instantiateScheme(Clause* premise, Literal* lit, InferenceRule rule, InductionScheme* scheme)
@@ -865,11 +862,8 @@ void InductionClauseIterator::instantiateScheme(Clause* premise, Literal* lit, I
 
   while (it.hasNext()) {
     auto desc = it.next();
-    auto replaceLit = lit;
-    for (auto kv : desc.getStep()) {
-      replaceLit = replaceActiveOccurrences(replaceLit, activeOccurrences, kv.first, kv.second);
-    }
-    Formula* right = new AtomicFormula(Literal::complementaryLiteral(replaceLit));
+    TermOccurrenceReplacement tr(desc.getStep(), activeOccurrences);
+    Formula* right = new AtomicFormula(Literal::complementaryLiteral(tr.transform(lit)));
 
     // Then we replace the arguments of the term with the
     // corresponding recursive cases for this step case
@@ -877,11 +871,9 @@ void InductionClauseIterator::instantiateScheme(Clause* premise, Literal* lit, I
     FormulaList* hyp = FormulaList::empty();
 
     while (recCallsIt.hasNext()) {
-      auto replaceLit = lit;
-      for (auto& kv : recCallsIt.next()) {
-        replaceLit = replaceActiveOccurrences(replaceLit, activeOccurrences, kv.first, kv.second);
-      }
-      hyp = new FormulaList(new AtomicFormula(Literal::complementaryLiteral(replaceLit)),hyp);
+      auto n = recCallsIt.next();
+      TermOccurrenceReplacement tr(n, activeOccurrences);
+      hyp = new FormulaList(new AtomicFormula(Literal::complementaryLiteral(tr.transform(lit))),hyp);
     }
 
     auto l = FormulaList::length(hyp);
@@ -904,23 +896,21 @@ void InductionClauseIterator::instantiateScheme(Clause* premise, Literal* lit, I
   Formula* indPremise = FormulaList::length(formulas) > 1 ? new JunctionFormula(Connective::AND,formulas)
                                                           : formulas->head();
 
-  auto replaceLit = lit;
-  Map<TermList, unsigned> termToVarMap;
   it = scheme->getRDescriptionInstances();
   unsigned var = scheme->getMaxVar();
+  vmap<TermList, TermList> r;
   while (it.hasNext()) {
     auto desc = it.next();
     for (const auto& kv : desc.getStep()) {
       auto t = kv.first;
-      if (termToVarMap.find(t)) {
+      if (r.count(t) > 0) {
         continue;
       }
-      termToVarMap.insert(t, var++);
-      TermList r(termToVarMap.get(t),false);
-      replaceLit = replaceActiveOccurrences(replaceLit, activeOccurrences, t, r);
+      r.insert(make_pair(kv.first, TermList(var++,false)));
     }
   }
-  Literal* conclusion = Literal::complementaryLiteral(replaceLit);
+  TermOccurrenceReplacement tr(r, activeOccurrences);
+  Literal* conclusion = Literal::complementaryLiteral(tr.transform(lit));
   Formula* hypothesis = new BinaryFormula(Connective::IMP,
                             Formula::quantify(indPremise),
                             Formula::quantify(new AtomicFormula(conclusion)));

@@ -468,7 +468,7 @@ public:
   {
   public:
     DECL_ELEMENT_TYPE(C);
-    inline ReversedIterator(DArray& arr) : _curr(arr._array+arr._size),
+    inline ReversedIterator(const DArray& arr) : _curr(arr._array+arr._size),
     _first(arr._array) {}
     inline bool hasNext() { return _curr!=_first; }
     inline C next() { return *(--_curr); }
