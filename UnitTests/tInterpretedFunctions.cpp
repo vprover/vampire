@@ -552,6 +552,21 @@ ALL_NUMBERS_TEST(eval_bug_3,
       false
       )
 
+ALL_NUMBERS_TEST(eval_bug_4,
+    p((a + 3) + 3),
+    p(a + 6)
+    )
+
+ALL_NUMBERS_TEST(eval_bug_5,
+    p((3 + a) + 3),
+    p(a + 6)
+    )
+
+ALL_NUMBERS_TEST(eval_bug_7,
+    p((b + (3 * a)) + (4 * a)),
+    p(b + 7 * a)
+    )
+
 ALL_NUMBERS_TEST(eval_cancellation_add_0,
     x + 1 == 2,
     x == 1

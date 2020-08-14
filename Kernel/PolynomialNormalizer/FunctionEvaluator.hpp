@@ -87,7 +87,7 @@ PolyNf evaluateUnaryMinus(PolyNf& inner) {
       [](              Variable& t) { return AnyPoly(Polynom<Number>(Number::constant(-1), t)); }, 
       [](AnyPoly& p) {
         auto minusOne = Polynom<Number>(Number::constant(-1));
-        auto out = Polynom<Number>::template poly_mul<Config>(
+        auto out = Polynom<Number>::template polyMul<Config>(
               minusOne
             , p.as<Polynom<Number>>());
 
@@ -127,7 +127,7 @@ template<class Number, class Config> PolyNf evaluateMul(PolyNf&& lhs, PolyNf&& r
 {
   auto l = toPoly<Number>(lhs);
   auto r = toPoly<Number>(rhs);
-  return AnyPoly(Polynom<Number>::template poly_mul<Config>(l, r));
+  return AnyPoly(Polynom<Number>::template polyMul<Config>(l, r));
 }
 
 
@@ -153,7 +153,7 @@ Polynom<Number> evaluateAdd(PolyNf&& lhs, PolyNf&& rhs) {
   CALL("Polynom<Number> evaluateAdd(PolyNf&& lhs, PolyNf&& rhs)")
   using Poly = Polynom<Number>;
 
-  return Poly::poly_add(
+  return Poly::polyAdd(
       toPoly<Number>(lhs), 
       toPoly<Number>(rhs));
 }
