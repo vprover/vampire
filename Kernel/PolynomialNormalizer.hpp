@@ -22,7 +22,8 @@
 
 #ifndef __POLYNOMIAL_NORMALIZER_HPP__
 #define __POLYNOMIAL_NORMALIZER_HPP__
-#define DEBUG(...) // DBG(__VA_ARGS__)
+
+#define DEBUG(...) DBG(__VA_ARGS__)
 
 namespace Kernel {
 
@@ -290,12 +291,28 @@ struct ChildIter<PolyNf>
 
 inline PolyNf PolyNf::normalize(TermList t) 
 {
+  // struct Eval 
+  // {
+  //   const PolynomialNormalizer& norm;
+  //
+  //   using Arg    = TermList;
+  //   using Result = PolyNf;
+  //
+  //   PolyNf operator()(TermList t, PolyNf* ts) 
+  //   { 
+  //     if (t.isVar()) {
+  //       return PolyNf(Variable(t.var()));
+  //     } else {
+  //
+  //       return norm.evaluateStep(t.term(), ts); 
+  //     }
+  //   }
+  // };
+  // static Memo::Hashed<Eval> memo;
+  // return evaluateBottomUp(term, Eval{ *this }, memo);
 
 
-
- 
   // using Result = Coproduct<PolyNf, Vec<>;
-
   // struct Eval 
   // {
   //   PolyNf operator()(Variable v) { return v; }

@@ -4,7 +4,6 @@
 #include "Lib/STLAllocator.hpp"
 #include "Kernel/NumTraits.hpp"
 #include <cassert>
-#include <vector>
 #include "Lib/Coproduct.hpp"
 #include "Lib/Optional.hpp"
 #include "Lib/Map.hpp"
@@ -190,7 +189,7 @@ private:
     CALL("ComplexPolynom::polyAdd(Coeff coeff, const ComplexPolynom& old) ")
     const auto& oldPoly = *old_;
 
-    ASS(!oldPoly._summands.empty())
+    ASS(!oldPoly._summands.isEmpty())
     if (coeff == Coeff(0)) {
       return old_;
     } 
@@ -207,7 +206,7 @@ private:
         auto iter = oldPoly._summands.begin();
         iter++;
         for (; iter !=  oldPoly._summands.end(); iter++) {
-          newPoly._summands.emplace_back(PolyPair(*iter));
+          newPoly._summands.pushMv(PolyPair(*iter));
         }
       } else {
         /* skipping zero constant value */
@@ -216,13 +215,14 @@ private:
       }
     } else {
       newPoly._summands.reserve(oldPoly._summands.size() + 1);
-      newPoly._summands.push_back(PolyPair(coeff, unique(Monom<Number>())));
+      newPoly._summands.push(PolyPair(coeff, unique(Monom<Number>())));
       for (auto& f : oldPoly._summands) {
-        newPoly._summands.push_back(PolyPair(f));
+        newPoly._summands.push(PolyPair(f));
       }
     }
 
 
+    newPoly.integrity();
     return unique(std::move(newPoly));
   }
 
@@ -239,10 +239,9 @@ private:
 
     } else {
       ComplexPolynom<Number> newPoly;
-
       newPoly._summands.reserve(old._summands.size());
       for (auto& p : old._summands) {
-        newPoly._summands.push_back(PolyPair(coeff * p.coeff, unique(Monom<Number>(p.monom))));
+        newPoly._summands.pushMv(PolyPair(coeff * p.coeff, unique(Monom<Number>(p.monom))));
       }
       newPoly.integrity();
 
@@ -280,11 +279,12 @@ private:
     for (auto iter = prods.begin(); iter != prods.end(); iter++) {
       auto coeff = iter->second;
       if (coeff != Number::zeroC) {
-        out._summands.emplace_back(PolyPair(coeff, iter->first)); 
+        out._summands.pushMv(PolyPair(coeff, iter->first)); 
       }
     }
+    //TODO use stack instead of vector
     std::sort(out._summands.begin(), out._summands.end(), 
-        []( const PolyPair& lhs, const PolyPair& rhs) { return lhs.monom < rhs.monom; });
+        []( const PolyPair& lhs, const PolyPair& rhs) { return std::less<UniqueShared<Monom<Number>>>{}(lhs.monom, rhs.monom); });
     out.integrity();
     DEBUG("out: ", out);
     return unique(std::move(out));
@@ -337,7 +337,12 @@ private:
     // TODO resolve this strictly non-simplifying behaviour
     //      same applies to cancel_(ComplexPolynom&, ComplexPolynom& oldl)
 
-    return make_pair(Polynom(oldl - numr), Polynom(unique(ComplexPolynom<Number>(typename ComplexPolynom<Number>::CoeffVec(++oldr._summands.begin(), oldr._summands.end())))));
+    auto beginR = oldr._summands.begin() + 1;
+    auto sizeR = oldr._summands.size() - 1;
+
+    return make_pair(Polynom(oldl - numr), Polynom(unique(ComplexPolynom<Number>(
+              ComplexPolynom<Number>::CoeffVec::fromIterator(
+                getArrayishObjectIterator(beginR, sizeR))))));
   }
 
   static std::pair<Polynom, Polynom> cancel_(UniqueShared<ComplexPolynom<Number>>& oldl, Coeff oldr) {
@@ -355,7 +360,7 @@ private:
     auto endl = oldl._summands.end();
     auto endr = oldr._summands.end();
     auto push = [](CoeffVec& vec, const Monom<Number>& m, Coeff c) 
-    { vec.emplace_back(PolyPair(c, unique(Monom<Number>(m)))); };
+    { vec.pushMv(PolyPair(c, unique(Monom<Number>(m)))); };
 
     CoeffVec newl;
     CoeffVec newr;
@@ -399,7 +404,7 @@ private:
         push(newl, ml, cl);
         itl++;
       } else {
-        ASS(ml > mr)
+        ASS(mr < ml)
         push(newr, mr, cr);
         itr++;
       }
@@ -461,6 +466,7 @@ public:
   inline static Polynom polyAdd(const Polynom& lhs, const Polynom& rhs) 
   {
     CALL("Polynom::polyAdd(const Polynom& lhs, const Polynom& rhs)")
+    DBG("lala 1");
     return lhs._inner.template match<Polynom>(
           [&](UniqueShared<ComplexPolynom<Number>> const& lhs) { 
             return rhs._inner.template match<Polynom>(
@@ -569,7 +575,6 @@ struct AnyPoly : public AnyPolySuper
 };
 
 
-template<class t> using vector  = std::vector<t, Lib::STLAllocator<t>>;
 template<class K, class V, class Compare = std::less<K>> using map  = std::map<K, V, Compare, STLAllocator<std::pair<const K, V > > >;
 
 /** Merges two map-like vectors into a new map-like vector. 
@@ -580,18 +585,18 @@ template<class K, class V, class Compare = std::less<K>> using map  = std::map<K
  * be discarded if filter returns false.
  */
 template<class A, class Combine, class Filter, class Compare>
-vector<A> merge_sort_with(const vector<A>& lhs, const vector<A>& rhs, Combine combine, Filter filter, Compare cmp) 
+Stack<A> merge_sort_with(const Stack<A>& lhs, const Stack<A>& rhs, Combine combine, Filter filter, Compare cmp) 
 {
     CALL("merge_sort_with()")
 
-    vector<A> out;
     /* is needed at least */
-    out.reserve(max(lhs.size(), rhs.size()));
+    Stack<A> out(max(lhs.size(), rhs.size()));
+
     auto l = lhs.begin();
     auto r = rhs.begin();
     auto insert = [&](const A& value) {
       ASS(filter(value));
-      out.emplace_back(value);
+      out.push(value);
     };
     while (l != lhs.end() && r != rhs.end() ) {
       if (cmp(*l, *r)) {
@@ -716,7 +721,7 @@ class Monom
 {
   using MonomTermOrdering = std::less<PolyNf>;
   using MonomPair = ::Kernel::MonomPair<Number>;
-  vector<MonomPair> _factors;
+  Stack<MonomPair> _factors;
   friend struct std::hash<Monom>;
 
 public:
@@ -760,17 +765,7 @@ public:
     }
   }
 
-  friend bool operator<(const Monom& l, const Monom& r) {
-    if (l._factors.size() < r._factors.size()) {
-      return true;
-    } else if (l._factors.size() > r._factors.size()) {
-      return false;
-    } else {
-      return  l._factors < r._factors;
-    }
-  }
-
-  friend bool operator>(const Monom& l, const Monom& r) { return r < l; }
+  // friend bool operator>(const Monom& l, const Monom& r) { return r < l; }
 
   friend bool operator==(const Monom& l, const Monom& r) {
     return l._factors == r._factors;
@@ -867,16 +862,16 @@ public:
 
 private:
   using PolyPair = Kernel::PolyPair<Number>;
-  using CoeffVec = vector<PolyPair>;
+  using CoeffVec = Stack<PolyPair>;
   CoeffVec _summands;
 
 public:
 
   ComplexPolynom(Coeff coeff, SharedMonom t) : _summands(decltype(_summands)()) 
-  { _summands.emplace_back(PolyPair(coeff, std::move(t))); }
+  { _summands.pushMv(PolyPair(coeff, std::move(t))); }
 
   ComplexPolynom(SharedMonom&& t) : _summands(decltype(_summands)())  
-  { _summands.emplace_back(PolyPair(Coeff(1), std::move(t))); }
+  { _summands.pushMv(PolyPair(Coeff(1), std::move(t))); }
 
   ComplexPolynom(Coeff coeff, PolyNf t);
 
@@ -884,7 +879,7 @@ public:
   {
     CALL("ComplexPolynom::ComplexPolynom(Coeff)")
     if (constant != Number::zeroC)
-      _summands.emplace_back(PolyPair(constant, unique(Monom<Number>())));
+      _summands.pushMv(PolyPair(constant, unique(Monom<Number>())));
   }
 
   ComplexPolynom(decltype(_summands) coeffs) : _summands(coeffs) { }
@@ -917,7 +912,7 @@ public:
       auto iter = this->_summands.begin();
       auto last = iter++;
       while (iter != _summands.end()) {
-        ASS_REP(last->monom < iter->monom, *this);
+        ASS_REP(std::less<UniqueShared<Monom<Number>>>{}(last->monom, iter->monom), *this);
         iter->monom->integrity();
         last = iter++;
       }
@@ -1048,8 +1043,8 @@ Polynom<Number> Polynom<Number>::polyAdd(const ComplexPolynom<Number>& lhs, cons
   CALL("ComplexPolynom::polyAdd")
   lhs.integrity();
   rhs.integrity();
-  ASS(!lhs._summands.empty())
-  ASS(!rhs._summands.empty())
+  ASS(!lhs._summands.isEmpty())
+  ASS(!rhs._summands.isEmpty())
   auto newCoeffs = merge_sort_with(lhs._summands, rhs._summands, 
       /* combine */
       [](PolyPair const& l, PolyPair const& r)
@@ -1062,7 +1057,7 @@ Polynom<Number> Polynom<Number>::polyAdd(const ComplexPolynom<Number>& lhs, cons
       /* compare */
       [](PolyPair const& l, PolyPair const& r){ return l.monom < r.monom; }
     );
-  if (newCoeffs.empty())  {
+  if (newCoeffs.isEmpty())  {
     return Polynom(Coeff(0));
   } else {
     return Polynom(unique(ComplexPolynom<Number>(std::move(newCoeffs))));

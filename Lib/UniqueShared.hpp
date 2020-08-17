@@ -19,7 +19,7 @@ struct UniqueSharedPtrComparison ;
  *
  * T is required to be comparable with `bool operator(const T&, const T&)`, and hashable with `std::hash<T>`.
  *
- * Further T must be copy constructible. // TODO get rid of this restriction
+ * Further T must be copy constructible. // TODO get rid of this restriction (using a HashSet instead of a HashMap (?))
  */
 template<class T, class DfltComparison = UniqueSharedPtrComparison<T> >
 class UniqueShared 
@@ -73,6 +73,10 @@ public:
   friend struct std::hash<UniqueShared<T, DfltComparison>>;
 
   template<class U> friend struct UniqueSharedPtrComparison;
+
+  template<class U, class C> 
+  friend bool operator<(const Lib::UniqueShared<U, C> & lhs, const Lib::UniqueShared<U, C>& rhs) 
+  { return std::less<Lib::UniqueShared<U, C>>{}(lhs,rhs); }
 }; // class UniqueShared
 
 /** instantiating the cache */
