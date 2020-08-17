@@ -33,9 +33,9 @@ PolyNf tryEvalConstant1(Term* orig, PolyNf* evaluatedArgs, EvalGround fun) {
 
   auto& x = evaluatedArgs[0];
   if (x.isPoly()) {
-    auto poly = x.template as<AnyPoly>().template as<Polynom<Number>>();
+    auto poly = x.template as<AnyPoly>().template downcast<Number>();
     if (poly.isNumber()) {
-      return AnyPoly(Polynom<NumberOut>(fun(poly.unwrapNumber())));
+      return AnyPoly(unique(Polynom<NumberOut>(fun(poly.unwrapNumber()))));
     }
   }
 
@@ -52,10 +52,10 @@ PolyNf tryEvalConstant2(Term* orig, PolyNf* evaluatedArgs, EvalGround fun) {
   using NumberOut = NumTraits<typename result_of<EvalGround(ConstantType, ConstantType)>::type>;
 
   if (evaluatedArgs[0].isPoly() && evaluatedArgs[1].isPoly()) {
-    auto lhs = evaluatedArgs[0].template as<AnyPoly>().template as<Polynom<Number>>();
-    auto rhs = evaluatedArgs[1].template as<AnyPoly>().template as<Polynom<Number>>();
+    auto lhs = evaluatedArgs[0].template as<AnyPoly>().template downcast<Number>();
+    auto rhs = evaluatedArgs[1].template as<AnyPoly>().template downcast<Number>();
     if (lhs.isNumber() && rhs.isNumber()) {
-      return AnyPoly(Polynom<NumberOut>(fun(lhs.unwrapNumber(), rhs.unwrapNumber())));
+      return AnyPoly(unique(Polynom<NumberOut>(fun(lhs.unwrapNumber(), rhs.unwrapNumber()))));
     }
   }
 
@@ -82,18 +82,16 @@ PolyNf tryEvalConstant2(Term* orig, PolyNf* evaluatedArgs, EvalGround fun) {
 
 template<class Number, class Config>
 PolyNf evaluateUnaryMinus(PolyNf& inner) {
-  auto out = inner.match<PolyNf>(
-      [](UniqueShared<FuncTerm>& t) { return AnyPoly(Polynom<Number>(Number::constant(-1), t)); }, 
-      [](              Variable& t) { return AnyPoly(Polynom<Number>(Number::constant(-1), t)); }, 
+  auto out = inner.match<Polynom<Number>>(
+      [](UniqueShared<FuncTerm>& t) { return Polynom<Number>(Number::constant(-1), t); }, 
+      [](              Variable& t) { return Polynom<Number>(Number::constant(-1), t); }, 
       [](AnyPoly& p) {
         auto minusOne = Polynom<Number>(Number::constant(-1));
-        auto out = Polynom<Number>::template polyMul<Config>(
+        return Polynom<Number>::polyMul(
               minusOne
-            , p.as<Polynom<Number>>());
-
-        return AnyPoly(std::move(out));
+            , p.downcast<Number>());
       });
-  return out;
+  return AnyPoly(unique(std::move(out)));
 }
 
 
@@ -120,7 +118,7 @@ Polynom<number> toPoly(PolyNf x) {
   return x.match<Poly>(
       [](UniqueShared<FuncTerm>        t) { return Poly(PolyNf(t)); }, 
       [](Variable                      t) { return Poly(PolyNf(t)); }, 
-      [](AnyPoly                       p) { return p.as<Poly>();    }
+      [](AnyPoly                       p) { return p.downcast<number>();    }
     );
 };
 
@@ -128,7 +126,7 @@ template<class Number, class Config> PolyNf evaluateMul(PolyNf&& lhs, PolyNf&& r
 {
   auto l = toPoly<Number>(lhs);
   auto r = toPoly<Number>(rhs);
-  return AnyPoly(Polynom<Number>::template polyMul<Config>(l, r));
+  return AnyPoly(unique(Polynom<Number>::polyMul(l, r)));
 }
 
 
@@ -150,22 +148,22 @@ template<class Number, class Config> PolyNf evaluateMul(PolyNf&& lhs, PolyNf&& r
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 template<class Number>
-Polynom<Number> evaluateAdd(PolyNf&& lhs, PolyNf&& rhs) {
+PolyNf evaluateAdd(PolyNf lhs, PolyNf rhs) {
   CALL("Polynom<Number> evaluateAdd(PolyNf&& lhs, PolyNf&& rhs)")
   using Poly = Polynom<Number>;
 
-  return Poly::polyAdd(
+  auto res = unique(Poly::polyAdd(
       toPoly<Number>(lhs), 
-      toPoly<Number>(rhs));
+      toPoly<Number>(rhs)));
+  return PolyNf(AnyPoly(res));
 }
 
 
 #define IMPL_ADD(Const)                                                                    \
   IMPL_EVALUATE_FUN(NumTraits<Const>::addI, {                                              \
-    return AnyPoly( \
-        evaluateAdd<NumTraits<Const>>( \
-          std::move(evaluatedArgs[0]),  \
-          std::move(evaluatedArgs[1]))); \
+    return evaluateAdd<NumTraits<Const>>( \
+              evaluatedArgs[0],  \
+              evaluatedArgs[1]); \
   })                                                                                       \
 
   IMPL_ADD(RealConstantType    )

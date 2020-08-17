@@ -33,8 +33,9 @@ template<class C> using Poly = Polynom<NumTraits<C>>;
 template<class NormalizerConfig, class ConstantType, class EvalGround>
 LitEvalResult tryEvalConstant2(Literal* orig, PolyNf* evaluatedArgs, EvalGround fun) 
 {
-  auto& lhs = evaluatedArgs[0].asPoly().template as<Poly<ConstantType>>();;
-  auto& rhs = evaluatedArgs[1].asPoly().template as<Poly<ConstantType>>();;
+  using Number = NumTraits<ConstantType>;
+  auto& lhs = evaluatedArgs[0].asPoly().downcast<Number>();
+  auto& rhs = evaluatedArgs[1].asPoly().downcast<Number>();
   if (lhs.isNumber() && rhs.isNumber()) {
     return LitEvalResult::constant(fun(lhs.unwrapNumber(), rhs.unwrapNumber()));
   } else {
@@ -52,7 +53,7 @@ LitEvalResult tryEvalConstant2(Literal* orig, PolyNf* evaluatedArgs, EvalGround 
 /// Equality
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-template<class Config, class number> inline LitEvalResult interpret_equality(bool polarity, Polynom<number> lhs, Polynom<number> rhs) {
+template<class Config, class number> inline LitEvalResult interpretEquality(bool polarity, Polynom<number> lhs, Polynom<number> rhs) {
   
   if (lhs.isNumber() && rhs.isNumber()) {
     return LitEvalResult::constant(polarity == (lhs.unwrapNumber() == rhs.unwrapNumber()));
@@ -96,11 +97,11 @@ IMPL_EVALUATE_PRED(Interpretation::EQUAL,
   if (shallCancel) {
     switch (sort) {
     case Sorts::SRT_INTEGER:
-      return interpret_equality<Config>(polarity, toPoly<IntTraits>(lhs), toPoly<IntTraits>(rhs));
+      return interpretEquality<Config>(polarity, toPoly<IntTraits>(lhs), toPoly<IntTraits>(rhs));
     case Sorts::SRT_RATIONAL:
-      return interpret_equality<Config>(polarity, toPoly<RatTraits>(lhs), toPoly<RatTraits>(rhs));
+      return interpretEquality<Config>(polarity, toPoly<RatTraits>(lhs), toPoly<RatTraits>(rhs));
     case Sorts::SRT_REAL:
-      return interpret_equality<Config>(polarity, toPoly<RealTraits>(lhs), toPoly<RealTraits>(rhs));
+      return interpretEquality<Config>(polarity, toPoly<RealTraits>(lhs), toPoly<RealTraits>(rhs));
       default:
       // polynomials can only be of number sorts
         ASSERTION_VIOLATION

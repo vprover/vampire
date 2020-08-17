@@ -23,7 +23,7 @@
 #ifndef __POLYNOMIAL_NORMALIZER_HPP__
 #define __POLYNOMIAL_NORMALIZER_HPP__
 
-#define DEBUG(...) DBG(__VA_ARGS__)
+#define DEBUG(...)  // DBG(__VA_ARGS__)
 
 namespace Kernel {
 
@@ -483,7 +483,7 @@ template<class Config> LitEvalResult PolynomialNormalizer<Config>::evaluateStep(
 
 template<class number>
 PolyNf evaluateConst(typename number::ConstantType c) 
-{ return AnyPoly(Polynom<number>(c)); }
+{ return PolyNf(AnyPoly(unique(Polynom<number>(c)))); }
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
