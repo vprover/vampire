@@ -90,6 +90,36 @@ public:
     _end = _stack+_capacity;
   }
 
+  /** move constructor */
+  Stack(Stack&& s)
+   : _capacity(s._capacity)
+   , _stack(s._stack)
+   , _cursor(s._cursor) 
+   , _end(s._end)
+  {
+    s._stack = nullptr;
+    s._cursor = nullptr;
+    s._capacity = 0;
+    s._end= nullptr;
+  }
+
+  /** move assignment */
+  Stack& operator=(Stack&& s)
+  {
+    _capacity = s._capacity;
+    _stack = s._stack;
+    _cursor = s._cursor;
+    _end = s._end;
+    s._stack = nullptr;
+    s._cursor = nullptr;
+    s._capacity = 0;
+    s._end= nullptr;
+    return *this;
+  }
+
+
+
+
   Stack(const Stack& s)
    : _capacity(s._capacity)
   {
