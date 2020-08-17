@@ -94,10 +94,10 @@ public:
   void reserve(size_t capacity) 
   {
     CALL("Stack::reserve(size_t)");
-    if (_capacity < capacity) {
+    if (_capacity >= capacity) {
       return;
     }
-    C* mem = static_cast<C*>(ALLOC_KNOWN(_capacity*sizeof(C),className()));
+    C* mem = static_cast<C*>(ALLOC_KNOWN(capacity*sizeof(C),className()));
     if (_stack) {
       for (unsigned i = 0; i < size(); i++) {
         ::new(&mem[i]) C(std::move((*this)[i]));
