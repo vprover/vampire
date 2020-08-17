@@ -300,7 +300,6 @@ public:
     };
     static Memo::Hashed<Eval> memo;
     return evaluateBottomUp(*this, Eval{}, memo);
-    // return collapsePoly<TermList>(PolyToTerm<Ord>{}); 
   }
 };
 
@@ -403,8 +402,6 @@ public:
   }
 
 
-  // friend bool operator>(const Monom& l, const Monom& r) { return r < l; }
-
   friend bool operator==(const Monom& l, const Monom& r) {
     return l._factors == r._factors;
   }
@@ -467,17 +464,11 @@ public:
 template<class Number>
 inline UniqueShared<Monom<Number>> Monom<Number>::monomMul(const Monom<Number>& lhs, const Monom<Number>& rhs) 
 {
-  // ASSERTION_VIOLATION
   return unique(Monom(merge_sort_with(lhs._factors,rhs._factors,
         [](MonomPair const& l, MonomPair const& r)  -> MonomPair
         { 
           ASS_EQ(l.term, r.term); 
-          // PolyNf t = l.term;
-          // int power = l.power + r.power;
-          MonomPair out = l;
-          out.power += r.power;
-          // return assertionViolation<MonomPair>();
-          return out; //Kernel::MonomPair<Number> { .term = t, .power = power };
+          return MonomPair(l.term, l.power + r.power);
         },
         [](MonomPair const& l) { return l.power != 0; },
         [](MonomPair const& l, MonomPair const& r) { return l.term < r.term; }
@@ -526,7 +517,6 @@ public:
 
   static Polynom<Number> polyAdd(const Polynom<Number>& lhs, const Polynom<Number>& rhs);
 
-  // TODO move UniqueShared out of this function
   static Polynom<Number> polyMul(const Polynom<Number>& lhs, const Polynom<Number>& rhs) 
   {
 
@@ -704,42 +694,6 @@ public:
 #endif
   }
 
-  // TermList toTerm(TermList* results)  const 
-  // {
-  //   CALL("Polynom::toTerm()")
-  //
-  //   auto pairToTerm = [](PolyPair const& pair, TermList* t) -> TermList {
-  //     auto c = TermList(theory->representConstant(pair.coeff));
-  //     if (pair.monom->isOne()) {
-  //       return c;
-  //     } else {
-  //       auto mon = pair.monom->toTerm(t);
-  //       if (pair.coeff == Number::oneC) {
-  //         return mon;
-  //       } else if (pair.coeff == Number::constant(-1)) {
-  //         return Number::minus(mon);
-  //       } else {
-  //         return Number::mul(c, mon);
-  //       }
-  //     }
-  //   };
-  //
-  //   if (_summands.size() == 0) {
-  //     return Number::zero();
-  //   } else {
-  //
-  //     TermList out = pairToTerm(_summands[0], results);
-  //     auto flatIdx = _summands[0].monom->nFactors();
-  //
-  //     for (unsigned i = 1; i < nSummands(); i++) {
-  //       auto& pair = _summands[i];
-  //       out = Number::add(pairToTerm(pair, &results[flatIdx]), out);
-  //       flatIdx += pair.monom->nFactors();
-  //     }
-  //     return out;
-  //   }
-  // }
-
   friend std::ostream& operator<<(std::ostream& out, const Polynom& self) {
     auto iter = self._summands.begin();
     out << "Poly(";
@@ -784,8 +738,6 @@ Polynom<Number> Polynom<Number>::polyAdd(const Polynom<Number>& lhs, const Polyn
   CALL("Polynom::polyAdd")
   lhs.integrity();
   rhs.integrity();
-  // ASS(!lhs._summands.isEmpty())
-  // ASS(!rhs._summands.isEmpty())
   auto newCoeffs = merge_sort_with(lhs._summands, rhs._summands, 
       /* combine */
       [](PolyPair const& l, PolyPair const& r)
