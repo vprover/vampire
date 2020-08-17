@@ -335,6 +335,15 @@ public:
     return res;
   } // Stack::pop()
 
+
+  inline
+  void pop(unsigned cnt)
+  {
+    CALL("Stack::pop(unsigned)");
+    while (cnt-- != 0) 
+      pop();
+  } // Stack::pop(unsigned)
+
   /**
    * If the element @b el is present in the stack, remove it and return
    * true, otherwise return false.

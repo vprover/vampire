@@ -113,8 +113,7 @@ typename EvalFn::Result evaluateBottomUp(typename EvalFn::Arg const& term, EvalF
 
   /* recursion state. Contains a stack of items that are being recursed on. */
   Stack<ChildIter<Arg>> recState;
-  // TODO use stack here
-  vector<ResultWrapper> recResults;
+  Stack<ResultWrapper> recResults;
 
   recState.push(ChildIter<Arg>(term));
 
@@ -127,7 +126,7 @@ typename EvalFn::Result evaluateBottomUp(typename EvalFn::Arg const& term, EvalF
       if (cached == nullptr) {
          recState.push(ChildIter<Arg>(t));
       } else {
-        recResults.emplace_back(*cached); 
+        recResults.pushMv(*cached); 
       }
 
     } else { 
@@ -145,18 +144,15 @@ typename EvalFn::Result evaluateBottomUp(typename EvalFn::Arg const& term, EvalF
 
       DEBUG("evaluated: ", orig.self(), " -> ", eval);
 
-      recResults.resize(recResults.size() - orig.nChildren());
-      recResults.emplace_back(std::move(eval));
+      recResults.pop(orig.nChildren());
+      recResults.pushMv(std::move(eval));
     }
-
   }
   ASS(recState.isEmpty())
     
 
   ASS(recResults.size() == 1);
-  Result out = std::move(recResults[0]);
-  recResults.clear();
-  return std::move(out);
+  return recResults.pop();
 }
 
 } // namespace Kernel
