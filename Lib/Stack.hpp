@@ -90,6 +90,32 @@ public:
     _end = _stack+_capacity;
   }
 
+  inline
+  void reserve(size_t capacity) 
+  {
+    CALL("Stack::reserve(size_t)");
+    if (_capacity < capacity) {
+      return;
+    }
+    C* mem = static_cast<C*>(ALLOC_KNOWN(_capacity*sizeof(C),className()));
+    if (_stack) {
+      for (unsigned i = 0; i < size(); i++) {
+        ::new(&mem[i]) C(std::move((*this)[i]));
+      }
+      DEALLOC_KNOWN(_stack,_capacity*sizeof(C),className());
+
+      _cursor = mem + (_cursor - _stack);
+      _capacity = capacity;
+      _stack = mem;
+      _end = _stack + _capacity;
+    } else {
+      _stack = mem;
+      _cursor = mem;
+      _capacity = capacity;
+      _end = _stack + _capacity;
+    }
+  }
+
   /** move constructor */
   Stack(Stack&& s)
    : _capacity(s._capacity)
