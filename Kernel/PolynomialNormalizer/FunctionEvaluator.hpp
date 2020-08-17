@@ -34,8 +34,8 @@ PolyNf tryEvalConstant1(Term* orig, PolyNf* evaluatedArgs, EvalGround fun) {
   auto& x = evaluatedArgs[0];
   if (x.isPoly()) {
     auto poly = x.template as<AnyPoly>().template as<Polynom<Number>>();
-    if (poly.isCoeff()) {
-      return AnyPoly(Polynom<NumberOut>(fun(poly.unwrapCoeff())));
+    if (poly.isNumber()) {
+      return AnyPoly(Polynom<NumberOut>(fun(poly.unwrapNumber())));
     }
   }
 
@@ -54,8 +54,8 @@ PolyNf tryEvalConstant2(Term* orig, PolyNf* evaluatedArgs, EvalGround fun) {
   if (evaluatedArgs[0].isPoly() && evaluatedArgs[1].isPoly()) {
     auto lhs = evaluatedArgs[0].template as<AnyPoly>().template as<Polynom<Number>>();
     auto rhs = evaluatedArgs[1].template as<AnyPoly>().template as<Polynom<Number>>();
-    if (lhs.isCoeff() && rhs.isCoeff()) {
-      return AnyPoly(Polynom<NumberOut>(fun(lhs.unwrapCoeff(), rhs.unwrapCoeff())));
+    if (lhs.isNumber() && rhs.isNumber()) {
+      return AnyPoly(Polynom<NumberOut>(fun(lhs.unwrapNumber(), rhs.unwrapNumber())));
     }
   }
 
@@ -115,11 +115,12 @@ PolyNf evaluateUnaryMinus(PolyNf& inner) {
 
 template<class number>
 Polynom<number> toPoly(PolyNf x) {
+  CALL("Polynom<number> toPoly(PolyNf x)")
   using Poly = Polynom<number>;
   return x.match<Poly>(
-      [](UniqueShared<FuncTerm> const& t) { return Poly(PolyNf(t)); }, 
-      [](Variable               const& t) { return Poly(PolyNf(t)); }, 
-      [](AnyPoly                const& p) { return p.as<Poly>();    }
+      [](UniqueShared<FuncTerm>        t) { return Poly(PolyNf(t)); }, 
+      [](Variable                      t) { return Poly(PolyNf(t)); }, 
+      [](AnyPoly                       p) { return p.as<Poly>();    }
     );
 };
 

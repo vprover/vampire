@@ -14,11 +14,7 @@ namespace Lib {
 #define FOR_REF_QUALIFIER(macro)                                                                                        \
   macro(const &, ) macro(&, ) macro(&&, std::move)
 
-template <class... As> class Coproduct {
-  unsigned _tag;
-
-public:
-};
+template <class... As> class Coproduct;
 
 template <> class Coproduct<> {
 public:
@@ -84,6 +80,9 @@ template <unsigned idx, class A, class... As> struct init<idx, A, As...> {
 };
 
 template <> union VariadicUnion<> {
+  CLASS_NAME(VariadicUnion)
+  // USE_ALLOCATOR(VariadicUnion)
+
   void unwrap(unsigned idx) { ASSERTION_VIOLATION_REP(idx) }
   ~VariadicUnion() {}
   void destroy(unsigned idx) { ASSERTION_VIOLATION_REP(idx) }
@@ -109,6 +108,9 @@ template <> union VariadicUnion<> {
 };
 
 template <class A, class... As> union VariadicUnion<A, As...> {
+  CLASS_NAME(VariadicUnion)
+  // USE_ALLOCATOR(VariadicUnion)
+
   A _head;
   VariadicUnion<As...> _tail;
   ~VariadicUnion() {}
@@ -184,12 +186,20 @@ template<template<class> class Ord> struct PolymorphicCoproductOrdering;
 
 template <class A, class... As> class Coproduct<A, As...> 
 {
+  // inline void* operator new (size_t)                                   \
+  //   { return Lib::Allocator::current->allocateKnown(sizeof(C)); }\
+  // inline void operator delete (void* obj)                               \
+  //  { if (obj) Lib::Allocator::current->deallocateKnown(obj,sizeof(C)); }
+
   unsigned _tag;
 
   VariadicUnion<A, As...> _content;
   using Self = Coproduct<A, As...>;
 
 public:
+  CLASS_NAME(Coproduct)
+  // USE_ALLOCATOR(Coproduct)
+
   static constexpr unsigned size = Coproduct<As...>::size + 1;
 
   template <unsigned idx> struct type {
@@ -287,6 +297,7 @@ public:
   friend bool operator!=(const Coproduct &lhs, const Coproduct &rhs) {
     return !(lhs == rhs);
   }
+
   ~Coproduct() { _content.destroy(_tag); }
 
 private:

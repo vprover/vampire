@@ -35,12 +35,12 @@ LitEvalResult tryEvalConstant2(Literal* orig, PolyNf* evaluatedArgs, EvalGround 
 {
   auto& lhs = evaluatedArgs[0].asPoly().template as<Poly<ConstantType>>();;
   auto& rhs = evaluatedArgs[1].asPoly().template as<Poly<ConstantType>>();;
-  if (lhs.isCoeff() && rhs.isCoeff()) {
-    return LitEvalResult::constant(fun(lhs.unwrapCoeff(), rhs.unwrapCoeff()));
+  if (lhs.isNumber() && rhs.isNumber()) {
+    return LitEvalResult::constant(fun(lhs.unwrapNumber(), rhs.unwrapNumber()));
   } else {
     TermList args[] = {
-      lhs.template toTerm<NormalizerConfig>(),
-      rhs.template toTerm<NormalizerConfig>()
+      lhs.toTerm(),
+      rhs.toTerm()
     };
     return LitEvalResult::literal(Literal::create(orig, args));
   }
@@ -54,13 +54,13 @@ LitEvalResult tryEvalConstant2(Literal* orig, PolyNf* evaluatedArgs, EvalGround 
 
 template<class Config, class number> inline LitEvalResult interpret_equality(bool polarity, Polynom<number> lhs, Polynom<number> rhs) {
   
-  if (lhs.isCoeff() && rhs.isCoeff()) {
-    return LitEvalResult::constant(polarity == (lhs.unwrapCoeff() == rhs.unwrapCoeff()));
+  if (lhs.isNumber() && rhs.isNumber()) {
+    return LitEvalResult::constant(polarity == (lhs.unwrapNumber() == rhs.unwrapNumber()));
   } else {
     auto res = Polynom<number>::cancel(lhs, rhs);
 
-    auto lTerm = std::get<0>(res).template toTerm<Config>();
-    auto rTerm = std::get<1>(res).template toTerm<Config>();
+    auto lTerm = std::get<0>(res).toTerm();
+    auto rTerm = std::get<1>(res).toTerm();
 
     if (lTerm == rTerm) {
       return LitEvalResult::constant(polarity);
@@ -109,8 +109,8 @@ IMPL_EVALUATE_PRED(Interpretation::EQUAL,
     if (lhs == rhs) {
       return LitEvalResult::constant(polarity);
     } else {
-      auto l = lhs.template toTerm<Config>();
-      auto r = rhs.template toTerm<Config>();
+      auto l = lhs.toTerm();
+      auto r = rhs.toTerm();
       return LitEvalResult::literal(Literal::createEquality(polarity, l, r, sort));
     }
   }
@@ -135,12 +135,12 @@ template<class NormalizerConfig, class ConstantType, class EvalIneq> LitEvalResu
 
   auto polarity = orig->polarity();
   // TODO handle case a <= a + 3 ===> true
-  if (lhs.isCoeff() && rhs.isCoeff()) {
-    return LitEvalResult::constant(polarity == evalIneq(lhs.unwrapCoeff(), rhs.unwrapCoeff()));
+  if (lhs.isNumber() && rhs.isNumber()) {
+    return LitEvalResult::constant(polarity == evalIneq(lhs.unwrapNumber(), rhs.unwrapNumber()));
   } else {
 
-    TermList lTerm = lhs.template toTerm<NormalizerConfig>();
-    TermList rTerm = rhs.template toTerm<NormalizerConfig>();;
+    TermList lTerm = lhs.toTerm();
+    TermList rTerm = rhs.toTerm();;
     if (lTerm == rTerm) return LitEvalResult::constant(polarity != strict);
 
     TermList args[] = {

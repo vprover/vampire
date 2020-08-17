@@ -28,15 +28,21 @@ namespace Kernel {
 
 namespace Memo {
 
+  /** a mocked memoization that does not store any results */
   template<class EvalFn>
   struct None 
   {
     using Result = typename EvalFn::Result;
     using Arg    = typename EvalFn::Arg;
-    Result* getPtr(Arg _orig) { return nullptr; }
-    template<class Init> Result getOrInit(Arg orig, Init init) { return init(); }
+
+    Result* get(Arg _orig) 
+    { return nullptr; }
+
+    template<class Init> Result getOrInit(Arg const& orig, Init init) 
+    { return init(); }
   };
 
+  /** a memoization realized as a hashmap */
   template<class EvalFn>
   class Hashed 
   {
@@ -48,23 +54,16 @@ namespace Memo {
   public:
     Hashed() : _memo(decltype(_memo)()) {}
 
-    template<class Init> Result getOrInit(Arg orig, Init init) 
-    { return _memo.getOrInit(std::move(orig), init); }
+    template<class Init> Result getOrInit(Arg const& orig, Init init) 
+    { return _memo.getOrInit(Arg(orig), init); }
 
-    Result* getPtr(const Arg& orig) 
+    Result* get(const Arg& orig) 
     { return _memo.getPtr(orig); }
   };
 
 } // namespace Memo
-} // namespace Kernel
-#include "Kernel/Polynomial.hpp"
 
-
-namespace Kernel {
-
-template<class T>
-T assertionViolation() {ASSERTION_VIOLATION}
-
+//TODO document
 template<class A> 
 struct ChildIter
 {
@@ -73,6 +72,98 @@ struct ChildIter
   A self();
   unsigned nChildren();
 };
+
+
+/** 
+ * Evaluates a term-like datastructure (i.e.: a directed acyclic graph), without using recursion.
+ *
+ * Optionally a memoization method (i.e. a class from Kernel::Memo) can be specified. The memo can be a static,
+ * variable, in order to keep cached results for multiple runs of the funcion. 
+ *
+ * The term-ish structure is evaluated according to the structure EvalFn. It is expected to have the following structure:
+ * class EvalFn {
+ *    using Arg    = ...; // <- the term-ish structure
+ *    using Result = ...; // <- the type the structure will be evaluated to
+ *
+ *    // The actual evaluation funciton. It will be called once for each node in the directed acyclic graph, together with 
+ *    // the already recursively evaluated children.
+ *    Result operator()(Arg const& orig, Result* evaluatedChildren); 
+ * }
+ * 
+ * The term to be evaluated will be traversed using a ChildIter<Arg>. 
+ */
+template<class EvalFn, class Memo = Memo::None<EvalFn>>
+typename EvalFn::Result evaluateBottomUp(typename EvalFn::Arg const& term, EvalFn evaluateStep, Memo& memo) 
+{
+  CALL("evaluateBottomUp(...)")
+  using Result = typename EvalFn::Result;
+  using Arg    = typename EvalFn::Arg;
+
+  
+  /** only used in order to be able to create a fake default constructor for Result, that is required by
+   * std::vector::resize. The constructor will actually never be called.
+   */
+  struct ResultWrapper : Result
+  {
+    ResultWrapper(Result     && res) : Result(std::move(res)) {  }
+    ResultWrapper(Result      & res) : Result(          res ) {  }
+    ResultWrapper(Result const& res) : Result(          res ) {  }
+    ResultWrapper() : Result(assertionViolation<Result>()) {  }
+  };
+
+  /* recursion state. Contains a stack of items that are being recursed on. */
+  Stack<ChildIter<Arg>> recState;
+  // TODO use stack here
+  vector<ResultWrapper> recResults;
+
+  recState.push(ChildIter<Arg>(term));
+
+  while (!recState.isEmpty()) {
+
+    if (recState.top().hasNext()) {
+      Arg t = recState.top().next();
+
+      auto cached = memo.get(t);
+      if (cached == nullptr) {
+         recState.push(ChildIter<Arg>(t));
+      } else {
+        recResults.emplace_back(*cached); 
+      }
+
+    } else { 
+
+      ChildIter<Arg> orig = recState.pop();
+
+      Result eval = memo.getOrInit(orig.self(), [&](){ 
+            Result* argLst = NULL;
+            if (orig.nChildren() != 0) {
+              ASS_GE(recResults.size(), orig.nChildren());
+              argLst = static_cast<Result*>(&recResults[recResults.size() - orig.nChildren()]);
+            }
+            return evaluateStep(orig.self(), argLst);
+          });
+
+      DEBUG("evaluated: ", orig.self(), " -> ", eval);
+
+      recResults.resize(recResults.size() - orig.nChildren());
+      recResults.emplace_back(std::move(eval));
+    }
+
+  }
+  ASS(recState.isEmpty())
+    
+
+  ASS(recResults.size() == 1);
+  Result out = std::move(recResults[0]);
+  recResults.clear();
+  return std::move(out);
+}
+
+} // namespace Kernel
+#include "Kernel/Polynomial.hpp"
+
+
+namespace Kernel {
 
 template<>
 struct ChildIter<TermList>
@@ -201,74 +292,6 @@ struct ChildIter<PolyNf>
   { return _self.template collapsePoly<PolyNf>(Polymorphic::self{}); }
 };
 
-/** TODO document */
-template<class EvalFn, class Memo = Memo::None<EvalFn>>
-typename EvalFn::Result evaluateBottomUp(typename EvalFn::Arg term, EvalFn evaluateStep, Memo& memo) 
-{
-  CALL("evaluateBottomUp(...)")
-  using Result = typename EvalFn::Result;
-  using Arg    = typename EvalFn::Arg;
-
-  
-  /** only used in order to be able to create a fake default constructor for Result, that is required by
-   * std::vector::resize. The constructor will actually never be called.
-   */
-  struct ResultWrapper : Result
-  {
-    ResultWrapper(Result     && res) : Result(std::move(res)) {  }
-    ResultWrapper(Result      & res) : Result(          res ) {  }
-    ResultWrapper(Result const& res) : Result(          res ) {  }
-    ResultWrapper() : Result(assertionViolation<Result>()) {  }
-  };
-
-  /* recursion state. Contains a stack of items that are being recursed on. */
-  Stack<ChildIter<Arg>> recState;
-  vector<ResultWrapper> recResults;
-
-  recState.push(ChildIter<Arg>(term));
-
-  while (!recState.isEmpty()) {
-
-    if (recState.top().hasNext()) {
-      Arg t = recState.top().next();
-
-      auto cached = memo.getPtr(t);
-      if (cached == nullptr) {
-         recState.push(ChildIter<Arg>(t));
-      } else {
-        recResults.emplace_back(*cached); 
-      }
-
-    } else { 
-
-      ChildIter<Arg> orig = recState.pop();
-
-      Result eval = memo.getOrInit(std::move(orig.self()),
-          [&](){ 
-            Result* argLst = NULL;
-            if (orig.nChildren() != 0) {
-              ASS_GE(recResults.size(), orig.nChildren());
-              argLst = static_cast<Result*>(&recResults[recResults.size() - orig.nChildren()]);
-            }
-            return evaluateStep(orig.self(), argLst);
-          });
-
-      DEBUG("evaluated: ", orig.self(), " -> ", eval);
-
-      recResults.resize(recResults.size() - orig.nChildren());
-      recResults.emplace_back(std::move(eval));
-    }
-
-  }
-  ASS(recState.isEmpty())
-    
-
-  ASS(recResults.size() == 1);
-  Result out = std::move(recResults[0]);
-  recResults.clear();
-  return std::move(out);
-}
-
 inline PolyNf PolyNf::normalize(TermList t) 
 {
 
@@ -381,7 +404,7 @@ inline Literal* createLiteral(Literal* orig, PolyNf* evaluatedArgs) {
 
   Stack<TermList> args(arity);
   for (int i = 0; i < arity; i++) {
-    args.push(evaluatedArgs[i].template toTerm<Config>());
+    args.push(evaluatedArgs[i].toTerm());
   }
   return Literal::create(orig, args.begin());
 }
@@ -410,7 +433,6 @@ template<class Config> LitEvalResult PolynomialNormalizer<Config>::evaluateStep(
       HANDLE_CASE(NUM ## _LESS) \
       HANDLE_CASE(NUM ## _LESS_EQUAL) 
 
-  //TODO create function theory->tryInterpret(Predicate|Function)
   auto sym = env.signature->getPredicate(orig->functor());
   if (sym->interpreted()) {
     auto inter = static_cast<Signature::InterpretedSymbol*>(sym)->getInterpretation();

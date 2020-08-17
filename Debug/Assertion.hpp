@@ -396,7 +396,11 @@ void Debug::Assertion::violatedMethod(const char* file,int line,const T& obj,
   }
 } // Assertion::violatedMethod
 
-#endif
+#endif // VDEBUG
+
+/** expression version of ASSERTION_VIOLATION */
+template<class T> T assertionViolation() 
+{ ASSERTION_VIOLATION }
 
 #endif // __Assertion__
 
