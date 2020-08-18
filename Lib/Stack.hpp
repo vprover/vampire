@@ -203,8 +203,22 @@ public:
   void loadFromIterator(It it) {
     CALL("Stack::loadFromIterator");
 
+    // TODO check iterator.size() or iterator.sizeHint()
     while(it.hasNext()) {
       push(it.next());
+    }
+  }
+
+  /**
+   * Put all elements of an iterator onto the stack.
+   */
+  template<class It>
+  void moveFromIterator(It it) {
+    CALL("Stack::loadFromIterator");
+
+    // TODO check iterator.size() or iterator.sizeHint()
+    while(it.hasNext()) {
+      push(std::move(it.next()));
     }
   }
 
@@ -219,6 +233,9 @@ public:
     out.loadFromIterator(it);
     return out;
   }
+
+  Iterator iterator() 
+  { return Iterator(*this); }
 
   /**
    * Return a reference to the n-th element of the stack.
@@ -355,10 +372,10 @@ public:
     ASS(_cursor > _stack);
     _cursor--;
 
-    C res=*_cursor;
+    C res = std::move(*_cursor);
     _cursor->~C();
 
-    return res;
+    return std::move(res);
   } // Stack::pop()
 
 
@@ -771,7 +788,7 @@ protected:
     C* newStack = static_cast<C*>(mem);
     if(_capacity) {
       for (size_t i = 0; i<_capacity; i++) {
-	new(newStack+i) C(_stack[i]);
+	new(newStack+i) C(std::move(_stack[i]));
 	_stack[i].~C();
       }
       // deallocate the old stack
