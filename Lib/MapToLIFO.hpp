@@ -186,8 +186,7 @@ private:
   struct KeyToIterFn
   {
     KeyToIterFn(const MapToLIFO& parent) : _par(parent) {}
-    DECL_RETURN_TYPE(typename ValList::Iterator);
-    OWN_RETURN_TYPE operator() (K key)
+    typename ValList::Iterator operator() (K key)
     {
       return _par.keyIterator(key);
     }

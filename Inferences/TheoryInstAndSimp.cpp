@@ -736,8 +736,7 @@ struct InstanceFn
          _premise(premise),  _cl(cl), _theoryLits(tl), _splitter(splitter),
          _salg(salg), _parent(parent), _red(red) {}
 
-  DECL_RETURN_TYPE(Clause*);
-  OWN_RETURN_TYPE operator()(Solution sol)
+  Clause* operator()(Solution sol)
   {
     CALL("TheoryInstAndSimp::InstanceFn::operator()");
 

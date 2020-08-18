@@ -38,14 +38,12 @@ Clause* PolynomialNormalization::simplify(Clause* cl_) {
         if (simplLit != orig)
           env.statistics->polyNormalizerSimplAttempts++;
 
-        auto cmp = _ordering.compare(simplLit, orig);
-        if (cmp == Ordering::Result::LESS) {
+        if (_ordering != nullptr &&
+            _ordering->compare(simplLit, orig) == Ordering::Result::LESS) {
 
           ASS(simplLit != orig)
-          //if (simplLit != orig) {
-            env.statistics->polyNormalizerSimplSuccess++;
-            changed = true;
-          //}
+          env.statistics->polyNormalizerSimplSuccess++;
+          changed = true;
           out.push(simplLit);
 
         } else {

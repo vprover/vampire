@@ -37,8 +37,6 @@ TEST_FUN(testArithCompareSAT)
   IntegerConstantType cMINpp(INT_MIN+2);
 
   IntegerConstantType c2(2);
-  IntegerConstantType c1(1);
-  IntegerConstantType c0(0);
   IntegerConstantType cm1(-1);
   IntegerConstantType cm2(-2);
 

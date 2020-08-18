@@ -149,7 +149,6 @@ unsigned Sorts::addArraySort(const unsigned indexSort, const unsigned innerSort)
 }
 
 struct SortInfoToInt{
-  DECL_RETURN_TYPE(unsigned);
   unsigned operator()(Sorts::SortInfo* s){ return s->id(); }
 };
 

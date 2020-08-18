@@ -53,9 +53,8 @@ public:
   {
   }
 
-  DECL_RETURN_TYPE(Clause*);
 
-  OWN_RETURN_TYPE operator()(Clause* mcl)
+  Clause* operator()(Clause* mcl)
   {
     bool fail=false;
 
@@ -115,9 +114,8 @@ private:
 class SubstitutionTreeClauseVariantIndex::SLQueryResultToClauseFn
 {
 public:
-  DECL_RETURN_TYPE(Clause*);
 
-  OWN_RETURN_TYPE operator()(SLQueryResult res) {
+  Clause* operator()(SLQueryResult res) {
     return res.clause;
   }
 };

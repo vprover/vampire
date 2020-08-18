@@ -210,7 +210,7 @@ public:
 
 
   /**
-   * Put all elements of an iterator onto the stack.
+   * Create a new stack with the contents of the itererator.
    */
   template<class It>
   static Stack fromIterator(It it) {

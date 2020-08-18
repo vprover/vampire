@@ -196,15 +196,14 @@ private:
 
 #define UT_CREATE Test::TestUnit UT_AUX_NAME(UT_AUX_NAME_STR)
 
-// #define TEST_FUN_MULTI_PER_LINE(name, id_in_line)   \
-//   void name(); \
-//   Test::TU_Aux_Test_Adder _ut_aux_adder_##ID##_##LINE##_##id_in_line(UT_AUX_NAME,name,#name); \
-//   void name()
+#define TEST_FUN(name)  void TEST_FUN_NAME(name)(); \
+			Test::TU_Aux_Test_Adder UT_AUX_ADDER_NAME(TEST_FUN_NAME(name))(UT_AUX_NAME,TEST_FUN_NAME(name),#name); \
+			void TEST_FUN_NAME(name)()
 
-#define TEST_FUN(name)  void name(); \
-			Test::TU_Aux_Test_Adder UT_AUX_ADDER_NAME(name)(UT_AUX_NAME,name,#name); \
-			void name()
 
+#define TEST_FUN_NAME(name)  CAT(CAT(UNIT_ID, _), name)
+#define _CAT(a,b) a ## b 
+#define CAT(a,b) _CAT(a,b) //  <- indiriection needed in order to force args being expanded
 }
 
 #endif // __RuntimeStatistics__

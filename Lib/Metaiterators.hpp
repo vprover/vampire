@@ -298,7 +298,6 @@ template<typename Out,typename In>
 struct Lambda
 {
   Lambda(typename identity<std::function<Out(In)>>::type f) : _lambda(f) {}
-  DECL_RETURN_TYPE(Out);
   Out operator()(In obj){ return _lambda(obj); }
   std::function<Out(In)> _lambda;
 };
@@ -313,7 +312,6 @@ Lambda<T,S> lambda(std::function<T(S)> f){ return Lambda<T,S>(f); }
  */
 struct NonzeroFn
 {
-  DECL_RETURN_TYPE(bool);
   template<typename T>
   bool operator()(T obj)
   {
@@ -334,7 +332,6 @@ template<typename T>
 struct NonequalFn
 {
   NonequalFn(T forbidden) : _forbidden(forbidden) {}
-  DECL_RETURN_TYPE(bool);
   bool operator()(T obj)
   {
     return obj!=_forbidden;
@@ -597,7 +594,7 @@ CatIterator<It1,It2> getConcatenatedIterator(It1 it1, It2 it2)
  * The @b knowsSize() and @b size() functions of this iterator can be
  * called only if the underlying iterator contains these functions.
  */
-template<typename Inner, typename Functor, typename ResultType=RETURN_TYPE(Functor)>
+template<typename Inner, typename Functor, typename ResultType=RETURN_TYPE(Functor(ELEMENT_TYPE(Inner)))>
 class MappingIterator
 {
 public:
@@ -633,22 +630,22 @@ private:
  * @see MappingIterator
  */
 template<typename Inner, typename Functor>
-MappingIterator<Inner,Functor,RETURN_TYPE(Functor)> getMappingIterator(Inner it, Functor f)
+MappingIterator<Inner,Functor,RETURN_TYPE(Functor(ELEMENT_TYPE(Inner)))> getMappingIterator(Inner it, Functor f)
 {
-  return MappingIterator<Inner,Functor,RETURN_TYPE(Functor)>(it, f);
+  return MappingIterator<Inner,Functor,RETURN_TYPE(Functor(ELEMENT_TYPE(Inner)))>(it, f);
 }
 
-/**
- * Return iterator that returns elements of @b it transformed by
- * the lambda @b f
- *
- * @see MappingIterator
- */
-template<typename Inner, typename Functor,typename ResultType>
-MappingIterator<Inner,Functor,ResultType> getMappingIterator(Inner it, std::function<ResultType(Inner)> f)
-{
-  return MappingIterator<Inner,Functor,ResultType>(it, f);
-}
+// /**
+//  * Return iterator that returns elements of @b it transformed by
+//  * the lambda @b f
+//  *
+//  * @see MappingIterator
+//  */
+// template<typename Inner, typename Functor,typename ResultType>
+// MappingIterator<Inner,Functor,ResultType> getMappingIterator(Inner it, std::function<ResultType(Inner)> f)
+// {
+//   return MappingIterator<Inner,Functor,ResultType>(it, f);
+// }
 
 /**
  * Return iterator that returns elements of @b it transformed by
@@ -1512,7 +1509,6 @@ bool splitIterator(It it, Pred edge, VirtualIterator<ELEMENT_TYPE(It)>& res1, Vi
 template<typename Inner>
 struct NegPred
 {
-  DECL_RETURN_TYPE(bool);
   NegPred(const Inner& inner) : _inner(inner) {}
   template<typename Arg>
   bool operator()(Arg a) { return !_inner(a); }
@@ -1528,7 +1524,6 @@ NegPred<Inner> negPred(Inner inner) {
 template<typename T>
 struct ConstEqPred
 {
-  DECL_RETURN_TYPE(bool);
   ConstEqPred(const T& val) : _val(val) {}
   template<typename Arg>
   bool operator()(Arg a) { return a==_val; }
@@ -1543,12 +1538,11 @@ ConstEqPred<T> constEqPred(const T& val) {
 
 template<typename OuterFn, typename InnerFn>
 struct CompositionFn {
-  DECL_RETURN_TYPE(RETURN_TYPE(OuterFn));
   CompositionFn(OuterFn outer, InnerFn inner)
    : _outer(outer), _inner(inner) { }
 
   template<typename Arg>
-  OWN_RETURN_TYPE operator()(Arg a) {
+  RETURN_TYPE(OuterFn(RETURN_TYPE(InnerFn(Arg)))) operator()(Arg a) {
     return _outer(_inner(a));
   }
 private:
@@ -1565,19 +1559,55 @@ CompositionFn<OuterFn,InnerFn> getCompositionFn(OuterFn outer, InnerFn inner)
 
 template<class P>
 struct GetFirstOfPair {
-  DECL_RETURN_TYPE(typename P::first_type);
-  OWN_RETURN_TYPE operator()(P p) {
+  typename P::first_type operator()(P p) {
     return p.first;
   }
 };
 
 template<class P>
 struct GetSecondOfPair {
-  DECL_RETURN_TYPE(typename P::second_type);
-  OWN_RETURN_TYPE operator()(P p) {
+  typename P::second_type operator()(P p) {
     return p.second;
   }
 };
+
+template<class Iter>
+class IterTraits
+{
+  Iter _iter;
+public:
+  DECL_ELEMENT_TYPE(ELEMENT_TYPE(Iter));
+
+  explicit IterTraits(Iter iter) : _iter(iter) {}
+
+  ELEMENT_TYPE(Iter) next() { return _iter.next(); }
+  bool hasNext() { return _iter.hasNext(); }
+
+  template<class F>
+  void forEach(F f) 
+  {
+    while (hasNext()) {
+      f(next());
+    }
+  }
+
+  template<class Container>
+  Container collect() 
+  {
+    Container c;
+    while (hasNext()) {
+      c.insert(next());
+    }
+    return c;
+  }
+  
+};
+
+template<class Iter>
+IterTraits<Iter> iterTraits(Iter i) 
+{
+  return IterTraits(i);
+}
 
 ///@}
 
