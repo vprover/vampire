@@ -11,6 +11,66 @@
 
 namespace Lib {
 
+namespace TypeList {
+
+#define MP(f, ...) typename f < __VA_ARGS__ >:: result
+#define MPV(f, ...) f < __VA_ARGS__ >:: result
+
+  template<class... As>
+  struct TypeList;
+
+  template<template<class...> class HKT, class A> 
+  struct Into;
+
+  template<template<class...> class HKT, class... As> 
+  struct Into<HKT, TypeList<As...> >
+  { using result = HKT<As...>; };
+
+  template<class A, class B> 
+  struct Concat;
+
+  template<class... As, class... Bs> 
+  struct Concat<TypeList<As...>, TypeList<Bs...>>
+  { using result = TypeList<As..., Bs...>; };
+
+
+  template<class ZipFn, class A, class B>
+  struct Zip;
+
+  template<class ZipFn>
+  struct Zip<ZipFn, TypeList<>, TypeList<>>
+  { using result = TypeList<>; };
+
+
+  template<class ZipFn, class A, class... As, class B, class... Bs>
+  struct Zip<ZipFn, TypeList<A, As...>, TypeList<B, Bs...> >
+  {
+    using result = MP(Concat, TypeList<typename std::result_of<ZipFn(A, B)>::type>, MP(Zip, ZipFn, TypeList<As...>, TypeList<Bs...>));
+  };
+
+  template<unsigned i, class A> struct Get;
+
+  template<class A, class... As> struct Get<0, TypeList<A, As...>>
+  { using result = A; };
+
+  template<unsigned i, class A, class... As> struct Get<i, TypeList<A, As...>>
+  { using result = MP(Get, i - 1, TypeList<As...>); };
+
+  template<class A, class As> struct Contains;
+
+  template<class A> struct Contains<A, TypeList<>> 
+  { static bool constexpr result = false; };
+
+  template<class A, class... As> struct Contains<A, TypeList<A, As...>> 
+  { static bool constexpr result = true; };
+
+  template<class A, class B, class... Bs> struct Contains<A, TypeList<B, Bs...>> 
+  { static bool constexpr result = MPV(Contains, A, TypeList<Bs...>); };
+
+} // namespace TypeList
+
+
+
 #define FOR_REF_QUALIFIER(macro)                                                                                        \
   macro(const &, ) macro(&, ) macro(&&, std::move)
 
@@ -205,9 +265,15 @@ public:
   template <unsigned idx> struct type {
     using value = typename va_idx<idx, A, As...>::type;
   };
+
   template <unsigned idx> bool is() const {
     static_assert(idx < size, "out of bounds");
     return _tag == idx;
+  }
+
+  template <class B> bool isType() const {
+    //TODO static assertion
+    return _tag == idx_of<B, A, As...>::value;
   }
 
   template <unsigned idx>
@@ -271,7 +337,7 @@ public:
                                                                                                                         \
   template <class B> inline B REF as() REF {                                                                            \
     /* TODO static assertions */                                                                                        \
-    return unwrap<idx_of<B, A, As...>::value>();                                                                        \
+    return MOVE(unwrap<idx_of<B, A, As...>::value>());                                                                  \
   }                                                                                                                     \
                                                                                                                         \
   template <unsigned idx>                                                                                               \
@@ -319,53 +385,6 @@ public:
   template<class... Ords> friend struct CoproductOrdering;
 
 }; // class Coproduct<A, As...> 
-
-
-namespace TypeList {
-
-#define MP(f, ...) typename f < __VA_ARGS__ >:: result
-
-  template<class... As>
-  struct TypeList;
-
-  template<template<class...> class HKT, class A> 
-  struct Into;
-
-  template<template<class...> class HKT, class... As> 
-  struct Into<HKT, TypeList<As...> >
-  { using result = HKT<As...>; };
-
-  template<class A, class B> 
-  struct Concat;
-
-  template<class... As, class... Bs> 
-  struct Concat<TypeList<As...>, TypeList<Bs...>>
-  { using result = TypeList<As..., Bs...>; };
-
-
-  template<class ZipFn, class A, class B>
-  struct Zip;
-
-  template<class ZipFn>
-  struct Zip<ZipFn, TypeList<>, TypeList<>>
-  { using result = TypeList<>; };
-
-
-  template<class ZipFn, class A, class... As, class B, class... Bs>
-  struct Zip<ZipFn, TypeList<A, As...>, TypeList<B, Bs...> >
-  {
-    using result = MP(Concat, TypeList<typename std::result_of<ZipFn(A, B)>::type>, MP(Zip, ZipFn, TypeList<As...>, TypeList<Bs...>));
-  };
-
-  template<unsigned i, class A> struct Get;
-
-  template<class A, class... As> struct Get<0, TypeList<A, As...>>
-  { using result = A; };
-
-  template<unsigned i, class A, class... As> struct Get<i, TypeList<A, As...>>
-  { using result = MP(Get, i - 1, TypeList<As...>); };
-
-} // namespace TypeList
 
 
 }
