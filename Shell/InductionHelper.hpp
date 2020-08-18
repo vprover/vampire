@@ -13,8 +13,8 @@ using namespace Kernel;
 
 class TermListReplacement : public TermTransformer {
 public:
-  TermListReplacement(TermList o, TermList r) : _o(o), _r(r) {} 
-  virtual TermList transformSubterm(TermList trm);
+  TermListReplacement(TermList o, TermList r) : _o(o), _r(r) {}
+  TermList transformSubterm(TermList trm) override;
 private:
   TermList _o;
   TermList _r;
@@ -22,14 +22,14 @@ private:
 
 class TermOccurrenceReplacement : public Kernel::TermTransformer {
 public:
-  TermOccurrenceReplacement(const Lib::vmap<Kernel::TermList, Kernel::TermList>& r,
-                            const Lib::vmap<Kernel::TermList, Lib::vvector<unsigned>>& o) : _r(r), _o(o), _c() {} 
+  TermOccurrenceReplacement(const Lib::DHMap<Kernel::TermList, Kernel::TermList>& r,
+                            const Lib::DHMap<Kernel::TermList, Lib::vvector<unsigned>>& o) : _r(r), _o(o), _c() {}
   Kernel::TermList transformSubterm(Kernel::TermList trm) override;
 
 private:
-  const Lib::vmap<Kernel::TermList, Kernel::TermList>& _r;
-  const Lib::vmap<Kernel::TermList, Lib::vvector<unsigned>>& _o;
-  Lib::vmap<Kernel::TermList, unsigned> _c;
+  const Lib::DHMap<Kernel::TermList, Kernel::TermList>& _r;
+  const Lib::DHMap<Kernel::TermList, Lib::vvector<unsigned>>& _o;
+  Lib::DHMap<Kernel::TermList, unsigned> _c;
 };
 
 class VarShiftReplacement : public Kernel::TermTransformer {
@@ -43,11 +43,11 @@ private:
 
 class VarReplacement : public Kernel::TermTransformer {
 public:
-  VarReplacement(Kernel::Map<unsigned, unsigned>& varMap, unsigned& v) : _varMap(varMap), _v(v) {}
+  VarReplacement(Kernel::DHMap<unsigned, unsigned>& varMap, unsigned& v) : _varMap(varMap), _v(v) {}
   Kernel::TermList transformSubterm(Kernel::TermList trm) override;
 
 private:
-  Kernel::Map<unsigned, unsigned>& _varMap;
+  Kernel::DHMap<unsigned, unsigned>& _varMap;
   unsigned& _v;
 };
 
@@ -93,18 +93,18 @@ public:
   CLASS_NAME(RDescriptionInst);
   USE_ALLOCATOR(RDescriptionInst);
 
-  RDescriptionInst(Kernel::List<Kernel::vmap<Kernel::TermList, Kernel::TermList>>* recursiveCalls,
-                   Kernel::vmap<Kernel::TermList, Kernel::TermList> step,
+  RDescriptionInst(Kernel::List<Kernel::DHMap<Kernel::TermList, Kernel::TermList>>* recursiveCalls,
+                   Kernel::DHMap<Kernel::TermList, Kernel::TermList> step,
                    Kernel::Formula* cond);
 
-  Kernel::List<Kernel::vmap<Kernel::TermList, Kernel::TermList>>*& getRecursiveCalls();
-  Kernel::vmap<Kernel::TermList, Kernel::TermList>& getStep();
+  Kernel::List<Kernel::DHMap<Kernel::TermList, Kernel::TermList>>*& getRecursiveCalls();
+  Kernel::DHMap<Kernel::TermList, Kernel::TermList>& getStep();
 
   Lib::vstring toString() const;
 
 private:
-  Kernel::List<Kernel::vmap<Kernel::TermList, Kernel::TermList>>* _recursiveCalls;
-  Kernel::vmap<Kernel::TermList, Kernel::TermList> _step;
+  Kernel::List<Kernel::DHMap<Kernel::TermList, Kernel::TermList>>* _recursiveCalls;
+  Kernel::DHMap<Kernel::TermList, Kernel::TermList> _step;
   Kernel::Formula* _condition;
 };
 
@@ -137,20 +137,20 @@ public:
 
   void init(Kernel::Term* term, Kernel::List<RDescription>::Iterator rdescIt, const Lib::DArray<bool>& indVars);
   void addRDescriptionInstance(RDescriptionInst inst);
-  void addActiveOccurrences(Lib::vmap<Kernel::TermList, Lib::vvector<unsigned>> m);
+  void addActiveOccurrences(Lib::DHMap<Kernel::TermList, Lib::vvector<unsigned>> m);
   void setMaxVar(unsigned maxVar);
 
   Kernel::List<RDescriptionInst>::RefIterator getRDescriptionInstances() const;
-  Lib::vmap<Kernel::TermList, Lib::vvector<unsigned>> getActiveOccurrences() const;
+  Lib::DHMap<Kernel::TermList, Lib::vvector<unsigned>> getActiveOccurrences() const;
   unsigned getMaxVar() const;
 
   Lib::vstring toString() const;
 
 private:
-  void replaceFreeVars(Kernel::TermList t, unsigned& currVar, Lib::Map<unsigned, unsigned>& varMap);
+  void replaceFreeVars(Kernel::TermList t, unsigned& currVar, Lib::DHMap<unsigned, unsigned>& varMap);
 
   Kernel::List<RDescriptionInst>* _rDescriptionInstances;
-  Lib::vmap<Kernel::TermList, Lib::vvector<unsigned>> _activeOccurrences;
+  Lib::DHMap<Kernel::TermList, Lib::vvector<unsigned>> _activeOccurrences;
   unsigned _maxVar;
 };
 
@@ -169,7 +169,7 @@ private:
   static bool checkSubsumption(InductionScheme* sch1, InductionScheme* sch2, bool onlyCheckIntersection = false);
   static Lib::List<Kernel::Term*>* getSubstitutedTerms(Kernel::Term* term, Kernel::Term* step,
                                                   Kernel::Term* recursiveCall, const Lib::DArray<bool>& indVars,
-                                                  unsigned& currVar, Kernel::Map<pair<Kernel::Term*, unsigned>, Lib::vvector<unsigned>>& varMap);
+                                                  unsigned& currVar, Kernel::DHMap<pair<Kernel::Term*, unsigned>, Lib::vvector<unsigned>>& varMap);
   static bool checkAllContained(Lib::List<Kernel::Term*>* lst1, Lib::List<Kernel::Term*>* lst2, bool onlyCheckIntersection = false);
   static void mergeSchemes(InductionScheme* sch1, InductionScheme*& sch2);
 };

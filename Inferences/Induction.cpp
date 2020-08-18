@@ -754,8 +754,8 @@ Term* InductionClauseIterator::getPlaceholderForTerm(Term* t) {
   return Term::createConstant(placeholderConstNumber);
 }
 
-void processIteration(TermList curr, bool active, vmap<TermList, unsigned>& currOccMap,
-  vmap<TermList, vvector<unsigned>>& actOccMap,
+void processIteration(TermList curr, bool active, DHMap<TermList, unsigned>& currOccMap,
+  DHMap<TermList, vvector<unsigned>>& actOccMap,
   Stack<bool>& actStack, List<InductionScheme*>*& schemes)
 {
   if (!curr.isTerm()) {
@@ -763,19 +763,31 @@ void processIteration(TermList curr, bool active, vmap<TermList, unsigned>& curr
   }
   auto t = curr.term();
 
+  // by default we induct on skolem constants,
+  // term algebra terms and any non-recursive
+  // function term
+  auto canInductFn = [](TermList t) {
+    if (t.isVar()) {
+      return false;
+    }
+    auto func = t.term()->functor();
+    return env.signature->getFunction(func)->skolem() ||
+        env.signature->getTermAlgebraConstructor(func) ||
+        !env.signature->hasInductionTemplate(func, t.term()->isLiteral());
+  };
+
   unsigned f = t->functor();
   bool isPred = t->isLiteral();
 
-  if (env.signature->getFunction(f)->skolem()) {
-    if (currOccMap.count(curr) == 0) {
-      currOccMap.insert(make_pair(curr, 0));
-      actOccMap.insert(make_pair(curr, vvector<unsigned>()));
+  if (canInductFn(curr)) {
+    if (!currOccMap.find(curr)) {
+      currOccMap.insert(curr, 0);
+      actOccMap.insert(curr, vvector<unsigned>());
     }
     if (active) {
-      actOccMap[curr].push_back(currOccMap[curr]);
+      actOccMap.get(curr).push_back(currOccMap.get(curr));
     }
-    currOccMap[curr]++;
-    return;
+    currOccMap.get(curr)++;
   }
 
   if (env.signature->hasInductionTemplate(f, isPred)) {
@@ -794,12 +806,9 @@ void processIteration(TermList curr, bool active, vmap<TermList, unsigned>& curr
     DArray<bool>::Iterator indVarIt(indVars);
     bool match = true;
     while (argIt.hasNext()) {
-      auto arg = argIt.next();
-      if (indVarIt.next() && !arg.isVar()) {
-        auto func = arg.term()->functor();
-        if (!env.signature->getFunction(func)->skolem()) {
-          match = false;
-        }
+      if (indVarIt.next() && !canInductFn(argIt.next())) {
+        match = false;
+        break;
       }
     }
 
@@ -819,8 +828,8 @@ void InductionClauseIterator::performStructInductionFour(Clause* premise, Litera
   CALL("InductionClauseIterator::performStructInductionFour");
 
   List<InductionScheme*>* schemes(0);
-  vmap<TermList, unsigned> currOccMap;
-  vmap<TermList, vvector<unsigned>> actOccMap;
+  DHMap<TermList, unsigned> currOccMap;
+  DHMap<TermList, vvector<unsigned>> actOccMap;
   Stack<bool> actStack;
   if (lit->isEquality()) {
     actStack.push(true);
@@ -867,7 +876,7 @@ void InductionClauseIterator::instantiateScheme(Clause* premise, Literal* lit, I
 
     // Then we replace the arguments of the term with the
     // corresponding recursive cases for this step case
-    List<vmap<TermList,TermList>>::Iterator recCallsIt(desc.getRecursiveCalls());
+    List<DHMap<TermList,TermList>>::Iterator recCallsIt(desc.getRecursiveCalls());
     FormulaList* hyp = FormulaList::empty();
 
     while (recCallsIt.hasNext()) {
@@ -898,15 +907,17 @@ void InductionClauseIterator::instantiateScheme(Clause* premise, Literal* lit, I
 
   it = scheme->getRDescriptionInstances();
   unsigned var = scheme->getMaxVar();
-  vmap<TermList, TermList> r;
+  DHMap<TermList, TermList> r;
   while (it.hasNext()) {
     auto desc = it.next();
-    for (const auto& kv : desc.getStep()) {
-      auto t = kv.first;
-      if (r.count(t) > 0) {
+    DHMap<TermList, TermList>::Iterator sIt(desc.getStep());
+    while (sIt.hasNext()) {
+      TermList k, v;
+      sIt.next(k, v);
+      if (r.find(k)) {
         continue;
       }
-      r.insert(make_pair(kv.first, TermList(var++,false)));
+      r.insert(k, TermList(var++,false));
     }
   }
   TermOccurrenceReplacement tr(r, activeOccurrences);
@@ -915,7 +926,7 @@ void InductionClauseIterator::instantiateScheme(Clause* premise, Literal* lit, I
                             Formula::quantify(indPremise),
                             Formula::quantify(new AtomicFormula(conclusion)));
 
-  // cout << hypothesis->toString() << endl;
+  // cout << hypothesis->toString() << endl << endl;
 
   produceClauses(premise, lit, hypothesis, conclusion, rule);
 }
