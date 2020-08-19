@@ -218,7 +218,7 @@ public:
 
     // TODO check iterator.size() or iterator.sizeHint()
     while(it.hasNext()) {
-      push(std::move(it.next()));
+      pushMv(std::move(it.next()));
     }
   }
 
