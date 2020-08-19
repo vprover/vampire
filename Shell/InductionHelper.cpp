@@ -40,14 +40,9 @@ TermList TermOccurrenceReplacement::transformSubterm(Kernel::TermList trm)
   }
 
   const auto& r = _r.get(trm);
-  const auto& o = _o.get(trm);
-  if (o.size() == 1) {
+  const auto& o = _o->get(trm);
+  if (o->size() == 1 || o->contains(_c.get(trm))) {
     return r;
-  }
-  for (const auto& p : o) {
-    if (p == _c.get(trm)) {
-      return r;
-    }
   }
   return trm;
 }
@@ -251,7 +246,7 @@ void InductionTemplate::postprocess()
 
 InductionScheme::InductionScheme()
   : _rDescriptionInstances(0),
-    _activeOccurrences(),
+    _activeOccurrences(0),
     _maxVar(0)
 {
 }
@@ -346,10 +341,9 @@ void InductionScheme::addRDescriptionInstance(RDescriptionInst inst)
   List<RDescriptionInst>::push(inst, _rDescriptionInstances);
 }
 
-void InductionScheme::addActiveOccurrences(DHMap<TermList, vvector<unsigned>> m)
+void InductionScheme::addActiveOccurrences(DHMap<TermList, DHSet<unsigned>*>* m)
 {
-  _activeOccurrences.reset();
-  _activeOccurrences.loadFromMap(m);
+  _activeOccurrences = m;
 }
 
 void InductionScheme::setMaxVar(unsigned maxVar)
@@ -362,7 +356,7 @@ List<RDescriptionInst>::RefIterator InductionScheme::getRDescriptionInstances() 
   return List<RDescriptionInst>::RefIterator(_rDescriptionInstances);
 }
 
-DHMap<TermList, vvector<unsigned>> InductionScheme::getActiveOccurrences() const
+DHMap<TermList, DHSet<unsigned>*>* InductionScheme::getActiveOccurrences() const
 {
   return _activeOccurrences;
 }
@@ -381,14 +375,17 @@ vstring InductionScheme::toString() const
     str+=lIt.next().toString()+" ;-- ";
   }
   str+="Active occurrences: ";
-  DHMap<TermList, vvector<unsigned>>::Iterator aIt(_activeOccurrences);
-  while (aIt.hasNext()) {
-    TermList k;
-    vvector<unsigned> v;
-    aIt.next(k, v);
-    str+="term: "+k.toString()+" positions: ";
-    for (const auto& pos : v) {
-      str+=Int::toString(pos)+" ";
+  if (_activeOccurrences != nullptr) {
+    DHMap<TermList, DHSet<unsigned>*>::Iterator aIt(*_activeOccurrences);
+    while (aIt.hasNext()) {
+      TermList k;
+      DHSet<unsigned>* v;
+      aIt.next(k, v);
+      str+="term: "+k.toString()+" positions: ";
+      DHSet<unsigned>::Iterator pIt(*v);
+      while (pIt.hasNext()) {
+        str+=Int::toString(pIt.next())+" ";
+      }
     }
   }
   return str;

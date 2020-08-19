@@ -23,12 +23,12 @@ private:
 class TermOccurrenceReplacement : public Kernel::TermTransformer {
 public:
   TermOccurrenceReplacement(const Lib::DHMap<Kernel::TermList, Kernel::TermList>& r,
-                            const Lib::DHMap<Kernel::TermList, Lib::vvector<unsigned>>& o) : _r(r), _o(o), _c() {}
+                            Lib::DHMap<Kernel::TermList, Lib::DHSet<unsigned>*>* o) : _r(r), _o(o), _c() {}
   Kernel::TermList transformSubterm(Kernel::TermList trm) override;
 
 private:
   const Lib::DHMap<Kernel::TermList, Kernel::TermList>& _r;
-  const Lib::DHMap<Kernel::TermList, Lib::vvector<unsigned>>& _o;
+  Lib::DHMap<Kernel::TermList, Lib::DHSet<unsigned>*>* _o;
   Lib::DHMap<Kernel::TermList, unsigned> _c;
 };
 
@@ -137,11 +137,11 @@ public:
 
   void init(Kernel::Term* term, Kernel::List<RDescription>::Iterator rdescIt, const Lib::DArray<bool>& indVars);
   void addRDescriptionInstance(RDescriptionInst inst);
-  void addActiveOccurrences(Lib::DHMap<Kernel::TermList, Lib::vvector<unsigned>> m);
+  void addActiveOccurrences(Lib::DHMap<Kernel::TermList, Lib::DHSet<unsigned>*>* m);
   void setMaxVar(unsigned maxVar);
 
   Kernel::List<RDescriptionInst>::RefIterator getRDescriptionInstances() const;
-  Lib::DHMap<Kernel::TermList, Lib::vvector<unsigned>> getActiveOccurrences() const;
+  Lib::DHMap<Kernel::TermList, Lib::DHSet<unsigned>*>* getActiveOccurrences() const;
   unsigned getMaxVar() const;
 
   Lib::vstring toString() const;
@@ -150,7 +150,7 @@ private:
   void replaceFreeVars(Kernel::TermList t, unsigned& currVar, Lib::DHMap<unsigned, unsigned>& varMap);
 
   Kernel::List<RDescriptionInst>* _rDescriptionInstances;
-  Lib::DHMap<Kernel::TermList, Lib::vvector<unsigned>> _activeOccurrences;
+  Lib::DHMap<Kernel::TermList, Lib::DHSet<unsigned>*>* _activeOccurrences;
   unsigned _maxVar;
 };
 

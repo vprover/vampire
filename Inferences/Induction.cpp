@@ -755,7 +755,7 @@ Term* InductionClauseIterator::getPlaceholderForTerm(Term* t) {
 }
 
 void processIteration(TermList curr, bool active, DHMap<TermList, unsigned>& currOccMap,
-  DHMap<TermList, vvector<unsigned>>& actOccMap,
+  DHMap<TermList, DHSet<unsigned>*>* actOccMap,
   Stack<bool>& actStack, List<InductionScheme*>*& schemes)
 {
   if (!curr.isTerm()) {
@@ -771,24 +771,24 @@ void processIteration(TermList curr, bool active, DHMap<TermList, unsigned>& cur
       return false;
     }
     auto func = t.term()->functor();
-    return env.signature->getFunction(func)->skolem() ||
-        env.signature->getTermAlgebraConstructor(func) ||
-        !env.signature->hasInductionTemplate(func, t.term()->isLiteral());
+    auto symb = t.term()->isLiteral() ? env.signature->getPredicate(func) : env.signature->getFunction(func);
+    return symb->skolem() || symb->termAlgebraCons() ||
+      !env.signature->hasInductionTemplate(func, t.term()->isLiteral());
   };
-
-  unsigned f = t->functor();
-  bool isPred = t->isLiteral();
 
   if (canInductFn(curr)) {
     if (!currOccMap.find(curr)) {
       currOccMap.insert(curr, 0);
-      actOccMap.insert(curr, vvector<unsigned>());
+      actOccMap->insert(curr, new DHSet<unsigned>());
     }
     if (active) {
-      actOccMap.get(curr).push_back(currOccMap.get(curr));
+      actOccMap->get(curr)->insert(currOccMap.get(curr));
     }
     currOccMap.get(curr)++;
   }
+
+  unsigned f = t->functor();
+  bool isPred = t->isLiteral();
 
   if (env.signature->hasInductionTemplate(f, isPred)) {
     const auto templ = env.signature->getInductionTemplate(f, isPred);
@@ -806,7 +806,8 @@ void processIteration(TermList curr, bool active, DHMap<TermList, unsigned>& cur
     DArray<bool>::Iterator indVarIt(indVars);
     bool match = true;
     while (argIt.hasNext()) {
-      if (indVarIt.next() && !canInductFn(argIt.next())) {
+      auto arg = argIt.next();
+      if (indVarIt.next() && !canInductFn(arg)) {
         match = false;
         break;
       }
@@ -829,7 +830,7 @@ void InductionClauseIterator::performStructInductionFour(Clause* premise, Litera
 
   List<InductionScheme*>* schemes(0);
   DHMap<TermList, unsigned> currOccMap;
-  DHMap<TermList, vvector<unsigned>> actOccMap;
+  auto actOccMap = new DHMap<TermList, DHSet<unsigned>*>();
   Stack<bool> actStack;
   if (lit->isEquality()) {
     actStack.push(true);
@@ -858,6 +859,11 @@ void InductionClauseIterator::performStructInductionFour(Clause* premise, Litera
     }
     instantiateScheme(premise, lit, rule, scheme);
   }
+  DHMap<TermList, DHSet<unsigned>*>::Iterator aoIt(*actOccMap);
+  while (aoIt.hasNext()) {
+    delete aoIt.next();
+  }
+  delete actOccMap;
 }
 
 void InductionClauseIterator::instantiateScheme(Clause* premise, Literal* lit, InferenceRule rule, InductionScheme* scheme)
