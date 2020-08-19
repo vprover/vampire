@@ -213,6 +213,7 @@ class Signature
     /** This takes the symbol number of this symbol as the symbol doesn't know it
         Note that this should only be called on a constant **/
     void addToDistinctGroup(unsigned group,unsigned this_number);
+    friend ostream& operator<<(ostream& out, const Signature::Symbol& self){ return out << self.name(); };
 
     void setType(OperatorType* type);
     void forceType(OperatorType* type);
@@ -466,6 +467,8 @@ class Signature
   bool functionExists(const vstring& name,unsigned arity) const;
   bool predicateExists(const vstring& name,unsigned arity) const;
 
+  bool tryGetFunctionNumber(const vstring& name, unsigned arity, unsigned& out) const;
+  bool tryGetPredicateNumber(const vstring& name, unsigned arity, unsigned& out) const;
   unsigned getFunctionNumber(const vstring& name, unsigned arity) const;
   unsigned getPredicateNumber(const vstring& name, unsigned arity) const;
   

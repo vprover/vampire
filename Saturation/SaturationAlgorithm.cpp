@@ -48,6 +48,13 @@
 #include "Kernel/SubformulaIterator.hpp"
 #include "Kernel/Unit.hpp"
 
+#include "Inferences/InterpretedEvaluation.hpp"
+#include "Inferences/GaussianVariableElimination.hpp"
+#include "Inferences/EquationalTautologyRemoval.hpp"
+#include "Inferences/Condensation.hpp"
+#include "Inferences/FastCondensation.hpp"
+#include "Inferences/DistinctEqualitySimplifier.hpp"
+
 #include "Inferences/InferenceEngine.hpp"
 #include "Inferences/BackwardDemodulation.hpp"
 #include "Inferences/BackwardSubsumptionResolution.hpp"
@@ -900,15 +907,19 @@ void SaturationAlgorithm::handleEmptyClause(Clause* cl)
       throw MainLoop::MainLoopFinishedException(Statistics::REFUTATION_NOT_FOUND);
     }
 
-    //TODO - warning, derivedFromInput currently inefficient
+    //TODO - warning, derivedFromInput potentially inefficient
     if(!cl->derivedFromInput()){
       ASSERTION_VIOLATION_REP("The proof does not contain any input clauses.");
       reportSpiderFail();
       // this is a poor way of handling this in release mode but it prevents unsound proofs
       throw MainLoop::MainLoopFinishedException(Statistics::REFUTATION_NOT_FOUND);
     }
+    
 
-    if(cl->inputType() == UnitInputType::AXIOM){
+    // Global Subsumption doesn't set the input type the way we want so we can't do this for now
+    // TODO think of a better fix
+    //if(cl->inputType() == UnitInputType::AXIOM){
+    if(UIHelper::haveConjecture() && !cl->derivedFromGoalCheck()){
       UIHelper::setConjectureInProof(false);
     }
 
@@ -1488,7 +1499,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
 
   res->setGeneratingInferenceEngine(gie);
 
-  res->setImmediateSimplificationEngine(createISE(prb, opt));
+  res->setImmediateSimplificationEngine(createISE(prb, opt, res->getOrdering()));
 
   // create forward simplification engine
   if (prb.hasEquality() && opt.innerRewriting()) {
@@ -1577,3 +1588,55 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
   return res;
 } // SaturationAlgorithm::createFromOptions
+
+/**
+ * Create local clause simplifier for problem @c prb according to options @c opt
+ */
+ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, const Options& opt, Ordering& ordering)
+{
+  CALL("MainLoop::createImmediateSE");
+
+  CompositeISE* res=new CompositeISE();
+
+  if(prb.hasEquality() && opt.equationalTautologyRemoval()) {
+    res->addFront(new EquationalTautologyRemoval());
+  }
+
+  switch(opt.condensation()) {
+  case Options::Condensation::ON:
+    res->addFront(new Condensation());
+    break;
+  case Options::Condensation::FAST:
+    res->addFront(new FastCondensation());
+    break;
+  case Options::Condensation::OFF:
+    break;
+  }
+
+  // Only add if there are distinct groups 
+  if(prb.hasEquality() && env.signature->hasDistinctGroups()) {
+    res->addFront(new DistinctEqualitySimplifier());
+  }
+  if(prb.hasEquality() && env.signature->hasTermAlgebras()) {
+    if (opt.termAlgebraInferences()) {
+      res->addFront(new DistinctnessISE());
+      res->addFront(new InjectivityISE());
+      res->addFront(new NegativeInjectivityISE());
+    }
+  }
+  if(prb.hasInterpretedOperations() || prb.hasInterpretedEquality()) {
+    if (env.options->gaussianVariableElimination()) {
+      res->addFront(new GaussianVariableElimination()); 
+    }
+    res->addFront(new InterpretedEvaluation(env.options->inequalityNormalization(), ordering));
+  }
+  if(prb.hasEquality()) {
+    res->addFront(new TrivialInequalitiesRemovalISE());
+  }
+  res->addFront(new TautologyDeletionISE());
+  res->addFront(new DuplicateLiteralRemovalISE());
+
+  return res;
+}
+
+

@@ -242,9 +242,10 @@ Term* TermTransformerTransformTransformed::transform(Term* term)
   static Stack<TermList*> toDo(8);
   static Stack<Term*> terms(8);
   static Stack<TermList> args(8);
-  ASS(toDo.isEmpty());
-  ASS(terms.isEmpty());
+  /* all stacks must be reset since the function might have been aborted by an exception */
   args.reset();
+  terms.reset();
+  toDo.reset(); 
 
   toDo.push(term->args());
 

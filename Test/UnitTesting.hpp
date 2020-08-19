@@ -146,20 +146,36 @@ private:
 public:
   static UnitTesting* instance();
 
-  bool runTest(const char* unitId, ostream& out);
-  void runAllTests(ostream& out);
+  /** Returns the test unit with the given id, if it exists or NULL otherwise. */
+  TestUnit* get(const char* unitId);
+
+  /** Runs all tests of all existing test units
+   *
+   * returns true iff all tests were successfull.
+   */
+  bool runAllTests(ostream& out);
   void printTestNames(ostream& out);
 
   void add(TestUnit* tu)
   { TestUnitList::push(tu, _units); }
+
+  /** Runs all tests of the given test unit. 
+   *
+   * returns true iff all tests of the unit were successfull.
+   */
+  bool runUnit(TestUnit* unit, ostream& out);
+
 private:
   UnitTesting();
   ~UnitTesting();
 
-  TestUnit* get(const char* name);
 
-  void runTest(TestUnit* unit, ostream& out);
-  void spawnTest(TestProc proc);
+  /** Runs a test as a single process and awaits its termination.
+   * This is to provide isolation when running multiple tests in one go.
+   *
+   *  returns true iff the test process exited with status code 0
+   */
+  bool spawnTest(TestProc proc);
 
   TestUnitList* _units;
 };
@@ -172,15 +188,20 @@ private:
 #define UT_AUX_NAME_STR_(ID) UT_AUX_NAME_STR__(ID)
 #define UT_AUX_NAME_STR UT_AUX_NAME_STR_(UNIT_ID)
 
-#define UT_AUX_ADDER_NAME__(ID,LINE) _ut_aux_adder_##ID##_##LINE##_
-#define UT_AUX_ADDER_NAME_(ID,LINE) UT_AUX_ADDER_NAME__(ID,LINE)
-#define UT_AUX_ADDER_NAME UT_AUX_ADDER_NAME_(UNIT_ID, __LINE__)
+#define UT_AUX_ADDER_NAME__(ID,LINE,NAME) _ut_aux_adder_##ID##_##LINE##_##NAME##_
+#define UT_AUX_ADDER_NAME_(ID,LINE,NAME) UT_AUX_ADDER_NAME__(ID,LINE,NAME)
+#define UT_AUX_ADDER_NAME(NAME) UT_AUX_ADDER_NAME_(UNIT_ID, __LINE__,NAME)
 
 
 #define UT_CREATE Test::TestUnit UT_AUX_NAME(UT_AUX_NAME_STR)
 
+// #define TEST_FUN_MULTI_PER_LINE(name, id_in_line)   \
+//   void name(); \
+//   Test::TU_Aux_Test_Adder _ut_aux_adder_##ID##_##LINE##_##id_in_line(UT_AUX_NAME,name,#name); \
+//   void name()
+
 #define TEST_FUN(name)  void name(); \
-			Test::TU_Aux_Test_Adder UT_AUX_ADDER_NAME(UT_AUX_NAME,name,#name); \
+			Test::TU_Aux_Test_Adder UT_AUX_ADDER_NAME(name)(UT_AUX_NAME,name,#name); \
 			void name()
 
 }

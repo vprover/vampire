@@ -55,6 +55,9 @@ public:
   virtual TermList applyToResult(TermList t) { NOT_IMPLEMENTED; }
   virtual Literal* applyToResult(Literal* l) { NOT_IMPLEMENTED; }
 
+  virtual TermList applyTo(TermList t, unsigned index) { ASSERTION_VIOLATION; }
+  virtual Literal* applyTo(Literal* l, unsigned index) { NOT_IMPLEMENTED; }
+
   /** if implementation cannot easily give result for this, zero is returned */
   virtual size_t getQueryApplicationWeight(TermList t) { return 0; }
   /** if implementation cannot easily give result for this, zero is returned */
@@ -161,6 +164,8 @@ public:
   Literal* applyToQuery(Literal* l) { return l; }
   TermList applyToResult(TermList t) { return t; }
   Literal* applyToResult(Literal* l) { return l; }
+  TermList applyTo(TermList t, unsigned index) { return t; }
+  Literal* applyTo(Literal* l,unsigned index) { return l; }
   bool isIdentityOnQueryWhenResultBound() {return true;}
 #if VDEBUG
   virtual vstring toString(){ return "identity"; }
@@ -178,6 +183,8 @@ public:
   Literal* applyToQuery(Literal* l);
   TermList applyToResult(TermList t);
   Literal* applyToResult(Literal* l);
+  TermList applyTo(TermList t, unsigned index) { NOT_IMPLEMENTED; }
+  Literal* applyTo(Literal* l,unsigned index) { NOT_IMPLEMENTED; }
 
   /**
    * we can return true because nothing is bound to the result

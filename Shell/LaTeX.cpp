@@ -41,6 +41,7 @@
 #include "Lib/Int.hpp"
 #include "Lib/List.hpp"
 #include "Lib/Set.hpp"
+#include "Lib/SharedSet.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/Formula.hpp"
@@ -50,6 +51,10 @@
 #include "Kernel/Term.hpp"
 #include "Kernel/Unit.hpp"
 #include "Kernel/Theory.hpp"
+
+#include "Saturation/Splitter.hpp"
+
+
 
 // #define KIF_EXPERIMENTS 0
 
@@ -193,6 +198,15 @@ vstring LaTeX::toString(Unit* u)
   }
 }
 
+vstring replaceNeg(vstring s)
+{
+    size_t start_pos = s.find("~",0);
+    if(start_pos != std::string::npos){
+      s.replace(start_pos,1,vstring(" \\neg "));
+    }
+    return s;
+}
+
 
 /**
  * Convert the formula to LaTeX
@@ -208,7 +222,7 @@ vstring LaTeX::toString (Formula* f) const
 
   static vstring names [] =
   { "", " \\Vand ", " \\Vor ", " \\Vimp ", " \\Viff ", " \\Vxor ",
-	  "\\neg ", "\\forall ", "\\exists ", "\bot", "\top"};
+	  "\\neg ", "\\forall ", "\\exists ", "\bot", "\top", "", ""};
 
   Connective c = f->connective();
   vstring con = names[(int)c];
@@ -258,10 +272,13 @@ vstring LaTeX::toString (Formula* f) const
   case FALSE:
   case TRUE:
     return con;
+  
+  case NAME:
+    return replaceNeg(static_cast<const NamedFormula*>(f)->name());
 
 #if VDEBUG
   default:
-    ASSERTION_VIOLATION;
+    ASSERTION_VIOLATION_REP(c);
 #endif
   }
 } // LaTeX::toString (const Formula&)
@@ -295,7 +312,16 @@ vstring LaTeX::toString (Clause* c)
   vstring result;
 
   if (c->isEmpty()) {
-    result = "\\VEmptyClause";
+    if(c->splits() && !c->splits()->isEmpty()){
+      SplitSet::Iterator sit(*c->splits());
+      result = "\\mathit{false}";
+      while(sit.hasNext()){
+        result += vstring(" \\Vor ") + replaceNeg(Saturation::Splitter::getFormulaStringFromName(sit.next(),true /*negated*/));
+      }
+    }
+    else{
+      result = "\\VEmptyClause";
+    }
   }
   else {
     result = toString((*c)[0]);
@@ -303,6 +329,12 @@ vstring LaTeX::toString (Clause* c)
     unsigned clen=c->length();
     for(unsigned i=1;i<clen;i++) {
       result += vstring(" \\Vor ") + toString((*c)[i]);
+    }
+    if(c->splits() && !c->splits()->isEmpty()){
+      SplitSet::Iterator sit(*c->splits());
+      while(sit.hasNext()){
+        result += vstring(" \\Vor ") + replaceNeg(Saturation::Splitter::getFormulaStringFromName(sit.next(),true /*negated*/));
+      }
     }
   }
 
@@ -389,7 +421,8 @@ vstring LaTeX::symbolToString (unsigned num, bool pred) const
 #define LENGTH 8004
   char newName[LENGTH]; // LaTeX name of this symbol
   char* name = newName;
-  const char* nm = symbolName.substr(0,8000).c_str();
+  auto substr = symbolName.substr(0,8000);
+  const char* nm = substr.c_str();
   // finding end of the name
   const char* end = nm;
   while (*end) {

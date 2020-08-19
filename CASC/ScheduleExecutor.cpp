@@ -50,7 +50,7 @@ private:
   vstring _code;
 };
 
-bool ScheduleExecutor::run(const Schedule &schedule, int terminationTime)
+bool ScheduleExecutor::run(const Schedule &schedule)
 {
   CALL("ScheduleExecutor::run");
 
@@ -69,7 +69,8 @@ bool ScheduleExecutor::run(const Schedule &schedule, int terminationTime)
   Pool *pool = Pool::empty();
 
   bool success = false;
-  while(Timer::syncClock(), DECI(env.timer->elapsedMilliseconds()) < terminationTime)
+  int remainingTime;
+  while(Timer::syncClock(), remainingTime = DECI(env.remainingTime()), remainingTime > 0)
   {
     unsigned poolSize = pool ? Pool::length(pool) : 0;
 
@@ -80,7 +81,8 @@ bool ScheduleExecutor::run(const Schedule &schedule, int terminationTime)
       pid_t process;
       if(!item.started())
       {
-        process = spawn(item.code(), terminationTime);
+        // DBG("spawning schedule ", item.code())
+        process = spawn(item.code(), remainingTime);
       }
       else
       {
@@ -161,7 +163,7 @@ unsigned ScheduleExecutor::getNumWorkers()
   return workers;
 }
 
-pid_t ScheduleExecutor::spawn(vstring code, int terminationTime)
+pid_t ScheduleExecutor::spawn(vstring code, int remainingTime)
 {
   CALL("ScheduleExecutor::spawn");
 
@@ -176,7 +178,7 @@ pid_t ScheduleExecutor::spawn(vstring code, int terminationTime)
   // child
   else
   {
-    _executor->runSlice(code, terminationTime);
+    _executor->runSlice(code, remainingTime);
     ASSERTION_VIOLATION; // should not return
   }
 }

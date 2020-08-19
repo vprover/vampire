@@ -118,4 +118,10 @@ Ordering::Result KBOForEPR::compare(TermList tl1, TermList tl2) const
   return compareFunctionPrecedences(tl1.term()->functor(), tl2.term()->functor());
 }
 
+
+void KBOForEPR::showConcrete(ostream& out) const 
+{ 
+  out << "% < specific output for KBOForEPR not (yet) implemented >" << endl;
+}
+
 }

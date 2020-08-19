@@ -58,6 +58,8 @@ Z3Interfacing::Z3Interfacing(const Shell::Options& opts,SAT2FO& s2f, bool unsatC
   CALL("Z3Interfacing::Z3Interfacing");
   _solver.reset();
 
+  z3::set_param("rewriter.expand_store_eq", "true");
+
     z3::params p(_context);
   if (_unsatCoreForAssumptions) {
     p.set(":unsat-core", true);
@@ -89,18 +91,25 @@ void Z3Interfacing::addClause(SATClause* cl,bool withGuard)
 
   z3::expr z3clause = _context.bool_val(false);
 
+  PRINT_CPP("exprs.push_back(c.bool_val(false)); // starting a clause")
+
   unsigned clen=cl->length();
   for(unsigned i=0;i<clen;i++){
     SATLiteral l = (*cl)[i];
     z3::expr e = getRepresentation(l,withGuard);
     z3clause = z3clause || e;
+
+    PRINT_CPP("{ expr e = exprs.back(); exprs.pop_back(); expr cl = exprs.back(); exprs.pop_back(); exprs.push_back(cl || e); } // append a literal");
   }
+
+  PRINT_CPP("{ expr cl = exprs.back(); exprs.pop_back(); cout << \"clause: \" << cl << endl; solver.add(cl); }")
   
   if(_showZ3){
     env.beginOutput();
     env.out() << "[Z3] add (clause): " << z3clause << std::endl;
     env.endOutput();
   }
+
   _solver.add(z3clause);
 }
 
@@ -118,7 +127,11 @@ SATSolver::Status Z3Interfacing::solve(unsigned conflictCountLimit)
 
   z3::check_result result = _assumptions.empty() ? _solver.check() : _solver.check(_assumptions);
 
-  //cout << "solve result: " << result << endl;
+  if(_showZ3){
+    env.beginOutput();
+    env.out() << "[Z3] solve result: " << result << std::endl;
+    env.endOutput();
+  }
 
   switch(result){
     case z3::check_result::unsat:
@@ -127,11 +140,13 @@ SATSolver::Status Z3Interfacing::solve(unsigned conflictCountLimit)
     case z3::check_result::sat:
       _status = SATISFIABLE;
       _model = _solver.get_model();
-      //cout << "model : " << endl;
-      //for(unsigned i=0; i < _model.size(); i++){
-      //  z3::func_decl v = _model[i];
-      //  cout << v.name() << " = " << _model.get_const_interp(v) << endl;
-      //}
+      /*
+      cout << "model : " << endl;
+      for(unsigned i=0; i < _model.size(); i++){
+        z3::func_decl v = _model[i];
+        cout << v.name() << " = " << _model.get_const_interp(v) << endl;
+      }
+      */
       break;
     case z3::check_result::unknown:
       _status = UNKNOWN;
@@ -204,12 +219,11 @@ SATSolver::VarAssignment Z3Interfacing::getAssignment(unsigned var)
 
   ASS_EQ(_status,SATISFIABLE);
   bool named = _namedExpressions.find(var);
-  //cout << "named:" << named << endl;
+  // cout << "named:" << named << endl;
   z3::expr rep = named ? getNameExpr(var) : getRepresentation(SATLiteral(var,1),false);
-  //cout << "rep is " << rep << " named was " << named << endl;
+  // cout << "rep is " << rep << " named was " << named << endl;
   z3::expr assignment = _model.eval(rep,true /*model_completion*/);
-  //cout << "ass is " << assignment << endl;
-
+  // cout << "ass is " << assignment << endl;
 
   if(assignment.bool_value()==Z3_L_TRUE){
   //cout << "returning true for " << var << endl;
@@ -310,9 +324,18 @@ z3::sort Z3Interfacing::getz3sort(unsigned s)
   CALL("Z3Interfacing::getz3sort");
   BYPASSING_ALLOCATOR;
   // Deal with known sorts differently
-  if(s==Sorts::SRT_BOOL) return _context.bool_sort();
-  if(s==Sorts::SRT_INTEGER) return _context.int_sort();
-  if(s==Sorts::SRT_REAL) return _context.real_sort(); 
+  if(s==Sorts::SRT_BOOL) {
+    PRINT_CPP("sorts.push_back(c.bool_sort());")
+    return _context.bool_sort();
+  }
+  if(s==Sorts::SRT_INTEGER) {
+    PRINT_CPP("sorts.push_back(c.int_sort());")
+    return _context.int_sort();
+  }
+  if(s==Sorts::SRT_REAL) {
+    PRINT_CPP("sorts.push_back(c.real_sort());")
+    return _context.real_sort();
+  }
   if(s==Sorts::SRT_RATIONAL) return _context.real_sort(); // Drop notion of rationality 
 
   // Deal with arrays
@@ -321,8 +344,12 @@ z3::sort Z3Interfacing::getz3sort(unsigned s)
     z3::sort index_sort = getz3sort(env.sorts->getArraySort(s)->getIndexSort());
     z3::sort value_sort = getz3sort(env.sorts->getArraySort(s)->getInnerSort());
  
+    PRINT_CPP("{ sort s2 = sorts.back(); sorts.pop_back(); sort s1 = sorts.back(); sorts.pop_back(); sorts.push_back(c.array_sort(s1,s2)); }")
+
     return _context.array_sort(index_sort,value_sort);
   } 
+
+  PRINT_CPP("sorts.push_back(c.uninterpreted_sort(\"" << Lib::Int::toString(s).c_str() << "\"));")
 
   // Use new interface for uninterpreted sorts, I think this is not less efficient
   return _context.uninterpreted_sort(Lib::Int::toString(s).c_str());
@@ -379,6 +406,9 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
     if(trm->arity()==0){
       if(symb->integerConstant()){
         IntegerConstantType value = symb->integerValue();
+
+        PRINT_CPP("exprs.push_back(c.int_val(" << value.toInner() << "));")
+
         return _context.int_val(value.toInner());
       }
       if(symb->realConstant()){
@@ -390,9 +420,15 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
         return _context.real_val(value.numerator().toInner(),value.denominator().toInner());
       }
       if(!isLit && env.signature->isFoolConstantSymbol(true,trm->functor())){
+
+        PRINT_CPP("exprs.push_back(c.bool_val(true));")
+
         return _context.bool_val(true);
       }
       if(!isLit && env.signature->isFoolConstantSymbol(false,trm->functor())){
+
+        PRINT_CPP("exprs.push_back(c.bool_val(false));")
+
         return _context.bool_val(false);
       }
       if (symb->overflownConstant()) {
@@ -400,6 +436,7 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
 
         switch (symb->fnType()->result()) {
         case Sorts::SRT_INTEGER:
+          PRINT_CPP("exprs.push_back(c.int_val(\"" << symb->name() << "\"));")
           return _context.int_val(symb->name().c_str());
         case Sorts::SRT_RATIONAL:
           return _context.real_val(symb->name().c_str());
@@ -432,6 +469,8 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
 
    //Check for equality
     if(is_equality){
+      PRINT_CPP("{ expr e2 = exprs.back(); exprs.pop_back(); expr e1 = exprs.back(); exprs.pop_back(); exprs.push_back((e1 == e2)); } ")
+
       ret = args[0] == args[1]; 
       args.pop_back();args.pop_back();
       return ret;
@@ -451,11 +490,17 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
           case Theory::ARRAY_SELECT:
           case Theory::ARRAY_BOOL_SELECT:
             // select(array,index)
+
+            PRINT_CPP("{ expr e_idx = exprs.back(); exprs.pop_back(); expr e_arr = exprs.back(); exprs.pop_back(); exprs.push_back(select(e_arr,e_idx)); }")
+
             ret = select(args[0],args[1]);
             break;
 
           case Theory::ARRAY_STORE:
             // store(array,index,value)
+
+            PRINT_CPP("{ expr e_val = exprs.back(); exprs.pop_back(); expr e_idx = exprs.back(); exprs.pop_back(); expr e_arr = exprs.back(); exprs.pop_back(); exprs.push_back(store(e_arr,e_idx,e_val)); }")
+
             ret = store(args[0],args[1],args[2]);
             break;
 
@@ -478,12 +523,15 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
         case Theory::INT_UNARY_MINUS:
         case Theory::RAT_UNARY_MINUS:
         case Theory::REAL_UNARY_MINUS:
+          PRINT_CPP("exprs.back() = -exprs.back();")
           ret = -args[0];
           break;
 
         case Theory::INT_PLUS:
         case Theory::RAT_PLUS:
         case Theory::REAL_PLUS:
+          PRINT_CPP("{ expr e2 = exprs.back(); exprs.pop_back(); expr e1 = exprs.back(); exprs.pop_back(); exprs.push_back((e1 + e2)); } ")
+
           ret = args[0] + args[1];
           break;
 
@@ -491,12 +539,16 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
         case Theory::INT_MINUS:
         case Theory::RAT_MINUS:
         case Theory::REAL_MINUS:
+          PRINT_CPP("{ expr e2 = exprs.back(); exprs.pop_back(); expr e1 = exprs.back(); exprs.pop_back(); exprs.push_back((e1 - e2)); } ")
+
           ret = args[0] - args[1];
           break;
 
         case Theory::INT_MULTIPLY:
         case Theory::RAT_MULTIPLY:
         case Theory::REAL_MULTIPLY:
+          PRINT_CPP("{ expr e2 = exprs.back(); exprs.pop_back(); expr e1 = exprs.back(); exprs.pop_back(); exprs.push_back((e1 * e2)); } ")
+
           ret = args[0] * args[1];
           break;
 
@@ -641,24 +693,31 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
        case Theory::INT_LESS:
        case Theory::RAT_LESS:
        case Theory::REAL_LESS:
+          PRINT_CPP("{ expr e2 = exprs.back(); exprs.pop_back(); expr e1 = exprs.back(); exprs.pop_back(); exprs.push_back((e1 < e2)); } ")
           ret = args[0] < args[1];
           break;
 
        case Theory::INT_GREATER:
        case Theory::RAT_GREATER:
        case Theory::REAL_GREATER:
+          PRINT_CPP("{ expr e2 = exprs.back(); exprs.pop_back(); expr e1 = exprs.back(); exprs.pop_back(); exprs.push_back((e1 > e2)); } ")
+
           ret= args[0] > args[1];
           break;
           
        case Theory::INT_LESS_EQUAL:
        case Theory::RAT_LESS_EQUAL:
        case Theory::REAL_LESS_EQUAL:
+         PRINT_CPP("{ expr e2 = exprs.back(); exprs.pop_back(); expr e1 = exprs.back(); exprs.pop_back(); exprs.push_back((e1 <= e2)); } ")
+
           ret= args[0] <= args[1];
           break;
 
        case Theory::INT_GREATER_EQUAL:
        case Theory::RAT_GREATER_EQUAL:
        case Theory::REAL_GREATER_EQUAL:
+         PRINT_CPP("{ expr e2 = exprs.back(); exprs.pop_back(); expr e1 = exprs.back(); exprs.pop_back(); exprs.push_back((e1 >= e2)); } ")
+
           ret= args[0] >= args[1];
           break;
 
@@ -678,16 +737,32 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
 
     }
     //TODO check domain_sorts for args in equality and interpretted?
+    PRINT_CPP("{")
+    PRINT_CPP("vector<expr> rev_args;")
+    PRINT_CPP("sort_vector domain_sorts = sort_vector(c);")
+
     z3::sort_vector domain_sorts = z3::sort_vector(_context);
     for(unsigned i=0;i<type->arity();i++){
       domain_sorts.push_back(getz3sort(type->arg(i)));
+      PRINT_CPP("rev_args.push_back(exprs.back()); exprs.pop_back();")
+      PRINT_CPP("{ sort s = sorts.back(); sorts.pop_back(); domain_sorts.push_back(s); }")
     }
+    PRINT_CPP("expr_vector args = expr_vector(c);")
+    PRINT_CPP("while (rev_args.size() > 0) { args.push_back(rev_args.back()); rev_args.pop_back(); }")
+
     z3::symbol name = _context.str_symbol(symb->name().c_str());
+    PRINT_CPP("symbol name = c.str_symbol(\""<< symb->name() << "\");")
     z3::func_decl f = _context.function(name,domain_sorts,getz3sort(range_sort));
+
+    PRINT_CPP("sort range_sort = sorts.back(); sorts.pop_back(); func_decl f = c.function(name,domain_sorts,range_sort);")
 
     // Finally create expr
     z3::expr e = f(args); 
     //cout << "created " << e << endl;
+
+    PRINT_CPP("exprs.push_back(f(args));")
+    PRINT_CPP("}")
+
     return e;
 }
 
@@ -707,11 +782,12 @@ z3::expr Z3Interfacing::getRepresentation(SATLiteral slit,bool withGuard)
       // TODO everything is being named!!
       bool nameExpression = true;
       z3::expr e = getz3expr(lit,true,nameExpression,withGuard);
-      //cout << "got rep " << e << endl;
+      // cout << "got rep " << e << endl;
 
       if(nameExpression && _namedExpressions.insert(slit.var())) {
         z3::expr bname = getNameExpr(slit.var()); 
-        //cout << "Naming " << e << " as " << bname << endl;
+        // cout << "Naming " << e << " as " << bname << endl;
+        PRINT_CPP("{ expr nm = exprs.back(); exprs.pop_back(); expr e = exprs.back(); exprs.pop_back(); expr naming = (nm == e); cout << \"naming: \" << naming << endl; solver.add(naming); }")
         z3::expr naming = (bname == e);
         _solver.add(naming);
   if(_showZ3){
@@ -721,7 +797,11 @@ z3::expr Z3Interfacing::getRepresentation(SATLiteral slit,bool withGuard)
   }
       }
 
-      if(slit.isNegative()){ e = !e;}
+      if(slit.isNegative()){
+        PRINT_CPP("exprs.back() = !exprs.back();")
+        e = !e;
+      }
+
       return e;
     }catch(z3::exception& exception){
      reportSpiderFail();
@@ -731,7 +811,11 @@ z3::expr Z3Interfacing::getRepresentation(SATLiteral slit,bool withGuard)
   }
   //if non ground then just create a propositional variable
   z3::expr e = getNameExpr(slit.var()); 
-  if(slit.isNegative()) return !e;
+
+  if(slit.isNegative()) {
+    PRINT_CPP("exprs.back() = !exprs.back();")
+    return !e;
+  }
   else return e;
 }
 

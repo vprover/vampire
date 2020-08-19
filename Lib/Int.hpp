@@ -145,6 +145,17 @@ class Int
     return true;
   }
 
+  static unsigned safeAbs(const int num)
+  {
+    CALL("Int::safeAbs");
+
+    if(num == numeric_limits<int>::min()) { // = -2147483648
+      return (unsigned)num; // = 2147483648
+    }
+    // abs works for all other values
+    return abs(num);
+  }
+
   /**
    * If arg1+arg2 does not overflow, return true and save the sum to res.
    * Otherwise, return false.
@@ -198,10 +209,8 @@ class Int
   {
     CALL("Int::safeMultiply");
 
-    INT mres = arg1*arg2;
-
     if (arg1 == 0 || arg1 == 1 || arg2 == 0 || arg2 == 1) {
-      res=mres;
+      res=arg1*arg2;
       return true;
     }
 
@@ -218,6 +227,8 @@ class Int
       return false;
     }
 
+    INT mres = arg1*arg2;
+
     // this is perhaps obsolete and could be removed
     if ((mres == numeric_limits<INT>::min() && arg1 == -1) || // before, there was a SIGFPE for "-2147483648 / -1" TODO: are there other evil cases?
         (sgn(arg1)*sgn(arg2) != sgn(mres)) || // 1073741824 * 2 = -2147483648 is evil, and passes the test below
@@ -228,7 +239,7 @@ class Int
     return true;
   }
 
-  static bool safeDivide(int arg1, int arg2, int& res)
+  inline static bool safeDivide(int arg1, int arg2, int& res)
   {
     CALL("Int::safeDivide");
     if (arg2 == 0) return false;
@@ -236,10 +247,9 @@ class Int
     // check for 2 complement representation
     if (numeric_limits<int>::min() != -numeric_limits<int>::max())  {
       if (arg1 == numeric_limits<int>::min() && arg2 == -1)  {
-        res = 1;
-        return true;
+        return false;
       }
-    } 
+    }
     res = arg1 / arg2;
     return true;
   }

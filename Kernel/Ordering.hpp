@@ -75,6 +75,8 @@ public:
    * @b t1 and @b t2 */
   virtual Result compare(TermList t1,TermList t2) const = 0;
 
+  virtual void show(ostream& out) const = 0;
+
   static bool isGorGEorE(Result r) { return (r == GREATER || r == GREATER_EQ || r == EQUAL); }
 
   virtual Comparison compareFunctors(unsigned fun1, unsigned fun2) const = 0;
@@ -82,6 +84,7 @@ public:
   void removeNonMaximal(LiteralList*& lits) const;
 
   static Result fromComparison(Comparison c);
+  static Comparison intoComparison(Result c);
 
   static Result reverse(Result r)
   {
@@ -162,14 +165,21 @@ class PrecedenceOrdering
 : public Ordering
 {
 public:
-  Result compare(Literal* l1,Literal* l2) const override;
+  Result compare(Literal* l1, Literal* l2) const override;
   Comparison compareFunctors(unsigned fun1, unsigned fun2) const override;
+  void show(ostream&) const override;
+  virtual void showConcrete(ostream&) const = 0;
 
 protected:
   // l1 and l2 are not equalities and have the same predicate
   virtual Result comparePredicates(Literal* l1,Literal* l2) const = 0;
   
+  PrecedenceOrdering(DArray<int> funcPrec, DArray<int> predPrec, DArray<int> predLevels, bool reverseLCM);
   PrecedenceOrdering(Problem& prb, const Options& opt);
+
+  static DArray<int> funcPrecFromOpts(Problem& prb, const Options& opt);
+  static DArray<int> predPrecFromOpts(Problem& prb, const Options& opt);
+  static DArray<int> predLevelsFromOpts(Problem& prb, const Options& opt);
 
   Result compareFunctionPrecedences(unsigned fun1, unsigned fun2) const;
 

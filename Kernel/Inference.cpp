@@ -875,9 +875,24 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "induction hypothesis";
   case InferenceRule::GEN_INDUCTION_AXIOM:
     return "generalized induction hypothesis";
-  default:
-    ASSERTION_VIOLATION;
-    return "!UNKNOWN INFERENCE RULE!";
+  case InferenceRule::GAUSSIAN_VARIABLE_ELIMINIATION:
+    return "gaussian variable elimination";
+
+    /* this cases are no actual inference rules but only markeres to separatea groups of rules */
+  case InferenceRule::GENERIC_FORMULA_TRANSFORMATION: 
+  case InferenceRule::INTERNAL_FORMULA_TRANSFORMATION_LAST: 
+  case InferenceRule::GENERIC_SIMPLIFYING_INFERNCE:
+  case InferenceRule::INTERNAL_SIMPLIFYING_INFERNCE_LAST: 
+  case InferenceRule::GENERIC_GENERATING_INFERNCE:
+  case InferenceRule::INTERNAL_GENERATING_INFERNCE_LAST:
+  case InferenceRule::TERM_ALGEBRA_DIRECT_SUBTERMS_AXIOM:
+  case InferenceRule::TERM_ALGEBRA_SUBTERMS_TRANSITIVE_AXIOM:
+  case InferenceRule::INTERNAL_THEORY_AXIOM_LAST:
+    { /* explicitly ignoring this cases */ }
   }
+  
+  ASSERTION_VIOLATION;
+  /* moved outside of the case statement to get a compiler warning */
+  return "!UNKNOWN INFERENCE RULE!";
 } // Inference::name()
 

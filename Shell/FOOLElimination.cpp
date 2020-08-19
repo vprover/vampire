@@ -745,7 +745,9 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
   }
 
 #if VDEBUG
+
   // free variables of the input and the result should coincide
+  /*
   Formula::VarList* resultFreeVars;
   if (context == TERM_CONTEXT) {
     resultFreeVars = termResult.isVar() ? new List<int>(termResult.var()) : termResult.term()->freeVariables();
@@ -763,6 +765,12 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
     unsigned var = (unsigned)pfv.next();
     ASS_REP(Formula::VarList::member(var, freeVars), var);
   }
+  */
+  /* this seems to strict for, e.g.
+  [PP] FOOL in:  $let(sLF0: $int, sLF0 := X1, $ite((X0 = $true), $true,$false))
+  [PP] FOOL out: iG4(X0)
+  where, since sLF0 does not occur in the body, X1 simply disappears
+  */
 
   // special subterms should be eliminated
   if (context == TERM_CONTEXT) {
