@@ -67,10 +67,12 @@ KBO kbo(unsigned introducedSymbolWeight,
           ._numRat  = variableWeight,
           ._numReal = variableWeight,
         }, funcs, env.signature->functions()), 
+#if __KBO__CUSTOM_PREDICATE_WEIGHTS__
              toWeightMap<PredSigTraits>(introducedSymbolWeight,
                KboSpecialWeights<PredSigTraits>::dflt(), 
                preds,
                env.signature->predicates()), 
+#endif
              funcPrec(), 
              predPrec(), 
              predLevels(),
