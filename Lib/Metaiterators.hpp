@@ -30,6 +30,7 @@
 
 #include "Forwards.hpp"
 
+#include "Lib/Recycler.hpp"
 #include "List.hpp"
 #include "DHSet.hpp"
 #include "Recycler.hpp"
@@ -82,8 +83,14 @@ InfiniteArrayIterator<El> getInfiniteArrayIterator(const El* ptr)
   return InfiniteArrayIterator<El>(ptr);
 }
 
-/**
- * Iterator class for types whose elements are accessible by
+template<class A> struct const_ref { using type = A const&; };
+template<class A> struct mut_ref   { using type = A &; };
+template<class A> struct no_ref    { using type = A; };
+template<class A> using  const_ref_t = typename const_ref<A>::type; 
+template<class A> using  mut_ref_t   = typename mut_ref<A>::type; 
+template<class A> using  no_ref_t    = typename no_ref<A>::type; 
+
+/** Iterator class for types whose elements are accessible by
  * @b operator[](size_t) with the first element at the index 0
  * and the others at consecutive indexes
  *
@@ -93,17 +100,17 @@ InfiniteArrayIterator<El> getInfiniteArrayIterator(const El* ptr)
  * of the container (so that the elements are at indexes 0, ...,
  * size-1).
  */
-template<class Arr>
+template<class Arr, template<class> class ref_t = no_ref_t>
 class ArrayishObjectIterator
 {
 public:
-  DECL_ELEMENT_TYPE(ELEMENT_TYPE(Arr));
+  DECL_ELEMENT_TYPE(ref_t<ELEMENT_TYPE(Arr)>);
   ArrayishObjectIterator(Arr& arr) : _arr(arr),
   _index(0), _size(_arr.size()) {}
   ArrayishObjectIterator(Arr& arr, size_t size) : _arr(arr),
   _index(0), _size(size) {}
   inline bool hasNext() { return _index<_size; }
-  inline ELEMENT_TYPE(Arr) next() { ASS(_index<_size); return _arr[_index++]; }
+  inline ELEMENT_TYPE(ArrayishObjectIterator) next() { ASS(_index<_size); return _arr[_index++]; }
   inline bool knowsSize() { return true;}
   inline bool size() { return _size;}
 private:
@@ -112,11 +119,12 @@ private:
   size_t _size;
 };
 
-template<class Arr>
-ArrayishObjectIterator<Arr> getArrayishObjectIterator(Arr& arr, size_t size)
+
+template<template<class> class ref_t = no_ref_t, class Arr>
+ArrayishObjectIterator<Arr, ref_t> getArrayishObjectIterator(Arr& arr, size_t size)
 {
   CALL("getArrayishObjectIterator");
-  return ArrayishObjectIterator<Arr>(arr, size);
+  return ArrayishObjectIterator<Arr, ref_t>(arr, size);
 }
 
 template<class Arr>
@@ -1591,6 +1599,11 @@ public:
     }
   }
 
+  template<class F>
+  IterTraits<MappingIterator<Iter, F>> map(F f)
+  { return iterTraits(getMappingIterator<Iter, F>(_iter, f)); }
+
+
   template<class Container>
   Container collect() 
   {
@@ -1606,7 +1619,7 @@ public:
 template<class Iter>
 IterTraits<Iter> iterTraits(Iter i) 
 {
-  return IterTraits(i);
+  return IterTraits<Iter>(i);
 }
 
 ///@}
