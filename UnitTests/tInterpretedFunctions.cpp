@@ -506,35 +506,35 @@ ALL_NUMBERS_TEST(polynomial__push_unary_minus,
       p((-7 * a))
       )
 
-ALL_NUMBERS_TEST(polynomial__sorting_1,
-      p(((7 * x) * a)),
-      p((7 * (a * x)))
-      )
-
-ALL_NUMBERS_TEST(polynomial__sorting_2,
-      p(((7 * (y * x)) * a)),
-      p((7 * (a * (x * y))))
-      )
-
-ALL_NUMBERS_TEST(polynomial__sorting_3,
-      p(((x + (x + y)) * (x + (a + x)))),
-      p(((a * y) + ((2 * (a * x)) + ((2 * (x * y)) + (4 * (x * x))))))
-      )
-
-ALL_NUMBERS_TEST(polynomial__sorting_4,
-      p((x + 1) * (x + -1)),
-      p((-1 + (x * x)))
-      )
-
-ALL_NUMBERS_TEST(polynomial__sorting_5,
-      p(((b + a) + c)),
-      p((a + (b + c)))
-      )
-
-ALL_NUMBERS_TEST(polynomial__sorting_6,
-      p((b * a) * c),
-      p(a * (b * c))
-      )
+// ALL_NUMBERS_TEST(polynomial__sorting_1,
+//       p(((7 * x) * a)),
+//       p((7 * (a * x)))
+//       )
+//
+// ALL_NUMBERS_TEST(polynomial__sorting_2,
+//       p(((7 * (y * x)) * a)),
+//       p((7 * (a * (x * y))))
+//       )
+//
+// ALL_NUMBERS_TEST(polynomial__sorting_3,
+//       p(((x + (x + y)) * (x + (a + x)))),
+//       p(((a * y) + ((2 * (a * x)) + ((2 * (x * y)) + (4 * (x * x))))))
+//       )
+//
+// ALL_NUMBERS_TEST(polynomial__sorting_4,
+//       p((x + 1) * (x + -1)),
+//       p((-1 + (x * x)))
+//       )
+//
+// ALL_NUMBERS_TEST(polynomial__sorting_5,
+//       p(((b + a) + c)),
+//       p((a + (b + c)))
+//       )
+//
+// ALL_NUMBERS_TEST(polynomial__sorting_6,
+//       p((b * a) * c),
+//       p(a * (b * c))
+//       )
 
 ALL_NUMBERS_TEST(eval_test_cached_1,
       p(((b * a) * c) * ((b * a) * c)),
@@ -654,4 +654,5 @@ ALL_NUMBERS_TEST(eval_cancellation_add_9,
 
 // TODO: cases x = k * x <-> k = 1 | x = 0 
 // TODO: cases x = k + x <-> k = 0 
-// TODO: cases x + x = k <->  = k/
+// TODO: cases x + x = k <-> x = k/2
+//       p((x + 1) * (x + -1)) ==> p((-1 + (x * x)))

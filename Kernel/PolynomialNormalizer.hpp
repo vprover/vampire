@@ -23,33 +23,27 @@
 #ifndef __POLYNOMIAL_NORMALIZER_HPP__
 #define __POLYNOMIAL_NORMALIZER_HPP__
 
-#define DEBUG(...)  // DBG(__VA_ARGS__)
+#define DEBUG(...)  DBG(__VA_ARGS__)
 
 namespace Kernel {
 
 namespace Memo {
 
   /** a mocked memoization that does not store any results */
-  template<class EvalFn>
+  template<class Arg, class Result>
   struct None 
   {
-    using Result = typename EvalFn::Result;
-    using Arg    = typename EvalFn::Arg;
-
-    Result* get(Arg _orig) 
-    { return nullptr; }
+    Optional<Result> get(Arg) 
+    { return Optional<Result>(); }
 
     template<class Init> Result getOrInit(Arg const& orig, Init init) 
     { return init(); }
   };
 
   /** a memoization realized as a hashmap */
-  template<class EvalFn>
+  template<class Arg, class Result>
   class Hashed 
   {
-    using Result = typename EvalFn::Result;
-    using Arg    = typename EvalFn::Arg;
-
     Map<Arg, Result> _memo;
 
   public:
@@ -58,8 +52,15 @@ namespace Memo {
     template<class Init> Result getOrInit(Arg const& orig, Init init) 
     { return _memo.getOrInit(Arg(orig), init); }
 
-    Result* get(const Arg& orig) 
-    { return _memo.getPtr(orig); }
+    Optional<Result> get(const Arg& orig) 
+    { 
+      auto out = _memo.getPtr(orig);
+      if (out) {
+        return Optional<Result>(*out);
+      } else {
+        return Optional<Result>();
+      }
+    }
   };
 
 } // namespace Memo
@@ -93,7 +94,7 @@ struct ChildIter
  * 
  * The term to be evaluated will be traversed using a ChildIter<Arg>. 
  */
-template<class EvalFn, class Memo = Memo::None<EvalFn>>
+template<class EvalFn, class Memo = Memo::None<typename EvalFn::Arg, typename EvalFn::Result>>
 typename EvalFn::Result evaluateBottomUp(typename EvalFn::Arg const& term, EvalFn evaluateStep, Memo& memo) 
 {
   CALL("evaluateBottomUp(...)")
@@ -101,20 +102,9 @@ typename EvalFn::Result evaluateBottomUp(typename EvalFn::Arg const& term, EvalF
   using Arg    = typename EvalFn::Arg;
 
   
-  /** only used in order to be able to create a fake default constructor for Result, that is required by
-   * std::vector::resize. The constructor will actually never be called.
-   */
-  struct ResultWrapper : Result
-  {
-    ResultWrapper(Result     && res) : Result(std::move(res)) {  }
-    ResultWrapper(Result      & res) : Result(          res ) {  }
-    ResultWrapper(Result const& res) : Result(          res ) {  }
-    ResultWrapper() : Result(assertionViolation<Result>()) {  }
-  };
-
   /* recursion state. Contains a stack of items that are being recursed on. */
   Stack<ChildIter<Arg>> recState;
-  Stack<ResultWrapper> recResults;
+  Stack<Result> recResults;
 
   recState.push(ChildIter<Arg>(term));
 
@@ -123,11 +113,11 @@ typename EvalFn::Result evaluateBottomUp(typename EvalFn::Arg const& term, EvalF
     if (recState.top().hasNext()) {
       Arg t = recState.top().next();
 
-      auto cached = memo.get(t);
-      if (cached == nullptr) {
-         recState.push(ChildIter<Arg>(t));
+      Optional<Result> cached = memo.get(t);
+      if (cached.isSome()) {
+        recResults.pushMv(std::move(cached).unwrap()); 
       } else {
-        recResults.pushMv(*cached); 
+        recState.push(ChildIter<Arg>(t));
       }
 
     } else { 
@@ -153,7 +143,7 @@ typename EvalFn::Result evaluateBottomUp(typename EvalFn::Arg const& term, EvalF
     
 
   ASS(recResults.size() == 1);
-  return recResults.pop();
+  return std::move(recResults.pop());
 }
 
 } // namespace Kernel
@@ -289,48 +279,292 @@ struct ChildIter<PolyNf>
   { return _self.template collapsePoly<PolyNf>(Polymorphic::self{}); }
 };
 
+template<class Number> class Sum;
+
+template<class Number>
+class Prod 
+{ 
+  friend class Sum<Number>;
+  Stack<PolyNf> _factors; 
+public:
+  template<class... Fs>
+  explicit Prod(Fs... factors) : _factors(Stack<PolyNf>{factors...}) { }
+  Prod(Prod&&) = default;
+  Prod& operator=(Prod&&) = default;
+
+  friend ostream& operator<<(ostream& out, Prod const& self) 
+  { return out << "Sum" << self._factors; }
+};
+
+
+using NormalizationResult = Coproduct<PolyNf 
+        , Sum< IntTraits>
+        , Sum< RatTraits>
+        , Sum<RealTraits>
+        >;
+
+PolyNf toPolyNf(NormalizationResult& r);
+
+template<class Number>
+class Sum 
+{ 
+  using Prod = Kernel::Prod<Number>;
+  Stack<Prod> _summands; 
+
+  explicit Sum(Prod&& m0, Prod&& m1) : _summands(Stack<Prod>(2)) 
+  {
+    _summands.pushMv(std::move(m0));
+    _summands.pushMv(std::move(m1));
+  }
+
+public:
+
+  explicit Sum(Prod&& m0) : _summands(Stack<Prod>(1)) 
+  { _summands.pushMv(std::move(m0)); }
+
+  Sum(Sum&&) = default;
+  Sum& operator=(Sum&&) = default;
+
+  static NormalizationResult mul(PolyNf& t, Sum& p)
+  {
+    if (p._summands.size() == 1) {
+      //  Poly(Mon(p0 * p1 * ... )) * t ==> Poly(Mon(t * p0 * ... ))
+      p._summands[0]._factors.pushMv(std::move(t));
+      return NormalizationResult(std::move(p));
+    } else {
+      ASS(p._summands.size() > 1);
+      //  Poly(p0 + p1 + ...) * t ==> Poly(Mon(t * Poly(p0 + p1 + ...)))
+      return NormalizationResult(Sum( Prod ( t, p.polyNf() ) ));
+    }
+  }
+
+  static NormalizationResult mul(Sum& lhs, Sum& rhs)
+  {
+    ASS_NEQ(lhs._summands.size(), 0)
+    ASS_NEQ(rhs._summands.size(), 0)
+
+    if (lhs._summands.size() == 1 && rhs._summands.size() == 1) {
+      //  Poly(Mon(l0 * l1 * ... )) * Poly(Mon(r0 * r1 * ...)) ==> Poly(Mon(l0 * ... * r0 * ...))
+      lhs._summands[0]._factors.moveFromIterator(rhs._summands[0]._factors.iterator());
+      return NormalizationResult(std::move(lhs));
+    } else if (lhs._summands.size() > 1 && rhs._summands.size() == 1) {
+      //               Poly(l0 + l1 + ...) * Poly(Mon(r0 * r1 * ...)) 
+      //  ==> Poly(Mon(Poly(l0 + l1 + ...) *          r0 * r1 * ...))
+      rhs._summands[0]._factors.push(lhs.polyNf());
+      return NormalizationResult(std::move(rhs));
+    } else if (lhs._summands.size() == 1 && rhs._summands.size() > 1) {
+      // symmetric to the last case
+      lhs._summands[0]._factors.push(rhs.polyNf());
+      return NormalizationResult(std::move(lhs));
+
+    } else if (lhs._summands.size() > 1 && rhs._summands.size() > 1) {
+      //               Poly(l0 + l1 + ...) * Poly(r0 + r1 + ...)
+      //  ==> Poly(Mon(Poly(l0 + l1 + ...) * Poly(r0 + r1 + ...))
+      return NormalizationResult(Sum( Prod(lhs.polyNf(), rhs.polyNf()) ));
+    }
+    ASSERTION_VIOLATION
+  }
+
+
+  static NormalizationResult mul(NormalizationResult& lhs, NormalizationResult& rhs)
+  {
+    if (lhs.isType<PolyNf>() && rhs.isType<PolyNf>()) {
+      return NormalizationResult(Sum ( 
+          Prod(
+              lhs.as<PolyNf>(), 
+              rhs.as<PolyNf>() 
+          )
+        ));
+    } else if (lhs.isType<PolyNf>() && rhs.isType<Sum>()) {
+      return mul(lhs.as<PolyNf>(), rhs.as<Sum>());
+    } 
+    ASS(lhs.isType<Sum>());
+    if (rhs.isType<PolyNf>()) {
+      return mul(rhs.as<PolyNf>(), lhs.as<Sum>());
+    }  else {
+      return mul(lhs.as<Sum>(), rhs.as<Sum>());
+    }
+  }
+
+  static NormalizationResult add(NormalizationResult& lhs, NormalizationResult& rhs)
+  {
+    if (lhs.isType<PolyNf>() && rhs.isType<PolyNf>()) {
+      return NormalizationResult(Sum(Prod(lhs.as<PolyNf>()), Prod(rhs.as<PolyNf>())));
+    } else if (lhs.isType<PolyNf>() || rhs.isType<PolyNf>()) {
+      Sum p = rhs.isType<PolyNf>() ? std::move(lhs).as<Sum>() : std::move(rhs).as<Sum>();
+      PolyNf  t = rhs.isType<PolyNf>() ? rhs.as< PolyNf>() : lhs.as< PolyNf>();
+      p._summands.pushMv(Prod(t));
+      return NormalizationResult(std::move(p));
+    } else {
+      ASS(lhs.isType<Sum>())
+      ASS(rhs.isType<Sum>())
+      auto out = std::move(lhs).as<Sum>();
+      out._summands.moveFromIterator(rhs.as<Sum>()._summands.iterator());
+      return NormalizationResult(std::move(out));
+    }
+  }
+
+  PolyNf polyNf()  const
+  {
+    using PolyPair  = Kernel::PolyPair<Number>;
+    using Polynom   = Kernel::Polynom  <Number>;
+    using MonomPair = Kernel::MonomPair<Number>;
+    using Monom     = Kernel::Monom    <Number>;
+    using Const     = typename Number::ConstantType;
+
+    auto begin = _summands.begin();
+    auto summands = Stack<PolyPair>::fromIterator(
+        iterTraits(getArrayishObjectIterator<mut_ref_t>(begin, _summands.size()))
+          .map([](Prod& p) {
+            std::sort(p._factors.begin(), p._factors.end()); // TODO make different orderings possible
+            Stack<MonomPair> monomFactors;
+            auto iter = p._factors.begin();
+            while (iter != p._factors.end()) {
+              auto elem = *iter;
+              unsigned cnt = 0;
+              while (iter != p._factors.end() && *iter == elem) {
+                cnt++;
+                iter++;
+              }
+              ASS(cnt != 0);
+              monomFactors.push(MonomPair(elem, cnt));
+            }
+            return PolyPair(Const(1), unique(Monom(std::move(monomFactors))));
+          })
+      );
+    std::sort(summands.begin(), summands.end()); // TODO different sorting(s)
+
+    // TODO insert into memo
+    return PolyNf(AnyPoly(unique(Polynom(std::move(summands)))));
+  }
+
+  static NormalizationResult minus(NormalizationResult& inner)
+  { 
+    static NormalizationResult minusOne(PolyNf(unique(FuncTerm(FuncId(Number::constantT(-1)->functor()), nullptr))));
+    return mul(inner, minusOne); 
+  }
+
+public:
+  friend ostream& operator<<(ostream& out, Sum const& self) 
+  { return out << "Prod" << self._summands; }
+};
+
+inline PolyNf toPolyNf(NormalizationResult& r) {
+    return std::move(r).match<PolyNf> (
+        [](PolyNf  x)             { return x; },
+        // TODO insert into memo after conversion
+        [](Sum< IntTraits>&& x) { return x.polyNf(); }, 
+        [](Sum< RatTraits>&& x) { return x.polyNf(); },
+        [](Sum<RealTraits>&& x) { return x.polyNf(); }
+      );
+}
+
+class NormalizationMemo 
+{
+
+  Map<TermList, PolyNf> _cache;
+
+public:
+  Optional<NormalizationResult> get(TermList t) 
+  { return optionalFromPtr(_cache.getPtr(t))
+              .map([](PolyNf&& p) 
+                   { return NormalizationResult(p); }); }
+
+  template<class Init>
+  NormalizationResult getOrInit(TermList const& t, Init init) 
+  { // TODO don't hash twice
+    auto entry = optionalFromPtr(_cache.getPtr(t));
+    if (entry.isSome()) {
+      return NormalizationResult(entry.unwrap());
+    } else {
+      auto out = init();
+      if (out.template isType<PolyNf>()) {
+        insert(t, out.template as<PolyNf>());
+      }
+      return std::move(out);
+    }
+  }
+
+  void insert(TermList const& t, PolyNf const& p)
+  { 
+    _cache.insert(t, p); 
+    DBGE(_cache.numberOfElements());
+  }
+};
+
 inline PolyNf PolyNf::normalize(TermList t) 
 {
-  // struct Eval 
-  // {
-  //   const PolynomialNormalizer& norm;
-  //
-  //   using Arg    = TermList;
-  //   using Result = PolyNf;
-  //
-  //   PolyNf operator()(TermList t, PolyNf* ts) 
-  //   { 
-  //     if (t.isVar()) {
-  //       return PolyNf(Variable(t.var()));
-  //     } else {
-  //
-  //       return norm.evaluateStep(t.term(), ts); 
-  //     }
-  //   }
-  // };
-  // static Memo::Hashed<Eval> memo;
-  // return evaluateBottomUp(term, Eval{ *this }, memo);
+  CALL("PolyNf::normalize")
+  DEBUG("normalizing ", t)
+  // static Memo::None<TermList, NormalizationResult> memo;
+  NormalizationMemo memo;
+  struct Eval 
+  {
+    using Arg    = TermList;
+    using Result = NormalizationResult;
 
+    Optional<NormalizationResult> normalizeInterpreted(Interpretation i, NormalizationResult* results) const
+    {
+      switch (i) {
 
-  // using Result = Coproduct<PolyNf, Vec<>;
-  // struct Eval 
-  // {
-  //   PolyNf operator()(Variable v) { return v; }
-  //   PolyNf operator()(Term* orig, PolyNf* evaluatedArgs) 
-  //   {
-  //     FuncId func(orig->functor());
-  //     Stack<PolyNf> s(func.arity());
-  //     s.loadFromIterator(getArrayishObjectIterator(evaluatedArgs, func.arity()));
-  //     return unique(FuncTerm(
-  //           func, 
-  //           std::move(s)
-  //         ));
-  //   }
-  // };
-  // Memo::None<Eval> memo;
-  // return evaluateBottomUp(t, Eval{}, memo);
-  // TODO implement
-  ASSERTION_VIOLATION
+#     define NUM_CASE(NUM, Num)                                                                                         \
+        case Theory::Interpretation::NUM ## _MULTIPLY:                                                                  \
+          return Sum<Num ## Traits>::mul(results[0], results[1]);                                                       \
+        case Theory::Interpretation::NUM ## _PLUS:                                                                      \
+          return Sum<Num ## Traits>::add(results[0], results[1]);                                                       \
+        case Theory::Interpretation::NUM ## _UNARY_MINUS:                                                               \
+          return Sum<Num ## Traits>::minus(results[0]);                                                                 \
+
+        NUM_CASE(INT , Int )
+        NUM_CASE(RAT , Rat )
+        NUM_CASE(REAL, Real)
+
+#     undef NUM_CASE
+        default:
+          {}
+      }
+      return Optional<NormalizationResult>();
+    } 
+
+    NormalizationResult operator()(TermList t, NormalizationResult* ts) const
+    { 
+      if (t.isVar()) {
+        return NormalizationResult(PolyNf(Variable(t.var())));
+      } else {
+        ASS(t.isTerm());
+        auto term = t.term();
+        auto fn = FuncId(term->functor());
+        if (fn.isInterpreted()) {
+          auto maybePoly = normalizeInterpreted(fn.interpretation(), ts);
+          if (maybePoly.isSome()) {
+            return std::move(maybePoly).unwrap();
+          }
+        } 
+        auto out = unique(FuncTerm(
+                fn, 
+                Stack<PolyNf>::fromIterator(
+                    iterTraits(getArrayishObjectIterator<mut_ref_t>(ts, fn.arity()))
+                    .map( [](NormalizationResult& r) -> PolyNf { return toPolyNf(r); })
+                )
+              )
+            );
+
+#     define NUM_CASE(Num)                                                                                         \
+          if (fn.template tryNumeral<Num ## Traits>().isSome())  \
+            return NormalizationResult(Sum<Num ## Traits>(Prod<Num ## Traits>(out)));
+          
+        NUM_CASE(Int )
+        NUM_CASE(Rat )
+        NUM_CASE(Real)
+
+#     undef NUM_CASE
+
+        return NormalizationResult(PolyNf(out));
+      }
+    }
+  };
+  NormalizationResult r = evaluateBottomUp(t, Eval{}, memo);
+  return toPolyNf(r);
 }
 
 
@@ -437,13 +671,13 @@ template<class Config> LitEvalResult PolynomialNormalizer<Config>::evaluateStep(
 
 #define HANDLE_CASE(INTER) case Interpretation::INTER: return PredicateEvaluator<Interpretation::INTER>::evaluate<Config>(orig, evaluatedArgs); 
 #define IGNORE_CASE(INTER) case Interpretation::INTER: return LitEvalResult::literal(createLiteral<Config>(orig, evaluatedArgs));
-#define HANDLE_NUM_CASES(NUM) \
-      IGNORE_CASE(NUM ## _IS_INT) /* TODO */ \
-      IGNORE_CASE(NUM ## _IS_RAT) /* TODO */ \
-      IGNORE_CASE(NUM ## _IS_REAL) /* TODO */ \
-      HANDLE_CASE(NUM ## _GREATER) \
-      HANDLE_CASE(NUM ## _GREATER_EQUAL) \
-      HANDLE_CASE(NUM ## _LESS) \
+#define HANDLE_NUM_CASES(NUM)                                                                                           \
+      IGNORE_CASE(NUM ## _IS_INT) /* TODO */                                                                            \
+      IGNORE_CASE(NUM ## _IS_RAT) /* TODO */                                                                            \
+      IGNORE_CASE(NUM ## _IS_REAL) /* TODO */                                                                           \
+      HANDLE_CASE(NUM ## _GREATER)                                                                                      \
+      HANDLE_CASE(NUM ## _GREATER_EQUAL)                                                                                \
+      HANDLE_CASE(NUM ## _LESS)                                                                                         \
       HANDLE_CASE(NUM ## _LESS_EQUAL) 
 
   auto sym = env.signature->getPredicate(orig->functor());
@@ -491,25 +725,103 @@ PolyNf evaluateConst(typename number::ConstantType c)
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
+template<class Number>
+UniqueShared<Polynom<Number>> intoPoly(PolyNf p) 
+{ 
+  CALL("intoPoly(PolyNf p)")
+  return unique(
+    p.isType<AnyPoly>() ? p.as<AnyPoly>()
+                           .as<UniqueShared<Polynom<Number>>>()
+                        : Polynom<Number>(p)
+      );
+}
+
+template<class Number>
+Optional<PolyNf> trySimplifyUnaryMinus(PolyNf* evalArgs)
+{
+  CALL("trySimplifyUnaryMinus(PolyNf*)")
+  // using Const = typename Number::ConstantType;
+  return PolyNf(AnyPoly(unique(
+          intoPoly<Number>(evalArgs[0])
+              ->flipSign()
+            )));
+}
+
+inline Optional<PolyNf> trySimplify(Theory::Interpretation i, PolyNf* evalArgs) 
+{
+  CALL("trySimplify(Theory::Interpretation i, PolyNf* evalArgs) ")
+  switch (i) {
+
+#   define NUM_CASE(Num) \
+    case Num ## Traits::minusI: \
+      return trySimplifyUnaryMinus<Num ## Traits>(evalArgs);
+
+    NUM_CASE(Int)
+    NUM_CASE(Rat)
+    NUM_CASE(Real)
+
+#   undef NUM_CASE
+    default:
+      return none<PolyNf>();
+  }
+}
+
 template<class Config> PolyNf PolynomialNormalizer<Config>::evaluate(TermList term) const {
-  struct Eval 
-  {
-    const PolynomialNormalizer& norm;
+  CALL("PolynomialNormalizer<Config>::evaluate(TermList term) const")
 
-    using Result = PolyNf;
-    using Arg    = TermList;
+  if(1) {
+    auto norm = PolyNf::normalize(term);
+    DEBUG("evaluating ", norm)
+    struct Eval 
+    {
+      const PolynomialNormalizer& norm;
 
-    PolyNf operator()(TermList t, PolyNf* ts) 
-    { 
-      if (t.isVar()) {
-        return PolyNf(Variable(t.var()));
-      } else {
-        return norm.evaluateStep(t.term(), ts); 
+      using Result = PolyNf;
+      using Arg    = PolyNf;
+
+      PolyNf operator()(PolyNf orig, PolyNf* ts) 
+      { 
+        return orig.match<PolyNf>(
+            // TODO Simplifiy other functions that + and *
+            [&](UniqueShared<FuncTerm> f)  -> PolyNf
+            { 
+              return f->function().tryInterpret()
+                .andThen( [&](Theory::Interpretation && i)  -> Optional<PolyNf>
+                    { return trySimplify(i, ts); })
+                .unwrapOrElse([&]() -> PolyNf
+                    { return PolyNf(unique(FuncTerm(f->function(), ts))); });
+            }, 
+
+            [&](Variable v) 
+            { return v; },
+
+            [&](AnyPoly p) 
+            { return p.simplify(ts); }
+        );
       }
-    }
-  };
-  static Memo::Hashed<Eval> memo;
-  return evaluateBottomUp(term, Eval{ *this }, memo);
+    };
+    static Memo::Hashed<PolyNf, PolyNf> memo;
+    return evaluateBottomUp(norm, Eval{ *this }, memo);
+  } else {
+    struct Eval 
+    {
+      const PolynomialNormalizer& norm;
+
+      using Result = PolyNf;
+      using Arg    = TermList;
+
+      PolyNf operator()(TermList t, PolyNf* ts) 
+      { 
+        if (t.isVar()) {
+          return PolyNf(Variable(t.var()));
+        } else {
+          return norm.evaluateStep(t.term(), ts); 
+        }
+      }
+    };
+    static Memo::Hashed<TermList, PolyNf> memo;
+    return evaluateBottomUp(term, Eval{ *this }, memo);
+  }
 }
 
 template<class Config> PolyNf PolynomialNormalizer<Config>::evaluate(Term* term) const 
@@ -529,31 +841,31 @@ template<class Config> PolyNf PolynomialNormalizer<Config>::evaluateStep(Term* o
 #define IGNORE_CASE(INTER) case Interpretation::INTER: return createTerm<Config>(functor, args);
 
 
-#define HANDLE_CONSTANT_CASE(Num) \
-  { \
-    Num ## ConstantType c; \
-    if (theory->tryInterpretConstant(orig, c)) { \
-      return evaluateConst<NumTraits<Num ## ConstantType>>(c); \
-    } \
-  } \
+#define HANDLE_CONSTANT_CASE(Num)                                                                                       \
+  {                                                                                                                     \
+    Num ## ConstantType c;                                                                                              \
+    if (theory->tryInterpretConstant(orig, c)) {                                                                        \
+      return evaluateConst<NumTraits<Num ## ConstantType>>(c);                                                          \
+    }                                                                                                                   \
+  }                                                                                                                     \
 
-#define HANDLE_NUM_CASES(NUM) \
-    HANDLE_CASE(NUM ## _UNARY_MINUS) \
-    HANDLE_CASE(NUM ## _PLUS) \
-    HANDLE_CASE(NUM ## _MINUS) \
-    HANDLE_CASE(NUM ## _MULTIPLY) \
-    HANDLE_CASE(NUM ## _QUOTIENT_E) \
-    HANDLE_CASE(NUM ## _QUOTIENT_T) \
-    HANDLE_CASE(NUM ## _QUOTIENT_F) \
-    HANDLE_CASE(NUM ## _REMAINDER_E) \
-    HANDLE_CASE(NUM ## _REMAINDER_T) \
-    HANDLE_CASE(NUM ## _REMAINDER_F) \
-    HANDLE_CASE(NUM ## _FLOOR) \
-    HANDLE_CASE(NUM ## _CEILING) \
-    HANDLE_CASE(NUM ## _TRUNCATE) \
-    HANDLE_CASE(NUM ## _TO_INT) \
-    HANDLE_CASE(NUM ## _TO_RAT) \
-    HANDLE_CASE(NUM ## _TO_REAL) \
+#define HANDLE_NUM_CASES(NUM)                                                                                           \
+    HANDLE_CASE(NUM ## _UNARY_MINUS)                                                                                    \
+    HANDLE_CASE(NUM ## _PLUS)                                                                                           \
+    HANDLE_CASE(NUM ## _MINUS)                                                                                          \
+    HANDLE_CASE(NUM ## _MULTIPLY)                                                                                       \
+    HANDLE_CASE(NUM ## _QUOTIENT_E)                                                                                     \
+    HANDLE_CASE(NUM ## _QUOTIENT_T)                                                                                     \
+    HANDLE_CASE(NUM ## _QUOTIENT_F)                                                                                     \
+    HANDLE_CASE(NUM ## _REMAINDER_E)                                                                                    \
+    HANDLE_CASE(NUM ## _REMAINDER_T)                                                                                    \
+    HANDLE_CASE(NUM ## _REMAINDER_F)                                                                                    \
+    HANDLE_CASE(NUM ## _FLOOR)                                                                                          \
+    HANDLE_CASE(NUM ## _CEILING)                                                                                        \
+    HANDLE_CASE(NUM ## _TRUNCATE)                                                                                       \
+    HANDLE_CASE(NUM ## _TO_INT)                                                                                         \
+    HANDLE_CASE(NUM ## _TO_RAT)                                                                                         \
+    HANDLE_CASE(NUM ## _TO_REAL)                                                                                        \
 
   auto functor = orig->functor();
   auto sym = env.signature->getFunction(functor);

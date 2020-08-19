@@ -69,6 +69,30 @@ public:
 
   unsigned id() const 
   { return _num; }
+
+  Theory::Interpretation interpretation() const 
+  { return theory->interpretFunction(_num); }
+
+  bool isInterpreted() const
+  { return theory->isInterpretedFunction(_num); }
+
+  Optional<Theory::Interpretation> tryInterpret() const
+  { 
+    return isInterpreted() ? interpretation()
+                           : none<Theory::Interpretation>();
+  }
+
+  template<class Number>
+  Optional<typename Number::ConstantType> tryNumeral() const
+  { 
+    using Const = typename Number::ConstantType;
+    Const out;
+    if (theory->tryInterpretConstant(_num, out)) {
+      return out;
+    } else {
+      return Optional<Const>();
+    }
+  }
 };
 
 class PolyNf;
@@ -143,6 +167,11 @@ public:
   FuncId function() const { return _fun; }
   PolyNf const& arg(unsigned i) const { return _args[i]; }
 
+
+  template<class Number>
+  Optional<typename Number::ConstantType> tryNumeral() const
+  { return _fun.template tryNumeral<Number>(); }
+
 };
 
 POLYMORPHIC_FUNCTION(TermList, toTerm   , const& t, TermList* results; ) { return t->toTerm(results); }
@@ -155,6 +184,31 @@ using AnyPolySuper = Coproduct<
   UniqueShared<Polynom<NumTraits<RationalConstantType>>>, 
   UniqueShared<Polynom<NumTraits<RealConstantType>>>
   > ;
+
+
+
+template<class NumIn, class NumOut>
+struct __ToNumeralHelper 
+{
+  Optional<typename NumOut::ConstantType> operator()(UniqueShared<Polynom<NumIn>>) const
+  { return Optional<typename NumOut::ConstantType>(); }
+};
+
+template<class Num>
+struct __ToNumeralHelper<Num,Num>
+{
+  Optional<typename Num::ConstantType> operator()(UniqueShared<Polynom<Num>> p) const
+  { return p->toNumber(); }
+};
+
+template<class NumOut>  
+struct PolymorphicToNumeral 
+{
+  template<class NumIn>
+  Optional<typename NumOut::ConstantType> operator()(UniqueShared<Polynom<NumIn>> const& p) const
+  { return __ToNumeralHelper<NumIn, NumOut>{}(p); }
+};
+
 class AnyPoly : public AnyPolySuper
 {
 public:
@@ -185,8 +239,27 @@ public:
 
   TermList toTerm(TermList* results) const
   { return collapsePoly<TermList>(Polymorphic::toTerm{results}); }
-};
 
+  AnyPoly simplify(PolyNf* simplifiedArgs) const;
+
+  template<class Number>
+  Optional<typename Number::ConstantType> tryNumeral() const&
+  { 
+    return collapsePoly<Optional<typename Number::ConstantType>>(PolymorphicToNumeral<Number>{});
+    // using Const = typename Number::ConstantType;
+    // using ConstPoly = UniqueShared<Polynom<Number>;
+    // if (isType<ConstPoly>()) {
+    //   return self.as<ConstPoly>().tryNumeral();
+    // } else {
+    //   return Optional<Const>();
+    // }
+    // return match<Optional<Const>>(
+    //     [](UniqueShared<FuncTerm> t) { return (*t).tryNumeral<Number>(); },
+    //     [](Variable               t) { return Optional<Const>();              },
+    //     [](AnyPoly                t) { return t.template tryNumeral<Number>(); }
+    //   );
+  }
+};
 
 template<class K, class V, class Compare = std::less<K>> using map  = std::map<K, V, Compare, STLAllocator<std::pair<const K, V > > >;
 
@@ -258,7 +331,7 @@ public:
   PolyNf(UniqueShared<FuncTerm> t) : Coproduct(t) {}
   PolyNf(Variable               t) : Coproduct(t) {}
   PolyNf(AnyPoly                t) : Coproduct(t) {}
-  PolyNf normalize(TermList t);
+  static PolyNf normalize(TermList t);
 
   friend bool operator==(PolyNf const& lhs, PolyNf const& rhs) 
   { return static_cast<Coproduct const&>(lhs) == static_cast<Coproduct const&>(rhs); }
@@ -286,6 +359,8 @@ public:
 
   TermList toTerm() const
   { 
+    CALL("PolyNf::toTerm")
+    DEBUG("converting ", *this)
     struct Eval 
     {
       using Arg    = PolyNf;
@@ -298,9 +373,21 @@ public:
           [&](AnyPoly                p) { return p.toTerm(results); }
           ); }
     };
-    static Memo::Hashed<Eval> memo;
+    static Memo::Hashed<PolyNf, TermList> memo;
     return evaluateBottomUp(*this, Eval{}, memo);
   }
+
+  template<class Number>
+  Optional<typename Number::ConstantType> tryNumeral() const
+  { 
+    using Const = typename Number::ConstantType;
+    return match<Optional<Const>>(
+        [](UniqueShared<FuncTerm> t) { return (*t).tryNumeral<Number>(); },
+        [](Variable               t) { return Optional<Const>();              },
+        [](AnyPoly                t) { return t.template tryNumeral<Number>(); }
+      );
+  }
+
 };
 
 inline bool operator<(const PolyNf& lhs, const PolyNf& rhs)  // TODO get rid of that and use the vampire sorting method 
@@ -351,11 +438,15 @@ class Monom
 {
   using MonomTermOrdering = std::less<PolyNf>;
   using MonomPair = ::Kernel::MonomPair<Number>;
+  using PolyPair  = ::Kernel::PolyPair<Number>;
+  using Polynom   = ::Kernel::Polynom<Number>;
+  using Const = typename Number::ConstantType;
   Stack<MonomPair> _factors;
   friend struct std::hash<Monom>;
 
 public:
-  Monom() : _factors(decltype(_factors)()) { }
+  Monom(Stack<MonomPair>&& factors) : _factors(std::move(factors)) { }
+  Monom() : Monom(decltype(_factors)()) { }
   Monom(PolyNf t) : _factors { MonomPair ( t, 1 ) }  { }
   Monom(PolyNf t1, PolyNf t2) 
     : _factors(t1 == t2 ? decltype(_factors) ({MonomPair ( t1, 2 )  }) : 
@@ -369,14 +460,71 @@ public:
   PolyNf const& termAt(unsigned i) const
   { return _factors[i].term; }
 
-private:
+  bool isPolynom() const
+  { return nFactors() == 1 
+      && _factors[0].power == 1 
+      && _factors[0].term.template isType<AnyPoly>(); }
 
-  Monom(decltype(_factors) factors) : _factors(factors) { }
+  UniqueShared<Polynom> asPolynom() const
+  { 
+    ASS(isPolynom());
+    return _factors[0].term
+      .template as<AnyPoly>()
+      .template as<UniqueShared<Polynom>>(); 
+  }
+
+            // && simpl.monom->nFactors() == 1 
+            // && simpl.monom->_factors[0].template isType<AnyPoly>()
 
 public:
 
   USE_ALLOCATOR(Monom)
   CLASS_NAME(Monom)
+
+  PolyPair simplify(PolyNf* simplifiedArgs) const
+  { 
+    auto pow = [](Const c, int power) -> Const {
+      ASS(power > 0)
+      auto out = c;
+      while (--power > 0) {
+        out = out * c;
+      }
+      return out;
+    };
+
+    Stack<MonomPair> args(nFactors());
+    for (unsigned i = 0; i < nFactors(); i++) {
+      args.push(MonomPair(simplifiedArgs[i], _factors[i].power));
+    }
+
+    std::sort(args.begin(), args.end(), 
+        []( const MonomPair& lhs, const MonomPair& rhs) 
+        { return lhs.term < rhs.term; });
+
+    auto offs = 0;
+    auto coeff = Const(1);
+    for (unsigned i = 0; i < nFactors(); i++) {
+      auto& arg = args[i];
+      auto c = arg.term.template tryNumeral<Number>();
+      if (c.isSome()) {
+        // arg is a number constant
+        coeff = coeff * pow(c.unwrap(), arg.power);
+      } else {
+        // arg is a non-number term
+        auto term  = arg.term;
+        auto power = arg.power;
+        while (i + 1 < nFactors() && args[i + 1].term == term) {
+          power += args[i + 1].power;
+          i++;
+        }
+        if (power != 0)
+          args[offs++] = MonomPair(term, power);
+      }
+    }
+    args.truncate(offs);
+   
+    return PolyPair(coeff, unique(Monom(std::move(args)))); 
+  }
 
   static Monom one()
   { return Monom(); }
@@ -411,13 +559,12 @@ public:
   Monom& operator=(Monom&&) = default;
   Monom(Monom&&) = default;
 
-  static UniqueShared<Monom> monomMul(const Monom& lhs, const Monom& rhs) 
-    ;
+  static Monom monomMul(const Monom& lhs, const Monom& rhs);
 
   explicit Monom(const Monom&) = default;
   explicit Monom(Monom&) = default;
 
-  friend class Polynom<Number>;
+  friend class Kernel::Polynom<Number>;
 
   TermList toTerm(TermList* results)  const
   {
@@ -462,9 +609,9 @@ public:
 };
 
 template<class Number>
-inline UniqueShared<Monom<Number>> Monom<Number>::monomMul(const Monom<Number>& lhs, const Monom<Number>& rhs) 
+inline Monom<Number> Monom<Number>::monomMul(const Monom<Number>& lhs, const Monom<Number>& rhs) 
 {
-  return unique(Monom(merge_sort_with(lhs._factors,rhs._factors,
+  return Monom(merge_sort_with(lhs._factors,rhs._factors,
         [](MonomPair const& l, MonomPair const& r)  -> MonomPair
         { 
           ASS_EQ(l.term, r.term); 
@@ -472,7 +619,7 @@ inline UniqueShared<Monom<Number>> Monom<Number>::monomMul(const Monom<Number>& 
         },
         [](MonomPair const& l) { return l.power != 0; },
         [](MonomPair const& l, MonomPair const& r) { return l.term < r.term; }
-        )));
+      ));
 }
 
 template<class Number>
@@ -492,7 +639,7 @@ public:
 
   Polynom(Stack<PolyPair>&& summands) : _summands(std::move(summands)) { }
   Polynom() : Polynom(Stack<PolyPair>()) {}
-  Polynom(Coeff coeff, UniqueShared<Monom > term) 
+  Polynom(Coeff coeff, UniqueShared<Monom> term) 
     : Polynom(coeff == Coeff(0)
         ? Stack<PolyPair>() 
         : Stack<PolyPair> {  PolyPair(coeff, term)  }) {  }
@@ -500,6 +647,15 @@ public:
   Polynom(Coeff coeff, PolyNf term) : Polynom(coeff, unique(Monom(term))) {  }
   Polynom(PolyNf t) : Polynom(Coeff(1), t) {  }
   explicit Polynom(Coeff constant) : Polynom(constant, unique(Monom::one())) {}
+
+  Optional<Coeff> toNumber() const& 
+  { 
+    if (isNumber()) {
+      return unwrapNumber();
+    } else {
+      return Optional<Coeff>();
+    }
+  }
 
 
   bool isNumber() const& 
@@ -671,6 +827,74 @@ public:
 
 public:
 
+  Polynom flipSign() const
+  { 
+    CALL("Polynom::flipSign() const") 
+    Polynom out(*this);
+    for (unsigned i = 0; i < nSummands(); i++) {
+      out._summands[i].coeff = out._summands[i].coeff * Coeff(-1);
+    }
+    return std::move(out);
+  }
+
+
+  Polynom simplify(PolyNf* simplifiedArgs) const
+  { 
+    CALL("Polynom::simplify(PolyNf* simplifiedArgs) const") 
+
+    // first we simplify all the monoms containted in this polynom
+    Stack<PolyPair> out;
+    {
+      auto offs = 0;
+      for (unsigned i = 0; i < nSummands(); i++) {
+        auto pair  = _summands[i];
+        auto simpl = pair.monom->simplify(&simplifiedArgs[offs]);
+        auto coeff = pair.coeff * simpl.coeff;
+        if (coeff == Number::zeroC) {
+          /* we don't add it */
+        } else if (
+               coeff == Coeff(-1) // TODO lift this
+            && simpl.monom->isPolynom()) {
+          // pushing in unary minus:
+          //   Poly((-1) * Poly(t1 + t2 + t3 + ...) )
+          auto& poly = *simpl.monom->asPolynom();
+          out.reserve(out.size() + poly.nSummands()  - 1);
+          for (unsigned j = 0; j < poly.nSummands(); j++) {
+            auto& pair = poly._summands[j];
+            out.push(PolyPair(coeff * pair.coeff, pair.monom));
+          }
+        } else {
+          out.push(PolyPair(coeff, simpl.monom));
+        }
+        offs += pair.monom->nFactors();
+      }
+    }
+
+    // then we sort them by their monom, in order to add up the coefficients efficiently
+    std::sort(out.begin(), out.end(), 
+        []( const PolyPair& lhs, const PolyPair& rhs) { return std::less<UniqueShared<Monom>>{}(lhs.monom, rhs.monom); });
+
+    // add up the coefficient (in place)
+    {
+      auto offs = 0;
+      for (unsigned i = 0; i < out.size(); i++) { 
+        auto pair = out[i];
+        auto coeff = pair.coeff;
+        auto monom = pair.monom;
+        while ( i + 1 < out.size() && out[i+1].monom == monom ) {
+          coeff = coeff + out[i+1].coeff;
+          i++;
+        }
+        if (coeff != Number::zeroC) 
+          out[offs++] = PolyPair(coeff, monom);
+      }
+      out.truncate(offs);
+
+    }
+
+    return Polynom(std::move(out));
+  }
+
   unsigned nSummands() const
   { return _summands.size(); }
 
@@ -762,6 +986,11 @@ Polynom<Number> Polynom<Number>::polyAdd(const Polynom<Number>& lhs, const Polyn
 template<class Number> 
 TermList Polynom<Number>::toTerm()  const
 { return PolyNf(AnyPoly(unique(Polynom(*this)))).toTerm(); }
+
+POLYMORPHIC_FUNCTION(AnyPoly, simplify  , const& t, PolyNf* ts;) { return AnyPoly(unique(t->simplify(ts))); }
+
+inline AnyPoly AnyPoly::simplify(PolyNf* ts) const
+{ return collapsePoly<AnyPoly>(Polymorphic::simplify{ ts }); }
 
 
 } // namespace Kernel

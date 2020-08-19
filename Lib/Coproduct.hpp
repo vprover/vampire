@@ -325,7 +325,7 @@ public:
   }                                                                                                                     \
                                                                                                                         \
   Coproduct(Coproduct REF other) : _tag(other._tag) {                                                                   \
-    CALL("Coproduc(Coproduct " #REF " other)")                                                                          \
+    CALL("Coproduct(Coproduct " #REF " other)")                                                                         \
     ASS_REP(other._tag <= size, other._tag);                                                                            \
     _content.init(other._tag, MOVE(other._content));                                                                    \
   }                                                                                                                     \
