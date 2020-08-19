@@ -35,6 +35,7 @@
 #include "Lib/Int.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Random.hpp"
+#include "Lib/Choose.hpp"
 
 #include "Shell/Options.hpp"
 #include "Shell/Property.hpp"
@@ -767,7 +768,7 @@ DArray<int> PrecedenceOrdering::funcPrecFromOpts(Problem& prb, const Options& op
         break;
       case Shell::Options::SymbolPrecedence::SCRAMBLE:
         for(unsigned i=0;i<nFunctions;i++){
-          unsigned j = Random::getInteger(nFunctions-i)+i;
+          unsigned j = Choose::getInteger(nFunctions-i,HERE)+i;
           unsigned tmp = aux[j];
           aux[j]=aux[i];
           aux[i]=tmp;
@@ -835,7 +836,7 @@ DArray<int> PrecedenceOrdering::predPrecFromOpts(Problem& prb, const Options& op
       break;
       case Shell::Options::SymbolPrecedence::SCRAMBLE:
         for(unsigned i=0;i<nPredicates;i++){
-          unsigned j = Random::getInteger(nPredicates-i)+i;
+          unsigned j = Choose::getInteger(nPredicates-i,HERE)+i;
           unsigned tmp = aux[j];
           aux[j]=aux[i];
           aux[i]=tmp;

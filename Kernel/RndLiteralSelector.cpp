@@ -25,6 +25,7 @@
 
 #include "Lib/List.hpp"
 #include "Lib/Random.hpp"
+#include "Lib/Choose.hpp"
 
 #include "Term.hpp"
 #include "Clause.hpp"
@@ -70,8 +71,8 @@ void RndLiteralSelector::doSelection(Clause* c, unsigned eligible)
         cntNeg++;
       }
     }
-    if (cntNeg > 0 && Random::getBit() /*allow sometimes selecting maximals, even when there are negative*/) {
-      singleSel = LiteralList::nth(neg,Random::getInteger(cntNeg));
+    if (cntNeg > 0 && Choose::getBit(HERE) /*allow sometimes selecting maximals, even when there are negative*/) {
+      singleSel = LiteralList::nth(neg,Choose::getInteger(cntNeg,HERE));
     } else { // there are no negative literals (or we don't want them), so we take the maximal ones to be complete
       sel = getMaximalsInOrder(c,eligible);
       ASS(LiteralList::isNonEmpty(sel));

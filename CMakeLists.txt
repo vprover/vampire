@@ -154,6 +154,7 @@ set(VAMPIRE_LIB_SOURCES
     Lib/NameArray.cpp
 #    Lib/OptionsReader.cpp
     Lib/Random.cpp
+    Lib/Choose.cpp
     Lib/StringUtils.cpp
     Lib/System.cpp
     Lib/TimeCounter.cpp
@@ -206,6 +207,7 @@ set(VAMPIRE_LIB_SOURCES
     Lib/PairUtils.hpp
     Lib/Portability.hpp
     Lib/Random.hpp
+    Lib/Choose.hpp
     Lib/RatioKeeper.hpp
     Lib/RCPtr.hpp
     Lib/Recycler.hpp

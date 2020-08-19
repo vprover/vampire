@@ -1897,6 +1897,16 @@ void Options::Options::init()
     _lookup.insert(&_randomSeed);
     _randomSeed.tag(OptionTag::INPUT);
 
+    _chooseInFile = StringOptionValue("choose_in_file","chif","");
+    _chooseInFile.description = "A name of a file to load vampire's choice trace from.";
+    _chooseInFile.setExperimental();
+    _lookup.insert(&_chooseInFile);
+
+    _chooseOutFile = StringOptionValue("choose_out_file","chof","");
+    _chooseOutFile.description = "A name of a file to save vampire's choice trace to.";
+    _chooseOutFile.setExperimental();
+    _lookup.insert(&_chooseOutFile);
+
     _activationLimit = IntOptionValue("activation_limit","al",0);
     _activationLimit.description="Terminate saturation after this many iterations of the main loop. 0 means no limit.";
     _lookup.insert(&_activationLimit);

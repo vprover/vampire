@@ -36,6 +36,7 @@
 #include "Lib/Int.hpp"
 #include "Lib/MapToLIFO.hpp"
 #include "Lib/Random.hpp"
+#include "Lib/Choose.hpp"
 #include "Lib/Set.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/TimeCounter.hpp"
@@ -847,8 +848,6 @@ int main(int argc, char* argv[])
 
   System::registerArgv0(argv[0]);
   System::setSignalHandlers();
-  // create random seed for the random number generation
-  Lib::Random::setSeed(123456);
 
   START_CHECKING_FOR_ALLOCATOR_BYPASSES;
 
@@ -871,6 +870,22 @@ int main(int argc, char* argv[])
 
     Allocator::setMemoryLimit(env.options->memoryLimit() * 1048576ul);
     Lib::Random::setSeed(env.options->randomSeed());
+    // Choose related stuff
+    {
+      Lib::Choose::setSeed(env.options->randomSeed()); // using the same seed as Random, why not
+
+      vstring val;
+
+      val = env.options->chooseInFile();
+      if (!val.empty()) {
+        Lib::Choose::setInFile(val.c_str());
+      }
+
+      val = env.options->chooseOutFile();
+      if (!val.empty()) {
+        Lib::Choose::setOutFile(val.c_str());
+      }
+    }
 
     switch (env.options->mode())
     {

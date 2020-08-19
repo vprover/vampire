@@ -1993,6 +1993,9 @@ public:
   vstring inputFile() const { return _inputFile.actualValue; }
   int activationLimit() const { return _activationLimit.actualValue; }
   int randomSeed() const { return _randomSeed.actualValue; }
+  vstring chooseInFile() const { return _chooseInFile.actualValue; }
+  vstring chooseOutFile() const { return _chooseOutFile.actualValue; }
+
   bool printClausifierPremises() const { return _printClausifierPremises.actualValue; }
 
   // IMPORTANT, if you add a showX command then include showAll
@@ -2559,6 +2562,9 @@ private:
   ChoiceOptionValue<QuestionAnsweringMode> _questionAnswering;
 
   IntOptionValue _randomSeed;
+
+  StringOptionValue _chooseInFile;
+  StringOptionValue _chooseOutFile;
 
   IntOptionValue _activationLimit;
 
