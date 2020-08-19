@@ -1743,13 +1743,22 @@ bool Theory::tryInterpretConstant(const Term* t, IntegerConstantType& res)
     return false;
   }
   unsigned func = t->functor();
+  return tryInterpretConstant(func, res);
+} // Theory::tryInterpretConstant
+
+
+bool Theory::tryInterpretConstant(unsigned func, IntegerConstantType& res)
+{
   Signature::Symbol* sym = env.signature->getFunction(func);
+  CALL("Theory::tryInterpretConstant(Term*,IntegerConstantType)");
   if (!sym->integerConstant()) {
     return false;
   }
   res = sym->integerValue();
   return true;
-} // Theory::tryInterpretConstant
+}
+
+
 
 /**
  * Try to interpret the term as an rational constant. If it is an
@@ -1766,13 +1775,20 @@ bool Theory::tryInterpretConstant(const Term* t, RationalConstantType& res)
     return false;
   }
   unsigned func = t->functor();
+  return tryInterpretConstant(func, res);
+} // Theory::tryInterpretConstant 
+
+bool Theory::tryInterpretConstant(unsigned func, RationalConstantType& res)
+{
   Signature::Symbol* sym = env.signature->getFunction(func);
+  CALL("Theory::tryInterpretConstant(Term*,RationalConstantType)");
   if (!sym->rationalConstant()) {
     return false;
   }
   res = sym->rationalValue();
   return true;
-} // Theory::tryInterpretConstant 
+}
+
 
 /**
  * Try to interpret the term as a real constant. If it is an
@@ -1789,13 +1805,19 @@ bool Theory::tryInterpretConstant(const Term* t, RealConstantType& res)
     return false;
   }
   unsigned func = t->functor();
+  return tryInterpretConstant(func, res);
+} // // Theory::tryInterpretConstant
+
+bool Theory::tryInterpretConstant(unsigned func, RealConstantType& res)
+{
   Signature::Symbol* sym = env.signature->getFunction(func);
+  CALL("Theory::tryInterpretConstant(Term*,RealConstantType)");
   if (!sym->realConstant()) {
     return false;
   }
   res = sym->realValue();
   return true;
-} // // Theory::tryInterpretConstant
+}
 
 Term* Theory::representConstant(const IntegerConstantType& num)
 {

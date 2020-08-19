@@ -514,6 +514,7 @@ public:
     return tryInterpretConstant(trm.term(),res);
   }
   bool tryInterpretConstant(const Term* t, IntegerConstantType& res);
+  bool tryInterpretConstant(unsigned functor, IntegerConstantType& res);
   /**
    * Try to interpret the term list as an rational constant. If it is an
    * rational constant, return true and save the constant in @c res, otherwise
@@ -528,6 +529,7 @@ public:
     return tryInterpretConstant(trm.term(),res);
   }
   bool tryInterpretConstant(const Term* t, RationalConstantType& res);
+  bool tryInterpretConstant(unsigned functor, RationalConstantType& res);
   /**
    * Try to interpret the term list as an real constant. If it is an
    * real constant, return true and save the constant in @c res, otherwise
@@ -542,6 +544,7 @@ public:
     return tryInterpretConstant(trm.term(),res);
   }
   bool tryInterpretConstant(const Term* t, RealConstantType& res);
+  bool tryInterpretConstant(unsigned functor, RealConstantType& res);
 
   Term* representConstant(const IntegerConstantType& num);
   Term* representConstant(const RationalConstantType& num);
