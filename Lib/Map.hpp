@@ -98,6 +98,7 @@ protected:
     /** initialize value underlying the wrapper type */
     void init(Key&& key, Val&& val, unsigned code)
     {
+      CALL("Map::Entry::init(Key&&, Val&&, unsigned)")
       ASS_REP(this->code == 0, this->code)
       ASS(code != 0)
       ::new(&_key  ) Key(std::move(key));
