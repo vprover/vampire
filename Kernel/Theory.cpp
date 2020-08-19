@@ -137,6 +137,22 @@ IntegerConstantType IntegerConstantType::remainderE(const IntegerConstantType& n
   return mod;
 }
 
+RationalConstantType RationalConstantType::abs() const
+{
+  ASS_G(_den, 0)
+  return RationalConstantType(_num.abs(), _den);
+}
+
+RealConstantType RealConstantType::abs() const
+{
+  return RealConstantType(RationalConstantType(*this).abs());
+}
+
+IntegerConstantType IntegerConstantType::abs() const
+{
+  return IntegerConstantType(::std::abs(toInner()));
+}
+
 /**
  * specification from TPTP:
  * quotient_e(N,D) - the Euclidean quotient, which has a non-negative remainder. If D is positive then $quotient_e(N,D) is the floor (in the type of N and D) of the real division N/D, and if D is negative then $quotient_e(N,D) is the ceiling of N/D.
@@ -145,7 +161,11 @@ IntegerConstantType IntegerConstantType::quotientE(const IntegerConstantType& nu
 { 
   CALL("IntegerConstantType::quotientE");
 
-  if (num._val == 0 || (this->_val == numeric_limits<IntegerConstantType::InnerType>::min() && num._val == -1)) {
+  if (num._val == 0) {
+    throw DivByZeroException();
+  }
+
+  if (this->_val == numeric_limits<IntegerConstantType::InnerType>::min() && num._val == -1) {
     throw MachineArithmeticException();
   }
 
@@ -171,6 +191,25 @@ IntegerConstantType IntegerConstantType::quotientE(const IntegerConstantType& nu
     } else {
       return (*this - mod).intDivide(num);
     }
+  }
+}
+
+/**
+ * specification from TPTP:
+ * quotient_e(N,D) - the Euclidean quotient, which has a non-negative remainder. If D is positive then $quotient_e(N,D) is the floor (in the type of N and D) of the real division N/D, and if D is negative then $quotient_e(N,D) is the ceiling of N/D.
+ */
+RationalConstantType RationalConstantType::quotientE(const RationalConstantType& num) const
+{
+  auto N = *this;
+  auto D = num;
+  // const RationalConstantType zero = RationalConstantType(0);
+  if (D._num == 0) {
+    throw DivByZeroException();
+  }
+  if (D.isPositive()) {
+     return (N / D).floor(); 
+  } else {
+     return (N / D).ceiling(); 
   }
 }
 
@@ -200,21 +239,6 @@ bool IntegerConstantType::divides(const IntegerConstantType& num) const
   } else {
     return ( num._val % _val == 0);
   }
-}
-
-//TODO remove this operator. We already have 4 other ways of dividing integers, which are required due to the semantics of TPTP and SMTCOMP.
-IntegerConstantType IntegerConstantType::operator/(const IntegerConstantType& num) const
-{
-  CALL("IntegerConstantType::operator/");
-
-  //TODO: check if division corresponds to the TPTP semantic
-  if (num._val==0) {
-    throw DivByZeroException();
-  }
-  if(_val == numeric_limits<InnerType>::min() && num._val == -1){
-    throw ArithmeticException();
-  }
-  return IntegerConstantType(_val/num._val);
 }
 
 //TODO remove this operator. We already have 3 other ways of computing the remainder, required by the semantics of TPTP and SMTCOMP.
@@ -247,40 +271,40 @@ IntegerConstantType IntegerConstantType::floor(RationalConstantType rat)
 {
   CALL("IntegerConstantType::floor");
 
-  IntegerConstantType numer = rat.numerator();
-  IntegerConstantType denom = rat.denominator();
-  ASS_REP(denom>0, denom.toString());
-
-  // euclidiean for positive
-  if (numer>0) {
-    return numer/denom;
+  IntegerConstantType num = rat.numerator();
+  IntegerConstantType den = rat.denominator();
+  if (den == IntegerConstantType(1)) {
+    return num;
   }
-  ASS(numer<=0);
-  IntegerConstantType res = numer/denom;
-  if (numer%denom!=0) {
-    res = res-1;
+  /* there is a non-zero remainder for num / den */
+  ASS_G(den, 0);
+  if (num >= IntegerConstantType(0)) {
+    return IntegerConstantType(num.toInner() /den.toInner());
+  } else  {
+    return IntegerConstantType(num.toInner() / den.toInner() - 1);
   }
-  return res;
 }
+
+/** 
+ * TPTP spec:
+ * The smallest integral number not less than the argument. 
+ */
 IntegerConstantType IntegerConstantType::ceiling(RationalConstantType rat)
 {
   CALL("IntegerConstantType::ceiling");
 
-  IntegerConstantType numer = rat.numerator();
-  IntegerConstantType denom = rat.denominator();
-  ASS_REP(denom>0, denom.toString());
-
-  // euclidian for negative
-  if (numer<0) {
-    return numer/denom;
+  IntegerConstantType num = rat.numerator();
+  IntegerConstantType den = rat.denominator();
+  if (den == IntegerConstantType(1)) {
+    return num;
   }
-  ASS(numer>=0)
-
-  IntegerConstantType res = numer/denom;
-  if (numer%denom!=0) {
-    res = res+1;
+  /* there is a remainder for num / den */
+  ASS_G(den, 0);
+  if (num >= IntegerConstantType(0)) {
+    return IntegerConstantType(num.toInner() /den.toInner() + 1);
+  } else  {
+    return IntegerConstantType(num.toInner() / den.toInner());
   }
-  return res;
 }
 
 Comparison IntegerConstantType::comparePrecedence(IntegerConstantType n1, IntegerConstantType n2)
@@ -297,8 +321,8 @@ Comparison IntegerConstantType::comparePrecedence(IntegerConstantType n1, Intege
       if (n2 == numeric_limits<InnerType>::min()) {
         return LESS;
       } else {
-        InnerType an1 = abs(n1.toInner());
-        InnerType an2 = abs(n2.toInner());
+        InnerType an1 = n1.abs().toInner();
+        InnerType an2 = n2.abs().toInner();
 
         ASS_GE(an1,0);
         ASS_GE(an2,0);
@@ -386,8 +410,11 @@ RationalConstantType RationalConstantType::operator*(const RationalConstantType&
 RationalConstantType RationalConstantType::operator/(const RationalConstantType& o) const
 {
   CALL("RationalConstantType::operator/");
-
-  return RationalConstantType(_num*o._den, _den*o._num);
+  auto lhs = *this;
+  auto rhs = o;
+  return RationalConstantType(
+      lhs._num * rhs._den, 
+      lhs._den * rhs._num);
 }
 
 bool RationalConstantType::isInt() const

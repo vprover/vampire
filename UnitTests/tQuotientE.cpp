@@ -6,6 +6,7 @@
 
 #define UNIT_ID QuotientE
 #define DEBUG(...) //DBG(__VA_ARGS__)
+#define DEBUGE(x) DEBUG(#x, " = ", x)
 
 UT_CREATE;
 
@@ -44,6 +45,9 @@ TEST_FUN(check_spec) {
       } catch (const MachineArithmeticException &) {
         DEBUG("quotientE (", i, ", ", j, ")\t= MachineArithmeticException");
         bothOK = false;
+      } catch (DivByZeroException) {
+        ASS_EQ(j, 0);
+        bothOK = false;
       }
 
       IntegerConstantType r;
@@ -52,6 +56,9 @@ TEST_FUN(check_spec) {
         DEBUG("remainderE(", i, ", ", j, ")\t= ", r);
       } catch (const MachineArithmeticException &) {
         DEBUG("remainderE(", i, ", ", j, ")\t= MachineArithmeticException");
+        bothOK = false;
+      } catch (DivByZeroException) {
+        ASS_EQ(j, 0);
         bothOK = false;
       }
 
@@ -96,16 +103,79 @@ TEST_FUN(check_spec) {
   }
 }
 
+template<class Const>
+void checkQuotientE(Const i, Const j) {
+  try {
+    DEBUG()
+    auto q =  i.quotientE(j);
+    auto r = i.remainderE(j);
 
-TEST_FUN(check_spec_simple) {
+    DEBUG(" quotientE(", i, ", ", j, ")\t= ", q);
+    DEBUG("remainderE(", i, ", ", j, ")\t= ", r);
+    ASS_EQ(q * j + r, i)
+    ASS(Const(0) <= r && r < j.abs())
+  } catch (DivByZeroException) {
+    ASS_EQ(j,Const(0))
+  }
+}
+
+TEST_FUN(check_int) 
+{
   int range = 10;
   for (int i = -range; i < range; i++) {
-    for (int j = -range; j < range; j++) { 
-      auto q =  quotientE(i, j);
-      auto r = remainderE(i, j);
-
-      ASS_EQ(q * j + r, i)
-      ASS(0 <= r && r < abs(j))
+    for (int j = -range; j < range; j++) {
+      checkQuotientE(IntegerConstantType(i), IntegerConstantType(j));
     }
   }
 }
+
+template<class Const>
+void checkFrac() 
+{
+  int range = 10;
+  for (int i = -range; i < range; i++) {
+    for (int j = -range; j < range; j++) {
+      for (int k = -range; k < range; k++) {
+        for (int l = -range; l < range; l++) {
+          if (j != 0 && l != 0) {
+            checkQuotientE(Const(i, j), Const(k, l));
+          }
+        }
+      }
+    }
+  }
+}
+
+TEST_FUN(check_real) 
+{ checkFrac<RealConstantType>(); }
+
+TEST_FUN(check_rat) 
+{ checkFrac<RationalConstantType>(); }
+
+template<class Const>
+void checkFloor() 
+{
+  ASS_EQ(Const( 3, 2).floor(), Const( 1))
+  ASS_EQ(Const(-3, 2).floor(), Const(-2))
+  ASS_EQ(Const( 4, 2).floor(), Const( 2))
+  ASS_EQ(Const(-4, 2).floor(), Const(-2))
+  ASS_EQ(Const( 0, 2).floor(), Const( 0))
+}
+
+template<class Const>
+void checkCeiling() 
+{
+  ASS_EQ(Const( 3, 2).ceiling(), Const( 2))
+  ASS_EQ(Const(-3, 2).ceiling(), Const(-1))
+  ASS_EQ(Const( 4, 2).ceiling(), Const( 2))
+  ASS_EQ(Const(-4, 2).ceiling(), Const(-2))
+  ASS_EQ(Const( 0, 2).ceiling(), Const( 0))
+}
+
+
+#define CHECK_FRAC(Const) \
+  TEST_FUN(check_ceiling_##Const) { checkCeiling<Const>(); } \
+  TEST_FUN(check_floor_  ##Const) { checkFloor  <Const>(); } \
+
+CHECK_FRAC(RationalConstantType)
+CHECK_FRAC(RealConstantType)
