@@ -261,59 +261,6 @@ public:
   }
 };
 
-template<class K, class V, class Compare = std::less<K>> using map  = std::map<K, V, Compare, STLAllocator<std::pair<const K, V > > >;
-
-/** Merges two map-like vectors into a new map-like vector. 
- * A vector is map-like if has key-value pairs as entry, is sorted by keys and each key is unique within the vector.
- *
- * If there is a key present in both lhs and rhs, the corresponding the two corresponding values will be combined 
- * with the closure @b add. After that the result of combining is then used as argument for @b filter() and will 
- * be discarded if filter returns false.
- */
-template<class A, class Combine, class Filter, class Compare>
-Stack<A> merge_sort_with(const Stack<A>& lhs, const Stack<A>& rhs, Combine combine, Filter filter, Compare cmp) 
-{
-    CALL("merge_sort_with()")
-
-    /* is needed at least */
-    Stack<A> out(max(lhs.size(), rhs.size()));
-
-    auto l = lhs.begin();
-    auto r = rhs.begin();
-    auto insert = [&](const A& value) {
-      ASS(filter(value));
-      out.push(value);
-    };
-    while (l != lhs.end() && r != rhs.end() ) {
-      if (cmp(*l, *r)) {
-        insert(*l);
-        l++;
-      } else if (cmp(*r, *l)) {
-        insert(*r);
-        r++;
-      } else {
-        // equal. must be added up
-        auto sum = combine(*l, *r);
-        if (filter(sum))
-          insert(sum);
-        l++;
-        r++;
-      }
-      if (out.size() >= 2) {
-        ASS(cmp(out[out.size() - 2], out[out.size() - 1]))
-      }
-    }
-    while (l != lhs.end()) {
-      insert(*l);
-      l++;
-    }
-    while (r != rhs.end()) {
-      insert(*r);
-      r++;
-    }
-    ASS(l == lhs.end() && r == rhs.end());
-    return std::move(out);
-}
 
 using PolyNfSuper = Lib::Coproduct<UniqueShared<FuncTerm>, Variable, AnyPoly>;
 /**
@@ -559,8 +506,6 @@ public:
   Monom& operator=(Monom&&) = default;
   Monom(Monom&&) = default;
 
-  static Monom monomMul(const Monom& lhs, const Monom& rhs);
-
   explicit Monom(const Monom&) = default;
   explicit Monom(Monom&) = default;
 
@@ -607,20 +552,6 @@ public:
   }
 
 };
-
-template<class Number>
-inline Monom<Number> Monom<Number>::monomMul(const Monom<Number>& lhs, const Monom<Number>& rhs) 
-{
-  return Monom(merge_sort_with(lhs._factors,rhs._factors,
-        [](MonomPair const& l, MonomPair const& r)  -> MonomPair
-        { 
-          ASS_EQ(l.term, r.term); 
-          return MonomPair(l.term, l.power + r.power);
-        },
-        [](MonomPair const& l) { return l.power != 0; },
-        [](MonomPair const& l, MonomPair const& r) { return l.term < r.term; }
-      ));
-}
 
 template<class Number>
 class Polynom 
@@ -670,49 +601,6 @@ public:
 
   friend bool operator==(const Polynom<Number>& lhs, const Polynom<Number>& rhs)
   { return std::tie(lhs._summands) == std::tie(rhs._summands); }
-
-  static Polynom<Number> polyAdd(const Polynom<Number>& lhs, const Polynom<Number>& rhs);
-
-  static Polynom<Number> polyMul(const Polynom<Number>& lhs, const Polynom<Number>& rhs) 
-  {
-
-    CALL("Polynom::polyMul");
-    DEBUG("lhs: ", lhs);
-    DEBUG("rhs: ", rhs);
-    lhs.integrity();
-    rhs.integrity();
-
-    //TODO use Map instead
-    map<UniqueShared<Monom>, Coeff> prods;
-
-    for (auto& l : lhs._summands) {
-      for (auto& r : rhs._summands) {
-        auto monom = unique(Monom::monomMul( l.monom, r.monom));
-        auto coeff = l.coeff * r.coeff;
-        auto res = prods.emplace(make_pair(std::move(monom), coeff));
-        if (!res.second) {
-          auto& iter = res.first;
-          ASS(iter != prods.end());
-          iter->second = iter->second + coeff;
-        }
-      }
-    }
-
-    Polynom<Number> out;
-    out._summands.reserve(prods.size());
-    for (auto iter = prods.begin(); iter != prods.end(); iter++) {
-      auto coeff = iter->second;
-      if (coeff != Number::zeroC) {
-        out._summands.pushMv(PolyPair(coeff, iter->first)); 
-      }
-    }
-    //TODO use stack instead of vector
-    std::sort(out._summands.begin(), out._summands.end(), 
-        []( const PolyPair& lhs, const PolyPair& rhs) { return std::less<UniqueShared<Monom>>{}(lhs.monom, rhs.monom); });
-    out.integrity();
-    DEBUG("out: ", out);
-    return out;
-  }
 
   static std::pair<Polynom, Polynom> cancel(Polynom<Number> const& oldl, Polynom<Number> const& oldr) 
   {
@@ -954,33 +842,6 @@ inline std::ostream& operator<<(std::ostream& out, const FuncTerm& self)
 
   return out;
 }
-
-
-template<class Number>
-Polynom<Number> Polynom<Number>::polyAdd(const Polynom<Number>& lhs, const Polynom<Number>& rhs) 
-{
-  CALL("Polynom::polyAdd")
-  lhs.integrity();
-  rhs.integrity();
-  auto newCoeffs = merge_sort_with(lhs._summands, rhs._summands, 
-      /* combine */
-      [](PolyPair const& l, PolyPair const& r)
-      { ASS_EQ(l.monom, r.monom); return PolyPair( l.coeff + r.coeff, l.monom ); },
-
-      /* filter */
-      [](PolyPair const& x)
-      { return x.coeff != Number::zeroC; },
-
-      /* compare */
-      [](PolyPair const& l, PolyPair const& r){ return l.monom < r.monom; }
-    );
-  if (newCoeffs.isEmpty())  {
-    return Polynom(Coeff(0));
-  } else {
-    return Polynom<Number>(std::move(newCoeffs));
-  }
-}
-
 
 //TODO simplify this call in order to get rid of the unique(..) call
 template<class Number> 

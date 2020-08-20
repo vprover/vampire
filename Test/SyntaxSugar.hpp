@@ -226,13 +226,29 @@ template<class Number> Trm<Number> operator+(Trm<Number> lhs, Trm<Number> rhs)  
 template<class Number> Trm<Number> operator*(Trm<Number> lhs, Trm<Number> rhs)  { return Number::mul(lhs, rhs); }  
 template<class Number> Trm<Number> operator/(Trm<Number> lhs, Trm<Number> rhs)  { return Number::div(lhs, rhs); }  
 
-#define __IMPL_NUMBER_OPERATOR(op, result_t)                                                                            \
-  template<class Number> result_t operator op(int lhs, Trm<Number> rhs) { return Trm<Number>(lhs) op rhs; }             \
-  template<class Number> result_t operator op(Trm<Number> lhs, int rhs) { return lhs op Trm<Number>(rhs); }             \
+#define __IMPL_NUMBER_BIN_FUN(op, result_t)                                                                            \
+  template<class Number> result_t op(int lhs, Trm<Number> rhs) { return op(Trm<Number>(lhs), rhs); }             \
+  template<class Number> result_t op(Trm<Number> lhs, int rhs) { return op(lhs, Trm<Number>(rhs)); }             \
 
-__IMPL_NUMBER_OPERATOR(+, Trm<Number>)
-__IMPL_NUMBER_OPERATOR(*, Trm<Number>)
-__IMPL_NUMBER_OPERATOR(/, Trm<Number>)
+__IMPL_NUMBER_BIN_FUN(operator+, Trm<Number>)
+__IMPL_NUMBER_BIN_FUN(operator*, Trm<Number>)
+__IMPL_NUMBER_BIN_FUN(operator/, Trm<Number>)
+
+#define __BIN_FUNC_QUOTIENT_REMAINDER(X) \
+  template<class Number> \
+  Trm<Number>  quotient##X(Trm<Number> lhs, Trm<Number> rhs){ return Number:: quotient##X(lhs, rhs); }   \
+  \
+  template<class Number> \
+  Trm<Number> remainder##X(Trm<Number> lhs, Trm<Number> rhs){ return Number::remainder##X(lhs, rhs); }   \
+  \
+  __IMPL_NUMBER_BIN_FUN( quotient##X, Trm<Number>) \
+  __IMPL_NUMBER_BIN_FUN(remainder##X, Trm<Number>) \
+
+__BIN_FUNC_QUOTIENT_REMAINDER(E)
+__BIN_FUNC_QUOTIENT_REMAINDER(T)
+__BIN_FUNC_QUOTIENT_REMAINDER(F)
+
+#undef __BIN_FUNC_QUOTIENT_REMAINDER
 
 
 template<class Number> 
@@ -269,12 +285,12 @@ Lit operator!=(Trm<Sort> lhs, Trm<Sort> rhs)
   return ~(lhs == rhs);
 }
 
-__IMPL_NUMBER_OPERATOR(==, Lit)
-__IMPL_NUMBER_OPERATOR(!=, Lit)
-__IMPL_NUMBER_OPERATOR(< , Lit)
-__IMPL_NUMBER_OPERATOR(<=, Lit)
-__IMPL_NUMBER_OPERATOR(> , Lit)
-__IMPL_NUMBER_OPERATOR(>=, Lit)
+__IMPL_NUMBER_BIN_FUN(operator==, Lit)
+__IMPL_NUMBER_BIN_FUN(operator!=, Lit)
+__IMPL_NUMBER_BIN_FUN(operator< , Lit)
+__IMPL_NUMBER_BIN_FUN(operator<=, Lit)
+__IMPL_NUMBER_BIN_FUN(operator> , Lit)
+__IMPL_NUMBER_BIN_FUN(operator>=, Lit)
 
 
 template<class ResultSort, class... ArgSorts>

@@ -613,32 +613,23 @@ private:
   PolyNf evaluateStep(Term* orig, PolyNf* evaluatedArgs) const;
 };
 
-//
-// /**
-//  * For every Theory::Interpretation that represents a predicate one specialization of this template function must be provided.
-//  */
-// template<Theory::Interpretation inter> 
-// LitEvalResult evaluateLit(Literal* orig, PolyNf* evaluatedArgs);
-
-/**
- * For every Theory::Interpretation that represents a function one specialization of this struct must be provided.
- *
- * The parameter @b PolynomialNormalizerConfig is expected to be one of the tryInterpretConstant in @b PolynomialNormalizerConfig
- */
-template<Theory::Interpretation inter>
-struct FunctionEvaluator {
-  template<class PolynomialNormalizerConfig>
-  static PolyNf evaluate(Term* orig, PolyNf* evaluatedArgs);
-};
-
-
 template<Theory::Interpretation inter>
 struct PredicateEvaluator {
   template<class PolynomialNormalizerConfig>
   static LitEvalResult evaluate(Literal* orig, PolyNf* evaluatedArgs);
 };
 
-#include "Kernel/PolynomialNormalizer/FunctionEvaluator.hpp"
+template<class Number>
+UniqueShared<Polynom<Number>> intoPoly(PolyNf p) 
+{ 
+  CALL("intoPoly(PolyNf p)")
+  return unique(
+    p.isType<AnyPoly>() ? p.as<AnyPoly>()
+                           .as<UniqueShared<Polynom<Number>>>()
+                        : Polynom<Number>(p)
+      );
+}
+
 #include "Kernel/PolynomialNormalizer/PredicateEvaluator.hpp"
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -726,17 +717,6 @@ PolyNf evaluateConst(typename number::ConstantType c)
 
 
 template<class Number>
-UniqueShared<Polynom<Number>> intoPoly(PolyNf p) 
-{ 
-  CALL("intoPoly(PolyNf p)")
-  return unique(
-    p.isType<AnyPoly>() ? p.as<AnyPoly>()
-                           .as<UniqueShared<Polynom<Number>>>()
-                        : Polynom<Number>(p)
-      );
-}
-
-template<class Number>
 Optional<PolyNf> trySimplifyUnaryMinus(PolyNf* evalArgs)
 {
   CALL("trySimplifyUnaryMinus(PolyNf*)")
@@ -747,14 +727,46 @@ Optional<PolyNf> trySimplifyUnaryMinus(PolyNf* evalArgs)
             )));
 }
 
+template<class Number, class Clsr>
+inline Optional<PolyNf> trySimplifyConst2(PolyNf* evalArgs, Clsr f) 
+{
+  using Const = typename Number::ConstantType;
+  auto lhs = evalArgs[0].template tryNumeral<Number>();
+  auto rhs = evalArgs[1].template tryNumeral<Number>();
+  if (lhs.isSome() && rhs.isSome()) {
+    return PolyNf(AnyPoly(unique(Polynom<Number>(f(lhs.unwrap(), rhs.unwrap())))));
+  } else {
+    return none<PolyNf>();
+  }
+  // return evalArgs[0].template tryNumeral<Number>()
+  //   .and_then([&](Const&& lhs) {
+  //       return evalArgs[1].try_numeral([&](Const&& rhs) {
+  //         return f(lhs,rhs);
+  //       })
+  //   })
+}
+
 inline Optional<PolyNf> trySimplify(Theory::Interpretation i, PolyNf* evalArgs) 
 {
   CALL("trySimplify(Theory::Interpretation i, PolyNf* evalArgs) ")
   switch (i) {
 
+#   define CONSTANT_CASE(Num, func)  \
+    case Num##Traits:: func ## I:  \
+      { \
+        using Const = typename Num##Traits::ConstantType; \
+        return trySimplifyConst2<Num##Traits>(evalArgs, [](Const l, Const r){ return l.func(r); }); \
+      } \
+
+#define QUOTIENT_REMAINDER_CASES(Num, X) \
+    CONSTANT_CASE(Num, quotient##X) \
+    CONSTANT_CASE(Num, remainder##X) \
+
 #   define NUM_CASE(Num) \
-    case Num ## Traits::minusI: \
-      return trySimplifyUnaryMinus<Num ## Traits>(evalArgs);
+    case Num ## Traits::minusI:     return trySimplifyUnaryMinus<Num ## Traits>(evalArgs); \
+    QUOTIENT_REMAINDER_CASES(Num, E) \
+    QUOTIENT_REMAINDER_CASES(Num, T) \
+    QUOTIENT_REMAINDER_CASES(Num, F) \
 
     NUM_CASE(Int)
     NUM_CASE(Rat)
@@ -769,59 +781,38 @@ inline Optional<PolyNf> trySimplify(Theory::Interpretation i, PolyNf* evalArgs)
 template<class Config> PolyNf PolynomialNormalizer<Config>::evaluate(TermList term) const {
   CALL("PolynomialNormalizer<Config>::evaluate(TermList term) const")
 
-  if(1) {
-    auto norm = PolyNf::normalize(term);
-    DEBUG("evaluating ", norm)
-    struct Eval 
-    {
-      const PolynomialNormalizer& norm;
+  auto norm = PolyNf::normalize(term);
+  DEBUG("evaluating ", norm)
+  struct Eval 
+  {
+    const PolynomialNormalizer& norm;
 
-      using Result = PolyNf;
-      using Arg    = PolyNf;
+    using Result = PolyNf;
+    using Arg    = PolyNf;
 
-      PolyNf operator()(PolyNf orig, PolyNf* ts) 
-      { 
-        return orig.match<PolyNf>(
-            // TODO Simplifiy other functions that + and *
-            [&](UniqueShared<FuncTerm> f)  -> PolyNf
-            { 
-              return f->function().tryInterpret()
-                .andThen( [&](Theory::Interpretation && i)  -> Optional<PolyNf>
-                    { return trySimplify(i, ts); })
-                .unwrapOrElse([&]() -> PolyNf
-                    { return PolyNf(unique(FuncTerm(f->function(), ts))); });
-            }, 
+    PolyNf operator()(PolyNf orig, PolyNf* ts) 
+    { 
+      return orig.match<PolyNf>(
+          // TODO Simplifiy other functions that + and *
+          [&](UniqueShared<FuncTerm> f)  -> PolyNf
+          { 
+            return f->function().tryInterpret()
+              .andThen( [&](Theory::Interpretation && i)  -> Optional<PolyNf>
+                  { return trySimplify(i, ts); })
+              .unwrapOrElse([&]() -> PolyNf
+                  { return PolyNf(unique(FuncTerm(f->function(), ts))); });
+          }, 
 
-            [&](Variable v) 
-            { return v; },
+          [&](Variable v) 
+          { return v; },
 
-            [&](AnyPoly p) 
-            { return p.simplify(ts); }
-        );
-      }
-    };
-    static Memo::Hashed<PolyNf, PolyNf> memo;
-    return evaluateBottomUp(norm, Eval{ *this }, memo);
-  } else {
-    struct Eval 
-    {
-      const PolynomialNormalizer& norm;
-
-      using Result = PolyNf;
-      using Arg    = TermList;
-
-      PolyNf operator()(TermList t, PolyNf* ts) 
-      { 
-        if (t.isVar()) {
-          return PolyNf(Variable(t.var()));
-        } else {
-          return norm.evaluateStep(t.term(), ts); 
-        }
-      }
-    };
-    static Memo::Hashed<TermList, PolyNf> memo;
-    return evaluateBottomUp(term, Eval{ *this }, memo);
-  }
+          [&](AnyPoly p) 
+          { return p.simplify(ts); }
+      );
+    }
+  };
+  static Memo::Hashed<PolyNf, PolyNf> memo;
+  return evaluateBottomUp(norm, Eval{ *this }, memo);
 }
 
 template<class Config> PolyNf PolynomialNormalizer<Config>::evaluate(Term* term) const 
@@ -833,86 +824,92 @@ inline PolyNf createTerm(unsigned fun, PolyNf* evaluatedArgs)
 { return unique(FuncTerm(FuncId(fun), evaluatedArgs)); }
 
 
-template<class Config> PolyNf PolynomialNormalizer<Config>::evaluateStep(Term* orig, PolyNf* args) const {
-  CALL("PolynomialNormalizer::evaluateStep(Term* orig, PolyNf* args)")
-  DEBUG("evaluating ", *orig)
+// TODO evaluate conversion functions
+// TODO evaluate INT_ABS
+// TODO evaluate INT_SUCCESSOR
+// TODO evaluate FRAC_QUOTIENT
+// TODO evaluate FRAC_ROUND
+// TODO evaluate NUM_TO_NUM
+// TODO evaluate NUM_TRUNCATE
 
-#define HANDLE_CASE(INTER) case Interpretation::INTER: return FunctionEvaluator<Interpretation::INTER>::evaluate<Config>(orig, args); 
-#define IGNORE_CASE(INTER) case Interpretation::INTER: return createTerm<Config>(functor, args);
-
-
-#define HANDLE_CONSTANT_CASE(Num)                                                                                       \
-  {                                                                                                                     \
-    Num ## ConstantType c;                                                                                              \
-    if (theory->tryInterpretConstant(orig, c)) {                                                                        \
-      return evaluateConst<NumTraits<Num ## ConstantType>>(c);                                                          \
-    }                                                                                                                   \
-  }                                                                                                                     \
-
-#define HANDLE_NUM_CASES(NUM)                                                                                           \
-    HANDLE_CASE(NUM ## _UNARY_MINUS)                                                                                    \
-    HANDLE_CASE(NUM ## _PLUS)                                                                                           \
-    HANDLE_CASE(NUM ## _MINUS)                                                                                          \
-    HANDLE_CASE(NUM ## _MULTIPLY)                                                                                       \
-    HANDLE_CASE(NUM ## _QUOTIENT_E)                                                                                     \
-    HANDLE_CASE(NUM ## _QUOTIENT_T)                                                                                     \
-    HANDLE_CASE(NUM ## _QUOTIENT_F)                                                                                     \
-    HANDLE_CASE(NUM ## _REMAINDER_E)                                                                                    \
-    HANDLE_CASE(NUM ## _REMAINDER_T)                                                                                    \
-    HANDLE_CASE(NUM ## _REMAINDER_F)                                                                                    \
-    HANDLE_CASE(NUM ## _FLOOR)                                                                                          \
-    HANDLE_CASE(NUM ## _CEILING)                                                                                        \
-    HANDLE_CASE(NUM ## _TRUNCATE)                                                                                       \
-    HANDLE_CASE(NUM ## _TO_INT)                                                                                         \
-    HANDLE_CASE(NUM ## _TO_RAT)                                                                                         \
-    HANDLE_CASE(NUM ## _TO_REAL)                                                                                        \
-
-  auto functor = orig->functor();
-  auto sym = env.signature->getFunction(functor);
-
-  try {
-    if (sym->interpreted()) {
-      if (sym->interpretedNumber()) {
-          HANDLE_CONSTANT_CASE(Integer)
-          HANDLE_CONSTANT_CASE(Rational)
-          HANDLE_CONSTANT_CASE(Real)
-          ASS_REP(false, "unexpected interpreted number: " + orig->toString())
-      } else {
-        auto inter = static_cast<Signature::InterpretedSymbol*>(sym)->getInterpretation();
-        switch (inter) {
-
-          /* common number functions*/
-          HANDLE_NUM_CASES(INT)
-          HANDLE_NUM_CASES(RAT)
-          HANDLE_NUM_CASES(REAL)
-
-          /* integer functions */
-          HANDLE_CASE(INT_SUCCESSOR)
-          HANDLE_CASE(INT_ABS)
-
-          /* rational functions */
-          HANDLE_CASE(RAT_QUOTIENT)
-          IGNORE_CASE(RAT_ROUND)  //TODO
-
-          /* real functions */
-          HANDLE_CASE(REAL_QUOTIENT)
-          IGNORE_CASE(REAL_ROUND)  //TODO
-
-          /* ignored */
-          IGNORE_CASE(ARRAY_SELECT)
-          IGNORE_CASE(ARRAY_BOOL_SELECT)
-          IGNORE_CASE(ARRAY_STORE)
-
-          default:
-            ASS_REP(false, "unexpected interpreted function: " + orig->toString())
-        }
-      }
-
-    }
-  } catch (MachineArithmeticException) { /* nop */ }
-  // /* uninterpreted or evaluation failed */
-  return createTerm<Config>(functor, args);
-}
+//   DEBUG("evaluating ", *orig)
+//
+// #define HANDLE_CASE(INTER) case Interpretation::INTER: return FunctionEvaluator<Interpretation::INTER>::evaluate<Config>(orig, args); 
+// #define IGNORE_CASE(INTER) case Interpretation::INTER: return createTerm<Config>(functor, args);
+//
+//
+// #define HANDLE_CONSTANT_CASE(Num)                                                                                       \
+//   {                                                                                                                     \
+//     Num ## ConstantType c;                                                                                              \
+//     if (theory->tryInterpretConstant(orig, c)) {                                                                        \
+//       return evaluateConst<NumTraits<Num ## ConstantType>>(c);                                                          \
+//     }                                                                                                                   \
+//   }                                                                                                                     \
+//
+// #define HANDLE_NUM_CASES(NUM)                                                                                           \
+//     HANDLE_CASE(NUM ## _UNARY_MINUS)                                                                                    \
+//     HANDLE_CASE(NUM ## _PLUS)                                                                                           \
+//     HANDLE_CASE(NUM ## _MINUS)                                                                                          \
+//     HANDLE_CASE(NUM ## _MULTIPLY)                                                                                       \
+//     HANDLE_CASE(NUM ## _QUOTIENT_E)                                                                                     \
+//     HANDLE_CASE(NUM ## _QUOTIENT_T)                                                                                     \
+//     HANDLE_CASE(NUM ## _QUOTIENT_F)                                                                                     \
+//     HANDLE_CASE(NUM ## _REMAINDER_E)                                                                                    \
+//     HANDLE_CASE(NUM ## _REMAINDER_T)                                                                                    \
+//     HANDLE_CASE(NUM ## _REMAINDER_F)                                                                                    \
+//     HANDLE_CASE(NUM ## _FLOOR)                                                                                          \
+//     HANDLE_CASE(NUM ## _CEILING)                                                                                        \
+//     HANDLE_CASE(NUM ## _TRUNCATE)                                                                                       \
+//     HANDLE_CASE(NUM ## _TO_INT)                                                                                         \
+//     HANDLE_CASE(NUM ## _TO_RAT)                                                                                         \
+//     HANDLE_CASE(NUM ## _TO_REAL)                                                                                        \
+//
+//   auto functor = orig->functor();
+//   auto sym = env.signature->getFunction(functor);
+//
+//   try {
+//     if (sym->interpreted()) {
+//       if (sym->interpretedNumber()) {
+//           HANDLE_CONSTANT_CASE(Integer)
+//           HANDLE_CONSTANT_CASE(Rational)
+//           HANDLE_CONSTANT_CASE(Real)
+//           ASS_REP(false, "unexpected interpreted number: " + orig->toString())
+//       } else {
+//         auto inter = static_cast<Signature::InterpretedSymbol*>(sym)->getInterpretation();
+//         switch (inter) {
+//
+//           /* common number functions*/
+//           HANDLE_NUM_CASES(INT)
+//           HANDLE_NUM_CASES(RAT)
+//           HANDLE_NUM_CASES(REAL)
+//
+//           /* integer functions */
+//           HANDLE_CASE(INT_SUCCESSOR)
+//           HANDLE_CASE(INT_ABS)
+//
+//           /* rational functions */
+//           HANDLE_CASE(RAT_QUOTIENT)
+//           IGNORE_CASE(RAT_ROUND)  //TODO
+//
+//           /* real functions */
+//           HANDLE_CASE(REAL_QUOTIENT)
+//           IGNORE_CASE(REAL_ROUND)  //TODO
+//
+//           /* ignored */
+//           IGNORE_CASE(ARRAY_SELECT)
+//           IGNORE_CASE(ARRAY_BOOL_SELECT)
+//           IGNORE_CASE(ARRAY_STORE)
+//
+//           default:
+//             ASS_REP(false, "unexpected interpreted function: " + orig->toString())
+//         }
+//       }
+//
+//     }
+//   } catch (MachineArithmeticException) { /* nop */ }
+//   // /* uninterpreted or evaluation failed */
+//   return createTerm<Config>(functor, args);
+// }
 
 
 

@@ -222,6 +222,7 @@ void check_eval(Lit orig_, Lit expected_) {
         THEORY_SYNTAX_SUGAR_FUN(f, 1) \
         THEORY_SYNTAX_SUGAR_FUN(f2, 2) \
         THEORY_SYNTAX_SUGAR_PRED(p, 1) \
+        THEORY_SYNTAX_SUGAR_PRED(r, 2) \
       _Pragma("GCC diagnostic pop") \
 
 /** Tests for evalutions that should only be successful for reals/rationals and not for integers. */
@@ -620,6 +621,46 @@ ALL_NUMBERS_TEST(eval_cancellation_add_9,
     a * y * -1 == a * y * -2,
     0 == -(a * y)
     )
+
+ALL_NUMBERS_TEST(eval_quotientE_1,
+    r(quotientE(num(7), 2), remainderE(num(7), 2)),
+    r(                  3,                     1)
+    )
+ALL_NUMBERS_TEST(eval_quotientE_2,
+    r(quotientE(num(-7), 2), remainderE(num(-7), 2)),
+    r(                  -4 ,                     1 )
+    )
+ALL_NUMBERS_TEST(eval_quotientE_3,
+    r(quotientE(num(7), -2), remainderE(num(7), -2)),
+    r(                  -3 ,                1 )
+    )
+
+ALL_NUMBERS_TEST(eval_quotientF_1,
+    r(quotientF(num(7), 2), remainderF(num(7), 2)),
+    r(                  3,                     1)
+    )
+
+ALL_NUMBERS_TEST(eval_quotientT_1,
+    r(quotientT(num(7), 2), remainderT(num(7), 2)),
+    r(                  3,                     1)
+    )
+
+ALL_NUMBERS_TEST(eval_overflow,
+    p(num(1661992960) + 1661992960),
+    p(num(1661992960) + 1661992960)
+    )
+
+// FRACTIONAL_TEST(eval_div_1,
+//     p(floor(frac(7,2))),
+//     p(3)
+//     )
+//
+// FRACTIONAL_TEST(eval_div_1,
+//     p(ceil(frac(7,2))),
+//     p(4)
+//     )
+
+
 
 // not yet implemented:
 // ALL_NUMBERS_TEST(eval_cancellation_mul_0,

@@ -97,11 +97,11 @@ IMPL_EVALUATE_PRED(Interpretation::EQUAL,
   if (shallCancel) {
     switch (sort) {
     case Sorts::SRT_INTEGER:
-      return interpretEquality<Config>(polarity, toPoly<IntTraits>(lhs), toPoly<IntTraits>(rhs));
+      return interpretEquality<Config>(polarity, *intoPoly<IntTraits>(lhs), *intoPoly<IntTraits>(rhs));
     case Sorts::SRT_RATIONAL:
-      return interpretEquality<Config>(polarity, toPoly<RatTraits>(lhs), toPoly<RatTraits>(rhs));
+      return interpretEquality<Config>(polarity, *intoPoly<RatTraits>(lhs), *intoPoly<RatTraits>(rhs));
     case Sorts::SRT_REAL:
-      return interpretEquality<Config>(polarity, toPoly<RealTraits>(lhs), toPoly<RealTraits>(rhs));
+      return interpretEquality<Config>(polarity, *intoPoly<RealTraits>(lhs), *intoPoly<RealTraits>(rhs));
       default:
       // polynomials can only be of number sorts
         ASSERTION_VIOLATION
@@ -126,8 +126,8 @@ template<class NormalizerConfig, class ConstantType, class EvalIneq> LitEvalResu
   ASS(orig->arity() == 2);
 
 
-  auto lhs_ = toPoly<NumTraits<ConstantType>>(evaluatedArgs[0]);
-  auto rhs_ = toPoly<NumTraits<ConstantType>>(evaluatedArgs[1]);
+  auto lhs_ = *intoPoly<NumTraits<ConstantType>>(evaluatedArgs[0]);
+  auto rhs_ = *intoPoly<NumTraits<ConstantType>>(evaluatedArgs[1]);
 
   // auto shallCancel = lhs.isPoly() || rhs.isPoly();
   auto res = Poly<ConstantType>::cancel(lhs_, rhs_);

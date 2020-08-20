@@ -78,6 +78,11 @@ public:
   IntegerConstantType quotientT(const IntegerConstantType& num) const;
   IntegerConstantType quotientF(const IntegerConstantType& num) const; 
 
+  IntegerConstantType remainderT(const IntegerConstantType& num) const
+  { return (*this) - num * quotientT(num); }
+  IntegerConstantType remainderF(const IntegerConstantType& num) const
+  { return (*this) - num * quotientF(num); } 
+
   bool operator==(const IntegerConstantType& num) const;
   bool operator>(const IntegerConstantType& num) const;
 
@@ -176,6 +181,13 @@ struct RationalConstantType {
     return ((*this)/num).floor(); 
   }
 
+  RationalConstantType remainderE(const RationalConstantType& num) const
+  { return (*this) - num * quotientE(num); }
+  RationalConstantType remainderT(const RationalConstantType& num) const
+  { return (*this) - num * quotientT(num); }
+  RationalConstantType remainderF(const RationalConstantType& num) const
+  { return (*this) - num * quotientF(num); } 
+
 
   vstring toString() const;
 
@@ -237,6 +249,14 @@ public:
     { return RealConstantType(RationalConstantType::quotientT(num)); }
   RealConstantType quotientF(const RealConstantType& num) const
     { return RealConstantType(RationalConstantType::quotientF(num)); }
+
+  RealConstantType remainderE(const RealConstantType& num) const
+  { return (*this) - num * quotientE(num); }
+  RealConstantType remainderT(const RealConstantType& num) const
+  { return (*this) - num * quotientT(num); }
+  RealConstantType remainderF(const RealConstantType& num) const
+  { return (*this) - num * quotientF(num); } 
+
 
   vstring toNiceString() const;
 

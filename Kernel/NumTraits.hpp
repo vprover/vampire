@@ -113,6 +113,11 @@ struct NumTraits;
       return l.tag() == REF && name ## T() == l.term();                                                                 \
     }                                                                                                                   \
 
+#define IMPL_NUM_TRAITS__QUOTIENT_REMAINDER(SHORT, X)                                                                   \
+    IMPL_NUM_TRAITS__INTERPRETED_FUN( quotient ## X, SHORT,  _QUOTIENT_ ## X, 2)                                        \
+    IMPL_NUM_TRAITS__INTERPRETED_FUN(remainder ## X, SHORT, _REMAINDER_ ## X, 2)                                        \
+    
+
 #define IMPL_NUM_TRAITS(CamelCase, LONG, SHORT)                                                                         \
   template<> struct NumTraits<CamelCase ## ConstantType> {                                                              \
     using ConstantType = CamelCase ## ConstantType;                                                                     \
@@ -124,6 +129,9 @@ struct NumTraits;
     IMPL_NUM_TRAITS__INTERPRETED_PRED(greater, SHORT, _GREATER,       2)                                                \
     IMPL_NUM_TRAITS__INTERPRETED_PRED(geq,     SHORT, _GREATER_EQUAL, 2)                                                \
                                                                                                                         \
+    IMPL_NUM_TRAITS__QUOTIENT_REMAINDER(SHORT, E)                                                                       \
+    IMPL_NUM_TRAITS__QUOTIENT_REMAINDER(SHORT, T)                                                                       \
+    IMPL_NUM_TRAITS__QUOTIENT_REMAINDER(SHORT, F)                                                                       \
     IMPL_NUM_TRAITS__INTERPRETED_FUN(minus, SHORT, _UNARY_MINUS, 1)                                                     \
     IMPL_NUM_TRAITS__INTERPRETED_FUN(add  , SHORT, _PLUS       , 2)                                                     \
     IMPL_NUM_TRAITS__INTERPRETED_FUN(mul  , SHORT, _MULTIPLY   , 2)                                                     \
