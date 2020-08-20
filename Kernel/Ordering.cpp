@@ -685,7 +685,7 @@ bool isPermutation(const DArray<int>& xs) {
 /**
  * Create a PrecedenceOrdering object.
  */
-PrecedenceOrdering::PrecedenceOrdering(DArray<int> funcPrec, DArray<int> predPrec, DArray<int> predLevels, bool reverseLCM)
+PrecedenceOrdering::PrecedenceOrdering(const DArray<int>& funcPrec, const DArray<int>& predPrec, const DArray<int>& predLevels, bool reverseLCM)
   : _predicates(predPrec.size()),
     _functions(funcPrec.size()),
     _predicateLevels(predLevels),
@@ -693,7 +693,7 @@ PrecedenceOrdering::PrecedenceOrdering(DArray<int> funcPrec, DArray<int> predPre
     _functionPrecedences(funcPrec),
     _reverseLCM(reverseLCM)
 {
-  CALL("PrecedenceOrdering::PrecedenceOrdering");
+  CALL("PrecedenceOrdering::PrecedenceOrdering(const DArray<int>&, const DArray<int>&, const DArray<int>&, bool)");
   ASS_EQ(env.signature->predicates(), _predicates);
   ASS_EQ(env.signature->functions(), _functions);
   ASS(isPermutation(_functionPrecedences))
@@ -702,20 +702,32 @@ PrecedenceOrdering::PrecedenceOrdering(DArray<int> funcPrec, DArray<int> predPre
 
 /**
  * Create a PrecedenceOrdering object.
+ *
+ * "Intermediate" constructor; this is needed so that we only call predPrecFromOpts once (and use it here twice).
+ */
+PrecedenceOrdering::PrecedenceOrdering(Problem& prb, const Options& opt, const DArray<int>& predPrec)
+: PrecedenceOrdering(
+    funcPrecFromOpts(prb,opt),
+    predPrec,
+    predLevelsFromOptsAndPrec(prb,opt,predPrec),
+    opt.literalComparisonMode()==Shell::Options::LiteralComparisonMode::REVERSE
+    )
+{
+  CALL("PrecedenceOrdering::PrecedenceOrdering((Problem&,const Options&,const DArray<int>&)");
+}
+
+/**
+ * Create a PrecedenceOrdering object.
  */
 PrecedenceOrdering::PrecedenceOrdering(Problem& prb, const Options& opt)
-  : PrecedenceOrdering(
-      ( 
-         // Make sure we (re-)compute usageCnt's for all the symbols;
-         // in particular, the sP's (the Tseitin predicates) and sK's (the Skolem functions), which only exists since preprocessing.
-         prb.getProperty(),
-         funcPrecFromOpts(prb, opt)),
-      predPrecFromOpts(prb, opt),
-      predLevelsFromOpts(prb, opt),
-      opt.literalComparisonMode()==Shell::Options::LiteralComparisonMode::REVERSE
-  )
+: PrecedenceOrdering(prb,opt,
+    (
+       // Make sure we (re-)compute usageCnt's for all the symbols;
+       // in particular, the sP's (the Tseitin predicates) and sK's (the Skolem functions), which only exists since preprocessing.
+       prb.getProperty(),
+       predPrecFromOpts(prb, opt)))
 {
-  CALL("PrecedenceOrdering::PrecedenceOrdering");
+  CALL("PrecedenceOrdering::PrecedenceOrdering(Problem&,const Options&)");
   ASS_G(_predicates, 0);
 }
 
@@ -853,7 +865,7 @@ DArray<int> PrecedenceOrdering::predPrecFromOpts(Problem& prb, const Options& op
   return predicatePrecedences;
 }
 
-DArray<int> PrecedenceOrdering::predLevelsFromOpts(Problem& prb, const Options& opt) {
+DArray<int> PrecedenceOrdering::predLevelsFromOptsAndPrec(Problem& prb, const Options& opt, const DArray<int>& predicatePrecedences) {
 
   unsigned nPredicates = env.signature->predicates();
   DArray<int> predicateLevels(nPredicates);
@@ -864,7 +876,6 @@ DArray<int> PrecedenceOrdering::predLevelsFromOpts(Problem& prb, const Options& 
     break;
   case Shell::Options::LiteralComparisonMode::PREDICATE:
   case Shell::Options::LiteralComparisonMode::REVERSE:
-    auto predicatePrecedences = predPrecFromOpts(prb,opt); // TODO this is inefficient in the constructor, but it is only used during initializiation. Is it okay then?
     for(unsigned i=1;i<nPredicates;i++) {
       predicateLevels[i]=predicatePrecedences[i]+1;
     }

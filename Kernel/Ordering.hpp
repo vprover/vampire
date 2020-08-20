@@ -174,12 +174,13 @@ protected:
   // l1 and l2 are not equalities and have the same predicate
   virtual Result comparePredicates(Literal* l1,Literal* l2) const = 0;
   
-  PrecedenceOrdering(DArray<int> funcPrec, DArray<int> predPrec, DArray<int> predLevels, bool reverseLCM);
+  PrecedenceOrdering(const DArray<int>& funcPrec, const DArray<int>& predPrec, const DArray<int>& predLevels, bool reverseLCM);
+  PrecedenceOrdering(Problem& prb, const Options& opt, const DArray<int>& predPrec);
   PrecedenceOrdering(Problem& prb, const Options& opt);
 
   static DArray<int> funcPrecFromOpts(Problem& prb, const Options& opt);
   static DArray<int> predPrecFromOpts(Problem& prb, const Options& opt);
-  static DArray<int> predLevelsFromOpts(Problem& prb, const Options& opt);
+  static DArray<int> predLevelsFromOptsAndPrec(Problem& prb, const Options& opt, const DArray<int>& predicatePrecedences);
 
   Result compareFunctionPrecedences(unsigned fun1, unsigned fun2) const;
 
