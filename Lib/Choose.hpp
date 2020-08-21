@@ -35,6 +35,8 @@
 #include "Lib/Allocator.hpp"
 #include "Lib/VString.hpp"
 #include "Lib/Int.hpp"
+#include "Lib/Environment.hpp"
+#include "Shell/Statistics.hpp"
 #include <random>
 #include <fstream>
 #include <string>
@@ -107,7 +109,7 @@ public:
     CALL("Choose::getInteger");
 
     return read_write_generate<int>([modulus]() { return std::uniform_int_distribution<int>(0,modulus-1)(_eng); },
-        vstring("getInteger(") + Int::toString(modulus) + "):" + where);
+        Int::toString(env.statistics->saturationIterationsStarted) + " getInteger(" + Int::toString(modulus) + "):" + where);
   }
 
   /** Return a new random double */
@@ -115,7 +117,7 @@ public:
     CALL("Choose::getDouble");
 
     return read_write_generate<double>([min,max]() { return std::uniform_real_distribution<double>(min,max)(_eng); },
-        vstring("getDouble(") + Int::toString(min) + ","+ Int::toString(max) + "):" + where);
+        Int::toString(env.statistics->saturationIterationsStarted) + " getDouble(" + Int::toString(min) + ","+ Int::toString(max) + "):" + where);
   }
 
   /** Return a random bit. */
@@ -125,7 +127,7 @@ public:
     static std::uniform_int_distribution<int> d(0,1);
 
     return read_write_generate<bool>([]() { return (bool)d(_eng); },
-        vstring("getBit():") + where);
+        Int::toString(env.statistics->saturationIterationsStarted) + " getBit():" + where);
   }
 
   // sets the random seed to s
