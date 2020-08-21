@@ -763,20 +763,7 @@ void processIteration(TermList curr, bool active, DHMap<TermList, unsigned>& cur
   }
   auto t = curr.term();
 
-  // by default we induct on skolem constants,
-  // term algebra terms and any non-recursive
-  // function term
-  auto canInductFn = [](TermList t) {
-    if (t.isVar()) {
-      return false;
-    }
-    auto func = t.term()->functor();
-    auto symb = t.term()->isLiteral() ? env.signature->getPredicate(func) : env.signature->getFunction(func);
-    return symb->skolem() || symb->termAlgebraCons() ||
-      !env.signature->hasInductionTemplate(func, t.term()->isLiteral());
-  };
-
-  if (canInductFn(curr)) {
+  if (InductionHelper::canInductOn(curr)) {
     if (!currOccMap.find(curr)) {
       currOccMap.insert(curr, 0);
       actOccMap->insert(curr, new DHSet<unsigned>());
@@ -802,12 +789,12 @@ void processIteration(TermList curr, bool active, DHMap<TermList, unsigned>& cur
     if (!active) {
       return;
     }
-    Term::Iterator argIt(t);
-    DArray<bool>::Iterator indVarIt(indVars);
+    IteratorByInductiveVariables argIt(t, indVars);
     bool match = true;
     while (argIt.hasNext()) {
       auto arg = argIt.next();
-      if (indVarIt.next() && !canInductFn(arg)) {
+      auto its = InductionHelper::getInductionTerms(arg);
+      if (its.size() == 0) {
         match = false;
         break;
       }
@@ -818,6 +805,10 @@ void processIteration(TermList curr, bool active, DHMap<TermList, unsigned>& cur
       scheme->init(t, templ->getRDescriptions(), templ->getInductionVariables());
       List<InductionScheme*>::push(scheme, schemes);
     }
+  } else if (InductionHelper::isTermAlgebraCons(curr)) {
+    for (unsigned i = 0; i < t->arity(); i++) {
+      actStack.push(active);
+    }
   } else {
     for (unsigned i = 0; i < t->arity(); i++) {
       actStack.push(false);
@@ -825,12 +816,8 @@ void processIteration(TermList curr, bool active, DHMap<TermList, unsigned>& cur
   }
 }
 
-void InductionClauseIterator::performStructInductionFour(Clause* premise, Literal* lit, InferenceRule rule) {
-  CALL("InductionClauseIterator::performStructInductionFour");
-
-  List<InductionScheme*>* schemes(0);
-  DHMap<TermList, unsigned> currOccMap;
-  auto actOccMap = new DHMap<TermList, DHSet<unsigned>*>();
+void generateSchemes(Literal* lit, List<InductionScheme*>*& schemes, DHMap<TermList, DHSet<unsigned>*>*& actOccMap,
+                     DHMap<TermList, unsigned>& currOccMap) {
   Stack<bool> actStack;
   if (lit->isEquality()) {
     actStack.push(true);
@@ -845,8 +832,18 @@ void InductionClauseIterator::performStructInductionFour(Clause* premise, Litera
     processIteration(curr, active, currOccMap, actOccMap, actStack, schemes);
   }
   ASS(actStack.isEmpty());
+}
 
-  InductionHelper::filterSchemes(schemes);
+void InductionClauseIterator::performStructInductionFour(Clause* premise, Literal* lit, InferenceRule rule, SuperpositionSubtermIndex* index) {
+  CALL("InductionClauseIterator::performStructInductionFour");
+
+  List<InductionScheme*>* schemes(0);
+  auto actOccMap = new DHMap<TermList, DHSet<unsigned>*>();
+  DHMap<TermList, unsigned> currOccMap;
+
+  generateSchemes(lit, schemes, actOccMap, currOccMap);
+
+  InductionHelper::filterSchemes(schemes, actOccMap, currOccMap);
 
   List<InductionScheme*>::Iterator schIt(schemes);
   while (schIt.hasNext()) {

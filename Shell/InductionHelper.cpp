@@ -5,6 +5,7 @@
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/Substitution.hpp"
 #include "Kernel/Term.hpp"
+#include "Kernel/TermIterators.hpp"
 #include "Kernel/Unit.hpp"
 
 using namespace Kernel;
@@ -268,22 +269,25 @@ void InductionScheme::init(Term* t, List<RDescription>::Iterator rdescIt, const 
     while (termIt.hasNext()) {
       auto argTerm = termIt.next();
       auto argStep = stepIt.next();
-      if (stepSubst.find(argTerm)) {
-        if (stepSubst.get(argTerm).isTerm() && argStep.isTerm() &&
-            stepSubst.get(argTerm).term()->functor() != argStep.term()->functor()) {
-          mismatch = true;
-          break;
+      auto its = InductionHelper::getInductionTerms(argTerm);
+      for (auto& indTerm : its) {
+        if (stepSubst.find(indTerm)) {
+          if (stepSubst.get(indTerm).isTerm() && argStep.isTerm() &&
+              stepSubst.get(indTerm).term()->functor() != argStep.term()->functor()) {
+            mismatch = true;
+            break;
+          }
+          continue;
         }
-        continue;
+        // there may be induction variables which
+        // don't change in some cases
+        if (argStep.isVar()) {
+          continue;
+        }
+        VarReplacement cr(varMap, var);
+        auto res = cr.transform(argStep.term());
+        stepSubst.insert(indTerm, TermList(res));
       }
-      // there may be induction variables which
-      // don't change in some cases
-      if (argStep.isVar()) {
-        continue;
-      }
-      VarReplacement cr(varMap, var);
-      auto res = cr.transform(argStep.term());
-      stepSubst.insert(argTerm, TermList(res));
     }
     if (mismatch) {
       // We cannot properly create this case because
@@ -304,29 +308,32 @@ void InductionScheme::init(Term* t, List<RDescription>::Iterator rdescIt, const 
       while (termIt.hasNext()) {
         auto argTerm = termIt.next();
         auto argRecCall = recCallIt.next();
-        if (recCallSubst.find(argTerm)) {
-          continue;
-        }
-        if (argRecCall.isVar()) {
-          // first we check if this variable corresponds to at least one complex term 
-          // in the step (it is an induction variable position but may not be
-          // changed in this case)
-          IteratorByInductiveVariables stepIt(desc.getStep().term(), indVars);
-          bool found = false;
-          while (stepIt.hasNext()) {
-            auto argStep = stepIt.next();
-            if (argStep != argRecCall && argStep.containsSubterm(argRecCall)) {
-              found = true;
-              break;
+        auto its = InductionHelper::getInductionTerms(argTerm);
+        for (auto& indTerm : its) {
+          if (recCallSubst.find(indTerm)) {
+            continue;
+          }
+          if (argRecCall.isVar()) {
+            // first we check if this variable corresponds to at least one complex term 
+            // in the step (it is an induction variable position but may not be
+            // changed in this case)
+            IteratorByInductiveVariables stepIt(desc.getStep().term(), indVars);
+            bool found = false;
+            while (stepIt.hasNext()) {
+              auto argStep = stepIt.next();
+              if (argStep != argRecCall && argStep.containsSubterm(argRecCall)) {
+                found = true;
+                break;
+              }
             }
+            if (found) {
+              recCallSubst.insert(indTerm, TermList(varMap.get(argRecCall.var()), false));
+            }
+          } else {
+            VarReplacement cr(varMap, var);
+            auto res = cr.transform(argRecCall.term());
+            recCallSubst.insert(indTerm, TermList(res));
           }
-          if (found) {
-            recCallSubst.insert(argTerm, TermList(varMap.get(argRecCall.var()), false));
-          }
-        } else {
-          VarReplacement cr(varMap, var);
-          auto res = cr.transform(argRecCall.term());
-          recCallSubst.insert(argTerm, TermList(res));
         }
       }
       List<DHMap<TermList,TermList>>::push(recCallSubst, recCallSubstList);
@@ -381,6 +388,9 @@ vstring InductionScheme::toString() const
       TermList k;
       DHSet<unsigned>* v;
       aIt.next(k, v);
+      if (v->isEmpty()) {
+        continue;
+      }
       str+="term: "+k.toString()+" positions: ";
       DHSet<unsigned>::Iterator pIt(*v);
       while (pIt.hasNext()) {
@@ -441,9 +451,67 @@ void InductionHelper::preprocess(UnitList*& units)
   }
 }
 
-void InductionHelper::filterSchemes(List<InductionScheme*>*& schemes)
+void InductionHelper::filterFlawedSchemes(List<InductionScheme*>*& schemes,
+  DHMap<TermList, DHSet<unsigned>*>* activeOccurrenceMap,
+  const DHMap<TermList, unsigned>& occurrenceMap)
+{
+  CALL("InductionHelper::filterFlawedSchemes");
+  Set<InductionScheme*> unflawed;
+  List<InductionScheme*>::Iterator schIt(schemes);
+  while (schIt.hasNext()) {
+    auto scheme = schIt.next();
+    auto rdescIt = scheme->getRDescriptionInstances();
+    bool flawed = false;
+    while (rdescIt.hasNext()) {
+      auto rdesc = rdescIt.next();
+      DHMap<TermList,TermList>::Iterator stIt(rdesc.getStep());
+      while (stIt.hasNext()) {
+        auto k = stIt.nextKey();
+        if (activeOccurrenceMap->get(k)->size() != occurrenceMap.get(k)) {
+          flawed = true;
+          break;
+        }
+      }
+    }
+    if (!flawed) {
+      unflawed.insert(scheme);
+    }
+  }
+  if(env.options->showInduction()){
+    env.beginOutput();
+    env.out() << "[Induction] " << unflawed.size() << " out of " << List<InductionScheme*>::length(schemes)
+              << " induction schemes are unflawed" << endl;
+    env.endOutput();
+  }
+  if (unflawed.size() > 0 && unflawed.size() != List<InductionScheme*>::length(schemes)) {
+    if(env.options->showInduction()){
+      env.beginOutput();
+      env.out() << "[Induction] filtering out flawed schemes" << endl;
+      env.endOutput();
+    }
+    List<InductionScheme*>::Iterator schIt(schemes);
+    while (schIt.hasNext()) {
+      auto scheme = schIt.next();
+      if (!unflawed.contains(scheme)) {
+        if(env.options->showInduction()){
+          env.beginOutput();
+          env.out() << "[Induction] Scheme is flawed and is removed: " << scheme->toString() << endl;
+          env.endOutput();
+        }
+        schemes = List<InductionScheme*>::remove(scheme, schemes);
+        // delete scheme;
+      }
+    }
+  }
+}
+
+void InductionHelper::filterSchemes(List<InductionScheme*>*& schemes,
+  DHMap<TermList, DHSet<unsigned>*>* activeOccurrenceMap,
+  const DHMap<TermList, unsigned>& occurrenceMap)
 {
   CALL("InductionHelper::filterSchemes");
+
+  filterFlawedSchemes(schemes, activeOccurrenceMap, occurrenceMap);
 
   List<InductionScheme*>::RefIterator schIt(schemes);
   while (schIt.hasNext()) {
@@ -497,6 +565,66 @@ void InductionHelper::filterSchemes(List<InductionScheme*>*& schemes)
       }
     }
   }
+}
+
+bool InductionHelper::canInductOn(TermList t)
+{
+  if (t.isVar()) {
+    return false;
+  }
+  auto fn = t.term()->functor();
+  auto symb = t.term()->isLiteral() ? env.signature->getPredicate(fn) : env.signature->getFunction(fn);
+  return symb->skolem();
+}
+
+bool InductionHelper::isTermAlgebraCons(TermList t) {
+  if (t.isVar()) { return false; }
+  auto func = t.term()->functor();
+  auto symb = t.term()->isLiteral() ? env.signature->getPredicate(func) : env.signature->getFunction(func);
+  return symb->termAlgebraCons();
+}
+
+OperatorType* getType(TermList t) {
+  auto fn = t.term()->functor();
+  auto symb = t.term()->isLiteral() ? env.signature->getPredicate(fn) : env.signature->getFunction(fn);
+  return t.term()->isLiteral() ? symb->predType() : symb->fnType();
+}
+
+vvector<TermList> InductionHelper::getInductionTerms(TermList t)
+{
+  vvector<TermList> v;
+  if (t.isVar()) {
+    return v;
+  }
+  if (canInductOn(t)) {
+    v.push_back(t);
+    return v;
+  }
+  if (!isTermAlgebraCons(t)) {
+    return v;
+  }
+  auto type = getType(t);
+  //TODO(mhajdu): eventually check whether we really recurse on a specific
+  // subterm of the constructor terms
+  Stack<pair<TermList, bool>> actStack;
+  actStack.push(make_pair(t, true));
+  while (actStack.isNonEmpty()) {
+    auto kv = actStack.pop();
+    auto st = kv.first;
+    auto active = kv.second;
+    if (st.isVar()) {
+      continue;
+    }
+    if (active && canInductOn(st) && getType(st)->result() == type->result()) {
+      v.push_back(st);
+    }
+    if (active && isTermAlgebraCons(st)) {
+      for (unsigned i = 0; i < st.term()->arity(); i++) {
+        actStack.push(make_pair(*st.term()->nthArgument(i),true));
+      }
+    }
+  }
+  return v;
 }
 
 void InductionHelper::processBody(TermList& body, TermList& header, InductionTemplate*& templ)
