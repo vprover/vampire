@@ -1313,13 +1313,14 @@ MainLoopResult SaturationAlgorithm::runImpl()
 {
   CALL("SaturationAlgorithm::runImpl");
 
-  unsigned l = 0;
   try
   {
-    for (;;l++) {
+    for (unsigned l = 1;;l++) {
       if (_activationLimit && l > _activationLimit) {
         throw ActivationLimitExceededException();
       }
+
+      env.statistics->saturationIterationsStarted = l;
 
       doOneAlgorithmStep();
 
