@@ -591,9 +591,14 @@ public:
   friend bool operator==(const Polynom<Number>& lhs, const Polynom<Number>& rhs)
   { return std::tie(lhs._summands) == std::tie(rhs._summands); }
 
-  static std::pair<Polynom, Polynom> cancel(Polynom<Number> const& oldl, Polynom<Number> const& oldr) 
+  struct CancelAdd {
+    Polynom lhs;
+    Polynom rhs;
+  };
+
+  static CancelAdd cancelAdd(Polynom<Number> const& oldl, Polynom<Number> const& oldr) 
   {
-    CALL("Polynom::cancel(Polynom<Number> const& oldl, Polynom<Number> const& oldr)")
+    CALL("Polynom::cancelAdd(Polynom<Number> const& oldl, Polynom<Number> const& oldr)")
     DEBUG("in:  ", oldl, " <> ", oldr)
 
     using CoeffVec = Stack<PolyPair>;
@@ -661,7 +666,11 @@ public:
     auto outl = Polynom<Number>(std::move(newl));
     auto outr = Polynom<Number>(std::move(newr));
     DEBUG("out: ", outl, " <> ", outr)
-    return make_pair( std::move(outl), std::move(outr)); 
+    // return make_pair( std::move(outl), std::move(outr)); 
+    return CancelAdd { 
+      .lhs = std::move(outl), 
+      .rhs = std::move(outr), 
+    };
   }
 
   TermList toTerm() const;

@@ -58,10 +58,12 @@ template<class Config, class number> inline LitEvalResult interpretEquality(bool
   if (lhs.isNumber() && rhs.isNumber()) {
     return LitEvalResult::constant(polarity == (lhs.unwrapNumber() == rhs.unwrapNumber()));
   } else {
-    auto res = Polynom<number>::cancel(lhs, rhs);
+    auto res = Polynom<number>::cancelAdd(lhs, rhs);
+    // auto res = Polynom<number>::cancelMul(move(res_.lhs), move(res_.rhs));
+    // TODO cancel mul as well
 
-    auto lTerm = std::get<0>(res).toTerm();
-    auto rTerm = std::get<1>(res).toTerm();
+    auto lTerm = res.lhs.toTerm();
+    auto rTerm = res.rhs.toTerm();
 
     if (lTerm == rTerm) {
       return LitEvalResult::constant(polarity);
@@ -130,12 +132,11 @@ template<class NormalizerConfig, class ConstantType, class EvalIneq> LitEvalResu
   auto rhs_ = *intoPoly<NumTraits<ConstantType>>(evaluatedArgs[1]);
 
   // auto shallCancel = lhs.isPoly() || rhs.isPoly();
-  auto res = Poly<ConstantType>::cancel(lhs_, rhs_);
-  auto lhs = get<0>(res);
-  auto rhs = get<1>(res);
+  auto res = Poly<ConstantType>::cancelAdd(lhs_, rhs_);
+  auto lhs = res.lhs;
+  auto rhs = res.rhs;
 
   auto polarity = orig->polarity();
-  // TODO handle case a <= a + 3 ===> true
   if (lhs.isNumber() && rhs.isNumber()) {
     return LitEvalResult::constant(polarity == evalIneq(lhs.unwrapNumber(), rhs.unwrapNumber()));
   } else {
@@ -156,7 +157,7 @@ template<class NormalizerConfig, class ConstantType, class EvalIneq> LitEvalResu
   IMPL_EVALUATE_PRED(NumTraits<Const>::name ## I,  \
        return evaluateInequality<Config, Const>(orig, evaluatedArgs, STRICT, [](Const l, Const r) {return l op r;});  \
   ) \
-
+;
 #define IMPL_INEQUALTIES(Const) \
    /*                inequality| is strict? | operator */ \
   __IMPL_INEQ(Const, less      ,   true     ,  <        ) \

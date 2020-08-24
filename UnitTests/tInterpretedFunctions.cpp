@@ -187,16 +187,16 @@ ALL_NUMBERS_TEST(partial_eval_add_4,
       ((-20 + -(x)) == y)
     )
 
-ALL_NUMBERS_TEST(partial_eval_add_5,
-
-      (x == (-21 + (7 * (3 + y)))),
-      (x == (7 * y))
-    )
-
-ALL_NUMBERS_TEST(partial_eval_add_6,
-      ((7 * x) == (-21 + (7 * (3 + x)))),
-      true
-    )
+// not (yet) supported
+// ALL_NUMBERS_TEST(partial_eval_add_5,
+//       (x == (-21 + (7 * (3 + y)))),
+//       (x == (7 * y))
+//     )
+//
+// ALL_NUMBERS_TEST(partial_eval_add_6,
+//       ((7 * x) == (-21 + (7 * (3 + x)))),
+//       true
+//     )
 
 ALL_NUMBERS_TEST(simpl_times_zero_0
     , (a == (0 * y))
@@ -275,74 +275,6 @@ ALL_NUMBERS_TEST(literal_to_const_11,
       false
     )
 
-
-#ifdef NORMALIZE_LESS //TODO
-TEST_FUN(normalize_less_1) {
-  THEORY_SYNTAX_SUGAR(INT)
-  check_eval(
-      (5 < (2 * x)),
-      (0 < (-5 + (2 * x)))
-    );
-}
-
-TEST_FUN(normalize_less_2) {
-  THEORY_SYNTAX_SUGAR(INT)
-  check_eval(
-      (5 < (a * x)),
-      (0 < (-5 + (a * x)))
-    );
-}
-
-TEST_FUN(normalize_less_3) {
-  THEORY_SYNTAX_SUGAR(INT)
-  check_eval(
-      (b < (a * x)),
-      (0 < ((a * x) + -(b)))
-    );
-
-}
-
-TEST_FUN(normalize_less_4) {
-  THEORY_SYNTAX_SUGAR(INT)
-  check_eval(
-      (b < a),
-      (0 < (a + -(b)))
-    );
-}
-
-
-TEST_FUN(normalize_less_5) {
-  THEORY_SYNTAX_SUGAR(INT)
-  check_eval(
-      (x < y),
-      (0 < (y + -(x)))
-    );
-}
-
-TEST_FUN(normalize_less_equal_1) {
-  THEORY_SYNTAX_SUGAR(INT)
-  check_eval(
-      ~((x < 5)),
-      (0 < (-4 + x))
-    );
-}
-
-TEST_FUN(normalize_less_equal_2) {
-  THEORY_SYNTAX_SUGAR(INT)
-  check_eval(
-      ~((x < a)),
-      (0 < ((1 + x) + -(a)))
-      );
-}
-
-TEST_FUN(test_normalize_stable) {
-  THEORY_SYNTAX_SUGAR(INT)
-  check_no_succ(
-      (0 < (1 + x))
-      );
-}
-
-#endif // NORMALIZE_LESS // TODO
 
 ALL_NUMBERS_TEST(eval_double_minus_1_1,
       (x == -(-(x))),
@@ -532,6 +464,11 @@ ALL_NUMBERS_TEST(eval_cancellation_add_9,
     0 == -(a * y)
     )
 
+ALL_NUMBERS_TEST(eval_cancellation_add_10,
+    a <= a + 3,
+    true
+    )
+
 INT_TEST(eval_quotientE_1,
     r(quotientE(num(7), 2), remainderE(num(7), 2)),
     r(                  3,                     1)
@@ -554,6 +491,16 @@ INT_TEST(eval_quotientT_1,
     r(quotientT(num(7), 2), remainderT(num(7), 2)),
     r(                  3,                     1)
     )
+
+FRACTIONAL_TEST(eval_quotient_1,
+    p(7 / frac(7, 2)),
+    p(2)
+    )
+//
+// FRACTIONAL_TEST(eval_quotient_2,
+//     p((7 * a) / 7),
+//     p(a)
+//     )
 
 ALL_NUMBERS_TEST(eval_overflow_1,
     p(num(1661992960) + 1661992960),

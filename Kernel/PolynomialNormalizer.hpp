@@ -746,16 +746,19 @@ inline Optional<PolyNf> trySimplify(Theory::Interpretation i, PolyNf* evalArgs)
   CALL("trySimplify(Theory::Interpretation i, PolyNf* evalArgs) ")
   switch (i) {
 
-#define CONSTANT_CASE(Num, func)  \
+#define CONSTANT_CASE(Num, func, expr)  \
     case Num##Traits:: func ## I:  \
       { \
         using Const = typename Num##Traits::ConstantType; \
-        return trySimplifyConst2<Num##Traits>(evalArgs, [](Const l, Const r){ return l.func(r); }); \
+        return trySimplifyConst2<Num##Traits>(evalArgs, [](Const l, Const r){ return expr; }); \
       } \
 
 #define QUOTIENT_REMAINDER_CASES(Num, X) \
-    CONSTANT_CASE(Num, quotient##X) \
-    CONSTANT_CASE(Num, remainder##X) \
+    CONSTANT_CASE(Num,  quotient##X, l. quotient##X(r)) \
+    CONSTANT_CASE(Num, remainder##X, l.remainder##X(r)) \
+
+#define FRAC_CASE(Num) \
+    CONSTANT_CASE(Num, div, l / r)
 
 #define NUM_CASE(Num) \
     case Num ## Traits::minusI:     return trySimplifyUnaryMinus<Num ## Traits>(evalArgs); \
@@ -766,6 +769,9 @@ inline Optional<PolyNf> trySimplify(Theory::Interpretation i, PolyNf* evalArgs)
     NUM_CASE(Int)
     NUM_CASE(Rat)
     NUM_CASE(Real)
+
+    FRAC_CASE(Rat)
+    FRAC_CASE(Real)
 
 // TODO evaluate conversion functions
 // TODO evaluate INT_ABS
