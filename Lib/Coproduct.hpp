@@ -12,6 +12,17 @@
 
 namespace Lib {
 
+#define POLYMORPHIC_FUNCTION(type, Name, polyArg, constArgs) \
+  namespace Polymorphic { \
+    struct Name  \
+    { \
+      constArgs \
+      template<class T> \
+      type operator()(T polyArg); \
+    }; \
+  } \
+  template<class T> type Polymorphic::Name::operator()(T polyArg) 
+
 #define FOR_REF_QUALIFIER(macro)                                                                                        \
   macro(const &, ) macro(&, ) macro(&&, std::move)
 
@@ -23,30 +34,34 @@ class Coproduct;
 
 namespace CoproductImpl {
 
+
   template <class... As> union VariadicUnion;
   template <unsigned idx, class As> struct Unwrap;
+  template <unsigned idx, unsigned size, class As> struct Apply;
+  template <class As> struct Match;
 
+  // TODO get rid of this
   template <> union VariadicUnion<> {
     CLASS_NAME(VariadicUnion)
 
-    void unwrap(unsigned idx) { ASSERTION_VIOLATION_REP(idx) }
+    inline void unwrap(unsigned idx) { ASSERTION_VIOLATION_REP(idx) }
     ~VariadicUnion() {}
-    void destroy(unsigned idx) { ASSERTION_VIOLATION_REP(idx) }
-
 #define ref_polymorphic(REF, MOVE)                                                                                      \
                                                                                                                         \
-    template <class R, class F> R applyPoly(unsigned idx, F f) REF {                                                    \
-      ASSERTION_VIOLATION_REP(idx)                                                                                      \
-    }                                                                                                                   \
+    template <class R, class F> inline R apply(unsigned idx, F f) REF  \
+    { ASSERTION_VIOLATION_REP(idx) }  \
+    \
+    template <class R, class... F> \
+    inline static R match2(unsigned idx, VariadicUnion REF lhs, VariadicUnion REF rhs, F... f) \
+    { ASSERTION_VIOLATION_REP(idx) }  \
                                                                                                                         \
-    template <class R> R apply(unsigned idx) REF{ASSERTION_VIOLATION_REP(idx)}
+    template <class R> inline R match(unsigned idx) REF{ASSERTION_VIOLATION_REP(idx)} \
 
     FOR_REF_QUALIFIER(ref_polymorphic)
 #undef ref_polymorphic
 
-    static bool equal(unsigned idx, const VariadicUnion &lhs, const VariadicUnion &rhs) {
-      ASSERTION_VIOLATION_REP(idx)
-    }
+    inline void destroy(unsigned idx) {ASSERTION_VIOLATION_REP(idx)}
+    inline static bool equal(unsigned idx, VariadicUnion const& lhs, VariadicUnion const& rhs) {ASSERTION_VIOLATION_REP(idx)}
   };
 
   template <class A, class... As> union VariadicUnion<A, As...> {
@@ -67,37 +82,48 @@ namespace CoproductImpl {
       return out;
     }
 
-    void destroy(unsigned idx) {
+#define ref_polymorphic(REF, MOVE)                                                                                      \
+    template <class R, class F> inline R apply(unsigned idx, F f) REF {                                             \
+      if (idx == 0) {                                                                                                   \
+        return f(MOVE(_head));                                                                                          \
+      } else {                                                                                                          \
+        return MOVE(_tail).template apply<R>(idx - 1, f);                                                           \
+      }                                                                                                                 \
+    }                                                                                                                   \
+                                                                                                                        \
+    template <class R, class F, class... Fs>                                                                            \
+    inline R match(unsigned idx, F f, Fs... fs) REF {                                                                   \
+      if (idx == 0) {                                                                                                   \
+        return f(MOVE(_head));                                                                                          \
+      } else {                                                                                                          \
+        return MOVE(_tail).template match<R>(idx - 1, fs...);                                                           \
+      }                                                                                                                 \
+    }                                                                                                                   \
+    \
+    template <class R, class F, class... Fs>  \
+    inline static R match2(unsigned idx, VariadicUnion REF lhs, VariadicUnion REF rhs, F f, Fs... fs) \
+    {  \
+      if (idx == 0) {                                                                                                   \
+        return f(MOVE(lhs._head), MOVE(rhs._head)); \
+      } else {                                                                                                          \
+        return VariadicUnion<As...>::template match2<R>(idx - 1, MOVE(lhs._tail), MOVE(rhs._tail), fs...);                                             \
+      }                                                                                                                 \
+    }
+
+    FOR_REF_QUALIFIER(ref_polymorphic)
+
+#undef ref_polymorphic
+
+    inline void destroy(unsigned idx) 
+    { 
       if (idx == 0) {
-        _head.~A();
+        _head.~A(); 
       } else {
         _tail.destroy(idx - 1);
       }
     }
 
-#define ref_polymorphic(REF, MOVE)                                                                                      \
-    template <class R, class F> inline R applyPoly(unsigned idx, F f) REF {                                             \
-      if (idx == 0) {                                                                                                   \
-        return f(MOVE(_head));                                                                                          \
-      } else {                                                                                                          \
-        return MOVE(_tail).template applyPoly<R>(idx - 1, f);                                                           \
-      }                                                                                                                 \
-    }                                                                                                                   \
-                                                                                                                        \
-    template <class R, class F, class... Fs>                                                                            \
-    inline R apply(unsigned idx, F f, Fs... fs) REF {                                                                   \
-      if (idx == 0) {                                                                                                   \
-        return f(MOVE(_head));                                                                                          \
-      } else {                                                                                                          \
-        return MOVE(_tail).template apply<R>(idx - 1, fs...);                                                           \
-      }                                                                                                                 \
-    }                                                                                                                   \
-
-    FOR_REF_QUALIFIER(ref_polymorphic)
-
-#undef ref_polymorphic
-    static bool equal(unsigned idx, const VariadicUnion &lhs,
-                      const VariadicUnion &rhs) {
+    inline static bool equal(unsigned idx, VariadicUnion const& lhs, VariadicUnion const& rhs) {
       if (idx == 0) {
         return lhs._head == rhs._head;
       } else {
@@ -107,6 +133,7 @@ namespace CoproductImpl {
 
     template <unsigned idx, class Bs> friend struct InitStaticTag;
     VariadicUnion() {}
+
   };
 
   template <class A, class... As> struct Unwrap<0, TL::List<A, As...>> {
@@ -189,6 +216,12 @@ namespace CoproductImpl {
 #undef ref_polymorphic
   };
 
+
+  struct PolymorphicHash {
+    template<class T>
+    size_t operator()(T const& t) const
+    { return std::hash<T>{}(t); }
+  };
 }
 
 template<class... Ords> struct CoproductOrdering;
@@ -229,7 +262,6 @@ public:
     return _tag == TL::IdxOf<B, Ts>::val;
   }
 
-
   template<class... Bs> using FstTy = TL::Get<0, TL::List<Bs...>>;
   // TODO: get rid of the type parameter Ret here.
 #define REF_POLYMORPIHIC(REF, MOVE)                                                                                     \
@@ -252,12 +284,12 @@ public:
   inline ResultOf<FstTy<F...>, A REF> match(F... fs) REF {                                                              \
     using Ret = ResultOf<FstTy<F...>, A REF>;                                                                           \
     ASS_REP(_tag <= size, _tag);                                                                                        \
-    return MOVE(_content).template apply<Ret>(_tag, fs...);                                                             \
+    return MOVE(_content).template match<Ret>(_tag, fs...);                                                             \
   }                                                                                                                     \
   template <class F>                                                                                                    \
   inline ResultOf<F, A REF> apply(F f) REF {                                                                            \
     ASS_REP(_tag <= size, _tag);                                                                                        \
-    return MOVE(_content).template applyPoly<ResultOf<F, A REF>>(_tag,f);                                               \
+    return MOVE(_content).template apply<ResultOf<F, A REF>>(_tag,f);                                               \
   }                                                                                                                     \
   template <class... F> inline Coproduct map(F... fs) REF {                                                             \
     return match(fs...);                                                                                                \
@@ -266,7 +298,7 @@ public:
   Coproduct &operator=(Coproduct REF other) {                                                                           \
     CALL("Coproduct& operator=(Coproduct " #REF "other)")                                                               \
     ASS_REP(other._tag <= size, other._tag);                                                                            \
-    _content.destroy(_tag);                                                                                             \
+    _content.destroy(_tag); \
     CoproductImpl::InitDynamicTag<0, size, Ts>{}(_content, other._tag, MOVE(other._content));                           \
     _tag = other._tag;                                                                                                  \
     return *this;                                                                                                       \
@@ -293,17 +325,19 @@ public:
 #undef REF_POLYMORPIHIC
 
   // TODO: replace with zipping
-  friend bool operator==(const Coproduct &lhs, const Coproduct &rhs) {
+
+  friend bool operator==(const Coproduct &lhs, const Coproduct &rhs)
+  {
     if (lhs._tag != rhs._tag) {
       return false;
     } else {
-      return Content::equal(lhs._tag, lhs._content, rhs._content);
+      auto tag = lhs._tag;
+      return Content::equal(tag, lhs._content, rhs._content);
     }
   }
 
-  friend bool operator!=(const Coproduct &lhs, const Coproduct &rhs) {
-    return !(lhs == rhs);
-  }
+  template<class... Bs> friend bool operator!=(const Coproduct<Bs...> &lhs, const Coproduct<Bs...> &rhs)
+  { return !(lhs == rhs); }
 
   ~Coproduct() { _content.destroy(_tag); }
 
@@ -327,97 +361,7 @@ public:
 }; // class Coproduct<A, As...> 
 
 
-}
-
-#include "Optional.hpp"
-
-namespace Lib {
-  
 namespace TL = TypeList;
-
-
-template<unsigned idx>
-struct TryUnwrap
-{
-  template<class... As>
-  static Optional<Coproduct<As...>> apply(Coproduct<As...> c)
-  { 
-    if (c._tag == idx) return some(Coproduct<As...>::template variant<idx>(c.template unwrap<idx>()));
-    else return TryUnwrap<idx - 1>::apply(c);
-  }
-};
-
-template<>
-struct TryUnwrap<0>
-{
-  template<class... As>
-  static Optional<TL::Get<0, TL::List<As...>>> apply(Coproduct<As...> c)
-  { 
-    if (c._tag == 0) return some(c.template unwrap<0>());
-    ASSERTION_VIOLATION
-  }
-};
-
-
-
-template<unsigned n, unsigned m> struct ZipHelper 
-{
-  template<class ZipFn, class... As>
-  static Optional<TL::Into<Coproduct, TL::Zip<ZipFn, TL::List<As const&...>, TL::List<As const&...>>>> apply(
-        ZipFn zipFn,
-        Coproduct<As...> const& lhs, 
-        Coproduct<As...> const& rhs)
-  {
-    using Result = TL::Into<Coproduct, TL::Zip<ZipFn, TL::List<As const&...>, TL::List<As const&...>>>;
-
-    if (lhs.template is<n>()) {
-      return some(Result::template variant<n>(zipFn(
-              lhs.template unwrap<n>(),
-              rhs.template unwrap<n>()
-            )));
-    }
-    else return ZipHelper<n + 1, m>::apply(zipFn, lhs, rhs);
-  }
-};
-
-template<unsigned n> struct ZipHelper<n, n> 
-{
-  template<class ZipFn, class... As>
-  static Optional<TL::Into<Coproduct, TL::Zip<ZipFn, TL::List<As const&...>, TL::List<As const&...>>>> apply(
-        ZipFn zipFn,
-        Coproduct<As...> const& lhs, 
-        Coproduct<As...> const& rhs)
-  { ASSERTION_VIOLATION }
-};
-
-
-template<class ZipFn, class... As>
-Optional<TL::Into<Coproduct, TL::Zip<ZipFn, TL::List<As const&...>, TL::List<As const&...>>>> zipWith(
-      ZipFn zipFn,
-      Coproduct<As...> const& lhs, 
-      Coproduct<As...> const& rhs)
-{
-  constexpr unsigned sz = Coproduct<As...>::size;
-  return ZipHelper<0, sz>::template apply<ZipFn, As...>(zipFn, lhs, rhs);
-}
-
-template<class F>
-struct PairFn 
-{
-  F f;
-  template<class A, class B>
-  typename std::result_of<F(A,B)>::type operator()(const std::pair<const A&,const B&>& elems) const
-  { return f(std::get<0>(elems), std::get<1>(elems));  }
-};
-
-template<class F>
-PairFn<F> pairFn(F f) { return { f }; }
-
-struct ConstPair {
-  template<class A, class B>
-  std::pair<const A&, const B&> operator()(const A& a, const B& b) const 
-  { return std::pair<A const&, B const&>(a,b); }
-};
 
 template<class... Ords> struct CoproductOrdering 
 {
@@ -428,8 +372,8 @@ template<class... Ords> struct CoproductOrdering
     if (lhs._tag < rhs._tag) return true;
     if (lhs._tag > rhs._tag) return false;
 
-    return zipWith(ConstPair{}, lhs, rhs).unwrap()
-        .match(pairFn(Ords{})...);
+    auto tag = lhs._tag;
+    return CoproductImpl::VariadicUnion<As...>::template match2<bool>(tag, lhs._content, rhs._content, Ords{}...);
   }
 };
 
@@ -443,22 +387,15 @@ template<template<class> class Ord> struct PolymorphicCoproductOrdering
 
 
 } // namespace Lib
-
-struct __PolyHash {
-  template<class T>
-  size_t operator()(T const& t) const
-  { return std::hash<T>{}(t); }
-};
-
 template<class... Ts> struct std::hash<Lib::Coproduct<Ts...>>
 {
   size_t operator()(Lib::Coproduct<Ts...> const& self) const 
   { 
-
-    return Lib::HashUtils::combine(std::hash<unsigned>{}(self._tag), self.apply(__PolyHash{})); 
+    return Lib::HashUtils::combine(
+        std::hash<unsigned>{}(self._tag), 
+        self.apply(Lib::CoproductImpl::PolymorphicHash{})); 
   }
 };
-
 
 template<class... As>
 struct std::less<Lib::Coproduct<As...> >

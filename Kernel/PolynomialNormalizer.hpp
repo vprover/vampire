@@ -18,6 +18,7 @@
 #include "Lib/Hash.hpp"
 #include "Lib/UniqueShared.hpp"
 #include "Lib/Environment.hpp"
+#include "Lib/Optional.hpp"
 
 
 #ifndef __POLYNOMIAL_NORMALIZER_HPP__
