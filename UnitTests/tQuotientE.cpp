@@ -129,28 +129,30 @@ TEST_FUN(check_int)
   }
 }
 
-template<class Const>
-void checkFrac() 
-{
-  int range = 10;
-  for (int i = -range; i < range; i++) {
-    for (int j = -range; j < range; j++) {
-      for (int k = -range; k < range; k++) {
-        for (int l = -range; l < range; l++) {
-          if (j != 0 && l != 0) {
-            checkQuotientE(Const(i, j), Const(k, l));
-          }
-        }
-      }
-    }
-  }
-}
-
-TEST_FUN(check_real) 
-{ checkFrac<RealConstantType>(); }
-
-TEST_FUN(check_rat) 
-{ checkFrac<RationalConstantType>(); }
+// REMOVED until there are benchmarks that actually use (quotient|remainder)_(e|t|r) with non-integral number types
+//
+// template<class Const>
+// void checkQuotientEFrac() 
+// {
+//   int range = 10;
+//   for (int i = -range; i < range; i++) {
+//     for (int j = -range; j < range; j++) {
+//       for (int k = -range; k < range; k++) {
+//         for (int l = -range; l < range; l++) {
+//           if (j != 0 && l != 0) {
+//             checkQuotientE(Const(i, j), Const(k, l));
+//           }
+//         }
+//       }
+//     }
+//   }
+// }
+//
+// TEST_FUN(check_real) 
+// { checkQuotientEFrac<RealConstantType>(); }
+//
+// TEST_FUN(check_rat) 
+// { checkQuotientEFrac<RationalConstantType>(); }
 
 template<class Const>
 void checkFloor() 

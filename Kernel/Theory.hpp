@@ -160,20 +160,6 @@ struct RationalConstantType {
   bool isNegative() const { ASS(_den>=0); return _num.toInner() < 0; }
   bool isPositive() const { ASS(_den>=0); return _num.toInner() > 0; }
 
-  RationalConstantType quotientE(const RationalConstantType& num) const ;
-  
-  RationalConstantType quotientT(const RationalConstantType& num) const 
-  { return ((*this)/num).truncate(); }
-  RationalConstantType quotientF(const RationalConstantType& num) const 
-  { return ((*this)/num).floor(); }
-
-  RationalConstantType remainderE(const RationalConstantType& num) const
-  { return (*this) - num * quotientE(num); }
-  RationalConstantType remainderT(const RationalConstantType& num) const
-  { return (*this) - num * quotientT(num); }
-  RationalConstantType remainderF(const RationalConstantType& num) const
-  { return (*this) - num * quotientF(num); } 
-
   RationalConstantType abs() const;
 
   vstring toString() const;
@@ -224,20 +210,6 @@ public:
   RealConstantType floor() const { return RealConstantType(RationalConstantType::floor()); }
   RealConstantType truncate() const { return RealConstantType(RationalConstantType::truncate()); }
   RealConstantType ceiling() const { return RealConstantType(RationalConstantType::ceiling()); }
-
-  RealConstantType quotientE(const RealConstantType& num) const
-    { return RealConstantType(RationalConstantType::quotientE(num)); }
-  RealConstantType quotientT(const RealConstantType& num) const
-    { return RealConstantType(RationalConstantType::quotientT(num)); }
-  RealConstantType quotientF(const RealConstantType& num) const
-    { return RealConstantType(RationalConstantType::quotientF(num)); }
-
-  RealConstantType remainderE(const RealConstantType& num) const
-  { return (*this) - num * quotientE(num); }
-  RealConstantType remainderT(const RealConstantType& num) const
-  { return (*this) - num * quotientT(num); }
-  RealConstantType remainderF(const RealConstantType& num) const
-  { return (*this) - num * quotientF(num); } 
 
   RealConstantType abs() const;
 

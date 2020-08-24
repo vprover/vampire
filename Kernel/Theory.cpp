@@ -197,25 +197,6 @@ IntegerConstantType IntegerConstantType::quotientE(const IntegerConstantType& nu
   }
 }
 
-/**
- * specification from TPTP:
- * quotient_e(N,D) - the Euclidean quotient, which has a non-negative remainder. If D is positive then $quotient_e(N,D) is the floor (in the type of N and D) of the real division N/D, and if D is negative then $quotient_e(N,D) is the ceiling of N/D.
- */
-RationalConstantType RationalConstantType::quotientE(const RationalConstantType& num) const
-{
-  auto N = *this;
-  auto D = num;
-  // const RationalConstantType zero = RationalConstantType(0);
-  if (D._num == 0) {
-    throw DivByZeroException();
-  }
-  if (D.isPositive()) {
-     return (N / D).floor(); 
-  } else {
-     return (N / D).ceiling(); 
-  }
-}
-
 IntegerConstantType IntegerConstantType::quotientF(const IntegerConstantType& num) const
 { 
   if(num.divides(*this)){
