@@ -12,17 +12,6 @@
 #include "Lib/UniqueShared.hpp"
 #include "Kernel/NumTraits.hpp"
 
-#define POLYMORPHIC_FUNCTION(type, Name, polyArg, constArgs) \
-  namespace Polymorphic { \
-    struct Name  \
-    { \
-      constArgs \
-      template<class T> \
-      type operator()(T polyArg); \
-    }; \
-  } \
-  template<class T> type Polymorphic::Name::operator()(T polyArg) 
-
 
 namespace Kernel {
 
