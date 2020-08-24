@@ -41,10 +41,13 @@ class UniqueShared
 public:
 
   /** copy constructor. Constant time. */
-  UniqueShared(UniqueShared const& t) : _elem(t._elem) {  }
+  UniqueShared(UniqueShared      & t) : _elem(t._elem) {  }
 
   /** copy constructor. Constant time. */
-  UniqueShared(UniqueShared      & t) : _elem(t._elem) {  }
+  UniqueShared(UniqueShared const& t) : _elem(t._elem) {  }
+
+  // /** move constructor. Constant time. */
+  // UniqueShared(UniqueShared     &&) = default;
 
   /** default constructor. for this T must be default-constructible itself. */
   UniqueShared() : _elem(unique(T())) {}
@@ -77,6 +80,7 @@ public:
   template<class U, class C> 
   friend bool operator<(const Lib::UniqueShared<U, C> & lhs, const Lib::UniqueShared<U, C>& rhs) 
   { return std::less<Lib::UniqueShared<U, C>>{}(lhs,rhs); }
+
 }; // class UniqueShared
 
 /** instantiating the cache */

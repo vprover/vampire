@@ -259,7 +259,7 @@ struct ChildIter<PolyNf>
   using Inner = Coproduct<FuncTermChildIter, VariableChildIter, PolynomialChildIter>;
   Inner _self;
 
-  ChildIter(PolyNf self) : _self(self.template match<Inner>(
+  ChildIter(PolyNf self) : _self(self.match(
         [&](UniqueShared<FuncTerm> self) { return Inner(FuncTermChildIter( self ));            },
         [&](Variable               self) { return Inner(VariableChildIter( self ));            },
         [&](AnyPoly                self) { return Inner(PolynomialChildIter(std::move(self))); }
@@ -267,16 +267,16 @@ struct ChildIter<PolyNf>
   {}
 
   PolyNf next() 
-  { ASS(hasNext()); return _self.template collapsePoly<PolyNf>(Polymorphic::next{}); }
+  { ASS(hasNext()); return _self.apply(Polymorphic::next{}); }
 
   bool hasNext() const 
-  { return _self.template collapsePoly<bool>(Polymorphic::hasNext{}); }
+  { return _self.apply(Polymorphic::hasNext{}); }
 
   unsigned nChildren() const 
-  { return _self.template collapsePoly<unsigned>(Polymorphic::nChildren{}); }
+  { return _self.apply(Polymorphic::nChildren{}); }
 
   PolyNf self() const 
-  { return _self.template collapsePoly<PolyNf>(Polymorphic::self{}); }
+  { return _self.apply(Polymorphic::self{}); }
 };
 
 template<class Number> class Sum;
@@ -368,38 +368,38 @@ public:
 
   static NormalizationResult mul(NormalizationResult& lhs, NormalizationResult& rhs)
   {
-    if (lhs.isType<PolyNf>() && rhs.isType<PolyNf>()) {
+    if (lhs.is<PolyNf>() && rhs.is<PolyNf>()) {
       return NormalizationResult(Sum ( 
           Prod(
-              lhs.as<PolyNf>(), 
-              rhs.as<PolyNf>() 
+              lhs.unwrap<PolyNf>(), 
+              rhs.unwrap<PolyNf>() 
           )
         ));
-    } else if (lhs.isType<PolyNf>() && rhs.isType<Sum>()) {
-      return mul(lhs.as<PolyNf>(), rhs.as<Sum>());
+    } else if (lhs.is<PolyNf>() && rhs.is<Sum>()) {
+      return mul(lhs.unwrap<PolyNf>(), rhs.unwrap<Sum>());
     } 
-    ASS(lhs.isType<Sum>());
-    if (rhs.isType<PolyNf>()) {
-      return mul(rhs.as<PolyNf>(), lhs.as<Sum>());
+    ASS(lhs.is<Sum>());
+    if (rhs.is<PolyNf>()) {
+      return mul(rhs.unwrap<PolyNf>(), lhs.unwrap<Sum>());
     }  else {
-      return mul(lhs.as<Sum>(), rhs.as<Sum>());
+      return mul(lhs.unwrap<Sum>(), rhs.unwrap<Sum>());
     }
   }
 
   static NormalizationResult add(NormalizationResult& lhs, NormalizationResult& rhs)
   {
-    if (lhs.isType<PolyNf>() && rhs.isType<PolyNf>()) {
-      return NormalizationResult(Sum(Prod(lhs.as<PolyNf>()), Prod(rhs.as<PolyNf>())));
-    } else if (lhs.isType<PolyNf>() || rhs.isType<PolyNf>()) {
-      Sum p = rhs.isType<PolyNf>() ? std::move(lhs).as<Sum>() : std::move(rhs).as<Sum>();
-      PolyNf  t = rhs.isType<PolyNf>() ? rhs.as< PolyNf>() : lhs.as< PolyNf>();
+    if (lhs.is<PolyNf>() && rhs.is<PolyNf>()) {
+      return NormalizationResult(Sum(Prod(lhs.unwrap<PolyNf>()), Prod(rhs.unwrap<PolyNf>())));
+    } else if (lhs.is<PolyNf>() || rhs.is<PolyNf>()) {
+      Sum p = rhs.is<PolyNf>() ? std::move(lhs).unwrap<Sum>() : std::move(rhs).unwrap<Sum>();
+      PolyNf  t = rhs.is<PolyNf>() ? rhs.unwrap< PolyNf>() : lhs.unwrap< PolyNf>();
       p._summands.pushMv(Prod(t));
       return NormalizationResult(std::move(p));
     } else {
-      ASS(lhs.isType<Sum>())
-      ASS(rhs.isType<Sum>())
-      auto out = std::move(lhs).as<Sum>();
-      out._summands.moveFromIterator(rhs.as<Sum>()._summands.iterator());
+      ASS(lhs.is<Sum>())
+      ASS(rhs.is<Sum>())
+      auto out = std::move(lhs).unwrap<Sum>();
+      out._summands.moveFromIterator(rhs.unwrap<Sum>()._summands.iterator());
       return NormalizationResult(std::move(out));
     }
   }
@@ -450,7 +450,7 @@ public:
 };
 
 inline PolyNf toPolyNf(NormalizationResult& r) {
-    return std::move(r).match<PolyNf> (
+    return std::move(r).match(
         [](PolyNf  x)             { return x; },
         // TODO insert into memo after conversion
         [](Sum< IntTraits>&& x) { return x.polyNf(); }, 
@@ -478,8 +478,8 @@ public:
       return NormalizationResult(entry.unwrap());
     } else {
       auto out = init();
-      if (out.template isType<PolyNf>()) {
-        insert(t, out.template as<PolyNf>());
+      if (out.template is<PolyNf>()) {
+        insert(t, out.template unwrap<PolyNf>());
       }
       return std::move(out);
     }
@@ -573,6 +573,7 @@ class LitEvalResult : public Lib::Coproduct<Literal*, bool>
 private:
   explicit LitEvalResult(Coproduct&& l) : Coproduct(std::move(l)) {}
 public:
+  using super = Lib::Coproduct<Literal*, bool>;
   /**
    * returns whether the result is a trivial literal (top or bot)
    */
@@ -624,9 +625,9 @@ UniqueShared<Polynom<Number>> intoPoly(PolyNf p)
 { 
   CALL("intoPoly(PolyNf p)")
   return unique(
-    p.isType<AnyPoly>() ? p.as<AnyPoly>()
-                           .as<UniqueShared<Polynom<Number>>>()
-                        : Polynom<Number>(p)
+    p.is<AnyPoly>() ? p.unwrap<AnyPoly>()
+                       .unwrap<UniqueShared<Polynom<Number>>>()
+                    : Polynom<Number>(p)
       );
 }
 
@@ -730,7 +731,6 @@ Optional<PolyNf> trySimplifyUnaryMinus(PolyNf* evalArgs)
 template<class Number, class Clsr>
 inline Optional<PolyNf> trySimplifyConst2(PolyNf* evalArgs, Clsr f) 
 {
-  using Const = typename Number::ConstantType;
   auto lhs = evalArgs[0].template tryNumeral<Number>();
   auto rhs = evalArgs[1].template tryNumeral<Number>();
   if (lhs.isSome() && rhs.isSome()) {
@@ -738,12 +738,6 @@ inline Optional<PolyNf> trySimplifyConst2(PolyNf* evalArgs, Clsr f)
   } else {
     return none<PolyNf>();
   }
-  // return evalArgs[0].template tryNumeral<Number>()
-  //   .and_then([&](Const&& lhs) {
-  //       return evalArgs[1].try_numeral([&](Const&& rhs) {
-  //         return f(lhs,rhs);
-  //       })
-  //   })
 }
 
 inline Optional<PolyNf> trySimplify(Theory::Interpretation i, PolyNf* evalArgs) 
@@ -751,7 +745,7 @@ inline Optional<PolyNf> trySimplify(Theory::Interpretation i, PolyNf* evalArgs)
   CALL("trySimplify(Theory::Interpretation i, PolyNf* evalArgs) ")
   switch (i) {
 
-#   define CONSTANT_CASE(Num, func)  \
+#define CONSTANT_CASE(Num, func)  \
     case Num##Traits:: func ## I:  \
       { \
         using Const = typename Num##Traits::ConstantType; \
@@ -762,7 +756,7 @@ inline Optional<PolyNf> trySimplify(Theory::Interpretation i, PolyNf* evalArgs)
     CONSTANT_CASE(Num, quotient##X) \
     CONSTANT_CASE(Num, remainder##X) \
 
-#   define NUM_CASE(Num) \
+#define NUM_CASE(Num) \
     case Num ## Traits::minusI:     return trySimplifyUnaryMinus<Num ## Traits>(evalArgs); \
     QUOTIENT_REMAINDER_CASES(Num, E) \
     QUOTIENT_REMAINDER_CASES(Num, T) \
@@ -772,13 +766,25 @@ inline Optional<PolyNf> trySimplify(Theory::Interpretation i, PolyNf* evalArgs)
     NUM_CASE(Rat)
     NUM_CASE(Real)
 
-#   undef NUM_CASE
+// TODO evaluate conversion functions
+// TODO evaluate INT_ABS
+// TODO evaluate INT_SUCCESSOR
+// TODO evaluate FRAC_QUOTIENT
+// TODO evaluate FRAC_ROUND
+// TODO evaluate NUM_TO_NUM
+// TODO evaluate NUM_TRUNCATE
+
+#undef NUM_CASE
+#undef QUOTIENT_REMAINDER_CASES
+#undef CONSTANT_CASE
+
     default:
       return none<PolyNf>();
   }
 }
 
-template<class Config> PolyNf PolynomialNormalizer<Config>::evaluate(TermList term) const {
+template<class Config> PolyNf PolynomialNormalizer<Config>::evaluate(TermList term) const 
+{
   CALL("PolynomialNormalizer<Config>::evaluate(TermList term) const")
 
   auto norm = PolyNf::normalize(term);
@@ -792,15 +798,14 @@ template<class Config> PolyNf PolynomialNormalizer<Config>::evaluate(TermList te
 
     PolyNf operator()(PolyNf orig, PolyNf* ts) 
     { 
-      return orig.match<PolyNf>(
-          // TODO Simplifiy other functions that + and *
+      return orig.match(
           [&](UniqueShared<FuncTerm> f)  -> PolyNf
           { 
             return f->function().tryInterpret()
               .andThen( [&](Theory::Interpretation && i)  -> Optional<PolyNf>
-                  { return trySimplify(i, ts); })
+               { return trySimplify(i, ts); })
               .unwrapOrElse([&]() -> PolyNf
-                  { return PolyNf(unique(FuncTerm(f->function(), ts))); });
+               { return PolyNf(unique(FuncTerm(f->function(), ts))); });
           }, 
 
           [&](Variable v) 
@@ -822,95 +827,6 @@ template<class Config> PolyNf PolynomialNormalizer<Config>::evaluate(Term* term)
 template<class Config>
 inline PolyNf createTerm(unsigned fun, PolyNf* evaluatedArgs) 
 { return unique(FuncTerm(FuncId(fun), evaluatedArgs)); }
-
-
-// TODO evaluate conversion functions
-// TODO evaluate INT_ABS
-// TODO evaluate INT_SUCCESSOR
-// TODO evaluate FRAC_QUOTIENT
-// TODO evaluate FRAC_ROUND
-// TODO evaluate NUM_TO_NUM
-// TODO evaluate NUM_TRUNCATE
-
-//   DEBUG("evaluating ", *orig)
-//
-// #define HANDLE_CASE(INTER) case Interpretation::INTER: return FunctionEvaluator<Interpretation::INTER>::evaluate<Config>(orig, args); 
-// #define IGNORE_CASE(INTER) case Interpretation::INTER: return createTerm<Config>(functor, args);
-//
-//
-// #define HANDLE_CONSTANT_CASE(Num)                                                                                       \
-//   {                                                                                                                     \
-//     Num ## ConstantType c;                                                                                              \
-//     if (theory->tryInterpretConstant(orig, c)) {                                                                        \
-//       return evaluateConst<NumTraits<Num ## ConstantType>>(c);                                                          \
-//     }                                                                                                                   \
-//   }                                                                                                                     \
-//
-// #define HANDLE_NUM_CASES(NUM)                                                                                           \
-//     HANDLE_CASE(NUM ## _UNARY_MINUS)                                                                                    \
-//     HANDLE_CASE(NUM ## _PLUS)                                                                                           \
-//     HANDLE_CASE(NUM ## _MINUS)                                                                                          \
-//     HANDLE_CASE(NUM ## _MULTIPLY)                                                                                       \
-//     HANDLE_CASE(NUM ## _QUOTIENT_E)                                                                                     \
-//     HANDLE_CASE(NUM ## _QUOTIENT_T)                                                                                     \
-//     HANDLE_CASE(NUM ## _QUOTIENT_F)                                                                                     \
-//     HANDLE_CASE(NUM ## _REMAINDER_E)                                                                                    \
-//     HANDLE_CASE(NUM ## _REMAINDER_T)                                                                                    \
-//     HANDLE_CASE(NUM ## _REMAINDER_F)                                                                                    \
-//     HANDLE_CASE(NUM ## _FLOOR)                                                                                          \
-//     HANDLE_CASE(NUM ## _CEILING)                                                                                        \
-//     HANDLE_CASE(NUM ## _TRUNCATE)                                                                                       \
-//     HANDLE_CASE(NUM ## _TO_INT)                                                                                         \
-//     HANDLE_CASE(NUM ## _TO_RAT)                                                                                         \
-//     HANDLE_CASE(NUM ## _TO_REAL)                                                                                        \
-//
-//   auto functor = orig->functor();
-//   auto sym = env.signature->getFunction(functor);
-//
-//   try {
-//     if (sym->interpreted()) {
-//       if (sym->interpretedNumber()) {
-//           HANDLE_CONSTANT_CASE(Integer)
-//           HANDLE_CONSTANT_CASE(Rational)
-//           HANDLE_CONSTANT_CASE(Real)
-//           ASS_REP(false, "unexpected interpreted number: " + orig->toString())
-//       } else {
-//         auto inter = static_cast<Signature::InterpretedSymbol*>(sym)->getInterpretation();
-//         switch (inter) {
-//
-//           /* common number functions*/
-//           HANDLE_NUM_CASES(INT)
-//           HANDLE_NUM_CASES(RAT)
-//           HANDLE_NUM_CASES(REAL)
-//
-//           /* integer functions */
-//           HANDLE_CASE(INT_SUCCESSOR)
-//           HANDLE_CASE(INT_ABS)
-//
-//           /* rational functions */
-//           HANDLE_CASE(RAT_QUOTIENT)
-//           IGNORE_CASE(RAT_ROUND)  //TODO
-//
-//           /* real functions */
-//           HANDLE_CASE(REAL_QUOTIENT)
-//           IGNORE_CASE(REAL_ROUND)  //TODO
-//
-//           /* ignored */
-//           IGNORE_CASE(ARRAY_SELECT)
-//           IGNORE_CASE(ARRAY_BOOL_SELECT)
-//           IGNORE_CASE(ARRAY_STORE)
-//
-//           default:
-//             ASS_REP(false, "unexpected interpreted function: " + orig->toString())
-//         }
-//       }
-//
-//     }
-//   } catch (MachineArithmeticException) { /* nop */ }
-//   // /* uninterpreted or evaluation failed */
-//   return createTerm<Config>(functor, args);
-// }
-
 
 
 } // Kernel.hpp

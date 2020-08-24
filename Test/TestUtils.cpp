@@ -155,6 +155,7 @@ std::ostream& printOp(std::ostream& out, const Term* t, const char* op) {
   return out << "(" << pretty(l) << " " << op << " " << pretty(r) << ")";
 }
 
+
 template<>
 std::ostream& Pretty<Kernel::TermList>::prettyPrint(std::ostream& out) const
 {
@@ -196,7 +197,6 @@ std::ostream& Pretty<Kernel::TermList>::prettyPrint(std::ostream& out) const
     return out;
   }
 }
-
 
 template<>
 std::ostream& Pretty<Literal*>::prettyPrint(std::ostream& out) const

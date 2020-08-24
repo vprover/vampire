@@ -1608,6 +1608,7 @@ public:
   Container collect() 
   {
     Container c;
+    // TODO reserve size
     while (hasNext()) {
       c.insert(next());
     }

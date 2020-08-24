@@ -45,6 +45,11 @@ using namespace Kernel;
 using namespace Shell;
 /////////////////////////////////////////////// Helper functions ///////////////////////////////////////////////////////
 
+struct EqualityCheck {
+  template<class A>
+  bool operator()(A lhs, A rhs) const
+  { return equalityCheck(lhs, rhs); }
+};
 
 bool equalityCheck(Literal& l, Literal& r) 
 { return TestUtils::eqModAC(&l,&r); }
@@ -52,137 +57,56 @@ bool equalityCheck(Literal& l, Literal& r)
 bool equalityCheck(bool l, bool r) 
 { return l == r; }
 
-#define TEST_FAIL exit(-1);
-#define OUT cout
-// #define TEST_FAIL OUT << "FAIL" << endl;
+bool equalityCheck(LitEvalResult& l, LitEvalResult& r) 
+{ 
+  if (l.template is<0>() && r.template is<0>()) return equalityCheck(*l.template unwrap<0>(), *r.template unwrap<0>());
+  if (l.template is<1>() && r.template is<1>()) return equalityCheck( l.template unwrap<1>(),  r.template unwrap<1>());
+  
+  return false;
+}
 
 #define __CHECK(op, is, expected, msg, test_case) \
   if (!(op equalityCheck( is, expected))) { \
-    OUT << endl; \
-    OUT << msg << endl; \
-    OUT << "[   case   ] " << pretty(test_case) << endl; \
-    OUT << "[    is    ] " << #is << " =  " << pretty(is) << endl; \
-    OUT << "[ expected ] " << #is << " " #op "=" << " " << pretty(expected) << endl; \
-    OUT << endl; \
-    TEST_FAIL \
+    auto& out = cout; \
+    out << endl; \
+    out << msg << endl; \
+    out << "[   case   ] " << pretty(test_case) << endl; \
+    out << "[    is    ] " << #is << " =  " << pretty(is) << endl; \
+    out << "[ expected ] " << #is << " " #op "=" << " " << pretty(expected) << endl; \
+    out << endl; \
+    exit(-1); \
   } \
 
 #define CHECK_NE(...) __CHECK(! , __VA_ARGS__) 
 #define CHECK_EQ(...) __CHECK(  , __VA_ARGS__)
 
-int testTermOrdering(TermList lhs, TermList rhs);
-int testTermOrdering(const Term& lhs, const Term& rhs) {
-  CALL("testTermOrdering")
-  // DBG(lhs, " < ", rhs)
-  auto run = [&]() {
-    int l_fun = lhs.functor();
-    int r_fun = rhs.functor();
-
-    int l_thry = theory->isInterpretedFunction(l_fun);
-    int r_thry = theory->isInterpretedFunction(r_fun);
-    int cmp_thry = l_thry - r_thry;
-
-    if (cmp_thry != 0) return cmp_thry;
-    if (l_thry) {
-      ASS(r_thry)
-
-      int l_inter = theory->interpretFunction(l_fun);
-      int r_inter = theory->interpretFunction(r_fun);
-      int cmp_inter = l_inter - r_inter;
-
-      if (cmp_inter != 0) return cmp_inter;
-
-    } else {
-      ASS(!l_thry && !r_thry)
-
-#     define TRY_NUM(IntegerConstantType) \
-        { \
-          IntegerConstantType l; \
-          IntegerConstantType r; \
-          bool li = theory->tryInterpretConstant(&lhs, l); \
-          bool ri = theory->tryInterpretConstant(&rhs, r); \
-          int i = li - ri; \
-          if (i != 0) return i; \
-          if (li && l - r != IntegerConstantType(0)) {\
-            return l - r > IntegerConstantType(0) ? 1 : -1;  \
-          }\
-        } \
-
-      TRY_NUM(IntegerConstantType)
-      TRY_NUM(RealConstantType)
-      TRY_NUM(RationalConstantType)
-   
-      const vstring& lname = env.signature->getFunction(l_fun)->name();
-      const vstring& rname = env.signature->getFunction(r_fun)->name();
-      if (l_fun == r_fun) {
-
-      } else if (lname < rname) {
-        return -1;
-      } else {
-        return 1;
-      }
-
-      // if (cmp_fun != 0) return cmp_fun;
-   }
-
-    ASS(lhs.arity() == rhs.arity())
-    for (int i = 0; i < lhs.arity(); i++) {
-      auto cmp = testTermOrdering(lhs[i], rhs[i]);
-      if (cmp != 0) {
-        return cmp;
-      }
-    }
-    return 0;
-  };
-  auto out = run();
-  // DBG("=> ", out);
-  return out;
-}
-
-int testTermOrdering(TermList lhs, TermList rhs) {
-  CALL("testTermOrdering(TermList)")
-  // DBG(lhs, " < ", rhs)
-  auto run = [&](){
-
-  auto l_trm = lhs.isTerm();
-  auto r_trm = rhs.isTerm();
-  auto cmp_trm = int(r_trm) - int(l_trm);
-  if (cmp_trm != 0) return cmp_trm;
-
-  if (l_trm) {
-    ASS(r_trm);
-    return testTermOrdering(*lhs.term(), *rhs.term());
-  } else {
-    ASS(lhs.isVar() && rhs.isVar());
-    return int(lhs.var()) - int(rhs.var());
-  }
-
-  };
-  auto out = run();
-  // DBG("==> ", out);
-  return out;
-
-}
-
 struct TestOrdering {
-  bool operator()(const TermList& lhs, const TermList& rhs) const noexcept {
-    // DBG("comparing: ", lhs, " < ", rhs)
-    return testTermOrdering(lhs, rhs) < 0;
-  }
+  bool operator()(const TermList& lhs, const TermList& rhs) const noexcept 
+  { ASSERTION_VIOLATION }
 };
 
 #define NORMALIZER PolynomialNormalizer<PolynomialNormalizerConfig::Normalization<TestOrdering>>()
 
-void check_no_succ(Literal& orig) {
+
+struct Failure { };
+static Failure evaluationFail;
+
+void check_eval(Lit orig_, Failure) {
+  Literal& orig = *orig_;
 
   auto eval = NORMALIZER;
 
   Literal* src = Literal::create(&orig, orig.polarity());
   auto res = eval.evaluate(src);
-  auto nop = res.template is<0>() && res.template unwrap<0>() == src;
+  auto expected = LitEvalResult::literal(src);
 
-  CHECK_EQ(nop, true, "unexpectedly evaluation was successful", orig);
+  CHECK_EQ(expected, res, "unexpectedly evaluation was successful", orig);
 }
+
+template<>
+std::ostream& Pretty<LitEvalResult>::prettyPrint(std::ostream& out) const
+{ return out << pretty(static_cast<LitEvalResult::super const&>(_self)); }
+
 
 
 void check_eval(Lit orig_, bool expected) {
@@ -197,10 +121,6 @@ void check_eval(Lit orig_, bool expected) {
   CHECK_EQ(result.template is<1>(), true, "non-trivial evaluation result", orig)
   CHECK_EQ(result.template unwrap<1>(), expected, "result not evaluated to constant", orig)
 }
-
-// bool operator==(const Literal& lhs, const Literal& rhs) {
-//   return Indexing::TermSharing::equals(&lhs, &rhs);
-// }
 
 void check_eval(Lit orig_, Lit expected_) {
   Literal& orig = *orig_;
@@ -225,35 +145,25 @@ void check_eval(Lit orig_, Lit expected_) {
         THEORY_SYNTAX_SUGAR_PRED(r, 2) \
       _Pragma("GCC diagnostic pop") \
 
-/** Tests for evalutions that should only be successful for reals/rationals and not for integers. */
-#define FRACTIONAL_TEST(name, formula, expected) \
-    TEST_FUN(name ## _ ## REAL) { \
-      THEORY_SYNTAX_SUGAR(REAL); \
-      ADDITIONAL_FUNCTIONS \
-      check_eval(( formula ), ( expected )); \
-    }\
-    TEST_FUN(name ## _ ## RAT) { \
-      THEORY_SYNTAX_SUGAR(RAT); \
+#define NUM_TEST(NUM, name, formula, expected) \
+    TEST_FUN(name ## _ ## NUM) { \
+      THEORY_SYNTAX_SUGAR(NUM); \
       ADDITIONAL_FUNCTIONS \
       check_eval(( formula ), ( expected )); \
     } \
 
+/** Tests for evalutions that should only be successful for reals/rationals and not for integers. */
+#define FRACTIONAL_TEST(name, formula, expected) \
+  NUM_TEST(RAT , name, formula, expected) \
+  NUM_TEST(REAL, name, formula, expected) \
+
+#define INT_TEST(name, formula, expected) \
+  NUM_TEST(INT , name, formula, expected) \
+
 #define ALL_NUMBERS_TEST(name, formula, expected) \
-    TEST_FUN(name ## _ ## INT) { \
-      THEORY_SYNTAX_SUGAR(INT); \
-      ADDITIONAL_FUNCTIONS \
-      check_eval(( formula ), ( expected )); \
-    } \
-    TEST_FUN(name ## _ ## REAL) { \
-      THEORY_SYNTAX_SUGAR(REAL); \
-      ADDITIONAL_FUNCTIONS \
-      check_eval(( formula ), ( expected )); \
-    } \
-    TEST_FUN(name ## _ ## RAT) { \
-      THEORY_SYNTAX_SUGAR(RAT); \
-      ADDITIONAL_FUNCTIONS \
-      check_eval(( formula ), ( expected )); \
-    } \
+  NUM_TEST(INT , name, formula, expected) \
+  NUM_TEST(RAT , name, formula, expected) \
+  NUM_TEST(REAL, name, formula, expected) \
 
 /////////////////////////////////////////////// Test cases ///////////////////////////////////////////////////////
 
@@ -622,32 +532,52 @@ ALL_NUMBERS_TEST(eval_cancellation_add_9,
     0 == -(a * y)
     )
 
-ALL_NUMBERS_TEST(eval_quotientE_1,
+INT_TEST(eval_quotientE_1,
     r(quotientE(num(7), 2), remainderE(num(7), 2)),
     r(                  3,                     1)
     )
-ALL_NUMBERS_TEST(eval_quotientE_2,
+INT_TEST(eval_quotientE_2,
     r(quotientE(num(-7), 2), remainderE(num(-7), 2)),
     r(                  -4 ,                     1 )
     )
-ALL_NUMBERS_TEST(eval_quotientE_3,
+INT_TEST(eval_quotientE_3,
     r(quotientE(num(7), -2), remainderE(num(7), -2)),
     r(                  -3 ,                1 )
     )
 
-ALL_NUMBERS_TEST(eval_quotientF_1,
+INT_TEST(eval_quotientF_1,
     r(quotientF(num(7), 2), remainderF(num(7), 2)),
     r(                  3,                     1)
     )
 
-ALL_NUMBERS_TEST(eval_quotientT_1,
+INT_TEST(eval_quotientT_1,
     r(quotientT(num(7), 2), remainderT(num(7), 2)),
     r(                  3,                     1)
     )
 
-ALL_NUMBERS_TEST(eval_overflow,
+ALL_NUMBERS_TEST(eval_overflow_1,
     p(num(1661992960) + 1661992960),
     p(num(1661992960) + 1661992960)
+    )
+
+ALL_NUMBERS_TEST(eval_overflow_2,
+    r(num(1661992960) + 1661992960, 7 + 3),
+    r(num(1661992960) + 1661992960, 10)
+    )
+
+ALL_NUMBERS_TEST(eval_overflow_3,
+    r(num(1661992960) * 1661992960, 7 + 3),
+    r(num(1661992960) * 1661992960, 10)
+    )
+
+ALL_NUMBERS_TEST(eval_overflow_4,
+    p(-1 * num(std::numeric_limits<int>::min())),
+    evaluationFail
+    )
+
+ALL_NUMBERS_TEST(eval_overflow_5,
+    p(std::numeric_limits<int>::min() * num(std::numeric_limits<int>::min() + 1) * std::numeric_limits<int>::min()),
+    evaluationFail
     )
 
 // FRACTIONAL_TEST(eval_div_1,

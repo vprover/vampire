@@ -31,6 +31,7 @@
 
 #include "Api/FormulaBuilder.hpp"
 #include "Api/Problem.hpp"
+#include "Lib/Coproduct.hpp"
 
 namespace Test {
 
@@ -92,7 +93,7 @@ template<class T>
 class Pretty {
   const T& _self;
 public:
-  Pretty(const T& t) : _self(t) {}
+  Pretty(const T& t) : _self(t) { }
 
   std::ostream& prettyPrint(std::ostream& out) const
   { return out << _self; }
@@ -101,14 +102,53 @@ public:
   friend Pretty<U> pretty(const U& t);
 };
 
-
 template<class U>
 Pretty<U> pretty(const U& t) 
 { return Pretty<U>(t); }
 
+
 template<class U>
 std::ostream& operator<<(std::ostream& out, const Pretty<U>& self)
 {  return self.prettyPrint(out); }
+
+
+struct CoproductToPretty {
+  std::ostream& out;
+
+  template<class A>
+  void operator()(A const& a) const
+  { out << pretty(a); }
+};
+
+template<class... As>
+class Pretty<Lib::Coproduct<As...>> 
+{
+  Lib::Coproduct<As...> const& _self;
+
+public:
+  Pretty(Lib::Coproduct<As...> const& self) : _self(self) { }
+
+  std::ostream& prettyPrint(std::ostream& out) const
+  { 
+    out << _self.tag() << "(";
+    _self.apply(CoproductToPretty{out});
+    out << ")";
+    return out;
+  }
+};
+
+
+template<class A>
+class Pretty<A*> {
+  A* const& _self;
+
+public:
+  Pretty(A* const& self) : _self(self) {}
+
+  std::ostream& prettyPrint(std::ostream& out) const
+  { return out << pretty(*_self); }
+};
+
 
 }
 
