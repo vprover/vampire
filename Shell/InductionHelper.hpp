@@ -157,9 +157,9 @@ private:
 class InductionHelper {
 public:
   static void preprocess(Kernel::Problem& prb);
-  static void filterSchemes(Lib::List<InductionScheme*>*& schemes,
-    Lib::DHMap<Kernel::TermList, Lib::DHSet<unsigned>*>* activeOccurrenceMap,
-    const DHMap<TermList, unsigned>& occurrenceMap);
+  static void filterSchemes(Lib::DHMap<InductionScheme*, Lib::DHMap<Literal*, Clause*>*>* primarySchemes,
+    Lib::DHMap<InductionScheme*, Lib::DHMap<Literal*, Clause*>*>* secondarySchemes);
+  static void filterSchemes(Lib::DHMap<InductionScheme*, Lib::DHMap<Literal*, Clause*>*>* schemes);
   static void filterFlawedSchemes(Lib::List<InductionScheme*>*& schemes,
     Lib::DHMap<Kernel::TermList, Lib::DHSet<unsigned>*>* activeOccurrenceMap,
     const DHMap<TermList, unsigned>& occurrenceMap);
@@ -167,6 +167,7 @@ public:
   static bool canInductOn(Kernel::TermList t);
   static bool isTermAlgebraCons(Kernel::TermList t);
   static Lib::vvector<Kernel::TermList> getInductionTerms(Kernel::TermList t);
+  static Lib::DHSet<Kernel::TermList> getInductionTerms(Lib::DHMap<InductionScheme*, DHMap<Literal*, Clause*>*>* schemes);
 
 private:
   static void preprocess(Kernel::UnitList*& units);
