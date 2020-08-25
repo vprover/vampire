@@ -45,7 +45,7 @@ namespace Kernel {
 class ArithmeticException : public ThrowableBase { };
 
 class MachineArithmeticException : public ArithmeticException {  };
-class DivByZeroException  : public ArithmeticException {  };
+class DivByZeroException         : public ArithmeticException {  };
 
 class IntegerConstantType
 {
@@ -75,6 +75,11 @@ public:
   IntegerConstantType quotientT(const IntegerConstantType& num) const;
   IntegerConstantType quotientF(const IntegerConstantType& num) const; 
 
+  IntegerConstantType remainderT(const IntegerConstantType& num) const
+  { return (*this) - num * quotientT(num); }
+  IntegerConstantType remainderF(const IntegerConstantType& num) const
+  { return (*this) - num * quotientF(num); } 
+
   bool operator==(const IntegerConstantType& num) const;
   bool operator>(const IntegerConstantType& num) const;
 
@@ -90,6 +95,7 @@ public:
 
   static IntegerConstantType floor(RationalConstantType rat);
   static IntegerConstantType ceiling(RationalConstantType rat);
+  IntegerConstantType abs() const;
 
   static Comparison comparePrecedence(IntegerConstantType n1, IntegerConstantType n2);
 
@@ -151,21 +157,10 @@ struct RationalConstantType {
 
   bool isZero(){ return _num.toInner()==0; } 
   // relies on the fact that cannonize ensures that _den>=0
-  bool isNegative(){ ASS(_den>=0); return _num.toInner() < 0; }
+  bool isNegative() const { ASS(_den>=0); return _num.toInner() < 0; }
+  bool isPositive() const { ASS(_den>=0); return _num.toInner() > 0; }
 
-  RationalConstantType quotientE(const RationalConstantType& num) const {
-    if(_num.toInner()>0 && _den.toInner()>0){
-       return ((*this)/num).floor(); 
-    }
-    else return ((*this)/num).ceiling();
-  }
-  RationalConstantType quotientT(const RationalConstantType& num) const {
-    return ((*this)/num).truncate();
-  }
-  RationalConstantType quotientF(const RationalConstantType& num) const {
-    return ((*this)/num).floor(); 
-  }
-
+  RationalConstantType abs() const;
 
   vstring toString() const;
 
@@ -199,6 +194,7 @@ public:
   explicit RealConstantType(const vstring& number);
   explicit constexpr RealConstantType(const RationalConstantType& rat) : RationalConstantType(rat) {}
   explicit constexpr RealConstantType(typename IntegerConstantType::InnerType number) : RealConstantType(RationalConstantType(number)) {}
+  RealConstantType(int num, int den) : RationalConstantType(num, den) {}
 
   RealConstantType operator+(const RealConstantType& num) const
   { return RealConstantType(RationalConstantType::operator+(num)); }
@@ -215,12 +211,7 @@ public:
   RealConstantType truncate() const { return RealConstantType(RationalConstantType::truncate()); }
   RealConstantType ceiling() const { return RealConstantType(RationalConstantType::ceiling()); }
 
-  RealConstantType quotientE(const RealConstantType& num) const
-    { return RealConstantType(RationalConstantType::quotientE(num)); }
-  RealConstantType quotientT(const RealConstantType& num) const
-    { return RealConstantType(RationalConstantType::quotientT(num)); }
-  RealConstantType quotientF(const RealConstantType& num) const
-    { return RealConstantType(RationalConstantType::quotientF(num)); }
+  RealConstantType abs() const;
 
   vstring toNiceString() const;
 
