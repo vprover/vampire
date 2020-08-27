@@ -40,10 +40,12 @@ TermList TermOccurrenceReplacement::transformSubterm(Kernel::TermList trm)
     _c.get(trm)++;
   }
 
-  const auto& r = _r.get(trm);
-  const auto& o = _o->get(trm);
+  // The induction generalization heuristic is stored here:
+  // - if we have only one active occurrence, induct on all
+  // - otherwise only induct on the active occurrences
+  const auto& o = _o.get(trm);
   if (o->size() == 1 || o->contains(_c.get(trm))) {
-    return r;
+    return _r.get(trm);
   }
   return trm;
 }
@@ -101,10 +103,10 @@ RDescription::RDescription(List<TermList>* recursiveCalls, TermList step, Formul
     _condition(cond)
 {}
 
-Lib::vstring RDescription::toString() const
+vstring RDescription::toString() const
 {
   List<TermList>::Iterator it(_recursiveCalls);
-  Lib::vstring str = "";
+  vstring str = "";
   bool empty = !it.hasNext();
   if (!empty) {
     str+="(";
@@ -247,7 +249,6 @@ void InductionTemplate::postprocess()
 
 InductionScheme::InductionScheme()
   : _rDescriptionInstances(0),
-    _activeOccurrences(0),
     _maxVar(0)
 {
 }
@@ -348,11 +349,6 @@ void InductionScheme::addRDescriptionInstance(RDescriptionInst inst)
   List<RDescriptionInst>::push(inst, _rDescriptionInstances);
 }
 
-void InductionScheme::addActiveOccurrences(DHMap<TermList, DHSet<unsigned>*>* m)
-{
-  _activeOccurrences = m;
-}
-
 void InductionScheme::setMaxVar(unsigned maxVar)
 {
   _maxVar = maxVar;
@@ -361,11 +357,6 @@ void InductionScheme::setMaxVar(unsigned maxVar)
 List<RDescriptionInst>::RefIterator InductionScheme::getRDescriptionInstances() const
 {
   return List<RDescriptionInst>::RefIterator(_rDescriptionInstances);
-}
-
-DHMap<TermList, DHSet<unsigned>*>* InductionScheme::getActiveOccurrences() const
-{
-  return _activeOccurrences;
 }
 
 unsigned InductionScheme::getMaxVar() const
@@ -380,23 +371,6 @@ vstring InductionScheme::toString() const
   List<RDescriptionInst>::Iterator lIt(_rDescriptionInstances);
   while (lIt.hasNext()) {
     str+=lIt.next().toString()+" ;-- ";
-  }
-  str+="Active occurrences: ";
-  if (_activeOccurrences != nullptr) {
-    DHMap<TermList, DHSet<unsigned>*>::Iterator aIt(*_activeOccurrences);
-    while (aIt.hasNext()) {
-      TermList k;
-      DHSet<unsigned>* v;
-      aIt.next(k, v);
-      if (v->isEmpty()) {
-        continue;
-      }
-      str+="term: "+k.toString()+" positions: ";
-      DHSet<unsigned>::Iterator pIt(*v);
-      while (pIt.hasNext()) {
-        str+=Int::toString(pIt.next())+" ";
-      }
-    }
   }
   return str;
 }
@@ -451,117 +425,67 @@ void InductionHelper::preprocess(UnitList*& units)
   }
 }
 
-void InductionHelper::filterFlawedSchemes(List<InductionScheme*>*& schemes,
-  DHMap<TermList, DHSet<unsigned>*>* activeOccurrenceMap,
+void InductionHelper::filterFlawedSchemes(vvector<InductionScheme>& schemes,
+  const DHMap<TermList, DHSet<unsigned>*>& activeOccurrenceMap,
   const DHMap<TermList, unsigned>& occurrenceMap)
 {
   CALL("InductionHelper::filterFlawedSchemes");
-  Set<InductionScheme*> unflawed;
-  List<InductionScheme*>::Iterator schIt(schemes);
-  while (schIt.hasNext()) {
-    auto scheme = schIt.next();
-    auto rdescIt = scheme->getRDescriptionInstances();
+  vvector<InductionScheme> unflawed;
+  for (const auto& scheme : schemes) {
+    auto rdescIt = scheme.getRDescriptionInstances();
     bool flawed = false;
     while (rdescIt.hasNext()) {
       auto rdesc = rdescIt.next();
       DHMap<TermList,TermList>::Iterator stIt(rdesc.getStep());
       while (stIt.hasNext()) {
         auto k = stIt.nextKey();
-        if (activeOccurrenceMap->get(k)->size() != occurrenceMap.get(k)) {
+        if (activeOccurrenceMap.get(k)->size() != occurrenceMap.get(k)) {
           flawed = true;
           break;
         }
       }
     }
     if (!flawed) {
-      unflawed.insert(scheme);
+      unflawed.push_back(scheme);
     }
   }
   if(env.options->showInduction()){
     env.beginOutput();
-    env.out() << "[Induction] " << unflawed.size() << " out of " << List<InductionScheme*>::length(schemes)
+    env.out() << "[Induction] " << unflawed.size() << " out of " << schemes.size()
               << " induction schemes are unflawed" << endl;
     env.endOutput();
   }
-  if (unflawed.size() > 0 && unflawed.size() != List<InductionScheme*>::length(schemes)) {
+  if (unflawed.size() > 0 && unflawed.size() != schemes.size()) {
     if(env.options->showInduction()){
       env.beginOutput();
       env.out() << "[Induction] filtering out flawed schemes" << endl;
       env.endOutput();
     }
-    List<InductionScheme*>::Iterator schIt(schemes);
-    while (schIt.hasNext()) {
-      auto scheme = schIt.next();
-      if (!unflawed.contains(scheme)) {
-        if(env.options->showInduction()){
-          env.beginOutput();
-          env.out() << "[Induction] Scheme is flawed and is removed: " << scheme->toString() << endl;
-          env.endOutput();
-        }
-        schemes = List<InductionScheme*>::remove(scheme, schemes);
-        // delete scheme;
-      }
-    }
+    schemes = unflawed;
   }
 }
 
-void InductionHelper::filterSchemes(List<InductionScheme*>*& schemes,
-  DHMap<TermList, DHSet<unsigned>*>* activeOccurrenceMap,
+void InductionHelper::filterSchemes(vvector<InductionScheme>& schemes,
+  const DHMap<TermList, DHSet<unsigned>*>& activeOccurrenceMap,
   const DHMap<TermList, unsigned>& occurrenceMap)
 {
   CALL("InductionHelper::filterSchemes");
 
   filterFlawedSchemes(schemes, activeOccurrenceMap, occurrenceMap);
 
-  List<InductionScheme*>::RefIterator schIt(schemes);
-  while (schIt.hasNext()) {
-    auto& scheme = schIt.next();
-    auto schIt2 = schIt;
-
-    while (schIt2.hasNext()) {
-      auto& other = schIt2.next();
-      if (checkSubsumption(scheme, other)) {
+  for (unsigned i = 0; i < schemes.size(); i++) {
+    for (unsigned j = i+1; j < schemes.size();) {
+      if (checkSubsumption(schemes[j], schemes[i])) {
         if(env.options->showInduction()){
           env.beginOutput();
-          env.out() << "[Induction] induction scheme " << scheme->toString() << " is subsumed by " << other->toString() << endl;
+          env.out() << "[Induction] induction scheme " << schemes[j].toString()
+                    << " is subsumed by " << schemes[i].toString() << endl;
           env.endOutput();
         }
-        schemes = List<InductionScheme*>::remove(scheme, schemes);
-        // delete scheme;
-        break;
-      } else if (checkSubsumption(other, scheme)) {
-        if(env.options->showInduction()){
-          env.beginOutput();
-          env.out() << "[Induction] induction scheme " << other->toString() << " is subsumed by " << scheme->toString() << endl;
-          env.endOutput();
-        }
-        if (schIt.peekAtNext() == other) {
-          schIt.next();
-        }
-        schemes = List<InductionScheme*>::remove(other, schemes);
-        // delete other;
-      } else if (checkSubsumption(scheme, other, true)) {
-        if(env.options->showInduction()){
-          env.beginOutput();
-          env.out() << "[Induction] induction scheme " << scheme->toString() << " can be merged into " << other->toString() << endl;
-          env.endOutput();
-        }
-        // mergeSchemes(scheme, other);
-        // schemes = List<InductionScheme*>::remove(scheme, schemes);
-        // delete scheme;
-        // break;
-      } else if (checkSubsumption(other, scheme, true)) {
-        if(env.options->showInduction()){
-          env.beginOutput();
-          env.out() << "[Induction] induction scheme " << other->toString() << " can be merged into " << scheme->toString() << endl;
-          env.endOutput();
-        }
-        // if (schIt.peekAtNext() == other) {
-        //   schIt.next();
-        // }
-        // mergeSchemes(other, scheme);
-        // schemes = List<InductionScheme*>::remove(other, schemes);
-        // delete other;
+        schemes[j] = schemes.back();
+        schemes.pop_back();
+      } else {
+        j++;
       }
     }
   }
@@ -801,13 +725,13 @@ bool containsUpToVariableRenaming(TermList container, TermList contained) {
   return false;
 }
 
-bool InductionHelper::checkSubsumption(InductionScheme* sch1, InductionScheme* sch2, bool onlyCheckIntersection)
+bool InductionHelper::checkSubsumption(const InductionScheme& sch1, const InductionScheme& sch2, bool onlyCheckIntersection)
 {
-  auto rdescIt1 = sch1->getRDescriptionInstances();
+  auto rdescIt1 = sch1.getRDescriptionInstances();
   while (rdescIt1.hasNext()) {
     auto rdesc1 = rdescIt1.next();
     auto contained = false;
-    auto rdescIt2 = sch2->getRDescriptionInstances();
+    auto rdescIt2 = sch2.getRDescriptionInstances();
     while (rdescIt2.hasNext()) {
       auto rdesc2 = rdescIt2.next();
       if ((rdesc2.getRecursiveCalls() == nullptr) != (rdesc1.getRecursiveCalls() == nullptr)) {
@@ -849,124 +773,6 @@ TermList shiftVarsUp(TermList t, unsigned shift) {
   }
   VarShiftReplacement vr(shift);
   return TermList(vr.transform(t.term()));
-}
-
-void InductionHelper::mergeSchemes(InductionScheme* sch1, InductionScheme*& sch2) {
-  auto res = new InductionScheme();
-  auto rdescIt1 = sch1->getRDescriptionInstances();
-  auto maxVar = sch2->getMaxVar();
-  unsigned var = 0;
-  while (rdescIt1.hasNext()) {
-    auto rdesc1 = rdescIt1.next();
-    auto rdescIt2 = sch2->getRDescriptionInstances();
-    while (rdescIt2.hasNext()) {
-      DHMap<unsigned, unsigned> varMap;
-      auto& rdesc2 = rdescIt2.next();
-      bool base1 = rdesc1.getRecursiveCalls() == nullptr;
-      bool base2 = rdesc2.getRecursiveCalls() == nullptr;
-      if (base1 || base2) {
-        continue;
-      }
-      auto m2 = rdesc2.getStep();
-
-      auto desc = rdesc2;
-      DHMap<TermList, TermList>::Iterator stIt(rdesc1.getStep());
-      while (stIt.hasNext()) {
-        TermList k, v;
-        stIt.next(k, v);
-        if (m2.find(k)) {
-          desc.getStep().insert(
-            shiftVarsUp(k, maxVar), shiftVarsUp(v, maxVar));
-        }
-      }
-      DHMap<TermList, TermList>::Iterator stIt2(desc.getStep());
-      while (stIt2.hasNext()) {
-        TermList k;
-        auto& v = stIt2.nextRef(k);
-        VarReplacement cr(varMap, var);
-        v = TermList(cr.transform(v.term()));
-      }
-      auto mergedRecCalls = List<DHMap<TermList,TermList>>::empty();
-      List<DHMap<TermList,TermList>>::Iterator it1(rdesc1.getRecursiveCalls());
-      // if (!it1.hasNext()) {
-      //   List<DHMap<TermList,TermList>>::Iterator it2(rdesc2.getRecursiveCalls());
-      //   while (it2.hasNext()) {
-      //     auto recCall2 = it2.next();
-      //     DHMap<TermList, TermList>::Iterator recIt(recCall2);
-      //     while (recIt.hasNext()) {
-      //       TermList k;
-      //       auto& v = recIt.nextRef(k);
-      //       if (v.isVar()) {
-      //         v = TermList(varMap.get(v.var()), false);
-      //       } else {
-      //         VarReplacement cr(varMap, var);
-      //         v = TermList(cr.transform(v.term()));
-      //       }
-      //     }
-      //     List<DHMap<TermList,TermList>>::push(recCall2, mergedRecCalls);
-      //   }
-      // } else {
-        while (it1.hasNext()) {
-          auto recCall1 = it1.next();
-          List<DHMap<TermList,TermList>>::Iterator it2(rdesc2.getRecursiveCalls());
-          // if (!it2.hasNext()) {
-          //   DHMap<TermList,TermList> mergedRecCall;
-          //   DHMap<TermList,TermList>::Iterator recIt(recCall1);
-          //   while (recIt.hasNext()) {
-          //     TermList k, v;
-          //     recIt.next(k, v);
-          //     if (v.isVar()) {
-          //       mergedRecCall.insert(
-          //         k, TermList(varMap.get(v.var()+maxVar), false));
-          //     } else {
-          //       VarReplacement cr(varMap, var);
-          //       auto t = shiftVarsUp(v, maxVar);
-          //       mergedRecCall.insert(
-          //         k, TermList(cr.transform(t.term())));
-          //     }
-          //   }
-          //   List<DHMap<TermList,TermList>>::push(mergedRecCall, mergedRecCalls);
-          // } else {
-            while (it2.hasNext()) {
-              auto mergedRecCall = it2.next();
-              DHMap<TermList,TermList>::Iterator recIt(mergedRecCall);
-              while (recIt.hasNext()) {
-                TermList k;
-                auto& v = recIt.nextRef(k);
-                if (v.isVar()) {
-                  v = TermList(varMap.get(v.var()), false);
-                } else {
-                  VarReplacement cr(varMap, var);
-                  v = TermList(cr.transform(v.term()));
-                }
-              }
-              DHMap<TermList,TermList>::Iterator recIt2(mergedRecCall);
-              while (recIt2.hasNext()) {
-                TermList k, v;
-                recIt2.next(k, v);
-                if (v.isVar()) {
-                  mergedRecCall.insert(
-                    k, TermList(varMap.get(v.var()+maxVar), false));
-                } else {
-                  VarReplacement cr(varMap, var);
-                  auto t = shiftVarsUp(v, maxVar);
-                  mergedRecCall.insert(
-                    k, TermList(cr.transform(t.term())));
-                }
-              }
-              List<DHMap<TermList,TermList>>::push(mergedRecCall, mergedRecCalls);
-            }
-          // }
-        }
-      // }
-      desc.getRecursiveCalls() = mergedRecCalls;
-      res->addRDescriptionInstance(desc);
-    }
-  }
-  res->setMaxVar(var);
-  cout << "Merged scheme: " << res->toString() << endl;
-  delete sch2;
-  sch2 = res;
 }
 
 } // Shell

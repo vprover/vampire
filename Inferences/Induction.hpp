@@ -123,7 +123,8 @@ private:
   void performStructInductionThree(Clause* premise, Literal* origLit, Literal* lit, Term* t, InferenceRule rule);
 
   void performStructInductionFour(Clause* premise, Literal* origLit, InferenceRule rule);
-  void instantiateScheme(Clause* premise, Literal* origLit, InferenceRule rule, InductionScheme* scheme);
+  void instantiateScheme(Clause* premise, Literal* origLit, InferenceRule rule,
+    const InductionScheme& scheme, const DHMap<TermList, DHSet<unsigned>*>& activeOccurrenceMap);
 
   bool notDone(Literal* lit, Term* t);
   Term* getPlaceholderForTerm(Term* t);
