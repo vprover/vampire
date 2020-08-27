@@ -110,7 +110,7 @@ TORCHLINK= -Wl,-search_paths_first -Wl,-headerpad_max_install_names
 TORCHLIB= -Wl,-rpath,/Users/mbassms6/libtorch/lib /Users/mbassms6/libtorch/lib/libc10.dylib /Users/mbassms6/libtorch/lib/libtorch.dylib /Users/mbassms6/libtorch/lib/libtorch_cpu.dylib  
 else
 TORCHLINK=
-TORCHLIB= -rdynamic ./libtorch/lib/libtorch.so ./libtorch/lib/libc10.so ./libtorch/lib/libc10.so -lpthread -Wl,--no-as-needed,./libtorch/lib/libtorch.so -Wl,--as-needed -Wl,-rpath,./libtorch/lib
+TORCHLIB= -Wl,-rpath,/nfs/sudamar2/projects/vampire/libtorch/lib /nfs/sudamar2/projects/vampire/libtorch/lib/libtorch.so /nfs/sudamar2/projects/vampire/libtorch/lib/libc10.so -Wl,--no-as-needed,/nfs/sudamar2/projects/vampire/libtorch/lib/libtorch_cpu.so -Wl,--as-needed /nfs/sudamar2/projects/vampire/libtorch/lib/libc10.so -lpthread -Wl,--no-as-needed,/nfs/sudamar2/projects/vampire/libtorch/lib/libtorch.so -Wl,--as-needed 
 endif
 
 ifneq (,$(filter vtest%,$(MAKECMDGOALS)))
