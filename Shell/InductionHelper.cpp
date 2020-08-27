@@ -505,125 +505,66 @@ void InductionHelper::filterFlawedSchemes(List<InductionScheme*>*& schemes,
   }
 }
 
-void mergeLitClausePairsInto(DHMap<Literal*, Clause*>* from, DHMap<Literal*, Clause*>* to)
-{
-  DHMap<Literal*, Clause*>::Iterator it(*from);
-  while (it.hasNext()) {
-    Literal* lit;
-    Clause* cl;
-    it.next(lit, cl);
-    ASS(!to->find(lit) || to->get(lit) == cl); // if this happens, a more complicated structure is needed
-    to->insert(lit, cl);
-  }
-}
-
-void InductionHelper::filterSchemes(DHMap<InductionScheme*, DHMap<Literal*, Clause*>*>* primarySchemes,
-  DHMap<InductionScheme*, DHMap<Literal*, Clause*>*>* secondarySchemes)
-{
-  filterSchemes(primarySchemes);
-  filterSchemes(secondarySchemes);
-
-  // merge secondary schemes into primary ones if possible, remove the rest
-  vvector<InductionScheme*> secondaryKeysToRemove;
-  DHMap<InductionScheme*, DHMap<Literal*, Clause*>*>::Iterator secIt(*secondarySchemes);
-  while (secIt.hasNext()) {
-    auto secondary = secIt.nextKey();
-    DHMap<InductionScheme*, DHMap<Literal*, Clause*>*>::Iterator prIt(*primarySchemes);
-    while (prIt.hasNext()) {
-      auto primary = prIt.nextKey();
-      if (checkSubsumption(secondary, primary)) {
-        if(env.options->showInduction()){
-          env.beginOutput();
-          env.out() << "[Induction] secondary induction scheme " << secondary->toString() << " is subsumed by primary " << primary->toString() << endl;
-          env.endOutput();
-        }
-        mergeLitClausePairsInto(secondarySchemes->get(secondary), primarySchemes->get(primary));
-        break;
-      } else if (checkSubsumption(primary, secondary)) {
-        if(env.options->showInduction()){
-          env.beginOutput();
-          env.out() << "[Induction] primary induction scheme " << primary->toString() << " is subsumed by secondary " << secondary->toString() << endl;
-          env.endOutput();
-        }
-        auto val = primarySchemes->get(primary);
-        primarySchemes->remove(primary);
-        mergeLitClausePairsInto(secondarySchemes->get(secondary), val);
-        secondaryKeysToRemove.push_back(secondary);
-        primarySchemes->insert(secondary, val);
-        break;
-      }
-    }
-  }
-  for (const auto& k : secondaryKeysToRemove) {
-    delete secondarySchemes->get(k);
-    secondarySchemes->remove(k);
-  }
-}
-
-void removeSubsumedScheme(DHMap<InductionScheme*, DHMap<Literal*, Clause*>*>* schemes, InductionScheme* subsumed, InductionScheme* subsumer) {
-  if(env.options->showInduction()){
-    env.beginOutput();
-    env.out() << "[Induction] induction scheme " << subsumed->toString() << " is subsumed by " << subsumer->toString() << endl;
-    env.endOutput();
-  }
-  mergeLitClausePairsInto(schemes->get(subsumed), schemes->get(subsumer));
-  schemes->remove(subsumed);
-  delete subsumed;
-}
-
-void InductionHelper::filterSchemes(DHMap<InductionScheme*, DHMap<Literal*, Clause*>*>* schemes)
+void InductionHelper::filterSchemes(List<InductionScheme*>*& schemes,
+  DHMap<TermList, DHSet<unsigned>*>* activeOccurrenceMap,
+  const DHMap<TermList, unsigned>& occurrenceMap)
 {
   CALL("InductionHelper::filterSchemes");
 
-  // filterFlawedSchemes(schemes, activeOccurrenceMap, occurrenceMap);
+  filterFlawedSchemes(schemes, activeOccurrenceMap, occurrenceMap);
 
-  bool changed = false;
-  do {
-    changed = false;
-    DHMap<InductionScheme*, DHMap<Literal*, Clause*>*>::Iterator schIt(*schemes);
-    while (schIt.hasNext()) {
-      auto scheme = schIt.nextKey();
-      auto schIt2 = schIt;
+  List<InductionScheme*>::RefIterator schIt(schemes);
+  while (schIt.hasNext()) {
+    auto& scheme = schIt.next();
+    auto schIt2 = schIt;
 
-      while (schIt2.hasNext()) {
-        auto other = schIt2.nextKey();
-        if (checkSubsumption(scheme, other)) {
-          removeSubsumedScheme(schemes, scheme, other);
-          changed = true;
-          break;
-        } else if (checkSubsumption(other, scheme)) {
-          removeSubsumedScheme(schemes, other, scheme);
-          changed = true;
-          break;
-        } else if (checkSubsumption(scheme, other, true)) {
-          if(env.options->showInduction()){
-            env.beginOutput();
-            env.out() << "[Induction] induction scheme " << scheme->toString() << " can be merged into " << other->toString() << endl;
-            env.endOutput();
-          }
-          // mergeSchemes(scheme, other);
-          // schemes = List<InductionScheme*>::remove(scheme, schemes);
-          // delete scheme;
-          // break;
-        } else if (checkSubsumption(other, scheme, true)) {
-          if(env.options->showInduction()){
-            env.beginOutput();
-            env.out() << "[Induction] induction scheme " << other->toString() << " can be merged into " << scheme->toString() << endl;
-            env.endOutput();
-          }
-          // if (schIt.peekAtNext() == other) {
-          //   schIt.next();
-          // }
-          // mergeSchemes(other, scheme);
-          // schemes = List<InductionScheme*>::remove(other, schemes);
-          // delete other;
+    while (schIt2.hasNext()) {
+      auto& other = schIt2.next();
+      if (checkSubsumption(scheme, other)) {
+        if(env.options->showInduction()){
+          env.beginOutput();
+          env.out() << "[Induction] induction scheme " << scheme->toString() << " is subsumed by " << other->toString() << endl;
+          env.endOutput();
         }
-      }
-      if (changed) {
+        schemes = List<InductionScheme*>::remove(scheme, schemes);
+        // delete scheme;
         break;
+      } else if (checkSubsumption(other, scheme)) {
+        if(env.options->showInduction()){
+          env.beginOutput();
+          env.out() << "[Induction] induction scheme " << other->toString() << " is subsumed by " << scheme->toString() << endl;
+          env.endOutput();
+        }
+        if (schIt.peekAtNext() == other) {
+          schIt.next();
+        }
+        schemes = List<InductionScheme*>::remove(other, schemes);
+        // delete other;
+      } else if (checkSubsumption(scheme, other, true)) {
+        if(env.options->showInduction()){
+          env.beginOutput();
+          env.out() << "[Induction] induction scheme " << scheme->toString() << " can be merged into " << other->toString() << endl;
+          env.endOutput();
+        }
+        // mergeSchemes(scheme, other);
+        // schemes = List<InductionScheme*>::remove(scheme, schemes);
+        // delete scheme;
+        // break;
+      } else if (checkSubsumption(other, scheme, true)) {
+        if(env.options->showInduction()){
+          env.beginOutput();
+          env.out() << "[Induction] induction scheme " << other->toString() << " can be merged into " << scheme->toString() << endl;
+          env.endOutput();
+        }
+        // if (schIt.peekAtNext() == other) {
+        //   schIt.next();
+        // }
+        // mergeSchemes(other, scheme);
+        // schemes = List<InductionScheme*>::remove(other, schemes);
+        // delete other;
       }
     }
-  } while (changed); 
+  }
 }
 
 bool InductionHelper::canInductOn(TermList t)
@@ -680,26 +621,6 @@ vvector<TermList> InductionHelper::getInductionTerms(TermList t)
     if (active && isTermAlgebraCons(st)) {
       for (unsigned i = 0; i < st.term()->arity(); i++) {
         actStack.push(make_pair(*st.term()->nthArgument(i),true));
-      }
-    }
-  }
-  return v;
-}
-
-DHSet<TermList> InductionHelper::getInductionTerms(DHMap<InductionScheme*, DHMap<Literal*, Clause*>*>* schemes)
-{
-  DHSet<TermList> v;
-  DHMap<InductionScheme*, DHMap<Literal*, Clause*>*>::Iterator it(*schemes);
-  while (it.hasNext()) {
-    auto scheme = it.nextKey();
-    auto it2 = scheme->getRDescriptionInstances();
-    while (it2.hasNext()) {
-      auto desc = it2.next();
-      auto step = desc.getStep();
-      DHMap<TermList,TermList>::Iterator mIt(step);
-      while (mIt.hasNext()) {
-        auto k = mIt.nextKey();
-        v.insert(k);
       }
     }
   }
