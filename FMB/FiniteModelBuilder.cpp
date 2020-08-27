@@ -583,7 +583,7 @@ void FiniteModelBuilder::init()
   del_p.ensure(env.signature->predicates());
 
   for(unsigned f=0;f<env.signature->functions();f++){
-    del_f[f] = _deletedFunctions.find(f);
+    del_f[f] = _deletedFunctions.find(f) || env.signature->getFunction(f)->usageCnt()==0;
   }
   for(unsigned p=0;p<env.signature->predicates();p++){
     del_p[p] = (_deletedPredicates.find(p) || _trivialPredicates.find(p));
@@ -2032,6 +2032,8 @@ pModelLabel:
     //cout << "Consider " << f << endl;
     unsigned arity = env.signature->functionArity(f);
     if(!del_f[f]) continue; 
+    // For now, just skip unused functions!
+    if(env.signature->getFunction(f)->usageCnt()==0) continue;
     //del_f[f]=false;
 
     ASS(_deletedFunctions.find(f));

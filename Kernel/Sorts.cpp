@@ -284,8 +284,13 @@ OperatorType::OperatorKey* OperatorType::setupKeyUniformRange(unsigned arity, un
 }
 
 OperatorType::OperatorTypes& OperatorType::operatorTypes() {
-  // we should delete all the stored OperatorTypes inside at the end of the world, when this get destroyed
-  static OperatorType::OperatorTypes _operatorTypes;
+  struct DeletingOperatorTypes : public OperatorType::OperatorTypes {
+    ~DeletingOperatorTypes() {
+      deleteAll();
+    }
+  };
+
+  static DeletingOperatorTypes _operatorTypes;
   return _operatorTypes;
 }
 

@@ -217,7 +217,7 @@ Clause* GlobalSubsumption::perform(Clause* cl, Stack<Unit*>& prems)
         SATInference::collectFilteredFOPremises(ref, prems,
           // Some solvers may return "all the clauses added so far" in the refutation.
           // That must be filtered since a derived clause cannot depend on inactive splits
-          [this,cl] (SATClause* prem) {
+          [this] (SATClause* prem) {
 
             // ignore ASSUMPTION clauses (they don't have FO premises anyway)
             if (prem->inference()->getType() == SATInference::ASSUMPTION) {

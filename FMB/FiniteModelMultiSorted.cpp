@@ -250,9 +250,9 @@ vstring FiniteModelMultiSorted::toString()
     modelStm << ")." << endl << endl;
     }
   }
-
   //Constants
   for(unsigned f=0;f<env.signature->functions();f++){
+    if(env.signature->getFunction(f)->usageCnt()==0) continue;
     unsigned arity = env.signature->functionArity(f);
     if(arity>0) continue;
     if(!printIntroduced && env.signature->getFunction(f)->introduced()) continue;
@@ -274,6 +274,7 @@ vstring FiniteModelMultiSorted::toString()
 
   //Functions
   for(unsigned f=0;f<env.signature->functions();f++){
+    if(env.signature->getFunction(f)->usageCnt()==0) continue;
     unsigned arity = env.signature->functionArity(f);
     if(arity==0) continue;
     if(!printIntroduced && env.signature->getFunction(f)->introduced()) continue;

@@ -134,6 +134,54 @@ protected:
     return false;
   } // Map::find
 
+
+  /**
+   * Return the value associated with the key if it is present, or a nullptr otherwise.
+   * (mutable version)
+   *
+   * @since 02/06/2020 Manchester
+   * @author Johannes Schoisswohl
+   */
+  Val* getPtr(const Key& key) 
+  {
+    CALL("Val* Map::getPtr(const Key&)");
+    unsigned code = Hash::hash(key);
+    if (code == 0) {
+      code = 1;
+    }
+    Entry* entry;
+    for (entry = firstEntryForCode(code); entry->occupied(); entry = nextEntry(entry)) {
+      if (entry->code == code && Hash::equals(entry->key,key)) {
+        return &entry->value;
+      }
+    }
+    return nullptr;
+  }// Map::getPtr
+
+  /**
+   * Return the value associated with the key if it is present, or a nullptr otherwise.
+   * (immutable version)
+   *
+   * @since 02/06/2020 Manchester
+   * @author Johannes Schoisswohl
+   */
+  const Val* getPtr(const Key& key) const
+  {
+    CALL("const Val* Map::getPtr(const Key&)");
+    unsigned code = Hash::hash(key);
+    if (code == 0) {
+      code = 1;
+    }
+    Entry* entry;
+    for (entry = firstEntryForCode(code); entry->occupied(); entry = nextEntry(entry)) {
+      if (entry->code == code && Hash::equals(entry->key,key)) {
+        return &entry->value;
+      }
+    }
+    return nullptr;
+  } // Map::getPtr
+
+
   /**
    * Return the value by the key. The value must be stored in the
    * map already.
@@ -183,7 +231,7 @@ protected:
    * @since 23/12/2013 Manchester, documentation changed
    * @author Andrei Voronkov
    */
-  inline Val insert(const Key key,Val val)
+  inline Val insert(Key key,Val val)
   {
     CALL("Map::insert");
 
@@ -194,9 +242,10 @@ protected:
     if (code == 0) {
       code = 1;
     }
-    return insert(key,val,code);
+    return insert(std::move(key),std::move(val),code);
   } // Map::insert
 
+private:
   /**
    * If no value is stored under key @b key, insert pair (key,value) in the map.
    * Return the value stored under @b key. @b code is the previously computed
@@ -204,9 +253,10 @@ protected:
    * The set must have a sufficient capacity
    * @since 09/12/2006 Manchester, reimplemented
    * @since 23/12/2013 Manchester, documentation changed
+   * @since 02/06/2020 Manchester, refactor to work with non-copyable types (by Johannes Schoisswohl)
    * @author Andrei Voronkov
    */
-  Val insert(const Key key, Val val,unsigned code)
+  Val& insert(Key&& key, Val&& val,unsigned code)
   {
     CALL("Map::insert/2");
 
@@ -218,11 +268,13 @@ protected:
     }
     // entry is not occupied
     _noOfEntries++;
-    entry->key = key;
-    entry->value = val;
+    ::new(&entry->key) Key(std::move(key));
+    ::new(&entry->value) Val(std::move(val));
     entry->code = code;
     return entry->value;
   } // Map::insert
+
+public:
 
   /**
    * If no value under key @b key is not contained in the set, insert
@@ -246,8 +298,8 @@ protected:
     Entry* entry;
     for (entry = firstEntryForCode(code); entry->occupied(); entry = nextEntry(entry)) {
       if (entry->code == code && Hash::equals(entry->key, key)) {
-				entry->value = val;
-				return true;
+        entry->value = val;
+        return true;
       }
     }
     // entry is not occupied
@@ -255,7 +307,7 @@ protected:
     entry->key = key;
     entry->value = val;
     entry->code = code;
-		return false;
+    return false;
   } // Map::replaceOrInsert
 
 
@@ -288,14 +340,46 @@ protected:
 #endif
   } // Map::replace
 
-  
+ 
+  /**
+   * Gen the entry at the position @b key or initialize it with the closure @b init.
+   * @b init will be called with a pointer to an unsigned chunk of memory:
+   *
+   * void init(Value* toInit) { ... }
+   */
+  template<class InitFun>
+  Val& getOrInit(Key&& key, InitFun init)
+  {
+    CALL("Map::getOrInit");
+
+    if (_noOfEntries >= _maxEntries) { // too many entries
+      expand();
+    }
+    unsigned code = Hash::hash(key);
+    if (code == 0) {
+      code = 1;
+    }
+    Entry* entry;
+    for (entry = firstEntryForCode(code); entry->occupied(); entry = nextEntry(entry)) {
+      if (entry->code == code && Hash::equals(entry->key, key)) {
+        return entry->value;
+      }
+    }
+    // entry is not occupied
+    _noOfEntries++;
+    entry->key = std::move(key);
+    init(&entry->value);
+    entry->code = code;
+    return entry->value;
+  } 
+
   /**
    * Assign pointer to value stored under @b key into @b pval.
    * If nothing was previously stored under @b key, initialize
    * the value with @b initial, and return true. Otherwise,
    * return false.
    */
-  bool getValuePtr(Key key, Val*& pval, const Val& initial)
+  bool getValuePtr(const Key& key, Val*& pval, const Val& initial)
   {
     CALL("Map::getValuePtr");
 
@@ -407,7 +491,7 @@ protected:
         current ++;
       }
       // now current is occupied
-      insert(current->key,current->value,current->code);
+      insert(std::move(current->key),std::move(current->value),current->code);
       current ++;
       remaining --;
     }
