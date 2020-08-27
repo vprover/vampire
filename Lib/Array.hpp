@@ -163,6 +163,10 @@ public:
 
   inline C* end() { return _array+_capacity; }
 
+  inline const C* begin() const { return _array; }
+
+  inline const C* end() const { return _array+_capacity; }
+
 
 protected:
   /** current array's capacity */

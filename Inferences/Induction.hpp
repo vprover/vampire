@@ -28,7 +28,9 @@
 
 #include "Forwards.hpp"
 
+#include "Indexing/TermIndex.hpp"
 #include "Kernel/TermTransformer.hpp"
+#include "Lib/Array.hpp"
 
 #include "InferenceEngine.hpp"
 
@@ -84,16 +86,19 @@ public:
   CLASS_NAME(Induction);
   USE_ALLOCATOR(Induction);
 
-  Induction() {}
-  ClauseIterator generateClauses(Clause* premise);
+  Induction() = default;
+  ClauseIterator generateClauses(Clause* premise) override;
+  void attach(SaturationAlgorithm* salg) override;
 
+private:
+  TermIndex* _index;
 };
 
 class InductionClauseIterator
 {
 public:
   // all the work happens in the constructor!
-  InductionClauseIterator(Clause* premise);
+  InductionClauseIterator(Clause* premise, TermIndex* index);
 
   CLASS_NAME(InductionClauseIterator);
   USE_ALLOCATOR(InductionClauseIterator);
@@ -111,9 +116,9 @@ public:
   }
 
 private:
-  void process(Clause* premise, Literal* lit);
+  void process(Clause* premise, Literal* lit, TermIndex* index);
 
-  void produceClauses(Clause* premise, Literal* origLit, Formula* hypothesis, Literal* conclusion, InferenceRule rule);
+  void produceClauses(DHMap<Literal*, Clause*>* origLitToPremiseMap, Formula* hypothesis, DHMap<Literal*, Literal*>* conclusionToOrigLitMap, InferenceRule rule);
 
   void performMathInductionOne(Clause* premise, Literal* origLit, Literal* lit, Term* t, InferenceRule rule); 
   void performMathInductionTwo(Clause* premise, Literal* origLit, Literal* lit, Term* t, InferenceRule rule);
@@ -122,8 +127,9 @@ private:
   void performStructInductionTwo(Clause* premise, Literal* origLit, Literal* lit, Term* t, InferenceRule rule);
   void performStructInductionThree(Clause* premise, Literal* origLit, Literal* lit, Term* t, InferenceRule rule);
 
-  void performStructInductionFour(Clause* premise, Literal* origLit, InferenceRule rule);
-  void instantiateScheme(Clause* premise, Literal* origLit, InferenceRule rule, InductionScheme* scheme);
+  void performStructInductionFour(Clause* premise, Literal* origLit, InferenceRule rule, TermIndex* index);
+  void instantiateScheme(DHMap<Literal*, Clause*>* litClMap, DHMap<Literal*, DHMap<TermList, DHSet<unsigned>*>*>* activeOccurrenceMap,
+    InferenceRule rule, InductionScheme* scheme);
 
   bool notDone(Literal* lit, Term* t);
   Term* getPlaceholderForTerm(Term* t);
