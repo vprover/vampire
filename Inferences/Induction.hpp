@@ -128,8 +128,9 @@ private:
   void performStructInductionThree(Clause* premise, Literal* origLit, Literal* lit, Term* t, InferenceRule rule);
 
   void performStructInductionFour(Clause* premise, Literal* origLit, InferenceRule rule, TermIndex* index);
-  void instantiateScheme(DHMap<Literal*, Clause*>* litClMap, DHMap<Literal*, DHMap<TermList, DHSet<unsigned>*>*>* activeOccurrenceMap,
-    InferenceRule rule, InductionScheme* scheme);
+  void instantiateScheme(DHMap<Literal*, Clause*>* litClMap,
+    const DHMap<Literal*, DHMap<TermList, DHSet<unsigned>*>*>& activeOccurrenceMap,
+    InferenceRule rule, const InductionScheme& scheme);
 
   bool notDone(Literal* lit, Term* t);
   Term* getPlaceholderForTerm(Term* t);

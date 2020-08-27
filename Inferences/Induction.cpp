@@ -796,7 +796,7 @@ void processIteration(TermList curr, bool active,
   DHMap<TermList, unsigned>& currOccMap,
   DHMap<TermList, DHSet<unsigned>*>* actOccMap,
   Stack<bool>& actStack, Clause* premise, Literal* lit,
-  DHMap<InductionScheme*, DHMap<Literal*, Clause*>*>* schemes)
+  vvector<pair<InductionScheme, DHMap<Literal*, Clause*>*>>& schemes)
 {
   if (!curr.isTerm()) {
     return;
@@ -841,11 +841,11 @@ void processIteration(TermList curr, bool active,
     }
 
     if (match) {
-      auto scheme = new InductionScheme();
-      scheme->init(t, templ->getRDescriptions(), templ->getInductionVariables());
+      InductionScheme scheme;
+      scheme.init(t, templ->getRDescriptions(), templ->getInductionVariables());
       auto litClMap = new DHMap<Literal*, Clause*>();
       litClMap->insert(lit, premise);
-      schemes->insert(scheme, litClMap);
+      schemes.push_back(make_pair(scheme, litClMap));
     }
   } else if (InductionHelper::isTermAlgebraCons(curr)) {
     for (unsigned i = 0; i < t->arity(); i++) {
@@ -859,7 +859,7 @@ void processIteration(TermList curr, bool active,
 }
 
 void generateSchemes(Clause* premise, Literal* lit,
-  DHMap<InductionScheme*, DHMap<Literal*, Clause*>*>* schemes,
+  vvector<pair<InductionScheme, DHMap<Literal*, Clause*>*>>& schemes,
   DHMap<TermList, DHSet<unsigned>*>* actOccMap)
 {
   Stack<bool> actStack;
@@ -880,50 +880,26 @@ void generateSchemes(Clause* premise, Literal* lit,
 }
 
 void generateSchemeActiveOccurrencePairs(Clause* premise, Literal* lit,
-  DHMap<InductionScheme*, DHMap<Literal*, Clause*>*>* schemes,
-  DHMap<Literal*, DHMap<TermList, DHSet<unsigned>*>*>* activeOccurrenceMaps)
+  vvector<pair<InductionScheme, DHMap<Literal*, Clause*>*>>& schemes,
+  DHMap<Literal*, DHMap<TermList, DHSet<unsigned>*>*>& activeOccurrenceMaps)
 {
-  if (activeOccurrenceMaps->find(lit)) {
+  if (activeOccurrenceMaps.find(lit)) {
     return;
   }
-  activeOccurrenceMaps->insert(lit, new DHMap<TermList, DHSet<unsigned>*>());
-  generateSchemes(premise, lit, schemes, activeOccurrenceMaps->get(lit));
-}
-
-DHSet<TermList> skolems(Literal* lit) {
-  DHSet<TermList> res;
-  SubtermIterator it(lit);
-  while (it.hasNext()) {
-    auto t = it.next();
-    if (InductionHelper::canInductOn(t)) {
-      res.insert(t);
-    }
-  }
-  return res;
-}
-
-bool contains(const DHSet<TermList>& first, const DHSet<TermList>& second) {
-  DHSet<TermList>::Iterator it(first);
-  while (it.hasNext()) {
-    auto t = it.next();
-    if (!second.contains(t)) {
-      return false;
-    }
-  }
-  return true;
+  activeOccurrenceMaps.insert(lit, new DHMap<TermList, DHSet<unsigned>*>());
+  generateSchemes(premise, lit, schemes, activeOccurrenceMaps.get(lit));
 }
 
 void InductionClauseIterator::performStructInductionFour(Clause* premise, Literal* lit, InferenceRule rule, TermIndex* index) {
   CALL("InductionClauseIterator::performStructInductionFour");
 
-  DHMap<InductionScheme*, DHMap<Literal*, Clause*>*> primarySchemes;
+  vvector<pair<InductionScheme, DHMap<Literal*, Clause*>*>> primarySchemes;
   DHMap<Literal*, DHMap<TermList, DHSet<unsigned>*>*> activeOccurrenceMaps;
 
-  generateSchemeActiveOccurrencePairs(premise, lit, &primarySchemes, &activeOccurrenceMaps);
+  generateSchemeActiveOccurrencePairs(premise, lit, primarySchemes, activeOccurrenceMaps);
 
-  auto indTerms = InductionHelper::getInductionTerms(&primarySchemes);
-  // auto sks = skolems(lit);
-  DHMap<InductionScheme*, DHMap<Literal*, Clause*>*> secondarySchemes;
+  auto indTerms = InductionHelper::getInductionTerms(primarySchemes);
+  vvector<pair<InductionScheme, DHMap<Literal*, Clause*>*>> secondarySchemes;
   DHSet<TermList>::Iterator indIt(indTerms);
   while (indIt.hasNext()) {
     auto t = indIt.next();
@@ -936,72 +912,20 @@ void InductionClauseIterator::performStructInductionFour(Clause* premise, Litera
       if (inst.clause->size() > 1 || inst.literal->isNegative()) {
         continue;
       }
-      // if (inst.clause->size() > 1) {
-      //   cout << "skipped" << endl;
-      //   continue;
-      // }
-      // if (inst.literal->freeVariables() != nullptr) {
-      //   cout << "skipped2" << endl;
-      //   continue;
-      // }
-      // if (inst.clause->store()!=Clause::ACTIVE) {
-      //   cout << "skipped3" << endl;
-      //   continue;
-      // }
-      // auto sks2 = skolems(inst.literal);
-      // if (!contains(sks2, sks)) {
-      //   // cout << "skipped4" << endl;
-      //   continue;
-      // }
-
-      // auto earlier = (inst.clause->number() > premise->number()) ? premise : inst.clause;
-      // auto later = (inst.clause->number() > premise->number()) ? inst.clause : premise;
-
-      // bool skip = false;
-      // Stack<Unit*> infs;
-      // infs.push(later);
-      // while (infs.isNonEmpty()) {
-      //   auto inf = infs.pop()->inference();
-      //   Inference::Iterator iit = inf.iterator();
-      //   while(inf.hasNext(iit)) {
-      //     Unit* u = inf.next(iit);
-      //     if (u == earlier) {
-      //       skip = true;
-      //       break;
-      //     }
-      //     infs.push(u);
-      //   }
-      //   if (skip) {
-      //     break;
-      //   }
-      // }
-      // if (skip) {
-      //   continue;
-      // }
-
-      generateSchemeActiveOccurrencePairs(inst.clause, inst.literal, &secondarySchemes, &activeOccurrenceMaps);
+      generateSchemeActiveOccurrencePairs(inst.clause, inst.literal, secondarySchemes, activeOccurrenceMaps);
     }
   }
 
-  InductionHelper::filterSchemes(&primarySchemes, &secondarySchemes);
-  DHMap<InductionScheme*, DHMap<Literal*, Clause*>*>::Iterator secIt(secondarySchemes);
-  while (secIt.hasNext()) {
-    InductionScheme* scheme;
-    DHMap<Literal*, Clause*>* litClMap;
-    secIt.next(scheme, litClMap);
-    delete scheme;
-    delete litClMap;
+  InductionHelper::filterSchemes(primarySchemes, secondarySchemes);
+  for (auto& kv : secondarySchemes) {
+    delete kv.second;
   }
 
-  DHMap<InductionScheme*, DHMap<Literal*, Clause*>*>::Iterator schIt(primarySchemes);
-  while (schIt.hasNext()) {
-    InductionScheme* scheme;
-    DHMap<Literal*, Clause*>* litClMap;
-    schIt.next(scheme, litClMap);
+  for (const auto& kv : primarySchemes) {
     if(env.options->showInduction()){
       env.beginOutput();
-      env.out() << "[Induction] generated scheme " << scheme->toString() << " for literals ";
-      DHMap<Literal*, Clause*>::Iterator litClIt(*litClMap);
+      env.out() << "[Induction] generated scheme " << kv.first.toString() << " for literals ";
+      DHMap<Literal*, Clause*>::Iterator litClIt(*kv.second);
       while (litClIt.hasNext()) {
         Literal* lit;
         Clause* cl;
@@ -1011,26 +935,23 @@ void InductionClauseIterator::performStructInductionFour(Clause* premise, Litera
       env.out() << endl;
       env.endOutput();
     }
-    instantiateScheme(litClMap, &activeOccurrenceMaps, rule, scheme);
-    delete scheme;
-    delete litClMap;
-  }
-  auto actIt = activeOccurrenceMaps.items();
-  while (actIt.hasNext()) {
-    auto kv = actIt.next();
+    instantiateScheme(kv.second, activeOccurrenceMaps, rule, kv.first);
     delete kv.second;
+  }
+  DHMap<Literal*, DHMap<TermList, DHSet<unsigned>*>*>::Iterator actIt(activeOccurrenceMaps);
+  while (actIt.hasNext()) {
+    delete actIt.next();
   }
 }
 
 void InductionClauseIterator::instantiateScheme(DHMap<Literal*, Clause*>* litClMap,
-  DHMap<Literal*, DHMap<TermList, DHSet<unsigned>*>*>* activeOccurrenceMaps,
-  InferenceRule rule, InductionScheme* scheme)
+  const DHMap<Literal*, DHMap<TermList, DHSet<unsigned>*>*>& activeOccurrenceMaps,
+  InferenceRule rule, const InductionScheme& scheme)
 {
   CALL("InductionClauseIterator::instantiateScheme");
 
   FormulaList* formulas = FormulaList::empty();
-
-  auto it = scheme->getRDescriptionInstances();
+  auto it = scheme.getRDescriptionInstances();
 
   while (it.hasNext()) {
     auto desc = it.next();
@@ -1038,7 +959,7 @@ void InductionClauseIterator::instantiateScheme(DHMap<Literal*, Clause*>* litClM
     DHMap<Literal*, Clause*>::Iterator litClIt(*litClMap);
     while (litClIt.hasNext()) {
       auto lit = litClIt.nextKey();
-      TermOccurrenceReplacement tr(desc.getStep(), activeOccurrenceMaps->get(lit));
+      TermOccurrenceReplacement tr(desc.getStep(), *activeOccurrenceMaps.get(lit));
       stepFormulas = new FormulaList(new AtomicFormula(Literal::complementaryLiteral(tr.transform(lit))), stepFormulas);
     }
     auto right = JunctionFormula::generalJunction(Connective::OR, stepFormulas);
@@ -1053,7 +974,7 @@ void InductionClauseIterator::instantiateScheme(DHMap<Literal*, Clause*>* litClM
       DHMap<Literal*, Clause*>::Iterator litClIt(*litClMap);
       while (litClIt.hasNext()) {
         auto lit = litClIt.nextKey();
-        TermOccurrenceReplacement tr(n, activeOccurrenceMaps->get(lit));
+        TermOccurrenceReplacement tr(n, *activeOccurrenceMaps.get(lit));
         innerHyp = new FormulaList(new AtomicFormula(Literal::complementaryLiteral(tr.transform(lit))),innerHyp);
       }
       hyp = new FormulaList(JunctionFormula::generalJunction(Connective::OR,innerHyp),hyp);
@@ -1073,8 +994,8 @@ void InductionClauseIterator::instantiateScheme(DHMap<Literal*, Clause*>* litClM
   ASS_G(FormulaList::length(formulas), 0);
   Formula* indPremise = JunctionFormula::generalJunction(Connective::AND,formulas);
 
-  it = scheme->getRDescriptionInstances();
-  unsigned var = scheme->getMaxVar();
+  it = scheme.getRDescriptionInstances();
+  unsigned var = scheme.getMaxVar();
   DHMap<TermList, TermList> r;
   while (it.hasNext()) {
     auto desc = it.next();
@@ -1093,7 +1014,7 @@ void InductionClauseIterator::instantiateScheme(DHMap<Literal*, Clause*>* litClM
   DHMap<Literal*, Clause*>::Iterator litClIt(*litClMap);
   while (litClIt.hasNext()) {
     auto lit = litClIt.nextKey();
-    TermOccurrenceReplacement tr(r, activeOccurrenceMaps->get(lit));
+    TermOccurrenceReplacement tr(r, *activeOccurrenceMaps.get(lit));
     auto conclusion = Literal::complementaryLiteral(tr.transform(lit));
     conclusionToOrigLitMap.insert(conclusion, lit);
     conclusionList = new FormulaList(new AtomicFormula(conclusion), conclusionList);
