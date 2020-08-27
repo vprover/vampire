@@ -278,4 +278,7 @@ Ordering::Result LPO::majo(Term* s, TermList* tl, unsigned arity) const
   return GREATER;
 }
 
+void LPO::showConcrete(ostream&) const 
+{ /* lpo is fully defined by the precedence relation */ }
+
 }
