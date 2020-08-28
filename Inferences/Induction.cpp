@@ -754,106 +754,21 @@ Term* InductionClauseIterator::getPlaceholderForTerm(Term* t) {
   return Term::createConstant(placeholderConstNumber);
 }
 
-void processIteration(TermList curr, bool active, DHMap<TermList, unsigned>& currOccMap,
-  DHMap<TermList, DHSet<unsigned>*>& actOccMap,
-  Stack<bool>& actStack, vvector<InductionScheme>& schemes)
+void InductionClauseIterator::performStructInductionFour(Clause* premise, Literal* lit, InferenceRule rule)
 {
-  if (!curr.isTerm()) {
-    return;
-  }
-  auto t = curr.term();
-
-  if (InductionHelper::canInductOn(curr)) {
-    if (!currOccMap.find(curr)) {
-      currOccMap.insert(curr, 0);
-      actOccMap.insert(curr, new DHSet<unsigned>());
-    }
-    if (active) {
-      actOccMap.get(curr)->insert(currOccMap.get(curr));
-    }
-    currOccMap.get(curr)++;
-  }
-
-  unsigned f = t->functor();
-  bool isPred = t->isLiteral();
-
-  if (env.signature->hasInductionTemplate(f, isPred)) {
-    auto& templ = env.signature->getInductionTemplate(f, isPred);
-    const auto& indVars = templ._inductionVariables;
-
-    for (auto it = indVars.rbegin(); it != indVars.rend(); it++) {
-      actStack.push(*it && active);
-    }
-
-    if (!active) {
-      return;
-    }
-    IteratorByInductiveVariables argIt(t, indVars);
-    bool match = true;
-    while (argIt.hasNext()) {
-      auto arg = argIt.next();
-      auto its = InductionHelper::getInductionTerms(arg);
-      if (its.size() == 0) {
-        match = false;
-        break;
-      }
-    }
-
-    if (match) {
-      schemes.emplace_back();
-      schemes.back().init(t, templ._rDescriptions, templ._inductionVariables);
-    }
-  } else if (InductionHelper::isTermAlgebraCons(curr)) {
-    for (unsigned i = 0; i < t->arity(); i++) {
-      actStack.push(active);
-    }
-  } else {
-    for (unsigned i = 0; i < t->arity(); i++) {
-      actStack.push(false);
-    }
-  }
-}
-
-void generateSchemes(Literal* lit, vvector<InductionScheme>& schemes, DHMap<TermList, DHSet<unsigned>*>& actOccMap,
-                     DHMap<TermList, unsigned>& currOccMap) {
-  Stack<bool> actStack;
-  if (lit->isEquality()) {
-    actStack.push(true);
-    actStack.push(true);
-  } else {
-    processIteration(TermList(lit), true, currOccMap, actOccMap, actStack, schemes);
-  }
-  SubtermIterator it(lit);
-  while(it.hasNext()){
-    TermList curr = it.next();
-    bool active = actStack.pop();
-    processIteration(curr, active, currOccMap, actOccMap, actStack, schemes);
-  }
-  ASS(actStack.isEmpty());
-}
-
-void InductionClauseIterator::performStructInductionFour(Clause* premise, Literal* lit, InferenceRule rule) {
   CALL("InductionClauseIterator::performStructInductionFour");
 
-  vvector<InductionScheme> schemes;
-  DHMap<TermList, DHSet<unsigned>*> actOccMap;
-  DHMap<TermList, unsigned> currOccMap;
+  InductionSchemeGenerator gen;
+  gen.generate(lit);
+  gen.filter();
 
-  generateSchemes(lit, schemes, actOccMap, currOccMap);
-
-  InductionHelper::filterSchemes(schemes);
-
-  for (const auto& scheme : schemes) {
+  for (const auto& scheme : gen._schemes) {
     if(env.options->showInduction()){
       env.beginOutput();
       env.out() << "[Induction] generated scheme " << scheme << endl;
       env.endOutput();
     }
-    instantiateScheme(premise, lit, rule, scheme, actOccMap);
-  }
-  DHMap<TermList, DHSet<unsigned>*>::Iterator aoIt(actOccMap);
-  while (aoIt.hasNext()) {
-    delete aoIt.next();
+    instantiateScheme(premise, lit, rule, scheme, gen._actOccMap);
   }
 }
 
@@ -877,25 +792,18 @@ void InductionClauseIterator::instantiateScheme(Clause* premise, Literal* lit, I
       hyp = new FormulaList(new AtomicFormula(Literal::complementaryLiteral(tr.transform(lit))),hyp);
     }
 
-    auto l = FormulaList::length(hyp);
-    Formula* left = nullptr;
     Formula* res = nullptr;
-    if (l == 0) {
+    if (hyp == 0) {
       // base case
       res = right;
     } else {
-      if (l == 1) {
-        left = hyp->head();
-      } else {
-        left = new JunctionFormula(Connective::AND,hyp);
-      }
+      auto left = JunctionFormula::generalJunction(Connective::AND,hyp);
       res = new BinaryFormula(Connective::IMP,left,right);
     }
     formulas = new FormulaList(Formula::quantify(res), formulas);
   }
-  ASS_G(FormulaList::length(formulas), 0);
-  Formula* indPremise = FormulaList::length(formulas) > 1 ? new JunctionFormula(Connective::AND,formulas)
-                                                          : formulas->head();
+  ASS(formulas != 0);
+  Formula* indPremise = JunctionFormula::generalJunction(Connective::AND,formulas);
 
   unsigned var = scheme._maxVar;
   vmap<TermList, TermList> r;

@@ -216,7 +216,7 @@ void Preprocess::preprocess(Problem& prb)
 
   if (_options.induction() == Options::Induction::BOTH ||
       _options.induction() == Options::Induction::STRUCTURAL) {
-    InductionHelper::preprocess(prb);
+    InductionPreprocessor().preprocess(prb);
   }
 
   if (prb.hasFOOL()) {

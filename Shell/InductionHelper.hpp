@@ -32,15 +32,6 @@ private:
   DHMap<TermList, unsigned> _c;
 };
 
-class VarShiftReplacement : public TermTransformer {
-public:
-  VarShiftReplacement(unsigned shift) : _shift(shift) {}
-  TermList transformSubterm(TermList trm) override;
-
-private:
-  unsigned _shift;
-};
-
 class VarReplacement : public TermTransformer {
 public:
   VarReplacement(DHMap<unsigned, unsigned>& varMap, unsigned& v) : _varMap(varMap), _v(v) {}
@@ -110,23 +101,30 @@ struct InductionScheme {
 
 ostream& operator<<(ostream& out, const InductionScheme& scheme);
 
-class InductionHelper {
+class InductionPreprocessor {
 public:
-  static void preprocess(Problem& prb);
-  static void filterSchemes(vvector<InductionScheme>& schemes);
+  void preprocess(Problem& prb);
+private:
+  void preprocess(UnitList* units);
+  void processBody(TermList& body, TermList& header, InductionTemplate& templ);
 
-  static bool canInductOn(TermList t);
-  static bool isTermAlgebraCons(TermList t);
-  static vvector<TermList> getInductionTerms(TermList t);
+  void processCase(const unsigned recFun, TermList& body, vvector<TermList>& recursiveCalls);
+  unsigned findMatchedArgument(unsigned matched, TermList& header);
+};
+
+struct InductionSchemeGenerator {
+  ~InductionSchemeGenerator();
+
+  void generate(Literal* lit);
+  void filter();
+
+  vvector<InductionScheme> _schemes;
+  DHMap<TermList, DHSet<unsigned>*> _actOccMap;
 
 private:
-  static void preprocess(UnitList* units);
-  static void processBody(TermList& body, TermList& header, InductionTemplate& templ);
+  void processIteration(TermList curr, bool active, Stack<bool>& actStack);
 
-  static void processCase(const unsigned recFun, TermList& body, vvector<TermList>& recursiveCalls);
-  static unsigned findMatchedArgument(unsigned matched, TermList& header);
-
-  static bool checkSubsumption(const InductionScheme& sch1, const InductionScheme& sch2, bool onlyCheckIntersection = false);
+  DHMap<TermList, unsigned> _currOccMap;
 };
 
 } // Shell
