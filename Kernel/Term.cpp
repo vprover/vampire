@@ -1024,7 +1024,7 @@ Term* Term::createMatch(unsigned int sort, unsigned int matchedSort, unsigned in
   s->getSpecialData()->_matchData.sort = sort;
   s->getSpecialData()->_matchData.matchedSort = matchedSort;
 
-  for (int i = 0; i < arity; i++) {
+  for (unsigned i = 0; i < arity; i++) {
     ASS(!elements[i].isEmpty());
     *ss = elements[i];
     ss = ss->next();
