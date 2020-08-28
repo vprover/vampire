@@ -30,7 +30,7 @@ TermList TermOccurrenceReplacement::transformSubterm(TermList trm)
 {
   CALL("TermOccurrenceReplacement::transformSubterm");
 
-  if (trm.isVar() || !_r.find(trm)) {
+  if (trm.isVar() || _r.count(trm) == 0) {
     return trm;
   }
 
@@ -45,7 +45,7 @@ TermList TermOccurrenceReplacement::transformSubterm(TermList trm)
   // - otherwise only induct on the active occurrences
   const auto& o = _o.get(trm);
   if (o->size() == 1 || o->contains(_c.get(trm))) {
-    return _r.get(trm);
+    return _r.at(trm);
   }
   return trm;
 }
@@ -75,160 +75,108 @@ TermList VarReplacement::transformSubterm(TermList trm)
 
 bool IteratorByInductiveVariables::hasNext()
 {
-  ASS(_it.hasNext() == _indVarIt.hasNext());
+  ASS(_it.hasNext() == (_indVarIt != _end));
 
-  while (_indVarIt.hasNext() && !_indVarIt.peekAtNext()) {
-    _indVarIt.next();
+  while (_indVarIt != _end && !*_indVarIt) {
+    _indVarIt++;
     _it.next();
-    _c++;
   }
-  return _indVarIt.hasNext();
+  return _indVarIt != _end;
 }
 
 TermList IteratorByInductiveVariables::next()
 {
   ASS(hasNext());
-  _indVarIt.next();
+  _indVarIt++;
   return _it.next();
 }
 
-unsigned IteratorByInductiveVariables::count()
-{
-  return _c;
-}
-
-RDescription::RDescription(List<TermList>* recursiveCalls, TermList step, Formula* cond)
+RDescription::RDescription(const vvector<TermList>& recursiveCalls, TermList step, Formula* cond)
   : _recursiveCalls(recursiveCalls),
     _step(step),
     _condition(cond)
 {}
 
-vstring RDescription::toString() const
+RDescription::RDescription(TermList step, Formula* cond)
+  : _recursiveCalls(),
+    _step(step),
+    _condition(cond)
+{}
+
+ostream& operator<<(ostream& out, const RDescription& rdesc)
 {
-  List<TermList>::Iterator it(_recursiveCalls);
-  vstring str = "";
-  bool empty = !it.hasNext();
+  bool empty = rdesc._recursiveCalls.empty();
   if (!empty) {
-    str+="(";
+    out << "(";
   }
-  while (it.hasNext()) {
-    str+=it.next().toString();
-    if (it.hasNext()) {
-      str+=" & ";
+  unsigned n = 0;
+  for (const auto& r : rdesc._recursiveCalls) {
+    out << r;
+    if (++n < rdesc._recursiveCalls.size()) {
+      out << " & ";
     }
   }
   if (!empty) {
-    str+=") => ";
+    out << ") => ";
   }
-  str+=_step.toString();
-  return str;
+  out << rdesc._step;
+  return out;
 }
 
-List<TermList>::Iterator RDescription::getRecursiveCalls() const
-{
-  return List<TermList>::Iterator(_recursiveCalls);
-}
-
-TermList RDescription::getStep() const
-{
-  return _step;
-}
-
-
-RDescriptionInst::RDescriptionInst(List<DHMap<TermList, TermList>>* recursiveCalls,
-                                   DHMap<TermList, TermList> step, Formula* cond)
+RDescriptionInst::RDescriptionInst(vvector<vmap<TermList, TermList>>&& recursiveCalls,
+                                   vmap<TermList, TermList>&& step, Formula* cond)
   : _recursiveCalls(recursiveCalls),
     _step(step),
     _condition(cond)
 {}
 
-List<DHMap<TermList, TermList>>*& RDescriptionInst::getRecursiveCalls()
+ostream& operator<<(ostream& out, const RDescriptionInst& inst)
 {
-  return _recursiveCalls;
-}
-
-DHMap<TermList, TermList>& RDescriptionInst::getStep()
-{
-  return _step;
-}
-
-vstring RDescriptionInst::toString() const
-{
-  vstring str = "recursive calls: ";
-  List<DHMap<TermList, TermList>>::Iterator lIt(_recursiveCalls);
-  while (lIt.hasNext()) {
-    DHMap<TermList, TermList>::Iterator iIt(lIt.next());
-    while (iIt.hasNext()) {
-      TermList k, v;
-      iIt.next(k, v);
-      str+=k.toString()+" -> "+v.toString()+"; ";
+  out << "recursive calls: ";
+  for (const auto& r : inst._recursiveCalls) {
+    for (const auto& kv : r) {
+      out << kv.first << " -> " << kv.second << "; ";
     }
   }
-  str+="step: ";
-  DHMap<TermList, TermList>::Iterator stIt(_step);
-  while (stIt.hasNext()) {
-    TermList k, v;
-    stIt.next(k, v);
-    str+=k.toString()+" -> "+v.toString()+"; ";
+  out << "step: ";
+  for (const auto& kv : inst._step) {
+    out << kv.first << " -> " << kv.second << "; ";
   }
-  return str;
+  return out;
 }
 
-InductionTemplate::InductionTemplate()
-  : _rDescriptions(0),
-    _inductionVariables()
-{}
-
-void InductionTemplate::addRDescription(RDescription desc)
+ostream& operator<<(ostream& out, const InductionTemplate& templ)
 {
-  List<RDescription>::push(desc, _rDescriptions);
-}
-
-vstring InductionTemplate::toString() const
-{
-  vstring str;
-  List<RDescription>::Iterator rIt(_rDescriptions);
-  str+="RDescriptions:";
-  while (rIt.hasNext()) {
-    str+=rIt.next().toString();
-    if (rIt.hasNext()) {
-      str+="; ";
+  out << "RDescriptions:";
+  unsigned n = 0;
+  for (const auto& rdesc : templ._rDescriptions) {
+    out << rdesc;
+    if (++n < templ._rDescriptions.size()) {
+      out << "; ";
     }
   }
-  DArray<bool>::Iterator posIt(_inductionVariables);
-  str+=" with inductive positions: (";
-  while (posIt.hasNext()) {
-    str+=to_string(posIt.next()).c_str();
-    if (posIt.hasNext()) {
-      str+=",";
+  n = 0;
+  out << " with inductive positions: (";
+  for (const auto& b : templ._inductionVariables) {
+    out << Int::toString(b);
+    if (++n < templ._inductionVariables.size()) {
+      out << ",";
     }
   }
-  str+=")";
-  return str;
-}
-
-const DArray<bool>& InductionTemplate::getInductionVariables() const
-{
-  return _inductionVariables;
-}
-
-List<RDescription>::Iterator InductionTemplate::getRDescriptions() const
-{
-  return List<RDescription>::Iterator(_rDescriptions);
+  out << ")";
+  return out;
 }
 
 void InductionTemplate::postprocess()
 {
-  ASS(_rDescriptions != nullptr);
+  ASS(!_rDescriptions.empty());
+  _rDescriptions.shrink_to_fit();
 
-  _inductionVariables.init(_rDescriptions->head().getStep().term()->arity(), false);
-  List<RDescription>::Iterator rIt(_rDescriptions);
-  while (rIt.hasNext()) {
-    auto r = rIt.next();
-    auto cIt = r.getRecursiveCalls();
-    auto step = r.getStep().term();
-    while (cIt.hasNext()) {
-      Term::Iterator argIt1(cIt.next().term());
+  _inductionVariables = vvector<bool>(_rDescriptions[0]._step.term()->arity(), false);
+  for (auto& rdesc : _rDescriptions) {
+    auto step = rdesc._step.term();
+    for (auto& r : rdesc._recursiveCalls) {
+      Term::Iterator argIt1(r.term());
       Term::Iterator argIt2(step);
       unsigned i = 0;
       while (argIt1.hasNext()) {
@@ -247,24 +195,17 @@ void InductionTemplate::postprocess()
   }
 }
 
-InductionScheme::InductionScheme()
-  : _rDescriptionInstances(0),
-    _maxVar(0)
-{
-}
-
-void InductionScheme::init(Term* t, List<RDescription>::Iterator rdescIt, const DArray<bool>& indVars)
+void InductionScheme::init(Term* t, vvector<RDescription>& rdescs, const vvector<bool>& indVars)
 {
   CALL("InductionScheme::init");
 
   unsigned var = 0;
-  while (rdescIt.hasNext()) {
+  for (auto& rdesc : rdescs) {
     DHMap<unsigned, unsigned> varMap;
-    auto desc = rdescIt.next();
-    DHMap<TermList,TermList> stepSubst;
+    vmap<TermList,TermList> stepSubst;
 
     IteratorByInductiveVariables termIt(t, indVars);
-    IteratorByInductiveVariables stepIt(desc.getStep().term(), indVars);
+    IteratorByInductiveVariables stepIt(rdesc._step.term(), indVars);
 
     bool mismatch = false;
     while (termIt.hasNext()) {
@@ -272,9 +213,9 @@ void InductionScheme::init(Term* t, List<RDescription>::Iterator rdescIt, const 
       auto argStep = stepIt.next();
       auto its = InductionHelper::getInductionTerms(argTerm);
       for (auto& indTerm : its) {
-        if (stepSubst.find(indTerm)) {
-          if (stepSubst.get(indTerm).isTerm() && argStep.isTerm() &&
-              stepSubst.get(indTerm).term()->functor() != argStep.term()->functor()) {
+        if (stepSubst.count(indTerm) > 0) {
+          if (stepSubst.at(indTerm).isTerm() && argStep.isTerm() &&
+              stepSubst.at(indTerm).term()->functor() != argStep.term()->functor()) {
             mismatch = true;
             break;
           }
@@ -287,7 +228,7 @@ void InductionScheme::init(Term* t, List<RDescription>::Iterator rdescIt, const 
         }
         VarReplacement cr(varMap, var);
         auto res = cr.transform(argStep.term());
-        stepSubst.insert(indTerm, TermList(res));
+        stepSubst.insert(make_pair(indTerm, TermList(res)));
       }
     }
     if (mismatch) {
@@ -297,28 +238,26 @@ void InductionScheme::init(Term* t, List<RDescription>::Iterator rdescIt, const 
       continue;
     }
 
-    auto recCallSubstList = List<DHMap<TermList,TermList>>::empty();
-    List<TermList>::Iterator recCallsIt(desc.getRecursiveCalls());
-    while (recCallsIt.hasNext()) {
-      auto recCall = recCallsIt.next();
-      DHMap<TermList,TermList> recCallSubst;
+    vvector<vmap<TermList,TermList>> recCallSubstList;
+    for (auto& r : rdesc._recursiveCalls) {
+      vmap<TermList,TermList> recCallSubst;
 
       IteratorByInductiveVariables termIt(t, indVars);
-      IteratorByInductiveVariables recCallIt(recCall.term(), indVars);
+      IteratorByInductiveVariables recCallIt(r.term(), indVars);
 
       while (termIt.hasNext()) {
         auto argTerm = termIt.next();
         auto argRecCall = recCallIt.next();
         auto its = InductionHelper::getInductionTerms(argTerm);
         for (auto& indTerm : its) {
-          if (recCallSubst.find(indTerm)) {
+          if (recCallSubst.count(indTerm) > 0) {
             continue;
           }
           if (argRecCall.isVar()) {
             // first we check if this variable corresponds to at least one complex term 
             // in the step (it is an induction variable position but may not be
             // changed in this case)
-            IteratorByInductiveVariables stepIt(desc.getStep().term(), indVars);
+            IteratorByInductiveVariables stepIt(rdesc._step.term(), indVars);
             bool found = false;
             while (stepIt.hasNext()) {
               auto argStep = stepIt.next();
@@ -328,51 +267,31 @@ void InductionScheme::init(Term* t, List<RDescription>::Iterator rdescIt, const 
               }
             }
             if (found) {
-              recCallSubst.insert(indTerm, TermList(varMap.get(argRecCall.var()), false));
+              recCallSubst.insert(make_pair(
+                indTerm, TermList(varMap.get(argRecCall.var()), false)));
             }
           } else {
             VarReplacement cr(varMap, var);
             auto res = cr.transform(argRecCall.term());
-            recCallSubst.insert(indTerm, TermList(res));
+            recCallSubst.insert(make_pair(indTerm, TermList(res)));
           }
         }
       }
-      List<DHMap<TermList,TermList>>::push(recCallSubst, recCallSubstList);
+      recCallSubstList.push_back(std::move(recCallSubst));
     }
-    addRDescriptionInstance(RDescriptionInst(recCallSubstList, stepSubst, nullptr));
+    _rDescriptionInstances.emplace_back(std::move(recCallSubstList), std::move(stepSubst), nullptr);
   }
+  _rDescriptionInstances.shrink_to_fit();
   _maxVar = var;
 }
 
-void InductionScheme::addRDescriptionInstance(RDescriptionInst inst)
+ostream& operator<<(ostream& out, const InductionScheme& scheme)
 {
-  List<RDescriptionInst>::push(inst, _rDescriptionInstances);
-}
-
-void InductionScheme::setMaxVar(unsigned maxVar)
-{
-  _maxVar = maxVar;
-}
-
-List<RDescriptionInst>::RefIterator InductionScheme::getRDescriptionInstances() const
-{
-  return List<RDescriptionInst>::RefIterator(_rDescriptionInstances);
-}
-
-unsigned InductionScheme::getMaxVar() const
-{
-  return _maxVar;
-}
-
-vstring InductionScheme::toString() const
-{
-  vstring str;
-  str+="RDescription instances: ";
-  List<RDescriptionInst>::Iterator lIt(_rDescriptionInstances);
-  while (lIt.hasNext()) {
-    str+=lIt.next().toString()+" ;-- ";
+  out << "RDescription instances: ";
+  for (const auto& inst : scheme._rDescriptionInstances) {
+    out << inst << " ;-- ";
   }
-  return str;
+  return out;
 }
 
 void InductionHelper::preprocess(Problem& prb)
@@ -380,7 +299,7 @@ void InductionHelper::preprocess(Problem& prb)
   preprocess(prb.units());
 }
 
-void InductionHelper::preprocess(UnitList*& units)
+void InductionHelper::preprocess(UnitList* units)
 {
   UnitList::Iterator it(units);
   while (it.hasNext()) {
@@ -411,57 +330,17 @@ void InductionHelper::preprocess(UnitList*& units)
       lhterm = lhterm->getSpecialData()->getFormula()->literal();
     }
 
-    InductionTemplate* templ = new InductionTemplate();
+    InductionTemplate templ;
     TermList term(lhterm);
     processBody(*rhs, term, templ);
-    templ->postprocess();
+    templ.postprocess();
 
     if(env.options->showInduction()){
       env.beginOutput();
-      env.out() << "[Induction] recursive function: " << lit->toString() << ", with induction template: " << templ->toString() << endl;
+      env.out() << "[Induction] recursive function: " << lit << ", with induction template: " << templ << endl;
       env.endOutput();
     }
-    env.signature->addInductionTemplate(lhterm->functor(), isPred, templ);
-  }
-}
-
-void InductionHelper::filterFlawedSchemes(vvector<InductionScheme>& schemes,
-  const DHMap<TermList, DHSet<unsigned>*>& activeOccurrenceMap,
-  const DHMap<TermList, unsigned>& occurrenceMap)
-{
-  CALL("InductionHelper::filterFlawedSchemes");
-  vvector<InductionScheme> unflawed;
-  for (const auto& scheme : schemes) {
-    auto rdescIt = scheme.getRDescriptionInstances();
-    bool flawed = false;
-    while (rdescIt.hasNext()) {
-      auto rdesc = rdescIt.next();
-      DHMap<TermList,TermList>::Iterator stIt(rdesc.getStep());
-      while (stIt.hasNext()) {
-        auto k = stIt.nextKey();
-        if (activeOccurrenceMap.get(k)->size() != occurrenceMap.get(k)) {
-          flawed = true;
-          break;
-        }
-      }
-    }
-    if (!flawed) {
-      unflawed.push_back(scheme);
-    }
-  }
-  if(env.options->showInduction()){
-    env.beginOutput();
-    env.out() << "[Induction] " << unflawed.size() << " out of " << schemes.size()
-              << " induction schemes are unflawed" << endl;
-    env.endOutput();
-  }
-  if (unflawed.size() > 0 && unflawed.size() != schemes.size()) {
-    if(env.options->showInduction()){
-      env.beginOutput();
-      env.out() << "[Induction] filtering out flawed schemes" << endl;
-      env.endOutput();
-    }
-    schemes = unflawed;
+    env.signature->addInductionTemplate(lhterm->functor(), isPred, std::move(templ));
   }
 }
 
@@ -491,16 +370,16 @@ void InductionHelper::filterSchemes(vvector<pair<InductionScheme, DHMap<Literal*
       if (checkSubsumption(s.first, p.first)) {
         if(env.options->showInduction()){
           env.beginOutput();
-          env.out() << "[Induction] secondary induction scheme " << s.first.toString()
-                    << " is subsumed by primary " << p.first.toString() << endl;
+          env.out() << "[Induction] secondary induction scheme " << s.first
+                    << " is subsumed by primary " << p.first << endl;
           env.endOutput();
         }
         mergeLitClausePairsInto(s.second, p.second);
       } else if (checkSubsumption(p.first, s.first)) {
         if(env.options->showInduction()){
           env.beginOutput();
-          env.out() << "[Induction] primary induction scheme " << p.first.toString()
-                    << " is subsumed by secondary " << s.first.toString() << endl;
+          env.out() << "[Induction] primary induction scheme " << p.first
+                    << " is subsumed by secondary " << s.first << endl;
           env.endOutput();
         }
         mergeLitClausePairsInto(s.second, p.second);
@@ -514,19 +393,17 @@ void InductionHelper::filterSchemes(vvector<pair<InductionScheme, DHMap<Literal*
 {
   CALL("InductionHelper::filterSchemes");
 
-  // filterFlawedSchemes(schemes, activeOccurrenceMap, occurrenceMap);
-
   for (unsigned i = 0; i < schemes.size(); i++) {
     for (unsigned j = i+1; j < schemes.size();) {
       if (checkSubsumption(schemes[j].first, schemes[i].first)) {
         if(env.options->showInduction()){
           env.beginOutput();
-          env.out() << "[Induction] induction scheme " << schemes[j].first.toString()
-                    << " is subsumed by " << schemes[i].first.toString() << endl;
+          env.out() << "[Induction] induction scheme " << schemes[j].first
+                    << " is subsumed by " << schemes[i].first << endl;
           env.endOutput();
         }
         mergeLitClausePairsInto(schemes[j].second, schemes[i].second);
-        schemes[j] = schemes.back();
+        schemes[j] = std::move(schemes.back());
         schemes.pop_back();
       } else {
         j++;
@@ -599,34 +476,26 @@ DHSet<TermList> InductionHelper::getInductionTerms(const vvector<pair<InductionS
 {
   DHSet<TermList> v;
   for (const auto& kv : schemes) {
-    auto scheme = kv.first;
-    auto it2 = scheme.getRDescriptionInstances();
-    while (it2.hasNext()) {
-      auto desc = it2.next();
-      auto step = desc.getStep();
-      DHMap<TermList,TermList>::Iterator mIt(step);
-      while (mIt.hasNext()) {
-        auto k = mIt.nextKey();
-        v.insert(k);
+    for (const auto& rdesc : kv.first._rDescriptionInstances) {
+      for (const auto& kv : rdesc._step) {
+        v.insert(kv.first);
       }
     }
   }
   return v;
 }
 
-void InductionHelper::processBody(TermList& body, TermList& header, InductionTemplate*& templ)
+void InductionHelper::processBody(TermList& body, TermList& header, InductionTemplate& templ)
 {
   if (body.isVar()) {
-    RDescription desc(nullptr, header, nullptr);
-    templ->addRDescription(desc);
+    templ._rDescriptions.emplace_back(header, nullptr);
     return;
   }
   auto term = body.term();
   if (!term->isSpecial() || term->isFormula()) {
-    List<TermList>* recursiveCalls(0);
+    vvector<TermList> recursiveCalls;
     processCase(header.term()->functor(), body, recursiveCalls);
-    RDescription desc(recursiveCalls, header, nullptr);
-    templ->addRDescription(desc);
+    templ._rDescriptions.emplace_back(recursiveCalls, header, nullptr);
   }
   else if (term->isMatch())
   {
@@ -644,7 +513,7 @@ void InductionHelper::processBody(TermList& body, TermList& header, InductionTem
   }
 }
 
-void InductionHelper::processCase(const unsigned recFun, TermList& body, List<TermList>*& recursiveCalls)
+void InductionHelper::processCase(const unsigned recFun, TermList& body, vvector<TermList>& recursiveCalls)
 {
   if (!body.isTerm()) {
     return;
@@ -652,7 +521,7 @@ void InductionHelper::processCase(const unsigned recFun, TermList& body, List<Te
 
   auto term = body.term();
   if (term->functor() == recFun) {
-    List<TermList>::push(body, recursiveCalls);
+    recursiveCalls.push_back(body);
   }
 
   if (term->isFormula()) {
@@ -790,30 +659,22 @@ bool containsUpToVariableRenaming(TermList container, TermList contained) {
 
 bool InductionHelper::checkSubsumption(const InductionScheme& sch1, const InductionScheme& sch2, bool onlyCheckIntersection)
 {
-  auto rdescIt1 = sch1.getRDescriptionInstances();
-  while (rdescIt1.hasNext()) {
-    auto rdesc1 = rdescIt1.next();
+  for (const auto& rdesc1 : sch1._rDescriptionInstances) {
     auto contained = false;
-    auto rdescIt2 = sch2.getRDescriptionInstances();
-    while (rdescIt2.hasNext()) {
-      auto rdesc2 = rdescIt2.next();
-      if ((rdesc2.getRecursiveCalls() == nullptr) != (rdesc1.getRecursiveCalls() == nullptr)) {
+    for (const auto& rdesc2 : sch2._rDescriptionInstances) {
+      if (rdesc2._recursiveCalls.empty() != rdesc1._recursiveCalls.empty()) {
         continue;
       }
-      auto m2 = rdesc2.getStep();
       bool contained1 = true;
-      DHMap<TermList, TermList>::Iterator sIt(rdesc1.getStep());
-      while (sIt.hasNext()) {
-        TermList k, v;
-        sIt.next(k, v);
-        if (!m2.find(k)) {
+      for (const auto& kv : rdesc1._step) {
+        if (rdesc2._step.count(kv.first) == 0) {
           if (!onlyCheckIntersection) {
             contained1 = false;
           }
           break;
         }
-        auto s2 = m2.get(k);
-        if (!containsUpToVariableRenaming(s2, v)) {
+        const auto& s2 = rdesc2._step.at(kv.first);
+        if (!containsUpToVariableRenaming(s2, kv.second)) {
           contained1 = false;
           break;
         }

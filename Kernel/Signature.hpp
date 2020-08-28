@@ -519,8 +519,8 @@ class Signature
   Shell::TermAlgebraConstructor* getTermAlgebraConstructor(unsigned functor);
 
   bool hasInductionTemplate(unsigned fn, bool pred) { return _inductionTemplates.find(make_pair(fn, pred)); }
-  Shell::InductionTemplate* getInductionTemplate(unsigned fn, bool pred) { return _inductionTemplates.get(make_pair(fn, pred)); }
-  void addInductionTemplate(unsigned fn, bool pred, Shell::InductionTemplate *templ) { _inductionTemplates.insert(make_pair(fn, pred), templ); }
+  Shell::InductionTemplate& getInductionTemplate(unsigned fn, bool pred) { return _inductionTemplates.get(make_pair(fn, pred)); }
+  void addInductionTemplate(unsigned fn, bool pred, Shell::InductionTemplate&& templ) { _inductionTemplates.insert(make_pair(fn, pred), templ); }
 
   void recordDividesNvalue(TermList n){
     _dividesNvalues.push(n);
@@ -596,7 +596,7 @@ private:
   void defineOptionTermAlgebra(unsigned optionSort);
   void defineEitherTermAlgebra(unsigned eitherSort);
 
-  DHMap<pair<unsigned, bool>, Shell::InductionTemplate*> _inductionTemplates;
+  DHMap<pair<unsigned, bool>, Shell::InductionTemplate> _inductionTemplates;
 }; // class Signature
 
 }

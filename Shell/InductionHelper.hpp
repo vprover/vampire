@@ -4,7 +4,6 @@
 #include "Forwards.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermTransformer.hpp"
-#include "Lib/Set.hpp"
 #include "Lib/STL.hpp"
 
 namespace Shell {
@@ -23,12 +22,12 @@ private:
 
 class TermOccurrenceReplacement : public TermTransformer {
 public:
-  TermOccurrenceReplacement(const DHMap<TermList, TermList>& r,
+  TermOccurrenceReplacement(const vmap<TermList, TermList>& r,
                             const DHMap<TermList, DHSet<unsigned>*>& o) : _r(r), _o(o), _c() {}
   TermList transformSubterm(TermList trm) override;
 
 private:
-  const DHMap<TermList, TermList>& _r;
+  const vmap<TermList, TermList>& _r;
   const DHMap<TermList, DHSet<unsigned>*>& _o;
   DHMap<TermList, unsigned> _c;
 };
@@ -56,96 +55,60 @@ class IteratorByInductiveVariables
 {
 public:
   IteratorByInductiveVariables(Term* term,
-                               const DArray<bool>& indVars)
-    : _it(term), _indVarIt(indVars), _c(0)
+                               const vvector<bool>& indVars)
+    : _it(term), _indVarIt(indVars.cbegin()), _end(indVars.cend())
   {}
 
   bool hasNext();
   TermList next();
-  unsigned count();
 
 private:
   Term::Iterator _it;
-  DArray<bool>::Iterator _indVarIt;
-  unsigned _c;
+  vvector<bool>::const_iterator _indVarIt;
+  vvector<bool>::const_iterator _end;
 };
 
-class RDescription {
-public:
-  CLASS_NAME(RDescription);
-  USE_ALLOCATOR(RDescription);
+struct RDescription {
+  RDescription(const vvector<TermList>& recursiveCalls,
+               TermList step, Formula* cond);
+  RDescription(TermList step, Formula* cond);
 
-  RDescription(List<TermList>* recursiveCalls,
-               TermList step,
-               Formula* cond);
-
-  vstring toString() const;
-  List<TermList>::Iterator getRecursiveCalls() const;
-  TermList getStep() const;
-
-private:
-  List<TermList>* _recursiveCalls;
+  vvector<TermList> _recursiveCalls;
   TermList _step;
   Formula* _condition;
 };
 
-class RDescriptionInst {
-public:
-  CLASS_NAME(RDescriptionInst);
-  USE_ALLOCATOR(RDescriptionInst);
+ostream& operator<<(ostream& out, const RDescription& rdesc);
 
-  RDescriptionInst(List<DHMap<TermList, TermList>>* recursiveCalls,
-                   DHMap<TermList, TermList> step,
+struct RDescriptionInst {
+  RDescriptionInst(vvector<vmap<TermList, TermList>>&& recursiveCalls,
+                   vmap<TermList, TermList>&& step,
                    Formula* cond);
 
-  List<DHMap<TermList, TermList>>*& getRecursiveCalls();
-  DHMap<TermList, TermList>& getStep();
-
-  vstring toString() const;
-
-private:
-  List<DHMap<TermList, TermList>>* _recursiveCalls;
-  DHMap<TermList, TermList> _step;
+  vvector<vmap<TermList, TermList>> _recursiveCalls;
+  vmap<TermList, TermList> _step;
   Formula* _condition;
 };
 
-class InductionTemplate {
-public:
-  CLASS_NAME(InductionTemplate);
-  USE_ALLOCATOR(InductionTemplate);
+ostream& operator<<(ostream& out, const RDescriptionInst& inst);
 
-  InductionTemplate();
-
-  void addRDescription(RDescription desc);
+struct InductionTemplate {
   void postprocess();
 
-  const DArray<bool>& getInductionVariables() const;
-  List<RDescription>::Iterator getRDescriptions() const;
-
-  vstring toString() const;
-
-private:
-  List<RDescription>* _rDescriptions;
-  DArray<bool> _inductionVariables;
+  vvector<RDescription> _rDescriptions;
+  vvector<bool> _inductionVariables;
 };
 
-class InductionScheme {
-public:
-  InductionScheme();
+ostream& operator<<(ostream& out, const InductionTemplate& templ);
 
-  void init(Term* term, List<RDescription>::Iterator rdescIt, const DArray<bool>& indVars);
-  void addRDescriptionInstance(RDescriptionInst inst);
-  void setMaxVar(unsigned maxVar);
+struct InductionScheme {
+  void init(Term* term, vvector<RDescription>& rdescs, const vvector<bool>& indVars);
 
-  List<RDescriptionInst>::RefIterator getRDescriptionInstances() const;
-  unsigned getMaxVar() const;
-
-  vstring toString() const;
-
-private:
-  List<RDescriptionInst>* _rDescriptionInstances;
+  vvector<RDescriptionInst> _rDescriptionInstances;
   unsigned _maxVar;
 };
+
+ostream& operator<<(ostream& out, const InductionScheme& scheme);
 
 class InductionHelper {
 public:
@@ -153,9 +116,6 @@ public:
   static void filterSchemes(vvector<pair<InductionScheme, DHMap<Literal*, Clause*>*>>& primarySchemes,
     vvector<pair<InductionScheme, DHMap<Literal*, Clause*>*>>& secondarySchemes);
   static void filterSchemes(vvector<pair<InductionScheme, DHMap<Literal*, Clause*>*>>& schemes);
-  static void filterFlawedSchemes(vvector<InductionScheme>& schemes,
-    const DHMap<TermList, DHSet<unsigned>*>& activeOccurrenceMap,
-    const DHMap<TermList, unsigned>& occurrenceMap);
 
   static bool canInductOn(TermList t);
   static bool isTermAlgebraCons(TermList t);
@@ -163,10 +123,10 @@ public:
   static DHSet<TermList> getInductionTerms(const vvector<pair<InductionScheme, DHMap<Literal*, Clause*>*>>& schemes);
 
 private:
-  static void preprocess(UnitList*& units);
-  static void processBody(TermList& body, TermList& header, InductionTemplate*& templ);
+  static void preprocess(UnitList* units);
+  static void processBody(TermList& body, TermList& header, InductionTemplate& templ);
 
-  static void processCase(const unsigned recFun, TermList& body, List<TermList>*& recursiveCalls);
+  static void processCase(const unsigned recFun, TermList& body, vvector<TermList>& recursiveCalls);
   static unsigned findMatchedArgument(unsigned matched, TermList& header);
 
   static bool checkSubsumption(const InductionScheme& sch1, const InductionScheme& sch2, bool onlyCheckIntersection = false);
