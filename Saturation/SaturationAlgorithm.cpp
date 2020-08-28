@@ -490,7 +490,7 @@ void SaturationAlgorithm::talkToKarel(Clause* cl, bool eval)
   // [2,cl_id,cl_age,cl_weight,cl_len,cl_numsplits,inf_id,parent_cl_id,parent_cl_id,...]
   if (_opt.showForKarel()) {
     cout << "d: [2," << cl->number() << "," << cl->age() << "," << cl->weight() << "," << cl->size() << "," << (cl->splits() ? cl->splits()->size() : 0);
-    cout << "," << inf.rule();
+    cout << "," << (int)inf.rule();
     Inference::Iterator iit = inf.iterator();
     while(inf.hasNext(iit)) {
       Unit* premUnit = inf.next(iit);
@@ -736,7 +736,7 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
     // [1,cl_id,cl_age,cl_weight,cl_len,isgoal,istheory,sine]
 
     cout << "i: [1," << cl->number() << "," << cl->age() << "," << cl->weight() << "," << cl->size();
-    cout << "," << cl->derivedFromGoal() << "," << isTheory << "," << cl->getSineLevel() << "]\n";
+    cout << "," << cl->derivedFromGoal() << "," << isTheory << "," << (int)cl->getSineLevel() << "]\n";
 
     /*
     cout << "init: " << cl->number() << " isGoal: " << cl->isGoal() << " isTheory: " << isTheory
