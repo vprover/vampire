@@ -30,7 +30,6 @@
 
 #include "Indexing/TermIndex.hpp"
 #include "Kernel/TermTransformer.hpp"
-#include "Lib/Array.hpp"
 
 #include "InferenceEngine.hpp"
 

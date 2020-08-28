@@ -32,7 +32,6 @@
 #include "Kernel/Clause.hpp"
 #include "Kernel/Unit.hpp"
 #include "Kernel/Inference.hpp"
-#include "Kernel/InferenceStore.hpp"
 #include "Kernel/Sorts.hpp"
 #include "Kernel/Theory.hpp"
 #include "Kernel/Formula.hpp"
@@ -145,8 +144,7 @@ InductionClauseIterator::InductionClauseIterator(Clause* premise, TermIndex* ind
     )
   {
     for(unsigned i=0;i<premise->length();i++){
-      auto lit = (*premise)[i];
-      process(premise,lit,index);
+      process(premise,(*premise)[i],index);
     }
   }
 }
@@ -305,7 +303,6 @@ void InductionClauseIterator::produceClauses(DHMap<Literal*, Clause*>* origLitTo
         static ResultSubstitutionSP identity = ResultSubstitutionSP(new IdentitySubstitution());
         SLQueryResult qr(origLit,premise,identity);
         c = BinaryResolution::generateClause(c,conclusion,qr,*env.options);
-        //TODO(mhajdu): maybe show here the intermediate results
       }
     }
     _clauses.push(c);
