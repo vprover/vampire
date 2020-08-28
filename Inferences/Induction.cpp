@@ -792,113 +792,26 @@ Term* InductionClauseIterator::getPlaceholderForTerm(Term* t) {
   return Term::createConstant(placeholderConstNumber);
 }
 
-void processIteration(TermList curr, bool active,
-  DHMap<TermList, unsigned>& currOccMap,
-  DHMap<TermList, DHSet<unsigned>*>* actOccMap,
-  Stack<bool>& actStack, Clause* premise, Literal* lit,
-  vvector<pair<InductionScheme, DHMap<Literal*, Clause*>*>>& schemes)
+DHSet<TermList> getInductionTerms(const vvector<pair<InductionScheme, DHMap<Literal*, Clause*>*>>& schemes)
 {
-  if (!curr.isTerm()) {
-    return;
-  }
-  auto t = curr.term();
-
-  if (InductionHelper::canInductOn(curr)) {
-    if (!currOccMap.find(curr)) {
-      currOccMap.insert(curr, 0);
-      actOccMap->insert(curr, new DHSet<unsigned>());
-    }
-    if (active) {
-      actOccMap->get(curr)->insert(currOccMap.get(curr));
-    }
-    currOccMap.get(curr)++;
-  }
-
-  unsigned f = t->functor();
-  bool isPred = t->isLiteral();
-
-  if (env.signature->hasInductionTemplate(f, isPred)) {
-    auto& templ = env.signature->getInductionTemplate(f, isPred);
-    const auto& indVars = templ._inductionVariables;
-
-    for (auto it = indVars.rbegin(); it != indVars.rend(); it++) {
-      actStack.push(*it && active);
-    }
-
-    if (!active) {
-      return;
-    }
-    IteratorByInductiveVariables argIt(t, indVars);
-    bool match = true;
-    while (argIt.hasNext()) {
-      auto arg = argIt.next();
-      auto its = InductionHelper::getInductionTerms(arg);
-      if (its.size() == 0) {
-        match = false;
-        break;
+  DHSet<TermList> v;
+  for (const auto& kv : schemes) {
+    for (const auto& rdesc : kv.first._rDescriptionInstances) {
+      for (const auto& kv : rdesc._step) {
+        v.insert(kv.first);
       }
     }
-
-    if (match) {
-      InductionScheme scheme;
-      scheme.init(t, templ._rDescriptions, templ._inductionVariables);
-      auto litClMap = new DHMap<Literal*, Clause*>();
-      litClMap->insert(lit, premise);
-      schemes.push_back(make_pair(std::move(scheme), litClMap));
-    }
-  } else if (InductionHelper::isTermAlgebraCons(curr)) {
-    for (unsigned i = 0; i < t->arity(); i++) {
-      actStack.push(active);
-    }
-  } else {
-    for (unsigned i = 0; i < t->arity(); i++) {
-      actStack.push(false);
-    }
   }
-}
-
-void generateSchemes(Clause* premise, Literal* lit,
-  vvector<pair<InductionScheme, DHMap<Literal*, Clause*>*>>& schemes,
-  DHMap<TermList, DHSet<unsigned>*>* actOccMap)
-{
-  Stack<bool> actStack;
-  DHMap<TermList, unsigned> currOccMap;
-  if (lit->isEquality()) {
-    actStack.push(true);
-    actStack.push(true);
-  } else {
-    processIteration(TermList(lit), true, currOccMap, actOccMap, actStack, premise, lit, schemes);
-  }
-  SubtermIterator it(lit);
-  while(it.hasNext()){
-    TermList curr = it.next();
-    bool active = actStack.pop();
-    processIteration(curr, active, currOccMap, actOccMap, actStack, premise, lit, schemes);
-  }
-  ASS(actStack.isEmpty());
-}
-
-void generateSchemeActiveOccurrencePairs(Clause* premise, Literal* lit,
-  vvector<pair<InductionScheme, DHMap<Literal*, Clause*>*>>& schemes,
-  DHMap<Literal*, DHMap<TermList, DHSet<unsigned>*>*>& activeOccurrenceMaps)
-{
-  if (activeOccurrenceMaps.find(lit)) {
-    return;
-  }
-  activeOccurrenceMaps.insert(lit, new DHMap<TermList, DHSet<unsigned>*>());
-  generateSchemes(premise, lit, schemes, activeOccurrenceMaps.get(lit));
+  return v;
 }
 
 void InductionClauseIterator::performStructInductionFour(Clause* premise, Literal* lit, InferenceRule rule, TermIndex* index) {
   CALL("InductionClauseIterator::performStructInductionFour");
 
-  vvector<pair<InductionScheme, DHMap<Literal*, Clause*>*>> primarySchemes;
-  DHMap<Literal*, DHMap<TermList, DHSet<unsigned>*>*> activeOccurrenceMaps;
+  InductionSchemeGenerator gen;
+  gen.generatePrimary(premise, lit);
 
-  generateSchemeActiveOccurrencePairs(premise, lit, primarySchemes, activeOccurrenceMaps);
-
-  auto indTerms = InductionHelper::getInductionTerms(primarySchemes);
-  vvector<pair<InductionScheme, DHMap<Literal*, Clause*>*>> secondarySchemes;
+  auto indTerms = getInductionTerms(gen._primarySchemes);
   DHSet<TermList>::Iterator indIt(indTerms);
   while (indIt.hasNext()) {
     auto t = indIt.next();
@@ -911,16 +824,12 @@ void InductionClauseIterator::performStructInductionFour(Clause* premise, Litera
       if (inst.clause->size() > 1 || inst.literal->isNegative()) {
         continue;
       }
-      generateSchemeActiveOccurrencePairs(inst.clause, inst.literal, secondarySchemes, activeOccurrenceMaps);
+      gen.generateSecondary(inst.clause, inst.literal);
     }
   }
 
-  InductionHelper::filterSchemes(primarySchemes, secondarySchemes);
-  for (auto& kv : secondarySchemes) {
-    delete kv.second;
-  }
-
-  for (const auto& kv : primarySchemes) {
+  gen.filter();
+  for (const auto& kv : gen._primarySchemes) {
     if(env.options->showInduction()){
       env.beginOutput();
       env.out() << "[Induction] generated scheme " << kv.first << " for literals ";
@@ -929,17 +838,12 @@ void InductionClauseIterator::performStructInductionFour(Clause* premise, Litera
         Literal* lit;
         Clause* cl;
         litClIt.next(lit, cl);
-        env.out() << lit << " in " << cl << ", ";
+        env.out() << lit->toString() << " in " << cl->toString() << ", ";
       }
       env.out() << endl;
       env.endOutput();
     }
-    instantiateScheme(kv.second, activeOccurrenceMaps, rule, kv.first);
-    delete kv.second;
-  }
-  DHMap<Literal*, DHMap<TermList, DHSet<unsigned>*>*>::Iterator actIt(activeOccurrenceMaps);
-  while (actIt.hasNext()) {
-    delete actIt.next();
+    instantiateScheme(kv.second, gen._actOccMaps, rule, kv.first);
   }
 }
 
@@ -976,18 +880,17 @@ void InductionClauseIterator::instantiateScheme(DHMap<Literal*, Clause*>* litClM
       hyp = new FormulaList(JunctionFormula::generalJunction(Connective::OR,innerHyp),hyp);
     }
 
-    Formula* left = nullptr;
     Formula* res = nullptr;
-    if (FormulaList::length(hyp) == 0) {
+    if (hyp == 0) {
       // base case
       res = right;
     } else {
-      left = JunctionFormula::generalJunction(Connective::AND,hyp);
+      auto left = JunctionFormula::generalJunction(Connective::AND,hyp);
       res = new BinaryFormula(Connective::IMP,left,right);
     }
     formulas = new FormulaList(Formula::quantify(res), formulas);
   }
-  ASS_G(FormulaList::length(formulas), 0);
+  ASS(formulas != 0);
   Formula* indPremise = JunctionFormula::generalJunction(Connective::AND,formulas);
 
   unsigned var = scheme._maxVar;

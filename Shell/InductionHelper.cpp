@@ -12,6 +12,194 @@ using namespace Kernel;
 
 namespace Shell {
 
+bool equalsUpToVariableRenaming(TermList t1, TermList t2) {
+  CALL("equalsUpToVariableRenaming");
+
+  if (t1.isVar() && t2.isVar()) {
+    return true;
+  }
+  if (t1.isVar() || t2.isVar()) {
+    return false;
+  }
+
+  auto tt1 = t1.term();
+  auto tt2 = t2.term();
+  if (tt1->functor() != tt2->functor() || tt1->arity() != tt2->arity())
+  {
+    return false;
+  }
+
+  Term::Iterator it1(tt1);
+  Term::Iterator it2(tt2);
+  while (it1.hasNext()) {
+    if (!equalsUpToVariableRenaming(it1.next(), it2.next())) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool containsUpToVariableRenaming(TermList container, TermList contained) {
+  CALL("containsUpToVariableRenaming");
+
+  if (contained.isVar()) {
+    return true;
+  }
+  if (container.isVar()) {
+    return false;
+  }
+
+  auto t1 = container.term();
+  auto t2 = contained.term();
+  if (t1->functor() == t2->functor() && t1->arity() == t2->arity())
+  {
+    bool equal = true;
+    Term::Iterator it1(t1);
+    Term::Iterator it2(t2);
+    while (it1.hasNext()) {
+      auto arg1 = it1.next();
+      auto arg2 = it2.next();
+      if (!equalsUpToVariableRenaming(arg1, arg2)) {
+        equal = false;
+        break;
+      }
+    }
+    if (equal) {
+      return true;
+    }
+  }
+
+  Term::Iterator it1(container.term());
+  while (it1.hasNext()) {
+    auto arg1 = it1.next();
+    if (containsUpToVariableRenaming(arg1, contained)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool checkSubsumption(const InductionScheme& sch1, const InductionScheme& sch2, bool onlyCheckIntersection = false)
+{
+  CALL("checkSubsumption");
+
+  for (const auto& rdesc1 : sch1._rDescriptionInstances) {
+    auto contained = false;
+    for (const auto& rdesc2 : sch2._rDescriptionInstances) {
+      if (rdesc2._recursiveCalls.empty() != rdesc1._recursiveCalls.empty()) {
+        continue;
+      }
+      bool contained1 = true;
+      for (const auto& kv : rdesc1._step) {
+        if (rdesc2._step.count(kv.first) == 0) {
+          if (!onlyCheckIntersection) {
+            contained1 = false;
+          }
+          break;
+        }
+        const auto& s2 = rdesc2._step.at(kv.first);
+        if (!containsUpToVariableRenaming(s2, kv.second)) {
+          contained1 = false;
+          break;
+        }
+      }
+      if (contained1) {
+        contained = true;
+        break;
+      }
+    }
+    if (!contained) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool canInductOn(TermList t)
+{
+  CALL("canInductOn");
+
+  if (t.isVar()) {
+    return false;
+  }
+  auto fn = t.term()->functor();
+  auto symb = t.term()->isLiteral() ? env.signature->getPredicate(fn) : env.signature->getFunction(fn);
+  return symb->skolem();
+}
+
+bool isTermAlgebraCons(TermList t)
+{
+  CALL("isTermAlgebraCons");
+
+  if (t.isVar()) {
+    return false;
+  }
+  auto func = t.term()->functor();
+  auto symb = t.term()->isLiteral() ? env.signature->getPredicate(func) : env.signature->getFunction(func);
+  return symb->termAlgebraCons();
+}
+
+OperatorType* getType(TermList t)
+{
+  CALL("getType");
+
+  //TODO(mhajdu): maybe handle variables?
+  auto fn = t.term()->functor();
+  auto symb = t.term()->isLiteral() ? env.signature->getPredicate(fn) : env.signature->getFunction(fn);
+  return t.term()->isLiteral() ? symb->predType() : symb->fnType();
+}
+
+vvector<TermList> getInductionTerms(TermList t)
+{
+  CALL("getInductionTerms");
+
+  vvector<TermList> v;
+  if (t.isVar()) {
+    return v;
+  }
+  if (canInductOn(t)) {
+    v.push_back(t);
+    return v;
+  }
+  if (!isTermAlgebraCons(t)) {
+    return v;
+  }
+  auto type = getType(t);
+  //TODO(mhajdu): eventually check whether we really recurse on a specific
+  // subterm of the constructor terms
+  Stack<pair<TermList, bool>> actStack;
+  actStack.push(make_pair(t, true));
+  while (actStack.isNonEmpty()) {
+    auto kv = actStack.pop();
+    auto st = kv.first;
+    auto active = kv.second;
+    if (st.isVar()) {
+      continue;
+    }
+    if (active && canInductOn(st) && getType(st)->result() == type->result()) {
+      v.push_back(st);
+    }
+    if (active && isTermAlgebraCons(st)) {
+      for (unsigned i = 0; i < st.term()->arity(); i++) {
+        actStack.push(make_pair(*st.term()->nthArgument(i),true));
+      }
+    }
+  }
+  return v;
+}
+
+void mergeLitClausePairsInto(DHMap<Literal*, Clause*>* from, DHMap<Literal*, Clause*>* to)
+{
+  DHMap<Literal*, Clause*>::Iterator it(*from);
+  while (it.hasNext()) {
+    Literal* lit;
+    Clause* cl;
+    it.next(lit, cl);
+    ASS(!to->find(lit) || to->get(lit) == cl); // if this happens, a more complicated structure is needed
+    to->insert(lit, cl);
+  }
+}
+
 TermList TermListReplacement::transformSubterm(TermList trm)
 {
   CALL("TermListReplacement::transformSubterm");
@@ -46,16 +234,6 @@ TermList TermOccurrenceReplacement::transformSubterm(TermList trm)
   const auto& o = _o.get(trm);
   if (o->size() == 1 || o->contains(_c.get(trm))) {
     return _r.at(trm);
-  }
-  return trm;
-}
-
-TermList VarShiftReplacement::transformSubterm(TermList trm)
-{
-  CALL("VarShiftReplacement::transformSubterm");
-
-  if(trm.isVar()) {
-    return TermList(trm.var()+_shift, trm.isSpecialVar());
   }
   return trm;
 }
@@ -145,6 +323,32 @@ ostream& operator<<(ostream& out, const RDescriptionInst& inst)
   return out;
 }
 
+void InductionTemplate::postprocess()
+{
+  CALL("InductionTemplate::postprocess");
+
+  ASS(!_rDescriptions.empty());
+  _rDescriptions.shrink_to_fit();
+
+  _inductionVariables = vvector<bool>(_rDescriptions[0]._step.term()->arity(), false);
+  for (auto& rdesc : _rDescriptions) {
+    auto step = rdesc._step.term();
+    for (auto& r : rdesc._recursiveCalls) {
+      Term::Iterator argIt1(r.term());
+      Term::Iterator argIt2(step);
+      unsigned i = 0;
+      while (argIt1.hasNext()) {
+        auto t1 = argIt1.next();
+        auto t2 = argIt2.next();
+        if (t1 != t2 && t2.containsSubterm(t1)) {
+          _inductionVariables[i] = true;
+        }
+        i++;
+      }
+    }
+  }
+}
+
 ostream& operator<<(ostream& out, const InductionTemplate& templ)
 {
   out << "RDescriptions:";
@@ -167,34 +371,6 @@ ostream& operator<<(ostream& out, const InductionTemplate& templ)
   return out;
 }
 
-void InductionTemplate::postprocess()
-{
-  ASS(!_rDescriptions.empty());
-  _rDescriptions.shrink_to_fit();
-
-  _inductionVariables = vvector<bool>(_rDescriptions[0]._step.term()->arity(), false);
-  for (auto& rdesc : _rDescriptions) {
-    auto step = rdesc._step.term();
-    for (auto& r : rdesc._recursiveCalls) {
-      Term::Iterator argIt1(r.term());
-      Term::Iterator argIt2(step);
-      unsigned i = 0;
-      while (argIt1.hasNext()) {
-        ASS(argIt2.hasNext());
-        auto t1 = argIt1.next();
-        auto t2 = argIt2.next();
-        if (t1 != t2 && t2.containsSubterm(t1)) {
-          _inductionVariables[i] = true;
-          // cout << t2.toString() << " properly contains " << t1.toString() << endl;
-        } else {
-          // cout << t2.toString() << " does not properly contain " << t1.toString() << endl;
-        }
-        i++;
-      }
-    }
-  }
-}
-
 void InductionScheme::init(Term* t, vvector<RDescription>& rdescs, const vvector<bool>& indVars)
 {
   CALL("InductionScheme::init");
@@ -211,7 +387,7 @@ void InductionScheme::init(Term* t, vvector<RDescription>& rdescs, const vvector
     while (termIt.hasNext()) {
       auto argTerm = termIt.next();
       auto argStep = stepIt.next();
-      auto its = InductionHelper::getInductionTerms(argTerm);
+      auto its = getInductionTerms(argTerm);
       for (auto& indTerm : its) {
         if (stepSubst.count(indTerm) > 0) {
           if (stepSubst.at(indTerm).isTerm() && argStep.isTerm() &&
@@ -248,7 +424,7 @@ void InductionScheme::init(Term* t, vvector<RDescription>& rdescs, const vvector
       while (termIt.hasNext()) {
         auto argTerm = termIt.next();
         auto argRecCall = recCallIt.next();
-        auto its = InductionHelper::getInductionTerms(argTerm);
+        auto its = getInductionTerms(argTerm);
         for (auto& indTerm : its) {
           if (recCallSubst.count(indTerm) > 0) {
             continue;
@@ -294,13 +470,15 @@ ostream& operator<<(ostream& out, const InductionScheme& scheme)
   return out;
 }
 
-void InductionHelper::preprocess(Problem& prb)
+void InductionPreprocessor::preprocess(Problem& prb)
 {
   preprocess(prb.units());
 }
 
-void InductionHelper::preprocess(UnitList* units)
+void InductionPreprocessor::preprocess(UnitList* units)
 {
+  CALL("InductionPreprocessor::preprocess");
+
   UnitList::Iterator it(units);
   while (it.hasNext()) {
     auto unit = it.next();
@@ -344,149 +522,10 @@ void InductionHelper::preprocess(UnitList* units)
   }
 }
 
-void mergeLitClausePairsInto(DHMap<Literal*, Clause*>* from, DHMap<Literal*, Clause*>* to)
+void InductionPreprocessor::processBody(TermList& body, TermList& header, InductionTemplate& templ)
 {
-  DHMap<Literal*, Clause*>::Iterator it(*from);
-  while (it.hasNext()) {
-    Literal* lit;
-    Clause* cl;
-    it.next(lit, cl);
-    ASS(!to->find(lit) || to->get(lit) == cl); // if this happens, a more complicated structure is needed
-    to->insert(lit, cl);
-  }
-}
+  CALL("InductionPreprocessor::processBody");
 
-void InductionHelper::filterSchemes(vvector<pair<InductionScheme, DHMap<Literal*, Clause*>*>>& primarySchemes,
-  vvector<pair<InductionScheme, DHMap<Literal*, Clause*>*>>& secondarySchemes)
-{
-  filterSchemes(primarySchemes);
-  filterSchemes(secondarySchemes);
-
-  // merge secondary schemes into primary ones if possible, remove the rest
-  for (unsigned i = 0; i < secondarySchemes.size(); i++) {
-    for (unsigned j = 0; j < primarySchemes.size(); j++) {
-      auto& p = primarySchemes[j];
-      auto& s = secondarySchemes[i];
-      if (checkSubsumption(s.first, p.first)) {
-        if(env.options->showInduction()){
-          env.beginOutput();
-          env.out() << "[Induction] secondary induction scheme " << s.first
-                    << " is subsumed by primary " << p.first << endl;
-          env.endOutput();
-        }
-        mergeLitClausePairsInto(s.second, p.second);
-      } else if (checkSubsumption(p.first, s.first)) {
-        if(env.options->showInduction()){
-          env.beginOutput();
-          env.out() << "[Induction] primary induction scheme " << p.first
-                    << " is subsumed by secondary " << s.first << endl;
-          env.endOutput();
-        }
-        mergeLitClausePairsInto(s.second, p.second);
-        p.first = s.first;
-      }
-    }
-  }
-}
-
-void InductionHelper::filterSchemes(vvector<pair<InductionScheme, DHMap<Literal*, Clause*>*>>& schemes)
-{
-  CALL("InductionHelper::filterSchemes");
-
-  for (unsigned i = 0; i < schemes.size(); i++) {
-    for (unsigned j = i+1; j < schemes.size();) {
-      if (checkSubsumption(schemes[j].first, schemes[i].first)) {
-        if(env.options->showInduction()){
-          env.beginOutput();
-          env.out() << "[Induction] induction scheme " << schemes[j].first
-                    << " is subsumed by " << schemes[i].first << endl;
-          env.endOutput();
-        }
-        mergeLitClausePairsInto(schemes[j].second, schemes[i].second);
-        schemes[j] = std::move(schemes.back());
-        schemes.pop_back();
-      } else {
-        j++;
-      }
-    }
-  }
-}
-
-bool InductionHelper::canInductOn(TermList t)
-{
-  if (t.isVar()) {
-    return false;
-  }
-  auto fn = t.term()->functor();
-  auto symb = t.term()->isLiteral() ? env.signature->getPredicate(fn) : env.signature->getFunction(fn);
-  return symb->skolem();
-}
-
-bool InductionHelper::isTermAlgebraCons(TermList t) {
-  if (t.isVar()) { return false; }
-  auto func = t.term()->functor();
-  auto symb = t.term()->isLiteral() ? env.signature->getPredicate(func) : env.signature->getFunction(func);
-  return symb->termAlgebraCons();
-}
-
-OperatorType* getType(TermList t) {
-  auto fn = t.term()->functor();
-  auto symb = t.term()->isLiteral() ? env.signature->getPredicate(fn) : env.signature->getFunction(fn);
-  return t.term()->isLiteral() ? symb->predType() : symb->fnType();
-}
-
-vvector<TermList> InductionHelper::getInductionTerms(TermList t)
-{
-  vvector<TermList> v;
-  if (t.isVar()) {
-    return v;
-  }
-  if (canInductOn(t)) {
-    v.push_back(t);
-    return v;
-  }
-  if (!isTermAlgebraCons(t)) {
-    return v;
-  }
-  auto type = getType(t);
-  //TODO(mhajdu): eventually check whether we really recurse on a specific
-  // subterm of the constructor terms
-  Stack<pair<TermList, bool>> actStack;
-  actStack.push(make_pair(t, true));
-  while (actStack.isNonEmpty()) {
-    auto kv = actStack.pop();
-    auto st = kv.first;
-    auto active = kv.second;
-    if (st.isVar()) {
-      continue;
-    }
-    if (active && canInductOn(st) && getType(st)->result() == type->result()) {
-      v.push_back(st);
-    }
-    if (active && isTermAlgebraCons(st)) {
-      for (unsigned i = 0; i < st.term()->arity(); i++) {
-        actStack.push(make_pair(*st.term()->nthArgument(i),true));
-      }
-    }
-  }
-  return v;
-}
-
-DHSet<TermList> InductionHelper::getInductionTerms(const vvector<pair<InductionScheme, DHMap<Literal*, Clause*>*>>& schemes)
-{
-  DHSet<TermList> v;
-  for (const auto& kv : schemes) {
-    for (const auto& rdesc : kv.first._rDescriptionInstances) {
-      for (const auto& kv : rdesc._step) {
-        v.insert(kv.first);
-      }
-    }
-  }
-  return v;
-}
-
-void InductionHelper::processBody(TermList& body, TermList& header, InductionTemplate& templ)
-{
   if (body.isVar()) {
     templ._rDescriptions.emplace_back(header, nullptr);
     return;
@@ -513,8 +552,10 @@ void InductionHelper::processBody(TermList& body, TermList& header, InductionTem
   }
 }
 
-void InductionHelper::processCase(const unsigned recFun, TermList& body, vvector<TermList>& recursiveCalls)
+void InductionPreprocessor::processCase(const unsigned recFun, TermList& body, vvector<TermList>& recursiveCalls)
 {
+  CALL("InductionPreprocessor::processCase");
+
   if (!body.isTerm()) {
     return;
   }
@@ -560,8 +601,10 @@ void InductionHelper::processCase(const unsigned recFun, TermList& body, vvector
   }
 }
 
-unsigned InductionHelper::findMatchedArgument(unsigned matched, TermList& header)
+unsigned InductionPreprocessor::findMatchedArgument(unsigned matched, TermList& header)
 {
+  CALL("InductionPreprocessor::findMatchedArgument");
+
   unsigned i = 0;
   Term::Iterator argIt(header.term());
   while (argIt.hasNext()) {
@@ -582,121 +625,182 @@ unsigned InductionHelper::findMatchedArgument(unsigned matched, TermList& header
   return i;
 }
 
-vstring substTermsToString(List<Term*>* l) {
-  vstring str;
-  List<Term*>::Iterator it(l);
-  while (it.hasNext()) {
-    str+=it.next()->toString()+"; ";
-  }
-  return str;
-}
-
-bool equalsUpToVariableRenaming(TermList t1, TermList t2) {
-  if (t1.isVar() && t2.isVar()) {
-    return true;
-  }
-  if (t1.isVar()) {
-    return false;
-  }
-  if (t2.isVar()) {
-    return false;
-  }
-
-  auto tt1 = t1.term();
-  auto tt2 = t2.term();
-  if (tt1->functor() != tt2->functor() || tt1->arity() != tt2->arity())
-  {
-    return false;
-  }
-
-  Term::Iterator it1(tt1);
-  Term::Iterator it2(tt2);
-  while (it1.hasNext()) {
-    if (!equalsUpToVariableRenaming(it1.next(), it2.next())) {
-      return false;
-    }
-  }
-  return true;
-}
-
-bool containsUpToVariableRenaming(TermList container, TermList contained) {
-  if (contained.isVar()) {
-    return true;
-  }
-  if (container.isVar()) {
-    return false;
-  }
-
-  auto t1 = container.term();
-  auto t2 = contained.term();
-  if (t1->functor() == t2->functor() && t1->arity() == t2->arity())
-  {
-    bool equal = true;
-    Term::Iterator it1(t1);
-    Term::Iterator it2(t2);
-    while (it1.hasNext()) {
-      auto arg1 = it1.next();
-      auto arg2 = it2.next();
-      if (!equalsUpToVariableRenaming(arg1, arg2)) {
-        equal = false;
-        break;
-      }
-    }
-    if (equal) {
-      return true;
-    }
-  }
-
-  Term::Iterator it1(container.term());
-  while (it1.hasNext()) {
-    auto arg1 = it1.next();
-    if (containsUpToVariableRenaming(arg1, contained)) {
-      return true;
-    }
-  }
-  return false;
-}
-
-bool InductionHelper::checkSubsumption(const InductionScheme& sch1, const InductionScheme& sch2, bool onlyCheckIntersection)
+InductionSchemeGenerator::~InductionSchemeGenerator()
 {
-  for (const auto& rdesc1 : sch1._rDescriptionInstances) {
-    auto contained = false;
-    for (const auto& rdesc2 : sch2._rDescriptionInstances) {
-      if (rdesc2._recursiveCalls.empty() != rdesc1._recursiveCalls.empty()) {
-        continue;
-      }
-      bool contained1 = true;
-      for (const auto& kv : rdesc1._step) {
-        if (rdesc2._step.count(kv.first) == 0) {
-          if (!onlyCheckIntersection) {
-            contained1 = false;
-          }
-          break;
+  DHMap<Literal*, DHMap<TermList, DHSet<unsigned>*>*>::Iterator it(_actOccMaps);
+  while (it.hasNext()) {
+    DHMap<TermList, DHSet<unsigned>*>::Iterator aoIt(*it.next());
+    while (aoIt.hasNext()) {
+      delete aoIt.next();
+    }
+  }
+  for (auto& kv : _primarySchemes) {
+    delete kv.second;
+  }
+}
+
+void InductionSchemeGenerator::generatePrimary(Clause* premise, Literal* lit)
+{
+  generate(premise, lit, _primarySchemes);
+}
+
+void InductionSchemeGenerator::generateSecondary(Clause* premise, Literal* lit)
+{
+  generate(premise, lit, _secondarySchemes);
+}
+
+void InductionSchemeGenerator::filter()
+{
+  CALL("InductionSchemeGenerator::filter");
+
+  filter(_primarySchemes);
+  filter(_secondarySchemes);
+
+  // merge secondary schemes into primary ones if possible, remove the rest
+  for (unsigned i = 0; i < _secondarySchemes.size(); i++) {
+    for (unsigned j = 0; j < _primarySchemes.size(); j++) {
+      auto& p = _primarySchemes[j];
+      auto& s = _secondarySchemes[i];
+      if (checkSubsumption(s.first, p.first)) {
+        if(env.options->showInduction()){
+          env.beginOutput();
+          env.out() << "[Induction] secondary induction scheme " << s.first
+                    << " is subsumed by primary " << p.first << endl;
+          env.endOutput();
         }
-        const auto& s2 = rdesc2._step.at(kv.first);
-        if (!containsUpToVariableRenaming(s2, kv.second)) {
-          contained1 = false;
-          break;
+        mergeLitClausePairsInto(s.second, p.second);
+      } else if (checkSubsumption(p.first, s.first)) {
+        if(env.options->showInduction()){
+          env.beginOutput();
+          env.out() << "[Induction] primary induction scheme " << p.first
+                    << " is subsumed by secondary " << s.first << endl;
+          env.endOutput();
         }
+        mergeLitClausePairsInto(s.second, p.second);
+        p.first = std::move(s.first);
       }
-      if (contained1) {
-        contained = true;
+    }
+  }
+  for (auto& kv : _secondarySchemes) {
+    delete kv.second;
+  }
+  _secondarySchemes.clear();
+}
+
+void InductionSchemeGenerator::generate(Clause* premise, Literal* lit,
+  vvector<pair<InductionScheme, DHMap<Literal*, Clause*>*>>& schemes)
+{
+  CALL("InductionSchemeGenerator::generate");
+
+  if (_actOccMaps.find(lit)) {
+    return;
+  }
+  _actOccMaps.insert(lit, new DHMap<TermList, DHSet<unsigned>*>());
+  DHMap<TermList, unsigned> currOccMap;
+
+  Stack<bool> actStack;
+  if (lit->isEquality()) {
+    actStack.push(true);
+    actStack.push(true);
+  } else {
+    processIteration(TermList(lit), true, currOccMap, actStack, premise, lit, schemes);
+  }
+  SubtermIterator it(lit);
+  while(it.hasNext()){
+    TermList curr = it.next();
+    bool active = actStack.pop();
+    processIteration(curr, active, currOccMap, actStack, premise, lit, schemes);
+  }
+  ASS(actStack.isEmpty());
+}
+
+void InductionSchemeGenerator::processIteration(TermList curr, bool active,
+  DHMap<TermList, unsigned>& currOccMap,
+  Stack<bool>& actStack, Clause* premise, Literal* lit,
+  vvector<pair<InductionScheme, DHMap<Literal*, Clause*>*>>& schemes)
+{
+  CALL("InductionSchemeGenerator::processIteration");
+
+  if (!curr.isTerm()) {
+    return;
+  }
+  auto t = curr.term();
+
+  if (canInductOn(curr)) {
+    if (!currOccMap.find(curr)) {
+      currOccMap.insert(curr, 0);
+      _actOccMaps.get(lit)->insert(curr, new DHSet<unsigned>());
+    }
+    if (active) {
+      _actOccMaps.get(lit)->get(curr)->insert(currOccMap.get(curr));
+    }
+    currOccMap.get(curr)++;
+  }
+
+  unsigned f = t->functor();
+  bool isPred = t->isLiteral();
+
+  if (env.signature->hasInductionTemplate(f, isPred)) {
+    auto& templ = env.signature->getInductionTemplate(f, isPred);
+    const auto& indVars = templ._inductionVariables;
+
+    for (auto it = indVars.rbegin(); it != indVars.rend(); it++) {
+      actStack.push(*it && active);
+    }
+
+    if (!active) {
+      return;
+    }
+    IteratorByInductiveVariables argIt(t, indVars);
+    bool match = true;
+    while (argIt.hasNext()) {
+      auto arg = argIt.next();
+      auto its = getInductionTerms(arg);
+      if (its.size() == 0) {
+        match = false;
         break;
       }
     }
-    if (!contained) {
-      return false;
+
+    if (match) {
+      InductionScheme scheme;
+      scheme.init(t, templ._rDescriptions, templ._inductionVariables);
+      auto litClMap = new DHMap<Literal*, Clause*>();
+      litClMap->insert(lit, premise);
+      schemes.push_back(make_pair(std::move(scheme), litClMap));
+    }
+  } else if (isTermAlgebraCons(curr)) {
+    for (unsigned i = 0; i < t->arity(); i++) {
+      actStack.push(active);
+    }
+  } else {
+    for (unsigned i = 0; i < t->arity(); i++) {
+      actStack.push(false);
     }
   }
-  return true;
 }
 
-TermList shiftVarsUp(TermList t, unsigned shift) {
-  if (t.isVar()) {
-    return TermList(t.var()+shift, t.isSpecialVar());
+void InductionSchemeGenerator::filter(vvector<pair<InductionScheme, DHMap<Literal*, Clause*>*>>& schemes)
+{
+  CALL("InductionSchemeGenerator::filterSchemes");
+
+  for (unsigned i = 0; i < schemes.size(); i++) {
+    for (unsigned j = i+1; j < schemes.size();) {
+      if (checkSubsumption(schemes[j].first, schemes[i].first)) {
+        if(env.options->showInduction()){
+          env.beginOutput();
+          env.out() << "[Induction] induction scheme " << schemes[j].first
+                    << " is subsumed by " << schemes[i].first << endl;
+          env.endOutput();
+        }
+        mergeLitClausePairsInto(schemes[j].second, schemes[i].second);
+        schemes[j] = std::move(schemes.back());
+        schemes.pop_back();
+      } else {
+        j++;
+      }
+    }
   }
-  VarShiftReplacement vr(shift);
-  return TermList(vr.transform(t.term()));
 }
 
 } // Shell

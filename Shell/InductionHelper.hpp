@@ -32,15 +32,6 @@ private:
   DHMap<TermList, unsigned> _c;
 };
 
-class VarShiftReplacement : public TermTransformer {
-public:
-  VarShiftReplacement(unsigned shift) : _shift(shift) {}
-  TermList transformSubterm(TermList trm) override;
-
-private:
-  unsigned _shift;
-};
-
 class VarReplacement : public TermTransformer {
 public:
   VarReplacement(DHMap<unsigned, unsigned>& varMap, unsigned& v) : _varMap(varMap), _v(v) {}
@@ -110,26 +101,37 @@ struct InductionScheme {
 
 ostream& operator<<(ostream& out, const InductionScheme& scheme);
 
-class InductionHelper {
+class InductionPreprocessor {
 public:
-  static void preprocess(Problem& prb);
-  static void filterSchemes(vvector<pair<InductionScheme, DHMap<Literal*, Clause*>*>>& primarySchemes,
-    vvector<pair<InductionScheme, DHMap<Literal*, Clause*>*>>& secondarySchemes);
-  static void filterSchemes(vvector<pair<InductionScheme, DHMap<Literal*, Clause*>*>>& schemes);
-
-  static bool canInductOn(TermList t);
-  static bool isTermAlgebraCons(TermList t);
-  static vvector<TermList> getInductionTerms(TermList t);
-  static DHSet<TermList> getInductionTerms(const vvector<pair<InductionScheme, DHMap<Literal*, Clause*>*>>& schemes);
+  void preprocess(Problem& prb);
 
 private:
-  static void preprocess(UnitList* units);
-  static void processBody(TermList& body, TermList& header, InductionTemplate& templ);
+  void preprocess(UnitList* units);
+  void processBody(TermList& body, TermList& header, InductionTemplate& templ);
 
-  static void processCase(const unsigned recFun, TermList& body, vvector<TermList>& recursiveCalls);
-  static unsigned findMatchedArgument(unsigned matched, TermList& header);
+  void processCase(const unsigned recFun, TermList& body, vvector<TermList>& recursiveCalls);
+  unsigned findMatchedArgument(unsigned matched, TermList& header);
+};
 
-  static bool checkSubsumption(const InductionScheme& sch1, const InductionScheme& sch2, bool onlyCheckIntersection = false);
+struct InductionSchemeGenerator {
+  ~InductionSchemeGenerator();
+
+  void generatePrimary(Clause* premise, Literal* lit);
+  void generateSecondary(Clause* premise, Literal* lit);
+  void filter();
+
+  vvector<pair<InductionScheme, DHMap<Literal*, Clause*>*>> _primarySchemes;
+  DHMap<Literal*, DHMap<TermList, DHSet<unsigned>*>*> _actOccMaps;
+
+private:
+  void generate(Clause* premise, Literal* lit, vvector<pair<InductionScheme, DHMap<Literal*, Clause*>*>>& schemes);
+  void processIteration(TermList curr, bool active,
+    DHMap<TermList, unsigned>& currOccMap,
+    Stack<bool>& actStack, Clause* premise, Literal* lit,
+    vvector<pair<InductionScheme, DHMap<Literal*, Clause*>*>>& schemes);
+  void filter(vvector<pair<InductionScheme, DHMap<Literal*, Clause*>*>>& schemes);
+
+  vvector<pair<InductionScheme, DHMap<Literal*, Clause*>*>> _secondarySchemes;
 };
 
 } // Shell
