@@ -426,6 +426,10 @@ vstring Clause::toString() const
     if(derivedFromGoal()){
       result += vstring(",goal:1");
     }
+    if(env.maxSineLevel > 1) { // this is a cryptic way of saying "did we run Sine to compute sine levels?"
+      result += vstring(",sine:")+Int::toString((unsigned)_inference.getSineLevel());
+    }
+
     if(isPureTheoryDescendant()){
       result += vstring(",ptD:1");
     }
