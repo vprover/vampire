@@ -434,10 +434,14 @@ vstring Clause::toString() const
     if(isPureTheoryDescendant()){
       result += vstring(",ptD:1");
     }
-
     if(env.options->induction() != Shell::Options::Induction::NONE){
       result += vstring(",inD:") + Int::toString(_inference.inductionDepth());
     }
+
+    if(env.options->evalForKarel()) {
+      result += ",msY:" + Int::toString(_modelSaidYes);
+    }
+
     result += ",thAx:" + Int::toString((int)(_inference.th_ancestors));
     result += ",allAx:" + Int::toString((int)(_inference.all_ancestors));
     result += ",thDist:" + Int::toString( _inference.th_ancestors * env.options->theorySplitQueueExpectedRatioDenom() - _inference.all_ancestors);
