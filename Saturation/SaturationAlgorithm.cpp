@@ -122,12 +122,12 @@ using namespace Saturation;
 
 SaturationAlgorithm* SaturationAlgorithm::s_instance = 0;
 
-std::unique_ptr<PassiveClauseContainer> makeLevel0(bool isOutermost, const Options& opt, vstring name)
+static std::unique_ptr<PassiveClauseContainer> makeLevel0(bool isOutermost, const Options& opt, vstring name)
 {
   return Lib::make_unique<AWPassiveClauseContainer>(isOutermost, opt, name + "AWQ");
 }
 
-std::unique_ptr<PassiveClauseContainer> makeLevel1(bool isOutermost, const Options& opt, vstring name)
+static std::unique_ptr<PassiveClauseContainer> makeLevel1(bool isOutermost, const Options& opt, vstring name)
 {
   if (opt.useTheorySplitQueues())
   {
@@ -146,7 +146,7 @@ std::unique_ptr<PassiveClauseContainer> makeLevel1(bool isOutermost, const Optio
   }
 }
 
-std::unique_ptr<PassiveClauseContainer> makeLevel2(bool isOutermost, const Options& opt, vstring name)
+static std::unique_ptr<PassiveClauseContainer> makeLevel2(bool isOutermost, const Options& opt, vstring name)
 {
   if (opt.useAvatarSplitQueues())
   {
@@ -165,7 +165,7 @@ std::unique_ptr<PassiveClauseContainer> makeLevel2(bool isOutermost, const Optio
   }
 }
 
-std::unique_ptr<PassiveClauseContainer> makeLevel3(bool isOutermost, const Options& opt, vstring name)
+static std::unique_ptr<PassiveClauseContainer> makeLevel3(bool isOutermost, const Options& opt, vstring name)
 {
   if (opt.useSineLevelSplitQueues())
   {
@@ -184,7 +184,7 @@ std::unique_ptr<PassiveClauseContainer> makeLevel3(bool isOutermost, const Optio
   }
 }
 
-std::unique_ptr<PassiveClauseContainer> makeLevel4(bool isOutermost, const Options& opt, vstring name)
+static std::unique_ptr<PassiveClauseContainer> makeLevel4(bool isOutermost, const Options& opt, vstring name)
 {
   if (opt.usePositiveLiteralSplitQueues())
   {
@@ -200,6 +200,25 @@ std::unique_ptr<PassiveClauseContainer> makeLevel4(bool isOutermost, const Optio
   else
   {
     return makeLevel3(isOutermost, opt, name);
+  }
+}
+
+static std::unique_ptr<PassiveClauseContainer> makeLevel5(bool isOutermost, const Options& opt, vstring name)
+{
+  if (opt.useNeuralEvalSplitQueues())
+  {
+    Lib::vvector<std::unique_ptr<PassiveClauseContainer>> queues;
+    Lib::vvector<float> cutoffs = opt.positiveLiteralSplitQueueCutoffs();
+    for (unsigned i = 0; i < cutoffs.size(); i++)
+    {
+      auto queueName = name + "NESQ" + Int::toString(cutoffs[i]) + ":";
+      queues.push_back(makeLevel4(false, opt, queueName));
+    }
+    return Lib::make_unique<NeuralEvalSplitPassiveClauseContainer>(isOutermost, opt, name + "NESQ", std::move(queues));
+  }
+  else
+  {
+    return makeLevel4(isOutermost, opt, name);
   }
 }
 
@@ -254,7 +273,7 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
   }
   else
   {
-    _passive = makeLevel4(true, opt, "");
+    _passive = makeLevel5(true, opt, "");
   }
   _active = new ActiveClauseContainer(opt);
 
