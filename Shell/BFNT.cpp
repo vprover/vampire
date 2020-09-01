@@ -341,11 +341,10 @@ UnitList* BFNT::create(unsigned modelSize)
 
   // create totality axioms
   Map<unsigned,unsigned>::Iterator preds(_preds);
-  unsigned fun;
-  unsigned pred;
   unsigned constantsFound=0; // the number of constants, used for symmetry breaking
   while (preds.hasNext()) {
-    preds.next(fun,pred);
+    auto& entry = preds.next();
+    auto pred = entry.value();
     int arity = env.signature->getPredicate(pred)->arity();
     Stack<TermList> args;
     for (int i = 0;i < arity;i++) {
