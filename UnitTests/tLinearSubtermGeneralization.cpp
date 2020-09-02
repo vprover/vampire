@@ -36,7 +36,6 @@ public:
   {
     auto mul = MultiplicationGeneralization();
     auto add = AdditionGeneralization();
-    DBGE("lala")
     Clause* last = nullptr;
     auto cur = in;
     do {

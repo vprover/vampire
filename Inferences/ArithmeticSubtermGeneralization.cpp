@@ -119,7 +119,7 @@ Clause* ArithmeticSubtermGeneralization<Gen>::simplify(Clause* cl_)
   for (unsigned i = 0; i < cl.size(); i++) {
     auto lit = cl[i];
     for (unsigned j = 0; j < lit->arity(); j++) {
-      auto norm = PolyNf::normalize(*lit->nthArgument(j));
+      auto norm = PolyNf::normalize(TypedTermList(*lit->nthArgument(j), SortHelper::getArgSort(lit, j)));
       norm.iter()
           .forEach([&](PolyNf p) { 
               if (p.is<AnyPoly>()) {
@@ -158,9 +158,10 @@ Clause* ArithmeticSubtermGeneralization<Gen>::simplify(Clause* cl_)
 
   auto stack = iterTraits(cl.iterLits())
     .map([&](Literal* lit) {
+        unsigned j = 0;
         auto args = argIter(lit)
           .map([&](TermList term) -> TermList { 
-              auto norm = PolyNf::normalize(term);
+              auto norm = PolyNf::normalize(TypedTermList(term, SortHelper::getArgSort(lit, j++)));
               BuildGeneralizedTerm<Gen> eval { var, generalization };
               auto res = evaluateBottomUp(norm, eval);
               if (res != norm) {

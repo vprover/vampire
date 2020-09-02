@@ -293,7 +293,7 @@ public:
   PolyNf(UniqueShared<FuncTerm> t) : Coproduct(t) {}
   PolyNf(Variable               t) : Coproduct(t) {}
   PolyNf(AnyPoly                t) : Coproduct(t) {}
-  static PolyNf normalize(TermList t);
+  static PolyNf normalize(TypedTermList t);
 
   friend bool operator==(PolyNf const& lhs, PolyNf const& rhs) 
   { return static_cast<Coproduct const&>(lhs) == static_cast<Coproduct const&>(rhs); }

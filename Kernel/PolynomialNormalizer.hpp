@@ -589,32 +589,29 @@ public:
   }
 };
 
-inline PolyNf PolyNf::normalize(TermList t) 
+inline PolyNf PolyNf::normalize(TypedTermList t) 
 {
   CALL("PolyNf::normalize")
   DEBUG("normalizing ", t)
   NormalizationMemo memo;
   struct Eval 
   {
-    using Arg    = TermList;
+    using Arg    = TypedTermList;
     using Result = NormalizationResult;
 
     Optional<NormalizationResult> normalizeInterpreted(Interpretation i, NormalizationResult* results) const
     {
       switch (i) {
-
-#     define NUM_CASE(NUM, Num)                                                                                         \
-        case Theory::Interpretation::NUM ## _MULTIPLY:                                                                  \
-          return Sum<Num ## Traits>::mul(results[0], results[1]);                                                       \
-        case Theory::Interpretation::NUM ## _PLUS:                                                                      \
-          return Sum<Num ## Traits>::add(results[0], results[1]);                                                       \
-        case Theory::Interpretation::NUM ## _UNARY_MINUS:                                                               \
-          return Sum<Num ## Traits>::minus(results[0]);                                                                 \
-
-        NUM_CASE(INT , Int )
-        NUM_CASE(RAT , Rat )
-        NUM_CASE(REAL, Real)
-
+#     define NUM_CASE(NumTraits)                                                                              \
+        case NumTraits::mulI:                                                                  \
+          return Sum<NumTraits>::mul(results[0], results[1]);                                                       \
+        case NumTraits::addI:                                                                      \
+          return Sum<NumTraits>::add(results[0], results[1]);                                                       \
+        case NumTraits::minusI:                                                               \
+          return Sum<NumTraits>::minus(results[0]);                                                                 
+        NUM_CASE( IntTraits)
+        NUM_CASE( RatTraits)
+        NUM_CASE(RealTraits)
 #     undef NUM_CASE
         default:
           {}
@@ -622,10 +619,20 @@ inline PolyNf PolyNf::normalize(TermList t)
       return Optional<NormalizationResult>();
     } 
 
-    NormalizationResult operator()(TermList t, NormalizationResult* ts) const
+    NormalizationResult operator()(TypedTermList t, NormalizationResult* ts) const
     { 
       if (t.isVar()) {
-        return NormalizationResult(PolyNf(Variable(t.var())));
+        auto var = PolyNf(Variable(t.var()));
+        switch (t.sort()) {
+#         define NUM_CASE(NumTraits) \
+            case NumTraits::sort: return NormalizationResult(Sum<NumTraits>(Prod<NumTraits>(var)));
+          NUM_CASE( IntTraits)
+          NUM_CASE( RatTraits)
+          NUM_CASE(RealTraits)
+#         undef NUM_CASE
+          default:
+            return NormalizationResult(var);
+        }
       } else {
         ASS(t.isTerm());
         auto term = t.term();
@@ -775,7 +782,7 @@ template<class Config>
 class PolynomialNormalizer {
 public:
   LitEvalResult evaluate(Literal* in) const;
-  PolyNf evaluate(TermList in) const;
+  PolyNf evaluate(TypedTermList in) const;
   PolyNf evaluate(Term* in) const;
 
 private:
@@ -823,7 +830,7 @@ inline Literal* createLiteral(Literal* orig, PolyNf* evaluatedArgs) {
 template<class Config> LitEvalResult PolynomialNormalizer<Config>::evaluate(Literal* lit) const {
   Stack<PolyNf> terms(lit->arity());
   for (int i = 0; i < lit->arity(); i++) {
-    terms.push(evaluate(*lit->nthArgument(i)));
+    terms.push(evaluate(TypedTermList(*lit->nthArgument(i), SortHelper::getArgSort(lit, i))));
   }
   return evaluateStep(lit, terms.begin());
 }
@@ -960,9 +967,9 @@ inline Optional<PolyNf> trySimplify(Theory::Interpretation i, PolyNf* evalArgs)
   }
 }
 
-template<class Config> PolyNf PolynomialNormalizer<Config>::evaluate(TermList term) const 
+template<class Config> PolyNf PolynomialNormalizer<Config>::evaluate(TypedTermList term) const 
 {
-  CALL("PolynomialNormalizer<Config>::evaluate(TermList term) const")
+  CALL("PolynomialNormalizer<Config>::evaluate(TypedTermList term) const")
 
   auto norm = PolyNf::normalize(term);
   DEBUG("evaluating ", norm)
@@ -998,7 +1005,7 @@ template<class Config> PolyNf PolynomialNormalizer<Config>::evaluate(TermList te
 }
 
 template<class Config> PolyNf PolynomialNormalizer<Config>::evaluate(Term* term) const 
-{ return evaluate(TermList(term)); }
+{ return evaluate(TypedTermList(term)); }
 
 
 template<class Config>
