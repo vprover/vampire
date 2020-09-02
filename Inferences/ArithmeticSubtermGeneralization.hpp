@@ -7,21 +7,48 @@
 
 namespace Inferences {
 
-class ArithmeticSubtermGeneralization
+class MultiplicationGeneralization
 : public ImmediateSimplificationEngine
 {
 public:
-  CLASS_NAME(ArithmeticSubtermGeneralization);
-  USE_ALLOCATOR(ArithmeticSubtermGeneralization);
+  CLASS_NAME(MultiplicationGeneralization);
+  USE_ALLOCATOR(MultiplicationGeneralization);
 
-  ArithmeticSubtermGeneralization() {}
-  virtual ~ArithmeticSubtermGeneralization();
+  MultiplicationGeneralization() {}
+  virtual ~MultiplicationGeneralization();
 
   Clause* simplify(Clause* cl);
 };
 
+
+class AdditionGeneralization
+: public ImmediateSimplificationEngine
+{
+public:
+  CLASS_NAME(AdditionGeneralization);
+  USE_ALLOCATOR(AdditionGeneralization);
+
+  AdditionGeneralization() {}
+  virtual ~AdditionGeneralization();
+
+  Clause* simplify(Clause* cl);
 };
 
+
+// class AdditionGeneralization
+// : public ImmediateSimplificationEngine
+// {
+// public:
+//   CLASS_NAME(AdditionGeneralization);
+//   USE_ALLOCATOR(AdditionGeneralization);
+//
+//   AdditionGeneralization() {}
+//   virtual ~AdditionGeneralization();
+//
+//   Clause* simplify(Clause* cl);
+// };
+
+};
 
 
 #endif // __ARITHMETIC_SUBTERM_GENERALIZATION__

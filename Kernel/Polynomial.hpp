@@ -11,15 +11,29 @@
 #include <map> // TODO replace by Map
 #include "Lib/UniqueShared.hpp"
 #include "Kernel/NumTraits.hpp"
+#include <type_traits>
 
 
 namespace Kernel {
+
+
+class TypedTermList : public TermList
+{
+  unsigned _sort;
+public:
+  TypedTermList(TermList t, unsigned sort) : TermList(t), _sort(sort) {}
+  TypedTermList(Term* t) : TypedTermList(TermList(t), SortHelper::getResultSort(t)) {}
+  unsigned sort() const { return _sort; }
+};
+
+
 
 /** newtype for wrapping varible ids */
 class Variable 
 {
   unsigned _num;
 public: 
+  Variable() : _num() {}
   explicit Variable(unsigned num) : _num(num) {}
   unsigned id() const { return _num; }
   friend bool operator==(Variable lhs, Variable rhs) 
@@ -107,10 +121,10 @@ struct PolyPair {
   {}
 
   friend bool operator<(PolyPair const& l, PolyPair const& r)
-  { return std::tie(l.coeff, l.monom) < std::tie(r.coeff, r.monom); }
+  { return std::tie(l.monom, l.coeff) < std::tie(r.monom, r.coeff); }
 
   friend bool operator==(PolyPair const& l, PolyPair const& r)
-  { return std::tie(l.coeff, l.monom) == std::tie(r.coeff, r.monom); }
+  { return std::tie(l.monom, l.coeff) == std::tie(r.monom, r.coeff); }
 
   friend bool operator!=(PolyPair const& l, PolyPair const& r)
   { return !(l == r); }
@@ -122,6 +136,21 @@ struct PolyPair {
     }
     return out << self.monom; 
   }
+
+  Optional<Variable> tryVar() const 
+  {
+    using Opt = Optional<Variable>;
+    if (coeff == Coeff(1)) {
+      return  monom->tryVar();
+    } else {
+      return  Opt();
+    }
+  }
+
+  ~PolyPair() {
+    CALL("~PolyPair")
+  }
+
 };
 
 class AnyPoly;
@@ -205,12 +234,20 @@ public:
   template<class C>
   using Poly = UniqueShared<Polynom<NumTraits<C>>>;
 
-  explicit AnyPoly(Poly< IntegerConstantType> x) : Coproduct(variant<0>(std::move(x))) {  }
-  explicit AnyPoly(Poly<RationalConstantType> x) : Coproduct(variant<1>(std::move(x))) {  }
-  explicit AnyPoly(Poly<    RealConstantType> x) : Coproduct(variant<2>(std::move(x)))  {  }
+  AnyPoly(Poly< IntegerConstantType> x) : Coproduct(variant<0>(std::move(x))) {  }
+  AnyPoly(Poly<RationalConstantType> x) : Coproduct(variant<1>(std::move(x))) {  }
+  AnyPoly(Poly<    RealConstantType> x) : Coproduct(variant<2>(std::move(x)))  {  }
 
   template<class Number> 
   Polynom<Number> const& downcast() const& { return *unwrap<UniqueShared<Polynom<Number>>>(); }
+
+  template<class Number> 
+  UniqueShared<Polynom<Number>> unwrapType() const& { return unwrap<UniqueShared<Polynom<Number>>>(); }
+
+  template<class Number> 
+  bool isType() const { return is<UniqueShared<Polynom<Number>>>(); }
+
+  AnyPoly replaceTerms(PolyNf* newTs) const;
 
   unsigned nSummands() const { return apply(Polymorphic::nSummands{}); }
   unsigned nFactors(unsigned i) const { return apply(Polymorphic::nFactors{i}); }
@@ -236,6 +273,9 @@ public:
   { return apply(PolymorphicToNumeral<Number>{}); }
 };
 
+POLYMORPHIC_FUNCTION(AnyPoly, replaceTerms, const& t, PolyNf* newTs;) { return AnyPoly(unique(t->replaceTerms(newTs))); }
+
+inline AnyPoly AnyPoly::replaceTerms(PolyNf* newTs) const { return apply(Polymorphic::replaceTerms{newTs}); }
 
 using PolyNfSuper = Lib::Coproduct<UniqueShared<FuncTerm>, Variable, AnyPoly>;
 /**
@@ -310,6 +350,8 @@ public:
       );
   }
 
+  class Iter;
+  IterTraits<Iter> iter() const;
 };
 
 inline bool operator<(const PolyNf& lhs, const PolyNf& rhs)  // TODO get rid of that and use the vampire sorting method 
@@ -335,10 +377,10 @@ struct MonomPair {
   {}
 
   friend bool operator<(MonomPair const& l, MonomPair const& r)
-  { return std::tie(l.power, l.term) < std::tie(r.power, r.term); }
+  { return std::tie(l.term, l.power) < std::tie(r.term, r.power); }
 
   friend bool operator==(MonomPair const& l, MonomPair const& r)
-  { return std::tie(l.power, l.term) == std::tie(r.power, r.term); }
+  { return std::tie(l.term, l.power) == std::tie(r.term, r.power); }
 
   friend bool operator!=(MonomPair const& l, MonomPair const& r)
   { return !(l == r); }
@@ -378,6 +420,9 @@ public:
 
   unsigned nFactors() const 
   { return _factors.size(); }
+
+  MonomPair const& factorAt(unsigned i) const
+  { return _factors[i]; }
 
   PolyNf const& termAt(unsigned i) const
   { return _factors[i].term; }
@@ -419,9 +464,10 @@ public:
       args.push(MonomPair(simplifiedArgs[i], _factors[i].power));
     }
 
-    std::sort(args.begin(), args.end(), 
-        []( const MonomPair& lhs, const MonomPair& rhs) 
-        { return lhs.term < rhs.term; });
+    std::sort(args.begin(), args.end());
+    // std::sort(args.begin(), args.end(), 
+    //     []( const MonomPair& lhs, const MonomPair& rhs) 
+    //     { return lhs.term < rhs.term; });
 
     auto offs = 0;
     auto coeff = Const(1);
@@ -476,8 +522,6 @@ public:
     return l._factors == r._factors;
   }
 
-  public:
-
   Monom& operator=(Monom&&) = default;
   Monom(Monom&&) = default;
 
@@ -513,6 +557,17 @@ public:
     }
   }
 
+  Optional<Variable> tryVar() const 
+  {
+    using Opt = Optional<Variable>;
+    if (nFactors() == 1 && _factors[0].power == 1 
+        && _factors[0].term.template is<Variable>() ) {
+      return  Opt(_factors[0].term.template unwrap<Variable>());
+    } else {
+      return  Opt();
+    }
+  }
+
   void integrity() const {
 #if VDEBUG
     if (_factors.size() > 0) {
@@ -540,6 +595,13 @@ public:
   }
 
 
+  using ConstIter = IterTraits<ArrayishObjectIterator<typename std::remove_reference<decltype(_factors)>::type, no_ref_t>>;
+  ConstIter iter() const&
+  { return iterTraits(getArrayishObjectIterator<no_ref_t>(_factors)); }
+
+  // template<class NumTraits>
+  // Optional<Polynom<NumTraits> tryPoly() 
+  // { TODO }
 };
 
 template<class Number>
@@ -758,8 +820,9 @@ public:
       }
 
       // then we sort them by their monom, in order to add up the coefficients efficiently
-      std::sort(out.begin(), out.end(), 
-          []( const PolyPair& lhs, const PolyPair& rhs) { return std::less<UniqueShared<Monom>>{}(lhs.monom, rhs.monom); });
+      std::sort(out.begin(), out.end());
+      // std::sort(out.begin(), out.end(), 
+      //     []( const PolyPair& lhs, const PolyPair& rhs) { return std::less<UniqueShared<Monom>>{}(lhs.monom, rhs.monom); });
 
       // add up the coefficient (in place)
       {
@@ -807,6 +870,9 @@ public:
   unsigned nFactors(unsigned summand) const
   { return _summands[summand].monom->nFactors(); }
 
+  PolyPair summandAt(unsigned summand) const
+  { return _summands[summand]; }
+
   UniqueShared<Monom> monomAt(unsigned summand) const
   { return _summands[summand].monom; }
 
@@ -840,6 +906,11 @@ public:
     return out;
 
   }
+
+
+  using ConstIter = IterTraits<ArrayishObjectIterator<typename std::remove_reference<decltype(_summands)>::type, no_ref_t>>;
+  ConstIter iter() const&
+  { return iterTraits(getArrayishObjectIterator<no_ref_t>(_summands)); }
 
 };
 

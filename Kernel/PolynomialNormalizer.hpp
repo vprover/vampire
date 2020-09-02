@@ -19,12 +19,13 @@
 #include "Lib/UniqueShared.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Optional.hpp"
+#include "Debug/Tracer.hpp"
 
 
 #ifndef __POLYNOMIAL_NORMALIZER_HPP__
 #define __POLYNOMIAL_NORMALIZER_HPP__
 
-#define DEBUG(...)  DBG(__VA_ARGS__)
+#define DEBUG(...) //DBG(__VA_ARGS__)
 
 namespace Kernel {
 
@@ -76,6 +77,17 @@ struct ChildIter
   unsigned nChildren();
 };
 
+template<class A> 
+ChildIter<A> childIter(A a) 
+{ return ChildIter<A>(a); }
+
+template<class EvalFn, class Memo = Memo::None<typename EvalFn::Arg, typename EvalFn::Result>>
+typename EvalFn::Result evaluateBottomUp(typename EvalFn::Arg const& term, EvalFn evaluateStep) 
+{
+  using namespace Memo;
+  auto memo = None<typename EvalFn::Arg, typename EvalFn::Result>();
+  return evaluateBottomUp(term, evaluateStep, memo);
+}
 
 /** 
  * Evaluates a term-like datastructure (i.e.: a directed acyclic graph), without using recursion.
@@ -95,12 +107,14 @@ struct ChildIter
  * 
  * The term to be evaluated will be traversed using a ChildIter<Arg>. 
  */
-template<class EvalFn, class Memo = Memo::None<typename EvalFn::Arg, typename EvalFn::Result>>
+template<class EvalFn, class Memo>
 typename EvalFn::Result evaluateBottomUp(typename EvalFn::Arg const& term, EvalFn evaluateStep, Memo& memo) 
 {
   CALL("evaluateBottomUp(...)")
   using Result = typename EvalFn::Result;
   using Arg    = typename EvalFn::Arg;
+
+  static_assert(std::is_same<ResultOf<EvalFn, Arg, Result*>, Result>::value, "evaluation function must have signature `Result eval(Arg term, Result* evaluatedArgs)`");
 
   
   /* recursion state. Contains a stack of items that are being recursed on. */
@@ -144,10 +158,13 @@ typename EvalFn::Result evaluateBottomUp(typename EvalFn::Arg const& term, EvalF
     
 
   ASS(recResults.size() == 1);
-  return std::move(recResults.pop());
+  auto result = recResults.pop();
+  DEBUG("eval result: ", term, " -> ", result);
+  return std::move(result);
 }
 
 } // namespace Kernel
+
 #include "Kernel/Polynomial.hpp"
 
 
@@ -174,6 +191,36 @@ struct ChildIter<TermList>
   { return _self.isVar() ? 0 : _self.term()->arity(); }
 
   TermList self() const 
+  { return _self; }
+};
+
+
+template<>
+struct ChildIter<TypedTermList>
+{
+  TypedTermList _self;
+  unsigned      _idx;
+
+  ChildIter(TypedTermList self) : _self(self), _idx(0)
+  {}
+
+  TypedTermList next() 
+  {
+    ASS(hasNext());
+    auto cur = self().term();
+    auto next = *cur->nthArgument(_idx);
+    auto sort = SortHelper::getArgSort(cur, _idx);
+    _idx++;
+    return TypedTermList(next, sort);
+  }
+
+  bool hasNext() const 
+  { return _self.isTerm() && _idx < _self.term()->arity(); }
+
+  unsigned nChildren() const 
+  { return _self.isVar() ? 0 : _self.term()->arity(); }
+
+  TypedTermList self() const 
   { return _self; }
 };
 
@@ -221,6 +268,9 @@ struct ChildIter<PolyNf>
 
     unsigned nChildren() const
     { return _nChildren; }
+
+    friend ostream& operator<<(ostream& out, PolynomialChildIter const& self) 
+    { return out << self._self << "@(" << self._idx1 << ", " << self._idx2 << ")"; }
   };
 
   struct FuncTermChildIter 
@@ -239,6 +289,9 @@ struct ChildIter<PolyNf>
 
     unsigned nChildren() const
     { return _self->arity(); }
+
+    friend ostream& operator<<(ostream& out, FuncTermChildIter const& self) 
+    { return out << self._self << "@" << self._idx; }
   };
 
 
@@ -255,6 +308,9 @@ struct ChildIter<PolyNf>
 
     unsigned nChildren() const
     { return 0; }
+
+    friend ostream& operator<<(ostream& out, VariableChildIter const& self) 
+    { return out << self._self; }
   };
 
   using Inner = Coproduct<FuncTermChildIter, VariableChildIter, PolynomialChildIter>;
@@ -278,7 +334,39 @@ struct ChildIter<PolyNf>
 
   PolyNf self() const 
   { return _self.apply(Polymorphic::self{}); }
+
+  friend ostream& operator<<(ostream& out, ChildIter const& self) 
+  { return out << self._self; }
 };
+
+
+class PolyNf::Iter {
+  Stack<ChildIter<PolyNf>> _stack;
+public:
+  Iter(PolyNf p) : _stack(decltype(_stack){ ChildIter<PolyNf>(p) }) {}
+  DECL_ELEMENT_TYPE(PolyNf);
+
+  PolyNf next() {
+    CALL("PolyNf::Iter::next")
+    // DBGE(_stack)
+    while(_stack.top().hasNext()) {
+      _stack.push(ChildIter<PolyNf>(_stack.top().next()));
+    }
+    return _stack.pop().self();
+  }
+
+  bool hasNext() const 
+  { 
+    CALL("PolyNf::Iter::hasNext")
+    // DBGE(_stack)
+    return !_stack.isEmpty(); 
+  }
+};
+
+
+inline IterTraits<PolyNf::Iter> PolyNf::iter() const 
+{ return iterTraits(Iter(*this)); }
+
 
 template<class Number> class Sum;
 
@@ -309,6 +397,7 @@ PolyNf toPolyNf(NormalizationResult& r);
 template<class Number>
 class Sum 
 { 
+  using Const = typename Number::ConstantType;
   using Prod = Kernel::Prod<Number>;
   Stack<Prod> _summands; 
 
@@ -346,7 +435,7 @@ public:
 
     if (lhs._summands.size() == 1 && rhs._summands.size() == 1) {
       //  Poly(Mon(l0 * l1 * ... )) * Poly(Mon(r0 * r1 * ...)) ==> Poly(Mon(l0 * ... * r0 * ...))
-      lhs._summands[0]._factors.moveFromIterator(rhs._summands[0]._factors.iterator());
+      lhs._summands[0]._factors.moveFromIterator(rhs._summands[0]._factors.iter());
       return NormalizationResult(std::move(lhs));
     } else if (lhs._summands.size() > 1 && rhs._summands.size() == 1) {
       //               Poly(l0 + l1 + ...) * Poly(Mon(r0 * r1 * ...)) 
@@ -400,39 +489,46 @@ public:
       ASS(lhs.is<Sum>())
       ASS(rhs.is<Sum>())
       auto out = std::move(lhs).unwrap<Sum>();
-      out._summands.moveFromIterator(rhs.unwrap<Sum>()._summands.iterator());
+      out._summands.moveFromIterator(rhs.unwrap<Sum>()._summands.iter());
       return NormalizationResult(std::move(out));
     }
   }
 
-  PolyNf polyNf()  const
+  PolyNf polyNf()  
   {
     using PolyPair  = Kernel::PolyPair<Number>;
     using Polynom   = Kernel::Polynom  <Number>;
     using MonomPair = Kernel::MonomPair<Number>;
     using Monom     = Kernel::Monom    <Number>;
-    using Const     = typename Number::ConstantType;
 
-    auto begin = _summands.begin();
-    auto summands = Stack<PolyPair>::fromIterator(
-        iterTraits(getArrayishObjectIterator<mut_ref_t>(begin, _summands.size()))
-          .map([](Prod& p) {
+    // auto begin = _summands.begin();
+    auto summands = 
+        // iterTraits(_summands.iter())
+        iterTraits(getArrayishObjectIterator<mut_ref_t>(_summands))
+          .map([](Prod& p) -> PolyPair {
             std::sort(p._factors.begin(), p._factors.end()); // TODO make different orderings possible
             Stack<MonomPair> monomFactors;
             auto iter = p._factors.begin();
+            Optional<Const> coeff;
             while (iter != p._factors.end()) {
               auto elem = *iter;
-              unsigned cnt = 0;
-              while (iter != p._factors.end() && *iter == elem) {
-                cnt++;
-                iter++;
+              auto num = elem.template tryNumeral<Number>();
+              if (num.isSome() && coeff.isNone()) {
+                 coeff = some(num.unwrap());
+                 iter++;
+              } else {
+                unsigned cnt = 0;
+                while (iter != p._factors.end() && *iter == elem) {
+                  cnt++;
+                  iter++;
+                }
+                ASS(cnt != 0);
+                monomFactors.push(MonomPair(elem, cnt));
               }
-              ASS(cnt != 0);
-              monomFactors.push(MonomPair(elem, cnt));
             }
-            return PolyPair(Const(1), unique(Monom(std::move(monomFactors))));
+            return PolyPair(coeff.unwrapOr(Const(1)), unique(Monom(std::move(monomFactors))));
           })
-      );
+          .template collect<Stack>();
     std::sort(summands.begin(), summands.end()); // TODO different sorting(s)
 
     // TODO insert into memo
@@ -489,7 +585,7 @@ public:
   void insert(TermList const& t, PolyNf const& p)
   { 
     _cache.insert(t, p); 
-    DBGE(_cache.numberOfElements());
+    // DBGE(_cache.numberOfElements());
   }
 };
 
@@ -497,7 +593,6 @@ inline PolyNf PolyNf::normalize(TermList t)
 {
   CALL("PolyNf::normalize")
   DEBUG("normalizing ", t)
-  // static Memo::None<TermList, NormalizationResult> memo;
   NormalizationMemo memo;
   struct Eval 
   {
@@ -567,6 +662,81 @@ inline PolyNf PolyNf::normalize(TermList t)
   NormalizationResult r = evaluateBottomUp(t, Eval{}, memo);
   return toPolyNf(r);
 }
+
+// inline PolyNf PolyNf::normalize(TermList t) 
+// {
+//   CALL("PolyNf::normalize")
+//   DEBUG("normalizing ", t)
+//   // static Memo::None<TermList, NormalizationResult> memo;
+//   NormalizationMemo memo;
+//   struct Eval 
+//   {
+//     using Arg    = TermList;
+//     using Result = NormalizationResult;
+//
+//     Optional<NormalizationResult> normalizeInterpreted(Interpretation i, NormalizationResult* results) const
+//     {
+//       switch (i) {
+//
+// #     define NUM_CASE(NUM, Num)                                                                                         \
+//         case Theory::Interpretation::NUM ## _MULTIPLY:                                                                  \
+//           return Sum<Num ## Traits>::mul(results[0], results[1]);                                                       \
+//         case Theory::Interpretation::NUM ## _PLUS:                                                                      \
+//           return Sum<Num ## Traits>::add(results[0], results[1]);                                                       \
+//         case Theory::Interpretation::NUM ## _UNARY_MINUS:                                                               \
+//           return Sum<Num ## Traits>::minus(results[0]);                                                                 \
+//
+//         NUM_CASE(INT , Int )
+//         NUM_CASE(RAT , Rat )
+//         NUM_CASE(REAL, Real)
+//
+// #     undef NUM_CASE
+//         default:
+//           {}
+//       }
+//       return Optional<NormalizationResult>();
+//     } 
+//
+//     NormalizationResult operator()(TermList t, NormalizationResult* ts) const
+//     { 
+//       if (t.isVar()) {
+//         return NormalizationResult(PolyNf(Variable(t.var())));
+//       } else {
+//         ASS(t.isTerm());
+//         auto term = t.term();
+//         auto fn = FuncId(term->functor());
+//         if (fn.isInterpreted()) {
+//           auto maybePoly = normalizeInterpreted(fn.interpretation(), ts);
+//           if (maybePoly.isSome()) {
+//             return std::move(maybePoly).unwrap();
+//           }
+//         } 
+//         auto out = unique(FuncTerm(
+//                 fn, 
+//                 Stack<PolyNf>::fromIterator(
+//                     iterTraits(getArrayishObjectIterator<mut_ref_t>(ts, fn.arity()))
+//                     .map( [](NormalizationResult& r) -> PolyNf { return toPolyNf(r); })
+//                 )
+//               )
+//             );
+//
+// #     define NUM_CASE(Num)                                                                                         \
+//           if (fn.template tryNumeral<Num ## Traits>().isSome())  \
+//             return NormalizationResult(Sum<Num ## Traits>(Prod<Num ## Traits>(out)));
+//           
+//         NUM_CASE(Int )
+//         NUM_CASE(Rat )
+//         NUM_CASE(Real)
+//
+// #     undef NUM_CASE
+//
+//         return NormalizationResult(PolyNf(out));
+//       }
+//     }
+//   };
+//   NormalizationResult r = evaluateBottomUp(t, Eval{}, memo);
+//   return toPolyNf(r);
+// }
 
 
 class LitEvalResult : public Lib::Coproduct<Literal*, bool> 

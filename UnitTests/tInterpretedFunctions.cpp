@@ -519,7 +519,7 @@ ALL_NUMBERS_TEST(eval_overflow_3,
 
 ALL_NUMBERS_TEST(eval_overflow_4,
     p(-1 * num(std::numeric_limits<int>::min())),
-    evaluationFail
+    p(-num(std::numeric_limits<int>::min()))
     )
 
 ALL_NUMBERS_TEST(eval_overflow_5,

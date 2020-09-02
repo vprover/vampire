@@ -32,16 +32,16 @@ struct Success
 
     if (!res) {
       cout  << endl;
-      cout << "[     case ]: " << input.toString() << endl;
+      cout << "[     case ]: " << pretty(input) << endl;
       cout << "[       is ]: NULL (indicates the clause is a tautology)" << endl;
-      cout << "[ expected ]: " << expected.toString() << endl;
+      cout << "[ expected ]: " << pretty(expected) << endl;
       exit(-1);
 
     } else if (!simpl.eq(res, &expected)) {
       cout  << endl;
-      cout << "[     case ]: " << input.toString() << endl;
-      cout << "[       is ]: " << res->toString() << endl;
-      cout << "[ expected ]: " << expected.toString() << endl;
+      cout << "[     case ]: " << pretty(input) << endl;
+      cout << "[       is ]: " << pretty(*res) << endl;
+      cout << "[ expected ]: " << pretty(expected) << endl;
       exit(-1);
 
     }
@@ -56,8 +56,8 @@ struct NotApplicable
     auto res = simpl.simplify(&input);
     if (res != &input ) {
       cout  << endl;
-      cout << "[     case ]: " << input.toString() << endl;
-      cout << "[       is ]: " << res->toString() << endl;
+      cout << "[     case ]: " << pretty(input) << endl;
+      cout << "[       is ]: " << pretty(*res) << endl;
       cout << "[ expected ]: < nop >" << endl;
       exit(-1);
     }
