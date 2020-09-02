@@ -1,50 +1,143 @@
 #ifndef __OPTIONAL_H__
 #define __OPTIONAL_H__
 
-#include "Lib/Coproduct.hpp"
 #include <type_traits>
+#include "Debug/Assertion.hpp"
+#include <iostream>
 
 
 namespace Lib {
 
+template<class T>
+struct MaybeUninit {
+  typename std::aligned_storage<sizeof(T), alignof(T)>::type _elem;
+  operator T const&()  const&{ return           *reinterpret_cast<T const*>(&_elem) ;}
+  operator T      &()       &{ return           *reinterpret_cast<T      *>(&_elem) ;}
+  operator T     &&()      &&{ return std::move(*reinterpret_cast<T      *>(&_elem));}
+
+  void init(T     && content) { ::new(&_elem)T(std::move(content)); }
+  void init(T      & content) { ::new(&_elem)T(          content ); }
+  void init(T const& content) { ::new(&_elem)T(          content ); }
+};
+
 template<class A>
-class Optional {
-  struct Unit {};
-  Coproduct<A, Unit> _self;
-  Optional(Coproduct<A, Unit> self) : _self(self) {}
+class OptionalBase 
+{
+
+  bool _isSome;
+  MaybeUninit<A> _elem;
 public:
 
-  Optional() : _self(Coproduct<A,Unit>::template variant<1>(Unit{})) {}
-  Optional(A     && content) : _self(Coproduct<A,Unit>::template variant<0>(std::move(content))) {}
-  Optional(A      & content) : _self(Coproduct<A,Unit>::template variant<0>(          content )) {}
-  Optional(A const& content) : _self(Coproduct<A,Unit>::template variant<0>(          content )) {}
+  OptionalBase() : _isSome(false) {}
+  OptionalBase(A     && content) : _isSome(true), _elem() { _elem.init(std::move(content)); }
+  OptionalBase(A      & content) : _isSome(true), _elem() { _elem.init(          content ); }
+  OptionalBase(A const& content) : _isSome(true), _elem() { _elem.init(          content ); }
+  ~OptionalBase() { if (isSome()) { unwrap().~A(); } }
 
-  bool isSome() const { return _self.template is<0>();  }
-  bool isNone() const { return _self.template is<1>();  }
-  A const& unwrap() const& { return _self.template unwrap<0>();  }
-  A     && unwrap()     && { return std::move(_self.template unwrap<0>());  }
-  A      & unwrap()      & { return _self.template unwrap<0>();  }
+  bool isSome() const { return _isSome;   }
+  bool isNone() const { return !isSome(); }
+
+  A& derefNext() {}
+  A const& unwrap() const& { ASS(_isSome); return           _elem ; }
+  A     && unwrap()     && { ASS(_isSome); return std::move(_elem); }
+  A      & unwrap()      & { ASS(_isSome); return           _elem ; }
+
+  OptionalBase(OptionalBase      & a) : _isSome(a._isSome) { if (isSome()) { _elem.init(          a .unwrap()); } }
+  OptionalBase(OptionalBase     && a) : _isSome(a._isSome) { if (isSome()) { _elem.init(std::move(a).unwrap()); } }
+  OptionalBase(OptionalBase const& a) : _isSome(a._isSome) { if (isSome()) { _elem.init(          a .unwrap()); } }
+
+  OptionalBase& operator=(OptionalBase      & a) = default;
+  OptionalBase& operator=(OptionalBase     && a) = default;
+  OptionalBase& operator=(OptionalBase const& a) = default;
+
+
+  static OptionalBase fromPtr(A* ptr) 
+  { return ptr == nullptr ? OptionalBase() : *ptr; }
+
+  friend bool operator==(OptionalBase const& lhs, OptionalBase const& rhs) 
+  { 
+    if (lhs._isSome != rhs._isSome) return false;
+    
+    if (lhs._isSome) {
+      return lhs.unwrap() == rhs.unwrap();
+    } else {
+      return true;
+    }
+  }
+};
+
+
+template<class A>
+class OptionalBase<A&>
+{
+
+  A* _elem;
+public:
+
+  OptionalBase() : _elem(nullptr) {}
+  OptionalBase(A      & content) : _elem(&content) { }
+
+  bool isSome() const { return _elem != nullptr;   }
+
+  A& derefNext() {}
+  A const& unwrap() const& { ASS(isSome()); return           *_elem ; }
+  A     && unwrap()     && { ASS(isSome()); return std::move(*_elem); }
+  A      & unwrap()      & { ASS(isSome()); return           *_elem ; }
+
+  OptionalBase(OptionalBase      & a) = default;
+  OptionalBase(OptionalBase     && a) = default;
+  OptionalBase(OptionalBase const& a) = default;
+
+  OptionalBase& operator=(OptionalBase      & a) = default;
+  OptionalBase& operator=(OptionalBase     && a) = default;
+  OptionalBase& operator=(OptionalBase const& a) = default;
+
+  static OptionalBase fromPtr(A* ptr) 
+  { return ptr == nullptr ? OptionalBase() : *ptr; }
+
+  friend bool operator==(OptionalBase const& lhs, OptionalBase const& rhs) 
+  { return lhs._elem == rhs._elem; }
+};
+
+template<class A>
+class Optional : OptionalBase<A> {
+
+  Optional(OptionalBase<A>&& base) : OptionalBase<A>(base) {  }
+public:
+  using Content = A;
+  using OptionalBase<A>::OptionalBase;
+  using OptionalBase<A>::isSome;
+  using OptionalBase<A>::unwrap;
+
+  friend bool operator==(Optional const& lhs, Optional const& rhs) 
+  { return static_cast<OptionalBase<A>const&>(lhs) == static_cast<OptionalBase<A>const&>(rhs); }
+
+  friend bool operator!=(Optional const& lhs, Optional const& rhs) 
+  { return !(lhs == rhs); }
+
+  template<class C>
+  static Optional<A> fromPtr(C self) 
+  { return Optional(OptionalBase<A>::fromPtr(self)); }
+
+  bool isNone() const { return !this->isSome(); }
 
   template<class Clsr>
   const A& unwrapOrElse(Clsr f) const& { 
     static_assert(std::is_same<typename std::result_of<Clsr()>::type,
                                A const&                             >::value, "closuer must return reference in order to be memory safe");
-    if (isSome()) {
-      return unwrap();
+    if (this->isSome()) {
+      return this->unwrap();
     } else {
       return f();
     }
   }
 
-  static Optional fromPtr(A* ptr) 
-  { return ptr == nullptr ? Optional() : *ptr; }
-
   template<class Clsr>
   A unwrapOrElse(Clsr f) && { 
     // static_assert(std::is_same<typename std::result_of<Clsr()>::type,
     //                            A &&                             >::value, "closuer must return reference in order to be memory safe");
-    if (isSome()) {
-      return unwrap();
+    if (this->isSome()) {
+      return this->unwrap();
     } else {
       return f();
     }
@@ -54,8 +147,8 @@ public:
   A& unwrapOrElse(Clsr f) & { 
     static_assert(std::is_same<typename std::result_of<Clsr()>::type,
                                A &                             >::value, "closuer must return reference in order to be memory safe");
-    if (isSome()) {
-      return unwrap();
+    if (this->isSome()) {
+      return this->unwrap();
     } else {
       return f();
     }
@@ -64,24 +157,25 @@ public:
   template<class Clsr>
   const A& unwrapOrInit(Clsr f) { 
     if (isNone()) {
-      _self = Coproduct<A,Unit>::template variant<0>(f());
+      ::new(this) Optional(f());
     }
-    return unwrap();
+    return this->unwrap();
   }
 
 
   const A& unwrapOr(const A& alternative) const { 
-    if (isSome()) {
-      return unwrap();
+    if (this->isSome()) {
+      return this->unwrap();
     } else {
       return alternative;
     }
   }
 
+  // TODO get rid or R here
   template<class R, class CasePresent, class CaseNone>
   R match(CasePresent present, CaseNone none) const { 
-    if (isSome()) {
-      return present(unwrap());
+    if (this->isSome()) {
+      return present(this->unwrap());
     } else {
       return none();
     }
@@ -89,8 +183,8 @@ public:
 
   template<class CasePresent, class CaseNone, class R>
   R match(CasePresent present, CaseNone none) { 
-    if (isSome()) {
-      return present(unwrap());
+    if (this->isSome()) {
+      return present(this->unwrap());
     } else {
       return none();
     }
@@ -99,14 +193,14 @@ public:
   template<class Clsr>
   Optional<typename std::result_of<Clsr(A &&)>::type> map(Clsr clsr) && { 
     using OptOut = Optional<typename std::result_of<Clsr(A &&)>::type>;
-    return isSome() ? OptOut(clsr(std::move(unwrap())))
+    return this->isSome() ? OptOut(clsr(std::move(this->unwrap())))
                     : OptOut();
   }
 
   template<class Clsr>
   typename std::result_of<Clsr(A const&)>::type andThen(Clsr clsr) const& { 
     using OptOut = typename std::result_of<Clsr(A const&)>::type;
-    return isSome() ? clsr(unwrap())
+    return this->isSome() ? clsr(this->unwrap())
                     : OptOut();
   }
 
@@ -115,7 +209,7 @@ public:
   template<class Clsr>
   typename std::result_of<Clsr(A &&)>::type andThen(Clsr clsr) && { 
     using OptOut = typename std::result_of<Clsr(A &&)>::type;
-    return isSome() ? clsr(std::move(unwrap()))
+    return this->isSome() ? clsr(std::move(this->unwrap()))
                     : OptOut();
   }
 
@@ -124,9 +218,12 @@ public:
   typename std::result_of<Clsr(A &)>::type andThen(Clsr clsr) & { 
     using OptOut = typename std::result_of<Clsr(A &)>::type;
     using OptOut = typename Optional<std::result_of<Clsr(A &)>>::type;
-    return isSome() ? clsr(unwrap())
+    return this->isSome() ? clsr(this->unwrap())
                     : OptOut();
   }
+
+  friend std::ostream& operator<<(std::ostream& out, Optional const& self) 
+  { return self.isSome() ?  out << self.unwrap() : out << "None"; }
 
 };
 
@@ -138,8 +235,8 @@ template<class T>
 Optional<T> none() 
 { return Optional<T>(); }
 
-template<class T> Optional<T> 
-optionalFromPtr(T* t) 
+template<class T>
+Optional<T> optionalFromPtr(T* t) 
 { return Optional<T>::fromPtr(t); }
 
 }

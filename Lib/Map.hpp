@@ -208,10 +208,10 @@ public:
    * 
    * @since 25/08/2020 Manchester
    */
-  Optional<std::reference_wrapper<Val>> tryGet(Key const& key) const
+  Optional<Val&> tryGet(Key const& key) const
   {
     CALL("Map::find/2");
-    using Opt = Optional<std::reference_wrapper<Val>>;
+    using Opt = Optional<Val&>;
 
     unsigned code = Hash::hash(key);
     if (code == 0) {
