@@ -603,11 +603,11 @@ inline PolyNf PolyNf::normalize(TypedTermList t)
     {
       switch (i) {
 #     define NUM_CASE(NumTraits)                                                                              \
-        case NumTraits::mulI:                                                                  \
-          return Sum<NumTraits>::mul(results[0], results[1]);                                                       \
-        case NumTraits::addI:                                                                      \
-          return Sum<NumTraits>::add(results[0], results[1]);                                                       \
-        case NumTraits::minusI:                                                               \
+        case NumTraits::mulI:                                                                                 \
+          return Sum<NumTraits>::mul(results[0], results[1]);                                                 \
+        case NumTraits::addI:                                                                                 \
+          return Sum<NumTraits>::add(results[0], results[1]);                                                 \
+        case NumTraits::minusI:                                                                               \
           return Sum<NumTraits>::minus(results[0]);                                                                 
         NUM_CASE( IntTraits)
         NUM_CASE( RatTraits)
@@ -624,7 +624,7 @@ inline PolyNf PolyNf::normalize(TypedTermList t)
       if (t.isVar()) {
         auto var = PolyNf(Variable(t.var()));
         switch (t.sort()) {
-#         define NUM_CASE(NumTraits) \
+#         define NUM_CASE(NumTraits)                                                                          \
             case NumTraits::sort: return NormalizationResult(Sum<NumTraits>(Prod<NumTraits>(var)));
           NUM_CASE( IntTraits)
           NUM_CASE( RatTraits)
@@ -652,8 +652,8 @@ inline PolyNf PolyNf::normalize(TypedTermList t)
               )
             );
 
-#     define NUM_CASE(Num)                                                                                         \
-          if (fn.template tryNumeral<Num ## Traits>().isSome())  \
+#     define NUM_CASE(Num)                                                                                    \
+          if (fn.template tryNumeral<Num ## Traits>().isSome())                                               \
             return NormalizationResult(Sum<Num ## Traits>(Prod<Num ## Traits>(out)));
           
         NUM_CASE(Int )
@@ -685,13 +685,13 @@ inline PolyNf PolyNf::normalize(TypedTermList t)
 //     {
 //       switch (i) {
 //
-// #     define NUM_CASE(NUM, Num)                                                                                         \
-//         case Theory::Interpretation::NUM ## _MULTIPLY:                                                                  \
-//           return Sum<Num ## Traits>::mul(results[0], results[1]);                                                       \
-//         case Theory::Interpretation::NUM ## _PLUS:                                                                      \
-//           return Sum<Num ## Traits>::add(results[0], results[1]);                                                       \
-//         case Theory::Interpretation::NUM ## _UNARY_MINUS:                                                               \
-//           return Sum<Num ## Traits>::minus(results[0]);                                                                 \
+// #     define NUM_CASE(NUM, Num)                                                                            \
+//         case Theory::Interpretation::NUM ## _MULTIPLY:                                                     \
+//           return Sum<Num ## Traits>::mul(results[0], results[1]);                                          \
+//         case Theory::Interpretation::NUM ## _PLUS:                                                         \
+//           return Sum<Num ## Traits>::add(results[0], results[1]);                                          \
+//         case Theory::Interpretation::NUM ## _UNARY_MINUS:                                                  \
+//           return Sum<Num ## Traits>::minus(results[0]);                                                    \
 //
 //         NUM_CASE(INT , Int )
 //         NUM_CASE(RAT , Rat )
@@ -727,8 +727,8 @@ inline PolyNf PolyNf::normalize(TypedTermList t)
 //               )
 //             );
 //
-// #     define NUM_CASE(Num)                                                                                         \
-//           if (fn.template tryNumeral<Num ## Traits>().isSome())  \
+// #     define NUM_CASE(Num)                                                                                 \
+//           if (fn.template tryNumeral<Num ## Traits>().isSome())                                            \
 //             return NormalizationResult(Sum<Num ## Traits>(Prod<Num ## Traits>(out)));
 //           
 //         NUM_CASE(Int )
@@ -841,13 +841,13 @@ template<class Config> LitEvalResult PolynomialNormalizer<Config>::evaluateStep(
 
 #define HANDLE_CASE(INTER) case Interpretation::INTER: return PredicateEvaluator<Interpretation::INTER>::evaluate<Config>(orig, evaluatedArgs); 
 #define IGNORE_CASE(INTER) case Interpretation::INTER: return LitEvalResult::literal(createLiteral<Config>(orig, evaluatedArgs));
-#define HANDLE_NUM_CASES(NUM)                                                                                           \
-      IGNORE_CASE(NUM ## _IS_INT) /* TODO */                                                                            \
-      IGNORE_CASE(NUM ## _IS_RAT) /* TODO */                                                                            \
-      IGNORE_CASE(NUM ## _IS_REAL) /* TODO */                                                                           \
-      HANDLE_CASE(NUM ## _GREATER)                                                                                      \
-      HANDLE_CASE(NUM ## _GREATER_EQUAL)                                                                                \
-      HANDLE_CASE(NUM ## _LESS)                                                                                         \
+#define HANDLE_NUM_CASES(NUM)                                                                                 \
+      IGNORE_CASE(NUM ## _IS_INT) /* TODO */                                                                  \
+      IGNORE_CASE(NUM ## _IS_RAT) /* TODO */                                                                  \
+      IGNORE_CASE(NUM ## _IS_REAL) /* TODO */                                                                 \
+      HANDLE_CASE(NUM ## _GREATER)                                                                            \
+      HANDLE_CASE(NUM ## _GREATER_EQUAL)                                                                      \
+      HANDLE_CASE(NUM ## _LESS)                                                                               \
       HANDLE_CASE(NUM ## _LESS_EQUAL) 
 
   auto sym = env.signature->getPredicate(orig->functor());
@@ -923,25 +923,25 @@ inline Optional<PolyNf> trySimplify(Theory::Interpretation i, PolyNf* evalArgs)
   CALL("trySimplify(Theory::Interpretation i, PolyNf* evalArgs) ")
   switch (i) {
 
-#define CONSTANT_CASE(Num, func, expr)  \
-    case Num##Traits:: func ## I:  \
-      { \
-        using Const = typename Num##Traits::ConstantType; \
-        return trySimplifyConst2<Num##Traits>(evalArgs, [](Const l, Const r){ return expr; }); \
-      } \
+#define CONSTANT_CASE(Num, func, expr)                                                                        \
+    case Num##Traits:: func ## I:                                                                             \
+      {                                                                                                       \
+        using Const = typename Num##Traits::ConstantType;                                                     \
+        return trySimplifyConst2<Num##Traits>(evalArgs, [](Const l, Const r){ return expr; });                \
+      }                                                                                                       \
 
-#define QUOTIENT_REMAINDER_CASES(Num, X) \
-    CONSTANT_CASE(Num,  quotient##X, l. quotient##X(r)) \
-    CONSTANT_CASE(Num, remainder##X, l.remainder##X(r)) \
+#define QUOTIENT_REMAINDER_CASES(Num, X)                                                                      \
+    CONSTANT_CASE(Num,  quotient##X, l. quotient##X(r))                                                       \
+    CONSTANT_CASE(Num, remainder##X, l.remainder##X(r))                                                       \
 
-#define FRAC_CASE(Num) \
+#define FRAC_CASE(Num)                                                                                        \
     CONSTANT_CASE(Num, div, l / r)
 
-#define NUM_CASE(Num) \
-    case Num ## Traits::minusI:     return trySimplifyUnaryMinus<Num ## Traits>(evalArgs); \
-    QUOTIENT_REMAINDER_CASES(Num, E) \
-    QUOTIENT_REMAINDER_CASES(Num, T) \
-    QUOTIENT_REMAINDER_CASES(Num, F) \
+#define NUM_CASE(Num)                                                                                         \
+    case Num ## Traits::minusI:     return trySimplifyUnaryMinus<Num ## Traits>(evalArgs);                    \
+    QUOTIENT_REMAINDER_CASES(Num, E)                                                                          \
+    QUOTIENT_REMAINDER_CASES(Num, T)                                                                          \
+    QUOTIENT_REMAINDER_CASES(Num, F)                                                                          \
 
     NUM_CASE(Int)
     NUM_CASE(Rat)
