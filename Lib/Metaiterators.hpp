@@ -1680,8 +1680,16 @@ public:
 
   explicit IterTraits(Iter iter) : _iter(iter) {}
 
-  ELEMENT_TYPE(Iter) next() { return _iter.next(); }
+  Elem next() { return _iter.next(); }
   bool hasNext() { return _iter.hasNext(); }
+
+  Optional<Elem> tryNext() 
+  { 
+    return _iter.hasNext() 
+        ? some(_iter.next())
+        : none<Elem>();
+  }
+
 
   template<class F>
   void forEach(F f) 
@@ -1726,9 +1734,41 @@ public:
   
 
   template<template<class> class Container>
-  Container<ELEMENT_TYPE(Iter)> collect() 
-  { return Container<ELEMENT_TYPE(Iter)>::fromIterator(*this); }
+  Container<Elem> collect() 
+  { return Container<Elem>::fromIterator(*this); }
   
+  /** This class is to be used in the context of a for (auto x : ...) loop only. */
+  class StlIter 
+  {
+    Optional<IterTraits&> _iter; // <- nothing here encodes that this == end()
+    Optional<Elem>  _cur;
+
+  public:
+    StlIter(IterTraits& iter)  : _iter(iter), _cur(iter.tryNext()) {}
+    StlIter()  : _iter(), _cur() {}
+
+    void operator++() 
+    { _cur = _iter.unwrap().tryNext(); }
+
+    Elem operator*() 
+    { return _cur.unwrap(); } 
+
+    friend bool operator!=(StlIter const& lhs, StlIter const& rhs) 
+    { return !(lhs == rhs); }
+
+    friend bool operator==(StlIter const& lhs, StlIter const& rhs) 
+    { 
+      ASS(rhs._iter.isNone()); 
+      ASS(lhs._iter.isSome()); 
+      return lhs._cur.isNone(); 
+    }
+
+  };
+
+public:
+  StlIter begin() { return StlIter(*this); }
+  StlIter end() { return StlIter(); }
+
 };
 
 template<class Iter>

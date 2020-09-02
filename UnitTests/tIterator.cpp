@@ -44,6 +44,18 @@ TEST_FUN(test_foreach) {
 }
 
 
+TEST_FUN(test_for) {
+  auto in  = Stack<int>{ 1, 2, 3 };
+  auto out = Stack<int>{};
+
+  for ( auto i : iterTraits(in.iterFifo())) {
+    out.push(i); 
+  }
+
+  ASS_EQ(in, out);
+}
+
+
 TEST_FUN(testFlatMap) {
   auto in  = Stack<Stack<int>>{ Stack<int>{1, 2},    
                                 Stack<int>{3, 4},    
