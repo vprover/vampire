@@ -89,7 +89,10 @@ public:
   /* prints a message with indent in the of the same size as the current _depth */
   template<class... A>
   static void printDbg(const char* file_, int line, const A&... msg);
+  template<class A>
+  static A echoValue(const char* file_, int line, const char* prefix, A value);
 };
+  
 
 template<class... As>
 struct _printDbg {
@@ -106,6 +109,13 @@ template<class A, class... As> struct _printDbg<A, As...>{
     _printDbg<As...>{}(as...);
   }
 };
+
+template<class A>
+A Tracer::echoValue(const char* file, int line, const char* prefix, A value) 
+{
+  printDbg(file,line, prefix, value);
+  return std::move(value);
+}
 
 template<class... A> void Tracer::printDbg(const char* file, int line, const A&... msg)
 {
@@ -138,11 +148,13 @@ template<class... A> void Tracer::printDbg(const char* file, int line, const A&.
 
 } // namespace Debug
 
+
 #  define AUX_CALL_(SEED,Fun) Debug::Tracer _tmp_##SEED##_(Fun);
 #  define AUX_CALL(SEED,Fun) AUX_CALL_(SEED,Fun)
 #  define CALL(Fun) AUX_CALL(__LINE__,Fun)
 #  define DBG(...) { Debug::Tracer::printDbg(__FILE__, __LINE__, __VA_ARGS__); }
-#  define DBGE(x) DBG(#x " = ", x)
+#  define DBGE(x) DBG(#x, " = ", x)
+#  define ECHO(x) Debug::Tracer::echoValue(__FILE__, __LINE__, #x " = ", x)
 #  define CALLC(Fun,check) if (check){ AUX_CALL(__LINE__,Fun) }
 #  define CONTROL(description) Debug::Tracer::controlPoint(description)
 #  define AFTER(number,command) \
