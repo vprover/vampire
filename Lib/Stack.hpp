@@ -61,6 +61,8 @@ public:
   friend void std::swap(Stack<U>&,Stack<U>&);
 
   class Iterator;
+  class ConstIterator;
+  class BottomFirstIterator;
 
   DECL_ELEMENT_TYPE(C);
   DECL_ITERATOR_TYPE(Iterator);
@@ -234,8 +236,15 @@ public:
     return out;
   }
 
-  Iterator iterator() 
+  Iterator iter() &
   { return Iterator(*this); }
+
+  ConstIterator iter() const&
+  { return ConstIterator(*this); }
+
+  /* a first-in-first-out iterator  */
+  BottomFirstIterator iterFifo() const 
+  { return BottomFirstIterator(*this); }
 
   /**
    * Return a reference to the n-th element of the stack.
@@ -627,6 +636,7 @@ public:
     inline
     bool hasNext() const
     {
+      CALL("Stack::BottomFirstIterator::hasNext()")
       ASS_LE(_pointer, _afterLast);
       return _pointer != _afterLast;
     }
@@ -635,8 +645,8 @@ public:
     inline
     const C& next()
     {
+      CALL("Stack::BottomFirstIterator::next()")
       ASS_L(_pointer, _afterLast);
-
       return *(_pointer++);
     }
 
