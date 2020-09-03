@@ -1232,6 +1232,11 @@ void SaturationAlgorithm::removeActiveOrPassiveClause(Clause* cl)
     break;
   }
   case Clause::ACTIVE:
+    /*
+    if (env.options->showForKarel()) {
+      cout << "r: " << cl->number() << "\n";
+    }
+    */
     _active->remove(cl);
     break;
   default:
