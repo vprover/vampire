@@ -1382,6 +1382,8 @@ MainLoopResult SaturationAlgorithm::runImpl()
 
       doOneAlgorithmStep();
 
+      env.statistics->saturationIterationsStarted = l + 1;
+
       Timer::syncClock();
       if (env.timeLimitReached()) {
         throw TimeLimitExceededException();
