@@ -130,6 +130,7 @@ Statistics::Statistics()
     finalPassiveClauses(0),
     finalActiveClauses(0),
     finalExtensionalityClauses(0),
+    saturationIterationsStarted(0),
     splitClauses(0),
     splitComponents(0),
     uniqueComponents(0),
@@ -266,7 +267,7 @@ void Statistics::print(ostream& out)
   SEPARATOR;
 
   HEADING("Saturation",activeClauses+passiveClauses+extensionalityClauses+
-      generatedClauses+finalActiveClauses+finalPassiveClauses+finalExtensionalityClauses+
+      generatedClauses+finalActiveClauses+finalPassiveClauses+finalExtensionalityClauses+saturationIterationsStarted+
       discardedNonRedundantClauses+inferencesSkippedDueToColors+inferencesBlockedForOrderingAftercheck);
   COND_OUT("Initial clauses", initialClauses);
   COND_OUT("Generated clauses", generatedClauses);
@@ -277,6 +278,7 @@ void Statistics::print(ostream& out)
   COND_OUT("Final active clauses", finalActiveClauses);
   COND_OUT("Final passive clauses", finalPassiveClauses);
   COND_OUT("Final extensionality clauses", finalExtensionalityClauses);
+  COND_OUT("Main loop iterations started", saturationIterationsStarted );
   COND_OUT("Discarded non-redundant clauses", discardedNonRedundantClauses);
   COND_OUT("Inferences skipped due to colors", inferencesSkippedDueToColors);
   COND_OUT("Inferences blocked due to ordering aftercheck", inferencesBlockedForOrderingAftercheck);
