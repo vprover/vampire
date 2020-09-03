@@ -34,17 +34,18 @@ public:
 
   virtual Kernel::Clause* simplify(Kernel::Clause* in) const override 
   {
-    auto mul = MultiplicationGeneralization();
+    auto apply = [](ImmediateSimplificationEngine& simpl, Kernel::Clause* in) {
+     auto out = simpl.simplify(in);
+     DBG("result: ", pretty(out));
+     return out;
+    };
+    auto mul = NumeralMultiplicationGeneralization();
     auto add = AdditionGeneralization();
     Clause* last = nullptr;
     auto cur = in;
     do {
       last = cur;
-      DBGE(pretty(cur))
-      cur = mul.simplify(last);
-      DBGE(pretty(cur))
-      cur = add.simplify(cur);
-      DBGE(pretty(cur))
+      cur = apply(add, apply(mul, cur));
     } while (last != cur);
     return cur;
   }

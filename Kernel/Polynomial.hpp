@@ -392,6 +392,12 @@ struct MonomPair {
     return out;
   }
 
+  Optional<Variable> tryVar() const 
+  { return power == 1 ? term.template as<Variable>().template innerInto<Variable>() 
+                      : none<Variable>(); }
+      //   && _factors[0].power == 1 
+      //   && _factors[0].term.template is<Variable>() ) {
+      // return  Opt(_factors[0].term.template unwrap<Variable>());
 
 };
 
@@ -560,9 +566,9 @@ public:
   Optional<Variable> tryVar() const 
   {
     using Opt = Optional<Variable>;
-    if (nFactors() == 1 && _factors[0].power == 1 
-        && _factors[0].term.template is<Variable>() ) {
-      return  Opt(_factors[0].term.template unwrap<Variable>());
+    if (nFactors() == 1 ) {
+
+      return _factors[0].tryVar();
     } else {
       return  Opt();
     }

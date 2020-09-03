@@ -7,6 +7,7 @@
 #include "Debug/Tracer.hpp"
 #include "Lib/Hash.hpp"
 #include "Lib/TypeList.hpp"
+#include "Lib/Optional.hpp"
 #include <memory>
 #include <functional>
 
@@ -22,9 +23,6 @@ namespace Lib {
     };                                                                                                        \
   }                                                                                                           \
   template<class T> type Polymorphic::Name::operator()(T polyArg) 
-
-#define FOR_REF_QUALIFIER(macro)                                                                              \
-  macro(const &, ) macro(&, ) macro(&&, std::move)
 
 namespace TL = TypeList;
 
@@ -310,9 +308,8 @@ public:
     : Coproduct(variant<TL::IdxOf<B, Ts>::val>(MOVE(b)))                                                      \
   { }                                                                                                         \
                                                                                                               \
-  template <class B> inline B REF unwrap() REF {                                                              \
-    return MOVE(unwrap<TL::IdxOf<B, Ts>::val>());                                                             \
-  }                                                                                                           \
+  template <class B> inline B REF unwrap() REF                                                                \
+  { return MOVE(unwrap<TL::IdxOf<B, Ts>::val>()); }                                                           \
                                                                                                               \
   template <unsigned idx>                                                                                     \
   inline TL::Get<idx, Ts> REF unwrap() REF {                                                                  \
@@ -320,7 +317,14 @@ public:
     static_assert(idx < size, "out of bounds");                                                               \
     ASS_EQ(idx, _tag);                                                                                        \
     return CoproductImpl::Unwrap<idx, Ts>{}(MOVE(_content));                                                  \
-  }
+  }                                                                                                           \
+                                                                                                              \
+  template <class B> inline Optional<B REF> as() REF                                                          \
+  { return is<B>() ? unwrap<B>() : Optional<B REF>();  }                                                      \
+                                                                                                              \
+  template <unsigned idx>                                                                                     \
+  inline Optional<TL::Get<idx, Ts> REF> as() REF                                                              \
+  { return is<idx>() ? unwrap<idx>() : Optional<TL::Get<idx, Ts> REF>();  }                                   \
 
   FOR_REF_QUALIFIER(REF_POLYMORPIHIC)
 #undef REF_POLYMORPIHIC

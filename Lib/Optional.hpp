@@ -8,6 +8,10 @@
 
 namespace Lib {
 
+
+#define FOR_REF_QUALIFIER(macro)                                                                              \
+  macro(const &, ) macro(&, ) macro(&&, std::move)
+
 template<class T>
 struct MaybeUninit {
   typename std::aligned_storage<sizeof(T), alignof(T)>::type _elem;
@@ -37,7 +41,6 @@ public:
   bool isSome() const { return _isSome;   }
   bool isNone() const { return !isSome(); }
 
-  A& derefNext() {}
   A const& unwrap() const& { ASS(_isSome); return           _elem ; }
   A     && unwrap()     && { ASS(_isSome); return std::move(_elem); }
   A      & unwrap()      & { ASS(_isSome); return           _elem ; }
@@ -68,41 +71,90 @@ public:
 
 
 template<class A>
-class OptionalBase<A&>
+class OptionalBaseRef
 {
 
   A* _elem;
 public:
 
-  OptionalBase() : _elem(nullptr) {}
-  OptionalBase(A      & content) : _elem(&content) { }
+  OptionalBaseRef(          ) : _elem(nullptr) {  }
+  OptionalBaseRef(A const* content) : _elem(const_cast<A*>(content)) { }
+  OptionalBaseRef(A* content) : _elem(content) { }
 
   bool isSome() const { return _elem != nullptr;   }
 
-  A& derefNext() {}
   A const& unwrap() const& { ASS(isSome()); return           *_elem ; }
   A     && unwrap()     && { ASS(isSome()); return std::move(*_elem); }
   A      & unwrap()      & { ASS(isSome()); return           *_elem ; }
 
-  OptionalBase(OptionalBase      & a) = default;
-  OptionalBase(OptionalBase     && a) = default;
-  OptionalBase(OptionalBase const& a) = default;
+  OptionalBaseRef(OptionalBaseRef      & a) = default;
+  OptionalBaseRef(OptionalBaseRef     && a) = default;
+  OptionalBaseRef(OptionalBaseRef const& a) = default;
 
-  OptionalBase& operator=(OptionalBase      & a) = default;
-  OptionalBase& operator=(OptionalBase     && a) = default;
-  OptionalBase& operator=(OptionalBase const& a) = default;
+  OptionalBaseRef& operator=(OptionalBaseRef      & a) = default;
+  OptionalBaseRef& operator=(OptionalBaseRef     && a) = default;
+  OptionalBaseRef& operator=(OptionalBaseRef const& a) = default;
 
-  static OptionalBase fromPtr(A* ptr) 
-  { return ptr == nullptr ? OptionalBase() : *ptr; }
+  static OptionalBaseRef fromPtr(A* ptr) 
+  { return ptr == nullptr ? OptionalBaseRef() : *ptr; }
 
-  friend bool operator==(OptionalBase const& lhs, OptionalBase const& rhs) 
+  friend bool operator==(OptionalBaseRef const& lhs, OptionalBaseRef const& rhs) 
   { return lhs._elem == rhs._elem; }
 };
 
 template<class A>
+class OptionalBase<A const&> : public OptionalBaseRef<A>
+{
+public:
+  OptionalBase() : OptionalBaseRef<A>() {}
+  OptionalBase(A const& item) : OptionalBaseRef<A>(&item) {}
+  OptionalBase(OptionalBase const& b) : OptionalBaseRef<A>(b) {}
+};
+
+template<class A>
+class OptionalBase<A&> : public OptionalBaseRef<A>
+{
+public:
+  OptionalBase() : OptionalBaseRef<A>() {}
+  OptionalBase(A& item) : OptionalBaseRef<A>(&item) {}
+  OptionalBase(OptionalBase const& b) : OptionalBaseRef<A>(b) {}
+};
+
+// template<class A>
+// class OptionalBase<A&>
+// {
+//
+//   A* _elem;
+// public:
+//
+//   OptionalBase() : _elem(nullptr) {}
+//   OptionalBase(A      & content) : _elem(&content) { }
+//
+//   bool isSome() const { return _elem != nullptr;   }
+//
+//   A const& unwrap() const& { ASS(isSome()); return           *_elem ; }
+//   A     && unwrap()     && { ASS(isSome()); return std::move(*_elem); }
+//   A      & unwrap()      & { ASS(isSome()); return           *_elem ; }
+//
+//   OptionalBase(OptionalBase      & a) = default;
+//   OptionalBase(OptionalBase     && a) = default;
+//   OptionalBase(OptionalBase const& a) = default;
+//
+//   OptionalBase& operator=(OptionalBase      & a) = default;
+//   OptionalBase& operator=(OptionalBase     && a) = default;
+//   OptionalBase& operator=(OptionalBase const& a) = default;
+//
+//   static OptionalBase fromPtr(A* ptr) 
+//   { return ptr == nullptr ? OptionalBase() : *ptr; }
+//
+//   friend bool operator==(OptionalBase const& lhs, OptionalBase const& rhs) 
+//   { return lhs._elem == rhs._elem; }
+// };
+
+template<class A>
 class Optional : OptionalBase<A> {
 
-  Optional(OptionalBase<A>&& base) : OptionalBase<A>(base) {  }
+  Optional(OptionalBase<A>&& base) : OptionalBase<A>(std::move(base)) {  }
 public:
   using Content = A;
   using OptionalBase<A>::OptionalBase;
@@ -190,12 +242,20 @@ public:
     }
   }
 
-  template<class Clsr>
-  Optional<typename std::result_of<Clsr(A &&)>::type> map(Clsr clsr) && { 
-    using OptOut = Optional<typename std::result_of<Clsr(A &&)>::type>;
-    return this->isSome() ? OptOut(clsr(std::move(this->unwrap())))
-                    : OptOut();
-  }
+#define ref_polymorphic(REF, MOVE)                                                                            \
+                                                                                                              \
+  template<class Clsr>                                                                                        \
+  Optional<typename std::result_of<Clsr(A REF)>::type> map(Clsr clsr) REF {                                   \
+    using OptOut = Optional<typename std::result_of<Clsr(A REF)>::type>;                                      \
+    return this->isSome() ? OptOut(clsr(MOVE(this->unwrap())))                                                \
+                          : OptOut();                                                                         \
+  }                                                                                                           \
+                                                                                                              \
+  template<class B> Optional<B> innerInto() REF { return map([](A REF inner) { return B(MOVE(inner)); }); }   \
+
+  FOR_REF_QUALIFIER(ref_polymorphic)
+
+#undef ref_polymorphic
 
   template<class Clsr>
   typename std::result_of<Clsr(A const&)>::type andThen(Clsr clsr) const& { 
@@ -224,6 +284,7 @@ public:
 
   friend std::ostream& operator<<(std::ostream& out, Optional const& self) 
   { return self.isSome() ?  out << self.unwrap() : out << "None"; }
+
 
 };
 

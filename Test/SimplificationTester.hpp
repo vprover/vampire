@@ -17,9 +17,7 @@ public:
   virtual Kernel::Clause* simplify(Kernel::Clause*) const = 0;
 
   virtual bool eq(Kernel::Clause const* lhs, Kernel::Clause const* rhs) const 
-  {
-    return TestUtils::eqModAC(lhs, rhs);
-  }
+  { return TestUtils::eqModAC(lhs, rhs); }
 };
 
 struct Success

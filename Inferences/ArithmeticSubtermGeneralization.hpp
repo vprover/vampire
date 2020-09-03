@@ -7,15 +7,29 @@
 
 namespace Inferences {
 
-class MultiplicationGeneralization
+class NumeralMultiplicationGeneralization
 : public ImmediateSimplificationEngine
 {
 public:
-  CLASS_NAME(MultiplicationGeneralization);
-  USE_ALLOCATOR(MultiplicationGeneralization);
+  CLASS_NAME(NumeralMultiplicationGeneralization);
+  USE_ALLOCATOR(NumeralMultiplicationGeneralization);
 
-  MultiplicationGeneralization() {}
-  virtual ~MultiplicationGeneralization();
+  NumeralMultiplicationGeneralization() {}
+  virtual ~NumeralMultiplicationGeneralization();
+
+  Clause* simplify(Clause* cl);
+};
+
+
+class VariableMultiplicationGeneralization
+: public ImmediateSimplificationEngine
+{
+public:
+  CLASS_NAME(VariableMultiplicationGeneralization);
+  USE_ALLOCATOR(VariableMultiplicationGeneralization);
+
+  VariableMultiplicationGeneralization() {}
+  virtual ~VariableMultiplicationGeneralization();
 
   Clause* simplify(Clause* cl);
 };
@@ -33,20 +47,6 @@ public:
 
   Clause* simplify(Clause* cl);
 };
-
-
-// class AdditionGeneralization
-// : public ImmediateSimplificationEngine
-// {
-// public:
-//   CLASS_NAME(AdditionGeneralization);
-//   USE_ALLOCATOR(AdditionGeneralization);
-//
-//   AdditionGeneralization() {}
-//   virtual ~AdditionGeneralization();
-//
-//   Clause* simplify(Clause* cl);
-// };
 
 };
 
