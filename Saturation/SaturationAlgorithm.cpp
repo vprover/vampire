@@ -246,6 +246,10 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
   if (opt.evalForKarel()) { // load the models
     TimeCounter t(TC_DEEP_STUFF);
 
+    // cout << "get_num_threads " << at::get_num_threads() << endl;
+    // cout << "get_num_interop_threads " << at::get_num_interop_threads() << endl;
+    // See: https://pytorch.org/docs/stable/notes/cpu_threading_torchscript_inference.html
+
     // seems to be making this nicely single-threaded
     at::set_num_threads(1);
     
@@ -487,20 +491,22 @@ void SaturationAlgorithm::onUnprocessedSelected(Clause* c)
   
 }
 
-void SaturationAlgorithm::evaluate(Clause* cl, std::vector<torch::jit::IValue>& inputs)
+void SaturationAlgorithm::evaluate(Clause* cl, const char* method_name, std::vector<torch::jit::IValue>& inputs)
 {
   CALL("SaturationAlgorithm::evaluated");
 
-  auto output = _model.forward(inputs).toTensor();
-  float eval = output.item<float>();
-
 #if DEBUG_MODEL
-  cout << "evaluting: " << cl->number() << endl;
-  cout << inputs[0] << endl;
-  cout << eval << endl;
+  cout << "evaluating " << cl->number() << " for " << method_name << endl;
 #endif
 
-  cl->modelSaid(eval <= 5.0);
+  auto output = _model.get_method(method_name)(std::move(inputs));
+  bool eval = output.toBool();
+
+#if DEBUG_MODEL
+  cout << "said " << eval << endl;
+#endif
+
+  cl->modelSaid(eval);
 }
 
 void SaturationAlgorithm::talkToKarel(Clause* cl, bool eval)
@@ -544,26 +550,28 @@ void SaturationAlgorithm::talkToKarel(Clause* cl, bool eval)
   if (_opt.evalForKarel() && eval && !_evaluated.find(cl)) {
     TimeCounter t(TC_DEEP_STUFF);
 
-    // [2,cl_id,cl_age,cl_weight,cl_len,cl_numsplits,inf_id,parent_cl_id,parent_cl_id,...]
-    auto init_vec = torch::zeros({7+parent_cnt},torch::kInt64);
+    // new_deriv(self, id: int, features : Tuple[int, int, int, int, int], pars : List[int]) -> bool:
 
-    init_vec[0] = 2;
-    init_vec[1] = (int)cl->number();
-    init_vec[2] = (int)cl->age();
-    init_vec[3] = (int)cl->weight();
-    init_vec[4] = (int)cl->size();
-    init_vec[5] = (int)(cl->splits() ? cl->splits()->size() : 0);
-    init_vec[6] = (int)inf.rule();
-    unsigned idx = 7;
+    static std::vector<torch::jit::IValue> inputs;
+    inputs.clear();
+    inputs.push_back((int64_t)cl->number()); // as the id
+    inputs.push_back(std::make_tuple(
+        (int64_t)cl->age(),
+        (int64_t)cl->weight(),
+        (int64_t)cl->size(),
+        (int64_t)(cl->splits() ? cl->splits()->size() : 0),
+        (int64_t)inf.rule())); // as features
+
+    c10::List<int64_t> parents;
     Inference::Iterator iit = inf.iterator();
     while(inf.hasNext(iit)) {
       Unit* premUnit = inf.next(iit);
-      init_vec[idx++] = (int) premUnit->asClause()->number();
+      parents.push_back((int64_t) premUnit->asClause()->number());
     }
-    std::vector<torch::jit::IValue> inputs;
-    inputs.push_back(init_vec);
 
-    evaluate(cl, inputs);
+    inputs.push_back(torch::jit::IValue(parents));
+
+    evaluate(cl, "new_deriv", inputs);
 
     ALWAYS(_evaluated.insert(cl));
   }
@@ -785,22 +793,21 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
   if (_opt.evalForKarel()) {
     TimeCounter t(TC_DEEP_STUFF);
 
-    // [1,cl_id,cl_age,cl_weight,cl_len,isgoal,istheory,sine]
-    static auto init_vec = torch::zeros({8},torch::kInt64);
-    init_vec[0] = 1;
-    init_vec[1] = (int)cl->number();
-    init_vec[2] = (int)cl->age();
-    init_vec[3] = (int)cl->weight();
-    init_vec[4] = (int)cl->size();
-    init_vec[5] = (int)cl->derivedFromGoal();
-    init_vec[6] = (int)isTheory;
-    init_vec[7] = (int)cl->getSineLevel();
+    // def new_init(self, id: int, features : Tuple[int, int, int, int, int, int]) -> bool:
 
     static std::vector<torch::jit::IValue> inputs;
     inputs.clear();
-    inputs.push_back(init_vec);
 
-    evaluate(cl,inputs);
+    inputs.push_back((int64_t)cl->number()); // the id
+    inputs.push_back(std::make_tuple(
+        (int64_t)cl->age(),
+        (int64_t)cl->weight(),
+        (int64_t)cl->size(),
+        (int64_t)cl->derivedFromGoal(),
+        (int64_t)isTheory,
+        (int64_t)cl->getSineLevel())); // the features
+
+    evaluate(cl, "new_init", inputs);
 
     // TODO: store the output value
     ALWAYS(_evaluated.insert(cl));

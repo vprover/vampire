@@ -1324,6 +1324,8 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
   if (env.options->evalForKarel()) {
     TimeCounter t(TC_DEEP_STUFF);
 
+    // TODO: this will crash
+
     // [3,cl_id,cl_age,cl_weight,cl_len,causal_parent]
     auto init_vec = torch::zeros({6},torch::kInt64);
 
@@ -1337,7 +1339,7 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
     std::vector<torch::jit::IValue> inputs;
     inputs.push_back(init_vec);
 
-    _sa->evaluate(compCl,inputs);
+    _sa->evaluate(compCl,"new_avat",inputs);
 
     ALWAYS(_sa->_evaluated.insert(compCl));
   }
@@ -1817,9 +1819,6 @@ void Splitter::removeComponents(const SplitLevelStack& toRemove)
       Clause* ccl=chit.next();
       ASS(ccl->splits()->member(bl));
       if(ccl->store()!=Clause::NONE) {
-        if (env.options->showForKarel() && ccl->store()==Clause::ACTIVE) {
-          cout << "r: " << ccl->number() << "\n";
-        }
         _sa->removeActiveOrPassiveClause(ccl);
         ASS_EQ(ccl->store(), Clause::NONE);
       }
