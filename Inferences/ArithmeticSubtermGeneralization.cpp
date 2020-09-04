@@ -56,7 +56,7 @@ namespace Inferences {
  *
  */
 
-template<class NumTraits> class GeneralizeMulNumeral;
+template<class NumTraits> class GeneralizeMulBase;
 template<class NumTraits> class GeneralizeAdd;
 
 template<class Generalization>
@@ -122,7 +122,7 @@ Clause* ArithmeticSubtermGeneralization<Gen>::simplify(Clause* cl_)
       auto norm = PolyNf::normalize(TypedTermList(*lit->nthArgument(j), SortHelper::getArgSort(lit, j)));
       for (PolyNf p : norm.iter()) {
         if (p.is<AnyPoly>()) {
-          Gen::processPoly(map, p.unwrap<AnyPoly>());
+          Gen::addToMap(map, p.unwrap<AnyPoly>());
         }
       }
     }
@@ -181,16 +181,52 @@ Clause* ArithmeticSubtermGeneralization<Gen>::simplify(Clause* cl_)
   return Clause::fromStack(stack, inf);
 }
 
+// template<class NumTraits, template<class> class NumTraits>
+// class GeneralizeMulBase 
+// {
+//   using Inner = Coproduct<typename NumTraits::ConstantType, Bot>;
+//   Inner _inner;
+//   using PolyPair = PolyPair<NumTraits>;
+//   using Const = typename NumTraits::ConstantType;
+//   using Monom = Monom<NumTraits>;
+//
+//   static AnyPoly generalize(
+//     Variable var,
+//     Self const& gen, 
+//     AnyPoly poly,
+//     PolyNf* generalizedArgs)
+//   { 
+//     if (poly.isType<NumTraits>()) {
+//       return AnyPoly(generalize(var,gen,poly.template unwrapType<NumTraits>(),generalizedArgs)); 
+//     } else {
+//       return poly.replaceTerms(generalizedArgs);
+//     }
+//   }
+//
+//   static UniqueShared<Polynom<NumTraits>> generalize(
+//     Variable var,
+//     Self const& gen, 
+//     UniqueShared<Polynom<NumTraits>> poly,
+//     PolyNf* generalizedArgs);
+//
+//   static PolyPair generalize(
+//     Variable var,
+//     Self const& gen, 
+//     PolyPair const& poly,
+//     PolyNf* generalizedArgs);
+//
+//   template<class GenMap> static void addToMap(GenMap& map, AnyPoly p_);
+//   template<class GenMap> static void addToMap(GenMap& map, PolyPair const& m);
+//
+// private:
+//   static GeneralizeMulBase meet(Const lhs, Const rhs) {
+//     if(lhs == rhs) return GeneralizeMulBase(lhs);
+//     else return bot();
+//   }
+// };
 
 template<class NumTraits>
 class GeneralizeMulBase 
-{
-  template<class GenMap, class Generalization>
-  static void processPoly(GenMap& map, AnyPoly p_);
-};
-
-template<class NumTraits>
-class GeneralizeMulNumeral 
 {
   using Inner = Coproduct<typename NumTraits::ConstantType, Bot>;
   Inner _inner;
@@ -198,21 +234,17 @@ class GeneralizeMulNumeral
   using Const = typename NumTraits::ConstantType;
   using Monom = Monom<NumTraits>;
 
-
 private:
-  GeneralizeMulNumeral(Bot b) : _inner(b) {}
+  GeneralizeMulBase(Bot b) : _inner(b) {}
 public:
-  GeneralizeMulNumeral& operator=(GeneralizeMulNumeral&&) = default;
-  GeneralizeMulNumeral(GeneralizeMulNumeral&&) = default;
+  using Self = GeneralizeMulBase;
+  GeneralizeMulBase& operator=(GeneralizeMulBase&&) = default;
+  GeneralizeMulBase(GeneralizeMulBase&&) = default;
 
-  GeneralizeMulNumeral(Const c);
+  static GeneralizeMulBase bot() { return GeneralizeMulBase(Bot{}); }
+  GeneralizeMulBase(Const c);
 
-  static GeneralizeMulNumeral bot() { return GeneralizeMulNumeral(Bot{}); }
-
-  GeneralizeMulNumeral(Variable without, PolyPair pair) : GeneralizeMulNumeral(pair.coeff)
-  { }
-
-  GeneralizeMulNumeral meet(GeneralizeMulNumeral&& rhs) && {
+  GeneralizeMulBase meet(GeneralizeMulBase&& rhs) && {
     auto& lhs = *this;
 
     if (lhs._inner.template is<Bot>()) return bot();
@@ -226,63 +258,69 @@ public:
 
   PolyPair cancel(PolyPair p) const;
 
-  friend ostream& operator<<(ostream& out, GeneralizeMulNumeral const& self) 
+  friend ostream& operator<<(ostream& out, GeneralizeMulBase const& self) 
   { return out << self._inner; }
 
   static AnyPoly generalize(
     Variable var,
-    GeneralizeMulNumeral const& gen, 
+    Self const& gen, 
     AnyPoly poly,
     PolyNf* generalizedArgs)
   { 
     if (poly.isType<NumTraits>()) {
-      return AnyPoly(_generalize(var,gen,poly.template unwrapType<NumTraits>(),generalizedArgs)); 
+      return AnyPoly(generalize(var,gen,poly.template unwrapType<NumTraits>(),generalizedArgs)); 
     } else {
       return poly.replaceTerms(generalizedArgs);
     }
   }
 
-  static UniqueShared<Polynom<NumTraits>> _generalize(
+  static UniqueShared<Polynom<NumTraits>> generalize(
     Variable var,
-    GeneralizeMulNumeral const& gen, 
+    Self const& gen, 
     UniqueShared<Polynom<NumTraits>> poly,
     PolyNf* generalizedArgs);
 
-  template<class GenMap>
-  static void processPoly(GenMap& map, AnyPoly p_);
+  static PolyPair generalize(
+    Variable var,
+    Self const& gen, 
+    PolyPair const& poly,
+    PolyNf* generalizedArgs);
+
+  template<class GenMap> static void addToMap(GenMap& map, AnyPoly p_);
+  template<class GenMap> static void addToMap(GenMap& map, PolyPair const& m);
 
 private:
-  static GeneralizeMulNumeral meet(Const lhs, Const rhs) {
-    if(lhs == rhs) return GeneralizeMulNumeral(lhs);
+  static GeneralizeMulBase meet(Const lhs, Const rhs) {
+    if(lhs == rhs) return GeneralizeMulBase(lhs);
     else return bot();
   }
 };
 
 template<class NumTraits>
-GeneralizeMulNumeral<NumTraits>::GeneralizeMulNumeral(Const c) 
+GeneralizeMulBase<NumTraits>::GeneralizeMulBase(Const c) 
     : _inner(
       c == Const(1) || c == Const(0) ? Inner(Bot{}) 
                                      : Inner(c))
   {  }
 
 template<>
-GeneralizeMulNumeral<IntTraits>::GeneralizeMulNumeral(Const c) 
+GeneralizeMulBase<IntTraits>::GeneralizeMulBase(Const c) 
     : _inner(
       c == Const(-1) ? Inner(c) 
                      : Inner(Bot{}))
   {  }
 
 template<class NumTraits>
- UniqueShared<Polynom<NumTraits>> GeneralizeMulNumeral<NumTraits>::_generalize(
+ UniqueShared<Polynom<NumTraits>> GeneralizeMulBase<NumTraits>::generalize(
   Variable var,
-  GeneralizeMulNumeral const& gen, 
+  GeneralizeMulBase const& gen, 
   UniqueShared<Polynom<NumTraits>> poly,
   PolyNf* generalizedArgs) 
 {
 
   using Const     = typename NumTraits::ConstantType;
   using Polynom   = Kernel::Polynom<NumTraits>;
-  using VarGeneralization  = GeneralizeMulNumeral<NumTraits>;
+  using VarGeneralization  = GeneralizeMulBase<NumTraits>;
   using PolyPair  = Kernel::PolyPair<NumTraits>;
   using MonomPair = MonomPair<NumTraits>;
 
@@ -290,26 +328,60 @@ template<class NumTraits>
   return unique(Polynom(
               poly->iter()
                .map([&](PolyPair pair) -> PolyPair { 
-                 auto found = (pair.monom->iter()
-                     .find([&](MonomPair& monom) 
-                       { return monom == MonomPair(var, 1); }));
+                 auto result = GeneralizeMulBase<NumTraits>::generalize(var, gen, pair, &generalizedArgs[offs]);
+                 offs += pair.monom->nFactors();
+                 return result;
 
-                 auto newMonom = unique(pair.monom->replaceTerms(&generalizedArgs[offs]));
-                 offs += newMonom->nFactors();
-
-                 auto p = PolyPair(pair.coeff, newMonom);
-
-                 if (found.isSome()) {
-                    return gen.cancel(p);
-                 } else {
-                    return p;
-                 }
+                 // auto found = (pair.monom->iter()
+                 //     .find([&](MonomPair& monom) 
+                 //       { return monom == MonomPair(var, 1); }));
+                 //
+                 // auto newMonom = unique(pair.monom->replaceTerms(&generalizedArgs[offs]));
+                 // offs += newMonom->nFactors();
+                 //
+                 // auto p = PolyPair(pair.coeff, newMonom);
+                 //
+                 // if (found.isSome()) {
+                 //    return gen.cancel(p);
+                 // } else {
+                 //    return p;
+                 // }
              })
           .template collect<Stack>()));
 }
 
+
 template<class NumTraits>
-PolyPair<NumTraits> GeneralizeMulNumeral<NumTraits>::cancel(PolyPair p) const 
+PolyPair<NumTraits> GeneralizeMulBase<NumTraits>::generalize(
+  Variable var,
+  GeneralizeMulBase const& gen, 
+  PolyPair const& pair,
+  PolyNf* generalizedArgs) 
+{
+
+  using Const     = typename NumTraits::ConstantType;
+  using Polynom   = Kernel::Polynom<NumTraits>;
+  using VarGeneralization  = GeneralizeMulBase<NumTraits>;
+  using PolyPair  = Kernel::PolyPair<NumTraits>;
+  using MonomPair = MonomPair<NumTraits>;
+
+  auto found = (pair.monom->iter()
+      .find([&](MonomPair& monom) 
+        { return monom == MonomPair(var, 1); }));
+
+  auto newMonom = unique(pair.monom->replaceTerms(generalizedArgs));
+
+  auto p = PolyPair(pair.coeff, newMonom);
+
+  if (found.isSome()) {
+     return gen.cancel(p);
+  } else {
+     return p;
+  }
+}
+
+template<class NumTraits>
+PolyPair<NumTraits> GeneralizeMulBase<NumTraits>::cancel(PolyPair p) const 
 { 
    if (_inner.template is<Const>() && _inner != decltype(_inner)(Const(0))) {
       return PolyPair(Const(1), p.monom);
@@ -422,27 +494,27 @@ public:
     PolyNf* generalizedArgs)
   { 
     if (poly.isType<NumTraits>()) {
-      return AnyPoly(_generalize(var,gen,poly.template unwrapType<NumTraits>(),generalizedArgs)); 
+      return AnyPoly(generalize(var,gen,poly.template unwrapType<NumTraits>(),generalizedArgs)); 
     } else {
       return poly.replaceTerms(generalizedArgs);
     }
   }
 
-  static UniqueShared<Polynom<NumTraits>> _generalize(
+  static UniqueShared<Polynom<NumTraits>> generalize(
     Variable var,
     GeneralizeAdd<NumTraits> const& gen, 
     UniqueShared<Polynom<NumTraits>> poly,
     PolyNf* generalizedArgs);
 
   template<class GenMap>
-  static void processPoly(GenMap& map, AnyPoly p_);
+  static void addToMap(GenMap& map, AnyPoly p_);
 
 };
 
 
 
 template<class NumTraits>
-UniqueShared<Polynom<NumTraits>> GeneralizeAdd<NumTraits>::_generalize(
+UniqueShared<Polynom<NumTraits>> GeneralizeAdd<NumTraits>::generalize(
   Variable var,
   GeneralizeAdd<NumTraits> const& gen, 
   UniqueShared<Polynom<NumTraits>> poly,
@@ -512,9 +584,9 @@ UniqueShared<Polynom<NumTraits>> GeneralizeAdd<NumTraits>::_generalize(
 
 template<class NumTraits>
 template<class GenMap>
-void GeneralizeAdd<NumTraits>::processPoly(GenMap& map, AnyPoly p_)
+void GeneralizeAdd<NumTraits>::addToMap(GenMap& map, AnyPoly p_)
 {
-  CALL("GeneralizeAdd::processPoly")
+  CALL("GeneralizeAdd::addToMap")
   if (!p_.template isType<NumTraits>()) {
     return;
   }
@@ -549,7 +621,32 @@ void GeneralizeAdd<NumTraits>::processPoly(GenMap& map, AnyPoly p_)
 
 template<class NumTraits>
 template<class GenMap>
-void GeneralizeMulNumeral<NumTraits>::processPoly(GenMap& map, AnyPoly p_)
+void GeneralizeMulBase<NumTraits>::addToMap(GenMap& map, PolyPair const& summand)
+{
+  for (auto factor : summand.monom->iter()) {
+    factor.term.template as<Variable>()
+      .andThen([&](Variable var) {
+          if (factor.power == 1) {
+            auto gen = GeneralizeMulBase<NumTraits>(summand.coeff);
+            auto entry = map.tryGet(var);
+            if (entry.isSome()) {
+              auto& val = entry.unwrap();
+              val = move(val).meet(std::move(gen));
+            } else {
+              map.insert(var, std::move(gen));
+            }
+          } else {
+            ASS_G(factor.power, 0)
+            map.replaceOrInsert(var, GeneralizeMulBase<NumTraits>::bot());
+          }
+        });
+  }
+
+}
+
+template<class NumTraits>
+template<class GenMap>
+void GeneralizeMulBase<NumTraits>::addToMap(GenMap& map, AnyPoly p_)
 {
   if (!p_.template isType<NumTraits>()) {
     return;
@@ -559,27 +656,27 @@ void GeneralizeMulNumeral<NumTraits>::processPoly(GenMap& map, AnyPoly p_)
 
   for (auto summand : p->iter()) {
 
-    auto vars = summand.monom->iter()
-        // .filter([](MonomPair p) { return p.term.template is<Variable>(); })
-        .filterMap([](MonomPair p) { return p.tryVar(); })
-        .template collect<Stack>();
+    GeneralizeMulBase::addToMap(map, summand);
 
-    if (vars.size() == 1) {
-      auto v = vars[0];
-      auto c = GeneralizeMulNumeral<NumTraits>(v, summand);
-      auto entry = map.tryGet(v);
-      if (entry.isSome()) {
-        auto& val = entry.unwrap();
-        val = move(val).meet(std::move(c));
-      } else {
-        map.insert(v, std::move(c));
-      }
-    } else {
-      // the term contains multiple variables. This means neither of the variables can be generalized
-      for (auto v : vars)  {
-        map.replaceOrInsert(v, GeneralizeMulNumeral<NumTraits>::bot());
-      }
-    }
+    // for (auto factor : summand.monom->iter()) {
+    //
+    //   factor.term.template as<Variable>()
+    //     .andThen([&](Variable var) {
+    //         if (factor.power == 1) {
+    //           auto gen = GeneralizeMulBase<NumTraits>(summand.coeff);
+    //           auto entry = map.tryGet(var);
+    //           if (entry.isSome()) {
+    //             auto& val = entry.unwrap();
+    //             val = move(val).meet(std::move(gen));
+    //           } else {
+    //             map.insert(var, std::move(gen));
+    //           }
+    //         } else {
+    //           ASS_G(factor.power, 0)
+    //           map.replaceOrInsert(var, GeneralizeMulBase<NumTraits>::bot());
+    //         }
+    //       });
+    // }
 
   }
 };
@@ -630,18 +727,18 @@ public:
 
   using Self = ParallelNumberGeneralization;
 
-  static void processPoly(Map<Variable, Self>& map_, AnyPoly p) 
+  static void addToMap(Map<Variable, Self>& map_, AnyPoly p) 
   {
     MapWrapper<Gen> map { map_ };
     return p.match(
         [&](UniqueShared<Polynom< IntTraits>>const& p)
-        { return Gen<IntTraits>::processPoly(map, p); },
+        { return Gen<IntTraits>::addToMap(map, p); },
 
         [&](UniqueShared<Polynom< RatTraits>>const& p)
-        { return Gen<RatTraits>::processPoly(map, p); },
+        { return Gen<RatTraits>::addToMap(map, p); },
 
         [&](UniqueShared<Polynom<RealTraits>>const& p)
-        { return Gen<RealTraits>::processPoly(map, p); }
+        { return Gen<RealTraits>::addToMap(map, p); }
       );
   }
 
@@ -678,12 +775,13 @@ Clause* AdditionGeneralization::simplify(Clause* cl)
   CALL("AdditionGeneralization::simplify")
   return ArithmeticSubtermGeneralization<ParallelNumberGeneralization<GeneralizeAdd>>::simplify(cl); 
 }
+
 AdditionGeneralization::~AdditionGeneralization()  {}
 
 Clause* NumeralMultiplicationGeneralization::simplify(Clause* cl) 
 { 
   CALL("NumeralMultiplicationGeneralization::simplify")
-  return ArithmeticSubtermGeneralization<ParallelNumberGeneralization<GeneralizeMulNumeral>>::simplify(cl); 
+  return ArithmeticSubtermGeneralization<ParallelNumberGeneralization<GeneralizeMulBase>>::simplify(cl); 
 }
 
 NumeralMultiplicationGeneralization::~NumeralMultiplicationGeneralization()  {}
@@ -692,7 +790,7 @@ NumeralMultiplicationGeneralization::~NumeralMultiplicationGeneralization()  {}
 Clause* VariableMultiplicationGeneralization::simplify(Clause* cl) 
 { 
   CALL("VariableMultiplicationGeneralization::simplify")
-  return ArithmeticSubtermGeneralization<ParallelNumberGeneralization<GeneralizeMulNumeral>>::simplify(cl); 
+  return ArithmeticSubtermGeneralization<ParallelNumberGeneralization<GeneralizeMulBase>>::simplify(cl); 
 }
 VariableMultiplicationGeneralization::~VariableMultiplicationGeneralization()  {}
 

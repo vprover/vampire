@@ -6,6 +6,7 @@
 
 #include "Test/TestUtils.hpp"
 #include "Kernel/Clause.hpp"
+#include "Lib/Coproduct.hpp"
 
 namespace Test {
 
@@ -20,10 +21,60 @@ public:
   { return TestUtils::eqModAC(lhs, rhs); }
 };
 
+class SimplificationResult;
+
+struct SimplificationAlternative 
+{
+  unique_ptr<SimplificationResult> lhs;
+  unique_ptr<SimplificationResult> rhs;
+};
+
+class SimplificationResult : Coproduct<Kernel::Clause const*, SimplificationAlternative>
+{
+public:
+  SimplificationResult(Kernel::Clause const& clause) : Coproduct<Kernel::Clause const*, SimplificationAlternative>(&clause) {}
+  SimplificationResult(SimplificationResult l, SimplificationResult r) : Coproduct<Kernel::Clause const*, SimplificationAlternative>(SimplificationAlternative {
+        Lib::make_unique<SimplificationResult>(std::move(l)),
+        Lib::make_unique<SimplificationResult>(std::move(r))
+      }) {}
+  bool matches(const SimplificationTester& simpl, Kernel::Clause const& result);
+  friend ostream& operator<<(ostream& out, SimplificationResult const& self);
+};
+
+inline ostream& operator<<(ostream& out, SimplificationResult const& self) 
+{
+  return self.match(
+      [&](Kernel::Clause const* const& self) -> ostream&
+      { return out << pretty(self); },
+
+      [&](SimplificationAlternative const& self)  -> ostream&
+      { return out << self.lhs << " or " << self.rhs; });
+}
+
+inline bool SimplificationResult::matches(const SimplificationTester& simpl, Kernel::Clause const& result)
+{
+  return match(
+      [&](Kernel::Clause const*& self) 
+      { return simpl.eq(&result, self); },
+
+      [&](SimplificationAlternative& self) 
+      { return self.lhs->matches(simpl, result) || self.rhs->matches(simpl, result); });
+}
+
+
+
+inline SimplificationResult anyOf(Kernel::Clause const& lhs) 
+{ return SimplificationResult(lhs); }
+
+template<class... As>
+inline SimplificationResult anyOf(Kernel::Clause const& lhs, Kernel::Clause const& rhs, As... rest) 
+{ return SimplificationResult(lhs, anyOf(rhs, rest...)); }
+
 struct Success
 {
   Kernel::Clause& input;
-  Kernel::Clause& expected;
+  // Kernel::Clause& expected;
+  SimplificationResult expected;
 
   void run(const SimplificationTester& simpl) {
     auto res = simpl.simplify(&input);
@@ -35,7 +86,8 @@ struct Success
       cout << "[ expected ]: " << pretty(expected) << endl;
       exit(-1);
 
-    } else if (!simpl.eq(res, &expected)) {
+    // } else if (!simpl.eq(res, &expected)) {
+    } else if (!expected.matches(simpl, *res)) {
       cout  << endl;
       cout << "[     case ]: " << pretty(input) << endl;
       cout << "[       is ]: " << pretty(*res) << endl;
@@ -45,6 +97,7 @@ struct Success
     }
   }
 };
+
 
 struct NotApplicable
 {
