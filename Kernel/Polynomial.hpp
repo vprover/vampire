@@ -39,6 +39,9 @@ public:
   friend bool operator==(Variable lhs, Variable rhs) 
   { return lhs._num == rhs._num; }
 
+  friend bool operator!=(Variable lhs, Variable rhs) 
+  { return !(lhs == rhs); }
+
   friend struct std::hash<Variable>;
 
   friend bool operator<(Variable const& lhs, Variable const& rhs)

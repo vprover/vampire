@@ -55,13 +55,13 @@ public:
   static bool eqModAC(const Kernel::Clause* lhs, const Kernel::Clause* rhs);
   static bool eqModAC(Kernel::Literal* lhs, Kernel::Literal* rhs);
 
-  /** 
-   * Tests whether two clauses are equal. All permutations of the clauses are tested. Variable renamings are 
-   * taken into account (i.e.: { p(x) } IS equal to { p(y) } for this function).
-   *
-   * !!! exponential runtime !!!
-   */
-  static bool eqModACVar(const Kernel::Clause* lhs, const Kernel::Clause* rhs);
+  // /** 
+  //  * Tests whether two clauses are equal. All permutations of the clauses are tested. Variable renamings are 
+  //  * taken into account (i.e.: { p(x) } IS equal to { p(y) } for this function).
+  //  *
+  //  * !!! exponential runtime !!!
+  //  */
+  // static bool eqModACVar(const Kernel::Clause* lhs, const Kernel::Clause* rhs);
 
   /**
    * The ... are len of integers, positive -- positive polarity, negative -- negative polarity.
@@ -86,9 +86,9 @@ private:
   };
 
 
-  static bool eqModACVar(const Kernel::Clause* lhs, const Kernel::Clause* rhs, RectMap& r);
-  static bool eqModACVar(Kernel::Literal* lhs, Kernel::Literal* rhs, RectMap& r);
-  static bool eqModACVar(Kernel::TermList lhs, Kernel::TermList rhs, RectMap& r);
+  // static bool eqModACVar(const Kernel::Clause* lhs, const Kernel::Clause* rhs, RectMap& r);
+  // static bool eqModACVar(Kernel::Literal* lhs, Kernel::Literal* rhs, RectMap& r);
+  // static bool eqModACVar(Kernel::TermList lhs, Kernel::TermList rhs, RectMap& r);
   template<class Comparisons>
   static bool eqModAC_(Kernel::TermList lhs, Kernel::TermList rhs, Comparisons c);
 

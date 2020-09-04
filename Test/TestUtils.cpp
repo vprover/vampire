@@ -117,6 +117,7 @@ bool __permEq(const List& lhs, const List& rhs, Eq elemEq, DArray<unsigned>& per
     ASS_EQ(rhs.size(), perm.size());
 
     for (int i = 0; i < perm.size(); i++) {
+      // DBG(lhs[i], " ?= ", rhs[perm[i]]);
       if (!elemEq(lhs[i], rhs[perm[i]])) return false;
     }
     return true;
@@ -294,11 +295,11 @@ bool TestUtils::isAC(Theory::Interpretation i)
   }
 }
 
-bool TestUtils::eqModACVar(const Kernel::Clause* lhs, const Kernel::Clause* rhs)
-{ 
-  RectMap map;
-  return permEq(*lhs, *rhs, [&](Literal* l, Literal* r) -> bool { return TestUtils::eqModACVar(l, r, map); }); 
-}
+// bool TestUtils::eqModACVar(const Kernel::Clause* lhs, const Kernel::Clause* rhs)
+// { 
+//   RectMap map;
+//   return permEq(*lhs, *rhs, [&](Literal* l, Literal* r) -> bool { return TestUtils::eqModACVar(l, r, map); }); 
+// }
 
 bool TestUtils::eqModAC(const Kernel::Clause* lhs, const Kernel::Clause* rhs)
 { return permEq(*lhs, *rhs, [](Literal* l, Literal* r) -> bool { return TestUtils::eqModAC(l, r); }); }
@@ -306,8 +307,8 @@ bool TestUtils::eqModAC(const Kernel::Clause* lhs, const Kernel::Clause* rhs)
 bool TestUtils::eqModAC(Kernel::Literal* lhs, Kernel::Literal* rhs)
 { return TestUtils::eqModAC(TermList(lhs), TermList(rhs)); }
 
-bool TestUtils::eqModACVar(Kernel::Literal* lhs, Kernel::Literal* rhs, RectMap& map)
-{ return TestUtils::eqModACVar(TermList(lhs), TermList(rhs), map); }
+// bool TestUtils::eqModACVar(Kernel::Literal* lhs, Kernel::Literal* rhs, RectMap& map)
+// { return TestUtils::eqModACVar(TermList(lhs), TermList(rhs), map); }
 
 void __collect(unsigned functor, Term* t, Stack<TermList>& out) {
   ASS_EQ(t->functor(), functor);
@@ -362,21 +363,21 @@ bool TestUtils::eqModAC_(TermList lhs, TermList rhs, Comparisons comp)
   }
 }
 
-bool TestUtils::eqModACVar(TermList lhs, TermList rhs, RectMap& map) 
-{
-  
-  struct Comparisons {
-    RectMap& map;
-    bool var(unsigned lhs, unsigned rhs) const 
-    { return map.l.get(lhs) == map.r.get(rhs); }
-
-    bool subterm(TermList lhs, TermList rhs) const 
-    { return eqModACVar(lhs,rhs, map); }
-  };
-  Comparisons c {map};
-
-  return eqModAC_(lhs, rhs, c);
-}
+// bool TestUtils::eqModACVar(TermList lhs, TermList rhs, RectMap& map) 
+// {
+//   
+//   struct Comparisons {
+//     RectMap& map;
+//     bool var(unsigned lhs, unsigned rhs) const 
+//     { return map.l.get(lhs) == map.r.get(rhs); }
+//
+//     bool subterm(TermList lhs, TermList rhs) const 
+//     { return eqModACVar(lhs,rhs, map); }
+//   };
+//   Comparisons c {map};
+//
+//   return eqModAC_(lhs, rhs, c);
+// }
 
 
 bool TestUtils::eqModAC(TermList lhs, TermList rhs) 
