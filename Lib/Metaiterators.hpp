@@ -431,10 +431,11 @@ public:
   DECL_ELEMENT_TYPE(typename std::result_of<Functor(ELEMENT_TYPE(Inner))>::type::Content);
 
   FilterMapIter(Inner inn, Functor func)
-  : _func(func), _inn(inn), _next() {}
+  : _func(func), _inn(std::move(inn)), _next() {}
 
   bool hasNext()
   {
+    CALL("FilterMapIter::hasNext")
     if(_next.isSome()) {
       return true;
     }
@@ -449,6 +450,7 @@ public:
 
   OWN_ELEMENT_TYPE next()
   {
+    CALL("FilterMapIter::next")
     ALWAYS(hasNext());
     ASS(_next.isSome());
     auto out = std::move(_next).unwrap();
@@ -665,7 +667,7 @@ class MappingIterator
 public:
   DECL_ELEMENT_TYPE(ResultType);
   explicit MappingIterator(Inner inner, Functor func)
-  : _func(func), _inner(inner) {}
+  : _func(func), _inner(std::move(inner)) {}
   inline bool hasNext() { CALL("MappingIterator::hasNext"); return _inner.hasNext(); };
   inline ResultType next() { return _func(_inner.next()); };
 
@@ -735,7 +737,7 @@ private:
 template<typename Inner, typename Functor>
 MappingIterator<Inner,Functor,RETURN_TYPE(Functor(ELEMENT_TYPE(Inner)))> getMappingIterator(Inner it, Functor f)
 {
-  return MappingIterator<Inner,Functor,RETURN_TYPE(Functor(ELEMENT_TYPE(Inner)))>(it, f);
+  return MappingIterator<Inner,Functor,RETURN_TYPE(Functor(ELEMENT_TYPE(Inner)))>(std::move(it), f);
 }
 
 // /**
@@ -813,7 +815,7 @@ public:
   DECL_ELEMENT_TYPE(ELEMENT_TYPE(Inner));
 
   explicit FlatteningIterator(Master master)
-  : _master(master)
+  : _master(std::move(master))
   , _current(_master.hasNext() ? some(_master.next())
                                : none<Inner>())
   { }
@@ -825,7 +827,8 @@ public:
       if (_current.unwrap().hasNext()) {
         return true;
       } else {
-        _current = _master.hasNext() ? some(_master.next())
+        DBG("next master");
+        _current = _master.hasNext() ? some(std::move(_master.next()))
                                      : none<Inner>();
       }
     }
@@ -906,9 +909,7 @@ private:
 template<typename T>
 inline
 FlatteningIterator<T> getFlattenedIterator(T it)
-{
-  return FlatteningIterator<T>(it);
-}
+{ return FlatteningIterator<T>(std::move(it)); }
 
 template<class Inner, class Functor>
 using FlatMapIter = FlatteningIterator<MappingIterator<Inner,Functor>>;
@@ -929,7 +930,7 @@ inline
 FlatMapIter<Inner,Functor> getMapAndFlattenIterator(Inner it, Functor f)
 {
   return FlatteningIterator<MappingIterator<Inner,Functor> >(
-	  MappingIterator<Inner,Functor>(it, f) );
+	  MappingIterator<Inner,Functor>(std::move(it), f) );
 }
 
 /**
@@ -1678,7 +1679,7 @@ public:
   DECL_ELEMENT_TYPE(ELEMENT_TYPE(Iter));
   using Elem = ELEMENT_TYPE(Iter);
 
-  explicit IterTraits(Iter iter) : _iter(iter) {}
+  explicit IterTraits(Iter iter) : _iter(std::move(iter)) {}
 
   Elem next() { return _iter.next(); }
   bool hasNext() { return _iter.hasNext(); }
@@ -1705,36 +1706,67 @@ public:
     while (hasNext()) {
       auto x = next();
       if (p(x)) {
-        return x;
+        return some(x);
       }
     }
     return none<Elem>();
   }
 
+  template<class P>
+  Optional<unsigned> findPosition(P p) 
+  {
+    unsigned i = 0;
+    while (hasNext()) {
+      auto x = next();
+      if (p(x)) {
+        return some(i);
+      }
+      i++;
+    }
+    return none<unsigned>();
+  }
+
   template<class F>
   IterTraits<MappingIterator<Iter, F>> map(F f)
-  { return iterTraits(getMappingIterator<Iter, F>(_iter, f)); }
+  { return iterTraits(getMappingIterator<Iter, F>(std::move(_iter), f)); }
 
   template<class F>
   IterTraits<FilteredIterator<Iter, F>> filter(F f)
-  { return iterTraits(getFilteredIterator<Iter, F>(_iter, f)); }
+  { return iterTraits(getFilteredIterator<Iter, F>(std::move(_iter), f)); }
 
   template<class F>
   IterTraits<FilterMapIter<Iter, F>> filterMap(F f)
-  { return iterTraits(FilterMapIter<Iter, F>(_iter, f)); }
+  { return iterTraits(FilterMapIter<Iter, F>(std::move(_iter), f)); }
 
   template<class F>
   IterTraits<FlatMapIter<Iter, F>> flatMap(F f)
-  { return iterTraits(getFlattenedIterator(getMappingIterator(_iter, f))); }
+  { return iterTraits(getFlattenedIterator(getMappingIterator(std::move(_iter), f))); }
+
+
+  Optional<Elem> min()
+  { 
+    if (hasNext()) {
+      auto&& min = next();
+      while (hasNext())  {
+        auto&& e = next();
+        if (std::less<Elem>{}(e, min)) {
+          min = e;
+        }
+      }
+      return some(min);
+    } else {
+      return none<Elem>();
+    }
+  }
 
 
   template<class Container>
-  Container collect() 
+  Container collect()
   { return Container::fromIterator(*this); }
   
 
   template<template<class> class Container>
-  Container<Elem> collect() 
+  Container<Elem> collect()
   { return Container<Elem>::fromIterator(*this); }
   
   /** This class is to be used in the context of a for (auto x : ...) loop only. */
@@ -1773,9 +1805,7 @@ public:
 
 template<class Iter>
 IterTraits<Iter> iterTraits(Iter i) 
-{
-  return IterTraits<Iter>(i);
-}
+{ return IterTraits<Iter>(std::move(i)); }
 
 ///@}
 

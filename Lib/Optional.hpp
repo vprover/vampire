@@ -3,6 +3,7 @@
 
 #include <type_traits>
 #include "Debug/Assertion.hpp"
+#include "Debug/Tracer.hpp"
 #include <iostream>
 
 
@@ -45,13 +46,36 @@ public:
   A     && unwrap()     && { ASS(_isSome); return std::move(_elem); }
   A      & unwrap()      & { ASS(_isSome); return           _elem ; }
 
-  OptionalBase(OptionalBase      & a) : _isSome(a._isSome) { if (isSome()) { _elem.init(          a .unwrap()); } }
-  OptionalBase(OptionalBase     && a) : _isSome(a._isSome) { if (isSome()) { _elem.init(std::move(a).unwrap()); } }
-  OptionalBase(OptionalBase const& a) : _isSome(a._isSome) { if (isSome()) { _elem.init(          a .unwrap()); } }
+  OptionalBase(OptionalBase      & a) : _isSome(a._isSome) 
+  { CALL("OptionalBase(OptionalBase      &)"); if (isSome()) { _elem.init(          a .unwrap()); } }
+  OptionalBase(OptionalBase     && a) : _isSome(a._isSome) 
+  { CALL("OptionalBase(OptionalBase     &&)"); if (isSome()) { _elem.init(std::move(a).unwrap()); } }
+  OptionalBase(OptionalBase const& a) : _isSome(a._isSome) 
+  { CALL("OptionalBase(OptionalBase const&)"); if (isSome()) { _elem.init(          a .unwrap()); } }
 
-  OptionalBase& operator=(OptionalBase      & a) = default;
-  OptionalBase& operator=(OptionalBase     && a) = default;
-  OptionalBase& operator=(OptionalBase const& a) = default;
+  OptionalBase& operator=(OptionalBase      & a) 
+  {
+    CALL("OptionalBase& operator=(OptionalBase      &)"); 
+    _isSome = a.isSome();
+    if (isSome()) { _elem.init(          a .unwrap()); }
+    return *this;
+  }
+
+  OptionalBase& operator=(OptionalBase     && a) 
+  {
+    CALL("OptionalBase operator=(OptionalBase     &&)"); 
+    _isSome = a.isSome();
+    if (isSome()) { _elem.init(std::move(a).unwrap()); }
+    return *this;
+  }
+
+  OptionalBase& operator=(OptionalBase const& a) 
+  {
+    CALL("OptionalBase& operator=(OptionalBase const&)"); 
+    _isSome = a.isSome();
+    if (isSome()) { _elem.init(          a .unwrap()); }
+    return *this;
+  }
 
 
   static OptionalBase fromPtr(A* ptr) 
