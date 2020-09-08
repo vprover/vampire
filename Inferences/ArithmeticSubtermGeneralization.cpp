@@ -1014,18 +1014,24 @@ public:
   { return _stack[obj]; }
 };
 
+/**
+ * represents a region of variables that are connected by multiplication
+ */
 class VariableRegion 
 {
   Coproduct<Stack<Variable>, Top> _self;
+
 public:
   VariableRegion() : _self(Top{}) {}
-  VariableRegion(Stack<Variable> self) : _self(self) {}
+  VariableRegion(Stack<Variable>&& self) : _self(self) {}
+  VariableRegion(VariableRegion &&) = default;
+  VariableRegion& operator=(VariableRegion &&) = default;
 
   VariableRegion meet(VariableRegion rhs) 
   {
     auto& lhs = *this;
-    if (lhs.isTop()) return rhs;
-    if (rhs.isTop()) return lhs;
+    if (lhs.isTop()) return VariableRegion(move(rhs));
+    if (rhs.isTop()) return VariableRegion(move(lhs));
     return VariableRegion(intersectSortedStack(std::move(lhs.unwrap()), std::move(rhs.unwrap())));
   }
 
@@ -1050,7 +1056,7 @@ struct VarMulGenPreprocess
 {
   IntUnionFind& components;
   IntMap<Variable> &varMap;
-  Array<VariableRegion> &varSubterms;
+  Stack<VariableRegion> &varSubterms;
 
   VariableRegion& varSet(int v)
   { return varSubterms[v]; }
@@ -1193,7 +1199,11 @@ Clause* VariableMultiplicationGeneralization::simplify(Clause* cl)
   }
 
   IntUnionFind components(varMap.size());
-  Array<VariableRegion> varSubterms(varMap.size());;
+  Stack<VariableRegion> varSubterms(varMap.size());;
+  for (unsigned i = 0; i < varMap.size(); i++)  {
+    varSubterms.pushMv(VariableRegion());
+  }
+
 
   for (auto poly : iterPolynoms(cl)) {
     DBG(poly)
@@ -1209,14 +1219,12 @@ Clause* VariableMultiplicationGeneralization::simplify(Clause* cl)
   Stack<Variable> remove;
 
   for (auto comp : iterTraits(IntUnionFind::ComponentIterator(components))) {
-    auto meet = varSubterms[components.root(comp.next())];
-    if (!meet.isTop()) { // TODO remove this line
-      auto meetIter = meet.unwrap().iter();
-      if (meetIter.hasNext()) {
-        /* we keep one variable per component */ meetIter.next();
-        while (meetIter.hasNext()) {
-          remove.push(meetIter.next());
-        }
+    auto& meet = varSubterms[components.root(comp.next())];
+    auto meetIter = meet.unwrap().iter();
+    if (meetIter.hasNext()) {
+      /* we keep one variable per component */ meetIter.next();
+      while (meetIter.hasNext()) {
+        remove.push(meetIter.next());
       }
     }
   }
