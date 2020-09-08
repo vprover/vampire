@@ -34,6 +34,7 @@
 #include "Hash.hpp"
 #include "Exception.hpp"
 #include "Optional.hpp"
+#include "Metaiterators.hpp"
 
 namespace Lib {
 
@@ -77,6 +78,7 @@ public:
     explicit Entry(Entry const& other)
       : code(other.code)
     {
+      CALL("Entry(Entry const&)")
       if (other.occupied()) {
         init(Key(other.key()), Val(other.value()), other.code);
       }
@@ -162,6 +164,7 @@ public:
       _afterLast  (other._afterLast),
       _maxEntries (other._maxEntries)
   {
+    CALL("Map(Map&&)");
     other._capacity    = 0;
     other._noOfEntries = 0;
     other._entries     = nullptr;
@@ -170,7 +173,7 @@ public:
   }
 
   Map& operator=(Map&& other) {
-
+    CALL("Map& operator=(Map&&)");
     _capacity    = other._capacity;
     _noOfEntries = other._noOfEntries;
     _entries     = other._entries;
@@ -622,6 +625,8 @@ public:
    */
   class Iterator {
   public:
+    DECL_ELEMENT_TYPE(Entry&);
+
     /** Create a new iterator */
     inline Iterator(Map& map)
       : _next(map._entries), _last(map._afterLast)
