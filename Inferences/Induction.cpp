@@ -780,13 +780,14 @@ void InductionClauseIterator::instantiateScheme(Clause* premise, Literal* lit, I
   FormulaList* formulas = FormulaList::empty();
 
   for (auto& desc : scheme._rDescriptionInstances) {
+    // We replace all induction terms with the corresponding step case terms
     TermOccurrenceReplacement tr(desc._step, activeOccurrenceMap);
     Formula* right = new AtomicFormula(Literal::complementaryLiteral(tr.transform(lit)));
 
-    // Then we replace the arguments of the term with the
-    // corresponding recursive cases for this step case
     FormulaList* hyp = FormulaList::empty();
 
+    // Then we replace the arguments of the term with the
+    // corresponding recursive cases for this step case (if not base case)
     for (const auto& r : desc._recursiveCalls) {
       TermOccurrenceReplacement tr(r, activeOccurrenceMap);
       hyp = new FormulaList(new AtomicFormula(Literal::complementaryLiteral(tr.transform(lit))),hyp);
@@ -805,6 +806,9 @@ void InductionClauseIterator::instantiateScheme(Clause* premise, Literal* lit, I
   ASS(formulas != 0);
   Formula* indPremise = JunctionFormula::generalJunction(Connective::AND,formulas);
 
+  // After creating all cases, we need the main implicant to be resolved with
+  // the literal. For this, we use new variables starting from the max. var of
+  // the scheme.
   unsigned var = scheme._maxVar;
   vmap<TermList, TermList> r;
   for (const auto& desc : scheme._rDescriptionInstances) {
