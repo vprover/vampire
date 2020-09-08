@@ -113,7 +113,7 @@ public:
 private:
   void process(Clause* premise, Literal* lit);
 
-  void produceClauses(Clause* premise, Literal* origLit, Formula* hypothesis, Literal* conclusion, InferenceRule rule);
+  void produceClauses(Clause* premise, Literal* origLit, Formula* hypothesis, Literal* conclusion, InferenceRule rule, ResultSubstitutionSP& substitution);
 
   void performMathInductionOne(Clause* premise, Literal* origLit, Literal* lit, Term* t, InferenceRule rule); 
   void performMathInductionTwo(Clause* premise, Literal* origLit, Literal* lit, Term* t, InferenceRule rule);
