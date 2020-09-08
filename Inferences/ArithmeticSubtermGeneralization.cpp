@@ -1032,235 +1032,251 @@ public:
 
 };
 POLYMORPHIC_FUNCTION(Optional<Variable>, tryVar, const& t,) { return t.tryVar(); }
-
 /**
- * represents a region of variables that are connected by multiplication
+ *  Rule 3)
+ *    generalize variable multiplication
+ *    C[X0 ⋅ X1 ⋅ ... ⋅ Xn] 
+ *    ------------ 
+ *    C[X0]
+ *    where 
+ *    - all occurences of Xi are in terms of the form `X0 ⋅ X1 ⋅ ... ⋅ Xn`
+ *    - X0 /= Xi (for i /= 0)
+ *    - all Xi are distinct variables
+ *    - sound due to substitution { X1 -> 1 ..., XN -> 1 }
+ *    - obviously a generalization 
  */
-class VariableRegion 
+namespace Rule3 
 {
-  Coproduct<Stack<AnyNumber<MonomPair>>, Top> _self;
 
-public:
-  VariableRegion() : _self(Top{}) {}
-  VariableRegion(Stack<AnyNumber<MonomPair>>&& self) : _self(self) {}
-  VariableRegion(VariableRegion &&) = default;
-  VariableRegion& operator=(VariableRegion &&) = default;
-
-  VariableRegion meet(VariableRegion rhs) 
+  /**
+   * Represents the region of variables `X0 ⋅ X1 ⋅ ... ⋅ Xn` from the rule
+   *
+   * Two regions can be intersected. 
+   */
+  class VariableRegion 
   {
-    auto& lhs = *this;
-    if (lhs.isTop()) return VariableRegion(move(rhs));
-    if (rhs.isTop()) return VariableRegion(move(lhs));
-    return VariableRegion(intersectSortedStack(std::move(lhs.unwrap()), std::move(rhs.unwrap())));
-  }
+    Coproduct<
+      Stack<AnyNumber<MonomPair>>, /* <- always sorted; contains only factors of the form `variable ^ n` */
+      Top /* <- unininitialized */
+        > _self;
 
-  bool isTop() const 
-  { return _self.template is<Top>(); }
+  public:
+    VariableRegion() : _self(Top{}) {}
+    VariableRegion(Stack<AnyNumber<MonomPair>>&& self) : _self(self) {}
+    VariableRegion(VariableRegion &&) = default;
+    VariableRegion& operator=(VariableRegion &&) = default;
 
-  Stack<AnyNumber<MonomPair>> const& unwrap() const 
-  { return _self.template unwrap<Stack<AnyNumber<MonomPair>>>(); }
+    /* intersects two regions */
+    VariableRegion meet(VariableRegion rhs) 
+    {
+      auto& lhs = *this;
+      if (lhs.isTop()) return VariableRegion(move(rhs));
+      if (rhs.isTop()) return VariableRegion(move(lhs));
+      return VariableRegion(intersectSortedStack(std::move(lhs.unwrap()), std::move(rhs.unwrap())));
+    }
 
-  Stack<AnyNumber<MonomPair>> & unwrap() 
-  { return _self.template unwrap<Stack<AnyNumber<MonomPair>>>(); }
+    Stack<AnyNumber<MonomPair>> const& unwrap() const 
+    { return _self.template unwrap<Stack<AnyNumber<MonomPair>>>(); }
 
-  friend ostream& operator<<(ostream& out, VariableRegion const& self) 
+    Stack<AnyNumber<MonomPair>> & unwrap() 
+    { return _self.template unwrap<Stack<AnyNumber<MonomPair>>>(); }
+
+    friend ostream& operator<<(ostream& out, VariableRegion const& self) 
+    {
+      return self.isTop() ? out << "Top"
+                          : out << self.unwrap();
+    }
+  private:
+
+    bool isTop() const 
+    { return _self.template is<Top>(); }
+  };
+
+
+  /**
+   * Polymorphic closure that processes each subterm of the clause. 
+   *
+   * All variables that occur together in a product (i.e. a monom), are being associated with the same "connected component" 
+   * using the IntUnionFind components.
+   *
+   * For each of these components a minimal VariableRegion is kept stored in the field varRegions.
+   */
+  struct Preprocess 
   {
-    return self.isTop() ? out << "Top"
-                        : out << self.unwrap();
-  }
-};
+    IntUnionFind& components;
+    IntMap<Variable> &varMap;
+    Stack<VariableRegion> &varRegions;
+
+    VariableRegion& varSet(int v)
+    { return varRegions[v]; }
+
+    int root(Variable v) const
+    { return components.root(varMap.toInt(v)); }
+
+    template<class NumTraits> 
+    void operator()(UniqueShared<Polynom<NumTraits>> p) 
+    {
+      CALL("Preprocess::operator()")
+
+      for (auto summand : p->iter()) {
+        DBG("processing: ", summand)
+
+        auto varIter = summand.monom->iter()
+              .filter([](MonomPair<NumTraits> factor) { return factor.term.template is<Variable>(); });
+
+        auto varIter2 = varIter;
+        auto varStack = VariableRegion(
+            varIter2
+              .map([](MonomPair<NumTraits> factor) { return AnyNumber<MonomPair>(factor); })
+              .template collect<Stack>());
+
+        auto vars = varIter.map([](MonomPair<NumTraits> factor) { return factor.term.template unwrap<Variable>(); });
+
+        if (vars.hasNext())  {
+          auto fst = vars.next();
+          auto cur = root(fst);
 
 
-struct VarMulGenPreprocess 
-{
-  IntUnionFind& components;
-  IntMap<Variable> &varMap;
-  Stack<VariableRegion> &varRegions;
+          varSet(cur) = std::move(varSet(cur)).meet(move(varStack));
 
-  VariableRegion& varSet(int v)
-  { return varRegions[v]; }
+          for (auto var : vars) {
+            cur = unionMeet(cur, root(var));
+          }
 
-  int root(Variable v) const
-  { return components.root(varMap.toInt(v)); }
-
-  template<class NumTraits> 
-  void operator()(UniqueShared<Polynom<NumTraits>> p) 
-  {
-    CALL("VarMulGenPreprocess::operator()")
-
-    for (auto summand : p->iter()) {
-      DBG("processing: ", summand)
-
-      auto varIter = summand.monom->iter()
-            .filter([](MonomPair<NumTraits> factor) { return factor.term.template is<Variable>(); });
-
-      auto varIter2 = varIter;
-      auto varStack = VariableRegion(
-          varIter2
-            .map([](MonomPair<NumTraits> factor) { return AnyNumber<MonomPair>(factor); })
-            .template collect<Stack>());
-
-      auto vars = varIter.map([](MonomPair<NumTraits> factor) { return factor.term.template unwrap<Variable>(); });
-
-      dbgState();
-      if (vars.hasNext())  {
-        auto fst = vars.next();
-        auto cur = root(fst);
-
-
-        // DBG("meeting initial: ", fst)
-        varSet(cur) = std::move(varSet(cur)).meet(move(varStack));
-        dbgState();
-
-        for (auto var : vars) {
-          DBG("meeting ", var)
-          cur = unionMeet(cur, root(var));
         }
-
       }
-      dbgState();
-      DBG("end processing.")
     }
-  }
 
-  void dbgState() const {
-    // DBG("---------------------");
-    for (int i = 0; i < varMap.size(); i++) {
-    // DBG(varMap.fromInt(i), " -> ", varMap.fromInt(components.root(i)), " -> ", varRegions[components.root(i)]);
+    void dbgState() const {
+      DEBUG("---------------------");
+      for (int i = 0; i < varMap.size(); i++) {
+        DEBUG(varMap.fromInt(i), " -> ", varMap.fromInt(components.root(i)), " -> ", varRegions[components.root(i)]);
+      }
+      DEBUG("---------------------");
     }
-    // DBG("---------------------");
-  }
 
-  // Optional<Stack<Variable>> meet(Optional<Stack<Variable>> lhs, Optional<Stack<Variable>> rhs) const
-  // {
-  //   CALL("VarMulGenPreprocess::meet")
-  //   DBGE(lhs)
-  //   DBGE(rhs)
-  //   if (lhs.isNone()) {
-  //     return rhs.unwrap();
-  //   } else if (rhs.isNone()) {
-  //     return lhs.unwrap();
-  //   } else {
-  //     ASS(lhs.isSome());
-  //     ASS(rhs.isSome());
-  //     return some<Stack<Variable>>(intersectSortedStack(std::move(lhs).unwrap(), std::move(rhs).unwrap()));
-  //   }
-  // }
+    int unionMeet(int v, int w)
+    {
+      CALL("Preprocess::unionMeet()")
+      if (v == w) return v;
 
-  int unionMeet(int v, int w)
+      components.doUnion(v,w);
+      auto r = components.root(v);
+      varSet(r) = std::move(varSet(v)).meet(std::move(varSet(w)));
+
+      return r;
+    }
+
+  };
+
+  /** 
+   * A polymorphic closure to bottom-up evaluate clause bottom-up that replaces all occurences of the factors in the field `toRem`
+   */
+  struct Generalize 
   {
-    CALL("VarMulGenPreprocess::unionMeet()")
-    if (v == w) return v;
+    Stack<AnyNumber<MonomPair>> const& toRem; /* <- always expected to be sorted */
 
-    components.doUnion(v,w);
-    auto r = components.root(v);
-    varSet(r) = std::move(varSet(v)).meet(std::move(varSet(w)));
+    template<class NumTraits>
+    PolyPair<NumTraits> operator()(PolyPair<NumTraits> p, PolyNf* evaluatedArgs)  
+    {
+      using Pair = PolyPair<NumTraits>;
+      return Pair(p.coeff, unique(Monom<NumTraits>(filter(p.monom, evaluatedArgs))));
+    }
 
-    return r;
-  }
+    template<class NumTraits>
+    Stack<MonomPair<NumTraits>> filter(UniqueShared<Monom<NumTraits>> const& monom, PolyNf* evaluatedArgs)
+    {
+      Stack<MonomPair<NumTraits>> out;
+      unsigned rm = 0;
+      unsigned m = 0;
 
-};
+      auto skip = [&]() { rm++; m++; };
+      auto push = [&]() { out.push(MonomPair<NumTraits>(evaluatedArgs[m], monom->factorAt(m).power)); m++; };
 
-struct VarMulGenGeneralize 
-{
-  Stack<AnyNumber<MonomPair>> const& toRem;
-
-  template<class NumTraits>
-  PolyPair<NumTraits> operator()(PolyPair<NumTraits> p, PolyNf* evaluatedArgs)  
-  {
-    using Pair = PolyPair<NumTraits>;
-    return Pair(p.coeff, unique(Monom<NumTraits>(filter(p.monom, evaluatedArgs))));
-  }
-
-  template<class NumTraits>
-  Stack<MonomPair<NumTraits>> filter(UniqueShared<Monom<NumTraits>> const& monom, PolyNf* evaluatedArgs)
-  {
-    Stack<MonomPair<NumTraits>> out;
-    unsigned rm = 0;
-    unsigned m = 0;
-
-    auto skip = [&]() { rm++; m++; };
-    auto push = [&]() { out.push(MonomPair<NumTraits>(evaluatedArgs[m], monom->factorAt(m).power)); m++; };
-
-    while (m < monom->nFactors() && rm < toRem.size()) {
-      auto factor = monom->factorAt(m);
-      if (factor == toRem[rm].template downcast<NumTraits>()) {
-        skip();
-      } else if (factor < toRem[rm].template downcast<NumTraits>()) {
+      while (m < monom->nFactors() && rm < toRem.size()) {
+        auto factor = monom->factorAt(m);
+        if (factor == toRem[rm].template downcast<NumTraits>()) {
+          skip();
+        } else if (factor < toRem[rm].template downcast<NumTraits>()) {
+          push();
+        } else {
+          ASS_L(toRem[rm].template downcast<NumTraits>(), factor)
+          rm++;
+        }
+      }
+      while (m < monom->nFactors()) {
         push();
-      } else {
-        ASS_L(toRem[rm].template downcast<NumTraits>(), factor)
-        rm++;
       }
+
+      std::sort(out.begin(), out.end());
+      return move(out);
     }
-    while (m < monom->nFactors()) {
-      push();
+  };
+
+  /** 
+   * applies the rule
+   */ 
+  Clause* applyRule(Clause* cl) 
+  {
+    DEBUG("input clause: ", *cl);
+    IntMap<Variable> varMap;
+
+    /* initialization */
+    for (auto var : iterVars(cl)) {
+      varMap.insert(var);
     }
 
-    std::sort(out.begin(), out.end());
-    return move(out);
-    // TODO
-    TODO
+    IntUnionFind components(varMap.size());
+    Stack<VariableRegion> varRegions(varMap.size());;
+    for (unsigned i = 0; i < varMap.size(); i++)  {
+      varRegions.pushMv(VariableRegion());
+    }
+
+    /* preprocessing. finds all products `X0 ⋅ X1 ⋅ ... ⋅ Xn` such that the rule is applicable */
+    for (auto poly : iterPolynoms(cl)) {
+      poly.apply(Preprocess {components, varMap, varRegions});
+    }
+
+
+    /* create a stack of all variables that shall be removed in the final step */
+
+    Stack<AnyNumber<MonomPair>> remove;
+
+    components.evalComponents();
+    for (auto comp : iterTraits(IntUnionFind::ComponentIterator(components))) {
+      auto& region = varRegions[components.root(comp.next())].unwrap();
+
+      /* one variable with power one needs to be kept, per varible region */
+      auto var = iterTraits(region.iter())
+        .filter([](AnyNumber<MonomPair> p) { return p.apply(Polymorphic::tryVar{}).isSome(); })
+        .tryNext();
+
+      if (var.isSome()) {
+        for (auto varPower : region) {
+          if (varPower != var.unwrap()) {
+            remove.push(varPower);
+          }
+        }
+      }
+    }
+
+    /* apply the substitution `X0 ⋅ X1 ⋅ ... ⋅ Xn ==> X0`  */
+    DEBUG("removing variables: ", remove)
+    if (remove.isEmpty()) {
+      return cl;
+    } else {
+      std::sort(remove.begin(), remove.end());
+      Generalize gen { remove };
+      return evaluateBottomUp(cl, EvaluateMonom<Generalize> {gen});
+    }
   }
-};
+
+} // namespace Rule3 
 
 Clause* VariableMultiplicationGeneralization::simplify(Clause* cl) 
 { 
   CALL("VariableMultiplicationGeneralization::simplify")
-  // return cl_;
-  
-  // typename Gen::State map;
-
-  DEBUG("input clause: ", *cl);
-  IntMap<Variable> varMap;
-
-  for (auto var : iterVars(cl)) {
-    varMap.insert(var);
-  }
-
-  IntUnionFind components(varMap.size());
-  Stack<VariableRegion> varRegions(varMap.size());;
-  for (unsigned i = 0; i < varMap.size(); i++)  {
-    varRegions.pushMv(VariableRegion());
-  }
-
-
-  for (auto poly : iterPolynoms(cl)) {
-    DBG(poly)
-    poly.apply(VarMulGenPreprocess {components, varMap, varRegions});
-  }
-
-  components.evalComponents();
-
-  /* check wich variables can be removed */
-
-  Stack<AnyNumber<MonomPair>> remove;
-
-  for (auto comp : iterTraits(IntUnionFind::ComponentIterator(components))) {
-    auto& region = varRegions[components.root(comp.next())].unwrap();
-
-    /* one variable with power one needs to be kept, per varible region */
-    auto var = iterTraits(region.iter())
-      .filter([](AnyNumber<MonomPair> p) { return p.apply(Polymorphic::tryVar{}).isSome(); })
-      .tryNext();
-
-    if (var.isSome()) {
-      for (auto varPower : region) {
-        if (varPower != var.unwrap()) {
-          remove.push(varPower);
-        }
-      }
-    }
-  }
-
-  DEBUG("removing variables: ", remove)
-  if (remove.isEmpty()) {
-    return cl;
-  } else {
-    std::sort(remove.begin(), remove.end());
-    VarMulGenGeneralize gen { remove };
-    return evaluateBottomUp(cl, EvaluateMonom<VarMulGenGeneralize> {gen});
-  }
+  return Rule3::applyRule(cl);
 }
 
 VariableMultiplicationGeneralization::~VariableMultiplicationGeneralization()  {
