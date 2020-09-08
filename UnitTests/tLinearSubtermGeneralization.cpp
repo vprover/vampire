@@ -578,6 +578,25 @@ TEST_SIMPLIFY_NUMBER(generalize_var_8,
                       ), 
     })
 
+TEST_SIMPLIFY_REAL(generalize_var_9,
+    Simplification::Success {
+      .input    = clause({ p1(( x * x ) * ( z * z )), p2(( x * x * x ) * (z * z)) }), 
+      //   =====> clause({ p1(( x * x ) * (     z )), p2(( x * x * x ) * (    z)) }), 
+      .expected = Simplification::anyOf(
+                  clause({ p1(( x * x ) *   z      ), p2(( x * x * x ) *  z     ) })
+          )
+    })
+
+TEST_SIMPLIFY_RATIONAL(generalize_var_9,
+    Simplification::NotApplicable {
+      .input    = clause({ p1(( x * x ) * ( z * z )), p2(( x * x * x ) * (z * z)) }),
+    })
+
+TEST_SIMPLIFY_INTEGER(generalize_var_9,
+    Simplification::NotApplicable {
+      .input    = clause({ p1(( x * x ) * ( z * z )), p2(( x * x * x ) * (z * z)) }), 
+    })
+
 TEST_SIMPLIFY_REAL(generalize_power_1,
     Simplification::NotApplicable {
       .input    = clause({ p1(x * x * x + f(x * x)) }), 

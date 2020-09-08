@@ -1014,16 +1014,35 @@ public:
   { return _stack[obj]; }
 };
 
+template<template<class> class NumberObject>
+class AnyNumber : public Coproduct<NumberObject<IntTraits>, NumberObject<RatTraits>, NumberObject<RealTraits> > {
+
+public:
+  using Super = Coproduct<NumberObject<IntTraits>, NumberObject<RatTraits>, NumberObject<RealTraits>>;
+  template<class NumTraits>
+  AnyNumber(NumberObject<NumTraits> self) : Super(self) {}
+
+  template<class NumTraits> NumberObject<NumTraits> const& downcast() const& { return Super::template unwrap<NumberObject<NumTraits>>(); }
+  template<class NumTraits> NumberObject<NumTraits>      & downcast()      & { return Super::template unwrap<NumberObject<NumTraits>>(); }
+  template<class NumTraits> NumberObject<NumTraits>     && downcast()     && { return Super::template unwrap<NumberObject<NumTraits>>(); }
+  
+  friend bool operator<(AnyNumber const& lhs, AnyNumber const& rhs)
+  { return std::less<Super>{}(lhs,rhs); }
+
+
+};
+POLYMORPHIC_FUNCTION(Optional<Variable>, tryVar, const& t,) { return t.tryVar(); }
+
 /**
  * represents a region of variables that are connected by multiplication
  */
 class VariableRegion 
 {
-  Coproduct<Stack<Variable>, Top> _self;
+  Coproduct<Stack<AnyNumber<MonomPair>>, Top> _self;
 
 public:
   VariableRegion() : _self(Top{}) {}
-  VariableRegion(Stack<Variable>&& self) : _self(self) {}
+  VariableRegion(Stack<AnyNumber<MonomPair>>&& self) : _self(self) {}
   VariableRegion(VariableRegion &&) = default;
   VariableRegion& operator=(VariableRegion &&) = default;
 
@@ -1038,11 +1057,11 @@ public:
   bool isTop() const 
   { return _self.template is<Top>(); }
 
-  Stack<Variable> const& unwrap() const 
-  { return _self.template unwrap<Stack<Variable>>(); }
+  Stack<AnyNumber<MonomPair>> const& unwrap() const 
+  { return _self.template unwrap<Stack<AnyNumber<MonomPair>>>(); }
 
-  Stack<Variable> & unwrap() 
-  { return _self.template unwrap<Stack<Variable>>(); }
+  Stack<AnyNumber<MonomPair>> & unwrap() 
+  { return _self.template unwrap<Stack<AnyNumber<MonomPair>>>(); }
 
   friend ostream& operator<<(ostream& out, VariableRegion const& self) 
   {
@@ -1056,10 +1075,10 @@ struct VarMulGenPreprocess
 {
   IntUnionFind& components;
   IntMap<Variable> &varMap;
-  Stack<VariableRegion> &varSubterms;
+  Stack<VariableRegion> &varRegions;
 
   VariableRegion& varSet(int v)
-  { return varSubterms[v]; }
+  { return varRegions[v]; }
 
   int root(Variable v) const
   { return components.root(varMap.toInt(v)); }
@@ -1072,10 +1091,16 @@ struct VarMulGenPreprocess
     for (auto summand : p->iter()) {
       DBG("processing: ", summand)
 
-      auto vars = summand.monom->iter()
-          .filterMap([](MonomPair<NumTraits> factor) { return factor.tryVar(); });
+      auto varIter = summand.monom->iter()
+            .filter([](MonomPair<NumTraits> factor) { return factor.term.template is<Variable>(); });
 
-      auto vars2 = vars;
+      auto varIter2 = varIter;
+      auto varStack = VariableRegion(
+          varIter2
+            .map([](MonomPair<NumTraits> factor) { return AnyNumber<MonomPair>(factor); })
+            .template collect<Stack>());
+
+      auto vars = varIter.map([](MonomPair<NumTraits> factor) { return factor.term.template unwrap<Variable>(); });
 
       dbgState();
       if (vars.hasNext())  {
@@ -1084,7 +1109,7 @@ struct VarMulGenPreprocess
 
 
         // DBG("meeting initial: ", fst)
-        varSet(cur) = std::move(varSet(cur)).meet(vars2.template collect<Stack>());
+        varSet(cur) = std::move(varSet(cur)).meet(move(varStack));
         dbgState();
 
         for (auto var : vars) {
@@ -1101,7 +1126,7 @@ struct VarMulGenPreprocess
   void dbgState() const {
     // DBG("---------------------");
     for (int i = 0; i < varMap.size(); i++) {
-    // DBG(varMap.fromInt(i), " -> ", varMap.fromInt(components.root(i)), " -> ", varSubterms[components.root(i)]);
+    // DBG(varMap.fromInt(i), " -> ", varMap.fromInt(components.root(i)), " -> ", varRegions[components.root(i)]);
     }
     // DBG("---------------------");
   }
@@ -1138,7 +1163,7 @@ struct VarMulGenPreprocess
 
 struct VarMulGenGeneralize 
 {
-  Stack<Variable> const& toRem;
+  Stack<AnyNumber<MonomPair>> const& toRem;
 
   template<class NumTraits>
   PolyPair<NumTraits> operator()(PolyPair<NumTraits> p, PolyNf* evaluatedArgs)  
@@ -1158,19 +1183,14 @@ struct VarMulGenGeneralize
     auto push = [&]() { out.push(MonomPair<NumTraits>(evaluatedArgs[m], monom->factorAt(m).power)); m++; };
 
     while (m < monom->nFactors() && rm < toRem.size()) {
-      auto var = monom->factorAt(m).tryVar();
-      if (var.isNone()) {
+      auto factor = monom->factorAt(m);
+      if (factor == toRem[rm].template downcast<NumTraits>()) {
+        skip();
+      } else if (factor < toRem[rm].template downcast<NumTraits>()) {
         push();
       } else {
-        auto v = var.unwrap();
-        if (v == toRem[rm]) {
-          skip();
-        } else if (v < toRem[rm]) {
-          push();
-        } else {
-          ASS_L(toRem[rm], v)
-          rm++;
-        }
+        ASS_L(toRem[rm].template downcast<NumTraits>(), factor)
+        rm++;
       }
     }
     while (m < monom->nFactors()) {
@@ -1199,39 +1219,45 @@ Clause* VariableMultiplicationGeneralization::simplify(Clause* cl)
   }
 
   IntUnionFind components(varMap.size());
-  Stack<VariableRegion> varSubterms(varMap.size());;
+  Stack<VariableRegion> varRegions(varMap.size());;
   for (unsigned i = 0; i < varMap.size(); i++)  {
-    varSubterms.pushMv(VariableRegion());
+    varRegions.pushMv(VariableRegion());
   }
 
 
   for (auto poly : iterPolynoms(cl)) {
     DBG(poly)
-    poly.apply(VarMulGenPreprocess {components, varMap, varSubterms});
+    poly.apply(VarMulGenPreprocess {components, varMap, varRegions});
   }
 
   components.evalComponents();
 
-  /* select an applicable generalization */
+  /* check wich variables can be removed */
 
-  DBGE(varSubterms)
-
-  Stack<Variable> remove;
+  Stack<AnyNumber<MonomPair>> remove;
 
   for (auto comp : iterTraits(IntUnionFind::ComponentIterator(components))) {
-    auto& meet = varSubterms[components.root(comp.next())];
-    auto meetIter = meet.unwrap().iter();
-    if (meetIter.hasNext()) {
-      /* we keep one variable per component */ meetIter.next();
-      while (meetIter.hasNext()) {
-        remove.push(meetIter.next());
+    auto& region = varRegions[components.root(comp.next())].unwrap();
+
+    /* one variable with power one needs to be kept, per varible region */
+    auto var = iterTraits(region.iter())
+      .filter([](AnyNumber<MonomPair> p) { return p.apply(Polymorphic::tryVar{}).isSome(); })
+      .tryNext();
+
+    if (var.isSome()) {
+      for (auto varPower : region) {
+        if (varPower != var.unwrap()) {
+          remove.push(varPower);
+        }
       }
     }
   }
+
   DEBUG("removing variables: ", remove)
   if (remove.isEmpty()) {
     return cl;
   } else {
+    std::sort(remove.begin(), remove.end());
     VarMulGenGeneralize gen { remove };
     return evaluateBottomUp(cl, EvaluateMonom<VarMulGenGeneralize> {gen});
   }
