@@ -397,7 +397,7 @@ public:
     while(_inn.hasNext()) {
       auto next = _inn.next();
       if(_func(next)) {
-        _next = some(next);
+        _next = some<OWN_ELEMENT_TYPE>(next);
 	return true;
       }
     }
@@ -827,7 +827,6 @@ public:
       if (_current.unwrap().hasNext()) {
         return true;
       } else {
-        DBG("next master");
         _current = _master.hasNext() ? some(std::move(_master.next()))
                                      : none<Inner>();
       }
@@ -1687,7 +1686,7 @@ public:
   Optional<Elem> tryNext() 
   { 
     return _iter.hasNext() 
-        ? some(_iter.next())
+        ? some<Elem>(_iter.next())
         : none<Elem>();
   }
 
@@ -1706,7 +1705,7 @@ public:
     while (hasNext()) {
       auto x = next();
       if (p(x)) {
-        return some(x);
+        return some<Elem>(x);
       }
     }
     return none<Elem>();
@@ -1719,7 +1718,7 @@ public:
     while (hasNext()) {
       auto x = next();
       if (p(x)) {
-        return some(i);
+        return some<unsigned>(i);
       }
       i++;
     }
@@ -1753,7 +1752,7 @@ public:
           min = e;
         }
       }
-      return some(min);
+      return some<Elem>(min);
     } else {
       return none<Elem>();
     }
