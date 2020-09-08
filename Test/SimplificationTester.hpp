@@ -48,7 +48,7 @@ inline ostream& operator<<(ostream& out, SimplificationResult const& self)
       { return out << pretty(self); },
 
       [&](SimplificationAlternative const& self)  -> ostream&
-      { return out << self.lhs << " or " << self.rhs; });
+      { return out << pretty(self.lhs) << " or " << pretty(self.rhs); });
 }
 
 inline bool SimplificationResult::matches(const SimplificationTester& simpl, Kernel::Clause const& result)

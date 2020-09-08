@@ -176,6 +176,18 @@ public:
 };
 
 
+template<class A>
+class Pretty<unique_ptr<A>> {
+  unique_ptr<A> const& _self;
+
+public:
+  Pretty(unique_ptr<A> const& self) : _self(self) {}
+
+  std::ostream& prettyPrint(std::ostream& out) const
+  { return out << pretty(*_self); }
+};
+
+
 }
 
 #endif // __TestUtils__
