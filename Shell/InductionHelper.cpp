@@ -24,7 +24,9 @@ bool equalsUpToVariableRenaming(TermList t1, TermList t2) {
 
   auto tt1 = t1.term();
   auto tt2 = t2.term();
-  if (tt1->functor() != tt2->functor() || tt1->arity() != tt2->arity())
+  if (tt1->isBoolean() != tt2->isBoolean()
+    || tt1->functor() != tt2->functor()
+    || tt1->arity() != tt2->arity())
   {
     return false;
   }
@@ -51,7 +53,9 @@ bool containsUpToVariableRenaming(TermList container, TermList contained) {
 
   auto t1 = container.term();
   auto t2 = contained.term();
-  if (t1->functor() == t2->functor() && t1->arity() == t2->arity())
+  if (t1->isBoolean() == t2->isBoolean()
+    && t1->functor() == t2->functor()
+    && t1->arity() == t2->arity())
   {
     bool equal = true;
     Term::Iterator it1(t1);
@@ -79,6 +83,13 @@ bool containsUpToVariableRenaming(TermList container, TermList contained) {
   return false;
 }
 
+/**
+ * Checks whether sch1 is subsumed by sch2 by the following criteria:
+ * - all step cases of sch1 is a subterm of some step case of sch2
+ *   up to variable renaming
+ * - base cases are not checked since exhaustiveness of cases and
+ *   containment of step cases implies containment of base cases too
+ */
 bool checkSubsumption(const InductionScheme& sch1, const InductionScheme& sch2, bool onlyCheckIntersection = false)
 {
   CALL("checkSubsumption");
@@ -149,6 +160,9 @@ OperatorType* getType(TermList t)
   return t.term()->isLiteral() ? symb->predType() : symb->fnType();
 }
 
+/**
+ * Returns all subterms which can be inducted on for a term.
+ */
 vvector<TermList> getInductionTerms(TermList t)
 {
   CALL("getInductionTerms");
@@ -167,21 +181,19 @@ vvector<TermList> getInductionTerms(TermList t)
   auto type = getType(t);
   //TODO(mhajdu): eventually check whether we really recurse on a specific
   // subterm of the constructor terms
-  Stack<pair<TermList, bool>> actStack;
-  actStack.push(make_pair(t, true));
+  Stack<TermList> actStack;
+  actStack.push(t);
   while (actStack.isNonEmpty()) {
-    auto kv = actStack.pop();
-    auto st = kv.first;
-    auto active = kv.second;
+    auto st = actStack.pop();
     if (st.isVar()) {
       continue;
     }
-    if (active && canInductOn(st) && getType(st)->result() == type->result()) {
+    if (canInductOn(st) && getType(st)->result() == type->result()) {
       v.push_back(st);
     }
-    if (active && isTermAlgebraCons(st)) {
+    if (isTermAlgebraCons(st)) {
       for (unsigned i = 0; i < st.term()->arity(); i++) {
-        actStack.push(make_pair(*st.term()->nthArgument(i),true));
+        actStack.push(*st.term()->nthArgument(i));
       }
     }
   }
@@ -269,18 +281,6 @@ TermList IteratorByInductiveVariables::next()
   return _it.next();
 }
 
-RDescription::RDescription(const vvector<TermList>& recursiveCalls, TermList step, Formula* cond)
-  : _recursiveCalls(recursiveCalls),
-    _step(step),
-    _condition(cond)
-{}
-
-RDescription::RDescription(TermList step, Formula* cond)
-  : _recursiveCalls(),
-    _step(step),
-    _condition(cond)
-{}
-
 ostream& operator<<(ostream& out, const RDescription& rdesc)
 {
   bool empty = rdesc._recursiveCalls.empty();
@@ -300,13 +300,6 @@ ostream& operator<<(ostream& out, const RDescription& rdesc)
   out << rdesc._step;
   return out;
 }
-
-RDescriptionInst::RDescriptionInst(vvector<vmap<TermList, TermList>>&& recursiveCalls,
-                                   vmap<TermList, TermList>&& step, Formula* cond)
-  : _recursiveCalls(recursiveCalls),
-    _step(step),
-    _condition(cond)
-{}
 
 ostream& operator<<(ostream& out, const RDescriptionInst& inst)
 {
@@ -330,6 +323,7 @@ void InductionTemplate::postprocess()
   ASS(!_rDescriptions.empty());
   _rDescriptions.shrink_to_fit();
 
+  // fill in bit vector of induction variables
   _inductionVariables = vvector<bool>(_rDescriptions[0]._step.term()->arity(), false);
   for (auto& rdesc : _rDescriptions) {
     auto step = rdesc._step.term();
@@ -377,28 +371,36 @@ void InductionScheme::init(Term* t, vvector<RDescription>& rdescs, const vvector
 
   unsigned var = 0;
   for (auto& rdesc : rdescs) {
+    // for each RDescription, use a new substitution and variable
+    // replacement as these cases should be independent
     DHMap<unsigned, unsigned> varMap;
     vmap<TermList,TermList> stepSubst;
 
     IteratorByInductiveVariables termIt(t, indVars);
     IteratorByInductiveVariables stepIt(rdesc._step.term(), indVars);
 
+    // We first map the inductive terms of t to the arguments of
+    // the function header stored in the step case
     bool mismatch = false;
     while (termIt.hasNext()) {
       auto argTerm = termIt.next();
       auto argStep = stepIt.next();
       auto its = getInductionTerms(argTerm);
       for (auto& indTerm : its) {
+        // This argument might have already been mapped
         if (stepSubst.count(indTerm) > 0) {
           if (stepSubst.at(indTerm).isTerm() && argStep.isTerm() &&
               stepSubst.at(indTerm).term()->functor() != argStep.term()->functor()) {
+            // If this argument in the RDescription header contains a different
+            // term algebra ctor than the already substituted one, we cannot create
+            // this case
             mismatch = true;
             break;
           }
           continue;
         }
-        // there may be induction variables which
-        // don't change in some cases
+        // There may be variables in active
+        // positions, these are skipped
         if (argStep.isVar()) {
           continue;
         }
@@ -414,6 +416,9 @@ void InductionScheme::init(Term* t, vvector<RDescription>& rdescs, const vvector
       continue;
     }
 
+    // At this point all induction terms of t are mapped
+    // and the case is valid, so we do the same with the
+    // recursive calls too
     vvector<vmap<TermList,TermList>> recCallSubstList;
     for (auto& r : rdesc._recursiveCalls) {
       vmap<TermList,TermList> recCallSubst;
@@ -430,9 +435,9 @@ void InductionScheme::init(Term* t, vvector<RDescription>& rdescs, const vvector
             continue;
           }
           if (argRecCall.isVar()) {
-            // first we check if this variable corresponds to at least one complex term 
+            // First we check if this variable is a subterm of some complex term
             // in the step (it is an induction variable position but may not be
-            // changed in this case)
+            // changed in this case, see the check above)
             IteratorByInductiveVariables stepIt(rdesc._step.term(), indVars);
             bool found = false;
             while (stepIt.hasNext()) {
@@ -455,7 +460,7 @@ void InductionScheme::init(Term* t, vvector<RDescription>& rdescs, const vvector
       }
       recCallSubstList.push_back(std::move(recCallSubst));
     }
-    _rDescriptionInstances.emplace_back(std::move(recCallSubstList), std::move(stepSubst), nullptr);
+    _rDescriptionInstances.emplace_back(std::move(recCallSubstList), std::move(stepSubst));
   }
   _rDescriptionInstances.shrink_to_fit();
   _maxVar = var;
@@ -526,25 +531,28 @@ void InductionPreprocessor::processBody(TermList& body, TermList& header, Induct
 {
   CALL("InductionPreprocessor::processBody");
 
+  // Base case
   if (body.isVar()) {
-    templ._rDescriptions.emplace_back(header, nullptr);
+    templ._rDescriptions.emplace_back(header);
     return;
   }
+  // Recursive case
   auto term = body.term();
   if (!term->isSpecial() || term->isFormula()) {
     vvector<TermList> recursiveCalls;
     processCase(header.term()->functor(), body, recursiveCalls);
-    templ._rDescriptions.emplace_back(recursiveCalls, header, nullptr);
+    templ._rDescriptions.emplace_back(recursiveCalls, header);
   }
+  // TODO(mhajdu): Here there can be other constructs e.g. ITE, process them
   else if (term->isMatch())
   {
     auto matchedVar = term->nthArgument(0)->var();
-    unsigned index = findMatchedArgument(matchedVar, header);
-    ASS(index < header.term()->arity());
 
     for (unsigned i = 1; i < term->arity(); i+=2) {
       auto pattern = term->nthArgument(i);
       auto matchBody = term->nthArgument(i+1);
+      // We replace the matched variable with
+      // the pattern in the header and recurse
       TermListReplacement tr(TermList(matchedVar,false), *pattern);
       TermList t(tr.transform(header.term()));
       processBody(*matchBody, t, templ);
@@ -556,15 +564,18 @@ void InductionPreprocessor::processCase(const unsigned recFun, TermList& body, v
 {
   CALL("InductionPreprocessor::processCase");
 
+  // If we arrived at a variable, nothing to do
   if (!body.isTerm()) {
     return;
   }
 
+  // Check if this term is a recursive call, store it
   auto term = body.term();
   if (term->functor() == recFun) {
     recursiveCalls.push_back(body);
   }
 
+  // Otherwise recurse into the subterms/subformulas
   if (term->isFormula()) {
     auto formula = term->getSpecialData()->getFormula();
     switch (formula->connective()) {
@@ -599,30 +610,6 @@ void InductionPreprocessor::processCase(const unsigned recFun, TermList& body, v
       processCase(recFun, n, recursiveCalls);
     }
   }
-}
-
-unsigned InductionPreprocessor::findMatchedArgument(unsigned matched, TermList& header)
-{
-  CALL("InductionPreprocessor::findMatchedArgument");
-
-  unsigned i = 0;
-  Term::Iterator argIt(header.term());
-  while (argIt.hasNext()) {
-    IntList::Iterator varIt(argIt.next().freeVariables());
-    bool found = false;
-    while (varIt.hasNext()) {
-      auto var = varIt.next();
-      if (var == matched) {
-        found = true;
-        break;
-      }
-    }
-    if (found) {
-      break;
-    }
-    i++;
-  }
-  return i;
 }
 
 InductionSchemeGenerator::~InductionSchemeGenerator()
@@ -692,6 +679,10 @@ void InductionSchemeGenerator::generate(Clause* premise, Literal* lit,
 {
   CALL("InductionSchemeGenerator::generate");
 
+  // Process all subterms of the literal to
+  // be able to store occurrences of induction
+  // terms. The literal itself and both sides
+  // of the equality count as active positions.
   if (_actOccMaps.find(lit)) {
     return;
   }
@@ -703,29 +694,30 @@ void InductionSchemeGenerator::generate(Clause* premise, Literal* lit,
     actStack.push(true);
     actStack.push(true);
   } else {
-    processIteration(TermList(lit), true, currOccMap, actStack, premise, lit, schemes);
+    process(TermList(lit), true, currOccMap, actStack, premise, lit, schemes);
   }
   SubtermIterator it(lit);
   while(it.hasNext()){
     TermList curr = it.next();
     bool active = actStack.pop();
-    processIteration(curr, active, currOccMap, actStack, premise, lit, schemes);
+    process(curr, active, currOccMap, actStack, premise, lit, schemes);
   }
   ASS(actStack.isEmpty());
 }
 
-void InductionSchemeGenerator::processIteration(TermList curr, bool active,
+void InductionSchemeGenerator::process(TermList curr, bool active,
   DHMap<TermList, unsigned>& currOccMap,
   Stack<bool>& actStack, Clause* premise, Literal* lit,
   vvector<pair<InductionScheme, DHMap<Literal*, Clause*>*>>& schemes)
 {
-  CALL("InductionSchemeGenerator::processIteration");
+  CALL("InductionSchemeGenerator::process");
 
   if (!curr.isTerm()) {
     return;
   }
   auto t = curr.term();
 
+  // If induction term, store the occurrence
   if (canInductOn(curr)) {
     if (!currOccMap.find(curr)) {
       currOccMap.insert(curr, 0);
@@ -740,6 +732,7 @@ void InductionSchemeGenerator::processIteration(TermList curr, bool active,
   unsigned f = t->functor();
   bool isPred = t->isLiteral();
 
+  // If function with recursive definition, create a scheme
   if (env.signature->hasInductionTemplate(f, isPred)) {
     auto& templ = env.signature->getInductionTemplate(f, isPred);
     const auto& indVars = templ._inductionVariables;
@@ -769,6 +762,7 @@ void InductionSchemeGenerator::processIteration(TermList curr, bool active,
       litClMap->insert(lit, premise);
       schemes.push_back(make_pair(std::move(scheme), litClMap));
     }
+  // We induct on subterms of term algebra constructors
   } else if (isTermAlgebraCons(curr)) {
     for (unsigned i = 0; i < t->arity(); i++) {
       actStack.push(active);

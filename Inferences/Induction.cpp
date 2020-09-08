@@ -234,7 +234,6 @@ void InductionClauseIterator::process(Clause* premise, Literal* lit, TermIndex* 
       Set<Term*>::Iterator citer2(ta_terms);
       while(citer2.hasNext()){
         Term* t = citer2.next();
-        //cout << "PERFORM INDUCTION on " << t->toString() << endl;
         static bool one = env.options->structInduction() == Options::StructuralInductionKind::ONE ||
                           env.options->structInduction() == Options::StructuralInductionKind::ALL; 
         static bool two = env.options->structInduction() == Options::StructuralInductionKind::TWO ||
@@ -268,14 +267,17 @@ void InductionClauseIterator::process(Clause* premise, Literal* lit, TermIndex* 
    }
 }
 
-void InductionClauseIterator::produceClauses(DHMap<Literal*, Clause*>* origLitToPremiseMap, Formula* hypothesis, DHMap<Literal*, Literal*>* conclusionToOrigLitMap, InferenceRule rule)
+void InductionClauseIterator::produceClauses(
+  DHMap<Literal*, Clause*>* origLitToPremiseMap,
+  Formula* hypothesis,
+  DHMap<Literal*, Literal*>* conclusionToOrigLitMap,
+  InferenceRule rule,
+  ResultSubstitutionSP& substitution)
 {
   CALL("InductionClauseIterator::produceClauses");
   NewCNF cnf(0);
   cnf.setForInduction();
   Stack<Clause*> hyp_clauses;
-  //TODO: Induction hypothesis not technically a TheoryAxiom - check
-  //Inference inf = TheoryAxiom(rule);
   Inference inf = NonspecificInference0(UnitInputType::AXIOM,rule);
   DHMap<Literal*, Clause*>::Iterator it(*origLitToPremiseMap);
   while (it.hasNext()) {
@@ -285,8 +287,6 @@ void InductionClauseIterator::produceClauses(DHMap<Literal*, Clause*>* origLitTo
   }
   FormulaUnit* fu = new FormulaUnit(hypothesis,inf);
   cnf.clausify(NNF::ennf(fu), hyp_clauses);
-
-  //cout << "Clausify " << fu->toString() << endl;
 
   // Now perform resolution between origLit and the hyp_clauses on conclusion if conclusion in the clause
   // If conclusion not in the clause then the clause is a definition from clausification and just keep
@@ -300,8 +300,7 @@ void InductionClauseIterator::produceClauses(DHMap<Literal*, Clause*>* origLitTo
       cIt.next(conclusion, origLit);
       if(c->contains(conclusion)){
         auto premise = origLitToPremiseMap->get(origLit);
-        static ResultSubstitutionSP identity = ResultSubstitutionSP(new IdentitySubstitution());
-        SLQueryResult qr(origLit,premise,identity);
+        SLQueryResult qr(origLit,premise,substitution);
         c = BinaryResolution::generateClause(c,conclusion,qr,*env.options);
       }
     }
@@ -320,14 +319,6 @@ void InductionClauseIterator::produceClauses(DHMap<Literal*, Clause*>* origLitTo
 void InductionClauseIterator::performMathInductionOne(Clause* premise, Literal* origLit, Literal* lit, Term* term, InferenceRule rule) 
 {
   CALL("InductionClauseIterator::performMathInductionOne");
-
-  // This may not work. 
-  // At least it doesn't properly handle definitions coming out of NewCNF
-  NOT_IMPLEMENTED;
-
-  return;
-
-  //cout << "PERFORM INDUCTION on " << env.signature->functionName(c) << endl;
 
   TermList zero(theory->representConstant(IntegerConstantType(0)));
   TermList one(theory->representConstant(IntegerConstantType(1)));
@@ -393,36 +384,18 @@ void InductionClauseIterator::performMathInductionOne(Clause* premise, Literal* 
                         Lxmo))
                     ,0))),
                     Formula::quantify(new BinaryFormula(Connective::IMP,Lylz,Ly)));
-  
-  NewCNF cnf(0);
-  cnf.setForInduction();
-  Stack<Clause*> hyp_clauses;
-  unsigned prev_depth = premise->inference().inductionDepth();
-  Inference inf1 = TheoryAxiom(rule);
-  inf1.setInductionDepth(prev_depth+1);
-  FormulaUnit* fu1 = new FormulaUnit(hyp1,inf1);
-  Inference inf2 = TheoryAxiom(rule);
-  inf2.setInductionDepth(prev_depth+1);
-  FormulaUnit* fu2 = new FormulaUnit(hyp2,inf2);
-  cnf.clausify(NNF::ennf(fu1), hyp_clauses);
-  cnf.clausify(NNF::ennf(fu2), hyp_clauses);
 
-  ScopedPtr<RobSubstitution> subst(new RobSubstitution());
-
-  // Now perform resolution between lit and the hyp_clauses on clit, which should be contained in each clause!
-  Stack<Clause*>::Iterator cit(hyp_clauses);
-  while(cit.hasNext()){
-    Clause* c = cit.next();
-    subst->unify(TermList(lit),0,TermList(Ly->literal()),1);
-    SLQueryResult qr(lit,premise,ResultSubstitution::fromSubstitution(subst.ptr(),1,0));
-    subst->reset();
-    Clause* r = BinaryResolution::generateClause(c,Ly->literal(),qr,*env.options);
-    _clauses.push(r);
-  }
-  env.statistics->induction++;
-  if (rule == InferenceRule::GEN_INDUCTION_AXIOM) {
-    env.statistics->generalizedInduction++;
-  }
+  static ScopedPtr<RobSubstitution> subst(new RobSubstitution());
+  // When producing clauses, 'y' should be unified with 'term'
+  subst->unify(TermList(term), 0, y, 1);
+  ResultSubstitutionSP result_subst = ResultSubstitution::fromSubstitution(subst.ptr(), 1, 0);
+  DHMap<Literal*, Clause*> origLitToPremiseMap;
+  origLitToPremiseMap.insert(origLit, premise);
+  DHMap<Literal*, Literal*> conclusionToOrigLitMap;
+  conclusionToOrigLitMap.insert(Ly->literal(), origLit);
+  produceClauses(&origLitToPremiseMap, hyp1, &conclusionToOrigLitMap, rule, result_subst);
+  produceClauses(&origLitToPremiseMap, hyp2, &conclusionToOrigLitMap, rule, result_subst);
+  subst->reset();
 }
 
 void InductionClauseIterator::performMathInductionTwo(Clause* premise, Literal* origLit, Literal* lit, Term* term, InferenceRule rule) 
@@ -523,7 +496,8 @@ void InductionClauseIterator::performStructInductionOne(Clause* premise, Literal
   DHMap<Literal*, Literal*> conclusionToOrigLitMap;
   conclusionToOrigLitMap.insert(conclusion, origLit);
 
-  produceClauses(&origLitToPremiseMap, hypothesis, &conclusionToOrigLitMap, rule);
+  static ResultSubstitutionSP identity = ResultSubstitutionSP(new IdentitySubstitution());
+  produceClauses(&origLitToPremiseMap, hypothesis, &conclusionToOrigLitMap, rule, identity);
 }
 
 /**
@@ -617,7 +591,8 @@ void InductionClauseIterator::performStructInductionTwo(Clause* premise, Literal
   DHMap<Literal*, Literal*> conclusionToOrigLitMap;
   conclusionToOrigLitMap.insert(conclusion, origLit);
 
-  produceClauses(&origLitToPremiseMap, hypothesis, &conclusionToOrigLitMap, rule);
+  static ResultSubstitutionSP identity = ResultSubstitutionSP(new IdentitySubstitution());
+  produceClauses(&origLitToPremiseMap, hypothesis, &conclusionToOrigLitMap, rule, identity);
 }
 
 /*
@@ -747,7 +722,8 @@ void InductionClauseIterator::performStructInductionThree(Clause* premise, Liter
   DHMap<Literal*, Literal*> conclusionToOrigLitMap;
   conclusionToOrigLitMap.insert(conclusion, origLit);
 
-  produceClauses(&origLitToPremiseMap, hypothesis, &conclusionToOrigLitMap, rule);
+  static ResultSubstitutionSP identity = ResultSubstitutionSP(new IdentitySubstitution());
+  produceClauses(&origLitToPremiseMap, hypothesis, &conclusionToOrigLitMap, rule, identity);
 }
 
 bool InductionClauseIterator::notDone(Literal* lit, Term* term)
@@ -853,6 +829,7 @@ void InductionClauseIterator::instantiateScheme(DHMap<Literal*, Clause*>* litClM
   FormulaList* formulas = FormulaList::empty();
 
   for (auto& desc : scheme._rDescriptionInstances) {
+    // We replace all induction terms with the corresponding step case terms
     FormulaList* stepFormulas = FormulaList::empty();
     DHMap<Literal*, Clause*>::Iterator litClIt(*litClMap);
     while (litClIt.hasNext()) {
@@ -862,10 +839,10 @@ void InductionClauseIterator::instantiateScheme(DHMap<Literal*, Clause*>* litClM
     }
     auto right = JunctionFormula::generalJunction(Connective::OR, stepFormulas);
 
-    // Then we replace the arguments of the term with the
-    // corresponding recursive cases for this step case
     FormulaList* hyp = FormulaList::empty();
 
+    // Then we replace the arguments of the term with the
+    // corresponding recursive cases for this step case (if not base case)
     for (const auto& r : desc._recursiveCalls) {
       FormulaList* innerHyp = FormulaList::empty();
       DHMap<Literal*, Clause*>::Iterator litClIt(*litClMap);
@@ -890,6 +867,9 @@ void InductionClauseIterator::instantiateScheme(DHMap<Literal*, Clause*>* litClM
   ASS(formulas != 0);
   Formula* indPremise = JunctionFormula::generalJunction(Connective::AND,formulas);
 
+  // After creating all cases, we need the main implicant to be resolved with
+  // the literal. For this, we use new variables starting from the max. var of
+  // the scheme.
   unsigned var = scheme._maxVar;
   vmap<TermList, TermList> r;
   for (const auto& desc : scheme._rDescriptionInstances) {
@@ -917,7 +897,8 @@ void InductionClauseIterator::instantiateScheme(DHMap<Literal*, Clause*>* litClM
 
   // cout << hypothesis->toString() << endl << endl;
 
-  produceClauses(litClMap, hypothesis, &conclusionToOrigLitMap, rule);
+  static ResultSubstitutionSP identity = ResultSubstitutionSP(new IdentitySubstitution());
+  produceClauses(litClMap, hypothesis, &conclusionToOrigLitMap, rule, identity);
 }
 
 }
