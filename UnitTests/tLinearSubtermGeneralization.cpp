@@ -42,12 +42,13 @@ public:
     };
     auto mulNum = NumeralMultiplicationGeneralization();
     auto mulVar = VariableMultiplicationGeneralization();
+    auto varPower = VariablePowerGeneralization();
     auto add = AdditionGeneralization();
     Clause* last = nullptr;
     auto cur = in;
     do {
       last = cur;
-      cur = apply(mulVar,apply(add, apply(mulNum, cur)));
+      cur = apply(varPower, apply(mulVar,apply(add, apply(mulNum, cur))));
     } while (last != cur);
     return cur;
   }
@@ -68,8 +69,14 @@ REGISTER_SIMPL_TESTER(SimplificationTester)
     TEST_SIMPLIFY_WITH_SUGAR(CAT(name, _REAL), SIMPL_SUGAR_(REAL), __VA_ARGS__)                               \
     TEST_SIMPLIFY_WITH_SUGAR(CAT(name, _RAT ), SIMPL_SUGAR_(RAT ), __VA_ARGS__)                               \
 
+#define TEST_SIMPLIFY_RATIONAL(name, ...)                                                                     \
+    TEST_SIMPLIFY_WITH_SUGAR(CAT(name, _RAT ), SIMPL_SUGAR_(RAT ), __VA_ARGS__)                               \
+
 #define TEST_SIMPLIFY_INTEGER(name, ...)                                                                      \
     TEST_SIMPLIFY_WITH_SUGAR(CAT(name, _INT ), SIMPL_SUGAR_(INT ), __VA_ARGS__)                               \
+
+#define TEST_SIMPLIFY_REAL(name, ...)                                                                         \
+    TEST_SIMPLIFY_WITH_SUGAR(CAT(name, _REAL), SIMPL_SUGAR_(REAL), __VA_ARGS__)                               \
 
 #define TEST_SIMPLIFY_NUMBER(name, ...)                                                                       \
     TEST_SIMPLIFY_FRACTIONAL(name, __VA_ARGS__)                                                               \
@@ -246,10 +253,16 @@ TEST_SIMPLIFY_FRACTIONAL(single_var_19,
       .expected = clause({ p(x * a) }),
     })
 
-TEST_SIMPLIFY_FRACTIONAL(single_var_20,
+TEST_SIMPLIFY_INTEGER(single_var_20,
     Simplification::NotApplicable {
       .input    = clause({ p(x * x) }), 
     })
+
+TEST_SIMPLIFY_RATIONAL(single_var_20,
+    Simplification::NotApplicable {
+      .input    = clause({ p(x * x) }), 
+    })
+
 // #endif // PHASE >= 2 
 
 // TEST_SIMPLIFY_FRACTIONAL(single_var_19,
@@ -500,8 +513,11 @@ TEST_SIMPLIFY_FRACTIONAL(fallancy_08,
 TEST_SIMPLIFY_FRACTIONAL(generalize_var_1,
     Simplification::Success {
       .input    = clause({ p1(f(x * y * z) + f(x * y)) }), 
-      //  ======> clause({ p1(f(        z) + f(x    )) }), 
-      .expected = clause({ p1(f(x     * z) + f(x    )) }), 
+      //  ======> clause({ p1(f(x     * z) + f(x    )) }), 
+      .expected = Simplification::anyOf(
+          clause({ p1(f(x * z) + f(x)) }),
+          clause({ p1(f(y * z) + f(y)) })
+          )
     })
 
 TEST_SIMPLIFY_FRACTIONAL(generalize_var_2,
@@ -509,9 +525,32 @@ TEST_SIMPLIFY_FRACTIONAL(generalize_var_2,
       .input    = clause({ p1(x * y + f(x * y * z) + f(x * y)) }), 
       //   =====> clause({ p1(x     + f(x     * z) + f(x    )) }), 
       .expected = Simplification::anyOf(
-                       clause({ p1(x + f(z) + f(x)) }),
-                       clause({ p1(y + f(z) + f(y)) })
+                       clause({ p1(x + f(x * z) + f(x)) }),
+                       clause({ p1(y + f(y * z) + f(y)) })
                        ), 
+    })
+
+
+TEST_SIMPLIFY_FRACTIONAL(generalize_var_3,
+    Simplification::NotApplicable {
+      .input    = clause({ p1(x * y + f(y)) }), 
+    })
+
+TEST_SIMPLIFY_REAL(generalize_power_1,
+    Simplification::NotApplicable {
+      .input    = clause({ p1(x * x * x + f(x * x)) }), 
+    })
+
+TEST_SIMPLIFY_REAL(generalize_power_2,
+    Simplification::Success {
+      .input    = clause({ p1(x * x + f(x * x)) }), 
+      .expected = clause({ p1(x + f(x)) }), 
+    })
+
+TEST_SIMPLIFY_REAL(generalize_power_3,
+    Simplification::Success {
+      .input    = clause({ p1(x * x + f(y * y * y)) }), 
+      .expected = clause({ p1(x) }), 
     })
 
 // TODO: what about { y = 0 \/ p(y*x) } ===> { p(x) }

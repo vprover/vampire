@@ -343,22 +343,24 @@ struct ChildIter<PolyNf>
 class PolyNf::Iter {
   Stack<ChildIter<PolyNf>> _stack;
 public:
-  Iter(PolyNf p) : _stack(decltype(_stack){ ChildIter<PolyNf>(p) }) {}
+  Iter(Iter&&) = default;
+  Iter(PolyNf p) : _stack(decltype(_stack){ ChildIter<PolyNf>(p) }) {  }
   DECL_ELEMENT_TYPE(PolyNf);
 
   PolyNf next() {
     CALL("PolyNf::Iter::next")
-    // DBGE(_stack)
+    ASS(_stack.size() != 0)
     while(_stack.top().hasNext()) {
+      ASS(_stack.size() != 0)
       _stack.push(ChildIter<PolyNf>(_stack.top().next()));
     }
+    ASS(_stack.size() != 0)
     return _stack.pop().self();
   }
 
   bool hasNext() const 
   { 
     CALL("PolyNf::Iter::hasNext")
-    // DBGE(_stack)
     return !_stack.isEmpty(); 
   }
 };

@@ -200,6 +200,10 @@ POLYMORPHIC_FUNCTION(unsigned, nSummands, const& t,            ) { return t->nSu
 POLYMORPHIC_FUNCTION(unsigned, nFactors , const& t, unsigned i;) { return t->nFactors(i); }
 POLYMORPHIC_FUNCTION(PolyNf const&, termAt   , const& t, unsigned summand; unsigned factor;) { return t->monomAt(summand)->termAt(factor); }
 
+using IntPoly = Polynom<IntTraits>;
+using RatPoly = Polynom<RatTraits>;
+using RealPoly = Polynom<RealTraits>;
+
 using AnyPolySuper = Coproduct< 
   UniqueShared<Polynom<NumTraits<IntegerConstantType>>>, 
   UniqueShared<Polynom<NumTraits<RationalConstantType>>>, 
@@ -353,6 +357,9 @@ public:
       );
   }
 
+  Optional<Variable> tryVar() const 
+  { return as<Variable>().template innerInto<Variable>(); }
+
   class Iter;
   IterTraits<Iter> iter() const;
 };
@@ -396,11 +403,7 @@ struct MonomPair {
   }
 
   Optional<Variable> tryVar() const 
-  { return power == 1 ? term.template as<Variable>().template innerInto<Variable>() 
-                      : none<Variable>(); }
-      //   && _factors[0].power == 1 
-      //   && _factors[0].term.template is<Variable>() ) {
-      // return  Opt(_factors[0].term.template unwrap<Variable>());
+  { return power == 1 ? term.tryVar() : none<Variable>(); }
 
 };
 
@@ -429,6 +432,9 @@ public:
 
   unsigned nFactors() const 
   { return _factors.size(); }
+
+  MonomPair & factorAt(unsigned i) 
+  { return _factors[i]; }
 
   MonomPair const& factorAt(unsigned i) const
   { return _factors[i]; }

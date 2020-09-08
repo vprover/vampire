@@ -35,6 +35,20 @@ public:
 };
 
 
+class VariablePowerGeneralization
+: public ImmediateSimplificationEngine
+{
+public:
+  CLASS_NAME(VariablePowerGeneralization);
+  USE_ALLOCATOR(VariablePowerGeneralization);
+
+  VariablePowerGeneralization() {}
+  virtual ~VariablePowerGeneralization();
+
+  Clause* simplify(Clause* cl);
+};
+
+
 class AdditionGeneralization
 : public ImmediateSimplificationEngine
 {
