@@ -3,6 +3,7 @@
 #include "Kernel/Clause.hpp"
 #include "Kernel/PolynomialNormalizer.hpp"
 #include "Lib/IntUnionFind.hpp"
+#include "Lib/Array.hpp"
 
 #define TODO ASSERTION_VIOLATION
 #define DEBUG(...) DBG(__VA_ARGS__)
@@ -988,23 +989,78 @@ Clause* NumeralMultiplicationGeneralization::simplify(Clause* cl)
 
 NumeralMultiplicationGeneralization::~NumeralMultiplicationGeneralization()  {}
 
+template<class A>
+class IntMap
+{
+  Map<A, unsigned> _map;
+  Stack<A> _stack;
+public:
+  unsigned insert(A obj) 
+  {
+    return _map.getOrInit(std::move(obj), [&](){ 
+      auto idx = _stack.size();
+      _stack.push(obj);
+      return idx; 
+    });
+  }
+
+  unsigned size() const 
+  { return _stack.size(); }
+
+  unsigned toInt(A const& obj) const
+  { return _map.get(obj); }
+
+  A const& fromInt(int obj)  const
+  { return _stack[obj]; }
+};
+
+class VariableRegion 
+{
+  Coproduct<Stack<Variable>, Top> _self;
+public:
+  VariableRegion() : _self(Top{}) {}
+  VariableRegion(Stack<Variable> self) : _self(self) {}
+
+  VariableRegion meet(VariableRegion rhs) 
+  {
+    auto& lhs = *this;
+    if (lhs.isTop()) return rhs;
+    if (rhs.isTop()) return lhs;
+    return VariableRegion(intersectSortedStack(std::move(lhs.unwrap()), std::move(rhs.unwrap())));
+  }
+
+  bool isTop() const 
+  { return _self.template is<Top>(); }
+
+  Stack<Variable> const& unwrap() const 
+  { return _self.template unwrap<Stack<Variable>>(); }
+
+  Stack<Variable> & unwrap() 
+  { return _self.template unwrap<Stack<Variable>>(); }
+
+  friend ostream& operator<<(ostream& out, VariableRegion const& self) 
+  {
+    return self.isTop() ? out << "Top"
+                        : out << self.unwrap();
+  }
+};
+
+
 struct VarMulGenPreprocess 
 {
   IntUnionFind& components;
-  Map<Variable, int> &varM;
-  Stack<Variable>    &varS;
-  Stack<Optional<Stack<Variable>>>    &varComponents;
+  IntMap<Variable> &varMap;
+  Array<VariableRegion> &varSubterms;
 
-  Optional<Stack<Variable>>& varSet(int v)
-  { return varComponents[v]; }
+  VariableRegion& varSet(int v)
+  { return varSubterms[v]; }
 
   int root(Variable v) const
-  { return components.root(varM.get(v)); }
+  { return components.root(varMap.toInt(v)); }
 
   template<class NumTraits> 
   void operator()(UniqueShared<Polynom<NumTraits>> p) 
   {
-    // Map<Variable, Stack<Variable>> varSets;
     CALL("VarMulGenPreprocess::operator()")
 
     for (auto summand : p->iter()) {
@@ -1022,7 +1078,7 @@ struct VarMulGenPreprocess
 
 
         // DBG("meeting initial: ", fst)
-        varSet(cur) = meet(varSet(cur), vars2.template collect<Stack>());
+        varSet(cur) = std::move(varSet(cur)).meet(vars2.template collect<Stack>());
         dbgState();
 
         for (auto var : vars) {
@@ -1038,27 +1094,27 @@ struct VarMulGenPreprocess
 
   void dbgState() const {
     // DBG("---------------------");
-    for (int i = 0; i < varS.size(); i++) {
-    // DBG(varS[i], " -> ", varS[components.root(i)], " -> ", varComponents[components.root(i)]);
+    for (int i = 0; i < varMap.size(); i++) {
+    // DBG(varMap.fromInt(i), " -> ", varMap.fromInt(components.root(i)), " -> ", varSubterms[components.root(i)]);
     }
     // DBG("---------------------");
   }
 
-  Optional<Stack<Variable>> meet(Optional<Stack<Variable>> lhs, Optional<Stack<Variable>> rhs) const
-  {
-    CALL("VarMulGenPreprocess::meet")
-    DBGE(lhs)
-    DBGE(rhs)
-    if (lhs.isNone()) {
-      return rhs.unwrap();
-    } else if (rhs.isNone()) {
-      return lhs.unwrap();
-    } else {
-      ASS(lhs.isSome());
-      ASS(rhs.isSome());
-      return some<Stack<Variable>>(intersectSortedStack(std::move(lhs).unwrap(), std::move(rhs).unwrap()));
-    }
-  }
+  // Optional<Stack<Variable>> meet(Optional<Stack<Variable>> lhs, Optional<Stack<Variable>> rhs) const
+  // {
+  //   CALL("VarMulGenPreprocess::meet")
+  //   DBGE(lhs)
+  //   DBGE(rhs)
+  //   if (lhs.isNone()) {
+  //     return rhs.unwrap();
+  //   } else if (rhs.isNone()) {
+  //     return lhs.unwrap();
+  //   } else {
+  //     ASS(lhs.isSome());
+  //     ASS(rhs.isSome());
+  //     return some<Stack<Variable>>(intersectSortedStack(std::move(lhs).unwrap(), std::move(rhs).unwrap()));
+  //   }
+  // }
 
   int unionMeet(int v, int w)
   {
@@ -1067,7 +1123,7 @@ struct VarMulGenPreprocess
 
     components.doUnion(v,w);
     auto r = components.root(v);
-    varSet(r) = meet(varSet(v), varSet(w));
+    varSet(r) = std::move(varSet(v)).meet(std::move(varSet(w)));
 
     return r;
   }
@@ -1129,41 +1185,32 @@ Clause* VariableMultiplicationGeneralization::simplify(Clause* cl)
   
   // typename Gen::State map;
 
-  /* populate the map, and computing meets */
   DEBUG("input clause: ", *cl);
-  Map<Variable, int> varM;
-  int cnt = 0;
-  Stack<Variable> varS;
+  IntMap<Variable> varMap;
 
   for (auto var : iterVars(cl)) {
-    varM.getOrInit(std::move(var), [&](){ 
-      varS.push(var);
-      return cnt++; 
-    });
+    varMap.insert(var);
   }
 
-  IntUnionFind components(varS.size());
-  Stack<Optional<Stack<Variable>>> varComponents(varS.size());
-  for (unsigned i = 0; i < varS.size(); i++)  {
-    varComponents.push(none<Stack<Variable>>());
-  }
+  IntUnionFind components(varMap.size());
+  Array<VariableRegion> varSubterms(varMap.size());;
 
   for (auto poly : iterPolynoms(cl)) {
     DBG(poly)
-    poly.apply(VarMulGenPreprocess {components, varM, varS, varComponents});
+    poly.apply(VarMulGenPreprocess {components, varMap, varSubterms});
   }
 
   components.evalComponents();
 
   /* select an applicable generalization */
 
-  DBGE(varComponents)
+  DBGE(varSubterms)
 
   Stack<Variable> remove;
 
   for (auto comp : iterTraits(IntUnionFind::ComponentIterator(components))) {
-    auto meet = varComponents[components.root(comp.next())];
-    if (meet.isSome()) {
+    auto meet = varSubterms[components.root(comp.next())];
+    if (!meet.isTop()) { // TODO remove this line
       auto meetIter = meet.unwrap().iter();
       if (meetIter.hasNext()) {
         /* we keep one variable per component */ meetIter.next();
@@ -1180,57 +1227,6 @@ Clause* VariableMultiplicationGeneralization::simplify(Clause* cl)
     VarMulGenGeneralize gen { remove };
     return evaluateBottomUp(cl, EvaluateMonom<VarMulGenGeneralize> {gen});
   }
-  // return mapPolynoms(cl, VarMulGenGeneralize{});
-
-  // debug("canidated generalizations: ", map)
-  // using opt = optional<typename decltype(map)::entry&>;
-  // opt selected;
-  // {
-  //   auto iter = map.iter();
-  //   while (iter.hasnext()) {
-  //     auto& gen = iter.next();
-  //     if (!gen.value().isbot()) {
-  //       selected = opt(gen);
-  //       break;
-  //     }
-  //   }
-  // }
-  // if (selected.isnone()) {
-  //   return cl_;
-  // } 
-  //
-  // auto& var            = selected.unwrap().key();
-  // auto& generalization = selected.unwrap().value();
-  // DEBUG("selected generalization: ", var, " -> ", generalization)
-  //
-  //
-  // /* apply the selectedGen generalization */
-  // bool anyChange = false;
-  //
-  // auto stack = iterTraits(cl.iterLits())
-  //   .map([&](Literal* lit) {
-  //       unsigned j = 0;
-  //       auto args = argIter(lit)
-  //         .map([&](TermList term) -> TermList { 
-  //             auto norm = PolyNf::normalize(TypedTermList(term, SortHelper::getArgSort(lit, j++)));
-  //             BuildGeneralizedTerm<Gen> eval { var, generalization };
-  //             auto res = evaluateBottomUp(norm, eval);
-  //             if (res != norm) {
-  //               anyChange = true;
-  //               DEBUG("generalized: ", norm, " -> ", res);
-  //               return res.toTerm();
-  //             } else {
-  //               return term;
-  //             }
-  //         })
-  //         .template collect<Stack>();
-  //       return Literal::create(lit, &args[0]);
-  //   })
-  //   .template collect<Stack>();
-  //
-  // ASS (anyChange) 
-  // Inference inf(SimplifyingInference1(Kernel::InferenceRule::ARITHMETIC_SUBTERM_GENERALIZATION, &cl));
-  // return Clause::fromStack(stack, inf);
 }
 
 VariableMultiplicationGeneralization::~VariableMultiplicationGeneralization()  {
