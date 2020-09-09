@@ -421,6 +421,8 @@ PortfolioSliceExecutor::PortfolioSliceExecutor(PortfolioMode *mode)
 
 void PortfolioSliceExecutor::runSlice(vstring sliceCode,int remainingTime)
 {
+  CALL("PortfolioSliceExecutor::runSlice");
+
   vstring chopped;
   int sliceTime = _mode->getSliceTime(sliceCode, chopped);
 

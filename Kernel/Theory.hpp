@@ -45,7 +45,7 @@ namespace Kernel {
 class ArithmeticException : public ThrowableBase { };
 
 class MachineArithmeticException : public ArithmeticException {  };
-class DivByZeroException  : public ArithmeticException {  };
+class DivByZeroException         : public ArithmeticException {  };
 
 class IntegerConstantType
 {
@@ -101,6 +101,7 @@ public:
 
   static IntegerConstantType ceiling(RationalConstantType rat);
   static IntegerConstantType ceiling(IntegerConstantType rat);
+  IntegerConstantType abs() const;
 
   static Comparison comparePrecedence(IntegerConstantType n1, IntegerConstantType n2);
   size_t hash() const;
@@ -166,28 +167,10 @@ struct RationalConstantType {
 
   bool isZero(){ return _num.toInner()==0; } 
   // relies on the fact that cannonize ensures that _den>=0
-  bool isNegative(){ ASS(_den>=0); return _num.toInner() < 0; }
+  bool isNegative() const { ASS(_den>=0); return _num.toInner() < 0; }
+  bool isPositive() const { ASS(_den>=0); return _num.toInner() > 0; }
 
-  RationalConstantType quotientE(const RationalConstantType& num) const {
-    if(_num.toInner()>0 && _den.toInner()>0){
-       return ((*this)/num).floor(); 
-    }
-    else return ((*this)/num).ceiling();
-  }
-  RationalConstantType quotientT(const RationalConstantType& num) const {
-    return ((*this)/num).truncate();
-  }
-  RationalConstantType quotientF(const RationalConstantType& num) const {
-    return ((*this)/num).floor(); 
-  }
-
-  RationalConstantType remainderE(const RationalConstantType& num) const
-  { return (*this) - num * quotientE(num); }
-  RationalConstantType remainderT(const RationalConstantType& num) const
-  { return (*this) - num * quotientT(num); }
-  RationalConstantType remainderF(const RationalConstantType& num) const
-  { return (*this) - num * quotientF(num); } 
-
+  RationalConstantType abs() const;
 
   vstring toString() const;
 
@@ -243,20 +226,7 @@ public:
   RealConstantType truncate() const { return RealConstantType(RationalConstantType::truncate()); }
   RealConstantType ceiling() const { return RealConstantType(RationalConstantType::ceiling()); }
 
-  RealConstantType quotientE(const RealConstantType& num) const
-    { return RealConstantType(RationalConstantType::quotientE(num)); }
-  RealConstantType quotientT(const RealConstantType& num) const
-    { return RealConstantType(RationalConstantType::quotientT(num)); }
-  RealConstantType quotientF(const RealConstantType& num) const
-    { return RealConstantType(RationalConstantType::quotientF(num)); }
-
-  RealConstantType remainderE(const RealConstantType& num) const
-  { return (*this) - num * quotientE(num); }
-  RealConstantType remainderT(const RealConstantType& num) const
-  { return (*this) - num * quotientT(num); }
-  RealConstantType remainderF(const RealConstantType& num) const
-  { return (*this) - num * quotientF(num); } 
-
+  RealConstantType abs() const;
 
   vstring toNiceString() const;
 

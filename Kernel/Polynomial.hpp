@@ -608,7 +608,7 @@ public:
     auto endl = oldl._summands.end();
     auto endr = oldr._summands.end();
     auto push = [](CoeffVec& vec, const Monom& m, Coeff c) 
-    { vec.pushMv(PolyPair(c, unique(Monom(m)))); };
+    { vec.push(PolyPair(c, unique(Monom(m)))); };
 
     CoeffVec newl;
     CoeffVec newr;

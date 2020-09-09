@@ -180,13 +180,8 @@ void BackwardSubsumptionDemodulation::perform(Clause* sideCl, BwSimplificationRe
 
 void BackwardSubsumptionDemodulation::performWithQueryLit(Clause* sideCl, Literal* candidateQueryLit, vvector<BwSimplificationRecord>& simplifications)
 {
-
-  //                      candidate
-  //                 vvvvvvvvvvvvvvvv
-  //     cl        matched      /-- only look for a term to demodulate in this part!
-  // vvvvvvvvvv      vv    vvvvvvvvvv
-  // eqLit                  dlit
-  // vvvvv                 vvvvv
+  //   sideCl
+  // vvvvvvvvvv
   //
   // l = r \/ C      CΘ \/ L[lΘ] \/ D
   // --------------------------------
@@ -275,20 +270,22 @@ void BackwardSubsumptionDemodulation::performWithQueryLit(Clause* sideCl, Litera
         mustPredActive = true;
       }
     }
-    bool haveMustPred = false;
-    for (unsigned ii = 0; ii < candidate->length(); ++ii) {
-      Literal* lit = (*candidate)[ii];
-      if (lit == qr.literal) {
+    if (mustPredActive) {
+      bool haveMustPred = false;
+      for (unsigned ii = 0; ii < candidate->length(); ++ii) {
+        Literal* lit = (*candidate)[ii];
+        if (lit == qr.literal) {
+          continue;
+        }
+        unsigned pred = lit->header();
+        if (pred == mustPred) {
+          haveMustPred = true;
+          break;
+        }
+      }
+      if (!haveMustPred) {
         continue;
       }
-      unsigned pred = lit->header();
-      if (pred == mustPred) {
-        haveMustPred = true;
-        break;
-      }
-    }
-    if (!haveMustPred) {
-      continue;
     }
     RSTAT_CTR_INC("bsd 1 mustPred survivors");
 

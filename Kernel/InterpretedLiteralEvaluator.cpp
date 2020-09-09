@@ -24,7 +24,7 @@
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
 
-#include "Signature.hpp" 
+#include "Signature.hpp"
 #include "SortHelper.hpp"
 #include "Sorts.hpp"
 #include "TermIterators.hpp"
@@ -32,10 +32,7 @@
 #include "Theory.hpp"
 #include "NumTraits.hpp"
 #include "Debug/Tracer.hpp"
-#include <algorithm>
-#include <utility>
 
-#define UNIMPL ASSERTION_VIOLATION
 
 #include "InterpretedLiteralEvaluator.hpp"
 
@@ -109,7 +106,7 @@ void stackTraverseIf(TermList term, Predicate pred, Fn action) {
     if(t.isTerm()) {
       auto& trm = *t.term();
       if (pred(trm)) {
-        for (auto i = 0; i < trm.arity(); i++) {
+        for (unsigned i = 0; i < trm.arity(); i++) {
           todo.push(trm[i]);
         }
       } else {
@@ -121,80 +118,34 @@ void stackTraverseIf(TermList term, Predicate pred, Fn action) {
   }
 }
 
-struct TermTraverser {
-    struct Node {
-      Term* term;
-      unsigned idx;
-    };
-
-    Node _cur;
-    Stack<Node> _stack;
-
-    bool inBounds() const {
-      return _cur.idx < _cur.term->arity();
-    }
-
-  public:
-
-    TermList operator*() const {
-      return *_cur.term->nthArgument(_cur.idx);
-    }
-
-    void operator++() {
-      _cur.idx++;
-      while(!inBounds()) {
-        if (_stack.isEmpty()) return;
-        _cur = _stack.pop();
-      }
-    }
-
-    void push() {
-      ASS(inBounds())
-      auto _new_term = (**this);
-      ASS(_new_term.isTerm())
-      auto new_term = _new_term.term();
-      ASS(new_term->arity() > 0)
-      _cur.idx++;
-      _stack.push(_cur);
-      _cur.term = new_term;
-      _cur.idx = 0;
-    }
-
-    bool hasNext() const {
-      return !_stack.isEmpty() || inBounds();
-    }
-};
-
-
-
 
 /**
- * We want to smplify terms that are interpred by commutative monoids. e.g. (1+a)+1 -> 2 + a ... 
+ * We want to simplify terms that are interpreted by abelian groups. e.g. (1+a)+1 -> 2 + a ...
  * the standard evaluation will not do this. 
  *
  * Additionally evaluator has a weekly normalizing behaviour. Namely it re-brackets sums, such that the lhs 
  * of the operation is always a non-operator term. Further all interpreted constants will be collapsed into 
- * the 'left-most' term. The left most term is ommited if it is the identity element.
+ * the 'left-most' term. The left most term is omitted if it is the identity element.
  *
  * x + ( y + ( t + 4 ) + r ) + 5  ==> ( ( (9 + x) + y ) + t ) + r
  * x + ( y + 0 )                  ==> x + y
  *
- * (The name of this class comes from the Associative Commutative operation of the Monoid)
+ * (The name of this class comes from the Associative Commutative operation of the Group)
  *
  * @author Giles (refactorings by joe-hauns)
  * @since 06/12/18
  */
-template<class CommutativeMonoid>
-class InterpretedLiteralEvaluator::ACFunEvaluator
+template<class AbelianGroup>
+  class InterpretedLiteralEvaluator::ACFunEvaluator
    : public Evaluator
 {
 public:
-CLASS_NAME(InterpretedLiteralEvaluator::ACFunEvaluator<CommutativeMonoid>);
-  USE_ALLOCATOR(InterpretedLiteralEvaluator::ACFunEvaluator<CommutativeMonoid>);
+CLASS_NAME(InterpretedLiteralEvaluator::ACFunEvaluator<AbelianGroup>);
+  USE_ALLOCATOR(InterpretedLiteralEvaluator::ACFunEvaluator<AbelianGroup>);
 
-  using ConstantType = typename CommutativeMonoid::ConstantType;
+  using ConstantType = typename AbelianGroup::ConstantType;
 
-  ACFunEvaluator() : _fun(env.signature->getInterpretingSymbol(CommutativeMonoid::interpreation)) { }
+  ACFunEvaluator() : _fun(env.signature->getInterpretingSymbol(AbelianGroup::interpreation)) { }
   const unsigned _fun; 
 
   virtual bool canEvaluateFunc(unsigned func) { return func == _fun; }
@@ -205,7 +156,7 @@ CLASS_NAME(InterpretedLiteralEvaluator::ACFunEvaluator<CommutativeMonoid>);
     ASS_EQ(trm->arity(),2);
 
     unsigned nums = 0;
-    ConstantType acc = CommutativeMonoid::IDENTITY;
+    ConstantType acc = AbelianGroup::IDENTITY;
     Stack<TermList> keep;
     stackTraverseIf(TermList(trm), 
         /* we traverse only the parts with the same operation */
@@ -214,7 +165,7 @@ CLASS_NAME(InterpretedLiteralEvaluator::ACFunEvaluator<CommutativeMonoid>);
           ConstantType c;
           /* we eval constant parts */
           if (t.isTerm() && theory->tryInterpretConstant(t.term(), c)) {
-            acc = CommutativeMonoid::groundEval(acc, c);
+            acc = AbelianGroup::groundEval(acc, c);
             nums++;
           } else {
             keep.push(t);
@@ -222,13 +173,13 @@ CLASS_NAME(InterpretedLiteralEvaluator::ACFunEvaluator<CommutativeMonoid>);
         });
     if (nums <= 1) return false;
 
-    if (acc != CommutativeMonoid::IDENTITY) {
+    if (acc != AbelianGroup::IDENTITY) {
       keep.push(TermList(theory->representConstant(acc)));
     }
 
     auto iter = Stack<TermList>::BottomFirstIterator(keep);
     if (!iter.hasNext()) {
-      res = TermList(theory->representConstant(CommutativeMonoid::IDENTITY));
+      res = TermList(theory->representConstant(AbelianGroup::IDENTITY));
       return TermList(trm) != res;
     } else {
       TermList out = iter.next();
@@ -902,25 +853,6 @@ protected:
     case Theory::RAT_QUOTIENT:
       res = arg1/arg2;
       return true;
-    case Theory::RAT_QUOTIENT_E:
-      res = arg1.quotientE(arg2);
-      return true;
-    case Theory::RAT_QUOTIENT_T:
-      res = arg1.quotientT(arg2);
-      return true;
-    case Theory::RAT_QUOTIENT_F:
-      res = arg1.quotientF(arg2);
-      return true;
-    // The remainder is left - (quotient * right)
-    case Theory::RAT_REMAINDER_E:
-      res = arg1 - (arg1.quotientE(arg2)*arg2);
-      return true;
-    case Theory::RAT_REMAINDER_T:
-      res = arg1 - (arg1.quotientT(arg2)*arg2);
-      return true;
-    case Theory::RAT_REMAINDER_F:
-      res = arg1 - (arg1.quotientF(arg2)*arg2);
-      return true;
     default:
       return false;
     }
@@ -1017,25 +949,6 @@ protected:
     case Theory::REAL_QUOTIENT:
       res = arg1/arg2;
       return true;
-    case Theory::REAL_QUOTIENT_E:
-      res = arg1.quotientE(arg2);
-      return true;
-    case Theory::REAL_QUOTIENT_T:
-      res = arg1.quotientT(arg2);
-      return true;
-    case Theory::REAL_QUOTIENT_F:
-      res = arg1.quotientF(arg2);
-      return true;
-    // The remainder is left - (quotient * right)
-    case Theory::REAL_REMAINDER_E:
-      res = arg1 - (arg1.quotientE(arg2)*arg2);
-      return true;
-    case Theory::REAL_REMAINDER_T:
-      res = arg1 - (arg1.quotientT(arg2)*arg2);
-      return true;
-    case Theory::REAL_REMAINDER_F:
-      res = arg1 - (arg1.quotientF(arg2)*arg2);
-      return true;
     default:
       return false;
     }
@@ -1084,78 +997,31 @@ protected:
 
 };
 
-template<class num>
-struct mul_traits {
-  using number = num;
-  using ConstantType = typename number::ConstantType;
-  static const Interpretation inter = number::mulI;
-  static ConstantType identity() { return number::oneC;}
-  static ConstantType groundEval(ConstantType l, ConstantType r) { return l * r; }
-  static unsigned functor() { return number::mulF(); }
-  static TermList iterate(int cnt, TermList t) { 
-    if (cnt == 0) {
-      return TermList(theory->representConstant(identity()));
-    } else {
-      ASS(cnt > 0);
-      TermList out = t;
-      for (int i = 1; i < cnt; i++) {
-        out = TermList(number::mul(t, out));
-      }
-      return out;
-    }
-  }
-};
-
-template<class num>
-struct add_traits {
-  using number = num;
-  using ConstantType = typename number::ConstantType;
-  static constexpr Interpretation inter = number::addI;
-  static ConstantType identity() { return number::zeroC;}
-  static ConstantType groundEval(ConstantType l, ConstantType r) { return l + r; }
-  static unsigned functor() { return number::addF(); }
-  static TermList iterate(int cnt, TermList t) { 
-    switch(cnt) {
-      case 0:
-        return number::zero();
-
-      case 1:
-        return t;
-
-      default:
-        TermList c = TermList(theory->representConstant(ConstantType(cnt)));
-        return TermList(number::mul(c, t));
-    }
-  }
-};
-
 template<Theory::Interpretation op>
-struct CommutativeMonoid;
+struct AbelianGroup;
 
-/** Creates an instance of struct CommutativeMonoid<oper>, for the use in ACFunEvaluator. */
+/** Creates an instance of struct AbelianGroup<oper>, for the use in ACFunEvaluator. */
 #define IMPL_OPERATOR(oper, type, identity, eval) \
-  template<> struct CommutativeMonoid<NumTraits<type>::oper##I> { \
+  template<> struct AbelianGroup<oper> { \
+    const static Theory::Interpretation interpreation = oper; \
     using ConstantType = type; \
-    using number = NumTraits<type>; \
-    const static Theory::Interpretation interpreation = number::oper##I; \
-    static unsigned functor() { return number::oper##F(); } \
     const static type IDENTITY; \
     static type groundEval(type l, type r) { return eval; } \
     /*const static unsigned FUNCTOR;*/ \
   }; \
-  const type     CommutativeMonoid<NumTraits<type>::oper##I>::IDENTITY = identity; \
+  const type     AbelianGroup<oper>::IDENTITY = identity; \
 
 /* int opeators */
-IMPL_OPERATOR(mul, IntegerConstantType, IntegerConstantType(1), l * r)
-IMPL_OPERATOR(add, IntegerConstantType, IntegerConstantType(0), l + r)
+IMPL_OPERATOR(Theory::INT_MULTIPLY, IntegerConstantType, IntegerConstantType(1), l * r)
+IMPL_OPERATOR(Theory::INT_PLUS, IntegerConstantType, IntegerConstantType(0), l + r)
 
 /* rational opeators */
-IMPL_OPERATOR(mul, RationalConstantType, RationalConstantType(1), l * r)
-IMPL_OPERATOR(add, RationalConstantType, RationalConstantType(0), l + r)
+IMPL_OPERATOR(Theory::RAT_MULTIPLY, RationalConstantType, RationalConstantType(1), l * r)
+IMPL_OPERATOR(Theory::RAT_PLUS, RationalConstantType, RationalConstantType(0), l + r)
 
 /* real opeators */
-IMPL_OPERATOR(mul, RealConstantType, RealConstantType(RationalConstantType(1)), l * r)
-IMPL_OPERATOR(add, RealConstantType, RealConstantType(RationalConstantType(0)), l + r)
+IMPL_OPERATOR(Theory::REAL_MULTIPLY, RealConstantType, RealConstantType(RationalConstantType(1)), l * r)
+IMPL_OPERATOR(Theory::REAL_PLUS, RealConstantType, RealConstantType(RationalConstantType(0)), l + r)
 
 ////////////////////////////////
 // InterpretedLiteralEvaluator
@@ -1180,12 +1046,12 @@ InterpretedLiteralEvaluator::InterpretedLiteralEvaluator(bool doNormalize) : _no
 
   // Special AC evaluators are added to be tried first for Plus and Multiply
 
-  _evals.push(new ACFunEvaluator<CommutativeMonoid<Theory::INT_PLUS>>()); 
-  _evals.push(new ACFunEvaluator<CommutativeMonoid<Theory::INT_MULTIPLY>>());
-  _evals.push(new ACFunEvaluator<CommutativeMonoid<Theory::RAT_PLUS>>());
-  _evals.push(new ACFunEvaluator<CommutativeMonoid<Theory::RAT_MULTIPLY>> ());
-  _evals.push(new ACFunEvaluator<CommutativeMonoid<Theory::REAL_PLUS>> ());
-  _evals.push(new ACFunEvaluator<CommutativeMonoid<Theory::REAL_MULTIPLY>> ());
+  _evals.push(new ACFunEvaluator<AbelianGroup<Theory::INT_PLUS>>()); 
+  _evals.push(new ACFunEvaluator<AbelianGroup<Theory::INT_MULTIPLY>>());
+  _evals.push(new ACFunEvaluator<AbelianGroup<Theory::RAT_PLUS>>());
+  _evals.push(new ACFunEvaluator<AbelianGroup<Theory::RAT_MULTIPLY>> ());
+  _evals.push(new ACFunEvaluator<AbelianGroup<Theory::REAL_PLUS>> ());
+  _evals.push(new ACFunEvaluator<AbelianGroup<Theory::REAL_MULTIPLY>> ());
 
   }
 
@@ -1521,38 +1387,40 @@ bool InterpretedLiteralEvaluator::balanceDivide(Interpretation multiply,
     return false;    
 }
 
-// // TODO document me
-// Literal& balance(Literal& in)
-// {
-//   /* we only rebalance equalities */
-//   if (!in.isEquality()) {
-//     return in;
-//
-//   } else {
-//     ASS(in.arity() == 2);
-//     unsigned sort;
-//     if (!SortHelper::tryGetResultSort(in[0], sort) &&
-//         !SortHelper::tryGetResultSort(in[1], sort)) {
-//       return in;
-//     } else {
-//
-//       Literal* out;
-//       switch (sort) {
-// #define _CASE(SRT, ConstantType) \
-//         case Sorts::SRT: \
-//           if (!balance<ConstantType>(in, out)){ \
-//             return in; \
-//           } 
-//         _CASE(SRT_REAL    ,    RealConstantType)
-//         _CASE(SRT_INTEGER , IntegerConstantType)
-//         _CASE(SRT_RATIONAL,RationalConstantType)
-// #undef _CASE
-//         default: return in;
-//       }
-//       return *out;
-//     }
-//   }
-// }
+/*
+ // TODO document me
+ Literal& balance(Literal& in)
+ {
+   // we only rebalance equalities
+   if (!in.isEquality()) {
+     return in;
+
+   } else {
+     ASS(in.arity() == 2);
+     unsigned sort;
+     if (!SortHelper::tryGetResultSort(in[0], sort) &&
+         !SortHelper::tryGetResultSort(in[1], sort)) {
+       return in;
+     } else {
+
+       Literal* out;
+       switch (sort) {
+ #define _CASE(SRT, ConstantType) \
+         case Sorts::SRT: \
+           if (!balance<ConstantType>(in, out)){ \
+             return in; \
+           }
+         _CASE(SRT_REAL    ,    RealConstantType)
+         _CASE(SRT_INTEGER , IntegerConstantType)
+         _CASE(SRT_RATIONAL,RationalConstantType)
+ #undef _CASE
+         default: return in;
+       }
+       return *out;
+     }
+   }
+ }
+*/
 
 class LiteralNormalizer 
 {
@@ -1766,6 +1634,3 @@ InterpretedLiteralEvaluator::Evaluator* InterpretedLiteralEvaluator::getPredEval
 }
 
 }
-
-
-

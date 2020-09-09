@@ -20,7 +20,7 @@ Clause* GaussianVariableElimination::simplify(Clause* in)
 
   auto& cl = *in;
   
-  for(int i = 0; i < cl.size(); i++) {
+  for(unsigned i = 0; i < cl.size(); i++) {
     auto& lit = *cl[i];
     if (lit.isEquality() && lit.isNegative()) { 
       for (auto b : Balancer(lit)) {
@@ -53,11 +53,11 @@ Clause* GaussianVariableElimination::rewrite(Clause& cl, TermList find, TermList
 
   auto sz = cl.size() - 1;
   Clause& out = *new(sz) Clause(sz, inf); 
-  for (int i = 0; i < skipLiteral; i++) {
+  for (unsigned i = 0; i < skipLiteral; i++) {
     out[i] = EqHelper::replace(cl[i], find, replace);
   }
 
-  for (int i = skipLiteral; i < sz; i++)  {
+  for (unsigned i = skipLiteral; i < sz; i++)  {
     out[i] = EqHelper::replace(cl[i+1], find, replace);
   }
 

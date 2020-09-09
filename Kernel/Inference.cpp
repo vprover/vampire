@@ -741,6 +741,8 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "equality axiom";
   case InferenceRule::CHOICE_AXIOM:
     return "choice axiom";
+  case InferenceRule::DISTINCTNESS_AXIOM:
+    return "distinctness axiom";
   case InferenceRule::SIMPLIFY_PROVER_DISTINCT_NUMBERS_AXIOM:
     return "distinct numbers";
   case InferenceRule::THEORY_TAUTOLOGY_SAT_CONFLICT:
