@@ -1330,5 +1330,14 @@ Clause* VariablePowerGeneralization::simplify(Clause* cl)
 
 VariablePowerGeneralization::~VariablePowerGeneralization()  {}
 
+Stack<ImmediateSimplificationEngine*> allArithmeticSubtermGeneralizations()
+{ 
+  return Stack<ImmediateSimplificationEngine*>{
+      new VariableMultiplicationGeneralization(),
+      new NumeralMultiplicationGeneralization(),
+      new VariablePowerGeneralization(),
+      new AdditionGeneralization()
+  };
+}
 
 } // Inferences

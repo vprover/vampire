@@ -81,6 +81,7 @@
 #include "Inferences/Instantiation.hpp"
 #include "Inferences/TheoryInstAndSimp.hpp"
 #include "Inferences/Induction.hpp"
+#include "Inferences/ArithmeticSubtermGeneralization.hpp"
 
 #include "Saturation/ExtensionalityClauseContainer.hpp"
 
@@ -1626,6 +1627,12 @@ ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, cons
     }
   }
   if(prb.hasInterpretedOperations() || prb.hasInterpretedEquality()) {
+    if (env.options->arithmeticSubtermGeneralizations()) {
+      for (auto gen : allArithmeticSubtermGeneralizations())  {
+        res->addFront(gen);
+      }
+    }
+
     if (env.options->gaussianVariableElimination()) {
       res->addFront(new GaussianVariableElimination()); 
     }

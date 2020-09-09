@@ -1074,7 +1074,7 @@ void Options::Options::init()
            _inequalityNormalization.description="Enable normalizing of inequalities like s < t ==> 0 < t - s.";
            _lookup.insert(&_inequalityNormalization);
            _inequalityNormalization.tag(OptionTag::INFERENCES);
- 
+
            _gaussianVariableElimination = BoolOptionValue("gaussian_variable_elimination","gve",false);
            _gaussianVariableElimination.description=
                   "Enable the immideate simplification \"Gaussian Variable Elimination\":\n"
@@ -1088,10 +1088,15 @@ void Options::Options::init()
                   "6 * X0 != 2 * X1 | p(X0, X1)\n"
                   "-------------------------------\n"
                   "  p(2 * X1 / 6, X1)";
-
            _lookup.insert(&_gaussianVariableElimination);
            _gaussianVariableElimination.tag(OptionTag::INFERENCES);
 
+           _arithmeticSubtermGeneralizations = BoolOptionValue("arithmetic_subterm_generalizations","asg",false);
+           _arithmeticSubtermGeneralizations.description=
+                  "Enable variaous immediate simplification rules for arithmetic terms.\n"
+                  "All of these rules work by generalizing a subterm.";
+           _lookup.insert(&_arithmeticSubtermGeneralizations);
+           _arithmeticSubtermGeneralizations.tag(OptionTag::INFERENCES);
 
             _induction = ChoiceOptionValue<Induction>("induction","ind",Induction::NONE,
                                 {"none","struct","math","both"});

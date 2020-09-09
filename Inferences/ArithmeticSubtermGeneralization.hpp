@@ -3,6 +3,7 @@
 
 #include "Forwards.hpp"
 #include "InferenceEngine.hpp"
+#include "Lib/Stack.hpp"
 
 
 namespace Inferences {
@@ -62,7 +63,10 @@ public:
   Clause* simplify(Clause* cl);
 };
 
-};
+Stack<ImmediateSimplificationEngine*> allArithmeticSubtermGeneralizations();
+
+
+} // namespace Inferences
 
 
 #endif // __ARITHMETIC_SUBTERM_GENERALIZATION__
