@@ -91,11 +91,33 @@ static const auto iterTerms = [](Clause* cl) {
     .flatMap([](PolyNf arg) { return arg.iter();  });
 };
 
+/**
+ * Type to erase the NumTraits type parameter from some other template class
+ */
+template<template<class> class NumberObject>
+class AnyNumber : public Coproduct<NumberObject<IntTraits>, NumberObject<RatTraits>, NumberObject<RealTraits> > 
+{
+
+public:
+  using Super = Coproduct<NumberObject<IntTraits>, NumberObject<RatTraits>, NumberObject<RealTraits>>;
+  template<class NumTraits>
+  AnyNumber(NumberObject<NumTraits> self) : Super(self) {}
+
+  template<class NumTraits> NumberObject<NumTraits> const& downcast() const& { return Super::template unwrap<NumberObject<NumTraits>>(); }
+  template<class NumTraits> NumberObject<NumTraits>      & downcast()      & { return Super::template unwrap<NumberObject<NumTraits>>(); }
+  template<class NumTraits> NumberObject<NumTraits>     && downcast()     && { return Super::template unwrap<NumberObject<NumTraits>>(); }
+  
+  friend bool operator<(AnyNumber const& lhs, AnyNumber const& rhs)
+  { return std::less<Super>{}(lhs,rhs); }
+};
+
+
 static const auto iterPolynoms = [](Clause* cl) {
   return iterTerms(cl)
     .filterMap([](PolyNf subterm) 
         { return subterm.template as<AnyPoly>().template innerInto<AnyPoly>(); });
 };
+
 
 static const auto iterVars = [](Clause* cl) {
   return iterTerms(cl)
@@ -401,7 +423,7 @@ private:
 template<class A>
 class FlatMeetLattice 
 {
-  using Inner = Coproduct<int, Bot>;
+  using Inner = Coproduct<A, Bot>;
   Inner _inner;
   using PolyPair = PolyPair<RealTraits>;
   using Const = RealConstantType;
@@ -410,14 +432,11 @@ class FlatMeetLattice
 private:
   FlatMeetLattice(Bot b) : _inner(b) {}
 public:
-  FlatMeetLattice& operator=(FlatMeetLattice&&) = default;
-  FlatMeetLattice(FlatMeetLattice&&) = default;
-
   static FlatMeetLattice bot() { return FlatMeetLattice(Bot{}); }
 
   FlatMeetLattice(A c) : _inner(c) {}
 
-  FlatMeetLattice meet(FlatMeetLattice&& rhs) && 
+  FlatMeetLattice meet(FlatMeetLattice rhs) 
   {
     auto& lhs = *this;
 
@@ -440,60 +459,6 @@ private:
   }
 };
 
-
-class GeneralizeMulVarPower 
-{
-  using Inner = FlatMeetLattice<int>;
-  Inner _inner;
-  using PolyPair = PolyPair<RealTraits>;
-  using Const = RealConstantType;
-  using Monom = Monom<RealTraits>;
-
-private:
-  GeneralizeMulVarPower(Inner l) : _inner(std::move(l)) {}
-public:
-  using Self = GeneralizeMulVarPower;
-  using State = Map<Variable, Self>;
-  GeneralizeMulVarPower& operator=(GeneralizeMulVarPower&&) = default;
-  GeneralizeMulVarPower(GeneralizeMulVarPower&&) = default;
-
-  static GeneralizeMulVarPower bot() { return GeneralizeMulVarPower(Inner::bot());}
-
-  GeneralizeMulVarPower(int c) : _inner(c) {}
-
-  GeneralizeMulVarPower meet(GeneralizeMulVarPower&& rhs) && 
-  { return std::move(_inner).meet(std::move(rhs._inner)); }
-
-  bool isBot() const {return _inner.isBot(); }
-
-  friend ostream& operator<<(ostream& out, GeneralizeMulVarPower const& self) 
-  { return out << self._inner; }
-
-  template<class Num2>
-  static UniqueShared<Polynom<Num2>> generalize(
-    Variable var,
-    Self const& gen, 
-    UniqueShared<Polynom<Num2>> poly,
-    PolyNf* generalizedArgs) 
-  { return GeneralizeMul<RealTraits>::generalize(var, gen, poly, generalizedArgs); }
-
-  static PolyPair generalize(
-    Variable var,
-    Self const& gen, 
-    PolyPair const& poly,
-    PolyNf* generalizedArgs);
-
-  template<class GenMap> static void addToMap(GenMap& map, AnyPoly p)
-  { return GeneralizeMul<RealTraits>::template addToMap<GenMap, Self>(map, p); }
-
-  template<class GenMap> static void addToMap(GenMap& map, PolyPair const& m);
-
-private:
-  static GeneralizeMulVarPower meet(int lhs, int rhs) {
-    if(lhs == rhs) return GeneralizeMulVarPower(lhs);
-    else return bot();
-  }
-};
 
 template<class NumTraits>
 GeneralizeMulNumeral<NumTraits>::GeneralizeMulNumeral(Const c) 
@@ -557,28 +522,6 @@ PolyPair<NumTraits> GeneralizeMulNumeral<NumTraits>::generalize(
   } else {
      return p;
   }
-}
-
-
-inline PolyPair<RealTraits> GeneralizeMulVarPower::generalize(
-  Variable var,
-  Self const& gen, 
-  PolyPair const& pair,
-  PolyNf* generalizedArgs) 
-{
-
-  using PolyPair  = Kernel::PolyPair<RealTraits>;
-  using MonomPair = MonomPair<RealTraits>;
-
-  auto found = (pair.monom->iter()
-      .findPosition([&](MonomPair& monom) 
-        { return monom.term.tryVar() == some(var); }));
-
-  auto newMonom = pair.monom->replaceTerms(generalizedArgs);
-  if (found.isSome()) {
-    newMonom.factorAt(found.unwrap()).power = 1;
-  }
-  return PolyPair(pair.coeff, unique(std::move(newMonom)));
 }
 
 
@@ -825,25 +768,6 @@ void GeneralizeAdd<NumTraits>::addToMap(GenMap& map, AnyPoly p_)
   }
 }
 
-template<class GenMap>
-void GeneralizeMulVarPower::addToMap(GenMap& map, PolyPair const& summand)
-{
-  for (auto factor : summand.monom->iter()) {
-    factor.term.template as<Variable>()
-      .andThen([&](Variable var) {
-          ASS_G(factor.power, 0);
-          auto gen = factor.power == 1 ? Self::bot() : Self(factor.power);
-          auto entry = map.tryGet(var);
-          if (entry.isSome()) {
-            auto& val = entry.unwrap();
-            val = move(val).meet(std::move(gen));
-          } else {
-            map.insert(var, std::move(gen));
-          }
-        });
-  }
-}
-
 template<class NumTraits>
 template<class GenMap>
 void GeneralizeMulNumeral<NumTraits>::addToMap(GenMap& map, PolyPair const& summand)
@@ -906,7 +830,6 @@ struct MapWrapper
 
   friend ostream& operator<<(ostream& out, MapWrapper const& self)
   { return out << self.self; }
-
 };
 
 template<template<class> class Gen> 
@@ -981,6 +904,10 @@ AdditionGeneralization::~AdditionGeneralization()  {}
 template<class NumTraits>
 using GenMulNum = GeneralizeMulNumeral<NumTraits>;
 
+namespace Rule2 
+{
+} // namespace Rule2
+
 Clause* NumeralMultiplicationGeneralization::simplify(Clause* cl) 
 { 
   CALL("NumeralMultiplicationGeneralization::simplify")
@@ -989,49 +916,8 @@ Clause* NumeralMultiplicationGeneralization::simplify(Clause* cl)
 
 NumeralMultiplicationGeneralization::~NumeralMultiplicationGeneralization()  {}
 
-template<class A>
-class IntMap
-{
-  Map<A, unsigned> _map;
-  Stack<A> _stack;
-public:
-  unsigned insert(A obj) 
-  {
-    return _map.getOrInit(std::move(obj), [&](){ 
-      auto idx = _stack.size();
-      _stack.push(obj);
-      return idx; 
-    });
-  }
-
-  unsigned size() const 
-  { return _stack.size(); }
-
-  unsigned toInt(A const& obj) const
-  { return _map.get(obj); }
-
-  A const& fromInt(int obj)  const
-  { return _stack[obj]; }
-};
-
-template<template<class> class NumberObject>
-class AnyNumber : public Coproduct<NumberObject<IntTraits>, NumberObject<RatTraits>, NumberObject<RealTraits> > {
-
-public:
-  using Super = Coproduct<NumberObject<IntTraits>, NumberObject<RatTraits>, NumberObject<RealTraits>>;
-  template<class NumTraits>
-  AnyNumber(NumberObject<NumTraits> self) : Super(self) {}
-
-  template<class NumTraits> NumberObject<NumTraits> const& downcast() const& { return Super::template unwrap<NumberObject<NumTraits>>(); }
-  template<class NumTraits> NumberObject<NumTraits>      & downcast()      & { return Super::template unwrap<NumberObject<NumTraits>>(); }
-  template<class NumTraits> NumberObject<NumTraits>     && downcast()     && { return Super::template unwrap<NumberObject<NumTraits>>(); }
-  
-  friend bool operator<(AnyNumber const& lhs, AnyNumber const& rhs)
-  { return std::less<Super>{}(lhs,rhs); }
 
 
-};
-POLYMORPHIC_FUNCTION(Optional<Variable>, tryVar, const& t,) { return t.tryVar(); }
 /**
  *  Rule 3)
  *    generalize variable multiplication
@@ -1047,6 +933,37 @@ POLYMORPHIC_FUNCTION(Optional<Variable>, tryVar, const& t,) { return t.tryVar();
  */
 namespace Rule3 
 {
+  POLYMORPHIC_FUNCTION(Optional<Variable>, tryVar, const& t,) { return t.tryVar(); }
+
+  /** 
+   * Type for associating objects with integer ids. It is mainly only used in order to use IntUnionFind with other types than int.
+   */
+  template<class A>
+  class IntMap
+  {
+    Map<A, unsigned> _map;
+    Stack<A> _stack;
+  public:
+    unsigned insert(A obj) 
+    {
+      return _map.getOrInit(std::move(obj), [&](){ 
+        auto idx = _stack.size();
+        _stack.push(obj);
+        return idx; 
+      });
+    }
+
+    unsigned size() const 
+    { return _stack.size(); }
+
+    unsigned toInt(A const& obj) const
+    { return _map.get(obj); }
+
+    A const& fromInt(int obj)  const
+    { return _stack[obj]; }
+  };
+
+
 
   /**
    * Represents the region of variables `X0 ⋅ X1 ⋅ ... ⋅ Xn` from the rule
@@ -1273,6 +1190,127 @@ namespace Rule3
 
 } // namespace Rule3 
 
+
+/**
+ *  Rule 4)
+ *    generalize variable multiplication (REALS only)
+ *    C[X ⋅ X ⋅ ... ⋅ X ] 
+ *    ------------ 
+ *    C[X]
+ *    where 
+ *    - all occurences of X are in terms of the form `X ⋅ X ⋅ ... ⋅ X` 
+ *    - sound due to substitution { X -> X^(0/n) }
+ *    - obviously a generalization 
+ */
+namespace Rule4 
+{
+
+  using IntLattice = FlatMeetLattice<int>;
+  using PowerMap = Map<Variable, IntLattice>;
+  template<class Num>
+  using EnableIfNotReal = typename std::enable_if<!std::is_same<Num, RealTraits>::value, int>::type;
+
+  /** 
+   * Polymorphic closure for preprocessing for the rule application.
+   *
+   * Collects for each variable the power in which it occurs or Bot when the variable occurs in different powers
+   */
+  struct Preprocess 
+  {
+    PowerMap &powers;
+
+    void operator()(UniqueShared<Polynom<RealTraits>> p) 
+    {
+      for (auto summand : p->iter()) {
+        for (auto factor : summand.monom->iter()) {
+          auto var = factor.term.tryVar();
+          if (var.isSome()) {
+
+
+            auto current = factor.power == 0 || factor.power == 1  /* <- power 0 should never happen. 
+                                                                         power 1 yields a nop-generalization */
+              ? IntLattice::bot()
+              : IntLattice(factor.power);
+
+            powers.updateOrInit(var.unwrap(),
+                [&](IntLattice old) { return current.meet(old); },
+                [&]() { return current; }
+              );
+          }
+        }
+      }
+    }
+
+
+    template<class Num, EnableIfNotReal<Num> = 0> 
+    void operator()(UniqueShared<Polynom<Num>> p) 
+    { }
+
+  };
+
+  struct Generalize 
+  {
+    PowerMap& powers;
+
+    PolyPair<RealTraits> operator()(PolyPair<RealTraits> p, PolyNf* evaluatedArgs)  
+    {
+      unsigned i = 0;
+      return PolyPair<RealTraits>(
+          p.coeff, 
+          unique(Monom<RealTraits>(
+            p.monom->iter()
+             .map([&](MonomPair<RealTraits> m) 
+               { 
+                  auto var = m.term.tryVar();
+                  if (var.isSome() && !powers.get(var.unwrap()).isBot()) {
+                    ASS_EQ(evaluatedArgs[i], var.unwrap());
+                    DBG("lala ", powers.get(var.unwrap()));
+                    return MonomPair<RealTraits>(evaluatedArgs[i++], 1);
+                  } else {
+                    DBG("lala 2");
+                    return MonomPair<RealTraits>(evaluatedArgs[i++], m.power); 
+                  }
+                })
+             .template collect<Stack>())));
+    }
+
+    template<class Num, EnableIfNotReal<Num> = 0>
+    PolyPair<Num> operator()(PolyPair<Num> p, PolyNf* evaluatedArgs)  
+    { return PolyPair<Num>(p.coeff, unique(p.monom->replaceTerms(evaluatedArgs))); }
+
+  };
+
+
+  /** 
+   * applies the rule
+   */ 
+  Clause* applyRule(Clause* cl) 
+  {
+    DEBUG("input clause: ", *cl);
+    PowerMap powers;
+
+    /* preprocessing. finds all products `X ⋅ X ⋅ ... ⋅ X` such that the rule is applicable */
+    for (auto poly : iterPolynoms(cl)) {
+      poly.apply(Preprocess { powers, });
+    }
+
+    bool applicable = 
+      iterTraits(powers.iter())
+        .find([](PowerMap::Entry& e) { return !e.value().isBot(); })
+        .isSome();
+
+    DEBUG("generalizations: ", powers);
+
+    if (applicable) {
+      return evaluateBottomUp(cl, EvaluateMonom<Generalize> { Generalize { powers } });
+    } else {
+      return cl;
+    }
+  }
+
+  
+};
+
 Clause* VariableMultiplicationGeneralization::simplify(Clause* cl) 
 { 
   CALL("VariableMultiplicationGeneralization::simplify")
@@ -1287,7 +1325,7 @@ VariableMultiplicationGeneralization::~VariableMultiplicationGeneralization()  {
 Clause* VariablePowerGeneralization::simplify(Clause* cl) 
 { 
   CALL("VariablePowerGeneralization::simplify")
-  return ArithmeticSubtermGeneralization<GeneralizeMulVarPower>::simplify(cl); 
+  return Rule4::applyRule(cl);
 }
 
 VariablePowerGeneralization::~VariablePowerGeneralization()  {}

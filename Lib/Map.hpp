@@ -456,12 +456,29 @@ public:
  
   /**
    * Find the entry with key @b key, or initialize it with the function init otherwise.
+   *
    * @b init must have the signature `Val init() {...}`
    */
-  template<class InitFun>
-  Val& getOrInit(Key&& key, InitFun init) &
+  template<class InitFn>
+  Val& getOrInit(Key key, InitFn init) 
   {
     CALL("Map::getOrInit");
+    return updateOrInit(std::move(key), [](Val v) { return v; }, init);
+  } 
+
+
+ 
+  /**
+   * Find the entry with key @b key, and update it with UpdateFn, or initialize the value 
+   * if it was not present before
+   *
+   * @b update must have the signature `Val init(Val) {...}`
+   * @b init must have the signature `Val init() {...}`
+   */
+  template<class UpdateFn, class InitFn>
+  Val& updateOrInit(Key key, UpdateFn update, InitFn init) 
+  {
+    CALL("Map::updateOrInit");
 
     if (_noOfEntries >= _maxEntries) { // too many entries
       expand();
@@ -473,6 +490,7 @@ public:
     Entry* entry;
     for (entry = firstEntryForCode(code); entry->occupied(); entry = nextEntry(entry)) {
       if (entry->code == code && Hash::equals(entry->key(), key)) {
+        entry->value() = update(std::move(entry->value()));
         return entry->value();
       }
     }
@@ -488,7 +506,7 @@ public:
    * Find the entry with key @b key, or initialize the value with the default initializer. 
    */
   template<class InitFun>
-  Val& getOrInit(Key&& key) &
+  Val& getOrInit(Key key)
   { return getOrInit(std::move(key), [](){ return Val(); }); } 
 
   /**

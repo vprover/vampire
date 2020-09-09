@@ -1703,7 +1703,7 @@ public:
   Optional<Elem> find(P p) 
   {
     while (hasNext()) {
-      auto x = next();
+      Elem x = next();
       if (p(x)) {
         return some<Elem>(x);
       }
@@ -1716,7 +1716,7 @@ public:
   {
     unsigned i = 0;
     while (hasNext()) {
-      auto x = next();
+      Elem x = next();
       if (p(x)) {
         return some<unsigned>(i);
       }

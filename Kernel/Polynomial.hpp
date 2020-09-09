@@ -245,6 +245,7 @@ public:
   AnyPoly(Poly<RationalConstantType> x) : Coproduct(variant<1>(std::move(x))) {  }
   AnyPoly(Poly<    RealConstantType> x) : Coproduct(variant<2>(std::move(x)))  {  }
 
+  // TODO make this return the UniqueShared<...>
   template<class Number> 
   Polynom<Number> const& downcast() const& { return *unwrap<UniqueShared<Polynom<Number>>>(); }
 
