@@ -1146,7 +1146,7 @@ namespace Rule3
     IntUnionFind components(varMap.size());
     Stack<VariableRegion> varRegions(varMap.size());;
     for (unsigned i = 0; i < varMap.size(); i++)  {
-      varRegions.pushMv(VariableRegion());
+      varRegions.push(VariableRegion());
     }
 
     /* preprocessing. finds all products `X0 ⋅ X1 ⋅ ... ⋅ Xn` such that the rule is applicable */

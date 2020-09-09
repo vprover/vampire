@@ -130,7 +130,7 @@ typename EvalFn::Result evaluateBottomUp(typename EvalFn::Arg const& term, EvalF
 
       Optional<Result> cached = memo.get(t);
       if (cached.isSome()) {
-        recResults.pushMv(std::move(cached).unwrap()); 
+        recResults.push(std::move(cached).unwrap()); 
       } else {
         recState.push(ChildIter<Arg>(t));
       }
@@ -151,7 +151,7 @@ typename EvalFn::Result evaluateBottomUp(typename EvalFn::Arg const& term, EvalF
       DEBUG("evaluated: ", orig.self(), " -> ", eval);
 
       recResults.pop(orig.nChildren());
-      recResults.pushMv(std::move(eval));
+      recResults.push(std::move(eval));
     }
   }
   ASS(recState.isEmpty())
@@ -405,14 +405,14 @@ class Sum
 
   explicit Sum(Prod&& m0, Prod&& m1) : _summands(Stack<Prod>(2)) 
   {
-    _summands.pushMv(std::move(m0));
-    _summands.pushMv(std::move(m1));
+    _summands.push(std::move(m0));
+    _summands.push(std::move(m1));
   }
 
 public:
 
   explicit Sum(Prod&& m0) : _summands(Stack<Prod>(1)) 
-  { _summands.pushMv(std::move(m0)); }
+  { _summands.push(std::move(m0)); }
 
   Sum(Sum&&) = default;
   Sum& operator=(Sum&&) = default;
@@ -421,7 +421,7 @@ public:
   {
     if (p._summands.size() == 1) {
       //  Poly(Mon(p0 * p1 * ... )) * t ==> Poly(Mon(t * p0 * ... ))
-      p._summands[0]._factors.pushMv(std::move(t));
+      p._summands[0]._factors.push(std::move(t));
       return NormalizationResult(std::move(p));
     } else {
       ASS(p._summands.size() > 1);
@@ -485,7 +485,7 @@ public:
     } else if (lhs.is<PolyNf>() || rhs.is<PolyNf>()) {
       Sum p = rhs.is<PolyNf>() ? std::move(lhs).unwrap<Sum>() : std::move(rhs).unwrap<Sum>();
       PolyNf  t = rhs.is<PolyNf>() ? rhs.unwrap< PolyNf>() : lhs.unwrap< PolyNf>();
-      p._summands.pushMv(Prod(t));
+      p._summands.push(Prod(t));
       return NormalizationResult(std::move(p));
     } else {
       ASS(lhs.is<Sum>())
@@ -939,15 +939,15 @@ inline Optional<PolyNf> trySimplify(Theory::Interpretation i, PolyNf* evalArgs)
 #define FRAC_CASE(Num)                                                                                        \
     CONSTANT_CASE(Num, div, l / r)
 
-#define NUM_CASE(Num)                                                                                         \
-    case Num ## Traits::minusI:     return trySimplifyUnaryMinus<Num ## Traits>(evalArgs);                    \
-    QUOTIENT_REMAINDER_CASES(Num, E)                                                                          \
-    QUOTIENT_REMAINDER_CASES(Num, T)                                                                          \
-    QUOTIENT_REMAINDER_CASES(Num, F)                                                                          \
+#define NUM_CASE(Num) \
+    case Num ## Traits::minusI:     return trySimplifyUnaryMinus<Num ## Traits>(evalArgs); \
 
     NUM_CASE(Int)
     NUM_CASE(Rat)
     NUM_CASE(Real)
+    QUOTIENT_REMAINDER_CASES(Int, E)
+    QUOTIENT_REMAINDER_CASES(Int, T)
+    QUOTIENT_REMAINDER_CASES(Int, F)
 
     FRAC_CASE(Rat)
     FRAC_CASE(Real)

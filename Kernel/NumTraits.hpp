@@ -132,6 +132,7 @@ struct NumTraits;
     IMPL_NUM_TRAITS__QUOTIENT_REMAINDER(SHORT, E)                                                                       \
     IMPL_NUM_TRAITS__QUOTIENT_REMAINDER(SHORT, T)                                                                       \
     IMPL_NUM_TRAITS__QUOTIENT_REMAINDER(SHORT, F)                                                                       \
+                                                                                                                        \
     IMPL_NUM_TRAITS__INTERPRETED_FUN(minus, SHORT, _UNARY_MINUS, 1)                                                     \
     IMPL_NUM_TRAITS__INTERPRETED_FUN(add  , SHORT, _PLUS       , 2)                                                     \
     IMPL_NUM_TRAITS__INTERPRETED_FUN(mul  , SHORT, _MULTIPLY   , 2)                                                     \

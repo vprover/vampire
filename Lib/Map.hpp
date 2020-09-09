@@ -553,7 +553,7 @@ public:
     for (int i = _capacity-1;i >= 0;i--) {
       Entry& e = _entries[i];
       if (e.occupied()) {
-        delete e.value;
+        delete e.value();
       }
     }
   } // deleteAll

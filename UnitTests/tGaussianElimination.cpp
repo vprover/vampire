@@ -40,6 +40,8 @@ public:
   virtual Kernel::Clause* simplify(Kernel::Clause* in) const override 
   {
     struct FakeOrdering : Kernel::Ordering {
+
+      virtual void show(ostream& out) const override {}
       virtual Result compare(Literal* l, Literal* r) const override { 
         if (l == r) {
           return Kernel::Ordering::EQUAL; 

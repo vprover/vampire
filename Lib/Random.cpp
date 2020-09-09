@@ -64,7 +64,7 @@ long double Random::getDouble (long double min, long double max)
  */
 int Random::bitsPerInt ()
 {
-  int b = getMax() + 1;
+  unsigned b = (unsigned)getMax() + 1;
   int bits = -1;
 
   while (b != 0) {
