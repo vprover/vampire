@@ -175,18 +175,25 @@ vstring getQuantifiedStr(const VarContainer& vars, vstring inner, DHMap<unsigned
   VirtualIterator<unsigned> vit=pvi( getContentIterator(vars) );
   vstring varStr;
   bool first=true;
+  bool addedAtBack=false;
   while(vit.hasNext()) {
     unsigned var =vit.next();
-    if (!first) {
+    if (!first && addedAtBack) {
       varStr+=",";
     }
     vstring ty="";
     TermList t;
-    if(t_map.find(var,t) && t!=Term::defaultSort()){
+    if(t_map.find(var,t) /*&& t!=Term::defaultSort()*/){
       //TODO should assert that we are in tff mode here
       ty=":" + t.toString();
     }
-    varStr+=vstring("X")+Int::toString(var)+ty;
+    if(ty == ":$tType"){
+      varStr=vstring("X")+Int::toString(var)+ty + "," + varStr;
+      addedAtBack = false;
+    } else {
+      addedAtBack = true;
+      varStr+=vstring("X")+Int::toString(var)+ty;
+    }
     first=false;
   }
 
@@ -598,6 +605,7 @@ protected:
 
     vstring kind = "fof";
     if(env.statistics->hasTypes){ kind="tff"; }
+    if(env.statistics->higherOrder){ kind="thf"; }
 
     return kind+"("+id+","+getRole(rule,origin)+",("+"\n"
 	+"  "+formula+"),\n"
@@ -890,6 +898,7 @@ protected:
 
     vstring kind = "fof";
     if(env.statistics->hasTypes){ kind="tff"; } 
+    if(env.statistics->higherOrder){ kind="thf"; }
 
     out << kind
         << "(r"<<_is->getUnitIdStr(cs)

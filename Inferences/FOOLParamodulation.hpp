@@ -34,7 +34,11 @@ class FOOLParamodulation : public GeneratingInferenceEngine {
   public:
     CLASS_NAME(FOOLParamodulation);
     USE_ALLOCATOR(FOOLParamodulation);
+    
+    Clause* performParamodulation(Clause* cl, Literal* lit, TermList t);
     ClauseIterator generateClauses(Clause* premise);
+    struct RewriteableSubtermsFn;
+    struct ResultFn;
 };
 
 }

@@ -304,7 +304,7 @@ void SKIKBO::State::traverse(ArgsIt_ptr aat1, ArgsIt_ptr aat2)
 /**
  * Create a KBO object.
  */
-SKIKBO::SKIKBO(Problem& prb, const Options& opt)
+SKIKBO::SKIKBO(Problem& prb, const Options& opt, bool basic_hol)
  : PrecedenceOrdering(prb, opt)
 {
   CALL("SKIKBO::SKIKBO");
@@ -312,6 +312,7 @@ SKIKBO::SKIKBO(Problem& prb, const Options& opt)
   _variableWeight = 1;
   _defaultSymbolWeight = 1;
   _state=new State(this);
+  _basic_hol = basic_hol;
 }
 
 SKIKBO::~SKIKBO()
@@ -573,59 +574,6 @@ void SKIKBO::freeMem(VarOccMap& vomtl1 , VarOccMap& vomtl2) const
     DArray<DArray<unsigned>*>* arr = it2.next();
     delete arr;
   }
-}
-
-bool SKIKBO::canBeMatched(DArray<unsigned>* redLengths1, DArray<unsigned>* redLengths2) const
-{
-  CALL("SKIKBO::canBeMatched");
-
-  for(unsigned i = 0; i < redLengths1->size(); i++){
-    if(i < redLengths2->size()){
-      if((*redLengths1)[i] > (*redLengths2)[i]){
-        return false;
-      } 
-    } else if((*redLengths1)[i] > 0){
-      return false;
-    }
-  }
-  return true;
-}
-
-bool SKIKBO::bpm(unsigned n, DArray<DArray<bool>>& bpGraph, int u, 
-         DArray<bool>& seen , DArray<int>& matchR) const
-{ 
-  CALL("SKIKBO::bpm");
-
-  for (int v = 0; v < n; v++) 
-  { 
-    if (bpGraph[u][v] && !seen[v]) 
-    { 
-      seen[v] = true;  
-      if (matchR[v] < 0 || bpm(n, bpGraph, matchR[v], seen, matchR)) 
-      { 
-        matchR[v] = u; 
-        return true; 
-      } 
-    } 
-  } 
-  return false; 
-} 
-  
-bool SKIKBO::totalBMP(unsigned m, unsigned n, DArray<DArray<bool>>& bpGraph) const
-{ 
-  CALL("SKIKBO::totalBMP");
-  
-  DArray<int> matchR;
-  matchR.init(n, -1);
-
-  for (int u = 0; u < m; u++) 
-  { 
-    DArray<bool> seen;
-    seen.init(n, 0);
-
-    if (!bpm(n, bpGraph, u, seen, matchR)){return false;} 
-  } 
-  return true; 
 }*/
 
 unsigned SKIKBO::getMaxRedLength(TermList t) const
@@ -661,38 +609,40 @@ Ordering::Result SKIKBO::compare(TermList tl1, TermList tl2) const
   if(bothGround && tl2.containsSubterm(tl1)){
     return LESS;
   }
-
-  VarCondRes varCond = compareVariables(tl1, tl2);
-
-  if(varCond == INCOMP){ 
-    return INCOMPARABLE; 
-  }
-  
-  unsigned tl1RedLen = getMaxRedLength(tl1);
-  unsigned tl2RedLen = getMaxRedLength(tl2);
-  if((varCond == LEFT  || varCond == BOTH) && tl1RedLen > tl2RedLen){
-    return GREATER;
-  } 
-  if((varCond == RIGHT  || varCond == BOTH) && tl2RedLen > tl1RedLen){
-    return LESS;
-  }
-  if(tl1RedLen != tl2RedLen){
-    return INCOMPARABLE;
-  }
-
+ 
   ArgsIt_ptr aat1 = ArgsIt_ptr(new ApplicativeArgsIt(tl1));
   ArgsIt_ptr aat2 = ArgsIt_ptr(new ApplicativeArgsIt(tl2));
 
-  if(aat1->isVar() && (varCond == RIGHT || varCond == BOTH)){ //TODO unary function weight 1
-    return LESS; 
-  } else if(aat1->isVar() ) {
-    return INCOMPARABLE;
-  }
+  if(!_basic_hol){
+    VarCondRes varCond = compareVariables(tl1, tl2);
 
-  if(aat2->isVar() && (varCond == LEFT || varCond == BOTH)) {
-    return GREATER;
-  } else if(aat2->isVar() ) {
-    return INCOMPARABLE;
+    if(varCond == INCOMP){ 
+      return INCOMPARABLE; 
+    }
+
+    unsigned tl1RedLen = getMaxRedLength(tl1);
+    unsigned tl2RedLen = getMaxRedLength(tl2);
+    if((varCond == LEFT  || varCond == BOTH) && tl1RedLen > tl2RedLen){
+      return GREATER;
+    } 
+    if((varCond == RIGHT  || varCond == BOTH) && tl2RedLen > tl1RedLen){
+      return LESS;
+    }
+    if(tl1RedLen != tl2RedLen){
+      return INCOMPARABLE;
+    }
+
+    if(aat1->isVar() && (varCond == RIGHT || varCond == BOTH)){ //TODO unary function weight 1
+      return LESS; 
+    } else if(aat1->isVar() ) {
+      return INCOMPARABLE;
+    }
+
+    if(aat2->isVar() && (varCond == LEFT || varCond == BOTH)) {
+      return GREATER;
+    } else if(aat2->isVar() ) {
+      return INCOMPARABLE;
+    }
   }
 
   ASS(_state);

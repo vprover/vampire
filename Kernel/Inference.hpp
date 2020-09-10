@@ -336,7 +336,29 @@ public:
     /* argument congruence: t = t' => tx = t'x*/
     ARG_CONG,
     /* narrow with combinator axiom */
-    NARROW,
+    SXX_NARROW,
+
+    SX_NARROW,
+
+    S_NARROW,
+
+    CXX_NARROW,
+
+    CX_NARROW,
+
+    C_NARROW,
+
+    BXX_NARROW,
+
+    BX_NARROW,
+
+    B_NARROW,
+
+    KX_NARROW,
+
+    K_NARROW,
+
+    I_NARROW,
     /* superposition beneath variable */
     SUB_VAR_SUP,
     /* eager demodulation with combinator axioms */

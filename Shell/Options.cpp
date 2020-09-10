@@ -1312,10 +1312,15 @@ void Options::Options::init()
 
     _newTautologyDel = BoolOptionValue("new_taut_del","ntd",false);
     _newTautologyDel.description=
-    "delete clauses with literals of the form false != true or t = true \/ t = false";
+    "Delete clauses with literals of the form false != true or t = true \/ t = false";
     _lookup.insert(&_newTautologyDel);
     _newTautologyDel.tag(OptionTag::INFERENCES);
 
+    _lambdaFreeHol = BoolOptionValue("lam_free_hol","lfh",false);
+    _lambdaFreeHol.description=
+    "Reason about lambda-free hol. See paper by Vukmirovic et al.";
+    _lookup.insert(&_lambdaFreeHol);
+    _lambdaFreeHol.tag(OptionTag::INFERENCES);
 
 //*********************** InstGen  ***********************
 

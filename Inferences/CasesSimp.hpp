@@ -34,8 +34,22 @@ class CasesSimp : public ImmediateSimplificationEngine {
   public:
     CLASS_NAME(CasesSimp);
     USE_ALLOCATOR(CasesSimp);
+
     ClauseIterator simplifyMany(Clause* premise);
     Clause* simplify(Clause* premise){ NOT_IMPLEMENTED; }
+
+    ClauseIterator performSimplification(Clause* cl, Literal* lit, TermList t);
+    ClauseIterator generateClauses(Clause* premise);
+    struct RewriteableSubtermsFn;
+    struct isEqualityLit
+    {
+      DECL_RETURN_TYPE(bool);
+      bool operator()(Literal* lit)
+      {
+        return lit->isEquality();
+      }
+    };
+    struct ResultFn;
 };
 
 }

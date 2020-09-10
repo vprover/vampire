@@ -171,14 +171,21 @@ Clause* Narrow::performNarrow(
     //cout << "combAxLhs " << combAxLhs.toString() << endl;
   //}
 
+  static TermStack args;
+  TermList head;
+  ApplicativeHelper::getHeadAndArgs(nTerm, head, args);
+  ASS(head.isVar());
+
+  TermList headLHS = ApplicativeHelper::getHead(combAxLhs);
+  ASS(ApplicativeHelper::isComb(headLHS));
+  Signature::Combinator comb = ApplicativeHelper::getComb(headLHS);
+  unsigned argNum = args.size();
+
   //0 means unlimited
   bool incr = false;
   unsigned lim = env.options->maxXXNarrows();
   if(lim != 0){
-    TermList headLHS = ApplicativeHelper::getHead(combAxLhs);
-    if(ApplicativeHelper::isComb(headLHS) &&
-       ApplicativeHelper::getComb(headLHS) < Signature::I_COMB &&
-       nTerm.term()->nthArgument(2)->isVar()){
+    if(comb < Signature::I_COMB && argNum == 1){
       if(nClause->XXNarrows() == lim){
         env.statistics->discardedNonRedundantClauses++;
         return 0;
@@ -220,7 +227,32 @@ Clause* Narrow::performNarrow(
     return 0;
   }
 
-  Inference* inf = new Inference1(Inference::NARROW, nClause);
+  Inference* inf;
+  if(comb == Signature::S_COMB && argNum == 1){
+    inf = new Inference1(Inference::SXX_NARROW, nClause);
+  } else if(comb == Signature::S_COMB && argNum == 2){
+    inf = new Inference1(Inference::SX_NARROW, nClause);
+  } else if(comb == Signature::S_COMB && argNum == 3){
+    inf = new Inference1(Inference::S_NARROW, nClause);
+  } else if(comb == Signature::C_COMB && argNum == 1){
+    inf = new Inference1(Inference::CXX_NARROW, nClause);
+  } else if(comb == Signature::C_COMB && argNum == 2){
+    inf = new Inference1(Inference::CX_NARROW, nClause);
+  } else if(comb == Signature::C_COMB && argNum == 3){
+    inf = new Inference1(Inference::C_NARROW, nClause);
+  } else if(comb == Signature::B_COMB && argNum == 1){
+    inf = new Inference1(Inference::BXX_NARROW, nClause);
+  } else if(comb == Signature::B_COMB && argNum == 2){
+    inf = new Inference1(Inference::BX_NARROW, nClause);
+  } else if(comb == Signature::B_COMB && argNum == 3){
+    inf = new Inference1(Inference::B_NARROW, nClause);
+  } else if(comb == Signature::K_COMB && argNum == 1){
+    inf = new Inference1(Inference::KX_NARROW, nClause);
+  } else if(comb == Signature::K_COMB && argNum == 2){
+    inf = new Inference1(Inference::K_NARROW, nClause);
+  } else {
+    inf = new Inference1(Inference::I_NARROW, nClause);    
+  }
 
   // If proof extra is on let's compute the positions we have performed
   // Narrow on 
