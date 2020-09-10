@@ -510,6 +510,37 @@ private:
   Stack<Term*> _stack;
 };
 
+class BooleanSubtermIt
+: public IteratorCore<TermList>
+{
+public:
+  BooleanSubtermIt(Term* term, bool includeSelf=false) 
+  : _used(true), _stack(8)
+  {
+    CALL("BooleanSubtermIt::BooleanSubtermIt");
+    if(term->isLiteral()){
+      TermList t0 = *term->nthArgument(0);
+      TermList t1 = *term->nthArgument(1);
+      if(!t0.isVar()){ _stack.push(t0.term()); }
+      if(!t1.isVar()){ _stack.push(t1.term()); }      
+      return;      
+    } 
+    _stack.push(term);
+  }
+
+  bool hasNext();
+  TermList next(){
+    ASS(!_used);
+    _used = true;
+    return _next;
+  }
+
+private:
+  bool _used;
+  TermList _next;
+  Stack<Term*> _stack;
+};
+
 /**
  * Iterator that yields proper subterms of commutative
  * literal @b lit in DFS left to right order with the

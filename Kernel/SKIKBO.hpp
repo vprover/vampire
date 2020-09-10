@@ -51,7 +51,7 @@ public:
   CLASS_NAME(SKIKBO);
   USE_ALLOCATOR(SKIKBO);
 
-  SKIKBO(Problem& prb, const Options& opt);
+  SKIKBO(Problem& prb, const Options& opt, bool basic_hol = false);
   virtual ~SKIKBO();
 
   typedef SmartPtr<ApplicativeArgsIt> ArgsIt_ptr;
@@ -106,6 +106,7 @@ protected:
     return a1->varHead() == a2->varHead();
   }
   mutable State* _state;
+  bool _basic_hol;
 
 #if VDEBUG
   static vstring vCondResToString(VarCondRes v)

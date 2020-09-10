@@ -519,7 +519,7 @@ vstring Term::headToString() const
           varList += ss.next().toString(); 
         }
         varList += "]";        
-        return "(^" + varList + " : " + lambdaExp.toString() + ")";
+        return "(^" + varList + " : (" + lambdaExp.toString() + "))";
       }
       default:
         ASSERTION_VIOLATION;
@@ -630,9 +630,9 @@ vstring Term::toString(bool topLevel) const
       vstring res;
       TermList arg1 = *(nthArgument(2));
       TermList arg2 = *(nthArgument(3));
-      res += topLevel ? "" : "("; 
-      res += arg1.toString() + " @ " + arg2.toString(false);
-      res += topLevel ? "" : ")";
+    //  res += topLevel ? "" : "("; 
+      res += "(" + arg1.toString() + " @ " + arg2.toString(false) + ")";
+    //  res += topLevel ? "" : ")";
       return res;
     }
     printArgs = env.signature->getFunction(_functor)->combinator() == Signature::NOT_COMB;
@@ -665,9 +665,9 @@ vstring Literal::toString() const
     }
 
     vstring res = s + lhs->next()->toString();
-    if (SortHelper::getEqualityArgumentSort(this) == Term::boolSort()){
+    //if (SortHelper::getEqualityArgumentSort(this) == Term::boolSort()){
       res = "("+res+")";
-    }
+    //}
     /*if(isTwoVarEquality()){
       res += "___ sort: " + twoVarEqSort().toString();
     }*/

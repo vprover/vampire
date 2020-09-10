@@ -1,6 +1,6 @@
 
 /*
- * File FOOLParamodulation.cpp.
+ * File CasesSimp.cpp.
  *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
@@ -17,7 +17,7 @@
  * licence, which we will make an effort to provide. 
  */
 /**
- * @file FOOLParamodulation.cpp
+ * @file CasesSimp.cpp
  * Implements the inference rule, that is needed for efficient treatment of
  * boolean terms. The details of why it is needed are in the paper
  * "A First Class Boolean Sort in First-Order Theorem Proving and TPTP"
@@ -37,56 +37,35 @@
 #include "Kernel/Sorts.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/ApplicativeHelper.hpp"
+#include "Kernel/TermIterators.hpp"
 
 #include "CasesSimp.hpp"
 
 namespace Inferences {
 
-ClauseIterator CasesSimp::simplifyMany(Clause* premise) {
-  CALL("CasesSimp::generateClauses");
+
+ClauseIterator CasesSimp::performSimplification(Clause* premise, Literal* lit, TermList t) {
+  CALL("CasesSimp::performSimplification");
+
+  ASS(t.isTerm());
+
+  static ClauseStack results;
+
+  TermList lhs = *lit->nthArgument(0);
+  TermList rhs = *lit->nthArgument(1);
+
+  if((t == lhs) || (t == rhs)){
+    return ClauseIterator::getEmpty();
+  }
+
+  results.reset();
 
   static TermList troo(Term::foolTrue());
   static TermList fols(Term::foolFalse());
-  static ClauseStack results;
-  results.reset();
 
-  TermList booleanTerm;
-  unsigned literalPosition = 0;
+  Literal* litFols = Literal::createEquality(true, t, fols, Term::boolSort());
+  Literal* litTroo = Literal::createEquality(true, t, troo, Term::boolSort());
 
-  for(unsigned i = 0; i < premise->length(); i++){
-    Literal* literal = (*premise)[i];
-   
-    ASS(literal->isEquality())
-    TermList lhs = *literal->nthArgument(0);
-    TermList rhs = *literal->nthArgument(1);
-
-    NonVariableNonTypeIterator nvi(literal);
-    while (nvi.hasNext()) {
-      TermList subterm = nvi.next();
-
-      // we shouldn't replace boolean constants
-      if (ApplicativeHelper::isBool(subterm) ||
-          (subterm == lhs) || (subterm ==rhs)) {
-        continue;
-      }
-
-      TermList resultType =  SortHelper::getResultSort(subterm.term());
-      if (resultType == Term::boolSort()) {
-        booleanTerm = subterm;
-        goto substitution;
-      }
-    }
-    literalPosition++;
-  }
-
-  // If we reached this point, it means that there was no boolean terms we are
-  // interested in, so we don't infer anything
-  return ClauseIterator::getEmpty();
-
-substitution:
-
-  Literal* litFols = Literal::createEquality(true, booleanTerm, fols, Term::boolSort());
-  Literal* litTroo = Literal::createEquality(true, booleanTerm, troo, Term::boolSort());
 
   unsigned conclusionLength = premise->length() + 1;
   Inference* inference1 = new Inference1(Inference::CASES_SIMP, premise);
@@ -96,16 +75,21 @@ substitution:
   conclusion1->setAge(premise->age());
   conclusion2->setAge(premise->age());
 
+
+  // Copy the literals from the premise except for the one at `literalPosition`,
+  // that has the occurrence of `booleanTerm` replaced with false
   for (unsigned i = 0; i < conclusionLength - 1; i++) {
-    if(i == literalPosition){
-      (*conclusion1)[i] = EqHelper::replace((*premise)[i], booleanTerm, troo);
-      (*conclusion2)[i] = EqHelper::replace((*premise)[i], booleanTerm, fols);
-    } else {
+    Literal* curr = (*premise)[i];
+    if(curr != lit){
       (*conclusion1)[i] = (*premise)[i];
       (*conclusion2)[i] = (*premise)[i];      
+    } else {
+      (*conclusion1)[i] = EqHelper::replace((*premise)[i], t, troo);
+      (*conclusion2)[i] = EqHelper::replace((*premise)[i], t, fols);
     }
   }
 
+  // Add s = false to the clause
   (*conclusion1)[conclusionLength - 1] = litFols;
   (*conclusion2)[conclusionLength - 1] = litTroo;
 
@@ -113,6 +97,53 @@ substitution:
   results.push(conclusion2);
 
   return pvi(getUniquePersistentIterator(ClauseStack::Iterator(results)));
+}
+
+
+struct CasesSimp::ResultFn
+{
+  ResultFn(Clause* cl, CasesSimp& parent) : _cl(cl), _parent(parent) {}
+  DECL_RETURN_TYPE(ClauseIterator);
+  OWN_RETURN_TYPE operator()(pair<Literal*, TermList> arg)
+  {
+    CALL("CasesSimp::ResultFn::operator()");
+    
+    return _parent.performSimplification(_cl, arg.first, arg.second);
+  }
+private:
+  Clause* _cl;
+  CasesSimp& _parent;
+};
+
+struct CasesSimp::RewriteableSubtermsFn
+{
+  RewriteableSubtermsFn() {}
+
+  DECL_RETURN_TYPE(VirtualIterator<pair<Literal*, TermList> >);
+  OWN_RETURN_TYPE operator()(Literal* lit)
+  {
+    CALL("CasesSimp::RewriteableSubtermsFn()");
+
+    return pvi( pushPairIntoRightIterator(lit, 
+                getUniquePersistentIterator(vi(new BooleanSubtermIt(lit)))));
+  }
+
+};
+
+
+ClauseIterator CasesSimp::simplifyMany(Clause* premise)
+{
+  CALL("CasesSimp::generateClauses");
+
+  auto it1 = premise->getLiteralIterator();
+  auto it2 = getFilteredIterator(it1, isEqualityLit()); 
+
+  auto it3 = getMapAndFlattenIterator(it2,RewriteableSubtermsFn());
+
+  //Perform  Narrow
+  auto it4 = getMapAndFlattenIterator(it3,ResultFn(premise, *this));
+
+  return pvi( it4 );
 }
 
 }

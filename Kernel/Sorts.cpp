@@ -195,6 +195,7 @@ vstring OperatorType::toString() const
   CALL("OperatorType::toString");
  
   vstring res;
+  bool bracket = false;
   if(typeArgsArity()){
     res = "!>[";
     for(unsigned i = 0; i < typeArgsArity(); i++){
@@ -202,10 +203,11 @@ vstring OperatorType::toString() const
       res+= "X" + Int::toString(VarList::nth(_vars, i)) + ": $ttype"; 
     }
     res += "]:";
+    bracket = true;
   }
 
-  return res + (arity() - typeArgsArity() ? argsToString() + " > " : "") +
-      (isPredicateType() ? "$o" : result().toString());
+  return res + (bracket ? "(" : "") +  (arity() - typeArgsArity() ? argsToString() + " > " : "") +
+      (isPredicateType() ? "$o" : result().toString()) + (bracket ? ")" : "");
 }
 
 bool OperatorType::isEqual(OperatorType* ot) const

@@ -180,6 +180,12 @@ TermIterator EqHelper::getSubtermIterator(Literal* lit, const Ordering& ord)
   return getRewritableSubtermIterator<NonVariableNonTypeIterator>(lit, ord);
 }
 
+TermIterator EqHelper::getBooleanSubtermIterator(Literal* lit, const Ordering& ord)
+{
+  CALL("EqHelper::getSubtermIterator");
+  return getRewritableSubtermIterator<BooleanSubtermIt>(lit, ord);
+}
+
 TermIterator EqHelper::getFoSubtermIterator(Literal* lit, const Ordering& ord)
 {
   CALL("EqHelper::getFoSubtermIterator");

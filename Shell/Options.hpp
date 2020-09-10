@@ -577,7 +577,7 @@ public:
 
   enum class TermOrdering : unsigned int {
     KBO = 0,
-    LPO = 1,
+    LPO = 1
   };
 
   enum class SymbolPrecedence : unsigned int {
@@ -2156,6 +2156,7 @@ public:
   bool superposition() const {return _superposition.actualValue; }
   bool casesSimp() const { return _casesSimp.actualValue; }
   bool newTautologyDel() const { return _newTautologyDel.actualValue; }
+  bool lambdaFreeHol() const { return _lambdaFreeHol.actualValue; }
 
 private:
     
@@ -2549,6 +2550,7 @@ private:
   BoolOptionValue _superposition;
   BoolOptionValue _casesSimp;
   BoolOptionValue _newTautologyDel;
+  BoolOptionValue _lambdaFreeHol;
 }; // class Options
 
 // Allow printing of enums

@@ -397,6 +397,9 @@ void TimeCounter::outputSingleStat(TimeCounterUnit tcu, ostream& out)
   case TC_MINISAT_BWD_SUBSUMPTION_CHECK:
       out << "minisat bwd subsumption check";
       break;
+  case TC_CONVERTING_TO_FLAT_FORM:
+      out << "converting applicative terms to flat terms";
+      break;   
   case TC_Z3_IN_FMB:
     out << "smt search for next domain size assignment";
     break;

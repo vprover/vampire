@@ -1045,7 +1045,7 @@ bool Signature::symbolNeedsQuoting(vstring name, bool interpreted, unsigned arit
   CALL("Signature::symbolNeedsQuoting");
   ASS_G(name.length(),0);
 
-  if (name=="=" || (interpreted && arity==0) || (name=="->")) {
+  if (name=="=" || (interpreted && arity==0) || (name==">")) {
     return false;
   }
 
@@ -1056,8 +1056,9 @@ bool Signature::symbolNeedsQuoting(vstring name, bool interpreted, unsigned arit
     if (*(c+1)=='$') {
       c+=2; //skip the initial $$
       first = false;
-    }
-    else if (interpreted) {
+    } else if (*(c+1)=='i'  || *(c+1)=='o' || *(c+1)=='t'){
+      return false;
+    } else if (interpreted) {
       c++; //skip the initial $ for interpreted
       first = false;
     }

@@ -493,8 +493,30 @@ vstring Inference::ruleName(Rule rule)
     return "sigma proxy axiom";
   case ARG_CONG:
     return "argument congruence";
-  case NARROW:
-    return "narrow";
+  case SXX_NARROW:
+    return "sxx_narrow";
+  case SX_NARROW:
+    return "sx_narrow";
+  case S_NARROW:
+    return "s_narrow";
+  case CXX_NARROW:
+    return "cxx_narrow";
+  case CX_NARROW:
+    return "cx_narrow";
+  case C_NARROW:
+    return "c_narrow";
+  case BXX_NARROW:
+    return "bxx_narrow";
+  case BX_NARROW:
+    return "bx_narrow";
+  case B_NARROW:
+    return "b_narrow";
+  case KX_NARROW:
+    return "kx_narrow";
+  case K_NARROW:
+    return "k_narrow";
+  case I_NARROW:
+    return "i_narrow";
   case SUB_VAR_SUP:
     return "sub-var superposition";
   case COMBINATOR_DEMOD:

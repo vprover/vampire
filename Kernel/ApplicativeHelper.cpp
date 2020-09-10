@@ -148,6 +148,8 @@ void ApplicativeHelper::getHeadAndAllArgs(TermList term, TermList& head, TermSta
 {
   CALL("ApplicativeHelper::getHeadAndAllArgs");
 
+  TimeCounter tc(TC_CONVERTING_TO_FLAT_FORM);
+ 
   if(!term.isTerm()){
     head = term;
     return;
@@ -171,6 +173,8 @@ void ApplicativeHelper::getHeadSortAndArgs(TermList term, TermList& head,
                                            TermList& headSort, TermStack& args)
 {
   CALL("ApplicativeHelper::getHeadSortAndArgs");
+
+  TimeCounter tc(TC_CONVERTING_TO_FLAT_FORM);
 
   if(!args.isEmpty()){ args.reset(); }
 
@@ -197,6 +201,8 @@ void ApplicativeHelper::getHeadAndArgs(TermList term, TermList& head, TermStack&
 {
   CALL("ApplicativeHelper::getHeadAndArgs");
 
+  TimeCounter tc(TC_CONVERTING_TO_FLAT_FORM);
+
   if(!args.isEmpty()){ args.reset(); }
 
   if(!term.isTerm()){
@@ -218,6 +224,8 @@ void ApplicativeHelper::getHeadAndArgs(Term* term, TermList& head, TermStack& ar
 {
   CALL("ApplicativeHelper::getHeadAndArgs/2");
 
+  TimeCounter tc(TC_CONVERTING_TO_FLAT_FORM);
+
   if(!args.isEmpty()){ args.reset(); }
 
   head = TermList(term);
@@ -235,6 +243,8 @@ void ApplicativeHelper::getHeadAndArgs(Term* term, TermList& head, TermStack& ar
 void ApplicativeHelper::getHeadAndArgs(const Term* term, TermList& head, Deque<TermList>& args)
 {
   CALL("ApplicativeHelper::getHeadAndArgs/3");
+
+  TimeCounter tc(TC_CONVERTING_TO_FLAT_FORM);
 
   ASS(isApp(term));
 
@@ -254,6 +264,8 @@ void ApplicativeHelper::getHeadAndArgs(const Term* term, TermList& head, Deque<T
 TermList ApplicativeHelper::getHead(TermList t)
 {
   CALL("ApplicativeHelper::getHead(TermList)");
+
+  TimeCounter tc(TC_CONVERTING_TO_FLAT_FORM);
   
   if(!t.isTerm()){
     return t; 
@@ -269,6 +281,8 @@ TermList ApplicativeHelper::getHead(TermList t)
 TermList ApplicativeHelper::getHead(Term* t)
 {
   CALL("ApplicativeHelper::getHead(Term*)");
+
+  TimeCounter tc(TC_CONVERTING_TO_FLAT_FORM);
   
   TermList trm = TermList(t);
   while(env.signature->getFunction(t->functor())->app()){

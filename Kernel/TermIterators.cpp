@@ -335,6 +335,32 @@ bool NarrowableSubtermIt::hasNext()
   return false;
 }
 
+bool BooleanSubtermIt::hasNext()
+{
+  CALL("BooleanSubtermIt::hasNext");
+
+  if(!_used){ return true; }
+
+  static TermStack args;
+  TermList head;
+  while(!_stack.isEmpty()){
+    Term* t = _stack.pop();
+    AH::getHeadAndArgs(t, head, args);
+    if(SortHelper::getResultSort(t) == Term::boolSort() && !AH::isBool(head)){
+      _next = TermList(t);
+      _used = false;
+    }
+    while(!args.isEmpty()){
+      TermList arg = args.pop();
+      if(arg.isTerm()){
+        _stack.push(arg.term());
+      }
+    }
+    if(!_used){ return true; }
+  }
+  return false;
+}
+
 bool RewritableVarsIt::hasNext()
 {
   CALL("RewritableVarsIt::hasNext");

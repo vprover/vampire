@@ -130,6 +130,10 @@ Ordering* Ordering::create(Problem& prb, const Options& opt)
     return new SKIKBO(prb, opt);
   }
 
+  if(env.options->lambdaFreeHol()){
+    return new SKIKBO(prb, opt, true);
+  }
+
   switch (env.options->termOrdering()) {
   case Options::TermOrdering::KBO:
     // KBOForEPR does not support colors; TODO fix this!
