@@ -1339,7 +1339,7 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
     std::vector<torch::jit::IValue> inputs;
     inputs.push_back(init_vec);
 
-    _sa->evaluate(compCl,"new_avat",inputs);
+    _sa->evaluate(compCl,"new_avat","new_avat",inputs);
 
     ALWAYS(_sa->_evaluated.insert(compCl));
   }

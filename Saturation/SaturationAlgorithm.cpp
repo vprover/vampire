@@ -491,19 +491,34 @@ void SaturationAlgorithm::onUnprocessedSelected(Clause* c)
   
 }
 
-void SaturationAlgorithm::evaluate(Clause* cl, const char* method_name, std::vector<torch::jit::IValue>& inputs)
+void SaturationAlgorithm::evaluate(Clause* cl, const char* method_name, const char* backup_method_name, std::vector<torch::jit::IValue>& inputs)
 {
   CALL("SaturationAlgorithm::evaluated");
 
 #if DEBUG_MODEL
-  cout << "evaluating " << cl->number() << " for " << method_name << endl;
+  cout << "evaluating " << cl->number();
 #endif
 
-  auto output = _model.get_method(method_name)(std::move(inputs));
-  bool eval = output.toBool();
+  bool eval;
+
+  if (auto m = _model.find_method(method_name)) {
+    auto output = (*m)(std::move(inputs));
+    eval = output.toBool();
+#if DEBUG_MODEL
+  cout << " found " << method_name;
+#endif
+  } else {
+    auto output = _model.get_method(backup_method_name)(std::move(inputs));
+    eval = output.toBool();
 
 #if DEBUG_MODEL
-  cout << "said " << eval << endl;
+  cout << " fell back to " << backup_method_name;
+#endif
+
+  }
+
+#if DEBUG_MODEL
+  cout << " and said " << eval << endl;
 #endif
 
   cl->modelSaid(eval);
@@ -563,15 +578,21 @@ void SaturationAlgorithm::talkToKarel(Clause* cl, bool eval)
         (int64_t)inf.rule())); // as features
 
     c10::List<int64_t> parents;
+    int arit = 0;
     Inference::Iterator iit = inf.iterator();
     while(inf.hasNext(iit)) {
       Unit* premUnit = inf.next(iit);
       parents.push_back((int64_t) premUnit->asClause()->number());
+      arit += 1;
     }
 
     inputs.push_back(torch::jit::IValue(parents));
 
-    evaluate(cl, "new_deriv", inputs);
+    char specific_method_name[20];
+    char default_method_name[20];
+    sprintf(specific_method_name, "new_deriv%d", (int)inf.rule());
+    sprintf(default_method_name, "new_deriv%d", (int)arit);
+    evaluate(cl, specific_method_name, default_method_name , inputs);
 
     ALWAYS(_evaluated.insert(cl));
   }
@@ -807,7 +828,14 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
         (int64_t)isTheory,
         (int64_t)cl->getSineLevel())); // the features
 
-    evaluate(cl, "new_init", inputs);
+    char method_name[20];
+    if (cl->derivedFromGoal()) {
+      strcpy(method_name,"new_initG");
+    } else {
+      sprintf(method_name, "new_init%d", (int)isTheory);
+    }
+
+    evaluate(cl, method_name, "new_init0", inputs);
 
     // TODO: store the output value
     ALWAYS(_evaluated.insert(cl));
