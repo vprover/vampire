@@ -224,6 +224,8 @@ public:
   unsigned finalExtensionalityClauses;
   /** initiated iterations of the main saturation loop */
   unsigned saturationIterationsStarted;
+  /** selection from the innermost (aka "model said yes") queue of multi-split-arrangement. */
+  unsigned innermostSelections;
 
   unsigned splitClauses;
   unsigned splitComponents;

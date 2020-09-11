@@ -28,6 +28,9 @@
 #include "Kernel/Clause.hpp"
 #include "Kernel/Inference.hpp"
 #include "Lib/SharedSet.hpp"
+#include "Debug/RuntimeStatistics.hpp"
+#include "Lib/Environment.hpp"
+#include "Shell/Statistics.hpp"
 
 namespace Saturation
 {
@@ -222,6 +225,11 @@ Clause* PredicateSplitPassiveClauseContainer::popSelected()
     }
   }
   ASS(!_queues[currIndex]->isEmpty());
+
+  RSTAT_MCTR_INC("PredicateSplitPassiveClauseContainer::popSelected-index", currIndex);
+  if (currIndex == 0) {
+    env.statistics->innermostSelections++;
+  }
 
   // pop clause from selected queue
   auto cl = _queues[currIndex]->popSelected();
