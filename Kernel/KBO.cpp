@@ -24,6 +24,7 @@
  */
 
 #include "Debug/Tracer.hpp"
+#include "Kernel/NumTraits.hpp"
 
 
 #include "Lib/Environment.hpp"
@@ -762,6 +763,7 @@ KboWeight KboWeightMap<SigTraits>::symbolWeight(Term* t) const
 template<class SigTraits>
 KboWeight KboWeightMap<SigTraits>::symbolWeight(unsigned functor) const
 {
+
   unsigned weight;
   if (!_specialWeights.tryGetWeight(functor, weight)) {
     weight = functor < _weights.size() ? _weights[functor]
@@ -837,6 +839,9 @@ bool KboSpecialWeights<FuncSigTraits>::tryGetWeight(unsigned functor, unsigned& 
   if (sym->integerConstant())  { weight = _numInt;  return true; }
   if (sym->rationalConstant()) { weight = _numRat;  return true; }
   if (sym->realConstant())     { weight = _numReal; return true; }
+  if (functor == NumTraits< IntegerConstantType>::minusF()) { weight = 0; return true; }
+  if (functor == NumTraits<RationalConstantType>::minusF()) { weight = 0; return true; }
+  if (functor == NumTraits<    RealConstantType>::minusF()) { weight = 0; return true; }
   return false;
 }
 
