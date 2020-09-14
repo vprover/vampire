@@ -626,8 +626,8 @@ UniqueShared<Polynom<Number>> intoPoly(PolyNf p)
 { 
   CALL("intoPoly(PolyNf p)")
   return unique(
-    p.is<AnyPoly>() ? p.unwrap<AnyPoly>()
-                       .unwrap<UniqueShared<Polynom<Number>>>()
+    p.is<AnyPoly>() ? *p.unwrap<AnyPoly>()
+                        .unwrap<UniqueShared<Polynom<Number>>>()
                     : Polynom<Number>(p)
       );
 }
