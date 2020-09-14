@@ -344,6 +344,7 @@ class PolyNf::Iter {
   Stack<ChildIter<PolyNf>> _stack;
 public:
   Iter(Iter&&) = default;
+  Iter& operator=(Iter&&) = default;
   Iter(PolyNf p) : _stack(decltype(_stack){ ChildIter<PolyNf>(p) }) {  }
   DECL_ELEMENT_TYPE(PolyNf);
 

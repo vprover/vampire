@@ -397,7 +397,7 @@ public:
     while(_inn.hasNext()) {
       auto next = _inn.next();
       if(_func(next)) {
-        _next = some<OWN_ELEMENT_TYPE>(next);
+        _next = Optional<OWN_ELEMENT_TYPE>(std::move(next));
 	return true;
       }
     }
@@ -816,8 +816,9 @@ public:
 
   explicit FlatteningIterator(Master master)
   : _master(std::move(master))
-  , _current(_master.hasNext() ? some(_master.next())
-                               : none<Inner>())
+  , _current(std::move(_master.hasNext() 
+        ? Optional<Inner>(std::move(_master.next()))
+        : Optional<Inner>()))
   { }
 
   bool hasNext()
@@ -827,8 +828,9 @@ public:
       if (_current.unwrap().hasNext()) {
         return true;
       } else {
-        _current = _master.hasNext() ? some(std::move(_master.next()))
-                                     : none<Inner>();
+        _current = std::move(_master.hasNext() 
+            ? Optional<Inner>(std::move(_master.next()))
+            : Optional<Inner>());
       }
     }
     return false;
@@ -845,56 +847,6 @@ public:
 private:
   Master _master;
   Optional<Inner> _current;
-};
-
-/**
- * Iterator that takes iterator over iterators as its argument and
- * flattens it, returning elements of the inner iterators.
- *
- * This specialization is used for virtual iterators over virtual
- * iterators. It takes care that the inner iterators are released
- * as early as possible:
- *
- * When the inner iterator is empty, pointer to its core is
- * dropped even before the hasNext() method of the outer iterator
- * is called. This is important when inner iterators use some resource
- * of the outer iterator which has to be released by its destructor
- * before asking the outer iterator about next element.
- */
-template<typename T>
-class FlatteningIterator<VirtualIterator<VirtualIterator<T> > >
-{
-public:
-  typedef VirtualIterator<T> Inner;
-  typedef VirtualIterator<Inner> Master;
-  DECL_ELEMENT_TYPE(T);
-
-  explicit FlatteningIterator(Master master)
-  : _master(master), _current(Inner::getEmpty()) {}
-  bool hasNext()
-  {
-    CALL("FlatteningIterator::hasNext");
-    for(;;) {
-      if(_current.hasNext()) {
-	return true;
-      }
-      _current.drop();
-      if(!_master.hasNext()) {
-	return false;
-      }
-      _current=_master.next();
-    }
-  }
-  inline
-  T next()
-  {
-    CALL("FlatteningIterator::next");
-    ASS(_current.hasNext());
-    return _current.next();
-  }
-private:
-  Master _master;
-  Inner _current;
 };
 
 /**
@@ -1686,8 +1638,8 @@ public:
   Optional<Elem> tryNext() 
   { 
     return _iter.hasNext() 
-        ? some<Elem>(_iter.next())
-        : none<Elem>();
+        ? Optional<Elem>(_iter.next())
+        : Optional<Elem>();
   }
 
 
@@ -1775,14 +1727,14 @@ public:
     Optional<Elem>  _cur;
 
   public:
-    StlIter(IterTraits& iter)  : _iter(iter), _cur(iter.tryNext()) {}
+    StlIter(IterTraits& iter)  : _iter(Optional<IterTraits&>(iter)), _cur(std::move(iter.tryNext())) {}
     StlIter()  : _iter(), _cur() {}
 
     void operator++() 
     { _cur = _iter.unwrap().tryNext(); }
 
     Elem operator*() 
-    { return _cur.unwrap(); } 
+    { return std::move(_cur).unwrap(); } 
 
     friend bool operator!=(StlIter const& lhs, StlIter const& rhs) 
     { return !(lhs == rhs); }

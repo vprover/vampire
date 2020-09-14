@@ -15,15 +15,43 @@ namespace Lib {
 
 template<class T>
 struct MaybeUninit {
-  typename std::aligned_storage<sizeof(T), alignof(T)>::type _elem;
-  operator T const&()  const&{ return           *reinterpret_cast<T const*>(&_elem) ;}
-  operator T      &()       &{ return           *reinterpret_cast<T      *>(&_elem) ;}
-  operator T     &&()      &&{ return std::move(*reinterpret_cast<T      *>(&_elem));}
+  union Value { 
+    T init; int uninint[0]; 
+     Value() {};
+    ~Value() {};
+  } _elem;
 
-  void init(T     && content) { ::new(&_elem)T(std::move(content)); }
-  void init(T      & content) { ::new(&_elem)T(          content ); }
-  void init(T const& content) { ::new(&_elem)T(          content ); }
+   MaybeUninit() : _elem() {}
+  ~MaybeUninit() {}
+#define methods(ref, mv)                                                                                      \
+  operator T ref() ref                                                                                        \
+  { return mv(_elem.init); }                                                                                  \
+                                                                                                              \
+  void init(T ref content)                                                                                    \
+  { ::new(&_elem)T(mv(content)); }                                                                            \
+                                                                                                              \
+  MaybeUninit& operator=(T ref content)                                                                       \
+  {                                                                                                           \
+    _elem.init = mv(content);                                                                                 \
+    return *this;                                                                                             \
+  }                                                                                                           \
+
+  FOR_REF_QUALIFIER(methods)
+
+#undef methods 
 };
+
+// template<class T>
+// struct MaybeUninit {
+//   typename std::aligned_storage<sizeof(T), alignof(T)>::type _elem;
+//   operator T const&()  const&{ return           *reinterpret_cast<T const*>(&_elem) ;}
+//   operator T      &()       &{ return           *reinterpret_cast<T      *>(&_elem) ;}
+//   operator T     &&()      &&{ return std::move(*reinterpret_cast<T      *>(&_elem));}
+//
+//   void init(T     && content) { ::new(&_elem)T(std::move(content)); }
+//   void init(T      & content) { ::new(&_elem)T(          content ); }
+//   void init(T const& content) { ::new(&_elem)T(          content ); }
+// };
 
 template<class A>
 class OptionalBase 
@@ -34,49 +62,66 @@ class OptionalBase
 public:
 
   OptionalBase() : _isSome(false) {}
-  OptionalBase(A     && content) : _isSome(true), _elem() { _elem.init(std::move(content)); }
-  OptionalBase(A      & content) : _isSome(true), _elem() { _elem.init(          content ); }
-  OptionalBase(A const& content) : _isSome(true), _elem() { _elem.init(          content ); }
-  ~OptionalBase() { if (isSome()) { unwrap().~A(); } }
+
+  ~OptionalBase() 
+  { 
+    CALL("~OptionalBase") 
+    if (isSome()) { 
+      unwrap().~A(); 
+    }
+  }
+
+#define for_ref_qualifier(ref, mv)                                                                            \
+  OptionalBase(A ref content)                                                                                 \
+    : _isSome(true)                                                                                           \
+      , _elem()                                                                                               \
+  {                                                                                                           \
+    CALL("Optional(A " #ref ")")                                                                              \
+    _elem.init(mv(content));                                                                                  \
+  }                                                                                                           \
+                                                                                                              \
+  A ref unwrap() ref                                                                                          \
+  {                                                                                                           \
+    ASS(_isSome);                                                                                             \
+    return mv(_elem);                                                                                         \
+  }                                                                                                           \
+                                                                                                              \
+  OptionalBase(OptionalBase ref a) : _isSome(a._isSome)                                                       \
+  {                                                                                                           \
+    CALL("OptionalBase(OptionalBase " #ref ")");                                                              \
+    if (isSome()) {                                                                                           \
+      _elem.init(mv(a).unwrap());                                                                             \
+    }                                                                                                         \
+  }                                                                                                           \
+                                                                                                              \
+  OptionalBase& operator=(OptionalBase ref other)                                                             \
+  {                                                                                                           \
+    CALL("OptionalBase& operator=(OptionalBase "#ref")");                                                     \
+                                                                                                              \
+    if (_isSome) {                                                                                            \
+      if (other._isSome) {                                                                                    \
+        unwrap() = mv(other).unwrap();                                                                        \
+      } else {                                                                                                \
+        unwrap().~A();                                                                                        \
+      }                                                                                                       \
+    } else {                                                                                                  \
+      ASS(isNone())                                                                                           \
+      if (other._isSome){                                                                                     \
+         _elem.init(mv(other).unwrap());                                                                      \
+      } else {                                                                                                \
+         /* nothing to do */                                                                                  \
+      }                                                                                                       \
+    }                                                                                                         \
+    _isSome = other._isSome;                                                                                  \
+    return *this;                                                                                             \
+  }                                                                                                           \
+
+  FOR_REF_QUALIFIER(for_ref_qualifier)
+
+#undef for_ref_qualifier
 
   bool isSome() const { return _isSome;   }
   bool isNone() const { return !isSome(); }
-
-  A const& unwrap() const& { ASS(_isSome); return           _elem ; }
-  A     && unwrap()     && { ASS(_isSome); return std::move(_elem); }
-  A      & unwrap()      & { ASS(_isSome); return           _elem ; }
-
-  OptionalBase(OptionalBase      & a) : _isSome(a._isSome) 
-  { CALL("OptionalBase(OptionalBase      &)"); if (isSome()) { _elem.init(          a .unwrap()); } }
-  OptionalBase(OptionalBase     && a) : _isSome(a._isSome) 
-  { CALL("OptionalBase(OptionalBase     &&)"); if (isSome()) { _elem.init(std::move(a).unwrap()); } }
-  OptionalBase(OptionalBase const& a) : _isSome(a._isSome) 
-  { CALL("OptionalBase(OptionalBase const&)"); if (isSome()) { _elem.init(          a .unwrap()); } }
-
-  OptionalBase& operator=(OptionalBase      & a) 
-  {
-    CALL("OptionalBase& operator=(OptionalBase      &)"); 
-    _isSome = a.isSome();
-    if (isSome()) { _elem.init(          a .unwrap()); }
-    return *this;
-  }
-
-  OptionalBase& operator=(OptionalBase     && a) 
-  {
-    CALL("OptionalBase operator=(OptionalBase     &&)"); 
-    _isSome = a.isSome();
-    if (isSome()) { _elem.init(std::move(a).unwrap()); }
-    return *this;
-  }
-
-  OptionalBase& operator=(OptionalBase const& a) 
-  {
-    CALL("OptionalBase& operator=(OptionalBase const&)"); 
-    _isSome = a.isSome();
-    if (isSome()) { _elem.init(          a .unwrap()); }
-    return *this;
-  }
-
 
   static OptionalBase fromPtr(A* ptr) 
   { return ptr == nullptr ? OptionalBase() : *ptr; }
@@ -91,7 +136,9 @@ public:
       return true;
     }
   }
+    
 };
+
 
 
 template<class A>
