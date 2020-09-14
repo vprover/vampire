@@ -331,7 +331,7 @@ template<class NumTraits>
 class GeneralizeMul
 {
 public:
-  using PolyPair = PolyPair<NumTraits>;
+  using PolyPair = Kernel::PolyPair<NumTraits>;
 
   template<class Self>
   static UniqueShared<Polynom<NumTraits>> generalize(
@@ -359,9 +359,9 @@ class GeneralizeMulNumeral
 {
   using Inner = Coproduct<typename NumTraits::ConstantType, Bot>;
   Inner _inner;
-  using PolyPair = PolyPair<NumTraits>;
+  using PolyPair = Kernel::PolyPair<NumTraits>;
   using Const = typename NumTraits::ConstantType;
-  using Monom = Monom<NumTraits>;
+  using Monom = Kernel::Monom<NumTraits>;
 
 private:
   GeneralizeMulNumeral(Bot b) : _inner(b) {}
@@ -423,9 +423,9 @@ class FlatMeetLattice
 {
   using Inner = Coproduct<A, Bot>;
   Inner _inner;
-  using PolyPair = PolyPair<RealTraits>;
+  using PolyPair = Kernel::PolyPair<RealTraits>;
   using Const = RealConstantType;
-  using Monom = Monom<RealTraits>;
+  using Monom = Kernel::Monom<RealTraits>;
 
 private:
   FlatMeetLattice(Bot b) : _inner(b) {}
@@ -575,9 +575,9 @@ Stack<C> intersectSortedStack(Stack<C>&& l, Stack<C>&& r)
 template<class NumTraits>
 class GeneralizeAdd 
 {
-  using PolyPair = PolyPair<NumTraits>;
+  using PolyPair = Kernel::PolyPair<NumTraits>;
   using Const = typename NumTraits::ConstantType;
-  using Monom = Monom<NumTraits>;
+  using Monom = Kernel::Monom<NumTraits>;
 
   // TODO get rid of this field
   Stack<PolyPair> _cancellable;
