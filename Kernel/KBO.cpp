@@ -521,7 +521,7 @@ void KBO::checkAdmissibility(HandleError handle) const
     if (maxFn == -1) {
       maximalFunctions[sort] = i;
     } else {
-      if (compareFunctionPrecedences(maxFn, i)) {
+      if (compareFunctionPrecedences(maxFn, i) == LESS) {
         maximalFunctions[sort] = i;
       }
     }
@@ -538,7 +538,7 @@ void KBO::checkAdmissibility(HandleError handle) const
       handle(UserErrorException("weight of constants (i.e. ", env.signature->getFunction(i)->name(), ") must be greater or equal to the variable weight (", varWght, ")"));
 
     } else if (_funcWeights.symbolWeight(i) == 0 && arity == 1 && maximalFunctions[sort] != i) {
-      handle(UserErrorException( "a unary function of weight zero (i.e.: ", env.signature->getFunction(i)->name(), ") must be maximal wrt. the precedence ordering"));
+      handle(UserErrorException( "a unary function of weight zero (i.e.: ", env.signature->getFunction(i)->name(), ") must be maximal wrt. the precedence ordering. Maximal symbol: ", env.signature->getFunction(maximalFunctions[sort])->name()));
 
     }
   }
