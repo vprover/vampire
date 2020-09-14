@@ -339,7 +339,7 @@ public:
     }
   }
 
-  template<class... Bs> friend bool operator!=(const Coproduct<Bs...> &lhs, const Coproduct<Bs...> &rhs)
+  friend bool operator!=(const Coproduct &lhs, const Coproduct &rhs)
   { return !(lhs == rhs); }
 
   ~Coproduct() { _content.destroy(_tag); }

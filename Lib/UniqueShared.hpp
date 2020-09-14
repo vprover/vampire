@@ -54,11 +54,7 @@ public:
   /** default constructor. for this T must be default-constructible itself. */
   UniqueShared() : _elem(unique(T())) {}
 
-  template<class U> friend bool operator==(UniqueShared<U> const& l, UniqueShared<U> const& r)
-  { return l._elem == r._elem; }
-
-  template<class U> friend bool operator!=(UniqueShared<U> const& l, UniqueShared<U> const& r)
-  { return l != r; }
+  template<class U, class C> friend bool operator==(UniqueShared<U, C> const& l, UniqueShared<U, C> const& r);
 
   /** dereferencing the smart pointer */
   T const* operator->() const& { return _elem; }
@@ -66,10 +62,6 @@ public:
 
   T const& operator*() const& { return *_elem; }
   T      & operator*()      & { return *_elem; }
-
-  /** implicit conversions */
-  operator T const&() const& { return *_elem; }
-  operator T      &()      & { return           *_elem ; }
 
   friend std::ostream& operator<<(std::ostream& out, const UniqueShared& self) 
   { return out << *self._elem; }
@@ -80,10 +72,20 @@ public:
   template<class U> friend struct UniqueSharedPtrComparison;
 
   template<class U, class C> 
-  friend bool operator<(const Lib::UniqueShared<U, C> & lhs, const Lib::UniqueShared<U, C>& rhs) 
-  { return std::less<Lib::UniqueShared<U, C>>{}(lhs,rhs); }
+  friend bool operator<(const Lib::UniqueShared<U, C> & lhs, const Lib::UniqueShared<U, C>& rhs);
 
 }; // class UniqueShared
+
+
+template<class U, class C> 
+bool operator<(const Lib::UniqueShared<U, C> & lhs, const Lib::UniqueShared<U, C>& rhs) 
+{ return std::less<Lib::UniqueShared<U, C>>{}(lhs,rhs); }
+
+template<class U, class C> bool operator==(UniqueShared<U, C> const& l, UniqueShared<U, C> const& r)
+{ return l._elem == r._elem; }
+
+template<class U, class C> bool operator!=(UniqueShared<U, C> const& l, UniqueShared<U, C> const& r)
+{ return !(l == r); }
 
 /** instantiating the cache */
 template<class T, class Cmp> typename UniqueShared<T, Cmp>::Cache UniqueShared<T, Cmp>::_cached;
