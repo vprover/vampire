@@ -6,7 +6,7 @@
 #include "Lib/Array.hpp"
 
 #define TODO ASSERTION_VIOLATION
-#define DEBUG(...) DBG(__VA_ARGS__)
+#define DEBUG(...) //DBG(__VA_ARGS__)
 
 namespace Inferences {
 
@@ -982,8 +982,8 @@ namespace Rule3
     VariableRegion meet(VariableRegion rhs) 
     {
       auto& lhs = *this;
-      if (lhs.isTop()) return VariableRegion(move(rhs));
-      if (rhs.isTop()) return VariableRegion(move(lhs));
+      if (lhs.isUninit()) return VariableRegion(move(rhs));
+      if (rhs.isUninit()) return VariableRegion(move(lhs));
       return VariableRegion(intersectSortedStack(std::move(lhs.unwrap()), std::move(rhs.unwrap())));
     }
 
@@ -995,13 +995,15 @@ namespace Rule3
 
     friend ostream& operator<<(ostream& out, VariableRegion const& self) 
     {
-      return self.isTop() ? out << "Top"
+      return self.isUninit() ? out << "Top"
                           : out << self.unwrap();
     }
-  private:
 
-    bool isTop() const 
+    bool isUninit() const 
     { return _self.template is<Top>(); }
+
+    bool isInit() const 
+    { return !isUninit(); }
   };
 
 
@@ -1090,6 +1092,7 @@ namespace Rule3
     template<class NumTraits>
     PolyPair<NumTraits> operator()(PolyPair<NumTraits> p, PolyNf* evaluatedArgs)  
     {
+      CALL("Generalize::operator()")
       using Pair = PolyPair<NumTraits>;
       return Pair(p.coeff, unique(Monom<NumTraits>(filter(p.monom, evaluatedArgs))));
     }
@@ -1159,17 +1162,20 @@ namespace Rule3
 
     components.evalComponents();
     for (auto comp : iterTraits(IntUnionFind::ComponentIterator(components))) {
-      auto& region = varRegions[components.root(comp.next())].unwrap();
+      auto& maybeRegion = varRegions[components.root(comp.next())];
+      if (maybeRegion.isInit()) {
+        auto& region = maybeRegion.unwrap();
 
-      /* one variable with power one needs to be kept, per varible region */
-      auto var = iterTraits(region.iter())
-        .filter([](AnyNumber<MonomPair> p) { return p.apply(Polymorphic::tryVar{}).isSome(); })
-        .tryNext();
+        /* one variable with power one needs to be kept, per varible region */
+        auto var = iterTraits(region.iter())
+          .filter([](AnyNumber<MonomPair> p) { return p.apply(Polymorphic::tryVar{}).isSome(); })
+          .tryNext();
 
-      if (var.isSome()) {
-        for (auto varPower : region) {
-          if (varPower != var.unwrap()) {
-            remove.push(varPower);
+        if (var.isSome()) {
+          for (auto varPower : region) {
+            if (varPower != var.unwrap()) {
+              remove.push(varPower);
+            }
           }
         }
       }
