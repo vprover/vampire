@@ -83,8 +83,6 @@ IterTraits<IterArgNfs> iterArgNfs(Literal* lit)
 { return iterTraits(IterArgNfs(lit)); }
 
 
-// static const auto lala = []() {return "lala";};
-
 static const auto iterTerms = [](Clause* cl) {
   return iterTraits(cl->iterLits())
     .flatMap([](Literal* lit) { return iterArgNfs(lit); }) 
@@ -687,8 +685,6 @@ UniqueShared<Polynom<NumTraits>> GeneralizeAdd<NumTraits>::generalize(
   }
   auto& toCancel = gen._cancellable;
 
-  DBGE(poly)
-  DBGE(toCancel)
 
   Stack<PolyPair> out(poly->nSummands() - toCancel.size());
 
@@ -747,7 +743,6 @@ void GeneralizeAdd<NumTraits>::addToMap(GenMap& map, AnyPoly p_)
   for (auto pair : p->iter()) {
     auto var = pair.tryVar();
     if (var.isSome()) {
-      DBGE(var)
       auto v = var.unwrap();
       auto gen = GeneralizeAdd<NumTraits>(v, p);
       auto entry = map.tryGet(v);
@@ -1036,7 +1031,6 @@ namespace Rule3
       CALL("Preprocess::operator()")
 
       for (auto summand : p->iter()) {
-        DBG("processing: ", summand)
 
         auto varIter = summand.monom->iter()
               .filter([](MonomPair<NumTraits> factor) { return factor.term.template is<Variable>(); });
@@ -1141,6 +1135,10 @@ namespace Rule3
     /* initialization */
     for (auto var : iterVars(cl)) {
       varMap.insert(var);
+    }
+    if (varMap.size() == 0) {
+      DEBUG("no variables. generalization not applicable");
+      return cl;
     }
 
     IntUnionFind components(varMap.size());
@@ -1264,10 +1262,8 @@ namespace Rule4
                   auto var = m.term.tryVar();
                   if (var.isSome() && !powers.get(var.unwrap()).isBot()) {
                     ASS_EQ(evaluatedArgs[i], var.unwrap());
-                    DBG("lala ", powers.get(var.unwrap()));
                     return MonomPair<RealTraits>(evaluatedArgs[i++], 1);
                   } else {
-                    DBG("lala 2");
                     return MonomPair<RealTraits>(evaluatedArgs[i++], m.power); 
                   }
                 })
