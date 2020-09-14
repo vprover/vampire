@@ -203,6 +203,10 @@ static std::unique_ptr<PassiveClauseContainer> makeLevel4(bool isOutermost, cons
   }
 }
 
+static void delayedEvaluatorFn(Clause* cl) {
+  SaturationAlgorithm::tryGetInstance()->talkToKarel(cl);
+}
+
 static std::unique_ptr<PassiveClauseContainer> makeLevel5(bool isOutermost, const Options& opt, vstring name)
 {
   if (opt.useNeuralEvalSplitQueues())
@@ -214,7 +218,9 @@ static std::unique_ptr<PassiveClauseContainer> makeLevel5(bool isOutermost, cons
       auto queueName = name + "NESQ" + Int::toString(cutoffs[i]) + ":";
       queues.push_back(makeLevel4(false, opt, queueName));
     }
-    return Lib::make_unique<NeuralEvalSplitPassiveClauseContainer>(isOutermost, opt, name + "NESQ", std::move(queues));
+    auto res = Lib::make_unique<NeuralEvalSplitPassiveClauseContainer>(isOutermost, opt, name + "NESQ", std::move(queues));
+    res->setDelayedEvaluator(delayedEvaluatorFn);
+    return res;
   }
   else
   {
@@ -530,8 +536,8 @@ void SaturationAlgorithm::talkToKarel(Clause* cl, bool eval)
 
   ASS(_opt.showForKarel() || _opt.evalForKarel());
 
-  if ((!_opt.showForKarel() || _shown.find(cl)) && // now reason to show
-      (!eval || !_opt.evalForKarel() || _evaluated.find(cl))) { // now reason to evaluate
+  if ((!_opt.showForKarel() || _shown.find(cl)) && // no reason to show
+      (!eval || !_opt.evalForKarel() || _evaluated.find(cl))) { // no reason to evaluate
     return;
   }
 
@@ -1292,7 +1298,8 @@ void SaturationAlgorithm::addToPassive(Clause* cl)
   env.statistics->passiveClauses++;
 
   if (_opt.evalForKarel()) {
-    talkToKarel(cl);
+    // talkToKarel(cl); // delayed evaluation trick (TODO: do this for initial as well?)
+    cl->modelSaid(true);
   }
 
   {
