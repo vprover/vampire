@@ -122,7 +122,6 @@ public:
 
   template<class Clsr>
   typename std::result_of<Clsr(A &)>::type andThen(Clsr clsr) & { 
-    using OptOut = typename std::result_of<Clsr(A &)>::type;
     using OptOut = typename Optional<std::result_of<Clsr(A &)>>::type;
     return isSome() ? clsr(unwrap())
                     : OptOut();
