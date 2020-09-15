@@ -1632,8 +1632,17 @@ public:
 
   explicit IterTraits(Iter iter) : _iter(std::move(iter)) {}
 
-  Elem next() { return _iter.next(); }
-  bool hasNext() { return _iter.hasNext(); }
+  Elem next() 
+  { 
+    CALL("IterTraits::next")
+    return _iter.next(); 
+  }
+
+  bool hasNext() 
+  { 
+    CALL("IterTraits::hasNext")
+    return _iter.hasNext(); 
+  }
 
   Optional<Elem> tryNext() 
   { 
@@ -1646,6 +1655,7 @@ public:
   template<class F>
   void forEach(F f) 
   {
+    CALL("IterTraits::forEach")
     while (hasNext()) {
       f(next());
     }
@@ -1654,6 +1664,7 @@ public:
   template<class P>
   Optional<Elem> find(P p) 
   {
+    CALL("IterTraits::find")
     while (hasNext()) {
       Elem x = next();
       if (p(x)) {
@@ -1666,6 +1677,7 @@ public:
   template<class P>
   Optional<unsigned> findPosition(P p) 
   {
+    CALL("IterTraits::findPosition")
     unsigned i = 0;
     while (hasNext()) {
       Elem x = next();
@@ -1696,6 +1708,7 @@ public:
 
   Optional<Elem> min()
   { 
+    CALL("IterTraits::min")
     if (hasNext()) {
       auto&& min = next();
       while (hasNext())  {
@@ -1713,12 +1726,18 @@ public:
 
   template<class Container>
   Container collect()
-  { return Container::fromIterator(*this); }
+  { 
+    CALL("IterTraits::collect/1")
+    return Container::fromIterator(*this); 
+  }
   
 
   template<template<class> class Container>
   Container<Elem> collect()
-  { return Container<Elem>::fromIterator(*this); }
+  { 
+    CALL("IterTraits::collect/2")
+    return Container<Elem>::fromIterator(*this); 
+  }
   
   /** This class is to be used in the context of a for (auto x : ...) loop only. */
   class StlIter 

@@ -6,7 +6,7 @@
 #include "Lib/Array.hpp"
 
 #define TODO ASSERTION_VIOLATION
-#define DEBUG(...) //DBG(__VA_ARGS__)
+#define DEBUG(...) DBG(__VA_ARGS__)
 
 namespace Inferences {
 
@@ -131,9 +131,11 @@ Clause* evaluateBottomUp(Clause* cl, EvalFn eval)
 
   auto stack = iterTraits(cl->iterLits())
     .map([&](Literal* lit) {
+        CALL("evaluateBottomUp(Clause* cl, EvalFn)@closure 1")
         unsigned j = 0;
         auto args = argIter(lit)
           .map([&](TermList term) -> TermList { 
+              CALL("evaluateBottomUp(Clause* cl, EvalFn)@closure 2")
               auto norm = PolyNf::normalize(TypedTermList(term, SortHelper::getArgSort(lit, j++)));
               // BuildGeneralizedTerm<Gen> eval { var, generalization };
               auto res = evaluateBottomUp(norm, eval);
@@ -146,7 +148,7 @@ Clause* evaluateBottomUp(Clause* cl, EvalFn eval)
               }
           })
           .template collect<Stack>();
-        return Literal::create(lit, &args[0]);
+        return Literal::create(lit, args.begin());
     })
     .template collect<Stack>();
 
