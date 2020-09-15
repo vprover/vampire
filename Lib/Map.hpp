@@ -490,13 +490,17 @@ public:
     Entry* entry;
     for (entry = firstEntryForCode(code); entry->occupied(); entry = nextEntry(entry)) {
       if (entry->code == code && Hash::equals(entry->key(), key)) {
-        entry->value() = update(std::move(entry->value()));
+        ASS_NO_EXCEPT(
+          entry->value() = update(std::move(entry->value()));
+        )
         return entry->value();
       }
     }
     // entry is not occupied
     _noOfEntries++;
-    entry->init(std::move(key), init(), code);
+    ASS_NO_EXCEPT(
+      entry->init(std::move(key), init(), code);
+    )
     return entry->value();
   } 
 

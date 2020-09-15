@@ -502,18 +502,33 @@ FRACTIONAL_TEST(eval_quotient_1,
 //     p(a)
 //     )
 
+FRACTIONAL_TEST(div_zero_0,
+    r(7 / num(0), num(10) + 1),
+    r(7 / num(0), 11)
+    )
+
+INT_TEST(div_zero_1,
+    r(quotientE(num(7), 0), num(10) + 1),
+    r(quotientE(num(7), 0),     11     )
+    )
+
+INT_TEST(div_zero_2,
+    r(remainderE(num(7), 0), num(10) + 1),
+    r(remainderE(num(7), 0),     11     )
+    )
+
 ALL_NUMBERS_TEST(eval_overflow_1,
     p(num(1661992960) + 1661992960),
     p(num(1661992960) + 1661992960)
     )
 
 ALL_NUMBERS_TEST(eval_overflow_2,
-    r(num(1661992960) + 1661992960, 7 + 3),
+    r(num(1661992960) + 1661992960, num(7) + 3),
     r(num(1661992960) + 1661992960, 10)
     )
 
 ALL_NUMBERS_TEST(eval_overflow_3,
-    r(num(1661992960) * 1661992960, 7 + 3),
+    r(num(1661992960) * 1661992960, num(7) + 3),
     r(num(1661992960) * 1661992960, 10)
     )
 

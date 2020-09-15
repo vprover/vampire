@@ -936,7 +936,7 @@ inline std::ostream& operator<<(std::ostream& out, const FuncTerm& self)
 { 
   out << self._fun;
   auto& stack = self._args;
-  Stack<PolyNf>::ConstIterator iter(stack);
+  auto iter = stack.iterFifo();
 
   if (iter.hasNext()) {
     out << "(" << iter.next();

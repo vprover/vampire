@@ -25,7 +25,7 @@
 #ifndef __POLYNOMIAL_NORMALIZER_HPP__
 #define __POLYNOMIAL_NORMALIZER_HPP__
 
-#define DEBUG(...) //DBG(__VA_ARGS__)
+#define DEBUG(...) // DBG(__VA_ARGS__)
 
 namespace Kernel {
 
@@ -138,7 +138,6 @@ typename EvalFn::Result evaluateBottomUp(typename EvalFn::Arg const& term, EvalF
     } else { 
 
       ChildIter<Arg> orig = recState.pop();
-
       Result eval = memo.getOrInit(orig.self(), [&](){ 
             Result* argLst = NULL;
             if (orig.nChildren() != 0) {
@@ -650,8 +649,7 @@ inline PolyNf PolyNf::normalize(TypedTermList t)
                 fn, 
                 Stack<PolyNf>::fromIterator(
                     iterTraits(getArrayishObjectIterator<mut_ref_t>(ts, fn.arity()))
-                    .map( [](NormalizationResult& r) -> PolyNf { return toPolyNf(r); })
-                )
+                    .map( [](NormalizationResult& r) -> PolyNf { return toPolyNf(r); }))
               )
             );
 
@@ -672,82 +670,6 @@ inline PolyNf PolyNf::normalize(TypedTermList t)
   NormalizationResult r = evaluateBottomUp(t, Eval{}, memo);
   return toPolyNf(r);
 }
-
-// inline PolyNf PolyNf::normalize(TermList t) 
-// {
-//   CALL("PolyNf::normalize")
-//   DEBUG("normalizing ", t)
-//   // static Memo::None<TermList, NormalizationResult> memo;
-//   NormalizationMemo memo;
-//   struct Eval 
-//   {
-//     using Arg    = TermList;
-//     using Result = NormalizationResult;
-//
-//     Optional<NormalizationResult> normalizeInterpreted(Interpretation i, NormalizationResult* results) const
-//     {
-//       switch (i) {
-//
-// #     define NUM_CASE(NUM, Num)                                                                            \
-//         case Theory::Interpretation::NUM ## _MULTIPLY:                                                     \
-//           return Sum<Num ## Traits>::mul(results[0], results[1]);                                          \
-//         case Theory::Interpretation::NUM ## _PLUS:                                                         \
-//           return Sum<Num ## Traits>::add(results[0], results[1]);                                          \
-//         case Theory::Interpretation::NUM ## _UNARY_MINUS:                                                  \
-//           return Sum<Num ## Traits>::minus(results[0]);                                                    \
-//
-//         NUM_CASE(INT , Int )
-//         NUM_CASE(RAT , Rat )
-//         NUM_CASE(REAL, Real)
-//
-// #     undef NUM_CASE
-//         default:
-//           {}
-//       }
-//       return Optional<NormalizationResult>();
-//     } 
-//
-//     NormalizationResult operator()(TermList t, NormalizationResult* ts) const
-//     { 
-//       if (t.isVar()) {
-//         return NormalizationResult(PolyNf(Variable(t.var())));
-//       } else {
-//         ASS(t.isTerm());
-//         auto term = t.term();
-//         auto fn = FuncId(term->functor());
-//         if (fn.isInterpreted()) {
-//           auto maybePoly = normalizeInterpreted(fn.interpretation(), ts);
-//           if (maybePoly.isSome()) {
-//             return std::move(maybePoly).unwrap();
-//           }
-//         } 
-//         auto out = unique(FuncTerm(
-//                 fn, 
-//                 Stack<PolyNf>::fromIterator(
-//                     iterTraits(getArrayishObjectIterator<mut_ref_t>(ts, fn.arity()))
-//                     .map( [](NormalizationResult& r) -> PolyNf { return toPolyNf(r); })
-//                 )
-//               )
-//             );
-//
-// #     define NUM_CASE(Num)                                                                                 \
-//           if (fn.template tryNumeral<Num ## Traits>().isSome())                                            \
-//             return NormalizationResult(Sum<Num ## Traits>(Prod<Num ## Traits>(out)));
-//           
-//         NUM_CASE(Int )
-//         NUM_CASE(Rat )
-//         NUM_CASE(Real)
-//
-// #     undef NUM_CASE
-//
-//         return NormalizationResult(PolyNf(out));
-//       }
-//     }
-//   };
-//   NormalizationResult r = evaluateBottomUp(t, Eval{}, memo);
-//   return toPolyNf(r);
-// }
-
 
 class LitEvalResult : public Lib::Coproduct<Literal*, bool> 
 {
@@ -924,49 +846,56 @@ inline Optional<PolyNf> trySimplifyConst2(PolyNf* evalArgs, Clsr f)
 inline Optional<PolyNf> trySimplify(Theory::Interpretation i, PolyNf* evalArgs) 
 {
   CALL("trySimplify(Theory::Interpretation i, PolyNf* evalArgs) ")
-  switch (i) {
+  try {
+    switch (i) {
 
-#define CONSTANT_CASE(Num, func, expr)                                                                        \
-    case Num##Traits:: func ## I:                                                                             \
-      {                                                                                                       \
-        using Const = typename Num##Traits::ConstantType;                                                     \
-        return trySimplifyConst2<Num##Traits>(evalArgs, [](Const l, Const r){ return expr; });                \
-      }                                                                                                       \
+#define CONSTANT_CASE(Num, func, expr)                                                                          \
+      case Num##Traits:: func ## I:                                                                             \
+        {                                                                                                       \
+          using Const = typename Num##Traits::ConstantType;                                                     \
+          return trySimplifyConst2<Num##Traits>(evalArgs, [](Const l, Const r){ return expr; });                \
+        }                                                                                                       \
 
-#define QUOTIENT_REMAINDER_CASES(Num, X)                                                                      \
-    CONSTANT_CASE(Num,  quotient##X, l. quotient##X(r))                                                       \
-    CONSTANT_CASE(Num, remainder##X, l.remainder##X(r))                                                       \
+#define QUOTIENT_REMAINDER_CASES(Num, X)                                                                        \
+      CONSTANT_CASE(Num,  quotient##X, l. quotient##X(r))                                                       \
+      CONSTANT_CASE(Num, remainder##X, l.remainder##X(r))                                                       \
 
-#define FRAC_CASE(Num)                                                                                        \
-    CONSTANT_CASE(Num, div, l / r)
+#define FRAC_CASE(Num)                                                                                          \
+      CONSTANT_CASE(Num, div, l / r)
 
 #define NUM_CASE(Num) \
-    case Num ## Traits::minusI:     return trySimplifyUnaryMinus<Num ## Traits>(evalArgs); \
+      case Num ## Traits::minusI:     return trySimplifyUnaryMinus<Num ## Traits>(evalArgs); \
 
-    NUM_CASE(Int)
-    NUM_CASE(Rat)
-    NUM_CASE(Real)
-    QUOTIENT_REMAINDER_CASES(Int, E)
-    QUOTIENT_REMAINDER_CASES(Int, T)
-    QUOTIENT_REMAINDER_CASES(Int, F)
+      NUM_CASE(Int)
+      NUM_CASE(Rat)
+      NUM_CASE(Real)
+      QUOTIENT_REMAINDER_CASES(Int, E)
+      QUOTIENT_REMAINDER_CASES(Int, T)
+      QUOTIENT_REMAINDER_CASES(Int, F)
 
-    FRAC_CASE(Rat)
-    FRAC_CASE(Real)
+      FRAC_CASE(Rat)
+      FRAC_CASE(Real)
 
-// TODO evaluate conversion functions
-// TODO evaluate INT_ABS
-// TODO evaluate INT_SUCCESSOR
-// TODO evaluate FRAC_QUOTIENT
-// TODO evaluate FRAC_ROUND
-// TODO evaluate NUM_TO_NUM
-// TODO evaluate NUM_TRUNCATE
+  // TODO evaluate conversion functions
+  // TODO evaluate INT_ABS
+  // TODO evaluate INT_SUCCESSOR
+  // TODO evaluate FRAC_QUOTIENT
+  // TODO evaluate FRAC_ROUND
+  // TODO evaluate NUM_TO_NUM
+  // TODO evaluate NUM_TRUNCATE
 
 #undef NUM_CASE
 #undef QUOTIENT_REMAINDER_CASES
 #undef CONSTANT_CASE
 
-    default:
-      return none<PolyNf>();
+      default:
+        return none<PolyNf>();
+    }
+  } catch (MachineArithmeticException) {
+    return none<PolyNf>();
+
+  } catch (DivByZeroException) {
+    return none<PolyNf>();
   }
 }
 
@@ -990,9 +919,10 @@ template<class Config> PolyNf PolynomialNormalizer<Config>::evaluate(TypedTermLi
           { 
             return f->function().tryInterpret()
               .andThen( [&](Theory::Interpretation && i)  -> Optional<PolyNf>
-               { return trySimplify(i, ts); })
+                { return trySimplify(i, ts); })
               .unwrapOrElse([&]() -> PolyNf
-               { return PolyNf(unique(FuncTerm(f->function(), ts))); });
+                { return PolyNf(unique(FuncTerm(f->function(), ts))); });
+
           }, 
 
           [&](Variable v) 
