@@ -38,7 +38,7 @@ public:
   {
     auto apply = [](ImmediateSimplificationEngine& simpl, Kernel::Clause* in) {
      auto out = simpl.simplify(in);
-     DBG("result: ", pretty(out));
+     // DEBUG("result: ", pretty(out));
      return out;
     };
     auto mulNum = NumeralMultiplicationGeneralization();
@@ -612,6 +612,11 @@ TEST_SIMPLIFY_REAL(generalize_power_3,
     Simplification::Success {
       .input    = clause({ p1(x * x + f(y * y * y)) }), 
       .expected = clause({ p1(x) }), 
+    })
+
+TEST_SIMPLIFY_REAL(bug_01,
+    Simplification::NotApplicable {
+      .input    = clause({ x * (y + z) == x * y + x * z }), 
     })
 
 // TODO: what about { y = 0 \/ p(y*x) } ===> { p(x) }

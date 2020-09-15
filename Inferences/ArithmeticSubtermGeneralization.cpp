@@ -538,8 +538,8 @@ template<class C>
 Stack<C> intersectSortedStack(Stack<C>&& l, Stack<C>&& r) 
 {
   CALL("intersectSortedStack")
-  DEBUG("lhs: ", l)
-  DEBUG("rhs: ", r)
+  // DEBUG("lhs: ", l)
+  // DEBUG("rhs: ", r)
 
   if (l.size() == 0) return std::move(l);
   if (r.size() == 0) return std::move(r);
@@ -561,7 +561,7 @@ Stack<C> intersectSortedStack(Stack<C>&& l, Stack<C>&& r)
   }
   
   out.truncate(outOffs);
-  DEBUG("out: ", out);
+  //DEBUG("out: ", out);
   return std::move(out);
 }
 
@@ -617,7 +617,7 @@ public:
 
   GeneralizeAdd diff(GeneralizeAdd const& rm_) && {
     CALL("GeneralizeAdd::diff")
-    // DBG("in: ", *this, " - ", rm_)
+    // DEBUG("in: ", *this, " - ", rm_)
     auto rm = rm_._cancellable;
  
     auto resOffs  = 0;
@@ -637,7 +637,7 @@ public:
     }
     _cancellable.truncate(resOffs);
 
-    // DBG("out: ", *this)
+    // DEBUG("out: ", *this)
     return std::move(*this);
   }
 
@@ -740,23 +740,19 @@ void GeneralizeAdd<NumTraits>::addToMap(GenMap& map, AnyPoly p_)
   }
   auto p = p_.template unwrapType<NumTraits>();
 
-  for (auto pair : p->iter()) {
-    auto var = pair.tryVar();
+  for (auto summand : p->iter()) {
+    auto var = summand.tryVar();
     if (var.isSome()) {
       auto v = var.unwrap();
       auto gen = GeneralizeAdd<NumTraits>(v, p);
-      auto entry = map.tryGet(v);
-      if (entry.isSome()) {
-        auto& val = entry.unwrap();
-        val = move(val).meet(std::move(gen));
-      } else {
-        map.insert(v, std::move(gen));
-      }
+      map.updateOrInit(v,
+          [&](GeneralizeAdd<NumTraits> old) { return move(old).meet(move(gen)); },
+          [&]()                             { return move(gen); });
     } else {
-      for (auto factor : pair.monom->iter()) {
+      for (auto factor : summand.monom->iter()) {
          if (factor.term.template is<Variable>()) {
            auto v = factor.term.template unwrap<Variable>();
-           map.insert(v, GeneralizeAdd<NumTraits>::bot());
+           map.replaceOrInsert(v, GeneralizeAdd<NumTraits>::bot());
          }
       }
     }
@@ -777,7 +773,7 @@ void GeneralizeMulNumeral<NumTraits>::addToMap(GenMap& map, PolyPair const& summ
               auto& val = entry.unwrap();
               val = move(val).meet(std::move(gen));
             } else {
-              map.insert(var, std::move(gen));
+              map.replaceOrInsert(var, std::move(gen));
             }
           } else {
             ASS_G(factor.power, 0)
@@ -813,12 +809,17 @@ struct MapWrapper
   Map<Variable, ParallelNumberGeneralization<Gen>>& self;
 
   template<class C>
-  void insert(Variable var, C&& c) 
-  { self.insert(var, Value(std::move(c))); }
-
-  template<class C>
   void replaceOrInsert(Variable var, C&& c) 
   { self.replaceOrInsert(var, Value(std::move(c))); }
+
+  template<class Update, class Init>
+  void updateOrInit(Variable var, Update update, Init init)
+  { 
+    using C = typename std::result_of<Init()>::type;
+    self.updateOrInit(var, 
+        [&](Value&& c) { return update(std::move(c._inner). template unwrap<C>()); }, 
+        init); 
+  }
 
   Optional<ParallelNumberGeneralization<Gen>&> tryGet(Variable var) 
   { return self.tryGet(var); }
@@ -832,6 +833,8 @@ class ParallelNumberGeneralization
 {
 public:
   using Inner = Coproduct<Gen<IntTraits>, Gen<RatTraits>, Gen<RealTraits>>;
+  template<template<class> class Gen_> 
+  friend struct MapWrapper;
 private:
 
   Inner _inner;
@@ -871,7 +874,6 @@ public:
     PolyNf* generalizedArgs) 
   {  return Gen<NumTraits>::generalize(var, gen._inner.template unwrap<Gen<NumTraits>>(), poly, generalizedArgs); }
 
-
   ParallelNumberGeneralization meet(ParallelNumberGeneralization&& rhs) && 
   {
     return move(_inner).match(
@@ -901,6 +903,7 @@ using GenMulNum = GeneralizeMulNumeral<NumTraits>;
 
 namespace Rule2 
 {
+
 } // namespace Rule2
 
 Clause* NumeralMultiplicationGeneralization::simplify(Clause* cl) 
