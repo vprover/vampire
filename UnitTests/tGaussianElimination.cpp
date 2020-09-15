@@ -149,3 +149,9 @@ TEST_SIMPLIFY(gve_test_multiplesteps_2,
       .input    = clause({  x != 4, x + y !=  5, x < f(y)  }),
       .expected = clause({  4 < f(1)  }),
     })
+
+TEST_SIMPLIFY(gve_test_div,
+    Simplification::Success {
+      .input    = clause({  x / 3 != 4, p(x)  }),
+      .expected = clause({  p(12)  }),
+    })
