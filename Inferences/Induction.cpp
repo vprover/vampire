@@ -793,7 +793,8 @@ void InductionClauseIterator::instantiateScheme(Clause* premise, Literal* lit, I
 
   // cout << hypothesis->toString() << endl << endl;
 
-  produceClauses(premise, lit, hypothesis, conclusion, rule);
+  static ResultSubstitutionSP identity = ResultSubstitutionSP(new IdentitySubstitution());
+  produceClauses(premise, lit, hypothesis, conclusion, rule, identity);
 }
 
 }
