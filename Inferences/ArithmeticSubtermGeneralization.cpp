@@ -6,7 +6,7 @@
 #include "Lib/Array.hpp"
 
 #define TODO ASSERTION_VIOLATION
-#define DEBUG(...) DBG(__VA_ARGS__)
+#define DEBUG(...) //DBG(__VA_ARGS__)
 
 namespace Inferences {
 
