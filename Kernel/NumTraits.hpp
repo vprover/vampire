@@ -63,10 +63,19 @@ namespace Kernel {
 template<class ConstantType>
 struct NumTraits;
 
-#define IMPL_NUM_TRAITS__TERMLIST_ARGS_1 TermList t
-#define IMPL_NUM_TRAITS__TERMLIST_EXPR_1          t
-#define IMPL_NUM_TRAITS__TERMLIST_ARGS_2 TermList l, TermList r
-#define IMPL_NUM_TRAITS__TERMLIST_EXPR_2          l,          r
+#define IMPL_NUM_TRAITS__ARG_DECL_1(Type) Type a1
+#define IMPL_NUM_TRAITS__ARG_DECL_2(Type) IMPL_NUM_TRAITS__ARG_DECL_1(Type), Type a2
+#define IMPL_NUM_TRAITS__ARG_DECL_3(Type) IMPL_NUM_TRAITS__ARG_DECL_2(Type), Type a3
+#define IMPL_NUM_TRAITS__ARG_DECL_4(Type) IMPL_NUM_TRAITS__ARG_DECL_3(Type), Type a4
+#define IMPL_NUM_TRAITS__ARG_DECL_5(Type) IMPL_NUM_TRAITS__ARG_DECL_4(Type), Type a5
+#define IMPL_NUM_TRAITS__ARG_DECL_6(Type) IMPL_NUM_TRAITS__ARG_DECL_5(Type), Type a6
+#define IMPL_NUM_TRAITS__ARG_DECL_7(Type) IMPL_NUM_TRAITS__ARG_DECL_6(Type), Type a7
+#define IMPL_NUM_TRAITS__ARG_DECL_8(Type) IMPL_NUM_TRAITS__ARG_DECL_7(Type), Type a8
+#define IMPL_NUM_TRAITS__ARG_DECL_9(Type) IMPL_NUM_TRAITS__ARG_DECL_8(Type), Type a9
+#define IMPL_NUM_TRAITS__ARG_DECL_10(Type) IMPL_NUM_TRAITS__ARG_DECL_9(Type), Type a10
+
+#define IMPL_NUM_TRAITS__ARG_DECL(Type, arity) IMPL_NUM_TRAITS__ARG_DECL_ ## arity (Type)
+#define IMPL_NUM_TRAITS__ARG_EXPR(arity) IMPL_NUM_TRAITS__ARG_DECL_ ## arity ()
 
 #define IMPL_NUM_TRAITS__INTERPRETED_SYMBOL(name, SORT_SHORT, _INTERPRETATION)                                          \
     static const Theory::Interpretation name ## I = Theory::SORT_SHORT ## _INTERPRETATION;                              \
@@ -80,11 +89,11 @@ struct NumTraits;
 #define IMPL_NUM_TRAITS__INTERPRETED_PRED(name, SORT_SHORT, _INTERPRETATION, arity)                                     \
     IMPL_NUM_TRAITS__INTERPRETED_SYMBOL(name, SORT_SHORT, _INTERPRETATION)                                              \
                                                                                                                         \
-    static Literal* name(bool polarity, IMPL_NUM_TRAITS__TERMLIST_ARGS_ ## arity) {                                     \
+    static Literal* name(bool polarity, IMPL_NUM_TRAITS__ARG_DECL(TermList, arity)) {                                   \
       return Literal::create(                                                                                           \
                   name##F(),                                                                                            \
                   polarity,                                                                                             \
-                  { IMPL_NUM_TRAITS__TERMLIST_EXPR_ ## arity });                                                        \
+                  { IMPL_NUM_TRAITS__ARG_EXPR( arity ) });                                                              \
     }                                                                                                                   \
 
 
@@ -92,11 +101,11 @@ struct NumTraits;
 #define IMPL_NUM_TRAITS__INTERPRETED_FUN(name, SORT_SHORT, _INTERPRETATION, arity)                                      \
     IMPL_NUM_TRAITS__INTERPRETED_SYMBOL(name, SORT_SHORT, _INTERPRETATION)                                              \
                                                                                                                         \
-    static TermList name(IMPL_NUM_TRAITS__TERMLIST_ARGS_ ## arity) {                                                    \
+    static TermList name(IMPL_NUM_TRAITS__ARG_DECL(TermList, arity)) {                                                  \
       return TermList(                                                                                                  \
           Term::create(                                                                                                 \
             name##F(),                                                                                                  \
-            { IMPL_NUM_TRAITS__TERMLIST_EXPR_ ## arity }));                                                             \
+            { IMPL_NUM_TRAITS__ARG_EXPR(arity) }));                                                                     \
     }                                                                                                                   \
 
 #define IMPL_NUM_TRAITS__SPECIAL_CONSTANT(name, value, isName)                                                          \
