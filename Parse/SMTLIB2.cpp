@@ -1006,11 +1006,12 @@ void SMTLIB2::readDefineFunRec(const vstring& name, LExprList* iArgs, LExpr* oSo
     lhs = TermList(Term::create(symbIdx,args.size(),args.begin()));
   } else {
     Formula* frm = new AtomicFormula(Literal::create(symbIdx,args.size(),true,false,args.begin()));
+    frm->literal()->makeRecursiveDefinition();
     lhs = TermList(Term::createFormula(frm));
   }
 
   auto lit = Literal::createEquality(true,lhs,rhs,rangeSort);
-  lit->makeRecFuncDef();
+  lit->makeRecursiveDefinition();
   Formula* fla = new AtomicFormula(lit);
 
   FormulaUnit* fu = new FormulaUnit(fla, FromInput(UnitInputType::ASSUMPTION));

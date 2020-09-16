@@ -149,14 +149,14 @@ bool ForwardDemodulation::perform(Clause* cl, Clause*& replacement, ClauseIterat
 	Ordering::Result argOrder = ordering.getEqualityArgumentOrder(qr.literal);
 	bool preordered = argOrder==Ordering::LESS || argOrder==Ordering::GREATER;
 #if VDEBUG
-	if(preordered) {
-	  if(argOrder==Ordering::LESS) {
-	    ASS_EQ(rhs, *qr.literal->nthArgument(0));
-	  }
-	  else {
-	    ASS_EQ(rhs, *qr.literal->nthArgument(1));
-	  }
-	}
+	// if(preordered) {
+	//   if(argOrder==Ordering::LESS) {
+	//     ASS_EQ(rhs, *qr.literal->nthArgument(0));
+	//   }
+	//   else {
+	//     ASS_EQ(rhs, *qr.literal->nthArgument(1));
+	//   }
+	// }
 #endif
 	if(!preordered && (_preorderedOnly || ordering.compare(trm,rhsS)!=Ordering::GREATER) ) {
 	  continue;

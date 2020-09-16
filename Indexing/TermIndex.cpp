@@ -97,7 +97,7 @@ void SuperpositionLHSIndex::handleClause(Clause* c, bool adding)
   unsigned selCnt=c->numSelected();
   for (unsigned i=0; i<selCnt; i++) {
     Literal* lit=(*c)[i];
-    TermIterator lhsi=EqHelper::getSuperpositionLHSIterator(lit, _ord, _opt);
+    TermIterator lhsi=EqHelper::getSuperpositionLHSIterator(lit, _ord, _opt, c->containsRecursiveDefinition());
     while (lhsi.hasNext()) {
       TermList lhs=lhsi.next();
       if (adding) {
@@ -158,7 +158,7 @@ void DemodulationLHSIndex::handleClause(Clause* c, bool adding)
   TimeCounter tc(TC_FORWARD_DEMODULATION_INDEX_MAINTENANCE);
 
   Literal* lit=(*c)[0];
-  TermIterator lhsi=EqHelper::getDemodulationLHSIterator(lit, true, _ord, _opt);
+  TermIterator lhsi=EqHelper::getDemodulationLHSIterator(lit, true, _ord, _opt, c->containsRecursiveDefinition());
   while (lhsi.hasNext()) {
     if (adding) {
       _is->insert(lhsi.next(), lit, c);

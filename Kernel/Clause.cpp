@@ -77,6 +77,7 @@ Clause::Clause(unsigned length,const Inference& inf)
     _numSelected(0),
     _weight(0),
     _weightForClauseSelection(0),
+    _containsRecursiveDefinition(false),
     _refCnt(0),
     _reductionTimestamp(0),
     _literalPositions(0),
@@ -345,9 +346,25 @@ vstring Clause::literalsOnlyToString() const
   } else {
     vstring result;
     result += _literals[0]->toString();
+    if (_containsRecursiveDefinition) {
+      if (_literals[0]->isRecursiveDefinition()) {
+        result += " [rec]";
+        if (_literals[0]->isRHSRecursiveHeader()) {
+          result +="[f]";
+        }
+      }
+    }
     for(unsigned i = 1; i < _length; i++) {
       result += " | ";
       result += _literals[i]->toString();
+      if (_containsRecursiveDefinition) {
+        if (_literals[i]->isRecursiveDefinition()) {
+          result += " [rec]";
+          if (_literals[i]->isRHSRecursiveHeader()) {
+            result +="[f]";
+          }
+        }
+      }
     }
     return result;
   }

@@ -141,6 +141,12 @@ struct EqualityResolution::ResultFn
           }
         }
 
+        if (curr->isRecursiveDefinition()) {
+          currAfter->makeRecursiveDefinition();
+          if (curr->isRHSRecursiveHeader()) {
+            currAfter->negateRHSRecursiveHeader();
+          }
+        }
         (*res)[next++] = currAfter;
       }
     }

@@ -175,6 +175,7 @@ Literal* TermSharing::insert(Literal* t)
     TermList* ts2 = ts1->next();
     if (argNormGt(*ts1, *ts2)) {
       swap(ts1->_content, ts2->_content);
+      t->negateRHSRecursiveHeader();
     }
   }
 

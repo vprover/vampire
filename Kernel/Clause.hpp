@@ -179,6 +179,15 @@ public:
   }
   unsigned computeWeightForClauseSelection(const Shell::Options& opt) const;
 
+  bool containsRecursiveDefinition() const
+  {
+    return _containsRecursiveDefinition;
+  }
+  bool makeContainRecursiveDefinition()
+  {
+    _containsRecursiveDefinition = true;
+  }
+
   /*
    * single source of truth for computation of weightForClauseSelection
    */
@@ -373,6 +382,8 @@ protected:
   mutable unsigned _weight;
   /** weight for clause selection */
   unsigned _weightForClauseSelection;
+  /** contains recursive function definition */
+  bool _containsRecursiveDefinition;
 
   /** number of references to this clause */
   unsigned _refCnt;

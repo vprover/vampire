@@ -246,7 +246,7 @@ void BackwardDemodulation::perform(Clause* cl,
     pvi( getFilteredIterator(
 	    getMappingIterator(
 		    getMapAndFlattenIterator(
-			    EqHelper::getDemodulationLHSIterator(lit, false, _salg->getOrdering(), _salg->getOptions()),
+			    EqHelper::getDemodulationLHSIterator(lit, false, _salg->getOrdering(), _salg->getOptions(), cl->containsRecursiveDefinition()),
 			    RewritableClausesFn(_index)),
 		    ResultFn(cl, *this)),
  	    RemovedIsNonzeroFn()) );

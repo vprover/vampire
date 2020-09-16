@@ -39,6 +39,8 @@
 #include "Shell/SymbolDefinitionInlining.hpp"
 #include "Shell/Statistics.hpp"
 
+#include "Inferences/EqualityResolution.hpp"
+
 #include "NewCNF.hpp"
 
 using namespace Lib;
@@ -286,6 +288,8 @@ void NewCNF::process(Literal* literal, Occurrences &occurrences) {
   ASS(thenBranches.isEmpty());
   ASS(elseBranches.isEmpty());
 
+  auto recursiveDefinition = literal->isRecursiveDefinition();
+
   while (occurrences.isNonEmpty()) {
     Occurrence occ = pop(occurrences);
 
@@ -294,6 +298,9 @@ void NewCNF::process(Literal* literal, Occurrences &occurrences) {
       LPair p = lit.next();
       Literal* literal = p.first;
       List<GenLit>* gls = p.second;
+      if (recursiveDefinition) {
+        literal->makeRecursiveDefinition();
+      }
 
       Formula* f = new AtomicFormula(literal);
 
@@ -1533,6 +1540,7 @@ Clause* NewCNF::toClause(SPGenClause gc)
   ASS(properLiterals.isEmpty());
 
   GenClause::Iterator lit = gc->genLiterals();
+  bool recursiveDefinition = false;
   while (lit.hasNext()) {
     GenLit gl = lit.next();
     Formula* g = formula(gl);
@@ -1541,6 +1549,7 @@ Clause* NewCNF::toClause(SPGenClause gc)
     ASS_REP(g->literal()->shared(), g->toString());
     ASS_REP((SIGN)g->literal()->polarity() == POSITIVE, g->toString());
 
+    recursiveDefinition = recursiveDefinition || g->literal()->isRecursiveDefinition();
     Literal* l = g->literal()->apply(*subst);
     if (sign(gl) == NEGATIVE) {
       l = Literal::complementaryLiteral(l);
@@ -1550,11 +1559,28 @@ Clause* NewCNF::toClause(SPGenClause gc)
   }
 
   Clause* clause = new(gc->size()) Clause(gc->size(),FormulaTransformation(InferenceRule::CLAUSIFY,_beingClausified));
+
   for (int i = gc->size() - 1; i >= 0; i--) {
     (*clause)[i] = properLiterals[i];
   }
 
   properLiterals.reset();
+
+  if (recursiveDefinition) {
+    for (unsigned i = 0; i < clause->size();) {
+      auto lit = (*clause)[i];
+      Clause* temp = nullptr;
+      if (lit->isEquality() && lit->isNegative()) {
+        temp = Inferences::EqualityResolution::tryResolveEquality(clause, (*clause)[i]);
+      }
+      if (temp) {
+        clause = temp;
+      } else {
+        i++;
+      }
+    }
+    clause->makeContainRecursiveDefinition();
+  }
 
   return clause;
 }

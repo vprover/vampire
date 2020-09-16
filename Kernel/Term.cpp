@@ -1389,7 +1389,8 @@ Term::Term(const Term& t) throw()
     _hasInterpretedConstants(0),
     _isTwoVarEquality(0),
     _weight(0),
-    _isRecFuncDef(0),
+    _rhsRecursiveHeader(t._rhsRecursiveHeader),
+    _recursiveDefinition(t._recursiveDefinition),
     _vars(0)
 {
   CALL("Term::Term/1");
@@ -1419,7 +1420,8 @@ Term::Term() throw()
    _hasInterpretedConstants(0),
    _isTwoVarEquality(0),
    _weight(0),
-   _isRecFuncDef(0),
+   _rhsRecursiveHeader(0),
+   _recursiveDefinition(0),
    _vars(0)
 {
   CALL("Term::Term/0");
