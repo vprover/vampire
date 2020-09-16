@@ -10,6 +10,8 @@ namespace Inferences {
 Clause* PolynomialNormalization::simplify(Clause* cl_) {
   CALL("PolynomialNormalization::simplify(Clause*)")
   DEBUG("in:  ", *cl_)
+  if (cl_->isTheoryAxiom()) 
+    return cl_;
   auto& cl = *cl_;
   Stack<Literal*> out(cl.size());
 

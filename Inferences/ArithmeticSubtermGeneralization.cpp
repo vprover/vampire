@@ -151,24 +151,30 @@ Clause* generalizeBottomUp(Clause* cl, EvalFn eval)
           .template collect<Stack>();
         auto generalizedLit = Literal::create(lit, args.begin());
 
-//         DBGE(*lit)
-//         DBGE(*generalizedLit)
-// #if VDEBUG
-//         auto ord = Ordering::tryGetGlobalOrdering();
-//         if (ord) {
-//           switch(ord->compare(generalizedLit, lit)) {
-//             case Ordering::LESS:
-//             case Ordering::LESS_EQ:
-//             case Ordering::EQUAL: {}
-//             case Ordering::GREATER: {
-//                                       DBG(*generalizedLit, " > ", *lit)
-//                    ASSERTION_VIOLATION
-//                   }
-//             case Ordering::GREATER_EQ: ASSERTION_VIOLATION
-//             case Ordering::INCOMPARABLE: ASSERTION_VIOLATION
-//           }
-//         }
-// #endif
+#if VDEBUG
+        auto ord = Ordering::tryGetGlobalOrdering();
+        if (ord) {
+          switch(ord->compare(generalizedLit, lit)) {
+            case Ordering::LESS:
+            case Ordering::LESS_EQ:
+            case Ordering::EQUAL:
+                 break;
+#define ASSERT_NOT_THE_CASE(VALUE)                                                                            \
+            case Ordering::VALUE: {                                                                           \
+                  DBG("")                                                                                     \
+                  DBG(*generalizedLit, #VALUE, *lit)                                                          \
+                  DBG("lhs: ", *generalizedLit)                                                               \
+                  DBG("rhs: ", *lit)                                                                          \
+                  ASSERTION_VIOLATION                                                                         \
+             }
+
+            ASSERT_NOT_THE_CASE(GREATER)
+            ASSERT_NOT_THE_CASE(GREATER_EQ)
+            ASSERT_NOT_THE_CASE(INCOMPARABLE)
+#undef ASSERT_NOT_THE_CASE
+          }
+        }
+#endif
 
         return generalizedLit;
     })
