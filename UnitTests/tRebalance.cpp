@@ -7,6 +7,8 @@
 #include "Kernel/Rebalancing/Inverters.hpp"
 #include "Indexing/TermSharing.hpp"
 #include "Kernel/InterpretedLiteralEvaluator.hpp"
+#include "Shell/TermAlgebra.hpp"
+
 
 #define UNIT_ID Rebalancing
 UT_CREATE;
@@ -14,6 +16,7 @@ using namespace std;
 using namespace Kernel;
 using namespace Rebalancing;
 using namespace Inverters;
+using namespace Shell;
 
 // TODO inline these macros
 #define add(a,b) (a + b)
@@ -50,27 +53,65 @@ void test_rebalance(Literal* lit, initializer_list<expected_t> expected);
 #define __TO_CONSTANT_TYPE_REAL RealConstantType
 #define ToConstantType(type)  __TO_CONSTANT_TYPE_ ## type
 
-#define TEST_REBALANCE(name, type, equality, __list) \
-    TEST_FUN(name ## _ ## type) { \
-      THEORY_SYNTAX_SUGAR(type) \
-      _Pragma("GCC diagnostic push") \
-      _Pragma("GCC diagnostic ignored \"-Wunused\"") \
-        THEORY_SYNTAX_SUGAR_FUN(f, 1) \
-      _Pragma("GCC diagnostic pop") \
-      test_rebalance<ToConstantType(type)>((equality), __expand ## __list); \
-    } \
+#define TEST_REBALANCE(name, type, equality, __list)                                                          \
+    TEST_FUN(name ## _ ## type) {                                                                             \
+      THEORY_SYNTAX_SUGAR(type)                                                                               \
+      _Pragma("GCC diagnostic push")                                                                          \
+      _Pragma("GCC diagnostic ignored \"-Wunused\"")                                                          \
+        THEORY_SYNTAX_SUGAR_FUN(f, 1)                                                                         \
+      _Pragma("GCC diagnostic pop")                                                                           \
+      test_rebalance<ToConstantType(type)>((equality), __expand ## __list);                                   \
+    }                                                                                                         \
 
 
-#define TEST_REBALANCE_SPLIT(name, equality, __frac, __int) \
-    TEST_REBALANCE(name, REAL, equality, __frac) \
-    TEST_REBALANCE(name, RAT , equality, __frac) \
-    TEST_REBALANCE(name, INT , equality, __int) \
+#define TEST_LIST(test_name, equality, __list)                                                                \
+    TEST_FUN(test_name) {                                                                                     \
+      THEORY_SYNTAX_SUGAR(RAT)                                                                                \
+      _Pragma("GCC diagnostic push")                                                                          \
+      _Pragma("GCC diagnostic ignored \"-Wunused\"")                                                          \
+        SYNTAX_SUGAR_SORT(list)                                                                               \
+        SYNTAX_SUGAR_CONST(nil, list)                                                                         \
+        SYNTAX_SUGAR_CONST(t, list)                                                                           \
+        SYNTAX_SUGAR_FUN(cons,    list, __defaultSort, list)                                                  \
+        SYNTAX_SUGAR_FUN(uncons1, __defaultSort      , list )                                                 \
+        SYNTAX_SUGAR_FUN(uncons2, list                , list)                                                 \
+        auto xL = Trm<UninterpretedTraits>(TermList::var(0));                                                 \
+        auto yL = Trm<UninterpretedTraits>(TermList::var(1));                                                 \
+        auto zL = Trm<UninterpretedTraits>(TermList::var(2));                                                 \
+        env.signature->getFunction(nil .functor())->markTermAlgebraCons();                                    \
+        env.signature->getFunction(cons.functor())->markTermAlgebraCons();                                    \
+        env.signature->addTermAlgebra(new TermAlgebra(list.sortNumber(), {                                    \
+            new TermAlgebraConstructor(nil.functor(),  {}),                                                   \
+            new TermAlgebraConstructor(cons.functor(),  {uncons1.functor(), uncons2.functor()}),              \
+          }));                                                                                                \
+      _Pragma("GCC diagnostic pop")                                                                           \
+      test_rebalance<ToConstantType(RAT)>((equality), __expand ## __list);                                    \
+    }                                                                                                         \
+
+#define TEST_ARRAY(test_name, equality, __list)                                                               \
+    TEST_FUN(test_name) {                                                                                     \
+      THEORY_SYNTAX_SUGAR(RAT)                                                                                \
+      _Pragma("GCC diagnostic push")                                                                          \
+      _Pragma("GCC diagnostic ignored \"-Wunused\"")                                                          \
+        SYNTAX_SUGAR_SORT(idxSrt)                                                                             \
+        ARRAY_SYNTAX_SUGAR(array, idxSrt, __defaultSort)                                                      \
+        SYNTAX_SUGAR_CONST(t, array)                                                                          \
+        SYNTAX_SUGAR_CONST(u, array)                                                                          \
+        SYNTAX_SUGAR_CONST(i, idxSrt)                                                                         \
+      _Pragma("GCC diagnostic pop")                                                                           \
+      test_rebalance<ToConstantType(RAT)>((equality), __expand ## __list);                                    \
+    }                                                                                                         \
+
+#define TEST_REBALANCE_SPLIT(name, equality, __frac, __int)                                                   \
+    TEST_REBALANCE(name, REAL, equality, __frac)                                                              \
+    TEST_REBALANCE(name, RAT , equality, __frac)                                                              \
+    TEST_REBALANCE(name, INT , equality, __int)                                                               \
 
 
-#define TEST_REBALANCE_ALL(name, equality, __list) \
-    TEST_REBALANCE(name, REAL, equality, __list) \
-    TEST_REBALANCE(name, RAT , equality, __list) \
-    TEST_REBALANCE(name, INT , equality, __list) \
+#define TEST_REBALANCE_ALL(name, equality, __list)                                                            \
+    TEST_REBALANCE(name, REAL, equality, __list)                                                              \
+    TEST_REBALANCE(name, RAT , equality, __list)                                                              \
+    TEST_REBALANCE(name, INT , equality, __list)                                                              \
 
 
 
@@ -216,6 +257,41 @@ TEST_REBALANCE_SPLIT(bug_2
       , bal(x, add(y, minus(mul(-1,x))))
       , bal(x, mul(-1, add(y, minus(x))))
     ))
+
+/** 
+ * cons(x, y) = t
+ * ==> x = uncons1(t)
+ * ==> y = uncons2(t)
+ */
+TEST_LIST(rebalance_list_01
+    , neq(cons(x, yL), t)
+    , __list(
+        bal(yL, uncons2(t))
+      , bal(x , uncons1(t))
+    ))
+
+/** 
+ * cons(x + 1, y) = t
+ * ==> x = uncons1(t) - 1
+ * ==> y = uncons2(t)
+ */
+TEST_LIST(rebalance_list_02
+    , cons(x + 1, yL) != t
+    , __list(
+        bal(yL, uncons2(t))
+      , bal(x, uncons1(t) + (-1))
+    ))
+
+/** 
+ * store(t, i, x+1) = u
+ * ==> x = select(u, i) - 1
+ */
+TEST_ARRAY(rebalance_array_01
+    , store(t, i, x + 1) != u
+    , __list(
+        bal(x, select(u,i) + (-1))
+    ))
+
 
 std::ostream& operator<<(std::ostream& out, initializer_list<expected_t> expected) {
   for (auto x : expected ) {
