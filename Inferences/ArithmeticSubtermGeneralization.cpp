@@ -4,6 +4,7 @@
 #include "Kernel/PolynomialNormalizer.hpp"
 #include "Lib/IntUnionFind.hpp"
 #include "Lib/Array.hpp"
+#include "Kernel/Ordering.hpp"
 
 #define TODO ASSERTION_VIOLATION
 #define DEBUG(...) //DBG(__VA_ARGS__)
@@ -124,18 +125,18 @@ static const auto iterVars = [](Clause* cl) {
 };
 
 template<class EvalFn>
-Clause* evaluateBottomUp(Clause* cl, EvalFn eval) 
+Clause* generalizeBottomUp(Clause* cl, EvalFn eval) 
 {
   /* apply the selectedGen generalization */
   bool anyChange = false;
 
   auto stack = iterTraits(cl->iterLits())
     .map([&](Literal* lit) {
-        CALL("evaluateBottomUp(Clause* cl, EvalFn)@closure 1")
+        CALL("generalizeBottomUp(Clause* cl, EvalFn)@closure 1")
         unsigned j = 0;
         auto args = argIter(lit)
           .map([&](TermList term) -> TermList { 
-              CALL("evaluateBottomUp(Clause* cl, EvalFn)@closure 2")
+              CALL("generalizeBottomUp(Clause* cl, EvalFn)@closure 2")
               auto norm = PolyNf::normalize(TypedTermList(term, SortHelper::getArgSort(lit, j++)));
               // BuildGeneralizedTerm<Gen> eval { var, generalization };
               auto res = evaluateBottomUp(norm, eval);
@@ -148,7 +149,28 @@ Clause* evaluateBottomUp(Clause* cl, EvalFn eval)
               }
           })
           .template collect<Stack>();
-        return Literal::create(lit, args.begin());
+        auto generalizedLit = Literal::create(lit, args.begin());
+
+//         DBGE(*lit)
+//         DBGE(*generalizedLit)
+// #if VDEBUG
+//         auto ord = Ordering::tryGetGlobalOrdering();
+//         if (ord) {
+//           switch(ord->compare(generalizedLit, lit)) {
+//             case Ordering::LESS:
+//             case Ordering::LESS_EQ:
+//             case Ordering::EQUAL: {}
+//             case Ordering::GREATER: {
+//                                       DBG(*generalizedLit, " > ", *lit)
+//                    ASSERTION_VIOLATION
+//                   }
+//             case Ordering::GREATER_EQ: ASSERTION_VIOLATION
+//             case Ordering::INCOMPARABLE: ASSERTION_VIOLATION
+//           }
+//         }
+// #endif
+
+        return generalizedLit;
     })
     .template collect<Stack>();
 
@@ -326,7 +348,7 @@ Clause* ArithmeticSubtermGeneralization<Gen>::simplify(Clause* cl_)
 
   EvaluatePolynom<GeneralizePolynom<Gen>> eval {var, generalization};
   /* apply the selectedGen generalization */
-  return evaluateBottomUp(&cl, eval);
+  return generalizeBottomUp(&cl, eval);
 }
 
 template<class NumTraits>
@@ -1193,7 +1215,7 @@ namespace Rule3
     } else {
       std::sort(remove.begin(), remove.end());
       Generalize gen { remove };
-      return evaluateBottomUp(cl, EvaluateMonom<Generalize> {gen});
+      return generalizeBottomUp(cl, EvaluateMonom<Generalize> {gen});
     }
   }
 
@@ -1309,7 +1331,7 @@ namespace Rule4
     DEBUG("generalizations: ", powers);
 
     if (applicable) {
-      return evaluateBottomUp(cl, EvaluateMonom<Generalize> { Generalize { powers } });
+      return generalizeBottomUp(cl, EvaluateMonom<Generalize> { Generalize { powers } });
     } else {
       return cl;
     }

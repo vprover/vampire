@@ -80,14 +80,13 @@ public:
   OwnedStackIter& operator=(Stack<int> const&) = delete;
 
   bool hasNext() const { return _index < _stack.size(); }
-  int next() { return ECHO(_stack[_index++]); }
+  int next() { return _stack[_index++]; }
 };
 
 TEST_FUN(testFlatMap2) {
   auto in  = Stack<int>{ 1, 3, 5, };
   auto out = Stack<int>{ 1, 2, 3, 4, 5, 6, };
 
-  DBG("running")
   ASS_EQ(iterTraits(in.iterFifo())
       .flatMap([](int i) { return OwnedStackIter(Stack<int>{i, i + 1}); })
       .template collect<Stack>(), out)

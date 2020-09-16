@@ -359,8 +359,7 @@ KboWeightMap<SigTraits> KBO::weightsFromOpts(const Options& opts) const
   if (str.empty()) {
     return KboWeightMap<SigTraits>::dflt();
   } else if (str == SPECIAL_WEIGHT_FILENAME_RANDOM) {
-    return KboWeightMap<SigTraits>::randomized(1 << 16, 
-        [](unsigned min, unsigned max) { return min + Random::getInteger(max - min); });
+    return KboWeightMap<SigTraits>::randomized();
   } else {
     return weightsFromFile<SigTraits>(opts);
   }
@@ -506,6 +505,44 @@ KBO::KBO(
 { 
   checkAdmissibility(throwError);
 }
+
+#if VDEBUG
+
+KBO KBO::testKBO() 
+{
+
+  auto funcPrec = []() -> DArray<int>{
+    unsigned num = env.signature->functions();
+    DArray<int> out(num);
+    out.initFromIterator(getRangeIterator(0u, num));
+    return out;
+  };
+
+  auto predPrec = []() -> DArray<int>{
+    unsigned num = env.signature->predicates();
+    DArray<int> out(num);
+    out.initFromIterator(getRangeIterator(0u, num));
+    return out;
+  };
+
+  auto predLevels = []() -> DArray<int>{
+    DArray<int> out(env.signature->predicates());
+    out.init(out.size(), 1);
+    return out;
+  };
+
+  return KBO(
+      KboWeightMap<FuncSigTraits>::randomized(),
+#if __KBO__CUSTOM_PREDICATE_WEIGHTS__
+      KboWeightMap<PredSigTraits>::randomized(), 
+#endif
+      funcPrec(),
+      predPrec(),
+      predLevels(),
+      false);
+}
+#endif 
+
 
 template<class HandleError>
 void KBO::checkAdmissibility(HandleError handle) const 
@@ -730,6 +767,10 @@ KboWeightMap<FuncSigTraits> KboWeightMap<FuncSigTraits>::randomized(unsigned max
     },
   };
 }
+
+template<class SigTraits>
+KboWeightMap<SigTraits> KboWeightMap<SigTraits>::randomized()
+{ return randomized(1 << 16, [](unsigned min, unsigned max) { return min + Random::getInteger(max - min); }); }
 
 #if __KBO__CUSTOM_PREDICATE_WEIGHTS__
 template<>

@@ -12,6 +12,7 @@
 #include "Test/TestUtils.hpp"
 #include "Lib/Coproduct.hpp"
 #include "Test/SimplificationTester.hpp"
+#include "Kernel/KBO.hpp"
 
 using namespace std;
 using namespace Kernel;
@@ -36,6 +37,8 @@ public:
 
   virtual Kernel::Clause* simplify(Kernel::Clause* in) const override 
   {
+    auto ord = KBO::testKBO();
+    Ordering::trySetGlobalOrdering(SmartPtr<Ordering>(&ord, true));
     auto apply = [](ImmediateSimplificationEngine& simpl, Kernel::Clause* in) {
      auto out = simpl.simplify(in);
      // DEBUG("result: ", pretty(out));
