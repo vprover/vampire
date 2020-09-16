@@ -394,8 +394,9 @@ void Options::init()
 
     _inequalitySplitting = IntOptionValue("inequality_splitting","ins",0);
     _inequalitySplitting.description=
-    "Defines a weight threshold w such that any clause C \\/ s!=t where s (or conversely t) is ground "
-    "and has weight less than w is replaced by C \\/ p(s) with the additional unit clause ~p(t) being added "
+    "When greater than zero, ins defines a weight threshold w such that any clause C \\/ s!=t "
+    "where s (or conversely t) is ground and has weight greater or equal than w "
+    "is replaced by C \\/ p(s) with the additional unit clause ~p(t) being added "
     "for fresh predicate p.";
     _lookup.insert(&_inequalitySplitting);
     _inequalitySplitting.tag(OptionTag::PREPROCESSING);
