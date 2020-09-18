@@ -204,11 +204,10 @@ Clause* ForwardSubsumptionAndResolution::generateSubsumptionResolutionClause(Cla
     //deletion, the same literal should never occur twice.
     ASS(curr!=lit || !found);
     if(curr!=lit || found) {
-	    (*res)[next] = curr;
+	    (*res)[next++] = curr;
       if (cl->isRecursive(curr)) {
         res->makeRecursive(curr, cl->isReversed(curr));
       }
-      next++;
     } else {
       found=true;
     }

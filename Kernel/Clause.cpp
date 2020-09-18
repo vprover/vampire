@@ -134,6 +134,7 @@ void Clause::destroyExceptInferenceObject()
   }
   if (_recursiveReversedLitPairs) {
     delete _recursiveReversedLitPairs;
+    _recursiveReversedLitPairs = 0;
   }
 
   RSTAT_CTR_INC("clauses deleted");

@@ -619,7 +619,6 @@ Clause* Superposition::performSuperposition(
         if (eqClause->isRecursive(curr)) {
           res->makeRecursive(currAfter, orientation ^ eqClause->isReversed(curr));
         }
-        next++;
       }
     }
   }

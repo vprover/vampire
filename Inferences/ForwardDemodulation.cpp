@@ -200,7 +200,7 @@ bool ForwardDemodulation::perform(Clause* cl, Clause*& replacement, ClauseIterat
 	  SimplifyingInference2(InferenceRule::FORWARD_DEMODULATION, cl, qr.clause));
 
 	(*res)[0]=resLit;
-	if (cl->isRecursive(lit) && trm!=*lit->nthArgument(0)) {
+	if (cl->isRecursive(lit) && trm!=*lit->nthArgument(cl->isReversed(lit))) {
     res->makeRecursive(resLit, resLit->isOrientedReversed() ^ cl->isReversed(lit));
   }
 
