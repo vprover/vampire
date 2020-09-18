@@ -117,6 +117,24 @@ public:
   Literal* operator[] (int n) const
   { return _literals[n]; }
 
+  void makeRecursive(Literal* lit, bool reversed) {
+    if (!_recursiveReversedLitPairs) {
+      _recursiveReversedLitPairs = new DHMap<Literal*,bool>();
+    }
+    auto res = _recursiveReversedLitPairs->insert(lit, reversed);
+    if (!res) {
+      _recursiveReversedLitPairs->set(lit, reversed);
+    }
+  }
+  bool isRecursive(Literal* lit) const {
+    if (!containsRecursiveDefinition()) { return false; }
+    return _recursiveReversedLitPairs->find(lit);
+  }
+  bool isReversed(Literal* lit) const {
+    if (!containsRecursiveDefinition()) { return false; }
+    return _recursiveReversedLitPairs->find(lit) && _recursiveReversedLitPairs->get(lit);
+  }
+
   /** Return the length (number of literals) */
   unsigned length() const { return _length; }
   /** Alternative name for length to conform with other containers */
@@ -181,11 +199,7 @@ public:
 
   bool containsRecursiveDefinition() const
   {
-    return _containsRecursiveDefinition;
-  }
-  bool makeContainRecursiveDefinition()
-  {
-    _containsRecursiveDefinition = true;
+    return _recursiveReversedLitPairs != nullptr && !_recursiveReversedLitPairs->isEmpty();
   }
 
   /*
@@ -382,8 +396,6 @@ protected:
   mutable unsigned _weight;
   /** weight for clause selection */
   unsigned _weightForClauseSelection;
-  /** contains recursive function definition */
-  bool _containsRecursiveDefinition;
 
   /** number of references to this clause */
   unsigned _refCnt;
@@ -404,6 +416,7 @@ protected:
 
 //#endif
 
+  DHMap<Literal*,bool>* _recursiveReversedLitPairs;
   /** Array of literals of this unit */
   Literal* _literals[1];
 }; // class Clause

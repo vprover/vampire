@@ -141,13 +141,10 @@ struct EqualityResolution::ResultFn
           }
         }
 
-        if (curr->isRecursiveDefinition()) {
-          currAfter->makeRecursiveDefinition();
-          if (curr->isRHSRecursiveHeader()) {
-            currAfter->negateRHSRecursiveHeader();
-          }
-        }
         (*res)[next++] = currAfter;
+        if (_cl->isRecursive(curr)) {
+          res->makeRecursive(currAfter, currAfter->isOrientedReversed() ^ _cl->isReversed(curr));
+        }
       }
     }
     for(unsigned i=0;i<constraints.length();i++){

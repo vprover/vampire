@@ -485,20 +485,21 @@ public:
   {
     _recursiveDefinition = 1;
   }
-
   bool isRecursiveDefinition()
   {
     return _recursiveDefinition;
   }
 
-  void negateRHSRecursiveHeader()
+  void negateOrientation()
   {
-    _rhsRecursiveHeader ^= 1;
+    _recursiveOrientation ^= 1;
   }
 
-  bool isRHSRecursiveHeader()
+  bool isOrientedReversed()
   {
-    return _rhsRecursiveHeader;
+    auto res = _recursiveOrientation;
+    _recursiveOrientation = 0;
+    return res;
   }
 
   /** Return an index of the argument to which @b arg points */
@@ -673,8 +674,8 @@ protected:
   unsigned _isTwoVarEquality : 1;
   /** Weight of the symbol */
   unsigned _weight;
-  /** If true, the literal stores a recursive function and its header is on the RHS */
-  unsigned _rhsRecursiveHeader : 1;
+  /** If true, the literal is oriented reversed compared to the initial orientation */
+  unsigned _recursiveOrientation : 1;
   unsigned _recursiveDefinition : 1;
   union {
     /** If _isTwoVarEquality is false, this value is valid and contains

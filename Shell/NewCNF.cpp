@@ -1540,7 +1540,6 @@ Clause* NewCNF::toClause(SPGenClause gc)
   ASS(properLiterals.isEmpty());
 
   GenClause::Iterator lit = gc->genLiterals();
-  bool recursiveDefinition = false;
   while (lit.hasNext()) {
     GenLit gl = lit.next();
     Formula* g = formula(gl);
@@ -1549,12 +1548,14 @@ Clause* NewCNF::toClause(SPGenClause gc)
     ASS_REP(g->literal()->shared(), g->toString());
     ASS_REP((SIGN)g->literal()->polarity() == POSITIVE, g->toString());
 
-    recursiveDefinition = recursiveDefinition || g->literal()->isRecursiveDefinition();
     Literal* l = g->literal()->apply(*subst);
     if (sign(gl) == NEGATIVE) {
       l = Literal::complementaryLiteral(l);
     }
 
+    if (g->literal()->isRecursiveDefinition()) {
+      l->makeRecursiveDefinition();
+    }
     properLiterals.push(l);
   }
 
@@ -1562,11 +1563,14 @@ Clause* NewCNF::toClause(SPGenClause gc)
 
   for (int i = gc->size() - 1; i >= 0; i--) {
     (*clause)[i] = properLiterals[i];
+    if (properLiterals[i]->isRecursiveDefinition()) {
+      clause->makeRecursive(properLiterals[i], properLiterals[i]->isOrientedReversed());
+    }
   }
 
   properLiterals.reset();
 
-  if (recursiveDefinition) {
+  if (clause->containsRecursiveDefinition()) {
     for (unsigned i = 0; i < clause->size();) {
       auto lit = (*clause)[i];
       Clause* temp = nullptr;
@@ -1579,7 +1583,6 @@ Clause* NewCNF::toClause(SPGenClause gc)
         i++;
       }
     }
-    clause->makeContainRecursiveDefinition();
   }
 
   return clause;
