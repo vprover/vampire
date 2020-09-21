@@ -616,7 +616,7 @@ Clause* Superposition::performSuperposition(
         }
 
         (*res)[next++] = currAfter;
-        if (eqClause->isRecursive(curr)) {
+        if (rwClause->containsRecursiveDefinition() && eqClause->isRecursive(curr)) {
           res->makeRecursive(currAfter, orientation ^ eqClause->isReversed(curr));
         }
       }
