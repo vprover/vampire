@@ -483,7 +483,6 @@ Clause* Superposition::performSuperposition(
   }
 
   Literal* tgtLitS = EqHelper::replace(rwLitS,rwTermS,tgtTermS);
-  bool tgtOrientation = rwLitS->isOrientedReversed() ^ tgtLitS->isOrientedReversed();
 
   static bool doSimS = getOptions().simulatenousSuperposition();
 

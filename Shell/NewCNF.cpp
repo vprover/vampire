@@ -1560,7 +1560,6 @@ Clause* NewCNF::toClause(SPGenClause gc)
   }
 
   Clause* clause = new(gc->size()) Clause(gc->size(),FormulaTransformation(InferenceRule::CLAUSIFY,_beingClausified));
-
   for (int i = gc->size() - 1; i >= 0; i--) {
     (*clause)[i] = properLiterals[i];
     if (properLiterals[i]->isRecursiveDefinition()) {
