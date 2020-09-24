@@ -67,7 +67,13 @@ Z3Interfacing::Z3Interfacing(const Shell::Options& opts,SAT2FO& s2f, bool unsatC
     //p.set(":smtlib2-compliant",true);
     _solver.set(p);
 }
-  
+
+char const* Z3Interfacing::z3_full_version()
+{
+  CALL("Z3Interfacing::z3_version");
+  return Z3_get_full_version();
+}
+
 unsigned Z3Interfacing::newVar()
 {
   CALL("Z3Interfacing::newVar");
