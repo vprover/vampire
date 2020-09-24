@@ -205,9 +205,6 @@ Clause* ForwardSubsumptionAndResolution::generateSubsumptionResolutionClause(Cla
     ASS(curr!=lit || !found);
     if(curr!=lit || found) {
 	    (*res)[next++] = curr;
-      if (cl->isRecursive(curr)) {
-        res->makeRecursive(curr, cl->isReversed(curr));
-      }
     } else {
       found=true;
     }

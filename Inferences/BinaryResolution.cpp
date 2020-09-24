@@ -271,9 +271,6 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
       }
       ASS(next < newLength);
       (*res)[next] = newLit;
-      if (queryCl->isRecursive(curr)) {
-        res->makeRecursive(newLit, newLit->isOrientedReversed() ^ queryCl->isReversed(curr));
-      }
       next++;
     }
   }
@@ -312,9 +309,6 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
       }
 
       (*res)[next] = newLit;
-      if (queryCl->isRecursive(curr)) {
-        res->makeRecursive(newLit, newLit->isOrientedReversed() ^ queryCl->isReversed(curr));
-      }
       next++;
     }
   }

@@ -265,9 +265,6 @@ Clause* DuplicateLiteralRemovalISE::simplify(Clause* c)
       ASS_GE(origIdx,0);
     }
     (*d)[newIdx] = (*c)[origIdx];
-    if (c->isRecursive((*c)[origIdx])) {
-      d->makeRecursive((*d)[newIdx], c->isReversed((*c)[origIdx]));
-    }
   }
   ASS(skipped.isEmpty());
   ASS_EQ(origIdx,-1);
@@ -325,9 +322,6 @@ Clause* TrivialInequalitiesRemovalISE::simplify(Clause* c)
 		            SimplifyingInference1(InferenceRule::TRIVIAL_INEQUALITY_REMOVAL,c));
   for (int i = newLength-1;i >= 0;i--) {
     (*d)[i] = lits[newLength-i-1];
-    if (c->isRecursive(lits[newLength-i-1])) {
-      d->makeRecursive((*d)[i], c->isReversed(lits[newLength-i-1]));
-    }
   }
   env.statistics->trivialInequalities += found;
 

@@ -418,6 +418,10 @@ Clause* Superposition::performSuperposition(
     return 0;
   }
 
+  if(rwClause->isRecursive(rwLit)) {
+    return 0;
+  }
+
   unsigned rwLength = rwClause->length();
   unsigned eqLength = eqClause->length();
   unsigned conLength = hasConstraints ? constraints->size() : 0;
@@ -535,20 +539,15 @@ Clause* Superposition::performSuperposition(
   }
 
   (*res)[0] = tgtLitS;
-  if (rwClause->isRecursive(rwLit)) {
-    res->makeRecursive(tgtLitS, tgtOrientation ^ rwClause->isReversed(rwLit));
-  }
   int next = 1;
   unsigned weight=tgtLitS->weight();
   for(unsigned i=0;i<rwLength;i++) {
     Literal* curr=(*rwClause)[i];
     if(curr!=rwLit) {
       Literal* currAfter = subst->apply(curr, !eqIsResult);
-      auto orientation = currAfter->isOrientedReversed();
 
       if (doSimS) {
         currAfter = EqHelper::replace(currAfter,rwTermS,tgtTermS);
-        orientation ^= currAfter->isOrientedReversed();
       }
 
       if(EqHelper::isEqTautology(currAfter)) {
@@ -573,9 +572,6 @@ Clause* Superposition::performSuperposition(
       }
 
       (*res)[next++] = currAfter;
-      if (rwClause->isRecursive(curr)) {
-        res->makeRecursive(currAfter, orientation ^ rwClause->isReversed(curr));
-      }
     }
   }
 
@@ -590,7 +586,6 @@ Clause* Superposition::performSuperposition(
       Literal* curr=(*eqClause)[i];
       if(curr!=eqLit) {
         Literal* currAfter = subst->apply(curr, eqIsResult);
-        auto orientation = currAfter->isOrientedReversed();
 
         if(EqHelper::isEqTautology(currAfter)) {
           goto construction_fail;
@@ -616,9 +611,6 @@ Clause* Superposition::performSuperposition(
         }
 
         (*res)[next++] = currAfter;
-        if (rwClause->containsRecursiveDefinition() && eqClause->isRecursive(curr)) {
-          res->makeRecursive(currAfter, orientation ^ eqClause->isReversed(curr));
-        }
       }
     }
   }

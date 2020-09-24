@@ -93,6 +93,10 @@ bool ForwardDemodulation::perform(Clause* cl, Clause*& replacement, ClauseIterat
   static DHSet<TermList> attempted;
   attempted.reset();
 
+  if(cl->containsRecursiveDefinition()) {
+    return 0;
+  }
+
   unsigned cLen=cl->length();
   for(unsigned li=0;li<cLen;li++) {
     Literal* lit=(*cl)[li];
@@ -200,18 +204,12 @@ bool ForwardDemodulation::perform(Clause* cl, Clause*& replacement, ClauseIterat
 	  SimplifyingInference2(InferenceRule::FORWARD_DEMODULATION, cl, qr.clause));
 
 	(*res)[0]=resLit;
-	if (cl->isRecursive(lit) && trm!=*lit->nthArgument(cl->isReversed(lit))) {
-    res->makeRecursive(resLit, resLit->isOrientedReversed() ^ cl->isReversed(lit));
-  }
 
 	unsigned next=1;
 	for(unsigned i=0;i<cLen;i++) {
 	  Literal* curr=(*cl)[i];
 	  if(curr!=lit) {
 	    (*res)[next++] = curr;
-			if (cl->isRecursive(curr)) {
-				res->makeRecursive(curr, cl->isReversed(curr));
-			}
 	  }
 	}
 	ASS_EQ(next,cLen);
