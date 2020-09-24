@@ -39,6 +39,8 @@
 #include "Shell/SymbolDefinitionInlining.hpp"
 #include "Shell/Statistics.hpp"
 
+#include "Inferences/EqualityResolution.hpp"
+
 #include "NewCNF.hpp"
 
 using namespace Lib;
@@ -286,6 +288,8 @@ void NewCNF::process(Literal* literal, Occurrences &occurrences) {
   ASS(thenBranches.isEmpty());
   ASS(elseBranches.isEmpty());
 
+  auto recursiveDefinition = literal->isRecursiveDefinition();
+
   while (occurrences.isNonEmpty()) {
     Occurrence occ = pop(occurrences);
 
@@ -294,6 +298,9 @@ void NewCNF::process(Literal* literal, Occurrences &occurrences) {
       LPair p = lit.next();
       Literal* literal = p.first;
       List<GenLit>* gls = p.second;
+      if (recursiveDefinition) {
+        literal->makeRecursiveDefinition();
+      }
 
       Formula* f = new AtomicFormula(literal);
 
@@ -1546,15 +1553,36 @@ Clause* NewCNF::toClause(SPGenClause gc)
       l = Literal::complementaryLiteral(l);
     }
 
+    if (g->literal()->isRecursiveDefinition()) {
+      l->makeRecursiveDefinition();
+    }
     properLiterals.push(l);
   }
 
   Clause* clause = new(gc->size()) Clause(gc->size(),FormulaTransformation(InferenceRule::CLAUSIFY,_beingClausified));
   for (int i = gc->size() - 1; i >= 0; i--) {
     (*clause)[i] = properLiterals[i];
+    if (properLiterals[i]->isRecursiveDefinition()) {
+      clause->makeRecursive(properLiterals[i], properLiterals[i]->isOrientedReversed());
+    }
   }
 
   properLiterals.reset();
+
+  if (clause->containsRecursiveDefinition()) {
+    for (unsigned i = 0; i < clause->size();) {
+      auto lit = (*clause)[i];
+      Clause* temp = nullptr;
+      if (lit->isEquality() && lit->isNegative()) {
+        temp = Inferences::EqualityResolution::tryResolveEquality(clause, (*clause)[i]);
+      }
+      if (temp) {
+        clause = temp;
+      } else {
+        i++;
+      }
+    }
+  }
 
   return clause;
 }

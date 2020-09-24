@@ -142,6 +142,9 @@ struct EqualityResolution::ResultFn
         }
 
         (*res)[next++] = currAfter;
+        if (_cl->isRecursive(curr)) {
+          res->makeRecursive(currAfter, currAfter->isOrientedReversed() ^ _cl->isReversed(curr));
+        }
       }
     }
     for(unsigned i=0;i<constraints.length();i++){

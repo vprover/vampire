@@ -93,6 +93,10 @@ bool ForwardDemodulation::perform(Clause* cl, Clause*& replacement, ClauseIterat
   static DHSet<TermList> attempted;
   attempted.reset();
 
+  if(cl->containsRecursiveDefinition()) {
+    return 0;
+  }
+
   unsigned cLen=cl->length();
   for(unsigned li=0;li<cLen;li++) {
     Literal* lit=(*cl)[li];
@@ -149,7 +153,7 @@ bool ForwardDemodulation::perform(Clause* cl, Clause*& replacement, ClauseIterat
 	Ordering::Result argOrder = ordering.getEqualityArgumentOrder(qr.literal);
 	bool preordered = argOrder==Ordering::LESS || argOrder==Ordering::GREATER;
 #if VDEBUG
-	if(preordered) {
+	if(!qr.clause->isRecursive(qr.literal) && preordered) {
 	  if(argOrder==Ordering::LESS) {
 	    ASS_EQ(rhs, *qr.literal->nthArgument(0));
 	  }

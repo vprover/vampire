@@ -117,6 +117,24 @@ public:
   Literal* operator[] (int n) const
   { return _literals[n]; }
 
+  void makeRecursive(Literal* lit, bool reversed) {
+    if (!_recursiveReversedLitPairs) {
+      _recursiveReversedLitPairs = new DHMap<Literal*,bool>();
+    }
+    auto res = _recursiveReversedLitPairs->insert(lit, reversed);
+    if (!res) {
+      _recursiveReversedLitPairs->set(lit, reversed);
+    }
+  }
+  bool isRecursive(Literal* lit) const {
+    if (!containsRecursiveDefinition()) { return false; }
+    return _recursiveReversedLitPairs->find(lit);
+  }
+  bool isReversed(Literal* lit) const {
+    if (!containsRecursiveDefinition()) { return false; }
+    return _recursiveReversedLitPairs->find(lit) && _recursiveReversedLitPairs->get(lit);
+  }
+
   /** Return the length (number of literals) */
   unsigned length() const { return _length; }
   /** Alternative name for length to conform with other containers */
@@ -178,6 +196,11 @@ public:
     return _weightForClauseSelection;
   }
   unsigned computeWeightForClauseSelection(const Shell::Options& opt) const;
+
+  bool containsRecursiveDefinition() const
+  {
+    return _recursiveReversedLitPairs != nullptr && !_recursiveReversedLitPairs->isEmpty();
+  }
 
   /*
    * single source of truth for computation of weightForClauseSelection
@@ -393,6 +416,7 @@ protected:
 
 //#endif
 
+  DHMap<Literal*,bool>* _recursiveReversedLitPairs;
   /** Array of literals of this unit */
   Literal* _literals[1];
 }; // class Clause

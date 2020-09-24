@@ -476,20 +476,31 @@ public:
     return _isTwoVarEquality;
   }
 
-  void makeRecFuncDef()
-  {
-    _isRecFuncDef = true;
-  }
-
-  bool isRecFuncDef() const
-  {
-    return _isRecFuncDef;
-  }
-
   const vstring& functionName() const;
 
   /** True if the term is, in fact, a literal */
   bool isLiteral() const { return _args[0]._info.literal; }
+
+  void makeRecursiveDefinition()
+  {
+    _recursiveDefinition = 1;
+  }
+  bool isRecursiveDefinition()
+  {
+    return _recursiveDefinition;
+  }
+
+  void negateOrientation()
+  {
+    _recursiveOrientation ^= 1;
+  }
+
+  bool isOrientedReversed()
+  {
+    auto res = _recursiveOrientation;
+    _recursiveOrientation = 0;
+    return res;
+  }
 
   /** Return an index of the argument to which @b arg points */
   unsigned getArgumentIndex(TermList* arg)
@@ -663,8 +674,9 @@ protected:
   unsigned _isTwoVarEquality : 1;
   /** Weight of the symbol */
   unsigned _weight;
-  /** If true, the literal defines a recursive function */
-  unsigned _isRecFuncDef : 1;
+  /** If true, the literal is oriented reversed compared to the initial orientation */
+  unsigned _recursiveOrientation : 1;
+  unsigned _recursiveDefinition : 1;
   union {
     /** If _isTwoVarEquality is false, this value is valid and contains
      * number of occurrences of variables */

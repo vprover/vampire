@@ -204,7 +204,7 @@ Clause* ForwardSubsumptionAndResolution::generateSubsumptionResolutionClause(Cla
     //deletion, the same literal should never occur twice.
     ASS(curr!=lit || !found);
     if(curr!=lit || found) {
-	(*res)[next++] = curr;
+	  (*res)[next++] = curr;
     } else {
       found=true;
     }

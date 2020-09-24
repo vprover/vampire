@@ -345,7 +345,7 @@ void InductionTemplate::postprocess()
 
 ostream& operator<<(ostream& out, const InductionTemplate& templ)
 {
-  out << "RDescriptions:";
+  out << "RDescriptions: ";
   unsigned n = 0;
   for (const auto& rdesc : templ._rDescriptions) {
     out << rdesc;
@@ -501,8 +501,7 @@ void InductionPreprocessor::preprocess(UnitList* units)
     }
 
     auto lit = formula->literal();
-
-    if (!lit->isRecFuncDef()) {
+    if (!lit->isRecursiveDefinition()) {
       continue;
     }
     auto lhs = lit->nthArgument(0);
@@ -520,7 +519,7 @@ void InductionPreprocessor::preprocess(UnitList* units)
 
     if(env.options->showInduction()){
       env.beginOutput();
-      env.out() << "[Induction] recursive function: " << lit << ", with induction template: " << templ << endl;
+      env.out() << "[Induction] recursive function: " << *lit << ", with induction template: " << templ << endl;
       env.endOutput();
     }
     env.signature->addInductionTemplate(lhterm->functor(), isPred, std::move(templ));
@@ -744,6 +743,7 @@ void InductionSchemeGenerator::process(TermList curr, bool active,
     if (!active) {
       return;
     }
+
     IteratorByInductiveVariables argIt(t, indVars);
     bool match = true;
     while (argIt.hasNext()) {

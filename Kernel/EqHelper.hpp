@@ -31,6 +31,7 @@
 #include "Lib/Metaiterators.hpp"
 #include "Lib/PairUtils.hpp"
 
+#include "Clause.hpp"
 #include "Term.hpp"
 
 namespace Kernel {
@@ -44,9 +45,9 @@ public:
   static TermList getOtherEqualitySide(Literal* eq, TermList lhs);
   static bool hasGreaterEqualitySide(Literal* eq, const Ordering& ord, TermList& lhs, TermList& rhs);
   static TermIterator getRewritableSubtermIterator(Literal* lit, const Ordering& ord);
-  static TermIterator getLHSIterator(Literal* lit, const Ordering& ord);
-  static TermIterator getSuperpositionLHSIterator(Literal* lit, const Ordering& ord, const Options& opt);
-  static TermIterator getDemodulationLHSIterator(Literal* lit, bool forward, const Ordering& ord, const Options& opt);
+  static TermIterator getLHSIterator(Literal* lit, const Ordering& ord, bool recursive, bool reversed);
+  static TermIterator getSuperpositionLHSIterator(Literal* lit, const Ordering& ord, const Options& opt, bool recursive, bool reversed);
+  static TermIterator getDemodulationLHSIterator(Literal* lit, bool forward, const Ordering& ord, const Options& opt, bool recursive, bool reversed);
   static TermIterator getEqualityArgumentIterator(Literal* lit);
 
   static Term* replace(Term* t, TermList what, TermList by);
@@ -54,29 +55,31 @@ public:
 
   struct LHSIteratorFn
   {
-    LHSIteratorFn(const Ordering& ord) : _ord(ord) {}
+    LHSIteratorFn(const Ordering& ord, Clause* cl) : _ord(ord), _cl(cl) {}
 
     DECL_RETURN_TYPE(VirtualIterator<pair<Literal*, TermList> >);
     OWN_RETURN_TYPE operator()(Literal* lit)
     {
-      return pvi( pushPairIntoRightIterator(lit, getLHSIterator(lit, _ord)) );
+      return pvi( pushPairIntoRightIterator(lit, getLHSIterator(lit, _ord, _cl->isRecursive(lit), _cl->isReversed(lit))) );
     }
   private:
     const Ordering& _ord;
+    Clause* _cl;
   };
 
   struct SuperpositionLHSIteratorFn
   {
-    SuperpositionLHSIteratorFn(const Ordering& ord, const Options& opt) : _ord(ord), _opt(opt) {}
+    SuperpositionLHSIteratorFn(const Ordering& ord, const Options& opt, Clause* cl) : _ord(ord), _opt(opt), _cl(cl) {}
 
     DECL_RETURN_TYPE(VirtualIterator<pair<Literal*, TermList> >);
     OWN_RETURN_TYPE operator()(Literal* lit)
     {
-      return pvi( pushPairIntoRightIterator(lit, getSuperpositionLHSIterator(lit, _ord, _opt)) );
+      return pvi( pushPairIntoRightIterator(lit, getSuperpositionLHSIterator(lit, _ord, _opt, _cl->isRecursive(lit), _cl->isReversed(lit))) );
     }
   private:
     const Ordering& _ord;
     const Options& _opt;
+    Clause* _cl;
   };
 
   struct EqualityArgumentIteratorFn

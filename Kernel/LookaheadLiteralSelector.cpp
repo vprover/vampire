@@ -99,7 +99,7 @@ struct LookaheadLiteralSelector::GenIteratorIterator
       ASS(bsi);
 
       nextIt=pvi( getMapAndFlattenIterator(
-	       EqHelper::getLHSIterator(lit, _parent._ord),
+	       EqHelper::getLHSIterator(lit, _parent._ord, false, false),
 	       TermUnificationRetriever(bsi)) );
       break;
     }
