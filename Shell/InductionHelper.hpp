@@ -52,12 +52,14 @@ private:
 class TermOccurrenceReplacement : public TermTransformer {
 public:
   TermOccurrenceReplacement(const vmap<TermList, TermList>& r,
-                            const DHMap<TermList, DHSet<unsigned>*>& o) : _r(r), _o(o), _c() {}
+                            const DHMap<TermList, DHSet<unsigned>*>& o,
+                            const DHMap<TermList, unsigned>& oc) : _r(r), _o(o), _oc(oc), _c() {}
   TermList transformSubterm(TermList trm) override;
 
 private:
   const vmap<TermList, TermList>& _r;          // replacements
   const DHMap<TermList, DHSet<unsigned>*>& _o; // set of occurrences to be replaced
+  const DHMap<TermList, unsigned>& _oc;
   DHMap<TermList, unsigned> _c;                // current occurrence counts
 };
 
@@ -154,7 +156,7 @@ ostream& operator<<(ostream& out, const InductionTemplate& templ);
  * An instantiated induction template for a term.
  */
 struct InductionScheme {
-  void init(Term* term, vvector<RDescription>& rdescs, const vvector<bool>& indVars);
+  bool init(Term* term, vvector<RDescription>& rdescs, const vvector<bool>& indVars);
 
   vvector<RDescriptionInst> _rDescriptionInstances;
   unsigned _maxVar;
@@ -185,16 +187,15 @@ private:
 struct InductionSchemeGenerator {
   ~InductionSchemeGenerator();
 
-  void generate(Literal* lit);
+  bool generate(Literal* lit);
   void filter();
 
   vvector<InductionScheme> _schemes;
   DHMap<TermList, DHSet<unsigned>*> _actOccMap;
+  DHMap<TermList, unsigned> _currOccMap;
 
 private:
-  void process(TermList curr, bool active, Stack<bool>& actStack);
-
-  DHMap<TermList, unsigned> _currOccMap;
+  bool process(TermList curr, bool active, Stack<bool>& actStack);
 };
 
 } // Shell

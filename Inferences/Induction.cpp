@@ -725,7 +725,9 @@ void InductionClauseIterator::performStructInductionFour(Clause* premise, Litera
   CALL("InductionClauseIterator::performStructInductionFour");
 
   InductionSchemeGenerator gen;
-  gen.generate(lit);
+  if (!gen.generate(lit)) {
+    return;
+  }
   gen.filter();
 
   for (const auto& scheme : gen._schemes) {
@@ -734,12 +736,12 @@ void InductionClauseIterator::performStructInductionFour(Clause* premise, Litera
       env.out() << "[Induction] generated scheme " << scheme << endl;
       env.endOutput();
     }
-    instantiateScheme(premise, lit, rule, scheme, gen._actOccMap);
+    instantiateScheme(premise, lit, rule, scheme, gen._actOccMap, gen._currOccMap);
   }
 }
 
 void InductionClauseIterator::instantiateScheme(Clause* premise, Literal* lit, InferenceRule rule,
-  const InductionScheme& scheme, const DHMap<TermList, DHSet<unsigned>*>& activeOccurrenceMap)
+  const InductionScheme& scheme, const DHMap<TermList, DHSet<unsigned>*>& activeOccurrenceMap, const DHMap<TermList, unsigned>& occurrenceCntMap)
 {
   CALL("InductionClauseIterator::instantiateScheme");
 
@@ -747,7 +749,7 @@ void InductionClauseIterator::instantiateScheme(Clause* premise, Literal* lit, I
 
   for (auto& desc : scheme._rDescriptionInstances) {
     // We replace all induction terms with the corresponding step case terms
-    TermOccurrenceReplacement tr(desc._step, activeOccurrenceMap);
+    TermOccurrenceReplacement tr(desc._step, activeOccurrenceMap, occurrenceCntMap);
     Formula* right = new AtomicFormula(Literal::complementaryLiteral(tr.transform(lit)));
 
     FormulaList* hyp = FormulaList::empty();
@@ -755,7 +757,7 @@ void InductionClauseIterator::instantiateScheme(Clause* premise, Literal* lit, I
     // Then we replace the arguments of the term with the
     // corresponding recursive cases for this step case (if not base case)
     for (const auto& r : desc._recursiveCalls) {
-      TermOccurrenceReplacement tr(r, activeOccurrenceMap);
+      TermOccurrenceReplacement tr(r, activeOccurrenceMap, occurrenceCntMap);
       hyp = new FormulaList(new AtomicFormula(Literal::complementaryLiteral(tr.transform(lit))),hyp);
     }
 
@@ -785,7 +787,7 @@ void InductionClauseIterator::instantiateScheme(Clause* premise, Literal* lit, I
       r.insert(make_pair(kv.first, TermList(var++,false)));
     }
   }
-  TermOccurrenceReplacement tr(r, activeOccurrenceMap);
+  TermOccurrenceReplacement tr(r, activeOccurrenceMap, occurrenceCntMap);
   Literal* conclusion = Literal::complementaryLiteral(tr.transform(lit));
   Formula* hypothesis = new BinaryFormula(Connective::IMP,
                             Formula::quantify(indPremise),

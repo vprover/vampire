@@ -124,7 +124,8 @@ private:
 
   void performStructInductionFour(Clause* premise, Literal* origLit, InferenceRule rule);
   void instantiateScheme(Clause* premise, Literal* origLit, InferenceRule rule,
-    const InductionScheme& scheme, const DHMap<TermList, DHSet<unsigned>*>& activeOccurrenceMap);
+    const InductionScheme& scheme, const DHMap<TermList, DHSet<unsigned>*>& activeOccurrenceMap,
+    const DHMap<TermList, unsigned>& occurrenceCntMap);
 
   bool notDone(Literal* lit, Term* t);
   Term* getPlaceholderForTerm(Term* t);

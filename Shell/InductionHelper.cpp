@@ -126,9 +126,8 @@ bool checkSubsumption(const InductionScheme& sch1, const InductionScheme& sch2, 
   return true;
 }
 
-bool canInductOn(TermList t)
-{
-  CALL("canInductOn");
+bool isSkolem(TermList t) {
+  CALL("isSkolem");
 
   if (t.isVar()) {
     return false;
@@ -136,6 +135,16 @@ bool canInductOn(TermList t)
   auto fn = t.term()->functor();
   auto symb = t.term()->isLiteral() ? env.signature->getPredicate(fn) : env.signature->getFunction(fn);
   return symb->skolem();
+}
+
+bool canInductOn(TermList t)
+{
+  CALL("canInductOn");
+
+  if (t.isVar()) {
+    return false;
+  }
+  return true;
 }
 
 bool isTermAlgebraCons(TermList t)
@@ -200,6 +209,37 @@ vvector<TermList> getInductionTerms(TermList t)
   return v;
 }
 
+bool matchesCase(TermList c, TermList t) {
+  CALL("matchesCase");
+
+  if (c.isVar()) {
+    return true;
+  }
+  if (canInductOn(t)) {
+    return false;
+  }
+
+  auto t1 = c.term();
+  auto t2 = t.term();
+  if (t1->isBoolean() != t2->isBoolean()
+    || t1->functor() != t2->functor()
+    || t1->arity() != t2->arity())
+  {
+    return false;
+  }
+  bool equal = true;
+  Term::Iterator it1(t1);
+  Term::Iterator it2(t2);
+  while (it1.hasNext()) {
+    auto arg1 = it1.next();
+    auto arg2 = it2.next();
+    if (!matchesCase(arg1, arg2)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 TermList TermListReplacement::transformSubterm(TermList trm)
 {
   CALL("TermListReplacement::transformSubterm");
@@ -232,7 +272,8 @@ TermList TermOccurrenceReplacement::transformSubterm(TermList trm)
   // - if we have only one active occurrence, induct on all
   // - otherwise only induct on the active occurrences
   const auto& o = _o.get(trm);
-  if (o->size() == 1 || o->contains(_c.get(trm))) {
+  auto oc = _oc.get(trm);
+  if (o->size() == 1 /*|| oc == o->size() + 1*/ || o->contains(_c.get(trm))) {
     return _r.at(trm);
   }
   return trm;
@@ -353,7 +394,7 @@ ostream& operator<<(ostream& out, const InductionTemplate& templ)
   return out;
 }
 
-void InductionScheme::init(Term* t, vvector<RDescription>& rdescs, const vvector<bool>& indVars)
+bool InductionScheme::init(Term* t, vvector<RDescription>& rdescs, const vvector<bool>& indVars)
 {
   CALL("InductionScheme::init");
 
@@ -370,10 +411,14 @@ void InductionScheme::init(Term* t, vvector<RDescription>& rdescs, const vvector
     // We first map the inductive terms of t to the arguments of
     // the function header stored in the step case
     bool mismatch = false;
+    bool match = termIt.hasNext();
     while (termIt.hasNext()) {
       auto argTerm = termIt.next();
       auto argStep = stepIt.next();
       auto its = getInductionTerms(argTerm);
+      if (!matchesCase(argStep, argTerm)) {
+        match = false;
+      }
       for (auto& indTerm : its) {
         // This argument might have already been mapped
         if (stepSubst.count(indTerm) > 0) {
@@ -396,6 +441,10 @@ void InductionScheme::init(Term* t, vvector<RDescription>& rdescs, const vvector
         auto res = cr.transform(argStep.term());
         stepSubst.insert(make_pair(indTerm, TermList(res)));
       }
+    }
+    if (match) {
+      // The literal can be simplified, so we don't induct on it yet
+      return false;
     }
     if (mismatch) {
       // We cannot properly create this case because
@@ -452,6 +501,7 @@ void InductionScheme::init(Term* t, vvector<RDescription>& rdescs, const vvector
   }
   _rDescriptionInstances.shrink_to_fit();
   _maxVar = var;
+  return true;
 }
 
 ostream& operator<<(ostream& out, const InductionScheme& scheme)
@@ -607,7 +657,7 @@ InductionSchemeGenerator::~InductionSchemeGenerator()
   }
 }
 
-void InductionSchemeGenerator::generate(Literal* lit) {
+bool InductionSchemeGenerator::generate(Literal* lit) {
   CALL("InductionSchemeGenerator::generate");
 
   // Process all subterms of the literal to
@@ -619,20 +669,75 @@ void InductionSchemeGenerator::generate(Literal* lit) {
     actStack.push(true);
     actStack.push(true);
   } else {
-    process(TermList(lit), true, actStack);
+    if (!process(TermList(lit), true, actStack)) {
+      return false;
+    }
   }
   SubtermIterator it(lit);
   while(it.hasNext()){
     TermList curr = it.next();
     bool active = actStack.pop();
-    process(curr, active, actStack);
+    if (!process(curr, active, actStack)) {
+      return false;
+    }
   }
   ASS(actStack.isEmpty());
+  return true;
 }
 
 void InductionSchemeGenerator::filter()
 {
   CALL("InductionSchemeGenerator::filterSchemes");
+
+  for (unsigned i = 0; i < _schemes.size();) {
+    bool filter = false;
+    for (const auto& rdesc : _schemes[i]._rDescriptionInstances) {
+      for (const auto& kv : rdesc._step) {
+        auto term = kv.first;
+        if (isSkolem(term)) {
+          continue;
+        }
+        auto occ = _currOccMap.get(term);
+        if (occ == 1) {
+          filter = true;
+          break;
+        }
+        SubtermIterator it(term.term());
+        vmap<TermList,unsigned> skolemCount;
+        while (it.hasNext()) {
+          auto st = it.next();
+          if (isSkolem(st)) {
+            auto res = skolemCount.insert(make_pair(st, 0));
+            if (!res.second) {
+              res.first->second++;
+            }
+          }
+        }
+        bool skolemOutside = false;
+        for (const auto kv : skolemCount) {
+          if (kv.second*occ != _currOccMap.get(kv.first)) {
+            // a skolem is not present only in this complex term, don't induct on it
+            // cout << kv.first << " skolem is outside of " << term << " with " << _schemes[i] << endl;
+            skolemOutside = true;
+            break;
+          }
+        }
+        if (skolemOutside) {
+          filter = true;
+          break;
+        }
+      }
+      if (filter) {
+        break;
+      }
+    }
+    if (filter) {
+      _schemes[i] = std::move(_schemes.back());
+      _schemes.pop_back();
+    } else {
+      i++;
+    }
+  }
 
   for (unsigned i = 0; i < _schemes.size(); i++) {
     for (unsigned j = i+1; j < _schemes.size();) {
@@ -651,12 +756,12 @@ void InductionSchemeGenerator::filter()
   }
 }
 
-void InductionSchemeGenerator::process(TermList curr, bool active, Stack<bool>& actStack)
+bool InductionSchemeGenerator::process(TermList curr, bool active, Stack<bool>& actStack)
 {
   CALL("InductionSchemeGenerator::process");
 
   if (!curr.isTerm()) {
-    return;
+    return true;
   }
   auto t = curr.term();
 
@@ -685,7 +790,7 @@ void InductionSchemeGenerator::process(TermList curr, bool active, Stack<bool>& 
     }
 
     if (!active) {
-      return;
+      return true;
     }
 
     IteratorByInductiveVariables argIt(t, indVars);
@@ -701,7 +806,9 @@ void InductionSchemeGenerator::process(TermList curr, bool active, Stack<bool>& 
 
     if (match) {
       _schemes.emplace_back();
-      _schemes.back().init(t, templ._rDescriptions, templ._inductionVariables);
+      if (!_schemes.back().init(t, templ._rDescriptions, templ._inductionVariables)) {
+        return false;
+      }
     }
   // We induct on subterms of term algebra constructors
   } else if (isTermAlgebraCons(curr)) {
@@ -713,6 +820,7 @@ void InductionSchemeGenerator::process(TermList curr, bool active, Stack<bool>& 
       actStack.push(false);
     }
   }
+  return true;
 }
 
 } // Shell
