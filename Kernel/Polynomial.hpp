@@ -99,6 +99,12 @@ public:
       return Optional<Const>();
     }
   }
+
+  // template<class ConstantType>
+  // static PolyNf fromNumeral(ConstantType c) const
+  // {
+  //   TODO
+  // }
 };
 
 class PolyNf;

@@ -323,34 +323,34 @@ public:
   }                                                                                                           \
                                                                                                               \
   template<class B> Optional<B> innerInto() REF { return map([](A REF inner) { return B(MOVE(inner)); }); }   \
+                                                                                                              \
+  template<class Clsr>                                                                                        \
+  typename std::result_of<Clsr(A REF)>::type andThen(Clsr clsr) REF {                                         \
+    using OptOut = typename std::result_of<Clsr(A REF)>::type;                                                \
+    return this->isSome() ? clsr(MOVE(*this).unwrap())                                                        \
+                          : OptOut();                                                                         \
+  }
 
   FOR_REF_QUALIFIER(ref_polymorphic)
 
 #undef ref_polymorphic
 
-  template<class Clsr>
-  typename std::result_of<Clsr(A const&)>::type andThen(Clsr clsr) const& { 
-    using OptOut = typename std::result_of<Clsr(A const&)>::type;
-    return this->isSome() ? clsr(this->unwrap())
-                    : OptOut();
-  }
 
 
-
-  template<class Clsr>
-  typename std::result_of<Clsr(A &&)>::type andThen(Clsr clsr) && { 
-    using OptOut = typename std::result_of<Clsr(A &&)>::type;
-    return this->isSome() ? clsr(std::move(this->unwrap()))
-                    : OptOut();
-  }
-
-
-  template<class Clsr>
-  typename std::result_of<Clsr(A &)>::type andThen(Clsr clsr) & { 
-    using OptOut = typename Optional<std::result_of<Clsr(A &)>>::type;
-    return this->isSome() ? clsr(this->unwrap())
-                    : OptOut();
-  }
+  // template<class Clsr>
+  // typename std::result_of<Clsr(A &&)>::type andThen(Clsr clsr) && { 
+  //   using OptOut = typename std::result_of<Clsr(A &&)>::type;
+  //   return this->isSome() ? clsr(std::move(this->unwrap()))
+  //                   : OptOut();
+  // }
+  //
+  //
+  // template<class Clsr>
+  // typename std::result_of<Clsr(A &)>::type andThen(Clsr clsr) & { 
+  //   using OptOut = typename Optional<std::result_of<Clsr(A &)>>::type;
+  //   return this->isSome() ? clsr(this->unwrap())
+  //                   : OptOut();
+  // }
 
   friend std::ostream& operator<<(std::ostream& out, Optional const& self) 
   { return self.isSome() ?  out << self.unwrap() : out << "None"; }

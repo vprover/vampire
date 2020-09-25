@@ -384,7 +384,7 @@ public:
   Prod& operator=(Prod&&) = default;
 
   friend ostream& operator<<(ostream& out, Prod const& self) 
-  { return out << "Sum" << self._factors; }
+  { return out << "Prod" << self._factors; }
 };
 
 
@@ -478,6 +478,24 @@ public:
     }
   }
 
+  Optional<typename Number::ConstantType> tryNumeral() const
+  {
+    if (_summands.size() == 1 && _summands[0]._factors.size() == 1) {
+      return _summands[0]._factors[0].template tryNumeral<Number>();
+    } else {
+      return Optional<typename Number::ConstantType>();
+    }
+  }
+
+  static NormalizationResult numeral(PolyNf p) 
+  { return NormalizationResult(Sum(Prod(p))); }
+
+  static NormalizationResult numeral(typename Number::ConstantType c) 
+  { 
+    auto fun = FuncId(theory->representConstant(c)->functor());
+    return numeral(PolyNf(unique(FuncTerm(fun, Stack<PolyNf>{}))));
+  }
+
   static NormalizationResult add(NormalizationResult& lhs, NormalizationResult& rhs)
   {
     if (lhs.is<PolyNf>() && rhs.is<PolyNf>()) {
@@ -545,7 +563,7 @@ public:
 
 public:
   friend ostream& operator<<(ostream& out, Sum const& self) 
-  { return out << "Prod" << self._summands; }
+  { return out << "Sum" << self._summands; }
 };
 
 inline PolyNf toPolyNf(NormalizationResult& r) {
@@ -611,10 +629,38 @@ inline PolyNf PolyNf::normalize(TypedTermList t)
           return some<NormalizationResult>(Sum<NumTraits>::add(results[0], results[1]));                      \
         case NumTraits::minusI:                                                                               \
           return some<NormalizationResult>(Sum<NumTraits>::minus(results[0]));
+
+#     define FRAC_CASE(NumTraits)                                                                             \
+        case NumTraits::divI:                                                                                 \
+        {                                                                                                     \
+          DBG("lala 001")                                                                                     \
+          auto maybeNumeral = results[1].template as<Sum<NumTraits>>()                                        \
+            .andThen([](Sum<NumTraits> const& p)                                                              \
+                { return p.tryNumeral(); });                                                                  \
+          DBG("lala 002")                                                                                     \
+          DBGE(results[0])                                                                                    \
+          DBGE(results[1])                                                                                    \
+          DBGE(maybeNumeral)                                                                                  \
+                                                                                                              \
+          return maybeNumeral                                                                                 \
+            .andThen([&](NumTraits::ConstantType& c)->Optional<NormalizationResult>                           \
+                {                                                                                             \
+                  if (c == NumTraits::ConstantType(0)) {                                                      \
+                    return none<NormalizationResult>();                                                       \
+                  } else {                                                                                    \
+                    auto rhs = Sum<NumTraits>::numeral(NumTraits::oneC / c);                                  \
+                    return some<NormalizationResult>(Sum<NumTraits>::mul(results[0], rhs));                   \
+                  }                                                                                           \
+                });                                                                                           \
+        } 
+
         NUM_CASE( IntTraits)
         NUM_CASE( RatTraits)
         NUM_CASE(RealTraits)
+        FRAC_CASE( RatTraits)
+        FRAC_CASE(RealTraits)
 #     undef NUM_CASE
+#     undef FRAC_CASE
         default:
           {}
       }
@@ -653,9 +699,9 @@ inline PolyNf PolyNf::normalize(TypedTermList t)
               )
             );
 
-#     define NUMERAL_CASE(Num)                                                                                    \
+#     define NUMERAL_CASE(Num)                                                                                \
           if (fn.template tryNumeral<Num ## Traits>().isSome())                                               \
-            return NormalizationResult(Sum<Num ## Traits>(Prod<Num ## Traits>(out)));
+            return NormalizationResult(Sum<Num ## Traits>::numeral(out));
           
         NUMERAL_CASE(Int )
         NUMERAL_CASE(Rat )
