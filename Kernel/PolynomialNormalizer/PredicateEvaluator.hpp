@@ -144,11 +144,6 @@ template<class NormalizerConfig, class ConstantType, class EvalIneq> Optional<Li
     } else if (lhsOrig == lhs && rhsOrig == rhs) {
       return Optional<LitEvalResult>();
     } else {
-      DBGE(lhsOrig)
-      DBGE(lTerm)
-      DBG("")
-      DBGE(rhsOrig)
-      DBGE(rTerm)
       TermList args[] = {
         lTerm,
         rTerm,

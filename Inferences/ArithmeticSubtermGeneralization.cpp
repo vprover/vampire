@@ -162,14 +162,14 @@ Clause* generalizeBottomUp(Clause* cl, EvalFn eval)
             case Ordering::VALUE: {                                                                           \
                   DBG("")                                                                                     \
                   DBG(*generalizedLit, #VALUE, *lit)                                                          \
-                  DBG("lhs: ", *generalizedLit)                                                               \
-                  DBG("rhs: ", *lit)                                                                          \
+                  DBG("orig:        ", *lit)                                                                  \
+                  DBG("generalized: ", *generalizedLit)                                                       \
                   ASSERTION_VIOLATION                                                                         \
              }
 
             ASSERT_NOT_THE_CASE(GREATER)
             ASSERT_NOT_THE_CASE(GREATER_EQ)
-            ASSERT_NOT_THE_CASE(INCOMPARABLE)
+            // ASSERT_NOT_THE_CASE(INCOMPARABLE)
 #undef ASSERT_NOT_THE_CASE
           }
         }

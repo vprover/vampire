@@ -48,7 +48,7 @@ bool NumberTheoryInverter::canInvertTop(const InversionContext &ctxt) {
     // case Theory::Interpretation::ARRAY_STORE:
     //   /* store(t, i, x) = s ==> x = select(s, i) */
     //   return ctxt.topIdx() == 2;
-    //   default:;
+      default:;
     }
     // DBG("WARNING: unknown interpreted function: ", t.toString())
     return false;
