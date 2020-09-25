@@ -45,14 +45,14 @@ bool NumberTheoryInverter::canInvertTop(const InversionContext &ctxt) {
       CASE_INVERT_INT(mul, canInvertMulInt(ctxt))
       CASE_INVERT_INT(add, true)
       CASE_INVERT_INT(minus, true)
-    case Theory::Interpretation::ARRAY_STORE:
-      /* store(t, i, x) = s ==> x = select(s, i) */
-      return ctxt.topIdx() == 2;
-      default:;
+    // case Theory::Interpretation::ARRAY_STORE:
+    //   /* store(t, i, x) = s ==> x = select(s, i) */
+    //   return ctxt.topIdx() == 2;
+    //   default:;
     }
     // DBG("WARNING: unknown interpreted function: ", t.toString())
     return false;
-  } else if (sym->termAlgebraCons()) { 
+  } else if (sym->termAlgebraCons() && sym->arity() == 1) { 
     return true;
   } else { /* cannot invert uninterpreted functions */
     DEBUG("no")
@@ -98,18 +98,18 @@ TermList NumberTheoryInverter::invertTop(const InversionContext &ctxt) {
 
       CASE_DO_INVERT_INT(mul, doInvertMulInt(ctxt))
 
-      case Theory::Interpretation::ARRAY_STORE: 
-      {
-        ASS(ctxt.topIdx() == 2)
-        /*              store(t, i, x) = s ==> x = select(s, i) */
-        /* auto toWrap:                  ^                      */
-        /* auto& t:     ^^^^^^^^^^^^^^                          */
-        auto& store = *env.signature->getFunction(t.functor())->fnType();
-        auto select = env.signature->getInterpretingSymbol(
-            Theory::Interpretation::ARRAY_SELECT, 
-            OperatorType::getFunctionType({ store.arg(0), store.arg(1) }, store.arg(2)));
-        return TermList(Term::create2(select, toWrap, *t.nthArgument(1)));
-      }
+      // case Theory::Interpretation::ARRAY_STORE: 
+      // {
+      //   ASS(ctxt.topIdx() == 2)
+      //   /*              store(t, i, x) = s ==> x = select(s, i) */
+      //   /* auto toWrap:                  ^                      */
+      //   /* auto& t:     ^^^^^^^^^^^^^^                          */
+      //   auto& store = *env.signature->getFunction(t.functor())->fnType();
+      //   auto select = env.signature->getInterpretingSymbol(
+      //       Theory::Interpretation::ARRAY_SELECT, 
+      //       OperatorType::getFunctionType({ store.arg(0), store.arg(1) }, store.arg(2)));
+      //   return TermList(Term::create2(select, toWrap, *t.nthArgument(1)));
+      // }
     default:
       ASSERTION_VIOLATION;
     }

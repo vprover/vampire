@@ -478,7 +478,7 @@ public:
 
   PolyPair simplify(PolyNf* simplifiedArgs) const
   { 
-    DBG(*this)
+
     auto pow = [](Const c, int power) -> Const {
       ASS(power > 0)
       auto out = c;
@@ -822,7 +822,6 @@ public:
   Polynom simplify(PolyNf* simplifiedArgs) const
   { 
     CALL("Polynom::simplify(PolyNf* simplifiedArgs) const") 
-    DBG(*this)
     try {
 
       // first we simplify all the monoms containted in this polynom

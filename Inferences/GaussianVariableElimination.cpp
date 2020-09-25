@@ -14,7 +14,6 @@ namespace Inferences {
 
 Clause* GaussianVariableElimination::simplify(Clause* in) 
 {
-  auto ev = PolynomialNormalizer<PolynomialNormalizerConfig::Simplification<>>();
   CALL("GaussianVariableElimination::simplify")
   ASS(in)
 
@@ -30,8 +29,6 @@ Clause* GaussianVariableElimination::simplify(Clause* in)
         auto rhs = b.buildRhs();
         ASS_REP(lhs.isVar(), lhs);
 
-        // TODO check whether evaluation here makes sense
-        // rhs = ev.evaluate(rhs);
         if (!rhs.containsSubterm(lhs)) {
           /* lhs = rhs[...] */
           DEBUG(lhs, " -> ", rhs);

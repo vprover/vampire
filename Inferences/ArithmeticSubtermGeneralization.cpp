@@ -6,7 +6,6 @@
 #include "Lib/Array.hpp"
 #include "Kernel/Ordering.hpp"
 
-#define TODO ASSERTION_VIOLATION
 #define DEBUG(...) //DBG(__VA_ARGS__)
 
 namespace Inferences {

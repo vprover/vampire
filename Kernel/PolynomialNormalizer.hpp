@@ -25,7 +25,7 @@
 #ifndef __POLYNOMIAL_NORMALIZER_HPP__
 #define __POLYNOMIAL_NORMALIZER_HPP__
 
-#define DEBUG(...) DBG(__VA_ARGS__)
+#define DEBUG(...) //DBG(__VA_ARGS__)
 
 namespace Kernel {
 
@@ -552,7 +552,7 @@ public:
     std::sort(summands.begin(), summands.end()); // TODO different sorting(s)
 
     // TODO insert into memo
-    return ECHO(PolyNf(AnyPoly(unique(Polynom(std::move(summands))))));
+    return PolyNf(AnyPoly(unique(Polynom(std::move(summands)))));
   }
 
   static NormalizationResult minus(NormalizationResult& inner)

@@ -170,7 +170,7 @@ Clause* PushUnaryMinus::simplify(Clause* cl_)
     Stack<TermList> litStack;
     for (int j = 0; j < litIn->arity(); j++) {
       auto tIn = *litIn->nthArgument(j);
-      auto tOut = ECHO(pushUMinus(UMinus::None, ECHO( tIn )));
+      auto tOut = pushUMinus(UMinus::None, tIn);
       changed = changed || tIn != tOut;
       litStack.push(tOut);
     }

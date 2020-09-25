@@ -129,8 +129,6 @@ Optional<LitEvalResult> evaluate(Literal* lit)
 void check_eval(Lit orig_, Failure) {
   Literal& orig = *orig_;
 
-  auto eval = NORMALIZER;
-
   Literal* src = Literal::create(&orig, orig.polarity());
   auto res = evaluate(src);
   // auto expected = LitEvalResult::literal(src);
@@ -161,8 +159,6 @@ void check_eval(Lit orig_, bool expected) {
 void check_eval(Lit orig_, Lit expected_) {
   Literal& orig = *orig_;
   Literal& expected = *expected_;
-
-  auto eval = NORMALIZER;
 
   auto sideConditions = Stack<Literal*>();
   Literal* src = Literal::create(&orig, orig.polarity());
