@@ -633,14 +633,9 @@ inline PolyNf PolyNf::normalize(TypedTermList t)
 #     define FRAC_CASE(NumTraits)                                                                             \
         case NumTraits::divI:                                                                                 \
         {                                                                                                     \
-          DBG("lala 001")                                                                                     \
           auto maybeNumeral = results[1].template as<Sum<NumTraits>>()                                        \
             .andThen([](Sum<NumTraits> const& p)                                                              \
                 { return p.tryNumeral(); });                                                                  \
-          DBG("lala 002")                                                                                     \
-          DBGE(results[0])                                                                                    \
-          DBGE(results[1])                                                                                    \
-          DBGE(maybeNumeral)                                                                                  \
                                                                                                               \
           return maybeNumeral                                                                                 \
             .andThen([&](NumTraits::ConstantType& c)->Optional<NormalizationResult>                           \
@@ -816,11 +811,6 @@ Optional<LitEvalResult> PolynomialNormalizer<Config>::evaluate(Literal* lit) con
     auto norm = PolyNf::normalize(TypedTermList(term, SortHelper::getArgSort(lit, i)));
     auto ev = evaluate(norm);
     anyChange = anyChange || ev.isSome();
-    // if (ev.isSome()) {
-    //   DBGE(term)
-    //   DBGE(norm)
-    //   DBGE(ev.unwrap())
-    // }
     terms.push(std::move(ev).unwrapOrElse([&](){ return norm; }));
   }
   auto ev = evaluateStep(lit, terms.begin());

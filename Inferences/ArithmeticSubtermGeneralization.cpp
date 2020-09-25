@@ -477,6 +477,9 @@ public:
   bool isBot() const 
   {return _inner.template is<Bot>(); }
 
+  A const& unwrap() const
+  { return _inner.template unwrap<A>(); }
+
   friend ostream& operator<<(ostream& out, FlatMeetLattice const& self) 
   { return out << self._inner; }
 
@@ -1301,7 +1304,7 @@ namespace Rule4
                   auto var = m.term.tryVar();
                   if (var.isSome() && !powers.get(var.unwrap()).isBot()) {
                     ASS_EQ(evaluatedArgs[i], var.unwrap());
-                    return MonomPair<RealTraits>(evaluatedArgs[i++], 1);
+                    return MonomPair<RealTraits>(evaluatedArgs[i++], 2 - ( m.power % 2 ));
                   } else {
                     return MonomPair<RealTraits>(evaluatedArgs[i++], m.power); 
                   }
@@ -1331,7 +1334,7 @@ namespace Rule4
 
     bool applicable = 
       iterTraits(powers.iter())
-        .find([](PowerMap::Entry& e) { return !e.value().isBot(); })
+        .find([](PowerMap::Entry& e) { return !e.value().isBot() && e.value().unwrap() >= 3; })
         .isSome();
 
     DEBUG("generalizations: ", powers);

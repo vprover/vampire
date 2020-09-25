@@ -138,11 +138,13 @@ TEST_SIMPLIFY_FRACTIONAL(single_var_04,
 #if PHASE >= 2 
 // Rule 1
 // Rule 2
+
 TEST_SIMPLIFY_INTEGER(single_var_04,
     Simplification::Success {
       .input    = clause({ p(3 * x + 6) }), 
       .expected = clause({ p(3 * x)     }),
     })
+
 #endif // PHASE >= 2 
 
 // Rule 1
@@ -260,20 +262,36 @@ TEST_SIMPLIFY_FRACTIONAL(single_var_19,
     })
 #endif // PHASE >= 2 
 
-TEST_SIMPLIFY_INTEGER(single_var_20,
+TEST_SIMPLIFY_INTEGER(single_var_power_01,
     Simplification::NotApplicable {
-      .input    = clause({ p(x * x) }), 
+      .input    = clause({ p(x * x * x) }), 
     })
 
-TEST_SIMPLIFY_RATIONAL(single_var_20,
+TEST_SIMPLIFY_RATIONAL(single_var_power_01,
     Simplification::NotApplicable {
-      .input    = clause({ p(x * x) }), 
+      .input    = clause({ p(x * x * x) }), 
     })
 
-TEST_SIMPLIFY_REAL(single_var_20,
+TEST_SIMPLIFY_REAL(single_var_power_01,
     Simplification::Success {
-      .input    = clause({ p(x * x) }), 
+      .input    = clause({ p(x * x * x) }), 
       .expected = clause({ p(x)     }), 
+    })
+
+TEST_SIMPLIFY_INTEGER(single_var_power_02,
+    Simplification::NotApplicable {
+      .input    = clause({ p(x * x * x * x) }), 
+    })
+
+TEST_SIMPLIFY_RATIONAL(single_var_power_02,
+    Simplification::NotApplicable {
+      .input    = clause({ p(x * x * x * x) }), 
+    })
+
+TEST_SIMPLIFY_REAL(single_var_power_02,
+    Simplification::Success {
+      .input    = clause({ p(x * x * x * x) }), 
+      .expected = clause({ p(x * x)     }), 
     })
 
 TEST_SIMPLIFY_FRACTIONAL(multi_var_01,
@@ -583,10 +601,10 @@ TEST_SIMPLIFY_NUMBER(generalize_var_8,
 
 TEST_SIMPLIFY_REAL(generalize_var_9,
     Simplification::Success {
-      .input    = clause({ p1(( x * x ) * ( z * z )), p2(( x * x * x ) * (z * z)) }), 
-      //   =====> clause({ p1(( x * x ) * (     z )), p2(( x * x * x ) * (    z)) }), 
+      .input    = clause({ p1(( x * x ) * ( z * z * z )), p2(( x * x * x ) * (z * z * z)) }), 
+      //   =====> clause({ p1(( x * x ) * (     z     )), p2(( x * x * x ) * (    z    )) }), 
       .expected = Simplification::anyOf(
-                  clause({ p1(( x * x ) *   z      ), p2(( x * x * x ) *  z     ) })
+                  clause({ p1(( x * x ) *       z      ), p2(( x * x * x ) *      z     ) })
           )
     })
 
@@ -607,13 +625,13 @@ TEST_SIMPLIFY_REAL(generalize_power_1,
 
 TEST_SIMPLIFY_REAL(generalize_power_2,
     Simplification::Success {
-      .input    = clause({ p1(x * x + f(x * x)) }), 
+      .input    = clause({ p1(x * x * x + f(x * x * x)) }), 
       .expected = clause({ p1(x + f(x)) }), 
     })
 
 TEST_SIMPLIFY_REAL(generalize_power_3,
     Simplification::Success {
-      .input    = clause({ p1(x * x + f(y * y * y)) }), 
+      .input    = clause({ p1(x * x * x + f(y * y * y)) }), 
       .expected = clause({ p1(x) }), 
     })
 
