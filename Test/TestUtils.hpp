@@ -156,9 +156,9 @@ public:
 
   std::ostream& prettyPrint(std::ostream& out) const
   { 
-    out << _self.tag() << "(";
+    // out << _self.tag() << "(";
     _self.apply(CoproductToPretty{out});
-    out << ")";
+    // out << ")";
     return out;
   }
 };
@@ -173,6 +173,18 @@ public:
 
   std::ostream& prettyPrint(std::ostream& out) const
   { return _self == nullptr ? out << "null" : out << pretty(*_self); }
+};
+
+
+template<class A>
+class Pretty<Optional<A>> {
+  Optional<A> const& _self;
+
+public:
+  Pretty(Optional<A> const& self) : _self(self) {}
+
+  std::ostream& prettyPrint(std::ostream& out) const
+  { return _self.isSome() ? out << pretty(_self.unwrap()) : out << "none"; }
 };
 
 

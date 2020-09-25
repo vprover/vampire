@@ -78,7 +78,7 @@ struct NumTraits;
 #define IMPL_NUM_TRAITS__ARG_EXPR(arity) IMPL_NUM_TRAITS__ARG_DECL_ ## arity ()
 
 #define IMPL_NUM_TRAITS__INTERPRETED_SYMBOL(name, SORT_SHORT, _INTERPRETATION)                                          \
-    static const Theory::Interpretation name ## I = Theory::SORT_SHORT ## _INTERPRETATION;                              \
+    static constexpr Theory::Interpretation name ## I = Theory::SORT_SHORT ## _INTERPRETATION;                              \
                                                                                                                         \
     static unsigned name ## F() {                                                                                       \
       static const unsigned functor = env.signature->getInterpretingSymbol(name ## I);                                  \

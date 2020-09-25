@@ -173,10 +173,10 @@ public:
   unsigned evaluations;
   /** number of interpreted simplifications */
   unsigned interpretedSimplifications;
-  /** number of simplifications actually performed by PolynomialNormalizer */
-  unsigned polyNormalizerSimplSuccess;
-  /** number of simplifications attempts by PolynomialNormalizer */
-  unsigned polyNormalizerSimplAttempts;
+  /** number of simplifications that were correctly performed by PolynomialNormalizer. -1 means that they have not been counted */
+  int polyNormalizerSimplCorrect;
+  /** number of simplifications by PolynomialNormalizer */
+  unsigned polyNormalizerSimplCnt;
   /** number of (proper) inner rewrites */
   unsigned innerRewrites;
   /** number of inner rewrites into equational tautologies */

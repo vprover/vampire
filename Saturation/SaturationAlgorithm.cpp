@@ -1637,13 +1637,13 @@ ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, cons
       res->addFront(new GaussianVariableElimination()); 
     }
 
-    using Ev = Options::EvaluationMode;
     switch (env.options->evaluationMode()) {
-      case Ev::SIMPLE: 
+      case Options::EvaluationMode::SIMPLE: 
         res->addFront(new InterpretedEvaluation(env.options->inequalityNormalization(), ordering));
         break;
-      case Ev::POLYNOMIAL:
+      case Options::EvaluationMode::POLYNOMIAL:
         res->addFront(new PolynomialNormalization(ordering));
+        res->addFront(new PushUnaryMinus());
         break;
     }
   }

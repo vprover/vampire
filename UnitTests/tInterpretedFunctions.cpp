@@ -28,6 +28,7 @@
 #include "Kernel/Term.hpp"
 #include "Kernel/Sorts.hpp"
 #include "Kernel/PolynomialNormalizer.hpp"
+#include "Inferences/PolynomialNormalization.hpp"
 #include "Test/TestUtils.hpp"
 
 #include "Kernel/InterpretedLiteralEvaluator.hpp"
@@ -43,6 +44,8 @@ using namespace Lib;
 using namespace Test;
 using namespace Kernel;
 using namespace Shell;
+using namespace Inferences;
+
 /////////////////////////////////////////////// Helper functions ///////////////////////////////////////////////////////
 
 struct EqualityCheck {
@@ -65,6 +68,16 @@ bool equalityCheck(LitEvalResult& l, LitEvalResult& r)
   return false;
 }
 
+bool equalityCheck(Optional<LitEvalResult>& l, Optional<LitEvalResult>& r) 
+{ 
+  if (l.isSome()) {
+    return r.isSome() && equalityCheck(l.unwrap(),r.unwrap());
+  } else {
+    return !r.isSome();
+  }
+}
+
+
 #define __CHECK(op, is, expected, msg, test_case) \
   if (!(op equalityCheck( is, expected))) { \
     auto& out = cout; \
@@ -72,7 +85,7 @@ bool equalityCheck(LitEvalResult& l, LitEvalResult& r)
     out << msg << endl; \
     out << "[   case   ] " << pretty(test_case) << endl; \
     out << "[    is    ] " << #is << " =  " << pretty(is) << endl; \
-    out << "[ expected ] " << #is << " " #op "=" << " " << pretty(expected) << endl; \
+    out << "[ expected ] " << #expected << " " #op "=" << " " << pretty(expected) << endl; \
     out << endl; \
     exit(-1); \
   } \
@@ -91,15 +104,38 @@ struct TestOrdering {
 struct Failure { };
 static Failure evaluationFail;
 
+Optional<LitEvalResult> evaluate(Literal* lit) 
+{
+  using Opt = Optional<LitEvalResult>;
+  auto& cl = clause({lit});
+  PolynomialNormalization norm;
+  PushUnaryMinus uminus;
+  auto clOut = norm.simplify(uminus.simplify(&cl));
+  if (clOut == nullptr) {
+    return Opt(LitEvalResult::constant(true));
+  } else if (clOut->size() == 0) {
+    return Opt(LitEvalResult::constant(false));
+  } else {
+    ASS_EQ(clOut->size(), 1)
+    auto out = (*clOut)[0];
+    if (out == lit) {
+      return Opt();
+    } else {
+      return Opt(LitEvalResult::literal(out));
+    }
+  }
+}
+
 void check_eval(Lit orig_, Failure) {
   Literal& orig = *orig_;
 
   auto eval = NORMALIZER;
 
   Literal* src = Literal::create(&orig, orig.polarity());
-  auto res = eval.evaluate(src);
-  auto expected = LitEvalResult::literal(src);
-
+  auto res = evaluate(src);
+  // auto expected = LitEvalResult::literal(src);
+  auto expected = Optional<LitEvalResult>();
+       
   CHECK_EQ(expected, res, "unexpectedly evaluation was successful", orig);
 }
 
@@ -112,14 +148,14 @@ std::ostream& Pretty<LitEvalResult>::prettyPrint(std::ostream& out) const
 void check_eval(Lit orig_, bool expected) {
   Literal& orig = *orig_;
 
-  auto eval = NORMALIZER;
 
   auto sideConditions = Stack<Literal*>();
   Literal* src = Literal::create(&orig, orig.polarity());
 
-  auto result = eval.evaluate(src);
-  CHECK_EQ(result.template is<1>(), true, "non-trivial evaluation result", orig)
-  CHECK_EQ(result.template unwrap<1>(), expected, "result not evaluated to constant", orig)
+  auto result = evaluate(src);
+  CHECK_EQ(result.isSome(), true, "evaluation not successful", orig)
+  CHECK_EQ(result.unwrap().template is<1>(), true, "non-trivial evaluation result", orig)
+  CHECK_EQ(result.unwrap().template unwrap<1>(), expected, "result not evaluated to constant", orig)
 }
 
 void check_eval(Lit orig_, Lit expected_) {
@@ -131,9 +167,11 @@ void check_eval(Lit orig_, Lit expected_) {
   auto sideConditions = Stack<Literal*>();
   Literal* src = Literal::create(&orig, orig.polarity());
 
-  auto result = eval.evaluate(src);
-  CHECK_EQ(result.template is<0>(), true, "trivial evaluation result", orig)
-  CHECK_EQ(*result.template unwrap<0>(), expected, "result not evaluated correctly", orig)
+  auto result = evaluate(src);
+
+  CHECK_EQ(result.isSome(), true, "evaluation not successful", orig)
+  CHECK_EQ(result.unwrap().template is<0>(), true, "trivial evaluation result", orig)
+  CHECK_EQ(*result.unwrap().template unwrap<0>(), expected, "result not evaluated correctly", orig)
 }
 
 #define ADDITIONAL_FUNCTIONS \
@@ -329,6 +367,11 @@ ALL_NUMBERS_TEST(polynomial__normalize_uminus_2,
       p((-7 * f(x)))
       )
 
+ALL_NUMBERS_TEST(polynomial__normalize_uminus_3,
+      p(-(num(7))),
+      p(-7)
+      )
+
 ALL_NUMBERS_TEST(polynomial__merge_consts_1,
       p(((6 * x) + (5 * x))),
       p((11 * x))
@@ -347,6 +390,11 @@ ALL_NUMBERS_TEST(polynomial__merge_consts_3,
 ALL_NUMBERS_TEST(polynomial__push_unary_minus,
       p(-((a * 7))),
       p((-7 * a))
+      )
+
+FRACTIONAL_TEST(test_div_1,
+      p((a * 6) / 7),
+      p(a * frac(6,7))
       )
 
 // ALL_NUMBERS_TEST(polynomial__sorting_1,
@@ -381,17 +429,18 @@ ALL_NUMBERS_TEST(polynomial__push_unary_minus,
 
 ALL_NUMBERS_TEST(eval_test_cached_1,
       p(((b * a) * c) * ((b * a) * c)),
-      p(a * (a * (b * (b * (c * c)))))
+      // p(a * (a * (b * (b * (c * c)))))
+      evaluationFail
       )
 
 ALL_NUMBERS_TEST(eval_test_cached_2,
       (b * a) * c == f((b * a) * c),
-      a * (b * c) == f(a * (b * c))
+      evaluationFail
       )
 
 ALL_NUMBERS_TEST(eval_bug_1,
       p(f2(a,b)),
-      p(f2(a,b))
+      evaluationFail
       )
 
 ALL_NUMBERS_TEST(eval_bug_2,
@@ -519,7 +568,7 @@ INT_TEST(div_zero_2,
 
 ALL_NUMBERS_TEST(eval_overflow_1,
     p(num(1661992960) + 1661992960),
-    p(num(1661992960) + 1661992960)
+    evaluationFail
     )
 
 ALL_NUMBERS_TEST(eval_overflow_2,
@@ -534,7 +583,8 @@ ALL_NUMBERS_TEST(eval_overflow_3,
 
 ALL_NUMBERS_TEST(eval_overflow_4,
     p(-1 * num(std::numeric_limits<int>::min())),
-    p(-num(std::numeric_limits<int>::min()))
+    // p(-num(std::numeric_limits<int>::min()))
+    evaluationFail
     )
 
 ALL_NUMBERS_TEST(eval_overflow_5,

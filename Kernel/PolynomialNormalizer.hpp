@@ -25,7 +25,7 @@
 #ifndef __POLYNOMIAL_NORMALIZER_HPP__
 #define __POLYNOMIAL_NORMALIZER_HPP__
 
-#define DEBUG(...) // DBG(__VA_ARGS__)
+#define DEBUG(...) DBG(__VA_ARGS__)
 
 namespace Kernel {
 
@@ -534,13 +534,13 @@ public:
     std::sort(summands.begin(), summands.end()); // TODO different sorting(s)
 
     // TODO insert into memo
-    return PolyNf(AnyPoly(unique(Polynom(std::move(summands)))));
+    return ECHO(PolyNf(AnyPoly(unique(Polynom(std::move(summands))))));
   }
 
   static NormalizationResult minus(NormalizationResult& inner)
   { 
     static NormalizationResult minusOne(PolyNf(unique(FuncTerm(FuncId(Number::constantT(-1)->functor()), nullptr))));
-    return mul(inner, minusOne); 
+    return mul(minusOne, inner); 
   }
 
 public:
@@ -606,11 +606,11 @@ inline PolyNf PolyNf::normalize(TypedTermList t)
       switch (i) {
 #     define NUM_CASE(NumTraits)                                                                              \
         case NumTraits::mulI:                                                                                 \
-          return Sum<NumTraits>::mul(results[0], results[1]);                                                 \
+          return some<NormalizationResult>(Sum<NumTraits>::mul(results[0], results[1]));                      \
         case NumTraits::addI:                                                                                 \
-          return Sum<NumTraits>::add(results[0], results[1]);                                                 \
+          return some<NormalizationResult>(Sum<NumTraits>::add(results[0], results[1]));                      \
         case NumTraits::minusI:                                                                               \
-          return Sum<NumTraits>::minus(results[0]);                                                                 
+          return some<NormalizationResult>(Sum<NumTraits>::minus(results[0]));
         NUM_CASE( IntTraits)
         NUM_CASE( RatTraits)
         NUM_CASE(RealTraits)
@@ -626,12 +626,12 @@ inline PolyNf PolyNf::normalize(TypedTermList t)
       if (t.isVar()) {
         auto var = PolyNf(Variable(t.var()));
         switch (t.sort()) {
-#         define NUM_CASE(NumTraits)                                                                          \
+#         define VAR_CASE(NumTraits)                                                                          \
             case NumTraits::sort: return NormalizationResult(Sum<NumTraits>(Prod<NumTraits>(var)));
-          NUM_CASE( IntTraits)
-          NUM_CASE( RatTraits)
-          NUM_CASE(RealTraits)
-#         undef NUM_CASE
+          VAR_CASE( IntTraits)
+          VAR_CASE( RatTraits)
+          VAR_CASE(RealTraits)
+#         undef VAR_CASE
           default:
             return NormalizationResult(var);
         }
@@ -653,15 +653,15 @@ inline PolyNf PolyNf::normalize(TypedTermList t)
               )
             );
 
-#     define NUM_CASE(Num)                                                                                    \
+#     define NUMERAL_CASE(Num)                                                                                    \
           if (fn.template tryNumeral<Num ## Traits>().isSome())                                               \
             return NormalizationResult(Sum<Num ## Traits>(Prod<Num ## Traits>(out)));
           
-        NUM_CASE(Int )
-        NUM_CASE(Rat )
-        NUM_CASE(Real)
+        NUMERAL_CASE(Int )
+        NUMERAL_CASE(Rat )
+        NUMERAL_CASE(Real)
 
-#     undef NUM_CASE
+#     undef NUMERAL_CASE
 
         return NormalizationResult(PolyNf(out));
       }
@@ -706,13 +706,15 @@ namespace PolynomialNormalizerConfig {
 template<class Config>
 class PolynomialNormalizer {
 public:
-  LitEvalResult evaluate(Literal* in) const;
-  PolyNf evaluate(TypedTermList in) const;
-  PolyNf evaluate(Term* in) const;
+  Optional<LitEvalResult> evaluate(Literal* in) const;
+  Optional<PolyNf> evaluate(TermList in, unsigned sortNumber) const;
+  Optional<PolyNf> evaluate(Term* in) const;
+  Optional<PolyNf> evaluate(PolyNf in) const;
+  Optional<PolyNf> evaluate(TypedTermList in) const;
 
 private:
   struct RecursionState;
-  LitEvalResult evaluateStep(Literal* orig, PolyNf* evaluatedArgs) const;
+  Optional<LitEvalResult> evaluateStep(Literal* orig, PolyNf* evaluatedArgs) const;
 
   PolyNf evaluateStep(Term* orig, PolyNf* evaluatedArgs) const;
 };
@@ -742,30 +744,56 @@ UniqueShared<Polynom<Number>> intoPoly(PolyNf p)
 
 template<class Config>
 inline Literal* createLiteral(Literal* orig, PolyNf* evaluatedArgs) {
-  auto arity = orig->arity();
-
-  Stack<TermList> args(arity);
-  for (int i = 0; i < arity; i++) {
-    args.push(evaluatedArgs[i].toTerm());
+  if (orig->isEquality()) {
+    return Literal::createEquality(
+          orig->polarity(), 
+          evaluatedArgs[0].toTerm(), 
+          evaluatedArgs[1].toTerm(), 
+          SortHelper::getArgSort(orig, 0));
+  } else {
+    auto arity = orig->arity();
+    Stack<TermList> args(arity);
+    for (int i = 0; i < arity; i++) {
+      args.push(evaluatedArgs[i].toTerm());
+    }
+    return Literal::create(orig, args.begin());
   }
-  return Literal::create(orig, args.begin());
 }
 
 
-template<class Config> LitEvalResult PolynomialNormalizer<Config>::evaluate(Literal* lit) const {
+template<class Config> 
+Optional<LitEvalResult> PolynomialNormalizer<Config>::evaluate(Literal* lit) const {
   Stack<PolyNf> terms(lit->arity());
+  auto anyChange = false;
   for (int i = 0; i < lit->arity(); i++) {
-    terms.push(evaluate(TypedTermList(*lit->nthArgument(i), SortHelper::getArgSort(lit, i))));
+    auto term = *lit->nthArgument(i);
+    auto norm = PolyNf::normalize(TypedTermList(term, SortHelper::getArgSort(lit, i)));
+    auto ev = evaluate(norm);
+    anyChange = anyChange || ev.isSome();
+    // if (ev.isSome()) {
+    //   DBGE(term)
+    //   DBGE(norm)
+    //   DBGE(ev.unwrap())
+    // }
+    terms.push(std::move(ev).unwrapOrElse([&](){ return norm; }));
   }
-  return evaluateStep(lit, terms.begin());
+  auto ev = evaluateStep(lit, terms.begin());
+  anyChange = anyChange || ev.isSome();
+
+  if (anyChange) {
+    return Optional<LitEvalResult>(std::move(ev).unwrapOrElse([&]()
+        { return LitEvalResult::literal(createLiteral<Config>(lit, terms.begin())); }));
+  } else {
+    return Optional<LitEvalResult>();
+  }
 }
 
-template<class Config> LitEvalResult PolynomialNormalizer<Config>::evaluateStep(Literal* orig, PolyNf* evaluatedArgs) const {
+template<class Config> Optional<LitEvalResult> PolynomialNormalizer<Config>::evaluateStep(Literal* orig, PolyNf* evaluatedArgs) const {
   CALL("PolynomialNormalizer::evaluateStep(Literal* term)")
   DEBUG("evaluating: ", orig->toString());
 
 #define HANDLE_CASE(INTER) case Interpretation::INTER: return PredicateEvaluator<Interpretation::INTER>::evaluate<Config>(orig, evaluatedArgs); 
-#define IGNORE_CASE(INTER) case Interpretation::INTER: return LitEvalResult::literal(createLiteral<Config>(orig, evaluatedArgs));
+#define IGNORE_CASE(INTER) case Interpretation::INTER: return Optional<LitEvalResult>();
 #define HANDLE_NUM_CASES(NUM)                                                                                 \
       IGNORE_CASE(NUM ## _IS_INT) /* TODO */                                                                  \
       IGNORE_CASE(NUM ## _IS_RAT) /* TODO */                                                                  \
@@ -794,10 +822,10 @@ template<class Config> LitEvalResult PolynomialNormalizer<Config>::evaluateStep(
       default:
         // DBG("WARNING: unexpected interpreted predicate: ", lit->toString())
         ASSERTION_VIOLATION
-        return LitEvalResult::literal(createLiteral<Config>(orig, evaluatedArgs));
+        return Optional<LitEvalResult>();
     }
   } else {
-    return LitEvalResult::literal(createLiteral<Config>(orig, evaluatedArgs));
+    return Optional<LitEvalResult>();
   }
 
 #undef HANDLE_CASE
@@ -825,10 +853,10 @@ Optional<PolyNf> trySimplifyUnaryMinus(PolyNf* evalArgs)
 {
   CALL("trySimplifyUnaryMinus(PolyNf*)")
   // using Const = typename Number::ConstantType;
-  return PolyNf(AnyPoly(unique(
+  return some<PolyNf>(PolyNf(AnyPoly(unique(
           intoPoly<Number>(evalArgs[0])
               ->flipSign()
-            )));
+            ))));
 }
 
 template<class Number, class Clsr>
@@ -837,7 +865,7 @@ inline Optional<PolyNf> trySimplifyConst2(PolyNf* evalArgs, Clsr f)
   auto lhs = evalArgs[0].template tryNumeral<Number>();
   auto rhs = evalArgs[1].template tryNumeral<Number>();
   if (lhs.isSome() && rhs.isSome()) {
-    return PolyNf(AnyPoly(unique(Polynom<Number>(f(lhs.unwrap(), rhs.unwrap())))));
+    return some<PolyNf>(PolyNf(AnyPoly(unique(Polynom<Number>(f(lhs.unwrap(), rhs.unwrap()))))));
   } else {
     return none<PolyNf>();
   }
@@ -849,22 +877,22 @@ inline Optional<PolyNf> trySimplify(Theory::Interpretation i, PolyNf* evalArgs)
   try {
     switch (i) {
 
-#define CONSTANT_CASE(Num, func, expr)                                                                          \
-      case Num##Traits:: func ## I:                                                                             \
-        {                                                                                                       \
-          using Const = typename Num##Traits::ConstantType;                                                     \
-          return trySimplifyConst2<Num##Traits>(evalArgs, [](Const l, Const r){ return expr; });                \
-        }                                                                                                       \
+#define CONSTANT_CASE(Num, func, expr)                                                                        \
+      case Num##Traits:: func ## I:                                                                           \
+        {                                                                                                     \
+          using Const = typename Num##Traits::ConstantType;                                                   \
+          return trySimplifyConst2<Num##Traits>(evalArgs, [](Const l, Const r){ return expr; });              \
+        }                                                                                                     \
 
-#define QUOTIENT_REMAINDER_CASES(Num, X)                                                                        \
-      CONSTANT_CASE(Num,  quotient##X, l. quotient##X(r))                                                       \
-      CONSTANT_CASE(Num, remainder##X, l.remainder##X(r))                                                       \
+#define QUOTIENT_REMAINDER_CASES(Num, X)                                                                      \
+      CONSTANT_CASE(Num,  quotient##X, l. quotient##X(r))                                                     \
+      CONSTANT_CASE(Num, remainder##X, l.remainder##X(r))                                                     \
 
-#define FRAC_CASE(Num)                                                                                          \
+#define FRAC_CASE(Num)                                                                                        \
       CONSTANT_CASE(Num, div, l / r)
 
-#define NUM_CASE(Num) \
-      case Num ## Traits::minusI:     return trySimplifyUnaryMinus<Num ## Traits>(evalArgs); \
+#define NUM_CASE(Num)                                                                                         \
+      case Num ## Traits::minusI:     return trySimplifyUnaryMinus<Num ## Traits>(evalArgs);                  \
 
       NUM_CASE(Int)
       NUM_CASE(Rat)
@@ -899,12 +927,21 @@ inline Optional<PolyNf> trySimplify(Theory::Interpretation i, PolyNf* evalArgs)
   }
 }
 
-template<class Config> PolyNf PolynomialNormalizer<Config>::evaluate(TypedTermList term) const 
+template<class Config> Optional<PolyNf> PolynomialNormalizer<Config>::evaluate(TermList term, unsigned sortNumber) const 
+{ return evaluate(TypedTermList(term, sortNumber)); }
+
+template<class Config> Optional<PolyNf> PolynomialNormalizer<Config>::evaluate(Term* term) const 
+{ return evaluate(TypedTermList(term)); }
+
+template<class Config> Optional<PolyNf> PolynomialNormalizer<Config>::evaluate(TypedTermList term) const 
+{ return evaluate(PolyNf::normalize(term)); }
+
+template<class Config> Optional<PolyNf> PolynomialNormalizer<Config>::evaluate(PolyNf normalized) const 
 {
   CALL("PolynomialNormalizer<Config>::evaluate(TypedTermList term) const")
 
-  auto norm = PolyNf::normalize(term);
-  DEBUG("evaluating ", norm)
+  // auto norm = PolyNf::normalize(term);
+  DEBUG("evaluating ", normalized)
   struct Eval 
   {
     const PolynomialNormalizer& norm;
@@ -934,12 +971,13 @@ template<class Config> PolyNf PolynomialNormalizer<Config>::evaluate(TypedTermLi
     }
   };
   static Memo::Hashed<PolyNf, PolyNf> memo;
-  return evaluateBottomUp(norm, Eval{ *this }, memo);
+  auto out = evaluateBottomUp(normalized, Eval{ *this }, memo);
+  if (out == normalized) {
+    return Optional<PolyNf>();
+  } else {
+    return Optional<PolyNf>(out);
+  }
 }
-
-template<class Config> PolyNf PolynomialNormalizer<Config>::evaluate(Term* term) const 
-{ return evaluate(TypedTermList(term)); }
-
 
 template<class Config>
 inline PolyNf createTerm(unsigned fun, PolyNf* evaluatedArgs) 

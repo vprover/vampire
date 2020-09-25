@@ -106,8 +106,8 @@ Statistics::Statistics()
     globalSubsumption(0),
     evaluations(0),
     interpretedSimplifications(0),
-    polyNormalizerSimplSuccess(0),
-    polyNormalizerSimplAttempts(0),
+    polyNormalizerSimplCorrect(0),
+    polyNormalizerSimplCnt(0),
     innerRewrites(0),
     innerRewritesToEqTaut(0),
     deepEquationalTautologies(0),
@@ -304,8 +304,8 @@ void Statistics::print(ostream& out)
   COND_OUT("Global subsumptions", globalSubsumption);
   COND_OUT("Evaluations", evaluations);
   COND_OUT("Interpreted simplifications", interpretedSimplifications);
-  COND_OUT("PolynomialNormalizer simplifications",         polyNormalizerSimplSuccess);
-  COND_OUT("PolynomialNormalizer simplification attempts", polyNormalizerSimplAttempts);
+  COND_OUT("PolynomialNormalizer simplifications",         polyNormalizerSimplCnt);
+  COND_OUT("PolynomialNormalizer simplifications correct", polyNormalizerSimplCorrect);
   SEPARATOR;
 
   HEADING("Deletion Inferences",simpleTautologies+equationalTautologies+

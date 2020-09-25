@@ -72,7 +72,7 @@ public:
   }
 
 #define for_ref_qualifier(ref, mv)                                                                            \
-  OptionalBase(A ref content)                                                                                 \
+  explicit OptionalBase(A ref content)                                                                        \
     : _isSome(true)                                                                                           \
       , _elem()                                                                                               \
   {                                                                                                           \
@@ -124,7 +124,7 @@ public:
   bool isNone() const { return !isSome(); }
 
   static OptionalBase fromPtr(A* ptr) 
-  { return ptr == nullptr ? OptionalBase() : *ptr; }
+  { return ptr == nullptr ? OptionalBase() : OptionalBase(*ptr); }
 
   friend bool operator==(OptionalBase const& lhs, OptionalBase const& rhs) 
   { 
@@ -225,7 +225,7 @@ public:
 template<class A>
 class Optional : OptionalBase<A> {
 
-  Optional(OptionalBase<A>&& base) : OptionalBase<A>(std::move(base)) {  }
+  explicit Optional(OptionalBase<A>&& base) : OptionalBase<A>(std::move(base)) {  }
 public:
   using Content = A;
   using OptionalBase<A>::OptionalBase;

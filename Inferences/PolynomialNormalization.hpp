@@ -14,6 +14,19 @@
 
 namespace Inferences {
 
+class PushUnaryMinus
+: public ImmediateSimplificationEngine
+{
+public:
+  CLASS_NAME(PushUnaryMinus);
+  USE_ALLOCATOR(PushUnaryMinus);
+
+  virtual ~PushUnaryMinus();
+
+  Clause* simplify(Clause* cl);
+};
+
+
 class PolynomialNormalization
 : public ImmediateSimplificationEngine
 {
@@ -22,13 +35,13 @@ public:
   USE_ALLOCATOR(PolynomialNormalization);
 
   /* will not check whether it performed an actual simplification */
-  PolynomialNormalization() : _ordering(nullptr) {}
+  PolynomialNormalization();
 
   /* 
    * will use the simplification ordering in order to check whether 
    * its transformation were an actual simplification 
    */
-  PolynomialNormalization(Ordering& ordering) : _ordering(&ordering) {}
+  PolynomialNormalization(Ordering& ordering);
   virtual ~PolynomialNormalization();
 
   Clause* simplify(Clause* cl);

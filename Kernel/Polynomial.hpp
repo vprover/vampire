@@ -84,7 +84,7 @@ public:
 
   Optional<Theory::Interpretation> tryInterpret() const
   { 
-    return isInterpreted() ? interpretation()
+    return isInterpreted() ? some<Theory::Interpretation>(interpretation())
                            : none<Theory::Interpretation>();
   }
 
@@ -94,7 +94,7 @@ public:
     using Const = typename Number::ConstantType;
     Const out;
     if (theory->tryInterpretConstant(_num, out)) {
-      return out;
+      return Optional<Const>(out);
     } else {
       return Optional<Const>();
     }
@@ -131,6 +131,12 @@ struct PolyPair {
 
   friend bool operator!=(PolyPair const& l, PolyPair const& r)
   { return !(l == r); }
+
+  static PolyPair zero() 
+  { 
+    static PolyPair p = PolyPair(Coeff(0), unique(Monom<Number>()));
+    return p; 
+  }
 
   friend std::ostream& operator<<(std::ostream& out, const PolyPair& self)
   { 
@@ -466,6 +472,7 @@ public:
 
   PolyPair simplify(PolyNf* simplifiedArgs) const
   { 
+    DBG(*this)
     auto pow = [](Const c, int power) -> Const {
       ASS(power > 0)
       auto out = c;
@@ -520,7 +527,7 @@ public:
   {
     out << "(";
     if (self._factors.size() == 0) {
-      out << "1";
+      out << "Monom()";
     } else {
       auto iter  = self._factors.begin();
       out << *iter;
@@ -635,12 +642,15 @@ public:
   USE_ALLOCATOR(Polynom)
   CLASS_NAME(Polynom)
 
-  Polynom(Stack<PolyPair>&& summands) : _summands(std::move(summands)) { }
-  Polynom() : Polynom(Stack<PolyPair>()) {}
+  Polynom(Stack<PolyPair>&& summands) : _summands(summands.isEmpty() ? Stack<PolyPair>{PolyPair::zero()} : std::move(summands)) { }
+  // Polynom() : Polynom(Stack<PolyPair>()) {}
   Polynom(Coeff coeff, UniqueShared<Monom> term) 
     : Polynom(coeff == Coeff(0)
         ? Stack<PolyPair>() 
         : Stack<PolyPair> {  PolyPair(coeff, term)  }) {  }
+
+  static Polynom zero() 
+  { return Polynom(Stack<PolyPair>{}); }
 
   Polynom(Coeff coeff, PolyNf term) : Polynom(coeff, unique(Monom(term))) {  }
   Polynom(PolyNf t) : Polynom(Coeff(1), t) {  }
@@ -649,7 +659,7 @@ public:
   Optional<Coeff> toNumber() const& 
   { 
     if (isNumber()) {
-      return unwrapNumber();
+      return Optional<Coeff>(unwrapNumber());
     } else {
       return Optional<Coeff>();
     }
@@ -698,8 +708,8 @@ public:
       const UniqueShared<Monom>& mr = itr->monom;
       if (ml == mr) {
         auto& m = ml;
-        ASS_NEQ(cl, zero);
-        ASS_NEQ(cr, zero);
+        // ASS_NEQ(cl, zero);
+        // ASS_NEQ(cr, zero);
         if (cl == cr) {
           // 10 x + ... ~~  10 x + ... ==> ... ~~ ... 
         } else if (cl > zero && cr > zero) {
@@ -806,6 +816,7 @@ public:
   Polynom simplify(PolyNf* simplifiedArgs) const
   { 
     CALL("Polynom::simplify(PolyNf* simplifiedArgs) const") 
+    DBG(*this)
     try {
 
       // first we simplify all the monoms containted in this polynom
@@ -818,17 +829,18 @@ public:
           auto coeff = pair.coeff * simpl.coeff;
           if (coeff == Number::zeroC) {
             /* we don't add it */
-          } else if (
-                 coeff == Coeff(-1) // TODO lift this
-              && simpl.monom->isPolynom()) {
-            // pushing in unary minus:
-            //   Poly((-1) * Poly(t1 + t2 + t3 + ...) )
-            auto& poly = *simpl.monom->asPolynom();
-            out.reserve(out.size() + poly.nSummands()  - 1);
-            for (unsigned j = 0; j < poly.nSummands(); j++) {
-              auto& pair = poly._summands[j];
-              out.push(PolyPair(coeff * pair.coeff, pair.monom));
-            }
+
+          // } else if (
+          //        coeff == Coeff(-1) // TODO lift this
+          //     && simpl.monom->isPolynom()) {
+          //   // pushing in unary minus:
+          //   //   Poly((-1) * Poly(t1 + t2 + t3 + ...) )
+          //   auto& poly = *simpl.monom->asPolynom();
+          //   out.reserve(out.size() + poly.nSummands()  - 1);
+          //   for (unsigned j = 0; j < poly.nSummands(); j++) {
+          //     auto& pair = poly._summands[j];
+          //     out.push(PolyPair(coeff * pair.coeff, pair.monom));
+          //   }
           } else {
             out.push(PolyPair(coeff, simpl.monom));
           }
@@ -868,16 +880,16 @@ public:
   Polynom replaceTerms(PolyNf* simplifiedTerms) const 
   {
     int offs = 0;
-    Polynom out;
-    out._summands.reserve(nSummands());
+    Stack<PolyPair> out;
+    out.reserve(nSummands());
 
     for (auto& pair : _summands) {
-      out._summands.push(PolyPair(
+      out.push(PolyPair(
             pair.coeff, 
             unique(pair.monom->replaceTerms(&simplifiedTerms[offs]))));
       offs += pair.monom->nFactors();
     }
-    return std::move(out);
+    return Polynom(std::move(out));
   }
 
 

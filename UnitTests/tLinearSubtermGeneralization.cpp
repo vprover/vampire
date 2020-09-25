@@ -617,6 +617,17 @@ TEST_SIMPLIFY_REAL(generalize_power_3,
       .expected = clause({ p1(x) }), 
     })
 
+TEST_SIMPLIFY_REAL(generalize_power_4,
+    Simplification::NotApplicable {
+      .input    = clause({ x * x >= 0 }), 
+    })
+
+TEST_SIMPLIFY_REAL(generalize_power_5,
+    Simplification::Success {
+      .input    = clause({ p1(x * x * x + y * y), p2( y + a ) }), 
+      .expected = clause({ p1(x), p2(y) }), 
+    })
+
 TEST_SIMPLIFY_REAL(bug_01,
     Simplification::NotApplicable {
       .input    = clause({ x * (y + z) == x * y + x * z }), 
