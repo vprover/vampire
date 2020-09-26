@@ -424,8 +424,11 @@ bool RationalConstantType::operator==(const RationalConstantType& o) const
 bool RationalConstantType::operator>(const RationalConstantType& o) const
 {
   CALL("IntegerConstantType::operator>");
+  /* prevents overflows */
+  auto toLong = [](IntegerConstantType t)  -> long int
+  { return  t.toInner(); };
 
-  return (_num*o._den)>(o._num*_den);
+  return toLong(_num)*toLong(o._den)>(toLong(o._num)*toLong(_den));
 }
 
 
@@ -466,56 +469,61 @@ void RationalConstantType::cannonize()
 Comparison RationalConstantType::comparePrecedence(RationalConstantType n1, RationalConstantType n2)
 {
   CALL("RationalConstantType::comparePrecedence");
-  try {
-
-    if (n1==n2) { return EQUAL; }
-
-    bool haveRepr1 = true;
-    bool haveRepr2 = true;
-
-    IntegerConstantType repr1, repr2;
-
-    try {
-      repr1 = n1.numerator()+n1.denominator();
-    } catch(ArithmeticException) {
-      haveRepr1 = false;
-    }
-
-    try {
-      repr2 = n2.numerator()+n2.denominator();
-    } catch(ArithmeticException) {
-      haveRepr2 = false;
-    }
-
-    if (haveRepr1 && haveRepr2) {
-      Comparison res = IntegerConstantType::comparePrecedence(repr1, repr2);
-      if (res==EQUAL) {
-	res = IntegerConstantType::comparePrecedence(n1.numerator(), n2.numerator());
-      }
-      ASS_NEQ(res, EQUAL);
-      return res;
-    }
-    if (haveRepr1 && !haveRepr2) {
-      return LESS;
-    }
-    if (!haveRepr1 && haveRepr2) {
-      return GREATER;
-    }
-
-    ASS(!haveRepr1);
-    ASS(!haveRepr2);
-
-    Comparison res = IntegerConstantType::comparePrecedence(n1.denominator(), n2.denominator());
-    if (res==EQUAL) {
-      res = IntegerConstantType::comparePrecedence(n1.numerator(), n2.numerator());
-    }
-    ASS_NEQ(res, EQUAL);
-    return res;
-  }
-  catch(ArithmeticException) {
-    ASSERTION_VIOLATION;
-    throw;
-  }
+  /* cannot overflow */
+  auto prec = IntegerConstantType::comparePrecedence(n1._den, n2._den);
+  if (prec != EQUAL) return prec;
+  return IntegerConstantType::comparePrecedence(n1._num, n2._num);
+  
+  // try {
+  //
+  //   if (n1==n2) { return EQUAL; }
+  //
+  //   bool haveRepr1 = true;
+  //   bool haveRepr2 = true;
+  //
+  //   IntegerConstantType repr1, repr2;
+  //
+  //   try {
+  //     repr1 = n1.numerator()+n1.denominator();
+  //   } catch(ArithmeticException) {
+  //     haveRepr1 = false;
+  //   }
+  //
+  //   try {
+  //     repr2 = n2.numerator()+n2.denominator();
+  //   } catch(ArithmeticException) {
+  //     haveRepr2 = false;
+  //   }
+  //
+  //   if (haveRepr1 && haveRepr2) {
+  //     Comparison res = IntegerConstantType::comparePrecedence(repr1, repr2);
+  //     if (res==EQUAL) {
+	// res = IntegerConstantType::comparePrecedence(n1.numerator(), n2.numerator());
+  //     }
+  //     ASS_NEQ(res, EQUAL);
+  //     return res;
+  //   }
+  //   if (haveRepr1 && !haveRepr2) {
+  //     return LESS;
+  //   }
+  //   if (!haveRepr1 && haveRepr2) {
+  //     return GREATER;
+  //   }
+  //
+  //   ASS(!haveRepr1);
+  //   ASS(!haveRepr2);
+  //
+  //   Comparison res = IntegerConstantType::comparePrecedence(n1.denominator(), n2.denominator());
+  //   if (res==EQUAL) {
+  //     res = IntegerConstantType::comparePrecedence(n1.numerator(), n2.numerator());
+  //   }
+  //   ASS_NEQ(res, EQUAL);
+  //   return res;
+  // }
+  // catch(ArithmeticException) {
+  //   ASSERTION_VIOLATION;
+  //   throw;
+  // }
 }
 
 

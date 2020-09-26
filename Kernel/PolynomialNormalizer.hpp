@@ -549,7 +549,10 @@ public:
             return PolyPair(coeff.unwrapOr(Const(1)), unique(Monom(std::move(monomFactors))));
           })
           .template collect<Stack>();
-    std::sort(summands.begin(), summands.end()); // TODO different sorting(s)
+    auto sbegin = summands.begin();
+    auto send = summands.end();
+    std::sort(sbegin, send); // TODO different sorting(s)
+    // std::sort(summands.begin(), summands.end()); // TODO different sorting(s)
 
     // TODO insert into memo
     return PolyNf(AnyPoly(unique(Polynom(std::move(summands)))));
@@ -605,7 +608,7 @@ public:
   void insert(TermList const& t, PolyNf const& p)
   { 
     _cache.insert(t, p); 
-    // DBGE(_cache.numberOfElements());
+    // DEBUG(_cache.numberOfElements());
   }
 };
 
@@ -856,7 +859,7 @@ template<class Config> Optional<LitEvalResult> PolynomialNormalizer<Config>::eva
       HANDLE_CASE(INT_DIVIDES)
 
       default:
-        // DBG("WARNING: unexpected interpreted predicate: ", lit->toString())
+        // WARN("WARNING: unexpected interpreted predicate: ", lit->toString())
         ASSERTION_VIOLATION
         return Optional<LitEvalResult>();
     }

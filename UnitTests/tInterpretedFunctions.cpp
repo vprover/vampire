@@ -30,6 +30,7 @@
 #include "Kernel/PolynomialNormalizer.hpp"
 #include "Inferences/PolynomialNormalization.hpp"
 #include "Test/TestUtils.hpp"
+#include "Kernel/KBO.hpp"
 
 #include "Kernel/InterpretedLiteralEvaluator.hpp"
 
@@ -106,6 +107,9 @@ static Failure evaluationFail;
 
 Optional<LitEvalResult> evaluate(Literal* lit) 
 {
+  auto ord = KBO::testKBO();
+  Ordering::trySetGlobalOrdering(SmartPtr<Ordering>(&ord, true));
+
   using Opt = Optional<LitEvalResult>;
   auto& cl = clause({lit});
   PolynomialNormalization norm;
@@ -340,8 +344,8 @@ ALL_NUMBERS_TEST(eval_double_minus_3,
 
 
 ALL_NUMBERS_TEST(eval_double_minus_4,
-      (4 == -((-(x) + 4))),
-      (8 == x) )
+      (-4 == -((-(x) + 4))),
+      (0 == x) )
 
 ALL_NUMBERS_TEST(eval_remove_identity_1,
       (0 < (0 + -(x))),
@@ -471,7 +475,7 @@ ALL_NUMBERS_TEST(eval_cancellation_add_0,
 
 ALL_NUMBERS_TEST(eval_cancellation_add_1,
     x + (-1) == -2,
-    x == -1
+    x + 1 == 0
     )
 
 ALL_NUMBERS_TEST(eval_cancellation_add_2,
@@ -506,7 +510,7 @@ ALL_NUMBERS_TEST(eval_cancellation_add_8,
 
 ALL_NUMBERS_TEST(eval_cancellation_add_9,
     a * y * -1 == a * y * -2,
-    0 == -(a * y)
+    0 == a * y 
     )
 
 ALL_NUMBERS_TEST(eval_cancellation_add_10,
@@ -586,6 +590,18 @@ ALL_NUMBERS_TEST(eval_overflow_4,
 ALL_NUMBERS_TEST(eval_overflow_5,
     p(std::numeric_limits<int>::min() * num(std::numeric_limits<int>::min() + 1) * std::numeric_limits<int>::min()),
     evaluationFail
+    )
+
+FRACTIONAL_TEST(eval_overflow_6,
+    // p($sum(0.0555556,-1260453006.0)),
+    p(frac(5,90) + num(-1260453006)),
+    evaluationFail
+    )
+
+FRACTIONAL_TEST(eval_overflow_7,
+    // p($sum(0.0555556,-1260453006.0)),
+    frac(5,90) < num(-1260453006),
+    false
     )
 
 // FRACTIONAL_TEST(eval_div_1,

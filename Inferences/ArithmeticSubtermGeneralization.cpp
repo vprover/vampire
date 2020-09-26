@@ -126,6 +126,7 @@ static const auto iterVars = [](Clause* cl) {
 template<class EvalFn>
 Clause* generalizeBottomUp(Clause* cl, EvalFn eval) 
 {
+  CALL("generalizeBottomUp")
   /* apply the selectedGen generalization */
   bool anyChange = false;
 
@@ -169,6 +170,8 @@ Clause* generalizeBottomUp(Clause* cl, EvalFn eval)
 
             ASSERT_NOT_THE_CASE(GREATER)
             ASSERT_NOT_THE_CASE(GREATER_EQ)
+            default:
+              break;
             // ASSERT_NOT_THE_CASE(INCOMPARABLE)
 #undef ASSERT_NOT_THE_CASE
           }

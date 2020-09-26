@@ -55,7 +55,6 @@ Clause* PolynomialNormalization::simplify(Clause* cl_) {
           if (_ordering->compare(simplLit, orig) == Ordering::Result::LESS) {
             env.statistics->polyNormalizerSimplCorrect++;
           } else {
-          
             // DBGE(*orig    )
             // DBG(_ordering->compare(simplLit, orig))
             // DBGE(*simplLit)

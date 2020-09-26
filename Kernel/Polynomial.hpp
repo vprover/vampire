@@ -11,6 +11,7 @@
 #include <map> // TODO replace by Map
 #include "Lib/UniqueShared.hpp"
 #include "Kernel/NumTraits.hpp"
+#include "Kernel/Ordering.hpp"
 #include <type_traits>
 
 
@@ -696,14 +697,31 @@ public:
     DEBUG("in:  ", oldl, " <> ", oldr)
 
     using CoeffVec = Stack<PolyPair>;
-    auto zero = Number::zeroC;
+    // auto zero = Number::zeroC;
     auto itl = oldl._summands.begin();
     auto itr = oldr._summands.begin();
     auto endl = oldl._summands.end();
     auto endr = oldr._summands.end();
 
+    auto safeMinus = [](Coeff l, Coeff r) 
+    { 
+      try {
+        return Optional<Coeff>(l - r);
+      } catch (MachineArithmeticException) 
+      {
+        return Optional<Coeff>();
+      }
+    };
+
     auto push = [](CoeffVec& vec, UniqueShared<Monom> m, Coeff c) 
     { vec.push(PolyPair(c, m)); };
+
+    auto cmpPrecedence = [](Optional<Coeff> lOpt, Coeff r) 
+    { 
+      if (lOpt.isNone()) return false;
+      auto l = lOpt.unwrap();
+      return Coeff::comparePrecedence(l,r) == Comparison::LESS;
+    };
 
     CoeffVec newl;
     CoeffVec newr;
@@ -716,31 +734,60 @@ public:
         auto& m = ml;
         // ASS_NEQ(cl, zero);
         // ASS_NEQ(cr, zero);
+        auto lMinusR = safeMinus(cl, cr);
+        auto rMinusL = safeMinus(cr, cl);
         if (cl == cr) {
-          // 10 x + ... ~~  10 x + ... ==> ... ~~ ... 
-        } else if (cl > zero && cr > zero) {
+           // 10 x + ... ~~  10 x + ... ==> ... ~~ ... 
+           // we remove the term
+        } else if (cmpPrecedence(lMinusR, cl) 
+                && cmpPrecedence(rMinusL, cr)) {
+
+          if (cmpPrecedence(rMinusL, lMinusR.unwrap())) {
+            push(newr, m, rMinusL.unwrap());
+          } else {
+            push(newl, m, lMinusR.unwrap());
+          }
+        } else if (cmpPrecedence(lMinusR, cl) ) {
           // 10 x + ... ~~  8 x + ... ==> 2 x + ... ~~ ... 
-          if  ( cl > cr ) {
-            push(newl, m, cl - cr);
-          } else {
-            push(newr, m, cr - cl);
-          }
-        } else if (cl < zero && cr < zero) {
-          // -10 x + ... ~~  -8 x + ... ==> -2 x + ... ~~ ... 
-          if  ( cl < cr ) {
-            push(newl, m, cl - cr);
-          } else {
-            push(newr, m, cr - cl);
-          }
+          // ^^ cl          ^ cr          ^ lMinusR
+            push(newl, m, lMinusR.unwrap());
+
+        } else if (cmpPrecedence(rMinusL, cr)) {
+            //   7 x + ... ~~  8 x + ... ==> ... ~~ 1 x + ... 
+            //   ^ cl          ^ cr                 ^ rMinusL
+
+            push(newr, m, rMinusL.unwrap());
         } else {
-          if (cl < zero) {
-            // -10 x + ... ~~  8 x + ... ==> ... ~~ 18 x + ... 
-            push(newr, m, cr - cl);
-          } else {
-            //  10 x + ... ~~ -8 x + ... ==> 18 x + ... ~~ ... 
-            push(newl, m, cl - cr);
-          }
+          DEBUG("### not cancellable coeffs: ", cl, " ", cr, " (diffs: ", lMinusR, " and ", rMinusL, ")")
+            /* TODO INCOMP */
+          push(newl, m, cl);
+          push(newr, m, cr);
         }
+        // if (cl == cr) {
+        //   // 10 x + ... ~~  10 x + ... ==> ... ~~ ... 
+        // } else if (cl > zero && cr > zero) {
+        //   // 10 x + ... ~~  8 x + ... ==> 2 x + ... ~~ ... 
+        //   if  ( cl > cr ) {
+        //     push(newl, m, cl - cr);
+        //   } else {
+        //     push(newr, m, cr - cl);
+        //   }
+        // } else if (cl < zero && cr < zero) {
+        //   // -10 x + ... ~~  -8 x + ... ==> -2 x + ... ~~ ... 
+        //   if  ( cl < cr ) {
+        //     push(newl, m, cl - cr);
+        //   } else {
+        //     push(newr, m, cr - cl);
+        //   }
+        // } else {
+        //   if (cl < zero) {
+        //     // -10 x + ... ~~  8 x + ... ==> ... ~~ 18 x + ... 
+        //     push(newr, m, cr - cl);
+        //   } else {
+        //     //  10 x + ... ~~ -8 x + ... ==> 18 x + ... ~~ ... 
+        //     push(newl, m, cl - cr);
+        //   }
+        // }
         itl++;
         itr++;
       } else if (ml < mr) {
