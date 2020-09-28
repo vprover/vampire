@@ -1072,6 +1072,22 @@ void Options::Options::init()
            _lookup.insert(&_inequalityNormalization);
            _inequalityNormalization.tag(OptionTag::INFERENCES);
 
+           _cancellation = BoolOptionValue("cancellation","canc",true);
+           _cancellation.description = "Enable addition cancellation.";
+           _lookup.insert(&_cancellation);
+           _cancellation.tag(OptionTag::INFERENCES);
+           _cancellation.setExperimental();
+
+           _pushUnaryMinus = BoolOptionValue("push_unary_minus","pum",true);
+           _pushUnaryMinus.description=
+                  "Enable the immideate simplifications:\n"
+                  " -(t + s) ==> -t + -s\n"
+                  " -(-t) ==> t\n"
+                  ;
+           _lookup.insert(&_pushUnaryMinus);
+           _pushUnaryMinus.tag(OptionTag::INFERENCES);
+           _pushUnaryMinus.setExperimental();
+
            _gaussianVariableElimination = BoolOptionValue("gaussian_variable_elimination","gve",false);
            _gaussianVariableElimination.description=
                   "Enable the immideate simplification \"Gaussian Variable Elimination\":\n"
@@ -1087,6 +1103,8 @@ void Options::Options::init()
                   "  p(2 * X1 / 6, X1)";
            _lookup.insert(&_gaussianVariableElimination);
            _gaussianVariableElimination.tag(OptionTag::INFERENCES);
+           _gaussianVariableElimination.setExperimental();
+
 
            _arithmeticSubtermGeneralizations = BoolOptionValue("arithmetic_subterm_generalizations","asg",false);
            _arithmeticSubtermGeneralizations.description=
@@ -1939,6 +1957,7 @@ void Options::Options::init()
     _lookup.insert(&_evaluationMode);
     _evaluationMode.tag(OptionTag::SATURATION);
     _evaluationMode.setExperimental();
+
 
     _kboAdmissabilityCheck = ChoiceOptionValue<KboAdmissibilityCheck>(
         "kbo_admissibility_check", "", KboAdmissibilityCheck::ERROR,

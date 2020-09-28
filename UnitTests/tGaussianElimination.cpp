@@ -11,6 +11,7 @@
 #include "Test/TestUtils.hpp"
 #include "Lib/Coproduct.hpp"
 #include "Test/SimplificationTester.hpp"
+#include "Kernel/KBO.hpp"
 
 using namespace std;
 using namespace Kernel;
@@ -39,29 +40,21 @@ public:
    */
   virtual Kernel::Clause* simplify(Kernel::Clause* in) const override 
   {
-    struct FakeOrdering : Kernel::Ordering {
-
-      virtual void show(ostream& out) const override {}
-      virtual Result compare(Literal* l, Literal* r) const override { 
-        if (l == r) {
-          return Kernel::Ordering::EQUAL; 
-        } else {
-          return Kernel::Ordering::LESS; 
-        }
-      }
-      virtual Result compare(TermList, TermList) const override {ASSERTION_VIOLATION}
-      virtual Comparison compareFunctors(unsigned, unsigned) const override {ASSERTION_VIOLATION}
+    KBO ord = KBO::testKBO();
+    auto simpl = [](Clause* cl)  -> Clause*
+    {
+      static PolynomialNormalization eval;
+      static Cancellation cancel;
+      return cancel.simplify(eval.simplify(cl));
     };
-    static FakeOrdering ord;
     static GaussianVariableElimination gve = GaussianVariableElimination();
-    static PolynomialNormalization eval(ord);
 
     /* applies gve and evaluation until they're not applicable anymore */
-    Kernel::Clause* last = eval.simplify(in);
-    Kernel::Clause* latest = eval.simplify(in);
+    Kernel::Clause* last = simpl(in);
+    Kernel::Clause* latest = simpl(in);
     do {
       last = latest;
-      latest = eval.simplify(gve.simplify(last));
+      latest = simpl(gve.simplify(last));
     } while (latest != last);
     return latest;
   }
@@ -85,10 +78,10 @@ REGISTER_SIMPL_TESTER(GveSimplTester)
  * NECESSARY: We neet to tell the simplification tester which syntax sugar to import for creating terms & clauses. 
  * See Test/SyntaxSugar.hpp for which kinds of syntax sugar are available
  */
-#define SIMPL_SUGAR                                                                                                     \
-  THEORY_SYNTAX_SUGAR(REAL)                                                                                             \
-  THEORY_SYNTAX_SUGAR_FUN(f, 1)                                                                                         \
-  THEORY_SYNTAX_SUGAR_PRED(p, 1)                                                                                        \
+#define SIMPL_SUGAR                                                                                           \
+  THEORY_SYNTAX_SUGAR(REAL)                                                                                   \
+  THEORY_SYNTAX_SUGAR_FUN(f, 1)                                                                               \
+  THEORY_SYNTAX_SUGAR_PRED(p, 1)                                                                              \
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////// TEST CASES

@@ -820,8 +820,9 @@ Optional<LitEvalResult> PolynomialNormalizer<Config>::evaluate(Literal* lit) con
   anyChange = anyChange || ev.isSome();
 
   if (anyChange) {
-    return Optional<LitEvalResult>(std::move(ev).unwrapOrElse([&]()
-        { return LitEvalResult::literal(createLiteral<Config>(lit, terms.begin())); }));
+    return Optional<LitEvalResult>(std::move(ev)
+        .unwrapOrElse([&]()
+          { return LitEvalResult::literal(createLiteral<Config>(lit, terms.begin())); }));
   } else {
     return Optional<LitEvalResult>();
   }

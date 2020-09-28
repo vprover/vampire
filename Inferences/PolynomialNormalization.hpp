@@ -14,6 +14,19 @@
 
 namespace Inferences {
 
+class Cancellation
+: public ImmediateSimplificationEngine
+{
+public:
+  CLASS_NAME(Cancellation);
+  USE_ALLOCATOR(Cancellation);
+
+  virtual ~Cancellation();
+
+  Clause* simplify(Clause* cl);
+};
+
+
 class PushUnaryMinus
 : public ImmediateSimplificationEngine
 {

@@ -51,16 +51,16 @@ Clause* PolynomialNormalization::simplify(Clause* cl_) {
         changed = true;
         out.push(simplLit);
 
-        if (_ordering) {
-          if (_ordering->compare(simplLit, orig) == Ordering::Result::LESS) {
-            env.statistics->polyNormalizerSimplCorrect++;
-          } else {
-            // DBGE(*orig    )
-            // DBG(_ordering->compare(simplLit, orig))
-            // DBGE(*simplLit)
-            // ASSERTION_VIOLATION
-          }
-        }
+        // if (_ordering) {
+        //   if (_ordering->compare(simplLit, orig) == Ordering::Result::LESS) {
+        //     env.statistics->polyNormalizerSimplCorrect++;
+        //   } else {
+        //     // DBGE(*orig    )
+        //     // DBG(_ordering->compare(simplLit, orig))
+        //     // DBGE(*simplLit)
+        //     // ASSERTION_VIOLATION
+        //   }
+        // }
       }
     }
   }
@@ -186,5 +186,92 @@ Clause* PushUnaryMinus::simplify(Clause* cl_)
   }
 }
 
+Cancellation::~Cancellation() {}
+
+template<class NumTraits>
+Optional<Literal*> doCancellation(Literal* lit) {
+  auto normL = PolyNf::normalize(TypedTermList((*lit)[0], SortHelper::getArgSort(lit, 0)));
+  auto normR = PolyNf::normalize(TypedTermList((*lit)[1], SortHelper::getArgSort(lit, 1)));
+
+  auto oldL = intoPoly<NumTraits>(normL);
+  auto oldR = intoPoly<NumTraits>(normR);
+  // auto oldL = normL.asPoly().template unwrap<UniqueShared<Polynom<NumTraits>>>();
+  // auto oldR = normR.asPoly().template unwrap<UniqueShared<Polynom<NumTraits>>>();
+  auto res = Polynom<NumTraits>::cancelAdd(*oldL, *oldR);
+  auto newL = unique(std::move(res.lhs));
+  auto newR = unique(std::move(res.rhs));
+  if (newL != oldL || newR != oldR)  {
+    TermList args[] = {
+      res.lhs.toTerm(),
+      res.rhs.toTerm(),
+    };
+    return Optional<Literal*>(Literal::create(lit, args));
+  } else  {
+    return Optional<Literal*>();
+  }
+}
+
+Optional<Literal*> tryCancel(Interpretation inter, Literal* lit) {
+  switch(inter) {
+    case Interpretation::EQUAL:
+      switch (SortHelper::getEqualityArgumentSort(lit)) {
+        case  IntTraits::sort: return doCancellation< IntTraits>(lit);
+        case  RatTraits::sort: return doCancellation< RatTraits>(lit);
+        case RealTraits::sort: return doCancellation<RealTraits>(lit);
+      }
+      break;
+#define INEQ_CASES(NumTraits)                                                                                 \
+    case NumTraits::leqI:                                                                                     \
+    case NumTraits::geqI:                                                                                     \
+    case NumTraits::greaterI:                                                                                 \
+    case NumTraits::lessI:                                                                                    \
+      return doCancellation<NumTraits>(lit); 
+
+    INEQ_CASES( IntTraits)
+    INEQ_CASES( RatTraits)
+    INEQ_CASES(RealTraits)
+#undef INEQ_CASES
+    default:
+      return Optional<Literal*>();
+  }
+}
+
+Clause* Cancellation::simplify(Clause* cl_) 
+{
+  CALL("Cancellation::simplify(Clause*)")
+  DEBUG("in:  ", *cl_)
+  if (cl_->isTheoryAxiom()) 
+    return cl_;
+
+  auto& cl = *cl_;
+  Stack<Literal*> out(cl.size());
+
+  bool changed = false;
+
+  for (int i = 0; i < cl.size(); i++) {
+    auto litIn = cl[i];
+    Stack<TermList> litStack;
+    auto pred = litIn->functor();
+    if (!theory->isInterpretedPredicate(pred)) {
+      out.push(litIn);
+    } else {
+      auto res = tryCancel(theory->interpretPredicate(pred), litIn);
+      if (res.isSome()) {
+        changed = true;
+        out.push(res.unwrap());
+      } else {
+        out.push(litIn);
+      }
+    }
+  }
+
+  if (!changed) {
+    return cl_;
+  } else {
+    auto result = Clause::fromStack(out, SimplifyingInference1(InferenceRule::EVALUATION, cl_));
+    DEBUG("out: ", *result)
+    return result;
+  }
+}
 
 } // Inferences

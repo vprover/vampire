@@ -54,20 +54,21 @@ template<class Config, class number> inline Optional<LitEvalResult> interpretEqu
   if (lhs.isNumber() && rhs.isNumber()) {
     return Optional<LitEvalResult>(LitEvalResult::constant(polarity == (lhs.unwrapNumber() == rhs.unwrapNumber())));
   } else {
-    auto res = Polynom<number>::cancelAdd(lhs, rhs);
-    // auto res = Polynom<number>::cancelMul(move(res_.lhs), move(res_.rhs));
-    // TODO cancel mul as well
-
-    auto lTerm = res.lhs.toTerm();
-    auto rTerm = res.rhs.toTerm();
-
-    if (lTerm == rTerm) {
-      return Optional<LitEvalResult>(LitEvalResult::constant(polarity));
-    } else if (res.lhs == lhs && res.rhs == rhs) {
-      return Optional<LitEvalResult>();
-    } else {
-      return Optional<LitEvalResult>(LitEvalResult::literal(Literal::createEquality(polarity, lTerm, rTerm, number::sort)));
-    }
+    return Optional<LitEvalResult>();
+    // auto res = Polynom<number>::cancelAdd(lhs, rhs);
+    // // auto res = Polynom<number>::cancelMul(move(res_.lhs), move(res_.rhs));
+    // // TODO cancel mul as well
+    //
+    // auto lTerm = res.lhs.toTerm();
+    // auto rTerm = res.rhs.toTerm();
+    //
+    // if (lTerm == rTerm) {
+    //   return Optional<LitEvalResult>(LitEvalResult::constant(polarity));
+    // } else if (res.lhs == lhs && res.rhs == rhs) {
+    //   return Optional<LitEvalResult>();
+    // } else {
+    //   return Optional<LitEvalResult>(LitEvalResult::literal(Literal::createEquality(polarity, lTerm, rTerm, number::sort)));
+    // }
   }
 }
 
@@ -92,28 +93,19 @@ IMPL_EVALUATE_PRED(Interpretation::EQUAL,
   auto polarity = orig->polarity();
   auto sort = SortHelper::getEqualityArgumentSort(orig);
 
-  auto shallCancel  = lhs.isPoly() || rhs.isPoly();
-
-  if (shallCancel) {
-    switch (sort) {
-    case Sorts::SRT_INTEGER:
-      return interpretEquality<Config>(polarity, *intoPoly<IntTraits>(lhs), *intoPoly<IntTraits>(rhs));
-    case Sorts::SRT_RATIONAL:
-      return interpretEquality<Config>(polarity, *intoPoly<RatTraits>(lhs), *intoPoly<RatTraits>(rhs));
-    case Sorts::SRT_REAL:
-      return interpretEquality<Config>(polarity, *intoPoly<RealTraits>(lhs), *intoPoly<RealTraits>(rhs));
-      default:
-      // polynomials can only be of number sorts
-        ASSERTION_VIOLATION
-    }
-  } else {
-    if (lhs == rhs) {
-      return Optional<LitEvalResult>(LitEvalResult::constant(polarity));
-    } else {
-      return Optional<LitEvalResult>();
-    }
+  if (lhs == rhs) {
+    return Optional<LitEvalResult>(LitEvalResult::constant(polarity));
   }
-  //                            //TODO lift to term algebras
+  switch (sort) {
+  case Sorts::SRT_INTEGER:
+    return interpretEquality<Config>(polarity, *intoPoly<IntTraits>(lhs), *intoPoly<IntTraits>(rhs));
+  case Sorts::SRT_RATIONAL:
+    return interpretEquality<Config>(polarity, *intoPoly<RatTraits>(lhs), *intoPoly<RatTraits>(rhs));
+  case Sorts::SRT_REAL:
+    return interpretEquality<Config>(polarity, *intoPoly<RealTraits>(lhs), *intoPoly<RealTraits>(rhs));
+  default:
+    return Optional<LitEvalResult>();
+  }
 )
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -124,32 +116,16 @@ template<class NormalizerConfig, class ConstantType, class EvalIneq> Optional<Li
   ASS(orig->arity() == 2);
 
 
-  auto lhsOrig = *intoPoly<NumTraits<ConstantType>>(evaluatedArgs[0]);
-  auto rhsOrig = *intoPoly<NumTraits<ConstantType>>(evaluatedArgs[1]);
-
-  // auto shallCancel = lhs.isPoly() || rhs.isPoly();
-  auto res = Poly<ConstantType>::cancelAdd(lhsOrig, rhsOrig);
-  auto lhs = res.lhs;
-  auto rhs = res.rhs;
+  auto lhs = *intoPoly<NumTraits<ConstantType>>(evaluatedArgs[0]);
+  auto rhs = *intoPoly<NumTraits<ConstantType>>(evaluatedArgs[1]);
 
   auto polarity = orig->polarity();
   if (lhs.isNumber() && rhs.isNumber()) {
     return Optional<LitEvalResult>(LitEvalResult::constant(polarity == evalIneq(lhs.unwrapNumber(), rhs.unwrapNumber())));
+  } else if (lhs == rhs) {
+    return Optional<LitEvalResult>(LitEvalResult::constant(polarity != strict));
   } else {
-
-    TermList lTerm = lhs.toTerm();
-    TermList rTerm = rhs.toTerm();;
-    if (lTerm == rTerm) {
-      return Optional<LitEvalResult>(LitEvalResult::constant(polarity != strict));
-    } else if (lhsOrig == lhs && rhsOrig == rhs) {
-      return Optional<LitEvalResult>();
-    } else {
-      TermList args[] = {
-        lTerm,
-        rTerm,
-      };
-      return Optional<LitEvalResult>(LitEvalResult::literal(Literal::create(orig, args)));
-    }
+    return Optional<LitEvalResult>();
   }
 }
 

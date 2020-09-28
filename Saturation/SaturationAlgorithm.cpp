@@ -1637,6 +1637,10 @@ ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, cons
       res->addFront(new GaussianVariableElimination()); 
     }
 
+    if (env.options->cancellation()) {
+      res->addFront(new Cancellation()); 
+    }
+
     switch (env.options->evaluationMode()) {
       case Options::EvaluationMode::SIMPLE: 
         res->addFront(new InterpretedEvaluation(env.options->inequalityNormalization(), ordering));
@@ -1647,9 +1651,13 @@ ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, cons
 #else
         res->addFront(new PolynomialNormalization());
 #endif // VDEBUG
-        res->addFront(new PushUnaryMinus());
         break;
     }
+
+    if (env.options->pushUnaryMinus()) {
+      res->addFront(new PushUnaryMinus()); 
+    }
+
   }
   if(prb.hasEquality()) {
     res->addFront(new TrivialInequalitiesRemovalISE());

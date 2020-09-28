@@ -79,17 +79,17 @@ bool equalityCheck(Optional<LitEvalResult>& l, Optional<LitEvalResult>& r)
 }
 
 
-#define __CHECK(op, is, expected, msg, test_case) \
-  if (!(op equalityCheck( is, expected))) { \
-    auto& out = cout; \
-    out << endl; \
-    out << msg << endl; \
-    out << "[   case   ] " << pretty(test_case) << endl; \
-    out << "[    is    ] " << #is << " =  " << pretty(is) << endl; \
-    out << "[ expected ] " << #expected << " " #op "=" << " " << pretty(expected) << endl; \
-    out << endl; \
-    exit(-1); \
-  } \
+#define __CHECK(op, is, expected, msg, test_case)                                                             \
+  if (!(op equalityCheck( is, expected))) {                                                                   \
+    auto& out = cout;                                                                                         \
+    out << endl;                                                                                              \
+    out << msg << endl;                                                                                       \
+    out << "[   case   ] " << pretty(test_case) << endl;                                                      \
+    out << "[    is    ] " << #is << " =  " << pretty(is) << endl;                                            \
+    out << "[ expected ] " << #expected << " " #op "=" << " " << pretty(expected) << endl;                    \
+    out << endl;                                                                                              \
+    exit(-1);                                                                                                 \
+  }                                                                                                           \
 
 #define CHECK_NE(...) __CHECK(! , __VA_ARGS__) 
 #define CHECK_EQ(...) __CHECK(  , __VA_ARGS__)
@@ -112,9 +112,33 @@ Optional<LitEvalResult> evaluate(Literal* lit)
 
   using Opt = Optional<LitEvalResult>;
   auto& cl = clause({lit});
-  PolynomialNormalization norm;
-  PushUnaryMinus uminus;
-  auto clOut = norm.simplify(uminus.simplify(&cl));
+
+  auto simpl = [](Clause* cl) -> Clause* 
+  {
+
+    auto _simpl = [](Clause* cl) -> Clause* 
+    {
+      PolynomialNormalization norm;
+      PushUnaryMinus uminus;
+      Cancellation cancel;
+      if (cl == nullptr) {
+        return cl;
+      } else {
+        return norm.simplify(cancel.simplify(uminus.simplify(cl)));
+      }
+    };
+
+
+    auto cur = cl;
+    auto old = cl;
+    do {
+      old = cur;
+      cur = _simpl(cur);
+    } while (cur != old);
+    return cur;
+  };
+
+  auto clOut = simpl(&cl);
   if (clOut == nullptr) {
     return Opt(LitEvalResult::constant(true));
   } else if (clOut->size() == 0) {
@@ -174,34 +198,34 @@ void check_eval(Lit orig_, Lit expected_) {
   CHECK_EQ(*result.unwrap().template unwrap<0>(), expected, "result not evaluated correctly", orig)
 }
 
-#define ADDITIONAL_FUNCTIONS \
-      _Pragma("GCC diagnostic push") \
-      _Pragma("GCC diagnostic ignored \"-Wunused\"") \
-        THEORY_SYNTAX_SUGAR_FUN(f, 1) \
-        THEORY_SYNTAX_SUGAR_FUN(f2, 2) \
-        THEORY_SYNTAX_SUGAR_PRED(p, 1) \
-        THEORY_SYNTAX_SUGAR_PRED(r, 2) \
-      _Pragma("GCC diagnostic pop") \
+#define ADDITIONAL_FUNCTIONS                                                                                  \
+      _Pragma("GCC diagnostic push")                                                                          \
+      _Pragma("GCC diagnostic ignored \"-Wunused\"")                                                          \
+        THEORY_SYNTAX_SUGAR_FUN(f, 1)                                                                         \
+        THEORY_SYNTAX_SUGAR_FUN(f2, 2)                                                                        \
+        THEORY_SYNTAX_SUGAR_PRED(p, 1)                                                                        \
+        THEORY_SYNTAX_SUGAR_PRED(r, 2)                                                                        \
+      _Pragma("GCC diagnostic pop")                                                                           \
 
-#define NUM_TEST(NUM, name, formula, expected) \
-    TEST_FUN(name ## _ ## NUM) { \
-      THEORY_SYNTAX_SUGAR(NUM); \
-      ADDITIONAL_FUNCTIONS \
-      check_eval(( formula ), ( expected )); \
-    } \
+#define NUM_TEST(NUM, name, formula, expected)                                                                \
+    TEST_FUN(name ## _ ## NUM) {                                                                              \
+      THEORY_SYNTAX_SUGAR(NUM);                                                                               \
+      ADDITIONAL_FUNCTIONS                                                                                    \
+      check_eval(( formula ), ( expected ));                                                                  \
+    }                                                                                                         \
 
 /** Tests for evalutions that should only be successful for reals/rationals and not for integers. */
-#define FRACTIONAL_TEST(name, formula, expected) \
-  NUM_TEST(RAT , name, formula, expected) \
-  NUM_TEST(REAL, name, formula, expected) \
+#define FRACTIONAL_TEST(name, formula, expected)                                                              \
+  NUM_TEST(RAT , name, formula, expected)                                                                     \
+  NUM_TEST(REAL, name, formula, expected)                                                                     \
 
-#define INT_TEST(name, formula, expected) \
-  NUM_TEST(INT , name, formula, expected) \
+#define INT_TEST(name, formula, expected)                                                                     \
+  NUM_TEST(INT , name, formula, expected)                                                                     \
 
-#define ALL_NUMBERS_TEST(name, formula, expected) \
-  NUM_TEST(INT , name, formula, expected) \
-  NUM_TEST(RAT , name, formula, expected) \
-  NUM_TEST(REAL, name, formula, expected) \
+#define ALL_NUMBERS_TEST(name, formula, expected)                                                             \
+  NUM_TEST(INT , name, formula, expected)                                                                     \
+  NUM_TEST(RAT , name, formula, expected)                                                                     \
+  NUM_TEST(REAL, name, formula, expected)                                                                     \
 
 /////////////////////////////////////////////// Test cases ///////////////////////////////////////////////////////
 
@@ -516,6 +540,11 @@ ALL_NUMBERS_TEST(eval_cancellation_add_9,
 ALL_NUMBERS_TEST(eval_cancellation_add_10,
     a <= a + 3,
     true
+    )
+
+ALL_NUMBERS_TEST(eval_cancellation_add_11,
+    x + a < a,
+    x < 0
     )
 
 INT_TEST(eval_quotientE_1,

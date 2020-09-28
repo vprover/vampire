@@ -2282,6 +2282,8 @@ public:
   bool inequalityNormalization() const { return _inequalityNormalization.actualValue; }
   EvaluationMode evaluationMode() const { return _evaluationMode.actualValue; }
   bool gaussianVariableElimination() const { return _gaussianVariableElimination.actualValue; }
+  bool pushUnaryMinus() const { return _pushUnaryMinus.actualValue; }
+  bool cancellation() const { return _cancellation.actualValue; }
   bool arithmeticSubtermGeneralizations() const { return _arithmeticSubtermGeneralizations.actualValue; }
 
 private:
@@ -2700,6 +2702,8 @@ private:
 
   BoolOptionValue _inequalityNormalization;
   BoolOptionValue _gaussianVariableElimination;
+  BoolOptionValue _pushUnaryMinus;
+  BoolOptionValue _cancellation;
   BoolOptionValue _arithmeticSubtermGeneralizations;
 
 
