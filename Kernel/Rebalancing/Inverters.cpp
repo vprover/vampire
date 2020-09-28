@@ -28,6 +28,9 @@ TermList doInvertMulInt(const InversionContext &ctxt);
 
 template <class Number> bool nonZero(const TermList &t);
 
+bool dtorIsPredicate(Signature::Symbol const& ctor, unsigned index) 
+{ return ctor.fnType()->arg(index) == Sorts::SRT_BOOL; }
+
 bool NumberTheoryInverter::canInvertTop(const InversionContext &ctxt) {
   CALL("NumberTheoryInverter::canInvertTop")
   auto &t = ctxt.topTerm();
@@ -52,7 +55,7 @@ bool NumberTheoryInverter::canInvertTop(const InversionContext &ctxt) {
     }
     // DBG("WARNING: unknown interpreted function: ", t.toString())
     return false;
-  } else if (sym->termAlgebraCons() && sym->arity() == 1) { 
+  } else if (sym->termAlgebraCons() && sym->arity() == 1 && !dtorIsPredicate(*sym, ctxt.topIdx())) { 
     return true;
   } else { /* cannot invert uninterpreted functions */
     DEBUG("no")
@@ -118,7 +121,10 @@ TermList NumberTheoryInverter::invertTop(const InversionContext &ctxt) {
     auto sym = env.signature->getFunction(fun);
     ASS_REP(sym->termAlgebraCons(), sym);
     auto ctor = env.signature->getTermAlgebraConstructor(fun);
+    ASS(!dtorIsPredicate(*sym, index))
     auto dtor = ctor->destructorFunctor(index);
+    // DBGE(*(isPred ? env.signature->getPredicate(dtor)
+    //               : env.signature->getFunction(dtor)))
     return TermList(Term::create1(dtor, toWrap));
   }
 };
