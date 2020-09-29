@@ -218,6 +218,7 @@ Optional<Literal*> tryCancel(Interpretation inter, Literal* lit) {
         case  IntTraits::sort: return doCancellation< IntTraits>(lit);
         case  RatTraits::sort: return doCancellation< RatTraits>(lit);
         case RealTraits::sort: return doCancellation<RealTraits>(lit);
+        default:;
       }
       break;
 #define INEQ_CASES(NumTraits)                                                                                 \
@@ -231,9 +232,9 @@ Optional<Literal*> tryCancel(Interpretation inter, Literal* lit) {
     INEQ_CASES( RatTraits)
     INEQ_CASES(RealTraits)
 #undef INEQ_CASES
-    default:
-      return Optional<Literal*>();
+    default:;
   }
+  return Optional<Literal*>();
 }
 
 Clause* Cancellation::simplify(Clause* cl_) 

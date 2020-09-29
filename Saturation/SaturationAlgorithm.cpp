@@ -1646,11 +1646,11 @@ ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, cons
         res->addFront(new InterpretedEvaluation(env.options->inequalityNormalization(), ordering));
         break;
       case Options::EvaluationMode::POLYNOMIAL:
+        res->addFront(new PolynomialNormalization(
 #if VDEBUG
-        res->addFront(new PolynomialNormalization(ordering));
-#else
-        res->addFront(new PolynomialNormalization());
+          ordering
 #endif // VDEBUG
+        ));
         break;
     }
 
