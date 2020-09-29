@@ -92,13 +92,12 @@ public:
     binder.reset();
 
     if(base->commutative()) {
-      ASS(base->arity()==2);
+      ASS_EQ(base->arity(), 2);
       if(matchArgs(base, instance, binder)) {
-	return true;
+        return true;
       }
       binder.reset();
-      return matchTerms(*base->nthArgument(0), *instance->nthArgument(1), binder) &&
-	matchTerms(*base->nthArgument(1), *instance->nthArgument(0), binder);
+      return matchReversedArgs(base, instance, binder);
     } else {
       return matchArgs(base, instance, binder);
     }
@@ -116,7 +115,7 @@ public:
     if(base.isTerm()) {
       Term* bt=base.term();
       if(!instance.isTerm() || base.term()->functor()!=instance.term()->functor()) {
-	return false;
+        return false;
       }
       Term* it=instance.term();
       if(bt->shared() && it->shared()) {
@@ -137,6 +136,17 @@ public:
 
   template<class Binder>
   static bool matchArgs(Term* base, Term* instance, Binder& binder);
+
+  template<class Binder>
+  static bool matchReversedArgs(Literal* base, Literal* instance, Binder& binder)
+  {
+    CALL("MatchingUtils::matchReversedArgs/3");
+    ASS_EQ(base->arity(), 2);
+    ASS_EQ(instance->arity(), 2);
+
+    return matchTerms(*base->nthArgument(0), *instance->nthArgument(1), binder)
+      &&   matchTerms(*base->nthArgument(1), *instance->nthArgument(0), binder);
+  }
 
   template<class Map>
   struct MapRefBinder
@@ -298,7 +308,7 @@ private:
 template<class Binder>
 bool MatchingUtils::matchArgs(Term* base, Term* instance, Binder& binder)
 {
-  CALL("MatchingUtils::matchArgs");
+  CALL("MatchingUtils::matchArgs/3");
   ASS_EQ(base->functor(),instance->functor());
   if(base->shared() && instance->shared()) {
     if(base->weight() > instance->weight() || !instance->couldArgsBeInstanceOf(base)) {

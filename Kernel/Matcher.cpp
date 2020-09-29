@@ -183,20 +183,17 @@ bool MatchingUtils::haveVariantArgs(Term* l1, Term* l2)
 
 bool MatchingUtils::matchReversedArgs(Literal* base, Literal* instance)
 {
-  CALL("MatchingUtils::match");
-  ASS_EQ(base->arity(), 2);
-  ASS_EQ(instance->arity(), 2);
+  CALL("MatchingUtils::matchReversedArgs/2");
 
   static MapBinder binder;
   binder.reset();
 
-  return matchTerms(*base->nthArgument(0), *instance->nthArgument(1), binder) &&
-    matchTerms(*base->nthArgument(1), *instance->nthArgument(0), binder);
+  return matchReversedArgs(base, instance, binder);
 }
 
 bool MatchingUtils::matchArgs(Term* base, Term* instance)
 {
-  CALL("MatchingUtils::matchArgs");
+  CALL("MatchingUtils::matchArgs/2");
 
   static MapBinder binder;
   binder.reset();
