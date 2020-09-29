@@ -55,10 +55,8 @@ bool NumberTheoryInverter::canInvertTop(const InversionContext &ctxt) {
     }
     // DBG("WARNING: unknown interpreted function: ", t.toString())
     return false;
-  } else if (sym->termAlgebraCons() && sym->arity() == 1 && !dtorIsPredicate(*sym, ctxt.topIdx())) { 
-    return true;
-  } else { /* cannot invert uninterpreted functions */
-    DEBUG("no")
+  } else { 
+    /* cannot invert uninterpreted functions */
     return false;
   }
 }
@@ -117,15 +115,16 @@ TermList NumberTheoryInverter::invertTop(const InversionContext &ctxt) {
       ASSERTION_VIOLATION;
     }
   } else {
-    // must be a term algebra sort
-    auto sym = env.signature->getFunction(fun);
-    ASS_REP(sym->termAlgebraCons(), sym);
-    auto ctor = env.signature->getTermAlgebraConstructor(fun);
-    ASS(!dtorIsPredicate(*sym, index))
-    auto dtor = ctor->destructorFunctor(index);
-    // DBGE(*(isPred ? env.signature->getPredicate(dtor)
-    //               : env.signature->getFunction(dtor)))
-    return TermList(Term::create1(dtor, toWrap));
+    ASSERTION_VIOLATION
+    // // must be a term algebra sort
+    // auto sym = env.signature->getFunction(fun);
+    // ASS_REP(sym->termAlgebraCons(), sym);
+    // auto ctor = env.signature->getTermAlgebraConstructor(fun);
+    // ASS(!dtorIsPredicate(*sym, index))
+    // auto dtor = ctor->destructorFunctor(index);
+    // // DBGE(*(isPred ? env.signature->getPredicate(dtor)
+    // //               : env.signature->getFunction(dtor)))
+    // return TermList(Term::create1(dtor, toWrap));
   }
 };
 

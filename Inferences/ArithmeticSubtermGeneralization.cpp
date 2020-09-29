@@ -131,7 +131,7 @@ Clause* generalizeBottomUp(Clause* cl, EvalFn eval)
   bool anyChange = false;
 
   auto stack = iterTraits(cl->iterLits())
-    .map([&](Literal* lit) {
+    .map([&](Literal* lit) -> Literal* {
         CALL("generalizeBottomUp(Clause* cl, EvalFn)@closure 1")
         unsigned j = 0;
         auto args = argIter(lit)
@@ -168,11 +168,12 @@ Clause* generalizeBottomUp(Clause* cl, EvalFn eval)
                   ASSERTION_VIOLATION                                                                         \
              }
 
-            ASSERT_NOT_THE_CASE(GREATER)
-            ASSERT_NOT_THE_CASE(GREATER_EQ)
+                 // TODO INCOMP
+            // ASSERT_NOT_THE_CASE(GREATER)
+            // ASSERT_NOT_THE_CASE(GREATER_EQ)
+            // ASSERT_NOT_THE_CASE(INCOMPARABLE)
             default:
               break;
-            // ASSERT_NOT_THE_CASE(INCOMPARABLE)
 #undef ASSERT_NOT_THE_CASE
           }
         }
