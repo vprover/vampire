@@ -757,7 +757,7 @@ set(VAMPIRE_CASC_SOURCES
 source_group(casc_source_files FILES ${VAMPIRE_CASC_SOURCES})
 
 set(VAMPIRE_SMT_SUBSUMPTION_SOURCES
-    SMTSubsumption/minisat/Main.cpp
+    # SMTSubsumption/minisat/Main.cpp
     SMTSubsumption/minisat/Solver.cpp
     SMTSubsumption/minisat/Global.h
     SMTSubsumption/minisat/Heap.h

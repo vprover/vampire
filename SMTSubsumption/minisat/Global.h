@@ -48,14 +48,11 @@ typedef unsigned __PTRDIFF_TYPE__ uintp;
 #endif
 typedef unsigned char uchar;
 typedef const char    cchar;
+typedef unsigned int  uint;
 
 
 template<class T> static inline T min(T x, T y) { return (x < y) ? x : y; }
 template<class T> static inline T max(T x, T y) { return (x > y) ? x : y; }
-
-template <bool> struct STATIC_ASSERTION_FAILURE;
-template <> struct STATIC_ASSERTION_FAILURE<true>{};
-#define TEMPLATE_FAIL STATIC_ASSERTION_FAILURE<false>()
 
 
 //=================================================================================================
@@ -192,10 +189,10 @@ public:
     T&       operator [] (int index)        { return data[index]; }
 
     // Don't allow copying (error prone):
-    vec<T>&  operator = (vec<T>& other) { TEMPLATE_FAIL; }
-             vec        (vec<T>& other) { TEMPLATE_FAIL; }
+    vec<T>& operator=(vec<T>& other) = delete;
+    vec(vec<T>& other) = delete;
 
-    // Duplicatation (preferred instead):
+    // Duplication (preferred instead):
     void copyTo(vec<T>& copy) const { copy.clear(); copy.growTo(sz); for (int i = 0; i < sz; i++) new (&copy[i]) T(data[i]); }
     void moveTo(vec<T>& dest) { dest.clear(true); dest.data = data; dest.sz = sz; dest.cap = cap; data = NULL; sz = 0; cap = 0; }
 };
