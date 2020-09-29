@@ -22,7 +22,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #define SolverTypes_h
 
 #ifndef Global_h
-#include "Global.h"
+#include "SMTSubsumption/minisat/Global.h"
 #endif
 
 

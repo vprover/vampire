@@ -20,8 +20,8 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #ifndef Solver_h
 #define Solver_h
 
-#include "SolverTypes.h"
-#include "VarOrder.h"
+#include "SMTSubsumption/minisat/SolverTypes.h"
+#include "SMTSubsumption/minisat/VarOrder.h"
 
 // Redfine if you want output to go somewhere else:
 #define reportf(format, args...) ( printf(format , ## args), fflush(stdout) )

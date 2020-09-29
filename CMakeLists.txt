@@ -756,6 +756,18 @@ set(VAMPIRE_CASC_SOURCES
     )
 source_group(casc_source_files FILES ${VAMPIRE_CASC_SOURCES})
 
+set(VAMPIRE_SMT_SUBSUMPTION_SOURCES
+    SMTSubsumption/minisat/Main.cpp
+    SMTSubsumption/minisat/Solver.cpp
+    SMTSubsumption/minisat/Global.h
+    SMTSubsumption/minisat/Heap.h
+    SMTSubsumption/minisat/Solver.h
+    SMTSubsumption/minisat/SolverTypes.h
+    SMTSubsumption/minisat/Sort.h
+    SMTSubsumption/minisat/VarOrder.h
+    )
+source_group(sat_source_files FILES ${VAMPIRE_SAT_SOURCES})
+
 # also include forwards.hpp?
 set(VAMPIRE_SOURCES 
     ${VAMPIRE_DEBUG_SOURCES}
@@ -774,6 +786,7 @@ set(VAMPIRE_SOURCES
     ${VAMPIRE_SMTCOMP_SOURCES}
     ${VAMPIRE_MINISAT_SOURCES}
     ${VAMPIRE_CASC_SOURCES}
+    ${VAMPIRE_SMT_SUBSUMPTION_SOURCES}
     # Test/CheckedSatSolver.cpp
     # Test/CheckedSatSolver.hpp
     Global.cpp

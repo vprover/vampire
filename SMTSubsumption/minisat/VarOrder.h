@@ -20,8 +20,8 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #ifndef VarOrder_h
 #define VarOrder_h
 
-#include "SolverTypes.h"
-#include "Heap.h"
+#include "SMTSubsumption/minisat/SolverTypes.h"
+#include "SMTSubsumption/minisat/Heap.h"
 
 
 //=================================================================================================
