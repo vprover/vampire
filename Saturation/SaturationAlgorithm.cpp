@@ -1113,7 +1113,7 @@ bool SaturationAlgorithm::activate(Clause* cl)
     instances = _theoryInstSimp->generateClauses(cl,redundant);
   }
 #endif
-  ASS(!redundant)
+  ASS(!redundant) // TODO remove this line. this assertion should NOT hold. it is only there to potentially spot a bug, but should be removed at once!
   if(redundant){ 
     removeActiveOrPassiveClause(cl);
     return false; 
