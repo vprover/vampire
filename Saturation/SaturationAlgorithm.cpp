@@ -541,66 +541,138 @@ void SaturationAlgorithm::talkToKarel(Clause* cl, bool eval)
     return;
   }
 
-  // pre-order traversal on parents:
-  Inference& inf = cl->inference();
-  inf.minimizePremises(); // this is here only formally, we don't look into avatar stuff (yet)
-  unsigned parent_cnt = 0;
-  Inference::Iterator iit = inf.iterator();
-  while(inf.hasNext(iit)) {
-    Unit* premUnit = inf.next(iit);
-    talkToKarel(premUnit->asClause(),eval);
-    parent_cnt++;
-  }
+  static std::vector<torch::jit::IValue> inputs;
 
-  // parents known, now its time to report on this one
+  if (cl->isComponent()) { // the AVATAR event
+    Clause* orig = _splitter->getCausalParent(cl);
+    if (orig) { // CAREFUL: causal parent can be none; for the ccModel thingie
+      talkToKarel(orig);
+    }
 
-  // [2,cl_id,cl_age,cl_weight,cl_len,cl_numsplits,inf_id,parent_cl_id,parent_cl_id,...]
-  if (_opt.showForKarel() && !_shown.find(cl)) {
-    cout << "d: [2," << cl->number() << "," << cl->age() << "," << cl->weight() << "," << cl->size() << "," << (cl->splits() ? cl->splits()->size() : 0);
-    cout << "," << (int)inf.rule();
+    if (env.options->showForKarel() && !_shown.find(cl)) {
+      // a: [3,cl_id,cl_age,cl_weight,cl_len,causal_parent]
+      cout << "a: [3," << cl->number() << "," << cl->age() << "," << cl->weight() << "," << cl->size();
+      cout << "," << orig->number() << "]\n";
+
+      ALWAYS(_shown.insert(cl));
+    }
+
+    if (env.options->evalForKarel() && eval && !_evaluated.find(cl)) {
+      TimeCounter t(TC_DEEP_STUFF);
+
+      inputs.clear();
+
+      inputs.push_back((int64_t)cl->number()); // the id
+      inputs.push_back(std::make_tuple(
+          (int64_t)cl->age(),
+          (int64_t)cl->weight(),
+          (int64_t)cl->size(),
+          (int64_t)(orig ? orig->number() : -1)));
+
+      evaluate(cl,"new_avat","new_avat",inputs);
+
+      ALWAYS(_evaluated.insert(cl));
+    }
+  } else if (_initial.find(cl)) {
+    unsigned theoryAx = cl->inference().isTheoryAxiom() ? static_cast<unsigned>(cl->inference().rule()) : 0;
+
+    if (_opt.showForKarel() && !_shown.find(cl)) {
+      // [1,cl_id,cl_age,cl_weight,cl_len,isgoal,istheory,sine]
+
+      cout << "i: [1," << cl->number() << "," << cl->age() << "," << cl->weight() << "," << cl->size();
+      cout << "," << cl->derivedFromGoal() << "," << theoryAx << "," << (int)cl->getSineLevel() << "]\n";
+
+      ALWAYS(_shown.insert(cl));
+    }
+
+    if (_opt.evalForKarel() && eval && !_evaluated.find(cl)) {
+      TimeCounter t(TC_DEEP_STUFF);
+
+      // def new_init(self, id: int, features : Tuple[int, int, int, int, int, int]) -> bool:
+
+      inputs.clear();
+
+      inputs.push_back((int64_t)cl->number()); // the id
+      inputs.push_back(std::make_tuple(
+          (int64_t)cl->age(),
+          (int64_t)cl->weight(),
+          (int64_t)cl->size(),
+          (int64_t)cl->derivedFromGoal(),
+          (int64_t)theoryAx,
+          (int64_t)cl->getSineLevel())); // the features
+
+      char method_name[20];
+      if (cl->derivedFromGoal()) {
+        strcpy(method_name,"new_initG");
+      } else {
+        sprintf(method_name, "new_init%d", (int)theoryAx);
+      }
+
+      evaluate(cl, method_name, "new_init0", inputs);
+
+      // TODO: store the output value
+      ALWAYS(_evaluated.insert(cl));
+    }
+  } else {
+    // pre-order traversal on parents:
+    Inference& inf = cl->inference();
+    inf.minimizePremises();
+    unsigned parent_cnt = 0;
     Inference::Iterator iit = inf.iterator();
     while(inf.hasNext(iit)) {
       Unit* premUnit = inf.next(iit);
-      cout << "," << premUnit->asClause()->number();
-    }
-    cout << "]\n";
-
-    ALWAYS(_shown.insert(cl));
-  }
-
-  if (_opt.evalForKarel() && eval && !_evaluated.find(cl)) {
-    TimeCounter t(TC_DEEP_STUFF);
-
-    // new_deriv(self, id: int, features : Tuple[int, int, int, int, int], pars : List[int]) -> bool:
-
-    static std::vector<torch::jit::IValue> inputs;
-    inputs.clear();
-    inputs.push_back((int64_t)cl->number()); // as the id
-    inputs.push_back(std::make_tuple(
-        (int64_t)cl->age(),
-        (int64_t)cl->weight(),
-        (int64_t)cl->size(),
-        (int64_t)(cl->splits() ? cl->splits()->size() : 0),
-        (int64_t)inf.rule())); // as features
-
-    c10::List<int64_t> parents;
-    int arit = 0;
-    Inference::Iterator iit = inf.iterator();
-    while(inf.hasNext(iit)) {
-      Unit* premUnit = inf.next(iit);
-      parents.push_back((int64_t) premUnit->asClause()->number());
-      arit += 1;
+      talkToKarel(premUnit->asClause(),eval);
+      parent_cnt++;
     }
 
-    inputs.push_back(torch::jit::IValue(parents));
+    // [2,cl_id,cl_age,cl_weight,cl_len,cl_numsplits,inf_id,parent_cl_id,parent_cl_id,...]
+    if (_opt.showForKarel() && !_shown.find(cl)) {
+      cout << "d: [2," << cl->number() << "," << cl->age() << "," << cl->weight() << "," << cl->size() << "," << (cl->splits() ? cl->splits()->size() : 0);
+      cout << "," << (int)inf.rule();
+      Inference::Iterator iit = inf.iterator();
+      while(inf.hasNext(iit)) {
+        Unit* premUnit = inf.next(iit);
+        cout << "," << premUnit->asClause()->number();
+      }
+      cout << "]\n";
 
-    char specific_method_name[20];
-    char default_method_name[20];
-    sprintf(specific_method_name, "new_deriv%d", (int)inf.rule());
-    sprintf(default_method_name, "new_deriv%d", (int)arit);
-    evaluate(cl, specific_method_name, default_method_name , inputs);
+      ALWAYS(_shown.insert(cl));
+    }
 
-    ALWAYS(_evaluated.insert(cl));
+    if (_opt.evalForKarel() && eval && !_evaluated.find(cl)) {
+      TimeCounter t(TC_DEEP_STUFF);
+
+      // new_deriv(self, id: int, features : Tuple[int, int, int, int, int], pars : List[int]) -> bool:
+
+      static std::vector<torch::jit::IValue> inputs;
+      inputs.clear();
+      inputs.push_back((int64_t)cl->number()); // as the id
+      inputs.push_back(std::make_tuple(
+          (int64_t)cl->age(),
+          (int64_t)cl->weight(),
+          (int64_t)cl->size(),
+          (int64_t)(cl->splits() ? cl->splits()->size() : 0),
+          (int64_t)inf.rule())); // as features
+
+      c10::List<int64_t> parents;
+      int arit = 0;
+      Inference::Iterator iit = inf.iterator();
+      while(inf.hasNext(iit)) {
+        Unit* premUnit = inf.next(iit);
+        parents.push_back((int64_t) premUnit->asClause()->number());
+        arit += 1;
+      }
+
+      inputs.push_back(torch::jit::IValue(parents));
+
+      char specific_method_name[20];
+      char default_method_name[20];
+      sprintf(specific_method_name, "new_deriv%d", (int)inf.rule());
+      sprintf(default_method_name, "new_deriv%d", (int)arit);
+      evaluate(cl, specific_method_name, default_method_name , inputs);
+
+      ALWAYS(_evaluated.insert(cl));
+    }
   }
 }
 
@@ -794,59 +866,7 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
   bool sosForAxioms = _opt.sos() == Options::Sos::ON || _opt.sos() == Options::Sos::ALL; 
   sosForAxioms = sosForAxioms && cl->inputType()==UnitInputType::AXIOM;
 
-  unsigned isTheory = cl->inference().isTheoryAxiom() ? static_cast<unsigned>(cl->inference().rule()) : 0;
   bool sosForTheory = _opt.sos() == Options::Sos::THEORY && _opt.sosTheoryLimit() == 0;
-
-  if (_opt.showForKarel()) {
-    // [1,cl_id,cl_age,cl_weight,cl_len,isgoal,istheory,sine]
-
-    cout << "i: [1," << cl->number() << "," << cl->age() << "," << cl->weight() << "," << cl->size();
-    cout << "," << cl->derivedFromGoal() << "," << isTheory << "," << (int)cl->getSineLevel() << "]\n";
-
-    /*
-    cout << "init: " << cl->number() << " isGoal: " << cl->isGoal() << " isTheory: " << isTheory
-         << " SInE: " << cl->getSineLevel() << endl;
-    */
-    /*
-    if (isTheory) {
-      Formula* f = Formula::fromClause(cl);
-      cout << "tax: " << cl->number() << " " << TPTPPrinter::toString(f) << endl;
-     f->destroy();
-    }
-    */
-    ALWAYS(_shown.insert(cl));
-  }
-
-  if (_opt.evalForKarel()) {
-    TimeCounter t(TC_DEEP_STUFF);
-
-    // def new_init(self, id: int, features : Tuple[int, int, int, int, int, int]) -> bool:
-
-    static std::vector<torch::jit::IValue> inputs;
-    inputs.clear();
-
-    inputs.push_back((int64_t)cl->number()); // the id
-    inputs.push_back(std::make_tuple(
-        (int64_t)cl->age(),
-        (int64_t)cl->weight(),
-        (int64_t)cl->size(),
-        (int64_t)cl->derivedFromGoal(),
-        (int64_t)isTheory,
-        (int64_t)cl->getSineLevel())); // the features
-
-    char method_name[20];
-    if (cl->derivedFromGoal()) {
-      strcpy(method_name,"new_initG");
-    } else {
-      sprintf(method_name, "new_init%d", (int)isTheory);
-    }
-
-    evaluate(cl, method_name, "new_init0", inputs);
-
-    // TODO: store the output value
-    ALWAYS(_evaluated.insert(cl));
-  }
-
 
   if (_opt.sineToAge()) {
     unsigned level = cl->getSineLevel();
@@ -857,6 +877,10 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
     }
     // cout << endl;
     cl->setAge(level);
+  }
+
+  if (_opt.showForKarel() || _opt.evalForKarel()) {
+    ALWAYS(_initial.insert(cl));
   }
 
   if (sosForAxioms || (cl->isTheoryAxiom() && sosForTheory)){
@@ -1109,7 +1133,7 @@ void SaturationAlgorithm::handleEmptyClause(Clause* cl)
   ASS(cl->isEmpty());
 
   if (_opt.showForKarel() || _opt.evalForKarel()) {
-    talkToKarel(cl,false /* not necessary to evaluate this clause (at least not now) */ );
+    talkToKarel(cl,false /* not necessary to evaluate this clause */ );
   }
   if (_opt.showForKarel()) {
     cout << "e: " << cl->number() << "\n";
@@ -1273,11 +1297,9 @@ void SaturationAlgorithm::removeActiveOrPassiveClause(Clause* cl)
     break;
   }
   case Clause::ACTIVE:
-    /*
     if (env.options->showForKarel()) {
       cout << "r: " << cl->number() << "\n";
     }
-    */
     _active->remove(cl);
     break;
   default:

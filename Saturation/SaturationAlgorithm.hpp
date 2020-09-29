@@ -177,6 +177,7 @@ private:
   static SaturationAlgorithm* s_instance;
 public:
   torch::jit::script::Module _model;
+  DHSet<Clause*> _initial; // that's how talkToKarel recognizes an inital clause
   DHSet<Clause*> _shown; // set of clauses already printed via showForKarel
   DHSet<Clause*> _evaluated; // set of clauses the _model already knows about
   void talkToKarel(Clause*,bool eval = true);

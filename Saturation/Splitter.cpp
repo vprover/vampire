@@ -1309,44 +1309,11 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
 
   //cout << "Name " << getLiteralFromName(name).toString() << " for " << compCl->toString() << endl;
 
-  if (env.options->showForKarel() || env.options->evalForKarel()) {
-    _sa->talkToKarel(orig);
-  }
-
-  if (env.options->showForKarel()) {
-    // a: [3,cl_id,cl_age,cl_weight,cl_len,causal_parent]
-    cout << "a: [3," << compCl->number() << "," << compCl->age() << "," << compCl->weight() << "," << compCl->size();
-    cout << "," << orig->number() << "]\n";
-
-    ALWAYS(_sa->_shown.insert(compCl));
-  }
-
-  if (env.options->evalForKarel()) {
-    TimeCounter t(TC_DEEP_STUFF);
-
-    // TODO: this will crash
-
-    // [3,cl_id,cl_age,cl_weight,cl_len,causal_parent]
-    auto init_vec = torch::zeros({6},torch::kInt64);
-
-    init_vec[0] = 3;
-    init_vec[1] = (int)compCl->number();
-    init_vec[2] = (int)compCl->age();
-    init_vec[3] = (int)compCl->weight();
-    init_vec[4] = (int)compCl->size();
-    init_vec[5] = (int)orig->number();
-
-    std::vector<torch::jit::IValue> inputs;
-    inputs.push_back(init_vec);
-
-    _sa->evaluate(compCl,"new_avat","new_avat",inputs);
-
-    ALWAYS(_sa->_evaluated.insert(compCl));
-  }
-
   _db[name] = new SplitRecord(compCl);
   compCl->setSplits(SplitSet::getSingleton(name));
   compCl->setComponent(true);
+
+  _causalParents.insert(compCl,orig);
 
   if (_deleteDeactivated != Options::SplittingDeleteDeactivated::ON) {
     // in this mode, compCl is assumed to be a child since the beginning of times

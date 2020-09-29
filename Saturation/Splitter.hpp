@@ -214,6 +214,11 @@ public:
   }
   Clause* getComponentClause(SplitLevel name) const;
 
+  Clause* getCausalParent(Clause* compCl) const {
+    ASS(compCl->isComponent());
+    return _causalParents.get(compCl);
+  }
+
   SplitLevel splitLevelCnt() const { return _db.size(); }
   unsigned maxSatVar() const { return _sat2fo.maxSATVar(); }
 
@@ -222,6 +227,8 @@ public:
   UnitList* explicateAssertionsForSaturatedClauseSet(UnitList* clauses);
   static bool getComponents(Clause* cl, Stack<LiteralStack>& acc);
 private:
+
+
   friend class SplittingBranchSelector;
   
   SplitLevel getNameFromLiteralUnsafe(SATLiteral lit) const;
@@ -282,6 +289,8 @@ private:
    */
   Stack<SplitRecord*> _db;
   DHMap<Clause*,SplitLevel> _compNames;
+
+  DHMap<Clause*,Clause*> _causalParents;
 
   /**
    * Definitions of ground components C and ~C are shared and placed at the slot of C.
