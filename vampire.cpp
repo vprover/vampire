@@ -683,7 +683,7 @@ void subsumptionTestingMode()
   ASS(side_premise);
   ASS(main_premise != side_premise);
 
-  SMTSubsumption s;
+  SMTSubsumption::ProofOfConcept s;
   s.test(side_premise, main_premise);
 
   vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
