@@ -27,6 +27,7 @@
 
 #include "Forwards.hpp"
 #include "Lib/SmartPtr.hpp"
+#include "Lib/Stack.hpp"
 
 #include "Lib/VirtualIterator.hpp"
 #include "Lib/List.hpp"
@@ -98,9 +99,25 @@ protected:
 //  ClauseIterator premises;
 //};
 
+/** A generating inference that might make the premise redundant. */
+class SimplifyingGeneratingInference
+: public InferenceEngine
+{
+public:
+
+  struct ClauseGenerationResult {
+    ClauseIterator clauses;
+    bool premiseRedundant;
+  };
+
+  virtual ClauseGenerationResult generateClauses(Clause* premise)  = 0;
+};
+
+
 class GeneratingInferenceEngine
 : public InferenceEngine
 {
+
 public:
   virtual ClauseIterator generateClauses(Clause* premise) = 0;
 };
@@ -259,12 +276,32 @@ public:
   CompositeGIE() : _inners(0) {}
   virtual ~CompositeGIE();
   void addFront(GeneratingInferenceEngine* fse);
-  ClauseIterator generateClauses(Clause* premise);
-  void attach(SaturationAlgorithm* salg);
-  void detach();
+  ClauseIterator generateClauses(Clause* premise) override;
+  void attach(SaturationAlgorithm* salg) override;
+  void detach() override;
 private:
   typedef List<GeneratingInferenceEngine*> GIList;
   GIList* _inners;
+};
+
+
+class CompositeSGI
+: public SimplifyingGeneratingInference
+{
+public:
+  CLASS_NAME(CompositieSGI);
+  USE_ALLOCATOR(CompositeSGI);
+
+  CompositeSGI() : _simplifiers(), _generators() {}
+  virtual ~CompositeSGI();
+  void push(SimplifyingGeneratingInference* fse);
+  void push(GeneratingInferenceEngine* fse);
+  ClauseGenerationResult generateClauses(Clause* premise) override;
+  void attach(SaturationAlgorithm* salg) override;
+  void detach() override;
+private:
+  Stack<SimplifyingGeneratingInference*> _simplifiers;
+  Stack<GeneratingInferenceEngine*> _generators;
 };
 
 class DuplicateLiteralRemovalISE

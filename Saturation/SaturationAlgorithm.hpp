@@ -74,7 +74,7 @@ public:
 
   UnitList* collectSaturatedSet();
 
-  void setGeneratingInferenceEngine(GeneratingInferenceEngine* generator);
+  void setGeneratingInferenceEngine(SimplifyingGeneratingInference* generator);
   void setImmediateSimplificationEngine(ImmediateSimplificationEngine* immediateSimplifier);
 #if VZ3
   void setTheoryInstAndSimp(TheoryInstAndSimp* t);
@@ -188,7 +188,7 @@ protected:
   ActiveClauseContainer* _active;
   ExtensionalityClauseContainer* _extensionality;
 
-  ScopedPtr<GeneratingInferenceEngine> _generator;
+  ScopedPtr<SimplifyingGeneratingInference> _generator;
   ScopedPtr<ImmediateSimplificationEngine> _immediateSimplifier;
 
   typedef List<ForwardSimplificationEngine*> FwSimplList;

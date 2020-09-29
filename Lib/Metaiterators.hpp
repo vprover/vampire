@@ -126,6 +126,34 @@ ArrayishObjectIterator<Arr> getArrayishObjectIterator(Arr& arr)
   return ArrayishObjectIterator<Arr>(arr);
 }
 
+template<class Arr>
+class OwnedArrayishIterator
+{
+public:
+  DECL_ELEMENT_TYPE(ELEMENT_TYPE(Arr));
+  OwnedArrayishIterator(Arr&& arr) : _arr(std::move(arr)),
+  _index(0), _size(_arr.size()) {}
+  OwnedArrayishIterator(Arr&& arr, size_t size) : _arr(std::move(arr)),
+  _index(0), _size(size) {}
+  inline bool hasNext() { return _index<_size; }
+  inline ELEMENT_TYPE(Arr) next() { ASS(_index<_size); return _arr[_index++]; }
+  inline bool knowsSize() { return true;}
+  inline bool size() { return _size;}
+private:
+  Arr _arr;
+  size_t _index;
+  size_t _size;
+};
+
+template<class Arr>
+OwnedArrayishIterator<Arr> ownedArrayishIterator(Arr&& arr, size_t size)
+{ return OwnedArrayishIterator<Arr>(std::move(arr), size); }
+
+template<class Arr>
+OwnedArrayishIterator<Arr> ownedArrayishIterator(Arr&& arr)
+{ return OwnedArrayishIterator<Arr>(std::move(arr)); }
+
+
 /**
  * Reads given number of values from an input stream.
  *

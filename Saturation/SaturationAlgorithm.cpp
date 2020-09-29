@@ -1131,8 +1131,12 @@ bool SaturationAlgorithm::activate(Clause* cl)
   env.statistics->activeClauses++;
   _active->add(cl);
 
-
-    ClauseIterator toAdd= pvi(getConcatenatedIterator(instances,_generator->generateClauses(cl)));
+    
+    auto generated = _generator->generateClauses(cl);
+    if (generated.premiseRedundant) {
+      removeActiveOrPassiveClause(cl);
+    }
+    ClauseIterator toAdd = generated.clauses;
 
     while (toAdd.hasNext()) {
       Clause* genCl=toAdd.next();
@@ -1355,7 +1359,7 @@ void SaturationAlgorithm::setTheoryInstAndSimp(TheoryInstAndSimp* t)
  * To use multiple generating inferences, use the @b CompositeGIE
  * object.
  */
-void SaturationAlgorithm::setGeneratingInferenceEngine(GeneratingInferenceEngine* generator)
+void SaturationAlgorithm::setGeneratingInferenceEngine(SimplifyingGeneratingInference* generator)
 {
   CALL("SaturationAlgorithm::setGeneratingInferenceEngine");
 
@@ -1497,7 +1501,11 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
 #endif
 
-  res->setGeneratingInferenceEngine(gie);
+  CompositeSGI* sgi = new CompositeSGI();
+
+  sgi->push(gie);
+
+  res->setGeneratingInferenceEngine(sgi);
 
   res->setImmediateSimplificationEngine(createISE(prb, opt, res->getOrdering()));
 
