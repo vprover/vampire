@@ -732,62 +732,49 @@ public:
       const UniqueShared<Monom>& mr = itr->monom;
       if (ml == mr) {
         auto& m = ml;
-        // ASS_NEQ(cl, zero);
-        // ASS_NEQ(cr, zero);
         auto lMinusR = safeMinus(cl, cr);
         auto rMinusL = safeMinus(cr, cl);
+        auto pushLeft  = [&]() { push(newl, m, lMinusR.unwrap()); };
+        auto pushRight = [&]() { push(newr, m, rMinusL.unwrap()); };
+        auto pushSmaller = [&] () {
+          if (cmpPrecedence(rMinusL, lMinusR.unwrap())) {
+            pushRight();
+          } else {
+            pushLeft();
+          }
+        };
+
         if (cl == cr) {
            // 10 x + ... ~~  10 x + ... ==> ... ~~ ... 
            // we remove the term
         } else if (cmpPrecedence(lMinusR, cl) 
                 && cmpPrecedence(rMinusL, cr)) {
 
-          if (cmpPrecedence(rMinusL, lMinusR.unwrap())) {
-            push(newr, m, rMinusL.unwrap());
-          } else {
-            push(newl, m, lMinusR.unwrap());
-          }
+          pushSmaller();
         } else if (cmpPrecedence(lMinusR, cl) ) {
           // 10 x + ... ~~  8 x + ... ==> 2 x + ... ~~ ... 
           // ^^ cl          ^ cr          ^ lMinusR
-            push(newl, m, lMinusR.unwrap());
+          pushLeft();
 
         } else if (cmpPrecedence(rMinusL, cr)) {
-            //   7 x + ... ~~  8 x + ... ==> ... ~~ 1 x + ... 
-            //   ^ cl          ^ cr                 ^ rMinusL
-
-            push(newr, m, rMinusL.unwrap());
+          //   7 x + ... ~~  8 x + ... ==> ... ~~ 1 x + ... 
+          //   ^ cl          ^ cr                 ^ rMinusL
+          pushRight();
         } else {
+
           DEBUG("### not cancellable coeffs: ", cl, " ", cr, " (diffs: ", lMinusR, " and ", rMinusL, ")")
             /* TODO INCOMP */
-          push(newl, m, cl);
-          push(newr, m, cr);
+          if (lMinusR.isSome() && rMinusL.isSome()){
+            pushSmaller();
+          } else if (lMinusR.isSome()) {
+            pushLeft();
+          } else if (rMinusL.isSome()) {
+            pushRight();
+          } else {
+            push(newl, m, cl);
+            push(newr, m, cr);
+          }
         }
-        // if (cl == cr) {
-        //   // 10 x + ... ~~  10 x + ... ==> ... ~~ ... 
-        // } else if (cl > zero && cr > zero) {
-        //   // 10 x + ... ~~  8 x + ... ==> 2 x + ... ~~ ... 
-        //   if  ( cl > cr ) {
-        //     push(newl, m, cl - cr);
-        //   } else {
-        //     push(newr, m, cr - cl);
-        //   }
-        // } else if (cl < zero && cr < zero) {
-        //   // -10 x + ... ~~  -8 x + ... ==> -2 x + ... ~~ ... 
-        //   if  ( cl < cr ) {
-        //     push(newl, m, cl - cr);
-        //   } else {
-        //     push(newr, m, cr - cl);
-        //   }
-        // } else {
-        //   if (cl < zero) {
-        //     // -10 x + ... ~~  8 x + ... ==> ... ~~ 18 x + ... 
-        //     push(newr, m, cr - cl);
-        //   } else {
-        //     //  10 x + ... ~~ -8 x + ... ==> 18 x + ... ~~ ... 
-        //     push(newl, m, cl - cr);
-        //   }
-        // }
         itl++;
         itr++;
       } else if (ml < mr) {
