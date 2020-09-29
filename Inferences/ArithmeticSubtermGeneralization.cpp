@@ -161,10 +161,10 @@ Clause* generalizeBottomUp(Clause* cl, EvalFn eval)
                  break;
 #define ASSERT_NOT_THE_CASE(VALUE)                                                                            \
             case Ordering::VALUE: {                                                                           \
-                  DBG("")                                                                                     \
-                  DBG(*generalizedLit, #VALUE, *lit)                                                          \
-                  DBG("orig:        ", *lit)                                                                  \
-                  DBG("generalized: ", *generalizedLit)                                                       \
+                  DEBUG("")                                                                                     \
+                  DEBUG(*generalizedLit, #VALUE, *lit)                                                          \
+                  DEBUG("orig:        ", *lit)                                                                  \
+                  DEBUG("generalized: ", *generalizedLit)                                                       \
                   ASSERTION_VIOLATION                                                                         \
              }
 
@@ -908,7 +908,13 @@ public:
     ParallelNumberGeneralization const& gen, 
     UniqueShared<Polynom<NumTraits>> poly,
     PolyNf* generalizedArgs) 
-  {  return Gen<NumTraits>::generalize(var, gen._inner.template unwrap<Gen<NumTraits>>(), poly, generalizedArgs); }
+  {  
+    if (gen._inner.template is<Gen<NumTraits>>()) {
+      return Gen<NumTraits>::generalize(var, gen._inner.template unwrap<Gen<NumTraits>>(), poly, generalizedArgs); 
+    } else {
+      return unique(poly->replaceTerms(generalizedArgs));
+    }
+  }
 
   ParallelNumberGeneralization meet(ParallelNumberGeneralization&& rhs) && 
   {

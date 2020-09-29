@@ -918,6 +918,7 @@ public:
 
   Polynom replaceTerms(PolyNf* simplifiedTerms) const 
   {
+    CALL("Polynom::replaceTerms(PolyNf*)")
     int offs = 0;
     Stack<PolyPair> out;
     out.reserve(nSummands());
