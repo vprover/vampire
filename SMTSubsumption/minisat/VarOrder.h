@@ -17,12 +17,14 @@ DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
 OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 **************************************************************************************************/
 
-#ifndef VarOrder_h
-#define VarOrder_h
+#ifndef SMTSubsumption_Minisat_VarOrder_h
+#define SMTSubsumption_Minisat_VarOrder_h
 
 #include "SMTSubsumption/minisat/SolverTypes.h"
 #include "SMTSubsumption/minisat/Heap.h"
 
+
+namespace SMTSubsumption { namespace Minisat {
 
 //=================================================================================================
 
@@ -91,6 +93,8 @@ Var VarOrder::select(double random_var_freq)
     return var_Undef;
 }
 
+
+} }
 
 //=================================================================================================
 #endif

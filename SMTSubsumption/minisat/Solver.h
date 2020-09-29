@@ -17,11 +17,14 @@ DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
 OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 **************************************************************************************************/
 
-#ifndef Solver_h
-#define Solver_h
+#ifndef SMTSubsumption_Minisat_Solver_h
+#define SMTSubsumption_Minisat_Solver_h
 
 #include "SMTSubsumption/minisat/SolverTypes.h"
 #include "SMTSubsumption/minisat/VarOrder.h"
+
+
+namespace SMTSubsumption { namespace Minisat {
 
 // Redfine if you want output to go somewhere else:
 #define reportf(format, args...) ( printf(format , ## args), fflush(stdout) )
@@ -201,6 +204,8 @@ public:
 // Just like 'assert()' but expression will be evaluated in the release version as well.
 inline void check(bool expr) { assert(expr); }
 
+
+} }
 
 //=================================================================================================
 #endif

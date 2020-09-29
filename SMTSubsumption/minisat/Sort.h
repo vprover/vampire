@@ -17,9 +17,11 @@ DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
 OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 **************************************************************************************************/
 
-#ifndef Sort_h
-#define Sort_h
+#ifndef SMTSubsumption_Minisat_Sort_h
+#define SMTSubsumption_Minisat_Sort_h
 
+
+namespace SMTSubsumption { namespace Minisat {
 
 //=================================================================================================
 
@@ -126,6 +128,8 @@ template <class T, class LessThan> void sortUnique(vec<T>& v, LessThan lt) {
 template <class T> void sortUnique(vec<T>& v) {
     sortUnique(v, LessThan_default<T>()); }
 
+
+} }
 
 //=================================================================================================
 #endif

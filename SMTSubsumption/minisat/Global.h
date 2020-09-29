@@ -17,8 +17,8 @@ DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
 OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 **************************************************************************************************/
 
-#ifndef Global_h
-#define Global_h
+#ifndef SMTSubsumption_Minisat_Global_h
+#define SMTSubsumption_Minisat_Global_h
 
 #include <cassert>
 #include <cstdio>
@@ -27,6 +27,9 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include <climits>
 #include <cfloat>
 #include <new>
+
+
+namespace SMTSubsumption { namespace Minisat {
 
 
 //=================================================================================================
@@ -266,6 +269,8 @@ template <class T> static inline bool operator <= (const T& x, const T& y) { ret
 template <class T> static inline bool operator >= (const T& x, const T& y) { return !(x < y);  }
 #endif
 
+
+} }
 
 //=================================================================================================
 #endif

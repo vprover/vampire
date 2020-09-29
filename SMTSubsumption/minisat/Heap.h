@@ -17,9 +17,11 @@ DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
 OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 **************************************************************************************************/
 
-#ifndef Heap_h
-#define Heap_h
+#ifndef SMTSubsumption_Minisat_Heap_h
+#define SMTSubsumption_Minisat_Heap_h
 
+
+namespace SMTSubsumption { namespace Minisat {
 
 //=================================================================================================
 
@@ -95,6 +97,8 @@ class Heap {
             || ((parent(i) == 0 || !comp(heap[i],heap[parent(i)])) && heapProperty(left(i)) && heapProperty(right(i))); }
 };
 
+
+} }
 
 //=================================================================================================
 #endif

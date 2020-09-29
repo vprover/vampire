@@ -18,13 +18,13 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 **************************************************************************************************/
 
 
-#ifndef SolverTypes_h
-#define SolverTypes_h
+#ifndef SMTSubsumption_Minisat_SolverTypes_h
+#define SMTSubsumption_Minisat_SolverTypes_h
 
-#ifndef Global_h
 #include "SMTSubsumption/minisat/Global.h"
-#endif
 
+
+namespace SMTSubsumption { namespace Minisat {
 
 //=================================================================================================
 // Variables, literals, clause IDs:
@@ -96,8 +96,8 @@ public:
     float&    activity    ()      const { return *((float*)&data[size()]); }
 };
 inline Clause* Clause_new(bool learnt, const vec<Lit>& ps) {
-    assert(sizeof(Lit)      == sizeof(uint));
-    assert(sizeof(float)    == sizeof(uint));
+    static_assert(sizeof(Lit)      == sizeof(uint), "unexpected size of Lit");
+    static_assert(sizeof(float)    == sizeof(uint), "unexpected size of float");
     void*   mem = xmalloc<char>(sizeof(Clause) - sizeof(Lit) + sizeof(uint)*(ps.size() + (int)learnt));
     return new (mem) Clause(learnt, ps); }
 
@@ -125,6 +125,8 @@ inline GClause GClause_new(Clause* c) { assert(((uintp)c & 1) == 0); return GCla
 
 #define GClause_NULL GClause_new((Clause*)NULL)
 
+
+} }
 
 //=================================================================================================
 #endif
