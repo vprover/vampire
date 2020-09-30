@@ -6,7 +6,7 @@
 #include "Lib/Array.hpp"
 #include "Kernel/Ordering.hpp"
 
-#define DEBUG(...) //DBG(__VA_ARGS__)
+#define DEBUG(...) // DBG(__VA_ARGS__)
 
 namespace Inferences {
 
@@ -101,9 +101,9 @@ public:
   template<class NumTraits>
   AnyNumber(NumberObject<NumTraits> self) : Super(self) {}
 
-  template<class NumTraits> NumberObject<NumTraits> const& downcast() const& { return Super::template unwrap<NumberObject<NumTraits>>(); }
-  template<class NumTraits> NumberObject<NumTraits>      & downcast()      & { return Super::template unwrap<NumberObject<NumTraits>>(); }
-  template<class NumTraits> NumberObject<NumTraits>     && downcast()     && { return Super::template unwrap<NumberObject<NumTraits>>(); }
+  template<class NumTraits> Optional<NumberObject<NumTraits> const&> downcast() const& { return Super::template as<NumberObject<NumTraits>>(); }
+  template<class NumTraits> Optional<NumberObject<NumTraits>      &> downcast()      & { return Super::template as<NumberObject<NumTraits>>(); }
+  template<class NumTraits> Optional<NumberObject<NumTraits>     &&> downcast()     && { return Super::template as<NumberObject<NumTraits>>(); }
   
   friend bool operator<(AnyNumber const& lhs, AnyNumber const& rhs)
   { return std::less<Super>{}(lhs,rhs); }
@@ -1146,21 +1146,25 @@ namespace Rule3
     Stack<MonomPair<NumTraits>> filter(UniqueShared<Monom<NumTraits>> const& monom, PolyNf* evaluatedArgs)
     {
       Stack<MonomPair<NumTraits>> out;
-      unsigned rm = 0;
+      unsigned rmI = 0;
       unsigned m = 0;
 
-      auto skip = [&]() { rm++; m++; };
+      auto skip = [&]() { rmI++; m++; };
       auto push = [&]() { out.push(MonomPair<NumTraits>(evaluatedArgs[m], monom->factorAt(m).power)); m++; };
 
-      while (m < monom->nFactors() && rm < toRem.size()) {
+
+      while (m < monom->nFactors() && rmI < toRem.size()) {
         auto factor = monom->factorAt(m);
-        if (factor == toRem[rm].template downcast<NumTraits>()) {
+        auto rm = toRem[rmI].template downcast<NumTraits>();
+        if (rm.isNone()) {
+          push();
+        } else if (factor == rm.unwrap()) {
           skip();
-        } else if (factor < toRem[rm].template downcast<NumTraits>()) {
+        } else if (factor < rm.unwrap()) {
           push();
         } else {
-          ASS_L(toRem[rm].template downcast<NumTraits>(), factor)
-          rm++;
+          ASS_L(rm.unwrap(), factor)
+          rmI++;
         }
       }
       while (m < monom->nFactors()) {
