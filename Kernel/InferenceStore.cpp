@@ -175,23 +175,19 @@ vstring getQuantifiedStr(const VarContainer& vars, vstring inner, DHMap<unsigned
   VirtualIterator<unsigned> vit=pvi( getContentIterator(vars) );
   vstring varStr;
   bool first=true;
-  bool addedAtBack=false;
   while(vit.hasNext()) {
     unsigned var =vit.next();
-    if (!first && addedAtBack) {
-      varStr+=",";
-    }
     vstring ty="";
     TermList t;
     if(t_map.find(var,t) /*&& t!=Term::defaultSort()*/){
       //TODO should assert that we are in tff mode here
-      ty=":" + t.toString();
+      ty=" : " + t.toString();
     }
-    if(ty == ":$tType"){
-      varStr=vstring("X")+Int::toString(var)+ty + "," + varStr;
-      addedAtBack = false;
+    if(ty == " : $tType"){
+      if (!first) { varStr = "," + varStr; }
+      varStr=vstring("X")+Int::toString(var)+ty + varStr;
     } else {
-      addedAtBack = true;
+      if (!first) { varStr+=","; }
       varStr+=vstring("X")+Int::toString(var)+ty;
     }
     first=false;

@@ -61,6 +61,11 @@ bool ScheduleExecutor::run(const Schedule &schedule, int terminationTime)
  // {
   for(int i = schedule.size() -1; i >=0; i--){
     vstring code = schedule[i];
+    vstring sa = code.substr(0,3);
+    if(sa == "ins"){
+      //hack AYB, inst Gen has not been updated to support polymorphism
+      continue;
+    }
     float priority = _policy->staticPriority(code);
     queue.push(Item(code));
   }

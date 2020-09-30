@@ -90,7 +90,8 @@ TPTP::TPTP(istream& in)
     _unitSources(0),
     _filterReserved(false),
     _seenConjecture(false),
-    _isThf(false)
+    _isThf(false),
+    _lastPushed(TM)
 {
 } // TPTP::TPTP
 
@@ -3043,7 +3044,7 @@ void TPTP::endEquality()
 
   _insideEqualityArgument--;
 
-  if((_isThf) & (_lastPushed == FORM)){
+  if((_isThf) && (_lastPushed == FORM)){
     endFormulaInsideTerm();
   }
 

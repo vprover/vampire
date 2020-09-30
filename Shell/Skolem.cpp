@@ -415,14 +415,17 @@ Formula* Skolem::skolemise (Formula* f)
         TermList sort = _varSorts.get(uvar, Term::defaultSort());
         if(sort == Term::superSort()){
           args.push(TermList(uvar, false));//TODO check that this works
+          Formula::VarList::push(uvar,var_args); //TODO not too sure about this bit
         } else {
           if(sort.isVar() || !sort.term()->shared() || !sort.term()->ground()){
             sort = SubstHelper::apply(sort, _subst);
           }
           argSorts.push(sort);
           termArgs.push(TermList(uvar, false));
+          Formula::VarList* var_arg = Formula::VarList::empty();
+          Formula::VarList::push(uvar, var_arg);
+          var_args = Formula::VarList::concat(var_args, var_arg); 
         }
-        Formula::VarList::push(uvar,var_args); //TODO not too sure about this bit
         arity++;
       }
       ASS(termArgs.size() == argSorts.size());

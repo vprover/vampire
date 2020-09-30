@@ -200,7 +200,7 @@ vstring OperatorType::toString() const
     res = "!>[";
     for(unsigned i = 0; i < typeArgsArity(); i++){
       if(i != 0){ res += ", "; }
-      res+= "X" + Int::toString(VarList::nth(_vars, i)) + ": $ttype"; 
+      res+= "X" + Int::toString(VarList::nth(_vars, i)) + ": $tType"; 
     }
     res += "]:";
     bracket = true;
