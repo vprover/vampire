@@ -210,9 +210,6 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
     _fwSimplifiers(0), _bwSimplifiers(0), _splitter(0),
     _consFinder(0), _labelFinder(0), _symEl(0), _answerLiteralManager(0),
     _instantiation(0),
-#if VZ3
-    _theoryInstSimp(0),
-#endif
     _generatedClauseCount(0),
     _activationLimit(0)
 {
@@ -1106,19 +1103,6 @@ bool SaturationAlgorithm::activate(Clause* cl)
     }
   }
 
-  bool redundant=false;
-  ClauseIterator instances = ClauseIterator::getEmpty();
-#if VZ3
-  if(_theoryInstSimp){
-    instances = _theoryInstSimp->generateClauses(cl,redundant);
-  }
-#endif
-  ASS(!redundant) // TODO remove this line. this assertion should NOT hold. it is only there to potentially spot a bug, but should be removed at once!
-  if(redundant){ 
-    removeActiveOrPassiveClause(cl);
-    return false; 
-  }
-
   _clauseActivationInProgress=true;
 
   if (!cl->numSelected()) {
@@ -1170,7 +1154,9 @@ bool SaturationAlgorithm::activate(Clause* cl)
     removeActiveOrPassiveClause(cl);
   }
 
-  return true; 
+  auto successfullActivation = !generated.premiseRedundant;
+
+  return successfullActivation; 
 }
 
 /**
@@ -1342,15 +1328,6 @@ MainLoopResult SaturationAlgorithm::runImpl()
 
 }
 
-#if VZ3
-void SaturationAlgorithm::setTheoryInstAndSimp(TheoryInstAndSimp* t)
-{
-  ASS(t);
-  _theoryInstSimp=t;
-  _theoryInstSimp->attach(this);
-}
-#endif
-
 /**
  * Assign an generating inference object @b generator to be used
  *
@@ -1495,16 +1472,15 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
       gie->addFront(new InjectivityGIE());
     }
   }
-#if VZ3
-  if (opt.theoryInstAndSimp() != Shell::Options::TheoryInstSimp::OFF){
-    res->setTheoryInstAndSimp(new TheoryInstAndSimp());
-    //gie->addFront(new TheoryInstAndSimp());
-  }
-#endif
 
   CompositeSGI* sgi = new CompositeSGI();
-
   sgi->push(gie);
+
+#if VZ3
+  if (opt.theoryInstAndSimp() != Shell::Options::TheoryInstSimp::OFF){
+    sgi->push(new TheoryInstAndSimp());
+  }
+#endif
 
   res->setGeneratingInferenceEngine(sgi);
 

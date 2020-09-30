@@ -45,7 +45,7 @@ struct Solution{
 
 
 class TheoryInstAndSimp
-: public GeneratingInferenceEngine
+: public SimplifyingGeneratingInference
 {
 public:
   CLASS_NAME(TheoryInstAndSimp);
@@ -54,12 +54,7 @@ public:
   TheoryInstAndSimp() : _splitter(0) {}
   void attach(SaturationAlgorithm* salg);
 
-  ClauseIterator generateClauses(Clause* premise, bool& premiseRedundant);
-  ClauseIterator generateClauses(Clause* premise){
-    bool r;
-    return generateClauses(premise,r);
-  }
-
+  ClauseGenerationResult generateClauses(Clause* premise);
   VirtualIterator<Solution> getSolutions(Stack<Literal*>& theoryLiterals,bool guarded=true);
 
 private:
