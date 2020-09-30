@@ -294,8 +294,8 @@ public:
 
   CompositeSGI() : _simplifiers(), _generators() {}
   virtual ~CompositeSGI();
-  void push(SimplifyingGeneratingInference* fse);
-  void push(GeneratingInferenceEngine* fse);
+  void push(SimplifyingGeneratingInference*);
+  void push(GeneratingInferenceEngine*);
   ClauseGenerationResult generateClauses(Clause* premise) override;
   void attach(SaturationAlgorithm* salg) override;
   void detach() override;

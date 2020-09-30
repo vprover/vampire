@@ -840,8 +840,8 @@ SimplifyingGeneratingInference::ClauseGenerationResult TheoryInstAndSimp::genera
   CALL("TheoryInstAndSimp::generateClauses");
 
   auto empty = ClauseGenerationResult {
-    .premiseRedundant = false,
     .clauses          = ClauseIterator::getEmpty(),
+    .premiseRedundant = false,
   };
 
   if(premise->isPureTheoryDescendant()){ 
@@ -928,8 +928,8 @@ SimplifyingGeneratingInference::ClauseGenerationResult TheoryInstAndSimp::genera
       clauses = ClauseIterator::getEmpty();
     }
     return ClauseGenerationResult {
-      .premiseRedundant = premiseRedundant,
       .clauses          = clauses,
+      .premiseRedundant = premiseRedundant,
     };
   }
 }
