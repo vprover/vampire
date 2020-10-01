@@ -915,6 +915,7 @@ ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise,bool& premiseR
     // measure time of the overall processing
     auto it4 = getTimeCountedIterator(it3,TC_THEORY_INST_SIMP);
 
+    // persistent iterator is needed for the flag `premiseRedundant` to be set before returning from the function
     return getPersistentIterator(it4);
   }
 }

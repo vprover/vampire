@@ -3273,9 +3273,12 @@ Lib::vvector<int> Options::theorySplitQueueRatios() const
   CALL("Options::theorySplitQueueRatios");
   vstringstream inputRatiosStream(_theorySplitQueueRatios.actualValue);
   Lib::vvector<int> inputRatios;
-  std::string currentRatio;
-  while (std::getline(inputRatiosStream, currentRatio, ',')) {
-    inputRatios.push_back(std::stoi(currentRatio));
+  {
+    BYPASSING_ALLOCATOR
+    std::string currentRatio;
+    while (std::getline(inputRatiosStream, currentRatio, ',')) {
+      inputRatios.push_back(std::stoi(currentRatio));
+    }
   }
 
   // sanity checks
@@ -3306,10 +3309,13 @@ Lib::vvector<float> Options::theorySplitQueueCutoffs() const
   } else {
     // if custom cutoffs are set, parse them and add float-max as last value
     vstringstream cutoffsStream(_theorySplitQueueCutoffs.actualValue);
-    std::string currentCutoff;
-    while (std::getline(cutoffsStream, currentCutoff, ','))
     {
-      cutoffs.push_back(std::stof(currentCutoff));
+      BYPASSING_ALLOCATOR
+      std::string currentCutoff;
+      while (std::getline(cutoffsStream, currentCutoff, ','))
+      {
+        cutoffs.push_back(std::stof(currentCutoff));
+      }
     }
     cutoffs.push_back(std::numeric_limits<float>::max());
   }
@@ -3333,9 +3339,12 @@ Lib::vvector<int> Options::avatarSplitQueueRatios() const
   CALL("Options::avatarSplitQueueRatios");
   vstringstream inputRatiosStream(_avatarSplitQueueRatios.actualValue);
   Lib::vvector<int> inputRatios;
-  std::string currentRatio;
-  while (std::getline(inputRatiosStream, currentRatio, ',')) {
-    inputRatios.push_back(std::stoi(currentRatio));
+  {
+    BYPASSING_ALLOCATOR
+    std::string currentRatio;
+    while (std::getline(inputRatiosStream, currentRatio, ',')) {
+      inputRatios.push_back(std::stoi(currentRatio));
+    }
   }
 
   // sanity checks
@@ -3357,10 +3366,13 @@ Lib::vvector<float> Options::avatarSplitQueueCutoffs() const
   // initialize cutoffs and add float-max as last value
   Lib::vvector<float> cutoffs;
   vstringstream cutoffsStream(_avatarSplitQueueCutoffs.actualValue);
-  std::string currentCutoff;
-  while (std::getline(cutoffsStream, currentCutoff, ','))
   {
-    cutoffs.push_back(std::stof(currentCutoff));
+    BYPASSING_ALLOCATOR
+    std::string currentCutoff;
+    while (std::getline(cutoffsStream, currentCutoff, ','))
+    {
+      cutoffs.push_back(std::stof(currentCutoff));
+    }
   }
   cutoffs.push_back(std::numeric_limits<float>::max());
 
@@ -3383,9 +3395,12 @@ Lib::vvector<int> Options::sineLevelSplitQueueRatios() const
   CALL("Options::sineLevelSplitQueueRatios");
   vstringstream inputRatiosStream(_sineLevelSplitQueueRatios.actualValue);
   Lib::vvector<int> inputRatios;
-  std::string currentRatio;
-  while (std::getline(inputRatiosStream, currentRatio, ',')) {
-    inputRatios.push_back(std::stoi(currentRatio));
+  {
+    BYPASSING_ALLOCATOR
+    std::string currentRatio;
+    while (std::getline(inputRatiosStream, currentRatio, ',')) {
+      inputRatios.push_back(std::stoi(currentRatio));
+    }
   }
 
   // sanity checks
@@ -3407,10 +3422,13 @@ Lib::vvector<float> Options::sineLevelSplitQueueCutoffs() const
   // initialize cutoffs and add float-max as last value
   Lib::vvector<float> cutoffs;
   vstringstream cutoffsStream(_sineLevelSplitQueueCutoffs.actualValue);
-  std::string currentCutoff;
-  while (std::getline(cutoffsStream, currentCutoff, ','))
   {
-    cutoffs.push_back(std::stof(currentCutoff));
+    BYPASSING_ALLOCATOR
+    std::string currentCutoff;
+    while (std::getline(cutoffsStream, currentCutoff, ','))
+    {
+      cutoffs.push_back(std::stof(currentCutoff));
+    }
   }
   cutoffs.push_back(std::numeric_limits<float>::max());
 
@@ -3433,9 +3451,12 @@ Lib::vvector<int> Options::positiveLiteralSplitQueueRatios() const
   CALL("Options::positiveLiteralSplitQueueRatios");
   vstringstream inputRatiosStream(_positiveLiteralSplitQueueRatios.actualValue);
   Lib::vvector<int> inputRatios;
-  std::string currentRatio;
-  while (std::getline(inputRatiosStream, currentRatio, ',')) {
-    inputRatios.push_back(std::stoi(currentRatio));
+  {
+    BYPASSING_ALLOCATOR
+    std::string currentRatio;
+    while (std::getline(inputRatiosStream, currentRatio, ',')) {
+      inputRatios.push_back(std::stoi(currentRatio));
+    }
   }
 
   // sanity checks
@@ -3457,10 +3478,13 @@ Lib::vvector<float> Options::positiveLiteralSplitQueueCutoffs() const
   // initialize cutoffs and add float-max as last value
   Lib::vvector<float> cutoffs;
   vstringstream cutoffsStream(_positiveLiteralSplitQueueCutoffs.actualValue);
-  std::string currentCutoff;
-  while (std::getline(cutoffsStream, currentCutoff, ','))
   {
-    cutoffs.push_back(std::stof(currentCutoff));
+    BYPASSING_ALLOCATOR
+    std::string currentCutoff;
+    while (std::getline(cutoffsStream, currentCutoff, ','))
+    {
+      cutoffs.push_back(std::stof(currentCutoff));
+    }
   }
   cutoffs.push_back(std::numeric_limits<float>::max());
 
