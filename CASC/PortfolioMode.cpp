@@ -553,7 +553,7 @@ void PortfolioMode::runSlice(Options& strategyOpt)
 
   }
 
-  if((outputAllowed() && resultValue) || outputResult) { // we can report on every failure, but only once on success
+  if(outputResult) { // we can report on every failure, but only once on success
     env.beginOutput();
     UIHelper::outputResult(env.out());
     env.endOutput();
@@ -568,11 +568,11 @@ void PortfolioMode::runSlice(Options& strategyOpt)
     */
   }
 
-  STOP_CHECKING_FOR_ALLOCATOR_BYPASSES;
-
   if(outputResult){
     _syncSemaphore.inc(SEM_LOCK); // would be also released after the processes' death, but we are polite and do it already here
   }
+
+  STOP_CHECKING_FOR_ALLOCATOR_BYPASSES;
 
   exit(resultValue);
 } // runSlice

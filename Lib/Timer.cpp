@@ -72,24 +72,23 @@ void timeLimitReached()
 
   env.beginOutput();
   reportSpiderStatus('t');
-  if (outputAllowed()) {
+  if (outputAllowed() && UIHelper::portfolioParent) {
     addCommentSignForSZS(env.out());
     env.out() << "Time limit reached!\n";
 
-    if (UIHelper::portfolioParent) { // the boss
-      addCommentSignForSZS(env.out());
-      env.out() << "Proof not found in time ";
-      Timer::printMSString(env.out(),env.timer->elapsedMilliseconds());
-      env.out() << endl;
+    addCommentSignForSZS(env.out());
+    env.out() << "Proof not found in time ";
+    Timer::printMSString(env.out(),env.timer->elapsedMilliseconds());
+    env.out() << endl;
 
-      if (szsOutputMode()) {
-        env.out() << "% SZS status Timeout for "
-                        << (env.options ? env.options->problemName() : "unknown") << endl;
-      }
-    } else // the actual child
+    if (szsOutputMode()) {
+      env.out() << "% SZS status Timeout for "
+                      << (env.options ? env.options->problemName() : "unknown") << endl;
+    }
+     /*else // the actual child
       if (env.statistics) {
         env.statistics->print(env.out());
-    }
+    }*/
   }
   env.endOutput();
 

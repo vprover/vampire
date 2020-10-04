@@ -93,7 +93,6 @@ public:
     }
 
     fail=!MLVariant::isVariant(_lits,mcl,alts.array());
-    if((mcl->number() == 1238) && fail){ cout << "failed 3" << endl;}
 
   fin:
     for(unsigned i=0;i<_length;i++) {
