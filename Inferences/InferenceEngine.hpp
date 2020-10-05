@@ -99,17 +99,24 @@ protected:
 //  ClauseIterator premises;
 //};
 
-/** A generating inference that might make the premise redundant. */
+/** A generating inference that might make its major premise redundant. */
 class SimplifyingGeneratingInference
 : public InferenceEngine
 {
 public:
 
+  /** result of applying the inference */
   struct ClauseGenerationResult {
+    /** the generated clauses */
     ClauseIterator clauses;
+    /** tells whether the major premise of the application of the rule should be deleted from the search space. */
     bool premiseRedundant;
   };
 
+  /**
+   * Applies this rule to the clause, and returns an iterator over the resulting clauses, 
+   * as well as the information wether the premise was made redundant.
+   */
   virtual ClauseGenerationResult generateClauses(Clause* premise)  = 0;
 };
 
