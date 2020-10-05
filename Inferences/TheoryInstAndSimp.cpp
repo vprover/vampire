@@ -919,6 +919,12 @@ ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise,bool& premiseR
   }
 }
 
+std::ostream& operator<<(std::ostream& out, Solution const& self) 
+{
+  return out << "Solution(" << (self.status ? "sat" : "unsat") << ", " << self.subst << ")";
+  // return out;
+}
+
 }
 
 #endif
