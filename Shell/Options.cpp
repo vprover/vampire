@@ -1051,8 +1051,9 @@ void Options::Options::init()
            _thiTautologyDeletion.tag(OptionTag::INFERENCES);
            _lookup.insert(&_thiTautologyDeletion);
            _thiTautologyDeletion.setExperimental();
-
+           _thiTautologyDeletion.reliesOn(_theoryInstAndSimp.is(notEqual(TheoryInstSimp::OFF)));
 #endif
+
            _unificationWithAbstraction = ChoiceOptionValue<UnificationWithAbstraction>("unification_with_abstraction","uwa",
                                              UnificationWithAbstraction::OFF,
                                              {"off","interpreted_only","one_side_interpreted","one_side_constant","all","ground"});
