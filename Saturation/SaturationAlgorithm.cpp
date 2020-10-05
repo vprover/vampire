@@ -1118,9 +1118,7 @@ bool SaturationAlgorithm::activate(Clause* cl)
 
     
     auto generated = _generator->generateClauses(cl);
-    if (generated.premiseRedundant) {
-      removeActiveOrPassiveClause(cl);
-    }
+
     ClauseIterator toAdd = generated.clauses;
 
     while (toAdd.hasNext()) {
@@ -1154,6 +1152,11 @@ bool SaturationAlgorithm::activate(Clause* cl)
     removeActiveOrPassiveClause(cl);
   }
 
+
+  // TODO
+    // if (generated.premiseRedundant) {
+    //   removeActiveOrPassiveClause(cl);
+    // }
   auto successfullActivation = !generated.premiseRedundant;
 
   return successfullActivation; 

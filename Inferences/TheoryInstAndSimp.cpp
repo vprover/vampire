@@ -924,14 +924,26 @@ SimplifyingGeneratingInference::ClauseGenerationResult TheoryInstAndSimp::genera
     auto it4 = getTimeCountedIterator(it3,TC_THEORY_INST_SIMP);
 
     auto clauses =  getPersistentIterator(it4);
-    if (premiseRedundant) {
-      clauses = ClauseIterator::getEmpty();
+    if (premiseRedundant && env.options->thiTautologyDeletion()) {
+
+      return ClauseGenerationResult {
+        .clauses          = ClauseIterator::getEmpty(),
+        .premiseRedundant = true,
+      };
+    } else {
+
+      return ClauseGenerationResult {
+        .clauses          = clauses,
+        .premiseRedundant = false,
+      };
     }
-    return ClauseGenerationResult {
-      .clauses          = clauses,
-      .premiseRedundant = premiseRedundant,
-    };
   }
+}
+
+std::ostream& operator<<(std::ostream& out, Solution const& self) 
+{
+  return out << "Solution(" << (self.status ? "sat" : "unsat") << ", " << self.subst << ")";
+  // return out;
 }
 
 }
