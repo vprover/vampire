@@ -38,9 +38,10 @@ using namespace Kernel;
 using namespace Saturation;
 
 struct Solution{
-  Solution(bool s) : status(s) {}
+  explicit Solution(bool s) : status(s) {}
   const bool status;
   Substitution subst;
+  friend std::ostream& operator<<(std::ostream& out, Solution const&);
 };
 
 
