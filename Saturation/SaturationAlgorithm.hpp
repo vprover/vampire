@@ -130,7 +130,6 @@ protected:
   virtual void init();
   virtual MainLoopResult runImpl();
   void doUnprocessedLoop();
-  virtual void handleUnsuccessfulActivation(Clause* c);
   virtual bool handleClauseBeforeActivation(Clause* c);
   void addInputSOSClause(Clause* cl);
   void newClausesToUnprocessed();
@@ -138,7 +137,8 @@ protected:
   bool forwardSimplify(Clause* c);
   void backwardSimplify(Clause* c);
   void addToPassive(Clause* c);
-  bool activate(Clause* c);
+  void activate(Clause* c);
+  void removeSelected(Clause*);
   virtual void onSOSClauseAdded(Clause* c) {}
   void onActiveAdded(Clause* c);
   virtual void onActiveRemoved(Clause* c);

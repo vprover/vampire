@@ -100,13 +100,4 @@ void Otter::onSOSClauseAdded(Clause* cl)
   _simplCont.add(cl);
 }
 
-void Otter::handleUnsuccessfulActivation(Clause* c)
-{
-  CALL("Otter::handleUnsuccessfulActivation");
-
-  ASS_EQ(c->store(), Clause::SELECTED);
-  _simplCont.remove(c);
-  c->setStore(Clause::NONE);
-}
-
 }

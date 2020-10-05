@@ -1077,6 +1077,12 @@ void SaturationAlgorithm::addToPassive(Clause* cl)
   }
 }
 
+void SaturationAlgorithm::removeSelected(Clause* cl)
+{
+  ASS_EQ(cl->store(), Clause::SELECTED)
+  cl->setStore(Clause::NONE);
+}
+
 /**
  * Activate clause @b cl
  *
@@ -1089,17 +1095,17 @@ void SaturationAlgorithm::addToPassive(Clause* cl)
  * function are postponed. During the clause activation, generalisation
  * indexes should not be modified.
  */
-bool SaturationAlgorithm::activate(Clause* cl)
+void SaturationAlgorithm::activate(Clause* cl)
 {
   CALL("SaturationAlgorithm::activate");
 
   if (_consFinder && _consFinder->isRedundant(cl)) {
-    return false;
+    return removeSelected(cl);
   }
 
   if (_splitter && _opt.splitAtActivation()) {
     if (_splitter->doSplitting(cl)) {
-      return false;
+      return removeSelected(cl);
     }
   }
 
@@ -1152,14 +1158,11 @@ bool SaturationAlgorithm::activate(Clause* cl)
     removeActiveOrPassiveClause(cl);
   }
 
+  if (generated.premiseRedundant) {
+    _active->remove(cl);
+  }
 
-  // TODO
-    // if (generated.premiseRedundant) {
-    //   removeActiveOrPassiveClause(cl);
-    // }
-  auto successfullActivation = !generated.premiseRedundant;
-
-  return successfullActivation; 
+  return;
 }
 
 /**
@@ -1201,14 +1204,6 @@ start:
     goto start;
   }
 
-}
-
-void SaturationAlgorithm::handleUnsuccessfulActivation(Clause* cl)
-{
-  CALL("SaturationAlgorithm::handleUnsuccessfulActivation");
-
-  //ASS_EQ(cl->store(), Clause::SELECTED);
-  cl->setStore(Clause::NONE);
 }
 
 /**
@@ -1292,10 +1287,7 @@ void SaturationAlgorithm::doOneAlgorithmStep()
     return;
   }
 
-  bool isActivated=activate(cl);
-  if (!isActivated) {
-    handleUnsuccessfulActivation(cl);
-  }
+  activate(cl);
 }
 
 
