@@ -1045,6 +1045,13 @@ void Options::Options::init()
            _theoryInstAndSimp.description = ""; 
            _theoryInstAndSimp.tag(OptionTag::INFERENCES);
            _lookup.insert(&_theoryInstAndSimp);
+
+           _thiTautologyDeletion = BoolOptionValue("theory_instantiation_tautology_deletion", "thitd", false);
+           _thiTautologyDeletion.description = "Enable deletion of tautology theory subclauses detected via theory instantiation."; 
+           _thiTautologyDeletion.tag(OptionTag::INFERENCES);
+           _lookup.insert(&_thiTautologyDeletion);
+           _thiTautologyDeletion.setExperimental();
+
 #endif
            _unificationWithAbstraction = ChoiceOptionValue<UnificationWithAbstraction>("unification_with_abstraction","uwa",
                                              UnificationWithAbstraction::OFF,

@@ -915,7 +915,13 @@ ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise,bool& premiseR
     // measure time of the overall processing
     auto it4 = getTimeCountedIterator(it3,TC_THEORY_INST_SIMP);
 
-    return getPersistentIterator(it4); // we need immediate evaluation, so that premiseRedundant is set just after the call!
+    auto out = getPersistentIterator(it4); // we need immediate evaluation, so that premiseRedundant is set just after the call!
+
+    if (!env.options->thiTautologyDeletion()) {
+      premiseRedundant = false;
+    }
+
+    return out;
   }
 }
 
