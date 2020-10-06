@@ -88,6 +88,8 @@
 #include "Shell/Statistics.hpp"
 #include "Shell/UIHelper.hpp"
 
+#include "Parse/TPTP.hpp"
+
 #include "Splitter.hpp"
 
 #include "ConsequenceFinder.hpp"
@@ -580,7 +582,24 @@ void SaturationAlgorithm::talkToKarel(Clause* cl, bool eval)
       // [1,cl_id,cl_age,cl_weight,cl_len,isgoal,istheory,sine]
 
       cout << "i: [1," << cl->number() << "," << cl->age() << "," << cl->weight() << "," << cl->size();
-      cout << "," << cl->derivedFromGoal() << "," << theoryAx << "," << (int)cl->getSineLevel() << "]\n";
+      cout << "," << cl->derivedFromGoal() << "," << theoryAx << "," << (int)cl->getSineLevel() << "]";
+
+      if (_opt.outputAxiomNames()) {
+        Unit* u = cl;
+        vstring axname;
+        while (!Parse::TPTP::findAxiomName(u,axname)) {
+          // cout << u->toString() << endl;
+          Inference::Iterator iit=u->inference().iterator();
+          if (!u->inference().hasNext(iit)) {
+            break;
+          }
+          u = u->inference().next(iit);
+        }
+        // cout << u->toString() << endl;
+        cout << " " << axname << "\n";
+      } else {
+        cout << "\n";
+      }
 
       ALWAYS(_shown.insert(cl));
     }
