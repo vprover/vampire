@@ -2,6 +2,7 @@
 
 #include "Kernel/Formula.hpp"
 #include "Kernel/Problem.hpp"
+#include "Kernel/RobSubstitution.hpp"
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/Substitution.hpp"
 #include "Kernel/Term.hpp"
@@ -41,46 +42,41 @@ bool equalsUpToVariableRenaming(TermList t1, TermList t2) {
   return true;
 }
 
-bool containsUpToVariableRenaming(TermList container, TermList contained) {
-  CALL("containsUpToVariableRenaming");
-
-  if (contained.isVar()) {
-    return true;
-  }
-  if (container.isVar()) {
-    return false;
-  }
-
-  auto t1 = container.term();
-  auto t2 = contained.term();
-  if (t1->isBoolean() == t2->isBoolean()
-    && t1->functor() == t2->functor()
-    && t1->arity() == t2->arity())
-  {
-    bool equal = true;
-    Term::Iterator it1(t1);
-    Term::Iterator it2(t2);
-    while (it1.hasNext()) {
-      auto arg1 = it1.next();
-      auto arg2 = it2.next();
-      if (!equalsUpToVariableRenaming(arg1, arg2)) {
-        equal = false;
-        break;
+template<class T>
+bool findInjectiveMapping(DHMap<T, vset<T>> sets) {
+  bool change;
+  do {
+    change = false;
+    DHMap<T, vset<T>> reverse;
+    auto it = sets.items();
+    while (it.hasNext()) {
+      auto kv = it.next();
+      if (kv.second.empty()) {
+        return false;
+      }
+      if (kv.second.size() == 1) {
+        reverse.insert(*kv.second.begin(), vset<T>());
+        reverse.get(*kv.second.begin()).insert(kv.first);
       }
     }
-    if (equal) {
-      return true;
+    it = reverse.items();
+    while (it.hasNext()) {
+      auto kv = it.next();
+      if (kv.second.size() > 1) {
+        return false;
+      }
+      sets.remove(*kv.second.begin());
+      auto it2 = sets.items();
+      while (it2.hasNext()) {
+        auto kv2 = it2.next();
+        sets.get(kv2.first).erase(*kv.second.begin());
+      }
+      change = true;
     }
-  }
+  } while (change);
 
-  Term::Iterator it1(container.term());
-  while (it1.hasNext()) {
-    auto arg1 = it1.next();
-    if (containsUpToVariableRenaming(arg1, contained)) {
-      return true;
-    }
-  }
-  return false;
+  ASS(sets.isEmpty());
+  return true;
 }
 
 /**
@@ -90,40 +86,65 @@ bool containsUpToVariableRenaming(TermList container, TermList contained) {
  * - base cases are not checked since exhaustiveness of cases and
  *   containment of step cases implies containment of base cases too
  */
-bool checkSubsumption(const InductionScheme& sch1, const InductionScheme& sch2, bool onlyCheckIntersection = false)
+bool checkSubsumption(const InductionScheme& sch1, const InductionScheme& sch2)
 {
   CALL("checkSubsumption");
 
+  DHMap<const RDescriptionInst*, vset<const RDescriptionInst*>> sch1tosch2;
   for (const auto& rdesc1 : sch1._rDescriptionInstances) {
-    auto contained = false;
+    if (rdesc1._recursiveCalls.empty()) {
+      continue;
+    }
+    sch1tosch2.insert(&rdesc1, vset<const RDescriptionInst*>());
     for (const auto& rdesc2 : sch2._rDescriptionInstances) {
-      if (rdesc2._recursiveCalls.empty() != rdesc1._recursiveCalls.empty()) {
+      // only check recursive cases
+      if (rdesc2._recursiveCalls.empty()) {
         continue;
       }
-      bool contained1 = true;
       for (const auto& kv : rdesc1._step) {
-        if (rdesc2._step.count(kv.first) == 0) {
-          if (!onlyCheckIntersection) {
-            contained1 = false;
+        // this step of sch2 does not contain ind.var from sch1 
+        if (!rdesc2._step.count(kv.first)) {
+          continue;
+        }
+        auto s2 = rdesc2._step.at(kv.first);
+        RobSubstitution subst;
+        // try to unify the step cases
+        if (!subst.unify(s2, 0, kv.second, 1)) {
+          continue;
+        }
+        auto t = subst.apply(kv.second, 1);
+        if (t != s2) {
+          continue;
+        }
+        DHMap<size_t, vset<size_t>> rec1torec2;
+        // if successful, find pair for each recCall in sch1
+        // don't check if recCall1 or recCall2 contain kv.first
+        // as they should by definition
+        size_t i = 0;
+        for (const auto& recCall1 : rdesc1._recursiveCalls) {
+          rec1torec2.insert(i, vset<size_t>());
+          size_t j = 0;
+          for (const auto& recCall2 : rdesc2._recursiveCalls) {
+            const auto& r1 = recCall1.at(kv.first);
+            const auto& r2 = recCall2.at(kv.first);
+            if (subst.apply(r1, 1) == r2) {
+              rec1torec2.get(i).insert(j);
+            }
+            j++;
           }
-          break;
+          i++;
         }
-        const auto& s2 = rdesc2._step.at(kv.first);
-        if (!containsUpToVariableRenaming(s2, kv.second)) {
-          contained1 = false;
-          break;
+        // check if there is an injective mapping of recursive calls
+        // of sch1 to matching recursive calls of sch2
+        if (findInjectiveMapping(rec1torec2)) {
+          sch1tosch2.get(&rdesc1).insert(&rdesc2);
         }
       }
-      if (contained1) {
-        contained = true;
-        break;
-      }
-    }
-    if (!contained) {
-      return false;
     }
   }
-  return true;
+  // check if there is an injective mapping of rdesc instances
+  // of sch1 to matching rdesc instances of sch2
+  return findInjectiveMapping(sch1tosch2);
 }
 
 bool isSkolem(TermList t) {
@@ -144,7 +165,10 @@ bool canInductOn(TermList t)
   if (t.isVar()) {
     return false;
   }
-  return true;
+  return isSkolem(t);
+
+  // induct on complex terms
+  // return true;
 }
 
 bool isTermAlgebraCons(TermList t)
@@ -258,7 +282,7 @@ TermList TermOccurrenceReplacement::transformSubterm(TermList trm)
 {
   CALL("TermOccurrenceReplacement::transformSubterm");
 
-  if (trm.isVar() || _r.count(trm) == 0) {
+  if (!canInductOn(trm)) {
     return trm;
   }
 
@@ -271,10 +295,18 @@ TermList TermOccurrenceReplacement::transformSubterm(TermList trm)
   // The induction generalization heuristic is stored here:
   // - if we have only one active occurrence, induct on all
   // - otherwise only induct on the active occurrences
-  const auto& o = _o.get(trm);
-  auto oc = _oc.get(trm);
-  if (o->size() == 1 /*|| oc == o->size() + 1*/ || o->contains(_c.get(trm))) {
-    return _r.at(trm);
+  if (_r.count(trm)) {
+    const auto& o = _o.get(trm);
+    auto oc = _oc.get(trm);
+    if (o->size() == 1 /*|| oc == o->size() + 1*/ || o->contains(_c.get(trm))) {
+      return _r.at(trm);
+    }
+  }
+  if (_replaceSkolem && isSkolem(trm)) {
+    if (!_r_g.count(trm)) {
+      _r_g.insert(make_pair(trm, TermList(_v++,false)));
+    }
+    return _r_g.at(trm);
   }
   return trm;
 }
@@ -739,7 +771,8 @@ void InductionSchemeGenerator::filter()
     }
   }
 
-  for (unsigned i = 0; i < _schemes.size(); i++) {
+  for (unsigned i = 0; i < _schemes.size();) {
+    bool subsumed = false;
     for (unsigned j = i+1; j < _schemes.size();) {
       if (checkSubsumption(_schemes[j], _schemes[i])) {
         if(env.options->showInduction()){
@@ -749,9 +782,23 @@ void InductionSchemeGenerator::filter()
         }
         _schemes[j] = std::move(_schemes.back());
         _schemes.pop_back();
+      } else if (checkSubsumption(_schemes[i], _schemes[j])) {
+        if(env.options->showInduction()){
+          env.beginOutput();
+          env.out() << "[Induction] induction scheme " << _schemes[i] << " is subsumed by " << _schemes[j] << endl;
+          env.endOutput();
+        }
+        subsumed = true;
+        break;
       } else {
         j++;
       }
+    }
+    if (subsumed) {
+      _schemes[i] = std::move(_schemes.back());
+      _schemes.pop_back();
+    } else {
+      i++;
     }
   }
 }

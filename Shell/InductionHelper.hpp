@@ -53,7 +53,9 @@ class TermOccurrenceReplacement : public TermTransformer {
 public:
   TermOccurrenceReplacement(const vmap<TermList, TermList>& r,
                             const DHMap<TermList, DHSet<unsigned>*>& o,
-                            const DHMap<TermList, unsigned>& oc) : _r(r), _o(o), _oc(oc), _c() {}
+                            const DHMap<TermList, unsigned>& oc,
+                            bool replaceSkolem, unsigned& v) : _r(r), _o(o), _oc(oc),
+                              _c(), _replaceSkolem(replaceSkolem), _v(v), _r_g() {}
   TermList transformSubterm(TermList trm) override;
 
 private:
@@ -61,6 +63,9 @@ private:
   const DHMap<TermList, DHSet<unsigned>*>& _o; // set of occurrences to be replaced
   const DHMap<TermList, unsigned>& _oc;
   DHMap<TermList, unsigned> _c;                // current occurrence counts
+  bool _replaceSkolem;
+  unsigned& _v;
+  vmap<TermList, TermList> _r_g;               // generalized replacements
 };
 
 /**

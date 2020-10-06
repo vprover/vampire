@@ -462,7 +462,7 @@ Clause* Superposition::performSuperposition(
   //cout << "Check ordering on " << tgtTermS.toString() << " and " << rwTermS.toString() << endl;
 
   //check that we're not rewriting smaller subterm with larger
-  if(Ordering::isGorGEorE(ordering.compare(tgtTermS,rwTermS))) {
+  if(!eqClause->isRecursive(eqLit) && Ordering::isGorGEorE(ordering.compare(tgtTermS,rwTermS))) {
     return 0;
   }
 
