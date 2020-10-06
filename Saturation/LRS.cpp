@@ -95,7 +95,7 @@ long long LRS::estimatedReachableCount()
   CALL("LRS::estimatedReachableCount");
 
 #if DETERMINISE_LRS_LOAD
-  static std::ifstream infile("lrs_data.txt");
+  static std::ifstream infile((env.options->inputFile()+".lrs").c_str());
   long long thing;
   if (infile >> thing) {
     cout << "reading " << thing << endl;
@@ -134,7 +134,7 @@ long long LRS::estimatedReachableCount()
   finish:
 
 #if DETERMINISE_LRS_SAVE
-  static std::ofstream outfile("lrs_data.txt");
+  static std::ofstream outfile((env.options->inputFile()+".lrs").c_str());
   outfile << result << endl;
 #endif
 
