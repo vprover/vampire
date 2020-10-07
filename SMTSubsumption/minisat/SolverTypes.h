@@ -38,10 +38,19 @@ typedef int Var;
 
 
 class Lit {
+    // Values:
+    // lit_Undef: -2
+    // lit_Error: -1
+    //  Lit(0): 0
+    // ~Lit(0): 1
+    //  Lit(1): 2
+    // ~Lit(1): 3
+    //    :
+    //    :
     int     x;
 public:
     Lit() : x(2*var_Undef) {}   // (lit_Undef)
-    explicit Lit(Var var, bool sgn = false) : x((var+var) + (int)sgn) {}
+    explicit Lit(Var var, bool negative = false) : x((var+var) + (int)negative) {}
     friend Lit operator ~ (Lit p);
 
     friend bool sign  (Lit p);
@@ -54,10 +63,13 @@ public:
     friend bool operator == (Lit p, Lit q);
     friend bool operator <  (Lit p, Lit q);
 
+    bool isNegative() const { return sign(*this); }
+    bool isPositive() const { return !isNegative(); }
+
     uint hash() const { return (uint)x; }
 };
 inline Lit operator ~ (Lit p) { Lit q; q.x = p.x ^ 1; return q; }
-inline bool sign  (Lit p) { return p.x & 1; }
+inline bool sign  (Lit p) { return p.x & 1; }   // true iff negative
 inline int  var   (Lit p) { return p.x >> 1; }
 inline int  index (Lit p) { return p.x; }                // A "toInt" method that guarantees small, positive integers suitable for array indexing.
 inline Lit  toLit (int i) { Lit p; p.x = i; return p; }  // Inverse of 'index()'.
@@ -108,6 +120,9 @@ inline Clause* Clause_new(bool learnt, const vec<Lit>& ps) {
 
 // Either a pointer to a clause or a literal.
 class GClause {
+    // Discriminate on the lowest bit:
+    // - for pointer, the lowest bit is always 0 due to alignment
+    // - for Lit, we store 2*x + 1 to ensure the lowest bit is 1
     void*   data;
     GClause(void* d) : data(d) {}
 public:
@@ -119,6 +134,8 @@ public:
     Clause*     clause   () const { return (Clause*)data; }
     bool        operator == (GClause c) const { return data == c.data; }
     bool        operator != (GClause c) const { return data != c.data; }
+
+    bool isNull() const { return data == nullptr; }
 };
 inline GClause GClause_new(Lit p)     { return GClause((void*)(((intp)index(p) << 1) + 1)); }
 inline GClause GClause_new(Clause* c) { assert(((uintp)c & 1) == 0); return GClause((void*)c); }
