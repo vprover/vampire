@@ -28,6 +28,8 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include <cfloat>
 #include <new>
 
+#include "Lib/Allocator.hpp"
+
 
 namespace SMTSubsumption { namespace Minisat {
 
@@ -60,20 +62,27 @@ template<class T> static inline T max(T x, T y) { return (x > y) ? x : y; }
 
 //=================================================================================================
 // 'malloc()'-style memory allocation -- never returns NULL; aborts instead:
+// TODO: where does this abort on NULL? aren't assertions disabled in release mode?
 
 
-template<class T> static inline T* xmalloc(size_t size) {
-    T*   tmp = (T*)malloc(size * sizeof(T));
+template<class T> static inline T* xmalloc(size_t size)
+{
+    T* tmp = static_cast<T*>(ALLOC_UNKNOWN(size * sizeof(T), "SMTSubsumption::Minisat"));
     assert(size == 0 || tmp != NULL);
-    return tmp; }
+    return tmp;
+}
 
-template<class T> static inline T* xrealloc(T* ptr, size_t size) {
-    T*   tmp = (T*)realloc((void*)ptr, size * sizeof(T));
+template<class T> static inline T* xrealloc(T* ptr, size_t size)
+{
+    T* tmp = static_cast<T*>(REALLOC_UNKNOWN(ptr, size * sizeof(T), "SMTSubsumption::Minisat"));
     assert(size == 0 || tmp != NULL);
-    return tmp; }
+    return tmp;
+}
 
-template<class T> static inline void xfree(T *ptr) {
-    if (ptr != NULL) free((void*)ptr); }
+template<class T> static inline void xfree(T *ptr)
+{
+    DEALLOC_UNKNOWN(ptr, "SMTSubsumption::Minisat");
+}
 
 
 //=================================================================================================
