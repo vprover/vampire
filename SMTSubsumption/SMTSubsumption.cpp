@@ -111,6 +111,7 @@ void ProofOfConcept::test(Clause* side_premise, Clause* main_premise)
         }
         std::cerr << std::left << std::setw(20) << inst_lit->toString();
 
+        std::cerr << "binder: " << binder << std::endl;
         // TODO: from binder, create the substitution theory literals
         // WE DO NOT need separate var for boolean skeleton, attach directly to "b"
         auto atom = SubstitutionAtom::from_binder(binder);

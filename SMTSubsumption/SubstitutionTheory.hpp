@@ -8,6 +8,7 @@
 #ifndef SUBSTITUTIONTHEORY_HPP
 #define SUBSTITUTIONTHEORY_HPP
 
+#include "SMTSubsumption/MapBinder.hpp"
 #include "Kernel/Term.hpp"
 #include "Lib/STL.hpp"
 #include "SMTSubsumption/minisat/SolverTypes.h"
@@ -17,58 +18,6 @@
 namespace SMTSubsumption {
 
 using namespace Kernel;
-
-
-/**
- * This class implements the Binder interface as described in Kernel/Matcher.hpp.
- * TODO: we probably want to store in a vector
- */
-class MapBinder
-{
-  CLASS_NAME(MapBinder);
-  USE_ALLOCATOR(MapBinder);
-
-  public:
-    using Var = unsigned int;
-    using BindingsMap = vunordered_map<Var, TermList>;
-
-    MapBinder()
-      : m_bindings(16)
-    { }
-
-    explicit
-    MapBinder(BindingsMap&& bindings)
-      : m_bindings(std::move(bindings))
-    { }
-
-    bool bind(Var var, TermList term)
-    {
-      auto result = m_bindings.insert({var, term});
-      auto it = result.first;
-      bool inserted = result.second;
-      // If the variable is already bound, it must be bound to the same term.
-      return inserted || (it->second == term);
-    }
-
-    void specVar(Var var, TermList term)
-    {
-      ASSERTION_VIOLATION;
-    }
-
-    void reset()
-    {
-      m_bindings.clear();
-    }
-
-    BindingsMap const& bindings() const
-    {
-      return m_bindings;
-    }
-
-  private:
-    BindingsMap m_bindings;
-};
-
 
 
 /// Domain of the substitution: Vampire's FOL variables
