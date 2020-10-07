@@ -178,7 +178,7 @@ public:
   void preprocess(Problem& prb);
 private:
   void preprocess(UnitList* units);
-  void processBody(TermList& body, TermList& header, InductionTemplate& templ);
+  void processBody(TermList& body, TermList header, InductionTemplate& templ);
 
   void processCase(const unsigned recFun, TermList& body, vvector<TermList>& recursiveCalls);
   unsigned findMatchedArgument(unsigned matched, TermList& header);

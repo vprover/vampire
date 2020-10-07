@@ -208,6 +208,24 @@ vvector<TermList> getInductionTerms(TermList t)
     v.push_back(t);
     return v;
   }
+  unsigned f = t.term()->functor();
+  bool isPred = t.term()->isLiteral();
+
+  // If function with recursive definition,
+  // recurse in its active arguments
+  if (env.signature->hasInductionTemplate(f, isPred)) {
+    auto& templ = env.signature->getInductionTemplate(f, isPred);
+    const auto& indVars = templ._inductionVariables;
+
+    IteratorByInductiveVariables argIt(t.term(), indVars);
+    bool match = true;
+    while (argIt.hasNext()) {
+      auto arg = argIt.next();
+      auto indTerms = getInductionTerms(arg);
+      v.insert(v.end(), indTerms.begin(), indTerms.end());
+    }
+    return v;
+  }
   if (!isTermAlgebraCons(t)) {
     return v;
   }
@@ -596,7 +614,7 @@ void InductionPreprocessor::preprocess(UnitList* units)
   }
 }
 
-void InductionPreprocessor::processBody(TermList& body, TermList& header, InductionTemplate& templ)
+void InductionPreprocessor::processBody(TermList& body, TermList header, InductionTemplate& templ)
 {
   CALL("InductionPreprocessor::processBody");
 
@@ -626,6 +644,12 @@ void InductionPreprocessor::processBody(TermList& body, TermList& header, Induct
       TermList t(tr.transform(header.term()));
       processBody(*matchBody, t, templ);
     }
+  }
+  else if (term->isITE())
+  {
+    // TODO(mhajdu): Add condition here
+    processBody(*term->nthArgument(0), header, templ);
+    processBody(*term->nthArgument(1), header, templ);
   }
 }
 
