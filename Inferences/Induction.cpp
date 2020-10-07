@@ -784,12 +784,21 @@ void InductionClauseIterator::instantiateScheme(Clause* premise, Literal* lit, I
     }
 
     Formula* res = nullptr;
-  if (hyp == 0) {
+    if (hyp == 0) {
       // base case
       res = right;
     } else {
       auto left = JunctionFormula::generalJunction(Connective::AND,hyp);
       res = new BinaryFormula(Connective::IMP,left,right);
+    }
+    // add conditions
+    if (!desc._conditions.empty()) {
+      FormulaList* conds = FormulaList::empty();
+      for (const auto& cond : desc._conditions) {
+        conds = new FormulaList(cond, conds);
+      }
+      auto premise = JunctionFormula::generalJunction(Connective::AND,conds);
+      res = new BinaryFormula(Connective::IMP,premise,res);
     }
     formulas = new FormulaList(Formula::quantify(res), formulas);
   }

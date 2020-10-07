@@ -113,14 +113,16 @@ private:
  */
 struct RDescription {
   RDescription(const vvector<TermList>& recursiveCalls,
-               TermList step)
-    : _recursiveCalls(recursiveCalls), _step(step) {}
+               TermList step,
+               const vvector<Formula*>& conditions)
+    : _recursiveCalls(recursiveCalls), _step(step), _conditions(conditions) {}
 
-  RDescription(TermList step)
-    : _recursiveCalls(), _step(step) {}
+  RDescription(TermList step, const vvector<Formula*>& conditions)
+    : _recursiveCalls(), _step(step), _conditions(conditions) {}
 
   vvector<TermList> _recursiveCalls;
   TermList _step;
+  vvector<Formula*> _conditions;
 };
 
 ostream& operator<<(ostream& out, const RDescription& rdesc);
@@ -134,11 +136,13 @@ ostream& operator<<(ostream& out, const RDescription& rdesc);
  */
 struct RDescriptionInst {
   RDescriptionInst(vvector<vmap<TermList, TermList>>&& recursiveCalls,
-                   vmap<TermList, TermList>&& step)
-    : _recursiveCalls(recursiveCalls), _step(step) {}
+                   vmap<TermList, TermList>&& step,
+                   vvector<Formula*>&& conditions)
+    : _recursiveCalls(recursiveCalls), _step(step), _conditions(conditions) {}
 
   vvector<vmap<TermList, TermList>> _recursiveCalls;
   vmap<TermList, TermList> _step;
+  vvector<Formula*> _conditions;
 };
 
 ostream& operator<<(ostream& out, const RDescriptionInst& inst);
@@ -178,10 +182,8 @@ public:
   void preprocess(Problem& prb);
 private:
   void preprocess(UnitList* units);
-  void processBody(TermList& body, TermList header, InductionTemplate& templ);
-
+  void processBody(TermList& body, TermList header, vvector<Formula*> conditions, InductionTemplate& templ);
   void processCase(const unsigned recFun, TermList& body, vvector<TermList>& recursiveCalls);
-  unsigned findMatchedArgument(unsigned matched, TermList& header);
 };
 
 /**
