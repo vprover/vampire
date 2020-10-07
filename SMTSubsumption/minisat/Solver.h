@@ -23,6 +23,8 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include "SMTSubsumption/minisat/SolverTypes.h"
 #include "SMTSubsumption/minisat/VarOrder.h"
 
+#include "SMTSubsumption/SubstitutionTheory.hpp"
+
 
 namespace SMTSubsumption { namespace Minisat {
 
@@ -87,6 +89,9 @@ protected:
     vec<Lit>            addBinary_tmp;
     vec<Lit>            addTernary_tmp;
 
+    // Theory state
+    SMTSubsumption::SubstitutionTheory  subst_theory;
+
     // Main internal methods:
     //
     bool        assume           (Lit p);
@@ -148,6 +153,11 @@ public:
                 addBinary_tmp .growTo(2);
                 addTernary_tmp.growTo(3);
              }
+
+   void setSubstitutionTheory(SMTSubsumption::SubstitutionTheoryConfiguration&& st_config)
+   {
+     subst_theory = SMTSubsumption::SubstitutionTheory(std::move(st_config));
+   }
 
    ~Solver() {
        for (int i = 0; i < learnts.size(); i++) remove(learnts[i], true);

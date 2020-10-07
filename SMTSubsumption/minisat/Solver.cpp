@@ -458,6 +458,21 @@ Clause* Solver::propagate()
         vec<GClause>&  ws  = watches[index(p)];
         GClause*       i,* j, *end;
 
+        // Theory propagation
+        if (p.isPositive()) {
+          subst_theory.enable(var(p), [this](Lit propagated_lit, GClause reason) {
+            std::cerr << "propagated: " << (propagated_lit.isNegative() ? '~' : ' ') << var(propagated_lit) << std::endl;
+            bool res = enqueue(propagated_lit, reason);
+            std::cerr << "enqueue returned: " << res << std::endl;
+            if (!res) {
+              // CONFLICT
+              // TODO: we probably want to stop propagating and exit.
+            }
+            return res;
+          });
+          // TODO: maybe we have to do something here in case we reached a conflict by propagation
+        }
+
         for (i = j = (GClause*)ws, end = i + ws.size();  i != end;){
             if (i->isLit()){
                 if (!enqueue(i->lit(), GClause_new(p))){

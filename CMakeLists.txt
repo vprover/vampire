@@ -768,6 +768,8 @@ set(VAMPIRE_SMT_SUBSUMPTION_SOURCES
 
     SMTSubsumption/SMTSubsumption.cpp
     SMTSubsumption/SMTSubsumption.hpp
+    SMTSubsumption/SubstitutionTheory.cpp
+    SMTSubsumption/SubstitutionTheory.hpp
     )
 source_group(sat_source_files FILES ${VAMPIRE_SAT_SOURCES})
 
