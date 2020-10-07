@@ -266,19 +266,6 @@ const lbool l_False = toLbool(-1);
 const lbool l_Undef = toLbool( 0);
 
 
-//=================================================================================================
-// Relation operators -- extend definitions from '==' and '<'
-
-
-#ifndef __SGI_STL_INTERNAL_RELOPS   // (be aware of SGI's STL implementation...)
-#define __SGI_STL_INTERNAL_RELOPS
-template <class T> static inline bool operator != (const T& x, const T& y) { return !(x == y); }
-template <class T> static inline bool operator >  (const T& x, const T& y) { return y < x;     }
-template <class T> static inline bool operator <= (const T& x, const T& y) { return !(y < x);  }
-template <class T> static inline bool operator >= (const T& x, const T& y) { return !(x < y);  }
-#endif
-
-
 } }
 
 //=================================================================================================
