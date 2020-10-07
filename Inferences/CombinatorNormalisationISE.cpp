@@ -75,14 +75,8 @@ Clause* CombinatorNormalisationISE::simplify(Clause* c)
     return c;
   }
 
-  Inference* inference = new Inference1(Inference::COMBINATOR_NORMALISE, c);
-  Clause* newC = Clause::fromStack(litStack, c->inputType(), inference);
-  newC->setAge(c->age());
-  /*if(c->number() == 1620){
-    //cout << "into CombinatorNormalisationISE " + c->toString() << endl;
-    cout << "out of CombinatorNormalisationISE " + newC->toString() << endl;
-  }*/
-  //if(!newC){ cout << "RETURNING NULL CLAUSE" << endl; }
+  Clause* newC = Clause::fromStack(litStack, SimplifyingInference1(InferenceRule::COMBINATOR_NORMALISE, c));
+  
   return newC;
 }
 

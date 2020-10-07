@@ -131,11 +131,6 @@ struct BackwardDemodulation::ResultFn
       return BwSimplificationRecord(0);
     }
 
-    /*cout << "The equality clause is " + _cl->toString() << endl;
-    cout << "The rewrite clause is " + qr.clause->toString() << endl;
-    cout << "the rewrite literal is " + qr.literal->toString() << endl;
-    cout << "the rewrite term is " + qr.term.toString() << endl;*/
-
     TermList qrSort = SortHelper::getTermSort(qr.term, qr.literal);
     static RobSubstitution sub;
     sub.reset();
@@ -211,14 +206,9 @@ struct BackwardDemodulation::ResultFn
       return BwSimplificationRecord(qr.clause);
     }
 
-
-    Inference* inf = new Inference2(Inference::BACKWARD_DEMODULATION, _cl, qr.clause);
-    Unit::InputType inpType = (Unit::InputType)
-    Int::max(_cl->inputType(), qr.clause->inputType());
-
     unsigned cLen=qr.clause->length();
-    Clause* res = new(cLen) Clause(cLen, inpType, inf);
-
+    Clause* res = new(cLen) Clause(cLen, SimplifyingInference2(InferenceRule::BACKWARD_DEMODULATION, qr.clause, _cl));
+    
     (*res)[0]=resLit;
 
     unsigned next=1;

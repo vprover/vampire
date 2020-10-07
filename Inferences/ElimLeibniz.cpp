@@ -95,9 +95,8 @@ Clause* ElimLeibniz::createConclusion(Clause* premise, Literal* newLit,
                                       Literal* posLit, Literal* negLit, RobSubstitution& subst){
   CALL("ElimLeibniz::createConclusion");
 
-  unsigned newLen=premise->length() -1;
-  Inference* inf = new Inference1(Inference::LEIBNIZ_ELIMINATION, premise);
-  Clause* res = new(newLen) Clause(newLen, premise->inputType(), inf);
+  unsigned newLen=premise->length() - 1;
+  Clause* res = new(newLen) Clause(newLen, GeneratingInference1(InferenceRule::LEIBNIZ_ELIMINATION, premise));
   Literal* newLitAfter = subst.apply(newLit, 0);
 
   unsigned next = 0;
@@ -173,6 +172,7 @@ afterLoop:
   TermList t1 = AH::createAppTerm(SH::getResultSort(vEquals.term()), vEquals, lerNegLit.arg);
   if(subst.unify(var, 0, t1, 0)){
     Clause* c = createConclusion(premise, newLit, posLit, negLit, subst);
+    clauses.push(c);
     subst.reset();
   }
 

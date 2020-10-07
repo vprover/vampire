@@ -111,9 +111,7 @@ ClauseIterator Injectivity::generateClauses(Clause* premise) {
   TermList sort = SortHelper::getResultSort(newLhs.term());
   Literal* lit = Literal::createEquality(true, newLhs, differingArg, sort);
 
-  Inference* inference = new Inference1(Inference::INJECTIVITY, premise);
-  Clause* conclusion = new(1) Clause(1, premise->inputType(), inference);
-  conclusion->setAge(premise->age() + 1);
+  Clause* conclusion = new(1) Clause(1, GeneratingInference1(InferenceRule::INJECTIVITY, premise));
 
   (*conclusion)[0] = lit;
 

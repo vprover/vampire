@@ -103,8 +103,7 @@ struct PrimitiveInstantiation::ResultFn
 
     unsigned cLen = _cl->length(); 
    
-    Inference* inf = new Inference1(Inference::PRIMITIVE_INSTANTIATION, _cl); 
-    Clause* res = new(cLen) Clause(cLen, _cl->inputType(), inf);
+    Clause* res = new(cLen) Clause(cLen, GeneratingInference1(InferenceRule::PRIMITIVE_INSTANTIATION, _cl));
 
     for(unsigned i=0;i<cLen;i++) {
       Literal* curr=(*_cl)[i];
@@ -112,7 +111,6 @@ struct PrimitiveInstantiation::ResultFn
       (*res)[i] = currAfter;
     }
 
-    res->setAge(_cl->age()+1);
     env.statistics->primitiveInstantiations++;  
     return res;
   }

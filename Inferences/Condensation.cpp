@@ -88,11 +88,8 @@ Clause* Condensation::simplify(Clause* cl)
     // apply the subst to l1 and search for instances of this in the clause
     // (note that this is symmetric to applying subst to l2)
     SubstIterator sit=subst0.unifiers(l1,0,l2,0,false);
-    //cout << "unified " + l1->toString() << endl;
-    //cout << "and " + l2->toString() << endl;
     while(sit.hasNext()) {
       RobSubstitution* subst=sit.next();
-      //cout << "the unifier is " + subst->toString() << endl;
       alts.init(newLen,0);
       bool success=false;
 
@@ -142,16 +139,13 @@ Clause* Condensation::simplify(Clause* cl)
       }
 
       if(success) {
-        Inference* inf = new Inference1(Inference::CONDENSATION, cl);
-        Unit::InputType inpType = cl->inputType();
-        Clause* res = new(newLen) Clause(newLen, inpType, inf);
+        Clause* res = new(newLen) Clause(newLen, SimplifyingInference1(InferenceRule::CONDENSATION, cl));
         Renaming norm;
 
         for(unsigned i=0;i<newLen;i++) {
           //(*res)[i] = norm.normalize(newLits[i]);
           (*res)[i] = newLits[i];
         }
-        res->setAge(cl->age());
         env.statistics->condensations++;
         return res;
       }

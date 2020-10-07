@@ -40,8 +40,6 @@ class BoolSimp : public ImmediateSimplificationEngine
   private:
     TermList boolSimplify(TermList term); 
     TermList negate(TermList term);
-    bool isTrue(TermList term); 
-    bool isFalse(TermList term); 
     bool areComplements(TermList t1, TermList t2);
 };
 

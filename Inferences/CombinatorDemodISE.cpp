@@ -83,10 +83,9 @@ Clause* CombinatorDemodISE::simplify(Clause* c)
     return c;
   }
 
-  Inference* inference = new Inference1(Inference::COMBINATOR_DEMOD, c);
-  Clause* newC = Clause::fromStack(litStack, c->inputType(), inference);
-  newC->setAge(c->age());
-  newC->increaseReductions(length);
+  Inference inf = SimplifyingInference1(InferenceRule::COMBINATOR_DEMOD, c);
+  inf.increaseReductions(length);
+  Clause* newC = Clause::fromStack(litStack, inf);
   /*if(c->number() == 1620){
     cout << "out of CombinatorDemodISE " + newC->toString() << endl;
   }*/

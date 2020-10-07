@@ -158,8 +158,7 @@ struct EqualityFactoring::ResultFn
     }
 
     unsigned newLen=_cLen+cLength;
-    Inference* inf = new Inference1(Inference::EQUALITY_FACTORING, _cl);
-    Clause* res = new(newLen) Clause(newLen, _cl->inputType(), inf);
+    Clause* res = new(newLen) Clause(newLen, GeneratingInference1(InferenceRule::EQUALITY_FACTORING, _cl));
 
     (*res)[0]=Literal::createEquality(false, sRHSS, fRHSS, srtS);
 

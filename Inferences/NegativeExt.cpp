@@ -164,8 +164,7 @@ struct NegativeExt::ResultFn
 
     Literal* newLit = Literal::createEquality(false, newLhs, newRhs, alpha2);
 
-    Inference* inf = new Inference1(Inference::NEGATIVE_EXT, _cl);
-    Clause* res = new(_cLen) Clause(_cLen, _cl->inputType(), inf);
+    Clause* res = new(_cLen) Clause(_cLen, GeneratingInference1(InferenceRule::NEGATIVE_EXT, _cl));
 
     for(unsigned i=0;i<_cLen;i++) {
       Literal* curr=(*_cl)[i];
@@ -176,7 +175,6 @@ struct NegativeExt::ResultFn
       }
     }
 
-    res->setAge(_cl->age()+1);
     env.statistics->negativeExtensionality++;
  
     /*if(_cl->number() == 55){

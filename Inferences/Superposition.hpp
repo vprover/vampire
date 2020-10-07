@@ -51,16 +51,18 @@ public:
 
 private:
   Clause* performSuperposition(
-	  Clause* rwClause, Literal* rwLiteral, TermList rwTerm,
-	  Clause* eqClause, Literal* eqLiteral, TermList eqLHS,
-	  ResultSubstitutionSP subst, bool eqIsResult, Limits* limits,
+    Clause* rwClause, Literal* rwLiteral, TermList rwTerm,
+    Clause* eqClause, Literal* eqLiteral, TermList eqLHS,
+    ResultSubstitutionSP subst, bool eqIsResult, PassiveClauseContainer* passiveClauseContainer,
           UnificationConstraintStackSP constraints, bool isTypeSub);
 
   bool checkClauseColorCompatibility(Clause* eqClause, Clause* rwClause);
   static int getWeightLimit(Clause* eqClause, Clause* rwClause, Limits* limits);
+  
   static bool earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,
       Clause* rwClause, Literal* rwLit, TermList rwTerm, TermList eqLHS, TermList eqRHS,
-      ResultSubstitutionSP subst, bool eqIsResult, int weightLimit);
+      ResultSubstitutionSP subst, bool eqIsResult, PassiveClauseContainer* passiveClauseContainer, unsigned numPositiveLiteralsLowerBound, const Inference& inf);
+
 
   static bool checkSuperpositionFromVariable(Clause* eqClause, Literal* eqLit, TermList eqLHS);
 

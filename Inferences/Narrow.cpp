@@ -206,7 +206,6 @@ Clause* Narrow::performNarrow(
 
   //cout << "Check ordering on " << tgtTermS.toString() << " and " << rwTermS.toString() << endl;
 
-    //check that we're not rewriting only the smaller side of an equality
   TermList arg0=*nLiteralS->nthArgument(0);
   TermList arg1=*nLiteralS->nthArgument(1);
 
@@ -227,32 +226,33 @@ Clause* Narrow::performNarrow(
     return 0;
   }
 
-  Inference* inf;
+  Inference inf;
   if(comb == Signature::S_COMB && argNum == 1){
-    inf = new Inference1(Inference::SXX_NARROW, nClause);
+    inf = GeneratingInference1(InferenceRule::SXX_NARROW, nClause);
   } else if(comb == Signature::S_COMB && argNum == 2){
-    inf = new Inference1(Inference::SX_NARROW, nClause);
+    inf = GeneratingInference1(InferenceRule::SX_NARROW, nClause);
   } else if(comb == Signature::S_COMB && argNum == 3){
-    inf = new Inference1(Inference::S_NARROW, nClause);
+    inf = GeneratingInference1(InferenceRule::S_NARROW, nClause);
   } else if(comb == Signature::C_COMB && argNum == 1){
-    inf = new Inference1(Inference::CXX_NARROW, nClause);
+    inf = GeneratingInference1(InferenceRule::CXX_NARROW, nClause);
   } else if(comb == Signature::C_COMB && argNum == 2){
-    inf = new Inference1(Inference::CX_NARROW, nClause);
+    inf = GeneratingInference1(InferenceRule::CX_NARROW, nClause);
   } else if(comb == Signature::C_COMB && argNum == 3){
-    inf = new Inference1(Inference::C_NARROW, nClause);
+    inf = GeneratingInference1(InferenceRule::C_NARROW, nClause);
   } else if(comb == Signature::B_COMB && argNum == 1){
-    inf = new Inference1(Inference::BXX_NARROW, nClause);
+    inf = GeneratingInference1(InferenceRule::BXX_NARROW, nClause);
   } else if(comb == Signature::B_COMB && argNum == 2){
-    inf = new Inference1(Inference::BX_NARROW, nClause);
+    inf = GeneratingInference1(InferenceRule::BX_NARROW, nClause);
   } else if(comb == Signature::B_COMB && argNum == 3){
-    inf = new Inference1(Inference::B_NARROW, nClause);
+    inf = GeneratingInference1(InferenceRule::B_NARROW, nClause);
   } else if(comb == Signature::K_COMB && argNum == 1){
-    inf = new Inference1(Inference::KX_NARROW, nClause);
+    inf = GeneratingInference1(InferenceRule::KX_NARROW, nClause);
   } else if(comb == Signature::K_COMB && argNum == 2){
-    inf = new Inference1(Inference::K_NARROW, nClause);
+    inf = GeneratingInference1(InferenceRule::K_NARROW, nClause);
   } else {
-    inf = new Inference1(Inference::I_NARROW, nClause);    
+    inf = GeneratingInference1(InferenceRule::I_NARROW, nClause);   
   }
+  if(incr){ inf.incXXNarrows(); }
 
   // If proof extra is on let's compute the positions we have performed
   // Narrow on 
@@ -263,7 +263,7 @@ Clause* Narrow::performNarrow(
 
   bool afterCheck = getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete();
 
-  Clause* res = new(cLen) Clause(cLen, nClause->inputType(), inf);
+  Clause* res = new(cLen) Clause(cLen, inf);
 
   (*res)[0] = tgtLitS;
   int next = 1;
@@ -287,12 +287,7 @@ Clause* Narrow::performNarrow(
     }
   }
 
-  res->setAge(nClause->age() + 1);
-  if(incr){ res->incXXNarrows(); }
   env.statistics->narrow++;
-  /*if(nClause->number() == 276){
-    cout << "returning " + res->toString() << endl;
-  }*/
   return res;
 
 construction_fail:

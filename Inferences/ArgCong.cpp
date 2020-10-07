@@ -109,8 +109,7 @@ struct ArgCong::ResultFn
 
     Literal* newLit = Literal::createEquality(true, newLhs, newRhs, alpha2);
 
-    Inference* inf = new Inference1(Inference::ARG_CONG, _cl);
-    Clause* res = new(_cLen) Clause(_cLen, _cl->inputType(), inf);
+    Clause* res = new(_cLen) Clause(_cLen, GeneratingInference1(InferenceRule::ARG_CONG, _cl));
 
     for(unsigned i=0;i<_cLen;i++) {
       Literal* curr=(*_cl)[i];
@@ -136,7 +135,6 @@ struct ArgCong::ResultFn
       }
     }
 
-    res->setAge(_cl->age()+1);
     env.statistics->argumentCongruence++;
 
     return res;

@@ -26,7 +26,6 @@
 #include "Lib/VirtualIterator.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/PairUtils.hpp"
-#include "Lib/Set.hpp"
 
 #include "Lib/Environment.hpp"
 #include "Shell/Statistics.hpp"
@@ -108,8 +107,7 @@ struct EqualityResolution::ResultFn
 
     unsigned newLen=_cLen-1+cLength;
 
-    Inference* inf = new Inference1(Inference::EQUALITY_RESOLUTION, _cl);
-    Clause* res = new(newLen) Clause(newLen, _cl->inputType(), inf);
+    Clause* res = new(newLen) Clause(newLen, GeneratingInference1(InferenceRule::EQUALITY_RESOLUTION, _cl));
 
     Literal* litAfter = 0;
 
@@ -153,7 +151,6 @@ struct EqualityResolution::ResultFn
     }
     ASS_EQ(next,newLen);
 
-    res->setAge(_cl->age()+1);
     env.statistics->equalityResolution++;
 
     return res;

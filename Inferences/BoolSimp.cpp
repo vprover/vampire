@@ -65,10 +65,7 @@ Clause* BoolSimp::simplify(Clause* premise) {
 substitution:
 
   unsigned conclusionLength = premise->length();
-  Inference* inference = new Inference1(Inference::BOOL_SIMP, premise);
-
-  Clause* conclusion = new(conclusionLength) Clause(conclusionLength, premise->inputType(), inference);
-  conclusion->setAge(premise->age() + 1);
+  Clause* conclusion = new(conclusionLength) Clause(conclusionLength, SimplifyingInference1(InferenceRule::BOOL_SIMP, premise));
 
   for (unsigned i = 0; i < conclusion->length(); i++) {
     (*conclusion)[i] = i == literalPosition ? EqHelper::replace((*premise)[i], subTerm, simpedSubTerm) : (*premise)[i];
@@ -76,14 +73,6 @@ substitution:
 
   env.statistics->booleanSimps++;
   return conclusion;
-}
-
-bool BoolSimp::isTrue(TermList term){
-  return term.isTerm() && env.signature->isFoolConstantSymbol(true, term.term()->functor());
-}
-
-bool BoolSimp::isFalse(TermList term){
-  return term.isTerm() && env.signature->isFoolConstantSymbol(false, term.term()->functor());
 }
 
 bool BoolSimp::areComplements(TermList t1, TermList t2){

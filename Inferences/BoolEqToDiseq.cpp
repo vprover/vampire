@@ -101,10 +101,7 @@ ClauseIterator BoolEqToDiseq::generateClauses(Clause* cl)
 
 afterLoop:
 
-  Inference* inf = new Inference1(Inference::EQ_TO_DISEQ, cl);
-
-  Clause* res = new(cl->length()) Clause(cl->length(), cl->inputType(), inf);
-  res->setAge(cl->age() + 1);
+  Clause* res = new(cl->length()) Clause(cl->length(), GeneratingInference1(InferenceRule::EQ_TO_DISEQ, cl));
 
   for (unsigned i = 0; i < res->length(); i++) {
     (*res)[i] = i == pos ? newLit : (*cl)[i];
