@@ -118,13 +118,13 @@ Optional<LitEvalResult> evaluate(Literal* lit)
 
     auto _simpl = [](Clause* cl) -> Clause* 
     {
-      PolynomialNormalization norm;
+      PolynomialNormalization norm(*Ordering::tryGetGlobalOrdering());
       PushUnaryMinus uminus;
-      Cancellation cancel;
+      Cancellation cancel(*Ordering::tryGetGlobalOrdering());
       if (cl == nullptr) {
         return cl;
       } else {
-        return norm.simplify(cancel.simplify(uminus.simplify(cl)));
+        return norm.MaybeImmediateSimplification::simplify(cancel.MaybeImmediateSimplification::simplify(uminus.simplify(cl)));
       }
     };
 

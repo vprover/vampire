@@ -7,7 +7,7 @@
 #include "Kernel/Ordering.hpp"
 #include "Shell/Statistics.hpp"
 
-#define DEBUG(...) // DBG(__VA_ARGS__)
+#define DEBUG(...) DBG(__VA_ARGS__)
 
 namespace Inferences {
 
@@ -772,6 +772,7 @@ UniqueShared<Polynom<NumTraits>> GeneralizeAdd<NumTraits>::generalize(
 }
 
 
+struct Unit{};
 
 template<class NumTraits>
 template<class GenMap>
@@ -782,11 +783,16 @@ void GeneralizeAdd<NumTraits>::addToMap(GenMap& map, AnyPoly p_)
     return;
   }
   auto p = p_.template unwrapType<NumTraits>();
-
+ 
+  DBGE(p);
+  Map<Variable, Unit> varSummands;
   for (auto summand : p->iter()) {
     auto var = summand.tryVar();
-    if (var.isSome()) {
+    DBGE(var);
+
+    if (var.isSome() && varSummands.tryGet(var.unwrap()).isNone()) {
       auto v = var.unwrap();
+      varSummands.insert(v, Unit{});
       auto gen = GeneralizeAdd<NumTraits>(v, p);
       map.updateOrInit(v,
           [&](GeneralizeAdd<NumTraits> old) { return move(old).meet(move(gen)); },

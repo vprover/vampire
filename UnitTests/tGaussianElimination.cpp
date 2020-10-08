@@ -43,9 +43,9 @@ public:
     KBO ord = KBO::testKBO();
     auto simpl = [](Clause* cl)  -> Clause*
     {
-      static PolynomialNormalization eval;
-      static Cancellation cancel;
-      return cancel.simplify(eval.simplify(cl));
+      static PolynomialNormalization eval(*Ordering::tryGetGlobalOrdering());
+      static Cancellation cancel(*Ordering::tryGetGlobalOrdering());
+      return cancel.MaybeImmediateSimplification::simplify(eval.MaybeImmediateSimplification::simplify(cl));
     };
     static GaussianVariableElimination gve = GaussianVariableElimination();
 
@@ -54,7 +54,7 @@ public:
     Kernel::Clause* latest = simpl(in);
     do {
       last = latest;
-      latest = simpl(gve.simplify(last));
+      latest = simpl(gve.MaybeImmediateSimplification::simplify(last));
     } while (latest != last);
     return latest;
   }

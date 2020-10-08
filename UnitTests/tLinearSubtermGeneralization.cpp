@@ -651,6 +651,11 @@ TEST_SIMPLIFY_REAL(bug_01,
       .input    = clause({ x * (y + z) == x * y + x * z }), 
     })
 
+TEST_SIMPLIFY_NUMBER(bug_02,
+    Simplification::NotApplicable {
+      .input    = clause({ ((x+(1*x)) + ((1*y)+y)) == (2*(x+y))}), 
+    })
+
 // TODO: what about { y = 0 \/ p(y*x) } ===> { p(x) }
 // TODO: what about { p(f * x) } ===> { p(x) } if f isNonZero
 // TODO: what about { p(f * x) } ===> { p(0) } if f isZero
