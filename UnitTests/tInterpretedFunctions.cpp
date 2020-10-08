@@ -482,6 +482,11 @@ INT_TEST(eval_quotientE_3,
     r(                  -3 ,                1 )
     )
 
+INT_TEST(eval_quotientE_4,
+    p(quotientT(x, 1)),
+    p(0)
+    )
+
 INT_TEST(eval_quotientF_1,
     r(quotientF(num(7), 2), remainderF(num(7), 2)),
     r(                  3,                     1)
