@@ -31,6 +31,7 @@
 #include "Lib/Environment.hpp"
 #include "Lib/TimeCounter.hpp"
 #include "Lib/Timer.hpp"
+#include "SAT/Z3Interfacing.hpp"
 
 #include "Shell/UIHelper.hpp"
 
@@ -203,6 +204,10 @@ void Statistics::print(ostream& out)
   out << "------------------------------\n";
   addCommentSignForSZS(out);
   out << "Version: " << VERSION_STRING << endl;
+#if VZ3
+  addCommentSignForSZS(out);
+  out << "Linked with Z3 " << Z3Interfacing::z3_full_version() << endl;
+#endif
 
   addCommentSignForSZS(out);
   out << "Termination reason: ";

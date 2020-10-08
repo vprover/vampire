@@ -769,4 +769,15 @@ bool Clause::contains(Literal* lit)
   return false;
 }
 
+std::ostream& operator<<(std::ostream& out, Clause::Store const& store) 
+{
+  switch (store) {
+    case Clause::PASSIVE:     return out << "PASSIVE";
+    case Clause::ACTIVE:      return out << "ACTIVE";
+    case Clause::UNPROCESSED: return out << "UNPROCESSED";
+    case Clause::NONE:        return out << "NONE";
+    case Clause::SELECTED:    return out << "SELECTED";
+  }
+}
+
 }

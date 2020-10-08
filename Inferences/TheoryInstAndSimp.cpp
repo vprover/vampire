@@ -70,7 +70,7 @@ void TheoryInstAndSimp::attach(SaturationAlgorithm* salg)
 {
   CALL("Superposition::attach");
 
-  GeneratingInferenceEngine::attach(salg);
+  SimplifyingGeneratingInference::attach(salg);
   _splitter = salg->getSplitter();
 }
 
@@ -834,11 +834,18 @@ private:
   bool& _red;
 };
 
-ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise,bool& premiseRedundant)
+SimplifyingGeneratingInference::ClauseGenerationResult TheoryInstAndSimp::generateClauses(Clause* premise)
 {
   CALL("TheoryInstAndSimp::generateClauses");
 
-  if(premise->isPureTheoryDescendant()){ return ClauseIterator::getEmpty(); }
+  auto empty = ClauseGenerationResult {
+    .clauses          = ClauseIterator::getEmpty(),
+    .premiseRedundant = false,
+  };
+
+  if(premise->isPureTheoryDescendant()){ 
+    return empty;
+  }
 
   static Options::TheoryInstSimp thi = env.options->theoryInstAndSimp();
 
@@ -855,7 +862,7 @@ ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise,bool& premiseR
 
   // if there are no eligable theory literals selected then there is nothing to do
   if(selectedLiterals.isEmpty()){
-        return ClauseIterator::getEmpty();
+    return empty;
   }
 
   // we have an eligable candidate
@@ -893,7 +900,7 @@ ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise,bool& premiseR
 #endif
     if(theoryLiterals.isEmpty()){
        //cout << "None" << endl;
-       return ClauseIterator::getEmpty();
+       return empty;
     }
     selectedLiterals.reset();
     selectedLiterals.loadFromIterator(Stack<Literal*>::Iterator(theoryLiterals));
@@ -901,6 +908,7 @@ ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise,bool& premiseR
 
   {
     TimeCounter t(TC_THEORY_INST_SIMP);
+    bool premiseRedundant = false;
 
     //auto it1 = getSolutions(theoryLiterals);
     auto it1 = getSolutions(selectedLiterals);
@@ -914,8 +922,27 @@ ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise,bool& premiseR
     // measure time of the overall processing
     auto it4 = getTimeCountedIterator(it3,TC_THEORY_INST_SIMP);
 
-    return pvi(it4);
+    auto clauses =  getPersistentIterator(it4);
+    if (premiseRedundant && env.options->thiTautologyDeletion()) {
+
+      return ClauseGenerationResult {
+        .clauses          = ClauseIterator::getEmpty(),
+        .premiseRedundant = true,
+      };
+    } else {
+
+      return ClauseGenerationResult {
+        .clauses          = clauses,
+        .premiseRedundant = false,
+      };
+    }
   }
+}
+
+std::ostream& operator<<(std::ostream& out, Solution const& self) 
+{
+  return out << "Solution(" << (self.status ? "sat" : "unsat") << ", " << self.subst << ")";
+  // return out;
 }
 
 }

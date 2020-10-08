@@ -212,9 +212,6 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
     _fwSimplifiers(0), _bwSimplifiers(0), _splitter(0),
     _consFinder(0), _labelFinder(0), _symEl(0), _answerLiteralManager(0),
     _instantiation(0),
-#if VZ3
-    _theoryInstSimp(0),
-#endif
     _generatedClauseCount(0),
     _activationLimit(0)
 {
@@ -1082,6 +1079,12 @@ void SaturationAlgorithm::addToPassive(Clause* cl)
   }
 }
 
+void SaturationAlgorithm::removeSelected(Clause* cl)
+{
+  ASS_EQ(cl->store(), Clause::SELECTED)
+  cl->setStore(Clause::NONE);
+}
+
 /**
  * Activate clause @b cl
  *
@@ -1094,30 +1097,18 @@ void SaturationAlgorithm::addToPassive(Clause* cl)
  * function are postponed. During the clause activation, generalisation
  * indexes should not be modified.
  */
-bool SaturationAlgorithm::activate(Clause* cl)
+void SaturationAlgorithm::activate(Clause* cl)
 {
   CALL("SaturationAlgorithm::activate");
 
   if (_consFinder && _consFinder->isRedundant(cl)) {
-    return false;
+    return removeSelected(cl);
   }
 
   if (_splitter && _opt.splitAtActivation()) {
     if (_splitter->doSplitting(cl)) {
-      return false;
+      return removeSelected(cl);
     }
-  }
-
-  bool redundant=false;
-  ClauseIterator instances = ClauseIterator::getEmpty();
-#if VZ3
-  if(_theoryInstSimp){
-    instances = _theoryInstSimp->generateClauses(cl,redundant);
-  }
-#endif
-  if(redundant){ 
-    removeActiveOrPassiveClause(cl);
-    return false; 
   }
 
   _clauseActivationInProgress=true;
@@ -1133,8 +1124,10 @@ bool SaturationAlgorithm::activate(Clause* cl)
   env.statistics->activeClauses++;
   _active->add(cl);
 
+    
+    auto generated = _generator->generateClauses(cl);
 
-    ClauseIterator toAdd= pvi(getConcatenatedIterator(instances,_generator->generateClauses(cl)));
+    ClauseIterator toAdd = generated.clauses;
 
     while (toAdd.hasNext()) {
       Clause* genCl=toAdd.next();
@@ -1167,7 +1160,11 @@ bool SaturationAlgorithm::activate(Clause* cl)
     removeActiveOrPassiveClause(cl);
   }
 
-  return true; 
+  if (generated.premiseRedundant) {
+    _active->remove(cl);
+  }
+
+  return;
 }
 
 /**
@@ -1209,14 +1206,6 @@ start:
     goto start;
   }
 
-}
-
-void SaturationAlgorithm::handleUnsuccessfulActivation(Clause* cl)
-{
-  CALL("SaturationAlgorithm::handleUnsuccessfulActivation");
-
-  //ASS_EQ(cl->store(), Clause::SELECTED);
-  cl->setStore(Clause::NONE);
 }
 
 /**
@@ -1300,10 +1289,7 @@ void SaturationAlgorithm::doOneAlgorithmStep()
     return;
   }
 
-  bool isActivated=activate(cl);
-  if (!isActivated) {
-    handleUnsuccessfulActivation(cl);
-  }
+  activate(cl);
 }
 
 
@@ -1339,15 +1325,6 @@ MainLoopResult SaturationAlgorithm::runImpl()
 
 }
 
-#if VZ3
-void SaturationAlgorithm::setTheoryInstAndSimp(TheoryInstAndSimp* t)
-{
-  ASS(t);
-  _theoryInstSimp=t;
-  _theoryInstSimp->attach(this);
-}
-#endif
-
 /**
  * Assign an generating inference object @b generator to be used
  *
@@ -1357,7 +1334,7 @@ void SaturationAlgorithm::setTheoryInstAndSimp(TheoryInstAndSimp* t)
  * To use multiple generating inferences, use the @b CompositeGIE
  * object.
  */
-void SaturationAlgorithm::setGeneratingInferenceEngine(GeneratingInferenceEngine* generator)
+void SaturationAlgorithm::setGeneratingInferenceEngine(SimplifyingGeneratingInference* generator)
 {
   CALL("SaturationAlgorithm::setGeneratingInferenceEngine");
 
@@ -1492,14 +1469,17 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
       gie->addFront(new InjectivityGIE());
     }
   }
+
+  CompositeSGI* sgi = new CompositeSGI();
+  sgi->push(gie);
+
 #if VZ3
   if (opt.theoryInstAndSimp() != Shell::Options::TheoryInstSimp::OFF){
-    res->setTheoryInstAndSimp(new TheoryInstAndSimp());
-    //gie->addFront(new TheoryInstAndSimp());
+    sgi->push(new TheoryInstAndSimp());
   }
 #endif
 
-  res->setGeneratingInferenceEngine(gie);
+  res->setGeneratingInferenceEngine(sgi);
 
   res->setImmediateSimplificationEngine(createISE(prb, opt, res->getOrdering()));
 

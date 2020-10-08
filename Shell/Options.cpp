@@ -37,6 +37,7 @@
 #include "Debug/Assertion.hpp"
 
 #include "Lib/VString.hpp"
+#include "Lib/StringUtils.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Timer.hpp"
 #include "Lib/Exception.hpp"
@@ -1044,7 +1045,15 @@ void Options::Options::init()
            _theoryInstAndSimp.description = ""; 
            _theoryInstAndSimp.tag(OptionTag::INFERENCES);
            _lookup.insert(&_theoryInstAndSimp);
+
+           _thiTautologyDeletion = BoolOptionValue("theory_instantiation_tautology_deletion", "thitd", false);
+           _thiTautologyDeletion.description = "Enable deletion of tautology theory subclauses detected via theory instantiation."; 
+           _thiTautologyDeletion.tag(OptionTag::INFERENCES);
+           _lookup.insert(&_thiTautologyDeletion);
+           _thiTautologyDeletion.setExperimental();
+           _thiTautologyDeletion.reliesOn(_theoryInstAndSimp.is(notEqual(TheoryInstSimp::OFF)));
 #endif
+
            _unificationWithAbstraction = ChoiceOptionValue<UnificationWithAbstraction>("unification_with_abstraction","uwa",
                                              UnificationWithAbstraction::OFF,
                                              {"off","interpreted_only","one_side_interpreted","one_side_constant","all","ground"});
@@ -3305,15 +3314,24 @@ bool Options::checkProblemOptionConstraints(Property* prop,bool fail_early)
   return result;
 }
 
+template<class A>
+Lib::vvector<A> parseCommaSeparatedList(vstring const& str) 
+{
+  vstringstream stream(str);
+  Lib::vvector<A> parsed;
+  vstring cur;
+  while (std::getline(stream, cur, ',')) {
+    parsed.push_back(StringUtils::parse<A>(cur));
+  }
+  return parsed;
+}
+
 Lib::vvector<int> Options::theorySplitQueueRatios() const
 {
   CALL("Options::theorySplitQueueRatios");
-  vstringstream inputRatiosStream(_theorySplitQueueRatios.actualValue);
-  Lib::vvector<int> inputRatios;
-  std::string currentRatio;
-  while (std::getline(inputRatiosStream, currentRatio, ',')) {
-    inputRatios.push_back(std::stoi(currentRatio));
-  }
+
+
+  auto inputRatios = parseCommaSeparatedList<int>(_theorySplitQueueRatios.actualValue);
 
   // sanity checks
   if (inputRatios.size() < 2) {
@@ -3342,12 +3360,7 @@ Lib::vvector<float> Options::theorySplitQueueCutoffs() const
     cutoffs.push_back(std::numeric_limits<float>::max());
   } else {
     // if custom cutoffs are set, parse them and add float-max as last value
-    vstringstream cutoffsStream(_theorySplitQueueCutoffs.actualValue);
-    std::string currentCutoff;
-    while (std::getline(cutoffsStream, currentCutoff, ','))
-    {
-      cutoffs.push_back(std::stof(currentCutoff));
-    }
+    cutoffs = parseCommaSeparatedList<float>(_theorySplitQueueCutoffs.actualValue);
     cutoffs.push_back(std::numeric_limits<float>::max());
   }
 
@@ -3368,12 +3381,7 @@ Lib::vvector<float> Options::theorySplitQueueCutoffs() const
 Lib::vvector<int> Options::avatarSplitQueueRatios() const
 {
   CALL("Options::avatarSplitQueueRatios");
-  vstringstream inputRatiosStream(_avatarSplitQueueRatios.actualValue);
-  Lib::vvector<int> inputRatios;
-  std::string currentRatio;
-  while (std::getline(inputRatiosStream, currentRatio, ',')) {
-    inputRatios.push_back(std::stoi(currentRatio));
-  }
+  Lib::vvector<int> inputRatios = parseCommaSeparatedList<int>(_avatarSplitQueueRatios.actualValue);
 
   // sanity checks
   if (inputRatios.size() < 2) {
@@ -3392,13 +3400,7 @@ Lib::vvector<float> Options::avatarSplitQueueCutoffs() const
 {
   CALL("Options::avatarSplitQueueCutoffs");
   // initialize cutoffs and add float-max as last value
-  Lib::vvector<float> cutoffs;
-  vstringstream cutoffsStream(_avatarSplitQueueCutoffs.actualValue);
-  std::string currentCutoff;
-  while (std::getline(cutoffsStream, currentCutoff, ','))
-  {
-    cutoffs.push_back(std::stof(currentCutoff));
-  }
+  auto cutoffs = parseCommaSeparatedList<float>(_avatarSplitQueueCutoffs.actualValue);
   cutoffs.push_back(std::numeric_limits<float>::max());
 
   // sanity checks
@@ -3418,12 +3420,7 @@ Lib::vvector<float> Options::avatarSplitQueueCutoffs() const
 Lib::vvector<int> Options::sineLevelSplitQueueRatios() const
 {
   CALL("Options::sineLevelSplitQueueRatios");
-  vstringstream inputRatiosStream(_sineLevelSplitQueueRatios.actualValue);
-  Lib::vvector<int> inputRatios;
-  std::string currentRatio;
-  while (std::getline(inputRatiosStream, currentRatio, ',')) {
-    inputRatios.push_back(std::stoi(currentRatio));
-  }
+  auto inputRatios = parseCommaSeparatedList<int>(_sineLevelSplitQueueRatios.actualValue);
 
   // sanity checks
   if (inputRatios.size() < 2) {
@@ -3442,13 +3439,7 @@ Lib::vvector<float> Options::sineLevelSplitQueueCutoffs() const
 {
   CALL("Options::sineLevelSplitQueueCutoffs");
   // initialize cutoffs and add float-max as last value
-  Lib::vvector<float> cutoffs;
-  vstringstream cutoffsStream(_sineLevelSplitQueueCutoffs.actualValue);
-  std::string currentCutoff;
-  while (std::getline(cutoffsStream, currentCutoff, ','))
-  {
-    cutoffs.push_back(std::stof(currentCutoff));
-  }
+  auto cutoffs = parseCommaSeparatedList<float>(_sineLevelSplitQueueCutoffs.actualValue);
   cutoffs.push_back(std::numeric_limits<float>::max());
 
   // sanity checks
@@ -3468,12 +3459,7 @@ Lib::vvector<float> Options::sineLevelSplitQueueCutoffs() const
 Lib::vvector<int> Options::positiveLiteralSplitQueueRatios() const
 {
   CALL("Options::positiveLiteralSplitQueueRatios");
-  vstringstream inputRatiosStream(_positiveLiteralSplitQueueRatios.actualValue);
-  Lib::vvector<int> inputRatios;
-  std::string currentRatio;
-  while (std::getline(inputRatiosStream, currentRatio, ',')) {
-    inputRatios.push_back(std::stoi(currentRatio));
-  }
+  auto inputRatios = parseCommaSeparatedList<int>(_positiveLiteralSplitQueueRatios.actualValue);
 
   // sanity checks
   if (inputRatios.size() < 2) {
@@ -3492,13 +3478,7 @@ Lib::vvector<float> Options::positiveLiteralSplitQueueCutoffs() const
 {
   CALL("Options::positiveLiteralSplitQueueCutoffs");
   // initialize cutoffs and add float-max as last value
-  Lib::vvector<float> cutoffs;
-  vstringstream cutoffsStream(_positiveLiteralSplitQueueCutoffs.actualValue);
-  std::string currentCutoff;
-  while (std::getline(cutoffsStream, currentCutoff, ','))
-  {
-    cutoffs.push_back(std::stof(currentCutoff));
-  }
+  auto cutoffs = parseCommaSeparatedList<float>(_positiveLiteralSplitQueueCutoffs.actualValue);
   cutoffs.push_back(std::numeric_limits<float>::max());
 
   // sanity checks
