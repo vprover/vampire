@@ -5,6 +5,7 @@
 #include "Lib/IntUnionFind.hpp"
 #include "Lib/Array.hpp"
 #include "Kernel/Ordering.hpp"
+#include "Shell/Statistics.hpp"
 
 #define DEBUG(...) // DBG(__VA_ARGS__)
 
@@ -124,11 +125,13 @@ static const auto iterVars = [](Clause* cl) {
 };
 
 template<class EvalFn>
-Clause* generalizeBottomUp(Clause* cl, EvalFn eval) 
+pair<Clause*, bool> generalizeBottomUp(Clause* cl, EvalFn eval) 
 {
   CALL("generalizeBottomUp")
   /* apply the selectedGen generalization */
   bool anyChange = false;
+  bool oneLess = false;
+  bool allLessEq = true;
 
   auto stack = iterTraits(cl->iterLits())
     .map([&](Literal* lit) -> Literal* {
@@ -151,49 +154,52 @@ Clause* generalizeBottomUp(Clause* cl, EvalFn eval)
           .template collect<Stack>();
         auto generalizedLit = Literal::create(lit, args.begin());
 
-#if VDEBUG
-        auto ord = Ordering::tryGetGlobalOrdering();
-        if (ord) {
-          switch(ord->compare(generalizedLit, lit)) {
+        if (eval.eval.doOrderingCheck) {
+
+          auto ord = Ordering::tryGetGlobalOrdering();
+          ASS(ord)
+          auto cmp = ord->compare(generalizedLit, lit);
+          switch(cmp) {
             case Ordering::LESS:
+              oneLess = true;
+              break;
             case Ordering::LESS_EQ:
             case Ordering::EQUAL:
-                 break;
-#define ASSERT_NOT_THE_CASE(VALUE)                                                                            \
-            case Ordering::VALUE: {                                                                           \
-                  DEBUG("")                                                                                     \
-                  DEBUG(*generalizedLit, #VALUE, *lit)                                                          \
-                  DEBUG("orig:        ", *lit)                                                                  \
-                  DEBUG("generalized: ", *generalizedLit)                                                       \
-                  ASSERTION_VIOLATION                                                                         \
-             }
-
-                 // TODO INCOMP
-            // ASSERT_NOT_THE_CASE(GREATER)
-            // ASSERT_NOT_THE_CASE(GREATER_EQ)
-            // ASSERT_NOT_THE_CASE(INCOMPARABLE)
-            default:
               break;
-#undef ASSERT_NOT_THE_CASE
+            case Ordering::GREATER:
+            case Ordering::GREATER_EQ:
+            case Ordering::INCOMPARABLE:
+              allLessEq = false;
+              DEBUG("ordering violation: ", cmp)
+              DEBUG("original   : ", *lit)
+              DEBUG("generalized: ", *generalizedLit)
+              break;
           }
         }
-#endif
-
         return generalizedLit;
     })
     .template collect<Stack>();
 
   ASS (anyChange) 
   Inference inf(SimplifyingInference1(Kernel::InferenceRule::ARITHMETIC_SUBTERM_GENERALIZATION, cl));
-  return Clause::fromStack(stack, inf);
+  bool redundant = allLessEq && oneLess;
+  env.statistics->asgCnt++;
+  if (!redundant) {
+    env.statistics->asgViolations++;
+  }
+  return make_pair(Clause::fromStack(stack, inf), redundant);
 }
 
 template<class NumTraits> class GeneralizeAdd;
 
+
+pair<Clause*, bool> nop(Clause* cl) 
+{ return make_pair(cl, false); }
+
 template<class Generalization>
 struct ArithmeticSubtermGeneralization
 {
-  static Clause* simplify(Clause* cl);
+  static pair<Clause*,bool> simplify(Clause* cl, bool doCheckOrdering);
 };
 
 struct Top {};
@@ -309,6 +315,7 @@ struct GeneralizePolynom
 {
   Variable &var;
   Gen &generalization;
+  bool doOrderingCheck;
 
   template<class NumTraits> 
   UniqueShared<Polynom<NumTraits>> operator()(UniqueShared<Polynom<NumTraits>> p, PolyNf* generalizedArgs) 
@@ -317,7 +324,7 @@ struct GeneralizePolynom
 
 
 template<class Gen>
-Clause* ArithmeticSubtermGeneralization<Gen>::simplify(Clause* cl_) 
+pair<Clause*, bool> ArithmeticSubtermGeneralization<Gen>::simplify(Clause* cl_, bool doOrderingCheck) 
 {
   typename Gen::State map;
 
@@ -345,7 +352,7 @@ Clause* ArithmeticSubtermGeneralization<Gen>::simplify(Clause* cl_)
     }
   }
   if (selected.isNone()) {
-    return cl_;
+    return nop(cl_);
   } 
 
   auto& var            = selected.unwrap().key();
@@ -355,7 +362,7 @@ Clause* ArithmeticSubtermGeneralization<Gen>::simplify(Clause* cl_)
   // auto clsr = [&](AnyPoly p, PolyNf* evaluatedArgs) -> AnyPoly 
   // { return Gen::generalize(var,generalization,p,evaluatedArgs); };
 
-  EvaluatePolynom<GeneralizePolynom<Gen>> eval {var, generalization};
+  EvaluatePolynom<GeneralizePolynom<Gen>> eval {var, generalization, doOrderingCheck};
   /* apply the selectedGen generalization */
   return generalizeBottomUp(&cl, eval);
 }
@@ -931,11 +938,10 @@ public:
   }
 };
 
-
-Clause* AdditionGeneralization::simplify(Clause* cl) 
+pair<Clause*,bool> AdditionGeneralization::simplify(Clause* cl, bool doOrderingCheck) 
 { 
   CALL("AdditionGeneralization::simplify")
-  return ArithmeticSubtermGeneralization<ParallelNumberGeneralization<GeneralizeAdd>>::simplify(cl); 
+  return ArithmeticSubtermGeneralization<ParallelNumberGeneralization<GeneralizeAdd>>::simplify(cl, doOrderingCheck); 
 }
 
 AdditionGeneralization::~AdditionGeneralization()  {}
@@ -948,10 +954,10 @@ namespace Rule2
 
 } // namespace Rule2
 
-Clause* NumeralMultiplicationGeneralization::simplify(Clause* cl) 
+pair<Clause*, bool> NumeralMultiplicationGeneralization::simplify(Clause* cl, bool doOrderingCheck) 
 { 
   CALL("NumeralMultiplicationGeneralization::simplify")
-  return ArithmeticSubtermGeneralization<ParallelNumberGeneralization<GenMulNum>>::simplify(cl); 
+  return ArithmeticSubtermGeneralization<ParallelNumberGeneralization<GenMulNum>>::simplify(cl, doOrderingCheck); 
 }
 
 NumeralMultiplicationGeneralization::~NumeralMultiplicationGeneralization()  {}
@@ -1133,6 +1139,7 @@ namespace Rule3
   struct Generalize 
   {
     Stack<AnyNumber<MonomPair>> const& toRem; /* <- always expected to be sorted */
+    bool doOrderingCheck;
 
     template<class NumTraits>
     PolyPair<NumTraits> operator()(PolyPair<NumTraits> p, PolyNf* evaluatedArgs)  
@@ -1179,7 +1186,7 @@ namespace Rule3
   /** 
    * applies the rule
    */ 
-  Clause* applyRule(Clause* cl) 
+  pair<Clause*,bool> applyRule(Clause* cl, bool doOrderingCheck) 
   {
     DEBUG("input clause: ", *cl);
     IntMap<Variable> varMap;
@@ -1190,7 +1197,7 @@ namespace Rule3
     }
     if (varMap.size() == 0) {
       DEBUG("no variables. generalization not applicable");
-      return cl;
+      return nop(cl);
     }
 
     IntUnionFind components(varMap.size());
@@ -1233,10 +1240,10 @@ namespace Rule3
     /* apply the substitution `X0 ⋅ X1 ⋅ ... ⋅ Xn ==> X0`  */
     DEBUG("removing variables: ", remove)
     if (remove.isEmpty()) {
-      return cl;
+      return nop(cl);
     } else {
       std::sort(remove.begin(), remove.end());
-      Generalize gen { remove };
+      Generalize gen { remove, doOrderingCheck };
       return generalizeBottomUp(cl, EvaluateMonom<Generalize> {gen});
     }
   }
@@ -1304,6 +1311,7 @@ namespace Rule4
   struct Generalize 
   {
     PowerMap& powers;
+    bool doOrderingCheck;
 
     PolyPair<RealTraits> operator()(PolyPair<RealTraits> p, PolyNf* evaluatedArgs)  
     {
@@ -1335,7 +1343,7 @@ namespace Rule4
   /** 
    * applies the rule
    */ 
-  Clause* applyRule(Clause* cl) 
+  pair<Clause*,bool> applyRule(Clause* cl, bool doOrderingCheck) 
   {
     DEBUG("input clause: ", *cl);
     PowerMap powers;
@@ -1353,40 +1361,38 @@ namespace Rule4
     DEBUG("generalizations: ", powers);
 
     if (applicable) {
-      return generalizeBottomUp(cl, EvaluateMonom<Generalize> { Generalize { powers } });
+      return generalizeBottomUp(cl, EvaluateMonom<Generalize> { Generalize { powers, doOrderingCheck } });
     } else {
-      return cl;
+      return nop(cl);
     }
   }
 
   
 };
 
-Clause* VariableMultiplicationGeneralization::simplify(Clause* cl) 
+pair<Clause*,bool> VariableMultiplicationGeneralization::simplify(Clause* cl, bool doOrderingCheck) 
 { 
   CALL("VariableMultiplicationGeneralization::simplify")
-  return Rule3::applyRule(cl);
+  return Rule3::applyRule(cl, doOrderingCheck);
 }
 
-VariableMultiplicationGeneralization::~VariableMultiplicationGeneralization()  {
-
-}
+VariableMultiplicationGeneralization::~VariableMultiplicationGeneralization()  { }
 
 
-Clause* VariablePowerGeneralization::simplify(Clause* cl) 
+pair<Clause*,bool> VariablePowerGeneralization::simplify(Clause* cl, bool doOrderingCheck) 
 { 
   CALL("VariablePowerGeneralization::simplify")
-  return Rule4::applyRule(cl);
+  return Rule4::applyRule(cl, doOrderingCheck);
 }
 
 VariablePowerGeneralization::~VariablePowerGeneralization()  {}
 
-Stack<ImmediateSimplificationEngine*> allArithmeticSubtermGeneralizations()
+Stack<MaybeImmediateSimplification*> allArithmeticSubtermGeneralizations()
 { 
-  return Stack<ImmediateSimplificationEngine*>{
+  return Stack<MaybeImmediateSimplification*> {
       new VariableMultiplicationGeneralization(),
-      new NumeralMultiplicationGeneralization(),
       new VariablePowerGeneralization(),
+      new NumeralMultiplicationGeneralization(),
       new AdditionGeneralization()
   };
 }

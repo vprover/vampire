@@ -725,6 +725,7 @@ public:
    * returns whether the result is a trivial literal (top or bot)
    */
   inline bool isConstant() const& { return is<1>(); }
+  inline bool isLiteral() const& { return is<0>(); }
   inline bool unwrapConstant() const& { return unwrap<1>(); }
   inline Literal* unwrapLiteral() const& { return unwrap<0>(); }
   inline static LitEvalResult constant(bool b) { return LitEvalResult(Coproduct::template variant<1>(b)); }

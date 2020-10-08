@@ -2,48 +2,77 @@
 #include "Kernel/Clause.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Shell/Statistics.hpp"
+#include "Lib/VirtualIterator.hpp"
 
 #define DEBUG(...) //DBG(__VA_ARGS__)
+using namespace Lib;
 
 namespace Inferences {
 
+Clause* MaybeImmediateSimplification::simplify(Clause* cl) {
+  CALL("MaybeImmediateSimplification::simplify(Clause*)")
+  if (cl->isTheoryAxiom()) {
+    DEBUG("skipping theory axiom")
+    return cl;
+  }
+  auto gen = this->simplify(cl, false);
+  return get<0>(gen);
+}
 
 
-Clause* PolynomialNormalization::simplify(Clause* cl_) {
-  CALL("PolynomialNormalization::simplify(Clause*)")
+SimplifyingGeneratingInference::ClauseGenerationResult MaybeImmediateSimplification::generateClauses(Clause* cl) {
+  CALL("MaybeImmediateSimplification::generateClauses(Clause*)")
+  auto gen = this->simplify(cl, true);
+  auto simpl = get<0>(gen);
+  auto redundant = get<1>(gen);
+
+  if (simpl == cl) {
+    return ClauseGenerationResult {
+      .clauses = ClauseIterator::getEmpty(),
+      .premiseRedundant = false,
+    };
+
+  } else {
+    return ClauseGenerationResult {
+      .clauses = simpl == nullptr 
+        ? ClauseIterator::getEmpty()
+        : pvi(getSingletonIterator(simpl)),
+      .premiseRedundant = redundant && !cl->isTheoryAxiom(),
+    };
+  }
+}
+
+pair<Clause*, bool> MaybeImmediateLiteralSimplification::simplify(Clause* cl_, bool doOrderingCheck) {
   DEBUG("in:  ", *cl_)
-  if (cl_->isTheoryAxiom()) 
-    return cl_;
   auto& cl = *cl_;
   Stack<Literal*> out(cl.size());
 
   bool changed = false;
+  bool allLessEq = true;
+  bool oneLess = false;
 
   for (int i = 0; i < cl.size(); i++) {
 
     auto orig = cl[i];
-    auto result = _normalizer.evaluate(orig);
+    auto result = simplifyLiteral(orig);
 
-    if (result.isNone()) {
-        out.push(orig);
+    if (result.isNone() || (result.unwrap().isLiteral() && result.unwrap().unwrapLiteral() == orig) ) {
+      out.push(orig);
     } else {
       auto simpl = result.unwrap();
-      env.statistics->polyNormalizerSimplCnt++;
+      env.statistics->evaluationCnt++;
 
       if (simpl.isConstant()) {
 
         bool trivialValue = simpl.unwrapConstant();
         if (trivialValue) {
           /* clause is a tautology and can be deleted */
-          return NULL;
+          return make_pair(nullptr, true);
         } else {
           /* do not add the literal to the output stack */
           changed = true;
         }
 
-        if (_ordering) {
-          env.statistics->polyNormalizerSimplCorrect++;
-        }
       } else {
 
         Literal* simplLit = simpl.unwrapLiteral();
@@ -51,34 +80,53 @@ Clause* PolynomialNormalization::simplify(Clause* cl_) {
         changed = true;
         out.push(simplLit);
 
-        // if (_ordering) {
-        //   if (_ordering->compare(simplLit, orig) == Ordering::Result::LESS) {
-        //     env.statistics->polyNormalizerSimplCorrect++;
-        //   } else {
-        //     // DBGE(*orig    )
-        //     // DBG(_ordering->compare(simplLit, orig))
-        //     // DBGE(*simplLit)
-        //     // ASSERTION_VIOLATION
-        //   }
-        // }
+        if (doOrderingCheck) {
+          ASS(_ordering)
+          auto cmp = _ordering->compare(simplLit, orig);
+          switch(cmp) {
+            case Ordering::Result::LESS:
+              oneLess = true;
+              break;
+            case Ordering::Result::LESS_EQ:
+            case Ordering::Result::EQUAL:
+              ASSERTION_VIOLATION
+              break;
+            case Ordering::Result::INCOMPARABLE:
+            case Ordering::Result::GREATER:
+            case Ordering::Result::GREATER_EQ:
+              if (cmp == Ordering::Result::INCOMPARABLE) {
+                env.statistics->evaluationIncomp++;
+              } else {
+                env.statistics->evaluationGreater++;
+              }
+              DEBUG("ordering violated: ", cmp)
+              DEBUG("orig: ", *orig)
+              DEBUG("simp: ", *simplLit)
+              allLessEq = false;
+              break;
+          }
+        }
       }
     }
   }
 
 
   if (!changed) {
-    return cl_;
+    return make_pair(cl_, false);
   } else {
-    auto result = Clause::fromStack(out, SimplifyingInference1(InferenceRule::EVALUATION, cl_));
+    auto result = Clause::fromStack(out, SimplifyingInference1(_rule, cl_));
     DEBUG("out: ", *result)
-    return result;
+    return make_pair(result, allLessEq && oneLess);
   }
 }
 
-PolynomialNormalization::PolynomialNormalization() : _ordering(nullptr) 
-{  env.statistics->polyNormalizerSimplCorrect = -1; }
+Optional<LitEvalResult> PolynomialNormalization::simplifyLiteral(Literal* lit) 
+{ return _normalizer.evaluate(lit);
+}
 
-PolynomialNormalization::PolynomialNormalization(Ordering& ordering) : _ordering(&ordering) {}
+MaybeImmediateLiteralSimplification::MaybeImmediateLiteralSimplification(InferenceRule rule, Ordering& ordering): _ordering(&ordering), _rule(rule) {}
+
+PolynomialNormalization::PolynomialNormalization(Ordering& ordering) : MaybeImmediateLiteralSimplification(InferenceRule::EVALUATION, ordering) {}
 
 PolynomialNormalization::~PolynomialNormalization() {}
 
@@ -237,41 +285,21 @@ Optional<Literal*> tryCancel(Interpretation inter, Literal* lit) {
   return Optional<Literal*>();
 }
 
-Clause* Cancellation::simplify(Clause* cl_) 
+// TODO make cancellation its own inference rule
+Cancellation::Cancellation(Ordering& ordering) : MaybeImmediateLiteralSimplification(InferenceRule::EVALUATION, ordering) 
+{}
+
+Optional<LitEvalResult> Cancellation::simplifyLiteral(Literal* litIn) 
 {
-  CALL("Cancellation::simplify(Clause*)")
-  DEBUG("in:  ", *cl_)
-  if (cl_->isTheoryAxiom()) 
-    return cl_;
+  CALL("Cancellation::simplifyLiteral(Literal*)")
 
-  auto& cl = *cl_;
-  Stack<Literal*> out(cl.size());
-
-  bool changed = false;
-
-  for (int i = 0; i < cl.size(); i++) {
-    auto litIn = cl[i];
-    Stack<TermList> litStack;
-    auto pred = litIn->functor();
-    if (!theory->isInterpretedPredicate(pred)) {
-      out.push(litIn);
-    } else {
-      auto res = tryCancel(theory->interpretPredicate(pred), litIn);
-      if (res.isSome()) {
-        changed = true;
-        out.push(res.unwrap());
-      } else {
-        out.push(litIn);
-      }
-    }
-  }
-
-  if (!changed) {
-    return cl_;
+  auto pred = litIn->functor();
+  if (!theory->isInterpretedPredicate(pred)) {
+    return Optional<LitEvalResult>();
   } else {
-    auto result = Clause::fromStack(out, SimplifyingInference1(InferenceRule::EVALUATION, cl_));
-    DEBUG("out: ", *result)
-    return result;
+    return tryCancel(theory->interpretPredicate(pred), litIn)
+      .map([](Literal* lit) 
+          { return LitEvalResult::literal(lit); });
   }
 }
 

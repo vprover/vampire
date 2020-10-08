@@ -1954,6 +1954,15 @@ void Options::Options::init()
     _lookup.insert(&_introducedSymbolPrecedence);
     _introducedSymbolPrecedence.tag(OptionTag::SATURATION);
 
+    _arithmeticSimplificationMode = ChoiceOptionValue<ArithmeticSimplificationMode>("arithmetic_simplification_mode","asm",
+                                                        ArithmeticSimplificationMode::FORCE,
+                                                        {"force","cautious"});
+    _arithmeticSimplificationMode.description=
+    "Sets how arithmetic simplifciations should be performed. In mode `cautious` after applying the simplification, it is checked whether the resulting clause ist actually smaller wrt. the simplification ordering, and if not the parent is kept in the search space. In mode `force` the parent is deleted even if the simplificaiton ordering is being violated. This can result in a smaller search space, as better performance since the ordering doesn't have to be computed. It comes at the expense of loosing some provable formulas.";
+    _lookup.insert(&_arithmeticSimplificationMode);
+    _arithmeticSimplificationMode.tag(OptionTag::INFERENCES);
+    _arithmeticSimplificationMode.setExperimental();
+
     _evaluationMode = ChoiceOptionValue<EvaluationMode>("evaluation","ev",
                                                         EvaluationMode::SIMPLE,
                                                         {"simple","polynomial"});

@@ -1,16 +1,17 @@
 #include "InferenceEngine.hpp"
 #include "Lib/Set.hpp"
+#include "PolynomialNormalization.hpp"
 
 namespace Inferences {
-class GaussianVariableElimination : public ImmediateSimplificationEngine {
+class GaussianVariableElimination : public MaybeImmediateSimplification {
 public:
   CLASS_NAME(GaussianVariableElimination);
   USE_ALLOCATOR(GaussianVariableElimination);
 
-  Clause *simplify(Clause *cl);
+  pair<Clause*, bool> simplify(Clause *cl, bool doCheckOrdering);
 
 private:
-  Clause *rewrite(Clause &cl, TermList find, TermList replace,
-                  unsigned skipLiteral) const;
+  pair<Clause*, bool> rewrite(Clause &cl, TermList find, TermList replace,
+                  unsigned skipLiteral, bool doOrderingCheck) const;
 };
 } // namespace Inferences

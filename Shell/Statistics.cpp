@@ -105,10 +105,18 @@ Statistics::Statistics()
     forwardLiteralRewrites(0),
     condensations(0),
     globalSubsumption(0),
-    evaluations(0),
     interpretedSimplifications(0),
-    polyNormalizerSimplCorrect(0),
-    polyNormalizerSimplCnt(0),
+
+    asgViolations(0),
+    asgCnt(0),
+
+    gveViolations(0),
+    gveCnt(0),
+
+    evaluationIncomp(0),
+    evaluationGreater(0),
+    evaluationCnt(0),
+
     innerRewrites(0),
     innerRewritesToEqTaut(0),
     deepEquationalTautologies(0),
@@ -294,7 +302,11 @@ void Statistics::print(ostream& out)
       forwardSubsumptionResolution+backwardSubsumptionResolution+
       forwardDemodulations+backwardDemodulations+forwardLiteralRewrites+
       forwardSubsumptionDemodulations+backwardSubsumptionDemodulations+
-      condensations+globalSubsumption+evaluations+innerRewrites);
+      condensations+globalSubsumption+evaluationCnt
+      +( gveCnt - gveViolations)
+      +( asgCnt - asgViolations)
+      +( evaluationCnt - evaluationIncomp - evaluationGreater)
+      +innerRewrites);
   COND_OUT("Duplicate literals", duplicateLiterals);
   COND_OUT("Trivial inequalities", trivialInequalities);
   COND_OUT("Fw subsumption resolutions", forwardSubsumptionResolution);
@@ -307,10 +319,17 @@ void Statistics::print(ostream& out)
   COND_OUT("Inner rewrites", innerRewrites);
   COND_OUT("Condensations", condensations);
   COND_OUT("Global subsumptions", globalSubsumption);
-  COND_OUT("Evaluations", evaluations);
   COND_OUT("Interpreted simplifications", interpretedSimplifications);
-  COND_OUT("PolynomialNormalizer simplifications",         polyNormalizerSimplCnt);
-  COND_OUT("PolynomialNormalizer simplifications correct", polyNormalizerSimplCorrect);
+
+  COND_OUT("asg count", asgCnt);
+  COND_OUT("asg results not smaller than the premis", asgViolations);
+
+  COND_OUT("gve count", gveCnt);
+  COND_OUT("gve results not smaller than the premis", gveViolations);
+
+  COND_OUT("Evaluation count",         evaluationCnt);
+  COND_OUT("Evaluation results greater than premise", evaluationGreater);
+  COND_OUT("Evaluation results incomparable to premise", evaluationIncomp);
   SEPARATOR;
 
   HEADING("Deletion Inferences",simpleTautologies+equationalTautologies+

@@ -1473,6 +1473,35 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   CompositeSGI* sgi = new CompositeSGI();
   sgi->push(gie);
 
+  switch (opt.arithmeticSimplificationMode()) {
+    case Options::ArithmeticSimplificationMode::CAUTIOUS:
+    {
+      auto& ordering = res->getOrdering();
+
+      if (opt.evaluationMode() == Options::EvaluationMode::POLYNOMIAL) {
+        sgi->push(new PolynomialNormalization(ordering));
+      }
+
+      if (env.options->cancellation()) {
+        sgi->push(new Cancellation(ordering)); 
+      }
+
+      if (env.options->gaussianVariableElimination()) {
+        sgi->push(new GaussianVariableElimination()); 
+      }
+
+      if (env.options->arithmeticSubtermGeneralizations()) {
+        for (auto gen : allArithmeticSubtermGeneralizations())  {
+          sgi->push(gen);
+        }
+      }
+
+      break;
+    }
+    case Options::ArithmeticSimplificationMode::FORCE:
+      break;
+  }
+
 #if VZ3
   if (opt.theoryInstAndSimp() != Shell::Options::TheoryInstSimp::OFF){
     sgi->push(new TheoryInstAndSimp());
@@ -1607,18 +1636,22 @@ ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, cons
     }
   }
   if(prb.hasInterpretedOperations() || prb.hasInterpretedEquality()) {
-    if (env.options->arithmeticSubtermGeneralizations()) {
-      for (auto gen : allArithmeticSubtermGeneralizations())  {
-        res->addFront(gen);
+    if (env.options->arithmeticSimplificationMode() == Options::ArithmeticSimplificationMode::FORCE) {
+
+      if (env.options->arithmeticSubtermGeneralizations()) {
+        for (auto gen : allArithmeticSubtermGeneralizations())  {
+          res->addFront(gen);
+        }
       }
-    }
 
-    if (env.options->gaussianVariableElimination()) {
-      res->addFront(new GaussianVariableElimination()); 
-    }
+      if (env.options->gaussianVariableElimination()) {
+        res->addFront(new GaussianVariableElimination()); 
+      }
 
-    if (env.options->cancellation()) {
-      res->addFront(new Cancellation()); 
+
+      if (env.options->cancellation()) {
+        res->addFront(new Cancellation(ordering)); 
+      }
     }
 
     switch (env.options->evaluationMode()) {
@@ -1626,11 +1659,9 @@ ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, cons
         res->addFront(new InterpretedEvaluation(env.options->inequalityNormalization(), ordering));
         break;
       case Options::EvaluationMode::POLYNOMIAL:
-        res->addFront(new PolynomialNormalization(
-#if VDEBUG
-          ordering
-#endif // VDEBUG
-        ));
+        if (env.options->arithmeticSimplificationMode() == Options::ArithmeticSimplificationMode::FORCE) {
+          res->addFront(new PolynomialNormalization(ordering));
+        }
         break;
     }
 

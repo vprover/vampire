@@ -14,16 +14,45 @@
 
 namespace Inferences {
 
-class Cancellation
+class MaybeImmediateSimplification
 : public ImmediateSimplificationEngine
+, public SimplifyingGeneratingInference
+{
+public:
+  Clause* simplify(Clause* cl) override;
+  ClauseGenerationResult generateClauses(Clause* cl) override;
+
+  
+protected:
+  virtual pair<Clause*, bool> simplify(Clause* cl, bool doOrderingCheck) = 0;
+};
+
+
+class MaybeImmediateLiteralSimplification
+: public MaybeImmediateSimplification
+{
+
+protected:
+  MaybeImmediateLiteralSimplification(InferenceRule rule, Ordering& ordering);
+  virtual Optional<LitEvalResult> simplifyLiteral(Literal* l) = 0;
+  pair<Clause*, bool> simplify(Clause* cl, bool doOrderingCheck) override;
+private:
+  Ordering* _ordering;
+  const InferenceRule _rule;
+};
+
+class Cancellation
+: public MaybeImmediateLiteralSimplification
 {
 public:
   CLASS_NAME(Cancellation);
   USE_ALLOCATOR(Cancellation);
 
+  Cancellation(Ordering& ordering);
   virtual ~Cancellation();
 
-  Clause* simplify(Clause* cl);
+  Optional<LitEvalResult> simplifyLiteral(Literal*) override;
+  // Clause* simplify(Clause* cl);
 };
 
 
@@ -41,27 +70,19 @@ public:
 
 
 class PolynomialNormalization
-: public ImmediateSimplificationEngine
+: public MaybeImmediateLiteralSimplification
 {
 public:
   CLASS_NAME(PolynomialNormalization);
   USE_ALLOCATOR(PolynomialNormalization);
 
-  /* will not check whether it performed an actual simplification */
-  PolynomialNormalization();
-
-  /* 
-   * will use the simplification ordering in order to check whether 
-   * its transformation were an actual simplification 
-   */
   PolynomialNormalization(Ordering& ordering);
   virtual ~PolynomialNormalization();
 
-  Clause* simplify(Clause* cl);
-private:
+protected:
 
+  Optional<LitEvalResult> simplifyLiteral(Literal*) override;
   PolynomialNormalizer<PolynomialNormalizerConfig::Simplification<>> _normalizer;
-  Ordering* _ordering;
 };
 
 };
