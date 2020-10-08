@@ -53,8 +53,6 @@ using namespace Lib;
  * besides calling a constructor:
  * - Fill the Clause with Literals
  * - Increase a relevant counter in the env.statistics object
- * - Set Clause's age if it is not supposed to be zero
- *
  */
 class Clause
   : public Unit
@@ -68,7 +66,7 @@ private:
   template<class VarIt>
   void collectVars2(DHSet<unsigned>& acc);
 public:
-  typedef ArrayishObjectIterator<Clause> Iterator;
+  typedef ArrayishObjectIterator<const Clause> Iterator;
 
   DECL_ELEMENT_TYPE(Literal*);
   DECL_ITERATOR_TYPE(Iterator);
@@ -88,23 +86,23 @@ public:
     SELECTED = 4u
   };
 
-  Clause(unsigned length,InputType it,Inference* inf);
+  Clause(unsigned length,const Inference& inf);
 
 
   void* operator new(size_t,unsigned length);
   void operator delete(void* ptr,unsigned length);
 
-  static Clause* fromStack(const Stack<Literal*>& lits, InputType it, Inference* inf);
+  static Clause* fromStack(const Stack<Literal*>& lits, const Inference& inf);
 
   template<class Iter>
-  static Clause* fromIterator(Iter litit, InputType it, Inference* inf)
+  static Clause* fromIterator(Iter litit, Inference& inf)
   {
     CALL("Clause::fromIterator");
 
     static Stack<Literal*> st;
     st.reset();
     st.loadFromIterator(litit);
-    return fromStack(st, it, inf);
+    return fromStack(st, inf);
   }
 
   static Clause* fromClause(Clause* c);
@@ -146,13 +144,12 @@ public:
 
   /** Return the clause store */
   Store store() const { return _store; }
-
   void setStore(Store s);
 
   /** Return the age */
-  unsigned age() const { return _age; }
+  unsigned age() const { return inference().age(); }
   /** Set the age to @b a */
-  void setAge(unsigned a) { _age = a; }
+  void setAge(unsigned a) { inference().setAge(a); }
 
   /** Return the number of selected literals */
   unsigned numSelected() const { return _numSelected; }
@@ -165,20 +162,33 @@ public:
     notifyLiteralReorder();
   }
 
-  /** Return whether this clause is in the active index **/
-  bool in_active() const {return _in_active;}
-  /** Set _in_active to false if true and vice versa **/
-  void toggle_in_active() {_in_active=!_in_active;}
 
   /** Return the weight */
   unsigned weight() const
   {
     if(!_weight) {
-      computeWeight();
+      _weight = computeWeight();
     }
     return _weight;
   }
-  void computeWeight() const;
+  unsigned computeWeight() const;
+
+  /**
+   * weight used for clause selection
+   */
+  unsigned weightForClauseSelection(const Shell::Options& opt)
+  {
+    if(!_weightForClauseSelection) {
+      _weightForClauseSelection = computeWeightForClauseSelection(opt);
+    }
+    return _weightForClauseSelection;
+  }
+  unsigned computeWeightForClauseSelection(const Shell::Options& opt) const;
+
+  /*
+   * single source of truth for computation of weightForClauseSelection
+   */
+  static unsigned computeWeightForClauseSelection(unsigned w, unsigned splitWeight, unsigned numeralWeight, bool derivedFromGoal, const Shell::Options& opt);
 
   /** Return the color of a clause */
   Color color() const
@@ -200,50 +210,6 @@ public:
   bool isComponent() const { return _component; }
   void setComponent(bool c) { _component = c; }
 
-  bool isTheoryDescendant() const { return _theoryDescendant; }
-  void setTheoryDescendant(bool t) { _theoryDescendant=t; }
-
-  bool isCombAxiomsDescendant() const { return _combAxiomsDescendant; }
-  void setCombAxiomsDescendant(bool t) { _combAxiomsDescendant=t; }
-
-  bool isProxyAxiomsDescendant() const { return _proxyAxiomsDescendant; }
-  void setProxyAxiomsDescendant(bool t) { _proxyAxiomsDescendant=t; }
-
-  bool isHolAxiomsDescendant() const { return _holAxiomsDescendant; }
-  void setHolAxiomsDescendant(bool t) { _holAxiomsDescendant=t; }
-
-
-  unsigned inductionDepth() const { return _inductionDepth; }
-  void setInductionDepth(unsigned d){
-    ASS(d < 33);
-    _inductionDepth=d;
-  }
-  void incInductionDepth(){ 
-    // _inductionDepth is 5 bits, max out there
-    if(_inductionDepth < 32){
-      _inductionDepth++; 
-    }
-  }
-
-  unsigned XXNarrows() const { return _XXNarrows; }
-  void setXXNarrows(unsigned n){ 
-    ASS(n < 8)
-    _XXNarrows = n;
-  }
-  void incXXNarrows(){ 
-    if(_XXNarrows < 8){
-      _XXNarrows++; 
-    }
-  }
-
-  unsigned reductions() const { return _reductions; }
-  void setReductions(unsigned n){
-    _reductions = n;
-  }
-  void increaseReductions(unsigned n){
-    _reductions += n;
-  }
-  
   bool skip() const;
 
   unsigned getLiteralPosition(Literal* lit);
@@ -297,14 +263,23 @@ public:
   bool isInput() { return _input; }
 
 
-  SplitSet* splits() const { return _splits; }
+  SplitSet* splits() const { return _inference.splits(); }
   bool noSplits() const;
-  void setSplits(SplitSet* splits,bool replace=false) {
-    CALL("Clause::setSplits");
-    ASS(replace || !_splits);
-    _splits=splits;
+
+  /**
+   * set splits
+   * in order to keep all splitting-related functionality separate from Saturation,
+   * the splits are not set during clause-construction but are added later by the Splitter-class.
+   * we depend on the invariant that splits are set only once, and that splits are set before clause-weights are
+   * computed and cached (which happens at the first call to weight())
+   */
+  void setSplits(SplitSet* splits) {
+     CALL("Clause::setSplits");
+    ASS(_weight == 0);
+    _inference.setSplits(splits);
   }
-  
+   
+
   int getNumActiveSplits() const { return _numActiveSplits; }
   void setNumActiveSplits(int newVal) { _numActiveSplits = newVal; }
   void incNumActiveSplits() { _numActiveSplits++; }
@@ -312,6 +287,11 @@ public:
 
   VirtualIterator<vstring> toSimpleClauseStrings();
 
+  void setAux()
+  {
+    ASS(_auxInUse);
+    _auxTimestamp=_auxCurrTimestamp;
+  }
 
   /** Set auxiliary value of this clause. */
   void setAux(void* ptr)
@@ -377,8 +357,7 @@ public:
   }
 
   unsigned splitWeight() const;
-  unsigned getNumeralWeight();
-  float getEffectiveWeight(const Shell::Options& opt);
+  unsigned getNumeralWeight() const;
 
   void collectVars(DHSet<unsigned>& acc);
   void collectUnstableVars(DHSet<unsigned>& acc);
@@ -387,15 +366,13 @@ public:
   unsigned varCnt();
   unsigned maxVar(); // useful to create fresh variables w.r.t. the clause
 
-  typedef DHMap<List<unsigned>*, Deque<Signature::Combinator>*> FlexTermPosMap;
+  unsigned numPositiveLiterals(); // number of positive literals in the clause
 
 protected:
   /** number of literals */
   unsigned _length : 20;
   /** clause color, or COLOR_INVALID if not determined yet */
   mutable unsigned _color : 2;
-  /** clause is an input clause for the saturation algorithm */
-  unsigned _input : 1;
   /** Clause was matched as extensionality and is tracked in the extensionality
     * clause container. The matching happens at activation. If the clause
     * becomes passive and is removed from the container, also this bit is unset.
@@ -404,31 +381,17 @@ protected:
   unsigned _extensionalityTag : 1;
   /** Clause is a splitting component. */
   unsigned _component : 1;
-  /** Clause is a theory descendant **/
-  unsigned _theoryDescendant : 1;
-  /** Clause is a combinator axiom descendent */
-  unsigned _combAxiomsDescendant : 1;
-  /** */
-  unsigned _proxyAxiomsDescendant : 1;
-  /** clause is descended only from proxy or combinator axioms */
-  unsigned _holAxiomsDescendant : 1;
-  /** Induction depth **/
-  unsigned _inductionDepth : 5;
-  /** number of XX' narrows carried out on clause */
-  unsigned _XXNarrows : 3;
-  /** number of weak reductions in the history of this clause */
-  unsigned _reductions;
 
+  /** storage class */
+  Store _store : 3;
   /** number of selected literals */
-  unsigned _numSelected;
+  unsigned _numSelected : 20;
   /** age */
   unsigned _age;
   /** weight */
   mutable unsigned _weight;
-  /** storage class */
-  Store _store;
-  /** in active index **/
-  bool _in_active;
+  /** weight for clause selection */
+  unsigned _weightForClauseSelection;
   /** number of references to this clause */
   unsigned _refCnt;
   /** for splitting: timestamp marking when has the clause been reduced or restored by splitting */
@@ -436,7 +399,6 @@ protected:
   /** a map that translates Literal* to its index in the clause */
   InverseLookup<Literal>* _literalPositions;
 
-  SplitSet* _splits;
   int _numActiveSplits;
 
   size_t _auxTimestamp;
@@ -449,7 +411,6 @@ protected:
 
 //#endif
 
-  FlexTermPosMap* _flexTermPositions[1];
   /** Array of literals of this unit */
   Literal* _literals[1];
 }; // class Clause
