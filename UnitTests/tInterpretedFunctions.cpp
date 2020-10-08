@@ -565,6 +565,7 @@ INT_TEST(eval_quotientF_1,
     r(                  3,                     1)
     )
 
+
 INT_TEST(eval_quotientT_1,
     r(quotientT(num(7), 2), remainderT(num(7), 2)),
     r(                  3,                     1)
@@ -632,6 +633,12 @@ FRACTIONAL_TEST(eval_overflow_7,
     frac(5,90) < num(-1260453006),
     false
     )
+
+FRACTIONAL_TEST(misc_01,
+     0 < x + (-y),
+     evaluationFail
+    )
+
 
 // FRACTIONAL_TEST(eval_div_1,
 //     p(floor(frac(7,2))),
