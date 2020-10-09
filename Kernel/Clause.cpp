@@ -36,11 +36,11 @@
 #include "Lib/BitUtils.hpp"
 
 #include "Saturation/ClauseContainer.hpp"
+#include "Saturation/Splitter.hpp"
 
 #include "SAT/SATClause.hpp"
 
 #include "Shell/Options.hpp"
-#include "Shell/Statistics.hpp"
 
 #include "Inference.hpp"
 #include "Signature.hpp"
@@ -68,118 +68,28 @@ bool Clause::_auxInUse = false;
 
 
 /** New clause */
-Clause::Clause(unsigned length,InputType it,Inference* inf)
-  : Unit(Unit::CLAUSE,inf,it),
+Clause::Clause(unsigned length,const Inference& inf)
+  : Unit(Unit::CLAUSE,inf),
     _length(length),
     _color(COLOR_INVALID),
-    _input(0),
     _extensionality(false),
     _extensionalityTag(false),
     _component(false),
-    _theoryDescendant(false),
-    _combAxiomsDescendant(false), 
-    _proxyAxiomsDescendant(false),
-    _holAxiomsDescendant(false),
-    _inductionDepth(0),
-    _XXNarrows(0),
-    _reductions(0),
-    _numSelected(0),
-    _age(0),
-    _weight(0),
     _store(NONE),
-    _in_active(0),
+    _numSelected(0),
+    _weight(0),
+    _weightForClauseSelection(0),
     _refCnt(0),
     _reductionTimestamp(0),
     _literalPositions(0),
-    _splits(0),
     _numActiveSplits(0),
     _auxTimestamp(0)
 {
-  if(it == Unit::EXTENSIONALITY_AXIOM){
+  // MS: TODO: not sure if this belongs here and whether EXTENSIONALITY_AXIOM input types ever appear anywhere (as a vampire-extension TPTP formula role)
+  if(inference().inputType() == UnitInputType::EXTENSIONALITY_AXIOM){
     //cout << "Setting extensionality" << endl;
     _extensionalityTag = true;
-    setInputType(Unit::AXIOM);
-  }
-  static bool check = env.options->theoryAxioms() != Options::TheoryAxiomLevel::OFF ||
-                      env.options->induction() != Options::Induction::NONE;
-  if(check){
-    Inference::Iterator it = inf->iterator();
-    bool td = inf->hasNext(it); // td should be false if there are no parents
-    unsigned id = 0; 
-    while(inf->hasNext(it)){
-      Unit* parent = inf->next(it);
-      if(parent->isClause()){
-        td &= static_cast<Clause*>(parent)->isTheoryDescendant();
-        id = max(id,static_cast<Clause*>(parent)->inductionDepth());
-      }
-      else{
-        // if a parent is not a clause then it cannot be (i) a theory axiom itself, 
-        // or (ii) a theory descendant clause
-        td = false;
-      }
-    }
-    _theoryDescendant=td;
-    _inductionDepth=id;
-  }
-  if(env.options->maxXXNarrows() > 0){
-    unsigned parentMax = 0;
-    Inference::Iterator it = inf->iterator();
-    while(inf->hasNext(it)){
-      Unit* parent = inf->next(it);
-      if(parent->isClause()){
-        Clause* p = static_cast<Clause*>(parent);
-        if(p->XXNarrows() > parentMax){
-          parentMax = p->XXNarrows();
-        }
-      }      
-    }
-    setXXNarrows(parentMax);    
-  }
-
-  if(env.options->prioritiseClausesProducedByLongReduction()){
-    unsigned parentMax = 0;
-    Inference::Iterator it = inf->iterator();
-    while(inf->hasNext(it)){
-      Unit* parent = inf->next(it);
-      if(parent->isClause()){
-        Clause* p = static_cast<Clause*>(parent);
-        if(p->reductions() > parentMax){
-          parentMax = p->reductions();
-        }
-      }      
-    }
-    setReductions(parentMax);    
-  }
-
-  if(env.options->addCombAxioms() || env.options->addProxyAxioms()){
-    Inference::Iterator it = inf->iterator();
-    bool pDes = inf->hasNext(it);
-    bool cDes = inf->hasNext(it);
-    bool hDes = inf->hasNext(it);
-    while(inf->hasNext(it) && (cDes || pDes || hDes)){
-      Unit* parent = inf->next(it);
-      if(parent->isClause()){
-        cDes &= static_cast<Clause*>(parent)->isCombAxiomsDescendant();
-        pDes &= static_cast<Clause*>(parent)->isProxyAxiomsDescendant();
-        hDes &= cDes || pDes || static_cast<Clause*>(parent)->isHolAxiomsDescendant();
-      } else {
-        cDes = false;
-        pDes = false;
-        hDes = false;
-      }
-    }
-    if(cDes){ 
-      env.statistics->combDescendants++;
-      setCombAxiomsDescendant(true);
-    }
-    if(pDes){
-      env.statistics->proxyDescendants++;	
-      setProxyAxiomsDescendant(true);    
-    }
-    if(hDes){
-      env.statistics->holAxiomDescendants++;	
-      setHolAxiomsDescendant(true); 
-    }
+    inference().setInputType(UnitInputType::AXIOM);
   }
 }
 
@@ -236,12 +146,12 @@ void Clause::destroyExceptInferenceObject()
 }
 
 
-Clause* Clause::fromStack(const Stack<Literal*>& lits, InputType it, Inference* inf)
+Clause* Clause::fromStack(const Stack<Literal*>& lits, const Inference& inf)
 {
   CALL("Clause::fromStack");
 
   unsigned clen = lits.size();
-  Clause* res = new (clen) Clause(clen, it, inf);
+  Clause* res = new (clen) Clause(clen, inf);
 
   for(unsigned i = 0; i < clen; i++) {
     (*res)[i] = lits[i];
@@ -262,12 +172,11 @@ Clause* Clause::fromClause(Clause* c)
 {
   CALL("Clause::fromClause");
 
-  Inference* inf = new Inference1(Inference::REORDER_LITERALS, c);
-  Clause* res = fromIterator(Clause::Iterator(*c), c->inputType(), inf);
+  Clause* res = fromIterator(Clause::Iterator(*c), SimplifyingInference1(InferenceRule::REORDER_LITERALS, c));
 
-  res->setAge(c->age());
-  //res->setProp(c->prop());
-  res->setSplits(c->splits());
+  if (c->splits()) {
+    res->setSplits(c->splits());
+  }
 
   return res;
 }
@@ -301,19 +210,19 @@ void Clause::destroy()
   static Stack<Clause*> toDestroy(32);
   Clause* cl = this;
   for(;;) {
-    Inference::Iterator it = cl->_inference->iterator();
-    while (cl->_inference->hasNext(it)) {
-      Unit* refU = cl->_inference->next(it);
+    Inference::Iterator it = cl->_inference.iterator();
+    while (cl->_inference.hasNext(it)) {
+      Unit* refU = cl->_inference.next(it);
       if (!refU->isClause()) {
-	continue;
+        continue;
       }
       Clause* refCl = static_cast<Clause*> (refU);
       refCl->_refCnt--;
       if (refCl->shouldBeDestroyed()) {
-	toDestroy.push(refCl);
+        toDestroy.push(refCl);
       }
     }
-    delete cl->_inference;
+    cl->_inference.destroyDirectlyOwned();
     cl->destroyExceptInferenceObject();
     if (toDestroy.isEmpty()) {
       break;
@@ -423,7 +332,7 @@ bool Clause::noSplits() const
 {
   CALL("Clause::noSplits");
 
-  return !this->splits() || this->splits()->isEmpty();
+  return !_inference.splits() || _inference.splits()->isEmpty();
 }
 
 /**
@@ -489,7 +398,7 @@ vstring Clause::toString() const
 
   // print avatar components clause depends on
   if (splits() && !splits()->isEmpty()) {
-    result += vstring(" <- (") + splits()->toString() + ")";
+    result += vstring(" <- (") + Splitter::splitsToString(splits()) + ")";
   }
 
   // print inference and ids of parent clauses
@@ -499,13 +408,13 @@ vstring Clause::toString() const
     // print statistics: each entry should have the form key:value
     result += vstring(" {");
       
-    result += vstring("a:") + Int::toString(_age);
-    result += vstring(",w:") + Int::toString(weight());
+    result += vstring("a:") + Int::toString(age());
+    unsigned weight = (_weight ? _weight : computeWeight());
+    result += vstring(",w:") + Int::toString(weight);
     
-    float ew = const_cast<Clause*>(this)->getEffectiveWeight(const_cast<Shell::Options&>(*(env.options)));
-    unsigned effective = static_cast<int>(std::ceil(ew));
-    if(effective!=weight()){
-      result += vstring(",effW:") + Int::toString(effective);
+    unsigned weightForClauseSelection = (_weightForClauseSelection ? _weightForClauseSelection : computeWeightForClauseSelection(*env.options));
+    if(weightForClauseSelection!=weight){
+      result += vstring(",wCS:") + Int::toString(weightForClauseSelection);
     }
 
     if (numSelected()>0) {
@@ -516,15 +425,20 @@ vstring Clause::toString() const
       result += vstring(",col:") + Int::toString(color());
     }
 
-    if(isGoal()){
+    if(derivedFromGoal()){
       result += vstring(",goal:1");
     }
-    if(isTheoryDescendant()){
-      result += vstring(",tD:1");
+    if(isPureTheoryDescendant()){
+      result += vstring(",ptD:1");
     }
 
-    result += vstring(",inD:") + Int::toString(inductionDepth());
-    result += vstring("}");
+    if(env.options->induction() != Shell::Options::Induction::NONE){
+      result += vstring(",inD:") + Int::toString(_inference.inductionDepth());
+    }
+    result += ",thAx:" + Int::toString((int)(_inference.th_ancestors));
+    result += ",allAx:" + Int::toString((int)(_inference.all_ancestors));
+    result += ",thDist:" + Int::toString( _inference.th_ancestors * env.options->theorySplitQueueExpectedRatioDenom() - _inference.all_ancestors);    result += vstring("}");
+    //TODO comb axiom etc?
   }
 
   return result;
@@ -586,30 +500,16 @@ void Clause::computeColor() const
  * @since 02/01/2008 Manchester.
  * @since 22/01/2015 include splitWeight in weight
  */
-void Clause::computeWeight() const
+unsigned Clause::computeWeight() const
 {
   CALL("Clause::computeWeight");
 
-  _weight = 0;
+  unsigned result = 0;
   for (int i = _length-1; i >= 0; i--) {
-    ASS(_literals[i]->shared());
-    _weight += _literals[i]->weight();
+    result += _literals[i]->weight();
   }
 
-  // We now include this directly in weight()
-  // This is so that we can reduce the split set and keep the original weight
-  // The alternative would be to remove the clause and reenter it into the passive queue whenever
-  // The split set was changed
-  if (env.options->nonliteralsInClauseWeight()) {
-    _weight+=splitWeight(); // no longer includes propWeight
-  }
-
-  // If _weight is zero (empty clause) then no need to do this
-  if(_weight){
-    unsigned priority = getPriority();
-    _weight *= priority;
-  }
-
+  return result;
 } // Clause::computeWeight
 
 
@@ -632,7 +532,7 @@ unsigned Clause::splitWeight() const
  * @since 04/05/2013 Manchester, updated to use new NonVariableIterator
  * @author Andrei Voronkov
  */
-unsigned Clause::getNumeralWeight() 
+unsigned Clause::getNumeralWeight() const
 {
   CALL("Clause::getNumeralWeight");
 
@@ -647,9 +547,9 @@ unsigned Clause::getNumeralWeight()
     while (nvi.hasNext()) {
       const Term* t = nvi.next().term();
       if (t->arity() != 0) {
-	continue;
+        continue;
       }
-      /*IntegerConstantType intVal;
+      IntegerConstantType intVal;
       if (theory->tryInterpretConstant(t,intVal)) {
         int w = BitUtils::log2(abs(intVal.toInner()))-1;
         if (w > 0) {
@@ -658,43 +558,59 @@ unsigned Clause::getNumeralWeight()
         continue;
       }
       RationalConstantType ratVal;
-      RealConstantType realVal;*/
+      RealConstantType realVal;
       bool haveRat = false;
-      /*if (theory->tryInterpretConstant(t,ratVal)) {
+      if (theory->tryInterpretConstant(t,ratVal)) {
         haveRat = true;
       }
       else if (theory->tryInterpretConstant(t,realVal)) {
         ratVal = RationalConstantType(realVal);
         haveRat = true;
-      }*/
+      }
       if (!haveRat) {
         continue;
       }
-      /*int wN = BitUtils::log2(abs(ratVal.numerator().toInner()))-1;
+      int wN = BitUtils::log2(abs(ratVal.numerator().toInner()))-1;
       int wD = BitUtils::log2(abs(ratVal.denominator().toInner()))-1;
       int v = wN + wD;
       if (v > 0) {
         res += v;
-      }*/
+      }
     }
   }
   return res;
 } // getNumeralWeight
 
 /**
- * Return effective weight of the clause (i.e. weight multiplied
- * by the nongoal weight coefficient, if applicable)
- * @since 22/1/15 weight uses splitWeight
+ * compute weight of the clause used by clause selection and cache it
  */
-float Clause::getEffectiveWeight(const Options& opt) 
+unsigned Clause::computeWeightForClauseSelection(const Options& opt) const
 {
-  CALL("Clause::getEffectiveWeight");
+  CALL("Clause::computeWeightForClauseSelection");
 
-  static float nongoalWeightCoef=opt.nongoalWeightCoefficient();
-  static bool restrictNWC = opt.restrictNWCtoGC();
+  unsigned w = 0;
+  if (_weight) {
+    w = _weight;
+  } else {
+    w = computeWeight();
+  }
 
-  bool goal = isGoal();
-  if(goal && restrictNWC){
+  unsigned splWeight = 0;
+  if (opt.nonliteralsInClauseWeight()) {
+    splWeight = splitWeight(); // no longer includes propWeight
+  }
+
+  // hack: computation of getNumeralWeight is potentially expensive, so we onlycompute it if
+  // the option increasedNumeralWeight is set to true.
+  unsigned numeralWeight = 0;
+  if (opt.increasedNumeralWeight())
+  {
+    numeralWeight = getNumeralWeight();
+  }
+
+  bool derivedFromGoal = Unit::derivedFromGoal();
+  if(derivedFromGoal && opt.restrictNWCtoGC()){
+
     bool found = false;
     for(unsigned i=0;i<_length;i++){
       TermFunIterator it(_literals[i]);
@@ -703,21 +619,36 @@ float Clause::getEffectiveWeight(const Options& opt)
         found |= env.signature->getFunction(it.next())->inGoal();
       }
     }
-    if(!found){ goal=false; }
-  } 
-
-  unsigned w=weight();
-  if (opt.increasedNumeralWeight()) {
-    return (2*w+getNumeralWeight()) * ( !goal ? nongoalWeightCoef : 1.0f);
+    if(!found){ derivedFromGoal=false; }
   }
-  else {
-    return w * ( !goal ? nongoalWeightCoef : 1.0f);
-  }
+  return Clause::computeWeightForClauseSelection(w, splWeight, numeralWeight, derivedFromGoal, opt);
 }
+
+
+/*
+ * note: we currently assume in Clause::computeWeightForClauseSelection(opt) th
+at numeralWeight is only used here if
+ * the option increasedNumeralWeight() is set to true.
+ */
+unsigned Clause::computeWeightForClauseSelection(unsigned w, unsigned splitWeight, unsigned numeralWeight, bool derivedFromGoal, const Shell::Options& opt)
+{
+  CALL("Clause::computeWeightForClauseSelection(unsigned w, ...)");
+
+  static unsigned nongoalWeightCoeffNum = opt.nongoalWeightCoefficientNumerator();
+  static unsigned nongoalWeightCoefDenom = opt.nongoalWeightCoefficientDenominator();
+
+  w += splitWeight;
+
+  if (opt.increasedNumeralWeight()) {
+    w = (2 * w + numeralWeight);
+  }
+  return w * ( !derivedFromGoal ? nongoalWeightCoeffNum : nongoalWeightCoefDenom);
+}
+
 
 void Clause::collectUnstableVars(DHSet<unsigned>& acc)
 {
-  CALL("Clause::collectVars");
+  CALL("Clause::collectUnstableVars");
   collectVars2<UnstableVarIt>(acc);
 }
 
@@ -767,6 +698,22 @@ unsigned Clause::maxVar()
   }
   return max;
 }
+
+unsigned Clause::numPositiveLiterals()
+{
+  CALL("Clause::numPositiveLiterals");
+  unsigned count = 0;
+  for (int i = 0; i < _length; i++)
+  {
+    Literal *lit = (*this)[i];
+    if (lit->isPositive())
+    {
+      count++;
+    }
+  }
+  return count;
+}
+
 
 /**
  * Return index of @b lit in the clause
