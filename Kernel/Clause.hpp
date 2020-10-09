@@ -36,10 +36,9 @@
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Reflection.hpp"
 #include "Lib/Stack.hpp"
-#include "Lib/Deque.hpp"
 
 #include "Unit.hpp"
-#include "Signature.hpp"
+#include "Kernel/Inference.hpp"
 
 namespace Kernel {
 
@@ -257,11 +256,6 @@ public:
   void assertValid();
 #endif
 
-  /** Mark clause as input clause for the saturation algorithm */
-  void markInput() { _input=1; }
-  /** Clause is an input clause for the saturation algorithm */
-  bool isInput() { return _input; }
-
 
   SplitSet* splits() const { return _inference.splits(); }
   bool noSplits() const;
@@ -386,8 +380,6 @@ protected:
   Store _store : 3;
   /** number of selected literals */
   unsigned _numSelected : 20;
-  /** age */
-  unsigned _age;
   /** weight */
   mutable unsigned _weight;
   /** weight for clause selection */

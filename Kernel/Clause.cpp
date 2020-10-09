@@ -437,7 +437,7 @@ vstring Clause::toString() const
     }
     result += ",thAx:" + Int::toString((int)(_inference.th_ancestors));
     result += ",allAx:" + Int::toString((int)(_inference.all_ancestors));
-    result += ",thDist:" + Int::toString( _inference.th_ancestors * env.options->theorySplitQueueExpectedRatioDenom() - _inference.all_ancestors);    result += vstring("}");
+    //result += ",thDist:" + Int::toString( _inference.th_ancestors * env.options->theorySplitQueueExpectedRatioDenom() - _inference.all_ancestors);    result += vstring("}");
     //TODO comb axiom etc?
   }
 
@@ -636,7 +636,7 @@ unsigned Clause::computeWeightForClauseSelection(unsigned w, unsigned splitWeigh
 
   static unsigned nongoalWeightCoeffNum = opt.nongoalWeightCoefficientNumerator();
   static unsigned nongoalWeightCoefDenom = opt.nongoalWeightCoefficientDenominator();
-
+                                                                              
   w += splitWeight;
 
   if (opt.increasedNumeralWeight()) {
