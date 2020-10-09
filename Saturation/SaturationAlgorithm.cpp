@@ -1487,9 +1487,9 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
         sgi->push(new Cancellation(ordering)); 
       }
 
-      if (env.options->gaussianVariableElimination()) {
-        sgi->push(new GaussianVariableElimination()); 
-      }
+      // if (env.options->gaussianVariableElimination()) {
+      //   sgi->push(new GaussianVariableElimination()); 
+      // }
 
       if (env.options->arithmeticSubtermGeneralizations()) {
         for (auto gen : allArithmeticSubtermGeneralizations())  {
@@ -1644,11 +1644,13 @@ ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, cons
           res->addFront(gen);
         }
       }
+    }
 
-      if (env.options->gaussianVariableElimination()) {
-        res->addFront(new GaussianVariableElimination()); 
-      }
+    if (env.options->gaussianVariableElimination()) {
+      res->addFront(new GaussianVariableElimination()); 
+    }
 
+    if (env.options->arithmeticSimplificationMode() == Options::ArithmeticSimplificationMode::FORCE) {
 
       if (env.options->cancellation()) {
         res->addFront(new Cancellation(ordering)); 

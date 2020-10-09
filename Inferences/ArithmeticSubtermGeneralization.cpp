@@ -7,7 +7,7 @@
 #include "Kernel/Ordering.hpp"
 #include "Shell/Statistics.hpp"
 
-#define DEBUG(...) DBG(__VA_ARGS__)
+#define DEBUG(...) //DBG(__VA_ARGS__)
 
 namespace Inferences {
 
@@ -784,11 +784,9 @@ void GeneralizeAdd<NumTraits>::addToMap(GenMap& map, AnyPoly p_)
   }
   auto p = p_.template unwrapType<NumTraits>();
  
-  DBGE(p);
   Map<Variable, Unit> varSummands;
   for (auto summand : p->iter()) {
     auto var = summand.tryVar();
-    DBGE(var);
 
     if (var.isSome() && varSummands.tryGet(var.unwrap()).isNone()) {
       auto v = var.unwrap();

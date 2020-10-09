@@ -35,7 +35,6 @@ bool NumberTheoryInverter::canInvertTop(const InversionContext &ctxt) {
   CALL("NumberTheoryInverter::canInvertTop")
   auto &t = ctxt.topTerm();
   auto fun = t.functor();
-  auto sym = env.signature->getFunction(fun);
 
   DEBUG("canInvert ", ctxt.topTerm().toString(), "@", ctxt.topIdx())
   if (theory->isInterpretedFunction(fun)) {
