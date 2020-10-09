@@ -144,7 +144,7 @@ endif
 ################################################################
 
 CXX = g++
-CXXFLAGS = $(XFLAGS) -Wall -std=c++11 -Wno-terminate $(INCLUDES) # -Wno-unknown-warning-option for clang
+CXXFLAGS = $(XFLAGS) -Wall -std=c++11 $(INCLUDES) # -Wno-unknown-warning-option for clang
 
 CC = gcc 
 CCFLAGS = -Wall -O3 -DNDBLSCR -DNLGLOG -DNDEBUG -DNCHKSOL -DNLGLPICOSAT 
@@ -229,10 +229,10 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/Term.o\
         Kernel/TermIterators.o\
         Kernel/TermTransformer.o\
+         Kernel/Theory.o\
          Kernel/Signature.o\
          Kernel/Unit.o
 #        Kernel/InterpretedLiteralEvaluator.o\
-#        Kernel/Theory.o\
 #        Kernel/MatchTag.o\
 #        Kernel/Assignment.o\     
 #        Kernel/Constraint.o\
@@ -391,13 +391,13 @@ VS_OBJ = Shell/CommandLine.o\
          Shell/Lexer.o\
          Shell/BlockedClauseElimination.o\
          Shell/Preprocess.o\
+         Shell/NewCNF.o\
          version.o
 #         Shell/InterpretedNormalizer.o\
 #         Shell/SimplifyProver.o\
 #         Shell/AnswerExtractor.o\
 #         Shell/BFNT.o\
 #         Shell/BFNTMainLoop.o\
-#         Shell/NewCNF.o\
 #         Shell/TermAlgebra.o\
 #         Shell/TheoryAxioms.o\
 #         Shell/TheoryFinder.o\
@@ -489,6 +489,7 @@ LIB_DEP = Indexing/TermSharing.o\
 	  Kernel/Term.o\
 	  Kernel/TermIterators.o\
 	  Kernel/TermTransformer.o\
+      Kernel/Theory.o\
 	  Kernel/Unit.o\
 	  Parse/TPTP.o\
 	  Saturation/ClauseContainer.o\
@@ -499,7 +500,6 @@ LIB_DEP = Indexing/TermSharing.o\
 	  Shell/GlobalOptions.o\
 	  version.o
 #     Kernel/InterpretedLiteralEvaluator.o\
-#     Kernel/Theory.o\
 #     ClausifierDependencyFix.o\
 
 OTHER_CL_DEP = Indexing/FormulaIndex.o\
