@@ -44,8 +44,6 @@
 
 //#include "Saturation/ExtensionalityClauseContainer.hpp"
 
-#include "Limits.hpp"
-
 #if VDEBUG
 #include<iostream>
 #endif
@@ -102,7 +100,6 @@ public:
 
   virtual ClauseContainer* getSimplifyingClauseContainer() = 0;
   virtual ClauseContainer* getGeneratingClauseContainer() { return _active; }
-  virtual ClauseContainer* getPassiveClauseContainer() { return _passive; }
   /*ExtensionalityClauseContainer* getExtensionalityClauseContainer() {
     return _extensionality;
   }*/
@@ -112,7 +109,7 @@ public:
   size_t activeClauseCount();
   size_t passiveClauseCount();
 
-  Limits* getLimits() { return &_limits; }
+  PassiveClauseContainer* getPassiveClauseContainer() { return _passive.get(); }
   IndexManager* getIndexManager() { return _imgr.ptr(); }
   //AnswerLiteralManager* getAnswerLiteralManager() { return _answerLiteralManager; }
   Ordering& getOrdering() const { return *_ordering; }
@@ -174,7 +171,6 @@ private:
   void handleEmptyClause(Clause* cl);
   Clause* doImmediateSimplification(Clause* cl);
   MainLoopResult saturateImpl();
-  Limits _limits;
   SmartPtr<IndexManager> _imgr;
 
   class TotalSimplificationPerformer;
@@ -192,7 +188,7 @@ protected:
   ClauseStack _postponedClauseRemovals;
 
   UnprocessedClauseContainer* _unprocessed;
-  PassiveClauseContainer* _passive;
+  std::unique_ptr<PassiveClauseContainer> _passive; _passive;
   ActiveClauseContainer* _active;
   //ExtensionalityClauseContainer* _extensionality;
 
