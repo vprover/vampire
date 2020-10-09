@@ -1079,7 +1079,8 @@ void SaturationAlgorithm::addToPassive(Clause* cl)
 
 void SaturationAlgorithm::removeSelected(Clause* cl)
 {
-  ASS_EQ(cl->store(), Clause::SELECTED)
+  ASS_EQ(cl->store(), Clause::SELECTED);
+  beforeSelectedRemoved(cl);
   cl->setStore(Clause::NONE);
 }
 
