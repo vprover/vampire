@@ -132,6 +132,7 @@ protected:
   void doUnprocessedLoop();
   virtual bool handleClauseBeforeActivation(Clause* c);
   void addInputSOSClause(Clause* cl);
+
   void newClausesToUnprocessed();
   void addUnprocessedClause(Clause* cl);
   bool forwardSimplify(Clause* c);
@@ -150,6 +151,8 @@ protected:
   virtual void onUnprocessedSelected(Clause* c);
   void onNewUsefulPropositionalClause(Clause* c);
   virtual void onClauseRetained(Clause* cl);
+  /** called before the selected clause is deleted from the searchspace */
+  virtual void beforeSelectedRemoved(Clause* cl) {};
   void onAllProcessed();
   int elapsedTime();
   virtual bool isComplete();
