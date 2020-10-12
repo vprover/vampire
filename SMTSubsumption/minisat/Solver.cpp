@@ -460,17 +460,22 @@ Clause* Solver::propagate()
 
         // Theory propagation
         if (p.isPositive()) {
-          subst_theory.enable(var(p), [this](Lit propagated_lit, GClause reason) {
-            std::cerr << "propagated: " << (propagated_lit.isNegative() ? '~' : ' ') << var(propagated_lit) << std::endl;
-            bool res = enqueue(propagated_lit, reason);
-            std::cerr << "enqueue returned: " << res << std::endl;
-            if (!res) {
-              // CONFLICT
-              // TODO: we probably want to stop propagating and exit.
-            }
-            return res;
-          });
-          // TODO: maybe we have to do something here in case we reached a conflict by propagation
+          bool tres =
+            subst_theory.enable(var(p), [this](Lit propagated_lit, GClause reason) {
+              std::cerr << "propagated: " << (propagated_lit.isNegative() ? '~' : ' ') << var(propagated_lit) << std::endl;
+              bool eres = enqueue(propagated_lit, reason);
+              std::cerr << "enqueue returned: " << eres << std::endl;
+              if (!eres) {
+                // CONFLICT (probably nothing to do in this callback)
+              }
+              return eres;
+            });
+          if (!tres) {
+            // CONFLICT appeared during theory propagation
+            std::cerr << "CONFLICT during theory propagation" << std::endl;
+            // TODO: maybe we have to do something here in case we reached a conflict by propagation
+            assert(false);  // TODO
+          }
         }
 
         for (i = j = (GClause*)ws, end = i + ws.size();  i != end;){

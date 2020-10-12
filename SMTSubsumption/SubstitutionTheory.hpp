@@ -98,21 +98,26 @@ class SubstitutionTheory
   private:
     /// Maps boolean variables to the theory atoms they represent
     vector_map<Minisat::Var, SubstitutionAtom> atoms;
-    // vvector<SubstitutionAtom> atoms;
 
+    /// Maps FOL variables to the list of substitution constraints for this variable
     vector_map<domain, vvector<std::pair<range, Minisat::Var>>> atoms_by_domain;
 
-    // TODO: can we not just use the trail of the solver???
-    vvector<Minisat::Var> trail;
-    vvector<int>          trail_lim;        // Separator indices for different decision levels in 'trail', i.e., trail[trail_lim[dl]] is the first variable at level dl
+    // // TODO: can we not just use the trail of the solver???
+    // vvector<Minisat::Var> trail;
+    // vvector<int>          trail_lim;        // Separator indices for different decision levels in 'trail', i.e., trail[trail_lim[dl]] is the first variable at level dl
 
-    /// Map: domain -> GClause
-    /// The reason why this mapping has become active.
-    vector_map<domain, Minisat::GClause> reason;
+    // /// Map: domain -> GClause
+    // /// The reason why this mapping has become active.
+    // vector_map<domain, Minisat::GClause> reason;
 
     // Current substitution
     // Maps substitution domain (FOL variables) to substitution range (FOL terms)
     // TODO: we probably don't even need that. why? because of exhaustive theory propagation, we never get conflicts. maybe keep this for assertions in debug mode (for now).
+    //       (it will be necessary for subsumption demodulation, to build the rewritten term)
+    // TODO: potential problem because FOL variables are not contiguous.
+    // TODO: possible (partial) solution: ImmediateSimplificationRule that normalizes variable indices (e.g., if max index > 100?)
+    // Idea for easier backjumping: add trail index when it was set (or maybe decision level is enough),
+    //                              and only consider the value to be set if the current trail index is larger than the stored one.
     vector_map<domain, range> current_substitution;
 
   public:
@@ -152,19 +157,19 @@ class SubstitutionTheory
         }
       }
 
-      Minisat::GClause gc_empty = Minisat::GClause_new(nullptr);
-      reason.resize(max_d+1, gc_empty);
-      // reason.reserve(max_d);
-      // for (size_t i = 0; i < max_d; ++i) {
-      //   reason.push_back(GClause_NULL);
-      // }
-      ASS(std::all_of(reason.begin(), reason.end(), [](Minisat::GClause gc) { return gc.isNull(); }));
+      // Minisat::GClause gc_empty = Minisat::GClause_new(nullptr);
+      // reason.resize(max_d+1, gc_empty);
+      // // reason.reserve(max_d);
+      // // for (size_t i = 0; i < max_d; ++i) {
+      // //   reason.push_back(GClause_NULL);
+      // // }
+      // ASS(std::all_of(reason.begin(), reason.end(), [](Minisat::GClause gc) { return gc.isNull(); }));
     }
 
     /// Call this when a SAT variable has been set to true
     /// PropagateCallback ~ bool(Minisat::Lit propagated,GClause)
     template < typename PropagateCallback >
-    void enable(Minisat::Var var, /* Level level, Minisat::GClause reason, */ PropagateCallback propagate)
+    bool enable(Minisat::Var var, /* Level level, Minisat::GClause reason, */ PropagateCallback propagate)
     {
       std::cerr << "SubstitutionTheory::enable: " << var << std::endl;
       // Since all our propositional variables have some theory meaning attached,
@@ -174,10 +179,10 @@ class SubstitutionTheory
       ASS_L(var, atoms.size());
       SubstitutionAtom const& atom = atoms[var];
 
-#if DEBUG
-      // var should be unassigned (this is to be ensured by the calling SAT solver)
-      ASS(std::all_of(trail.begin(), trail.end(), [var](Minisat::Var w) { w != var }));
-#endif
+// #if DEBUG
+//       // var should be unassigned (this is to be ensured by the calling SAT solver)
+//       ASS(std::all_of(trail.begin(), trail.end(), [var](Minisat::Var w) { w != var }));
+// #endif
 
 #if DEBUG
       // Must be compatible due to exhaustive theory propagation
@@ -187,37 +192,63 @@ class SubstitutionTheory
       }
 #endif
 
-      // Update state
-      trail.push_back(var);   // TODO record level
-      for (auto p : atom.mapping()) {
-        current_substitution[p.first] = p.second;
-      }
+      // // Update state
+      // trail.push_back(var);   // TODO record level
+      // for (auto p : atom.mapping()) {
+      //   current_substitution[p.first] = p.second;
+      // }
+
+      // TODO: instead of explicitly propagating, add binary clause (to store it inside watch lists)
+      //       (still have to examine same FOL variable later again)
+      // Actually: this may not be what we want after all.
+      // What we do now is theory propagation, this would be theory learning.
+      // According to the SMT paper this is generally not as useful (since we then duplicate theory propagation work into the SAT part).
 
       // Exhaustively propagate conflicting atoms
-      for (auto p : atom.mapping()) {
-        // Needs: a map back from SubstitutionAtom.first to boolean vars
-        // We iterate over values for p.first and if they're incompatible, add a binary clause to the SAT solver? maybe not
-        // What we discussed: directly set it to true, with the reason coming from the initial assignment (for the SAT-solver it's then indistinguishable from a SAT-propagated variable)
-        // But this can be done in the propagate callback; which probably defined in minisat::Solver and just calls enqueue or something like that.
-        for (auto q : atoms_by_domain[p.first]) {
+      for (auto p : atom.mapping()) {  // go through list of constraints (x -> t)
+
+        // TODO: if p.first already assigned, skip
+
+        // p: (domain, range)  -- one particular mapping of the newly-enabled substitution
+        //    (Vampire::Variable, TermList)
+        for (auto q : atoms_by_domain[p.first]) {  // other constraints with x  ( x-> t1, ...)
+          // atoms_by_domain[p.first]: list of all other possible mappings for the affected domain value
+          // q: (range, Minisat::Var)  -- range value of the corresponding substitution atom and the minisat variables that would lead to this choice
           if (q.first != p.second) {
-            // conflict, propagate conflicting_var to false.
+
+            // conflicting substitutions, propagate conflicting_var to false.
             Minisat::Var conflicting_var = q.second;
             Minisat::Lit propagated_lit = ~Minisat::Lit(conflicting_var);
-            // TODO HMMM: isn't the direct reason always just the variable we are enabling now???
-            Minisat::GClause reason = Minisat::GClause_new(Minisat::Lit(var));
+
+            // // The reason as clause is:  ¬var \/ propagated_lit
+            // Minisat::vec<Minisat::Lit> reason_lits;
+            // // TODO: Order [propagated_lit, ~var] works, but assertion failure with [~var, propagated_lit] ??????  => check minisat code again, maybe the order is significant? (e.g., like first literal in learned clauses)
+            // reason_lits.push(propagated_lit);
+            // reason_lits.push(~Minisat::Lit(var));
+            // Minisat::Clause* reason_cl = Minisat::Clause_new(false, reason_lits);  // TODO: memory leak?
+            // Minisat::GClause reason = Minisat::GClause_new(reason_cl);
+
+            // Minisat has special handling for binary clauses as reasons.
+            // They can be stored as a single literal, because unary clauses never appear as reason.
+            // This saves an allocation.
+            // TODO: look more closely at minisat code to confirm this.
+            Minisat::GClause reason = Minisat::GClause_new(~Minisat::Lit(var));
+
             if (!propagate(propagated_lit, reason)) {
               // Conflict in solver, no use in further propagation
-              return;
+              return false;
             }
           }
         }
       }
+
+      return true;
     }
 
     /// Undo all assignments above the given level
     void backjump(Level level)
     {
+      // TODO reset current_substitution
     }
 };
 
