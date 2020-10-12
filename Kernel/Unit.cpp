@@ -343,7 +343,7 @@ vstring Unit::inferenceAsString() const
 #if 1
   InferenceStore& infS = *InferenceStore::instance();
 
-  Inference::Rule rule;
+  InferenceRule rule;
   UnitIterator parents;
   Unit* us = const_cast<Unit*>(this);
   parents = infS.getParents(us, rule);
