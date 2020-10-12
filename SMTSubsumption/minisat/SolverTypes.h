@@ -91,13 +91,14 @@ inline int toDimacs(Lit p) { return sign(p) ? -var(p) - 1 : var(p) + 1; }
 class Clause {
     uint    size_learnt;
     Lit     data[1];
-public:
+
     // NOTE: This constructor cannot be used directly (doesn't allocate enough memory).
     Clause(bool learnt, const vec<Lit>& ps) {
         size_learnt = (ps.size() << 1) | (int)learnt;
         for (int i = 0; i < ps.size(); i++) data[i] = ps[i];
         if (learnt) activity() = 0; }
 
+public:
     // -- use this function instead:
     friend Clause* Clause_new(bool learnt, const vec<Lit>& ps);
 
