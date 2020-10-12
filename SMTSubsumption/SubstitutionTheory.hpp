@@ -93,70 +93,6 @@ template < typename K, typename V >
 using vector_map = vvector<V>;
 
 
-/// A non-owning vector.
-template < typename T >
-class slice
-{
-  public:
-    using value_type = T;
-    using reference = value_type&;
-    using const_reference = value_type const&;
-    // using pointer = typename std::allocator_traits<STLAllocator<T>>::pointer;  // ???
-    using pointer = T*;
-    using const_pointer = T const*;
-    using size_type = std::size_t;
-    using difference_type = std::ptrdiff_t;
-
-    using iterator = pointer;
-    using const_iterator = const_pointer;
-
-  public:
-    // TODO: a vector-like interface (should have at least begin/end, cbegin/cend as well. Iterator could be simply the pointer to element?)
-
-    iterator begin()
-    {
-      return &m_data[0];
-    }
-
-    iterator end()
-    {
-      return &m_data[m_size];  // one past the end
-    }
-
-    const_iterator cbegin()
-    {
-      return &m_data[0];
-    }
-
-    const_iterator cend()
-    {
-      return &m_data[m_size];  // one past the end
-    }
-
-    reference operator[](size_type pos)
-    {
-      ASS_L(pos, m_size);
-      return m_data[pos];
-    }
-
-    const_reference operator[](size_type pos) const
-    {
-      ASS_L(pos, m_size);
-      return m_data[pos];
-    }
-
-    size_type size() const
-    {
-      return m_size;
-    }
-
-  private:
-    pointer m_data;
-    size_type m_size;
-};
-
-
-
 class SubstitutionTheory
 {
   private:
@@ -279,13 +215,6 @@ class SubstitutionTheory
       }
     }
 
-    // /// Exhaustive theory propagation
-    // /// TODO: proper return value? Or pass some object where we add the results?
-    // bool propagate()
-    // {
-    //   return false;
-    // }
-
     /// Undo all assignments above the given level
     void backjump(Level level)
     {
@@ -296,45 +225,3 @@ class SubstitutionTheory
 }
 
 #endif /* !SUBSTITUTIONTHEORY_HPP */
-
-
-    /*
-    /// Call this when a SAT variable has been set to true
-    /// Returns: true if the theory part is satisfiable, false if there is a conflict
-    /// TODO: in case of conflict, return the reason as well
-    bool try_enable(Minisat::Var var, Level level)
-    {
-      // Since all our propositional variables have some theory meaning attached,
-      // we can assert this.
-      // Otherwise we should need whether the variable has some theory component
-      // and only proceed if it does.
-      ASS_L(var, atoms.size());
-
-#if DEBUG
-      // var should be unassigned (this is to be ensured by the calling SAT solver)
-      ASS(std::all_of(trail.begin(), trail.end(), [var](Minisat::Var w) { w != var }));
-#endif
-
-      SubstitutionAtom const& atom = atoms[var];
-
-      // Check compatibility
-      for (auto p : atom.mapping()) {
-        range current = current_substitution[p.first];
-        if (current.isNonEmpty() && current != p.second) {
-          // INCOMPATIBLE
-          // TODO: Oh no, we do exhaustive theory propagation; so this can never happen. All conflict stuff is purely in the SAT solver. (so TODO: make this into an assertion)
-          return false;  // TODO: return reason
-        }
-      }
-
-      // Update
-      trail.push_back(var);
-      for (auto p : atom.mapping()) {
-        ASS(current_substitution[p.first].isEmpty() || current_substitution[p.first] == p.second);  // compatible
-        current_substitution[p.first] = p.second;
-      }
-      // TODO:
-      // propagate should be done here,
-      // because here we know exactly which 'domain' items we have to check.
-      return true;
-    } */
