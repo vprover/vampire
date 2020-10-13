@@ -66,8 +66,7 @@ void NewCNF::clausify(FormulaUnit* unit,Stack<Clause*>& output)
 
     case FALSE: {
       // create an empty clause and push it in the stack
-      Inference* inf = new Inference1(Inference::CLAUSIFY,unit);
-      Clause* clause = new(0) Clause(0, unit->inputType(),inf);
+      Clause* clause = new(0) Clause(0,FormulaTransformation(InferenceRule::CLAUSIFY,unit));
       output.push(clause);
       return;
     }
@@ -142,7 +141,7 @@ void NewCNF::process(Literal* literal, Occurrences &occurrences) {
   LOG2("process(Literal*)", literal->toString());
   LOG2("occurrences.size", occurrences.size());
 
-//  ASS_REP(!literal->shared(), literal->toString());
+  // shared literals don't contain fool stuff
   if (literal->shared()) {
     return;
   }
@@ -290,12 +289,12 @@ TermList NewCNF::findITEs(TermList ts, Stack<unsigned> &variables, Stack<Formula
     return TermList(Term::create(term, arguments.begin()));
   }
 
-  unsigned sort;
+  TermList sort;
 
   Term::SpecialTermData* sd = term->getSpecialData();
   switch (sd->getType()) {
     case Term::SF_FORMULA: {
-      sort = Sorts::SRT_BOOL;
+      sort = Term::boolSort();
       conditions.push(sd->getFormula());
       thenBranches.push(TermList(Term::foolTrue()));
       elseBranches.push(TermList(Term::foolFalse()));
@@ -337,7 +336,7 @@ bool NewCNF::shouldInlineITE(unsigned iteCounter) {
   return iteCounter < _iteInliningThreshold;
 }
 
-unsigned NewCNF::createFreshVariable(unsigned sort)
+unsigned NewCNF::createFreshVariable(TermList sort)
 {
   CALL("NewCNF::createFreshVariable");
 
@@ -356,7 +355,7 @@ void NewCNF::createFreshVariableRenaming(unsigned oldVar, unsigned freshVar)
 
   ensureHavingVarSorts();
 
-  unsigned sort;
+  TermList sort;
   ALWAYS(_varSorts.find(oldVar, sort));
   if (!_varSorts.insert(freshVar, sort)) {
     ASSERTION_VIOLATION_REP(freshVar);
@@ -427,6 +426,40 @@ void NewCNF::process(BinaryFormula* g, Occurrences &occurrences)
   }
 }
 
+void NewCNF::BindingStore::pushAndRememberWhileApplying(Binding b, BindingList* &lst)
+{
+  CALL("NewCNF::pushAndRememberWhileApplying");
+
+  // turn b into a singleton substitution
+  static Substitution subst;
+  subst.bind(b.first,b.second);
+
+  // to go through the bindings from the end, put them on a stack...
+  static Stack<BindingList*> st(5);
+  BindingList* traverse = lst;
+  while (BindingList::isNonEmpty(traverse)) {
+    st.push(traverse);
+    traverse = traverse->tail();
+  }
+
+  /// keep applying subst
+  Stack<BindingList*>::TopFirstIterator it(st);
+  bool modified = false;
+  while(it.hasNext()) {
+    BindingList* cell = it.next();
+    Binding someB = cell->head();
+    Term* newTerm = SubstHelper::apply(someB.second, subst);
+    if (modified || newTerm != someB.second) { // applying made a difference
+      modified = true;
+      lst = new BindingList(Binding(someB.first,newTerm),cell->tail());
+      _stored.push(lst);
+    }
+  }
+  pushAndRemember(b,lst);
+  st.reset();
+  subst.reset();
+}
+
 void NewCNF::processBoolVar(SIGN sign, unsigned var, Occurrences &occurrences)
 {
   CALL("NewCNF::processBoolVar");
@@ -457,6 +490,7 @@ void NewCNF::processBoolVar(SIGN sign, unsigned var, Occurrences &occurrences)
     bool bound = false;
     Term* skolem;
 
+    // MS: can a non-fool binding ever map a bool var?
     BindingList::Iterator bit(occ.gc->bindings);
     while (bit.hasNext()) {
       Binding binding = bit.next();
@@ -483,7 +517,9 @@ void NewCNF::processBoolVar(SIGN sign, unsigned var, Occurrences &occurrences)
 
     if (!bound) {
       Term* constant = (occurrenceSign == POSITIVE) ? Term::foolFalse() : Term::foolTrue();
-      _bindingStore.pushAndRemember(Binding(var, constant), occ.gc->bindings);
+      // MS: pushAndRemember is not enough; bindings could already be mentioning var on the rhs!
+      // (BTW, scanning bindings for a second time, which is already ugly and potentially quadratic)
+      _bindingStore.pushAndRememberWhileApplying(Binding(var, constant), occ.gc->bindings);
       removeGenLit(occ);
       continue;
     }
@@ -554,7 +590,7 @@ TermList NewCNF::eliminateLet(Term::SpecialTermData *sd, TermList contents)
     // as $let(x := a, $let(y := b, $let(z := c, ...)))
     unsigned tupleFunctor = sd->getFunctor();
     IntList* symbols = sd->getTupleSymbols();
-    unsigned bodySort = sd->getSort();
+    TermList bodySort = sd->getSort();
 
     OperatorType* tupleType = env.signature->getFunction(tupleFunctor)->fnType();
 
@@ -593,10 +629,10 @@ TermList NewCNF::eliminateLet(Term::SpecialTermData *sd, TermList contents)
   } else {
     unsigned tupleFunctor = sd->getFunctor();
     IntList* symbols = sd->getTupleSymbols();
-    unsigned bodySort = sd->getSort();
+    TermList bodySort = sd->getSort();
 
     OperatorType* tupleType = env.signature->getFunction(tupleFunctor)->fnType();
-    unsigned tupleSort = tupleType->result();
+    TermList tupleSort = tupleType->result();
 
     ASS_EQ(tupleType->arity(), IntList::length(symbols));
 
@@ -609,7 +645,7 @@ TermList NewCNF::eliminateLet(Term::SpecialTermData *sd, TermList contents)
 
     for (unsigned proj = 0; proj < tupleType->arity(); proj++) {
       unsigned symbol = (unsigned) IntList::nth(symbols, proj);
-      bool isPredicate = tupleType->arg(proj) == Sorts::SRT_BOOL;
+      bool isPredicate = tupleType->arg(proj) == Term::boolSort();
 
       unsigned projFunctor = Theory::tuples()->getProjectionFunctor(proj, tupleSort);
       Term* projectedArgument;
@@ -719,7 +755,7 @@ TermList NewCNF::nameLetBinding(unsigned symbol, Formula::VarList* bindingVariab
   bool isPredicate = binding.isTerm() && binding.term()->isBoolean();
 
   unsigned nameArity = Formula::VarList::length(bindingVariables) + Formula::VarList::length(bindingFreeVars);
-  unsigned nameSort;
+  TermList nameSort;
   if (!isPredicate) {
     nameSort = env.signature->getFunction(symbol)->fnType()->result();
   }
@@ -728,7 +764,7 @@ TermList NewCNF::nameLetBinding(unsigned symbol, Formula::VarList* bindingVariab
 
   bool renameSymbol = Formula::VarList::isNonEmpty(bindingFreeVars);
   if (renameSymbol) {
-    static Stack<unsigned> sorts;
+    static Stack<TermList> sorts;
     sorts.reset();
 
     ensureHavingVarSorts();
@@ -736,7 +772,7 @@ TermList NewCNF::nameLetBinding(unsigned symbol, Formula::VarList* bindingVariab
     IntList::Iterator vit(bindingFreeVars);
     while (vit.hasNext()) {
       unsigned var = (unsigned) vit.next();
-      sorts.push(_varSorts.get(var, Sorts::SRT_DEFAULT));
+      sorts.push(_varSorts.get(var, Term::defaultSort()));
     }
 
     if (isPredicate) {
@@ -846,8 +882,8 @@ Term* NewCNF::createSkolemTerm(unsigned var, VarSet* free)
   unsigned arity = free->size();
 
   ensureHavingVarSorts();
-  unsigned rangeSort=_varSorts.get(var, Sorts::SRT_DEFAULT);
-  static Stack<unsigned> domainSorts;
+  TermList rangeSort=_varSorts.get(var, Term::defaultSort());
+  static Stack<TermList> domainSorts;
   static Stack<TermList> fnArgs;
   ASS(domainSorts.isEmpty());
   ASS(fnArgs.isEmpty());
@@ -855,12 +891,12 @@ Term* NewCNF::createSkolemTerm(unsigned var, VarSet* free)
   VarSet::Iterator vit(*free);
   while(vit.hasNext()) {
     unsigned uvar = vit.next();
-    domainSorts.push(_varSorts.get(uvar, Sorts::SRT_DEFAULT));
+    domainSorts.push(_varSorts.get(uvar, Term::defaultSort()));
     fnArgs.push(TermList(uvar, false));
   }
 
   Term* res;
-  bool isPredicate = rangeSort == Sorts::SRT_BOOL;
+  bool isPredicate = (rangeSort == Term::boolSort());
   if (isPredicate) {
     unsigned pred = Skolem::addSkolemPredicate(arity, domainSorts.begin(), var);
     if(_beingClausified->isGoal()){
@@ -888,7 +924,7 @@ Term* NewCNF::createSkolemTerm(unsigned var, VarSet* free)
  * Update the bindings of a generalized clause
  * in which a quantified formula g = (Quant Vars.Inner)
  * is being replaced by Inner. Each variable in Vars
- * with get a new binding. We try not to introduce
+ * will get a new binding. We try not to introduce
  * a new Skolem function unless it is necessary
  * so we cache results from skolemising previous
  * occurrences of g.
@@ -1029,7 +1065,7 @@ void NewCNF::process(QuantifiedFormula* g, Occurrences &occurrences)
   occurrences.replaceBy(g->qarg());
 }
 
-void NewCNF::process(TermList ts, Occurrences &occurrences)
+void NewCNF::processBoolterm(TermList ts, Occurrences &occurrences)
 {
   CALL("NewCNF::process(TermList)");
 
@@ -1090,7 +1126,7 @@ Literal* NewCNF::createNamingLiteral(Formula* f, List<unsigned>* free)
     }
   }
 
-  static Stack<unsigned> domainSorts;
+  static Stack<TermList> domainSorts;
   static Stack<TermList> predArgs;
   domainSorts.reset();
   predArgs.reset();
@@ -1100,7 +1136,7 @@ Literal* NewCNF::createNamingLiteral(Formula* f, List<unsigned>* free)
   List<unsigned>::Iterator vit(free);
   while (vit.hasNext()) {
     unsigned uvar = vit.next();
-    domainSorts.push(_varSorts.get(uvar, Sorts::SRT_DEFAULT));
+    domainSorts.push(_varSorts.get(uvar, Term::defaultSort()));
     predArgs.push(TermList(uvar, false));
   }
 
@@ -1176,7 +1212,7 @@ void NewCNF::process(Formula* g, Occurrences &occurrences)
       break;
 
     case BOOL_TERM:
-      process(g->getBooleanTerm(), occurrences);
+      processBoolterm(g->getBooleanTerm(), occurrences);
       break;
 
     case LITERAL:
