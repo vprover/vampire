@@ -56,7 +56,7 @@ Signature::Symbol::Symbol(const vstring& nm, unsigned arity, bool interpreted, b
     _numericConstant(numericConstant ? 1: 0),
     _answerPredicate(0),
     _overflownConstant(overflownConstant ? 1 : 0),
-    //_termAlgebraCons(0),
+    _termAlgebraCons(0),
     _type(0),
     _distinctGroups(0),
     _usageCount(0),
@@ -66,6 +66,8 @@ Signature::Symbol::Symbol(const vstring& nm, unsigned arity, bool interpreted, b
     _skolem(0),
     _arrow(0),
     _app(0),
+    _tuple(0),
+    _array(0),
     _superSort(super),
     _prox(NOT_PROXY),
     _comb(NOT_COMB)
@@ -88,7 +90,7 @@ void Signature::Symbol::destroyFnSymbol()
 {
   CALL("Signature::Symbol::destroyFnSymbol");
 
- /* if (integerConstant()) {
+  if (integerConstant()) {
     delete static_cast<IntegerSymbol*>(this);
   }
   else if (rationalConstant()) {
@@ -100,9 +102,9 @@ void Signature::Symbol::destroyFnSymbol()
   else if (interpreted()) {
     delete static_cast<InterpretedSymbol*>(this);
   }
-  else {*/
+  else {
     delete this;
-  //}
+  }
 }
 
 /**
@@ -139,7 +141,7 @@ void Signature::Symbol::addToDistinctGroup(unsigned group,unsigned this_number)
 
   env.signature->_distinctGroupsAddedTo=true;
 
-  Stack<unsigned>* members = env.signature->_distinctGroupMembers[group];
+  Signature::DistinctGroupMembers members = env.signature->_distinctGroupMembers[group];
   if(members->size() <= DistinctGroupExpansion::EXPAND_UP_TO_SIZE || env.options->bfnt()
                        || env.options->saturationAlgorithm()==Options::SaturationAlgorithm::FINITE_MODEL_BUILDING){
     // we add one more than EXPAND_UP_TO_SIZE to signal to DistinctGroupExpansion::apply not to expand
@@ -270,7 +272,7 @@ Signature::~Signature ()
  * @since 03/05/2013 train Manchester-London
  * @author Andrei Voronkov
  */
-/*unsigned Signature::addIntegerConstant(const vstring& number,bool defaultSort)
+unsigned Signature::addIntegerConstant(const vstring& number,bool defaultSort)
 {
   CALL("Signature::addIntegerConstant(vstring)");
 
@@ -294,17 +296,17 @@ Signature::~Signature ()
   if(defaultSort){ 
      sym->addToDistinctGroup(STRING_DISTINCT_GROUP,result); // numbers are disctinct from strings
   }
-  *//*
+  */
   _funs.push(sym);
   _funNames.insert(symbolKey,result);
   return result;
-}*/ // Signature::addIntegerConstant
+} // Signature::addIntegerConstant
 
 /**
  * Add an integer constant to the signature.
  * @todo something smarter, so that we don't need to convert all values to string
  */
-/*unsigned Signature::addIntegerConstant(const IntegerConstantType& value)
+unsigned Signature::addIntegerConstant(const IntegerConstantType& value)
 {
   CALL("Signature::addIntegerConstant");
 
@@ -321,8 +323,8 @@ Signature::~Signature ()
   /*
   sym->addToDistinctGroup(INTEGER_DISTINCT_GROUP,result);
   */
-  /*return result;
-} */// addIntegerConstant
+  return result;
+} // addIntegerConstant
 
 /**
  * Add a rational constant to the signature. If defaultSort is true, treat it as
@@ -330,7 +332,7 @@ Signature::~Signature ()
  * @since 03/05/2013 London
  * @author Andrei Voronkov
  */
-/*unsigned Signature::addRationalConstant(const vstring& numerator, const vstring& denominator,bool defaultSort)
+unsigned Signature::addRationalConstant(const vstring& numerator, const vstring& denominator,bool defaultSort)
 {
   CALL("Signature::addRationalConstant(vstring,vstring)");
 
@@ -353,12 +355,12 @@ Signature::~Signature ()
   }
   sym->addToDistinctGroup(RATIONAL_DISTINCT_GROUP,result);
   */
-  /*_funs.push(sym);
+  _funs.push(sym);
   _funNames.insert(key,result);
   return result;
-}*/ // addRatonalConstant
+} // addRatonalConstant
 
-/*unsigned Signature::addRationalConstant(const RationalConstantType& value)
+unsigned Signature::addRationalConstant(const RationalConstantType& value)
 {
   CALL("Signature::addRationalConstant");
 
@@ -372,7 +374,7 @@ Signature::~Signature ()
   _funs.push(new RationalSymbol(value));
   _funNames.insert(key, result);
   return result;
-} */// Signature::addRationalConstant
+} // Signature::addRationalConstant
 
 /**
  * Add a real constant to the signature. If defaultSort is true, treat it as
@@ -380,7 +382,7 @@ Signature::~Signature ()
  * @since 03/05/2013 London
  * @author Andrei Voronkov
  */
-/*unsigned Signature::addRealConstant(const vstring& number,bool defaultSort)
+unsigned Signature::addRealConstant(const vstring& number,bool defaultSort)
 {
   CALL("Signature::addRealConstant(vstring)");
 
@@ -401,12 +403,12 @@ Signature::~Signature ()
   }
   sym->addToDistinctGroup(REAL_DISTINCT_GROUP,result);
   */
-  /*_funs.push(sym);
+  _funs.push(sym);
   _funNames.insert(key,result);
   return result;
-} */// addRealConstant
+} // addRealConstant
 
-/*unsigned Signature::addRealConstant(const RealConstantType& value)
+unsigned Signature::addRealConstant(const RealConstantType& value)
 {
   CALL("Signature::addRealConstant");
 
@@ -420,11 +422,11 @@ Signature::~Signature ()
   _funs.push(new RealSymbol(value));
   _funNames.insert(key, result);
   return result;
-}*/
+}
 
 /**
  * Add interpreted function
- *//*
+ */
 unsigned Signature::addInterpretedFunction(Interpretation interpretation, OperatorType* type, const vstring& name)
 {
   CALL("Signature::addInterpretedFunction(Interpretation,OperatorType*,const vstring&)");
@@ -453,11 +455,11 @@ unsigned Signature::addInterpretedFunction(Interpretation interpretation, Operat
   ASS(fnType->isFunctionType());
   sym->setType(fnType);
   return fnNum;
-}*/ // Signature::addInterpretedFunction
+} // Signature::addInterpretedFunction
 
 /**
  * Add interpreted predicate
- *//*
+ */
 unsigned Signature::addInterpretedPredicate(Interpretation interpretation, OperatorType* type, const vstring& name)
 {
   CALL("Signature::addInterpretedPredicate(Interpretation,OperatorType*,const vstring&)");
@@ -492,7 +494,7 @@ unsigned Signature::addInterpretedPredicate(Interpretation interpretation, Opera
     sym->setType(predType);
   }
   return predNum;
-} */// Signature::addInterpretedPredicate
+} // Signature::addInterpretedPredicate
 
 
 /**
@@ -500,7 +502,7 @@ unsigned Signature::addInterpretedPredicate(Interpretation interpretation, Opera
  *
  * If no such symbol exists, it is created.
  */
-/*unsigned Signature::getInterpretingSymbol(Interpretation interp, OperatorType* type)
+unsigned Signature::getInterpretingSymbol(Interpretation interp, OperatorType* type)
 {
   CALL("Signature::getInterpretingSymbol(Interpretation,OperatorType*)");
   
@@ -537,7 +539,7 @@ unsigned Signature::addInterpretedPredicate(Interpretation interpretation, Opera
 
   //we have now registered a new function, so it should be present in the map
   return _iSymbols.get(mi);
-}*/
+}
 
 const vstring& Signature::functionName(int number)
 {
@@ -967,8 +969,8 @@ unsigned Signature::createDistinctGroup(Unit* premise)
 
   unsigned res = _distinctGroupPremises.size();
   _distinctGroupPremises.push(premise);
-  Stack<unsigned>* stack = new Stack<unsigned>;
-  _distinctGroupMembers.push(stack);
+  // DistinctGroupMember stack = ;
+  _distinctGroupMembers.push(DistinctGroupMembers(new Stack<unsigned>));
   return res;
 }
 
@@ -1080,7 +1082,7 @@ bool Signature::symbolNeedsQuoting(vstring name, bool interpreted, unsigned arit
   return true;
 } // Signature::symbolNeedsQuoting
 
-/*
+
 TermAlgebraConstructor* Signature::getTermAlgebraConstructor(unsigned functor)
 {
   CALL("Signature::getTermAlgebraConstructor");
@@ -1097,7 +1099,7 @@ TermAlgebraConstructor* Signature::getTermAlgebraConstructor(unsigned functor)
   }
 
   return nullptr;
-}*/
+}
 
 /**
  * Return true if the name containing che character must be quoted

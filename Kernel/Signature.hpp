@@ -44,7 +44,7 @@
 #include "Shell/Options.hpp"
 
 #include "Sorts.hpp"
-//#include "Theory.hpp"
+#include "Theory.hpp"
 
 
 namespace Kernel {
@@ -120,7 +120,7 @@ class Signature
     /** marks numbers too large to represent natively */
     unsigned _overflownConstant : 1;
     /** marks term algebra constructors */
-    //unsigned _termAlgebraCons : 1;
+    unsigned _termAlgebraCons : 1;
     /** Either a FunctionType of a PredicateType object */
     mutable OperatorType* _type;
     /** List of distinct groups the constant is a member of, all members of a distinct group should be distinct from each other */
@@ -141,6 +141,10 @@ class Signature
     unsigned _arrow : 1;
     /** if app function symbol */
     unsigned _app : 1;
+    /** if tuple sort */
+    unsigned _tuple : 1;
+    /** if array sort */
+    unsigned _array : 1;  
     /** if super sort */
     unsigned _superSort : 1;
     /** proxy type */
@@ -173,7 +177,7 @@ class Signature
     /** mark constant as overflown */
     void markOverflownConstant() { _overflownConstant=1; }
     /** mark symbol as a term algebra constructor */
-    //void markTermAlgebraCons() { _termAlgebraCons=1; }
+    void markTermAlgebraCons() { _termAlgebraCons=1; }
 
     /** return true iff symbol is marked as skip for the purpose of symbol elimination */
     bool skip() const { return _skip; }
@@ -232,6 +236,12 @@ class Signature
     inline void markApp(){ _app = 1; }
     inline bool app(){ return _app; }
 
+    inline void markTuple(){ _tuple = 1; }
+    inline bool tupleSort(){ return _tuple; }
+
+    inline void markArray(){ _array = 1; }
+    inline bool arraySort(){ return _array; }
+
     inline void setProxy(Proxy prox){ _prox = prox; }
     inline Proxy proxy(){ return _prox; }
 
@@ -258,14 +268,14 @@ class Signature
     { return integerConstant() || rationalConstant() || realConstant(); }
 
     /** Return value of an integer constant */
-    //inline IntegerConstantType integerValue() const
-    //{ ASS(integerConstant()); return static_cast<const IntegerSymbol*>(this)->_intValue; }
+    inline IntegerConstantType integerValue() const
+    { ASS(integerConstant()); return static_cast<const IntegerSymbol*>(this)->_intValue; }
     /** Return value of a rational constant */
-    //inline RationalConstantType rationalValue() const
-    //{ ASS(rationalConstant()); return static_cast<const RationalSymbol*>(this)->_ratValue; }
+    inline RationalConstantType rationalValue() const
+    { ASS(rationalConstant()); return static_cast<const RationalSymbol*>(this)->_ratValue; }
     /** Return value of a real constant */
-    //inline RealConstantType realValue() const
-    //{ ASS(realConstant()); return static_cast<const RealSymbol*>(this)->_realValue; }
+    inline RealConstantType realValue() const
+    { ASS(realConstant()); return static_cast<const RealSymbol*>(this)->_realValue; }
 
     const List<unsigned>* distinctGroups() const { return _distinctGroups; }
     /** This takes the symbol number of this symbol as the symbol doesn't know it
@@ -281,7 +291,7 @@ class Signature
     USE_ALLOCATOR(Symbol);
   }; // class Symbol
 
- /* class InterpretedSymbol
+  class InterpretedSymbol
   : public Symbol
   {
     friend class Signature;
@@ -301,7 +311,7 @@ class Signature
     USE_ALLOCATOR(InterpretedSymbol);
 
     /** Return the interpreted function that corresponds to this symbol */
-   /* inline Interpretation getInterpretation() const { ASS_REP(interpreted(), _name); return _interp; }
+    inline Interpretation getInterpretation() const { ASS_REP(interpreted(), _name); return _interp; }
   };
 
   class IntegerSymbol
@@ -362,7 +372,7 @@ class Signature
     }
     CLASS_NAME(Signature::RealSymbol);
     USE_ALLOCATOR(RealSymbol);
-  }; */
+  }; 
 
   //////////////////////////////////////
   // Uninterpreted symbol declarations
@@ -413,14 +423,14 @@ class Signature
   unsigned getChoice();
 
   // Interpreted symbol declarations
- // unsigned addIntegerConstant(const vstring& number,bool defaultSort);
- // unsigned addRationalConstant(const vstring& numerator, const vstring& denominator,bool defaultSort);
- // unsigned addRealConstant(const vstring& number,bool defaultSort);
+  unsigned addIntegerConstant(const vstring& number,bool defaultSort);
+  unsigned addRationalConstant(const vstring& numerator, const vstring& denominator,bool defaultSort);
+  unsigned addRealConstant(const vstring& number,bool defaultSort);
 
- // unsigned addIntegerConstant(const IntegerConstantType& number);
- // unsigned addRationalConstant(const RationalConstantType& number);
- // unsigned addRealConstant(const RealConstantType& number);
- /*
+  unsigned addIntegerConstant(const IntegerConstantType& number);
+  unsigned addRationalConstant(const RationalConstantType& number);
+  unsigned addRealConstant(const RealConstantType& number);
+ 
   unsigned addInterpretedFunction(Interpretation itp, OperatorType* type, const vstring& name);
   unsigned addInterpretedFunction(Interpretation itp, const vstring& name)
   {
@@ -443,10 +453,10 @@ class Signature
     CALL("Signature::getInterpretingSymbol(Interpretation)");
     ASS(!Theory::isPolymorphic(interp));
     return getInterpretingSymbol(interp,Theory::getNonpolymorphicOperatorType(interp));
-  }*/
+  }
 
   /** Return true iff there is a symbol interpreted by Interpretation @b interp */
-  /*bool haveInterpretingSymbol(Interpretation interp, OperatorType* type) const {
+  bool haveInterpretingSymbol(Interpretation interp, OperatorType* type) const {
     CALL("Signature::haveInterpretingSymbol(Interpretation, OperatorType*)");
     return _iSymbols.find(std::make_pair(interp,type));
   }
@@ -455,7 +465,7 @@ class Signature
     CALL("Signature::haveInterpretingSymbol(Interpretation)");
     ASS(!Theory::isPolymorphic(interp));
     return haveInterpretingSymbol(interp,Theory::getNonpolymorphicOperatorType(interp));
-  }*/
+  }
 
   /** return the name of a function with a given number */
   const vstring& functionName(int number);
@@ -542,15 +552,17 @@ class Signature
 
   unsigned getFunctionNumber(const vstring& name, unsigned arity) const;
   unsigned getPredicateNumber(const vstring& name, unsigned arity) const;
+
+  typedef SmartPtr<Stack<unsigned>> DistinctGroupMembers;
   
   Unit* getDistinctGroupPremise(unsigned group);
   unsigned createDistinctGroup(Unit* premise = 0);
   void addToDistinctGroup(unsigned constantSymbol, unsigned groupId);
   bool hasDistinctGroups(){ return _distinctGroupsAddedTo; }
   void noDistinctGroupsLeft(){ _distinctGroupsAddedTo=false; }
-  Stack<Stack<unsigned>*> getDistinctGroupMembers(){ return _distinctGroupMembers; }
+  Stack<DistinctGroupMembers> &distinctGroupMembers(){ return _distinctGroupMembers; }
 
-  //bool hasTermAlgebras() { return !_termAlgebras.isEmpty(); }
+  bool hasTermAlgebras() { return !_termAlgebras.isEmpty(); }
       
   static vstring key(const vstring& name,int arity);
 
@@ -641,6 +653,29 @@ class Signature
     return arrow;    
   }
 
+  unsigned getArrayConstructor(){
+    bool added = false;
+    unsigned array = addFunction("Array",2, added);
+    if(added){
+      TermList ss = Term::superSort();
+      Symbol* arr = getFunction(array);
+      arr->setType(OperatorType::getFunctionType({ss, ss}, ss, VarList::empty()));
+    }
+    return array;    
+  }
+
+  unsigned getTupleConstructor(unsigned arity){
+    bool added = false;
+    //TODO make the name unique
+    unsigned tuple = addFunction("Tuple", arity, added);
+    if(added){
+      TermList ss = Term::superSort();
+      Symbol* tup = getFunction(tuple);
+      tup->setType(OperatorType::getFunctionTypeUniformRange(arity, ss, ss));
+      tup->markTuple();
+    }
+    return tuple;    
+  }  
 
   unsigned getEqualityProxy(){
     bool added = false;
@@ -777,11 +812,11 @@ class Signature
   unsigned formulaCount(Term* t);
 
 
-  //bool isTermAlgebraSort(unsigned sort) { return _termAlgebras.find(sort); }
-  //Shell::TermAlgebra *getTermAlgebraOfSort(unsigned sort) { return _termAlgebras.get(sort); }
-  //void addTermAlgebra(Shell::TermAlgebra *ta) { _termAlgebras.insert(ta->sort(), ta); }
-  //VirtualIterator<Shell::TermAlgebra*> termAlgebrasIterator() const { return _termAlgebras.range(); }
-  //Shell::TermAlgebraConstructor* getTermAlgebraConstructor(unsigned functor);
+  bool isTermAlgebraSort(TermList sort) { return _termAlgebras.find(sort); }
+  Shell::TermAlgebra *getTermAlgebraOfSort(TermList sort) { return _termAlgebras.get(sort); }
+  void addTermAlgebra(Shell::TermAlgebra *ta) { _termAlgebras.insert(ta->sort(), ta); }
+  VirtualIterator<Shell::TermAlgebra*> termAlgebrasIterator() const { return _termAlgebras.range(); }
+  Shell::TermAlgebraConstructor* getTermAlgebraConstructor(unsigned functor);
 
   void recordDividesNvalue(TermList n){
     _dividesNvalues.push(n);
@@ -829,7 +864,7 @@ private:
   // Store the premise of a distinct group for proof printing, if 0 then group is input
   Stack<Unit*> _distinctGroupPremises;
   // We only store members up until a hard-coded limit i.e. the limit at which we will expand the group
-  Stack<Stack<unsigned>*> _distinctGroupMembers;
+  Stack<DistinctGroupMembers> _distinctGroupMembers;
   // Flag to indicate if any distinct groups have members
   bool _distinctGroupsAddedTo;
 
@@ -840,7 +875,7 @@ private:
    * the MonomorphisedInterpretation value already determines whether we deal with a function
    * or a predicate.
    */
-  //DHMap<Theory::MonomorphisedInterpretation, unsigned> _iSymbols;
+  DHMap<Theory::MonomorphisedInterpretation, unsigned> _iSymbols;
 
   /** the number of string constants */
   unsigned _strings;
@@ -854,7 +889,7 @@ private:
   /**
    * Map from sorts to the associated term algebra, if applicable for the sort
    */ 
-  //DHMap<unsigned, Shell::TermAlgebra*> _termAlgebras;
+  DHMap<TermList, Shell::TermAlgebra*> _termAlgebras;
 
   //void defineOptionTermAlgebra(unsigned optionSort);
   //void defineEitherTermAlgebra(unsigned eitherSort);
