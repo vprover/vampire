@@ -14,35 +14,6 @@ using namespace Kernel;
 
 namespace Shell {
 
-bool equalsUpToVariableRenaming(TermList t1, TermList t2) {
-  CALL("equalsUpToVariableRenaming");
-
-  if (t1.isVar() && t2.isVar()) {
-    return true;
-  }
-  if (t1.isVar() || t2.isVar()) {
-    return false;
-  }
-
-  auto tt1 = t1.term();
-  auto tt2 = t2.term();
-  if (tt1->isBoolean() != tt2->isBoolean()
-    || tt1->functor() != tt2->functor()
-    || tt1->arity() != tt2->arity())
-  {
-    return false;
-  }
-
-  Term::Iterator it1(tt1);
-  Term::Iterator it2(tt2);
-  while (it1.hasNext()) {
-    if (!equalsUpToVariableRenaming(it1.next(), it2.next())) {
-      return false;
-    }
-  }
-  return true;
-}
-
 template<class T>
 bool findInjectiveMapping(DHMap<T, vset<T>> sets) {
   bool change;
@@ -78,6 +49,76 @@ bool findInjectiveMapping(DHMap<T, vset<T>> sets) {
 
   ASS(sets.isEmpty());
   return true;
+}
+
+Formula* applySubst(RobSubstitution& subst, int index, Formula* f) {
+  if (f->connective() == Connective::LITERAL) {
+    return new AtomicFormula(subst.apply(f->literal(), index));
+  }
+
+  switch (f->connective()) {
+    case Connective::AND:
+    case Connective::OR: {
+      FormulaList* res = f->args();
+      FormulaList::RefIterator it(res);
+      while (it.hasNext()) {
+        auto& curr = it.next();
+        curr = applySubst(subst, index, curr);
+      }
+      return JunctionFormula::generalJunction(f->connective(), res);
+    }
+    case Connective::IMP:
+    case Connective::XOR:
+    case Connective::IFF: {
+      auto left = applySubst(subst, index, f->left());
+      auto right = applySubst(subst, index, f->right());
+      return new BinaryFormula(f->connective(), left, right);
+    }
+    case Connective::NOT: {
+      return new NegatedFormula(applySubst(subst, index, f->uarg()));
+    }
+    // case Connective::EXISTS:
+    // case Connective::FORALL: {
+    //   return new QuantifiedFormula(f->connective(), vars, sorts, arg);
+    // }
+    default:
+      ASSERTION_VIOLATION;
+  }
+}
+
+Formula* applyRenaming(Renaming& renaming, Formula* f) {
+  if (f->connective() == Connective::LITERAL) {
+    return new AtomicFormula(renaming.apply(f->literal()));
+  }
+
+  switch (f->connective()) {
+    case Connective::AND:
+    case Connective::OR: {
+      FormulaList* res = f->args();
+      FormulaList::RefIterator it(res);
+      while (it.hasNext()) {
+        auto& curr = it.next();
+        curr = applyRenaming(renaming, curr);
+      }
+      return JunctionFormula::generalJunction(f->connective(), res);
+    }
+    case Connective::IMP:
+    case Connective::XOR:
+    case Connective::IFF: {
+      auto left = applyRenaming(renaming, f->left());
+      auto right = applyRenaming(renaming, f->right());
+      return new BinaryFormula(f->connective(), left, right);
+    }
+    case Connective::NOT: {
+      return new NegatedFormula(applyRenaming(renaming, f->uarg()));
+    }
+    // case Connective::EXISTS:
+    // case Connective::FORALL: {
+    //   return new QuantifiedFormula(f->connective(), vars, sorts, arg);
+    // }
+    default:
+      ASSERTION_VIOLATION;
+  }
 }
 
 /**
@@ -120,6 +161,21 @@ bool checkSubsumption(const InductionScheme& sch1, const InductionScheme& sch2)
         if (t1 != t2) {
           continue;
         }
+        // check condition subsumption
+        for (const auto& c1 : rdesc1._conditions) {
+          bool found = false;
+          for (const auto& c2 : rdesc2._conditions) {
+            auto c1s = applySubst(subst, 1, c1);
+            auto c2s = applyRenaming(r, c2);
+            if (c1s == c2s) {
+              found = true;
+              break;
+            }
+          }
+          if (!found) {
+            continue;
+          }
+        }
         DHMap<size_t, vset<size_t>> rec1torec2;
         // if successful, find pair for each recCall in sch1
         // don't check if recCall1 or recCall2 contain kv.first
@@ -149,6 +205,260 @@ bool checkSubsumption(const InductionScheme& sch1, const InductionScheme& sch2)
   // check if there is an injective mapping of rdesc instances
   // of sch1 to matching rdesc instances of sch2
   return findInjectiveMapping(sch1tosch2);
+}
+
+bool findCommutator(const vmap<TermList, pair<TermList, TermList>>& initialGoalPairs,
+  const InductionScheme& sch1, const InductionScheme& sch2, bool firstRound);
+
+bool findCommutatorHelper(const vmap<TermList, pair<TermList, TermList>>& initialGoalPairs,
+  const InductionScheme& sch1, const InductionScheme& sch2, bool which)
+{
+  auto sch = which ? sch1 : sch2;
+  const auto& indTerms = sch1._inductionTerms;
+  for (const auto& rdesc : sch._rDescriptionInstances) {
+    bool match = true;
+    vmap<TermList, RobSubstitutionSP> pairs;
+    for (const auto& indTerm : indTerms) {
+      auto t1 = rdesc._step.at(indTerm);
+      auto t2 = initialGoalPairs.at(indTerm).first;
+      RobSubstitutionSP subst(new RobSubstitution);
+      if (!subst->unify(t1, 0, t2, 1)) {
+        match = false;
+        break;
+      }
+      pairs.insert(make_pair(indTerm, subst));
+    }
+    if (match) {
+      for (const auto& recCall : rdesc._recursiveCalls) {
+        vmap<TermList, pair<TermList,TermList>> newPairs;
+        for (const auto& indTerm : indTerms) {
+          // TODO(mhajdu): maybe check here that at least one term
+          // simplifies, otherwise there can be infinite loops
+          auto initial = pairs.at(indTerm)->apply(recCall.at(indTerm), 0);
+          auto goal = initialGoalPairs.at(indTerm).second;
+          cout << "Mapped new: " << indTerm << " " << initial << " " << goal << endl;
+          newPairs.insert(make_pair(indTerm, make_pair(initial, goal)));
+        }
+        if (findCommutator(newPairs, sch1, sch2, false)) {
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+}
+
+bool findCommutator(const vmap<TermList, pair<TermList, TermList>>& initialGoalPairs,
+  const InductionScheme& sch1, const InductionScheme& sch2, bool firstRound)
+{
+  if (!firstRound) {
+    // check if succeeded
+    bool success = true;
+    for (const auto& pair : initialGoalPairs) {
+      auto t1 = pair.second.first;
+      auto t2 = pair.second.second;
+      RobSubstitution subst;
+      if (!subst.unify(t1, 0, t2, 1)) {
+        success = false;
+        break;
+      }
+      Renaming r1;
+      r1.normalizeVariables(t1);
+      Renaming r2;
+      r2.normalizeVariables(t2);
+      if (subst.apply(t1, 0) != r1.apply(t1) || subst.apply(t2, 1) != r2.apply(t2)) {
+        success = false;
+        break;
+      } 
+    }
+    if (success) {
+      return true;
+    }
+  }
+  if (findCommutatorHelper(initialGoalPairs, sch1, sch2, true)) {
+    return true;
+  }
+  return !firstRound && findCommutatorHelper(initialGoalPairs, sch1, sch2, false);
+}
+
+bool checkQuasiCommutation(const InductionScheme& sch1, const InductionScheme& sch2) {
+  CALL("checkQuasiCommutation");
+
+  // check inductiont terms are the same
+  if (sch1._inductionTerms != sch2._inductionTerms) {
+    return false;
+  }
+
+  // check that no condition is present
+  for (const auto& rdesc : sch1._rDescriptionInstances) {
+    if (!rdesc._conditions.empty()) {
+      return false;
+    }
+  }
+  for (const auto& rdesc : sch2._rDescriptionInstances) {
+    if (!rdesc._conditions.empty()) {
+      return false;
+    }
+  }
+
+  // create terms for the relation sch2 o sch1;
+  // each vector gives a tuple of initial -> goal
+  // pairs for each induction term
+  vvector<vmap<TermList, pair<TermList, TermList>>> terms;
+  // vvector<vmap<TermList, pair<TermList, vvector<TermList>>>> terms;
+  for (const auto& rdesc2 : sch2._rDescriptionInstances) {
+    for (const auto& recCall2 : rdesc2._recursiveCalls) {
+      for (const auto& rdesc1 : sch1._rDescriptionInstances) {
+        if (rdesc1._recursiveCalls.empty()) {
+          // base case, no relation
+          continue;
+        }
+        bool match = true;
+        vmap<TermList, RobSubstitution*> pairs;
+        for (const auto& kv2 : recCall2) {
+          auto indTerm = kv2.first;
+          auto t2 = kv2.second;
+          auto it = rdesc1._step.find(indTerm);
+          if (it == rdesc1._step.end()) {
+            // an induction term is not present
+            return false;
+          }
+          auto t1 = it->second;
+          auto subst = new RobSubstitution;
+          if (!subst->unify(t1, 0, t2, 1)) {
+            // one induction term does not unify, the
+            // combined relation does not exist
+            match = false;
+            delete subst;
+            break;
+          }
+          pairs.insert(make_pair(indTerm, subst));
+        }
+        if (match) {
+          for (const auto& recCall1 : rdesc1._recursiveCalls) {
+            vmap<TermList, pair<TermList,TermList>> initialGoalPairs;
+            for (const auto& indTerm : sch1._inductionTerms) {
+              auto t1 = rdesc1._step.at(indTerm);
+              Renaming r;
+              r.normalizeVariables(t1);
+              auto initial = pairs.at(indTerm)->apply(rdesc2._step.at(indTerm), 1);
+              auto goal = r.apply(recCall1.at(indTerm));
+              cout << "Mapped: " << indTerm << " " << initial << " " << goal << endl;
+              initialGoalPairs.insert(make_pair(indTerm, make_pair(initial, goal)));
+            }
+            terms.push_back(initialGoalPairs);
+          }
+        }
+        for (const auto& kv : pairs) {
+          delete kv.second;
+        }
+      }
+    }
+  }
+
+  // one sch1 is needed
+  for (const auto& t : terms) {
+    if (!findCommutator(t, sch1, sch2, true)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+RDescriptionInst createSingleRDescription(const RDescriptionInst& rdesc, const InductionScheme& other) {
+  if (rdesc._recursiveCalls.empty()) {
+    return rdesc;
+  }
+  vvector<Formula*> conditions;
+  for (const auto& rdesc2 : other._rDescriptionInstances) {
+    if (rdesc2._recursiveCalls.empty()) {
+      continue;
+    }
+    FormulaList* fs = FormulaList::empty();
+    for (const auto& kv : rdesc._step) {
+      auto t1 = kv.second;
+      auto t2 = rdesc2._step.at(kv.first);
+      RobSubstitution subst;
+      if (!subst.unify(t1, 0, t2, 1)) {
+        continue;
+      }
+      FormulaList::push(new AtomicFormula(
+        Literal::createEquality(false, t1, t2, SortHelper::getResultSort(kv.first.term()))), fs);
+    }
+    conditions.push_back(JunctionFormula::generalJunction(Connective::OR, fs));
+  }
+
+  conditions.insert(conditions.end(), rdesc._conditions.begin(), rdesc._conditions.end());
+  auto step = rdesc._step;
+  auto recCalls = rdesc._recursiveCalls;
+  return RDescriptionInst(std::move(recCalls), std::move(step), std::move(conditions));
+}
+
+
+bool createMergedRDescription(const RDescriptionInst& rdesc1, const RDescriptionInst& rdesc2,
+  RDescriptionInst& res)
+{
+  if (rdesc1._recursiveCalls.empty() || rdesc2._recursiveCalls.empty()) {
+    return false;
+  }
+  vmap<TermList, TermList> step;
+  vmap<TermList, RobSubstitutionSP> substs;
+  for (const auto& kv : rdesc1._step) {
+    auto t1 = kv.second;
+    auto t2 = rdesc2._step.at(kv.first);
+    RobSubstitutionSP subst(new RobSubstitution);
+    if (!subst->unify(t1, 0, t2, 1)) {
+      return false;
+    }
+    step.insert(make_pair(kv.first, subst->apply(t1, 0)));
+    substs.insert(make_pair(kv.first, subst));
+  }
+  vvector<vmap<TermList, TermList>> recCalls;
+  for (const auto& recCall : rdesc1._recursiveCalls) {
+    vmap<TermList, TermList> resRecCall;
+    for (const auto& kv : recCall) {
+      resRecCall.insert(make_pair(kv.first, substs.at(kv.first)->apply(kv.second, 0)));
+    }
+    recCalls.push_back(resRecCall);
+  }
+  for (const auto& recCall : rdesc2._recursiveCalls) {
+    vmap<TermList, TermList> resRecCall;
+    for (const auto& kv : recCall) {
+      resRecCall.insert(make_pair(kv.first, substs.at(kv.first)->apply(kv.second, 1)));
+    }
+    recCalls.push_back(resRecCall);
+  }
+
+  auto conditions = rdesc1._conditions;
+  conditions.insert(conditions.end(), rdesc2._conditions.begin(), rdesc2._conditions.end());
+  res = RDescriptionInst(std::move(recCalls), std::move(step), std::move(conditions));
+  return true;
+}
+
+bool mergeSchemes(const InductionScheme& sch1, const InductionScheme& sch2, InductionScheme& res) {
+  auto sch2copy = sch2.makeCopyWithVariablesShifted(sch1._maxVar+1);
+  if (!checkQuasiCommutation(sch1, sch2copy) && !checkQuasiCommutation(sch2copy, sch1)) {
+    return false;
+  }
+
+  vvector<RDescriptionInst> resRdescs;
+  for (const auto& rdesc : sch1._rDescriptionInstances) {
+    resRdescs.push_back(createSingleRDescription(rdesc, sch2copy));
+  }
+  for (const auto& rdesc : sch2copy._rDescriptionInstances) {
+    resRdescs.push_back(createSingleRDescription(rdesc, sch1));
+  }
+  for (const auto& rdesc1 : sch1._rDescriptionInstances) {
+    for (const auto& rdesc2 : sch2copy._rDescriptionInstances) {
+      RDescriptionInst inst;
+      if (createMergedRDescription(rdesc1, rdesc2, inst)) {
+        resRdescs.push_back(inst);
+      }
+    }
+  }
+  res.init(std::move(resRdescs));
+
+  return true;
 }
 
 bool isSkolem(TermList t) {
@@ -333,6 +643,13 @@ TermList VarReplacement::transformSubterm(TermList trm)
   return trm;
 }
 
+TermList VarShiftReplacement::transformSubterm(TermList trm) {
+  if (trm.isVar()) {
+    return TermList(trm.var()+_shift, trm.isSpecialVar());
+  }
+  return trm;
+}
+
 bool IteratorByInductiveVariables::hasNext()
 {
   ASS(_it.hasNext() == (_indVarIt != _end));
@@ -493,6 +810,7 @@ bool InductionScheme::init(Term* t, vvector<RDescription>& rdescs, const vvector
         VarReplacement cr(varMap, var);
         auto res = cr.transform(argStep.term());
         stepSubst.insert(make_pair(indTerm, TermList(res)));
+        _inductionTerms.insert(indTerm);
       }
     }
     if (match) {
@@ -561,6 +879,71 @@ bool InductionScheme::init(Term* t, vvector<RDescription>& rdescs, const vvector
   _rDescriptionInstances.shrink_to_fit();
   _maxVar = var;
   return true;
+}
+
+void InductionScheme::init(vvector<RDescriptionInst>&& rdescs)
+{
+  CALL("InductionScheme::init");
+
+  _rDescriptionInstances = rdescs;
+  _inductionTerms.clear();
+  unsigned var = 0;
+
+  for (auto& rdesc : _rDescriptionInstances) {
+    DHMap<unsigned, unsigned> varMap;
+    VarReplacement vr(varMap, var);
+    for (auto& kv : rdesc._step) {
+      kv.second = kv.second.isVar()
+        ? vr.transformSubterm(kv.second)
+        : TermList(vr.transform(kv.second.term()));
+      _inductionTerms.insert(kv.first);
+    }
+    for (auto& recCall : rdesc._recursiveCalls) {
+      for (auto& kv : recCall) {
+        kv.second = kv.second.isVar()
+          ? vr.transformSubterm(kv.second)
+          : TermList(vr.transform(kv.second.term()));
+      }
+    }
+    for (auto& f : rdesc._conditions) {
+      f = vr.transform(f);
+    }
+  }
+  _maxVar = var;
+}
+
+InductionScheme InductionScheme::makeCopyWithVariablesShifted(unsigned shift) const {
+  InductionScheme res;
+  res._inductionTerms = _inductionTerms;
+  VarShiftReplacement vsr(shift);
+
+  for (const auto& rdesc : _rDescriptionInstances) {
+    vvector<vmap<TermList, TermList>> resRecCalls;
+    for (const auto& recCall : rdesc._recursiveCalls) {
+      vmap<TermList, TermList> resRecCall;
+      for (auto kv : recCall) {
+        resRecCall.insert(make_pair(kv.first,
+          kv.second.isVar()
+            ? vsr.transformSubterm(kv.second)
+            : TermList(vsr.transform(kv.second.term()))));
+      }
+      resRecCalls.push_back(resRecCall);
+    }
+    vmap<TermList, TermList> resStep;
+    for (auto kv : rdesc._step) {
+      resStep.insert(make_pair(kv.first,
+        kv.second.isVar()
+          ? vsr.transformSubterm(kv.second)
+          : TermList(vsr.transform(kv.second.term()))));
+    }
+    vvector<Formula*> resCond;
+    for (auto f : rdesc._conditions) {
+      resCond.push_back(vsr.transform(f));
+    }
+    res._rDescriptionInstances.emplace_back(std::move(resRecCalls),
+      std::move(resStep), std::move(resCond));
+  }
+  return res;
 }
 
 ostream& operator<<(ostream& out, const InductionScheme& scheme)
@@ -653,7 +1036,11 @@ void InductionPreprocessor::processBody(TermList& body, TermList header, vvector
       // the pattern in the header and recurse
       TermListReplacement tr(TermList(matchedVar,false), *pattern);
       TermList t(tr.transform(header.term()));
-      processBody(*matchBody, t, conditions, templ);
+      auto cond = conditions;
+      for (auto& c : cond) {
+        c = tr.transform(c);
+      }
+      processBody(*matchBody, t, cond, templ);
     }
   }
   else if (term->isITE())
@@ -812,6 +1199,19 @@ void InductionSchemeGenerator::filter()
   for (unsigned i = 0; i < _schemes.size();) {
     bool subsumed = false;
     for (unsigned j = i+1; j < _schemes.size();) {
+      InductionScheme merged;
+      if (mergeSchemes(_schemes[j], _schemes[i], merged)) {
+        if(env.options->showInduction()){
+          env.beginOutput();
+          env.out() << "[Induction] induction schemes " << _schemes[j] << " and " << _schemes[i]
+                    << "are merged into:" << endl << merged << endl;
+          env.endOutput();
+        }
+        _schemes[j] = std::move(_schemes.back());
+        _schemes.pop_back();
+        _schemes[i] = merged;
+        break;
+      }
       if (checkSubsumption(_schemes[j], _schemes[i])) {
         if(env.options->showInduction()){
           env.beginOutput();

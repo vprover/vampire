@@ -83,6 +83,15 @@ private:
   unsigned& _v;                       // current minimal unused var
 };
 
+class VarShiftReplacement : public TermTransformer {
+public:
+  VarShiftReplacement(unsigned shift) : _shift(shift) {}
+  TermList transformSubterm(TermList trm) override;
+
+private:
+  unsigned _shift;
+};
+
 /**
  * Iterator that only iterates through the active
  * occurrences of an inductive function header.
@@ -135,6 +144,7 @@ ostream& operator<<(ostream& out, const RDescription& rdesc);
  * to store merged instances as well.
  */
 struct RDescriptionInst {
+  RDescriptionInst() = default;
   RDescriptionInst(vvector<vmap<TermList, TermList>>&& recursiveCalls,
                    vmap<TermList, TermList>&& step,
                    vvector<Formula*>&& conditions)
@@ -166,9 +176,12 @@ ostream& operator<<(ostream& out, const InductionTemplate& templ);
  */
 struct InductionScheme {
   bool init(Term* term, vvector<RDescription>& rdescs, const vvector<bool>& indVars);
+  void init(vvector<RDescriptionInst>&& rdescs);
+  InductionScheme makeCopyWithVariablesShifted(unsigned shift) const;
 
   vvector<RDescriptionInst> _rDescriptionInstances;
   unsigned _maxVar;
+  vset<TermList> _inductionTerms;
 };
 
 ostream& operator<<(ostream& out, const InductionScheme& scheme);
