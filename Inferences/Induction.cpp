@@ -748,10 +748,11 @@ void InductionClauseIterator::instantiateScheme(Clause* premise, Literal* lit, I
 
   FormulaList* formulas = FormulaList::empty();
   unsigned var = scheme._maxVar;
+  const vset<TermList> empty;
 
   for (auto& desc : scheme._rDescriptionInstances) {
     // We replace all induction terms with the corresponding step case terms
-    TermOccurrenceReplacement tr(desc._step, activeOccurrenceMap, occurrenceCntMap, false, var);
+    TermOccurrenceReplacement tr(desc._step, activeOccurrenceMap, occurrenceCntMap, empty, var);
     Formula* right = new AtomicFormula(Literal::complementaryLiteral(tr.transform(lit)));
 
     FormulaList* hyp = FormulaList::empty();
@@ -759,27 +760,22 @@ void InductionClauseIterator::instantiateScheme(Clause* premise, Literal* lit, I
     // Then we replace the arguments of the term with the
     // corresponding recursive cases for this step case (if not base case)
     for (const auto& r : desc._recursiveCalls) {
-      TermOccurrenceReplacement tr(r, activeOccurrenceMap, occurrenceCntMap, false, var);
-
-      // quantify induction hypotheses
-      // TermOccurrenceReplacement tr(r, activeOccurrenceMap, occurrenceCntMap, true, var);
-      // Set<unsigned> vars;
+      TermOccurrenceReplacement tr(r, activeOccurrenceMap, occurrenceCntMap, desc._inactive, var);
 
       Formula* f = new AtomicFormula(Literal::complementaryLiteral(tr.transform(lit)));
 
       // quantify induction hypotheses
-
-      // FormulaVarIterator fvit( f );
-      // Formula::VarList* varLst=0;
-      // while(fvit.hasNext()) {
-      //   auto v = fvit.next();
-      //   if (v >= scheme._maxVar) {
-      //     Formula::VarList::push(v, varLst);
-      //   }
-      // }
-      // if(varLst) {
-      //   f=new QuantifiedFormula(FORALL, varLst, 0, f);
-      // }
+      FormulaVarIterator fvit( f );
+      Formula::VarList* varLst=0;
+      while(fvit.hasNext()) {
+        auto v = fvit.next();
+        if (v >= scheme._maxVar) {
+          Formula::VarList::push(v, varLst);
+        }
+      }
+      if(varLst) {
+        f=new QuantifiedFormula(FORALL, varLst, 0, f);
+      }
       hyp = new FormulaList(f,hyp);
     }
 
@@ -817,13 +813,13 @@ void InductionClauseIterator::instantiateScheme(Clause* premise, Literal* lit, I
       r.insert(make_pair(kv.first, TermList(var++,false)));
     }
   }
-  TermOccurrenceReplacement tr(r, activeOccurrenceMap, occurrenceCntMap, false, var);
+  TermOccurrenceReplacement tr(r, activeOccurrenceMap, occurrenceCntMap, empty, var);
   Literal* conclusion = Literal::complementaryLiteral(tr.transform(lit));
   Formula* hypothesis = new BinaryFormula(Connective::IMP,
                             Formula::quantify(indPremise),
                             Formula::quantify(new AtomicFormula(conclusion)));
 
-  // cout << hypothesis->toString() << endl << endl;
+  cout << hypothesis->toString() << endl << endl;
 
   static ResultSubstitutionSP identity = ResultSubstitutionSP(new IdentitySubstitution());
   produceClauses(premise, lit, hypothesis, conclusion, rule, identity);

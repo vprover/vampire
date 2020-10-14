@@ -54,16 +54,18 @@ public:
   TermOccurrenceReplacement(const vmap<TermList, TermList>& r,
                             const DHMap<TermList, DHSet<unsigned>*>& o,
                             const DHMap<TermList, unsigned>& oc,
-                            bool replaceSkolem, unsigned& v) : _r(r), _o(o), _oc(oc),
-                              _c(), _replaceSkolem(replaceSkolem), _v(v), _r_g() {}
+                            const vset<TermList>& inactive, unsigned& v)
+                            : _r(r), _o(o), _oc(oc), _inactive(inactive),
+                              _c(), _v(v), _r_g() {}
   TermList transformSubterm(TermList trm) override;
 
 private:
   const vmap<TermList, TermList>& _r;          // replacements
   const DHMap<TermList, DHSet<unsigned>*>& _o; // set of occurrences to be replaced
   const DHMap<TermList, unsigned>& _oc;
+  const vset<TermList>& _inactive;
   DHMap<TermList, unsigned> _c;                // current occurrence counts
-  bool _replaceSkolem;
+  bool _replaceInactive;
   unsigned& _v;
   vmap<TermList, TermList> _r_g;               // generalized replacements
 };
@@ -153,6 +155,8 @@ struct RDescriptionInst {
   vvector<vmap<TermList, TermList>> _recursiveCalls;
   vmap<TermList, TermList> _step;
   vvector<Formula*> _conditions;
+  vset<TermList> _inactive;
+  vset<TermList> _activated;
 };
 
 ostream& operator<<(ostream& out, const RDescriptionInst& inst);
@@ -177,11 +181,13 @@ ostream& operator<<(ostream& out, const InductionTemplate& templ);
 struct InductionScheme {
   bool init(Term* term, vvector<RDescription>& rdescs, const vvector<bool>& indVars);
   void init(vvector<RDescriptionInst>&& rdescs);
+  void activateTerms(const vset<TermList>& terms);
   InductionScheme makeCopyWithVariablesShifted(unsigned shift) const;
 
   vvector<RDescriptionInst> _rDescriptionInstances;
   unsigned _maxVar;
   vset<TermList> _inductionTerms;
+  vset<TermList> _inactive;
 };
 
 ostream& operator<<(ostream& out, const InductionScheme& scheme);
