@@ -532,6 +532,22 @@ void SaturationAlgorithm::evaluate(Clause* cl, const char* method_name, const ch
   cl->modelSaid(eval);
 }
 
+void lookupAxiomName(Clause* cl, vstring& axname) {
+  CALL("SaturationAlgorithm-lookupAxiomName");
+
+  Unit* u = cl;
+  while (!Parse::TPTP::findAxiomName(u,axname)) {
+    // cout << u->toString() << endl;
+    Inference::Iterator iit=u->inference().iterator();
+    if (!u->inference().hasNext(iit)) {
+      break;
+    }
+    u = u->inference().next(iit);
+  }
+
+  // may never assign anything, if, somehow, there is no name along the parent chain to be found
+}
+
 void SaturationAlgorithm::talkToKarel(Clause* cl, bool eval)
 {
   CALL("SaturationAlgorithm::talkToKarel");
@@ -585,17 +601,8 @@ void SaturationAlgorithm::talkToKarel(Clause* cl, bool eval)
       cout << "," << cl->derivedFromGoal() << "," << theoryAx << "," << (int)cl->getSineLevel() << "]";
 
       if (_opt.outputAxiomNames()) {
-        Unit* u = cl;
         vstring axname;
-        while (!Parse::TPTP::findAxiomName(u,axname)) {
-          // cout << u->toString() << endl;
-          Inference::Iterator iit=u->inference().iterator();
-          if (!u->inference().hasNext(iit)) {
-            break;
-          }
-          u = u->inference().next(iit);
-        }
-        // cout << u->toString() << endl;
+        lookupAxiomName(cl,axname);
         cout << " " << axname << "\n";
       } else {
         cout << "\n";
@@ -620,11 +627,16 @@ void SaturationAlgorithm::talkToKarel(Clause* cl, bool eval)
           (int64_t)theoryAx,
           (int64_t)cl->getSineLevel())); // the features
 
-      char method_name[20];
+      char method_name[200];
       if (cl->derivedFromGoal()) {
         strcpy(method_name,"new_initG");
       } else {
-        sprintf(method_name, "new_init%d", (int)theoryAx);
+        vstring axname;
+        if (_opt.outputAxiomNames() && (lookupAxiomName(cl,axname), !axname.empty())) {
+          sprintf(method_name, "new_init%s", axname.c_str());
+        } else {
+          sprintf(method_name, "new_init%d", (int)theoryAx);
+        }
       }
 
       evaluate(cl, method_name, "new_init0", inputs);
