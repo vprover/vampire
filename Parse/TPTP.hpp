@@ -577,7 +577,7 @@ private:
   /** stack of unprocessed states */
   Stack<State> _states;
   /** input type of the last read unit */ // it must be int since -1 can be used as a value
-  int _lastInputType;
+  UnitInputType _lastInputType;
   /** true if the last read unit is a question */ 
   bool _isQuestion;
   /** true if the last read unit is fof() or cnf() due to a subtle difference
@@ -763,8 +763,8 @@ private:
   void simpleType();
   void args();
   void varList();
-  //void symbolDefinition();
-  //void tupleDefinition();
+  void symbolDefinition();
+  void tupleDefinition();
   void term();
   void termInfix();
   void endTerm();
@@ -787,37 +787,36 @@ private:
   void type();
   void endIte();
   void letType();
-  //void endLetTypes();
+  void endLetTypes();
   void endApp();
   void holFormula();
   void endHolFormula();
   void holTerm();
   void definition();
   void midDefinition();
-  //void endDefinition();
-  //void endLet();
-  //void endTheoryFunction();
-  //void endTuple();
+  void endDefinition();
+  void endLet();
+  void endTheoryFunction();
+  void endTuple();
   void addTagState(Tag);
 
   void foldl(TermStack*);
-  TermList readArrowTerm();
-  TermList readTerm(bool& reset);
+  TermList readArrowSort();
+  TermList readSort();
   void readTypeArgs(unsigned arity);
   unsigned getConstructorArity();
-  //unsigned isConstructorType(OperatorType* ot);
   void bindVariable(int var,TermList sort);
   void unbindVariables();
   void skipToRPAR();
   void skipToRBRA();
   unsigned addFunction(vstring name,int arity,bool& added,TermList& someArgument);
   int addPredicate(vstring name,int arity,bool& added,TermList& someArgument);
-  /*unsigned addOverloadedFunction(vstring name,int arity,int symbolArity,bool& added,TermList& arg,
+  unsigned addOverloadedFunction(vstring name,int arity,int symbolArity,bool& added,TermList& arg,
 				 Theory::Interpretation integer,Theory::Interpretation rational,
 				 Theory::Interpretation real);
   unsigned addOverloadedPredicate(vstring name,int arity,int symbolArity,bool& added,TermList& arg,
 				  Theory::Interpretation integer,Theory::Interpretation rational,
-				  Theory::Interpretation real);*/
+				  Theory::Interpretation real);
   TermList sortOf(TermList term);
   static bool higherPrecedence(int c1,int c2);
   vstring convert(Tag t);
