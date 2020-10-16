@@ -207,7 +207,7 @@ static std::unique_ptr<PassiveClauseContainer> makeLevel4(bool isOutermost, cons
 }
 
 static void delayedEvaluatorFn(Clause* cl) {
-  SaturationAlgorithm::tryGetInstance()->talkToKarel(cl);
+  SaturationAlgorithm::tryGetInstance()->talkToKarel(cl,true/*embed*/,true/*eval*/);
 }
 
 static std::unique_ptr<PassiveClauseContainer> makeLevel5(bool isOutermost, const Options& opt, vstring name)
@@ -506,26 +506,24 @@ void SaturationAlgorithm::onUnprocessedSelected(Clause* c)
   
 }
 
-void SaturationAlgorithm::evaluate(Clause* cl, const char* method_name, const char* backup_method_name, std::vector<torch::jit::IValue>& inputs)
+void SaturationAlgorithm::embed_and_evaluate(Clause* cl, const char* method_name, const char* backup_method_name, std::vector<torch::jit::IValue>& inputs, bool eval)
 {
   CALL("SaturationAlgorithm::evaluated");
+
+  auto id = inputs[0];
 
 #if DEBUG_MODEL
   auto start = env.timer->elapsedMilliseconds();
   cout << "evaluating " << cl->number();
 #endif
 
-  bool eval;
-
   if (auto m = _model.find_method(method_name)) {
-    auto output = (*m)(std::move(inputs));
-    eval = output.toBool();
+    (*m)(std::move(inputs));
 #if DEBUG_MODEL
   cout << " found " << method_name;
 #endif
   } else {
-    auto output = _model.get_method(backup_method_name)(std::move(inputs));
-    eval = output.toBool();
+    _model.get_method(backup_method_name)(std::move(inputs));
 
 #if DEBUG_MODEL
   cout << " fell back to " << backup_method_name;
@@ -537,7 +535,13 @@ void SaturationAlgorithm::evaluate(Clause* cl, const char* method_name, const ch
   cout << " and said " << eval << " in " << env.timer->elapsedMilliseconds() - start << endl;
 #endif
 
-  cl->modelSaid(eval);
+  if (eval) {
+    inputs.clear();
+    inputs.push_back(id);
+
+    auto out = _model.forward(inputs);
+    cl->modelSaid(out.toBool());
+  }
 }
 
 void lookupAxiomName(Clause* cl, vstring& axname) {
@@ -556,14 +560,14 @@ void lookupAxiomName(Clause* cl, vstring& axname) {
   // may never assign anything, if, somehow, there is no name along the parent chain to be found
 }
 
-void SaturationAlgorithm::talkToKarel(Clause* cl, bool eval)
+void SaturationAlgorithm::talkToKarel(Clause* cl, bool embed, bool eval)
 {
   CALL("SaturationAlgorithm::talkToKarel");
 
   ASS(_opt.showForKarel() || _opt.evalForKarel());
 
   if ((!_opt.showForKarel() || _shown.find(cl)) && // no reason to show
-      (!eval || !_opt.evalForKarel() || _evaluated.find(cl))) { // no reason to evaluate
+      (!embed || !_opt.evalForKarel() || _embedded.find(cl))) { // no reason to evaluate
     return;
   }
 
@@ -572,7 +576,7 @@ void SaturationAlgorithm::talkToKarel(Clause* cl, bool eval)
   if (cl->isComponent()) { // the AVATAR event
     Clause* orig = _splitter->getCausalParent(cl);
     if (orig) { // CAREFUL: causal parent can be none; for the ccModel thingie
-      talkToKarel(orig);
+      talkToKarel(orig,embed);
     }
 
     if (env.options->showForKarel() && !_shown.find(cl)) {
@@ -583,7 +587,7 @@ void SaturationAlgorithm::talkToKarel(Clause* cl, bool eval)
       ALWAYS(_shown.insert(cl));
     }
 
-    if (env.options->evalForKarel() && eval && !_evaluated.find(cl)) {
+    if (env.options->evalForKarel() && embed && !_embedded.find(cl)) {
       TimeCounter t(TC_DEEP_STUFF);
 
       inputs.clear();
@@ -595,9 +599,9 @@ void SaturationAlgorithm::talkToKarel(Clause* cl, bool eval)
           (int64_t)cl->size(),
           (int64_t)(orig ? orig->number() : -1)));
 
-      evaluate(cl,"new_avat","new_avat",inputs);
+      embed_and_evaluate(cl,"new_avat","new_avat",inputs,eval);
 
-      ALWAYS(_evaluated.insert(cl));
+      ALWAYS(_embedded.insert(cl));
     }
   } else if (_initial.find(cl)) {
     unsigned theoryAx = cl->inference().isTheoryAxiom() ? static_cast<unsigned>(cl->inference().rule()) : 0;
@@ -619,7 +623,7 @@ void SaturationAlgorithm::talkToKarel(Clause* cl, bool eval)
       ALWAYS(_shown.insert(cl));
     }
 
-    if (_opt.evalForKarel() && eval && !_evaluated.find(cl)) {
+    if (_opt.evalForKarel() && embed && !_embedded.find(cl)) {
       TimeCounter t(TC_DEEP_STUFF);
 
       // def new_init(self, id: int, features : Tuple[int, int, int, int, int, int]) -> bool:
@@ -650,10 +654,10 @@ void SaturationAlgorithm::talkToKarel(Clause* cl, bool eval)
       }
       inputs.push_back(name);
 
-      evaluate(cl, "new_init", "new_init", inputs);
+      embed_and_evaluate(cl, "new_init", "new_init", inputs,eval);
 
       // TODO: store the output value
-      ALWAYS(_evaluated.insert(cl));
+      ALWAYS(_embedded.insert(cl));
     }
   } else {
     // pre-order traversal on parents:
@@ -663,7 +667,7 @@ void SaturationAlgorithm::talkToKarel(Clause* cl, bool eval)
     Inference::Iterator iit = inf.iterator();
     while(inf.hasNext(iit)) {
       Unit* premUnit = inf.next(iit);
-      talkToKarel(premUnit->asClause(),eval);
+      talkToKarel(premUnit->asClause(),embed);
       parent_cnt++;
     }
 
@@ -681,7 +685,7 @@ void SaturationAlgorithm::talkToKarel(Clause* cl, bool eval)
       ALWAYS(_shown.insert(cl));
     }
 
-    if (_opt.evalForKarel() && eval && !_evaluated.find(cl)) {
+    if (_opt.evalForKarel() && embed && !_embedded.find(cl)) {
       TimeCounter t(TC_DEEP_STUFF);
 
       // new_deriv(self, id: int, features : Tuple[int, int, int, int, int], pars : List[int]) -> bool:
@@ -711,9 +715,9 @@ void SaturationAlgorithm::talkToKarel(Clause* cl, bool eval)
       char default_method_name[20];
       sprintf(specific_method_name, "new_deriv%d", (int)inf.rule());
       sprintf(default_method_name, "new_deriv%d", (int)arit);
-      evaluate(cl, specific_method_name, default_method_name , inputs);
+      embed_and_evaluate(cl, specific_method_name, default_method_name , inputs, eval);
 
-      ALWAYS(_evaluated.insert(cl));
+      ALWAYS(_embedded.insert(cl));
     }
   }
 }
