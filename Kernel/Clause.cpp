@@ -75,7 +75,7 @@ Clause::Clause(unsigned length,const Inference& inf)
     _component(false),
     _store(NONE),
     _numSelected(0),
-    _modelSaidYes(1), // be optimistic by default (delayed eval takes care of demoting the bad guys)
+    _modelSaid(std::numeric_limits<decltype(_modelSaid)>::lowest()), // be optimistic by default (delayed eval takes care of demoting the bad guys)
     _weight(0),
     _weightForClauseSelection(0),
     _refCnt(0),
@@ -439,7 +439,7 @@ vstring Clause::toString() const
     }
 
     if(env.options->evalForKarel()) {
-      result += ",msY:" + Int::toString(_modelSaidYes);
+      result += ",msY:" + Int::toString(_modelSaid);
     }
 
     result += ",thAx:" + Int::toString((int)(_inference.th_ancestors));

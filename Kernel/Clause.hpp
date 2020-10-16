@@ -346,12 +346,12 @@ public:
 
   unsigned numPositiveLiterals(); // number of positive literals in the clause
 
-  void modelSaid(bool value) {
-    _modelSaidYes = value;
+  void setModelSaid(float value) {
+    _modelSaid = value;
   }
 
-  bool modelSaidYes() const {
-    return _modelSaidYes;
+  float modelSaid() const {
+    return _modelSaid;
   }
 
 protected:
@@ -374,7 +374,7 @@ protected:
   /** number of selected literals */
   unsigned _numSelected : 20;
 
-  unsigned _modelSaidYes : 1;
+  float _modelSaid; // small is good
 
   /** weight */
   mutable unsigned _weight;

@@ -1021,6 +1021,12 @@ void Options::Options::init()
     _useNeuralEvalSplitQueues.reliesOn(_evalForKarel.is(notEqual(vstring(""))));
     _useNeuralEvalSplitQueues.tag(OptionTag::SATURATION);
 
+    _neuralEvalSplitQueueCutoffs = StringOptionValue("neural_eval_split_queue_cutoffs", "nesqc", "0");
+    _neuralEvalSplitQueueCutoffs.description = "The cutoff-values for the neural-eval-split-queues (the cutoff value for the last queue is omitted, since it has to be infinity).";
+    _lookup.insert(&_neuralEvalSplitQueueCutoffs);
+    _neuralEvalSplitQueueCutoffs.reliesOn(_useNeuralEvalSplitQueues.is(equal(true)));
+    _neuralEvalSplitQueueCutoffs.tag(OptionTag::SATURATION);
+
     _neuralEvalSplitQueueRatios = StringOptionValue("neural_eval_split_queue_ratios", "nesqr", "10,1");
     _neuralEvalSplitQueueRatios.description = "The ratios for picking clauses from the neural-eval-split-queues using weighted round robin. If a queue is empty, the clause will be picked from the next non-empty queue to the right."
         " There should be exactly two numbers in the list.";
@@ -3527,5 +3533,32 @@ Lib::vvector<int> Options::neuralEvalSplitQueueRatios() const
   }
 
   return inputRatios;
+}
+
+Lib::vvector<float> Options::neuralEvalSplitQueueCutoffs() const
+{
+  CALL("Options::neuralEvalSplitQueueCutoffs");
+  // initialize cutoffs and add float-max as last value
+  Lib::vvector<float> cutoffs;
+  vstringstream cutoffsStream(_neuralEvalSplitQueueCutoffs.actualValue);
+  std::string currentCutoff;
+  while (std::getline(cutoffsStream, currentCutoff, ','))
+  {
+    cutoffs.push_back(std::stof(currentCutoff));
+  }
+  cutoffs.push_back(std::numeric_limits<float>::max());
+
+  // sanity checks
+  for (unsigned i = 0; i < cutoffs.size(); i++)
+  {
+    auto cutoff = cutoffs[i];
+
+    if (i > 0 && cutoff <= cutoffs[i-1])
+    {
+      USER_ERROR("The cutoff values (supplied by option '-nesqc') must be strictly increasing");
+    }
+  }
+
+  return cutoffs;
 }
 

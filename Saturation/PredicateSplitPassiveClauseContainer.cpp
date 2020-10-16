@@ -103,6 +103,7 @@ void PredicateSplitPassiveClauseContainer::add(Clause* cl)
   ASS(cl->store() == Clause::PASSIVE);
 
   auto bestQueueIndex = bestQueue(evaluateFeature(cl));
+
   if (_layeredArrangement)
   {
     // add clause to all queues starting from best queue for clause
@@ -236,11 +237,12 @@ Clause* PredicateSplitPassiveClauseContainer::popSelected()
 
   if (currIndex < (long int)_queues.size()-1 && // not the last index
       _delayedEvaluator) { // we can re-evaluate
+
     _delayedEvaluator(cl);
 
     if (evaluateFeature(cl) > _cutoffs[currIndex]) {
       // we don't like the clause here!
-      // cout << "Didn't like " << cl->number() << " in " << currIndex << endl;
+      //cout << "Didn't like " << cl->number() << " in " << currIndex << endl;
       goto search_for_an_appropriate_queue;
     }
   }
@@ -566,20 +568,23 @@ float PositiveLiteralMultiSplitPassiveClauseContainer::evaluateFeatureEstimate(u
 
 NeuralEvalSplitPassiveClauseContainer::NeuralEvalSplitPassiveClauseContainer(bool isOutermost, const Shell::Options &opt, Lib::vstring name, Lib::vvector<std::unique_ptr<PassiveClauseContainer>> queues) :
   PredicateSplitPassiveClauseContainer(isOutermost, opt, name, std::move(queues),
-      Lib::vvector<float>({0.0, std::numeric_limits<float>::max()}),
+      opt.neuralEvalSplitQueueCutoffs(),
       opt.neuralEvalSplitQueueRatios(),
       true /* monotone queue split hard-wired here */) {}
 
 float NeuralEvalSplitPassiveClauseContainer::evaluateFeature(Clause* cl) const
 {
   CALL("NeuralEvalSplitPassiveClauseContainer::evaluateFeature");
-  return 1.0-(float)cl->modelSaidYes(); // 0.0 is good, 1.0 is bad (because the hard-wired < comparison in PredicateSplitPassiveClauseContainer)
+
+  // cout << "evaluateFeature " << cl->number() << " " << cl->modelSaid() << endl;
+
+  return cl->modelSaid(); // small is good, large is bad
 }
 
 float NeuralEvalSplitPassiveClauseContainer::evaluateFeatureEstimate(unsigned numPositiveLiterals, const Inference& inference) const
 {
   CALL("NeuralEvalSplitPassiveClauseContainer::evaluateFeatureEstimate");
-  return 0.0; // simply estimate that the clause is good
+  return std::numeric_limits<float>::lowest(); // simply estimate that the clause is good
 }
 
 };

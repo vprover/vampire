@@ -2131,6 +2131,7 @@ public:
 
   bool useNeuralEvalSplitQueues() const { return _useNeuralEvalSplitQueues.actualValue; }
   Lib::vvector<int> neuralEvalSplitQueueRatios() const;
+  Lib::vvector<float> neuralEvalSplitQueueCutoffs() const;
 
   void setWeightRatio(int v){ _ageWeightRatio.otherValue = v; }
 	AgeWeightRatioShape ageWeightRatioShape() const { return _ageWeightRatioShape.actualValue; }
@@ -2413,6 +2414,7 @@ private:
   StringOptionValue _positiveLiteralSplitQueueCutoffs;
   BoolOptionValue _positiveLiteralSplitQueueLayeredArrangement;
   BoolOptionValue _useNeuralEvalSplitQueues;
+  StringOptionValue _neuralEvalSplitQueueCutoffs;
   StringOptionValue _neuralEvalSplitQueueRatios;
 
 	BoolOptionValue _randomAWR;

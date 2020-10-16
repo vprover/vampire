@@ -215,7 +215,7 @@ static std::unique_ptr<PassiveClauseContainer> makeLevel5(bool isOutermost, cons
   if (opt.useNeuralEvalSplitQueues())
   {
     Lib::vvector<std::unique_ptr<PassiveClauseContainer>> queues;
-    Lib::vvector<float> cutoffs = opt.positiveLiteralSplitQueueCutoffs();
+    Lib::vvector<float> cutoffs = opt.neuralEvalSplitQueueCutoffs();
     for (unsigned i = 0; i < cutoffs.size(); i++)
     {
       auto queueName = name + "NESQ" + Int::toString(cutoffs[i]) + ":";
@@ -540,7 +540,7 @@ void SaturationAlgorithm::embed_and_evaluate(Clause* cl, const char* method_name
     inputs.push_back(id);
 
     auto out = _model.forward(inputs);
-    cl->modelSaid(out.toBool());
+    cl->setModelSaid(-out.toDouble()); // already here, we reverse the logit's logic to "small is good"!
   }
 }
 
@@ -1367,7 +1367,7 @@ void SaturationAlgorithm::addToPassive(Clause* cl)
 
   if (_opt.evalForKarel()) {
     // talkToKarel(cl); // delayed evaluation trick (TODO: do this for initial as well?)
-    cl->modelSaid(true);
+    // cl->modelSaid(true); // the clause is born as good; see Clause::Clause
   }
 
   {
