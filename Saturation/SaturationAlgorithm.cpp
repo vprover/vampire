@@ -105,6 +105,7 @@
 #include "Otter.hpp"
 
 #include <math.h>
+#include <string>
 
 #define DEBUG_MODEL 0
 
@@ -627,19 +628,22 @@ void SaturationAlgorithm::talkToKarel(Clause* cl, bool eval)
           (int64_t)theoryAx,
           (int64_t)cl->getSineLevel())); // the features
 
-      char method_name[200];
+      std::string name;
+
       if (cl->derivedFromGoal()) {
-        strcpy(method_name,"new_initG");
+        name = "-1";
       } else {
         vstring axname;
         if (_opt.outputAxiomNames() && (lookupAxiomName(cl,axname), !axname.empty())) {
-          sprintf(method_name, "new_init%s", axname.c_str());
+          // we have a name
+          name = std::string(axname.c_str());
         } else {
-          sprintf(method_name, "new_init%d", (int)theoryAx);
+          name = std::to_string(theoryAx);
         }
       }
+      inputs.push_back(name);
 
-      evaluate(cl, method_name, "new_init0", inputs);
+      evaluate(cl, "new_init", "new_init", inputs);
 
       // TODO: store the output value
       ALWAYS(_evaluated.insert(cl));
