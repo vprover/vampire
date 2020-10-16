@@ -223,6 +223,11 @@ private:
 #define ASSERTION_VIOLATION_REP2(Val1,Val2) \
   ASS_REP2(false, Val1, Val2)
 
+#define ASS_NO_EXCEPT(...) \
+  try { __VA_ARGS__ }\
+  catch (Exception& e) { e.cry(std::cout); ASSERTION_VIOLATION } \
+  catch (...)          {                   ASSERTION_VIOLATION } \
+
 #else // ! VDEBUG
 
 #define DEBUG_CODE(X)
@@ -254,7 +259,10 @@ private:
 
 #define ASSERT_VALID(obj) {}
 
+#define ASS_NO_EXCEPT(...) __VA_ARGS__
+
 #endif // VDEBUG
+
 
 #if VDEBUG
 

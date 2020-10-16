@@ -14,15 +14,15 @@ template<class C> using Poly = Polynom<NumTraits<C>>;
 // namespace Kernel {
 
 
-#define IMPL_EVALUATE_PRED(interpretation, ...)\
-  template<>  \
-  struct PredicateEvaluator<interpretation> { \
-    template<class Config> \
-    static LitEvalResult evaluate(Literal* orig, PolyNf* evaluatedArgs) \
-    { \
-      CALL("PredicateEvaluator<" #interpretation ">::evaluate(Literal*,PolyNf*)"); \
-      __VA_ARGS__ \
-    } \
+#define IMPL_EVALUATE_PRED(interpretation, ...)                                                               \
+  template<>                                                                                                  \
+  struct PredicateEvaluator<interpretation> {                                                                 \
+    template<class Config>                                                                                    \
+    static Optional<LitEvalResult> evaluate(Literal* orig, PolyNf* evaluatedArgs)                                       \
+    {                                                                                                         \
+      CALL("PredicateEvaluator<" #interpretation ">::evaluate(Literal*,PolyNf*)");                            \
+      __VA_ARGS__                                                                                             \
+    }                                                                                                         \
   };
 
 
@@ -31,19 +31,15 @@ template<class C> using Poly = Polynom<NumTraits<C>>;
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 template<class NormalizerConfig, class ConstantType, class EvalGround>
-LitEvalResult tryEvalConstant2(Literal* orig, PolyNf* evaluatedArgs, EvalGround fun) 
+Optional<LitEvalResult> tryEvalConstant2(Literal* orig, PolyNf* evaluatedArgs, EvalGround fun) 
 {
   using Number = NumTraits<ConstantType>;
   auto& lhs = evaluatedArgs[0].asPoly().downcast<Number>();
   auto& rhs = evaluatedArgs[1].asPoly().downcast<Number>();
   if (lhs.isNumber() && rhs.isNumber()) {
-    return LitEvalResult::constant(fun(lhs.unwrapNumber(), rhs.unwrapNumber()));
+    return Optional<LitEvalResult>(LitEvalResult::constant(fun(lhs.unwrapNumber(), rhs.unwrapNumber())));
   } else {
-    TermList args[] = {
-      lhs.toTerm(),
-      rhs.toTerm()
-    };
-    return LitEvalResult::literal(Literal::create(orig, args));
+    return Optional<LitEvalResult>();
   }
 }
 
@@ -53,23 +49,26 @@ LitEvalResult tryEvalConstant2(Literal* orig, PolyNf* evaluatedArgs, EvalGround 
 /// Equality
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-template<class Config, class number> inline LitEvalResult interpretEquality(bool polarity, Polynom<number> lhs, Polynom<number> rhs) {
+template<class Config, class number> inline Optional<LitEvalResult> interpretEquality(bool polarity, Polynom<number> lhs, Polynom<number> rhs) {
   
   if (lhs.isNumber() && rhs.isNumber()) {
-    return LitEvalResult::constant(polarity == (lhs.unwrapNumber() == rhs.unwrapNumber()));
+    return Optional<LitEvalResult>(LitEvalResult::constant(polarity == (lhs.unwrapNumber() == rhs.unwrapNumber())));
   } else {
-    auto res = Polynom<number>::cancelAdd(lhs, rhs);
-    // auto res = Polynom<number>::cancelMul(move(res_.lhs), move(res_.rhs));
-    // TODO cancel mul as well
-
-    auto lTerm = res.lhs.toTerm();
-    auto rTerm = res.rhs.toTerm();
-
-    if (lTerm == rTerm) {
-      return LitEvalResult::constant(polarity);
-    } else {
-      return LitEvalResult::literal(Literal::createEquality(polarity, lTerm, rTerm, number::sort));
-    }
+    return Optional<LitEvalResult>();
+    // auto res = Polynom<number>::cancelAdd(lhs, rhs);
+    // // auto res = Polynom<number>::cancelMul(move(res_.lhs), move(res_.rhs));
+    // // TODO cancel mul as well
+    //
+    // auto lTerm = res.lhs.toTerm();
+    // auto rTerm = res.rhs.toTerm();
+    //
+    // if (lTerm == rTerm) {
+    //   return Optional<LitEvalResult>(LitEvalResult::constant(polarity));
+    // } else if (res.lhs == lhs && res.rhs == rhs) {
+    //   return Optional<LitEvalResult>();
+    // } else {
+    //   return Optional<LitEvalResult>(LitEvalResult::literal(Literal::createEquality(polarity, lTerm, rTerm, number::sort)));
+    // }
   }
 }
 
@@ -94,76 +93,53 @@ IMPL_EVALUATE_PRED(Interpretation::EQUAL,
   auto polarity = orig->polarity();
   auto sort = SortHelper::getEqualityArgumentSort(orig);
 
-  auto shallCancel  = lhs.isPoly() || rhs.isPoly();
-
-  if (shallCancel) {
-    switch (sort) {
-    case Sorts::SRT_INTEGER:
-      return interpretEquality<Config>(polarity, *intoPoly<IntTraits>(lhs), *intoPoly<IntTraits>(rhs));
-    case Sorts::SRT_RATIONAL:
-      return interpretEquality<Config>(polarity, *intoPoly<RatTraits>(lhs), *intoPoly<RatTraits>(rhs));
-    case Sorts::SRT_REAL:
-      return interpretEquality<Config>(polarity, *intoPoly<RealTraits>(lhs), *intoPoly<RealTraits>(rhs));
-      default:
-      // polynomials can only be of number sorts
-        ASSERTION_VIOLATION
-    }
-  } else {
-    if (lhs == rhs) {
-      return LitEvalResult::constant(polarity);
-    } else {
-      auto l = lhs.toTerm();
-      auto r = rhs.toTerm();
-      return LitEvalResult::literal(Literal::createEquality(polarity, l, r, sort));
-    }
+  if (lhs == rhs) {
+    return Optional<LitEvalResult>(LitEvalResult::constant(polarity));
   }
-  //                            //TODO lift to term algebras
+  switch (sort) {
+  case Sorts::SRT_INTEGER:
+    return interpretEquality<Config>(polarity, *intoPoly<IntTraits>(lhs), *intoPoly<IntTraits>(rhs));
+  case Sorts::SRT_RATIONAL:
+    return interpretEquality<Config>(polarity, *intoPoly<RatTraits>(lhs), *intoPoly<RatTraits>(rhs));
+  case Sorts::SRT_REAL:
+    return interpretEquality<Config>(polarity, *intoPoly<RealTraits>(lhs), *intoPoly<RealTraits>(rhs));
+  default:
+    return Optional<LitEvalResult>();
+  }
 )
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Inequalities
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-template<class NormalizerConfig, class ConstantType, class EvalIneq> LitEvalResult evaluateInequality(Literal* orig, PolyNf* evaluatedArgs, bool strict, EvalIneq evalIneq) {
+template<class NormalizerConfig, class ConstantType, class EvalIneq> Optional<LitEvalResult> evaluateInequality(Literal* orig, PolyNf* evaluatedArgs, bool strict, EvalIneq evalIneq) {
   ASS(orig->arity() == 2);
 
 
-  auto lhs_ = *intoPoly<NumTraits<ConstantType>>(evaluatedArgs[0]);
-  auto rhs_ = *intoPoly<NumTraits<ConstantType>>(evaluatedArgs[1]);
-
-  // auto shallCancel = lhs.isPoly() || rhs.isPoly();
-  auto res = Poly<ConstantType>::cancelAdd(lhs_, rhs_);
-  auto lhs = res.lhs;
-  auto rhs = res.rhs;
+  auto lhs = *intoPoly<NumTraits<ConstantType>>(evaluatedArgs[0]);
+  auto rhs = *intoPoly<NumTraits<ConstantType>>(evaluatedArgs[1]);
 
   auto polarity = orig->polarity();
   if (lhs.isNumber() && rhs.isNumber()) {
-    return LitEvalResult::constant(polarity == evalIneq(lhs.unwrapNumber(), rhs.unwrapNumber()));
+    return Optional<LitEvalResult>(LitEvalResult::constant(polarity == evalIneq(lhs.unwrapNumber(), rhs.unwrapNumber())));
+  } else if (lhs == rhs) {
+    return Optional<LitEvalResult>(LitEvalResult::constant(polarity != strict));
   } else {
-
-    TermList lTerm = lhs.toTerm();
-    TermList rTerm = rhs.toTerm();;
-    if (lTerm == rTerm) return LitEvalResult::constant(polarity != strict);
-
-    TermList args[] = {
-      lTerm,
-      rTerm,
-    };
-    return LitEvalResult::literal(Literal::create(orig, args));
+    return Optional<LitEvalResult>();
   }
 }
 
-#define __IMPL_INEQ(Const, name, STRICT, op) \
-  IMPL_EVALUATE_PRED(NumTraits<Const>::name ## I,  \
+#define __IMPL_INEQ(Const, name, STRICT, op)                                                                  \
+  IMPL_EVALUATE_PRED(NumTraits<Const>::name ## I,                                                             \
        return evaluateInequality<Config, Const>(orig, evaluatedArgs, STRICT, [](Const l, Const r) {return l op r;});  \
-  ) \
+  )                                                                                                           \
 ;
-#define IMPL_INEQUALTIES(Const) \
-   /*                inequality| is strict? | operator */ \
-  __IMPL_INEQ(Const, less      ,   true     ,  <        ) \
-  __IMPL_INEQ(Const, leq       ,   false    ,  <=       ) \
-  __IMPL_INEQ(Const, greater   ,   true     ,  >        ) \
-  __IMPL_INEQ(Const, geq       ,   false    ,  >=       ) \
+#define IMPL_INEQUALTIES(Const)                                                                               \
+   /*                inequality| is strict? | operator */                                                     \
+  __IMPL_INEQ(Const, less      ,   true     ,  <        )                                                     \
+  __IMPL_INEQ(Const, leq       ,   false    ,  <=       )                                                     \
+  __IMPL_INEQ(Const, greater   ,   true     ,  >        )                                                     \
+  __IMPL_INEQ(Const, geq       ,   false    ,  >=       )                                                     \
 
 
 IMPL_INEQUALTIES(RationalConstantType)

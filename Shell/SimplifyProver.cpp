@@ -105,7 +105,7 @@ SimplifyProver::~SimplifyProver()
 
   Map<vstring,SymbolInfo*>::Iterator it(_symbolInfo);
   while (it.hasNext()) {
-    SymbolInfo* symInfo = it.next();
+    SymbolInfo* symInfo = it.next().value();
     DEALLOC_KNOWN(symInfo,sizeof(SymbolInfo) + sizeof(int)*(symInfo->arity - 1),"SimplifyProver::SymbolInfo");
   }
 }

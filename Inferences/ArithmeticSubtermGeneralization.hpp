@@ -3,25 +3,67 @@
 
 #include "Forwards.hpp"
 #include "InferenceEngine.hpp"
+#include "Lib/Stack.hpp"
+#include "PolynomialNormalization.hpp"
 
 
 namespace Inferences {
 
-class ArithmeticSubtermGeneralization
-: public ImmediateSimplificationEngine
+class NumeralMultiplicationGeneralization
+: public MaybeImmediateSimplification
 {
 public:
-  CLASS_NAME(ArithmeticSubtermGeneralization);
-  USE_ALLOCATOR(ArithmeticSubtermGeneralization);
+  CLASS_NAME(NumeralMultiplicationGeneralization);
+  USE_ALLOCATOR(NumeralMultiplicationGeneralization);
 
-  ArithmeticSubtermGeneralization() {}
-  virtual ~ArithmeticSubtermGeneralization();
+  virtual ~NumeralMultiplicationGeneralization();
 
-  Clause* simplify(Clause* cl);
+  pair<Clause*, bool> simplify(Clause* cl, bool doOrderingCheck);
 };
 
+
+class VariableMultiplicationGeneralization
+: public MaybeImmediateSimplification
+{
+public:
+  CLASS_NAME(VariableMultiplicationGeneralization);
+  USE_ALLOCATOR(VariableMultiplicationGeneralization);
+
+  virtual ~VariableMultiplicationGeneralization();
+
+  pair<Clause*, bool> simplify(Clause* cl, bool doOrderingCheck);
 };
 
+
+class VariablePowerGeneralization
+: public MaybeImmediateSimplification
+{
+public:
+  CLASS_NAME(VariablePowerGeneralization);
+  USE_ALLOCATOR(VariablePowerGeneralization);
+
+  virtual ~VariablePowerGeneralization();
+
+  pair<Clause*, bool> simplify(Clause* cl, bool doOrderingCheck);
+};
+
+
+class AdditionGeneralization
+: public MaybeImmediateSimplification
+{
+public:
+  CLASS_NAME(AdditionGeneralization);
+  USE_ALLOCATOR(AdditionGeneralization);
+
+  virtual ~AdditionGeneralization();
+
+  pair<Clause*, bool> simplify(Clause* cl, bool doOrderingCheck);
+};
+
+Stack<MaybeImmediateSimplification*> allArithmeticSubtermGeneralizations();
+
+
+} // namespace Inferences
 
 
 #endif // __ARITHMETIC_SUBTERM_GENERALIZATION__

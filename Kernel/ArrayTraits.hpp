@@ -33,9 +33,7 @@ public:
   }                                                                                                           \
                                                                                                               \
   Kernel::Term* fun ## T(IMPL_NUM_TRAITS__ARG_DECL(TermList, _arity)) const                                   \
-  {                                                                                                           \
-    DBG("create: " #fun " ", IMPL_NUM_TRAITS__ARG_EXPR(_arity))                                               \
-    return Term::create(fun ## F(), {IMPL_NUM_TRAITS__ARG_EXPR(_arity)}); }                                   \
+  { return Term::create(fun ## F(), {IMPL_NUM_TRAITS__ARG_EXPR(_arity)}); }                                   \
                                                                                                               \
   TermList fun(IMPL_NUM_TRAITS__ARG_DECL(TermList, _arity)) const                                             \
   { return TermList(fun ## T(IMPL_NUM_TRAITS__ARG_EXPR(_arity))); }                                           \

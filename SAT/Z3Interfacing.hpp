@@ -67,6 +67,8 @@ public:
    */
   Z3Interfacing(const Shell::Options& opts, SAT2FO& s2f, bool unsatCoresForAssumptions = false);
 
+  static char const* z3_full_version();
+
   void addClause(SATClause* cl, bool withGuard);
   void addClause(SATClause* cl) override { addClause(cl,false); }
 

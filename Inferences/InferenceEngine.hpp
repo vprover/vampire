@@ -27,6 +27,7 @@
 
 #include "Forwards.hpp"
 #include "Lib/SmartPtr.hpp"
+#include "Lib/Stack.hpp"
 
 #include "Lib/VirtualIterator.hpp"
 #include "Lib/List.hpp"
@@ -98,9 +99,32 @@ protected:
 //  ClauseIterator premises;
 //};
 
+/** A generating inference that might make its major premise redundant. */
+class SimplifyingGeneratingInference
+: public InferenceEngine
+{
+public:
+
+  /** result of applying the inference */
+  struct ClauseGenerationResult {
+    /** the generated clauses */
+    ClauseIterator clauses;
+    /** tells whether the major premise of the application of the rule should be deleted from the search space. */
+    bool premiseRedundant;
+  };
+
+  /**
+   * Applies this rule to the clause, and returns an iterator over the resulting clauses, 
+   * as well as the information wether the premise was made redundant.
+   */
+  virtual ClauseGenerationResult generateClauses(Clause* premise)  = 0;
+};
+
+
 class GeneratingInferenceEngine
 : public InferenceEngine
 {
+
 public:
   virtual ClauseIterator generateClauses(Clause* premise) = 0;
 };
@@ -259,12 +283,32 @@ public:
   CompositeGIE() : _inners(0) {}
   virtual ~CompositeGIE();
   void addFront(GeneratingInferenceEngine* fse);
-  ClauseIterator generateClauses(Clause* premise);
-  void attach(SaturationAlgorithm* salg);
-  void detach();
+  ClauseIterator generateClauses(Clause* premise) override;
+  void attach(SaturationAlgorithm* salg) override;
+  void detach() override;
 private:
   typedef List<GeneratingInferenceEngine*> GIList;
   GIList* _inners;
+};
+
+
+class CompositeSGI
+: public SimplifyingGeneratingInference
+{
+public:
+  CLASS_NAME(CompositieSGI);
+  USE_ALLOCATOR(CompositeSGI);
+
+  CompositeSGI() : _simplifiers(), _generators() {}
+  virtual ~CompositeSGI();
+  void push(SimplifyingGeneratingInference*);
+  void push(GeneratingInferenceEngine*);
+  ClauseGenerationResult generateClauses(Clause* premise) override;
+  void attach(SaturationAlgorithm* salg) override;
+  void detach() override;
+private:
+  Stack<SimplifyingGeneratingInference*> _simplifiers;
+  Stack<GeneratingInferenceEngine*> _generators;
 };
 
 class DuplicateLiteralRemovalISE

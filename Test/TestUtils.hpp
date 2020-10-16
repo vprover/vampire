@@ -32,15 +32,12 @@
 #include "Api/FormulaBuilder.hpp"
 #include "Api/Problem.hpp"
 #include "Lib/Coproduct.hpp"
+#include "Lib/Map.hpp"
 
 namespace Test {
-
 class TestUtils {
-public:
-  // static Kernel::Formula* getUniqueFormula(Kernel::UnitList* units);
-  // static Kernel::Formula* getUniqueFormula(Api::AnnotatedFormulaIterator afit);
-  // static Kernel::Formula* getUniqueFormula(Api::Problem prb);
 
+public:
   /** 
    * Tests whether two terms are equal modulo associativity and commutativity.
    * Whether a method is assoc and commut is checked with `TestUtils::isAC(..)`
@@ -58,6 +55,14 @@ public:
   static bool eqModAC(const Kernel::Clause* lhs, const Kernel::Clause* rhs);
   static bool eqModAC(Kernel::Literal* lhs, Kernel::Literal* rhs);
 
+  // /** 
+  //  * Tests whether two clauses are equal. All permutations of the clauses are tested. Variable renamings are 
+  //  * taken into account (i.e.: { p(x) } IS equal to { p(y) } for this function).
+  //  *
+  //  * !!! exponential runtime !!!
+  //  */
+  // static bool eqModACVar(const Kernel::Clause* lhs, const Kernel::Clause* rhs);
+
   /**
    * The ... are len of integers, positive -- positive polarity, negative -- negative polarity.
    */
@@ -66,6 +71,27 @@ public:
 
 
 private:
+
+  struct RectMap
+  {
+    class Inner {
+      unsigned cnt = 0;
+      Map<unsigned, unsigned> _self;
+    public:
+      unsigned get(unsigned var) 
+      { return _self.getOrInit(std::move(var), [&](){ return cnt++; }); }
+    };
+    Inner l;
+    Inner r;
+  };
+
+
+  // static bool eqModACVar(const Kernel::Clause* lhs, const Kernel::Clause* rhs, RectMap& r);
+  // static bool eqModACVar(Kernel::Literal* lhs, Kernel::Literal* rhs, RectMap& r);
+  // static bool eqModACVar(Kernel::TermList lhs, Kernel::TermList rhs, RectMap& r);
+  template<class Comparisons>
+  static bool eqModAC_(Kernel::TermList lhs, Kernel::TermList rhs, Comparisons c);
+
   /**
    * Tests whether there is a permutation pi s.t. pi(lhs) == rhs, where elements are compared by
    * elemEq(l,r)
@@ -130,9 +156,9 @@ public:
 
   std::ostream& prettyPrint(std::ostream& out) const
   { 
-    out << _self.tag() << "(";
+    // out << _self.tag() << "(";
     _self.apply(CoproductToPretty{out});
-    out << ")";
+    // out << ")";
     return out;
   }
 };
@@ -144,6 +170,30 @@ class Pretty<A*> {
 
 public:
   Pretty(A* const& self) : _self(self) {}
+
+  std::ostream& prettyPrint(std::ostream& out) const
+  { return _self == nullptr ? out << "null" : out << pretty(*_self); }
+};
+
+
+template<class A>
+class Pretty<Optional<A>> {
+  Optional<A> const& _self;
+
+public:
+  Pretty(Optional<A> const& self) : _self(self) {}
+
+  std::ostream& prettyPrint(std::ostream& out) const
+  { return _self.isSome() ? out << pretty(_self.unwrap()) : out << "none"; }
+};
+
+
+template<class A>
+class Pretty<unique_ptr<A>> {
+  unique_ptr<A> const& _self;
+
+public:
+  Pretty(unique_ptr<A> const& self) : _self(self) {}
 
   std::ostream& prettyPrint(std::ostream& out) const
   { return out << pretty(*_self); }

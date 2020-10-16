@@ -1,50 +1,266 @@
 #ifndef __OPTIONAL_H__
 #define __OPTIONAL_H__
 
-#include "Lib/Coproduct.hpp"
 #include <type_traits>
+#include "Debug/Assertion.hpp"
+#include "Debug/Tracer.hpp"
+#include <iostream>
 
 
 namespace Lib {
 
+
+#define FOR_REF_QUALIFIER(macro)                                                                              \
+  macro(const &, ) macro(&, ) macro(&&, std::move)
+
+template<class T>
+struct MaybeUninit {
+  union Value { 
+    T init; int uninint[0]; 
+     Value() {};
+    ~Value() {};
+  } _elem;
+
+   MaybeUninit() : _elem() {}
+  ~MaybeUninit() {}
+#define methods(ref, mv)                                                                                      \
+  operator T ref() ref                                                                                        \
+  { return mv(_elem.init); }                                                                                  \
+                                                                                                              \
+  void init(T ref content)                                                                                    \
+  { ::new(&_elem)T(mv(content)); }                                                                            \
+                                                                                                              \
+  MaybeUninit& operator=(T ref content)                                                                       \
+  {                                                                                                           \
+    _elem.init = mv(content);                                                                                 \
+    return *this;                                                                                             \
+  }                                                                                                           \
+
+  FOR_REF_QUALIFIER(methods)
+
+#undef methods 
+};
+
+// template<class T>
+// struct MaybeUninit {
+//   typename std::aligned_storage<sizeof(T), alignof(T)>::type _elem;
+//   operator T const&()  const&{ return           *reinterpret_cast<T const*>(&_elem) ;}
+//   operator T      &()       &{ return           *reinterpret_cast<T      *>(&_elem) ;}
+//   operator T     &&()      &&{ return std::move(*reinterpret_cast<T      *>(&_elem));}
+//
+//   void init(T     && content) { ::new(&_elem)T(std::move(content)); }
+//   void init(T      & content) { ::new(&_elem)T(          content ); }
+//   void init(T const& content) { ::new(&_elem)T(          content ); }
+// };
+
 template<class A>
-class Optional {
-  struct Unit {};
-  Coproduct<A, Unit> _self;
-  Optional(Coproduct<A, Unit> self) : _self(self) {}
+class OptionalBase 
+{
+
+  bool _isSome;
+  MaybeUninit<A> _elem;
 public:
 
-  Optional() : _self(Coproduct<A,Unit>::template variant<1>(Unit{})) {}
-  Optional(A     && content) : _self(Coproduct<A,Unit>::template variant<0>(std::move(content))) {}
-  Optional(A      & content) : _self(Coproduct<A,Unit>::template variant<0>(          content )) {}
-  Optional(A const& content) : _self(Coproduct<A,Unit>::template variant<0>(          content )) {}
+  OptionalBase() : _isSome(false) {}
 
-  bool isSome() const { return _self.template is<0>();  }
-  bool isNone() const { return _self.template is<1>();  }
-  A const& unwrap() const& { return _self.template unwrap<0>();  }
-  A     && unwrap()     && { return std::move(_self.template unwrap<0>());  }
-  A      & unwrap()      & { return _self.template unwrap<0>();  }
+  ~OptionalBase() 
+  { 
+    CALL("~OptionalBase") 
+    if (isSome()) { 
+      unwrap().~A(); 
+    }
+  }
+
+#define for_ref_qualifier(ref, mv)                                                                            \
+  explicit OptionalBase(A ref content)                                                                        \
+    : _isSome(true)                                                                                           \
+      , _elem()                                                                                               \
+  {                                                                                                           \
+    CALL("Optional(A " #ref ")")                                                                              \
+    _elem.init(mv(content));                                                                                  \
+  }                                                                                                           \
+                                                                                                              \
+  A ref unwrap() ref                                                                                          \
+  {                                                                                                           \
+    ASS(_isSome);                                                                                             \
+    return mv(_elem);                                                                                         \
+  }                                                                                                           \
+                                                                                                              \
+  OptionalBase(OptionalBase ref a) : _isSome(a._isSome)                                                       \
+  {                                                                                                           \
+    CALL("OptionalBase(OptionalBase " #ref ")");                                                              \
+    if (isSome()) {                                                                                           \
+      _elem.init(mv(a).unwrap());                                                                             \
+    }                                                                                                         \
+  }                                                                                                           \
+                                                                                                              \
+  OptionalBase& operator=(OptionalBase ref other)                                                             \
+  {                                                                                                           \
+    CALL("OptionalBase& operator=(OptionalBase "#ref")");                                                     \
+                                                                                                              \
+    if (_isSome) {                                                                                            \
+      if (other._isSome) {                                                                                    \
+        unwrap() = mv(other).unwrap();                                                                        \
+      } else {                                                                                                \
+        unwrap().~A();                                                                                        \
+      }                                                                                                       \
+    } else {                                                                                                  \
+      ASS(isNone())                                                                                           \
+      if (other._isSome){                                                                                     \
+         _elem.init(mv(other).unwrap());                                                                      \
+      } else {                                                                                                \
+         /* nothing to do */                                                                                  \
+      }                                                                                                       \
+    }                                                                                                         \
+    _isSome = other._isSome;                                                                                  \
+    return *this;                                                                                             \
+  }                                                                                                           \
+
+  FOR_REF_QUALIFIER(for_ref_qualifier)
+
+#undef for_ref_qualifier
+
+  bool isSome() const { return _isSome;   }
+  bool isNone() const { return !isSome(); }
+
+  static OptionalBase fromPtr(A* ptr) 
+  { return ptr == nullptr ? OptionalBase() : OptionalBase(*ptr); }
+
+  friend bool operator==(OptionalBase const& lhs, OptionalBase const& rhs) 
+  { 
+    if (lhs._isSome != rhs._isSome) return false;
+    
+    if (lhs._isSome) {
+      return lhs.unwrap() == rhs.unwrap();
+    } else {
+      return true;
+    }
+  }
+    
+};
+
+
+
+template<class A>
+class OptionalBaseRef
+{
+
+  A* _elem;
+public:
+
+  OptionalBaseRef(          ) : _elem(nullptr) {  }
+  OptionalBaseRef(A const* content) : _elem(const_cast<A*>(content)) { }
+  OptionalBaseRef(A* content) : _elem(content) { }
+
+  bool isSome() const { return _elem != nullptr;   }
+
+  A const& unwrap() const& { ASS(isSome()); return           *_elem ; }
+  A     && unwrap()     && { ASS(isSome()); return std::move(*_elem); }
+  A      & unwrap()      & { ASS(isSome()); return           *_elem ; }
+
+  OptionalBaseRef(OptionalBaseRef      & a) = default;
+  OptionalBaseRef(OptionalBaseRef     && a) = default;
+  OptionalBaseRef(OptionalBaseRef const& a) = default;
+
+  OptionalBaseRef& operator=(OptionalBaseRef      & a) = default;
+  OptionalBaseRef& operator=(OptionalBaseRef     && a) = default;
+  OptionalBaseRef& operator=(OptionalBaseRef const& a) = default;
+
+  static OptionalBaseRef fromPtr(A* ptr) 
+  { return ptr == nullptr ? OptionalBaseRef() : *ptr; }
+
+  friend bool operator==(OptionalBaseRef const& lhs, OptionalBaseRef const& rhs) 
+  { return lhs._elem == rhs._elem; }
+};
+
+template<class A>
+class OptionalBase<A const&> : public OptionalBaseRef<A>
+{
+public:
+  OptionalBase() : OptionalBaseRef<A>() {}
+  OptionalBase(A const& item) : OptionalBaseRef<A>(&item) {}
+  OptionalBase(OptionalBase const& b) : OptionalBaseRef<A>(b) {}
+};
+
+template<class A>
+class OptionalBase<A&> : public OptionalBaseRef<A>
+{
+public:
+  OptionalBase() : OptionalBaseRef<A>() {}
+  OptionalBase(A& item) : OptionalBaseRef<A>(&item) {}
+  OptionalBase(OptionalBase const& b) : OptionalBaseRef<A>(b) {}
+};
+
+// template<class A>
+// class OptionalBase<A&>
+// {
+//
+//   A* _elem;
+// public:
+//
+//   OptionalBase() : _elem(nullptr) {}
+//   OptionalBase(A      & content) : _elem(&content) { }
+//
+//   bool isSome() const { return _elem != nullptr;   }
+//
+//   A const& unwrap() const& { ASS(isSome()); return           *_elem ; }
+//   A     && unwrap()     && { ASS(isSome()); return std::move(*_elem); }
+//   A      & unwrap()      & { ASS(isSome()); return           *_elem ; }
+//
+//   OptionalBase(OptionalBase      & a) = default;
+//   OptionalBase(OptionalBase     && a) = default;
+//   OptionalBase(OptionalBase const& a) = default;
+//
+//   OptionalBase& operator=(OptionalBase      & a) = default;
+//   OptionalBase& operator=(OptionalBase     && a) = default;
+//   OptionalBase& operator=(OptionalBase const& a) = default;
+//
+//   static OptionalBase fromPtr(A* ptr) 
+//   { return ptr == nullptr ? OptionalBase() : *ptr; }
+//
+//   friend bool operator==(OptionalBase const& lhs, OptionalBase const& rhs) 
+//   { return lhs._elem == rhs._elem; }
+// };
+
+template<class A>
+class Optional : OptionalBase<A> {
+
+  explicit Optional(OptionalBase<A>&& base) : OptionalBase<A>(std::move(base)) {  }
+public:
+  using Content = A;
+  using OptionalBase<A>::OptionalBase;
+  using OptionalBase<A>::isSome;
+  using OptionalBase<A>::unwrap;
+
+  friend bool operator==(Optional const& lhs, Optional const& rhs) 
+  { return static_cast<OptionalBase<A>const&>(lhs) == static_cast<OptionalBase<A>const&>(rhs); }
+
+  friend bool operator!=(Optional const& lhs, Optional const& rhs) 
+  { return !(lhs == rhs); }
+
+  template<class C>
+  static Optional<A> fromPtr(C self) 
+  { return Optional(OptionalBase<A>::fromPtr(self)); }
+
+  bool isNone() const { return !this->isSome(); }
 
   template<class Clsr>
   const A& unwrapOrElse(Clsr f) const& { 
     static_assert(std::is_same<typename std::result_of<Clsr()>::type,
                                A const&                             >::value, "closuer must return reference in order to be memory safe");
-    if (isSome()) {
-      return unwrap();
+    if (this->isSome()) {
+      return this->unwrap();
     } else {
       return f();
     }
   }
 
-  static Optional fromPtr(A* ptr) 
-  { return ptr == nullptr ? Optional() : *ptr; }
-
   template<class Clsr>
   A unwrapOrElse(Clsr f) && { 
     // static_assert(std::is_same<typename std::result_of<Clsr()>::type,
     //                            A &&                             >::value, "closuer must return reference in order to be memory safe");
-    if (isSome()) {
-      return unwrap();
+    if (this->isSome()) {
+      return this->unwrap();
     } else {
       return f();
     }
@@ -54,8 +270,8 @@ public:
   A& unwrapOrElse(Clsr f) & { 
     static_assert(std::is_same<typename std::result_of<Clsr()>::type,
                                A &                             >::value, "closuer must return reference in order to be memory safe");
-    if (isSome()) {
-      return unwrap();
+    if (this->isSome()) {
+      return this->unwrap();
     } else {
       return f();
     }
@@ -64,24 +280,25 @@ public:
   template<class Clsr>
   const A& unwrapOrInit(Clsr f) { 
     if (isNone()) {
-      _self = Coproduct<A,Unit>::template variant<0>(f());
+      ::new(this) Optional(f());
     }
-    return unwrap();
+    return this->unwrap();
   }
 
 
   const A& unwrapOr(const A& alternative) const { 
-    if (isSome()) {
-      return unwrap();
+    if (this->isSome()) {
+      return this->unwrap();
     } else {
       return alternative;
     }
   }
 
+  // TODO get rid or R here
   template<class R, class CasePresent, class CaseNone>
   R match(CasePresent present, CaseNone none) const { 
-    if (isSome()) {
-      return present(unwrap());
+    if (this->isSome()) {
+      return present(this->unwrap());
     } else {
       return none();
     }
@@ -89,43 +306,55 @@ public:
 
   template<class CasePresent, class CaseNone, class R>
   R match(CasePresent present, CaseNone none) { 
-    if (isSome()) {
-      return present(unwrap());
+    if (this->isSome()) {
+      return present(this->unwrap());
     } else {
       return none();
     }
   }
 
-  template<class Clsr>
-  Optional<typename std::result_of<Clsr(A &&)>::type> map(Clsr clsr) && { 
-    using OptOut = Optional<typename std::result_of<Clsr(A &&)>::type>;
-    return isSome() ? OptOut(clsr(std::move(unwrap())))
-                    : OptOut();
+#define ref_polymorphic(REF, MOVE)                                                                            \
+                                                                                                              \
+  template<class Clsr>                                                                                        \
+  Optional<typename std::result_of<Clsr(A REF)>::type> map(Clsr clsr) REF {                                   \
+    using OptOut = Optional<typename std::result_of<Clsr(A REF)>::type>;                                      \
+    return this->isSome() ? OptOut(clsr(MOVE(this->unwrap())))                                                \
+                          : OptOut();                                                                         \
+  }                                                                                                           \
+                                                                                                              \
+  template<class B> Optional<B> innerInto() REF { return map([](A REF inner) { return B(MOVE(inner)); }); }   \
+                                                                                                              \
+  template<class Clsr>                                                                                        \
+  typename std::result_of<Clsr(A REF)>::type andThen(Clsr clsr) REF {                                         \
+    using OptOut = typename std::result_of<Clsr(A REF)>::type;                                                \
+    return this->isSome() ? clsr(MOVE(*this).unwrap())                                                        \
+                          : OptOut();                                                                         \
   }
 
-  template<class Clsr>
-  typename std::result_of<Clsr(A const&)>::type andThen(Clsr clsr) const& { 
-    using OptOut = typename std::result_of<Clsr(A const&)>::type;
-    return isSome() ? clsr(unwrap())
-                    : OptOut();
-  }
+  FOR_REF_QUALIFIER(ref_polymorphic)
+
+#undef ref_polymorphic
 
 
 
-  template<class Clsr>
-  typename std::result_of<Clsr(A &&)>::type andThen(Clsr clsr) && { 
-    using OptOut = typename std::result_of<Clsr(A &&)>::type;
-    return isSome() ? clsr(std::move(unwrap()))
-                    : OptOut();
-  }
+  // template<class Clsr>
+  // typename std::result_of<Clsr(A &&)>::type andThen(Clsr clsr) && { 
+  //   using OptOut = typename std::result_of<Clsr(A &&)>::type;
+  //   return this->isSome() ? clsr(std::move(this->unwrap()))
+  //                   : OptOut();
+  // }
+  //
+  //
+  // template<class Clsr>
+  // typename std::result_of<Clsr(A &)>::type andThen(Clsr clsr) & { 
+  //   using OptOut = typename Optional<std::result_of<Clsr(A &)>>::type;
+  //   return this->isSome() ? clsr(this->unwrap())
+  //                   : OptOut();
+  // }
 
+  friend std::ostream& operator<<(std::ostream& out, Optional const& self) 
+  { return self.isSome() ?  out << self.unwrap() : out << "None"; }
 
-  template<class Clsr>
-  typename std::result_of<Clsr(A &)>::type andThen(Clsr clsr) & { 
-    using OptOut = typename Optional<std::result_of<Clsr(A &)>>::type;
-    return isSome() ? clsr(unwrap())
-                    : OptOut();
-  }
 
 };
 
@@ -137,8 +366,8 @@ template<class T>
 Optional<T> none() 
 { return Optional<T>(); }
 
-template<class T> Optional<T> 
-optionalFromPtr(T* t) 
+template<class T>
+Optional<T> optionalFromPtr(T* t) 
 { return Optional<T>::fromPtr(t); }
 
 }

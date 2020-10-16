@@ -117,6 +117,7 @@ bool __permEq(const List& lhs, const List& rhs, Eq elemEq, DArray<unsigned>& per
     ASS_EQ(rhs.size(), perm.size());
 
     for (int i = 0; i < perm.size(); i++) {
+      // DBG(lhs[i], " ?= ", rhs[perm[i]]);
       if (!elemEq(lhs[i], rhs[perm[i]])) return false;
     }
     return true;
@@ -202,6 +203,22 @@ template<>
 std::ostream& Pretty<Literal*>::prettyPrint(std::ostream& out) const
 { return out << pretty(*_self); }
 
+
+template<>
+std::ostream& Pretty<Clause>::prettyPrint(std::ostream& out) const
+{ 
+  // out << "{ ";
+  auto iter = _self.iterLits();
+  if (iter.hasNext()) {
+    out << pretty(*iter.next());
+    while(iter.hasNext()) {
+      out << " \\/ " << pretty(*iter.next());
+    }
+  }
+  // out << " }";
+  return out;
+}
+
 template<>
 std::ostream& Pretty<Literal>::prettyPrint(std::ostream& out) const
 {
@@ -278,15 +295,20 @@ bool TestUtils::isAC(Theory::Interpretation i)
   }
 }
 
+// bool TestUtils::eqModACVar(const Kernel::Clause* lhs, const Kernel::Clause* rhs)
+// { 
+//   RectMap map;
+//   return permEq(*lhs, *rhs, [&](Literal* l, Literal* r) -> bool { return TestUtils::eqModACVar(l, r, map); }); 
+// }
+
 bool TestUtils::eqModAC(const Kernel::Clause* lhs, const Kernel::Clause* rhs)
-{
-  return permEq(*lhs, *rhs, [](Literal* l, Literal* r) -> bool { return TestUtils::eqModAC(l, r); });
-}
+{ return permEq(*lhs, *rhs, [](Literal* l, Literal* r) -> bool { return TestUtils::eqModAC(l, r); }); }
 
 bool TestUtils::eqModAC(Kernel::Literal* lhs, Kernel::Literal* rhs)
-{
-  return TestUtils::eqModAC(TermList(lhs), TermList(rhs)); 
-}
+{ return TestUtils::eqModAC(TermList(lhs), TermList(rhs)); }
+
+// bool TestUtils::eqModACVar(Kernel::Literal* lhs, Kernel::Literal* rhs, RectMap& map)
+// { return TestUtils::eqModACVar(TermList(lhs), TermList(rhs), map); }
 
 void __collect(unsigned functor, Term* t, Stack<TermList>& out) {
   ASS_EQ(t->functor(), functor);
@@ -312,10 +334,11 @@ Stack<TermList> collect(unsigned functor, Term* t) {
 }
 
 
-bool TestUtils::eqModAC(TermList lhs, TermList rhs) 
+template<class Comparisons>
+bool TestUtils::eqModAC_(TermList lhs, TermList rhs, Comparisons comp)
 {
   if (lhs.isVar() && rhs.isVar()) {
-    return lhs.var() == rhs.var();
+    return comp.var(lhs.var(), rhs.var());
   } else if (lhs.isTerm() && rhs.isTerm()) {
     auto& l = *lhs.term();
     auto& r = *rhs.term();
@@ -324,12 +347,12 @@ bool TestUtils::eqModAC(TermList lhs, TermList rhs)
     if (isAC(&l)) {
       Stack<TermList> lstack = collect(fun, &l);
       Stack<TermList> rstack = collect(fun, &r);
-      return permEq(lstack, rstack, [](TermList l, TermList r) -> bool {
-            return eqModAC(l, r);
+      return permEq(lstack, rstack, [&](TermList l, TermList r) -> bool {
+            return comp.subterm(l, r);
       });
     } else {
       for (int i = 0; i < l.arity(); i++) {
-        if (!eqModAC(*l.nthArgument(i), *r.nthArgument(i))) {
+        if (!comp.subterm(*l.nthArgument(i), *r.nthArgument(i))) {
           return false;
         }
       }
@@ -338,6 +361,62 @@ bool TestUtils::eqModAC(TermList lhs, TermList rhs)
   } else {
     return false;
   }
+}
+
+// bool TestUtils::eqModACVar(TermList lhs, TermList rhs, RectMap& map) 
+// {
+//   
+//   struct Comparisons {
+//     RectMap& map;
+//     bool var(unsigned lhs, unsigned rhs) const 
+//     { return map.l.get(lhs) == map.r.get(rhs); }
+//
+//     bool subterm(TermList lhs, TermList rhs) const 
+//     { return eqModACVar(lhs,rhs, map); }
+//   };
+//   Comparisons c {map};
+//
+//   return eqModAC_(lhs, rhs, c);
+// }
+
+
+bool TestUtils::eqModAC(TermList lhs, TermList rhs) 
+{
+  struct Comparisons {
+    bool var(unsigned lhs, unsigned rhs) const 
+    { return lhs == rhs; }
+
+    bool subterm(TermList lhs, TermList rhs) const 
+    { return eqModAC(lhs,rhs); }
+  };
+  Comparisons c {};
+
+  return eqModAC_(lhs, rhs, c);
+
+  // if (lhs.isVar() && rhs.isVar()) {
+  //   return lhs.var() == rhs.var();
+  // } else if (lhs.isTerm() && rhs.isTerm()) {
+  //   auto& l = *lhs.term();
+  //   auto& r = *rhs.term();
+  //   if ( l.functor() != r.functor() ) return false;
+  //   auto fun = l.functor();
+  //   if (isAC(&l)) {
+  //     Stack<TermList> lstack = collect(fun, &l);
+  //     Stack<TermList> rstack = collect(fun, &r);
+  //     return permEq(lstack, rstack, [](TermList l, TermList r) -> bool {
+  //           return eqModAC(l, r);
+  //     });
+  //   } else {
+  //     for (int i = 0; i < l.arity(); i++) {
+  //       if (!eqModAC(*l.nthArgument(i), *r.nthArgument(i))) {
+  //         return false;
+  //       }
+  //     }
+  //     return true;
+  //   }
+  // } else {
+  //   return false;
+  // }
 }
 
 }

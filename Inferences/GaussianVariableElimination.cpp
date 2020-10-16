@@ -6,15 +6,15 @@
 #include "Kernel/InterpretedLiteralEvaluator.hpp"
 #include "Inferences/InterpretedEvaluation.hpp"
 #include "Kernel/PolynomialNormalizer.hpp"
+#include "Shell/Statistics.hpp"
 
 #define DEBUG(...)  //DBG(__VA_ARGS__)
 
 namespace Inferences {
   using Balancer = Kernel::Rebalancing::Balancer<Kernel::Rebalancing::Inverters::NumberTheoryInverter>;
 
-Clause* GaussianVariableElimination::simplify(Clause* in) 
+pair<Clause*, bool> GaussianVariableElimination::simplify(Clause* in, bool doCheckOrdering) 
 {
-  auto ev = PolynomialNormalizer<PolynomialNormalizerConfig::Simplification<>>();
   CALL("GaussianVariableElimination::simplify")
   ASS(in)
 
@@ -30,38 +30,64 @@ Clause* GaussianVariableElimination::simplify(Clause* in)
         auto rhs = b.buildRhs();
         ASS_REP(lhs.isVar(), lhs);
 
-        // TODO check whether evaluation here makes sense
-        // rhs = ev.evaluate(rhs);
         if (!rhs.containsSubterm(lhs)) {
           /* lhs = rhs[...] */
           DEBUG(lhs, " -> ", rhs);
 
-          return rewrite(cl, lhs, rhs, i);
+          return rewrite(cl, lhs, rhs, i, doCheckOrdering);
         }
       }
     }
   }
 
-  return in;
+  return make_pair(in, false);
 }
 
-Clause* GaussianVariableElimination::rewrite(Clause& cl, TermList find, TermList replace, unsigned skipLiteral) const 
+pair<Clause*, bool> GaussianVariableElimination::rewrite(Clause& cl, TermList find, TermList replace, unsigned skipLiteral, bool doCheckOrdering) const 
 {
   CALL("GaussianVariableElimination::rewrite");
-  // Inference& inf = *new Inference1(Kernel::InferenceRule::GAUSSIAN_VARIABLE_ELIMINIATION, &cl);
+  env.statistics->gveCnt++;
+
   Inference inf(SimplifyingInference1(Kernel::InferenceRule::GAUSSIAN_VARIABLE_ELIMINIATION, &cl));
+
+  bool allLessEq = true;
+
+  auto checkLeq = [&](Literal* orig, Literal* rewritten) 
+  { 
+    if (doCheckOrdering) {
+      auto ord = Ordering::tryGetGlobalOrdering();
+      ASS(ord)
+      auto cmp = ord->compare(rewritten, orig);
+      switch(cmp) {
+        case Ordering::Result::LESS:
+        case Ordering::Result::LESS_EQ:
+        case Ordering::Result::EQUAL:
+          break;
+        case Ordering::Result::INCOMPARABLE:
+        case Ordering::Result::GREATER:
+        case Ordering::Result::GREATER_EQ:
+          allLessEq = false;
+          break;
+      }
+    }
+    return rewritten;
+  };
 
   auto sz = cl.size() - 1;
   Clause& out = *new(sz) Clause(sz, inf); 
   for (unsigned i = 0; i < skipLiteral; i++) {
-    out[i] = EqHelper::replace(cl[i], find, replace);
+    out[i] = checkLeq(cl[i], EqHelper::replace(cl[i], find, replace));
   }
 
   for (unsigned i = skipLiteral; i < sz; i++)  {
-    out[i] = EqHelper::replace(cl[i+1], find, replace);
+    out[i] = checkLeq(cl[i+1], EqHelper::replace(cl[i+1], find, replace));
   }
 
-  return &out;
+  auto premiseRedundant = allLessEq;
+  if(!premiseRedundant) {
+    env.statistics->gveViolations++;
+  }
+  return make_pair(&out, premiseRedundant);
 }
 
 } // namespace Inferences 

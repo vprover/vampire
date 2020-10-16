@@ -42,10 +42,22 @@ namespace Kernel {
  * Exception to be thrown when the requested operation cannot be performed,
  * e.g. because of overflow of a native type.
  */
-class ArithmeticException : public ThrowableBase { };
+class ArithmeticException : public Exception {
+protected:
+  ArithmeticException(const char* msg) : Exception(msg) {}
+};
 
-class MachineArithmeticException : public ArithmeticException {  };
-class DivByZeroException         : public ArithmeticException {  };
+class MachineArithmeticException : public ArithmeticException 
+{ 
+public:
+  MachineArithmeticException() : ArithmeticException("machine arithmetic exception"){} 
+};
+
+class DivByZeroException         : public ArithmeticException 
+{ 
+public:
+  DivByZeroException() : ArithmeticException("divided by zero"){} 
+};
 
 class IntegerConstantType
 {

@@ -28,7 +28,9 @@
 #include "Kernel/Term.hpp"
 #include "Kernel/Sorts.hpp"
 #include "Kernel/PolynomialNormalizer.hpp"
+#include "Inferences/PolynomialNormalization.hpp"
 #include "Test/TestUtils.hpp"
+#include "Kernel/KBO.hpp"
 
 #include "Kernel/InterpretedLiteralEvaluator.hpp"
 
@@ -43,6 +45,8 @@ using namespace Lib;
 using namespace Test;
 using namespace Kernel;
 using namespace Shell;
+using namespace Inferences;
+
 /////////////////////////////////////////////// Helper functions ///////////////////////////////////////////////////////
 
 struct EqualityCheck {
@@ -65,17 +69,27 @@ bool equalityCheck(LitEvalResult& l, LitEvalResult& r)
   return false;
 }
 
-#define __CHECK(op, is, expected, msg, test_case) \
-  if (!(op equalityCheck( is, expected))) { \
-    auto& out = cout; \
-    out << endl; \
-    out << msg << endl; \
-    out << "[   case   ] " << pretty(test_case) << endl; \
-    out << "[    is    ] " << #is << " =  " << pretty(is) << endl; \
-    out << "[ expected ] " << #is << " " #op "=" << " " << pretty(expected) << endl; \
-    out << endl; \
-    exit(-1); \
-  } \
+bool equalityCheck(Optional<LitEvalResult>& l, Optional<LitEvalResult>& r) 
+{ 
+  if (l.isSome()) {
+    return r.isSome() && equalityCheck(l.unwrap(),r.unwrap());
+  } else {
+    return !r.isSome();
+  }
+}
+
+
+#define __CHECK(op, is, expected, msg, test_case)                                                             \
+  if (!(op equalityCheck( is, expected))) {                                                                   \
+    auto& out = cout;                                                                                         \
+    out << endl;                                                                                              \
+    out << msg << endl;                                                                                       \
+    out << "[   case   ] " << pretty(test_case) << endl;                                                      \
+    out << "[    is    ] " << #is << " =  " << pretty(is) << endl;                                            \
+    out << "[ expected ] " << #expected << " " #op "=" << " " << pretty(expected) << endl;                    \
+    out << endl;                                                                                              \
+    exit(-1);                                                                                                 \
+  }                                                                                                           \
 
 #define CHECK_NE(...) __CHECK(! , __VA_ARGS__) 
 #define CHECK_EQ(...) __CHECK(  , __VA_ARGS__)
@@ -91,15 +105,63 @@ struct TestOrdering {
 struct Failure { };
 static Failure evaluationFail;
 
+Optional<LitEvalResult> evaluate(Literal* lit) 
+{
+  auto ord = KBO::testKBO();
+  Ordering::trySetGlobalOrdering(SmartPtr<Ordering>(&ord, true));
+
+  using Opt = Optional<LitEvalResult>;
+  auto& cl = clause({lit});
+
+  auto simpl = [](Clause* cl) -> Clause* 
+  {
+
+    auto _simpl = [](Clause* cl) -> Clause* 
+    {
+      PolynomialNormalization norm(*Ordering::tryGetGlobalOrdering());
+      PushUnaryMinus uminus;
+      Cancellation cancel(*Ordering::tryGetGlobalOrdering());
+      if (cl == nullptr) {
+        return cl;
+      } else {
+        return norm.MaybeImmediateSimplification::simplify(cancel.MaybeImmediateSimplification::simplify(uminus.simplify(cl)));
+      }
+    };
+
+
+    auto cur = cl;
+    auto old = cl;
+    do {
+      old = cur;
+      cur = _simpl(cur);
+    } while (cur != old);
+    return cur;
+  };
+
+  auto clOut = simpl(&cl);
+  if (clOut == nullptr) {
+    return Opt(LitEvalResult::constant(true));
+  } else if (clOut->size() == 0) {
+    return Opt(LitEvalResult::constant(false));
+  } else {
+    ASS_EQ(clOut->size(), 1)
+    auto out = (*clOut)[0];
+    if (out == lit) {
+      return Opt();
+    } else {
+      return Opt(LitEvalResult::literal(out));
+    }
+  }
+}
+
 void check_eval(Lit orig_, Failure) {
   Literal& orig = *orig_;
 
-  auto eval = NORMALIZER;
-
   Literal* src = Literal::create(&orig, orig.polarity());
-  auto res = eval.evaluate(src);
-  auto expected = LitEvalResult::literal(src);
-
+  auto res = evaluate(src);
+  // auto expected = LitEvalResult::literal(src);
+  auto expected = Optional<LitEvalResult>();
+       
   CHECK_EQ(expected, res, "unexpectedly evaluation was successful", orig);
 }
 
@@ -112,58 +174,58 @@ std::ostream& Pretty<LitEvalResult>::prettyPrint(std::ostream& out) const
 void check_eval(Lit orig_, bool expected) {
   Literal& orig = *orig_;
 
-  auto eval = NORMALIZER;
 
   auto sideConditions = Stack<Literal*>();
   Literal* src = Literal::create(&orig, orig.polarity());
 
-  auto result = eval.evaluate(src);
-  CHECK_EQ(result.template is<1>(), true, "non-trivial evaluation result", orig)
-  CHECK_EQ(result.template unwrap<1>(), expected, "result not evaluated to constant", orig)
+  auto result = evaluate(src);
+  CHECK_EQ(result.isSome(), true, "evaluation not successful", orig)
+  CHECK_EQ(result.unwrap().template is<1>(), true, "non-trivial evaluation result", orig)
+  CHECK_EQ(result.unwrap().template unwrap<1>(), expected, "result not evaluated to constant", orig)
 }
 
 void check_eval(Lit orig_, Lit expected_) {
   Literal& orig = *orig_;
   Literal& expected = *expected_;
 
-  auto eval = NORMALIZER;
-
   auto sideConditions = Stack<Literal*>();
   Literal* src = Literal::create(&orig, orig.polarity());
 
-  auto result = eval.evaluate(src);
-  CHECK_EQ(result.template is<0>(), true, "trivial evaluation result", orig)
-  CHECK_EQ(*result.template unwrap<0>(), expected, "result not evaluated correctly", orig)
+  auto result = evaluate(src);
+
+  CHECK_EQ(result.isSome(), true, "evaluation not successful", orig)
+  CHECK_EQ(result.unwrap().template is<0>(), true, "trivial evaluation result", orig)
+  CHECK_EQ(*result.unwrap().template unwrap<0>(), expected, "result not evaluated correctly", orig)
 }
 
-#define ADDITIONAL_FUNCTIONS \
-      _Pragma("GCC diagnostic push") \
-      _Pragma("GCC diagnostic ignored \"-Wunused\"") \
-        THEORY_SYNTAX_SUGAR_FUN(f, 1) \
-        THEORY_SYNTAX_SUGAR_FUN(f2, 2) \
-        THEORY_SYNTAX_SUGAR_PRED(p, 1) \
-        THEORY_SYNTAX_SUGAR_PRED(r, 2) \
-      _Pragma("GCC diagnostic pop") \
+#define ADDITIONAL_FUNCTIONS                                                                                  \
+      _Pragma("GCC diagnostic push")                                                                          \
+      _Pragma("GCC diagnostic ignored \"-Wunused\"")                                                          \
+        THEORY_SYNTAX_SUGAR_FUN(f, 1)                                                                         \
+        THEORY_SYNTAX_SUGAR_FUN(f2, 2)                                                                        \
+        THEORY_SYNTAX_SUGAR_PRED(p, 1)                                                                        \
+        THEORY_SYNTAX_SUGAR_PRED(r, 2)                                                                        \
+      _Pragma("GCC diagnostic pop")                                                                           \
 
-#define NUM_TEST(NUM, name, formula, expected) \
-    TEST_FUN(name ## _ ## NUM) { \
-      THEORY_SYNTAX_SUGAR(NUM); \
-      ADDITIONAL_FUNCTIONS \
-      check_eval(( formula ), ( expected )); \
-    } \
+#define NUM_TEST(NUM, name, formula, expected)                                                                \
+    TEST_FUN(name ## _ ## NUM) {                                                                              \
+      THEORY_SYNTAX_SUGAR(NUM);                                                                               \
+      ADDITIONAL_FUNCTIONS                                                                                    \
+      check_eval(( formula ), ( expected ));                                                                  \
+    }                                                                                                         \
 
 /** Tests for evalutions that should only be successful for reals/rationals and not for integers. */
-#define FRACTIONAL_TEST(name, formula, expected) \
-  NUM_TEST(RAT , name, formula, expected) \
-  NUM_TEST(REAL, name, formula, expected) \
+#define FRACTIONAL_TEST(name, formula, expected)                                                              \
+  NUM_TEST(RAT , name, formula, expected)                                                                     \
+  NUM_TEST(REAL, name, formula, expected)                                                                     \
 
-#define INT_TEST(name, formula, expected) \
-  NUM_TEST(INT , name, formula, expected) \
+#define INT_TEST(name, formula, expected)                                                                     \
+  NUM_TEST(INT , name, formula, expected)                                                                     \
 
-#define ALL_NUMBERS_TEST(name, formula, expected) \
-  NUM_TEST(INT , name, formula, expected) \
-  NUM_TEST(RAT , name, formula, expected) \
-  NUM_TEST(REAL, name, formula, expected) \
+#define ALL_NUMBERS_TEST(name, formula, expected)                                                             \
+  NUM_TEST(INT , name, formula, expected)                                                                     \
+  NUM_TEST(RAT , name, formula, expected)                                                                     \
+  NUM_TEST(REAL, name, formula, expected)                                                                     \
 
 /////////////////////////////////////////////// Test cases ///////////////////////////////////////////////////////
 
@@ -306,8 +368,8 @@ ALL_NUMBERS_TEST(eval_double_minus_3,
 
 
 ALL_NUMBERS_TEST(eval_double_minus_4,
-      (4 == -((-(x) + 4))),
-      (8 == x) )
+      (-4 == -((-(x) + 4))),
+      (0 == x) )
 
 ALL_NUMBERS_TEST(eval_remove_identity_1,
       (0 < (0 + -(x))),
@@ -329,6 +391,11 @@ ALL_NUMBERS_TEST(polynomial__normalize_uminus_2,
       p((-7 * f(x)))
       )
 
+ALL_NUMBERS_TEST(polynomial__normalize_uminus_3,
+      p(-(num(7))),
+      p(-7)
+      )
+
 ALL_NUMBERS_TEST(polynomial__merge_consts_1,
       p(((6 * x) + (5 * x))),
       p((11 * x))
@@ -347,6 +414,11 @@ ALL_NUMBERS_TEST(polynomial__merge_consts_3,
 ALL_NUMBERS_TEST(polynomial__push_unary_minus,
       p(-((a * 7))),
       p((-7 * a))
+      )
+
+FRACTIONAL_TEST(test_div_1,
+      p((a * 6) / 7),
+      p(a * frac(6,7))
       )
 
 // ALL_NUMBERS_TEST(polynomial__sorting_1,
@@ -381,17 +453,18 @@ ALL_NUMBERS_TEST(polynomial__push_unary_minus,
 
 ALL_NUMBERS_TEST(eval_test_cached_1,
       p(((b * a) * c) * ((b * a) * c)),
-      p(a * (a * (b * (b * (c * c)))))
+      // p(a * (a * (b * (b * (c * c)))))
+      evaluationFail
       )
 
 ALL_NUMBERS_TEST(eval_test_cached_2,
       (b * a) * c == f((b * a) * c),
-      a * (b * c) == f(a * (b * c))
+      evaluationFail
       )
 
 ALL_NUMBERS_TEST(eval_bug_1,
       p(f2(a,b)),
-      p(f2(a,b))
+      evaluationFail
       )
 
 ALL_NUMBERS_TEST(eval_bug_2,
@@ -426,7 +499,7 @@ ALL_NUMBERS_TEST(eval_cancellation_add_0,
 
 ALL_NUMBERS_TEST(eval_cancellation_add_1,
     x + (-1) == -2,
-    x == -1
+    x + 1 == 0
     )
 
 ALL_NUMBERS_TEST(eval_cancellation_add_2,
@@ -461,12 +534,17 @@ ALL_NUMBERS_TEST(eval_cancellation_add_8,
 
 ALL_NUMBERS_TEST(eval_cancellation_add_9,
     a * y * -1 == a * y * -2,
-    0 == -(a * y)
+    0 == a * y 
     )
 
 ALL_NUMBERS_TEST(eval_cancellation_add_10,
     a <= a + 3,
     true
+    )
+
+ALL_NUMBERS_TEST(eval_cancellation_add_11,
+    x + a < a,
+    x < 0
     )
 
 INT_TEST(eval_quotientE_1,
@@ -492,6 +570,7 @@ INT_TEST(eval_quotientF_1,
     r(                  3,                     1)
     )
 
+
 INT_TEST(eval_quotientT_1,
     r(quotientT(num(7), 2), remainderT(num(7), 2)),
     r(                  3,                     1)
@@ -507,23 +586,39 @@ FRACTIONAL_TEST(eval_quotient_1,
 //     p(a)
 //     )
 
+FRACTIONAL_TEST(div_zero_0,
+    r(7 / num(0), num(10) + 1),
+    r(7 / num(0), 11)
+    )
+
+INT_TEST(div_zero_1,
+    r(quotientE(num(7), 0), num(10) + 1),
+    r(quotientE(num(7), 0),     11     )
+    )
+
+INT_TEST(div_zero_2,
+    r(remainderE(num(7), 0), num(10) + 1),
+    r(remainderE(num(7), 0),     11     )
+    )
+
 ALL_NUMBERS_TEST(eval_overflow_1,
     p(num(1661992960) + 1661992960),
-    p(num(1661992960) + 1661992960)
+    evaluationFail
     )
 
 ALL_NUMBERS_TEST(eval_overflow_2,
-    r(num(1661992960) + 1661992960, 7 + 3),
+    r(num(1661992960) + 1661992960, num(7) + 3),
     r(num(1661992960) + 1661992960, 10)
     )
 
 ALL_NUMBERS_TEST(eval_overflow_3,
-    r(num(1661992960) * 1661992960, 7 + 3),
+    r(num(1661992960) * 1661992960, num(7) + 3),
     r(num(1661992960) * 1661992960, 10)
     )
 
 ALL_NUMBERS_TEST(eval_overflow_4,
     p(-1 * num(std::numeric_limits<int>::min())),
+    // p(-num(std::numeric_limits<int>::min()))
     evaluationFail
     )
 
@@ -531,6 +626,24 @@ ALL_NUMBERS_TEST(eval_overflow_5,
     p(std::numeric_limits<int>::min() * num(std::numeric_limits<int>::min() + 1) * std::numeric_limits<int>::min()),
     evaluationFail
     )
+
+FRACTIONAL_TEST(eval_overflow_6,
+    // p($sum(0.0555556,-1260453006.0)),
+    p(frac(5,90) + num(-1260453006)),
+    evaluationFail
+    )
+
+FRACTIONAL_TEST(eval_overflow_7,
+    // p($sum(0.0555556,-1260453006.0)),
+    frac(5,90) < num(-1260453006),
+    false
+    )
+
+FRACTIONAL_TEST(misc_01,
+     0 < x + (-y),
+     evaluationFail
+    )
+
 
 // FRACTIONAL_TEST(eval_div_1,
 //     p(floor(frac(7,2))),

@@ -32,6 +32,7 @@
 #include "Lib/VString.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Exception.hpp"
+#include "SAT/Z3Interfacing.hpp"
 
 #include "CommandLine.hpp"
 #include "Options.hpp"
@@ -65,6 +66,9 @@ void CommandLine::interpret (Options& options)
     const char* arg = *_next++;
     if (strcmp(arg, "--version")==0) {
       cout<<VERSION_STRING<<endl;
+#if VZ3
+      cout << "Linked with Z3 " << Z3Interfacing::z3_full_version() << endl;
+#endif
       exit(0);
     }
     // If --help or -h are used without arguments we still print help

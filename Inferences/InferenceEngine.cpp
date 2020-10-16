@@ -190,6 +190,67 @@ void CompositeGIE::detach()
   GeneratingInferenceEngine::detach();
 }
 
+void CompositeSGI::detach()
+{ 
+  for (auto g : _generators) {
+    g->detach();
+  }
+  for (auto s : _simplifiers) {
+    s->detach();
+  }
+}
+
+
+void CompositeSGI::attach(SaturationAlgorithm* sa)
+{ 
+  for (auto g : _generators) {
+    g->attach(sa);
+  }
+  for (auto s : _simplifiers) {
+    s->attach(sa);
+  }
+}
+
+void CompositeSGI::push(SimplifyingGeneratingInference* gen)
+{ _simplifiers.push(gen); }
+
+void CompositeSGI::push(GeneratingInferenceEngine* gen)
+{ _generators.push(gen); }
+
+CompositeSGI::ClauseGenerationResult CompositeSGI::generateClauses(Kernel::Clause* cl)
+{
+  auto redundant = false;
+  Stack<ClauseIterator> clauses;
+  /* apply generations as until a redundancy is discovered */
+  for (auto simpl : _simplifiers) {
+    auto res = simpl->generateClauses(cl);
+    clauses.push(res.clauses);
+    if (res.premiseRedundant) {
+      redundant = true;
+      break;
+    }
+  }
+  if (!redundant) {
+    /* apply strictly generating rules if there hasn't been a redundancy */
+    for (auto gen : _generators) {
+      clauses.push(gen->generateClauses(cl));
+    }
+  }
+  return ClauseGenerationResult {
+    .clauses          = pvi(getFlattenedIterator(ownedArrayishIterator(std::move(clauses)))),
+    .premiseRedundant = redundant,
+  };
+}
+
+CompositeSGI::~CompositeSGI() {
+  for (auto gen : _generators) {
+    delete gen;
+  }
+  for (auto simpl : _simplifiers) {
+    delete simpl;
+  }
+}
+
 
 Clause* DuplicateLiteralRemovalISE::simplify(Clause* c)
 {

@@ -35,7 +35,9 @@ class UniqueShared
    */
   explicit UniqueShared(T&& elem) 
     : _elem(_cached.getOrInit(T(elem), [elem]() { 
-          return new T(std::move(elem)); 
+          auto mem = ALLOC_KNOWN(sizeof(T), typeid(UniqueShared).name());
+          ::new(mem) T(std::move(elem)); 
+          return (T*) mem;
       })) 
     { }
 public:

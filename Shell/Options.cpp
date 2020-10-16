@@ -37,6 +37,7 @@
 #include "Debug/Assertion.hpp"
 
 #include "Lib/VString.hpp"
+#include "Lib/StringUtils.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Timer.hpp"
 #include "Lib/Exception.hpp"
@@ -1044,7 +1045,15 @@ void Options::Options::init()
            _theoryInstAndSimp.description = ""; 
            _theoryInstAndSimp.tag(OptionTag::INFERENCES);
            _lookup.insert(&_theoryInstAndSimp);
+
+           _thiTautologyDeletion = BoolOptionValue("theory_instantiation_tautology_deletion", "thitd", false);
+           _thiTautologyDeletion.description = "Enable deletion of tautology theory subclauses detected via theory instantiation."; 
+           _thiTautologyDeletion.tag(OptionTag::INFERENCES);
+           _lookup.insert(&_thiTautologyDeletion);
+           _thiTautologyDeletion.setExperimental();
+           _thiTautologyDeletion.reliesOn(_theoryInstAndSimp.is(notEqual(TheoryInstSimp::OFF)));
 #endif
+
            _unificationWithAbstraction = ChoiceOptionValue<UnificationWithAbstraction>("unification_with_abstraction","uwa",
                                              UnificationWithAbstraction::OFF,
                                              {"off","interpreted_only","one_side_interpreted","one_side_constant","all","ground"});
@@ -1071,7 +1080,23 @@ void Options::Options::init()
            _inequalityNormalization.description="Enable normalizing of inequalities like s < t ==> 0 < t - s.";
            _lookup.insert(&_inequalityNormalization);
            _inequalityNormalization.tag(OptionTag::INFERENCES);
- 
+
+           _cancellation = BoolOptionValue("cancellation","canc",true);
+           _cancellation.description = "Enable addition cancellation.";
+           _lookup.insert(&_cancellation);
+           _cancellation.tag(OptionTag::INFERENCES);
+           _cancellation.setExperimental();
+
+           _pushUnaryMinus = BoolOptionValue("push_unary_minus","pum",true);
+           _pushUnaryMinus.description=
+                  "Enable the immideate simplifications:\n"
+                  " -(t + s) ==> -t + -s\n"
+                  " -(-t) ==> t\n"
+                  ;
+           _lookup.insert(&_pushUnaryMinus);
+           _pushUnaryMinus.tag(OptionTag::INFERENCES);
+           _pushUnaryMinus.setExperimental();
+
            _gaussianVariableElimination = BoolOptionValue("gaussian_variable_elimination","gve",false);
            _gaussianVariableElimination.description=
                   "Enable the immideate simplification \"Gaussian Variable Elimination\":\n"
@@ -1085,10 +1110,17 @@ void Options::Options::init()
                   "6 * X0 != 2 * X1 | p(X0, X1)\n"
                   "-------------------------------\n"
                   "  p(2 * X1 / 6, X1)";
-
            _lookup.insert(&_gaussianVariableElimination);
            _gaussianVariableElimination.tag(OptionTag::INFERENCES);
+           _gaussianVariableElimination.setExperimental();
 
+
+           _arithmeticSubtermGeneralizations = BoolOptionValue("arithmetic_subterm_generalizations","asg",false);
+           _arithmeticSubtermGeneralizations.description=
+                  "Enable variaous immediate simplification rules for arithmetic terms.\n"
+                  "All of these rules work by generalizing a subterm.";
+           _lookup.insert(&_arithmeticSubtermGeneralizations);
+           _arithmeticSubtermGeneralizations.tag(OptionTag::INFERENCES);
 
             _induction = ChoiceOptionValue<Induction>("induction","ind",Induction::NONE,
                                 {"none","struct","math","both"});
@@ -1922,6 +1954,15 @@ void Options::Options::init()
     _lookup.insert(&_introducedSymbolPrecedence);
     _introducedSymbolPrecedence.tag(OptionTag::SATURATION);
 
+    _arithmeticSimplificationMode = ChoiceOptionValue<ArithmeticSimplificationMode>("arithmetic_simplification_mode","asm",
+                                                        ArithmeticSimplificationMode::FORCE,
+                                                        {"force","cautious"});
+    _arithmeticSimplificationMode.description=
+    "Sets how arithmetic simplifciations should be performed. In mode `cautious` after applying the simplification, it is checked whether the resulting clause ist actually smaller wrt. the simplification ordering, and if not the parent is kept in the search space. In mode `force` the parent is deleted even if the simplificaiton ordering is being violated. This can result in a smaller search space, as better performance since the ordering doesn't have to be computed. It comes at the expense of loosing some provable formulas.";
+    _lookup.insert(&_arithmeticSimplificationMode);
+    _arithmeticSimplificationMode.tag(OptionTag::INFERENCES);
+    _arithmeticSimplificationMode.setExperimental();
+
     _evaluationMode = ChoiceOptionValue<EvaluationMode>("evaluation","ev",
                                                         EvaluationMode::SIMPLE,
                                                         {"simple","polynomial"});
@@ -1934,6 +1975,7 @@ void Options::Options::init()
     _lookup.insert(&_evaluationMode);
     _evaluationMode.tag(OptionTag::SATURATION);
     _evaluationMode.setExperimental();
+
 
     _kboAdmissabilityCheck = ChoiceOptionValue<KboAdmissibilityCheck>(
         "kbo_admissibility_check", "", KboAdmissibilityCheck::ERROR,
@@ -3281,15 +3323,24 @@ bool Options::checkProblemOptionConstraints(Property* prop,bool fail_early)
   return result;
 }
 
+template<class A>
+Lib::vvector<A> parseCommaSeparatedList(vstring const& str) 
+{
+  vstringstream stream(str);
+  Lib::vvector<A> parsed;
+  vstring cur;
+  while (std::getline(stream, cur, ',')) {
+    parsed.push_back(StringUtils::parse<A>(cur));
+  }
+  return parsed;
+}
+
 Lib::vvector<int> Options::theorySplitQueueRatios() const
 {
   CALL("Options::theorySplitQueueRatios");
-  vstringstream inputRatiosStream(_theorySplitQueueRatios.actualValue);
-  Lib::vvector<int> inputRatios;
-  std::string currentRatio;
-  while (std::getline(inputRatiosStream, currentRatio, ',')) {
-    inputRatios.push_back(std::stoi(currentRatio));
-  }
+
+
+  auto inputRatios = parseCommaSeparatedList<int>(_theorySplitQueueRatios.actualValue);
 
   // sanity checks
   if (inputRatios.size() < 2) {
@@ -3318,12 +3369,7 @@ Lib::vvector<float> Options::theorySplitQueueCutoffs() const
     cutoffs.push_back(std::numeric_limits<float>::max());
   } else {
     // if custom cutoffs are set, parse them and add float-max as last value
-    vstringstream cutoffsStream(_theorySplitQueueCutoffs.actualValue);
-    std::string currentCutoff;
-    while (std::getline(cutoffsStream, currentCutoff, ','))
-    {
-      cutoffs.push_back(std::stof(currentCutoff));
-    }
+    cutoffs = parseCommaSeparatedList<float>(_theorySplitQueueCutoffs.actualValue);
     cutoffs.push_back(std::numeric_limits<float>::max());
   }
 
@@ -3344,12 +3390,7 @@ Lib::vvector<float> Options::theorySplitQueueCutoffs() const
 Lib::vvector<int> Options::avatarSplitQueueRatios() const
 {
   CALL("Options::avatarSplitQueueRatios");
-  vstringstream inputRatiosStream(_avatarSplitQueueRatios.actualValue);
-  Lib::vvector<int> inputRatios;
-  std::string currentRatio;
-  while (std::getline(inputRatiosStream, currentRatio, ',')) {
-    inputRatios.push_back(std::stoi(currentRatio));
-  }
+  Lib::vvector<int> inputRatios = parseCommaSeparatedList<int>(_avatarSplitQueueRatios.actualValue);
 
   // sanity checks
   if (inputRatios.size() < 2) {
@@ -3368,13 +3409,7 @@ Lib::vvector<float> Options::avatarSplitQueueCutoffs() const
 {
   CALL("Options::avatarSplitQueueCutoffs");
   // initialize cutoffs and add float-max as last value
-  Lib::vvector<float> cutoffs;
-  vstringstream cutoffsStream(_avatarSplitQueueCutoffs.actualValue);
-  std::string currentCutoff;
-  while (std::getline(cutoffsStream, currentCutoff, ','))
-  {
-    cutoffs.push_back(std::stof(currentCutoff));
-  }
+  auto cutoffs = parseCommaSeparatedList<float>(_avatarSplitQueueCutoffs.actualValue);
   cutoffs.push_back(std::numeric_limits<float>::max());
 
   // sanity checks
@@ -3394,12 +3429,7 @@ Lib::vvector<float> Options::avatarSplitQueueCutoffs() const
 Lib::vvector<int> Options::sineLevelSplitQueueRatios() const
 {
   CALL("Options::sineLevelSplitQueueRatios");
-  vstringstream inputRatiosStream(_sineLevelSplitQueueRatios.actualValue);
-  Lib::vvector<int> inputRatios;
-  std::string currentRatio;
-  while (std::getline(inputRatiosStream, currentRatio, ',')) {
-    inputRatios.push_back(std::stoi(currentRatio));
-  }
+  auto inputRatios = parseCommaSeparatedList<int>(_sineLevelSplitQueueRatios.actualValue);
 
   // sanity checks
   if (inputRatios.size() < 2) {
@@ -3418,13 +3448,7 @@ Lib::vvector<float> Options::sineLevelSplitQueueCutoffs() const
 {
   CALL("Options::sineLevelSplitQueueCutoffs");
   // initialize cutoffs and add float-max as last value
-  Lib::vvector<float> cutoffs;
-  vstringstream cutoffsStream(_sineLevelSplitQueueCutoffs.actualValue);
-  std::string currentCutoff;
-  while (std::getline(cutoffsStream, currentCutoff, ','))
-  {
-    cutoffs.push_back(std::stof(currentCutoff));
-  }
+  auto cutoffs = parseCommaSeparatedList<float>(_sineLevelSplitQueueCutoffs.actualValue);
   cutoffs.push_back(std::numeric_limits<float>::max());
 
   // sanity checks
@@ -3444,12 +3468,7 @@ Lib::vvector<float> Options::sineLevelSplitQueueCutoffs() const
 Lib::vvector<int> Options::positiveLiteralSplitQueueRatios() const
 {
   CALL("Options::positiveLiteralSplitQueueRatios");
-  vstringstream inputRatiosStream(_positiveLiteralSplitQueueRatios.actualValue);
-  Lib::vvector<int> inputRatios;
-  std::string currentRatio;
-  while (std::getline(inputRatiosStream, currentRatio, ',')) {
-    inputRatios.push_back(std::stoi(currentRatio));
-  }
+  auto inputRatios = parseCommaSeparatedList<int>(_positiveLiteralSplitQueueRatios.actualValue);
 
   // sanity checks
   if (inputRatios.size() < 2) {
@@ -3468,13 +3487,7 @@ Lib::vvector<float> Options::positiveLiteralSplitQueueCutoffs() const
 {
   CALL("Options::positiveLiteralSplitQueueCutoffs");
   // initialize cutoffs and add float-max as last value
-  Lib::vvector<float> cutoffs;
-  vstringstream cutoffsStream(_positiveLiteralSplitQueueCutoffs.actualValue);
-  std::string currentCutoff;
-  while (std::getline(cutoffsStream, currentCutoff, ','))
-  {
-    cutoffs.push_back(std::stof(currentCutoff));
-  }
+  auto cutoffs = parseCommaSeparatedList<float>(_positiveLiteralSplitQueueCutoffs.actualValue);
   cutoffs.push_back(std::numeric_limits<float>::max());
 
   // sanity checks

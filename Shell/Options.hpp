@@ -759,6 +759,11 @@ public:
     POLYNOMIAL,
   };
 
+  enum class ArithmeticSimplificationMode : unsigned int {
+    FORCE,
+    CAUTIOUS,
+  };
+
 
   enum class AgeWeightRatioShape {
     CONSTANT,
@@ -2043,6 +2048,7 @@ public:
   bool satFallbackForSMT() const { return _satFallbackForSMT.actualValue; }
   bool smtForGround() const { return _smtForGround.actualValue; }
   TheoryInstSimp theoryInstAndSimp() const { return _theoryInstAndSimp.actualValue; }
+  bool thiTautologyDeletion() const { return _thiTautologyDeletion.actualValue; }
 #endif
   UnificationWithAbstraction unificationWithAbstraction() const { return _unificationWithAbstraction.actualValue; }
   void setUWA(UnificationWithAbstraction value){ _unificationWithAbstraction.actualValue = value; } 
@@ -2281,7 +2287,11 @@ public:
   bool useManualClauseSelection() const { return _manualClauseSelection.actualValue; }
   bool inequalityNormalization() const { return _inequalityNormalization.actualValue; }
   EvaluationMode evaluationMode() const { return _evaluationMode.actualValue; }
+  ArithmeticSimplificationMode arithmeticSimplificationMode() const { return _arithmeticSimplificationMode.actualValue; }
   bool gaussianVariableElimination() const { return _gaussianVariableElimination.actualValue; }
+  bool pushUnaryMinus() const { return _pushUnaryMinus.actualValue; }
+  bool cancellation() const { return _cancellation.actualValue; }
+  bool arithmeticSubtermGeneralizations() const { return _arithmeticSubtermGeneralizations.actualValue; }
 
 private:
     
@@ -2618,6 +2628,7 @@ private:
   BoolOptionValue _satFallbackForSMT;
   BoolOptionValue _smtForGround;
   ChoiceOptionValue<TheoryInstSimp> _theoryInstAndSimp;
+  BoolOptionValue _thiTautologyDeletion;
 #endif
   ChoiceOptionValue<UnificationWithAbstraction> _unificationWithAbstraction; 
   BoolOptionValue _fixUWA;
@@ -2655,6 +2666,7 @@ private:
   ChoiceOptionValue<SymbolPrecedenceBoost> _symbolPrecedenceBoost;
   ChoiceOptionValue<IntroducedSymbolPrecedence> _introducedSymbolPrecedence;
   ChoiceOptionValue<EvaluationMode> _evaluationMode;
+  ChoiceOptionValue<ArithmeticSimplificationMode> _arithmeticSimplificationMode;
   ChoiceOptionValue<KboAdmissibilityCheck> _kboAdmissabilityCheck;
   StringOptionValue _functionWeights;
   StringOptionValue _predicateWeights;
@@ -2699,6 +2711,9 @@ private:
 
   BoolOptionValue _inequalityNormalization;
   BoolOptionValue _gaussianVariableElimination;
+  BoolOptionValue _pushUnaryMinus;
+  BoolOptionValue _cancellation;
+  BoolOptionValue _arithmeticSubtermGeneralizations;
 
 
 }; // class Options
