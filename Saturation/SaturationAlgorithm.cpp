@@ -259,12 +259,18 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
     // cout << "get_num_interop_threads " << at::get_num_interop_threads() << endl;
     // See: https://pytorch.org/docs/stable/notes/cpu_threading_torchscript_inference.html
 
+#if DEBUG_MODEL
+    auto start = env.timer->elapsedMilliseconds();
+#endif
+
     // seems to be making this nicely single-threaded
     at::set_num_threads(1);
     
     _model = torch::jit::load(opt.evalForKarelPath().c_str());
 
-    // cout << "Models loaded" << endl;
+#if DEBUG_MODEL
+    cout << "Models loaded in " << env.timer->elapsedMilliseconds() - start << endl;
+#endif
   }
 
   _activationLimit = opt.activationLimit();
@@ -505,6 +511,7 @@ void SaturationAlgorithm::evaluate(Clause* cl, const char* method_name, const ch
   CALL("SaturationAlgorithm::evaluated");
 
 #if DEBUG_MODEL
+  auto start = env.timer->elapsedMilliseconds();
   cout << "evaluating " << cl->number();
 #endif
 
@@ -527,7 +534,7 @@ void SaturationAlgorithm::evaluate(Clause* cl, const char* method_name, const ch
   }
 
 #if DEBUG_MODEL
-  cout << " and said " << eval << endl;
+  cout << " and said " << eval << " in " << env.timer->elapsedMilliseconds() - start << endl;
 #endif
 
   cl->modelSaid(eval);
