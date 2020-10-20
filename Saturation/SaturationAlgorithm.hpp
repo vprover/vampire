@@ -39,10 +39,11 @@
 #include "Indexing/IndexManager.hpp"
 
 #include "Inferences/InferenceEngine.hpp"
-//#include "Inferences/Instantiation.hpp"
+#include <memory> //TODO include shouldn't be necessary, it is not in master
+#include "Inferences/Instantiation.hpp"
 //#include "Inferences/TheoryInstAndSimp.hpp"
 
-//#include "Saturation/ExtensionalityClauseContainer.hpp"
+#include "Saturation/ExtensionalityClauseContainer.hpp"
 
 #if VDEBUG
 #include<iostream>
@@ -100,18 +101,15 @@ public:
 
   virtual ClauseContainer* getSimplifyingClauseContainer() = 0;
   virtual ClauseContainer* getGeneratingClauseContainer() { return _active; }
-  /*ExtensionalityClauseContainer* getExtensionalityClauseContainer() {
+  ExtensionalityClauseContainer* getExtensionalityClauseContainer() {
     return _extensionality;
-  }*/
+  }
 
   ClauseIterator activeClauses();
-  ClauseIterator passiveClauses();
-  size_t activeClauseCount();
-  size_t passiveClauseCount();
 
   PassiveClauseContainer* getPassiveClauseContainer() { return _passive.get(); }
   IndexManager* getIndexManager() { return _imgr.ptr(); }
-  //AnswerLiteralManager* getAnswerLiteralManager() { return _answerLiteralManager; }
+  AnswerLiteralManager* getAnswerLiteralManager() { return _answerLiteralManager; }
   Ordering& getOrdering() const { return *_ordering; }
   LiteralSelector& getLiteralSelector() const { return *_selector; }
 
@@ -188,9 +186,9 @@ protected:
   ClauseStack _postponedClauseRemovals;
 
   UnprocessedClauseContainer* _unprocessed;
-  std::unique_ptr<PassiveClauseContainer> _passive; _passive;
+  std::unique_ptr<PassiveClauseContainer> _passive;
   ActiveClauseContainer* _active;
-  //ExtensionalityClauseContainer* _extensionality;
+  ExtensionalityClauseContainer* _extensionality;
 
   ScopedPtr<GeneratingInferenceEngine> _generator;
   ScopedPtr<ImmediateSimplificationEngine> _immediateSimplifier;
@@ -212,8 +210,8 @@ protected:
   ConsequenceFinder* _consFinder;
   LabelFinder* _labelFinder;
   SymElOutput* _symEl;
-  //AnswerLiteralManager* _answerLiteralManager;
-  //Instantiation* _instantiation;
+  AnswerLiteralManager* _answerLiteralManager;
+  Instantiation* _instantiation;
 #if VZ3
   //TheoryInstAndSimp* _theoryInstSimp;
 #endif
@@ -237,6 +235,8 @@ protected:
   unsigned _generatedClauseCount;
 
   unsigned _activationLimit;
+private:
+  static ImmediateSimplificationEngine* createISE(Problem& prb, const Options& opt, Ordering& ordering);
 };
 
 
