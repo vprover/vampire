@@ -793,6 +793,20 @@ void InductionClauseIterator::instantiateScheme(Clause* premise, Literal* lit, I
         conds = new FormulaList(cond, conds);
       }
       auto premise = JunctionFormula::generalJunction(Connective::AND,conds);
+
+      // there may be free variables present only in the conditions,
+      // quantify these first so that they won't be skolemized away
+      auto premVarLst = premise->freeVariables();
+      FormulaVarIterator fvit(res);
+      while(fvit.hasNext()) {
+        auto v = fvit.next();
+        if (Formula::VarList::member(v, premVarLst)) {
+          premVarLst = Formula::VarList::remove(v, premVarLst);
+        }
+      }
+      if (premVarLst) {
+        premise=new QuantifiedFormula(FORALL, premVarLst, 0, premise);
+      }
       res = new BinaryFormula(Connective::IMP,premise,res);
     }
     formulas = new FormulaList(Formula::quantify(res), formulas);

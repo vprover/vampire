@@ -348,7 +348,6 @@ bool checkQuasiCommutation(const InductionScheme& sch1, const InductionScheme& s
             for (const auto& indTerm : indTerms) {
               TermList initial;
               TermList goal;
-              auto t2 = rdesc2._step.at(indTerm);
               if (recCall1.count(indTerm)) {
                 ASS(substs.count(indTerm));
                 auto t1 = rdesc1._step.at(indTerm);
@@ -384,6 +383,7 @@ bool checkQuasiCommutation(const InductionScheme& sch1, const InductionScheme& s
 bool createSingleRDescription(const RDescriptionInst& rdesc, const InductionScheme& other,
   const vset<TermList>& combinedInductionTerms, RDescriptionInst& res)
 {
+  // base cases are not considered here
   if (rdesc._recursiveCalls.empty()) {
     return false;
   }
@@ -403,6 +403,7 @@ bool createSingleRDescription(const RDescriptionInst& rdesc, const InductionSche
           FormulaList::push(new AtomicFormula(
             Literal::createEquality(false, indTerm, it2->second, SortHelper::getResultSort(indTerm.term()))), fs);
         } else {
+          // at least one of the rdescriptions must have this induction term
           ASSERTION_VIOLATION;
         }
       } else if (it2 != rdesc2._step.end()) {
@@ -410,6 +411,8 @@ bool createSingleRDescription(const RDescriptionInst& rdesc, const InductionSche
         auto t2 = it2->second;
         RobSubstitution subst;
         if (t2.isVar() || !subst.unify(t1, 0, t2, 1)) {
+          // if they don't unify, the result is true
+          // (e.g. zero != s(X1)) therefore we can skip it
           continue;
         }
         FormulaList::push(new AtomicFormula(
@@ -556,14 +559,12 @@ bool mergeSchemes(const InductionScheme& sch1, const InductionScheme& sch2, Indu
   for (const auto& rdesc : sch1copy._rDescriptionInstances) {
     RDescriptionInst inst;
     if (createSingleRDescription(rdesc, sch2copy, combinedInductionTerms, inst)) {
-      cout << "Single rdesc: " << inst << endl;
       resRdescs.push_back(inst);
     }
   }
   for (const auto& rdesc : sch2copy._rDescriptionInstances) {
     RDescriptionInst inst;
     if (createSingleRDescription(rdesc, sch1copy, combinedInductionTerms, inst)) {
-      cout << "Single rdesc: " << inst << endl;
       resRdescs.push_back(inst);
     }
   }
@@ -1007,8 +1008,8 @@ bool InductionScheme::init(Term* t, vvector<RDescription>& rdescs, const vvector
   while(it.hasNext()) {
     auto arg = it.next();
     auto ind = getInductionTerms(arg);
-    ASS(ind.size() == 1);
-    if (!_inductionTerms.count(ind[0])) {
+    ASS(ind.size() <= 1);
+    if (!ind.empty() && !_inductionTerms.count(ind[0])) {
       _inactive.insert(ind[0]);
     }
   }
