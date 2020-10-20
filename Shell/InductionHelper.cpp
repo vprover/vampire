@@ -500,8 +500,24 @@ bool createMergedRDescription(const RDescriptionInst& rdesc1, const RDescription
 }
 
 void addBaseCase(InductionScheme& sch) {
+  vvector<Formula*> conds;
   for (const auto& rdesc : sch._rDescriptionInstances) {
+    FormulaList* c = nullptr;
+    for (const auto& cond : rdesc._conditions) {
+      FormulaList::push(cond, c);
+    }
+    conds.push_back(new NegatedFormula(JunctionFormula::generalJunction(Connective::AND, c)));
+    for (const auto& kv : rdesc._step) {
+      if (kv.second.isTerm()) {
+        conds.push_back(new AtomicFormula(
+          Literal::createEquality(false, kv.first, kv.second,
+            SortHelper::getResultSort(kv.first.term()))));
+      }
+    }
   }
+  vvector<vmap<TermList,TermList>> emptyRecCalls;
+  vmap<TermList,TermList> emptyStep;
+  sch._rDescriptionInstances.emplace_back(std::move(emptyRecCalls), std::move(emptyStep), std::move(conds));
 }
 
 bool checkInductionTerms(const InductionScheme& sch1, const InductionScheme& sch2, vset<TermList>& combined)
@@ -577,6 +593,7 @@ bool mergeSchemes(const InductionScheme& sch1, const InductionScheme& sch2, Indu
     }
   }
   res.init(std::move(resRdescs));
+  addBaseCase(res);
 
   return true;
 }
