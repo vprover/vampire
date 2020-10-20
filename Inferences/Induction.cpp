@@ -762,52 +762,34 @@ void InductionClauseIterator::instantiateScheme(Clause* premise, Literal* lit, I
       TermOccurrenceReplacement tr(r, activeOccurrenceMap, occurrenceCntMap, var, true);
 
       Formula* f = new AtomicFormula(Literal::complementaryLiteral(tr.transform(lit)));
-
-      // quantify induction hypotheses
-      FormulaVarIterator fvit( f );
-      Formula::VarList* varLst=0;
-      while(fvit.hasNext()) {
-        auto v = fvit.next();
-        if (v >= scheme._maxVar) {
-          Formula::VarList::push(v, varLst);
-        }
-      }
-      if(varLst) {
-        f=new QuantifiedFormula(FORALL, varLst, 0, f);
-      }
       hyp = new FormulaList(f,hyp);
     }
-
+    // add conditions
+    if (!desc._conditions.empty()) {
+      for (const auto& cond : desc._conditions) {
+        hyp = new FormulaList(cond, hyp);
+      }
+    }
     Formula* res = nullptr;
     if (hyp == 0) {
       // base case
       res = right;
     } else {
       auto left = JunctionFormula::generalJunction(Connective::AND,hyp);
-      res = new BinaryFormula(Connective::IMP,left,right);
-    }
-    // add conditions
-    if (!desc._conditions.empty()) {
-      FormulaList* conds = FormulaList::empty();
-      for (const auto& cond : desc._conditions) {
-        conds = new FormulaList(cond, conds);
-      }
-      auto premise = JunctionFormula::generalJunction(Connective::AND,conds);
-
-      // there may be free variables present only in the conditions,
-      // quantify these first so that they won't be skolemized away
-      auto premVarLst = premise->freeVariables();
-      FormulaVarIterator fvit(res);
+      // there may be free variables present only in the conditions or
+      // hypoheses, quantify these first so that they won't be skolemized away
+      auto leftVarLst = left->freeVariables();
+      FormulaVarIterator fvit(right);
       while(fvit.hasNext()) {
         auto v = fvit.next();
-        if (Formula::VarList::member(v, premVarLst)) {
-          premVarLst = Formula::VarList::remove(v, premVarLst);
+        if (Formula::VarList::member(v, leftVarLst)) {
+          leftVarLst = Formula::VarList::remove(v, leftVarLst);
         }
       }
-      if (premVarLst) {
-        premise=new QuantifiedFormula(FORALL, premVarLst, 0, premise);
+      if (leftVarLst) {
+        left = new QuantifiedFormula(FORALL, leftVarLst, 0, left);
       }
-      res = new BinaryFormula(Connective::IMP,premise,res);
+      res = new BinaryFormula(Connective::IMP,left,right);
     }
     formulas = new FormulaList(Formula::quantify(res), formulas);
   }
