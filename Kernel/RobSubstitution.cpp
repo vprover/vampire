@@ -714,15 +714,6 @@ TermList RobSubstitution::apply(TermList trm, int index) const
     Term* t;
     if(ts.term.isVSpecialVar()){
       t = _funcSubtermMap->get1(ts.term.var());
-        /*TermList found;
-        VarSpec v1(6, 2);
-        VarSpec v2(6, 3);
-        if(known.find(v1, found)){
-          cout << "X6/2 " + found.toString() << endl;
-        }
-        if(known.find(v2, found)){
-          cout << "X6/3 " + found.toString() << endl;          
-        }*/
     } else {
       t = ts.term.term();
     }
