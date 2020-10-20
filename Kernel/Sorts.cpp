@@ -41,7 +41,7 @@ using namespace Kernel;
 Sorts::Sorts()
 {
   CALL("Sorts::Sorts");
-    
+  _arraySorts = new DHSet<TermList>();
  //_hasSort = false;
 } // Sorts::Sorts
 
@@ -52,12 +52,41 @@ Sorts::Sorts()
 Sorts::~Sorts()
 {
   CALL("Sorts::~Sorts");
-
+  delete _arraySorts;
   /*while(_sorts.isNonEmpty()) {
     delete _sorts.pop();
   }*/
 } // Sorts::~Sorts
 
+
+bool Sorts::addSort(TermList sort)
+{ 
+  CALL("Sorts::addSort");
+ 
+  if(_termListsToUnsigned.find(sort)){
+    return false;
+  }
+  
+  _termListsToUnsigned.insert(sort, _sorts.size());
+  _sorts.push(sort);
+}
+
+
+unsigned Sorts::getSortNum(TermList sort)
+{ 
+  CALL("Sorts::getSortNum");
+
+  ASS(_termListsToUnsigned.find(sort))
+  return _termListsToUnsigned.get(sort);
+}
+
+TermList Sorts::getSortTerm(unsigned sort)
+{
+  CALL("Sorts::getSortTerm");
+  
+  ASS(sort < _sorts.size())
+  return _sorts[sort];
+}
 
 /**
  * Pre-initialise an OperatorKey.

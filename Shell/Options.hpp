@@ -60,6 +60,7 @@
 #include "Lib/Allocator.hpp"
 #include "Lib/XML.hpp"
 #include "Lib/Comparison.hpp"
+#include "Lib/STL.hpp"
 
 #include "Property.hpp"
 
@@ -743,7 +744,18 @@ public:
     EXISTS_SYM = 4,
     POSITION = 5
   };
-    
+
+  enum class AgeWeightRatioShape {
+    CONSTANT,
+    DECAY,
+    CONVERGE
+  };
+
+  enum class KboAdmissibilityCheck : unsigned int {
+    ERROR = 0,
+    WARNING = 1,
+  };
+
   enum class FunctionExtensionality : unsigned int {
     OFF = 0,
     AXIOM = 1,
@@ -1855,6 +1867,7 @@ public:
   Statistics statistics() const { return _statistics.actualValue; }
   void setStatistics(Statistics newVal) { _statistics.actualValue=newVal; }
   Proof proof() const { return _proof.actualValue; }
+  bool minimizeSatProofs() const { return _minimizeSatProofs.actualValue; }
   ProofExtra proofExtra() const { return _proofExtra.actualValue; }
   bool proofChecking() const { return _proofChecking.actualValue; }
   int naming() const { return _naming.actualValue; }
@@ -1904,6 +1917,7 @@ public:
   bool showBlocked() const { return showAll() || _showBlocked.actualValue; }
   bool showDefinitions() const { return showAll() || _showDefinitions.actualValue; }
   bool showNew() const { return showAll() || _showNew.actualValue; }
+  bool sineToAge() const { return _sineToAge.actualValue; }
   bool showSplitting() const { return showAll() || _showSplitting.actualValue; }
   bool showNewPropositional() const { return showAll() || _showNewPropositional.actualValue; }
   bool showPassive() const { return showAll() || _showPassive.actualValue; }
@@ -1914,6 +1928,7 @@ public:
   bool showTheoryAxioms() const { return showAll() || _showTheoryAxioms.actualValue; }
   bool showFOOL() const { return showAll() || _showFOOL.actualValue; }
   bool showFMBsortInfo() const { return showAll() || _showFMBsortInfo.actualValue; }
+  bool showInduction() const { return showAll() || _showInduction.actualValue; }
 #if VZ3
   bool showZ3() const { return showAll() || _showZ3.actualValue; }
 #endif
@@ -1997,6 +2012,25 @@ public:
   void setAgeRatio(int v){ _ageWeightRatio.actualValue = v; }
   int weightRatio() const { return _ageWeightRatio.otherValue; }
   void setWeightRatio(int v){ _ageWeightRatio.otherValue = v; }
+  bool useTheorySplitQueues() const { return _useTheorySplitQueues.actualValue; }
+  Lib::vvector<int> theorySplitQueueRatios() const;
+  Lib::vvector<float> theorySplitQueueCutoffs() const;
+  int theorySplitQueueExpectedRatioDenom() const { return _theorySplitQueueExpectedRatioDenom.actualValue; }
+  bool theorySplitQueueLayeredArrangement() const { return _theorySplitQueueLayeredArrangement.actualValue; }
+  bool useAvatarSplitQueues() const { return _useAvatarSplitQueues.actualValue; }
+  Lib::vvector<int> avatarSplitQueueRatios() const;
+  Lib::vvector<float> avatarSplitQueueCutoffs() const;
+  bool avatarSplitQueueLayeredArrangement() const { return _avatarSplitQueueLayeredArrangement.actualValue; }
+  bool useSineLevelSplitQueues() const { return _useSineLevelSplitQueues.actualValue; }
+  Lib::vvector<int> sineLevelSplitQueueRatios() const;
+  Lib::vvector<float> sineLevelSplitQueueCutoffs() const;
+  bool sineLevelSplitQueueLayeredArrangement() const { return _sineLevelSplitQueueLayeredArrangement.actualValue; }
+  bool usePositiveLiteralSplitQueues() const { return _usePositiveLiteralSplitQueues.actualValue; }
+  Lib::vvector<int> positiveLiteralSplitQueueRatios() const;
+  Lib::vvector<float> positiveLiteralSplitQueueCutoffs() const;
+  bool positiveLiteralSplitQueueLayeredArrangement() const { return _positiveLiteralSplitQueueLayeredArrangement.actualValue; }
+  AgeWeightRatioShape ageWeightRatioShape() const { return _ageWeightRatioShape.actualValue; }
+  int ageWeightRatioShapeFrequency() const { return _ageWeightRatioShapeFrequency.actualValue; }
   bool literalMaximalityAftercheck() const { return _literalMaximalityAftercheck.actualValue; }
   bool superpositionFromVariables() const { return _superpositionFromVariables.actualValue; }
   EqualityProxy equalityProxy() const { return _equalityProxy.actualValue; }
@@ -2065,6 +2099,9 @@ public:
   unsigned maxInductionDepth() const { return _maxInductionDepth.actualValue; }
   bool inductionNegOnly() const { return _inductionNegOnly.actualValue; }
   bool inductionUnitOnly() const { return _inductionUnitOnly.actualValue; }
+  bool inductionGen() const { return _inductionGen.actualValue; }
+  unsigned maxInductionGenSubsetSize() const { return _maxInductionGenSubsetSize.actualValue; }
+  bool inductionOnComplexTerms() const {return _inductionOnComplexTerms.actualValue;}
 
   float instGenBigRestartRatio() const { return _instGenBigRestartRatio.actualValue; }
   bool instGenPassiveReactivation() const { return _instGenPassiveReactivation.actualValue; }
@@ -2099,9 +2136,9 @@ public:
   int getWhileNumber(){return _whileNumber.actualValue;}
   int getFunctionNumber(){return _functionNumber.actualValue;}
 
-  int nonGoalWeightCoeffitientNumerator() const { return _nonGoalWeightCoefficient.numerator; }
-  int nonGoalWeightCoeffitientDenominator() const { return _nonGoalWeightCoefficient.denominator; }
-
+  int nongoalWeightCoefficientNumerator() const { return _nonGoalWeightCoefficient.numerator; }
+  int nongoalWeightCoefficientDenominator() const { return _nonGoalWeightCoefficient.denominator; }
+      
   bool splitAtActivation() const{ return _splitAtActivation.actualValue; }
   SplittingNonsplittableComponents splittingNonsplittableComponents() const { return _splittingNonsplittableComponents.actualValue; }
   SplittingAddComplementary splittingAddComplementary() const { return _splittingAddComplementary.actualValue; }
@@ -2137,6 +2174,11 @@ public:
   bool newCNF() const { return _newCNF.actualValue; }
   int getIteInliningThreshold() const { return _iteInliningThreshold.actualValue; }
   bool getIteInlineLet() const { return _inlineLet.actualValue; }
+  
+  bool useManualClauseSelection() const { return _manualClauseSelection.actualValue; }
+  bool inequalityNormalization() const { return _inequalityNormalization.actualValue; }
+  bool gaussianVariableElimination() const { return _gaussianVariableElimination.actualValue; }
+
   bool addCombAxioms() const { return _addCombAxioms.actualValue; }
   bool addProxyAxioms() const { return _addProxyAxioms.actualValue; }
   bool combinatorySup() const { return _combinatorySuperposition.actualValue; }
@@ -2266,6 +2308,25 @@ private:
   BoolOptionValue _encode;
 
   RatioOptionValue _ageWeightRatio;
+  ChoiceOptionValue<AgeWeightRatioShape> _ageWeightRatioShape;
+  UnsignedOptionValue _ageWeightRatioShapeFrequency;
+  BoolOptionValue _useTheorySplitQueues;
+  StringOptionValue _theorySplitQueueRatios;
+  StringOptionValue _theorySplitQueueCutoffs;
+  IntOptionValue _theorySplitQueueExpectedRatioDenom;
+  BoolOptionValue _theorySplitQueueLayeredArrangement;
+  BoolOptionValue _useAvatarSplitQueues;
+  StringOptionValue _avatarSplitQueueRatios;
+  StringOptionValue _avatarSplitQueueCutoffs;
+  BoolOptionValue _avatarSplitQueueLayeredArrangement;
+  BoolOptionValue _useSineLevelSplitQueues;
+  StringOptionValue _sineLevelSplitQueueRatios;
+  StringOptionValue _sineLevelSplitQueueCutoffs;
+  BoolOptionValue _sineLevelSplitQueueLayeredArrangement;
+  BoolOptionValue _usePositiveLiteralSplitQueues;
+  StringOptionValue _positiveLiteralSplitQueueRatios;
+  StringOptionValue _positiveLiteralSplitQueueCutoffs;
+  BoolOptionValue _positiveLiteralSplitQueueLayeredArrangement;
   BoolOptionValue _literalMaximalityAftercheck;
   BoolOptionValue _arityCheck;
   
@@ -2372,6 +2433,9 @@ private:
   UnsignedOptionValue _maxInductionDepth;
   BoolOptionValue _inductionNegOnly;
   BoolOptionValue _inductionUnitOnly;
+  BoolOptionValue _inductionGen;
+  UnsignedOptionValue _maxInductionGenSubsetSize;
+  BoolOptionValue _inductionOnComplexTerms;
 
   StringOptionValue _latexOutput;
   BoolOptionValue _latexUseDefaultSymbols;
@@ -2407,6 +2471,7 @@ private:
   BoolOptionValue _printClausifierPremises;
   StringOptionValue _problemName;
   ChoiceOptionValue<Proof> _proof;
+  BoolOptionValue _minimizeSatProofs;
   ChoiceOptionValue<ProofExtra> _proofExtra;
   BoolOptionValue _proofChecking;
   
@@ -2441,6 +2506,7 @@ private:
   BoolOptionValue _showDefinitions;
   ChoiceOptionValue<InterpolantMode> _showInterpolant;
   BoolOptionValue _showNew;
+  BoolOptionValue _sineToAge;
   BoolOptionValue _showSplitting;
   BoolOptionValue _showNewPropositional;
   BoolOptionValue _showNonconstantSkolemFunctionTrace;
@@ -2457,6 +2523,7 @@ private:
   BoolOptionValue _showTheoryAxioms;
   BoolOptionValue _showFOOL;
   BoolOptionValue _showFMBsortInfo;
+  BoolOptionValue _showInduction;
 #if VZ3
   BoolOptionValue _showZ3;
   BoolOptionValue _z3UnsatCores;
@@ -2531,6 +2598,11 @@ private:
   BoolOptionValue _newCNF;
   IntOptionValue _iteInliningThreshold;
   BoolOptionValue _inlineLet;
+
+  BoolOptionValue _manualClauseSelection;
+  BoolOptionValue _inequalityNormalization;
+  BoolOptionValue _gaussianVariableElimination;
+
   BoolOptionValue _addCombAxioms;
   BoolOptionValue _addProxyAxioms;
   BoolOptionValue _combinatorySuperposition;

@@ -139,7 +139,7 @@ bool Normalisation::lessThan (Unit* u1, Unit* u2)
 
   // the below code should be uncommented, it gives the best behavior
   // on the average
-  switch (compare((int)u1->inputType(),(int)u2->inputType())) {
+  switch (compare(static_cast<int>(u1->inputType()),static_cast<int>(u2->inputType()))) {
   case LESS:
     return false;
   case EQUAL:
@@ -405,7 +405,7 @@ Comparison Normalisation::compare (Literal* l1, Literal* l2)
  */
 Comparison Normalisation::compare(TermList ts1, TermList ts2)
 {
-  CALL("Normalisation::compare(TermList*...)");
+  CALL("Normalisation::compare(TermList...)");
 
   // both non-empty
   if (ts1.isVar() && !ts2.isVar()) {
@@ -469,7 +469,7 @@ Comparison Normalisation::compare(Term* t1, Term* t2)
       case Term::SF_FORMULA:
         return compare(t1->getSpecialData()->getFormula(), t2->getSpecialData()->getFormula());
 
-      /*case Term::SF_ITE:
+      case Term::SF_ITE:
         comp = compare(t1->getSpecialData()->getCondition(), t2->getSpecialData()->getCondition());
         if (comp != EQUAL) {
           return comp;
@@ -484,7 +484,7 @@ Comparison Normalisation::compare(Term* t1, Term* t2)
         }
         TermList b1 = t1->getSpecialData()->getBinding();
         TermList b2 = t2->getSpecialData()->getBinding();
-        comp = compare(&b1, &b2);
+        comp = compare(b1, b2);
         if (comp != EQUAL) {
           return comp;
         }
@@ -498,7 +498,7 @@ Comparison Normalisation::compare(Term* t1, Term* t2)
         }
         TermList b1 = t1->getSpecialData()->getBinding();
         TermList b2 = t2->getSpecialData()->getBinding();
-        comp = compare(&b1, &b2);
+        comp = compare(b1, b2);
         if (comp != EQUAL) {
           return comp;
         }
@@ -509,7 +509,7 @@ Comparison Normalisation::compare(Term* t1, Term* t2)
         if (comp != EQUAL) {
           return comp;
         }
-      }*/
+      }
 
       case Term::SF_LAMBDA: {
         comp = compare((int) Formula::VarList::length(t1->getSpecialData()->getLambdaVars()),
@@ -520,18 +520,15 @@ Comparison Normalisation::compare(Term* t1, Term* t2)
         TermList b1 = t1->getSpecialData()->getLambdaExp();
         TermList b2 = t2->getSpecialData()->getLambdaExp();
         comp = compare(b1, b2);
-        return comp;
+        if (comp != EQUAL) {
+          return comp;
+        }     
       }
 
       default:
         ASSERTION_VIOLATION;
     }
-  }/* else {
-    comp = compare((int)t1->weight(),(int)t2->weight());
-    if (comp != EQUAL) {
-      return comp;
-    }
-  }*/
+  }
 
   if (t1->shared() && t2->shared()) {
     comp = compare((int)t1->weight(),(int)t2->weight());

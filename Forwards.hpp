@@ -322,7 +322,6 @@ typedef Lib::SmartPtr<PassiveClauseContainer> PassiveClauseContainerSP;
 
 class ActiveClauseContainer;
 
-class Limits;
 class Splitter;
 class ConsequenceFinder;
 class LabelFinder;

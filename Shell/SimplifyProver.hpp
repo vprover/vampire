@@ -204,9 +204,9 @@ private:
    * remove this member variable to turn equal sort assumptions
    * into compiler errors.
    */
-  unsigned _defaultSort;
+  TermList _defaultSort;
   /** Sort of number constants added by addNumber() function */
-  unsigned _numberSort;
+  TermList _numberSort;
 
   /** The list of units collected so far */
   UnitList* _units;

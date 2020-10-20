@@ -227,7 +227,7 @@ void SymCounter::count(Term* term, int polarity, int add)
         case Term::SF_FORMULA:
           count(sd->getFormula(), polarity, add);
               break;
-        /*case Term::SF_ITE:
+        case Term::SF_ITE:
           count(sd->getCondition(), 0, add);
               break;
         case Term::SF_LET:
@@ -241,7 +241,7 @@ void SymCounter::count(Term* term, int polarity, int add)
         case Term::SF_TUPLE: {
           count(sd->getTupleTerm(), 0, add);
           break;
-        }*/
+        }
         case Term::SF_LAMBDA: {
           TermList lambdaExp = sd->getLambdaExp();
           if(lambdaExp.isTerm()){

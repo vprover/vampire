@@ -78,6 +78,19 @@ public:
 
   static bool areSortsValid(Clause* cl);
   static bool areImmediateSortsValid(Term* t);
+  static bool isTupleSort(TermList sort);
+  static bool isArraySort(TermList sort);
+  static bool isBoolSort(TermList sort);
+  static TermList getIndexSort(TermList arraySort);
+  static TermList getInnerSort(TermList arraySort);
+  static bool isNotDefaultSort(unsigned s);
+  //convenience functions
+  static unsigned sortNum(TermList sort){
+    return env.sorts->getSortNum(sort);
+  }
+  static TermList sortTerm(unsigned sort){
+    return env.sorts->getSortTerm(sort);
+  }
 
   static OperatorType* getType(Term* t);
 

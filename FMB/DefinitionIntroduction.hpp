@@ -107,8 +107,7 @@ namespace FMB {
       }
 
       if(anyUpdated){
-        Clause* cl = Clause::fromStack(lits,c->inputType(),
-                     new Inference1(Inference::FMB_DEF_INTRO,c));
+        Clause* cl = Clause::fromStack(lits,NonspecificInference1(InferenceRule::FMB_DEF_INTRO,c));
          _processed.push(cl);
       }else{
          _processed.push(c);
@@ -132,7 +131,7 @@ namespace FMB {
         if(t->arity()==0) continue;
         if(!_introduced.find(t)){
           unsigned newConstant = env.signature->addFreshFunction(0,"fmbdef");
-          unsigned srt = SortHelper::getResultSort(t);
+          TermList srt = SortHelper::getResultSort(t);
           env.signature->getFunction(newConstant)->setType(OperatorType::getConstantsType(srt));
           Term* c = Term::createConstant(newConstant); 
           _introduced.insert(t,c);
@@ -155,13 +154,12 @@ namespace FMB {
           if(updated){
             t = Term::create(t,args.begin());
           }
-          unsigned sort = SortHelper::getResultSort(t); //TODO set sort of c as this
+          TermList sort = SortHelper::getResultSort(t); //TODO set sort of c as this
           Literal* l = Literal::createEquality(true,TermList(t),TermList(c),sort);
           static Stack<Literal*> lstack;
           lstack.reset();
           lstack.push(l);
-          Clause* def = Clause::fromStack(lstack,from->inputType(),
-                    new Inference1(Inference::FMB_DEF_INTRO,from));
+          Clause* def = Clause::fromStack(lstack,NonspecificInference1(InferenceRule::FMB_DEF_INTRO,from));
 
           //cout << "creating def " << def->toString() << endl;
           _processed.push(def); 

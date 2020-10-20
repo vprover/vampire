@@ -54,7 +54,7 @@
 
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
-//#include "Shell/EqualityProxy.hpp"
+#include "Shell/EqualityProxy.hpp"
 
 #include "Kernel/Grounder.hpp"
 
@@ -227,7 +227,7 @@ private:
    * most of indexing is done "modulo orientation of equality",
    * which is undesirable for InstGen.
    */
-  //EqualityProxy* _equalityProxy;
+  EqualityProxy* _equalityProxy;
 };
 
 }

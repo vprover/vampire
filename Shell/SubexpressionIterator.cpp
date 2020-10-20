@@ -135,27 +135,27 @@ namespace Shell {
               _subexpressions.push(Expression(sd->getFormula(), polarity));
               break;
 
-          /*  case Term::SF_ITE: */
+            case Term::SF_ITE: 
               /**
                * Regardless of the polarity of the whole if-then-else expression,
                * the polarity of the condition is always 0. This is because you
                * can always see "$ite(C, A, B)" as "(C => A) && (~C => B)"
                */
-             /* _subexpressions.push(Expression(sd->getCondition(), 0));
+              _subexpressions.push(Expression(sd->getCondition(), 0));
               _subexpressions.push(Expression(*term->nthArgument(0), polarity));
               _subexpressions.push(Expression(*term->nthArgument(1), polarity));
               break;
 
             case Term::SF_LET:
-            case Term::SF_LET_TUPLE: */
+            case Term::SF_LET_TUPLE: 
               /**
                * The polarity of the body of let-bindings is 0.
                * An expression "$let(f := A, ...)", where A is a formula,
                * is semantically equivalent to f <=> A && ...
                */
-            /*  _subexpressions.push(Expression(sd->getBinding(), 0));
+              _subexpressions.push(Expression(sd->getBinding(), 0));
               _subexpressions.push(Expression(*term->nthArgument(0), polarity));
-              break;*/
+              break;
 
             case Term::SF_LAMBDA:
 			       _subexpressions.push(Expression(sd->getLambdaExp(), polarity));

@@ -77,7 +77,7 @@ public:
 
     int csId;
     unsigned premCnt;
-    Inference::Rule rule;
+    InferenceRule rule;
     Unit* premises[1];
   };
 
@@ -88,7 +88,7 @@ public:
   void outputProof(ostream& out, Unit* refutation);
   void outputProof(ostream& out, UnitList* units);
 
-  UnitIterator getParents(Unit* us, Inference::Rule& rule);
+  UnitIterator getParents(Unit* us, InferenceRule& rule);
   UnitIterator getParents(Unit* us);
 
   vstring getUnitIdStr(Unit* cs);

@@ -98,7 +98,7 @@ Property::Property()
     _allQuantifiersEssentiallyExistential(true),
     _smtlibLogic(SMTLIBLogic::SMT_UNDEFINED)
 {
-  //_interpretationPresence.init(Theory::instance()->numberOfFixedInterpretations(), false);
+  _interpretationPresence.init(Theory::instance()->numberOfFixedInterpretations(), false);
   env.property = this;
   _symbolsInFormula = new DHSet<int>();
 } // Property::Property
@@ -306,7 +306,8 @@ void Property::scan(Clause* clause)
       }
     }
 
-    bool goal = (clause->inputType()==Unit::CONJECTURE || clause->inputType()==Unit::NEGATED_CONJECTURE);
+    bool goal = (clause->inputType()==UnitInputType::CONJECTURE ||
+        clause->inputType()==UnitInputType::NEGATED_CONJECTURE);   
     bool unit = (clause->length() == 1);
 
     // 1 for context polarity, only used in formulas
@@ -333,7 +334,7 @@ void Property::scan(Clause* clause)
     _pureEquationalClauses ++;
   }
 
-  if (clause->inputType() == Unit::AXIOM) {
+  if (clause->inputType() == UnitInputType::AXIOM) {
     _axiomClauses ++;
     if ( literals == 1) {
       _unitAxioms ++;
@@ -374,7 +375,7 @@ void Property::scan(Clause* clause)
 
   if (_variablesInThisClause > 0) {
     _allClausesGround = false;
-    if(clause->inference()->rule()!=Inference::THEORY && clause->inference()->rule()!=Inference::FOOL_AXIOM){
+    if(!clause->isTheoryAxiom()){
       _allNonTheoryClausesGround = false;
     }
   }
@@ -392,7 +393,7 @@ void Property::scan(FormulaUnit* unit)
   CALL("Property::scan(const FormulaUnit*)");
 
 
-  if (unit->inputType() == Unit::AXIOM) {
+  if (unit->inputType() == UnitInputType::AXIOM) {
     _axiomFormulas ++;
   }
   else {
@@ -510,10 +511,11 @@ void Property::scanSort(TermList sort)
 {
   CALL("Property::scanSort");
 
- /* if(!_usesSort.get(sort)){
+  unsigned sortU = SortHelper::sortNum(sort);
+  if(!_usesSort.get(sortU)){
     _sortsUsed++;
-    _usesSort[sort]=true;
-  } */
+    _usesSort[sortU]=true;
+  } 
 
   if (sort==Term::defaultSort()) {
     return;
@@ -521,54 +523,50 @@ void Property::scanSort(TermList sort)
   _hasNonDefaultSorts = true;
   env.statistics->hasTypes=true;
 
-  /*if(sort >= Sorts::FIRST_USER_SORT){
-    if(env.sorts->isOfStructuredSort(sort,Sorts::StructuredSort::ARRAY)){
-      // an array sort is infinite, if the index or value sort is infinite
-      // we rely on the recursive calls setting appropriate flags
-      unsigned idx = env.sorts->getArraySort(sort)->getIndexSort();
-      scanSort(idx);
-      unsigned inner = env.sorts->getArraySort(sort)->getInnerSort();
-      scanSort(inner);
+  if(SortHelper::isArraySort(sort)){
+    // an array sort is infinite, if the index or value sort is infinite
+    // we rely on the recursive calls setting appropriate flags
+    TermList idx = *sort.term()->nthArgument(0);
+    scanSort(idx);
+    TermList inner = *sort.term()->nthArgument(1);
+    scanSort(inner);
 
-      addProp(PR_HAS_ARRAYS);
+    addProp(PR_HAS_ARRAYS);
+    return;
+  }
+  if (env.signature->isTermAlgebraSort(sort)) {
+    TermAlgebra* ta = env.signature->getTermAlgebraOfSort(sort);
+    if (!ta->finiteDomain()) {
+      _onlyFiniteDomainDatatypes = false;
     }
-    if (env.signature->isTermAlgebraSort(sort)) {
-      TermAlgebra* ta = env.signature->getTermAlgebraOfSort(sort);
-      if (!ta->finiteDomain()) {
-        _onlyFiniteDomainDatatypes = false;
-      }
-      if (ta->infiniteDomain()) {
-        _knownInfiniteDomain = true;
-      }
-      if (ta->allowsCyclicTerms()) {
-        addProp(PR_HAS_CDT_CONSTRUCTORS); // co-algebraic data type
-      } else {
-        addProp(PR_HAS_DT_CONSTRUCTORS); // algebraic data type
-      }
+    if (ta->infiniteDomain()) {
+      _knownInfiniteDomain = true;
+    }
+    if (ta->allowsCyclicTerms()) {
+      addProp(PR_HAS_CDT_CONSTRUCTORS); // co-algebraic data type
+    } else {
+      addProp(PR_HAS_DT_CONSTRUCTORS); // algebraic data type
     }
     return;
-  } */
+  }
   
   TermList resultSort = ApplicativeHelper::getResultSort(sort);
   if(resultSort == Term::boolSort()){
     _hasFOOL = true;
   }
 
-  /*switch(sort) {
-  case Term::intSort():
+  if(sort == Term::intSort()){
     addProp(PR_HAS_INTEGERS);
-    break;
-  case Term::rationalSort():
+  } else
+  if(sort == Term::rationalSort()){
     addProp(PR_HAS_RATS);
-    break;
-  case Term::realSort():
+  } else
+  if (sort == Term::realSort()){
     addProp(PR_HAS_REALS);
-    break;
-  case Term::boolSort():
-    addProp(PR_HAS_BOOLEAN_VARIABLES);
-    _hasFOOL = true;
-    break;
-  }*/
+  } else 
+  if (sort == Term::boolSort()){
+    addProp(PR_HAS_BOOLEAN_VARIABLES);    
+  }
 }
 
 /**
@@ -660,14 +658,14 @@ void Property::scan(TermList ts,bool unit,bool goal)
   if (t->isSpecial()) {
     //_hasFOOL = true;
     switch(t->functor()) {
-      /*case Term::SF_ITE:
+      case Term::SF_ITE:
         addProp(PR_HAS_ITE);
         break;
 
       case Term::SF_LET:
       case Term::SF_LET_TUPLE:
         addProp(PR_HAS_LET_IN);
-        break;*/
+        break;
       case Term::SF_FORMULA:
         _hasFOOL = true;
         break;
@@ -725,7 +723,7 @@ void Property::scan(TermList ts,bool unit,bool goal)
   }
 }
 
-/*void Property::scanForInterpreted(Term* t)
+void Property::scanForInterpreted(Term* t)
 {
   CALL("Property::scanInterpretation");
 
@@ -763,38 +761,23 @@ void Property::scan(TermList ts,bool unit,bool goal)
     return;
   }
 
-  unsigned sort = Theory::getOperationSort(itp);
+  TermList sort = Theory::getOperationSort(itp);
   if(Theory::isInequality(itp)){
-    switch(sort){
-      case Sorts::SRT_INTEGER : addProp(PR_INTEGER_COMPARISON);
-        break;
-      case Sorts::SRT_RATIONAL : addProp(PR_RAT_COMPARISON);
-        break;
-      case Sorts::SRT_REAL : addProp(PR_REAL_COMPARISON);
-        break;
-    }
+    if(sort == Term::intSort()){ addProp(PR_INTEGER_COMPARISON); }
+    else if(sort == Term::rationalSort()){ addProp(PR_RAT_COMPARISON); }
+    else if(sort == Term::realSort()){ addProp(PR_REAL_COMPARISON); }
   }
   else if(Theory::isLinearOperation(itp)){
-    switch(sort){
-      case Sorts::SRT_INTEGER : addProp(PR_INTEGER_LINEAR);
-        break;
-      case Sorts::SRT_RATIONAL : addProp(PR_RAT_LINEAR);
-        break;
-      case Sorts::SRT_REAL : addProp(PR_REAL_LINEAR);
-        break;
-    }
+    if(sort == Term::intSort()){ addProp(PR_INTEGER_LINEAR); }
+    else if(sort == Term::rationalSort()){ addProp(PR_RAT_LINEAR); }
+    else if(sort == Term::realSort()){ addProp(PR_REAL_LINEAR); }
   }
   else if(Theory::isNonLinearOperation(itp)){
-    switch(sort){
-      case Sorts::SRT_INTEGER : addProp(PR_INTEGER_NONLINEAR);
-        break;
-      case Sorts::SRT_RATIONAL : addProp(PR_RAT_NONLINEAR);
-        break;
-      case Sorts::SRT_REAL : addProp(PR_REAL_NONLINEAR);
-        break;
-    }
+    if(sort == Term::intSort()){ addProp(PR_INTEGER_NONLINEAR); }
+    else if(sort == Term::rationalSort()){ addProp(PR_RAT_NONLINEAR); }
+    else if(sort == Term::realSort()){ addProp(PR_REAL_NONLINEAR); }
   }
-}*/
+}
 
 /**
  * Return the string representation of the CASC category.

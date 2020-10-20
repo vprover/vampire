@@ -244,15 +244,17 @@ public:
     union {
       struct {
         Formula * condition;
-        unsigned sort;
+        TermList sort;
       } _iteData;
       struct {
         unsigned functor;
         IntList* variables;
 	//The size_t stands for TermList expression which cannot be here
 	//since C++ doesnot allow objects with constructor inside a union
+  //Above comment doesn't hold in C++11
+  //https://www.stroustrup.com/C++11FAQ.html#unions
         size_t binding;
-        unsigned sort;
+        TermList sort;
       } _letData;
       struct {
         Formula * formula;
@@ -264,10 +266,10 @@ public:
         unsigned functor;
         IntList* symbols;
         size_t binding;
-        unsigned sort;
+        TermList sort;
       } _letTupleData;
       struct {
-        TermList lambdaExp; //review this in light of Evgeny's comment above. Can TermList be used here?
+        TermList lambdaExp;
         IntList* _vars;
         SList* _sorts;  
         TermList sort; 
@@ -299,12 +301,12 @@ public:
     TermList getLambdaExpSort() const { ASS_EQ(getType(), SF_LAMBDA); return _lambdaData.expSort; }
     TermList getSort() const {
       switch (getType()) {
-        /*case SF_ITE:
+        case SF_ITE:
           return _iteData.sort;
         case SF_LET:
           return _letData.sort;
         case SF_LET_TUPLE:
-          return _letTupleData.sort;*/
+          return _letTupleData.sort;
         case SF_LAMBDA:
           return _lambdaData.sort;
         default:
@@ -328,13 +330,13 @@ public:
   static Term* createConstant(const vstring& name);
   /** Create a new constant and insert in into the sharing structure */
   static Term* createConstant(unsigned symbolNumber) { return create(symbolNumber,0,0); }
-  static Term* createITE(Formula * condition, TermList thenBranch, TermList elseBranch, unsigned branchSort);
-  static Term* createLet(unsigned functor, IntList* variables, TermList binding, TermList body, unsigned bodySort);
+  static Term* createITE(Formula * condition, TermList thenBranch, TermList elseBranch, TermList branchSort);
+  static Term* createLet(unsigned functor, IntList* variables, TermList binding, TermList body, TermList bodySort);
   static Term* createLambda(TermList lambdaExp, IntList* vars, SList* sorts, TermList expSort);
-  //static Term* createTupleLet(unsigned functor, IntList* symbols, TermList binding, TermList body, unsigned bodySort);
+  static Term* createTupleLet(unsigned functor, IntList* symbols, TermList binding, TermList body, TermList bodySort);
   static Term* createFormula(Formula* formula);
-  //static Term* createTuple(unsigned arity, unsigned* sorts, TermList* elements);
-  //static Term* createTuple(Term* tupleTerm);
+  static Term* createTuple(unsigned arity, TermList* sorts, TermList* elements);
+  static Term* createTuple(Term* tupleTerm);
   static Term* create1(unsigned fn, TermList arg);
   static Term* create2(unsigned fn, TermList arg1, TermList arg2);
 
@@ -345,6 +347,8 @@ public:
   static TermList arrowSort(TermStack& domSorts, TermList range);
   static TermList arrowSort(TermList s1, TermList s2);
   static TermList arrowSort(TermList s1, TermList s2, TermList s3);
+  static TermList arraySort(TermList indexSort, TermList innerSort);
+  static TermList tupleSort(unsigned arity, TermList* sorts);
   static TermList defaultSort();
   static TermList superSort();
   static TermList boolSort();
@@ -561,6 +565,8 @@ public:
 
   bool containsSubterm(TermList v);
   bool containsAllVariablesOf(Term* t);
+  size_t countSubtermOccurrences(TermList subterm);
+
   /** Return true if term has no non-constant functions as subterms */
   bool isShallow() const;
 
@@ -912,6 +918,11 @@ private:
   static Literal* createVariableEquality(bool polarity, TermList arg1, TermList arg2, TermList variableSort);
 
 }; // class Literal
+
+// TODO used in some proofExtra output
+//      find a better place for this?
+bool positionIn(TermList& subterm,TermList* term, vstring& position);
+bool positionIn(TermList& subterm,Term* term, vstring& position);
 
 struct TermListHash {
   static unsigned hash(TermList t) {

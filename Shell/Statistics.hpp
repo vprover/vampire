@@ -63,6 +63,7 @@ public:
   Statistics();
 
   void print(ostream& out);
+  void explainRefutationNotFound(ostream& out);
 
   // Input
   /** number of input clauses */
@@ -137,6 +138,8 @@ public:
   unsigned induction;
   unsigned maxInductionDepth;
   unsigned inductionInProof;
+  unsigned generalizedInduction;
+  unsigned generalizedInductionInProof;
   /** number of argument congruences */
   unsigned argumentCongruence;
   unsigned narrow;
@@ -201,9 +204,6 @@ public:
   unsigned taNegativeInjectivitySimplifications;
   unsigned taAcyclicityGeneratedDisequalities;
 
-  unsigned combDescendants;
-  unsigned proxyDescendants;
-  unsigned holAxiomDescendants;
   bool higherOrder;
 
   // Saturation
@@ -221,6 +221,7 @@ public:
   unsigned inferencesBlockedForOrderingAftercheck;
 
   bool smtReturnedUnknown;
+  bool smtDidNotEvaluate;
 
   unsigned inferencesSkippedDueToColors;
 

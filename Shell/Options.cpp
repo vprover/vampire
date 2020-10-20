@@ -37,6 +37,7 @@
 #include "Debug/Assertion.hpp"
 
 #include "Lib/VString.hpp"
+#include "Lib/StringUtils.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Timer.hpp"
 #include "Lib/Exception.hpp"
@@ -297,6 +298,12 @@ void Options::Options::init()
     "Specifies whether proof will be output. 'proofcheck' will output proof as a sequence of TPTP problems to allow for proof-checking.";
     _lookup.insert(&_proof);
     _proof.tag(OptionTag::OUTPUT);
+
+    _minimizeSatProofs = BoolOptionValue("minimize_sat_proofs","",true);
+    _minimizeSatProofs.description="Perform unsat core minimization when a sat solver finds a clause set UNSAT\n"
+        "(such as with AVATAR proofs or with global subsumption).";
+    _lookup.insert(&_minimizeSatProofs);
+    _minimizeSatProofs.tag(OptionTag::OUTPUT);
 
     _proofExtra = ChoiceOptionValue<ProofExtra>("proof_extra","",ProofExtra::OFF,{"off","free","full"});
     _proofExtra.description="Add extra detail to proofs. "
@@ -648,6 +655,10 @@ void Options::Options::init()
     _lookup.insert(&_showNew);
     _showNew.tag(OptionTag::DEVELOPMENT);
 
+    _sineToAge = BoolOptionValue("sine_to_age","s2a",false);
+    _lookup.insert(&_sineToAge);
+    _sineToAge.tag(OptionTag::DEVELOPMENT);
+
     _showSplitting = BoolOptionValue("show_splitting","",false);
     _showSplitting.description="Show updates within AVATAR";
     _lookup.insert(&_showSplitting);
@@ -710,6 +721,16 @@ void Options::Options::init()
     _showFMBsortInfo.description = "Print information about sorts in FMB";
     _lookup.insert(&_showFMBsortInfo);
     _showFMBsortInfo.tag(OptionTag::OUTPUT);
+
+    _showInduction = BoolOptionValue("show_induction","",false);
+    _showInduction.description = "Print information about induction";
+    _lookup.insert(&_showInduction);
+    _showInduction.tag(OptionTag::OUTPUT);
+
+    _manualClauseSelection = BoolOptionValue("manual_cs","",false);
+    _manualClauseSelection.description="Run Vampire interactively by manually picking the clauses to be selected";
+    _lookup.insert(&_manualClauseSelection);
+    _manualClauseSelection.tag(OptionTag::DEVELOPMENT);
 
 //************************************************************************
 //*********************** VAMPIRE (includes CASC)  ***********************
@@ -854,6 +875,116 @@ void Options::Options::init()
     _ageWeightRatio.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->Or<int>(_instGenWithResolution.is(equal(true))));
     _ageWeightRatio.setRandomChoices({"8:1","5:1","4:1","3:1","2:1","3:2","5:4","1","2:3","2","3","4","5","6","7","8","10","12","14","16","20","24","28","32","40","50","64","128","1024"});
 
+    _ageWeightRatioShape = ChoiceOptionValue<AgeWeightRatioShape>("age_weight_ratio_shape","awrs",AgeWeightRatioShape::CONSTANT,{"constant","decay", "converge"});
+    _ageWeightRatioShape.description = "How to change the age/weight ratio during proof search.";
+    _lookup.insert(&_ageWeightRatioShape);
+    _ageWeightRatioShape.tag(OptionTag::SATURATION);
+
+    _ageWeightRatioShapeFrequency = UnsignedOptionValue("age_weight_ratio_shape_frequency","awrsf",100);
+    _ageWeightRatioShapeFrequency.description = "How frequently the age/weight ratio shape is to change: i.e. if set to 'decay' at a frequency of 100, the age/weight ratio will change every 100 age/weight choices.";
+    _lookup.insert(&_ageWeightRatioShapeFrequency);
+    _ageWeightRatioShapeFrequency.tag(OptionTag::SATURATION);
+
+
+    _useTheorySplitQueues = BoolOptionValue("theory_split_queue","thsq",false);
+    _useTheorySplitQueues.description = "Turn on clause selection using multiple queues containing different clauses (split by amount of theory reasoning)";
+    _lookup.insert(&_useTheorySplitQueues);
+    _useTheorySplitQueues.tag(OptionTag::SATURATION);
+
+    _theorySplitQueueExpectedRatioDenom = IntOptionValue("theory_split_queue_expected_ratio_denom","thsqd", 8);
+    _theorySplitQueueExpectedRatioDenom.description = "The denominator n such that we expect the final proof to have a ratio of theory-axioms to all-axioms of 1/n.";
+    _lookup.insert(&_theorySplitQueueExpectedRatioDenom);
+    _theorySplitQueueExpectedRatioDenom.reliesOn(_useTheorySplitQueues.is(equal(true)));
+    _theorySplitQueueExpectedRatioDenom.tag(OptionTag::SATURATION);
+
+    _theorySplitQueueCutoffs = StringOptionValue("theory_split_queue_cutoffs", "thsqc", "0,32,80");
+    _theorySplitQueueCutoffs.description = "The cutoff-values for the split-queues (the cutoff value for the last queue has to be omitted, as it is always infinity). Any split-queue contains all clauses which are assigned a feature-value less or equal to the cutoff-value of the queue. If no custom value for this option is set, the implementation will use cutoffs 0,4*d,10*d,infinity (where d denotes the theory split queue expected ratio denominator).";
+    _lookup.insert(&_theorySplitQueueCutoffs);
+    _theorySplitQueueCutoffs.reliesOn(_useTheorySplitQueues.is(equal(true)));
+    _theorySplitQueueCutoffs.tag(OptionTag::SATURATION);
+
+    _theorySplitQueueRatios = StringOptionValue("theory_split_queue_ratios", "thsqr", "20,10,10,1");
+    _theorySplitQueueRatios.description = "The ratios for picking clauses from the split-queues using weighted round robin. If a queue is empty, the clause will be picked from the next non-empty queue to the right. Note that this option implicitly also sets the number of queues.";
+    _lookup.insert(&_theorySplitQueueRatios);
+    _theorySplitQueueRatios.reliesOn(_useTheorySplitQueues.is(equal(true)));
+    _theorySplitQueueRatios.tag(OptionTag::SATURATION);
+
+    _theorySplitQueueLayeredArrangement = BoolOptionValue("theory_split_queue_layered_arrangement","thsql",true);
+    _theorySplitQueueLayeredArrangement.description = "If turned on, use a layered arrangement to split clauses into queues. Otherwise use a tammet-style-arrangement.";
+    _lookup.insert(&_theorySplitQueueLayeredArrangement);
+    _theorySplitQueueLayeredArrangement.reliesOn(_useTheorySplitQueues.is(equal(true)));
+    _theorySplitQueueLayeredArrangement.tag(OptionTag::SATURATION);
+
+    _useAvatarSplitQueues = BoolOptionValue("avatar_split_queue","avsq",false);
+    _useAvatarSplitQueues.description = "Turn on experiments: clause selection with multiple queues containing different clauses (split by amount of avatar-split-set-size)";
+    _lookup.insert(&_useAvatarSplitQueues);
+    _useAvatarSplitQueues.tag(OptionTag::AVATAR);
+    _avatarSplitQueueCutoffs.reliesOn(_splitting.is(equal(true)));
+
+    _avatarSplitQueueCutoffs = StringOptionValue("avatar_split_queue_cutoffs", "avsqc", "0");
+    _avatarSplitQueueCutoffs.description = "The cutoff-values for the avatar-split-queues (the cutoff value for the last queue is omitted, since it has to be infinity).";
+    _lookup.insert(&_avatarSplitQueueCutoffs);
+    _avatarSplitQueueCutoffs.reliesOn(_useAvatarSplitQueues.is(equal(true)));
+    _avatarSplitQueueCutoffs.tag(OptionTag::AVATAR);
+
+    _avatarSplitQueueRatios = StringOptionValue("avatar_split_queue_ratios", "avsqr", "1,1");
+    _avatarSplitQueueRatios.description = "The ratios for picking clauses from the split-queues using weighted round robin. If a queue is empty, the clause will be picked from the next non-empty queue to the right. Note that this option implicitly also sets the number of queues.";
+    _lookup.insert(&_avatarSplitQueueRatios);
+    _avatarSplitQueueRatios.reliesOn(_useAvatarSplitQueues.is(equal(true)));
+    _avatarSplitQueueRatios.tag(OptionTag::AVATAR);
+
+    _avatarSplitQueueLayeredArrangement = BoolOptionValue("avatar_split_queue_layered_arrangement","avsql",false);
+    _avatarSplitQueueLayeredArrangement.description = "If turned on, use a layered arrangement to split clauses into queues. Otherwise use a tammet-style-arrangement.";
+    _lookup.insert(&_avatarSplitQueueLayeredArrangement);
+    _avatarSplitQueueLayeredArrangement.reliesOn(_useAvatarSplitQueues.is(equal(true)));
+    _avatarSplitQueueLayeredArrangement.tag(OptionTag::AVATAR);
+
+    _useSineLevelSplitQueues = BoolOptionValue("sine_level_split_queue","slsq",false);
+    _useSineLevelSplitQueues.description = "Turn on experiments: clause selection with multiple queues containing different clauses (split by sine-level of clause)";
+    _lookup.insert(&_useSineLevelSplitQueues);
+    _useSineLevelSplitQueues.tag(OptionTag::SATURATION);
+
+    _sineLevelSplitQueueCutoffs = StringOptionValue("sine_level_split_queue_cutoffs", "slsqc", "0,1");
+    _sineLevelSplitQueueCutoffs.description = "The cutoff-values for the sine-level-split-queues (the cutoff value for the last queue is omitted, since it has to be infinity).";
+    _lookup.insert(&_sineLevelSplitQueueCutoffs);
+    _sineLevelSplitQueueCutoffs.reliesOn(_useSineLevelSplitQueues.is(equal(true)));
+    _sineLevelSplitQueueCutoffs.tag(OptionTag::SATURATION);
+
+    _sineLevelSplitQueueRatios = StringOptionValue("sine_level_split_queue_ratios", "slsqr", "1,2,3");
+    _sineLevelSplitQueueRatios.description = "The ratios for picking clauses from the sine-level-split-queues using weighted round robin. If a queue is empty, the clause will be picked from the next non-empty queue to the right. Note that this option implicitly also sets the number of queues.";
+    _lookup.insert(&_sineLevelSplitQueueRatios);
+    _sineLevelSplitQueueRatios.reliesOn(_useSineLevelSplitQueues.is(equal(true)));
+    _sineLevelSplitQueueRatios.tag(OptionTag::SATURATION);
+
+    _sineLevelSplitQueueLayeredArrangement = BoolOptionValue("sine_level_split_queue_layered_arrangement","slsql",true);
+    _sineLevelSplitQueueLayeredArrangement.description = "If turned on, use a layered arrangement to split clauses into queues. Otherwise use a tammet-style-arrangement.";
+    _lookup.insert(&_sineLevelSplitQueueLayeredArrangement);
+    _sineLevelSplitQueueLayeredArrangement.reliesOn(_useSineLevelSplitQueues.is(equal(true)));
+    _sineLevelSplitQueueLayeredArrangement.tag(OptionTag::SATURATION);
+
+    _usePositiveLiteralSplitQueues = BoolOptionValue("positive_literal_split_queue","plsq",false);
+    _usePositiveLiteralSplitQueues.description = "Turn on experiments: clause selection with multiple queues containing different clauses (split by number of positive literals in clause)";
+    _lookup.insert(&_usePositiveLiteralSplitQueues);
+    _usePositiveLiteralSplitQueues.tag(OptionTag::SATURATION);
+
+    _positiveLiteralSplitQueueCutoffs = StringOptionValue("positive_literal_split_queue_cutoffs", "plsqc", "0");
+    _positiveLiteralSplitQueueCutoffs.description = "The cutoff-values for the positive-literal-split-queues (the cutoff value for the last queue is omitted, since it has to be infinity).";
+    _lookup.insert(&_positiveLiteralSplitQueueCutoffs);
+    _positiveLiteralSplitQueueCutoffs.reliesOn(_usePositiveLiteralSplitQueues.is(equal(true)));
+    _positiveLiteralSplitQueueCutoffs.tag(OptionTag::SATURATION);
+
+    _positiveLiteralSplitQueueRatios = StringOptionValue("positive_literal_split_queue_ratios", "plsqr", "1,4");
+    _positiveLiteralSplitQueueRatios.description = "The ratios for picking clauses from the positive-literal-split-queues using weighted round robin. If a queue is empty, the clause will be picked from the next non-empty queue to the right. Note that this option implicitly also sets the number of queues.";
+    _lookup.insert(&_positiveLiteralSplitQueueRatios);
+    _positiveLiteralSplitQueueRatios.reliesOn(_usePositiveLiteralSplitQueues.is(equal(true)));
+    _positiveLiteralSplitQueueRatios.tag(OptionTag::SATURATION);
+
+    _positiveLiteralSplitQueueLayeredArrangement = BoolOptionValue("positive_literal_split_queue_layered_arrangement","plsql",false);
+    _positiveLiteralSplitQueueLayeredArrangement.description = "If turned on, use a layered arrangement to split clauses into queues. Otherwise use a tammet-style-arrangement.";
+    _lookup.insert(&_positiveLiteralSplitQueueLayeredArrangement);
+    _positiveLiteralSplitQueueLayeredArrangement.reliesOn(_usePositiveLiteralSplitQueues.is(equal(true)));
+    _positiveLiteralSplitQueueLayeredArrangement.tag(OptionTag::SATURATION);
+
 	    _literalMaximalityAftercheck = BoolOptionValue("literal_maximality_aftercheck","lma",false);
 	    _lookup.insert(&_literalMaximalityAftercheck);
 	    _literalMaximalityAftercheck.tag(OptionTag::SATURATION);
@@ -904,29 +1035,48 @@ void Options::Options::init()
            _fixUWA.tag(OptionTag::INFERENCES);
            _lookup.insert(&_fixUWA);
            _fixUWA.setExperimental();
+           
+           _inequalityNormalization = BoolOptionValue("normalize_inequalities","norm_ineq",false);
+           _inequalityNormalization.description="Enable normalizing of inequalities like s < t ==> 0 < t - s.";
+           _lookup.insert(&_inequalityNormalization);
+           _inequalityNormalization.tag(OptionTag::INFERENCES);
+ 
+           _gaussianVariableElimination = BoolOptionValue("gaussian_variable_elimination","gve",false);
+           _gaussianVariableElimination.description=
+                  "Enable the immideate simplification \"Gaussian Variable Elimination\":\n"
+                  "\n"
+                  "s != t | C[X] \n"
+                  "-------------  if s != t can be rewritten to X != r \n"
+                  "    C[r] \n"
+                  "\n"
+                  "example:\n"
+                  "\n"
+                  "6 * X0 != 2 * X1 | p(X0, X1)\n"
+                  "-------------------------------\n"
+                  "  p(2 * X1 / 6, X1)";
+
+           _lookup.insert(&_gaussianVariableElimination);
+           _gaussianVariableElimination.tag(OptionTag::INFERENCES);
 
             _induction = ChoiceOptionValue<Induction>("induction","ind",Induction::NONE,
                                 {"none","struct","math","both"});
-            _induction.description = "Apply structural and/or mathematical induction on datatypes and integers";
+            _induction.description = "Apply structural and/or mathematical induction on datatypes and integers.";
             _induction.tag(OptionTag::INFERENCES);
-            //_lookup.insert(&_induction);
+            _lookup.insert(&_induction);
             //_induction.setRandomChoices
-            _induction.setExperimental();
 
             _structInduction = ChoiceOptionValue<StructuralInductionKind>("structural_induction_kind","sik",
                                  StructuralInductionKind::ONE,{"one","two","three","all"});
-            _structInduction.description="";
+            _structInduction.description="The kind of structural induction applied";
             _structInduction.tag(OptionTag::INFERENCES);
-            _structInduction.reliesOn(_induction.is(equal(Induction::STRUCTURAL))->Or<StructuralInductionKind>(_induction.is(equal(Induction::BOTH))));
-            //_lookup.insert(&_structInduction);
-            _structInduction.setExperimental();
+            //_structInduction.reliesOn(Or(_induction.is(equal(Induction::STRUCTURAL)),_induction.is(equal(Induction::BOTH))));
+            _lookup.insert(&_structInduction);
 
             _mathInduction = ChoiceOptionValue<MathInductionKind>("math_induction_kind","mik",
                                  MathInductionKind::ONE,{"one","two","all"});
-            _mathInduction.description="";
+            _mathInduction.description="The kind of mathematical induction applied";
             _mathInduction.tag(OptionTag::INFERENCES);
-            _mathInduction.setExperimental();
-            _mathInduction.reliesOn(_induction.is(equal(Induction::MATHEMATICAL))->Or<MathInductionKind>(_induction.is(equal(Induction::BOTH))));
+            //_mathInduction.reliesOn(Or(_induction.is(equal(Induction::MATHEMATICAL)),_induction.is(equal(Induction::BOTH))));
             //_lookup.insert(&_mathInduction);
 
             _inductionChoice = ChoiceOptionValue<InductionChoice>("induction_choice","indc",InductionChoice::ALL,
@@ -935,8 +1085,7 @@ void Options::Options::init()
                                          " extends this with skolem constants introduced by induction. Consider using" 
                                          " guess_the_goal for problems in SMTLIB as they do not come with a conjecture";
             _inductionChoice.tag(OptionTag::INFERENCES);
-            //_lookup.insert(&_inductionChoice);
-            _inductionChoice.setExperimental();
+            _lookup.insert(&_inductionChoice);
             _inductionChoice.reliesOn(_induction.is(notEqual(Induction::NONE)));
             //_inductionChoice.addHardConstraint(If(equal(InductionChoice::GOAL)->Or(equal(InductionChoice::GOAL_PLUS))).then(
             //  _inputSyntax.is(equal(InputSyntax::TPTP))->Or<InductionChoice>(_guessTheGoal.is(equal(true)))));
@@ -944,25 +1093,43 @@ void Options::Options::init()
 
             _maxInductionDepth = UnsignedOptionValue("induction_max_depth","indmd",0);
             _maxInductionDepth.description = "Set maximum depth of induction where 0 means no max.";
-            _maxInductionDepth.setExperimental();
             _maxInductionDepth.tag(OptionTag::INFERENCES);
             _maxInductionDepth.reliesOn(_induction.is(notEqual(Induction::NONE)));
             _maxInductionDepth.addHardConstraint(lessThan(33u));
-            //_lookup.insert(&_maxInductionDepth);
+            _lookup.insert(&_maxInductionDepth);
 
             _inductionNegOnly = BoolOptionValue("induction_neg_only","indn",true);
             _inductionNegOnly.description = "Only apply induction to negative literals";
-            _inductionNegOnly.setExperimental();
             _inductionNegOnly.tag(OptionTag::INFERENCES);
             _inductionNegOnly.reliesOn(_induction.is(notEqual(Induction::NONE)));
-            //_lookup.insert(&_inductionNegOnly);
+            _lookup.insert(&_inductionNegOnly);
 
             _inductionUnitOnly = BoolOptionValue("induction_unit_only","indu",true);
             _inductionUnitOnly.description = "Only apply induction to unit clauses";
-            _inductionUnitOnly.setExperimental();
             _inductionUnitOnly.tag(OptionTag::INFERENCES);
             _inductionUnitOnly.reliesOn(_induction.is(notEqual(Induction::NONE)));
-            //_lookup.insert(&_inductionUnitOnly);
+            _lookup.insert(&_inductionUnitOnly);
+
+            _inductionGen = BoolOptionValue("induction_gen","indgen",false);
+            _inductionGen.description = "Apply induction with generalization (on both all & selected occurrences)";
+            _inductionGen.tag(OptionTag::INFERENCES);
+            _inductionGen.reliesOn(_induction.is(notEqual(Induction::NONE)));
+            _lookup.insert(&_inductionGen);
+
+            _maxInductionGenSubsetSize = UnsignedOptionValue("max_induction_gen_subset_size","indgenss",3);
+            _maxInductionGenSubsetSize.description = "Set maximum number of occurrences of the induction term to be"
+                                                      " generalized, where 0 means no max. (Regular induction will"
+                                                      " be applied without this restriction.)";
+            _maxInductionGenSubsetSize.tag(OptionTag::INFERENCES);
+            _maxInductionGenSubsetSize.reliesOn(_inductionGen.is(equal(true)));
+            _maxInductionGenSubsetSize.addHardConstraint(lessThan(10u));
+            _lookup.insert(&_maxInductionGenSubsetSize);
+
+            _inductionOnComplexTerms = BoolOptionValue("induction_on_complex_terms","indoct",false);
+            _inductionOnComplexTerms.description = "Apply induction on complex (ground) terms vs. only on constants";
+            _inductionOnComplexTerms.tag(OptionTag::INFERENCES);
+            _inductionOnComplexTerms.reliesOn(_induction.is(notEqual(Induction::NONE)));
+            _lookup.insert(&_inductionOnComplexTerms);
 
 	    _instantiation = ChoiceOptionValue<Instantiation>("instantiation","inst",Instantiation::OFF,{"off","on"});
 	    _instantiation.description = "Heuristically instantiate variables";
@@ -3205,4 +3372,185 @@ bool Options::checkProblemOptionConstraints(Property* prop,bool fail_early)
   }
 
   return result;
+}
+
+template<class A>
+Lib::vvector<A> parseCommaSeparatedList(vstring const& str) 
+{
+  vstringstream stream(str);
+  Lib::vvector<A> parsed;
+  vstring cur;
+  while (std::getline(stream, cur, ',')) {
+    parsed.push_back(StringUtils::parse<A>(cur));
+  }
+  return parsed;
+}
+
+Lib::vvector<int> Options::theorySplitQueueRatios() const
+{
+  CALL("Options::theorySplitQueueRatios");
+
+
+  auto inputRatios = parseCommaSeparatedList<int>(_theorySplitQueueRatios.actualValue);
+
+  // sanity checks
+  if (inputRatios.size() < 2) {
+    USER_ERROR("Wrong usage of option '-thsqr'. Needs to have at least two values (e.g. '10,1')");
+  }
+  for (unsigned i = 0; i < inputRatios.size(); i++) {
+    if(inputRatios[i] <= 0) {
+      USER_ERROR("Wrong usage of option '-thsqr'. Each ratio needs to be a positive integer");
+    }
+  }
+
+  return inputRatios;
+}
+
+Lib::vvector<float> Options::theorySplitQueueCutoffs() const
+{
+  CALL("Options::theorySplitQueueCutoffs");
+  // initialize cutoffs
+  Lib::vvector<float> cutoffs;
+  if (_theorySplitQueueCutoffs.isDefault()) {
+    // if no custom cutoffs are set, use heuristics: (0,4*d,10*d,infinity)
+    auto d = _theorySplitQueueExpectedRatioDenom.actualValue;
+    cutoffs.push_back(0.0f);
+    cutoffs.push_back(4.0f * d);
+    cutoffs.push_back(10.0f * d);
+    cutoffs.push_back(std::numeric_limits<float>::max());
+  } else {
+    // if custom cutoffs are set, parse them and add float-max as last value
+    cutoffs = parseCommaSeparatedList<float>(_theorySplitQueueCutoffs.actualValue);
+    cutoffs.push_back(std::numeric_limits<float>::max());
+  }
+
+  // sanity checks
+  for (unsigned i = 0; i < cutoffs.size(); i++)
+  {
+    auto cutoff = cutoffs[i];
+
+    if (i > 0 && cutoff <= cutoffs[i-1])
+    {
+      USER_ERROR("Wrong usage of option '-thsqc'. The cutoff values must be strictly increasing");
+    }
+  }
+
+  return cutoffs;
+}
+
+Lib::vvector<int> Options::avatarSplitQueueRatios() const
+{
+  CALL("Options::avatarSplitQueueRatios");
+  Lib::vvector<int> inputRatios = parseCommaSeparatedList<int>(_avatarSplitQueueRatios.actualValue);
+
+  // sanity checks
+  if (inputRatios.size() < 2) {
+    USER_ERROR("Wrong usage of option '-avsqr'. Needs to have at least two values (e.g. '10,1')");
+  }
+  for (unsigned i = 0; i < inputRatios.size(); i++) {
+    if(inputRatios[i] <= 0) {
+      USER_ERROR("Each ratio (supplied by option '-avsqr') needs to be a positive integer");
+    }
+  }
+
+  return inputRatios;
+}
+
+Lib::vvector<float> Options::avatarSplitQueueCutoffs() const
+{
+  CALL("Options::avatarSplitQueueCutoffs");
+  // initialize cutoffs and add float-max as last value
+  auto cutoffs = parseCommaSeparatedList<float>(_avatarSplitQueueCutoffs.actualValue);
+  cutoffs.push_back(std::numeric_limits<float>::max());
+
+  // sanity checks
+  for (unsigned i = 0; i < cutoffs.size(); i++)
+  {
+    auto cutoff = cutoffs[i];
+
+    if (i > 0 && cutoff <= cutoffs[i-1])
+    {
+      USER_ERROR("The cutoff values (supplied by option '-avsqc') must be strictly increasing");
+    }
+  }
+
+  return cutoffs;
+}
+
+Lib::vvector<int> Options::sineLevelSplitQueueRatios() const
+{
+  CALL("Options::sineLevelSplitQueueRatios");
+  auto inputRatios = parseCommaSeparatedList<int>(_sineLevelSplitQueueRatios.actualValue);
+
+  // sanity checks
+  if (inputRatios.size() < 2) {
+    USER_ERROR("Wrong usage of option '-slsqr'. Needs to have at least two values (e.g. '1,3')");
+  }
+  for (unsigned i = 0; i < inputRatios.size(); i++) {
+    if(inputRatios[i] <= 0) {
+      USER_ERROR("Each ratio (supplied by option '-slsqr') needs to be a positive integer");
+    }
+  }
+
+  return inputRatios;
+}
+
+Lib::vvector<float> Options::sineLevelSplitQueueCutoffs() const
+{
+  CALL("Options::sineLevelSplitQueueCutoffs");
+  // initialize cutoffs and add float-max as last value
+  auto cutoffs = parseCommaSeparatedList<float>(_sineLevelSplitQueueCutoffs.actualValue);
+  cutoffs.push_back(std::numeric_limits<float>::max());
+
+  // sanity checks
+  for (unsigned i = 0; i < cutoffs.size(); i++)
+  {
+    auto cutoff = cutoffs[i];
+
+    if (i > 0 && cutoff <= cutoffs[i-1])
+    {
+      USER_ERROR("The cutoff values (supplied by option '-slsqc') must be strictly increasing");
+    }
+  }
+
+  return cutoffs;
+}
+
+Lib::vvector<int> Options::positiveLiteralSplitQueueRatios() const
+{
+  CALL("Options::positiveLiteralSplitQueueRatios");
+  auto inputRatios = parseCommaSeparatedList<int>(_positiveLiteralSplitQueueRatios.actualValue);
+
+  // sanity checks
+  if (inputRatios.size() < 2) {
+    USER_ERROR("Wrong usage of option '-plsqr'. Needs to have at least two values (e.g. '1,3')");
+  }
+  for (unsigned i = 0; i < inputRatios.size(); i++) {
+    if(inputRatios[i] <= 0) {
+      USER_ERROR("Each ratio (supplied by option '-plsqr') needs to be a positive integer");
+    }
+  }
+
+  return inputRatios;
+}
+
+Lib::vvector<float> Options::positiveLiteralSplitQueueCutoffs() const
+{
+  CALL("Options::positiveLiteralSplitQueueCutoffs");
+  // initialize cutoffs and add float-max as last value
+  auto cutoffs = parseCommaSeparatedList<float>(_positiveLiteralSplitQueueCutoffs.actualValue);
+  cutoffs.push_back(std::numeric_limits<float>::max());
+
+  // sanity checks
+  for (unsigned i = 0; i < cutoffs.size(); i++)
+  {
+    auto cutoff = cutoffs[i];
+
+    if (i > 0 && cutoff <= cutoffs[i-1])
+    {
+      USER_ERROR("The cutoff values (supplied by option '-plsqc') must be strictly increasing");
+    }
+  }
+
+  return cutoffs;
 }

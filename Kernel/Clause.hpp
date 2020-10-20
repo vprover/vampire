@@ -94,7 +94,7 @@ public:
   static Clause* fromStack(const Stack<Literal*>& lits, const Inference& inf);
 
   template<class Iter>
-  static Clause* fromIterator(Iter litit, Inference& inf)
+  static Clause* fromIterator(Iter litit, const Inference& inf)
   {
     CALL("Clause::fromIterator");
 

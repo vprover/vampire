@@ -259,7 +259,7 @@ public:
   {
     CALL("InterpretedNormalizer::NLiteralTransformer::apply");
 
-   /if (!lit->isEquality() && theory->isInterpretedPredicate(lit))
+    if (!lit->isEquality() && theory->isInterpretedPredicate(lit))
     {
       Interpretation itp = theory->interpretPredicate(lit);
       if(isTrivialInterpretation(itp)) {
@@ -267,7 +267,7 @@ public:
         boolRes = lit->isPositive();
         return;
       }
-    } 
+    }
 
     constantRes = false;
     litRes = transform(lit);
@@ -288,9 +288,9 @@ protected:
     if(theory->isInterpretedFunction(trm)) {
       Interpretation itp = theory->interpretFunction(trm);
       if(isTrivialInterpretation(itp)) {
-        Term* t = trm.term();
-        ASS_EQ(t->arity(),1);
-        return *t->nthArgument(0);
+	Term* t = trm.term();
+	ASS_EQ(t->arity(),1);
+	return *t->nthArgument(0);
       }
     }
     if(trm.isTerm()) {
@@ -298,8 +298,8 @@ protected:
       unsigned func = t->functor();
       FunctionTranslator* transl = getFnTranslator(func);
       if(transl) {
-        trm = transl->translate(t);
-        goto start;
+	trm = transl->translate(t);
+	goto start;
       }
     }
     return trm;
@@ -473,7 +473,7 @@ bool InterpretedNormalizer::apply(UnitList*& units)
   CALL("InterpretedNormalizer::apply(UnitList*& units)");
 
   NFormulaTransformer ftransf(_litTransf);
-  FTFormulaUnitTransformer<NFormulaTransformer> futransf(Inference::EVALUATION, ftransf);
+  FTFormulaUnitTransformer<NFormulaTransformer> futransf(InferenceRule::THEORY_NORMALIZATION, ftransf);
 
   bool modified = false;
 
@@ -538,8 +538,8 @@ Clause* InterpretedNormalizer::apply(Clause* cl)
     return cl;
   }
 
-  Clause* res = Clause::fromStack(lits, cl->inputType(),
-      new Inference1(Inference::EVALUATION, cl));
+  Clause* res = Clause::fromStack(lits,
+      FormulaTransformation(InferenceRule::THEORY_NORMALIZATION, cl));
   return res;
 }
 

@@ -610,7 +610,7 @@ void Inference::computeTheoryRunningSums()
   // inference without parents
   if (!hasNext(parentIt))
   {
-    th_ancestors = isTheoryAxiomd() ? 1.0 : 0.0;
+    th_ancestors = isTheoryAxiom() ? 1.0 : 0.0;
     all_ancestors = 1.0;
   }
   else

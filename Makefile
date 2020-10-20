@@ -44,7 +44,9 @@ MINISAT_FLAGS = $(MINISAT_DBG_FLAGS)
 
 #XFLAGS = -g -DVDEBUG=1 -DVTEST=1 -DCHECK_LEAKS=1 # full debugging + testing
 #XFLAGS = $(DBG_FLAGS)
-XFLAGS = -Wfatal-errors -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DGNUMP=$(GNUMPF)# standard debugging only
+# XFLAGS = -Wfatal-errors -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DUSE_SYSTEM_ALLOCATION=1 -DGNUMP=$(GNUMPF)# standard debugging only
+# careful, AddressSanitizer for clang does not show line numbers by default: https://stackoverflow.com/questions/24566416/how-do-i-get-line-numbers-in-the-debug-output-with-clangs-fsanitize-address
+XFLAGS = -Wfatal-errors -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DUSE_SYSTEM_ALLOCATION=1 -DGNUMP=$(GNUMPF) -fsanitize=address -fno-omit-frame-pointer # standard debugging only
 #XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DUSE_SYSTEM_ALLOCATION=1 -DVALGRIND=1 -DGNUMP=$(GNUMPF)# memory leaks
 #XFLAGS = $(REL_FLAGS)
 
@@ -157,7 +159,7 @@ MINISAT_OBJ = Minisat/core/Solver.o\
   SAT/MinisatInterfacingNewSimp.o
 
 API_OBJ = Api/FormulaBuilder.o\
-#	  Api/Helper.o\
+	  Api/Helper.o\
 	  Api/ResourceLimits.o\
 	  Api/Tracing.o
 #	  Api/Problem.o\	  
@@ -294,6 +296,7 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/GlobalSubsumption.o\
          Inferences/HyperSuperposition.o\
          Inferences/InnerRewriting.o\
+         Inferences/EquationalTautologyRemoval.o\
          Inferences/InferenceEngine.o\
          Inferences/Instantiation.o\
          Inferences/SLQueryBackwardSubsumption.o\
@@ -310,7 +313,6 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/ElimLeibniz.o\
          Inferences/BoolEqToDiseq.o
 #         Inferences/GaussianVariableElimination.o\
-#         Inferences/EquationalTautologyRemoval.o\
 #         Inferences/InterpretedEvaluation.o\
 #         Inferences/TheoryInstAndSimp.o\
 #         Inferences/CTFwSubsAndRes.o\
@@ -348,9 +350,12 @@ VST_OBJ= Saturation/AWPassiveClauseContainer.o\
          Saturation/ProvingHelper.o\
          Saturation/SaturationAlgorithm.o\
          Saturation/Splitter.o\
-         Saturation/SymElOutput.o
+         Saturation/SymElOutput.o\
+         Saturation/ManCSPassiveClauseContainer.o
 
-VS_OBJ = Shell/CommandLine.o\
+VS_OBJ = Shell/BFNT.o\
+         Shell/BFNTMainLoop.o\
+         Shell/CommandLine.o\
          Shell/CNF.o\
          Shell/NewCNF.o\
          Shell/DistinctProcessor.o\
@@ -382,6 +387,7 @@ VS_OBJ = Shell/CommandLine.o\
          Shell/Rectify.o\
          Shell/Skolem.o\
          Shell/SimplifyFalseTrue.o\
+         Shell/SimplifyProver.o\
          Shell/SineUtils.o\
          Shell/SMTFormula.o\
          Shell/FOOLElimination.o\
@@ -393,24 +399,21 @@ VS_OBJ = Shell/CommandLine.o\
          Shell/TermAlgebra.o\
          Shell/TheoryAxioms.o\
          Shell/TheoryFinder.o\
+         Shell/TheoryFlattening.o\
+         Shell/BlockedClauseElimination.o\
          Shell/Token.o\
          Shell/TPTPPrinter.o\
          Shell/UIHelper.o\
          Shell/VarManager.o\
          Shell/Lexer.o\
-         Shell/BlockedClauseElimination.o\
          Shell/Preprocess.o\
          version.o
-#         Shell/SimplifyProver.o\
 #         Shell/AnswerExtractor.o\
-#         Shell/BFNT.o\
-#         Shell/BFNTMainLoop.o\
-#         Shell/TheoryFlattening.o\
+
 #         Shell/PARSER_TKV.o\
 #         Shell/SMTLEX.o\
 #         Shell/SMTPAR.o\
 #         Shell/CParser.o\
-#         Shell/AxiomGenerator.o\
 #         Shell/EqualityAxiomatizer.o\
 #         Shell/GlobalOptions.o\
 #         Shell/Lexer.o\

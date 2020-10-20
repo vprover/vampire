@@ -33,7 +33,7 @@
 #include "Lib/Array.hpp"
 #include "Lib/DHSet.hpp"
 #include "Kernel/Unit.hpp"
-//#include "Kernel/Theory.hpp"
+#include "Kernel/Theory.hpp"
 #include "Lib/VString.hpp"
 #include "SMTLIBLogic.hpp"
 
@@ -214,7 +214,7 @@ public:
    *
    * @c t may be either a term or a literal
    */
- /* void scanForInterpreted(Term* t);
+  void scanForInterpreted(Term* t);
 
   bool hasInterpretedOperation(Interpretation i) const {
     if(i >= _interpretationPresence.size()){ return false; }
@@ -222,10 +222,10 @@ public:
   }
   bool hasInterpretedOperation(Interpretation i, OperatorType* type) const {
     return _polymorphicInterpretations.find(std::make_pair(i,type));
-  }*/
+  }
 
   /** Problem contains an interpreted symbol excluding equality */
-  //bool hasInterpretedOperations() const { return _hasInterpreted; }
+  bool hasInterpretedOperations() const { return _hasInterpreted; }
   bool hasInterpretedEquality() const { return _hasInterpretedEquality; }
   /** Problem contains non-default sorts */
   bool hasNonDefaultSorts() const { return _hasNonDefaultSorts; }
@@ -237,11 +237,11 @@ public:
   bool hasLogicalProxy() const { return _hasLogicalProxy; }
   bool hasPolymorphicSym() const { return _hasPolymorphicSym; }
   bool quantifiesOverPolymorphicVar() const { return _quantifiesOverPolymorphicVar; }
-  /*bool usesSort(unsigned sort) const { 
+  bool usesSort(unsigned sort) const { 
     CALL("Property::usesSort");
     if(_usesSort.size() <= sort) return false;
     return _usesSort[sort]; 
-  }*/ //TODO only utilised by FMB which I am switching off
+  } //TODO only utilised by FMB which I am switching off
   bool usesSingleSort() const { return _sortsUsed==1; }
   unsigned sortsUsed() const { return _sortsUsed; }
   bool onlyFiniteDomainDatatypes() const { return _onlyFiniteDomainDatatypes; }
@@ -342,7 +342,7 @@ public:
    *  the more precise information about which monomorphisations are present (see below).
    */
   DArray<bool> _interpretationPresence;
-  //DHSet<Theory::MonomorphisedInterpretation> _polymorphicInterpretations;
+  DHSet<Theory::MonomorphisedInterpretation> _polymorphicInterpretations;
 
   bool _hasFOOL;
   bool _hasCombs;

@@ -126,6 +126,8 @@ private:
     CNOT,
     /** equivalence */
     CIFF,
+    /** non-backtrackable equivalence */
+    NBCIFF,
     /** xor */
     CXOR,
     /** universal quantifier, followed by its length and variable numbers */

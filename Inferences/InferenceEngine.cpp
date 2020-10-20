@@ -343,9 +343,7 @@ Clause* DuplicateLiteralRemovalISE::simplify(Clause* c)
   // now lits[0 ... newLength-1] contain the remaining literals
   Clause* d = new(newLength)
 		 Clause(newLength,
-			c->inputType(),
-			new Inference1(Inference::REMOVE_DUPLICATE_LITERALS,
-				       c));
+			SimplifyingInference1(InferenceRule::REMOVE_DUPLICATE_LITERALS,c));
 
   int origIdx = length-1;
 
@@ -359,7 +357,6 @@ Clause* DuplicateLiteralRemovalISE::simplify(Clause* c)
   }
   ASS(skipped.isEmpty());
   ASS_EQ(origIdx,-1);
-  d->setAge(c->age());
   env.statistics->duplicateLiterals += length - newLength;
 
 #if DEBUG_DUPLICATE_LITERALS
@@ -440,6 +437,8 @@ Clause* TrivialInequalitiesRemovalISE::simplify(Clause* c)
 
   static DArray<Literal*> lits(32);
 
+  typedef ApplicativeHelper AH;
+
   int length = c->length();
   int j = 0;
   lits.ensure(length);
@@ -452,8 +451,8 @@ Clause* TrivialInequalitiesRemovalISE::simplify(Clause* c)
     }
     TermList* t1 = l->args();
     TermList* t2 = t1->next();
-    if((isTrue(*t1) && isFalse(*t2) && l->polarity()) || 
-       (isTrue(*t2) && isFalse(*t1) && l->polarity())){
+    if((AH::isTrue(*t1) && AH::isFalse(*t2) && l->polarity()) || 
+       (AH::isTrue(*t2) && AH::isFalse(*t1) && l->polarity())){
       found++;
       continue;
     }
@@ -474,15 +473,11 @@ Clause* TrivialInequalitiesRemovalISE::simplify(Clause* c)
   }
 
   int newLength = length - found;
-  Clause* d = new(newLength)
-                Clause(newLength,
-		       c->inputType(),
-		       new Inference1(Inference::TRIVIAL_INEQUALITY_REMOVAL,
-				      c));
+  Clause* d = new(newLength) Clause(newLength,
+		       SimplifyingInference1(InferenceRule::TRIVIAL_INEQUALITY_REMOVAL,c));
   for (int i = newLength-1;i >= 0;i--) {
     (*d)[i] = lits[newLength-i-1];
   }
-  d->setAge(c->age());
   env.statistics->trivialInequalities += found;
 
   return d;

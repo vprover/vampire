@@ -148,11 +148,11 @@ bool SortHelper::getResultSortOrMasterVariable(const Term* t, TermList& resultSo
   CALL("SortHelper::getResultSortOrMasterVariable");
 
   switch(t->functor()) {
-    /*case Term::SF_LET:
+    case Term::SF_LET:
     case Term::SF_LET_TUPLE:
     case Term::SF_ITE:
       resultSort = t->getSpecialData()->getSort();
-      return true;*/
+      return true;
     case Term::SF_FORMULA:
       resultSort = Term::boolSort();
       return true;
@@ -160,15 +160,15 @@ bool SortHelper::getResultSortOrMasterVariable(const Term* t, TermList& resultSo
       resultSort = t->getSpecialData()->getSort();
       return true;
     }
-    /*case Term::SF_TUPLE: {
+    case Term::SF_TUPLE: {
       resultSort = getResultSort(t->getSpecialData()->getTupleTerm());
       return true;
-    }*/
+    }
     default:
       ASS(!t->isSpecial());
       resultSort = getResultSort(t);
       return true;
-  } //TODO reintroduce specials. For now removing all FOOL work
+  }
 } // SortHelper::getResultSortOrMasterVariable
 
 /**
@@ -857,6 +857,51 @@ bool SortHelper::areImmediateSortsValid(Term* t)
   }
   return true;
 }
+
+
+bool SortHelper::isTupleSort(TermList sort)
+{
+  CALL("SortHelper::isTupleSort");  
+  if(!sort.isTerm()){ return false; }
+  return env.signature->getFunction(sort.term()->functor())->tupleSort(); 
+}
+
+bool SortHelper::isArraySort(TermList sort)
+{
+  CALL("SortHelper::isArraySort");  
+  if(!sort.isTerm()){ return false; }
+  return env.signature->getFunction(sort.term()->functor())->arraySort(); 
+}
+
+bool SortHelper::isBoolSort(TermList sort)
+{
+  CALL("SortHelper::isBoolSort");  
+  return sort == Term::boolSort();
+}
+
+TermList SortHelper::getIndexSort(TermList arraySort)
+{
+  CALL("SortHelper::getIndexSort");  
+  ASS(isArraySort(arraySort));
+  return *arraySort.term()->nthArgument(0);
+}
+
+TermList SortHelper::getInnerSort(TermList arraySort)
+{
+  CALL("SortHelper::getInnerSort");  
+  ASS(isArraySort(arraySort));
+  return *arraySort.term()->nthArgument(1);
+}
+
+bool SortHelper::isNotDefaultSort(unsigned s)
+{
+  CALL("SortHelper::isNotDefaultSort");  
+  TermList t = sortTerm(s);
+  return t != Term::boolSort() && t != Term::defaultSort() &&
+         t != Term::intSort() && t != Term::realSort() &&
+         t != Term::rationalSort();
+}
+
 
 /**
  * Return true iff sorts of all terms (both functions and variables) match

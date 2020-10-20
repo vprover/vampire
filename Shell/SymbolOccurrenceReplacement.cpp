@@ -26,7 +26,7 @@ using namespace Shell;
 
 Term* SymbolOccurrenceReplacement::process(Term* term) {
   CALL("FOOLElimination::SymbolOccurrenceReplacement::process(Term*)");
-  /*if (term->isSpecial()) {
+  if (term->isSpecial()) {
     Term::SpecialTermData* sd = term->getSpecialData();
     switch (term->functor()) {
       case Term::SF_ITE:
@@ -61,7 +61,7 @@ Term* SymbolOccurrenceReplacement::process(Term* term) {
           ASSERTION_VIOLATION;
 #endif
     }
-  }*/
+  }
 
   bool renaming = !_isPredicate && (term->functor() == _symbol);
 

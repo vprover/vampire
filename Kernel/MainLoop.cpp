@@ -26,29 +26,15 @@
 #include "Lib/SmartPtr.hpp"
 #include "Lib/System.hpp"
 
-#include "Inferences/Condensation.hpp"
-#include "Inferences/DistinctEqualitySimplifier.hpp"
-#include "Inferences/FastCondensation.hpp"
-#include "Inferences/InferenceEngine.hpp"
-//#include "Inferences/InterpretedEvaluation.hpp"
-//#include "Inferences/TermAlgebraReasoning.hpp"
-#include "Inferences/TautologyDeletionISE.hpp"
-#include "Inferences/CombinatorDemodISE.hpp"
-#include "Inferences/CombinatorNormalisationISE.hpp"
-#include "Inferences/CNFOnTheFly.hpp"
-#include "Inferences/BoolSimp.hpp"
-#include "Inferences/CasesSimp.hpp"
-//#include "Inferences/EquationalTautologyRemoval.hpp"
-
-//#include "InstGen/IGAlgorithm.hpp"
+#include "InstGen/IGAlgorithm.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
-//#include "FMB/FiniteModelBuilder.hpp"
+#include "FMB/FiniteModelBuilder.hpp"
 
 #include "SAT/Z3MainLoop.hpp"
 
-//#include "Shell/BFNTMainLoop.hpp"
+#include "Shell/BFNTMainLoop.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/UIHelper.hpp"
 
@@ -59,9 +45,9 @@
 #include "MainLoop.hpp"
 
 using namespace Kernel;
-//using namespace InstGen;
+using namespace InstGen;
 using namespace Saturation;
-//using namespace FMB;
+using namespace FMB;
 
 void MainLoopResult::updateStatistics()
 {
@@ -70,8 +56,8 @@ void MainLoopResult::updateStatistics()
   env.statistics->terminationReason = terminationReason;
   env.statistics->refutation = refutation;
   env.statistics->saturatedSet = saturatedSet;
-  if(refutation && refutation->isClause() && env.statistics->maxInductionDepth==0){
-    env.statistics->maxInductionDepth = static_cast<Clause*>(refutation)->inductionDepth();
+  if(refutation) {
+    env.statistics->maxInductionDepth = refutation->inference().inductionDepth();
   }
 }
 
@@ -117,110 +103,33 @@ bool MainLoop::isRefutation(Clause* cl)
   return cl->isEmpty() && cl->noSplits();
 }
 
-/**
- * Create local clause simplifier for problem @c prb according to options @c opt
- */
-ImmediateSimplificationEngine* MainLoop::createISE(Problem& prb, const Options& opt)
-{
-  CALL("MainLoop::createImmediateSE");
-
-  CompositeISE* res=new CompositeISE();
-
-  /*if(prb.hasEquality() && opt.equationalTautologyRemoval()) {
-    res->addFront(new EquationalTautologyRemoval());
-  }*/
-
-  switch(opt.condensation()) {
-  case Options::Condensation::ON:
-    res->addFront(new Condensation());
-    break;
-  case Options::Condensation::FAST:
-    res->addFront(new FastCondensation());
-    break;
-  case Options::Condensation::OFF:
-    break;
-  }
-
-  if(env.options->combinatorySup()){
-    res->addFront(new CombinatorDemodISE());
-    res->addFront(new CombinatorNormalisationISE());
-  }
-
-  if(env.options->choiceReasoning()){
-    res->addFront(new ChoiceDefinitionISE());
-  }
-
-  if((prb.hasLogicalProxy() || prb.hasBoolVar() || prb.hasFOOL()) &&
-      env.statistics->higherOrder && !env.options->addProxyAxioms()){
-    if(env.options->cnfOnTheFly() == Options::CNFOnTheFly::EAGER){
-      res->addFrontMany(new ProxyISE());
-      res->addFront(new OrImpAndProxyISE());
-      res->addFront(new NotProxyISE());   
-      res->addFront(new EqualsProxyISE());   
-      res->addFront(new PiSigmaProxyISE());
-      //res->addFrontMany(new EagerClausificationISE());
-    } else {
-      res->addFront(new IFFXORRewriterISE());
-    }
-    res->addFront(new BoolSimp());
-  }
-
-  if (prb.hasFOOL() && opt.casesSimp() && !opt.FOOLParamodulation()) {
-    res->addFrontMany(new CasesSimp());
-  }
-
-  // Only add if there are distinct groups 
-  if(prb.hasEquality() && env.signature->hasDistinctGroups()) {
-    res->addFront(new DistinctEqualitySimplifier());
-  }
-  /*if(prb.hasEquality() && env.signature->hasTermAlgebras()) {
-    if (opt.termAlgebraInferences()) {
-      res->addFront(new DistinctnessISE());
-      res->addFront(new InjectivityISE());
-      res->addFront(new NegativeInjectivityISE());
-    }
-  }
-  if(prb.hasInterpretedOperations() || prb.hasInterpretedEquality()) {
-    res->addFront(new InterpretedEvaluation());
-  }*/
-  if(prb.hasEquality()) {
-    res->addFront(new TrivialInequalitiesRemovalISE());
-  }
-  res->addFront(new TautologyDeletionISE());
-  if(env.options->newTautologyDel()){
-    res->addFront(new TautologyDeletionISE2());
-  }
-  res->addFront(new DuplicateLiteralRemovalISE());
-
-  return res;
-}
 
 MainLoop* MainLoop::createFromOptions(Problem& prb, const Options& opt)
 {
   CALL("MainLoop::createFromOptions");
 
-  /*if(opt.bfnt()) {
+  if(opt.bfnt()) {
     return new BFNTMainLoop(prb, opt);
-  }*/
+  }
 
 #if VZ3
   bool isComplete = false; // artificially prevent smtForGround from running
 
-  /*if(isComplete && opt.smtForGround() && prb.getProperty()->allNonTheoryClausesGround() 
+  if(isComplete && opt.smtForGround() && prb.getProperty()->allNonTheoryClausesGround() 
                         && prb.getProperty()->hasInterpretedOperations()){
     return new SAT::Z3MainLoop(prb,opt);
-  }*/
+  }
 #endif
 
   MainLoop* res;
 
   switch (opt.saturationAlgorithm()) {
-  /*case Options::SaturationAlgorithm::INST_GEN:
+  case Options::SaturationAlgorithm::INST_GEN:
     res = new IGAlgorithm(prb, opt);
     break;
   case Options::SaturationAlgorithm::FINITE_MODEL_BUILDING:
     res = new FiniteModelBuilder(prb,opt);
-    break;*/
+    break;
 #if VZ3
   case Options::SaturationAlgorithm::Z3:
     if(!isComplete || !prb.getProperty()->allNonTheoryClausesGround()){

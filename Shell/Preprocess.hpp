@@ -51,7 +51,7 @@ public:
   {}
   void preprocess(Problem& prb);
 #if GNUMP
- // void preprocess(ConstraintRCList*& constraints);
+  void preprocess(ConstraintRCList*& constraints);
 #endif
 
   void preprocess1(Problem& prb);

@@ -42,9 +42,10 @@ TermAlgebraConstructor::TermAlgebraConstructor(unsigned functor, unsigned discri
   ASS_EQ(_type->arity(), destructors.size());
 }
 
+//This is only safe for monomorphic term algebras AYB
 unsigned TermAlgebraConstructor::arity()               { return _type->arity();  }
-unsigned TermAlgebraConstructor::argSort(unsigned ith) { return _type->arg(ith); }
-unsigned TermAlgebraConstructor::rangeSort()           { return _type->result(); }
+TermList TermAlgebraConstructor::argSort(unsigned ith) { return _type->arg(ith); }
+TermList TermAlgebraConstructor::rangeSort()           { return _type->result(); }
 
 bool TermAlgebraConstructor::recursive()
 {
@@ -66,7 +67,7 @@ Lib::vstring TermAlgebraConstructor::discriminatorName()
   return "$is" + env.signature->functionName(_functor);
 }
 
-TermAlgebra::TermAlgebra(unsigned sort,
+TermAlgebra::TermAlgebra(TermList sort,
                          unsigned n,
                          TermAlgebraConstructor** constrs,
                          bool allowsCyclicTerms) :
@@ -128,7 +129,7 @@ bool TermAlgebra::infiniteDomain()
 }
   
 Lib::vstring TermAlgebra::getSubtermPredicateName() {
-  return "$subterm" + env.sorts->sortName(_sort);
+  return "$subterm" + _sort.toString();
 }
 
 unsigned TermAlgebra::getSubtermPredicate() {
@@ -139,8 +140,9 @@ unsigned TermAlgebra::getSubtermPredicate() {
 
   if (added) {
     // declare a binary predicate subterm
-    Stack<unsigned> args;
-    args.push(_sort); args.push(_sort);
+    TermStack args;
+    args.push(_sort); 
+    args.push(_sort);
     env.signature->getPredicate(s)->setType(OperatorType::getPredicateType(args.size(),args.begin()));
   }
 

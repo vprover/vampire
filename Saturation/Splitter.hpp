@@ -200,9 +200,12 @@ public:
   void onAllProcessed();
   bool handleEmptyClause(Clause* cl);
 
-  SATLiteral getLiteralFromName(SplitLevel compName) const;
   SplitLevel getNameFromLiteral(SATLiteral lit) const;
   Unit* getDefinitionFromName(SplitLevel compName) const;
+
+  static vstring splitsToString(SplitSet* splits);
+  static SATLiteral getLiteralFromName(SplitLevel compName);
+  static vstring getFormulaStringFromName(SplitLevel compName, bool negated = false);
 
   bool isUsedName(SplitLevel name) const {
     CALL("Splitter::isUsedName");
@@ -280,6 +283,10 @@ private:
   Stack<SplitRecord*> _db;
   DHMap<Clause*,SplitLevel> _compNames;
 
+  /**
+   * Definitions of ground components C and ~C are shared and placed at the slot of C.
+   * (So the key here is never odd!)
+   **/
   DHMap<SplitLevel,Unit*> _defs;
   
   //state variable used for flushing:  

@@ -58,12 +58,8 @@ FormulaUnit* SimplifyFalseTrue::simplify (FormulaUnit* unit)
     return unit;
   }
 
-  FormulaUnit* res = new FormulaUnit(g,
-			 new Inference1(Inference::REDUCE_FALSE_TRUE,unit),
-			 unit->inputType());
-  if(unit->included()) {
-    res->markIncluded();
-  }
+  FormulaUnit* res = new FormulaUnit(g,FormulaTransformation(InferenceRule::REDUCE_FALSE_TRUE,unit));
+
   if (env.options->showPreprocessing()) {
     env.beginOutput();
     env.out() << "[PP] simplify in: " << unit->toString() << std::endl;
@@ -370,7 +366,7 @@ TermList SimplifyFalseTrue::simplify(TermList ts)
           }
         }
       }
-      /*case Term::SF_ITE: {
+      case Term::SF_ITE: {
         Formula* condition  = simplify(sd->getCondition());
 
         #define BRANCH unsigned
@@ -399,7 +395,7 @@ TermList SimplifyFalseTrue::simplify(TermList ts)
           if C then A else 1  to ~C | A
           if C then A else 0  to  C & A
          */
-    /*    for (BRANCH branch : { THEN, ELSE }) {
+        for (BRANCH branch : { THEN, ELSE }) {
           bool isTerm = branches[branch].isTerm();
           isTrue[branch]  = isTerm && env.signature->isFoolConstantSymbol(true,  branches[branch].term()->functor());
           isFalse[branch] = isTerm && env.signature->isFoolConstantSymbol(false, branches[branch].term()->functor());
@@ -429,7 +425,7 @@ TermList SimplifyFalseTrue::simplify(TermList ts)
             (branches[ELSE] == *term->nthArgument(ELSE))) {
           return ts;
         }
-        unsigned sort = sd->getSort();
+        TermList sort = sd->getSort();
         return TermList(Term::createITE(condition, branches[THEN], branches[ELSE], sort));
       }
       case Term::SF_LET: {
@@ -440,7 +436,7 @@ TermList SimplifyFalseTrue::simplify(TermList ts)
         if ((binding == sd->getBinding()) && (body == *term->nthArgument(0))) {
           return ts;
         }
-        unsigned sort = sd->getSort();
+        TermList sort = sd->getSort();
         return TermList(Term::createLet(functor, variables, binding, body, sort));
       }
       case Term::SF_LET_TUPLE: {
@@ -451,7 +447,7 @@ TermList SimplifyFalseTrue::simplify(TermList ts)
         if ((binding == sd->getBinding()) && (body == *term->nthArgument(0))) {
           return ts;
         }
-        unsigned sort = sd->getSort();
+        TermList sort = sd->getSort();
         return TermList(Term::createLet(functor, symbols, binding, body, sort));
       }
       case Term::SF_TUPLE: {
@@ -462,7 +458,7 @@ TermList SimplifyFalseTrue::simplify(TermList ts)
         }
         ASS_REP(simplifiedTupleTerm.isTerm(), simplifiedTupleTerm.toString());
         return TermList(Term::createTuple(simplifiedTupleTerm.term()));
-      }*/
+      }
       default:
         ASSERTION_VIOLATION_REP(term->toString());
     }

@@ -65,13 +65,6 @@ const unsigned Term::SF_FORMULA;
 const unsigned Term::SF_LAMBDA;
 const unsigned Term::SPECIAL_FUNCTOR_LOWER_BOUND;
 
-/*Term* Term::SUPER = Term::createConstant("$tType");
-Term* Term::BOOLN = Term::createConstant(env.signature->getBoolSortSym());
-Term* Term::DEFAULT = Term::createConstant(env.signature->getDefaultSortSym());
-Term* Term::INTEGER = Term::createConstant(env.signature->getIntSortSym());
-Term* Term::RATIONAL = Term::createConstant(env.signature->getRatSortSym());
-Term* Term::REAL = Term::createConstant(env.signature->getRealSortSym());*/
-
 /**
  * Allocate enough bytes to fit a term of a given arity.
  * @since 01/05/2006 Bellevue
@@ -319,6 +312,28 @@ bool Term::containsSubterm(TermList trm)
     }
     ts=stack.pop();
   }
+}
+
+size_t Term::countSubtermOccurrences(TermList subterm) {
+  CALL("Term::countSubtermOccurrences");
+
+  size_t res = 0;
+
+  unsigned stWeight = subterm.isTerm() ? subterm.term()->weight() : 1;
+  SubtermIterator stit(this);
+  while(stit.hasNext()) {
+    TermList t = stit.next();
+    if(t==subterm) {
+      res++;
+      stit.right();
+    }
+    else if(t.isTerm()) {
+      if(t.term()->weight()<=stWeight) {
+        stit.right();
+      }
+    }
+  }
+  return res;
 }
 
 bool TermList::containsAllVariablesOf(TermList t)
@@ -932,7 +947,7 @@ Term* Term::createNonShared(unsigned function, unsigned arity, TermList* args)
  * Create a (condition ? thenBranch : elseBranch) expression
  * and return the resulting term
  */
-Term* Term::createITE(Formula * condition, TermList thenBranch, TermList elseBranch, unsigned branchSort)
+Term* Term::createITE(Formula * condition, TermList thenBranch, TermList elseBranch, TermList branchSort)
 {
   CALL("Term::createITE");
   Term* s = new(2,sizeof(SpecialTermData)) Term;
@@ -951,7 +966,7 @@ Term* Term::createITE(Formula * condition, TermList thenBranch, TermList elseBra
  * Create (let lhs <- rhs in t) expression and return
  * the resulting term
  */
-Term* Term::createLet(unsigned functor, IntList* variables, TermList binding, TermList body, unsigned bodySort)
+Term* Term::createLet(unsigned functor, IntList* variables, TermList binding, TermList body, TermList bodySort)
 {
   CALL("Term::createLet");
 
@@ -985,21 +1000,21 @@ Term* Term::createLet(unsigned functor, IntList* variables, TermList binding, Te
  * Create (let [a, b, c] <- rhs in t) expression and return
  * the resulting term
  */
-/*Term* Term::createTupleLet(unsigned tupleFunctor, IntList* symbols, TermList binding, TermList body, unsigned bodySort)
+Term* Term::createTupleLet(unsigned tupleFunctor, IntList* symbols, TermList binding, TermList body, TermList bodySort)
 {
   CALL("Term::createTupleLet");
 
 #if VDEBUG
   Signature::Symbol* tupleSymbol = env.signature->getFunction(tupleFunctor);
   ASS_EQ(tupleSymbol->arity(), IntList::length(symbols));
-  ASS_REP(env.sorts->isOfStructuredSort(tupleSymbol->fnType()->result(), Sorts::StructuredSort::TUPLE), tupleFunctor);
+  ASS_REP(SortHelper::isTupleSort(tupleSymbol->fnType()->result()), tupleFunctor);
 
   Set<pair<int,bool> > distinctSymbols;
   IntList::Iterator sit(symbols);
   unsigned arg = 0;
   while (sit.hasNext()) {
     unsigned symbol = (unsigned)sit.next();
-    bool isPredicate = tupleSymbol->fnType()->arg(arg) == Sorts::SRT_BOOL;
+    bool isPredicate = tupleSymbol->fnType()->arg(arg) == Term::boolSort();
     if (!distinctSymbols.contains(make_pair(symbol, isPredicate))) {
       distinctSymbols.insert(make_pair(symbol, isPredicate));
     } else {
@@ -1019,7 +1034,7 @@ Term* Term::createLet(unsigned functor, IntList* variables, TermList binding, Te
   s->getSpecialData()->_letTupleData.sort = bodySort;
   s->getSpecialData()->_letTupleData.binding = binding.content();
   return s;
-} */
+} 
 
 /**
  * Create a formula expression and return
@@ -1064,7 +1079,7 @@ Term* Term::createLambda(TermList lambdaExp, IntList* vars, SList* sorts, TermLi
   return s;
 } 
 
-/*Term* Term::createTuple(unsigned arity, unsigned* sorts, TermList* elements) {
+Term* Term::createTuple(unsigned arity, TermList* sorts, TermList* elements) {
   CALL("Term::createTuple");
   unsigned tupleFunctor = Theory::tuples()->getFunctor(arity, sorts);
   Term* tupleTerm = Term::create(tupleFunctor, arity, elements);
@@ -1077,7 +1092,7 @@ Term* Term::createTuple(Term* tupleTerm) {
   s->makeSymbol(SF_TUPLE, 0);
   s->getSpecialData()->_tupleData.term = tupleTerm;
   return s;
-}*/
+}
 
 /** Create a new complex term, copy from @b t its function symbol and arity.
  *  Initialize its arguments by a dummy special variable.
@@ -1129,20 +1144,19 @@ Term* Term::create2(unsigned fn, TermList arg1, TermList arg2)
  * Create singleton FOOL constants
  */ 
 Term* Term::foolTrue(){
-    static Term* _foolTrue = 0;
-    if(!_foolTrue){ _foolTrue = createConstant(env.signature->getFoolConstantSymbol(true));}
-    return _foolTrue;
-  }
-Term* Term::foolFalse(){
-    static Term* _foolFalse = 0;
-    if(!_foolFalse){ _foolFalse = createConstant(env.signature->getFoolConstantSymbol(false));}
-    return _foolFalse;
-  }
+  static Term* _foolTrue = 0;
+  if(!_foolTrue){ _foolTrue = createConstant(env.signature->getFoolConstantSymbol(true));}
+  return _foolTrue;
+}
 
+Term* Term::foolFalse(){
+  static Term* _foolFalse = 0;
+  if(!_foolFalse){ _foolFalse = createConstant(env.signature->getFoolConstantSymbol(false));}
+  return _foolFalse;
+}
 
 TermList Term::superSort(){
   CALL("Term::superSort");
-
   static Term* _super = 0;
   if(!_super){ _super = createConstant("$tType"); }
   return TermList(_super);
@@ -1150,48 +1164,65 @@ TermList Term::superSort(){
 
 TermList Term::defaultSort(){
   CALL("Term::defaultSort");
-
   static Term* _default = 0;
-  if(!_default){ _default = createConstant(env.signature->getDefaultSort()); }
+  if(!_default){ 
+    _default = createConstant(env.signature->getDefaultSort()); 
+    env.sorts->addSort(TermList(_default));
+  }
   return TermList(_default); 
 }
   
 TermList Term::boolSort(){
   CALL("Term::boolSort");
-
   static Term* _bool = 0;
-  if(!_bool){ _bool = createConstant(env.signature->getBoolSort()); }
+  if(!_bool){ 
+    _bool = createConstant(env.signature->getBoolSort()); 
+     env.sorts->addSort(TermList(_bool));
+  }
   return TermList(_bool); 
 }
 
 TermList Term::intSort(){
+  CALL("Term::intSort");
   static Term* _int = 0;
-  if(!_int){ _int = createConstant(env.signature->getIntSort()); }
+  if(!_int){ 
+    _int = createConstant(env.signature->getIntSort()); 
+    env.sorts->addSort(TermList(_int));
+  }
   return TermList(_int); 
 }
  
 TermList Term::realSort(){
+  CALL("Term::realSort");
   static Term* _real = 0;
-  if(!_real){ _real = createConstant(env.signature->getRealSort()); }
+  if(!_real){ 
+    _real = createConstant(env.signature->getRealSort()); 
+    env.sorts->addSort(TermList(_real));
+  }
   return TermList(_real); 
 }
 
 TermList Term::rationalSort(){
+  CALL("Term::rationalSort");
   static Term* _rat = 0;
-  if(!_rat){ _rat = createConstant(env.signature->getRatSort()); }
+  if(!_rat){ 
+    _rat = createConstant(env.signature->getRatSort()); 
+    env.sorts->addSort(TermList(_rat));
+  }
   return TermList(_rat); 
 }
 
 TermList Term::arrowSort(TermList s1, TermList s2){
-   CALL("Term::arrowSort/1");
-   unsigned arrow = env.signature->getArrowConstructor();
-   return TermList(create2(arrow, s1, s2));
+  CALL("Term::arrowSort/1");
+  unsigned arrow = env.signature->getArrowConstructor();
+  return TermList(create2(arrow, s1, s2));
+  //Do not need to add to sorts as that is only for FMB
+  //FMB and higher-order never combine.
 }
 
 TermList Term::arrowSort(TermList s1, TermList s2, TermList s3){
-   CALL("Term::arrowSort/2");
-   
-   return arrowSort(s1, arrowSort(s2, s3));
+  CALL("Term::arrowSort/2"); 
+  return arrowSort(s1, arrowSort(s2, s3));
 }
 
 TermList Term::arrowSort(TermStack& domSorts, TermList range)
@@ -1205,6 +1236,25 @@ TermList Term::arrowSort(TermStack& domSorts, TermList range)
   }
   return res;
 }
+
+TermList Term::arraySort(TermList indexSort, TermList innerSort)
+{
+  CALL("Term::arraySort");
+  unsigned array = env.signature->getArrayConstructor();
+  TermList sort = TermList(create2(array, indexSort, innerSort));
+  env.sorts->addSort(sort);
+  return sort;
+}
+
+TermList Term::tupleSort(unsigned arity, TermList* sorts)
+{
+  CALL("Term::tupleSort");
+  unsigned tuple = env.signature->getTupleConstructor(arity);
+  TermList sort = TermList(create(tuple, arity, sorts));
+  env.sorts->addSort(sort);
+  return sort;
+}
+
 
 /**
  * Return the list of all free variables of the term.
@@ -1634,3 +1684,49 @@ Literal* Literal::flattenOnArgument(const Literal* lit,int n)
 
   return env.sharing->insert(newLiteral);
 } // Literal::flattenOnArgument
+
+bool Kernel::positionIn(TermList& subterm,TermList* term,vstring& position)
+{
+  CALL("positionIn(TermList)");
+   //cout << "positionIn " << subterm.toString() << " in " << term->toString() << endl;
+
+  if(!term->isTerm()){
+    if(subterm.isTerm()) return false;
+    if (term->var()==subterm.var()){
+      position = "1";
+      return true;
+    }
+    return false;
+  }
+  return positionIn(subterm,term->term(),position);
+}
+
+bool Kernel::positionIn(TermList& subterm,Term* term,vstring& position)
+{
+  CALL("positionIn(Term)");
+  //cout << "positionIn " << subterm.toString() << " in " << term->toString() << endl;
+
+  if(subterm.isTerm() && subterm.term()==term){
+    position = "1";
+    return true;
+  }
+  if(term->arity()==0) return false;
+
+  unsigned pos=1;
+  TermList* ts = term->args();
+  while(true){
+    if(*ts==subterm){
+      position=Lib::Int::toString(pos);
+      return true;
+    }
+    if(positionIn(subterm,ts,position)){
+      position = Lib::Int::toString(pos) + "." + position;
+      return true;
+    }
+    pos++;
+    ts = ts->next();
+    if(ts->isEmpty()) break;
+  }
+
+  return false;
+}

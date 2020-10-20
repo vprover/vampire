@@ -44,7 +44,7 @@ public:
 
   SymIdIterator extractSymIds(Unit* u);
 
-  void decodeSymId(SymId s, bool& pred, unsigned& functor);
+  static void decodeSymId(SymId s, bool& pred, unsigned& functor);
   bool validSymId(SymId s);
 private:
   void addSymIds(Term* term,Stack<SymId>& ids);
@@ -75,10 +75,18 @@ class SineSelector
 {
 public:
   SineSelector(const Options& opt);
-  SineSelector(bool onIncluded, float tolerance, unsigned depthLimit, unsigned genThreshold=0);
+  SineSelector(bool onIncluded, float tolerance, unsigned depthLimit,
+      unsigned genThreshold=0, bool justForSineLevels=false);
 
   bool perform(UnitList*& units); // returns true iff removed something
   void perform(Problem& prb);
+
+  ~SineSelector() {
+    DArray<UnitList*>::Iterator it(_def);
+    while (it.hasNext()) {
+      UnitList::destroy(it.next());
+    }
+  }
 private:
   void init();
 
@@ -89,6 +97,8 @@ private:
   unsigned _genThreshold;
   float _tolerance;
   unsigned _depthLimit;
+
+  bool _justForSineLevels;
 
   /** Stored the D-relation */
   DArray<UnitList*> _def;

@@ -134,7 +134,6 @@ struct PredicateDefinition::PredData
       enqueuedForReplacement=true;
       if (env.options->showPreprocessing()) {
         env.beginOutput();
- //       ASSERTION_VIOLATION;
         env.out() << "[PP] " << stateToString() << " to be replaced by " 
                 << ((nocc==0) ? "$false" : "$true") << std::endl;
         env.endOutput();
@@ -410,8 +409,7 @@ FormulaUnit* PredicateDefinition::replacePurePredicates(FormulaUnit* u)
 {
   Formula* resf=replacePurePredicates(u->formula());
   if(resf!=u->formula()) {
-    return new FormulaUnit(resf, new Inference1(Inference::PURE_PREDICATE_REMOVAL, u),
-	    u->inputType());
+    return new FormulaUnit(resf,NonspecificInference1(InferenceRule::PURE_PREDICATE_REMOVAL, u));
   }
   else {
     return u;
@@ -433,7 +431,7 @@ Clause* PredicateDefinition::replacePurePredicates(Clause* cl)
 
 Unit* PredicateDefinition::replacePurePredicates(Unit* u)
 {
-  if(u->isGoal() && env.options->ignoreConjectureInPreprocessing()){
+  if(u->derivedFromGoal() && env.options->ignoreConjectureInPreprocessing()){
     return u;
   }
   if(u->isClause()) {
@@ -732,14 +730,12 @@ FormulaUnit* PredicateDefinition::makeImplFromDef(FormulaUnit* def, unsigned pre
   } else {
     resf0=resf;
   }
-  return new FormulaUnit(resf0,
-	  new Inference1(Inference::UNUSED_PREDICATE_DEFINITION_REMOVAL, def),
-	  def->inputType());
+  return new FormulaUnit(resf0,NonspecificInference1(InferenceRule::UNUSED_PREDICATE_DEFINITION_REMOVAL, def));
 }
 
 void PredicateDefinition::scan(Unit* u)
 {
-  if(!(u->isGoal() && env.options->ignoreConjectureInPreprocessing())){
+  if(!(u->derivedFromGoal() && env.options->ignoreConjectureInPreprocessing())){
     if(u->isClause()) {
       scan(static_cast<Clause*>(u));
     } else {
@@ -809,7 +805,7 @@ void PredicateDefinition::count (Clause* cl, int add)
     int pred = l->functor();
     _preds[pred].add(l->isPositive() ? 1 : -1, add, this);
     if(add==1) {
-      _preds[pred].containingUnits.insert(cl);
+	_preds[pred].containingUnits.insert(cl);
     }
   }
 }
@@ -823,7 +819,6 @@ void PredicateDefinition::count (Formula* f,int polarity,int add, Unit* unit)
     {
       Literal* l=f->literal();
       int pred = l->functor();
-      //cout << "the literal is " + l->toString() << " and it is pos " << l->isPositive() << endl; 
       _preds[pred].add(l->isPositive() ? polarity : -polarity, add, this);
       if(add==1) {
         _preds[pred].containingUnits.insert(unit);
@@ -901,7 +896,7 @@ void PredicateDefinition::count (TermList ts,int add, Unit* unit)
         count(sd->getFormula(), 0, add, unit);
         break;
 
-     /* case Term::SF_ITE:
+      case Term::SF_ITE:
         count(sd->getCondition(), 0, add, unit);
         break;
 
@@ -912,7 +907,7 @@ void PredicateDefinition::count (TermList ts,int add, Unit* unit)
 
       case Term::SF_TUPLE:
         count(TermList(sd->getTupleTerm()), add, unit);
-        break; */
+        break;
 
       default:
         ASSERTION_VIOLATION;

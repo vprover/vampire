@@ -154,7 +154,7 @@ private:
 
 struct Superposition::ForwardResultFn
 {
-  ForwardResultFn(Clause* cl, Limits* limits, Superposition& parent) : _cl(cl), _limits(limits), _parent(parent) {}
+  ForwardResultFn(Clause* cl, PassiveClauseContainer* passiveClauseContainer, Superposition& parent) : _cl(cl), _passiveClauseContainer(passiveClauseContainer), _parent(parent) {}
   DECL_RETURN_TYPE(Clause*);
   OWN_RETURN_TYPE operator()(pair<pair<Literal*, TermList>, TermQueryResult> arg)
   {
@@ -166,14 +166,14 @@ struct Superposition::ForwardResultFn
   }
 private:
   Clause* _cl;
-  Limits* _limits;
+  PassiveClauseContainer* _passiveClauseContainer;
   Superposition& _parent;
 };
 
 
 struct Superposition::BackwardResultFn
 {
-  BackwardResultFn(Clause* cl, Limits* limits, Superposition& parent) : _cl(cl), _limits(limits), _parent(parent) {}
+  BackwardResultFn(Clause* cl, PassiveClauseContainer* passiveClauseContainer, Superposition& parent) : _cl(cl), _passiveClauseContainer(passiveClauseContainer), _parent(parent) {}
   DECL_RETURN_TYPE(Clause*);
   OWN_RETURN_TYPE operator()(pair<pair<Literal*, TermList>, TermQueryResult> arg)
   {
@@ -189,7 +189,7 @@ struct Superposition::BackwardResultFn
   }
 private:
   Clause* _cl;
-  Limits* _limits;
+  PassiveClauseContainer* _passiveClauseContainer;
   Superposition& _parent;
 };
 
@@ -197,7 +197,7 @@ private:
 ClauseIterator Superposition::generateClauses(Clause* premise)
 {
   CALL("Superposition::generateClauses");
-  Limits* limits=_salg->getLimits();
+  PassiveClauseContainer* passiveClauseContainer = _salg->getPassiveClauseContainer();
 
   //cout << "SUPERPOSITION with " << premise->toString() << endl;
 
@@ -218,14 +218,14 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
   auto itf3 = getMapAndFlattenIterator(itf2,ApplicableRewritesFn(_lhsIndex,withConstraints));
 
   //Perform forward superposition
-  auto itf4 = getMappingIterator(itf3,ForwardResultFn(premise, limits, *this));
+  auto itf4 = getMappingIterator(itf3,ForwardResultFn(premise, passiveClauseContainer, *this));
 
   auto itb1 = premise->getSelectedLiteralIterator();
   auto itb2 = getMapAndFlattenIterator(itb1,EqHelper::SuperpositionLHSIteratorFn(_salg->getOrdering(), _salg->getOptions()));
   auto itb3 = getMapAndFlattenIterator(itb2,RewritableResultsFn(_subtermIndex,withConstraints));
 
   //Perform backward superposition
-  auto itb4 = getMappingIterator(itb3,BackwardResultFn(premise, limits, *this));
+  auto itb4 = getMappingIterator(itb3,BackwardResultFn(premise, passiveClauseContainer, *this));
 
   // Add the results of forward and backward together
   auto it5 = getConcatenatedIterator(itf4,itb4);
@@ -269,26 +269,6 @@ bool Superposition::checkClauseColorCompatibility(Clause* eqClause, Clause* rwCl
   }
   env.statistics->inferencesSkippedDueToColors++;
   return false;
-}
-
-/**
- * Return weight limit for the resulting clause, or -1 if there is no limit.
- */
-int Superposition::getWeightLimit(Clause* eqClause, Clause* rwClause, Limits* limits)
-{
-  CALL("Superposition::getWeightLimit");
-
-  unsigned newAge=Int::max(rwClause->age(),eqClause->age())+1;
-
-  if(!limits->ageLimited() || newAge <= limits->ageLimit() || !limits->weightLimited()) {
-    return -1;
-  }
-  bool isNonGoal=!rwClause->isGoal() && !eqClause->isGoal();
-  if(isNonGoal) {
-    return limits->nonGoalWeightLimit();
-  } else {
-    return limits->weightLimit();
-  }
 }
 
 /**
@@ -413,7 +393,7 @@ bool Superposition::earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,
 Clause* Superposition::performSuperposition(
     Clause* rwClause, Literal* rwLit, TermList rwTerm,
     Clause* eqClause, Literal* eqLit, TermList eqLHS,
-    ResultSubstitutionSP subst, bool eqIsResult, Limits* limits,
+    ResultSubstitutionSP subst, bool eqIsResult, PassiveClauseContainer* passiveClauseContainer,
     UnificationConstraintStackSP constraints, bool isTypeSub)
 {
   CALL("Superposition::performSuperposition");
@@ -470,8 +450,6 @@ Clause* Superposition::performSuperposition(
   unsigned eqLength = eqClause->length();
   unsigned conLength = hasConstraints ? constraints->size() : 0;
            conLength += cLength;
-
-  int newAge=Int::max(rwClause->age(),eqClause->age())+1;
 
   TermList tgtTerm = EqHelper::getOtherEqualitySide(eqLit, eqLHS);
 
@@ -555,7 +533,7 @@ Clause* Superposition::performSuperposition(
     vstring eqPlace = Lib::Int::toString(eqClause->getLiteralPosition(eqLit));
 
     vstring rwPos="_";
-    ALWAYS(Inference::positionIn(rwTerm,rwLit,rwPos));
+    ALWAYS(Kernel::positionIn(rwTerm,rwLit,rwPos));
     vstring eqPos = "("+eqPlace+").2";
     rwPos = "("+rwPlace+")."+rwPos;
 
@@ -568,8 +546,6 @@ Clause* Superposition::performSuperposition(
 
     //cout << extra << endl;
     //NOT_IMPLEMENTED;
-
-    inf->setExtra(extra);
   }
 
   bool afterCheck = getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete();
@@ -586,9 +562,9 @@ Clause* Superposition::performSuperposition(
         goto construction_fail;
       }
 
-      if(weightLimit!=-1) {
+      if(needsToFulfilWeightLimit) {
         weight+=currAfter->weight();
-        if(weight>weightLimit) {
+        if(!passiveClauseContainer->fulfilsWeightLimit(weight, numPositiveLiteralsLowerBound, res->inference())) {
           RSTAT_CTR_INC("superpositions skipped for weight limit while constructing other literals");
           env.statistics->discardedNonRedundantClauses++;
           goto construction_fail;
@@ -622,9 +598,9 @@ Clause* Superposition::performSuperposition(
         if(EqHelper::isEqTautology(currAfter)) {
           goto construction_fail;
         }
-        if(weightLimit!=-1) {
+        if(needsToFulfilWeightLimit) {
           weight+=currAfter->weight();
-          if(weight>weightLimit) {
+          if(!passiveClauseContainer->fulfilsWeightLimit(weight, numPositiveLiteralsLowerBound, res->inference())) {
             RSTAT_CTR_INC("superpositions skipped for weight limit while constructing other literals");
             env.statistics->discardedNonRedundantClauses++;
             goto construction_fail;
@@ -695,16 +671,13 @@ Clause* Superposition::performSuperposition(
     }
   }*/
 
-  if(weightLimit!=-1 && weight>weightLimit) {
+  if(needsToFulfilWeightLimit && !passiveClauseContainer->fulfilsWeightLimit(weight, numPositiveLiteralsLowerBound, res->inference())) {
     RSTAT_CTR_INC("superpositions skipped for weight limit after the clause was built");
     env.statistics->discardedNonRedundantClauses++;
     construction_fail:
     res->destroy();
     return 0;
   }
-  ASS(weightLimit==-1 || weight<=weightLimit);
-
-  res->setAge(newAge);
 
   if(!hasConstraints){
     if(rwClause==eqClause) {

@@ -272,13 +272,13 @@ bool GeneralSplitting::apply(Clause*& cl, UnitList*& resultStack)
     env.signature->getPredicate(namingFun)->setType(ot);
   }
 
-  /*if(mdvColor!=COLOR_TRANSPARENT && otherColor!=COLOR_TRANSPARENT) {
+  if(mdvColor!=COLOR_TRANSPARENT && otherColor!=COLOR_TRANSPARENT) {
     ASS_EQ(mdvColor, otherColor);
-    env.signature->getPredicate(namingPred)->addColor(mdvColor);
+    env.signature->getPredicate(namingFun)->addColor(mdvColor);
   }
   if(env.colorUsed && cl->skip()) {
-    env.signature->getPredicate(namingPred)->markSkip();
-  }*/
+    env.signature->getPredicate(namingFun)->markSkip();
+  }
 
   Literal* pnLit;
   Literal* nnLit;
@@ -295,16 +295,13 @@ bool GeneralSplitting::apply(Clause*& cl, UnitList*& resultStack)
   otherLits.push(nnLit);
   mdvLits.push(pnLit);
 
-  Clause* mdvCl=Clause::fromStack(mdvLits, cl->inputType(), new Inference(Inference::GENERAL_SPLITTING_COMPONENT));
+  Clause* mdvCl=Clause::fromStack(mdvLits, NonspecificInference0(cl->inputType(),InferenceRule::GENERAL_SPLITTING_COMPONENT));
   mdvCl->setAge(cl->age());
   UnitList::push(mdvCl, resultStack);
 
   InferenceStore::instance()->recordSplittingNameLiteral(mdvCl, pnLit);
-  if(env.clausePriorities){
-    env.clausePriorities->insert(mdvCl,cl->getPriority());
-  }
 
-  Clause* otherCl=Clause::fromStack(otherLits, cl->inputType(), new Inference2(Inference::GENERAL_SPLITTING, cl, mdvCl));
+  Clause* otherCl=Clause::fromStack(otherLits, NonspecificInference2(InferenceRule::GENERAL_SPLITTING, cl, mdvCl));  
   otherCl->setAge(cl->age());
 
   cl=otherCl;

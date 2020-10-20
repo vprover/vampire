@@ -88,6 +88,13 @@ public:
   bool isHolAxiomsDescendant() const { return _inference.isHolAxiomsDescendant(); }
   bool isTheoryAxiom() const { return _inference.isTheoryAxiom(); }
 
+  /** return true if there is an input node in the deriviation  */
+  bool derivedFromInput() const;
+  /** return true if there is a node in the derivation that is derivedFromGoal
+      this is a current workaround for the fact that GS doesn't always set the
+      correct inputType **/
+  bool derivedFromGoalCheck() const;
+
   unsigned char getSineLevel() const { return _inference.getSineLevel(); }
   /** true if the unit is read from a TPTP included file  */
   bool included() const { return _inference.included(); }

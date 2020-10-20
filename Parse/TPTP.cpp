@@ -3232,7 +3232,7 @@ TermList TPTP::createFunctionApplication(vstring name, unsigned arity)
     if(i < type->typeArgsArity()){
       if(ssSort != Term::superSort()){
         USER_ERROR("The sort " + ssSort.toString() + " of type argument " + ss.toString() + " "
-                   "is not $ttype as madated by TFF1");
+                   "is not $ttype as mandated by TF1");
       }
     } else {
       static RobSubstitution subst;
@@ -3250,6 +3250,10 @@ TermList TPTP::createFunctionApplication(vstring name, unsigned arity)
     t = env.sharing->insert(t);
   }
   TermList ts(t);
+  TermList resultSort = type->result();
+  if(resultSort == Term::superSort()){
+    env.sorts->addSort(ts);
+  }
   return ts;
 }
 

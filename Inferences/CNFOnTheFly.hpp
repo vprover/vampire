@@ -39,10 +39,10 @@
 namespace Inferences {
 using namespace Indexing;
 
-static Clause* replaceLits(Clause *c, Literal *a, Literal *b, Inference *inf, Literal *d = 0, Literal* e = 0);
+static Clause* replaceLits(Clause *c, Literal *a, Literal *b, InferenceRule r, bool incAge, Literal *d = 0, Literal* e = 0);
 static TermList sigmaRemoval(TermList sigmaTerm, TermList expsrt);
 static TermList piRemoval(TermList piTerm, Clause* clause, TermList expsrt);
-static Inference::Rule convert(Signature::Proxy cnst);
+static InferenceRule convert(Signature::Proxy cnst);
 static ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaIndex* index = 0);
 
 
@@ -111,7 +111,7 @@ private:
   SkolemisingFormulaIndex* _formulaIndex;
 };
 
-class NotProxyISE
+/*class NotProxyISE
   : public ImmediateSimplificationEngine
 {
 public:
@@ -165,7 +165,7 @@ class ProxyISE
     USE_ALLOCATOR(ProxyISE);
     ClauseIterator simplifyMany(Clause* c);
     Clause* simplify(Clause* c){ NOT_IMPLEMENTED; }
-};
+};*/
 
 
 }

@@ -91,12 +91,17 @@ private:
                                TermList& functionApplication, Formula*& predicateApplication);
   // Shortcuts for buildApplication
   static TermList buildFunctionApplication(unsigned function, Formula::VarList* vars);
+  //NOT used, remove? AYB
   static Formula* buildPredicateApplication(unsigned predicate, Formula::VarList* vars);
 
   // Depending on the context, build an equivalence or an equality
   // between pairs of arguments
-  // static Formula* buildEq(Context context, Formula* lhsFormula, Formula* rhsFormula,
-  //                                         TermList lhsTerm, TermList rhsTerm, unsigned termSort);
+  static Formula* buildEq(Context context, Formula* lhsFormula, Formula* rhsFormula,
+                                           TermList lhsTerm, TermList rhsTerm, TermList termSort);
+  
+  // Creates a stack of sorts for the given variables, using the sorting
+  // context of the current formula
+  TermStack collectSorts(Formula::VarList* vars);
 
   // Converts a boolean term t to a formula 't = true'
   static Formula* toEquality(TermList booleanTerm);
@@ -104,16 +109,13 @@ private:
   // Introduces a fresh predicate or function (depending on the context) symbol
   // with given arguments and result sort
   static unsigned introduceFreshSymbol(Context context, const char* prefix,
-                                       Stack<TermList> sorts, TermList resultSort, VList* vl);
+                                       TermStack sorts, TermList resultSort, VList* vl);
 
   // In order to add some meaning to a fresh symbol we prefix it with a given string
   // Three different prefixes for three kinds of fresh symbols
   static const char* ITE_PREFIX;
   static const char* LET_PREFIX;
   static const char* BOOL_PREFIX;
-
-  // The inout type of introduced definitions of fresh symbols
-  static const Unit::InputType DEFINITION_INPUT_TYPE;
 
   // Report that a given formula or a term has been rewritten during defooling
   // The term or formula is passed as its string representation

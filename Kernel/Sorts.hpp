@@ -28,6 +28,8 @@
 
 #include "Lib/DArray.hpp"
 #include "Lib/Map.hpp"
+#include "Lib/DHSet.hpp"
+#include "Lib/DHMap.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/Vector.hpp"
 #include "Lib/Allocator.hpp"
@@ -45,9 +47,27 @@ public:
   Sorts();
   ~Sorts();
 
+  bool addSort(TermList sort);
+  vstring sortName(unsigned sort){ return _sorts[sort].toString(); }
+  vstring sortName(TermList sort){ return sort.toString(); }
+  unsigned getSortNum(TermList sort);
+  TermList getSortTerm(unsigned sort);
+  unsigned count(){return (unsigned)_sorts.size(); }
+  
+  //once arrays are fixed to add fixed number of polymorphic axioms
+  //_arraySorts can be deleted
+  //Once finite model buuilding is refactored (Giles Reger knows how)
+  //There is no longer a need to store any sorts at all.
+  void addArraySort(TermList sort){ _arraySorts->insert(sort); }
+  DHSet<TermList>* getArraySorts(){
+    return _arraySorts;
+  }
 
 private:
-
+  
+  TermStack _sorts;
+  DHMap<TermList, unsigned> _termListsToUnsigned;
+  DHSet<TermList>* _arraySorts;
 };
 
 /**
@@ -102,7 +122,7 @@ public:
     return getTypeFromKey(key, vars);
   }
 
-  static OperatorType* getPredicateType(std::initializer_list<TermList> sorts, VarList* vars) {
+  static OperatorType* getPredicateType(std::initializer_list<TermList> sorts, VarList* vars = 0) {
     CALL("OperatorType::getPredicateType(std::initializer_list<unsigned>)");
 
     OperatorKey* key = setupKey(sorts);
@@ -110,7 +130,7 @@ public:
     return getTypeFromKey(key, vars);
   }
 
-  static OperatorType* getPredicateTypeUniformRange(unsigned arity, TermList argsSort, VarList* vars) {
+  static OperatorType* getPredicateTypeUniformRange(unsigned arity, TermList argsSort, VarList* vars = 0) {
     CALL("OperatorType::getPredicateTypeUniformRange");
 
     OperatorKey* key = setupKeyUniformRange(arity,argsSort);
@@ -118,7 +138,7 @@ public:
     return getTypeFromKey(key, vars);
   }
 
-  static OperatorType* getFunctionType(unsigned arity, const TermList* sorts, TermList resultSort, VarList* vars) {
+  static OperatorType* getFunctionType(unsigned arity, const TermList* sorts, TermList resultSort, VarList* vars = 0) {
     CALL("OperatorType::getFunctionType");
 
     OperatorKey* key = setupKey(arity,sorts);
@@ -126,7 +146,7 @@ public:
     return getTypeFromKey(key, vars);
   }
 
-  static OperatorType* getFunctionType(std::initializer_list<TermList> sorts, TermList resultSort, VarList* vars) {
+  static OperatorType* getFunctionType(std::initializer_list<TermList> sorts, TermList resultSort, VarList* vars = 0) {
     CALL("OperatorType::getFunctionType(std::initializer_list<unsigned>)");
  
     OperatorKey* key = setupKey(sorts);
@@ -134,7 +154,7 @@ public:
     return getTypeFromKey(key, vars);
   }
 
-  static OperatorType* getFunctionTypeUniformRange(unsigned arity, TermList argsSort, TermList resultSort, VarList* vars) {
+  static OperatorType* getFunctionTypeUniformRange(unsigned arity, TermList argsSort, TermList resultSort, VarList* vars = 0) {
     CALL("OperatorType::getFunctionTypeUniformRange");
 
     OperatorKey* key = setupKeyUniformRange(arity,argsSort);
@@ -146,7 +166,7 @@ public:
    * Convenience function for creating OperatorType for constants (as symbols).
    * Constants are function symbols of 0 arity, so just provide the result sort.
    */
-  static OperatorType* getConstantsType(TermList resultSort, VarList* vars) { 
+  static OperatorType* getConstantsType(TermList resultSort, VarList* vars = 0) { 
     return getFunctionType(0,nullptr,resultSort, vars); 
   }
 

@@ -491,7 +491,8 @@ void FiniteModelBuilder::init()
         if(left->isTerm() && left->term()->arity()==0 &&
            right->isTerm() && right->term()->arity()==0){
 
-          unsigned srt = SortHelper::getResultSort(left->term());
+          TermList srtT = SortHelper::getResultSort(left->term());
+          unsigned srt = SortHelper::sortNum(srtT);
           auto map = _distinctConstants[srt];
           if(map==0){
             map = new DHMap<unsigned,DHSet<unsigned>*>();
@@ -583,7 +584,7 @@ void FiniteModelBuilder::init()
   del_p.ensure(env.signature->predicates());
 
   for(unsigned f=0;f<env.signature->functions();f++){
-    del_f[f] = _deletedFunctions.find(f);
+    del_f[f] = _deletedFunctions.find(f) || env.signature->getFunction(f)->usageCnt()==0;
   }
   for(unsigned p=0;p<env.signature->predicates();p++){
     del_p[p] = (_deletedPredicates.find(p) || _trivialPredicates.find(p));
@@ -689,7 +690,7 @@ void FiniteModelBuilder::init()
     // if we've done the sort expansion thing then the max for the parent should be
     // the max of all children
     for(unsigned s=0;s<env.sorts->count();s++){
-      if((env.property->usesSort(s) || s >= Sorts::FIRST_USER_SORT) && _sortedSignature->vampireToDistinct.find(s)){
+      if((env.property->usesSort(s) || SortHelper::isNotDefaultSort(s)) && _sortedSignature->vampireToDistinct.find(s)){
         Stack<unsigned>* dmembers = _sortedSignature->vampireToDistinct.get(s);
         ASS(dmembers);
         if(dmembers->size() > 1){ 
@@ -789,8 +790,9 @@ void FiniteModelBuilder::init()
     if(del_f[f]) continue;
 
     if(env.signature->functionArity(f)==0){ 
-      unsigned vsrt = env.signature->getFunction(f)->fnType()->result();
-      if(vsrt != Sorts::SRT_BOOL){
+      TermList vsrtT = env.signature->getFunction(f)->fnType()->result();
+      if(SortHelper::isBoolSort(vsrtT)){
+        unsigned vsrt = SortHelper::sortNum(vsrtT);
         ASS(_sortedSignature->vampireToDistinctParent.find(vsrt));
         unsigned dsrt = _sortedSignature->vampireToDistinctParent.get(vsrt);
         _distinctSortConstantCount[dsrt]++;
@@ -898,7 +900,9 @@ void FiniteModelBuilder::init()
           // At this point I have a two-variable equality where those variables do not
           // tell me what sorts they should have by appearance in a function or predicate symbol
           // So I use the special sort for this
-          unsigned dsort = _sortedSignature->vampireToDistinctParent.get(lit->twoVarEqSort());
+          TermList litSort = lit->twoVarEqSort();
+          unsigned litSortU = SortHelper::sortNum(litSort);
+          unsigned dsort = _sortedSignature->vampireToDistinctParent.get(litSortU);
           unsigned sort = _sortedSignature->varEqSorts[dsort];
           (*csig)[var1] = sort;
           (*csig)[var2] = sort;
@@ -1753,8 +1757,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
             _sortModelSizes[s] = _distinctSortSizes[_sortedSignature->parents[s]];
           }
         } else {
-          Clause* empty = new(0) Clause(0,Unit::AXIOM,
-             new Inference(Inference::MODEL_NOT_FOUND));
+          Clause* empty = new(0) Clause(0,NonspecificInference0(UnitInputType::AXIOM,InferenceRule::MODEL_NOT_FOUND));
           return MainLoopResult(Statistics::REFUTATION,empty);
         }
       } else { // i.e. (!_xmass)
@@ -1793,8 +1796,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
 
         if (!_dsaEnumerator->increaseModelSizes(_distinctSortSizes,_distinctSortMaxs)) {
           if (_dsaEnumerator->isFmbComplete(_distinctSortSizes.size())) {
-            Clause* empty = new(0) Clause(0,Unit::AXIOM,
-                new Inference(Inference::MODEL_NOT_FOUND));
+            Clause* empty = new(0) Clause(0,NonspecificInference0(UnitInputType::AXIOM,InferenceRule::MODEL_NOT_FOUND));
             return MainLoopResult(Statistics::REFUTATION,empty);
           } else {
             if(outputAllowed()) {
@@ -2034,6 +2036,8 @@ pModelLabel:
     //cout << "Consider " << f << endl;
     unsigned arity = env.signature->functionArity(f);
     if(!del_f[f]) continue; 
+    // For now, just skip unused functions!
+    if(env.signature->getFunction(f)->usageCnt()==0) continue;
     //del_f[f]=false;
 
     ASS(_deletedFunctions.find(f));
@@ -2070,7 +2074,8 @@ pModelLabel:
       f_signature_distinct.ensure(arity);
       for(unsigned i=0;i<arity-1;i++){
         grounding[i]=1;
-        unsigned vampireSrt = env.signature->getFunction(f)->fnType()->arg(i);
+        TermList vs = env.signature->getFunction(f)->fnType()->arg(i);
+        unsigned vampireSrt = SortHelper::sortNum(vs);
         ASS(_sortedSignature->vampireToDistinctParent.find(vampireSrt));
         unsigned dsrt = _sortedSignature->vampireToDistinctParent.get(vampireSrt);
         f_signature_distinct[i] = dsrt;
@@ -2090,7 +2095,8 @@ ffModelLabel:
 
           Substitution subst;
           for(unsigned j=0;j<arity;j++){
-            unsigned vampireSrt = env.signature->getFunction(f)->fnType()->arg(j); 
+            TermList vs = env.signature->getFunction(f)->fnType()->arg(j); 
+            unsigned vampireSrt = SortHelper::sortNum(vs);
             //cout << grounding[j] << " is " << model.getDomainConstant(grounding[j],vampireSrt)->toString() << endl;
             subst.bind(vars[j],model.getDomainConstant(grounding[j],vampireSrt));
           }
@@ -2206,7 +2212,8 @@ ffModelLabel:
     p_signature_distinct.ensure(arity);
     for(unsigned i=0;i<arity;i++){
       grounding[i]=1;
-      unsigned vampireSrt = env.signature->getPredicate(f)->predType()->arg(i);
+      TermList vs = env.signature->getPredicate(f)->predType()->arg(i);
+      unsigned vampireSrt = SortHelper::sortNum(vs);
       unsigned dsrt = _sortedSignature->vampireToDistinctParent.get(vampireSrt); 
       p_signature_distinct[i] = dsrt;
     }
@@ -2229,14 +2236,15 @@ ppModelLabel:
             Substitution subst;
             for(unsigned j=0;j<arity;j++){ 
               //cout << grounding[j] << " is " << model.getDomainConstant(grounding[j])->toString() << endl;
-              unsigned vampireSrt = env.signature->getPredicate(f)->predType()->arg(j); 
+              TermList vs = env.signature->getPredicate(f)->predType()->arg(j); 
+              unsigned vampireSrt = SortHelper::sortNum(vs);
               subst.bind(vars[j],model.getDomainConstant(grounding[j],vampireSrt));
             }
             Formula* predDefGround = SubstHelper::apply(predDef,subst);
             //cout << predDefGround << endl;
             try{
               bool res = model.evaluate(
-                new FormulaUnit(predDefGround,new Inference(Inference::INPUT),Unit::InputType::AXIOM));
+                new FormulaUnit(predDefGround, NonspecificInference0(UnitInputType::AXIOM, InferenceRule::INPUT)));
               if(!polarity) res=!res;
               model.addPredicateDefinition(f,grounding,res);
             }

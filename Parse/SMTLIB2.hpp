@@ -68,6 +68,10 @@ public:
     return _logic;
   }
 
+  const vstring& getStatus() const {
+    return _statusStr;
+  }
+
 private:
 
   static const char * s_smtlibLogicNameStrings[];
@@ -174,7 +178,7 @@ private:
    * register any missing sort in vampire and return vampire's sort id
    * corresponding to the give expression.
    */
-  unsigned declareSort(LExpr* sExpr);
+  TermList declareSort(LExpr* sExpr);
 
   /**
    * Some built-in symbols represent functions with result of sort Bool.
@@ -253,7 +257,7 @@ private:
    * store the ensuing DeclaredFunction in _declaredFunctions
    * and return it.
    */
-  DeclaredFunction declareFunctionOrPredicate(const vstring& name, signed rangeSort, const Stack<unsigned>& argSorts);
+  DeclaredFunction declareFunctionOrPredicate(const vstring& name, TermList rangeSort, const TermStack& argSorts);
 
   /**
    * Handle "declare-fun" entry.
@@ -271,26 +275,26 @@ private:
 
   void readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool codatatype = false);
 
-  TermAlgebraConstructor* buildTermAlgebraConstructor(vstring constrName, unsigned taSort,
-                                                      Stack<vstring> destructorNames, Stack<unsigned> argSorts);
+  TermAlgebraConstructor* buildTermAlgebraConstructor(vstring constrName, TermList taSort,
+                                                      Stack<vstring> destructorNames, TermStack argSorts);
 
   /**
    * Parse result of parsing an smtlib term (which can be of sort Bool and therefore represented in vampire by a formula)
    */
   struct ParseResult {
     /** Construct special separator value */
-    ParseResult() : sort(0), formula(true), frm(nullptr) {}
+    ParseResult() : sort(nullptr), formula(true), frm(nullptr) {}
 
-    bool isSeparator() { return sort == 0 && formula && !frm; }
+    bool isSeparator() { return sort.isSpecialVar() && formula && !frm; }
 
     bool isSharedTerm() { return !formula && (!trm.isTerm() || trm.term()->shared()); }
 
     /** Construct ParseResult from a formula */
-    ParseResult(Formula* frm) : sort(Sorts::SRT_BOOL), formula(true), frm(frm) {}
+    ParseResult(Formula* frm) : sort(Term::boolSort()), formula(true), frm(frm) {}
     /** Construct ParseResult from a term of a given sort */
-    ParseResult(unsigned sort, TermList trm) : sort(sort), formula(false), trm(trm) {}
+    ParseResult(TermList sort, TermList trm) : sort(sort), formula(false), trm(trm) {}
 
-    unsigned sort;
+    TermList sort;
     bool formula;
     union {
       Formula* frm;
@@ -308,17 +312,17 @@ private:
      * Interpret ParseResult as term
      * and return its vampire sort (which may be Sorts::SRT_BOOL).
      */
-    unsigned asTerm(TermList& resTrm);
+    TermList asTerm(TermList& resTrm);
 
     vstring toString();
   };
 
   /** Return Theory::Interpretation for overloaded arithmetic comparison operators based on their argSort (either Int or Real) */
-  Interpretation getFormulaSymbolInterpretation(FormulaSymbol fs, unsigned firstArgSort);
+  Interpretation getFormulaSymbolInterpretation(FormulaSymbol fs, TermList firstArgSort);
   /** Return Theory::Interpretation for overloaded unary minus operator based on its argSort (either Int or Real) */
-  Interpretation getUnaryMinusInterpretation(unsigned argSort);
+  Interpretation getUnaryMinusInterpretation(TermList argSort);
   /** Return Theory::Interpretation for overloaded arithmetic operators based on its argSort (either Int or Real) */
-  Interpretation getTermSymbolInterpretation(TermSymbol ts, unsigned firstArgSort);
+  Interpretation getTermSymbolInterpretation(TermSymbol ts, TermList firstArgSort);
   
 
   // global parsing data structures -- BEGIN
@@ -327,7 +331,7 @@ private:
   unsigned _nextVar;
 
   /** < termlist, vampire sort id > */
-  typedef pair<TermList,unsigned> SortedTerm;
+  typedef pair<TermList,TermList> SortedTerm;
   /** mast an identifier to SortedTerm */
   typedef DHMap<vstring,SortedTerm> TermLookup;
   typedef Stack<TermLookup*> Scopes;

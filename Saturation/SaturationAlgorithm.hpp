@@ -39,7 +39,7 @@
 #include "Indexing/IndexManager.hpp"
 
 #include "Inferences/InferenceEngine.hpp"
-#include <memory> //TODO include shouldn't be necessary, it is not in master
+//#include <memory> //TODO include shouldn't be necessary, it is not in master
 #include "Inferences/Instantiation.hpp"
 //#include "Inferences/TheoryInstAndSimp.hpp"
 

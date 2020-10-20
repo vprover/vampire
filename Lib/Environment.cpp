@@ -54,8 +54,8 @@ Environment::Environment()
   : signature(0),
     sharing(0),
     property(0),
-    clausePriorities(0),
-    maxClausePriority(1),
+    maxSineLevel(1),
+    predicateSineLevels(nullptr),
     colorUsed(false),
     _outputDepth(0),
     _priorityOutput(0),
@@ -75,6 +75,8 @@ Environment::~Environment()
 {
   CALL("Environment::~Environment");
 
+  Timer::setTimeLimitEnforcement(false);
+
   //in the usual cases the _outputDepth should be zero at this point, but in case of
   //thrown exceptions this might not be true.
 //  ASS_EQ(_outputDepth,0);
@@ -88,7 +90,7 @@ Environment::~Environment()
   delete signature;
   delete sorts;
   delete statistics;
-  if(clausePriorities) delete clausePriorities; 
+  if (predicateSineLevels) delete predicateSineLevels;
   {
     BYPASSING_ALLOCATOR; // use of std::function in options
     delete options;

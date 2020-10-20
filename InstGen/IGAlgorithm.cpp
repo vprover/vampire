@@ -49,7 +49,7 @@
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
-//#include "Shell/EqualityProxy.hpp"
+#include "Shell/EqualityProxy.hpp"
 #include "Shell/Property.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/UIHelper.hpp"
@@ -75,8 +75,8 @@ IGAlgorithm::IGAlgorithm(Problem& prb,const Options& opt)
     _instGenResolutionRatio(opt.instGenResolutionRatioInstGen(),
 	opt.instGenResolutionRatioResolution(), 50),
     _passive(opt),
-    _tautologyDeletion(false)/*,
-    _equalityProxy(0)*/
+    _tautologyDeletion(false),
+    _equalityProxy(0)
 {
   CALL("IGAlgorithm::IGAlgorithm");
 
@@ -139,9 +139,9 @@ IGAlgorithm::~IGAlgorithm()
   delete _selected;
   delete _variantIdx;
   delete _satSolver;
-  /*if (_equalityProxy) {
+  if (_equalityProxy) {
     delete _equalityProxy;
-  }*/
+  }
 }
 
 ClauseIterator IGAlgorithm::getActive()
@@ -194,10 +194,10 @@ void IGAlgorithm::init()
   }
 
   ASSERT_VALID(_prb);
- /* if(_prb.hasEquality()) {
+  if(_prb.hasEquality()) {
     _equalityProxy = new EqualityProxy(Options::EqualityProxy::RSTC);
     _equalityProxy->apply(_prb);
-  } */
+  }
 
   ClauseIterator cit = _prb.clauseIterator();
 
@@ -274,11 +274,11 @@ Clause* IGAlgorithm::getFORefutation(SATClause* satRefutation, SATClauseList* sa
 
   UnitList* prems = SATInference::getFOPremises(satRefutation);
 
-  Inference* foInf = satPremises ? // does our SAT solver support postponed minimization?
-      new InferenceFromSatRefutation(Inference::SAT_INSTGEN_REFUTATION, prems, satPremises) :
-      new InferenceMany(Inference::SAT_INSTGEN_REFUTATION, prems);
+  Inference foInf(FromSatRefutation(InferenceRule::SAT_INSTGEN_REFUTATION, prems,
+          // satPremises may be nullptr already, if our solver does not support minimization
+          env.options->minimizeSatProofs() ? satPremises : nullptr));
 
-  Clause* foRef = Clause::fromIterator(LiteralIterator::getEmpty(), Unit::CONJECTURE, foInf);
+  Clause* foRef = Clause::fromIterator(LiteralIterator::getEmpty(), foInf);
   return foRef;
 }
 
@@ -398,11 +398,9 @@ void IGAlgorithm::finishGeneratingClause(Clause* orig, ResultSubstitution& subst
 {
   CALL("IGAlgorithm::finishGeneratingClause");
 
-  Inference* inf = new Inference1(Inference::INSTANCE_GENERATION, orig);
-
-  Clause* res = Clause::fromStack(genLits, orig->inputType(), inf);
-  int newAge = max(orig->age(), otherCl->age())+1;
-  res->setAge(newAge);
+  Clause* res = Clause::fromStack(genLits, GeneratingInference1(InferenceRule::INSTANCE_GENERATION, orig));
+  // make age also depend on the age of otherCl
+  res->setAge(max(orig->age(), otherCl->age())+1);
 
   env.statistics->instGenGeneratedClauses++;
   bool added = addClause(res);
@@ -617,9 +615,9 @@ void IGAlgorithm::onResolutionClauseDerived(Clause* cl)
     return;
   }
 
-  /*if (_equalityProxy) { // we had equality in the problem
+  if (_equalityProxy) { // we had equality in the problem
     cl = _equalityProxy->apply(cl);
-  }*/
+  }
 
   SATClause* sc = _gnd->ground(cl,_use_niceness);
   sc = Preprocess::removeDuplicateLiterals(sc); //this is required by the SAT solver

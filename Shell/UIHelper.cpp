@@ -39,7 +39,7 @@
 #include "Kernel/Problem.hpp"
 #include "Kernel/FormulaUnit.hpp"
 
-//#include "Parse/SMTLIB2.hpp"
+#include "Parse/SMTLIB2.hpp"
 #include "Parse/TPTP.hpp"
 
 //#include "AnswerExtractor.hpp"
@@ -51,7 +51,7 @@
 #include "LispLexer.hpp"
 #include "LispParser.hpp"
 #include "Options.hpp"
-//#include "SimplifyProver.hpp"
+#include "SimplifyProver.hpp"
 #include "Statistics.hpp"
 #include "TPTPPrinter.hpp"
 #include "UIHelper.hpp"
@@ -226,15 +226,17 @@ Problem* UIHelper::getInputProblem(const Options& opts)
 
   UnitList* units;
   switch (opts.inputSyntax()) {
-  /*case Options::InputSyntax::SIMPLIFY:
+  /*
+  case Options::InputSyntax::SIMPLIFY:
   {
     Shell::LispLexer lexer(*input);
     Shell::LispParser parser(lexer);
     LispParser::Expression* expr = parser.parse();
     SimplifyProver simplify;
     units = simplify.units(expr);
-  }*/
+  }
   break;
+  */
   case Options::InputSyntax::TPTP:
     {
       Parse::TPTP parser(*input);
@@ -249,21 +251,21 @@ Problem* UIHelper::getInputProblem(const Options& opts)
       s_haveConjecture=parser.containsConjecture();
     }
     break;
-  case Options::InputSyntax::SMTLIB:
-    /*  {
+  /*case Options::InputSyntax::SMTLIB:
+      {
         Parse::SMTLIB parser(opts);
         parser.parse(*input);
         units = parser.getFormulas();
         s_haveConjecture=true;
       }
-      break; */
+      break; 
     if (outputAllowed()) {
       env.beginOutput();
       addCommentSignForSZS(env.out());
       env.out() << "Vampire no longer supports the old smtlib format, trying with smtlib2 instead." << endl;
       env.endOutput();
-    }
-  /*case Options::InputSyntax::SMTLIB2:
+    } */
+  case Options::InputSyntax::SMTLIB2:
   {
 	  Parse::SMTLIB2 parser(opts);
 	  parser.parse(*input);
@@ -274,7 +276,7 @@ Problem* UIHelper::getInputProblem(const Options& opts)
 	  s_haveConjecture=false;
 
 	  break;
-  }*/
+  }
 /*
   case Options::InputSyntax::MPS:
   case Options::InputSyntax::NETLIB:
@@ -357,10 +359,11 @@ void UIHelper::outputResult(ostream& out)
       out << "% SZS status " << ( UIHelper::haveConjecture() ? "Theorem" : "Unsatisfiable" )
 	  << " for " << env.options->problemName() << endl;
     }
-    /*if (env.options->questionAnswering()!=Options::QuestionAnsweringMode::OFF) {
+    if (env.options->questionAnswering()!=Options::QuestionAnsweringMode::OFF) {
       ASS(env.statistics->refutation->isClause());
-      AnswerExtractor::tryOutputAnswer(static_cast<Clause*>(env.statistics->refutation));
-    }*/
+      //TODO AYB awaiting InterpretedLiteralEvaluator fix
+      //AnswerExtractor::tryOutputAnswer(static_cast<Clause*>(env.statistics->refutation));
+    }
     if (env.options->proof() != Options::Proof::OFF) {
       if (szsOutputMode()) {
         out << "% SZS output start Proof for " << env.options->problemName() << endl;

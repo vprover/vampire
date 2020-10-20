@@ -177,8 +177,7 @@ Clause* TheoryFlattening::apply(Clause*& cl,Stack<Literal*>& target)
   }
   if(!updated){ return cl;}
 
-  Clause* rep = Clause::fromStack(result,cl->inputType(),
-                            new Inference1(Inference::THEORY_FLATTENING,cl)); 
+  Clause* rep = Clause::fromStack(result,SimplifyingInference1(InferenceRule::THEORY_FLATTENING,cl));
 
   //cout << cl->toString() << " replaced by " << rep->toString() << endl;
 
@@ -241,7 +240,7 @@ Clause* TheoryFlattening::apply(Clause*& cl,Stack<Literal*>& target)
       }
       args.push(TermList(newVar,false));
       if(create){
-        unsigned sort = SortHelper::getResultSort(t);
+        TermList sort = SortHelper::getResultSort(t);
         Literal* lit = Literal::createEquality(false,TermList(t),TermList(newVar,false),sort);
         newLits.push(lit);
         abstracted.insert(t,newVar);
@@ -310,7 +309,7 @@ Clause* TheoryFlattening::apply(Clause*& cl,Stack<Literal*>& target)
       }
       args.push(TermList(newVar,false));
       if(create){
-        unsigned sort = SortHelper::getResultSort(t);
+        TermList sort = SortHelper::getResultSort(t);
         Literal* lit = Literal::createEquality(false,TermList(t),TermList(newVar,false),sort);
         newLits.push(lit);
         abstracted.insert(t,newVar);

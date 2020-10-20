@@ -121,11 +121,11 @@ bool WeightQueue::lessThan(Clause* c1,Clause* c2)
   CALL("WeightQueue::lessThan");
 
   if(env.options->prioritiseClausesProducedByLongReduction()){
-    if(c1->reductions() < c2->reductions()){
+    if(c1->inference().reductions() < c2->inference().reductions()){
       return false;
     }
 
-    if(c2->reductions() < c1->reductions()){
+    if(c2->inference().reductions() < c1->inference().reductions()){
       return true;
     }
   }
@@ -204,7 +204,11 @@ void AWPassiveClauseContainer::add(Clause* cl)
     _weightQueue.insert(cl);
   }
   _size++;
-  addedEvent.fire(cl);
+
+  if (_isOutermost)
+  {
+    addedEvent.fire(cl);
+  }
 } // AWPassiveClauseContainer::add
 
 /**
@@ -216,19 +220,28 @@ void AWPassiveClauseContainer::add(Clause* cl)
 void AWPassiveClauseContainer::remove(Clause* cl)
 {
   CALL("AWPassiveClauseContainer::remove");
-  ASS(cl->store()==Clause::PASSIVE);
-
+  if (_isOutermost)
+  {
+    ASS(cl->store()==Clause::PASSIVE);
+  }
+  ASS(_ageRatio > 0 || _weightRatio > 0);
+  bool wasRemoved; // will be assigned, since at least one of the following checks succeeds
   if (_ageRatio) {
-    ALWAYS(_ageQueue.remove(cl));
+    wasRemoved = _ageQueue.remove(cl);
   }
   if (_weightRatio) {
-    ALWAYS(_weightQueue.remove(cl));
+    wasRemoved = _weightQueue.remove(cl);
   }
-  _size--;
 
-  removedEvent.fire(cl);
+  if (wasRemoved) {
+    _size--;
+  }
 
-  ASS(cl->store()!=Clause::PASSIVE);
+  if (_isOutermost)
+  {
+    removedEvent.fire(cl);
+    ASS(cl->store()!=Clause::PASSIVE);
+  }
 }
 
 bool AWPassiveClauseContainer::byWeight(int balance)
@@ -738,42 +751,34 @@ void AWClauseContainer::add(Clause* cl)
     _weightQueue.insert(cl);
   }
   _size++;
-  if (_isOutermost)
-  {
-    addedEvent.fire(cl);
-  }
+  addedEvent.fire(cl);
 }
 
 /**
  * Remove Clause from the container.
  */
-void AWPassiveClauseContainer::remove(Clause* cl)
+bool AWClauseContainer::remove(Clause* cl)
 {
-  CALL("AWPassiveClauseContainer::remove");
-  if (_isOutermost)
-  {
-    ASS(cl->store()==Clause::PASSIVE);
-  }
-  ASS(_ageRatio > 0 || _weightRatio > 0);
-  bool wasRemoved; // will be assigned, since at least one of the following checks succeeds
+  CALL("AWClauseContainer::remove");
+
+  bool removed;
   if (_ageRatio) {
-    wasRemoved = _ageQueue.remove(cl);
+    removed = _ageQueue.remove(cl);
+    if (_weightRatio) {
+      ALWAYS(_weightQueue.remove(cl)==removed);
+    }
   }
-  if (_weightRatio) {
-    wasRemoved = _weightQueue.remove(cl);
+  else {
+    ASS(_weightRatio);
+    removed = _weightQueue.remove(cl);
   }
 
-  if (wasRemoved) {
+  if (removed) {
     _size--;
-  }
-
-  if (_isOutermost)
-  {
     removedEvent.fire(cl);
-    ASS(cl->store()!=Clause::PASSIVE);
   }
+  return removed;
 }
-
 
 /**
  * Return the next selected clause and remove it from the queue.

@@ -52,7 +52,7 @@ class SymbolDefinitionInlining {
 
     TermList substitute(Term::Iterator tit);
 
-    //bool mirroredTuple(Term* tuple, TermList &tupleConstant);
+    bool mirroredTuple(Term* tuple, TermList &tupleConstant);
 
     unsigned _counter;
     unsigned _freshVarOffset;

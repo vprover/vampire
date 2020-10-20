@@ -495,17 +495,15 @@ void LambdaElimination::addCombinatorAxioms(Problem& prb)
   TermList y = TermList(4, false);
   TermList z = TermList(5, false);
   TermList args[] = {s1, s2, s3};
-
-  Inference* inf = new Inference(Inference::COMBINATOR_AXIOM);
   
   unsigned s_comb = env.signature->getCombinator(Signature::S_COMB);
   TermList constant = TermList(Term::create(s_comb, 3, args));
   TermList lhs = AH::createAppTerm(srtOf(constant), constant, x, y, z); //TODO fix
   TermList rhs = AH::createAppTerm3(Term::arrowSort(s1, s2, s3), x, z, AH::createAppTerm(Term::arrowSort(s1, s2), y, z));
 
-  Clause* sAxiom = new(1) Clause(1, Unit::AXIOM, inf);
+  Clause* sAxiom = new(1) Clause(1, TheoryAxiom(InferenceRule::COMBINATOR_AXIOM));
   (*sAxiom)[0] = Literal::createEquality(true, lhs, rhs, s3);
-  sAxiom->setCombAxiomsDescendant(true);
+  sAxiom->inference().setCombAxiomsDescendant(true);
   UnitList::push(sAxiom, prb.units());
 
   unsigned c_comb = env.signature->getCombinator(Signature::C_COMB);
@@ -513,9 +511,9 @@ void LambdaElimination::addCombinatorAxioms(Problem& prb)
   lhs = AH::createAppTerm(srtOf(constant), constant, x, y, z); //TODO fix
   rhs = AH::createAppTerm3(Term::arrowSort(s1, s2, s3), x, z, y);
 
-  Clause* cAxiom = new(1) Clause(1, Unit::AXIOM, inf);
+  Clause* cAxiom = new(1) Clause(1, TheoryAxiom(InferenceRule::COMBINATOR_AXIOM));
   (*cAxiom)[0] = Literal::createEquality(true, lhs, rhs, s3);
-  cAxiom->setCombAxiomsDescendant(true);
+  cAxiom->inference().setCombAxiomsDescendant(true);
   UnitList::push(cAxiom, prb.units());
      
   unsigned b_comb = env.signature->getCombinator(Signature::B_COMB);
@@ -523,27 +521,27 @@ void LambdaElimination::addCombinatorAxioms(Problem& prb)
   lhs = AH::createAppTerm(srtOf(constant), constant, x, y, z); //TODO fix
   rhs = AH::createAppTerm(Term::arrowSort(s2, s3), x, AH::createAppTerm(Term::arrowSort(s1, s2), y, z));
 
-  Clause* bAxiom = new(1) Clause(1, Unit::AXIOM, inf);
+  Clause* bAxiom = new(1) Clause(1, TheoryAxiom(InferenceRule::COMBINATOR_AXIOM));
   (*bAxiom)[0] = Literal::createEquality(true, lhs, rhs, s3);
-  bAxiom->setCombAxiomsDescendant(true);
+  bAxiom->inference().setCombAxiomsDescendant(true);
   UnitList::push(bAxiom, prb.units());
 
   unsigned k_comb = env.signature->getCombinator(Signature::K_COMB);
   constant = TermList(Term::create2(k_comb, s1, s2));
   lhs = AH::createAppTerm3(srtOf(constant), constant, x, y);
   
-  Clause* kAxiom = new(1) Clause(1, Unit::AXIOM, inf);
+  Clause* kAxiom = new(1) Clause(1, TheoryAxiom(InferenceRule::COMBINATOR_AXIOM));
   (*kAxiom)[0] = Literal::createEquality(true, lhs, x, s1);
-  bAxiom->setCombAxiomsDescendant(true);
+  bAxiom->inference().setCombAxiomsDescendant(true);
   UnitList::push(kAxiom, prb.units());
 
   unsigned i_comb = env.signature->getCombinator(Signature::I_COMB);
   constant = TermList(Term::create1(i_comb, s1));
   lhs = AH::createAppTerm(srtOf(constant), constant, x);
   
-  Clause* iAxiom = new(1) Clause(1, Unit::AXIOM, inf);
+  Clause* iAxiom = new(1) Clause(1, TheoryAxiom(InferenceRule::COMBINATOR_AXIOM));
   (*iAxiom)[0] = Literal::createEquality(true, lhs, x, s1);
-  iAxiom->setCombAxiomsDescendant(true);  
+  iAxiom->inference().setCombAxiomsDescendant(true);  
   UnitList::push(iAxiom, prb.units());
 
   if (env.options->showPreprocessing()) {
@@ -577,9 +575,7 @@ void LambdaElimination::addFunctionExtensionalityAxiom(Problem& prb)
   TermList lhs = AH::createAppTerm(alpha, beta, x, diffTApplied);
   TermList rhs = AH::createAppTerm(alpha, beta, y, diffTApplied);
 
-  Inference* inf = new Inference(Inference::FUNC_EXT_AXIOM);
-
-  Clause* funcExtAx = new(2) Clause(2, Unit::AXIOM, inf);
+  Clause* funcExtAx = new(2) Clause(2,  NonspecificInference0(UnitInputType::AXIOM,InferenceRule::FUNC_EXT_AXIOM));
   (*funcExtAx)[0] = Literal::createEquality(false, lhs, rhs, beta);
   (*funcExtAx)[1] = Literal::createEquality(true, x, y, Term::arrowSort(alpha, beta));
   UnitList::push(funcExtAx, prb.units());
@@ -612,9 +608,7 @@ void LambdaElimination::addChoiceAxiom(Problem& prb)
   TermList px = AH::createAppTerm(alpha, boolS, p, x);
   TermList pchoiceT = AH::createAppTerm(alpha, boolS, p, choiceTApplied);
 
-  Inference* inf = new Inference(Inference::CHOICE_AXIOM);
-
-  Clause* choiceAx = new(2) Clause(2, Unit::AXIOM, inf);
+  Clause* choiceAx = new(2) Clause(2, NonspecificInference0(UnitInputType::AXIOM,InferenceRule::CHOICE_AXIOM));
   (*choiceAx)[0] = Literal::createEquality(true, px, TermList(Term::foolFalse()), boolS);
   (*choiceAx)[1] = Literal::createEquality(true, pchoiceT, TermList(Term::foolTrue()), boolS);
   UnitList::push(choiceAx, prb.units());
@@ -644,145 +638,132 @@ void LambdaElimination::addProxyAxioms(Problem& prb)
   TermList sk1 = TermList(Term::create1(skolem1, s1));
   TermList sk2 = TermList(Term::create1(skolem2, s1));
 
-  Inference* inf = new Inference(Inference::EQUALITY_PROXY_AXIOM);
   unsigned eqProxy = env.signature->getEqualityProxy();
   TermList constant = TermList(Term::create1(eqProxy, s1));
 
-  Clause* eqAxiom1 = new(2) Clause(2, Unit::AXIOM, inf);
+  Clause* eqAxiom1 = new(2) Clause(2, TheoryAxiom(InferenceRule::EQUALITY_PROXY_AXIOM));
   (*eqAxiom1)[0] = toEquality(AH::createAppTerm3(srtOf(constant), constant, x, y), true);
   (*eqAxiom1)[1] = Literal::createEquality(false,x,y,s1); 
-  eqAxiom1->setProxyAxiomsDescendant(true);  
+  eqAxiom1->inference().setProxyAxiomsDescendant(true);  
   UnitList::push(eqAxiom1, prb.units());
 
-  Clause* eqAxiom2 = new(2) Clause(2, Unit::AXIOM, inf);
+  Clause* eqAxiom2 = new(2) Clause(2, TheoryAxiom(InferenceRule::EQUALITY_PROXY_AXIOM));
   (*eqAxiom2)[0] = toEquality(AH::createAppTerm3(srtOf(constant), constant, x, y), false);
   (*eqAxiom2)[1] = Literal::createEquality(true,x,y,s1); 
-  eqAxiom2->setProxyAxiomsDescendant(true);   
+  eqAxiom2->inference().setProxyAxiomsDescendant(true);   
   UnitList::push(eqAxiom2, prb.units());
 
-  inf = new Inference(Inference::NOT_PROXY_AXIOM);
   unsigned notProxy = env.signature->getNotProxy();
   constant = TermList(Term::createConstant(notProxy));
 
-  Clause* notAxiom1 = new(2) Clause(2, Unit::AXIOM, inf);
+  Clause* notAxiom1 = new(2) Clause(2, TheoryAxiom(InferenceRule::NOT_PROXY_AXIOM));
   (*notAxiom1)[0] = toEquality(AH::createAppTerm(srtOf(constant), constant, x), true);
   (*notAxiom1)[1] = toEquality(x, true);
-  notAxiom1->setProxyAxiomsDescendant(true);    
+  notAxiom1->inference().setProxyAxiomsDescendant(true);    
   UnitList::push(notAxiom1, prb.units());
 
-  Clause* notAxiom2 = new(2) Clause(2, Unit::AXIOM, inf);
+  Clause* notAxiom2 = new(2) Clause(2, TheoryAxiom(InferenceRule::NOT_PROXY_AXIOM));
   (*notAxiom2)[0] = toEquality(AH::createAppTerm(srtOf(constant), constant, x), false);
   (*notAxiom2)[1] = toEquality(x, false);
-  notAxiom2->setProxyAxiomsDescendant(true);    
+  notAxiom2->inference().setProxyAxiomsDescendant(true);    
   UnitList::push(notAxiom2, prb.units());  
 
-  inf = new Inference(Inference::PI_PROXY_AXIOM);
   unsigned piProxy = env.signature->getPiSigmaProxy("vPI");
   constant = TermList(Term::create1(piProxy, s1));
 
-  Clause* piAxiom1 = new(2) Clause(2, Unit::AXIOM, inf);
+  Clause* piAxiom1 = new(2) Clause(2, TheoryAxiom(InferenceRule::PI_PROXY_AXIOM));
   (*piAxiom1)[0] = toEquality(AH::createAppTerm(srtOf(constant), constant, x), true);
   (*piAxiom1)[1] = toEquality(AH::createAppTerm(s1, Term::boolSort(), x, AH::createAppTerm(srtOf(sk1), sk1, x)), false);
-  piAxiom1->setProxyAxiomsDescendant(true);    
+  piAxiom1->inference().setProxyAxiomsDescendant(true);    
   UnitList::push(piAxiom1, prb.units());
 
-  Clause* piAxiom2 = new(2) Clause(2, Unit::AXIOM, inf);
+  Clause* piAxiom2 = new(2) Clause(2, TheoryAxiom(InferenceRule::PI_PROXY_AXIOM));
   (*piAxiom2)[0] = toEquality(AH::createAppTerm(srtOf(constant), constant, x), false);
   (*piAxiom2)[1] = toEquality(AH::createAppTerm(s1, Term::boolSort(), x, y), true);
-  piAxiom2->setProxyAxiomsDescendant(true);      
+  piAxiom2->inference().setProxyAxiomsDescendant(true);      
   UnitList::push(piAxiom2, prb.units());  
 
-  inf = new Inference(Inference::SIGMA_PROXY_AXIOM);
   unsigned sigmaProxy = env.signature->getPiSigmaProxy("vSIGMA");
   constant = TermList(Term::create1(sigmaProxy, s1));
 
-  Clause* sigmaAxiom1 = new(2) Clause(2, Unit::AXIOM, inf);
+  Clause* sigmaAxiom1 = new(2) Clause(2, TheoryAxiom(InferenceRule::SIGMA_PROXY_AXIOM));
   (*sigmaAxiom1)[0] = toEquality(AH::createAppTerm(srtOf(constant), constant, x), true); 
   (*sigmaAxiom1)[1] = toEquality(AH::createAppTerm(s1, Term::boolSort(), x, y), false);
-  sigmaAxiom1->setProxyAxiomsDescendant(true);      
+  sigmaAxiom1->inference().setProxyAxiomsDescendant(true);      
   UnitList::push(sigmaAxiom1, prb.units());
 
-  Clause* sigmaAxiom2 = new(2) Clause(2, Unit::AXIOM, inf);
+  Clause* sigmaAxiom2 = new(2) Clause(2, TheoryAxiom(InferenceRule::SIGMA_PROXY_AXIOM));
   (*sigmaAxiom2)[0] = toEquality(AH::createAppTerm(srtOf(constant), constant, x), false);
   (*sigmaAxiom2)[1] = toEquality(AH::createAppTerm(s1, Term::boolSort(), x, AH::createAppTerm(srtOf(sk2), sk2, x)), true);
-  sigmaAxiom2->setProxyAxiomsDescendant(true);    
+  sigmaAxiom2->inference().setProxyAxiomsDescendant(true);    
   UnitList::push(sigmaAxiom2, prb.units()); 
 
-  inf = new Inference(Inference::IMPLIES_PROXY_AXIOM);
   unsigned impProxy = env.signature->getBinaryProxy("vIMP");
   constant = TermList(Term::createConstant(impProxy));
 
-  Clause* impAxiom1 = new(2) Clause(2, Unit::AXIOM, inf);
+  Clause* impAxiom1 = new(2) Clause(2, TheoryAxiom(InferenceRule::IMPLIES_PROXY_AXIOM));
   (*impAxiom1)[0] = toEquality(AH::createAppTerm3(srtOf(constant), constant, x, y), true);
   (*impAxiom1)[1] = toEquality(x, true);
-  impAxiom1->setProxyAxiomsDescendant(true);    
+  impAxiom1->inference().setProxyAxiomsDescendant(true);    
   UnitList::push(impAxiom1, prb.units());
 
-  Clause* impAxiom2 = new(2) Clause(2, Unit::AXIOM, inf);
+  Clause* impAxiom2 = new(2) Clause(2, TheoryAxiom(InferenceRule::IMPLIES_PROXY_AXIOM));
   (*impAxiom2)[0] = toEquality(AH::createAppTerm3(srtOf(constant), constant, x, y), true);
   (*impAxiom2)[1] = toEquality(y, false);
-  impAxiom2->setProxyAxiomsDescendant(true);      
+  impAxiom2->inference().setProxyAxiomsDescendant(true);      
   UnitList::push(impAxiom2, prb.units());
 
-  Clause* impAxiom3 = new(3) Clause(3, Unit::AXIOM, inf);
+  Clause* impAxiom3 = new(3) Clause(3, TheoryAxiom(InferenceRule::IMPLIES_PROXY_AXIOM));
   (*impAxiom3)[0] = toEquality(AH::createAppTerm3(srtOf(constant), constant, x, y), false);  
   (*impAxiom3)[1] = toEquality(x, false);
   (*impAxiom3)[2] = toEquality(y, true);
-  impAxiom3->setProxyAxiomsDescendant(true);
+  impAxiom3->inference().setProxyAxiomsDescendant(true);
   UnitList::push(impAxiom3, prb.units());
 
-  inf = new Inference(Inference::AND_PROXY_AXIOM);
   unsigned andProxy = env.signature->getBinaryProxy("vAND");
   constant = TermList(Term::createConstant(andProxy));
 
-  Clause* andAxiom1 = new(2) Clause(2, Unit::AXIOM, inf);
+  Clause* andAxiom1 = new(2) Clause(2, TheoryAxiom(InferenceRule::AND_PROXY_AXIOM));
   (*andAxiom1)[0] = toEquality(AH::createAppTerm3(srtOf(constant), constant, x, y), false);
   (*andAxiom1)[1] = toEquality(x, true);
-  andAxiom1->setProxyAxiomsDescendant(true);
+  andAxiom1->inference().setProxyAxiomsDescendant(true);
   UnitList::push(andAxiom1, prb.units());
 
-  Clause* andAxiom2 = new(2) Clause(2, Unit::AXIOM, inf);
+  Clause* andAxiom2 = new(2) Clause(2, TheoryAxiom(InferenceRule::AND_PROXY_AXIOM));
   (*andAxiom2)[0] = toEquality(AH::createAppTerm3(srtOf(constant), constant, x, y), false);
   (*andAxiom2)[1] = toEquality(y, true);
-  andAxiom2->setProxyAxiomsDescendant(true);
+  andAxiom2->inference().setProxyAxiomsDescendant(true);
   UnitList::push(andAxiom2, prb.units());
 
-  Clause* andAxiom3 = new(3) Clause(3, Unit::AXIOM, inf);
+  Clause* andAxiom3 = new(3) Clause(3, TheoryAxiom(InferenceRule::AND_PROXY_AXIOM));
   (*andAxiom3)[0] = toEquality(AH::createAppTerm3(srtOf(constant), constant, x, y), true);  
   (*andAxiom3)[1] = toEquality(x, false);
   (*andAxiom3)[2] = toEquality(y, false);
-  andAxiom3->setProxyAxiomsDescendant(true);  
+  andAxiom3->inference().setProxyAxiomsDescendant(true);  
   UnitList::push(andAxiom3, prb.units());
 
-  inf = new Inference(Inference::OR_PROXY_AXIOM);
   unsigned orProxy = env.signature->getBinaryProxy("vOR");
   constant = TermList(Term::createConstant(orProxy));
 
-  Clause* orAxiom1 = new(2) Clause(2, Unit::AXIOM, inf);
+  Clause* orAxiom1 = new(2) Clause(2, TheoryAxiom(InferenceRule::OR_PROXY_AXIOM));
   (*orAxiom1)[0] = toEquality(AH::createAppTerm3(srtOf(constant), constant, x, y), true);
   (*orAxiom1)[1] = toEquality(x, false);
-  orAxiom1->setProxyAxiomsDescendant(true);
+  orAxiom1->inference().setProxyAxiomsDescendant(true);
   UnitList::push(orAxiom1, prb.units());
 
-  Clause* orAxiom2 = new(2) Clause(2, Unit::AXIOM, inf);
+  Clause* orAxiom2 = new(2) Clause(2, TheoryAxiom(InferenceRule::OR_PROXY_AXIOM));
   (*orAxiom2)[0] = toEquality(AH::createAppTerm3(srtOf(constant), constant, x, y), true);
   (*orAxiom2)[1] = toEquality(y, false);
-  orAxiom2->setProxyAxiomsDescendant(true);
+  orAxiom2->inference().setProxyAxiomsDescendant(true);
   UnitList::push(orAxiom2, prb.units());
 
-  Clause* orAxiom3 = new(3) Clause(3, Unit::AXIOM, inf);
+  Clause* orAxiom3 = new(3) Clause(3, TheoryAxiom(InferenceRule::OR_PROXY_AXIOM));
   (*orAxiom3)[0] = toEquality(AH::createAppTerm3(srtOf(constant), constant, x, y), false);  
   (*orAxiom3)[1] = toEquality(x, true);
   (*orAxiom3)[2] = toEquality(y, true);
-  orAxiom3->setProxyAxiomsDescendant(true);
+  orAxiom3->inference().setProxyAxiomsDescendant(true);
   UnitList::push(orAxiom3, prb.units()); 
   
-  inf = new Inference(Inference::FOOL_AXIOM);
-
-  Clause* tneqfClause = new(1) Clause(1, Unit::AXIOM, inf);
-  (*tneqfClause)[0] =  Literal::createEquality(false, TermList(Term::foolTrue()), 
-                                                      TermList(Term::foolFalse()), Term::boolSort());
-  UnitList::push(tneqfClause, prb.units()); 
 
   //TODO iff and xor
 

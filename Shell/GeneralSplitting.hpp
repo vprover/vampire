@@ -26,7 +26,6 @@
 #define __GeneralSplitting__
 
 #include "Forwards.hpp"
-#include "Lib/List.hpp"
 
 namespace Shell {
 

@@ -42,7 +42,7 @@ using namespace Kernel;
  */
 void FormulaUnit::destroy()
 {
-  _inference->destroy();
+  _inference.destroy(); // decrease counters on parents and release heap allocated things own by _inference
   delete this;
 } // FormulaUnit::destroy
 

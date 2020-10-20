@@ -35,7 +35,7 @@
 
 #include "Indexing/GroundingIndex.hpp"
 
-//#include "Shell/EqualityProxy.hpp"
+#include "Shell/EqualityProxy.hpp"
 #include "Shell/PredicateDefinition.hpp"
 
 #include "IGAlgorithm.hpp"
@@ -341,7 +341,7 @@ void ModelPrinter::analyzeEqualityAndPopulateDomain()
     }
     TermList firstTerm = TermList(Term::create(firstFunc, 0, 0));
     vstring firstTermStr = firstTerm.toString();
-    unsigned eqClassSort = SortHelper::getResultSort(firstTerm.term());
+    TermList eqClassSort = SortHelper::getResultSort(firstTerm.term());
     unsigned reprFunc = env.signature->addStringConstant(firstTermStr);
     OperatorType* reprType = OperatorType::getConstantsType(eqClassSort);
     env.signature->getFunction(reprFunc)->setType(reprType);

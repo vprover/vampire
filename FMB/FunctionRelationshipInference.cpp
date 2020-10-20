@@ -218,7 +218,7 @@ ClauseList* FunctionRelationshipInference::getCheckingClauses()
   for(unsigned f=0; f < initial_functions; f++){
 
     OperatorType* ftype = env.signature->getFunction(f)->fnType();
-    unsigned ret_srt = ftype->result();
+    TermList ret_srt = ftype->result();
     unsigned arity = env.signature->functionArity(f);
 
     bool different_sorted=false;
@@ -239,7 +239,7 @@ ClauseList* FunctionRelationshipInference::getCheckingClauses()
 
     // For unary functions it's straight forward
     if(arity == 1){
-      unsigned arg_srt = ftype->arg(0);
+      TermList arg_srt = ftype->arg(0);
       TermList fx(Term::create1(f,x));
       TermList fy(Term::create1(f,y));
       addClaimForFunction(x,y,fx,fy,f,arg_srt,ret_srt,0,newClauses);
@@ -255,7 +255,7 @@ ClauseList* FunctionRelationshipInference::getCheckingClauses()
       }
 
       for(unsigned i=0;i<arity;i++){
-        unsigned arg_srt = ftype->arg(i);
+        TermList arg_srt = ftype->arg(i);
 
         if(arg_srt == ret_srt) continue; // not interested
 
@@ -288,7 +288,7 @@ ClauseList* FunctionRelationshipInference::getCheckingClauses()
 
 void FunctionRelationshipInference::addClaimForFunction(TermList x, TermList y, TermList fx, TermList fy,
                                                unsigned fname,
-                                               unsigned arg_srt, unsigned ret_srt, Formula::VarList* existential,
+                                               TermList arg_srt, TermList ret_srt, Formula::VarList* existential,
                                                ClauseList*& newClauses)
 {
     CALL("FunctionRelationshipInference::addClaimForFunction");
@@ -334,7 +334,7 @@ void FunctionRelationshipInference::addClaim(Formula* conjecture, ClauseList*& n
     CALL("FunctionRelationshipInference::addClaim");
     
     FormulaUnit* fu = new FormulaUnit(conjecture,
-                      new Inference(Inference::INPUT),Unit::CONJECTURE); //TODO create new Inference kind?
+                      FromInput(UnitInputType::CONJECTURE)); //TODO create new Inference kind?
 
     fu = Rectify::rectify(fu);
     fu = NNF::ennf(fu);
@@ -350,17 +350,20 @@ void FunctionRelationshipInference::addClaim(Formula* conjecture, ClauseList*& n
 }
 
 // get a name for a formula that captures the relationship that |fromSrt| >= |toSrt|
-Formula* FunctionRelationshipInference::getName(unsigned fromSrt, unsigned toSrt, bool strict)
+Formula* FunctionRelationshipInference::getName(TermList fromSrt, TermList toSrt, bool strict)
 {
     CALL("FunctionRelationshipInference::getName");
 
     unsigned label= env.signature->addFreshPredicate(0,"label");
     env.signature->getPredicate(label)->markLabel();
 
+    unsigned fsT = SortHelper::sortNum(fromSrt);
+    unsigned tsT = SortHelper::sortNum(toSrt);
+
     if(strict)
-      _labelMap_strict.insert(label,make_pair(fromSrt,toSrt));
+      _labelMap_strict.insert(label,make_pair(fsT, tsT));
     else
-      _labelMap_nonstrict.insert(label,make_pair(fromSrt,toSrt));
+      _labelMap_nonstrict.insert(label,make_pair(fsT,tsT));
 
     return new AtomicFormula(Literal::create(label,0,true,false,0)); 
 }

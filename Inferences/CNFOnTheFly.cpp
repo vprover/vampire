@@ -46,7 +46,7 @@ using namespace Indexing;
 
 typedef ApplicativeHelper AH;
 
-Clause* NotProxyISE::simplify(Clause* c){
+/*Clause* NotProxyISE::simplify(Clause* c){
   CALL("NotProxyISE::simplify");
 
   TermList boolSort = Term::boolSort();
@@ -404,7 +404,7 @@ afterLoop:
 
   return pvi(getUniquePersistentIterator(ClauseStack::Iterator(resultStack)));
 
-}
+}*/
 
 ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaIndex* index)
 {
@@ -450,21 +450,13 @@ ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaInde
       Literal* rhsTroo = Literal::createEquality(true, rhs, troo, boolSort);
       Literal* rhsFols = Literal::createEquality(true, rhs, fols, boolSort);
       if(lit->polarity()){
-        Inference* inf1 = new Inference1(convert(Signature::IFF), c);
-        Inference* inf2 = new Inference1(convert(Signature::IFF), c);
-        Clause* res1 = replaceLits(c, lit, lhsTroo, inf1, rhsFols);
-        Clause* res2 = replaceLits(c, lit, lhsFols, inf2, rhsTroo);
-        res1->setAge(c->age()+1);
-        res2->setAge(c->age()+1);
+        Clause* res1 = replaceLits(c, lit, lhsTroo, convert(Signature::IFF), true, rhsFols);
+        Clause* res2 = replaceLits(c, lit, lhsFols, convert(Signature::IFF), true, rhsTroo);
         resultStack.push(res1);
         resultStack.push(res2);
       } else {
-        Inference* inf1 = new Inference1(convert(Signature::XOR), c);
-        Inference* inf2 = new Inference1(convert(Signature::XOR), c);
-        Clause* res1 = replaceLits(c, lit, lhsTroo, inf1, rhsTroo);
-        Clause* res2 = replaceLits(c, lit, lhsFols, inf2, rhsFols);
-        res1->setAge(c->age()+1);
-        res2->setAge(c->age()+1);
+        Clause* res1 = replaceLits(c, lit, lhsTroo, convert(Signature::XOR), true, rhsTroo);
+        Clause* res2 = replaceLits(c, lit, lhsFols, convert(Signature::XOR), true, rhsFols);
         resultStack.push(res1);
         resultStack.push(res2);
       }
@@ -490,20 +482,14 @@ ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaInde
       if(positive){
         Literal* l1 = Literal::createEquality(true, args[0], troo, boolSort);
         Literal* l2 = Literal::createEquality(true, args[1], troo, boolSort);
-        Inference *inf = new Inference1(convert(prox), c);   
-        Clause* res = replaceLits(c, lit, l1, inf, l2);
-        res->setAge(c->age());
+        Clause* res = replaceLits(c, lit, l1, convert(prox), false, l2);
         resultStack.push(res);
         goto afterLoop;
       } else {
         Literal* l1 = Literal::createEquality(true, args[0], fols, boolSort);
         Literal* l2 = Literal::createEquality(true, args[1], fols, boolSort);
-        Inference* inf1 = new Inference1(convert(prox), c);
-        Inference* inf2 = new Inference1(convert(prox), c);
-        Clause* res1 = replaceLits(c, lit, l1, inf1);
-        Clause* res2 = replaceLits(c, lit, l2, inf2);
-        res1->setAge(c->age()+1);
-        res2->setAge(c->age()+1);
+        Clause* res1 = replaceLits(c, lit, l1, convert(prox), true);
+        Clause* res2 = replaceLits(c, lit, l2, convert(prox), true);
         resultStack.push(res1);
         resultStack.push(res2);
         goto afterLoop;
@@ -514,21 +500,15 @@ ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaInde
       if(positive){
         Literal* l1 = Literal::createEquality(true, args[0], troo, boolSort);
         Literal* l2 = Literal::createEquality(true, args[1], troo, boolSort);
-        Inference* inf1 = new Inference1(convert(prox), c); 
-        Inference* inf2 = new Inference1(convert(prox), c);     
-        Clause* res1 = replaceLits(c, lit, l1, inf1);
-        Clause* res2 = replaceLits(c, lit, l2, inf2);        
-        res1->setAge(c->age()+1);
-        res2->setAge(c->age()+1);
+        Clause* res1 = replaceLits(c, lit, l1, convert(prox), true);
+        Clause* res2 = replaceLits(c, lit, l2, convert(prox), true);
         resultStack.push(res1);
         resultStack.push(res2);
         goto afterLoop;
       } else {
         Literal* l1 = Literal::createEquality(true, args[0], fols, boolSort);
         Literal* l2 = Literal::createEquality(true, args[1], fols, boolSort);
-        Inference *inf = new Inference1(convert(prox), c);
-        Clause* res = replaceLits(c, lit, l1, inf, l2);
-        res->setAge(c->age());
+        Clause* res = replaceLits(c, lit, l1, convert(prox), false, l2);
         resultStack.push(res);
         goto afterLoop;
       }
@@ -538,20 +518,14 @@ ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaInde
       if(positive){
         Literal* l1 = Literal::createEquality(true, args[1], fols, boolSort);
         Literal* l2 = Literal::createEquality(true, args[0], troo, boolSort);
-        Inference *inf = new Inference1(convert(prox), c);   
-        Clause* res = replaceLits(c, lit, l1, inf, l2);
-        res->setAge(c->age());
+        Clause* res = replaceLits(c, lit, l1, convert(prox), false, l2);
         resultStack.push(res);
         goto afterLoop;
       } else {
         Literal* l2 = Literal::createEquality(true, args[1], troo, boolSort);
         Literal* l1 = Literal::createEquality(true, args[0], fols, boolSort);
-        Inference* inf1 = new Inference1(convert(prox), c);
-        Inference* inf2 = new Inference1(convert(prox), c);
-        Clause* res1 = replaceLits(c, lit, l1, inf1);
-        Clause* res2 = replaceLits(c, lit, l2, inf2);        
-        res1->setAge(c->age()+1);
-        res2->setAge(c->age()+1);
+        Clause* res1 = replaceLits(c, lit, l1, convert(prox), true);
+        Clause* res2 = replaceLits(c, lit, l2, convert(prox), true);        
         resultStack.push(res1);
         resultStack.push(res2);
         goto afterLoop;
@@ -561,9 +535,7 @@ ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaInde
     if((prox == Signature::EQUALS) && (args.size() == 2)){
       TermList srt = *SortHelper::getResultSort(head.term()).term()->nthArgument(0);
       Literal* l1 = Literal::createEquality(positive, args[0], args[1], srt);
-      Inference *inf = new Inference1(convert(prox), c);
-      Clause* res = replaceLits(c, lit, l1, inf);
-      res->setAge(c->age());
+      Clause* res = replaceLits(c, lit, l1, convert(prox), false);
       resultStack.push(res);
       goto afterLoop;
     }
@@ -571,9 +543,7 @@ ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaInde
     if((prox == Signature::NOT) && (args.size())){
       TermList rhs = positive ? fols : troo;
       Literal* l1 = Literal::createEquality(true, args[0], rhs, boolSort);
-      Inference *inf = new Inference1(convert(prox), c);      
-      Clause* res = replaceLits(c, lit, l1, inf);
-      res->setAge(c->age());
+      Clause* res = replaceLits(c, lit, l1, convert(prox), false);
       resultStack.push(res);
       goto afterLoop;
     }
@@ -582,10 +552,10 @@ ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaInde
       TermList rhs = positive ? troo : fols; 
       TermList srt = *SortHelper::getResultSort(head.term()).term()->nthArgument(0);
       TermList newTerm;
-      Inference *inf;
+      InferenceRule rule;
       if((prox == Signature::PI && positive) || 
          (prox == Signature::SIGMA && !positive)){
-        inf = new Inference1(convert(Signature::PI), c);
+        rule = convert(Signature::PI);
         newTerm = piRemoval(args[0], c, srt);
       } else {
         bool newTermCreated = false;
@@ -606,11 +576,10 @@ ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaInde
           }
           newTerm = AH::createAppTerm(srt, args[0], skolemTerm);
         }
-        inf = new Inference1(convert(Signature::SIGMA), c);
+        rule = convert(Signature::SIGMA);
       }
       Literal* l1 = Literal::createEquality(true, newTerm, rhs, boolSort);
-      Clause* res = replaceLits(c, lit, l1, inf);
-      res->setAge(c->age());
+      Clause* res = replaceLits(c, lit, l1, rule, false);
       resultStack.push(res);
       goto afterLoop;
     }
@@ -626,7 +595,7 @@ afterLoop:
 }
 
 
-Clause* replaceLits(Clause *c, Literal *a, Literal *b, Inference *inf, Literal *d, Literal* e)
+Clause* replaceLits(Clause *c, Literal *a, Literal *b, InferenceRule r, bool incAge, Literal *d, Literal* e)
 {
   CALL("CNFOnTheFly::replaceLits");
 
@@ -634,7 +603,10 @@ Clause* replaceLits(Clause *c, Literal *a, Literal *b, Inference *inf, Literal *
   if(d){ length++;}
   if(e){ length++;}
   
-  Clause* res = new(length) Clause(length, c->inputType(), inf);
+  // Can be either generating or simplifying. Therefore use NonspecificInference
+  // Age is updated in some instances, but not in others based on empirical evaluation
+  Clause* res = new(length) Clause(length, NonspecificInference1(r, c));
+  res->setAge(incAge? c->age() + 1 : c->age());
 
   unsigned i = 0;
   while ((*c)[i] != a) { i++; }
@@ -646,20 +618,20 @@ Clause* replaceLits(Clause *c, Literal *a, Literal *b, Inference *inf, Literal *
   return res;
 }
 
-Inference::Rule convert(Signature::Proxy cnst){
+InferenceRule convert(Signature::Proxy cnst){
   CALL("CNFOnTheFly::convert");
 
   switch(cnst){
     case Signature::PI:
-      return Inference::VPI_ELIMINATION;
+      return InferenceRule::VPI_ELIMINATION;
     case Signature::SIGMA:
-      return Inference::VSIGMA_ELIMINATION;
+      return InferenceRule::VSIGMA_ELIMINATION;
     case Signature::EQUALS:
-      return Inference::HOL_EQUALITY_ELIMINATION;
+      return InferenceRule::HOL_EQUALITY_ELIMINATION;
     case Signature::NOT:
-      return Inference::HOL_NOT_ELIMINATION;
+      return InferenceRule::HOL_NOT_ELIMINATION;
     default:
-      return Inference::BINARY_CONN_ELIMINATION;   
+      return InferenceRule::BINARY_CONN_ELIMINATION;   
   }
 }
 
@@ -782,9 +754,7 @@ Clause* IFFXORRewriterISE::simplify(Clause* c){
     if((prox == Signature::IFF || prox == Signature::XOR) && (args.size() == 2)){
       bool polarity = (prox == Signature::IFF) == positive;
       Literal* l1 = Literal::createEquality(polarity, args[0], args[1], boolSort);
-      Inference *inf = new Inference1(convert(prox), c);
-      Clause* res = replaceLits(c, lit, l1, inf);
-      res->setAge(c->age());
+      Clause* res = replaceLits(c, lit, l1, convert(prox), false);
       return res;
     }
   }

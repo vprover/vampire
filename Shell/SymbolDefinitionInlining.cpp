@@ -18,6 +18,7 @@
  */
 #include "Kernel/Substitution.hpp"
 #include "Kernel/Formula.hpp"
+#include "Kernel/SortHelper.hpp"
 
 #include "SymbolDefinitionInlining.hpp"
 
@@ -79,7 +80,7 @@ TermList SymbolDefinitionInlining::process(TermList ts) {
 
   Term* term = ts.term();
 
-  /*if (term->isSpecial()) {
+  if (term->isSpecial()) {
     Term::SpecialTermData *sd = term->getSpecialData();
     switch (sd->getType()) {
       case Term::SF_FORMULA: {
@@ -149,7 +150,7 @@ TermList SymbolDefinitionInlining::process(TermList ts) {
       default:
         ASSERTION_VIOLATION_REP(term->toString());
     }
-  }*/
+  }
 
   Term::Iterator terms(term);
 
@@ -175,10 +176,10 @@ TermList SymbolDefinitionInlining::process(TermList ts) {
   return TermList(Term::create(term, args.begin()));
 }
 
-/*bool SymbolDefinitionInlining::mirroredTuple(Term* tuple, TermList &tupleConstant) {
+bool SymbolDefinitionInlining::mirroredTuple(Term* tuple, TermList &tupleConstant) {
   bool foundTupleConstant = false;
-  unsigned tupleSort = env.signature->getFunction(tuple->functor())->fnType()->result();
-  ASS(env.sorts->isOfStructuredSort(tupleSort, Sorts::StructuredSort::TUPLE));
+  TermList tupleSort = env.signature->getFunction(tuple->functor())->fnType()->result();
+  ASS(SortHelper::isTupleSort(tupleSort));
   for (unsigned i = 0; i < tuple->arity(); i++) {
     if (!tuple->nthArgument(i)->isTerm()) {
       return false;
@@ -217,7 +218,7 @@ TermList SymbolDefinitionInlining::process(TermList ts) {
     }
   }
   return true;
-}*/
+}
 
 Formula* SymbolDefinitionInlining::process(Formula* formula) {
   CALL("SymbolDefinitionInlining::process(Formula*)");

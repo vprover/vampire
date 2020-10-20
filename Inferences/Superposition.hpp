@@ -57,7 +57,6 @@ private:
           UnificationConstraintStackSP constraints, bool isTypeSub);
 
   bool checkClauseColorCompatibility(Clause* eqClause, Clause* rwClause);
-  static int getWeightLimit(Clause* eqClause, Clause* rwClause, Limits* limits);
   
   static bool earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,
       Clause* rwClause, Literal* rwLit, TermList rwTerm, TermList eqLHS, TermList eqRHS,
@@ -65,8 +64,6 @@ private:
 
 
   static bool checkSuperpositionFromVariable(Clause* eqClause, Literal* eqLit, TermList eqLHS);
-
-  static size_t getSubtermOccurrenceCount(Term* trm, TermList subterm);
 
   struct ForwardResultFn;
   struct RewriteableSubtermsFn;

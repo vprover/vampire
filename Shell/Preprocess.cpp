@@ -36,7 +36,7 @@
 #include "GoalGuessing.hpp"
 //#include "AnswerExtractor.hpp"
 #include "CNF.hpp"
-//#include "NewCNF.hpp"
+#include "NewCNF.hpp"
 #include "DistinctGroupExpansion.hpp"
 #include "EqResWithDeletion.hpp"
 #include "EqualityProxy.hpp"
@@ -44,7 +44,7 @@
 #include "FunctionDefinition.hpp"
 #include "GeneralSplitting.hpp"
 #include "InequalitySplitting.hpp"
-//#include "InterpretedNormalizer.hpp"
+#include "InterpretedNormalizer.hpp"
 #include "Naming.hpp"
 #include "Normalisation.hpp"
 #include "NNF.hpp"
@@ -59,8 +59,8 @@
 #include "Statistics.hpp"
 #include "FOOLElimination.hpp"
 #include "LambdaElimination.hpp"
-//#include "TheoryAxioms.hpp"
-//#include "TheoryFlattening.hpp"
+#include "TheoryAxioms.hpp"
+#include "TheoryFlattening.hpp"
 #include "BlockedClauseElimination.hpp"
 #include "TrivialPredicateRemover.hpp"
 
@@ -98,7 +98,7 @@ using namespace Shell;
  * Bound propagation preprocessing steps. Takes as argumet @c constraints the list of constraints
  *
  */
-/*void Preprocess::preprocess(ConstraintRCList*& constraints)
+void Preprocess::preprocess(ConstraintRCList*& constraints)
 {
   CALL("Preprocess::preprocess(ConstraintRCList *& )");
 
@@ -126,11 +126,11 @@ using namespace Shell;
     anyChange |= subsRemover.apply(constraints);
   }
   while(anyChange);
-} */ // Preprocess::preprocess ()
+}  // Preprocess::preprocess ()
 
 /**
  * Replace equalities by two non-strict inequalities.
- */ /*
+ */ 
 void Preprocess::unfoldEqualities(ConstraintRCList*& constraints)
 {
   CALL("Preprocess::unfoldEqualities");
@@ -150,7 +150,7 @@ void Preprocess::unfoldEqualities(ConstraintRCList*& constraints)
     cit.replace(gc);
     cit.insert(lc);
   }
-} */
+} 
 #endif //GNUMP
 
 /**
@@ -212,7 +212,7 @@ void Preprocess::preprocess(Problem& prb)
   }
 
   // If there are interpreted operations
-  /*if (prb.hasInterpretedOperations() || env.signature->hasTermAlgebras()){
+  if (prb.hasInterpretedOperations() || env.signature->hasTermAlgebras()){
     // Normalizer is needed, because the TheoryAxioms code assumes Normalized problem
     InterpretedNormalizer().apply(prb);
     // Add theory axioms if needed
@@ -223,19 +223,19 @@ void Preprocess::preprocess(Problem& prb)
 
       TheoryAxioms(prb).apply();
     }
-  }*/
+  }
 
   if (prb.hasFOOL() || env.statistics->higherOrder) {//or lambda
     // This is the point to extend the signature with $$true and $$false
     // If we don't have fool then these constants get in the way (a lot)
 
-    //if (!_options.newCNF()) {
+    if (!_options.newCNF() || env.statistics->higherOrder) {
       if (env.options->showPreprocessing())
         env.out() << "FOOL elimination" << std::endl;
   
-      //TheoryAxioms(prb).applyFOOL(); //TODO uncomment this once theories are reintroduced
+      TheoryAxioms(prb).applyFOOL();
       FOOLElimination().apply(prb);
-    //}
+    }
   }
 
   if(env.options->functionExtensionality() == Options::FunctionExtensionality::AXIOM){
@@ -327,12 +327,13 @@ void Preprocess::preprocess(Problem& prb)
     preprocess2(prb);
   }
 
-  /*if (prb.mayHaveFormulas() && _options.newCNF()) {
+  if (prb.mayHaveFormulas() && _options.newCNF() 
+      && !env.statistics->higherOrder) {
     if (env.options->showPreprocessing())
       env.out() << "newCnf" << std::endl;
 
     newCnf(prb);
-  } else { */
+  } else {
 
 
     if (prb.mayHaveFormulas() && _options.naming()) {
@@ -355,7 +356,7 @@ void Preprocess::preprocess(Problem& prb)
 
       clausify(prb);
     }
-  //}
+  }
 
   prb.getProperty();
 
@@ -443,14 +444,14 @@ void Preprocess::preprocess(Problem& prb)
      proxy.apply(prb);
    }
 
-   /*
-   if(_options.theoryFlattening()){
+   
+   if(_options.theoryFlattening() && !prb.hasPolymorphicSym()){
      if(env.options->showPreprocessing())
        env.out() << "theory flattening" << std::endl;
 
      TheoryFlattening tf;
      tf.apply(prb);
-   }*/
+   }
 
    //bce hasn't been updated to deal with polymorphism
    if (_options.blockedClauseElimination() && !prb.hasPolymorphicSym()) {
@@ -518,10 +519,10 @@ void Preprocess::preprocess1 (Problem& prb)
     fu = Rectify::rectify(fu);
     FormulaUnit* rectFu = fu;
     // Simplify the formula if it contains true or false
-    //if (!_options.newCNF()) {
+    if (!_options.newCNF() || env.statistics->higherOrder) {
       // NewCNF effectively implements this simplification already
       fu = SimplifyFalseTrue::simplify(fu);
-    //}
+    }
     if (fu!=rectFu) {
       formulasSimplified = true;
     }
@@ -610,7 +611,7 @@ void Preprocess::newCnf(Problem& prb)
 {
   CALL("Preprocess::newCnf");
 
-  /*env.statistics->phase=Statistics::NEW_CNF;
+  env.statistics->phase=Statistics::NEW_CNF;
 
   // TODO: this is an ugly copy-paste of "Preprocess::clausify"
 
@@ -658,7 +659,7 @@ void Preprocess::newCnf(Problem& prb)
   if (modified) {
     prb.invalidateProperty();
   }
-  prb.reportFormulasEliminated();*/
+  prb.reportFormulasEliminated();
 } 
 
 /**

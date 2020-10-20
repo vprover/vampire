@@ -116,7 +116,6 @@ void SplittingBranchSelector::init()
   }
   _minSCO = _parent.getOptions().splittingMinimizeModel() == Options::SplittingMinimizeModel::SCO;
 
-  
   if(_parent.getOptions().splittingCongruenceClosure() != Options::SplittingCongruenceClosure::OFF) {
     _dp = new DP::SimpleCongruenceClosure(&_parent.getOrdering());
     if (_parent.getOptions().ccUnsatCores() == Options::CCUnsatCores::SMALL_ONES) {
@@ -196,7 +195,8 @@ void SplittingBranchSelector::handleSatRefutation()
   CALL("SplittingBranchSelector::handleSatRefutation");
 
   SATClause* satRefutation = _solver->getRefutation();
-  SATClauseList* satPremises = _solver->getRefutationPremiseList();
+  SATClauseList* satPremises = env.options->minimizeSatProofs() ?
+      _solver->getRefutationPremiseList() : nullptr; // getRefutationPremiseList may be nullptr already, if our solver does not support minimization
 
   if (!env.colorUsed) { // color oblivious, simple approach
     UnitList* prems = SATInference::getFOPremises(satRefutation);
@@ -324,6 +324,7 @@ void SplittingBranchSelector::handleSatRefutation()
 
       Inference finalInf = NonspecificInferenceMany(InferenceRule::SAT_COLOR_ELIMINATION,first_prems);
       Clause* foRef = Clause::fromIterator(LiteralIterator::getEmpty(), finalInf);
+
       throw MainLoop::RefutationFoundException(foRef);
     }
   }
@@ -440,8 +441,8 @@ SATSolver::Status SplittingBranchSelector::processDPConflicts()
 
     // there was conflict, so we try looking for a different model
     {
-    	TimeCounter tca(TC_SAT_SOLVER);
-    	
+      TimeCounter tca(TC_SAT_SOLVER);
+      
       if (_solver->solve() == SATSolver::UNSATISFIABLE) {
         return SATSolver::UNSATISFIABLE;
       }
@@ -540,8 +541,7 @@ void SplittingBranchSelector::updateSelection(unsigned satVar, SATSolver::VarAss
       removedComps.push(negLvl);
     }
     break;
-  case SATSolver::FALSE:  
-  
+  case SATSolver::FALSE:    
     if(!_selected.find(negLvl) && _parent.isUsedName(negLvl)) {
       _selected.insert(negLvl);
       addedComps.push(negLvl);
@@ -618,6 +618,17 @@ void SplittingBranchSelector::recomputeModel(SplitLevelStack& addedComps, SplitL
   unsigned _usedcnt=0; // for the statistics below
   for(unsigned i=1; i<=maxSatVar; i++) {
     SATSolver::VarAssignment asgn = getSolverAssimentConsideringCCModel(i);
+
+    /**
+     * This may happen with the current version of z3 when evaluating expressions like (0 == 1/0).
+     * A bug report / feature request has been sent to the z3 people, but this will make us stay sound in release mode.
+     * (While violating an assertion in debug - see getAssignment in Z3Interfacing).
+     */
+    if (asgn == SATSolver::NOT_KNOWN) {
+      env.statistics->smtDidNotEvaluate=true;
+      throw MainLoop::MainLoopFinishedException(Statistics::REFUTATION_NOT_FOUND);
+    }
+
     updateSelection(i, asgn, addedComps, removedComps);
     
     if (asgn != SATSolver::DONT_CARE) {
@@ -733,21 +744,35 @@ SplitLevel Splitter::getNameFromLiteralUnsafe(SATLiteral lit) const
 
   return (lit.var()-1)*2 + (lit.polarity() ? 0 : 1);
 }
-SATLiteral Splitter::getLiteralFromName(SplitLevel compName) const
+SATLiteral Splitter::getLiteralFromName(SplitLevel compName)
 {
   CALL("Splitter::getLiteralFromName");
-  ASS_L(compName, _db.size());
 
   unsigned var = compName/2 + 1;
   bool polarity = (compName&1)==0;
   return SATLiteral(var, polarity);
 }
+vstring Splitter::getFormulaStringFromName(SplitLevel compName, bool negated)
+{
+  CALL("Splitter::getFormulaStringFromName");
+
+  SATLiteral lit = getLiteralFromName(compName);
+  if (negated) {
+    lit = lit.opposite();
+  }
+  if (lit.isPositive()) {
+    return splPrefix+Lib::Int::toString(lit.var());
+  } else {
+    return "~"+splPrefix+Lib::Int::toString(lit.var());
+  }
+}
+
 Unit* Splitter::getDefinitionFromName(SplitLevel compName) const
 {
   CALL("Splitter::getDefinitionFromName");
 
   Unit* def;
-  ALWAYS(_defs.find(compName,def));
+  ALWAYS(_defs.find((compName&~1) /*always stored positively*/,def));
   return def;
 }
 
@@ -943,19 +968,14 @@ bool Splitter::handleNonSplittable(Clause* cl)
     FormulaList* resLst=0;
     // do compName first
     UnitList::push(getDefinitionFromName(compName),ps);
-    vstring compNameNm = splPrefix+Lib::Int::toString(compName);
-    if((compName&1)!=0){ compNameNm="~"+compNameNm; }
-    FormulaList::push(new NamedFormula(compNameNm),resLst);
+    FormulaList::push(new NamedFormula(getFormulaStringFromName(compName)),resLst);
  
     // now do splits
     SplitSet::Iterator sit(*cl->splits());
     while(sit.hasNext()) {
       SplitLevel nm = sit.next();
       UnitList::push(getDefinitionFromName(nm),ps);
-      vstring lnm = splPrefix+Lib::Int::toString(nm);
-      // In the splits we reverse polarity
-      if((nm&1)==0){ lnm="~"+lnm; }
-      FormulaList::push(new NamedFormula(lnm),resLst);
+      FormulaList::push(new NamedFormula(getFormulaStringFromName(nm,true /*negated*/)),resLst);
     }
 
     UnitList::push(cl,ps); // making sure this clause is the last one pushed (for the sake of colorFromAssumedFOConversion)
@@ -977,6 +997,26 @@ bool Splitter::handleNonSplittable(Clause* cl)
   }
 
   return true;
+}
+
+/**
+ * Since the component names in a clauses Splitset should be interpreted as propositional variables,
+ * Splitter know how to do their proper printing.
+ */
+vstring Splitter::splitsToString(SplitSet* splits)
+{
+  CALL("Splitter::splitsToString");
+
+  vostringstream res;
+
+  typename SplitSet::Iterator it(*splits);
+  while(it.hasNext()) {
+    res << getLiteralFromName(it.next());
+    if(it.hasNext()) {
+      res<<", ";
+    }
+  }
+  return res.str();
 }
 
 /**
@@ -1014,7 +1054,7 @@ bool Splitter::getComponents(Clause* cl, Stack<LiteralStack>& acc)
     while(vit.hasNext()) {
       unsigned master=varMasters.findOrInsert(vit.next().var(), i);
       if(master!=i) {
-	components.doUnion(master, i);
+  components.doUnion(master, i);
       }
     }
   }
@@ -1090,9 +1130,7 @@ bool Splitter::doSplitting(Clause* cl)
     satClauseLits.push(nameLit);
 
     UnitList::push(getDefinitionFromName(compName),ps);
-    vstring compNameNm = splPrefix+Lib::Int::toString(compName);
-    if((compName&1)!=0){ compNameNm="~"+compNameNm; }
-    FormulaList::push(new NamedFormula(compNameNm),resLst);
+    FormulaList::push(new NamedFormula(getFormulaStringFromName(compName)),resLst);
   }
 
   SATClause* splitClause = SATClause::fromStack(satClauseLits);
@@ -1108,16 +1146,13 @@ bool Splitter::doSplitting(Clause* cl)
   while(sit.hasNext()) {
     SplitLevel nm = sit.next();
     UnitList::push(getDefinitionFromName(nm),ps);
-    vstring lnm = splPrefix+Lib::Int::toString(nm);
-    // in the splits we reverse polarity
-    if((nm&1)==0){ lnm="~"+lnm; }
-    FormulaList::push(new NamedFormula(lnm),resLst);
+    FormulaList::push(new NamedFormula(getFormulaStringFromName(nm,true /*negated*/)),resLst);
   }
 
   UnitList::push(cl,ps); // making sure this clause is the last one pushed (for the sake of colorFromAssumedFOConversion)
 
   Formula* f = JunctionFormula::generalJunction(OR,resLst);
-  FormulaUnit* scl = new FormulaUnit(f,NonspecificInferenceMany(InferenceRule::AVATAR_SPLIT_CLAUSE,ps))
+  FormulaUnit* scl = new FormulaUnit(f,NonspecificInferenceMany(InferenceRule::AVATAR_SPLIT_CLAUSE,ps));
 
   splitClause->setInference(new FOConversionInference(scl));
 
@@ -1170,6 +1205,9 @@ bool Splitter::tryGetExistingComponentName(unsigned size, Literal* const * lits,
  * @param lits The literals in the component to add
  * @param orig The original clause i.e. the one that we are splitting
  *
+ * MS: orig may be nullptr under acc=model, which is an option that caused and is causing many problems
+ * and we should consider whether the benefits of keeping it are worth it
+ *
  * Comment by Giles.
  */
 Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, Literal* const * lits, Clause* orig)
@@ -1192,7 +1230,7 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
       oplit = Literal::complementaryLiteral(lits[0]);
       possibly_flipped_lits = &oplit;
     }
- 
+
     vstring formula_name = getFormulaStringFromName(posName);
     Clause* temp = Clause::fromIterator(getArrayishObjectIterator(possibly_flipped_lits, size),
         NonspecificInference0(inpType,InferenceRule::AVATAR_DEFINITION));
@@ -1203,7 +1241,7 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
     Inference def_u_i = NonspecificInference0(inpType,InferenceRule::AVATAR_DEFINITION);
     if (orig != nullptr) { //
       def_u_i.setPureTheoryDescendant(orig->isPureTheoryDescendant());
-      def_u_i.setInductionDepth(orig->inference().inductionDepth()); //TODO other stats
+      def_u_i.setInductionDepth(orig->inference().inductionDepth());
     }
     def_u = new FormulaUnit(def_f,def_u_i);
     InferenceStore::instance()->recordIntroducedSplitName(def_u,formula_name);
@@ -1234,7 +1272,6 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
     compCl->inference().th_ancestors = 0;
     compCl->inference().all_ancestors = 1;
   }
-
 
   _db[name] = new SplitRecord(compCl);
   compCl->setSplits(SplitSet::getSingleton(name));
@@ -1416,7 +1453,7 @@ void Splitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* re
   if(replacement) {
     unionAll = replacement->splits();
     ASS(forAll(premises, 
-            [replacement,this] (Clause* premise) { 
+            [replacement] (Clause* premise) { 
               //SplitSet* difference = premise->splits()->subtract(replacement->splits());
               //if(difference->isEmpty()) return true; // isSubsetOf true
               // Now check if those in the difference are zero implied
@@ -1506,7 +1543,7 @@ void Splitter::onNewClause(Clause* cl)
   //  isComponent = _componentIdx->retrieveVariants(cl).hasNext();
   //}
   //if(isComponent){
-  //	RSTAT_CTR_INC("New Clause is a Component");
+  //  RSTAT_CTR_INC("New Clause is a Component");
   //}
 
   if(!cl->splits()) {
@@ -1547,7 +1584,6 @@ SplitSet* Splitter::getNewClauseSplitSet(Clause* cl)
   SplitSet* res;
   Inference& inf= cl->inference();
   Inference::Iterator it=inf.iterator();
-
 
   res=SplitSet::getEmpty();
 
@@ -1629,6 +1665,20 @@ bool Splitter::handleEmptyClause(Clause* cl)
   // RSTAT_MCTR_INC("sspl_confl_len", confl->length());
 
   addSatClauseToSolver(confl,true);
+
+    if (_showSplitting) {
+      env.beginOutput();
+      env.out() << "[AVATAR] proved ";
+      SplitSet::Iterator sit(*cl->splits());
+      while(sit.hasNext()){
+        env.out() << (_db[sit.next()]->component)->toString();
+        if(sit.hasNext()){ env.out() << " | "; }
+      }
+      env.out() << endl; 
+      env.endOutput();
+    }
+
+
 
   env.statistics->satSplitRefutations++;
   return true;
@@ -1798,7 +1848,6 @@ UnitList* Splitter::explicateAssertionsForSaturatedClauseSet(UnitList* clauses)
     }
 
     // cout << "fla out: " << f->toString() << endl;
-
     Inference inf = NonspecificInference1(InferenceRule::FORMULIFY,cl);
     if (cl->inference().inputType() == UnitInputType::CONJECTURE) {
       // because units which are conjectures are explicitly negated in TPTPPrinter::toString for some reason:

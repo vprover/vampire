@@ -107,7 +107,7 @@ TermList FormulaTransformer::apply(TermList ts) {
 
   Term* term = ts.term();
 
-  /*if (term->isSpecial()) {
+  if (term->isSpecial()) {
     Term::SpecialTermData *sd = ts.term()->getSpecialData();
     switch (sd->getType()) {
       case Term::SF_ITE:
@@ -139,7 +139,7 @@ TermList FormulaTransformer::apply(TermList ts) {
       default:
         ASSERTION_VIOLATION_REP(ts.toString());
     }
-  }*/
+  }
 
   if (term->shared()) {
     return ts;
@@ -368,8 +368,7 @@ FormulaUnit* LocalFormulaUnitTransformer::transform(FormulaUnit* unit)
   if(f==newForm) {
     return unit;
   }
-  Inference* inf = new Inference1(_rule, unit);
-  return new FormulaUnit(newForm, inf, unit->inputType());
+  return new FormulaUnit(newForm, FormulaTransformation(_rule, unit));
 }
 
 
@@ -487,10 +486,7 @@ bool ScanAndApplyLiteralTransformer::apply(FormulaUnit* unit, Unit*& res)
   UnitList::pushFromIterator(UnitStack::Iterator(prems), premLst);
   UnitList::push(unit, premLst);
 
-  Inference* inf = new InferenceMany(_infRule, premLst);
-  Unit::InputType inpType = Unit::getInputType(premLst);
-
-  res = new FormulaUnit(newForm, inf, inpType);
+  res = new FormulaUnit(newForm, FormulaTransformationMany(_infRule, premLst));
 
   return true;
 }
@@ -525,10 +521,7 @@ bool ScanAndApplyLiteralTransformer::apply(Clause* cl, Unit*& res)
   UnitList::pushFromIterator(UnitStack::Iterator(prems), premLst);
   UnitList::push(cl, premLst);
 
-  Inference* inf = new InferenceMany(_infRule, premLst);
-  Unit::InputType inpType = Unit::getInputType(premLst);
-
-  res = Clause::fromIterator(LiteralStack::Iterator(lits), inpType, inf);
+  res = Clause::fromIterator(LiteralStack::Iterator(lits), FormulaTransformationMany(_infRule, premLst));
   return true;
 }
 

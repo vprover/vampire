@@ -186,7 +186,7 @@ Clause* Narrow::performNarrow(
   unsigned lim = env.options->maxXXNarrows();
   if(lim != 0){
     if(comb < Signature::I_COMB && argNum == 1){
-      if(nClause->XXNarrows() == lim){
+      if(nClause->inference().xxNarrows() == lim){
         env.statistics->discardedNonRedundantClauses++;
         return 0;
       } else {
@@ -226,32 +226,34 @@ Clause* Narrow::performNarrow(
     return 0;
   }
 
-  Inference inf;
+  InferenceRule rule;
   if(comb == Signature::S_COMB && argNum == 1){
-    inf = GeneratingInference1(InferenceRule::SXX_NARROW, nClause);
+    rule = InferenceRule::SXX_NARROW;
   } else if(comb == Signature::S_COMB && argNum == 2){
-    inf = GeneratingInference1(InferenceRule::SX_NARROW, nClause);
+    rule = InferenceRule::SX_NARROW;
   } else if(comb == Signature::S_COMB && argNum == 3){
-    inf = GeneratingInference1(InferenceRule::S_NARROW, nClause);
+    rule = InferenceRule::S_NARROW;
   } else if(comb == Signature::C_COMB && argNum == 1){
-    inf = GeneratingInference1(InferenceRule::CXX_NARROW, nClause);
+    rule = InferenceRule::CXX_NARROW;
   } else if(comb == Signature::C_COMB && argNum == 2){
-    inf = GeneratingInference1(InferenceRule::CX_NARROW, nClause);
+    rule = InferenceRule::CX_NARROW;
   } else if(comb == Signature::C_COMB && argNum == 3){
-    inf = GeneratingInference1(InferenceRule::C_NARROW, nClause);
+    rule = InferenceRule::C_NARROW;
   } else if(comb == Signature::B_COMB && argNum == 1){
-    inf = GeneratingInference1(InferenceRule::BXX_NARROW, nClause);
+    rule = InferenceRule::BXX_NARROW;
   } else if(comb == Signature::B_COMB && argNum == 2){
-    inf = GeneratingInference1(InferenceRule::BX_NARROW, nClause);
+    rule = InferenceRule::BX_NARROW;
   } else if(comb == Signature::B_COMB && argNum == 3){
-    inf = GeneratingInference1(InferenceRule::B_NARROW, nClause);
+    rule = InferenceRule::B_NARROW;
   } else if(comb == Signature::K_COMB && argNum == 1){
-    inf = GeneratingInference1(InferenceRule::KX_NARROW, nClause);
+    rule = InferenceRule::KX_NARROW;
   } else if(comb == Signature::K_COMB && argNum == 2){
-    inf = GeneratingInference1(InferenceRule::K_NARROW, nClause);
+    rule = InferenceRule::K_NARROW;
   } else {
-    inf = GeneratingInference1(InferenceRule::I_NARROW, nClause);   
+    rule = InferenceRule::I_NARROW;
   }
+
+  Inference inf(GeneratingInference1(rule, nClause));
   if(incr){ inf.incXXNarrows(); }
 
   // If proof extra is on let's compute the positions we have performed

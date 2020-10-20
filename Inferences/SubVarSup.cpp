@@ -299,12 +299,6 @@ Clause* SubVarSup::performSubVarSup(
     return 0;
   }
 
-  unsigned newLength = rwLength+eqLength-1;
-
-  Inference* inf = new Inference2(Inference::SUB_VAR_SUP, rwClause, eqClause);
-  Unit::InputType inpType = (Unit::InputType)
-  	    Int::max(rwClause->inputType(), eqClause->inputType());
-
   // If proof extra is on let's compute the positions we have performed
   // SubVarSup on 
   if(env.options->proofExtra()==Options::ProofExtra::FULL){
@@ -313,7 +307,9 @@ Clause* SubVarSup::performSubVarSup(
 
   bool afterCheck = getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete();
 
-  Clause* res = new(newLength) Clause(newLength, inpType, inf);
+  unsigned newLength = rwLength+eqLength-1;
+  Inference inf(GeneratingInference2(InferenceRule::SUB_VAR_SUP, rwClause, eqClause));
+  Clause* res = new(newLength) Clause(newLength, inf);
 
   (*res)[0] = tgtLitS;
   int next = 1;

@@ -899,13 +899,13 @@ Term* NewCNF::createSkolemTerm(unsigned var, VarSet* free)
   bool isPredicate = (rangeSort == Term::boolSort());
   if (isPredicate) {
     unsigned pred = Skolem::addSkolemPredicate(arity, domainSorts.begin(), var);
-    if(_beingClausified->isGoal()){
+    if(_beingClausified->derivedFromGoal()){
       env.signature->getPredicate(pred)->markInGoal();
     }
     res = Term::createFormula(new AtomicFormula(Literal::create(pred, arity, true, false, fnArgs.begin())));
   } else {
     unsigned fun = Skolem::addSkolemFunction(arity, domainSorts.begin(), rangeSort, var);
-    if(_beingClausified->isGoal()){
+    if(_beingClausified->derivedFromGoal()){
       env.signature->getFunction(fun)->markInGoal();
     }
     if(_forInduction){
@@ -1451,8 +1451,7 @@ Clause* NewCNF::toClause(SPGenClause gc)
     properLiterals.push(l);
   }
 
-  Inference* inference = new Inference1(Inference::CLAUSIFY, _beingClausified);
-  Clause* clause = new(gc->size()) Clause(gc->size(), _beingClausified->inputType(), inference);
+  Clause* clause = new(gc->size()) Clause(gc->size(),FormulaTransformation(InferenceRule::CLAUSIFY,_beingClausified));
   for (int i = gc->size() - 1; i >= 0; i--) {
     (*clause)[i] = properLiterals[i];
   }

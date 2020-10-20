@@ -106,14 +106,13 @@ FormulaUnit* Skolem::skolemiseImpl (FormulaUnit* unit, bool appify)
 
   UnitList* premiseList = new UnitList(unit,_skolimizingDefinitions);
 
-  Inference* inf = new InferenceMany(Inference::SKOLEMIZE,premiseList);
-  FormulaUnit* res = new FormulaUnit(g, inf, unit->inputType());
+  FormulaUnit* res = new FormulaUnit(g,FormulaTransformationMany(InferenceRule::SKOLEMIZE,premiseList));
 
   ASS(_introducedSkolemFuns.isNonEmpty());
   while(_introducedSkolemFuns.isNonEmpty()) {
     unsigned fn = _introducedSkolemFuns.pop();
     InferenceStore::instance()->recordIntroducedSymbol(res,true,fn);
-    if(unit->isGoal()){
+    if(unit->derivedFromGoal()){
       env.signature->getFunction(fn)->markInGoal();
     }
   }
@@ -141,6 +140,8 @@ unsigned Skolem::addSkolemFunction(unsigned arity, TermList* domainSorts,
   CALL("Skolem::addSkolemFunction(unsigned,TermList*,TermList,const char*)");
   //ASS(arity==0 || domainSorts!=0);
 
+  if(!vl){ vl = VarList::empty(); }
+
   unsigned fun = env.signature->addSkolemFunction(arity, suffix);
   Signature::Symbol* fnSym = env.signature->getFunction(fun);
   OperatorType* ot = OperatorType::getFunctionType(arity - VarList::length(vl), domainSorts, rangeSort, vl);
@@ -164,11 +165,14 @@ unsigned Skolem::addSkolemPredicate(unsigned arity, TermList* domainSorts, unsig
 unsigned Skolem::addSkolemPredicate(unsigned arity, TermList* domainSorts, VarList* vl, const char* suffix)
 {
   CALL("Skolem::addSkolemPredicate(unsigned,unsigned*,unsigned,const char*)");
-  ASS(arity==0 || domainSorts!=0);
+  //ASS(arity==0 || domainSorts!=0);
+
+  if(!vl){ vl = VarList::empty(); }
 
   unsigned pred = env.signature->addSkolemPredicate(arity, suffix);
   Signature::Symbol* pSym = env.signature->getPredicate(pred);
-  pSym->setType(OperatorType::getPredicateType(arity, domainSorts, vl));
+  OperatorType* ot = OperatorType::getPredicateType(arity - VarList::length(vl), domainSorts, vl);
+  pSym->setType(ot);
   return pred;
 }
 
@@ -496,7 +500,7 @@ Formula* Skolem::skolemise (Formula* f)
           def = new QuantifiedFormula(FORALL,var_args,nullptr,def);
         }
 
-        Unit* defUnit = new FormulaUnit(def, new Inference(Inference::CHOICE_AXIOM), Unit::AXIOM);
+        Unit* defUnit = new FormulaUnit(def,NonspecificInference0(UnitInputType::AXIOM,InferenceRule::CHOICE_AXIOM));
         UnitList::push(defUnit,_skolimizingDefinitions);
       }
 

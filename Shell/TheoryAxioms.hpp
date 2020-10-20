@@ -29,6 +29,8 @@
 #include "Kernel/Theory.hpp"
 #include "Options.hpp"
 
+#include <initializer_list>
+
 namespace Shell {
 
 using namespace Lib;
@@ -89,12 +91,11 @@ private:
                            Interpretation unaryMinus, TermList zeroElement);
   void addIntegerDividesAxioms(Interpretation divides, Interpretation multiply, TermList zero, TermList n);
 
-  void addBooleanArrayExtensionalityAxioms(unsigned arraySort, unsigned skolem);
-  void addArrayExtensionalityAxioms(unsigned arraySort, unsigned skolem);
-  void addBooleanArrayWriteAxioms(unsigned arraySort);
-  void addArrayWriteAxioms(unsigned arraySort);
+  void addBooleanArrayExtensionalityAxioms(TermList arraySort, unsigned skolem);
+  void addArrayExtensionalityAxioms(TermList arraySort, unsigned skolem);
+  void addBooleanArrayWriteAxioms(TermList arraySort);
+  void addArrayWriteAxioms(TermList arraySort);
 
-  void addTupleAxioms(unsigned tupleSort);
   void addFloorAxioms(Interpretation floor, Interpretation less, Interpretation unaryMinus,
                       Interpretation plus, TermList oneElement);
   void addCeilingAxioms(Interpretation ceiling, Interpretation less, Interpretation plus, 
@@ -115,11 +116,7 @@ private:
      recursive) */
   bool addSubtermDefinitions(unsigned subtermPredicate, TermAlgebraConstructor* c);
 
-  void addTheoryUnitClause(Literal* lit, unsigned level);
-  void addTheoryUnitClause(Literal* lit, Inference* inf, unsigned level);
-  void addTheoryNonUnitClause(Literal* lit1, Literal* lit2,unsigned level);
-  void addTheoryNonUnitClause(Literal* lit1, Literal* lit2, Literal* lit3,unsigned level);
-  void addTheoryNonUnitClause(Literal* lit1, Literal* lit2, Literal* lit3, Literal* lit4,unsigned level);
+  void addTheoryClauseFromLits(std::initializer_list<Literal*> lits, InferenceRule rule, unsigned level);
   void addAndOutputTheoryUnit(Unit* unit, unsigned level);
 };
 

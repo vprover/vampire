@@ -292,9 +292,9 @@ Clause* EqualityProxy::apply(Clause* cl)
   }
 
   ASS(_defUnit);
-  Inference* inf = new Inference2(Inference::EQUALITY_PROXY_REPLACEMENT, cl, _defUnit);
 
-  Clause* res = new(clen) Clause(clen, cl->inputType(), inf);
+  Clause* res = new(clen) Clause(clen, 
+    NonspecificInference2(InferenceRule::EQUALITY_PROXY_REPLACEMENT, cl, _defUnit));
   res->setAge(cl->age());
 
   for (unsigned i=0;i<clen;i++) {
@@ -363,8 +363,7 @@ unsigned EqualityProxy::getProxyPredicate()
   Formula* defForm = new BinaryFormula(IFF, new AtomicFormula(proxyLit), new AtomicFormula(eqLit));
   Formula* quantDefForm = Formula::quantify(defForm);
 
-  Inference* inf = new Inference(Inference::EQUALITY_PROXY_AXIOM1);
-  _defUnit = new FormulaUnit(quantDefForm, inf, Unit::AXIOM);
+  _defUnit = new FormulaUnit(quantDefForm,NonspecificInference0(UnitInputType::AXIOM,InferenceRule::EQUALITY_PROXY_AXIOM1));
 
   InferenceStore::instance()->recordIntroducedSymbol(_defUnit, false, newPred);
   _proxyPredicate = newPred;
@@ -383,8 +382,7 @@ Clause* EqualityProxy::createEqProxyAxiom(const LiteralStack& literalStack)
   CALL("EqualityProxy::createEqProxyAxiom(const LiteralStack&,unsigned)");
 
   ASS(_defUnit);
-  Inference* inf = new Inference1(Inference::EQUALITY_PROXY_AXIOM2, _defUnit);
-  Clause* res = Clause::fromStack(literalStack, Unit::AXIOM, inf);
+  Clause* res = Clause::fromStack(literalStack, NonspecificInference1(InferenceRule::EQUALITY_PROXY_AXIOM2,_defUnit));
   return res;
 } // EqualityProxy::createEqProxyAxiom
 

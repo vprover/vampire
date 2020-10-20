@@ -327,9 +327,12 @@ protected:
     UnitIterator parents=_is->getParents(cs, rule);
 
     cs->inference().updateStatistics(); // in particular, update inductionDepth (which could have decreased, since we might have fewer parents after miniminization)
- 
-    if(rule == Inference::INDUCTION){
+
+    if((rule == InferenceRule::INDUCTION_AXIOM) || (rule == InferenceRule::GEN_INDUCTION_AXIOM)){
       env.statistics->inductionInProof++;
+      if (rule == InferenceRule::GEN_INDUCTION_AXIOM) {
+        env.statistics->generalizedInductionInProof++;
+      }
     }
 
     if (cs->isClause()) {
@@ -364,7 +367,7 @@ protected:
 
       // print Extra
       vstring extra;
-      if (env.proofExtra && env.proofExtra->find(cs,extra) && extra != "") 
+      if (env.proofExtra && env.proofExtra->find(cs,extra) && extra != "") {
         out << ", " << extra;
       }
       out << "]" << endl;
@@ -526,7 +529,7 @@ struct InferenceStore::TPTPProofPrinter
 protected:
   vstring splitPrefix;
 
-  vstring getRole(InferenceRule rule, Unit::InputType origin)
+  vstring getRole(InferenceRule rule, UnitInputType origin)
   {
     switch(rule) {
     case InferenceRule::INPUT:
@@ -856,7 +859,7 @@ protected:
     ASS(cl->splits());
     ASS_EQ(cl->splits()->size(),1);
 
-    InferenceRule rule=Inference::AVATAR_COMPONENT;
+    InferenceRule rule=InferenceRule::AVATAR_COMPONENT;
 
     vstring defId=tptpDefId(us);
     vstring splitPred = splitsToString(cl->splits());
@@ -920,7 +923,6 @@ protected:
   {
     switch(rule) {
     case InferenceRule::INPUT:
-    case InferenceRule::CLAUSE_NAMING:
     case InferenceRule::INEQUALITY_SPLITTING_NAME_INTRODUCTION:
     case InferenceRule::INEQUALITY_SPLITTING:
     case InferenceRule::SKOLEMIZE:

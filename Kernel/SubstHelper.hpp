@@ -297,26 +297,26 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
   if(trm->isSpecial()) {
     Term::SpecialTermData* sd = trm->getSpecialData();
     switch(trm->functor()) {
-    /*case Term::SF_ITE:
+    case Term::SF_ITE:
       return Term::createITE(
-	  applyImpl<ProcessSpecVars>(sd->getCondition(), applicator, noSharing),
-	  applyImpl<ProcessSpecVars>(*trm->nthArgument(0), applicator, noSharing),
-	  applyImpl<ProcessSpecVars>(*trm->nthArgument(1), applicator, noSharing),
+    applyImpl<ProcessSpecVars>(sd->getCondition(), applicator, noSharing),
+    applyImpl<ProcessSpecVars>(*trm->nthArgument(0), applicator, noSharing),
+    applyImpl<ProcessSpecVars>(*trm->nthArgument(1), applicator, noSharing),
           sd->getSort()
-	  );
+    );
     case Term::SF_LET:
       return Term::createLet(
-	  sd->getFunctor(),
-	  sd->getVariables(),
-	  applyImpl<ProcessSpecVars>(sd->getBinding(), applicator, noSharing),
-	  applyImpl<ProcessSpecVars>(*trm->nthArgument(0), applicator, noSharing),
-	  sd->getSort()
-	  );*/
+    sd->getFunctor(),
+    sd->getVariables(),
+    applyImpl<ProcessSpecVars>(sd->getBinding(), applicator, noSharing),
+    applyImpl<ProcessSpecVars>(*trm->nthArgument(0), applicator, noSharing),
+    sd->getSort()
+    );
     case Term::SF_FORMULA:
       return Term::createFormula(
       applyImpl<ProcessSpecVars>(sd->getFormula(), applicator, noSharing)
-      ); //TODO add SF_LAMBDA?
-    /*case Term::SF_LET_TUPLE:
+      );
+    case Term::SF_LET_TUPLE:
       return Term::createTupleLet(
         sd->getFunctor(),
         sd->getTupleSymbols(),
@@ -326,10 +326,8 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
         );
     case Term::SF_TUPLE:
       return Term::createTuple(applyImpl<ProcessSpecVars>(sd->getTupleTerm(), applicator, noSharing));
-    }*/
-    default:
-      ASSERTION_VIOLATION;
     }
+    ASSERTION_VIOLATION;
   }
 
   Stack<TermList*>* toDo;

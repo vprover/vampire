@@ -173,17 +173,17 @@ void TPTPPrinter::printTffWrapper(Unit* u, vstring bodyStr)
   }
   tgt() << ", ";
   switch(u->inputType()) {
-  case Unit::AXIOM:
+  case UnitInputType::AXIOM:
     tgt() << "axiom"; break;
-  case Unit::ASSUMPTION:
+  case UnitInputType::ASSUMPTION:
     tgt() << "hypothesis"; break;
-  case Unit::CONJECTURE:
+  case UnitInputType::CONJECTURE:
     tgt() << "conjecture"; break;
-  case Unit::NEGATED_CONJECTURE:
+  case UnitInputType::NEGATED_CONJECTURE:
     tgt() << "negated_conjecture"; break;
-  case Unit::CLAIM:
+  case UnitInputType::CLAIM:
     tgt() << "claim"; break;
-  case Unit::EXTENSIONALITY_AXIOM:
+  case UnitInputType::EXTENSIONALITY_AXIOM:
     tgt() << "extensionality"; break;
   default:
      ASSERTION_VIOLATION;
@@ -207,9 +207,9 @@ void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, bool function)
   if(type->isAllDefault()) {
     return;
   }
-  //if(function && theory->isInterpretedConstant(symNumber)) { return; }
+  if(function && theory->isInterpretedConstant(symNumber)) { return; }
 
-  /*if(sym->interpreted()) {
+  if(sym->interpreted()) {
     Interpretation interp = static_cast<Signature::InterpretedSymbol*>(sym)->getInterpretation();
     switch(interp) {
     case Theory::INT_SUCCESSOR:
@@ -220,7 +220,7 @@ void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, bool function)
     default:
       return;
     }
-  }*/
+  }
 
   tgt() << "tff(" << (function ? "func" : "pred") << "_def_" << symNumber << ",type, "
       << sym->name() << ": ";
@@ -500,11 +500,11 @@ vstring TPTPPrinter::toString (const Unit* unit)
   bool negate_formula = false;
   vstring kind;
   switch (unit->inputType()) {
-  case Unit::ASSUMPTION:
+  case UnitInputType::ASSUMPTION:
     kind = "hypothesis";
     break;
 
-  case Unit::CONJECTURE:
+  case UnitInputType::CONJECTURE:
     if(unit->isClause()) {
       kind = "negated_conjecture";
     }
@@ -514,11 +514,11 @@ vstring TPTPPrinter::toString (const Unit* unit)
     }
     break;
 
-  case Unit::EXTENSIONALITY_AXIOM:
+  case UnitInputType::EXTENSIONALITY_AXIOM:
     kind = "extensionality";
     break;
 
-  case Unit::NEGATED_CONJECTURE:
+  case UnitInputType::NEGATED_CONJECTURE:
     kind = "negated_conjecture";
     break;
 

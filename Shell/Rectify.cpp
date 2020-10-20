@@ -93,22 +93,12 @@ FormulaUnit* Rectify::rectify (FormulaUnit* unit0, bool removeUnusedVars)
   VarList* vars = rect._free;
 
   if (f != g) {
-    unit = new FormulaUnit(g,
-			   new Inference1(Inference::RECTIFY,unit),
-			   unit->inputType());
-    if(unit0->included()) {
-      unit->markIncluded();
-    }
+    unit = new FormulaUnit(g,FormulaTransformation(InferenceRule::RECTIFY,unit));
   }
 
   if (VarList::isNonEmpty(vars)) {
     //TODO do we know the sorts of vars?
-    unit = new FormulaUnit(new QuantifiedFormula(FORALL,vars,0,g),
-			   new Inference1(Inference::CLOSURE,unit),
-			   unit->inputType());
-    if(unit0->included()) {
-      unit->markIncluded();
-    }
+    unit = new FormulaUnit(new QuantifiedFormula(FORALL,vars,0,g),FormulaTransformation(InferenceRule::CLOSURE,unit));
   }
   return unit;
 } // Rectify::rectify (Unit& unit)
@@ -163,7 +153,7 @@ Term* Rectify::rectifySpecialTerm(Term* t)
 
   Term::SpecialTermData* sd = t->getSpecialData();
   switch(t->functor()) {
-  /*case Term::SF_ITE:
+  case Term::SF_ITE:
   {
     ASS_EQ(t->arity(),2);
     Formula* c = rectify(sd->getCondition());
@@ -179,13 +169,13 @@ Term* Rectify::rectifySpecialTerm(Term* t)
     ASS_EQ(t->arity(),1);
 
     bindVars(sd->getVariables());
-    TermList binding = rectify(sd->getBinding());*/
+    TermList binding = rectify(sd->getBinding());
     /**
      * We don't need to remove unused variables from the body of a functions,
      * otherwise the rectified list of variables might not fix the arity of the
      * let functor. So, temporarily disable _removeUnusedVars;
      */
- /*   bool removeUnusedVars = _removeUnusedVars;
+    bool removeUnusedVars = _removeUnusedVars;
     _removeUnusedVars = false;
     VarList* variables = rectifyBoundVars(sd->getVariables());
     _removeUnusedVars = removeUnusedVars; // restore the status quo
@@ -211,7 +201,7 @@ Term* Rectify::rectifySpecialTerm(Term* t)
       return t;
     }
     return Term::createTupleLet(sd->getFunctor(), sd->getTupleSymbols(), binding, contents, sd->getSort());
-  } */
+  } 
   case Term::SF_FORMULA:
   {
     ASS_EQ(t->arity(),0);
@@ -255,7 +245,7 @@ Term* Rectify::rectifySpecialTerm(Term* t)
     }
     return Term::createLambda(lambdaTerm, vs, rectifiedSorts, lambdaTermS);   
   }
-  /*case Term::SF_TUPLE:
+  case Term::SF_TUPLE:
   {
     ASS_EQ(t->arity(),0);
     Term* rectifiedTupleTerm = rectify(sd->getTupleTerm());
@@ -263,7 +253,7 @@ Term* Rectify::rectifySpecialTerm(Term* t)
       return t;
     }
     return Term::createTuple(rectifiedTupleTerm);
-  }*/
+  }
   default:
     ASSERTION_VIOLATION;
   }

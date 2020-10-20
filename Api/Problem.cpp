@@ -64,7 +64,7 @@
 #include "Shell/Rectify.hpp"
 #include "Shell/Skolem.hpp"
 #include "Shell/SimplifyFalseTrue.hpp"
-//#include "Shell/SimplifyProver.hpp"
+#include "Shell/SimplifyProver.hpp"
 #include "Shell/SineUtils.hpp"
 #include "Shell/FOOLElimination.hpp"
 #include "Shell/Statistics.hpp"
@@ -482,16 +482,16 @@ void Problem::addFromStream(istream& s, vstring includeDirectory, bool simplifyS
   env.options->setInclude(includeDirectory);
 
   Kernel::UnitList* units;
- /* if(simplifySyntax) {
+  if(simplifySyntax) {
     LispLexer lexer(s);
     LispParser parser(lexer);
     LispParser::Expression* expr = parser.parse();
     SimplifyProver simplify;
     units = simplify.units(expr);
   }
-  else { */
+  else { 
     units = Parse::TPTP::parse(s);
-  //}
+  }
 
   env.options->setInclude(originalInclude);
   while(units) {

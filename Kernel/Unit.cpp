@@ -30,6 +30,7 @@
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/List.hpp"
+#include "Lib/Set.hpp"
 
 #include "Inference.hpp"
 #include "InferenceStore.hpp"
@@ -58,140 +59,14 @@ void Unit::onPreprocessingEnd()
 }
 
 
-/**
- * Return InputType of which should be a formula that has
- * units of types @c t1 and @c t2 as premises.
- */
-Unit::InputType Unit::getInputType(InputType t1, InputType t2)
-{
-  CALL("Unit::getInputType");
-
-  return static_cast<Unit::InputType>(Int::max(t1, t2));
-}
-
-/**
- * Return InputType of which should be a formula that has
- * @c units as premises.
- *
- * @c units must be a non-empty list.
- */
-Unit::InputType Unit::getInputType(UnitList* units)
-{
-  CALL("Unit::getInputType");
-  ASS(units);
-
-  UnitList::Iterator uit(units);
-  ALWAYS(uit.hasNext());
-  InputType res = uit.next()->inputType();
-
-  while(uit.hasNext()) {
-    res = getInputType(res, uit.next()->inputType());
-  }
-  return res;
-}
-
 /** New unit of a given kind */
-Unit::Unit(Kind kind,Inference* inf,InputType it)
+Unit::Unit(Kind kind, const Inference& inf)
   : _number(++_lastNumber),
     _kind(kind),
-    _inputType(it),
     _inheritedColor(COLOR_INVALID),
-    _included(0),
     _inference(inf)
 {
-  switch (inf->rule()) {
-  case Inference::INPUT:
-  case Inference::NEGATED_CONJECTURE:
-    _adam = _number;
-    break;
-  default:
-    {
-      Inference::Iterator pars = inf->iterator();
-      if (inf->hasNext(pars)) {
-	Unit* parent = inf->next(pars);
-	_adam = parent->_adam;
-      }
-      else {
-	_adam = -1;
-      }
-    }
-    break;
-  }
-
 } // Unit::Unit
-
-unsigned Unit::getPriority() const
-{
-  CALL("Unit::getPriority");
-
-  if(!env.clausePriorities) return 1;
-
-  // Put these at the end of the priority list
-  if(
-    _inference->rule() == Inference::THEORY ||
-    _inference->rule() == Inference::EQUALITY_PROXY_AXIOM1
-  ){
-    return env.maxClausePriority;
-  }
-  // Current cases where there is no input clause ancestor
-  if(
-     _inference->rule() == Inference::CHOICE_AXIOM || 
-     _inference->rule() == Inference::SKOLEM_PREDICATE_INTRODUCTION 
-    ){
-    // This is the same as depth 1 in sine selection
-    return 2;
-  }
-
-  unsigned priority;
-  if(env.clausePriorities->find(this,priority)){
-    return priority;
-  }
-
-  // This means we're in LTB mode without SineSelection
-  // All learned formauls get 1 so we give non-learned formulas 2
-  // Goal gets 1
-  if(_inference->rule() == Inference::INPUT){ return 2; }
-  if(_inference->rule() == Inference::NEGATED_CONJECTURE){ return 2; }
-
-  // If we get to here it means that the component did not have an orig
-  if(_inference->rule() == Inference::AVATAR_COMPONENT){ return 2;} 
-
-  //cout << "getPriority for " << this->toString() << endl;
-
-    unsigned count=0;
-    unsigned total=0;
-    ASS(_inference);
-    Unit* t = const_cast<Unit*>(this);
-    UnitIterator uit = InferenceStore::instance()->getParents(t);
-    while(uit.hasNext()) {
-      Unit* us = uit.next();
-      unsigned up = us->getPriority();
-      count++;
-      total+=up;
-    }
-#if VDEBUG
-    if(count==0){ cout << "count is zero for " << toString() << endl; }
-#endif
-    ASS_G(count,0);
-
-    // If count==0 we are only here in release mode
-    if(count==0){ return 2; }
-
-    // we take the average using integer division
-    priority = total/count;
-    ASS_G(priority,0);
-
-    // I don't think this can happen but a release mode check
-    if(priority==0){ priority=1; }
-
-    // record it
-    env.clausePriorities->insert(this,priority);
-
-    //cout << "priority is " << priority << endl;
-
-    return priority;
-}
-
 
 void Unit::incRefCnt()
 {
@@ -348,7 +223,7 @@ vstring Unit::inferenceAsString() const
   Unit* us = const_cast<Unit*>(this);
   parents = infS.getParents(us, rule);
 
-  vstring result = (vstring)"[" + Inference::ruleName(rule);
+  vstring result = (vstring)"[" + ruleName(rule);
   bool first = true;
   while (parents.hasNext()) {
     Unit* parent = parents.next();
@@ -385,4 +260,55 @@ void Unit::assertValid()
 std::ostream& Kernel::operator<<(ostream& out, const Unit& u)
 {
   return out << u.toString();
+}
+
+// TODO this could be more efficient. Although expected cost is log(n) where n is length of proof
+bool Unit::derivedFromInput() const
+{
+  CALL("Unit::derivedFromInput");
+
+  // Depth-first search of derivation - it's likely that we'll hit an input clause as soon
+  // as we hit the top
+  Stack<Inference*> todo; 
+  todo.push(&const_cast<Inference&>(_inference)); 
+  while(!todo.isEmpty()){
+    Inference* inf = todo.pop();
+    if(inf->rule() == InferenceRule::INPUT){
+      return true;
+    }
+    Inference::Iterator it = inf->iterator();
+    while(inf->hasNext(it)){ todo.push(&(inf->next(it)->inference())); }
+  }
+
+  return false;
+}
+
+typedef List<Inference*> InferenceList;
+
+// TODO this could be more efficient. Although expected cost is log(n) where n is length of proof
+bool Unit::derivedFromGoalCheck() const
+{
+  CALL("Unit::derivedFromGoalCheck");
+
+  // Breadth-first search of derivation - it's likely that we'll hit a goal-related node
+  // close to the refutation... unless it doesn't exist of course
+  InferenceList* todo = InferenceList::empty();
+  Set<Inference*> seen;
+  InferenceList::push(&const_cast<Inference&>(_inference),todo);
+  while(!InferenceList::isEmpty(todo)){
+    Inference* inf = InferenceList::pop(todo);
+    if(inf->derivedFromGoal()) {
+      return true;
+    }
+    Inference::Iterator it = inf->iterator();
+    while(inf->hasNext(it)){ 
+      Inference* ninf = &inf->next(it)->inference();
+      if(!seen.contains(ninf)){
+       InferenceList::push(ninf,todo); 
+       seen.insert(ninf);
+      }
+    }
+  }
+
+  return false;
 }

@@ -199,7 +199,7 @@ void Interpolants::removeConjectureNodesFromRefutation(Unit* refutation)
       continue;
     }
 
-    if (cur->inference()->rule() == Inference::NEGATED_CONJECTURE) {
+    if (cur->inference().rule() == InferenceRule::NEGATED_CONJECTURE) {
       VirtualIterator<Unit*> pars = InferenceStore::instance()->getParents(cur);
 
       // negating the conjecture is not a sound inference,
@@ -215,8 +215,8 @@ void Interpolants::removeConjectureNodesFromRefutation(Unit* refutation)
 
       ASS(!pars.hasNext()); // negating a conjecture should have exactly one parent
 
-      cur->inference()->destroy();
-      cur->setInference(new Inference(Inference::NEGATED_CONJECTURE)); // negated conjecture without a parent (non-standard, but nobody will see it)
+      cur->inference().destroy();
+      cur->inference() = Inference(NonspecificInference0(UnitInputType::NEGATED_CONJECTURE,InferenceRule::NEGATED_CONJECTURE)); // negated conjecture without a parent (non-standard, but nobody will see it)
     }
 
     todo.loadFromIterator(InferenceStore::instance()->getParents(cur));
@@ -227,7 +227,7 @@ void Interpolants::removeConjectureNodesFromRefutation(Unit* refutation)
 * For any input unit marked as properly colored but which is, in fact, transparent,
 * we add an artificial parent which is forced to pretend it was truly colored that way,
 * so that InterpolantMinimizer can consider this input unit as a result of a symbol eliminating inference.
-* (Without this, InterpolantMinimizer does not work properly is such cases.)
+* (Without this, InterpolantMinimizer does not work properly in such cases.)
  */
 void Interpolants::fakeNodesFromRightButGrayInputsRefutation(Unit* refutation)
 {
@@ -250,12 +250,12 @@ void Interpolants::fakeNodesFromRightButGrayInputsRefutation(Unit* refutation)
           cur->inheritedColor() != COLOR_INVALID && cur->inheritedColor() != COLOR_TRANSPARENT && // proper inherited color
           cur->getColor() == COLOR_TRANSPARENT) {  // but in fact transparent
 
-          Clause* fakeParent = Clause::fromIterator(LiteralIterator::getEmpty(), cur->inputType(), new Inference(Inference::INPUT));
+          Clause* fakeParent = Clause::fromIterator(LiteralIterator::getEmpty(), NonspecificInference0(cur->inputType(),InferenceRule::INPUT));
           fakeParent->setInheritedColor(cur->inheritedColor());
           fakeParent->updateColor(cur->inheritedColor());
 
-          cur->inference()->destroy();
-          cur->setInference(new Inference1(Inference::INPUT,fakeParent)); // input inference with a parent (non-standard, but nobody will see it)
+          cur->inference().destroy();
+          cur->inference() = Inference(NonspecificInference1(InferenceRule::INPUT,fakeParent)); // input inference with a parent (non-standard, but nobody will see it)
           cur->invalidateInheritedColor();
       }
     }
@@ -299,10 +299,10 @@ Unit* Interpolants::formulifyRefutation(Unit* refutation)
 
     // are all children done?
     bool allDone = true;
-    Inference* inf = cur->inference();
-    Inference::Iterator iit = inf->iterator();
-    while (inf->hasNext(iit)) {
-      Unit* premUnit=inf->next(iit);
+    Inference& inf = cur->inference();
+    Inference::Iterator iit = inf.iterator();
+    while (inf.hasNext(iit)) {
+      Unit* premUnit=inf.next(iit);
       if (!translate.find(premUnit)) {
         allDone = false;
         break;
@@ -314,18 +314,18 @@ Unit* Interpolants::formulifyRefutation(Unit* refutation)
 
       List<Unit*>* prems = 0;
 
-      Inference::Iterator iit = inf->iterator();
-      while (inf->hasNext(iit)) {
-        Unit* premUnit=inf->next(iit);
+      Inference::Iterator iit = inf.iterator();
+      while (inf.hasNext(iit)) {
+        Unit* premUnit=inf.next(iit);
 
         List<Unit*>::push(translate.get(premUnit), prems);
       }
 
-      Inference::Rule rule=inf->rule();
+      InferenceRule rule=inf.rule();
       prems = List<Unit*>::reverse(prems);  //we want items in the same order
 
       Formula* f = Formula::fromClause(cur->asClause());
-      FormulaUnit* fu = new FormulaUnit(f,new InferenceMany(rule,prems),cur->inputType());
+      FormulaUnit* fu = new FormulaUnit(f,NonspecificInferenceMany(rule,prems));
 
       if (cur->inheritedColor() != COLOR_INVALID) {
         fu->setInheritedColor(cur->inheritedColor());
@@ -334,9 +334,9 @@ Unit* Interpolants::formulifyRefutation(Unit* refutation)
       translate.insert(cur,fu);
     } else { // need "recursive" calls first
 
-      Inference::Iterator iit = inf->iterator();
-      while (inf->hasNext(iit)) {
-        Unit* premUnit=inf->next(iit);
+      Inference::Iterator iit = inf.iterator();
+      while (inf.hasNext(iit)) {
+        Unit* premUnit=inf.next(iit);
         todo.push(premUnit);
       }
     }

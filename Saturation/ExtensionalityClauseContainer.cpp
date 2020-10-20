@@ -54,7 +54,7 @@ Literal* ExtensionalityClauseContainer::addIfExtensionality(Clause* c) {
     return 0;
 
   Literal* varEq = 0;
-  unsigned sort;
+  TermList sort;
 
   if (_onlyKnown) {
     // We only match agains specific extensionality axiom patterns (e.g. set,
@@ -70,8 +70,8 @@ Literal* ExtensionalityClauseContainer::addIfExtensionality(Clause* c) {
     //   * Exactly one X=Y
     //   * No inequality of same sort as X=Y
     //   * No equality except X=Y (optional).
-    static DArray<bool> negEqSorts(_sortCnt);
-    negEqSorts.init(_sortCnt, false);
+    static DHSet<TermList> negEqSorts;
+    negEqSorts.reset();
   
     for (Clause::Iterator ci(*c); ci.hasNext(); ) {
       Literal* l = ci.next();
@@ -81,7 +81,7 @@ Literal* ExtensionalityClauseContainer::addIfExtensionality(Clause* c) {
           return 0;
 
         sort = l->twoVarEqSort();
-        if (negEqSorts[sort])
+        if (negEqSorts.contains(sort))
           return 0;
 
         varEq = l;
@@ -89,9 +89,9 @@ Literal* ExtensionalityClauseContainer::addIfExtensionality(Clause* c) {
         if (!_allowPosEq && l->isPositive())
           return 0;
       
-        unsigned negEqSort = SortHelper::getEqualityArgumentSort(l);
+        TermList negEqSort = SortHelper::getEqualityArgumentSort(l);
         if (varEq == 0)
-          negEqSorts[negEqSort] = true;
+          negEqSorts.insert(negEqSort);
         else if (sort == negEqSort)
           return 0;
       }
@@ -131,7 +131,14 @@ Literal* ExtensionalityClauseContainer::getSingleVarEq(Clause* c) {
 void ExtensionalityClauseContainer::add(ExtensionalityClause c) {
   CALL("ExtensionalityClauseContainer::add");
   
-  ExtensionalityClauseList::push(c, _clausesBySort[c.sort]);
+  ExtensionalityClauseList* l;
+  if(_clausesBySort.find(c.sort)){
+    l = _clausesBySort.get(c.sort);
+  } else {
+    l = ExtensionalityClauseList::empty();
+  }
+
+  ExtensionalityClauseList::push(c, l);
 }
 
 /**
@@ -165,12 +172,16 @@ private:
  * space, we do not immediately remove it from the container. Instead we check
  * this lazily during generating inferences.
  */
-ExtensionalityClauseIterator ExtensionalityClauseContainer::activeIterator(unsigned sort) {
+ExtensionalityClauseIterator ExtensionalityClauseContainer::activeIterator(TermList sort) {
   CALL("ExtensionalityClauseContainer::activeIterator");
   
-  return pvi(getFilteredDelIterator(
-               ExtensionalityClauseList::DelIterator(_clausesBySort[sort]),
+  if(_clausesBySort.find(sort)){
+    return pvi(getFilteredDelIterator(
+               ExtensionalityClauseList::DelIterator(_clausesBySort.get(sort)),
                ActiveFilterFn(*this)));
+  } else {
+    ExtensionalityClauseIterator::getEmpty();
+  }
 }
 
 void ExtensionalityClauseContainer::print (ostream& out) {
@@ -178,8 +189,11 @@ void ExtensionalityClauseContainer::print (ostream& out) {
   
   out << "#####################" << endl;
 
-  for(size_t i = 0; i < _clausesBySort.size(); ++i) {
-    ExtensionalityClauseList::Iterator it(_clausesBySort[i]);
+  ClausesBySort::Iterator cbs(_clausesBySort);
+
+  while(cbs.hasNext()){
+    ExtensionalityClauseList* l = cbs.next();
+    ExtensionalityClauseList::Iterator it(l);
     while(it.hasNext()) {
       ExtensionalityClause c = it.next();
       out << c.clause->toString() << endl

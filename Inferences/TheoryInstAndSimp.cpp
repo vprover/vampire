@@ -74,12 +74,10 @@ void TheoryInstAndSimp::attach(SaturationAlgorithm* salg)
   _splitter = salg->getSplitter();
 }
 
-bool TheoryInstAndSimp::isSupportedSort(const unsigned sort) {
+bool TheoryInstAndSimp::isSupportedSort(const TermList sort) {
   //TODO: extend for more sorts (arrays, datatypes)
-  switch (sort) {
-  case Kernel::Sorts::SRT_INTEGER:
-  case Kernel::Sorts::SRT_RATIONAL:
-  case Kernel::Sorts::SRT_REAL:
+  if(sort == Term::intSort() || sort == Term::realSort() ||
+     sort == Term::rationalSort()){
     return true;
   }
   return false;
@@ -91,7 +89,7 @@ bool TheoryInstAndSimp::isSupportedSort(const unsigned sort) {
 bool TheoryInstAndSimp::isSupportedLiteral(Literal* lit) {
   //check equality spearately (X=Y needs special handling)
   if (lit->isEquality()) {
-    unsigned sort = SortHelper::getEqualityArgumentSort(lit);
+    TermList sort = SortHelper::getEqualityArgumentSort(lit);
     return isSupportedSort(sort);
   }
 
@@ -102,7 +100,7 @@ bool TheoryInstAndSimp::isSupportedLiteral(Literal* lit) {
 
   //check if arguments of predicate are supported
   for (unsigned i=0; i<lit->arity(); i++) {
-    unsigned sort = SortHelper::getArgSort(lit,i);
+    TermList sort = SortHelper::getArgSort(lit,i);
     if (! isSupportedSort(sort))
       return false;
   }
@@ -149,7 +147,7 @@ bool TheoryInstAndSimp::isPure(Literal* lit) {
       // f could map uninterpreted sorts to integer. when iterating over X
       // itself, its sort cannot be checked.
       for (unsigned i=0; i<term->arity(); i++) {
-        unsigned sort = SortHelper::getArgSort(term,i);
+        TermList sort = SortHelper::getArgSort(term,i);
         if (! isSupportedSort(sort))
           return false;
       }
@@ -594,7 +592,7 @@ void TheoryInstAndSimp::originalSelectTheoryLiterals(Clause* cl, Stack<Literal*>
   }
 }
 
-Term* getFreshConstant(unsigned index, unsigned srt)
+Term* getFreshConstant(unsigned index, TermList srt)
 {
   CALL("TheoryInstAndSimp::getFreshConstant");
   static Stack<Stack<Term*>*> constants;
@@ -790,12 +788,9 @@ partial_check_end:
     Stack<Literal*>::Iterator tit(_theoryLits);
     while(tit.hasNext()){ cout << "\t" << tit.next()->toString() << endl;}
 #endif
-    Inference* inf_inst = new Inference1(Inference::INSTANTIATION,_cl);
-    Clause* inst = new(_cl->length()) Clause(_cl->length(),_cl->inputType(),inf_inst);
-
-    Inference* inf_simp = new Inference1(Inference::INTERPRETED_SIMPLIFICATION,inst);
+    Clause* inst = new(_cl->length()) Clause(_cl->length(),GeneratingInference1(InferenceRule::INSTANTIATION,_cl));
     unsigned newLen = _cl->length() - _theoryLits.size();
-    Clause* res = new(newLen) Clause(newLen,_cl->inputType(),inf_simp);
+    Clause* res = new(newLen) Clause(newLen,SimplifyingInference1(InferenceRule::INTERPRETED_SIMPLIFICATION,inst));
 
 #if VDEBUG
     unsigned skip = 0;
@@ -842,7 +837,7 @@ ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise,bool& premiseR
 {
   CALL("TheoryInstAndSimp::generateClauses");
 
-  if(premise->isTheoryDescendant()){ return ClauseIterator::getEmpty(); }
+  if(premise->isPureTheoryDescendant()){ return ClauseIterator::getEmpty(); }
 
   static Options::TheoryInstSimp thi = env.options->theoryInstAndSimp();
 
@@ -866,7 +861,6 @@ ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise,bool& premiseR
   env.statistics->theoryInstSimpCandidates++;
 
   // TODO use limits
-  //Limits* limits = _salg->getLimits();
 
   Clause* flattened = premise;
   if(thi != Options::TheoryInstSimp::NEW){
@@ -919,8 +913,20 @@ ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise,bool& premiseR
     // measure time of the overall processing
     auto it4 = getTimeCountedIterator(it3,TC_THEORY_INST_SIMP);
 
-    return pvi(it4);
+    auto out = getPersistentIterator(it4); // we need immediate evaluation, so that premiseRedundant is set just after the call!
+
+    if (!env.options->thiTautologyDeletion()) {
+      premiseRedundant = false;
+    }
+
+    return out;
   }
+}
+
+std::ostream& operator<<(std::ostream& out, Solution const& self) 
+{
+  return out << "Solution(" << (self.status ? "sat" : "unsat") << ", " << self.subst << ")";
+  // return out;
 }
 
 }

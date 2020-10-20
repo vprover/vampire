@@ -154,7 +154,7 @@ Literal* TermTransformer::transform(Literal* lit)
 Term* TermTransformer::transformSpecial(Term* term)
 {
   CALL("TermTransformer::transformSpecial(Term* term)");
-/*  ASS(term->isSpecial());
+  ASS(term->isSpecial());
 
   Term::SpecialTermData* sd = term->getSpecialData();
   switch (sd->getType()) {
@@ -216,7 +216,7 @@ Term* TermTransformer::transformSpecial(Term* term)
     }
 
   }
-  ASSERTION_VIOLATION_REP(term->toString()); */
+  ASSERTION_VIOLATION_REP(term->toString()); 
   return nullptr;
 }
 
@@ -335,7 +335,7 @@ Term* TermTransformerTransformTransformed::transformSpecial(Term* term)
 
   Term::SpecialTermData* sd = term->getSpecialData();
   switch (sd->getType()) {
-    /*case Term::SF_ITE: {
+    case Term::SF_ITE: {
       Formula* condition = transform(sd->getCondition());
       TermList thenBranch = transform(*term->nthArgument(0));
       TermList elseBranch = transform(*term->nthArgument(1));
@@ -347,7 +347,7 @@ Term* TermTransformerTransformTransformed::transformSpecial(Term* term)
       } else {
         return Term::createITE(condition, thenBranch, elseBranch, sd->getSort());
       }
-    }*/
+    }
 
     case Term::SF_FORMULA: {
       Formula* formula = transform(sd->getFormula());
@@ -359,7 +359,7 @@ Term* TermTransformerTransformTransformed::transformSpecial(Term* term)
       }
     }
 
-    /*case Term::SF_LET: {
+    case Term::SF_LET: {
       TermList binding = transform(sd->getBinding());
       TermList body = transform(*term->nthArgument(0));
 
@@ -368,7 +368,7 @@ Term* TermTransformerTransformTransformed::transformSpecial(Term* term)
       } else {
         return Term::createLet(sd->getFunctor(), sd->getVariables(), binding, body, sd->getSort());
       }
-    }*/
+    }
 
     default:
       ASSERTION_VIOLATION_REP(term->toString());

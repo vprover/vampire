@@ -330,14 +330,6 @@ class TrivialInequalitiesRemovalISE
 {
 public:
   Clause* simplify(Clause* cl);
-
-  bool isTrue(TermList term){
-    return term.isTerm() && env.signature->isFoolConstantSymbol(true, term.term()->functor());
-  }
-
-  bool isFalse(TermList term){
-    return term.isTerm() && env.signature->isFoolConstantSymbol(false, term.term()->functor());
-  }
 };
 
 };

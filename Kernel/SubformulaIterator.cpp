@@ -171,7 +171,7 @@ bool SubformulaIterator::hasNext ()
         }
 
         switch (term->functor()) {
-          /*case Term::SF_ITE: {
+          case Term::SF_ITE: {
             _current = term->getSpecialData()->getCondition();
             _currentPolarity = polarity;
             delete _reserve;
@@ -199,7 +199,7 @@ bool SubformulaIterator::hasNext ()
               _reserve = new Element(binding.term(), polarity, rest);
             }
             break;
-          }*/
+          }
           case Term::SF_FORMULA: {
             _current = term->getSpecialData()->getFormula();
             _currentPolarity = polarity;

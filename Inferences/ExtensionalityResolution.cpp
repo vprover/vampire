@@ -69,7 +69,7 @@ struct ExtensionalityResolution::ForwardPairingFn
       return OWN_RETURN_TYPE::getEmpty();
     }
 
-    unsigned s = SortHelper::getEqualityArgumentSort(lit);
+    TermList s = SortHelper::getEqualityArgumentSort(lit);
     
     return pvi(
       pushPairIntoRightIterator(
@@ -137,7 +137,7 @@ private:
  */
 struct ExtensionalityResolution::NegEqSortFn
 {
-  NegEqSortFn (unsigned sort) : _sort(sort) {}
+  NegEqSortFn (TermList sort) : _sort(sort) {}
   DECL_RETURN_TYPE(bool);
   OWN_RETURN_TYPE operator()(Literal* lit)
   {
@@ -147,7 +147,7 @@ struct ExtensionalityResolution::NegEqSortFn
       SortHelper::getEqualityArgumentSort(lit) == _sort;
   }
 private:
-  unsigned _sort;
+  TermList _sort;
 };
 
 /**
@@ -156,7 +156,7 @@ private:
  */
 struct ExtensionalityResolution::BackwardPairingFn
 {
-  BackwardPairingFn (unsigned sort) : _sort(sort) {}
+  BackwardPairingFn (TermList sort) : _sort(sort) {}
   DECL_RETURN_TYPE(VirtualIterator<pair<Clause*, Literal*> >);
   OWN_RETURN_TYPE operator()(Clause* cl)
   {
@@ -169,7 +169,7 @@ struct ExtensionalityResolution::BackwardPairingFn
           NegEqSortFn(_sort))));
   }
 private:
-  unsigned _sort;
+  TermList _sort;
 };
 
 /**
@@ -253,8 +253,7 @@ Clause* ExtensionalityResolution::performExtensionalityResolution(
   unsigned otherLen = otherCl->length();
   
   unsigned newLength = otherLen + extLen - 2;
-  Unit::InputType newInputType = Unit::getInputType(extCl->inputType(), otherCl->inputType());
-  Inference inf(GeneratingInferenceMany(InferenceRule::UNIT_RESULTING_RESOLUTION, premLst));
+  Clause* res = new(newLength) Clause(newLength, GeneratingInference2(InferenceRule::EXTENSIONALITY_RESOLUTION, extCl, otherCl));
 
   unsigned next = 0;
 

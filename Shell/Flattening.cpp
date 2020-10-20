@@ -79,11 +79,8 @@ FormulaUnit* Flattening::flatten (FormulaUnit* unit)
   }
 
   FormulaUnit* res = new FormulaUnit(g,
-			 new Inference1(Inference::FLATTEN,unit),
-			 unit->inputType());
-  if(unit->included()) {
-    res->markIncluded();
-  }
+			 FormulaTransformation(InferenceRule::FLATTEN,unit));
+
   if (env.options->showPreprocessing()) {
     env.beginOutput();
     env.out() << "[PP] flatten in: " << unit->toString() << std::endl;
@@ -116,7 +113,7 @@ Formula* Flattening::flatten (Formula* f)
     {
       Literal* lit = f->literal();
 
-      /*if (env.options->newCNF()) {//TODO update this
+      if (env.options->newCNF()) {//TODO update this
         // Convert equality between boolean FOOL terms to equivalence
         if (lit->isEquality()) {
           TermList lhs = *lit->nthArgument(0);
@@ -132,7 +129,7 @@ Formula* Flattening::flatten (Formula* f)
             return flatten(new BinaryFormula(lit->polarity() ? IFF : XOR, lhsFormula, rhsFormula));
           }
         }
-      }*/
+      }
 
       Literal* flattenedLit = flatten(lit);
       if (lit == flattenedLit) {
@@ -277,7 +274,7 @@ TermList Flattening::flatten (TermList ts)
         }
       }
 
-      /*case Term::SF_ITE: {
+      case Term::SF_ITE: {
         TermList thenBranch = *term->nthArgument(0);
         TermList elseBranch = *term->nthArgument(1);
         Formula* condition  = sd->getCondition();
@@ -333,7 +330,7 @@ TermList Flattening::flatten (TermList ts)
           ASS_REP(flattenedTupleTerm.isTerm(), flattenedTupleTerm.toString())
           return TermList(Term::createTuple(flattenedTupleTerm.term()));
         }
-      }*/
+      }
 
       default:
         ASSERTION_VIOLATION;

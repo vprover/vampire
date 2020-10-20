@@ -107,8 +107,7 @@ Clause* ClauseFlattening::resolveNegativeVariableEqualities(Clause* cl)
     diffVar = true;
     Substitution subst;
     subst.bind(v1,*v2);
-    cl = new(n) Clause(n,cl->inputType(),
-                       new Inference1(Inference::EQUALITY_RESOLUTION,cl));
+    cl = new(n) Clause(n,NonspecificInference1(InferenceRule::EQUALITY_RESOLUTION,cl));
     for (int i = n-1;i >= 0;i--) {
       Literal* lit = SubstHelper::apply<Substitution>(lits[i],subst);
       (*cl)[i] = lit;
@@ -116,8 +115,7 @@ Clause* ClauseFlattening::resolveNegativeVariableEqualities(Clause* cl)
     }
   }
   if (!diffVar) { // only X != X found, we should still perform the inference
-    cl = new(n) Clause(n,cl->inputType(),
-                       new Inference1(Inference::EQUALITY_RESOLUTION,cl));
+    cl = new(n) Clause(n,NonspecificInference1(InferenceRule::EQUALITY_RESOLUTION,cl));
     for (int i = n-1;i >= 0;i--) {
       (*cl)[i] = lits[i];
     }
@@ -181,7 +179,7 @@ Clause* ClauseFlattening::flatten(Clause* cl)
       if(lit->isEquality()){
         // it is a non-flattened equality
 
-        unsigned litArgSort = SortHelper::getEqualityArgumentSort(lit);
+        TermList litArgSort = SortHelper::getEqualityArgumentSort(lit);
 
         TermList* lhs = lit->nthArgument(0);
         TermList* rhs = lit->nthArgument(1);
@@ -222,7 +220,7 @@ Clause* ClauseFlattening::flatten(Clause* cl)
           else{
             TermList v; v.makeVar(++maxVar);
             args.push(v);
-            unsigned rSort = SortHelper::getResultSort(ts->term());
+            TermList rSort = SortHelper::getResultSort(ts->term());
             lits.push(Literal::createEquality(false,*ts,v,rSort));
           }
         }
@@ -243,7 +241,7 @@ Clause* ClauseFlattening::flatten(Clause* cl)
           else{
             TermList v; v.makeVar(++maxVar);
             args.push(v);
-            unsigned rSort = SortHelper::getResultSort(ts->term());
+            TermList rSort = SortHelper::getResultSort(ts->term());
             lits.push(Literal::createEquality(false,*ts,v,rSort));
           }
         }
@@ -257,8 +255,7 @@ Clause* ClauseFlattening::flatten(Clause* cl)
   // If no new literals were added just return cl
   if(!updated) return cl;
 
-  return Clause::fromStack(result,cl->inputType(),
-                            new Inference1(Inference::FMB_FLATTENING,cl));
+  return Clause::fromStack(result,NonspecificInference1(InferenceRule::FMB_FLATTENING,cl));
 }
 
 }

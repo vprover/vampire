@@ -88,6 +88,8 @@ Statistics::Statistics()
     induction(0),
     maxInductionDepth(0),
     inductionInProof(0),
+    generalizedInduction(0),
+    generalizedInductionInProof(0),
     argumentCongruence(0),
     narrow(0),
     forwardSubVarSup(0),
@@ -124,9 +126,6 @@ Statistics::Statistics()
     taInjectivitySimplifications(0),
     taNegativeInjectivitySimplifications(0),
     taAcyclicityGeneratedDisequalities(0),
-    combDescendants(0),
-    proxyDescendants(0), 
-    holAxiomDescendants(0),
     higherOrder(0),
     generatedClauses(0),
     passiveClauses(0),
@@ -135,6 +134,7 @@ Statistics::Statistics()
     discardedNonRedundantClauses(0),
     inferencesBlockedForOrderingAftercheck(0),
     smtReturnedUnknown(false),
+    smtDidNotEvaluate(false),
     inferencesSkippedDueToColors(0),
     finalPassiveClauses(0),
     finalActiveClauses(0),
@@ -172,6 +172,26 @@ Statistics::Statistics()
     phase(INITIALIZATION)
 {
 } // Statistics::Statistics
+
+void Statistics::explainRefutationNotFound(ostream& out)
+{
+  // should be a one-liner for each case!
+  if (discardedNonRedundantClauses) {
+    out << "Refutation not found, non-redundant clauses discarded";
+  }
+  else if (inferencesSkippedDueToColors) {
+    out << "Refutation not found, inferences skipped due to colors\n";
+  }
+  else if(smtReturnedUnknown){
+    out << "Refutation not found, SMT solver inside AVATAR returned Unknown";
+  }
+  else if (smtDidNotEvaluate) {
+    out << "Refutation not found, SMT solver inside AVATAR failed to evaluate a literal\n";
+  }
+  else {
+    out << "Refutation not found, incomplete strategy";
+  }
+}
 
 void Statistics::print(ostream& out)
 {
@@ -344,6 +364,8 @@ void Statistics::print(ostream& out)
   COND_OUT("Induction",induction);
   COND_OUT("MaxInductionDepth",maxInductionDepth);
   COND_OUT("InductionStepsInProof",inductionInProof);
+  COND_OUT("GeneralizedInduction",generalizedInduction);
+  COND_OUT("GeneralizedInductionInProof",generalizedInductionInProof);
   COND_OUT("Argument congruence", argumentCongruence);
   COND_OUT("Negative extensionality", negativeExtensionality);
   COND_OUT("Primitive substitutions", primitiveInstantiations);
@@ -363,12 +385,6 @@ void Statistics::print(ostream& out)
   COND_OUT("Injectivity simplifications",taInjectivitySimplifications);
   COND_OUT("Negative injectivity simplifications",taNegativeInjectivitySimplifications);
   COND_OUT("Disequalities generated from acyclicity",taAcyclicityGeneratedDisequalities);
-
-  HEADING("Higher-Order axiom descendants", combDescendants + proxyDescendants);
-  COND_OUT("Combinator axiom descendants", combDescendants);
-  COND_OUT("Proxy axiom descendants", proxyDescendants);
-  COND_OUT("Descendants of combinator and proxy axioms", holAxiomDescendants);
-  SEPARATOR;
 
   HEADING("AVATAR",splitClauses+splitComponents+uniqueComponents+satSplits+
         satSplitRefutations);

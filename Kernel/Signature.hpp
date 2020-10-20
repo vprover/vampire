@@ -39,8 +39,9 @@
 #include "Lib/DHMap.hpp"
 #include "Lib/VString.hpp"
 #include "Lib/Environment.hpp"
+#include "Lib/SmartPtr.hpp"
 
-//#include "Shell/TermAlgebra.hpp"
+#include "Shell/TermAlgebra.hpp"
 #include "Shell/Options.hpp"
 
 #include "Sorts.hpp"
@@ -209,7 +210,7 @@ class Signature
     /** Return true iff symbol is an overflown constant */
     inline bool overflownConstant() const { return _overflownConstant; }
     /** Return true iff symbol is a term algebra constructor */
-    inline bool termAlgebraCons() const { return false; /*_termAlgebraCons;*/ }
+    inline bool termAlgebraCons() const { return _termAlgebraCons; }
 
     /** Increase the usage count of this symbol **/
     inline void incUsageCnt(){ _usageCount++; }
@@ -891,6 +892,7 @@ private:
    */ 
   DHMap<TermList, Shell::TermAlgebra*> _termAlgebras;
 
+  //TODO Why are these here? They are not used anywhere. AYB
   //void defineOptionTermAlgebra(unsigned optionSort);
   //void defineEitherTermAlgebra(unsigned eitherSort);
 }; // class Signature

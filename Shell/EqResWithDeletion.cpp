@@ -104,9 +104,8 @@ start_applying:
   unsigned nlen=resLits.size();
   ASS_L(nlen, clen);
 
-  Inference* inf = new Inference1(Inference::EQUALITY_RESOLUTION, cl);
-  Clause* res = new(nlen) Clause(nlen, cl->inputType(), inf);
-  res->setAge(cl->age());
+  Clause* res = new(nlen) Clause(nlen,
+      SimplifyingInference1(InferenceRule::EQUALITY_RESOLUTION_WITH_DELETION, cl));
 
   for(unsigned i=0;i<nlen;i++) {
     (*res)[i] = SubstHelper::apply(resLits[i], *this);
