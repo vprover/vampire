@@ -748,11 +748,10 @@ void InductionClauseIterator::instantiateScheme(Clause* premise, Literal* lit, I
 
   FormulaList* formulas = FormulaList::empty();
   unsigned var = scheme._maxVar;
-  const vset<TermList> empty;
 
   for (auto& desc : scheme._rDescriptionInstances) {
     // We replace all induction terms with the corresponding step case terms
-    TermOccurrenceReplacement tr(desc._step, activeOccurrenceMap, occurrenceCntMap, empty, var);
+    TermOccurrenceReplacement tr(desc._step, activeOccurrenceMap, occurrenceCntMap, var);
     Formula* right = new AtomicFormula(Literal::complementaryLiteral(tr.transform(lit)));
 
     FormulaList* hyp = FormulaList::empty();
@@ -760,7 +759,7 @@ void InductionClauseIterator::instantiateScheme(Clause* premise, Literal* lit, I
     // Then we replace the arguments of the term with the
     // corresponding recursive cases for this step case (if not base case)
     for (const auto& r : desc._recursiveCalls) {
-      TermOccurrenceReplacement tr(r, activeOccurrenceMap, occurrenceCntMap, desc._inactive, var);
+      TermOccurrenceReplacement tr(r, activeOccurrenceMap, occurrenceCntMap, var, true);
 
       Formula* f = new AtomicFormula(Literal::complementaryLiteral(tr.transform(lit)));
 
@@ -813,7 +812,7 @@ void InductionClauseIterator::instantiateScheme(Clause* premise, Literal* lit, I
       r.insert(make_pair(kv.first, TermList(var++,false)));
     }
   }
-  TermOccurrenceReplacement tr(r, activeOccurrenceMap, occurrenceCntMap, empty, var);
+  TermOccurrenceReplacement tr(r, activeOccurrenceMap, occurrenceCntMap, var);
   Literal* conclusion = Literal::complementaryLiteral(tr.transform(lit));
   Formula* hypothesis = new BinaryFormula(Connective::IMP,
                             Formula::quantify(indPremise),

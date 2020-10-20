@@ -285,6 +285,7 @@ bool findCommutator(const vmap<TermList, pair<TermList, TermList>>& initialGoalP
   return counter > 0 && findCommutatorHelper(initialGoalPairs, sch1, sch2, counter, firstRound, true);
 }
 
+// sch2 quasi-commutes over sch1
 bool checkQuasiCommutation(const InductionScheme& sch1, const InductionScheme& sch2) {
   cout << "checkQuasiCOmmutation" << endl;
   CALL("checkQuasiCommutation");
@@ -380,55 +381,40 @@ bool checkQuasiCommutation(const InductionScheme& sch1, const InductionScheme& s
   return true;
 }
 
-bool createSingleRDescription(const RDescriptionInst& rdesc, const InductionScheme& other, RDescriptionInst& res) {
+bool createSingleRDescription(const RDescriptionInst& rdesc, const InductionScheme& other,
+  const vset<TermList>& combinedInductionTerms, RDescriptionInst& res)
+{
   if (rdesc._recursiveCalls.empty()) {
     return false;
   }
+  auto recCalls = rdesc._recursiveCalls;
+  auto step = rdesc._step;
   vvector<Formula*> conditions;
   for (const auto& rdesc2 : other._rDescriptionInstances) {
-    cout << "Creating difference of " << rdesc << " and " << rdesc2 << endl;
     if (rdesc2._recursiveCalls.empty()) {
       continue;
     }
     FormulaList* fs = FormulaList::empty();
-    for (const auto& kv : rdesc._step) {
-      auto t1 = kv.second;
-      if (rdesc2._inactive.count(kv.first)) {
-        continue;
-      }
-      TermList t2;
-      if (rdesc2._activated.count(kv.first)) {
-        t2 = kv.first;
-      } else {
-        ASS(rdesc2._step.count(kv.first));
-        auto t2 = rdesc2._step.at(kv.first);
+    for (const auto& indTerm : combinedInductionTerms) {
+      auto it1 = rdesc._step.find(indTerm);
+      auto it2 = rdesc2._step.find(indTerm);
+      if (it1 == rdesc._step.end()) {
+        if (it2 != rdesc2._step.end()) {
+          FormulaList::push(new AtomicFormula(
+            Literal::createEquality(false, indTerm, it2->second, SortHelper::getResultSort(indTerm.term()))), fs);
+        } else {
+          ASSERTION_VIOLATION;
+        }
+      } else if (it2 != rdesc2._step.end()) {
+        auto t1 = it1->second;
+        auto t2 = it2->second;
         RobSubstitution subst;
-        if (!subst.unify(t1, 0, t2, 1)) {
+        if (t2.isVar() || !subst.unify(t1, 0, t2, 1)) {
           continue;
         }
+        FormulaList::push(new AtomicFormula(
+          Literal::createEquality(false, t1, t2, SortHelper::getResultSort(indTerm.term()))), fs);
       }
-      cout << "Term: " << *kv.first.term() << endl;
-      FormulaList::push(new AtomicFormula(
-        Literal::createEquality(false, t1, t2, SortHelper::getResultSort(kv.first.term()))), fs);
-    }
-    for (const auto& kv : rdesc2._step) {
-      auto t2 = kv.second;
-      if (rdesc._inactive.count(kv.first)) {
-        continue;
-      }
-      TermList t1;
-      if (rdesc._activated.count(kv.first)) {
-        t1 = kv.first;
-      } else {
-        ASS(rdesc._step.count(kv.first));
-        auto t1 = rdesc._step.at(kv.first);
-        RobSubstitution subst;
-        if (!subst.unify(t1, 0, t2, 1)) {
-          continue;
-        }
-      }
-      FormulaList::push(new AtomicFormula(
-        Literal::createEquality(false, t1, t2, SortHelper::getResultSort(kv.first.term()))), fs);
     }
     if (FormulaList::isEmpty(fs)) {
       return false;
@@ -437,48 +423,41 @@ bool createSingleRDescription(const RDescriptionInst& rdesc, const InductionSche
   }
 
   conditions.insert(conditions.end(), rdesc._conditions.begin(), rdesc._conditions.end());
-  auto step = rdesc._step;
-  auto recCalls = rdesc._recursiveCalls;
   res = RDescriptionInst(std::move(recCalls), std::move(step), std::move(conditions));
+
+  vset<TermList> diff;
+  set_difference(rdesc._inactive.begin(), rdesc._inactive.end(),
+    combinedInductionTerms.begin(), combinedInductionTerms.end(),
+    inserter(diff, diff.end()));
+  res._inactive = diff;
   return true;
 }
 
 bool createMergedRDescription(const RDescriptionInst& rdesc1, const RDescriptionInst& rdesc2,
-  RDescriptionInst& res)
+  const vset<TermList>& combinedInductionTerms, RDescriptionInst& res)
 {
   if (rdesc1._recursiveCalls.empty() || rdesc2._recursiveCalls.empty()) {
     return false;
   }
   vmap<TermList, TermList> step;
   vmap<TermList, RobSubstitutionSP> substs;
-  for (const auto& kv : rdesc1._step) {
-    auto t1 = kv.second;
-    if (!rdesc2._activated.count(kv.first) && !rdesc2._inactive.count(kv.first)) {
+  for (const auto& indTerm : combinedInductionTerms) {
+    auto it1 = rdesc1._step.find(indTerm);
+    auto it2 = rdesc2._step.find(indTerm);
+    ASS(it1 != rdesc1._step.end() || it2 != rdesc2._step.end());
+    if (it1 != rdesc1._step.end() && it2 != rdesc2._step.end()) {
+      auto t1 = it1->second;
+      auto t2 = it2->second;
       RobSubstitutionSP subst(new RobSubstitution);
-      ASS(rdesc2._step.count(kv.first));
-      auto t2 = rdesc2._step.at(kv.first);
       if (!subst->unify(t1, 0, t2, 1)) {
         return false;
       }
-      step.insert(make_pair(kv.first, subst->apply(t1, 0)));
-      substs.insert(make_pair(kv.first, subst));
-    } else {
-      step.insert(make_pair(kv.first, t1));
-    }
-  }
-  for (const auto& kv : rdesc2._step) {
-    auto t2 = kv.second;
-    if (!rdesc1._activated.count(kv.first) && !rdesc1._inactive.count(kv.first)) {
-      RobSubstitutionSP subst(new RobSubstitution);
-      ASS(rdesc1._step.count(kv.first));
-      auto t1 = rdesc1._step.at(kv.first);
-      if (!subst->unify(t1, 0, t2, 1)) {
-        return false;
-      }
-      step.insert(make_pair(kv.first, subst->apply(t2, 1)));
-      substs.insert(make_pair(kv.first, subst));
-    } else {
-      step.insert(make_pair(kv.first, t2));
+      step.insert(make_pair(indTerm, subst->apply(t1, 0)));
+      substs.insert(make_pair(indTerm, subst));
+    } else if (it1 != rdesc1._step.end()) {
+      step.insert(make_pair(indTerm, it1->second));
+    } else if (it2 != rdesc2._step.end()) {
+      step.insert(make_pair(indTerm, it2->second));
     }
   }
   vvector<vmap<TermList, TermList>> recCalls;
@@ -506,19 +485,24 @@ bool createMergedRDescription(const RDescriptionInst& rdesc1, const RDescription
   auto conditions = rdesc1._conditions;
   conditions.insert(conditions.end(), rdesc2._conditions.begin(), rdesc2._conditions.end());
   res = RDescriptionInst(std::move(recCalls), std::move(step), std::move(conditions));
+
+  auto inactive = rdesc1._inactive;
+  inactive.insert(rdesc2._inactive.begin(), rdesc2._inactive.end());
+  vset<TermList> diff;
+  set_difference(inactive.begin(), inactive.end(),
+    combinedInductionTerms.begin(), combinedInductionTerms.end(),
+    inserter(diff, diff.end()));
+  res._inactive = diff;
   return true;
 }
 
 void addBaseCase(InductionScheme& sch) {
-  
   for (const auto& rdesc : sch._rDescriptionInstances) {
-
   }
 }
 
-bool checkInductionTerms(const InductionScheme& sch1, const InductionScheme& sch2, vset<TermList>& additional)
+bool checkInductionTerms(const InductionScheme& sch1, const InductionScheme& sch2, vset<TermList>& combined)
 {
-  cout << "checkInductonTerms" << endl;
   if (includes(sch1._inductionTerms.begin(), sch1._inductionTerms.end(),
       sch2._inductionTerms.begin(), sch2._inductionTerms.end())) {
     return true;
@@ -528,44 +512,57 @@ bool checkInductionTerms(const InductionScheme& sch1, const InductionScheme& sch
     sch1._inductionTerms.begin(), sch1._inductionTerms.end(), inserter(diff, diff.begin()));
   if (includes(sch1._inactive.begin(), sch1._inactive.end(),
     diff.begin(), diff.end())) {
-    additional = diff;
+    combined = sch1._inductionTerms;
+    combined.insert(diff.begin(), diff.end());
     return true;
   }
   return false;
 }
 
 bool mergeSchemes(const InductionScheme& sch1, const InductionScheme& sch2, InductionScheme& res) {
-  auto sch1copy = sch1;
-  auto sch2copy = sch2.makeCopyWithVariablesShifted(sch1._maxVar+1);
-  cout << "Merging schemes " << sch1copy << " and " << endl
-       << sch2copy << endl;
-  vset<TermList> additional;
+  vset<TermList> combinedInductionTerms;
   // either we can check quasi-commutation in both directions as the schemes
   // have the same induction terms or we check if one of the induction terms
   // can be a subset of the other either by itself or by activating additional
   // inactive induction terms, then we check only one way for quasi-commutation
-  if ((sch1copy._inductionTerms != sch2copy._inductionTerms
-    || (!checkQuasiCommutation(sch1copy, sch2copy) && !checkQuasiCommutation(sch2copy, sch1copy)))
-    && (!checkInductionTerms(sch1copy, sch2copy, additional) || !checkQuasiCommutation(sch1copy, sch2copy))
-    && (!checkInductionTerms(sch2copy, sch1copy, additional) || !checkQuasiCommutation(sch2copy, sch1copy))) {
+  InductionScheme sch1copy;
+  InductionScheme sch2copy;
+  if (sch1._inductionTerms != sch2._inductionTerms
+    || (!checkQuasiCommutation(sch1, sch2) && !checkQuasiCommutation(sch2, sch1)))
+  {
+    if (checkInductionTerms(sch2, sch1, combinedInductionTerms) && checkQuasiCommutation(sch2, sch1)) {
+      sch1copy = sch1;
+      sch2copy = sch2.makeCopyWithVariablesShifted(sch1copy._maxVar+1);
+      sch2copy.addInductionTerms(combinedInductionTerms);
+    } else if (checkInductionTerms(sch1, sch2, combinedInductionTerms) && checkQuasiCommutation(sch1, sch2)) {
+      sch1copy = sch1;
+      sch1copy.addInductionTerms(combinedInductionTerms);
+      sch2copy = sch2.makeCopyWithVariablesShifted(sch1copy._maxVar+1);
+    } else {
       return false;
+    }
+  } else {
+    sch1copy = sch1;
+    sch2copy = sch2;
   }
-  sch1copy.activateTerms(additional);
-  sch2copy.activateTerms(additional);
+  if (combinedInductionTerms.empty()) {
+    combinedInductionTerms.insert(sch1copy._inductionTerms.begin(), sch1copy._inductionTerms.end());
+    combinedInductionTerms.insert(sch2copy._inductionTerms.begin(), sch2copy._inductionTerms.end());
+  }
   cout << "Merging schemes " << sch1copy << " and " << endl
        << sch2copy << endl;
-  
+
   vvector<RDescriptionInst> resRdescs;
   for (const auto& rdesc : sch1copy._rDescriptionInstances) {
     RDescriptionInst inst;
-    if (createSingleRDescription(rdesc, sch2copy, inst)) {
+    if (createSingleRDescription(rdesc, sch2copy, combinedInductionTerms, inst)) {
       cout << "Single rdesc: " << inst << endl;
       resRdescs.push_back(inst);
     }
   }
   for (const auto& rdesc : sch2copy._rDescriptionInstances) {
     RDescriptionInst inst;
-    if (createSingleRDescription(rdesc, sch1copy, inst)) {
+    if (createSingleRDescription(rdesc, sch1copy, combinedInductionTerms, inst)) {
       cout << "Single rdesc: " << inst << endl;
       resRdescs.push_back(inst);
     }
@@ -573,23 +570,12 @@ bool mergeSchemes(const InductionScheme& sch1, const InductionScheme& sch2, Indu
   for (const auto& rdesc1 : sch1copy._rDescriptionInstances) {
     for (const auto& rdesc2 : sch2copy._rDescriptionInstances) {
       RDescriptionInst inst;
-      if (createMergedRDescription(rdesc1, rdesc2, inst)) {
+      if (createMergedRDescription(rdesc1, rdesc2, combinedInductionTerms, inst)) {
         resRdescs.push_back(inst);
       }
     }
   }
-  auto inactive = sch1copy._inactive;
-  inactive.insert(sch2copy._inactive.begin(), sch2copy._inactive.end());
   res.init(std::move(resRdescs));
-  res._inductionTerms.insert(additional.begin(), additional.end());
-  set_difference(inactive.begin(), inactive.end(),
-    additional.begin(), additional.end(),
-    inserter(inactive, inactive.end()));
-  res._inactive = inactive;
-  for (auto& rdesc : res._rDescriptionInstances) {
-    rdesc._inactive = inactive;
-    // rdesc.activated = 
-  }
 
   return true;
 }
@@ -754,7 +740,7 @@ TermList TermOccurrenceReplacement::transformSubterm(TermList trm)
       return _r.at(trm);
     }
   }
-  if (_inactive.count(trm) && isSkolem(trm)) {
+  if (_replaceSkolem && isSkolem(trm)) {
     if (!_r_g.count(trm)) {
       _r_g.insert(make_pair(trm, TermList(_v++,false)));
     }
@@ -848,10 +834,6 @@ ostream& operator<<(ostream& out, const RDescriptionInst& inst)
   out << "inactive terms: ";
   for (const auto& i : inst._inactive) {
     out << i << ", ";
-  }
-  out << "activated terms: ";
-  for (const auto& a : inst._activated) {
-    out << a << ", ";
   }
   return out;
 }
@@ -1062,30 +1044,12 @@ void InductionScheme::init(vvector<RDescriptionInst>&& rdescs)
           : TermList(vr.transform(kv.second.term()));
       }
     }
+    _inactive.insert(rdesc._inactive.begin(), rdesc._inactive.end());
     for (auto& f : rdesc._conditions) {
       f = vr.transform(f);
     }
   }
   _maxVar = var;
-}
-
-void InductionScheme::activateTerms(const vset<TermList>& terms)
-{
-  vset<TermList> intersection;
-  set_intersection(_inactive.begin(), _inactive.end(),
-    terms.begin(), terms.end(),
-    inserter(intersection, intersection.end()));
-
-  vset<TermList> diff;
-  set_difference(_inactive.begin(), _inactive.end(),
-    terms.begin(), terms.end(),
-    inserter(diff, diff.end()));
-  
-  _inactive = diff;
-  for (auto& rdesc : _rDescriptionInstances) {
-    rdesc._inactive = diff;
-    rdesc._activated.insert(intersection.begin(), intersection.end());
-  }
 }
 
 InductionScheme InductionScheme::makeCopyWithVariablesShifted(unsigned shift) const {
@@ -1123,7 +1087,26 @@ InductionScheme InductionScheme::makeCopyWithVariablesShifted(unsigned shift) co
   for (auto& rdesc : res._rDescriptionInstances) {
     rdesc._inactive = res._inactive;
   }
+  res._maxVar = _maxVar + shift;
   return res;
+}
+
+void InductionScheme::addInductionTerms(const vset<TermList>& terms) {
+  for (const auto& t : terms) {
+    for (auto& rdesc : _rDescriptionInstances) {
+      if (rdesc._recursiveCalls.empty()) {
+        continue;
+      }
+      auto it = rdesc._step.find(t);
+      if (it == rdesc._step.end()) {
+        TermList var(_maxVar++, false);
+        rdesc._step.insert(make_pair(t, var));
+        for (auto& recCall : rdesc._recursiveCalls) {
+          recCall.insert(make_pair(t, var));
+        }
+      }
+    }
+  }
 }
 
 ostream& operator<<(ostream& out, const InductionScheme& scheme)
