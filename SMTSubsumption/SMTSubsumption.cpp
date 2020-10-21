@@ -189,6 +189,8 @@ void ProofOfConcept::test(Clause* side_premise, Clause* main_premise)
     }
   }
 
+#define USE_ATMOSTONE_CONSTRAINTS 0
+
   // TODO: for these we can add special constraints to MiniSAT! see paper for idea
   // Add constraints:
   // \Land_i ExactlyOneOf(b_{i1}, ..., b_{ij})
@@ -201,22 +203,26 @@ void ProofOfConcept::test(Clause* side_premise, Clause* main_premise)
     }
     solver.addClause(ls);
     // At most one must be true
+#if USE_ATMOSTONE_CONSTRAINTS
     if (ls.size() >= 2) {
       solver.addConstraint_AtMostOne(ls);
     }
-    // for (size_t j1 = 0; j1 < v.size(); ++j1) {
-    //   for (size_t j2 = j1 + 1; j2 < v.size(); ++j2) {
-    //     auto b1 = v[j1].b;
-    //     auto b2 = v[j2].b;
-    //     ASS_NEQ(b1, b2);
-    //     solver.addBinary(~Lit(b1), ~Lit(b2));
-    //   }
-    // }
+#else
+    for (size_t j1 = 0; j1 < v.size(); ++j1) {
+      for (size_t j2 = j1 + 1; j2 < v.size(); ++j2) {
+        auto b1 = v[j1].b;
+        auto b2 = v[j2].b;
+        ASS_NEQ(b1, b2);
+        solver.addBinary(~Lit(b1), ~Lit(b2));
+      }
+    }
+#endif
   }
 
   // Add constraints:
   // \Land_j AtMostOneOf(b_{1j}, ..., b_{ij})
   for (auto const& w : possible_base_vars) {
+#if USE_ATMOSTONE_CONSTRAINTS
     if (w.size() >= 2) {
       Minisat::vec<Lit> ls;
       for (auto const& b : w) {
@@ -224,14 +230,16 @@ void ProofOfConcept::test(Clause* side_premise, Clause* main_premise)
       }
       solver.addConstraint_AtMostOne(ls);
     }
-    // for (size_t i1 = 0; i1 < w.size(); ++i1) {
-    //   for (size_t i2 = i1 + 1; i2 < w.size(); ++i2) {
-    //     auto b1 = w[i1];
-    //     auto b2 = w[i2];
-    //     ASS_NEQ(b1, b2);
-    //     solver.addBinary(~Lit(b1), ~Lit(b2));
-    //   }
-    // }
+#else
+    for (size_t i1 = 0; i1 < w.size(); ++i1) {
+      for (size_t i2 = i1 + 1; i2 < w.size(); ++i2) {
+        auto b1 = w[i1];
+        auto b2 = w[i2];
+        ASS_NEQ(b1, b2);
+        solver.addBinary(~Lit(b1), ~Lit(b2));
+      }
+    }
+#endif
   }
 
   std::cout << "ok before solving? " << solver.okay() << std::endl;
