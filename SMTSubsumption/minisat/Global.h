@@ -168,6 +168,8 @@ public:
     // Types:
     typedef int Key;
     typedef T   Datum;
+    using iterator = T*;
+    using const_iterator = T const*;
 
     // Constructors:
     vec(void)                   : data(NULL) , sz(0)   , cap(0)    { }
@@ -178,8 +180,16 @@ public:
 
     // Ownership of underlying array:
     T*       release  (void)           { T* ret = data; data = NULL; sz = 0; cap = 0; return ret; }
-    operator T*       (void)           { return data; }     // (unsafe but convenient)
-    operator const T* (void) const     { return data; }
+    explicit operator T*       (void)           { return data; }     // (unsafe but convenient)
+    explicit operator const T* (void) const     { return data; }
+
+    // Random-access iterators:
+    iterator begin() { return data; }
+    iterator end() { return data + sz; }
+    const_iterator begin() const { return data; }
+    const_iterator end() const { return data + sz; }
+    const_iterator cbegin() const { return data; }
+    const_iterator cend() const { return data + sz; }
 
     // Size operations:
     int      size   (void) const       { return sz; }

@@ -114,7 +114,7 @@ template <class T> static inline void sortUnique(T* array, int& size) {
 
 
 template <class T, class LessThan> void sort(vec<T>& v, LessThan lt) {
-    sort((T*)v, v.size(), lt); }
+    sort(static_cast<T*>(v), v.size(), lt); }
 template <class T> void sort(vec<T>& v) {
     sort(v, LessThan_default<T>()); }
 
