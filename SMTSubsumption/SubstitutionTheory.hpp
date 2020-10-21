@@ -174,6 +174,7 @@ class SubstitutionTheory
       // and only proceed if it does.
       ASS_L(var, atoms.size());
       SubstitutionAtom const& atom = atoms[var];
+      std::cerr << "atom = " << atom << std::endl;
 
       // Exhaustively propagate conflicting atoms
       for (auto p : atom.mapping()) {  // go through list of constraints (x -> t)
@@ -183,6 +184,7 @@ class SubstitutionTheory
           current_substitution[p.first] = p.second;
           current_substitution_level[p.first] = level;
         } else {
+          std::cerr << "Already in current_substitution: " << TermList(p.first, false) << " -> " << current_substitution[p.first] << " from level " << current_substitution_level[p.first] << " (new value: " << p.second  << ")" << std::endl;
           // Must be the same value due to exhaustive theory propagation
           ASS_EQ(current_substitution[p.first], p.second);
           // This also means that all theory consequences have been propagated previously,
@@ -221,12 +223,21 @@ class SubstitutionTheory
           }
         }
       }
+
+      std::cerr << "enable done" << std::endl;
     }  // enable(...)
 
     /// Undo all assignments above the given level
     void backjump(Level level)
     {
-      // nothing to do
+      // Reset current_substitution
+      std::cerr << "BACKJUMP to level " << level << std::endl;
+      for (size_t i = 0; i < current_substitution.size(); ++i) {
+        if (current_substitution_level[i] > level) {
+          current_substitution[i].makeEmpty();
+          current_substitution_level[i] = std::numeric_limits<Level>::max();
+        }
+      }
     }
 };
 

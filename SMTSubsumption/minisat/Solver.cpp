@@ -307,7 +307,7 @@ void Solver::cancelUntil(int level)
         trail.shrink(trail.size() - trail_lim[level]);
         trail_lim.shrink(trail_lim.size() - level);
         qhead = trail.size();
-        // subst_theory.backjump(level);  // TODO do we want to do this before or after backjumping in the solver?
+        subst_theory.backjump(level);
     }
 }
 
@@ -388,7 +388,7 @@ void Solver::analyze(Clause* _confl, vec<Lit>& out_learnt, int& out_btlevel)
         p     = trail[index+1];
         confl = reason[var(p)];
         // NOTE: first literal of reason is ignored (it's the one that has been propagated)
-        if (!confl.isLit()) { assert( (*confl.clause())[0] == p ); }
+        if (confl.isClause() && !confl.isNull()) { assert( (*confl.clause())[0] == p ); }
         seen[var(p)] = 0;
         pathC--;
     } while (pathC > 0);
@@ -684,9 +684,9 @@ Clause* Solver::propagate()
                 *(j++) = *(i++);
               }
             }
-        }
+        }  // while (i != end)
         ws.shrink(i - j);
-    }
+    }  // while (qhead < trail.size())
 
     return confl;
 }

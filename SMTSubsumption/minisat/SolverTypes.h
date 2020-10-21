@@ -134,6 +134,16 @@ inline Clause* Clause_new(bool learnt, const vec<Lit>& ps)
     return new (mem) Clause(learnt, ps);
 }
 
+inline std::ostream& operator<<(std::ostream& o, Clause const& c)
+{
+  o << "Clause {";
+  for (int i = 0; i < c.size(); ++i) {
+    o << " " << c[i];
+  }
+  o << " }";
+  return o;
+}
+
 
 
 /// AtMostOne constraint
@@ -185,6 +195,16 @@ class AtMostOne
       return m_data[i];
     }
 };
+
+inline std::ostream& operator<<(std::ostream& o, AtMostOne const& c)
+{
+  o << "AtMostOne {";
+  for (int i = 0; i < c.size(); ++i) {
+    o << " " << c[i];
+  }
+  o << " }";
+  return o;
+}
 
 
 //=================================================================================================
@@ -302,6 +322,31 @@ class GClause {
 
 inline GClause GClause_new(Lit p)     { return GClause(p); }
 inline GClause GClause_new(Clause* c) { return GClause(c); }
+
+inline std::ostream& operator<<(std::ostream& o, GClause const& gc)
+{
+  o << "GClause(";
+  if (gc.isNull()) {
+    o << "NULL";
+  } else {
+    switch (gc.tag()) {
+      case GClause::Tag_Lit:
+        o << "Lit { " << gc.lit() << " }";
+        break;
+      case GClause::Tag_Clause:
+        o << *gc.clause();
+        break;
+      case GClause::Tag_AtMostOne:
+        o << *gc.atMostOne();
+        break;
+      default:
+        o << "InvalidTag: " << gc.tag();
+        break;
+    };
+  }
+  o << ")";
+  return o;
+}
 
 #define GClause_NULL GClause(nullptr)
 
