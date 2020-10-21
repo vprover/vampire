@@ -68,7 +68,7 @@ void Solver::newClause(const vec<Lit>& ps_, bool learnt)
 
     std::cerr << "newClause:";
     for (Lit l : ps_) {
-      std::cerr << " " << (l.isNegative() ? "~" : "") << var(l);
+      std::cerr << " " << l;
     }
     std::cerr << std::endl;
 
@@ -91,6 +91,7 @@ void Solver::newClause(const vec<Lit>& ps_, bool learnt)
         }
 
         // Remove false literals:
+        // TODO: in our use case this will never happen!
         int i, j;
         for (i = j = 0; i < qs.size(); i++)
             if (value(qs[i]) != l_False)
@@ -150,6 +151,77 @@ void Solver::newClause(const vec<Lit>& ps_, bool learnt)
         // Watch clause:
         watches[index(~(*c)[0])].push(GClause_new(c));
         watches[index(~(*c)[1])].push(GClause_new(c));
+    }
+}
+
+void Solver::addConstraint_AtMostOne(const vec<Lit>& ps_)
+{
+    if (!ok) return;
+
+    std::cerr << "addConstraint_AtMostOne:";
+    for (Lit l : ps_) {
+      std::cerr << " " << l;
+    }
+    std::cerr << std::endl;
+
+    assert(decisionLevel() == 0);
+
+    // Make a copy of the input vector.
+    vec<Lit> ps;  // TODO: could use class member to reduce allocation overhead
+    ps_.copyTo(ps);
+
+    // Remove duplicates
+    sortUnique(ps);
+
+    // // Check if clause is satisfied:
+    // for (int i = 0; i < qs.size()-1; i++) {
+    //     if (qs[i] == ~qs[i+1])
+    //         return;
+    // }
+    // for (int i = 0; i < qs.size(); i++) {
+    //     if (value(qs[i]) == l_True)
+    //         return;
+    // }
+
+    // // Remove false literals, TODO: also: if >1 are positive, ok := false and quit.
+    // // TODO: in our use case this should never happen!
+    // int i, j;
+    // for (i = j = 0; i < qs.size(); i++) {
+    //   if (value(qs[i]) != l_False)
+    //     qs[j++] = qs[i];
+    // }
+    // qs.shrink(i - j);
+
+    // 'ps' is now the (possibly) reduced vector of literals.
+
+    if (ps.size() <= 1) {
+      // nothing to do
+    }
+    else if (ps.size() == 2) {
+      // In this case, we create a binary clause instead,
+      // because AtMostOne(p, q) == ~p \/ ~q
+
+      // Create special binary clause watch
+      watches[index(ps[0])].push(GClause(~ps[1]));
+      watches[index(ps[1])].push(GClause(~ps[0]));
+
+      stats.clauses_literals += 2;
+      n_bin_clauses++;
+    }
+    else {
+      // Allocate and store constraint
+      AtMostOne* c = AtMostOne::from_literals(ps);
+      at_most_one_constraints.push(c);
+      stats.clauses_literals += c->size();  // TODO
+
+      // Set up watches for the constraint
+      // AtMostOne is equivalent to a set of binary clauses
+      // (~p \/ ~q for all p,q in ps)
+      // When any one of the literals in ps becomes true, the others will be propagated to false.
+      // so we need to watch all literals in ps.
+      for (Lit l : ps) {
+        watches[index(l)].push(GClause(c));
+      }
     }
 }
 
@@ -289,6 +361,7 @@ void Solver::analyze(Clause* _confl, vec<Lit>& out_learnt, int& out_btlevel)
                 (*analyze_tmpbin)[1] = confl.lit();
                 return analyze_tmpbin;
             } else {
+                assert(confl.isClause());
                 return confl.clause();
             }
         }();
@@ -508,6 +581,14 @@ Clause* Solver::propagate()
           });
         }
 
+        // TODO:
+        // note additional invariant:
+        // - Reasons are still only lits/clauses
+        // - Only watches can be an AtMostOne constraint
+        // Should probably split GClause into two classes?
+        // - class Reason ... can hold literal or clause
+        // - class Watcher ... can hold literal, clause, or AtMostOne constraint
+
         vec<GClause>& ws = watches[index(p)];
         GClause* i = ws.begin();
         GClause* j = ws.begin();
@@ -535,13 +616,15 @@ Clause* Solver::propagate()
                     // OH, we do not delete it. we only delete clauses from the watch list.
                     // note that i,j are always incremented in lock-step in this part.
                 }
-            } else {
+            } else if (i->isClause()) {
                 Clause& c = *i->clause(); i++;
                 assert(c.size() > 2);
                 // Make sure the false literal is data[1]:
                 Lit false_lit = ~p;
-                if (c[0] == false_lit)
-                    c[0] = c[1], c[1] = false_lit;
+                if (c[0] == false_lit) {
+                    c[0] = c[1];
+                    c[1] = false_lit;
+                }
 
                 assert(c[1] == false_lit);
 
@@ -572,6 +655,34 @@ Clause* Solver::propagate()
                     }
                   FoundWatch:;
                 }
+            } else {
+              assert(i->isAtMostOne());
+              AtMostOne& c = *i->atMostOne(); i++;
+              // propagate all other literals to false
+              bool got_conflict = false;
+              for (int k = 0; k < c.size(); ++k) {
+                if (c[k] != p) {
+                  got_conflict = !enqueue(~c[k], GClause(p));
+                  if (got_conflict) {
+                    if (decisionLevel() == 0) {
+                        ok = false;
+                    }
+                    confl = propagate_tmpbin;
+                    (*confl)[1] = ~p;
+                    (*confl)[0] = ~c[k];
+                    qhead = trail.size();
+                    break;
+                  }
+                }
+              }
+              if (got_conflict) {
+                // Copy the remaining watches:
+                while (i != end)  // TODO: can skip loop if i==j. (should check if that helps though)
+                  *(j++) = *(i++);
+                assert(i == end);
+              } else {
+                *(j++) = *(i++);
+              }
             }
         }
         ws.shrink(i - j);

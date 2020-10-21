@@ -76,7 +76,7 @@ protected:
     double              var_decay;        // INVERSE decay factor for variable activity: stores 1/decay. Use negative value for static variable order.
     VarOrder            order;            // Keeps track of the decision variable order.
 
-    vec<vec<GClause> >  watches;          // 'watches[lit]' is a list of constraints watching 'lit' (will go there if literal becomes true).
+    vec<vec<GClause>>   watches;          // 'watches[lit]' is a list of constraints watching 'lit' (will go there if literal becomes true).
     vec<char>           assigns;          // The current assignments (lbool:s stored as char:s).
     vec<Lit>            trail;            // Assignment stack; stores all assigments made in the order they were made.
     vec<int>            trail_lim;        // Separator indices for different decision levels in 'trail'.
@@ -86,6 +86,8 @@ protected:
     int                 qhead;            // Head of queue (as index into the trail -- no more explicit propagation queue in MiniSat).
     int                 simpDB_assigns;   // Number of top-level assignments since last execution of 'simplifyDB()'.  TODO: remove?
     int64               simpDB_props;     // Remaining number of propagations that must be made before next execution of 'simplifyDB()'.  TODO: remove?
+
+    vec<AtMostOne*>     at_most_one_constraints;
 
     // Temporaries (to reduce allocation overhead). Each variable is prefixed by the method in which is used:
     //
@@ -202,7 +204,8 @@ public:
     void    addUnit   (Lit p)               { if (ok) ok = enqueue(p); }
     void    addBinary (Lit p, Lit q)        { addBinary_tmp [0] = p; addBinary_tmp [1] = q; addClause(addBinary_tmp); }
     void    addTernary(Lit p, Lit q, Lit r) { addTernary_tmp[0] = p; addTernary_tmp[1] = q; addTernary_tmp[2] = r; addClause(addTernary_tmp); }
-    void    addClause (const vec<Lit>& ps)  { newClause(ps); }  // (used to be a difference between internal and external method...)
+    void    addClause (const vec<Lit>& ps)  { newClause(ps); }  // (there used to be a difference between internal and external method...)
+    void    addConstraint_AtMostOne(const vec<Lit>& ps);
 
     // Solving:
     //

@@ -55,6 +55,13 @@ void ProofOfConcept::test(Clause* side_premise, Clause* main_premise)
   std::cerr << "Side premise (base):     " << side_premise->toString() << std::endl;
   std::cerr << "Main premise (instance): " << main_premise->toString() << std::endl;
 
+  std::cerr << "alignof Solver : " << alignof(Minisat::Solver) << std::endl;
+  std::cerr << "alignof Solver*: " << alignof(Minisat::Solver*) << std::endl;
+  std::cerr << "alignof Clause : " << alignof(Minisat::Clause) << std::endl;
+  std::cerr << "alignof Clause*: " << alignof(Minisat::Clause*) << std::endl;
+  std::cerr << " sizeof Clause : " << sizeof(Minisat::Clause) << std::endl;
+  std::cerr << " sizeof Clause*: " << sizeof(Minisat::Clause*) << std::endl;
+
   // Clause* base_cl = side_premise;
   // Clause* inst_cl = main_premise;
 
@@ -188,33 +195,43 @@ void ProofOfConcept::test(Clause* side_premise, Clause* main_premise)
   using Minisat::Lit;
   for (auto const& v : alts) {
     // At least one must be true
-    Minisat::vec<Lit> cl;
+    Minisat::vec<Lit> ls;
     for (auto const& alt : v) {
-      cl.push(Lit(alt.b));
+      ls.push(Lit(alt.b));
     }
-    solver.addClause(cl);
+    solver.addClause(ls);
     // At most one must be true
-    for (size_t j1 = 0; j1 < v.size(); ++j1) {
-      for (size_t j2 = j1 + 1; j2 < v.size(); ++j2) {
-        auto b1 = v[j1].b;
-        auto b2 = v[j2].b;
-        ASS_NEQ(b1, b2);
-        solver.addBinary(~Lit(b1), ~Lit(b2));
-      }
+    if (ls.size() >= 2) {
+      solver.addConstraint_AtMostOne(ls);
     }
+    // for (size_t j1 = 0; j1 < v.size(); ++j1) {
+    //   for (size_t j2 = j1 + 1; j2 < v.size(); ++j2) {
+    //     auto b1 = v[j1].b;
+    //     auto b2 = v[j2].b;
+    //     ASS_NEQ(b1, b2);
+    //     solver.addBinary(~Lit(b1), ~Lit(b2));
+    //   }
+    // }
   }
 
   // Add constraints:
   // \Land_j AtMostOneOf(b_{1j}, ..., b_{ij})
   for (auto const& w : possible_base_vars) {
-    for (size_t i1 = 0; i1 < w.size(); ++i1) {
-      for (size_t i2 = i1 + 1; i2 < w.size(); ++i2) {
-        auto b1 = w[i1];
-        auto b2 = w[i2];
-        ASS_NEQ(b1, b2);
-        solver.addBinary(~Lit(b1), ~Lit(b2));
+    if (w.size() >= 2) {
+      Minisat::vec<Lit> ls;
+      for (auto const& b : w) {
+        ls.push(Lit(b));
       }
+      solver.addConstraint_AtMostOne(ls);
     }
+    // for (size_t i1 = 0; i1 < w.size(); ++i1) {
+    //   for (size_t i2 = i1 + 1; i2 < w.size(); ++i2) {
+    //     auto b1 = w[i1];
+    //     auto b2 = w[i2];
+    //     ASS_NEQ(b1, b2);
+    //     solver.addBinary(~Lit(b1), ~Lit(b2));
+    //   }
+    // }
   }
 
   std::cout << "ok before solving? " << solver.okay() << std::endl;

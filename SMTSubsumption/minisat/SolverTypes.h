@@ -84,6 +84,15 @@ const Lit lit_Error(var_Undef, true );  // }
 
 inline int toDimacs(Lit p) { return sign(p) ? -var(p) - 1 : var(p) + 1; }
 
+inline std::ostream& operator<<(std::ostream& o, Lit l)
+{
+  if (l.isNegative()) {
+    o << '~';
+  }
+  o << var(l);
+  return o;
+}
+
 
 //=================================================================================================
 // Clause -- a simple class for representing a clause:
@@ -94,10 +103,17 @@ class Clause {
     Lit     data[1];
 
     // NOTE: This constructor cannot be used directly (doesn't allocate enough memory).
-    Clause(bool learnt, const vec<Lit>& ps) {
+    Clause(bool learnt, const vec<Lit>& ps)
+    {
         size_learnt = (ps.size() << 1) | (int)learnt;
         for (int i = 0; i < ps.size(); i++) data[i] = ps[i];
-        if (learnt) activity() = 0; }
+        if (learnt) activity() = 0;
+    }
+
+    Clause(Clause&) = delete;
+    Clause(Clause&&) = delete;
+    Clause& operator=(Clause&) = delete;
+    Clause& operator=(Clause&&) = delete;
 
 public:
     // -- use this function instead:
@@ -107,13 +123,68 @@ public:
     bool      learnt      ()      const { return size_learnt & 1; }
     Lit       operator [] (int i) const { return data[i]; }
     Lit&      operator [] (int i)       { return data[i]; }
-    float&    activity    ()      const { return *((float*)&data[size()]); }
+    float&    activity    ()      const { return *((float*)&data[size()]); }  // TODO remove activity? since we are not doing any clause deletion
 };
-inline Clause* Clause_new(bool learnt, const vec<Lit>& ps) {
-    static_assert(sizeof(Lit)      == sizeof(uint), "unexpected size of Lit");
-    static_assert(sizeof(float)    == sizeof(uint), "unexpected size of float");
-    void*   mem = xmalloc<char>(sizeof(Clause) - sizeof(Lit) + sizeof(uint)*(ps.size() + (int)learnt));
-    return new (mem) Clause(learnt, ps); }
+
+inline Clause* Clause_new(bool learnt, const vec<Lit>& ps)
+{
+    static_assert(sizeof(Lit)   == sizeof(uint), "unexpected size of Lit");
+    static_assert(sizeof(float) == sizeof(uint), "unexpected size of float");
+    void* mem = xmalloc<char>(sizeof(Clause) - sizeof(Lit) + sizeof(uint)*(ps.size() + (int)learnt));
+    return new (mem) Clause(learnt, ps);
+}
+
+
+
+/// AtMostOne constraint
+class AtMostOne
+{
+  private:
+    int m_size;
+    Lit m_data[1];
+
+    // NOTE: This constructor cannot be used directly (doesn't allocate enough memory).
+    AtMostOne(vec<Lit> const& ls)
+      : m_size{ls.size()}
+    {
+      for (int i = 0; i < ls.size(); ++i) {
+        m_data[i] = ls[i];
+      }
+    }
+
+    AtMostOne(AtMostOne&) = delete;
+    AtMostOne(AtMostOne&&) = delete;
+    AtMostOne& operator=(AtMostOne&) = delete;
+    AtMostOne& operator=(AtMostOne&&) = delete;
+
+  public:
+    /// Create new AtMostOne constraint over the given literals.
+    /// The given vector should contain at least two literals,
+    /// and the variables of the given literals should be pairwise distinct.
+    static AtMostOne* from_literals(vec<Lit> const& ls)
+    {
+      assert(ls.size() >= 2);  // otherwise this constraint is somewhat useless
+      void* mem = xmalloc<char>(sizeof(AtMostOne) + sizeof(Lit)*(ls.size() - 1));
+      return new (mem) AtMostOne(ls);
+    }
+
+    int size() const
+    {
+      return m_size;
+    }
+
+    Lit operator[](int i) const
+    {
+      assert(0 <= i && i < m_size);
+      return m_data[i];
+    }
+
+    Lit& operator[](int i)
+    {
+      assert(0 <= i && i < m_size);
+      return m_data[i];
+    }
+};
 
 
 //=================================================================================================
@@ -137,11 +208,11 @@ class GClause {
   public:
     enum Tag : data_t
     {
-      Tag_Clause = 0b000,
-      Tag_Lit    = 0b001,
-      // Tag_AtMost = 0b011,
+      Tag_Clause    = 0b000,
+      Tag_Lit       = 0b001,
+      Tag_AtMostOne = 0b011,
 
-      Tag_Mask   = 0b111,
+      Tag_Mask      = 0b111,
     };
 
     Tag tag() const
@@ -187,8 +258,9 @@ class GClause {
     // Clauses
 
     explicit GClause(Clause* cl)
-      : data{reinterpret_cast<data_t>(cl)}
+      : data{reinterpret_cast<data_t>(cl) + Tag_Clause}
     {
+      assert((reinterpret_cast<data_t>(cl) & Tag_Mask) == 0);
       assert(isClause());
       assert(clause() == cl);
     }
@@ -200,8 +272,31 @@ class GClause {
 
     Clause* clause() const
     {
+      static_assert(Tag_Clause == 0, "Need to add mask if clause tag is changed to non-zero");
       assert(isClause());
-      return (Clause*)data;
+      return reinterpret_cast<Clause*>(data & ~Tag_Clause);  // TODO: check if that is optimized away
+    }
+
+
+    // AtMostOne
+
+    explicit GClause(AtMostOne* x)
+      : data{reinterpret_cast<data_t>(x) + Tag_AtMostOne}
+    {
+      assert((reinterpret_cast<data_t>(x) & Tag_Mask) == 0);
+      assert(isAtMostOne());
+      assert(atMostOne() == x);
+    }
+
+    bool isAtMostOne() const
+    {
+      return tag() == Tag_AtMostOne;
+    }
+
+    AtMostOne* atMostOne() const
+    {
+      assert(isAtMostOne());
+      return reinterpret_cast<AtMostOne*>(data & ~Tag_Mask);
     }
 };
 
