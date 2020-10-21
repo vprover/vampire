@@ -122,27 +122,93 @@ inline Clause* Clause_new(bool learnt, const vec<Lit>& ps) {
 
 // Either a pointer to a clause or a literal.
 class GClause {
-    // Discriminate on the lowest bit:
-    // - for pointer, the lowest bit is always 0 due to alignment
-    // - for Lit, we store 2*x + 1 to ensure the lowest bit is 1
-    void*   data;
-    GClause(void* d) : data(d) {}
-public:
-    friend GClause GClause_new(Lit p);
-    friend GClause GClause_new(Clause* c);
+  private:
+    using data_t = uintptr_t;
 
-    bool        isLit    () const { return ((uintp)data & 1) == 1; }
-    Lit         lit      () const { return toLit(((intp)data) >> 1); }
-    Clause*     clause   () const { return (Clause*)data; }
-    bool        operator == (GClause c) const { return data == c.data; }
-    bool        operator != (GClause c) const { return data != c.data; }
+    // We discriminate on the lowest bits of data.
+    // This works because pointers are word-aligned,
+    // which means the 3 lowest bits are always 0 (on 64-bit architectures),
+    // and thus can be used for additional information (cf. 'pointer tagging').
+    data_t data;
 
-    bool isNull() const { return data == nullptr; }
+    // TODO maybe we can do with 2-bit tags instead
+    static_assert(sizeof(void*) >= 8, "3-bit tags only work on 64-bit architectures");
+
+  public:
+    enum Tag : data_t
+    {
+      Tag_Clause = 0b000,
+      Tag_Lit    = 0b001,
+      // Tag_AtMost = 0b011,
+
+      Tag_Mask   = 0b111,
+    };
+
+    Tag tag() const
+    {
+      return static_cast<Tag>(data & Tag_Mask);
+    }
+
+    bool operator == (GClause c) const { return data == c.data; }
+    bool operator != (GClause c) const { return data != c.data; }
+
+    bool isNull() const { return data == 0; }
+
+    explicit GClause(nullptr_t)
+      : data{0}
+    { }
+
+
+    // Literals
+
+    explicit GClause(Lit l)
+      : data{(static_cast<data_t>(index(l)) << 3) + Tag_Lit}
+    {
+      static_assert(
+        (std::numeric_limits<data_t>::max() >> 3) > std::numeric_limits<decltype(index(l))>::max(),
+        "data_t is not large enough to hold all Lit values");
+      assert(index(l) >= 0);
+      assert(isLit());
+      assert(lit() == l);
+    }
+
+    bool isLit() const
+    {
+      return tag() == Tag_Lit;
+    }
+
+    Lit lit() const
+    {
+      assert(isLit());
+      return toLit(data >> 3);
+    }
+
+
+    // Clauses
+
+    explicit GClause(Clause* cl)
+      : data{reinterpret_cast<data_t>(cl)}
+    {
+      assert(isClause());
+      assert(clause() == cl);
+    }
+
+    bool isClause() const
+    {
+      return tag() == Tag_Clause;
+    }
+
+    Clause* clause() const
+    {
+      assert(isClause());
+      return (Clause*)data;
+    }
 };
-inline GClause GClause_new(Lit p)     { return GClause((void*)(((intp)index(p) << 1) + 1)); }
-inline GClause GClause_new(Clause* c) { assert(((uintp)c & 1) == 0); return GClause((void*)c); }
 
-#define GClause_NULL GClause_new((Clause*)NULL)
+inline GClause GClause_new(Lit p)     { return GClause(p); }
+inline GClause GClause_new(Clause* c) { return GClause(c); }
+
+#define GClause_NULL GClause(nullptr)
 
 
 } }
