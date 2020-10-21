@@ -52,20 +52,20 @@ void ProofOfConcept::test(Clause* side_premise, Clause* main_premise)
   CALL("ProofOfConcept::test");
 
   std::cerr << "SMTSubsumption:\n";
-  std::cerr << "Side premise: " << side_premise->toString() << std::endl;
-  std::cerr << "Main premise: " << main_premise->toString() << std::endl;
+  std::cerr << "Side premise (base):     " << side_premise->toString() << std::endl;
+  std::cerr << "Main premise (instance): " << main_premise->toString() << std::endl;
+
+  // Clause* base_cl = side_premise;
+  // Clause* inst_cl = main_premise;
 
   Minisat::Solver solver;
   solver.verbosity = 2;
-  // std::cout << "first var: " << solver.newVar() << std::endl;
-
 
   // Matching for subsumption checks whether
   //
   //      side_premise\theta \subseteq main_premise
   //
   // holds.
-
 
   LiteralMiniIndex const main_premise_mini_index(main_premise);
 
@@ -105,20 +105,31 @@ void ProofOfConcept::test(Clause* side_premise, Clause* main_premise)
 
       MapBinder binder;
 
+      binder.reset();
       if (base_lit->arity() == 0 || MatchingUtils::matchArgs(base_lit, inst_lit, binder)) {
+        Minisat::Var b = solver.newVar();
+
         if (!base_lit_alts.empty()) {
           std::cerr << " | ";
         }
-        std::cerr << std::left << std::setw(20) << inst_lit->toString();
+        std::cerr << std::right << std::setw(20) << inst_lit->toString() << " [b_" << b << "]";
 
-        std::cerr << "binder: " << binder << std::endl;
-        // TODO: from binder, create the substitution theory literals
-        // WE DO NOT need separate var for boolean skeleton, attach directly to "b"
-        auto atom = SubstitutionAtom::from_binder(binder);
-        std::cerr << "atom: " << atom << std::endl;
+        if (binder.bindings().size() > 0) {
+          ASS(!base_lit->ground());
+          auto atom = SubstitutionAtom::from_binder(binder);
+          // std::cerr << "atom: " << atom << std::endl;
+          stc.register_atom(b, std::move(atom));
+        } else {
+          ASS(base_lit->ground());
+          ASS_EQ(base_lit, inst_lit);
+          // TODO: in this case, at least for subsumption, we should skip this base_lit and this inst_list.
+          // probably best to have a separate loop first that deals with ground literals? since those are only pointer equality checks.
+          //
+          // For now, just register an empty substitution atom.
+          auto atom = SubstitutionAtom::from_binder(binder);
+          stc.register_atom(b, std::move(atom));
+        }
 
-        Minisat::Var b = solver.newVar();
-        stc.register_atom(b, std::move(atom));
         base_lit_alts.push_back({
           .lit = inst_lit,
           .j = j,
@@ -138,13 +149,11 @@ void ProofOfConcept::test(Clause* side_premise, Clause* main_premise)
           }
           std::cerr << "REV: " << std::left << std::setw(20) << inst_lit->toString();
 
-          // TODO: from binder, create the substitution theory literals
-          // ASSERTION_VIOLATION;  // TODO can't continue until we implement this properly
-        auto atom = SubstitutionAtom::from_binder(binder);
-        std::cerr << "atom: " << atom << std::endl;
+          auto atom = SubstitutionAtom::from_binder(binder);
+          // std::cerr << "atom: " << atom << std::endl;
 
-        Minisat::Var b = solver.newVar();
-        stc.register_atom(b, std::move(atom));
+          Minisat::Var b = solver.newVar();
+          stc.register_atom(b, std::move(atom));
 
           // Minisat::Var b = solver.newVar();
           base_lit_alts.push_back({
@@ -163,7 +172,6 @@ void ProofOfConcept::test(Clause* side_premise, Clause* main_premise)
     alts.push_back(std::move(base_lit_alts));
   }
 
-  // SubstitutionTheory st{std::move(stc)};
   solver.setSubstitutionTheory(std::move(stc));
 
   // Pre-matching done
@@ -174,71 +182,46 @@ void ProofOfConcept::test(Clause* side_premise, Clause* main_premise)
     }
   }
 
+  // TODO: for these we can add special constraints to MiniSAT! see paper for idea
   // Add constraints:
   // \Land_i ExactlyOneOf(b_{i1}, ..., b_{ij})
   using Minisat::Lit;
   for (auto const& v : alts) {
-    std::cerr << "blah" << std::endl;
     // At least one must be true
     Minisat::vec<Lit> cl;
     for (auto const& alt : v) {
       cl.push(Lit(alt.b));
     }
-    std::cerr << "blah2" << std::endl;
     solver.addClause(cl);
-    std::cerr << "blah3" << std::endl;
     // At most one must be true
     for (size_t j1 = 0; j1 < v.size(); ++j1) {
       for (size_t j2 = j1 + 1; j2 < v.size(); ++j2) {
         auto b1 = v[j1].b;
         auto b2 = v[j2].b;
         ASS_NEQ(b1, b2);
-        using Minisat::Lit;
         solver.addBinary(~Lit(b1), ~Lit(b2));
       }
     }
-    // for (auto const& alt1 : v) {
-    //   for (auto const& alt2 : v) {
-    //     if (alt1.b != alt2.b) {
-    //       solver.addBinary(Minisat::Lit(alt1.b, true), Minisat::Lit(alt2.b, true));
-    //     }
-    //   }
-    // }
   }
 
   // Add constraints:
   // \Land_j AtMostOneOf(b_{1j}, ..., b_{ij})
   for (auto const& w : possible_base_vars) {
-    std::cerr << "blah4" << std::endl;
     for (size_t i1 = 0; i1 < w.size(); ++i1) {
       for (size_t i2 = i1 + 1; i2 < w.size(); ++i2) {
         auto b1 = w[i1];
         auto b2 = w[i2];
         ASS_NEQ(b1, b2);
-        using Minisat::Lit;
         solver.addBinary(~Lit(b1), ~Lit(b2));
       }
     }
   }
 
-
-
-
-
-  std::cerr << "gogogo" << std::endl;
-  Minisat::Var x = solver.newVar();
-  Minisat::Var y = solver.newVar();
-  std::cout << "x-index: " << x << std::endl;
-  std::cout << "y-index: " << y << std::endl;
-  // solver.addBinary(Minisat::Lit{x,true},  Minisat::Lit{y,true});
-  // solver.addBinary(Minisat::Lit{x,false}, Minisat::Lit{y,true});
-  // solver.addBinary(Minisat::Lit{x,true},  Minisat::Lit{y,false});
-  // solver.addBinary(Minisat::Lit{x,false}, Minisat::Lit{y,false});
+  std::cout << "ok before solving? " << solver.okay() << std::endl;
   std::cerr << "solving" << std::endl;
   bool res = solver.solve({});
   std::cout << "Result: " << res << std::endl;
-
-
+  std::cout << "ok: " << solver.okay() << std::endl;
 }
 
 

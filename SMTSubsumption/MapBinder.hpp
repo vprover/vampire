@@ -19,6 +19,7 @@ using namespace Kernel;
 
 /**
  * This class implements the Binder interface as described in Kernel/Matcher.hpp.
+ * Does not support special variables.
  */
 class MapBinder
 {

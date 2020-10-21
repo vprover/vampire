@@ -28,7 +28,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 namespace SMTSubsumption { namespace Minisat {
 
-// Redfine if you want output to go somewhere else:
+// Redefine if you want output to go somewhere else:
 #define reportf(format, args...) ( printf(format , ## args), fflush(stdout) )
 
 
@@ -45,7 +45,7 @@ struct SolverStats {
 
 
 struct SearchParams {
-    double  var_decay, clause_decay, random_var_freq;    // (reasonable values are: 0.95, 0.999, 0.02)    
+    double  var_decay, clause_decay, random_var_freq;    // (reasonable values are: 0.95, 0.999, 0.02)
     SearchParams(double v = 1, double c = 1, double r = 0) : var_decay(v), clause_decay(c), random_var_freq(r) { }
 };
 
