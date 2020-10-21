@@ -33,6 +33,7 @@ bool removeWatch(vec<GClause>& ws, GClause elem)    // Pre-condition: 'elem' mus
     if (ws.size() == 0) return false;     // (skip lists that are already cleared)
     int j = 0;
     for (; ws[j] != elem  ; j++) assert(j < ws.size());
+    assert(ws[j] == elem);
     for (; j < ws.size()-1; j++) ws[j] = ws[j+1];
     ws.pop();
     return true;
@@ -46,18 +47,18 @@ bool removeWatch(vec<GClause>& ws, GClause elem)    // Pre-condition: 'elem' mus
 /*_________________________________________________________________________________________________
 |
 |  newClause : (ps : const vec<Lit>&) (learnt : bool)  ->  [void]
-|  
+|
 |  Description:
 |    Allocate and add a new clause to the SAT solvers clause database. If a conflict is detected,
 |    the 'ok' flag is cleared and the solver is in an unusable state (must be disposed).
-|  
+|
 |  Input:
 |    ps     - The new clause as a vector of literals.
 |    learnt - Is the clause a learnt clause? For learnt clauses, 'ps[0]' is assumed to be the
 |             asserting literal. An appropriate 'enqueue()' operation will be performed on this
 |             literal. One of the watches will always be on this literal, the other will be set to
 |             the literal with the highest decision level.
-|  
+|
 |  Effect:
 |    Activity heuristics are updated.
 |________________________________________________________________________________________________@*/
@@ -65,8 +66,14 @@ void Solver::newClause(const vec<Lit>& ps_, bool learnt)
 {
     if (!ok) return;
 
-    vec<Lit>    qs;
-    if (!learnt){
+    std::cerr << "newClause:";
+    for (Lit l : ps_) {
+      std::cerr << " " << (l.isNegative() ? "~" : "") << var(l);
+    }
+    std::cerr << std::endl;
+
+    vec<Lit> qs;  // TODO: could use class member to reduce allocation overhead
+    if (!learnt) {
         assert(decisionLevel() == 0);
         ps_.copyTo(qs);             // Make a copy of the input vector.
 
@@ -74,15 +81,17 @@ void Solver::newClause(const vec<Lit>& ps_, bool learnt)
         sortUnique(qs);
 
         // Check if clause is satisfied:
-        for (int i = 0; i < qs.size()-1; i++){
+        for (int i = 0; i < qs.size()-1; i++) {
             if (qs[i] == ~qs[i+1])
-                return; }
-        for (int i = 0; i < qs.size(); i++){
+                return;
+        }
+        for (int i = 0; i < qs.size(); i++) {
             if (value(qs[i]) == l_True)
-                return; }
+                return;
+        }
 
         // Remove false literals:
-        int     i, j;
+        int i, j;
         for (i = j = 0; i < qs.size(); i++)
             if (value(qs[i]) != l_False)
                 qs[j++] = qs[i];
@@ -90,38 +99,41 @@ void Solver::newClause(const vec<Lit>& ps_, bool learnt)
     }
     const vec<Lit>& ps = learnt ? ps_ : qs;     // 'ps' is now the (possibly) reduced vector of literals.
 
-    if (ps.size() == 0){
+    if (ps.size() == 0) {
         ok = false;
-
-    }else if (ps.size() == 1){
+    }
+    else if (ps.size() == 1) {
         // NOTE: If enqueue takes place at root level, the assignment will be lost in incremental use (it doesn't seem to hurt much though).
         if (!enqueue(ps[0]))
             ok = false;
-
-    }else if (ps.size() == 2){
+    }
+    else if (ps.size() == 2) {
         // Create special binary clause watch:
         watches[index(~ps[0])].push(GClause_new(ps[1]));
         watches[index(~ps[1])].push(GClause_new(ps[0]));
 
-        if (learnt){
-            check(enqueue(ps[0], GClause_new(~ps[1])));
+        if (learnt) {
+            check(enqueue(ps[0], GClause_new(~ps[1])));   // TODO why? because learnt clause is unit under current assignment; and the remaining literal is always the first in learned clauses. see also doc comment on this method...
             stats.learnts_literals += ps.size();
-        }else
+        } else {
             stats.clauses_literals += ps.size();
+        }
         n_bin_clauses++;
-
-    }else{
+    }
+    else {
         // Allocate clause:
-        Clause* c   = Clause_new(learnt, ps);
+        Clause* c = Clause_new(learnt, ps);
 
-        if (learnt){
+        if (learnt) {
             // Put the second watch on the literal with highest decision level:
-            int     max_i = 1;
             int     max   = level[var(ps[1])];
-            for (int i = 2; i < ps.size(); i++)
-                if (level[var(ps[i])] > max)
-                    max   = level[var(ps[i])],
+            int     max_i = 1;
+            for (int i = 2; i < ps.size(); i++) {
+                if (level[var(ps[i])] > max) {
+                    max   = level[var(ps[i])];
                     max_i = i;
+                }
+            }
             (*c)[1]     = ps[max_i];
             (*c)[max_i] = ps[1];
 
@@ -130,7 +142,7 @@ void Solver::newClause(const vec<Lit>& ps_, bool learnt)
             check(enqueue((*c)[0], GClause_new(c)));
             learnts.push(c);
             stats.learnts_literals += c->size();
-        }else{
+        } else {
             // Store clause:
             clauses.push(c);
             stats.clauses_literals += c->size();
@@ -142,17 +154,19 @@ void Solver::newClause(const vec<Lit>& ps_, bool learnt)
 }
 
 
-// Disposes a clauses and removes it from watcher lists. NOTE! Low-level; does NOT change the 'clauses' and 'learnts' vector.
+// Disposes a clauses and removes it from watcher lists.
+// NOTE! Low-level; does NOT change the 'clauses' and 'learnts' vector.
 //
 void Solver::remove(Clause* c, bool just_dealloc)
 {
-    if (!just_dealloc){
-        if (c->size() == 2)
-            removeWatch(watches[index(~(*c)[0])], GClause_new((*c)[1])),
+    if (!just_dealloc) {
+        if (c->size() == 2) {
+            removeWatch(watches[index(~(*c)[0])], GClause_new((*c)[1]));
             removeWatch(watches[index(~(*c)[1])], GClause_new((*c)[0]));
-        else
-            removeWatch(watches[index(~(*c)[0])], GClause_new(c)),
+        } else {
+            removeWatch(watches[index(~(*c)[0])], GClause_new(c));
             removeWatch(watches[index(~(*c)[1])], GClause_new(c));
+        }
     }
 
     if (c->learnt()) stats.learnts_literals -= c->size();
@@ -169,7 +183,7 @@ void Solver::remove(Clause* c, bool just_dealloc)
 bool Solver::simplify(Clause* c) const
 {
     assert(decisionLevel() == 0);
-    for (int i = 0; i < c->size(); i++){
+    for (int i = 0; i < c->size(); i++) {
         if (value((*c)[i]) == l_True)
             return true;
     }
@@ -184,7 +198,8 @@ bool Solver::simplify(Clause* c) const
 // Creates a new SAT variable in the solver. If 'decision_var' is cleared, variable will not be
 // used as a decision variable (NOTE! This has effects on the meaning of a SATISFIABLE result).
 //
-Var Solver::newVar() {
+Var Solver::newVar()
+{
     int     index;
     index = nVars();
     watches     .push();          // (list for positive literal)
@@ -195,26 +210,34 @@ Var Solver::newVar() {
     activity    .push(0);
     order       .newVar();
     analyze_seen.push(0);
-    return index; }
+    return index;
+}
 
 
 // Returns FALSE if immediate conflict.
-bool Solver::assume(Lit p) {
+bool Solver::assume(Lit p)
+{
     trail_lim.push(trail.size());
-    return enqueue(p); }
+    return enqueue(p);
+}
 
 
 // Revert to the state at given level.
-void Solver::cancelUntil(int level) {
-    if (decisionLevel() > level){
-        for (int c = trail.size()-1; c >= trail_lim[level]; c--){
+void Solver::cancelUntil(int level)
+{
+    if (decisionLevel() > level) {
+        for (int c = trail.size()-1; c >= trail_lim[level]; c--) {
             Var     x  = var(trail[c]);
             assigns[x] = toInt(l_Undef);
             reason [x] = GClause_NULL;
-            order.undo(x); }
+            order.undo(x);
+        }
         trail.shrink(trail.size() - trail_lim[level]);
         trail_lim.shrink(trail_lim.size() - level);
-        qhead = trail.size(); } }
+        qhead = trail.size();
+        // subst_theory.backjump(level);  // TODO do we want to do this before or after backjumping in the solver?
+    }
+}
 
 
 //=================================================================================================
@@ -224,48 +247,63 @@ void Solver::cancelUntil(int level) {
 /*_________________________________________________________________________________________________
 |
 |  analyze : (confl : Clause*) (out_learnt : vec<Lit>&) (out_btlevel : int&)  ->  [void]
-|  
+|
 |  Description:
 |    Analyze conflict and produce a reason clause.
-|  
+|
 |    Pre-conditions:
 |      * 'out_learnt' is assumed to be cleared.
 |      * Current decision level must be greater than root level.
-|  
+|
 |    Post-conditions:
 |      * 'out_learnt[0]' is the asserting literal at level 'out_btlevel'.
-|  
+|
 |  Effect:
 |    Will undo part of the trail, upto but not beyond the assumption of the current decision level.
 |________________________________________________________________________________________________@*/
 void Solver::analyze(Clause* _confl, vec<Lit>& out_learnt, int& out_btlevel)
 {
+    assert(out_learnt.size() == 0);
+    assert(decisionLevel() > root_level);
+    for (int i = 0; i < analyze_seen.size(); ++i) {
+      assert(analyze_seen[i] == 0);
+    }
+    assert(std::all_of(analyze_seen.begin(), analyze_seen.end(), [](char c){ return c == 0; }));
+
     GClause confl = GClause_new(_confl);
     vec<char>&     seen  = analyze_seen;
     int            pathC = 0;
-    Lit            p     = lit_Undef;
+    Lit            p     = lit_Undef;  // undefined in the first iteration
 
     // Generate conflict clause:
     //
     out_learnt.push();      // (leave room for the asserting literal)
     out_btlevel = 0;
     int index = trail.size()-1;
-    do{
+    do {
         assert(confl != GClause_NULL);          // (otherwise should be UIP)
 
-        Clause& c = confl.isLit() ? ((*analyze_tmpbin)[1] = confl.lit(), *analyze_tmpbin)
-                                  : *confl.clause();
+        Clause& c = *[&]() {
+            if (confl.isLit()) {
+                assert(p != lit_Undef);  // otherwise, we would access analyze_tmpbin[0] in the loop below
+                (*analyze_tmpbin)[1] = confl.lit();
+                return analyze_tmpbin;
+            } else {
+                return confl.clause();
+            }
+        }();
+
         if (c.learnt())
             claBumpActivity(&c);
 
-        for (int j = (p == lit_Undef) ? 0 : 1; j < c.size(); j++){
+        for (int j = (p == lit_Undef) ? 0 : 1; j < c.size(); j++) {
             Lit q = c[j];
-            if (!seen[var(q)] && level[var(q)] > 0){
+            if (!seen[var(q)] && level[var(q)] > 0) {
                 varBumpActivity(q);
                 seen[var(q)] = 1;
-                if (level[var(q)] == decisionLevel())
+                if (level[var(q)] == decisionLevel()) {
                     pathC++;
-                else{
+                } else {
                     out_learnt.push(q);
                     out_btlevel = max(out_btlevel, level[var(q)]);
                 }
@@ -276,17 +314,18 @@ void Solver::analyze(Clause* _confl, vec<Lit>& out_learnt, int& out_btlevel)
         while (!seen[var(trail[index--])]);
         p     = trail[index+1];
         confl = reason[var(p)];
+        // NOTE: first literal of reason is ignored (it's the one that has been propagated)
+        if (!confl.isLit()) { assert( (*confl.clause())[0] == p ); }
         seen[var(p)] = 0;
         pathC--;
-
-    }while (pathC > 0);
+    } while (pathC > 0);
     out_learnt[0] = ~p;
 
-    int     i, j;
-    if (expensive_ccmin){
+    int i, j;
+    if (expensive_ccmin) {  // TODO decide if we want to keep this
         // Simplify conflict clause (a lot):
         //
-        uint    min_level = 0;
+        uint min_level = 0;
         for (i = 1; i < out_learnt.size(); i++)
             min_level |= 1 << (level[var(out_learnt[i])] & 31);         // (maintain an abstraction of levels involved in conflict)
 
@@ -294,24 +333,26 @@ void Solver::analyze(Clause* _confl, vec<Lit>& out_learnt, int& out_btlevel)
         for (i = j = 1; i < out_learnt.size(); i++)
             if (reason[var(out_learnt[i])] == GClause_NULL || !analyze_removable(out_learnt[i], min_level))
                 out_learnt[j++] = out_learnt[i];
-    }else{
+    } else {
         // Simplify conflict clause (a little):
         //
         out_learnt.copyTo(analyze_toclear);
         for (i = j = 1; i < out_learnt.size(); i++){
             GClause r = reason[var(out_learnt[i])];
-            if (r == GClause_NULL)
+            if (r == GClause_NULL) {
                 out_learnt[j++] = out_learnt[i];
-            else if (r.isLit()){
+            } else if (r.isLit()) {
                 Lit q = r.lit();
                 if (!seen[var(q)] && level[var(q)] != 0)
                     out_learnt[j++] = out_learnt[i];
-            }else{
+            } else {
                 Clause& c = *r.clause();
-                for (int k = 1; k < c.size(); k++)
-                    if (!seen[var(c[k])] && level[var(c[k])] != 0){
+                for (int k = 1; k < c.size(); k++) {
+                    if (!seen[var(c[k])] && level[var(c[k])] != 0) {
                         out_learnt[j++] = out_learnt[i];
-                        break; }
+                        break;
+                    }
+                }
             }
         }
     }
@@ -360,13 +401,14 @@ bool Solver::analyze_removable(Lit p, uint min_level)
 /*_________________________________________________________________________________________________
 |
 |  analyzeFinal : (confl : Clause*) (skip_first : bool)  ->  [void]
-|  
+|
 |  Description:
 |    Specialized analysis procedure to express the final conflict in terms of assumptions.
 |    'root_level' is allowed to point beyond end of trace (useful if called after conflict while
 |    making assumptions). If 'skip_first' is TRUE, the first literal of 'confl' is  ignored (needed
 |    if conflict arose before search even started).
 |________________________________________________________________________________________________@*/
+// TODO remove this method?
 void Solver::analyzeFinal(Clause* confl, bool skip_first)
 {
     // -- NOTE! This code is relatively untested. Please report bugs!
@@ -409,24 +451,24 @@ void Solver::analyzeFinal(Clause* confl, bool skip_first)
 /*_________________________________________________________________________________________________
 |
 |  enqueue : (p : Lit) (from : Clause*)  ->  [bool]
-|  
+|
 |  Description:
 |    Puts a new fact on the propagation queue as well as immediately updating the variable's value.
 |    Should a conflict arise, FALSE is returned.
-|  
+|
 |  Input:
 |    p    - The fact to enqueue
 |    from - [Optional] Fact propagated from this (currently) unit clause. Stored in 'reason[]'.
 |           Default value is NULL (no reason).
-|  
+|
 |  Output:
 |    TRUE if fact was enqueued without conflict, FALSE otherwise.
 |________________________________________________________________________________________________@*/
 bool Solver::enqueue(Lit p, GClause from)
 {
-    if (value(p) != l_Undef)
+    if (value(p) != l_Undef) {
         return value(p) != l_False;
-    else{
+    } else {
         assigns[var(p)] = toInt(lbool(!sign(p)));
         level  [var(p)] = decisionLevel();
         reason [var(p)] = from;
@@ -439,24 +481,22 @@ bool Solver::enqueue(Lit p, GClause from)
 /*_________________________________________________________________________________________________
 |
 |  propagate : [void]  ->  [Clause*]
-|  
+|
 |  Description:
 |    Propagates all enqueued facts. If a conflict arises, the conflicting clause is returned,
 |    otherwise NULL.
-|  
+|
 |    Post-conditions:
 |      * the propagation queue is empty, even if there was a conflict.
 |________________________________________________________________________________________________@*/
 Clause* Solver::propagate()
 {
     Clause* confl = NULL;
-    while (qhead < trail.size()){
+    while (qhead < trail.size()) {
         stats.propagations++;
         simpDB_props--;
 
-        Lit            p   = trail[qhead++];     // 'p' is enqueued fact to propagate.
-        vec<GClause>&  ws  = watches[index(p)];
-        GClause*       i,* j, *end;
+        Lit p = trail[qhead++];     // 'p' is enqueued fact to propagate.
 
         // Theory propagation
         if (p.isPositive()) {
@@ -468,22 +508,34 @@ Clause* Solver::propagate()
           });
         }
 
-        for (i = j = (GClause*)ws, end = i + ws.size();  i != end;){
-            if (i->isLit()){
-                if (!enqueue(i->lit(), GClause_new(p))){
-                    if (decisionLevel() == 0)
+        vec<GClause>& ws = watches[index(p)];
+        GClause* i = ws.begin();
+        GClause* j = ws.begin();
+        GClause* end = ws.end();
+        while (i != end) {
+            if (i->isLit()) {
+                if (!enqueue(i->lit(), GClause_new(p))) {
+                    if (decisionLevel() == 0) {
                         ok = false;
+                    }
                     confl = propagate_tmpbin;
                     (*confl)[1] = ~p;
                     (*confl)[0] = i->lit();
 
                     qhead = trail.size();
                     // Copy the remaining watches:
-                    while (i < end)
-                        *j++ = *i++;
-                }else
-                    *j++ = *i++;
-            }else{
+                    while (i != end)  // TODO: can skip loop if i==j. (should check if that helps though)
+                        *(j++) = *(i++);
+                    assert(i == end);
+                } else {
+                    *(j++) = *(i++);
+                    // TODO: if the watcher is a literal, this means it comes from a binary clause.
+                    // this binary clause does not exist anywhere else.
+                    // so how do we get it back after backjumping if we delete it here from the watchlist?
+                    // OH, we do not delete it. we only delete clauses from the watch list.
+                    // note that i,j are always incremented in lock-step in this part.
+                }
+            } else {
                 Clause& c = *i->clause(); i++;
                 assert(c.size() > 2);
                 // Make sure the false literal is data[1]:
@@ -514,8 +566,9 @@ Clause* Solver::propagate()
                         confl = &c;
                         qhead = trail.size();
                         // Copy the remaining watches:
-                        while (i < end)
+                        while (i != end)
                             *j++ = *i++;
+                        assert(i == end);
                     }
                   FoundWatch:;
                 }
@@ -531,7 +584,7 @@ Clause* Solver::propagate()
 /*_________________________________________________________________________________________________
 |
 |  reduceDB : ()  ->  [void]
-|  
+|
 |  Description:
 |    Remove half of the learnt clauses, minus the clauses locked by the current assignment. Locked
 |    clauses are clauses that are reason to some assignment. Binary clauses are never removed.
@@ -562,7 +615,7 @@ void Solver::reduceDB()
 /*_________________________________________________________________________________________________
 |
 |  simplifyDB : [void]  ->  [bool]
-|  
+|
 |  Description:
 |    Simplify the clause database according to the current top-level assigment. Currently, the only
 |    thing done here is the removal of satisfied clauses, but more things can be put here.
@@ -612,12 +665,12 @@ void Solver::simplifyDB()
 /*_________________________________________________________________________________________________
 |
 |  search : (nof_conflicts : int) (nof_learnts : int) (params : const SearchParams&)  ->  [lbool]
-|  
+|
 |  Description:
 |    Search for a model the specified number of conflicts, keeping the number of learnt clauses
 |    below the provided limit. NOTE! Use negative value for 'nof_conflicts' or 'nof_learnts' to
 |    indicate infinity.
-|  
+|
 |  Output:
 |    'l_True' if a partial assigment that is consistent with respect to the clauseset is found. If
 |    all variables are decision variables, this means that the clause set is satisfiable. 'l_False'
@@ -634,7 +687,7 @@ lbool Solver::search(int nof_conflicts, int nof_learnts, const SearchParams& par
     cla_decay = 1 / params.clause_decay;
     model.clear();
 
-    for (;;){
+    for (;;) {
         Clause* confl = propagate();
         if (confl != NULL){
             // CONFLICT
@@ -674,7 +727,7 @@ lbool Solver::search(int nof_conflicts, int nof_learnts, const SearchParams& par
             stats.decisions++;
             Var next = order.select(params.random_var_freq);
 
-            if (next == var_Undef){
+            if (next == var_Undef) {
                 // Model found:
                 model.growTo(nVars());
                 for (int i = 0; i < nVars(); i++) model[i] = value(i);
@@ -724,7 +777,7 @@ void Solver::claRescaleActivity()
 /*_________________________________________________________________________________________________
 |
 |  solve : (assumps : const vec<Lit>&)  ->  [bool]
-|  
+|
 |  Description:
 |    Top-level solve. If using assumptions (non-empty 'assumps' vector), you must call
 |    'simplifyDB()' first to see that no top-level conflict is present (which would put the solver
@@ -785,8 +838,11 @@ bool Solver::solve(const vec<Lit>& assumps)
         nof_conflicts *= 1.5;
         nof_learnts   *= 1.1;
     }
-    if (verbosity >= 1)
-        reportf("==============================================================================\n");
+    if (verbosity >= 1) {
+      reportf("------------------------------------------------------------------------------\n");
+      reportf("| %9d | %7d %8d | %7d %7d %8d %7.1f | %6.3f %% |\n", (int)stats.conflicts, nClauses(), (int)stats.clauses_literals, (int)nof_learnts, nLearnts(), (int)stats.learnts_literals, (double)stats.learnts_literals/nLearnts(), progress_estimate*100);
+      reportf("==============================================================================\n");
+    }
 
     cancelUntil(0);
     return status == l_True;

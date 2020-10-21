@@ -76,6 +76,7 @@ inline Lit  toLit (int i) { Lit p; p.x = i; return p; }  // Inverse of 'index()'
 inline Lit  unsign(Lit p) { Lit q; q.x = p.x & ~1; return q; }
 inline Lit  id    (Lit p, bool sgn) { Lit q; q.x = p.x ^ (int)sgn; return q; }
 inline bool operator == (Lit p, Lit q) { return index(p) == index(q); }
+inline bool operator != (Lit p, Lit q) { return !(p == q); }
 inline bool operator <  (Lit p, Lit q) { return index(p)  < index(q); }  // '<' guarantees that p, ~p are adjacent in the ordering.
 
 const Lit lit_Undef(var_Undef, false);  // }- Useful special constants.

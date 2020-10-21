@@ -26,6 +26,13 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include "SMTSubsumption/SubstitutionTheory.hpp"
 
 
+// TODO: add a #define MINISAT_STATS or similar, by default only enable in debug mode. No need to collect stats here in release mode.
+// By default, collect stats only in debug mode
+#ifndef MINISAT_STATS
+#   define MINISAT_STATS VDEBUG
+#endif
+
+
 namespace SMTSubsumption { namespace Minisat {
 
 // Redefine if you want output to go somewhere else:
@@ -36,12 +43,14 @@ namespace SMTSubsumption { namespace Minisat {
 // Solver -- the main class:
 
 
+#if MINISAT_STATS
 struct SolverStats {
     int64   starts, decisions, propagations, conflicts;
     int64   clauses_literals, learnts_literals, max_literals, tot_literals;
     SolverStats() : starts(0), decisions(0), propagations(0), conflicts(0)
       , clauses_literals(0), learnts_literals(0), max_literals(0), tot_literals(0) { }
 };
+#endif
 
 
 struct SearchParams {
@@ -75,8 +84,8 @@ protected:
     vec<int>            level;            // 'level[var]' is the decision level at which assignment was made.
     int                 root_level;       // Level of first proper decision.
     int                 qhead;            // Head of queue (as index into the trail -- no more explicit propagation queue in MiniSat).
-    int                 simpDB_assigns;   // Number of top-level assignments since last execution of 'simplifyDB()'.
-    int64               simpDB_props;     // Remaining number of propagations that must be made before next execution of 'simplifyDB()'.
+    int                 simpDB_assigns;   // Number of top-level assignments since last execution of 'simplifyDB()'.  TODO: remove?
+    int64               simpDB_props;     // Remaining number of propagations that must be made before next execution of 'simplifyDB()'.  TODO: remove?
 
     // Temporaries (to reduce allocation overhead). Each variable is prefixed by the method in which is used:
     //
@@ -96,24 +105,26 @@ protected:
     //
     bool        assume           (Lit p);
     void        cancelUntil      (int level);
-    void        record           (const vec<Lit>& clause);
+    void        record           (const vec<Lit>& clause);   // TODO: remove?
 
     void        analyze          (Clause* confl, vec<Lit>& out_learnt, int& out_btlevel); // (bt = backtrack)
     bool        analyze_removable(Lit p, uint min_level);                                 // (helper method for 'analyze()')
     void        analyzeFinal     (Clause* confl,  bool skip_first = false);
     bool        enqueue          (Lit fact, GClause from = GClause_new((Clause*)NULL));
     Clause*     propagate        ();
-    void        reduceDB         ();
+    void        reduceDB         ();   // TODO: remove?
     Lit         pickBranchLit    (const SearchParams& params);
     lbool       search           (int nof_conflicts, int nof_learnts, const SearchParams& params);
-    double      progressEstimate ();
+    double      progressEstimate ();   // TODO: remove?
 
     // Activity:
     //
-    void     varBumpActivity(Lit p) {
+    void varBumpActivity(Lit p)
+    {
         if (var_decay < 0) return;     // (negative decay means static variable order -- don't bump)
         if ( (activity[var(p)] += var_inc) > 1e100 ) varRescaleActivity();
-        order.update(var(p)); }
+        order.update(var(p));
+    }
     void     varDecayActivity  () { if (var_decay >= 0) var_inc *= var_decay; }
     void     varRescaleActivity();
     void     claDecayActivity  () { cla_inc *= cla_decay; }
@@ -154,14 +165,16 @@ public:
                 addTernary_tmp.growTo(3);
              }
 
-   void setSubstitutionTheory(SMTSubsumption::SubstitutionTheoryConfiguration&& st_config)
-   {
-     subst_theory = SMTSubsumption::SubstitutionTheory(std::move(st_config));
-   }
+    void setSubstitutionTheory(SMTSubsumption::SubstitutionTheoryConfiguration&& st_config)
+    {
+      subst_theory = SMTSubsumption::SubstitutionTheory(std::move(st_config));
+    }
 
-   ~Solver() {
-       for (int i = 0; i < learnts.size(); i++) remove(learnts[i], true);
-       for (int i = 0; i < clauses.size(); i++) if (clauses[i] != NULL) remove(clauses[i], true); }
+    ~Solver()
+    {
+      for (int i = 0; i < learnts.size(); i++) remove(learnts[i], true);
+      for (int i = 0; i < clauses.size(); i++) if (clauses[i] != NULL) remove(clauses[i], true);
+    }
 
     // Helpers: (semi-internal)
     //
@@ -208,8 +221,8 @@ public:
 // Debug:
 
 
-#define L_LIT    "%sx%d"
-#define L_lit(p) sign(p)?"~":"", var(p)
+// #define L_LIT    "%sx%d"
+// #define L_lit(p) sign(p)?"~":"", var(p)
 
 // Just like 'assert()' but expression will be evaluated in the release version as well.
 inline void check(bool expr) { assert(expr); }
