@@ -657,7 +657,7 @@ Clause* Solver::propagate()
                 }
             } else {
               assert(i->isAtMostOne());
-              AtMostOne& c = *i->atMostOne(); i++;
+              AtMostOne& c = *i->atMostOne();
               // propagate all other literals to false
               bool got_conflict = false;
               for (int k = 0; k < c.size(); ++k) {
