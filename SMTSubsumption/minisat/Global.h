@@ -275,6 +275,21 @@ const lbool l_True  = toLbool( 1);
 const lbool l_False = toLbool(-1);
 const lbool l_Undef = toLbool( 0);
 
+inline std::ostream& operator<<(std::ostream& o, lbool b)
+{
+  if (b == l_True) {
+    o << "l_True";
+  } else if (b == l_False) {
+    o << "l_False";
+  } else if (b == l_Undef) {
+    o << "l_Undef";
+  } else {
+    o << "lbool { value: " << b.toInt() << " }";
+  }
+  return o;
+}
+
+
 
 } }
 

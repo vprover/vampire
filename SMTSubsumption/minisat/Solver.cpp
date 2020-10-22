@@ -23,6 +23,8 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 using namespace SMTSubsumption::Minisat;
 
+#define TRACE_SOLVER 0
+
 
 //=================================================================================================
 // Helper functions:
@@ -335,6 +337,11 @@ void Solver::cancelUntil(int level)
 |________________________________________________________________________________________________@*/
 void Solver::analyze(Clause* _confl, vec<Lit>& out_learnt, int& out_btlevel)
 {
+#if TRACE_SOLVER
+    std::cerr << "ANALYZE: _confl = ";
+    if (_confl) { std::cerr << *_confl; } else { std::cerr << "NULL"; }
+    std::cerr << std::endl;
+#endif
     assert(out_learnt.size() == 0);
     assert(decisionLevel() > root_level);
     for (int i = 0; i < analyze_seen.size(); ++i) {
@@ -539,6 +546,9 @@ void Solver::analyzeFinal(Clause* confl, bool skip_first)
 |________________________________________________________________________________________________@*/
 bool Solver::enqueue(Lit p, GClause from)
 {
+#if TRACE_SOLVER
+    std::cerr << "ENQUEUE: " << p << " (current value: " << value(p) << ")" << std::endl;
+#endif
     if (value(p) != l_Undef) {
         return value(p) != l_False;
     } else {
@@ -564,12 +574,19 @@ bool Solver::enqueue(Lit p, GClause from)
 |________________________________________________________________________________________________@*/
 Clause* Solver::propagate()
 {
+#if TRACE_SOLVER
+    std::cerr << "PROPAGATE" << std::endl;
+#endif
     Clause* confl = NULL;
     while (qhead < trail.size()) {
         stats.propagations++;
         simpDB_props--;
 
         Lit p = trail[qhead++];     // 'p' is enqueued fact to propagate.
+
+#if TRACE_SOLVER
+        std::cerr << "PROPAGATE LOOP: for p = " << p << std::endl;
+#endif
 
         // Theory propagation
         if (p.isPositive()) {
@@ -594,6 +611,9 @@ Clause* Solver::propagate()
         GClause* j = ws.begin();
         GClause* end = ws.end();
         while (i != end) {
+#if TRACE_SOLVER
+            std::cerr << "PROPAGATE WATCHER: " << *i << std::endl;
+#endif
             if (i->isLit()) {
                 if (!enqueue(i->lit(), GClause_new(p))) {
                     if (decisionLevel() == 0) {
@@ -631,26 +651,29 @@ Clause* Solver::propagate()
                 // If 0th watch is true, then clause is already satisfied.
                 Lit   first = c[0];
                 lbool val   = value(first);
-                if (val == l_True){
-                    *j++ = GClause_new(&c);
-                }else{
+                if (val == l_True) {
+                    *(j++) = GClause_new(&c);
+                } else {
                     // Look for new watch:
-                    for (int k = 2; k < c.size(); k++)
-                        if (value(c[k]) != l_False){
+                    for (int k = 2; k < c.size(); k++) {
+                        if (value(c[k]) != l_False) {
                             c[1] = c[k]; c[k] = false_lit;
                             watches[index(~c[1])].push(GClause_new(&c));
-                            goto FoundWatch; }
+                            goto FoundWatch;
+                        }
+                    }
 
                     // Did not find watch -- clause is unit under assignment:
                     *j++ = GClause_new(&c);
-                    if (!enqueue(first, GClause_new(&c))){
+                    if (!enqueue(first, GClause_new(&c))) {
                         if (decisionLevel() == 0)
                             ok = false;
                         confl = &c;
                         qhead = trail.size();
                         // Copy the remaining watches:
-                        while (i != end)
-                            *j++ = *i++;
+                        while (i != end) {
+                            *(j++) = *(i++);
+                        }
                         assert(i == end);
                     }
                   FoundWatch:;
@@ -676,17 +699,24 @@ Clause* Solver::propagate()
                 }
               }
               if (got_conflict) {
-                // Copy the remaining watches:
+                // Copy the remaining watches
                 while (i != end)  // TODO: can skip loop if i==j. (should check if that helps though)
                   *(j++) = *(i++);
                 assert(i == end);
               } else {
+                // Copy the current AtMostOne constraint
                 *(j++) = *(i++);
               }
             }
         }  // while (i != end)
         ws.shrink(i - j);
     }  // while (qhead < trail.size())
+
+#if TRACE_SOLVER
+    std::cerr << "PROPAGATE DONE: confl = ";
+    if (confl) { std::cerr << *confl; } else { std::cerr << "NULL"; }
+    std::cerr << std::endl;
+#endif
 
     return confl;
 }

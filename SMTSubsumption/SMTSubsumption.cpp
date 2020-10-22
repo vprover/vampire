@@ -189,7 +189,7 @@ void ProofOfConcept::test(Clause* side_premise, Clause* main_premise)
     }
   }
 
-#define USE_ATMOSTONE_CONSTRAINTS 0
+#define USE_ATMOSTONE_CONSTRAINTS 1
 
   // TODO: for these we can add special constraints to MiniSAT! see paper for idea
   // Add constraints:
