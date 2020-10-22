@@ -33,6 +33,7 @@
 #include "Lib/Set.hpp"
 #include "Lib/BiMap.hpp"
 #include "Term.hpp"
+#include "MismatchHandler.hpp"
 
 #if VDEBUG
 
@@ -54,16 +55,16 @@ public:
   CLASS_NAME(RobSubstitution);
   USE_ALLOCATOR(RobSubstitution);
   
-  RobSubstitution() : _nextUnboundAvailable(0),_nextAuxAvailable(0) {}
+  RobSubstitution() : _nextUnboundAvailable(0) {} //,_nextAuxAvailable(0) {}
 
   SubstIterator matches(Literal* base, int baseIndex,
 	  Literal* instance, int instanceIndex, bool complementary);
   SubstIterator unifiers(Literal* l1, int l1Index, Literal* l2, int l2Index, bool complementary);
 
-  bool unify(TermList t1,int index1, TermList t2, int index2);
+  bool unify(TermList t1,int index1, TermList t2, int index2, MismatchHandler* hndlr=0);
   bool match(TermList base,int baseIndex, TermList instance, int instanceIndex);
 
-  bool unifyArgs(Term* t1,int index1, Term* t2, int index2);
+  bool unifyArgs(Term* t1,int index1, Term* t2, int index2, MismatchHandler* hndlr=0);
   bool matchArgs(Term* base,int baseIndex, Term* instance, int instanceIndex);
 
   void denormalize(const Renaming& normalizer, int normalIndex, int denormalizedIndex);
@@ -78,9 +79,8 @@ public:
   void reset()
   {
     _funcSubtermMap = 0;
-    _constraints.reset();
     _bank.reset();
-    _nextAuxAvailable=0;
+    //_nextAuxAvailable=0;
     _nextUnboundAvailable=0;
   }
 
@@ -116,8 +116,6 @@ public:
    */
   size_t size() const {return _bank.size(); }
 #endif
-
-  unsigned constraintsSize()  const { return _constraints.size(); }
 
   /** Specifies instance of a variable (i.e. (variable, variable bank) pair) */
   struct VarSpec
@@ -214,9 +212,6 @@ public:
     int index;
   };
   typedef pair<TermSpec,TermSpec> TTPair;
-  typedef Stack<TTPair> UnifConstraints;
-
-  const UnifConstraints& constraints() const { return _constraints; }
 
   /** struct containing first hash function of TTPair objects*/
   struct TTPairHash
@@ -229,13 +224,13 @@ public:
   };
 
 private:
-  /** Copy constructor is private a+nd without a body, because we don't want any. */
+  /** Copy constructor is private and without a body, because we don't want any. */
   RobSubstitution(const RobSubstitution& obj);
   /** operator= is private and without a body, because we don't want any. */
   RobSubstitution& operator=(const RobSubstitution& obj);
 
 
-  static const int AUX_INDEX;
+  //static const int AUX_INDEX;
   static const int SPECIAL_INDEX;
   static const int UNBOUND_INDEX;
 
@@ -243,17 +238,18 @@ private:
   TermSpec deref(VarSpec v) const;
   TermSpec derefBound(TermSpec v) const;
 
-  void addToConstraints(const VarSpec& v1, const VarSpec& v2);
+  void addToConstraints(const VarSpec& v1, const VarSpec& v2,MismatchHandler* hndlr);
   void bind(const VarSpec& v, const TermSpec& b);
   void bindVar(const VarSpec& var, const VarSpec& to);
   VarSpec root(VarSpec v) const;
   bool match(TermSpec base, TermSpec instance);
-  bool unify(TermSpec t1, TermSpec t2);
-  bool handleDifferentTops(TermSpec t1, TermSpec t2, Stack<TTPair>& toDo, TermList* ct);
-  void makeEqual(VarSpec v1, VarSpec v2, TermSpec target);
-  void unifyUnbound(VarSpec v, TermSpec ts);
+  bool unify(TermSpec t1, TermSpec t2,MismatchHandler* hndlr);
+  //bool handleDifferentTops(TermSpec t1, TermSpec t2, Stack<TTPair>& toDo, TermList* ct);
+  //void makeEqual(VarSpec v1, VarSpec v2, TermSpec target);
+  //void unifyUnbound(VarSpec v, TermSpec ts);
   bool occurs(VarSpec vs, TermSpec ts);
 
+/* Not currently used
   VarSpec getAuxVar(VarSpec target)
   {
     CALL("RobSubstitution::getAuxVar");
@@ -264,6 +260,7 @@ private:
     bindVar(res, target);
     return res;
   }
+*/
   inline
   VarSpec getVarSpec(TermSpec ts) const
   {
@@ -276,7 +273,7 @@ private:
     if(tl.isSpecialVar()) {
       return VarSpec(tl.var(), SPECIAL_INDEX);
     } else {
-      ASS(index!=AUX_INDEX || tl.var()<_nextAuxAvailable);
+      //ASS(index!=AUX_INDEX || tl.var()<_nextAuxAvailable);
       return VarSpec(tl.var(), index);
     }
   }
@@ -286,12 +283,11 @@ private:
 
   FuncSubtermMap* _funcSubtermMap;
   mutable BankType _bank;
-  mutable UnifConstraints _constraints;
 
-  DHMap<int, int> _denormIndexes;
+  //DHMap<int, int> _denormIndexes;
 
   mutable unsigned _nextUnboundAvailable;
-  unsigned _nextAuxAvailable;
+  //unsigned _nextAuxAvailable;
 
   class BindingBacktrackObject
   : public BacktrackObject
@@ -326,28 +322,9 @@ private:
     TermSpec _term;
   };
 
-  class ConstraintBacktrackObject
-  : public BacktrackObject
-  {
-  public: 
-    ConstraintBacktrackObject(RobSubstitution* subst)
-    : _subst(subst)
-    {}
-    
-    void backtrack()
-    {
-      _subst->_constraints.pop();
-    }
-
-    CLASS_NAME(RobSubstitution::ConstraintBacktrackObject);
-    USE_ALLOCATOR(ConstraintBacktrackObject);
-  private:
-    RobSubstitution* _subst;
-  };
-
   template<class Fn>
   SubstIterator getAssocIterator(RobSubstitution* subst,
-	  Literal* l1, int l1Index, Literal* l2, int l2Index, bool complementary);
+    Literal* l1, int l1Index, Literal* l2, int l2Index, bool complementary);
 
   template<class Fn>
   struct AssocContext;

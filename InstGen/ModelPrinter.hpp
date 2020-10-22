@@ -30,7 +30,6 @@
 #include "Lib/Stack.hpp"
 
 #include "Kernel/Term.hpp"
-#include "IGAlgorithm.hpp" //TODO not required in main, shouldn't be needed here AYB
 
 namespace InstGen {
 

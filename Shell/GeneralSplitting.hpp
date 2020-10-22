@@ -42,7 +42,6 @@ public:
   bool apply(ClauseList*& units);
 private:
   bool apply(Clause*& cl, UnitList*& resultStack);
-  bool _appify;
 };
 
 };

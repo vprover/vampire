@@ -300,7 +300,9 @@ Literal* TermSharing::insertVariableEquality(Literal* t, TermList sort)
   Literal* s = _literals.insert(t);
   if (s == t) {
     t->markShared();
-    t->setWeight(3);
+    t->setWeight(3); 
+    //TODO AYB why weight 3? Should the sort be taken into account?
+    //Look at Kernel/LiteralByMatchability
     if (env.colorUsed) {
       t->setColor(COLOR_TRANSPARENT);
     }

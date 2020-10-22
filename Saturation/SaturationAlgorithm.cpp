@@ -58,6 +58,7 @@
 #include "Inferences/InferenceEngine.hpp"
 #include "Inferences/BackwardDemodulation.hpp"
 #include "Inferences/BackwardSubsumptionResolution.hpp"
+#include "Inferences/BackwardSubsumptionDemodulation.hpp"
 #include "Inferences/BinaryResolution.hpp"
 #include "Inferences/CTFwSubsAndRes.hpp"
 #include "Inferences/EqualityFactoring.hpp"
@@ -70,6 +71,7 @@
 #include "Inferences/ForwardDemodulation.hpp"
 #include "Inferences/ForwardLiteralRewriting.hpp"
 #include "Inferences/ForwardSubsumptionAndResolution.hpp"
+#include "Inferences/ForwardSubsumptionDemodulation.hpp"
 #include "Inferences/GlobalSubsumption.hpp"
 #include "Inferences/HyperSuperposition.hpp"
 #include "Inferences/InnerRewriting.hpp"
@@ -147,7 +149,7 @@ std::unique_ptr<PassiveClauseContainer> makeLevel1(bool isOutermost, const Optio
     {
       auto queueName = name + "ThSQ" + Int::toString(cutoffs[i]) + ":";
       //TODO uncomment these. At the moment have wierd compiler error
-      //queues.push_back(makeLevel0(false, opt, queueName));
+      queues.push_back(makeLevel0(false, opt, queueName));
     }
     return Lib::make_unique<TheoryMultiSplitPassiveClauseContainer>(isOutermost, opt, name + "ThSQ", std::move(queues));
   }
@@ -166,7 +168,7 @@ std::unique_ptr<PassiveClauseContainer> makeLevel2(bool isOutermost, const Optio
     for (unsigned i = 0; i < cutoffs.size(); i++)
     {
       auto queueName = name + "AvSQ" + Int::toString(cutoffs[i]) + ":";
-      //queues.push_back(makeLevel1(false, opt, queueName));
+      queues.push_back(makeLevel1(false, opt, queueName));
     }
     return Lib::make_unique<AvatarMultiSplitPassiveClauseContainer>(isOutermost, opt, name + "AvSQ", std::move(queues));
   }
@@ -185,7 +187,7 @@ std::unique_ptr<PassiveClauseContainer> makeLevel3(bool isOutermost, const Optio
     for (unsigned i = 0; i < cutoffs.size(); i++)
     {
       auto queueName = name + "SLSQ" + Int::toString(cutoffs[i]) + ":";
-      //queues.push_back(makeLevel2(false, opt, queueName));
+      queues.push_back(makeLevel2(false, opt, queueName));
     }
     return Lib::make_unique<SineLevelMultiSplitPassiveClauseContainer>(isOutermost, opt, name + "SLSQ", std::move(queues));
   }
@@ -204,7 +206,7 @@ std::unique_ptr<PassiveClauseContainer> makeLevel4(bool isOutermost, const Optio
     for (unsigned i = 0; i < cutoffs.size(); i++)
     {
       auto queueName = name + "PLSQ" + Int::toString(cutoffs[i]) + ":";
-      //queues.push_back(makeLevel3(false, opt, queueName));
+      queues.push_back(makeLevel3(false, opt, queueName));
     }
     return Lib::make_unique<PositiveLiteralMultiSplitPassiveClauseContainer>(isOutermost, opt, name + "PLSQ", std::move(queues));
   }
@@ -1630,6 +1632,14 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     res->addForwardSimplifierToFront(new ForwardLiteralRewriting());
   }
   if (prb.hasEquality()) {
+    // NOTE:
+    // fsd should be performed after forward subsumption,
+    // because every successful forward subsumption will lead to a (useless) match in fsd.
+    if (opt.forwardSubsumptionDemodulation()) {
+      res->addForwardSimplifierToFront(new ForwardSubsumptionDemodulation(false));
+    }
+  }
+  if (prb.hasEquality()) {
     switch(opt.forwardDemodulation()) {
     case Options::Demodulation::ALL:
     case Options::Demodulation::PREORDERED:
@@ -1671,6 +1681,9 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
       ASSERTION_VIOLATION;
 #endif
     }
+  }
+  if (prb.hasEquality() && opt.backwardSubsumptionDemodulation()) {
+    res->addBackwardSimplifierToFront(new BackwardSubsumptionDemodulation());
   }
   if (opt.backwardSubsumption() != Options::Subsumption::OFF) {
     bool byUnitsOnly=opt.backwardSubsumption()==Options::Subsumption::UNIT_ONLY;

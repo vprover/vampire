@@ -450,7 +450,7 @@ vstring Term::headToString() const
         vstring formula = sd->getFormula()->toString();
         return env.options->showFOOL() ? "$term{" + formula + "}" : formula;
       }
-      /*case Term::SF_LET: {
+      case Term::SF_LET: {
         ASS_EQ(arity(), 1);
         TermList binding = sd->getBinding();
         bool isPredicate = binding.isTerm() && binding.term()->isBoolean();
@@ -514,9 +514,9 @@ vstring Term::headToString() const
         }
 
         return "$let([" + typesList + "], [" + symbolsList + "] := " + binding.toString() + ", ";
-      }*/
+      }
       case Term:: SF_LAMBDA: {
-        IntList* vars = sd->getLambdaVars(); //Need to add these functions to class!
+        IntList* vars = sd->getLambdaVars();
         SList* sorts = sd->getLambdaVarSorts();
         TermList lambdaExp = sd->getLambdaExp();
      
@@ -540,11 +540,11 @@ vstring Term::headToString() const
         ASSERTION_VIOLATION;
     }
   } else {
-    /*unsigned proj;
+    unsigned proj;
     if (Theory::tuples()->findProjection(functor(), isLiteral(), proj)) {
       return "$proj(" + Int::toString(proj) + ", ";
-    }*/
-    bool print = (env.signature->getFunction(_functor)->combinator() == Signature::NOT_COMB && arity()) ;
+    }
+    bool print = (env.signature->getFunction(_functor)->combinator() == Signature::NOT_COMB) && arity() ;
     return (isLiteral() ? static_cast<const Literal *>(this)->predicateName() : functionName() + (print ? "(" : ""));
   }
 }

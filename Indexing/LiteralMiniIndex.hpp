@@ -65,13 +65,13 @@ private:
 
   struct BaseIterator
   {
-    BaseIterator(LiteralMiniIndex& index, Literal* query, bool complementary)
+    BaseIterator(LiteralMiniIndex const& index, Literal* query, bool complementary)
     : _ready(false), _hdr(complementary?query->complementaryHeader():query->header()),
     _query(query), _compl(complementary)
     {
       CALL("LiteralMiniIndex::BaseIterator::BaseIterator");
 
-      Entry* arr=index._entries.array();
+      Entry const* arr=index._entries.array();
       unsigned weight=query->weight();
       if(arr[0]._header>=_hdr || index._cnt==1) {
 	_curr=arr;
@@ -104,7 +104,7 @@ private:
     unsigned _hdr;
     Literal* _query;
     bool _compl;
-    Entry* _curr;
+    Entry const* _curr;
   };
 
 public:
@@ -112,10 +112,11 @@ public:
   /*static int goodPred;
   static int badPred;*/
 
+
   struct InstanceIterator
   : BaseIterator
   {
-    InstanceIterator(LiteralMiniIndex& index, Literal* base, bool complementary)
+    InstanceIterator(LiteralMiniIndex const& index, Literal* base, bool complementary)
     : BaseIterator(index, base, complementary)
     {}
 
@@ -123,24 +124,23 @@ public:
     {
       CALL("LiteralMiniIndex::InstanceIterator::hasNext");
 
-    if(_ready) { return true; }
-    while(_curr->_header==_hdr) {
-      bool prediction=_curr->_lit->couldArgsBeInstanceOf(_query);
-      #if VDEBUG
-      if(MatchingUtils::match(_query, _curr->_lit, _compl)) {
-          ASS(prediction);
-      #else
-        if(prediction && MatchingUtils::match(_query, _curr->_lit, _compl)) {
-      #endif
-          _ready=true;
-          return true;
-        }
+      if(_ready) { return true; }
+      while(_curr->_header==_hdr) {
+  bool prediction=_curr->_lit->couldArgsBeInstanceOf(_query);
+#if VDEBUG
+  if(MatchingUtils::match(_query, _curr->_lit, _compl)) {
+    ASS(prediction);
+#else
+  if(prediction && MatchingUtils::match(_query, _curr->_lit, _compl)) {
+#endif
+    _ready=true;
+    return true;
+  }
 
-        _curr++;
+  _curr++;
       }
       return false;
     }
-    
     Literal* next()
     {
       return BaseIterator::next();

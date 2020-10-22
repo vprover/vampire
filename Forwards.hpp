@@ -169,6 +169,11 @@ class TermList;
 typedef VirtualIterator<TermList> TermIterator;
 typedef Stack<TermList> TermStack;
 typedef List<TermList> SList;
+
+typedef std::pair<std::pair<TermList,unsigned>,std::pair<TermList,unsigned>> UnificationConstraint;
+typedef Stack<UnificationConstraint> UnificationConstraintStack;
+typedef Lib::SmartPtr<UnificationConstraintStack> UnificationConstraintStackSP;
+
 class Term;
 typedef BiMap<unsigned, Term*> FuncSubtermMap;
 class Literal;
@@ -395,12 +400,12 @@ class Selector;
 }
 }
 
-/*
+
 namespace InstGen
 {
 class IGAlgorithm;
 class ModelPrinter;
-}*/
+}
 
 namespace DP
 {

@@ -54,7 +54,7 @@ public:
   TermList getSortTerm(unsigned sort);
   unsigned count(){return (unsigned)_sorts.size(); }
   
-  //once arrays are fixed to add fixed number of polymorphic axioms
+  //once arrays are fixed and axiomatused by a fixed number of polymorphic axioms
   //_arraySorts can be deleted
   //Once finite model buuilding is refactored (Giles Reger knows how)
   //There is no longer a need to store any sorts at all.

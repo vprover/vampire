@@ -112,7 +112,10 @@ struct EqualityFactoring::ResultFn
     TermList srt = SortHelper::getEqualityArgumentSort(sLit);
 
     static RobSubstitution subst;
+    static UnificationConstraintStack constraints;
     subst.reset();
+    constraints.reset();
+
     if (!subst.unify(srt, 0, SortHelper::getEqualityArgumentSort(fLit), 0)) {
       return 0;
     }
@@ -125,7 +128,9 @@ struct EqualityFactoring::ResultFn
     TermList fRHS=EqHelper::getOtherEqualitySide(fLit, fLHS);
     ASS_NEQ(sLit, fLit);
 
-    if(env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION){
+    static Options::FunctionExtensionality ext = env.options->functionExtensionality();
+
+    if(ext == Options::FunctionExtensionality::ABSTRACTION){
       TermList sLHSreplaced = sLHS;
       TermList fLHSreplaced = fLHS;
       if(!sLHS.isVar() && !fLHS.isVar() && 
@@ -134,7 +139,8 @@ struct EqualityFactoring::ResultFn
         fLHSreplaced = ApplicativeHelper::replaceFunctionalAndBooleanSubterms(fLHS.term(), &funcSubtermMap);
       }
       subst.setMap(&funcSubtermMap);
-      if(!subst.unify(sLHSreplaced,0,fLHSreplaced,0)) {
+      HOMismatchHandler hndlr(constraints);
+      if(!subst.unify(sLHSreplaced,0,fLHSreplaced,0, &hndlr)) {
         return 0;
       }
     } else {
@@ -142,10 +148,6 @@ struct EqualityFactoring::ResultFn
         return 0;
       }
     }
-
-    typedef RobSubstitution::TTPair ConPair;
-    unsigned cLength = subst.constraintsSize();
-    const Stack<ConPair>& constraints = subst.constraints();
 
     TermList sLHSS=subst.apply(sLHS,0);
     TermList sRHSS=subst.apply(sRHS,0);
@@ -157,7 +159,7 @@ struct EqualityFactoring::ResultFn
       return 0;
     }
 
-    unsigned newLen=_cLen+cLength;
+    unsigned newLen=_cLen+constraints.length();
     Clause* res = new(newLen) Clause(newLen, GeneratingInference1(InferenceRule::EQUALITY_FACTORING, _cl));
 
     (*res)[0]=Literal::createEquality(false, sRHSS, fRHSS, srtS);
@@ -186,19 +188,15 @@ struct EqualityFactoring::ResultFn
         (*res)[next++] = currAfter;
       }
     }
-    if(cLength){
-      ConPair con;
-      for(unsigned i = 0; i < constraints.size(); i++){
-        con = constraints[i];
-        TermList qT = subst.apply(TermList(con.first.term), 0);
-        TermList rT = subst.apply(TermList(con.second.term), 0);
+    for(unsigned i=0;i<constraints.length();i++){
+      UnificationConstraint con = (constraints)[i];
+      TermList qT = subst.apply(con.first.first,0);
+      TermList rT = subst.apply(con.second.first,0);
 
-        TermList sort = SortHelper::getResultSort(rT.term());
-        Literal* constraint = Literal::createEquality(false,qT,rT,sort);
+      TermList sort = SortHelper::getResultSort(rT.term());
+      Literal* constraint = Literal::createEquality(false,qT,rT,sort);
 
-        (*res)[next] = constraint;
-        next++;        
-      }
+      (*res)[next++] = constraint;
     }
     ASS_EQ(next,newLen);
 

@@ -277,7 +277,7 @@ struct MatchingData {
     return true;
   }
 
-  bool isInitialized(unsigned bIndex, bool print = false) {
+  bool isInitialized(unsigned bIndex) {
     return boundVarNums[bIndex];
   }
 
@@ -285,7 +285,7 @@ struct MatchingData {
   {
     CALL("MatchingData::ensureInit");
     
-    if(!isInitialized(bIndex, true)) {
+    if(!isInitialized(bIndex)) {
       boundVarNums[bIndex]=boundVarNumStorage;
       altBindings[bIndex]=altBindingPtrStorage;
       ALWAYS(createLiteralBindings(bases[bIndex], alts[bIndex], instance,
@@ -446,7 +446,6 @@ bool MLVariant::isVariant(Literal* const * cl1Lits, Clause* cl2, LiteralList** a
     }
 
     unsigned maxAlt=md->getRemainingInCurrent(currBLit);
-    //cout << "maxAlt " << maxAlt << endl;
     while(md->nextAlts[currBLit]<maxAlt &&
 	    ( matchRecord[md->getAltRecordIndex(currBLit, md->nextAlts[currBLit])]<currBLit ||
 	    !md->bindAlt(currBLit,md->nextAlts[currBLit]) ) ) {

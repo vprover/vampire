@@ -425,7 +425,8 @@ void Preprocess::preprocess(Problem& prb)
 
    //Both general splitting and equality proxy ought to removed from a higher-order schedule
    //TODO currently general splitting is broken for higher-order problems
-   if (!env.statistics->higherOrder && _options.generalSplitting()!=Options::RuleActivity::OFF) {
+   if (!env.statistics->higherOrder && !prb.hasPolymorphicSym() &&
+        _options.generalSplitting()!=Options::RuleActivity::OFF) {
      env.statistics->phase=Statistics::GENERAL_SPLITTING;
      if (env.options->showPreprocessing())
        env.out() << "general splitting" << std::endl;
@@ -434,7 +435,6 @@ void Preprocess::preprocess(Problem& prb)
      gs.apply(prb);
    }
 
-   //TODO currently general splitting is broken for higher-order problems
    if (!env.statistics->higherOrder && _options.equalityProxy()!=Options::EqualityProxy::OFF && prb.mayHaveEquality()) {
      env.statistics->phase=Statistics::EQUALITY_PROXY;
      if (env.options->showPreprocessing())

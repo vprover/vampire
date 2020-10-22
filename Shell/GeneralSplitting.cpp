@@ -49,7 +49,6 @@ using namespace Kernel;
 void GeneralSplitting::apply(Problem& prb)
 {
   CALL("GeneralSplitting::apply(Problem&)");
-  _appify = prb.hasApp();
   if(apply(prb.units())) {
     prb.invalidateProperty();
   }
@@ -158,18 +157,18 @@ bool GeneralSplitting::apply(Clause*& cl, UnitList*& resultStack)
 
       Set<unsigned>::Iterator sit2=sit;
       while(sit2.hasNext()) {
-        unsigned v2=sit2.next();
-        ASS_NEQ(v1,v2);
-        bool inserted;
-        if(v1>v2) {
-          inserted= connections.insert(make_pair(v2,v1))==1;
-        } else {
-          inserted= connections.insert(make_pair(v1,v2))==1;
-        }
-        if(inserted) {
-          degrees.insert(v1);
-          degrees.insert(v2);
-        }
+  unsigned v2=sit2.next();
+  ASS_NEQ(v1,v2);
+  bool inserted;
+  if(v1>v2) {
+    inserted= connections.insert(make_pair(v2,v1))==1;
+  } else {
+    inserted= connections.insert(make_pair(v1,v2))==1;
+  }
+  if(inserted) {
+    degrees.insert(v1);
+    degrees.insert(v2);
+  }
       }
     }
   }
@@ -216,11 +215,9 @@ bool GeneralSplitting::apply(Clause*& cl, UnitList*& resultStack)
     }
   }
 
-  static Stack<TermList> args;
-  static Stack<TermList> termArgs;
-  static Stack<TermList> argSorts;
+  static TermStack args;
   args.reset();
-  termArgs.reset();
+  static TermStack argSorts;
   argSorts.reset();
 
   DHMap<unsigned,TermList> varSorts;
@@ -239,61 +236,31 @@ bool GeneralSplitting::apply(Clause*& cl, UnitList*& resultStack)
       found=connections.find(make_pair(var, minDegVar));
     }
     if(found) {
-      TermList argSort = varSorts.get(var);
-      if(argSort == Term::superSort()){
-        args.push(TermList(var, false));//TODO check that this works
-      } else {
-        termArgs.push(TermList(var, false));
-        argSorts.push(argSort);
-      }
+      args.push(TermList(var, false));
+      argSorts.push(varSorts.get(var));
     }
   }
-  ASS(termArgs.size() == argSorts.size());
 
 
-  VList* vl = VList::empty();
-  for(int i = args.size() -1; i >= 0 ; i--){
-    VList::push(args[i].var(), vl);
-  }
-  for(unsigned i = 0; i < termArgs.size() && !_appify; i++){
-    args.push(termArgs[i]);
-  }
-
-  unsigned namingFun = _appify ? env.signature->addNameFunction(args.size()) :
-                                 env.signature->addNamePredicate(minDeg); 
-  TermList sort;
-  if(_appify){
-    sort = Term::arrowSort(argSorts, Term::boolSort());
-    OperatorType* ot = OperatorType::getConstantsType(sort, vl);
-    env.signature->getFunction(namingFun)->setType(ot);  
-  }else{
-    OperatorType* ot = 
-    OperatorType::getPredicateType(minDeg - VList::length(vl), argSorts.begin(), vl);
-    env.signature->getPredicate(namingFun)->setType(ot);
-  }
+  unsigned namingPred=env.signature->addNamePredicate(minDeg);
+  OperatorType* npredType = OperatorType::getPredicateType(minDeg, argSorts.begin());
+  env.signature->getPredicate(namingPred)->setType(npredType);
 
   if(mdvColor!=COLOR_TRANSPARENT && otherColor!=COLOR_TRANSPARENT) {
     ASS_EQ(mdvColor, otherColor);
-    env.signature->getPredicate(namingFun)->addColor(mdvColor);
+    env.signature->getPredicate(namingPred)->addColor(mdvColor);
   }
   if(env.colorUsed && cl->skip()) {
-    env.signature->getPredicate(namingFun)->markSkip();
+    env.signature->getPredicate(namingPred)->markSkip();
   }
 
-  Literal* pnLit;
-  Literal* nnLit;
-  if(_appify){
-    TermList head = TermList(Term::create(namingFun, args.size(), args.begin()));
-    TermList t = ApplicativeHelper::createAppTerm(sort, head, termArgs);
-    pnLit=Literal::createEquality(true, t, TermList(Term::foolTrue()), Term::boolSort()); 
-    nnLit=Literal::createEquality(true, t, TermList(Term::foolFalse()), Term::boolSort());
-  } else {
-    ASS_EQ(args.size(), minDeg);
-    pnLit=Literal::create(namingFun, minDeg, true, false, args.begin());
-    nnLit=Literal::create(namingFun, minDeg, false, false, args.begin());  
-  }
-  otherLits.push(nnLit);
+
+
+  ASS_EQ(args.size(), minDeg);
+  Literal* pnLit=Literal::create(namingPred, minDeg, true, false, args.begin());
   mdvLits.push(pnLit);
+  Literal* nnLit=Literal::create(namingPred, minDeg, false, false, args.begin());
+  otherLits.push(nnLit);
 
   Clause* mdvCl=Clause::fromStack(mdvLits, NonspecificInference0(cl->inputType(),InferenceRule::GENERAL_SPLITTING_COMPONENT));
   mdvCl->setAge(cl->age());
@@ -301,7 +268,7 @@ bool GeneralSplitting::apply(Clause*& cl, UnitList*& resultStack)
 
   InferenceStore::instance()->recordSplittingNameLiteral(mdvCl, pnLit);
 
-  Clause* otherCl=Clause::fromStack(otherLits, NonspecificInference2(InferenceRule::GENERAL_SPLITTING, cl, mdvCl));  
+  Clause* otherCl=Clause::fromStack(otherLits, NonspecificInference2(InferenceRule::GENERAL_SPLITTING, cl, mdvCl));
   otherCl->setAge(cl->age());
 
   cl=otherCl;

@@ -37,6 +37,7 @@
 #include "SortHelper.hpp"
 #include "Term.hpp"
 #include "TermIterators.hpp"
+#include "Shell/Statistics.hpp"
 
 #include "Indexing/TermSharing.hpp"
 
@@ -57,17 +58,17 @@ namespace Kernel
 using namespace std;
 using namespace Lib;
 
-const int RobSubstitution::AUX_INDEX=-3;
+//const int RobSubstitution::AUX_INDEX=-3;
 const int RobSubstitution::SPECIAL_INDEX=-2;
 const int RobSubstitution::UNBOUND_INDEX=-1;
 
 /**
  * Unify @b t1 and @b t2, and return true iff it was successful.
  */
-bool RobSubstitution::unify(TermList t1,int index1, TermList t2, int index2)
+bool RobSubstitution::unify(TermList t1,int index1, TermList t2, int index2, MismatchHandler* hndlr)
 {
   CALL("RobSubstitution::unify/4");
-  return unify(TermSpec(t1,index1), TermSpec(t2,index2));
+  return unify(TermSpec(t1,index1), TermSpec(t2,index2), hndlr);
 }
 
 /**
@@ -75,14 +76,14 @@ bool RobSubstitution::unify(TermList t1,int index1, TermList t2, int index2)
  *
  * @b t1 and @b t2 can be either terms or literals.
  */
-bool RobSubstitution::unifyArgs(Term* t1,int index1, Term* t2, int index2)
+bool RobSubstitution::unifyArgs(Term* t1,int index1, Term* t2, int index2, MismatchHandler* hndlr)
 {
   CALL("RobSubstitution::unifyArgs");
   ASS_EQ(t1->functor(),t2->functor());
 
   TermList t1TL(t1);
   TermList t2TL(t2);
-  return unify(TermSpec(t1TL,index1), TermSpec(t2TL,index2));
+  return unify(TermSpec(t1TL,index1), TermSpec(t2TL,index2), hndlr);
 }
 
 bool RobSubstitution::match(TermList base,int baseIndex,
@@ -147,7 +148,7 @@ bool RobSubstitution::isUnbound(VarSpec v) const
 
 /**
  * If special variable @b specialVar is bound to a proper term,
- * return a term, thjat has the same top functor. Otherwise
+ * return a term, that has the same top functor. Otherwise
  * return an arbitrary variable.
  */
 TermList RobSubstitution::getSpecialVarTop(unsigned specialVar) const
@@ -215,10 +216,8 @@ void RobSubstitution::bind(const VarSpec& v, const TermSpec& b)
   ASSERT_VALID(b.term);
   //Aux terms don't contain special variables, ergo
   //should be shared.
-  ASS(!b.term.isTerm() || b.index!=AUX_INDEX || b.term.term()->shared());
+  //ASS(!b.term.isTerm() || b.index!=AUX_INDEX || b.term.term()->shared());
   ASS_NEQ(v.index, UNBOUND_INDEX);
-
-  //cout << "binding X" << v.var << "/" << v.index << " to " + b.toString() << endl;
 
   if(bdIsRecording()) {
     bdAdd(new BindingBacktrackObject(this, v));
@@ -226,7 +225,7 @@ void RobSubstitution::bind(const VarSpec& v, const TermSpec& b)
   _bank.set(v,b);
 }
 
-void RobSubstitution::addToConstraints(const VarSpec& v1, const VarSpec& v2)
+void RobSubstitution::addToConstraints(const VarSpec& v1, const VarSpec& v2, MismatchHandler* hndlr)
 {
   CALL("RobSubstitution::addToConstraints");
 
@@ -234,21 +233,16 @@ void RobSubstitution::addToConstraints(const VarSpec& v1, const VarSpec& v2)
   Term* t2 = _funcSubtermMap->get1(v2.var);
 
   if(t1 == t2 && t1->shared() && t1->ground()){ return; }
+ 
+  TermList tt1 = TermList(t1);
+  TermList tt2 = TermList(t2);
 
-  TermSpec t1spec = TermSpec(TermList(t1), v1.index);
-  TermSpec t2spec = TermSpec(TermList(t2), v2.index);
+  TermSpec t1spec = TermSpec(tt1, v1.index);
+  TermSpec t2spec = TermSpec(tt2, v2.index);
 
   if(t1spec.sameTermContent(t2spec)){ return; }
 
-  //TTPair p = make_pair(t1spec, t2spec);
-  //cout << "adding <" + t1->toString() + ", " + t2->toString() + "> to constraints" << endl;
-
-  //if(!_constraints.contains(p)){
-    _constraints.push(make_pair(t1spec, t2spec)/*p*/);
-    if(bdIsRecording()) {
-      bdAdd(new ConstraintBacktrackObject(this));
-    }   
-  //}
+  hndlr->handle(this, tt1, v1.index, tt2, v2.index);
 }
 
 
@@ -274,6 +268,8 @@ RobSubstitution::VarSpec RobSubstitution::root(VarSpec v) const
   }
 }
 
+/* Not currently used
+
 void RobSubstitution::makeEqual(VarSpec v1, VarSpec v2, TermSpec target)
 {
   CALL("RobSubstitution::makeEqual");
@@ -292,7 +288,9 @@ void RobSubstitution::makeEqual(VarSpec v1, VarSpec v2, TermSpec target)
     bind(v1,target);
   }
 }
+*/
 
+/* Not currently used
 void RobSubstitution::unifyUnbound(VarSpec v, TermSpec ts)
 {
   CALL("RobSubstitution::unifyUnbound");
@@ -310,7 +308,7 @@ void RobSubstitution::unifyUnbound(VarSpec v, TermSpec ts)
     bind(v,ts);
   }
 }
-
+*/
 
 void RobSubstitution::swap(TermSpec& ts1, TermSpec& ts2)
 {
@@ -374,14 +372,9 @@ bool RobSubstitution::occurs(VarSpec vs, TermSpec ts)
   }
 }
 
-bool RobSubstitution::unify(TermSpec t1, TermSpec t2)
+bool RobSubstitution::unify(TermSpec t1, TermSpec t2,MismatchHandler* hndlr)
 {
   CALL("RobSubstitution::unify/2");
-
-  /*bool print = false;
-  if(t1.toString() == "S3/2" && t2.toString() == "X1/3"){
-    print = true;
-  }*/
 
   if(t1.sameTermContent(t2)) {
     return true;
@@ -403,13 +396,10 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2)
     TermSpec dt1=derefBound(t1);
     TermSpec dt2=derefBound(t2);
     
-    //cout << "dt1 is " + dt1.toString() << " and it is isVSpecialVar " << dt1.isVSpecialVar() << endl;
-    //cout << "dt2 is " + dt2.toString() << " and it is isVSpecialVar " << dt2.isVSpecialVar() << endl; 
-
     if(dt1.sameTermContent(dt2)) {
     } else if(dt1.isVSpecialVar() && dt2.isVSpecialVar()){
-      //ASS(dt2.isVSpecialVar() && dt1.isVSpecialVar());
-      addToConstraints(getVarSpec(dt1), getVarSpec(dt2));
+      ASS(hndlr);
+      addToConstraints(getVarSpec(dt1), getVarSpec(dt2), hndlr);
     } else if(dt1.isVar() && !dt1.isVSpecialVar()) {
       VarSpec v1=getVarSpec(dt1);
       if(occurs(v1, dt2)) {
@@ -466,8 +456,14 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2)
                 encountered.insert(itm);
               }
             } else {
-              mismatch=true;
-              break;
+              // Eventually, we want to make theories using the hashing/very special variable
+              // mechanism used by higher-order logic to pruduce constraints.
+              // until then the first condition ensures that the handler is never called
+              // incorrectly. HOL also uses a handler, but it shouldn't be called here.
+              if(env.statistics->higherOrder || !hndlr || !hndlr->handle(this,tsss.term,tsss.index,tstt.term,tstt.index)){
+                mismatch=true;
+                break;
+              }
             }
           }
 
@@ -484,7 +480,7 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2)
       }
     }
 
-    if(toDo.isEmpty()) {
+    if(toDo.isEmpty() || mismatch) {
       break;
     }
     t1=toDo.top().first;
@@ -506,7 +502,7 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2)
     }
     localBD.drop();
   }
-  //cout << "end" << endl;
+
   return !mismatch;
 }
 
@@ -645,8 +641,6 @@ TermList RobSubstitution::apply(TermList trm, int index) const
 {
   CALL("RobSubstitution::apply(TermList...)");
 
-  //cout << "applying to term " + trm.toString() + "/" << index << endl;
-
   static Stack<TermList*> toDo(8);
   static Stack<int> toDoIndex(8);
   static Stack<Term*> terms(8);
@@ -704,7 +698,6 @@ TermList RobSubstitution::apply(TermList trm, int index) const
       ts=deref(vs);
       if(ts.term.isVar() && !ts.term.isVSpecialVar()) {
         ASS(ts.index==UNBOUND_INDEX);
-        //cout << "bound " + vs.toString() + " to " + ts.toString() << endl;
         args.push(ts.term);
         continue;
       }

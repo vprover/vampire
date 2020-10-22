@@ -690,12 +690,12 @@ SubstitutionTree::UnificationsIterator::UnificationsIterator(SubstitutionTree* p
 svStack(32), literalRetrieval(query->isLiteral()),
   retrieveSubstitution(retrieveSubstitution), inLeaf(false),
 ldIterator(LDIterator::getEmpty()), nodeIterators(8), bdStack(8),
-clientBDRecording(false), tree(parent), useConstraints(useC)
+clientBDRecording(false), tree(parent), useUWAConstraints(useC)
 {
   CALL("SubstitutionTree::UnificationsIterator::UnificationsIterator");
 
-  ASS(!useConstraints || retrieveSubstitution);
-  ASS(!useConstraints || parent->_useC);
+  ASS(!useUWAConstraints || retrieveSubstitution);
+  ASS(!useUWAConstraints || parent->_useC);
 
 #if VDEBUG
   tree->_iteratorCnt++;
@@ -705,15 +705,8 @@ clientBDRecording(false), tree(parent), useConstraints(useC)
     return;
   }
 
-
-  //print = false;
-  /*if(query->toString() == "X2 @ (sK0(X1) @ (sCOMB @ X2 @ X3)) @ (X3 @ (sK0(X1) @ (sCOMB @ X2 @ X3)))"){
-    cout << "STARTED" <<endl;
-    print = true;
-    cout << parent->toString() << endl;
-  }*/
-
   if(funcSubtermMap){
+    useHOConstraints = true;
     subst.setMap(funcSubtermMap);
   }
 
@@ -820,21 +813,6 @@ SubstitutionTree::QueryResult SubstitutionTree::UnificationsIterator::next()
     } else {
       normalizer.normalizeVariables(ld.term);
     }
-    //if(print){
-    //}
-/*
-    Stack<UnificationConstraint> normalizedConstraints;
-    Stack<UnificationConstraint>::Iterator conit(constraints);
-    while(conit.hasNext()){
-      auto constraint = conit.next();
-      TermList normNode = subst.apply(constraint.second,NORM_RESULT_BANK);
-      normalizedConstraints.push(make_pair(constraint.first,normNode));
-    }
-*/
-    //if(print){
-      //cout << "normalizer: " << endl; cout << normalizer.toString() << endl;
-      //cout << "SUB:" << endl; cout << subst.toString() << endl;
-    //}
 
     ASS(clientBacktrackData.isEmpty());
     subst.bdRecord(clientBacktrackData);
@@ -845,7 +823,7 @@ SubstitutionTree::QueryResult SubstitutionTree::UnificationsIterator::next()
 
     return QueryResult(make_pair(&ld, ResultSubstitution::fromSubstitution(
 	    &subst, QUERY_BANK, RESULT_BANK)),
-            UnificationConstraintStackSP(new Stack<UnificationConstraint>(constraints))); 
+            UnificationConstraintStackSP(new UnificationConstraintStack(constraints))); 
   } else {
     return QueryResult(make_pair(&ld, ResultSubstitutionSP()),UnificationConstraintStackSP());
   }
@@ -951,6 +929,25 @@ bool SubstitutionTree::UnificationsIterator::enter(Node* n, BacktrackData& bd)
   return success;
 }
 
+bool SubstitutionTree::SubstitutionTreeMismatchHandler::introduceConstraint(TermList query,unsigned index1, TermList node,unsigned index2)
+{
+  CALL("SubstitutionTree::MismatchHandler::introduceConstraint");
+  
+  auto constraint = make_pair(make_pair(query,index1),make_pair(node,index2));
+  _constraints.backtrackablePush(constraint,_bd);
+  return true;
+}
+
+bool SubstitutionTree::STHOMismatchHandler::handle
+     (RobSubstitution* subst,TermList query,unsigned index1, TermList node,unsigned index2)
+{
+  CALL("SubstitutionTree::STHOMismatchHandler::handle");
+
+  auto constraint = make_pair(make_pair(query,index1),make_pair(node,index2));
+  _constraints.backtrackablePush(constraint,_bd);
+  return true;
+}
+
 /**
  * TODO: explain properly what associate does
  * called from enter(...)
@@ -959,74 +956,21 @@ bool SubstitutionTree::UnificationsIterator::associate(TermList query, TermList 
 {
   CALL("SubstitutionTree::UnificationsIterator::associate");
 
-  // check for syntactic (robinson) unifiability
-  bool result = subst.unify(query,NORM_QUERY_BANK,node,NORM_RESULT_BANK);
- 
-  /*if(print && result){
-    cout << "unify " << query.toString() << " and " << node.toString() << endl;    
-  }*/
+  if(useUWAConstraints){ 
+    SubstitutionTreeMismatchHandler hndlr(constraints,bd);
+    return subst.unify(query,NORM_QUERY_BANK,node,NORM_RESULT_BANK,&hndlr);
+  } 
+  if(useHOConstraints){
+    STHOMismatchHandler hndlr(constraints,bd);
+    return subst.unify(query,NORM_QUERY_BANK,node,NORM_RESULT_BANK,&hndlr);    
+  }
+  return subst.unify(query,NORM_QUERY_BANK,node,NORM_RESULT_BANK);
 
 #if VDEBUG
-  if(tag && result){
+  if(tag){
     cout << "unify " << query.toString() << " and " << node.toString() << endl;
   }
 #endif
-
-  // if unification with abstraction enabled and no syntactic unifier exists
-  /* if(useConstraints && !result){
-    TermList queryTranslated = subst.apply(query,NORM_QUERY_BANK);
-    TermList nodeTranslated = subst.apply(node,NORM_RESULT_BANK);
-
-    static Options::UnificationWithAbstraction opt = env.options->unificationWithAbstraction();
-    
-    bool okay = queryTranslated.isTerm() && nodeTranslated.isTerm();
-
-    if(okay){
-
-      bool queryInterp = (theory->isInterpretedFunction(queryTranslated) || theory->isInterpretedConstant(queryTranslated)); 
-      bool nodeInterp = (theory->isInterpretedFunction(nodeTranslated) || theory->isInterpretedConstant(nodeTranslated)); 
-      bool bothNumbers = (theory->isInterpretedConstant(queryTranslated) && theory->isInterpretedConstant(nodeTranslated));
-    
-      switch(opt){
-        case Options::UnificationWithAbstraction::INTERP_ONLY:
-          okay &= (queryInterp && nodeInterp && !bothNumbers); 
-          break;
-        case Options::UnificationWithAbstraction::ONE_INTERP:
-          okay &= !bothNumbers && (queryInterp || nodeInterp);
-          break;
-        case Options::UnificationWithAbstraction::CONSTANT:
-          okay &= !bothNumbers && (queryInterp || nodeInterp);
-          okay &= (queryInterp || env.signature->functionArity(queryTranslated.term()->functor()));
-          okay &= (nodeInterp || env.signature->functionArity(nodeTranslated.term()->functor()));
-          break;  
-        case Options::UnificationWithAbstraction::ALL:
-        case Options::UnificationWithAbstraction::FIXED:
-        case Options::UnificationWithAbstraction::GROUND:
-          break;
-        default:
-          ASSERTION_VIOLATION; 
-      }
-      // ALL means no restrictions
-
-      if(okay){
-
-        //cout << "Add Constraint " << queryTranslated.toString() << " =  " << nodeTranslated.toString() << endl;
-        //cout << "Without translation " << query.toString() << " = " << node.toString() << endl;
-        //cout << "SUB " << endl << subst.toString() << endl; 
-
-        unsigned x = tree->_nextVar++;
-        TermList nodeVar = TermList(x,true);
-        subst.bindSpecialVar(x,node,NORM_RESULT_BANK);
-#if VDEBUG
-        //cout << "constraint " << query.toString() << " = " << nodeVar.toString() << endl;
-#endif
-        pair<TermList,TermList> constraint = make_pair(query,nodeVar);
-        constraints.backtrackablePush(constraint,bd);
-        return true;
-      }
-    }
-  }*/
-  return result;
 }
 
 //TODO I think this works for VSpcialVars as well. Since .isVar() will return true 

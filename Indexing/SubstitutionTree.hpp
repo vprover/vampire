@@ -211,8 +211,10 @@ public:
   typedef VirtualIterator<Node**> NodeIterator;
   typedef List<Node*> NodeList;
   class IntermediateNode;
-    /* 
-    class ChildBySortHelper
+    
+    //We can remove this class once we deal with UWA uniformly for
+    //for theories and HOL AYB
+    /*class ChildBySortHelper
     {
     public:
         
@@ -262,7 +264,7 @@ public:
         /*
          * This is used for recording terms that might
          */
-        /*void mightExistAsTop(TermList t)
+       /* void mightExistAsTop(TermList t)
         {
             CALL("SubstitutionTree::ChildBySortHelper::mightExistAsTop");
             if(!t.isTerm()){ return; }
@@ -779,6 +781,29 @@ public:
     Stack<NodeAlgorithm> _nodeTypes;
   };
 
+  class SubstitutionTreeMismatchHandler : public UWAMismatchHandler 
+  {
+  public:
+    SubstitutionTreeMismatchHandler(Stack<UnificationConstraint>& c, BacktrackData& bd) : 
+      UWAMismatchHandler(c), _constraints(c), _bd(bd) {}
+    //virtual bool handle(RobSubstitution* subst, TermList query, unsigned index1, TermList node, unsigned index2);
+  private:
+    virtual bool introduceConstraint(TermList t1,unsigned index1, TermList t2,unsigned index2);
+    Stack<UnificationConstraint>& _constraints;
+    BacktrackData& _bd;
+  };
+
+  class STHOMismatchHandler : public HOMismatchHandler 
+  {
+  public:
+    STHOMismatchHandler(Stack<UnificationConstraint>& c, BacktrackData& bd) : 
+      HOMismatchHandler(c), _constraints(c), _bd(bd) {}
+    virtual bool handle(RobSubstitution* subst, TermList query, unsigned index1, TermList node, unsigned index2);
+  private:
+    Stack<UnificationConstraint>& _constraints;
+    BacktrackData& _bd;
+  };  
+
   class UnificationsIterator
   : public IteratorCore<QueryResult>
   {
@@ -824,9 +849,9 @@ public:
     BacktrackData clientBacktrackData;
     Renaming queryNormalizer;
     SubstitutionTree* tree;
-    bool useConstraints;
-    bool print;
-    Stack<UnificationConstraint> constraints;
+    bool useUWAConstraints;
+    bool useHOConstraints;
+    UnificationConstraintStack constraints;
   };
 
 /*

@@ -81,7 +81,12 @@ struct EqualityResolution::ResultFn
     TermList arg0 = *lit->nthArgument(0);
     TermList arg1 = *lit->nthArgument(1);
 
-    if(env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION){
+    static Options::UnificationWithAbstraction uwa = env.options->unificationWithAbstraction();
+    static Options::FunctionExtensionality ext = env.options->functionExtensionality();
+    bool use_uwa_handler = uwa != Options::UnificationWithAbstraction::OFF;
+    bool use_ho_handler = ext == Options::FunctionExtensionality::ABSTRACTION;
+
+    if(use_ho_handler){
       TermList sort = SortHelper::getEqualityArgumentSort(lit);
       if(!arg0.isVar() && !arg1.isVar() && 
          !sort.isVar() && !ApplicativeHelper::isArrowType(sort.term())){
@@ -90,22 +95,41 @@ struct EqualityResolution::ResultFn
       }
     }
 
-    static RobSubstitution subst;
-    subst.reset();
-    subst.setMap(&funcSubtermMap);
-    if(!subst.unify(arg0,0,arg1,0)) {
-      return 0;
+    // We only care about non-trivial constraints where the top-sybmol of the two literals are the same
+    // and therefore a constraint can be created between arguments
+    if(use_uwa_handler &&  arg0.isTerm() && arg1.isTerm() &&
+       arg0.term()->functor() == arg1.term()->functor()){
+      use_uwa_handler = false;
     }
 
-    typedef RobSubstitution::TTPair ConPair;
-    unsigned cLength = subst.constraintsSize();
-    const Stack<ConPair>& constraints = subst.constraints();
+    static RobSubstitution subst;
+    static UnificationConstraintStack constraints;
+    subst.setMap(&funcSubtermMap);
+    subst.reset();
+    constraints.reset();
+
+    MismatchHandler* hndlr = 0;
+    if(use_uwa_handler){
+      hndlr = new UWAMismatchHandler(constraints);
+    }
+
+    if(use_ho_handler){
+      hndlr = new HOMismatchHandler(constraints);
+    }
+
+    if(!subst.unify(arg0,0,arg1,0,hndlr)){ 
+      return 0; 
+    }
+ 
+    if(hndlr){
+      delete hndlr;
+    }
 
     //cout << "equalityResolution with " + _cl->toString() << endl;
     //cout << "The literal is " + lit->toString() << endl;
     //cout << "cLength " << cLength << endl;
 
-    unsigned newLen=_cLen-1+cLength;
+    unsigned newLen=_cLen-1+ constraints.length();
 
     Clause* res = new(newLen) Clause(newLen, GeneratingInference1(InferenceRule::EQUALITY_RESOLUTION, _cl));
 
@@ -135,19 +159,25 @@ struct EqualityResolution::ResultFn
         (*res)[next++] = currAfter;
       }
     }
-    if(cLength){
-      ConPair con;
-      for(unsigned i = 0; i < constraints.size(); i++){
-        con = constraints[i];
-        TermList qT = subst.apply(TermList(con.first.term), 0);
-        TermList rT = subst.apply(TermList(con.second.term), 0);
+    for(unsigned i=0;i<constraints.length();i++){
+      UnificationConstraint con = (constraints)[i];
+      TermList qT = subst.apply(con.first.first,0);
+      TermList rT = subst.apply(con.second.first,0);
 
-        TermList sort = SortHelper::getResultSort(rT.term());
-        Literal* constraint = Literal::createEquality(false,qT,rT,sort);
+      TermList sort = SortHelper::getResultSort(rT.term());
+      Literal* constraint = Literal::createEquality(false,qT,rT,sort);      
 
-        (*res)[next] = constraint;
-        next++;        
+      if(use_uwa_handler && uwa==Options::UnificationWithAbstraction::GROUND &&
+         !constraint->ground() &&
+         (!theory->isInterpretedFunction(qT) && !theory->isInterpretedConstant(qT)) &&
+         (!theory->isInterpretedFunction(rT) && !theory->isInterpretedConstant(rT))){
+
+        // the unification was between two uninterpreted things that were not ground 
+        res->destroy();
+        return 0;
       }
+
+      (*res)[next++] = constraint;
     }
     ASS_EQ(next,newLen);
 

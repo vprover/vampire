@@ -170,6 +170,14 @@ public:
   unsigned backwardDemodulations;
   /** number of backward demodulations into equational tautologies */
   unsigned backwardDemodulationsToEqTaut;
+    /** number of forward subsumption demodulations */
+  unsigned forwardSubsumptionDemodulations;
+  /** number of forward subsumption demodulations into equational tautologies */
+  unsigned forwardSubsumptionDemodulationsToEqTaut;
+  /** number of backward subsumption demodulations */
+  unsigned backwardSubsumptionDemodulations;
+  /** number of backward subsumption demodulations into equational tautologies */
+  unsigned backwardSubsumptionDemodulationsToEqTaut;
   /** number of forward literal rewrites */
   unsigned forwardLiteralRewrites;
   /** number of condensations */

@@ -236,8 +236,6 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
   // The outer iterator ensures we update the time counter for superposition
   auto it7 = getTimeCountedIterator(it6, TC_SUPERPOSITION);
 
-  //cout << "exited superposition" << endl;
-
   return pvi( it7 );
 }
 
@@ -401,12 +399,11 @@ Clause* Superposition::performSuperposition(
   ASS(rwClause->store()==Clause::ACTIVE);
   ASS(eqClause->store()==Clause::ACTIVE);
 
-  /*if(rwClause->number() == 148 && eqClause->number() == 164){
-    cout << "performSuperposition with " << rwClause->toString() << " and " << eqClause->toString() << endl;
+  /*  cout << "performSuperposition with " << rwClause->toString() << " and " << eqClause->toString() << endl;
     cout << "rwTerm " << rwTerm.toString() << " eqLHS " << eqLHS.toString() << endl;
     cout << "subst " << endl << subst->tryGetRobSubstitution()->toString() << endl;
     cout << "eqIsResult " << eqIsResult << endl;
-  }*/
+  */
 
   // the first checks the reference and the second checks the stack
 /*
@@ -418,17 +415,13 @@ Clause* Superposition::performSuperposition(
 */
 
   // the first checks the reference and the second checks the stack
-  typedef RobSubstitution::TTPair ConPair;
-  RobSubstitution* sub = subst->tryGetRobSubstitution();
-  unsigned cLength = sub->constraintsSize();
-  const Stack<ConPair>& constraints2 = sub->constraints();
-  ASS(!cLength || !isTypeSub);
-
-
   bool hasConstraints = !constraints.isEmpty() && !constraints->isEmpty();
+  ASS(!hasConstraints || !isTypeSub);
   TermList eqLHSsort = SortHelper::getEqualityArgumentSort(eqLit); 
 
-  if(eqLHS.isVar()) { //TODO fix this unification or what?
+  if(eqLHS.isVar()) { //TODO fix this unification or what? AYB
+    RobSubstitution* sub = subst->tryGetRobSubstitution();
+    ASS(sub);
     TermList rwTermSort = SortHelper::getTermSort(rwTerm, rwLit);
     if(!sub->unify(eqLHSsort, eqIsResult, rwTermSort, !eqIsResult)){
       //cannot perform superposition because sorts don't unify
@@ -449,12 +442,12 @@ Clause* Superposition::performSuperposition(
   unsigned rwLength = rwClause->length();
   unsigned eqLength = eqClause->length();
   unsigned conLength = hasConstraints ? constraints->size() : 0;
-           conLength += cLength;
 
   TermList tgtTerm = EqHelper::getOtherEqualitySide(eqLit, eqLHS);
 
   unsigned numPositiveLiteralsLowerBound = Int::max(eqClause->numPositiveLiterals()-1, rwClause->numPositiveLiterals()); // lower bound on number of positive literals, don't know at this point whether duplicate positive literals will occur
 
+  //TODO update inference rule name AYB
   Inference inf(GeneratingInference2(hasConstraints ? InferenceRule::CONSTRAINED_SUPERPOSITION : InferenceRule::SUPERPOSITION, rwClause, eqClause));
   Inference::Destroyer inf_destroyer(inf);
 
@@ -474,7 +467,7 @@ Clause* Superposition::performSuperposition(
   TermList rwTermS = subst->apply(rwTerm, !eqIsResult);
 
 #if VDEBUG
-  if(!hasConstraints && !cLength && !isTypeSub){
+  if(!hasConstraints && !isTypeSub){
     ASS_EQ(rwTermS,eqLHSS);
   }
 #endif
@@ -622,37 +615,14 @@ Clause* Superposition::performSuperposition(
       }
     }
   }
+  if(hasConstraints){
+    for(unsigned i=0;i<constraints->size();i++){
+      UnificationConstraint con = (*constraints)[i];
 
-  if(cLength){
-    ConPair con;
-    for(unsigned i = 0; i < constraints2.size(); i++){
-      con = constraints2[i];
-      //TODO WARNING VERY HACKY! Want to apply to normalised banks
-      TermList qT = subst->tryGetRobSubstitution()->apply(TermList(con.first.term), con.first.index);
-      TermList rT = subst->tryGetRobSubstitution()->apply(TermList(con.second.term), con.second.index);
+      TermList qT = subst->applyTo(con.first.first,con.first.second);
+      TermList rT = subst->applyTo(con.second.first,con.second.second);
 
       TermList sort = SortHelper::getResultSort(rT.term());
-      Literal* constraint = Literal::createEquality(false,qT,rT,sort);
-
-      (*res)[next] = constraint;
-      next++;        
-    }
-  }
-
-  if(isTypeSub){
-    TermList eqLHSsortS = subst->apply(eqLHSsort, eqIsResult);
-    Literal* constraint = Literal::createEquality(false,eqLHSS,rwTermS,eqLHSsortS);
-    (*res)[next] = constraint;
-  }
-
-  /*if(hasConstraints){
-    for(unsigned i=0;i<constraints->size();i++){
-      pair<TermList,TermList> con = (*constraints)[i];
-
-      TermList qT = subst->applyToQuery(con.first);
-      TermList rT = subst->applyToResult(con.second);
-
-      unsigned sort = SortHelper::getResultSort(rT.term());
       Literal* constraint = Literal::createEquality(false,qT,rT,sort);
 
       static Options::UnificationWithAbstraction uwa = env.options->unificationWithAbstraction();
@@ -669,7 +639,7 @@ Clause* Superposition::performSuperposition(
       (*res)[next] = constraint;
       next++;   
     }
-  }*/
+  }
 
   if(needsToFulfilWeightLimit && !passiveClauseContainer->fulfilsWeightLimit(weight, numPositiveLiteralsLowerBound, res->inference())) {
     RSTAT_CTR_INC("superpositions skipped for weight limit after the clause was built");
@@ -679,6 +649,7 @@ Clause* Superposition::performSuperposition(
     return 0;
   }
 
+  //TODO update AYB
   if(!hasConstraints){
     if(rwClause==eqClause) {
       env.statistics->selfSuperposition++;

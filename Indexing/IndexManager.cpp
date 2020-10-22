@@ -27,7 +27,7 @@
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
-//#include "AcyclicityIndex.hpp"
+#include "AcyclicityIndex.hpp"
 //#include "ArithmeticIndex.hpp"
 #include "CodeTreeInterfaces.hpp"
 #include "GroundingIndex.hpp"
@@ -151,9 +151,8 @@ Index* IndexManager::create(IndexType t)
   TermIndexingStructure* tis;
 
   bool isGenerating;
-  bool attachPassive = false;
-  static bool useConstraints = env.options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF;
-  static bool extByAbs = env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION;
+  static bool const useConstraints = env.options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF;
+  static bool const extByAbs = env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION;
   switch(t) {
   case GENERATING_SUBST_TREE:
     is=new LiteralSubstitutionTree(useConstraints);
@@ -223,11 +222,11 @@ Index* IndexManager::create(IndexType t)
     isGenerating = false;
     break;
 
-  case RENAMING_FORMULA_INDEX:
+  /*case RENAMING_FORMULA_INDEX:
     tis=new TermSubstitutionTree(false, false, true);
     res=new RenamingFormulaIndex(tis);
     attachPassive = true;
-    break;
+    break;*/
 
   case NARROWING_INDEX:
     tis=new TermSubstitutionTree();
@@ -240,11 +239,11 @@ Index* IndexManager::create(IndexType t)
     res=new PrimitiveInstantiationIndex(tis); 
     isGenerating = true;
     break;  
-  /* case ACYCLICITY_INDEX:
+   case ACYCLICITY_INDEX:
     tis = new TermSubstitutionTree();
     res = new AcyclicityIndex(tis);
     isGenerating = true;
-    break; */
+    break; 
 
   case DEMODULATION_SUBTERM_SUBST_TREE:
     tis=new TermSubstitutionTree();
@@ -270,6 +269,12 @@ Index* IndexManager::create(IndexType t)
     isGenerating = false;
     break;
 
+  case FSD_SUBST_TREE:
+    is = new LiteralSubstitutionTree();
+    res = new FSDLiteralIndex(is);
+    isGenerating = false;
+    break;
+
   case REWRITE_RULE_SUBST_TREE:
     is=new LiteralSubstitutionTree();
     res=new RewriteRuleIndex(is, _alg->getOrdering());
@@ -289,14 +294,11 @@ Index* IndexManager::create(IndexType t)
   default:
     INVALID_OPERATION("Unsupported IndexType.");
   }
-  //if(attachContainer){
-    if(attachPassive){
-      res->attachContainer(_alg->getPassiveClauseContainer());
-    } else if(isGenerating) {
-      res->attachContainer(_alg->getGeneratingClauseContainer());
-    } else {
-      res->attachContainer(_alg->getSimplifyingClauseContainer());
-    }
-  //}
+  if(isGenerating) {
+    res->attachContainer(_alg->getGeneratingClauseContainer());
+  }
+  else {
+    res->attachContainer(_alg->getSimplifyingClauseContainer());
+  }
   return res;
 }
