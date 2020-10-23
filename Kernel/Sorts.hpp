@@ -165,6 +165,10 @@ public:
 
   VirtualIterator<unsigned> getStructuredSorts(const StructuredSort ss);
 
+  static bool isNumericSort(unsigned sort){
+    return sort == SRT_INTEGER || sort == SRT_RATIONAL || sort == SRT_REAL;
+  }
+
   bool isStructuredSort(unsigned sort) {
     if(sort > _sorts.size()) return false;
     SortInfo* si = _sorts[sort];

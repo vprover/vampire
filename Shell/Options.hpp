@@ -621,6 +621,11 @@ public:
     OFF = 1,
     ON = 2
   };
+  enum class LinearArithmeticDP : unsigned int {
+    OFF = 0,
+    GE = 1,
+    SIMPLEX = 2
+  };
 
   enum class SplittingNonsplittableComponents : unsigned int {
     ALL = 0,
@@ -2158,6 +2163,7 @@ public:
   float splittingFlushQuotient() const { return _splittingFlushQuotient.actualValue; }
   bool splittingEagerRemoval() const { return _splittingEagerRemoval.actualValue; }
   SplittingCongruenceClosure splittingCongruenceClosure() const { return _splittingCongruenceClosure.actualValue; }
+  LinearArithmeticDP ladp() const { return _linearArithmeticDP.actualValue; }
   CCUnsatCores ccUnsatCores() const { return _ccUnsatCores.actualValue; }
 
   void setProof(Proof p) { _proof.actualValue = p; }
@@ -2527,6 +2533,7 @@ private:
   ChoiceOptionValue<SplittingAddComplementary> _splittingAddComplementary;
   ChoiceOptionValue<SplittingCongruenceClosure> _splittingCongruenceClosure;
   ChoiceOptionValue<CCUnsatCores> _ccUnsatCores;
+  ChoiceOptionValue<LinearArithmeticDP> _linearArithmeticDP;
   BoolOptionValue _splittingEagerRemoval;
   UnsignedOptionValue _splittingFlushPeriod;
   FloatOptionValue _splittingFlushQuotient;

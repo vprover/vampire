@@ -1548,6 +1548,17 @@ void Options::init()
     _splittingCongruenceClosure.setRandomChoices({"model","off","on"});
     _splittingCongruenceClosure.addHardConstraint(If(equal(SplittingCongruenceClosure::MODEL)).
                                                   then(_splittingMinimizeModel.is(notEqual(SplittingMinimizeModel::SCO))));
+
+    _linearArithmeticDP = ChoiceOptionValue<LinearArithmeticDP>("linear_arithmetic_dp","ladp",
+                                                                    LinearArithmeticDP::OFF, {"off","ge","simplex"});
+    _linearArithmeticDP.description="Use a linear arithmetic decicion procedure on top of the AVATAR SAT solver. This ensures that models produced by AVATAR satisfy the theory of linear arithmetic.";
+    _linearArithmeticDP.tag(OptionTag::AVATAR);
+    _linearArithmeticDP.setExperimental();
+    _lookup.insert(&_linearArithmeticDP);
+    _linearArithmeticDP.reliesOn(_splitting.is(equal(true)));
+#if VZ3
+    _linearArithmeticDP.reliesOn(_satSolver.is(notEqual(SatSolver::Z3)));
+#endif
     
     _ccUnsatCores = ChoiceOptionValue<CCUnsatCores>("cc_unsat_cores","ccuc",CCUnsatCores::ALL,
                                                      {"first", "small_ones", "all"});

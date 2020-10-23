@@ -401,7 +401,8 @@ PARSE_OBJ = Parse/SMTLIB2.o\
             Parse/TPTP.o
 
 DP_OBJ = DP/ShortConflictMetaDP.o\
-         DP/SimpleCongruenceClosure.o
+         DP/SimpleCongruenceClosure.o\
+         DP/LinearArithmeticDP.o  
 
 CASC_OBJ = CASC/PortfolioMode.o\
            CASC/Schedules.o\
