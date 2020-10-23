@@ -67,6 +67,18 @@ Environment::Environment()
   signature = new Signature;
   sharing = new TermSharing;
 
+  // Below is a hack. We would like to remove sorts altogether
+  // However, FMB and SubstitutionTree rely on sorts being unsigned
+  // and also require that interpreted sorts are 0 - 5 for efficiency purposes
+  // Therefore, these are added first. Once FMB and SubstitutionTree are 
+  // fixed this hack can be removed AYB.
+
+  sorts->addSort(Term::defaultSort());
+  sorts->addSort(Term::boolSort());
+  sorts->addSort(Term::intSort());
+  sorts->addSort(Term::realSort());
+  sorts->addSort(Term::rationalSort());
+
   timer = Timer::instance();
   timer->start();
 } // Environment::Environment

@@ -126,30 +126,51 @@ public:
     inline
     static Comparison compare(const LeafData& ld1, const LeafData& ld2)
     {
+      CALL("SubstitutionTree::LDComparator::compare");
+
+      /*
+      cout << "ld1: " << ld1.toString() << endl;
+      cout << "ld2: " << ld2.toString() << endl;
+      */
+
       if(ld1.clause && ld2.clause && ld1.clause!=ld2.clause) {
         //if(ld1.clause->number()==ld2.clause->number()){
           //cout << "XXX " << ld1.clause << " and " << ld2.clause << endl;
           //cout << ld2.clause->toString() << endl;
         //}
-	ASS_NEQ(ld1.clause->number(), ld2.clause->number());
-	return (ld1.clause->number()<ld2.clause->number()) ? LESS : GREATER;
+        ASS_NEQ(ld1.clause->number(), ld2.clause->number());
+        return (ld1.clause->number()<ld2.clause->number()) ? LESS : GREATER;
       }
       Comparison res;
       if(ld1.literal && ld2.literal && ld1.literal!=ld2.literal) {
-	res=(ld1.literal->weight()>ld2.literal->weight())? LESS ://minimizing the non-determinism
-	  (ld1.literal->weight()<ld2.literal->weight())? GREATER :
-	  (ld1.literal<ld2.literal)? LESS : GREATER;
-	ASS_NEQ(res, EQUAL);
+        res = (ld1.literal->getId()<ld2.literal->getId())? LESS : GREATER;
       } else {
-	ASS_EQ(ld1.clause,ld2.clause);
-	ASS_EQ(ld1.literal,ld2.literal);
-//	if(ld1.term.isEmpty()) {
-//	  ASS(ld2.term.isEmpty());
-//	  res=EQUAL;
-//	} else {
-//	  res=Term::lexicographicCompare(ld1.term,ld2.term);
-//	}
-	res=(ld1.term<ld2.term)? LESS : (ld1.term>ld2.term)? GREATER : EQUAL;
+        ASS_EQ(ld1.clause,ld2.clause);
+        ASS_EQ(ld1.literal,ld2.literal);
+
+        if (ld1.term.isEmpty()) {
+          ASS(ld2.term.isEmpty());
+          res = EQUAL;
+        } else {
+          if (ld1.term.isVar()) {
+            if (ld2.term.isVar()) {
+              unsigned var1 = ld1.term.var();
+              unsigned var2 = ld2.term.var();
+              res=(var1<var2)? LESS : (var1>var2)? GREATER : EQUAL;
+            }
+            else{
+              res = LESS;
+            }
+          } else {
+            if (ld2.term.isVar()) {
+              res = GREATER;
+            } else {
+              unsigned id1 = ld1.term.term()->getId();
+              unsigned id2 = ld2.term.term()->getId();
+              res=(id1<id2)? LESS : (id1>id2)? GREATER : EQUAL;
+            }
+          }
+        }
       }
       return res;
     }
@@ -214,7 +235,7 @@ public:
     
     //We can remove this class once we deal with UWA uniformly for
     //for theories and HOL AYB
-    /*class ChildBySortHelper
+    class ChildBySortHelper
     {
     public:
         
@@ -235,51 +256,54 @@ public:
             Stack<TermList>::Iterator it2(other->bySortTerms[i]);
             bySortTerms[i].loadFromIterator(it2);
           }
-        } */
+        } 
         
         /**
          * Return an iterator of child nodes whose top term has the same sort
          * as Termlist t. Only consider interpreted sorts.
          *
          */
-        /*NodeIterator childBySort(TermList t)
+        NodeIterator childBySort(TermList t)
         {
-            CALL("SubstitutionTree::ChildBySortHelper::childBySort");
-            TermList srt;
-            // only consider interpreted sorts
-            if(SortHelper::tryGetResultSort(t,srt) && srt < Sorts::FIRST_USER_SORT && srt!=Sorts::SRT_DEFAULT){
-                unsigned top = t.term()->functor();
-                Stack<TermList>::Iterator fit(bySortTerms[srt]);
-                auto withoutThisTop = getFilteredIterator(fit,NotTop(top));
-                auto nodes = getMappingIterator(withoutThisTop,ByTopFn(this));
-                return pvi(getFilteredIterator(nodes,NonzeroFn()));
-            }
-            return NodeIterator::getEmpty();
+          CALL("SubstitutionTree::ChildBySortHelper::childBySort");
+          TermList srt;
+          // only consider interpreted sorts
+          if(SortHelper::tryGetResultSort(t,srt) && 
+             !SortHelper::isNotDefaultSort(SortHelper::sortNum(srt)) &&
+             srt!=Term::defaultSort()){
+              unsigned top = t.term()->functor();
+              TermStack::Iterator fit(bySortTerms[SortHelper::sortNum(srt)]);
+              auto withoutThisTop = getFilteredIterator(fit,NotTop(top));
+              auto nodes = getMappingIterator(withoutThisTop,ByTopFn(this));
+              return pvi(getFilteredIterator(nodes,NonzeroFn()));
+          }
+          return NodeIterator::getEmpty();
         } 
         
         DArray<DHSet<unsigned>> bySort;
         DArray<Stack<TermList>> bySortTerms;
         
-        IntermediateNode* _parent; */
+        IntermediateNode* _parent; 
         /*
          * This is used for recording terms that might
          */
-       /* void mightExistAsTop(TermList t)
+        void mightExistAsTop(TermList t)
         {
-            CALL("SubstitutionTree::ChildBySortHelper::mightExistAsTop");
-            if(!t.isTerm()){ return; }
-            unsigned srt;
-            if(SortHelper::tryGetResultSort(t,srt)){
-                if(srt > Sorts::SRT_DEFAULT && srt < Sorts::FIRST_USER_SORT){
-                    unsigned f = t.term()->functor();
-                    if(bySort[srt].insert(f)){
-                        bySortTerms[srt].push(t);
-                    }
-                }
+          CALL("SubstitutionTree::ChildBySortHelper::mightExistAsTop");
+          if(!t.isTerm()){ return; }
+          TermList srtT;
+          if(SortHelper::tryGetResultSort(t,srtT)){
+            unsigned srt = SortHelper::sortNum(srtT);
+            if(!SortHelper::isNotDefaultSort(srt) && srtT != Term::defaultSort()){
+              unsigned f = t.term()->functor();
+              if(bySort[srt].insert(f)){
+                bySortTerms[srt].push(t);
+              }
             }
+          }
         }
         
-    };*/// class SubstitutionTree::ChildBySortHelper
+    };// class SubstitutionTree::ChildBySortHelper
     
     
 
@@ -334,7 +358,7 @@ public:
       removeAllChildren();
     }
 
-    /*
+    
     virtual NodeIterator childBySort(TermList t)
     {
         if(!_childBySortHelper) return NodeIterator::getEmpty();
@@ -344,12 +368,12 @@ public:
         if(_childBySortHelper){
           _childBySortHelper->mightExistAsTop(t);
         }
-    }*/
+    }
 
     void loadChildren(NodeIterator children);
 
     const unsigned childVar;
-    //ChildBySortHelper* _childBySortHelper;
+    ChildBySortHelper* _childBySortHelper;
 
     virtual void print(unsigned depth=0){
        auto children = allChildren();
@@ -362,7 +386,7 @@ public:
 
   }; // class SubstitutionTree::IntermediateNode
 
-    /*struct ByTopFn
+    struct ByTopFn
     {
         ByTopFn(ChildBySortHelper* n) : node(n) {};
         DECL_RETURN_TYPE(Node**);
@@ -371,7 +395,7 @@ public:
         }
     private:
         ChildBySortHelper* node;
-    }; */
+    }; 
     struct NotTop
     {
         NotTop(unsigned t) : top(t) {};
@@ -489,7 +513,7 @@ public:
     Node* _nodes[UARR_INTERMEDIATE_NODE_MAX_SIZE+1];
   };
 
- /* class UArrIntermediateNodeWithSorts
+  class UArrIntermediateNodeWithSorts
   : public UArrIntermediateNode
   {
   public:
@@ -499,7 +523,7 @@ public:
    UArrIntermediateNodeWithSorts(TermList ts, unsigned childVar) : UArrIntermediateNode(ts, childVar) {
      _childBySortHelper = new ChildBySortHelper(this);
    }
-  }; */
+  }; 
 
   class SListIntermediateNode
   : public IntermediateNode
@@ -555,7 +579,7 @@ public:
       bool found=_nodes.getPosition(t,res,canCreate);
       if(!found) {
         if(canCreate) {
-          //mightExistAsTop(t);
+          mightExistAsTop(t);
           *res=0;
         } else {
           res=0;
@@ -601,7 +625,7 @@ public:
   };
 
 
-  /*
+  
   class SListIntermediateNodeWithSorts
   : public SListIntermediateNode
   {
@@ -612,7 +636,7 @@ public:
    SListIntermediateNodeWithSorts(TermList ts, unsigned childVar) : SListIntermediateNode(ts, childVar) {
        _childBySortHelper = new ChildBySortHelper(this);
    }
-  };*/
+  };
 
   class Binding {
   public:

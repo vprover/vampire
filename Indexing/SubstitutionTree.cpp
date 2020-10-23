@@ -913,14 +913,14 @@ bool SubstitutionTree::UnificationsIterator::enter(Node* n, BacktrackData& bd)
       IntermediateNode* inode=static_cast<IntermediateNode*>(n);
       svStack.push(inode->childVar);
       NodeIterator nit=getNodeIterator(inode);
-      /*if(useConstraints){
+      if(useUWAConstraints){
         TermList qt = subst.getSpecialVarTop(inode->childVar);
         NodeIterator enit = pvi(getConcatenatedIterator(inode->childBySort(qt),nit));
         nodeIterators.backtrackablePush(enit,bd);
       }
-      else{*/
+      else{
         nodeIterators.backtrackablePush(nit, bd);
-      //}
+      }
     }
   }
   if(recording) {

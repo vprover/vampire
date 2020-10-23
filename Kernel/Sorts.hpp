@@ -44,6 +44,12 @@ public:
   CLASS_NAME(Sorts);
   USE_ALLOCATOR(Sorts);
 
+  //Hack. Relies on the fact that there are only
+  //five interpreted sorts. It is only used in FMB
+  //and SubstitutioTree and should be removed once these
+  //are fixed
+  static const unsigned FIRST_USER_SORT = 5;
+
   Sorts();
   ~Sorts();
 

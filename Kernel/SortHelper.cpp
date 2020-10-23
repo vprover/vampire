@@ -896,10 +896,8 @@ TermList SortHelper::getInnerSort(TermList arraySort)
 bool SortHelper::isNotDefaultSort(unsigned s)
 {
   CALL("SortHelper::isNotDefaultSort");  
-  TermList t = sortTerm(s);
-  return t != Term::boolSort() && t != Term::defaultSort() &&
-         t != Term::intSort() && t != Term::realSort() &&
-         t != Term::rationalSort();
+
+  return s >= Sorts::FIRST_USER_SORT;
 }
 
 
