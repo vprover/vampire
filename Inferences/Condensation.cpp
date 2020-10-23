@@ -146,6 +146,7 @@ Clause* Condensation::simplify(Clause* cl)
           //(*res)[i] = norm.normalize(newLits[i]);
           (*res)[i] = newLits[i];
         }
+
         env.statistics->condensations++;
         return res;
       }

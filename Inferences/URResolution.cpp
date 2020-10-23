@@ -181,7 +181,10 @@ struct URResolution::Item
         UnitList::push(premise, premLst);
       }
     }
-    Inference inf(GeneratingInferenceMany(InferenceRule::UNIT_RESULTING_RESOLUTION, premLst));Clause* res;
+
+    Inference inf(GeneratingInferenceMany(InferenceRule::UNIT_RESULTING_RESOLUTION, premLst));
+    Clause* res;
+
     if(single) {
       single = Renaming::normalize(single);
       res = Clause::fromIterator(getSingletonIterator(single), inf);

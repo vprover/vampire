@@ -54,6 +54,12 @@ class Random
   static int bitsPerInt ();     // finds _bitsPerInt;
 
  public:
+  /* TODO:
+   * https://channel9.msdn.com/Events/GoingNative/2013/rand-Considered-Harmful
+   *
+   * We should consider moving to c++11 approach to random number generation.
+   * Although carefully, as uniform_int_distribution is implementation dependent!
+   */
 
   /** Return the greatest random number */
   static inline int getMax () { return RAND_MAX; }
@@ -90,6 +96,8 @@ class Random
   /** Set random seed to s */
   inline static void setSeed(int s)
   {
+    _remainingBits = 0; // to "flush" the content in _bits, so that s fully determines the follow-up state
+
     _seed = s;
     srand(s);
   }

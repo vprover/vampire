@@ -262,6 +262,7 @@ Comparison Normalisation::compare (Formula* fm1, Formula* fm2)
       if (comp != EQUAL) {
         return comp;
       }
+      break;
     }
     break;
 
@@ -441,14 +442,6 @@ Comparison Normalisation::compare(Term* t1, Term* t2)
 
   Comparison comp;
 
-  if (!t1->shared() && t2->shared()) {
-    return GREATER;
-  }
-
-  if (t1->shared() && !t2->shared()) {
-    return LESS;
-  }
-
   if (!t1->isSpecial() && t2->isSpecial()) {
     return GREATER;
   }
@@ -474,7 +467,7 @@ Comparison Normalisation::compare(Term* t1, Term* t2)
         if (comp != EQUAL) {
           return comp;
         }
-        break;
+        break; // compare arguments "then" and "else" as usual below
 
       case Term::SF_LET: {
         comp = compare((int) Formula::VarList::length(t1->getSpecialData()->getVariables()),
@@ -488,6 +481,7 @@ Comparison Normalisation::compare(Term* t1, Term* t2)
         if (comp != EQUAL) {
           return comp;
         }
+        break; // compare body of the let as usual below (although 1) what about sorts, 2) what about doing the modulo the bound name?)
       }
 
       case Term::SF_LET_TUPLE: {
@@ -502,6 +496,7 @@ Comparison Normalisation::compare(Term* t1, Term* t2)
         if (comp != EQUAL) {
           return comp;
         }
+        break; // compare body of the tuple below
       }
 
       case Term::SF_TUPLE: {
@@ -509,6 +504,7 @@ Comparison Normalisation::compare(Term* t1, Term* t2)
         if (comp != EQUAL) {
           return comp;
         }
+        break; // compare body of the tuple below
       }
 
       case Term::SF_LAMBDA: {
@@ -528,6 +524,14 @@ Comparison Normalisation::compare(Term* t1, Term* t2)
       default:
         ASSERTION_VIOLATION;
     }
+  }
+
+  if (!t1->shared() && t2->shared()) {
+    return GREATER;
+  }
+
+  if (t1->shared() && !t2->shared()) {
+    return LESS;
   }
 
   if (t1->shared() && t2->shared()) {
@@ -550,12 +554,12 @@ Comparison Normalisation::compare(Term* t1, Term* t2)
       return comp;
     }
     comp = compare(_counter.getFun(f1).occ(),
-		   _counter.getFun(f2).occ());
+       _counter.getFun(f2).occ());
     if (comp != EQUAL) {
       return comp;
     }
   }
-  
+
   for(unsigned i = 0; i < t1->arity(); i++){
     TermList* ts1 = t1->nthArgument(i);
     TermList* ts2 = t2->nthArgument(i);

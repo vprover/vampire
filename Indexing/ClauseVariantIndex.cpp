@@ -366,11 +366,9 @@ struct HashingClauseVariantIndex::VariableIgnoringComparator {
       return Int::compare(t1->vars(),t2->vars());
     }
 
-    // WARNING: comparing pointers may lead to non-reproducible behavior.
-    // This test can be skipped, but should lead to a more efficient code
     if (t1->ground()) {
       ASS(t2->ground());
-      return Int::compare((void *)t1,(void *)t2);
+      return Int::compare(t1->getId(),t2->getId());
     }
 
     if(t1->functor()!=t2->functor()) {
@@ -394,11 +392,9 @@ struct HashingClauseVariantIndex::VariableIgnoringComparator {
       return Int::compare(l1->vars(),l2->vars());
     }
 
-    // WARNING: comparing pointers may lead to non-reproducible behavior.
-    // This test can be skipped, but should lead to a more efficient code
     if (l1->ground()) {
       ASS(l2->ground());
-      return Int::compare((void *)l1,(void *)l2);
+      return Int::compare(l1->getId(),l2->getId());
     }
 
     if(l1->header()!=l2->header()) {

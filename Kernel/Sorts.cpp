@@ -134,24 +134,29 @@ OperatorType::OperatorKey* OperatorType::setupKey(std::initializer_list<TermList
 }
 
 /**
- * Pre-initialise an OperatorKey using a uniform range.
+ * Pre-initialise an OperatorKey from using a uniform range.
  */
 OperatorType::OperatorKey* OperatorType::setupKeyUniformRange(unsigned arity, TermList argsSort)
 {
   CALL("OperatorType::setupKeyUniformRange");
 
-  static Stack<TermList> argSorts;
-  argSorts.reset();
+  OperatorKey* key = OperatorKey::allocate(arity+1);
+
   for (unsigned i=0; i<arity; i++) {
-    argSorts.push(argsSort);
+    (*key)[i] = argsSort;
   }
 
-  return setupKey(arity, argSorts.begin());
+  return key;
 }
 
 OperatorType::OperatorTypes& OperatorType::operatorTypes() {
-  // we should delete all the stored OperatorTypes inside at the end of the world, when this get destroyed
-  static OperatorType::OperatorTypes _operatorTypes;
+  struct DeletingOperatorTypes : public OperatorType::OperatorTypes {
+    ~DeletingOperatorTypes() {
+      deleteAll();
+    }
+  };
+
+  static DeletingOperatorTypes _operatorTypes;
   return _operatorTypes;
 }
 

@@ -31,6 +31,7 @@
 #include "Lib/Environment.hpp"
 #include "Lib/TimeCounter.hpp"
 #include "Lib/Timer.hpp"
+#include "SAT/Z3Interfacing.hpp"
 
 #include "Shell/UIHelper.hpp"
 
@@ -45,7 +46,6 @@
 #include "Statistics.hpp"
 
 
-using namespace std;
 using namespace Lib;
 using namespace Saturation;
 using namespace Shell;
@@ -214,6 +214,10 @@ void Statistics::print(ostream& out)
   out << "------------------------------\n";
   addCommentSignForSZS(out);
   out << "Version: " << VERSION_STRING << endl;
+#if VZ3
+  addCommentSignForSZS(out);
+  out << "Linked with Z3 " << Z3Interfacing::z3_full_version() << endl;
+#endif
 
   addCommentSignForSZS(out);
   out << "Termination reason: ";
@@ -231,18 +235,7 @@ void Statistics::print(ostream& out)
     out << "Activation limit";
     break;
   case Statistics::REFUTATION_NOT_FOUND:
-    if (env.statistics->discardedNonRedundantClauses) {
-      out << "Refutation not found, non-redundant clauses discarded";
-    }
-    else if (env.statistics->inferencesSkippedDueToColors) {
-      out << "Refutation not found, inferences skipped due to colors\n";
-    }
-    else if(env.statistics->smtReturnedUnknown){
-      out << "Refutation not found, SMT solver inside AVATAR returned Unknown";
-    }
-    else {
-      out << "Refutation not found, incomplete strategy";
-    }
+    explainRefutationNotFound(out);
     break;
   case Statistics::SATISFIABLE:
     out << "Satisfiable";
@@ -475,8 +468,6 @@ const char* Statistics::phaseToString(ExecutionPhase p)
     return "Including theory axioms";
   case PREPROCESS_1:
     return "Preprocessing 1";
-  case EQUALITY_PROPAGATION:
-    return "Equality propagation";
   case PREDIACTE_DEFINITION_MERGING:
     return "Predicate definition merging";
   case PREDICATE_DEFINITION_INLINING:

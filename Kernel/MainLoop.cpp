@@ -103,7 +103,6 @@ bool MainLoop::isRefutation(Clause* cl)
   return cl->isEmpty() && cl->noSplits();
 }
 
-
 MainLoop* MainLoop::createFromOptions(Problem& prb, const Options& opt)
 {
   CALL("MainLoop::createFromOptions");

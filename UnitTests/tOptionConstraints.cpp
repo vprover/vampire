@@ -17,7 +17,7 @@
  * licence, which we will make an effort to provide. 
  */
 
-#include "Lib/Vstring.hpp"
+#include "Lib/VString.hpp"
 #include "Shell/Options.hpp"
 
 #include "Test/UnitTesting.hpp"

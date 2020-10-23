@@ -150,13 +150,14 @@ public:
       static unsigned hash(VarSpec& o);
     };
   };
+  /** Specifies an instance of a term (i.e. (term, variable bank) pair */
   struct TermSpec
   {
-    /** Create a new VarSpec struct */
+    /** Create a new TermSpec struct */
     TermSpec() {}
-    /** Create a new VarSpec struct */
+    /** Create a new TermSpec struct */
     TermSpec(TermList term, int index) : term(term), index(index) {}
-    /** Create a new VarSpec struct */
+    /** Create a new TermSpec struct from a VarSpec*/
     explicit TermSpec(const VarSpec& vs) : index(vs.index)
     {
       if(index==SPECIAL_INDEX) {
@@ -284,6 +285,7 @@ private:
   FuncSubtermMap* _funcSubtermMap;
   mutable BankType _bank;
 
+  // Unused
   //DHMap<int, int> _denormIndexes;
 
   mutable unsigned _nextUnboundAvailable;

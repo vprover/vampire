@@ -331,7 +331,7 @@ void LispParser::Exception::cry(ostream& out)
 
 void LispListReader::lispError(LExpr* expr, vstring reason)
 {
-  CALL("SMTLIBConcat::lispError");
+  CALL("LispListReader::lispError");
 
   if(expr) {
     USER_ERROR(reason+": "+expr->toString());

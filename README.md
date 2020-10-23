@@ -10,6 +10,7 @@ There is a nice Makefile. You can make
  * vampire_dbg for a debug version 
  * vampire_rel for a release version
  * vampire_z3_rel to build with z3 (also works with debug) but for this you will need a z3 binary in include to link against
+ * vampire is a shortcut for vampire_dbg that doesn't rely on git commands - use this if you download Vampire as a zip file
  * clean to clean things up
 
 You can also make

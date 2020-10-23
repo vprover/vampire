@@ -129,6 +129,7 @@ Clause* InequalitySplitting::trySplitClause(Clause* cl)
   }
 
   UnitList::push(cl, premises);
+
   Clause* res = new(clen) Clause(clen,NonspecificInferenceMany(InferenceRule::INEQUALITY_SPLITTING, premises));
   res->setAge(cl->age()); // MS: this seems useless; as long as InequalitySplitting is only operating as a part of preprocessing, age is going to 0 anyway
 
@@ -208,7 +209,6 @@ Literal* InequalitySplitting::splitLiteral(Literal* lit, UnitInputType inpType, 
   env.statistics->splitInequalities++;
 
   return makeNameLiteral(fun, s, true, vars);
-
 }
 
 bool InequalitySplitting::isSplittable(Literal* lit)

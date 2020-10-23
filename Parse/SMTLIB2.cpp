@@ -297,6 +297,8 @@ const char * SMTLIB2::s_smtlibLogicNameStrings[] = {
     "ALIA",
     "ALL",
     "AUFDTLIA",
+    "AUFDTLIRA",
+    "AUFDTNIRA",
     "AUFLIA",
     "AUFLIRA",
     "AUFNIA",
@@ -333,7 +335,9 @@ const char * SMTLIB2::s_smtlibLogicNameStrings[] = {
     "UFBV",
     "UFDT",
     "UFDTLIA",
+    "UFDTLIRA",
     "UFDTNIA",
+    "UFDTNIRA",
     "UFIDL",
     "UFLIA",
     "UFLRA",
@@ -365,6 +369,8 @@ void SMTLIB2::readLogic(const vstring& logicStr)
   case SMT_ALL:
   case SMT_ALIA:
   case SMT_AUFDTLIA:
+  case SMT_AUFDTLIRA:
+  case SMT_AUFDTNIRA:
   case SMT_AUFLIA:
   case SMT_AUFNIA:
   case SMT_AUFLIRA:
@@ -388,7 +394,9 @@ void SMTLIB2::readLogic(const vstring& logicStr)
   case SMT_UF:
   case SMT_UFDT:
   case SMT_UFDTLIA:
+  case SMT_UFDTLIRA:
   case SMT_UFDTNIA:
+  case SMT_UFDTNIRA:
   case SMT_UFIDL:
   case SMT_UFLIA:
   case SMT_UFNIA:
@@ -910,7 +918,7 @@ void SMTLIB2::readDefineFun(const vstring& name, LExprList* iArgs, LExpr* oSort,
   Formula* fla = new AtomicFormula(Literal::createEquality(true,lhs,rhs,rangeSort));
 
   FormulaUnit* fu = new FormulaUnit(fla, FromInput(UnitInputType::ASSUMPTION));
-  
+
   UnitList::push(fu, _formulas);
 }
 
@@ -2307,7 +2315,7 @@ void SMTLIB2::readAssertNot(LExpr* body)
 
   FormulaUnit* fu = new FormulaUnit(fla, FromInput(UnitInputType::CONJECTURE));
   fu = new FormulaUnit(new NegatedFormula(fla),
-                       FormulaTransformation(InferenceRule::NEGATED_CONJECTURE, fu));  
+                       FormulaTransformation(InferenceRule::NEGATED_CONJECTURE, fu));
   UnitList::push(fu, _formulas);
 }
 

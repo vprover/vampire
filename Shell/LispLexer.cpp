@@ -126,11 +126,14 @@ void LispLexer::readToken (Token& token)
   case '9':
     readNumber(token);
     return;
+  case '"':
+    readQuotedString(token, '"', '"','"');
+    return;
   case '|':
-    readQuotedString(token, '|', '|');
+    readQuotedString(token, '|', '|','\\');
     return;
   case '{':
-    readQuotedString(token, '{', '}');
+    readQuotedString(token, '{', '}','\\');
     return;
   default:
     readName(token);
@@ -177,8 +180,11 @@ void LispLexer::readName (Token& token)
 /**
  * Read a quoted string.
  * @since 26/08/2009 Redmond
+ *
+ * Added escapeChar to support smtlib string literals that use " to escape " 
+ * @since May 2020 @author Giles
  */
-void LispLexer::readQuotedString(Token& token, char opening, char closing)
+void LispLexer::readQuotedString(Token& token, char opening, char closing, char escapeChar)
 {
   CALL("LispLexer::readQuotedString");
 
@@ -186,18 +192,23 @@ void LispLexer::readQuotedString(Token& token, char opening, char closing)
   saveLastChar();
 
   while (readNextChar()) {
-    if (_lastCharacter == '\\' && !escape) {
+    if (_lastCharacter == escapeChar && !escape && closing != escapeChar) {
       escape=true;
     }
     else if (_lastCharacter == closing && !escape) {
-      saveLastChar();
-      saveTokenText(token);
-      readNextChar();
-      token.tag = TT_NAME;
-      return;
+      if(closing == escapeChar && lookAhead() == closing){
+        readNextChar();
+      }
+      else{
+        saveLastChar();
+        saveTokenText(token);
+        readNextChar();
+        token.tag = TT_NAME;
+        return;
+      }
     }
     else {
-      if (escape && _lastCharacter!=closing && _lastCharacter!='\\') {
+      if (escape && _lastCharacter!=closing && _lastCharacter!=escapeChar) {
 	throw LexerException((vstring)"invalid escape sequence in quoted string ", *this);
       }
       escape=false;

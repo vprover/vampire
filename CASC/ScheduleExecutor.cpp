@@ -8,6 +8,7 @@
 #include "Lib/Sys/Multiprocessing.hpp"
 #include "Lib/Timer.hpp"
 #include "Shell/Options.hpp"
+#include "Shell/UIHelper.hpp"
 
 using namespace CASC;
 using namespace Lib;
@@ -49,32 +50,27 @@ private:
   vstring _code;
 };
 
-bool ScheduleExecutor::run(const Schedule &schedule, int terminationTime)
+bool ScheduleExecutor::run(const Schedule &schedule)
 {
   CALL("ScheduleExecutor::run");
 
-  Stack<Item> queue;
-  Schedule::TopFirstIterator it(schedule);
+  PriorityQueue<Item> queue;
+  Schedule::BottomFirstIterator it(schedule);
 
   // insert all strategies into the queue
-  //while(it.hasNext())
- // {
-  for(int i = schedule.size() -1; i >=0; i--){
-    vstring code = schedule[i];
-    vstring sa = code.substr(0,3);
-    if(sa == "ins"){
-      //hack AYB, inst Gen has not been updated to support polymorphism
-      continue;
-    }
+  while(it.hasNext())
+  {
+    vstring code = it.next();
     float priority = _policy->staticPriority(code);
-    queue.push(Item(code));
+    queue.insert(priority, code);
   }
 
   typedef List<pid_t> Pool;
   Pool *pool = Pool::empty();
 
   bool success = false;
-  while(Timer::syncClock(), DECI(env.timer->elapsedMilliseconds()) < terminationTime)
+  int remainingTime;
+  while(Timer::syncClock(), remainingTime = DECI(env.remainingTime()), remainingTime > 0)
   {
     unsigned poolSize = pool ? Pool::length(pool) : 0;
 
@@ -85,7 +81,8 @@ bool ScheduleExecutor::run(const Schedule &schedule, int terminationTime)
       pid_t process;
       if(!item.started())
       {
-        process = spawn(item.code(), terminationTime);
+        // DBG("spawning schedule ", item.code())
+        process = spawn(item.code(), remainingTime);
       }
       else
       {
@@ -96,11 +93,18 @@ bool ScheduleExecutor::run(const Schedule &schedule, int terminationTime)
       poolSize++;
     }
 
-    bool stopped, exited;
+    bool stopped, exited, signalled;
     int code;
     // sleep until process changes state
     pid_t process = Multiprocessing::instance()
-      ->poll_children(stopped, exited, code);
+      ->poll_children(stopped, exited, signalled, code);
+
+    /*
+    cout << "Child " << process
+        << " stop " << stopped
+        << " exit " << exited
+        << " sig " << signalled << " code " << code << endl;
+        */
 
     // child died, remove it from the pool and check if succeeded
     if(exited)
@@ -117,7 +121,14 @@ bool ScheduleExecutor::run(const Schedule &schedule, int terminationTime)
     {
       pool = Pool::remove(process, pool);
       float priority = _policy->dynamicPriority(process);
-      queue.push(Item(process));
+      queue.insert(priority, Item(process));
+    } else if (signalled) {
+      // killed by an external agency (could be e.g. a slurm cluster killing for too much memory allocated)
+      env.beginOutput();
+      Shell::addCommentSignForSZS(env.out());
+      env.out()<<"Child killed by signal " << code << endl;
+      env.endOutput();
+      pool = Pool::remove(process, pool);
     }
 
     // pool empty and queue exhausted - we failed
@@ -152,7 +163,7 @@ unsigned ScheduleExecutor::getNumWorkers()
   return workers;
 }
 
-pid_t ScheduleExecutor::spawn(vstring code, int terminationTime)
+pid_t ScheduleExecutor::spawn(vstring code, int remainingTime)
 {
   CALL("ScheduleExecutor::spawn");
 
@@ -167,7 +178,7 @@ pid_t ScheduleExecutor::spawn(vstring code, int terminationTime)
   // child
   else
   {
-    _executor->runSlice(code, terminationTime);
+    _executor->runSlice(code, remainingTime);
     ASSERTION_VIOLATION; // should not return
   }
 }

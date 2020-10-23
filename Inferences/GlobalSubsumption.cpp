@@ -217,7 +217,7 @@ Clause* GlobalSubsumption::perform(Clause* cl, Stack<Unit*>& prems)
         SATInference::collectFilteredFOPremises(ref, prems,
           // Some solvers may return "all the clauses added so far" in the refutation.
           // That must be filtered since a derived clause cannot depend on inactive splits
-          [this,cl] (SATClause* prem) {
+          [this] (SATClause* prem) {
 
             // ignore ASSUMPTION clauses (they don't have FO premises anyway)
             if (prem->inference()->getType() == SATInference::ASSUMPTION) {
@@ -257,9 +257,9 @@ Clause* GlobalSubsumption::perform(Clause* cl, Stack<Unit*>& prems)
         // also, let's not propagate inputType from the whole big (non-minimized) set of premises (which probably already contains a piece of the conjecture)
         inf.setInputType(cl->inputType());
         // Splitter will set replacement's splitSet, so we don't have to do it here
-
-        Clause* replacement = Clause::fromIterator(LiteralStack::BottomFirstIterator(survivors),inf); 
         
+        Clause* replacement = Clause::fromIterator(LiteralStack::BottomFirstIterator(survivors),inf);
+
         env.statistics->globalSubsumption++;
         ASS_L(replacement->length(), clen);
         

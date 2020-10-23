@@ -58,9 +58,11 @@
 /** The largest piece of memory that can be allocated at once */
 #define MAXIMAL_ALLOCATION (static_cast<unsigned long long>(VPAGE_SIZE)*MAX_PAGES)
 
-//this macro is undefine at the end of the file
+//this macro is undefined at the end of the file
+// alloc_size follows C notation, for a C++ method, argument 1 is the pointer to this, so
+// the actual allocation size lies in argument 2
 #if defined(__GNUC__) && !defined(__ICC) && (__GNUC__ > 4 || __GNUC__ == 4 && __GNUC_MINOR__ > 2)
-# define ALLOC_SIZE_ATTR __attribute__((malloc, alloc_size(1)))
+# define ALLOC_SIZE_ATTR __attribute__((malloc, alloc_size(2)))
 #else
 # define ALLOC_SIZE_ATTR
 #endif
@@ -301,10 +303,12 @@ private:
   /** All pages allocated by this allocator and not returned to 
    *  the global manager via deallocatePages (doubly linked).  */
   Page* _myPages;
+#if ! USE_SYSTEM_ALLOCATION
   /** Number of bytes available on the reserve page */
   size_t _reserveBytesAvailable;
   /** next available known */
   char* _nextAvailableReserve;
+#endif // ! USE_SYSTEM_ALLOCATION
 
   /** Total memory allocated by pages */
   static size_t _usedMemory;

@@ -104,7 +104,7 @@ FormulaUnit* Skolem::skolemiseImpl (FormulaUnit* unit, bool appify)
     return unit;
   }
 
-  UnitList* premiseList = new UnitList(unit,_skolimizingDefinitions);
+  UnitList* premiseList = new UnitList(unit,_skolimizingDefinitions); // making sure unit is the last inserted, i.e. first in the list
 
   FormulaUnit* res = new FormulaUnit(g,FormulaTransformationMany(InferenceRule::SKOLEMIZE,premiseList));
 
@@ -209,7 +209,7 @@ void Skolem::preskolemise (Formula* f)
         ALWAYS(_varOccs.find(v.var(),varOccInfo));
 
         if (BoolList::isNonEmpty(varOccInfo.occurs_below)) { // below a quantifier ...
-          *varOccInfo.occurs_below->headPtr() = true;         // ... occurs in this literal
+          varOccInfo.occurs_below->headRef() = true;         // ... occurs in this literal
         }
       }
       return;
@@ -281,7 +281,7 @@ void Skolem::preskolemise (Formula* f)
           continue;
         }
         if (BoolList::isNonEmpty(varOccInfo.occurs_below)) { // pass the fact that it did occur above
-          *varOccInfo.occurs_below->headPtr() = true;
+          varOccInfo.occurs_below->headRef() = true;
         }
 
         if (varOccInfo.existential) {
@@ -389,8 +389,6 @@ Formula* Skolem::skolemise (Formula* f)
       // for proof recording purposes, see below
       Formula::VarList* var_args = Formula::VarList::empty();
       Formula* before = SubstHelper::apply(f, _subst);
-      //static Substitution localSubst;
-      //localSubst.reset();
 
       ExVarDepInfo& depInfo = _varDeps.get(f);
 
@@ -468,7 +466,6 @@ Formula* Skolem::skolemise (Formula* f)
         env.statistics->skolemFunctions++;
 
         _subst.bind(v,skolemTerm);
-        //localSubst.bind(v,skolemTerm);
 
         if (env.options->showSkolemisations()) {
           env.beginOutput();

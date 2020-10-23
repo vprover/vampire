@@ -208,9 +208,8 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
   auto itf1 = premise->getSelectedLiteralIterator();
 
   // Get an iterator of pairs of selected literals and rewritable subterms of those literals
-  // A subterm is rewritable (see EqHelper) if
-  //  a) The literal is a positive equality t1=t2 and the subterm is max(t1,t2) wrt ordering
-  //  b) The subterm is not a variable
+  // A subterm is rewritable (see EqHelper) if it is a non-variable subterm of either
+  // a maximal side of an equality or of a non-equational literal
   auto itf2 = getMapAndFlattenIterator(itf1,RewriteableSubtermsFn(_salg->getOrdering()));
 
   // Get clauses with a literal whose complement unifies with the rewritable subterm,
@@ -274,7 +273,7 @@ bool Superposition::checkClauseColorCompatibility(Clause* eqClause, Clause* rwCl
  * performed.
  *
  * This function checks that we don't perform superpositions from
- * variables that occurr in the remainin part of the clause either in
+ * variables that occur in the remaining part of the clause either in
  * a literal which is not an equality, or in a as an argument of a function.
  * Such situation would mean that there is no ground substitution in which
  * @c eqLHS would be the larger argument of the largest literal.
@@ -445,8 +444,12 @@ Clause* Superposition::performSuperposition(
 
   TermList tgtTerm = EqHelper::getOtherEqualitySide(eqLit, eqLHS);
 
-  unsigned numPositiveLiteralsLowerBound = Int::max(eqClause->numPositiveLiterals()-1, rwClause->numPositiveLiterals()); // lower bound on number of positive literals, don't know at this point whether duplicate positive literals will occur
+  // LRS-specific optimization:
+  // check whether we can conclude that the resulting clause will be discarded by LRS since it does not fulfil the age/weight limits (in which case we can discard the clause)
+  // we already know the age here so we can immediately conclude whether the clause fulfils the age limit
+  // since we have not built the clause yet we compute lower bounds on the weight of the clause after each step and recheck whether the weight-limit can still be fulfilled.
 
+  unsigned numPositiveLiteralsLowerBound = Int::max(eqClause->numPositiveLiterals()-1, rwClause->numPositiveLiterals()); // lower bound on number of positive literals, don't know at this point whether duplicate positive literals will occur
   //TODO update inference rule name AYB
   Inference inf(GeneratingInference2(hasConstraints ? InferenceRule::CONSTRAINED_SUPERPOSITION : InferenceRule::SUPERPOSITION, rwClause, eqClause));
   Inference::Destroyer inf_destroyer(inf);
@@ -497,12 +500,16 @@ Clause* Superposition::performSuperposition(
 
   Literal* tgtLitS = EqHelper::replace(rwLitS,rwTermS,tgtTermS);
 
+  static bool doSimS = getOptions().simulatenousSuperposition();
+
   //check we don't create an equational tautology (this happens during self-superposition)
   if(EqHelper::isEqTautology(tgtLitS)) {
     return 0;
   }
 
   unsigned newLength = rwLength+eqLength-1+conLength + isTypeSub;
+
+  static bool afterCheck = getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete();
 
   inf_destroyer.disable(); // ownership passed to the the clause below
   Clause* res = new(newLength) Clause(newLength, inf);
@@ -539,17 +546,24 @@ Clause* Superposition::performSuperposition(
 
     //cout << extra << endl;
     //NOT_IMPLEMENTED;
-  }
 
-  bool afterCheck = getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete();
+    if (!env.proofExtra) {
+      env.proofExtra = new DHMap<void*,vstring>();
+    }
+    env.proofExtra->insert(res,extra);
+  }
 
   (*res)[0] = tgtLitS;
   int next = 1;
-  int weight=tgtLitS->weight();
+  unsigned weight=tgtLitS->weight();
   for(unsigned i=0;i<rwLength;i++) {
     Literal* curr=(*rwClause)[i];
     if(curr!=rwLit) {
       Literal* currAfter = subst->apply(curr, !eqIsResult);
+
+      if (doSimS) {
+        currAfter = EqHelper::replace(currAfter,rwTermS,tgtTermS);
+      }
 
       if(EqHelper::isEqTautology(currAfter)) {
         goto construction_fail;

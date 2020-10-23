@@ -607,9 +607,9 @@ Rectify::VarList* Rectify::rectifyBoundVars (VarList* vs)
     vs = vs->tail();
   }
 
-  VarList* res = args.top()->tail();
-  ASS(VarList::isEmpty(res));
+  VarList* res = VarList::empty();
 
+  DHSet<int> seen;
   while (args.isNonEmpty()) {
     vs = args.pop();
 
@@ -617,6 +617,12 @@ Rectify::VarList* Rectify::rectifyBoundVars (VarList* vs)
     VarList* ws = res; // = rectifyBoundVars(vtail);
 
     int v = vs->head();
+
+    // each variable mentioned only once per quantifier!
+    if (!seen.insert(v)) {
+      continue;
+    }
+
     int w;
     VarWithUsageInfo wWithUsg = _renaming.getBoundAndUsage(v);
     if (wWithUsg.second || !_removeUnusedVars) {

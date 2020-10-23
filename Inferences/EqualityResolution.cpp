@@ -26,9 +26,11 @@
 #include "Lib/VirtualIterator.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/PairUtils.hpp"
+#include "Lib/Stack.hpp"
 
 #include "Lib/Environment.hpp"
 #include "Shell/Statistics.hpp"
+#include "Shell/Options.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/Unit.hpp"
@@ -39,6 +41,7 @@
 #include "Kernel/LiteralSelector.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/ApplicativeHelper.hpp"
+
 #include "Saturation/SaturationAlgorithm.hpp"
 
 

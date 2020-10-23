@@ -507,9 +507,7 @@ enum class InferenceRule : unsigned char {
     axioms between THEORY_AXIOM and INTERNAL_THEORY_AXIOM_LAST will be automatically making their respective clauses isTheoryAxiom() true */
   INTERNAL_THEORY_AXIOM_LAST,
   /** a theory axiom which is not generated internally in Vampire */
-
   EXTERNAL_THEORY_AXIOM
-  
 }; // class InferenceRule
 
 inline std::underlying_type<InferenceRule>::type toNumber(InferenceRule r) { return static_cast<std::underlying_type<InferenceRule>::type>(r); }
@@ -986,6 +984,7 @@ private:
    **/
   void* _ptr1;
   void* _ptr2;
+
 
 public:
   // counting the leafs (in the tree rather than dag sense)

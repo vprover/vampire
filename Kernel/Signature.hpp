@@ -282,6 +282,7 @@ class Signature
     /** This takes the symbol number of this symbol as the symbol doesn't know it
         Note that this should only be called on a constant **/
     void addToDistinctGroup(unsigned group,unsigned this_number);
+    friend ostream& operator<<(ostream& out, const Signature::Symbol& self){ return out << self.name(); };
 
     void setType(OperatorType* type);
     void forceType(OperatorType* type);
@@ -551,11 +552,15 @@ class Signature
   bool functionExists(const vstring& name,unsigned arity) const;
   bool predicateExists(const vstring& name,unsigned arity) const;
 
+  bool tryGetFunctionNumber(const vstring& name, unsigned arity, unsigned& out) const;
+  bool tryGetPredicateNumber(const vstring& name, unsigned arity, unsigned& out) const;
   unsigned getFunctionNumber(const vstring& name, unsigned arity) const;
   unsigned getPredicateNumber(const vstring& name, unsigned arity) const;
 
   typedef SmartPtr<Stack<unsigned>> DistinctGroupMembers;
   
+  typedef SmartPtr<Stack<unsigned>> DistinctGroupMembers;
+
   Unit* getDistinctGroupPremise(unsigned group);
   unsigned createDistinctGroup(Unit* premise = 0);
   void addToDistinctGroup(unsigned constantSymbol, unsigned groupId);
@@ -864,6 +869,7 @@ private:
   
   // Store the premise of a distinct group for proof printing, if 0 then group is input
   Stack<Unit*> _distinctGroupPremises;
+
   // We only store members up until a hard-coded limit i.e. the limit at which we will expand the group
   Stack<DistinctGroupMembers> _distinctGroupMembers;
   // Flag to indicate if any distinct groups have members

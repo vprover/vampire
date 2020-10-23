@@ -101,5 +101,4 @@ bool HOMismatchHandler::handle(RobSubstitution* sub, TermList t1, unsigned index
   return true; 
 }
 
-
 }

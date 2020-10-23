@@ -88,6 +88,8 @@ Problem::~Problem()
   if(_property) { delete _property; }
 
   //TODO: decrease reference counter of clauses (but make sure there's no segfault...)
+
+  UnitList::destroy(_units);
 }
 
 /**
@@ -290,8 +292,8 @@ void Problem::refreshProperty() const
   }
   _propertyValid = true;
   _property = Property::scan(_units);
+  ASS(_property);
   _property->setSMTLIBLogic(getSMTLIBLogic());
-
   readDetailsFromProperty();
 }
 

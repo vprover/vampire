@@ -87,7 +87,6 @@ public:
 
   Clause(unsigned length,const Inference& inf);
 
-
   void* operator new(size_t,unsigned length);
   void operator delete(void* ptr,unsigned length);
 
@@ -160,7 +159,6 @@ public:
     _numSelected = s;
     notifyLiteralReorder();
   }
-
 
   /** Return the weight */
   unsigned weight() const
@@ -251,11 +249,10 @@ public:
 
   VirtualIterator<unsigned> getVariableIterator();
 
-#if VDEBUG
   bool contains(Literal* lit);
+#if VDEBUG
   void assertValid();
 #endif
-
 
   SplitSet* splits() const { return _inference.splits(); }
   bool noSplits() const;
@@ -268,7 +265,8 @@ public:
    * computed and cached (which happens at the first call to weight())
    */
   void setSplits(SplitSet* splits) {
-     CALL("Clause::setSplits");
+    CALL("Clause::setSplits");
+
     ASS(_weight == 0);
     _inference.setSplits(splits);
   }
@@ -378,12 +376,17 @@ protected:
 
   /** storage class */
   Store _store : 3;
+
+  /** storage class */
+  Store _store : 3;
   /** number of selected literals */
   unsigned _numSelected : 20;
+
   /** weight */
   mutable unsigned _weight;
   /** weight for clause selection */
   unsigned _weightForClauseSelection;
+
   /** number of references to this clause */
   unsigned _refCnt;
   /** for splitting: timestamp marking when has the clause been reduced or restored by splitting */
@@ -407,6 +410,7 @@ protected:
   Literal* _literals[1];
 }; // class Clause
 
+std::ostream& operator<<(std::ostream& out, Clause::Store const& clause);
 }
 
 #endif

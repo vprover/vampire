@@ -230,17 +230,31 @@ void Multiprocessing::killNoCheck(pid_t child, int signal)
   ::kill(child, signal);
 }
 
-pid_t Multiprocessing::poll_children(bool &stopped, bool &exited, int &code)
+pid_t Multiprocessing::poll_children(bool &stopped, bool &exited, bool &signalled, int &code)
 {
   CALL("Multiprocessing::poll_child");
 
   int status;
-  pid_t pid = waitpid(-1, &status, WUNTRACED);
+  pid_t pid = waitpid(-1 /*wait for any child*/, &status, WUNTRACED);
+
+  if (pid == -1) {
+    SYSTEM_FAIL("Call to waitpid() function failed.", errno);
+  }
+
   stopped = WIFSTOPPED(status);
   exited = WIFEXITED(status);
+  signalled = WIFSIGNALED(status);
   if(exited)
   {
     code = WEXITSTATUS(status);
+  }
+  if(signalled)
+  {
+    code = WTERMSIG(status);
+  }
+  if(stopped)
+  {
+    code = WSTOPSIG(status);
   }
   return pid;
 }

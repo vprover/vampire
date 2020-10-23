@@ -133,6 +133,8 @@ Property* Property::scan(UnitList* units)
 Property::~Property()
 {
   CALL("Property::~Property");
+
+  delete _symbolsInFormula;
   if (this == env.property) {
     env.property = 0;
   }
@@ -307,7 +309,7 @@ void Property::scan(Clause* clause)
     }
 
     bool goal = (clause->inputType()==UnitInputType::CONJECTURE ||
-        clause->inputType()==UnitInputType::NEGATED_CONJECTURE);   
+        clause->inputType()==UnitInputType::NEGATED_CONJECTURE);
     bool unit = (clause->length() == 1);
 
     // 1 for context polarity, only used in formulas

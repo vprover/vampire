@@ -49,13 +49,13 @@ TEST_FUN(dis1)
   static DisagreementSetIterator dsit;
   dsit.reset(px, py, true);
 
-  while (dsit.hasNext()) {
-    pair<TermList, TermList> diff=dsit.next();
-    TermList st1=diff.first;
-    TermList st2=diff.second;
+  ASS(dsit.hasNext());
 
-    cout << "st1 " << st1.toString() << endl;
-    cout << "st2 " << st2.toString() << endl;
-  }
+  pair<TermList, TermList> diff=dsit.next();
+  TermList st1=diff.first;
+  TermList st2=diff.second;
 
+  ASS(st1 == x)
+  ASS(st2 == y)
+  ASS(!dsit.hasNext())
 }

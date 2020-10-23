@@ -54,6 +54,7 @@ protected:
 
 /**
  * TODO: WTF the name?
+ *   --> rename to SumbtermEvaluator?
  */
 class TermTransformerTransformTransformed {
 public:
@@ -65,7 +66,6 @@ protected:
   /**
    * TODO: these functions are exactly the same as in TermTransformer, code duplication must be removed!
    */
-  Term* transformSpecial(Term* specialTerm);
   TermList transform(TermList ts);
   Formula* transform(Formula* f);
 };

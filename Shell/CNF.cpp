@@ -96,7 +96,7 @@ void CNF::clausify (Formula* f)
       // collect the clause
       int length = _literals.length();
       Clause* clause = new(length) Clause(length,
-					  FormulaTransformation(InferenceRule::CLAUSIFY,_unit));
+          FormulaTransformation(InferenceRule::CLAUSIFY,_unit));
       for (int i = length-1;i >= 0;i--) {
 	(*clause)[i] = _literals[i];
       }

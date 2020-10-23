@@ -437,13 +437,13 @@ vstring Clause::toString() const
     }
     result += ",thAx:" + Int::toString((int)(_inference.th_ancestors));
     result += ",allAx:" + Int::toString((int)(_inference.all_ancestors));
-    //result += ",thDist:" + Int::toString( _inference.th_ancestors * env.options->theorySplitQueueExpectedRatioDenom() - _inference.all_ancestors);    result += vstring("}");
-    //TODO comb axiom etc?
+
+    result += ",thDist:" + Int::toString( _inference.th_ancestors * env.options->theorySplitQueueExpectedRatioDenom() - _inference.all_ancestors);
+    result += vstring("}");
   }
 
   return result;
 }
-
 
 /**
  * Convert the clause into sequence of strings, each containing
@@ -506,6 +506,7 @@ unsigned Clause::computeWeight() const
 
   unsigned result = 0;
   for (int i = _length-1; i >= 0; i--) {
+    ASS(_literals[i]->shared());
     result += _literals[i]->weight();
   }
 
@@ -532,14 +533,14 @@ unsigned Clause::splitWeight() const
  * @since 04/05/2013 Manchester, updated to use new NonVariableIterator
  * @author Andrei Voronkov
  */
-unsigned Clause::getNumeralWeight() const
-{
+
+unsigned Clause::getNumeralWeight() const {
   CALL("Clause::getNumeralWeight");
 
-  unsigned res=0;
+  unsigned res = 0;
   Iterator litIt(*this);
   while (litIt.hasNext()) {
-    Literal* lit=litIt.next();
+    Literal* lit = litIt.next();
     if (!lit->hasInterpretedConstants()) {
       continue;
     }
@@ -550,8 +551,9 @@ unsigned Clause::getNumeralWeight() const
         continue;
       }
       IntegerConstantType intVal;
-      if (theory->tryInterpretConstant(t,intVal)) {
-        int w = BitUtils::log2(abs(intVal.toInner()))-1;
+
+      if (theory->tryInterpretConstant(t, intVal)) {
+        int w = BitUtils::log2(Int::safeAbs(intVal.toInner())) - 1;
         if (w > 0) {
           res += w;
         }
@@ -560,18 +562,18 @@ unsigned Clause::getNumeralWeight() const
       RationalConstantType ratVal;
       RealConstantType realVal;
       bool haveRat = false;
-      if (theory->tryInterpretConstant(t,ratVal)) {
+
+      if (theory->tryInterpretConstant(t, ratVal)) {
         haveRat = true;
-      }
-      else if (theory->tryInterpretConstant(t,realVal)) {
+      } else if (theory->tryInterpretConstant(t, realVal)) {
         ratVal = RationalConstantType(realVal);
         haveRat = true;
       }
       if (!haveRat) {
         continue;
       }
-      int wN = BitUtils::log2(abs(ratVal.numerator().toInner()))-1;
-      int wD = BitUtils::log2(abs(ratVal.denominator().toInner()))-1;
+      int wN = BitUtils::log2(Int::safeAbs(ratVal.numerator().toInner())) - 1;
+      int wD = BitUtils::log2(Int::safeAbs(ratVal.denominator().toInner())) - 1;
       int v = wN + wD;
       if (v > 0) {
         res += v;
@@ -600,7 +602,7 @@ unsigned Clause::computeWeightForClauseSelection(const Options& opt) const
     splWeight = splitWeight(); // no longer includes propWeight
   }
 
-  // hack: computation of getNumeralWeight is potentially expensive, so we onlycompute it if
+  // hack: computation of getNumeralWeight is potentially expensive, so we only compute it if
   // the option increasedNumeralWeight is set to true.
   unsigned numeralWeight = 0;
   if (opt.increasedNumeralWeight())
@@ -610,7 +612,6 @@ unsigned Clause::computeWeightForClauseSelection(const Options& opt) const
 
   bool derivedFromGoal = Unit::derivedFromGoal();
   if(derivedFromGoal && opt.restrictNWCtoGC()){
-
     bool found = false;
     for(unsigned i=0;i<_length;i++){
       TermFunIterator it(_literals[i]);
@@ -621,13 +622,12 @@ unsigned Clause::computeWeightForClauseSelection(const Options& opt) const
     }
     if(!found){ derivedFromGoal=false; }
   }
+
   return Clause::computeWeightForClauseSelection(w, splWeight, numeralWeight, derivedFromGoal, opt);
 }
 
-
 /*
- * note: we currently assume in Clause::computeWeightForClauseSelection(opt) th
-at numeralWeight is only used here if
+ * note: we currently assume in Clause::computeWeightForClauseSelection(opt) that numeralWeight is only used here if
  * the option increasedNumeralWeight() is set to true.
  */
 unsigned Clause::computeWeightForClauseSelection(unsigned w, unsigned splitWeight, unsigned numeralWeight, bool derivedFromGoal, const Shell::Options& opt)
@@ -636,7 +636,7 @@ unsigned Clause::computeWeightForClauseSelection(unsigned w, unsigned splitWeigh
 
   static unsigned nongoalWeightCoeffNum = opt.nongoalWeightCoefficientNumerator();
   static unsigned nongoalWeightCoefDenom = opt.nongoalWeightCoefficientDenominator();
-                                                                              
+
   w += splitWeight;
 
   if (opt.increasedNumeralWeight()) {
@@ -714,7 +714,10 @@ unsigned Clause::numPositiveLiterals()
   return count;
 }
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> master
 /**
  * Return index of @b lit in the clause
  *
@@ -780,6 +783,8 @@ void Clause::assertValid()
   }
 }
 
+#endif
+
 bool Clause::contains(Literal* lit)
 {
   for (int i = _length-1; i >= 0; i--) {
@@ -790,6 +795,15 @@ bool Clause::contains(Literal* lit)
   return false;
 }
 
-#endif
+std::ostream& operator<<(std::ostream& out, Clause::Store const& store) 
+{
+  switch (store) {
+    case Clause::PASSIVE:     return out << "PASSIVE";
+    case Clause::ACTIVE:      return out << "ACTIVE";
+    case Clause::UNPROCESSED: return out << "UNPROCESSED";
+    case Clause::NONE:        return out << "NONE";
+    case Clause::SELECTED:    return out << "SELECTED";
+  }
+}
 
 }

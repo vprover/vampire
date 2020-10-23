@@ -160,7 +160,7 @@ void EqualityProxy::addAxioms(UnitList*& units)
   CALL("EqualityProxy::addAxioms");
 
   // if we're adding congruence axioms, we need to add them before adding the local axioms.
-  // Local axioms are added only for sorts on which euality is used, and the congruence axioms
+  // Local axioms are added only for sorts on which equality is used, and the congruence axioms
   // may spread the equality use into new sorts
   if (_opt == Options::EqualityProxy::RSTC) {
     addCongruenceAxioms(units);
@@ -327,7 +327,7 @@ Literal* EqualityProxy::apply(Literal* lit)
 /**
  * If the equality proxy predicate for this sort was already created, return it.
  * Otherwise, create and return it. When the symbol is created, introduce a new predicate
- * definition E(x,y) <=> x = y and save it in the array s_proxyPremises.
+ * definition E<\sigma>(x,y) <=> x = y
  * @author Andrei Voronkov
  * @since 16/05/2014 Manchester
  */
@@ -351,7 +351,7 @@ unsigned EqualityProxy::getProxyPredicate()
   predSym->setType(predType);
   predSym->markEqualityProxy();
 
-  static Stack<TermList> args;
+  static TermStack args;
   args.reset();
 
   args.push(sort);
@@ -376,6 +376,7 @@ unsigned EqualityProxy::getProxyPredicate()
  * or transitivity) and return it. 
  * @author Andrei Voronkov @since
  * 16/05/2014 Manchester
+ * @since 23/10/2020 Leicester
  */
 Clause* EqualityProxy::createEqProxyAxiom(const LiteralStack& literalStack)
 {
@@ -387,9 +388,10 @@ Clause* EqualityProxy::createEqProxyAxiom(const LiteralStack& literalStack)
 } // EqualityProxy::createEqProxyAxiom
 
 /**
- * Create the equality proxy literal (not) E(erg0,arg1) for a given sort.
+ * Create the equality proxy literal (not) E<sort>(erg0,arg1) for a given sort.
  * @author Andrei Voronkov
  * @since 16/05/2014 Manchester
+ * @since 23/10/2020 Leicester
  */
 Literal* EqualityProxy::makeProxyLiteral(bool polarity, TermList arg0, TermList arg1, TermList sort)
 {

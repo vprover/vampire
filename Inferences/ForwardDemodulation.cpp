@@ -159,7 +159,7 @@ bool ForwardDemodulation::perform(Clause* cl, Clause*& replacement, ClauseIterat
 
         Ordering::Result argOrder = ordering.getEqualityArgumentOrder(qr.literal);
         bool preordered = argOrder==Ordering::LESS || argOrder==Ordering::GREATER;
-        #if VDEBUG
+  #if VDEBUG
         if(preordered) {
           if(argOrder==Ordering::LESS) {
             ASS_EQ(rhs, *qr.literal->nthArgument(0));
@@ -168,7 +168,7 @@ bool ForwardDemodulation::perform(Clause* cl, Clause*& replacement, ClauseIterat
             ASS_EQ(rhs, *qr.literal->nthArgument(1));
           }
         }
-        #endif
+  #endif
         if(!preordered && (_preorderedOnly || ordering.compare(trm,rhsS)!=Ordering::GREATER) ) {
           continue;
         }
@@ -222,13 +222,11 @@ bool ForwardDemodulation::perform(Clause* cl, Clause*& replacement, ClauseIterat
         }
         ASS_EQ(next,cLen);
 
-        res->setAge(cl->age());
         env.statistics->forwardDemodulations++;
 
         premises = pvi( getSingletonIterator(qr.clause));
         replacement = res;
         return true;
-
       }
     }
   }

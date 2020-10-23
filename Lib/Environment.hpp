@@ -64,7 +64,8 @@ public:
   /** Currently used timer, this is used by all timers as a global clock */
   Timer* timer;
 
-  char maxSineLevel;
+  unsigned char maxSineLevel;
+
   DHMap<unsigned, unsigned>* predicateSineLevels;
 
   DHMap<void*,vstring>* proofExtra; // maps Unit* pointers to the associated proof extra string, if available

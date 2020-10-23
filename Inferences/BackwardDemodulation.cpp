@@ -138,7 +138,6 @@ struct BackwardDemodulation::ResultFn
       return BwSimplificationRecord(0);
     }
 
-
     TermList lhs=arg.first;
     TermList rhs=EqHelper::getOtherEqualitySide(_eqLit, lhs);
 
@@ -168,7 +167,7 @@ struct BackwardDemodulation::ResultFn
     }
 
     if(_parent.getOptions().demodulationRedundancyCheck() && qr.literal->isEquality() &&
-	(qr.term==*qr.literal->nthArgument(0) || qr.term==*qr.literal->nthArgument(1)) ) {
+      (qr.term==*qr.literal->nthArgument(0) || qr.term==*qr.literal->nthArgument(1)) ) {
       TermList other=EqHelper::getOtherEqualitySide(qr.literal, qr.term);
       Ordering::Result tord=_ordering.compare(rhsS, other);
       if(tord!=Ordering::LESS && tord!=Ordering::LESS_EQ) {
@@ -187,7 +186,7 @@ struct BackwardDemodulation::ResultFn
           }
         }
         if(isMax) {
-        //	  RSTAT_CTR_INC("bw subsumptions prevented by tlCheck");
+          //	  RSTAT_CTR_INC("bw subsumptions prevented by tlCheck");
           //The demodulation is this case which doesn't preserve completeness:
           //s = t     s = t1 \/ C
           //---------------------
@@ -196,7 +195,6 @@ struct BackwardDemodulation::ResultFn
           return BwSimplificationRecord(0);
         }
       }
-
     }
 
     Literal* resLit=EqHelper::replace(qr.literal,lhsS,rhsS);
@@ -208,7 +206,7 @@ struct BackwardDemodulation::ResultFn
 
     unsigned cLen=qr.clause->length();
     Clause* res = new(cLen) Clause(cLen, SimplifyingInference2(InferenceRule::BACKWARD_DEMODULATION, qr.clause, _cl));
-    
+
     (*res)[0]=resLit;
 
     unsigned next=1;
@@ -220,7 +218,6 @@ struct BackwardDemodulation::ResultFn
     }
     ASS_EQ(next,cLen);
 
-    res->setAge(qr.clause->age());
     env.statistics->backwardDemodulations++;
     _removed->insert(qr.clause);
     return BwSimplificationRecord(qr.clause,res);

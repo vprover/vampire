@@ -110,7 +110,7 @@ public:
   PassiveClauseContainer* getPassiveClauseContainer() { return _passive.get(); }
   IndexManager* getIndexManager() { return _imgr.ptr(); }
   AnswerLiteralManager* getAnswerLiteralManager() { return _answerLiteralManager; }
-  Ordering& getOrdering() const { return *_ordering; }
+  Ordering& getOrdering() const {  return *_ordering; }
   LiteralSelector& getLiteralSelector() const { return *_selector; }
 
   /** Return the number of clauses that entered the passive container */

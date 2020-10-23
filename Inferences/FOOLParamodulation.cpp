@@ -61,8 +61,9 @@ Clause* FOOLParamodulation::performParamodulation(Clause* premise, Literal* lit,
 
   // Found a boolean term! Create the C[true] \/ s = false clause
   unsigned conclusionLength = premise->length() + 1;
-  Clause* conclusion = new(conclusionLength) 
-    Clause(conclusionLength, GeneratingInference1(InferenceRule::FOOL_PARAMODULATION, premise));
+
+  Clause* conclusion = new(conclusionLength) Clause(conclusionLength,
+      GeneratingInference1(InferenceRule::FOOL_PARAMODULATION, premise));
 
   // Copy the literals from the premise except for the one at `literalPosition`,
   // that has the occurrence of `booleanTerm` replaced with false
@@ -122,7 +123,6 @@ ClauseIterator FOOLParamodulation::generateClauses(Clause* premise)
 
   auto it2 = getMapAndFlattenIterator(it1,RewriteableSubtermsFn(_salg->getOrdering()));
 
-  //Perform  Narrow
   auto it3 = getMappingIterator(it2,ResultFn(premise, *this));
 
   auto it4 = getFilteredIterator(it3,NonzeroFn());

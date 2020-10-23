@@ -965,12 +965,6 @@ bool SubstitutionTree::UnificationsIterator::associate(TermList query, TermList 
     return subst.unify(query,NORM_QUERY_BANK,node,NORM_RESULT_BANK,&hndlr);    
   }
   return subst.unify(query,NORM_QUERY_BANK,node,NORM_RESULT_BANK);
-
-#if VDEBUG
-  if(tag){
-    cout << "unify " << query.toString() << " and " << node.toString() << endl;
-  }
-#endif
 }
 
 //TODO I think this works for VSpcialVars as well. Since .isVar() will return true 

@@ -54,6 +54,8 @@ public:
    */
   static bool haveConjecture() { return s_haveConjecture; }
   static void setConjecturePresence(bool haveConjecture) { s_haveConjecture=haveConjecture; }
+  static bool haveConjectureInProof() { return s_proofHasConjecture; }
+  static void setConjectureInProof(bool haveConjectureInProof) { s_proofHasConjecture = haveConjectureInProof; }
 
   static void outputAllPremises(ostream& out, UnitList* units, vstring prefix="");
 
@@ -77,9 +79,14 @@ public:
    */
   static bool satisfiableStatusWasAlreadyOutput;
 
+  static void setExpectingSat(){ s_expecting_sat=true; }
+  static void setExpectingUnsat(){ s_expecting_unsat=true; }
 private:
+  static bool s_expecting_sat;
+  static bool s_expecting_unsat;
 
   static bool s_haveConjecture;
+  static bool s_proofHasConjecture;
 #if VDEBUG
   static bool _inputHasBeenRead;
 #endif

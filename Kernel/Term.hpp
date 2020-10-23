@@ -151,10 +151,12 @@ public:
   static bool sameTopFunctor(TermList ss, TermList tt);
   static bool equals(TermList t1, TermList t2);
   static bool allShared(TermList* args);
+  static TermList var(unsigned var, bool special = false) { return TermList(var, special); }
   /** if not var, the inner term must be shared */
   unsigned weight() const;
   bool containsSubterm(TermList v);
   bool containsAllVariablesOf(TermList t);
+  bool containsAllVariableOccurrencesOf(TermList t);
 
   bool isSafe() const;
 
@@ -320,7 +322,8 @@ public:
 
   Term() throw();
   explicit Term(const Term& t) throw();
-  static Term* create(unsigned function, unsigned arity, TermList* args);
+  static Term* create(unsigned function, unsigned arity, const TermList* args);
+  static Term* create(unsigned fn, std::initializer_list<TermList> args);
   static Term* create(Term* t,TermList* args);
   static Term* createNonShared(unsigned function, unsigned arity, TermList* arg);
   static Term* createNonShared(Term* t,TermList* args);
@@ -386,6 +389,13 @@ public:
     ASS((unsigned)n < _arity);
 
     return _args + (_arity - n);
+  }
+  /** Indexing operator for accessing arguments */
+  const TermList operator[](int i) const {
+    return *nthArgument(i);
+  }
+  TermList operator[](int i) {
+    return *nthArgument(i);
   }
   /** return the arguments */
   TermList* args()
@@ -468,7 +478,6 @@ public:
   {
     _maxRedLen = rl;
   } // setWeight
-
 
   /** Set the number of variables */
   void setVars(unsigned v)
@@ -810,12 +819,13 @@ public:
   void setPolarity(bool positive)
   { _args[0]._info.polarity = positive ? 1 : 0; }
   static Literal* create(unsigned predicate, unsigned arity, bool polarity,
-	  bool commutative, TermList* args);
+	  bool commutative, const TermList* args);
   static Literal* create(Literal* l,bool polarity);
   static Literal* create(Literal* l,TermList* args);
   static Literal* createEquality(bool polarity, TermList arg1, TermList arg2, TermList sort);
   static Literal* create1(unsigned predicate, bool polarity, TermList arg);
   static Literal* create2(unsigned predicate, bool polarity, TermList arg1, TermList arg2);
+  static Literal* create(unsigned fn, bool polarity, std::initializer_list<TermList> args);
 
   static Literal* flattenOnArgument(const Literal*,int argumentNumber);
 

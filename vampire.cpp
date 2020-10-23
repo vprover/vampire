@@ -93,8 +93,7 @@
 #include "SAT/TWLSolver.hpp"
 #include "SAT/Preprocess.hpp"
 
-#include <thread>
-//#include "FMB/ModelCheck.hpp"
+#include "FMB/ModelCheck.hpp"
 
 #if GNUMP
 #include "Solving/Solver.hpp"
@@ -228,11 +227,13 @@ void profileMode()
 
   ScopedPtr<Problem> prb(UIHelper::getInputProblem(*env.options));
 
+  /* CAREFUL: Make sure that the order
+   * 1) getProperty, 2) normalise, 3) TheoryFinder::search
+   * is the same as in PortfolioMode::searchForProof
+   * also, cf. the beginning of Preprocessing::preprocess*/
   Property* property = prb->getProperty();
-  //TheoryFinder tf(prb->units(), property);
-  // this doesn't do anything
-  Shell::Preprocess prepro(*env.options);
-  //tf.search();
+  Normalisation().normalise(*prb);
+  TheoryFinder(prb->units(), property).search();
 
   env.beginOutput();
   env.out() << property->categoryString() << ' ' << property->props() << ' '
@@ -489,7 +490,7 @@ void preprocessMode(bool theory)
  * @author Giles
  * @since 6/10/2015
  */
-/*void modelCheckMode()
+void modelCheckMode()
 {
   CALL("modelCheckMode");
 
@@ -498,7 +499,7 @@ void preprocessMode(bool theory)
 
   FMB::ModelCheck::doCheck(prb);
 
-} */// modelCheckMode
+} // modelCheckMode
 
 
 /**

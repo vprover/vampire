@@ -154,7 +154,6 @@ public:
     ASS_EQ(next,newLength);
 
     env.statistics->factoring++;
-
     return res;
   }
 private:

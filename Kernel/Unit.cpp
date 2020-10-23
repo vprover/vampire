@@ -58,9 +58,8 @@ void Unit::onPreprocessingEnd()
   _firstNonPreprocessingNumber=_lastNumber+1;
 }
 
-
 /** New unit of a given kind */
-Unit::Unit(Kind kind, const Inference& inf)
+Unit::Unit(Kind kind,const Inference& inf)
   : _number(++_lastNumber),
     _kind(kind),
     _inheritedColor(COLOR_INVALID),
@@ -255,6 +254,57 @@ void Unit::assertValid()
   else {
     ASS_ALLOC_TYPE(this,"FormulaUnit");
   }
+}
+
+// TODO this could be more efficient. Although expected cost is log(n) where n is length of proof
+bool Unit::derivedFromInput() const
+{
+  CALL("Unit::derivedFromInput");
+
+  // Depth-first search of derivation - it's likely that we'll hit an input clause as soon
+  // as we hit the top
+  Stack<Inference*> todo; 
+  todo.push(&const_cast<Inference&>(_inference)); 
+  while(!todo.isEmpty()){
+    Inference* inf = todo.pop();
+    if(inf->rule() == InferenceRule::INPUT){
+      return true;
+    }
+    Inference::Iterator it = inf->iterator();
+    while(inf->hasNext(it)){ todo.push(&(inf->next(it)->inference())); }
+  }
+
+  return false;
+}
+
+typedef List<Inference*> InferenceList;
+
+// TODO this could be more efficient. Although expected cost is log(n) where n is length of proof
+bool Unit::derivedFromGoalCheck() const
+{
+  CALL("Unit::derivedFromGoalCheck");
+
+  // Breadth-first search of derivation - it's likely that we'll hit a goal-related node
+  // close to the refutation... unless it doesn't exist of course
+  InferenceList* todo = InferenceList::empty();
+  Set<Inference*> seen;
+  InferenceList::push(&const_cast<Inference&>(_inference),todo);
+  while(!InferenceList::isEmpty(todo)){
+    Inference* inf = InferenceList::pop(todo);
+    if(inf->derivedFromGoal()) {
+      return true;
+    }
+    Inference::Iterator it = inf->iterator();
+    while(inf->hasNext(it)){ 
+      Inference* ninf = &inf->next(it)->inference();
+      if(!seen.contains(ninf)){
+       InferenceList::push(ninf,todo); 
+       seen.insert(ninf);
+      }
+    }
+  }
+
+  return false;
 }
 
 std::ostream& Kernel::operator<<(ostream& out, const Unit& u)

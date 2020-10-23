@@ -1150,6 +1150,7 @@ void TheoryAxioms::applyFOOL() {
 
   // Add "$$true != $$false"
   Literal* tneqf = Literal::createEquality(false, t, f, Term::boolSort());
+
   addTheoryClauseFromLits({tneqf},InferenceRule::FOOL_AXIOM_TRUE_NEQ_FALSE,CHEAP);
 
   // Do not add the finite domain axiom if --fool_paradomulation on
@@ -1160,6 +1161,7 @@ void TheoryAxioms::applyFOOL() {
   // Add "![X : $bool]: ((X = $$true) | (X = $$false))"
   Literal* boolVar1 = Literal::createEquality(true, TermList(0, false), t, Term::boolSort());
   Literal* boolVar2 = Literal::createEquality(true, TermList(0, false), f, Term::boolSort());
+
   addTheoryClauseFromLits({boolVar1,boolVar2},InferenceRule::FOOL_AXIOM_ALL_IS_TRUE_OR_FALSE,CHEAP);
 } // TheoryAxioms::addBooleanDomainAxiom
 

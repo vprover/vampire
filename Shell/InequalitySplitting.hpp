@@ -27,6 +27,7 @@
 
 #include "Forwards.hpp"
 #include "Lib/Stack.hpp"
+#include "Kernel/Inference.hpp"
 
 namespace Shell {
 

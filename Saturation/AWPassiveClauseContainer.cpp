@@ -49,7 +49,6 @@ namespace Saturation
 using namespace Lib;
 using namespace Kernel;
 
-
 AWPassiveClauseContainer::AWPassiveClauseContainer(bool isOutermost, const Shell::Options& opt, vstring name) :
   PassiveClauseContainer(isOutermost, opt, name),
   _ageQueue(opt),
@@ -84,7 +83,8 @@ AWPassiveClauseContainer::AWPassiveClauseContainer(bool isOutermost, const Shell
 AWPassiveClauseContainer::~AWPassiveClauseContainer()
 {
   ClauseQueue::Iterator cit(_ageQueue);
-  while (cit.hasNext()) {
+  while (cit.hasNext()) 
+  {
     Clause* cl=cit.next();
     ASS(!_isOutermost || cl->store()==Clause::PASSIVE);
     cl->setStore(Clause::NONE);

@@ -153,6 +153,7 @@ Index* IndexManager::create(IndexType t)
   bool isGenerating;
   static bool const useConstraints = env.options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF;
   static bool const extByAbs = env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION;
+
   switch(t) {
   case GENERATING_SUBST_TREE:
     is=new LiteralSubstitutionTree(useConstraints);

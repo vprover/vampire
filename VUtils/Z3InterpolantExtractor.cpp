@@ -438,7 +438,7 @@ ZIE::ProofObject ZIE::readProofObject(LExpr* expr)
   Inference* inf;
   if(name=="asserted") {
     if(premises) { LISP_ERROR("asserted cannot have any premises", expr); }
-    inf = new Inference(Inference::INPUT);
+    inf = new Inference0(Inference::INPUT);
     input = true;
   }
   else {

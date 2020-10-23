@@ -42,6 +42,7 @@
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/DistinctGroupExpansion.hpp"
+#include "Shell/UIHelper.hpp"
 
 #include "Indexing/TermSharing.hpp"
 
@@ -702,14 +703,30 @@ void TPTP::skipWhiteSpacesAndComments()
 
     case '%': // end-of-line comment
     resetChars();
-    for (;;) {
-      int c = getChar(0);
+    for (int n=0;;n++) {
+      int c = getChar(n);
       if (c == 0) {
+        resetChars();
+        getChar(0);
 	return;
       }
-      resetChars();
       if (c == '\n') {
         _lineNumber++;
+#if VDEBUG
+        // Only check for Status if in preamble before any units read (also only in the top level file, not in includes)
+        if(_units.list() == 0 && _inputs.isEmpty()){
+          _chars[n]='\0';
+          vstring cline(_chars.content());
+          if(cline.find("Status")!=vstring::npos){
+             if(cline.find("Theorem")!=vstring::npos){ UIHelper::setExpectingUnsat(); }
+             else if(cline.find("Unsatisfiable")!=vstring::npos){ UIHelper::setExpectingUnsat(); }
+             else if(cline.find("ContradictoryAxioms")!=vstring::npos){ UIHelper::setExpectingUnsat(); }
+             else if(cline.find("Satisfiable")!=vstring::npos){ UIHelper::setExpectingSat(); }
+             else if(cline.find("CounterSatisfiable")!=vstring::npos){ UIHelper::setExpectingSat(); }
+          }
+        }
+#endif
+        resetChars();
 	break;
       }
     }
@@ -1400,6 +1417,8 @@ void TPTP::tff()
         Signature::Symbol* symbol = env.signature->getFunction(fun);
         OperatorType* ot = OperatorType::getFunctionTypeUniformRange(arity, Term::superSort(), Term::superSort(), VList::empty());
         if (!added) {
+          //TODO types are no longer perfectly shared hence cannot
+          //use == for comparison AYB
           if(!symbol->fnType()->isEqual(ot)){
             PARSE_ERROR("Type constructor declared with two different types",tok);
           }
@@ -3570,14 +3589,14 @@ void TPTP::endFof()
     // convert the input formula f to a clause
     Stack<Formula*> forms;
     Stack<Literal*> lits;
-    Formula* g = f;
+    Formula* g = nullptr;
     forms.push(f);
     while (! forms.isEmpty()) {
-      f = forms.pop();
-      switch (f->connective()) {
+      g = forms.pop();
+      switch (g->connective()) {
       case OR:
 	{
-	  FormulaList::Iterator fs(static_cast<JunctionFormula*>(f)->getArgs());
+	  FormulaList::Iterator fs(static_cast<JunctionFormula*>(g)->getArgs());
 	  while (fs.hasNext()) {
 	    forms.push(fs.next());
 	  }
@@ -3588,14 +3607,14 @@ void TPTP::endFof()
       case NOT:
 	{
 	  bool positive = true;
-	  while (f->connective() == NOT) {
-	    f = static_cast<NegatedFormula*>(f)->subformula();
+	  while (g->connective() == NOT) {
+	    g = static_cast<NegatedFormula*>(g)->subformula();
 	    positive = !positive;
 	  }
-	  if (f->connective() != LITERAL) {
-	    USER_ERROR((vstring)"input formula not in CNF: " + g->toString());
+	  if (g->connective() != LITERAL) {
+	    USER_ERROR((vstring)"input formula not in CNF: " + f->toString());
 	  }
-	  Literal* l = static_cast<AtomicFormula*>(f)->literal();
+	  Literal* l = static_cast<AtomicFormula*>(g)->literal();
 	  lits.push(positive ? l : Literal::complementaryLiteral(l));
 	}
 	break;
@@ -3605,7 +3624,7 @@ void TPTP::endFof()
       case FALSE:
 	break;
       default:
-	USER_ERROR((vstring)"input formula not in CNF: " + g->toString());
+	USER_ERROR((vstring)"input formula not in CNF: " + f->toString());
       }
     }
     unit = Clause::fromStack(lits,FromInput(_lastInputType));
@@ -3650,7 +3669,7 @@ void TPTP::endFof()
                                 g->sorts(),
         new BinaryFormula(IMP,g->subformula(),new AtomicFormula(a)));
       unit = new FormulaUnit(f,
-           FormulaTransformation(InferenceRule::ANSWER_LITERAL,unit));
+			     FormulaTransformation(InferenceRule::ANSWER_LITERAL,unit));
     }
     else {
       Formula::VarList* vs = f->freeVariables();
@@ -3662,7 +3681,7 @@ void TPTP::endFof()
   f = new NegatedFormula(new QuantifiedFormula(FORALL,vs,0,f));
       }
       unit = new FormulaUnit(f,
-           FormulaTransformation(InferenceRule::NEGATED_CONJECTURE,unit));
+			     FormulaTransformation(InferenceRule::NEGATED_CONJECTURE,unit));
     }
     break;
 
@@ -3737,11 +3756,12 @@ void TPTP::endTff()
     unsigned pred = env.signature->addPredicate(name, arity, added);
     symbol = env.signature->getPredicate(pred);
     if (!added) {
-      if(!symbol->predType()->isEqual(ot)){
+      // GR: Multiple identical type declarations for a symbol are allowed
+      if(symbol->predType()->isEqual(ot)){
         USER_ERROR("Predicate symbol type is declared after its use: " + name);
       }
-    } 
-    else {
+    }
+    else{
       if (arity != 0) {
         symbol->setType(ot);
       }
@@ -4098,6 +4118,7 @@ void TPTP::unbindVariables()
     SortList* sorts;
     ALWAYS(_variableSorts.find(var,sorts));
     _variableSorts.replace(var,sorts->tail());
+    delete sorts; // this deletes just the "popped" cell
   }
 } // unbindVariables
 

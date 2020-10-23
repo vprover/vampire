@@ -71,6 +71,7 @@ public:
   /** Return the number of this unit */
   unsigned number() const { return _number; }
 
+  /** Return the inference of this unit */
   Inference& inference() { return _inference; }
   const Inference& inference() const { return _inference; }
 
@@ -145,9 +146,7 @@ public:
   inline bool isFromPreprocessing()
   { return !_firstNonPreprocessingNumber || _number<_firstNonPreprocessingNumber; }
 
-
   void assertValid();
-
 
   static void onPreprocessingEnd();
   static void onParsingEnd(){ _lastParsingNumber = _lastNumber;}
@@ -158,8 +157,10 @@ protected:
   unsigned _number;
   /** Kind  */
   unsigned _kind : 1;
+
   /** used in interpolation to denote parents of what color have been used */
   unsigned _inheritedColor : 2;
+
   /** inference used to obtain the unit */
   Inference _inference;
 

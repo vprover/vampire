@@ -42,7 +42,10 @@ namespace Kernel {
  * Exception to be thrown when the requested operation cannot be performed,
  * e.g. because of overflow of a native type.
  */
-class ArithmeticException : public ThrowableBase {};
+class ArithmeticException : public ThrowableBase { };
+
+class MachineArithmeticException : public ArithmeticException {  };
+class DivByZeroException         : public ArithmeticException {  };
 
 class IntegerConstantType
 {
@@ -52,63 +55,30 @@ public:
   typedef int InnerType;
 
   IntegerConstantType() {}
-  IntegerConstantType(InnerType v) : _val(v) {}
+  constexpr IntegerConstantType(InnerType v) : _val(v) {}
   explicit IntegerConstantType(const vstring& str);
 
   IntegerConstantType operator+(const IntegerConstantType& num) const;
   IntegerConstantType operator-(const IntegerConstantType& num) const;
   IntegerConstantType operator-() const;
   IntegerConstantType operator*(const IntegerConstantType& num) const;
-  IntegerConstantType operator/(const IntegerConstantType& num) const;
-  IntegerConstantType operator%(const IntegerConstantType& num) const;
 
   // true if this divides num
-  bool divides(const IntegerConstantType& num) const {
-    CALL("IntegerConstantType:divides");
-    // if this is zero it shouldn't divide anything, if num is zero dividing it doesn't make sense
-    if(_val==0 || num._val==0){ return false; }
-    // if this is bigger than num then the result cannot be an integer
-    if(_val > num._val){ return false; }
-    // now we only need to check the absolute value
-    int safeVal=_val;
-    if (_val < 0 && ! Lib::Int::safeUnaryMinus<int>(_val,safeVal)) {
-      return false;
-    }
-    return (num._val % safeVal ==0);
-  }
-
+  bool divides(const IntegerConstantType& num) const ;
   float realDivide(const IntegerConstantType& num) const { 
-    if(num._val==0) throw ArithmeticException();
+    if(num._val==0) throw DivByZeroException();
     return ((float)_val)/num._val; 
   }
-  int intDivide(const IntegerConstantType& num) const {
-      CALL("IntegerConstantType::intDivide");
-      ASS(num.divides(*this));
-      if(num._val==0){ throw ArithmeticException(); }
-      return _val/num._val;
-  }
-  // TODO: shouldn't we always be using intDivide for quotientE - when are they different (apart from real rounding)?
-  IntegerConstantType quotientE(const IntegerConstantType& num) const { 
-    CALL("IntegerConstantType::quotientE");
-    //cout << "quotientE " << _val << " and " << num._val << endl;
-    if(num.divides(*this)){
-      return IntegerConstantType(intDivide(num));
-    }
-    if(num._val>0) return IntegerConstantType(::floor(realDivide(num)));
-    else return IntegerConstantType(::ceil(realDivide(num)));
-  }
-  IntegerConstantType quotientT(const IntegerConstantType& num) const { 
-    if(num.divides(*this)){
-      return IntegerConstantType(intDivide(num));
-    }
-    return IntegerConstantType(::trunc(realDivide(num)));
-  }
-  IntegerConstantType quotientF(const IntegerConstantType& num) const { 
-    if(num.divides(*this)){
-      return IntegerConstantType(intDivide(num));
-    }
-    return IntegerConstantType(::floor(realDivide(num)));
-  }
+  int intDivide(const IntegerConstantType& num) const ;  
+  IntegerConstantType remainderE(const IntegerConstantType& num) const; 
+  IntegerConstantType quotientE(const IntegerConstantType& num) const; 
+  IntegerConstantType quotientT(const IntegerConstantType& num) const;
+  IntegerConstantType quotientF(const IntegerConstantType& num) const; 
+
+  IntegerConstantType remainderT(const IntegerConstantType& num) const
+  { return (*this) - num * quotientT(num); }
+  IntegerConstantType remainderF(const IntegerConstantType& num) const
+  { return (*this) - num * quotientF(num); } 
 
   bool operator==(const IntegerConstantType& num) const;
   bool operator>(const IntegerConstantType& num) const;
@@ -125,12 +95,15 @@ public:
 
   static IntegerConstantType floor(RationalConstantType rat);
   static IntegerConstantType ceiling(RationalConstantType rat);
+  IntegerConstantType abs() const;
 
   static Comparison comparePrecedence(IntegerConstantType n1, IntegerConstantType n2);
 
   vstring toString() const;
 private:
   InnerType _val;
+  IntegerConstantType operator/(const IntegerConstantType& num) const;
+  IntegerConstantType operator%(const IntegerConstantType& num) const;
 };
 
 inline
@@ -154,7 +127,7 @@ struct RationalConstantType {
 
   RationalConstantType(InnerType num, InnerType den);
   RationalConstantType(const vstring& num, const vstring& den);
-  RationalConstantType(InnerType num); //assuming den=1
+  constexpr RationalConstantType(InnerType num) : _num(num), _den(1) {} //assuming den=1
 
   RationalConstantType operator+(const RationalConstantType& num) const;
   RationalConstantType operator-(const RationalConstantType& num) const;
@@ -184,21 +157,10 @@ struct RationalConstantType {
 
   bool isZero(){ return _num.toInner()==0; } 
   // relies on the fact that cannonize ensures that _den>=0
-  bool isNegative(){ ASS(_den>=0); return _num.toInner() < 0; }
+  bool isNegative() const { ASS(_den>=0); return _num.toInner() < 0; }
+  bool isPositive() const { ASS(_den>=0); return _num.toInner() > 0; }
 
-  RationalConstantType quotientE(const RationalConstantType& num) const {
-    if(_num.toInner()>0 && _den.toInner()>0){
-       return ((*this)/num).floor(); 
-    }
-    else return ((*this)/num).ceiling();
-  }
-  RationalConstantType quotientT(const RationalConstantType& num) const {
-    return ((*this)/num).truncate();
-  }
-  RationalConstantType quotientF(const RationalConstantType& num) const {
-    return ((*this)/num).floor(); 
-  }
-
+  RationalConstantType abs() const;
 
   vstring toString() const;
 
@@ -230,7 +192,9 @@ public:
 
   RealConstantType() {}
   explicit RealConstantType(const vstring& number);
-  explicit RealConstantType(const RationalConstantType& rat) : RationalConstantType(rat) {}
+  explicit constexpr RealConstantType(const RationalConstantType& rat) : RationalConstantType(rat) {}
+  explicit constexpr RealConstantType(typename IntegerConstantType::InnerType number) : RealConstantType(RationalConstantType(number)) {}
+  RealConstantType(int num, int den) : RationalConstantType(num, den) {}
 
   RealConstantType operator+(const RealConstantType& num) const
   { return RealConstantType(RationalConstantType::operator+(num)); }
@@ -247,12 +211,7 @@ public:
   RealConstantType truncate() const { return RealConstantType(RationalConstantType::truncate()); }
   RealConstantType ceiling() const { return RealConstantType(RationalConstantType::ceiling()); }
 
-  RealConstantType quotientE(const RealConstantType& num) const
-    { return RealConstantType(RationalConstantType::quotientE(num)); }
-  RealConstantType quotientT(const RealConstantType& num) const
-    { return RealConstantType(RationalConstantType::quotientT(num)); }
-  RealConstantType quotientF(const RealConstantType& num) const
-    { return RealConstantType(RationalConstantType::quotientF(num)); }
+  RealConstantType abs() const;
 
   vstring toNiceString() const;
 

@@ -148,7 +148,6 @@ std::unique_ptr<PassiveClauseContainer> makeLevel1(bool isOutermost, const Optio
     for (unsigned i = 0; i < cutoffs.size(); i++)
     {
       auto queueName = name + "ThSQ" + Int::toString(cutoffs[i]) + ":";
-      //TODO uncomment these. At the moment have wierd compiler error
       queues.push_back(makeLevel0(false, opt, queueName));
     }
     return Lib::make_unique<TheoryMultiSplitPassiveClauseContainer>(isOutermost, opt, name + "ThSQ", std::move(queues));
@@ -362,7 +361,6 @@ ClauseIterator SaturationAlgorithm::activeClauses()
   LiteralIndexingStructure* gis=getIndexManager()->getGeneratingLiteralIndexingStructure();
   return pvi( getMappingIterator(gis->getAll(), SLQueryResult::ClauseExtractFn()) );
 }
-
 
 /**
  * A function that is called when a clause is added to the active clause container.
@@ -966,7 +964,15 @@ void SaturationAlgorithm::handleEmptyClause(Clause* cl)
       reportSpiderFail();
       // this is a poor way of handling this in release mode but it prevents unsound proofs
       throw MainLoop::MainLoopFinishedException(Statistics::REFUTATION_NOT_FOUND);
-    }   
+    }
+    
+
+    // Global Subsumption doesn't set the input type the way we want so we can't do this for now
+    // TODO think of a better fix
+    //if(cl->inputType() == UnitInputType::AXIOM){
+    if(UIHelper::haveConjecture() && !cl->derivedFromGoalCheck()){
+      UIHelper::setConjectureInProof(false);
+    }
 
     throw RefutationFoundException(cl);
   }
@@ -1118,8 +1124,11 @@ void SaturationAlgorithm::removeActiveOrPassiveClause(Clause* cl)
 
   switch(cl->store()) {
   case Clause::PASSIVE:
+  {
+    TimeCounter tc(TC_PASSIVE_CONTAINER_MAINTENANCE);
     _passive->remove(cl);
     break;
+  }
   case Clause::ACTIVE:
     _active->remove(cl);
     break;
@@ -1140,7 +1149,10 @@ void SaturationAlgorithm::addToPassive(Clause* cl)
   cl->setStore(Clause::PASSIVE);
   env.statistics->passiveClauses++;
 
-  _passive->add(cl);
+  {
+    TimeCounter tc(TC_PASSIVE_CONTAINER_MAINTENANCE);
+    _passive->add(cl);
+  }
 }
 
 /**
@@ -1176,8 +1188,8 @@ bool SaturationAlgorithm::activate(Clause* cl)
     instances = _theoryInstSimp->generateClauses(cl,redundant);
   }*/
 #endif
+
   if(redundant){ 
-    removeActiveOrPassiveClause(cl);
     return false; 
   }
 
@@ -1348,7 +1360,11 @@ void SaturationAlgorithm::doOneAlgorithmStep()
     throw MainLoopFinishedException(res);
   }
 
-  Clause* cl = _passive->popSelected();
+  Clause* cl = nullptr;
+  {
+    TimeCounter tc(TC_PASSIVE_CONTAINER_MAINTENANCE);
+    cl = _passive->popSelected();
+  }
   ASS_EQ(cl->store(),Clause::PASSIVE);
   cl->setStore(Clause::SELECTED);
 
@@ -1606,7 +1622,6 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
 
   res->setImmediateSimplificationEngine(createISE(prb, opt, res->getOrdering()));
 
-
   //create simplification engine
 
   if((prb.hasLogicalProxy() || prb.hasBoolVar() || prb.hasFOOL()) &&
@@ -1786,3 +1801,4 @@ ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, cons
 
   return res;
 }
+

@@ -41,6 +41,7 @@ using namespace Kernel;
 using namespace Lib;
 using namespace Saturation;
 
+
 /**
  * Class of objects which contain results of single literal queries.
  */

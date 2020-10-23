@@ -461,11 +461,11 @@ protected:
     // TODO we could make clauses track this information, but I am not sure that that's worth it
     if(us->isClause() && us->isPureTheoryDescendant()){
       //cout << "HERE with " << us->toString() << endl;
-    Inference* inf = &us->inference();
-    while(inf->rule() == InferenceRule::EVALUATION){
-              Inference::Iterator piit = inf->iterator();
-              inf = &inf->next(piit)->inference();
-     }
+      Inference* inf = &us->inference();
+      while(inf->rule() == InferenceRule::EVALUATION){
+        Inference::Iterator piit = inf->iterator();
+        inf = &inf->next(piit)->inference();
+      }
       Stack<Inference*> current;
       current.push(inf);
       unsigned level = 0;
@@ -482,7 +482,7 @@ protected:
             while(premInf->rule() == InferenceRule::EVALUATION){
               Inference::Iterator piit = premInf->iterator();
               premUnit = premInf->next(piit);
-              premInf = &premUnit->inference(); 
+              premInf = &premUnit->inference();
             }
 
 //for(unsigned i=0;i<level;i++){ cout << ">";}; cout << premUnit->toString() << endl;
@@ -517,6 +517,8 @@ struct InferenceStore::TPTPProofPrinter
   TPTPProofPrinter(ostream& out, InferenceStore* is)
   : ProofPrinter(out, is) {
     splitPrefix = Saturation::Splitter::splPrefix; 
+    // Don't delay printing in TPTP proof mode
+    delayPrinting = false;
   }
 
   void print()
@@ -577,7 +579,7 @@ protected:
     SplitSet::Iterator sit(*splits);
     vstring res("(");
     while(sit.hasNext()) {
-      res+= "~"+splitPrefix+Int::toString(sit.next());
+      res+= Saturation::Splitter::getFormulaStringFromName(sit.next(),true /*negated*/);
       if (sit.hasNext()) {
 	res+=" | ";
       }

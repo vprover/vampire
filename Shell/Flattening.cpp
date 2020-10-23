@@ -40,7 +40,7 @@ namespace Shell
 {
 
 /**
- * Assuming formula @c f is flatenned, return its negation which is also flatenned.
+ * Assuming formula @c f is flattened, return its negation which is also flattened.
  */
 Formula* Flattening::getFlattennedNegation(Formula* f)
 {
@@ -79,8 +79,7 @@ FormulaUnit* Flattening::flatten (FormulaUnit* unit)
   }
 
   FormulaUnit* res = new FormulaUnit(g,
-			 FormulaTransformation(InferenceRule::FLATTEN,unit));
-
+      FormulaTransformation(InferenceRule::FLATTEN,unit));
   if (env.options->showPreprocessing()) {
     env.beginOutput();
     env.out() << "[PP] flatten in: " << unit->toString() << std::endl;

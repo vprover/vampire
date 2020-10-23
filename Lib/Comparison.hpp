@@ -95,6 +95,23 @@ private:
   Comp2 _c2;
 };
 
+template<class Closure> 
+class ClosureComparator
+{
+  Closure _self;
+public:
+  ClosureComparator(Closure self) : _self(self) {}
+
+  template<typename T>
+  Comparison compare(T l, T r) const& { return _self(l,r); }
+};
+
+template<class Closure>
+inline ClosureComparator<Closure> closureComparator(Closure c) 
+{
+  return ClosureComparator<Closure>(c);
+}
+
 //struct DefaultComparator
 //{
 //  template<typename T>

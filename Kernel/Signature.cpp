@@ -60,6 +60,7 @@ Signature::Symbol::Symbol(const vstring& nm, unsigned arity, bool interpreted, b
     _type(0),
     _distinctGroups(0),
     _usageCount(0),
+    _unitUsageCount(0),
     _inGoal(0),
     _inUnit(0),
     _inductionSkolem(0),
@@ -587,6 +588,31 @@ unsigned Signature::getFunctionNumber(const vstring& name, unsigned arity) const
   ASS(_funNames.find(key(name, arity)));
   return _funNames.get(key(name, arity));
 }
+
+bool Signature::tryGetFunctionNumber(const vstring& name, unsigned arity, unsigned& out) const
+{
+  CALL("Signature::tryGetFunctionNumber");
+  auto* value = _funNames.getPtr(key(name, arity));
+  if (value != NULL) {
+    out = *value;
+    return true;
+  } else {
+    return false;
+  }
+}
+
+bool Signature::tryGetPredicateNumber(const vstring& name, unsigned arity, unsigned& out) const
+{
+  CALL("Signature::tryGetPredicateNumber");
+  auto* value = _predNames.getPtr(key(name, arity));
+  if (value != NULL) {
+    out = *value;
+    return true;
+  } else {
+    return false;
+  }
+}
+
 
 unsigned Signature::getPredicateNumber(const vstring& name, unsigned arity) const
 {

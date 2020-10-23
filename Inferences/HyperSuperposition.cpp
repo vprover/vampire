@@ -471,6 +471,7 @@ Clause* HyperSuperposition::tryGetContradictionFromUnification(Clause* cl, Term*
   UnitList* premLst = 0;
   UnitList::pushFromIterator(ClauseStack::Iterator(premStack), premLst);
   UnitList::push(cl, premLst); 
+
   Clause* res = Clause::fromIterator(LiteralIterator::getEmpty(),
       GeneratingInferenceMany(InferenceRule::HYPER_SUPERPOSITION_SIMPLIFYING, premLst));
   // MS: keeping the original semantics (GeneratingInferenceMany would compute max over all parents+1)

@@ -36,7 +36,8 @@
 
 #include "Kernel/Formula.hpp"
 #include "Kernel/Unit.hpp"
-//#include "Kernel/Theory.hpp"
+#include "Kernel/Theory.hpp"
+#include "Kernel/Inference.hpp"
 
 //#define DEBUG_SHOW_STATE
 

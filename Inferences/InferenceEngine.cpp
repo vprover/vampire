@@ -343,7 +343,7 @@ Clause* DuplicateLiteralRemovalISE::simplify(Clause* c)
   // now lits[0 ... newLength-1] contain the remaining literals
   Clause* d = new(newLength)
 		 Clause(newLength,
-			SimplifyingInference1(InferenceRule::REMOVE_DUPLICATE_LITERALS,c));
+			 SimplifyingInference1(InferenceRule::REMOVE_DUPLICATE_LITERALS,c));
 
   int origIdx = length-1;
 
@@ -474,7 +474,7 @@ Clause* TrivialInequalitiesRemovalISE::simplify(Clause* c)
 
   int newLength = length - found;
   Clause* d = new(newLength) Clause(newLength,
-		       SimplifyingInference1(InferenceRule::TRIVIAL_INEQUALITY_REMOVAL,c));
+		            SimplifyingInference1(InferenceRule::TRIVIAL_INEQUALITY_REMOVAL,c));
   for (int i = newLength-1;i >= 0;i--) {
     (*d)[i] = lits[newLength-i-1];
   }
