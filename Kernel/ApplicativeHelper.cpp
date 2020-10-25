@@ -82,7 +82,7 @@ TermList ApplicativeHelper::createAppTerm(TermList sort, TermList head, TermList
   TermList res = head;
   TermList s1, s2;
 
-  for(int i = 0; i < arity; i++){
+  for(unsigned i = 0; i < arity; i++){
     s1 = getNthArg(sort, 1);
     s2 = getResultApplieadToNArgs(sort, 1);
     res = createAppTerm(s1, s2, res, args[i], shared);

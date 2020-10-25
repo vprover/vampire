@@ -69,6 +69,7 @@ bool Sorts::addSort(TermList sort)
   
   _termListsToUnsigned.insert(sort, _sorts.size());
   _sorts.push(sort);
+  return true;
 }
 
 
@@ -76,7 +77,7 @@ unsigned Sorts::getSortNum(TermList sort)
 { 
   CALL("Sorts::getSortNum");
 
-  ASS(_termListsToUnsigned.find(sort))
+  ASS_REP(_termListsToUnsigned.find(sort), sort.toString())
   return _termListsToUnsigned.get(sort);
 }
 

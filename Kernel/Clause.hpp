@@ -376,9 +376,6 @@ protected:
 
   /** storage class */
   Store _store : 3;
-
-  /** storage class */
-  Store _store : 3;
   /** number of selected literals */
   unsigned _numSelected : 20;
 

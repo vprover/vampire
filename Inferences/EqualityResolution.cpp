@@ -111,21 +111,22 @@ struct EqualityResolution::ResultFn
     subst.reset();
     constraints.reset();
 
-    MismatchHandler* hndlr = 0;
     if(use_uwa_handler){
-      hndlr = new UWAMismatchHandler(constraints);
+      UWAMismatchHandler hndlr(constraints);
+      if(!subst.unify(arg0,0,arg1,0,&hndlr)){ 
+        return 0; 
+      }
     }
 
     if(use_ho_handler){
-      hndlr = new HOMismatchHandler(constraints);
+      HOMismatchHandler hndlr(constraints);
+      if(!subst.unify(arg0,0,arg1,0,&hndlr)){ 
+        return 0; 
+      }    
     }
 
-    if(!subst.unify(arg0,0,arg1,0,hndlr)){ 
-      return 0; 
-    }
- 
-    if(hndlr){
-      delete hndlr;
+    if(!use_uwa_handler && !use_ho_handler && !subst.unify(arg0,0,arg1,0)){
+      return 0;    
     }
 
     //cout << "equalityResolution with " + _cl->toString() << endl;

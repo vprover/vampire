@@ -398,11 +398,11 @@ Clause* Superposition::performSuperposition(
   ASS(rwClause->store()==Clause::ACTIVE);
   ASS(eqClause->store()==Clause::ACTIVE);
 
-  /*  cout << "performSuperposition with " << rwClause->toString() << " and " << eqClause->toString() << endl;
+  /* cout << "performSuperposition with " << rwClause->toString() << " and " << eqClause->toString() << endl;
     cout << "rwTerm " << rwTerm.toString() << " eqLHS " << eqLHS.toString() << endl;
     cout << "subst " << endl << subst->tryGetRobSubstitution()->toString() << endl;
-    cout << "eqIsResult " << eqIsResult << endl;
-  */
+    cout << "eqIsResult " << eqIsResult << endl;*/
+
 
   // the first checks the reference and the second checks the stack
 /*
@@ -655,6 +655,12 @@ Clause* Superposition::performSuperposition(
     }
   }
 
+  if(isTypeSub){
+    TermList eqLHSsortS = subst->apply(eqLHSsort, eqIsResult);
+    Literal* constraint = Literal::createEquality(false,eqLHSS,rwTermS,eqLHSsortS);
+    (*res)[next] = constraint;
+  }
+
   if(needsToFulfilWeightLimit && !passiveClauseContainer->fulfilsWeightLimit(weight, numPositiveLiteralsLowerBound, res->inference())) {
     RSTAT_CTR_INC("superpositions skipped for weight limit after the clause was built");
     env.statistics->discardedNonRedundantClauses++;
@@ -688,6 +694,6 @@ Clause* Superposition::performSuperposition(
     //NOT_IMPLEMENTED;
   }
 */
-  //cout << "result " + res->toString() << endl;
+//  cout << "result " + res->toString() << endl;
   return res;
 }

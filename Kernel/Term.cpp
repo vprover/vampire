@@ -571,6 +571,9 @@ vstring Term::headToString() const
     }
   } else {
     unsigned proj;
+    if(isSuper()){
+      return functionName();
+    }
     if (Theory::tuples()->findProjection(functor(), isLiteral(), proj)) {
       return "$proj(" + Int::toString(proj) + ", ";
     }
@@ -1385,6 +1388,11 @@ bool Term::isBoolean() const {
   }
   return false;
 } // isBoolean
+
+bool Term::isSuper() const {
+  CALL("Term::isSuper")
+  return !isLiteral() && env.signature->getFunction(_functor)->super(); 
+}
 
 /**
  * Return true iff headers of literals match each other. We check also whether

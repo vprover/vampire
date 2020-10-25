@@ -591,11 +591,6 @@ void LambdaElimination::addChoiceAxiom(Problem& prb)
 {
   CALL("LambdaElimination::addChoiceAxiom"); 
  
-  auto srtOf = [] (TermList t) { 
-     ASS(t.isTerm());
-     return SortHelper::getResultSort(t.term());
-  };
-
   TermList alpha = TermList(0, false);
   TermList boolS = Term::boolSort();
   TermList alphaBool = Term::arrowSort(alpha, Term::boolSort());

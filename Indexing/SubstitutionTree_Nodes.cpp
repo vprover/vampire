@@ -140,14 +140,14 @@ SubstitutionTree::Leaf* SubstitutionTree::createLeaf(TermList ts)
 SubstitutionTree::IntermediateNode* SubstitutionTree::createIntermediateNode(unsigned childVar,bool useC)
 {
   CALL("SubstitutionTree::createIntermediateNode/2");
-  //if(useC){ return new UArrIntermediateNodeWithSorts(childVar); }
+  if(useC){ return new UArrIntermediateNodeWithSorts(childVar); }
   return new UArrIntermediateNode(childVar);
 }
 
 SubstitutionTree::IntermediateNode* SubstitutionTree::createIntermediateNode(TermList ts, unsigned childVar,bool useC)
 {
   CALL("SubstitutionTree::createIntermediateNode/3");
-  //if(useC){ return new UArrIntermediateNodeWithSorts(ts, childVar); }
+  if(useC){ return new UArrIntermediateNodeWithSorts(ts, childVar); }
   return new UArrIntermediateNode(ts, childVar);
 }
 

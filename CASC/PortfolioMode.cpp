@@ -563,11 +563,11 @@ void PortfolioMode::runSlice(Options& strategyOpt)
   opt.checkGlobalOptionConstraints();
   *env.options = opt; //just temporarily until we get rid of dependencies on env.options in solving
 
-  /*if (outputAllowed()) {
+  if (outputAllowed()) {
     env.beginOutput();
     addCommentSignForSZS(env.out()) << opt.testId() << " on " << opt.problemName() << endl;
     env.endOutput();
-  }*/
+  }
 
   Saturation::ProvingHelper::runVampire(*_prb, opt);
 
@@ -598,7 +598,7 @@ void PortfolioMode::runSlice(Options& strategyOpt)
 
   }
 
-  if(outputResult) { // we can report on every failure, but only once on success
+  if((outputAllowed() && resultValue) || outputResult) { // we can report on every failure, but only once on success
     env.beginOutput();
     UIHelper::outputResult(env.out());
     env.endOutput();

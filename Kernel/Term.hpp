@@ -517,7 +517,7 @@ public:
 
   /** True if the term is, in fact, a literal */
   bool isLiteral() const { return _args[0]._info.literal; }
-
+  
   /** Return an index of the argument to which @b arg points */
   unsigned getArgumentIndex(TermList* arg)
   {
@@ -616,6 +616,8 @@ public:
   bool isFormula() const { return functor() == SF_FORMULA; }
   bool isLambda() const { return functor() == SF_LAMBDA; }
   bool isBoolean() const;
+  bool isSuper() const; 
+  
   /** Return pointer to structure containing extra data for special terms such as
    * if-then-else or let...in */
   const SpecialTermData* getSpecialData() const { return const_cast<Term*>(this)->getSpecialData(); }

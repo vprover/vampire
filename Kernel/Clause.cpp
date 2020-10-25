@@ -714,10 +714,6 @@ unsigned Clause::numPositiveLiterals()
   return count;
 }
 
-<<<<<<< HEAD
-
-=======
->>>>>>> master
 /**
  * Return index of @b lit in the clause
  *

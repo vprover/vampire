@@ -271,11 +271,11 @@ public:
           if(SortHelper::tryGetResultSort(t,srt) && 
              !SortHelper::isNotDefaultSort(SortHelper::sortNum(srt)) &&
              srt!=Term::defaultSort()){
-              unsigned top = t.term()->functor();
-              TermStack::Iterator fit(bySortTerms[SortHelper::sortNum(srt)]);
-              auto withoutThisTop = getFilteredIterator(fit,NotTop(top));
-              auto nodes = getMappingIterator(withoutThisTop,ByTopFn(this));
-              return pvi(getFilteredIterator(nodes,NonzeroFn()));
+            unsigned top = t.term()->functor();
+            TermStack::Iterator fit(bySortTerms[SortHelper::sortNum(srt)]);
+            auto withoutThisTop = getFilteredIterator(fit,NotTop(top));
+            auto nodes = getMappingIterator(withoutThisTop,ByTopFn(this));
+            return pvi(getFilteredIterator(nodes,NonzeroFn()));
           }
           return NodeIterator::getEmpty();
         } 
@@ -304,17 +304,18 @@ public:
         }
         void remove(TermList t)
         {
-            CALL("SubstitutionTree::ChildBySortHelper::remove");
-            if(!t.isTerm()){ return;}
-            unsigned srt;
-            if(SortHelper::tryGetResultSort(t,srt)){
-                if(srt > Sorts::SRT_DEFAULT && srt < Sorts::FIRST_USER_SORT){
-                    unsigned f = t.term()->functor();
-                    if(bySort[srt].remove(f)){
-                        bySortTerms[srt].remove(t);
-                    }
-                }
+          CALL("SubstitutionTree::ChildBySortHelper::remove");
+          if(!t.isTerm()){ return;}
+          TermList srtT;
+          if(SortHelper::tryGetResultSort(t,srtT)){
+            unsigned srt = SortHelper::sortNum(srtT);
+            if(!SortHelper::isNotDefaultSort(srt) && srtT != Term::defaultSort()){
+              unsigned f = t.term()->functor();
+              if(bySort[srt].remove(f)){
+                bySortTerms[srt].remove(t);
+              }
             }
+          }
         }
         
     };// class SubstitutionTree::ChildBySortHelper
@@ -327,11 +328,11 @@ public:
   public:
     /** Build a new intermediate node which will serve as the root*/
     inline
-    IntermediateNode(unsigned childVar) : childVar(childVar)/*,_childBySortHelper(0)*/ {}
+    IntermediateNode(unsigned childVar) : childVar(childVar),_childBySortHelper(0) {}
 
     /** Build a new intermediate node */
     inline
-    IntermediateNode(TermList ts, unsigned childVar) : Node(ts), childVar(childVar)/*,_childBySortHelper(0)*/ {}
+    IntermediateNode(TermList ts, unsigned childVar) : Node(ts), childVar(childVar),_childBySortHelper(0) {}
 
     inline
     bool isLeaf() const { return false; };

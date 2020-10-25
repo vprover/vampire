@@ -767,7 +767,7 @@ void Options::Options::init()
     _manualClauseSelection.description="Run Vampire interactively by manually picking the clauses to be selected";
     _lookup.insert(&_manualClauseSelection);
     _manualClauseSelection.tag(OptionTag::DEVELOPMENT);
-    
+
 //************************************************************************
 //*********************** VAMPIRE (includes CASC)  ***********************
 //************************************************************************
@@ -1564,7 +1564,7 @@ void Options::Options::init()
 
     _newTautologyDel = BoolOptionValue("new_taut_del","ntd",false);
     _newTautologyDel.description=
-    "Delete clauses with literals of the form false != true or t = true \/ t = false";
+    "Delete clauses with literals of the form false != true or t = true \\/ t = false";
     _lookup.insert(&_newTautologyDel);
     _newTautologyDel.tag(OptionTag::INFERENCES);
 

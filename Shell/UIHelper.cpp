@@ -674,18 +674,22 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
  */
 void UIHelper::outputSortDeclarations(ostream& out)
 {
- /* CALL("UIHelper::outputSortDeclarations");
+  CALL("UIHelper::outputSortDeclarations");
 
-  unsigned sorts = (*env.sorts).count();
-  for (unsigned sort = Sorts::SRT_BOOL; sort < sorts; ++sort) {
-    if (sort < Sorts::FIRST_USER_SORT && ((sort != Sorts::SRT_BOOL) || !env.options->showFOOL())) {
+  if(env.statistics->higherOrder){
+    return;
+  }
+
+  unsigned sorts = env.sorts->count();
+  for (unsigned sort = 1; sort < sorts; ++sort) {
+    if (sort < Sorts::FIRST_USER_SORT && ((sort != 1) || !env.options->showFOOL())) {
       continue;
     }
-    if ((*env.sorts).isStructuredSort(sort)) {
+    if (SortHelper::isStructuredSort(sort)) {
       continue;
     }
     out << "tff(type_def_" << sort << ", type, " << env.sorts->sortName(sort) << ": $tType)." << endl;
-  }*/
+  }
 } // UIHelper::outputSortDeclarations
 
 #if GNUMP
@@ -715,7 +719,7 @@ ConstraintRCList* UIHelper::getInputConstraints(const Options& opts)
 
   ConstraintRCList* res;
 
-  /*switch(env.options->inputSyntax()) {
+  switch(env.options->inputSyntax()) {
   case Options::InputSyntax::TPTP:
     USER_ERROR("Format not supported for BPA");
     break;
@@ -731,8 +735,8 @@ ConstraintRCList* UIHelper::getInputConstraints(const Options& opts)
     {
       Unit* u = ite.next();
       if ( !u->isClause()) {
-	Formula* f = u->getFormula();
-	std::cout << f->toString();
+  Formula* f = u->getFormula();
+  std::cout << f->toString();
       }
 
 
@@ -755,14 +759,14 @@ ConstraintRCList* UIHelper::getInputConstraints(const Options& opts)
     } else {
       input=new ifstream(inputFile.c_str());
       if (input->fail()) {
-	USER_ERROR("Cannot open problem file: "+inputFile);
+  USER_ERROR("Cannot open problem file: "+inputFile);
       }
     }
   
     parser1.parse(*input);
     std::cout << parser1.getLispFormula()->toString() << std::endl;
      */
-/*   } 
+   } 
 #endif
   case Options::InputSyntax::SMTLIB:
   {
@@ -796,7 +800,7 @@ ConstraintRCList* UIHelper::getInputConstraints(const Options& opts)
 #if 0
     ConstraintRCList::Iterator ite(res);
     while (ite.hasNext())
-	std::cout << ite.next()->toString() << std::endl;
+  std::cout << ite.next()->toString() << std::endl;
     throw TimeLimitExceededException();
     ASSERTION_VIOLATION;
 #endif 
@@ -809,7 +813,7 @@ ConstraintRCList* UIHelper::getInputConstraints(const Options& opts)
     NOT_IMPLEMENTED;
   default:
     ASSERTION_VIOLATION;
-  }*/
+  }
 
   env.statistics->inputConstraints = res->length();
   env.statistics->inputVariables = env.signature->vars();
@@ -893,22 +897,22 @@ void UIHelper::outputConstraintInHumanFormat(const Constraint& constraint, ostre
     out << " (+";
     closedP ++;
     if (constraint.freeCoeff().isNegativeAssumingNonzero())
-	out<< " " << -constraint.freeCoeff().native() <<" ";
+  out<< " " << -constraint.freeCoeff().native() <<" ";
     if (constraint.freeCoeff().isPositiveAssumingNonzero()) 
-	out<< " (~ " << constraint.freeCoeff().native() <<")";
+  out<< " (~ " << constraint.freeCoeff().native() <<")";
   }
     
   while (coeffs.hasNext()) {
     Constraint::Coeff coeff = coeffs.next();
      if (coeffs.hasNext()) {
-	out << " (+ ";
-	closedP++;
+  out << " (+ ";
+  closedP++;
     }
     if (coeff.value<CoeffNumber::zero()) {
-	out << " (* ( ~ " << -coeff.value << " ) " << env.signature->varName(coeff.var) << ")";
+  out << " (* ( ~ " << -coeff.value << " ) " << env.signature->varName(coeff.var) << ")";
     }
     else {
-	out <<" (* "<< coeff.value << " " << env.signature->varName(coeff.var) << " )";
+  out <<" (* "<< coeff.value << " " << env.signature->varName(coeff.var) << " )";
     }
    
   }
@@ -931,13 +935,13 @@ void UIHelper::outputConstraintInHumanFormat(const Constraint& constraint, ostre
   while (coeffs.hasNext()) {
     Constraint::Coeff coeff = coeffs.next();
     if (coeff.value<CoeffNumber::zero()) {
-	out << "(" << coeff.value << "*" << env.signature->varName(coeff.var) << ") ";
+  out << "(" << coeff.value << "*" << env.signature->varName(coeff.var) << ") ";
     }
     else {
-	out << coeff.value << "*" << env.signature->varName(coeff.var) << " ";
+  out << coeff.value << "*" << env.signature->varName(coeff.var) << " ";
     }
     if (coeffs.hasNext()) {
-	out << "+ ";
+  out << "+ ";
     }
   }
   switch(constraint.type()) {
@@ -978,25 +982,25 @@ void UIHelper::outputConstraintInSMTFormat(const Constraint& constraint, ostream
     out << " (+";
     closedP ++;
     if (constraint.freeCoeff().isNegativeAssumingNonzero())
-	out <<  " " << -constraint.freeCoeff().native()  << " ";
+  out <<  " " << -constraint.freeCoeff().native()  << " ";
     if (constraint.freeCoeff().isPositiveAssumingNonzero()) 
-	out <<  " (~ " << constraint.freeCoeff().native()  << ")";
+  out <<  " (~ " << constraint.freeCoeff().native()  << ")";
   }
     
   while (coeffs.hasNext()) {
     Constraint::Coeff coeff = coeffs.next();
      if (coeffs.hasNext()) {
-	out << " (+ ";
-	closedP++;
-	 
+  out << " (+ ";
+  closedP++;
+   
     }
     
     if (coeff.value<CoeffNumber::zero()) {
-	
-	out << " (* ( ~ " << -coeff.value << " ) " << env.signature->varName(coeff.var) << ")";
+  
+  out << " (* ( ~ " << -coeff.value << " ) " << env.signature->varName(coeff.var) << ")";
     }
     else {
-	out <<" (* "<< coeff.value << " " << env.signature->varName(coeff.var) << " )";
+  out <<" (* "<< coeff.value << " " << env.signature->varName(coeff.var) << " )";
     }
    
   }
@@ -1030,8 +1034,8 @@ void UIHelper::outputConstraints(ConstraintList* constraints, ostream& out, Opti
     ConstraintList::Iterator ite(constraints);
     while (ite.hasNext())
     {
-	outputConstraint(*ite.next(), out, syntax);
-	out << endl;
+  outputConstraint(*ite.next(), out, syntax);
+  out << endl;
     }
     return;
   }
@@ -1048,13 +1052,13 @@ void UIHelper::outputConstraints(ConstraintList* constraints, ostream& out, Opti
 
     while (fun.hasNext())
     {
-	Constraint::CoeffIterator coeffs = fun.next()->coeffs();
-	 while (coeffs.hasNext()) {
-	     env.signature->varName(coeffs.next().var);
-	     uni.push_back(env.signature->varName(coeffs.next().var));
-	  //out << ":extrafuns ((" << env.signature->varName(coeffs.next().var) << " Real )) " << endl; 
-	}
-	
+  Constraint::CoeffIterator coeffs = fun.next()->coeffs();
+   while (coeffs.hasNext()) {
+       env.signature->varName(coeffs.next().var);
+       uni.push_back(env.signature->varName(coeffs.next().var));
+    //out << ":extrafuns ((" << env.signature->varName(coeffs.next().var) << " Real )) " << endl; 
+  }
+  
     }
 
     std::vector<vstring> myvector (uni.begin(),uni.end());
@@ -1062,7 +1066,7 @@ void UIHelper::outputConstraints(ConstraintList* constraints, ostream& out, Opti
     ite = unique(myvector.begin(),myvector.end());
     myvector.resize( ite - myvector.begin() );
     for (ite=myvector.begin(); ite!=myvector.end(); ++ite)
-	out << " " << *ite;
+  out << " " << *ite;
     
     out << ":formula (and "; 
     ConstraintList::Iterator it(constraints);

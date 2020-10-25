@@ -85,14 +85,14 @@ TPTP::TPTP(istream& in)
     _allowedNames(0),
     _in(&in),
     _includeDirectory(""),
+    _isThf(false),
     _currentColor(COLOR_TRANSPARENT),
+    _lastPushed(TM),
     _modelDefinition(false),
     _insideEqualityArgument(0),
     _unitSources(0),
     _filterReserved(false),
-    _seenConjecture(false),
-    _isThf(false),
-    _lastPushed(TM)
+    _seenConjecture(false)
 {
 } // TPTP::TPTP
 
@@ -1749,7 +1749,7 @@ void TPTP::endHolFormula()
   case PI:
   case SIGMA: {
     //ASSERTION_VIOLATION;
-    USER_ERROR("At the moment Vampire HOL cannot parse pi (!!) and sigma (??) operators");
+    USER_ERROR("At the moment Vampire HOL cannot parse pi (!!) and sigma (?\?) operators");
   }
 
   case FORALL:
@@ -2841,7 +2841,6 @@ void TPTP::varList()
         PARSE_ERROR("two declarations of variable sort",tok);
       }
       resetToks();
-      bool dummy;
       bindVariable(var,(_isThf ? readArrowSort() : readSort()));
       sortDeclared = true;
       goto afterVar;
@@ -3195,7 +3194,7 @@ Formula* TPTP::createPredicateApplication(vstring name, unsigned arity)
     TermList sort = type->arg(i);
     TermList ts = _termLists.pop();
     TermList tsSort = sortOf(ts);
-    if(i < type->typeArgsArity()){
+    if((unsigned)i < type->typeArgsArity()){
       if(tsSort != Term::superSort()){
         USER_ERROR("The sort " + tsSort.toString() + " of type argument " + ts.toString() + " "
                    "is not $ttype as madated by TFF1");
@@ -3248,7 +3247,7 @@ TermList TPTP::createFunctionApplication(vstring name, unsigned arity)
     TermList sort = type->arg(i);
     TermList ss = _termLists.pop();
     TermList ssSort = sortOf(ss);
-    if(i < type->typeArgsArity()){
+    if((unsigned)i < type->typeArgsArity()){
       if(ssSort != Term::superSort()){
         USER_ERROR("The sort " + ssSort.toString() + " of type argument " + ss.toString() + " "
                    "is not $ttype as mandated by TF1");
@@ -4267,7 +4266,6 @@ TermList TPTP::readSort()
           consumeToken(T_LPAR);    
           for(;;){
             arity++;
-            bool dummy;
             _termLists.push(readSort());
             tok = getTok(0);
             if(tok.tag == T_COMMA){
@@ -4968,11 +4966,11 @@ void TPTP::vampire()
       if(pol=="true"){polarity=true;}else if(pol=="false"){polarity=false;}
       else{ PARSE_ERROR("polarity expected (true/false)",getTok(0)); }
       unsigned f = env.signature->addPredicate(symb,arity);
-     // theory->registerLaTeXPredName(f,polarity,temp);
+      theory->registerLaTeXPredName(f,polarity,temp);
     }
     else{
       unsigned f = env.signature->addFunction(symb,arity);
-     // theory->registerLaTeXFuncName(f,temp);
+      theory->registerLaTeXFuncName(f,temp);
     }
   }
   else if (nm == "symbol") {

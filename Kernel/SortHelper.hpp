@@ -78,6 +78,7 @@ public:
 
   static bool areSortsValid(Clause* cl);
   static bool areImmediateSortsValid(Term* t);
+  static bool isStructuredSort(unsigned s);
   static bool isTupleSort(TermList sort);
   static bool isArraySort(TermList sort);
   static bool isBoolSort(TermList sort);

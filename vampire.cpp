@@ -94,6 +94,7 @@
 #include "SAT/Preprocess.hpp"
 
 #include "FMB/ModelCheck.hpp"
+#include <thread>
 
 #if GNUMP
 #include "Solving/Solver.hpp"

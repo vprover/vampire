@@ -559,8 +559,6 @@ class Signature
 
   typedef SmartPtr<Stack<unsigned>> DistinctGroupMembers;
   
-  typedef SmartPtr<Stack<unsigned>> DistinctGroupMembers;
-
   Unit* getDistinctGroupPremise(unsigned group);
   unsigned createDistinctGroup(Unit* premise = 0);
   void addToDistinctGroup(unsigned constantSymbol, unsigned groupId);
@@ -698,14 +696,15 @@ class Signature
   }
 
   unsigned getBinaryProxy(vstring name){
+    ASS(name == "vIMP" || name == "vAND" || name == "vOR" || name == "vIFF" || name == "vXOR");
     bool added = false;
-
+    
     auto convert = [] (vstring name) { 
       if(name == "vIMP"){ return IMP; }
-      if(name == "vAND"){ return AND; }
-      if(name == "vOR"){ return OR; }
-      if(name == "vIFF"){ return IFF; }
-      if(name == "XOR"){ return XOR; }
+      else if(name == "vAND"){ return AND; }
+      else if(name == "vOR"){ return OR; }
+      else if(name == "vIFF"){ return IFF; }
+      else{ return XOR; }
     };
 
     unsigned proxy = addFunction(name,0, added);

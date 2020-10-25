@@ -503,10 +503,10 @@ KBO::KBO(
 #endif
   , _state(new State(this))
 { 
-  checkAdmissibility(throwError);
+  //checkAdmissibility(throwError);
 }
 
-template<class HandleError>
+/*template<class HandleError>
 void KBO::checkAdmissibility(HandleError handle) const 
 {
   auto nFunctions = _funcWeights._weights.size();
@@ -516,7 +516,7 @@ void KBO::checkAdmissibility(HandleError handle) const
   for (unsigned i = 0; i < nFunctions; i++) {
     auto sort = env.signature->getFunction(i)->fnType()->result();
     /* register min function */
-    auto maxFn = maximalFunctions[sort];
+    /*auto maxFn = maximalFunctions[sort];
     if (maxFn == -1) {
       maximalFunctions[sort] = i;
     } else {
@@ -557,7 +557,7 @@ void KBO::checkAdmissibility(HandleError handle) const
   if (varWght <= 0) {
     handle(UserErrorException("variable weight must be greater than zero"));
   }
-}
+}*/
 
 
 /**
@@ -572,10 +572,10 @@ KBO::KBO(Problem& prb, const Options& opts)
  , _state(new State(this))
 {
   CALL("KBO::KBO(Prb&, Opts&)");
-  if (opts.kboAdmissabilityCheck() == Options::KboAdmissibilityCheck::ERROR)
-    checkAdmissibility(throwError);
-  else
-    checkAdmissibility(warnError);
+  //if (opts.kboAdmissabilityCheck() == Options::KboAdmissibilityCheck::ERROR)
+    //checkAdmissibility(throwError);
+  //else
+    //checkAdmissibility(warnError);
 }
 
 KBO::~KBO()

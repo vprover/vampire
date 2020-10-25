@@ -180,7 +180,7 @@ ExtensionalityClauseIterator ExtensionalityClauseContainer::activeIterator(TermL
                ExtensionalityClauseList::DelIterator(_clausesBySort.get(sort)),
                ActiveFilterFn(*this)));
   } else {
-    ExtensionalityClauseIterator::getEmpty();
+    return ExtensionalityClauseIterator::getEmpty();
   }
 }
 

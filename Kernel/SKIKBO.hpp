@@ -80,15 +80,11 @@ protected:
     return Ordering::INCOMPARABLE;
   }
 
+  void showConcrete(ostream&) const override
+  { NOT_IMPLEMENTED; }
+
   //VarCondRes compareVariables(VarOccMap&, VarOccMap&, VarCondRes) const;
   VarCondRes compareVariables(TermList tl1, TermList tl2) const;
-  //void freeMem(VarOccMap&, VarOccMap&) const;
-
-  //bool canBeMatched(DArray<unsigned>*, DArray<unsigned>*) const;
-  
-  //bool bpm (unsigned n, DArray<DArray<bool>>& bpGraph, int u,  
-  //       DArray<bool>& seen , DArray<int>& matchR) const;
-  //bool totalBMP(unsigned m, unsigned n, DArray<DArray<bool>>& bpGraph) const;
   unsigned getMaxRedLength(TermList t) const;
 
   /** Weight of variables */

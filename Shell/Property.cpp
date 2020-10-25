@@ -513,11 +513,15 @@ void Property::scanSort(TermList sort)
 {
   CALL("Property::scanSort");
 
-  unsigned sortU = SortHelper::sortNum(sort);
-  if(!_usesSort.get(sortU)){
-    _sortsUsed++;
-    _usesSort[sortU]=true;
-  } 
+  if(!env.statistics->higherOrder){
+    //used sorts is for FMB which is not compatible with 
+    //higher-order
+    unsigned sortU = SortHelper::sortNum(sort);
+    if(!_usesSort.get(sortU)){
+      _sortsUsed++;
+      _usesSort[sortU]=true;
+    } 
+  }
 
   if (sort==Term::defaultSort()) {
     return;

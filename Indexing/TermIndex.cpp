@@ -180,13 +180,12 @@ void PrimitiveInstantiationIndex::populateIndex()
     return SortHelper::getResultSort(t.term());
   };
 
-  TermList boolS = Term::boolSort();
+  static TermList boolS = Term::boolSort();
 
   TermList s1 = TermList(0, false);  
   TermList x = TermList(1, false);
   TermList y = TermList(2, false);
   
-  TermList bool_bool = Term::arrowSort(boolS, boolS);
   TermList s1_bool = Term::arrowSort(s1, boolS);
   TermList args1[] = {s1, boolS, boolS};
   TermList args2[] = {s1, s1_bool, s1_bool};
