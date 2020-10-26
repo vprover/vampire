@@ -959,10 +959,9 @@ bool Property::hasXEqualsY(const Formula* f)
     case BOOL_TERM:
       return true;
 
-#if VDEBUG
-    default:
+    case NAME:
+    case NOCONN:
       ASSERTION_VIOLATION;
-#endif
     }
   }
   return false;

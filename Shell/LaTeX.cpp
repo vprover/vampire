@@ -276,10 +276,8 @@ vstring LaTeX::toString (Formula* f) const
   case NAME:
     return replaceNeg(static_cast<const NamedFormula*>(f)->name());
 
-#if VDEBUG
-  default:
+  case NOCONN:
     ASSERTION_VIOLATION_REP(c);
-#endif
   }
 } // LaTeX::toString (const Formula&)
 

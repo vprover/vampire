@@ -1162,7 +1162,8 @@ static Flt lglmulflt (Flt a, Flt b) {
   ma = lglmnt (a); mb = lglmnt (b);
   ma >>= 1; mb >>= 1;
   m = ma * mb;
-  assert (3ull << 62);
+  // following always true according to Clang 10
+  // assert (3ull << 62);
   m >>= 30;
   return lglflt (e, m);
 }
@@ -2564,7 +2565,9 @@ static void lglddown (LGL * lgl, int lit) {
     }
     if (lgldcmp (lgl, child, lit) <= 0) break;
     cposptr = lgldpos (lgl, child);
-    assert (*cposptr = cpos);
+    // FIXME this is terrifying but left as found upstream
+    // double parens silence warning
+    assert ((*cposptr = cpos));
     p[ppos] = child;
     *cposptr = ppos;
     LOGDSCHED (5, child, "up from %d", cpos);
@@ -3935,7 +3938,9 @@ static void lgledown (LGL * lgl, int lit) {
     }
     if (lglecmp (lgl, child, lit) <= 0) break;
     cposptr = lglepos (lgl, child);
-    assert (*cposptr = cpos);
+    // FIXME this is terrifying but left as found upstream
+    // double parens silence warning
+    assert ((*cposptr = cpos));
     p[ppos] = child;
     *cposptr = ppos;
     LOGESCHED (5, child, "up from %d", cpos);
@@ -18633,7 +18638,9 @@ static int lglunhideglue (LGL * lgl, const DFPR * dfpr, int glue, int irronly) {
     ndfl = posdfl + negdfl;	// number of literals in BIG
     if (hastobesatisfied) assert (satisfied);
     if (satisfied || ndfl < 2) goto NEXT;
-    assert (nonfalse = eoc - c);
+    // FIXME dubious, left as found upstream
+    // double parens silence warning
+    assert ((nonfalse = eoc - c));
     assert (nonfalse >= negdfl);
 //FAILED: find root implying all negated literals
     if (nonfalse != negdfl) goto HTE;	// not enough complement lits in BIG

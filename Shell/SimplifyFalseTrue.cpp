@@ -323,10 +323,9 @@ Formula* SimplifyFalseTrue::simplify (Formula* f)
       }
     }
 
-#if VDEBUG
-  default:
+  case NAME:
+  case NOCONN:
     ASSERTION_VIOLATION;
-#endif
   }
 } // SimplifyFalseTrue::simplify ()
 
