@@ -1474,34 +1474,26 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   CompositeSGI* sgi = new CompositeSGI();
   sgi->push(gie);
 
-  switch (opt.arithmeticSimplificationMode()) {
-    case Options::ArithmeticSimplificationMode::CAUTIOUS:
-    {
-      auto& ordering = res->getOrdering();
+  auto& ordering = res->getOrdering();
 
-      if (opt.evaluationMode() == Options::EvaluationMode::POLYNOMIAL) {
-        sgi->push(new PolynomialNormalization(ordering));
-      }
-
-      if (env.options->cancellation()) {
-        sgi->push(new Cancellation(ordering)); 
-      }
-
-      // if (env.options->gaussianVariableElimination()) {
-      //   sgi->push(new GaussianVariableElimination()); 
-      // }
-
-      if (env.options->arithmeticSubtermGeneralizations()) {
-        for (auto gen : allArithmeticSubtermGeneralizations())  {
-          sgi->push(gen);
-        }
-      }
-
-      break;
-    }
-    case Options::ArithmeticSimplificationMode::FORCE:
-      break;
+  if (opt.evaluationMode() == Options::EvaluationMode::POLYNOMIAL_CAUTIOUS) {
+    sgi->push(new PolynomialNormalization(ordering));
   }
+
+  if (env.options->cancellation() == Options::ArithmeticSimplificationMode::CAUTIOUS) {
+    sgi->push(new Cancellation(ordering)); 
+  }
+
+  // if (env.options->gaussianVariableElimination()) {
+  //   sgi->push(new GaussianVariableElimination()); 
+  // }
+
+  if (env.options->arithmeticSubtermGeneralizations() == Options::ArithmeticSimplificationMode::CAUTIOUS) {
+    for (auto gen : allArithmeticSubtermGeneralizations())  {
+      sgi->push(gen);
+    }
+  }
+
 
 #if VZ3
   if (opt.theoryInstAndSimp() != Shell::Options::TheoryInstSimp::OFF){
@@ -1601,6 +1593,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   return res;
 } // SaturationAlgorithm::createFromOptions
 
+
 /**
  * Create local clause simplifier for problem @c prb according to options @c opt
  */
@@ -1637,34 +1630,28 @@ ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, cons
     }
   }
   if(prb.hasInterpretedOperations() || prb.hasInterpretedEquality()) {
-    if (env.options->arithmeticSimplificationMode() == Options::ArithmeticSimplificationMode::FORCE) {
-
-      if (env.options->arithmeticSubtermGeneralizations()) {
-        for (auto gen : allArithmeticSubtermGeneralizations())  {
-          res->addFront(&gen->asISE());
-        }
+    if (env.options->arithmeticSubtermGeneralizations() == Options::ArithmeticSimplificationMode::FORCE) {
+      for (auto gen : allArithmeticSubtermGeneralizations())  {
+        res->addFront(&gen->asISE());
       }
     }
 
-    if (env.options->gaussianVariableElimination()) {
+    if (env.options->gaussianVariableElimination() == Options::ArithmeticSimplificationMode::FORCE) {
       res->addFront(&(new GaussianVariableElimination())->asISE()); 
     }
 
-    if (env.options->arithmeticSimplificationMode() == Options::ArithmeticSimplificationMode::FORCE) {
-
-      if (env.options->cancellation()) {
-        res->addFront(&(new Cancellation(ordering))->asISE()); 
-      }
+    if (env.options->cancellation() == Options::ArithmeticSimplificationMode::FORCE) {
+      res->addFront(&(new Cancellation(ordering))->asISE()); 
     }
 
     switch (env.options->evaluationMode()) {
       case Options::EvaluationMode::SIMPLE: 
         res->addFront(new InterpretedEvaluation(env.options->inequalityNormalization(), ordering));
         break;
-      case Options::EvaluationMode::POLYNOMIAL:
-        if (env.options->arithmeticSimplificationMode() == Options::ArithmeticSimplificationMode::FORCE) {
-          res->addFront(&(new PolynomialNormalization(ordering))->asISE());
-        }
+      case Options::EvaluationMode::POLYNOMIAL_FORCE:
+        res->addFront(&(new PolynomialNormalization(ordering))->asISE());
+        break;
+      case Options::EvaluationMode::POLYNOMIAL_CAUTIOUS:
         break;
     }
 

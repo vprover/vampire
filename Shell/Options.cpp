@@ -1081,13 +1081,19 @@ void Options::Options::init()
            _lookup.insert(&_inequalityNormalization);
            _inequalityNormalization.tag(OptionTag::INFERENCES);
 
-           _cancellation = BoolOptionValue("cancellation","canc",true);
+           auto choiceArithmeticSimplificationMode = [&](vstring l, vstring s, ArithmeticSimplificationMode d) 
+           { return ChoiceOptionValue<ArithmeticSimplificationMode>(l,s,d, {"force", "cautious", "off", }); };
+           _cancellation = choiceArithmeticSimplificationMode(
+               "cancellation", "canc",
+               ArithmeticSimplificationMode::OFF);
            _cancellation.description = "Enable addition cancellation.";
            _lookup.insert(&_cancellation);
            _cancellation.tag(OptionTag::INFERENCES);
            _cancellation.setExperimental();
 
-           _pushUnaryMinus = BoolOptionValue("push_unary_minus","pum",true);
+           _pushUnaryMinus = BoolOptionValue(
+               "push_unary_minus", "pum",
+               false);
            _pushUnaryMinus.description=
                   "Enable the immideate simplifications:\n"
                   " -(t + s) ==> -t + -s\n"
@@ -1097,7 +1103,9 @@ void Options::Options::init()
            _pushUnaryMinus.tag(OptionTag::INFERENCES);
            _pushUnaryMinus.setExperimental();
 
-           _gaussianVariableElimination = BoolOptionValue("gaussian_variable_elimination","gve",false);
+           _gaussianVariableElimination = choiceArithmeticSimplificationMode(
+               "gaussian_variable_elimination", "gve",
+               ArithmeticSimplificationMode::OFF);
            _gaussianVariableElimination.description=
                   "Enable the immideate simplification \"Gaussian Variable Elimination\":\n"
                   "\n"
@@ -1115,7 +1123,9 @@ void Options::Options::init()
            _gaussianVariableElimination.setExperimental();
 
 
-           _arithmeticSubtermGeneralizations = BoolOptionValue("arithmetic_subterm_generalizations","asg",false);
+           _arithmeticSubtermGeneralizations = choiceArithmeticSimplificationMode(
+               "arithmetic_subterm_generalizations", "asg",
+               ArithmeticSimplificationMode::OFF);
            _arithmeticSubtermGeneralizations.description=
                   "Enable variaous immediate simplification rules for arithmetic terms.\n"
                   "All of these rules work by generalizing a subterm.";
@@ -1954,18 +1964,9 @@ void Options::Options::init()
     _lookup.insert(&_introducedSymbolPrecedence);
     _introducedSymbolPrecedence.tag(OptionTag::SATURATION);
 
-    _arithmeticSimplificationMode = ChoiceOptionValue<ArithmeticSimplificationMode>("arithmetic_simplification_mode","asm",
-                                                        ArithmeticSimplificationMode::FORCE,
-                                                        {"force","cautious"});
-    _arithmeticSimplificationMode.description=
-    "Sets how arithmetic simplifciations should be performed. In mode `cautious` after applying the simplification, it is checked whether the resulting clause ist actually smaller wrt. the simplification ordering, and if not the parent is kept in the search space. In mode `force` the parent is deleted even if the simplificaiton ordering is being violated. This can result in a smaller search space, as better performance since the ordering doesn't have to be computed. It comes at the expense of loosing some provable formulas.";
-    _lookup.insert(&_arithmeticSimplificationMode);
-    _arithmeticSimplificationMode.tag(OptionTag::INFERENCES);
-    _arithmeticSimplificationMode.setExperimental();
-
     _evaluationMode = ChoiceOptionValue<EvaluationMode>("evaluation","ev",
                                                         EvaluationMode::SIMPLE,
-                                                        {"simple","polynomial"});
+                                                        {"simple","force","cautious"});
     _evaluationMode.description=
     "Choses the algorithm used to simplify interpreted integer, rational, and real terms. \
                                  \

@@ -426,6 +426,4 @@ SimplifyingGeneratingInference::ClauseGenerationResult SimplifyingGeneratingInfe
   }
 }
 
-
-
 }
