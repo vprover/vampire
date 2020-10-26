@@ -10,7 +10,7 @@
 
 namespace Test {
 
-  namespace Simplification {
+namespace Simplification {
 
 class SimplificationTester
 {

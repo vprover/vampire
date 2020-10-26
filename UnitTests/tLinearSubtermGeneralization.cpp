@@ -39,8 +39,8 @@ public:
   {
     auto ord = KBO::testKBO();
     Ordering::trySetGlobalOrdering(SmartPtr<Ordering>(&ord, true));
-    auto apply = [](ImmediateSimplificationEngine& simpl, Kernel::Clause* in) {
-     auto out = simpl.simplify(in);
+    auto apply = [](SimplifyingGeneratingInference1& simpl, Kernel::Clause* in) {
+     auto out = simpl.asISE().simplify(in);
      // DEBUG("result: ", pretty(out));
      return out;
     };

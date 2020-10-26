@@ -55,19 +55,23 @@ SimplifyingGeneratingInference1::Result GaussianVariableElimination::rewrite(Cla
   auto checkLeq = [&](Literal* orig, Literal* rewritten) 
   { 
     if (doCheckOrdering) {
-      auto ord = Ordering::tryGetGlobalOrdering();
-      ASS(ord)
-      auto cmp = ord->compare(rewritten, orig);
-      switch(cmp) {
-        case Ordering::Result::LESS:
-        case Ordering::Result::LESS_EQ:
-        case Ordering::Result::EQUAL:
-          break;
-        case Ordering::Result::INCOMPARABLE:
-        case Ordering::Result::GREATER:
-        case Ordering::Result::GREATER_EQ:
-          allLessEq = false;
-          break;
+
+      // auto ord = Ordering::tryGetGlobalOrdering();
+      // ASS(ord)
+      // auto cmp = ord->compare(rewritten, orig);
+      // switch(cmp) {
+      //   case Ordering::Result::LESS:
+      //   case Ordering::Result::LESS_EQ:
+      //   case Ordering::Result::EQUAL:
+      //     break;
+      //   case Ordering::Result::INCOMPARABLE:
+      //   case Ordering::Result::GREATER:
+      //   case Ordering::Result::GREATER_EQ:
+      //     allLessEq = false;
+      //     break;
+      // }
+      if (rewritten != orig) {
+        allLessEq = false;
       }
     }
     return rewritten;

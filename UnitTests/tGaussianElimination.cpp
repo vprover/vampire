@@ -45,7 +45,7 @@ public:
     {
       static PolynomialNormalization eval(*Ordering::tryGetGlobalOrdering());
       static Cancellation cancel(*Ordering::tryGetGlobalOrdering());
-      return cancel.MaybeImmediateSimplification::simplify(eval.MaybeImmediateSimplification::simplify(cl));
+      return cancel.asISE().simplify(eval.asISE().simplify(cl));
     };
     static GaussianVariableElimination gve = GaussianVariableElimination();
 
@@ -54,7 +54,7 @@ public:
     Kernel::Clause* latest = simpl(in);
     do {
       last = latest;
-      latest = simpl(gve.MaybeImmediateSimplification::simplify(last));
+      latest = simpl(gve.asISE().simplify(last));
     } while (latest != last);
     return latest;
   }

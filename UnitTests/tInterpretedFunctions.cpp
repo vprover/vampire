@@ -124,7 +124,7 @@ Optional<LitEvalResult> evaluate(Literal* lit)
       if (cl == nullptr) {
         return cl;
       } else {
-        return norm.MaybeImmediateSimplification::simplify(cancel.MaybeImmediateSimplification::simplify(uminus.simplify(cl)));
+        return norm.asISE().simplify(cancel.asISE().simplify(uminus.simplify(cl)));
       }
     };
 
