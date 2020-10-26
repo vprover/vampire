@@ -38,6 +38,7 @@
 #include "InferenceEngine.hpp"
 
 #define DEBUG_DUPLICATE_LITERALS 0
+#define DEBUG(...) //DBG(__VA_ARGS__)
 
 namespace Inferences
 {
@@ -387,5 +388,44 @@ Clause* TrivialInequalitiesRemovalISE::simplify(Clause* c)
 
   return d;
 }
+
+Clause* SimplifyingGeneratingInference1::simplify(Clause* cl) 
+{
+  CALL("SimplifyingGeneratingInference1::simplify(Clause*)")
+  if (cl->isTheoryAxiom()) {
+    DEBUG("skipping theory axiom")
+    return cl;
+  }
+  return this->simplify(cl, false).simplified;
+}
+
+ImmediateSimplificationEngine& SimplifyingGeneratingInference1::asISE() 
+{ return *this; }
+
+
+
+SimplifyingGeneratingInference::ClauseGenerationResult SimplifyingGeneratingInference1::generateClauses(Clause* cl) {
+  CALL("SimplifyingGeneratingInference1::generateClauses(Clause*)")
+  auto gen = this->simplify(cl, true);
+  auto simpl = gen.simplified;
+  auto redundant = gen.premiseRedundant;
+
+  if (simpl == cl) {
+    return ClauseGenerationResult {
+      .clauses = ClauseIterator::getEmpty(),
+      .premiseRedundant = false,
+    };
+
+  } else {
+    return ClauseGenerationResult {
+      .clauses = simpl == nullptr 
+        ? ClauseIterator::getEmpty()
+        : pvi(getSingletonIterator(simpl)),
+      .premiseRedundant = redundant && !cl->isTheoryAxiom(),
+    };
+  }
+}
+
+
 
 }

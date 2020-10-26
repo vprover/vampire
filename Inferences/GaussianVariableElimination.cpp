@@ -13,7 +13,7 @@
 namespace Inferences {
   using Balancer = Kernel::Rebalancing::Balancer<Kernel::Rebalancing::Inverters::NumberTheoryInverter>;
 
-pair<Clause*, bool> GaussianVariableElimination::simplify(Clause* in, bool doCheckOrdering) 
+  SimplifyingGeneratingInference1::Result GaussianVariableElimination::simplify(Clause* in, bool doCheckOrdering) 
 {
   CALL("GaussianVariableElimination::simplify")
   ASS(in)
@@ -40,10 +40,10 @@ pair<Clause*, bool> GaussianVariableElimination::simplify(Clause* in, bool doChe
     }
   }
 
-  return make_pair(in, false);
+  return SimplifyingGeneratingInference1::Result{in, false};
 }
 
-pair<Clause*, bool> GaussianVariableElimination::rewrite(Clause& cl, TermList find, TermList replace, unsigned skipLiteral, bool doCheckOrdering) const 
+SimplifyingGeneratingInference1::Result GaussianVariableElimination::rewrite(Clause& cl, TermList find, TermList replace, unsigned skipLiteral, bool doCheckOrdering) const 
 {
   CALL("GaussianVariableElimination::rewrite");
   env.statistics->gveCnt++;
@@ -87,7 +87,7 @@ pair<Clause*, bool> GaussianVariableElimination::rewrite(Clause& cl, TermList fi
   if(!premiseRedundant) {
     env.statistics->gveViolations++;
   }
-  return make_pair(&out, premiseRedundant);
+  return SimplifyingGeneratingInference1::Result{&out, premiseRedundant};
 }
 
 } // namespace Inferences 

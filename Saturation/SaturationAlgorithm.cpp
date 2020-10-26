@@ -1641,19 +1641,19 @@ ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, cons
 
       if (env.options->arithmeticSubtermGeneralizations()) {
         for (auto gen : allArithmeticSubtermGeneralizations())  {
-          res->addFront(gen);
+          res->addFront(&gen->asISE());
         }
       }
     }
 
     if (env.options->gaussianVariableElimination()) {
-      res->addFront(new GaussianVariableElimination()); 
+      res->addFront(&(new GaussianVariableElimination())->asISE()); 
     }
 
     if (env.options->arithmeticSimplificationMode() == Options::ArithmeticSimplificationMode::FORCE) {
 
       if (env.options->cancellation()) {
-        res->addFront(new Cancellation(ordering)); 
+        res->addFront(&(new Cancellation(ordering))->asISE()); 
       }
     }
 
@@ -1663,7 +1663,7 @@ ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, cons
         break;
       case Options::EvaluationMode::POLYNOMIAL:
         if (env.options->arithmeticSimplificationMode() == Options::ArithmeticSimplificationMode::FORCE) {
-          res->addFront(new PolynomialNormalization(ordering));
+          res->addFront(&(new PolynomialNormalization(ordering))->asISE());
         }
         break;
     }

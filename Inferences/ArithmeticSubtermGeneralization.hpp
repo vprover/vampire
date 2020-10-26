@@ -10,7 +10,7 @@
 namespace Inferences {
 
 class NumeralMultiplicationGeneralization
-: public MaybeImmediateSimplification
+: public SimplifyingGeneratingInference1
 {
 public:
   CLASS_NAME(NumeralMultiplicationGeneralization);
@@ -18,12 +18,12 @@ public:
 
   virtual ~NumeralMultiplicationGeneralization();
 
-  pair<Clause*, bool> simplify(Clause* cl, bool doOrderingCheck);
+  SimplifyingGeneratingInference1::Result simplify(Clause* cl, bool doOrderingCheck);
 };
 
 
 class VariableMultiplicationGeneralization
-: public MaybeImmediateSimplification
+: public SimplifyingGeneratingInference1
 {
 public:
   CLASS_NAME(VariableMultiplicationGeneralization);
@@ -31,12 +31,12 @@ public:
 
   virtual ~VariableMultiplicationGeneralization();
 
-  pair<Clause*, bool> simplify(Clause* cl, bool doOrderingCheck);
+  SimplifyingGeneratingInference1::Result simplify(Clause* cl, bool doOrderingCheck);
 };
 
 
 class VariablePowerGeneralization
-: public MaybeImmediateSimplification
+: public SimplifyingGeneratingInference1
 {
 public:
   CLASS_NAME(VariablePowerGeneralization);
@@ -44,12 +44,12 @@ public:
 
   virtual ~VariablePowerGeneralization();
 
-  pair<Clause*, bool> simplify(Clause* cl, bool doOrderingCheck);
+  SimplifyingGeneratingInference1::Result simplify(Clause* cl, bool doOrderingCheck);
 };
 
 
 class AdditionGeneralization
-: public MaybeImmediateSimplification
+: public SimplifyingGeneratingInference1
 {
 public:
   CLASS_NAME(AdditionGeneralization);
@@ -57,10 +57,10 @@ public:
 
   virtual ~AdditionGeneralization();
 
-  pair<Clause*, bool> simplify(Clause* cl, bool doOrderingCheck);
+  SimplifyingGeneratingInference1::Result simplify(Clause* cl, bool doOrderingCheck);
 };
 
-Stack<MaybeImmediateSimplification*> allArithmeticSubtermGeneralizations();
+Stack<SimplifyingGeneratingInference1*> allArithmeticSubtermGeneralizations();
 
 
 } // namespace Inferences

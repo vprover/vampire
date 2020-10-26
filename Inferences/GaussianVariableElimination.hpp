@@ -3,15 +3,17 @@
 #include "PolynomialNormalization.hpp"
 
 namespace Inferences {
-class GaussianVariableElimination : public MaybeImmediateSimplification {
+class GaussianVariableElimination 
+  : public SimplifyingGeneratingInference1 
+{
 public:
   CLASS_NAME(GaussianVariableElimination);
   USE_ALLOCATOR(GaussianVariableElimination);
 
-  pair<Clause*, bool> simplify(Clause *cl, bool doCheckOrdering);
+  SimplifyingGeneratingInference1::Result simplify(Clause *cl, bool doCheckOrdering);
 
 private:
-  pair<Clause*, bool> rewrite(Clause &cl, TermList find, TermList replace,
+  SimplifyingGeneratingInference1::Result rewrite(Clause &cl, TermList find, TermList replace,
                   unsigned skipLiteral, bool doOrderingCheck) const;
 };
 } // namespace Inferences

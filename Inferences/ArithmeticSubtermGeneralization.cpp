@@ -125,7 +125,7 @@ static const auto iterVars = [](Clause* cl) {
 };
 
 template<class EvalFn>
-pair<Clause*, bool> generalizeBottomUp(Clause* cl, EvalFn eval) 
+SimplifyingGeneratingInference1::Result generalizeBottomUp(Clause* cl, EvalFn eval) 
 {
   CALL("generalizeBottomUp")
   /* apply the selectedGen generalization */
@@ -187,19 +187,19 @@ pair<Clause*, bool> generalizeBottomUp(Clause* cl, EvalFn eval)
   if (!redundant) {
     env.statistics->asgViolations++;
   }
-  return make_pair(Clause::fromStack(stack, inf), redundant);
+  return SimplifyingGeneratingInference1::Result{
+    .simplified = Clause::fromStack(stack, inf), 
+    .premiseRedundant = redundant
+  };
 }
 
 template<class NumTraits> class GeneralizeAdd;
 
 
-pair<Clause*, bool> nop(Clause* cl) 
-{ return make_pair(cl, false); }
-
 template<class Generalization>
 struct ArithmeticSubtermGeneralization
 {
-  static pair<Clause*,bool> simplify(Clause* cl, bool doCheckOrdering);
+  static SimplifyingGeneratingInference1::Result simplify(Clause* cl, bool doCheckOrdering);
 };
 
 struct Top {};
@@ -324,7 +324,7 @@ struct GeneralizePolynom
 
 
 template<class Gen>
-pair<Clause*, bool> ArithmeticSubtermGeneralization<Gen>::simplify(Clause* cl_, bool doOrderingCheck) 
+SimplifyingGeneratingInference1::Result ArithmeticSubtermGeneralization<Gen>::simplify(Clause* cl_, bool doOrderingCheck) 
 {
   typename Gen::State map;
 
@@ -352,7 +352,7 @@ pair<Clause*, bool> ArithmeticSubtermGeneralization<Gen>::simplify(Clause* cl_, 
     }
   }
   if (selected.isNone()) {
-    return nop(cl_);
+    return SimplifyingGeneratingInference1::Result::nop(cl_);
   } 
 
   auto& var            = selected.unwrap().key();
@@ -942,7 +942,7 @@ public:
   }
 };
 
-pair<Clause*,bool> AdditionGeneralization::simplify(Clause* cl, bool doOrderingCheck) 
+SimplifyingGeneratingInference1::Result AdditionGeneralization::simplify(Clause* cl, bool doOrderingCheck) 
 { 
   CALL("AdditionGeneralization::simplify")
   return ArithmeticSubtermGeneralization<ParallelNumberGeneralization<GeneralizeAdd>>::simplify(cl, doOrderingCheck); 
@@ -958,7 +958,7 @@ namespace Rule2
 
 } // namespace Rule2
 
-pair<Clause*, bool> NumeralMultiplicationGeneralization::simplify(Clause* cl, bool doOrderingCheck) 
+SimplifyingGeneratingInference1::Result NumeralMultiplicationGeneralization::simplify(Clause* cl, bool doOrderingCheck) 
 { 
   CALL("NumeralMultiplicationGeneralization::simplify")
   return ArithmeticSubtermGeneralization<ParallelNumberGeneralization<GenMulNum>>::simplify(cl, doOrderingCheck); 
@@ -1190,7 +1190,7 @@ namespace Rule3
   /** 
    * applies the rule
    */ 
-  pair<Clause*,bool> applyRule(Clause* cl, bool doOrderingCheck) 
+  SimplifyingGeneratingInference1::Result applyRule(Clause* cl, bool doOrderingCheck) 
   {
     DEBUG("input clause: ", *cl);
     IntMap<Variable> varMap;
@@ -1201,7 +1201,7 @@ namespace Rule3
     }
     if (varMap.size() == 0) {
       DEBUG("no variables. generalization not applicable");
-      return nop(cl);
+      return SimplifyingGeneratingInference1::Result::nop(cl);
     }
 
     IntUnionFind components(varMap.size());
@@ -1244,7 +1244,7 @@ namespace Rule3
     /* apply the substitution `X0 ⋅ X1 ⋅ ... ⋅ Xn ==> X0`  */
     DEBUG("removing variables: ", remove)
     if (remove.isEmpty()) {
-      return nop(cl);
+      return SimplifyingGeneratingInference1::Result::nop(cl);
     } else {
       std::sort(remove.begin(), remove.end());
       Generalize gen { remove, doOrderingCheck };
@@ -1347,7 +1347,7 @@ namespace Rule4
   /** 
    * applies the rule
    */ 
-  pair<Clause*,bool> applyRule(Clause* cl, bool doOrderingCheck) 
+  SimplifyingGeneratingInference1::Result applyRule(Clause* cl, bool doOrderingCheck) 
   {
     DEBUG("input clause: ", *cl);
     PowerMap powers;
@@ -1367,14 +1367,14 @@ namespace Rule4
     if (applicable) {
       return generalizeBottomUp(cl, EvaluateMonom<Generalize> { Generalize { powers, doOrderingCheck } });
     } else {
-      return nop(cl);
+      return SimplifyingGeneratingInference1::Result::nop(cl);
     }
   }
 
   
 };
 
-pair<Clause*,bool> VariableMultiplicationGeneralization::simplify(Clause* cl, bool doOrderingCheck) 
+SimplifyingGeneratingInference1::Result VariableMultiplicationGeneralization::simplify(Clause* cl, bool doOrderingCheck) 
 { 
   CALL("VariableMultiplicationGeneralization::simplify")
   return Rule3::applyRule(cl, doOrderingCheck);
@@ -1383,7 +1383,7 @@ pair<Clause*,bool> VariableMultiplicationGeneralization::simplify(Clause* cl, bo
 VariableMultiplicationGeneralization::~VariableMultiplicationGeneralization()  { }
 
 
-pair<Clause*,bool> VariablePowerGeneralization::simplify(Clause* cl, bool doOrderingCheck) 
+SimplifyingGeneratingInference1::Result VariablePowerGeneralization::simplify(Clause* cl, bool doOrderingCheck) 
 { 
   CALL("VariablePowerGeneralization::simplify")
   return Rule4::applyRule(cl, doOrderingCheck);
@@ -1391,9 +1391,9 @@ pair<Clause*,bool> VariablePowerGeneralization::simplify(Clause* cl, bool doOrde
 
 VariablePowerGeneralization::~VariablePowerGeneralization()  {}
 
-Stack<MaybeImmediateSimplification*> allArithmeticSubtermGeneralizations()
+Stack<SimplifyingGeneratingInference1*> allArithmeticSubtermGeneralizations()
 { 
-  return Stack<MaybeImmediateSimplification*> {
+  return Stack<SimplifyingGeneratingInference1*> {
       new VariableMultiplicationGeneralization(),
       new VariablePowerGeneralization(),
       new NumeralMultiplicationGeneralization(),

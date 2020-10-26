@@ -9,40 +9,7 @@ using namespace Lib;
 
 namespace Inferences {
 
-Clause* MaybeImmediateSimplification::simplify(Clause* cl) {
-  CALL("MaybeImmediateSimplification::simplify(Clause*)")
-  if (cl->isTheoryAxiom()) {
-    DEBUG("skipping theory axiom")
-    return cl;
-  }
-  auto gen = this->simplify(cl, false);
-  return get<0>(gen);
-}
-
-
-SimplifyingGeneratingInference::ClauseGenerationResult MaybeImmediateSimplification::generateClauses(Clause* cl) {
-  CALL("MaybeImmediateSimplification::generateClauses(Clause*)")
-  auto gen = this->simplify(cl, true);
-  auto simpl = get<0>(gen);
-  auto redundant = get<1>(gen);
-
-  if (simpl == cl) {
-    return ClauseGenerationResult {
-      .clauses = ClauseIterator::getEmpty(),
-      .premiseRedundant = false,
-    };
-
-  } else {
-    return ClauseGenerationResult {
-      .clauses = simpl == nullptr 
-        ? ClauseIterator::getEmpty()
-        : pvi(getSingletonIterator(simpl)),
-      .premiseRedundant = redundant && !cl->isTheoryAxiom(),
-    };
-  }
-}
-
-pair<Clause*, bool> MaybeImmediateLiteralSimplification::simplify(Clause* cl_, bool doOrderingCheck) {
+SimplifyingGeneratingInference1::Result SimplifyingGeneratingLiteralSimplification::simplify(Clause* cl_, bool doOrderingCheck) {
   DEBUG("in:  ", *cl_)
   auto& cl = *cl_;
   Stack<Literal*> out(cl.size());
@@ -67,7 +34,7 @@ pair<Clause*, bool> MaybeImmediateLiteralSimplification::simplify(Clause* cl_, b
         bool trivialValue = simpl.unwrapConstant();
         if (trivialValue) {
           /* clause is a tautology and can be deleted */
-          return make_pair(nullptr, true);
+          return SimplifyingGeneratingInference1::Result::tautology();
         } else {
           /* do not add the literal to the output stack */
           changed = true;
@@ -112,11 +79,14 @@ pair<Clause*, bool> MaybeImmediateLiteralSimplification::simplify(Clause* cl_, b
 
 
   if (!changed) {
-    return make_pair(cl_, false);
+    return SimplifyingGeneratingInference1::Result::nop(cl_);
   } else {
     auto result = Clause::fromStack(out, SimplifyingInference1(_rule, cl_));
     DEBUG("out: ", *result)
-    return make_pair(result, allLessEq && oneLess);
+    return SimplifyingGeneratingInference1::Result{
+            .simplified = result, 
+            .premiseRedundant = allLessEq && oneLess,
+          };
   }
 }
 
@@ -124,9 +94,9 @@ Optional<LitEvalResult> PolynomialNormalization::simplifyLiteral(Literal* lit)
 { return _normalizer.evaluate(lit);
 }
 
-MaybeImmediateLiteralSimplification::MaybeImmediateLiteralSimplification(InferenceRule rule, Ordering& ordering): _ordering(&ordering), _rule(rule) {}
+SimplifyingGeneratingLiteralSimplification::SimplifyingGeneratingLiteralSimplification(InferenceRule rule, Ordering& ordering): _ordering(&ordering), _rule(rule) {}
 
-PolynomialNormalization::PolynomialNormalization(Ordering& ordering) : MaybeImmediateLiteralSimplification(InferenceRule::EVALUATION, ordering) {}
+PolynomialNormalization::PolynomialNormalization(Ordering& ordering) : SimplifyingGeneratingLiteralSimplification(InferenceRule::EVALUATION, ordering) {}
 
 PolynomialNormalization::~PolynomialNormalization() {}
 
@@ -286,7 +256,7 @@ Optional<Literal*> tryCancel(Interpretation inter, Literal* lit) {
 }
 
 // TODO make cancellation its own inference rule
-Cancellation::Cancellation(Ordering& ordering) : MaybeImmediateLiteralSimplification(InferenceRule::EVALUATION, ordering) 
+Cancellation::Cancellation(Ordering& ordering) : SimplifyingGeneratingLiteralSimplification(InferenceRule::EVALUATION, ordering) 
 {}
 
 Optional<LitEvalResult> Cancellation::simplifyLiteral(Literal* litIn) 

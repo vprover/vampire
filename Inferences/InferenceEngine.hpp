@@ -152,6 +152,55 @@ public:
   virtual Clause* simplify(Clause* cl) = 0;
 };
 
+/**
+ * A SimplifyingGeneratingInference that generates at most one clause. 
+ * 
+ * Such an inference can be used as ImmediateSimplificationEngine, by calling asISE(). 
+ * @warning When used as ISE non-redundant clauses might be deleted from the search space. Therefore completeness might be lost!
+ */
+class SimplifyingGeneratingInference1
+: public SimplifyingGeneratingInference
+, ImmediateSimplificationEngine
+{
+public:
+  struct Result 
+  {
+    Clause* simplified;
+    bool premiseRedundant;
+
+    inline static Result tautology() 
+    { return { .simplified = nullptr, .premiseRedundant = true, }; }
+
+    inline static Result nop(Clause* cl) 
+    { return { .simplified = cl, .premiseRedundant = false, }; }
+
+  };
+
+  ClauseGenerationResult generateClauses(Clause* cl) override;
+
+  /** 
+   * Turns this SimplifyingGeneratingInference1 into and ImmediateSimplificationEngine. 
+   * The resulting ImmediateSimplificationEngine will call simplify(Clause*, bool doOrderingCheck) with 
+   * doOrderingCheck = false, and ignore the value of SimplifyingGeneratingInference1::Result::premiseRedundant.
+   *
+   * @warning the resulting ImmediateSimplificationEngine might not conform with the simplification ordering, which means that non-redundant clauses might be deleted, which yields a loss of completeness!
+   */
+  ImmediateSimplificationEngine& asISE();
+
+  
+protected:
+
+  /** returns the simplified clause and whether the premise was made redundant. 
+   *
+   * \param doOrderingCheck is used in order to be able to skip any ordering 
+   *      checks (which is an expensive computation), when Result::premiseRedundant is ignored anyways. 
+   * \param cl is the clause to be simplified. if the clause is a tautology, Result::tautology() should be returned.
+   */
+  virtual Result simplify(Clause* cl, bool doOrderingCheck) = 0;
+private:
+  Clause* simplify(Clause* cl) override;
+};
+
 class ForwardSimplificationEngine
 : public InferenceEngine
 {

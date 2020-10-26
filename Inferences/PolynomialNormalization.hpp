@@ -14,35 +14,22 @@
 
 namespace Inferences {
 
-class MaybeImmediateSimplification
-: public ImmediateSimplificationEngine
-, public SimplifyingGeneratingInference
-{
-public:
-  Clause* simplify(Clause* cl) override;
-  ClauseGenerationResult generateClauses(Clause* cl) override;
 
-  
-protected:
-  virtual pair<Clause*, bool> simplify(Clause* cl, bool doOrderingCheck) = 0;
-};
-
-
-class MaybeImmediateLiteralSimplification
-: public MaybeImmediateSimplification
+class SimplifyingGeneratingLiteralSimplification
+: public SimplifyingGeneratingInference1
 {
 
 protected:
-  MaybeImmediateLiteralSimplification(InferenceRule rule, Ordering& ordering);
+  SimplifyingGeneratingLiteralSimplification(InferenceRule rule, Ordering& ordering);
   virtual Optional<LitEvalResult> simplifyLiteral(Literal* l) = 0;
-  pair<Clause*, bool> simplify(Clause* cl, bool doOrderingCheck) override;
+  Result simplify(Clause* cl, bool doOrderingCheck) override;
 private:
   Ordering* _ordering;
   const InferenceRule _rule;
 };
 
 class Cancellation
-: public MaybeImmediateLiteralSimplification
+: public SimplifyingGeneratingLiteralSimplification
 {
 public:
   CLASS_NAME(Cancellation);
@@ -52,7 +39,6 @@ public:
   virtual ~Cancellation();
 
   Optional<LitEvalResult> simplifyLiteral(Literal*) override;
-  // Clause* simplify(Clause* cl);
 };
 
 
@@ -70,7 +56,7 @@ public:
 
 
 class PolynomialNormalization
-: public MaybeImmediateLiteralSimplification
+: public SimplifyingGeneratingLiteralSimplification
 {
 public:
   CLASS_NAME(PolynomialNormalization);
