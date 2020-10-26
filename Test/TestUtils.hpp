@@ -177,6 +177,29 @@ public:
 
 
 template<class A>
+class Pretty<Stack<A>> {
+  Stack<A> const& _self;
+
+public:
+  Pretty(Stack<A> const& self) : _self(self) {}
+
+  std::ostream& prettyPrint(std::ostream& out) const
+  {
+    auto iter = _self.iterFifo();
+    out << "[ ";
+    if (iter.hasNext()) {
+      out << pretty(iter.next());
+      while (iter.hasNext()) {
+        out << ", " << pretty(iter.next());
+      }
+    }
+    out << " ]";
+    return out;
+  }
+};
+
+
+template<class A>
 class Pretty<Optional<A>> {
   Optional<A> const& _self;
 

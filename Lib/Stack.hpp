@@ -238,6 +238,10 @@ public:
   BottomFirstIterator iterFifo() const 
   { return BottomFirstIterator(*this); }
 
+  /* a first-in-first-out iterator  */
+  BottomFirstIterator iterFifoMut() const 
+  { return BottomFirstIterator(*this); }
+
   /**
    * Return a reference to the n-th element of the stack.
    */

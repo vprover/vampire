@@ -111,7 +111,7 @@ Optional<LitEvalResult> evaluate(Literal* lit)
   Ordering::trySetGlobalOrdering(SmartPtr<Ordering>(&ord, true));
 
   using Opt = Optional<LitEvalResult>;
-  auto& cl = clause({lit});
+  auto& cl = *clause({lit});
 
   auto simpl = [](Clause* cl) -> Clause* 
   {

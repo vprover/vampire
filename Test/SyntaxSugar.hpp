@@ -389,7 +389,7 @@ PredSugar<ArgSorts...> predSugar(const char* name, ArgSorts... args)
 { return PredSugar<ArgSorts...>(name, args...); }
 
 
-inline Clause& clause(std::initializer_list<Literal*> ls) { 
+inline Clause* clause(std::initializer_list<Literal*> ls) { 
   static Inference testInf = Kernel::NonspecificInference0(UnitInputType::ASSUMPTION, InferenceRule::INPUT); 
   Clause& out = *new(ls.size()) Clause(ls.size(), testInf); 
   auto l = ls.begin(); 
@@ -397,7 +397,7 @@ inline Clause& clause(std::initializer_list<Literal*> ls) {
     out[i] = *l; 
     l++; 
   }
-  return out; 
+  return &out; 
 }
 
 #endif // __TEST__SYNTAX_SUGAR__H__

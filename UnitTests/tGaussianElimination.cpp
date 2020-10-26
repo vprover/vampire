@@ -11,6 +11,7 @@
 #include "Test/TestUtils.hpp"
 #include "Lib/Coproduct.hpp"
 #include "Test/SimplificationTester.hpp"
+#include "Test/GenerationTester.hpp"
 #include "Kernel/KBO.hpp"
 
 using namespace std;
@@ -82,6 +83,7 @@ REGISTER_SIMPL_TESTER(GveSimplTester)
   THEORY_SYNTAX_SUGAR(REAL)                                                                                   \
   THEORY_SYNTAX_SUGAR_FUN(f, 1)                                                                               \
   THEORY_SYNTAX_SUGAR_PRED(p, 1)                                                                              \
+  THEORY_SYNTAX_SUGAR_PRED(q, 1)                                                                              \
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////// TEST CASES
@@ -148,3 +150,58 @@ TEST_SIMPLIFY(gve_test_div,
       .input    = clause({  x / 3 != 4, p(x)  }),
       .expected = clause({  p(12)  }),
     })
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////// TEST CASES for generating inferences
+/////////////////////////////////////
+
+REGISTER_GEN_TESTER(Test::Generation::GenerationTester<GaussianVariableElimination>)
+
+
+
+TEST_GENERATION(test_redundancy_01,
+    Generation::TestCase {
+      .input     = clause({  x != 4, p(x)  }),
+      .generated = generated(
+            clause({  p(4)  })
+      ),
+      .premiseRedundant = false,
+    })
+
+TEST_GENERATION(test_redundancy_02,
+    Generation::TestCase {
+      .input     = clause({  x != 4, p(y)  }),
+      .generated = generated(
+            clause({  p(y)  })
+      ),
+      .premiseRedundant = true,
+    })
+
+TEST_GENERATION(test_redundancy_03,
+    Generation::TestCase {
+      .input     = clause({   x != 4, p(y), q(x)  }),
+      .generated = generated(
+            clause({  p(y), q(4)  })
+      ),
+      .premiseRedundant = false,
+    })
+
+TEST_GENERATION(test_redundancy_04,
+    Generation::TestCase {
+      .input     = clause({   x != 4, p(x), q(x)  }),
+      .generated = generated(
+            clause({  p(4), q(4)  })
+      ),
+      .premiseRedundant = false,
+    })
+
+TEST_GENERATION(test_redundancy_05,
+    Generation::TestCase {
+      .input     = clause({   x != 4, p(y), q(y)  }),
+      .generated = generated(
+            clause({  p(y), q(y)  })
+      ),
+      .premiseRedundant = true,
+    })
+
+

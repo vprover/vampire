@@ -1,3 +1,6 @@
+#ifndef __TEST__SIMPLIFICATION_TESTER_HPP__
+#define __TEST__SIMPLIFICATION_TESTER_HPP__
+
 /**
  * This file provides macros and classes used to write nice tests for simplification rules.
  *
@@ -32,12 +35,15 @@ struct SimplificationAlternative
 class SimplificationResult : Coproduct<Kernel::Clause const*, SimplificationAlternative>
 {
 public:
-  SimplificationResult(Kernel::Clause const& clause) : Coproduct<Kernel::Clause const*, SimplificationAlternative>(&clause) {}
+  SimplificationResult(Kernel::Clause const* clause) 
+    : Coproduct<Kernel::Clause const*, SimplificationAlternative>(clause) {}
+
   SimplificationResult(SimplificationResult l, SimplificationResult r) : Coproduct<Kernel::Clause const*, SimplificationAlternative>(SimplificationAlternative {
         Lib::make_unique<SimplificationResult>(std::move(l)),
         Lib::make_unique<SimplificationResult>(std::move(r))
       }) {}
-  bool matches(const SimplificationTester& simpl, Kernel::Clause const& result);
+  template<class EqualityOperator>
+  bool matches(EqualityOperator& equality, Kernel::Clause const* result);
   friend ostream& operator<<(ostream& out, SimplificationResult const& self);
 };
 
@@ -51,45 +57,46 @@ inline ostream& operator<<(ostream& out, SimplificationResult const& self)
       { return out << pretty(self.lhs) << " or " << pretty(self.rhs); });
 }
 
-inline bool SimplificationResult::matches(const SimplificationTester& simpl, Kernel::Clause const& result)
+template<class EqualityOperator>
+inline bool SimplificationResult::matches(EqualityOperator& equality, Kernel::Clause const* result)
 {
   return match(
       [&](Kernel::Clause const*& self) 
-      { return simpl.eq(&result, self); },
+      { return equality.eq(result, self); },
 
       [&](SimplificationAlternative& self) 
-      { return self.lhs->matches(simpl, result) || self.rhs->matches(simpl, result); });
+      { return self.lhs->matches(equality, result) || self.rhs->matches(equality, result); });
 }
 
 
 
-inline SimplificationResult anyOf(Kernel::Clause const& lhs) 
+inline SimplificationResult anyOf(Kernel::Clause const* lhs) 
 { return SimplificationResult(lhs); }
 
 template<class... As>
-inline SimplificationResult anyOf(Kernel::Clause const& lhs, Kernel::Clause const& rhs, As... rest) 
+inline SimplificationResult anyOf(Kernel::Clause const* lhs, Kernel::Clause const* rhs, As... rest) 
 { return SimplificationResult(lhs, anyOf(rhs, rest...)); }
 
 struct Success
 {
-  Kernel::Clause& input;
+  Kernel::Clause* input;
   // Kernel::Clause& expected;
   SimplificationResult expected;
 
   void run(const SimplificationTester& simpl) {
-    auto res = simpl.simplify(&input);
+    auto res = simpl.simplify(input);
 
     if (!res) {
       cout  << endl;
-      cout << "[     case ]: " << pretty(input) << endl;
+      cout << "[     case ]: " << pretty(*input) << endl;
       cout << "[       is ]: NULL (indicates the clause is a tautology)" << endl;
       cout << "[ expected ]: " << pretty(expected) << endl;
       exit(-1);
 
     // } else if (!simpl.eq(res, &expected)) {
-    } else if (!expected.matches(simpl, *res)) {
+    } else if (!expected.matches(simpl, res)) {
       cout  << endl;
-      cout << "[     case ]: " << pretty(input) << endl;
+      cout << "[     case ]: " << pretty(*input) << endl;
       cout << "[       is ]: " << pretty(*res) << endl;
       cout << "[ expected ]: " << pretty(expected) << endl;
       exit(-1);
@@ -101,13 +108,13 @@ struct Success
 
 struct NotApplicable
 {
-  Kernel::Clause& input;
+  Kernel::Clause* input;
 
   void run(const SimplificationTester& simpl) {
-    auto res = simpl.simplify(&input);
-    if (res != &input ) {
+    auto res = simpl.simplify(input);
+    if (res != input ) {
       cout  << endl;
-      cout << "[     case ]: " << pretty(input) << endl;
+      cout << "[     case ]: " << pretty(*input) << endl;
       cout << "[       is ]: " << pretty(*res) << endl;
       cout << "[ expected ]: < nop >" << endl;
       exit(-1);
@@ -133,3 +140,5 @@ struct NotApplicable
 } // namespace Simplification
 
 } // namespace Test
+
+#endif // __TEST__SIMPLIFICATION_TESTER_HPP__
