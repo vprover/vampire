@@ -137,11 +137,8 @@ void Formula::destroy ()
     delete static_cast<NamedFormula*>(this);
     return;
 
-#if VDEBUG
-  default:
+  case NOCONN:
     ASSERTION_VIOLATION;
-    return;
-#endif
   }
 } // Formula::Data::deref ()
 
@@ -389,12 +386,10 @@ vstring Formula::toString(const Formula* formula)
     case TRUE:
     case FALSE:
       res += toString(c);
-
       continue;
-  #if VDEBUG
-    default:
+
+    case NOCONN:
       ASSERTION_VIOLATION;
-  #endif
   }
   }
 
@@ -445,11 +440,8 @@ bool Formula::parenthesesRequired (Connective outer) const
     case XOR:
       return true;
 
-#if VDEBUG
-    default:
+    case NOCONN:
       ASSERTION_VIOLATION;
-      return false;
-#endif
     }
 } // Formula::parenthesesRequired
 
@@ -675,11 +667,9 @@ void Formula::collectPredicatesWithPolarity(Stack<pair<unsigned,int> >& acc, int
     case FALSE:
       return;
 
-#if VDEBUG
-    default:
+    case NAME:
+    case NOCONN:
       ASSERTION_VIOLATION;
-      return;
-#endif
   }
 }
 

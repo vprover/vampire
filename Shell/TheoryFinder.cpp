@@ -701,10 +701,8 @@ bool TheoryFinder::matchCode(const void* obj,
     goto match;
   }
 
-#if VDEBUG
   default:
     ASSERTION_VIOLATION;
-#endif
   }
 } // TheoryFinder::MatcherState::match
 

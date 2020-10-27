@@ -136,10 +136,8 @@ void CNF::clausify (Formula* f)
     clausify(f->qarg());
     return;
 
-#if VDEBUG
   default:
     ASSERTION_VIOLATION;
-#endif
   }
 } // CNF::clausify
 

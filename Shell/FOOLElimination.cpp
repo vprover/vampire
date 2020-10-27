@@ -302,10 +302,9 @@ Formula* FOOLElimination::process(Formula* formula) {
     case FALSE:
       return formula;
 
-#if VDEBUG
-    default:
+    case NAME:
+    case NOCONN:
       ASSERTION_VIOLATION;
-#endif
   }
 }
 

@@ -225,6 +225,15 @@ private:
 
 #else // ! VDEBUG
 
+/* this point in the code is statically unreachable */
+#ifdef __GNU_C__
+// builtin if the GNU C dialect is availble: GCC, Clang, ICC
+#define __UNREACHABLE { __builtin_unreachable(); }
+#else // !__GNU_C__
+// otherwise, infinite loop - UB post-C++11 and should be optimised out
+#define __UNREACHABLE while(true) {}
+#endif
+
 #define DEBUG_CODE(X)
 
 #define __IGNORE_WUNUSED(...) __PUSH_DIAGNOSTICS("GCC diagnostic ignored \"-Wreturn-type\"", __VA_ARGS__)
@@ -248,7 +257,7 @@ private:
 #define ASS_ALLOC_TYPE(PTR,TYPE)
 #define ASS_METHOD(OBJ,METHOD)
 
-#define ASSERTION_VIOLATION 
+#define ASSERTION_VIOLATION __UNREACHABLE
 #define ASSERTION_VIOLATION_REP(Val) ASSERTION_VIOLATION
 #define ASSERTION_VIOLATION_REP2(Val1,Val2)  ASSERTION_VIOLATION
 
