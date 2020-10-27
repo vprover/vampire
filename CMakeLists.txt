@@ -911,6 +911,10 @@ if (COMPILE_TESTS)
 
 endif() # COMPILE_TESTS
 
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  link_libraries(${CMAKE_DL_LIBS})
+endif()
+
 #################################################################
 # automated generation of Vampire revision information from git #
 #################################################################

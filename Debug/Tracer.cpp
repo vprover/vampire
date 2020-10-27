@@ -16,6 +16,13 @@
 
 #include <climits>
 #include <iostream>
+#ifdef VDEBUG
+
+#define BOOST_STACKTRACE_USE_ADDR2LINE
+#include <boost/stacktrace.hpp>
+#include "Lib/Allocator.hpp"
+using namespace Lib;
+#endif
 
 #include "Tracer.hpp"
 
@@ -193,6 +200,9 @@ void Tracer::printStack (ostream& str)
  */
 void Tracer::printStackRec(Tracer* current, ostream& str, int& depth)
 {
+  BYPASSING_ALLOCATOR;
+  str << boost::stacktrace::stacktrace();
+  /*
   if (!current) { // beginning of the stack
     return;
   }
@@ -200,6 +210,7 @@ void Tracer::printStackRec(Tracer* current, ostream& str, int& depth)
   spaces(str,depth);
   str << current->_fun << "\n";
   depth ++;
+  */
 } // Tracer::printStack (ostream& str, int& depth)
 
 
