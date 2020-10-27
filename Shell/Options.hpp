@@ -433,48 +433,17 @@ public:
 
   enum class Schedule : unsigned int {
     CASC,
-    CASC_2014,
-    CASC_2014_EPR,
-    CASC_2016,
-    CASC_2017,
-    CASC_2018,
     CASC_2019,
     CASC_SAT,
-    CASC_SAT_2014,
-    CASC_SAT_2016,
-    CASC_SAT_2017,
-    CASC_SAT_2018,
     CASC_SAT_2019,
-    LTB_2014,
-    LTB_2014_MZR,
     LTB_DEFAULT_2017,
-
-    LTB_HH4_2015_FAST,
-    LTB_HH4_2015_MIDD,
-    LTB_HH4_2015_SLOW,
     LTB_HH4_2017,
-
-    LTB_HLL_2015_FAST,
-    LTB_HLL_2015_MIDD,
-    LTB_HLL_2015_SLOW,
     LTB_HLL_2017,
-
-    LTB_ISA_2015_FAST,
-    LTB_ISA_2015_MIDD,
-    LTB_ISA_2015_SLOW,
     LTB_ISA_2017,
-
-    LTB_MZR_2015_FAST,
-    LTB_MZR_2015_MIDD,
-    LTB_MZR_2015_SLOW,
     LTB_MZR_2017,
-
     SMTCOMP,
-    SMTCOMP_2016,
-    SMTCOMP_2017,
     SMTCOMP_2018
-};
-
+  };
 
 /* TODO: use an enum for Selection. The current issue is the way these values are manipulated as ints
  *
