@@ -484,8 +484,6 @@ set(VAMPIRE_SAT_SOURCES
     SAT/ClauseDisposer.cpp
     SAT/DIMACS.cpp
     SAT/FallbackSolverWrapper.cpp
-    SAT/lglib.c
-    SAT/lglopts.c
     SAT/MinimizingSolver.cpp
     SAT/Preprocess.cpp
     SAT/RestartStrategy.cpp
