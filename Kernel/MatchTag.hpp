@@ -89,11 +89,14 @@ private:
   };
 };
 
-//EMPTY_CONTENT_REPLACEMENT is subset of EMPTY_CONTENT
-ASS_STATIC( (MatchTag::EMPTY_CONTENT&MatchTag::EMPTY_CONTENT_REPLACEMENT)==MatchTag::EMPTY_CONTENT_REPLACEMENT );
-//EMPTY_CONTENT_REPLACEMENT has zeroes only in the lower half
-ASS_STATIC( MatchTag::EMPTY_CONTENT<0x10000 );
-
+static_assert(
+  (MatchTag::EMPTY_CONTENT & MatchTag::EMPTY_CONTENT_REPLACEMENT)==MatchTag::EMPTY_CONTENT_REPLACEMENT,
+  "EMPTY_CONTENT_REPLACEMENT is subset of EMPTY_CONTENT"
+);
+static_assert(
+  MatchTag::EMPTY_CONTENT < 0x10000,
+  "EMPTY_CONTENT_REPLACEMENT has zeroes only in the lower half"
+);
 
 #endif
 
