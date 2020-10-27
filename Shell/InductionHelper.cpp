@@ -287,7 +287,6 @@ bool findCommutator(const vmap<TermList, pair<TermList, TermList>>& initialGoalP
 
 // sch2 quasi-commutes over sch1
 bool checkQuasiCommutation(const InductionScheme& sch1, const InductionScheme& sch2) {
-  cout << "checkQuasiCOmmutation" << endl;
   CALL("checkQuasiCommutation");
 
   // check that no condition is present
@@ -362,7 +361,6 @@ bool checkQuasiCommutation(const InductionScheme& sch1, const InductionScheme& s
                 // initial = t2;
                 // goal = recCallTerms.at(indTerm);
               }
-              cout << "Mapped: " << indTerm << " " << initial << " " << goal << endl;
             }
             terms.push_back(initialGoalPairs);
           }
@@ -380,8 +378,77 @@ bool checkQuasiCommutation(const InductionScheme& sch1, const InductionScheme& s
   return true;
 }
 
+vvector<TermList> generateTerms(TermAlgebra* ta, unsigned& var) {
+  vvector<TermList> res;
+  Stack<TermList> argTerms;
+  for (unsigned i = 0; i < ta->nConstructors(); i++) {
+    TermAlgebraConstructor *c = ta->constructor(i);
+    argTerms.reset();
+
+    for (unsigned j = 0; j < c->arity(); j++) {
+      argTerms.push(TermList(var++, false));
+    }
+
+    res.emplace_back(Term::create(c->functor(), argTerms.size(), argTerms.begin()));
+  }
+  return res;
+}
+
+void excludeTerm(vvector<TermList>& possible, TermList e, unsigned& var) {
+  ASS(e.isTerm());
+  auto last = possible.size();
+  for (unsigned i = 0; i < last;) {
+    auto p = possible[i];
+    ASS(p.isTerm());
+    RobSubstitution subst;
+    if (subst.unify(p, 0, e, 1)) {
+      // if they are unifiable, p will be either
+      // replaced by more specific terms, or removed
+      possible[i] = possible.back();
+      possible.pop_back();
+      last--;
+      // if e is more special than p,
+      // we go into the arguments and
+      // create the remaining more special terms
+      auto t1 = subst.apply(p, 0);
+      Renaming r;
+      r.normalizeVariables(p);
+      auto t2 = r.apply(p);
+      if (t1 != t2) {
+        ASS(p.term()->functor()==e.term()->functor());
+        vvector<TermList> newTerms;
+        newTerms.push_back(p);
+        Term::Iterator pIt(p.term());
+        Term::Iterator eIt(e.term());
+        while (pIt.hasNext()) {
+          auto pArg = pIt.next();
+          auto eArg = eIt.next();
+
+          if (pArg.isVar() && eArg.isTerm()) {
+            auto taSort = SortHelper::getResultSort(eArg.term());
+            auto ta = env.signature->getTermAlgebraOfSort(taSort);
+            auto terms = generateTerms(ta, var);
+            excludeTerm(terms, eArg, var);
+            vvector<TermList> replacedTerms;
+            for (auto& t : newTerms) {
+              for (auto& r : terms) {
+                TermListReplacement tr(pArg, r);
+                replacedTerms.push_back(TermList(tr.transform(t.term())));
+              }
+            }
+            newTerms = replacedTerms;
+          }
+        }
+        possible.insert(possible.end(), newTerms.begin(), newTerms.end());
+      }
+      continue;
+    }
+    i++;
+  }
+}
+
 bool createSingleRDescription(const RDescriptionInst& rdesc, const InductionScheme& other,
-  const vset<TermList>& combinedInductionTerms, RDescriptionInst& res)
+  const vset<TermList>& combinedInductionTerms, vvector<RDescriptionInst>& res)
 {
   // base cases are not considered here
   if (rdesc._recursiveCalls.empty()) {
@@ -390,49 +457,100 @@ bool createSingleRDescription(const RDescriptionInst& rdesc, const InductionSche
   auto recCalls = rdesc._recursiveCalls;
   auto step = rdesc._step;
   vvector<Formula*> conditions;
+  vvector<vmap<TermList, vvector<TermList>>> possibleTermsList;
+  unsigned var = 0;
+  vmap<TermList, vvector<TermList>> possibleTermsInitial;
+  for (const auto& indTerm : combinedInductionTerms) {
+    auto it = rdesc._step.find(indTerm);
+    if (it != rdesc._step.end() && it->second.isTerm()) {
+      vvector<TermList> terms;
+      terms.push_back(it->second);
+      possibleTermsInitial.insert(make_pair(indTerm, terms));
+    }
+  }
+  possibleTermsList.push_back(possibleTermsInitial);
+
   for (const auto& rdesc2 : other._rDescriptionInstances) {
     if (rdesc2._recursiveCalls.empty()) {
       continue;
     }
-    FormulaList* fs = FormulaList::empty();
+    vvector<vmap<TermList, vvector<TermList>>> nextPossibleTermsList;
     for (const auto& indTerm : combinedInductionTerms) {
       auto it1 = rdesc._step.find(indTerm);
       auto it2 = rdesc2._step.find(indTerm);
-      if (it1 == rdesc._step.end()) {
-        if (it2 != rdesc2._step.end()) {
-          FormulaList::push(new AtomicFormula(
-            Literal::createEquality(false, indTerm, it2->second, SortHelper::getResultSort(indTerm.term()))), fs);
-        } else {
-          // at least one of the rdescriptions must have this induction term
-          ASSERTION_VIOLATION;
+      ASS(it1 != rdesc._step.end() || it2 != rdesc2._step.end());
+
+      if (it2 == rdesc2._step.end()) {
+        continue;
+      }
+
+      auto t2 = it2->second;
+      if (t2.isTerm()) {
+        auto tempList = possibleTermsList;
+        for (auto& possibleTerms : tempList) {
+          auto pIt = possibleTerms.find(indTerm);
+          if (pIt == possibleTerms.end()) {
+            auto taSort = SortHelper::getResultSort(indTerm.term());
+            auto ta = env.signature->getTermAlgebraOfSort(taSort);
+            pIt = possibleTerms.insert(make_pair(indTerm, generateTerms(ta, var))).first;
+          }
+          excludeTerm(possibleTerms.at(indTerm), t2, var);
         }
-      } else if (it2 != rdesc2._step.end()) {
-        auto t1 = it1->second;
-        auto t2 = it2->second;
-        RobSubstitution subst;
-        if (t2.isVar() || !subst.unify(t1, 0, t2, 1)) {
-          // if they don't unify, the result is true
-          // (e.g. zero != s(X1)) therefore we can skip it
-          continue;
-        }
-        FormulaList::push(new AtomicFormula(
-          Literal::createEquality(false, t1, t2, SortHelper::getResultSort(indTerm.term()))), fs);
+        nextPossibleTermsList.insert(nextPossibleTermsList.end(), tempList.begin(), tempList.end());
       }
     }
-    if (FormulaList::isEmpty(fs)) {
-      return false;
-    }
-    conditions.push_back(JunctionFormula::generalJunction(Connective::OR, fs));
+    possibleTermsList = nextPossibleTermsList;
   }
 
-  conditions.insert(conditions.end(), rdesc._conditions.begin(), rdesc._conditions.end());
-  res = RDescriptionInst(std::move(recCalls), std::move(step), std::move(conditions));
+  res.clear();
+  for (const auto& possibleTerms : possibleTermsList) {
+    vvector<RDescriptionInst> temp;
+    temp.push_back(rdesc);
+    auto invalid = false;
+    for (const auto& indTerm : combinedInductionTerms) {
+      auto it = possibleTerms.find(indTerm);
+      if (it != possibleTerms.end()) {
+        if (it->second.empty()) {
+          invalid = true;
+          break;
+        }
+        vvector<RDescriptionInst> nextTemp;
+        for (const auto& p : it->second) {
+          for (auto rdesc : temp) { // intentionally copy rdesc here
+            auto rIt = rdesc._step.find(indTerm);
+            if (rIt != rdesc._step.end()) {
+              RobSubstitution subst;
+              ASS(subst.unify(rIt->second, 0, p, 1));
+              rIt->second = subst.apply(rIt->second, 0);
+              for (auto& cond : rdesc._conditions) {
+                cond = applySubst(subst, 0, cond);
+              }
+              for (auto& recCall : rdesc._recursiveCalls) {
+                auto recIt = recCall.find(indTerm);
+                ASS(recIt != recCall.end());
+                recIt->second = subst.apply(recIt->second, 0);
+              }
+            } else {
+              rdesc._step.insert(make_pair(indTerm, p));
+            }
+            nextTemp.push_back(rdesc);
+          }
+        }
+        temp = nextTemp;
+      }
+    }
+    if (!invalid) {
+      res.insert(res.end(), temp.begin(), temp.end());
+    }
+  }
 
   vset<TermList> diff;
   set_difference(rdesc._inactive.begin(), rdesc._inactive.end(),
     combinedInductionTerms.begin(), combinedInductionTerms.end(),
     inserter(diff, diff.end()));
-  res._inactive = diff;
+  for (auto& rdesc : res) {
+    rdesc._inactive = diff;
+  }
   return true;
 }
 
@@ -500,24 +618,61 @@ bool createMergedRDescription(const RDescriptionInst& rdesc1, const RDescription
 }
 
 void addBaseCase(InductionScheme& sch) {
-  vvector<Formula*> conds;
+  unsigned var = 0;
+  vvector<vmap<TermList, vvector<TermList>>> possibleTermsList;
+  possibleTermsList.emplace_back();
   for (const auto& rdesc : sch._rDescriptionInstances) {
-    FormulaList* c = nullptr;
-    for (const auto& cond : rdesc._conditions) {
-      FormulaList::push(cond, c);
-    }
-    conds.push_back(new NegatedFormula(JunctionFormula::generalJunction(Connective::AND, c)));
+    vvector<vmap<TermList, vvector<TermList>>> nextPossibleTermsList;
     for (const auto& kv : rdesc._step) {
       if (kv.second.isTerm()) {
-        conds.push_back(new AtomicFormula(
-          Literal::createEquality(false, kv.first, kv.second,
-            SortHelper::getResultSort(kv.first.term()))));
+        auto tempList = possibleTermsList;
+        for (auto& possibleTerms : tempList) {
+          auto pIt = possibleTerms.find(kv.first);
+          if (pIt == possibleTerms.end()) {
+            auto taSort = SortHelper::getResultSort(kv.first.term());
+            auto ta = env.signature->getTermAlgebraOfSort(taSort);
+            pIt = possibleTerms.insert(make_pair(kv.first, generateTerms(ta, var))).first;
+          }
+          excludeTerm(pIt->second, kv.second, var);
+        }
+        remove_if(tempList.begin(), tempList.end(), [](vmap<TermList, vvector<TermList>>& e) {return e.empty();});
+        nextPossibleTermsList.insert(nextPossibleTermsList.end(), tempList.begin(), tempList.end());
       }
     }
+    possibleTermsList = nextPossibleTermsList;
   }
-  vvector<vmap<TermList,TermList>> emptyRecCalls;
-  vmap<TermList,TermList> emptyStep;
-  sch._rDescriptionInstances.emplace_back(std::move(emptyRecCalls), std::move(emptyStep), std::move(conds));
+
+  vset<vmap<TermList, TermList>> steps;
+  for (const auto& possibleTerms : possibleTermsList) {
+    vvector<vmap<TermList, TermList>> temp;
+    temp.emplace_back();
+    auto invalid = false;
+    for (const auto& kv : possibleTerms) {
+      if (kv.second.empty()) {
+        invalid = true;
+        break;
+      }
+      vvector<vmap<TermList, TermList>> newTemp;
+      for (const auto& p : kv.second) {
+        for (auto step : temp) { // intentionally copy rdesc here
+          auto rIt = step.find(kv.first);
+          ASS(rIt == step.end());
+          step.insert(make_pair(kv.first, p));
+          newTemp.push_back(step);
+        }
+      }
+      temp = newTemp;
+    }
+    if (!invalid) {
+      steps.insert(temp.begin(), temp.end());
+    }
+  }
+
+  for (auto step : steps) {
+    vvector<vmap<TermList,TermList>> emptyRecCalls;
+    vvector<Formula*> emptyConds;
+    sch._rDescriptionInstances.emplace_back(std::move(emptyRecCalls), std::move(step), std::move(emptyConds));
+  }
 }
 
 bool checkInductionTerms(const InductionScheme& sch1, const InductionScheme& sch2, vset<TermList>& combined)
@@ -546,6 +701,10 @@ bool mergeSchemes(const InductionScheme& sch1, const InductionScheme& sch2, Indu
   // inactive induction terms, then we check only one way for quasi-commutation
   InductionScheme sch1copy;
   InductionScheme sch2copy;
+
+  cout << "Merging schemes:" << endl
+       << "1: " << sch1 << endl
+       << "2: " << sch2 << endl;
   if (sch1._inductionTerms != sch2._inductionTerms
     || (!checkQuasiCommutation(sch1, sch2) && !checkQuasiCommutation(sch2, sch1)))
   {
@@ -553,35 +712,41 @@ bool mergeSchemes(const InductionScheme& sch1, const InductionScheme& sch2, Indu
       sch1copy = sch1;
       sch2copy = sch2.makeCopyWithVariablesShifted(sch1copy._maxVar+1);
       sch2copy.addInductionTerms(combinedInductionTerms);
+      cout << "1 quasi-commutes over 2" << endl;
     } else if (checkInductionTerms(sch1, sch2, combinedInductionTerms) && checkQuasiCommutation(sch1, sch2)) {
       sch1copy = sch1;
       sch1copy.addInductionTerms(combinedInductionTerms);
       sch2copy = sch2.makeCopyWithVariablesShifted(sch1copy._maxVar+1);
+      cout << "2 quasi-commutes over 1" << endl;
     } else {
       return false;
     }
   } else {
     sch1copy = sch1;
-    sch2copy = sch2;
+    sch2copy = sch2.makeCopyWithVariablesShifted(sch1copy._maxVar+1);
+    cout << "1 and 2 contain the same set of variables" << endl;
   }
   if (combinedInductionTerms.empty()) {
     combinedInductionTerms.insert(sch1copy._inductionTerms.begin(), sch1copy._inductionTerms.end());
     combinedInductionTerms.insert(sch2copy._inductionTerms.begin(), sch2copy._inductionTerms.end());
   }
-  cout << "Merging schemes " << sch1copy << " and " << endl
-       << sch2copy << endl;
+  cout << "combinedInductionTerms: ";
+  for (const auto& indTerm : combinedInductionTerms) {
+    cout << indTerm << " ";
+  }
+  cout << endl;
 
   vvector<RDescriptionInst> resRdescs;
   for (const auto& rdesc : sch1copy._rDescriptionInstances) {
-    RDescriptionInst inst;
+    vvector<RDescriptionInst> inst;
     if (createSingleRDescription(rdesc, sch2copy, combinedInductionTerms, inst)) {
-      resRdescs.push_back(inst);
+      resRdescs.insert(resRdescs.end(), inst.begin(), inst.end());
     }
   }
   for (const auto& rdesc : sch2copy._rDescriptionInstances) {
-    RDescriptionInst inst;
+    vvector<RDescriptionInst> inst;
     if (createSingleRDescription(rdesc, sch1copy, combinedInductionTerms, inst)) {
-      resRdescs.push_back(inst);
+      resRdescs.insert(resRdescs.end(), inst.begin(), inst.end());
     }
   }
   for (const auto& rdesc1 : sch1copy._rDescriptionInstances) {
@@ -835,23 +1000,38 @@ ostream& operator<<(ostream& out, const RDescription& rdesc)
 
 ostream& operator<<(ostream& out, const RDescriptionInst& inst)
 {
-  out << "conditions: ";
-  for (const auto& c : inst._conditions) {
-    out << *c << "; ";
-  }
-  out << "recursive calls: ";
-  for (const auto& r : inst._recursiveCalls) {
-    for (const auto& kv : r) {
-      out << kv.first << " -> " << kv.second << "; ";
+  if (!inst._conditions.empty()) {
+    out << "conditions: " << endl;
+    for (const auto& c : inst._conditions) {
+      out << "\t" << *c << endl;
     }
   }
-  out << "step: ";
-  for (const auto& kv : inst._step) {
-    out << kv.first << " -> " << kv.second << "; ";
+  auto basecase = inst._recursiveCalls.empty();
+  if (!basecase) {
+    out << "recursive calls: " << endl;
+    for (const auto& r : inst._recursiveCalls) {
+      out << "* ";
+      for (const auto& kv : r) {
+        out << kv.first << " -> " << kv.second << ", ";
+      }
+      out << endl;
+    }
   }
-  out << "inactive terms: ";
-  for (const auto& i : inst._inactive) {
-    out << i << ", ";
+  if (basecase) {
+    out << "base: " << endl;
+  } else {
+    out << "step: " << endl;
+  }
+  for (const auto& kv : inst._step) {
+    out << kv.first << " -> " << kv.second << ", ";
+  }
+  out << endl;
+  if (!inst._inactive.empty()) {
+    out << "inactive terms: ";
+    for (const auto& i : inst._inactive) {
+      out << i << ", ";
+    }
+    out << endl;
   }
   return out;
 }
@@ -1129,9 +1309,9 @@ void InductionScheme::addInductionTerms(const vset<TermList>& terms) {
 
 ostream& operator<<(ostream& out, const InductionScheme& scheme)
 {
-  out << "RDescription instances: ";
+  out << "RDescription instances: " << endl;
   for (const auto& inst : scheme._rDescriptionInstances) {
-    out << inst << " ;-- ";
+    out << inst;
   }
   out << "induction terms: ";
   for (const auto& t : scheme._inductionTerms) {
