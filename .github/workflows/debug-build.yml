@@ -7,12 +7,10 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Create Build Directory
-      run: cmake -E make_directory ${{runner.workspace}}/build
+      run: mkdir ${{runner.workspace}}/build
     - name: Configure Build
-      shell: bash
       working-directory: ${{runner.workspace}}/build
       run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=Debug
     - name: Build
       working-directory: ${{runner.workspace}}/build
-      shell: bash
-      run: make -j8
+      run: make
