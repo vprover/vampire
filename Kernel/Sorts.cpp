@@ -116,8 +116,8 @@ OperatorType::OperatorKey* OperatorType::setupKey(unsigned arity, const TermList
     }
   } else {
     // initialise all the argument types to those taken from sorts
-    for (unsigned i = 0; i < arity; i++) {
-      (*key)[i] = sorts[i];
+    for (unsigned i = numOfQuantVars; i < arity+numOfQuantVars; i++) {
+      (*key)[i] = sorts[i - numOfQuantVars];
     }
   }
   return key;

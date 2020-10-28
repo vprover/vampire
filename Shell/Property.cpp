@@ -628,7 +628,7 @@ void Property::scan(Literal* lit, int polarity, unsigned cLen, bool goal)
     }
   }
 
- // scanForInterpreted(lit);
+ scanForInterpreted(lit);
 
   if (!hasProp(PR_HAS_INEQUALITY_RESOLVABLE_WITH_DELETION) && lit->isEquality() && lit->shared()
      && ((lit->isNegative() && polarity == 1) || (!lit->isNegative() && polarity == -1) || polarity == 0)
@@ -684,7 +684,7 @@ void Property::scan(TermList ts,bool unit,bool goal)
         break;
     }
   } else {
-    //scanForInterpreted(t);
+    scanForInterpreted(t);
 
     _symbolsInFormula->insert(t->functor());
     Signature::Symbol* func = env.signature->getFunction(t->functor());

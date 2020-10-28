@@ -66,10 +66,12 @@ void SortHelper::getTypeSub(const Term* t, Substitution& subst)
   OperatorType* ot       = getType(const_cast<Term*>(t)); //sym->fnType();
   //cout << "the type is " + ot->toString() << endl;
   unsigned typeArgsArity = ot->typeArgsArity();
+  //cout << "typeArgsArity " << typeArgsArity << endl;
 
   typeArg = const_cast<TermList*>(t->args());
   for(unsigned i = 0; i < typeArgsArity; i++){
     TermList var = ot->quantifiedVar(i);
+    ASS_REP(var.isVar(), t->toString());
     //cout << "binding X" << var << " to " << typeArg->toString() << endl; 
     subst.bind(var.var(), *typeArg);
     typeArg = typeArg->next();

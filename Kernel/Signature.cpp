@@ -115,12 +115,12 @@ void Signature::Symbol::destroyPredSymbol()
 {
   CALL("Signature::Symbol::destroyPredSymbol");
 
-  /*if (interpreted()) {
+  if (interpreted()) {
     delete static_cast<InterpretedSymbol*>(this);
   }
-  else {*/
+  else {
     delete this;
-  //}
+  }
 }
 
 /**

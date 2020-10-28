@@ -124,7 +124,7 @@ public:
     CALL("OperatorType::getPredicateType(unsigned,const unsigned*)");
 
     OperatorKey* key = setupKey(arity,sorts,vars);
-    (*key)[arity] = Term::boolSort();
+    (*key)[VList::length(vars) + arity] = Term::boolSort();
     return getTypeFromKey(key,vars);
   }
 
@@ -140,7 +140,7 @@ public:
     CALL("OperatorType::getPredicateTypeUniformRange");
 
     OperatorKey* key = setupKeyUniformRange(arity,argsSort,vars);
-    (*key)[arity] = Term::boolSort();
+    (*key)[VList::length(vars) + arity] = Term::boolSort();
     return getTypeFromKey(key,vars);
   }
 
@@ -148,7 +148,7 @@ public:
     CALL("OperatorType::getFunctionType");
 
     OperatorKey* key = setupKey(arity,sorts,vars);
-    (*key)[arity] = resultSort;
+    (*key)[VList::length(vars) + arity] = resultSort;
     return getTypeFromKey(key,vars);
   }
 
@@ -164,7 +164,7 @@ public:
     CALL("OperatorType::getFunctionTypeUniformRange");
 
     OperatorKey* key = setupKeyUniformRange(arity,argsSort,vars);
-    (*key)[arity] = resultSort;
+    (*key)[VList::length(vars) + arity] = resultSort;
     return getTypeFromKey(key,vars);
   }
 
