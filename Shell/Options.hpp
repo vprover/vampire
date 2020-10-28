@@ -1383,11 +1383,11 @@ virtual vstring getStringOfValue(int value) const{ return Lib::Int::toString(val
 * may need to be added. In this case see examples from AndWrapper below.
 *
 * MS: While OptionValueConstraints are expressions which wait for a concrete value to be evaluated against:
-* as in \lambda value. expression(value),
+* as in λ value. expression(value),
 * WrappedConstraints have already been "closed" by providing a concrete value:
-* as in (\lambda value. expression(value))[concrete_value]
+* as in (λ value. expression(value))[concrete_value]
 * Finally, we can at anytime "unwrap" a WrappedConstraint by providing a "fake" lambda again on top, to turn it into a OptionValueConstraints again:
-* as in \lambda value. expression_ignoring_value
+* as in λ value. expression_ignoring_value
 *
 * The tricky part (C++-technology-wise) here is that unwrapping needs to get a type for the value
 * and this type is indepedent form the expression_ignoring_value for obvious reasons.

@@ -76,7 +76,7 @@ Options::Options ()
     init();
 }
 
-void Options::Options::init()
+void Options::init()
 {
    CALL("Options::init");
 
