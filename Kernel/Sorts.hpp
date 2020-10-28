@@ -98,17 +98,17 @@ public:
 private:
   typedef Vector<TermList> OperatorKey; // Vector of argument sorts together with "0" appended for predicates and resultSort appended for functions
   OperatorKey* _key;
-  VarList* _vars; /** quantified variables of type */
+  unsigned _typeArgsArity; /** quantified variables of type */
  
   // constructors kept private
-  OperatorType(OperatorKey* key, VarList* vars) : _key(key), _vars(vars) {}
+  OperatorType(OperatorKey* key, unsigned vLength) : _key(key), _typeArgsArity(vLength) {}
 
   /**
    * Convenience functions for creating a key
    */
-  static OperatorKey* setupKey(unsigned arity, const TermList* sorts=0);
-  static OperatorKey* setupKey(std::initializer_list<TermList> sorts);
-  static OperatorKey* setupKeyUniformRange(unsigned arity, TermList argsSort);
+  static OperatorKey* setupKey(unsigned arity, const TermList* sorts=0, VarList* vars = 0);
+  static OperatorKey* setupKey(std::initializer_list<TermList> sorts, VarList* vars);
+  static OperatorKey* setupKeyUniformRange(unsigned arity, TermList argsSort, VarList* vars);
 
   typedef Map<OperatorKey*,OperatorType*,PointerDereferencingHash> OperatorTypes;
   static OperatorTypes& operatorTypes(); // just a wrapper around a static OperatorTypes object, to ensure a correct initialization order
@@ -123,49 +123,49 @@ public:
   static OperatorType* getPredicateType(unsigned arity, const TermList* sorts=0, VarList* vars=0) {
     CALL("OperatorType::getPredicateType(unsigned,const unsigned*)");
 
-    OperatorKey* key = setupKey(arity,sorts);
+    OperatorKey* key = setupKey(arity,sorts,vars);
     (*key)[arity] = Term::boolSort();
-    return getTypeFromKey(key, vars);
+    return getTypeFromKey(key,vars);
   }
 
   static OperatorType* getPredicateType(std::initializer_list<TermList> sorts, VarList* vars = 0) {
     CALL("OperatorType::getPredicateType(std::initializer_list<unsigned>)");
 
-    OperatorKey* key = setupKey(sorts);
-    (*key)[sorts.size()] = Term::boolSort();
-    return getTypeFromKey(key, vars);
+    OperatorKey* key = setupKey(sorts,vars);
+    (*key)[VList::length(vars) + sorts.size()] = Term::boolSort();
+    return getTypeFromKey(key,vars);
   }
 
   static OperatorType* getPredicateTypeUniformRange(unsigned arity, TermList argsSort, VarList* vars = 0) {
     CALL("OperatorType::getPredicateTypeUniformRange");
 
-    OperatorKey* key = setupKeyUniformRange(arity,argsSort);
+    OperatorKey* key = setupKeyUniformRange(arity,argsSort,vars);
     (*key)[arity] = Term::boolSort();
-    return getTypeFromKey(key, vars);
+    return getTypeFromKey(key,vars);
   }
 
   static OperatorType* getFunctionType(unsigned arity, const TermList* sorts, TermList resultSort, VarList* vars = 0) {
     CALL("OperatorType::getFunctionType");
 
-    OperatorKey* key = setupKey(arity,sorts);
+    OperatorKey* key = setupKey(arity,sorts,vars);
     (*key)[arity] = resultSort;
-    return getTypeFromKey(key, vars);
+    return getTypeFromKey(key,vars);
   }
 
   static OperatorType* getFunctionType(std::initializer_list<TermList> sorts, TermList resultSort, VarList* vars = 0) {
     CALL("OperatorType::getFunctionType(std::initializer_list<unsigned>)");
  
-    OperatorKey* key = setupKey(sorts);
-    (*key)[sorts.size()] = resultSort;
-    return getTypeFromKey(key, vars);
+    OperatorKey* key = setupKey(sorts,vars);
+    (*key)[VList::length(vars) + sorts.size()] = resultSort;
+    return getTypeFromKey(key,vars);
   }
 
   static OperatorType* getFunctionTypeUniformRange(unsigned arity, TermList argsSort, TermList resultSort, VarList* vars = 0) {
     CALL("OperatorType::getFunctionTypeUniformRange");
 
-    OperatorKey* key = setupKeyUniformRange(arity,argsSort);
+    OperatorKey* key = setupKeyUniformRange(arity,argsSort,vars);
     (*key)[arity] = resultSort;
-    return getTypeFromKey(key, vars);
+    return getTypeFromKey(key,vars);
   }
 
   /**
@@ -176,33 +176,36 @@ public:
     return getFunctionType(0,nullptr,resultSort, vars); 
   }
 
-  unsigned typeArgsArity() const { return VarList::length(_vars); }
-  unsigned arity() const { return _key->length()-1 + typeArgsArity(); }
-  bool isEqual(OperatorType* ot) const;
+  unsigned typeArgsArity() const { return _typeArgsArity; }
+  unsigned arity() const { return _key->length()-1; }
+
+  TermList quantifiedVar(unsigned idx) const
+  {
+    CALL("OperatorType::quantifiedVar");
+    ASS(idx < _typeArgsArity);
+    return (*_key)[idx];
+  }
 
   TermList arg(unsigned idx) const
   {
     CALL("OperatorType::arg");
-    if(idx < typeArgsArity()){
+    if(idx < _typeArgsArity){
       return Term::superSort();
     } 
-    return (*_key)[idx - typeArgsArity()];
+    return (*_key)[idx];
   }
 
   //TODO functions below do not hold for higher-order
   //In higher-order we have boolean functions
-  bool isPredicateType() const { return (*_key)[arity() - typeArgsArity()] == Term::boolSort(); };
-  bool isFunctionType() const { return (*_key)[arity() - typeArgsArity()] != Term::boolSort(); };
+  bool isPredicateType() const { return (*_key)[arity()] == Term::boolSort(); };
+  bool isFunctionType() const { return (*_key)[arity()] != Term::boolSort(); };
   TermList result() const {
     CALL("OperatorType::result");
     //ASS(isFunctionType()); //TODO how best to deal with this?
-    return (*_key)[arity() - typeArgsArity()];
+    return (*_key)[arity()];
   }
   
-  void addQuantifiedVars(VarList* vars){ _vars = vars; }
-  VarList* quantifiedVars(){ return _vars; }
-  vstring toString() const;
-  
+  vstring toString() const;  
 
   bool isSingleSortType(TermList sort) const;
   bool isAllDefault() const { return isSingleSortType(Term::defaultSort()); }

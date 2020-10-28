@@ -826,7 +826,7 @@ private:
 
   VList* convert(Formula::VarList* vars);
 
-  OperatorType* constructOperatorType(Type* t);
+  OperatorType* constructOperatorType(Type* t, VList* vars = 0);
 
 public:
   // make the tptp routines for dealing with overflown constants available to other parsers

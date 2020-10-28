@@ -98,6 +98,9 @@ struct EqualityResolution::ResultFn
       }
     }
 
+    //cout << "arg0 " + arg0.toString() << endl;
+    //cout << "arg1 " + arg1.toString() << endl;
+
     // We only care about non-trivial constraints where the top-sybmol of the two literals are the same
     // and therefore a constraint can be created between arguments
     if(use_uwa_handler &&  arg0.isTerm() && arg1.isTerm() &&
@@ -107,9 +110,9 @@ struct EqualityResolution::ResultFn
 
     static RobSubstitution subst;
     static UnificationConstraintStack constraints;
-    subst.setMap(&funcSubtermMap);
     subst.reset();
     constraints.reset();
+    subst.setMap(&funcSubtermMap);
 
     if(use_uwa_handler){
       UWAMismatchHandler hndlr(constraints);

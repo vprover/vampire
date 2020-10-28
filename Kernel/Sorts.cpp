@@ -96,15 +96,22 @@ TermList Sorts::getSortTerm(unsigned sort)
  * otherwise, by sorts from the array @c sorts
  * @author Andrei Voronkov
  */
-OperatorType::OperatorKey* OperatorType::setupKey(unsigned arity, const TermList* sorts)
+OperatorType::OperatorKey* OperatorType::setupKey(unsigned arity, const TermList* sorts, VarList* vars)
 {
   CALL("OperatorType::setupKey(unsigned,const unsigned*)");
 
-  OperatorKey* key = OperatorKey::allocate(arity+1);
+  unsigned numOfQuantVars = vars ? VarList::length(vars) : 0;
+  OperatorKey* key = OperatorKey::allocate(numOfQuantVars+arity+1);
+
+  for(unsigned i = 0; i < numOfQuantVars; i++){
+    TermList var = TermList(vars->head(), false);
+    (*key)[i] = var;  
+    vars = vars->tail();
+  }
 
   if (!sorts) {
     // initialise all argument types to the default type
-    for (unsigned i = 0; i < arity; i++) {
+    for (unsigned i=numOfQuantVars; i < arity+numOfQuantVars; i++) {
       (*key)[i] = Term::defaultSort();
     }
   } else {
@@ -119,14 +126,21 @@ OperatorType::OperatorKey* OperatorType::setupKey(unsigned arity, const TermList
 /**
  * Pre-initialise an OperatorKey from an initializer list of sorts.
  */
-OperatorType::OperatorKey* OperatorType::setupKey(std::initializer_list<TermList> sorts)
+OperatorType::OperatorKey* OperatorType::setupKey(std::initializer_list<TermList> sorts, VarList* vars)
 {
   CALL("OperatorType::setupKey(std::initializer_list<unsigned>)");
 
-  OperatorKey* key = OperatorKey::allocate(sorts.size()+1);
+  unsigned numOfQuantVars = vars ? VarList::length(vars) : 0;
+  OperatorKey* key = OperatorKey::allocate(numOfQuantVars+sorts.size()+1);
+
+  for(unsigned i = 0; i < numOfQuantVars; i++){
+    TermList var = TermList(vars->head(), false);
+    (*key)[i] = var; 
+    vars = vars->tail();
+  }
 
   // initialise all the argument types to those taken from sorts
-  unsigned i = 0;
+  unsigned i = numOfQuantVars;
   for (auto sort : sorts) {
     (*key)[i++] = sort;
   }
@@ -137,13 +151,20 @@ OperatorType::OperatorKey* OperatorType::setupKey(std::initializer_list<TermList
 /**
  * Pre-initialise an OperatorKey from using a uniform range.
  */
-OperatorType::OperatorKey* OperatorType::setupKeyUniformRange(unsigned arity, TermList argsSort)
+OperatorType::OperatorKey* OperatorType::setupKeyUniformRange(unsigned arity, TermList argsSort, VarList* vars)
 {
   CALL("OperatorType::setupKeyUniformRange");
 
-  OperatorKey* key = OperatorKey::allocate(arity+1);
+  unsigned numOfQuantVars = vars ? VarList::length(vars) : 0;
+  OperatorKey* key = OperatorKey::allocate(numOfQuantVars+arity+1);
 
-  for (unsigned i=0; i<arity; i++) {
+  for(unsigned i = 0; i < numOfQuantVars; i++){
+    TermList var = TermList(vars->head(), false);
+    (*key)[i] = var;  
+    vars = vars->tail();
+  }
+
+  for (unsigned i=numOfQuantVars; i < arity+numOfQuantVars; i++) {
     (*key)[i] = argsSort;
   }
 
@@ -178,21 +199,22 @@ OperatorType* OperatorType::getTypeFromKey(OperatorType::OperatorKey* key, VarLi
     cout << (((*key)[i] == PREDICATE_FLAG) ? "FFFF" : env.sorts->sortName((*key)[i])) << ",";
   }
   */
-
-  if(!vars){
-    vars = VarList::empty();
+  unsigned vLength = 0;
+  if(vars){
+    vLength = VarList::length(vars);
+    VarList::destroy(vars); 
   }
 
-  OperatorType* resultType = new OperatorType(key, vars);;
-/*  if (operatorTypes().find(key,resultType)) {
+  OperatorType* resultType = new OperatorType(key, vLength);
+  if (operatorTypes().find(key,resultType)) {
     key->deallocate();
 
     // cout << " Found " << resultType << endl;
 
     return resultType;
-  } */
+  }
 
-  operatorTypes().insert(key,resultType);//TODO get rid of this as well?
+  operatorTypes().insert(key,resultType);
 
   // cout << " Created new " << resultType << endl;
 
@@ -212,7 +234,7 @@ vstring OperatorType::argsToString() const
   vstring res = "(";
   unsigned ar = arity();
   ASS(ar);
-  for (unsigned i = typeArgsArity(); i < ar; i++) {
+  for (unsigned i = _typeArgsArity; i < ar; i++) {
     res += arg(i).toString();
     if (i != ar-1) {
       res += " * ";
@@ -231,48 +253,18 @@ vstring OperatorType::toString() const
  
   vstring res;
   bool bracket = false;
-  if(typeArgsArity()){
+  if(_typeArgsArity){
     res = "!>[";
-    for(unsigned i = 0; i < typeArgsArity(); i++){
+    for(unsigned i = 0; i < _typeArgsArity; i++){
       if(i != 0){ res += ", "; }
-      res+= "X" + Int::toString(VarList::nth(_vars, i)) + ": $tType"; 
+      res+=  quantifiedVar(i).toString() + ": $tType"; 
     }
     res += "]:";
     bracket = true;
   }
 
-  return res + (bracket ? "(" : "") +  (arity() - typeArgsArity() ? argsToString() + " > " : "") +
+  return res + (bracket ? "(" : "") +  (arity() - _typeArgsArity ? argsToString() + " > " : "") +
       (isPredicateType() ? "$o" : result().toString()) + (bracket ? ")" : "");
-}
-
-bool OperatorType::isEqual(OperatorType* ot) const
-{
-  CALL("OperatorType::isEqual");
-
-  unsigned arityThis = arity();
-  unsigned arityOt = ot->arity();
-
-  if(arityThis != arityOt){
-    return false;
-  }
-
-  if(isFunctionType() && !ot->isFunctionType()){
-    return false;
-  }
-
-  for(unsigned i = 0; i < arityThis; i++){
-    if(arg(i) != ot->arg(i)){
-      return false;
-    }
-  }
-
-  if(isFunctionType()){
-    if(result() != ot->result()){
-      return false;
-    }
-  }
-
-  return true;
 }
 
 /**

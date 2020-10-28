@@ -482,7 +482,7 @@ unsigned Signature::addInterpretedPredicate(Interpretation interpretation, Opera
 
   // cout << "symbolKey " << symbolKey << endl;
 
-  ASS(!_predNames.find(symbolKey));
+  ASS_REP(!_predNames.find(symbolKey), symbolKey);
 
   unsigned predNum = _preds.length();
   InterpretedSymbol* sym = new InterpretedSymbol(name, interpretation);

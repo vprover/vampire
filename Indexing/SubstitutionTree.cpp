@@ -705,6 +705,7 @@ clientBDRecording(false), tree(parent), useUWAConstraints(useC)
     return;
   }
 
+  useHOConstraints = false;
   if(funcSubtermMap){
     useHOConstraints = true;
     subst.setMap(funcSubtermMap);

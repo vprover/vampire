@@ -1545,9 +1545,9 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     if(env.options->superposition()){
       gie->addFront(new Superposition());
     }
-  }/*else if(opt.unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF){
+  } else if(opt.unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF){
     gie->addFront(new EqualityResolution()); 
-  }*/
+  }
 
   if(opt.combinatorySup()){
     gie->addFront(new ArgCong());

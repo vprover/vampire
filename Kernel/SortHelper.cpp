@@ -65,15 +65,13 @@ void SortHelper::getTypeSub(const Term* t, Substitution& subst)
   TermList* typeArg;
   OperatorType* ot       = getType(const_cast<Term*>(t)); //sym->fnType();
   //cout << "the type is " + ot->toString() << endl;
-  List<unsigned>* vars   = ot->quantifiedVars();
   unsigned typeArgsArity = ot->typeArgsArity();
 
   typeArg = const_cast<TermList*>(t->args());
   for(unsigned i = 0; i < typeArgsArity; i++){
-    unsigned var = vars->head();
-    vars = vars->tail();
+    TermList var = ot->quantifiedVar(i);
     //cout << "binding X" << var << " to " << typeArg->toString() << endl; 
-    subst.bind(var, *typeArg);
+    subst.bind(var.var(), *typeArg);
     typeArg = typeArg->next();
   }  
 } // getTypeSub
@@ -834,7 +832,7 @@ bool SortHelper::areImmediateSortsValid(Term* t)
     return true;
   }
     
-  if(isSuper(t)){ return true; }
+  if(t->isSuper()){ return true; }
   
   OperatorType* type = getType(t);
   unsigned arity = t->arity();
@@ -847,11 +845,13 @@ bool SortHelper::areImmediateSortsValid(Term* t)
     TermList argSort = getResultSort(ta);
     TermList instantiatedTypeSort = SubstHelper::apply(type->arg(i), subst);
     if (instantiatedTypeSort != argSort) { //TODO problem here?
+#if VDEBUG
       cout << "the term is " + t->toString() << endl;
-      cout << "the type of function " + env.signature->getFunction(t->functor())->name() + " is: " + type->toString() << endl;
+      cout << "the type of function " + env.signature->getPredicate(t->functor())->name() + " is: " + type->toString() << endl;
       //cout << "function name : "+ env.signature->getFunction(t->functor())->name() << endl;
       //cout << "function name 2 :" + t->functionName() << endl;
       cout << "error with expected " << instantiatedTypeSort.toString() << " and actual " << argSort.toString() << " when functor is " << t->functor() << " and arg is " << arg << endl;
+#endif
       return false;
     }
   }
@@ -968,10 +968,3 @@ bool SortHelper::areSortsValid(Term* t0, DHMap<unsigned,TermList>& varSorts)
   }
   return true;
 } // areSortsValid 
-
-bool SortHelper::isSuper(Term* t){
-  CALL("isSuper");
-  
-  return (!t->isLiteral() && (env.signature->getFunction(t->functor())->name() == "$tType"));
- 
-}

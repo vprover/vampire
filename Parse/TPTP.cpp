@@ -1417,9 +1417,7 @@ void TPTP::tff()
         Signature::Symbol* symbol = env.signature->getFunction(fun);
         OperatorType* ot = OperatorType::getFunctionTypeUniformRange(arity, Term::superSort(), Term::superSort(), VList::empty());
         if (!added) {
-          //TODO types are no longer perfectly shared hence cannot
-          //use == for comparison AYB
-          if(!symbol->fnType()->isEqual(ot)){
+          if(symbol->fnType()!=ot){
             PARSE_ERROR("Type constructor declared with two different types",tok);
           }
         } else{
@@ -3756,7 +3754,7 @@ void TPTP::endTff()
     symbol = env.signature->getPredicate(pred);
     if (!added) {
       // GR: Multiple identical type declarations for a symbol are allowed
-      if(symbol->predType()->isEqual(ot)){
+      if(symbol->predType() != ot){
         USER_ERROR("Predicate symbol type is declared after its use: " + name);
       }
     }
@@ -3771,7 +3769,7 @@ void TPTP::endTff()
                    : env.signature->addFunction(name, arity, added);
     symbol = env.signature->getFunction(fun);
     if (!added) {
-      if(!symbol->fnType()->isEqual(ot)){
+      if(symbol->fnType() != ot){
         USER_ERROR("Function symbol type is declared after its use: " + name);
       }
     }
@@ -3787,7 +3785,7 @@ void TPTP::endTff()
   }
 } // endTff
 
-OperatorType* TPTP::constructOperatorType(Type* t)
+OperatorType* TPTP::constructOperatorType(Type* t, VList* vars)
 {
   CALL("TPTP::constructOperatorType");
 
@@ -3846,8 +3844,7 @@ OperatorType* TPTP::constructOperatorType(Type* t)
     case TT_QUANTIFIED: {
       QuantifiedType* qt = static_cast<QuantifiedType*>(t);
       VList* quantifiedVars = convert(qt->vars());
-      OperatorType* ot = constructOperatorType(qt->qtype());
-      ot->addQuantifiedVars(quantifiedVars);
+      OperatorType* ot = constructOperatorType(qt->qtype(), quantifiedVars);
       return ot;
       //TODO check that all free variables in ot are from quantifiedVars
     }
@@ -3861,9 +3858,9 @@ OperatorType* TPTP::constructOperatorType(Type* t)
   bool isPredicate = resultSort == Term::boolSort();
   unsigned arity = (unsigned)argumentSorts.size();
   if (isPredicate && !_isThf) { //in THF, we treat predicates and boolean terms the same
-    return OperatorType::getPredicateType(arity, argumentSorts.begin(), VList::empty());
+    return OperatorType::getPredicateType(arity, argumentSorts.begin(), vars);
   } else {
-    return OperatorType::getFunctionType(arity, argumentSorts.begin(), resultSort, VList::empty());
+    return OperatorType::getFunctionType(arity, argumentSorts.begin(), resultSort, vars);
   }
 } // constructOperatorType
 

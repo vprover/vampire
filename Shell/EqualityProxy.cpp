@@ -188,7 +188,6 @@ void EqualityProxy::getArgumentEqualityLiterals(unsigned cnt, LiteralStack& lits
 
   static Substitution localSubst;
   localSubst.reset();
-  VList* vars = symbolType->quantifiedVars();
 
   for (unsigned i=0; i<cnt; i++) {
     TermList v1(2*i, false);
@@ -199,10 +198,8 @@ void EqualityProxy::getArgumentEqualityLiterals(unsigned cnt, LiteralStack& lits
       vars1.push(v1);
       vars2.push(v2);
     } else {
-      ASS(vars)
-      unsigned var = vars->head();
-      vars = vars->tail();
-      localSubst.bind(var, v1);
+      TermList var = symbolType->quantifiedVar(i);
+      localSubst.bind(var.var(), v1);
       vars1.push(v1);
       vars2.push(v1);
     }

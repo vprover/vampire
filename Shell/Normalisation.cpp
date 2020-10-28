@@ -516,9 +516,7 @@ Comparison Normalisation::compare(Term* t1, Term* t2)
         TermList b1 = t1->getSpecialData()->getLambdaExp();
         TermList b2 = t2->getSpecialData()->getLambdaExp();
         comp = compare(b1, b2);
-        if (comp != EQUAL) {
-          return comp;
-        }     
+        return comp;     
       }
 
       default:

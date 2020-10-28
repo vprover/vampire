@@ -101,7 +101,6 @@ public:
 private:
   // It is important this function is private, because it only works in cooperation with tryGetVariableSort(unsigned var, Formula* f, unsigned& res);
   static bool tryGetVariableSort(TermList var, Term* t, TermList& result);
-  static bool isSuper(Term* t);
 };
 
 }

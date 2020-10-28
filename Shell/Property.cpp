@@ -513,6 +513,10 @@ void Property::scanSort(TermList sort)
 {
   CALL("Property::scanSort");
 
+  if(sort.isVar() || sort.term()->isSuper()){
+    return;
+  }
+
   if(!env.statistics->higherOrder){
     //used sorts is for FMB which is not compatible with 
     //higher-order
