@@ -177,7 +177,7 @@ ostream& operator<<(ostream& out, const InductionTemplate& templ);
  * An instantiated induction template for a term.
  */
 struct InductionScheme {
-  bool init(Term* term, vvector<RDescription>& rdescs, const vvector<bool>& indVars);
+  void init(Term* term, vvector<RDescription>& rdescs, const vvector<bool>& indVars);
   void init(vvector<RDescriptionInst>&& rdescs);
   InductionScheme makeCopyWithVariablesShifted(unsigned shift) const;
   void addInductionTerms(const vset<TermList>& terms);

@@ -47,7 +47,8 @@ bool findInjectiveMapping(DHMap<T, vset<T>> sets) {
     }
   } while (change);
 
-  ASS(sets.isEmpty());
+  // TODO(mhajdu): either do this properly or find a simpler definition
+  // ASS(sets.isEmpty());
   return true;
 }
 
@@ -132,12 +133,6 @@ bool checkSubsumption(const InductionScheme& sch1, const InductionScheme& sch2)
 {
   CALL("checkSubsumption");
 
-  if(env.options->showInduction()){
-    env.beginOutput();
-    env.out() << "[Induction] checking subsumption of " << sch1 << " by " << sch2 << endl;
-    env.endOutput();
-  }
-
   DHMap<const RDescriptionInst*, vset<const RDescriptionInst*>> sch1tosch2;
   for (const auto& rdesc1 : sch1._rDescriptionInstances) {
     if (rdesc1._recursiveCalls.empty()) {
@@ -192,6 +187,9 @@ bool checkSubsumption(const InductionScheme& sch1, const InductionScheme& sch2)
           rec1torec2.insert(i, vset<size_t>());
           size_t j = 0;
           for (const auto& recCall2 : rdesc2._recursiveCalls) {
+            if (!recCall1.count(kv.first) || !recCall2.count(kv.first)) {
+              continue;
+            }
             const auto& r1 = subst.apply(recCall1.at(kv.first), 1);
             const auto& r2 = subst.apply(recCall2.at(kv.first), 0);
             if (r1 == r2) {
@@ -244,15 +242,21 @@ bool findCommutatorHelper(const vmap<TermList, pair<TermList, TermList>>& initia
     if (match) {
       for (const auto& recCall : rdesc._recursiveCalls) {
         vmap<TermList, pair<TermList,TermList>> newPairs;
+        bool recMatch = true;
         for (const auto& kv : initialGoalPairs) {
           // TODO(mhajdu): maybe check here that at least one term
           // simplifies, otherwise there can be infinite loops
           auto indTerm = kv.first;
+          auto it = recCall.find(indTerm);
+          if (it == recCall.end()) {
+            recMatch = false;
+            break;
+          }
           auto initial = pairs.at(indTerm)->apply(recCall.at(indTerm), 0);
           auto goal = kv.second.second;
           newPairs.insert(make_pair(indTerm, make_pair(initial, goal)));
         }
-        if (findCommutator(newPairs, sch1, sch2, counter+1, firstRound)) {
+        if (recMatch && findCommutator(newPairs, sch1, sch2, counter+1, firstRound)) {
           return true;
         }
       }
@@ -702,14 +706,16 @@ bool checkInductionTerms(const InductionScheme& sch1, const InductionScheme& sch
       sch2._inductionTerms.begin(), sch2._inductionTerms.end())) {
     return true;
   }
-  vset<TermList> diff;
-  set_difference(sch2._inductionTerms.begin(), sch2._inductionTerms.end(),
-    sch1._inductionTerms.begin(), sch1._inductionTerms.end(), inserter(diff, diff.begin()));
-  if (includes(sch1._inactive.begin(), sch1._inactive.end(),
-    diff.begin(), diff.end())) {
-    combined = sch1._inductionTerms;
-    combined.insert(diff.begin(), diff.end());
-    return true;
+  if (env.options->inductionForceMerge()) {
+    vset<TermList> diff;
+    set_difference(sch2._inductionTerms.begin(), sch2._inductionTerms.end(),
+      sch1._inductionTerms.begin(), sch1._inductionTerms.end(), inserter(diff, diff.begin()));
+    if (includes(sch1._inactive.begin(), sch1._inactive.end(),
+      diff.begin(), diff.end())) {
+      combined = sch1._inductionTerms;
+      combined.insert(diff.begin(), diff.end());
+      return true;
+    }
   }
   return false;
 }
@@ -723,9 +729,9 @@ bool mergeSchemes(const InductionScheme& sch1, const InductionScheme& sch2, Indu
   InductionScheme sch1copy;
   InductionScheme sch2copy;
 
-  cout << "Merging schemes:" << endl
-       << "1: " << sch1 << endl
-       << "2: " << sch2 << endl;
+  // cout << "Merging schemes:" << endl
+  //      << "1: " << sch1 << endl
+  //      << "2: " << sch2 << endl;
   if (sch1._inductionTerms != sch2._inductionTerms
     || (!checkQuasiCommutation(sch1, sch2) && !checkQuasiCommutation(sch2, sch1)))
   {
@@ -733,29 +739,29 @@ bool mergeSchemes(const InductionScheme& sch1, const InductionScheme& sch2, Indu
       sch1copy = sch1;
       sch2copy = sch2.makeCopyWithVariablesShifted(sch1copy._maxVar+1);
       sch2copy.addInductionTerms(combinedInductionTerms);
-      cout << "1 quasi-commutes over 2" << endl;
+      // cout << "1 quasi-commutes over 2" << endl;
     } else if (checkInductionTerms(sch1, sch2, combinedInductionTerms) && checkQuasiCommutation(sch1, sch2)) {
       sch1copy = sch1;
       sch1copy.addInductionTerms(combinedInductionTerms);
       sch2copy = sch2.makeCopyWithVariablesShifted(sch1copy._maxVar+1);
-      cout << "2 quasi-commutes over 1" << endl;
+      // cout << "2 quasi-commutes over 1" << endl;
     } else {
       return false;
     }
   } else {
     sch1copy = sch1;
     sch2copy = sch2.makeCopyWithVariablesShifted(sch1copy._maxVar+1);
-    cout << "1 and 2 contain the same set of variables" << endl;
+    // cout << "1 and 2 contain the same set of variables" << endl;
   }
   if (combinedInductionTerms.empty()) {
     combinedInductionTerms.insert(sch1copy._inductionTerms.begin(), sch1copy._inductionTerms.end());
     combinedInductionTerms.insert(sch2copy._inductionTerms.begin(), sch2copy._inductionTerms.end());
   }
-  cout << "combinedInductionTerms: ";
-  for (const auto& indTerm : combinedInductionTerms) {
-    cout << indTerm << " ";
-  }
-  cout << endl;
+  // cout << "combinedInductionTerms: ";
+  // for (const auto& indTerm : combinedInductionTerms) {
+  //   cout << indTerm << " ";
+  // }
+  // cout << endl;
 
   vvector<RDescriptionInst> resRdescs;
   for (const auto& rdesc : sch1copy._rDescriptionInstances) {
@@ -867,6 +873,9 @@ vvector<TermList> getInductionTerms(TermList t)
     // subterm of the constructor terms
     for (unsigned i = 0; i < t.term()->arity(); i++) {
       auto st = *t.term()->nthArgument(i);
+      if (st.isVar()) {
+        continue;
+      }
       if (getType(st)->result() == type->result()) {
         auto indTerms = getInductionTerms(st);
         v.insert(v.end(), indTerms.begin(), indTerms.end());
@@ -888,35 +897,35 @@ void mergeLitClausePairsInto(DHMap<Literal*, Clause*>* from, DHMap<Literal*, Cla
   }
 }
 
-bool matchesCase(TermList c, TermList t) {
-  CALL("matchesCase");
+// bool matchesCase(TermList c, TermList t) {
+//   CALL("matchesCase");
 
-  if (c.isVar()) {
-    return true;
-  }
-  if (canInductOn(t)) {
-    return false;
-  }
+//   if (c.isVar()) {
+//     return true;
+//   }
+//   if (canInductOn(t)) {
+//     return false;
+//   }
 
-  auto t1 = c.term();
-  auto t2 = t.term();
-  if (t1->isBoolean() != t2->isBoolean()
-    || t1->functor() != t2->functor()
-    || t1->arity() != t2->arity())
-  {
-    return false;
-  }
-  Term::Iterator it1(t1);
-  Term::Iterator it2(t2);
-  while (it1.hasNext()) {
-    auto arg1 = it1.next();
-    auto arg2 = it2.next();
-    if (!matchesCase(arg1, arg2)) {
-      return false;
-    }
-  }
-  return true;
-}
+//   auto t1 = c.term();
+//   auto t2 = t.term();
+//   if (t1->isBoolean() != t2->isBoolean()
+//     || t1->functor() != t2->functor()
+//     || t1->arity() != t2->arity())
+//   {
+//     return false;
+//   }
+//   Term::Iterator it1(t1);
+//   Term::Iterator it2(t2);
+//   while (it1.hasNext()) {
+//     auto arg1 = it1.next();
+//     auto arg2 = it2.next();
+//     if (!matchesCase(arg1, arg2)) {
+//       return false;
+//     }
+//   }
+//   return true;
+// }
 
 TermList TermListReplacement::transformSubterm(TermList trm)
 {
@@ -936,27 +945,25 @@ TermList TermOccurrenceReplacement::transformSubterm(TermList trm)
 {
   CALL("TermOccurrenceReplacement::transformSubterm");
 
-  if (!canInductOn(trm)) {
-    return trm;
-  }
-
-  if (!_c.find(trm)) {
-    _c.insert(trm, 0);
-  } else {
-    _c.get(trm)++;
-  }
+  auto rIt = _r.find(trm);
 
   // The induction generalization heuristic is stored here:
   // - if we have only one active occurrence, induct on all
   // - otherwise only induct on the active occurrences
-  if (_r.count(trm)) {
+  if (rIt != _r.end()) {
+    if (!_c.find(trm)) {
+      _c.insert(trm, 0);
+    } else {
+      _c.get(trm)++;
+    }
     const auto& o = _o.get(trm);
     // auto oc = _oc.get(trm);
     if (o->size() == 1 /*|| oc == o->size() + 1*/ || o->contains(_c.get(trm))) {
       return _r.at(trm);
     }
   }
-  if (_replaceSkolem && isSkolem(trm)) {
+  // otherwise we may replace it with a variable
+  if ((_replaceSkolem && isSkolem(trm)) || trm.isVar()) {
     if (!_r_g.count(trm)) {
       _r_g.insert(make_pair(trm, TermList(_v++,false)));
     }
@@ -1034,33 +1041,34 @@ ostream& operator<<(ostream& out, const RDescription& rdesc)
 ostream& operator<<(ostream& out, const RDescriptionInst& inst)
 {
   if (!inst._conditions.empty()) {
-    out << "conditions: " << endl;
+    out << "* conditions: ";
     for (const auto& c : inst._conditions) {
-      out << "\t" << *c << endl;
+      out << *c << ", ";
     }
+    out << endl;
   }
   auto basecase = inst._recursiveCalls.empty();
   if (!basecase) {
-    out << "recursive calls: " << endl;
+    out << "** recursive calls: ";
     for (const auto& r : inst._recursiveCalls) {
-      out << "* ";
       for (const auto& kv : r) {
         out << kv.first << " -> " << kv.second << ", ";
       }
-      out << endl;
+      out << "; ";
     }
+    out << endl;
   }
   if (basecase) {
-    out << "base: " << endl;
+    out << "** base: ";
   } else {
-    out << "step: " << endl;
+    out << "** step: ";
   }
   for (const auto& kv : inst._step) {
     out << kv.first << " -> " << kv.second << ", ";
   }
   out << endl;
   if (!inst._inactive.empty()) {
-    out << "inactive terms: ";
+    out << "** inactive terms: ";
     for (const auto& i : inst._inactive) {
       out << i << ", ";
     }
@@ -1118,7 +1126,7 @@ ostream& operator<<(ostream& out, const InductionTemplate& templ)
   return out;
 }
 
-bool InductionScheme::init(Term* t, vvector<RDescription>& rdescs, const vvector<bool>& indVars)
+void InductionScheme::init(Term* t, vvector<RDescription>& rdescs, const vvector<bool>& indVars)
 {
   CALL("InductionScheme::init");
 
@@ -1140,9 +1148,9 @@ bool InductionScheme::init(Term* t, vvector<RDescription>& rdescs, const vvector
       auto argTerm = termIt.next();
       auto argStep = stepIt.next();
       auto its = getInductionTerms(argTerm);
-      if (!matchesCase(argStep, argTerm)) {
-        match = false;
-      }
+      // if (!matchesCase(argStep, argTerm)) {
+      //   match = false;
+      // }
       for (auto& indTerm : its) {
         // This argument might have already been mapped
         if (stepSubst.count(indTerm) > 0) {
@@ -1167,10 +1175,10 @@ bool InductionScheme::init(Term* t, vvector<RDescription>& rdescs, const vvector
         _inductionTerms.insert(indTerm);
       }
     }
-    if (match) {
-      // The literal can be simplified, so we don't induct on it yet
-      return false;
-    }
+    // if (match) {
+    //   // The literal can be simplified, so we don't induct on it yet
+    //   return false;
+    // }
     if (mismatch) {
       // We cannot properly create this case because
       // there is a mismatch between the ctors for
@@ -1238,7 +1246,7 @@ bool InductionScheme::init(Term* t, vvector<RDescription>& rdescs, const vvector
   while(it.hasNext()) {
     auto arg = it.next();
     auto ind = getInductionTerms(arg);
-    ASS(ind.size() <= 1);
+    // ASS(ind.size() <= 1);
     if (!ind.empty() && !_inductionTerms.count(ind[0])) {
       _inactive.insert(ind[0]);
     }
@@ -1248,7 +1256,7 @@ bool InductionScheme::init(Term* t, vvector<RDescription>& rdescs, const vvector
   }
   _rDescriptionInstances.shrink_to_fit();
   _maxVar = var;
-  return true;
+  // return true;
 }
 
 void InductionScheme::init(vvector<RDescriptionInst>&& rdescs)
@@ -1342,17 +1350,21 @@ void InductionScheme::addInductionTerms(const vset<TermList>& terms) {
 
 ostream& operator<<(ostream& out, const InductionScheme& scheme)
 {
-  out << "RDescription instances: " << endl;
+  out << endl;
+  out << "* r-description instances: " << endl;
+  auto i = 0;
   for (const auto& inst : scheme._rDescriptionInstances) {
-    out << inst;
+    out << ++i << "." << endl << inst;
   }
   out << "induction terms: ";
   for (const auto& t : scheme._inductionTerms) {
     out << t << ", ";
   }
-  out << "inactive terms: ";
-  for (const auto& t : scheme._inactive) {
-    out << t << ", ";
+  if (!scheme._inactive.empty()) {
+    out << " inactive terms: ";
+    for (const auto& t : scheme._inactive) {
+      out << t << ", ";
+    }
   }
 
   return out;
@@ -1654,14 +1666,10 @@ void InductionSchemeGenerator::process(TermList curr, bool active,
     while (argIt.hasNext()) {
       auto arg = argIt.next();
       auto its = getInductionTerms(arg);
-      if (its.size() == 0) {
+      if (its.size() != 1) {
         match = false;
         break;
       }
-      // TODO(mhajdu): it's not defined what happens
-      // when multiple induction terms are present in
-      // a subterm. If this breaks, investigate the issue
-      ASS(its.size() == 1);
     }
 
     if (match) {
@@ -1669,6 +1677,12 @@ void InductionSchemeGenerator::process(TermList curr, bool active,
       scheme.init(t, templ._rDescriptions, templ._inductionVariables);
       auto litClMap = new DHMap<Literal*, Clause*>();
       litClMap->insert(lit, premise);
+      if(env.options->showInduction()){
+        env.beginOutput();
+        env.out() << "[Induction] induction scheme " << scheme
+                  << " was suggested by term " << *t << endl;
+        env.endOutput();
+      }
       schemes.push_back(make_pair(std::move(scheme), litClMap));
     }
   // We induct on subterms of term algebra constructors

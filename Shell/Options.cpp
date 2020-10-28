@@ -1163,6 +1163,27 @@ void Options::Options::init()
             _inductionOnComplexTerms.reliesOn(_induction.is(notEqual(Induction::NONE)));
             _lookup.insert(&_inductionOnComplexTerms);
 
+            _inductionStrengthen = BoolOptionValue("induction_strengthen","indstr",false);
+            _inductionStrengthen.description = "Strengthen induction hypotheses where possible";
+            _inductionStrengthen.tag(OptionTag::INFERENCES);
+            _inductionStrengthen.reliesOn(_induction.is(equal(Induction::STRUCTURAL)));
+            _inductionStrengthen.reliesOn(_structInduction.is(equal(StructuralInductionKind::FOUR)));
+            _lookup.insert(&_inductionStrengthen);
+
+            _inductionForceMerge = BoolOptionValue("induction_force_merge","indfm",false);
+            _inductionForceMerge.description = "Try to merge induction schemes with distinct sets of induction terms";
+            _inductionForceMerge.tag(OptionTag::INFERENCES);
+            _inductionStrengthen.reliesOn(_induction.is(equal(Induction::STRUCTURAL)));
+            _inductionStrengthen.reliesOn(_structInduction.is(equal(StructuralInductionKind::FOUR)));
+            _lookup.insert(&_inductionForceMerge);
+
+            _inductionMultiClause = BoolOptionValue("induction_multiclause","indmc",false);
+            _inductionMultiClause.description = "Induct on multiple clauses together when they contain the same induction terms";
+            _inductionMultiClause.tag(OptionTag::INFERENCES);
+            _inductionStrengthen.reliesOn(_induction.is(equal(Induction::STRUCTURAL)));
+            _inductionStrengthen.reliesOn(_structInduction.is(equal(StructuralInductionKind::FOUR)));
+            _lookup.insert(&_inductionMultiClause);
+
 	    _instantiation = ChoiceOptionValue<Instantiation>("instantiation","inst",Instantiation::OFF,{"off","on"});
 	    _instantiation.description = "Heuristically instantiate variables. Often wastes a lot of effort. Consider using thi instead.";
 	    _instantiation.tag(OptionTag::INFERENCES);

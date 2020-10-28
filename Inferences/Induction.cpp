@@ -766,39 +766,29 @@ Term* InductionClauseIterator::getPlaceholderForTerm(Term* t) {
   return Term::createConstant(placeholderConstNumber);
 }
 
-DHSet<TermList> getInductionTerms(const vvector<pair<InductionScheme, DHMap<Literal*, Clause*>*>>& schemes)
-{
-  DHSet<TermList> v;
-  for (const auto& kv : schemes) {
-    for (const auto& rdesc : kv.first._rDescriptionInstances) {
-      for (const auto& kv : rdesc._step) {
-        v.insert(kv.first);
-      }
-    }
-  }
-  return v;
-}
-
 void InductionClauseIterator::performStructInductionFour(Clause* premise, Literal* lit, InferenceRule rule, TermIndex* index) {
   CALL("InductionClauseIterator::performStructInductionFour");
 
   InductionSchemeGenerator gen;
   gen.generatePrimary(premise, lit);
 
-  auto indTerms = getInductionTerms(gen._primarySchemes);
-  DHSet<TermList>::Iterator indIt(indTerms);
-  while (indIt.hasNext()) {
-    auto t = indIt.next();
-    auto instIt = index->getInstances(t, false);
-    while (instIt.hasNext()) {
-      auto inst = instIt.next();
-      if (inst.clause == premise) {
-        continue;
+  if (env.options->inductionMultiClause()) {
+    vset<TermList> indTerms;
+    for (const auto& kv : gen._primarySchemes) {
+      indTerms.insert(kv.first._inductionTerms.begin(), kv.first._inductionTerms.end());
+    }
+    for (const auto& t : indTerms) {
+      auto instIt = index->getInstances(t, false);
+      while (instIt.hasNext()) {
+        auto inst = instIt.next();
+        if (inst.clause == premise) {
+          continue;
+        }
+        if (inst.clause->size() > 1 || inst.literal->isNegative()/* || inst.literal->freeVariables() != IntList::empty()*/) {
+          continue;
+        }
+        gen.generateSecondary(inst.clause, inst.literal);
       }
-      if (inst.clause->size() > 1 || inst.literal->isNegative() || inst.literal->freeVariables() != IntList::empty()) {
-        continue;
-      }
-      gen.generateSecondary(inst.clause, inst.literal);
     }
   }
 
@@ -843,6 +833,7 @@ void InductionClauseIterator::instantiateScheme(DHMap<Literal*, Clause*>* litClM
     auto right = JunctionFormula::generalJunction(Connective::OR, stepFormulas);
 
     FormulaList* hyp = FormulaList::empty();
+    const bool strengthen = env.options->inductionStrengthen();
 
     // Then we replace the arguments of the term with the
     // corresponding recursive cases for this step case (if not base case)
@@ -851,7 +842,7 @@ void InductionClauseIterator::instantiateScheme(DHMap<Literal*, Clause*>* litClM
       DHMap<Literal*, Clause*>::Iterator litClIt(*litClMap);
       while (litClIt.hasNext()) {
         auto lit = litClIt.nextKey();
-        TermOccurrenceReplacement tr(r, *activeOccurrenceMaps.get(lit), *occurrenceCountMaps.get(lit), var, true);
+        TermOccurrenceReplacement tr(r, *activeOccurrenceMaps.get(lit), *occurrenceCountMaps.get(lit), var, strengthen);
         innerHyp = new FormulaList(new AtomicFormula(Literal::complementaryLiteral(tr.transform(lit))),innerHyp);
       }
       hyp = new FormulaList(JunctionFormula::generalJunction(Connective::OR,innerHyp),hyp);
@@ -917,7 +908,7 @@ void InductionClauseIterator::instantiateScheme(DHMap<Literal*, Clause*>* litClM
                             Formula::quantify(indPremise),
                             Formula::quantify(conclusions));
 
-  cout << hypothesis->toString() << endl << endl;
+  // cout << hypothesis->toString() << endl << endl;
 
   static ResultSubstitutionSP identity = ResultSubstitutionSP(new IdentitySubstitution());
   produceClauses(litClMap, hypothesis, &conclusionToOrigLitMap, rule, identity);

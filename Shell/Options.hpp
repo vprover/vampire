@@ -2203,6 +2203,9 @@ public:
   bool inductionGen() const { return _inductionGen.actualValue; }
   unsigned maxInductionGenSubsetSize() const { return _maxInductionGenSubsetSize.actualValue; }
   bool inductionOnComplexTerms() const {return _inductionOnComplexTerms.actualValue;}
+  bool inductionStrengthen() const { return _inductionStrengthen.actualValue; }
+  bool inductionForceMerge() const { return _inductionForceMerge.actualValue; }
+  bool inductionMultiClause() const { return _inductionMultiClause.actualValue; }
 
   float instGenBigRestartRatio() const { return _instGenBigRestartRatio.actualValue; }
   bool instGenPassiveReactivation() const { return _instGenPassiveReactivation.actualValue; }
@@ -2518,6 +2521,9 @@ private:
   BoolOptionValue _inductionGen;
   UnsignedOptionValue _maxInductionGenSubsetSize;
   BoolOptionValue _inductionOnComplexTerms;
+  BoolOptionValue _inductionStrengthen;
+  BoolOptionValue _inductionForceMerge;
+  BoolOptionValue _inductionMultiClause;
 
   StringOptionValue _latexOutput;
   BoolOptionValue _latexUseDefaultSymbols;
