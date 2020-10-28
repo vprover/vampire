@@ -38,6 +38,7 @@
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Connective.hpp"
 #include "Kernel/RobSubstitution.hpp"
+#include "Kernel/FormulaVarIterator.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
@@ -794,7 +795,7 @@ void InductionClauseIterator::performStructInductionFour(Clause* premise, Litera
       if (inst.clause == premise) {
         continue;
       }
-      if (inst.clause->size() > 1 || inst.literal->isNegative()) {
+      if (inst.clause->size() > 1 || inst.literal->isNegative() || inst.literal->freeVariables() != IntList::empty()) {
         continue;
       }
       gen.generateSecondary(inst.clause, inst.literal);
@@ -816,17 +817,19 @@ void InductionClauseIterator::performStructInductionFour(Clause* premise, Litera
       env.out() << endl;
       env.endOutput();
     }
-    instantiateScheme(kv.second, gen._actOccMaps, rule, kv.first);
+    instantiateScheme(kv.second, gen._actOccMaps, gen._currOccMaps, rule, kv.first);
   }
 }
 
 void InductionClauseIterator::instantiateScheme(DHMap<Literal*, Clause*>* litClMap,
   const DHMap<Literal*, DHMap<TermList, DHSet<unsigned>*>*>& activeOccurrenceMaps,
+  const DHMap<Literal*, DHMap<TermList, unsigned>*>& occurrenceCountMaps,
   InferenceRule rule, const InductionScheme& scheme)
 {
   CALL("InductionClauseIterator::instantiateScheme");
 
   FormulaList* formulas = FormulaList::empty();
+  unsigned var = scheme._maxVar;
 
   for (auto& desc : scheme._rDescriptionInstances) {
     // We replace all induction terms with the corresponding step case terms
@@ -834,7 +837,7 @@ void InductionClauseIterator::instantiateScheme(DHMap<Literal*, Clause*>* litClM
     DHMap<Literal*, Clause*>::Iterator litClIt(*litClMap);
     while (litClIt.hasNext()) {
       auto lit = litClIt.nextKey();
-      TermOccurrenceReplacement tr(desc._step, *activeOccurrenceMaps.get(lit));
+      TermOccurrenceReplacement tr(desc._step, *activeOccurrenceMaps.get(lit), *occurrenceCountMaps.get(lit), var);
       stepFormulas = new FormulaList(new AtomicFormula(Literal::complementaryLiteral(tr.transform(lit))), stepFormulas);
     }
     auto right = JunctionFormula::generalJunction(Connective::OR, stepFormulas);
@@ -848,18 +851,37 @@ void InductionClauseIterator::instantiateScheme(DHMap<Literal*, Clause*>* litClM
       DHMap<Literal*, Clause*>::Iterator litClIt(*litClMap);
       while (litClIt.hasNext()) {
         auto lit = litClIt.nextKey();
-        TermOccurrenceReplacement tr(r, *activeOccurrenceMaps.get(lit));
+        TermOccurrenceReplacement tr(r, *activeOccurrenceMaps.get(lit), *occurrenceCountMaps.get(lit), var, true);
         innerHyp = new FormulaList(new AtomicFormula(Literal::complementaryLiteral(tr.transform(lit))),innerHyp);
       }
       hyp = new FormulaList(JunctionFormula::generalJunction(Connective::OR,innerHyp),hyp);
     }
 
+    // add conditions
+    if (!desc._conditions.empty()) {
+      for (const auto& cond : desc._conditions) {
+        hyp = new FormulaList(cond, hyp);
+      }
+    }
     Formula* res = nullptr;
     if (hyp == 0) {
       // base case
       res = right;
     } else {
       auto left = JunctionFormula::generalJunction(Connective::AND,hyp);
+      // there may be free variables present only in the conditions or
+      // hypoheses, quantify these first so that they won't be skolemized away
+      auto leftVarLst = left->freeVariables();
+      FormulaVarIterator fvit(right);
+      while(fvit.hasNext()) {
+        auto v = fvit.next();
+        if (Formula::VarList::member(v, leftVarLst)) {
+          leftVarLst = Formula::VarList::remove(v, leftVarLst);
+        }
+      }
+      if (leftVarLst) {
+        left = new QuantifiedFormula(FORALL, leftVarLst, 0, left);
+      }
       res = new BinaryFormula(Connective::IMP,left,right);
     }
     formulas = new FormulaList(Formula::quantify(res), formulas);
@@ -870,7 +892,6 @@ void InductionClauseIterator::instantiateScheme(DHMap<Literal*, Clause*>* litClM
   // After creating all cases, we need the main implicant to be resolved with
   // the literal. For this, we use new variables starting from the max. var of
   // the scheme.
-  unsigned var = scheme._maxVar;
   vmap<TermList, TermList> r;
   for (const auto& desc : scheme._rDescriptionInstances) {
     for (const auto& kv : desc._step) {
@@ -885,7 +906,8 @@ void InductionClauseIterator::instantiateScheme(DHMap<Literal*, Clause*>* litClM
   DHMap<Literal*, Clause*>::Iterator litClIt(*litClMap);
   while (litClIt.hasNext()) {
     auto lit = litClIt.nextKey();
-    TermOccurrenceReplacement tr(r, *activeOccurrenceMaps.get(lit));
+    TermOccurrenceReplacement tr(r, *activeOccurrenceMaps.get(lit),
+      *occurrenceCountMaps.get(lit), var);
     auto conclusion = Literal::complementaryLiteral(tr.transform(lit));
     conclusionToOrigLitMap.insert(conclusion, lit);
     conclusionList = new FormulaList(new AtomicFormula(conclusion), conclusionList);
@@ -895,7 +917,7 @@ void InductionClauseIterator::instantiateScheme(DHMap<Literal*, Clause*>* litClM
                             Formula::quantify(indPremise),
                             Formula::quantify(conclusions));
 
-  // cout << hypothesis->toString() << endl << endl;
+  cout << hypothesis->toString() << endl << endl;
 
   static ResultSubstitutionSP identity = ResultSubstitutionSP(new IdentitySubstitution());
   produceClauses(litClMap, hypothesis, &conclusionToOrigLitMap, rule, identity);

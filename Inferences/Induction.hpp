@@ -132,7 +132,8 @@ private:
 
   void performStructInductionFour(Clause* premise, Literal* origLit, InferenceRule rule, TermIndex* index);
   void instantiateScheme(DHMap<Literal*, Clause*>* litClMap,
-    const DHMap<Literal*, DHMap<TermList, DHSet<unsigned>*>*>& activeOccurrenceMap,
+    const DHMap<Literal*, DHMap<TermList, DHSet<unsigned>*>*>& activeOccurrenceMaps,
+    const DHMap<Literal*, DHMap<TermList, unsigned>*>& occurrenceCountMaps,
     InferenceRule rule, const InductionScheme& scheme);
 
   bool notDone(Literal* lit, Term* t);

@@ -52,13 +52,21 @@ private:
 class TermOccurrenceReplacement : public TermTransformer {
 public:
   TermOccurrenceReplacement(const vmap<TermList, TermList>& r,
-                            const DHMap<TermList, DHSet<unsigned>*>& o) : _r(r), _o(o), _c() {}
+                            const DHMap<TermList, DHSet<unsigned>*>& o,
+                            const DHMap<TermList, unsigned>& oc, unsigned& v,
+                            bool replaceSkolem = false)
+                            : _r(r), _o(o), _oc(oc), _c(), _v(v), _r_g(),
+                              _replaceSkolem(replaceSkolem) {}
   TermList transformSubterm(TermList trm) override;
 
 private:
   const vmap<TermList, TermList>& _r;          // replacements
   const DHMap<TermList, DHSet<unsigned>*>& _o; // set of occurrences to be replaced
+  const DHMap<TermList, unsigned>& _oc;
   DHMap<TermList, unsigned> _c;                // current occurrence counts
+  unsigned& _v;
+  vmap<TermList, TermList> _r_g;               // generalized replacements
+  bool _replaceSkolem;
 };
 
 /**
@@ -74,6 +82,15 @@ public:
 private:
   DHMap<unsigned, unsigned>& _varMap; // already replaced vars
   unsigned& _v;                       // current minimal unused var
+};
+
+class VarShiftReplacement : public TermTransformer {
+public:
+  VarShiftReplacement(unsigned shift) : _shift(shift) {}
+  TermList transformSubterm(TermList trm) override;
+
+private:
+  unsigned _shift;
 };
 
 /**
@@ -106,14 +123,16 @@ private:
  */
 struct RDescription {
   RDescription(const vvector<TermList>& recursiveCalls,
-               TermList step)
-    : _recursiveCalls(recursiveCalls), _step(step) {}
+               TermList step,
+               const vvector<Formula*>& conditions)
+    : _recursiveCalls(recursiveCalls), _step(step), _conditions(conditions) {}
 
-  RDescription(TermList step)
-    : _recursiveCalls(), _step(step) {}
+  RDescription(TermList step, const vvector<Formula*>& conditions)
+    : _recursiveCalls(), _step(step), _conditions(conditions) {}
 
   vvector<TermList> _recursiveCalls;
   TermList _step;
+  vvector<Formula*> _conditions;
 };
 
 ostream& operator<<(ostream& out, const RDescription& rdesc);
@@ -126,12 +145,16 @@ ostream& operator<<(ostream& out, const RDescription& rdesc);
  * to store merged instances as well.
  */
 struct RDescriptionInst {
+  RDescriptionInst() = default;
   RDescriptionInst(vvector<vmap<TermList, TermList>>&& recursiveCalls,
-                   vmap<TermList, TermList>&& step)
-    : _recursiveCalls(recursiveCalls), _step(step) {}
+                   vmap<TermList, TermList>&& step,
+                   vvector<Formula*>&& conditions)
+    : _recursiveCalls(recursiveCalls), _step(step), _conditions(conditions) {}
 
   vvector<vmap<TermList, TermList>> _recursiveCalls;
   vmap<TermList, TermList> _step;
+  vvector<Formula*> _conditions;
+  vset<TermList> _inactive;
 };
 
 ostream& operator<<(ostream& out, const RDescriptionInst& inst);
@@ -154,10 +177,15 @@ ostream& operator<<(ostream& out, const InductionTemplate& templ);
  * An instantiated induction template for a term.
  */
 struct InductionScheme {
-  void init(Term* term, vvector<RDescription>& rdescs, const vvector<bool>& indVars);
+  bool init(Term* term, vvector<RDescription>& rdescs, const vvector<bool>& indVars);
+  void init(vvector<RDescriptionInst>&& rdescs);
+  InductionScheme makeCopyWithVariablesShifted(unsigned shift) const;
+  void addInductionTerms(const vset<TermList>& terms);
 
   vvector<RDescriptionInst> _rDescriptionInstances;
   unsigned _maxVar;
+  vset<TermList> _inductionTerms;
+  vset<TermList> _inactive;
 };
 
 ostream& operator<<(ostream& out, const InductionScheme& scheme);
@@ -172,10 +200,8 @@ public:
 
 private:
   void preprocess(UnitList* units);
-  void processBody(TermList& body, TermList& header, InductionTemplate& templ);
-
+  void processBody(TermList& body, TermList header, vvector<Formula*> conditions, InductionTemplate& templ);
   void processCase(const unsigned recFun, TermList& body, vvector<TermList>& recursiveCalls);
-  unsigned findMatchedArgument(unsigned matched, TermList& header);
 };
 
 /**
@@ -192,11 +218,11 @@ struct InductionSchemeGenerator {
 
   vvector<pair<InductionScheme, DHMap<Literal*, Clause*>*>> _primarySchemes;
   DHMap<Literal*, DHMap<TermList, DHSet<unsigned>*>*> _actOccMaps;
+  DHMap<Literal*, DHMap<TermList, unsigned>*> _currOccMaps;
 
 private:
   void generate(Clause* premise, Literal* lit, vvector<pair<InductionScheme, DHMap<Literal*, Clause*>*>>& schemes);
   void process(TermList curr, bool active,
-    DHMap<TermList, unsigned>& currOccMap,
     Stack<bool>& actStack, Clause* premise, Literal* lit,
     vvector<pair<InductionScheme, DHMap<Literal*, Clause*>*>>& schemes);
   void filter(vvector<pair<InductionScheme, DHMap<Literal*, Clause*>*>>& schemes);
