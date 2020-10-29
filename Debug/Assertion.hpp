@@ -226,12 +226,16 @@ private:
 #else // ! VDEBUG
 
 /* this point in the code is statically unreachable */
-#ifdef __GNU_C__
-// builtin if the GNU C dialect is availble: GCC, Clang, ICC
+#if defined(__GNUC__)
+// __builtin_unreachable if the GNU dialect is availble: GCC, Clang, ICC
 #define __UNREACHABLE { __builtin_unreachable(); }
-#else // !__GNU_C__
-// otherwise, infinite loop - UB post-C++11 and should be optimised out
-#define __UNREACHABLE while(true) {}
+#elif defined(_MSC_VER)
+// __assume(0) if Microsoft-y
+#define __UNREACHABLE { __assume(0); }
+#endif
+#ifndef __UNREACHABLE
+// otherwise, infinite loop - UB and should be optimised out
+#define __UNREACHABLE { while(true) {} }
 #endif
 
 #define DEBUG_CODE(X)
