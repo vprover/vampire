@@ -25,15 +25,6 @@
 #ifndef __Assertion__
 #define __Assertion__
 
-/** A static assertion. @b e has to be a constant expression. */
-
-#define ASS_AUX_CONCAT_(x,y) x ## y
-#define ASS_AUX_CONCAT(x,y) ASS_AUX_CONCAT_(x,y)
-
-//#define ASS_STATIC(e) extern char (* ASS_AUX_CONCAT(ct_assert, __LINE__) (void)) [sizeof(char[1 - 2*!(e)])]
-#define ASS_STATIC(e) extern char (*ct_assert (void)) [sizeof(char[1 - 2*!(e)])]
-
-
 #define __PUSH_DIAGNOSTICS(diag, ...) \
     _Pragma("GCC diagnostic push") \
     _Pragma(diag) \
