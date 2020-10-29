@@ -1362,8 +1362,9 @@ bool Term::isBoolean() const {
     if (env.signature->isFoolConstantSymbol(true, term->functor()) ||
         env.signature->isFoolConstantSymbol(false, term->functor())) return true;
     if (!term->isSpecial()){
-      return !term->isLiteral() && 
-      env.signature->getFunction(_functor)->fnType()->result() == Term::boolSort();
+      bool val = !term->isLiteral() && 
+      env.signature->getFunction(term->functor())->fnType()->result() == Term::boolSort();
+      return val;
     }
     switch (term->getSpecialData()->getType()) {
       case SF_FORMULA:
@@ -1371,7 +1372,7 @@ bool Term::isBoolean() const {
       case SF_TUPLE:
       case SF_LAMBDA:
         return false;
-      /*case SF_ITE:
+      case SF_ITE:
       case SF_LET:
       case SF_LET_TUPLE: {
         const TermList *ts = term->nthArgument(0);
@@ -1381,7 +1382,7 @@ bool Term::isBoolean() const {
           term = ts->term();
           break;
         }
-      }*/
+      }
       default:
         ASSERTION_VIOLATION_REP(term->toString());
     }
