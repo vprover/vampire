@@ -283,7 +283,9 @@ private:
    */
   struct ParseResult {
     /** Construct special separator value */
-    ParseResult() : sort(nullptr), formula(true), frm(nullptr) {}
+    ParseResult() : formula(true), frm(nullptr) {
+      sort = TermList(0, true);
+    }
 
     bool isSeparator() { return sort.isSpecialVar() && formula && !frm; }
 
