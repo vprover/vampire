@@ -48,8 +48,8 @@
 #include "Kernel/SubformulaIterator.hpp"
 #include "Kernel/Unit.hpp"
 
-//#include "Inferences/InterpretedEvaluation.hpp"
-//#include "Inferences/GaussianVariableElimination.hpp"
+#include "Inferences/InterpretedEvaluation.hpp"
+#include "Inferences/GaussianVariableElimination.hpp"
 #include "Inferences/EquationalTautologyRemoval.hpp"
 #include "Inferences/Condensation.hpp"
 #include "Inferences/FastCondensation.hpp"
@@ -89,7 +89,7 @@
 //#include "Inferences/RenamingOnTheFly.hpp"
 #include "Inferences/URResolution.hpp"
 #include "Inferences/Instantiation.hpp"
-//#include "Inferences/TheoryInstAndSimp.hpp"
+#include "Inferences/TheoryInstAndSimp.hpp"
 #include "Inferences/Induction.hpp"
 #include "Inferences/TautologyDeletionISE.hpp"
 #include "Inferences/CombinatorDemodISE.hpp"
@@ -1785,9 +1785,9 @@ ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, cons
     }
   }
   if(prb.hasInterpretedOperations() || prb.hasInterpretedEquality()) {
-    /*if (env.options->gaussianVariableElimination()) {
+    if (env.options->gaussianVariableElimination()) {
       res->addFront(new GaussianVariableElimination()); 
-    }*/
+    }
     //res->addFront(new InterpretedEvaluation(env.options->inequalityNormalization(), ordering));
   }
   if(prb.hasEquality()) {

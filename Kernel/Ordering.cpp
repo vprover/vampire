@@ -437,7 +437,7 @@ Ordering::Result PrecedenceOrdering::compareFunctionPrecedences(unsigned fun1, u
   }
 
   Comparison cmpRes;
-  /*if(s1->integerConstant() && s2->integerConstant()) {
+  if(s1->integerConstant() && s2->integerConstant()) {
     cmpRes = IntegerConstantType::comparePrecedence(s1->integerValue(), s2->integerValue());
   }
   else if(s1->rationalConstant() && s2->rationalConstant()) {
@@ -465,7 +465,7 @@ Ordering::Result PrecedenceOrdering::compareFunctionPrecedences(unsigned fun1, u
   else {
     ASSERTION_VIOLATION;
     cmpRes = Int::compare(fun1, fun2);
-  }*/
+  }
   return fromComparison(cmpRes);
 }
 

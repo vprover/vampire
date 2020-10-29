@@ -41,7 +41,7 @@ TEST_FUN(interpNorm1)
   unsigned succ = env.signature->getInterpretingSymbol(Theory::INT_SUCCESSOR);
   TermList two(theory->representConstant(IntegerConstantType(2)));
   TermList twoS(Term::create1(succ, two));
-  Literal* lit = Literal::createEquality(true, twoS, twoS, Sorts::SRT_INTEGER);
+  Literal* lit = Literal::createEquality(true, twoS, twoS, IntegerConstantType::getSort());
   Clause* cl = Clause::fromIterator(getSingletonIterator(lit), NonspecificInference0(UnitInputType::AXIOM, InferenceRule::INPUT));
   cout << cl->toString() << endl;
 

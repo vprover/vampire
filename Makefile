@@ -235,13 +235,13 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/Term.o\
         Kernel/TermIterators.o\
         Kernel/TermTransformer.o\
-         Kernel/Theory.o\
-         Kernel/Signature.o\
-         Kernel/Unit.o
-#        Kernel/InterpretedLiteralEvaluator.o\
-#        Kernel/Rebalancing.o\
-#        Kernel/Rebalancing/Inverters.o\
-#        Kernel/NumTraits.o\         
+        Kernel/Theory.o\
+        Kernel/Signature.o\
+        Kernel/Unit.o\
+        Kernel/InterpretedLiteralEvaluator.o\
+        Kernel/Rebalancing.o\
+        Kernel/Rebalancing/Inverters.o\
+        Kernel/NumTraits.o
 #        Kernel/MatchTag.o\
 #        Kernel/Assignment.o\     
 #        Kernel/Constraint.o\
@@ -318,10 +318,10 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/PrimitiveInstantiation.o\
          Inferences/Choice.o\
          Inferences/ElimLeibniz.o\
-         Inferences/BoolEqToDiseq.o
-#         Inferences/GaussianVariableElimination.o\
-#         Inferences/InterpretedEvaluation.o\
-#         Inferences/TheoryInstAndSimp.o\
+         Inferences/BoolEqToDiseq.o\
+         Inferences/GaussianVariableElimination.o\
+         Inferences/InterpretedEvaluation.o\
+         Inferences/TheoryInstAndSimp.o
 #         Inferences/CTFwSubsAndRes.o\
 #         Inferences/RenamingOnTheFly.o\
 
@@ -497,7 +497,7 @@ LIB_DEP = Indexing/TermSharing.o\
 	  Kernel/InferenceStore.o\
 	  Kernel/Problem.o\
 	  Kernel/SortHelper.o\
-      Kernel/ApplicativeHelper.o\
+    Kernel/ApplicativeHelper.o\
 	  Kernel/Sorts.o\
 	  Kernel/Signature.o\
 	  Kernel/SubformulaIterator.o\
@@ -505,7 +505,7 @@ LIB_DEP = Indexing/TermSharing.o\
 	  Kernel/Term.o\
 	  Kernel/TermIterators.o\
 	  Kernel/TermTransformer.o\
-      Kernel/Theory.o\
+    Kernel/Theory.o\
 	  Kernel/Unit.o\
 	  Parse/TPTP.o\
 	  Saturation/ClauseContainer.o\
@@ -514,11 +514,11 @@ LIB_DEP = Indexing/TermSharing.o\
 	  Shell/Property.o\
 	  Shell/Statistics.o\
 	  Shell/GlobalOptions.o\
-	  version.o
-#      Kernel/InterpretedLiteralEvaluator.o\
-#      Kernel/Rebalancing.o\
-#      Kernel/Rebalancing/Inverters.o\
-#      Kernel/NumTraits.o\
+	  version.o\
+    Kernel/InterpretedLiteralEvaluator.o\
+    Kernel/Rebalancing.o\
+    Kernel/Rebalancing/Inverters.o\
+    Kernel/NumTraits.o
 #     ClausifierDependencyFix.o\
 
 OTHER_CL_DEP = Indexing/FormulaIndex.o\

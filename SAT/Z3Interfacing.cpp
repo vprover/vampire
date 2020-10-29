@@ -246,13 +246,13 @@ SATSolver::VarAssignment Z3Interfacing::getAssignment(unsigned var)
   return NOT_KNOWN;
 }
 
-/*Term* Z3Interfacing::evaluateInModel(Term* trm)
+Term* Z3Interfacing::evaluateInModel(Term* trm)
 {
   CALL("Z3Interfacing::evaluateInModel");
 
   ASS(!trm->isLiteral());
 
-  unsigned srt = SortHelper::getResultSort(trm);
+  auto srt = SortHelper::getResultSort(trm);
   bool name; //TODO what do we do about naming?
   z3::expr rep = getz3expr(trm,false,name,false); 
   z3::expr assignment = _model.eval(rep,true); // true means "model_completion"
@@ -264,7 +264,7 @@ SATSolver::VarAssignment Z3Interfacing::getAssignment(unsigned var)
     bool is_int = assignment.is_int();
     ASS(is_int || assignment.is_real()); 
     if(is_int){
-      ASS(srt == Sorts::SRT_INTEGER);
+      ASS(srt == IntegerConstantType::getSort());
       int value;
       if (assignment.is_numeral_i(value)) {
         Term* t = theory->representConstant(IntegerConstantType(value));
@@ -283,13 +283,13 @@ SATSolver::VarAssignment Z3Interfacing::getAssignment(unsigned var)
           return 0;
       }
        
-       if(srt == Sorts::SRT_RATIONAL){
+       if(srt == RationalConstantType::getSort()){
          Term* t = theory->representConstant(RationalConstantType(n,d));
          return t;
        }
        else{
-         ASS(srt == Sorts::SRT_REAL);
-         Term* t = theory->representConstant(RealConstantType(RationalConstantType(n,d)));
+         ASS(srt == RealConstantType::getSort());
+         Term* t = theory->representConstant(RealConstantType(n,d));
          return t;
        }
     }
@@ -300,7 +300,7 @@ SATSolver::VarAssignment Z3Interfacing::getAssignment(unsigned var)
   }
 
   return 0;
-}*/
+}
 
 bool Z3Interfacing::isZeroImplied(unsigned var)
 {

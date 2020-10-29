@@ -595,13 +595,14 @@ void TheoryInstAndSimp::originalSelectTheoryLiterals(Clause* cl, Stack<Literal*>
 Term* getFreshConstant(unsigned index, TermList srt)
 {
   CALL("TheoryInstAndSimp::getFreshConstant");
-  static Stack<Stack<Term*>*> constants;
+  static Map<TermList, Stack<Term*>*> constants;
+  // static Stack<Stack<Term*>*> constants;
 
-  while(srt+1 > constants.length()){
-    Stack<Term*>* stack = new Stack<Term*>;
-    constants.push(stack);
-  }
-  Stack<Term*>* sortedConstants = constants[srt];
+  // while(srt+1 > constants.length()){
+  //   Stack<Term*>* stack = new Stack<Term*>;
+  //   constants.push(stack);
+  // }
+  Stack<Term*>* sortedConstants = constants.getOrInit(move(srt), [](Stack<Term*>** toInit) { *toInit = new Stack<Term*>(); });
   while(index+1 > sortedConstants->length()){
     unsigned sym = env.signature->addFreshFunction(0,"$inst");
     OperatorType* type = OperatorType::getConstantsType(srt);
@@ -638,12 +639,12 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
     // get the complementary of the literal
     Literal* lit = Literal::complementaryLiteral(it.next());
     // replace variables consistently by fresh constants
-    DHMap<unsigned,unsigned > srtMap;
+    DHMap<unsigned, TermList> srtMap;
     SortHelper::collectVariableSorts(lit,srtMap);
     TermVarIterator vit(lit);
     while(vit.hasNext()){
       unsigned var = vit.next();
-      unsigned sort = srtMap.get(var);
+      auto sort = srtMap.get(var);
       TermList fc;
       if(!subst.findBinding(var,fc)){
         Term* fc = getFreshConstant(used++,sort);

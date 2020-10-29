@@ -41,7 +41,7 @@
 #include "Inferences/InferenceEngine.hpp"
 //#include <memory> //TODO include shouldn't be necessary, it is not in master
 #include "Inferences/Instantiation.hpp"
-//#include "Inferences/TheoryInstAndSimp.hpp"
+#include "Inferences/TheoryInstAndSimp.hpp"
 
 #include "Saturation/ExtensionalityClauseContainer.hpp"
 
@@ -78,7 +78,7 @@ public:
   void setGeneratingInferenceEngine(GeneratingInferenceEngine* generator);
   void setImmediateSimplificationEngine(ImmediateSimplificationEngine* immediateSimplifier);
 #if VZ3
-  //void setTheoryInstAndSimp(TheoryInstAndSimp* t);
+  //void setKey(TheoryInstAndSimp* t);
 #endif
 
   void setLabelFinder(LabelFinder* finder){ _labelFinder = finder; }
@@ -213,7 +213,7 @@ protected:
   AnswerLiteralManager* _answerLiteralManager;
   Instantiation* _instantiation;
 #if VZ3
-  //TheoryInstAndSimp* _theoryInstSimp;
+  TheoryInstAndSimp* _theoryInstSimp;
 #endif
 
 

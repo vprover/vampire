@@ -17,6 +17,7 @@
  * licence, which we will make an effort to provide. 
  */
 
+/*
 #include "Lib/Stack.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/ScopedPtr.hpp"
@@ -36,7 +37,6 @@ using namespace SAT;
 using namespace Test;
 
 
-/*
 TEST_FUN(transpSolver1)
 {
   SATSolverSCP solver(new TransparentSolver(new TWLSolver(*env.options, false)));

@@ -185,7 +185,7 @@ private:
 public:
   // not sure why this one is public
   z3::expr getz3expr(Term* trm,bool islit,bool&nameExpression, bool withGuard=false);
-//  Term* evaluateInModel(Term* trm);
+  Term* evaluateInModel(Term* trm);
 private:
   z3::expr getRepresentation(SATLiteral lit,bool withGuard);
 
