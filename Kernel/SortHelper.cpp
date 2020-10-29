@@ -378,7 +378,7 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermL
         Term::SpecialTermData* sd = term->getSpecialData();
 
         switch (term->functor()) {
-          /*case Term::SF_ITE: {
+          case Term::SF_ITE: {
             CollectTask newTask;
 
             newTask.fncTag = COLLECT_TERMLIST;
@@ -406,7 +406,7 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermL
             Formula::VarList::Iterator vit(sd->getVariables());
             while (vit.hasNext()) {
               unsigned var = (unsigned)vit.next();
-              unsigned sort = isPredicate ? symbol->predType()->arg(position) : symbol->fnType()->arg(position);
+              TermList sort = isPredicate ? symbol->predType()->arg(position) : symbol->fnType()->arg(position);
               if (!map.insert(var, sort)) {
                 ASS_EQ(sort, map.get(var));
               }
@@ -445,7 +445,7 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermL
             todo.push(newTask);
 
             break;
-          }*/
+          }
 
           case Term::SF_FORMULA: {
             CollectTask newTask;
@@ -461,12 +461,12 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermL
             todo.push(newTask);              
           } break;
 
-          /*case Term::SF_TUPLE: {
+          case Term::SF_TUPLE: {
             CollectTask newTask;
             newTask.fncTag = COLLECT_TERM;
             newTask.t = sd->getTupleTerm();
             todo.push(newTask);
-          } break;*/
+          } break;
 
       #if VDEBUG
           default:

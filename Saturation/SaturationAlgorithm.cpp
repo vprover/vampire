@@ -1566,7 +1566,8 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     gie->addFront(new BoolEqToDiseq());
   }
 
-  if(opt.complexBooleanReasoning() && prb.hasBoolVar() && !opt.lambdaFreeHol()){
+  if(opt.complexBooleanReasoning() && prb.hasBoolVar() &&
+     env.statistics->higherOrder && !opt.lambdaFreeHol()){
     gie->addFront(new PrimitiveInstantiation()); //TODO only add in some cases
     gie->addFront(new ElimLeibniz());
   }

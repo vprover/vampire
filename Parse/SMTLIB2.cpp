@@ -618,10 +618,13 @@ TermList SMTLIB2::declareSort(LExpr* sExpr)
 
         bool added = false;
         unsigned newSort = TPTP::addUninterpretedConstant(sortName,_overflow,added);
+        if(added){
+          OperatorType* ot = OperatorType::getConstantsType(Term::superSort());
+          env.signature->getFunction(newSort)->setType(ot);
+        }
         TermList sort = TermList(Term::createConstant(newSort));
         results.push(sort);
         if(added){
-          env.signature->getFunction(newSort)->setType(OperatorType::getConstantsType(Term::superSort()));
           env.sorts->addSort(sort);
         }
         continue;
