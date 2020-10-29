@@ -655,7 +655,7 @@ void CLTBProblem::performStrategy(int terminationTime,int timeLimit,Category cat
   }
   Schedule fallback;
   Schedule fallback2;
-  Schedules::getCasc2018Schedule(*property,fallback,fallback2);
+  Schedules::getCasc2019Schedule(*property,fallback,fallback2);
   runSchedule(fallback,usedSlices,terminationTime);
   runSchedule(fallback2,usedSlices,terminationTime);
 } // CLTBProblem::performStrategy
