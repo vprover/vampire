@@ -39,7 +39,6 @@
 #include "Indexing/IndexManager.hpp"
 
 #include "Inferences/InferenceEngine.hpp"
-//#include <memory> //TODO include shouldn't be necessary, it is not in master
 #include "Inferences/Instantiation.hpp"
 #include "Inferences/TheoryInstAndSimp.hpp"
 
@@ -78,7 +77,7 @@ public:
   void setGeneratingInferenceEngine(GeneratingInferenceEngine* generator);
   void setImmediateSimplificationEngine(ImmediateSimplificationEngine* immediateSimplifier);
 #if VZ3
-  //void setKey(TheoryInstAndSimp* t);
+  void setTheoryInstAndSimp(TheoryInstAndSimp* t);
 #endif
 
   void setLabelFinder(LabelFinder* finder){ _labelFinder = finder; }

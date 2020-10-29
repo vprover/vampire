@@ -1412,12 +1412,12 @@ MainLoopResult SaturationAlgorithm::runImpl()
 }
 
 #if VZ3
-/*void SaturationAlgorithm::setTheoryInstAndSimp(TheoryInstAndSimp* t)
+void SaturationAlgorithm::setTheoryInstAndSimp(TheoryInstAndSimp* t)
 {
   ASS(t);
   _theoryInstSimp=t;
   _theoryInstSimp->attach(this);
-}*/
+}
 #endif
 
 /**
@@ -1612,10 +1612,10 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     }
   }
 #if VZ3
-  /*if (opt.theoryInstAndSimp() != Shell::Options::TheoryInstSimp::OFF){
+  if (opt.theoryInstAndSimp() != Shell::Options::TheoryInstSimp::OFF){
     res->setTheoryInstAndSimp(new TheoryInstAndSimp());
     //gie->addFront(new TheoryInstAndSimp());
-  }*/
+  }
 #endif
 
   res->setGeneratingInferenceEngine(gie);
