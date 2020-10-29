@@ -631,6 +631,8 @@ void CLTBProblem::fillSchedule(Schedule& sched,const Shell::Property* property,i
  * @param terminationTime the time in milliseconds since the prover starts when
  *        the strategy should terminate
  * @param timeLimit in milliseconds
+ * @param category
+ * @param property
  * @author Krystof Hoder
  * @since 04/06/2013 flight Frankfurt-Vienna, updated for CASC-J6
  * @author Andrei Voronkov
@@ -665,6 +667,7 @@ void CLTBProblem::performStrategy(int terminationTime,int timeLimit,Category cat
  * actual proof search.
  * @param terminationTime the time in milliseconds since the prover start
  * @param timeLimit time limit in milliseconds
+ * @param category
  * @since 04/06/2013 flight Manchester-Frankfurt
  * @author Andrei Voronkov
  */

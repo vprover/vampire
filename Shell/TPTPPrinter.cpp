@@ -68,7 +68,7 @@ void TPTPPrinter::print(Unit* u)
 }
 
 /**
- * Print on the desired output the Unit @param u with the specified name @param name
+ * Print on the desired output the Unit with the specified name
  * @param name
  * @param u
  */
@@ -93,6 +93,7 @@ void TPTPPrinter::printWithRole(vstring name, vstring role, Unit* u, bool includ
 /**
  * Return as a vstring the body of the Unit u
  * @param u
+ * @param includeSplitLevels
  * @return the body vstring
  */
 vstring TPTPPrinter::getBodyStr(Unit* u, bool includeSplitLevels)
@@ -195,7 +196,7 @@ void TPTPPrinter::printTffWrapper(Unit* u, vstring bodyStr)
 }
 
 /**
- * Output the symbol @param symNumber definition
+ * Output the symbol definition
  * @param symNumber
  * @param function - true if the symbol is a function symbol
  */

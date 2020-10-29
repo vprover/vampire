@@ -189,7 +189,7 @@ bool TheoryFinder::matchCode(const void* obj,
  * @return true if succeeds
  * @since 24/06/2004 Dresden
  * @since 28/07/2008 train Manchester-London
- * @Since 30/01/2014 Refactored pure matching code to be static and public.
+ * @since 30/01/2014 Refactored pure matching code to be static and public.
  *                   Previous method updating the Property field calls this method.
  */
 bool TheoryFinder::matchCode(const void* obj,

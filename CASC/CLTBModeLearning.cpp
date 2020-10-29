@@ -791,6 +791,9 @@ void CLTBModeLearning::fillSchedule(CLTBModeLearning::Schedule& sched) {
  * @param terminationTime the time in milliseconds since the prover starts when
  *        the strategy should terminate
  * @param timeLimit in milliseconds
+ * @param property
+ * @param quick
+ * @param stopOnProof
  * @author Krystof Hoder
  * @since 04/06/2013 flight Frankfurt-Vienna, updated for CASC-J6
  * @author Andrei Voronkov
@@ -820,6 +823,8 @@ void CLTBProblemLearning::performStrategy(int terminationTime,int timeLimit,  Sh
  * actual proof search.
  * @param terminationTime the time in milliseconds since the prover start
  * @param timeLimit time limit in milliseconds
+ * @param strats
+ * @param stopOnProof
  * @since 04/06/2013 flight Manchester-Frankfurt
  * @author Andrei Voronkov
  */

@@ -608,6 +608,7 @@ unsigned Signature::getPredicateNumber(const vstring& name, unsigned arity) cons
  * @param name name of the symbol
  * @param arity arity of the symbol
  * @param added will be set to true if the function did not exist
+ * @param overflowConstant
  * @since 07/05/2007 Manchester
  */
 unsigned Signature::addFunction (const vstring& name,
