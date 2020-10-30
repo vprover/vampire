@@ -230,7 +230,9 @@ propagation_start:
       bool posUnit;
       if(!unitBindings.find(lit.var(), posUnit)) {
 	kept=lit;
+#ifdef VDEBUG
 	kept_assigned = true;
+#endif
 	continue;
       }
       if(posUnit==lit.isPositive()) {
