@@ -1323,8 +1323,10 @@ bool CodeTree::RemovingMatcher::next()
     }
     if(shouldBacktrack) {
       if(!backtrack()) {
-	return false;
+        return false;
       }
+      // dead store, left here in case it should have been a static?
+      // shouldBacktrack = false;
     }
     else {
       //the SEARCH_STRUCT operation does not appear in CodeBlocks
