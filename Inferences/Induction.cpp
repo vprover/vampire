@@ -630,6 +630,7 @@ void InductionClauseIterator::performStructInductionThree(Clause* premise, Liter
       while(vtit.hasNext()){
         smallers = new FormulaList(new AtomicFormula(Literal::create1(sty,true,TermList(vtit.next(),false))),smallers);
       }
+      ASS(smallers);
       Formula* ax = Formula::quantify(new BinaryFormula(Connective::IMP,smaller_coni, 
                      (FormulaList::length(smallers) > 1) ? new JunctionFormula(Connective::AND,smallers)
                                             : smallers->head()

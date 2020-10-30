@@ -283,7 +283,7 @@ public:
     CALL("NonVariableIterator::NonVariableIterator");
     _stack.push(term);
     if (!includeSelf) {
-      next();
+      NonVariableIterator::next();
     }
   }
   // NonVariableIterator(TermList ts);

@@ -56,6 +56,7 @@ public:
     if (v >= _top) { // not enough capacity
       expandToFit(v);
     }
+    ASS(_counts);
     _counts[v]++;
   } // MultiCount::inc
 
@@ -68,6 +69,7 @@ public:
     if (v >= _top) { // not enough capacity
       expandToFit(v);
     }
+    ASS(_counts);
     _counts[v]--;
   } // MultiCount::dec
 
@@ -80,6 +82,7 @@ public:
     if (v >= _top) { // not enough capacity
       expandToFit(v);
     }
+    ASS(_counts);
     _counts[v] = c;
   } // MultiCounter::set
 
@@ -121,5 +124,3 @@ private:
 }
 
 #endif // __MultiCounter__
-
-

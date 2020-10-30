@@ -76,8 +76,8 @@ void SpassLiteralSelector::doSelection(Clause* c, unsigned eligible)
     }
   }
 
-  LiteralList* sel = LiteralList::empty();
-
+  // sel always initialised below
+  LiteralList* sel;
   if(singleSel) {
     LiteralList::destroy(maximals);
     sel = LiteralList::empty();

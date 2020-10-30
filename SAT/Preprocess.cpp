@@ -221,11 +221,16 @@ propagation_start:
     bool del=false;
     removedLitIndexes.reset();
     SATLiteral kept;
+#ifdef VDEBUG
+    // set to true when kept is assigned something
+    bool kept_assigned = false;
+#endif
     for(unsigned i=0;i<clen;i++) {
       SATLiteral lit=(*cl)[i];
       bool posUnit;
       if(!unitBindings.find(lit.var(), posUnit)) {
 	kept=lit;
+	kept_assigned = true;
 	continue;
       }
       if(posUnit==lit.isPositive()) {
@@ -245,6 +250,7 @@ propagation_start:
     unsigned newLen=clen-removedLitIndexes.length();
 
     if(newLen==1) {
+      ASS(kept_assigned);
       SATClause* unit=new(1) SATClause(1, true);
       (*unit)[0]=kept;
       SATClauseList::push(unit, units);

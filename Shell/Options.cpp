@@ -2587,7 +2587,7 @@ bool Options::RatioOptionValue::readRatio(const char* val, char separator)
       return false;
     }
     char copy[128];
-    strcpy(copy,val);
+    strncpy(copy,val,128);
     copy[colonIndex] = 0;
     int age;
     if (! Int::stringToInt(copy,age)) {
@@ -2738,7 +2738,7 @@ bool Options::TimeLimitOptionValue::setValue(const vstring& value)
   }
 
   char copy[128];
-  strcpy(copy,value.c_str());
+  strncpy(copy,value.c_str(),128);
   char* end = copy;
   // search for the end of the string for
   while (*end) {

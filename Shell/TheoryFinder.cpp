@@ -164,10 +164,10 @@ class TheoryFinder::Backtrack
 public:
   /** code pointer */
   unsigned cp;
-  /** object on which the instruction should be executed */
-  const void* obj;
   /** position in the object stack */
   unsigned objPos;
+  /** object on which the instruction should be executed */
+  const void* obj;
 }; // TheoryFinder::Backtrack
 
 bool TheoryFinder::matchCode(const void* obj,
@@ -217,6 +217,9 @@ bool TheoryFinder::matchCode(const void* obj,
   const Clause* clause;
   // the length of this clause
   int clength;
+#ifdef VDEBUG
+  bool clength_assigned = false;
+#endif
   // literal numbers to be matched by LIT i commands
   int literals[4];
 
@@ -407,6 +410,9 @@ bool TheoryFinder::matchCode(const void* obj,
     cout << "M: CLS: " << clause->toString() << endl;
 #endif
     clength = clause->length();
+#ifdef VDEBUG
+    clength_assigned = true;
+#endif
     cp++;
     goto match;
   }
@@ -418,6 +424,7 @@ bool TheoryFinder::matchCode(const void* obj,
 #endif
     unsigned l = code[cp+1];
     // bit field of choices for this literal
+    ASS(clength_assigned);
     unsigned choice = (1u << clength) - 1;
     for (int i = l-1;i >= 0;i--) {
       // remove from the choice literals already used

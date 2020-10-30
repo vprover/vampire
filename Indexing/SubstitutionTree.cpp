@@ -259,9 +259,10 @@ start:
     BindingMap::Iterator svit(svBindings);
     BinaryHeap<Binding, BindingComparator> remainingBindings;
     while (svit.hasNext()) {
-      Binding b;
-      svit.next(b.var, b.term);
-      remainingBindings.insert(b);
+      unsigned var;
+      TermList term;
+      svit.next(var, term);
+      remainingBindings.insert(Binding(var, term));
     }
     while (!remainingBindings.isEmpty()) {
       Binding b=remainingBindings.pop();

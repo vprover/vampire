@@ -836,7 +836,7 @@ void CodeTree::compileTerm(Term* trm, CodeStack& code, CompileContext& cctx, boo
 	  sti.right();
 	}
 	else {
-	  code.push(CodeOp::getTermOp(CHECK_FUN, s.term()->functor()));
+	  code.push(CodeOp::getTermOp(CHECK_FUN, t->functor()));
 	}
       }
     }
@@ -1325,7 +1325,6 @@ bool CodeTree::RemovingMatcher::next()
       if(!backtrack()) {
 	return false;
       }
-      shouldBacktrack=false;
     }
     else {
       //the SEARCH_STRUCT operation does not appear in CodeBlocks

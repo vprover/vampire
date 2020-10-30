@@ -496,11 +496,11 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         Formula* condition = process(sd->getCondition());
 
         TermList thenBranch;
-        Formula* thenBranchFormula;
+        Formula* thenBranchFormula {};
         process(*term->nthArgument(0), context, thenBranch, thenBranchFormula);
 
         TermList elseBranch;
-        Formula* elseBranchFormula;
+        Formula* elseBranchFormula {};
         process(*term->nthArgument(1), context, elseBranch, elseBranchFormula);
 
         // the sort of the term is the sort of the then branch
