@@ -221,15 +221,22 @@ void Lib::Timer::deinitializeTimer()
 
 void Lib::Timer::syncClock()
 {
+  static bool reportedProblem = false;
   if(s_initGuarantedMiliseconds==-1) {
     //we're unable to sync clock as we weren't able to obtain number of ticks in the beginning
-    cerr << "cannot synchronize clock as times() initially returned -1" << endl;
+    if(!reportedProblem) {
+      reportedProblem = true;
+      cerr << "cannot syncronize clock as times() initially returned -1" << endl;
+    }
     return;
   }
   int newMilliseconds = guaranteedMilliseconds();
   if(newMilliseconds==-1) {
     //we're unable to sync clock as we cannot get the current time
-    cerr << "could not synchronize clock as times() returned -1" << endl;
+    if(!reportedProblem) {
+      reportedProblem = true;
+      cerr << "could not syncronize clock as times() returned -1" << endl;
+    }
     return;
   }
 
