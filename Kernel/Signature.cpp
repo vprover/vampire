@@ -70,13 +70,15 @@ Signature::Symbol::Symbol(const vstring& nm, unsigned arity, bool interpreted, b
     _tuple(0),
     _array(0),
     _superSort(super),
+    _typeConstructor(0),
     _prox(NOT_PROXY),
     _comb(NOT_COMB)
 {
   CALL("Signature::Symbol::Symbol");
   ASS(!stringConstant || arity==0);
 
-  if (!stringConstant && !numericConstant && !overflownConstant && symbolNeedsQuoting(_name, interpreted,arity)) {
+  if (!stringConstant && !numericConstant && !overflownConstant && !super &&
+       symbolNeedsQuoting(_name, interpreted,arity)) {
     _name="'"+_name+"'";
   }
   if (_interpreted || isProtectedName(nm)) {
@@ -164,6 +166,7 @@ void Signature::Symbol::setType(OperatorType* type)
   CALL("Signature::Symbol::setType");
   ASS_REP(!_type, _type->toString());
 
+  _typeConstructor = (type->result() == Term::superSort());
   _typeArgsArity = type->typeArgsArity(); 
   _type = type;
 }
@@ -1073,7 +1076,15 @@ bool Signature::symbolNeedsQuoting(vstring name, bool interpreted, unsigned arit
   CALL("Signature::symbolNeedsQuoting");
   ASS_G(name.length(),0);
 
-  if (name=="=" || (interpreted && arity==0) || (name==">")) {
+  //we don't want to quote these type constructors, but we
+  //also don't want them to be treated as interpreted symbols
+  //hence the hack below, AYB
+  if(name=="$int" || name=="$real" || name=="$rat" || 
+     name=="$i" || name=="$o" || name==">"){
+    return false;
+  }
+
+  if (name=="=" || (interpreted && arity==0)) {
     return false;
   }
 
@@ -1084,8 +1095,6 @@ bool Signature::symbolNeedsQuoting(vstring name, bool interpreted, unsigned arit
     if (*(c+1)=='$') {
       c+=2; //skip the initial $$
       first = false;
-    } else if (*(c+1)=='i'  || *(c+1)=='o' || *(c+1)=='t'){
-      return false;
     } else if (interpreted) {
       c++; //skip the initial $ for interpreted
       first = false;

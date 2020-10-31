@@ -40,6 +40,7 @@
 #include "Shell/Options.hpp"
 #include "Shell/SymbolOccurrenceReplacement.hpp"
 #include "Shell/LambdaElimination.hpp"
+#include "Shell/Statistics.hpp"
 
 #include "Rectify.hpp"
 
@@ -218,7 +219,8 @@ Formula* FOOLElimination::process(Formula* formula) {
        * between FOOL boolean terms.
        */
 
-      if (literal->isEquality() && env.options->equalityToEquivalence()) { 
+      if (literal->isEquality() && 
+         (!env.statistics->higherOrder || env.options->equalityToEquivalence())) { 
         ASS_EQ(literal->arity(), 2); // can there be equality between several terms?
         TermList lhs = *literal->nthArgument(0);
         TermList rhs = *literal->nthArgument(1);
@@ -446,12 +448,9 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
 
   // collect free variables of the term and their sorts
   Formula::VarList* freeVars = term->freeVariables();
-  static Stack<TermList> argSorts;
-  static Stack<TermList> termArgs;
-  static Stack<TermList> args;
-  argSorts.reset();
-  termArgs.reset();
-  args.reset();
+  TermStack argSorts;
+  TermStack termArgs;
+  TermStack args;
 
   Formula::VarList::Iterator fvi(freeVars);
   while (fvi.hasNext()) {

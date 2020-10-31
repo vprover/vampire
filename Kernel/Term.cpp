@@ -39,6 +39,7 @@
 #include "Indexing/TermSharing.hpp"
 
 #include "Shell/Options.hpp"
+#include "Shell/Statistics.hpp"
 
 #include "Formula.hpp"
 #include "Signature.hpp"
@@ -713,9 +714,10 @@ vstring Literal::toString() const
     }
 
     vstring res = s + lhs->next()->toString();
-    //if (SortHelper::getEqualityArgumentSort(this) == Term::boolSort()){
+    if (env.statistics->higherOrder || 
+       (SortHelper::getEqualityArgumentSort(this) == Term::boolSort())){
       res = "("+res+")";
-    //}
+    }
     /*if(isTwoVarEquality()){
       res += "___ sort: " + twoVarEqSort().toString();
     }*/
@@ -725,10 +727,10 @@ vstring Literal::toString() const
 
   Stack<const TermList*> stack(64);
   vstring s = polarity() ? "" : "~";
-  /*unsigned proj;
+  unsigned proj;
   if (Theory::tuples()->findProjection(functor(), true, proj)) {
     return s + "$proj(" + Int::toString(proj) + ", " + args()->asArgsToString();
-  }*/
+  }
   s += predicateName();
 
   //cerr << "predicate: "<< predicateName()<<endl;

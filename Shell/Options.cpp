@@ -3300,7 +3300,7 @@ bool Options::complete(const Problem& prb) const
   Property& prop = *prb.getProperty();
 
   // general properties causing incompleteness
- /* if (prop.hasInterpretedOperations()
+  if (prop.hasInterpretedOperations()
       || prop.hasProp(Property::PR_HAS_INTEGERS)
       || prop.hasProp(Property::PR_HAS_REALS)
       || prop.hasProp(Property::PR_HAS_RATS)
@@ -3308,7 +3308,7 @@ bool Options::complete(const Problem& prb) const
       || (!prop.onlyFiniteDomainDatatypes() && prop.hasProp(Property::PR_HAS_DT_CONSTRUCTORS))
       || (!prop.onlyFiniteDomainDatatypes() && prop.hasProp(Property::PR_HAS_CDT_CONSTRUCTORS))) {
     return false;
-  }*/
+  }
 
   // preprocessing
   if (env.signature->hasDistinctGroups()) {

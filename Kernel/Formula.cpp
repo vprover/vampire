@@ -363,10 +363,10 @@ vstring Formula::toString(const Formula* formula)
           if (hasSorts) {
             ASS(ss.hasNext());
             t = ss.next();
-            //if (t != Term::defaultSort()) {
+            if (t != Term::defaultSort()) {
               res += " : " + t.toString();
-            //}
-          } else if (SortHelper::tryGetVariableSort(var, const_cast<Formula*>(f),t) /*&& t != Term::defaultSort()*/) {
+            }
+          } else if (SortHelper::tryGetVariableSort(var, const_cast<Formula*>(f),t) && t != Term::defaultSort()) {
             res += " : " + t.toString();
           }
           first = false;
@@ -793,41 +793,41 @@ Formula* Formula::falseFormula()
  * Creates a formula of the form $ite(c, a, b), where a, b, c are formulas
  * @since 16/04/2015 Gothenburg
  */
-/*Formula* Formula::createITE(Formula* condition, Formula* thenArg, Formula* elseArg)
+Formula* Formula::createITE(Formula* condition, Formula* thenArg, Formula* elseArg)
 {
   CALL("Formula::createITE");
   TermList thenTerm(Term::createFormula(thenArg));
   TermList elseTerm(Term::createFormula(elseArg));
-  TermList iteTerm(Term::createITE(condition, thenTerm, elseTerm, Sorts::SRT_BOOL));
+  TermList iteTerm(Term::createITE(condition, thenTerm, elseTerm, Term::boolSort()));
   return new BoolTermFormula(iteTerm);
-}*/
+}
 
 /**
  * Creates a formula of the form $let(lhs := rhs, body), where body is a formula
  * and lhs and rhs form a binding for a function
  * @since 16/04/2015 Gothenburg
  */
-/*Formula* Formula::createLet(unsigned functor, Formula::VarList* variables, TermList body, Formula* contents)
+Formula* Formula::createLet(unsigned functor, Formula::VarList* variables, TermList body, Formula* contents)
 {
   CALL("Formula::createLet(TermList)");
   TermList contentsTerm(Term::createFormula(contents));
-  TermList letTerm(Term::createLet(functor, variables, body, contentsTerm, Sorts::SRT_BOOL));
+  TermList letTerm(Term::createLet(functor, variables, body, contentsTerm, Term::boolSort()));
   return new BoolTermFormula(letTerm);
-}*/
+}
 
 /**
  * Creates a formula of the form $let(lhs := rhs, body), where body is a formula
  * and lhs and rhs form a binding for a predicate
  * @since 16/04/2015 Gothenburg
  */
-/*Formula* Formula::createLet(unsigned predicate, Formula::VarList* variables, Formula* body, Formula* contents)
+Formula* Formula::createLet(unsigned predicate, Formula::VarList* variables, Formula* body, Formula* contents)
 {
   CALL("Formula::createLet(Formula*)");
   TermList bodyTerm(Term::createFormula(body));
   TermList contentsTerm(Term::createFormula(contents));
-  TermList letTerm(Term::createLet(predicate, variables, bodyTerm, contentsTerm, Sorts::SRT_BOOL));
+  TermList letTerm(Term::createLet(predicate, variables, bodyTerm, contentsTerm, Term::boolSort()));
   return new BoolTermFormula(letTerm);
-}*/
+}
 
 Formula* Formula::quantify(Formula* f)
 {

@@ -178,6 +178,7 @@ bool FiniteModelBuilder::reset(){
   // Start from 1 as SAT solver variables are 1-based
   unsigned offsets=1;
   for(unsigned f=0; f<env.signature->functions();f++){
+    if(env.signature->isTypeConOrSup(f)){ continue; }
     if(del_f[f]) continue; 
     f_offsets[f]=offsets;
 #if VTRACE_FMB
@@ -450,6 +451,7 @@ void FiniteModelBuilder::init()
   if(env.options->fmbAdjustSorts() == Options::FMBAdjustSorts::PREDICATE){
     DArray<unsigned> deleted_functions(env.signature->functions());
     for(unsigned f=0;f<env.signature->functions();f++){
+      if(env.signature->isTypeConOrSup(f)){ continue; }
       deleted_functions[f] = _deletedFunctions.find(f);
      }
     ClauseList::pushFromIterator(_prb.clauseIterator(),clist);
@@ -584,6 +586,7 @@ void FiniteModelBuilder::init()
   del_p.ensure(env.signature->predicates());
 
   for(unsigned f=0;f<env.signature->functions();f++){
+    if(env.signature->isTypeConOrSup(f)){ continue; }
     del_f[f] = _deletedFunctions.find(f) || env.signature->getFunction(f)->usageCnt()==0;
   }
   for(unsigned p=0;p<env.signature->predicates();p++){
@@ -733,6 +736,7 @@ void FiniteModelBuilder::init()
     if(env.options->fmbSymmetryOrderSymbols() != Options::FMBSymbolOrders::PREPROCESSED_USAGE){
      // reset usage counts
      for(unsigned f=0;f<env.signature->functions();f++){
+       if(env.signature->isTypeConOrSup(f)){ continue; }
        env.signature->getFunction(f)->resetUsageCnt();
      }
      // do them again!
@@ -787,6 +791,7 @@ void FiniteModelBuilder::init()
   _distinctSortConstantCount.ensure(_sortedSignature->distinctSorts);
   _fminbound.ensure(env.signature->functions());
   for(unsigned f=0;f<env.signature->functions();f++){
+    if(env.signature->isTypeConOrSup(f)){ continue; }
     if(del_f[f]) continue;
 
     if(env.signature->functionArity(f)==0){ 
@@ -1149,6 +1154,7 @@ unsigned FiniteModelBuilder::estimateFunctionalDefCount()
   unsigned res = 0;
 
   for(unsigned f=0;f<env.signature->functions();f++){
+    if(env.signature->isTypeConOrSup(f)){ continue; }
     unsigned instances = 1;
 
     if(del_f[f]) continue;
@@ -1181,6 +1187,7 @@ void FiniteModelBuilder::addNewFunctionalDefs()
   // they should be instantiated with groundings where y!=z
 
   for(unsigned f=0;f<env.signature->functions();f++){
+    if(env.signature->isTypeConOrSup(f)){ continue; }
     if(del_f[f]) continue;
     unsigned arity = env.signature->functionArity(f);
 
@@ -1386,6 +1393,7 @@ void FiniteModelBuilder::addNewTotalityDefs()
   }
 
   for(unsigned f=0;f<env.signature->functions();f++){
+    if(env.signature->isTypeConOrSup(f)){ continue; }
     if(del_f[f]) continue;
     unsigned arity = env.signature->functionArity(f);
 
@@ -1877,6 +1885,7 @@ void FiniteModelBuilder::onModelFound()
 
   //Record interpretation of constants
   for(unsigned f=0;f<env.signature->functions();f++){
+    if(env.signature->isTypeConOrSup(f)){ continue; }
     if(env.signature->functionArity(f)>0) continue;
     if(del_f[f]) continue;
 
@@ -1897,6 +1906,7 @@ void FiniteModelBuilder::onModelFound()
 
   //Record interpretation of functions 
   for(unsigned f=0;f<env.signature->functions();f++){
+    if(env.signature->isTypeConOrSup(f)){ continue; }
     unsigned arity = env.signature->functionArity(f);
     if(arity==0) continue;
     if(del_f[f]) continue;
@@ -2033,6 +2043,7 @@ pModelLabel:
   unsigned f=maxf;
   while(f > 0){ 
     f--;
+    if(env.signature->isTypeConOrSup(f)){ continue; }
     //cout << "Consider " << f << endl;
     unsigned arity = env.signature->functionArity(f);
     if(!del_f[f]) continue; 

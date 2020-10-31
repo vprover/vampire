@@ -666,14 +666,15 @@ void Property::scan(TermList ts,bool unit,bool goal)
   Term* t = ts.term();
 
   if (t->isSpecial()) {
-    //_hasFOOL = true;
     switch(t->functor()) {
       case Term::SF_ITE:
+        _hasFOOL = true;
         addProp(PR_HAS_ITE);
         break;
 
       case Term::SF_LET:
       case Term::SF_LET_TUPLE:
+        _hasFOOL = true;
         addProp(PR_HAS_LET_IN);
         break;
       case Term::SF_FORMULA:

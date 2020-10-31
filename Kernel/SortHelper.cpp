@@ -737,14 +737,16 @@ bool SortHelper::tryGetVariableSort(TermList var, Term* t0, TermList& result)
   NonVariableIterator sit(t0,true);
   while (sit.hasNext()) {
     Term* t = sit.next().term();
-    /*if(t->isLet()){
+    if(t->isLet()){
       TermList binding = t->getSpecialData()->getBinding();
       if(binding.isVar()) {
         if ( binding == var) {
           // get result sort of the functor
           unsigned f = t->getSpecialData()->getFunctor();
           Signature::Symbol* sym = env.signature->getFunction(f);
-          return sym->fnType()->result();
+          //TODO is this correct? Master seems faulty here AYB
+          result = sym->fnType()->result();
+          return true;
         }
       } else if(tryGetVariableSort(var,binding.term(),result)){
         return true;
@@ -766,7 +768,7 @@ bool SortHelper::tryGetVariableSort(TermList var, Term* t0, TermList& result)
         return true;
       }
       continue;
-    }*/
+    }
     if(t->isFormula()){
       Formula* f = t->getSpecialData()->getFormula();
       if(tryGetVariableSort(var.var(), f, result)){

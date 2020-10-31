@@ -30,8 +30,6 @@
 #include "Kernel/Unit.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/Problem.hpp"
-#include "Kernel/SKIKBO.hpp"
-#include "Kernel/Ordering.hpp"
 
 #include "GoalGuessing.hpp"
 //#include "AnswerExtractor.hpp"
@@ -218,6 +216,7 @@ void Preprocess::preprocess(Problem& prb)
   if (prb.hasInterpretedOperations() || env.signature->hasTermAlgebras()){
     // Normalizer is needed, because the TheoryAxioms code assumes Normalized problem
     InterpretedNormalizer().apply(prb);
+   
     // Add theory axioms if needed
     if( _options.theoryAxioms() != Options::TheoryAxiomLevel::OFF){
       env.statistics->phase=Statistics::INCLUDING_THEORY_AXIOMS;
@@ -258,13 +257,11 @@ void Preprocess::preprocess(Problem& prb)
   if ((prb.hasLogicalProxy() || prb.hasBoolVar()) && env.options->addProxyAxioms()){
     LambdaElimination::addProxyAxioms(prb);
   }
-
-
-  /*
+  
   if (prb.hasInterpretedOperations() || env.signature->hasTermAlgebras()){
     // Some axioms needed to be normalized, so we call InterpretedNormalizer twice
     InterpretedNormalizer().apply(prb);
-  }*/
+  }
 
   // Expansion of distinct groups happens before other preprocessing
   // If a distinct group is small enough it will add inequality to describe it

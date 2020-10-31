@@ -217,6 +217,7 @@ void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, DArray<
     ASS(p>0);
 
     for(unsigned f=0; f < function_count; f++){
+      if(env.signature->isTypeConOrSup(f)){ continue; }
       if(del_f[f]) continue;
 
       if(env.signature->getFunction(f)->fnType()->result() != SortHelper::sortTerm(s))

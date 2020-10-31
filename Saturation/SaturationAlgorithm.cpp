@@ -1789,7 +1789,7 @@ ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, cons
     if (env.options->gaussianVariableElimination()) {
       res->addFront(new GaussianVariableElimination()); 
     }
-    //res->addFront(new InterpretedEvaluation(env.options->inequalityNormalization(), ordering));
+    res->addFront(new InterpretedEvaluation(env.options->inequalityNormalization(), ordering));
   }
   if(prb.hasEquality()) {
     res->addFront(new TrivialInequalitiesRemovalISE());

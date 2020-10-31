@@ -115,6 +115,7 @@ void SortInference::doInference()
     }
 
     for(unsigned f=0;f<env.signature->functions();f++){
+      if(env.signature->isTypeConOrSup(f)){ continue; }
       if(_del_f[f]) continue;
       unsigned arity = env.signature->functionArity(f);
       OperatorType* ftype = env.signature->getFunction(f)->fnType();
@@ -146,6 +147,7 @@ void SortInference::doInference()
     _sig->predicateSignatures.ensure(env.signature->predicates());
 
     for(unsigned f=0;f<env.signature->functions();f++){
+      if(env.signature->isTypeConOrSup(f)){ continue; }
       if(f < _del_f.size() && _del_f[f]) continue;
       unsigned arity = env.signature->functionArity(f);
       OperatorType* ftype = env.signature->getFunction(f)->fnType();
@@ -218,6 +220,7 @@ void SortInference::doInference()
 
   unsigned count = 0;
   for(unsigned f=0; f < env.signature->functions();f++){
+    if(env.signature->isTypeConOrSup(f)){ continue; }
     if(_del_f[f]) continue;
     offset_f[f] = count;
     count += (1+env.signature->getFunction(f)->arity());
@@ -377,6 +380,7 @@ void SortInference::doInference()
   // Next check function positions for positive equalities
   // Also recorded the functions/constants for each sort
   for(unsigned f=0;f<env.signature->functions();f++){
+    if(env.signature->isTypeConOrSup(f)){ continue; }
     if(f < _del_f.size() && _del_f[f]) continue;
 
     unsigned offset = offset_f[f];
@@ -487,6 +491,7 @@ void SortInference::doInference()
 
   // Now record the _signatures for functions
   for(unsigned f=0;f<env.signature->functions();f++){
+    if(env.signature->isTypeConOrSup(f)){ continue; }   
     if(f < _del_f.size() && _del_f[f]) continue;
 #if DEBUG_SORT_INFERENCE
     cout << env.signature->functionName(f) << " : ";
@@ -576,6 +581,7 @@ void SortInference::doInference()
 #endif
   // Setting types for fresh constants
   for(unsigned f=firstFreshConstant;f<env.signature->functions();f++){
+    if(env.signature->isTypeConOrSup(f)){ continue; }
     unsigned srt = freshMap.get(f);
     unsigned dsrt = _sig->parents[srt];
     unsigned vsrt = (*_sig->distinctToVampire.get(dsrt))[0];

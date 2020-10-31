@@ -148,6 +148,8 @@ class Signature
     unsigned _array : 1;  
     /** if super sort */
     unsigned _superSort : 1;
+    /** if type constructor */
+    unsigned _typeConstructor : 1;
     /** proxy type */
     Proxy _prox;
     /** combinator type */
@@ -250,6 +252,7 @@ class Signature
     inline Combinator combinator(){ return _comb; }
 
     inline const bool super() const { return _superSort; }
+    inline const bool typeCon() const { return _typeConstructor; }
 
     inline void markInductionSkolem(){ _inductionSkolem=1; _skolem=1;}
     inline bool inductionSkolem(){ return _inductionSkolem;}
@@ -551,6 +554,11 @@ class Signature
 
   bool functionExists(const vstring& name,unsigned arity) const;
   bool predicateExists(const vstring& name,unsigned arity) const;
+
+  bool isTypeConOrSup(unsigned fun) { 
+    Symbol* sym =  getFunction(fun);
+    return sym->typeCon() || sym->super(); 
+  }
 
   bool tryGetFunctionNumber(const vstring& name, unsigned arity, unsigned& out) const;
   bool tryGetPredicateNumber(const vstring& name, unsigned arity, unsigned& out) const;

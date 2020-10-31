@@ -57,6 +57,7 @@ bool ModelPrinter::haveNonDefaultSorts()
 
   unsigned funs = env.signature->functions();
   for(unsigned i=0; i<funs; i++) {
+    if(env.signature->isTypeConOrSup(i)){ continue; }
     OperatorType* type = env.signature->getFunction(i)->fnType();
     if(!type->isAllDefault()) { return false; }
   }
@@ -74,6 +75,7 @@ bool ModelPrinter::isEprProblem()
 
   unsigned funCnt = env.signature->functions();
   for(unsigned i=0; i<funCnt; i++) {
+    if(env.signature->isTypeConOrSup(i)){ continue; }
     if(env.signature->functionArity(i)>0) {
       return false;
     }
@@ -106,6 +108,7 @@ bool ModelPrinter::tryOutput(ostream& stm)
   }
 
   collectTrueLits();
+  //TODO fix the below AYB
   if(env.signature->functions()!=0) {
     if(_usedConstants.isEmpty()) {
       unsigned newFunc = env.signature->addFreshFunction(0,"c");
@@ -335,6 +338,9 @@ void ModelPrinter::analyzeEqualityAndPopulateDomain()
 
     ALWAYS(ecElIt.hasNext());
     unsigned firstFunc = ecElIt.next();
+    //TODO is the below correct? AYB
+    if(env.signature->isTypeConOrSup(firstFunc)){ continue; }
+
     if(!_usedConstantSet.contains(firstFunc)) {
       ASS(!ecElIt.hasNext()); //constant that is not used is alone in its equivalence class
       continue;

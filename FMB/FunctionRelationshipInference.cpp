@@ -216,6 +216,7 @@ ClauseList* FunctionRelationshipInference::getCheckingClauses()
 
   unsigned initial_functions = env.signature->functions();
   for(unsigned f=0; f < initial_functions; f++){
+    if(env.signature->isTypeConOrSup(f)){ continue; }
 
     OperatorType* ftype = env.signature->getFunction(f)->fnType();
     TermList ret_srt = ftype->result();
