@@ -29,6 +29,7 @@ public:
   USE_ALLOCATOR(LfpRule);
 
   LfpRule(Rule rule);
+  LfpRule();
   SimplifyingGeneratingInference1::Result simplify(Clause *cl, bool doCheckOrdering) override;
 };
 
@@ -37,20 +38,26 @@ template<class Rule>
 LfpRule<Rule>::LfpRule(Rule rule) : _inner(std::move(rule)) {}
 
 template<class Rule> 
+LfpRule<Rule>::LfpRule() : _inner() {}
+
+template<class Rule> 
 SimplifyingGeneratingInference1::Result LfpRule<Rule>::simplify(Clause *cl, bool doCheckOrdering) 
 {
   CALL("LfpRule::simplify")
   // DBG("in:  ", *cl);
-  auto cur = cl;
+  auto last = cl;
   auto nxt = cl;
+
   auto redundant = true;
+  bool last_redundant = true;
 
   do {
-    cur = nxt;
-    auto res = _inner.simplify(cur, doCheckOrdering);
+    last = nxt;
+    redundant = redundant && last_redundant;
+    auto res = _inner.simplify(last, doCheckOrdering);
+    last_redundant = res.premiseRedundant;
     nxt = res.simplified;
-    redundant = redundant && res.premiseRedundant;
-  } while (nxt != cur);
+  } while (nxt != last);
 
   // DBG("out: ", *nxt);
   return Result {

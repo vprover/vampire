@@ -155,7 +155,7 @@ TEST_SIMPLIFY(gve_test_div,
 ////// TEST CASES for generating inferences
 /////////////////////////////////////
 
-REGISTER_GEN_TESTER(Test::Generation::GenerationTester<GaussianVariableElimination>)
+REGISTER_GEN_TESTER(Test::Generation::GenerationTester<LfpRule<GaussianVariableElimination>>)
 
 
 TEST_GENERATION(test_redundancy_01,
@@ -204,3 +204,12 @@ TEST_GENERATION(test_redundancy_05,
     })
 
 
+
+TEST_GENERATION(test_redundancy_06,
+    Generation::TestCase {
+      .input     = clause({  y != 5, x != 4, p(x), q(y)  }),
+      .generated = generated(
+            clause({  p(4), q(5)  })
+      ),
+      .premiseRedundant = false,
+    })
