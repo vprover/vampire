@@ -13,37 +13,27 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # variables for binary name, set later
-set(VAMPIRE_BINARY "vampire")
-set(VAMPIRE_BINARY_BUILD "_rel")
-set(VAMPIRE_BINARY_STATIC "")
-set(VAMPIRE_BINARY_Z3 "")
-set(VAMPIRE_BINARY_HASH "")
-set(VAMPIRE_BINARY_BRANCH "")
-set(VAMPIRE_BINARY_REV_COUNT "")
+set(VAMPIRE_BINARY vampire)
+set(VAMPIRE_BINARY_BUILD)
+set(VAMPIRE_BINARY_STATIC)
+set(VAMPIRE_BINARY_Z3)
+set(VAMPIRE_BINARY_HASH)
+set(VAMPIRE_BINARY_BRANCH)
+set(VAMPIRE_BINARY_REV_COUNT)
 
-# build configuration
+# set build type if not set
 if(NOT CMAKE_BUILD_TYPE)
   message(STATUS "Setting build type to 'Release' as none was specified.")
-  set(CMAKE_BUILD_TYPE "Release" CACHE
-    STRING "Choose the type of build." FORCE)
-elseif(CMAKE_BUILD_TYPE STREQUAL "Debug")
-  set(VAMPIRE_BINARY_BUILD "_dbg")
-else()
-  set(VAMPIRE_BINARY_BUILD "_${CMAKE_BUILD_TYPE}")
+  set(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build." FORCE)
 endif()
 
 # statically link libraries
 option(BUILD_SHARED_LIBS "Build an executable dynamically linking to libraries instead of a statically-linked one (static not working on Mac)" ON)
 if (NOT BUILD_SHARED_LIBS)
-  SET(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
-  SET(CMAKE_EXE_LINKER_FLAGS "-static")
-  set(VAMPIRE_BINARY_STATIC "_static")
+  SET(CMAKE_FIND_LIBRARY_SUFFIXES .a)
+  SET(CMAKE_EXE_LINKER_FLAGS -static)
+  set(VAMPIRE_BINARY_STATIC _static)
 endif()
-
-################################################################
-# minisat stuff
-################################################################
-#TODO: refactor minisat into independent imported target
 
 ################################################################
 # define all vampire sources,
@@ -762,50 +752,46 @@ target_include_directories(vampire PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
 # set preprocessor defines
 target_compile_definitions(vampire PRIVATE CHECK_LEAKS=0)
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+if(CMAKE_BUILD_TYPE STREQUAL Debug)
   target_compile_definitions(vampire PRIVATE VDEBUG=1 UNIX_USE_SIGALRM=1 GNUMP=0)
-elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
+elseif(CMAKE_BUILD_TYPE STREQUAL Release)
   target_compile_definitions(vampire PRIVATE VDEBUG=0)
 endif()
 
 # configure warning flags
-# https://cmake.org/cmake/help/latest/variable/CMAKE_LANG_COMPILER_ID.html
-if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang$")
-  target_compile_options(vampire PRIVATE -Wall)
+if(CMAKE_CXX_COMPILER_ID STREQUAL GNU OR CMAKE_CXX_COMPILER_ID MATCHES Clang$)
+#  target_compile_options(vampire PRIVATE -Wall)
 endif()
 
 ################################################################
 # z3 stuff
 ################################################################
-# TODO: one could also add automatic installation of z3 and minisat (cf. github-seahorn solution)
-find_package(Z3 CONFIG NO_DEFAULT_PATH)
+
+find_package(Z3 CONFIG NO_DEFAULT_PATH PATHS ${CMAKE_SOURCE_DIR}/z3/build/)
 if (NOT Z3_FOUND)
-  message(WARNING "No Z3 found -- Compiling without SMT support.")
+  message(STATUS "No Z3 found -- Compiling without SMT support.")
   target_compile_definitions(vampire PRIVATE VZ3=0)
 else ()
   message(STATUS "Found Z3 ${Z3_VERSION_STRING}")
-  message(STATUS "Z3_DIR: ${Z3_DIR}")
   target_include_directories(vampire PRIVATE ${Z3_CXX_INCLUDE_DIRS})
-  if (Z3_FOUND AND (NOT BUILD_SHARED_LIBS) AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    # avoid static linking problems with C++ threads
-    # see https://stackoverflow.com/questions/58848694/gcc-whole-archive-recipe-for-static-linking-to-pthread-stopped-working-in-rec
+  if(NOT BUILD_SHARED_LIBS AND Z3_FOUND AND CMAKE_CXX_COMPILER_ID STREQUAL GNU)
+    # https://stackoverflow.com/questions/58848694/gcc-whole-archive-recipe-for-static-linking-to-pthread-stopped-working-in-rec
     message(STATUS "Adding workaround for gcc static linking against pthread")
     target_link_libraries(vampire PRIVATE ${Z3_LIBRARIES} -pthread -Wl,--whole-archive -lrt -lpthread -Wl,--no-whole-archive)
   else()
     target_link_libraries(vampire PRIVATE ${Z3_LIBRARIES})
   endif()
 
-
   add_library(Z3 SHARED IMPORTED)
   set_property(TARGET Z3 PROPERTY IMPORTED_LOCATION ${Z3_LIBRARY})
   target_compile_definitions(vampire PRIVATE VZ3=1)
-  set(VAMPIRE_BINARY_Z3 "_z3")
+  set(VAMPIRE_BINARY_Z3 _z3)
 endif()
 
 #################################################################
 # automated generation of Vampire revision information from git #
 #################################################################
-set(VAMPIRE_VERSION_NUMBER "4.5.1")
+set(VAMPIRE_VERSION_NUMBER 4.5.1)
 
 execute_process(
     COMMAND git rev-parse --is-inside-work-tree
@@ -814,7 +800,7 @@ execute_process(
     OUTPUT_STRIP_TRAILING_WHITESPACE
     )
 
-if (GIT_IS_REPOSITORY STREQUAL "true")
+if (GIT_IS_REPOSITORY STREQUAL true)
 
   execute_process(
     COMMAND git log -1 --format=%h\ on\ %ci
@@ -850,10 +836,21 @@ if (GIT_IS_REPOSITORY STREQUAL "true")
 endif()
 
 ################################################################
+# binary name
+################################################################
+if(CMAKE_BUILD_TYPE STREQUAL Debug)
+  set(VAMPIRE_BINARY_BUILD _dbg)
+elseif(CMAKE_BUILD_TYPE STREQUAL Release)
+  set(VAMPIRE_BINARY_BUILD _rel)
+else()
+  set(VAMPIRE_BINARY_BUILD "_${CMAKE_BUILD_TYPE}")
+endif()
+set(VAMPIRE_BINARY "vampire${VAMPIRE_BINARY_Z3}${VAMPIRE_BINARY_BUILD}${VAMPIRE_BINARY_STATIC}${VAMPIRE_BINARY_BRANCH}${VAMPIRE_BINARY_REV_COUNT}")
+message(STATUS "Setting binary name to '${VAMPIRE_BINARY}'")
+
+################################################################
 # epilogue
 ################################################################
-set(VAMPIRE_BINARY "vampire${VAMPIRE_BINARY_Z3}${VAMPIRE_BINARY_BUILD}${VAMPIRE_BINARY_STATIC}${VAMPIRE_BINARY_BRANCH}${VAMPIRE_BINARY_REV_COUNT}")
-message(STATUS "Setting binary name to " "${VAMPIRE_BINARY}")
 set_target_properties(vampire PROPERTIES
   OUTPUT_NAME ${VAMPIRE_BINARY}
   RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
