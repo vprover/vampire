@@ -54,7 +54,7 @@ SimplifyingGeneratingInference1::Result LfpRule<Rule>::simplify(Clause *cl, bool
   do {
     // we need to assign the split set since this would normally 
     // be done by SaturationAlgorithm/Splitter, which we bypass here
-    if (last != nxt) {
+    if (last != nxt && last->splits() != nullptr) {
       nxt->setSplits(last->splits());
     }
 
