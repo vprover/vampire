@@ -1,10 +1,18 @@
+################################################################
+# general configuration
+################################################################
 cmake_minimum_required (VERSION 3.5.1)
-
 project(Vampire)
 
 # require the compiler to use C++11
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+# compile command database
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+# variables for binary name, set later
 set(VAMPIRE_BINARY "vampire")
 set(VAMPIRE_BINARY_BUILD "_rel")
 set(VAMPIRE_BINARY_STATIC "")
@@ -13,21 +21,18 @@ set(VAMPIRE_BINARY_HASH "")
 set(VAMPIRE_BINARY_BRANCH "")
 set(VAMPIRE_BINARY_REV_COUNT "")
 
-#debug flags
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DVDEBUG=1 -DUNIX_USE_SIGALRM=1 -DGNUMP=0 ")
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -DVDEBUG=0")
-
+# build configuration
 if(NOT CMAKE_BUILD_TYPE)
   message(STATUS "Setting build type to 'Release' as none was specified.")
   set(CMAKE_BUILD_TYPE "Release" CACHE
     STRING "Choose the type of build." FORCE)
-elseif (CMAKE_BUILD_TYPE STREQUAL "Debug")
+elseif(CMAKE_BUILD_TYPE STREQUAL "Debug")
   set(VAMPIRE_BINARY_BUILD "_dbg")
 else()
   set(VAMPIRE_BINARY_BUILD "_${CMAKE_BUILD_TYPE}")
 endif()
 
-#static
+# statically link libraries
 option(BUILD_SHARED_LIBS "Build an executable dynamically linking to libraries instead of a statically-linked one (static not working on Mac)" ON)
 if (NOT BUILD_SHARED_LIBS)
   SET(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
@@ -35,52 +40,10 @@ if (NOT BUILD_SHARED_LIBS)
   set(VAMPIRE_BINARY_STATIC "_static")
 endif()
 
-# support sourcetrail
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
-add_compile_options(
-    # "-ftrapv"
-    # "-pedantic"
-    # "-Wall"
-    # "-Wextra"
-    # "-Wconversion"
-    # "$<$<CONFIG:DEBUG>:-fsanitize=undefined>"
-    # "$<$<CONFIG:DEBUG>:-fsanitize=integer>"
-    # "$<$<CONFIG:DEBUG>:-fsanitize=address>"
-    # "$<$<CONFIG:DEBUG>:-O0>"
-    # "$<$<CONFIG:RELEASE>:-O3>"
-)
-
-# adjust warnings -- compiler dependent
-# -- see also https://cmake.org/pipermail/cmake/2016-May/063452.html
-if(CMAKE_COMPILER_IS_GNUCXX)
-  add_compile_options("-Wno-terminate")
-  add_compile_options("-D__STDC_FORMAT_MACROS=1")
-endif()
-if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")  # use MATCHES instead of equality because the value is "AppleClang" on macOS
-  add_compile_options("-Wno-exceptions")
-endif()
-message("compiler: " ${CMAKE_CXX_COMMAND})
-
-
-
-# add directoy, where we store all custom files for finding libraries which are not build using cmake (i.e. currently z3 only), to the search path of cmake
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
-
-# add top level directory to the search path of compiler
-include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-
-# Set the output folder where the binary will be created (i.e. build/dir)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-
-
-
-
 ################################################################
 # minisat stuff
 ################################################################
 #TODO: refactor minisat into independent imported target
-
 
 ################################################################
 # define all vampire sources,
@@ -98,7 +61,6 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 #       know which of them are really used, that information is
 #       of course not contained in the makefile)
 ################################################################
-
 
 set(VAMPIRE_MINISAT_SOURCES
     Minisat/core/Solver.cc
@@ -779,11 +741,38 @@ set(VAMPIRE_SOURCES
     "${CMAKE_CURRENT_BINARY_DIR}/version.cpp"
     )
 
-# TODO: we want at least vampire_dbg, vampire_rel, vampire_z3_dbg, vampire_z3_rel
-#message(STATUS "a test message")
-
 add_executable(vampire ${VAMPIRE_SOURCES})
-target_compile_definitions(vampire PRIVATE  CHECK_LEAKS=0)
+
+################################################################
+# compiler flag configuration
+################################################################
+# possible flags that might be useful in future
+# "-ftrapv"
+# "-pedantic"
+# "-Wextra"
+# "-Wconversion"
+# "$<$<CONFIG:DEBUG>:-fsanitize=undefined>"
+# "$<$<CONFIG:DEBUG>:-fsanitize=integer>"
+# "$<$<CONFIG:DEBUG>:-fsanitize=address>"
+# "$<$<CONFIG:DEBUG>:-O0>"
+# "$<$<CONFIG:RELEASE>:-O3>"
+
+# add top level directory to the search path of compiler
+target_include_directories(vampire PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+
+# set preprocessor defines
+target_compile_definitions(vampire PRIVATE CHECK_LEAKS=0)
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  target_compile_definitions(vampire PRIVATE VDEBUG=1 UNIX_USE_SIGALRM=1 GNUMP=0)
+elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
+  target_compile_definitions(vampire PRIVATE VDEBUG=0)
+endif()
+
+# configure warning flags
+# https://cmake.org/cmake/help/latest/variable/CMAKE_LANG_COMPILER_ID.html
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang$")
+  target_compile_options(vampire PRIVATE -Wall)
+endif()
 
 ################################################################
 # z3 stuff
@@ -797,7 +786,7 @@ else ()
   message(STATUS "Found Z3 ${Z3_VERSION_STRING}")
   message(STATUS "Z3_DIR: ${Z3_DIR}")
   target_include_directories(vampire PRIVATE ${Z3_CXX_INCLUDE_DIRS})
-  if (Z3_FOUND AND (NOT BUILD_SHARED_LIBS) AND CMAKE_COMPILER_IS_GNUCXX)
+  if (Z3_FOUND AND (NOT BUILD_SHARED_LIBS) AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     # avoid static linking problems with C++ threads
     # see https://stackoverflow.com/questions/58848694/gcc-whole-archive-recipe-for-static-linking-to-pthread-stopped-working-in-rec
     message(STATUS "Adding workaround for gcc static linking against pthread")
@@ -860,9 +849,13 @@ if (GIT_IS_REPOSITORY STREQUAL "true")
   set(VAMPIRE_BINARY_REV_COUNT "_${GIT_REV_COUNT}")
 endif()
 
-################# set binary name #######################
+################################################################
+# epilogue
+################################################################
 set(VAMPIRE_BINARY "vampire${VAMPIRE_BINARY_Z3}${VAMPIRE_BINARY_BUILD}${VAMPIRE_BINARY_STATIC}${VAMPIRE_BINARY_BRANCH}${VAMPIRE_BINARY_REV_COUNT}")
 message(STATUS "Setting binary name to " "${VAMPIRE_BINARY}")
-set_target_properties(vampire PROPERTIES OUTPUT_NAME ${VAMPIRE_BINARY})
-
+set_target_properties(vampire PROPERTIES
+  OUTPUT_NAME ${VAMPIRE_BINARY}
+  RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+  )
 configure_file(version.cpp.in version.cpp)
