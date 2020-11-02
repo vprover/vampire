@@ -2,12 +2,15 @@
 #define __TEST__SIMPLIFICATION_TESTER_HPP__
 
 /**
+ * TODO make doxygen conform (?)
+ *
  * This file provides macros and classes used to write nice tests for simplification rules.
  *
  * Check out UnitTests/tGaussianElimination.cpp, to see how it is to be used.
  */
 
 #include "Test/TestUtils.hpp"
+#include "Test/ClausePattern.hpp"
 #include "Kernel/Clause.hpp"
 #include "Lib/Coproduct.hpp"
 
@@ -24,64 +27,10 @@ public:
   { return TestUtils::eqModAC(lhs, rhs); }
 };
 
-class SimplificationResult;
-
-struct SimplificationAlternative 
-{
-  unique_ptr<SimplificationResult> lhs;
-  unique_ptr<SimplificationResult> rhs;
-};
-
-class SimplificationResult : Coproduct<Kernel::Clause const*, SimplificationAlternative>
-{
-public:
-  SimplificationResult(Kernel::Clause const* clause) 
-    : Coproduct<Kernel::Clause const*, SimplificationAlternative>(clause) {}
-
-  SimplificationResult(SimplificationResult l, SimplificationResult r) : Coproduct<Kernel::Clause const*, SimplificationAlternative>(SimplificationAlternative {
-        Lib::make_unique<SimplificationResult>(std::move(l)),
-        Lib::make_unique<SimplificationResult>(std::move(r))
-      }) {}
-  template<class EqualityOperator>
-  bool matches(EqualityOperator& equality, Kernel::Clause const* result);
-  friend ostream& operator<<(ostream& out, SimplificationResult const& self);
-};
-
-inline ostream& operator<<(ostream& out, SimplificationResult const& self) 
-{
-  return self.match(
-      [&](Kernel::Clause const* const& self) -> ostream&
-      { return out << pretty(self); },
-
-      [&](SimplificationAlternative const& self)  -> ostream&
-      { return out << pretty(self.lhs) << " or " << pretty(self.rhs); });
-}
-
-template<class EqualityOperator>
-inline bool SimplificationResult::matches(EqualityOperator& equality, Kernel::Clause const* result)
-{
-  return match(
-      [&](Kernel::Clause const*& self) 
-      { return equality.eq(result, self); },
-
-      [&](SimplificationAlternative& self) 
-      { return self.lhs->matches(equality, result) || self.rhs->matches(equality, result); });
-}
-
-
-
-inline SimplificationResult anyOf(Kernel::Clause const* lhs) 
-{ return SimplificationResult(lhs); }
-
-template<class... As>
-inline SimplificationResult anyOf(Kernel::Clause const* lhs, Kernel::Clause const* rhs, As... rest) 
-{ return SimplificationResult(lhs, anyOf(rhs, rest...)); }
-
 struct Success
 {
   Kernel::Clause* input;
-  // Kernel::Clause& expected;
-  SimplificationResult expected;
+  ClausePattern expected;
 
   void run(const SimplificationTester& simpl) {
     auto res = simpl.simplify(input);

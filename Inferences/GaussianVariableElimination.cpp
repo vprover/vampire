@@ -11,9 +11,10 @@
 #define DEBUG(...)  //DBG(__VA_ARGS__)
 
 namespace Inferences {
-  using Balancer = Kernel::Rebalancing::Balancer<Kernel::Rebalancing::Inverters::NumberTheoryInverter>;
 
-  SimplifyingGeneratingInference1::Result GaussianVariableElimination::simplify(Clause* in, bool doCheckOrdering) 
+using Balancer = Kernel::Rebalancing::Balancer<Kernel::Rebalancing::Inverters::NumberTheoryInverter>;
+
+SimplifyingGeneratingInference1::Result GaussianVariableElimination::simplify(Clause* in, bool doCheckOrdering) 
 {
   CALL("GaussianVariableElimination::simplify")
   ASS(in)
@@ -50,28 +51,16 @@ SimplifyingGeneratingInference1::Result GaussianVariableElimination::rewrite(Cla
 
   Inference inf(SimplifyingInference1(Kernel::InferenceRule::GAUSSIAN_VARIABLE_ELIMINIATION, &cl));
 
-  bool allLessEq = true;
+  bool premiseRedundant = true;
 
   auto checkLeq = [&](Literal* orig, Literal* rewritten) 
   { 
     if (doCheckOrdering) {
-
-      // auto ord = Ordering::tryGetGlobalOrdering();
-      // ASS(ord)
-      // auto cmp = ord->compare(rewritten, orig);
-      // switch(cmp) {
-      //   case Ordering::Result::LESS:
-      //   case Ordering::Result::LESS_EQ:
-      //   case Ordering::Result::EQUAL:
-      //     break;
-      //   case Ordering::Result::INCOMPARABLE:
-      //   case Ordering::Result::GREATER:
-      //   case Ordering::Result::GREATER_EQ:
-      //     allLessEq = false;
-      //     break;
-      // }
       if (rewritten != orig) {
-        allLessEq = false;
+        // as soon as we rewrite some clause x /= t \/ C[x] into C[t], the result will be incomparable
+        // since the weight of t will be at least as big as the weight of x, hence we C[t] won't be smaller 
+        // than C[x]
+        premiseRedundant = false;
       }
     }
     return rewritten;
@@ -87,10 +76,10 @@ SimplifyingGeneratingInference1::Result GaussianVariableElimination::rewrite(Cla
     out[i] = checkLeq(cl[i+1], EqHelper::replace(cl[i+1], find, replace));
   }
 
-  auto premiseRedundant = allLessEq;
   if(!premiseRedundant) {
     env.statistics->gveViolations++;
   }
+
   return SimplifyingGeneratingInference1::Result{&out, premiseRedundant};
 }
 

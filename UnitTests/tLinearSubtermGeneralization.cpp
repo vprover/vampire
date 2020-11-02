@@ -297,7 +297,7 @@ TEST_SIMPLIFY_REAL(single_var_power_02,
 TEST_SIMPLIFY_FRACTIONAL(multi_var_01,
     Simplification::Success {
       .input    = clause({ p(3 * x + 4 * y + 7 * z + 4) }),
-      .expected = Simplification::anyOf(
+      .expected = anyOf(
                     clause({ p(x) }),
                     clause({ p(y) }))
     })
@@ -310,7 +310,7 @@ TEST_SIMPLIFY_INTEGER(multi_var_01,
 TEST_SIMPLIFY_NUMBER(multi_var_02,
     Simplification::Success {
       .input    = clause({ p(x + 4 * y + 7 * z + 4) }),
-      .expected = Simplification::anyOf(
+      .expected = anyOf(
                     clause({ p(x) }),
                     clause({ p(y) }))
     })
@@ -342,7 +342,7 @@ TEST_SIMPLIFY_NUMBER(multi_var_04,
 TEST_SIMPLIFY_FRACTIONAL(multi_var_05,
     Simplification::Success {
       .input    = clause({ p1(3 * x + 2 * y), p2(3 * x + 2 * y) }),
-      .expected = Simplification::anyOf(
+      .expected = anyOf(
                     clause({ p1(x), p2(x) }),
                     clause({ p1(y), p2(y) }))
     })
@@ -355,7 +355,7 @@ TEST_SIMPLIFY_INTEGER(multi_var_05,
 TEST_SIMPLIFY_FRACTIONAL(multi_var_06,
     Simplification::Success {
       .input    = clause({ p1(3 * x + 2 * y), p2(3 * x + 2 * y + 1) }),
-      .expected = Simplification::anyOf(
+      .expected = anyOf(
                     clause({ p1(x), p2(x + 1) }),
                     clause({ p1(y), p2(y + 1) })
                     )
@@ -414,7 +414,7 @@ TEST_SIMPLIFY_FRACTIONAL(multi_var_12,
     Simplification::Success {
       .input    = clause({ p1(x + y + 2 * z), p2(x + y + z) }),
       //   =====> clause({ p1(x     + 2 * z), p2(x     + z) }), 
-      .expected = Simplification::anyOf(
+      .expected = anyOf(
                     clause({ p1(x + 2 * z), p2(x + z) }), 
                     clause({ p1(y + 2 * z), p2(y + z) }))
     })
@@ -424,7 +424,7 @@ TEST_SIMPLIFY_FRACTIONAL(multi_var_13,
     Simplification::Success {
       .input    = clause({ p1(x + y + 1), p2(x + y + 2), p3(x + y + z) }),
       //   =====> clause({ p1(x     + 1), p2(x     + 2), p3(x     + z) }), 
-      .expected = Simplification::anyOf(
+      .expected = anyOf(
                     clause({ p1(x + 1), p2(x + 2), p3(        z) }), 
                     clause({ p1(y + 1), p2(y + 2), p3(        z) }))
     })
@@ -443,7 +443,7 @@ TEST_SIMPLIFY_FRACTIONAL(multi_var_14,
 TEST_SIMPLIFY_FRACTIONAL(multi_var_15,
     Simplification::Success {
       .input    = clause({ p1(x + y + 1), p2(x + y + 1) }), 
-      .expected = Simplification::anyOf(
+      .expected = anyOf(
                      clause({ p1(x), p2(x) }),
                      clause({ p1(y), p2(y) }))
     })
@@ -480,7 +480,7 @@ TEST_SIMPLIFY_FRACTIONAL(complex_expressions_02,
 TEST_SIMPLIFY_FRACTIONAL(fallancy_01,
     Simplification::Success {
       .input    = clause({ p(3 * x * y) }),
-      .expected = Simplification::anyOf(
+      .expected = anyOf(
                        clause({ p(x) }), 
                        clause({ p(y) })), 
     })
@@ -494,7 +494,7 @@ TEST_SIMPLIFY_FRACTIONAL(fallancy_02,
 TEST_SIMPLIFY_FRACTIONAL(fallancy_03,
     Simplification::Success {
       .input    = clause({ p1(x * y), p2(x * y + 1) }),
-      .expected = Simplification::anyOf(
+      .expected = anyOf(
                       clause({ p1(x), p2(x + 1) }), 
                       clause({ p1(y), p2(y + 1) })
                     ),
@@ -511,7 +511,7 @@ TEST_SIMPLIFY_FRACTIONAL(fallancy_04,
 TEST_SIMPLIFY_FRACTIONAL(fallancy_05,
     Simplification::Success {
       .input    = clause({ p1(2 * x * y), p2(2 * x), p3(2 * y) }),
-      .expected = Simplification::anyOf(
+      .expected = anyOf(
                     clause({ p1(    x * y), p2(    x), p3(2 * y) }),
                     clause({ p1(    x * y), p2(2 * x), p3(    y) })), 
     })
@@ -537,7 +537,7 @@ TEST_SIMPLIFY_NUMBER(generalize_var_1,
     Simplification::Success {
       .input    = clause({ p1(f(x * y * z) + f(x * y)) }), 
       //  ======> clause({ p1(f(x     * z) + f(x    )) }), 
-      .expected = Simplification::anyOf(
+      .expected = anyOf(
           clause({ p1(f(x * z) + f(x)) }),
           clause({ p1(f(y * z) + f(y)) })
           )
@@ -547,7 +547,7 @@ TEST_SIMPLIFY_NUMBER(generalize_var_2,
     Simplification::Success {
       .input    = clause({ p1(x * y + f(x * y * z) + f(x * y)) }), 
       //   =====> clause({ p1(x     + f(x     * z) + f(x    )) }), 
-      .expected = Simplification::anyOf(
+      .expected = anyOf(
                        clause({ p1(x + f(x * z) + f(x)) }),
                        clause({ p1(y + f(y * z) + f(y)) })
                        ), 
@@ -561,7 +561,7 @@ TEST_SIMPLIFY_NUMBER(generalize_var_3,
 TEST_SIMPLIFY_NUMBER(generalize_var_4,
     Simplification::Success {
       .input    = clause({ p1(x * x * y) }), 
-      .expected = Simplification::anyOf(
+      .expected = anyOf(
                        clause({ p1(y) }),
                        clause({ p1(x) })
                        ), 
@@ -575,7 +575,7 @@ TEST_SIMPLIFY_NUMBER(generalize_var_5,
 TEST_SIMPLIFY_NUMBER(generalize_var_6,
     Simplification::Success {
       .input    = clause({ p1(x * x * y), p2(z * x * x * y) }), 
-      .expected = Simplification::anyOf(
+      .expected = anyOf(
                        clause({ p1(x), p2(x * z) }),
                        clause({ p1(y), p2(y * z) })
                       ), 
@@ -584,7 +584,7 @@ TEST_SIMPLIFY_NUMBER(generalize_var_6,
 TEST_SIMPLIFY_NUMBER(generalize_var_7,
     Simplification::Success {
       .input    = clause({ p1(x * x * y * z), p2(z * x * x * x * y) }), 
-      .expected = Simplification::anyOf(
+      .expected = anyOf(
                        clause({ p1(x * x * z), p2(x * x * x * z) }),
                        clause({ p1(x * x * y), p2(x * x * x * y) })
                       ), 
@@ -593,7 +593,7 @@ TEST_SIMPLIFY_NUMBER(generalize_var_7,
 TEST_SIMPLIFY_NUMBER(generalize_var_8,
     Simplification::Success {
       .input    = clause({ p1(( x * x ) * ( y ) * ( z * z )), p2(( x * x * x ) * ( y ) * (z * z)) }), 
-      .expected = Simplification::anyOf(
+      .expected = anyOf(
                        clause({ p1(( x * x ) * z), p2(( x * x * x ) * z) }),
                        clause({ p1(( x * x ) * y), p2(( x * x * x ) * y) })
                       ), 
@@ -603,7 +603,7 @@ TEST_SIMPLIFY_REAL(generalize_var_9,
     Simplification::Success {
       .input    = clause({ p1(( x * x ) * ( z * z * z )), p2(( x * x * x ) * (z * z * z)) }), 
       //   =====> clause({ p1(( x * x ) * (     z     )), p2(( x * x * x ) * (    z    )) }), 
-      .expected = Simplification::anyOf(
+      .expected = anyOf(
                   clause({ p1(( x * x ) *       z      ), p2(( x * x * x ) *      z     ) })
           )
     })

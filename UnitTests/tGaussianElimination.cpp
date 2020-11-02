@@ -158,7 +158,6 @@ TEST_SIMPLIFY(gve_test_div,
 REGISTER_GEN_TESTER(Test::Generation::GenerationTester<GaussianVariableElimination>)
 
 
-
 TEST_GENERATION(test_redundancy_01,
     Generation::TestCase {
       .input     = clause({  x != 4, p(x)  }),
