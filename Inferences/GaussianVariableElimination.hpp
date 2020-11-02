@@ -1,6 +1,7 @@
 #include "InferenceEngine.hpp"
 #include "Lib/Set.hpp"
 #include "PolynomialNormalization.hpp"
+#include "Kernel/Clause.hpp"
 
 namespace Inferences {
 
@@ -47,14 +48,21 @@ SimplifyingGeneratingInference1::Result LfpRule<Rule>::simplify(Clause *cl, bool
   // DBG("in:  ", *cl);
   auto last = cl;
   auto nxt = cl;
-
   auto redundant = true;
-  bool last_redundant = true;
+  auto last_redundant = true;
 
   do {
+    // we need to assign the split set since this would normally 
+    // be done by SaturationAlgorithm/Splitter, which we bypass here
+    if (last != nxt) {
+      nxt->setSplits(last->splits());
+    }
+
     last = nxt;
     redundant = redundant && last_redundant;
+
     auto res = _inner.simplify(last, doCheckOrdering);
+
     last_redundant = res.premiseRedundant;
     nxt = res.simplified;
   } while (nxt != last);
