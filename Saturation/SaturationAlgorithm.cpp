@@ -96,6 +96,7 @@
 #include "Inferences/CombinatorNormalisationISE.hpp"
 #include "Inferences/BoolSimp.hpp"
 #include "Inferences/CasesSimp.hpp"
+#include "Inferences/Cases.hpp"
 
 
 #include "Saturation/ExtensionalityClauseContainer.hpp"
@@ -1586,9 +1587,11 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   if (opt.extensionalityResolution() != Options::ExtensionalityResolution::OFF) {
     gie->addFront(new ExtensionalityResolution());
   }
-  //check problem is higher-order AYB
-  if (opt.FOOLParamodulation() && prb.hasFOOL() && !opt.casesSimp()) {
+  if (opt.FOOLParamodulation()) {
     gie->addFront(new FOOLParamodulation());
+  }
+  if (opt.cases() && prb.hasFOOL() && !opt.casesSimp()) {
+    gie->addFront(new Cases());
   }
 
   if((prb.hasLogicalProxy() || prb.hasBoolVar() || prb.hasFOOL()) &&
@@ -1651,7 +1654,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     // NOTE:
     // fsd should be performed after forward subsumption,
     // because every successful forward subsumption will lead to a (useless) match in fsd.
-    if (opt.forwardSubsumptionDemodulation()) {
+    if (opt.forwardSubsumptionDemodulation() && !prb.hasPolymorphicSym()) {
       res->addForwardSimplifierToFront(new ForwardSubsumptionDemodulation(false));
     }
   }
@@ -1698,7 +1701,8 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
 #endif
     }
   }
-  if (prb.hasEquality() && opt.backwardSubsumptionDemodulation()) {
+  if (prb.hasEquality() && opt.backwardSubsumptionDemodulation() &&
+      !prb.hasPolymorphicSym()) {
     res->addBackwardSimplifierToFront(new BackwardSubsumptionDemodulation());
   }
   if (opt.backwardSubsumption() != Options::Subsumption::OFF) {
@@ -1770,7 +1774,7 @@ ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, cons
     res->addFront(new BoolSimp());
   }
 
-  if (prb.hasFOOL() && opt.casesSimp() && !opt.FOOLParamodulation()) {
+  if (prb.hasFOOL() && opt.casesSimp() && !opt.cases()) {
     res->addFrontMany(new CasesSimp());
   }
 
@@ -1785,7 +1789,8 @@ ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, cons
       res->addFront(new NegativeInjectivityISE());
     }
   }
-  if(prb.hasInterpretedOperations() || prb.hasInterpretedEquality()) {
+  if(!prb.hasPolymorphicSym() && 
+    (prb.hasInterpretedOperations() || prb.hasInterpretedEquality())) {
     if (env.options->gaussianVariableElimination()) {
       res->addFront(new GaussianVariableElimination()); 
     }

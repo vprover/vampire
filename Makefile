@@ -314,6 +314,7 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/URResolution.o\
          Inferences/CNFOnTheFly.o\
          Inferences/CasesSimp.o\
+         Inferences/Cases.o\
          Inferences/BoolSimp.o\
          Inferences/PrimitiveInstantiation.o\
          Inferences/Choice.o\

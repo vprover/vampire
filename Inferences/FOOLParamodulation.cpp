@@ -35,99 +35,105 @@
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/Sorts.hpp"
-#include "Kernel/SortHelper.hpp"
-
-#include "Saturation/SaturationAlgorithm.hpp"
 
 #include "FOOLParamodulation.hpp"
 
 namespace Inferences {
 
-Clause* FOOLParamodulation::performParamodulation(Clause* premise, Literal* lit, TermList t) {
-  CALL("FOOLParamodulation::performParamodulation");
+ClauseIterator FOOLParamodulation::generateClauses(Clause* premise) {
+  CALL("FOOLParamodulation::generateClauses");
 
-  ASS(t.isTerm());
-
-  TermList lhs = *lit->nthArgument(0);
-  TermList rhs = *lit->nthArgument(1);
-
-  if((t == lhs) || (t == rhs)){
-    return 0;
-  }
+  /**
+   * We are going to implement the following inference rule, taken from the paper:
+   *
+   *        C[s]
+   * --------------------, where
+   * C[true] \/ s = false
+   *
+   * (a) s is a boolean term other than true or false;
+   * (b) s is not a variable;
+   * (c) C[s] is different from s = false.
+   *
+   * C[s] is a clause with an occurrence of s, and C[true] is the C clause
+   * with s substituted by true.
+   *
+   * C[s] is deleted after the inference is applied.
+   */
 
   static TermList troo(Term::foolTrue());
   static TermList fols(Term::foolFalse());
 
+  /**
+   * We will be looking for a literal, standing in a `literalPosition` in
+   * the clause, that has an occurrence of a `booleanTerm`, that is not a
+   * variable, true or false.
+   *
+   * We will only be looking for one boolean term and only replace one
+   * occurrence of it in one literal. An alternative implementation can:
+   *  1) Replace all occurrences of a boolean term in all literals.
+   *  2) Find occurrences of multiple boolean terms and replace their
+   *     occurrences simultaneously, adding multiple literals of the form
+   *     s_n = false to the conclusion.
+   */
+  TermList booleanTerm;
+  unsigned literalPosition = 0;
+
+  ArrayishObjectIterator<Clause> literals = premise->getSelectedLiteralIterator();
+  while (literals.hasNext()) {
+    Literal* literal = literals.next();
+
+    // we shouldn't touch literals of the form s = false
+    if (literal->isEquality() && literal->polarity()) {
+      TermList* lhs = literal->nthArgument(0);
+      TermList* rhs = literal->nthArgument(1);
+      if ((lhs->isTerm() && env.signature->isFoolConstantSymbol(false,lhs->term()->functor())) ||
+          (rhs->isTerm() && env.signature->isFoolConstantSymbol(false,rhs->term()->functor()))) {
+        literalPosition++;
+        continue;
+      }
+    }
+
+    // we shouldn't replace variables, hence NonVariableIterator
+    NonVariableIterator nvi(literal);
+    while (nvi.hasNext()) {
+      TermList subterm = nvi.next();
+      unsigned functor = subterm.term()->functor();
+
+      // we shouldn't replace boolean constants
+      if (env.signature->isFoolConstantSymbol(false,functor) || env.signature->isFoolConstantSymbol(true,functor)) {
+        continue;
+      }
+
+      TermList resultType = env.signature->getFunction(functor)->fnType()->result();
+      if (resultType == Term::boolSort()) {
+        booleanTerm = subterm;
+        goto substitution;
+      }
+    }
+    literalPosition++;
+  }
+
+  // If we reached this point, it means that there was no boolean terms we are
+  // interested in, so we don't infer anything
+  return ClauseIterator::getEmpty();
+
+  substitution:
 
   // Found a boolean term! Create the C[true] \/ s = false clause
   unsigned conclusionLength = premise->length() + 1;
-
   Clause* conclusion = new(conclusionLength) Clause(conclusionLength,
       GeneratingInference1(InferenceRule::FOOL_PARAMODULATION, premise));
 
   // Copy the literals from the premise except for the one at `literalPosition`,
   // that has the occurrence of `booleanTerm` replaced with false
-  for (unsigned i = 0; i < conclusionLength - 1; i++) {
-    Literal* curr = (*premise)[i];
-    if(curr != lit){
-      (*conclusion)[i] = (*premise)[i];
-    } else {
-      (*conclusion)[i] = EqHelper::replace((*premise)[i], t, troo);
-    }
+  for (unsigned i = 0; i < conclusion->length() - 1; i++) {
+    (*conclusion)[i] = i == literalPosition ? EqHelper::replace((*premise)[i], booleanTerm, troo) : (*premise)[i];
   }
 
   // Add s = false to the clause
-  (*conclusion)[conclusionLength - 1] = Literal::createEquality(true, t, fols, Term::boolSort());
+  (*conclusion)[conclusion->length() - 1] = Literal::createEquality(true, booleanTerm, fols, Term::boolSort());
 
-  return conclusion;
-}
-
-
-struct FOOLParamodulation::ResultFn
-{
-  ResultFn(Clause* cl, FOOLParamodulation& parent) : _cl(cl), _parent(parent) {}
-  DECL_RETURN_TYPE(Clause*);
-  OWN_RETURN_TYPE operator()(pair<Literal*, TermList> arg)
-  {
-    CALL("FOOLParamodulation::ResultFn::operator()");
-    
-    return _parent.performParamodulation(_cl, arg.first, arg.second);
-  }
-private:
-  Clause* _cl;
-  FOOLParamodulation& _parent;
-};
-
-struct FOOLParamodulation::RewriteableSubtermsFn
-{
-  RewriteableSubtermsFn(Ordering& ord) : _ord(ord) {}
-
-  DECL_RETURN_TYPE(VirtualIterator<pair<Literal*, TermList> >);
-  OWN_RETURN_TYPE operator()(Literal* lit)
-  {
-    CALL("FOOLParamodulation::RewriteableSubtermsFn()");
-
-    return pvi( pushPairIntoRightIterator(lit, 
-                EqHelper::getBooleanSubtermIterator(lit, _ord)) );
-  }
-
-private:
-  Ordering& _ord;
-};
-
-ClauseIterator FOOLParamodulation::generateClauses(Clause* premise)
-{
-  CALL("FOOLParamodulation::generateClauses");
-
-  auto it1 = premise->getSelectedLiteralIterator();
-
-  auto it2 = getMapAndFlattenIterator(it1,RewriteableSubtermsFn(_salg->getOrdering()));
-
-  auto it3 = getMappingIterator(it2,ResultFn(premise, *this));
-
-  auto it4 = getFilteredIterator(it3,NonzeroFn());
-
-  return pvi( it4 );
+  return pvi(getSingletonIterator(conclusion));
 }
 
 }

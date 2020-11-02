@@ -21,8 +21,8 @@
  * Defines class FOOLParamodulation.
  */
 
-#ifndef __FOOL_PARAMODULATION__
-#define __FOOL_PARAMODULATION__
+#ifndef __Cases__
+#define __Cases__
 
 #include "Forwards.hpp"
 
@@ -30,11 +30,15 @@
 
 namespace Inferences {
 
-class FOOLParamodulation : public GeneratingInferenceEngine {
+class Cases : public GeneratingInferenceEngine {
   public:
-    CLASS_NAME(FOOLParamodulation);
-    USE_ALLOCATOR(FOOLParamodulation);
+    CLASS_NAME(Cases);
+    USE_ALLOCATOR(Cases);
+    
+    Clause* performParamodulation(Clause* cl, Literal* lit, TermList t);
     ClauseIterator generateClauses(Clause* premise);
+    struct RewriteableSubtermsFn;
+    struct ResultFn;
 };
 
 }

@@ -1557,10 +1557,18 @@ void Options::Options::init()
     _casesSimp = BoolOptionValue("cases_simp","cs",false);
     _casesSimp.description=
     "FOOL Paramodulation with two conclusion as a simplification";
-    _casesSimp.reliesOn(_FOOLParamodulation.is(equal(false)));
+    _casesSimp.reliesOn(_cases.is(equal(false)));
     _lookup.insert(&_casesSimp);
     _casesSimp.tag(OptionTag::INFERENCES);
 
+    //TODO, sort out the mess with cases and FOOLP. 
+    //One should be removed. AYB
+    _cases = BoolOptionValue("cases","c",false);
+    _cases.description=
+    "Alternative to FOOL Paramodulation that replaces all Boolean subterms in one step";
+    _cases.reliesOn(_casesSimp.is(equal(false)));
+    _lookup.insert(&_cases);
+    _cases.tag(OptionTag::INFERENCES);
 
     _newTautologyDel = BoolOptionValue("new_taut_del","ntd",false);
     _newTautologyDel.description=
