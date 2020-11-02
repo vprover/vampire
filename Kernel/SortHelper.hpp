@@ -85,6 +85,7 @@ public:
   static TermList getIndexSort(TermList arraySort);
   static TermList getInnerSort(TermList arraySort);
   static bool isNotDefaultSort(unsigned s);
+  static bool isInterpretedNonDefault(unsigned s);
   //convenience functions
   static unsigned sortNum(TermList sort){
     return env.sorts->getSortNum(sort);

@@ -268,9 +268,8 @@ public:
           CALL("SubstitutionTree::ChildBySortHelper::childBySort");
           TermList srt;
           // only consider interpreted sorts
-          if(SortHelper::tryGetResultSort(t,srt) && 
-             !SortHelper::isNotDefaultSort(SortHelper::sortNum(srt)) &&
-             srt!=Term::defaultSort()){
+          if(SortHelper::tryGetResultSort(t,srt) && !srt.term()->isSuper() &&
+             SortHelper::isInterpretedNonDefault(SortHelper::sortNum(srt))){
             unsigned top = t.term()->functor();
             TermStack::Iterator fit(bySortTerms[SortHelper::sortNum(srt)]);
             auto withoutThisTop = getFilteredIterator(fit,NotTop(top));
@@ -292,9 +291,9 @@ public:
           CALL("SubstitutionTree::ChildBySortHelper::mightExistAsTop");
           if(!t.isTerm()){ return; }
           TermList srtT;
-          if(SortHelper::tryGetResultSort(t,srtT)){
+          if(SortHelper::tryGetResultSort(t,srtT) && !srtT.term()->isSuper()){
             unsigned srt = SortHelper::sortNum(srtT);
-            if(!SortHelper::isNotDefaultSort(srt) && srtT != Term::defaultSort()){
+            if(SortHelper::isInterpretedNonDefault(srt)){
               unsigned f = t.term()->functor();
               if(bySort[srt].insert(f)){
                 bySortTerms[srt].push(t);
@@ -307,9 +306,9 @@ public:
           CALL("SubstitutionTree::ChildBySortHelper::remove");
           if(!t.isTerm()){ return;}
           TermList srtT;
-          if(SortHelper::tryGetResultSort(t,srtT)){
+          if(SortHelper::tryGetResultSort(t,srtT) && !srtT.term()->isSuper()){
             unsigned srt = SortHelper::sortNum(srtT);
-            if(!SortHelper::isNotDefaultSort(srt) && srtT != Term::defaultSort()){
+            if(SortHelper::isInterpretedNonDefault(srt)){
               unsigned f = t.term()->functor();
               if(bySort[srt].remove(f)){
                 bySortTerms[srt].remove(t);

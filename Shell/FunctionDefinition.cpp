@@ -893,13 +893,17 @@ FunctionDefinition::defines (Term* lhs, Term* rhs)
        env.signature->isFoolConstantSymbol(false, f)){
       return 0;
     }
-    /*if (rhs->arity() != 0) { // c = f(...)
+    //Higher-order often contains definitions of the form
+    //f = ^x^y...
+    if (rhs->arity() && !env.statistics->higherOrder) { // c = f(...)
       return 0;
-    }*/
+    }
     if (rhs->functor() == f) {
       return 0;
     }
-    /* return new Def(lhs,rhs,true,true); */
+    if(!env.statistics->higherOrder){
+      return new Def(lhs,rhs,true,true);
+    }
   }
 
   int vars = 0; // counter of variables occurring in the lhs

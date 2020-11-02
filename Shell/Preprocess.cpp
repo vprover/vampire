@@ -32,7 +32,7 @@
 #include "Kernel/Problem.hpp"
 
 #include "GoalGuessing.hpp"
-//#include "AnswerExtractor.hpp"
+#include "AnswerExtractor.hpp"
 #include "CNF.hpp"
 #include "NewCNF.hpp"
 #include "DistinctGroupExpansion.hpp"
@@ -165,7 +165,7 @@ void Preprocess::preprocess(Problem& prb)
 {
   CALL("Preprocess::preprocess");
 
-  //Hacky, to be undone when we have a proper schedule
+  //Hacky, to be undone when we have a proper schedule AYB
   if(env.options->pragmatic() && env.options->maxXXNarrows() == 0){
     env.options->setMaxXX(2);
   }
@@ -228,6 +228,9 @@ void Preprocess::preprocess(Problem& prb)
   }
 
   if (prb.hasFOOL() || env.statistics->higherOrder) {//or lambda
+    //FOOL + polymorphism should work, but has not yet been tested
+    //Once it has been, this assertion can be removed AYB
+    ASS(!prb.hasPolymorphicSym());
     // This is the point to extend the signature with $$true and $$false
     // If we don't have fool then these constants get in the way (a lot)
 
@@ -291,13 +294,13 @@ void Preprocess::preprocess(Problem& prb)
     SineSelector(_options).perform(prb);
   }
 
- /* if (_options.questionAnswering()==Options::QuestionAnsweringMode::ANSWER_LITERAL) {
+  if (_options.questionAnswering()==Options::QuestionAnsweringMode::ANSWER_LITERAL) {
     env.statistics->phase=Statistics::UNKNOWN_PHASE;
     if (env.options->showPreprocessing())
       env.out() << "answer literal addition" << std::endl;
 
     AnswerLiteralManager::getInstance()->addAnswerLiterals(prb);
-  } */
+  }
 
   // stop here if clausification is not required and still simplify not set
   if (!_clausify && !_stillSimplify) {
@@ -338,8 +341,8 @@ void Preprocess::preprocess(Problem& prb)
     preprocess2(prb);
   }
 
-  if (prb.mayHaveFormulas() && _options.newCNF() 
-      && !env.statistics->higherOrder) {
+  if (prb.mayHaveFormulas() && _options.newCNF() && 
+     !prb.hasPolymorphicSym() && !env.statistics->higherOrder) {
     if (env.options->showPreprocessing())
       env.out() << "newCnf" << std::endl;
 
@@ -530,7 +533,8 @@ void Preprocess::preprocess1 (Problem& prb)
     fu = Rectify::rectify(fu);
     FormulaUnit* rectFu = fu;
     // Simplify the formula if it contains true or false
-    if (!_options.newCNF() || env.statistics->higherOrder) {
+    if (!_options.newCNF() || env.statistics->higherOrder ||
+        prb.hasPolymorphicSym()) {
       // NewCNF effectively implements this simplification already
       fu = SimplifyFalseTrue::simplify(fu);
     }

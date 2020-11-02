@@ -100,7 +100,7 @@
 
 #include "Saturation/ExtensionalityClauseContainer.hpp"
 
-//#include "Shell/AnswerExtractor.hpp"
+#include "Shell/AnswerExtractor.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/UIHelper.hpp"
@@ -489,9 +489,9 @@ void SaturationAlgorithm::onNewClause(Clause* cl)
     onNewUsefulPropositionalClause(cl);
   }
 
- /* if (_answerLiteralManager) {
+  if (_answerLiteralManager) {
     _answerLiteralManager->onNewClause(cl);
-  }*/
+  }
 }
 
 void SaturationAlgorithm::onNewUsefulPropositionalClause(Clause* c)
@@ -1716,9 +1716,9 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   if (opt.showSymbolElimination()) {
     res->_symEl=new SymElOutput();
   }
-  /*if (opt.questionAnswering()==Options::QuestionAnsweringMode::ANSWER_LITERAL) {
+  if (opt.questionAnswering()==Options::QuestionAnsweringMode::ANSWER_LITERAL) {
     res->_answerLiteralManager = AnswerLiteralManager::getInstance();
-  }*/
+  }
   return res;
 } // SaturationAlgorithm::createFromOptions
 

@@ -517,9 +517,9 @@ void Property::scanSort(TermList sort)
     return;
   }
 
-  if(!env.statistics->higherOrder){
+  if(!env.statistics->higherOrder && !_hasPolymorphicSym){
     //used sorts is for FMB which is not compatible with 
-    //higher-order
+    //higher-order or polymorphism
     unsigned sortU = SortHelper::sortNum(sort);
     if(!_usesSort.get(sortU)){
       _sortsUsed++;

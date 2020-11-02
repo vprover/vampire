@@ -361,7 +361,8 @@ VST_OBJ= Saturation/AWPassiveClauseContainer.o\
          Saturation/SymElOutput.o\
          Saturation/ManCSPassiveClauseContainer.o\
 
-VS_OBJ = Shell/BFNT.o\
+VS_OBJ = Shell/AnswerExtractor.o\
+         Shell/BFNT.o\
          Shell/BFNTMainLoop.o\
          Shell/CommandLine.o\
          Shell/CNF.o\
@@ -416,7 +417,6 @@ VS_OBJ = Shell/BFNT.o\
          Shell/Lexer.o\
          Shell/Preprocess.o\
          version.o
-#         Shell/AnswerExtractor.o\
 
 #         Shell/PARSER_TKV.o\
 #         Shell/SMTLEX.o\

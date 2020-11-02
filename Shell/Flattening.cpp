@@ -113,7 +113,8 @@ Formula* Flattening::flatten (Formula* f)
     {
       Literal* lit = f->literal();
 
-      if (env.options->newCNF() && !env.statistics->higherOrder) {//TODO update this
+      if (env.options->newCNF() && !env.statistics->higherOrder &&
+          !env.property->hasPolymorphicSym()) {
         // Convert equality between boolean FOOL terms to equivalence
         if (lit->isEquality()) {
           TermList lhs = *lit->nthArgument(0);

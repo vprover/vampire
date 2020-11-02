@@ -515,6 +515,7 @@ void KBO::checkAdmissibility(HandleError handle) const
   auto maximalFunctions = Map<SortType, FunctionSymbol>();
 
   for (FunctionSymbol i = 0; i < nFunctions; i++) {
+    if(env.signature->isTypeConOrSup(i)){ continue; }
     auto sort = env.signature->getFunction(i)->fnType()->result();
     /* register min function */
     auto maxFn = maximalFunctions.getOrInit(std::move(sort), [&](FunctionSymbol* toInit){ *toInit = i; } );
@@ -527,6 +528,7 @@ void KBO::checkAdmissibility(HandleError handle) const
   unsigned varWght = _funcWeights._specialWeights._variableWeight;
 
   for (unsigned i = 0; i < nFunctions; i++) {
+    if(env.signature->isTypeConOrSup(i)){ continue; }
     auto sort = env.signature->getFunction(i)->fnType()->result();
     auto arity = env.signature->getFunction(i)->arity();
 

@@ -42,7 +42,7 @@
 #include "Parse/SMTLIB2.hpp"
 #include "Parse/TPTP.hpp"
 
-//#include "AnswerExtractor.hpp"
+#include "AnswerExtractor.hpp"
 #include "InterpolantMinimizer.hpp"
 #include "InterpolantMinimizerNew.hpp"
 #include "Interpolants.hpp"
@@ -377,8 +377,7 @@ void UIHelper::outputResult(ostream& out)
     }
     if (env.options->questionAnswering()!=Options::QuestionAnsweringMode::OFF) {
       ASS(env.statistics->refutation->isClause());
-      //TODO AYB awaiting InterpretedLiteralEvaluator fix
-      //AnswerExtractor::tryOutputAnswer(static_cast<Clause*>(env.statistics->refutation));
+      AnswerExtractor::tryOutputAnswer(static_cast<Clause*>(env.statistics->refutation));
     }
     if (env.options->proof() != Options::Proof::OFF) {
       if (szsOutputMode()) {

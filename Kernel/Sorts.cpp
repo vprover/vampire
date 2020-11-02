@@ -202,7 +202,11 @@ OperatorType* OperatorType::getTypeFromKey(OperatorType::OperatorKey* key, VarLi
   unsigned vLength = 0;
   if(vars){
     vLength = VarList::length(vars);
-    VarList::destroy(vars); 
+    //At the moment we have memory leaking. Every one of these lists
+    //that is used to create a polymorphic type just ends up lying around
+    //this will be fixed once rectification of types is introduced. AYB
+
+    //VarList::destroy(vars); 
   }
 
   OperatorType* resultType = new OperatorType(key, vLength);
