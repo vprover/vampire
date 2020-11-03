@@ -4,7 +4,7 @@
 #include "Forwards.hpp"
 #include "InferenceEngine.hpp"
 #include "Lib/Stack.hpp"
-#include "PolynomialNormalization.hpp"
+#include "PolynomialEvaluation.hpp"
 
 
 namespace Inferences {

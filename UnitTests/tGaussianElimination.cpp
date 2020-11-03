@@ -5,7 +5,8 @@
 #include "Inferences/GaussianVariableElimination.hpp"
 #include "Inferences/InterpretedEvaluation.hpp"
 #include "Kernel/Ordering.hpp"
-#include "Inferences/PolynomialNormalization.hpp"
+#include "Inferences/PolynomialEvaluation.hpp"
+#include "Inferences/Cancellation.hpp"
 
 #include "Test/SyntaxSugar.hpp"
 #include "Test/TestUtils.hpp"
@@ -44,7 +45,7 @@ public:
     KBO ord = KBO::testKBO();
     auto simpl = [](Clause* cl)  -> Clause*
     {
-      static PolynomialNormalization eval(*Ordering::tryGetGlobalOrdering());
+      static PolynomialEvaluation eval(*Ordering::tryGetGlobalOrdering());
       static Cancellation cancel(*Ordering::tryGetGlobalOrdering());
       return cancel.asISE().simplify(eval.asISE().simplify(cl));
     };

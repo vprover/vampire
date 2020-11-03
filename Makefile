@@ -297,7 +297,9 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/InferenceEngine.o\
 	 Inferences/Instantiation.o\
          Inferences/InterpretedEvaluation.o\
-         Inferences/PolynomialNormalization.o\
+         Inferences/PushUnaryMinus.o\
+         Inferences/Cancellation.o\
+         Inferences/PolynomialEvaluation.o\
          Inferences/ArithmeticSubtermGeneralization.o\
          Inferences/SLQueryBackwardSubsumption.o\
          Inferences/Superposition.o\

@@ -26,10 +26,10 @@
 #include "Lib/DArray.hpp"
 #include "Lib/List.hpp"
 #include "Lib/Metaiterators.hpp"
+#include "Kernel/Ordering.hpp"
 
 #include "Kernel/Term.hpp"
 #include "Kernel/Clause.hpp"
-#include "Kernel/Inference.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
@@ -425,5 +425,91 @@ SimplifyingGeneratingInference::ClauseGenerationResult SimplifyingGeneratingInfe
     };
   }
 }
+
+SimplifyingGeneratingInference1::Result SimplifyingGeneratingLiteralSimplification::simplify(Clause* cl_, bool doOrderingCheck) {
+  DEBUG("in:  ", *cl_)
+  auto& cl = *cl_;
+  Stack<Literal*> out(cl.size());
+
+  bool changed = false;
+  bool allLessEq = true;
+  bool oneLess = false;
+
+  for (int i = 0; i < cl.size(); i++) {
+
+    auto orig = cl[i];
+    auto result = simplifyLiteral(orig);
+
+    if (result.isLiteral() && result.unwrapLiteral() == orig ) {
+      out.push(orig);
+    } else {
+      auto simpl = result;
+      env.statistics->evaluationCnt++;
+
+      if (simpl.isConstant()) {
+
+        bool trivialValue = simpl.unwrapConstant();
+        if (trivialValue) {
+          /* clause is a tautology and can be deleted */
+          return SimplifyingGeneratingInference1::Result::tautology();
+        } else {
+          /* do not add the literal to the output stack */
+          changed = true;
+        }
+
+      } else {
+
+        Literal* simplLit = simpl.unwrapLiteral();
+        ASS_NEQ(simplLit, orig)
+        changed = true;
+        out.push(simplLit);
+
+        if (doOrderingCheck) {
+          ASS(_ordering)
+          auto cmp = _ordering->compare(simplLit, orig);
+          switch(cmp) {
+            case Ordering::Result::LESS:
+              oneLess = true;
+              break;
+            case Ordering::Result::LESS_EQ:
+            case Ordering::Result::EQUAL:
+              ASSERTION_VIOLATION
+              break;
+            case Ordering::Result::INCOMPARABLE:
+            case Ordering::Result::GREATER:
+            case Ordering::Result::GREATER_EQ:
+              if (cmp == Ordering::Result::INCOMPARABLE) {
+                env.statistics->evaluationIncomp++;
+              } else {
+                env.statistics->evaluationGreater++;
+              }
+              DEBUG("ordering violated: ", cmp)
+              DEBUG("orig: ", *orig)
+              DEBUG("simp: ", *simplLit)
+              allLessEq = false;
+              break;
+          }
+        }
+      }
+    }
+  }
+
+
+  if (!changed) {
+    return SimplifyingGeneratingInference1::Result::nop(cl_);
+  } else {
+    auto result = Clause::fromStack(out, SimplifyingInference1(_rule, cl_));
+    DEBUG("out: ", *result)
+    return SimplifyingGeneratingInference1::Result{
+            .simplified = result, 
+            .premiseRedundant = allLessEq && oneLess,
+          };
+  }
+}
+
+SimplifyingGeneratingLiteralSimplification::SimplifyingGeneratingLiteralSimplification(InferenceRule rule, Ordering& ordering): _ordering(&ordering), _rule(rule) {}
+
+
+
 
 }

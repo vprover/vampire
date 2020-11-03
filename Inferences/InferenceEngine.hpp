@@ -33,6 +33,8 @@
 #include "Lib/List.hpp"
 
 #include "Lib/Allocator.hpp"
+#include "Kernel/Inference.hpp"
+#include "Lib/Coproduct.hpp"
 
 namespace Inferences
 {
@@ -199,6 +201,42 @@ protected:
   virtual Result simplify(Clause* cl, bool doOrderingCheck) = 0;
 private:
   Clause* simplify(Clause* cl) override;
+};
+
+/**
+ * A SimplifyingGeneratingInference1 that is applied literal by literal
+ */
+class SimplifyingGeneratingLiteralSimplification
+: public SimplifyingGeneratingInference1
+{
+
+public:
+  // TODO rename to result
+  class Result : public Lib::Coproduct<Literal*, bool> 
+  {
+  private:
+    explicit Result(Coproduct&& l) : Coproduct(std::move(l)) {}
+  public:
+    using super = Lib::Coproduct<Literal*, bool>;
+    /**
+     * returns whether the result is a trivial literal (top or bot)
+     */
+    inline bool isConstant() const& { return is<1>(); }
+    inline bool isLiteral() const& { return is<0>(); }
+    inline bool unwrapConstant() const& { return unwrap<1>(); }
+    inline Literal* unwrapLiteral() const& { return unwrap<0>(); }
+    inline static Result constant(bool b) { return Result(Coproduct::template variant<1>(b)); }
+    inline static Result literal(Literal* b) { return Result(Coproduct::template variant<0>(b)); }
+  };
+
+protected:
+  SimplifyingGeneratingLiteralSimplification(InferenceRule rule, Ordering& ordering);
+  virtual Result simplifyLiteral(Literal* l) = 0;
+  SimplifyingGeneratingInference1::Result simplify(Clause* cl, bool doOrderingCheck) override;
+
+private:
+  Ordering* _ordering;
+  const InferenceRule _rule;
 };
 
 class ForwardSimplificationEngine

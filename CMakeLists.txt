@@ -425,6 +425,8 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/InferenceEngine.cpp
     Inferences/Instantiation.cpp
     Inferences/InterpretedEvaluation.cpp
+    Inferences/PushUnaryMinus.cpp
+    Inferences/Cancellation.cpp
     Inferences/PolynomialNormalization.cpp
     Inferences/ArithmeticSubtermGeneralization.cpp
     Kernel/NumTraits.cpp
@@ -458,6 +460,8 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/InferenceEngine.hpp
     Inferences/Instantiation.hpp
     Inferences/InterpretedEvaluation.hpp
+    Inferences/PushUnaryMinus.hpp
+    Inferences/Cancellation.hpp
     Inferences/PolynomialNormalization.hpp
     Inferences/ArithmeticSubtermGeneralization.hpp
     Kernel/NumTraits.cpp

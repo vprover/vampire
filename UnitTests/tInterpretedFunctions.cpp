@@ -28,7 +28,9 @@
 #include "Kernel/Term.hpp"
 #include "Kernel/Sorts.hpp"
 #include "Kernel/PolynomialNormalizer.hpp"
-#include "Inferences/PolynomialNormalization.hpp"
+#include "Inferences/PolynomialEvaluation.hpp"
+#include "Inferences/PushUnaryMinus.hpp"
+#include "Inferences/Cancellation.hpp"
 #include "Test/TestUtils.hpp"
 #include "Kernel/KBO.hpp"
 
@@ -46,6 +48,7 @@ using namespace Test;
 using namespace Kernel;
 using namespace Shell;
 using namespace Inferences;
+using LitSimplResult = Inferences::SimplifyingGeneratingLiteralSimplification::Result;
 
 /////////////////////////////////////////////// Helper functions ///////////////////////////////////////////////////////
 
@@ -61,7 +64,7 @@ bool equalityCheck(Literal& l, Literal& r)
 bool equalityCheck(bool l, bool r) 
 { return l == r; }
 
-bool equalityCheck(LitEvalResult& l, LitEvalResult& r) 
+bool equalityCheck(LitSimplResult& l, LitSimplResult& r) 
 { 
   if (l.template is<0>() && r.template is<0>()) return equalityCheck(*l.template unwrap<0>(), *r.template unwrap<0>());
   if (l.template is<1>() && r.template is<1>()) return equalityCheck( l.template unwrap<1>(),  r.template unwrap<1>());
@@ -69,7 +72,7 @@ bool equalityCheck(LitEvalResult& l, LitEvalResult& r)
   return false;
 }
 
-bool equalityCheck(Optional<LitEvalResult>& l, Optional<LitEvalResult>& r) 
+bool equalityCheck(Optional<LitSimplResult>& l, Optional<LitSimplResult>& r) 
 { 
   if (l.isSome()) {
     return r.isSome() && equalityCheck(l.unwrap(),r.unwrap());
@@ -105,12 +108,12 @@ struct TestOrdering {
 struct Failure { };
 static Failure evaluationFail;
 
-Optional<LitEvalResult> evaluate(Literal* lit) 
+Optional<LitSimplResult> evaluate(Literal* lit) 
 {
   auto ord = KBO::testKBO();
   Ordering::trySetGlobalOrdering(SmartPtr<Ordering>(&ord, true));
 
-  using Opt = Optional<LitEvalResult>;
+  using Opt = Optional<LitSimplResult>;
   auto& cl = *clause({lit});
 
   auto simpl = [](Clause* cl) -> Clause* 
@@ -118,7 +121,7 @@ Optional<LitEvalResult> evaluate(Literal* lit)
 
     auto _simpl = [](Clause* cl) -> Clause* 
     {
-      PolynomialNormalization norm(*Ordering::tryGetGlobalOrdering());
+      PolynomialEvaluation norm(*Ordering::tryGetGlobalOrdering());
       PushUnaryMinus uminus;
       Cancellation cancel(*Ordering::tryGetGlobalOrdering());
       if (cl == nullptr) {
@@ -140,16 +143,16 @@ Optional<LitEvalResult> evaluate(Literal* lit)
 
   auto clOut = simpl(&cl);
   if (clOut == nullptr) {
-    return Opt(LitEvalResult::constant(true));
+    return Opt(LitSimplResult::constant(true));
   } else if (clOut->size() == 0) {
-    return Opt(LitEvalResult::constant(false));
+    return Opt(LitSimplResult::constant(false));
   } else {
     ASS_EQ(clOut->size(), 1)
     auto out = (*clOut)[0];
     if (out == lit) {
       return Opt();
     } else {
-      return Opt(LitEvalResult::literal(out));
+      return Opt(LitSimplResult::literal(out));
     }
   }
 }
@@ -159,15 +162,15 @@ void check_eval(Lit orig_, Failure) {
 
   Literal* src = Literal::create(&orig, orig.polarity());
   auto res = evaluate(src);
-  // auto expected = LitEvalResult::literal(src);
-  auto expected = Optional<LitEvalResult>();
+  // auto expected = LitSimplResult::literal(src);
+  auto expected = Optional<LitSimplResult>();
        
   CHECK_EQ(expected, res, "unexpectedly evaluation was successful", orig);
 }
 
 template<>
-std::ostream& Pretty<LitEvalResult>::prettyPrint(std::ostream& out) const
-{ return out << pretty(static_cast<LitEvalResult::super const&>(_self)); }
+std::ostream& Pretty<LitSimplResult>::prettyPrint(std::ostream& out) const
+{ return out << pretty(static_cast<LitSimplResult::super const&>(_self)); }
 
 
 

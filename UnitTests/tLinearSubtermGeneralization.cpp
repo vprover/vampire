@@ -6,7 +6,7 @@
 #include "Inferences/InterpretedEvaluation.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Inferences/ArithmeticSubtermGeneralization.hpp"
-#include "Inferences/PolynomialNormalization.hpp"
+#include "Inferences/PolynomialEvaluation.hpp"
 
 #include "Test/SyntaxSugar.hpp"
 #include "Test/TestUtils.hpp"

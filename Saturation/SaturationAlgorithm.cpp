@@ -49,7 +49,9 @@
 #include "Kernel/Unit.hpp"
 
 #include "Inferences/InterpretedEvaluation.hpp"
-#include "Inferences/PolynomialNormalization.hpp"
+#include "Inferences/PolynomialEvaluation.hpp"
+#include "Inferences/PushUnaryMinus.hpp"
+#include "Inferences/Cancellation.hpp"
 #include "Inferences/GaussianVariableElimination.hpp"
 #include "Inferences/EquationalTautologyRemoval.hpp"
 #include "Inferences/Condensation.hpp"
@@ -1477,7 +1479,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   auto& ordering = res->getOrdering();
 
   if (opt.evaluationMode() == Options::EvaluationMode::POLYNOMIAL_CAUTIOUS) {
-    sgi->push(new PolynomialNormalization(ordering));
+    sgi->push(new PolynomialEvaluation(ordering));
   }
 
   if (env.options->cancellation() == Options::ArithmeticSimplificationMode::CAUTIOUS) {
@@ -1649,7 +1651,7 @@ ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, cons
         res->addFront(new InterpretedEvaluation(env.options->inequalityNormalization(), ordering));
         break;
       case Options::EvaluationMode::POLYNOMIAL_FORCE:
-        res->addFront(&(new PolynomialNormalization(ordering))->asISE());
+        res->addFront(&(new PolynomialEvaluation(ordering))->asISE());
         break;
       case Options::EvaluationMode::POLYNOMIAL_CAUTIOUS:
         break;

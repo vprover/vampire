@@ -1,4 +1,5 @@
 // #include "Kernel/PolynomialNormalizer.hpp"
+//
 
 template<class C> using Poly = Polynom<NumTraits<C>>;
 #include "Debug/Tracer.hpp"
@@ -9,16 +10,14 @@ template<class C> using Poly = Polynom<NumTraits<C>>;
 #define TODO throw "TODO";
 
 
-// using namespace Lib;
 
-// namespace Kernel {
+using LitSimplResult = Inferences::SimplifyingGeneratingLiteralSimplification::Result;
 
 
 #define IMPL_EVALUATE_PRED(interpretation, ...)                                                               \
   template<>                                                                                                  \
   struct PredicateEvaluator<interpretation> {                                                                 \
-    template<class Config>                                                                                    \
-    static Optional<LitEvalResult> evaluate(Literal* orig, PolyNf* evaluatedArgs)                                       \
+    static Optional<LitSimplResult> evaluate(Literal* orig, PolyNf* evaluatedArgs)                                       \
     {                                                                                                         \
       CALL("PredicateEvaluator<" #interpretation ">::evaluate(Literal*,PolyNf*)");                            \
       __VA_ARGS__                                                                                             \
@@ -30,16 +29,16 @@ template<class C> using Poly = Polynom<NumTraits<C>>;
 /// Helper functions
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-template<class NormalizerConfig, class ConstantType, class EvalGround>
-Optional<LitEvalResult> tryEvalConstant2(Literal* orig, PolyNf* evaluatedArgs, EvalGround fun) 
+template<class ConstantType, class EvalGround>
+Optional<LitSimplResult> tryEvalConstant2(Literal* orig, PolyNf* evaluatedArgs, EvalGround fun) 
 {
   using Number = NumTraits<ConstantType>;
   auto& lhs = evaluatedArgs[0].asPoly().downcast<Number>();
   auto& rhs = evaluatedArgs[1].asPoly().downcast<Number>();
   if (lhs.isNumber() && rhs.isNumber()) {
-    return Optional<LitEvalResult>(LitEvalResult::constant(fun(lhs.unwrapNumber(), rhs.unwrapNumber())));
+    return Optional<LitSimplResult>(LitSimplResult::constant(fun(lhs.unwrapNumber(), rhs.unwrapNumber())));
   } else {
-    return Optional<LitEvalResult>();
+    return Optional<LitSimplResult>();
   }
 }
 
@@ -49,43 +48,18 @@ Optional<LitEvalResult> tryEvalConstant2(Literal* orig, PolyNf* evaluatedArgs, E
 /// Equality
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-template<class Config, class number> inline Optional<LitEvalResult> interpretEquality(bool polarity, Polynom<number> lhs, Polynom<number> rhs) {
+template<class Number> inline Optional<LitSimplResult> interpretEquality(bool polarity, Polynom<Number> lhs, Polynom<Number> rhs) {
   
   if (lhs.isNumber() && rhs.isNumber()) {
-    return Optional<LitEvalResult>(LitEvalResult::constant(polarity == (lhs.unwrapNumber() == rhs.unwrapNumber())));
+    return Optional<LitSimplResult>(LitSimplResult::constant(polarity == (lhs.unwrapNumber() == rhs.unwrapNumber())));
   } else {
-    return Optional<LitEvalResult>();
-    // auto res = Polynom<number>::cancelAdd(lhs, rhs);
-    // // auto res = Polynom<number>::cancelMul(move(res_.lhs), move(res_.rhs));
-    // // TODO cancel mul as well
-    //
-    // auto lTerm = res.lhs.toTerm();
-    // auto rTerm = res.rhs.toTerm();
-    //
-    // if (lTerm == rTerm) {
-    //   return Optional<LitEvalResult>(LitEvalResult::constant(polarity));
-    // } else if (res.lhs == lhs && res.rhs == rhs) {
-    //   return Optional<LitEvalResult>();
-    // } else {
-    //   return Optional<LitEvalResult>(LitEvalResult::literal(Literal::createEquality(polarity, lTerm, rTerm, number::sort)));
-    // }
+    return Optional<LitSimplResult>();
   }
 }
-
-// using IntTraits = NumTraits<IntegerConstantType>;
-// using RatTraits = NumTraits<RationalConstantType>;
-// using RealTraits = NumTraits<RealConstantType>;
 
 using IntPoly = Polynom<NumTraits<IntegerConstantType>>;
 using RatPoly = Polynom<NumTraits<RationalConstantType>>;
 using RealPoly = Polynom<NumTraits<RealConstantType>>;
-
-// template<class PolyType> PolyType cvtPoly(PolyNf& t) {
-//   return t.match<PolyType>(
-//       [](TermList& t) { return PolyType(t); },
-//       [](AnyPoly&  p) { return PolyType(p.as<PolyType>()); }
-//       );
-// }
 
 IMPL_EVALUATE_PRED(Interpretation::EQUAL,
   auto& lhs = evaluatedArgs[0];
@@ -94,17 +68,17 @@ IMPL_EVALUATE_PRED(Interpretation::EQUAL,
   auto sort = SortHelper::getEqualityArgumentSort(orig);
 
   if (lhs == rhs) {
-    return Optional<LitEvalResult>(LitEvalResult::constant(polarity));
+    return Optional<LitSimplResult>(LitSimplResult::constant(polarity));
   }
   switch (sort) {
   case Sorts::SRT_INTEGER:
-    return interpretEquality<Config>(polarity, *intoPoly<IntTraits>(lhs), *intoPoly<IntTraits>(rhs));
+    return interpretEquality(polarity, *intoPoly<IntTraits>(lhs), *intoPoly<IntTraits>(rhs));
   case Sorts::SRT_RATIONAL:
-    return interpretEquality<Config>(polarity, *intoPoly<RatTraits>(lhs), *intoPoly<RatTraits>(rhs));
+    return interpretEquality(polarity, *intoPoly<RatTraits>(lhs), *intoPoly<RatTraits>(rhs));
   case Sorts::SRT_REAL:
-    return interpretEquality<Config>(polarity, *intoPoly<RealTraits>(lhs), *intoPoly<RealTraits>(rhs));
+    return interpretEquality(polarity, *intoPoly<RealTraits>(lhs), *intoPoly<RealTraits>(rhs));
   default:
-    return Optional<LitEvalResult>();
+    return Optional<LitSimplResult>();
   }
 )
 
@@ -112,7 +86,7 @@ IMPL_EVALUATE_PRED(Interpretation::EQUAL,
 /// Inequalities
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-template<class NormalizerConfig, class ConstantType, class EvalIneq> Optional<LitEvalResult> evaluateInequality(Literal* orig, PolyNf* evaluatedArgs, bool strict, EvalIneq evalIneq) {
+template<class ConstantType, class EvalIneq> Optional<LitSimplResult> evaluateInequality(Literal* orig, PolyNf* evaluatedArgs, bool strict, EvalIneq evalIneq) {
   ASS(orig->arity() == 2);
 
 
@@ -121,17 +95,17 @@ template<class NormalizerConfig, class ConstantType, class EvalIneq> Optional<Li
 
   auto polarity = orig->polarity();
   if (lhs.isNumber() && rhs.isNumber()) {
-    return Optional<LitEvalResult>(LitEvalResult::constant(polarity == evalIneq(lhs.unwrapNumber(), rhs.unwrapNumber())));
+    return Optional<LitSimplResult>(LitSimplResult::constant(polarity == evalIneq(lhs.unwrapNumber(), rhs.unwrapNumber())));
   } else if (lhs == rhs) {
-    return Optional<LitEvalResult>(LitEvalResult::constant(polarity != strict));
+    return Optional<LitSimplResult>(LitSimplResult::constant(polarity != strict));
   } else {
-    return Optional<LitEvalResult>();
+    return Optional<LitSimplResult>();
   }
 }
 
 #define __IMPL_INEQ(Const, name, STRICT, op)                                                                  \
   IMPL_EVALUATE_PRED(NumTraits<Const>::name ## I,                                                             \
-       return evaluateInequality<Config, Const>(orig, evaluatedArgs, STRICT, [](Const l, Const r) {return l op r;});  \
+       return evaluateInequality<Const>(orig, evaluatedArgs, STRICT, [](Const l, Const r) {return l op r;});  \
   )                                                                                                           \
 ;
 #define IMPL_INEQUALTIES(Const)                                                                               \
@@ -154,7 +128,7 @@ IMPL_INEQUALTIES(IntegerConstantType)
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 IMPL_EVALUATE_PRED(Interpretation::INT_DIVIDES,
-  return tryEvalConstant2<Config, IntegerConstantType>(orig, evaluatedArgs, 
+  return tryEvalConstant2<IntegerConstantType>(orig, evaluatedArgs, 
     [](IntegerConstantType l, IntegerConstantType r) -> bool { 
       // TODO use fastest reminder operation
       return  r.remainderE(l) == IntegerConstantType(0);
@@ -171,10 +145,5 @@ IMPL_EVALUATE_PRED(Interpretation::INT_DIVIDES,
 #undef HANDLE_CASE
 #undef IGNORE_CASE
 #undef HANDLE_NUM_CASES
-// }
-
-// void Lib::integrity<Kernel::PolyNf>::check(const Kernel::PolyNf& self, const char* file, int line) {
-//   integrity<Lib::Coproduct<Kernel::TermList, Kernel::AnyPoly>>::check(self, file, line);
-// }
 
 

@@ -216,7 +216,7 @@ template<class NumTraits> struct FnGetInner;
 template<class NumTraits> struct FnGetInnerConst;
 
 template<class NumTraits>
-void sortByMonom(Stack<PolyPair<NumTraits>>& s)
+void sortByMonom(Stack<Monom<NumTraits>>& s)
 { std::sort(s.begin(), s.end()); }
 
 template<class Eval>
@@ -288,16 +288,16 @@ struct EvaluateMonom
     CALL("EvaluateMonom::operator()(AnyPoly, PolyNf*)")
 
     using Polynom   = Kernel::Polynom<NumTraits>;
-    using PolyPair  = Kernel::PolyPair<NumTraits>;
+    using Monom  = Kernel::Monom<NumTraits>;
 
     auto offs = 0;
     return unique(Polynom(
                 poly->iter()
-                 .map([&](PolyPair pair) -> PolyPair { 
+                 .map([&](Monom pair) -> Monom { 
                    CALL("EvaluateMonom::clsr01")
 
                    auto result = eval(pair, &evaluatedArgs[offs]);
-                   offs += pair.monom->nFactors();
+                   offs += pair.factors->nFactors();
                    return result;
                })
             .template collect<Stack>()));
@@ -371,7 +371,7 @@ template<class NumTraits>
 class GeneralizeMul
 {
 public:
-  using PolyPair = Kernel::PolyPair<NumTraits>;
+  using Monom = Kernel::Monom<NumTraits>;
 
   template<class Self>
   static UniqueShared<Polynom<NumTraits>> generalize(
@@ -399,9 +399,9 @@ class GeneralizeMulNumeral
 {
   using Inner = Coproduct<typename NumTraits::ConstantType, Bot>;
   Inner _inner;
-  using PolyPair = Kernel::PolyPair<NumTraits>;
-  using Const = typename NumTraits::ConstantType;
   using Monom = Kernel::Monom<NumTraits>;
+  using Const = typename NumTraits::ConstantType;
+  using MonomFactors = Kernel::MonomFactors<NumTraits>;
 
 private:
   GeneralizeMulNumeral(Bot b) : _inner(b) {}
@@ -425,7 +425,7 @@ public:
   bool isBot() const 
   {return _inner.template is<Bot>(); }
 
-  PolyPair cancel(PolyPair p) const;
+  Monom cancel(Monom p) const;
 
   friend ostream& operator<<(ostream& out, GeneralizeMulNumeral const& self) 
   { return out << self._inner; }
@@ -439,16 +439,16 @@ public:
   { return GeneralizeMul<Num2>::generalize(var, gen, poly, generalizedArgs); }
 
 
-  static PolyPair generalize(
+  static Monom generalize(
     Variable var,
     Self const& gen, 
-    PolyPair const& poly,
+    Monom const& poly,
     PolyNf* generalizedArgs);
 
   template<class GenMap> static void addToMap(GenMap& map, AnyPoly p)
   { return GeneralizeMul<NumTraits>::template addToMap<GenMap, Self>(map, p); }
 
-  template<class GenMap> static void addToMap(GenMap& map, PolyPair const& m);
+  template<class GenMap> static void addToMap(GenMap& map, Monom const& m);
 
 private:
   static GeneralizeMulNumeral meet(Const lhs, Const rhs) {
@@ -463,9 +463,9 @@ class FlatMeetLattice
 {
   using Inner = Coproduct<A, Bot>;
   Inner _inner;
-  using PolyPair = Kernel::PolyPair<RealTraits>;
-  using Const = RealConstantType;
   using Monom = Kernel::Monom<RealTraits>;
+  using Const = RealConstantType;
+  using MonomFactors = Kernel::MonomFactors<RealTraits>;
 
 private:
   FlatMeetLattice(Bot b) : _inner(b) {}
@@ -525,14 +525,14 @@ UniqueShared<Polynom<NumTraits>> GeneralizeMul<NumTraits>::generalize(
 {
 
   using Polynom   = Kernel::Polynom<NumTraits>;
-  using PolyPair  = Kernel::PolyPair<NumTraits>;
+  using Monom  = Kernel::Monom<NumTraits>;
 
   auto offs = 0;
   return unique(Polynom(
               poly->iter()
-               .map([&](PolyPair pair) -> PolyPair { 
+               .map([&](Monom pair) -> Monom { 
                  auto result = Self::generalize(var, gen, pair, &generalizedArgs[offs]);
-                 offs += pair.monom->nFactors();
+                 offs += pair.factors->nFactors();
                  return result;
              })
           .template collect<Stack>()));
@@ -540,23 +540,23 @@ UniqueShared<Polynom<NumTraits>> GeneralizeMul<NumTraits>::generalize(
 
 
 template<class NumTraits>
-PolyPair<NumTraits> GeneralizeMulNumeral<NumTraits>::generalize(
+Monom<NumTraits> GeneralizeMulNumeral<NumTraits>::generalize(
   Variable var,
   Self const& gen, 
-  PolyPair const& pair,
+  Monom const& pair,
   PolyNf* generalizedArgs) 
 {
 
-  using PolyPair  = Kernel::PolyPair<NumTraits>;
-  using MonomPair = MonomPair<NumTraits>;
+  using Monom  = Kernel::Monom<NumTraits>;
+  using MonomFactor     = MonomFactor    <NumTraits>;
 
-  auto found = (pair.monom->iter()
-      .find([&](MonomPair& monom) 
-        { return monom == MonomPair(var, 1); }));
+  auto found = (pair.factors->iter()
+      .find([&](MonomFactor    & factors) 
+        { return factors == MonomFactor(var, 1); }));
 
-  auto newMonom = unique(pair.monom->replaceTerms(generalizedArgs));
+  auto newMonom = unique(pair.factors->replaceTerms(generalizedArgs));
 
-  auto p = PolyPair(pair.coeff, newMonom);
+  auto p = Monom(pair.numeral, newMonom);
 
   if (found.isSome()) {
      return gen.cancel(p);
@@ -567,13 +567,13 @@ PolyPair<NumTraits> GeneralizeMulNumeral<NumTraits>::generalize(
 
 
 template<class NumTraits>
-PolyPair<NumTraits> GeneralizeMulNumeral<NumTraits>::cancel(PolyPair p) const 
+Monom<NumTraits> GeneralizeMulNumeral<NumTraits>::cancel(Monom p) const 
 { 
    if (_inner.template is<Const>() && _inner != decltype(_inner)(Const(0))) {
-      return PolyPair(Const(1), p.monom);
+      return Monom(Const(1), p.factors);
    } else {
       ASS(_inner.template is<Bot>());
-      return PolyPair(p.coeff, p.monom);
+      return Monom(p.numeral, p.factors);
    }
 }
 
@@ -618,12 +618,12 @@ Stack<C> intersectSortedStack(Stack<C>&& l, Stack<C>&& r)
 template<class NumTraits>
 class GeneralizeAdd 
 {
-  using PolyPair = Kernel::PolyPair<NumTraits>;
-  using Const = typename NumTraits::ConstantType;
   using Monom = Kernel::Monom<NumTraits>;
+  using Const = typename NumTraits::ConstantType;
+  using MonomFactors = Kernel::MonomFactors<NumTraits>;
 
   // TODO get rid of this field
-  Stack<PolyPair> _cancellable;
+  Stack<Monom> _cancellable;
 
   GeneralizeAdd(decltype(_cancellable) cancel) : _cancellable(cancel) {}
 
@@ -716,12 +716,12 @@ UniqueShared<Polynom<NumTraits>> GeneralizeAdd<NumTraits>::generalize(
 {
 
   CALL("GeneralizeAdd::generalize")
-  using PolyPair = Kernel::PolyPair<NumTraits>;
+  using Monom = Kernel::Monom<NumTraits>;
 
   //TODO memo
 
   auto found = poly->iter()
-    .find([&](PolyPair p) 
+    .find([&](Monom p) 
         { return p.tryVar() == some(var); });
   if (found.isNone()) {
     return unique(poly->replaceTerms(generalizedArgs));
@@ -729,25 +729,25 @@ UniqueShared<Polynom<NumTraits>> GeneralizeAdd<NumTraits>::generalize(
   auto& toCancel = gen._cancellable;
 
 
-  Stack<PolyPair> out(poly->nSummands() - toCancel.size());
+  Stack<Monom> out(poly->nSummands() - toCancel.size());
 
   unsigned p = 0;
   unsigned genOffs = 0;
 
   auto pushGeneralized = [&]()  
   { 
-    auto monom = unique(poly->summandAt(p).monom->replaceTerms(&generalizedArgs[genOffs]));
-    auto coeff = poly->summandAt(p).coeff;
+    auto factors = unique(poly->summandAt(p).factors->replaceTerms(&generalizedArgs[genOffs]));
+    auto coeff = poly->summandAt(p).numeral;
 
-    genOffs += monom->nFactors();
+    genOffs += factors->nFactors();
     p++;
 
-    return out.push(PolyPair(coeff, monom));
+    return out.push(Monom(coeff, factors));
   };
 
   auto skipGeneralized = [&]() 
   {
-    genOffs += poly->summandAt(p).monom->nFactors();
+    genOffs += poly->summandAt(p).factors->nFactors();
     p++;
   };
 
@@ -796,7 +796,7 @@ void GeneralizeAdd<NumTraits>::addToMap(GenMap& map, AnyPoly p_)
           [&](GeneralizeAdd<NumTraits> old) { return move(old).meet(move(gen)); },
           [&]()                             { return move(gen); });
     } else {
-      for (auto factor : summand.monom->iter()) {
+      for (auto factor : summand.factors->iter()) {
          if (factor.term.template is<Variable>()) {
            auto v = factor.term.template unwrap<Variable>();
            map.replaceOrInsert(v, GeneralizeAdd<NumTraits>::bot());
@@ -808,13 +808,13 @@ void GeneralizeAdd<NumTraits>::addToMap(GenMap& map, AnyPoly p_)
 
 template<class NumTraits>
 template<class GenMap>
-void GeneralizeMulNumeral<NumTraits>::addToMap(GenMap& map, PolyPair const& summand)
+void GeneralizeMulNumeral<NumTraits>::addToMap(GenMap& map, Monom const& summand)
 {
-  for (auto factor : summand.monom->iter()) {
+  for (auto factor : summand.factors->iter()) {
     factor.term.template as<Variable>()
       .andThen([&](Variable var) {
           if (factor.power == 1) {
-            auto gen = Self(summand.coeff);
+            auto gen = Self(summand.numeral);
             auto entry = map.tryGet(var);
             if (entry.isSome()) {
               auto& val = entry.unwrap();
@@ -1023,13 +1023,13 @@ namespace Rule3
   class VariableRegion 
   {
     Coproduct<
-      Stack<AnyNumber<MonomPair>>, /* <- always sorted; contains only factors of the form `variable ^ n` */
+      Stack<AnyNumber<MonomFactor>>, /* <- always sorted; contains only factors of the form `variable ^ n` */
       Top /* <- unininitialized */
         > _self;
 
   public:
     VariableRegion() : _self(Top{}) {}
-    VariableRegion(Stack<AnyNumber<MonomPair>>&& self) : _self(self) {}
+    VariableRegion(Stack<AnyNumber<MonomFactor>>&& self) : _self(self) {}
     VariableRegion(VariableRegion &&) = default;
     VariableRegion& operator=(VariableRegion &&) = default;
 
@@ -1042,11 +1042,11 @@ namespace Rule3
       return VariableRegion(intersectSortedStack(std::move(lhs.unwrap()), std::move(rhs.unwrap())));
     }
 
-    Stack<AnyNumber<MonomPair>> const& unwrap() const 
-    { return _self.template unwrap<Stack<AnyNumber<MonomPair>>>(); }
+    Stack<AnyNumber<MonomFactor>> const& unwrap() const 
+    { return _self.template unwrap<Stack<AnyNumber<MonomFactor>>>(); }
 
-    Stack<AnyNumber<MonomPair>> & unwrap() 
-    { return _self.template unwrap<Stack<AnyNumber<MonomPair>>>(); }
+    Stack<AnyNumber<MonomFactor>> & unwrap() 
+    { return _self.template unwrap<Stack<AnyNumber<MonomFactor>>>(); }
 
     friend ostream& operator<<(ostream& out, VariableRegion const& self) 
     {
@@ -1089,16 +1089,16 @@ namespace Rule3
 
       for (auto summand : p->iter()) {
 
-        auto varIter = summand.monom->iter()
-              .filter([](MonomPair<NumTraits> factor) { return factor.term.template is<Variable>(); });
+        auto varIter = summand.factors->iter()
+              .filter([](MonomFactor<NumTraits> factor) { return factor.term.template is<Variable>(); });
 
         auto varIter2 = varIter;
         auto varStack = VariableRegion(
             varIter2
-              .map([](MonomPair<NumTraits> factor) { return AnyNumber<MonomPair>(factor); })
+              .map([](MonomFactor<NumTraits> factor) { return AnyNumber<MonomFactor>(factor); })
               .template collect<Stack>());
 
-        auto vars = varIter.map([](MonomPair<NumTraits> factor) { return factor.term.template unwrap<Variable>(); });
+        auto vars = varIter.map([](MonomFactor<NumTraits> factor) { return factor.term.template unwrap<Variable>(); });
 
         if (vars.hasNext())  {
           auto fst = vars.next();
@@ -1142,30 +1142,30 @@ namespace Rule3
    */
   struct Generalize 
   {
-    Stack<AnyNumber<MonomPair>> const& toRem; /* <- always expected to be sorted */
+    Stack<AnyNumber<MonomFactor>> const& toRem; /* <- always expected to be sorted */
     bool doOrderingCheck;
 
     template<class NumTraits>
-    PolyPair<NumTraits> operator()(PolyPair<NumTraits> p, PolyNf* evaluatedArgs)  
+    Monom<NumTraits> operator()(Monom<NumTraits> p, PolyNf* evaluatedArgs)  
     {
       CALL("Generalize::operator()")
-      using Pair = PolyPair<NumTraits>;
-      return Pair(p.coeff, unique(Monom<NumTraits>(filter(p.monom, evaluatedArgs))));
+      using Pair = Monom<NumTraits>;
+      return Pair(p.numeral, unique(MonomFactors<NumTraits>(filter(p.factors, evaluatedArgs))));
     }
 
     template<class NumTraits>
-    Stack<MonomPair<NumTraits>> filter(UniqueShared<Monom<NumTraits>> const& monom, PolyNf* evaluatedArgs)
+    Stack<MonomFactor<NumTraits>> filter(UniqueShared<MonomFactors<NumTraits>> const& factors, PolyNf* evaluatedArgs)
     {
-      Stack<MonomPair<NumTraits>> out;
+      Stack<MonomFactor<NumTraits>> out;
       unsigned rmI = 0;
       unsigned m = 0;
 
       auto skip = [&]() { rmI++; m++; };
-      auto push = [&]() { out.push(MonomPair<NumTraits>(evaluatedArgs[m], monom->factorAt(m).power)); m++; };
+      auto push = [&]() { out.push(MonomFactor<NumTraits>(evaluatedArgs[m], factors->factorAt(m).power)); m++; };
 
 
-      while (m < monom->nFactors() && rmI < toRem.size()) {
-        auto factor = monom->factorAt(m);
+      while (m < factors->nFactors() && rmI < toRem.size()) {
+        auto factor = factors->factorAt(m);
         auto rm = toRem[rmI].template downcast<NumTraits>();
         if (rm.isNone()) {
           push();
@@ -1178,7 +1178,7 @@ namespace Rule3
           rmI++;
         }
       }
-      while (m < monom->nFactors()) {
+      while (m < factors->nFactors()) {
         push();
       }
 
@@ -1218,7 +1218,7 @@ namespace Rule3
 
     /* create a stack of all variables that shall be removed in the final step */
 
-    Stack<AnyNumber<MonomPair>> remove;
+    Stack<AnyNumber<MonomFactor>> remove;
 
     components.evalComponents();
     for (auto comp : iterTraits(IntUnionFind::ComponentIterator(components))) {
@@ -1228,7 +1228,7 @@ namespace Rule3
 
         /* one variable with power one needs to be kept, per varible region */
         auto var = iterTraits(region.iter())
-          .filter([](AnyNumber<MonomPair> p) { return p.apply(Polymorphic::tryVar{}).isSome(); })
+          .filter([](AnyNumber<MonomFactor> p) { return p.apply(Polymorphic::tryVar{}).isSome(); })
           .tryNext();
 
         if (var.isSome()) {
@@ -1286,7 +1286,7 @@ namespace Rule4
     void operator()(UniqueShared<Polynom<RealTraits>> p) 
     {
       for (auto summand : p->iter()) {
-        for (auto factor : summand.monom->iter()) {
+        for (auto factor : summand.factors->iter()) {
           auto var = factor.term.tryVar();
           if (var.isSome()) {
 
@@ -1317,29 +1317,29 @@ namespace Rule4
     PowerMap& powers;
     bool doOrderingCheck;
 
-    PolyPair<RealTraits> operator()(PolyPair<RealTraits> p, PolyNf* evaluatedArgs)  
+    Monom<RealTraits> operator()(Monom<RealTraits> p, PolyNf* evaluatedArgs)  
     {
       unsigned i = 0;
-      return PolyPair<RealTraits>(
-          p.coeff, 
-          unique(Monom<RealTraits>(
-            p.monom->iter()
-             .map([&](MonomPair<RealTraits> m) 
+      return Monom<RealTraits>(
+          p.numeral, 
+          unique(MonomFactors<RealTraits>(
+            p.factors->iter()
+             .map([&](MonomFactor<RealTraits> m) 
                { 
                   auto var = m.term.tryVar();
                   if (var.isSome() && !powers.get(var.unwrap()).isBot()) {
                     ASS_EQ(evaluatedArgs[i], var.unwrap());
-                    return MonomPair<RealTraits>(evaluatedArgs[i++], 2 - ( m.power % 2 ));
+                    return MonomFactor<RealTraits>(evaluatedArgs[i++], 2 - ( m.power % 2 ));
                   } else {
-                    return MonomPair<RealTraits>(evaluatedArgs[i++], m.power); 
+                    return MonomFactor<RealTraits>(evaluatedArgs[i++], m.power); 
                   }
                 })
              .template collect<Stack>())));
     }
 
     template<class Num, EnableIfNotReal<Num> = 0>
-    PolyPair<Num> operator()(PolyPair<Num> p, PolyNf* evaluatedArgs)  
-    { return PolyPair<Num>(p.coeff, unique(p.monom->replaceTerms(evaluatedArgs))); }
+    Monom<Num> operator()(Monom<Num> p, PolyNf* evaluatedArgs)  
+    { return Monom<Num>(p.numeral, unique(p.factors->replaceTerms(evaluatedArgs))); }
 
   };
 

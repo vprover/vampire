@@ -907,13 +907,16 @@ std::ostream& operator<< (ostream& out, const Literal& tl );
 
 };
 
+/* template specializations */
 namespace Lib
 {
+
 
 template<>
 struct FirstHashTypeInfo<Kernel::TermList> {
   typedef Kernel::TermListHash Type;
 };
+
 
 }
 
