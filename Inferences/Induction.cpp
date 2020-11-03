@@ -42,6 +42,7 @@
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
+#include "Shell/InductionSchemeFilter.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/NewCNF.hpp"
@@ -792,7 +793,7 @@ void InductionClauseIterator::performStructInductionFour(Clause* premise, Litera
     }
   }
 
-  gen.filter();
+  InductionSchemeFilter().filter(gen._primarySchemes, gen._secondarySchemes);
   for (const auto& kv : gen._primarySchemes) {
     if(env.options->showInduction()){
       env.beginOutput();

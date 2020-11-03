@@ -1,6 +1,6 @@
 
 /*
- * File InductionHelper.hpp.
+ * File InductionSchemeGenerator.hpp.
  *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
@@ -17,34 +17,23 @@
  * licence, which we will make an effort to provide. 
  */
 /**
- * @file InductionHelper.hpp
- * Defines helper classes for induction and recursive functions
+ * @file InductionSchemeGenerator.hpp
+ * Defines classes for generating induction schemes from function terms
  */
 
-#ifndef __InductionHelper__
-#define __InductionHelper__
+#ifndef __InductionSchemeGenerator__
+#define __InductionSchemeGenerator__
 
 #include "Forwards.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermTransformer.hpp"
+#include "InductionPreprocessor.hpp"
 #include "Lib/STL.hpp"
 
 namespace Shell {
 
 using namespace Kernel;
 using namespace Lib;
-
-/**
- * TermTransformer subclass for any TermList to TermList replacement
- */
-class TermListReplacement : public TermTransformer {
-public:
-  TermListReplacement(TermList o, TermList r) : _o(o), _r(r) {}
-  TermList transformSubterm(TermList trm) override;
-private:
-  TermList _o; // to be replaced
-  TermList _r; // replacement
-};
 
 /**
  * Replaces a subset of occurrences for given TermLists
@@ -115,29 +104,6 @@ private:
 };
 
 /**
- * Stores the template for a recursive case
- * This includes:
- * - the step case
- * - the recursive calls
- *   (if not present it is a base case)
- */
-struct RDescription {
-  RDescription(const vvector<TermList>& recursiveCalls,
-               TermList step,
-               const vvector<Formula*>& conditions)
-    : _recursiveCalls(recursiveCalls), _step(step), _conditions(conditions) {}
-
-  RDescription(TermList step, const vvector<Formula*>& conditions)
-    : _recursiveCalls(), _step(step), _conditions(conditions) {}
-
-  vvector<TermList> _recursiveCalls;
-  TermList _step;
-  vvector<Formula*> _conditions;
-};
-
-ostream& operator<<(ostream& out, const RDescription& rdesc);
-
-/**
  * Stores an instance for an RDescription which
  * consists of all substitutions in the step case
  * and the corresponding recursive calls. This
@@ -160,20 +126,6 @@ struct RDescriptionInst {
 ostream& operator<<(ostream& out, const RDescriptionInst& inst);
 
 /**
- * Corresponds to a recursive function definition.
- * Stores the RDescriptions and the active positions
- * (i.e. the induction variables) of the function.
- */
-struct InductionTemplate {
-  void postprocess();
-
-  vvector<RDescription> _rDescriptions;
-  vvector<bool> _inductionVariables;
-};
-
-ostream& operator<<(ostream& out, const InductionTemplate& templ);
-
-/**
  * An instantiated induction template for a term.
  */
 struct InductionScheme {
@@ -191,20 +143,6 @@ struct InductionScheme {
 ostream& operator<<(ostream& out, const InductionScheme& scheme);
 
 /**
- * This class generates the induction templates based on
- * the marked recursive function definitions from the parser.
- */
-class InductionPreprocessor {
-public:
-  void preprocess(Problem& prb);
-
-private:
-  void preprocess(UnitList* units);
-  void processBody(TermList& body, TermList header, vvector<Formula*> conditions, InductionTemplate& templ);
-  void processCase(const unsigned recFun, TermList& body, vvector<TermList>& recursiveCalls);
-};
-
-/**
  * This class instantiates the induction templates from a literal
  * we want to induct on. Afterwards, stores these and filters them.
  * Also stores all active occurrences of possible induction terms.
@@ -214,9 +152,9 @@ struct InductionSchemeGenerator {
 
   void generatePrimary(Clause* premise, Literal* lit);
   void generateSecondary(Clause* premise, Literal* lit);
-  void filter();
 
   vvector<pair<InductionScheme, DHMap<Literal*, Clause*>*>> _primarySchemes;
+  vvector<pair<InductionScheme, DHMap<Literal*, Clause*>*>> _secondarySchemes;
   DHMap<Literal*, DHMap<TermList, DHSet<unsigned>*>*> _actOccMaps;
   DHMap<Literal*, DHMap<TermList, unsigned>*> _currOccMaps;
 
@@ -225,9 +163,6 @@ private:
   void process(TermList curr, bool active,
     Stack<bool>& actStack, Clause* premise, Literal* lit,
     vvector<pair<InductionScheme, DHMap<Literal*, Clause*>*>>& schemes);
-  void filter(vvector<pair<InductionScheme, DHMap<Literal*, Clause*>*>>& schemes);
-
-  vvector<pair<InductionScheme, DHMap<Literal*, Clause*>*>> _secondarySchemes;
 };
 
 } // Shell

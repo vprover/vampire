@@ -39,7 +39,7 @@
 #include "Lib/Environment.hpp"
 #include "Lib/SmartPtr.hpp"
 
-#include "Shell/InductionHelper.hpp"
+#include "Shell/InductionPreprocessor.hpp"
 #include "Shell/TermAlgebra.hpp"
 #include "Shell/Options.hpp"
 
