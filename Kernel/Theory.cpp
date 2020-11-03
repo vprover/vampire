@@ -21,7 +21,7 @@
  * Implements class Theory.
  */
 
-#include <math.h>
+#include <cmath>
 
 #include "Debug/Assertion.hpp"
 #include "Debug/Tracer.hpp"
