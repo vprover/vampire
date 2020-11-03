@@ -325,7 +325,7 @@ void SimplifyProver::unbindVar(const vstring& varName)
   CALL("SimplifyProver::unbindVar");
 
   IntList* bindings = 0;
-  _variables.find(varName,bindings);
+  ALWAYS(_variables.find(varName,bindings));
   IntList* tl = bindings->tail();
   delete bindings;
   bindings = tl;
@@ -1501,7 +1501,7 @@ void SimplifyProver::undoLet()
     case K_FORMULA:
       {
 	Lib::List<Formula*>* binding;
-	_formulaLet.find(symb,binding);
+	ALWAYS(_formulaLet.find(symb,binding));
 	_formulaLet.replace(symb,binding->tail());
 	delete binding;
       }
@@ -1509,7 +1509,7 @@ void SimplifyProver::undoLet()
     case K_TERM:
       {
 	Lib::List<TermList>* binding;
-	_termLet.find(symb,binding);
+	ALWAYS(_termLet.find(symb,binding));
 	_termLet.replace(symb,binding->tail());
 	delete binding;
       }

@@ -2588,8 +2588,6 @@ bool FiniteModelBuilder::SmtBasedDSAE::increaseModelSizes(DArray<unsigned>& newS
       }
       _smtSolver.add(sum == _context.int_val(_lastWeight));
 
-      result = _smtSolver.check();
-
       if (_smtSolver.check() == z3::check_result::sat) {
         loadSizesFromSmt(newSortSizes);
         // cout << "\nFound "; output_sizes(_distinctSortSizes); cout << endl;

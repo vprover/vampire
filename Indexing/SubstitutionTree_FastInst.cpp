@@ -53,7 +53,7 @@ public:
 
   struct TermSpec
   {
-    TermSpec() {
+    TermSpec() : q(false) {
     #if VDEBUG
       t.makeEmpty();
     #endif

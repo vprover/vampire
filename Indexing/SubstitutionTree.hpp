@@ -652,8 +652,6 @@ public:
     TermList term;
     /** Create new binding */
     Binding(int v,TermList t) : var(v), term(t) {}
-    /** Create uninitialised binding */
-    Binding() {}
 
     struct Comparator
     {
