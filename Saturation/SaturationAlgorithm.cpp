@@ -1485,7 +1485,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
 
   if (env.options->gaussianVariableElimination() == Options::ArithmeticSimplificationMode::CAUTIOUS) {
-    sgi->push(new LfpRule<GaussianVariableElimination>(GaussianVariableElimination(), res)); 
+    sgi->push(new LfpRule<GaussianVariableElimination>(GaussianVariableElimination())); 
   }
 
   if (env.options->arithmeticSubtermGeneralizations() == Options::ArithmeticSimplificationMode::CAUTIOUS) {
