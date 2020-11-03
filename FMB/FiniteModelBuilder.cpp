@@ -25,7 +25,7 @@
  *       so array[arity] is return and array[i] is the ith argument of the function
  */
 
-#include <math.h>
+#include <cmath>
 
 #include "Kernel/Ordering.hpp"
 #include "Kernel/Inference.hpp"

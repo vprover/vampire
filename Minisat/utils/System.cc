@@ -23,14 +23,14 @@ DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
 OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 **************************************************************************************************/
 
-#include <signal.h>
-#include <stdio.h>
+#include <csignal>
+#include <cstdio>
 
 #include "Minisat/utils/System.h"
 
 #if defined(__linux__)
 
-#include <stdlib.h>
+#include <cstdlib>
 
 using namespace Minisat;
 

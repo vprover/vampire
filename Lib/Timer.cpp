@@ -51,8 +51,8 @@ bool Timer::s_timeLimitEnforcement = true;
 
 #include <cerrno>
 #include <unistd.h>
-#include <stdlib.h>
-#include <signal.h>
+#include <cstdlib>
+#include <csignal>
 #include <sys/time.h>
 #include <sys/times.h>
 

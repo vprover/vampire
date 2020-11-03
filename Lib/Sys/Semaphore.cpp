@@ -6,7 +6,7 @@
 #include "Lib/Portability.hpp"
 
 #include <cerrno>
-#include <stdlib.h>
+#include <cstdlib>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/ipc.h>

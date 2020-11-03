@@ -22,7 +22,7 @@
  * @since 03/12/2003, Manchester
  */
 
-#include <string.h>
+#include <cstring>
 
 #include "Int.hpp"
 

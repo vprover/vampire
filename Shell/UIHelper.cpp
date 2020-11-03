@@ -23,7 +23,7 @@
 
 #include <fstream>
 
-#include <stdlib.h>
+#include <cstdlib>
 #include <sys/types.h>
 #include <unistd.h>
 #include <iostream>
