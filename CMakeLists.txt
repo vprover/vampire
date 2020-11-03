@@ -383,6 +383,8 @@ set(VAMPIRE_KERNEL_SOURCES
     Inferences/BoolSimp.cpp
     Inferences/CasesSimp.cpp
     Inferences/CasesSimp.hpp
+    Inferences/Cases.cpp
+    Inferences/Cases.hpp
     Shell/LambdaElimination.cpp
     Shell/LambdaElimination.hpp
     )
