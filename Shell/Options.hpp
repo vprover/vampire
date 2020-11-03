@@ -2329,7 +2329,8 @@ public:
   bool complexBooleanReasoning () const { return _complexBooleanReasoning.actualValue; }
   bool booleanEqTrick() const { return _booleanEqTrick.actualValue; }
   bool superposition() const {return _superposition.actualValue; }
-  bool casesSimp() const { return _casesSimp.actualValue; }
+  bool casesSimp() const { return _casesSimp.actualValue; }  
+  bool cases() const { return _cases.actualValue; }
   bool newTautologyDel() const { return _newTautologyDel.actualValue; }
   bool lambdaFreeHol() const { return _lambdaFreeHol.actualValue; }
 
@@ -2768,6 +2769,7 @@ private:
   BoolOptionValue _booleanEqTrick;
   BoolOptionValue _superposition;
   BoolOptionValue _casesSimp;
+  BoolOptionValue _cases;
   BoolOptionValue _newTautologyDel;
   BoolOptionValue _lambdaFreeHol;
 

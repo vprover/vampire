@@ -45,7 +45,7 @@ using namespace Lib;
 using namespace Kernel;
 
 TermSubstitutionTree::TermSubstitutionTree(bool useC, bool rfSubs, bool extra)
-: SubstitutionTree(env.signature->functions(),useC, rfSubs), _replaceFuncSubterms(rfSubs)
+: SubstitutionTree(env.signature->functions(),useC, rfSubs), _extByAbs(rfSubs)
 {
   _extra = extra;
   if(rfSubs){
@@ -113,7 +113,7 @@ void TermSubstitutionTree::handleTerm(TermList t, Literal* lit, Clause* cls, boo
 
   //cout << "1 t is " + t.toString() << endl;
 
-  if(_replaceFuncSubterms && t.isTerm()){ 
+  if(_extByAbs && t.isTerm()){ 
     TermList sort = SortHelper::getResultSort(t.term());
     bool sortVar = sort.isVar();
     bool sortArr = !sortVar && ApplicativeHelper::isArrowType(sort.term());
@@ -138,7 +138,7 @@ void TermSubstitutionTree::handleTerm(TermList t, Literal* lit, Clause* cls, boo
 
     Term* normTerm=Renaming::normalize(term);
 
-    if(_replaceFuncSubterms){
+    if(_extByAbs){
       //cout << "normTerm is " + normTerm->toString() << endl;
       t = ApplicativeHelper::replaceFunctionalAndBooleanSubterms(normTerm, &_functionalSubtermMap);   
       //cout << "t is " + t.toString() << endl; 
@@ -185,7 +185,7 @@ TermQueryResultIterator TermSubstitutionTree::getUnificationsUsingSorts(TermList
 {
   CALL("TermSubstitutionTree::getUnificationsUsingSorts");
 
-  ASS(_replaceFuncSubterms);
+  ASS(_extByAbs);
 
   //cout << "trying to find partners for " + t.toString() << endl;
   //cout << this->toString() << endl;
@@ -343,7 +343,8 @@ TermQueryResultIterator TermSubstitutionTree::getResultIterator(Term* trm,
     }
     else{
       VirtualIterator<QueryResult> qrit=vi( new Iterator(this, root, trm, retrieveSubstitutions,false,false, 
-                                                         withConstraints, &_functionalSubtermMap) );
+                                                         withConstraints, 
+                                                         (_extByAbs ? &_functionalSubtermMap : 0) ));
       result = pvi( getMappingIterator(qrit, TermQueryResultFn(_extra)) );
     }
   }

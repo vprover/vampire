@@ -107,7 +107,7 @@ private:
   LDSkipList _vars;
 
   bool _extra;
-  bool _replaceFuncSubterms;
+  bool _extByAbs;
 
   FuncSubtermMap _functionalSubtermMap;
 

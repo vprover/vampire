@@ -90,7 +90,8 @@ void Superposition::detach()
 
 struct Superposition::RewritableResultsFn
 {
-  RewritableResultsFn(SuperpositionSubtermIndex* index,bool wc) : _index(index),_withC(wc) {}
+  RewritableResultsFn(SuperpositionSubtermIndex* index,bool wc,bool ea) : _index(index),
+                     _withC(wc), _extByAbs(ea) {}
   DECL_RETURN_TYPE(VirtualIterator<pair<pair<Literal*, TermList>, TermQueryResult> >);
   OWN_RETURN_TYPE operator()(pair<Literal*, TermList> arg)
   {
@@ -98,7 +99,7 @@ struct Superposition::RewritableResultsFn
     if(_withC){
       return pvi( pushPairIntoRightIterator(arg, _index->getUnificationsWithConstraints(arg.second, true)) );
     }
-    else if(env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION){
+    else if(_extByAbs){
       TermList sort = SortHelper::getTermSort(arg.second, arg.first);
       return pvi( pushPairIntoRightIterator(arg, _index->getUnificationsUsingSorts(arg.second, sort, true)) );
     }
@@ -109,6 +110,7 @@ struct Superposition::RewritableResultsFn
 private:
   SuperpositionSubtermIndex* _index;
   bool _withC;
+  bool _extByAbs;
 };
 
 struct Superposition::RewriteableSubtermsFn
@@ -130,7 +132,8 @@ private:
 
 struct Superposition::ApplicableRewritesFn
 {
-  ApplicableRewritesFn(SuperpositionLHSIndex* index, bool wc) : _index(index), _withC(wc) {}
+  ApplicableRewritesFn(SuperpositionLHSIndex* index, bool wc, bool ea) : _index(index), 
+                      _withC(wc), _extByAbs(ea) {}
   DECL_RETURN_TYPE(VirtualIterator<pair<pair<Literal*, TermList>, TermQueryResult> >);
   OWN_RETURN_TYPE operator()(pair<Literal*, TermList> arg)
   {
@@ -138,7 +141,7 @@ struct Superposition::ApplicableRewritesFn
     if(_withC){
       return pvi( pushPairIntoRightIterator(arg, _index->getUnificationsWithConstraints(arg.second, true)) );
     }  
-    else if(env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION){
+    else if(_extByAbs){
       TermList sort = SortHelper::getTermSort(arg.second, arg.first);
       return pvi( pushPairIntoRightIterator(arg, _index->getUnificationsUsingSorts(arg.second, sort, true)) );
     }
@@ -149,6 +152,7 @@ struct Superposition::ApplicableRewritesFn
 private:
   SuperpositionLHSIndex* _index;
   bool _withC;
+  bool _extByAbs;
 };
 
 
@@ -203,7 +207,8 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
 
   //TODO probably shouldn't go here!
   static bool withConstraints = env.options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF;
-
+  static bool extByAbstraction = (env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION)
+                               && env.statistics->higherOrder;
 
   auto itf1 = premise->getSelectedLiteralIterator();
 
@@ -214,14 +219,14 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
 
   // Get clauses with a literal whose complement unifies with the rewritable subterm,
   // returns a pair with the original pair and the unification result (includes substitution)
-  auto itf3 = getMapAndFlattenIterator(itf2,ApplicableRewritesFn(_lhsIndex,withConstraints));
+  auto itf3 = getMapAndFlattenIterator(itf2,ApplicableRewritesFn(_lhsIndex,withConstraints, extByAbstraction));
 
   //Perform forward superposition
   auto itf4 = getMappingIterator(itf3,ForwardResultFn(premise, passiveClauseContainer, *this));
 
   auto itb1 = premise->getSelectedLiteralIterator();
   auto itb2 = getMapAndFlattenIterator(itb1,EqHelper::SuperpositionLHSIteratorFn(_salg->getOrdering(), _salg->getOptions()));
-  auto itb3 = getMapAndFlattenIterator(itb2,RewritableResultsFn(_subtermIndex,withConstraints));
+  auto itb3 = getMapAndFlattenIterator(itb2,RewritableResultsFn(_subtermIndex,withConstraints, extByAbstraction));
 
   //Perform backward superposition
   auto itb4 = getMappingIterator(itb3,BackwardResultFn(premise, passiveClauseContainer, *this));

@@ -36,6 +36,8 @@
 #include "TermIndex.hpp"
 #include "TermSubstitutionTree.hpp"
 
+#include "Shell/Statistics.hpp"
+
 #include "IndexManager.hpp"
 
 using namespace Lib;
@@ -152,8 +154,9 @@ Index* IndexManager::create(IndexType t)
 
   bool isGenerating;
   static bool const useConstraints = env.options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF;
-  static bool const extByAbs = env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION;
-
+  static bool const extByAbs = (env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION) &&
+                    env.statistics->higherOrder;
+                    
   switch(t) {
   case GENERATING_SUBST_TREE:
     is=new LiteralSubstitutionTree(useConstraints);

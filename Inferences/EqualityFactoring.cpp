@@ -129,8 +129,9 @@ struct EqualityFactoring::ResultFn
     ASS_NEQ(sLit, fLit);
 
     static Options::FunctionExtensionality ext = env.options->functionExtensionality();
+    bool use_ho_handler = (ext == Options::FunctionExtensionality::ABSTRACTION) && env.statistics->higherOrder;
 
-    if(ext == Options::FunctionExtensionality::ABSTRACTION){
+    if(use_ho_handler){
       TermList sLHSreplaced = sLHS;
       TermList fLHSreplaced = fLHS;
       if(!sLHS.isVar() && !fLHS.isVar() && 
