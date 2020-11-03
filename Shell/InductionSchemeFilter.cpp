@@ -209,7 +209,8 @@ bool checkQuasiCommutation(const InductionScheme& sch1, const InductionScheme& s
           auto indTerm = kv2.first;
           auto t2 = kv2.second;
           auto it = rdesc1._step.find(indTerm);
-          ASS(it != rdesc1._step.end());
+          auto inactive = sch1._inactive.count(indTerm) > 0;
+          ASS(it != rdesc1._step.end() || inactive);
 
           if (it != rdesc1._step.end()) {
             RobSubstitutionSP subst(new RobSubstitution);
@@ -265,7 +266,9 @@ bool checkQuasiCommutation(const InductionScheme& sch1, const InductionScheme& s
   return true;
 }
 
-vvector<TermList> generateAvailableTerms(TermAlgebra* ta, unsigned& var) {
+vvector<TermList> generateAvailableTerms(const Term* t, unsigned& var) {
+  const auto taSort = SortHelper::getResultSort(t);
+  const auto ta = env.signature->getTermAlgebraOfSort(taSort);
   vvector<TermList> res;
   Stack<TermList> argTerms;
   for (unsigned i = 0; i < ta->nConstructors(); i++) {
@@ -312,9 +315,7 @@ void excludeTermFromAvailables(vvector<TermList>& possible, TermList e, unsigned
           auto eArg = eIt.next();
 
           if (pArg.isVar() && eArg.isTerm()) {
-            auto taSort = SortHelper::getResultSort(eArg.term());
-            auto ta = env.signature->getTermAlgebraOfSort(taSort);
-            auto terms = generateAvailableTerms(ta, var);
+            auto terms = generateAvailableTerms(eArg.term(), var);
             excludeTermFromAvailables(terms, eArg, var);
             vvector<TermList> replacedTerms;
             for (auto& t : newTerms) {
@@ -341,93 +342,99 @@ bool createSingleRDescription(const RDescriptionInst& rdesc, const InductionSche
   if (rdesc._recursiveCalls.empty()) {
     return false;
   }
-  auto recCalls = rdesc._recursiveCalls;
-  auto step = rdesc._step;
-  vvector<Formula*> conditions;
-  vvector<vmap<TermList, vvector<TermList>>> possibleTermsList;
-  unsigned var = 0;
-  vmap<TermList, vvector<TermList>> possibleTermsInitial;
-  for (const auto& indTerm : combinedInductionTerms) {
-    auto it = rdesc._step.find(indTerm);
-    if (it != rdesc._step.end() && it->second.isTerm()) {
-      vvector<TermList> terms;
-      terms.push_back(it->second);
-      possibleTermsInitial.insert(make_pair(indTerm, terms));
+  // create available terms for all induction terms
+  // that are mapped to non-variable terms, the rest will
+  // be created when needed
+  vmap<TermList, vvector<TermList>> availableTermsInitial;
+  for (const auto& kv : rdesc._step) {
+    if (kv.second.isTerm()) {
+      availableTermsInitial.insert(
+        make_pair(kv.first, vvector<TermList>({ kv.second })));
     }
   }
-  possibleTermsList.push_back(possibleTermsInitial);
+  vvector<vmap<TermList, vvector<TermList>>> availableTermsLists({ availableTermsInitial });
 
+  unsigned var = 0;
   for (const auto& rdesc2 : other._rDescriptionInstances) {
     if (rdesc2._recursiveCalls.empty()) {
       continue;
     }
-    vvector<vmap<TermList, vvector<TermList>>> nextPossibleTermsList;
-    for (const auto& indTerm : combinedInductionTerms) {
-      auto it1 = rdesc._step.find(indTerm);
-      auto it2 = rdesc2._step.find(indTerm);
-      ASS(it1 != rdesc._step.end() || it2 != rdesc2._step.end());
-
+    vvector<vmap<TermList, vvector<TermList>>> nextAvailableTermsList;
+    // the conditions given by the terms of rdesc2 are conjuncted,
+    // so their negation will be a disjunction and we have to create
+    // separate lists of available terms for each of them by distributivity 
+    for (const auto& kv : rdesc._step) {
+      auto it2 = rdesc2._step.find(kv.first);
       if (it2 == rdesc2._step.end()) {
+        // no condition
         continue;
       }
 
       auto t2 = it2->second;
       if (t2.isTerm()) {
-        auto tempList = possibleTermsList;
-        for (auto& possibleTerms : tempList) {
-          auto pIt = possibleTerms.find(indTerm);
-          if (pIt == possibleTerms.end()) {
-            auto taSort = SortHelper::getResultSort(indTerm.term());
-            auto ta = env.signature->getTermAlgebraOfSort(taSort);
-            pIt = possibleTerms.insert(make_pair(indTerm, generateAvailableTerms(ta, var))).first;
+        // copy the current lists
+        auto tempLists = availableTermsLists;
+        // for each of them, impose the restriction
+        // on the available terms in that list
+        for (auto& availableTerms : tempLists) {
+          auto pIt = availableTerms.find(kv.first);
+          if (pIt == availableTerms.end()) {
+            // induction term was mapped to a variable in rdesc,
+            // generate the available terms for it now
+            pIt = availableTerms.insert(make_pair(
+              kv.first,
+              generateAvailableTerms(kv.first.term(), var))).first;
           }
-          excludeTermFromAvailables(possibleTerms.at(indTerm), t2, var);
+          excludeTermFromAvailables(availableTerms.at(kv.first), t2, var);
         }
-        nextPossibleTermsList.insert(nextPossibleTermsList.end(), tempList.begin(), tempList.end());
+        nextAvailableTermsList.insert(nextAvailableTermsList.end(), tempLists.begin(), tempLists.end());
       }
     }
-    possibleTermsList = nextPossibleTermsList;
+    // finally replace current lists with new ones
+    availableTermsLists = nextAvailableTermsList;
   }
 
+  // generate cross-product of available terms in result:
+  // - each list contains available terms for induction terms
+  // - any combination of these from the same list is valid 
   res.clear();
-  for (const auto& possibleTerms : possibleTermsList) {
-    vvector<RDescriptionInst> temp;
-    temp.push_back(rdesc);
+  for (const auto& availableTerms : availableTermsLists) {
+    // initially we have only the original rdesc
+    vvector<RDescriptionInst> rdescList({ rdesc });
     auto invalid = false;
-    for (const auto& indTerm : combinedInductionTerms) {
-      auto it = possibleTerms.find(indTerm);
-      if (it != possibleTerms.end()) {
-        if (it->second.empty()) {
-          invalid = true;
-          break;
-        }
-        vvector<RDescriptionInst> nextTemp;
-        for (const auto& p : it->second) {
-          for (auto rdesc : temp) { // intentionally copy rdesc here
-            auto rIt = rdesc._step.find(indTerm);
-            if (rIt != rdesc._step.end()) {
-              RobSubstitution subst;
-              ASS(subst.unify(rIt->second, 0, p, 1));
-              rIt->second = subst.apply(rIt->second, 0);
-              for (auto& cond : rdesc._conditions) {
-                cond = applySubst(subst, 0, cond);
-              }
-              for (auto& recCall : rdesc._recursiveCalls) {
-                auto recIt = recCall.find(indTerm);
-                ASS(recIt != recCall.end());
-                recCall.at(indTerm) = subst.apply(recIt->second, 0);
-              }
-            } else {
-              rdesc._step.insert(make_pair(indTerm, p));
-            }
-            nextTemp.push_back(rdesc);
-          }
-        }
-        temp = nextTemp;
+    for (const auto& kv : availableTerms) {
+      auto indTerm = kv.first;
+      if (kv.second.empty()) {
+        // no available terms, cross product is empty
+        invalid = true;
+        break;
       }
+      vvector<RDescriptionInst> nextRdescList;
+      for (const auto& p : kv.second) {
+        for (auto rdesc : rdescList) { // intentionally copy rdesc here
+          auto rIt = rdesc._step.find(indTerm);
+          ASS (rIt != rdesc._step.end());
+          // we unify the term in rdesc with the available
+          // term to get the substitution needed for
+          // conditions and recursive calls
+          RobSubstitution subst;
+          ASS(subst.unify(rIt->second, 0, p, 1));
+          rIt->second = subst.apply(rIt->second, 0);
+          for (auto& cond : rdesc._conditions) {
+            cond = applySubst(subst, 0, cond);
+          }
+          for (auto& recCall : rdesc._recursiveCalls) {
+            auto recIt = recCall.find(kv.first);
+            ASS(recIt != recCall.end());
+            recIt->second = subst.apply(recIt->second, 0);
+          }
+          nextRdescList.push_back(rdesc);
+        }
+      }
+      rdescList = nextRdescList;
     }
     if (!invalid) {
-      res.insert(res.end(), temp.begin(), temp.end());
+      res.insert(res.end(), rdescList.begin(), rdescList.end());
     }
   }
 
@@ -514,36 +521,37 @@ bool createMergedRDescription(const RDescriptionInst& rdesc1, const RDescription
 }
 
 void addBaseCase(InductionScheme& sch) {
+  // here we do essentially the same as in createSingleRdescription,
+  // only we do it on an initially empty RDescriptionInst and exclude
+  // all other in the scheme
   unsigned var = 0;
-  vvector<vmap<TermList, vvector<TermList>>> possibleTermsList;
-  possibleTermsList.emplace_back();
+  vvector<vmap<TermList, vvector<TermList>>> availableTermsLists(1); // contains one empty map
   for (const auto& rdesc : sch._rDescriptionInstances) {
-    vvector<vmap<TermList, vvector<TermList>>> nextPossibleTermsList;
+    vvector<vmap<TermList, vvector<TermList>>> nextAvailableTermsLists;
     for (const auto& kv : rdesc._step) {
       if (kv.second.isTerm()) {
-        auto tempList = possibleTermsList;
-        for (auto& possibleTerms : tempList) {
-          auto pIt = possibleTerms.find(kv.first);
-          if (pIt == possibleTerms.end()) {
-            auto taSort = SortHelper::getResultSort(kv.first.term());
-            auto ta = env.signature->getTermAlgebraOfSort(taSort);
-            pIt = possibleTerms.insert(make_pair(kv.first, generateAvailableTerms(ta, var))).first;
+        auto tempLists = availableTermsLists;
+        for (auto& availableTerms : tempLists) {
+          auto pIt = availableTerms.find(kv.first);
+          if (pIt == availableTerms.end()) {
+            pIt = availableTerms.insert(
+              make_pair(kv.first, generateAvailableTerms(kv.first.term(), var))).first;
           }
           excludeTermFromAvailables(pIt->second, kv.second, var);
         }
-        remove_if(tempList.begin(), tempList.end(), [](vmap<TermList, vvector<TermList>>& e) {return e.empty();});
-        nextPossibleTermsList.insert(nextPossibleTermsList.end(), tempList.begin(), tempList.end());
+        nextAvailableTermsLists.insert(nextAvailableTermsLists.end(),
+          tempLists.begin(), tempLists.end());
       }
     }
-    possibleTermsList = nextPossibleTermsList;
+    availableTermsLists = nextAvailableTermsLists;
   }
 
+  // We have a set here so there are no duplicate cases
   vset<vmap<TermList, TermList>> steps;
-  for (const auto& possibleTerms : possibleTermsList) {
-    vvector<vmap<TermList, TermList>> temp;
-    temp.emplace_back();
+  for (const auto& availableTerms : availableTermsLists) {
+    vvector<vmap<TermList, TermList>> temp(1);
     auto invalid = false;
-    for (const auto& kv : possibleTerms) {
+    for (const auto& kv : availableTerms) {
       if (kv.second.empty()) {
         invalid = true;
         break;
@@ -551,8 +559,7 @@ void addBaseCase(InductionScheme& sch) {
       vvector<vmap<TermList, TermList>> newTemp;
       for (const auto& p : kv.second) {
         for (auto step : temp) { // intentionally copy rdesc here
-          auto rIt = step.find(kv.first);
-          ASS(rIt == step.end());
+          ASS(!step.count(kv.first));
           step.insert(make_pair(kv.first, p));
           newTemp.push_back(step);
         }
@@ -564,6 +571,7 @@ void addBaseCase(InductionScheme& sch) {
     }
   }
 
+  // each step gets an empty recursive call and condition set
   for (auto step : steps) {
     vvector<vmap<TermList,TermList>> emptyRecCalls;
     vvector<Formula*> emptyConds;
@@ -593,47 +601,29 @@ bool checkInductionTerms(const InductionScheme& sch1, const InductionScheme& sch
 
 bool InductionSchemeFilter::mergeSchemes(const InductionScheme& sch1, const InductionScheme& sch2, InductionScheme& res) {
   vset<TermList> combinedInductionTerms;
+  // copy original schemes in case we fail and we modified them
+  InductionScheme sch1copy = sch1;
+  InductionScheme sch2copy = sch2.makeCopyWithVariablesShifted(sch1copy._maxVar+1);
+
   // either we can check quasi-commutation in both directions as the schemes
   // have the same induction terms or we check if one of the induction terms
   // can be a subset of the other either by itself or by activating additional
   // inactive induction terms, then we check only one way for quasi-commutation
-  InductionScheme sch1copy;
-  InductionScheme sch2copy;
-
-  // cout << "Merging schemes:" << endl
-  //      << "1: " << sch1 << endl
-  //      << "2: " << sch2 << endl;
   if (sch1._inductionTerms != sch2._inductionTerms
     || (!checkQuasiCommutation(sch1, sch2) && !checkQuasiCommutation(sch2, sch1)))
   {
     if (checkInductionTerms(sch2, sch1, combinedInductionTerms) && checkQuasiCommutation(sch2, sch1)) {
-      sch1copy = sch1;
-      sch2copy = sch2.makeCopyWithVariablesShifted(sch1copy._maxVar+1);
       sch2copy.addInductionTerms(combinedInductionTerms);
-      // cout << "1 quasi-commutes over 2" << endl;
     } else if (checkInductionTerms(sch1, sch2, combinedInductionTerms) && checkQuasiCommutation(sch1, sch2)) {
-      sch1copy = sch1;
       sch1copy.addInductionTerms(combinedInductionTerms);
-      sch2copy = sch2.makeCopyWithVariablesShifted(sch1copy._maxVar+1);
-      // cout << "2 quasi-commutes over 1" << endl;
     } else {
       return false;
     }
-  } else {
-    sch1copy = sch1;
-    sch2copy = sch2.makeCopyWithVariablesShifted(sch1copy._maxVar+1);
-    // cout << "1 and 2 contain the same set of variables" << endl;
   }
-  // 
   if (combinedInductionTerms.empty()) {
     combinedInductionTerms.insert(sch1copy._inductionTerms.begin(), sch1copy._inductionTerms.end());
     combinedInductionTerms.insert(sch2copy._inductionTerms.begin(), sch2copy._inductionTerms.end());
   }
-  // cout << "combinedInductionTerms: ";
-  // for (const auto& indTerm : combinedInductionTerms) {
-  //   cout << indTerm << " ";
-  // }
-  // cout << endl;
 
   vvector<RDescriptionInst> resRdescs;
   for (const auto& rdesc : sch1copy._rDescriptionInstances) {
@@ -669,7 +659,8 @@ void mergeLitClausePairsInto(DHMap<Literal*, Clause*>* from, DHMap<Literal*, Cla
     Literal* lit;
     Clause* cl;
     it.next(lit, cl);
-    ASS(!to->find(lit) || to->get(lit) == cl); // if this happens, a more complicated structure is needed
+    // if this is violated, a more complicated structure is needed
+    ASS(!to->find(lit) || to->get(lit) == cl);
     to->insert(lit, cl);
   }
 }
@@ -790,12 +781,11 @@ bool InductionSchemeFilter::checkSubsumption(const InductionScheme& sch1, const 
 {
   CALL("checkSubsumption");
 
-  DHMap<const RDescriptionInst*, vset<const RDescriptionInst*>> sch1tosch2;
   for (const auto& rdesc1 : sch1._rDescriptionInstances) {
     if (rdesc1._recursiveCalls.empty()) {
       continue;
     }
-    sch1tosch2.insert(&rdesc1, vset<const RDescriptionInst*>());
+    bool foundStep = false;
     for (const auto& rdesc2 : sch2._rDescriptionInstances) {
       // only check recursive cases
       if (rdesc2._recursiveCalls.empty()) {
@@ -821,6 +811,7 @@ bool InductionSchemeFilter::checkSubsumption(const InductionScheme& sch1, const 
           continue;
         }
         // check condition subsumption
+        bool match = true;
         for (const auto& c1 : rdesc1._conditions) {
           bool found = false;
           for (const auto& c2 : rdesc2._conditions) {
@@ -832,17 +823,18 @@ bool InductionSchemeFilter::checkSubsumption(const InductionScheme& sch1, const 
             }
           }
           if (!found) {
-            continue;
+            match = false;
+            break;
           }
         }
-        DHMap<size_t, vset<size_t>> rec1torec2;
+        if (!match) {
+          continue;
+        }
         // if successful, find pair for each recCall in sch1
         // don't check if recCall1 or recCall2 contain kv.first
         // as they should by definition
-        size_t i = 0;
         for (const auto& recCall1 : rdesc1._recursiveCalls) {
-          rec1torec2.insert(i, vset<size_t>());
-          size_t j = 0;
+          bool found = false;
           for (const auto& recCall2 : rdesc2._recursiveCalls) {
             if (!recCall1.count(kv.first) || !recCall2.count(kv.first)) {
               continue;
@@ -850,23 +842,27 @@ bool InductionSchemeFilter::checkSubsumption(const InductionScheme& sch1, const 
             const auto& r1 = subst.apply(recCall1.at(kv.first), 1);
             const auto& r2 = subst.apply(recCall2.at(kv.first), 0);
             if (r1 == r2) {
-              rec1torec2.get(i).insert(j);
+              found = true;
+              break;
             }
-            j++;
           }
-          i++;
+          if (!found) {
+            match = false;
+            break;
+          }
         }
-        // check if there is an injective mapping of recursive calls
-        // of sch1 to matching recursive calls of sch2
-        if (findInjectiveMapping(rec1torec2)) {
-          sch1tosch2.get(&rdesc1).insert(&rdesc2);
+        if (!match) {
+          continue;
         }
+        foundStep = true;
+        break;
       }
     }
+    if (!foundStep) {
+      return false;
+    }
   }
-  // check if there is an injective mapping of rdesc instances
-  // of sch1 to matching rdesc instances of sch2
-  return findInjectiveMapping(sch1tosch2);
+  return true;
 }
 
 } // Shell

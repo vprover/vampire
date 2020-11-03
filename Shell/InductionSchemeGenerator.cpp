@@ -2,10 +2,6 @@
 
 #include "Kernel/Formula.hpp"
 #include "Kernel/Problem.hpp"
-#include "Kernel/Renaming.hpp"
-#include "Kernel/RobSubstitution.hpp"
-#include "Kernel/SubstHelper.hpp"
-#include "Kernel/Substitution.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Unit.hpp"
