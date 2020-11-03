@@ -451,7 +451,6 @@ void SaturationAlgorithm::onUnprocessedSelected(Clause* c)
 void SaturationAlgorithm::onNewClause(Clause* cl)
 {
   CALL("SaturationAlgorithm::onNewClause");
-  DBGE(*cl)
 
   if (_splitter) {
     _splitter->onNewClause(cl);

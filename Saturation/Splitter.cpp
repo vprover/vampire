@@ -1530,7 +1530,6 @@ void Splitter::onNewClause(Clause* cl)
 {
   CALL("Splitter::onNewClause");
 
-  DBG(*cl)
   //For now just record if cl is in the variant index
   // i.e. is a component
   //TODO - if it is then
