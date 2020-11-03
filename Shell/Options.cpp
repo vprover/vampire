@@ -57,6 +57,8 @@
 using namespace Lib;
 using namespace Shell;
 
+static const int COPY_SIZE = 128;
+
 /**
  * Initialize options to the default values.
  *
@@ -2583,11 +2585,11 @@ bool Options::RatioOptionValue::readRatio(const char* val, char separator)
   }
 
   if (found) {
-    if (strlen(val) > 127) {
+    if (strlen(val) >= COPY_SIZE) {
       return false;
     }
-    char copy[128];
-    strncpy(copy,val,128);
+    char copy[COPY_SIZE];
+    strncpy(copy,val,COPY_SIZE);
     copy[colonIndex] = 0;
     int age;
     if (! Int::stringToInt(copy,age)) {
@@ -2733,12 +2735,12 @@ bool Options::TimeLimitOptionValue::setValue(const vstring& value)
   CALL("Options::readTimeLimit");
 
   int length = value.size();
-  if (length == 0 || length > 127) {
+  if (length == 0 || length >= COPY_SIZE) {
     USER_ERROR((vstring)"wrong value for time limit: " + value);
   }
 
-  char copy[128];
-  strncpy(copy,value.c_str(),128);
+  char copy[COPY_SIZE];
+  strncpy(copy,value.c_str(),COPY_SIZE);
   char* end = copy;
   // search for the end of the string for
   while (*end) {
