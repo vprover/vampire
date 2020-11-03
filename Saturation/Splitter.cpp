@@ -1530,6 +1530,7 @@ void Splitter::onNewClause(Clause* cl)
 {
   CALL("Splitter::onNewClause");
 
+  DBG(*cl)
   //For now just record if cl is in the variant index
   // i.e. is a component
   //TODO - if it is then
@@ -1567,6 +1568,7 @@ void Splitter::onNewClause(Clause* cl)
     cl->updateColor(color);
   }
 
+  DBGE(*cl)
   ASS(allSplitLevelsActive(cl->splits()));  
 }
 
@@ -1731,6 +1733,7 @@ void Splitter::addComponents(const SplitLevelStack& toAdd)
 void Splitter::removeComponents(const SplitLevelStack& toRemove)
 {
   CALL("Splitter::removeComponents");
+  DBGE(toRemove)
   ASS(_sa->clausesFlushed());
   
   SplitSet* backtracked = SplitSet::getFromArray(toRemove.begin(), toRemove.size());

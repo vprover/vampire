@@ -248,7 +248,13 @@ private:
   SplitSet* getNewClauseSplitSet(Clause* cl);
   void assignClauseSplitSet(Clause* cl, SplitSet* splits);
 
+#if VDEBUG // TODO remove this public
+public:
+#endif 
   bool allSplitLevelsActive(SplitSet* s);
+#if VDEBUG // TODO remove this private
+private:
+#endif 
 
   //settings
   bool _showSplitting;

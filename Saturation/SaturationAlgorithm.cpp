@@ -451,6 +451,7 @@ void SaturationAlgorithm::onUnprocessedSelected(Clause* c)
 void SaturationAlgorithm::onNewClause(Clause* cl)
 {
   CALL("SaturationAlgorithm::onNewClause");
+  DBGE(*cl)
 
   if (_splitter) {
     _splitter->onNewClause(cl);
@@ -1485,7 +1486,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
 
   if (env.options->gaussianVariableElimination() == Options::ArithmeticSimplificationMode::CAUTIOUS) {
-    sgi->push(new LfpRule<GaussianVariableElimination>(GaussianVariableElimination())); 
+    sgi->push(new LfpRule<GaussianVariableElimination>(GaussianVariableElimination(), res)); 
   }
 
   if (env.options->arithmeticSubtermGeneralizations() == Options::ArithmeticSimplificationMode::CAUTIOUS) {

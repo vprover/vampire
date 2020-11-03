@@ -3,6 +3,11 @@
 #include "PolynomialNormalization.hpp"
 #include "Kernel/Clause.hpp"
 
+#if VDEBUG
+#include "Saturation/Splitter.hpp"
+#include "Saturation/SaturationAlgorithm.hpp"
+#endif
+
 namespace Inferences {
 
 class GaussianVariableElimination 
@@ -25,18 +30,33 @@ class LfpRule
   : public SimplifyingGeneratingInference1
 {
   Rule _inner;
+#if VDEBUG
+  SaturationAlgorithm* _sa;
+#endif
 public:
   CLASS_NAME(LfpRule);
   USE_ALLOCATOR(LfpRule);
-
-  LfpRule(Rule rule);
+ 
+  LfpRule(Rule rule
+#if VDEBUG
+  ,SaturationAlgorithm* sa
+#endif
+);
   LfpRule();
   SimplifyingGeneratingInference1::Result simplify(Clause *cl, bool doCheckOrdering) override;
 };
 
 
 template<class Rule> 
-LfpRule<Rule>::LfpRule(Rule rule) : _inner(std::move(rule)) {}
+LfpRule<Rule>::LfpRule(Rule rule
+#if VDEBUG
+    , SaturationAlgorithm* sa
+#endif
+    ) : _inner(std::move(rule)) 
+#if VDEBUG
+        ,_sa(sa)
+#endif
+{}
 
 template<class Rule> 
 LfpRule<Rule>::LfpRule() : _inner() {}
@@ -46,31 +66,31 @@ SimplifyingGeneratingInference1::Result LfpRule<Rule>::simplify(Clause *cl, bool
 {
   CALL("LfpRule::simplify")
   // DBG("in:  ", *cl);
-  auto last = cl;
-  auto nxt = cl;
-  auto redundant = true;
-  auto last_redundant = true;
+  auto c0 = cl;
+  ASS(_sa->getSplitter()->allSplitLevelsActive(cl->splits()));
+  auto c1 = _inner.simplify(c0, doCheckOrdering).simplified;
 
-  do {
+  while (c0 != c1) {
     // we need to assign the split set since this would normally 
     // be done by SaturationAlgorithm/Splitter, which we bypass here
-    if (last != nxt && last->splits() != nullptr) {
-      nxt->setSplits(last->splits());
+
+    if (c0->splits()) {
+      c1->setSplits(c0->splits());
+      DBG("assigned splits: ", *c1)
     }
 
-    last = nxt;
-    redundant = redundant && last_redundant;
+    ASS(_sa->getSplitter()->allSplitLevelsActive(c0->splits()));
+    c0 = c1;
+    c1 = _inner.simplify(c0, doCheckOrdering).simplified;
+    ASS(_sa->getSplitter()->allSplitLevelsActive(c0->splits()));
 
-    auto res = _inner.simplify(last, doCheckOrdering);
+  }
 
-    last_redundant = res.premiseRedundant;
-    nxt = res.simplified;
-  } while (nxt != last);
-
-  // DBG("out: ", *nxt);
+  DBG("lfp result: ", *c1, " (splits not yet assigned)");
+  // DBG("out: ", *c1);
   return Result {
-    .simplified       = nxt,
-    .premiseRedundant = redundant,
+    .simplified       = c1,
+    .premiseRedundant = false,
   };
 }
 
