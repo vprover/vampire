@@ -29,6 +29,7 @@ class UniqueShared
   T* _elem;
   static Cache _cached;
 
+public:
   /** 
    * If an equal object to elem exists, a pointer to that object is returned.
    * Otherwise elem is moved to the heap, and a pointer to that heap location is returned.
@@ -40,7 +41,6 @@ class UniqueShared
           return (T*) mem;
       })) 
     { }
-public:
 
   /** copy constructor. Constant time. */
   UniqueShared(UniqueShared      & t) : _elem(t._elem) {  }
@@ -66,7 +66,6 @@ public:
   friend std::ostream& operator<<(std::ostream& out, const UniqueShared& self) 
   { return out << *self._elem; }
 
-  template<class U, class Cmp> friend UniqueShared<U, Cmp> unique(U&& t);
   friend struct std::hash<UniqueShared<T, DfltComparison>>;
 
   template<class U> friend struct UniqueSharedPtrComparison;
