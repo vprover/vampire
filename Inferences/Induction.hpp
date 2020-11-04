@@ -24,7 +24,7 @@
 #ifndef __Induction__
 #define __Induction__
 
-#include <math.h>
+#include <cmath>
 
 #include "Forwards.hpp"
 

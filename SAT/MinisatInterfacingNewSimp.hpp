@@ -24,7 +24,7 @@
 #define __MinisatInterfacingNewSimp__
 
 // For limitMemory
-#include <signal.h>
+#include <csignal>
 #include <sys/time.h>
 #include <sys/resource.h>
 
