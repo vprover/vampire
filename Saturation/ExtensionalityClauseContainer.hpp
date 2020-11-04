@@ -75,7 +75,6 @@ public:
   unsigned size() const { return _size; }
   void print(ostream& o);
 private:
-  unsigned _sortCnt;
   ClausesBySort _clausesBySort;
   void add(ExtensionalityClause c);
 
