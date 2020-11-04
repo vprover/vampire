@@ -1,4 +1,4 @@
-name: debug-build
+name: CI
 on: [workflow_dispatch]
 
 jobs:
@@ -10,7 +10,9 @@ jobs:
       run: mkdir ${{runner.workspace}}/build
     - name: Configure Build
       working-directory: ${{runner.workspace}}/build
-      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=Debug
+      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=Release
+      env:
+        CXX: clang++
     - name: Build
       working-directory: ${{runner.workspace}}/build
-      run: make
+      run: make -j8
