@@ -128,7 +128,7 @@ void SimpleCongruenceClosure::ConstInfo::resetEquivalences(SimpleCongruenceClosu
   }
 }
 
-#ifdef VDEBUG
+#if VDEBUG
 
 void SimpleCongruenceClosure::ConstInfo::assertValid(SimpleCongruenceClosure& parent, unsigned selfIndex) const
 {
@@ -1105,7 +1105,7 @@ void SimpleCongruenceClosure::getModel(LiteralStack& model)
   DEBUG_CODE( assertModelInfoClean(); );  
 }
 
-#ifdef VDEBUG
+#if VDEBUG
 void SimpleCongruenceClosure::assertModelInfoClean() const
 {
   CALL("SimpleCongruenceClosure::assertModelInfoClean");

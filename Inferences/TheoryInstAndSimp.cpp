@@ -336,8 +336,10 @@ void TheoryInstAndSimp::selectTheoryLiterals(Clause* cl, Stack<Literal*>& theory
   cout << "selectTheoryLiterals in " << cl->toString() << endl;
 #endif
 
-  static Shell::Options::TheoryInstSimp selection = env.options->theoryInstAndSimp();
-  ASS(selection!=Shell::Options::TheoryInstSimp::OFF);
+  ASS_NEQ(
+    env.options->theoryInstAndSimp(),
+    Shell::Options::TheoryInstSimp::OFF
+  );
 
   //  Stack<Literal*> pure_lits;
   Stack<Literal*> trivial_lits;

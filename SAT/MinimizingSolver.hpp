@@ -71,7 +71,9 @@ public:
 
   virtual unsigned newVar() override {
     CALL("MinimizingSolver::newVar");
+#if VDEBUG
     unsigned oldVC = _varCnt;
+#endif
     ensureVarCount(_varCnt+1);
     ASS_EQ(_varCnt,oldVC+1);
     return _varCnt;

@@ -1491,7 +1491,9 @@ SATLiteral FiniteModelBuilder::getSATLiteral(unsigned f, const DArray<unsigned>&
   // cannot have predicate 0 here (it's equality)
   ASS(f>0 || isFunction);
 
+#if VDEBUG
   unsigned arity = isFunction ? env.signature->functionArity(f) : env.signature->predicateArity(f);
+#endif
   ASS((isFunction && arity==grounding.size()-1) || (!isFunction && arity==grounding.size()));
 
   unsigned offset = isFunction ? f_offsets[f] : p_offsets[f];

@@ -51,8 +51,10 @@ using namespace Kernel;
 
 
 InterpretedEvaluation::InterpretedEvaluation(bool doNormalize, Ordering& ordering) :
-  _simpl(new InterpretedLiteralEvaluator(doNormalize)),
-  _ordering(ordering)
+  _simpl(new InterpretedLiteralEvaluator(doNormalize))
+#if VDEBUG
+  , _ordering(ordering)
+#endif
 {
   CALL("InterpretedEvaluation::InterpretedEvaluation");
 }

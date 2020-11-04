@@ -1149,12 +1149,17 @@ void MLMatcherSD::Impl::getBindings(vunordered_map<unsigned, TermList>& outBindi
         // md->boundVarNums[bi] contains the corresponding variable indices.
         unsigned var = md->boundVarNums[bi][vi];
         TermList trm = md->altBindings[bi][alti][vi];
-        auto res = outBindings.insert({var, trm});
+#if VDEBUG
+	auto res =
+#endif 
+        outBindings.insert({var, trm});
+#if VDEBUG
         auto it = res.first;
         bool inserted = res.second;
         if (!inserted) {
           ASS_EQ(it->second, trm);
         }
+#endif
       }
     }
   }
