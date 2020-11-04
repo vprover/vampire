@@ -25,7 +25,6 @@
 #include "Lib/Optional.hpp"
 #include "Lib/Map.hpp"
 #include "Kernel/Theory.hpp"
-#include <map> // TODO replace by Map
 #include "Lib/UniqueShared.hpp"
 #include "Kernel/NumTraits.hpp"
 #include "Kernel/Ordering.hpp"
@@ -43,23 +42,17 @@ class Variable
 {
   unsigned _num;
 public: 
-  Variable() : _num() {}
-  explicit Variable(unsigned num) : _num(num) {}
-  unsigned id() const { return _num; }
-  friend bool operator==(Variable lhs, Variable rhs) 
-  { return lhs._num == rhs._num; }
-
-  friend bool operator!=(Variable lhs, Variable rhs) 
-  { return !(lhs == rhs); }
+  Variable();
+  explicit Variable(unsigned num);
+  unsigned id() const;
 
   friend struct std::hash<Variable>;
-
-  friend bool operator<(Variable const& lhs, Variable const& rhs)
-  { return lhs._num < rhs._num; }
-
-  friend std::ostream& operator<<(std::ostream& out, const Variable& self) 
-  { return out << "X" << self._num; }
+  friend bool operator==(Variable lhs, Variable rhs);
+  friend bool operator!=(Variable lhs, Variable rhs);
+  friend bool operator<(Variable const& lhs, Variable const& rhs);
+  friend std::ostream& operator<<(std::ostream& out, const Variable& self);
 };
+
 
 
 // TODO use this newtype in Term.hpp
@@ -68,55 +61,39 @@ class FuncId
 {
   unsigned _num;
   
-  Signature::Symbol* symbol() const { return env.signature->getFunction(_num); }
 public: 
-  explicit FuncId(unsigned num) : _num(num) {}
-  unsigned arity() { return symbol()->arity(); }
-
-  friend bool operator==(FuncId const& lhs, FuncId const& rhs) 
-  { return lhs._num == rhs._num; }
-
-  friend bool operator!=(FuncId const& lhs, FuncId const& rhs) 
-  { return !(lhs == rhs); }
+  explicit FuncId(unsigned num);
+  unsigned arity();
 
   friend struct std::hash<FuncId>;
+  friend bool operator==(FuncId const& lhs, FuncId const& rhs);
+  friend bool operator!=(FuncId const& lhs, FuncId const& rhs);
+  friend std::ostream& operator<<(std::ostream& out, const FuncId& self);
 
-  friend std::ostream& operator<<(std::ostream& out, const FuncId& self) 
-  { return out << self.symbol()->name(); }
+  Signature::Symbol* symbol() const;
 
-  unsigned id() const 
-  { return _num; }
-
-  Theory::Interpretation interpretation() const 
-  { return theory->interpretFunction(_num); }
-
-  bool isInterpreted() const
-  { return theory->isInterpretedFunction(_num); }
-
-  Optional<Theory::Interpretation> tryInterpret() const
-  { 
-    return isInterpreted() ? some<Theory::Interpretation>(interpretation())
-                           : none<Theory::Interpretation>();
-  }
+  unsigned id() const;
+  Theory::Interpretation interpretation() const;
+  bool isInterpreted() const;
+  Optional<Theory::Interpretation> tryInterpret() const;
 
   template<class Number>
-  Optional<typename Number::ConstantType> tryNumeral() const
-  { 
-    using Const = typename Number::ConstantType;
-    Const out;
-    if (theory->tryInterpretConstant(_num, out)) {
-      return Optional<Const>(out);
-    } else {
-      return Optional<Const>();
-    }
-  }
+  Optional<typename Number::ConstantType> tryNumeral() const;
 
 };
 
+/////////////////////////////////////////////////////////////////////////////////////////////
+// forward declarations, needed to define PolyNf structure
+/////////////////////////////////////////////////////////
+
 class PolyNf;
-template<class Number> class        Polynom;
-template<class Number> class        MonomFactors;
+template<class Number> class Polynom;
+template<class Number> class MonomFactors;
 class AnyPoly;
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// class declartions for PolyNf
+/////////////////////////////////////////////////////////
 
 /** 
  * Represents a summand in a polynom of the number type Number 
@@ -124,7 +101,8 @@ class AnyPoly;
  * Monom { 3, MonomFactors { a, x }}
  */
 template<class Number> 
-struct Monom {
+struct Monom 
+{
   CLASS_NAME(MonomFactor)
 
   using Numeral = typename Number::ConstantType;
@@ -132,50 +110,13 @@ struct Monom {
   Numeral numeral;
   UniqueShared<MonomFactors<Number>> factors;
 
-  Monom(typename Number::ConstantType numeral, UniqueShared<MonomFactors<Number>> factors) 
-    : numeral(numeral), factors(factors)
-  {}
+  Monom(Numeral numeral, UniqueShared<MonomFactors<Number>> factors);
 
-  friend bool operator<(Monom const& l, Monom const& r)
-  { return std::tie(l.factors, l.numeral) < std::tie(r.factors, r.numeral); }
+  static Monom zero();
 
-  friend bool operator==(Monom const& l, Monom const& r)
-  { return std::tie(l.factors, l.numeral) == std::tie(r.factors, r.numeral); }
-
-  friend bool operator!=(Monom const& l, Monom const& r)
-  { return !(l == r); }
-
-  static Monom zero() 
-  { 
-    static Monom p = Monom(Numeral(0), unique(MonomFactors<Number>()));
-    return p; 
-  }
-
-  friend std::ostream& operator<<(std::ostream& out, const Monom& self)
-  { 
-    if (self.numeral != Numeral(1)) {
-      out << self.numeral;
-    }
-    return out << self.factors; 
-  }
-
-  Optional<Variable> tryVar() const 
-  {
-    using Opt = Optional<Variable>;
-    if (numeral == Numeral(1)) {
-      return  factors->tryVar();
-    } else {
-      return  Opt();
-    }
-  }
-
-  ~Monom() {
-    CALL("~Monom")
-  }
+  Optional<Variable> tryVar() const;
 };
 
-std::ostream& operator<<(std::ostream& out, const PolyNf& self);
-bool operator==(PolyNf const& lhs, PolyNf const& rhs);
 
 /**
  * Represents an ordenary complex term, in the PolyNF term tree.
@@ -185,29 +126,20 @@ class FuncTerm
   FuncId _fun;
   Stack<PolyNf> _args;
 public:
-  FuncTerm(FuncId f, Stack<PolyNf>&& args) : _fun(f), _args(std::move(args)) { }
-  FuncTerm(FuncId f, PolyNf* args) : _fun(f), _args(Stack<PolyNf>::fromIterator(getArrayishObjectIterator(args, f.arity()))) { }
+  FuncTerm(FuncId f, Stack<PolyNf>&& args);
+  FuncTerm(FuncId f, PolyNf* args);
 
-  friend bool operator==(FuncTerm const& lhs, FuncTerm const& rhs) 
-  { return lhs._fun == rhs._fun && lhs._args == rhs._args; }
+  unsigned arity() const;
+  FuncId function() const;
+  PolyNf const& arg(unsigned i) const;
 
-  friend bool operator!=(FuncTerm const& lhs, FuncTerm const& rhs) 
-  { return !(lhs == rhs); }
+  template<class Number> 
+  Optional<typename Number::ConstantType> tryNumeral() const;
 
-  unsigned arity() const 
-  { return _args.size(); }
-
+  friend std::ostream& operator<<(std::ostream& out, const FuncTerm& self);
+  friend bool operator==(FuncTerm const& lhs, FuncTerm const& rhs);
+  friend bool operator!=(FuncTerm const& lhs, FuncTerm const& rhs);
   friend struct std::hash<FuncTerm>;
-
-  friend std::ostream& operator<<(std::ostream& out, const FuncTerm& self) ;
-
-  FuncId function() const { return _fun; }
-  PolyNf const& arg(unsigned i) const { return _args[i]; }
-
-
-  template<class Number>
-  Optional<typename Number::ConstantType> tryNumeral() const
-  { return _fun.template tryNumeral<Number>(); }
 };
 
 POLYMORPHIC_FUNCTION(TermList, toTerm   , const& t, TermList* results; ) { return t->toTerm(results); }
@@ -216,85 +148,31 @@ POLYMORPHIC_FUNCTION(unsigned, nFactors , const& t, unsigned i;) { return t->nFa
 POLYMORPHIC_FUNCTION(ostream&, outputOp , const& t, ostream& o;) { return o << t; }
 POLYMORPHIC_FUNCTION(PolyNf const&, termAt   , const& t, unsigned summand; unsigned factor;) { return t->summandAt(summand).factors->termAt(factor); }
 
-using IntPoly = Polynom<IntTraits>;
-using RatPoly = Polynom<RatTraits>;
-using RealPoly = Polynom<RealTraits>;
-
 using AnyPolySuper = Coproduct< 
-  UniqueShared<Polynom<NumTraits<IntegerConstantType>>>, 
-  UniqueShared<Polynom<NumTraits<RationalConstantType>>>, 
-  UniqueShared<Polynom<NumTraits<RealConstantType>>>
+    UniqueShared<Polynom< IntTraits>>
+  , UniqueShared<Polynom< RatTraits>>
+  , UniqueShared<Polynom<RealTraits>>
   > ;
-
-/* helper function for AnyPoly::tryNumeral */
-template<class NumIn, class NumOut>
-struct __ToNumeralHelper 
-{
-  Optional<typename NumOut::ConstantType> operator()(UniqueShared<Polynom<NumIn>>) const
-  { return Optional<typename NumOut::ConstantType>(); }
-};
-
-/* helper function for AnyPoly::tryNumeral */
-template<class Num>
-struct __ToNumeralHelper<Num,Num>
-{
-  Optional<typename Num::ConstantType> operator()(UniqueShared<Polynom<Num>> p) const
-  { return p->toNumber(); }
-};
-
-template<class NumOut>  
-struct PolymorphicToNumeral 
-{
-  template<class NumIn>
-  Optional<typename NumOut::ConstantType> operator()(UniqueShared<Polynom<NumIn>> const& p) const
-  { return __ToNumeralHelper<NumIn, NumOut>{}(p); }
-};
 
 class AnyPoly : public AnyPolySuper
 {
 public:
-  
-  template<class C>
-  using Poly = UniqueShared<Polynom<NumTraits<C>>>;
+  /** creates a new dynamically typed polynom from a statically typed one */
+  template<class NumTraits> AnyPoly(UniqueShared<Polynom<NumTraits>> x);
+  template<class NumTraits> Optional<UniqueShared<Polynom<NumTraits>> const&> downcast() const&;
+  template<class NumTraits> bool isType() const;
+  template<class NumTraits> Optional<typename NumTraits::ConstantType> tryNumeral() const&;
 
-  AnyPoly(Poly< IntegerConstantType> x) : Coproduct(variant<0>(std::move(x))) {  }
-  AnyPoly(Poly<RationalConstantType> x) : Coproduct(variant<1>(std::move(x))) {  }
-  AnyPoly(Poly<    RealConstantType> x) : Coproduct(variant<2>(std::move(x)))  {  }
-
-  // TODO make this return the UniqueShared<...>
-  template<class Number> 
-  Polynom<Number> const& downcast() const& { return *unwrap<UniqueShared<Polynom<Number>>>(); }
-
-  template<class Number> 
-  UniqueShared<Polynom<Number>> unwrapType() const& { return unwrap<UniqueShared<Polynom<Number>>>(); }
-
-  template<class Number> 
-  bool isType() const { return is<UniqueShared<Polynom<Number>>>(); }
-
-  AnyPoly replaceTerms(PolyNf* newTs) const;
-
-  unsigned nSummands() const { return apply(Polymorphic::nSummands{}); }
-  unsigned nFactors(unsigned i) const { return apply(Polymorphic::nFactors{i}); }
-  const PolyNf& termAt(unsigned summand, unsigned factor) {  return apply(Polymorphic::termAt{summand, factor}); }
-
-  friend std::ostream& operator<<(std::ostream& out, const AnyPoly& self) 
-  { return self.apply(Polymorphic::outputOp{out}); }
-
+  friend std::ostream& operator<<(std::ostream& out, const AnyPoly& self);
   friend struct std::hash<AnyPoly>;
 
-  TermList toTerm(TermList* results) const
-  { return apply(Polymorphic::toTerm{results}); }
-
+  AnyPoly replaceTerms(PolyNf* newTs) const;
+  unsigned nSummands() const;
+  unsigned nFactors(unsigned i) const;
+  PolyNf const& termAt(unsigned summand, unsigned factor) const;
+  TermList toTerm(TermList* results) const;
   AnyPoly simplify(PolyNf* simplifiedArgs) const;
-
-  template<class Number>
-  Optional<typename Number::ConstantType> tryNumeral() const&
-  { return apply(PolymorphicToNumeral<Number>{}); }
 };
-
-POLYMORPHIC_FUNCTION(AnyPoly, replaceTerms, const& t, PolyNf* newTs;) { return AnyPoly(unique(t->replaceTerms(newTs))); }
-
-inline AnyPoly AnyPoly::replaceTerms(PolyNf* newTs) const { return apply(Polymorphic::replaceTerms{newTs}); }
 
 using PolyNfSuper = Lib::Coproduct<UniqueShared<FuncTerm>, Variable, AnyPoly>;
 
@@ -308,64 +186,42 @@ class PolyNf : public PolyNfSuper
 public:
   CLASS_NAME(PolyNf)
 
-  PolyNf(UniqueShared<FuncTerm> t) : Coproduct(t) {}
-  PolyNf(Variable               t) : Coproduct(t) {}
-  PolyNf(AnyPoly                t) : Coproduct(t) {}
+  PolyNf(UniqueShared<FuncTerm> t);
+  PolyNf(Variable               t);
+  PolyNf(AnyPoly                t);
+
   static PolyNf normalize(TypedTermList t);
 
-  friend bool operator==(PolyNf const& lhs, PolyNf const& rhs) 
-  { return static_cast<Coproduct const&>(lhs) == static_cast<Coproduct const&>(rhs); }
-
-  friend bool operator!=(PolyNf const& lhs, PolyNf const& rhs) 
-  { return !(lhs == rhs); }
-
   friend struct std::hash<PolyNf>;
+  friend bool operator==(PolyNf const& lhs, PolyNf const& rhs);
+  friend bool operator!=(PolyNf const& lhs, PolyNf const& rhs);
+  friend std::ostream& operator<<(std::ostream& out, const PolyNf& self);
 
-  friend std::ostream& operator<<(std::ostream& out, const PolyNf& self)
-  { return self.apply(Polymorphic::outputOp{out}); }
+  template<class NumTraits>
+  Optional<UniqueShared<Polynom<NumTraits>>> downcast() const;
 
-  bool    isPoly() const { return is<2>(); }
-  AnyPoly const& asPoly() const& { return unwrap<2>(); }
-  AnyPoly     && asPoly()     && { return std::move(unwrap<2>()); }
-  AnyPoly      & asPoly()      & { return unwrap<2>(); }
+  TermList toTerm() const;
 
-  TermList toTerm() const
-  { 
-    CALL("PolyNf::toTerm")
-    DEBUG("converting ", *this)
-    struct Eval 
-    {
-      using Arg    = PolyNf;
-      using Result = TermList;
-
-      TermList operator()(PolyNf orig, TermList* results)
-      { return orig.match(
-          [&](UniqueShared<FuncTerm> t) { return TermList(Term::create(t->function().id(), t->arity(), results)); },
-          [&](Variable               v) { return TermList::var(v.id()); },
-          [&](AnyPoly                p) { return p.toTerm(results); }
-          ); }
-    };
-    static Memo::Hashed<PolyNf, TermList> memo;
-    return evaluateBottomUp(*this, Eval{}, memo);
-  }
+  /** turns this PolyNf term into a typed polynom of sort Number.
+   * this must have the same sort as Number. 
+   * If this is already a polynom it will just be downcasted, 
+   * otherwise (when it is a Variable, or a FuncTerm) it will be 
+   * wrapped in a polynom.
+   */
+  template<class Number> 
+  UniqueShared<Polynom<Number>> wrapPoly() const;
+  
 
   template<class Number>
-  Optional<typename Number::ConstantType> tryNumeral() const
-  { 
-    using Const = typename Number::ConstantType;
-    return match(
-        [](UniqueShared<FuncTerm> t) { return (*t).tryNumeral<Number>(); },
-        [](Variable               t) { return Optional<Const>();              },
-        [](AnyPoly                t) { return t.template tryNumeral<Number>(); }
-      );
-  }
+  Optional<typename Number::ConstantType> tryNumeral() const;
 
-  Optional<Variable> tryVar() const 
-  { return as<Variable>().template innerInto<Variable>(); }
+  Optional<Variable> tryVar() const;
 
   class Iter;
   IterTraits<Iter> iter() const;
 };
+
+// TODO continue here
 
 inline bool operator<(const PolyNf& lhs, const PolyNf& rhs)  // TODO get rid of that and use the vampire sorting method 
 { return std::less<PolyNfSuper>{}(lhs,rhs); }
@@ -972,6 +828,36 @@ inline AnyPoly AnyPoly::simplify(PolyNf* ts) const
 { return apply(Polymorphic::simplify{ ts }); }
 
 
+// TODO resolve this hack
+} // namespace Kernel
+#include "Kernel/BottomUpEvaluation/PolyNf.hpp"
+
+namespace Kernel {
+class PolyNf::Iter {
+  Stack<BottomUpChildIter<PolyNf>> _stack;
+public:
+  Iter(Iter&&) = default;
+  Iter& operator=(Iter&&) = default;
+  Iter(PolyNf p) : _stack(decltype(_stack){ BottomUpChildIter<PolyNf>(p) }) {  }
+  DECL_ELEMENT_TYPE(PolyNf);
+
+  PolyNf next() {
+    CALL("PolyNf::Iter::next")
+    ASS(_stack.size() != 0)
+    while(_stack.top().hasNext()) {
+      ASS(_stack.size() != 0)
+      _stack.push(BottomUpChildIter<PolyNf>(_stack.top().next()));
+    }
+    ASS(_stack.size() != 0)
+    return _stack.pop().self();
+  }
+
+  bool hasNext() const 
+  { 
+    CALL("PolyNf::Iter::hasNext")
+    return !_stack.isEmpty(); 
+  }
+};
 } // namespace Kernel
 
 
@@ -1035,6 +921,219 @@ struct std::hash<Kernel::MonomFactors<NumTraits>>
     return out;
   }
 };
+
+template<> struct std::hash<Kernel::FuncId> 
+{
+  size_t operator()(Kernel::FuncId const& f) const 
+  { return std::hash<unsigned>{}(f._num); }
+};
+
+template<> struct std::hash<Kernel::FuncTerm> 
+{
+  size_t operator()(Kernel::FuncTerm const& f) const 
+  { return Lib::HashUtils::combine(std::hash<Kernel::FuncId>{}(f._fun), std::hash<Stack<Kernel::PolyNf>>{}(f._args));  }
+};
+
+
+template<> struct std::hash<Kernel::PolyNf> 
+{
+  size_t operator()(Kernel::PolyNf const& f) const 
+  { return std::hash<Kernel::PolyNfSuper>{}(f); }
+};
+
+template<> struct std::hash<Kernel::Variable>
+{
+  size_t operator()(Kernel::Variable const& self)
+  { return std::hash<unsigned>{}(self._num); }
+};
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// template stuff implementations
+/////////////////////////////////////////////////////////
+
+/////////////////////////////////////////////////////////
+// impl Monom template stuff
+////////////////////////////
+namespace Kernel {
+
+template<class Number>
+Monom<Number>::Monom(Monom<Number>::Numeral numeral, UniqueShared<MonomFactors<Number>> factors) 
+  : numeral(numeral), factors(factors)
+{}
+
+template<class Number>
+Monom<Number> Monom<Number>::zero() 
+{ 
+  static Monom p = Monom(Numeral(0), unique(MonomFactors<Number>()));
+  return p; 
+}
+
+template<class Number>
+Optional<Variable> Monom<Number>::tryVar() const 
+{
+  using Opt = Optional<Variable>;
+  if (numeral == Numeral(1)) {
+    return  factors->tryVar();
+  } else {
+    return  Opt();
+  }
+}
+
+
+
+template<class Number>
+bool operator<(Monom<Number> const& l, Monom<Number> const& r)
+{ return std::tie(l.factors, l.numeral) < std::tie(r.factors, r.numeral); }
+
+template<class Number>
+bool operator==(Monom<Number> const& l, Monom<Number> const& r)
+{ return std::tie(l.factors, l.numeral) == std::tie(r.factors, r.numeral); }
+
+template<class Number>
+bool operator!=(Monom<Number> const& l, Monom<Number> const& r)
+{ return !(l == r); }
+
+template<class Number>
+std::ostream& operator<<(std::ostream& out, const Monom<Number>& self)
+{ 
+  if (self.numeral != typename Number::ConstantType(1)) {
+    out << self.numeral;
+  }
+  return out << self.factors; 
+}
+} // namespace Kernel
+
+
+/////////////////////////////////////////////////////////
+// impl Monom template stuff
+////////////////////////////
+
+namespace Kernel {
+
+template<class Number>
+Optional<typename Number::ConstantType> FuncId::tryNumeral() const
+{ 
+  using Const = typename Number::ConstantType;
+  Const out;
+  if (theory->tryInterpretConstant(_num, out)) {
+    return Optional<Const>(out);
+  } else {
+    return Optional<Const>();
+  }
+}
+
+} // namespace Kernel
+
+
+/////////////////////////////////////////////////////////
+// impl FuncTerm template stuff
+////////////////////////////
+
+
+namespace Kernel {
+
+template<class Number>
+Optional<typename Number::ConstantType> FuncTerm::tryNumeral() const
+{ return _fun.template tryNumeral<Number>(); }
+
+} // namespace Kernel
+
+
+/////////////////////////////////////////////////////////
+// impl AnyPoly  template stuff
+////////////////////////////
+
+namespace Kernel {
+  
+template<class NumTraits>
+AnyPoly::AnyPoly(UniqueShared<Polynom<NumTraits>> x) : Coproduct(std::move(x)) {  }
+
+template<class NumTraits> 
+Optional<UniqueShared<Polynom<NumTraits>> const&>  AnyPoly::downcast() const& 
+{ return as<UniqueShared<Polynom<NumTraits>>>(); }
+
+// template<class NumTraits> 
+// UniqueShared<Polynom<NumTraits>> AnyPoly::unwrapType() const& 
+// { return unwrap<UniqueShared<Polynom<NumTraits>>>(); }
+
+template<class NumTraits> 
+bool AnyPoly::isType() const 
+{ return is<UniqueShared<Polynom<NumTraits>>>(); }
+
+/* helper function for AnyPoly::tryNumeral */
+template<class NumIn, class NumOut>
+struct __ToNumeralHelper 
+{
+  Optional<typename NumOut::ConstantType> operator()(UniqueShared<Polynom<NumIn>>) const
+  { return Optional<typename NumOut::ConstantType>(); }
+};
+
+/* helper function for AnyPoly::tryNumeral */
+template<class Num>
+struct __ToNumeralHelper<Num,Num>
+{
+  Optional<typename Num::ConstantType> operator()(UniqueShared<Polynom<Num>> p) const
+  { return p->toNumber(); }
+};
+
+template<class NumOut>  
+struct PolymorphicToNumeral 
+{
+  template<class NumIn>
+  Optional<typename NumOut::ConstantType> operator()(UniqueShared<Polynom<NumIn>> const& p) const
+  { return __ToNumeralHelper<NumIn, NumOut>{}(p); }
+};
+
+
+template<class NumTraits>
+Optional<typename NumTraits::ConstantType> AnyPoly::tryNumeral() const&
+{ return apply(PolymorphicToNumeral<NumTraits>{}); }
+
+} // namespace Kernel
+
+/////////////////////////////////////////////////////////
+// impl AnyPoly  template stuff
+////////////////////////////
+
+namespace Kernel {
+
+
+template<class NumTraits>
+Optional<UniqueShared<Polynom<NumTraits>>> PolyNf::downcast()  const
+{
+  using Result = UniqueShared<Polynom<NumTraits>>;
+  return as<AnyPoly>()
+    .andThen([](AnyPoly const& p) { return p.as<Result>(); })
+    .map([](Result const& p) -> Result { return p; });
+}
+
+
+template<class Number> 
+UniqueShared<Polynom<Number>> PolyNf::wrapPoly() const
+{
+  if (this->is<AnyPoly>()) {
+    return this->unwrap<AnyPoly>()
+            .unwrap<UniqueShared<Polynom<Number>>>();
+  } else {
+    return unique(Polynom<Number>(*this));
+  }
+}
+
+template<class Number>
+Optional<typename Number::ConstantType> PolyNf::tryNumeral() const
+{ 
+  using Const = typename Number::ConstantType;
+  return match(
+      [](UniqueShared<FuncTerm> t) { return (*t).tryNumeral<Number>(); },
+      [](Variable               t) { return Optional<Const>();              },
+      [](AnyPoly                t) { return t.template tryNumeral<Number>(); }
+    );
+}
+
+
+// TODO UniqueShared -> PerfectShared
+} // namespace Kernel
 
 #undef DEBUG
 #endif // __POLYNOMIAL__H__

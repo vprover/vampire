@@ -13,8 +13,8 @@ Literal* doCancellation(Literal* lit) {
   auto normL = PolyNf::normalize(TypedTermList((*lit)[0], SortHelper::getArgSort(lit, 0)));
   auto normR = PolyNf::normalize(TypedTermList((*lit)[1], SortHelper::getArgSort(lit, 1)));
 
-  auto oldL = intoPoly<NumTraits>(normL);
-  auto oldR = intoPoly<NumTraits>(normR);
+  auto oldL = normL.template wrapPoly<NumTraits>();
+  auto oldR = normR.template wrapPoly<NumTraits>();
   auto res = Polynom<NumTraits>::cancelAdd(*oldL, *oldR);
   auto newL = unique(std::move(res.lhs));
   auto newR = unique(std::move(res.rhs));
@@ -68,7 +68,6 @@ Cancellation::Result Cancellation::simplifyLiteral(Literal* litIn)
                 ? tryCancel(theory->interpretPredicate(pred), litIn)
                 : litIn);
 }
-
 
 
 } // namespace Inferences

@@ -1,6 +1,7 @@
 #ifndef __BOTTOM_UP_EVALUATION__TYPED_TERM_LIST_HPP__
 #define __BOTTOM_UP_EVALUATION__TYPED_TERM_LIST_HPP__
 
+#include "Kernel/SortHelper.hpp"
 #include "Kernel/BottomUpEvaluation.hpp"
 
 

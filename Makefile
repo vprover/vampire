@@ -235,6 +235,7 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/SubformulaIterator.o\
         Kernel/Substitution.o\
         Kernel/Term.o\
+	Kernel/Polynomial.o\
         Kernel/TermIterators.o\
         Kernel/TermTransformer.o\
         Kernel/Theory.o\

@@ -6,12 +6,14 @@
 
 #include "Lib/DHMap.hpp"
 
-#include "Kernel/PolynomialNormalizer.hpp"
+#include "Kernel/Polynomial.hpp"
 #include "Kernel/Theory.hpp"
 
 #include "InferenceEngine.hpp"
 
-namespace Inferences {
+namespace Inferences 
+{
+
 class PolynomialEvaluation
 : public SimplifyingGeneratingLiteralSimplification
 {
@@ -25,9 +27,19 @@ public:
 private:
 
   Result simplifyLiteral(Literal*) override;
-  PolynomialNormalizer _normalizer;
+
+private:
+  Optional<PolyNf> evaluate(TermList in, unsigned sortNumber) const;
+  Optional<PolyNf> evaluate(Term* in) const;
+  Optional<PolyNf> evaluate(PolyNf in) const;
+  Optional<PolyNf> evaluate(TypedTermList in) const;
+
+  Optional<Result> evaluateStep(Literal* orig, PolyNf* evaluatedArgs) const;
+
+  PolyNf evaluateStep(Term* orig, PolyNf* evaluatedArgs) const;
 };
 
-};
+
+} // namespace Inferences 
 
 #endif /* __POLYNOMIAL_EVALUATION_H__ */

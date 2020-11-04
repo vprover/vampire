@@ -782,7 +782,7 @@ void GeneralizeAdd<NumTraits>::addToMap(GenMap& map, AnyPoly p_)
   if (!p_.template isType<NumTraits>()) {
     return;
   }
-  auto p = p_.template unwrapType<NumTraits>();
+  auto p = p_.template downcast<NumTraits>().unwrap();
  
   Map<Variable, Unit> varSummands;
   for (auto summand : p->iter()) {
@@ -837,7 +837,7 @@ void GeneralizeMul<NumTraits>::addToMap(GenMap& map, AnyPoly p_)
   if (!p_.template isType<NumTraits>()) {
     return;
   }
-  auto p = p_.template unwrapType<NumTraits>();
+  auto p = p_.template downcast<NumTraits>().unwrap();
 
   for (auto summand : p->iter()) {
     Self::addToMap(map, summand);

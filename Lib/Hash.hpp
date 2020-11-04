@@ -256,6 +256,17 @@ struct FirstHashTypeInfo<Stack<T> > {
   typedef StackHash< typename FirstHashTypeInfo<T>::Type > Type;
 };
 
+
+} // namespace Lib
+
+namespace std {
+
+template<class T> struct hash<Lib::Stack<T>> 
+{
+  size_t operator()(Lib::Stack<T> const& s) const 
+  { return Lib::StackHash<Lib::StlHash<T>>::hash(s); }
+};
+
 }
 
 #endif

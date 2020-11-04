@@ -20,5 +20,6 @@ public:
 };
 
 
+
 } // namespace Inferences
 #endif /* __CANCELLATION_HPP__ */

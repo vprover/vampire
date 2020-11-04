@@ -33,8 +33,8 @@ template<class ConstantType, class EvalGround>
 Optional<LitSimplResult> tryEvalConstant2(Literal* orig, PolyNf* evaluatedArgs, EvalGround fun) 
 {
   using Number = NumTraits<ConstantType>;
-  auto& lhs = evaluatedArgs[0].asPoly().downcast<Number>();
-  auto& rhs = evaluatedArgs[1].asPoly().downcast<Number>();
+  auto& lhs = *evaluatedArgs[0].downcast<Number>().unwrap();
+  auto& rhs = *evaluatedArgs[1].downcast<Number>().unwrap();
   if (lhs.isNumber() && rhs.isNumber()) {
     return Optional<LitSimplResult>(LitSimplResult::constant(fun(lhs.unwrapNumber(), rhs.unwrapNumber())));
   } else {
@@ -48,10 +48,12 @@ Optional<LitSimplResult> tryEvalConstant2(Literal* orig, PolyNf* evaluatedArgs, 
 /// Equality
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-template<class Number> inline Optional<LitSimplResult> interpretEquality(bool polarity, Polynom<Number> lhs, Polynom<Number> rhs) {
+template<class Number> inline Optional<LitSimplResult> interpretEquality(bool polarity, UniqueShared<Polynom<Number>> lhs, UniqueShared<Polynom<Number>> rhs) {
   
-  if (lhs.isNumber() && rhs.isNumber()) {
-    return Optional<LitSimplResult>(LitSimplResult::constant(polarity == (lhs.unwrapNumber() == rhs.unwrapNumber())));
+  if (lhs->isNumber() && rhs->isNumber()) {
+    return Optional<LitSimplResult>(LitSimplResult::constant(polarity == (lhs->unwrapNumber() == rhs->unwrapNumber())));
+  } else if (lhs == rhs) {
+    return Optional<LitSimplResult>(LitSimplResult::constant(polarity));
   } else {
     return Optional<LitSimplResult>();
   }
@@ -72,11 +74,11 @@ IMPL_EVALUATE_PRED(Interpretation::EQUAL,
   }
   switch (sort) {
   case Sorts::SRT_INTEGER:
-    return interpretEquality(polarity, *intoPoly<IntTraits>(lhs), *intoPoly<IntTraits>(rhs));
+    return interpretEquality(polarity, lhs.template wrapPoly<IntTraits >(), rhs.template wrapPoly<IntTraits >());
   case Sorts::SRT_RATIONAL:
-    return interpretEquality(polarity, *intoPoly<RatTraits>(lhs), *intoPoly<RatTraits>(rhs));
+    return interpretEquality(polarity, lhs.template wrapPoly<RatTraits >(), rhs.template wrapPoly<RatTraits >());
   case Sorts::SRT_REAL:
-    return interpretEquality(polarity, *intoPoly<RealTraits>(lhs), *intoPoly<RealTraits>(rhs));
+    return interpretEquality(polarity, lhs.template wrapPoly<RealTraits>(), rhs.template wrapPoly<RealTraits>());
   default:
     return Optional<LitSimplResult>();
   }
@@ -90,12 +92,12 @@ template<class ConstantType, class EvalIneq> Optional<LitSimplResult> evaluateIn
   ASS(orig->arity() == 2);
 
 
-  auto lhs = *intoPoly<NumTraits<ConstantType>>(evaluatedArgs[0]);
-  auto rhs = *intoPoly<NumTraits<ConstantType>>(evaluatedArgs[1]);
+  auto lhs = evaluatedArgs[0].template wrapPoly<NumTraits<ConstantType>>();
+  auto rhs = evaluatedArgs[1].template wrapPoly<NumTraits<ConstantType>>();
 
   auto polarity = orig->polarity();
-  if (lhs.isNumber() && rhs.isNumber()) {
-    return Optional<LitSimplResult>(LitSimplResult::constant(polarity == evalIneq(lhs.unwrapNumber(), rhs.unwrapNumber())));
+  if (lhs->isNumber() && rhs->isNumber()) {
+    return Optional<LitSimplResult>(LitSimplResult::constant(polarity == evalIneq(lhs->unwrapNumber(), rhs->unwrapNumber())));
   } else if (lhs == rhs) {
     return Optional<LitSimplResult>(LitSimplResult::constant(polarity != strict));
   } else {
