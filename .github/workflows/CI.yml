@@ -1,5 +1,8 @@
 name: CI
-on: [workflow_dispatch]
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [opened, reopened, synchronize]
 
 jobs:
   build:
@@ -10,7 +13,7 @@ jobs:
       run: mkdir ${{runner.workspace}}/build
     - name: Configure Build
       working-directory: ${{runner.workspace}}/build
-      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=Release
+      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=Debug
       env:
         CXX: clang++
     - name: Build
