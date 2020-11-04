@@ -44,6 +44,12 @@
 namespace Inferences {
 using namespace Indexing;
 
+static Clause* replaceLits(Clause *c, Literal *a, Literal *b, InferenceRule r, bool incAge, Literal *d = 0, Literal* e = 0);
+static TermList sigmaRemoval(TermList sigmaTerm, TermList expsrt);
+static TermList piRemoval(TermList piTerm, Clause* clause, TermList expsrt);
+static InferenceRule convert(Signature::Proxy cnst);
+static ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaIndex* index = 0);
+
 typedef ApplicativeHelper AH;
 
 /*Clause* NotProxyISE::simplify(Clause* c){
