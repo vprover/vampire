@@ -4072,7 +4072,7 @@ void TPTP::simpleFormula()
   case T_INT:
   case T_RAT:
   case T_REAL:
-    PARSE_ERROR("Sorry, polymorphic Vampire does not yet support theories", tok);
+    //PARSE_ERROR("Sorry, polymorphic Vampire does not yet support theories", tok);
     _states.push(END_EQ);
     _states.push(TERM);
     _states.push(MID_EQ);

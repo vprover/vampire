@@ -239,22 +239,31 @@ Signature::Signature ():
 {
   CALL("Signature::Signature");
 
-  // initialize equality
-  /*addInterpretedPredicate(Theory::EQUAL, OperatorType::getPredicateType(2), "=");
-  ASS_EQ(predicateName(0), "="); //equality must have number 0
-  getPredicate(0)->markSkip();*/ //TODO is this safe? Doesn't look like it!
-
-  bool added;
+  /*bool added;
   addPredicate("=", 2, added);
   ASS(added);
   ASS_EQ(predicateName(0), "=");
   getPredicate(0)->markSkip();
-  getPredicate(0)->markProtected();
+  getPredicate(0)->markProtected();*/
 
   unsigned aux;
   aux = createDistinctGroup();
   ASS_EQ(STRING_DISTINCT_GROUP, aux);
 } // Signature::Signature
+
+/* adding equality predicate used to be carried out in the constructor
+ * however now that sorts are TermLists, this involves a call to Signature
+ * from Term::defaultSort before the Signature has been consstucted. hence
+ * the function below
+ */
+void Signature::addEquality()
+{
+  CALL("Signature::addEquality");
+  // initialize equality
+  addInterpretedPredicate(Theory::EQUAL, OperatorType::getPredicateType(2), "=");
+  ASS_EQ(predicateName(0), "="); //equality must have number 0
+  getPredicate(0)->markSkip(); //TODO is this safe? Doesn't look like it!
+}
 
 /**
  * Destroy a Signature.

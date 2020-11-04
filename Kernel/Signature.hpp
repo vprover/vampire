@@ -423,6 +423,7 @@ class Signature
   unsigned addSkolemPredicate(unsigned arity,const char* suffix = 0);
   unsigned addNamePredicate(unsigned arity);
   unsigned addNameFunction(unsigned arity);
+  void addEquality();
   unsigned getApp();
   unsigned getDiff();
   unsigned getChoice();

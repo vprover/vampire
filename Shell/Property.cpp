@@ -598,6 +598,9 @@ void Property::scan(Literal* lit, int polarity, unsigned cLen, bool goal)
     if((lhs.isVar() || rhs.isVar()) && eqSort == Term::boolSort()){
       _hasBoolVar = true;
     }
+    if(eqSort.isVar() || eqSort.term()->arity()){
+      _hasPolymorphicSym = true;      
+    } 
     scanSort(eqSort);
   }
   else {
