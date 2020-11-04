@@ -111,6 +111,7 @@ protected:
     if(v == LEFT){ return "left"; }
     if(v == RIGHT){ return "right"; }
     if(v == BOTH){ return "both"; }
+    return "none"; // just to suppress a warning
   }
 #endif
 
