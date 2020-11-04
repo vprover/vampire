@@ -74,7 +74,7 @@ public:
     _formulaIndex = 0;
   }
 
-  ClauseIterator perform(Clause* c);
+  ClauseIterator perform(Clause* c) override;
 
   void attach(SaturationAlgorithm* salg) override;
   void detach() override;
@@ -98,7 +98,7 @@ public:
   void attach(SaturationAlgorithm* salg) override;
   void detach() override;
 
-  ClauseIterator generateClauses(Clause* c);
+  ClauseIterator generateClauses(Clause* c) override;
 
 private:
   SkolemisingFormulaIndex* _formulaIndex;
