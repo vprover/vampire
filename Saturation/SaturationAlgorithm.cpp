@@ -637,6 +637,7 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
 
   bool sosForTheory = _opt.sos() == Options::Sos::THEORY && _opt.sosTheoryLimit() == 0;
 
+  /*
   if (_opt.sineToAge()) {
     unsigned level = cl->getSineLevel();
     // cout << "Adding " << cl->toString() << " level " << level;
@@ -647,6 +648,7 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
     // cout << endl;
     cl->setAge(level);
   }
+  */
 
   if (sosForAxioms || (cl->isTheoryAxiom() && sosForTheory)){
     addInputSOSClause(cl);
