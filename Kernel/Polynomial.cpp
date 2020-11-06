@@ -68,10 +68,13 @@ Optional<Theory::Interpretation> FuncId::tryInterpret() const
   return isInterpreted() ? some<Theory::Interpretation>(interpretation())
                          : none<Theory::Interpretation>();
 }
+} // namespace Kernel
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // impl FuncTerm
 /////////////////////////////////////////////////////////
+
+namespace Kernel {
 
 FuncTerm::FuncTerm(FuncId f, Stack<PolyNf>&& args) 
   : _fun(f)
@@ -124,7 +127,7 @@ std::ostream& operator<<(std::ostream& out, const FuncTerm& self)
 
 
 POLYMORPHIC_FUNCTION(AnyPoly, replaceTerms, const& t, PolyNf* newTs;) 
-{ return AnyPoly(unique(t->replaceTerms(newTs))); }
+{ return AnyPoly(perfect(t->replaceTerms(newTs))); }
 
 AnyPoly AnyPoly::replaceTerms(PolyNf* newTs) const 
 { return apply(Polymorphic::replaceTerms{newTs}); }
@@ -144,18 +147,14 @@ unsigned AnyPoly::nFactors(unsigned i) const
 std::ostream& operator<<(std::ostream& out, const AnyPoly& self) 
 { return self.apply(Polymorphic::outputOp{out}); }
 
-POLYMORPHIC_FUNCTION(AnyPoly, simplify  , const& t, PolyNf* ts;) { return AnyPoly(unique(t->simplify(ts))); }
-AnyPoly AnyPoly::simplify(PolyNf* ts) const
-{ return apply(Polymorphic::simplify{ ts }); }
-
 
 /////////////////////////////////////////////////////////
 // impl PolyNf 
 ////////////////////////////
 
-PolyNf::PolyNf(UniqueShared<FuncTerm> t) : Coproduct(t) {}
-PolyNf::PolyNf(Variable               t) : Coproduct(t) {}
-PolyNf::PolyNf(AnyPoly                t) : Coproduct(t) {}
+PolyNf::PolyNf(Perfect<FuncTerm> t) : Coproduct(t) {}
+PolyNf::PolyNf(Variable          t) : Coproduct(t) {}
+PolyNf::PolyNf(AnyPoly           t) : Coproduct(t) {}
 
 
 bool operator==(PolyNf const& lhs, PolyNf const& rhs) 
@@ -178,9 +177,9 @@ TermList PolyNf::toTerm() const
 
     TermList operator()(PolyNf orig, TermList* results)
     { return orig.match(
-        [&](UniqueShared<FuncTerm> t) { return TermList(Term::create(t->function().id(), t->arity(), results)); },
-        [&](Variable               v) { return TermList::var(v.id()); },
-        [&](AnyPoly                p) { return p.toTerm(results); }
+        [&](Perfect<FuncTerm> t) { return TermList(Term::create(t->function().id(), t->arity(), results)); },
+        [&](Variable          v) { return TermList::var(v.id()); },
+        [&](AnyPoly           p) { return p.toTerm(results); }
         ); }
   };
 

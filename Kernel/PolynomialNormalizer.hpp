@@ -19,7 +19,6 @@
 #include <type_traits>
 #include <functional>
 #include "Lib/Hash.hpp"
-#include "Lib/UniqueShared.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Optional.hpp"
 #include "Debug/Tracer.hpp"
@@ -157,7 +156,7 @@ public:
   static NormalizationResult numeral(typename Number::ConstantType c) 
   { 
     auto fun = FuncId(theory->representConstant(c)->functor());
-    return numeral(PolyNf(unique(FuncTerm(fun, Stack<PolyNf>{}))));
+    return numeral(PolyNf(perfect(FuncTerm(fun, Stack<PolyNf>{}))));
   }
 
   static NormalizationResult add(NormalizationResult& lhs, NormalizationResult& rhs)
@@ -210,7 +209,7 @@ public:
                 monomFactors.push(MonomFactor(elem, cnt));
               }
             }
-            return Monom(coeff.unwrapOr(Const(1)), unique(MonomFactors(std::move(monomFactors))));
+            return Monom(coeff.unwrapOr(Const(1)), perfect(MonomFactors(std::move(monomFactors))));
           })
           .template collect<Stack>();
     auto sbegin = summands.begin();
@@ -218,12 +217,12 @@ public:
     std::sort(sbegin, send); 
 
     // TODO insert into memo
-    return PolyNf(AnyPoly(unique(Polynom(std::move(summands)))));
+    return PolyNf(AnyPoly(perfect(Polynom(std::move(summands)))));
   }
 
   static NormalizationResult minus(NormalizationResult& inner)
   { 
-    static NormalizationResult minusOne(PolyNf(unique(FuncTerm(FuncId(Number::constantT(-1)->functor()), nullptr))));
+    static NormalizationResult minusOne(PolyNf(perfect(FuncTerm(FuncId(Number::constantT(-1)->functor()), nullptr))));
     return mul(minusOne, inner); 
   }
 
@@ -352,7 +351,7 @@ inline PolyNf normalizeTerm(TypedTermList t)
             return std::move(maybePoly).unwrap();
           }
         } 
-        auto out = unique(FuncTerm(
+        auto out = perfect(FuncTerm(
                 fn, 
                 Stack<PolyNf>::fromIterator(
                     iterTraits(getArrayishObjectIterator<mut_ref_t>(ts, fn.arity()))
@@ -379,7 +378,7 @@ inline PolyNf normalizeTerm(TypedTermList t)
 }
 
 
-} // Kernel.hpp
+} // namespace Kernel
 #undef DEBUG
 
 #endif // __POLYNOMIAL_NORMALIZER_HPP__

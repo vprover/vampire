@@ -60,6 +60,7 @@ PolynomialEvaluation::Result PolynomialEvaluation::simplifyLiteral(Literal* lit)
 template<Theory::Interpretation inter>
 struct PredicateEvaluator;
 
+// TODO inline or so
 #include "Kernel/PolynomialNormalizer/PredicateEvaluator.hpp"
 
 
@@ -112,8 +113,7 @@ template<class Number>
 Optional<PolyNf> trySimplifyUnaryMinus(PolyNf* evalArgs)
 {
   CALL("trySimplifyUnaryMinus(PolyNf*)")
-  // using Const = typename Number::ConstantType;
-  return some<PolyNf>(PolyNf(AnyPoly(unique(
+  return some<PolyNf>(PolyNf(AnyPoly(perfect(
           evalArgs[0].template wrapPoly<Number>()->flipSign()
             ))));
 }
@@ -124,7 +124,7 @@ Optional<PolyNf> trySimplifyConst2(PolyNf* evalArgs, Clsr f)
   auto lhs = evalArgs[0].template tryNumeral<Number>();
   auto rhs = evalArgs[1].template tryNumeral<Number>();
   if (lhs.isSome() && rhs.isSome()) {
-    return some<PolyNf>(PolyNf(AnyPoly(unique(Polynom<Number>(f(lhs.unwrap(), rhs.unwrap()))))));
+    return some<PolyNf>(PolyNf(AnyPoly(perfect(Polynom<Number>(f(lhs.unwrap(), rhs.unwrap()))))));
   } else {
     return none<PolyNf>();
   }
@@ -196,11 +196,22 @@ Optional<PolyNf> PolynomialEvaluation::evaluate(Term* term) const
 Optional<PolyNf> PolynomialEvaluation::evaluate(TypedTermList term) const 
 { return evaluate(PolyNf::normalize(term)); }
 
+template<class Number>
+Polynom<Number> simplifyPoly(Polynom<Number> const& in, PolyNf* simplifiedArgs);
+
+template<class Number>
+Monom<Number> simplifyMonom(Monom<Number> const&, PolyNf* simplifiedArgs);
+
+POLYMORPHIC_FUNCTION(AnyPoly, SimplifyPoly  , const& p, PolyNf* ts;) 
+{ return AnyPoly(perfect(simplifyPoly(*p, ts))); }
+
+AnyPoly simplifyPoly(AnyPoly const& p, PolyNf* ts)
+{ return p.apply(Polymorphic::SimplifyPoly{ ts }); }
+
 Optional<PolyNf> PolynomialEvaluation::evaluate(PolyNf normalized) const 
 {
   CALL("PolynomialEvaluation::evaluate(TypedTermList term) const")
 
-  // auto norm = PolyNf::normalize(term);
   DEBUG("evaluating ", normalized)
   struct Eval 
   {
@@ -212,13 +223,13 @@ Optional<PolyNf> PolynomialEvaluation::evaluate(PolyNf normalized) const
     PolyNf operator()(PolyNf orig, PolyNf* ts) 
     { 
       return orig.match(
-          [&](UniqueShared<FuncTerm> f)  -> PolyNf
+          [&](Perfect<FuncTerm> f)  -> PolyNf
           { 
             return f->function().tryInterpret()
               .andThen( [&](Theory::Interpretation && i)  -> Optional<PolyNf>
                 { return trySimplify(i, ts); })
               .unwrapOrElse([&]() -> PolyNf
-                { return PolyNf(unique(FuncTerm(f->function(), ts))); });
+                { return PolyNf(perfect(FuncTerm(f->function(), ts))); });
 
           }, 
 
@@ -226,7 +237,7 @@ Optional<PolyNf> PolynomialEvaluation::evaluate(PolyNf normalized) const
           { return v; },
 
           [&](AnyPoly p) 
-          { return p.simplify(ts); }
+          { return simplifyPoly(p, ts); }
       );
     }
   };
@@ -241,9 +252,110 @@ Optional<PolyNf> PolynomialEvaluation::evaluate(PolyNf normalized) const
 
 template<class Config>
 PolyNf createTerm(unsigned fun, PolyNf* evaluatedArgs) 
-{ return unique(FuncTerm(FuncId(fun), evaluatedArgs)); }
+{ return perfect(FuncTerm(FuncId(fun), evaluatedArgs)); }
+
+template<class Number>
+Polynom<Number> simplifyPoly(Polynom<Number> const& in, PolyNf* simplifiedArgs)
+{ 
+  CALL("simplify(Polynom<Number>const&, PolyNf* simplifiedArgs)") 
+  using Monom   = Monom<Number>;
+  using Polynom = Polynom<Number>;
+  try {
+
+    // first we simplify all the monoms containted in this polynom
+    Stack<Monom> out;
+    {
+      auto offs = 0;
+      for (unsigned i = 0; i < in.nSummands(); i++) {
+        auto monom  = in.summandAt(i);
+        auto simpl = simplifyMonom(monom, &simplifiedArgs[offs]);
+        if (simpl.numeral == Number::zeroC) {
+          /* we don't add it */
+        } else {
+          out.push(simpl);
+        }
+        offs += monom.factors->nFactors();
+      }
+    }
+
+    // then we sort them by their monom, in order to add up the coefficients efficiently
+    std::sort(out.begin(), out.end());
+
+    // add up the coefficient (in place)
+    {
+      auto offs = 0;
+      for (unsigned i = 0; i < out.size(); i++) { 
+        auto monom = out[i];
+        auto numeral = monom.numeral;
+        auto factors = monom.factors;
+        while ( i + 1 < out.size() && out[i+1].factors == factors ) {
+          numeral = numeral + out[i+1].numeral;
+          i++;
+        }
+        if (numeral != Number::zeroC) 
+          out[offs++] = Monom(numeral, factors);
+      }
+      out.truncate(offs);
+
+    }
+
+    return Polynom(std::move(out));
+  } catch (ArithmeticException) { 
+    return in.replaceTerms(simplifiedArgs);
+  }
+}
 
 
+template<class Number>
+Monom<Number> simplifyMonom(Monom<Number> const& in, PolyNf* simplifiedArgs) 
+{ 
+
+  using Numeral      = typename Number::ConstantType;
+  using Monom        = Monom<Number>;
+  using MonomFactor  = MonomFactor<Number>;
+  using MonomFactors = MonomFactors<Number>;
+
+  auto pow = [](Numeral c, int power) -> Numeral {
+    ASS(power > 0)
+    auto out = c;
+    while (--power > 0) {
+      out = out * c;
+    }
+    return out;
+  };
+
+  auto& facs = *in.factors;
+  Stack<MonomFactor> args(facs.nFactors());
+  for (unsigned i = 0; i < facs.nFactors(); i++) {
+    args.push(MonomFactor(simplifiedArgs[i], facs.factorAt(i).power));
+  }
+
+  std::sort(args.begin(), args.end());
+
+  auto offs = 0;
+  auto numeral = in.numeral;
+  for (unsigned i = 0; i < facs.nFactors(); i++) {
+    auto& arg = args[i];
+    auto c = arg.term.template tryNumeral<Number>();
+    if (c.isSome()) {
+      // arg is a number constant
+      numeral = numeral * pow(c.unwrap(), arg.power);
+    } else {
+      // arg is a non-number term
+      auto term  = arg.term;
+      auto power = arg.power;
+      while (i + 1 < facs.nFactors() && args[i + 1].term == term) {
+        power += args[i + 1].power;
+        i++;
+      }
+      if (power != 0)
+        args[offs++] = MonomFactor(term, power);
+    }
+  }
+  args.truncate(offs);
+ 
+  return Monom(numeral, perfect(MonomFactors(std::move(args)))); 
+}
 
 
 

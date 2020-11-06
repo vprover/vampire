@@ -16,8 +16,8 @@ Literal* doCancellation(Literal* lit) {
   auto oldL = normL.template wrapPoly<NumTraits>();
   auto oldR = normR.template wrapPoly<NumTraits>();
   auto res = Polynom<NumTraits>::cancelAdd(*oldL, *oldR);
-  auto newL = unique(std::move(res.lhs));
-  auto newR = unique(std::move(res.rhs));
+  auto newL = perfect(std::move(res.lhs));
+  auto newR = perfect(std::move(res.rhs));
   if (newL != oldL || newR != oldR)  {
     TermList args[] = {
       res.lhs.toTerm(),

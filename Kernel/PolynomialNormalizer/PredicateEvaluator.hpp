@@ -48,7 +48,7 @@ Optional<LitSimplResult> tryEvalConstant2(Literal* orig, PolyNf* evaluatedArgs, 
 /// Equality
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-template<class Number> inline Optional<LitSimplResult> interpretEquality(bool polarity, UniqueShared<Polynom<Number>> lhs, UniqueShared<Polynom<Number>> rhs) {
+template<class Number> inline Optional<LitSimplResult> interpretEquality(bool polarity, Perfect<Polynom<Number>> lhs, Perfect<Polynom<Number>> rhs) {
   
   if (lhs->isNumber() && rhs->isNumber()) {
     return Optional<LitSimplResult>(LitSimplResult::constant(polarity == (lhs->unwrapNumber() == rhs->unwrapNumber())));

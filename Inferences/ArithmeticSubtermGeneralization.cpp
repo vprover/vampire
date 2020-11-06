@@ -230,8 +230,8 @@ struct EvaluateAnyPoly
   {
     CALL("EvaluateAnyPoly::operator()")
     auto out = term.match(
-        [&](UniqueShared<FuncTerm> t) -> PolyNf
-        { return unique(FuncTerm(t->function(), evaluatedArgs)); },
+        [&](Perfect<FuncTerm> t) -> PolyNf
+        { return perfect(FuncTerm(t->function(), evaluatedArgs)); },
 
         [&](Variable v) 
         { return v; },
@@ -250,7 +250,7 @@ struct EvalPolynomClsr {
   PolyNf* evaluatedArgs;
 
   template<class NumTraits>
-  AnyPoly operator()(UniqueShared<Polynom<NumTraits>> poly)
+  AnyPoly operator()(Perfect<Polynom<NumTraits>> poly)
   { return AnyPoly(eval(poly, evaluatedArgs)); }
 };
 
@@ -283,7 +283,7 @@ struct EvaluateMonom
   using Result = PolyNf;
 
   template<class NumTraits>
-  UniqueShared<Polynom<NumTraits>> operator()(UniqueShared<Polynom<NumTraits>> poly, PolyNf* evaluatedArgs)
+  Perfect<Polynom<NumTraits>> operator()(Perfect<Polynom<NumTraits>> poly, PolyNf* evaluatedArgs)
   { 
     CALL("EvaluateMonom::operator()(AnyPoly, PolyNf*)")
 
@@ -291,7 +291,7 @@ struct EvaluateMonom
     using Monom  = Kernel::Monom<NumTraits>;
 
     auto offs = 0;
-    return unique(Polynom(
+    return perfect(Polynom(
                 poly->iter()
                  .map([&](Monom pair) -> Monom { 
                    CALL("EvaluateMonom::clsr01")
@@ -318,7 +318,7 @@ struct GeneralizePolynom
   bool doOrderingCheck;
 
   template<class NumTraits> 
-  UniqueShared<Polynom<NumTraits>> operator()(UniqueShared<Polynom<NumTraits>> p, PolyNf* generalizedArgs) 
+  Perfect<Polynom<NumTraits>> operator()(Perfect<Polynom<NumTraits>> p, PolyNf* generalizedArgs) 
   { return Gen::generalize(var, generalization, p, generalizedArgs); }
 };
 
@@ -374,10 +374,10 @@ public:
   using Monom = Kernel::Monom<NumTraits>;
 
   template<class Self>
-  static UniqueShared<Polynom<NumTraits>> generalize(
+  static Perfect<Polynom<NumTraits>> generalize(
     Variable var,
     Self const& gen, 
-    UniqueShared<Polynom<NumTraits>> poly,
+    Perfect<Polynom<NumTraits>> poly,
     PolyNf* generalizedArgs);
 
   template<class GenMap, class Self> static void addToMap(GenMap& map, AnyPoly p_);
@@ -385,12 +385,12 @@ public:
   template<class Self, class Num2,
            typename std::enable_if<!std::is_same<Num2, NumTraits>::value, int>::type = 0
   > 
-  static UniqueShared<Polynom<Num2>> generalize(
+  static Perfect<Polynom<Num2>> generalize(
     Variable var,
     Self const& gen, 
-    UniqueShared<Polynom<Num2>> poly,
+    Perfect<Polynom<Num2>> poly,
     PolyNf* generalizedArgs) 
-  { return unique(poly->replaceTerms(generalizedArgs)); }
+  { return perfect(poly->replaceTerms(generalizedArgs)); }
 };
 
 
@@ -431,10 +431,10 @@ public:
   { return out << self._inner; }
 
   template<class Num2> 
-  static UniqueShared<Polynom<Num2>> generalize(
+  static Perfect<Polynom<Num2>> generalize(
     Variable var,
     GeneralizeMulNumeral<Num2> const& gen, 
-    UniqueShared<Polynom<Num2>> poly,
+    Perfect<Polynom<Num2>> poly,
     PolyNf* generalizedArgs) 
   { return GeneralizeMul<Num2>::generalize(var, gen, poly, generalizedArgs); }
 
@@ -517,10 +517,10 @@ GeneralizeMulNumeral<IntTraits>::GeneralizeMulNumeral(Const c)
 
 template<class NumTraits>
 template<class Self>
-UniqueShared<Polynom<NumTraits>> GeneralizeMul<NumTraits>::generalize(
+Perfect<Polynom<NumTraits>> GeneralizeMul<NumTraits>::generalize(
   Variable var,
   Self const& gen, 
-  UniqueShared<Polynom<NumTraits>> poly,
+  Perfect<Polynom<NumTraits>> poly,
   PolyNf* generalizedArgs) 
 {
 
@@ -528,7 +528,7 @@ UniqueShared<Polynom<NumTraits>> GeneralizeMul<NumTraits>::generalize(
   using Monom  = Kernel::Monom<NumTraits>;
 
   auto offs = 0;
-  return unique(Polynom(
+  return perfect(Polynom(
               poly->iter()
                .map([&](Monom pair) -> Monom { 
                  auto result = Self::generalize(var, gen, pair, &generalizedArgs[offs]);
@@ -554,7 +554,7 @@ Monom<NumTraits> GeneralizeMulNumeral<NumTraits>::generalize(
       .find([&](MonomFactor    & factors) 
         { return factors == MonomFactor(var, 1); }));
 
-  auto newMonom = unique(pair.factors->replaceTerms(generalizedArgs));
+  auto newMonom = perfect(pair.factors->replaceTerms(generalizedArgs));
 
   auto p = Monom(pair.numeral, newMonom);
 
@@ -636,7 +636,7 @@ public:
   static GeneralizeAdd bot() 
   { return GeneralizeAdd(decltype(_cancellable){}); }
 
-  GeneralizeAdd(Variable var, UniqueShared<Polynom<NumTraits>> poly) : GeneralizeAdd(decltype(_cancellable)()) 
+  GeneralizeAdd(Variable var, Perfect<Polynom<NumTraits>> poly) : GeneralizeAdd(decltype(_cancellable)()) 
   {
     _cancellable.reserve(poly->nSummands() - 1);
     for (auto const& pair : poly->iter()) {
@@ -684,21 +684,21 @@ public:
     return std::move(*this);
   }
 
-  static UniqueShared<Polynom<NumTraits>> generalize(
+  static Perfect<Polynom<NumTraits>> generalize(
     Variable var,
     GeneralizeAdd<NumTraits> const& gen, 
-    UniqueShared<Polynom<NumTraits>> poly,
+    Perfect<Polynom<NumTraits>> poly,
     PolyNf* generalizedArgs);
 
   template<class Num2,
            typename std::enable_if<!std::is_same<Num2, NumTraits>::value, int>::type = 0
   > 
-  static UniqueShared<Polynom<Num2>> generalize(
+  static Perfect<Polynom<Num2>> generalize(
     Variable var,
     GeneralizeAdd<Num2> const& gen, 
-    UniqueShared<Polynom<Num2>> poly,
+    Perfect<Polynom<Num2>> poly,
     PolyNf* generalizedArgs) 
-  { return unique(poly->replaceArgs(generalize)); }
+  { return perfect(poly->replaceArgs(generalize)); }
 
   template<class GenMap>
   static void addToMap(GenMap& map, AnyPoly p_);
@@ -708,10 +708,10 @@ public:
 
 
 template<class NumTraits>
-UniqueShared<Polynom<NumTraits>> GeneralizeAdd<NumTraits>::generalize(
+Perfect<Polynom<NumTraits>> GeneralizeAdd<NumTraits>::generalize(
   Variable var,
   GeneralizeAdd<NumTraits> const& gen, 
-  UniqueShared<Polynom<NumTraits>> poly,
+  Perfect<Polynom<NumTraits>> poly,
   PolyNf* generalizedArgs) 
 {
 
@@ -724,7 +724,7 @@ UniqueShared<Polynom<NumTraits>> GeneralizeAdd<NumTraits>::generalize(
     .find([&](Monom p) 
         { return p.tryVar() == some(var); });
   if (found.isNone()) {
-    return unique(poly->replaceTerms(generalizedArgs));
+    return perfect(poly->replaceTerms(generalizedArgs));
   }
   auto& toCancel = gen._cancellable;
 
@@ -736,7 +736,7 @@ UniqueShared<Polynom<NumTraits>> GeneralizeAdd<NumTraits>::generalize(
 
   auto pushGeneralized = [&]()  
   { 
-    auto factors = unique(poly->summandAt(p).factors->replaceTerms(&generalizedArgs[genOffs]));
+    auto factors = perfect(poly->summandAt(p).factors->replaceTerms(&generalizedArgs[genOffs]));
     auto coeff = poly->summandAt(p).numeral;
 
     genOffs += factors->nFactors();
@@ -768,7 +768,7 @@ UniqueShared<Polynom<NumTraits>> GeneralizeAdd<NumTraits>::generalize(
     pushGeneralized();
   }
 
-  return unique(Polynom<NumTraits>(std::move(out)));
+  return perfect(Polynom<NumTraits>(std::move(out)));
 }
 
 
@@ -897,13 +897,13 @@ public:
   {
     MapWrapper<Gen> map { map_ };
     return p.match(
-        [&](UniqueShared<Polynom< IntTraits>>const& p)
+        [&](Perfect<Polynom< IntTraits>>const& p)
         { return Gen<IntTraits>::addToMap(map, p); },
 
-        [&](UniqueShared<Polynom< RatTraits>>const& p)
+        [&](Perfect<Polynom< RatTraits>>const& p)
         { return Gen<RatTraits>::addToMap(map, p); },
 
-        [&](UniqueShared<Polynom<RealTraits>>const& p)
+        [&](Perfect<Polynom<RealTraits>>const& p)
         { return Gen<RealTraits>::addToMap(map, p); }
       );
   }
@@ -914,16 +914,16 @@ public:
   { return out << self._inner; }
 
   template<class NumTraits>
-  static UniqueShared<Polynom<NumTraits>> generalize(
+  static Perfect<Polynom<NumTraits>> generalize(
     Variable var,
     ParallelNumberGeneralization const& gen, 
-    UniqueShared<Polynom<NumTraits>> poly,
+    Perfect<Polynom<NumTraits>> poly,
     PolyNf* generalizedArgs) 
   {  
     if (gen._inner.template is<Gen<NumTraits>>()) {
       return Gen<NumTraits>::generalize(var, gen._inner.template unwrap<Gen<NumTraits>>(), poly, generalizedArgs); 
     } else {
-      return unique(poly->replaceTerms(generalizedArgs));
+      return perfect(poly->replaceTerms(generalizedArgs));
     }
   }
 
@@ -1083,7 +1083,7 @@ namespace Rule3
     { return components.root(varMap.toInt(v)); }
 
     template<class NumTraits> 
-    void operator()(UniqueShared<Polynom<NumTraits>> p) 
+    void operator()(Perfect<Polynom<NumTraits>> p) 
     {
       CALL("Preprocess::operator()")
 
@@ -1150,11 +1150,11 @@ namespace Rule3
     {
       CALL("Generalize::operator()")
       using Pair = Monom<NumTraits>;
-      return Pair(p.numeral, unique(MonomFactors<NumTraits>(filter(p.factors, evaluatedArgs))));
+      return Pair(p.numeral, perfect(MonomFactors<NumTraits>(filter(p.factors, evaluatedArgs))));
     }
 
     template<class NumTraits>
-    Stack<MonomFactor<NumTraits>> filter(UniqueShared<MonomFactors<NumTraits>> const& factors, PolyNf* evaluatedArgs)
+    Stack<MonomFactor<NumTraits>> filter(Perfect<MonomFactors<NumTraits>> const& factors, PolyNf* evaluatedArgs)
     {
       Stack<MonomFactor<NumTraits>> out;
       unsigned rmI = 0;
@@ -1283,7 +1283,7 @@ namespace Rule4
   {
     PowerMap &powers;
 
-    void operator()(UniqueShared<Polynom<RealTraits>> p) 
+    void operator()(Perfect<Polynom<RealTraits>> p) 
     {
       for (auto summand : p->iter()) {
         for (auto factor : summand.factors->iter()) {
@@ -1307,7 +1307,7 @@ namespace Rule4
 
 
     template<class Num, EnableIfNotReal<Num> = 0> 
-    void operator()(UniqueShared<Polynom<Num>> p) 
+    void operator()(Perfect<Polynom<Num>> p) 
     { }
 
   };
@@ -1322,7 +1322,7 @@ namespace Rule4
       unsigned i = 0;
       return Monom<RealTraits>(
           p.numeral, 
-          unique(MonomFactors<RealTraits>(
+          perfect(MonomFactors<RealTraits>(
             p.factors->iter()
              .map([&](MonomFactor<RealTraits> m) 
                { 
@@ -1339,7 +1339,7 @@ namespace Rule4
 
     template<class Num, EnableIfNotReal<Num> = 0>
     Monom<Num> operator()(Monom<Num> p, PolyNf* evaluatedArgs)  
-    { return Monom<Num>(p.numeral, unique(p.factors->replaceTerms(evaluatedArgs))); }
+    { return Monom<Num>(p.numeral, perfect(p.factors->replaceTerms(evaluatedArgs))); }
 
   };
 

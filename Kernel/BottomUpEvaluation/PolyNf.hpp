@@ -56,10 +56,10 @@ struct BottomUpChildIter<Kernel::PolyNf>
   struct FuncTermBottomUpChildIter 
   {
 
-    UniqueShared<Kernel::FuncTerm> _self;
+    Perfect<Kernel::FuncTerm> _self;
     unsigned _idx;
 
-    FuncTermBottomUpChildIter(UniqueShared<Kernel::FuncTerm> self) : _self(self), _idx(0) {}
+    FuncTermBottomUpChildIter(Perfect<Kernel::FuncTerm> self) : _self(self), _idx(0) {}
 
     bool hasNext() const
     { return _idx < _self->arity(); }
@@ -97,9 +97,9 @@ struct BottomUpChildIter<Kernel::PolyNf>
   Inner _self;
 
   BottomUpChildIter(Kernel::PolyNf self) : _self(self.match(
-        [&](UniqueShared<Kernel::FuncTerm> self) { return Inner(FuncTermBottomUpChildIter( self ));            },
-        [&](Kernel::Variable               self) { return Inner(VariableBottomUpChildIter( self ));            },
-        [&](Kernel::AnyPoly                self) { return Inner(PolynomialBottomUpChildIter(std::move(self))); }
+        [&](Perfect<Kernel::FuncTerm> self) { return Inner(FuncTermBottomUpChildIter( self ));            },
+        [&](Kernel::Variable                  self) { return Inner(VariableBottomUpChildIter( self ));            },
+        [&](Kernel::AnyPoly           self) { return Inner(PolynomialBottomUpChildIter(std::move(self))); }
       ))
   {}
 
