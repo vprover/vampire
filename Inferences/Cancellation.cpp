@@ -20,8 +20,8 @@ Literal* doCancellation(Literal* lit) {
   auto newR = perfect(std::move(res.rhs));
   if (newL != oldL || newR != oldR)  {
     TermList args[] = {
-      res.lhs.toTerm(),
-      res.rhs.toTerm(),
+      res.lhs.denormalize(),
+      res.rhs.denormalize(),
     };
     return Literal::create(lit, args);
   } else  {

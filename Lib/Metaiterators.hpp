@@ -36,7 +36,7 @@
 #include "Recycler.hpp"
 #include "VirtualIterator.hpp"
 #include "TimeCounter.hpp"
-#include "Lib/Optional.hpp"
+#include "Lib/Option.hpp"
 
 namespace Lib {
 
@@ -425,7 +425,7 @@ public:
     while(_inn.hasNext()) {
       auto next = _inn.next();
       if(_func(next)) {
-        _next = Optional<OWN_ELEMENT_TYPE>(std::move(next));
+        _next = Option<OWN_ELEMENT_TYPE>(std::move(next));
 	return true;
       }
     }
@@ -437,19 +437,19 @@ public:
     ALWAYS(hasNext());
     ASS(_next.isSome());
     auto out = std::move(_next).unwrap();
-    _next = Optional<OWN_ELEMENT_TYPE>();
+    _next = Option<OWN_ELEMENT_TYPE>();
     return std::move(out);
   };
 private:
   
   Functor _func;
   Inner _inn;
-  Optional<OWN_ELEMENT_TYPE> _next;
+  Option<OWN_ELEMENT_TYPE> _next;
 };
 
 
 /**
- * Iterator that maps the contents of another iterator by a function. Whenever the function retuns a non-empty Optional
+ * Iterator that maps the contents of another iterator by a function. Whenever the function retuns a non-empty Option
  * this iterator will return the corresponding value. 
  */
 template<class Inner, class Functor>
@@ -482,14 +482,14 @@ public:
     ALWAYS(hasNext());
     ASS(_next.isSome());
     auto out = std::move(_next).unwrap();
-    _next = Optional<OWN_ELEMENT_TYPE>();
+    _next = Option<OWN_ELEMENT_TYPE>();
     return std::move(out);
   };
 
 private:
   Functor _func;
   Inner _inn;
-  Optional<OWN_ELEMENT_TYPE> _next;
+  Option<OWN_ELEMENT_TYPE> _next;
 };
 
 template<class Inner, class Functor>
@@ -845,8 +845,8 @@ public:
   explicit FlatteningIterator(Master master)
   : _master(std::move(master))
   , _current(std::move(_master.hasNext() 
-        ? Optional<Inner>(std::move(_master.next()))
-        : Optional<Inner>()))
+        ? Option<Inner>(std::move(_master.next()))
+        : Option<Inner>()))
   { }
 
   bool hasNext()
@@ -857,8 +857,8 @@ public:
         return true;
       } else {
         _current = std::move(_master.hasNext() 
-            ? Optional<Inner>(std::move(_master.next()))
-            : Optional<Inner>());
+            ? Option<Inner>(std::move(_master.next()))
+            : Option<Inner>());
       }
     }
     return false;
@@ -874,7 +874,7 @@ public:
   }
 private:
   Master _master;
-  Optional<Inner> _current;
+  Option<Inner> _current;
 };
 
 /**
@@ -1672,11 +1672,11 @@ public:
     return _iter.hasNext(); 
   }
 
-  Optional<Elem> tryNext() 
+  Option<Elem> tryNext() 
   { 
     return _iter.hasNext() 
-        ? Optional<Elem>(_iter.next())
-        : Optional<Elem>();
+        ? Option<Elem>(_iter.next())
+        : Option<Elem>();
   }
 
 
@@ -1690,7 +1690,7 @@ public:
   }
 
   template<class P>
-  Optional<Elem> find(P p) 
+  Option<Elem> find(P p) 
   {
     CALL("IterTraits::find")
     while (hasNext()) {
@@ -1703,7 +1703,7 @@ public:
   }
 
   template<class P>
-  Optional<unsigned> findPosition(P p) 
+  Option<unsigned> findPosition(P p) 
   {
     CALL("IterTraits::findPosition")
     unsigned i = 0;
@@ -1734,7 +1734,7 @@ public:
   { return iterTraits(getFlattenedIterator(getMappingIterator(std::move(_iter), f))); }
 
 
-  Optional<Elem> min()
+  Option<Elem> min()
   { 
     CALL("IterTraits::min")
     if (hasNext()) {
@@ -1770,11 +1770,11 @@ public:
   /** This class is to be used in the context of a for (auto x : ...) loop only. */
   class StlIter 
   {
-    Optional<IterTraits&> _iter; // <- nothing here encodes that this == end()
-    Optional<Elem>  _cur;
+    Option<IterTraits&> _iter; // <- nothing here encodes that this == end()
+    Option<Elem>  _cur;
 
   public:
-    StlIter(IterTraits& iter)  : _iter(Optional<IterTraits&>(iter)), _cur(std::move(iter.tryNext())) {}
+    StlIter(IterTraits& iter)  : _iter(Option<IterTraits&>(iter)), _cur(std::move(iter.tryNext())) {}
     StlIter()  : _iter(), _cur() {}
 
     void operator++() 

@@ -200,11 +200,11 @@ public:
 
 
 template<class A>
-class Pretty<Optional<A>> {
-  Optional<A> const& _self;
+class Pretty<Option<A>> {
+  Option<A> const& _self;
 
 public:
-  Pretty(Optional<A> const& self) : _self(self) {}
+  Pretty(Option<A> const& self) : _self(self) {}
 
   std::ostream& prettyPrint(std::ostream& out) const
   { return _self.isSome() ? out << pretty(_self.unwrap()) : out << "none"; }

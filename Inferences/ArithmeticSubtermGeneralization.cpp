@@ -87,7 +87,7 @@ IterTraits<IterArgNfs> iterArgNfs(Literal* lit)
 static const auto iterTerms = [](Clause* cl) {
   return iterTraits(cl->iterLits())
     .flatMap([](Literal* lit) { return iterArgNfs(lit); }) 
-    .flatMap([](PolyNf arg) { return arg.iter();  });
+    .flatMap([](PolyNf arg) { return arg.iterSubterms();  });
 };
 
 /**
@@ -102,9 +102,9 @@ public:
   template<class NumTraits>
   AnyNumber(NumberObject<NumTraits> self) : Super(self) {}
 
-  template<class NumTraits> Optional<NumberObject<NumTraits> const&> downcast() const& { return Super::template as<NumberObject<NumTraits>>(); }
-  template<class NumTraits> Optional<NumberObject<NumTraits>      &> downcast()      & { return Super::template as<NumberObject<NumTraits>>(); }
-  template<class NumTraits> Optional<NumberObject<NumTraits>     &&> downcast()     && { return Super::template as<NumberObject<NumTraits>>(); }
+  template<class NumTraits> Option<NumberObject<NumTraits> const&> downcast() const& { return Super::template as<NumberObject<NumTraits>>(); }
+  template<class NumTraits> Option<NumberObject<NumTraits>      &> downcast()      & { return Super::template as<NumberObject<NumTraits>>(); }
+  template<class NumTraits> Option<NumberObject<NumTraits>     &&> downcast()     && { return Super::template as<NumberObject<NumTraits>>(); }
   
   friend bool operator<(AnyNumber const& lhs, AnyNumber const& rhs)
   { return std::less<Super>{}(lhs,rhs); }
@@ -146,7 +146,7 @@ SimplifyingGeneratingInference1::Result generalizeBottomUp(Clause* cl, EvalFn ev
               if (res != norm) {
                 anyChange = true;
                 DEBUG("generalized: ", norm, " -> ", res);
-                return res.toTerm();
+                return res.denormalize();
               } else {
                 return term;
               }
@@ -339,7 +339,7 @@ SimplifyingGeneratingInference1::Result ArithmeticSubtermGeneralization<Gen>::si
   /* select an applicable generalization */
 
   DEBUG("canidated generalizations: ", map)
-  using Opt = Optional<typename decltype(map)::Entry&>;
+  using Opt = Option<typename decltype(map)::Entry&>;
   Opt selected;
   {
     auto iter = map.iter();
@@ -550,7 +550,7 @@ Monom<NumTraits> GeneralizeMulNumeral<NumTraits>::generalize(
   using Monom  = Kernel::Monom<NumTraits>;
   using MonomFactor     = MonomFactor    <NumTraits>;
 
-  auto found = (pair.factors->iter()
+  auto found = (pair.factors->iterFactors()
       .find([&](MonomFactor    & factors) 
         { return factors == MonomFactor(var, 1); }));
 
@@ -796,7 +796,7 @@ void GeneralizeAdd<NumTraits>::addToMap(GenMap& map, AnyPoly p_)
           [&](GeneralizeAdd<NumTraits> old) { return move(old).meet(move(gen)); },
           [&]()                             { return move(gen); });
     } else {
-      for (auto factor : summand.factors->iter()) {
+      for (auto factor : summand.factors->iterFactors()) {
          if (factor.term.template is<Variable>()) {
            auto v = factor.term.template unwrap<Variable>();
            map.replaceOrInsert(v, GeneralizeAdd<NumTraits>::bot());
@@ -810,7 +810,7 @@ template<class NumTraits>
 template<class GenMap>
 void GeneralizeMulNumeral<NumTraits>::addToMap(GenMap& map, Monom const& summand)
 {
-  for (auto factor : summand.factors->iter()) {
+  for (auto factor : summand.factors->iterFactors()) {
     factor.term.template as<Variable>()
       .andThen([&](Variable var) {
           if (factor.power == 1) {
@@ -868,7 +868,7 @@ struct MapWrapper
         init); 
   }
 
-  Optional<ParallelNumberGeneralization<Gen>&> tryGet(Variable var) 
+  Option<ParallelNumberGeneralization<Gen>&> tryGet(Variable var) 
   { return self.tryGet(var); }
 
   friend ostream& operator<<(ostream& out, MapWrapper const& self)
@@ -983,7 +983,7 @@ NumeralMultiplicationGeneralization::~NumeralMultiplicationGeneralization()  {}
  */
 namespace Rule3 
 {
-  POLYMORPHIC_FUNCTION(Optional<Variable>, tryVar, const& t,) { return t.tryVar(); }
+  POLYMORPHIC_FUNCTION(Option<Variable>, tryVar, const& t,) { return t.tryVar(); }
 
   /** 
    * Type for associating objects with integer ids. It is mainly only used in order to use IntUnionFind with other types than int.
@@ -1089,7 +1089,7 @@ namespace Rule3
 
       for (auto summand : p->iter()) {
 
-        auto varIter = summand.factors->iter()
+        auto varIter = summand.factors->iterFactors()
               .filter([](MonomFactor<NumTraits> factor) { return factor.term.template is<Variable>(); });
 
         auto varIter2 = varIter;
@@ -1286,7 +1286,7 @@ namespace Rule4
     void operator()(Perfect<Polynom<RealTraits>> p) 
     {
       for (auto summand : p->iter()) {
-        for (auto factor : summand.factors->iter()) {
+        for (auto factor : summand.factors->iterFactors()) {
           auto var = factor.term.tryVar();
           if (var.isSome()) {
 
@@ -1323,7 +1323,7 @@ namespace Rule4
       return Monom<RealTraits>(
           p.numeral, 
           perfect(MonomFactors<RealTraits>(
-            p.factors->iter()
+            p.factors->iterFactors()
              .map([&](MonomFactor<RealTraits> m) 
                { 
                   auto var = m.term.tryVar();

@@ -63,7 +63,7 @@ Theory::Interpretation FuncId::interpretation() const
 bool FuncId::isInterpreted() const
 { return theory->isInterpretedFunction(_num); }
 
-Optional<Theory::Interpretation> FuncId::tryInterpret() const
+Option<Theory::Interpretation> FuncId::tryInterpret() const
 { 
   return isInterpreted() ? some<Theory::Interpretation>(interpretation())
                          : none<Theory::Interpretation>();
@@ -119,8 +119,6 @@ std::ostream& operator<<(std::ostream& out, const FuncTerm& self)
 }
 
 
-
-
 /////////////////////////////////////////////////////////
 // impl AnyPoly 
 ////////////////////////////
@@ -132,8 +130,8 @@ POLYMORPHIC_FUNCTION(AnyPoly, replaceTerms, const& t, PolyNf* newTs;)
 AnyPoly AnyPoly::replaceTerms(PolyNf* newTs) const 
 { return apply(Polymorphic::replaceTerms{newTs}); }
 
-TermList AnyPoly::toTerm(TermList* results) const
-{ return apply(Polymorphic::toTerm{results}); }
+TermList AnyPoly::denormalize(TermList* results) const
+{ return apply(Polymorphic::denormalize{results}); }
 
 PolyNf const& AnyPoly::termAt(unsigned summand, unsigned factor)  const
 {  return apply(Polymorphic::termAt{summand, factor}); }
@@ -166,43 +164,22 @@ bool operator!=(PolyNf const& lhs, PolyNf const& rhs)
 std::ostream& operator<<(std::ostream& out, const PolyNf& self)
 { return self.apply(Polymorphic::outputOp{out}); }
 
-TermList PolyNf::toTerm() const
-{ 
-  CALL("PolyNf::toTerm")
-  DEBUG("converting ", *this)
-  struct Eval 
-  {
-    using Arg    = PolyNf;
-    using Result = TermList;
-
-    TermList operator()(PolyNf orig, TermList* results)
-    { return orig.match(
-        [&](Perfect<FuncTerm> t) { return TermList(Term::create(t->function().id(), t->arity(), results)); },
-        [&](Variable          v) { return TermList::var(v.id()); },
-        [&](AnyPoly           p) { return p.toTerm(results); }
-        ); }
-  };
-
-  static Memo::Hashed<PolyNf, TermList> memo;
-  return evaluateBottomUp(*this, Eval{}, memo);
-}
-
-Optional<Variable> PolyNf::tryVar() const 
+Option<Variable> PolyNf::tryVar() const 
 { return as<Variable>().template innerInto<Variable>(); }
 
-IterTraits<PolyNf::Iter> PolyNf::iter() const 
-{ return iterTraits(Iter(*this)); }
+IterTraits<PolyNf::IterSubterms> PolyNf::iterSubterms() const 
+{ return iterTraits(IterSubterms(*this)); }
 
 bool operator<(const PolyNf& lhs, const PolyNf& rhs) 
 { return std::less<PolyNfSuper>{}(lhs,rhs); }
 
-PolyNf::Iter::Iter(PolyNf p) 
+PolyNf::IterSubterms::IterSubterms(PolyNf p) 
   : _stack(decltype(_stack){ BottomUpChildIter<PolyNf>(p) }) 
 {  }
 
-PolyNf PolyNf::Iter::next() 
+PolyNf PolyNf::IterSubterms::next() 
 {
-  CALL("PolyNf::Iter::next")
+  CALL("PolyNf::IterSubterms::next")
   ASS(_stack.size() != 0)
   while(_stack.top().hasNext()) {
     ASS(_stack.size() != 0)
@@ -212,9 +189,9 @@ PolyNf PolyNf::Iter::next()
   return _stack.pop().self();
 }
 
-bool PolyNf::Iter::hasNext() const 
+bool PolyNf::IterSubterms::hasNext() const 
 { 
-  CALL("PolyNf::Iter::hasNext")
+  CALL("PolyNf::IterSubterms::hasNext")
   return !_stack.isEmpty(); 
 }
 

@@ -16,7 +16,7 @@
  */ 
 
 #include "Lib/Stack.hpp"
-#include "Lib/Optional.hpp"
+#include "Lib/Option.hpp"
 
 namespace Lib {
 
@@ -26,8 +26,8 @@ namespace Memo {
   template<class Arg, class Result>
   struct None 
   {
-    Optional<Result> get(Arg) 
-    { return Optional<Result>(); }
+    Option<Result> get(Arg) 
+    { return Option<Result>(); }
 
     template<class Init> Result getOrInit(Arg const& orig, Init init) 
     { return init(); }
@@ -45,13 +45,13 @@ namespace Memo {
     template<class Init> Result getOrInit(Arg const& orig, Init init) 
     { return _memo.getOrInit(Arg(orig), init); }
 
-    Optional<Result> get(const Arg& orig) 
+    Option<Result> get(const Arg& orig) 
     { 
       auto out = _memo.getPtr(orig);
       if (out) {
-        return Optional<Result>(*out);
+        return Option<Result>(*out);
       } else {
-        return Optional<Result>();
+        return Option<Result>();
       }
     }
   };
@@ -98,7 +98,7 @@ typename EvalFn::Result evaluateBottomUp(typename EvalFn::Arg const& term, EvalF
 /** 
  * Evaluates a term-like datastructure (i.e.: a Directed Acyclic Graph (DAG)), without using recursion.
  *
- * Optionally a memoization method (i.e. a class from Kernel::Memo) can be specified. The memo can be a static,
+ * Optionly a memoization method (i.e. a class from Kernel::Memo) can be specified. The memo can be a static,
  * variable, in order to keep cached results for multiple runs of the funcion. 
  *
  * The term-ish structure is evaluated according to the structure EvalFn. It is expected to have the following structure:
@@ -135,7 +135,7 @@ typename EvalFn::Result evaluateBottomUp(typename EvalFn::Arg const& term, EvalF
     if (recState.top().hasNext()) {
       Arg t = recState.top().next();
 
-      Optional<Result> cached = memo.get(t);
+      Option<Result> cached = memo.get(t);
       if (cached.isSome()) {
         recResults.push(std::move(cached).unwrap()); 
       } else {

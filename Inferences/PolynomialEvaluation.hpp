@@ -29,12 +29,12 @@ private:
   Result simplifyLiteral(Literal*) override;
 
 private:
-  Optional<PolyNf> evaluate(TermList in, unsigned sortNumber) const;
-  Optional<PolyNf> evaluate(Term* in) const;
-  Optional<PolyNf> evaluate(PolyNf in) const;
-  Optional<PolyNf> evaluate(TypedTermList in) const;
+  Option<PolyNf> evaluate(TermList in, unsigned sortNumber) const;
+  Option<PolyNf> evaluate(Term* in) const;
+  Option<PolyNf> evaluate(PolyNf in) const;
+  Option<PolyNf> evaluate(TypedTermList in) const;
 
-  Optional<Result> evaluateStep(Literal* orig, PolyNf* evaluatedArgs) const;
+  Option<Result> evaluateStep(Literal* orig, PolyNf* evaluatedArgs) const;
 
   PolyNf evaluateStep(Term* orig, PolyNf* evaluatedArgs) const;
 };

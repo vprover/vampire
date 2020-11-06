@@ -41,42 +41,30 @@ struct MaybeUninit {
 #undef methods 
 };
 
-// template<class T>
-// struct MaybeUninit {
-//   typename std::aligned_storage<sizeof(T), alignof(T)>::type _elem;
-//   operator T const&()  const&{ return           *reinterpret_cast<T const*>(&_elem) ;}
-//   operator T      &()       &{ return           *reinterpret_cast<T      *>(&_elem) ;}
-//   operator T     &&()      &&{ return std::move(*reinterpret_cast<T      *>(&_elem));}
-//
-//   void init(T     && content) { ::new(&_elem)T(std::move(content)); }
-//   void init(T      & content) { ::new(&_elem)T(          content ); }
-//   void init(T const& content) { ::new(&_elem)T(          content ); }
-// };
-
 template<class A>
-class OptionalBase 
+class OptionBase 
 {
 
   bool _isSome;
   MaybeUninit<A> _elem;
 public:
 
-  OptionalBase() : _isSome(false) {}
+  OptionBase() : _isSome(false) {}
 
-  ~OptionalBase() 
+  ~OptionBase() 
   { 
-    CALL("~OptionalBase") 
+    CALL("~OptionBase") 
     if (isSome()) { 
       unwrap().~A(); 
     }
   }
 
 #define for_ref_qualifier(ref, mv)                                                                            \
-  explicit OptionalBase(A ref content)                                                                        \
+  explicit OptionBase(A ref content)                                                                          \
     : _isSome(true)                                                                                           \
       , _elem()                                                                                               \
   {                                                                                                           \
-    CALL("Optional(A " #ref ")")                                                                              \
+    CALL("Option(A " #ref ")")                                                                                \
     _elem.init(mv(content));                                                                                  \
   }                                                                                                           \
                                                                                                               \
@@ -86,17 +74,17 @@ public:
     return mv(_elem);                                                                                         \
   }                                                                                                           \
                                                                                                               \
-  OptionalBase(OptionalBase ref a) : _isSome(a._isSome)                                                       \
+  OptionBase(OptionBase ref a) : _isSome(a._isSome)                                                           \
   {                                                                                                           \
-    CALL("OptionalBase(OptionalBase " #ref ")");                                                              \
+    CALL("OptionBase(OptionBase " #ref ")");                                                                  \
     if (isSome()) {                                                                                           \
       _elem.init(mv(a).unwrap());                                                                             \
     }                                                                                                         \
   }                                                                                                           \
                                                                                                               \
-  OptionalBase& operator=(OptionalBase ref other)                                                             \
+  OptionBase& operator=(OptionBase ref other)                                                                 \
   {                                                                                                           \
-    CALL("OptionalBase& operator=(OptionalBase "#ref")");                                                     \
+    CALL("OptionBase& operator=(OptionBase "#ref")");                                                         \
                                                                                                               \
     if (_isSome) {                                                                                            \
       if (other._isSome) {                                                                                    \
@@ -123,10 +111,10 @@ public:
   bool isSome() const { return _isSome;   }
   bool isNone() const { return !isSome(); }
 
-  static OptionalBase fromPtr(A* ptr) 
-  { return ptr == nullptr ? OptionalBase() : OptionalBase(*ptr); }
+  static OptionBase fromPtr(A* ptr) 
+  { return ptr == nullptr ? OptionBase() : OptionBase(*ptr); }
 
-  friend bool operator==(OptionalBase const& lhs, OptionalBase const& rhs) 
+  friend bool operator==(OptionBase const& lhs, OptionBase const& rhs) 
   { 
     if (lhs._isSome != rhs._isSome) return false;
     
@@ -142,15 +130,15 @@ public:
 
 
 template<class A>
-class OptionalBaseRef
+class OptionBaseRef
 {
 
   A* _elem;
 public:
 
-  OptionalBaseRef(          ) : _elem(nullptr) {  }
-  OptionalBaseRef(A const* content) : _elem(const_cast<A*>(content)) { }
-  OptionalBaseRef(A* content) : _elem(content) { }
+  OptionBaseRef(          ) : _elem(nullptr) {  }
+  OptionBaseRef(A const* content) : _elem(const_cast<A*>(content)) { }
+  OptionBaseRef(A* content) : _elem(content) { }
 
   bool isSome() const { return _elem != nullptr;   }
 
@@ -158,89 +146,58 @@ public:
   A     && unwrap()     && { ASS(isSome()); return std::move(*_elem); }
   A      & unwrap()      & { ASS(isSome()); return           *_elem ; }
 
-  OptionalBaseRef(OptionalBaseRef      & a) = default;
-  OptionalBaseRef(OptionalBaseRef     && a) = default;
-  OptionalBaseRef(OptionalBaseRef const& a) = default;
+  OptionBaseRef(OptionBaseRef      & a) = default;
+  OptionBaseRef(OptionBaseRef     && a) = default;
+  OptionBaseRef(OptionBaseRef const& a) = default;
 
-  OptionalBaseRef& operator=(OptionalBaseRef      & a) = default;
-  OptionalBaseRef& operator=(OptionalBaseRef     && a) = default;
-  OptionalBaseRef& operator=(OptionalBaseRef const& a) = default;
+  OptionBaseRef& operator=(OptionBaseRef      & a) = default;
+  OptionBaseRef& operator=(OptionBaseRef     && a) = default;
+  OptionBaseRef& operator=(OptionBaseRef const& a) = default;
 
-  static OptionalBaseRef fromPtr(A* ptr) 
-  { return ptr == nullptr ? OptionalBaseRef() : *ptr; }
+  static OptionBaseRef fromPtr(A* ptr) 
+  { return ptr == nullptr ? OptionBaseRef() : *ptr; }
 
-  friend bool operator==(OptionalBaseRef const& lhs, OptionalBaseRef const& rhs) 
+  friend bool operator==(OptionBaseRef const& lhs, OptionBaseRef const& rhs) 
   { return lhs._elem == rhs._elem; }
 };
 
 template<class A>
-class OptionalBase<A const&> : public OptionalBaseRef<A>
+class OptionBase<A const&> : public OptionBaseRef<A>
 {
 public:
-  OptionalBase() : OptionalBaseRef<A>() {}
-  OptionalBase(A const& item) : OptionalBaseRef<A>(&item) {}
-  OptionalBase(OptionalBase const& b) : OptionalBaseRef<A>(b) {}
+  OptionBase() : OptionBaseRef<A>() {}
+  OptionBase(A const& item) : OptionBaseRef<A>(&item) {}
+  OptionBase(OptionBase const& b) : OptionBaseRef<A>(b) {}
 };
 
 template<class A>
-class OptionalBase<A&> : public OptionalBaseRef<A>
+class OptionBase<A&> : public OptionBaseRef<A>
 {
 public:
-  OptionalBase() : OptionalBaseRef<A>() {}
-  OptionalBase(A& item) : OptionalBaseRef<A>(&item) {}
-  OptionalBase(OptionalBase const& b) : OptionalBaseRef<A>(b) {}
+  OptionBase() : OptionBaseRef<A>() {}
+  OptionBase(A& item) : OptionBaseRef<A>(&item) {}
+  OptionBase(OptionBase const& b) : OptionBaseRef<A>(b) {}
 };
 
-// template<class A>
-// class OptionalBase<A&>
-// {
-//
-//   A* _elem;
-// public:
-//
-//   OptionalBase() : _elem(nullptr) {}
-//   OptionalBase(A      & content) : _elem(&content) { }
-//
-//   bool isSome() const { return _elem != nullptr;   }
-//
-//   A const& unwrap() const& { ASS(isSome()); return           *_elem ; }
-//   A     && unwrap()     && { ASS(isSome()); return std::move(*_elem); }
-//   A      & unwrap()      & { ASS(isSome()); return           *_elem ; }
-//
-//   OptionalBase(OptionalBase      & a) = default;
-//   OptionalBase(OptionalBase     && a) = default;
-//   OptionalBase(OptionalBase const& a) = default;
-//
-//   OptionalBase& operator=(OptionalBase      & a) = default;
-//   OptionalBase& operator=(OptionalBase     && a) = default;
-//   OptionalBase& operator=(OptionalBase const& a) = default;
-//
-//   static OptionalBase fromPtr(A* ptr) 
-//   { return ptr == nullptr ? OptionalBase() : *ptr; }
-//
-//   friend bool operator==(OptionalBase const& lhs, OptionalBase const& rhs) 
-//   { return lhs._elem == rhs._elem; }
-// };
-
 template<class A>
-class Optional : OptionalBase<A> {
+class Option : OptionBase<A> {
 
-  explicit Optional(OptionalBase<A>&& base) : OptionalBase<A>(std::move(base)) {  }
+  explicit Option(OptionBase<A>&& base) : OptionBase<A>(std::move(base)) {  }
 public:
   using Content = A;
-  using OptionalBase<A>::OptionalBase;
-  using OptionalBase<A>::isSome;
-  using OptionalBase<A>::unwrap;
+  using OptionBase<A>::OptionBase;
+  using OptionBase<A>::isSome;
+  using OptionBase<A>::unwrap;
 
-  friend bool operator==(Optional const& lhs, Optional const& rhs) 
-  { return static_cast<OptionalBase<A>const&>(lhs) == static_cast<OptionalBase<A>const&>(rhs); }
+  friend bool operator==(Option const& lhs, Option const& rhs) 
+  { return static_cast<OptionBase<A>const&>(lhs) == static_cast<OptionBase<A>const&>(rhs); }
 
-  friend bool operator!=(Optional const& lhs, Optional const& rhs) 
+  friend bool operator!=(Option const& lhs, Option const& rhs) 
   { return !(lhs == rhs); }
 
   template<class C>
-  static Optional<A> fromPtr(C self) 
-  { return Optional(OptionalBase<A>::fromPtr(self)); }
+  static Option<A> fromPtr(C self) 
+  { return Option(OptionBase<A>::fromPtr(self)); }
 
   bool isNone() const { return !this->isSome(); }
 
@@ -280,7 +237,7 @@ public:
   template<class Clsr>
   const A& unwrapOrInit(Clsr f) { 
     if (isNone()) {
-      ::new(this) Optional(f());
+      ::new(this) Option(f());
     }
     return this->unwrap();
   }
@@ -316,13 +273,13 @@ public:
 #define ref_polymorphic(REF, MOVE)                                                                            \
                                                                                                               \
   template<class Clsr>                                                                                        \
-  Optional<typename std::result_of<Clsr(A REF)>::type> map(Clsr clsr) REF {                                   \
-    using OptOut = Optional<typename std::result_of<Clsr(A REF)>::type>;                                      \
+  Option<typename std::result_of<Clsr(A REF)>::type> map(Clsr clsr) REF {                                     \
+    using OptOut = Option<typename std::result_of<Clsr(A REF)>::type>;                                        \
     return this->isSome() ? OptOut(clsr(MOVE(this->unwrap())))                                                \
                           : OptOut();                                                                         \
   }                                                                                                           \
                                                                                                               \
-  template<class B> Optional<B> innerInto() REF { return map([](A REF inner) { return B(MOVE(inner)); }); }   \
+  template<class B> Option<B> innerInto() REF { return map([](A REF inner) { return B(MOVE(inner)); }); }     \
                                                                                                               \
   template<class Clsr>                                                                                        \
   typename std::result_of<Clsr(A REF)>::type andThen(Clsr clsr) REF {                                         \
@@ -337,38 +294,23 @@ public:
 
 
 
-  // template<class Clsr>
-  // typename std::result_of<Clsr(A &&)>::type andThen(Clsr clsr) && { 
-  //   using OptOut = typename std::result_of<Clsr(A &&)>::type;
-  //   return this->isSome() ? clsr(std::move(this->unwrap()))
-  //                   : OptOut();
-  // }
-  //
-  //
-  // template<class Clsr>
-  // typename std::result_of<Clsr(A &)>::type andThen(Clsr clsr) & { 
-  //   using OptOut = typename Optional<std::result_of<Clsr(A &)>>::type;
-  //   return this->isSome() ? clsr(this->unwrap())
-  //                   : OptOut();
-  // }
-
-  friend std::ostream& operator<<(std::ostream& out, Optional const& self) 
+  friend std::ostream& operator<<(std::ostream& out, Option const& self) 
   { return self.isSome() ?  out << self.unwrap() : out << "None"; }
 
 
 };
 
-template<class T> Optional<T> some(T const& t) { return Optional<T>(t);            }
-template<class T> Optional<T> some(T     && t) { return Optional<T>(std::move(t)); }
-template<class T> Optional<T> some(T      & t) { return Optional<T>(t);            }
+template<class T> Option<T> some(T const& t) { return Option<T>(t);            }
+template<class T> Option<T> some(T     && t) { return Option<T>(std::move(t)); }
+template<class T> Option<T> some(T      & t) { return Option<T>(t);            }
 
 template<class T>
-Optional<T> none() 
-{ return Optional<T>(); }
+Option<T> none() 
+{ return Option<T>(); }
 
 template<class T>
-Optional<T> optionalFromPtr(T* t) 
-{ return Optional<T>::fromPtr(t); }
+Option<T> optionalFromPtr(T* t) 
+{ return Option<T>::fromPtr(t); }
 
 }
 

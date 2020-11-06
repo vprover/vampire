@@ -158,15 +158,15 @@ struct NumTraits;
     static ConstantType constant(int i) { return ConstantType(i); }                                           \
     static Term* constantT(int i) { return theory->representConstant(constant(i)); }                          \
     static TermList constantTl(int i) { return TermList(constantT(i)); }                                      \
-    static Optional<ConstantType> tryNumeral(TermList t) {                                                    \
+    static Option<ConstantType> tryNumeral(TermList t) {                                                      \
       ConstantType out;                                                                                       \
       if (theory->tryInterpretConstant(t,out)) {                                                              \
-        return Optional<ConstantType>(out);                                                                   \
+        return Option<ConstantType>(out);                                                                     \
       } else {                                                                                                \
-        return Optional<ConstantType>();                                                                      \
+        return Option<ConstantType>();                                                                        \
       }                                                                                                       \
     }                                                                                                         \
-    static Optional<ConstantType> tryNumeral(Term* t) { return tryNumeral(TermList(t)); }                     \
+    static Option<ConstantType> tryNumeral(Term* t) { return tryNumeral(TermList(t)); }                       \
                                                                                                               \
     static const char* name() {return #CamelCase;}                                                            \
   };                                                                                                          \

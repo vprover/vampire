@@ -1,8 +1,9 @@
-#include "Lib/Optional.hpp"
+#include "Lib/Option.hpp"
+
 #include "Test/UnitTesting.hpp"
 
 
-#define UNIT_ID Optional
+#define UNIT_ID Option
 UT_CREATE;
 
 using namespace Kernel;
@@ -40,7 +41,7 @@ int LeaqueChecker::instances = 0;
 
 TEST_FUN(test_LeaqueChecker_1) {
 
-  using Opt = Optional<LeaqueChecker>;
+  using Opt = Option<LeaqueChecker>;
   {
     auto t1 = Opt(LeaqueChecker());
     LeaqueChecker t2;
@@ -53,7 +54,7 @@ TEST_FUN(test_LeaqueChecker_1) {
 
 TEST_FUN(test_LeaqueChecker_2) {
 
-  using Opt = Optional<LeaqueChecker>;
+  using Opt = Option<LeaqueChecker>;
   {
     auto t1 = Opt(LeaqueChecker());
     t1.unwrap() = LeaqueChecker();

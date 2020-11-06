@@ -20,7 +20,7 @@
 #include <functional>
 #include "Lib/Hash.hpp"
 #include "Lib/Environment.hpp"
-#include "Lib/Optional.hpp"
+#include "Lib/Option.hpp"
 #include "Debug/Tracer.hpp"
 #include "Kernel/Polynomial.hpp"
 #include "Kernel/BottomUpEvaluation.hpp"
@@ -141,12 +141,12 @@ public:
     }
   }
 
-  Optional<typename Number::ConstantType> tryNumeral() const
+  Option<typename Number::ConstantType> tryNumeral() const
   {
     if (_summands.size() == 1 && _summands[0]._factors.size() == 1) {
       return _summands[0]._factors[0].template tryNumeral<Number>();
     } else {
-      return Optional<typename Number::ConstantType>();
+      return Option<typename Number::ConstantType>();
     }
   }
 
@@ -192,7 +192,7 @@ public:
             std::sort(p._factors.begin(), p._factors.end()); // TODO make different orderings possible
             Stack<MonomFactor> monomFactors;
             auto iter = p._factors.begin();
-            Optional<Const> coeff;
+            Option<Const> coeff;
             while (iter != p._factors.end()) {
               auto elem = *iter;
               auto num = elem.template tryNumeral<Number>();
@@ -247,7 +247,7 @@ class NormalizationMemo
   Map<TermList, PolyNf> _cache;
 
 public:
-  Optional<NormalizationResult> get(TermList t) 
+  Option<NormalizationResult> get(TermList t) 
   { return optionalFromPtr(_cache.getPtr(t))
               .map([](PolyNf&& p) 
                    { return NormalizationResult(p); }); }
@@ -284,7 +284,7 @@ inline PolyNf normalizeTerm(TypedTermList t)
     using Arg    = TypedTermList;
     using Result = NormalizationResult;
 
-    Optional<NormalizationResult> normalizeInterpreted(Interpretation i, NormalizationResult* results) const
+    Option<NormalizationResult> normalizeInterpreted(Interpretation i, NormalizationResult* results) const
     {
       switch (i) {
 #     define NUM_CASE(NumTraits)                                                                              \
@@ -303,7 +303,7 @@ inline PolyNf normalizeTerm(TypedTermList t)
                 { return p.tryNumeral(); });                                                                  \
                                                                                                               \
           return maybeNumeral                                                                                 \
-            .andThen([&](NumTraits::ConstantType& c)->Optional<NormalizationResult>                           \
+            .andThen([&](NumTraits::ConstantType& c)->Option<NormalizationResult>                             \
                 {                                                                                             \
                   if (c == NumTraits::ConstantType(0)) {                                                      \
                     return none<NormalizationResult>();                                                       \
@@ -324,7 +324,7 @@ inline PolyNf normalizeTerm(TypedTermList t)
         default:
           {}
       }
-      return Optional<NormalizationResult>();
+      return Option<NormalizationResult>();
     } 
 
     NormalizationResult operator()(TypedTermList t, NormalizationResult* ts) const
@@ -377,7 +377,29 @@ inline PolyNf normalizeTerm(TypedTermList t)
   return toPolyNf(r);
 }
 
+inline TermList PolyNf::denormalize() const
+{ 
+  CALL("PolyNf::denormalize")
+  DEBUG("converting ", *this)
+  struct Eval 
+  {
+    using Arg    = PolyNf;
+    using Result = TermList;
 
+    TermList operator()(PolyNf orig, TermList* results)
+    { return orig.match(
+        [&](Perfect<FuncTerm> t) { return TermList(Term::create(t->function().id(), t->arity(), results)); },
+        [&](Variable          v) { return TermList::var(v.id()); },
+        [&](AnyPoly           p) { return p.denormalize(results); }
+        ); }
+  };
+
+  static Memo::Hashed<PolyNf, TermList> memo;
+  return evaluateBottomUp(*this, Eval{}, memo);
+}
+
+
+// TODO clean up this file
 } // namespace Kernel
 #undef DEBUG
 

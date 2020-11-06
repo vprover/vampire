@@ -33,7 +33,7 @@
 #include "VString.hpp"
 #include "Hash.hpp"
 #include "Exception.hpp"
-#include "Optional.hpp"
+#include "Option.hpp"
 #include "Metaiterators.hpp"
 
 namespace Lib {
@@ -211,10 +211,10 @@ public:
    * 
    * @since 25/08/2020 Manchester
    */
-  Optional<Val&> tryGet(Key const& key) const
+  Option<Val&> tryGet(Key const& key) const
   {
     CALL("Map::find/2");
-    using Opt = Optional<Val&>;
+    using Opt = Option<Val&>;
 
     unsigned code = Hash::hash(key);
     if (code == 0) {

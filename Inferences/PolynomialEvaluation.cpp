@@ -23,14 +23,14 @@ Literal* createLiteral(Literal* orig, PolyNf* evaluatedArgs) {
   if (orig->isEquality()) {
     return Literal::createEquality(
           orig->polarity(), 
-          evaluatedArgs[0].toTerm(), 
-          evaluatedArgs[1].toTerm(), 
+          evaluatedArgs[0].denormalize(), 
+          evaluatedArgs[1].denormalize(), 
           SortHelper::getArgSort(orig, 0));
   } else {
     auto arity = orig->arity();
     Stack<TermList> args(arity);
     for (int i = 0; i < arity; i++) {
-      args.push(evaluatedArgs[i].toTerm());
+      args.push(evaluatedArgs[i].denormalize());
     }
     return Literal::create(orig, args.begin());
   }
@@ -64,12 +64,12 @@ struct PredicateEvaluator;
 #include "Kernel/PolynomialNormalizer/PredicateEvaluator.hpp"
 
 
-Optional<LitSimplResult> PolynomialEvaluation::evaluateStep(Literal* orig, PolyNf* evaluatedArgs) const {
+Option<LitSimplResult> PolynomialEvaluation::evaluateStep(Literal* orig, PolyNf* evaluatedArgs) const {
   CALL("PolynomialEvaluation::evaluateStep(Literal* term)")
   DEBUG("evaluating: ", orig->toString());
 
 #define HANDLE_CASE(INTER) case Interpretation::INTER: return PredicateEvaluator<Interpretation::INTER>::evaluate(orig, evaluatedArgs); 
-#define IGNORE_CASE(INTER) case Interpretation::INTER: return Optional<LitSimplResult>();
+#define IGNORE_CASE(INTER) case Interpretation::INTER: return Option<LitSimplResult>();
 #define HANDLE_NUM_CASES(NUM)                                                                                 \
       IGNORE_CASE(NUM ## _IS_INT) /* TODO */                                                                  \
       IGNORE_CASE(NUM ## _IS_RAT) /* TODO */                                                                  \
@@ -98,10 +98,10 @@ Optional<LitSimplResult> PolynomialEvaluation::evaluateStep(Literal* orig, PolyN
       default:
         // WARN("WARNING: unexpected interpreted predicate: ", lit->toString())
         ASSERTION_VIOLATION
-        return Optional<LitSimplResult>();
+        return Option<LitSimplResult>();
     }
   } else {
-    return Optional<LitSimplResult>();
+    return Option<LitSimplResult>();
   }
 
 #undef HANDLE_CASE
@@ -110,7 +110,7 @@ Optional<LitSimplResult> PolynomialEvaluation::evaluateStep(Literal* orig, PolyN
 }
 
 template<class Number>
-Optional<PolyNf> trySimplifyUnaryMinus(PolyNf* evalArgs)
+Option<PolyNf> trySimplifyUnaryMinus(PolyNf* evalArgs)
 {
   CALL("trySimplifyUnaryMinus(PolyNf*)")
   return some<PolyNf>(PolyNf(AnyPoly(perfect(
@@ -119,7 +119,7 @@ Optional<PolyNf> trySimplifyUnaryMinus(PolyNf* evalArgs)
 }
 
 template<class Number, class Clsr>
-Optional<PolyNf> trySimplifyConst2(PolyNf* evalArgs, Clsr f) 
+Option<PolyNf> trySimplifyConst2(PolyNf* evalArgs, Clsr f) 
 {
   auto lhs = evalArgs[0].template tryNumeral<Number>();
   auto rhs = evalArgs[1].template tryNumeral<Number>();
@@ -130,7 +130,7 @@ Optional<PolyNf> trySimplifyConst2(PolyNf* evalArgs, Clsr f)
   }
 }
 
-Optional<PolyNf> trySimplify(Theory::Interpretation i, PolyNf* evalArgs) 
+Option<PolyNf> trySimplify(Theory::Interpretation i, PolyNf* evalArgs) 
 {
   CALL("trySimplify(Theory::Interpretation i, PolyNf* evalArgs) ")
   try {
@@ -187,13 +187,13 @@ Optional<PolyNf> trySimplify(Theory::Interpretation i, PolyNf* evalArgs)
 }
 
 
-Optional<PolyNf> PolynomialEvaluation::evaluate(TermList term, unsigned sortNumber) const 
+Option<PolyNf> PolynomialEvaluation::evaluate(TermList term, unsigned sortNumber) const 
 { return evaluate(TypedTermList(term, sortNumber)); }
 
-Optional<PolyNf> PolynomialEvaluation::evaluate(Term* term) const 
+Option<PolyNf> PolynomialEvaluation::evaluate(Term* term) const 
 { return evaluate(TypedTermList(term)); }
 
-Optional<PolyNf> PolynomialEvaluation::evaluate(TypedTermList term) const 
+Option<PolyNf> PolynomialEvaluation::evaluate(TypedTermList term) const 
 { return evaluate(PolyNf::normalize(term)); }
 
 template<class Number>
@@ -208,7 +208,7 @@ POLYMORPHIC_FUNCTION(AnyPoly, SimplifyPoly  , const& p, PolyNf* ts;)
 AnyPoly simplifyPoly(AnyPoly const& p, PolyNf* ts)
 { return p.apply(Polymorphic::SimplifyPoly{ ts }); }
 
-Optional<PolyNf> PolynomialEvaluation::evaluate(PolyNf normalized) const 
+Option<PolyNf> PolynomialEvaluation::evaluate(PolyNf normalized) const 
 {
   CALL("PolynomialEvaluation::evaluate(TypedTermList term) const")
 
@@ -226,7 +226,7 @@ Optional<PolyNf> PolynomialEvaluation::evaluate(PolyNf normalized) const
           [&](Perfect<FuncTerm> f)  -> PolyNf
           { 
             return f->function().tryInterpret()
-              .andThen( [&](Theory::Interpretation && i)  -> Optional<PolyNf>
+              .andThen( [&](Theory::Interpretation && i)  -> Option<PolyNf>
                 { return trySimplify(i, ts); })
               .unwrapOrElse([&]() -> PolyNf
                 { return PolyNf(perfect(FuncTerm(f->function(), ts))); });
@@ -244,9 +244,9 @@ Optional<PolyNf> PolynomialEvaluation::evaluate(PolyNf normalized) const
   static Memo::Hashed<PolyNf, PolyNf> memo;
   auto out = evaluateBottomUp(normalized, Eval{ *this }, memo);
   if (out == normalized) {
-    return Optional<PolyNf>();
+    return Option<PolyNf>();
   } else {
-    return Optional<PolyNf>(out);
+    return Option<PolyNf>(out);
   }
 }
 

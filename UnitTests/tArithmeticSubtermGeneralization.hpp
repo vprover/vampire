@@ -25,7 +25,7 @@ using namespace Test;
 
 #define PHASE 1
 
-#define UNIT_ID LinearSubtermGeneralization
+#define UNIT_ID ArithmeticSubtermGeneralization
 UT_CREATE;
 
 class SimplificationTester : public Test::Simplification::SimplificationTester

@@ -72,7 +72,7 @@ bool equalityCheck(LitSimplResult& l, LitSimplResult& r)
   return false;
 }
 
-bool equalityCheck(Optional<LitSimplResult>& l, Optional<LitSimplResult>& r) 
+bool equalityCheck(Option<LitSimplResult>& l, Option<LitSimplResult>& r) 
 { 
   if (l.isSome()) {
     return r.isSome() && equalityCheck(l.unwrap(),r.unwrap());
@@ -108,12 +108,12 @@ struct TestOrdering {
 struct Failure { };
 static Failure evaluationFail;
 
-Optional<LitSimplResult> evaluate(Literal* lit) 
+Option<LitSimplResult> evaluate(Literal* lit) 
 {
   auto ord = KBO::testKBO();
   Ordering::trySetGlobalOrdering(SmartPtr<Ordering>(&ord, true));
 
-  using Opt = Optional<LitSimplResult>;
+  using Opt = Option<LitSimplResult>;
   auto& cl = *clause({lit});
 
   auto simpl = [](Clause* cl) -> Clause* 
@@ -163,7 +163,7 @@ void check_eval(Lit orig_, Failure) {
   Literal* src = Literal::create(&orig, orig.polarity());
   auto res = evaluate(src);
   // auto expected = LitSimplResult::literal(src);
-  auto expected = Optional<LitSimplResult>();
+  auto expected = Option<LitSimplResult>();
        
   CHECK_EQ(expected, res, "unexpectedly evaluation was successful", orig);
 }

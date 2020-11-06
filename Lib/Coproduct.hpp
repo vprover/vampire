@@ -7,7 +7,7 @@
 #include "Debug/Tracer.hpp"
 #include "Lib/Hash.hpp"
 #include "Lib/TypeList.hpp"
-#include "Lib/Optional.hpp"
+#include "Lib/Option.hpp"
 #include <memory>
 #include <functional>
 
@@ -319,12 +319,12 @@ public:
     return CoproductImpl::Unwrap<idx, Ts>{}(MOVE(_content));                                                  \
   }                                                                                                           \
                                                                                                               \
-  template <class B> inline Optional<B REF> as() REF                                                          \
-  { return is<B>() ? unwrap<B>() : Optional<B REF>();  }                                                      \
+  template <class B> inline Option<B REF> as() REF                                                            \
+  { return is<B>() ? unwrap<B>() : Option<B REF>();  }                                                        \
                                                                                                               \
   template <unsigned idx>                                                                                     \
-  inline Optional<TL::Get<idx, Ts> REF> as() REF                                                              \
-  { return is<idx>() ? unwrap<idx>() : Optional<TL::Get<idx, Ts> REF>();  }                                   \
+  inline Option<TL::Get<idx, Ts> REF> as() REF                                                                \
+  { return is<idx>() ? unwrap<idx>() : Option<TL::Get<idx, Ts> REF>();  }                                     \
 
   FOR_REF_QUALIFIER(REF_POLYMORPIHIC)
 #undef REF_POLYMORPIHIC
