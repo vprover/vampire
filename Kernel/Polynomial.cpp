@@ -98,6 +98,25 @@ FuncId FuncTerm::function() const
 PolyNf const& FuncTerm::arg(unsigned i) const 
 { return _args[i]; }
 
+std::ostream& operator<<(std::ostream& out, const FuncTerm& self) 
+{ 
+  out << self._fun;
+  auto& stack = self._args;
+  auto iter = stack.iterFifo();
+
+  if (iter.hasNext()) {
+    out << "(" << iter.next();
+    while (iter.hasNext()) {
+      out << ", " << iter.next();
+    }
+    out << ")";
+  }
+
+  return out;
+}
+
+
+
 
 /////////////////////////////////////////////////////////
 // impl AnyPoly 
@@ -125,11 +144,14 @@ unsigned AnyPoly::nFactors(unsigned i) const
 std::ostream& operator<<(std::ostream& out, const AnyPoly& self) 
 { return self.apply(Polymorphic::outputOp{out}); }
 
+POLYMORPHIC_FUNCTION(AnyPoly, simplify  , const& t, PolyNf* ts;) { return AnyPoly(unique(t->simplify(ts))); }
+AnyPoly AnyPoly::simplify(PolyNf* ts) const
+{ return apply(Polymorphic::simplify{ ts }); }
+
 
 /////////////////////////////////////////////////////////
 // impl PolyNf 
 ////////////////////////////
-
 
 PolyNf::PolyNf(UniqueShared<FuncTerm> t) : Coproduct(t) {}
 PolyNf::PolyNf(Variable               t) : Coproduct(t) {}
@@ -171,6 +193,32 @@ Optional<Variable> PolyNf::tryVar() const
 
 IterTraits<PolyNf::Iter> PolyNf::iter() const 
 { return iterTraits(Iter(*this)); }
+
+bool operator<(const PolyNf& lhs, const PolyNf& rhs) 
+{ return std::less<PolyNfSuper>{}(lhs,rhs); }
+
+PolyNf::Iter::Iter(PolyNf p) 
+  : _stack(decltype(_stack){ BottomUpChildIter<PolyNf>(p) }) 
+{  }
+
+PolyNf PolyNf::Iter::next() 
+{
+  CALL("PolyNf::Iter::next")
+  ASS(_stack.size() != 0)
+  while(_stack.top().hasNext()) {
+    ASS(_stack.size() != 0)
+    _stack.push(BottomUpChildIter<PolyNf>(_stack.top().next()));
+  }
+  ASS(_stack.size() != 0)
+  return _stack.pop().self();
+}
+
+bool PolyNf::Iter::hasNext() const 
+{ 
+  CALL("PolyNf::Iter::hasNext")
+  return !_stack.isEmpty(); 
+}
+
 
 // TODO continue here
 
