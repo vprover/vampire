@@ -2135,8 +2135,8 @@ public:
 
   bool shuffleInput() const { return _shuffleInput.actualValue; }
   bool randomAWR() const { return _randomAWR.actualValue; }
+  bool randomAWTiebreak() const { return _randomAWTiebreak.actualValue; }
   bool randomTraversals() const { return _randomTraversals.actualValue; }
-
 
   bool ignoreConjectureInPreprocessing() const {return _ignoreConjectureInPreprocessing.actualValue;}
 
@@ -2389,6 +2389,7 @@ private:
   StringOptionValue _positiveLiteralSplitQueueCutoffs;
   BoolOptionValue _positiveLiteralSplitQueueLayeredArrangement;
 	BoolOptionValue _randomAWR;
+	BoolOptionValue _randomAWTiebreak;
   BoolOptionValue _literalMaximalityAftercheck;
   BoolOptionValue _arityCheck;
   
