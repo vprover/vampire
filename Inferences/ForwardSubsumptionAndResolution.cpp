@@ -278,6 +278,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
         env.statistics->forwardSubsumed++;
         ASS_LE(premise->weight(), cl->weight());
         result = true;
+        ASS(smtsubs.checkSubsumption(premise, cl));
         goto fin;
       }
     }
@@ -318,7 +319,10 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
         env.statistics->forwardSubsumed++;
         ASS_LE(mcl->weight(), cl->weight());
         result = true;
+        ASS(smtsubs.checkSubsumption(mcl, cl));
         goto fin;
+      } else {
+        ASS(!smtsubs.checkSubsumption(mcl, cl));
       }
     }
   }

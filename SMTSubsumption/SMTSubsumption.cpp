@@ -51,22 +51,32 @@ void ProofOfConcept::test(Clause* side_premise, Clause* main_premise)
 {
   CALL("ProofOfConcept::test");
 
-  std::cerr << "SMTSubsumption:\n";
-  std::cerr << "Side premise (base):     " << side_premise->toString() << std::endl;
-  std::cerr << "Main premise (instance): " << main_premise->toString() << std::endl;
+  bool subsumed = checkSubsumption(side_premise, main_premise, true);
+  std::cerr << "subsumed: " << subsumed << std::endl;
+}
 
-  std::cerr << "alignof Solver : " << alignof(Minisat::Solver) << std::endl;
-  std::cerr << "alignof Solver*: " << alignof(Minisat::Solver*) << std::endl;
-  std::cerr << "alignof Clause : " << alignof(Minisat::Clause) << std::endl;
-  std::cerr << "alignof Clause*: " << alignof(Minisat::Clause*) << std::endl;
-  std::cerr << " sizeof Clause : " << sizeof(Minisat::Clause) << std::endl;
-  std::cerr << " sizeof Clause*: " << sizeof(Minisat::Clause*) << std::endl;
+bool ProofOfConcept::checkSubsumption(Kernel::Clause* side_premise, Kernel::Clause* main_premise, bool debug_messages)
+{
+  CALL("ProofOfConcept::checkSubsumption");
+  debug_messages = true;
 
-  // Clause* base_cl = side_premise;
-  // Clause* inst_cl = main_premise;
+  if (debug_messages) {
+    std::cerr << "SMTSubsumption:\n";
+    std::cerr << "Side premise (base):     " << side_premise->toString() << std::endl;
+    std::cerr << "Main premise (instance): " << main_premise->toString() << std::endl;
+
+    std::cerr << "alignof Solver : " << alignof(Minisat::Solver) << std::endl;
+    std::cerr << "alignof Solver*: " << alignof(Minisat::Solver*) << std::endl;
+    std::cerr << "alignof Clause : " << alignof(Minisat::Clause) << std::endl;
+    std::cerr << "alignof Clause*: " << alignof(Minisat::Clause*) << std::endl;
+    std::cerr << " sizeof Clause : " << sizeof(Minisat::Clause) << std::endl;
+    std::cerr << " sizeof Clause*: " << sizeof(Minisat::Clause*) << std::endl;
+  }
 
   Minisat::Solver solver;
-  solver.verbosity = 2;
+  if (debug_messages) {
+    solver.verbosity = 2;
+  }
 
   // Matching for subsumption checks whether
   //
@@ -97,9 +107,11 @@ void ProofOfConcept::test(Clause* side_premise, Clause* main_premise)
 
     vvector<Alt> base_lit_alts;
 
-    std::cerr
-      << std::left << std::setw(20) << base_lit->toString()
-      << " -> ";
+    if (debug_messages) {
+      std::cerr
+        << std::left << std::setw(20) << base_lit->toString()
+        << " -> ";
+    }
 
     // TODO: use LiteralMiniIndex here (need to extend InstanceIterator to a version that returns the binder)
     // LiteralMiniIndex::InstanceIterator inst_it(main_premise_mini_index, base_lit, false);
@@ -116,10 +128,12 @@ void ProofOfConcept::test(Clause* side_premise, Clause* main_premise)
       if (base_lit->arity() == 0 || MatchingUtils::matchArgs(base_lit, inst_lit, binder)) {
         Minisat::Var b = solver.newVar();
 
-        if (!base_lit_alts.empty()) {
-          std::cerr << " | ";
+        if (debug_messages) {
+          if (!base_lit_alts.empty()) {
+            std::cerr << " | ";
+          }
+          std::cerr << std::right << std::setw(20) << inst_lit->toString() << " [b_" << b << "]";
         }
-        std::cerr << std::right << std::setw(20) << inst_lit->toString() << " [b_" << b << "]";
 
         if (binder.bindings().size() > 0) {
           ASS(!base_lit->ground());
@@ -151,10 +165,12 @@ void ProofOfConcept::test(Clause* side_premise, Clause* main_premise)
         ASS_EQ(inst_lit->arity(), 2);
         binder.reset();
         if (MatchingUtils::matchReversedArgs(base_lit, inst_lit, binder)) {
-          if (!base_lit_alts.empty()) {
-            std::cerr << " | ";
+          if (debug_messages) {
+            if (!base_lit_alts.empty()) {
+              std::cerr << " | ";
+            }
+            std::cerr << "REV: " << std::left << std::setw(20) << inst_lit->toString();
           }
-          std::cerr << "REV: " << std::left << std::setw(20) << inst_lit->toString();
 
           auto atom = SubstitutionAtom::from_binder(binder);
           // std::cerr << "atom: " << atom << std::endl;
@@ -174,7 +190,9 @@ void ProofOfConcept::test(Clause* side_premise, Clause* main_premise)
       }
     }
 
-    std::cerr << std::endl;
+    if (debug_messages) {
+      std::cerr << std::endl;
+    }
 
     alts.push_back(std::move(base_lit_alts));
   }
@@ -184,8 +202,10 @@ void ProofOfConcept::test(Clause* side_premise, Clause* main_premise)
   // Pre-matching done
   for (auto const& v : alts) {
     if (v.empty()) {
-      std::cerr << "There is a base literal without any possible matches => abort" << std::endl;
-      return;
+      if (debug_messages) {
+        std::cerr << "There is a base literal without any possible matches => abort" << std::endl;
+      }
+      return false;
     }
   }
 
@@ -242,11 +262,16 @@ void ProofOfConcept::test(Clause* side_premise, Clause* main_premise)
 #endif
   }
 
-  std::cout << "ok before solving? " << solver.okay() << std::endl;
-  std::cerr << "solving" << std::endl;
+  if (debug_messages) {
+    std::cout << "ok before solving? " << solver.okay() << std::endl;
+    std::cerr << "solving" << std::endl;
+  }
   bool res = solver.solve({});
-  std::cout << "Result: " << res << std::endl;
-  std::cout << "ok: " << solver.okay() << std::endl;
+  if (debug_messages) {
+    std::cout << "Result: " << res << std::endl;
+    std::cout << "ok: " << solver.okay() << std::endl;
+  }
+  return res;
 }
 
 
@@ -260,3 +285,10 @@ void ProofOfConcept::test(Clause* side_premise, Clause* main_premise)
 // Example by Bernhard re. problematic subsumption demodulation:
 // side: x1=x2 or x3=x4 or x5=x6 or x7=x8
 // main: x9=x10 or x11=x12 or x13=14 or P(t)
+
+
+// TODO: subsumption resolution
+// maybe we can extend the subsumption instance easily?
+// Add a flag (i.e., a boolean variable that's to be used as assumption)
+//  to switch between subsumption and subsumption resolution.
+// But other SR-clauses are only generated after checking S.

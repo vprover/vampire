@@ -28,6 +28,7 @@
 
 #include "Forwards.hpp"
 #include "InferenceEngine.hpp"
+#include "SMTSubsumption/SMTSubsumption.hpp"
 
 namespace Inferences {
 
@@ -56,6 +57,8 @@ private:
   FwSubsSimplifyingLiteralIndex* _fwIndex;
 
   bool _subsumptionResolution;
+
+  SMTSubsumption::ProofOfConcept smtsubs;
 };
 
 
