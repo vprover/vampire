@@ -45,6 +45,7 @@
 
 #include "Lib/Environment.hpp"
 #include "Shell/Statistics.hpp"
+#include "Debug/RuntimeStatistics.hpp"
 
 #include "ForwardSubsumptionAndResolution.hpp"
 
@@ -275,6 +276,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
       if(ColorHelper::compatible(cl->color(), premise->color()) ) {
         premises = pvi( getSingletonIterator(premise) );
         env.statistics->forwardSubsumed++;
+        ASS_LE(premise->weight(), cl->weight());
         result = true;
         goto fin;
       }
@@ -307,9 +309,14 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
 	continue;
       }
 
+      if (mcl->weight() > cl->weight()) {
+        RSTAT_CTR_INC("fw subsumption impossible due to weight");
+      }
+
       if(MLMatcher::canBeMatched(mcl,cl,cms->_matches,0) && ColorHelper::compatible(cl->color(), mcl->color())) {
         premises = pvi( getSingletonIterator(mcl) );
         env.statistics->forwardSubsumed++;
+        ASS_LE(mcl->weight(), cl->weight());
         result = true;
         goto fin;
       }

@@ -79,6 +79,16 @@ public:
   template<class Binder>
   static bool match(Literal* base, Literal* instance, bool complementary, Binder& binder)
   {
+    bool res = matchImpl(base, instance, complementary, binder);
+    if (res) {
+      ASS_LE(base->weight(), instance->weight());  // TODO may be a useful pre-filter?
+    }
+    return res;
+  }
+
+  template<class Binder>
+  static bool matchImpl(Literal* base, Literal* instance, bool complementary, Binder& binder)
+  {
     CALL("MatchingUtils::match(Literal*, Literal*, bool, Binder&)");
 
     if(!Literal::headersMatch(base,instance,complementary)) {
@@ -109,6 +119,15 @@ public:
 
   template<class Binder>
   static bool matchTerms(TermList base, TermList instance, Binder& binder)
+  {
+    bool res = matchTermsImpl(base, instance, binder);
+    if (res) {
+      ASS_LE(base.weight(), instance.weight());  // TODO may be a useful pre-filter?
+    }
+    return res;
+  }
+  template<class Binder>
+  static bool matchTermsImpl(TermList base, TermList instance, Binder& binder)
   {
     CALL("MatchingUtils::matchTerms/3");
 
