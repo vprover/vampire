@@ -65,12 +65,12 @@ bool ProofOfConcept::checkSubsumption(Kernel::Clause* side_premise, Kernel::Clau
     std::cerr << "Side premise (base):     " << side_premise->toString() << std::endl;
     std::cerr << "Main premise (instance): " << main_premise->toString() << std::endl;
 
-    std::cerr << "alignof Solver : " << alignof(Minisat::Solver) << std::endl;
-    std::cerr << "alignof Solver*: " << alignof(Minisat::Solver*) << std::endl;
-    std::cerr << "alignof Clause : " << alignof(Minisat::Clause) << std::endl;
-    std::cerr << "alignof Clause*: " << alignof(Minisat::Clause*) << std::endl;
-    std::cerr << " sizeof Clause : " << sizeof(Minisat::Clause) << std::endl;
-    std::cerr << " sizeof Clause*: " << sizeof(Minisat::Clause*) << std::endl;
+    static_assert(alignof(Minisat::Solver) == 8, "");
+    static_assert(alignof(Minisat::Solver*) == 8, "");
+    static_assert(alignof(Minisat::Clause) == 4, "");
+    static_assert(alignof(Minisat::Clause*) == 8, "");
+    static_assert(sizeof(Minisat::Clause) == 8, "");
+    static_assert(sizeof(Minisat::Clause*) == 8, "");
   }
 
   Minisat::Solver solver;

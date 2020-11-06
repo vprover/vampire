@@ -23,7 +23,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 using namespace SMTSubsumption::Minisat;
 
-#define TRACE_SOLVER 0
+#define TRACE_SOLVER 1
 
 
 //=================================================================================================
@@ -175,24 +175,29 @@ void Solver::addConstraint_AtMostOne(const vec<Lit>& ps_)
     // Remove duplicates
     sortUnique(ps);
 
-    // // Check if clause is satisfied:
-    // for (int i = 0; i < qs.size()-1; i++) {
-    //     if (qs[i] == ~qs[i+1])
-    //         return;
-    // }
-    // for (int i = 0; i < qs.size(); i++) {
-    //     if (value(qs[i]) == l_True)
-    //         return;
-    // }
+    // Check if constraint is already violated:
+    int num_true = 0;
+    for (Lit p : ps) {
+      // std::cerr << "value(" << p << ") = " << value(p) << std::endl;
+      if (value(p) == l_True) {
+        num_true += 1;
+        if (num_true > 1) {
+          std::cerr << "AtMostOne constraint already violated" << std::endl;
+          ok = false;
+          return;
+        }
+      }
+    }
 
-    // // Remove false literals, TODO: also: if >1 are positive, ok := false and quit.
-    // // TODO: in our use case this should never happen!
-    // int i, j;
-    // for (i = j = 0; i < qs.size(); i++) {
-    //   if (value(qs[i]) != l_False)
-    //     qs[j++] = qs[i];
-    // }
-    // qs.shrink(i - j);
+    // Remove false literals
+    int i, j;
+    for (i = j = 0; i < ps.size(); i++) {
+      if (value(ps[i]) != l_False)
+        ps[j++] = ps[i];
+    }
+    std::cerr << "shrinking by " << (i-j) << std::endl;
+    ASS_EQ(i-j, 0);  // in our use case this should never happen! (TODO: is this true? also for SR/SD? does it hurt to keep this?)
+    ps.shrink(i - j);
 
     // 'ps' is now the (possibly) reduced vector of literals.
 
