@@ -128,12 +128,20 @@ bool WeightQueue::lessThan(Clause* c1,Clause* c2)
     return weightCmp==LESS;
   }
 
+  if (c1->_salt < c2->_salt) {
+    return true;
+  }
+  if (c2->_salt < c1->_salt) {
+    return false;
+  }
+
   if (c1->age() < c2->age()) {
     return true;
   }
   if (c2->age() < c1->age()) {
     return false;
   }
+
   if (c1->inputType() < c2->inputType()) {
     return false;
   }
@@ -162,6 +170,13 @@ bool AgeQueue::lessThan(Clause* c1,Clause* c2)
     return true;
   }
   if (c2->age() < c1->age()) {
+    return false;
+  }
+
+  if (c1->_salt < c2->_salt) {
+    return true;
+  }
+  if (c2->_salt < c1->_salt) {
     return false;
   }
 

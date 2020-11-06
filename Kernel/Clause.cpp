@@ -89,6 +89,12 @@ Clause::Clause(unsigned length,const Inference& inf)
     _extensionalityTag = true;
     inference().setInputType(UnitInputType::AXIOM);
   }
+
+  if (env.options->randomAWR()) {
+    _salt = Random::getInteger();
+  } else {
+    _salt = 0;
+  }
 }
 
 /**
