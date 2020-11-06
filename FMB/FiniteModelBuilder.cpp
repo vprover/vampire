@@ -576,6 +576,9 @@ void FiniteModelBuilder::init()
 
   }
 
+  // TODO: consider updating usage count by rescanning property
+  // in particular, terms replaced by definitions have disappeared!
+
   // record the deleted functions and predicates
   // we do this here so that there are slots for symbols introduce in previous
   // preprocessing steps (definition introduction, splitting)
