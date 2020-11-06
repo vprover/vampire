@@ -936,6 +936,7 @@ void* Allocator::allocateUnknown(size_t size)
 	 << "Watch! end\n";
   }
 #endif
+  ASS((reinterpret_cast<uintptr_t>(result) & 0b111) == 0);
   return result;
 } // Allocator::allocateUnknown
 
