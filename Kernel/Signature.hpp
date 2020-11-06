@@ -673,6 +673,7 @@ class Signature
       TermList ss = Term::superSort();
       Symbol* arr = getFunction(array);
       arr->setType(OperatorType::getFunctionType({ss, ss}, ss, VarList::empty()));
+      arr->markArray();
     }
     return array;    
   }
