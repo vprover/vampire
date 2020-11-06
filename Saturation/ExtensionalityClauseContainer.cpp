@@ -131,14 +131,9 @@ Literal* ExtensionalityClauseContainer::getSingleVarEq(Clause* c) {
 void ExtensionalityClauseContainer::add(ExtensionalityClause c) {
   CALL("ExtensionalityClauseContainer::add");
   
-  ExtensionalityClauseList* l;
-  if(_clausesBySort.find(c.sort)){
-    l = _clausesBySort.get(c.sort);
-  } else {
-    l = ExtensionalityClauseList::empty();
-  }
-
-  ExtensionalityClauseList::push(c, l);
+  ExtensionalityClauseList** l;
+  _clausesBySort.getValuePtr(c.sort,l,ExtensionalityClauseList::empty());
+  ExtensionalityClauseList::push(c,*l);
 }
 
 /**
