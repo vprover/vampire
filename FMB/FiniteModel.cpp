@@ -24,7 +24,7 @@
  * @author Giles
  */
 
-#include <math.h>
+#include <cmath>
 
 #include "Kernel/Term.hpp"
 #include "Kernel/Unit.hpp"

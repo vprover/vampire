@@ -91,7 +91,7 @@ VirtualIterator<Unit*> Interpolants::getParents(Unit* u)
 
 struct Interpolants::ItemState
 {
-  ItemState() {}
+  ItemState() : parCnt(0), inheritedColor(COLOR_INVALID), interpolant(0), leftInts(0), rightInts(0), processed(false), _us(nullptr), _usColor(COLOR_INVALID) {}
 
   ItemState(Unit* us) : parCnt(0), inheritedColor(COLOR_TRANSPARENT), interpolant(0),
       leftInts(0), rightInts(0), processed(false), _us(us)

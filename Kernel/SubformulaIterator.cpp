@@ -321,11 +321,8 @@ Formula* SubformulaIterator::next (int& resultPolarity)
     }
     break;
   }
-
-#if VDEBUG
-  default:
+  case NOCONN:
     ASSERTION_VIOLATION;
-#endif
   }
 
   return result;

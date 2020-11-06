@@ -324,10 +324,9 @@ Formula* SimplifyFalseTrue::simplify (Formula* f)
       }
     }
 
-#if VDEBUG
-  default:
+  case NAME:
+  case NOCONN:
     ASSERTION_VIOLATION;
-#endif
   }
 } // SimplifyFalseTrue::simplify ()
 
@@ -373,12 +372,12 @@ TermList SimplifyFalseTrue::simplify(TermList ts)
         #define THEN 0u
         #define ELSE 1u
 
-        TermList branches[2];
-        bool isTrue[2];
-        bool isFalse[2];
-        for (BRANCH branch : {THEN, ELSE }) {
-          branches[branch] = simplify(*term->nthArgument(branch));
-        }
+        TermList branches[2] = {
+          simplify(*term->nthArgument(THEN)),
+          simplify(*term->nthArgument(ELSE)),
+        };
+        bool isTrue[2] {};
+        bool isFalse[2] {};
 
         switch (condition->connective()) {
           case TRUE:

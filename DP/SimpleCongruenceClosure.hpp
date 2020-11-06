@@ -100,11 +100,11 @@ private:
   /** Equality between two constants */
   struct CEq
   {
-    CEq() : c1(0), c2(0) {}
+    CEq() : c1(0), c2(0), foOrigin(false), foPremise(nullptr) {}
     CEq(unsigned c1, unsigned c2, Literal* lit)
      : c1(c1), c2(c2), foOrigin(true), foPremise(lit) {}
     CEq(unsigned c1, unsigned c2)
-     : c1(c1), c2(c2), foOrigin(false) {}
+     : c1(c1), c2(c2), foOrigin(false), foPremise(nullptr) {}
 
     bool isInvalid() const { ASS_EQ(c1==0, c2==0); return c1==0; }
     vstring toString() const;

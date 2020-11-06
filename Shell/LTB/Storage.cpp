@@ -263,7 +263,7 @@ Storage::Storage(bool translateSignature)
   _impl=new StorageImpl;
 
   //we will be storing prefixes into a single byte
-  ASS_STATIC(PREFIX_COUNT<=256);
+  static_assert(PREFIX_COUNT <= 256, "prefixes must fit into a single byte");
 }
 
 Storage::~Storage()

@@ -221,7 +221,10 @@ private:
   friend class Literal;
 }; // class TermList
 
-ASS_STATIC(sizeof(TermList)==sizeof(size_t));
+static_assert(
+  sizeof(TermList) == sizeof(size_t),
+  "size of TermList must be the same size as that of size_t"
+);
 
 /**
  * Class to represent terms and lists of terms.

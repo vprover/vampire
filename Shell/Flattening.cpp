@@ -213,10 +213,9 @@ Formula* Flattening::flatten (Formula* f)
 				   arg->qarg());
     }
 
-#if VDEBUG
-  default:
+  case NAME:
+  case NOCONN:
     ASSERTION_VIOLATION;
-#endif
   }
 
 } // Flattening::flatten ()

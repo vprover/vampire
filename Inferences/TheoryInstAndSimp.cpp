@@ -204,14 +204,14 @@ bool TheoryInstAndSimp::literalContainsVar(const Literal* lit, unsigned v) {
 /**
  * Scans through a clause C and selects the largest set T s.t. all literals in
  * T are trivial. A literal L is trivial in C if:
- *   1 L is of the form X != s where X does not occur in s
- *   2 L is pure
- *   3 for all literals L' in C that X (different from L) either
+ *   1. L is of the form X != s where X does not occur in s
+ *   2. L is pure
+ *   3. for all literals L' in C that X (different from L) either
  *      + L' is not pure
  *      + L' is trivial in C
+ *
  * some observations:
- *   - consider X != Y + 1 | Y != X - 1 | p(X,Y)
- *     then {} as well as {X != Y+1, Y != X-1} are sets of trivial literals
+ *   - consider X != Y + 1 | Y != X - 1 | p(X,Y): then {}, as well as {X != Y+1, Y != X-1} are sets of trivial literals
  *   - we can partition the clause into pure and impure literals
  *   - trivial literals are always a subset of the pure literals
  *   - a literal that violates condition is pure and not trivial

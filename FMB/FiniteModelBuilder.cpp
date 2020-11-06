@@ -25,7 +25,7 @@
  *       so array[arity] is return and array[i] is the ith argument of the function
  */
 
-#include <math.h>
+#include <cmath>
 
 #include "Kernel/Ordering.hpp"
 #include "Kernel/Inference.hpp"
@@ -578,6 +578,9 @@ void FiniteModelBuilder::init()
 #endif
 
   }
+
+  // TODO: consider updating usage count by rescanning property
+  // in particular, terms replaced by definitions have disappeared!
 
   // record the deleted functions and predicates
   // we do this here so that there are slots for symbols introduce in previous
@@ -2606,8 +2609,6 @@ bool FiniteModelBuilder::SmtBasedDSAE::increaseModelSizes(DArray<unsigned>& newS
         sum = sum + *_sizeConstants[i];
       }
       _smtSolver.add(sum == _context.int_val(_lastWeight));
-
-      result = _smtSolver.check();
 
       if (_smtSolver.check() == z3::check_result::sat) {
         loadSizesFromSmt(newSortSizes);
