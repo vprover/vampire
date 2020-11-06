@@ -369,7 +369,7 @@ public:
   DECL_ELEMENT_TYPE(ELEMENT_TYPE(Inner));
 
   FilteredIterator(Inner inn, Functor func)
-  : _func(func), _inn(inn), _nextStored(false) {}
+  : _func(func), _inn(inn), _next(), _nextStored(false) {}
   bool hasNext()
   {
     if(_nextStored) {

@@ -434,49 +434,18 @@ public:
 
   enum class Schedule : unsigned int {
     CASC,
-    CASC_2014,
-    CASC_2014_EPR,
-    CASC_2016,
-    CASC_2017,
-    CASC_2018,
     CASC_2019,
     CASC_SAT,
-    CASC_SAT_2014,
-    CASC_SAT_2016,
-    CASC_SAT_2017,
-    CASC_SAT_2018,
-    CASC_HOL_2020,
     CASC_SAT_2019,
-    LTB_2014,
-    LTB_2014_MZR,
+    CASC_HOL_2020,
     LTB_DEFAULT_2017,
-
-    LTB_HH4_2015_FAST,
-    LTB_HH4_2015_MIDD,
-    LTB_HH4_2015_SLOW,
     LTB_HH4_2017,
-
-    LTB_HLL_2015_FAST,
-    LTB_HLL_2015_MIDD,
-    LTB_HLL_2015_SLOW,
     LTB_HLL_2017,
-
-    LTB_ISA_2015_FAST,
-    LTB_ISA_2015_MIDD,
-    LTB_ISA_2015_SLOW,
     LTB_ISA_2017,
-
-    LTB_MZR_2015_FAST,
-    LTB_MZR_2015_MIDD,
-    LTB_MZR_2015_SLOW,
     LTB_MZR_2017,
-
     SMTCOMP,
-    SMTCOMP_2016,
-    SMTCOMP_2017,
     SMTCOMP_2018
-};
-
+  };
 
 /* TODO: use an enum for Selection. The current issue is the way these values are manipulated as ints
  *
@@ -1416,11 +1385,11 @@ virtual vstring getStringOfValue(int value) const{ return Lib::Int::toString(val
 * may need to be added. In this case see examples from AndWrapper below.
 *
 * MS: While OptionValueConstraints are expressions which wait for a concrete value to be evaluated against:
-* as in \lambda value. expression(value),
+* as in λ value. expression(value),
 * WrappedConstraints have already been "closed" by providing a concrete value:
-* as in (\lambda value. expression(value))[concrete_value]
+* as in (λ value. expression(value))[concrete_value]
 * Finally, we can at anytime "unwrap" a WrappedConstraint by providing a "fake" lambda again on top, to turn it into a OptionValueConstraints again:
-* as in \lambda value. expression_ignoring_value
+* as in λ value. expression_ignoring_value
 *
 * The tricky part (C++-technology-wise) here is that unwrapping needs to get a type for the value
 * and this type is indepedent form the expression_ignoring_value for obvious reasons.

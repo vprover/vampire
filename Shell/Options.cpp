@@ -58,6 +58,8 @@
 using namespace Lib;
 using namespace Shell;
 
+static const int COPY_SIZE = 128;
+
 /**
  * Initialize options to the default values.
  *
@@ -77,7 +79,7 @@ Options::Options ()
     init();
 }
 
-void Options::Options::init()
+void Options::init()
 {
    CALL("Options::init");
 
@@ -145,41 +147,16 @@ void Options::Options::init()
 
     _schedule = ChoiceOptionValue<Schedule>("schedule","sched",Schedule::CASC,
         {"casc",
-         "casc_2014",
-         "casc_2014_epr",
-         "casc_2016",
-         "casc_2017",
-         "casc_2018",
          "casc_2019",
          "casc_sat",
-         "casc_sat_2014",
-         "casc_sat_2016",
-         "casc_sat_2017",
-         "casc_sat_2018",
-         "casc_hol_2020",
          "casc_sat_2019",
-         "ltb_2014",
-         "ltb_2014_mzr",
+         "casc_hol_2020",
          "ltb_default_2017",
-         "ltb_hh4_2015_fast",
-         "ltb_hh4_2015_midd",
-         "ltb_hh4_2015_slow",
          "ltb_hh4_2017",
-         "ltb_hll_2015_fast",
-         "ltb_hll_2015_midd",
-         "ltb_hll_2015_slow",
          "ltb_hll_2017",
-         "ltb_isa_2015_fast",
-         "ltb_isa_2015_midd",
-         "ltb_isa_2015_slow",
          "ltb_isa_2017",
-         "ltb_mzr_2015_fast",
-         "ltb_mzr_2015_midd",
-         "ltb_mzr_2015_slow",
          "ltb_mzr_2017",
          "smtcomp",
-         "smtcomp_2016",
-         "smtcomp_2017",
          "smtcomp_2018"});
     _schedule.description = "Schedule to be run by the portfolio mode. casc and smtcomp usually point to the most recent schedule in that category. Note that some old schedules may contain option values that are no longer supported - see ignore_missing.";
     _lookup.insert(&_schedule);
@@ -422,8 +399,9 @@ void Options::Options::init()
 
     _inequalitySplitting = IntOptionValue("inequality_splitting","ins",0);
     _inequalitySplitting.description=
-    "Defines a weight threshold w such that any clause C \\/ s!=t where s (or conversely t) is ground "
-    "and has weight less than w is replaced by C \\/ p(s) with the additional unit clause ~p(t) being added "
+    "When greater than zero, ins defines a weight threshold w such that any clause C \\/ s!=t "
+    "where s (or conversely t) is ground and has weight greater or equal than w "
+    "is replaced by C \\/ p(s) with the additional unit clause ~p(t) being added "
     "for fresh predicate p.";
     _lookup.insert(&_inequalitySplitting);
     _inequalitySplitting.tag(OptionTag::PREPROCESSING);
@@ -2758,11 +2736,11 @@ bool Options::RatioOptionValue::readRatio(const char* val, char separator)
   }
 
   if (found) {
-    if (strlen(val) > 127) {
+    if (strlen(val) >= COPY_SIZE) {
       return false;
     }
-    char copy[128];
-    strcpy(copy,val);
+    char copy[COPY_SIZE];
+    strncpy(copy,val,COPY_SIZE);
     copy[colonIndex] = 0;
     int age;
     if (! Int::stringToInt(copy,age)) {
@@ -2908,12 +2886,12 @@ bool Options::TimeLimitOptionValue::setValue(const vstring& value)
   CALL("Options::readTimeLimit");
 
   int length = value.size();
-  if (length == 0 || length > 127) {
+  if (length == 0 || length >= COPY_SIZE) {
     USER_ERROR((vstring)"wrong value for time limit: " + value);
   }
 
-  char copy[128];
-  strcpy(copy,value.c_str());
+  char copy[COPY_SIZE];
+  strncpy(copy,value.c_str(),COPY_SIZE);
   char* end = copy;
   // search for the end of the string for
   while (*end) {

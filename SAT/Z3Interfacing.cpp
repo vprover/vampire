@@ -242,7 +242,10 @@ SATSolver::VarAssignment Z3Interfacing::getAssignment(unsigned var)
 
   // with model_completion true (see above), there should be no don't-knows
 
-  ASSERTION_VIOLATION_REP(assignment); // This is actually not a problem for AVATAR in release (see recomputeModel in Splitter.cpp)
+#ifdef VDEBUG
+  // This is actually not a problem for AVATAR in release (see recomputeModel in Splitter.cpp)
+  ASSERTION_VIOLATION_REP(assignment);
+#endif
   return NOT_KNOWN;
 }
 

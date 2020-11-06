@@ -249,12 +249,8 @@ Formula* Naming::apply_iter(Formula* top_f) {
           todo_stack.push(t_new);
         }
       } break;
-
-#if VDEBUG
       default:
-        ASSERTION_VIOLATION_REP(*tas.f)
-        ;
-#endif
+        ASSERTION_VIOLATION_REP(*tas.f);
       }
     } break;
 
@@ -1081,11 +1077,8 @@ Formula* Naming::apply_sub(Formula* f, Where where, int& pos, int& neg) {
     return f;
   }
 
-#if VDEBUG
   default:
-    ASSERTION_VIOLATION_REP(*f)
-    ;
-#endif
+    ASSERTION_VIOLATION_REP(*f);
   }
 } // Naming::apply
 

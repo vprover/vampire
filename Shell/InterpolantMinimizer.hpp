@@ -79,7 +79,8 @@ private:
 
   struct UnitInfo
   {
-    UnitInfo() : state(TRANSPARENT_PARENTS), isRefutation(false),
+    UnitInfo() : color(COLOR_INVALID), inputInheritedColor(COLOR_INVALID),
+        state(TRANSPARENT_PARENTS), isRefutation(false),
 	isParentOfLeft(false), isParentOfRight(false), leadsToColor(false),
 	leftSuccessors(0), rightSuccessors(0), transparentSuccessors(0) {}
 

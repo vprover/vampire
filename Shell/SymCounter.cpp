@@ -174,11 +174,9 @@ void SymCounter::count (Formula* f,int polarity,int add)
   case FALSE:
     return;
 
-#if VDEBUG
-    default:
+  case NAME:
+  case NOCONN:
       ASSERTION_VIOLATION;
-      return;
-#endif
   }
 } // SymCounter::count (Formula* f,...)
 

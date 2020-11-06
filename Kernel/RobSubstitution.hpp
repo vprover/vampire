@@ -154,7 +154,7 @@ public:
   struct TermSpec
   {
     /** Create a new TermSpec struct */
-    TermSpec() {}
+    TermSpec() : index(0) {}
     /** Create a new TermSpec struct */
     TermSpec(TermList term, int index) : term(term), index(index) {}
     /** Create a new TermSpec struct from a VarSpec*/

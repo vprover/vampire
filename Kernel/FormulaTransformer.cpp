@@ -89,10 +89,9 @@ Formula* FormulaTransformer::apply(Formula* f)
   case FALSE:
     res = applyTrueFalse(f);
     break;
-#if VDEBUG
-  default:
+  case NAME:
+  case NOCONN:
     ASSERTION_VIOLATION;
-#endif
   }
   postApply(f, res);
   return res;

@@ -108,7 +108,7 @@ public:
   public:
     DECL_ELEMENT_TYPE(Clause*);
 
-    DelIterator(RCClauseStack& s) : _inner(s._s) {}
+    DelIterator(RCClauseStack& s) : _inner(s._s), curr(nullptr) {}
 
     bool hasNext() { return _inner.hasNext(); }
     Clause* next() {

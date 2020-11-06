@@ -583,6 +583,9 @@ void Property::scanSort(TermList sort)
  * Scan a literal.
  *
  * @param lit the literal
+ * @param polarity
+ * @param cLen
+ * @param goal
  * @since 29/06/2002 Manchester
  * @since 17/07/2003 Manchester, changed to non-pointer types
  * @since 27/05/2007 flight Manchester-Frankfurt, uses new datastructures
@@ -650,6 +653,8 @@ void Property::scan(Literal* lit, int polarity, unsigned cLen, bool goal)
  * Scan a term arguments.
  *
  * @param ts the list of terms
+ * @param unit
+ * @param goal
  * @since 29/06/2002 Manchester
  * @since 17/07/2003 Manchester, changed to non-pointer types,
  *        also NUMERIC case added
@@ -1040,10 +1045,9 @@ bool Property::hasXEqualsY(const Formula* f)
     case BOOL_TERM:
       return true;
 
-#if VDEBUG
-    default:
+    case NAME:
+    case NOCONN:
       ASSERTION_VIOLATION;
-#endif
     }
   }
   return false;

@@ -89,7 +89,8 @@ unsigned PredicateSplitPassiveClauseContainer::bestQueue(float featureValue) con
       return i;
     }
   }
-  ASS(false); // unreachable
+  // unreachable
+  ASSERTION_VIOLATION;
 }
 
 void PredicateSplitPassiveClauseContainer::add(Clause* cl)
