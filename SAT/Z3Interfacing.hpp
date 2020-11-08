@@ -177,8 +177,8 @@ private:
         return ite(e >= 0, to_int(e), ceiling(e));
   }
 
-  //void addTruncatedOperations(z3::expr_vector, Interpretation qi, Interpretation ti, unsigned srt);
-  //void addFloorOperations(z3::expr_vector, Interpretation qi, Interpretation ti, unsigned srt);
+  void addTruncatedOperations(z3::expr_vector, Interpretation qi, Interpretation ti, TermList srt);
+  void addFloorOperations(z3::expr_vector, Interpretation qi, Interpretation ti, TermList srt);
   void addIntNonZero(z3::expr);
   void addRealNonZero(z3::expr);
 

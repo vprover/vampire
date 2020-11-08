@@ -349,15 +349,15 @@ z3::sort Z3Interfacing::getz3sort(TermList s)
   if(s==Term::rationalSort()) return _context.real_sort(); // Drop notion of rationality 
 
   // Deal with arrays
-  /*if(env.sorts->isOfStructuredSort(s,Sorts::StructuredSort::ARRAY)){
+  if(SortHelper::isArraySort(s)){
     
-    z3::sort index_sort = getz3sort(env.sorts->getArraySort(s)->getIndexSort());
-    z3::sort value_sort = getz3sort(env.sorts->getArraySort(s)->getInnerSort());
+    z3::sort index_sort = getz3sort(SortHelper::getIndexSort(s));
+    z3::sort value_sort = getz3sort(SortHelper::getInnerSort(s));
  
     PRINT_CPP("{ sort s2 = sorts.back(); sorts.pop_back(); sort s1 = sorts.back(); sorts.pop_back(); sorts.push_back(c.array_sort(s1,s2)); }")
 
     return _context.array_sort(index_sort,value_sort);
-  }*/
+  }
 
   PRINT_CPP("sorts.push_back(c.uninterpreted_sort(\"" << Lib::Int::toString(s).c_str() << "\"));")
 
@@ -414,7 +414,7 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
 
     //if constant treat specially
     if(trm->arity()==0){
-      /*if(symb->integerConstant()){
+      if(symb->integerConstant()){
         IntegerConstantType value = symb->integerValue();
 
         PRINT_CPP("exprs.push_back(c.int_val(" << value.toInner() << "));")
@@ -428,7 +428,7 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
       if(symb->rationalConstant()){
         RationalConstantType value = symb->rationalValue();
         return _context.real_val(value.numerator().toInner(),value.denominator().toInner());
-      }*/
+      }
       if(!isLit && env.signature->isFoolConstantSymbol(true,trm->functor())){
 
         PRINT_CPP("exprs.push_back(c.bool_val(true));")
@@ -441,22 +441,22 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
 
         return _context.bool_val(false);
       }
-      /*if (symb->overflownConstant()) {
+      if (symb->overflownConstant()) {
         // too large for native representation, but z3 should cope
-
-        switch (symb->fnType()->result()) {
-        case Sorts::SRT_INTEGER:
+        TermList result = symb->fnType()->result();
+        if(result == Term::intSort()){
           PRINT_CPP("exprs.push_back(c.int_val(\"" << symb->name() << "\"));")
-          return _context.int_val(symb->name().c_str());
-        case Sorts::SRT_RATIONAL:
-          return _context.real_val(symb->name().c_str());
-        case Sorts::SRT_REAL:
-          return _context.real_val(symb->name().c_str());
-        default:
+          return _context.int_val(symb->name().c_str());          
+        } else if (result == Term::rationalSort()){
+          return _context.real_val(symb->name().c_str()); 
+        } else if (result == Term::realSort()){
+          return _context.real_val(symb->name().c_str());          
+        } else {
           ;
           // intentional fallthrough; the input is fof (and not tff), so let's just treat this as a constant
         }
-      }*/
+
+      }
 
       // If not value then create constant symbol
       //cout << "HERE " << env.sorts->sortName(range_sort) << " for " << symb->name() << endl; 
@@ -489,7 +489,7 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
     // Currently do not deal with all intepreted operations, should extend 
     // - constants dealt with above
     // - unary funs/preds like is_rat interpretation unclear
-    /*if(symb->interpreted()){
+    if(symb->interpreted()){
       Interpretation interp = static_cast<Signature::InterpretedSymbol*>(symb)->getInterpretation();
       bool skip=false; 
       unsigned argsToPop=theory->getArity(interp);
@@ -745,7 +745,7 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
         return ret;
       } 
 
-    }*/
+    }
     //TODO check domain_sorts for args in equality and interpretted?
     PRINT_CPP("{")
     PRINT_CPP("vector<expr> rev_args;")
@@ -911,7 +911,7 @@ void Z3Interfacing::addRealNonZero(z3::expr t)
  * uninterpreted
  *
  **/
-/*void Z3Interfacing::addTruncatedOperations(z3::expr_vector args, Interpretation qi, Interpretation ti, unsigned srt) 
+void Z3Interfacing::addTruncatedOperations(z3::expr_vector args, Interpretation qi, Interpretation ti, TermList srt) 
 {
   CALL("Z3Interfacing::addTruncatedOperations");
   
@@ -935,7 +935,7 @@ void Z3Interfacing::addRealNonZero(z3::expr t)
   z3::func_decl r = _context.function(rs,domain_sorts,getz3sort(srt));
   z3::expr r_e1_e2 = r(args);
 
-  if(srt == Sorts::SRT_INTEGER){
+  if(srt == Term::intSort()){
 
     domain_sorts = z3::sort_vector(_context);
     domain_sorts.push_back(getz3sort(srt));
@@ -971,11 +971,11 @@ void Z3Interfacing::addRealNonZero(z3::expr t)
     z3::expr five = implies( (e2!=0), ( ((e2*truncate(e1/e2))+ r_e1_e2) == e1 ) );
     _solver.add(five);
   }
-}*/
+}
 /**
  *
  **/ 
-/*void Z3Interfacing::addFloorOperations(z3::expr_vector args, Interpretation qi, Interpretation ti, unsigned srt)
+void Z3Interfacing::addFloorOperations(z3::expr_vector args, Interpretation qi, Interpretation ti, TermList srt)
 {
   CALL("Z3Interfacing::addFloorOperations");
 
@@ -997,7 +997,7 @@ void Z3Interfacing::addRealNonZero(z3::expr t)
   z3::func_decl r = _context.function(rs,domain_sorts,getz3sort(srt));
   z3::expr r_e1_e2 = r(args);
 
-  if(srt == Sorts::SRT_INTEGER){
+  if(srt == Term::intSort()){
 
     domain_sorts = z3::sort_vector(_context);
     domain_sorts.push_back(getz3sort(srt));
@@ -1022,7 +1022,7 @@ void Z3Interfacing::addRealNonZero(z3::expr t)
     _solver.add(five);
   }
 
-}*/
+}
 
 
 } // namespace SAT
