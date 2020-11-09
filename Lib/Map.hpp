@@ -297,6 +297,9 @@ public:
     return nullptr;
   } // Map::getPtr
 
+  /** returns the number of entries */
+  int size() const 
+  { return _noOfEntries; }
 
   /**
    * Return the value by the key. The value must be stored in the

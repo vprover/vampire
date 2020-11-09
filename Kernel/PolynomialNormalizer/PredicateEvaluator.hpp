@@ -1,15 +1,10 @@
-// #include "Kernel/PolynomialNormalizer.hpp"
-//
+template<Theory::Interpretation inter>
+struct PredicateEvaluator;
 
 template<class C> using Poly = Polynom<NumTraits<C>>;
 #include "Debug/Tracer.hpp"
 #include "Lib/STLAllocator.hpp"
 #include "Lib/Option.hpp"
-#include <map>
-
-#define TODO throw "TODO";
-
-
 
 using LitSimplResult = Inferences::SimplifyingGeneratingLiteralSimplification::Result;
 
@@ -41,8 +36,6 @@ Option<LitSimplResult> tryEvalConstant2(Literal* orig, PolyNf* evaluatedArgs, Ev
     return Option<LitSimplResult>();
   }
 }
-
-
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Equality
@@ -132,20 +125,38 @@ IMPL_INEQUALTIES(IntegerConstantType)
 IMPL_EVALUATE_PRED(Interpretation::INT_DIVIDES,
   return tryEvalConstant2<IntegerConstantType>(orig, evaluatedArgs, 
     [](IntegerConstantType l, IntegerConstantType r) -> bool { 
-      // TODO use fastest reminder operation
       return  r.remainderE(l) == IntegerConstantType(0);
   });
 )
-
-// TODO
-// - include division (?)
-// - include binary minus
-// - integrate in rebalancing elimination
-//     test this case:
-//     - eq(mul(2, a), add(x, x)) =====>  eq(a, x)
 
 #undef HANDLE_CASE
 #undef IGNORE_CASE
 #undef HANDLE_NUM_CASES
 
 
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/// NUM_IS_NUM_DIVIDES
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#define IMPL_EVALUATE_IS(n1,n2, expr)                                                                         \
+  IMPL_EVALUATE_PRED(n1 ## Traits::is ## n2 ## I,                                                             \
+      using N1Traits = n1##Traits;                                                                            \
+      using Numeral1 = typename N1Traits::ConstantType;                                                       \
+      return evaluatedArgs[0].tryNumeral<N1Traits>()                                                          \
+        .map([](Numeral1 num) -> bool { return expr; })                                                       \
+        .map([&](bool x) -> LitSimplResult { return LitSimplResult::constant(orig->polarity() == x); });      \
+        )
+
+IMPL_EVALUATE_IS(Int, Int , true)
+IMPL_EVALUATE_IS(Int, Rat , true)
+IMPL_EVALUATE_IS(Int, Real, true)
+
+IMPL_EVALUATE_IS(Rat, Int , num.denominator() == 1)
+IMPL_EVALUATE_IS(Rat, Rat , true)
+IMPL_EVALUATE_IS(Rat, Real, true)
+
+IMPL_EVALUATE_IS(Real, Int , num.representation().denominator() == 1)
+IMPL_EVALUATE_IS(Real, Rat , [&](){ RationalConstantType x = num.representation(); (void)x; return true;}())
+IMPL_EVALUATE_IS(Real, Real, true)
+
+#undef IMPL_EVALUATE_IS

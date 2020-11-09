@@ -564,7 +564,12 @@ INT_TEST(eval_quotientE_3,
     )
 
 INT_TEST(eval_quotientE_4,
-    p(quotientT(x, 1)),
+    p(quotientE(x, 1)),
+    p(x)
+    )
+
+INT_TEST(eval_quotientE_4_1,
+    p(remainderE(x, 1)),
     p(0)
     )
 
@@ -583,11 +588,6 @@ FRACTIONAL_TEST(eval_quotient_1,
     p(7 / frac(7, 2)),
     p(2)
     )
-//
-// FRACTIONAL_TEST(eval_quotient_2,
-//     p((7 * a) / 7),
-//     p(a)
-//     )
 
 FRACTIONAL_TEST(div_zero_0,
     r(7 / num(0), num(10) + 1),
@@ -642,11 +642,45 @@ FRACTIONAL_TEST(eval_overflow_7,
     false
     )
 
-FRACTIONAL_TEST(misc_01,
-     0 < x + (-y),
-     evaluationFail
+ALL_NUMBERS_TEST(NUM_IS_NUM_01,
+     ~isInt(num(3)),
+     false
     )
 
+ALL_NUMBERS_TEST(NUM_IS_NUM_02,
+     isInt(num(3)),
+     true
+    )
+
+FRACTIONAL_TEST(NUM_IS_NUM_03,
+     isInt(frac(3,2)),
+     false
+    )
+
+FRACTIONAL_TEST(NUM_IS_NUM_04,
+     isInt(frac(4,2)),
+     true
+    )
+
+FRACTIONAL_TEST(NUM_IS_NUM_05,
+     ~isInt(frac(3,2)),
+     true
+    )
+
+FRACTIONAL_TEST(NUM_IS_NUM_06,
+     isRat(frac(3,2)),
+     true
+    )
+
+FRACTIONAL_TEST(NUM_IS_NUM_07,
+     isReal(frac(3,2)),
+     true
+    )
+
+ALL_NUMBERS_TEST(NUM_IS_NUM_08,
+     ~isReal(num(3)),
+     false
+    )
 
 // FRACTIONAL_TEST(eval_div_1,
 //     p(floor(frac(7,2))),

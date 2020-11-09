@@ -47,7 +47,7 @@ PolynomialEvaluation::Result PolynomialEvaluation::simplifyLiteral(Literal* lit)
     anyChange = anyChange || ev.isSome();
     terms.push(std::move(ev).unwrapOrElse([&](){ return norm; }));
   }
-  auto simplified = evaluateStep(lit, terms.begin());
+  auto simplified = tryEvalPredicate(lit, terms.begin());
   anyChange = anyChange || simplified.isSome();
 
   return anyChange 
@@ -57,23 +57,18 @@ PolynomialEvaluation::Result PolynomialEvaluation::simplifyLiteral(Literal* lit)
       : LitSimplResult::literal(lit);
 }
 
-template<Theory::Interpretation inter>
-struct PredicateEvaluator;
-
-// TODO inline or so
 #include "Kernel/PolynomialNormalizer/PredicateEvaluator.hpp"
 
-
-Option<LitSimplResult> PolynomialEvaluation::evaluateStep(Literal* orig, PolyNf* evaluatedArgs) const {
-  CALL("PolynomialEvaluation::evaluateStep(Literal* term)")
+Option<LitSimplResult> PolynomialEvaluation::tryEvalPredicate(Literal* orig, PolyNf* evaluatedArgs) const {
+  CALL("PolynomialEvaluation::tryEvalPredicate(Literal* term)")
   DEBUG("evaluating: ", orig->toString());
 
 #define HANDLE_CASE(INTER) case Interpretation::INTER: return PredicateEvaluator<Interpretation::INTER>::evaluate(orig, evaluatedArgs); 
 #define IGNORE_CASE(INTER) case Interpretation::INTER: return Option<LitSimplResult>();
 #define HANDLE_NUM_CASES(NUM)                                                                                 \
-      IGNORE_CASE(NUM ## _IS_INT) /* TODO */                                                                  \
-      IGNORE_CASE(NUM ## _IS_RAT) /* TODO */                                                                  \
-      IGNORE_CASE(NUM ## _IS_REAL) /* TODO */                                                                 \
+      HANDLE_CASE(NUM ## _IS_INT)                                                                             \
+      HANDLE_CASE(NUM ## _IS_RAT)                                                                             \
+      HANDLE_CASE(NUM ## _IS_REAL)                                                                            \
       HANDLE_CASE(NUM ## _GREATER)                                                                            \
       HANDLE_CASE(NUM ## _GREATER_EQUAL)                                                                      \
       HANDLE_CASE(NUM ## _LESS)                                                                               \
@@ -109,32 +104,7 @@ Option<LitSimplResult> PolynomialEvaluation::evaluateStep(Literal* orig, PolyNf*
 #undef HANDLE_NUM_CASES
 }
 
-template<class Number>
-Option<PolyNf> trySimplifyUnaryMinus(PolyNf* evalArgs)
-{
-  CALL("trySimplifyUnaryMinus(PolyNf*)")
-  using Numeral = typename Number::ConstantType;
-  using Polynom = Polynom<Number>;
-
-  auto out = Polynom(*evalArgs[0].template wrapPoly<Number>());
-
-  for (unsigned i = 0; i < out.nSummands(); i++) {
-     out.summandAt(i).numeral = out.summandAt(i).numeral * Numeral(-1);
-  }
-  return some<PolyNf>(PolyNf(AnyPoly(perfect(std::move(out)))));
-}
-
-template<class Number, class Clsr>
-Option<PolyNf> trySimplifyConst2(PolyNf* evalArgs, Clsr f) 
-{
-  auto lhs = evalArgs[0].template tryNumeral<Number>();
-  auto rhs = evalArgs[1].template tryNumeral<Number>();
-  if (lhs.isSome() && rhs.isSome()) {
-    return some<PolyNf>(PolyNf(AnyPoly(perfect(Polynom<Number>(f(lhs.unwrap(), rhs.unwrap()))))));
-  } else {
-    return none<PolyNf>();
-  }
-}
+#include "Inferences/FunctionEvaluation.cpp"
 
 Option<PolyNf> trySimplify(Theory::Interpretation i, PolyNf* evalArgs) 
 {
@@ -142,19 +112,23 @@ Option<PolyNf> trySimplify(Theory::Interpretation i, PolyNf* evalArgs)
   try {
     switch (i) {
 
-#define CONSTANT_CASE(Num, func, expr)                                                                        \
+#define CONSTANT_CASE_2(Num, func, expr)                                                                      \
       case Num##Traits:: func ## I:                                                                           \
         {                                                                                                     \
           using Const = typename Num##Traits::ConstantType;                                                   \
           return trySimplifyConst2<Num##Traits>(evalArgs, [](Const l, Const r){ return expr; });              \
         }                                                                                                     \
 
-#define QUOTIENT_REMAINDER_CASES(Num, X)                                                                      \
-      CONSTANT_CASE(Num,  quotient##X, l. quotient##X(r))                                                     \
-      CONSTANT_CASE(Num, remainder##X, l.remainder##X(r))                                                     \
+#define CASE(inter)                                                                                           \
+      case Theory::inter:                                                                                     \
+        return FunctionEvaluator<Theory::inter>::simplify(evalArgs);
+
+#define QUOTIENT_REMAINDER_CASES(X)                                                                           \
+      CASE(INT_QUOTIENT_  ## X)                                                                               \
+      CASE(INT_REMAINDER_ ## X)
 
 #define FRAC_CASE(Num)                                                                                        \
-      CONSTANT_CASE(Num, div, l / r)
+      CONSTANT_CASE_2(Num, div, l / r)
 
 #define NUM_CASE(Num)                                                                                         \
       case Num ## Traits::minusI:     return trySimplifyUnaryMinus<Num ## Traits>(evalArgs);                  \
@@ -162,9 +136,9 @@ Option<PolyNf> trySimplify(Theory::Interpretation i, PolyNf* evalArgs)
       NUM_CASE(Int)
       NUM_CASE(Rat)
       NUM_CASE(Real)
-      QUOTIENT_REMAINDER_CASES(Int, E)
-      QUOTIENT_REMAINDER_CASES(Int, T)
-      QUOTIENT_REMAINDER_CASES(Int, F)
+      QUOTIENT_REMAINDER_CASES(E)
+      QUOTIENT_REMAINDER_CASES(T)
+      QUOTIENT_REMAINDER_CASES(F)
 
       FRAC_CASE(Rat)
       FRAC_CASE(Real)

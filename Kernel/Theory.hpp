@@ -244,6 +244,16 @@ public:
 
   size_t hash() const;
   static Comparison comparePrecedence(RealConstantType n1, RealConstantType n2);
+
+  /** 
+   * returns the internal represenation of this RealConstantType. 
+   * 
+   * Currently we represent Reals as Rationals. We might
+   * change this representation in the future in order to represent numerals other algebraic numbers (e.g.  sqrt(2)). 
+   * In order to make this future proof this function is called in places where we rely on the representation of reals,
+   * so we get a compiler error if we change the underlying datatype.
+   */
+  RationalConstantType representation() const;
 private:
   static bool parseDouble(const vstring& num, RationalConstantType& res);
 

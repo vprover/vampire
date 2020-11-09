@@ -143,6 +143,8 @@ RationalConstantType RationalConstantType::abs() const
   ASS_G(_den, 0)
   return RationalConstantType(_num.abs(), _den);
 }
+RationalConstantType RealConstantType::representation() const
+{ return *this; }
 
 RealConstantType RealConstantType::abs() const
 {

@@ -4,94 +4,25 @@
 #include "Kernel/PolynomialNormalizer.hpp"
 #include "Lib/IntUnionFind.hpp"
 #include "Lib/Array.hpp"
+#include "Lib/Set.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Shell/Statistics.hpp"
 
-#define DEBUG(...) //DBG(__VA_ARGS__)
+#define DEBUG(...) // DBG(__VA_ARGS__)
 
 namespace Inferences {
 
-/**
- * Rule' 1)
- *   generalize multiplication
- *   C[k * X] 
- *   ------------ 
- *   C[X]
- *   where 
- *   - k is a non-zero number term
- *   - all occurences of X are in terms of the form `k * X`
- *   - sound due to substitution X -> (1/k) * X
- *   - generalization since obviously
- *
- *
- * Rule' 2)
- *   generalize multiplication
- *   C[X + d] 
- *   ------------ 
- *   C[X]
- *   where 
- *   - all occurences of X are in terms of the form `X + d`
- *   - sound due to substitution X -> X - d
- *   - generalization since obviously
- *
- *
- * Algorithm: 
- * Generalization : Meet Semilattice
- * let map : Var -> Generalization
- *
- * // rule 1
- * for term in clause:
- *   for poly in formula:
- *     for summand in poly:
- *        let generalization = summand \ v
- *        if map contains v 
- *          map[v] = map[v] `meet` varCoeff
- *        else              
- *          map[v] = v
- *
- * let (var, gen) = getAnyEntry(map)
- *
- * newClause = {}
- * for term in clause:
- *   term' = term.generalizeBasedOn(gen)
- *   newClause.replace(term, term')
- *
- *
- */
-
-  // TODO move me to different file
-class IterArgNfs
+/** iterator over all subterms of a clause in polynomial normal form */
+static const auto iterTerms = [](Clause* cl) 
 {
-  Literal* _lit;
-  unsigned _idx;
-public:
-  DECL_ELEMENT_TYPE(PolyNf);
-
-  IterArgNfs(Literal* lit) : _lit(lit), _idx(0) {}
-
-  bool hasNext() const  
-  { return _idx < _lit->arity();  }
-
-  PolyNf next()
-  { 
-    auto out = PolyNf::normalize(TypedTermList(*_lit->nthArgument(_idx), SortHelper::getArgSort(_lit, _idx)));
-    _idx++;
-    return out;
-  }
-};
-
-IterTraits<IterArgNfs> iterArgNfs(Literal* lit) 
-{ return iterTraits(IterArgNfs(lit)); }
-
-
-static const auto iterTerms = [](Clause* cl) {
   return iterTraits(cl->iterLits())
-    .flatMap([](Literal* lit) { return iterArgNfs(lit); }) 
+    .flatMap([](Literal* lit) { return iterArgsPnf(lit); }) 
     .flatMap([](PolyNf arg) { return arg.iterSubterms();  });
 };
 
 /**
- * Type to erase the NumTraits type parameter from some other template class
+ * Type to erase the NumTraits type parameter from some other template class, by dynamically 
+ * storing information which NumTraits object it was instantiated with.
  */
 template<template<class> class NumberObject>
 class AnyNumber : public Coproduct<NumberObject<IntTraits>, NumberObject<RatTraits>, NumberObject<RealTraits> > 
@@ -99,8 +30,18 @@ class AnyNumber : public Coproduct<NumberObject<IntTraits>, NumberObject<RatTrai
 
 public:
   using Super = Coproduct<NumberObject<IntTraits>, NumberObject<RatTraits>, NumberObject<RealTraits>>;
-  template<class NumTraits>
-  AnyNumber(NumberObject<NumTraits> self) : Super(self) {}
+
+  AnyNumber(NumberObject<IntTraits> &self) : Super(self) {}
+  AnyNumber(NumberObject<IntTraits> const& self) : Super(self) {}
+  AnyNumber(NumberObject<IntTraits> && self) : Super(move(self)) {}
+
+  AnyNumber(NumberObject<RatTraits> &self) : Super(self) {}
+  AnyNumber(NumberObject<RatTraits> const& self) : Super(self) {}
+  AnyNumber(NumberObject<RatTraits> && self) : Super(move(self)) {}
+
+  AnyNumber(NumberObject<RealTraits> &self) : Super(self) {}
+  AnyNumber(NumberObject<RealTraits> const& self) : Super(self) {}
+  AnyNumber(NumberObject<RealTraits> && self) : Super(move(self)) {}
 
   template<class NumTraits> Option<NumberObject<NumTraits> const&> downcast() const& { return Super::template as<NumberObject<NumTraits>>(); }
   template<class NumTraits> Option<NumberObject<NumTraits>      &> downcast()      & { return Super::template as<NumberObject<NumTraits>>(); }
@@ -111,13 +52,14 @@ public:
 };
 
 
+/** iterator over all subterms of a clause that are polynoms */
 static const auto iterPolynoms = [](Clause* cl) {
   return iterTerms(cl)
     .filterMap([](PolyNf subterm) 
         { return subterm.template as<AnyPoly>().template innerInto<AnyPoly>(); });
 };
 
-
+/** iterator over all subterms of a clause that are variables */
 static const auto iterVars = [](Clause* cl) {
   return iterTerms(cl)
     .filterMap([](PolyNf subterm) 
@@ -141,7 +83,6 @@ SimplifyingGeneratingInference1::Result generalizeBottomUp(Clause* cl, EvalFn ev
           .map([&](TermList term) -> TermList { 
               CALL("generalizeBottomUp(Clause* cl, EvalFn)@closure 2")
               auto norm = PolyNf::normalize(TypedTermList(term, SortHelper::getArgSort(lit, j++)));
-              // BuildGeneralizedTerm<Gen> eval { var, generalization };
               auto res = evaluateBottomUp(norm, eval);
               if (res != norm) {
                 anyChange = true;
@@ -152,6 +93,7 @@ SimplifyingGeneratingInference1::Result generalizeBottomUp(Clause* cl, EvalFn ev
               }
           })
           .template collect<Stack>();
+
         auto generalizedLit = Literal::create(lit, args.begin());
 
         if (eval.eval.doOrderingCheck) {
@@ -193,16 +135,16 @@ SimplifyingGeneratingInference1::Result generalizeBottomUp(Clause* cl, EvalFn ev
   };
 }
 
-template<class NumTraits> class GeneralizeAdd;
-
-
 template<class Generalization>
 struct ArithmeticSubtermGeneralization
 {
   static SimplifyingGeneratingInference1::Result simplify(Clause* cl, bool doCheckOrdering);
 };
 
+/** type to represent the top element in a lattice */
 struct Top {};
+
+/** type to represent the bottom element in a lattice */
 struct Bot {};
 
 ostream& operator<<(ostream& out, Bot self) { return out << "bot"; }
@@ -210,15 +152,7 @@ ostream& operator<<(ostream& out, Top self) { return out << "top"; }
 bool operator==(Top,Top) { return true; }
 bool operator==(Bot,Bot) { return true; }
 
-template<template<class> class VarGeneralization> struct VarMap;
-
-template<class NumTraits> struct FnGetInner;
-template<class NumTraits> struct FnGetInnerConst;
-
-template<class NumTraits>
-void sortByMonom(Stack<Monom<NumTraits>>& s)
-{ std::sort(s.begin(), s.end()); }
-
+/** bottom up evaluate an object of type AnyPoly */
 template<class Eval>
 struct EvaluateAnyPoly
 {
@@ -244,6 +178,7 @@ struct EvaluateAnyPoly
 };
 
 
+/** polymorphic closure. helper class for EvaluatePolynom */
 template<class Eval>
 struct EvalPolynomClsr {
   Eval& eval;
@@ -255,6 +190,7 @@ struct EvalPolynomClsr {
 };
 
 
+/** bottomup evaluates a Polynom */
 template<class Eval>
 struct EvaluatePolynom
 {
@@ -275,6 +211,7 @@ struct EvaluatePolynom
   }
 };
 
+/** bottomup evaluates a Monom */
 template<class Eval>
 struct EvaluateMonom
 {
@@ -310,154 +247,6 @@ struct EvaluateMonom
   }
 };
 
-template<class Gen>
-struct GeneralizePolynom 
-{
-  Variable &var;
-  Gen &generalization;
-  bool doOrderingCheck;
-
-  template<class NumTraits> 
-  Perfect<Polynom<NumTraits>> operator()(Perfect<Polynom<NumTraits>> p, PolyNf* generalizedArgs) 
-  { return Gen::generalize(var, generalization, p, generalizedArgs); }
-};
-
-
-template<class Gen>
-SimplifyingGeneratingInference1::Result ArithmeticSubtermGeneralization<Gen>::simplify(Clause* cl_, bool doOrderingCheck) 
-{
-  typename Gen::State map;
-
-  /* populate the map, and computing meets */
-  auto& cl = *cl_;
-  DEBUG("input clause: ", cl);
-
-  for (auto poly : iterPolynoms(cl_)) {
-    Gen::addToMap(map, poly);
-  }
-
-  /* select an applicable generalization */
-
-  DEBUG("canidated generalizations: ", map)
-  using Opt = Option<typename decltype(map)::Entry&>;
-  Opt selected;
-  {
-    auto iter = map.iter();
-    while (iter.hasNext()) {
-      auto& gen = iter.next();
-      if (!gen.value().isBot()) {
-        selected = Opt(gen);
-        break;
-      }
-    }
-  }
-  if (selected.isNone()) {
-    return SimplifyingGeneratingInference1::Result::nop(cl_);
-  } 
-
-  auto& var            = selected.unwrap().key();
-  auto& generalization = selected.unwrap().value();
-  DEBUG("selected generalization: ", var, " -> ", generalization)
-
-  // auto clsr = [&](AnyPoly p, PolyNf* evaluatedArgs) -> AnyPoly 
-  // { return Gen::generalize(var,generalization,p,evaluatedArgs); };
-
-  EvaluatePolynom<GeneralizePolynom<Gen>> eval {var, generalization, doOrderingCheck};
-  /* apply the selectedGen generalization */
-  return generalizeBottomUp(&cl, eval);
-}
-
-template<class NumTraits>
-class GeneralizeMul
-{
-public:
-  using Monom = Kernel::Monom<NumTraits>;
-
-  template<class Self>
-  static Perfect<Polynom<NumTraits>> generalize(
-    Variable var,
-    Self const& gen, 
-    Perfect<Polynom<NumTraits>> poly,
-    PolyNf* generalizedArgs);
-
-  template<class GenMap, class Self> static void addToMap(GenMap& map, AnyPoly p_);
-
-  template<class Self, class Num2,
-           typename std::enable_if<!std::is_same<Num2, NumTraits>::value, int>::type = 0
-  > 
-  static Perfect<Polynom<Num2>> generalize(
-    Variable var,
-    Self const& gen, 
-    Perfect<Polynom<Num2>> poly,
-    PolyNf* generalizedArgs) 
-  { return perfect(poly->replaceTerms(generalizedArgs)); }
-};
-
-
-template<class NumTraits>
-class GeneralizeMulNumeral 
-{
-  using Inner = Coproduct<typename NumTraits::ConstantType, Bot>;
-  Inner _inner;
-  using Monom = Kernel::Monom<NumTraits>;
-  using Const = typename NumTraits::ConstantType;
-  using MonomFactors = Kernel::MonomFactors<NumTraits>;
-
-private:
-  GeneralizeMulNumeral(Bot b) : _inner(b) {}
-public:
-  using Self = GeneralizeMulNumeral;
-  GeneralizeMulNumeral& operator=(GeneralizeMulNumeral&&) = default;
-  GeneralizeMulNumeral(GeneralizeMulNumeral&&) = default;
-
-  static GeneralizeMulNumeral bot() { return GeneralizeMulNumeral(Bot{}); }
-  GeneralizeMulNumeral(Const c);
-
-  GeneralizeMulNumeral meet(GeneralizeMulNumeral&& rhs) && {
-    auto& lhs = *this;
-
-    if (lhs._inner.template is<Bot>()) return bot();
-    if (rhs._inner.template is<Bot>()) return bot();
-
-    return meet(lhs._inner.template unwrap<Const>(), rhs._inner.template unwrap<Const>());
-  }
-
-  bool isBot() const 
-  {return _inner.template is<Bot>(); }
-
-  Monom cancel(Monom p) const;
-
-  friend ostream& operator<<(ostream& out, GeneralizeMulNumeral const& self) 
-  { return out << self._inner; }
-
-  template<class Num2> 
-  static Perfect<Polynom<Num2>> generalize(
-    Variable var,
-    GeneralizeMulNumeral<Num2> const& gen, 
-    Perfect<Polynom<Num2>> poly,
-    PolyNf* generalizedArgs) 
-  { return GeneralizeMul<Num2>::generalize(var, gen, poly, generalizedArgs); }
-
-
-  static Monom generalize(
-    Variable var,
-    Self const& gen, 
-    Monom const& poly,
-    PolyNf* generalizedArgs);
-
-  template<class GenMap> static void addToMap(GenMap& map, AnyPoly p)
-  { return GeneralizeMul<NumTraits>::template addToMap<GenMap, Self>(map, p); }
-
-  template<class GenMap> static void addToMap(GenMap& map, Monom const& m);
-
-private:
-  static GeneralizeMulNumeral meet(Const lhs, Const rhs) {
-    if(lhs == rhs) return GeneralizeMulNumeral(lhs);
-    else return bot();
-  }
-};
-
-
 template<class A>
 class FlatMeetLattice 
 {
@@ -481,13 +270,17 @@ public:
     if (lhs._inner.template is<Bot>()) return bot();
     if (rhs._inner.template is<Bot>()) return bot();
 
-    return meet(lhs._inner.template unwrap<int>(), rhs._inner.template unwrap<int>());
+    return meet(lhs._inner.template unwrap<A>(), rhs._inner.template unwrap<A>());
   }
 
   bool isBot() const 
   {return _inner.template is<Bot>(); }
 
   A const& unwrap() const
+  { return _inner.template unwrap<A>(); }
+
+
+  A      & unwrap()
   { return _inner.template unwrap<A>(); }
 
   friend ostream& operator<<(ostream& out, FlatMeetLattice const& self) 
@@ -499,83 +292,6 @@ private:
     else return bot();
   }
 };
-
-
-template<class NumTraits>
-GeneralizeMulNumeral<NumTraits>::GeneralizeMulNumeral(Const c) 
-    : _inner(
-      c == Const(1) || c == Const(0) ? Inner(Bot{}) 
-                                     : Inner(c))
-  {  }
-
-template<>
-GeneralizeMulNumeral<IntTraits>::GeneralizeMulNumeral(Const c) 
-    : _inner(
-      c == Const(-1) ? Inner(c) 
-                     : Inner(Bot{}))
-  {  }
-
-template<class NumTraits>
-template<class Self>
-Perfect<Polynom<NumTraits>> GeneralizeMul<NumTraits>::generalize(
-  Variable var,
-  Self const& gen, 
-  Perfect<Polynom<NumTraits>> poly,
-  PolyNf* generalizedArgs) 
-{
-
-  using Polynom   = Kernel::Polynom<NumTraits>;
-  using Monom  = Kernel::Monom<NumTraits>;
-
-  auto offs = 0;
-  return perfect(Polynom(
-              poly->iterSummands()
-               .map([&](Monom monom) -> Monom { 
-                 auto result = Self::generalize(var, gen, monom, &generalizedArgs[offs]);
-                 offs += monom.factors->nFactors();
-                 return result;
-             })
-          .template collect<Stack>()));
-}
-
-
-template<class NumTraits>
-Monom<NumTraits> GeneralizeMulNumeral<NumTraits>::generalize(
-  Variable var,
-  Self const& gen, 
-  Monom const& monom,
-  PolyNf* generalizedArgs) 
-{
-
-  using Monom  = Kernel::Monom<NumTraits>;
-  using MonomFactor     = MonomFactor    <NumTraits>;
-
-  auto found = (monom.factors->iterFactors()
-      .find([&](MonomFactor    & factors) 
-        { return factors == MonomFactor(var, 1); }));
-
-  auto newMonom = perfect(monom.factors->replaceTerms(generalizedArgs));
-
-  auto p = Monom(monom.numeral, newMonom);
-
-  if (found.isSome()) {
-     return gen.cancel(p);
-  } else {
-     return p;
-  }
-}
-
-
-template<class NumTraits>
-Monom<NumTraits> GeneralizeMulNumeral<NumTraits>::cancel(Monom p) const 
-{ 
-   if (_inner.template is<Const>() && _inner != decltype(_inner)(Const(0))) {
-      return Monom(Const(1), p.factors);
-   } else {
-      ASS(_inner.template is<Bot>());
-      return Monom(p.numeral, p.factors);
-   }
-}
 
 template<class C>
 Stack<C> intersectSortedStack(Stack<C>&& l, Stack<C>&& r) 
@@ -608,776 +324,32 @@ Stack<C> intersectSortedStack(Stack<C>&& l, Stack<C>&& r)
   return std::move(out);
 }
 
-// template<class NumTraits>
-// GeneralizeMulMultiVar<NumTraits> GeneralizeMulMultiVar<NumTraits>::meet(GeneralizeMulMultiVar&& rhs) &&
-// {
-//   auto& lhs = *this;
-//   return GeneralizeMulMultiVar(intersectSortedStack(std::move(lhs._vars), std::move(rhs._vars)));
-// }
 
-template<class NumTraits>
-class GeneralizeAdd 
-{
-  using Monom = Kernel::Monom<NumTraits>;
-  using Const = typename NumTraits::ConstantType;
-  using MonomFactors = Kernel::MonomFactors<NumTraits>;
-
-  // TODO get rid of this field
-  Stack<Monom> _cancellable;
-
-  GeneralizeAdd(decltype(_cancellable) cancel) : _cancellable(cancel) {}
-
-public:
-  using Lattice = GeneralizeAdd;
-  GeneralizeAdd& operator=(GeneralizeAdd&&) = default;
-  GeneralizeAdd(GeneralizeAdd&&) = default;
-  ~GeneralizeAdd() { CALL("~GeneralizeAdd()") }
-
-  static GeneralizeAdd bot() 
-  { return GeneralizeAdd(decltype(_cancellable){}); }
-
-  GeneralizeAdd(Variable var, Perfect<Polynom<NumTraits>> poly) : GeneralizeAdd(decltype(_cancellable)()) 
-  {
-    _cancellable.reserve(poly->nSummands() - 1);
-    for (auto const& monom : poly->iterSummands()) {
-      if (monom.tryVar() != some(var)) {
-        _cancellable.push(monom);
-      }
-    }
-    sortByMonom(_cancellable);
-  }
-
-  GeneralizeAdd meet(GeneralizeAdd&& rhs) && {
-    CALL("GeneralizeAdd::meet")
-    auto& lhs = *this;
-    return GeneralizeAdd(intersectSortedStack(std::move(lhs._cancellable), std::move(rhs._cancellable)));
-  }
-
-  bool isBot() const { return _cancellable.isEmpty(); }
-
-  friend ostream& operator<<(ostream& out, GeneralizeAdd const& self)
-  { return out << self._cancellable; }
-
-  GeneralizeAdd diff(GeneralizeAdd const& rm_) && {
-    CALL("GeneralizeAdd::diff")
-    // DEBUG("in: ", *this, " - ", rm_)
-    auto rm = rm_._cancellable;
- 
-    auto resOffs  = 0;
-    auto rmOffs   = 0;
-    auto thisOffs = 0;
-    while (rmOffs < rm.size() && thisOffs < _cancellable.size() ) {
-      if (rm[rmOffs] == _cancellable[thisOffs]) {
-        thisOffs++;
-      } else if (rm[rmOffs] < _cancellable[thisOffs]) {
-        rmOffs++;
-      } else {
-        _cancellable[resOffs++] = _cancellable[thisOffs++];
-      }
-    }
-    while (thisOffs < _cancellable.size()) {
-      _cancellable[resOffs++] = _cancellable[thisOffs++];
-    }
-    _cancellable.truncate(resOffs);
-
-    // DEBUG("out: ", *this)
-    return std::move(*this);
-  }
-
-  static Perfect<Polynom<NumTraits>> generalize(
-    Variable var,
-    GeneralizeAdd<NumTraits> const& gen, 
-    Perfect<Polynom<NumTraits>> poly,
-    PolyNf* generalizedArgs);
-
-  template<class Num2,
-           typename std::enable_if<!std::is_same<Num2, NumTraits>::value, int>::type = 0
-  > 
-  static Perfect<Polynom<Num2>> generalize(
-    Variable var,
-    GeneralizeAdd<Num2> const& gen, 
-    Perfect<Polynom<Num2>> poly,
-    PolyNf* generalizedArgs) 
-  { return perfect(poly->replaceArgs(generalize)); }
-
-  template<class GenMap>
-  static void addToMap(GenMap& map, AnyPoly p_);
-
-};
-
-
-
-template<class NumTraits>
-Perfect<Polynom<NumTraits>> GeneralizeAdd<NumTraits>::generalize(
-  Variable var,
-  GeneralizeAdd<NumTraits> const& gen, 
-  Perfect<Polynom<NumTraits>> poly,
-  PolyNf* generalizedArgs) 
-{
-
-  CALL("GeneralizeAdd::generalize")
-  using Monom = Kernel::Monom<NumTraits>;
-
-  //TODO memo
-
-  auto found = poly->iterSummands()
-    .find([&](Monom p) 
-        { return p.tryVar() == some(var); });
-  if (found.isNone()) {
-    return perfect(poly->replaceTerms(generalizedArgs));
-  }
-  auto& toCancel = gen._cancellable;
-
-
-  Stack<Monom> out(poly->nSummands() - toCancel.size());
-
-  unsigned p = 0;
-  unsigned genOffs = 0;
-
-  auto pushGeneralized = [&]()  
-  { 
-    auto factors = perfect(poly->summandAt(p).factors->replaceTerms(&generalizedArgs[genOffs]));
-    auto coeff = poly->summandAt(p).numeral;
-
-    genOffs += factors->nFactors();
-    p++;
-
-    return out.push(Monom(coeff, factors));
-  };
-
-  auto skipGeneralized = [&]() 
-  {
-    genOffs += poly->summandAt(p).factors->nFactors();
-    p++;
-  };
-
-  unsigned c = 0; 
-  while (c < toCancel.size() && poly->summandAt(p) < toCancel[c]  ) {
-    pushGeneralized();
-  }
-  while (p < poly->nSummands() && c < toCancel.size()) {
-    if (toCancel[c] == poly->summandAt(p)) {
-      skipGeneralized();
-      c++;
-    } else {
-      ASS_L(poly->summandAt(p), toCancel[c]);
-      pushGeneralized();
-    }
-  }
-  while (p < poly->nSummands()) {
-    pushGeneralized();
-  }
-
-  return perfect(Polynom<NumTraits>(std::move(out)));
-}
-
-
-struct Unit{};
-
-template<class NumTraits>
-template<class GenMap>
-void GeneralizeAdd<NumTraits>::addToMap(GenMap& map, AnyPoly p_)
-{
-  CALL("GeneralizeAdd::addToMap")
-  if (!p_.template isType<NumTraits>()) {
-    return;
-  }
-  auto p = p_.template downcast<NumTraits>().unwrap();
- 
-  Map<Variable, Unit> varSummands;
-  for (auto summand : p->iterSummands()) {
-    auto var = summand.tryVar();
-
-    if (var.isSome() && varSummands.tryGet(var.unwrap()).isNone()) {
-      auto v = var.unwrap();
-      varSummands.insert(v, Unit{});
-      auto gen = GeneralizeAdd<NumTraits>(v, p);
-      map.updateOrInit(v,
-          [&](GeneralizeAdd<NumTraits> old) { return move(old).meet(move(gen)); },
-          [&]()                             { return move(gen); });
-    } else {
-      for (auto factor : summand.factors->iterFactors()) {
-         if (factor.term.template is<Variable>()) {
-           auto v = factor.term.template unwrap<Variable>();
-           map.replaceOrInsert(v, GeneralizeAdd<NumTraits>::bot());
-         }
-      }
-    }
-  }
-}
-
-template<class NumTraits>
-template<class GenMap>
-void GeneralizeMulNumeral<NumTraits>::addToMap(GenMap& map, Monom const& summand)
-{
-  for (auto factor : summand.factors->iterFactors()) {
-    factor.term.template as<Variable>()
-      .andThen([&](Variable var) {
-          if (factor.power == 1) {
-            auto gen = Self(summand.numeral);
-            auto entry = map.tryGet(var);
-            if (entry.isSome()) {
-              auto& val = entry.unwrap();
-              val = move(val).meet(std::move(gen));
-            } else {
-              map.replaceOrInsert(var, std::move(gen));
-            }
-          } else {
-            ASS_G(factor.power, 0)
-            map.replaceOrInsert(var, Self::bot());
-          }
-        });
-  }
-}
-
-template<class NumTraits>
-template<class GenMap, class Self>
-void GeneralizeMul<NumTraits>::addToMap(GenMap& map, AnyPoly p_)
-{
-  if (!p_.template isType<NumTraits>()) {
-    return;
-  }
-  auto p = p_.template downcast<NumTraits>().unwrap();
-
-  for (auto summand : p->iterSummands()) {
-    Self::addToMap(map, summand);
-  }
-};
-
-POLYMORPHIC_FUNCTION(bool,    isBot, const& t,) { return t.isBot(); }
-
-template<template<class> class Gen> 
-class ParallelNumberGeneralization;
-
-template<template<class> class Gen> 
-struct MapWrapper 
-{
-  using Value = ParallelNumberGeneralization<Gen>;
-  Map<Variable, ParallelNumberGeneralization<Gen>>& self;
-
-  template<class C>
-  void replaceOrInsert(Variable var, C&& c) 
-  { self.replaceOrInsert(var, Value(std::move(c))); }
-
-  template<class Update, class Init>
-  void updateOrInit(Variable var, Update update, Init init)
-  { 
-    using C = typename std::result_of<Init()>::type;
-    self.updateOrInit(var, 
-        [&](Value&& c) { return update(std::move(c._inner). template unwrap<C>()); }, 
-        init); 
-  }
-
-  Option<ParallelNumberGeneralization<Gen>&> tryGet(Variable var) 
-  { return self.tryGet(var); }
-
-  friend ostream& operator<<(ostream& out, MapWrapper const& self)
-  { return out << self.self; }
-};
-
-template<template<class> class Gen> 
-class ParallelNumberGeneralization 
-{
-public:
-  using Inner = Coproduct<Gen<IntTraits>, Gen<RatTraits>, Gen<RealTraits>>;
-  template<template<class> class Gen_> 
-  friend struct MapWrapper;
-private:
-
-  Inner _inner;
-public:
-  using Self = ParallelNumberGeneralization;
-
-  using State = Map<Variable, Self>;
-
-  template<class C> ParallelNumberGeneralization(Gen<C>&& inner) : _inner(std::move(inner)) {}
-
-
-  static void addToMap(Map<Variable, Self>& map_, AnyPoly p) 
-  {
-    MapWrapper<Gen> map { map_ };
-    return p.match(
-        [&](Perfect<Polynom< IntTraits>>const& p)
-        { return Gen<IntTraits>::addToMap(map, p); },
-
-        [&](Perfect<Polynom< RatTraits>>const& p)
-        { return Gen<RatTraits>::addToMap(map, p); },
-
-        [&](Perfect<Polynom<RealTraits>>const& p)
-        { return Gen<RealTraits>::addToMap(map, p); }
-      );
-  }
-
-  bool isBot() const { return _inner.apply(Polymorphic::isBot{}); }
-
-  friend ostream& operator<<(ostream& out, ParallelNumberGeneralization const& self)
-  { return out << self._inner; }
-
-  template<class NumTraits>
-  static Perfect<Polynom<NumTraits>> generalize(
-    Variable var,
-    ParallelNumberGeneralization const& gen, 
-    Perfect<Polynom<NumTraits>> poly,
-    PolyNf* generalizedArgs) 
-  {  
-    if (gen._inner.template is<Gen<NumTraits>>()) {
-      return Gen<NumTraits>::generalize(var, gen._inner.template unwrap<Gen<NumTraits>>(), poly, generalizedArgs); 
-    } else {
-      return perfect(poly->replaceTerms(generalizedArgs));
-    }
-  }
-
-  ParallelNumberGeneralization meet(ParallelNumberGeneralization&& rhs) && 
-  {
-    return move(_inner).match(
-        [&](Gen< IntTraits>&& lhs) -> ParallelNumberGeneralization
-        { return move(lhs).meet(move(rhs._inner).template unwrap<Gen<IntTraits>>()); },
-
-        [&](Gen< RatTraits>&& lhs) -> ParallelNumberGeneralization
-        { return move(lhs).meet(move(rhs._inner).template unwrap<Gen<RatTraits>>()); },
-
-        [&](Gen<RealTraits>&& lhs) -> ParallelNumberGeneralization
-        { return move(lhs).meet(move(rhs._inner).template unwrap<Gen<RealTraits>>()); }
-        );
-  }
-};
+#include "ArithmeticSubtermGeneralization/NumeralMultiplicationGeneralizationImpl.cpp"
+#include "ArithmeticSubtermGeneralization/AdditionGeneralizationImpl.cpp"
+#include "ArithmeticSubtermGeneralization/VariableMultiplicationGeneralizationImpl.cpp"
+#include "ArithmeticSubtermGeneralization/VariablePowerGeneralizationImpl.cpp"
 
 SimplifyingGeneratingInference1::Result AdditionGeneralization::simplify(Clause* cl, bool doOrderingCheck) 
 { 
   CALL("AdditionGeneralization::simplify")
-  return ArithmeticSubtermGeneralization<ParallelNumberGeneralization<GeneralizeAdd>>::simplify(cl, doOrderingCheck); 
+  return AdditionGeneralizationImpl::applyRule(cl,doOrderingCheck);
 }
 
 AdditionGeneralization::~AdditionGeneralization()  {}
 
-template<class NumTraits>
-using GenMulNum = GeneralizeMulNumeral<NumTraits>;
-
-namespace Rule2 
-{
-
-} // namespace Rule2
 
 SimplifyingGeneratingInference1::Result NumeralMultiplicationGeneralization::simplify(Clause* cl, bool doOrderingCheck) 
 { 
   CALL("NumeralMultiplicationGeneralization::simplify")
-  return ArithmeticSubtermGeneralization<ParallelNumberGeneralization<GenMulNum>>::simplify(cl, doOrderingCheck); 
+  return NumeralMultiplicationGeneralizationImpl::applyRule(cl, doOrderingCheck);
 }
 
 NumeralMultiplicationGeneralization::~NumeralMultiplicationGeneralization()  {}
-
-
-
-/**
- *  Rule 3)
- *    generalize variable multiplication
- *    C[X0 ⋅ X1 ⋅ ... ⋅ Xn] 
- *    ------------ 
- *    C[X0]
- *    where 
- *    - all occurences of Xi are in terms of the form `X0 ⋅ X1 ⋅ ... ⋅ Xn`
- *    - X0 /= Xi (for i /= 0)
- *    - all Xi are distinct variables
- *    - sound due to substitution { X1 -> 1 ..., XN -> 1 }
- *    - obviously a generalization 
- */
-namespace Rule3 
-{
-  POLYMORPHIC_FUNCTION(Option<Variable>, tryVar, const& t,) { return t.tryVar(); }
-
-  /** 
-   * Type for associating objects with integer ids. It is mainly only used in order to use IntUnionFind with other types than int.
-   */
-  template<class A>
-  class IntMap
-  {
-    Map<A, unsigned> _map;
-    Stack<A> _stack;
-  public:
-    unsigned insert(A obj) 
-    {
-      return _map.getOrInit(std::move(obj), [&](){ 
-        auto idx = _stack.size();
-        _stack.push(obj);
-        return idx; 
-      });
-    }
-
-    unsigned size() const 
-    { return _stack.size(); }
-
-    unsigned toInt(A const& obj) const
-    { return _map.get(obj); }
-
-    A const& fromInt(int obj)  const
-    { return _stack[obj]; }
-  };
-
-
-
-  /**
-   * Represents the region of variables `X0 ⋅ X1 ⋅ ... ⋅ Xn` from the rule
-   *
-   * Two regions can be intersected. 
-   */
-  class VariableRegion 
-  {
-    Coproduct<
-      Stack<AnyNumber<MonomFactor>>, /* <- always sorted; contains only factors of the form `variable ^ n` */
-      Top /* <- unininitialized */
-        > _self;
-
-  public:
-    VariableRegion() : _self(Top{}) {}
-    VariableRegion(Stack<AnyNumber<MonomFactor>>&& self) : _self(self) {}
-    VariableRegion(VariableRegion &&) = default;
-    VariableRegion& operator=(VariableRegion &&) = default;
-
-    /* intersects two regions */
-    VariableRegion meet(VariableRegion rhs) 
-    {
-      auto& lhs = *this;
-      if (lhs.isUninit()) return VariableRegion(move(rhs));
-      if (rhs.isUninit()) return VariableRegion(move(lhs));
-      return VariableRegion(intersectSortedStack(std::move(lhs.unwrap()), std::move(rhs.unwrap())));
-    }
-
-    Stack<AnyNumber<MonomFactor>> const& unwrap() const 
-    { return _self.template unwrap<Stack<AnyNumber<MonomFactor>>>(); }
-
-    Stack<AnyNumber<MonomFactor>> & unwrap() 
-    { return _self.template unwrap<Stack<AnyNumber<MonomFactor>>>(); }
-
-    friend ostream& operator<<(ostream& out, VariableRegion const& self) 
-    {
-      return self.isUninit() ? out << "Top"
-                          : out << self.unwrap();
-    }
-
-    bool isUninit() const 
-    { return _self.template is<Top>(); }
-
-    bool isInit() const 
-    { return !isUninit(); }
-  };
-
-
-  /**
-   * Polymorphic closure that processes each subterm of the clause. 
-   *
-   * All variables that occur together in a product (i.e. a monom), are being associated with the same "connected component" 
-   * using the IntUnionFind components.
-   *
-   * For each of these components a minimal VariableRegion is kept stored in the field varRegions.
-   */
-  struct Preprocess 
-  {
-    IntUnionFind& components;
-    IntMap<Variable> &varMap;
-    Stack<VariableRegion> &varRegions;
-
-    VariableRegion& varSet(int v)
-    { return varRegions[v]; }
-
-    int root(Variable v) const
-    { return components.root(varMap.toInt(v)); }
-
-    template<class NumTraits> 
-    void operator()(Perfect<Polynom<NumTraits>> p) 
-    {
-      CALL("Preprocess::operator()")
-
-      for (auto summand : p->iterSummands()) {
-
-        auto varIter = summand.factors->iterFactors()
-              .filter([](MonomFactor<NumTraits> factor) { return factor.term.template is<Variable>(); });
-
-        auto varIter2 = varIter;
-        auto varStack = VariableRegion(
-            varIter2
-              .map([](MonomFactor<NumTraits> factor) { return AnyNumber<MonomFactor>(factor); })
-              .template collect<Stack>());
-
-        auto vars = varIter.map([](MonomFactor<NumTraits> factor) { return factor.term.template unwrap<Variable>(); });
-
-        if (vars.hasNext())  {
-          auto fst = vars.next();
-          auto cur = root(fst);
-
-
-          varSet(cur) = std::move(varSet(cur)).meet(move(varStack));
-
-          for (auto var : vars) {
-            cur = unionMeet(cur, root(var));
-          }
-
-        }
-      }
-    }
-
-    void dbgState() const {
-      DEBUG("---------------------");
-      for (int i = 0; i < varMap.size(); i++) {
-        DEBUG(varMap.fromInt(i), " -> ", varMap.fromInt(components.root(i)), " -> ", varRegions[components.root(i)]);
-      }
-      DEBUG("---------------------");
-    }
-
-    int unionMeet(int v, int w)
-    {
-      CALL("Preprocess::unionMeet()")
-      if (v == w) return v;
-
-      components.doUnion(v,w);
-      auto r = components.root(v);
-      varSet(r) = std::move(varSet(v)).meet(std::move(varSet(w)));
-
-      return r;
-    }
-
-  };
-
-  /** 
-   * A polymorphic closure to bottom-up evaluate clause bottom-up that replaces all occurences of the factors in the field `toRem`
-   */
-  struct Generalize 
-  {
-    Stack<AnyNumber<MonomFactor>> const& toRem; /* <- always expected to be sorted */
-    bool doOrderingCheck;
-
-    template<class NumTraits>
-    Monom<NumTraits> operator()(Monom<NumTraits> p, PolyNf* evaluatedArgs)  
-    {
-      CALL("Generalize::operator()")
-      using Pair = Monom<NumTraits>;
-      return Pair(p.numeral, perfect(MonomFactors<NumTraits>(filter(p.factors, evaluatedArgs))));
-    }
-
-    template<class NumTraits>
-    Stack<MonomFactor<NumTraits>> filter(Perfect<MonomFactors<NumTraits>> const& factors, PolyNf* evaluatedArgs)
-    {
-      Stack<MonomFactor<NumTraits>> out;
-      unsigned rmI = 0;
-      unsigned m = 0;
-
-      auto skip = [&]() { rmI++; m++; };
-      auto push = [&]() { out.push(MonomFactor<NumTraits>(evaluatedArgs[m], factors->factorAt(m).power)); m++; };
-
-
-      while (m < factors->nFactors() && rmI < toRem.size()) {
-        auto factor = factors->factorAt(m);
-        auto rm = toRem[rmI].template downcast<NumTraits>();
-        if (rm.isNone()) {
-          push();
-        } else if (factor == rm.unwrap()) {
-          skip();
-        } else if (factor < rm.unwrap()) {
-          push();
-        } else {
-          ASS_L(rm.unwrap(), factor)
-          rmI++;
-        }
-      }
-      while (m < factors->nFactors()) {
-        push();
-      }
-
-      std::sort(out.begin(), out.end());
-      return move(out);
-    }
-  };
-
-  /** 
-   * applies the rule
-   */ 
-  SimplifyingGeneratingInference1::Result applyRule(Clause* cl, bool doOrderingCheck) 
-  {
-    DEBUG("input clause: ", *cl);
-    IntMap<Variable> varMap;
-
-    /* initialization */
-    for (auto var : iterVars(cl)) {
-      varMap.insert(var);
-    }
-    if (varMap.size() == 0) {
-      DEBUG("no variables. generalization not applicable");
-      return SimplifyingGeneratingInference1::Result::nop(cl);
-    }
-
-    IntUnionFind components(varMap.size());
-    Stack<VariableRegion> varRegions(varMap.size());;
-    for (unsigned i = 0; i < varMap.size(); i++)  {
-      varRegions.push(VariableRegion());
-    }
-
-    /* preprocessing. finds all products `X0 ⋅ X1 ⋅ ... ⋅ Xn` such that the rule is applicable */
-    for (auto poly : iterPolynoms(cl)) {
-      poly.apply(Preprocess {components, varMap, varRegions});
-    }
-
-
-    /* create a stack of all variables that shall be removed in the final step */
-
-    Stack<AnyNumber<MonomFactor>> remove;
-
-    components.evalComponents();
-    for (auto comp : iterTraits(IntUnionFind::ComponentIterator(components))) {
-      auto& maybeRegion = varRegions[components.root(comp.next())];
-      if (maybeRegion.isInit()) {
-        auto& region = maybeRegion.unwrap();
-
-        /* one variable with power one needs to be kept, per varible region */
-        auto var = iterTraits(region.iter())
-          .filter([](AnyNumber<MonomFactor> p) { return p.apply(Polymorphic::tryVar{}).isSome(); })
-          .tryNext();
-
-        if (var.isSome()) {
-          for (auto varPower : region) {
-            if (varPower != var.unwrap()) {
-              remove.push(varPower);
-            }
-          }
-        }
-      }
-    }
-
-    /* apply the substitution `X0 ⋅ X1 ⋅ ... ⋅ Xn ==> X0`  */
-    DEBUG("removing variables: ", remove)
-    if (remove.isEmpty()) {
-      return SimplifyingGeneratingInference1::Result::nop(cl);
-    } else {
-      std::sort(remove.begin(), remove.end());
-      Generalize gen { remove, doOrderingCheck };
-      return generalizeBottomUp(cl, EvaluateMonom<Generalize> {gen});
-    }
-  }
-
-} // namespace Rule3 
-
-
-/**
- *  Rule 4)
- *    generalize variable multiplication (REALS only)
- *    C[X ⋅ X ⋅ ... ⋅ X ] 
- *    ------------ 
- *    C[X]
- *    where 
- *    - all occurences of X are in terms of the form `X ⋅ X ⋅ ... ⋅ X` 
- *    - sound due to substitution { X -> X^(0/n) }
- *    - obviously a generalization 
- */
-namespace Rule4 
-{
-
-  using IntLattice = FlatMeetLattice<int>;
-  using PowerMap = Map<Variable, IntLattice>;
-  template<class Num>
-  using EnableIfNotReal = typename std::enable_if<!std::is_same<Num, RealTraits>::value, int>::type;
-
-  /** 
-   * Polymorphic closure for preprocessing for the rule application.
-   *
-   * Collects for each variable the power in which it occurs or Bot when the variable occurs in different powers
-   */
-  struct Preprocess 
-  {
-    PowerMap &powers;
-
-    void operator()(Perfect<Polynom<RealTraits>> p) 
-    {
-      for (auto summand : p->iterSummands()) {
-        for (auto factor : summand.factors->iterFactors()) {
-          auto var = factor.term.tryVar();
-          if (var.isSome()) {
-
-
-            auto current = factor.power == 0 || factor.power == 1  /* <- power 0 should never happen. 
-                                                                         power 1 yields a nop-generalization */
-              ? IntLattice::bot()
-              : IntLattice(factor.power);
-
-            powers.updateOrInit(var.unwrap(),
-                [&](IntLattice old) { return current.meet(old); },
-                [&]() { return current; }
-              );
-          }
-        }
-      }
-    }
-
-
-    template<class Num, EnableIfNotReal<Num> = 0> 
-    void operator()(Perfect<Polynom<Num>> p) 
-    { }
-
-  };
-
-  struct Generalize 
-  {
-    PowerMap& powers;
-    bool doOrderingCheck;
-
-    Monom<RealTraits> operator()(Monom<RealTraits> p, PolyNf* evaluatedArgs)  
-    {
-      unsigned i = 0;
-      return Monom<RealTraits>(
-          p.numeral, 
-          perfect(MonomFactors<RealTraits>(
-            p.factors->iterFactors()
-             .map([&](MonomFactor<RealTraits> m) 
-               { 
-                  auto var = m.term.tryVar();
-                  if (var.isSome() && !powers.get(var.unwrap()).isBot()) {
-                    ASS_EQ(evaluatedArgs[i], var.unwrap());
-                    return MonomFactor<RealTraits>(evaluatedArgs[i++], 2 - ( m.power % 2 ));
-                  } else {
-                    return MonomFactor<RealTraits>(evaluatedArgs[i++], m.power); 
-                  }
-                })
-             .template collect<Stack>())));
-    }
-
-    template<class Num, EnableIfNotReal<Num> = 0>
-    Monom<Num> operator()(Monom<Num> p, PolyNf* evaluatedArgs)  
-    { return Monom<Num>(p.numeral, perfect(p.factors->replaceTerms(evaluatedArgs))); }
-
-  };
-
-
-  /** 
-   * applies the rule
-   */ 
-  SimplifyingGeneratingInference1::Result applyRule(Clause* cl, bool doOrderingCheck) 
-  {
-    DEBUG("input clause: ", *cl);
-    PowerMap powers;
-
-    /* preprocessing. finds all products `X ⋅ X ⋅ ... ⋅ X` such that the rule is applicable */
-    for (auto poly : iterPolynoms(cl)) {
-      poly.apply(Preprocess { powers, });
-    }
-
-    bool applicable = 
-      iterTraits(powers.iter())
-        .find([](PowerMap::Entry& e) { return !e.value().isBot() && e.value().unwrap() >= 3; })
-        .isSome();
-
-    DEBUG("generalizations: ", powers);
-
-    if (applicable) {
-      return generalizeBottomUp(cl, EvaluateMonom<Generalize> { Generalize { powers, doOrderingCheck } });
-    } else {
-      return SimplifyingGeneratingInference1::Result::nop(cl);
-    }
-  }
-
-  
-};
-
 SimplifyingGeneratingInference1::Result VariableMultiplicationGeneralization::simplify(Clause* cl, bool doOrderingCheck) 
 { 
   CALL("VariableMultiplicationGeneralization::simplify")
-  return Rule3::applyRule(cl, doOrderingCheck);
+  return VariableMultiplicationGeneralizationImpl::applyRule(cl, doOrderingCheck);
 }
 
 VariableMultiplicationGeneralization::~VariableMultiplicationGeneralization()  { }
@@ -1386,7 +358,7 @@ VariableMultiplicationGeneralization::~VariableMultiplicationGeneralization()  {
 SimplifyingGeneratingInference1::Result VariablePowerGeneralization::simplify(Clause* cl, bool doOrderingCheck) 
 { 
   CALL("VariablePowerGeneralization::simplify")
-  return Rule4::applyRule(cl, doOrderingCheck);
+  return VariablePowerGeneralizationImpl::applyRule(cl, doOrderingCheck);
 }
 
 VariablePowerGeneralization::~VariablePowerGeneralization()  {}

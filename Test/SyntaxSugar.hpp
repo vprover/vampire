@@ -297,6 +297,10 @@ template<class Number> Lit operator<=(Trm<Number> lhs, Trm<Number> rhs) { return
 template<class Number> Lit operator> (Trm<Number> lhs, Trm<Number> rhs) { return Number::greater(true, lhs, rhs); }
 template<class Number> Lit operator>=(Trm<Number> lhs, Trm<Number> rhs) { return Number::geq    (true, lhs, rhs); }
 
+template<class Number> Lit isInt (Trm<Number> trm) { return Number::isInt (true, trm); }
+template<class Number> Lit isRat (Trm<Number> trm) { return Number::isRat (true, trm); }
+template<class Number> Lit isReal(Trm<Number> trm) { return Number::isReal(true, trm); }
+
 inline Lit operator~(Lit lit) 
 {
   Literal* l = lit;

@@ -196,4 +196,27 @@ bool PolyNf::SubtermIter::hasNext() const
 }
 
 
+/////////////////////////////////////////////////////////
+// impl IterArgsPnf
+////////////////////////////
+
+
+IterArgsPnf::IterArgsPnf(Literal* lit) 
+  : _lit(lit)
+  , _idx(0) 
+{ }
+
+bool IterArgsPnf::hasNext() const  
+{ return _idx < _lit->arity();  }
+
+PolyNf IterArgsPnf::next()
+{ 
+  auto out = PolyNf::normalize(TypedTermList(*_lit->nthArgument(_idx), SortHelper::getArgSort(_lit, _idx)));
+  _idx++;
+  return out;
+}
+
+IterTraits<IterArgsPnf> iterArgsPnf(Literal* lit) 
+{ return iterTraits(IterArgsPnf(lit)); }
+
 } // namespace Kernel

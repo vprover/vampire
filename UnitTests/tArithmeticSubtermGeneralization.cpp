@@ -437,7 +437,10 @@ TEST_SIMPLIFY_FRACTIONAL(multi_var_14,
       //    ====> clause({ p1(    y + 1), p2(    y + 2), p3(x        ), p3(    z + 1) }),
       //    ====> clause({ p1(    y + 1), p2(    y + 2), p3(x        ), p3(    z    ) }),
       
-      .expected = clause({ p1(    y + 1), p2(    y + 2), p3(x        ), p3(    z    ) }),
+      .expected = anyOf(
+                      clause({ p1(    x + 1), p2(    x + 2), p3(y        ), p3(    z    ) }),
+                      clause({ p1(    y + 1), p2(    y + 2), p3(x        ), p3(    z    ) })
+                      ), 
     })
 
 TEST_SIMPLIFY_FRACTIONAL(multi_var_15,

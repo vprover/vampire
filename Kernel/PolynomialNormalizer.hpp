@@ -30,6 +30,7 @@
 
 #define DEBUG(...) //DBG(__VA_ARGS__)
 
+//TODO continue here
 namespace Kernel {
 using LitSimplResult = Inferences::SimplifyingGeneratingLiteralSimplification::Result;
 
@@ -274,108 +275,7 @@ public:
   }
 };
 
-inline PolyNf normalizeTerm(TypedTermList t) 
-{
-  CALL("PolyNf::normalize")
-  DEBUG("normalizing ", t)
-  NormalizationMemo memo;
-  struct Eval 
-  {
-    using Arg    = TypedTermList;
-    using Result = NormalizationResult;
-
-    Option<NormalizationResult> normalizeInterpreted(Interpretation i, NormalizationResult* results) const
-    {
-      switch (i) {
-#     define NUM_CASE(NumTraits)                                                                              \
-        case NumTraits::mulI:                                                                                 \
-          return some<NormalizationResult>(Sum<NumTraits>::mul(results[0], results[1]));                      \
-        case NumTraits::addI:                                                                                 \
-          return some<NormalizationResult>(Sum<NumTraits>::add(results[0], results[1]));                      \
-        case NumTraits::minusI:                                                                               \
-          return some<NormalizationResult>(Sum<NumTraits>::minus(results[0]));
-
-#     define FRAC_CASE(NumTraits)                                                                             \
-        case NumTraits::divI:                                                                                 \
-        {                                                                                                     \
-          auto maybeNumeral = results[1].template as<Sum<NumTraits>>()                                        \
-            .andThen([](Sum<NumTraits> const& p)                                                              \
-                { return p.tryNumeral(); });                                                                  \
-                                                                                                              \
-          return maybeNumeral                                                                                 \
-            .andThen([&](NumTraits::ConstantType& c)->Option<NormalizationResult>                             \
-                {                                                                                             \
-                  if (c == NumTraits::ConstantType(0)) {                                                      \
-                    return none<NormalizationResult>();                                                       \
-                  } else {                                                                                    \
-                    auto rhs = Sum<NumTraits>::numeral(NumTraits::oneC / c);                                  \
-                    return some<NormalizationResult>(Sum<NumTraits>::mul(results[0], rhs));                   \
-                  }                                                                                           \
-                });                                                                                           \
-        } 
-
-        NUM_CASE( IntTraits)
-        NUM_CASE( RatTraits)
-        NUM_CASE(RealTraits)
-        FRAC_CASE( RatTraits)
-        FRAC_CASE(RealTraits)
-#     undef NUM_CASE
-#     undef FRAC_CASE
-        default:
-          {}
-      }
-      return Option<NormalizationResult>();
-    } 
-
-    NormalizationResult operator()(TypedTermList t, NormalizationResult* ts) const
-    { 
-      if (t.isVar()) {
-        auto var = PolyNf(Variable(t.var()));
-        switch (t.sort()) {
-#         define VAR_CASE(NumTraits)                                                                          \
-            case NumTraits::sort: return NormalizationResult(Sum<NumTraits>(Prod<NumTraits>(var)));
-          VAR_CASE( IntTraits)
-          VAR_CASE( RatTraits)
-          VAR_CASE(RealTraits)
-#         undef VAR_CASE
-          default:
-            return NormalizationResult(var);
-        }
-      } else {
-        ASS(t.isTerm());
-        auto term = t.term();
-        auto fn = FuncId(term->functor());
-        if (fn.isInterpreted()) {
-          auto maybePoly = normalizeInterpreted(fn.interpretation(), ts);
-          if (maybePoly.isSome()) {
-            return std::move(maybePoly).unwrap();
-          }
-        } 
-        auto out = perfect(FuncTerm(
-                fn, 
-                Stack<PolyNf>::fromIterator(
-                    iterTraits(getArrayishObjectIterator<mut_ref_t>(ts, fn.arity()))
-                    .map( [](NormalizationResult& r) -> PolyNf { return toPolyNf(r); }))
-              )
-            );
-
-#     define NUMERAL_CASE(Num)                                                                                \
-          if (fn.template tryNumeral<Num ## Traits>().isSome())                                               \
-            return NormalizationResult(Sum<Num ## Traits>::numeral(out));
-          
-        NUMERAL_CASE(Int )
-        NUMERAL_CASE(Rat )
-        NUMERAL_CASE(Real)
-
-#     undef NUMERAL_CASE
-
-        return NormalizationResult(PolyNf(out));
-      }
-    }
-  };
-  NormalizationResult r = evaluateBottomUp(t, Eval{}, memo);
-  return toPolyNf(r);
-}
+PolyNf normalizeTerm(TypedTermList t);
 
 inline TermList PolyNf::denormalize() const
 { 

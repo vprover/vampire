@@ -138,6 +138,10 @@ struct NumTraits;
     IMPL_NUM_TRAITS__INTERPRETED_PRED(greater, SHORT, _GREATER,       2)                                      \
     IMPL_NUM_TRAITS__INTERPRETED_PRED(geq,     SHORT, _GREATER_EQUAL, 2)                                      \
                                                                                                               \
+    IMPL_NUM_TRAITS__INTERPRETED_PRED(isInt,   SHORT, _IS_INT       , 1)                                      \
+    IMPL_NUM_TRAITS__INTERPRETED_PRED(isRat,   SHORT, _IS_RAT       , 1)                                      \
+    IMPL_NUM_TRAITS__INTERPRETED_PRED(isReal,  SHORT, _IS_REAL      , 1)                                      \
+                                                                                                              \
     IMPL_NUM_TRAITS__QUOTIENT_REMAINDER(SHORT, E)                                                             \
     IMPL_NUM_TRAITS__QUOTIENT_REMAINDER(SHORT, T)                                                             \
     IMPL_NUM_TRAITS__QUOTIENT_REMAINDER(SHORT, F)                                                             \

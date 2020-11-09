@@ -1781,7 +1781,7 @@ public:
     { _cur = _iter.unwrap().tryNext(); }
 
     Elem operator*() 
-    { return std::move(_cur).unwrap(); } 
+    { return _cur.unwrap(); } 
 
     friend bool operator!=(StlIter const& lhs, StlIter const& rhs) 
     { return !(lhs == rhs); }

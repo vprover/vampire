@@ -64,43 +64,45 @@ void test_rebalance(Literal* lit, initializer_list<expected_t> expected);
     }                                                                                                         \
 
 
-// #define TEST_LIST(test_name, equality, __list)                                                                \
-//     TEST_FUN(test_name) {                                                                                     \
-//       THEORY_SYNTAX_SUGAR(RAT)                                                                                \
-//       _Pragma("GCC diagnostic push")                                                                          \
-//       _Pragma("GCC diagnostic ignored \"-Wunused\"")                                                          \
-//         SYNTAX_SUGAR_SORT(list)                                                                               \
-//         SYNTAX_SUGAR_CONST(nil, list)                                                                         \
-//         SYNTAX_SUGAR_CONST(t, list)                                                                           \
-//         SYNTAX_SUGAR_FUN(cons,    list, __defaultSort, list)                                                  \
-//         SYNTAX_SUGAR_FUN(uncons1, __defaultSort      , list )                                                 \
-//         SYNTAX_SUGAR_FUN(uncons2, list                , list)                                                 \
-//         auto xL = Trm<UninterpretedTraits>(TermList::var(0));                                                 \
-//         auto yL = Trm<UninterpretedTraits>(TermList::var(1));                                                 \
-//         auto zL = Trm<UninterpretedTraits>(TermList::var(2));                                                 \
-//         env.signature->getFunction(nil .functor())->markTermAlgebraCons();                                    \
-//         env.signature->getFunction(cons.functor())->markTermAlgebraCons();                                    \
-//         env.signature->addTermAlgebra(new TermAlgebra(list.sortNumber(), {                                    \
-//             new TermAlgebraConstructor(nil.functor(),  {}),                                                   \
-//             new TermAlgebraConstructor(cons.functor(),  {uncons1.functor(), uncons2.functor()}),              \
-//           }));                                                                                                \
-//       _Pragma("GCC diagnostic pop")                                                                           \
-//       test_rebalance<ToConstantType(RAT)>((equality), __expand ## __list);                                    \
-//     }                                                                                                         \
-//
-// #define TEST_ARRAY(test_name, equality, __list)                                                               \
-//     TEST_FUN(test_name) {                                                                                     \
-//       THEORY_SYNTAX_SUGAR(RAT)                                                                                \
-//       _Pragma("GCC diagnostic push")                                                                          \
-//       _Pragma("GCC diagnostic ignored \"-Wunused\"")                                                          \
-//         SYNTAX_SUGAR_SORT(idxSrt)                                                                             \
-//         ARRAY_SYNTAX_SUGAR(array, idxSrt, __defaultSort)                                                      \
-//         SYNTAX_SUGAR_CONST(t, array)                                                                          \
-//         SYNTAX_SUGAR_CONST(u, array)                                                                          \
-//         SYNTAX_SUGAR_CONST(i, idxSrt)                                                                         \
-//       _Pragma("GCC diagnostic pop")                                                                           \
-//       test_rebalance<ToConstantType(RAT)>((equality), __expand ## __list);                                    \
-//     }                                                                                                         \
+/*
+#define TEST_LIST(test_name, equality, __list)                                                                \
+    TEST_FUN(test_name) {                                                                                     \
+      THEORY_SYNTAX_SUGAR(RAT)                                                                                \
+      _Pragma("GCC diagnostic push")                                                                          \
+      _Pragma("GCC diagnostic ignored \"-Wunused\"")                                                          \
+        SYNTAX_SUGAR_SORT(list)                                                                               \
+        SYNTAX_SUGAR_CONST(nil, list)                                                                         \
+        SYNTAX_SUGAR_CONST(t, list)                                                                           \
+        SYNTAX_SUGAR_FUN(cons,    list, __defaultSort, list)                                                  \
+        SYNTAX_SUGAR_FUN(uncons1, __defaultSort      , list )                                                 \
+        SYNTAX_SUGAR_FUN(uncons2, list                , list)                                                 \
+        auto xL = Trm<UninterpretedTraits>(TermList::var(0));                                                 \
+        auto yL = Trm<UninterpretedTraits>(TermList::var(1));                                                 \
+        auto zL = Trm<UninterpretedTraits>(TermList::var(2));                                                 \
+        env.signature->getFunction(nil .functor())->markTermAlgebraCons();                                    \
+        env.signature->getFunction(cons.functor())->markTermAlgebraCons();                                    \
+        env.signature->addTermAlgebra(new TermAlgebra(list.sortNumber(), {                                    \
+            new TermAlgebraConstructor(nil.functor(),  {}),                                                   \
+            new TermAlgebraConstructor(cons.functor(),  {uncons1.functor(), uncons2.functor()}),              \
+          }));                                                                                                \
+      _Pragma("GCC diagnostic pop")                                                                           \
+      test_rebalance<ToConstantType(RAT)>((equality), __expand ## __list);                                    \
+    }                                                                                                         \
+
+#define TEST_ARRAY(test_name, equality, __list)                                                               \
+    TEST_FUN(test_name) {                                                                                     \
+      THEORY_SYNTAX_SUGAR(RAT)                                                                                \
+      _Pragma("GCC diagnostic push")                                                                          \
+      _Pragma("GCC diagnostic ignored \"-Wunused\"")                                                          \
+        SYNTAX_SUGAR_SORT(idxSrt)                                                                             \
+        ARRAY_SYNTAX_SUGAR(array, idxSrt, __defaultSort)                                                      \
+        SYNTAX_SUGAR_CONST(t, array)                                                                          \
+        SYNTAX_SUGAR_CONST(u, array)                                                                          \
+        SYNTAX_SUGAR_CONST(i, idxSrt)                                                                         \
+      _Pragma("GCC diagnostic pop")                                                                           \
+      test_rebalance<ToConstantType(RAT)>((equality), __expand ## __list);                                    \
+    }                                                                                                         \
+    */
 
 #define TEST_REBALANCE_SPLIT(name, equality, __frac, __int)                                                   \
     TEST_REBALANCE(name, REAL, equality, __frac)                                                              \

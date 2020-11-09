@@ -260,7 +260,6 @@ public:
   }
 
   template<class... Bs> using FstTy = TL::Get<0, TL::List<Bs...>>;
-  // TODO: get rid of the type parameter Ret here.
 #define REF_POLYMORPIHIC(REF, MOVE)                                                                           \
                                                                                                               \
   Coproduct(Coproduct REF other) : _tag(other._tag) {                                                         \

@@ -10,13 +10,13 @@
  * acyclic graph structure bottom up. It uses iteration instead of recursion and can be equipped with memoization structures 
  * found in Lib::Memo.
  *
- * TODO example 
- * TODO more explanation
- * TODO move me to Kernel
+ * \see UnitTests/tBottomUpEvaluation.cpp
+ * \see Lib::evaluateBottomUp
  */ 
 
 #include "Lib/Stack.hpp"
 #include "Lib/Option.hpp"
+#include "Lib/TypeList.hpp"
 
 namespace Lib {
 
@@ -85,15 +85,6 @@ struct BottomUpChildIter
 
 template<class A> BottomUpChildIter<A> bottomUpChildIter(A a) 
 { return BottomUpChildIter<A>(a); }
-
-/** convenience wrapper for using evaluateBottomUp without a memo. */
-template<class EvalFn>
-typename EvalFn::Result evaluateBottomUp(typename EvalFn::Arg const& term, EvalFn evaluateStep) 
-{
-  using namespace Memo;
-  auto memo = None<typename EvalFn::Arg, typename EvalFn::Result>();
-  return evaluateBottomUp(term, evaluateStep, memo);
-}
 
 /** 
  * Evaluates a term-like datastructure (i.e.: a Directed Acyclic Graph (DAG)), without using recursion.
@@ -168,6 +159,16 @@ typename EvalFn::Result evaluateBottomUp(typename EvalFn::Arg const& term, EvalF
   DEBUG("eval result: ", term, " -> ", result);
   return std::move(result);
 }
+
+/** convenience wrapper for using evaluateBottomUp without a memo. */
+template<class EvalFn>
+typename EvalFn::Result evaluateBottomUp(typename EvalFn::Arg const& term, EvalFn evaluateStep) 
+{
+  using namespace Memo;
+  auto memo = None<typename EvalFn::Arg, typename EvalFn::Result>();
+  return evaluateBottomUp(term, evaluateStep, memo);
+}
+
 
 
 } // namespace Lib

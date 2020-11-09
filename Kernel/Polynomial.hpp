@@ -357,7 +357,7 @@ public:
   using FactorIter = IterTraits<ArrayishObjectIterator<typename std::remove_reference<decltype(_factors)>::type, no_ref_t>>;
 
   /** returns an iterator over all factors */
-  FactorIter iterFactors() const&;
+  FactorIter iter() const&;
 
   explicit MonomFactors(const MonomFactors&) = default;
   explicit MonomFactors(MonomFactors&) = default;
@@ -457,7 +457,25 @@ public:
 
   template<class N> friend bool operator==(const Polynom<N>& lhs, const Polynom<N>& rhs);
   template<class N> friend std::ostream& operator<<(std::ostream& out, const Polynom<N>& self);
+};  
+
+
+/** an iterator over a literal's arguments. The arguments are mapped to their corresponding PolNf s */
+class IterArgsPnf
+{
+  Literal* _lit;
+  unsigned _idx;
+public:
+  DECL_ELEMENT_TYPE(PolyNf);
+
+  IterArgsPnf(Literal* lit);
+
+  bool hasNext() const;
+  PolyNf next();
 };
+
+/** convienent constructor for IterArgsPnf */
+IterTraits<IterArgsPnf> iterArgsPnf(Literal* lit);
 
 } // namespace Kernel
 
@@ -908,7 +926,7 @@ MonomFactors<Number> MonomFactors<Number>::replaceTerms(PolyNf* simplifiedTerms)
 }
 
 template<class Number>
-typename MonomFactors<Number>::FactorIter MonomFactors<Number>::iterFactors() const&
+typename MonomFactors<Number>::FactorIter MonomFactors<Number>::iter() const&
 { return iterTraits(getArrayishObjectIterator<no_ref_t>(_factors)); }
 
 } // namespace Kernel
