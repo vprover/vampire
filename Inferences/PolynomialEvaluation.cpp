@@ -113,9 +113,15 @@ template<class Number>
 Option<PolyNf> trySimplifyUnaryMinus(PolyNf* evalArgs)
 {
   CALL("trySimplifyUnaryMinus(PolyNf*)")
-  return some<PolyNf>(PolyNf(AnyPoly(perfect(
-          evalArgs[0].template wrapPoly<Number>()->flipSign()
-            ))));
+  using Numeral = typename Number::ConstantType;
+  using Polynom = Polynom<Number>;
+
+  auto out = Polynom(*evalArgs[0].template wrapPoly<Number>());
+
+  for (unsigned i = 0; i < out.nSummands(); i++) {
+     out.summandAt(i).numeral = out.summandAt(i).numeral * Numeral(-1);
+  }
+  return some<PolyNf>(PolyNf(AnyPoly(perfect(std::move(out)))));
 }
 
 template<class Number, class Clsr>

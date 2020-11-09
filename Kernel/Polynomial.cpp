@@ -167,19 +167,19 @@ std::ostream& operator<<(std::ostream& out, const PolyNf& self)
 Option<Variable> PolyNf::tryVar() const 
 { return as<Variable>().template innerInto<Variable>(); }
 
-IterTraits<PolyNf::IterSubterms> PolyNf::iterSubterms() const 
-{ return iterTraits(IterSubterms(*this)); }
+IterTraits<PolyNf::SubtermIter> PolyNf::iterSubterms() const 
+{ return iterTraits(SubtermIter(*this)); }
 
 bool operator<(const PolyNf& lhs, const PolyNf& rhs) 
 { return std::less<PolyNfSuper>{}(lhs,rhs); }
 
-PolyNf::IterSubterms::IterSubterms(PolyNf p) 
+PolyNf::SubtermIter::SubtermIter(PolyNf p) 
   : _stack(decltype(_stack){ BottomUpChildIter<PolyNf>(p) }) 
 {  }
 
-PolyNf PolyNf::IterSubterms::next() 
+PolyNf PolyNf::SubtermIter::next() 
 {
-  CALL("PolyNf::IterSubterms::next")
+  CALL("PolyNf::SubtermIter::next")
   ASS(_stack.size() != 0)
   while(_stack.top().hasNext()) {
     ASS(_stack.size() != 0)
@@ -189,13 +189,11 @@ PolyNf PolyNf::IterSubterms::next()
   return _stack.pop().self();
 }
 
-bool PolyNf::IterSubterms::hasNext() const 
+bool PolyNf::SubtermIter::hasNext() const 
 { 
-  CALL("PolyNf::IterSubterms::hasNext")
+  CALL("PolyNf::SubtermIter::hasNext")
   return !_stack.isEmpty(); 
 }
 
-
-// TODO continue here
 
 } // namespace Kernel

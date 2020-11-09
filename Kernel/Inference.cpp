@@ -725,6 +725,8 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "theory normalization";
   case InferenceRule::EVALUATION:
     return "evaluation";
+  case InferenceRule::CANCELLATION:
+    return "cancellation";
   case InferenceRule::INTERPRETED_SIMPLIFICATION:
     return "interpreted simplification";
   case InferenceRule::UNUSED_PREDICATE_DEFINITION_REMOVAL:

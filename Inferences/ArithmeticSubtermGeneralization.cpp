@@ -292,12 +292,12 @@ struct EvaluateMonom
 
     auto offs = 0;
     return perfect(Polynom(
-                poly->iter()
-                 .map([&](Monom pair) -> Monom { 
+                poly->iterSummands()
+                 .map([&](Monom m) -> Monom { 
                    CALL("EvaluateMonom::clsr01")
 
-                   auto result = eval(pair, &evaluatedArgs[offs]);
-                   offs += pair.factors->nFactors();
+                   auto result = eval(m, &evaluatedArgs[offs]);
+                   offs += m.factors->nFactors();
                    return result;
                })
             .template collect<Stack>()));
@@ -529,10 +529,10 @@ Perfect<Polynom<NumTraits>> GeneralizeMul<NumTraits>::generalize(
 
   auto offs = 0;
   return perfect(Polynom(
-              poly->iter()
-               .map([&](Monom pair) -> Monom { 
-                 auto result = Self::generalize(var, gen, pair, &generalizedArgs[offs]);
-                 offs += pair.factors->nFactors();
+              poly->iterSummands()
+               .map([&](Monom monom) -> Monom { 
+                 auto result = Self::generalize(var, gen, monom, &generalizedArgs[offs]);
+                 offs += monom.factors->nFactors();
                  return result;
              })
           .template collect<Stack>()));
@@ -543,20 +543,20 @@ template<class NumTraits>
 Monom<NumTraits> GeneralizeMulNumeral<NumTraits>::generalize(
   Variable var,
   Self const& gen, 
-  Monom const& pair,
+  Monom const& monom,
   PolyNf* generalizedArgs) 
 {
 
   using Monom  = Kernel::Monom<NumTraits>;
   using MonomFactor     = MonomFactor    <NumTraits>;
 
-  auto found = (pair.factors->iterFactors()
+  auto found = (monom.factors->iterFactors()
       .find([&](MonomFactor    & factors) 
         { return factors == MonomFactor(var, 1); }));
 
-  auto newMonom = perfect(pair.factors->replaceTerms(generalizedArgs));
+  auto newMonom = perfect(monom.factors->replaceTerms(generalizedArgs));
 
-  auto p = Monom(pair.numeral, newMonom);
+  auto p = Monom(monom.numeral, newMonom);
 
   if (found.isSome()) {
      return gen.cancel(p);
@@ -639,9 +639,9 @@ public:
   GeneralizeAdd(Variable var, Perfect<Polynom<NumTraits>> poly) : GeneralizeAdd(decltype(_cancellable)()) 
   {
     _cancellable.reserve(poly->nSummands() - 1);
-    for (auto const& pair : poly->iter()) {
-      if (pair.tryVar() != some(var)) {
-        _cancellable.push(pair);
+    for (auto const& monom : poly->iterSummands()) {
+      if (monom.tryVar() != some(var)) {
+        _cancellable.push(monom);
       }
     }
     sortByMonom(_cancellable);
@@ -720,7 +720,7 @@ Perfect<Polynom<NumTraits>> GeneralizeAdd<NumTraits>::generalize(
 
   //TODO memo
 
-  auto found = poly->iter()
+  auto found = poly->iterSummands()
     .find([&](Monom p) 
         { return p.tryVar() == some(var); });
   if (found.isNone()) {
@@ -785,7 +785,7 @@ void GeneralizeAdd<NumTraits>::addToMap(GenMap& map, AnyPoly p_)
   auto p = p_.template downcast<NumTraits>().unwrap();
  
   Map<Variable, Unit> varSummands;
-  for (auto summand : p->iter()) {
+  for (auto summand : p->iterSummands()) {
     auto var = summand.tryVar();
 
     if (var.isSome() && varSummands.tryGet(var.unwrap()).isNone()) {
@@ -839,7 +839,7 @@ void GeneralizeMul<NumTraits>::addToMap(GenMap& map, AnyPoly p_)
   }
   auto p = p_.template downcast<NumTraits>().unwrap();
 
-  for (auto summand : p->iter()) {
+  for (auto summand : p->iterSummands()) {
     Self::addToMap(map, summand);
   }
 };
@@ -1087,7 +1087,7 @@ namespace Rule3
     {
       CALL("Preprocess::operator()")
 
-      for (auto summand : p->iter()) {
+      for (auto summand : p->iterSummands()) {
 
         auto varIter = summand.factors->iterFactors()
               .filter([](MonomFactor<NumTraits> factor) { return factor.term.template is<Variable>(); });
@@ -1285,7 +1285,7 @@ namespace Rule4
 
     void operator()(Perfect<Polynom<RealTraits>> p) 
     {
-      for (auto summand : p->iter()) {
+      for (auto summand : p->iterSummands()) {
         for (auto factor : summand.factors->iterFactors()) {
           auto var = factor.term.tryVar();
           if (var.isSome()) {

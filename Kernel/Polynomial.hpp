@@ -174,18 +174,34 @@ class AnyPoly : public AnyPolySuper
 public:
   /** creates a new dynamically typed polynom from a statically typed one */
   template<class NumTraits> AnyPoly(Perfect<Polynom<NumTraits>> x);
+
+  /** tries to turn this polynom into a polynom of the given NumTraits. */
   template<class NumTraits> Option<Perfect<Polynom<NumTraits>> const&> downcast() const&;
+
+  /** returns wether this is a Polynom of the given NumTraits. */
   template<class NumTraits> bool isType() const;
+
+  /** if this polynom has the right sort, and consist of a single summand that is a numeral, then this numeral
+   * is returned. otherwise an empty Option is returned. */
   template<class NumTraits> Option<typename NumTraits::ConstantType> tryNumeral() const&;
+
+  /** \see template<class N> Polynom<N>::replaceTerms */
+  AnyPoly replaceTerms(PolyNf* newTs) const;
+
+  /** \see template<class N> Polynom<N>::nSummands */
+  unsigned nSummands() const;
+
+  /** \see template<class N> Polynom<N>::nFactors */
+  unsigned nFactors(unsigned i) const;
+
+  /** \see template<class N> Polynom<N>::termAt */
+  PolyNf const& termAt(unsigned summand, unsigned factor) const;
+
+  /** \see template<class N> Polynom<N>::denormalize */
+  TermList denormalize(TermList* results) const;
 
   friend std::ostream& operator<<(std::ostream& out, const AnyPoly& self);
   friend struct std::hash<AnyPoly>;
-
-  AnyPoly replaceTerms(PolyNf* newTs) const;
-  unsigned nSummands() const;
-  unsigned nFactors(unsigned i) const;
-  PolyNf const& termAt(unsigned summand, unsigned factor) const;
-  TermList denormalize(TermList* results) const;
 };
 
 using PolyNfSuper = Lib::Coproduct<Perfect<FuncTerm>, Variable, AnyPoly>;
@@ -235,10 +251,10 @@ public:
   Option<Variable> tryVar() const;
 
   /** an iterator over all PolyNf s that are subterms of this one */
-  class IterSubterms;
+  class SubtermIter;
 
   /** returns an iterator over all PolyNf s that are subterms of this one */
-  IterTraits<IterSubterms> iterSubterms() const;
+  IterTraits<SubtermIter> iterSubterms() const;
 
   friend struct std::hash<PolyNf>;
   friend bool operator==(PolyNf const& lhs, PolyNf const& rhs);
@@ -338,10 +354,10 @@ public:
 
 
   /** an iterator over all factors */
-  using ConstIter = IterTraits<ArrayishObjectIterator<typename std::remove_reference<decltype(_factors)>::type, no_ref_t>>;
+  using FactorIter = IterTraits<ArrayishObjectIterator<typename std::remove_reference<decltype(_factors)>::type, no_ref_t>>;
 
   /** returns an iterator over all factors */
-  ConstIter iterFactors() const&;
+  FactorIter iterFactors() const&;
 
   explicit MonomFactors(const MonomFactors&) = default;
   explicit MonomFactors(MonomFactors&) = default;
@@ -392,44 +408,52 @@ public:
   /** creates the empty Polynom that is interpreted as zero */
   static Polynom zero();
 
-  /* if this Polynom consists only of one summand that is a numeral the numeral is returned */
+  /** if this Polynom consists only of one summand that is a numeral the numeral is returned */
   Option<Numeral> toNumber() const&;
 
-  /* turns this Polynom into a numeral if it consists only of one summand that is a numeral, or throws an assertion violation 
+  /** turns this Polynom into a numeral if it consists only of one summand that is a numeral, or throws an assertion violation 
    * \pre isNumeral is true*
    */
   Numeral unwrapNumber() const&;
 
-  /* returns whether this Monom consists of only one summand that is a numeral */
+  /** returns whether this Monom consists of only one summand that is a numeral */
   bool isNumber() const&;
 
-  // TODO continue here
-  struct CancelAdd {
-    Polynom lhs;
-    Polynom rhs;
-  };
-
-  static CancelAdd cancelAdd(Polynom<Number> const& oldl, Polynom<Number> const& oldr);
-
+  /** turns this polynom into a term */
   TermList denormalize() const;
 
+  /** helper function for denormalize() */
   TermList denormalize(TermList* results) const;
 
-  Polynom flipSign() const;
-
+  /**
+   * replaces all subterms of this poly, by given array of subterms. the resulting polynom will be sorted correctly. 
+   * here a monom does not count as a subterm, but all the subterms of the monom themselves do:
+   *      Polynom(Monom(3, { f(x), y }), Monom(1, { z }))
+   *         .replaceTerms({a,b,c})
+   * ===> Polynom(Monom(3, { a   , b }), Monom(1, { c }))
+   */
   Polynom replaceTerms(PolyNf* simplifiedTerms) const;
 
+  /** returns the number of summands of this polynom */
   unsigned nSummands() const;
 
+  /** returns the number of factors of the summand with the given index */
   unsigned nFactors(unsigned summand) const;
 
-  Monom summandAt(unsigned summand) const;
+  /** returns the summand with the given index */
+  Monom const& summandAt(unsigned summand) const;
 
+  /** returns the summand with the given index */
+  Monom      & summandAt(unsigned summand);
+
+  /** integrity check of the data structure. does noly have an effect in debug mode */
   void integrity() const;
 
-  using ConstIter = IterTraits<ArrayishObjectIterator<typename std::remove_reference<decltype(_summands)>::type, no_ref_t>>;
+  /** an iterator over all summands of this Polyom */
+  using SummandIter = IterTraits<ArrayishObjectIterator<typename std::remove_reference<decltype(_summands)>::type, no_ref_t>>;
 
-  ConstIter iter() const&;
+  /** returns iterator over all summands of this Polyom */
+  SummandIter iterSummands() const&;
 
   template<class N> friend bool operator==(const Polynom<N>& lhs, const Polynom<N>& rhs);
   template<class N> friend std::ostream& operator<<(std::ostream& out, const Polynom<N>& self);
@@ -442,15 +466,15 @@ public:
 
 namespace Kernel {
 
-class PolyNf::IterSubterms {
+class PolyNf::SubtermIter {
   Stack<BottomUpChildIter<PolyNf>> _stack;
 public:
   DECL_ELEMENT_TYPE(PolyNf);
 
-  IterSubterms(IterSubterms&&) = default;
-  IterSubterms& operator=(IterSubterms&&) = default;
+  SubtermIter(SubtermIter&&) = default;
+  SubtermIter& operator=(SubtermIter&&) = default;
 
-  IterSubterms(PolyNf p);
+  SubtermIter(PolyNf p);
 
   PolyNf next();
 
@@ -884,7 +908,7 @@ MonomFactors<Number> MonomFactors<Number>::replaceTerms(PolyNf* simplifiedTerms)
 }
 
 template<class Number>
-typename MonomFactors<Number>::ConstIter MonomFactors<Number>::iterFactors() const&
+typename MonomFactors<Number>::FactorIter MonomFactors<Number>::iterFactors() const&
 { return iterTraits(getArrayishObjectIterator<no_ref_t>(_factors)); }
 
 } // namespace Kernel
@@ -997,115 +1021,6 @@ typename Number::ConstantType Polynom<Number>::unwrapNumber() const&
 { return toNumber().unwrap(); }
 
 template<class Number>
-typename Polynom<Number>::CancelAdd Polynom<Number>::cancelAdd(Polynom<Number> const& oldl, Polynom<Number> const& oldr) 
-{
-  CALL("Polynom::cancelAdd(Polynom<Number> const& oldl, Polynom<Number> const& oldr)")
-  DEBUG("in:  ", oldl, " <> ", oldr)
-
-  using NumeralVec = Stack<Monom>;
-  // auto zero = Number::zeroC;
-  auto itl = oldl._summands.begin();
-  auto itr = oldr._summands.begin();
-  auto endl = oldl._summands.end();
-  auto endr = oldr._summands.end();
-
-  auto safeMinus = [](Numeral l, Numeral r) 
-  { 
-    try {
-      return Option<Numeral>(l - r);
-    } catch (MachineArithmeticException) 
-    {
-      return Option<Numeral>();
-    }
-  };
-
-  auto push = [](NumeralVec& vec, Perfect<MonomFactors> m, Numeral c) 
-  { vec.push(Monom(c, m)); };
-
-  auto cmpPrecedence = [](Option<Numeral> lOpt, Numeral r) 
-  { 
-    if (lOpt.isNone()) return false;
-    auto l = lOpt.unwrap();
-    return Numeral::comparePrecedence(l,r) == Comparison::LESS;
-  };
-
-  NumeralVec newl;
-  NumeralVec newr;
-  while(itl != endl && itr !=  endr) {
-    auto cl = itl->numeral;
-    auto cr = itr->numeral;
-    const Perfect<MonomFactors>& ml = itl->factors;
-    const Perfect<MonomFactors>& mr = itr->factors;
-    if (ml == mr) {
-      auto& m = ml;
-      auto lMinusR = safeMinus(cl, cr);
-      auto rMinusL = safeMinus(cr, cl);
-      auto pushLeft  = [&]() { push(newl, m, lMinusR.unwrap()); };
-      auto pushRight = [&]() { push(newr, m, rMinusL.unwrap()); };
-      auto pushSmaller = [&] () {
-        if (cmpPrecedence(rMinusL, lMinusR.unwrap())) {
-          pushRight();
-        } else {
-          pushLeft();
-        }
-      };
-
-      if (cl == cr) {
-         // 10 x + ... ~~  10 x + ... ==> ... ~~ ... 
-         // we remove the term
-      } else if (cmpPrecedence(lMinusR, cl) 
-              && cmpPrecedence(rMinusL, cr)) {
-
-        pushSmaller();
-      } else if (cmpPrecedence(lMinusR, cl) ) {
-        // 10 x + ... ~~  8 x + ... ==> 2 x + ... ~~ ... 
-        // ^^ cl          ^ cr          ^ lMinusR
-        pushLeft();
-
-      } else if (cmpPrecedence(rMinusL, cr)) {
-        //   7 x + ... ~~  8 x + ... ==> ... ~~ 1 x + ... 
-        //   ^ cl          ^ cr                 ^ rMinusL
-        pushRight();
-      } else {
-
-        if (lMinusR.isSome() && rMinusL.isSome()){
-          pushSmaller();
-        } else if (lMinusR.isSome()) {
-          pushLeft();
-        } else if (rMinusL.isSome()) {
-          pushRight();
-        } else {
-          push(newl, m, cl);
-          push(newr, m, cr);
-        }
-      }
-      itl++;
-      itr++;
-    } else if (ml < mr) {
-      push(newl, ml, cl);
-      itl++;
-    } else {
-      ASS(mr < ml)
-      push(newr, mr, cr);
-      itr++;
-    }
-  }
-  for(; itl != endl; itl++) {
-    push(newl, itl->factors, itl->numeral);
-  }
-  for(; itr != endr; itr++) {
-    push(newr, itr->factors, itr->numeral);
-  }
-  auto outl = Polynom<Number>(std::move(newl));
-  auto outr = Polynom<Number>(std::move(newr));
-  DEBUG("out: ", outl, " <> ", outr)
-  return CancelAdd { 
-    .lhs = std::move(outl), 
-    .rhs = std::move(outr), 
-  };
-}
-
-template<class Number>
 TermList Polynom<Number>::denormalize(TermList* results) const
 {
   CALL("Polynom::denormalize()")
@@ -1143,17 +1058,6 @@ TermList Polynom<Number>::denormalize(TermList* results) const
 }
 
 template<class Number>
-Polynom<Number> Polynom<Number>::flipSign() const
-{ 
-  CALL("Polynom::flipSign() const") 
-  Polynom out(*this);
-  for (unsigned i = 0; i < nSummands(); i++) {
-    out._summands[i].numeral = out._summands[i].numeral * Numeral(-1);
-  }
-  return std::move(out);
-}
-
-template<class Number>
 Polynom<Number> Polynom<Number>::replaceTerms(PolyNf* simplifiedTerms) const 
 {
   CALL("Polynom::replaceTerms(PolyNf*)")
@@ -1180,7 +1084,11 @@ unsigned Polynom<Number>::nFactors(unsigned summand) const
 { return _summands[summand].factors->nFactors(); }
 
 template<class Number>
-Monom<Number> Polynom<Number>::summandAt(unsigned summand) const
+Monom<Number> const& Polynom<Number>::summandAt(unsigned summand) const
+{ return _summands[summand]; }
+
+template<class Number>
+Monom<Number>      & Polynom<Number>::summandAt(unsigned summand)
 { return _summands[summand]; }
 
 template<class Number>
@@ -1199,7 +1107,7 @@ void Polynom<Number>::integrity() const {
 }
 
 template<class Number>
-typename Polynom<Number>::ConstIter Polynom<Number>::iter() const&
+typename Polynom<Number>::SummandIter Polynom<Number>::iterSummands() const&
 { return iterTraits(getArrayishObjectIterator<no_ref_t>(_summands)); }
 
 
@@ -1228,7 +1136,6 @@ struct std::hash<Kernel::Polynom<NumTraits>>
   }
 };
 
-// TODO Option -> Option
 
 #undef DEBUG
 #endif // __POLYNOMIAL__H__
