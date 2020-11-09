@@ -77,8 +77,22 @@ ostream& operator<<(ostream& out, const RDescription& rdesc);
 struct InductionTemplate {
   void postprocess();
 
+  enum class VarType {
+    SUBTERM,
+    FIXED,
+    OTHER,
+  };
+  using VarOrder = vvector<vset<unsigned>>;
+
   vvector<RDescription> _rDescriptions;
   vvector<bool> _inductionVariables;
+  VarOrder _order;
+
+private:
+  bool findVarOrder(
+    const vvector<vvector<VarType>>& relations,
+    vset<unsigned>& candidates,
+    VarOrder& res);
 };
 
 ostream& operator<<(ostream& out, const InductionTemplate& templ);

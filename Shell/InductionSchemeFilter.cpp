@@ -520,7 +520,7 @@ bool createMergedRDescription(const RDescriptionInst& rdesc1, const RDescription
   return true;
 }
 
-void addBaseCase(InductionScheme& sch) {
+void addBaseCases(InductionScheme& sch) {
   // here we do essentially the same as in createSingleRdescription,
   // only we do it on an initially empty RDescriptionInst and exclude
   // all other in the scheme
@@ -647,7 +647,7 @@ bool InductionSchemeFilter::mergeSchemes(const InductionScheme& sch1, const Indu
     }
   }
   res.init(std::move(resRdescs));
-  addBaseCase(res);
+  addBaseCases(res);
 
   return true;
 }

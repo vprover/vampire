@@ -56,6 +56,77 @@ ostream& operator<<(ostream& out, const RDescription& rdesc)
   return out;
 }
 
+bool InductionTemplate::findVarOrder(
+  const vvector<vvector<VarType>>& relations,
+  vset<unsigned>& candidates,
+  VarOrder& res)
+{
+  if (relations.empty() || candidates.empty()) {
+    return true;
+  }
+  // Split original candidate sets into sets that change together
+  // with a bool variable for each to denote whether the set changes in at
+  // least one relation (otherwise the set is not a true candidate)
+  vmap<vset<unsigned>, bool> candidateSets;
+  candidateSets.insert(make_pair(candidates, false));
+  for (const auto& r : relations) {
+    vset<unsigned> subterm;
+    vset<unsigned> fixed;
+    for (int i = 0; i < r.size(); i++) {
+      if (r[i] == VarType::FIXED) {
+        fixed.insert(i);
+      } else if (r[i] == VarType::SUBTERM) {
+        subterm.insert(i);
+      }
+    }
+    vmap<vset<unsigned>, bool> newCandidateSets;
+    for (const auto& kv : candidateSets) {
+      vset<unsigned> sti, fi;
+      auto c = kv.first;
+      // Take intersections of current simultaneously changing
+      // or fixed sets with ones that change together in another
+      // relation. The result will be non-empty sets which change
+      // together or remain fixed together in all relations
+      set_intersection(c.begin(), c.end(), subterm.begin(), subterm.end(), inserter(sti, sti.end()));
+      set_intersection(c.begin(), c.end(), fixed.begin(), fixed.end(), inserter(fi, fi.end()));
+      if (!sti.empty()) {
+        newCandidateSets.insert(make_pair(sti, true)); // set changed variable to true
+      }
+      if (!fi.empty()) {
+        newCandidateSets.insert(make_pair(fi, kv.second));
+      }
+    }
+    candidateSets = newCandidateSets;
+  }
+  for (const auto& kv : candidateSets) {
+    // only deal with sets that change in at least relation
+    if (kv.second) {
+      // The remaining relations are the ones where
+      // the selected candidate sets are fixed, otherwise
+      // the order is established by the selected set
+      vvector<vvector<VarType>> remainingRelations;
+      for (const auto r : relations) {
+        // we can check only the first of the set
+        // because they are all fixed in the same relations
+        if (r[*kv.first.begin()] == VarType::FIXED) {
+          remainingRelations.push_back(r);
+        }
+      }
+      vset<unsigned> remainingCandidates;
+      set_difference(candidates.begin(), candidates.end(),
+        kv.first.begin(), kv.first.end(),
+        inserter(remainingCandidates, remainingCandidates.end()));
+      VarOrder temp = res;
+      temp.push_back(kv.first);
+      if (findVarOrder(remainingRelations, remainingCandidates, temp)) {
+        res = temp;
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 void InductionTemplate::postprocess()
 {
   CALL("InductionTemplate::postprocess");
@@ -64,22 +135,52 @@ void InductionTemplate::postprocess()
   _rDescriptions.shrink_to_fit();
 
   // fill in bit vector of induction variables
-  _inductionVariables = vvector<bool>(_rDescriptions[0]._step.term()->arity(), false);
+  auto arity = _rDescriptions[0]._step.term()->arity();
+  _inductionVariables = vvector<bool>(arity, false);
+  vset<unsigned> candidatePositions;
+  vvector<vvector<VarType>> relations;
   for (auto& rdesc : _rDescriptions) {
     auto step = rdesc._step.term();
     for (auto& r : rdesc._recursiveCalls) {
+      vvector<VarType> relation(arity, VarType::OTHER);
       Term::Iterator argIt1(r.term());
       Term::Iterator argIt2(step);
       unsigned i = 0;
       while (argIt1.hasNext()) {
         auto t1 = argIt1.next();
         auto t2 = argIt2.next();
-        if (t1 != t2 && t2.containsSubterm(t1)) {
+        if (t1 == t2) {
+          relation[i] = VarType::FIXED;
+        } else if (t2.containsSubterm(t1)) {
+          relation[i] = VarType::SUBTERM;
+          candidatePositions.insert(i);
           _inductionVariables[i] = true;
+        } else {
+          candidatePositions.insert(i);
         }
         i++;
       }
+      relations.push_back(relation);
     }
+  }
+  VarOrder res;
+  if (findVarOrder(relations, candidatePositions, res)) {
+    _order = res;
+    cout << "Found ordering of variables: (";
+    for (const auto& r : res) {
+      if (r.size() == 1) {
+        cout << *r.begin() << ",";
+      } else {
+        cout << "{";
+        for (const auto& v : r) {
+          cout << v << ",";
+        }
+        cout << "},";
+      }
+    }
+    cout << ")" << endl;
+  } else {
+    cout << "Could not find order for variables" << endl;
   }
 }
 

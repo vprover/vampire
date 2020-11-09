@@ -243,53 +243,54 @@ ostream& operator<<(ostream& out, const RDescriptionInst& inst)
   return out;
 }
 
-void InductionScheme::init(Term* t, vvector<RDescription>& rdescs, const vvector<bool>& indVars)
+void InductionScheme::init(Term* t, const InductionTemplate& templ)
 {
   CALL("InductionScheme::init");
 
   unsigned var = 0;
-  for (auto& rdesc : rdescs) {
+  for (auto& rdesc : templ._rDescriptions) {
     // for each RDescription, use a new substitution and variable
     // replacement as these cases should be independent
     DHMap<unsigned, unsigned> varMap;
     vmap<TermList,TermList> stepSubst;
 
-    IteratorByInductiveVariables termIt(t, indVars);
-    IteratorByInductiveVariables stepIt(rdesc._step.term(), indVars);
-
     // We first map the inductive terms of t to the arguments of
     // the function header stored in the step case
     bool mismatch = false;
-    bool match = termIt.hasNext();
-    while (termIt.hasNext()) {
-      auto argTerm = termIt.next();
-      auto argStep = stepIt.next();
-      auto its = getInductionTerms(argTerm);
-      // if (!matchesCase(argStep, argTerm)) {
-      //   match = false;
-      // }
-      for (auto& indTerm : its) {
-        // This argument might have already been mapped
-        if (stepSubst.count(indTerm) > 0) {
-          if (stepSubst.at(indTerm).isTerm() && argStep.isTerm() &&
-              stepSubst.at(indTerm).term()->functor() != argStep.term()->functor()) {
-            // If this argument in the RDescription header contains a different
-            // term algebra ctor than the already substituted one, we cannot create
-            // this case
-            mismatch = true;
-            break;
+    for (const auto& vars : templ._order) {
+      for (const auto& v : vars) {
+        auto argTerm = *t->nthArgument(v);
+        auto argStep = *rdesc._step.term()->nthArgument(v);
+        auto its = getInductionTerms(argTerm);
+        // if (!matchesCase(argStep, argTerm)) {
+        //   match = false;
+        // }
+        for (auto& indTerm : its) {
+          // This argument might have already been mapped
+          if (stepSubst.count(indTerm)) {
+            if (stepSubst.at(indTerm).isTerm() && argStep.isTerm() &&
+                stepSubst.at(indTerm).term()->functor() != argStep.term()->functor()) {
+              // If this argument in the RDescription header contains a different
+              // term algebra ctor than the already substituted one, we cannot create
+              // this case
+              mismatch = true;
+              break;
+            }
+            continue;
           }
-          continue;
+          if (argStep.isVar()) {
+            if (!varMap.find(argStep.var())) {
+              varMap.insert(argStep.var(), var++);
+            }
+            stepSubst.insert(make_pair(
+                indTerm, TermList(varMap.get(argStep.var()), false)));
+          } else {
+            VarReplacement cr(varMap, var);
+            auto res = cr.transform(argStep.term());
+            stepSubst.insert(make_pair(indTerm, TermList(res)));
+          }
+          _inductionTerms.insert(indTerm);
         }
-        // There may be variables in active
-        // positions, these are skipped
-        if (argStep.isVar()) {
-          continue;
-        }
-        VarReplacement cr(varMap, var);
-        auto res = cr.transform(argStep.term());
-        stepSubst.insert(make_pair(indTerm, TermList(res)));
-        _inductionTerms.insert(indTerm);
       }
     }
     // if (match) {
@@ -316,39 +317,49 @@ void InductionScheme::init(Term* t, vvector<RDescription>& rdescs, const vvector
     for (auto& r : rdesc._recursiveCalls) {
       vmap<TermList,TermList> recCallSubst;
 
-      IteratorByInductiveVariables termIt(t, indVars);
-      IteratorByInductiveVariables recCallIt(r.term(), indVars);
-
-      while (termIt.hasNext()) {
-        auto argTerm = termIt.next();
-        auto argRecCall = recCallIt.next();
-        auto its = getInductionTerms(argTerm);
-        for (auto& indTerm : its) {
-          if (recCallSubst.count(indTerm) > 0) {
-            continue;
-          }
-          if (argRecCall.isVar()) {
-            // First we check if this variable is a subterm of some complex term
-            // in the step (it is an induction variable position but may not be
-            // changed in this case, see the check above)
-            IteratorByInductiveVariables stepIt(rdesc._step.term(), indVars);
-            bool found = false;
-            while (stepIt.hasNext()) {
-              auto argStep = stepIt.next();
-              if (argStep != argRecCall && argStep.containsSubterm(argRecCall)) {
-                found = true;
-                break;
-              }
+      bool changed = false;
+      // We calculate the substitutions set by set
+      // from the variable order and add the substititions
+      // from the template until and including the first
+      // set which changes in this recursive call. Then, we
+      // only add fresh variables as the rest is irrelevant
+      for (const auto& vars : templ._order) {
+        bool changing = false;
+        for (const auto& v : vars) {
+          auto argTerm = *t->nthArgument(v);
+          auto argRecCall = *r.term()->nthArgument(v);
+          auto its = getInductionTerms(argTerm);
+          for (auto& indTerm : its) {
+            // if this set of variables is irrelevant for
+            // the order, we add new variables
+            if (changed) {
+              recCallSubst.insert(make_pair(
+                indTerm, TermList(var++, false)));
+              continue;
             }
-            if (found) {
+            // otherwise we find out if this is a changing set
+            auto argStep = *rdesc._step.term()->nthArgument(v);
+            if (argStep != argRecCall) {
+              changing = true;
+            }
+            // term is already added, move on to next
+            if (recCallSubst.count(indTerm)) {
+              continue;
+            }
+            // if the argument is a variable, it must be in the varMap
+            if (argRecCall.isVar()) {
               recCallSubst.insert(make_pair(
                 indTerm, TermList(varMap.get(argRecCall.var()), false)));
+            } else {
+              VarReplacement cr(varMap, var);
+              auto res = cr.transform(argRecCall.term());
+              recCallSubst.insert(make_pair(indTerm, TermList(res)));
             }
-          } else {
-            VarReplacement cr(varMap, var);
-            auto res = cr.transform(argRecCall.term());
-            recCallSubst.insert(make_pair(indTerm, TermList(res)));
           }
+        }
+        // If this was the changing set, all other will be irrelevant
+        if (changing) {
+          changed = true;
         }
       }
       recCallSubstList.push_back(std::move(recCallSubst));
@@ -577,6 +588,10 @@ void InductionSchemeGenerator::process(TermList curr, bool active,
       actStack.push(*it && active);
     }
 
+    if (!active) {
+      return;
+    }
+
     IteratorByInductiveVariables argIt(t, indVars);
     bool match = true;
     while (argIt.hasNext()) {
@@ -590,7 +605,7 @@ void InductionSchemeGenerator::process(TermList curr, bool active,
 
     if (match) {
       InductionScheme scheme;
-      scheme.init(t, templ._rDescriptions, templ._inductionVariables);
+      scheme.init(t, templ);
       auto litClMap = new DHMap<Literal*, Clause*>();
       litClMap->insert(lit, premise);
       if(env.options->showInduction()){
