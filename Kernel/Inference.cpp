@@ -809,11 +809,15 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "external theory axiom";
   case InferenceRule::TERM_ALGEBRA_ACYCLICITY:
     return "term algebras acyclicity";
+  case InferenceRule::TERM_ALGEBRA_DIRECT_SUBTERMS_AXIOM:
+    return "term algebras direct subterms";
   case InferenceRule::TERM_ALGEBRA_DISTINCTNESS:
     return "term algebras distinctness";
   case InferenceRule::TERM_ALGEBRA_INJECTIVITY_GENERATING:
   case InferenceRule::TERM_ALGEBRA_INJECTIVITY_SIMPLIFYING:
     return "term algebras injectivity";
+  case InferenceRule::TERM_ALGEBRA_SUBTERMS_TRANSITIVE_AXIOM:
+    return "term algebras subterms transitivity";
   case InferenceRule::THEORY_FLATTENING:
     return "theory flattening";
   case InferenceRule::BOOLEAN_TERM_ENCODING:
@@ -889,8 +893,6 @@ vstring Kernel::ruleName(InferenceRule rule)
   case InferenceRule::INTERNAL_SIMPLIFYING_INFERNCE_LAST: 
   case InferenceRule::GENERIC_GENERATING_INFERNCE:
   case InferenceRule::INTERNAL_GENERATING_INFERNCE_LAST:
-  case InferenceRule::TERM_ALGEBRA_DIRECT_SUBTERMS_AXIOM:
-  case InferenceRule::TERM_ALGEBRA_SUBTERMS_TRANSITIVE_AXIOM:
   case InferenceRule::INTERNAL_THEORY_AXIOM_LAST:
     { /* explicitly ignoring this cases */ }
   }
