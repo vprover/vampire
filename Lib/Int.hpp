@@ -107,26 +107,21 @@ class Int
 
   /** Return the greatest common divisor of @b i and @b j */
   template<typename INT>
-  static int gcd(INT i,INT j)
+  static unsigned gcd(INT i,INT j)
   {
     CALL("Int::gcd");
 
-    i=abs(i);
-    j=abs(j);
-    if(!i || !j) {
-      return 1;
-    }
+    unsigned a=safeAbs(i);
+    unsigned b=safeAbs(j);
 
-    for(;;) {
-      i = i % j;
-      if(i==0) {
-        return j;
+    while (b!=0) {
+      a %= b;
+      if(a==0) {
+        return b;
       }
-      j = j % i;
-      if(j==0) {
-        return i;
-      }
+      b %= a;
     }
+    return a;
   }
 
   /**

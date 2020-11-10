@@ -328,6 +328,7 @@ Formula* SimplifyFalseTrue::simplify (Formula* f)
   case NOCONN:
     ASSERTION_VIOLATION;
   }
+  ASSERTION_VIOLATION;
 } // SimplifyFalseTrue::simplify ()
 
 

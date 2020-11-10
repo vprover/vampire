@@ -516,6 +516,8 @@ Formula* NNF::nnf (Formula* f, bool polarity)
   case NOCONN:
     ASSERTION_VIOLATION;
   }
+
+  ASSERTION_VIOLATION;
 } // NNF::nnf(Formula*);
 
 

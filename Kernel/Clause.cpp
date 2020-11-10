@@ -804,6 +804,7 @@ std::ostream& operator<<(std::ostream& out, Clause::Store const& store)
     case Clause::NONE:        return out << "NONE";
     case Clause::SELECTED:    return out << "SELECTED";
   }
+  ASSERTION_VIOLATION;
 }
 
 }

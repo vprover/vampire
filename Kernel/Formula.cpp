@@ -443,6 +443,8 @@ bool Formula::parenthesesRequired (Connective outer) const
     case NOCONN:
       ASSERTION_VIOLATION;
     }
+
+  ASSERTION_VIOLATION;
 } // Formula::parenthesesRequired
 
 
