@@ -24,6 +24,8 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 using namespace SMTSubsumption::Minisat;
 
 #define TRACE_SOLVER 1
+#define DEBUG_STREAM_ENABLED TRACE_SOLVER
+#include "SMTSubsumption/cdebug.hpp"
 
 
 //=================================================================================================
@@ -68,11 +70,13 @@ void Solver::newClause(const vec<Lit>& ps_, bool learnt)
 {
     if (!ok) return;
 
-    std::cerr << "newClause:";
+#if TRACE_SOLVER
+    cdebug << "newClause:" << noendl;
     for (Lit l : ps_) {
-      std::cerr << " " << l;
+      cdebug << " " << l << noendl;
     }
-    std::cerr << std::endl;
+    cdebug;
+#endif
 
     vec<Lit> qs;  // TODO: could use class member to reduce allocation overhead
     if (!learnt) {
@@ -160,11 +164,13 @@ void Solver::addConstraint_AtMostOne(const vec<Lit>& ps_)
 {
     if (!ok) return;
 
+#if TRACE_SOLVER
     std::cerr << "addConstraint_AtMostOne:";
     for (Lit l : ps_) {
       std::cerr << " " << l;
     }
     std::cerr << std::endl;
+#endif
 
     assert(decisionLevel() == 0);
 
@@ -182,7 +188,7 @@ void Solver::addConstraint_AtMostOne(const vec<Lit>& ps_)
       if (value(p) == l_True) {
         num_true += 1;
         if (num_true > 1) {
-          std::cerr << "AtMostOne constraint already violated" << std::endl;
+          // std::cerr << "AtMostOne constraint already violated" << std::endl;
           ok = false;
           return;
         }
@@ -195,7 +201,7 @@ void Solver::addConstraint_AtMostOne(const vec<Lit>& ps_)
       if (value(ps[i]) != l_False)
         ps[j++] = ps[i];
     }
-    std::cerr << "shrinking by " << (i-j) << std::endl;
+    // std::cerr << "shrinking by " << (i-j) << std::endl;
     ASS_EQ(i-j, 0);  // in our use case this should never happen! (TODO: is this true? also for SR/SD? does it hurt to keep this?)
     ps.shrink(i - j);
 
@@ -551,9 +557,7 @@ void Solver::analyzeFinal(Clause* confl, bool skip_first)
 |________________________________________________________________________________________________@*/
 bool Solver::enqueue(Lit p, GClause from)
 {
-#if TRACE_SOLVER
-    std::cerr << "ENQUEUE: " << p << " (current value: " << value(p) << ")" << std::endl;
-#endif
+    cdebug << "ENQUEUE: " << p << " (current value: " << value(p) << ")";
     if (value(p) != l_Undef) {
         return value(p) != l_False;
     } else {
@@ -579,9 +583,7 @@ bool Solver::enqueue(Lit p, GClause from)
 |________________________________________________________________________________________________@*/
 Clause* Solver::propagate()
 {
-#if TRACE_SOLVER
-    std::cerr << "PROPAGATE" << std::endl;
-#endif
+    cdebug << "PROPAGATE";
     Clause* confl = NULL;
     while (qhead < trail.size()) {
         stats.propagations++;
@@ -589,18 +591,38 @@ Clause* Solver::propagate()
 
         Lit p = trail[qhead++];     // 'p' is enqueued fact to propagate.
 
-#if TRACE_SOLVER
-        std::cerr << "PROPAGATE LOOP: for p = " << p << std::endl;
-#endif
+        cdebug << "PROPAGATE LOOP: for p = " << p;
 
         // Theory propagation
         if (p.isPositive()) {
-          subst_theory.enable(var(p), decisionLevel(), [this](Lit propagated_lit, GClause reason) {
-            std::cerr << "propagated: " << (propagated_lit.isNegative() ? '~' : ' ') << var(propagated_lit) << std::endl;
+          bool enabled =
+          subst_theory.enable(var(p), decisionLevel(), [this, &confl, p](Lit propagated_lit, GClause reason) {
+            cdebug << "propagated: " << propagated_lit;
             bool enqueued = enqueue(propagated_lit, reason);
+
             // NOTE: since we do exhaustive theory propagation, we can never reach a conflict at this point.
+            // TODO: Yes, but a conflicting assignment may already be enqueued, before propagate has been called.
+            //       E.g., due to unit clauses in the input.
+            if (enqueued) {
+              // success
+              return true;
+            } else {
+              if (decisionLevel() == 0) {
+                ok = false;
+              }
+              assert(reason.isLit());
+              confl = propagate_tmpbin;
+              (*confl)[1] = ~p;
+              (*confl)[0] = reason.lit();
+              qhead = trail.size();
+              return false;
+            }
             assert(enqueued);
           });
+          if (!enabled) {
+            assert(confl != nullptr);
+            return confl;
+          }
         }
 
         // TODO:
@@ -616,9 +638,7 @@ Clause* Solver::propagate()
         GClause* j = ws.begin();
         GClause* end = ws.end();
         while (i != end) {
-#if TRACE_SOLVER
-            std::cerr << "PROPAGATE WATCHER: " << *i << std::endl;
-#endif
+            cdebug << "PROPAGATE WATCHER: " << *i;
             if (i->isLit()) {
                 if (!enqueue(i->lit(), GClause_new(p))) {
                     if (decisionLevel() == 0) {

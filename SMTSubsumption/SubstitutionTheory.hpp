@@ -1,3 +1,4 @@
+#define DEBUG_STREAM_ENABLED 0
 /*
  * SubstitutionTheory.hpp
  * Copyright (C) 2020 Jakob Rath <git@jakobrath.eu>
@@ -12,6 +13,7 @@
 #include "Kernel/Term.hpp"
 #include "Lib/STL.hpp"
 #include "SMTSubsumption/minisat/SolverTypes.h"
+#include "SMTSubsumption/cdebug.hpp"
 
 #include <algorithm>
 
@@ -144,7 +146,7 @@ class SubstitutionTheory
           ASS(p.second.isNonEmpty());  // we use empty TermLists to mean "unassigned" (TODO: not anymore)
         }
       }
-      std::cerr << "max_d = " << max_d << std::endl;
+      cdebug << "max_d = " << max_d;
 
       TermList t_empty;
       t_empty.makeEmpty();
@@ -156,35 +158,35 @@ class SubstitutionTheory
       for (Minisat::Var var = 0; var < atoms.size(); ++var) {
         auto const& atom = atoms[var];
         for (auto const& p : atom.mapping()) {
-          std::cerr << "b_" << var << ": " << TermList(p.first, false) << " -> " << p.second << std::endl;
+          cdebug << "b_" << var << ": " << TermList(p.first, false) << " -> " << p.second;
           atoms_by_domain[p.first].push_back({ p.second, var });
         }
       }
     }
 
     /// Call this when a SAT variable has been set to true
-    /// PropagateCallback ~ void(Minisat::Lit propagated,GClause)
+    /// PropagateCallback ~ bool(Minisat::Lit propagated, GClause reason)
     template < typename PropagateCallback >
-    void enable(Minisat::Var var, Level level, PropagateCallback propagate)
+    bool enable(Minisat::Var var, Level level, PropagateCallback propagate)
     {
-      std::cerr << "SubstitutionTheory::enable: " << var << " at level " << level << std::endl;
+      cdebug << "SubstitutionTheory::enable: " << var << " at level " << level;
       // Since all our propositional variables have some theory meaning attached,
       // we can assert this.
       // Otherwise we should need whether the variable has some theory component
       // and only proceed if it does.
       ASS_L(var, atoms.size());
       SubstitutionAtom const& atom = atoms[var];
-      std::cerr << "atom = " << atom << std::endl;
+      cdebug << "atom = " << atom;
 
       // Exhaustively propagate conflicting atoms
       for (auto p : atom.mapping()) {  // go through list of constraints (x -> t)
 
         if (current_substitution_level[p.first] > level) {
-          std::cerr << "Extending current_substitution by " << TermList(p.first, false) << " -> " << p.second << std::endl;
+          cdebug << "Extending current_substitution by " << TermList(p.first, false) << " -> " << p.second;
           current_substitution[p.first] = p.second;
           current_substitution_level[p.first] = level;
         } else {
-          std::cerr << "Already in current_substitution: " << TermList(p.first, false) << " -> " << current_substitution[p.first] << " from level " << current_substitution_level[p.first] << " (new value: " << p.second  << ")" << std::endl;
+          cdebug << "Already in current_substitution: " << TermList(p.first, false) << " -> " << current_substitution[p.first] << " from level " << current_substitution_level[p.first] << " (new value: " << p.second  << ")";
           // Must be the same value due to exhaustive theory propagation
           ASS_EQ(current_substitution[p.first], p.second);
           // This also means that all theory consequences have been propagated previously,
@@ -192,7 +194,7 @@ class SubstitutionTheory
           continue;
         }
 
-        std::cerr << "Propagating theory constraint " << TermList(p.first, false) << " -> " << p.second << "..." << std::endl;
+        cdebug << "Propagating theory constraint " << TermList(p.first, false) << " -> " << p.second << "...";
 
         // p: (domain, range)  -- one particular mapping of the newly-enabled substitution
         //    (Vampire::Variable, TermList)
@@ -219,19 +221,22 @@ class SubstitutionTheory
             // TODO: look more closely at minisat code to confirm this.
             Minisat::GClause reason = Minisat::GClause_new(~Minisat::Lit(var));
 
-            propagate(propagated_lit, reason);
+            if (!propagate(propagated_lit, reason)) {
+              return false;
+            }
           }
         }
       }
 
-      std::cerr << "enable done" << std::endl;
+      cdebug << "enable done";
+      return true;
     }  // enable(...)
 
     /// Undo all assignments above the given level
     void backjump(Level level)
     {
       // Reset current_substitution
-      std::cerr << "BACKJUMP to level " << level << std::endl;
+      cdebug << "BACKJUMP to level " << level;
       for (size_t i = 0; i < current_substitution.size(); ++i) {
         if (current_substitution_level[i] > level) {
           current_substitution[i].makeEmpty();
