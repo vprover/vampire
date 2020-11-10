@@ -1378,6 +1378,11 @@ void Options::Options::init()
     _forwardSubsumptionDemodulationMaxMatches.tag(OptionTag::INFERENCES);
     _forwardSubsumptionDemodulationMaxMatches.setRandomChoices({"0", "1", "3"});
 
+    _subsumptionLogfile = StringOptionValue("subsumption_logfile","","");
+    _subsumptionLogfile.description="Log subsumption inferences";
+    _lookup.insert(&_subsumptionLogfile);
+    _subsumptionLogfile.setExperimental();
+
     _hyperSuperposition = BoolOptionValue("hyper_superposition","",false);
     _hyperSuperposition.description=
     "Simplifying inference that attempts to do several rewritings at once if it will eliminate literals of the original clause (now we aim just for elimination by equality resolution)";

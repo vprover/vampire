@@ -36,6 +36,9 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
+
+class SubsumptionLogger;
+
 class ForwardSubsumptionAndResolution
 : public ForwardSimplificationEngine
 {
@@ -43,8 +46,7 @@ public:
   CLASS_NAME(ForwardSubsumptionAndResolution);
   USE_ALLOCATOR(ForwardSubsumptionAndResolution);
 
-  ForwardSubsumptionAndResolution(bool subsumptionResolution=true)
-  : _subsumptionResolution(subsumptionResolution) {}
+  ForwardSubsumptionAndResolution(bool subsumptionResolution=true);
 
   void attach(SaturationAlgorithm* salg) override;
   void detach() override;
@@ -59,6 +61,7 @@ private:
   bool _subsumptionResolution;
 
   SMTSubsumption::ProofOfConcept smtsubs;
+  std::unique_ptr<SubsumptionLogger> m_logger;
 };
 
 

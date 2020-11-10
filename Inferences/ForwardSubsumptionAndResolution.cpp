@@ -45,7 +45,10 @@
 
 #include "Lib/Environment.hpp"
 #include "Shell/Statistics.hpp"
+#include "Shell/TPTPPrinter.hpp"
 #include "Debug/RuntimeStatistics.hpp"
+#include <fstream>
+#include "Shell/TPTPPrinter.hpp"
 
 #include "ForwardSubsumptionAndResolution.hpp"
 
@@ -57,6 +60,18 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
+
+
+ForwardSubsumptionAndResolution::ForwardSubsumptionAndResolution(bool subsumptionResolution)
+  : _subsumptionResolution(subsumptionResolution)
+{
+  CALL("ForwardSubsumptionAndResolution::ForwardSubsumptionAndResolution");
+  vstring const& logfile = env.options->subsumptionLogfile();
+  if (!logfile.empty()) {
+    BYPASSING_ALLOCATOR;
+    m_logger = make_unique<SubsumptionLogger>(logfile);
+  }
+}
 
 void ForwardSubsumptionAndResolution::attach(SaturationAlgorithm* salg)
 {
@@ -245,6 +260,44 @@ bool checkForSubsumptionResolution(Clause* cl, ClauseMatches* cms, Literal* resL
   return MLMatcher::canBeMatched(mcl,cl,cms->_matches,resLit);
 }
 
+class SubsumptionLogger
+{
+  private:
+    std::ofstream m_logfile;
+    TPTPPrinter m_tptp;  // this needs to be a member so we get the type definitions only once at the beginning
+  public:
+    CLASS_NAME(SubsumptionLogger);
+    USE_ALLOCATOR(SubsumptionLogger);
+    SubsumptionLogger(vstring logfile_path);
+    void log(Clause* side_premise, Clause* main_premise, bool isSubsumed);
+};
+
+SubsumptionLogger::SubsumptionLogger(vstring logfile_path)
+  : m_logfile{}
+  , m_tptp{&m_logfile}
+{
+  CALL("SubsumptionLogger::SubsumptionLogger");
+  m_logfile.open(logfile_path.c_str());
+  ASS(m_logfile.is_open());
+}
+
+void SubsumptionLogger::log(Clause* side_premise, Clause* main_premise, bool isSubsumed)
+{
+  vstringstream id_stream;
+  id_stream
+    << main_premise->number() << "_"  // main premise first because that increases during the run
+    << side_premise->number() << "_"
+    << (isSubsumed ? "success" : "failure");
+  vstring id = id_stream.str();
+
+  m_logfile << "\% Begin Inference \"FS-" << id << "\"\n";
+  // env.out() << "\% isSubsumed: " << isSubsumed << "\n";
+  m_tptp.printWithRole("side_premise_" + id, "hypothesis", side_premise, false);  // subsumer
+  m_tptp.printWithRole("main_premise_" + id, "hypothesis", main_premise, false);  // subsumed (if isSubsumed == 1)
+  m_logfile << "\% End Inference \"FS-" << id << "\"" << std::endl;
+}
+
+
 bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
 {
   CALL("ForwardSubsumptionAndResolution::perform");
@@ -279,6 +332,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
         ASS_LE(premise->weight(), cl->weight());
         result = true;
         ASS(smtsubs.checkSubsumption(premise, cl));
+        // NOTE: we do not care about outputting the inference here, since this branch is not a target where we want to use SMT-Subsumption.
         goto fin;
       }
     }
@@ -314,7 +368,27 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
         RSTAT_CTR_INC("fw subsumption impossible due to weight");
       }
 
-      if(MLMatcher::canBeMatched(mcl,cl,cms->_matches,0) && ColorHelper::compatible(cl->color(), mcl->color())) {
+      bool isSubsumed =
+        MLMatcher::canBeMatched(mcl,cl,cms->_matches,0)
+        && ColorHelper::compatible(cl->color(), mcl->color());
+
+      if (m_logger) {
+        m_logger->log(mcl, cl, isSubsumed);
+      }
+//         vstringstream id_stream;
+//         id_stream << mcl->number() << "_" << cl->number() << "_" << (isSubsumed ? "success" : "failure");
+//         vstring id = id_stream.str();
+//         env.beginOutput();
+//         env.out() << "\% Begin Inference \"FS-" << id << "\"\n";
+//         // env.out() << "\% isSubsumed: " << isSubsumed << "\n";
+//         TPTPPrinter tptp;
+//         // NOTE: do not output the splitLevels here, because those will be set for newCl only later
+//         tptp.printWithRole("side_premise_" + id, "hypothesis", mcl,   false);  // subsumer
+//         tptp.printWithRole("main_premise_" + id, "hypothesis", cl,    false);  // subsumed (if isSubsumed == 1)
+//         env.out() << "\% End Inference \"FS-" << id << "\"" << std::endl;
+//         env.endOutput();
+
+      if (isSubsumed) {
         premises = pvi( getSingletonIterator(mcl) );
         env.statistics->forwardSubsumed++;
         ASS_LE(mcl->weight(), cl->weight());

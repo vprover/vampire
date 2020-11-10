@@ -2062,6 +2062,7 @@ public:
   //void setForwardSubsumptionResolution(bool newVal) { _forwardSubsumptionResolution = newVal; }
   bool forwardSubsumptionDemodulation() const { return _forwardSubsumptionDemodulation.actualValue; }
   unsigned forwardSubsumptionDemodulationMaxMatches() const { return _forwardSubsumptionDemodulationMaxMatches.actualValue; }
+  vstring subsumptionLogfile() const { return _subsumptionLogfile.actualValue; }
   Demodulation forwardDemodulation() const { return _forwardDemodulation.actualValue; }
   bool binaryResolution() const { return _binaryResolution.actualValue; }
   bool bfnt() const { return _bfnt.actualValue; }
@@ -2468,6 +2469,7 @@ private:
   UnsignedOptionValue _forwardSubsumptionDemodulationMaxMatches;
   ChoiceOptionValue<FunctionDefinitionElimination> _functionDefinitionElimination;
   IntOptionValue _functionNumber;
+  StringOptionValue _subsumptionLogfile;
   
   ChoiceOptionValue<RuleActivity> _generalSplitting;
   BoolOptionValue _globalSubsumption;

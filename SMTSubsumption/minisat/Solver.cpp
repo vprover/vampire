@@ -23,7 +23,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 using namespace SMTSubsumption::Minisat;
 
-#define TRACE_SOLVER 1
+#define TRACE_SOLVER 0
 #define DEBUG_STREAM_ENABLED TRACE_SOLVER
 #include "SMTSubsumption/cdebug.hpp"
 
