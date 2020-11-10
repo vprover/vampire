@@ -1,3 +1,5 @@
+#define DEBUG_STREAM_ENABLED 0
+
 #include "SMTSubsumption.hpp"
 #include "SubstitutionTheory.hpp"
 #include "SMTSubsumption/minisat/Solver.h"
@@ -11,6 +13,7 @@ using namespace Indexing;
 using namespace Kernel;
 using namespace SMTSubsumption;
 
+#include "SMTSubsumption/cdebug.hpp"
 
 
 // namespace {
@@ -51,19 +54,20 @@ void ProofOfConcept::test(Clause* side_premise, Clause* main_premise)
 {
   CALL("ProofOfConcept::test");
 
+
   bool subsumed = checkSubsumption(side_premise, main_premise, true);
-  std::cerr << "subsumed: " << subsumed << std::endl;
+  cdebug << "subsumed: " << subsumed;
 }
 
 bool ProofOfConcept::checkSubsumption(Kernel::Clause* side_premise, Kernel::Clause* main_premise, bool debug_messages)
 {
   CALL("ProofOfConcept::checkSubsumption");
-  debug_messages = true;
+  // debug_messages = true;
 
   if (debug_messages) {
-    std::cerr << "SMTSubsumption:\n";
-    std::cerr << "Side premise (base):     " << side_premise->toString() << std::endl;
-    std::cerr << "Main premise (instance): " << main_premise->toString() << std::endl;
+    cdebug << "SMTSubsumption:";
+    cdebug << "Side premise (base):     " << side_premise->toString();
+    cdebug << "Main premise (instance): " << main_premise->toString();
 
     static_assert(alignof(Minisat::Solver) == 8, "");
     static_assert(alignof(Minisat::Solver*) == 8, "");
@@ -107,11 +111,11 @@ bool ProofOfConcept::checkSubsumption(Kernel::Clause* side_premise, Kernel::Clau
 
     vvector<Alt> base_lit_alts;
 
-    if (debug_messages) {
-      std::cerr
-        << std::left << std::setw(20) << base_lit->toString()
-        << " -> ";
-    }
+    // if (debug_messages) {
+    //   std::cerr
+    //     << std::left << std::setw(20) << base_lit->toString()
+    //     << " -> ";
+    // }
 
     // TODO: use LiteralMiniIndex here (need to extend InstanceIterator to a version that returns the binder)
     // LiteralMiniIndex::InstanceIterator inst_it(main_premise_mini_index, base_lit, false);
@@ -128,12 +132,12 @@ bool ProofOfConcept::checkSubsumption(Kernel::Clause* side_premise, Kernel::Clau
       if (base_lit->arity() == 0 || MatchingUtils::matchArgs(base_lit, inst_lit, binder)) {
         Minisat::Var b = solver.newVar();
 
-        if (debug_messages) {
-          if (!base_lit_alts.empty()) {
-            std::cerr << " | ";
-          }
-          std::cerr << std::right << std::setw(20) << inst_lit->toString() << " [b_" << b << "]";
-        }
+        // if (debug_messages) {
+        //   if (!base_lit_alts.empty()) {
+        //     std::cerr << " | ";
+        //   }
+        //   std::cerr << std::right << std::setw(20) << inst_lit->toString() << " [b_" << b << "]";
+        // }
 
         if (binder.bindings().size() > 0) {
           ASS(!base_lit->ground());
@@ -165,12 +169,12 @@ bool ProofOfConcept::checkSubsumption(Kernel::Clause* side_premise, Kernel::Clau
         ASS_EQ(inst_lit->arity(), 2);
         binder.reset();
         if (MatchingUtils::matchReversedArgs(base_lit, inst_lit, binder)) {
-          if (debug_messages) {
-            if (!base_lit_alts.empty()) {
-              std::cerr << " | ";
-            }
-            std::cerr << "REV: " << std::left << std::setw(20) << inst_lit->toString();
-          }
+          // if (debug_messages) {
+          //   if (!base_lit_alts.empty()) {
+          //     std::cerr << " | ";
+          //   }
+          //   std::cerr << "REV: " << std::left << std::setw(20) << inst_lit->toString();
+          // }
 
           auto atom = SubstitutionAtom::from_binder(binder);
           // std::cerr << "atom: " << atom << std::endl;
@@ -190,9 +194,9 @@ bool ProofOfConcept::checkSubsumption(Kernel::Clause* side_premise, Kernel::Clau
       }
     }
 
-    if (debug_messages) {
-      std::cerr << std::endl;
-    }
+    // if (debug_messages) {
+    //   std::cerr << std::endl;
+    // }
 
     alts.push_back(std::move(base_lit_alts));
   }
@@ -203,7 +207,7 @@ bool ProofOfConcept::checkSubsumption(Kernel::Clause* side_premise, Kernel::Clau
   for (auto const& v : alts) {
     if (v.empty()) {
       if (debug_messages) {
-        std::cerr << "There is a base literal without any possible matches => abort" << std::endl;
+        cdebug << "There is a base literal without any possible matches => abort";
       }
       return false;
     }
@@ -263,13 +267,13 @@ bool ProofOfConcept::checkSubsumption(Kernel::Clause* side_premise, Kernel::Clau
   }
 
   if (debug_messages) {
-    std::cout << "ok before solving? " << solver.okay() << std::endl;
-    std::cerr << "solving" << std::endl;
+    cdebug << "ok before solving? " << solver.okay();
+    cdebug << "solving";
   }
   bool res = solver.solve({});
   if (debug_messages) {
-    std::cout << "Result: " << res << std::endl;
-    std::cout << "ok: " << solver.okay() << std::endl;
+    cdebug << "Result: " << res;
+    cdebug << "ok: " << solver.okay();
   }
   return res;
 }
