@@ -72,6 +72,7 @@ bool EqHelper::hasGreaterEqualitySide(Literal* eq, const Ordering& ord, TermList
     case Ordering::EQUAL:
       ASSERTION_VIOLATION;
   }
+  ASSERTION_VIOLATION;
 }
 
 Literal* EqHelper::replace(Literal* lit, TermList what, TermList by)

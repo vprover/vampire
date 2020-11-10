@@ -160,6 +160,8 @@ Formula* SymbolOccurrenceReplacement::process(Formula* formula) {
     case NOCONN:
       ASSERTION_VIOLATION;
     }
+
+  ASSERTION_VIOLATION;
 }
 
 FormulaList* SymbolOccurrenceReplacement::process(FormulaList* formulas) {

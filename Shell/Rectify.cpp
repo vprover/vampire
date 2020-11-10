@@ -451,6 +451,8 @@ Formula* Rectify::rectify (Formula* f)
   case NOCONN:
     ASSERTION_VIOLATION;
   }
+
+  ASSERTION_VIOLATION;
 } // Rectify::rectify (Formula*)
 
 /**
