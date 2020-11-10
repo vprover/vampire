@@ -260,6 +260,7 @@ public:
   friend bool operator==(PolyNf const& lhs, PolyNf const& rhs);
   friend bool operator!=(PolyNf const& lhs, PolyNf const& rhs);
   friend bool operator<(const PolyNf& lhs, const PolyNf& rhs);
+  friend bool operator<=(const PolyNf& lhs, const PolyNf& rhs);
   friend std::ostream& operator<<(std::ostream& out, const PolyNf& self);
 };
 
@@ -370,6 +371,8 @@ public:
 
   /** helper function for PolyNf::denormalize() */
   TermList denormalize(TermList* results)  const;
+
+  Stack<MonomFactor>& raw();
 };
 
 template<class Number>
@@ -454,6 +457,8 @@ public:
 
   /** returns iterator over all summands of this Polyom */
   SummandIter iterSummands() const&;
+
+  Stack<Monom>& raw();
 
   template<class N> friend bool operator==(const Polynom<N>& lhs, const Polynom<N>& rhs);
   template<class N> friend std::ostream& operator<<(std::ostream& out, const Polynom<N>& self);
@@ -810,6 +815,10 @@ PolyNf const& MonomFactors<Number>::termAt(unsigned i) const
 { return _factors[i].term; }
 
 template<class Number>
+Stack<MonomFactor<Number>> & MonomFactors<Number>::raw()
+{ return _factors; }
+
+template<class Number>
 bool MonomFactors<Number>::isPolynom() const
 { return nFactors() == 1 
     && _factors[0].power == 1 
@@ -904,7 +913,7 @@ void MonomFactors<Number>::integrity() const
     auto iter = this->_factors.begin();
     auto last = iter++;
     while (iter != _factors.end()) {
-      ASS_REP(last->term < iter->term, *this);
+      ASS_REP(last->term <= iter->term, *this);
       last = iter++;
     }
   }
@@ -966,9 +975,7 @@ Polynom<Number>::Polynom(Stack<Monom>&& summands)
 template<class Number>
 Polynom<Number>::Polynom(Monom m) 
   : Polynom(
-      m.numeral == Numeral(0)
-        ? Stack<Monom>() 
-        : Stack<Monom> {  m  }) 
+      Stack<Monom>{m})
 {  }
 
 template<class Number>
@@ -1076,6 +1083,10 @@ TermList Polynom<Number>::denormalize(TermList* results) const
 }
 
 template<class Number>
+Stack<Monom<Number>>& Polynom<Number>::raw()
+{ return _summands; }
+
+template<class Number>
 Polynom<Number> Polynom<Number>::replaceTerms(PolyNf* simplifiedTerms) const 
 {
   CALL("Polynom::replaceTerms(PolyNf*)")
@@ -1116,7 +1127,8 @@ void Polynom<Number>::integrity() const {
     auto iter = this->_summands.begin();
     auto last = iter++;
     while (iter != _summands.end()) {
-      ASS_REP(std::less<Perfect<MonomFactors>>{}(last->factors, iter->factors), *this);
+      // ASS_REP(std::less<Perfect<MonomFactors>>{}(last->factors, iter->factors), *this);
+      ASS_REP(last->factors <= iter->factors, *this);
       iter->factors->integrity();
       last = iter++;
     }

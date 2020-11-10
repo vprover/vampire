@@ -42,7 +42,6 @@ Option<LitSimplResult> tryEvalConstant2(Literal* orig, PolyNf* evaluatedArgs, Ev
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 template<class Number> inline Option<LitSimplResult> interpretEquality(bool polarity, Perfect<Polynom<Number>> lhs, Perfect<Polynom<Number>> rhs) {
-  
   if (lhs->isNumber() && rhs->isNumber()) {
     return Option<LitSimplResult>(LitSimplResult::constant(polarity == (lhs->unwrapNumber() == rhs->unwrapNumber())));
   } else if (lhs == rhs) {
@@ -60,6 +59,7 @@ IMPL_EVALUATE_PRED(Interpretation::EQUAL,
   auto& lhs = evaluatedArgs[0];
   auto& rhs = evaluatedArgs[1];
   auto polarity = orig->polarity();
+  DEBUG("evaluating ", lhs, polarity ? " = " : " /= ", rhs)
   auto sort = SortHelper::getEqualityArgumentSort(orig);
 
   if (lhs == rhs) {

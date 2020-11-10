@@ -4,290 +4,361 @@
 
 namespace Kernel {
 
-// /** This class is a helper class to bottom-up normalize a polynomial. It represents a sum of products, and 
-//  * is therefore almost the same data structure as a Polynom, but with the difference that the summands of this structure
-//  * are not perfectly shared, and not sorted. 
-//  * 
-//  * The basic idea of normalization is to bottom-up transform every term 
-//  * norm((a + b) + c) ==> Sum(norm(a + b), norm(c)) ==>  Sum(Sum(norm(a), norm(b)), norm(c))
-//  *                                                          ^^^^^^^^^^^^^^^^^^^^^
-//  * if we used Polynom() instead of sum term 1
-//  */
-// template<class Number>
-// class Sum 
-// { 
-//   using Const = typename Number::ConstantType;
-//   using Prod = Kernel::Prod<Number>;
-//   Stack<Prod> _summands; 
-//
-//   explicit Sum(Prod&& m0, Prod&& m1) : _summands(Stack<Prod>(2)) 
-//   {
-//     _summands.push(std::move(m0));
-//     _summands.push(std::move(m1));
-//   }
-//
-// public:
-//
-//   explicit Sum(Prod&& m0) : _summands(Stack<Prod>(1)) 
-//   { _summands.push(std::move(m0)); }
-//
-//   Sum(Sum&&) = default;
-//   Sum& operator=(Sum&&) = default;
-//
-//   static NormalizationResult mul(PolyNf& t, Sum& p)
-//   {
-//     if (p._summands.size() == 1) {
-//       //  Poly(Mon(p0 * p1 * ... )) * t ==> Poly(Mon(t * p0 * ... ))
-//       p._summands[0]._factors.push(std::move(t));
-//       return NormalizationResult(std::move(p));
-//     } else {
-//       ASS(p._summands.size() > 1);
-//       //  Poly(p0 + p1 + ...) * t ==> Poly(Mon(t * Poly(p0 + p1 + ...)))
-//       return NormalizationResult(Sum( Prod ( t, p.polyNf() ) ));
-//     }
-//   }
-//
-//   static NormalizationResult mul(Sum& lhs, Sum& rhs)
-//   {
-//     ASS_NEQ(lhs._summands.size(), 0)
-//     ASS_NEQ(rhs._summands.size(), 0)
-//
-//     if (lhs._summands.size() == 1 && rhs._summands.size() == 1) {
-//       //  Poly(Mon(l0 * l1 * ... )) * Poly(Mon(r0 * r1 * ...)) ==> Poly(Mon(l0 * ... * r0 * ...))
-//       lhs._summands[0]._factors.moveFromIterator(rhs._summands[0]._factors.iter());
-//       return NormalizationResult(std::move(lhs));
-//     } else if (lhs._summands.size() > 1 && rhs._summands.size() == 1) {
-//       //               Poly(l0 + l1 + ...) * Poly(Mon(r0 * r1 * ...)) 
-//       //  ==> Poly(Mon(Poly(l0 + l1 + ...) *          r0 * r1 * ...))
-//       rhs._summands[0]._factors.push(lhs.polyNf());
-//       return NormalizationResult(std::move(rhs));
-//     } else if (lhs._summands.size() == 1 && rhs._summands.size() > 1) {
-//       // symmetric to the last case
-//       lhs._summands[0]._factors.push(rhs.polyNf());
-//       return NormalizationResult(std::move(lhs));
-//
-//     } else if (lhs._summands.size() > 1 && rhs._summands.size() > 1) {
-//       //               Poly(l0 + l1 + ...) * Poly(r0 + r1 + ...)
-//       //  ==> Poly(Mon(Poly(l0 + l1 + ...) * Poly(r0 + r1 + ...))
-//       return NormalizationResult(Sum( Prod(lhs.polyNf(), rhs.polyNf()) ));
-//     }
-//     ASSERTION_VIOLATION
-//   }
-//
-//
-//   static NormalizationResult mul(NormalizationResult& lhs, NormalizationResult& rhs)
-//   {
-//     if (lhs.is<PolyNf>() && rhs.is<PolyNf>()) {
-//       return NormalizationResult(Sum ( 
-//           Prod(
-//               lhs.unwrap<PolyNf>(), 
-//               rhs.unwrap<PolyNf>() 
-//           )
-//         ));
-//     } else if (lhs.is<PolyNf>() && rhs.is<Sum>()) {
-//       return mul(lhs.unwrap<PolyNf>(), rhs.unwrap<Sum>());
-//     } 
-//     ASS(lhs.is<Sum>());
-//     if (rhs.is<PolyNf>()) {
-//       return mul(rhs.unwrap<PolyNf>(), lhs.unwrap<Sum>());
-//     }  else {
-//       return mul(lhs.unwrap<Sum>(), rhs.unwrap<Sum>());
-//     }
-//   }
-//
-//   Option<typename Number::ConstantType> tryNumeral() const
-//   {
-//     if (_summands.size() == 1 && _summands[0]._factors.size() == 1) {
-//       return _summands[0]._factors[0].template tryNumeral<Number>();
-//     } else {
-//       return Option<typename Number::ConstantType>();
-//     }
-//   }
-//
-//   static NormalizationResult numeral(PolyNf p) 
-//   { return NormalizationResult(Sum(Prod(p))); }
-//
-//   static NormalizationResult numeral(typename Number::ConstantType c) 
-//   { 
-//     auto fun = FuncId(theory->representConstant(c)->functor());
-//     return numeral(PolyNf(perfect(FuncTerm(fun, Stack<PolyNf>{}))));
-//   }
-//
-//   static NormalizationResult add(NormalizationResult& lhs, NormalizationResult& rhs)
-//   {
-//     if (lhs.is<PolyNf>() && rhs.is<PolyNf>()) {
-//       return NormalizationResult(Sum(Prod(lhs.unwrap<PolyNf>()), Prod(rhs.unwrap<PolyNf>())));
-//     } else if (lhs.is<PolyNf>() || rhs.is<PolyNf>()) {
-//       Sum p = rhs.is<PolyNf>() ? std::move(lhs).unwrap<Sum>() : std::move(rhs).unwrap<Sum>();
-//       PolyNf  t = rhs.is<PolyNf>() ? rhs.unwrap< PolyNf>() : lhs.unwrap< PolyNf>();
-//       p._summands.push(Prod(t));
-//       return NormalizationResult(std::move(p));
-//     } else {
-//       ASS(lhs.is<Sum>())
-//       ASS(rhs.is<Sum>())
-//       auto out = std::move(lhs).unwrap<Sum>();
-//       out._summands.moveFromIterator(rhs.unwrap<Sum>()._summands.iter());
-//       return NormalizationResult(std::move(out));
-//     }
-//   }
-//
-//   PolyNf polyNf()  
-//   {
-//     using Monom        = Kernel::Monom<Number>;
-//     using Polynom      = Kernel::Polynom  <Number>;
-//     using MonomFactor  = Kernel::MonomFactor <Number>;
-//     using MonomFactors = Kernel::MonomFactors<Number>;
-//
-//     // auto begin = _summands.begin();
-//     auto summands = 
-//         // iterTraits(_summands.iter())
-//         iterTraits(getArrayishObjectIterator<mut_ref_t>(_summands))
-//           .map([](Prod& p) -> Monom {
-//             std::sort(p._factors.begin(), p._factors.end()); // TODO make different orderings possible
-//             Stack<MonomFactor> monomFactors;
-//             auto iter = p._factors.begin();
-//             Option<Const> coeff;
-//             while (iter != p._factors.end()) {
-//               auto elem = *iter;
-//               auto num = elem.template tryNumeral<Number>();
-//               if (num.isSome() && coeff.isNone()) {
-//                  coeff = some(num.unwrap());
-//                  iter++;
-//               } else {
-//                 unsigned cnt = 0;
-//                 while (iter != p._factors.end() && *iter == elem) {
-//                   cnt++;
-//                   iter++;
-//                 }
-//                 ASS(cnt != 0);
-//                 monomFactors.push(MonomFactor(elem, cnt));
-//               }
-//             }
-//             return Monom(coeff.unwrapOr(Const(1)), perfect(MonomFactors(std::move(monomFactors))));
-//           })
-//           .template collect<Stack>();
-//     auto sbegin = summands.begin();
-//     auto send = summands.end();
-//     std::sort(sbegin, send); 
-//
-//     // TODO insert into memo
-//     return PolyNf(AnyPoly(perfect(Polynom(std::move(summands)))));
-//   }
-//
-//   static NormalizationResult minus(NormalizationResult& inner)
-//   { 
-//     static NormalizationResult minusOne(PolyNf(perfect(FuncTerm(FuncId(Number::constantT(-1)->functor()), nullptr))));
-//     return mul(minusOne, inner); 
-//   }
-//
-// public:
-//   friend ostream& operator<<(ostream& out, Sum const& self) 
-//   { return out << "Sum" << self._summands; }
-// };
+/** a struct that normalizes an object of type MonomFactors to a Monom */
+struct RenderMonom {
+
+  template<class NumTraits>
+  Monom<NumTraits> operator()(MonomFactors<NumTraits>&& x) const 
+  { 
+    CALL("RenderMonom::operator()(MonomFactors<Numeral>&&)")
+    using Numeral      = typename NumTraits::ConstantType;
+    using Monom        = Monom       <NumTraits>;
+    auto& raw = x.raw();
+    std::sort(raw.begin(), raw.end());
+    auto fstNum = Option<Numeral>();
+    auto len = 0;
+    for (auto x : raw) {
+      ASS_EQ(x.power, 1)
+      if (x.term.template tryNumeral<NumTraits>().isSome() && fstNum.isNone()) {
+        fstNum = x.term.template tryNumeral<NumTraits>();
+
+      } else if (len == 0) {
+        len++;
+        raw[len - 1].term = x.term;
+        ASS_EQ(raw[len - 1].power, 1);
+
+      } else if (raw[len - 1].term == x.term) {
+        raw[len - 1].power++;
+
+      } else {
+        len++;
+        raw[len - 1].term = x.term;
+        ASS_EQ(raw[len - 1].power, 1)
+
+      }
+    }
+    raw.truncate(len);
+    ASS_EQ(raw.size(), len)
+    x.integrity();
+    auto num = fstNum.map([](Numeral& n) -> Numeral { return n; }).unwrapOrElse([](){return Numeral(1);});
+    return Monom(num, perfect(std::move(x)));
+  }
+};
+
+/** a struct that turns any alternative of a NormalizationResult into a PolyNf */
+struct RenderPolyNf {
+
+  PolyNf operator()(PolyNf&& x) const 
+  { return std::move(x); }
+
+  template<class NumTraits>
+  PolyNf operator()(Polynom<NumTraits>&& x) const 
+  { 
+    std::sort(x.raw().begin(), x.raw().end());
+    x.integrity();
+    return PolyNf(perfect(std::move(x))); 
+  }
+
+  template<class NumTraits>
+  PolyNf operator()(MonomFactors<NumTraits>&& facs) const 
+  { 
+    return (*this)(Polynom<NumTraits>(RenderMonom{}(std::move(facs))));
+  }
+
+};
+
+
+
+template<class NumTraits>
+NormalizationResult normalizeAdd(NormalizationResult& lhs, NormalizationResult& rhs) {
+  CALL("normalizeAdd")
+  using Polynom = Polynom<NumTraits>;
+  using Monom = Monom<NumTraits>;
+  using MonomFactors = MonomFactors<NumTraits>;
+  ASS(lhs.is<Polynom>() || lhs.is<MonomFactors>())
+  ASS(rhs.is<Polynom>() || rhs.is<MonomFactors>())
+
+  if (lhs.is<MonomFactors>() && rhs.is<Polynom>())  {
+    auto& l = lhs.unwrap<MonomFactors>();
+    auto& r = rhs.unwrap<Polynom>();
+    /* Monom(...) + Polynom(x0, x1, ...) ==> Polynom(x0, x1, ..., Monom(...)) */
+    r.raw().push(RenderMonom{}(std::move(l)));
+    return std::move(rhs);
+
+  } else if (rhs.is<MonomFactors>() && lhs.is<Polynom>()){
+    auto& r = rhs.unwrap<MonomFactors>();
+    auto& l = lhs.unwrap<Polynom>();
+
+    /*  Polynom(x0, x1, ...) + Monom(...) ==> Polynom(x0, x1, ..., Monom(...)) */
+    l.raw().push(RenderMonom{}(std::move(r)));
+    return std::move(lhs);
+
+  } else if (lhs.is<MonomFactors>() && rhs.is<MonomFactors>()) {
+    auto& l = lhs.unwrap<MonomFactors>();
+    auto& r = rhs.unwrap<MonomFactors>();
+
+    /* Monom(x0, x1, ...) + Monom(y0, y1, ...) ==> Polynom(Monom(x0, x1, ...), Polynom(y0, y1, ...)) */
+    Stack<Monom> summands(2);
+    summands.push(RenderMonom{}(std::move(l)));
+    summands.push(RenderMonom{}(std::move(r)));
+    return NormalizationResult(Polynom(std::move(summands)));
+
+  } else{
+    ASS(lhs.is<Polynom>())
+    ASS(rhs.is<Polynom>())
+    auto& l = lhs.unwrap<Polynom>();
+    auto& r = rhs.unwrap<Polynom>();
+
+    /* Polynom(x0, x1, ...) + Polynom(y0, y1, ...) ==> Polynom(x0, x1, ..., y0, y1, ...) */
+    l.raw().reserve(l.raw().size() + r.raw().size());
+    l.raw().loadFromIterator(r.raw().iter());
+    return std::move(lhs);
+  }
+}
+
+
+template<class NumTraits>
+NormalizationResult normalizeMul(NormalizationResult& lhs, NormalizationResult& rhs) {
+  CALL("normalizeMul")
+  using Polynom = Polynom<NumTraits>;
+  using MonomFactors = MonomFactors<NumTraits>;
+  using MonomFactor = MonomFactor<NumTraits>;
+  ASS(lhs.is<Polynom>() || lhs.is<MonomFactors>())
+  ASS(rhs.is<Polynom>() || rhs.is<MonomFactors>())
+
+  if (lhs.is<MonomFactors>() && rhs.is<Polynom>())  {
+    auto& l = lhs.unwrap<MonomFactors>();
+    auto& r = rhs.unwrap<Polynom>();
+    /* Monom(x0, x1, ...) * Polynom(...) ==> Monom(x0, x1, ..., Polynom(...)) */
+    l.raw().push(MonomFactor(RenderPolyNf{}(std::move(r)), 1));
+    return std::move(lhs);
+
+    // rhs.raw().push(toNormalizedMonom(std::move(lhs)));
+    // return std::move(rhs);
+
+  } else if (rhs.is<MonomFactors>() && lhs.is<Polynom>()){
+    auto& r = rhs.unwrap<MonomFactors>();
+    auto& l = lhs.unwrap<Polynom>();
+    /* Polynom(...) * Monom(x0, x1, ...) ==> Monom(x0, x1, ..., Polynom(...)) */
+    r.raw().push(MonomFactor(RenderPolyNf{}(std::move(l)), 1));
+    return std::move(rhs);
+
+    // lhs.raw().push(toNormalizedMonom(std::move(rhs)));
+    // return std::move(lhs);
+
+  } else if (lhs.is<MonomFactors>() && rhs.is<MonomFactors>()) {
+    auto& l = lhs.unwrap<MonomFactors>();
+    auto& r = rhs.unwrap<MonomFactors>();
+
+    /* Monom(x0, x1, ...) * Monom(y0, y1, ...) ==> Monom(x0, x1, ..., y0, y1, ...) */
+    l.raw().reserve(l.raw().size() + r.raw().size());
+    l.raw().loadFromIterator(r.raw().iter());
+    return std::move(lhs);
+
+  } else{
+    ASS(lhs.is<Polynom>())
+    ASS(rhs.is<Polynom>())
+    auto l = RenderPolyNf{}(std::move(lhs.unwrap<Polynom>()));
+    auto r = RenderPolyNf{}(std::move(rhs.unwrap<Polynom>()));
+
+    /* Polynom(x0, x1, ...) * Polynom(y0, y1, ...) ==> Monom(Polynom(x0, x1, ...), Polynom(y0, y1, ...)) */
+
+    return NormalizationResult(MonomFactors({
+        MonomFactor(l,1),
+        MonomFactor(r,1)
+    }));
+  }
+}
+template<class NumTraits>
+Option<NormalizationResult> normalizeSpecialized(Interpretation i, NormalizationResult* ts);
+
+template<class NumTraits>
+Option<NormalizationResult> normalizeDiv(NormalizationResult& lhs, NormalizationResult& rhs);
+
+template<class NumTraits>
+Option<NormalizationResult> normalizeSpecializedFractional(Interpretation i, NormalizationResult* ts)
+{
+  switch (i) {
+    case NumTraits::divI:
+      return normalizeDiv<NumTraits>(ts[0], ts[1]);
+    default:
+      return Option<NormalizationResult>();
+  }
+}
+
+
+template<>
+Option<NormalizationResult> normalizeSpecialized<IntTraits>(Interpretation i, NormalizationResult* ts) 
+{ return Option<NormalizationResult>(); }
+
+template<>
+Option<NormalizationResult> normalizeSpecialized<RatTraits>(Interpretation i, NormalizationResult* ts) 
+{ return normalizeSpecializedFractional< RatTraits>(i,ts); }
+
+template<>
+Option<NormalizationResult> normalizeSpecialized<RealTraits>(Interpretation i, NormalizationResult* ts) 
+{ return normalizeSpecializedFractional<RealTraits>(i,ts); }
+
+template<class NumTraits>
+struct TryNumeral {
+  using Numeral = typename NumTraits::ConstantType;
+
+  template<class C> Option<Numeral> operator()(C& term) const
+  { return Option<Numeral>(); }
+
+  template<> Option<Numeral> operator()(PolyNf& term) const
+  { 
+    ASSERTION_VIOLATION
+    // return term.tryNumeral<NumTraits>(); 
+  }
+
+
+  template<> Option<Numeral> operator()(MonomFactors<NumTraits>& term) const
+  { 
+    if (term.raw().size() == 1)  {
+      auto fac = term.raw()[0];
+      ASS_EQ(fac.power, 1);
+      return fac.term.template tryNumeral<NumTraits>();
+    } else {
+      return Option<Numeral>();
+    }
+  }
+
+};
+
+template<class ConstantType>
+NormalizationResult wrapNumeral(ConstantType c) 
+{ 
+  using NumTraits = NumTraits<ConstantType>;
+  PolyNf numPolyNf(PolyNf(perfect(FuncTerm(FuncId(NumTraits::constantT(c)->functor()), nullptr))));
+  return NormalizationResult(MonomFactors<NumTraits>(numPolyNf));
+}
+
+template<class NumTraits>
+Option<NormalizationResult> normalizeDiv(NormalizationResult& lhs, NormalizationResult& rhs) {
+  using Numeral = typename NumTraits::ConstantType;
+
+  auto num = rhs.apply(TryNumeral<NumTraits>{});
+  if (num.isSome() && num.unwrap() != Numeral(0)) {
+    auto inv = wrapNumeral(Numeral(1) / num.unwrap());
+    return Option<NormalizationResult>(normalizeMul<NumTraits>(inv, lhs)); 
+  } else {
+    return Option<NormalizationResult>();
+  }
+}
+
+
+template<class NumTraits>
+NormalizationResult normalizeMinus(NormalizationResult& x) {
+  using Numeral = typename NumTraits::ConstantType;
+
+  auto minusOne = wrapNumeral(Numeral(-1));
+  return normalizeMul<NumTraits>(minusOne, x); 
+}
+
+template<class NumTraits>
+NormalizationResult normalizeNumSort(TermList t, NormalizationResult* ts) 
+{
+  CALL("normalizeNumSort(TermList,NormalizationResult)")
+  auto singletonProduct = [](PolyNf t) -> NormalizationResult {
+    return NormalizationResult(MonomFactors<NumTraits>(t));
+  };
+
+  if (t.isVar()) {
+    return singletonProduct(PolyNf(Variable(t.var())));
+
+  } else {
+    auto term = t.term();
+    auto fn = FuncId(term->functor());
+
+    if (fn.isInterpreted()) {
+      switch(fn.interpretation()) {
+        case NumTraits::mulI:
+          return normalizeMul<NumTraits>(ts[0], ts[1]);
+        case NumTraits::addI:
+          return normalizeAdd<NumTraits>(ts[0], ts[1]);
+        case NumTraits::minusI:
+          return normalizeMinus<NumTraits>(ts[0]);
+        default:
+        {
+          auto out = normalizeSpecialized<NumTraits>(fn.interpretation(), ts);
+          if (out.isSome()) {
+            return out.unwrap();
+          }
+        }
+      }
+    }
+
+    return singletonProduct(PolyNf(perfect(FuncTerm(
+        fn, 
+        Stack<PolyNf>::fromIterator(
+            iterTraits(getArrayishObjectIterator<mut_ref_t>(ts, fn.arity()))
+            .map( [](NormalizationResult& r) -> PolyNf { return std::move(r).apply(RenderPolyNf{}); }))
+      )
+    )));
+  }
+}
 
 
 PolyNf normalizeTerm(TypedTermList t) 
 {
   CALL("PolyNf::normalize")
   DEBUG("normalizing ", t)
-  NormalizationMemo memo;
+  Memo::None<TypedTermList,NormalizationResult> memo;
   struct Eval 
   {
     using Arg    = TypedTermList;
     using Result = NormalizationResult;
 
-    Option<NormalizationResult> normalizeInterpreted(Interpretation i, NormalizationResult* results) const
-    {
-      switch (i) {
-#     define NUM_CASE(NumTraits)                                                                              \
-        case NumTraits::mulI:                                                                                 \
-          return some<NormalizationResult>(Sum<NumTraits>::mul(results[0], results[1]));                      \
-        case NumTraits::addI:                                                                                 \
-          return some<NormalizationResult>(Sum<NumTraits>::add(results[0], results[1]));                      \
-        case NumTraits::minusI:                                                                               \
-          return some<NormalizationResult>(Sum<NumTraits>::minus(results[0]));
-
-#     define FRAC_CASE(NumTraits)                                                                             \
-        case NumTraits::divI:                                                                                 \
-        {                                                                                                     \
-          auto maybeNumeral = results[1].template as<Sum<NumTraits>>()                                        \
-            .andThen([](Sum<NumTraits> const& p)                                                              \
-                { return p.tryNumeral(); });                                                                  \
-                                                                                                              \
-          return maybeNumeral                                                                                 \
-            .andThen([&](NumTraits::ConstantType& c)->Option<NormalizationResult>                             \
-                {                                                                                             \
-                  if (c == NumTraits::ConstantType(0)) {                                                      \
-                    return none<NormalizationResult>();                                                       \
-                  } else {                                                                                    \
-                    auto rhs = Sum<NumTraits>::numeral(NumTraits::oneC / c);                                  \
-                    return some<NormalizationResult>(Sum<NumTraits>::mul(results[0], rhs));                   \
-                  }                                                                                           \
-                });                                                                                           \
-        } 
-
-        NUM_CASE( IntTraits)
-        NUM_CASE( RatTraits)
-        NUM_CASE(RealTraits)
-        FRAC_CASE( RatTraits)
-        FRAC_CASE(RealTraits)
-#     undef NUM_CASE
-#     undef FRAC_CASE
-        default:
-          {}
-      }
-      return Option<NormalizationResult>();
-    } 
-
     NormalizationResult operator()(TypedTermList t, NormalizationResult* ts) const
     { 
-      if (t.isVar()) {
-        auto var = PolyNf(Variable(t.var()));
-        switch (t.sort()) {
-#         define VAR_CASE(NumTraits)                                                                          \
-            case NumTraits::sort: return NormalizationResult(Sum<NumTraits>(Prod<NumTraits>(var)));
-          VAR_CASE( IntTraits)
-          VAR_CASE( RatTraits)
-          VAR_CASE(RealTraits)
-#         undef VAR_CASE
-          default:
-            return NormalizationResult(var);
-        }
-      } else {
-        ASS(t.isTerm());
-        auto term = t.term();
-        auto fn = FuncId(term->functor());
-        if (fn.isInterpreted()) {
-          auto maybePoly = normalizeInterpreted(fn.interpretation(), ts);
-          if (maybePoly.isSome()) {
-            return std::move(maybePoly).unwrap();
-          }
-        } 
-        auto out = perfect(FuncTerm(
+      switch (t.sort()) {
+        case  IntTraits::sort: return normalizeNumSort< IntTraits>(t, ts);
+        case  RatTraits::sort: return normalizeNumSort< RatTraits>(t, ts);
+        case RealTraits::sort: return normalizeNumSort<RealTraits>(t, ts);
+        default:
+        {
+          if (t.isVar()) {
+            return NormalizationResult(PolyNf(Variable(t.var())));
+          } else {
+            auto fn = FuncId(t.term()->functor());
+            return NormalizationResult(PolyNf(perfect(FuncTerm(
                 fn, 
                 Stack<PolyNf>::fromIterator(
                     iterTraits(getArrayishObjectIterator<mut_ref_t>(ts, fn.arity()))
-                    .map( [](NormalizationResult& r) -> PolyNf { return toPolyNf(r); }))
+                    .map( [](NormalizationResult& r) -> PolyNf { return std::move(r).apply(RenderPolyNf{}); }))
               )
-            );
-
-#     define NUMERAL_CASE(Num)                                                                                \
-          if (fn.template tryNumeral<Num ## Traits>().isSome())                                               \
-            return NormalizationResult(Sum<Num ## Traits>::numeral(out));
-          
-        NUMERAL_CASE(Int )
-        NUMERAL_CASE(Rat )
-        NUMERAL_CASE(Real)
-
-#     undef NUMERAL_CASE
-
-        return NormalizationResult(PolyNf(out));
+            )));
+          }
+        }
       }
     }
   };
   NormalizationResult r = evaluateBottomUp(t, Eval{}, memo);
-  return toPolyNf(r);
+  return std::move(r).apply(RenderPolyNf{});
 }
+
+TermList PolyNf::denormalize() const
+{ 
+  CALL("PolyNf::denormalize")
+  DEBUG("converting ", *this)
+  struct Eval 
+  {
+    using Arg    = PolyNf;
+    using Result = TermList;
+
+    TermList operator()(PolyNf orig, TermList* results)
+    { return orig.match(
+        [&](Perfect<FuncTerm> t) { return TermList(Term::create(t->function().id(), t->arity(), results)); },
+        [&](Variable          v) { return TermList::var(v.id()); },
+        [&](AnyPoly           p) { return p.denormalize(results); }
+        ); }
+  };
+
+  static Memo::Hashed<PolyNf, TermList> memo;
+  return evaluateBottomUp(*this, Eval{}, memo);
+}
+
 
 
 } // namespace Kernel

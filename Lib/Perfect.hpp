@@ -77,6 +77,10 @@ template<class U, class C>
 bool operator<(const Lib::Perfect<U, C> & lhs, const Lib::Perfect<U, C>& rhs) 
 { return std::less<Lib::Perfect<U, C>>{}(lhs,rhs); }
 
+template<class U, class C> 
+bool operator<=(const Lib::Perfect<U, C> & lhs, const Lib::Perfect<U, C>& rhs) 
+{ return lhs < rhs || lhs == rhs; }
+
 template<class U, class C> bool operator==(Perfect<U, C> const& l, Perfect<U, C> const& r)
 { return l._elem == r._elem; }
 

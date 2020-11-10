@@ -8,31 +8,114 @@ UT_CREATE;
 using namespace Kernel;
 using namespace Lib;
 
-TEST_FUN(is_variant_01) {
-  auto x = Coproduct<int, int, const char*>::variant<2>("lala");
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// USAGE EXAMPLES
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+TEST_FUN(examples__is_variant_01) {
+  // a Coproduct can be initialized with different variants
+  auto x = Coproduct<int, int, float>::variant<2>(1.0f);
+ 
+  // one can check which variant we have with the template function is
   ASS(!x.is<0>())
   ASS(!x.is<1>())
   ASS(x.is<2>())
   // x.is<4>() // <- does not compile
+ 
+  // we can get the value using unwrap
+  ASS_EQ(1.0f, x.unwrap<2>());
+
 }
 
-TEST_FUN(equal_02) {
+
+TEST_FUN(examples__is_variant_02) {
+  // for coproducts where all variants are of distinct types we can leave away the variand index for construction
+  auto x = Coproduct<int, float>(1.0f);
+ 
+  // and in this case we can also use the type for is and unrap
+  ASS(x.is<float>())
+  ASS(!x.is<int>())
+  ASS_EQ(x.unwrap<float>(), 1.0f);
+
+  // x.is<char*>() // <- does not compile
+}
+
+
+TEST_FUN(examples__is_variant_03) {
+  auto const x = Coproduct<int, float>(1.0f);
+ 
+  // `as` is the combined version of `is` and `unwrap`:
+  ASS(x.as<float>().isSome())
+  ASS(x.as<int>().isNone())
+
+  ASS_EQ(x.as<float>().toOwned(), Option<float>(1.0f));
+  ASS_EQ(x.as<int>()  .toOwned(), Option<int>());
+
+  // x.is<char*>() // <- does not compile
+}
+
+TEST_FUN(examples__equal_01) {
+  // two corproduct variants can have the same type and value, but a distinct tag.
   auto x = Coproduct<int, int, float>::variant<0>(0);
   auto y = Coproduct<int, int, float>::variant<1>(0);
   ASS(x != y)
 }
 
-TEST_FUN(equal_03) {
+TEST_FUN(examples__equal_02) {
+  // they are only equal if their tag and their content matches
   auto x = Coproduct<int, int, float>::variant<0>(0);
   auto y = Coproduct<int, int, float>::variant<0>(0);
   ASS(x == y)
 }
 
-TEST_FUN(equal_04) {
+TEST_FUN(examples__equal_03) {
   auto x = Coproduct<int, int, float>::variant<0>(0);
   auto y = Coproduct<int, int, float>::variant<0>(1);
   ASS(x != y)
 }
+
+TEST_FUN(examples__match_01) {
+  // we can also transform the content using the match method
+  auto x = Coproduct<int, float>(1);
+  auto isGreaterThanZero = x.match(
+      [](int   i) { return i > 0;  },
+      [](float f) { return f > 0.0f; }
+  );
+  ASS(isGreaterThanZero)
+}
+
+
+struct ToString {
+  template<class C>
+  vstring operator()(C const& c)
+  { 
+    vstringstream out;
+    out << c;
+    return out.str(); 
+  }
+};
+
+TEST_FUN(examples__match_02) {
+  // Further we can create polymorphic function structs if each match branch does the same thing
+  auto x = Coproduct<int, float>(1);
+
+  vstring str = x.apply(ToString{});
+  ASS_EQ(str, "1")
+}
+
+TEST_FUN(examples__compare) {
+  // Coproducts are orderd first by tag, then by value.
+  using Co = Coproduct<int, double>;
+  ASS(Co(1) < Co(1.0))
+  ASS(Co(2) < Co(1.0))
+  ASS(Co(2) < Co(3))
+  ASS(Co(1.0) < Co(2.0))
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// MISC TESTS
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 TEST_FUN(unwrap_01) {
   auto x = Coproduct<int, int, float>::variant<0>(0);

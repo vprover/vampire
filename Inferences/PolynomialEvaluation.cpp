@@ -332,9 +332,15 @@ Monom<Number> simplifyMonom(Monom<Number> const& in, PolyNf* simplifiedArgs)
         args[offs++] = MonomFactor(term, power);
     }
   }
-  args.truncate(offs);
- 
-  return Monom(numeral, perfect(MonomFactors(std::move(args)))); 
+
+  DEBUG("lala")
+
+  if (numeral == Numeral(0)) {
+    return Monom::zero();
+  } else {
+    args.truncate(offs);
+    return Monom(numeral, perfect(MonomFactors(std::move(args)))); 
+  }
 }
 
 

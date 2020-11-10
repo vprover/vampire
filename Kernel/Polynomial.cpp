@@ -165,13 +165,16 @@ std::ostream& operator<<(std::ostream& out, const PolyNf& self)
 { return self.apply(Polymorphic::outputOp{out}); }
 
 Option<Variable> PolyNf::tryVar() const 
-{ return as<Variable>().template innerInto<Variable>(); }
+{ return as<Variable>().toOwned(); }
 
 IterTraits<PolyNf::SubtermIter> PolyNf::iterSubterms() const 
 { return iterTraits(SubtermIter(*this)); }
 
 bool operator<(const PolyNf& lhs, const PolyNf& rhs) 
 { return std::less<PolyNfSuper>{}(lhs,rhs); }
+
+bool operator<=(const PolyNf& lhs, const PolyNf& rhs) 
+{ return lhs < rhs || lhs == rhs; }
 
 PolyNf::SubtermIter::SubtermIter(PolyNf p) 
   : _stack(decltype(_stack){ BottomUpChildIter<PolyNf>(p) }) 

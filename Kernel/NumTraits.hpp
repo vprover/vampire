@@ -160,7 +160,8 @@ struct NumTraits;
     IMPL_NUM_TRAITS__SPECIAL_CONSTANT(zero, 0, isZero)                                                        \
                                                                                                               \
     static ConstantType constant(int i) { return ConstantType(i); }                                           \
-    static Term* constantT(int i) { return theory->representConstant(constant(i)); }                          \
+    static Term* constantT(int i) { return constantT(constant(i)); }                                                    \
+    static Term* constantT(ConstantType i) { return theory->representConstant(i); }                 \
     static TermList constantTl(int i) { return TermList(constantT(i)); }                                      \
     static Option<ConstantType> tryNumeral(TermList t) {                                                      \
       ConstantType out;                                                                                       \

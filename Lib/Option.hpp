@@ -1,3 +1,9 @@
+/** 
+ * This file mainly defined the class Option, which can be thought of as a NULLable pointer, that is 
+ * stack-allocated, with RAII semantics. 
+ *
+ * \see UnitTests/tOption.cpp for examples of the usage
+ */
 #ifndef __OPTIONAL_H__
 #define __OPTIONAL_H__
 
@@ -158,7 +164,8 @@ public:
   { return ptr == nullptr ? OptionBaseRef() : *ptr; }
 
   friend bool operator==(OptionBaseRef const& lhs, OptionBaseRef const& rhs) 
-  { return lhs._elem == rhs._elem; }
+  { return *lhs._elem == *rhs._elem; }
+
 };
 
 template<class A>
@@ -179,14 +186,28 @@ public:
   OptionBase(OptionBase const& b) : OptionBaseRef<A>(b) {}
 };
 
+/** The actual Option class
+ * An Option<A> is a class that holds either a value of type A, or is none/empty.
+ * It can be thought of a nullable pointer, that has the advantage that does not need to be allocated 
+ * in a separate structure, and does not expose any uninitialized memory to the user. Further it 
+ * automatically calls the destructor when it goes out of scope.
+ *
+ * \see UnitTests/tOption.cpp for usage examples
+ */
 template<class A>
 class Option : OptionBase<A> {
 
   explicit Option(OptionBase<A>&& base) : OptionBase<A>(std::move(base)) {  }
 public:
   using Content = A;
+
+  /** constructs an option from a value of type A&, A const&, or A&&. */
   using OptionBase<A>::OptionBase;
+
+  /** checks whether the Option holds a value */
   using OptionBase<A>::isSome;
+
+  /** returns the Options value if it holds one */
   using OptionBase<A>::unwrap;
 
   friend bool operator==(Option const& lhs, Option const& rhs) 
@@ -195,83 +216,31 @@ public:
   friend bool operator!=(Option const& lhs, Option const& rhs) 
   { return !(lhs == rhs); }
 
-  template<class C>
-  static Option<A> fromPtr(C self) 
+  /** creates an Option<A&>, or Option<A const&> from a pointer A*. if the pointer is NULL the option will be empty */
+  template<class C> static Option<A> fromPtr(C self) 
   { return Option(OptionBase<A>::fromPtr(self)); }
 
+  /** checks whether the option is empty */
   bool isNone() const { return !this->isSome(); }
 
+  /** 
+   * returns the value held by this option if there is one, or calls the given function f without arguments, 
+   * initializes the closuer with the returned value, and returns a reference to the value afterwards.
+   */ 
   template<class Clsr>
-  const A& unwrapOrElse(Clsr f) const& { 
-    static_assert(std::is_same<typename std::result_of<Clsr()>::type,
-                               A const&                             >::value, "closuer must return reference in order to be memory safe");
-    if (this->isSome()) {
-      return this->unwrap();
-    } else {
-      return f();
-    }
-  }
-
-  template<class Clsr>
-  A unwrapOrElse(Clsr f) && { 
-    // static_assert(std::is_same<typename std::result_of<Clsr()>::type,
-    //                            A &&                             >::value, "closuer must return reference in order to be memory safe");
-    if (this->isSome()) {
-      return this->unwrap();
-    } else {
-      return f();
-    }
-  }
-
-  template<class Clsr>
-  A& unwrapOrElse(Clsr f) & { 
-    static_assert(std::is_same<typename std::result_of<Clsr()>::type,
-                               A &                             >::value, "closuer must return reference in order to be memory safe");
-    if (this->isSome()) {
-      return this->unwrap();
-    } else {
-      return f();
-    }
-  }
-
-  template<class Clsr>
-  const A& unwrapOrInit(Clsr f) { 
+  A& unwrapOrInit(Clsr f) { 
     if (isNone()) {
       ::new(this) Option(f());
     }
     return this->unwrap();
   }
 
-
-  const A& unwrapOr(const A& alternative) const { 
-    if (this->isSome()) {
-      return this->unwrap();
-    } else {
-      return alternative;
-    }
-  }
-
-  // TODO get rid or R here
-  template<class R, class CasePresent, class CaseNone>
-  R match(CasePresent present, CaseNone none) const { 
-    if (this->isSome()) {
-      return present(this->unwrap());
-    } else {
-      return none();
-    }
-  }
-
-  template<class CasePresent, class CaseNone, class R>
-  R match(CasePresent present, CaseNone none) { 
-    if (this->isSome()) {
-      return present(this->unwrap());
-    } else {
-      return none();
-    }
-  }
-
 #define ref_polymorphic(REF, MOVE)                                                                            \
                                                                                                               \
+  /**                                                                                                         \
+   * applies the given function to the value of this option and returns an option of the return type.         \
+   * if the Option was None an empty option of the function's return type is returned.                        \
+   */                                                                                                         \
   template<class Clsr>                                                                                        \
   Option<typename std::result_of<Clsr(A REF)>::type> map(Clsr clsr) REF {                                     \
     using OptOut = Option<typename std::result_of<Clsr(A REF)>::type>;                                        \
@@ -279,14 +248,55 @@ public:
                           : OptOut();                                                                         \
   }                                                                                                           \
                                                                                                               \
-  template<class B> Option<B> innerInto() REF { return map([](A REF inner) { return B(MOVE(inner)); }); }     \
+  /**                                                                                                         \
+   * if the Option holds a value the first function is applied to the value.                                  \
+   * if the Option is none the second function is called without arguments and the result is returned.        \
+   * \pre both CaseSome and CaseNone must have the same return type                                           \
+   */                                                                                                         \
+  template<class CaseSome, class CaseNone>                                                                    \
+  typename std::result_of<CaseSome( A REF)>::type match(CaseSome present, CaseNone none) REF {                \
+    if (this->isSome()) {                                                                                     \
+      return present(MOVE((*this)).unwrap());                                                                 \
+    } else {                                                                                                  \
+      return none();                                                                                          \
+    }                                                                                                         \
+  }                                                                                                           \
                                                                                                               \
+  /**                                                                                                         \
+   * returns the value held by this option if there is one, or calls the given function f without arguments   \
+   * and returns the value otherwise.                                                                         \
+   */                                                                                                         \
+  template<class Clsr>                                                                                        \
+  A unwrapOrElse(Clsr f) REF {                                                                                \
+    if (this->isSome()) {                                                                                     \
+      return MOVE(*this).unwrap();                                                                            \
+    } else {                                                                                                  \
+      return f();                                                                                             \
+    }                                                                                                         \
+  }                                                                                                           \
+                                                                                                              \
+  /**                                                                                                         \
+   * applies a function to the value of this closure if ther is one. the function is expected to return       \
+   * another option. the resulting Option<Option<Result>> will then be flattened to an Option<Result>.        \
+   *                                                                                                          \
+   * This function is the same as flatMap/andThen/(>>=)  in other programming languages with monads.          \
+   */                                                                                                         \
   template<class Clsr>                                                                                        \
   typename std::result_of<Clsr(A REF)>::type andThen(Clsr clsr) REF {                                         \
     using OptOut = typename std::result_of<Clsr(A REF)>::type;                                                \
     return this->isSome() ? clsr(MOVE(*this).unwrap())                                                        \
                           : OptOut();                                                                         \
-  }
+  }                                                                                                           \
+                                                                                                              \
+  /**                                                                                                         \
+   * turns an Option<A&>, Option<A const&>, or Option<A&&> into an Option<A> by calling the appropriate move  \
+   * or copy constructor.                                                                                     \
+   */                                                                                                         \
+  Option<typename std::remove_const<typename std::remove_reference<A>::type>::type>  toOwned() REF            \
+  {                                                                                                           \
+    using Out = typename std::remove_const<typename std::remove_reference<A>::type>::type;                    \
+    return map([](A REF  elem) -> Out { return Out(MOVE(elem)); });                                           \
+  }                                                                                                           \
 
   FOR_REF_QUALIFIER(ref_polymorphic)
 

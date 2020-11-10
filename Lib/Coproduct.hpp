@@ -1,3 +1,8 @@
+/**
+ * This file defines the class Coproduct, which is a generic tagged union. 
+ *
+ * \see UnitTests/tCoproduct.cpp  for usage
+ */
 #ifndef __LIB_COPRODUCT__H__
 #define __LIB_COPRODUCT__H__
 
@@ -34,10 +39,7 @@ namespace CoproductImpl {
 
   template <class... As> union VariadicUnion;
   template <unsigned idx, class As> struct Unwrap;
-  template <unsigned idx, unsigned size, class As> struct Apply;
-  template <class As> struct Match;
 
-  // TODO get rid of this
   template <> union VariadicUnion<> {
     CLASS_NAME(VariadicUnion)
 
@@ -224,6 +226,16 @@ namespace CoproductImpl {
 template<class... Ords> struct CoproductOrdering;
 template<template<class> class Ord> struct PolymorphicCoproductOrdering;
 
+/** 
+ * the actual Coproduct class.  
+ * A coproduct, also called Sum type, is a set of types, tagged with indices. It can be constructed with 
+ * either of the type/index pairs, and in this implementation the index can be left away if all types in this 
+ * coproduct are distinct. 
+ *
+ * It is implemented as a tagged union.
+ * 
+ * \see UnitTests/tCoproduct.cpp for usage
+ */
 template <class A, class... As> 
 class Coproduct<A, As...> 
 {
@@ -238,28 +250,34 @@ class Coproduct<A, As...>
 
 public:
   CLASS_NAME(Coproduct)
-  // USE_ALLOCATOR(Coproduct)
 
+  /** a type-level list of all types of this Coproduct */
   using Ts = TL::List<A, As...>;
+
+  /** the number of alternatives */
   static constexpr unsigned size = TL::Size<Ts>::val;
 
   unsigned tag() const { return _tag; }
 
-  template <unsigned idx> struct type 
-  {
-    using value = TL::Get<idx, TL::List<A, As...>>;
-  };
+public:
 
-  template <unsigned idx> bool is() const {
+  /** Returns whether this coproduct is the variant idx */
+  template<unsigned idx> bool is() const 
+  {
     static_assert(idx < size, "out of bounds");
     return _tag == idx;
   }
 
-  template <class B> bool is() const {
-    return _tag == TL::IdxOf<B, Ts>::val;
-  }
+  /** 
+   * Returns whether this coproduct is the variant witht he given type. 
+   * \pre is exactly one occurence of the type B in this Coproduct's types (A,As...).
+   */
+  template <class B> bool is() const 
+  { return _tag == TL::IdxOf<B, Ts>::val; }
 
+  /** helper type level function, returning the first type of a list of types */
   template<class... Bs> using FstTy = TL::Get<0, TL::List<Bs...>>;
+
 #define REF_POLYMORPIHIC(REF, MOVE)                                                                           \
                                                                                                               \
   Coproduct(Coproduct REF other) : _tag(other._tag) {                                                         \
@@ -268,6 +286,10 @@ public:
     CoproductImpl::InitDynamicTag<0, size, Ts>{}(_content, other._tag, MOVE(other._content));                 \
   }                                                                                                           \
                                                                                                               \
+  /**                                                                                                         \
+   * constructs a new Coproduct with the variant idx. The argument type must match `idx`th type of this       \
+   * corpoduct's variants types (A,As...).                                                                    \
+   */                                                                                                         \
   template <unsigned idx>                                                                                     \
   static Coproduct variant(TL::Get<idx, Ts> REF value) {                                                      \
     Coproduct self;                                                                                           \
@@ -276,6 +298,22 @@ public:
     return MOVE(self);                                                                                        \
   }                                                                                                           \
                                                                                                               \
+  /**                                                                                                         \
+   * constructs a new Coproduct with the variant idx.  \
+   * \pre B must occur exactly once in A,As... \
+   */                                                                                                         \
+  template<class B>                                                                                           \
+  explicit Coproduct(B REF b)                                                                                 \
+    : Coproduct(variant<TL::IdxOf<B, Ts>::val>(MOVE(b)))                                                      \
+  { }                                                                                                         \
+  \
+   /**                                                                                                         \
+   * transforms all variants of this Coproduct to the same type and retuns the result                         \
+   *                                                                                                          \
+   * The arguments F... must all be function whichs argument type must match the type of the corresponding    \
+   * variant of this Coproduct. The output types of the functions must all be the same type, which will be    \
+   * the return type of this function.                                                                        \
+   */                                                                                                         \
   template <class... F>                                                                                       \
   inline ResultOf<FstTy<F...>, A REF> match(F... fs) REF {                                                    \
     using Ret = ResultOf<FstTy<F...>, A REF>;                                                                 \
@@ -283,14 +321,16 @@ public:
     return MOVE(_content).template match<Ret>(_tag, fs...);                                                   \
   }                                                                                                           \
                                                                                                               \
+  /**                                                                                                         \
+   * transforms all variants of this Coproduct to the same type and retuns the result                         \
+   *                                                                                                          \
+   * This function works basically in the same way as match, but takes one polymorphic function object that   \
+   * can transform any variant instead of multiple functions per variant.                                     \
+   */                                                                                                         \
   template <class F>                                                                                          \
   inline ResultOf<F, A REF> apply(F f) REF {                                                                  \
     ASS_REP(_tag <= size, _tag);                                                                              \
     return MOVE(_content).template apply<ResultOf<F, A REF>>(_tag,f);                                         \
-  }                                                                                                           \
-                                                                                                              \
-  template <class... F> inline Coproduct map(F... fs) REF {                                                   \
-    return match(fs...);                                                                                      \
   }                                                                                                           \
                                                                                                               \
   Coproduct &operator=(Coproduct REF other) {                                                                 \
@@ -301,15 +341,21 @@ public:
     _tag = other._tag;                                                                                        \
     return *this;                                                                                             \
   }                                                                                                           \
-                                                                                                              \
-  template<class B>                                                                                           \
-  explicit Coproduct(B REF b)                                                                                 \
-    : Coproduct(variant<TL::IdxOf<B, Ts>::val>(MOVE(b)))                                                      \
-  { }                                                                                                         \
-                                                                                                              \
+                                                                                                             \
+  /**                                                                                                         \
+   * returns the value of this Coproduct if its variant is of type B. If ifs variant is of another type  \
+   * the result is undefined. \
+   * \
+   * \pre B must occur exactly once in A,As... \
+   */                                                                                                         \
   template <class B> inline B REF unwrap() REF                                                                \
   { return MOVE(unwrap<TL::IdxOf<B, Ts>::val>()); }                                                           \
                                                                                                               \
+  /**                                                                                                         \
+   * returns the value of this Coproduct if its variant's index is idx. otherwise the result is undefined. \
+   * \
+   * \pre idx must be less than the number of variants of this Coproduct \
+   */                                                                                                         \
   template <unsigned idx>                                                                                     \
   inline TL::Get<idx, Ts> REF unwrap() REF {                                                                  \
     CALL("Coproduct::unwrap() " #REF );                                                                       \
@@ -318,9 +364,20 @@ public:
     return CoproductImpl::Unwrap<idx, Ts>{}(MOVE(_content));                                                  \
   }                                                                                                           \
                                                                                                               \
+  /**                                                                                                         \
+   * returns the value of this Coproduct if its variant is of type B. If ifs variant is of another type  \
+   * an empty Option is returned. \
+   * \
+   * \pre B must occur exactly once in A,As... \
+   */                                                                                                         \
   template <class B> inline Option<B REF> as() REF                                                            \
   { return is<B>() ? unwrap<B>() : Option<B REF>();  }                                                        \
                                                                                                               \
+  /**                                                                                                         \
+   * returns the value of this Coproduct if its variant's index is idx. otherwise an empty Option is returned. \
+   * \
+   * \pre idx must be less than the number of variants of this Coproduct \
+   */                                                                                                         \
   template <unsigned idx>                                                                                     \
   inline Option<TL::Get<idx, Ts> REF> as() REF                                                                \
   { return is<idx>() ? unwrap<idx>() : Option<TL::Get<idx, Ts> REF>();  }                                     \
@@ -341,7 +398,8 @@ public:
   friend bool operator!=(const Coproduct &lhs, const Coproduct &rhs)
   { return !(lhs == rhs); }
 
-  ~Coproduct() { _content.destroy(_tag); }
+  ~Coproduct() 
+  { _content.destroy(_tag); }
 
 private:
   struct __writeToStream {
@@ -360,6 +418,18 @@ public:
   friend struct std::hash<Coproduct>;
 
   template<class... Ords> friend struct CoproductOrdering;
+  friend bool operator<(Coproduct const& lhs, Coproduct const& rhs) 
+  { return std::less<Coproduct>{}(lhs,rhs); }
+
+  friend bool operator>(Coproduct const& lhs, Coproduct const& rhs) 
+  { return rhs < lhs; }
+
+  friend bool operator<=(Coproduct const& lhs, Coproduct const& rhs) 
+  { return lhs < rhs || lhs == rhs; }
+
+  friend bool operator>=(Coproduct const& lhs, Coproduct const& rhs) 
+  { return lhs > rhs || lhs == rhs; }
+
 }; // class Coproduct<A, As...> 
 
 
@@ -378,7 +448,6 @@ template<class... Ords> struct CoproductOrdering
     return CoproductImpl::VariadicUnion<As...>::template match2<bool>(tag, lhs._content, rhs._content, Ords{}...);
   }
 };
-
 
 template<template<class> class Ord> struct PolymorphicCoproductOrdering
 {
@@ -405,6 +474,7 @@ struct std::less<Lib::Coproduct<As...> >
   bool operator()(const Lib::Coproduct<As...>& lhs, const Lib::Coproduct<As...>& rhs)
   { return Lib::PolymorphicCoproductOrdering<std::less>{}(lhs,rhs); }
 };
+
 
 
 #endif // __LIB_COPRODUCT__H__
