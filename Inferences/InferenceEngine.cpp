@@ -218,13 +218,13 @@ void CompositeSGI::push(SimplifyingGeneratingInference* gen)
 void CompositeSGI::push(GeneratingInferenceEngine* gen)
 { _generators.push(gen); }
 
-CompositeSGI::ClauseGenerationResult CompositeSGI::generateClauses(Kernel::Clause* cl)
+CompositeSGI::ClauseGenerationResult CompositeSGI::generateSimplify(Kernel::Clause* cl)
 {
   auto redundant = false;
   Stack<ClauseIterator> clauses;
   /* apply generations as until a redundancy is discovered */
   for (auto simpl : _simplifiers) {
-    auto res = simpl->generateClauses(cl);
+    auto res = simpl->generateSimplify(cl);
     clauses.push(res.clauses);
     if (res.premiseRedundant) {
       redundant = true;
@@ -404,7 +404,7 @@ ImmediateSimplificationEngine& SimplifyingGeneratingInference1::asISE()
 
 
 
-SimplifyingGeneratingInference::ClauseGenerationResult SimplifyingGeneratingInference1::generateClauses(Clause* cl) {
+SimplifyingGeneratingInference::ClauseGenerationResult SimplifyingGeneratingInference1::generateSimplify(Clause* cl) {
   CALL("SimplifyingGeneratingInference1::generateClauses(Clause*)")
   auto gen = this->simplify(cl, true);
   auto simpl = gen.simplified;

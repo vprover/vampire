@@ -26,6 +26,7 @@
 #define __Reflection__
 
 #include <type_traits>
+#include <initializer_list>
 
 ///@addtogroup Reflection
 ///@{
@@ -178,6 +179,11 @@ template<typename T>
 struct ElementTypeInfo<T*>
 {
   typedef T Type;
+};
+
+template<class C> 
+struct Lib::ElementTypeInfo<std::initializer_list<C>> {
+  using Type = C;
 };
 
 /**

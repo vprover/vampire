@@ -2,8 +2,6 @@
 #define __TEST__SIMPLIFICATION_TESTER_HPP__
 
 /**
- * TODO make doxygen conform (?)
- *
  * This file provides macros and classes used to write nice tests for simplification rules.
  *
  * Check out UnitTests/tGaussianElimination.cpp, to see how it is to be used.
@@ -74,7 +72,7 @@ struct NotApplicable
 #define REGISTER_SIMPL_TESTER(t) using SimplTester = t;
 
 #define TEST_SIMPLIFY(name, ...)                                                                                        \
-        TEST_SIMPLIFY_WITH_SUGAR(name, SIMPL_SUGAR, __VA_ARGS__) 
+        TEST_SIMPLIFY_WITH_SUGAR(name, MY_SYNTAX_SUGAR, __VA_ARGS__) 
 
 #define TEST_SIMPLIFY_WITH_SUGAR(name, syntax_sugar, ...)                                                               \
   TEST_FUN(name) {                                                                                                      \

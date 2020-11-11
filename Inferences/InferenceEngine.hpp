@@ -119,16 +119,20 @@ public:
    * Applies this rule to the clause, and returns an iterator over the resulting clauses, 
    * as well as the information wether the premise was made redundant.
    */
-  virtual ClauseGenerationResult generateClauses(Clause* premise)  = 0;
+  virtual ClauseGenerationResult generateSimplify(Clause* premise)  = 0;
 };
 
 
 class GeneratingInferenceEngine
-: public InferenceEngine
+: public SimplifyingGeneratingInference
 {
 
 public:
   virtual ClauseIterator generateClauses(Clause* premise) = 0;
+
+  ClauseGenerationResult generateSimplify(Clause* premise) override
+  { return { .clauses = generateClauses(premise), 
+             .premiseRedundant = false, }; }
 };
 
 class ImmediateSimplificationEngine
@@ -178,7 +182,7 @@ public:
 
   };
 
-  ClauseGenerationResult generateClauses(Clause* cl) override;
+  ClauseGenerationResult generateSimplify(Clause* cl) override;
 
   /** 
    * Turns this SimplifyingGeneratingInference1 into and ImmediateSimplificationEngine. 
@@ -390,7 +394,7 @@ public:
   virtual ~CompositeSGI();
   void push(SimplifyingGeneratingInference*);
   void push(GeneratingInferenceEngine*);
-  ClauseGenerationResult generateClauses(Clause* premise) override;
+  ClauseGenerationResult generateSimplify(Clause* premise) override;
   void attach(SaturationAlgorithm* salg) override;
   void detach() override;
 private:

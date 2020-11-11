@@ -2,38 +2,41 @@
 #define __TEST__GENERATION_TESTER_HPP__
 
 /**
- * This file provides macros and classes used to write nice tests for simplification rules.
+ * This file provides macros and classes used to write nice tests for generating inference rules.
  *
- * Check out UnitTests/tGaussianElimination.cpp, to see how it is to be used.
+ * \see UnitTests/tEqualityResolution.cpp, for usage a example
+ *
+ * Don't rely on any part of the interface, but the things containted in the examples,
+ * because it's rather unstable.
  */
 
 #include "Test/TestUtils.hpp"
 #include "Kernel/Clause.hpp"
 #include "Lib/Coproduct.hpp"
 #include "Test/ClausePattern.hpp"
-
-template<class C> 
-struct Lib::ElementTypeInfo<std::initializer_list<C>> {
-  using Type = C;
-};
+#include "Saturation/Otter.hpp"
+#include "Kernel/Problem.hpp"
+#include "Shell/Options.hpp"
 
 namespace Test {
 
-template<class... As> void voidWrapper(As...) { }
 
-int pushGenerated(
-    Stack<ClausePattern>& out, 
-    ClausePattern res) 
-{
-  out.push(std::move(res));
-  return 0;
-}
+class MockedSaturationAlgorithm : public Saturation::Otter {
+public:
+  MockedSaturationAlgorithm(Problem& p, Options& o) : Otter(p,o) {}
+};
+
+template<class... As> void __voidWrapper(As...) { }
+
+#define VOID_VARIADIC(expr)                                                                                   \
+  __voidWrapper([&](){ expr; return 0; }()...)
+  
 
 template<class... As>
-Stack<ClausePattern> generated(As... as) 
+Stack<ClausePattern> exactly(As... as) 
 {
   Stack<ClausePattern> out;
-  voidWrapper(pushGenerated(out, as)...);
+  VOID_VARIADIC(out.push(as));
   return out;
 }
 
@@ -56,7 +59,6 @@ public:
   friend struct TestCase;
 };
 
-
 struct TestCase
 {
   Kernel::Clause* input;
@@ -65,8 +67,19 @@ struct TestCase
 
   template<class Rule>
   void run(GenerationTester<Rule>& simpl) {
-    auto res = simpl._rule.generateClauses(input);
-    auto& sExp = generated;
+
+    // set up saturation algorithm
+    Problem p;
+    Options o;
+    MockedSaturationAlgorithm alg(p, o);
+    simpl._rule.Inferences::SimplifyingGeneratingInference::attach(&alg);
+
+    // run rule
+    auto res = simpl._rule.generateSimplify(input);
+
+    // run checks
+
+    auto& sExp = this->generated;
     auto  sRes = Stack<Kernel::Clause*>::fromIterator(res.clauses);
 
     auto iExp = getArrayishObjectIterator<mut_ref_t>(sExp);
@@ -84,6 +97,23 @@ struct TestCase
       }
     }
 
+    if (iExp.hasNext()) {
+      cout  << endl;
+      cout << "[     case ]: " << pretty(*input) << endl;
+      cout << "[       is ]: " << pretty(sRes) << endl;
+      cout << "[ expected ]: " << pretty(sExp) << endl;
+      exit(-1);
+    }
+
+
+    if (iRes.hasNext()) {
+      cout  << endl;
+      cout << "[     case ]: " << pretty(*input) << endl;
+      cout << "[       is ]: " << pretty(sRes) << endl;
+      cout << "[ expected ]: " << pretty(sExp) << endl;
+      exit(-1);
+    }
+
     if (premiseRedundant != res.premiseRedundant) {
         cout  << endl;
         cout << "[     case ]: " << pretty(*input) << endl;
@@ -91,23 +121,26 @@ struct TestCase
         cout << "[ expected ]: premise is" << (     premiseRedundant ? "" : " not" ) << " redundant"  << endl;
         exit(-1);
     }
+
+    // tear down saturation algorithm
+    simpl._rule.Inferences::SimplifyingGeneratingInference::detach();
   }
 };
 
 #define REGISTER_GEN_TESTER(t) using __GenerationTester = t;
 
 #define TEST_GENERATION(name, ...)                                                                            \
-        TEST_GENERATION_WITH_SUGAR(name, SIMPL_SUGAR, __VA_ARGS__) 
+        TEST_GENERATION_WITH_SUGAR(name, MY_SYNTAX_SUGAR, __VA_ARGS__) 
 
 #define TEST_GENERATION_WITH_SUGAR(name, syntax_sugar, ...)                                                   \
   TEST_FUN(name) {                                                                                            \
-    __GenerationTester tester;                                                                                 \
+    __GenerationTester tester;                                                                                \
     _Pragma("GCC diagnostic push")                                                                            \
     _Pragma("GCC diagnostic ignored \"-Wunused\"")                                                            \
       syntax_sugar                                                                                            \
     _Pragma("GCC diagnostic pop")                                                                             \
-    auto test = __VA_ARGS__; \
-    test.run(tester);                                                                                   \
+    auto test = __VA_ARGS__;                                                                                  \
+    test.run(tester);                                                                                         \
   }                                                                                                           \
 
 } // namespace Simplification

@@ -239,9 +239,21 @@ public:
 class Lit
 {
   Literal* _lit;
+  bool _selected;
 public:
-  Lit(Literal* lit) : _lit(lit) {}
-  operator Literal*() const { return _lit; }
+  Lit(Literal* lit) : _lit(lit), _selected(false) {}
+
+  operator Literal*() const 
+  { return _lit; }
+
+  bool selected() const 
+  { return _selected; }
+
+  friend Lit selected(Lit l) 
+  {
+    l._selected = true;
+    return l;
+  }
 };
 
 ////////////////////////// operators to create terms ////////////////////////// 
@@ -393,14 +405,25 @@ PredSugar<ArgSorts...> predSugar(const char* name, ArgSorts... args)
 { return PredSugar<ArgSorts...>(name, args...); }
 
 
-inline Clause* clause(std::initializer_list<Literal*> ls) { 
+inline Clause* clause(std::initializer_list<Lit> ls_) { 
   static Inference testInf = Kernel::NonspecificInference0(UnitInputType::ASSUMPTION, InferenceRule::INPUT); 
+
+  Stack<Lit> ls(ls_);
+  std::stable_sort(ls.begin(), ls.end(), [](Lit const& l1, Lit const& l2){ return l1.selected() > l2.selected(); });
+  auto nSelected = iterTraits(ls.iterFifo())
+    .findPosition([](Lit const& l) 
+        { return !l.selected(); })
+    .unwrapOrElse( [&]() {return ls.size(); });
+
   Clause& out = *new(ls.size()) Clause(ls.size(), testInf); 
+
   auto l = ls.begin(); 
   for (int i = 0; i < ls.size(); i++) { 
-    out[i] = *l; 
+    Literal* lit = *l;
+    out[i] = lit; 
     l++; 
   }
+  out.setSelected(nSelected);
   return &out; 
 }
 

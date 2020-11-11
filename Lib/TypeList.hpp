@@ -159,13 +159,13 @@ namespace TypeList {
   struct Indexed {};
 
   /* 
-   * TODO document me
+   * Zipps the list of types terms with indices.
    *
-   * E.g. WithIdx<List<A, B, A>> ==> List<Indexed<0, A>, Indexed<1, B>, Indexed<2, A>>
+   * E.g. WithIndices<List<A, B, A>> ==> List<Indexed<0, A>, Indexed<1, B>, Indexed<2, A>>
    */  
   template<unsigned acc, class As> struct WithIndicesImpl;
 
-  template<class As> using WithIdx = typename WithIndicesImpl<0, As>::type;
+  template<class As> using WithIndices = typename WithIndicesImpl<0, As>::type;
 
 
   template<unsigned acc> struct WithIndicesImpl<acc, List<>> 
@@ -204,7 +204,7 @@ namespace TypeList {
        static_assert(std::is_same< __VA_ARGS__ >::value, "TEST FAIL: types don't match fail");
 
 #   define STATIC_TEST_VAL_EQ(...) \
-       static_assert(__VA_ARGS__, "TEST FAIL: types don't match fail");
+       static_assert(__VA_ARGS__, "TEST FAIL: values don't match fail");
 
     STATIC_TEST_TYPE_EQ(
         std::result_of<MkTuple(A,B)>::type,
@@ -253,7 +253,7 @@ namespace TypeList {
        IdxOf<C, List<A,B,C,B>>::val == 2)
 
     STATIC_TEST_TYPE_EQ(
-       WithIdx<List<A, B, A>>,
+       WithIndices<List<A, B, A>>,
        List<Indexed<0, A>, Indexed<1, B>, Indexed<2, A>>)
   }
 

@@ -1128,7 +1128,7 @@ void SaturationAlgorithm::activate(Clause* cl)
   _active->add(cl);
 
     
-    auto generated = _generator->generateClauses(cl);
+    auto generated = _generator->generateSimplify(cl);
 
     ClauseIterator toAdd = generated.clauses;
 
