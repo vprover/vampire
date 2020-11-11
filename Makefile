@@ -377,7 +377,6 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/Rectify.o\
          Shell/Skolem.o\
          Shell/SimplifyFalseTrue.o\
-         Shell/SimplifyProver.o\
          Shell/SineUtils.o\
          Shell/SMTFormula.o\
          Shell/FOOLElimination.o\

@@ -390,8 +390,6 @@ public:
    * @since 26/08/2009 Redmond
    */
   enum class InputSyntax : unsigned int {
-    /** syntax of the Simplify prover */
-    //SIMPLIFY = 0,
     /** syntax of SMTLIB1.2 */
     //SMTLIB = 1,
     SMTLIB2 = 0,
