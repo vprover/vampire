@@ -1154,10 +1154,8 @@ void TWLSolver::assertValid()
 
   Stack<USRec>::Iterator uit(_unitStack);
   while(uit.hasNext()) {
-#if VDEBUG
-    USRec rec =
-#endif
-    uit.next();
+    DEBUG_CODE(USRec rec =)
+      uit.next();
     ASS_NEQ(_assignment[rec.var], AS_UNDEFINED);
   }
 }

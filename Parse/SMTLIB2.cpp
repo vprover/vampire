@@ -1363,10 +1363,8 @@ void SMTLIB2::parseLetEnd(LExpr* exp)
   // so we know it is let
   ASS(exp->isList());
   LispListReader lRdr(exp->list);
-#if VDEBUG
-  const vstring& theLetAtom =
-#endif
-  lRdr.readAtom();
+  DEBUG_CODE(const vstring& theLetAtom =)
+    lRdr.readAtom();
   ASS_EQ(getBuiltInTermSymbol(theLetAtom),TS_LET);
 
   // with a list of bindings
@@ -1419,10 +1417,8 @@ void SMTLIB2::parseQuantBegin(LExpr* exp)
   LispListReader lRdr(exp->list);
 
   // the quant atom
-#if VDEBUG
-  const vstring& theQuantAtom =
-#endif
-  lRdr.readAtom();
+  DEBUG_CODE(const vstring& theQuantAtom =)
+    lRdr.readAtom();
   ASS(theQuantAtom == FORALL || theQuantAtom == EXISTS);
 
   // there should next be a list of sorted variables

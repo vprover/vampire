@@ -417,10 +417,8 @@ bool PortfolioMode::waitForChildAndCheckIfProofFound()
   ASS(!childIds.isEmpty());
 
   int resValue;
-#if VDEBUG
-  pid_t finishedChild =
-#endif
-  Multiprocessing::instance()->waitForChildTermination(resValue);
+  DEBUG_CODE(pid_t finishedChild =)
+    Multiprocessing::instance()->waitForChildTermination(resValue);
   ASS(childIds.remove(finishedChild));
   if (!resValue) {
     // we have found the proof. It has been already written down by the writer child,
