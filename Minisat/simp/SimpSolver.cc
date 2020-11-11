@@ -371,7 +371,7 @@ void SimpSolver::gatherTouchedClauses()
     if (n_touched == 0) return;
 
     int i,j;
-    for (i = j = 0; i < subsumption_queue.size(); i++)
+    for (i = 0; i < subsumption_queue.size(); i++)
         if (ca[subsumption_queue[i]].mark() == 0)
             ca[subsumption_queue[i]].mark(2);
 
