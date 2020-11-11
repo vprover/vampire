@@ -853,12 +853,6 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "external";
   case InferenceRule::CLAIM_DEFINITION:
     return "claim definition";
-  case InferenceRule::BFNT_FLATTENING:
-    return "bfnt flattening";
-  case InferenceRule::BFNT_DISTINCT:
-    return "bfnt distinct";
-  case InferenceRule::BFNT_TOTALITY:
-    return "bfnt totality";
   case InferenceRule::FMB_FLATTENING:
     return "flattening (finite model building)";
   case InferenceRule::FMB_FUNC_DEF:
