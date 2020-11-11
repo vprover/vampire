@@ -299,15 +299,15 @@ public:
   }                                                                                                           \
                                                                                                               \
   /**                                                                                                         \
-   * constructs a new Coproduct with the variant idx.  \
-   * \pre B must occur exactly once in A,As... \
+   * constructs a new Coproduct with the variant idx.                                                         \
+   * \pre B must occur exactly once in A,As...                                                                \
    */                                                                                                         \
   template<class B>                                                                                           \
   explicit Coproduct(B REF b)                                                                                 \
     : Coproduct(variant<TL::IdxOf<B, Ts>::val>(MOVE(b)))                                                      \
   { }                                                                                                         \
-  \
-   /**                                                                                                         \
+                                                                                                              \
+   /**                                                                                                        \
    * transforms all variants of this Coproduct to the same type and retuns the result                         \
    *                                                                                                          \
    * The arguments F... must all be function whichs argument type must match the type of the corresponding    \
@@ -341,20 +341,20 @@ public:
     _tag = other._tag;                                                                                        \
     return *this;                                                                                             \
   }                                                                                                           \
-                                                                                                             \
+                                                                                                              \
   /**                                                                                                         \
-   * returns the value of this Coproduct if its variant is of type B. If ifs variant is of another type  \
-   * the result is undefined. \
-   * \
-   * \pre B must occur exactly once in A,As... \
+   * returns the value of this Coproduct if its variant is of type B. If ifs variant is of another type       \
+   * the result is undefined.                                                                                 \
+   *                                                                                                          \
+   * \pre B must occur exactly once in A,As...                                                                \
    */                                                                                                         \
   template <class B> inline B REF unwrap() REF                                                                \
   { return MOVE(unwrap<TL::IdxOf<B, Ts>::val>()); }                                                           \
                                                                                                               \
   /**                                                                                                         \
-   * returns the value of this Coproduct if its variant's index is idx. otherwise the result is undefined. \
-   * \
-   * \pre idx must be less than the number of variants of this Coproduct \
+   * returns the value of this Coproduct if its variant's index is idx. otherwise the result is undefined.    \
+   *                                                                                                          \
+   * \pre idx must be less than the number of variants of this Coproduct                                      \
    */                                                                                                         \
   template <unsigned idx>                                                                                     \
   inline TL::Get<idx, Ts> REF unwrap() REF {                                                                  \
@@ -365,18 +365,18 @@ public:
   }                                                                                                           \
                                                                                                               \
   /**                                                                                                         \
-   * returns the value of this Coproduct if its variant is of type B. If ifs variant is of another type  \
-   * an empty Option is returned. \
-   * \
-   * \pre B must occur exactly once in A,As... \
+   * returns the value of this Coproduct if its variant is of type B. If ifs variant is of another type       \
+   * an empty Option is returned.                                                                             \
+   *                                                                                                          \
+   * \pre B must occur exactly once in A,As...                                                                \
    */                                                                                                         \
   template <class B> inline Option<B REF> as() REF                                                            \
   { return is<B>() ? unwrap<B>() : Option<B REF>();  }                                                        \
                                                                                                               \
   /**                                                                                                         \
-   * returns the value of this Coproduct if its variant's index is idx. otherwise an empty Option is returned. \
-   * \
-   * \pre idx must be less than the number of variants of this Coproduct \
+   * returns the value of this Coproduct if its variant's index is idx. otherwise an empty Option is returned.\
+   *                                                                                                          \
+   * \pre idx must be less than the number of variants of this Coproduct                                      \
    */                                                                                                         \
   template <unsigned idx>                                                                                     \
   inline Option<TL::Get<idx, Ts> REF> as() REF                                                                \
