@@ -45,6 +45,7 @@
 #include "Lib/Vector.hpp"
 #include "Lib/System.hpp"
 #include "Lib/Metaiterators.hpp"
+#include "Lib/STL.hpp"
 
 #include "Lib/RCPtr.hpp"
 
@@ -61,6 +62,7 @@
 #include "Inferences/InferenceEngine.hpp"
 #include "Inferences/TautologyDeletionISE.hpp"
 #include "SMTSubsumption/SMTSubsumption.hpp"
+#include "SMTSubsumption/cdebug.hpp"
 
 #include "InstGen/IGAlgorithm.hpp"
 
@@ -659,13 +661,19 @@ void subsumptionTestingMode()
         Parse::TPTP::findAxiomName(unit, name);
         if (name == "side_premise") {
           // std::cerr << "Found side premise axiom: " << unit->toString() << std::endl;
+          if (side_premise) {
+            USER_ERROR("Got multiple side premises");
+          }
           side_premise = clause;
         } else if (name == "main_premise") {
           // std::cerr << "Found main premise axiom: " << unit->toString() << std::endl;
+          if (main_premise) {
+            USER_ERROR("Got multiple main premises");
+          }
           main_premise = clause;
         } else {
           std::cerr << "Unexpected axiom: " << unit->toString() << std::endl;
-          ASSERTION_VIOLATION;
+          USER_ERROR("Unexpected axiom");
         }
         break;
       } else {
@@ -685,6 +693,133 @@ void subsumptionTestingMode()
 
   SMTSubsumption::ProofOfConcept s;
   s.test(side_premise, main_premise);
+
+  vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
+}
+
+
+bool subsumptionBenchmarkMode_parseAxiomName(vstring const& name, vstring const& prefix, std::pair<unsigned int, bool>& out_result)
+{
+  vstring const success_suffix = "_success";
+  vstring const failure_suffix = "_failure";
+
+  if (std::strncmp(name.c_str(), prefix.c_str(), prefix.size()) == 0) {
+    char* end = nullptr;
+    unsigned int number = std::strtoul(name.c_str() + prefix.size(), &end, 10);
+    if (std::strncmp(end, success_suffix.c_str(), success_suffix.size()) == 0) {
+      out_result = {number, true};
+      return true;
+    } else if (std::strncmp(end, failure_suffix.c_str(), failure_suffix.size()) == 0) {
+      out_result = {number, false};
+      return true;
+    } else {
+      throw UserErrorException("Unexpected suffix of axiom name: ", name);
+    }
+  } else {
+    return false;
+  }
+}
+
+void subsumptionBenchmarkMode(bool simulate_full_run)
+{
+  CALL("subsumptionBenchmarkMode(bool)");
+
+  std::cerr << "\% Subsumption Benchmark Mode\n\% Parsing input..." << std::endl;
+
+  // env.options->setNormalize(false);
+  // env.options->setUnusedPredicateDefinitionRemoval(false);
+
+  // We need to set this option to make the parser save axiom names
+  env.options->setOutputAxiomNames(true);
+
+  ScopedPtr<Problem> prb(UIHelper::getInputProblem(*env.options));
+
+  Shell::Preprocess prepro(*env.options);
+  prepro.preprocess_very_lightly(*prb);
+
+  // // Components of key: number of main premise, number of side premise, whether side premise subsumes main premise
+  // //                    (numbers as in the original vampire run)
+  // using Key = std::tuple<unsigned int, unsigned int, bool>;
+
+  // Components of key: sequence number, whether side premise subsumes main premise
+  using Key = std::pair<unsigned int, bool>;
+
+  vmap<Key, Clause*> side_premises;
+  vmap<Key, Clause*> main_premises;
+
+  UnitList* units = prb->units();
+  while (UnitList::isNonEmpty(units)) {
+    Clause* clause = units->head()->asClause();
+    // std::cerr << "Clause: " << clause->toString() << std::endl;
+
+    Unit* unit = clause;
+    while (true) {
+      auto const& inference = unit->inference();
+      auto parents = inference.iterator();
+      if (!inference.hasNext(parents)) {
+        // no parents -> we have an axiom
+        vstring name;
+        Parse::TPTP::findAxiomName(unit, name);
+
+        Key k;
+        if (subsumptionBenchmarkMode_parseAxiomName(name, "side_premise_", k)) {
+          auto res = side_premises.insert({k, clause});
+          bool inserted = res.second;
+          if (!inserted) {
+            throw UserErrorException("Duplicate side premise for key: {", k.first, ",", k.second, "}");
+          }
+        } else if (subsumptionBenchmarkMode_parseAxiomName(name, "main_premise_", k)) {
+          auto res = main_premises.insert({k, clause});
+          bool inserted = res.second;
+          if (!inserted) {
+            throw UserErrorException("Duplicate main premise for key: {", k.first, ",", k.second, "}");
+          }
+        } else {
+          throw UserErrorException("Unexpected axiom: ", unit->toString());
+        }
+        break;
+      } else {
+        // There's still parents to process
+        Unit* parent = inference.next(parents);
+        ASS(!inference.hasNext(parents));  // we expect exactly one parent
+        unit = parent;
+      }
+    }
+
+    units = units->tail();
+  }
+
+  using namespace SMTSubsumption;
+  vvector<SubsumptionInstance> instances;
+
+  for (auto p : side_premises) {
+    Key k = p.first;
+    Clause* side_premise = p.second;
+    auto lookup = main_premises.find(k);
+    if (lookup == main_premises.end()) {
+      throw UserErrorException("Got side premise but no main premise for key: {", k.first, ",", k.second, "}");
+    }
+    Clause* main_premise = lookup->second;
+
+    instances.push_back({
+      .number = k.first,
+      .side_premise = side_premise,
+      .main_premise = main_premise,
+      .subsumed = k.second,
+    });
+  }
+
+  if (instances.size() != main_premises.size()) {
+    ASS(instances.size() < main_premises.size());
+    throw UserErrorException("Got main premise without corresponding side premise");
+  }
+
+  if (simulate_full_run) {
+    NOT_IMPLEMENTED;  // TODO
+  } else {
+    SMTSubsumption::ProofOfConcept s;
+    s.benchmark_micro(std::move(instances));
+  }
 
   vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
 }
@@ -971,6 +1106,14 @@ int main(int argc, char* argv[])
 
     case Options::Mode::SUBSUMPTION_TESTING:
       subsumptionTestingMode();
+      break;
+
+    case Options::Mode::SUBSUMPTION_BENCHMARK_MICRO:
+      subsumptionBenchmarkMode(false);
+      break;
+
+    case Options::Mode::SUBSUMPTION_BENCHMARK_RUN:
+      subsumptionBenchmarkMode(true);
       break;
 
     case Options::Mode::CASC:

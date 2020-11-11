@@ -53,11 +53,33 @@ struct Alt
 void ProofOfConcept::test(Clause* side_premise, Clause* main_premise)
 {
   CALL("ProofOfConcept::test");
+  std::cerr << "\% SMTSubsumption::test" << std::endl;
+  std::cerr << "\% side_premise: " << side_premise->toString() << std::endl;
+  std::cerr << "\% main_premise: " << main_premise->toString() << std::endl;
 
 
   bool subsumed = checkSubsumption(side_premise, main_premise, true);
   cdebug << "subsumed: " << subsumed;
 }
+
+
+
+void ProofOfConcept::benchmark_micro(vvector<SubsumptionInstance> instances)
+{
+  CALL("ProofOfConcept::benchmark_micro");
+  std::cerr << "\% SMTSubsumption: micro-benchmarking " << instances.size() << " instances" << std::endl;
+
+  for (auto instance : instances) {
+    benchmark_micro1(instance);
+  }
+}
+
+void ProofOfConcept::benchmark_micro1(SubsumptionInstance instance)
+{
+  CALL("ProofOfConcept::benchmark_micro1");
+  // TODO return results
+}
+
 
 bool ProofOfConcept::checkSubsumption(Kernel::Clause* side_premise, Kernel::Clause* main_premise, bool debug_messages)
 {
