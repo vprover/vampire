@@ -2127,8 +2127,7 @@ void Options::copyValuesFrom(const Options& that)
     if(opt->shouldCopy()){
       AbstractOptionValue* other = that.getOptionValueByName(opt->longName);
       ASS(opt!=other);
-      bool status = opt -> set(other->getStringOfActual());
-      ASS(status);
+      ALWAYS(opt->set(other->getStringOfActual()));
     }
   }
 }

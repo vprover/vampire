@@ -758,7 +758,7 @@ endif()
 
 # configure warning flags
 if(CMAKE_CXX_COMPILER_ID STREQUAL GNU OR CMAKE_CXX_COMPILER_ID MATCHES Clang$)
-#  target_compile_options(vampire PRIVATE -Wall)
+  target_compile_options(vampire PRIVATE -Wall)
 endif()
 
 ################################################################
