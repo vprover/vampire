@@ -265,6 +265,7 @@ class SubsumptionLogger
   private:
     std::ofstream m_logfile;
     TPTPPrinter m_tptp;  // this needs to be a member so we get the type definitions only once at the beginning
+    unsigned int m_seq;  // sequence number of logged inferences
   public:
     CLASS_NAME(SubsumptionLogger);
     USE_ALLOCATOR(SubsumptionLogger);
@@ -275,6 +276,7 @@ class SubsumptionLogger
 SubsumptionLogger::SubsumptionLogger(vstring logfile_path)
   : m_logfile{}
   , m_tptp{&m_logfile}
+  , m_seq{1}
 {
   CALL("SubsumptionLogger::SubsumptionLogger");
   m_logfile.open(logfile_path.c_str());
@@ -285,8 +287,9 @@ void SubsumptionLogger::log(Clause* side_premise, Clause* main_premise, bool isS
 {
   vstringstream id_stream;
   id_stream
-    << main_premise->number() << "_"  // main premise first because that increases during the run
-    << side_premise->number() << "_"
+    << m_seq << "_"
+    // << main_premise->number() << "_"  // main premise first because that increases during the run
+    // << side_premise->number() << "_"
     << (isSubsumed ? "success" : "failure");
   vstring id = id_stream.str();
 
@@ -295,6 +298,9 @@ void SubsumptionLogger::log(Clause* side_premise, Clause* main_premise, bool isS
   m_tptp.printWithRole("side_premise_" + id, "hypothesis", side_premise, false);  // subsumer
   m_tptp.printWithRole("main_premise_" + id, "hypothesis", main_premise, false);  // subsumed (if isSubsumed == 1)
   m_logfile << "\% End Inference \"FS-" << id << "\"" << std::endl;
+  m_logfile.flush();   // this should actually be done by endl in the previous line?
+
+  m_seq += 1;
 }
 
 
