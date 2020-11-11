@@ -482,7 +482,6 @@ set(VAMPIRE_SATURATION_SOURCES
     Saturation/Discount.cpp
     Saturation/ExtensionalityClauseContainer.cpp
     Saturation/LabelFinder.cpp
-    Saturation/Limits.cpp
     Saturation/LRS.cpp
     Saturation/Otter.cpp
     Saturation/ProvingHelper.cpp
@@ -496,7 +495,6 @@ set(VAMPIRE_SATURATION_SOURCES
     Saturation/Discount.hpp
     Saturation/ExtensionalityClauseContainer.hpp
     Saturation/LabelFinder.hpp
-    Saturation/Limits.hpp
     Saturation/LRS.hpp
     Saturation/Otter.hpp
     Saturation/ProvingHelper.hpp
