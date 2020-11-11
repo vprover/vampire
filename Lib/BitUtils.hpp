@@ -101,7 +101,7 @@ public:
    */
   static unsigned reverseBits(unsigned v) __attribute__((const))
   {
-    ASS_STATIC(sizeof(unsigned)==4);
+    static_assert(sizeof(unsigned) == 4, "size of unsigned must be 4");
 
     // swap odd and even bits
     v = ((v >> 1) & 0x55555555) | ((v & 0x55555555) << 1);

@@ -63,6 +63,7 @@ public:
   SmartPtr(const SmartPtr& ptr) : _obj(ptr._obj), _refCnt(ptr._refCnt)
   {
     if(_obj && _refCnt) {
+      ASS(_refCnt->_val > 0);
       (_refCnt->_val)++;
     }
   }

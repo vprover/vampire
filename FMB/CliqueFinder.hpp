@@ -17,7 +17,7 @@
  * licence, which we will make an effort to provide. 
  */
 /**
- * @file CliqueFinder
+ * @file CliqueFinder.hpp
  * Defines a heurstic for finding maximal cliques, the method is not complete 
  */
 

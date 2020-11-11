@@ -32,8 +32,8 @@ namespace Kernel {
  *
  * The metric used to select the best literal is defined as follows:
  *
- *    val == #symbols - #distinct-variables
- *        == #non-variable-symbols + #variable-duplicates
+ *    val == num(symbols) - num(distinct-variables)
+ *        == num(non-variable-symbols) + num(variable-duplicates)
  *
  * This value is the number of symbols that induce constraints for matching.
  * Note that variables only induce constraints for instantiation on their

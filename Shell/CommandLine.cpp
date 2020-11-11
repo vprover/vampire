@@ -23,8 +23,8 @@
  * @since 14/11/2004 Manchester
  */
 
-#include <stdlib.h>
-#include <string.h>
+#include <cstdlib>
+#include <cstring>
 
 #include "Debug/Assertion.hpp"
 #include "Debug/Tracer.hpp"

@@ -31,6 +31,11 @@ There are some other top-level files that are left over from previous use cases.
 
 Note that Forwards.hpp contains a lot of forward declarations of things.
 
+When making a pull request, please try to:
+ - add Doxygen comments to new items (bonus points for adding or improving existing comments)
+ - add unit tests for new or related/untested functionality
+ - consider running `clang-format` on code in the vicinity of your change as a companion pull request - this allows incremental automatic formatting of the codebase without breaking everything
+
 ### Namespaces
 
 The code is organised into a number of namespaces. Here is a brief overview.
@@ -59,7 +64,6 @@ Other namespaces have specific purposes that you will find out by looking at the
 ### Documentation
 
 Running make doc makes documentation using doxygen; this has not been fully maintained but ideally each function and class would have an appropriate comment to be parsed by doxygen. 
-
 
 ### Scripts
 

@@ -7,7 +7,7 @@
 
 #include "Lib/Portability.hpp"
 
-#include <signal.h>
+#include <csignal>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>

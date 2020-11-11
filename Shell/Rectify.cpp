@@ -447,11 +447,12 @@ Formula* Rectify::rectify (Formula* f)
   case BOOL_TERM:
      return new BoolTermFormula(rectify(f->getBooleanTerm()));
 
-#if VDEBUG
-  default:
+  case NAME:
+  case NOCONN:
     ASSERTION_VIOLATION;
-#endif
   }
+
+  ASSERTION_VIOLATION;
 } // Rectify::rectify (Formula*)
 
 /**

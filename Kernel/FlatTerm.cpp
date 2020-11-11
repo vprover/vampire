@@ -22,7 +22,7 @@
  * Implements class FlatTerm.
  */
 
-#include <string.h>
+#include <cstring>
 
 #include "Lib/Allocator.hpp"
 #include "Lib/DArray.hpp"

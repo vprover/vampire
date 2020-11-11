@@ -72,6 +72,8 @@ Lib::vstring Token::toString (TokenType tt)
     return "<=>";
   case TT_IMP:
     return "=>";
+  case TT_REVERSE_IMP:
+    return "<=";
   case TT_XOR:
     return "<~>";
   case TT_FORALL:
@@ -86,6 +88,8 @@ Lib::vstring Token::toString (TokenType tt)
     return "=";
   case TT_NAME:
     return "<name>";
+  case TT_VAMPIRE:
+    return "vampire(...)";
   case TT_VAR:
     return "<variable>";
   case TT_INPUT_FORMULA: 
@@ -228,12 +232,8 @@ Lib::vstring Token::toString (TokenType tt)
     return "<arith>";
   case TT_USER:
     return "<user value>";
-    
-#if VDEBUG
-  default:
-    ASSERTION_VIOLATION;
-#endif
   }
+  ASSERTION_VIOLATION;
 } // Token::toString
 
 }

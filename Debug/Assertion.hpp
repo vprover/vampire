@@ -25,15 +25,6 @@
 #ifndef __Assertion__
 #define __Assertion__
 
-/** A static assertion. @b e has to be a constant expression. */
-
-#define ASS_AUX_CONCAT_(x,y) x ## y
-#define ASS_AUX_CONCAT(x,y) ASS_AUX_CONCAT_(x,y)
-
-//#define ASS_STATIC(e) extern char (* ASS_AUX_CONCAT(ct_assert, __LINE__) (void)) [sizeof(char[1 - 2*!(e)])]
-#define ASS_STATIC(e) extern char (*ct_assert (void)) [sizeof(char[1 - 2*!(e)])]
-
-
 #define __PUSH_DIAGNOSTICS(diag, ...) \
     _Pragma("GCC diagnostic push") \
     _Pragma(diag) \
@@ -230,6 +221,19 @@ private:
 
 #else // ! VDEBUG
 
+/* this point in the code is statically unreachable */
+#if defined(__GNUC__)
+// __builtin_unreachable if the GNU dialect is availble: GCC, Clang, ICC
+#define __UNREACHABLE { __builtin_unreachable(); }
+#elif defined(_MSC_VER)
+// __assume(0) if Microsoft-y
+#define __UNREACHABLE { __assume(0); }
+#endif
+#ifndef __UNREACHABLE
+// otherwise, infinite loop - UB and should be optimised out
+#define __UNREACHABLE { while(true) {} }
+#endif
+
 #define DEBUG_CODE(X)
 
 #define __IGNORE_WUNUSED(...) __PUSH_DIAGNOSTICS("GCC diagnostic ignored \"-Wreturn-type\"", __VA_ARGS__)
@@ -253,7 +257,7 @@ private:
 #define ASS_ALLOC_TYPE(PTR,TYPE) {}
 #define ASS_METHOD(OBJ,METHOD) {}
 
-#define ASSERTION_VIOLATION {}
+#define ASSERTION_VIOLATION __UNREACHABLE
 #define ASSERTION_VIOLATION_REP(Val) ASSERTION_VIOLATION
 #define ASSERTION_VIOLATION_REP2(Val1,Val2)  ASSERTION_VIOLATION
 

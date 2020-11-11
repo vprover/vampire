@@ -118,7 +118,7 @@ public:
    * According to "Armin Biere, PicoSAT Essentials" paper.
    */
   MinisatRestartStrategy(size_t initCnt = 100, float increase=1.1f)
-  : _initConflictCnt(initCnt), _increase(increase) { reset(); }
+  : _initConflictCnt(initCnt), _increase(increase) { MinisatRestartStrategy::reset(); }
 
   virtual size_t getNextConflictCount();
   virtual void reset() { _innerCnt = _outerCnt = _initConflictCnt; }

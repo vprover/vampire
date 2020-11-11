@@ -791,7 +791,7 @@ vstring Kernel::ruleName(InferenceRule rule)
   case InferenceRule::THA_BOOLEAN_ARRAY_WRITE2:
   case InferenceRule::THA_ARRAY_WRITE1:
   case InferenceRule::THA_ARRAY_WRITE2:
-    return "theory axiom";
+    return "theory axiom " + Int::toString((unsigned)toNumber(rule));
   case InferenceRule::TERM_ALGEBRA_ACYCLICITY_AXIOM:
     return "term algebras acyclicity";
   case InferenceRule::TERM_ALGEBRA_DISCRIMINATION_AXIOM:

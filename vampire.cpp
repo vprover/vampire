@@ -263,10 +263,9 @@ void outputResult(ostream& out) {
   case Statistics::REFUTATION:
     cout<<"unsat"<<endl;
     break;
-#if VDEBUG
   default:
-    ASSERTION_VIOLATION; //these outcomes are not reachable with the current implementation
-#endif
+    //these outcomes are not reachable with the current implementation
+    ASSERTION_VIOLATION;
   }
   if(env.options->mode()!=Options::Mode::SPIDER){
     env.statistics->print(env.out());

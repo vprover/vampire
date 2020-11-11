@@ -21,7 +21,7 @@
  * Implements class Theory.
  */
 
-#include <math.h>
+#include <cmath>
 
 #include "Debug/Assertion.hpp"
 #include "Debug/Tracer.hpp"
@@ -453,7 +453,16 @@ void RationalConstantType::cannonize()
 {
   CALL("RationalConstantType::cannonize");
 
-  InnerType gcd = Int::gcd(_num.toInner(), _den.toInner());
+  unsigned gcd = Int::gcd(_num.toInner(), _den.toInner());
+  if (gcd == (unsigned)(-(long long)(numeric_limits<int>::min()))) { // we are talking about 2147483648, but I can't take minus of it's int representation!
+    ASS_EQ(_num, numeric_limits<int>::min());
+    ASS_EQ(_den, numeric_limits<int>::min());
+    _num = 1;
+    _den = 1;
+    return;
+  }
+  // now it's safe to treat this unsigned as signed
+  ASS_LE(gcd,numeric_limits<signed>::max());
   if (gcd!=1) {
     _num = _num.intDivide(gcd);
     _den = _den.intDivide(gcd);
