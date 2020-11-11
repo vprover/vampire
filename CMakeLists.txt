@@ -3,7 +3,7 @@ cmake_minimum_required (VERSION 3.5.1)
 project(Vampire)
 
 # require the compiler to use C++11
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(VAMPIRE_BINARY "vampire")
 set(VAMPIRE_BINARY_BUILD "_rel")
