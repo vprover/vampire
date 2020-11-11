@@ -1091,6 +1091,12 @@ void Options::Options::init()
            _cancellation.tag(OptionTag::INFERENCES);
            _cancellation.setExperimental();
 
+           _highSchool = BoolOptionValue("high_school", "", false);
+           _highSchool.description="Enables high school education for vampire. (i.e.: sets -gve cautious, -asg cautious, -ev cautious, -canc cautious, -pum on )";
+           _lookup.insert(&_highSchool);
+           _highSchool.tag(OptionTag::INFERENCES);
+
+
            _pushUnaryMinus = BoolOptionValue(
                "push_unary_minus", "pum",
                false);
@@ -1101,7 +1107,6 @@ void Options::Options::init()
                   ;
            _lookup.insert(&_pushUnaryMinus);
            _pushUnaryMinus.tag(OptionTag::INFERENCES);
-           _pushUnaryMinus.setExperimental();
 
            _gaussianVariableElimination = choiceArithmeticSimplificationMode(
                "gaussian_variable_elimination", "gve",
@@ -1120,7 +1125,6 @@ void Options::Options::init()
                   "  p(2 * X1 / 6, X1)";
            _lookup.insert(&_gaussianVariableElimination);
            _gaussianVariableElimination.tag(OptionTag::INFERENCES);
-           _gaussianVariableElimination.setExperimental();
 
 
            _arithmeticSubtermGeneralizations = choiceArithmeticSimplificationMode(
