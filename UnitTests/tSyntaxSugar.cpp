@@ -16,9 +16,9 @@ void perform_test(const A&...) {
 }
 
 TEST_FUN(some_meaningful_testname) {
-  THEORY_SYNTAX_SUGAR(REAL)
+  THEORY_SYNTAX_SUGAR(REAL) /* <-- imports syntax sugar */
 
-  Literal* lit = ~(0 < (x * frac(7,1))); /* <-- imports syntax sugar */
+  Literal* lit = ~(0 < (x * frac(7,1)));
 
   perform_test(lit);
 }
@@ -41,6 +41,31 @@ TEST_FUN(add_uninterpreted_stuff) {
 
   perform_test(t);
 }
+
+TEST_FUN(watch_out_for_this) {
+  THEORY_SYNTAX_SUGAR(REAL)
+  THEORY_SYNTAX_SUGAR_PRED(p, 1) 
+
+  /* 
+   * !!!!! watch out for bugs like this !!!! 
+   *
+   * If there are only integer literals and no predicates, functions or variables involved the 
+   * compiler will treat expressions as integers, and not as terms.
+   *
+   * In order to circumvent this you can explicitly turn c++ integer literals into terms using the function
+   * num
+   */
+
+  Literal* l1 = ~(p(3 *     4 )); 
+  /*                ^^^^^^^^^ will be interpretd as num(3*4) ==> num(12) */
+  Literal* l2 = ~(p(3 * num(4))); 
+  /*                ^^^^^^^^^ will be interpretd as num(3)*num(4) */
+  Literal* l3 = ~(p(12 )); 
+
+  ASS_NEQ(l1, l2);
+  ASS_EQ(l1, l3);
+}
+
 
 TEST_FUN(get_functors) {
   THEORY_SYNTAX_SUGAR(RAT) /* <-- imports syntax sugar */

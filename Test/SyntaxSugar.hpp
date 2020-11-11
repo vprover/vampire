@@ -18,7 +18,6 @@
 #include "Kernel/Clause.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/NumTraits.hpp"
-#include "Kernel/ArrayTraits.hpp"
 
 #include "Indexing/TermSharing.hpp"
 #include "Kernel/Signature.hpp"
@@ -161,19 +160,6 @@
 
 #define SYNTAX_SUGAR_SORT(name)                                                                               \
     UninterpretedTraits name(#name);                                                                          \
-
-#define ARRAY_SYNTAX_SUGAR(name, idx, val)                                                                    \
-    auto name = arrayTraits(idx, val);                                                                        \
-    using Idx = decltype(idx);                                                                                \
-    using Val = decltype(val);                                                                                \
-                                                                                                              \
-    auto store = [&](Trm<ArrayTraits<Idx, Val>> arg0, Trm<Idx> arg1, Trm<Val> arg2) -> Trm<decltype(name)>     \
-    { return name.store(arg0, arg1, arg2); };                                                                  \
-                                                                                                              \
-    auto select = [&](Trm<ArrayTraits<Idx, Val>> arg0, Trm<Idx> arg1) -> Trm<Val>                             \
-    { return name.select(arg0, arg1); };                                                                      \
-
-
 
 #define FOF_SYNTAX_SUGAR                                                                                      \
   _Pragma("GCC diagnostic push")                                                                              \
