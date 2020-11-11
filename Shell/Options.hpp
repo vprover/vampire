@@ -430,6 +430,8 @@ public:
     TPREPROCESS,
     VAMPIRE,
     SUBSUMPTION_TESTING,
+    SUBSUMPTION_BENCHMARK_MICRO,
+    SUBSUMPTION_BENCHMARK_RUN,
 };
 
   enum class Schedule : unsigned int {

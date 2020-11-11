@@ -124,7 +124,10 @@ void Options::Options::init()
                                         "tclausify",
                                         "tpreprocess",
                                         "vampire",
-                                        "stest"});
+                                        "stest",
+                                        "sbench-micro",
+                                        "sbench-run",
+                                    });
     _mode.description=
     "Select the mode of operation. Choices are:\n"
     "  -vampire: the standard mode of operation for first-order theorem proving\n"
