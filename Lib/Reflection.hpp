@@ -182,7 +182,7 @@ struct ElementTypeInfo<T*>
 };
 
 template<class C> 
-struct Lib::ElementTypeInfo<std::initializer_list<C>> {
+struct ElementTypeInfo<std::initializer_list<C>> {
   using Type = C;
 };
 

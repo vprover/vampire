@@ -302,7 +302,9 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/LPO.cpp
     Kernel/LPO.hpp
     Kernel/Polynomial.hpp
+    Kernel/Polynomial.cpp
     Kernel/PolynomialNormalizer.hpp
+    Kernel/PolynomialNormalizer.cpp
     )
 source_group(kernel_source_files FILES ${VAMPIRE_KERNEL_SOURCES})
 
@@ -379,7 +381,6 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/InterpretedEvaluation.cpp
     Inferences/PushUnaryMinus.cpp
     Inferences/Cancellation.cpp
-    Inferences/PolynomialNormalization.cpp
     Inferences/ArithmeticSubtermGeneralization.cpp
     Kernel/NumTraits.cpp
     Inferences/GaussianVariableElimination.cpp
@@ -414,7 +415,6 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/InterpretedEvaluation.hpp
     Inferences/PushUnaryMinus.hpp
     Inferences/Cancellation.hpp
-    Inferences/PolynomialNormalization.hpp
     Inferences/ArithmeticSubtermGeneralization.hpp
     Kernel/NumTraits.cpp
     Inferences/GaussianVariableElimination.hpp
@@ -428,6 +428,12 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/URResolution.hpp
     Inferences/TheoryInstAndSimp.hpp
     Inferences/TheoryInstAndSimp.cpp  # this is theory instantiation
+    Inferences/ArithmeticSubtermGeneralization.hpp
+    Inferences/ArithmeticSubtermGeneralization.cpp
+    Inferences/PolynomialEvaluation.hpp
+    Inferences/PolynomialEvaluation.cpp
+    Inferences/Cancellation.hpp
+    Inferences/Cancellation.cpp
 #    Inferences/TheoryRuleAttempt.hpp
 #    Inferences/TheoryRuleAttempt.cpp
     )

@@ -203,17 +203,13 @@ template<class NumTraits>
 struct TryNumeral {
   using Numeral = typename NumTraits::ConstantType;
 
-  template<class C> Option<Numeral> operator()(C& term) const
-  { return Option<Numeral>(); }
-
-  template<> Option<Numeral> operator()(PolyNf& term) const
+  Option<Numeral> operator()(PolyNf& term) const
   { 
     ASSERTION_VIOLATION
     // return term.tryNumeral<NumTraits>(); 
   }
 
-
-  template<> Option<Numeral> operator()(MonomFactors<NumTraits>& term) const
+  Option<Numeral> operator()(MonomFactors<NumTraits>& term) const
   { 
     if (term.raw().size() == 1)  {
       auto fac = term.raw()[0];
@@ -223,6 +219,10 @@ struct TryNumeral {
       return Option<Numeral>();
     }
   }
+
+  template<class C> Option<Numeral> operator()(C& term) const
+  { return Option<Numeral>(); }
+
 
 };
 

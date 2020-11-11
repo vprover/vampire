@@ -834,9 +834,9 @@ private:
   bool& _red;
 };
 
-SimplifyingGeneratingInference::ClauseGenerationResult TheoryInstAndSimp::generateClauses(Clause* premise)
+SimplifyingGeneratingInference::ClauseGenerationResult TheoryInstAndSimp::generateSimplify(Clause* premise)
 {
-  CALL("TheoryInstAndSimp::generateClauses");
+  CALL("TheoryInstAndSimp::generateSimplify");
 
   auto empty = ClauseGenerationResult {
     .clauses          = ClauseIterator::getEmpty(),
