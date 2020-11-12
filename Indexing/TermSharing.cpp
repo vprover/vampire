@@ -181,10 +181,17 @@ Term* TermSharing::insert(Term* t)
       
     t->setInterpretedConstantsPresence(hasInterpretedConstants);
     _totalTerms++;
-     
-    ASS_REP(SortHelper::areImmediateSortsValid(t), t->toString());
-    if (!SortHelper::areImmediateSortsValid(t)){
+
+    //combinatory superposiiton can introduce polymorphism into a 
+    //monomorphic problem
+    static bool poly_or_comb_sup = env.property->hasPolymorphicSym() || env.options->combinatorySup();
+    //poly function works for mono as well, but is slow
+    //it is fine to use for debug
+    ASS_REP(SortHelper::areImmediateSortsValidPoly(t), t->toString());
+    if (!poly_or_comb_sup && !SortHelper::areImmediateSortsValidMono(t)){
       USER_ERROR("Immediate (shared) subterms of  term/literal "+t->toString()+" have different types/not well-typed!");
+    } else if (poly_or_comb_sup && !SortHelper::areImmediateSortsValidPoly(t)){
+      USER_ERROR("Immediate (shared) subterms of  term/literal "+t->toString()+" have different types/not well-typed!");      
     }
   }
   else {
@@ -261,9 +268,15 @@ Literal* TermSharing::insert(Literal* t)
     t->setInterpretedConstantsPresence(hasInterpretedConstants);
     _totalLiterals++;
 
-    ASS_REP(SortHelper::areImmediateSortsValid(t), t->toString());
-    if (!SortHelper::areImmediateSortsValid(t)){
+    //combinatory superposiiton can introduce polymorphism into a 
+    //monomorphic problem
+    static bool poly_or_comb_sup = env.property->hasPolymorphicSym() || env.options->combinatorySup();
+    
+    ASS_REP(SortHelper::areImmediateSortsValidPoly(t), t->toString());
+    if (!poly_or_comb_sup && !SortHelper::areImmediateSortsValidMono(t)){
       USER_ERROR("Immediate (shared) subterms of  term/literal "+t->toString()+" have different types/not well-typed!");
+    } else if (poly_or_comb_sup && !SortHelper::areImmediateSortsValidPoly(t)){
+      USER_ERROR("Immediate (shared) subterms of  term/literal "+t->toString()+" have different types/not well-typed!");      
     }
   }
   else {

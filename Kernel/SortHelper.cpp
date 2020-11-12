@@ -99,6 +99,16 @@ TermList SortHelper::getResultSort(const Term* t)
   return SubstHelper::apply(result, subst);
 }
 
+TermList SortHelper::getResultSortMono(const Term* t)
+{
+  CALL("SortHelper::getResultSortMono(Term*)");
+  ASS(!t->isSpecial());
+  ASS(!t->isLiteral());
+
+  Signature::Symbol* sym = env.signature->getFunction(t->functor());
+  return sym->fnType()->result();
+}
+
 /**
  * Try get result sort of a term.
  *
@@ -817,9 +827,9 @@ bool SortHelper::tryGetVariableSort(TermList var, Term* t0, TermList& result)
  *
  * @pre Arguments of t must be shared.
  */
-bool SortHelper::areImmediateSortsValid(Term* t)
+bool SortHelper::areImmediateSortsValidPoly(Term* t)
 {
-  CALL("SortHelper::areImmediateSortsValid");
+  CALL("SortHelper::areImmediateSortsValidPoly");
 
   if (t->isLiteral() && static_cast<Literal*>(t)->isEquality()) {
     Literal* lit = static_cast<Literal*>(t);
@@ -862,6 +872,46 @@ bool SortHelper::areImmediateSortsValid(Term* t)
   return true;
 }
 
+
+/**
+ * Return true iff sorts of immediate subterms of term/literal @c t correspond
+ * to the type of @c t.
+ *
+ * @pre Arguments of t must be shared.
+ */
+bool SortHelper::areImmediateSortsValidMono(Term* t)
+{
+  CALL("SortHelper::areImmediateSortsValidMono");
+
+  if (t->isLiteral() && static_cast<Literal*>(t)->isEquality()) {
+    Literal* lit = static_cast<Literal*>(t);
+    TermList eqSrt = getEqualityArgumentSort(lit);
+    for (unsigned i=0; i<2; i++) {
+      TermList arg = *t->nthArgument(i);
+      if (!arg.isTerm()) { continue; }
+      Term* ta = arg.term();
+      TermList argSort = getResultSortMono(ta);
+      if (eqSrt != argSort) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  OperatorType* type = getType(t);
+  unsigned arity = t->arity();
+  for (unsigned i=0; i<arity; i++) {
+    TermList arg = *t->nthArgument(i);
+    if (!arg.isTerm()) { continue; }
+    Term* ta = arg.term();
+    TermList argSort = getResultSortMono(ta);
+    if (type->arg(i) != argSort) {
+      //cout << "error with expected " << type.arg(i) << " and actual " << argSort << " when functor is " << t->functor() << " and arg is " << arg << endl;
+      return false;
+    }
+  }
+  return true;
+}
 
 bool SortHelper::isTupleSort(TermList sort)
 {

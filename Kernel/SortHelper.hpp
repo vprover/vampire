@@ -56,6 +56,7 @@ private:
   static void collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermList>& map);
 public:
   static TermList getResultSort(const Term* t);
+  static TermList getResultSortMono(const Term* t);
   static TermList getResultSort(TermList t, DHMap<unsigned,TermList>& varSorts);
   static TermList getArgSort(Term* t, unsigned argIndex);
 
@@ -77,7 +78,8 @@ public:
   static void collectVariableSorts(Formula* f, DHMap<unsigned,TermList>& map);
 
   static bool areSortsValid(Clause* cl);
-  static bool areImmediateSortsValid(Term* t);
+  static bool areImmediateSortsValidPoly(Term* t); 
+  static bool areImmediateSortsValidMono(Term* t);
   static bool isStructuredSort(unsigned s);
   static bool isTupleSort(TermList sort);
   static bool isArraySort(TermList sort);
