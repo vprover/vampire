@@ -14,8 +14,8 @@ jobs:
     - name: Create Z3 Build Directory
       run: mkdir ${{runner.workspace}}/vampire/z3/build
     - name: Configure Z3 Build
-      working-directory: ${{runner.workspace}}/z3/build
-      run: cmake $GITHUB_WORKSPACE/vampire/z3 -DCMAKE_BUILD_TYPE=Debug
+      working-directory: ${{runner.workspace}}/vampire/z3/build
+      run: cmake $GITHUB_WORKSPACE/z3 -DCMAKE_BUILD_TYPE=Debug
       env:
         CXX: clang++
     - name: Z3 Build
@@ -25,7 +25,7 @@ jobs:
       run: mkdir ${{runner.workspace}}/build
     - name: Configure Build
       working-directory: ${{runner.workspace}}/vampire/build
-      run: cmake $GITHUB_WORKSPACE/vampire -DCMAKE_BUILD_TYPE=Debug
+      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=Debug
       env:
         CXX: clang++
     - name: Build
