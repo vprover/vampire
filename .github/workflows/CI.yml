@@ -10,12 +10,17 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Create Build Directory
-      run: mkdir ${{runner.workspace}}/build
+      run: mkdir ${{runner.workspace}}/vampire/build
     - name: Configure Build
-      working-directory: ${{runner.workspace}}/build
-      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=Debug
+      working-directory: ${{runner.workspace}}/vampire/build
+      run: cmake .. -DCMAKE_BUILD_TYPE=Debug
       env:
         CXX: clang++
     - name: Build
-      working-directory: ${{runner.workspace}}/build
+      working-directory: ${{runner.workspace}}/vampire/build
       run: make -j8
+    - name: Install clang-tidy
+      run: sudo apt install clang-tidy
+    - name: Run clang-tidy
+      working-directory: ${{runner.workspace}}/vampire/build
+      run: run-clang-tidy -header-filter='.*' -j8
