@@ -279,6 +279,8 @@ vstring LaTeX::toString (Formula* f) const
   case NOCONN:
     ASSERTION_VIOLATION_REP(c);
   }
+
+  ASSERTION_VIOLATION;
 } // LaTeX::toString (const Formula&)
 
 /**

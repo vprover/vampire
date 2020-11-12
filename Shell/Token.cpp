@@ -233,6 +233,7 @@ Lib::vstring Token::toString (TokenType tt)
   case TT_USER:
     return "<user value>";
   }
+  ASSERTION_VIOLATION;
 } // Token::toString
 
 }

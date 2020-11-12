@@ -324,6 +324,7 @@ Formula* FOOLElimination::process(Formula* formula) {
     case NOCONN:
       ASSERTION_VIOLATION;
   }
+  ASSERTION_VIOLATION;
 }
 
 FormulaList* FOOLElimination::process(FormulaList* formulas) {

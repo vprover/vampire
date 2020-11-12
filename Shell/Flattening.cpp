@@ -218,6 +218,7 @@ Formula* Flattening::flatten (Formula* f)
     ASSERTION_VIOLATION;
   }
 
+  ASSERTION_VIOLATION;
 } // Flattening::flatten ()
 
 Literal* Flattening::flatten(Literal* l)
