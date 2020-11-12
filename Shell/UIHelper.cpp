@@ -51,7 +51,6 @@
 #include "LispLexer.hpp"
 #include "LispParser.hpp"
 #include "Options.hpp"
-#include "SimplifyProver.hpp"
 #include "Statistics.hpp"
 #include "TPTPPrinter.hpp"
 #include "UIHelper.hpp"
@@ -230,17 +229,6 @@ Problem* UIHelper::getInputProblem(const Options& opts)
 
   UnitList* units;
   switch (opts.inputSyntax()) {
-/*
-  case Options::InputSyntax::SIMPLIFY:
-  {
-    Shell::LispLexer lexer(*input);
-    Shell::LispParser parser(lexer);
-    LispParser::Expression* expr = parser.parse();
-    SimplifyProver simplify;
-    units = simplify.units(expr);
-  }
-  break;
-*/
   case Options::InputSyntax::TPTP:
     {
       Parse::TPTP parser(*input);

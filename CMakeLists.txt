@@ -545,7 +545,6 @@ set(VAMPIRE_SHELL_SOURCES
     #Shell/Refutation.cpp
     Shell/Skolem.cpp
     Shell/SimplifyFalseTrue.cpp
-    Shell/SimplifyProver.cpp
     Shell/SineUtils.cpp
     Shell/SMTFormula.cpp
     #Shell/SMTPrinter.cpp
@@ -613,7 +612,6 @@ set(VAMPIRE_SHELL_SOURCES
     #Shell/Refutation.hpp
     Shell/Skolem.hpp
     Shell/SimplifyFalseTrue.hpp
-    Shell/SimplifyProver.hpp
     Shell/SineUtils.hpp
     Shell/SMTFormula.hpp
     Shell/SMTLIBLogic.hpp
