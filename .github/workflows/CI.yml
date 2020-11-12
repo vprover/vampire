@@ -9,6 +9,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
+      with:
+        submodules: true
+    - name: Create Z3 Build Directory
+      run: mkdir ${{runner.workspace}}/z3/build
+    - name: Configure Z3 Build
+      working-directory: ${{runner.workspace}}/z3/build
+      run: cmake $GITHUB_WORKSPACE/z3 -DCMAKE_BUILD_TYPE=Debug
+      env:
+        CXX: clang++
+    - name: Z3 Build
+      working-directory: ${{runner.workspace}}/z3/build
+      run: make -j8
     - name: Create Build Directory
       run: mkdir ${{runner.workspace}}/build
     - name: Configure Build
