@@ -270,7 +270,6 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
 SaturationAlgorithm::~SaturationAlgorithm()
 {
   CALL("SaturationAlgorithm::~SaturationAlgorithm");
-  ASS_EQ(s_instance,this);
 
   s_instance=0;
 

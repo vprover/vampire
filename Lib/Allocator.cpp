@@ -1117,9 +1117,18 @@ void* operator new[](size_t sz) {
   return res;
 }
 
-void operator delete(void* obj) throw() {  
-  ASS_REP(Allocator::_tolerantZone > 0,"Custom operator new matched by global delete!");
-  // Please read: https://github.com/easychair/vampire/wiki/Attempted-to-use-global-new-operator,-thus-bypassing-Allocator!
+void operator delete(void* obj) noexcept {  
+#if VDEBUG
+  if(Allocator::_tolerantZone > 0) {
+    // Please read: https://github.com/easychair/vampire/wiki/Attempted-to-use-global-new-operator,-thus-bypassing-Allocator!
+    Debug::Assertion::violated(
+      __FILE__,
+      __LINE__,
+      "Custom operator new matched by global delete!"
+    );
+    std::terminate();
+  }
+#endif
 
   static Allocator::Initialiser i; // to initialize Allocator even for other libraries
 
@@ -1128,9 +1137,18 @@ void operator delete(void* obj) throw() {
   }
 }
 
-void operator delete[](void* obj) throw() {  
-  ASS_REP(Allocator::_tolerantZone > 0,"Custom operator new[] matched by global delete[]!");
-  // Please read: https://github.com/easychair/vampire/wiki/Attempted-to-use-global-new-operator,-thus-bypassing-Allocator!
+void operator delete[](void* obj) noexcept {  
+#if VDEBUG
+  if(Allocator::_tolerantZone > 0) {
+    // Please read: https://github.com/easychair/vampire/wiki/Attempted-to-use-global-new-operator,-thus-bypassing-Allocator!
+    Debug::Assertion::violated(
+      __FILE__,
+      __LINE__,
+      "Custom operator new matched by global delete!"
+    );
+    std::terminate();
+  }
+#endif
 
   static Allocator::Initialiser i; // to initialize Allocator even for other libraries
 

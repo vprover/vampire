@@ -89,7 +89,6 @@ public:
   {
     if(_lcw.isLast()) {
       s_exceptionCounter--;
-      ASS_GE(s_exceptionCounter,0);
     }
   }
 

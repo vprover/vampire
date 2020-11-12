@@ -151,7 +151,6 @@ public:
   ~DHMap()
   {
     if(_entries) {
-      ASS_EQ(_afterLast-_entries,_capacity);
       array_delete(_entries, _capacity);
       DEALLOC_KNOWN(_entries,_capacity*sizeof(Entry),"DHMap::Entry");
 //      DEALLOC_KNOWN(_entries,_capacity*sizeof(Entry),typeid(Entry).name());

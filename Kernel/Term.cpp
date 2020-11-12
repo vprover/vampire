@@ -1356,7 +1356,6 @@ Term::Term(const Term& t) throw()
     _vars(0)
 {
   CALL("Term::Term/1");
-  ASS(!isSpecial()); //we do not copy special terms
 
   _args[0] = t._args[0];
   _args[0]._info.shared = 0u;

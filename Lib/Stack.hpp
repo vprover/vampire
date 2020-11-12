@@ -135,9 +135,6 @@ public:
     if(_stack) {
       DEALLOC_KNOWN(_stack,_capacity*sizeof(C),className());
     }
-    else {
-      ASS_EQ(_capacity,0);
-    }
   }
 
   Stack& operator=(const Stack& s)

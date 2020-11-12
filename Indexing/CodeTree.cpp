@@ -657,7 +657,6 @@ CodeTree::~CodeTree()
       }
       
       FixedSearchStruct* ss = static_cast<FixedSearchStruct*> (top_op->getSearchStruct());
-      ASS(ss->isFixedSearchStruct());      
       for (size_t i = 0; i < ss->length; i++) {
         if (ss->targets[i]!=0) { // zeros are allowed as targets (they are holes after removals)
           top_ops.push(ss->targets[i]);
@@ -668,7 +667,6 @@ CodeTree::~CodeTree()
       CodeBlock* cb=firstOpToCodeBlock(top_op);
 
       CodeOp* op=&(*cb)[0];
-      ASS_EQ(top_op,op);
       for(size_t rem=cb->length(); rem; rem--,op++) {
         if (_onCodeOpDestroying) {
           (*_onCodeOpDestroying)(op); 

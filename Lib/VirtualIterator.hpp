@@ -68,7 +68,7 @@ public:
   /** Create new IteratorCore object */
   IteratorCore() : _refCnt(0) {}
   /** Destroy IteratorCore object */
-  virtual ~IteratorCore() { ASS(_refCnt==0); }
+  virtual ~IteratorCore() {}
   /** Return true if there is a next element */
   virtual bool hasNext() = 0;
   /**

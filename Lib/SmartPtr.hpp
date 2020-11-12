@@ -74,7 +74,6 @@ public:
       return;
     }
     (_refCnt->_val)--;
-    ASS(_refCnt->_val >= 0);
     if(! _refCnt->_val) {
       checked_delete(_obj);
       delete _refCnt;

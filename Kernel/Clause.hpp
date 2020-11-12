@@ -56,11 +56,6 @@ using namespace Lib;
 class Clause
   : public Unit
 {
-private:
-  /** Should never be used, declared just to get rid of compiler warning */
-  ~Clause() { ASSERTION_VIOLATION; }
-  /** Should never be used, just that compiler requires it */
-  void operator delete(void* ptr) { ASSERTION_VIOLATION; }
 public:
   typedef ArrayishObjectIterator<const Clause> Iterator;
 

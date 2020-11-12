@@ -78,7 +78,6 @@ SubstitutionTree::SubstitutionTree(int nodes,bool useC)
 SubstitutionTree::~SubstitutionTree()
 {
   CALL("SubstitutionTree::~SubstitutionTree");
-  ASS_EQ(_iteratorCnt,0);
 
   for (unsigned i = 0; i<_nodes.size(); i++) {
     if(_nodes[i]!=0) {

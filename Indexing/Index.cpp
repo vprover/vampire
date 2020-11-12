@@ -35,7 +35,6 @@ using namespace Saturation;
 Index::~Index()
 {
   if(!_addedSD.isEmpty()) {
-    ASS(!_removedSD.isEmpty());
     _addedSD->unsubscribe();
     _removedSD->unsubscribe();
   }

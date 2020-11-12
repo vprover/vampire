@@ -63,7 +63,6 @@ SyncPipe::~SyncPipe()
   CALL("SyncPipe::~SyncPipe");
 
   releasePrivileges();
-  ASS(PipeList::member(this, s_instances));
   s_instances = PipeList::remove(this, s_instances);
 
   if(canRead()) {

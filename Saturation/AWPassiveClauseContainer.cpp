@@ -86,7 +86,6 @@ AWPassiveClauseContainer::~AWPassiveClauseContainer()
   while (cit.hasNext()) 
   {
     Clause* cl=cit.next();
-    ASS(!_isOutermost || cl->store()==Clause::PASSIVE);
     cl->setStore(Clause::NONE);
   }
 }

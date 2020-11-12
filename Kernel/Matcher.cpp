@@ -427,7 +427,6 @@ public:
     if(_state!=FINISHED && _state!=FIRST) {
 	backtrack();
     }
-    ASS(_bdata.isEmpty());
   }
   bool hasNext()
   {

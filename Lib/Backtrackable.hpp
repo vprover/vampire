@@ -268,7 +268,7 @@ public:
    * Ensures that calls to @b bdRecord / @b bdDoNotRecord and
    * @b bdDone were properly paired.
    */
-  ~Backtrackable() { ASS_EQ(_bdStack,0); }
+  ~Backtrackable() {}
 #endif
   /**
    * Start recording object changes into the @b bd object

@@ -56,11 +56,7 @@ public:
   USE_ALLOCATOR(InferenceEngine);
 
   InferenceEngine() : _salg(0) {}
-  virtual ~InferenceEngine()
-  {
-    //the object has to be detached before destruction
-    ASS(!_salg);
-  }
+  virtual ~InferenceEngine() {}
   virtual void attach(SaturationAlgorithm* salg)
   {
     CALL("InferenceEngine::attach");
