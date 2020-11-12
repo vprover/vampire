@@ -329,13 +329,6 @@ enum class InferenceRule : unsigned char {
   /** inference coming from outside of Vampire */
   EXTERNAL,
 
-  /** BNFT flattening */
-  BFNT_FLATTENING,
-  /** BNFT axioms m != n */
-  BFNT_DISTINCT,
-  /** BNFT totality axioms R(x,1) \/ ... \/ R(x,n) */
-  BFNT_TOTALITY,
-
   /* FMB flattening */
   FMB_FLATTENING,
   /* Functional definition for FMB */
@@ -740,7 +733,7 @@ public:
    * - integer/rational/real theory axioms are internal theory axioms
    * - term algebra axioms are internal theory axioms
    * - FOOL axioms are internal theory axioms
-   * - equality-proxy-axioms, SimplifyProver’s-distinct-number-axioms, and BFNT-axioms
+   * - equality-proxy-axioms
    *   are not treated as internal theory axioms, since they are not generated in TheoryAxioms
    *   (these axioms should probably be refactored into TheoryAxioms at some point)
    * - consequences of theory axioms are not theory axioms

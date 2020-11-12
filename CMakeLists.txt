@@ -508,8 +508,6 @@ source_group(saturation_source_files FILES ${VAMPIRE_SATURATION_SOURCES})
 set(VAMPIRE_SHELL_SOURCES
     Shell/AnswerExtractor.cpp
     #Shell/AxiomGenerator.cpp
-    Shell/BFNT.cpp
-    Shell/BFNTMainLoop.cpp
     Shell/CommandLine.cpp
     Shell/CNF.cpp
     Shell/NewCNF.cpp
@@ -579,8 +577,6 @@ set(VAMPIRE_SHELL_SOURCES
     #Shell/SubsumptionRemover.cpp
     Shell/AnswerExtractor.hpp
     #Shell/AxiomGenerator.hpp
-    Shell/BFNT.hpp
-    Shell/BFNTMainLoop.hpp
     Shell/CommandLine.hpp
     Shell/CNF.hpp
     Shell/NewCNF.hpp
