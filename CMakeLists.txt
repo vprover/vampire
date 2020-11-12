@@ -30,9 +30,19 @@ endif()
 # statically link libraries
 option(BUILD_SHARED_LIBS "Build an executable dynamically linking to libraries instead of a statically-linked one (static not working on Mac)" ON)
 if (NOT BUILD_SHARED_LIBS)
-  SET(CMAKE_FIND_LIBRARY_SUFFIXES .a)
-  SET(CMAKE_EXE_LINKER_FLAGS -static)
+  set(CMAKE_FIND_LIBRARY_SUFFIXES .a)
+  set(CMAKE_EXE_LINKER_FLAGS -static)
   set(VAMPIRE_BINARY_STATIC _static)
+endif()
+
+option(LTO "If supported, build with link-time optimisation." OFF)
+# check whether LTO is available
+include(CheckIPOSupported)
+check_ipo_supported(RESULT LTO_SUPPORTED OUTPUT LTO_ERROR)
+if (LTO_SUPPORTED)
+  message(STATUS "LTO supported")
+else()
+  message(STATUS "LTO not supported: ${LTO_ERROR}")
 endif()
 
 ################################################################
@@ -902,6 +912,14 @@ else()
 endif()
 set(VAMPIRE_BINARY "vampire${VAMPIRE_BINARY_Z3}${VAMPIRE_BINARY_BUILD}${VAMPIRE_BINARY_STATIC}${VAMPIRE_BINARY_BRANCH}${VAMPIRE_BINARY_REV_COUNT}")
 message(STATUS "Setting binary name to '${VAMPIRE_BINARY}'")
+
+################################################################
+# link-time optimisation
+################################################################
+if(CMAKE_BUILD_TYPE STREQUAL Release AND LTO)
+  message(STATUS "compiling with LTO")
+  set_property(TARGET vampire PROPERTY INTERPROCEDURAL_OPTIMIZATION true)
+endif()
 
 ################################################################
 # epilogue
