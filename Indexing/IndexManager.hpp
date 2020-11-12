@@ -61,7 +61,6 @@ enum IndexType {
   GLOBAL_SUBSUMPTION_INDEX,
 
   ACYCLICITY_INDEX
-//  ARITHMETIC_INDEX
 };
 
 class IndexManager
