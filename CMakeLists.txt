@@ -840,7 +840,8 @@ endif()
 # google benchmark library
 #################################################################
 
-find_package(benchmark REQUIRED)
+# find_package(benchmark REQUIRED)
+add_subdirectory(benchmark)
 target_link_libraries(vampire PRIVATE benchmark::benchmark)
 
 
