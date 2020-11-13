@@ -784,38 +784,45 @@ endif()
 ################################################################
 # unit testing stuff
 ################################################################
-      include(CTest)
 
-set(VTEST_SOURCES vtest.cpp  ${VAMPIRE_SOURCES})
-list(FILTER VTEST_SOURCES EXCLUDE REGEX vampire.cpp)
-file(GLOB unit_tests "UnitTests/*.cpp")
-set(VTEST_SOURCES 
-    ${VTEST_SOURCES} 
-    ${unit_tests}
-    Test/UnitTesting.cpp
-  )
-# TODO add any of this ?
-# target_compile_options(vampire PRIVATE -Wall)
-# target_compile_definitions(vampire PRIVATE VDEBUG=1 UNIX_USE_SIGALRM=1 GNUMP=0)
-add_executable(vtest ${VTEST_SOURCES})
-target_include_directories(vtest PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-set_target_properties(vtest PROPERTIES
-    OUTPUT_NAME vtest
-    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)   
+include(CTest)
 
-add_test(vtest vtest)
+# UNIT_BASE_SOURCES ... all the sources all unit test have in common
+set(UNIT_BASE_SOURCES ${VAMPIRE_SOURCES} Test/UnitTesting.cpp)
+list(FILTER UNIT_TESTS EXCLUDE REGEX vampire.cpp)
+ADD_LIBRARY(unit_test_base STATIC ${UNIT_BASE_SOURCES})
+target_include_directories(unit_test_base PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
-# #file(GLOB unit_tests "UnitTests/*.cpp")
+file(GLOB UNIT_TESTS "UnitTests/*.cpp")
+foreach(test_file ${UNIT_TESTS})
 
-# foreach(file ${VTEST_SOURCES}) 
-#   message(STATUS VTEST ${file})
-# endforeach()
+  get_filename_component(test_name ${test_file} NAME_WE)
+  string(REGEX REPLACE "^t" "" test_name ${test_name})
 
-# add_executable(vtest ${VAMPIRE_SOURCES})
-# # foreach(file $(GLOB unit_tests "UnitTests/*.cpp"))
-# #
-# #   string(REGEX REPLACE "(^.*/|\\.[^.]*$)" "" test_name ${file})
-# #   add_executable(${test_name} )
+
+  # compiling the test case executable
+  add_executable(${test_name} ${test_file})
+  target_link_libraries(${test_name} unit_test_base)
+  target_include_directories(${test_name} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+  target_compile_definitions(vampire PRIVATE 
+    VDEBUG=1 
+    UNIX_USE_SIGALRM=1  # <- TODO what does this do?
+    GNUMP=0             # <- TODO what does this do?
+    CTEST=1
+    )
+  target_compile_options(${test_name} PRIVATE -Wall)
+  set(test_bin_dir ${CMAKE_BINARY_DIR}/bin/unit-tests)
+  set_target_properties(${test_name} PROPERTIES
+      OUTPUT_NAME ${test_name}
+      RUNTIME_OUTPUT_DIRECTORY ${test_bin_dir})   
+
+  # configuring ctest
+  add_test(${test_name} ${test_bin_dir}/${test_name})
+  set_tests_properties(${test_name}
+        PROPERTIES
+        TIMEOUT 20)
+
+endforeach()
 
 
 #################################################################
