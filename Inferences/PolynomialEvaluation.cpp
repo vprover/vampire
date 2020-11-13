@@ -279,7 +279,9 @@ Polynom<Number> simplifyPoly(Polynom<Number> const& in, PolyNf* simplifiedArgs)
 
     }
 
-    return Polynom(std::move(out));
+    auto poly = Polynom(std::move(out));
+    poly.integrity();
+    return std::move(poly);
   } catch (ArithmeticException) { 
     return in.replaceTerms(simplifiedArgs);
   }
@@ -333,7 +335,6 @@ Monom<Number> simplifyMonom(Monom<Number> const& in, PolyNf* simplifiedArgs)
     }
   }
 
-  DEBUG("lala")
 
   if (numeral == Numeral(0)) {
     return Monom::zero();

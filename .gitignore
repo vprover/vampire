@@ -40,3 +40,4 @@ cmake-build
 .exrc
 .clang-format
 .clangd
+.lldbinit

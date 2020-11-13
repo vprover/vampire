@@ -4,12 +4,13 @@
 #include <functional>
 #include "Lib/Map.hpp"
 #include "Debug/Tracer.hpp"
+#include "Lib/Coproduct.hpp"
 
 namespace Lib {
 
-
-template<class T>
+#define DEBUG(...) // DBG(__VA_ARGS__)
 struct PerfectPtrComparison ;
+struct PerfectIdComparison ;
 
 /** 
  * Smart pointer for perfectly sharing objects.
@@ -17,55 +18,58 @@ struct PerfectPtrComparison ;
  * This means that all objects of type T that are structurally equal, will be represented by the same pointer Perfect<T>.
  * This makes equality comparisons, hashing, and copying constant time operations.
  *
- * T is required to be comparable with `bool operator(const T&, const T&)`, and hashable with `std::hash<T>`.
+ * The type parameter DfltComparison defines how two objects of this type should be compared in operator<, operator==, 
+ * and std::hash. Available options are:
+ * - PerfectIdComparison : deterministic, an id is addigned to each term
+ * - PerfectPtrComparison: indeterministic, pointers are compared
  *
- * Further T must be copy constructible. // TODO get rid of this restriction (using a HashSet instead of a HashMap (?))
+ * T is required to be comparable with `bool operator==(const T&, const T&)`, and hashable with `std::hash<T>`.
  */
-template<class T, class DfltComparison = PerfectPtrComparison<T> >
+template<class T, class DfltComparison = PerfectIdComparison>
 class Perfect 
 {
-  using Cache = Map<T, T*, StlHash<T>>;
+  using IdMap = Map<const T*, Perfect, DerefPtrHash<T>>;
 
-  T* _elem;
-  static Cache _cached;
+  unsigned _id;
+  const T* _ptr;
+  static IdMap _ids;
+
+  Perfect(unsigned id, const T* ptr) : _id(id), _ptr(ptr) {}
 
 public:
   /** 
    * If an equal object to elem exists, a pointer to that object is returned.
    * Otherwise elem is moved to the heap, and a pointer to that heap location is returned.
    */
-  explicit Perfect(T&& elem) 
-    : _elem(_cached.getOrInit(T(elem), [elem]() { 
-          auto mem = ALLOC_KNOWN(sizeof(T), typeid(Perfect).name());
-          ::new(mem) T(std::move(elem)); 
-          return (T*) mem;
-      })) 
+  explicit Perfect(T elem) 
+    : Perfect(_ids.tryGet(&elem).toOwned()
+        .unwrapOrElse([&](){
+            auto entry = Perfect(_ids.size(),  new T(std::move(elem)));
+            _ids.insert(entry._ptr, entry);
+            DEBUG(*elemPtr, " -> ", T::className(),"#",entry._id);
+            return entry;
+          })) 
     { }
 
   /** copy constructor. Constant time. */
-  Perfect(Perfect      & t) : _elem(t._elem) {  }
-
-  /** copy constructor. Constant time. */
-  Perfect(Perfect const& t) : _elem(t._elem) {  }
+  Perfect(Perfect const& t) : _id(t._id), _ptr(t._ptr) {  }
 
   /** default constructor. for this T must be default-constructible itself. */
-  Perfect() : _elem(perfect(T())) {}
+  Perfect() : Perfect(T()) {}
 
   template<class U, class C> friend bool operator==(Perfect<U, C> const& l, Perfect<U, C> const& r);
 
   /** dereferencing the smart pointer */
-  T const* operator->() const& { return _elem; }
-  T      * operator->()      & { return _elem; }
-
-  T const& operator*() const& { return *_elem; }
-  T      & operator*()      & { return *_elem; }
+  T const* operator->() const& { return _ptr; }
+  T const& operator*() const& { return *_ptr; }
 
   friend std::ostream& operator<<(std::ostream& out, const Perfect& self) 
-  { return out << *self._elem; }
+  { return out << *self; }
 
   friend struct std::hash<Perfect<T, DfltComparison>>;
 
-  template<class U> friend struct PerfectPtrComparison;
+  friend struct PerfectPtrComparison;
+  friend struct PerfectIdComparison;
 
   template<class U, class C> 
   friend bool operator<(const Lib::Perfect<U, C> & lhs, const Lib::Perfect<U, C>& rhs);
@@ -82,34 +86,55 @@ bool operator<=(const Lib::Perfect<U, C> & lhs, const Lib::Perfect<U, C>& rhs)
 { return lhs < rhs || lhs == rhs; }
 
 template<class U, class C> bool operator==(Perfect<U, C> const& l, Perfect<U, C> const& r)
-{ return l._elem == r._elem; }
+{ return C::equals(l,r); }
 
 template<class U, class C> bool operator!=(Perfect<U, C> const& l, Perfect<U, C> const& r)
 { return !(l == r); }
 
 /** instantiating the cache */
-template<class T, class Cmp> typename Perfect<T, Cmp>::Cache Perfect<T, Cmp>::_cached;
+template<class T, class Cmp> typename Perfect<T, Cmp>::IdMap Perfect<T, Cmp>::_ids;
 
-template<class T>
 struct PerfectPtrComparison 
 {
-  template<class Cmp>
+  template<class T, class Cmp>
   bool operator()(const Perfect<T, Cmp>& lhs, const Perfect<T, Cmp>& rhs) const
-  { return lhs._elem < rhs._elem; }
+  { return lhs._ptr < rhs._ptr; }
+
+  template<class T, class Cmp>
+  static bool equals(const Perfect<T, Cmp>& lhs, const Perfect<T, Cmp>& rhs) 
+  { return lhs._ptr == rhs._ptr; }
+
+  template<class T, class Cmp>
+  static size_t hash(Lib::Perfect<T, Cmp> const& self) 
+  { return std::hash<size_t>{}((size_t)self._ptr); }
+};
+
+
+struct PerfectIdComparison 
+{
+  template<class T, class Cmp>
+  bool operator()(const Perfect<T, Cmp>& lhs, const Perfect<T, Cmp>& rhs) const
+  { return lhs._id < rhs._id; }
+
+  template<class T, class Cmp>
+  static bool equals(const Perfect<T, Cmp>& lhs, const Perfect<T, Cmp>& rhs) 
+  { return lhs._id == rhs._id; }
+
+  template<class T, class Cmp>
+  static size_t hash(Lib::Perfect<T, Cmp> const& self) 
+  { return std::hash<unsigned>{}(self._id); }
 };
 
 
 /** function to create a Perfect<T> ergonomically (with the help of type deduction) */
-template<class T, class Cmp = PerfectPtrComparison<T>> 
-Perfect<T, Cmp> perfect(T&& t) 
-{ return Perfect<T, Cmp>(std::move(t)); }
-
-} // namespace Lib
+template<class T, class Cmp = PerfectIdComparison> 
+Perfect<T, Cmp> perfect(T t) 
+{ return Perfect<T, Cmp>(std::move(t)); } } // namespace Lib
 
 template<class T, class Cmp> struct std::hash<Lib::Perfect<T, Cmp>> 
 {
   size_t operator()(Lib::Perfect<T, Cmp> const& self) const 
-  { return std::hash<size_t>{}((size_t) self._elem); }
+  { return Cmp::hash(self); }
 };
 
 
@@ -119,4 +144,6 @@ template<class T, class Cmp> struct std::less<Lib::Perfect<T, Cmp>>
   { return Cmp{}(lhs, rhs); }
 };
 
+
+#undef DEBUG
 #endif // __UNIQUE_SHARED_HPP__

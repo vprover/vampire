@@ -343,7 +343,7 @@ public:
       expand();
     }
     ASS(_cursor < _end);
-    new(_cursor) C(elem);
+    ::new(_cursor) C(elem);
     _cursor++;
   } // Stack::push()
 
@@ -793,7 +793,7 @@ protected:
     C* newStack = static_cast<C*>(mem);
     if(_capacity) {
       for (size_t i = 0; i<_capacity; i++) {
-        new(newStack+i) C(std::move(_stack[i]));
+        ::new(newStack+i) C(std::move(_stack[i]));
         _stack[i].~C();
       }
       // deallocate the old stack

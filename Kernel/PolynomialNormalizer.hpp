@@ -28,7 +28,6 @@
 #include "Kernel/BottomUpEvaluation/PolyNf.hpp"
 #include "Inferences/InferenceEngine.hpp"
 
-#define DEBUG(...) DBG(__VA_ARGS__)
 
 namespace Kernel {
 
@@ -46,6 +45,5 @@ using NormalizationResult = Coproduct<PolyNf
 PolyNf normalizeTerm(TypedTermList t);
 
 } // namespace Kernel
-#undef DEBUG
 
 #endif // __POLYNOMIAL_NORMALIZER_HPP__

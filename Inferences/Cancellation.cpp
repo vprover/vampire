@@ -3,7 +3,7 @@
 #include "Kernel/NumTraits.hpp"
 #include "Kernel/PolynomialNormalizer.hpp"
 
-#define DEBUG(...) // DBG(__VA_ARGS__)
+#define DEBUG(...) //DBG(__VA_ARGS__)
 
 namespace Inferences {
 
@@ -22,18 +22,24 @@ CancelAddResult<Number> cancelAdd(Polynom<Number> const& oldl, Polynom<Number> c
 
 template<class NumTraits>
 Literal* cancelAdd(Literal* lit) {
+  CALL("cancelAdd(Literal* lit)")
   auto normL = PolyNf::normalize(TypedTermList((*lit)[0], SortHelper::getArgSort(lit, 0)));
   auto normR = PolyNf::normalize(TypedTermList((*lit)[1], SortHelper::getArgSort(lit, 1)));
 
   auto oldL = normL.template wrapPoly<NumTraits>();
   auto oldR = normR.template wrapPoly<NumTraits>();
   auto res = cancelAdd(*oldL, *oldR);
+
+  res.lhs.integrity();
+  res.rhs.integrity();
+
   auto newL = perfect(std::move(res.lhs));
   auto newR = perfect(std::move(res.rhs));
+
   if (newL != oldL || newR != oldR)  {
     TermList args[] = {
-      res.lhs.denormalize(),
-      res.rhs.denormalize(),
+      newL->denormalize(),
+      newR->denormalize(),
     };
     return Literal::create(lit, args);
   } else  {
@@ -42,6 +48,7 @@ Literal* cancelAdd(Literal* lit) {
 }
 
 Literal* tryCancel(Interpretation inter, Literal* lit) {
+  CALL("tryCancel(Interpretation inter, Literal* lit)")
   switch(inter) {
     case Interpretation::EQUAL:
       switch (SortHelper::getEqualityArgumentSort(lit)) {

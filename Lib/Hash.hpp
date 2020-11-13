@@ -72,6 +72,16 @@ struct StlHash {
   { return lhs == rhs; }
 };
 
+template<class T, class Hash = StlHash<T>>
+struct DerefPtrHash {
+  static unsigned hash(const T* self) 
+  { return Hash::hash(*self); }
+
+  static bool equals(const T* lhs, const T* rhs) 
+  { return Hash::equals(*lhs, *rhs); 
+  }
+};
+
 template<class T>
 size_t stlHash(const T& self) 
 { return std::hash<T>{}(self); }

@@ -136,6 +136,9 @@ struct Monom
   static Monom zero();
 
   Option<Variable> tryVar() const;
+
+  /** performs an integrity check on the datastructure, only has an effect in debug mode */
+  void integrity() const;
 };
 
 
@@ -147,6 +150,7 @@ class FuncTerm
   FuncId _fun;
   Stack<PolyNf> _args;
 public:
+  CLASS_NAME(FuncTerm)
   FuncTerm(FuncId f, Stack<PolyNf>&& args);
   FuncTerm(FuncId f, PolyNf* args);
 
@@ -301,6 +305,7 @@ class MonomFactors
   friend struct std::hash<MonomFactors>;
 
 public:
+  CLASS_NAME(MonomFactors)
 
   /** 
    * constructs a new MonomFactors. 
@@ -540,6 +545,13 @@ Option<Variable> Monom<Number>::tryVar() const
   }
 }
 
+template<class Number>
+void Monom<Number>::integrity() const 
+{
+#if VDEBUG
+  this->factors->integrity();
+#endif // VDEBUG
+}
 
 
 template<class Number>
@@ -562,6 +574,10 @@ std::ostream& operator<<(std::ostream& out, const Monom<Number>& self)
   }
   return out << self.factors; 
 }
+
+
+
+
 } // namespace Kernel
 
 
@@ -1003,7 +1019,7 @@ std::ostream& operator<<(std::ostream& out, const Polynom<Number>& self) {
   auto iter = self._summands.begin();
   out << "Poly(";
   if ( iter == self._summands.end() ) {
-    out << "0";
+    out << "<empty>";
   } else {
     out << *iter;
     iter++;
@@ -1019,7 +1035,11 @@ std::ostream& operator<<(std::ostream& out, const Polynom<Number>& self) {
 
 template<class Number>
 Polynom<Number> Polynom<Number>::zero() 
-{ return Polynom(Stack<Monom>{}); }
+{ 
+  auto out = Polynom(Stack<Monom>{Monom::zero()}); 
+  out.integrity();
+  return std::move(out);
+}
 
 template<class Number>
 Option<typename Number::ConstantType> Polynom<Number>::toNumber() const& 
@@ -1123,16 +1143,17 @@ Monom<Number>      & Polynom<Number>::summandAt(unsigned summand)
 template<class Number>
 void Polynom<Number>::integrity() const {
 #if VDEBUG
+  ASS(_summands.size() > 0)
   if (_summands.size() > 0) {
     auto iter = this->_summands.begin();
     auto last = iter++;
     while (iter != _summands.end()) {
       // ASS_REP(std::less<Perfect<MonomFactors>>{}(last->factors, iter->factors), *this);
       ASS_REP(last->factors <= iter->factors, *this);
-      iter->factors->integrity();
+      iter->integrity();
       last = iter++;
     }
-  }
+  } 
 #endif
 }
 

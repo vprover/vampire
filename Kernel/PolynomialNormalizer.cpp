@@ -62,7 +62,9 @@ struct RenderPolyNf {
   template<class NumTraits>
   PolyNf operator()(MonomFactors<NumTraits>&& facs) const 
   { 
-    return (*this)(Polynom<NumTraits>(RenderMonom{}(std::move(facs))));
+    auto poly = Polynom<NumTraits>(RenderMonom{}(std::move(facs)));
+    poly.integrity();
+    return (*this)(std::move(poly));
   }
 
 };
