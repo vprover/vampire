@@ -164,6 +164,14 @@ class SubstitutionTheory
       }
     }
 
+    void reset()
+    {
+      atoms.clear();
+      atoms_by_domain.clear();
+      current_substitution.clear();
+      current_substitution_level.clear();
+    }
+
     /// Call this when a SAT variable has been set to true
     /// PropagateCallback ~ bool(Minisat::Lit propagated, GClause reason)
     template < typename PropagateCallback >

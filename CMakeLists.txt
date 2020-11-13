@@ -835,6 +835,15 @@ else ()
   set(VAMPIRE_BINARY_Z3 "_z3")
 endif()
 
+
+#################################################################
+# google benchmark library
+#################################################################
+
+find_package(benchmark REQUIRED)
+target_link_libraries(vampire PRIVATE benchmark::benchmark)
+
+
 #################################################################
 # automated generation of Vampire revision information from git #
 #################################################################
