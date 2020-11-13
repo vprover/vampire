@@ -20,6 +20,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include "SMTSubsumption/minisat/Solver.h"
 #include "SMTSubsumption/minisat/Sort.h"
 #include <cmath>
+#include <limits>
 
 using namespace SMTSubsumption::Minisat;
 

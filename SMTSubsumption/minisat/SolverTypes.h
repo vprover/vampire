@@ -23,6 +23,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 #include "SMTSubsumption/minisat/Global.h"
 #include <ostream>
+#include <limits>
 
 
 namespace SMTSubsumption { namespace Minisat {
