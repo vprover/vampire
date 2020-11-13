@@ -75,6 +75,7 @@ enum TermTag {
  */
 class TermList {
 public:
+  CLASS_NAME(TermList)
   /** dummy constructor, does nothing */
   TermList() {}
   /** creates a term list and initialises its content with data */

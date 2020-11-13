@@ -314,6 +314,7 @@ PolyNf normalizeTerm(TypedTermList t)
 
     NormalizationResult operator()(TypedTermList t, NormalizationResult* ts) const
     { 
+      CALL("normalizeTerm(TypedTermList)::eval::operator()")
       switch (t.sort()) {
         case  IntTraits::sort: return normalizeNumSort< IntTraits>(t, ts);
         case  RatTraits::sort: return normalizeNumSort< RatTraits>(t, ts);

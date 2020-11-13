@@ -124,7 +124,8 @@ class AnyPoly;
 template<class Number> 
 struct Monom 
 {
-  CLASS_NAME(MonomFactor)
+  CLASS_NAME(Monom)
+  USE_ALLOCATOR(Monom)
 
   using Numeral = typename Number::ConstantType;
 
@@ -151,6 +152,8 @@ class FuncTerm
   Stack<PolyNf> _args;
 public:
   CLASS_NAME(FuncTerm)
+  USE_ALLOCATOR(FuncTerm)
+
   FuncTerm(FuncId f, Stack<PolyNf>&& args);
   FuncTerm(FuncId f, PolyNf* args);
 
@@ -306,6 +309,7 @@ class MonomFactors
 
 public:
   CLASS_NAME(MonomFactors)
+  USE_ALLOCATOR(MonomFactors)
 
   /** 
    * constructs a new MonomFactors. 

@@ -92,3 +92,26 @@ IMPL_QUOTIENT_REMAINDER(F)
 IMPL_QUOTIENT_REMAINDER(E)
 
 #undef IMPL_QUOTIENT_REMAINDER
+
+
+#define IMPL_DIVISION(NumTraits)                                                                              \
+  template<>                                                                                                  \
+  struct FunctionEvaluator<NumTraits::divI>                                                                   \
+  {                                                                                                           \
+    static Option<PolyNf> simplify(PolyNf* evalArgs)                                                          \
+    {                                                                                                         \
+      using Numeral = typename NumTraits::ConstantType;                                                       \
+      auto lhs = evalArgs[0].tryNumeral<NumTraits>();                                                         \
+      auto rhs = evalArgs[1].tryNumeral<NumTraits>();                                                         \
+      if (lhs.isSome() && rhs.isSome() && rhs.unwrap() != Numeral(0)) {                                       \
+        return Option<PolyNf>(PolyNf(AnyPoly(perfect(Polynom<NumTraits>(lhs.unwrap() / rhs.unwrap())))));     \
+      } else {                                                                                                \
+        return Option<PolyNf>();                                                                              \
+      }                                                                                                       \
+    }                                                                                                         \
+  };                                                                                                          \
+
+IMPL_DIVISION(RatTraits)
+IMPL_DIVISION(RealTraits)
+
+#undef IMPL_DIVISION

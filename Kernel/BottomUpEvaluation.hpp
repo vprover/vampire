@@ -137,6 +137,7 @@ typename EvalFn::Result evaluateBottomUp(typename EvalFn::Arg const& term, EvalF
 
       BottomUpChildIter<Arg> orig = recState.pop();
       Result eval = memo.getOrInit(orig.self(), [&](){ 
+            CALL("evaluateBottomUp(..)::closure@1")
             Result* argLst = NULL;
             if (orig.nChildren() != 0) {
               ASS_GE(recResults.size(), orig.nChildren());

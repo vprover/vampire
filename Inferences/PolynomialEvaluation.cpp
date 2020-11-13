@@ -120,18 +120,17 @@ Option<PolyNf> trySimplify(Theory::Interpretation i, PolyNf* evalArgs)
         }                                                                                                     \
 
 #define CASE(inter)                                                                                           \
-      case Theory::inter:                                                                                     \
-        return FunctionEvaluator<Theory::inter>::simplify(evalArgs);
+      case inter: return FunctionEvaluator<inter>::simplify(evalArgs);
 
 #define QUOTIENT_REMAINDER_CASES(X)                                                                           \
-      CASE(INT_QUOTIENT_  ## X)                                                                               \
-      CASE(INT_REMAINDER_ ## X)
+      CASE(Theory::INT_QUOTIENT_  ## X)                                                                       \
+      CASE(Theory::INT_REMAINDER_ ## X)
 
 #define FRAC_CASE(Num)                                                                                        \
-      CONSTANT_CASE_2(Num, div, l / r)
+      CASE(Num##Traits::divI)
 
 #define NUM_CASE(Num)                                                                                         \
-      case Num ## Traits::minusI:     return trySimplifyUnaryMinus<Num ## Traits>(evalArgs);                  \
+      case Num ## Traits::minusI: return trySimplifyUnaryMinus<Num ## Traits>(evalArgs);
 
       NUM_CASE(Int)
       NUM_CASE(Rat)

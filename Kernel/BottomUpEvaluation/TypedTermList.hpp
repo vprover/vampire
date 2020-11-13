@@ -11,6 +11,7 @@ class TypedTermList : public TermList
 {
   unsigned _sort;
 public:
+  CLASS_NAME(TypedTermList)
   TypedTermList(TermList t, unsigned sort) : TermList(t), _sort(sort) {}
   TypedTermList(Term* t) : TypedTermList(TermList(t), SortHelper::getResultSort(t)) {}
   unsigned sort() const { return _sort; }
