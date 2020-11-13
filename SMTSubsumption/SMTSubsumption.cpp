@@ -516,15 +516,17 @@ void ProofOfConcept::benchmark_micro(vvector<SubsumptionInstance> instances)
   for (int i = 0; i < 5; ++i) {
     auto instance = instances[i];
     std::string name;
+    std::string suffix =
+        std::to_string(instance.number) + (instance.subsumed ? "_success" : "_failure");
 
-    name = "smt_alloc_" + std::to_string(instance.number);
+    name = "smt_alloc_" + suffix;
     benchmark::RegisterBenchmark(name.c_str(), bench_smt_alloc, instance);
-    // name = "smt_reuse_" + std::to_string(instance.number);
+    // name = "smt_reuse_" + suffix;
     // benchmark::RegisterBenchmark(name.c_str(), bench_smt_reuse, instance);
 
-    name = "orig_alloc_" + std::to_string(instance.number);
+    name = "orig_alloc_" + suffix;
     benchmark::RegisterBenchmark(name.c_str(), bench_orig_alloc, instance);
-    name = "orig_reuse_" + std::to_string(instance.number);
+    name = "orig_reuse_" + suffix;
     benchmark::RegisterBenchmark(name.c_str(), bench_orig_reuse, instance);
   }
 

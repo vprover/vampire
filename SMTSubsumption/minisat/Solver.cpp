@@ -425,7 +425,9 @@ void Solver::analyze(Clause* _confl, vec<Lit>& out_learnt, int& out_btlevel)
         for (i = j = 1; i < out_learnt.size(); i++)
             if (reason[var(out_learnt[i])] == GClause_NULL || !analyze_removable(out_learnt[i], min_level))
                 out_learnt[j++] = out_learnt[i];
+        // TODO: check if we get any reduced clauses from this (caveat: may be help with harder instances)
     } else {
+
         // Simplify conflict clause (a little):
         //
         out_learnt.copyTo(analyze_toclear);
@@ -585,6 +587,7 @@ bool Solver::enqueue(Lit p, GClause from)
 Clause* Solver::propagate()
 {
     cdebug << "PROPAGATE";
+
     Clause* confl = NULL;
     while (qhead < trail.size()) {
         stats.propagations++;
@@ -593,6 +596,12 @@ Clause* Solver::propagate()
         Lit p = trail[qhead++];     // 'p' is enqueued fact to propagate.
 
         cdebug << "PROPAGATE LOOP: for p = " << p;
+
+        // TODO: do all theory propagations before other ones
+        // TODO: in each iteration, we only apply one rule:
+        // priority on theory propagation
+        // (two separate qheads)
+        // Email Bernhard when this is done!
 
         // Theory propagation
         if (p.isPositive()) {

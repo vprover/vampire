@@ -28,6 +28,33 @@ namespace SMTSubsumption { namespace Minisat {
 
 //=================================================================================================
 
+// TODO:
+//  Select some examples with multiple backtrackings;
+//  Check whether decisions make sense
+//  (also compare to decisions of old MLMatcher)
+//
+// Ideas:
+// - order by number of alternatives of literal
+// - as tie breaker: try base literals with higher number of variables first
+// - how to interact with activity?
+//
+// Statistics:
+// - collect #decisions, (#backtrackings; dubious?), success/failure
+//   save for each subsumption call, analyze distribution
+//   table: (Problem, strategy, Sequence number, #decisions, success/failure)
+// - #decisions: both for MLMatcher and SMTSubsumption
+// - amount of time spent in FS/BS (e.g., % of overall runtime)
+//   second table: (problem, strategy, time FS, time BS, time total)
+// - Runs:
+//   - with only MLMatcher, collect stats+timings
+//   - with only SMTSubsumption, collect stats+timings
+//   - (with both, just compare results)
+// - strategy:
+//   * default mode
+//   * portfolio mode
+//   * fishing for good examples: no avatar, otter, no split queues, no additional simplifications
+//
+// Then isolate ~100 hardest subsumption instances.
 
 struct VarOrder_lt {
     const vec<double>&  activity;

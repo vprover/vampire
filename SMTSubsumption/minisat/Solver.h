@@ -33,6 +33,18 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #   define MINISAT_STATS 1
 #endif
 
+#if MINISAT_STATS
+#define IF_MINISAT_STATS(stmt) \
+  do                           \
+  {                            \
+    stmt;                      \
+  } while (0)
+#else
+#define IF_MINISAT_STATS(stmt) \
+  do                           \
+  { /* nothing */              \
+  } while (0)
+#endif
 
 namespace SMTSubsumption { namespace Minisat {
 
@@ -248,14 +260,16 @@ public:
     int     nClauses() { return clauses.size() + n_bin_clauses; }   // (minor difference from MiniSat without the GClause trick: learnt binary clauses will be counted as original clauses)
     int     nLearnts() { return learnts.size(); }
 
+#if MINISAT_STATS
     // Statistics: (read-only member variable)
     //
     SolverStats     stats;
+#endif
 
     // Mode of operation:
     //
     SearchParams    default_params;     // Restart frequency etc.
-    bool            expensive_ccmin;    // Controls conflict clause minimization. TRUE by default.
+    bool expensive_ccmin;               // Controls conflict clause minimization. TRUE by default.  // TODO: disable
     int             verbosity;          // Verbosity level. 0=silent, 1=some progress report, 2=everything
 
     // Problem specification:
