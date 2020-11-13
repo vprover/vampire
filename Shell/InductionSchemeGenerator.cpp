@@ -34,18 +34,6 @@ bool canInductOn(TermList t)
   // return true;
 }
 
-bool isTermAlgebraCons(TermList t)
-{
-  CALL("isTermAlgebraCons");
-
-  if (t.isVar()) {
-    return false;
-  }
-  auto func = t.term()->functor();
-  auto symb = t.term()->isLiteral() ? env.signature->getPredicate(func) : env.signature->getFunction(func);
-  return symb->termAlgebraCons();
-}
-
 OperatorType* getType(TermList t)
 {
   CALL("getType");
@@ -72,7 +60,7 @@ vvector<TermList> getInductionTerms(TermList t)
     return v;
   }
   unsigned f = t.term()->functor();
-  bool isPred = t.term()->isLiteral();
+  bool isPred = t.term()->isFormula();
 
   // If function with recursive definition,
   // recurse in its active arguments
@@ -190,7 +178,7 @@ bool IteratorByInductiveVariables::hasNext()
 {
   ASS(_it.hasNext() == (_indVarIt != _end));
 
-  while (_indVarIt != _end && !*_indVarIt) {
+  while (_indVarIt != _end && !*_indVarIt && _it.hasNext()) {
     _indVarIt++;
     _it.next();
   }

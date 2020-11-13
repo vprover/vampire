@@ -34,6 +34,8 @@ namespace Shell {
 using namespace Kernel;
 using namespace Lib;
 
+bool isTermAlgebraCons(TermList t);
+
 /**
  * TermTransformer subclass for any TermList to TermList replacement
  */
@@ -75,7 +77,7 @@ ostream& operator<<(ostream& out, const RDescription& rdesc);
  * (i.e. the induction variables) of the function.
  */
 struct InductionTemplate {
-  void postprocess();
+  bool postprocess();
 
   enum class VarType {
     SUBTERM,
@@ -107,8 +109,15 @@ public:
 
 private:
   void preprocess(UnitList* units);
-  void processBody(TermList& body, TermList header, vvector<Formula*> conditions, InductionTemplate& templ);
-  void processCase(const unsigned recFun, TermList& body, vvector<TermList>& recursiveCalls);
+  void parseRecursiveDefinition(Literal* lit);
+  void findPossibleRecursiveDefinitions(Formula* f, vvector<Formula*> conditions);
+
+  void processFormulaBody(Formula* body, Literal* header, vvector<Formula*> conditions, InductionTemplate& templ);
+  void processBody(TermList body, TermList header, vvector<Formula*> conditions, InductionTemplate& templ);
+  void processCase(const unsigned recFun, const bool isPred, TermList body, vvector<TermList>& recursiveCalls);
+
+  vmap<unsigned, InductionTemplate> foundFunctionDefinitions;
+  vmap<unsigned, InductionTemplate> foundPredicateDefinitions;
 };
 
 } // Shell

@@ -785,7 +785,7 @@ void InductionClauseIterator::performStructInductionFour(Clause* premise, Litera
         if (inst.clause == premise) {
           continue;
         }
-        if (inst.clause->size() > 1 || inst.literal->isNegative()/* || inst.literal->freeVariables() != IntList::empty()*/) {
+        if (inst.clause->size() > 1 || inst.literal->isNegative() || inst.literal->freeVariables() != IntList::empty()) {
           continue;
         }
         gen.generateSecondary(inst.clause, inst.literal);
