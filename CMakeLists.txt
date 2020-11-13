@@ -780,6 +780,44 @@ else ()
   set(VAMPIRE_BINARY_Z3 _z3)
 endif()
 
+
+################################################################
+# unit testing stuff
+################################################################
+      include(CTest)
+
+set(VTEST_SOURCES vtest.cpp  ${VAMPIRE_SOURCES})
+list(FILTER VTEST_SOURCES EXCLUDE REGEX vampire.cpp)
+file(GLOB unit_tests "UnitTests/*.cpp")
+set(VTEST_SOURCES 
+    ${VTEST_SOURCES} 
+    ${unit_tests}
+    Test/UnitTesting.cpp
+  )
+# TODO add any of this ?
+# target_compile_options(vampire PRIVATE -Wall)
+# target_compile_definitions(vampire PRIVATE VDEBUG=1 UNIX_USE_SIGALRM=1 GNUMP=0)
+add_executable(vtest ${VTEST_SOURCES})
+target_include_directories(vtest PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+set_target_properties(vtest PROPERTIES
+    OUTPUT_NAME vtest
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)   
+
+add_test(vtest vtest)
+
+# #file(GLOB unit_tests "UnitTests/*.cpp")
+
+# foreach(file ${VTEST_SOURCES}) 
+#   message(STATUS VTEST ${file})
+# endforeach()
+
+# add_executable(vtest ${VAMPIRE_SOURCES})
+# # foreach(file $(GLOB unit_tests "UnitTests/*.cpp"))
+# #
+# #   string(REGEX REPLACE "(^.*/|\\.[^.]*$)" "" test_name ${file})
+# #   add_executable(${test_name} )
+
+
 #################################################################
 # automated generation of Vampire revision information from git #
 #################################################################
