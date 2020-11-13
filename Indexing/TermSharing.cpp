@@ -32,6 +32,9 @@
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/ApplicativeHelper.hpp"
+
+#include "Shell/Statistics.hpp"
+
 #include "TermSharing.hpp"
 
 using namespace Kernel;
@@ -184,13 +187,14 @@ Term* TermSharing::insert(Term* t)
 
     //combinatory superposiiton can introduce polymorphism into a 
     //monomorphic problem
-    static bool poly_or_comb_sup = env.property->hasPolymorphicSym() || env.options->combinatorySup();
+    static bool poly_or_hol = env.statistics->higherOrder ||
+                                   env.statistics->polymorphic ;
     //poly function works for mono as well, but is slow
     //it is fine to use for debug
     ASS_REP(SortHelper::areImmediateSortsValidPoly(t), t->toString());
-    if (!poly_or_comb_sup && !SortHelper::areImmediateSortsValidMono(t)){
+    if (!poly_or_hol && !SortHelper::areImmediateSortsValidMono(t)){
       USER_ERROR("Immediate (shared) subterms of  term/literal "+t->toString()+" have different types/not well-typed!");
-    } else if (poly_or_comb_sup && !SortHelper::areImmediateSortsValidPoly(t)){
+    } else if (poly_or_hol && !SortHelper::areImmediateSortsValidPoly(t)){
       USER_ERROR("Immediate (shared) subterms of  term/literal "+t->toString()+" have different types/not well-typed!");      
     }
   }
@@ -270,12 +274,13 @@ Literal* TermSharing::insert(Literal* t)
 
     //combinatory superposiiton can introduce polymorphism into a 
     //monomorphic problem
-    static bool poly_or_comb_sup = env.property->hasPolymorphicSym() || env.options->combinatorySup();
-    
+    static bool poly_or_hol = env.statistics->higherOrder ||
+                              env.statistics->polymorphic ;
+
     ASS_REP(SortHelper::areImmediateSortsValidPoly(t), t->toString());
-    if (!poly_or_comb_sup && !SortHelper::areImmediateSortsValidMono(t)){
+    if (!poly_or_hol && !SortHelper::areImmediateSortsValidMono(t)){
       USER_ERROR("Immediate (shared) subterms of  term/literal "+t->toString()+" have different types/not well-typed!");
-    } else if (poly_or_comb_sup && !SortHelper::areImmediateSortsValidPoly(t)){
+    } else if (poly_or_hol && !SortHelper::areImmediateSortsValidPoly(t)){
       USER_ERROR("Immediate (shared) subterms of  term/literal "+t->toString()+" have different types/not well-typed!");      
     }
   }

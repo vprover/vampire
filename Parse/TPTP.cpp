@@ -4129,6 +4129,7 @@ void TPTP::simpleType()
   Token& tok = getTok(0);
 
   if(tok.tag == T_TYPE_QUANT) {
+    env.statistics->polymorphic = true;
     resetToks();
     _typeTags.push(TT_QUANTIFIED);
     consumeToken(T_LBRA);

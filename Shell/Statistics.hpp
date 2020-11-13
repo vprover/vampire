@@ -209,7 +209,10 @@ public:
   unsigned taNegativeInjectivitySimplifications;
   unsigned taAcyclicityGeneratedDisequalities;
 
+  //to be moved to the property object once that 
+  //is controlled by environment
   bool higherOrder;
+  bool polymorphic;
 
   // Saturation
   /** all clauses ever occurring in the unprocessed queue */

@@ -131,6 +131,7 @@ Statistics::Statistics()
     taNegativeInjectivitySimplifications(0),
     taAcyclicityGeneratedDisequalities(0),
     higherOrder(0),
+    polymorphic(0),
     generatedClauses(0),
     passiveClauses(0),
     activeClauses(0),
