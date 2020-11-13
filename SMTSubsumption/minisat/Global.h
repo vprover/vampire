@@ -27,6 +27,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include <climits>
 #include <cfloat>
 #include <new>
+#include <ostream>
 
 #include "Lib/Allocator.hpp"
 

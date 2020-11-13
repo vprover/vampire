@@ -29,7 +29,8 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 // TODO: add a #define MINISAT_STATS or similar, by default only enable in debug mode. No need to collect stats here in release mode.
 // By default, collect stats only in debug mode
 #ifndef MINISAT_STATS
-#   define MINISAT_STATS VDEBUG
+// #   define MINISAT_STATS VDEBUG
+#   define MINISAT_STATS 1
 #endif
 
 
@@ -150,6 +151,7 @@ public:
              , var_inc          (1)
              , var_decay        (1)
              , order            (assigns, activity)
+             , root_level       (0)  // ???
              , qhead            (0)
              , simpDB_assigns   (0)
              , simpDB_props     (0)
@@ -174,8 +176,67 @@ public:
 
     ~Solver()
     {
-      for (int i = 0; i < learnts.size(); i++) remove(learnts[i], true);
-      for (int i = 0; i < clauses.size(); i++) if (clauses[i] != NULL) remove(clauses[i], true);
+      for (int i = 0; i < learnts.size(); i++) {
+        remove(learnts[i], true);
+      }
+      for (int i = 0; i < clauses.size(); i++) {
+        if (clauses[i] != nullptr) {
+          remove(clauses[i], true);
+        }
+      }
+      for (int i = 0; i < at_most_one_constraints.size(); i++) {
+        if (at_most_one_constraints[i] != nullptr) {
+          AtMostOne::dealloc(at_most_one_constraints[i]);
+        }
+      }
+    }
+
+    // Reset the solver to initial state.
+    // Allows re-using the solver even if ok = false.
+    void reset()
+    {
+      ok = true;
+      n_bin_clauses = 0;
+      cla_inc = 1;
+      cla_decay = 1;
+      var_inc = 1;
+      var_decay = 1;
+      // order = VarOrder(assigns, activity);  TODO
+      root_level = 0;  /// ???? never initialized?
+      qhead = 0;
+      simpDB_assigns = 0;
+      simpDB_props = 0;
+      default_params = SearchParams(0.95, 0.999, 0.02);
+      expensive_ccmin = true;
+      verbosity = 0;
+      progress_estimate = 0;
+
+      // Remove constraints
+      for (int i = 0; i < learnts.size(); i++) {
+        remove(learnts[i], true);
+      }
+      for (int i = 0; i < clauses.size(); i++) {
+        if (clauses[i] != nullptr) {
+          remove(clauses[i], true);
+        }
+      }
+      for (int i = 0; i < at_most_one_constraints.size(); i++) {
+        if (at_most_one_constraints[i] != nullptr) {
+          AtMostOne::dealloc(at_most_one_constraints[i]);
+        }
+      }
+      learnts.clear();
+      clauses.clear();
+      at_most_one_constraints.clear();
+
+      activity.clear();
+
+      watches.clear(); // HMMM (TODO)
+      assigns.clear();
+      trail.clear();
+      trail_lim.clear();
+      reason.clear();
+      level.clear();
     }
 
     // Helpers: (semi-internal)

@@ -22,6 +22,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #define SMTSubsumption_Minisat_SolverTypes_h
 
 #include "SMTSubsumption/minisat/Global.h"
+#include <ostream>
 
 
 namespace SMTSubsumption { namespace Minisat {
@@ -178,6 +179,12 @@ class AtMostOne
       return new (mem) AtMostOne(ls);
     }
 
+    static void dealloc(AtMostOne* constraint)
+    {
+      ASS(constraint != nullptr);
+      xfree(constraint);
+    }
+
     int size() const
     {
       return m_size;
@@ -245,7 +252,7 @@ class GClause {
 
     bool isNull() const { return data == 0; }
 
-    explicit GClause(nullptr_t)
+    explicit GClause(std::nullptr_t)
       : data{0}
     { }
 

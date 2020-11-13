@@ -641,7 +641,7 @@ Clause* Solver::propagate()
             cdebug << "PROPAGATE WATCHER: " << *i;
             if (i->isLit()) {
                 if (!enqueue(i->lit(), GClause_new(p))) {
-                    if (decisionLevel() == 0) {
+                    if (decisionLevel() == 0) {   // TODO: is that right? should we compare to root_level instead?  (probably not. If we're not at the root level, we stay "ok")
                         ok = false;
                     }
                     confl = propagate_tmpbin;
