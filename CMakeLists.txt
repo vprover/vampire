@@ -35,14 +35,14 @@ if (NOT BUILD_SHARED_LIBS)
   set(VAMPIRE_BINARY_STATIC _static)
 endif()
 
-option(LTO "If supported, build with link-time optimisation." OFF)
-# check whether LTO is available
+option(IPO "If supported, build with link-time optimisation." OFF)
+# check whether IPO is available
 include(CheckIPOSupported)
-check_ipo_supported(RESULT LTO_SUPPORTED OUTPUT LTO_ERROR)
-if (LTO_SUPPORTED)
-  message(STATUS "LTO supported")
+check_ipo_supported(RESULT IPO_SUPPORTED OUTPUT IPO_ERROR)
+if (IPO_SUPPORTED)
+  message(STATUS "IPO supported")
 else()
-  message(STATUS "LTO not supported: ${LTO_ERROR}")
+  message(STATUS "IPO not supported: ${IPO_ERROR}")
 endif()
 
 ################################################################
@@ -916,8 +916,8 @@ message(STATUS "Setting binary name to '${VAMPIRE_BINARY}'")
 ################################################################
 # link-time optimisation
 ################################################################
-if(CMAKE_BUILD_TYPE STREQUAL Release AND LTO)
-  message(STATUS "compiling with LTO")
+if(CMAKE_BUILD_TYPE STREQUAL Release AND IPO)
+  message(STATUS "compiling with IPO")
   set_property(TARGET vampire PROPERTY INTERPROCEDURAL_OPTIMIZATION true)
 endif()
 
