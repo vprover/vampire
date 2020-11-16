@@ -84,3 +84,8 @@ TEST_FUN(urr)
     ASS(!testGlobal(o));
   } 
 }
+
+TEST_FUN(github_workflow_correctly_set_up) 
+{
+  ASSERTION_VIOLATION
+}
