@@ -787,11 +787,20 @@ endif()
 
 include(CTest)
 
+set(UNIT_TEST_DEFS 
+    VDEBUG=1 
+    CHECK_LEAKS=1
+    UNIX_USE_SIGALRM=1  # <- TODO what does this do?
+    GNUMP=0             # <- TODO what does this do?
+    CTEST=1
+    )
+
 # UNIT_BASE_SOURCES ... all the sources all unit test have in common
 set(UNIT_BASE_SOURCES ${VAMPIRE_SOURCES} Test/UnitTesting.cpp)
 list(FILTER UNIT_TESTS EXCLUDE REGEX vampire.cpp)
 ADD_LIBRARY(unit_test_base STATIC ${UNIT_BASE_SOURCES})
 target_include_directories(unit_test_base PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_compile_definitions(unit_test_base PRIVATE ${UNIT_TEST_DEFS})
 
 file(GLOB UNIT_TESTS "UnitTests/*.cpp")
 foreach(test_file ${UNIT_TESTS})
@@ -804,12 +813,7 @@ foreach(test_file ${UNIT_TESTS})
   add_executable(${test_name} ${test_file})
   target_link_libraries(${test_name} unit_test_base)
   target_include_directories(${test_name} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-  target_compile_definitions(vampire PRIVATE 
-    VDEBUG=1 
-    UNIX_USE_SIGALRM=1  # <- TODO what does this do?
-    GNUMP=0             # <- TODO what does this do?
-    CTEST=1
-    )
+  target_compile_definitions(${test_name} PRIVATE ${UNIT_TEST_DEFS})
   target_compile_options(${test_name} PRIVATE -Wall)
   set(test_bin_dir ${CMAKE_BINARY_DIR}/bin/unit-tests)
   set_target_properties(${test_name} PROPERTIES
