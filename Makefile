@@ -436,20 +436,6 @@ VT_OBJ = Test/UnitTesting.o
 
 VUT_OBJ = $(patsubst %.cpp,%.o,$(wildcard UnitTests/*.cpp))
 
-VUTIL_OBJ = VUtils/AnnotationColoring.o\
-            VUtils/CPAInterpolator.o\
-            VUtils/DPTester.o\
-            VUtils/EPRRestoringScanner.o\
-            VUtils/FOEquivalenceDiscovery.o\
-            VUtils/LocalityRestoring.o\
-            VUtils/PreprocessingEvaluator.o\
-            VUtils/ProblemColoring.o\
-            VUtils/RangeColoring.o\
-            VUtils/SATReplayer.o\
-            VUtils/SimpleSMT.o\
-            VUtils/SMTLIBConcat.o\
-            VUtils/Z3InterpolantExtractor.o
-
 LIB_DEP = Indexing/TermSharing.o\
 	  Inferences/DistinctEqualitySimplifier.o\
 	  Inferences/InferenceEngine.o\
@@ -521,7 +507,6 @@ VAMP_BASIC := $(MINISAT_OBJ) $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(BP_VD_OB
 VSAT_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VSAT_OBJ) $(LIB_DEP)
 
 VAMPIRE_DEP := $(VAMP_BASIC) $(CASC_OBJ) $(TKV_BASIC) Global.o vampire.o
-VUTIL_DEP = $(VAMP_BASIC) $(CASC_OBJ) $(VUTIL_OBJ) Global.o vutil.o
 VSAT_DEP = $(VSAT_BASIC) Global.o
 VTEST_DEP = $(VAMP_BASIC) $(VT_OBJ) $(VUT_OBJ) $(DP_OBJ) Global.o vtest.o
 LIBVAPI_DEP = $(VD_OBJ) $(API_OBJ) Global.o
@@ -640,9 +625,6 @@ vampire: $(VAMPIRE_OBJ) $(EXEC_DEF_PREREQ)
 	$(COMPILE_CMD_SIMPLE)
 
 vtest vtest_z3: $(VTEST_OBJ) $(EXEC_DEF_PREREQ)
-	$(COMPILE_CMD)
-
-vutil vutil_rel vutil_dbg: $(VUTIL_OBJ) $(EXEC_DEF_PREREQ)
 	$(COMPILE_CMD)
 
 vapi vapi_dbg vapi_rel: $(VAPI_OBJ) $(EXEC_DEF_PREREQ)
