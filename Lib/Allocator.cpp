@@ -12,9 +12,9 @@
  *
  * In summary, you are allowed to use Vampire for non-commercial
  * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
+ * or use in competitions.
  * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
+ * licence, which we will make an effort to provide.
  */
 /**
  * @file Allocator.cpp
@@ -162,7 +162,7 @@ Allocator::Allocator()
 
 /**
  * Returns all pages to the global manager.
- * 
+ *
  * @since 18/03/2008 Torrevieja
  */
 Lib::Allocator::~Allocator ()
@@ -288,7 +288,7 @@ void Allocator::cleanup()
   for (int i = _total-1;i >= 0;i--) {
     delete _all[i];
   }
-       
+
 #if CHECK_LEAKS
   if (MemoryLeak::report()) {
     int leaks = 0;
@@ -312,27 +312,27 @@ void Allocator::cleanup()
   for (int i = MAX_PAGES-1;i >= 0;i--) {
 #if VDEBUG && TRACE_ALLOCATIONS
     int cnt = 0;
-#endif    
+#endif
     while (_pages[i]) {
       Page* pg = _pages[i];
       _pages[i] = pg->next;
-      
+
       char* mem = reinterpret_cast<char*>(pg);
       free(mem);
 #if VDEBUG && TRACE_ALLOCATIONS
       cnt++;
-#endif    
+#endif
     }
-#if VDEBUG && TRACE_ALLOCATIONS    
+#if VDEBUG && TRACE_ALLOCATIONS
       if (cnt) {
         cout << "deleted " << cnt << " global page(s) of size " << VPAGE_SIZE*(i+1) << endl;
       }
-#endif        
+#endif
   }
-    
+
 #if VDEBUG
   delete[] Descriptor::map;
-#endif  
+#endif
 } // Allocator::initialise
 
 
@@ -540,7 +540,7 @@ Allocator* Allocator::newAllocator()
 {
   CALLC("Allocator::newAllocator",MAKE_CALLS);
   BYPASSING_ALLOCATOR;
-  
+
 #if VDEBUG && USE_SYSTEM_ALLOCATION
   ASSERTION_VIOLATION;
 #else
@@ -760,7 +760,7 @@ void Allocator::deallocatePages(Page* page)
 
 
 /**
- * Allocate object of size @b size. 
+ * Allocate object of size @b size.
  * @since 12/01/2008 Manchester
  */
 #if VDEBUG
@@ -816,7 +816,7 @@ void* Allocator::allocateKnown(size_t size)
 
 /**
  * Allocate a piece of memory of a given size.
- * If @b size is REQUIRES_PAGE or more it is 
+ * If @b size is REQUIRES_PAGE or more it is
  * allocated on a separate page.
  * @since 15/01/2008 Manchester
  */
@@ -947,7 +947,7 @@ void* Allocator::allocateUnknown(size_t size)
  * @since 14/12/2005 Bellevue
  */
 Allocator::Descriptor* Allocator::Descriptor::find (const void* addr)
-{    
+{
   CALLC("Allocator::Descriptor::find",MAKE_CALLS);
   BYPASSING_ALLOCATOR;
 
@@ -1014,7 +1014,7 @@ Allocator::Descriptor* Allocator::Descriptor::find (const void* addr)
  */
 ostream& Lib::operator<<(ostream& out, const Allocator::Descriptor& d) {
   CALLC("operator<<(ostream,Allocator::Descriptor)",MAKE_CALLS);
-  
+
   out << (size_t)(&d)
       << " [address:" << d.address
       << ",timestamp:" << d.timestamp
@@ -1022,8 +1022,8 @@ ostream& Lib::operator<<(ostream& out, const Allocator::Descriptor& d) {
       << ",size:" << d.size
       << ",allocated:" << (d.allocated ? "yes" : "no")
       << ",known:" << (d.known ? "yes" : "no")
-      << ",page:" << (d.page ? "yes" : "no") << ']';  
-  
+      << ",page:" << (d.page ? "yes" : "no") << ']';
+
   return out;
 }
 
@@ -1073,35 +1073,35 @@ unsigned Allocator::Descriptor::hash (const void* addr)
  * In debug mode we replace the global new and delete (also the array versions)
  * and terminate in cases when they are used "unwillingly".
  * Where "unwillingly" means people didn't mark the code explicitly with BYPASSING_ALLOCATOR
- * and yet they attempt to call global new (and not the class specific versions 
+ * and yet they attempt to call global new (and not the class specific versions
  * built on top of Allocator).
- * 
+ *
  * Update: In release, we newly use global new/delete as well,
  * but just silently redirect the allocations to our Allocator.
  *
- * This is a link about some requirements on new/delete: 
+ * This is a link about some requirements on new/delete:
  * http://stackoverflow.com/questions/7194127/how-should-i-write-iso-c-standard-conformant-custom-new-and-delete-operators/
  * (Note that we ignore the globalHandler issue here.)
- **/ 
-  
-void* operator new(size_t sz) {    
+ **/
+
+void* operator new(size_t sz) {
   ASS_REP(Allocator::_tolerantZone > 0,"Attempted to use global new operator, thus bypassing Allocator!");
   // Please read: https://github.com/easychair/vampire/wiki/Attempted-to-use-global-new-operator,-thus-bypassing-Allocator!
-  
+
   static Allocator::Initialiser i; // to initialize Allocator even for other libraries
-  
+
   if (sz == 0)
     sz = 1;
-  
+
   void* res = ALLOC_UNKNOWN(sz,"global new");
 
   if (!res)
     throw bad_alloc();
-  
+
   return res;
 }
 
-void* operator new[](size_t sz) {  
+void* operator new[](size_t sz) {
   ASS_REP(Allocator::_tolerantZone > 0,"Attempted to use global new[] operator, thus bypassing Allocator!");
   // Please read: https://github.com/easychair/vampire/wiki/Attempted-to-use-global-new-operator,-thus-bypassing-Allocator!
 
@@ -1109,16 +1109,16 @@ void* operator new[](size_t sz) {
 
   if (sz == 0)
     sz = 1;
-  
+
   void* res = ALLOC_UNKNOWN(sz,"global new[]");
 
   if (!res)
     throw bad_alloc();
-  
+
   return res;
 }
 
-void operator delete(void* obj) throw() {  
+void operator delete(void* obj) throw() {
   ASS_REP(Allocator::_tolerantZone > 0,"Custom operator new matched by global delete!");
   // Please read: https://github.com/easychair/vampire/wiki/Attempted-to-use-global-new-operator,-thus-bypassing-Allocator!
 
@@ -1129,7 +1129,7 @@ void operator delete(void* obj) throw() {
   }
 }
 
-void operator delete[](void* obj) throw() {  
+void operator delete[](void* obj) throw() {
   ASS_REP(Allocator::_tolerantZone > 0,"Custom operator new[] matched by global delete[]!");
   // Please read: https://github.com/easychair/vampire/wiki/Attempted-to-use-global-new-operator,-thus-bypassing-Allocator!
 
@@ -1216,5 +1216,3 @@ void testAllocator()
 } // testAllocator
 
 #endif // VTEST
-
-

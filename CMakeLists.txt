@@ -84,16 +84,16 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 ################################################################
 # define all vampire sources,
-# generate the main target and 
+# generate the main target and
 # link it against the libraries
 # NOTE: we add the header files here such that they are considered
 #       to be a part of the project and therefore are displayed
 #       displayed by the IDEs (we wouldn't need to add them because
 #       of dependendy tracking, this is figured out automatically
 #       by the compiler)
-# TODO: there are unused files (I guess both headers and source 
-#       files). I included only the source files which are also 
-#       included in the makefile, but then added all headers 
+# TODO: there are unused files (I guess both headers and source
+#       files). I included only the source files which are also
+#       included in the makefile, but then added all headers
 #       which don't have a corresponding source file (since I don't
 #       know which of them are really used, that information is
 #       of course not contained in the makefile)
@@ -131,7 +131,7 @@ source_group(minisat_source_files FILES ${VAMPIRE_MINISAT_SOURCES})
 set(VAMPIRE_DEBUG_SOURCES
     Debug/Assertion.cpp
     Debug/RuntimeStatistics.cpp
-    Debug/Tracer.cpp    
+    Debug/Tracer.cpp
     Debug/Assertion.hpp
     Debug/RuntimeStatistics.hpp
     Debug/Tracer.hpp
@@ -581,7 +581,7 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/InterpolantMinimizer.cpp
     Shell/InterpolantMinimizerNew.cpp
     Shell/Interpolants.cpp
-    Shell/InterpolantsNew.cpp    
+    Shell/InterpolantsNew.cpp
     Shell/InterpretedNormalizer.cpp
     Shell/LaTeX.cpp
     Shell/Lexer.cpp
@@ -649,7 +649,7 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/Grounding.hpp
     Shell/InequalitySplitting.hpp
     Shell/InterpolantMinimizer.hpp
-    Shell/InterpolantMinimizerNew.hpp    
+    Shell/InterpolantMinimizerNew.hpp
     Shell/Interpolants.hpp
     Shell/InterpolantsNew.hpp
     Shell/InterpretedNormalizer.hpp
@@ -728,7 +728,7 @@ set(
     FMB/DefinitionIntroduction.hpp
     FMB/FiniteModel.hpp
     FMB/FiniteModelBuilder.hpp
-    FMB/FiniteModelMultiSorted.hpp    
+    FMB/FiniteModelMultiSorted.hpp
     FMB/FunctionRelationshipInference.hpp
     FMB/ModelCheck.hpp
     FMB/Monotonicity.hpp
@@ -776,7 +776,7 @@ set(VAMPIRE_SMT_SUBSUMPTION_SOURCES
 source_group(sat_source_files FILES ${VAMPIRE_SAT_SOURCES})
 
 # also include forwards.hpp?
-set(VAMPIRE_SOURCES 
+set(VAMPIRE_SOURCES
     ${VAMPIRE_DEBUG_SOURCES}
     ${VAMPIRE_LIB_SOURCES}
     ${VAMPIRE_LIB_SYS_SOURCES}
@@ -840,9 +840,8 @@ endif()
 # google benchmark library
 #################################################################
 
-# find_package(benchmark REQUIRED)
-add_subdirectory(benchmark)
-target_link_libraries(vampire PRIVATE benchmark::benchmark)
+# add_subdirectory(benchmark)
+# target_link_libraries(vampire PRIVATE benchmark::benchmark)
 
 
 #################################################################
