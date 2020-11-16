@@ -453,7 +453,7 @@ SATSolver::Status SplittingBranchSelector::processDPConflicts()
   if (_ccModel) {
     TimeCounter tc(TC_CCMODEL);
 
-#ifdef VDEBUG
+#if VDEBUG
     // to keep track of SAT variables introduce just for the sake of the latest call to _ccModel
     lastCheckedVar = _parent.maxSatVar();
 #endif

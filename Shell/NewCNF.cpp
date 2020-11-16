@@ -1187,12 +1187,9 @@ void NewCNF::processBoolterm(TermList ts, Occurrences &occurrences)
     case Term::SF_ITE: {
       Formula* condition = sd->getCondition();
 
-      Formula* branch[2];
-      for (SIDE side : { LEFT, RIGHT }) {
-        branch[side] = BoolTermFormula::create(*term->nthArgument(side));
-      }
-
-      processITE(condition, branch[LEFT], branch[RIGHT], occurrences);
+      Formula* left = BoolTermFormula::create(*term->nthArgument(LEFT));
+      Formula* right = BoolTermFormula::create(*term->nthArgument(RIGHT));
+      processITE(condition, left, right, occurrences);
       break;
     }
 

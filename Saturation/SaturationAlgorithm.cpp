@@ -648,7 +648,7 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
     cl->setAge(level);
   }
 
-  if (sosForAxioms || (cl->isTheoryAxiom() && sosForTheory)){
+  if (sosForAxioms || (cl->isPureTheoryDescendant() && sosForTheory)){
     addInputSOSClause(cl);
   } else {
     addNewClause(cl);
@@ -829,14 +829,14 @@ void SaturationAlgorithm::newClausesToUnprocessed()
     case Clause::NONE:
       addUnprocessedClause(cl);
       break;
-#if VDEBUG
     case Clause::SELECTED:
     case Clause::ACTIVE:
+#if VDEBUG
       cout << "FAIL: " << cl->toString() << endl;
       //such clauses should not appear as new ones
       cout << cl->toString() << endl;
-      ASSERTION_VIOLATION_REP(cl->store());
 #endif
+      ASSERTION_VIOLATION_REP(cl->store());
     }
     cl->decRefCnt(); //belongs to _newClauses.popWithoutDec()
   }
@@ -1113,8 +1113,8 @@ bool SaturationAlgorithm::activate(Clause* cl)
     instances = _theoryInstSimp->generateClauses(cl,redundant);
   }
 #endif
+
   if(redundant){ 
-    removeActiveOrPassiveClause(cl);
     return false; 
   }
 

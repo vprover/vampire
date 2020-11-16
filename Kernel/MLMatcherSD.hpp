@@ -62,12 +62,12 @@ class MLMatcherSD final
      * - All literals in 'alts' must appear in 'instance'
      * - 'instance' must not have duplicate literals (during normal operation this is ensured by Inferences::DuplicateLiteralRemovalISE)
      */
-    void init(Literal* baseLits[],
+    void init(Literal** baseLits,
               unsigned baseLen,
               Clause* instance,
-              LiteralList const* const alts[]);
+              LiteralList const* const *alts);
 
-    void init(Clause* base, Clause* instance, LiteralList const* const alts[])
+    void init(Clause* base, Clause* instance, LiteralList const* const *alts)
     {
       init(base->literals(), base->length(), instance, alts);
     }

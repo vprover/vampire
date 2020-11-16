@@ -23,7 +23,7 @@ DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
 OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 **************************************************************************************************/
 
-#include <math.h>
+#include <cmath>
 
 #include "Minisat/mtl/Alg.h"
 #include "Minisat/mtl/Sort.h"
@@ -924,6 +924,8 @@ bool Solver::implies(const vec<Lit>& assumps, vec<Lit>& out)
 
 static Var mapVar(Var x, vec<Var>& map, Var& max)
 {
+    // bug here on overflow - should be unlikely
+    assert(x + 1 > 0);
     if (map.size() <= x || map[x] == -1){
         map.growTo(x+1, -1);
         map[x] = max++;

@@ -37,6 +37,7 @@
 #include "Debug/Assertion.hpp"
 
 #include "Lib/VString.hpp"
+#include "Lib/StringUtils.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Timer.hpp"
 #include "Lib/Exception.hpp"
@@ -55,6 +56,8 @@
 
 using namespace Lib;
 using namespace Shell;
+
+static const int COPY_SIZE = 128;
 
 /**
  * Initialize options to the default values.
@@ -75,7 +78,7 @@ Options::Options ()
     init();
 }
 
-void Options::Options::init()
+void Options::init()
 {
    CALL("Options::init");
 
@@ -142,40 +145,15 @@ void Options::Options::init()
 
     _schedule = ChoiceOptionValue<Schedule>("schedule","sched",Schedule::CASC,
         {"casc",
-         "casc_2014",
-         "casc_2014_epr",
-         "casc_2016",
-         "casc_2017",
-         "casc_2018",
          "casc_2019",
          "casc_sat",
-         "casc_sat_2014",
-         "casc_sat_2016",
-         "casc_sat_2017",
-         "casc_sat_2018",
          "casc_sat_2019",
-         "ltb_2014",
-         "ltb_2014_mzr",
          "ltb_default_2017",
-         "ltb_hh4_2015_fast",
-         "ltb_hh4_2015_midd",
-         "ltb_hh4_2015_slow",
          "ltb_hh4_2017",
-         "ltb_hll_2015_fast",
-         "ltb_hll_2015_midd",
-         "ltb_hll_2015_slow",
          "ltb_hll_2017",
-         "ltb_isa_2015_fast",
-         "ltb_isa_2015_midd",
-         "ltb_isa_2015_slow",
          "ltb_isa_2017",
-         "ltb_mzr_2015_fast",
-         "ltb_mzr_2015_midd",
-         "ltb_mzr_2015_slow",
          "ltb_mzr_2017",
          "smtcomp",
-         "smtcomp_2016",
-         "smtcomp_2017",
          "smtcomp_2018"});
     _schedule.description = "Schedule to be run by the portfolio mode. casc and smtcomp usually point to the most recent schedule in that category. Note that some old schedules may contain option values that are no longer supported - see ignore_missing.";
     _lookup.insert(&_schedule);
@@ -418,8 +396,9 @@ void Options::Options::init()
 
     _inequalitySplitting = IntOptionValue("inequality_splitting","ins",0);
     _inequalitySplitting.description=
-    "Defines a weight threshold w such that any clause C \\/ s!=t where s (or conversely t) is ground "
-    "and has weight less than w is replaced by C \\/ p(s) with the additional unit clause ~p(t) being added "
+    "When greater than zero, ins defines a weight threshold w such that any clause C \\/ s!=t "
+    "where s (or conversely t) is ground and has weight greater or equal than w "
+    "is replaced by C \\/ p(s) with the additional unit clause ~p(t) being added "
     "for fresh predicate p.";
     _lookup.insert(&_inequalitySplitting);
     _inequalitySplitting.tag(OptionTag::PREPROCESSING);
@@ -1044,7 +1023,15 @@ void Options::Options::init()
            _theoryInstAndSimp.description = ""; 
            _theoryInstAndSimp.tag(OptionTag::INFERENCES);
            _lookup.insert(&_theoryInstAndSimp);
+
+           _thiTautologyDeletion = BoolOptionValue("theory_instantiation_tautology_deletion", "thitd", false);
+           _thiTautologyDeletion.description = "Enable deletion of tautology theory subclauses detected via theory instantiation."; 
+           _thiTautologyDeletion.tag(OptionTag::INFERENCES);
+           _lookup.insert(&_thiTautologyDeletion);
+           _thiTautologyDeletion.setExperimental();
+           _thiTautologyDeletion.reliesOn(_theoryInstAndSimp.is(notEqual(TheoryInstSimp::OFF)));
 #endif
+
            _unificationWithAbstraction = ChoiceOptionValue<UnificationWithAbstraction>("unification_with_abstraction","uwa",
                                              UnificationWithAbstraction::OFF,
                                              {"off","interpreted_only","one_side_interpreted","one_side_constant","all","ground"});
@@ -1247,7 +1234,7 @@ void Options::Options::init()
 	    // If urr is off then binary resolution should be on
 	    _binaryResolution.addConstraint(
 	      If(equal(false)).then(_unitResultingResolution.is(notEqual(URResolution::OFF))));
-	    _binaryResolution.setRandomChoices(And(isRandSat(),saNotInstGen(),Or(hasEquality(),isBfnt(),hasCat(Property::HNE))),{"on"});
+	    _binaryResolution.setRandomChoices(And(isRandSat(),saNotInstGen(),Or(hasEquality(),hasCat(Property::HNE))),{"on"});
 	    _binaryResolution.setRandomChoices({"on","off"});
 
 
@@ -1431,7 +1418,7 @@ void Options::Options::init()
     _unitResultingResolution.addProblemConstraint(hasPredicates());
     // If br has already been set off then this will be forced on, if br has not yet been set
     // then setting this to off will force br on
-    _unitResultingResolution.setRandomChoices(And(isRandSat(),saNotInstGen(),Or(hasEquality(),isBfnt(),hasCat(Property::HNE))),{"on","off"});
+    _unitResultingResolution.setRandomChoices(And(isRandSat(),saNotInstGen(),Or(hasEquality(),hasCat(Property::HNE))),{"on","off"});
     _unitResultingResolution.setRandomChoices(isRandSat(),{});
     _unitResultingResolution.setRandomChoices({"on","on","off"});
 
@@ -1828,16 +1815,6 @@ void Options::Options::init()
     //*********************** which mode or tag?  ************************
     //*************************************************************
     
-    _bfnt = BoolOptionValue("bfnt","bfnt",false);
-    _bfnt.description="";
-    _lookup.insert(&_bfnt);
-    _bfnt.tag(OptionTag::SATURATION);
-    // This is checked in checkGlobal
-    //_bfnt.addConstraint(new OnAnd(new RequiresCompleteForNonHorn<bool>()));
-    _bfnt.addProblemConstraint(notWithCat(Property::EPR));
-    _bfnt.setRandomChoices({},{"on","off","off","off","off","off"});
-    _bfnt.setExperimental();
-    
     _increasedNumeralWeight = BoolOptionValue("increased_numeral_weight","inw",false);
     _increasedNumeralWeight.description=
              "This option only applies if the problem has interpreted numbers. The weight of integer constants depends on the logarithm of their absolute value (instead of being 1)";
@@ -2161,8 +2138,7 @@ void Options::copyValuesFrom(const Options& that)
     if(opt->shouldCopy()){
       AbstractOptionValue* other = that.getOptionValueByName(opt->longName);
       ASS(opt!=other);
-      bool status = opt -> set(other->getStringOfActual());
-      ASS(status);
+      ALWAYS(opt->set(other->getStringOfActual()));
     }
   }
 }
@@ -2272,10 +2248,6 @@ Options::OptionProblemConstraintUP Options::isRandSat(){
 Options::OptionProblemConstraintUP Options::saNotInstGen(){
       return OptionProblemConstraintUP(new OptionHasValue("sa","inst_gen"));
 }
-Options::OptionProblemConstraintUP Options::isBfnt(){
-      return OptionProblemConstraintUP(new OptionHasValue("bfnt","on"));
-}
-
 /**
  * Return the include file name using its relative name.
  *
@@ -2620,11 +2592,11 @@ bool Options::RatioOptionValue::readRatio(const char* val, char separator)
   }
 
   if (found) {
-    if (strlen(val) > 127) {
+    if (strlen(val) >= COPY_SIZE) {
       return false;
     }
-    char copy[128];
-    strcpy(copy,val);
+    char copy[COPY_SIZE];
+    strncpy(copy,val,COPY_SIZE);
     copy[colonIndex] = 0;
     int age;
     if (! Int::stringToInt(copy,age)) {
@@ -2770,12 +2742,12 @@ bool Options::TimeLimitOptionValue::setValue(const vstring& value)
   CALL("Options::readTimeLimit");
 
   int length = value.size();
-  if (length == 0 || length > 127) {
+  if (length == 0 || length >= COPY_SIZE) {
     USER_ERROR((vstring)"wrong value for time limit: " + value);
   }
 
-  char copy[128];
-  strcpy(copy,value.c_str());
+  char copy[COPY_SIZE];
+  strncpy(copy,value.c_str(),COPY_SIZE);
   char* end = copy;
   // search for the end of the string for
   while (*end) {
@@ -2844,7 +2816,6 @@ void Options::randomizeStrategy(Property* prop)
   // Note this is a stack!
   Stack<AbstractOptionValue*> do_first;
   do_first.push(&_saturationAlgorithm);
-  do_first.push(&_bfnt);
 
   auto options = getConcatenatedIterator(Stack<AbstractOptionValue*>::Iterator(do_first),_lookup.values());
 
@@ -2885,16 +2856,7 @@ void Options::randomizeStrategy(Property* prop)
   _badOption.actualValue = saved_bad_option;
   Random::setSeed(saved_seed);
 
-  //When we reach this place all constraints should be holding
-  //However, there is one we haven't checked yet: bfnt completeness
-  //If this fails we restart this with bfnt set to off... only if it was on before
-  if(!checkGlobalOptionConstraints() && _bfnt.actualValue){
-    _bfnt.set("off");
-    randomizeStrategy(prop);
-  }
-  else{
-    if(prop) cout << "Random strategy: " + generateEncodedOptions() << endl;
-  }
+  if(prop) cout << "Random strategy: " + generateEncodedOptions() << endl;
 }
 
 /**
@@ -3253,12 +3215,6 @@ bool Options::checkGlobalOptionConstraints(bool fail_early)
   //Check forbidden options
   readOptionsString(_forbiddenOptions.actualValue,false);
     
-  //if we're not in mid-randomisation then check bfnt completeness
-  //this assumes that fail_early is only on when being called from randomizeStrategy
-  if(!fail_early && env.options->bfnt() && !completeForNNE()){
-    return false;
-  }
-
   bool result = true;
 
   // Check recorded option constraints
@@ -3289,15 +3245,24 @@ bool Options::checkProblemOptionConstraints(Property* prop,bool fail_early)
   return result;
 }
 
+template<class A>
+Lib::vvector<A> parseCommaSeparatedList(vstring const& str) 
+{
+  vstringstream stream(str);
+  Lib::vvector<A> parsed;
+  vstring cur;
+  while (std::getline(stream, cur, ',')) {
+    parsed.push_back(StringUtils::parse<A>(cur));
+  }
+  return parsed;
+}
+
 Lib::vvector<int> Options::theorySplitQueueRatios() const
 {
   CALL("Options::theorySplitQueueRatios");
-  vstringstream inputRatiosStream(_theorySplitQueueRatios.actualValue);
-  Lib::vvector<int> inputRatios;
-  std::string currentRatio;
-  while (std::getline(inputRatiosStream, currentRatio, ',')) {
-    inputRatios.push_back(std::stoi(currentRatio));
-  }
+
+
+  auto inputRatios = parseCommaSeparatedList<int>(_theorySplitQueueRatios.actualValue);
 
   // sanity checks
   if (inputRatios.size() < 2) {
@@ -3326,12 +3291,7 @@ Lib::vvector<float> Options::theorySplitQueueCutoffs() const
     cutoffs.push_back(std::numeric_limits<float>::max());
   } else {
     // if custom cutoffs are set, parse them and add float-max as last value
-    vstringstream cutoffsStream(_theorySplitQueueCutoffs.actualValue);
-    std::string currentCutoff;
-    while (std::getline(cutoffsStream, currentCutoff, ','))
-    {
-      cutoffs.push_back(std::stof(currentCutoff));
-    }
+    cutoffs = parseCommaSeparatedList<float>(_theorySplitQueueCutoffs.actualValue);
     cutoffs.push_back(std::numeric_limits<float>::max());
   }
 
@@ -3352,12 +3312,7 @@ Lib::vvector<float> Options::theorySplitQueueCutoffs() const
 Lib::vvector<int> Options::avatarSplitQueueRatios() const
 {
   CALL("Options::avatarSplitQueueRatios");
-  vstringstream inputRatiosStream(_avatarSplitQueueRatios.actualValue);
-  Lib::vvector<int> inputRatios;
-  std::string currentRatio;
-  while (std::getline(inputRatiosStream, currentRatio, ',')) {
-    inputRatios.push_back(std::stoi(currentRatio));
-  }
+  Lib::vvector<int> inputRatios = parseCommaSeparatedList<int>(_avatarSplitQueueRatios.actualValue);
 
   // sanity checks
   if (inputRatios.size() < 2) {
@@ -3376,13 +3331,7 @@ Lib::vvector<float> Options::avatarSplitQueueCutoffs() const
 {
   CALL("Options::avatarSplitQueueCutoffs");
   // initialize cutoffs and add float-max as last value
-  Lib::vvector<float> cutoffs;
-  vstringstream cutoffsStream(_avatarSplitQueueCutoffs.actualValue);
-  std::string currentCutoff;
-  while (std::getline(cutoffsStream, currentCutoff, ','))
-  {
-    cutoffs.push_back(std::stof(currentCutoff));
-  }
+  auto cutoffs = parseCommaSeparatedList<float>(_avatarSplitQueueCutoffs.actualValue);
   cutoffs.push_back(std::numeric_limits<float>::max());
 
   // sanity checks
@@ -3402,12 +3351,7 @@ Lib::vvector<float> Options::avatarSplitQueueCutoffs() const
 Lib::vvector<int> Options::sineLevelSplitQueueRatios() const
 {
   CALL("Options::sineLevelSplitQueueRatios");
-  vstringstream inputRatiosStream(_sineLevelSplitQueueRatios.actualValue);
-  Lib::vvector<int> inputRatios;
-  std::string currentRatio;
-  while (std::getline(inputRatiosStream, currentRatio, ',')) {
-    inputRatios.push_back(std::stoi(currentRatio));
-  }
+  auto inputRatios = parseCommaSeparatedList<int>(_sineLevelSplitQueueRatios.actualValue);
 
   // sanity checks
   if (inputRatios.size() < 2) {
@@ -3426,13 +3370,7 @@ Lib::vvector<float> Options::sineLevelSplitQueueCutoffs() const
 {
   CALL("Options::sineLevelSplitQueueCutoffs");
   // initialize cutoffs and add float-max as last value
-  Lib::vvector<float> cutoffs;
-  vstringstream cutoffsStream(_sineLevelSplitQueueCutoffs.actualValue);
-  std::string currentCutoff;
-  while (std::getline(cutoffsStream, currentCutoff, ','))
-  {
-    cutoffs.push_back(std::stof(currentCutoff));
-  }
+  auto cutoffs = parseCommaSeparatedList<float>(_sineLevelSplitQueueCutoffs.actualValue);
   cutoffs.push_back(std::numeric_limits<float>::max());
 
   // sanity checks
@@ -3452,12 +3390,7 @@ Lib::vvector<float> Options::sineLevelSplitQueueCutoffs() const
 Lib::vvector<int> Options::positiveLiteralSplitQueueRatios() const
 {
   CALL("Options::positiveLiteralSplitQueueRatios");
-  vstringstream inputRatiosStream(_positiveLiteralSplitQueueRatios.actualValue);
-  Lib::vvector<int> inputRatios;
-  std::string currentRatio;
-  while (std::getline(inputRatiosStream, currentRatio, ',')) {
-    inputRatios.push_back(std::stoi(currentRatio));
-  }
+  auto inputRatios = parseCommaSeparatedList<int>(_positiveLiteralSplitQueueRatios.actualValue);
 
   // sanity checks
   if (inputRatios.size() < 2) {
@@ -3476,13 +3409,7 @@ Lib::vvector<float> Options::positiveLiteralSplitQueueCutoffs() const
 {
   CALL("Options::positiveLiteralSplitQueueCutoffs");
   // initialize cutoffs and add float-max as last value
-  Lib::vvector<float> cutoffs;
-  vstringstream cutoffsStream(_positiveLiteralSplitQueueCutoffs.actualValue);
-  std::string currentCutoff;
-  while (std::getline(cutoffsStream, currentCutoff, ','))
-  {
-    cutoffs.push_back(std::stof(currentCutoff));
-  }
+  auto cutoffs = parseCommaSeparatedList<float>(_positiveLiteralSplitQueueCutoffs.actualValue);
   cutoffs.push_back(std::numeric_limits<float>::max());
 
   // sanity checks

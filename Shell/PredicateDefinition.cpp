@@ -867,11 +867,9 @@ void PredicateDefinition::count (Formula* f,int polarity,int add, Unit* unit)
       count (f->getBooleanTerm(), add, unit);
       return;
 
-#if VDEBUG
-    default:
+    case NAME:
+    case NOCONN:
       ASSERTION_VIOLATION;
-      return;
-#endif
   }
 } // PredicateDefinition::count (Formula* f,...)
 

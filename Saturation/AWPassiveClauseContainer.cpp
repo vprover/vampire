@@ -22,7 +22,7 @@
  * @since 30/12/2007 Manchester
  */
 
-#include <math.h>
+#include <cmath>
 
 #include "Debug/RuntimeStatistics.hpp"
 

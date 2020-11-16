@@ -17,7 +17,7 @@
  * licence, which we will make an effort to provide. 
  */
 /**
- * @file ClauseFlattening
+ * @file ClauseFlattening.hpp
  * Defines class ClauseFlattening
  */ 
 

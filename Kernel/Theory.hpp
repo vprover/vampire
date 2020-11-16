@@ -24,7 +24,7 @@
 #ifndef __Theory__
 #define __Theory__
 
-#include <math.h>
+#include <cmath>
 
 #include "Forwards.hpp"
 
@@ -520,7 +520,7 @@ public:
   class Tuples {
   public:
     bool isFunctor(unsigned functor);
-    unsigned getFunctor(unsigned arity, unsigned sorts[]);
+    unsigned getFunctor(unsigned arity, unsigned* sorts);
     unsigned getFunctor(unsigned tupleSort);
     unsigned getProjectionFunctor(unsigned proj, unsigned tupleSort);
     bool findProjection(unsigned projFunctor, bool isPredicate, unsigned &proj);

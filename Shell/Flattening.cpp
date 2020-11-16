@@ -211,12 +211,12 @@ Formula* Flattening::flatten (Formula* f)
 				   arg->qarg());
     }
 
-#if VDEBUG
-  default:
+  case NAME:
+  case NOCONN:
     ASSERTION_VIOLATION;
-#endif
   }
 
+  ASSERTION_VIOLATION;
 } // Flattening::flatten ()
 
 Literal* Flattening::flatten(Literal* l)

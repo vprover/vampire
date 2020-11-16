@@ -652,8 +652,6 @@ public:
     TermList term;
     /** Create new binding */
     Binding(int v,TermList t) : var(v), term(t) {}
-    /** Create uninitialised binding */
-    Binding() {}
 
     struct Comparator
     {
@@ -798,12 +796,14 @@ public:
     InstMatcher* _subst;
 
     Renaming _resultDenormalizer;
-    SubstitutionTree* _tree;
     Node* _root;
 
     Stack<void*> _alternatives;
     Stack<unsigned> _specVarNumbers;
     Stack<NodeAlgorithm> _nodeTypes;
+#if VDEBUG
+    SubstitutionTree* _tree;
+#endif
   };
 
 class SubstitutionTreeMismatchHandler : public UWAMismatchHandler 

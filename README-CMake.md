@@ -30,13 +30,15 @@ All compile flags are added as additional arguments to cmake - for example
 
 * Debug build: `-DCMAKE_BUILD_TYPE=Debug`
 
-* Z3 Path: use `-DZ3_DIR=$(PATH)` this is the path to the Z3 CMake configuration.
-  MS: for me an absolute path to `/.../z3/build` works, where `build` is my own cmake build directory under z3 (after a successful compile of z3 there).
-  It is usually located in `$Z3_ROOT/lib64/cmake/z3` but only when Z3 was built using cmake.
-  Currently, the binary distribution of Z3 does not include these files.
-  
-  Please refer to `README-CMake.md` for detailed instructions on how to build Z3 using
-  cmake. Notable options are:
+# Z3
+We now fix a known version of Z3 via git submodule.
+If you don't need Z3, do nothing: CMake will detect this and do the right thing.
+If you need Z3, first `git submodule update --init` to pull the correct version of Z3, then build Z3 via its own CMake system into `z3/build`, which is where Vampire's CMake will find the necessary files.
+CMake will then detect this build and do the right thing.
+Finally, if you've used Z3 in the past but don't want it for this build, pass `-DCMAKE_DISABLE_FIND_PACKAGE_Z3=1` to disable automatically including Z3.
+
+## Building Z3
+Please refer to `README-CMake.md` for detailed instructions on how to build Z3 using cmake. Notable options are:
   * `-DZ3_BUILD_LIBZ3_SHARED=0`: static library (z3 up to version 4.8.7 needs `-DBUILD_LIBZ3_SHARED=0` instead)
   * `-DCMAKE_INSTALL_PREFIX=/opt/z3-devel`: installation path
 

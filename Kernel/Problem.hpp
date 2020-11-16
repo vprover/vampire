@@ -194,9 +194,10 @@ public:
   void collectPredicates(Stack<unsigned>& acc) const;
 
 
+#if VDEBUG
   //debugging functions
-
   void assertValid();
+#endif
 
 private:
 

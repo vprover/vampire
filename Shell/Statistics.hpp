@@ -253,8 +253,6 @@ public:
   unsigned instGenKeptClauses;
   unsigned instGenIterations;
 
-  unsigned maxBFNTModelSize;
-
   /** Number of pure variables eliminated by SAT solver */
   unsigned satPureVarsEliminated;
 

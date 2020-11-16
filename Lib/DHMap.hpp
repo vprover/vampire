@@ -877,7 +877,7 @@ public:
   class DelIterator {
   public:
     /** Create a new iterator */
-    inline DelIterator(DHMap& map) : _base(map), _map(map) {}
+    inline DelIterator(DHMap& map) : _base(map), _map(map), _curr(nullptr) {}
 
     /** True if there exists next element */
     bool hasNext() { return _base.hasNext(); }

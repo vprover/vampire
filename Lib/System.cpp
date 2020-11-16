@@ -24,7 +24,7 @@
 
 #include "Portability.hpp"
 
-#include <stdlib.h>
+#include <cstdlib>
 #  include <unistd.h>
 #  if !__APPLE__ && !__CYGWIN__
 #    include <sys/prctl.h>

@@ -116,19 +116,27 @@ bool Substitution::findBinding(int var, TermList& res) const
 #if VDEBUG
  vstring Substitution::toString() const
  {
-   vstring result("[");
-   VirtualIterator<std::pair<unsigned,TermList>> items = _map.items();
-   bool first=true;
-   while(items.hasNext()){
-     std::pair<unsigned,TermList> item = items.next();
-     if(!first){result+=",";}
-     first=false;
-     result += Lib::Int::toString(item.first) + " -> " + item.second.toString(); 
-   }
-   result += ']';
-   return result;
+   vstringstream out;
+   out << *this;
+   return out.str();
  } // Substitution::toString()
 #endif
 
+
+std::ostream& operator<<(std::ostream& out, Substitution const& self)
+{
+   out << "[";
+   auto items = self._map.items();
+   bool first=true;
+   while(items.hasNext()){
+     std::pair<unsigned,TermList> item = items.next();
+     if(!first){out << ",";}
+     first=false;
+     out  <<  item.first << " -> " << item.second;
+   }
+   out << ']';
+   return out;
 }
+
+} // namespace Kernel
 

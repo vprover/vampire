@@ -306,7 +306,7 @@ private:
       return true;
     }
 
-    bool isFmbComplete(unsigned noDomains) override { return noDomains == 1; }
+    bool isFmbComplete(unsigned noDomains) override { return noDomains <= 1; }
     void learnNogood(Constraint_Generator_Vals& nogood, unsigned weight) override;
     bool increaseModelSizes(DArray<unsigned>& newSortSizes, DArray<unsigned>& sortMaxes) override;
   };

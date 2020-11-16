@@ -212,8 +212,9 @@ void CLTBMode::solveBatch(istream& batchFile, bool first,vstring inputDirectory)
     int resValue;
     // wait until the child terminates
     try {
-      pid_t finishedChild = Multiprocessing::instance()->waitForChildTermination(resValue);
-      ASS_EQ(finishedChild, child);
+      ALWAYS(
+        Multiprocessing::instance()->waitForChildTermination(resValue) == child
+      );
     }
     catch(SystemFailException& ex) {
       cerr << "% SystemFailException at batch level" << endl;
@@ -631,6 +632,8 @@ void CLTBProblem::fillSchedule(Schedule& sched,const Shell::Property* property,i
  * @param terminationTime the time in milliseconds since the prover starts when
  *        the strategy should terminate
  * @param timeLimit in milliseconds
+ * @param category
+ * @param property
  * @author Krystof Hoder
  * @since 04/06/2013 flight Frankfurt-Vienna, updated for CASC-J6
  * @author Andrei Voronkov
@@ -653,7 +656,7 @@ void CLTBProblem::performStrategy(int terminationTime,int timeLimit,Category cat
   }
   Schedule fallback;
   Schedule fallback2;
-  Schedules::getCasc2018Schedule(*property,fallback,fallback2);
+  Schedules::getCasc2019Schedule(*property,fallback,fallback2);
   runSchedule(fallback,usedSlices,terminationTime);
   runSchedule(fallback2,usedSlices,terminationTime);
 } // CLTBProblem::performStrategy
@@ -665,6 +668,7 @@ void CLTBProblem::performStrategy(int terminationTime,int timeLimit,Category cat
  * actual proof search.
  * @param terminationTime the time in milliseconds since the prover start
  * @param timeLimit time limit in milliseconds
+ * @param category
  * @since 04/06/2013 flight Manchester-Frankfurt
  * @author Andrei Voronkov
  */

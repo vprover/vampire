@@ -89,7 +89,7 @@ INCLUDES= -I.
 Z3FLAG= -DVZ3=0
 Z3LIB=
 ifeq (,$(shell echo $(MAKECMDGOALS) | sed 's/.*z3.*//g')) 
-INCLUDES= -I. -Iz3/api -Iz3/api/c++ 
+INCLUDES= -I. -I../z3/src/api -I../z3/src/api/c++ 
 ifeq (,$(shell echo $(MAKECMDGOALS) | sed 's/.*static.*//g'))
 Z3LIB= -Linclude -lz3 -lgomp -pthread  -Wl,--whole-archive -lrt -lpthread -Wl,--no-whole-archive -ldl
 else
@@ -334,7 +334,6 @@ VST_OBJ= Saturation/AWPassiveClauseContainer.o\
          Saturation/Discount.o\
          Saturation/ExtensionalityClauseContainer.o\
 	 Saturation/LabelFinder.o\
-         Saturation/Limits.o\
          Saturation/LRS.o\
          Saturation/Otter.o\
          Saturation/ProvingHelper.o\
@@ -344,8 +343,6 @@ VST_OBJ= Saturation/AWPassiveClauseContainer.o\
          Saturation/ManCSPassiveClauseContainer.o\
 
 VS_OBJ = Shell/AnswerExtractor.o\
-         Shell/BFNT.o\
-         Shell/BFNTMainLoop.o\
          Shell/CommandLine.o\
          Shell/CNF.o\
          Shell/NewCNF.o\
@@ -380,7 +377,6 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/Rectify.o\
          Shell/Skolem.o\
          Shell/SimplifyFalseTrue.o\
-         Shell/SimplifyProver.o\
          Shell/SineUtils.o\
          Shell/SMTFormula.o\
          Shell/FOOLElimination.o\
@@ -536,7 +532,7 @@ VAMP_DIRS := Api Debug DP Lib Lib/Sys Kernel FMB Indexing Inferences InstGen She
 
 VAMP_BASIC := $(MINISAT_OBJ) $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(BP_VD_OBJ) $(BP_VL_OBJ) $(BP_VLS_OBJ) $(BP_VSOL_OBJ) $(BP_VT_OBJ) $(BP_MPS_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VIG_OBJ) $(VSAT_OBJ) $(DP_OBJ) $(VST_OBJ) $(VS_OBJ) $(PARSE_OBJ) $(VFMB_OBJ)
 #VCLAUSIFY_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VSAT_OBJ) $(VST_OBJ) $(VS_OBJ) $(VT_OBJ)
-VCLAUSIFY_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(filter-out Shell/InterpolantMinimizer.o Shell/AnswerExtractor.o Shell/BFNTMainLoop.o, $(VS_OBJ)) $(PARSE_OBJ) $(LIB_DEP) $(OTHER_CL_DEP) 
+VCLAUSIFY_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(filter-out Shell/InterpolantMinimizer.o Shell/AnswerExtractor.o, $(VS_OBJ)) $(PARSE_OBJ) $(LIB_DEP) $(OTHER_CL_DEP)
 VSAT_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VSAT_OBJ) Test/CheckedSatSolver.o $(LIB_DEP)
 #VGROUND_BASIC := $(VD_OBJ) $(VL_OBJ) $(VK_OBJ) $(VI_OBJ) $(VSAT_OBJ) $(VS_OBJ) $(VT_OBJ)  
 

@@ -244,6 +244,14 @@ void SMTLIB2::readBenchmark(LExprList* bench)
       continue;
     }
 
+    if (ibRdr.tryAcceptAtom("assert-theory")) {
+      readAssertTheory(ibRdr.readNext());
+
+      ibRdr.acceptEOL();
+
+      continue;
+    }
+
     // not an official SMTLIB command
     if (ibRdr.tryAcceptAtom("color-symbol")) {
       vstring symbol = ibRdr.readAtom();
@@ -1369,8 +1377,7 @@ void SMTLIB2::parseLetBegin(LExpr* exp)
   LispListReader lRdr(exp->list);
 
   // the let atom
-  const vstring& theLetAtom = lRdr.readAtom();
-  ASS_EQ(theLetAtom,LET);
+  ALWAYS(lRdr.readAtom() == LET);
 
   // now, there should be a list of bindings
   LExprList* bindings = lRdr.readList();
@@ -1417,8 +1424,7 @@ void SMTLIB2::parseLetPrepareLookup(LExpr* exp)
   // so we know it is let
   ASS(exp->isList());
   LispListReader lRdr(exp->list);
-  const vstring& theLetAtom = lRdr.readAtom();
-  ASS_EQ(theLetAtom,LET);
+  ALWAYS(lRdr.readAtom() == LET);
 
   // with a list of bindings
   LispListReader bindRdr(lRdr.readList());
@@ -1467,7 +1473,8 @@ void SMTLIB2::parseLetEnd(LExpr* exp)
   // so we know it is let
   ASS(exp->isList());
   LispListReader lRdr(exp->list);
-  const vstring& theLetAtom = lRdr.readAtom();
+  DEBUG_CODE(const vstring& theLetAtom =)
+    lRdr.readAtom();
   ASS_EQ(getBuiltInTermSymbol(theLetAtom),TS_LET);
 
   // with a list of bindings
@@ -1737,7 +1744,8 @@ void SMTLIB2::parseQuantBegin(LExpr* exp)
   LispListReader lRdr(exp->list);
 
   // the quant atom
-  const vstring& theQuantAtom = lRdr.readAtom();
+  DEBUG_CODE(const vstring& theQuantAtom =)
+    lRdr.readAtom();
   ASS(theQuantAtom == FORALL || theQuantAtom == EXISTS);
 
   // there should next be a list of sorted variables
@@ -1776,8 +1784,7 @@ void SMTLIB2::parseAnnotatedTerm(LExpr* exp)
   LispListReader lRdr(exp->list);
 
   // the exclamation atom
-  const vstring& theExclAtom = lRdr.readAtom();
-  ASS_EQ(theExclAtom,EXCLAMATION);
+  ALWAYS(lRdr.readAtom() == EXCLAMATION)
 
   LExpr* toParse = 0;
   if(lRdr.peekAtNext()->isAtom()){ 
@@ -2658,6 +2665,24 @@ void SMTLIB2::readAssertNot(LExpr* body)
   FormulaUnit* fu = new FormulaUnit(fla, FromInput(UnitInputType::CONJECTURE));
   fu = new FormulaUnit(new NegatedFormula(fla),
                        FormulaTransformation(InferenceRule::NEGATED_CONJECTURE, fu));
+  UnitList::push(fu, _formulas);
+}
+
+void SMTLIB2::readAssertTheory(LExpr* body)
+{
+  CALL("SMTLIB2::readAssertTheory");
+
+  _nextVar = 0;
+  ASS(_scopes.isEmpty());
+
+  ParseResult res = parseTermOrFormula(body);
+
+  Formula* theoryAxiom;
+  if (!res.asFormula(theoryAxiom)) {
+    USER_ERROR("Asserted expression of non-boolean sort "+body->toString());
+  }
+
+  FormulaUnit* fu = new FormulaUnit(theoryAxiom, Inference(TheoryAxiom(InferenceRule::EXTERNAL_THEORY_AXIOM)));
   UnitList::push(fu, _formulas);
 }
 

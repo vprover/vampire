@@ -242,7 +242,10 @@ SATSolver::VarAssignment Z3Interfacing::getAssignment(unsigned var)
 
   // with model_completion true (see above), there should be no don't-knows
 
-  ASSERTION_VIOLATION_REP(assignment); // This is actually not a problem for AVATAR in release (see recomputeModel in Splitter.cpp)
+#if VDEBUG
+  // This is actually not a problem for AVATAR in release (see recomputeModel in Splitter.cpp)
+  ASSERTION_VIOLATION_REP(assignment);
+#endif
   return NOT_KNOWN;
 }
 
@@ -858,10 +861,10 @@ SATClause* Z3Interfacing::getRefutation() {
       solver.add(z3clause,p.c_str());
       lookup.insert(p,cl);
     }
-  
-    z3::check_result result = solver.check();
-    ASS_EQ(result,z3::check_result::unsat);   // the new version of Z3 does not suppot unsat-cores?
-  
+
+    // the new version of Z3 does not suppot unsat-cores?
+    ALWAYS(solver.check() == z3::check_result::unsat);
+
     SATClauseList* prems = 0;
 
     z3::expr_vector  core = solver.unsat_core();

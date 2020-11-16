@@ -443,6 +443,10 @@ vstring Clause::toString() const
     if(derivedFromGoal()){
       result += vstring(",goal:1");
     }
+    if(env.maxSineLevel > 1) { // this is a cryptic way of saying "did we run Sine to compute sine levels?"
+      result += vstring(",sine:")+Int::toString((unsigned)_inference.getSineLevel());
+    }
+
     if(isPureTheoryDescendant()){
       result += vstring(",ptD:1");
     }
@@ -784,6 +788,18 @@ bool Clause::contains(Literal* lit)
     }
   }
   return false;
+}
+
+std::ostream& operator<<(std::ostream& out, Clause::Store const& store) 
+{
+  switch (store) {
+    case Clause::PASSIVE:     return out << "PASSIVE";
+    case Clause::ACTIVE:      return out << "ACTIVE";
+    case Clause::UNPROCESSED: return out << "UNPROCESSED";
+    case Clause::NONE:        return out << "NONE";
+    case Clause::SELECTED:    return out << "SELECTED";
+  }
+  ASSERTION_VIOLATION;
 }
 
 }

@@ -205,10 +205,8 @@ Formula* NNF::ennf (Formula* f, bool polarity)
 	return Formula::trueFormula();
       }
     }
-#if VDEBUG
   default:
     ASSERTION_VIOLATION;
-#endif
   }
 } // NNF::ennf(Formula&);
 
@@ -528,11 +526,13 @@ Formula* NNF::nnf (Formula* f, bool polarity)
   case TRUE:
   case FALSE:
     return f;
-#if VDEBUG
-  default:
+
+  case NAME:
+  case NOCONN:
     ASSERTION_VIOLATION;
-#endif
   }
+
+  ASSERTION_VIOLATION;
 } // NNF::nnf(Formula*);
 
 

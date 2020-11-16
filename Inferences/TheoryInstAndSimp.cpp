@@ -206,14 +206,14 @@ bool TheoryInstAndSimp::literalContainsVar(const Literal* lit, unsigned v) {
 /**
  * Scans through a clause C and selects the largest set T s.t. all literals in
  * T are trivial. A literal L is trivial in C if:
- *   1 L is of the form X != s where X does not occur in s
- *   2 L is pure
- *   3 for all literals L' in C that X (different from L) either
+ *   1. L is of the form X != s where X does not occur in s
+ *   2. L is pure
+ *   3. for all literals L' in C that X (different from L) either
  *      + L' is not pure
  *      + L' is trivial in C
+ *
  * some observations:
- *   - consider X != Y + 1 | Y != X - 1 | p(X,Y)
- *     then {} as well as {X != Y+1, Y != X-1} are sets of trivial literals
+ *   - consider X != Y + 1 | Y != X - 1 | p(X,Y): then {}, as well as {X != Y+1, Y != X-1} are sets of trivial literals
  *   - we can partition the clause into pure and impure literals
  *   - trivial literals are always a subset of the pure literals
  *   - a literal that violates condition is pure and not trivial
@@ -336,8 +336,10 @@ void TheoryInstAndSimp::selectTheoryLiterals(Clause* cl, Stack<Literal*>& theory
   cout << "selectTheoryLiterals in " << cl->toString() << endl;
 #endif
 
-  static Shell::Options::TheoryInstSimp selection = env.options->theoryInstAndSimp();
-  ASS(selection!=Shell::Options::TheoryInstSimp::OFF);
+  ASS_NEQ(
+    env.options->theoryInstAndSimp(),
+    Shell::Options::TheoryInstSimp::OFF
+  );
 
   //  Stack<Literal*> pure_lits;
   Stack<Literal*> trivial_lits;
@@ -731,10 +733,10 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
 
 struct InstanceFn
 {
-  InstanceFn(Clause* premise,Clause* cl, Stack<Literal*>& tl,Splitter* splitter,
-             SaturationAlgorithm* salg, TheoryInstAndSimp* parent,bool& red) :
-         _premise(premise),  _cl(cl), _theoryLits(tl), _splitter(splitter),
-         _salg(salg), _parent(parent), _red(red) {}
+  InstanceFn(Clause* cl, Stack<Literal*>& tl,Splitter* splitter,
+             TheoryInstAndSimp* parent,bool& red) :
+          _cl(cl), _theoryLits(tl), _splitter(splitter),
+         _parent(parent), _red(red) {}
 
   DECL_RETURN_TYPE(Clause*);
   OWN_RETURN_TYPE operator()(Solution sol)
@@ -826,11 +828,9 @@ partial_check_end:
   }
 
 private:
-  Clause* _premise;
   Clause* _cl;
   Stack<Literal*>& _theoryLits;
   Splitter* _splitter;
-  SaturationAlgorithm* _salg;
   TheoryInstAndSimp* _parent;
   bool& _red;
 };
@@ -907,7 +907,7 @@ ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise,bool& premiseR
     auto it1 = getSolutions(selectedLiterals);
 
     auto it2 = getMappingIterator(it1,
-               InstanceFn(premise,flattened,selectedLiterals,_splitter,_salg,this,premiseRedundant));
+               InstanceFn(flattened,selectedLiterals,_splitter,this,premiseRedundant));
 
     // filter out only non-zero results
     auto it3 = getFilteredIterator(it2, NonzeroFn());
@@ -915,8 +915,20 @@ ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise,bool& premiseR
     // measure time of the overall processing
     auto it4 = getTimeCountedIterator(it3,TC_THEORY_INST_SIMP);
 
-    return pvi(it4);
+    auto out = getPersistentIterator(it4); // we need immediate evaluation, so that premiseRedundant is set just after the call!
+
+    if (!env.options->thiTautologyDeletion()) {
+      premiseRedundant = false;
+    }
+
+    return out;
   }
+}
+
+std::ostream& operator<<(std::ostream& out, Solution const& self) 
+{
+  return out << "Solution(" << (self.status ? "sat" : "unsat") << ", " << self.subst << ")";
+  // return out;
 }
 
 }

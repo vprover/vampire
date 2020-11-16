@@ -25,7 +25,7 @@
  *       so array[arity] is return and array[i] is the ith argument of the function
  */
 
-#include <math.h>
+#include <cmath>
 
 #include "Kernel/Ordering.hpp"
 #include "Kernel/Inference.hpp"
@@ -575,6 +575,9 @@ void FiniteModelBuilder::init()
 #endif
 
   }
+
+  // TODO: consider updating usage count by rescanning property
+  // in particular, terms replaced by definitions have disappeared!
 
   // record the deleted functions and predicates
   // we do this here so that there are slots for symbols introduce in previous
@@ -1491,7 +1494,9 @@ SATLiteral FiniteModelBuilder::getSATLiteral(unsigned f, const DArray<unsigned>&
   // cannot have predicate 0 here (it's equality)
   ASS(f>0 || isFunction);
 
-  unsigned arity = isFunction ? env.signature->functionArity(f) : env.signature->predicateArity(f);
+  DEBUG_CODE(
+    unsigned arity = isFunction ? env.signature->functionArity(f) : env.signature->predicateArity(f)
+  );
   ASS((isFunction && arity==grounding.size()-1) || (!isFunction && arity==grounding.size()));
 
   unsigned offset = isFunction ? f_offsets[f] : p_offsets[f];
@@ -2587,8 +2592,6 @@ bool FiniteModelBuilder::SmtBasedDSAE::increaseModelSizes(DArray<unsigned>& newS
         sum = sum + *_sizeConstants[i];
       }
       _smtSolver.add(sum == _context.int_val(_lastWeight));
-
-      result = _smtSolver.check();
 
       if (_smtSolver.check() == z3::check_result::sat) {
         loadSizesFromSmt(newSortSizes);

@@ -53,7 +53,7 @@ public:
 
   struct TermSpec
   {
-    TermSpec() {
+    TermSpec() : q(false) {
     #if VDEBUG
       t.makeEmpty();
     #endif
@@ -553,8 +553,11 @@ finish:
 SubstitutionTree::FastInstancesIterator::FastInstancesIterator(SubstitutionTree* parent, Node* root,
 	Term* query, bool retrieveSubstitution, bool reversed, bool withoutTop, bool useC)
 : _literalRetrieval(query->isLiteral()), _retrieveSubstitution(retrieveSubstitution),
-  _inLeaf(false), _ldIterator(LDIterator::getEmpty()), _tree(parent),  _root(root),
+  _inLeaf(false), _ldIterator(LDIterator::getEmpty()),  _root(root),
   _alternatives(64), _specVarNumbers(64), _nodeTypes(64)
+#if VDEBUG
+  , _tree(parent)
+#endif 
 {
   CALL("SubstitutionTree::FastInstancesIterator::FastGeneralizationsIterator");
   ASS(root);

@@ -973,11 +973,9 @@ public:
       //undo the previous match
       backtrack();
       _state=FINISHED;
-#if VDEBUG
       break;
-    default:
+    case FINISHED:
       ASSERTION_VIOLATION;
-#endif
     }
     ASS(_state!=FINISHED || _bdata.isEmpty());
     return _state!=FINISHED;
