@@ -197,24 +197,19 @@ private:
 #endif // CTEST
 
 #if CTEST
-#  define UT_CREATE Test::TestUnit UT_AUX_NAME(UT_AUX_NAME_STR)
-#else  // CTEST
 #  define UT_CREATE                                                                                           \
   Test::TestUnit UT_AUX_NAME(UT_AUX_NAME_STR);                                                                \
   int main() {                                                                                                \
     bool success = Test::UnitTesting::instance()->runUnit(&UT_AUX_NAME, std::cout);                           \
     return success ? 0 : -1;                                                                                  \
-  }                                                                                                           \
-
+  }                                                                                                           
+#else  // CTEST
+#  define UT_CREATE Test::TestUnit UT_AUX_NAME(UT_AUX_NAME_STR)
 #endif // CTEST
 
-// #define TEST_FUN_MULTI_PER_LINE(name, id_in_line)                                                          \
-//   void name();                                                                                             \
-//   Test::TU_Aux_Test_Adder _ut_aux_adder_##ID##_##LINE##_##id_in_line(UT_AUX_NAME,name,#name);              \
-//   void name()
-
-#define TEST_FUN(name)  void name();                                                                          \
-			Test::TU_Aux_Test_Adder UT_AUX_ADDER_NAME(name)(UT_AUX_NAME,name,#name);                                   \
+#define TEST_FUN(name)                                                                                        \
+      void name();                                                                                            \
+      Test::TU_Aux_Test_Adder UT_AUX_ADDER_NAME(name)(UT_AUX_NAME,name,#name);                                \
 			void name()
 
 }
