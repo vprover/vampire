@@ -26,6 +26,7 @@
 #define UNIT_ID dhmap
 UT_CREATE;
 
+
 using namespace std;
 using namespace Lib;
 
@@ -137,6 +138,7 @@ TEST_FUN(dhmap1)
   for(unsigned i=0;i<cnt;i++) {
     unsigned v;
     bool res=m1.find(i,v);
+
     ASS(res==(i%2==0));
     ASS(!res||v==i*i);
   }

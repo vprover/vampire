@@ -1,4 +1,3 @@
-
 /*
  * File tInterpretedFunctions.cpp.
  *
@@ -32,7 +31,6 @@
 
 #include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
-
 #define UNIT_ID interpFunc
 UT_CREATE;
 
@@ -40,6 +38,7 @@ using namespace std;
 using namespace Lib;
 using namespace Kernel;
 using namespace Shell;
+
 
 #define TEST_FAIL exit(-1);
 #define OUT cout
