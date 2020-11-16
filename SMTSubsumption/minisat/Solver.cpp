@@ -127,9 +127,9 @@ void Solver::newClause(const vec<Lit>& ps_, bool learnt)
 
         if (learnt) {
             check(enqueue(ps[0], GClause_new(~ps[1])));   // TODO why? because learnt clause is unit under current assignment; and the remaining literal is always the first in learned clauses. see also doc comment on this method...
-            stats.learnts_literals += ps.size();
+            IF_MINISAT_STATS(stats.learnts_literals += ps.size());
         } else {
-            stats.clauses_literals += ps.size();
+            IF_MINISAT_STATS(stats.clauses_literals += ps.size());
         }
         n_bin_clauses++;
     }
@@ -154,11 +154,11 @@ void Solver::newClause(const vec<Lit>& ps_, bool learnt)
             claBumpActivity(c);         // (newly learnt clauses should be considered active)
             check(enqueue((*c)[0], GClause_new(c)));
             learnts.push(c);
-            stats.learnts_literals += c->size();
+            IF_MINISAT_STATS(stats.learnts_literals += c->size());
         } else {
             // Store clause:
             clauses.push(c);
-            stats.clauses_literals += c->size();
+            IF_MINISAT_STATS(stats.clauses_literals += c->size());
         }
         // Watch clause:
         watches[index(~(*c)[0])].push(GClause_new(c));
@@ -224,14 +224,14 @@ void Solver::addConstraint_AtMostOne(const vec<Lit>& ps_)
       watches[index(ps[0])].push(GClause(~ps[1]));
       watches[index(ps[1])].push(GClause(~ps[0]));
 
-      stats.clauses_literals += 2;
+      IF_MINISAT_STATS(stats.clauses_literals += 2);
       n_bin_clauses++;
     }
     else {
       // Allocate and store constraint
       AtMostOne* c = AtMostOne::from_literals(ps);
       at_most_one_constraints.push(c);
-      stats.clauses_literals += c->size();  // TODO
+      IF_MINISAT_STATS(stats.clauses_literals += c->size());  // TODO
 
       // Set up watches for the constraint
       // AtMostOne is equivalent to a set of binary clauses
@@ -260,8 +260,10 @@ void Solver::remove(Clause* c, bool just_dealloc)
         }
     }
 
+#if MINISAT_STATS
     if (c->learnt()) stats.learnts_literals -= c->size();
     else             stats.clauses_literals -= c->size();
+#endif
 
     xfree(c);
 }
@@ -457,9 +459,9 @@ void Solver::analyze(Clause* _confl, vec<Lit>& out_learnt, int& out_btlevel)
         }
     }
 
-    stats.max_literals += out_learnt.size();
+    IF_MINISAT_STATS(stats.max_literals += out_learnt.size());
     out_learnt.shrink(i - j);
-    stats.tot_literals += out_learnt.size();
+    IF_MINISAT_STATS(stats.tot_literals += out_learnt.size());
 
     for (int j = 0; j < analyze_toclear.size(); j++) seen[var(analyze_toclear[j])] = 0;    // ('seen[]' is now cleared)
 }
@@ -646,8 +648,8 @@ Clause* Solver::propagate()
     while (qhead < trail.size()) {
         assert(confl == nullptr);
         assert(tqhead == trail.size());  // theory is always fully propagated before regular propagation
-        stats.propagations++;
-        simpDB_props--;
+        IF_MINISAT_STATS(stats.propagations++);
+        IF_MINISAT_STATS(simpDB_props--);
 
         ASS_EQ(tqhead, trail.size());  // all theory stuff is propagated, now we turn to the watch lists
         Lit p = trail[qhead++]; // 'p' is enqueued fact to propagate.
@@ -824,8 +826,13 @@ void Solver::simplifyDB()
         ok = false;
         return; }
 
-    if (nAssigns() == simpDB_assigns || simpDB_props > 0)   // (nothing has changed or preformed a simplification too recently)
+#if MINISAT_STATS
+    if (nAssigns() == simpDB_assigns || simpDB_props > 0)   // (nothing has changed or performed a simplification too recently)
         return;
+#else
+    if (nAssigns() == simpDB_assigns)   // (nothing has changed or performed a simplification too recently)
+        return;
+#endif
 
     // Clear watcher lists:
     for (int i = simpDB_assigns; i < nAssigns(); i++){
@@ -853,7 +860,7 @@ void Solver::simplifyDB()
     }
 
     simpDB_assigns = nAssigns();
-    simpDB_props   = stats.clauses_literals + stats.learnts_literals;   // (shouldn't depend on 'stats' really, but it will do for now)
+    IF_MINISAT_STATS(simpDB_props = stats.clauses_literals + stats.learnts_literals);   // (shouldn't depend on 'stats' really, but it will do for now)
 }
 
 
@@ -876,7 +883,7 @@ lbool Solver::search(int nof_conflicts, int nof_learnts, const SearchParams& par
     if (!ok) return l_False;    // GUARD (public method)
     assert(root_level == decisionLevel());
 
-    stats.starts++;
+    IF_MINISAT_STATS(stats.starts++);
     int     conflictC = 0;
     var_decay = 1 / params.var_decay;
     cla_decay = 1 / params.clause_decay;
@@ -887,7 +894,8 @@ lbool Solver::search(int nof_conflicts, int nof_learnts, const SearchParams& par
         if (confl != NULL){
             // CONFLICT
 
-            stats.conflicts++; conflictC++;
+            IF_MINISAT_STATS(stats.conflicts++);
+            conflictC++;
             vec<Lit>    learnt_clause;
             int         backtrack_level;
             if (decisionLevel() == root_level){
@@ -910,16 +918,18 @@ lbool Solver::search(int nof_conflicts, int nof_learnts, const SearchParams& par
                 cancelUntil(root_level);
                 return l_Undef; }
 
-            if (decisionLevel() == 0)
+            if (decisionLevel() == 0) {
                 // Simplify the set of problem clauses:
-                simplifyDB(), assert(ok);
+                simplifyDB();
+                assert(ok);
+            }
 
             if (nof_learnts >= 0 && learnts.size()-nAssigns() >= nof_learnts)
                 // Reduce the set of learnt clauses:
                 reduceDB();
 
             // New variable decision:
-            stats.decisions++;
+            IF_MINISAT_STATS(stats.decisions++);
             Var next = order.select(params.random_var_freq);
 
             if (next == var_Undef) {
@@ -1028,16 +1038,25 @@ bool Solver::solve(const vec<Lit>& assumps)
     }
 
     while (status == l_Undef){
-        if (verbosity >= 1)
+        if (verbosity >= 1) {
+            #if MINISAT_STATS
             reportf("| %9d | %7d %8d | %7d %7d %8d %7.1f | %6.3f %% |\n", (int)stats.conflicts, nClauses(), (int)stats.clauses_literals, (int)nof_learnts, nLearnts(), (int)stats.learnts_literals, (double)stats.learnts_literals/nLearnts(), progress_estimate*100);
+            #else
+            reportf("| --------- | %7d -------- | %7d %7d -------- ------- | %6.3f %% |\n", nClauses(), (int)nof_learnts, nLearnts(), progress_estimate*100);
+            #endif
+        }
         status = search((int)nof_conflicts, (int)nof_learnts, params);
         nof_conflicts *= 1.5;
         nof_learnts   *= 1.1;
     }
     if (verbosity >= 1) {
-      reportf("------------------------------------------------------------------------------\n");
-      reportf("| %9d | %7d %8d | %7d %7d %8d %7.1f | %6.3f %% |\n", (int)stats.conflicts, nClauses(), (int)stats.clauses_literals, (int)nof_learnts, nLearnts(), (int)stats.learnts_literals, (double)stats.learnts_literals/nLearnts(), progress_estimate*100);
-      reportf("==============================================================================\n");
+        reportf("------------------------------------------------------------------------------\n");
+        #if MINISAT_STATS
+        reportf("| %9d | %7d %8d | %7d %7d %8d %7.1f | %6.3f %% |\n", (int)stats.conflicts, nClauses(), (int)stats.clauses_literals, (int)nof_learnts, nLearnts(), (int)stats.learnts_literals, (double)stats.learnts_literals/nLearnts(), progress_estimate * 100);
+        #else
+        reportf("| --------- | %7d -------- | %7d %7d -------- ------- | %6.3f %% |\n", nClauses(), (int)nof_learnts, nLearnts(), progress_estimate*100);
+        #endif
+        reportf("==============================================================================\n");
     }
 
     cancelUntil(0);

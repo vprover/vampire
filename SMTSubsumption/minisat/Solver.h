@@ -30,7 +30,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 // By default, collect stats only in debug mode
 #ifndef MINISAT_STATS
 // #   define MINISAT_STATS VDEBUG
-#   define MINISAT_STATS 1
+#   define MINISAT_STATS 0
 #endif
 
 #if MINISAT_STATS
@@ -38,12 +38,12 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
   do                           \
   {                            \
     stmt;                      \
-  } while (0)
+  } while (false)
 #else
 #define IF_MINISAT_STATS(stmt) \
   do                           \
   { /* nothing */              \
-  } while (0)
+  } while (false)
 #endif
 
 namespace SMTSubsumption { namespace Minisat {
