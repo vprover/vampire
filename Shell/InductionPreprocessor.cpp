@@ -121,14 +121,17 @@ bool InductionTemplate::findVarOrder(
   vset<unsigned>& candidates,
   VarOrder& res)
 {
-  if (relations.empty() || candidates.empty()) {
+  if (relations.empty()) {
     return true;
+  }
+  if (candidates.empty()) {
+    return false;
   }
   // Split original candidate sets into sets that change together
   // with a bool variable for each to denote whether the set changes in at
   // least one relation (otherwise the set is not a true candidate)
-  vmap<vset<unsigned>, bool> candidateSets;
-  candidateSets.insert(make_pair(candidates, false));
+  vset<vset<unsigned>> candidateSets;
+  candidateSets.insert(candidates);
   for (const auto& r : relations) {
     vset<unsigned> subterm;
     vset<unsigned> fixed;
@@ -139,10 +142,9 @@ bool InductionTemplate::findVarOrder(
         subterm.insert(i);
       }
     }
-    vmap<vset<unsigned>, bool> newCandidateSets;
-    for (const auto& kv : candidateSets) {
+    vset<vset<unsigned>> newCandidateSets;
+    for (const auto& c : candidateSets) {
       vset<unsigned> sti, fi;
-      auto c = kv.first;
       // Take intersections of current simultaneously changing
       // or fixed sets with ones that change together in another
       // relation. The result will be non-empty sets which change
@@ -150,38 +152,35 @@ bool InductionTemplate::findVarOrder(
       set_intersection(c.begin(), c.end(), subterm.begin(), subterm.end(), inserter(sti, sti.end()));
       set_intersection(c.begin(), c.end(), fixed.begin(), fixed.end(), inserter(fi, fi.end()));
       if (!sti.empty()) {
-        newCandidateSets.insert(make_pair(sti, true)); // set changed variable to true
+        newCandidateSets.insert(sti); // set changed variable to true
       }
       if (!fi.empty()) {
-        newCandidateSets.insert(make_pair(fi, kv.second));
+        newCandidateSets.insert(fi);
       }
     }
     candidateSets = newCandidateSets;
   }
-  for (const auto& kv : candidateSets) {
-    // only deal with sets that change in at least relation
-    if (kv.second) {
-      // The remaining relations are the ones where
-      // the selected candidate sets are fixed, otherwise
-      // the order is established by the selected set
-      vvector<vvector<VarType>> remainingRelations;
-      for (const auto r : relations) {
-        // we can check only the first of the set
-        // because they are all fixed in the same relations
-        if (r[*kv.first.begin()] == VarType::FIXED) {
-          remainingRelations.push_back(r);
-        }
+  for (const auto& c : candidateSets) {
+    // The remaining relations are the ones where
+    // the selected candidate sets are fixed, otherwise
+    // the order is established by the selected set
+    vvector<vvector<VarType>> remainingRelations;
+    for (const auto r : relations) {
+      // we can check only the first of the set
+      // because they are all fixed in the same relations
+      if (r[*c.begin()] == VarType::FIXED) {
+        remainingRelations.push_back(r);
       }
-      vset<unsigned> remainingCandidates;
-      set_difference(candidates.begin(), candidates.end(),
-        kv.first.begin(), kv.first.end(),
-        inserter(remainingCandidates, remainingCandidates.end()));
-      VarOrder temp = res;
-      temp.push_back(kv.first);
-      if (findVarOrder(remainingRelations, remainingCandidates, temp)) {
-        res = temp;
-        return true;
-      }
+    }
+    vset<unsigned> remainingCandidates;
+    set_difference(candidates.begin(), candidates.end(),
+      c.begin(), c.end(),
+      inserter(remainingCandidates, remainingCandidates.end()));
+    VarOrder temp = res;
+    temp.push_back(c);
+    if (findVarOrder(remainingRelations, remainingCandidates, temp)) {
+      res = temp;
+      return true;
     }
   }
   return false;
