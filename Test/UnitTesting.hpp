@@ -194,13 +194,25 @@ private:
 #define UT_AUX_ADDER_NAME_(ID,LINE,NAME) UT_AUX_ADDER_NAME__(ID,LINE,NAME)
 #define UT_AUX_ADDER_NAME(NAME) UT_AUX_ADDER_NAME_(UNIT_ID, __LINE__,NAME)
 
+#ifndef CTEST 
+#define CTEST 0
+#endif // CTEST
 
-#define UT_CREATE Test::TestUnit UT_AUX_NAME(UT_AUX_NAME_STR)
+#if CTEST
+#  define UT_CREATE                                                                                           \
+  Test::TestUnit UT_AUX_NAME(UT_AUX_NAME_STR);                                                                \
+  int main() {                                                                                                \
+    bool success = Test::UnitTesting::instance()->runUnit(&UT_AUX_NAME, std::cout);                           \
+    return success ? 0 : -1;                                                                                  \
+  }                                                                                                           
+#else  // CTEST
+#  define UT_CREATE Test::TestUnit UT_AUX_NAME(UT_AUX_NAME_STR)
+#endif // CTEST
 
-#define TEST_FUN(name)  void TEST_FUN_NAME(name)(); \
-			Test::TU_Aux_Test_Adder UT_AUX_ADDER_NAME(TEST_FUN_NAME(name))(UT_AUX_NAME,TEST_FUN_NAME(name),#name); \
-			void TEST_FUN_NAME(name)()
-
+#define TEST_FUN(name)                                                                                        \
+  void TEST_FUN_NAME(name)();                                                                                 \
+  Test::TU_Aux_Test_Adder UT_AUX_ADDER_NAME(TEST_FUN_NAME(name))(UT_AUX_NAME,TEST_FUN_NAME(name),#name);      \
+  void TEST_FUN_NAME(name)()
 
 #define TEST_FUN_NAME(name)  CAT(CAT(UNIT_ID, _), name)
 #define _CAT(a,b) a ## b 

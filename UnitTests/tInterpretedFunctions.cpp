@@ -252,22 +252,10 @@ ALL_NUMBERS_TEST(partial_eval_add_4,
       ((-20 + -(x)) == y)
     )
 
-// not (yet) supported
-// ALL_NUMBERS_TEST(partial_eval_add_5,
-//       (x == (-21 + (7 * (3 + y)))),
-//       (x == (7 * y))
-//     )
-//
-// ALL_NUMBERS_TEST(partial_eval_add_6,
-//       ((7 * x) == (-21 + (7 * (3 + x)))),
-//       true
-//     )
-
 ALL_NUMBERS_TEST(simpl_times_zero_0
     , (a == (0 * y))
     , (a == 0)
     );
-
 
 ALL_NUMBERS_TEST(simpl_times_zero_1
     , (x == (0 * y))

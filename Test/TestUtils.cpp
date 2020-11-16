@@ -29,65 +29,15 @@
 #include "Kernel/Formula.hpp"
 #include "Kernel/Unit.hpp"
 
-// #include "Shell/AIG.hpp"
-
 #include "SAT/SATClause.hpp"
 #include "SAT/SATLiteral.hpp"
 
 #include "TestUtils.hpp"
 
-namespace Test
-{
+namespace Test {
 
 using namespace Kernel;
 using namespace Shell;
-
-// Formula* TestUtils::getUniqueFormula(UnitList* units)
-// {
-//   CALL("TestUtils::getUniqueFormula(UnitList*)");
-//
-//   FormulaList* forms = 0;
-//   UnitList::Iterator uit(units);
-//   while(uit.hasNext()) {
-//     Unit* u = uit.next();
-//     Formula* form = u->getFormula();
-//     FormulaList::push(form, forms);
-//   }
-//   Formula* conj;
-//   if(forms==0) {
-//     conj = new Formula(true);
-//   }
-//   else if(forms->tail()==0) {
-//     conj = forms->head();
-//   }
-//   else {
-//     conj = new JunctionFormula(AND, forms);
-//   }
-//
-//   static AIGFormulaSharer sharer;
-//   return sharer.apply(conj).first;
-// }
-//
-// Formula* TestUtils::getUniqueFormula(Api::AnnotatedFormulaIterator afit)
-// {
-//   CALL("TestUtils::getUniqueFormula(Api::AnnotatedFormulaIterator)");
-//
-//   UnitList* units = 0;
-//   while(afit.hasNext()) {
-//     Api::AnnotatedFormula af = afit.next();
-//     UnitList::push(static_cast<Unit*>(af), units);
-//   }
-//   Formula* res = getUniqueFormula(units);
-//   units->destroy();
-//   return res;
-// }
-//
-// Formula* TestUtils::getUniqueFormula(Api::Problem prb)
-// {
-//   CALL("TestUtils::getUniqueFormula(Api::Problem)");
-//
-//   return TestUtils::getUniqueFormula(prb.formulas());
-// }
 
 SAT::SATClause* TestUtils::buildSATClause(unsigned len,...)
 {
@@ -363,23 +313,6 @@ bool TestUtils::eqModAC_(TermList lhs, TermList rhs, Comparisons comp)
   }
 }
 
-// bool TestUtils::eqModACVar(TermList lhs, TermList rhs, RectMap& map) 
-// {
-//   
-//   struct Comparisons {
-//     RectMap& map;
-//     bool var(unsigned lhs, unsigned rhs) const 
-//     { return map.l.get(lhs) == map.r.get(rhs); }
-//
-//     bool subterm(TermList lhs, TermList rhs) const 
-//     { return eqModACVar(lhs,rhs, map); }
-//   };
-//   Comparisons c {map};
-//
-//   return eqModAC_(lhs, rhs, c);
-// }
-
-
 bool TestUtils::eqModAC(TermList lhs, TermList rhs) 
 {
   struct Comparisons {
@@ -392,31 +325,6 @@ bool TestUtils::eqModAC(TermList lhs, TermList rhs)
   Comparisons c {};
 
   return eqModAC_(lhs, rhs, c);
-
-  // if (lhs.isVar() && rhs.isVar()) {
-  //   return lhs.var() == rhs.var();
-  // } else if (lhs.isTerm() && rhs.isTerm()) {
-  //   auto& l = *lhs.term();
-  //   auto& r = *rhs.term();
-  //   if ( l.functor() != r.functor() ) return false;
-  //   auto fun = l.functor();
-  //   if (isAC(&l)) {
-  //     Stack<TermList> lstack = collect(fun, &l);
-  //     Stack<TermList> rstack = collect(fun, &r);
-  //     return permEq(lstack, rstack, [](TermList l, TermList r) -> bool {
-  //           return eqModAC(l, r);
-  //     });
-  //   } else {
-  //     for (int i = 0; i < l.arity(); i++) {
-  //       if (!eqModAC(*l.nthArgument(i), *r.nthArgument(i))) {
-  //         return false;
-  //       }
-  //     }
-  //     return true;
-  //   }
-  // } else {
-  //   return false;
-  // }
 }
 
-}
+} // namespace Test

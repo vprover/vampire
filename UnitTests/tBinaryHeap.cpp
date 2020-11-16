@@ -29,7 +29,6 @@ using namespace std;
 using namespace Lib;
 
 
-
 TEST_FUN(bheap1)
 {
   BinaryHeap<int, Int> bh;
@@ -40,7 +39,6 @@ TEST_FUN(bheap1)
     int num=rand()%cnt;
     bh.insert(num);
   }
-  
   
   int prev=0;
   while(!bh.isEmpty()) {

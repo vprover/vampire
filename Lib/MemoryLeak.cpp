@@ -127,10 +127,10 @@ void MemoryLeak::release(UnitList* units)
 
   while (us.isNonEmpty()) {
     Unit* u = us.pop();
-    Inference* inf = u->inference();
-    Inference::Iterator ps = inf->iterator();
-    while (inf->hasNext(ps)) {
-      Unit* p = inf->next(ps);
+    Inference inf = u->inference();
+    Inference::Iterator ps = inf.iterator();
+    while (inf.hasNext(ps)) {
+      Unit* p = inf.next(ps);
       if (_released.contains(p)) {
 	continue;
       }

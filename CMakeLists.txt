@@ -798,6 +798,59 @@ else ()
   set(VAMPIRE_BINARY_Z3 _z3)
 endif()
 
+
+################################################################
+# UNIT TESTING 
+################################################################
+
+include(CTest)
+
+set(UNIT_TEST_DEFS 
+    VDEBUG=1 
+    CHECK_LEAKS=0 
+    CTEST=1
+    UNIX_USE_SIGALRM=1
+    GNUMP=0             # <- TODO should this be enabled here?
+    )
+
+# UNIT_BASE_SOURCES ... all the sources all unit test have in common
+set(UNIT_BASE_SOURCES 
+  ${VAMPIRE_SOURCES} 
+  Test/UnitTesting.cpp
+  Test/TestUtils.cpp
+  )
+list(FILTER UNIT_BASE_SOURCES EXCLUDE REGEX vampire.cpp)
+add_library(unit_test_base STATIC ${UNIT_BASE_SOURCES}) # the base library all unit tests depend on. Helps to avoid unnecessary re-compilations
+target_include_directories(unit_test_base PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_compile_definitions(unit_test_base PRIVATE ${UNIT_TEST_DEFS})
+
+file(GLOB UNIT_TESTS "UnitTests/*.cpp")
+foreach(test_file ${UNIT_TESTS})
+
+  get_filename_component(test_name ${test_file} NAME_WE)
+  string(REGEX REPLACE "^t" "" test_name ${test_name})
+
+
+  # compiling the test case executable
+  add_executable(${test_name} ${test_file})
+  target_link_libraries(${test_name} unit_test_base)
+  target_include_directories(${test_name} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+  target_compile_definitions(${test_name} PRIVATE ${UNIT_TEST_DEFS})
+  target_compile_options(${test_name} PRIVATE -Wall)
+  set(test_bin_dir ${CMAKE_BINARY_DIR}/bin/unit-tests)
+  set_target_properties(${test_name} PROPERTIES
+      OUTPUT_NAME ${test_name}
+      RUNTIME_OUTPUT_DIRECTORY ${test_bin_dir})   
+
+  # configuring ctest
+  add_test(${test_name} ${test_bin_dir}/${test_name})
+  set_tests_properties(${test_name}
+        PROPERTIES
+        TIMEOUT 20)
+
+endforeach()
+
+
 #################################################################
 # automated generation of Vampire revision information from git #
 #################################################################

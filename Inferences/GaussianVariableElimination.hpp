@@ -17,6 +17,7 @@ public:
 private:
   SimplifyingGeneratingInference1::Result rewrite(Clause &cl, TermList find, TermList replace,
                   unsigned skipLiteral, bool doOrderingCheck) const;
+
 };
 
 } // namespace Inferences

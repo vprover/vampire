@@ -128,6 +128,7 @@ private:
 };
 
 
+
 /**
  * Class for instances of the Knuth-Bendix orderings
  * @since 30/04/2008 flight Brussels-Tel Aviv
