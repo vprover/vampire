@@ -690,51 +690,6 @@ ConstraintRCList* UIHelper::getInputConstraints(const Options& opts)
   case Options::InputSyntax::TPTP:
     USER_ERROR("Format not supported for BPA");
     break;
-#if 0
-  case Options::InputSyntax::SMTLIB:
-  case Options::InputSyntax::SMTLIB2:
-  {
-    Parse::SMTLIB parser(opts);
-    parser.parse(*input);
-    UnitList* ulist = parser.getFormulas();
-    UnitList::Iterator ite(ulist);
-    while (ite.hasNext())
-    {
-      Unit* u = ite.next();
-      if ( !u->isClause()) {
-	Formula* f = u->getFormula();
-	std::cout << f->toString();
-      }
-
-
-    }
-    ASSERTION_VIOLATION;
-    s_haveConjecture=true;
-    SMTConstraintReader rdr(parser);
-    res = rdr.constraints();
-    break;
-    
-    /*
-    std::cout << "doing the constraint reading" << std::endl;
-    Parse::SMTLIB parser1(*env.options);
-  
-    vstring inputFile = env.options->inputFile();
-    std::cout << inputFile << std::endl;
-    istream* input;
-    if (inputFile=="") {
-      input=&cin;
-    } else {
-      input=new ifstream(inputFile.c_str());
-      if (input->fail()) {
-	USER_ERROR("Cannot open problem file: "+inputFile);
-      }
-    }
-  
-    parser1.parse(*input);
-    std::cout << parser1.getLispFormula()->toString() << std::endl;
-     */
-  }
-#endif
   case Options::InputSyntax::SMTLIB:
   {
     SMTLexer lex(*input);
@@ -764,13 +719,6 @@ ConstraintRCList* UIHelper::getInputConstraints(const Options& opts)
     MpsConstraintReader creader(*m);
     res = creader.constraints();
 
-#if 0
-    ConstraintRCList::Iterator ite(res);
-    while (ite.hasNext())
-	std::cout << ite.next()->toString() << std::endl;
-    throw TimeLimitExceededException();
-    ASSERTION_VIOLATION;
-#endif 
     break;
   }
   case Options::InputSyntax::HUMAN:

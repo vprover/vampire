@@ -169,21 +169,7 @@ void SimpleCongruenceClosure::reset()
 {
   CALL("SimpleCongruenceClosure::reset");
 
-#if 0
-  _cInfos.expand(1);
-  _sigConsts.reset();
-  _pairNames.reset();
-  _termNames.reset();
-  _litNames.reset();
-
-  _negEqualities.reset();
-  _posLitConst = getFreshConst();
-  _negLitConst = getFreshConst();
-  _negEqualities.push(CEq(_posLitConst, _negLitConst, 0));
-
-#else
   //do reset that keeps the data for converting terms to constants
-
   unsigned maxConst = getMaxConst();
   for(unsigned i=1; i<=maxConst; i++) {
     _cInfos[i].resetEquivalences(*this, i);
@@ -204,7 +190,6 @@ void SimpleCongruenceClosure::reset()
   _negEqualities.truncate(1);
   ASS_EQ(_negEqualities.top().c1,_posLitConst);
   ASS_EQ(_negEqualities.top().c2,_negLitConst);
-#endif
 
   //no unsat non-equality
   _unsatEqs.reset();

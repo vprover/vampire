@@ -303,34 +303,6 @@ SATClauseList* MinisatInterfacing::minimizePremiseList(SATClauseList* premises, 
   // solve
   ALWAYS(!solver.solve(ass)); // should be unsat
 
-#if 0 // expensive explicit minimization
-  // reload conflict back to ass
-  ass.clear();
-  Minisat::LSet& conflict = solver.conflict;
-  for (int i = 0; i < conflict.size(); i++) {
-    ass.push(~conflict[i]);
-  }
-
-  Lit dummy = mkLit(offset); // shouldn't appear anywhere else as vampire starts variables from 1
-  // try "dropping" assumptions one by one
-  for (int i = 0; i < ass.size(); i++) {
-    Lit tmp = ass[i];
-    ass[i] = dummy;
-    if (solver.solve(ass)) { // SAT -> put back
-      ass[i] = tmp;
-    }
-  }
-
-  SATClauseList* result = SATClauseList::empty();
-  for (int i = 0; i < ass.size(); i++) {
-    int v = var(ass[i]);
-    SATClause* cl;
-    if (var2prem.find(v,cl)) {
-      SATClauseList::push(cl,result);
-    }
-  }
-#else
-
   SATClauseList* result = SATClauseList::empty();
 
   // extract the used ones
@@ -344,8 +316,6 @@ SATClauseList* MinisatInterfacing::minimizePremiseList(SATClauseList* premises, 
       SATClauseList::push(cl,result);
     } // it could also be one of the "assumps"
   }
-#endif
-
   return result;
 }
 
