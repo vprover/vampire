@@ -96,7 +96,8 @@ protected:
     vec<GClause>        reason;           // 'reason[var]' is the clause that implied the variables current value, or 'NULL' if none.
     vec<int>            level;            // 'level[var]' is the decision level at which assignment was made.
     int                 root_level;       // Level of first proper decision.
-    int                 qhead;            // Head of queue (as index into the trail -- no more explicit propagation queue in MiniSat).
+    int                 tqhead;           // Head of theory propagation queue (as index into the trail). Invariant: tqhead >= qhead
+    int                 qhead;            // Head of propagation queue (as index into the trail).
     int                 simpDB_assigns;   // Number of top-level assignments since last execution of 'simplifyDB()'.  TODO: remove?
     int64               simpDB_props;     // Remaining number of propagations that must be made before next execution of 'simplifyDB()'.  TODO: remove?
 
@@ -125,7 +126,9 @@ protected:
     void        analyze          (Clause* confl, vec<Lit>& out_learnt, int& out_btlevel); // (bt = backtrack)
     bool        analyze_removable(Lit p, uint min_level);                                 // (helper method for 'analyze()')
     void        analyzeFinal     (Clause* confl,  bool skip_first = false);
+    bool        basicEnqueue     (Lit fact, GClause from = GClause_new((Clause*)NULL));
     bool        enqueue          (Lit fact, GClause from = GClause_new((Clause*)NULL));
+    void        theoryPropagate();
     Clause*     propagate        ();
     void        reduceDB         ();   // TODO: remove?
     Lit         pickBranchLit    (const SearchParams& params);
@@ -164,6 +167,7 @@ public:
              , var_decay        (1)
              , order            (assigns, activity)
              , root_level       (0)  // ???
+             , tqhead           (0)
              , qhead            (0)
              , simpDB_assigns   (0)
              , simpDB_props     (0)
@@ -214,7 +218,7 @@ public:
       var_inc = 1;
       var_decay = 1;
       // order = VarOrder(assigns, activity);  TODO
-      root_level = 0;  /// ???? never initialized?
+      root_level = 0;  /// ???? never initialized?  (that's done in 'solve')
       qhead = 0;
       simpDB_assigns = 0;
       simpDB_props = 0;
@@ -269,7 +273,7 @@ public:
     // Mode of operation:
     //
     SearchParams    default_params;     // Restart frequency etc.
-    bool expensive_ccmin;               // Controls conflict clause minimization. TRUE by default.  // TODO: disable
+    bool            expensive_ccmin;    // Controls conflict clause minimization. TRUE by default.  // TODO: disable
     int             verbosity;          // Verbosity level. 0=silent, 1=some progress report, 2=everything
 
     // Problem specification:

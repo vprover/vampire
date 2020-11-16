@@ -24,7 +24,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 using namespace SMTSubsumption::Minisat;
 
-#define TRACE_SOLVER 0
+#define TRACE_SOLVER 1
 #define DEBUG_STREAM_ENABLED TRACE_SOLVER
 #include "SMTSubsumption/cdebug.hpp"
 
@@ -72,11 +72,11 @@ void Solver::newClause(const vec<Lit>& ps_, bool learnt)
     if (!ok) return;
 
 #if TRACE_SOLVER
-    cdebug << "newClause:" << noendl;
+    std::cerr << "newClause:";
     for (Lit l : ps_) {
-      cdebug << " " << l << noendl;
+      std::cerr << " " << l;
     }
-    cdebug;
+    std::cerr << std::endl;
 #endif
 
     vec<Lit> qs;  // TODO: could use class member to reduce allocation overhead
@@ -111,9 +111,14 @@ void Solver::newClause(const vec<Lit>& ps_, bool learnt)
         ok = false;
     }
     else if (ps.size() == 1) {
+        cdebug << "NEW UNIT: " << ps[0];
         // NOTE: If enqueue takes place at root level, the assignment will be lost in incremental use (it doesn't seem to hurt much though).
-        if (!enqueue(ps[0]))
+        if (!enqueue(ps[0])) {
             ok = false;
+            cdebug << "\t=> ROOT CONFLICT";
+        } else {
+            cdebug << "\t=> OK";
+        }
     }
     else if (ps.size() == 2) {
         // Create special binary clause watch:
@@ -320,6 +325,7 @@ void Solver::cancelUntil(int level)
         }
         trail.shrink(trail.size() - trail_lim[level]);
         trail_lim.shrink(trail_lim.size() - level);
+        tqhead = trail.size();
         qhead = trail.size();
         subst_theory.backjump(level);
     }
@@ -544,11 +550,12 @@ void Solver::analyzeFinal(Clause* confl, bool skip_first)
 
 /*_________________________________________________________________________________________________
 |
-|  enqueue : (p : Lit) (from : Clause*)  ->  [bool]
+|  basicEnqueue : (p : Lit) (from : Clause*)  ->  [bool]
 |
 |  Description:
 |    Puts a new fact on the propagation queue as well as immediately updating the variable's value.
 |    Should a conflict arise, FALSE is returned.
+|    Should not be called directly, use 'enqueue' instead.
 |
 |  Input:
 |    p    - The fact to enqueue
@@ -558,11 +565,11 @@ void Solver::analyzeFinal(Clause* confl, bool skip_first)
 |  Output:
 |    TRUE if fact was enqueued without conflict, FALSE otherwise.
 |________________________________________________________________________________________________@*/
-bool Solver::enqueue(Lit p, GClause from)
+bool Solver::basicEnqueue(Lit p, GClause from)
 {
     cdebug << "ENQUEUE: " << p << " (current value: " << value(p) << ")";
     if (value(p) != l_Undef) {
-        return value(p) != l_False;
+        return (value(p) != l_False);
     } else {
         assigns[var(p)] = toInt(lbool(!sign(p)));
         level  [var(p)] = decisionLevel();
@@ -572,6 +579,71 @@ bool Solver::enqueue(Lit p, GClause from)
     }
 }
 
+// enqueue = basicEnqueue + theoryPropagate
+bool Solver::enqueue(Lit p, GClause from)
+{
+    bool no_conflict = basicEnqueue(p, from);
+    if (no_conflict) {
+        theoryPropagate();
+    }
+    return no_conflict;
+}
+
+
+void Solver::theoryPropagate()
+{
+    cdebug << "PROPAGATE THEORY";
+
+    assert(!subst_theory.empty());
+    assert(qhead <= tqhead);
+
+    // Do all outstanding theory propagations
+    while (tqhead < trail.size())
+    {
+        Lit q = trail[tqhead++];  // 'q' is enqueued fact to theory-propagate
+
+        cdebug << "PROPAGATE THEORY for q = " << q;
+
+        if (q.isPositive())
+        {
+            bool enabled =
+                subst_theory.enable(var(q), decisionLevel(), [this, q](Lit propagated_lit, GClause reason) {
+                    cdebug << "tpropagated: " << propagated_lit;
+                    bool no_conflict = basicEnqueue(propagated_lit, reason);
+                    assert(no_conflict);
+                    return true;
+                    /*
+                    if (no_conflict)
+                    {
+                        // success
+                        return true;
+                    }
+                    else
+                    {
+                        if (decisionLevel() == 0)
+                        {
+                            ok = false;
+                        }
+                        assert(reason.isLit());
+                        confl = propagate_tmpbin;
+                        (*confl)[1] = ~q;
+                        (*confl)[0] = reason.lit();
+                        qhead = trail.size();
+                        return false;
+                    }
+                    */
+                });
+            assert(enabled);
+            /*
+            if (!enabled)
+            {
+                assert(confl != nullptr);
+                return confl;
+            }
+            */
+        }
+    }
+}
 
 /*_________________________________________________________________________________________________
 |
@@ -588,11 +660,11 @@ Clause* Solver::propagate()
 {
     cdebug << "PROPAGATE";
 
-    // "theory queue head"... the first literal in the trail that hasn't been theory-propagated yet.
-    // Invariant: qhead <= tqhead
-    // TODO: maybe keep this as member variable like qhead? (but would need to check all places where qhead is used and adjust)
-    //       Downside of keeping it here: some theory propagations may be be repeated.
-    int tqhead = qhead;
+    // // "theory queue head"... the first literal in the trail that hasn't been theory-propagated yet.
+    // // Invariant: qhead <= tqhead
+    // // TODO: maybe keep this as member variable like qhead? (but would need to check all places where qhead is used and adjust)
+    // //       Downside of keeping it here: some theory propagations may be be repeated.
+    // int tqhead = qhead;
 
     // Example where the old theory propagation reached a conflict:
     /*
@@ -601,12 +673,68 @@ Clause* Solver::propagate()
     tff(main_premise_2_failure, hypothesis, ![X6,X7,X8,X9,X10,X11]: (rS(X8,X9,X10) | vangle(X7,X6,X8) != vplus(vangle(X7,X6,X9),vangle(X9,X6,X8)) | ~rpoint(X6) | ~rpoint(X7) | ~rpoint(X8) | ~rpoint(X9) | ~rline(X10) | ~rline(X11) | ~ron(X6,X10) | ~ron(X6,X11) | ~ron(X7,X10) | ~ron(X8,X11) | X6 = X7 | X6 = X8 | ron(X9,X10) | ron(X9,X11) | X10 = X11)).
     % End Inference "FS-2_failure"
     */
+    // (Also reaches a conflict if we handle the full watchlist without theory in between)
 
-    Clause* confl = NULL;
+/*
+    // TODO: might want to extract this into a separate method
+    auto propagate_theory = [this](bool allow_conflict) -> Clause * {
+        ASS(qhead <= tqhead);
+        Clause *confl = nullptr;
+        // Do all outstanding theory propagations
+        while (tqhead < trail.size())
+        {
+            Lit q = trail[tqhead++]; // 'q' is enqueued fact to theory-propagate
+            cdebug << "PROPAGATE THEORY for q = " << q;
+            if (q.isPositive())
+            {
+                bool enabled =
+                    subst_theory.enable(var(q), decisionLevel(), [this, &confl, q, &allow_conflict](Lit propagated_lit, GClause reason) {
+                        cdebug << "propagated: " << propagated_lit;
+                        bool enqueued = enqueue(propagated_lit, reason);
+                        // if (!allow_conflict) {
+                        //     ASS(enqueued); // to check if conflicts still need to be handled
+                        // }
+
+                        if (enqueued)
+                        {
+                            // success
+                            return true;
+                        }
+                        else
+                        {
+                            if (decisionLevel() == 0)
+                            {
+                                ok = false;
+                            }
+                            assert(reason.isLit());
+                            confl = propagate_tmpbin;
+                            (*confl)[1] = ~q;
+                            (*confl)[0] = reason.lit();
+                            qhead = trail.size();
+                            return false;
+                        }
+                    });
+                if (!enabled)
+                {
+                    assert(confl != nullptr);
+                    return confl;
+                }
+            }
+        }
+        return nullptr;
+    };
+    */
+
+    assert(tqhead == trail.size());  // theory is always fully propagated before regular propagation
+
+    Clause *confl = nullptr;
     while (qhead < trail.size()) {
+        assert(confl == nullptr);
+        assert(tqhead == trail.size());  // theory is always fully propagated before regular propagation
         stats.propagations++;
         simpDB_props--;
 
+        /*
         // Do all outstanding theory propagations
         while (tqhead < trail.size())
         {
@@ -646,7 +774,16 @@ Clause* Solver::propagate()
                 }
             }
         }
+        */
 
+        //  // TODO: this first propagation might be enough to do before the loop?
+        // confl = propagate_theory(true);
+        // if (confl)
+        // {
+        //     return confl;
+        // }
+
+        ASS_EQ(tqhead, trail.size());  // all theory stuff is propagated, now we turn to the watch lists
         Lit p = trail[qhead++]; // 'p' is enqueued fact to propagate.
 
         cdebug << "PROPAGATE LOOP: for p = " << p;
@@ -664,21 +801,13 @@ Clause* Solver::propagate()
 
         // TODO: Email Bernhard when this is done!
 
-        // Theory propagation
+        /*
+        // Theory propagation (old)
         if (p.isPositive()) {
           bool enabled =
           subst_theory.enable(var(p), decisionLevel(), [this, &confl, p](Lit propagated_lit, GClause reason) {
             cdebug << "propagated: " << propagated_lit;
             bool enqueued = enqueue(propagated_lit, reason);
-
-            ASS(enqueued);
-            // Example where this assertion fails:
-            /*
-            % Begin Inference "FS-2_failure"
-            tff(side_premise_2_failure, hypothesis, ![X6,X7,X8,X9,X10,X11]: (rS(X7,X9,X11) | vangle(X7,X6,X8) != vplus(vangle(X7,X6,X9),vangle(X9,X6,X8)) | ~rpoint(X6) | ~rpoint(X7) | ~rpoint(X8) | ~rpoint(X9) | ~rline(X10) | ~rline(X11) | ~ron(X6,X10) | ~ron(X6,X11) | ~ron(X7,X10) | ~ron(X8,X11) | X6 = X7 | X6 = X8 | ron(X9,X10) | ron(X9,X11) | X10 = X11)).
-            tff(main_premise_2_failure, hypothesis, ![X6,X7,X8,X9,X10,X11]: (rS(X8,X9,X10) | vangle(X7,X6,X8) != vplus(vangle(X7,X6,X9),vangle(X9,X6,X8)) | ~rpoint(X6) | ~rpoint(X7) | ~rpoint(X8) | ~rpoint(X9) | ~rline(X10) | ~rline(X11) | ~ron(X6,X10) | ~ron(X6,X11) | ~ron(X7,X10) | ~ron(X8,X11) | X6 = X7 | X6 = X8 | ron(X9,X10) | ron(X9,X11) | X10 = X11)).
-            % End Inference "FS-2_failure"
-            */
 
             // NOTE: since we do exhaustive theory propagation, we can never reach a conflict at this point.
             // TODO: Yes, but a conflicting assignment may already be enqueued, before propagate has been called.
@@ -704,6 +833,7 @@ Clause* Solver::propagate()
             return confl;
           }
         }
+        */
 
         // TODO:
         // note additional invariant:
@@ -740,6 +870,12 @@ Clause* Solver::propagate()
                     // so how do we get it back after backjumping if we delete it here from the watchlist?
                     // OH, we do not delete it. we only delete clauses from the watch list.
                     // note that i,j are always incremented in lock-step in this part.
+                    // ---
+                    // confl = propagate_theory(false);
+                    // if (confl)
+                    // {
+                    //     return confl;
+                    // }
                 }
             } else if (i->isClause()) {
                 Clause& c = *i->clause(); i++;
@@ -781,6 +917,14 @@ Clause* Solver::propagate()
                         }
                         assert(i == end);
                     }
+                    else
+                    {
+                        // confl = propagate_theory(false);
+                        // if (confl)
+                        // {
+                        //     return confl;
+                        // }
+                    }
                   FoundWatch:;
                 }
             } else {
@@ -800,6 +944,14 @@ Clause* Solver::propagate()
                     (*confl)[0] = ~c[k];
                     qhead = trail.size();
                     break;
+                  }
+                  else
+                  {
+                    //   confl = propagate_theory(false);
+                    //   if (confl)
+                    //   {
+                    //       return confl;
+                    //   }
                   }
                 }
               }
@@ -1034,8 +1186,9 @@ void Solver::claRescaleActivity()
 |________________________________________________________________________________________________@*/
 bool Solver::solve(const vec<Lit>& assumps)
 {
-    simplifyDB();
     if (!ok) return false;
+
+    simplifyDB();
 
     SearchParams    params(default_params);
     double  nof_conflicts = 100;

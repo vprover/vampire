@@ -1,4 +1,4 @@
-#define DEBUG_STREAM_ENABLED 0
+#define DEBUG_STREAM_ENABLED 1
 /*
  * SubstitutionTheory.hpp
  * Copyright (C) 2020 Jakob Rath <git@jakobrath.eu>
@@ -251,6 +251,11 @@ class SubstitutionTheory
           current_substitution_level[i] = std::numeric_limits<Level>::max();
         }
       }
+    }
+
+    bool empty() const
+    {
+      return atoms.empty();
     }
 };
 

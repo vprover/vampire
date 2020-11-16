@@ -26,7 +26,7 @@ class ProofOfConcept {
     bool checkSubsumption(Kernel::Clause* side_premise, Kernel::Clause* main_premise, bool debug_messages = false);
 
     void benchmark_micro(vvector<SubsumptionInstance> instances);
-    void benchmark_micro1(SubsumptionInstance instance);
+    // void benchmark_micro1(SubsumptionInstance instance);
 };
 
 

@@ -241,13 +241,22 @@ void vec<T>::growTo(int size) {
     for (int i = sz; i < size; i++) new (&data[i]) T();
     sz = size; }
 
-template<class T>
-void vec<T>::clear(bool dealloc) {
-    if (data != NULL){
-        for (int i = 0; i < sz; i++) data[i].~T();
+template <class T>
+void vec<T>::clear(bool dealloc)
+{
+    if (data != NULL)
+    {
+        for (int i = 0; i < sz; i++) {
+            data[i].~T();
+        }
         sz = 0;
-        if (dealloc) xfree(data), data = NULL, cap = 0; } }
-
+        if (dealloc) {
+            xfree(data);
+            data = NULL;
+            cap = 0;
+        }
+    }
+}
 
 //=================================================================================================
 // Lifted booleans:

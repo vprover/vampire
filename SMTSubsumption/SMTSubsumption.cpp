@@ -1,4 +1,4 @@
-#define DEBUG_STREAM_ENABLED 0
+#define DEBUG_STREAM_ENABLED 1
 
 #include "SMTSubsumption.hpp"
 #include "SubstitutionTheory.hpp"
@@ -440,6 +440,11 @@ uint64_t rdtscp()
 }
 
 
+
+#define ENABLE_BENCHMARK 0
+
+
+#if ENABLE_BENCHMARK
 // Google benchmark library
 // https://github.com/google/benchmark
 #include <benchmark/benchmark.h>
@@ -484,15 +489,20 @@ void bench_orig_reuse(benchmark::State& state, SubsumptionInstance instance)
     }
   }
 }
+#endif
 
 
 void ProofOfConcept::benchmark_micro(vvector<SubsumptionInstance> instances)
 {
   CALL("ProofOfConcept::benchmark_micro");
+  BYPASSING_ALLOCATOR;  // google-benchmark needs its own memory
+
   std::cerr << "\% SMTSubsumption: micro-benchmarking " << instances.size() << " instances" << std::endl;
 #if VDEBUG
   std::cerr << "\n\n\nWARNING: compiled in debug mode!\n\n\n" << std::endl;
 #endif
+
+#if ENABLE_BENCHMARK
 
   // while (true) {
   //   uint64_t t1 = rdtscp();
@@ -510,10 +520,9 @@ void ProofOfConcept::benchmark_micro(vvector<SubsumptionInstance> instances)
   std::cerr << "sizeof args = " << args.size() << std::endl;
   int argc = args.size();
 
-  BYPASSING_ALLOCATOR;  // google-benchmark needs its own memory
-
-  // for (auto instance : instances) {
-  for (int i = 0; i < 5; ++i) {
+  // for (auto instance : instances)
+  for (int i = 0; i < 5; ++i)
+  {
     auto instance = instances[i];
     std::string name;
     std::string suffix =
@@ -532,10 +541,10 @@ void ProofOfConcept::benchmark_micro(vvector<SubsumptionInstance> instances)
 
   benchmark::Initialize(&argc, args.data());
   benchmark::RunSpecifiedBenchmarks();
-
-  return;
+#endif
 }
 
+/*
 void ProofOfConcept::benchmark_micro1(SubsumptionInstance instance)
 {
   CALL("ProofOfConcept::benchmark_micro1");
@@ -583,6 +592,7 @@ void ProofOfConcept::benchmark_micro1(SubsumptionInstance instance)
     std::cout << "ERROR: wrong result!" << std::endl;
   }
 }
+*/
 
 
 bool ProofOfConcept::checkSubsumption(Kernel::Clause* side_premise, Kernel::Clause* main_premise, bool debug_messages)
