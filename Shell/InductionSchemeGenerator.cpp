@@ -95,36 +95,6 @@ vvector<TermList> getInductionTerms(TermList t)
   return v;
 }
 
-// bool matchesCase(TermList c, TermList t) {
-//   CALL("matchesCase");
-
-//   if (c.isVar()) {
-//     return true;
-//   }
-//   if (canInductOn(t)) {
-//     return false;
-//   }
-
-//   auto t1 = c.term();
-//   auto t2 = t.term();
-//   if (t1->isBoolean() != t2->isBoolean()
-//     || t1->functor() != t2->functor()
-//     || t1->arity() != t2->arity())
-//   {
-//     return false;
-//   }
-//   Term::Iterator it1(t1);
-//   Term::Iterator it2(t2);
-//   while (it1.hasNext()) {
-//     auto arg1 = it1.next();
-//     auto arg2 = it2.next();
-//     if (!matchesCase(arg1, arg2)) {
-//       return false;
-//     }
-//   }
-//   return true;
-// }
-
 TermList TermOccurrenceReplacement::transformSubterm(TermList trm)
 {
   CALL("TermOccurrenceReplacement::transformSubterm");
@@ -238,6 +208,7 @@ void InductionScheme::init(Term* t, const InductionTemplate& templ)
   CALL("InductionScheme::init");
 
   unsigned var = 0;
+  const bool strengthen = env.options->inductionStrengthen();
   for (auto& rdesc : templ._rDescriptions) {
     // for each RDescription, use a new substitution and variable
     // replacement as these cases should be independent
@@ -252,9 +223,6 @@ void InductionScheme::init(Term* t, const InductionTemplate& templ)
         auto argTerm = *t->nthArgument(v);
         auto argStep = *rdesc._step.term()->nthArgument(v);
         auto its = getInductionTerms(argTerm);
-        // if (!matchesCase(argStep, argTerm)) {
-        //   match = false;
-        // }
         for (auto& indTerm : its) {
           // This argument might have already been mapped
           if (stepSubst.count(indTerm)) {
@@ -283,10 +251,6 @@ void InductionScheme::init(Term* t, const InductionTemplate& templ)
         }
       }
     }
-    // if (match) {
-    //   // The literal can be simplified, so we don't induct on it yet
-    //   return false;
-    // }
     if (mismatch) {
       // We cannot properly create this case because
       // there is a mismatch between the ctors for
@@ -320,9 +284,10 @@ void InductionScheme::init(Term* t, const InductionTemplate& templ)
           auto argRecCall = *r.term()->nthArgument(v);
           auto its = getInductionTerms(argTerm);
           for (auto& indTerm : its) {
-            // if this set of variables is irrelevant for
+            // if strengthen option is on and this
+            // set of variables is irrelevant for
             // the order, we add new variables
-            if (changed) {
+            if (changed && strengthen) {
               recCallSubst.insert(make_pair(
                 indTerm, TermList(var++, false)));
               continue;
@@ -374,7 +339,6 @@ void InductionScheme::init(Term* t, const InductionTemplate& templ)
   }
   _rDescriptionInstances.shrink_to_fit();
   _maxVar = var;
-  // return true;
 }
 
 void InductionScheme::init(vvector<RDescriptionInst>&& rdescs)

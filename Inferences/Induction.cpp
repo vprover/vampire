@@ -821,6 +821,7 @@ void InductionClauseIterator::instantiateScheme(DHMap<Literal*, Clause*>* litClM
 
   FormulaList* formulas = FormulaList::empty();
   unsigned var = scheme._maxVar;
+  const bool strengthen = env.options->inductionStrengthen();
 
   for (auto& desc : scheme._rDescriptionInstances) {
     // We replace all induction terms with the corresponding step case terms
@@ -834,7 +835,6 @@ void InductionClauseIterator::instantiateScheme(DHMap<Literal*, Clause*>* litClM
     auto right = JunctionFormula::generalJunction(Connective::OR, stepFormulas);
 
     FormulaList* hyp = FormulaList::empty();
-    const bool strengthen = env.options->inductionStrengthen();
 
     // Then we replace the arguments of the term with the
     // corresponding recursive cases for this step case (if not base case)
