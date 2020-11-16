@@ -588,12 +588,66 @@ Clause* Solver::propagate()
 {
     cdebug << "PROPAGATE";
 
+    // "theory queue head"... the first literal in the trail that hasn't been theory-propagated yet.
+    // Invariant: qhead <= tqhead
+    // TODO: maybe keep this as member variable like qhead? (but would need to check all places where qhead is used and adjust)
+    //       Downside of keeping it here: some theory propagations may be be repeated.
+    int tqhead = qhead;
+
+    // Example where the old theory propagation reached a conflict:
+    /*
+    % Begin Inference "FS-2_failure"
+    tff(side_premise_2_failure, hypothesis, ![X6,X7,X8,X9,X10,X11]: (rS(X7,X9,X11) | vangle(X7,X6,X8) != vplus(vangle(X7,X6,X9),vangle(X9,X6,X8)) | ~rpoint(X6) | ~rpoint(X7) | ~rpoint(X8) | ~rpoint(X9) | ~rline(X10) | ~rline(X11) | ~ron(X6,X10) | ~ron(X6,X11) | ~ron(X7,X10) | ~ron(X8,X11) | X6 = X7 | X6 = X8 | ron(X9,X10) | ron(X9,X11) | X10 = X11)).
+    tff(main_premise_2_failure, hypothesis, ![X6,X7,X8,X9,X10,X11]: (rS(X8,X9,X10) | vangle(X7,X6,X8) != vplus(vangle(X7,X6,X9),vangle(X9,X6,X8)) | ~rpoint(X6) | ~rpoint(X7) | ~rpoint(X8) | ~rpoint(X9) | ~rline(X10) | ~rline(X11) | ~ron(X6,X10) | ~ron(X6,X11) | ~ron(X7,X10) | ~ron(X8,X11) | X6 = X7 | X6 = X8 | ron(X9,X10) | ron(X9,X11) | X10 = X11)).
+    % End Inference "FS-2_failure"
+    */
+
     Clause* confl = NULL;
     while (qhead < trail.size()) {
         stats.propagations++;
         simpDB_props--;
 
-        Lit p = trail[qhead++];     // 'p' is enqueued fact to propagate.
+        // Do all outstanding theory propagations
+        while (tqhead < trail.size())
+        {
+            Lit q = trail[tqhead++]; // 'q' is enqueued fact to theory-propagate
+            if (q.isPositive())
+            {
+                bool enabled =
+                    subst_theory.enable(var(q), decisionLevel(), [this, &confl, q](Lit propagated_lit, GClause reason) {
+                        cdebug << "propagated: " << propagated_lit;
+                        bool enqueued = enqueue(propagated_lit, reason);
+                        ASS(enqueued); // to check if conflicts still need to be handled
+
+                        if (enqueued)
+                        {
+                            // success
+                            return true;
+                        }
+                        else
+                        {
+                            if (decisionLevel() == 0)
+                            {
+                                ok = false;
+                            }
+                            assert(reason.isLit());
+                            confl = propagate_tmpbin;
+                            (*confl)[1] = ~q;
+                            (*confl)[0] = reason.lit();
+                            qhead = trail.size();
+                            return false;
+                        }
+                        assert(enqueued);
+                    });
+                if (!enabled)
+                {
+                    assert(confl != nullptr);
+                    return confl;
+                }
+            }
+        }
+
+        Lit p = trail[qhead++]; // 'p' is enqueued fact to propagate.
 
         cdebug << "PROPAGATE LOOP: for p = " << p;
 
@@ -601,7 +655,14 @@ Clause* Solver::propagate()
         // TODO: in each iteration, we only apply one rule:
         // priority on theory propagation
         // (two separate qheads)
-        // Email Bernhard when this is done!
+        // Problem:
+        // - we don't want iterate through the watchlists multiple times
+        // - but if we handle the watch completely, we may get multiple enqueues, and these may already contain a theory conflict
+        //   (unless our specific problem structure somehow prevents this -- but I don't see how it would; and relying on that seems fragile anyways)
+        // - so we cannot simply choose in each iteration what we do,
+        //   we need to theory-propagate after *each* call to enqueue
+
+        // TODO: Email Bernhard when this is done!
 
         // Theory propagation
         if (p.isPositive()) {
@@ -609,6 +670,15 @@ Clause* Solver::propagate()
           subst_theory.enable(var(p), decisionLevel(), [this, &confl, p](Lit propagated_lit, GClause reason) {
             cdebug << "propagated: " << propagated_lit;
             bool enqueued = enqueue(propagated_lit, reason);
+
+            ASS(enqueued);
+            // Example where this assertion fails:
+            /*
+            % Begin Inference "FS-2_failure"
+            tff(side_premise_2_failure, hypothesis, ![X6,X7,X8,X9,X10,X11]: (rS(X7,X9,X11) | vangle(X7,X6,X8) != vplus(vangle(X7,X6,X9),vangle(X9,X6,X8)) | ~rpoint(X6) | ~rpoint(X7) | ~rpoint(X8) | ~rpoint(X9) | ~rline(X10) | ~rline(X11) | ~ron(X6,X10) | ~ron(X6,X11) | ~ron(X7,X10) | ~ron(X8,X11) | X6 = X7 | X6 = X8 | ron(X9,X10) | ron(X9,X11) | X10 = X11)).
+            tff(main_premise_2_failure, hypothesis, ![X6,X7,X8,X9,X10,X11]: (rS(X8,X9,X10) | vangle(X7,X6,X8) != vplus(vangle(X7,X6,X9),vangle(X9,X6,X8)) | ~rpoint(X6) | ~rpoint(X7) | ~rpoint(X8) | ~rpoint(X9) | ~rline(X10) | ~rline(X11) | ~ron(X6,X10) | ~ron(X6,X11) | ~ron(X7,X10) | ~ron(X8,X11) | X6 = X7 | X6 = X8 | ron(X9,X10) | ron(X9,X11) | X10 = X11)).
+            % End Inference "FS-2_failure"
+            */
 
             // NOTE: since we do exhaustive theory propagation, we can never reach a conflict at this point.
             // TODO: Yes, but a conflicting assignment may already be enqueued, before propagate has been called.
@@ -765,7 +835,10 @@ Clause* Solver::propagate()
 |    Remove half of the learnt clauses, minus the clauses locked by the current assignment. Locked
 |    clauses are clauses that are reason to some assignment. Binary clauses are never removed.
 |________________________________________________________________________________________________@*/
-struct reduceDB_lt { bool operator () (Clause* x, Clause* y) { return x->size() > 2 && (y->size() == 2 || x->activity() < y->activity()); } };
+struct reduceDB_lt
+{
+    bool operator()(Clause *x, Clause *y) { return x->size() > 2 && (y->size() == 2 || x->activity() < y->activity()); }
+};
 void Solver::reduceDB()
 {
     int     i, j;
