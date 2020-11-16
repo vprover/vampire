@@ -89,7 +89,7 @@ square's last digit:
 */
 
 
-#include <string.h>
+#include <cstring>
 #include <ostream>
 
 #include "Lib/Array.hpp"

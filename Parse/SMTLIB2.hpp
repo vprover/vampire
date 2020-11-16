@@ -439,6 +439,14 @@ private:
   /**
    * Unofficial command
    *
+   * Behaves like assert, but marks body clause as external theory axiom.
+   * Assumes that body is already fully simplified (as this is usual the case for theory axioms).
+   */
+  void readAssertTheory(LExpr* body);
+
+  /**
+   * Unofficial command
+   *
    * Behaves like conjecture declaration in TPTP
    */
   void colorSymbol(const vstring& name, Color color);

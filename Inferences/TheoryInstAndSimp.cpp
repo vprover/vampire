@@ -336,8 +336,10 @@ void TheoryInstAndSimp::selectTheoryLiterals(Clause* cl, Stack<Literal*>& theory
   cout << "selectTheoryLiterals in " << cl->toString() << endl;
 #endif
 
-  static Shell::Options::TheoryInstSimp selection = env.options->theoryInstAndSimp();
-  ASS(selection!=Shell::Options::TheoryInstSimp::OFF);
+  ASS_NEQ(
+    env.options->theoryInstAndSimp(),
+    Shell::Options::TheoryInstSimp::OFF
+  );
 
   //  Stack<Literal*> pure_lits;
   Stack<Literal*> trivial_lits;
@@ -731,10 +733,10 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
 
 struct InstanceFn
 {
-  InstanceFn(Clause* premise,Clause* cl, Stack<Literal*>& tl,Splitter* splitter,
-             SaturationAlgorithm* salg, TheoryInstAndSimp* parent,bool& red) :
-         _premise(premise),  _cl(cl), _theoryLits(tl), _splitter(splitter),
-         _salg(salg), _parent(parent), _red(red) {}
+  InstanceFn(Clause* cl, Stack<Literal*>& tl,Splitter* splitter,
+             TheoryInstAndSimp* parent,bool& red) :
+          _cl(cl), _theoryLits(tl), _splitter(splitter),
+         _parent(parent), _red(red) {}
 
   Clause* operator()(Solution sol)
   {
@@ -825,11 +827,9 @@ partial_check_end:
   }
 
 private:
-  Clause* _premise;
   Clause* _cl;
   Stack<Literal*>& _theoryLits;
   Splitter* _splitter;
-  SaturationAlgorithm* _salg;
   TheoryInstAndSimp* _parent;
   bool& _red;
 };
@@ -914,7 +914,7 @@ SimplifyingGeneratingInference::ClauseGenerationResult TheoryInstAndSimp::genera
     auto it1 = getSolutions(selectedLiterals);
 
     auto it2 = getMappingIterator(it1,
-               InstanceFn(premise,flattened,selectedLiterals,_splitter,_salg,this,premiseRedundant));
+               InstanceFn(flattened,selectedLiterals,_splitter,this,premiseRedundant));
 
     // filter out only non-zero results
     auto it3 = getFilteredIterator(it2, NonzeroFn());

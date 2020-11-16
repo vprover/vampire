@@ -1250,7 +1250,7 @@ void Options::init()
 	    // If urr is off then binary resolution should be on
 	    _binaryResolution.addConstraint(
 	      If(equal(false)).then(_unitResultingResolution.is(notEqual(URResolution::OFF))));
-	    _binaryResolution.setRandomChoices(And(isRandSat(),saNotInstGen(),Or(hasEquality(),isBfnt(),hasCat(Property::HNE))),{"on"});
+	    _binaryResolution.setRandomChoices(And(isRandSat(),saNotInstGen(),Or(hasEquality(),hasCat(Property::HNE))),{"on"});
 	    _binaryResolution.setRandomChoices({"on","off"});
 
 
@@ -1434,7 +1434,7 @@ void Options::init()
     _unitResultingResolution.addProblemConstraint(hasPredicates());
     // If br has already been set off then this will be forced on, if br has not yet been set
     // then setting this to off will force br on
-    _unitResultingResolution.setRandomChoices(And(isRandSat(),saNotInstGen(),Or(hasEquality(),isBfnt(),hasCat(Property::HNE))),{"on","off"});
+    _unitResultingResolution.setRandomChoices(And(isRandSat(),saNotInstGen(),Or(hasEquality(),hasCat(Property::HNE))),{"on","off"});
     _unitResultingResolution.setRandomChoices(isRandSat(),{});
     _unitResultingResolution.setRandomChoices({"on","on","off"});
 
@@ -1831,16 +1831,6 @@ void Options::init()
     //*********************** which mode or tag?  ************************
     //*************************************************************
     
-    _bfnt = BoolOptionValue("bfnt","bfnt",false);
-    _bfnt.description="";
-    _lookup.insert(&_bfnt);
-    _bfnt.tag(OptionTag::SATURATION);
-    // This is checked in checkGlobal
-    //_bfnt.addConstraint(new OnAnd(new RequiresCompleteForNonHorn<bool>()));
-    _bfnt.addProblemConstraint(notWithCat(Property::EPR));
-    _bfnt.setRandomChoices({},{"on","off","off","off","off","off"});
-    _bfnt.setExperimental();
-    
     _increasedNumeralWeight = BoolOptionValue("increased_numeral_weight","inw",false);
     _increasedNumeralWeight.description=
              "This option only applies if the problem has interpreted numbers. The weight of integer constants depends on the logarithm of their absolute value (instead of being 1)";
@@ -2178,8 +2168,7 @@ void Options::copyValuesFrom(const Options& that)
     if(opt->shouldCopy()){
       AbstractOptionValue* other = that.getOptionValueByName(opt->longName);
       ASS(opt!=other);
-      bool status = opt -> set(other->getStringOfActual());
-      ASS(status);
+      ALWAYS(opt->set(other->getStringOfActual()));
     }
   }
 }
@@ -2289,10 +2278,6 @@ Options::OptionProblemConstraintUP Options::isRandSat(){
 Options::OptionProblemConstraintUP Options::saNotInstGen(){
       return OptionProblemConstraintUP(new OptionHasValue("sa","inst_gen"));
 }
-Options::OptionProblemConstraintUP Options::isBfnt(){
-      return OptionProblemConstraintUP(new OptionHasValue("bfnt","on"));
-}
-
 /**
  * Return the include file name using its relative name.
  *
@@ -2861,7 +2846,6 @@ void Options::randomizeStrategy(Property* prop)
   // Note this is a stack!
   Stack<AbstractOptionValue*> do_first;
   do_first.push(&_saturationAlgorithm);
-  do_first.push(&_bfnt);
 
   auto options = getConcatenatedIterator(Stack<AbstractOptionValue*>::Iterator(do_first),_lookup.values());
 
@@ -2902,16 +2886,7 @@ void Options::randomizeStrategy(Property* prop)
   _badOption.actualValue = saved_bad_option;
   Random::setSeed(saved_seed);
 
-  //When we reach this place all constraints should be holding
-  //However, there is one we haven't checked yet: bfnt completeness
-  //If this fails we restart this with bfnt set to off... only if it was on before
-  if(!checkGlobalOptionConstraints() && _bfnt.actualValue){
-    _bfnt.set("off");
-    randomizeStrategy(prop);
-  }
-  else{
-    if(prop) cout << "Random strategy: " + generateEncodedOptions() << endl;
-  }
+  if(prop) cout << "Random strategy: " + generateEncodedOptions() << endl;
 }
 
 /**
@@ -3270,12 +3245,6 @@ bool Options::checkGlobalOptionConstraints(bool fail_early)
   //Check forbidden options
   readOptionsString(_forbiddenOptions.actualValue,false);
     
-  //if we're not in mid-randomisation then check bfnt completeness
-  //this assumes that fail_early is only on when being called from randomizeStrategy
-  if(!fail_early && env.options->bfnt() && !completeForNNE()){
-    return false;
-  }
-
   bool result = true;
 
   // Check recorded option constraints

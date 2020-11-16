@@ -38,7 +38,6 @@
 
 #include "SAT/Z3MainLoop.hpp"
 
-#include "Shell/BFNTMainLoop.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/UIHelper.hpp"
 
@@ -110,10 +109,6 @@ bool MainLoop::isRefutation(Clause* cl)
 MainLoop* MainLoop::createFromOptions(Problem& prb, const Options& opt)
 {
   CALL("MainLoop::createFromOptions");
-
-  if(opt.bfnt()) {
-    return new BFNTMainLoop(prb, opt);
-  }
 
 #if VZ3
   bool isComplete = false; // artificially prevent smtForGround from running

@@ -183,7 +183,7 @@ private:
     void init();
     void resetEquivalences(SimpleCongruenceClosure& parent, unsigned selfIndex);
 
-#ifdef VDEBUG
+#if VDEBUG
     void assertValid(SimpleCongruenceClosure& parent, unsigned selfIndex) const;
 #endif
 
@@ -254,7 +254,7 @@ private:
   typedef DHMap<unsigned,TermList> NFMap;
   void computeConstsNormalForm(unsigned c, NFMap& normalForms);
   
-#ifdef VDEBUG
+#if VDEBUG
   void assertModelInfoClean() const;
 #endif  
   

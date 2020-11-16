@@ -498,7 +498,6 @@ set(VAMPIRE_SATURATION_SOURCES
     Saturation/Discount.cpp
     Saturation/ExtensionalityClauseContainer.cpp
     Saturation/LabelFinder.cpp
-    Saturation/Limits.cpp
     Saturation/LRS.cpp
     Saturation/Otter.cpp
     Saturation/ProvingHelper.cpp
@@ -512,7 +511,6 @@ set(VAMPIRE_SATURATION_SOURCES
     Saturation/Discount.hpp
     Saturation/ExtensionalityClauseContainer.hpp
     Saturation/LabelFinder.hpp
-    Saturation/Limits.hpp
     Saturation/LRS.hpp
     Saturation/Otter.hpp
     Saturation/ProvingHelper.hpp
@@ -526,8 +524,6 @@ source_group(saturation_source_files FILES ${VAMPIRE_SATURATION_SOURCES})
 set(VAMPIRE_SHELL_SOURCES
     Shell/AnswerExtractor.cpp
     #Shell/AxiomGenerator.cpp
-    Shell/BFNT.cpp
-    Shell/BFNTMainLoop.cpp
     Shell/CommandLine.cpp
     Shell/CNF.cpp
     Shell/NewCNF.cpp
@@ -565,7 +561,6 @@ set(VAMPIRE_SHELL_SOURCES
     #Shell/Refutation.cpp
     Shell/Skolem.cpp
     Shell/SimplifyFalseTrue.cpp
-    Shell/SimplifyProver.cpp
     Shell/SineUtils.cpp
     Shell/SMTFormula.cpp
     #Shell/SMTPrinter.cpp
@@ -597,8 +592,6 @@ set(VAMPIRE_SHELL_SOURCES
     #Shell/SubsumptionRemover.cpp
     Shell/AnswerExtractor.hpp
     #Shell/AxiomGenerator.hpp
-    Shell/BFNT.hpp
-    Shell/BFNTMainLoop.hpp
     Shell/CommandLine.hpp
     Shell/CNF.hpp
     Shell/NewCNF.hpp
@@ -635,7 +628,6 @@ set(VAMPIRE_SHELL_SOURCES
     #Shell/Refutation.hpp
     Shell/Skolem.hpp
     Shell/SimplifyFalseTrue.hpp
-    Shell/SimplifyProver.hpp
     Shell/SineUtils.hpp
     Shell/SMTFormula.hpp
     Shell/SMTLIBLogic.hpp
@@ -778,7 +770,7 @@ endif()
 
 # configure warning flags
 if(CMAKE_CXX_COMPILER_ID STREQUAL GNU OR CMAKE_CXX_COMPILER_ID MATCHES Clang$)
-#  target_compile_options(vampire PRIVATE -Wall)
+  target_compile_options(vampire PRIVATE -Wall)
 endif()
 
 ################################################################
