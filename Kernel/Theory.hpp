@@ -62,6 +62,7 @@ public:
 class IntegerConstantType
 {
 public:
+  CLASS_NAME(IntegerConstantType)
   static unsigned getSort() { return Sorts::SRT_INTEGER; }
 
   typedef int InnerType;
@@ -139,6 +140,7 @@ std::ostream& operator<< (ostream& out, const IntegerConstantType& val) {
  */
 struct RationalConstantType {
   typedef IntegerConstantType InnerType;
+  CLASS_NAME(RationalConstantType)
 
   static unsigned getSort() { return Sorts::SRT_RATIONAL; }
 
@@ -211,6 +213,7 @@ std::ostream& operator<< (ostream& out, const RationalConstantType& val) {
 class RealConstantType : public RationalConstantType
 {
 public:
+  CLASS_NAME(RealConstantType)
   static unsigned getSort() { return Sorts::SRT_REAL; }
 
   RealConstantType() {}

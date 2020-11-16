@@ -73,12 +73,11 @@ struct Generalize
   {
     CALL("NumeralMultiplicationGeneralizationImpl::Generalize::operator()")
     using Monom = Monom<NumTraits>;
-    auto numeral = num.downcast<NumTraits>().unwrap();
     auto newFactors = perfect(monom.factors->replaceTerms(evaluatedArgs));
     for (auto f : monom.factors->iter()) {
       if (f.tryVar() == Option<Variable>(var)) {
-        ASS_EQ(numeral, monom.numeral)
-        return Monom(decltype(numeral)(1), newFactors);
+        ASS_EQ(num.downcast<NumTraits>().unwrap(), monom.numeral)
+        return Monom(Numeral<NumTraits>(1), newFactors);
       }
     }
     return Monom(monom.numeral, newFactors);
@@ -119,7 +118,7 @@ SimplifyingGeneratingInference1::Result applyRule(Clause* cl, bool doOrderingChe
     return SimplifyingGeneratingInference1::Result::nop(cl);
   } else {
     auto& e = selected.unwrap();
-    DEBUG("selected generalization: ", e.key(), " ", e.value());
+    DEBUG("selected generalization: (", e.key(), ", ", e.value(), ")");
     Generalize gen { e.key(), e.value().unwrap(), doOrderingCheck };
     return generalizeBottomUp(cl, EvaluateMonom<Generalize> {gen});
   }
