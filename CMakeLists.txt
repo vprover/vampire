@@ -791,8 +791,8 @@ set(UNIT_TEST_DEFS
     VDEBUG=1 
     CHECK_LEAKS=0 
     CTEST=1
-    UNIX_USE_SIGALRM=1  # <- TODO what does this do?
-    GNUMP=0             # <- TODO what does this do?
+    UNIX_USE_SIGALRM=1
+    GNUMP=0             # <- TODO should this be enabled here?
     )
 
 # UNIT_BASE_SOURCES ... all the sources all unit test have in common
