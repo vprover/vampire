@@ -584,6 +584,13 @@ bool Solver::enqueue(Lit p, GClause from)
 {
     bool no_conflict = basicEnqueue(p, from);
     if (no_conflict) {
+        // NOTE on why we do theory propagation as part of enqueue and not in the propagate() loop:
+        // - we don't want to iterate through watchlists multiple times
+        // - but if we handle the watch completely, we may get multiple enqueues, and these may already contain a theory conflict
+        //   (unless our specific problem structure somehow prevents this -- but I don't see how it would; and relying on that seems fragile anyways)
+        // - so we cannot simply choose in each iteration what we do,
+        //   we need to theory-propagate after *each* call to enqueue
+        // - Also note that we may already get a conflict on decision level 0 if we add two theory-conflicting unit clauses.
         theoryPropagate();
     }
     return no_conflict;
@@ -612,35 +619,8 @@ void Solver::theoryPropagate()
                     bool no_conflict = basicEnqueue(propagated_lit, reason);
                     assert(no_conflict);
                     return true;
-                    /*
-                    if (no_conflict)
-                    {
-                        // success
-                        return true;
-                    }
-                    else
-                    {
-                        if (decisionLevel() == 0)
-                        {
-                            ok = false;
-                        }
-                        assert(reason.isLit());
-                        confl = propagate_tmpbin;
-                        (*confl)[1] = ~q;
-                        (*confl)[0] = reason.lit();
-                        qhead = trail.size();
-                        return false;
-                    }
-                    */
                 });
             assert(enabled);
-            /*
-            if (!enabled)
-            {
-                assert(confl != nullptr);
-                return confl;
-            }
-            */
         }
     }
 }
@@ -660,71 +640,6 @@ Clause* Solver::propagate()
 {
     cdebug << "PROPAGATE";
 
-    // // "theory queue head"... the first literal in the trail that hasn't been theory-propagated yet.
-    // // Invariant: qhead <= tqhead
-    // // TODO: maybe keep this as member variable like qhead? (but would need to check all places where qhead is used and adjust)
-    // //       Downside of keeping it here: some theory propagations may be be repeated.
-    // int tqhead = qhead;
-
-    // Example where the old theory propagation reached a conflict:
-    /*
-    % Begin Inference "FS-2_failure"
-    tff(side_premise_2_failure, hypothesis, ![X6,X7,X8,X9,X10,X11]: (rS(X7,X9,X11) | vangle(X7,X6,X8) != vplus(vangle(X7,X6,X9),vangle(X9,X6,X8)) | ~rpoint(X6) | ~rpoint(X7) | ~rpoint(X8) | ~rpoint(X9) | ~rline(X10) | ~rline(X11) | ~ron(X6,X10) | ~ron(X6,X11) | ~ron(X7,X10) | ~ron(X8,X11) | X6 = X7 | X6 = X8 | ron(X9,X10) | ron(X9,X11) | X10 = X11)).
-    tff(main_premise_2_failure, hypothesis, ![X6,X7,X8,X9,X10,X11]: (rS(X8,X9,X10) | vangle(X7,X6,X8) != vplus(vangle(X7,X6,X9),vangle(X9,X6,X8)) | ~rpoint(X6) | ~rpoint(X7) | ~rpoint(X8) | ~rpoint(X9) | ~rline(X10) | ~rline(X11) | ~ron(X6,X10) | ~ron(X6,X11) | ~ron(X7,X10) | ~ron(X8,X11) | X6 = X7 | X6 = X8 | ron(X9,X10) | ron(X9,X11) | X10 = X11)).
-    % End Inference "FS-2_failure"
-    */
-    // (Also reaches a conflict if we handle the full watchlist without theory in between)
-
-/*
-    // TODO: might want to extract this into a separate method
-    auto propagate_theory = [this](bool allow_conflict) -> Clause * {
-        ASS(qhead <= tqhead);
-        Clause *confl = nullptr;
-        // Do all outstanding theory propagations
-        while (tqhead < trail.size())
-        {
-            Lit q = trail[tqhead++]; // 'q' is enqueued fact to theory-propagate
-            cdebug << "PROPAGATE THEORY for q = " << q;
-            if (q.isPositive())
-            {
-                bool enabled =
-                    subst_theory.enable(var(q), decisionLevel(), [this, &confl, q, &allow_conflict](Lit propagated_lit, GClause reason) {
-                        cdebug << "propagated: " << propagated_lit;
-                        bool enqueued = enqueue(propagated_lit, reason);
-                        // if (!allow_conflict) {
-                        //     ASS(enqueued); // to check if conflicts still need to be handled
-                        // }
-
-                        if (enqueued)
-                        {
-                            // success
-                            return true;
-                        }
-                        else
-                        {
-                            if (decisionLevel() == 0)
-                            {
-                                ok = false;
-                            }
-                            assert(reason.isLit());
-                            confl = propagate_tmpbin;
-                            (*confl)[1] = ~q;
-                            (*confl)[0] = reason.lit();
-                            qhead = trail.size();
-                            return false;
-                        }
-                    });
-                if (!enabled)
-                {
-                    assert(confl != nullptr);
-                    return confl;
-                }
-            }
-        }
-        return nullptr;
-    };
-    */
-
     assert(tqhead == trail.size());  // theory is always fully propagated before regular propagation
 
     Clause *confl = nullptr;
@@ -734,106 +649,10 @@ Clause* Solver::propagate()
         stats.propagations++;
         simpDB_props--;
 
-        /*
-        // Do all outstanding theory propagations
-        while (tqhead < trail.size())
-        {
-            Lit q = trail[tqhead++]; // 'q' is enqueued fact to theory-propagate
-            if (q.isPositive())
-            {
-                bool enabled =
-                    subst_theory.enable(var(q), decisionLevel(), [this, &confl, q](Lit propagated_lit, GClause reason) {
-                        cdebug << "propagated: " << propagated_lit;
-                        bool enqueued = enqueue(propagated_lit, reason);
-                        ASS(enqueued); // to check if conflicts still need to be handled
-
-                        if (enqueued)
-                        {
-                            // success
-                            return true;
-                        }
-                        else
-                        {
-                            if (decisionLevel() == 0)
-                            {
-                                ok = false;
-                            }
-                            assert(reason.isLit());
-                            confl = propagate_tmpbin;
-                            (*confl)[1] = ~q;
-                            (*confl)[0] = reason.lit();
-                            qhead = trail.size();
-                            return false;
-                        }
-                        assert(enqueued);
-                    });
-                if (!enabled)
-                {
-                    assert(confl != nullptr);
-                    return confl;
-                }
-            }
-        }
-        */
-
-        //  // TODO: this first propagation might be enough to do before the loop?
-        // confl = propagate_theory(true);
-        // if (confl)
-        // {
-        //     return confl;
-        // }
-
         ASS_EQ(tqhead, trail.size());  // all theory stuff is propagated, now we turn to the watch lists
         Lit p = trail[qhead++]; // 'p' is enqueued fact to propagate.
 
-        cdebug << "PROPAGATE LOOP: for p = " << p;
-
-        // TODO: do all theory propagations before other ones
-        // TODO: in each iteration, we only apply one rule:
-        // priority on theory propagation
-        // (two separate qheads)
-        // Problem:
-        // - we don't want iterate through the watchlists multiple times
-        // - but if we handle the watch completely, we may get multiple enqueues, and these may already contain a theory conflict
-        //   (unless our specific problem structure somehow prevents this -- but I don't see how it would; and relying on that seems fragile anyways)
-        // - so we cannot simply choose in each iteration what we do,
-        //   we need to theory-propagate after *each* call to enqueue
-
-        // TODO: Email Bernhard when this is done!
-
-        /*
-        // Theory propagation (old)
-        if (p.isPositive()) {
-          bool enabled =
-          subst_theory.enable(var(p), decisionLevel(), [this, &confl, p](Lit propagated_lit, GClause reason) {
-            cdebug << "propagated: " << propagated_lit;
-            bool enqueued = enqueue(propagated_lit, reason);
-
-            // NOTE: since we do exhaustive theory propagation, we can never reach a conflict at this point.
-            // TODO: Yes, but a conflicting assignment may already be enqueued, before propagate has been called.
-            //       E.g., due to unit clauses in the input.
-            if (enqueued) {
-              // success
-              return true;
-            } else {
-              if (decisionLevel() == 0) {
-                ok = false;
-              }
-              assert(reason.isLit());
-              confl = propagate_tmpbin;
-              (*confl)[1] = ~p;
-              (*confl)[0] = reason.lit();
-              qhead = trail.size();
-              return false;
-            }
-            assert(enqueued);
-          });
-          if (!enabled) {
-            assert(confl != nullptr);
-            return confl;
-          }
-        }
-        */
+        cdebug << "PROPAGATE p = " << p;
 
         // TODO:
         // note additional invariant:
@@ -864,18 +683,9 @@ Clause* Solver::propagate()
                         *(j++) = *(i++);
                     assert(i == end);
                 } else {
+                    // Watcher is a literal, meaning it comes from a binary clause which is not stored anywhere else
+                    // => keep it in the watchlist.
                     *(j++) = *(i++);
-                    // TODO: if the watcher is a literal, this means it comes from a binary clause.
-                    // this binary clause does not exist anywhere else.
-                    // so how do we get it back after backjumping if we delete it here from the watchlist?
-                    // OH, we do not delete it. we only delete clauses from the watch list.
-                    // note that i,j are always incremented in lock-step in this part.
-                    // ---
-                    // confl = propagate_theory(false);
-                    // if (confl)
-                    // {
-                    //     return confl;
-                    // }
                 }
             } else if (i->isClause()) {
                 Clause& c = *i->clause(); i++;
@@ -917,14 +727,6 @@ Clause* Solver::propagate()
                         }
                         assert(i == end);
                     }
-                    else
-                    {
-                        // confl = propagate_theory(false);
-                        // if (confl)
-                        // {
-                        //     return confl;
-                        // }
-                    }
                   FoundWatch:;
                 }
             } else {
@@ -944,14 +746,6 @@ Clause* Solver::propagate()
                     (*confl)[0] = ~c[k];
                     qhead = trail.size();
                     break;
-                  }
-                  else
-                  {
-                    //   confl = propagate_theory(false);
-                    //   if (confl)
-                    //   {
-                    //       return confl;
-                    //   }
                   }
                 }
               }
