@@ -307,7 +307,6 @@ class CodeTreeTIS;
 class CodeTreeLIS;
 class CodeTreeSubsumptionIndex;
 
-class ArithmeticIndex;
 class ConstraintDatabase;
 };
 
