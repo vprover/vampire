@@ -61,6 +61,7 @@ vvector<TermList> getInductionTerms(TermList t)
   }
   unsigned f = t.term()->functor();
   bool isPred = t.term()->isFormula();
+  auto type = getType(t);
 
   // If function with recursive definition,
   // recurse in its active arguments
@@ -71,12 +72,13 @@ vvector<TermList> getInductionTerms(TermList t)
     IteratorByInductiveVariables argIt(t.term(), indVars);
     while (argIt.hasNext()) {
       auto arg = argIt.next();
-      auto indTerms = getInductionTerms(arg);
-      v.insert(v.end(), indTerms.begin(), indTerms.end());
+      if (getType(arg)->result() == type->result()) {
+        auto indTerms = getInductionTerms(arg);
+        v.insert(v.end(), indTerms.begin(), indTerms.end());
+      }
     }
   }
   if (isTermAlgebraCons(t)) {
-    auto type = getType(t);
     //TODO(mhajdu): eventually check whether we really recurse on a specific
     // subterm of the constructor terms
     for (unsigned i = 0; i < t.term()->arity(); i++) {
