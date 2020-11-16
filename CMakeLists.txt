@@ -811,7 +811,6 @@ foreach(test_file ${UNIT_TESTS})
 
   # compiling the test case executable
   add_executable(${test_name} ${test_file})
-  message(${test_file})
   target_link_libraries(${test_name} unit_test_base)
   target_include_directories(${test_name} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
   target_compile_definitions(${test_name} PRIVATE ${UNIT_TEST_DEFS})
