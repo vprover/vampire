@@ -25,7 +25,7 @@
  *       so array[arity] is return and array[i] is the ith argument of the function
  */
 
-#include <math.h>
+#include <cmath>
 
 #include "Kernel/Ordering.hpp"
 #include "Kernel/Inference.hpp"
@@ -576,6 +576,9 @@ void FiniteModelBuilder::init()
 
   }
 
+  // TODO: consider updating usage count by rescanning property
+  // in particular, terms replaced by definitions have disappeared!
+
   // record the deleted functions and predicates
   // we do this here so that there are slots for symbols introduce in previous
   // preprocessing steps (definition introduction, splitting)
@@ -583,7 +586,7 @@ void FiniteModelBuilder::init()
   del_p.ensure(env.signature->predicates());
 
   for(unsigned f=0;f<env.signature->functions();f++){
-    del_f[f] = _deletedFunctions.find(f);
+    del_f[f] = _deletedFunctions.find(f) || env.signature->getFunction(f)->usageCnt()==0;
   }
   for(unsigned p=0;p<env.signature->predicates();p++){
     del_p[p] = (_deletedPredicates.find(p) || _trivialPredicates.find(p));
@@ -1491,7 +1494,9 @@ SATLiteral FiniteModelBuilder::getSATLiteral(unsigned f, const DArray<unsigned>&
   // cannot have predicate 0 here (it's equality)
   ASS(f>0 || isFunction);
 
-  unsigned arity = isFunction ? env.signature->functionArity(f) : env.signature->predicateArity(f);
+  DEBUG_CODE(
+    unsigned arity = isFunction ? env.signature->functionArity(f) : env.signature->predicateArity(f)
+  );
   ASS((isFunction && arity==grounding.size()-1) || (!isFunction && arity==grounding.size()));
 
   unsigned offset = isFunction ? f_offsets[f] : p_offsets[f];
@@ -1753,8 +1758,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
             _sortModelSizes[s] = _distinctSortSizes[_sortedSignature->parents[s]];
           }
         } else {
-          Clause* empty = new(0) Clause(0,Unit::AXIOM,
-             new Inference(Inference::MODEL_NOT_FOUND));
+          Clause* empty = new(0) Clause(0,NonspecificInference0(UnitInputType::AXIOM,InferenceRule::MODEL_NOT_FOUND));
           return MainLoopResult(Statistics::REFUTATION,empty);
         }
       } else { // i.e. (!_xmass)
@@ -1793,8 +1797,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
 
         if (!_dsaEnumerator->increaseModelSizes(_distinctSortSizes,_distinctSortMaxs)) {
           if (_dsaEnumerator->isFmbComplete(_distinctSortSizes.size())) {
-            Clause* empty = new(0) Clause(0,Unit::AXIOM,
-                new Inference(Inference::MODEL_NOT_FOUND));
+            Clause* empty = new(0) Clause(0,NonspecificInference0(UnitInputType::AXIOM,InferenceRule::MODEL_NOT_FOUND));
             return MainLoopResult(Statistics::REFUTATION,empty);
           } else {
             if(outputAllowed()) {
@@ -2034,6 +2037,8 @@ pModelLabel:
     //cout << "Consider " << f << endl;
     unsigned arity = env.signature->functionArity(f);
     if(!del_f[f]) continue; 
+    // For now, just skip unused functions!
+    if(env.signature->getFunction(f)->usageCnt()==0) continue;
     //del_f[f]=false;
 
     ASS(_deletedFunctions.find(f));
@@ -2236,7 +2241,7 @@ ppModelLabel:
             //cout << predDefGround << endl;
             try{
               bool res = model.evaluate(
-                new FormulaUnit(predDefGround,new Inference(Inference::INPUT),Unit::InputType::AXIOM));
+                new FormulaUnit(predDefGround, NonspecificInference0(UnitInputType::AXIOM, InferenceRule::INPUT)));
               if(!polarity) res=!res;
               model.addPredicateDefinition(f,grounding,res);
             }
@@ -2587,8 +2592,6 @@ bool FiniteModelBuilder::SmtBasedDSAE::increaseModelSizes(DArray<unsigned>& newS
         sum = sum + *_sizeConstants[i];
       }
       _smtSolver.add(sum == _context.int_val(_lastWeight));
-
-      result = _smtSolver.check();
 
       if (_smtSolver.check() == z3::check_result::sat) {
         loadSizesFromSmt(newSortSizes);

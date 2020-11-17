@@ -68,6 +68,10 @@ public:
     return _logic;
   }
 
+  const vstring& getStatus() const {
+    return _statusStr;
+  }
+
 private:
 
   static const char * s_smtlibLogicNameStrings[];
@@ -431,6 +435,14 @@ private:
    * Behaves like conjecture declaration in TPTP
    */
   void readAssertNot(LExpr* body);
+
+  /**
+   * Unofficial command
+   *
+   * Behaves like assert, but marks body clause as external theory axiom.
+   * Assumes that body is already fully simplified (as this is usual the case for theory axioms).
+   */
+  void readAssertTheory(LExpr* body);
 
   /**
    * Unofficial command

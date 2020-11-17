@@ -91,7 +91,7 @@ vstring Int::toString(long l)
 vstring Int::toString(unsigned i)
 {
   char tmp [256];
-  sprintf(tmp,"%d",i);
+  sprintf(tmp,"%u",i);
   vstring result(tmp);
 
   return result;

@@ -137,8 +137,7 @@ namespace Shell
                     }
                 }
                 
-                Inference* inference = new InferenceMany(current->inference()->rule(), premises);
-                current->setInference(inference);
+                current->inference() = NonspecificInferenceMany(current->inference().rule(), premises);
             }
         }
     }

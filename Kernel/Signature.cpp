@@ -57,6 +57,7 @@ Signature::Symbol::Symbol(const vstring& nm,unsigned arity, bool interpreted, bo
     _type(0),
     _distinctGroups(0),
     _usageCount(0),
+    _unitUsageCount(0),
     _inGoal(0),
     _inUnit(0),
     _inductionSkolem(0),
@@ -132,7 +133,7 @@ void Signature::Symbol::addToDistinctGroup(unsigned group,unsigned this_number)
   env.signature->_distinctGroupsAddedTo=true;
 
   Signature::DistinctGroupMembers members = env.signature->_distinctGroupMembers[group];
-  if(members->size() <= DistinctGroupExpansion::EXPAND_UP_TO_SIZE || env.options->bfnt()
+  if(members->size() <= DistinctGroupExpansion::EXPAND_UP_TO_SIZE
                        || env.options->saturationAlgorithm()==Options::SaturationAlgorithm::FINITE_MODEL_BUILDING){
     // we add one more than EXPAND_UP_TO_SIZE to signal to DistinctGroupExpansion::apply not to expand
     // ... instead DistinctEqualitySimplifier will take over
@@ -567,6 +568,31 @@ unsigned Signature::getFunctionNumber(const vstring& name, unsigned arity) const
   return _funNames.get(key(name, arity));
 }
 
+bool Signature::tryGetFunctionNumber(const vstring& name, unsigned arity, unsigned& out) const
+{
+  CALL("Signature::tryGetFunctionNumber");
+  auto* value = _funNames.getPtr(key(name, arity));
+  if (value != NULL) {
+    out = *value;
+    return true;
+  } else {
+    return false;
+  }
+}
+
+bool Signature::tryGetPredicateNumber(const vstring& name, unsigned arity, unsigned& out) const
+{
+  CALL("Signature::tryGetPredicateNumber");
+  auto* value = _predNames.getPtr(key(name, arity));
+  if (value != NULL) {
+    out = *value;
+    return true;
+  } else {
+    return false;
+  }
+}
+
+
 unsigned Signature::getPredicateNumber(const vstring& name, unsigned arity) const
 {
   CALL("Signature::getPredicateNumber");
@@ -582,6 +608,7 @@ unsigned Signature::getPredicateNumber(const vstring& name, unsigned arity) cons
  * @param name name of the symbol
  * @param arity arity of the symbol
  * @param added will be set to true if the function did not exist
+ * @param overflowConstant
  * @since 07/05/2007 Manchester
  */
 unsigned Signature::addFunction (const vstring& name,

@@ -32,6 +32,13 @@
 
 #include "LRS.hpp"
 
+#define DETERMINISE_LRS_SAVE 0
+#define DETERMINISE_LRS_LOAD 0
+
+#if DETERMINISE_LRS_SAVE || DETERMINISE_LRS_LOAD
+#include <fstream>
+#endif
+
 namespace Saturation
 {
 
@@ -60,8 +67,7 @@ void LRS::onUnprocessedSelected(Clause* c)
     if(estimatedReachable>=0) {
       _passive->updateLimits(estimatedReachable);
       if(!_limitsEverActive) {
-        Limits* lims=getLimits();
-        _limitsEverActive=lims->weightLimited() || lims->ageLimited();
+        _limitsEverActive=_passive->weightLimited() || _passive->ageLimited();
       }
     }
   }
@@ -82,7 +88,7 @@ bool LRS::shouldUpdateLimits()
   cnt++;
 
   //when there are limits, we check more frequently so we don't skip too much inferences
-  if(cnt==500 || ((getLimits()->weightLimited() || getLimits()->ageLimited()) && cnt>50 ) ) {
+  if(cnt==500 || ((_passive->weightLimited() || _passive->ageLimited()) && cnt>50 ) ) {
     cnt=0;
     return true;
   }
@@ -90,12 +96,21 @@ bool LRS::shouldUpdateLimits()
 }
 
 /**
- * Resturn an estimate of the number of clauses that the saturation
+ * Return an estimate of the number of clauses that the saturation
  * algorithm will be able to activate in the remaining time
  */
 long long LRS::estimatedReachableCount()
 {
   CALL("LRS::estimatedReachableCount");
+
+#if DETERMINISE_LRS_LOAD
+  static std::ifstream infile("lrs_data.txt");
+  long long thing;
+  if (infile >> thing) {
+    cout << "reading " << thing << endl;
+    return thing;
+  }
+#endif
 
   long long processed=env.statistics->activeClauses;
   int currTime=env.timer->elapsedMilliseconds();
@@ -104,8 +119,11 @@ long long LRS::estimatedReachableCount()
   int firstCheck=_opt.lrsFirstTimeCheck()*_opt.timeLimitInDeciseconds();
 //  int timeSpent=currTime;
 
+  long long result;
+
   if(timeSpent<firstCheck ) {
-    return -1;
+    result = -1;
+    goto finish;
   }
 
   long long timeLeft;
@@ -116,9 +134,20 @@ long long LRS::estimatedReachableCount()
   }
   if(timeLeft<=0 || processed<=10) {
     //we end-up here even if there is no time limit (i.e. time limit is set to 0)
-    return -1;
+    result = -1;
+    goto finish;
   }
-  return (processed*timeLeft)/timeSpent;
+
+  result = (processed*timeLeft)/timeSpent;
+
+  finish:
+
+#if DETERMINISE_LRS_SAVE
+  static std::ofstream outfile("lrs_data.txt");
+  outfile << result << endl;
+#endif
+
+  return result;
 }
 
 }

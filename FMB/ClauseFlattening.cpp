@@ -71,8 +71,6 @@ bool ClauseFlattening::isShallow(Literal* lit)
  * Apply equality resolution to all negative equalities between variables
  * in cl and return the result. If cl contains no such inequalities, return cl
  * itself.
- *
- * Copied from BFNT, put here in case we remove BFNT 
  */
 Clause* ClauseFlattening::resolveNegativeVariableEqualities(Clause* cl)
 {
@@ -107,8 +105,7 @@ Clause* ClauseFlattening::resolveNegativeVariableEqualities(Clause* cl)
     diffVar = true;
     Substitution subst;
     subst.bind(v1,*v2);
-    cl = new(n) Clause(n,cl->inputType(),
-                       new Inference1(Inference::EQUALITY_RESOLUTION,cl));
+    cl = new(n) Clause(n,NonspecificInference1(InferenceRule::EQUALITY_RESOLUTION,cl));
     for (int i = n-1;i >= 0;i--) {
       Literal* lit = SubstHelper::apply<Substitution>(lits[i],subst);
       (*cl)[i] = lit;
@@ -116,8 +113,7 @@ Clause* ClauseFlattening::resolveNegativeVariableEqualities(Clause* cl)
     }
   }
   if (!diffVar) { // only X != X found, we should still perform the inference
-    cl = new(n) Clause(n,cl->inputType(),
-                       new Inference1(Inference::EQUALITY_RESOLUTION,cl));
+    cl = new(n) Clause(n,NonspecificInference1(InferenceRule::EQUALITY_RESOLUTION,cl));
     for (int i = n-1;i >= 0;i--) {
       (*cl)[i] = lits[i];
     }
@@ -127,8 +123,6 @@ Clause* ClauseFlattening::resolveNegativeVariableEqualities(Clause* cl)
 
 /**
  * Flatten clauses
- *
- * Largely based on BFNT::apply
  *
  * @author Giles
  */
@@ -257,8 +251,7 @@ Clause* ClauseFlattening::flatten(Clause* cl)
   // If no new literals were added just return cl
   if(!updated) return cl;
 
-  return Clause::fromStack(result,cl->inputType(),
-                            new Inference1(Inference::FMB_FLATTENING,cl));
+  return Clause::fromStack(result,NonspecificInference1(InferenceRule::FMB_FLATTENING,cl));
 }
 
 }

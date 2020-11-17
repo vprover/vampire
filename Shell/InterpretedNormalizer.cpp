@@ -473,7 +473,7 @@ bool InterpretedNormalizer::apply(UnitList*& units)
   CALL("InterpretedNormalizer::apply(UnitList*& units)");
 
   NFormulaTransformer ftransf(_litTransf);
-  FTFormulaUnitTransformer<NFormulaTransformer> futransf(Inference::EVALUATION, ftransf);
+  FTFormulaUnitTransformer<NFormulaTransformer> futransf(InferenceRule::THEORY_NORMALIZATION, ftransf);
 
   bool modified = false;
 
@@ -538,8 +538,8 @@ Clause* InterpretedNormalizer::apply(Clause* cl)
     return cl;
   }
 
-  Clause* res = Clause::fromStack(lits, cl->inputType(),
-      new Inference1(Inference::EVALUATION, cl));
+  Clause* res = Clause::fromStack(lits,
+      FormulaTransformation(InferenceRule::THEORY_NORMALIZATION, cl));
   return res;
 }
 

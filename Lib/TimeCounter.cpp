@@ -201,6 +201,9 @@ void TimeCounter::outputSingleStat(TimeCounterUnit tcu, ostream& out)
   case TC_BACKWARD_SUBSUMPTION_RESOLUTION:
     out<<"backward subsumption resolution";
     break;
+  case TC_BACKWARD_SUBSUMPTION_DEMODULATION:
+    out<<"backward subsumption demodulation";
+    break;
   case TC_BDD:
     out<<"BDD operations";
     break;
@@ -231,6 +234,9 @@ void TimeCounter::outputSingleStat(TimeCounterUnit tcu, ostream& out)
   case TC_FORWARD_SUBSUMPTION_RESOLUTION:
     out<<"forward subsumption resolution";
     break;
+  case TC_FORWARD_SUBSUMPTION_DEMODULATION:
+    out<<"forward subsumption demodulation";
+    break;
   case TC_FORWARD_LITERAL_REWRITING:
     out<<"forward literal rewriting";
     break;
@@ -245,6 +251,9 @@ void TimeCounter::outputSingleStat(TimeCounterUnit tcu, ostream& out)
     break;
   case TC_FORWARD_SUBSUMPTION_INDEX_MAINTENANCE:
     out<<"forward subsumption index maintenance";
+    break;
+  case TC_FORWARD_SUBSUMPTION_DEMODULATION_INDEX_MAINTENANCE:
+    out<<"forward subsumption demodulation index maintenance";
     break;
   case TC_BINARY_RESOLUTION_INDEX_MAINTENANCE:
     out<<"binary resolution index maintenance";
@@ -404,6 +413,9 @@ void TimeCounter::outputSingleStat(TimeCounterUnit tcu, ostream& out)
     out << "naming";
   case TC_LITERAL_SELECTION:
     out << "literal selection";
+    break;
+  case TC_PASSIVE_CONTAINER_MAINTENANCE:
+    out << "passive container maintenance";
     break;
   case TC_THEORY_INST_SIMP:
     out << "theory instantiation and simplification";

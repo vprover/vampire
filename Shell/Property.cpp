@@ -300,7 +300,8 @@ void Property::scan(Clause* clause)
       }
     }
 
-    bool goal = (clause->inputType()==Unit::CONJECTURE || clause->inputType()==Unit::NEGATED_CONJECTURE);
+    bool goal = (clause->inputType()==UnitInputType::CONJECTURE ||
+        clause->inputType()==UnitInputType::NEGATED_CONJECTURE);
     bool unit = (clause->length() == 1);
 
     // 1 for context polarity, only used in formulas
@@ -327,7 +328,7 @@ void Property::scan(Clause* clause)
     _pureEquationalClauses ++;
   }
 
-  if (clause->inputType() == Unit::AXIOM) {
+  if (clause->inputType() == UnitInputType::AXIOM) {
     _axiomClauses ++;
     if ( literals == 1) {
       _unitAxioms ++;
@@ -386,7 +387,7 @@ void Property::scan(FormulaUnit* unit)
   CALL("Property::scan(const FormulaUnit*)");
 
 
-  if (unit->inputType() == Unit::AXIOM) {
+  if (unit->inputType() == UnitInputType::AXIOM) {
     _axiomFormulas ++;
   }
   else {
@@ -534,6 +535,9 @@ void Property::scanSort(unsigned sort)
  * Scan a literal.
  *
  * @param lit the literal
+ * @param polarity
+ * @param cLen
+ * @param goal
  * @since 29/06/2002 Manchester
  * @since 17/07/2003 Manchester, changed to non-pointer types
  * @since 27/05/2007 flight Manchester-Frankfurt, uses new datastructures
@@ -587,6 +591,8 @@ void Property::scan(Literal* lit, int polarity, unsigned cLen, bool goal)
  * Scan a term arguments.
  *
  * @param ts the list of terms
+ * @param unit
+ * @param goal
  * @since 29/06/2002 Manchester
  * @since 17/07/2003 Manchester, changed to non-pointer types,
  *        also NUMERIC case added
@@ -958,10 +964,9 @@ bool Property::hasXEqualsY(const Formula* f)
     case BOOL_TERM:
       return true;
 
-#if VDEBUG
-    default:
+    case NAME:
+    case NOCONN:
       ASSERTION_VIOLATION;
-#endif
     }
   }
   return false;

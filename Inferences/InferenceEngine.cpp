@@ -254,9 +254,7 @@ Clause* DuplicateLiteralRemovalISE::simplify(Clause* c)
   // now lits[0 ... newLength-1] contain the remaining literals
   Clause* d = new(newLength)
 		 Clause(newLength,
-			c->inputType(),
-			new Inference1(Inference::REMOVE_DUPLICATE_LITERALS,
-				       c));
+			 SimplifyingInference1(InferenceRule::REMOVE_DUPLICATE_LITERALS,c));
 
   int origIdx = length-1;
 
@@ -270,7 +268,6 @@ Clause* DuplicateLiteralRemovalISE::simplify(Clause* c)
   }
   ASS(skipped.isEmpty());
   ASS_EQ(origIdx,-1);
-  d->setAge(c->age());
   env.statistics->duplicateLiterals += length - newLength;
 
 #if DEBUG_DUPLICATE_LITERALS
@@ -321,15 +318,11 @@ Clause* TrivialInequalitiesRemovalISE::simplify(Clause* c)
   }
 
   int newLength = length - found;
-  Clause* d = new(newLength)
-                Clause(newLength,
-		       c->inputType(),
-		       new Inference1(Inference::TRIVIAL_INEQUALITY_REMOVAL,
-				      c));
+  Clause* d = new(newLength) Clause(newLength,
+		            SimplifyingInference1(InferenceRule::TRIVIAL_INEQUALITY_REMOVAL,c));
   for (int i = newLength-1;i >= 0;i--) {
     (*d)[i] = lits[newLength-i-1];
   }
-  d->setAge(c->age());
   env.statistics->trivialInequalities += found;
 
   return d;

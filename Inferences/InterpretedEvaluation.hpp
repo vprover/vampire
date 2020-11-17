@@ -43,7 +43,7 @@ public:
   CLASS_NAME(InterpretedEvaluation);
   USE_ALLOCATOR(InterpretedEvaluation);
 
-  InterpretedEvaluation();
+  InterpretedEvaluation(bool doNormalize, Ordering& ordering);
   virtual ~InterpretedEvaluation();
 
   Clause* simplify(Clause* cl);
@@ -51,6 +51,9 @@ private:
   bool simplifyLiteral(Literal* lit, bool& constant, Literal*& res, bool& constantTrue,Stack<Literal*>& sideConditions);
 
   InterpretedLiteralEvaluator* _simpl;
+#if VDEBUG
+  Ordering& _ordering;
+#endif
 };
 
 };

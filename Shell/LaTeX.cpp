@@ -41,6 +41,7 @@
 #include "Lib/Int.hpp"
 #include "Lib/List.hpp"
 #include "Lib/Set.hpp"
+#include "Lib/SharedSet.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/Formula.hpp"
@@ -50,6 +51,10 @@
 #include "Kernel/Term.hpp"
 #include "Kernel/Unit.hpp"
 #include "Kernel/Theory.hpp"
+
+#include "Saturation/Splitter.hpp"
+
+
 
 // #define KIF_EXPERIMENTS 0
 
@@ -138,12 +143,12 @@ vstring LaTeX::refutationToString(Unit* ref)
   while(outKernel.isNonEmpty()) {
     Unit* cs=outKernel.pop();
       Clause* cl= cs->asClause();
-      Inference* inf = cl->inference();
+      Inference& inf = cl->inference();
 
       res+=toStringAsInference(cl);
-      Inference::Iterator it = inf->iterator();
-      while (inf->hasNext(it)) {
-	Unit* prem=inf->next(it);
+      Inference::Iterator it = inf.iterator();
+      while (inf.hasNext(it)) {
+	Unit* prem=inf.next(it);
 	if(prem->isClause() ) {
 	  //this branch is for clauses that were inserted as input into the SaturationAlgorithm object
           //Giles. Removed bdds from this, but not sure if this is redundant anyway given the previous comment.
@@ -164,12 +169,12 @@ vstring LaTeX::refutationToString(Unit* ref)
 
   while(outShell.isNonEmpty()) {
     Unit* unit=outShell.pop();
-    Inference* inf = unit->inference();
+    Inference& inf = unit->inference();
 
     res+=toStringAsInference(unit);
-    Inference::Iterator it = inf->iterator();
-    while (inf->hasNext(it)) {
-      Unit* prem=inf->next(it);
+    Inference::Iterator it = inf.iterator();
+    while (inf.hasNext(it)) {
+      Unit* prem=inf.next(it);
       if(!handledShell.contains(prem)) {
 	handledShell.insert(prem);
 	outShell.push(prem);
@@ -193,6 +198,15 @@ vstring LaTeX::toString(Unit* u)
   }
 }
 
+vstring replaceNeg(vstring s)
+{
+    size_t start_pos = s.find("~",0);
+    if(start_pos != std::string::npos){
+      s.replace(start_pos,1,vstring(" \\neg "));
+    }
+    return s;
+}
+
 
 /**
  * Convert the formula to LaTeX
@@ -208,7 +222,7 @@ vstring LaTeX::toString (Formula* f) const
 
   static vstring names [] =
   { "", " \\Vand ", " \\Vor ", " \\Vimp ", " \\Viff ", " \\Vxor ",
-	  "\\neg ", "\\forall ", "\\exists ", "\bot", "\top"};
+	  "\\neg ", "\\forall ", "\\exists ", "\bot", "\top", "", ""};
 
   Connective c = f->connective();
   vstring con = names[(int)c];
@@ -258,12 +272,15 @@ vstring LaTeX::toString (Formula* f) const
   case FALSE:
   case TRUE:
     return con;
+  
+  case NAME:
+    return replaceNeg(static_cast<const NamedFormula*>(f)->name());
 
-#if VDEBUG
-  default:
-    ASSERTION_VIOLATION;
-#endif
+  case NOCONN:
+    ASSERTION_VIOLATION_REP(c);
   }
+
+  ASSERTION_VIOLATION;
 } // LaTeX::toString (const Formula&)
 
 /**
@@ -295,7 +312,16 @@ vstring LaTeX::toString (Clause* c)
   vstring result;
 
   if (c->isEmpty()) {
-    result = "\\VEmptyClause";
+    if(c->splits() && !c->splits()->isEmpty()){
+      SplitSet::Iterator sit(*c->splits());
+      result = "\\mathit{false}";
+      while(sit.hasNext()){
+        result += vstring(" \\Vor ") + replaceNeg(Saturation::Splitter::getFormulaStringFromName(sit.next(),true /*negated*/));
+      }
+    }
+    else{
+      result = "\\VEmptyClause";
+    }
   }
   else {
     result = toString((*c)[0]);
@@ -303,6 +329,12 @@ vstring LaTeX::toString (Clause* c)
     unsigned clen=c->length();
     for(unsigned i=1;i<clen;i++) {
       result += vstring(" \\Vor ") + toString((*c)[i]);
+    }
+    if(c->splits() && !c->splits()->isEmpty()){
+      SplitSet::Iterator sit(*c->splits());
+      while(sit.hasNext()){
+        result += vstring(" \\Vor ") + replaceNeg(Saturation::Splitter::getFormulaStringFromName(sit.next(),true /*negated*/));
+      }
     }
   }
 
@@ -389,7 +421,8 @@ vstring LaTeX::symbolToString (unsigned num, bool pred) const
 #define LENGTH 8004
   char newName[LENGTH]; // LaTeX name of this symbol
   char* name = newName;
-  const char* nm = symbolName.substr(0,8000).c_str();
+  auto substr = symbolName.substr(0,8000);
+  const char* nm = substr.c_str();
   // finding end of the name
   const char* end = nm;
   while (*end) {
@@ -575,7 +608,7 @@ vstring LaTeX::toStringAsInference(Unit* cs, InferenceStore::FullInference* inf)
     res += "\\rightarrow ";
   }
   res += getClauseLatexId(cs)
-    +"$, "+Inference::ruleName(inf->rule)+"]\\\\*[-2ex]\n";
+    +"$, "+ruleName(inf->rule)+"]\\\\*[-2ex]\n";
 
   res += "\\[\\begin{VampireInference}\n";
 
@@ -608,35 +641,35 @@ vstring LaTeX::toStringAsInference(Unit* unit)
 {
   CALL("LaTeX::toStringAsInference(Unit* unit)");
 
-  Inference* inf = unit->inference();
+  Inference& inf = unit->inference();
 
   vstring res("[$");
 
   bool hasParents=false;
-  Inference::Iterator it = inf->iterator();
-  while (inf->hasNext(it)) {
+  Inference::Iterator it = inf.iterator();
+  while (inf.hasNext(it)) {
     hasParents=true;
-    Unit* prem=inf->next(it);
+    Unit* prem=inf.next(it);
     res += Int::toString(prem->number());
-    if(inf->hasNext(it)) {
+    if(inf.hasNext(it)) {
 	res += ",";
     }
   }
   if(hasParents) {
     res += "\\rightarrow ";
   }
-  res += Int::toString(unit->number())+"$, "+Inference::ruleName(inf->rule())+"]\\\\*[-2ex]\n";
+  res += Int::toString(unit->number())+"$, "+ruleName(inf.rule())+"]\\\\*[-2ex]\n";
 
   res += "\\[\\begin{VampireInference}\n";
 
   if(hasParents) {
-    it = inf->iterator();
-    while (inf->hasNext(it)) {
-	Unit* prem=inf->next(it);
+    it = inf.iterator();
+    while (inf.hasNext(it)) {
+	Unit* prem=inf.next(it);
       res += "\\begin{VampirePremise}%\n~~";
       res += toString(prem);
       res += "\n\\end{VampirePremise}\n";
-	if(inf->hasNext(it)) {
+	if(inf.hasNext(it)) {
 	  res += "\\VPremiseSeparator\n";
 	}
     }

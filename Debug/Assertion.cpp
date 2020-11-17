@@ -21,7 +21,7 @@
  * Implements assertions.
  */
 
-#include <string.h>
+#include <cstring>
 
 #include "Assertion.hpp"
 #include "Tracer.hpp"

@@ -44,8 +44,6 @@
 
 #include "Saturation/ExtensionalityClauseContainer.hpp"
 
-#include "Limits.hpp"
-
 #if VDEBUG
 #include<iostream>
 #endif
@@ -106,14 +104,11 @@ public:
   }
 
   ClauseIterator activeClauses();
-  ClauseIterator passiveClauses();
-  size_t activeClauseCount();
-  size_t passiveClauseCount();
 
-  Limits* getLimits() { return &_limits; }
+  PassiveClauseContainer* getPassiveClauseContainer() { return _passive.get(); }
   IndexManager* getIndexManager() { return _imgr.ptr(); }
   AnswerLiteralManager* getAnswerLiteralManager() { return _answerLiteralManager; }
-  Ordering& getOrdering() const { return *_ordering; }
+  Ordering& getOrdering() const {  return *_ordering; }
   LiteralSelector& getLiteralSelector() const { return *_selector; }
 
   /** Return the number of clauses that entered the passive container */
@@ -172,7 +167,6 @@ private:
   void handleEmptyClause(Clause* cl);
   Clause* doImmediateSimplification(Clause* cl);
   MainLoopResult saturateImpl();
-  Limits _limits;
   SmartPtr<IndexManager> _imgr;
 
   class TotalSimplificationPerformer;
@@ -190,7 +184,7 @@ protected:
   ClauseStack _postponedClauseRemovals;
 
   UnprocessedClauseContainer* _unprocessed;
-  PassiveClauseContainer* _passive;
+  std::unique_ptr<PassiveClauseContainer> _passive;
   ActiveClauseContainer* _active;
   ExtensionalityClauseContainer* _extensionality;
 
@@ -236,6 +230,8 @@ protected:
   unsigned _generatedClauseCount;
 
   unsigned _activationLimit;
+private:
+  static ImmediateSimplificationEngine* createISE(Problem& prb, const Options& opt, Ordering& ordering);
 };
 
 

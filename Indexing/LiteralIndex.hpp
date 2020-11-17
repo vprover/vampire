@@ -29,6 +29,7 @@
 
 #include "Index.hpp"
 
+
 namespace Indexing {
 
 class LiteralIndex
@@ -99,9 +100,26 @@ public:
   USE_ALLOCATOR(FwSubsSimplifyingLiteralIndex);
 
   FwSubsSimplifyingLiteralIndex(LiteralIndexingStructure* is)
-  : LiteralIndex(is) {};
+    : LiteralIndex(is)
+  { }
+
 protected:
-  void handleClause(Clause* c, bool adding);
+  void handleClause(Clause* c, bool adding) override;
+};
+
+class FSDLiteralIndex
+: public LiteralIndex
+{
+public:
+  CLASS_NAME(FSDLiteralIndex);
+  USE_ALLOCATOR(FSDLiteralIndex);
+
+  FSDLiteralIndex(LiteralIndexingStructure* is)
+    : LiteralIndex(is)
+  { }
+
+protected:
+  void handleClause(Clause* c, bool adding) override;
 };
 
 class UnitClauseLiteralIndex

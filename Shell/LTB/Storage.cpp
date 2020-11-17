@@ -263,7 +263,7 @@ Storage::Storage(bool translateSignature)
   _impl=new StorageImpl;
 
   //we will be storing prefixes into a single byte
-  ASS_STATIC(PREFIX_COUNT<=256);
+  static_assert(PREFIX_COUNT <= 256, "prefixes must fit into a single byte");
 }
 
 Storage::~Storage()
@@ -753,7 +753,7 @@ UnitList* Storage::getClausesByUnitNumbers(VirtualIterator<unsigned> numIt)
 
     ASS(litStack.isNonEmpty());
 
-    Inference* inf=new Inference(Inference::EXTERNAL_THEORY_AXIOM);
+    Inference* inf=new Inference0(Inference::EXTERNAL_THEORY_AXIOM);
     Clause* cl=Clause::fromIterator(LiteralStack::Iterator(litStack), Unit::AXIOM, inf);
     UnitList::push(cl, res);
 

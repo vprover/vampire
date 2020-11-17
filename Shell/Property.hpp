@@ -241,6 +241,7 @@ public:
   bool knownInfiniteDomain() const { return _knownInfiniteDomain; }
   
   void setSMTLIBLogic(SMTLIBLogic smtLibLogic) { 
+    CALL("Property::setSMTLIBLogic");
     _smtlibLogic = smtLibLogic; 
   }
   SMTLIBLogic getSMTLIBLogic() const { 

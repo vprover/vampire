@@ -125,7 +125,7 @@ protected:
   };
 
   template<class Cls>
-  HandlerStruct getHandlerStruct(Cls* obj, void (Cls::*method)())
+  HandlerStruct* getHandlerStruct(Cls* obj, void (Cls::*method)())
   {
     MethodSpecificHandlerStruct<Cls>* res=new MethodSpecificHandlerStruct<Cls>();
     res->pObj=obj;

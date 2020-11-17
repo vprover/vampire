@@ -25,13 +25,22 @@
 #ifndef __Assertion__
 #define __Assertion__
 
-/** A static assertion. @b e has to be a constant expression. */
+#define __PUSH_DIAGNOSTICS(diag, ...) \
+    _Pragma("GCC diagnostic push") \
+    _Pragma(diag) \
+    __VA_ARGS__ \
+    _Pragma("GCC diagnostic pop") \
 
-#define ASS_AUX_CONCAT_(x,y) x ## y
-#define ASS_AUX_CONCAT(x,y) ASS_AUX_CONCAT_(x,y)
-
-//#define ASS_STATIC(e) extern char (* ASS_AUX_CONCAT(ct_assert, __LINE__) (void)) [sizeof(char[1 - 2*!(e)])]
-#define ASS_STATIC(e) extern char (*ct_assert (void)) [sizeof(char[1 - 2*!(e)])]
+#ifdef __clang__
+#  define __IGNORE_ASSERTION_WARNINGS(...) __PUSH_DIAGNOSTICS("GCC diagnostic ignored \"-Wexceptions\"", __VA_ARGS__)
+#else // __clang__
+//#  define __IGNORE_ASSERTION_WARNINGS(...)   __VA_ARGS__
+#  define __IGNORE_ASSERTION_WARNINGS(...)   \
+    __PUSH_DIAGNOSTICS("GCC diagnostic ignored \"-Wterminate\"", \
+    __PUSH_DIAGNOSTICS("GCC diagnostic ignored \"-Wterminate\"", \
+    __VA_ARGS__ \
+    ))
+#endif // __clang__
 
 //#undef CONCAT
 
@@ -120,64 +129,68 @@ private:
 #define ASS(Cond)                                               \
   if (! (Cond)) {                                               \
     Debug::Assertion::violated(__FILE__,__LINE__,#Cond);		\
-    throw Debug::AssertionViolationException(__FILE__,__LINE__);	\
+    __IGNORE_ASSERTION_WARNINGS(throw Debug::AssertionViolationException(__FILE__,__LINE__);)	\
   }
 
 #define ASS_REP(Cond, ReportedVal)                                      \
   if (! (Cond)) {                                               \
     Debug::Assertion::violated(__FILE__,__LINE__,#Cond,ReportedVal,#ReportedVal); \
-    throw Debug::AssertionViolationException(__FILE__,__LINE__);	\
+    __IGNORE_ASSERTION_WARNINGS(throw Debug::AssertionViolationException(__FILE__,__LINE__);)	\
   }
 
 #define ASS_REP2(Cond, ReportedVal, ReportedVal2)               \
   if (! (Cond)) {                                               \
     Debug::Assertion::violated(__FILE__,__LINE__,#Cond,ReportedVal,#ReportedVal,ReportedVal2,#ReportedVal2); \
-    throw Debug::AssertionViolationException(__FILE__,__LINE__);	\
+    __IGNORE_ASSERTION_WARNINGS(throw Debug::AssertionViolationException(__FILE__,__LINE__);)	\
   }
 
 
 #define ALWAYS(Cond) ASS(Cond)
 #define NEVER(Cond) ASS(!(Cond))
 
+
 #define ASS_EQ(VAL1,VAL2)                                               \
   if (! ((VAL1)==(VAL2)) ) {                                               \
     Debug::Assertion::violatedEquality(__FILE__,__LINE__,#VAL1,#VAL2,VAL1,VAL2); \
-    throw Debug::AssertionViolationException(__FILE__,__LINE__);	\
-  }
+    __IGNORE_ASSERTION_WARNINGS( throw Debug::AssertionViolationException(__FILE__,__LINE__);)  \
+  } \
 
 #define ASS_NEQ(VAL1,VAL2)                                               \
   if (! ((VAL1)!=(VAL2)) ) {                                               \
     Debug::Assertion::violatedNonequality(__FILE__,__LINE__,#VAL1,#VAL2,VAL1,VAL2); \
-    throw Debug::AssertionViolationException(__FILE__,__LINE__);	\
-  }
+    __IGNORE_ASSERTION_WARNINGS(throw Debug::AssertionViolationException(__FILE__,__LINE__);)	\
+  } \
 
 #define ASS_STR_EQ(VAL1,VAL2)                                               \
   if (strcmp((VAL1),(VAL2)) ) {                                               \
     Debug::Assertion::violatedStrEquality(__FILE__,__LINE__,#VAL1,#VAL2,VAL1,VAL2); \
-    throw Debug::AssertionViolationException(__FILE__,__LINE__);	\
-  }
+    __IGNORE_ASSERTION_WARNINGS(throw Debug::AssertionViolationException(__FILE__,__LINE__);	)\
+  } \
 
 
 #define ASS_G(VAL1,VAL2)                                               \
   if (! ((VAL1)>(VAL2)) ) {                                               \
     Debug::Assertion::violatedComparison(__FILE__,__LINE__,#VAL1,#VAL2,VAL1,VAL2,true,true); \
-    throw Debug::AssertionViolationException(__FILE__,__LINE__);	\
-  }
+    __IGNORE_ASSERTION_WARNINGS(throw Debug::AssertionViolationException(__FILE__,__LINE__);)	\
+  } \
+
 #define ASS_L(VAL1,VAL2)                                               \
   if (! ((VAL1)<(VAL2)) ) {                                               \
     Debug::Assertion::violatedComparison(__FILE__,__LINE__,#VAL1,#VAL2,VAL1,VAL2,true,false); \
-    throw Debug::AssertionViolationException(__FILE__,__LINE__);	\
-  }
+    __IGNORE_ASSERTION_WARNINGS(throw Debug::AssertionViolationException(__FILE__,__LINE__);)	\
+  } \
+
 #define ASS_GE(VAL1,VAL2)                                               \
   if (! ((VAL1)>=(VAL2)) ) {                                               \
     Debug::Assertion::violatedComparison(__FILE__,__LINE__,#VAL1,#VAL2,VAL1,VAL2,false,true); \
-    throw Debug::AssertionViolationException(__FILE__,__LINE__);	\
-  }
+    __IGNORE_ASSERTION_WARNINGS(throw Debug::AssertionViolationException(__FILE__,__LINE__);)	\
+  } \
+
 #define ASS_LE(VAL1,VAL2)                                               \
   if (! ((VAL1)<=(VAL2)) ) {                                               \
     Debug::Assertion::violatedComparison(__FILE__,__LINE__,#VAL1,#VAL2,VAL1,VAL2,false,false); \
-    throw Debug::AssertionViolationException(__FILE__,__LINE__);	\
-  }
+    __IGNORE_ASSERTION_WARNINGS(throw Debug::AssertionViolationException(__FILE__,__LINE__);)	\
+  } \
 
 #define ASS_ALLOC_TYPE(PTR,TYPE)						\
   Debug::Assertion::checkType(__FILE__,__LINE__,(PTR),(TYPE), #PTR)
@@ -185,26 +198,44 @@ private:
 #define ASS_METHOD(OBJ,METHOD)							\
   if (! ((OBJ).METHOD) ) {							\
     Debug::Assertion::violatedMethod(__FILE__,__LINE__,(OBJ), #OBJ, #METHOD,"");\
-    throw Debug::AssertionViolationException(__FILE__,__LINE__);	\
+    __IGNORE_ASSERTION_WARNINGS(throw Debug::AssertionViolationException(__FILE__,__LINE__);)	\
   }
 
 #define ASSERT_VALID(obj) try { (obj).assertValid(); } catch(...) \
-  { Debug::Assertion::reportAssertValidException(__FILE__,__LINE__,#obj); throw; }
+  { Debug::Assertion::reportAssertValidException(__FILE__,__LINE__,#obj); \
+    __IGNORE_ASSERTION_WARNINGS(throw;) }
 
 #define ASSERTION_VIOLATION \
   Debug::Assertion::violated(__FILE__,__LINE__,"true");		\
-  throw Debug::AssertionViolationException(__FILE__,__LINE__);
+  __IGNORE_ASSERTION_WARNINGS(throw Debug::AssertionViolationException(__FILE__,__LINE__);) \
+
 #define ASSERTION_VIOLATION_REP(Val) \
   ASS_REP(false, Val)
 #define ASSERTION_VIOLATION_REP2(Val1,Val2) \
   ASS_REP2(false, Val1, Val2)
+
 #else // ! VDEBUG
+
+/* this point in the code is statically unreachable */
+#if defined(__GNUC__)
+// __builtin_unreachable if the GNU dialect is availble: GCC, Clang, ICC
+#define __UNREACHABLE { __builtin_unreachable(); }
+#elif defined(_MSC_VER)
+// __assume(0) if Microsoft-y
+#define __UNREACHABLE { __assume(0); }
+#endif
+#ifndef __UNREACHABLE
+// otherwise, infinite loop - UB and should be optimised out
+#define __UNREACHABLE { while(true) {} }
+#endif
 
 #define DEBUG_CODE(X)
 
-#define ASS(Cond)
-#define ALWAYS(Cond) Cond
-#define NEVER(Cond) Cond
+#define __IGNORE_WUNUSED(...) __PUSH_DIAGNOSTICS("GCC diagnostic ignored \"-Wreturn-type\"", __VA_ARGS__)
+
+#define ASS(Cond) 
+#define ALWAYS(Cond) (void) ( Cond );
+#define NEVER(Cond) (void) ( Cond );
 
 #define ASS_REP(Cond, ReportedVal)
 #define ASS_REP2(Cond, ReportedVal, ReportedVal2)
@@ -221,9 +252,9 @@ private:
 #define ASS_ALLOC_TYPE(PTR,TYPE)
 #define ASS_METHOD(OBJ,METHOD)
 
-#define ASSERTION_VIOLATION
-#define ASSERTION_VIOLATION_REP(Val)
-#define ASSERTION_VIOLATION_REP2(Val1,Val2)
+#define ASSERTION_VIOLATION __UNREACHABLE
+#define ASSERTION_VIOLATION_REP(Val) ASSERTION_VIOLATION
+#define ASSERTION_VIOLATION_REP2(Val1,Val2)  ASSERTION_VIOLATION
 
 #define ASSERT_VALID(obj)
 

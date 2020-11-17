@@ -103,16 +103,15 @@ FormulaUnit* Skolem::skolemiseImpl (FormulaUnit* unit)
     return unit;
   }
 
-  UnitList* premiseList = new UnitList(unit,_skolimizingDefinitions);
+  UnitList* premiseList = new UnitList(unit,_skolimizingDefinitions); // making sure unit is the last inserted, i.e. first in the list
 
-  Inference* inf = new InferenceMany(Inference::SKOLEMIZE,premiseList);
-  FormulaUnit* res = new FormulaUnit(g, inf, unit->inputType());
+  FormulaUnit* res = new FormulaUnit(g,FormulaTransformationMany(InferenceRule::SKOLEMIZE,premiseList));
 
   ASS(_introducedSkolemFuns.isNonEmpty());
   while(_introducedSkolemFuns.isNonEmpty()) {
     unsigned fn = _introducedSkolemFuns.pop();
     InferenceStore::instance()->recordIntroducedSymbol(res,true,fn);
-    if(unit->isGoal()){
+    if(unit->derivedFromGoal()){
       env.signature->getFunction(fn)->markInGoal();
     }
   }
@@ -305,10 +304,8 @@ void Skolem::preskolemise (Formula* f)
   case FALSE:
     return;
 
-#if VDEBUG
   default:
     ASSERTION_VIOLATION_REP(f->connective());
-#endif
   }
 }
 
@@ -454,7 +451,7 @@ Formula* Skolem::skolemise (Formula* f)
           def = new QuantifiedFormula(FORALL,var_args,nullptr,def);
         }
 
-        Unit* defUnit = new FormulaUnit(def, new Inference(Inference::CHOICE_AXIOM), Unit::AXIOM);
+        Unit* defUnit = new FormulaUnit(def,NonspecificInference0(UnitInputType::AXIOM,InferenceRule::CHOICE_AXIOM));
         UnitList::push(defUnit,_skolimizingDefinitions);
       }
 
@@ -469,10 +466,8 @@ Formula* Skolem::skolemise (Formula* f)
   case FALSE:
     return f;
 
-#if VDEBUG
   default:
     ASSERTION_VIOLATION;
-#endif
   }
 } // Skolem::skolemise
 

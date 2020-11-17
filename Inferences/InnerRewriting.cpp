@@ -55,8 +55,7 @@ bool InnerRewriting::perform(Clause* cl, Clause*& replacement, ClauseIterator& p
               return true;
             }
 
-            Inference* inf = new Inference1(Inference::INNER_REWRITING, cl);
-            Clause* res = new(len) Clause(len, cl->inputType(), inf);
+            Clause* res = new(len) Clause(len,SimplifyingInference1(InferenceRule::INNER_REWRITING, cl));
 
             for (unsigned k = 0; k < len; k++) {
               if (k == i) {

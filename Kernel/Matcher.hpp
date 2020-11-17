@@ -62,14 +62,19 @@ public:
   }
 
   /**
-   * Matches two literals, using @b binder to store and check bindings
-   * of base variables. @b binder must be a functor with parameters
-   * (unsigned var, TermList term), that in case variable @b var is
-   * unbound, binds it to @b term and returns true, if @b var is
-   * bound, returns true iff it is bound to @b term. @b binder also
-   * must contain function reset() that resets the binding. The
-   * @b binder is reset by the function also for the first time if
-   * needed.
+   * Matches two literals,
+   * using @b binder to store and check bindings of base variables.
+   *
+   * @b binder must have the following functions:
+   * - void reset()
+   *   resets the bindings,
+   * - bool bind(unsigned var, TermList term)
+   *   if variable @b var is unbound, binds it to @b term and returns true,
+   *   otherwise returns true iff it is bound to @b term,
+   * - void specVar(unsigned var, TermList term)
+   *   called to bind special variable @b var to @b term.
+   *
+   * The @b binder will be reset before the first time it is used.
    */
   template<class Binder>
   static bool match(Literal* base, Literal* instance, bool complementary, Binder& binder)
@@ -286,10 +291,9 @@ private:
 
 /**
  * Matches two terms, using @b binder to store and check bindings
- * of base variables. @b binder must be a functor with parameters
- * (unsigned var, TermList term), that in case variable @b var is
- * unbound, binds it to @b term and returns true, if @b var is
- * bound, returns true iff it is bound to @b term.
+ * of base variables.
+ *
+ * See MatchingUtils::match for a description of @b binder.
  */
 template<class Binder>
 bool MatchingUtils::matchArgs(Term* base, Term* instance, Binder& binder)

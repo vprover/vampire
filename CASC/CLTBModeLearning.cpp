@@ -227,8 +227,9 @@ void CLTBModeLearning::solveBatch(istream& batchFile, bool first,vstring inputDi
     int resValue;
     // wait until the child terminates
     try {
-      pid_t finishedChild = Multiprocessing::instance()->waitForChildTermination(resValue);
-      ASS_EQ(finishedChild, child);
+      ALWAYS(
+        Multiprocessing::instance()->waitForChildTermination(resValue) == child
+      );
     }
     catch(SystemFailException& ex) {
       cerr << "% SystemFailException at batch level" << endl;
@@ -296,12 +297,12 @@ void CLTBModeLearning::loadIncludes()
       parser.parse();
       UnitList* funits = parser.units();
       if (parser.containsConjecture()) {
-	USER_ERROR("Axiom file " + fname + " contains a conjecture.");
+        USER_ERROR("Axiom file " + fname + " contains a conjecture.");
       }
 
       UnitList::Iterator fuit(funits);
       while (fuit.hasNext()) {
-	fuit.next()->markIncluded();
+        fuit.next()->inference().markIncluded();
       }
       theoryAxioms=UnitList::concat(funits,theoryAxioms);
     }
@@ -360,8 +361,9 @@ void CLTBModeLearning::doTraining(int time, bool startup)
     }
     int resValue;
     try {
-      pid_t finishedChild = Multiprocessing::instance()->waitForChildTermination(resValue);
-      ASS_EQ(finishedChild, child);
+      ALWAYS(
+        Multiprocessing::instance()->waitForChildTermination(resValue) == child
+      );
     }
     catch(SystemFailException& ex) {
       cerr << "% SystemFailException at batch level" << endl;
@@ -791,6 +793,9 @@ void CLTBModeLearning::fillSchedule(CLTBModeLearning::Schedule& sched) {
  * @param terminationTime the time in milliseconds since the prover starts when
  *        the strategy should terminate
  * @param timeLimit in milliseconds
+ * @param property
+ * @param quick
+ * @param stopOnProof
  * @author Krystof Hoder
  * @since 04/06/2013 flight Frankfurt-Vienna, updated for CASC-J6
  * @author Andrei Voronkov
@@ -820,6 +825,8 @@ void CLTBProblemLearning::performStrategy(int terminationTime,int timeLimit,  Sh
  * actual proof search.
  * @param terminationTime the time in milliseconds since the prover start
  * @param timeLimit time limit in milliseconds
+ * @param strats
+ * @param stopOnProof
  * @since 04/06/2013 flight Manchester-Frankfurt
  * @author Andrei Voronkov
  */

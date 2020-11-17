@@ -212,8 +212,9 @@ void CLTBMode::solveBatch(istream& batchFile, bool first,vstring inputDirectory)
     int resValue;
     // wait until the child terminates
     try {
-      pid_t finishedChild = Multiprocessing::instance()->waitForChildTermination(resValue);
-      ASS_EQ(finishedChild, child);
+      ALWAYS(
+        Multiprocessing::instance()->waitForChildTermination(resValue) == child
+      );
     }
     catch(SystemFailException& ex) {
       cerr << "% SystemFailException at batch level" << endl;
@@ -268,12 +269,12 @@ void CLTBMode::loadIncludes()
       parser.parse();
       UnitList* funits = parser.units();
       if (parser.containsConjecture()) {
-	USER_ERROR("Axiom file " + fname + " contains a conjecture.");
+        USER_ERROR("Axiom file " + fname + " contains a conjecture.");
       }
 
       UnitList::Iterator fuit(funits);
       while (fuit.hasNext()) {
-	fuit.next()->markIncluded();
+        fuit.next()->inference().markIncluded();
       }
       theoryAxioms=UnitList::concat(funits,theoryAxioms);
     }
@@ -327,7 +328,7 @@ void CLTBMode::learnFromSolutionFile(vstring& solnFileName)
     UnitList::DelIterator it(solnUnits);
     while (it.hasNext()) {
       Unit* unit = it.next();
-      if (unit->inputType()==Unit::AXIOM){
+      if (unit->inputType()==UnitInputType::AXIOM){
         if (sources->find(unit)){
           if (sources->get(unit)->isFile()){
             vstring name = static_cast<Parse::TPTP::FileSourceRecord*>(sources->get(unit))->nameInFile;
@@ -631,6 +632,8 @@ void CLTBProblem::fillSchedule(Schedule& sched,const Shell::Property* property,i
  * @param terminationTime the time in milliseconds since the prover starts when
  *        the strategy should terminate
  * @param timeLimit in milliseconds
+ * @param category
+ * @param property
  * @author Krystof Hoder
  * @since 04/06/2013 flight Frankfurt-Vienna, updated for CASC-J6
  * @author Andrei Voronkov
@@ -653,7 +656,7 @@ void CLTBProblem::performStrategy(int terminationTime,int timeLimit,Category cat
   }
   Schedule fallback;
   Schedule fallback2;
-  Schedules::getCasc2018Schedule(*property,fallback,fallback2);
+  Schedules::getCasc2019Schedule(*property,fallback,fallback2);
   runSchedule(fallback,usedSlices,terminationTime);
   runSchedule(fallback2,usedSlices,terminationTime);
 } // CLTBProblem::performStrategy
@@ -665,6 +668,7 @@ void CLTBProblem::performStrategy(int terminationTime,int timeLimit,Category cat
  * actual proof search.
  * @param terminationTime the time in milliseconds since the prover start
  * @param timeLimit time limit in milliseconds
+ * @param category
  * @since 04/06/2013 flight Manchester-Frankfurt
  * @author Andrei Voronkov
  */
@@ -684,7 +688,6 @@ void CLTBProblem::searchForProof(int terminationTime,int timeLimit,const Categor
 
   Stack<unsigned> cutoffs;
   if (env.options->ltbLearning() != Options::LTBLearning::OFF){
-    env.clausePriorities = new DHMap<const Unit*,unsigned>();
 
     if (parent->_biasedLearning){
       unsigned cutoff = parent->_learnedFormulasMaxCount/2;
@@ -693,8 +696,6 @@ void CLTBProblem::searchForProof(int terminationTime,int timeLimit,const Categor
         //cout << "create cutoff " << cutoff << endl;
         cutoff /= 2;
       }
-
-      env.maxClausePriority = cutoffs.length();
     }
   }
 
@@ -721,36 +722,6 @@ void CLTBProblem::searchForProof(int terminationTime,int timeLimit,const Categor
     UIHelper::setConjecturePresence(parser.containsConjecture());
     prb.addUnits(probUnits);
 
-    // Now we iterate over all units in the problem and populate
-    // clausePriorities from learnedFormulas
-    if (env.options->ltbLearning() != Options::LTBLearning::OFF){
-      unsigned learnedAdded = 0;
-      UnitList::Iterator uit(prb.units());
-      while (uit.hasNext()){
-        Unit* u = uit.next();
-        if (u->inputType()!=Unit::AXIOM) continue;
-        vstring name;
-        if (Parse::TPTP::findAxiomName(u,name)){
-          if (parent->_learnedFormulas.contains(name)){
-            learnedAdded++;
-            unsigned priority = 1;
-            if (parent->_biasedLearning){
-              ASS(parent->_learnedFormulasCount.find(name));
-              unsigned count = parent->_learnedFormulasCount.get(name);
-              for(;;priority++){
-                if (cutoffs[priority-1] <= count) break;
-              }
-            }
-            env.clausePriorities->insert(u,priority);
-            //cout << "insert " << name << " with " << priority << endl;
-          }
-        }
-        else{ 
-          ASSERTION_VIOLATION; 
-        }
-      }
-      cout << "Marked " << learnedAdded << " as learned formulas" << endl;
-    }
     env.options->setOutputAxiomNames(outputAxiomValue);
   }
 

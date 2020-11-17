@@ -51,7 +51,7 @@ public:
   unsigned createSpareSatVar();
 
   void collectAssignment(SATSolver& solver, LiteralStack& res) const;
-  SATClause* createConflictClause(LiteralStack& unsatCore, Inference::Rule rule=Inference::SAT_CONFLICT_CLAUSE);
+  SATClause* createConflictClause(LiteralStack& unsatCore, InferenceRule rule=InferenceRule::THEORY_TAUTOLOGY_SAT_CONFLICT);
 
   unsigned maxSATVar() const { return _posMap.getNumberUpperBound(); }
   

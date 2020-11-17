@@ -64,11 +64,10 @@ public:
   /** Currently used timer, this is used by all timers as a global clock */
   Timer* timer;
 
-  DHMap<const Kernel::Unit*,unsigned>* clausePriorities;
-  unsigned maxClausePriority;
-
-  DHMap<const Kernel::Unit*,unsigned>* clauseSineLevels;
+  unsigned char maxSineLevel;
   DHMap<unsigned, unsigned>* predicateSineLevels;
+
+  DHMap<void*,vstring>* proofExtra; // maps Unit* pointers to the associated proof extra string, if available
 
   bool haveOutput();
   void beginOutput();

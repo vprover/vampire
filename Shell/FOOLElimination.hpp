@@ -114,9 +114,6 @@ private:
   static const char* LET_PREFIX;
   static const char* BOOL_PREFIX;
 
-  // The inout type of introduced definitions of fresh symbols
-  static const Unit::InputType DEFINITION_INPUT_TYPE;
-
   // Report that a given formula or a term has been rewritten during defooling
   // The term or formula is passed as its string representation
   static void reportProcessed(vstring inputRepr, vstring outputRepr);

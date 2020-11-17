@@ -69,15 +69,10 @@ Clause* DistinctEqualitySimplifier::simplify(Clause* cl)
   prems.push(cl);
   UnitList* premLst = 0;
   UnitList::pushFromIterator(Stack<Unit*>::Iterator(prems), premLst);
-  Inference* inf;
-  if(premLst) {
-    inf = new InferenceMany(Inference::DISTINCT_EQUALITY_REMOVAL, premLst);
-  }
-  else {
-    inf = new Inference(Inference::DISTINCT_EQUALITY_REMOVAL);
-  }
-  Unit::InputType inpType = cl->inputType();
-  Clause* res = Clause::fromStack(lits, inpType, inf);
+  ASS(premLst); // at least, because of "prems.push(cl);" above
+
+  Clause* res = Clause::fromStack(lits,
+      SimplifyingInferenceMany(InferenceRule::DISTINCT_EQUALITY_REMOVAL, premLst));
   return res;
 }
 

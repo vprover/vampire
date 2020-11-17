@@ -705,16 +705,12 @@ Clause* FunctionDefinition::applyDefinitions(Clause* cl)
   }
 
   UnitList* premises=0;
-  Unit::InputType inpType = cl->inputType();
   while(usedDefs.isNonEmpty()) {
     Clause* defCl=usedDefs.pop()->defCl;
     UnitList::push(defCl, premises);
-    inpType = (Unit::InputType)	Int::max(inpType, defCl->inputType());
   }
   UnitList::push(cl, premises);
-  Inference* inf = new InferenceMany(Inference::DEFINITION_UNFOLDING, premises);
-
-  Clause* res = new(clen) Clause(clen, inpType, inf);
+  Clause* res = new(clen) Clause(clen, NonspecificInferenceMany(InferenceRule::DEFINITION_UNFOLDING, premises));
   res->setAge(cl->age());
 
   for(unsigned i=0;i<clen;i++) {
@@ -748,7 +744,7 @@ FunctionDefinition::Def*
 FunctionDefinition::isFunctionDefinition (Unit& unit)
 {
   CALL("FunctionDefinition::isFunctionDefinition(const Unit&)");
-  if(unit.isGoal() && env.options->ignoreConjectureInPreprocessing()){
+  if(unit.derivedFromGoal() && env.options->ignoreConjectureInPreprocessing()){
     return 0;
   }
 

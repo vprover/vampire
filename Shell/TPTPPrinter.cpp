@@ -59,7 +59,7 @@ void TPTPPrinter::print(Unit* u)
 {
   CALL("TPTPPrinter::print");
 
-  vstring body = getBodyStr(u);
+  vstring body = getBodyStr(u, true);
 
   beginOutput();
   ensureHeadersPrinted(u);
@@ -68,30 +68,35 @@ void TPTPPrinter::print(Unit* u)
 }
 
 /**
- * Print on the desired output the Unit @param u with the specified name @param name
+ * Print on the desired output the Unit with the specified name
  * @param name
  * @param u
  */
 void TPTPPrinter::printAsClaim(vstring name, Unit* u)
 {
   CALL("TPTPPrinter::printAsClaim");
-  vstring body = getBodyStr(u);
+  printWithRole(name, "claim", u);
+}
+
+void TPTPPrinter::printWithRole(vstring name, vstring role, Unit* u, bool includeSplitLevels)
+{
+  CALL("TPTPPrinter::printWithRole");
+
+  vstring body = getBodyStr(u, includeSplitLevels);
 
   beginOutput();
-
   ensureHeadersPrinted(u);
-
-  tgt() << "tff(" << name << ", claim, " << body << ")." << endl;
-
+  tgt() << "tff(" << name << ", " << role << ", " << body << ")." << endl;
   endOutput();
 }
 
 /**
  * Return as a vstring the body of the Unit u
  * @param u
+ * @param includeSplitLevels
  * @return the body vstring
  */
-vstring TPTPPrinter::getBodyStr(Unit* u)
+vstring TPTPPrinter::getBodyStr(Unit* u, bool includeSplitLevels)
 {
   CALL("TPTPPrinter::getBodyStr");
 
@@ -139,11 +144,11 @@ vstring TPTPPrinter::getBodyStr(Unit* u)
       res << ')';
     }
 
-    if(!cl->noSplits()) {
+    if(includeSplitLevels && !cl->noSplits()) {
       SplitSet::Iterator sit(*cl->splits());
       while(sit.hasNext()) {
-	SplitLevel split = sit.next();
-	res << " | " << "$splitLevel" << split;
+        SplitLevel split = sit.next();
+        res << " | " << "$splitLevel" << split;
       }
     }
   }
@@ -172,17 +177,17 @@ void TPTPPrinter::printTffWrapper(Unit* u, vstring bodyStr)
   }
   tgt() << ", ";
   switch(u->inputType()) {
-  case Unit::AXIOM:
+  case UnitInputType::AXIOM:
     tgt() << "axiom"; break;
-  case Unit::ASSUMPTION:
+  case UnitInputType::ASSUMPTION:
     tgt() << "hypothesis"; break;
-  case Unit::CONJECTURE:
+  case UnitInputType::CONJECTURE:
     tgt() << "conjecture"; break;
-  case Unit::NEGATED_CONJECTURE:
+  case UnitInputType::NEGATED_CONJECTURE:
     tgt() << "negated_conjecture"; break;
-  case Unit::CLAIM:
+  case UnitInputType::CLAIM:
     tgt() << "claim"; break;
-  case Unit::EXTENSIONALITY_AXIOM:
+  case UnitInputType::EXTENSIONALITY_AXIOM:
     tgt() << "extensionality"; break;
   default:
      ASSERTION_VIOLATION;
@@ -191,7 +196,7 @@ void TPTPPrinter::printTffWrapper(Unit* u, vstring bodyStr)
 }
 
 /**
- * Output the symbol @param symNumber definition
+ * Output the symbol definition
  * @param symNumber
  * @param function - true if the symbol is a function symbol
  */
@@ -207,6 +212,8 @@ void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, bool function)
     return;
   }
   if(function && theory->isInterpretedConstant(symNumber)) { return; }
+
+  if (function && sym->overflownConstant()) { return; }
 
   if(sym->interpreted()) {
     Interpretation interp = static_cast<Signature::InterpretedSymbol*>(sym)->getInterpretation();
@@ -225,7 +232,10 @@ void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, bool function)
       << sym->name() << ": ";
 
   unsigned arity = sym->arity();
-  if(arity>0) {
+  if (arity == 1) {
+    tgt() << env.sorts->sortName(type->arg(0)) << " > ";
+  }
+  else if (arity > 1) {
     tgt() << "(";
     for(unsigned i=0; i<arity; i++) {
       if(i>0) {
@@ -235,12 +245,14 @@ void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, bool function)
     }
     tgt() << ") > ";
   }
+
   if(function) {
     tgt() << env.sorts->sortName(sym->fnType()->result());
   }
   else {
     tgt() << "$o";
   }
+
   tgt() << " )." << endl;
 }
 
@@ -266,11 +278,10 @@ void TPTPPrinter::ensureNecesarySorts()
     sym = env.signature->getFunction(i);
     type = sym->fnType();
     unsigned arity = sym->arity();
-    if (arity > 0) {
-      for (unsigned i = 0; i < arity; i++) {
-	if(! List<unsigned>::member(type->arg(i), _usedSorts))
-          List<unsigned>::push(type->arg(i), _usedSorts);
-      }
+    // NOTE: for function types, the last entry (i.e., type->arg(arity)) contains the type of the result
+    for (unsigned i = 0; i <= arity; i++) {
+      if(! List<unsigned>::member(type->arg(i), _usedSorts))
+        List<unsigned>::push(type->arg(i), _usedSorts);
     }
   }
   //check the sorts of the predicates and collect information about used sorts
@@ -515,11 +526,11 @@ vstring TPTPPrinter::toString (const Unit* unit)
   bool negate_formula = false;
   vstring kind;
   switch (unit->inputType()) {
-  case Unit::ASSUMPTION:
+  case UnitInputType::ASSUMPTION:
     kind = "hypothesis";
     break;
 
-  case Unit::CONJECTURE:
+  case UnitInputType::CONJECTURE:
     if(unit->isClause()) {
       kind = "negated_conjecture";
     }
@@ -529,11 +540,11 @@ vstring TPTPPrinter::toString (const Unit* unit)
     }
     break;
 
-  case Unit::EXTENSIONALITY_AXIOM:
+  case UnitInputType::EXTENSIONALITY_AXIOM:
     kind = "extensionality";
     break;
 
-  case Unit::NEGATED_CONJECTURE:
+  case UnitInputType::NEGATED_CONJECTURE:
     kind = "negated_conjecture";
     break;
 

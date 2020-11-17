@@ -52,9 +52,7 @@ FormulaUnit* NNF::ennf(FormulaUnit* unit)
     return unit;
   }
 
-  FormulaUnit* res = new FormulaUnit(g,
-			 new Inference1(Inference::ENNF,unit),
-			 unit->inputType());
+  FormulaUnit* res = new FormulaUnit(g,FormulaTransformation(InferenceRule::ENNF,unit));
 
   if (env.options->showPreprocessing()) {
     env.beginOutput();
@@ -84,9 +82,7 @@ FormulaUnit* NNF::nnf(FormulaUnit* unit)
     return unit;
   }
 
-  return new FormulaUnit(g,
-			 new Inference1(Inference::NNF,unit),
-			 unit->inputType());
+  return new FormulaUnit(g,FormulaTransformation(InferenceRule::NNF,unit));
 } // NNF::nnf
 
 
@@ -209,10 +205,8 @@ Formula* NNF::ennf (Formula* f, bool polarity)
 	return Formula::trueFormula();
       }
     }
-#if VDEBUG
   default:
     ASSERTION_VIOLATION;
-#endif
   }
 } // NNF::ennf(Formula&);
 
@@ -517,11 +511,13 @@ Formula* NNF::nnf (Formula* f, bool polarity)
   case TRUE:
   case FALSE:
     return f;
-#if VDEBUG
-  default:
+
+  case NAME:
+  case NOCONN:
     ASSERTION_VIOLATION;
-#endif
   }
+
+  ASSERTION_VIOLATION;
 } // NNF::nnf(Formula*);
 
 
