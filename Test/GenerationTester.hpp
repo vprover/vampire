@@ -17,14 +17,9 @@
 #include "Saturation/Otter.hpp"
 #include "Kernel/Problem.hpp"
 #include "Shell/Options.hpp"
+#include "Test/MockedSaturationAlgorithm.hpp"
 
 namespace Test {
-
-
-class MockedSaturationAlgorithm : public Saturation::Otter {
-public:
-  MockedSaturationAlgorithm(Problem& p, Options& o) : Otter(p,o) {}
-};
 
 template<class... As> void __voidWrapper(As...) { }
 
@@ -41,7 +36,7 @@ Stack<ClausePattern> exactly(As... as)
 }
 
 namespace Generation {
-struct TestCase;
+class TestCase;
 
 template<class Rule>
 class GenerationTester
@@ -56,14 +51,47 @@ public:
   virtual bool eq(Kernel::Clause const* lhs, Kernel::Clause const* rhs) const 
   { return TestUtils::eqModAC(lhs, rhs); }
 
-  friend struct TestCase;
+  friend class TestCase;
 };
 
-struct TestCase
+class TestCase
 {
-  Kernel::Clause* input;
-  Stack<ClausePattern> generated;
-  bool premiseRedundant;
+  Kernel::Clause* _input;
+  Stack<ClausePattern> _generated;
+  bool _premiseRedundant;
+
+  template<class Is, class Expected>
+  void testFail(Is const& is, Expected const& expected) {
+      cout  << endl;
+      cout << "[     case ]: " << pretty(*_input) << endl;
+      cout << "[       is ]: " << pretty(is) << endl;
+      cout << "[ expected ]: " << pretty(expected) << endl;
+      exit(-1);
+  }
+
+public:
+
+  TestCase() : _input(NULL), _generated(), _premiseRedundant(false) {}
+
+
+  TestCase input(Kernel::Clause* input) 
+  { 
+    this->_input = input; 
+    return *this;
+  }
+
+  TestCase generated(Stack<ClausePattern> generated)
+  {
+    this->_generated = generated;
+    return *this;
+  }
+
+  TestCase premiseRedundant(bool premiseRedundant)
+  {
+    this->_premiseRedundant = premiseRedundant;
+    return *this;
+  }
+
 
   template<class Rule>
   void run(GenerationTester<Rule>& simpl) {
@@ -75,11 +103,11 @@ struct TestCase
     simpl._rule.Inferences::SimplifyingGeneratingInference::attach(&alg);
 
     // run rule
-    auto res = simpl._rule.generateSimplify(input);
+    auto res = simpl._rule.generateSimplify(_input);
 
     // run checks
 
-    auto& sExp = this->generated;
+    auto& sExp = this->_generated;
     auto  sRes = Stack<Kernel::Clause*>::fromIterator(res.clauses);
 
     auto iExp = getArrayishObjectIterator<mut_ref_t>(sExp);
@@ -89,37 +117,17 @@ struct TestCase
       auto& exp = iExp.next();
       auto& res = iRes.next();
       if (!exp.matches(simpl, res)) {
-        cout  << endl;
-        cout << "[     case ]: " << pretty(*input) << endl;
-        cout << "[       is ]: " << pretty(sRes) << endl;
-        cout << "[ expected ]: " << pretty(sExp) << endl;
-        exit(-1);
+        testFail(sRes, sExp);
       }
     }
 
-    if (iExp.hasNext()) {
-      cout  << endl;
-      cout << "[     case ]: " << pretty(*input) << endl;
-      cout << "[       is ]: " << pretty(sRes) << endl;
-      cout << "[ expected ]: " << pretty(sExp) << endl;
-      exit(-1);
+    if (iExp.hasNext() || iRes.hasNext()) {
+      testFail(sRes, sExp);
     }
 
-
-    if (iRes.hasNext()) {
-      cout  << endl;
-      cout << "[     case ]: " << pretty(*input) << endl;
-      cout << "[       is ]: " << pretty(sRes) << endl;
-      cout << "[ expected ]: " << pretty(sExp) << endl;
-      exit(-1);
-    }
-
-    if (premiseRedundant != res.premiseRedundant) {
-        cout  << endl;
-        cout << "[     case ]: " << pretty(*input) << endl;
-        cout << "[       is ]: premise is" << ( res.premiseRedundant ? "" : " not" ) << " redundant"  << endl;
-        cout << "[ expected ]: premise is" << (     premiseRedundant ? "" : " not" ) << " redundant"  << endl;
-        exit(-1);
+    if (_premiseRedundant != res.premiseRedundant) {
+      auto wrapStr = [](bool b) { return b ? "premise is redundant" : "premis not redundant"; };
+      testFail( wrapStr(res.premiseRedundant), wrapStr(_premiseRedundant));
     }
 
     // tear down saturation algorithm

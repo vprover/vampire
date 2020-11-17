@@ -723,37 +723,37 @@ set(VAMPIRE_TESTING_SOURCES
 source_group(testing_files FILES ${VAMPIRE_TESTING_SOURCES})
 
 set(UNIT_TESTS
-    UnitTests/tDHMap.cpp
-    UnitTests/tQuotientE.cpp
-    UnitTests/tImplicationSetClosure.cpp
-    UnitTests/tUnificationWithAbstraction.cpp
+    # UnitTests/tDHMap.cpp
+    # UnitTests/tQuotientE.cpp
+    # UnitTests/tImplicationSetClosure.cpp
+    # UnitTests/tUnificationWithAbstraction.cpp
     UnitTests/tGaussianElimination.cpp
-    UnitTests/tArithmeticSubtermGeneralization.cpp
-    UnitTests/tInterpretedFunctions.cpp
-    UnitTests/tRebalance.cpp
-    UnitTests/tDisagreement.cpp
-    UnitTests/tDynamicHeap.cpp
-    UnitTests/tIntegerConstantType.cpp
-    UnitTests/tSATSolver.cpp
-    UnitTests/tArithCompare.cpp
-    UnitTests/tSyntaxSugar.cpp
-    UnitTests/tSkipList.cpp
-    UnitTests/tfork.cpp
-    UnitTests/tBinaryHeap.cpp
-    UnitTests/tSafeRecursion.cpp
-    UnitTests/tKBO.cpp
-    UnitTests/tRatioKeeper.cpp
-    UnitTests/tTwoVampires.cpp
-    UnitTests/tOptionConstraints.cpp
-    UnitTests/tSCCAnalyzer.cpp
-    UnitTests/tDHMultiset.cpp
-    UnitTests/tList.cpp
-    UnitTests/tBottomUpEvaluation.cpp
-    UnitTests/tCoproduct.cpp
-    UnitTests/tEqualityResolution.cpp
-    UnitTests/tIterator.cpp
-    UnitTests/tOption.cpp
-    UnitTests/tStack.cpp
+    # UnitTests/tArithmeticSubtermGeneralization.cpp
+    # UnitTests/tInterpretedFunctions.cpp
+    # UnitTests/tRebalance.cpp
+    # UnitTests/tDisagreement.cpp
+    # UnitTests/tDynamicHeap.cpp
+    # UnitTests/tIntegerConstantType.cpp
+    # UnitTests/tSATSolver.cpp
+    # UnitTests/tArithCompare.cpp
+    # UnitTests/tSyntaxSugar.cpp
+    # UnitTests/tSkipList.cpp
+    # UnitTests/tfork.cpp
+    # UnitTests/tBinaryHeap.cpp
+    # UnitTests/tSafeRecursion.cpp
+    # UnitTests/tKBO.cpp
+    # UnitTests/tRatioKeeper.cpp
+    # UnitTests/tTwoVampires.cpp
+    # UnitTests/tOptionConstraints.cpp
+    # UnitTests/tSCCAnalyzer.cpp
+    # UnitTests/tDHMultiset.cpp
+    # UnitTests/tList.cpp
+    # UnitTests/tBottomUpEvaluation.cpp
+    # UnitTests/tCoproduct.cpp
+    # UnitTests/tEqualityResolution.cpp
+    # UnitTests/tIterator.cpp
+    # UnitTests/tOption.cpp
+    # UnitTests/tStack.cpp
     )
 source_group(unit_tests FILES ${UNIT_TESTS})
 
