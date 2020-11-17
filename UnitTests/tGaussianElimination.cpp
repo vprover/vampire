@@ -81,10 +81,10 @@ REGISTER_SIMPL_TESTER(GveSimplTester)
  * See Test/SyntaxSugar.hpp for which kinds of syntax sugar are available
  */
 #define MY_SYNTAX_SUGAR                                                                                       \
-  THEORY_SYNTAX_SUGAR(Real)                                                                                   \
-  THEORY_SYNTAX_SUGAR_FUN(f, 1)                                                                               \
-  THEORY_SYNTAX_SUGAR_PRED(p, 1)                                                                              \
-  THEORY_SYNTAX_SUGAR_PRED(q, 1)                                                                              \
+  NUMBER_SUGAR(Real)                                                                                          \
+  NUMBER_SUGAR_FUN(f, 1)                                                                                      \
+  NUMBER_SUGAR_PRED(p, 1)                                                                                     \
+  NUMBER_SUGAR_PRED(q, 1)                                                                                     \
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////// TEST CASES

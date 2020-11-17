@@ -52,10 +52,10 @@ void test_rebalance(Literal* lit, initializer_list<expected_t> expected);
 
 #define TEST_REBALANCE(name, type, equality, __list)                                                          \
     TEST_FUN(name ## _ ## type) {                                                                             \
-      THEORY_SYNTAX_SUGAR(type)                                                                               \
+      NUMBER_SUGAR(type)                                                                                      \
       _Pragma("GCC diagnostic push")                                                                          \
       _Pragma("GCC diagnostic ignored \"-Wunused\"")                                                          \
-        THEORY_SYNTAX_SUGAR_FUN(f, 1)                                                                         \
+        NUMBER_SUGAR_FUN(f, 1)                                                                                \
       _Pragma("GCC diagnostic pop")                                                                           \
       test_rebalance<ToConstantType(type)>((equality), __expand ## __list);                                   \
     }                                                                                                         \
@@ -64,7 +64,7 @@ void test_rebalance(Literal* lit, initializer_list<expected_t> expected);
 /*
 #define TEST_LIST(test_name, equality, __list)                                                                \
     TEST_FUN(test_name) {                                                                                     \
-      THEORY_SYNTAX_SUGAR(Rat)                                                                                \
+      NUMBER_SUGAR(Rat)                                                                                       \
       _Pragma("GCC diagnostic push")                                                                          \
       _Pragma("GCC diagnostic ignored \"-Wunused\"")                                                          \
         SYNTAX_SUGAR_SORT(list)                                                                               \
@@ -88,7 +88,7 @@ void test_rebalance(Literal* lit, initializer_list<expected_t> expected);
 
 #define TEST_ARRAY(test_name, equality, __list)                                                               \
     TEST_FUN(test_name) {                                                                                     \
-      THEORY_SYNTAX_SUGAR(Rat)                                                                                \
+      NUMBER_SUGAR(Rat)                                                                                       \
       _Pragma("GCC diagnostic push")                                                                          \
       _Pragma("GCC diagnostic ignored \"-Wunused\"")                                                          \
         SYNTAX_SUGAR_SORT(idxSrt)                                                                             \

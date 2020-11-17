@@ -61,13 +61,13 @@ public:
 REGISTER_SIMPL_TESTER(SimplificationTester)
 
 #define SIMPL_SUGAR_(num)                                                                                     \
-  THEORY_SYNTAX_SUGAR(num)                                                                                    \
-  THEORY_SYNTAX_SUGAR_PRED(p, 1)                                                                              \
-  THEORY_SYNTAX_SUGAR_PRED(p1, 1)                                                                             \
-  THEORY_SYNTAX_SUGAR_PRED(p2, 1)                                                                             \
-  THEORY_SYNTAX_SUGAR_PRED(p3, 1)                                                                             \
-  THEORY_SYNTAX_SUGAR_PRED(r, 2)                                                                              \
-  THEORY_SYNTAX_SUGAR_FUN (f, 1)                                                                              \
+  NUMBER_SUGAR(num)                                                                                           \
+  NUMBER_SUGAR_PRED(p, 1)                                                                                     \
+  NUMBER_SUGAR_PRED(p1, 1)                                                                                    \
+  NUMBER_SUGAR_PRED(p2, 1)                                                                                    \
+  NUMBER_SUGAR_PRED(p3, 1)                                                                                    \
+  NUMBER_SUGAR_PRED(r, 2)                                                                                     \
+  NUMBER_SUGAR_FUN (f, 1)                                                                                     \
 
 #define TEST_SIMPLIFY_FRACTIONAL(name, ...)                                                                   \
     TEST_SIMPLIFY_WITH_SUGAR(CAT(name, _Real), SIMPL_SUGAR_(Real), __VA_ARGS__)                               \

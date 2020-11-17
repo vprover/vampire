@@ -21,12 +21,12 @@ REGISTER_GEN_TESTER(Test::Generation::GenerationTester<Inferences::EqualityResol
  * See Test/SyntaxSugar.hpp for which kinds of syntax sugar are available
  */
 #define MY_SYNTAX_SUGAR                                                                                       \
-  FOF_SYNTAX_SUGAR                                                                                            \
-  FOF_SYNTAX_SUGAR_FUN  (f, 1)                                                                                \
-  FOF_SYNTAX_SUGAR_FUN  (g, 1)                                                                                \
-  FOF_SYNTAX_SUGAR_CONST(a)                                                                                   \
-  FOF_SYNTAX_SUGAR_PRED (p, 1)                                                                                \
-  FOF_SYNTAX_SUGAR_PRED (q, 1)                                                                                \
+  UNSORTED_SUGAR                                                                                              \
+  UNSORTED_SUGAR_FUN  (f, 1)                                                                                  \
+  UNSORTED_SUGAR_FUN  (g, 1)                                                                                  \
+  UNSORTED_SUGAR_CONST(a)                                                                                     \
+  UNSORTED_SUGAR_PRED (p, 1)                                                                                  \
+  UNSORTED_SUGAR_PRED (q, 1)                                                                                  \
 
 
 /** Defines a test case. */

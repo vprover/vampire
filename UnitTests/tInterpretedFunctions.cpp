@@ -204,15 +204,15 @@ void check_eval(Lit orig_, Lit expected_) {
 #define ADDITIONAL_FUNCTIONS                                                                                  \
       _Pragma("GCC diagnostic push")                                                                          \
       _Pragma("GCC diagnostic ignored \"-Wunused\"")                                                          \
-        THEORY_SYNTAX_SUGAR_FUN(f, 1)                                                                         \
-        THEORY_SYNTAX_SUGAR_FUN(f2, 2)                                                                        \
-        THEORY_SYNTAX_SUGAR_PRED(p, 1)                                                                        \
-        THEORY_SYNTAX_SUGAR_PRED(r, 2)                                                                        \
+        NUMBER_SUGAR_FUN(f, 1)                                                                                \
+        NUMBER_SUGAR_FUN(f2, 2)                                                                               \
+        NUMBER_SUGAR_PRED(p, 1)                                                                               \
+        NUMBER_SUGAR_PRED(r, 2)                                                                               \
       _Pragma("GCC diagnostic pop")                                                                           \
 
 #define NUM_TEST(NUM, name, formula, expected)                                                                \
     TEST_FUN(name ## _ ## NUM) {                                                                              \
-      THEORY_SYNTAX_SUGAR(NUM);                                                                               \
+      NUMBER_SUGAR(NUM);                                                                                      \
       ADDITIONAL_FUNCTIONS                                                                                    \
       check_eval(( formula ), ( expected ));                                                                  \
     }                                                                                                         \
