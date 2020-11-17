@@ -132,6 +132,7 @@
 #define THEORY_SYNTAX_SUGAR(sort)                                                                             \
   _Pragma("GCC diagnostic push")                                                                              \
   _Pragma("GCC diagnostic ignored \"-Wunused\"")                                                              \
+  _Pragma("GCC diagnostic ignored \"-Wunused-but-set-variable\"")                                             \
     using DefaultSort = NumTraits<__CONSTANT_TYPE_ ## sort>;                                                  \
     using TermWrapper = Trm<DefaultSort>;                                                                     \
     DefaultSort __defaultSort;                                                                                \
@@ -164,6 +165,7 @@
 #define FOF_SYNTAX_SUGAR                                                                                      \
   _Pragma("GCC diagnostic push")                                                                              \
   _Pragma("GCC diagnostic ignored \"-Wunused\"")                                                              \
+  _Pragma("GCC diagnostic ignored \"-Wunused-but-set-variable\"")                                             \
     using DefaultSort = UninterpretedTraits;                                                                  \
     using TermWrapper = Trm<DefaultSort>;                                                                     \
     DefaultSort __defaultSort("alpha");                                                                       \

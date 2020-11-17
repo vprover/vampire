@@ -58,6 +58,7 @@ void test_rebalance(Literal* lit, initializer_list<expected_t> expected);
       THEORY_SYNTAX_SUGAR(type)                                                                               \
       _Pragma("GCC diagnostic push")                                                                          \
       _Pragma("GCC diagnostic ignored \"-Wunused\"")                                                          \
+      _Pragma("GCC diagnostic ignored \"-Wunused-but-set-variable\"")                                         \
         THEORY_SYNTAX_SUGAR_FUN(f, 1)                                                                         \
       _Pragma("GCC diagnostic pop")                                                                           \
       test_rebalance<ToConstantType(type)>((equality), __expand ## __list);                                   \

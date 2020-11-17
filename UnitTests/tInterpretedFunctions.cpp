@@ -204,6 +204,7 @@ void check_eval(Lit orig_, Lit expected_) {
 #define ADDITIONAL_FUNCTIONS                                                                                  \
       _Pragma("GCC diagnostic push")                                                                          \
       _Pragma("GCC diagnostic ignored \"-Wunused\"")                                                          \
+      _Pragma("GCC diagnostic ignored \"-Wunused-but-set-variable\"")                                         \
         THEORY_SYNTAX_SUGAR_FUN(f, 1)                                                                         \
         THEORY_SYNTAX_SUGAR_FUN(f2, 2)                                                                        \
         THEORY_SYNTAX_SUGAR_PRED(p, 1)                                                                        \

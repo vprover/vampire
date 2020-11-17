@@ -26,17 +26,15 @@ public:
   MockedSaturationAlgorithm(Problem& p, Options& o) : Otter(p,o) {}
 };
 
-template<class... As> void __voidWrapper(As...) { }
 
-#define VOID_VARIADIC(expr)                                                                                   \
-  __voidWrapper([&](){ expr; return 0; }()...)
-  
+//template<class... As> void pushAll(Stack<ClausePattern>& as, ClausePattern As...) { }
+//template<class... As> void __voidWrapper(As...) { }
+
 
 template<class... As>
 Stack<ClausePattern> exactly(As... as) 
 {
-  Stack<ClausePattern> out;
-  VOID_VARIADIC(out.push(as));
+  Stack<ClausePattern> out { as... };
   return out;
 }
 
@@ -137,6 +135,7 @@ struct TestCase
     __GenerationTester tester;                                                                                \
     _Pragma("GCC diagnostic push")                                                                            \
     _Pragma("GCC diagnostic ignored \"-Wunused\"")                                                            \
+    _Pragma("GCC diagnostic ignored \"-Wunused-but-set-variable\"")                                           \
       syntax_sugar                                                                                            \
     _Pragma("GCC diagnostic pop")                                                                             \
     auto test = __VA_ARGS__;                                                                                  \
