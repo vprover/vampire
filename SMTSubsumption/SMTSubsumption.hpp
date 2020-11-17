@@ -23,10 +23,8 @@ class ProofOfConcept {
     USE_ALLOCATOR(ProofOfConcept);
 
     void test(Kernel::Clause* side_premise, Kernel::Clause* main_premise);
-    bool checkSubsumption(Kernel::Clause* side_premise, Kernel::Clause* main_premise, bool debug_messages = false);
-
+    bool checkSubsumption(Kernel::Clause* side_premise, Kernel::Clause* main_premise);
     void benchmark_micro(vvector<SubsumptionInstance> instances);
-    // void benchmark_micro1(SubsumptionInstance instance);
 };
 
 

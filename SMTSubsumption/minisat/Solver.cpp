@@ -208,7 +208,7 @@ void Solver::addConstraint_AtMostOne(const vec<Lit>& ps_)
         ps[j++] = ps[i];
     }
     // std::cerr << "shrinking by " << (i-j) << std::endl;
-    ASS_EQ(i-j, 0);  // in our use case this should never happen! (TODO: is this true? also for SR/SD? does it hurt to keep this?)
+    // ASS_EQ(i-j, 0);  // in our use case this should never happen! (TODO: is this true? also for SR/SD? does it hurt to keep this?); not true anymore since we now do theory propagation during clause addition
     ps.shrink(i - j);
 
     // 'ps' is now the (possibly) reduced vector of literals.

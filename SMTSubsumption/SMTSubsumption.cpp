@@ -238,89 +238,99 @@ class SMTSubsumptionImpl
     bool checkSubsumption(Kernel::Clause* side_premise, Kernel::Clause* main_premise)
     {
       // solver.reset();  // TODO
+    solver.verbosity = 2;
 
-      // Pre-matching
-      // Determine which literals of the side_premise can be matched to which
-      // literals of the main_premise when considered on their own.
-      // Along with this, we create variables b_ij and the mapping for substitution
-      // constraints.
-      vvector<vvector<Alt>> alts;
-      alts.reserve(side_premise->length());
+    // TODO: use miniindex
+    // LiteralMiniIndex const main_premise_mini_index(main_premise);
 
-      // for each instance literal (of main_premise),
-      // the possible variables indicating a match with the instance literal
-      vvector<vvector<Minisat::Var>> possible_base_vars;
-      // start with empty vector for each instance literal
-      possible_base_vars.resize(main_premise->length());
+    // Pre-matching
+    // Determine which literals of the side_premise can be matched to which
+    // literals of the main_premise when considered on their own.
+    // Along with this, we create variables b_ij and the mapping for substitution
+    // constraints.
+    vvector<vvector<Alt>> alts;
+    alts.reserve(side_premise->length());
 
-      SubstitutionTheoryConfiguration stc;
+    // for each instance literal (of main_premise),
+    // the possible variables indicating a match with the instance literal
+    vvector<vvector<Minisat::Var>> possible_base_vars;
+    // start with empty vector for each instance literal
+    possible_base_vars.resize(main_premise->length());
 
-      for (unsigned i = 0; i < side_premise->length(); ++i) {
-        Literal* base_lit = side_premise->literals()[i];
+    SubstitutionTheoryConfiguration stc;
 
-        vvector<Alt> base_lit_alts;
+    // Matching for subsumption checks whether
+    //
+    //      side_premise\theta \subseteq main_premise
+    //
+    // holds.
+    for (unsigned i = 0; i < side_premise->length(); ++i)
+    {
+      Literal *base_lit = side_premise->literals()[i];
 
-        // TODO: use LiteralMiniIndex here (need to extend InstanceIterator to a version that returns the binder)
-        // LiteralMiniIndex::InstanceIterator inst_it(main_premise_mini_index, base_lit, false);
-        for (unsigned j = 0; j < main_premise->length(); ++j) {
-          Literal* inst_lit = main_premise->literals()[j];
+      vvector<Alt> base_lit_alts;
 
-          if (!Literal::headersMatch(base_lit, inst_lit, false)) {
-            continue;
+      // TODO: use LiteralMiniIndex here (need to extend InstanceIterator to a version that returns the binder)
+      // LiteralMiniIndex::InstanceIterator inst_it(main_premise_mini_index, base_lit, false);
+      for (unsigned j = 0; j < main_premise->length(); ++j)
+      {
+        Literal *inst_lit = main_premise->literals()[j];
+
+        if (!Literal::headersMatch(base_lit, inst_lit, false)) {
+          continue;
+        }
+
+        MapBinder binder;
+
+        binder.reset();
+        if (base_lit->arity() == 0 || MatchingUtils::matchArgs(base_lit, inst_lit, binder)) {
+          Minisat::Var b = solver.newVar();
+
+          if (binder.bindings().size() > 0) {
+            ASS(!base_lit->ground());
+            auto atom = SubstitutionAtom::from_binder(binder);
+            stc.register_atom(b, std::move(atom));
+          } else {
+            ASS(base_lit->ground());
+            ASS_EQ(base_lit, inst_lit);
+            // TODO: in this case, at least for subsumption, we should skip this base_lit and this inst_list.
+            // probably best to have a separate loop first that deals with ground literals? since those are only pointer equality checks.
+            //
+            // For now, just register an empty substitution atom.
+            auto atom = SubstitutionAtom::from_binder(binder);
+            stc.register_atom(b, std::move(atom));
           }
 
-          MapBinder binder;
+          base_lit_alts.push_back({
+              .lit = inst_lit,
+              .j = j,
+              .b = b,
+              .reversed = false,
+          });
+          possible_base_vars[j].push_back(b);
+        }
 
+        if (base_lit->commutative()) {
+          ASS_EQ(base_lit->arity(), 2);
+          ASS_EQ(inst_lit->arity(), 2);
           binder.reset();
-          if (base_lit->arity() == 0 || MatchingUtils::matchArgs(base_lit, inst_lit, binder)) {
-            Minisat::Var b = solver.newVar();
+          if (MatchingUtils::matchReversedArgs(base_lit, inst_lit, binder)) {
+            auto atom = SubstitutionAtom::from_binder(binder);
 
-            if (binder.bindings().size() > 0) {
-              ASS(!base_lit->ground());
-              auto atom = SubstitutionAtom::from_binder(binder);
-              stc.register_atom(b, std::move(atom));
-            } else {
-              ASS(base_lit->ground());
-              ASS_EQ(base_lit, inst_lit);
-              // TODO: in this case, at least for subsumption, we should skip this base_lit and this inst_list.
-              // probably best to have a separate loop first that deals with ground literals? since those are only pointer equality checks.
-              //
-              // For now, just register an empty substitution atom.
-              auto atom = SubstitutionAtom::from_binder(binder);
-              stc.register_atom(b, std::move(atom));
-            }
+            Minisat::Var b = solver.newVar();
+            stc.register_atom(b, std::move(atom));
 
             base_lit_alts.push_back({
-              .lit = inst_lit,
+                .lit = inst_lit,
                 .j = j,
                 .b = b,
-                .reversed = false,
+                .reversed = true,
             });
             possible_base_vars[j].push_back(b);
           }
-
-          if (base_lit->commutative()) {
-            ASS_EQ(base_lit->arity(), 2);
-            ASS_EQ(inst_lit->arity(), 2);
-            binder.reset();
-            if (MatchingUtils::matchReversedArgs(base_lit, inst_lit, binder)) {
-              auto atom = SubstitutionAtom::from_binder(binder);
-
-              Minisat::Var b = solver.newVar();
-              stc.register_atom(b, std::move(atom));
-
-              // Minisat::Var b = solver.newVar();
-              base_lit_alts.push_back({
-                .lit = inst_lit,
-                  .j = j,
-                  .b = b,
-                  .reversed = true,
-              });
-              possible_base_vars[j].push_back(b);
-            }
-          }
         }
-        alts.push_back(std::move(base_lit_alts));
+      }
+      alts.push_back(std::move(base_lit_alts));
       }
 
       solver.setSubstitutionTheory(std::move(stc));
@@ -335,7 +345,6 @@ class SMTSubsumptionImpl
 
 #define USE_ATMOSTONE_CONSTRAINTS 1
 
-      // TODO: for these we can add special constraints to MiniSAT! see paper for idea
       // Add constraints:
       // \Land_i ExactlyOneOf(b_{i1}, ..., b_{ij})
       using Minisat::Lit;
@@ -406,7 +415,9 @@ class SMTSubsumptionImpl
 
 
 
-
+/****************************************************************************
+ * --mode stest
+ ****************************************************************************/
 
 void ProofOfConcept::test(Clause* side_premise, Clause* main_premise)
 {
@@ -415,9 +426,31 @@ void ProofOfConcept::test(Clause* side_premise, Clause* main_premise)
   std::cerr << "\% side_premise: " << side_premise->toString() << std::endl;
   std::cerr << "\% main_premise: " << main_premise->toString() << std::endl;
 
-  bool subsumed = checkSubsumption(side_premise, main_premise, true);
+  static_assert(alignof(Minisat::Solver) == 8, "");
+  static_assert(alignof(Minisat::Solver *) == 8, "");
+  static_assert(alignof(Minisat::Clause) == 4, "");
+  static_assert(alignof(Minisat::Clause *) == 8, "");
+  static_assert(sizeof(Minisat::Clause) == 8, "");
+  static_assert(sizeof(Minisat::Clause *) == 8, "");
+
+  bool subsumed = checkSubsumption(side_premise, main_premise);
   cdebug << "subsumed: " << subsumed;
 }
+
+bool ProofOfConcept::checkSubsumption(Kernel::Clause *side_premise, Kernel::Clause *main_premise)
+{
+  SMTSubsumptionImpl impl;
+  return impl.checkSubsumption(side_premise, main_premise);
+}
+
+
+
+
+
+/****************************************************************************
+ * Benchmarks
+ ****************************************************************************/
+
 
 static void escape(void* p) {
   asm volatile("" : : "g"(p) : "memory");
@@ -433,7 +466,7 @@ static void clobber() {
 uint64_t rdtscp()
 {
   std::atomic_signal_fence(std::memory_order_acq_rel);
-  uint32_t aux;
+  uint32_t aux = 0;
   uint64_t result = __rdtscp(&aux);
   std::atomic_signal_fence(std::memory_order_acq_rel);
   return result;
@@ -441,7 +474,7 @@ uint64_t rdtscp()
 
 
 
-#define ENABLE_BENCHMARK 0
+#define ENABLE_BENCHMARK 1
 
 
 #if ENABLE_BENCHMARK
@@ -542,6 +575,8 @@ void ProofOfConcept::benchmark_micro(vvector<SubsumptionInstance> instances)
   benchmark::Initialize(&argc, args.data());
   benchmark::RunSpecifiedBenchmarks();
 #endif
+
+  std::cerr << "Benchmarking done, will probably segfault now during shutdown..." << std::endl;
 }
 
 /*
@@ -593,226 +628,6 @@ void ProofOfConcept::benchmark_micro1(SubsumptionInstance instance)
   }
 }
 */
-
-
-bool ProofOfConcept::checkSubsumption(Kernel::Clause* side_premise, Kernel::Clause* main_premise, bool debug_messages)
-{
-  CALL("ProofOfConcept::checkSubsumption");
-  // debug_messages = true;
-
-  if (debug_messages) {
-    cdebug << "SMTSubsumption:";
-    cdebug << "Side premise (base):     " << side_premise->toString();
-    cdebug << "Main premise (instance): " << main_premise->toString();
-
-    static_assert(alignof(Minisat::Solver) == 8, "");
-    static_assert(alignof(Minisat::Solver*) == 8, "");
-    static_assert(alignof(Minisat::Clause) == 4, "");
-    static_assert(alignof(Minisat::Clause*) == 8, "");
-    static_assert(sizeof(Minisat::Clause) == 8, "");
-    static_assert(sizeof(Minisat::Clause*) == 8, "");
-  }
-
-  Minisat::Solver solver;
-  if (debug_messages) {
-    solver.verbosity = 2;
-  }
-
-  // Matching for subsumption checks whether
-  //
-  //      side_premise\theta \subseteq main_premise
-  //
-  // holds.
-
-  LiteralMiniIndex const main_premise_mini_index(main_premise);
-
-  // Pre-matching
-  // Determine which literals of the side_premise can be matched to which
-  // literals of the main_premise when considered on their own.
-  // Along with this, we create variables b_ij and the mapping for substitution
-  // constraints.
-  vvector<vvector<Alt>> alts;
-  alts.reserve(side_premise->length());
-
-  // for each instance literal (of main_premise),
-  // the possible variables indicating a match with the instance literal
-  vvector<vvector<Minisat::Var>> possible_base_vars;
-  // start with empty vector for each instance literal
-  possible_base_vars.resize(main_premise->length());
-
-  SubstitutionTheoryConfiguration stc;
-
-  for (unsigned i = 0; i < side_premise->length(); ++i) {
-    Literal* base_lit = side_premise->literals()[i];
-
-    vvector<Alt> base_lit_alts;
-
-    // if (debug_messages) {
-    //   std::cerr
-    //     << std::left << std::setw(20) << base_lit->toString()
-    //     << " -> ";
-    // }
-
-    // TODO: use LiteralMiniIndex here (need to extend InstanceIterator to a version that returns the binder)
-    // LiteralMiniIndex::InstanceIterator inst_it(main_premise_mini_index, base_lit, false);
-    for (unsigned j = 0; j < main_premise->length(); ++j) {
-      Literal* inst_lit = main_premise->literals()[j];
-
-      if (!Literal::headersMatch(base_lit, inst_lit, false)) {
-        continue;
-      }
-
-      MapBinder binder;
-
-      binder.reset();
-      if (base_lit->arity() == 0 || MatchingUtils::matchArgs(base_lit, inst_lit, binder)) {
-        Minisat::Var b = solver.newVar();
-
-        // if (debug_messages) {
-        //   if (!base_lit_alts.empty()) {
-        //     std::cerr << " | ";
-        //   }
-        //   std::cerr << std::right << std::setw(20) << inst_lit->toString() << " [b_" << b << "]";
-        // }
-
-        if (binder.bindings().size() > 0) {
-          ASS(!base_lit->ground());
-          auto atom = SubstitutionAtom::from_binder(binder);
-          // std::cerr << "atom: " << atom << std::endl;
-          stc.register_atom(b, std::move(atom));
-        } else {
-          ASS(base_lit->ground());
-          ASS_EQ(base_lit, inst_lit);
-          // TODO: in this case, at least for subsumption, we should skip this base_lit and this inst_list.
-          // probably best to have a separate loop first that deals with ground literals? since those are only pointer equality checks.
-          //
-          // For now, just register an empty substitution atom.
-          auto atom = SubstitutionAtom::from_binder(binder);
-          stc.register_atom(b, std::move(atom));
-        }
-
-        base_lit_alts.push_back({
-          .lit = inst_lit,
-          .j = j,
-          .b = b,
-          .reversed = false,
-        });
-        possible_base_vars[j].push_back(b);
-      }
-
-      if (base_lit->commutative()) {
-        ASS_EQ(base_lit->arity(), 2);
-        ASS_EQ(inst_lit->arity(), 2);
-        binder.reset();
-        if (MatchingUtils::matchReversedArgs(base_lit, inst_lit, binder)) {
-          // if (debug_messages) {
-          //   if (!base_lit_alts.empty()) {
-          //     std::cerr << " | ";
-          //   }
-          //   std::cerr << "REV: " << std::left << std::setw(20) << inst_lit->toString();
-          // }
-
-          auto atom = SubstitutionAtom::from_binder(binder);
-          // std::cerr << "atom: " << atom << std::endl;
-
-          Minisat::Var b = solver.newVar();
-          stc.register_atom(b, std::move(atom));
-
-          // Minisat::Var b = solver.newVar();
-          base_lit_alts.push_back({
-            .lit = inst_lit,
-            .j = j,
-            .b = b,
-            .reversed = true,
-          });
-          possible_base_vars[j].push_back(b);
-        }
-      }
-    }
-
-    // if (debug_messages) {
-    //   std::cerr << std::endl;
-    // }
-
-    alts.push_back(std::move(base_lit_alts));
-  }
-
-  solver.setSubstitutionTheory(std::move(stc));
-
-  // Pre-matching done
-  for (auto const& v : alts) {
-    if (v.empty()) {
-      if (debug_messages) {
-        cdebug << "There is a base literal without any possible matches => abort";
-      }
-      return false;
-    }
-  }
-
-#define USE_ATMOSTONE_CONSTRAINTS 1
-
-  // TODO: for these we can add special constraints to MiniSAT! see paper for idea
-  // Add constraints:
-  // \Land_i ExactlyOneOf(b_{i1}, ..., b_{ij})
-  using Minisat::Lit;
-  for (auto const& v : alts) {
-    // At least one must be true
-    Minisat::vec<Lit> ls;
-    for (auto const& alt : v) {
-      ls.push(Lit(alt.b));
-    }
-    solver.addClause(ls);
-    // At most one must be true
-#if USE_ATMOSTONE_CONSTRAINTS
-    if (ls.size() >= 2) {
-      solver.addConstraint_AtMostOne(ls);
-    }
-#else
-    for (size_t j1 = 0; j1 < v.size(); ++j1) {
-      for (size_t j2 = j1 + 1; j2 < v.size(); ++j2) {
-        auto b1 = v[j1].b;
-        auto b2 = v[j2].b;
-        ASS_NEQ(b1, b2);
-        solver.addBinary(~Lit(b1), ~Lit(b2));
-      }
-    }
-#endif
-  }
-
-  // Add constraints:
-  // \Land_j AtMostOneOf(b_{1j}, ..., b_{ij})
-  for (auto const& w : possible_base_vars) {
-#if USE_ATMOSTONE_CONSTRAINTS
-    if (w.size() >= 2) {
-      Minisat::vec<Lit> ls;
-      for (auto const& b : w) {
-        ls.push(Lit(b));
-      }
-      solver.addConstraint_AtMostOne(ls);
-    }
-#else
-    for (size_t i1 = 0; i1 < w.size(); ++i1) {
-      for (size_t i2 = i1 + 1; i2 < w.size(); ++i2) {
-        auto b1 = w[i1];
-        auto b2 = w[i2];
-        ASS_NEQ(b1, b2);
-        solver.addBinary(~Lit(b1), ~Lit(b2));
-      }
-    }
-#endif
-  }
-
-  if (debug_messages) {
-    cdebug << "ok before solving? " << solver.okay();
-    cdebug << "solving";
-  }
-  bool res = solver.solve({});
-  if (debug_messages) {
-    cdebug << "Result: " << res;
-    cdebug << "ok: " << solver.okay();
-  }
-  return res;
-}
 
 
 // Example commutativity:
