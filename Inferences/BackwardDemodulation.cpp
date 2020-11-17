@@ -75,8 +75,7 @@ void BackwardDemodulation::detach()
 
 struct BackwardDemodulation::RemovedIsNonzeroFn
 {
-  DECL_RETURN_TYPE(bool);
-  OWN_RETURN_TYPE operator() (BwSimplificationRecord arg)
+  bool operator() (BwSimplificationRecord arg)
   {
     return arg.toRemove!=0;
   }
@@ -85,8 +84,7 @@ struct BackwardDemodulation::RemovedIsNonzeroFn
 struct BackwardDemodulation::RewritableClausesFn
 {
   RewritableClausesFn(DemodulationSubtermIndex* index) : _index(index) {}
-  DECL_RETURN_TYPE(VirtualIterator<pair<TermList,TermQueryResult> >);
-  OWN_RETURN_TYPE operator() (TermList lhs)
+  VirtualIterator<pair<TermList,TermQueryResult> > operator() (TermList lhs)
   {
     return pvi( pushPairIntoRightIterator(lhs, _index->getInstances(lhs, true)) );
   }
@@ -107,13 +105,12 @@ struct BackwardDemodulation::ResultFn
     _eqSort = SortHelper::getEqualityArgumentSort(_eqLit);
     _removed=SmartPtr<ClauseSet>(new ClauseSet());
   }
-  DECL_RETURN_TYPE(BwSimplificationRecord);
   /**
    * Return pair of clauses. First clause is being replaced,
    * and the second is the clause, that replaces it. If no
    * replacement should occur, return pair of zeroes.
    */
-  OWN_RETURN_TYPE operator() (pair<TermList,TermQueryResult> arg)
+  BwSimplificationRecord operator() (pair<TermList,TermQueryResult> arg)
   {
     CALL("BackwardDemodulation::ResultFn::operator()");
 

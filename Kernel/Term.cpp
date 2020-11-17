@@ -1457,6 +1457,19 @@ std::ostream& Kernel::operator<< (ostream& out, const Literal& l )
   return out<<l.toString();
 }
 
+bool Kernel::operator<(const TermList& lhs, const TermList& rhs) 
+{ 
+  auto cmp = lhs.isTerm() - rhs.isTerm();
+  if (cmp != 0) return cmp < 0;
+  if (lhs.isTerm()) {
+    ASS(rhs.isTerm())
+    return lhs.term()->getId() < rhs.term()->getId();
+  } else {
+    ASS(lhs.isVar())
+    ASS(rhs.isVar())
+    return lhs.var() < rhs.var();
+  }
+}
 
 /**
  * If the literal has the form p(R,f(S),T), where f(S) is the

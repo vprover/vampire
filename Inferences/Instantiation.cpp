@@ -52,8 +52,7 @@ using namespace Kernel;
 struct IntToIntTermFn
 {
   IntToIntTermFn(){}
-  DECL_RETURN_TYPE(Term*);
-  OWN_RETURN_TYPE operator()(unsigned int i)
+  Term* operator()(unsigned int i)
   {
     return theory->representConstant(IntegerConstantType(i));
   }
@@ -61,8 +60,7 @@ struct IntToIntTermFn
 struct IntToRatTermFn
 {
   IntToRatTermFn(){}
-  DECL_RETURN_TYPE(Term*);
-  OWN_RETURN_TYPE operator()(unsigned int i)
+  Term* operator()(unsigned int i)
   {
     return theory->representConstant(RationalConstantType(i,1));
   }
@@ -70,8 +68,7 @@ struct IntToRatTermFn
 struct IntToRealTermFn
 {
   IntToRealTermFn(){}
-  DECL_RETURN_TYPE(Term*);
-  OWN_RETURN_TYPE operator()(unsigned int i)
+  Term* operator()(unsigned int i)
   {
     return theory->representConstant(RealConstantType(RationalConstantType(i,1)));
   }
@@ -80,8 +77,7 @@ struct IntToRealTermFn
 struct InvertNumber
 {
   InvertNumber();
-  DECL_RETURN_TYPE(unsigned);
-  OWN_RETURN_TYPE operator()(unsigned int i){ return -i; }
+  unsigned operator()(unsigned int i){ return -i; }
 };
 
 void Instantiation::init(){
@@ -255,6 +251,7 @@ VirtualIterator<Term*> Instantiation::getCandidateTerms(Clause* cl, unsigned var
 
 class Instantiation::AllSubstitutionsIterator{
 public:
+  DECL_ELEMENT_TYPE(Substitution);
   AllSubstitutionsIterator(Clause* cl,Instantiation* ins)
   {
     CALL("Instantiation::AllSubstitutionsIterator");
@@ -315,8 +312,7 @@ private:
 struct Instantiation::ResultFn
 {
   ResultFn(Clause* cl) : _cl(cl) {}
-  DECL_RETURN_TYPE(Clause*);
-  OWN_RETURN_TYPE operator()(Substitution sub)
+  Clause* operator()(Substitution sub)
   {
     CALL("Instantiation::ResultFn::operator()");
 

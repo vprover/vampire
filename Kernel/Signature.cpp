@@ -416,6 +416,7 @@ unsigned Signature::addInterpretedFunction(Interpretation interpretation, Operat
 
   unsigned res;
   if (_iSymbols.find(mi,res)) { // already declared
+    // TODO should this really be done in release mode?
     if (name!=functionName(res)) {
       USER_ERROR("Interpreted function '"+functionName(res)+"' has the same interpretation as '"+name+"' should have");
     }

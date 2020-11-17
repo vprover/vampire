@@ -117,6 +117,9 @@ static size_t distance(const vstring &s1, const vstring &s2)
 }
 
 
+template<class Enum>
+Stack<vstring> enumValueNames();
+
 /**
  * Class that represents Vampire's options.
  * 11/11/2004 Shrigley Hall, completely reimplemented
@@ -721,6 +724,18 @@ public:
     POSITION = 5
   };
 
+  enum class EvaluationMode : unsigned int {
+    SIMPLE,
+    POLYNOMIAL_FORCE,
+    POLYNOMIAL_CAUTIOUS,
+  };
+
+  enum class ArithmeticSimplificationMode : unsigned int {
+    FORCE,
+    CAUTIOUS,
+    OFF,
+  };
+
   enum class AgeWeightRatioShape {
     CONSTANT,
     DECAY,
@@ -758,26 +773,28 @@ private:
      */
     struct OptionChoiceValues{
         
-        OptionChoiceValues(){ };
-        OptionChoiceValues(std::initializer_list<vstring> list){
-            for(std::initializer_list<vstring>::iterator it = list.begin();
-                it!=list.end();++it){
-                names.push(*it);
-                ASS((*it).size()<70); // or else cannot be printed on a line
-            }
+        OptionChoiceValues() : _names() { };
+        OptionChoiceValues(Stack<vstring> names) : _names(std::move(names))  
+        {
+          for (auto x : _names) {
+            ASS(x.size() < 70)
+          }
         }
+
+        OptionChoiceValues(std::initializer_list<vstring> list) : _names(list)
+        { }
         
         int find(vstring value) const {
-            for(unsigned i=0;i<names.length();i++){
-                if(value.compare(names[i])==0) return i;
+            for(unsigned i=0;i<_names.length();i++){
+                if(value.compare(_names[i])==0) return i;
             }
             return -1;
         }
-        const int length() const { return names.length(); }
-        const vstring operator[](int i) const{ return names[i];}
-        
+        const int length() const { return _names.length(); }
+        const vstring operator[](int i) const{ return _names[i];}
+
     private:
-        Stack<vstring> names;
+        Stack<vstring> _names;
     };
     
     // Declare constraints here so they can be referred to, but define them below
@@ -1055,6 +1072,7 @@ private:
         ChoiceOptionValue(){}
         ChoiceOptionValue(vstring l, vstring s,T def,OptionChoiceValues c) :
         OptionValue<T>(l,s,def), choices(c) {}
+        ChoiceOptionValue(vstring l, vstring s,T d) : ChoiceOptionValue(l,s,d, T::optionChoiceValues()) {}
         
         bool setValue(const vstring& value){
             // makes reasonable assumption about ordering of every enum
@@ -1099,6 +1117,8 @@ private:
     private:
         OptionChoiceValues choices;
     };
+
+
     /**
      * For Booleans - we use on/off rather than true/false
      * @author Giles
@@ -1121,6 +1141,7 @@ private:
         
         vstring getStringOfValue(bool value) const { return (value ? "on" : "off"); }
     };
+
     struct IntOptionValue : public OptionValue<int> {
         IntOptionValue(){}
         IntOptionValue(vstring l,vstring s, int d) : OptionValue(l,s,d){}
@@ -2239,7 +2260,11 @@ public:
 
   bool useManualClauseSelection() const { return _manualClauseSelection.actualValue; }
   bool inequalityNormalization() const { return _inequalityNormalization.actualValue; }
-  bool gaussianVariableElimination() const { return _gaussianVariableElimination.actualValue; }
+  EvaluationMode evaluationMode() const { return _highSchool.actualValue ? EvaluationMode::POLYNOMIAL_CAUTIOUS : _evaluationMode.actualValue; }
+  ArithmeticSimplificationMode gaussianVariableElimination() const { return _highSchool.actualValue ? ArithmeticSimplificationMode::CAUTIOUS : _gaussianVariableElimination.actualValue; }
+  bool pushUnaryMinus() const { return _pushUnaryMinus.actualValue || _highSchool.actualValue; }
+  ArithmeticSimplificationMode cancellation() const { return _highSchool.actualValue ? ArithmeticSimplificationMode::CAUTIOUS : _cancellation.actualValue; }
+  ArithmeticSimplificationMode arithmeticSubtermGeneralizations() const { return  _highSchool.actualValue ? ArithmeticSimplificationMode::CAUTIOUS : _arithmeticSubtermGeneralizations.actualValue; }
 
 private:
     
@@ -2612,6 +2637,7 @@ private:
   ChoiceOptionValue<SymbolPrecedence> _symbolPrecedence;
   ChoiceOptionValue<SymbolPrecedenceBoost> _symbolPrecedenceBoost;
   ChoiceOptionValue<IntroducedSymbolPrecedence> _introducedSymbolPrecedence;
+  ChoiceOptionValue<EvaluationMode> _evaluationMode;
   ChoiceOptionValue<KboAdmissibilityCheck> _kboAdmissabilityCheck;
   StringOptionValue _functionWeights;
   StringOptionValue _predicateWeights;
@@ -2655,7 +2681,11 @@ private:
   BoolOptionValue _manualClauseSelection;
 
   BoolOptionValue _inequalityNormalization;
-  BoolOptionValue _gaussianVariableElimination;
+  BoolOptionValue _pushUnaryMinus;
+  BoolOptionValue _highSchool;
+  ChoiceOptionValue<ArithmeticSimplificationMode> _gaussianVariableElimination;
+  ChoiceOptionValue<ArithmeticSimplificationMode> _cancellation;
+  ChoiceOptionValue<ArithmeticSimplificationMode> _arithmeticSubtermGeneralizations;
 
 
 }; // class Options

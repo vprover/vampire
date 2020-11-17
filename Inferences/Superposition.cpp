@@ -50,6 +50,7 @@
 #include "Shell/Statistics.hpp"
 
 #include "Superposition.hpp"
+#include "Shell/UnificationWithAbstractionConfig.hpp"
 
 #if VDEBUG
 #include <iostream>
@@ -89,8 +90,7 @@ void Superposition::detach()
 struct Superposition::RewritableResultsFn
 {
   RewritableResultsFn(SuperpositionSubtermIndex* index,bool wc) : _index(index),_withC(wc) {}
-  DECL_RETURN_TYPE(VirtualIterator<pair<pair<Literal*, TermList>, TermQueryResult> >);
-  OWN_RETURN_TYPE operator()(pair<Literal*, TermList> arg)
+  VirtualIterator<pair<pair<Literal*, TermList>, TermQueryResult> > operator()(pair<Literal*, TermList> arg)
   {
     CALL("Superposition::RewritableResultsFn()");
     if(_withC){
@@ -109,8 +109,7 @@ struct Superposition::RewriteableSubtermsFn
 {
   RewriteableSubtermsFn(Ordering& ord) : _ord(ord) {}
 
-  DECL_RETURN_TYPE(VirtualIterator<pair<Literal*, TermList> >);
-  OWN_RETURN_TYPE operator()(Literal* lit)
+  VirtualIterator<pair<Literal*, TermList> > operator()(Literal* lit)
   {
     CALL("Superposition::RewriteableSubtermsFn()");
     return pvi( pushPairIntoRightIterator(lit, EqHelper::getRewritableSubtermIterator(lit, _ord)) );
@@ -123,8 +122,7 @@ private:
 struct Superposition::ApplicableRewritesFn
 {
   ApplicableRewritesFn(SuperpositionLHSIndex* index, bool wc) : _index(index), _withC(wc) {}
-  DECL_RETURN_TYPE(VirtualIterator<pair<pair<Literal*, TermList>, TermQueryResult> >);
-  OWN_RETURN_TYPE operator()(pair<Literal*, TermList> arg)
+  VirtualIterator<pair<pair<Literal*, TermList>, TermQueryResult> > operator()(pair<Literal*, TermList> arg)
   {
     CALL("Superposition::ApplicableRewritesFn()");
     if(_withC){
@@ -143,8 +141,7 @@ private:
 struct Superposition::ForwardResultFn
 {
   ForwardResultFn(Clause* cl, PassiveClauseContainer* passiveClauseContainer, Superposition& parent) : _cl(cl), _passiveClauseContainer(passiveClauseContainer), _parent(parent) {}
-  DECL_RETURN_TYPE(Clause*);
-  OWN_RETURN_TYPE operator()(pair<pair<Literal*, TermList>, TermQueryResult> arg)
+  Clause* operator()(pair<pair<Literal*, TermList>, TermQueryResult> arg)
   {
     CALL("Superposition::ForwardResultFn::operator()");
 
@@ -162,8 +159,7 @@ private:
 struct Superposition::BackwardResultFn
 {
   BackwardResultFn(Clause* cl, PassiveClauseContainer* passiveClauseContainer, Superposition& parent) : _cl(cl), _passiveClauseContainer(passiveClauseContainer), _parent(parent) {}
-  DECL_RETURN_TYPE(Clause*);
-  OWN_RETURN_TYPE operator()(pair<pair<Literal*, TermList>, TermQueryResult> arg)
+  Clause* operator()(pair<pair<Literal*, TermList>, TermQueryResult> arg)
   {
     CALL("Superposition::BackwardResultFn::operator()");
 
@@ -622,8 +618,8 @@ Clause* Superposition::performSuperposition(
       static Options::UnificationWithAbstraction uwa = env.options->unificationWithAbstraction();
       if(uwa==Options::UnificationWithAbstraction::GROUND && 
          !constraint->ground() &&
-         (!theory->isInterpretedFunction(qT) && !theory->isInterpretedConstant(qT)) &&
-         (!theory->isInterpretedFunction(rT) && !theory->isInterpretedConstant(rT))){
+         (!UnificationWithAbstractionConfig::isInterpreted(qT) 
+          && !UnificationWithAbstractionConfig::isInterpreted(rT) )) {
 
         // the unification was between two uninterpreted things that were not ground 
         res->destroy();

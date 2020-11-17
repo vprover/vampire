@@ -21,6 +21,7 @@
  * Defines macros for testing
  */
 
+
 #ifndef __UnitTesting__
 #define __UnitTesting__
 
@@ -120,6 +121,7 @@ public:
   TestUnit(const char* id);
 
   const char* id() { return _id; }
+  bool get(const char* id, Test& out);
 
   void addTest(TestProc proc, const char* name)
   { TestList::push(Test(proc, name), _tests); }
@@ -208,10 +210,13 @@ private:
 #endif // CTEST
 
 #define TEST_FUN(name)                                                                                        \
-      void name();                                                                                            \
-      Test::TU_Aux_Test_Adder UT_AUX_ADDER_NAME(name)(UT_AUX_NAME,name,#name);                                \
-			void name()
+  void TEST_FUN_NAME(name)();                                                                                 \
+  Test::TU_Aux_Test_Adder UT_AUX_ADDER_NAME(TEST_FUN_NAME(name))(UT_AUX_NAME,TEST_FUN_NAME(name),#name);      \
+  void TEST_FUN_NAME(name)()
 
+#define TEST_FUN_NAME(name)  CAT(CAT(UNIT_ID, _), name)
+#define _CAT(a,b) a ## b 
+#define CAT(a,b) _CAT(a,b) //  <- indiriection needed in order to force args being expanded
 }
 
 #endif // __RuntimeStatistics__

@@ -75,6 +75,7 @@ enum TermTag {
  */
 class TermList {
 public:
+  CLASS_NAME(TermList)
   /** dummy constructor, does nothing */
   TermList() {}
   /** creates a term list and initialises its content with data */
@@ -166,10 +167,8 @@ public:
   { return _content==t._content; }
   inline bool operator!=(const TermList& t) const
   { return _content!=t._content; }
-  inline bool operator<(const TermList& t) const
-  { return _content<t._content; }
-  inline bool operator>(const TermList& t) const
-  { return _content>t._content; }
+
+  friend bool operator<(const TermList& lhs, const TermList& rhs);
 
 private:
   vstring asArgsToString() const;
@@ -912,13 +911,16 @@ std::ostream& operator<< (ostream& out, const Literal& tl );
 
 };
 
+/* template specializations */
 namespace Lib
 {
+
 
 template<>
 struct FirstHashTypeInfo<Kernel::TermList> {
   typedef Kernel::TermListHash Type;
 };
+
 
 }
 

@@ -51,8 +51,7 @@ struct EquivalentVariableRemover::VarMapper
 {
   VarMapper(EquivalentVariableRemover& parent) : _parent(parent) {}
 
-  DECL_RETURN_TYPE(Constraint::Coeff);
-  OWN_RETURN_TYPE operator()(const Constraint::Coeff& coeff)
+  Constraint::Coeff operator()(const Constraint::Coeff& coeff)
   {
     CALL("EquivalentVariableRemover::VarMapper::operator()");
 

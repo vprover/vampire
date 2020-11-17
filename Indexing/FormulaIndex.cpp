@@ -36,9 +36,8 @@ namespace Indexing
 
 struct StringFormulaIndex::Entry2QR
 {
-  DECL_RETURN_TYPE(FormulaQueryResult);
 
-  OWN_RETURN_TYPE operator()(const Entry& e) const
+  FormulaQueryResult operator()(const Entry& e) const
   {
     CALL("StringFormulaIndex::Entry2QR::operator()");
 

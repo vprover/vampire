@@ -70,7 +70,7 @@ template<typename T> class SharedSet;
 template <typename Key, typename Val,class Hash=Lib::Hash> class Map;
 
 
-template<typename T> class ArrayishObjectIterator;
+template<typename T, template<class> class ref_t> class ArrayishObjectIterator;
 template<typename T> class ArrayMap;
 template<typename C> class Vector;
 
@@ -109,7 +109,6 @@ template <typename Val,class Hash=Lib::Hash> class Set;
 
 template <typename Value,class ValueComparator> class SkipList;
 
-template<class Arr> class ArrayishObjectIterator;
 template<typename T> class PointerIterator;
 
 class BacktrackData;

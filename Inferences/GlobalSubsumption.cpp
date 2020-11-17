@@ -276,8 +276,7 @@ Clause* GlobalSubsumption::perform(Clause* cl, Stack<Unit*>& prems)
  */
 struct GlobalSubsumption::Unit2ClFn
 {
-  DECL_RETURN_TYPE(Clause*);
-  OWN_RETURN_TYPE operator() (Unit* us) {
+  Clause* operator() (Unit* us) {
     return us->asClause();
   }
 };

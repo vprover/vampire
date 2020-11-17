@@ -1058,8 +1058,37 @@ void Options::init()
            _inequalityNormalization.description="Enable normalizing of inequalities like s < t ==> 0 < t - s.";
            _lookup.insert(&_inequalityNormalization);
            _inequalityNormalization.tag(OptionTag::INFERENCES);
- 
-           _gaussianVariableElimination = BoolOptionValue("gaussian_variable_elimination","gve",false);
+
+           auto choiceArithmeticSimplificationMode = [&](vstring l, vstring s, ArithmeticSimplificationMode d) 
+           { return ChoiceOptionValue<ArithmeticSimplificationMode>(l,s,d, {"force", "cautious", "off", }); };
+           _cancellation = choiceArithmeticSimplificationMode(
+               "cancellation", "canc",
+               ArithmeticSimplificationMode::OFF);
+           _cancellation.description = "Enable addition cancellation.";
+           _lookup.insert(&_cancellation);
+           _cancellation.tag(OptionTag::INFERENCES);
+           _cancellation.setExperimental();
+
+           _highSchool = BoolOptionValue("high_school", "", false);
+           _highSchool.description="Enables high school education for vampire. (i.e.: sets -gve cautious, -asg cautious, -ev cautious, -canc cautious, -pum on )";
+           _lookup.insert(&_highSchool);
+           _highSchool.tag(OptionTag::INFERENCES);
+
+
+           _pushUnaryMinus = BoolOptionValue(
+               "push_unary_minus", "pum",
+               false);
+           _pushUnaryMinus.description=
+                  "Enable the immideate simplifications:\n"
+                  " -(t + s) ==> -t + -s\n"
+                  " -(-t) ==> t\n"
+                  ;
+           _lookup.insert(&_pushUnaryMinus);
+           _pushUnaryMinus.tag(OptionTag::INFERENCES);
+
+           _gaussianVariableElimination = choiceArithmeticSimplificationMode(
+               "gaussian_variable_elimination", "gve",
+               ArithmeticSimplificationMode::OFF);
            _gaussianVariableElimination.description=
                   "Enable the immideate simplification \"Gaussian Variable Elimination\":\n"
                   "\n"
@@ -1072,10 +1101,18 @@ void Options::init()
                   "6 * X0 != 2 * X1 | p(X0, X1)\n"
                   "-------------------------------\n"
                   "  p(2 * X1 / 6, X1)";
-
            _lookup.insert(&_gaussianVariableElimination);
            _gaussianVariableElimination.tag(OptionTag::INFERENCES);
 
+
+           _arithmeticSubtermGeneralizations = choiceArithmeticSimplificationMode(
+               "arithmetic_subterm_generalizations", "asg",
+               ArithmeticSimplificationMode::OFF);
+           _arithmeticSubtermGeneralizations.description=
+                  "Enable variaous immediate simplification rules for arithmetic terms.\n"
+                  "All of these rules work by generalizing a subterm.";
+           _lookup.insert(&_arithmeticSubtermGeneralizations);
+           _arithmeticSubtermGeneralizations.tag(OptionTag::INFERENCES);
 
             _induction = ChoiceOptionValue<Induction>("induction","ind",Induction::NONE,
                                 {"none","struct","math","both"});
@@ -1898,6 +1935,20 @@ void Options::init()
     _introducedSymbolPrecedence.description="Decides where to place symbols introduced during proof search in the symbol precedence";
     _lookup.insert(&_introducedSymbolPrecedence);
     _introducedSymbolPrecedence.tag(OptionTag::SATURATION);
+
+    _evaluationMode = ChoiceOptionValue<EvaluationMode>("evaluation","ev",
+                                                        EvaluationMode::SIMPLE,
+                                                        {"simple","force","cautious"});
+    _evaluationMode.description=
+    "Choses the algorithm used to simplify interpreted integer, rational, and real terms. \
+                                 \
+    - simple: will only evaluate expressions built from interpreted constants only.\
+    - polynomial: will evaluate abstract expressions to a weak polynomial normal form. This is more powerful but may fail in some cases where the resulting polynomial is not strictly smaller than the initial one wrt. the simplification ordering. \
+    ";
+    _lookup.insert(&_evaluationMode);
+    _evaluationMode.tag(OptionTag::SATURATION);
+    _evaluationMode.setExperimental();
+
 
     _kboAdmissabilityCheck = ChoiceOptionValue<KboAdmissibilityCheck>(
         "kbo_admissibility_check", "", KboAdmissibilityCheck::ERROR,

@@ -118,21 +118,29 @@ int main(int argc, char *argv[]) {
       if (!ok) {
         exit(-1);
       }
-    } else if (args.size() == 2 || args.size() == 3) {
-      if (!strcmp(args[1], "-l")) {
+    } else if (args.size() == 2  && !strcmp(args[1], "-l")) {
         tests.printTestNames(cout);
-      } else {
-        auto unit = tests.get(args[args.size() - 1]);
-        if (!unit) {
-          cout << "Unknown test name: " << args[1] << endl;
-          cout << "Run \"" << args[0]
-               << " -l\" for the list of available tests." << endl;
-        } else {
-          bool ok = tests.runUnit(unit, cout);
-          if (!ok) {
-            exit(-1);
-          }
+    } else if (args.size() == 2 || args.size() == 3) {
+      auto unit = tests.get(args[1]);
+      if (unit && args.size() == 2) {
+        bool ok = tests.runUnit(unit, cout);
+        if (!ok) {
+          exit(-1);
         }
+      } else if (unit && args.size() == 3) {
+        TestUnit::Test test;
+        auto found = unit->get(args[2], test);
+        if (found) {
+          cout << "Running " << unit->id() << "::" << test.name << "..." << endl;
+          test.proc();
+        } else {
+          cout << "Unknown test case '" << args[2] << " for unit '" << args[1] << "'" << endl;
+          exit(-1);
+        }
+      } else {
+        cout << "Unknown test name: " << args[1] << endl;
+        cout << "Run \"" << args[0]
+             << " -l\" for the list of available tests." << endl;
       }
     } else {
       cout << "Invalid number of arguments (" << (argc - 1) << ")." << endl;

@@ -31,6 +31,7 @@
 
 #include "TermTransformer.hpp"
 #include "Theory.hpp"
+#include "Lib/Coproduct.hpp"
 #include "Shell/Options.hpp"
 
 namespace Kernel {
@@ -45,7 +46,6 @@ public:
   InterpretedLiteralEvaluator(bool doNormalize = true);
   ~InterpretedLiteralEvaluator();
 
-  // TODO: `Literal*` -> `const Literal&` ?
   bool evaluate(Literal* lit, bool& isConstant, Literal*& resLit, bool& resConst,Stack<Literal*>& sideConditions);
   TermList evaluate(TermList);
 protected:
@@ -53,6 +53,7 @@ protected:
   class EqualityEvaluator;
   class ConversionEvaluator;
   template<class T> class ACFunEvaluator;
+  template<class T> class PolynomialNormalizer;
   template<class T> class InequalityNormalizer;
   template<class T> class TypedEvaluator;
   class IntEvaluator;
@@ -98,7 +99,5 @@ private:
   const bool _normalize;
 };
 
-
 }
-
 #endif // __InterpretedLiteralEvaluator__

@@ -143,6 +143,8 @@ RationalConstantType RationalConstantType::abs() const
   ASS_G(_den, 0)
   return RationalConstantType(_num.abs(), _den);
 }
+RationalConstantType RealConstantType::representation() const
+{ return *this; }
 
 RealConstantType RealConstantType::abs() const
 {
@@ -251,6 +253,9 @@ bool IntegerConstantType::operator>(const IntegerConstantType& num) const
   return _val>num._val;
 }
 
+IntegerConstantType IntegerConstantType::floor(IntegerConstantType x)
+{ return x; }
+
 IntegerConstantType IntegerConstantType::floor(RationalConstantType rat)
 {
   CALL("IntegerConstantType::floor");
@@ -268,6 +273,9 @@ IntegerConstantType IntegerConstantType::floor(RationalConstantType rat)
     return IntegerConstantType(num.toInner() / den.toInner() - 1);
   }
 }
+
+IntegerConstantType IntegerConstantType::ceiling(IntegerConstantType x)
+{ return x; }
 
 /** 
  * TPTP spec:
@@ -418,8 +426,11 @@ bool RationalConstantType::operator==(const RationalConstantType& o) const
 bool RationalConstantType::operator>(const RationalConstantType& o) const
 {
   CALL("IntegerConstantType::operator>");
+  /* prevents overflows */
+  auto toLong = [](IntegerConstantType t)  -> long int
+  { return  t.toInner(); };
 
-  return (_num*o._den)>(o._num*_den);
+  return toLong(_num)*toLong(o._den)>(toLong(o._num)*toLong(_den));
 }
 
 
@@ -469,56 +480,61 @@ void RationalConstantType::cannonize()
 Comparison RationalConstantType::comparePrecedence(RationalConstantType n1, RationalConstantType n2)
 {
   CALL("RationalConstantType::comparePrecedence");
-  try {
-
-    if (n1==n2) { return EQUAL; }
-
-    bool haveRepr1 = true;
-    bool haveRepr2 = true;
-
-    IntegerConstantType repr1, repr2;
-
-    try {
-      repr1 = n1.numerator()+n1.denominator();
-    } catch(ArithmeticException) {
-      haveRepr1 = false;
-    }
-
-    try {
-      repr2 = n2.numerator()+n2.denominator();
-    } catch(ArithmeticException) {
-      haveRepr2 = false;
-    }
-
-    if (haveRepr1 && haveRepr2) {
-      Comparison res = IntegerConstantType::comparePrecedence(repr1, repr2);
-      if (res==EQUAL) {
-	res = IntegerConstantType::comparePrecedence(n1.numerator(), n2.numerator());
-      }
-      ASS_NEQ(res, EQUAL);
-      return res;
-    }
-    if (haveRepr1 && !haveRepr2) {
-      return LESS;
-    }
-    if (!haveRepr1 && haveRepr2) {
-      return GREATER;
-    }
-
-    ASS(!haveRepr1);
-    ASS(!haveRepr2);
-
-    Comparison res = IntegerConstantType::comparePrecedence(n1.denominator(), n2.denominator());
-    if (res==EQUAL) {
-      res = IntegerConstantType::comparePrecedence(n1.numerator(), n2.numerator());
-    }
-    ASS_NEQ(res, EQUAL);
-    return res;
-  }
-  catch(ArithmeticException) {
-    ASSERTION_VIOLATION;
-    throw;
-  }
+  /* cannot overflow */
+  auto prec = IntegerConstantType::comparePrecedence(n1._den, n2._den);
+  if (prec != EQUAL) return prec;
+  return IntegerConstantType::comparePrecedence(n1._num, n2._num);
+  
+  // try {
+  //
+  //   if (n1==n2) { return EQUAL; }
+  //
+  //   bool haveRepr1 = true;
+  //   bool haveRepr2 = true;
+  //
+  //   IntegerConstantType repr1, repr2;
+  //
+  //   try {
+  //     repr1 = n1.numerator()+n1.denominator();
+  //   } catch(ArithmeticException) {
+  //     haveRepr1 = false;
+  //   }
+  //
+  //   try {
+  //     repr2 = n2.numerator()+n2.denominator();
+  //   } catch(ArithmeticException) {
+  //     haveRepr2 = false;
+  //   }
+  //
+  //   if (haveRepr1 && haveRepr2) {
+  //     Comparison res = IntegerConstantType::comparePrecedence(repr1, repr2);
+  //     if (res==EQUAL) {
+	// res = IntegerConstantType::comparePrecedence(n1.numerator(), n2.numerator());
+  //     }
+  //     ASS_NEQ(res, EQUAL);
+  //     return res;
+  //   }
+  //   if (haveRepr1 && !haveRepr2) {
+  //     return LESS;
+  //   }
+  //   if (!haveRepr1 && haveRepr2) {
+  //     return GREATER;
+  //   }
+  //
+  //   ASS(!haveRepr1);
+  //   ASS(!haveRepr2);
+  //
+  //   Comparison res = IntegerConstantType::comparePrecedence(n1.denominator(), n2.denominator());
+  //   if (res==EQUAL) {
+  //     res = IntegerConstantType::comparePrecedence(n1.numerator(), n2.numerator());
+  //   }
+  //   ASS_NEQ(res, EQUAL);
+  //   return res;
+  // }
+  // catch(ArithmeticException) {
+  //   ASSERTION_VIOLATION;
+  //   throw;
+  // }
 }
 
 
@@ -1763,13 +1779,22 @@ bool Theory::tryInterpretConstant(const Term* t, IntegerConstantType& res)
     return false;
   }
   unsigned func = t->functor();
+  return tryInterpretConstant(func, res);
+} // Theory::tryInterpretConstant
+
+
+bool Theory::tryInterpretConstant(unsigned func, IntegerConstantType& res)
+{
   Signature::Symbol* sym = env.signature->getFunction(func);
+  CALL("Theory::tryInterpretConstant(Term*,IntegerConstantType)");
   if (!sym->integerConstant()) {
     return false;
   }
   res = sym->integerValue();
   return true;
-} // Theory::tryInterpretConstant
+}
+
+
 
 /**
  * Try to interpret the term as an rational constant. If it is an
@@ -1786,13 +1811,20 @@ bool Theory::tryInterpretConstant(const Term* t, RationalConstantType& res)
     return false;
   }
   unsigned func = t->functor();
+  return tryInterpretConstant(func, res);
+} // Theory::tryInterpretConstant 
+
+bool Theory::tryInterpretConstant(unsigned func, RationalConstantType& res)
+{
   Signature::Symbol* sym = env.signature->getFunction(func);
+  CALL("Theory::tryInterpretConstant(Term*,RationalConstantType)");
   if (!sym->rationalConstant()) {
     return false;
   }
   res = sym->rationalValue();
   return true;
-} // Theory::tryInterpretConstant 
+}
+
 
 /**
  * Try to interpret the term as a real constant. If it is an
@@ -1809,13 +1841,19 @@ bool Theory::tryInterpretConstant(const Term* t, RealConstantType& res)
     return false;
   }
   unsigned func = t->functor();
+  return tryInterpretConstant(func, res);
+} // // Theory::tryInterpretConstant
+
+bool Theory::tryInterpretConstant(unsigned func, RealConstantType& res)
+{
   Signature::Symbol* sym = env.signature->getFunction(func);
+  CALL("Theory::tryInterpretConstant(Term*,RealConstantType)");
   if (!sym->realConstant()) {
     return false;
   }
   res = sym->realValue();
   return true;
-} // // Theory::tryInterpretConstant
+}
 
 Term* Theory::representConstant(const IntegerConstantType& num)
 {
@@ -1998,6 +2036,18 @@ vstring Theory::tryGetInterpretedLaTeXName(unsigned func, bool pred,bool polarit
 
   return "";
 
+}
+
+size_t IntegerConstantType::hash() const {
+  return std::hash<decltype(_val)>{}(_val);
+}
+
+size_t RationalConstantType::hash() const {
+  return (denominator().hash() << 1) ^ numerator().hash();
+}
+
+size_t RealConstantType::hash() const {
+  return (denominator().hash() << 1) ^ numerator().hash();
 }
 
 }

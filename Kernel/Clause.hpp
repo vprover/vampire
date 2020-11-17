@@ -114,7 +114,7 @@ public:
   Literal*& operator[] (int n)
   { return _literals[n]; }
   /** Return the (reference to) the nth literal */
-  Literal* operator[] (int n) const
+  Literal*const& operator[] (int n) const
   { return _literals[n]; }
 
   /** Return the length (number of literals) */
@@ -236,6 +236,12 @@ public:
 
   ArrayishObjectIterator<Clause> getSelectedLiteralIterator()
   { return ArrayishObjectIterator<Clause>(*this,numSelected()); }
+
+  ArrayishObjectIterator<Clause> iterLits() &
+  { return ArrayishObjectIterator<Clause>(*this,size()); }
+
+  ArrayishObjectIterator<Clause, const_ref_t> iterLits() const&
+  { return ArrayishObjectIterator<Clause, const_ref_t>(*this,size()); }
 
   bool isGround();
   bool isPropositional();

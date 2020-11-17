@@ -44,6 +44,7 @@
 #include "Saturation/SaturationAlgorithm.hpp"
 
 #include "EqualityResolution.hpp"
+#include "Shell/UnificationWithAbstractionConfig.hpp"
 
 #if VDEBUG
 #include <iostream>
@@ -60,7 +61,6 @@ using namespace Saturation;
 
 struct EqualityResolution::IsNegativeEqualityFn
 {
-  DECL_RETURN_TYPE(bool);
   bool operator()(Literal* l)
   { return l->isEquality() && l->isNegative(); }
 };
@@ -69,7 +69,6 @@ struct EqualityResolution::ResultFn
 {
   ResultFn(Clause* cl, bool afterCheck = false, Ordering* ord = nullptr)
       : _afterCheck(afterCheck), _ord(ord), _cl(cl), _cLen(cl->length()) {}
-  DECL_RETURN_TYPE(Clause*);
   Clause* operator() (Literal* lit)
   {
     CALL("EqualityResolution::ResultFn::operator()");
@@ -93,16 +92,6 @@ struct EqualityResolution::ResultFn
       use_handler = false;
     }
   
-/*
-    UWAMismatchHandler* hndlr = 0;
-    if(use_handler){
-      UWAMismatchHandler h(constraints);
-      hndlr = &h;
-    }
-    if(!subst.unify(*lit->nthArgument(0),0,*lit->nthArgument(1),0,hndlr)){ 
-      return 0; 
-    }
-*/
     if(use_handler){
       UWAMismatchHandler hndlr(constraints);
       if(!subst.unify(*lit->nthArgument(0),0,*lit->nthArgument(1),0,&hndlr)){ 
@@ -154,8 +143,8 @@ struct EqualityResolution::ResultFn
 
       if(uwa==Options::UnificationWithAbstraction::GROUND &&
          !constraint->ground() &&
-         (!theory->isInterpretedFunction(qT) && !theory->isInterpretedConstant(qT)) &&
-         (!theory->isInterpretedFunction(rT) && !theory->isInterpretedConstant(rT))){
+         !UnificationWithAbstractionConfig::isInterpreted(qT) && 
+         !UnificationWithAbstractionConfig::isInterpreted(rT) ) {
 
         // the unification was between two uninterpreted things that were not ground 
         res->destroy();

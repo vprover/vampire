@@ -27,11 +27,14 @@
 
 #include "Forwards.hpp"
 #include "Lib/SmartPtr.hpp"
+#include "Lib/Stack.hpp"
 
 #include "Lib/VirtualIterator.hpp"
 #include "Lib/List.hpp"
 
 #include "Lib/Allocator.hpp"
+#include "Kernel/Inference.hpp"
+#include "Lib/Coproduct.hpp"
 
 namespace Inferences
 {
@@ -98,11 +101,38 @@ protected:
 //  ClauseIterator premises;
 //};
 
-class GeneratingInferenceEngine
+/** A generating inference that might make its major premise redundant. */
+class SimplifyingGeneratingInference
 : public InferenceEngine
 {
 public:
+
+  /** result of applying the inference */
+  struct ClauseGenerationResult {
+    /** the generated clauses */
+    ClauseIterator clauses;
+    /** tells whether the major premise of the application of the rule should be deleted from the search space. */
+    bool premiseRedundant;
+  };
+
+  /**
+   * Applies this rule to the clause, and returns an iterator over the resulting clauses, 
+   * as well as the information wether the premise was made redundant.
+   */
+  virtual ClauseGenerationResult generateSimplify(Clause* premise)  = 0;
+};
+
+
+class GeneratingInferenceEngine
+: public SimplifyingGeneratingInference
+{
+
+public:
   virtual ClauseIterator generateClauses(Clause* premise) = 0;
+
+  ClauseGenerationResult generateSimplify(Clause* premise) override
+  { return { .clauses = generateClauses(premise), 
+             .premiseRedundant = false, }; }
 };
 
 class ImmediateSimplificationEngine
@@ -126,6 +156,92 @@ public:
    * literals.
    */
   virtual Clause* simplify(Clause* cl) = 0;
+};
+
+/**
+ * A SimplifyingGeneratingInference that generates at most one clause. 
+ * 
+ * Such an inference can be used as ImmediateSimplificationEngine, by calling asISE(). 
+ * @warning When used as ISE non-redundant clauses might be deleted from the search space. Therefore completeness might be lost!
+ */
+class SimplifyingGeneratingInference1
+: public SimplifyingGeneratingInference
+, ImmediateSimplificationEngine
+{
+public:
+  struct Result 
+  {
+    Clause* simplified;
+    bool premiseRedundant;
+
+    inline static Result tautology() 
+    { return { .simplified = nullptr, .premiseRedundant = true, }; }
+
+    inline static Result nop(Clause* cl) 
+    { return { .simplified = cl, .premiseRedundant = false, }; }
+
+  };
+
+  ClauseGenerationResult generateSimplify(Clause* cl) override;
+
+  /** 
+   * Turns this SimplifyingGeneratingInference1 into and ImmediateSimplificationEngine. 
+   * The resulting ImmediateSimplificationEngine will call simplify(Clause*, bool doOrderingCheck) with 
+   * doOrderingCheck = false, and ignore the value of SimplifyingGeneratingInference1::Result::premiseRedundant.
+   *
+   * @warning the resulting ImmediateSimplificationEngine might not conform with the simplification ordering, which means that non-redundant clauses might be deleted, which yields a loss of completeness!
+   */
+  ImmediateSimplificationEngine& asISE();
+
+  virtual void attach(SaturationAlgorithm* salg) override { SimplifyingGeneratingInference::attach(salg); }
+  virtual void detach() override { SimplifyingGeneratingInference::detach(); }
+  
+protected:
+
+  /** returns the simplified clause and whether the premise was made redundant. 
+   *
+   * \param doOrderingCheck is used in order to be able to skip any ordering 
+   *      checks (which is an expensive computation), when Result::premiseRedundant is ignored anyways. 
+   * \param cl is the clause to be simplified. if the clause is a tautology, Result::tautology() should be returned.
+   */
+  virtual Result simplify(Clause* cl, bool doOrderingCheck) = 0;
+private:
+  Clause* simplify(Clause* cl) override;
+};
+
+/**
+ * A SimplifyingGeneratingInference1 that is applied literal by literal
+ */
+class SimplifyingGeneratingLiteralSimplification
+: public SimplifyingGeneratingInference1
+{
+
+public:
+  class Result : public Lib::Coproduct<Literal*, bool> 
+  {
+  private:
+    explicit Result(Coproduct&& l) : Coproduct(std::move(l)) {}
+  public:
+    using super = Lib::Coproduct<Literal*, bool>;
+    /**
+     * returns whether the result is a trivial literal (top or bot)
+     */
+    inline bool isConstant() const& { return is<1>(); }
+    inline bool isLiteral() const& { return is<0>(); }
+    inline bool unwrapConstant() const& { return unwrap<1>(); }
+    inline Literal* unwrapLiteral() const& { return unwrap<0>(); }
+    inline static Result constant(bool b) { return Result(Coproduct::template variant<1>(b)); }
+    inline static Result literal(Literal* b) { return Result(Coproduct::template variant<0>(b)); }
+  };
+
+protected:
+  SimplifyingGeneratingLiteralSimplification(InferenceRule rule, Ordering& ordering);
+  virtual Result simplifyLiteral(Literal* l) = 0;
+  SimplifyingGeneratingInference1::Result simplify(Clause* cl, bool doOrderingCheck) override;
+
+private:
+  Ordering* _ordering;
+  const InferenceRule _rule;
 };
 
 class ForwardSimplificationEngine
@@ -259,12 +375,32 @@ public:
   CompositeGIE() : _inners(0) {}
   virtual ~CompositeGIE();
   void addFront(GeneratingInferenceEngine* fse);
-  ClauseIterator generateClauses(Clause* premise);
-  void attach(SaturationAlgorithm* salg);
-  void detach();
+  ClauseIterator generateClauses(Clause* premise) override;
+  void attach(SaturationAlgorithm* salg) override;
+  void detach() override;
 private:
   typedef List<GeneratingInferenceEngine*> GIList;
   GIList* _inners;
+};
+
+
+class CompositeSGI
+: public SimplifyingGeneratingInference
+{
+public:
+  CLASS_NAME(CompositieSGI);
+  USE_ALLOCATOR(CompositeSGI);
+
+  CompositeSGI() : _simplifiers(), _generators() {}
+  virtual ~CompositeSGI();
+  void push(SimplifyingGeneratingInference*);
+  void push(GeneratingInferenceEngine*);
+  ClauseGenerationResult generateSimplify(Clause* premise) override;
+  void attach(SaturationAlgorithm* salg) override;
+  void detach() override;
+private:
+  Stack<SimplifyingGeneratingInference*> _simplifiers;
+  Stack<GeneratingInferenceEngine*> _generators;
 };
 
 class DuplicateLiteralRemovalISE

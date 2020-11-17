@@ -112,7 +112,7 @@ private:
   State _initState;
   ChoiceArr _choices;
   size_t _chLen;
-  Stack<RETURN_TYPE(Fn) > _chits; //choice iterators
+  Stack<RETURN_TYPE(Fn(State)) > _chits; //choice iterators
   Stack<State> _states;
   Fn _functor;
 };
@@ -135,11 +135,10 @@ class BtrFnForIterable
   class FnMapper
   {
   public:
-    DECL_RETURN_TYPE(VirtualIterator<State>);
     FnMapper(State s, Fn functor) : _state(s), _functor(functor) {}
 
     template<typename ChoicePoint>
-    OWN_RETURN_TYPE operator() (ChoicePoint cp)
+    VirtualIterator<State> operator() (ChoicePoint cp)
     { return _functor(_state, cp); }
   private:
     State _state;
@@ -147,10 +146,9 @@ class BtrFnForIterable
   };
 
 public:
-  DECL_RETURN_TYPE(FlatteningIterator<MappingIterator<ITERATOR_TYPE(ChPntIterable),FnMapper> >);
   BtrFnForIterable(Fn functor) : _functor(functor) {}
 
-  OWN_RETURN_TYPE
+  FlatteningIterator<MappingIterator<ITERATOR_TYPE(ChPntIterable),FnMapper> >
   operator() (State curr, ChPntIterable cPItb) //cPItb=Choice Point ITeraBle
   {
     return getFlattenedIterator(

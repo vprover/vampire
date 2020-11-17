@@ -94,15 +94,18 @@ TestUnit* UnitTesting::get(const char* unitId)
   return 0;
 }
 
-// TestUnit* UnitTesting::getUnit(const char* unitId)
-// {
-//   TestUnit* unit=get(unitId);
-//   if(!unit) {
-//     return false;
-//   }
-//   runUnit(unit, out);
-//   return true;
-// }
+bool TestUnit::get(const char* id, Test& out)
+{
+  TestUnit::Iterator iter = getTests();
+  while (iter.hasNext()) {
+    auto t = iter.next();
+    if (!strcmp(t.name, id)) {
+      out = t;
+      return true;
+    }
+  }
+  return false;
+}
 
 bool UnitTesting::runUnit(TestUnit* unit, ostream& out)
 {

@@ -301,6 +301,10 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/Unit.hpp
     Kernel/LPO.cpp
     Kernel/LPO.hpp
+    Kernel/Polynomial.hpp
+    Kernel/Polynomial.cpp
+    Kernel/PolynomialNormalizer.hpp
+    Kernel/PolynomialNormalizer.cpp
     )
 source_group(kernel_source_files FILES ${VAMPIRE_KERNEL_SOURCES})
 
@@ -375,6 +379,9 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/InferenceEngine.cpp
     Inferences/Instantiation.cpp
     Inferences/InterpretedEvaluation.cpp
+    Inferences/PushUnaryMinus.cpp
+    Inferences/Cancellation.cpp
+    Inferences/ArithmeticSubtermGeneralization.cpp
     Kernel/NumTraits.cpp
     Inferences/GaussianVariableElimination.cpp
     Kernel/Rebalancing.cpp
@@ -406,6 +413,9 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/InferenceEngine.hpp
     Inferences/Instantiation.hpp
     Inferences/InterpretedEvaluation.hpp
+    Inferences/PushUnaryMinus.hpp
+    Inferences/Cancellation.hpp
+    Inferences/ArithmeticSubtermGeneralization.hpp
     Kernel/NumTraits.cpp
     Inferences/GaussianVariableElimination.hpp
     Kernel/Rebalancing.hpp
@@ -418,6 +428,12 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/URResolution.hpp
     Inferences/TheoryInstAndSimp.hpp
     Inferences/TheoryInstAndSimp.cpp  # this is theory instantiation
+    Inferences/ArithmeticSubtermGeneralization.hpp
+    Inferences/ArithmeticSubtermGeneralization.cpp
+    Inferences/PolynomialEvaluation.hpp
+    Inferences/PolynomialEvaluation.cpp
+    Inferences/Cancellation.hpp
+    Inferences/Cancellation.cpp
 #    Inferences/TheoryRuleAttempt.hpp
 #    Inferences/TheoryRuleAttempt.cpp
     )
@@ -628,6 +644,8 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/BlockedClauseElimination.hpp
     Shell/Token.hpp
     Shell/TPTPPrinter.hpp
+    Shell/UnificationWithAbstractionConfig.hpp
+    Shell/UnificationWithAbstractionConfig.cpp
     #Shell/TrivialPredicateRemover.hpp
     Shell/UIHelper.hpp
     Shell/VarManager.hpp
@@ -698,7 +716,11 @@ set(VAMPIRE_CASC_SOURCES
     )
 source_group(casc_source_files FILES ${VAMPIRE_CASC_SOURCES})
 
-set(VAMPIRE_TESTING_SOURCES Test/UnitTesting.cpp)
+set(VAMPIRE_TESTING_SOURCES 
+  Test/UnitTesting.cpp
+  Test/SyntaxSugar.cpp
+  Test/TestUtils.cpp
+  )
 source_group(testing_files FILES ${VAMPIRE_TESTING_SOURCES})
 
 set(UNIT_TESTS
@@ -707,6 +729,9 @@ set(UNIT_TESTS
     UnitTests/tImplicationSetClosure.cpp
     UnitTests/tUnificationWithAbstraction.cpp
     UnitTests/tGaussianElimination.cpp
+    UnitTests/tArithmeticSubtermGeneralization.cpp
+    UnitTests/tInterpretedFunctions.cpp
+    UnitTests/tRebalance.cpp
     UnitTests/tDisagreement.cpp
     UnitTests/tDynamicHeap.cpp
     UnitTests/tIntegerConstantType.cpp
@@ -724,8 +749,13 @@ set(UNIT_TESTS
     UnitTests/tSCCAnalyzer.cpp
     UnitTests/tDHMultiset.cpp
     UnitTests/tList.cpp
+    UnitTests/tBottomUpEvaluation.cpp
+    UnitTests/tCoproduct.cpp
+    UnitTests/tEqualityResolution.cpp
+    UnitTests/tIterator.cpp
+    UnitTests/tOption.cpp
     UnitTests/tStack.cpp
-)
+    )
 source_group(unit_tests FILES ${UNIT_TESTS})
 
 # also include forwards.hpp?

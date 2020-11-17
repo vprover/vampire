@@ -826,13 +826,13 @@ void Splitter::onAllProcessed()
   
   if (_showSplitting) { // TODO: this is just one of many ways Splitter could report about changes
     env.beginOutput();
-    env.out() << "[AVATAR] recomputeModel: +";
+    env.out() << "[AVATAR] recomputeModel: + ";
     for (unsigned i = 0; i < toAdd.size(); i++) {
-      env.out() << toAdd[i] << ",";
+      env.out() << getLiteralFromName(toAdd[i]) << ",";
     }
-    env.out() << " -";
+    env.out() << "\t - ";
     for (unsigned i = 0; i < toRemove.size(); i++) {
-      env.out() << toRemove[i] << ",";
+      env.out() << getLiteralFromName(toRemove[i]) << ",";
     }
     env.out() << std::endl;
     env.endOutput();
@@ -1750,6 +1750,7 @@ void Splitter::removeComponents(const SplitLevelStack& toRemove)
       if(ccl->store()!=Clause::NONE) {
         _sa->removeActiveOrPassiveClause(ccl);
         ASS_EQ(ccl->store(), Clause::NONE);
+      } else {
       }
       ccl->invalidateMyReductionRecords();
       ccl->decNumActiveSplits();

@@ -58,14 +58,12 @@ using namespace Saturation;
 
 struct EqualityFactoring::IsPositiveEqualityFn
 {
-  DECL_RETURN_TYPE(bool);
   bool operator()(Literal* l)
   { return l->isEquality() && l->isPositive(); }
 };
 struct EqualityFactoring::IsDifferentPositiveEqualityFn
 {
   IsDifferentPositiveEqualityFn(Literal* lit) : _lit(lit) {}
-  DECL_RETURN_TYPE(bool);
   bool operator()(Literal* l2)
   { return l2->isEquality() && l2->polarity() && l2!=_lit; }
 private:
@@ -75,8 +73,7 @@ private:
 struct EqualityFactoring::FactorablePairsFn
 {
   FactorablePairsFn(Clause* cl) : _cl(cl) {}
-  DECL_RETURN_TYPE(VirtualIterator<pair<pair<Literal*,TermList>,pair<Literal*,TermList> > >);
-  OWN_RETURN_TYPE operator() (pair<Literal*,TermList> arg)
+  VirtualIterator<pair<pair<Literal*,TermList>,pair<Literal*,TermList> > > operator() (pair<Literal*,TermList> arg)
   {
     auto it1 = getContentIterator(*_cl);
 
@@ -96,7 +93,6 @@ struct EqualityFactoring::ResultFn
 {
   ResultFn(Clause* cl, bool afterCheck, Ordering& ordering)
       : _cl(cl), _cLen(cl->length()), _afterCheck(afterCheck), _ordering(ordering) {}
-  DECL_RETURN_TYPE(Clause*);
   Clause* operator() (pair<pair<Literal*,TermList>,pair<Literal*,TermList> > arg)
   {
     CALL("EqualityFactoring::ResultFn::operator()");
