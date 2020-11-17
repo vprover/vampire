@@ -25,27 +25,41 @@ public:
   { return TestUtils::eqModAC(lhs, rhs); }
 };
 
-struct Success
+class Success
 {
-  Kernel::Clause* input;
-  ClausePattern expected;
+  Kernel::Clause* _input;
+  Option<ClausePattern> _expected;
+
+public:
+  Success() {}
+
+  Success input(Kernel::Clause* x) 
+  {
+    _input = x;
+    return *this;
+  }
+
+  Success expected(ClausePattern x)
+  {
+    _expected = Option<ClausePattern>(x); 
+    return *this;
+  }
 
   void run(const SimplificationTester& simpl) {
-    auto res = simpl.simplify(input);
+    auto res = simpl.simplify(_input);
 
     if (!res) {
       cout  << endl;
-      cout << "[     case ]: " << pretty(*input) << endl;
+      cout << "[     case ]: " << pretty(*_input) << endl;
       cout << "[       is ]: NULL (indicates the clause is a tautology)" << endl;
-      cout << "[ expected ]: " << pretty(expected) << endl;
+      cout << "[ expected ]: " << pretty(_expected) << endl;
       exit(-1);
 
-    // } else if (!simpl.eq(res, &expected)) {
-    } else if (!expected.matches(simpl, res)) {
+    } else if (!_expected.unwrap().matches(simpl, res)) {
       cout  << endl;
-      cout << "[     case ]: " << pretty(*input) << endl;
+      cout << "[     case ]: " << pretty(*_input) << endl;
       cout << "[       is ]: " << pretty(*res) << endl;
-      cout << "[ expected ]: " << pretty(expected) << endl;
+      cout << "[ expected ]: " << pretty(_expected) << endl;
       exit(-1);
 
     }
@@ -53,15 +67,24 @@ struct Success
 };
 
 
-struct NotApplicable
+class NotApplicable
 {
-  Kernel::Clause* input;
+  Kernel::Clause* _input;
+public:
+  NotApplicable() {}
+
+  NotApplicable input(Kernel::Clause* x) 
+  {
+    _input = x;
+    return *this;
+  }
+
 
   void run(const SimplificationTester& simpl) {
-    auto res = simpl.simplify(input);
-    if (res != input ) {
+    auto res = simpl.simplify(_input);
+    if (res != _input ) {
       cout  << endl;
-      cout << "[     case ]: " << pretty(*input) << endl;
+      cout << "[     case ]: " << pretty(*_input) << endl;
       cout << "[       is ]: " << pretty(*res) << endl;
       cout << "[ expected ]: < nop >" << endl;
       exit(-1);
