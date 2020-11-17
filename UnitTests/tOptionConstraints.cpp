@@ -80,16 +80,7 @@ TEST_FUN(urr)
     Options o;
     o.set("unit_resulting_resolution","on");
     o.set("saturation_algorithm","inst_gen");
-    o.set("splitting","off");
     o.set("inst_gen_with_resolution","off");
     ASS(!testGlobal(o));
   } 
-}
-
-TEST_FUN(nonlit)
-{
-  Options o;
-  o.set("splitting","off");
-  o.set("nonliterals_in_clause_weight","on");
-  ASS(!testGlobal(o));
 }
