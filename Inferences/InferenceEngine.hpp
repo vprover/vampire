@@ -193,6 +193,8 @@ public:
    */
   ImmediateSimplificationEngine& asISE();
 
+  virtual void attach(SaturationAlgorithm* salg) override { SimplifyingGeneratingInference::attach(salg); }
+  virtual void detach() override { SimplifyingGeneratingInference::detach(); }
   
 protected:
 
@@ -215,7 +217,6 @@ class SimplifyingGeneratingLiteralSimplification
 {
 
 public:
-  // TODO rename to result
   class Result : public Lib::Coproduct<Literal*, bool> 
   {
   private:

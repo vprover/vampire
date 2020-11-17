@@ -14,8 +14,8 @@ class ClausePattern;
  */
 struct AnyOf 
 {
-  unique_ptr<ClausePattern> lhs;
-  unique_ptr<ClausePattern> rhs;
+  shared_ptr<ClausePattern> lhs;
+  shared_ptr<ClausePattern> rhs;
 };
 
 /**

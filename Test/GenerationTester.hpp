@@ -18,20 +18,14 @@
 #include "Kernel/Problem.hpp"
 #include "Shell/Options.hpp"
 #include "Test/MockedSaturationAlgorithm.hpp"
+#include "Test/SyntaxSugar.hpp"
 
 namespace Test {
-
-template<class... As> void __voidWrapper(As...) { }
-
-#define VOID_VARIADIC(expr)                                                                                   \
-  __voidWrapper([&](){ expr; return 0; }()...)
-  
 
 template<class... As>
 Stack<ClausePattern> exactly(As... as) 
 {
-  Stack<ClausePattern> out;
-  VOID_VARIADIC(out.push(as));
+  Stack<ClausePattern> out { as... };
   return out;
 }
 
@@ -56,8 +50,9 @@ public:
 
 class TestCase
 {
-  Kernel::Clause* _input;
-  Stack<ClausePattern> _generated;
+  using Clause = Kernel::Clause;
+  Clause* _input;
+  Stack<ClausePattern> _expected;
   bool _premiseRedundant;
 
   template<class Is, class Expected>
@@ -71,7 +66,7 @@ class TestCase
 
 public:
 
-  TestCase() : _input(NULL), _generated(), _premiseRedundant(false) {}
+  TestCase() : _input(NULL), _expected(), _premiseRedundant(false) {}
 
 
   TestCase input(Kernel::Clause* input) 
@@ -80,9 +75,9 @@ public:
     return *this;
   }
 
-  TestCase generated(Stack<ClausePattern> generated)
+  TestCase expected(Stack<ClausePattern> expected)
   {
-    this->_generated = generated;
+    this->_expected = expected;
     return *this;
   }
 
@@ -92,7 +87,6 @@ public:
     return *this;
   }
 
-
   template<class Rule>
   void run(GenerationTester<Rule>& simpl) {
 
@@ -100,14 +94,13 @@ public:
     Problem p;
     Options o;
     MockedSaturationAlgorithm alg(p, o);
-    simpl._rule.Inferences::SimplifyingGeneratingInference::attach(&alg);
+    simpl._rule.attach(&alg);
 
     // run rule
     auto res = simpl._rule.generateSimplify(_input);
 
     // run checks
-
-    auto& sExp = this->_generated;
+    auto& sExp = this->_expected;
     auto  sRes = Stack<Kernel::Clause*>::fromIterator(res.clauses);
 
     auto iExp = getArrayishObjectIterator<mut_ref_t>(sExp);
@@ -131,7 +124,7 @@ public:
     }
 
     // tear down saturation algorithm
-    simpl._rule.Inferences::SimplifyingGeneratingInference::detach();
+    simpl._rule.detach();
   }
 };
 

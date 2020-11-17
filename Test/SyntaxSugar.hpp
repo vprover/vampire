@@ -415,15 +415,12 @@ inline Clause* clause(std::initializer_list<Lit> ls_) {
 
 
 
-inline Stack<Clause*> clauses() { 
-  return Stack<Clause*>();
-}
-
-template<class... As>
-Stack<Clause*> clauses(As... rest, std::initializer_list<Lit> c) { 
-  auto out = clauses(rest...);
-  out.push(clause(c));
-  return std::move(out);
+Stack<Clause*> clauses(std::initializer_list<std::initializer_list<Lit>> cls) { 
+  auto out = Stack<Clause*>();
+  for (auto cl : cls) {
+    out.push(clause(cl));
+  }
+  return out;
 }
 
 #endif // __TEST__SYNTAX_SUGAR__H__

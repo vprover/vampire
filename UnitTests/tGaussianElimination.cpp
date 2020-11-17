@@ -162,54 +162,54 @@ REGISTER_GEN_TESTER(Test::Generation::GenerationTester<LfpRule<GaussianVariableE
 TEST_GENERATION(test_redundancy_01,
     Generation::TestCase()
       .input(    clause({  x != 4, p(x)  }))
-      .generated(exactly(
+      .expected(exactly(
             clause({  p(4)  })
       ))
       .premiseRedundant(false)
     )
 
-// TEST_GENERATION(test_redundancy_02,
-//     Generation::TestCase {
-//       .input     = clause({  x != 4, p(y)  }),
-//       .generated = exactly(
-//             clause({  p(y)  })
-//       ),
-//       .premiseRedundant = true,
-//     })
-//
-// TEST_GENERATION(test_redundancy_03,
-//     Generation::TestCase {
-//       .input     = clause({   x != 4, p(y), q(x)  }),
-//       .generated = exactly(
-//             clause({  p(y), q(4)  })
-//       ),
-//       .premiseRedundant = false,
-//     })
-//
-// TEST_GENERATION(test_redundancy_04,
-//     Generation::TestCase {
-//       .input     = clause({   x != 4, p(x), q(x)  }),
-//       .generated = exactly(
-//             clause({  p(4), q(4)  })
-//       ),
-//       .premiseRedundant = false,
-//     })
-//
-// TEST_GENERATION(test_redundancy_05,
-//     Generation::TestCase {
-//       .input     = clause({   x != 4, p(y), q(y)  }),
-//       .generated = exactly(
-//             clause({  p(y), q(y)  })
-//       ),
-//       .premiseRedundant = true,
-//     })
-//
-//
-// TEST_GENERATION(test_redundancy_06,
-//     Generation::TestCase {
-//       .input     = clause({  y != 5, x != 4, p(x), q(y)  }),
-//       .generated = exactly(
-//             clause({  p(4), q(5)  })
-//       ),
-//       .premiseRedundant = false,
-//     })
+TEST_GENERATION(test_redundancy_02,
+    Generation::TestCase()
+      .input(     clause({  x != 4, p(y)  }))
+      .expected( exactly(
+            clause({  p(y)  })
+      ))
+      .premiseRedundant(true)
+    )
+
+TEST_GENERATION(test_redundancy_03,
+    Generation::TestCase()
+      .input(     clause({   x != 4, p(y), q(x)  }))
+      .expected( exactly(
+            clause({  p(y), q(4)  })
+      ))
+      .premiseRedundant(false)
+    )
+
+TEST_GENERATION(test_redundancy_04,
+    Generation::TestCase()
+      .input(     clause({   x != 4, p(x), q(x)  }))
+      .expected( exactly(
+            clause({  p(4), q(4)  })
+      ))
+      .premiseRedundant(false)
+    )
+
+TEST_GENERATION(test_redundancy_05,
+    Generation::TestCase()
+      .input(     clause({   x != 4, p(y), q(y)  }))
+      .expected( exactly(
+            clause({  p(y), q(y)  })
+      ))
+      .premiseRedundant(true)
+    )
+
+
+TEST_GENERATION(test_redundancy_06,
+    Generation::TestCase()
+      .input(     clause({  y != 5, x != 4, p(x), q(y)  }))
+      .expected( exactly(
+            clause({  p(4), q(5)  })
+      ))
+      .premiseRedundant(false)
+    )

@@ -14,10 +14,11 @@ public:
   CLASS_NAME(LfpRule);
   USE_ALLOCATOR(LfpRule);
  
-  LfpRule(Rule rule
-);
+  LfpRule(Rule rule);
   LfpRule();
   SimplifyingGeneratingInference1::Result simplify(Clause *cl, bool doCheckOrdering) override;
+  void attach(SaturationAlgorithm* alg) override { SimplifyingGeneratingInference1::attach(alg); _inner.attach(alg); }
+  void detach() override { SimplifyingGeneratingInference1::detach(); _inner.detach(); }
 };
 
 
