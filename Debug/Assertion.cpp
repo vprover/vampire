@@ -28,10 +28,11 @@ using namespace Shell;
 using namespace Debug;
 
 namespace Shell {
-  void reportSpiderFail();
+void reportSpiderFail();
 }
 
-[[ noreturn ]] void Assertion::abortAfterViolation() {
+[[noreturn]] void Assertion::abortAfterViolation()
+{
   Shell::reportSpiderFail();
 #if CHECK_LEAKS
   MemoryLeak::cancelReport();
@@ -43,62 +44,69 @@ namespace Shell {
  * Called when an assertion is violated. Simply print the stack and
  * throw an assertion violation exception.
  */
-void Assertion::violated (const char* file,int line,const char* cond)
+void Assertion::violated(const char* file, int line, const char* cond)
 {
-  if(outputAllowed(true)) {
+  if (outputAllowed(true)) {
     cout << "Condition in file " << file << ", line " << line
-	<< " violated:\n" << cond << "\n"
-	<< "----- stack dump -----\n";
+         << " violated:\n"
+         << cond << "\n"
+         << "----- stack dump -----\n";
     Tracer::printStack(cout);
     cout << "----- end of stack dump -----" << endl;
   }
   abortAfterViolation();
 } // Assertion::violated
 
-
-void Assertion::violatedStrEquality(const char* file,int line,const char* val1Str,
-	  const char* val2Str, const char* val1, const char* val2)
+void Assertion::violatedStrEquality(const char* file, int line, const char* val1Str,
+                                    const char* val2Str, const char* val1, const char* val2)
 {
-  if(outputAllowed(true)) {
-    std::cout << "Condition for string equality "<<val1Str<<" == "<<val2Str
-	<< " in file " << file << ", line " << line
-	<< " was violated, as:\n" << val1Str<<" == \""<<val1 <<"\"\n"
-	<< val2Str<<" == \""<<val2 << "\"\n"
-	<< "----- stack dump -----\n";
+  if (outputAllowed(true)) {
+    std::cout << "Condition for string equality " << val1Str << " == " << val2Str
+              << " in file " << file << ", line " << line
+              << " was violated, as:\n"
+              << val1Str << " == \"" << val1 << "\"\n"
+              << val2Str << " == \"" << val2 << "\"\n"
+              << "----- stack dump -----\n";
     Tracer::printStack(cout);
     std::cout << "----- end of stack dump -----\n";
   }
   abortAfterViolation();
 }
 
-void Assertion::checkType(const char* file,int line,const void* ptr, const char* assumed,
-	const char* ptrStr)
+void Assertion::checkType(const char* file, int line, const void* ptr, const char* assumed,
+                          const char* ptrStr)
 {
   Allocator::Descriptor* desc = Allocator::Descriptor::find(ptr);
 
-  if(!desc) {
-    if(outputAllowed(true)) {
+  if (!desc) {
+    if (outputAllowed(true)) {
       cout << "Type condition in file " << file << ", line " << line
-	  << " violated:\n" << ptrStr << " was not allocated by Lib::Allocator.\n";
+           << " violated:\n"
+           << ptrStr << " was not allocated by Lib::Allocator.\n";
     }
-  } else if( !USE_PRECISE_CLASS_NAMES && strcmp(assumed, desc->cls) ) {
+  }
+  else if (!USE_PRECISE_CLASS_NAMES && strcmp(assumed, desc->cls)) {
     //TODO: the use of precise class names disrupts the check, fix it in the future!
-    if(outputAllowed(true)) {
+    if (outputAllowed(true)) {
       cout << "Type condition in file " << file << ", line " << line
-	   << " violated:\n" << ptrStr << " was allocated as \"" << desc->cls
-	   << "\" instead of \"" << assumed <<"\".\n";
+           << " violated:\n"
+           << ptrStr << " was allocated as \"" << desc->cls
+           << "\" instead of \"" << assumed << "\".\n";
     }
-  } else if( !desc->allocated ) {
-    if(outputAllowed(true)) {
+  }
+  else if (!desc->allocated) {
+    if (outputAllowed(true)) {
       cout << "Type condition in file " << file << ", line " << line
-	   << " violated:\n" << ptrStr << " was allocated as \"" << desc->cls
-	   << "\", but no longer is.\n";
+           << " violated:\n"
+           << ptrStr << " was allocated as \"" << desc->cls
+           << "\", but no longer is.\n";
     }
-  } else {
+  }
+  else {
     return;
   }
 
-  if(outputAllowed(true)) {
+  if (outputAllowed(true)) {
     cout << "----- stack dump -----\n";
     Tracer::printStack(cout);
     cout << "----- end of stack dump -----\n";
@@ -110,11 +118,11 @@ void Assertion::checkType(const char* file,int line,const void* ptr, const char*
  * Called when an exception is thrown as part of the ASSERT_VALID call.
  * Simply print the location and argument of the ASSERT_VALID statement.
  */
-void Assertion::reportAssertValidException (const char* file,int line,const char* obj)
+void Assertion::reportAssertValidException(const char* file, int line, const char* obj)
 {
-  if(outputAllowed(true)) {
+  if (outputAllowed(true)) {
     cout << "An exception was thrown by ASSERT_VALID on object " << obj
-	<< " in file " << file << ", line " << line << ".\n";
+         << " in file " << file << ", line " << line << ".\n";
   }
   abortAfterViolation();
 } // Assertion::violated
