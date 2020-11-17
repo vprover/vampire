@@ -70,17 +70,17 @@ REGISTER_SIMPL_TESTER(SimplificationTester)
   THEORY_SYNTAX_SUGAR_FUN (f, 1)                                                                              \
 
 #define TEST_SIMPLIFY_FRACTIONAL(name, ...)                                                                   \
-    TEST_SIMPLIFY_WITH_SUGAR(CAT(name, _REAL), SIMPL_SUGAR_(REAL), __VA_ARGS__)                               \
-    TEST_SIMPLIFY_WITH_SUGAR(CAT(name, _RAT ), SIMPL_SUGAR_(RAT ), __VA_ARGS__)                               \
+    TEST_SIMPLIFY_WITH_SUGAR(CAT(name, _Real), SIMPL_SUGAR_(Real), __VA_ARGS__)                               \
+    TEST_SIMPLIFY_WITH_SUGAR(CAT(name, _Rat ), SIMPL_SUGAR_(Rat ), __VA_ARGS__)                               \
 
 #define TEST_SIMPLIFY_RATIONAL(name, ...)                                                                     \
-    TEST_SIMPLIFY_WITH_SUGAR(CAT(name, _RAT ), SIMPL_SUGAR_(RAT ), __VA_ARGS__)                               \
+    TEST_SIMPLIFY_WITH_SUGAR(CAT(name, _Rat ), SIMPL_SUGAR_(Rat ), __VA_ARGS__)                               \
 
 #define TEST_SIMPLIFY_INTEGER(name, ...)                                                                      \
-    TEST_SIMPLIFY_WITH_SUGAR(CAT(name, _INT ), SIMPL_SUGAR_(INT ), __VA_ARGS__)                               \
+    TEST_SIMPLIFY_WITH_SUGAR(CAT(name, _Int ), SIMPL_SUGAR_(Int ), __VA_ARGS__)                               \
 
 #define TEST_SIMPLIFY_REAL(name, ...)                                                                         \
-    TEST_SIMPLIFY_WITH_SUGAR(CAT(name, _REAL), SIMPL_SUGAR_(REAL), __VA_ARGS__)                               \
+    TEST_SIMPLIFY_WITH_SUGAR(CAT(name, _Real), SIMPL_SUGAR_(Real), __VA_ARGS__)                               \
 
 #define TEST_SIMPLIFY_NUMBER(name, ...)                                                                       \
     TEST_SIMPLIFY_FRACTIONAL(name, __VA_ARGS__)                                                               \

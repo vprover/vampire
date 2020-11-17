@@ -219,16 +219,16 @@ void check_eval(Lit orig_, Lit expected_) {
 
 /** Tests for evalutions that should only be successful for reals/rationals and not for integers. */
 #define FRACTIONAL_TEST(name, formula, expected)                                                              \
-  NUM_TEST(RAT , name, formula, expected)                                                                     \
-  NUM_TEST(REAL, name, formula, expected)                                                                     \
+  NUM_TEST(Rat , name, formula, expected)                                                                     \
+  NUM_TEST(Real, name, formula, expected)                                                                     \
 
 #define INT_TEST(name, formula, expected)                                                                     \
-  NUM_TEST(INT , name, formula, expected)                                                                     \
+  NUM_TEST(Int , name, formula, expected)                                                                     \
 
 #define ALL_NUMBERS_TEST(name, formula, expected)                                                             \
-  NUM_TEST(INT , name, formula, expected)                                                                     \
-  NUM_TEST(RAT , name, formula, expected)                                                                     \
-  NUM_TEST(REAL, name, formula, expected)                                                                     \
+  NUM_TEST(Int , name, formula, expected)                                                                     \
+  NUM_TEST(Rat , name, formula, expected)                                                                     \
+  NUM_TEST(Real, name, formula, expected)                                                                     \
 
 /////////////////////////////////////////////// Test cases ///////////////////////////////////////////////////////
 

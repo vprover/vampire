@@ -16,7 +16,7 @@ void perform_test(const A&...) {
 }
 
 TEST_FUN(some_meaningful_testname) {
-  THEORY_SYNTAX_SUGAR(REAL) /* <-- imports syntax sugar */
+  THEORY_SYNTAX_SUGAR(Real) /* <-- imports syntax sugar */
 
   Literal* lit = ~(0 < (x * frac(7,1)));
 
@@ -24,7 +24,7 @@ TEST_FUN(some_meaningful_testname) {
 }
 
 TEST_FUN(some_other_meaningful_testname) {
-  THEORY_SYNTAX_SUGAR(RAT)
+  THEORY_SYNTAX_SUGAR(Rat)
 
   TermList t = x * frac(7,3);
 
@@ -33,7 +33,7 @@ TEST_FUN(some_other_meaningful_testname) {
 
 
 TEST_FUN(add_uninterpreted_stuff) {
-  THEORY_SYNTAX_SUGAR(RAT) /* <-- imports syntax sugar */
+  THEORY_SYNTAX_SUGAR(Rat) /* <-- imports syntax sugar */
   THEORY_SYNTAX_SUGAR_FUN (fn,       2) /* <-- creates an uninterpreted  function over the rational sort with arity 2 */
   THEORY_SYNTAX_SUGAR_PRED(relation, 2) /* <-- creates an uninterpreted predicate over the rational sort with arity 2 */
 
@@ -43,7 +43,7 @@ TEST_FUN(add_uninterpreted_stuff) {
 }
 
 TEST_FUN(watch_out_for_this) {
-  THEORY_SYNTAX_SUGAR(REAL)
+  THEORY_SYNTAX_SUGAR(Real)
   THEORY_SYNTAX_SUGAR_PRED(p, 1) 
 
   /* 
@@ -68,7 +68,7 @@ TEST_FUN(watch_out_for_this) {
 
 
 TEST_FUN(get_functors) {
-  THEORY_SYNTAX_SUGAR(RAT) /* <-- imports syntax sugar */
+  THEORY_SYNTAX_SUGAR(Rat) /* <-- imports syntax sugar */
   THEORY_SYNTAX_SUGAR_FUN  (fn,   2) /* <-- creates an uninterpreted  function over the rational sort with arity 2 */
   THEORY_SYNTAX_SUGAR_PRED (pred, 1) /* <-- creates an uninterpreted predicate over the rational sort with arity 1 */
   THEORY_SYNTAX_SUGAR_CONST(cons   ) /* <-- creates an uninterpreted  constant */
@@ -86,7 +86,7 @@ TEST_FUN(get_functors) {
 }
 
 TEST_FUN(create_equalities) {
-  THEORY_SYNTAX_SUGAR(RAT) /* <-- imports syntax sugar */
+  THEORY_SYNTAX_SUGAR(Rat) /* <-- imports syntax sugar */
   THEORY_SYNTAX_SUGAR_FUN  (fn, 2) /* <-- creates an uninterpreted  function over the rational sort with arity 2 */
   THEORY_SYNTAX_SUGAR_CONST(cons ) /* <-- creates an uninterpreted  constant */
 

@@ -12,6 +12,8 @@
 #ifndef __TEST__SYNTAX_SUGAR__H__
 #define __TEST__SYNTAX_SUGAR__H__
 
+#include<functional>
+
 #include "Forwards.hpp"
 #include "Lib/Environment.hpp"
 #include "Kernel/Inference.hpp"
@@ -23,11 +25,6 @@
 #include "Kernel/Signature.hpp"
 #include "Kernel/Sorts.hpp"
 
-#define __CLSR_RELATION(name, inter)                                                                          \
-  auto name = [](TermWrapper lhs, TermWrapper rhs) -> Literal&  {                                             \
-    return *Literal::create2(env.signature->getInterpretingSymbol(inter),  true, lhs,rhs);                    \
-  };                                                                                                          \
- 
 #define __TO_SORT_RAT Sorts::SRT_RATIONAL
 #define __TO_SORT_INT Sorts::SRT_INTEGER
 #define __TO_SORT_REAL Sorts::SRT_REAL
@@ -45,7 +42,7 @@
 #define __ARGS_EXPR_2(Type) arg0_, arg1_
 
 #define __CLSR_FUN_INTERPRETED(arity, mul, INT, _MULTIPLY)                                                    \
-    auto mul = [](__ARGS_DECL(TermWrapper, arity)) -> TermWrapper {                                           \
+    auto mul = [](__ARGS_DECL(TermSugar, arity)) -> TermSugar {                                           \
       return TermList(Term::create ## arity(                                                                  \
             env.signature->getInterpretingSymbol(Theory::Interpretation:: INT ## _MULTIPLY),                  \
             __ARGS_EXPR(Type, arity))                                                                         \
@@ -64,14 +61,14 @@
 #define __REPEAT_10(sort) sort, __REPEAT_9(sort)
 #define __REPEAT(arity, sort) __REPEAT_ ## arity(sort)
 
-#define __DECLARE_CONST(f, sort)     auto f = constSugar(#f, sort);
-#define __DECLARE_FUNC(f, sort, ...) auto f = funcSugar(#f, sort, __VA_ARGS__);
-#define __DECLARE_PRED(f, ...)       auto f = predSugar(#f,       __VA_ARGS__);
+#define __DECLARE_CONST(f, sort) auto f = ConstSugar(#f, sort);
+#define __DECLARE_FUNC(f, ...)   auto f = FuncSugar(#f, __VA_ARGS__);
+#define __DECLARE_PRED(f, ...)   auto f = PredSugar(#f, __VA_ARGS__);
 
 #define __DEFAULT_VARS                                                                                        \
-    auto x = TermWrapper(TermList::var(0));                                                                   \
-    auto y = TermWrapper(TermList::var(1));                                                                   \
-    auto z = TermWrapper(TermList::var(2));                                                                   \
+    auto x = TermSugar(TermList::var(0));                                                                   \
+    auto y = TermSugar(TermList::var(1));                                                                   \
+    auto z = TermSugar(TermList::var(2));                                                                   \
 
 
 /** tldr: For examples on usage see UnitTesting/tSyntaxSugar.cpp
@@ -79,12 +76,12 @@
  * This macro provides syntax sugar for building terms and clauses in a one-sorted theory of numbers. 
  *
  * i.e. the theories supported are:
- * THEORY_SYNTAX_SUGAR(INT) ==> integer arithmetic 
- * THEORY_SYNTAX_SUGAR(RAT) ==> rational arithmetic 
- * THEORY_SYNTAX_SUGAR(REAL) ==> rational arithmetic 
+ * THEORY_SYNTAX_SUGAR(Int) ==> integer arithmetic 
+ * THEORY_SYNTAX_SUGAR(Rat) ==> rational arithmetic 
+ * THEORY_SYNTAX_SUGAR(Real) ==> rational arithmetic 
  *
  * The macro is meant to be called within a TEST_FUN(...){...} block to import the syntax sugar for 
- * the corresponding test case. It provides a class TermWrapper that implicitly converts number literals 
+ * the corresponding test case. It provides a class TermSugar that implicitly converts number literals 
  * to terms in the corresponding sort, and operators to build complex terms and literals. Further it sets 
  * some (C++) variables to variable terms and some to constant terms.
  *
@@ -129,32 +126,22 @@
  *
  * For examples see UnitTesting/tSyntaxSugar.cpp.
  */
-#define THEORY_SYNTAX_SUGAR(sort)                                                                             \
+#define THEORY_SYNTAX_SUGAR(Sort)                                                                             \
   _Pragma("GCC diagnostic push")                                                                              \
   _Pragma("GCC diagnostic ignored \"-Wunused\"")                                                              \
-    using DefaultSort = NumTraits<__CONSTANT_TYPE_ ## sort>;                                                  \
-    using TermWrapper = Trm<DefaultSort>;                                                                     \
-    DefaultSort __defaultSort;                                                                                \
+    using NumTraits = Sort##Traits; \
+    syntaxSugarGlobals().setNumTraits(NumTraits{});                                                          \
                                                                                                               \
     __DEFAULT_VARS                                                                                            \
-    __DECLARE_CONST(a, __defaultSort)                                                                         \
-    __DECLARE_CONST(b, __defaultSort)                                                                         \
-    __DECLARE_CONST(c, __defaultSort)                                                                         \
-      auto num = [](int n) -> TermWrapper {  return n; };                                                     \
-    __IF_FRAC(sort,                                                                                           \
-      auto frac = [](int num, int den) -> TermWrapper {                                                       \
-        return DefaultSort::constantTl(num, den);                                                             \
-      };                                                                                                      \
-    )                                                                                                         \
-    __CLSR_FUN_INTERPRETED(2, mul, sort, _MULTIPLY)                                                           \
-    __CLSR_FUN_INTERPRETED(1, minus, sort, _UNARY_MINUS)                                                      \
+    __DECLARE_CONST(a, syntaxSugarGlobals().defaultSort)                                                                         \
+    __DECLARE_CONST(b, syntaxSugarGlobals().defaultSort)                                                                         \
+    __DECLARE_CONST(c, syntaxSugarGlobals().defaultSort)                                                                         \
   _Pragma("GCC diagnostic pop")                                                                               \
 
-#define THEORY_SYNTAX_SUGAR_FUN(f, arity)  __DECLARE_FUNC(f, __defaultSort, __REPEAT(arity, __defaultSort))
-#define THEORY_SYNTAX_SUGAR_PRED(f, arity) __DECLARE_PRED(f,                __REPEAT(arity, __defaultSort))
-#define THEORY_SYNTAX_SUGAR_CONST(f)       __DECLARE_CONST(f, __defaultSort)
+#define THEORY_SYNTAX_SUGAR_FUN(f, arity)  __DECLARE_FUNC(f, { __REPEAT(arity, syntaxSugarGlobals().defaultSort) }, syntaxSugarGlobals().defaultSort)
+#define THEORY_SYNTAX_SUGAR_PRED(f, arity) __DECLARE_PRED(f, { __REPEAT(arity, syntaxSugarGlobals().defaultSort) })
+#define THEORY_SYNTAX_SUGAR_CONST(f)       __DECLARE_CONST(f, syntaxSugarGlobals().defaultSort)
 
-#define SYNTAX_SUGAR_FUN(f, ...)  __DECLARE_FUNC(f, __VA_ARGS__)
 #define SYNTAX_SUGAR_PRED(f, ...) __DECLARE_PRED(f, __VA_ARGS__)
 #define SYNTAX_SUGAR_CONST(f, sort) __DECLARE_CONST(f, sort)
 
@@ -164,44 +151,136 @@
 #define FOF_SYNTAX_SUGAR                                                                                      \
   _Pragma("GCC diagnostic push")                                                                              \
   _Pragma("GCC diagnostic ignored \"-Wunused\"")                                                              \
-    using DefaultSort = UninterpretedTraits;                                                                  \
-    using TermWrapper = Trm<DefaultSort>;                                                                     \
-    DefaultSort __defaultSort("alpha");                                                                       \
+    syntaxSugarGlobals().defaultSort = env.sorts->addSort("alpha", false); \
     __DEFAULT_VARS                                                                                            \
   _Pragma("GCC diagnostic pop")                                                                               \
 
-#define FOF_SYNTAX_SUGAR_PRED(f, arity) __DECLARE_PRED( f,                __REPEAT(arity, __defaultSort))
-#define FOF_SYNTAX_SUGAR_FUN(f, arity)  __DECLARE_FUNC( f, __defaultSort, __REPEAT(arity, __defaultSort))
-#define FOF_SYNTAX_SUGAR_CONST(f)       __DECLARE_CONST(f, __defaultSort)
+#define FOF_SYNTAX_SUGAR_PRED(f, arity) __DECLARE_PRED( f, { __REPEAT(arity, syntaxSugarGlobals().defaultSort) })
+#define FOF_SYNTAX_SUGAR_FUN(f, arity)  __DECLARE_FUNC( f, { __REPEAT(arity, syntaxSugarGlobals().defaultSort) }, syntaxSugarGlobals().defaultSort)
+#define FOF_SYNTAX_SUGAR_CONST(f)       __DECLARE_CONST(f, syntaxSugarGlobals().defaultSort)
 
 #define __IF_FRAC(sort, ...) __IF_FRAC_##sort(__VA_ARGS__)
-#define __IF_FRAC_INT(...)
-#define __IF_FRAC_RAT(...) __VA_ARGS__
-#define __IF_FRAC_REAL(...) __VA_ARGS__
-struct UninterpretedTraits 
+#define __IF_FRAC_Int(...)
+#define __IF_FRAC_Rat(...) __VA_ARGS__
+#define __IF_FRAC_Real(...) __VA_ARGS__
+
+struct SortSugar 
 {
   unsigned _srtNumber;
 
-  UninterpretedTraits(unsigned srtNumber) : _srtNumber(srtNumber) {}
+  SortSugar(unsigned srtNumber) : _srtNumber(srtNumber) {}
 public:
-  UninterpretedTraits(const char* name) 
-    : UninterpretedTraits(env.sorts->addSort(name, false)) 
+  SortSugar(const char* name) 
+    : SortSugar(env.sorts->addSort(name, false)) 
   {  }
 
   unsigned sortNumber() const { return _srtNumber; }
 };
 
-template<class SortTraits>
-class Trm 
+class TermSugar;
+
+class SyntaxSugarGlobals 
+{
+  static SyntaxSugarGlobals _instance;
+
+  template<class NumTraits>
+  void setAllNumTraits() 
+  {
+    createNumeral = [](int i) {return NumTraits::constantTl(i);};
+
+    add = NumTraits::add;
+    mul = NumTraits::mul;
+
+    minus = NumTraits::minus;
+
+    less = NumTraits::less;
+    leq  = NumTraits::leq;
+    greater = NumTraits::greater;
+    geq  = NumTraits::geq;
+
+    isInt = NumTraits::isInt;
+    isRat = NumTraits::isRat;
+    isReal = NumTraits::isReal;
+
+    defaultSort = NumTraits::sort;
+  }
+
+
+  template<class NumTraits>
+  void setFracTraits() 
+  { 
+    setAllNumTraits<NumTraits>();
+    div = NumTraits::div; 
+    createFraction = [](int a, int b) {return NumTraits::constantTl(a,b);};
+  }
+
+public:
+  static SyntaxSugarGlobals& instance() {
+    return _instance;
+  }
+
+  void setNumTraits(IntTraits)
+  {
+    setAllNumTraits<IntTraits>();
+
+    quotientT = IntTraits::quotientT;
+    remainderT = IntTraits::remainderT;
+    quotientF = IntTraits::quotientF;
+    remainderF = IntTraits::remainderF;
+    quotientE = IntTraits::quotientE;
+    remainderE = IntTraits::remainderE;
+  }
+
+  void setNumTraits(RatTraits)
+  { setFracTraits<RatTraits>(); }
+
+
+  void setNumTraits(RealTraits)
+  { setFracTraits<RealTraits>(); }
+
+  std::function<TermList(int, int)> createFraction;
+  std::function<TermList(int)> createNumeral;
+
+  std::function<TermList(TermList, TermList)> add;
+  std::function<TermList(TermList, TermList)> mul;
+  std::function<TermList(TermList, TermList)> div;
+
+  std::function<TermList(TermList, TermList)> quotientT;
+  std::function<TermList(TermList, TermList)> remainderT;
+  std::function<TermList(TermList, TermList)> quotientF;
+  std::function<TermList(TermList, TermList)> remainderF;
+  std::function<TermList(TermList, TermList)> quotientE;
+  std::function<TermList(TermList, TermList)> remainderE;
+
+  std::function<TermList(TermList)> minus;
+
+
+  std::function<Literal*(bool, TermList, TermList)> less;
+  std::function<Literal*(bool, TermList, TermList)> leq ;
+  std::function<Literal*(bool, TermList, TermList)> greater;
+  std::function<Literal*(bool, TermList, TermList)> geq ;
+
+  std::function<Literal*(bool, TermList)> isInt;
+  std::function<Literal*(bool, TermList)> isRat;
+  std::function<Literal*(bool, TermList)> isReal;
+
+  unsigned defaultSort;
+};
+
+inline SyntaxSugarGlobals& syntaxSugarGlobals() 
+{ return SyntaxSugarGlobals::instance(); }
+
+
+class TermSugar 
 {
   TermList _trm;
 
 public:
-  /* works only if SortTraits is a NumTraits specialization */
-  Trm(int trm) 
-    : _trm(SortTraits::constantTl(trm)) {  }
+  TermSugar(int trm) 
+    : _trm(TermList(syntaxSugarGlobals().createNumeral(trm)))
+  { }
 
-  Trm(TermList trm) 
+  TermSugar(TermList trm) 
     : _trm(trm)
   { ASS_REP(!_trm.isEmpty(), _trm);  }
 
@@ -211,14 +290,10 @@ public:
   /** explicit conversion */ 
   TermList toTerm() const { return _trm;} 
 
-  static Trm createConstant(const char* name, SortTraits s) {
+  static TermSugar createConstant(const char* name, SortSugar s) {
     unsigned f = env.signature->addFunction(name,0);                                                                
     env.signature->getFunction(f)->setType(OperatorType::getFunctionType({}, s.sortNumber())); 
-    return Trm(TermList(Term::createConstant(f)));                                                          
-  }                                                                                                                 
-
-  static Trm createConstant(const char* name) {
-    return createConstant(name, SortTraits{});
+    return TermSugar(TermList(Term::createConstant(f)));                                                          
   }                                                                                                                 
 };
 
@@ -242,29 +317,32 @@ public:
   }
 };
 
+inline TermSugar frac(int a, int b) 
+{ return syntaxSugarGlobals().createFraction(a,b); }
+
+inline TermSugar num(int a)
+{ return syntaxSugarGlobals().createNumeral(a); }
+
 ////////////////////////// operators to create terms ////////////////////////// 
 
-template<class Number> Trm<Number> operator+(Trm<Number> lhs, Trm<Number> rhs)  { return Number::add(lhs, rhs); }  
-template<class Number> Trm<Number> operator*(Trm<Number> lhs, Trm<Number> rhs)  { return Number::mul(lhs, rhs); }  
-template<class Number> Trm<Number> operator/(Trm<Number> lhs, Trm<Number> rhs)  { return Number::div(lhs, rhs); }  
+inline TermSugar operator+(TermSugar lhs, TermSugar rhs)  { return syntaxSugarGlobals().add(lhs, rhs); }  
+inline TermSugar operator*(TermSugar lhs, TermSugar rhs)  { return syntaxSugarGlobals().mul(lhs, rhs); }  
+inline TermSugar operator/(TermSugar lhs, TermSugar rhs)  { return syntaxSugarGlobals().div(lhs, rhs); }  
 
 #define __IMPL_NUMBER_BIN_FUN(op, result_t)                                                                   \
-  template<class Number> result_t op(int lhs, Trm<Number> rhs) { return op(Trm<Number>(lhs), rhs); }          \
-  template<class Number> result_t op(Trm<Number> lhs, int rhs) { return op(lhs, Trm<Number>(rhs)); }          \
+  inline result_t op(int lhs, TermSugar rhs) { return op(TermSugar(lhs), rhs); }              \
+  inline result_t op(TermSugar lhs, int rhs) { return op(lhs, TermSugar(rhs)); }              \
 
-__IMPL_NUMBER_BIN_FUN(operator+, Trm<Number>)
-__IMPL_NUMBER_BIN_FUN(operator*, Trm<Number>)
-__IMPL_NUMBER_BIN_FUN(operator/, Trm<Number>)
+__IMPL_NUMBER_BIN_FUN(operator+, TermSugar)
+__IMPL_NUMBER_BIN_FUN(operator*, TermSugar)
+__IMPL_NUMBER_BIN_FUN(operator/, TermSugar)
 
 #define __BIN_FUNC_QUOTIENT_REMAINDER(X)                                                                      \
-  template<class Number>                                                                                      \
-  Trm<Number>  quotient##X(Trm<Number> lhs, Trm<Number> rhs){ return Number:: quotient##X(lhs, rhs); }        \
+  inline TermSugar  quotient##X(TermSugar lhs, TermSugar rhs){ return syntaxSugarGlobals(). quotient##X(lhs, rhs); }   \
+  inline TermSugar remainder##X(TermSugar lhs, TermSugar rhs){ return syntaxSugarGlobals().remainder##X(lhs, rhs); }   \
                                                                                                               \
-  template<class Number>                                                                                      \
-  Trm<Number> remainder##X(Trm<Number> lhs, Trm<Number> rhs){ return Number::remainder##X(lhs, rhs); }        \
-                                                                                                              \
-  __IMPL_NUMBER_BIN_FUN( quotient##X, Trm<Number>)                                                            \
-  __IMPL_NUMBER_BIN_FUN(remainder##X, Trm<Number>)                                                            \
+  __IMPL_NUMBER_BIN_FUN( quotient##X, TermSugar)                                                              \
+  __IMPL_NUMBER_BIN_FUN(remainder##X, TermSugar)                                                              \
 
 __BIN_FUNC_QUOTIENT_REMAINDER(E)
 __BIN_FUNC_QUOTIENT_REMAINDER(T)
@@ -273,16 +351,12 @@ __BIN_FUNC_QUOTIENT_REMAINDER(F)
 #undef __BIN_FUNC_QUOTIENT_REMAINDER
 
 
-template<class Number> 
-Trm<Number> operator-(Trm<Number> x) 
-{
-  return Number::minus(x);
-}
+inline TermSugar operator-(TermSugar x) { return syntaxSugarGlobals().minus(x); }
 
 ////////////////////////// operators to create literals ////////////////////////// 
 
-template<class Sort> 
-Lit operator==(Trm<Sort> lhs, Trm<Sort> rhs) 
+
+inline Lit operator==(TermSugar lhs, TermSugar rhs) 
 {
   unsigned sort;
   ALWAYS(SortHelper::tryGetResultSort(lhs, sort) || SortHelper::tryGetResultSort(rhs, sort));
@@ -290,14 +364,14 @@ Lit operator==(Trm<Sort> lhs, Trm<Sort> rhs)
 }
 
 
-template<class Number> Lit operator< (Trm<Number> lhs, Trm<Number> rhs) { return Number::less   (true, lhs, rhs); }
-template<class Number> Lit operator<=(Trm<Number> lhs, Trm<Number> rhs) { return Number::leq    (true, lhs, rhs); }
-template<class Number> Lit operator> (Trm<Number> lhs, Trm<Number> rhs) { return Number::greater(true, lhs, rhs); }
-template<class Number> Lit operator>=(Trm<Number> lhs, Trm<Number> rhs) { return Number::geq    (true, lhs, rhs); }
+inline Lit operator< (TermSugar lhs, TermSugar rhs) { return syntaxSugarGlobals().less   (true, lhs, rhs); }
+inline Lit operator<=(TermSugar lhs, TermSugar rhs) { return syntaxSugarGlobals().leq    (true, lhs, rhs); }
+inline Lit operator> (TermSugar lhs, TermSugar rhs) { return syntaxSugarGlobals().greater(true, lhs, rhs); }
+inline Lit operator>=(TermSugar lhs, TermSugar rhs) { return syntaxSugarGlobals().geq    (true, lhs, rhs); }
 
-template<class Number> Lit isInt (Trm<Number> trm) { return Number::isInt (true, trm); }
-template<class Number> Lit isRat (Trm<Number> trm) { return Number::isRat (true, trm); }
-template<class Number> Lit isReal(Trm<Number> trm) { return Number::isReal(true, trm); }
+inline Lit isInt (TermSugar trm) { return syntaxSugarGlobals().isInt (true, trm); }
+inline Lit isRat (TermSugar trm) { return syntaxSugarGlobals().isRat (true, trm); }
+inline Lit isReal(TermSugar trm) { return syntaxSugarGlobals().isReal(true, trm); }
 
 inline Lit operator~(Lit lit) 
 {
@@ -305,8 +379,7 @@ inline Lit operator~(Lit lit)
   return Literal::create(l, !l->polarity());
 }
 
-template<class Sort> 
-Lit operator!=(Trm<Sort> lhs, Trm<Sort> rhs) 
+inline Lit operator!=(TermSugar lhs, TermSugar rhs) 
 {
   return ~(lhs == rhs);
 }
@@ -318,78 +391,72 @@ __IMPL_NUMBER_BIN_FUN(operator<=, Lit)
 __IMPL_NUMBER_BIN_FUN(operator> , Lit)
 __IMPL_NUMBER_BIN_FUN(operator>=, Lit)
 
-template<class ResultSort, class... ArgSorts>
+
 class FuncSugar {
   unsigned _functor;
 
 public:
-  FuncSugar(const char* name, ResultSort r, ArgSorts... args) 
+  FuncSugar(const char* name, Stack<SortSugar> as_, SortSugar result) 
   {
     BYPASSING_ALLOCATOR
-    std::vector<unsigned> as = { args.sortNumber()... };
+    Stack<unsigned> as;
+    for (auto a : as_) 
+      as.push(a.sortNumber());
+
     _functor = env.signature->addFunction(name, as.size());
     env.signature
       ->getFunction(_functor)
-      ->setType(OperatorType::getFunctionType(as.size(), &as[0], r.sortNumber()));    
+      ->setType(OperatorType::getFunctionType(as.size(), as.begin(), result.sortNumber()));    
   }
 
-  Trm<ResultSort> operator()(Trm<ArgSorts>... args) const {
+  template<class... As>
+  TermSugar operator()(As... args) const {
     BYPASSING_ALLOCATOR
-    std::vector<TermList> as = { Trm<ArgSorts>(args).toTerm()... };
+    Stack<TermList> as = { TermSugar(args).toTerm()... };
     return TermList(Term::create(_functor, 
         as.size(), 
-        &as[0] ));
+        as.begin()));
   }
   unsigned functor() const { return _functor; }
 };
-template<class ResultSort, class... ArgSorts>
-FuncSugar<ResultSort, ArgSorts...> funcSugar(const char* name, ResultSort r, ArgSorts... args) 
-{ return FuncSugar<ResultSort, ArgSorts...>(name,r,args...); }
 
-template<class SortTraits>
-class ConstSugar : public Trm<SortTraits> 
+class ConstSugar : public TermSugar
 {
 public:
-  ConstSugar(const char* name, SortTraits s) 
-    : Trm<SortTraits>(Trm<SortTraits>::createConstant(name, s).toTerm()) 
+  ConstSugar(const char* name, SortSugar s) 
+    : TermSugar(TermSugar::createConstant(name, s).toTerm()) 
   { }
   unsigned functor() const { return this->toTerm().term()->functor(); }
 };
-template<class SortTraits>
-ConstSugar<SortTraits> constSugar(const char* name, SortTraits s) 
-{ return ConstSugar<SortTraits>(name,s); }
 
-template<class... ArgSorts>
 class PredSugar {
   unsigned _functor;
 
 public:
-  PredSugar(const char* name, ArgSorts... args) 
+  PredSugar(const char* name, Stack<SortSugar> args) 
   {
     BYPASSING_ALLOCATOR
-    std::vector<unsigned> as = { args.sortNumber()... };
+    Stack<unsigned> as;
+    for (auto a : args) {
+      as.push(a.sortNumber());
+    }
     _functor = env.signature->addPredicate(name, as.size());
     env.signature
       ->getPredicate(_functor)
       ->setType(OperatorType::getPredicateType(as.size(), &as[0]));    
   }
 
-  Lit operator()(Trm<ArgSorts>... args) const {
-    BYPASSING_ALLOCATOR
-    std::vector<TermList> as = { Trm<ArgSorts>(args).toTerm()... };
+  template<class... As>
+  Lit operator()(As... args) const {
+    Stack<TermList> as = { TermSugar(args).toTerm()... };
     return Literal::create(_functor, 
         as.size(), 
         /* polarity */ true, 
         /* commutative */ false, 
-        &as[0] );
+        as.begin() );
   }
   unsigned functor() const { return _functor; }
 };
-
-template<class... ArgSorts>
-PredSugar<ArgSorts...> predSugar(const char* name, ArgSorts... args)  
-{ return PredSugar<ArgSorts...>(name, args...); }
-
 
 inline Clause* clause(std::initializer_list<Lit> ls_) { 
   static Inference testInf = Kernel::NonspecificInference0(UnitInputType::ASSUMPTION, InferenceRule::INPUT); 
@@ -413,9 +480,7 @@ inline Clause* clause(std::initializer_list<Lit> ls_) {
   return &out; 
 }
 
-
-
-Stack<Clause*> clauses(std::initializer_list<std::initializer_list<Lit>> cls) { 
+inline Stack<Clause*> clauses(std::initializer_list<std::initializer_list<Lit>> cls) { 
   auto out = Stack<Clause*>();
   for (auto cl : cls) {
     out.push(clause(cl));

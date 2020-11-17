@@ -33,7 +33,7 @@ using namespace Shell;
 #define __expand__frac(...) { __VA_ARGS__ }
 #define __expand__int(...)  { __VA_ARGS__ }
 #define __expand__list(...) { __VA_ARGS__ }
-#define bal(l,r) expected_t(l, TermWrapper(r))
+#define bal(l,r) expected_t(l, TermSugar(r))
 
 template<class Range, class Pred>
 bool any(Range range, Pred p) {
@@ -48,10 +48,7 @@ using expected_t = tuple<TermList, TermList>;
 template<class ConstantType>
 void test_rebalance(Literal* lit, initializer_list<expected_t> expected);
 
-#define __TO_CONSTANT_TYPE_INT  IntegerConstantType
-#define __TO_CONSTANT_TYPE_RAT  RationalConstantType
-#define __TO_CONSTANT_TYPE_REAL RealConstantType
-#define ToConstantType(type)  __TO_CONSTANT_TYPE_ ## type
+#define ToConstantType(type)  typename type##Traits::ConstantType
 
 #define TEST_REBALANCE(name, type, equality, __list)                                                          \
     TEST_FUN(name ## _ ## type) {                                                                             \
@@ -67,7 +64,7 @@ void test_rebalance(Literal* lit, initializer_list<expected_t> expected);
 /*
 #define TEST_LIST(test_name, equality, __list)                                                                \
     TEST_FUN(test_name) {                                                                                     \
-      THEORY_SYNTAX_SUGAR(RAT)                                                                                \
+      THEORY_SYNTAX_SUGAR(Rat)                                                                                \
       _Pragma("GCC diagnostic push")                                                                          \
       _Pragma("GCC diagnostic ignored \"-Wunused\"")                                                          \
         SYNTAX_SUGAR_SORT(list)                                                                               \
@@ -86,12 +83,12 @@ void test_rebalance(Literal* lit, initializer_list<expected_t> expected);
             new TermAlgebraConstructor(cons.functor(),  {uncons1.functor(), uncons2.functor()}),              \
           }));                                                                                                \
       _Pragma("GCC diagnostic pop")                                                                           \
-      test_rebalance<ToConstantType(RAT)>((equality), __expand ## __list);                                    \
+      test_rebalance<ToConstantType(Rat)>((equality), __expand ## __list);                                    \
     }                                                                                                         \
 
 #define TEST_ARRAY(test_name, equality, __list)                                                               \
     TEST_FUN(test_name) {                                                                                     \
-      THEORY_SYNTAX_SUGAR(RAT)                                                                                \
+      THEORY_SYNTAX_SUGAR(Rat)                                                                                \
       _Pragma("GCC diagnostic push")                                                                          \
       _Pragma("GCC diagnostic ignored \"-Wunused\"")                                                          \
         SYNTAX_SUGAR_SORT(idxSrt)                                                                             \
@@ -100,20 +97,20 @@ void test_rebalance(Literal* lit, initializer_list<expected_t> expected);
         SYNTAX_SUGAR_CONST(u, array)                                                                          \
         SYNTAX_SUGAR_CONST(i, idxSrt)                                                                         \
       _Pragma("GCC diagnostic pop")                                                                           \
-      test_rebalance<ToConstantType(RAT)>((equality), __expand ## __list);                                    \
+      test_rebalance<ToConstantType(Rat)>((equality), __expand ## __list);                                    \
     }                                                                                                         \
     */
 
 #define TEST_REBALANCE_SPLIT(name, equality, __frac, __int)                                                   \
-    TEST_REBALANCE(name, REAL, equality, __frac)                                                              \
-    TEST_REBALANCE(name, RAT , equality, __frac)                                                              \
-    TEST_REBALANCE(name, INT , equality, __int)                                                               \
+    TEST_REBALANCE(name, Real, equality, __frac)                                                              \
+    TEST_REBALANCE(name, Rat , equality, __frac)                                                              \
+    TEST_REBALANCE(name, Int , equality, __int)                                                               \
 
 
 #define TEST_REBALANCE_ALL(name, equality, __list)                                                            \
-    TEST_REBALANCE(name, REAL, equality, __list)                                                              \
-    TEST_REBALANCE(name, RAT , equality, __list)                                                              \
-    TEST_REBALANCE(name, INT , equality, __list)                                                              \
+    TEST_REBALANCE(name, Real, equality, __list)                                                              \
+    TEST_REBALANCE(name, Rat , equality, __list)                                                              \
+    TEST_REBALANCE(name, Int , equality, __list)                                                              \
 
 
 

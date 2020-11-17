@@ -718,6 +718,7 @@ source_group(casc_source_files FILES ${VAMPIRE_CASC_SOURCES})
 
 set(VAMPIRE_TESTING_SOURCES 
   Test/UnitTesting.cpp
+  Test/SyntaxSugar.cpp
   Test/TestUtils.cpp
   )
 source_group(testing_files FILES ${VAMPIRE_TESTING_SOURCES})
