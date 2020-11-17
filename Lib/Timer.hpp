@@ -29,16 +29,6 @@
 #define UNIX_USE_SIGALRM 1 // MS: only the UNIX_USE_SIGALRM seems to be working currently (experiment with SMTCOMP mode); the problem with debugging under UNIX_USE_SIGALRM might have really gone, so let's try
 #endif
 
-//we don't need SIGALRM in Api, and it causes problems debugging
-#ifdef VAPI_LIBRARY
-#if VAPI_LIBRARY
-
-#undef UNIX_USE_SIGALRM
-#define UNIX_USE_SIGALRM 0
-
-#endif
-#endif
-
 namespace Lib
 {
 

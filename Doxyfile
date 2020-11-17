@@ -20,7 +20,7 @@ WARN_IF_UNDOCUMENTED    = YES
 # input files settings
 #
 
-INPUT			= Api CASC Debug DP FMB Indexing Inferences InstGen Kernel Lib Minisat Parse SAT Saturation Shell VUtils Global.cpp vampire.cpp
+INPUT			= CASC Debug DP FMB Indexing Inferences InstGen Kernel Lib Minisat Parse SAT Saturation Shell VUtils Global.cpp vampire.cpp
 FILE_PATTERNS		= *.cpp *.hpp *.cc *.h
 RECURSIVE		= YES
 EXCLUDE_SYMLINKS = YES

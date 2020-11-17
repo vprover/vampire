@@ -15,8 +15,6 @@
 
 #include "Forwards.hpp"
 
-//#include "Api/ResourceLimits.hpp"
-
 #include "Debug/Tracer.hpp"
 
 #include "Lib/Environment.hpp"
@@ -80,7 +78,6 @@ void readAndFilterGlobalOpts(Stack<char *> &args) {
       }
       int seconds;
       Int::stringToInt(it.next(), seconds);
-      // Api::ResourceLimits::setLimits(0,seconds*10);
     } else {
       break;
     }
@@ -92,7 +89,6 @@ int main(int argc, char *argv[]) {
 
   srand(1); // this is for the reproducibility
 
-  // Api::ResourceLimits::disableLimits();
   System::registerArgv0(argv[0]);
   System::setSignalHandlers();
   // create random seed for the random number generation
