@@ -375,14 +375,13 @@ Ordering::Result PrecedenceOrdering::compareFunctionPrecedences(unsigned fun1, u
   if (fun1 == fun2)
     return EQUAL;
 
-  // TODO make this an option
-  if (fun1 == NumTraits< IntegerConstantType>::minusF()) { return GREATER; } 
-  if (fun1 == NumTraits<RationalConstantType>::minusF()) { return GREATER; }
-  if (fun1 == NumTraits<    RealConstantType>::minusF()) { return GREATER; }
+  if (fun1 == IntTraits::minusF()) { return GREATER; } 
+  if (fun1 == RatTraits::minusF()) { return GREATER; }
+  if (fun1 == RealTraits::minusF()) { return GREATER; }
 
-  if (fun2 == NumTraits< IntegerConstantType>::minusF()) { return LESS; }
-  if (fun2 == NumTraits<RationalConstantType>::minusF()) { return LESS; }
-  if (fun2 == NumTraits<    RealConstantType>::minusF()) { return LESS; }
+  if (fun2 == IntTraits::minusF()) { return LESS; }
+  if (fun2 == RatTraits::minusF()) { return LESS; }
+  if (fun2 == RealTraits::minusF()) { return LESS; }
 
   // $$false is the smallest
   if (env.signature->isFoolConstantSymbol(false,fun1)) {
