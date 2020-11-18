@@ -880,9 +880,11 @@ bool KboSpecialWeights<FuncSigTraits>::tryGetWeight(unsigned functor, unsigned& 
   if (sym->integerConstant())  { weight = _numInt;  return true; }
   if (sym->rationalConstant()) { weight = _numRat;  return true; }
   if (sym->realConstant())     { weight = _numReal; return true; }
-  if (functor == NumTraits< IntegerConstantType>::minusF()) { weight = 0; return true; }
-  if (functor == NumTraits<RationalConstantType>::minusF()) { weight = 0; return true; }
-  if (functor == NumTraits<    RealConstantType>::minusF()) { weight = 0; return true; }
+  if (env.options->pushUnaryMinus()) {
+    if (functor == IntTraits ::minusF()) { weight = 0; return true; }
+    if (functor == RatTraits ::minusF()) { weight = 0; return true; }
+    if (functor == RealTraits::minusF()) { weight = 0; return true; }
+  }
   return false;
 }
 

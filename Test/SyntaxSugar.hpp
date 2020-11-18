@@ -24,6 +24,7 @@
 #include "Indexing/TermSharing.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/Sorts.hpp"
+#include "Shell/TermAlgebra.hpp"
 
 #define __TO_SORT_RAT Sorts::SRT_RATIONAL
 #define __TO_SORT_INT Sorts::SRT_INTEGER
@@ -175,11 +176,11 @@
     __DEFAULT_VARS                                                                                            \
   _Pragma("GCC diagnostic pop")                                                                               \
 
-#define SORTED_SUGAR_PRED(f, ...)   __DECLARE_PRED( f, __VA_ARGS__)
-#define SORTED_SUGAR_FUN(f, ...)    __DECLARE_FUNC( f, __VA_ARGS__)
-#define SORTED_SUGAR_CONST(f, sort) __DECLARE_CONST(f, sort)
-#define SORTED_SUGAR_SORT(sort)     __DECLARE_SORT(sort)
-
+#define SORTED_SUGAR_PRED(f, ...)   __DECLARE_PRED( f, __VA_ARGS__);
+#define SORTED_SUGAR_FUN (f, ...)   __DECLARE_FUNC( f, __VA_ARGS__);
+#define SORTED_SUGAR_CONST(f, sort) __DECLARE_CONST(f, sort);
+#define SORTED_SUGAR_SORT(sort)     __DECLARE_SORT(sort);
+#define SORTED_SUGAR_TERM_ALGEBRA(sort, ...) createTermAlgebra(sort, __VA_ARGS__);
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // implementation
@@ -415,19 +416,30 @@ __IMPL_NUMBER_BIN_FUN(operator>=, Lit)
 
 class FuncSugar {
   unsigned _functor;
+  unsigned _arity;
 
 public:
-  FuncSugar(const char* name, Stack<SortSugar> as_, SortSugar result) 
+  FuncSugar(vstring const& name, Stack<SortSugar> as_, SortSugar result) 
   {
-    BYPASSING_ALLOCATOR
     Stack<unsigned> as;
     for (auto a : as_) 
       as.push(a.sortNumber());
 
-    _functor = env.signature->addFunction(name, as.size());
-    env.signature
-      ->getFunction(_functor)
-      ->setType(OperatorType::getFunctionType(as.size(), as.begin(), result.sortNumber()));    
+    bool added = false;
+    _functor = env.signature->addFunction(name, as.size(), added);
+    _arity = as.size();
+    if (added)
+      env.signature
+        ->getFunction(_functor)
+        ->setType(OperatorType::getFunctionType(as.size(), as.begin(), result.sortNumber()));    
+  }
+
+  FuncSugar dtor(unsigned i) const {
+    ASS_L(i, arity())
+    vstringstream name;
+    auto symbol = env.signature->getFunction(_functor);
+    name << symbol->name() << "_" << i;
+    return FuncSugar(name.str(), { SortSugar(symbol->fnType()->result()) }, SortSugar(symbol->fnType()->arg(i)));
   }
 
   template<class... As>
@@ -439,6 +451,7 @@ public:
         as.begin()));
   }
   unsigned functor() const { return _functor; }
+  unsigned arity() const { return _arity; }
 };
 
 class ConstSugar : public TermSugar
@@ -507,6 +520,26 @@ inline Stack<Clause*> clauses(std::initializer_list<std::initializer_list<Lit>> 
     out.push(clause(cl));
   }
   return out;
+}
+
+inline void createTermAlgebra(SortSugar sort, initializer_list<FuncSugar> fs) {
+
+  using namespace Shell;
+
+  Stack<FuncSugar> funcs = fs;
+  Stack<TermAlgebraConstructor*> cons;
+
+  for (auto f : funcs) {
+    env.signature->getFunction(f.functor())
+      ->markTermAlgebraCons();
+
+    Array<unsigned> dtors(f.arity()); 
+    for (int i = 0; i < f.arity(); i++) {
+      dtors[i] = f.dtor(i).functor();
+    }
+    cons.push(new TermAlgebraConstructor(f.functor(), dtors));
+  }
+  env.signature->addTermAlgebra(new TermAlgebra(sort.sortNumber(), cons.size(), cons.begin()));
 }
 
 #endif // __TEST__SYNTAX_SUGAR__H__
