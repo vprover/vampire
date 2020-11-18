@@ -111,8 +111,10 @@ TermList TermOccurrenceReplacement::transformSubterm(TermList trm)
       _c.get(trm)++;
     }
     const auto& o = _o.get(trm);
-    // auto oc = _oc.get(trm);
-    if (o->size() == 1 /*|| oc == o->size() + 1*/ || o->contains(_c.get(trm))) {
+    auto one = env.options->inductionTermOccurrenceSelectionHeuristic()
+      == Options::InductionTermOccurrenceSelectionHeuristic::ONE;
+    auto oc = _oc.get(trm);
+    if (o->size() == 1 || (!one && oc == o->size() + 1) || o->contains(_c.get(trm))) {
       return _r.at(trm);
     }
   }

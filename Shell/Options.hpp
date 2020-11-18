@@ -268,6 +268,14 @@ public:
     GOAL_PLUS,                // above plus skolem terms introduced in induction inferences
   };
 
+  enum class InductionTermOccurrenceSelectionHeuristic : unsigned int {
+    ONE, // select active occurrences if there is
+         // more than one, otherwise select all
+    TWO, // select active occurrences if there is
+         // more than one active and one passive,
+         // otherwise select all
+  };
+
   enum class TheoryAxiomLevel : unsigned int {
     ON,  // all of them
     OFF, // none of them
@@ -2171,6 +2179,8 @@ public:
   bool inductionStrengthen() const { return _inductionStrengthen.actualValue; }
   bool inductionForceMerge() const { return _inductionForceMerge.actualValue; }
   bool inductionMultiClause() const { return _inductionMultiClause.actualValue; }
+  InductionTermOccurrenceSelectionHeuristic inductionTermOccurrenceSelectionHeuristic() const { return _inductionTermOccHeuristic.actualValue; }
+  bool functionDefinitionRewriting() const { return _functionDefinitionRewriting.actualValue; }
 
   float instGenBigRestartRatio() const { return _instGenBigRestartRatio.actualValue; }
   bool instGenPassiveReactivation() const { return _instGenPassiveReactivation.actualValue; }
@@ -2488,6 +2498,8 @@ private:
   BoolOptionValue _inductionStrengthen;
   BoolOptionValue _inductionForceMerge;
   BoolOptionValue _inductionMultiClause;
+  ChoiceOptionValue<InductionTermOccurrenceSelectionHeuristic> _inductionTermOccHeuristic;
+  BoolOptionValue _functionDefinitionRewriting;
 
   StringOptionValue _latexOutput;
   BoolOptionValue _latexUseDefaultSymbols;

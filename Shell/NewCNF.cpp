@@ -288,7 +288,7 @@ void NewCNF::process(Literal* literal, Occurrences &occurrences) {
   ASS(thenBranches.isEmpty());
   ASS(elseBranches.isEmpty());
 
-  auto functionDefinition = literal->isFunctionDefinition();
+  auto functionDefinition = literal->isFunctionDefinition() && env.options->functionDefinitionRewriting();
 
   while (occurrences.isNonEmpty()) {
     Occurrence occ = pop(occurrences);

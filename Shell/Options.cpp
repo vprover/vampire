@@ -1160,16 +1160,32 @@ void Options::init()
             _inductionForceMerge = BoolOptionValue("induction_force_merge","indfm",false);
             _inductionForceMerge.description = "Try to merge induction schemes with distinct sets of induction terms";
             _inductionForceMerge.tag(OptionTag::INFERENCES);
-            _inductionStrengthen.reliesOn(_induction.is(equal(Induction::STRUCTURAL)));
-            _inductionStrengthen.reliesOn(_structInduction.is(equal(StructuralInductionKind::FOUR)));
+            _inductionForceMerge.reliesOn(_induction.is(equal(Induction::STRUCTURAL)));
+            _inductionForceMerge.reliesOn(_structInduction.is(equal(StructuralInductionKind::FOUR)));
             _lookup.insert(&_inductionForceMerge);
 
             _inductionMultiClause = BoolOptionValue("induction_multiclause","indmc",false);
             _inductionMultiClause.description = "Induct on multiple clauses together when they contain the same induction terms";
             _inductionMultiClause.tag(OptionTag::INFERENCES);
-            _inductionStrengthen.reliesOn(_induction.is(equal(Induction::STRUCTURAL)));
-            _inductionStrengthen.reliesOn(_structInduction.is(equal(StructuralInductionKind::FOUR)));
+            _inductionMultiClause.reliesOn(_induction.is(equal(Induction::STRUCTURAL)));
+            _inductionMultiClause.reliesOn(_structInduction.is(equal(StructuralInductionKind::FOUR)));
             _lookup.insert(&_inductionMultiClause);
+
+            _inductionTermOccHeuristic = ChoiceOptionValue<InductionTermOccurrenceSelectionHeuristic>("induction_term_occurrence_selection_heuristic",
+              "indtosh", InductionTermOccurrenceSelectionHeuristic::ONE,{"one","two"});
+            _inductionTermOccHeuristic.description = "Select term occurrences to induct on according to the number of passive and active occurrences:"
+              " 'one' selects all of them if the number of active is 1, otherwise all active"
+              " 'two' selects all of them if the number of active or passive is 1, otherwise all active";
+            _inductionTermOccHeuristic.tag(OptionTag::INFERENCES);
+            _inductionTermOccHeuristic.reliesOn(_induction.is(equal(Induction::STRUCTURAL)));
+            _inductionTermOccHeuristic.reliesOn(_structInduction.is(equal(StructuralInductionKind::FOUR)));
+            _lookup.insert(&_inductionTermOccHeuristic);
+
+            _functionDefinitionRewriting = BoolOptionValue("function_definition_rewriting","fnrw",false);
+            _functionDefinitionRewriting.description = "Use function definitions as rewrite rules with the intended orientation rather than the term ordering one";
+            _functionDefinitionRewriting.tag(OptionTag::INFERENCES); // TODO(mhajdu): should this be something else?
+            _functionDefinitionRewriting.reliesOn(_newCNF.is(equal(true)));
+            _lookup.insert(&_functionDefinitionRewriting);
 
 	    _instantiation = ChoiceOptionValue<Instantiation>("instantiation","inst",Instantiation::OFF,{"off","on"});
 	    _instantiation.description = "Heuristically instantiate variables. Often wastes a lot of effort. Consider using thi instead.";
