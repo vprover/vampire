@@ -42,9 +42,12 @@ Option<PolyNf> trySimplifyQuotient(PolyNf* evalArgs, NumEval f)
   using Numeral = typename Number::ConstantType;
   auto lhs = evalArgs[0].template tryNumeral<Number>();
   auto rhs = evalArgs[1].template tryNumeral<Number>();
+#if 0 // this is not described in the paper, hence we do not do it for the eperiments
   if (rhs.isSome() && rhs.unwrap() == Numeral(1)) {
     return some<PolyNf>(evalArgs[0]);
-  } else if (lhs.isSome() && rhs.isSome()) {
+  } else 
+#endif
+    if (lhs.isSome() && rhs.isSome()) {
     return some<PolyNf>(PolyNf(AnyPoly(perfect(Polynom<Number>(f(lhs.unwrap(), rhs.unwrap()))))));
   } else {
     return none<PolyNf>();
@@ -57,9 +60,12 @@ Option<PolyNf> trySimplifyRemainder(PolyNf* evalArgs, NumEval f)
   using Numeral = typename Number::ConstantType;
   auto lhs = evalArgs[0].template tryNumeral<Number>();
   auto rhs = evalArgs[1].template tryNumeral<Number>();
+#if 0 // this is not described in the paper, hence we do not do it for the eperiments
   if (rhs.isSome() && rhs.unwrap() == Numeral(1)) {
     return some<PolyNf>(PolyNf(AnyPoly(perfect(Polynom<Number>(Numeral(0))))));
-  } else if (lhs.isSome() && rhs.isSome()) {
+  } else 
+#endif
+    if (lhs.isSome() && rhs.isSome()) {
     return some<PolyNf>(PolyNf(AnyPoly(perfect(Polynom<Number>(f(lhs.unwrap(), rhs.unwrap()))))));
   } else {
     return none<PolyNf>();

@@ -551,7 +551,8 @@ INT_TEST(eval_quotientE_3,
     r(                  -3 ,                1 )
     )
 
-INT_TEST(eval_quotientE_4,
+#if 0 // not described in the paper
+INT_TEST(eval_quotientE_4, 
     p(quotientE(x, 1)),
     p(x)
     )
@@ -560,6 +561,7 @@ INT_TEST(eval_quotientE_4_1,
     p(remainderE(x, 1)),
     p(0)
     )
+#endif 
 
 INT_TEST(eval_quotientF_1,
     r(quotientF(num(7), 2), remainderF(num(7), 2)),
