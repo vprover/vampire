@@ -14,6 +14,36 @@ using namespace Kernel;
 
 namespace Shell {
 
+bool subsumes(Formula* subsumer, Formula* subsumed) {
+  if (subsumer->connective() != subsumed->connective()) {
+    return false;
+  }
+  switch (subsumer->connective()) {
+    case LITERAL: {
+      return subsumer->literal() == subsumed->literal();
+      break;
+    }
+    case NOT: {
+      return subsumes(subsumer->uarg(), subsumed->uarg());
+    }
+    case AND:
+    case OR:
+    case IMP:
+    case IFF:
+    case XOR:
+    case FORALL:
+    case EXISTS:
+    case BOOL_TERM:
+    case FALSE:
+    case TRUE:
+    case NAME:
+    case NOCONN: {
+      break;
+    }
+  }
+  return false;
+}
+
 Formula* applySubst(RobSubstitution& subst, int index, Formula* f) {
   if (f->connective() == Connective::LITERAL) {
     return new AtomicFormula(subst.apply(f->literal(), index));
@@ -791,69 +821,79 @@ bool InductionSchemeFilter::checkSubsumption(const InductionScheme& sch1, const 
       if (rdesc2._recursiveCalls.empty()) {
         continue;
       }
+      bool match = true;
+      vmap<TermList, RobSubstitutionSP> substs;
       for (const auto& kv : rdesc1._step) {
         // this step of sch2 does not contain ind.var from sch1 
         if (!rdesc2._step.count(kv.first)) {
-          continue;
+          match = false;
+          break;
         }
         auto s2 = rdesc2._step.at(kv.first);
-        RobSubstitution subst;
+        RobSubstitutionSP subst(new RobSubstitution);
         // try to unify the step cases
-        if (!subst.unify(s2, 0, kv.second, 1)) {
-          continue;
+        if (!subst->unify(s2, 0, kv.second, 1)) {
+          match = false;
+          break;
         }
-        auto t1 = subst.apply(kv.second, 1);
+        auto t1 = subst->apply(kv.second, 1);
         Renaming r1, r2;
         r1.normalizeVariables(kv.second);
         r2.normalizeVariables(s2);
-        auto t2 = subst.apply(s2, 0);
+        auto t2 = subst->apply(s2, 0);
         if (t1 != r1.apply(kv.second) || t2 != r2.apply(s2)) {
-          continue;
+          match = false;
+          break;
         }
-        // check condition subsumption
-        bool match = true;
-        for (const auto& c1 : rdesc1._conditions) {
-          bool found = false;
-          for (const auto& c2 : rdesc2._conditions) {
-            auto c1s = applySubst(subst, 1, c1);
-            auto c2s = applySubst(subst, 0, c2);
-            if (c1s == c2s) {
-              found = true;
-              break;
-            }
-          }
-          if (!found) {
-            match = false;
+        substs.insert(make_pair(kv.first, subst));
+      }
+      if (!match) {
+        continue;
+      }
+      // check condition subsumption
+      match = true;
+      for (const auto& c1 : rdesc1._conditions) {
+        bool found = false;
+        for (const auto& c2 : rdesc2._conditions) {
+          // TODO(mhajdu): this check should be based on the unification on the arguments
+          if (subsumes(c2, c1)) {
+            found = true;
             break;
           }
         }
-        if (!match) {
-          continue;
+        if (!found) {
+          match = false;
+          break;
         }
-        // if successful, find pair for each recCall in sch1
-        // don't check if recCall1 or recCall2 contain kv.first
-        // as they should by definition
-        for (const auto& recCall1 : rdesc1._recursiveCalls) {
-          bool found = false;
-          for (const auto& recCall2 : rdesc2._recursiveCalls) {
+      }
+      if (!match) {
+        continue;
+      }
+      // if successful, find pair for each recCall in sch1
+      // don't check if recCall1 or recCall2 contain kv.first
+      // as they should by definition
+      for (const auto& recCall1 : rdesc1._recursiveCalls) {
+        bool found = false;
+        for (const auto& recCall2 : rdesc2._recursiveCalls) {
+          for (const auto& kv : recCall1) {
             if (!recCall1.count(kv.first) || !recCall2.count(kv.first)) {
               continue;
             }
-            const auto& r1 = subst.apply(recCall1.at(kv.first), 1);
-            const auto& r2 = subst.apply(recCall2.at(kv.first), 0);
+            auto subst = substs.at(kv.first);
+            const auto& r1 = subst->apply(recCall1.at(kv.first), 1);
+            const auto& r2 = subst->apply(recCall2.at(kv.first), 0);
             if (r1 == r2) {
               found = true;
               break;
             }
           }
-          if (!found) {
-            match = false;
-            break;
-          }
         }
-        if (!match) {
-          continue;
+        if (!found) {
+          match = false;
+          break;
         }
+      }
+      if (match) {
         foundStep = true;
         break;
       }

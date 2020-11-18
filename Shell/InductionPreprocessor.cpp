@@ -190,7 +190,9 @@ bool InductionTemplate::postprocess()
 {
   CALL("InductionTemplate::postprocess");
 
-  ASS(!_rDescriptions.empty());
+  if (_rDescriptions.empty()) {
+    return false;
+  }
   _rDescriptions.shrink_to_fit();
 
   // fill in bit vector of induction variables
