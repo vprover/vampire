@@ -168,7 +168,7 @@ Literal* TermSharing::insert(Literal* t)
 
   TimeCounter tc(TC_TERM_SHARING);
 
-  bool negateOrientation = false;
+  bool reverseOrientation = false;
   if (t->commutative()) {
     ASS(t->arity() == 2);
 
@@ -176,7 +176,7 @@ Literal* TermSharing::insert(Literal* t)
     TermList* ts2 = ts1->next();
     if (argNormGt(*ts1, *ts2)) {
       swap(ts1->_content, ts2->_content);
-      negateOrientation = true;
+      reverseOrientation = true;
     }
   }
 
@@ -227,9 +227,11 @@ Literal* TermSharing::insert(Literal* t)
   else {
     t->destroy();
   }
-  s->isOrientedReversed();
-  if (negateOrientation) {
-    s->negateOrientation();
+  // this nulls the current orientation
+  // TODO(mhajdu): explain
+  s->isFunctionOrientedReversed();
+  if (reverseOrientation) {
+    s->reverseFunctionOrientation();
   }
   return s;
 } // TermSharing::insert

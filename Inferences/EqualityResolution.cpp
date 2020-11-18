@@ -77,6 +77,10 @@ struct EqualityResolution::ResultFn
     ASS(lit->isEquality());
     ASS(lit->isNegative());
 
+    // if (_cl->containsFunctionDefinition()) {
+    //   return 0;
+    // }
+
     static RobSubstitution subst;
     subst.reset();
     static Stack<UnificationConstraint> constraints;
@@ -142,8 +146,8 @@ struct EqualityResolution::ResultFn
         }
 
         (*res)[next++] = currAfter;
-        if (_cl->isRecursive(curr)) {
-          res->makeRecursive(currAfter, currAfter->isOrientedReversed() ^ _cl->isReversed(curr));
+        if (_cl->isFunctionDefinition(curr)) {
+          res->makeFunctionDefinition(currAfter, currAfter->isFunctionOrientedReversed() ^ _cl->isReversedFunctionDefinition(curr));
         }
       }
     }

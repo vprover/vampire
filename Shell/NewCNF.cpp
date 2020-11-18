@@ -288,7 +288,7 @@ void NewCNF::process(Literal* literal, Occurrences &occurrences) {
   ASS(thenBranches.isEmpty());
   ASS(elseBranches.isEmpty());
 
-  auto recursiveDefinition = literal->isRecursiveDefinition();
+  auto functionDefinition = literal->isFunctionDefinition();
 
   while (occurrences.isNonEmpty()) {
     Occurrence occ = pop(occurrences);
@@ -298,8 +298,8 @@ void NewCNF::process(Literal* literal, Occurrences &occurrences) {
       LPair p = lit.next();
       Literal* literal = p.first;
       List<GenLit>* gls = p.second;
-      if (recursiveDefinition) {
-        literal->makeRecursiveDefinition();
+      if (functionDefinition) {
+        literal->makeFunctionDefinition();
       }
 
       Formula* f = new AtomicFormula(literal);
@@ -1550,8 +1550,8 @@ Clause* NewCNF::toClause(SPGenClause gc)
       l = Literal::complementaryLiteral(l);
     }
 
-    if (g->literal()->isRecursiveDefinition()) {
-      l->makeRecursiveDefinition();
+    if (g->literal()->isFunctionDefinition()) {
+      l->makeFunctionDefinition();
     }
     properLiterals.push(l);
   }
@@ -1559,14 +1559,15 @@ Clause* NewCNF::toClause(SPGenClause gc)
   Clause* clause = new(gc->size()) Clause(gc->size(),FormulaTransformation(InferenceRule::CLAUSIFY,_beingClausified));
   for (int i = gc->size() - 1; i >= 0; i--) {
     (*clause)[i] = properLiterals[i];
-    if (properLiterals[i]->isRecursiveDefinition()) {
-      clause->makeRecursive(properLiterals[i], properLiterals[i]->isOrientedReversed());
+    if (properLiterals[i]->isFunctionDefinition()) {
+      clause->makeFunctionDefinition(properLiterals[i],
+        properLiterals[i]->isFunctionOrientedReversed());
     }
   }
 
   properLiterals.reset();
 
-  if (clause->containsRecursiveDefinition()) {
+  if (clause->containsFunctionDefinition()) {
     for (unsigned i = 0; i < clause->size();) {
       auto lit = (*clause)[i];
       Clause* temp = nullptr;

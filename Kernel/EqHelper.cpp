@@ -217,7 +217,7 @@ TermIterator EqHelper::getRewritableSubtermIterator(Literal* lit, const Ordering
  *
  * If the literal @b lit is not a positive equality, empty iterator is returned.
  */
-TermIterator EqHelper::getLHSIterator(Literal* lit, const Ordering& ord, bool recursive, bool reversed)
+TermIterator EqHelper::getLHSIterator(Literal* lit, const Ordering& ord, bool functionDefinition, bool reversed)
 {
   CALL("EqHelper::getLHSIterator");
 
@@ -227,7 +227,7 @@ TermIterator EqHelper::getLHSIterator(Literal* lit, const Ordering& ord, bool re
     }
     TermList t0=*lit->nthArgument(0);
     TermList t1=*lit->nthArgument(1);
-    if (recursive) {
+    if (functionDefinition) {
       if (reversed) {
         ASS(t1.containsAllVariablesOf(t0));
         return pvi( getSingletonIterator(t1) );
@@ -273,15 +273,15 @@ struct EqHelper::IsNonVariable
  *
  * If the literal @b lit is not a positive equality, empty iterator is returned.
  */
-TermIterator EqHelper::getSuperpositionLHSIterator(Literal* lit, const Ordering& ord, const Options& opt, bool recursive, bool reversed)
+TermIterator EqHelper::getSuperpositionLHSIterator(Literal* lit, const Ordering& ord, const Options& opt, bool functionDefinition, bool reversed)
 {
   CALL("EqHelper::getSuperpositionLHSIterator");
 
   if (opt.superpositionFromVariables()) {
-    return getLHSIterator(lit, ord, recursive, reversed);
+    return getLHSIterator(lit, ord, functionDefinition, reversed);
   }
   else {
-    return pvi( getFilteredIterator(getLHSIterator(lit, ord, recursive, reversed), IsNonVariable()) );
+    return pvi( getFilteredIterator(getLHSIterator(lit, ord, functionDefinition, reversed), IsNonVariable()) );
   }
 }
 
@@ -291,7 +291,7 @@ TermIterator EqHelper::getSuperpositionLHSIterator(Literal* lit, const Ordering&
  *
  * If the literal @b lit is not a positive equality, empty iterator is returned.
  */
-TermIterator EqHelper::getDemodulationLHSIterator(Literal* lit, bool forward, const Ordering& ord, const Options& opt, bool recursive, bool reversed)
+TermIterator EqHelper::getDemodulationLHSIterator(Literal* lit, bool forward, const Ordering& ord, const Options& opt)
 {
   CALL("EqHelper::getDemodulationLHSIterator");
 
@@ -301,15 +301,6 @@ TermIterator EqHelper::getDemodulationLHSIterator(Literal* lit, bool forward, co
     }
     TermList t0=*lit->nthArgument(0);
     TermList t1=*lit->nthArgument(1);
-    if (recursive) {
-      if (reversed) {
-        ASS(t1.containsAllVariablesOf(t0));
-        return pvi( getSingletonIterator(t1) );
-      } else {
-        ASS(t0.containsAllVariablesOf(t1));
-        return pvi( getSingletonIterator(t0) );
-      }
-    }
     switch(ord.getEqualityArgumentOrder(lit))
     {
     case Ordering::INCOMPARABLE:

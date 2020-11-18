@@ -135,7 +135,7 @@ struct BackwardDemodulation::ResultFn
       return BwSimplificationRecord(0);
     }
 
-    if(_cl->containsRecursiveDefinition()) {
+    if(_cl->containsFunctionDefinition()) {
       return BwSimplificationRecord(0);
     }
 
@@ -240,7 +240,8 @@ void BackwardDemodulation::perform(Clause* cl,
 {
   CALL("BackwardDemodulation::perform");
 
-  if(cl->length()!=1 || !(*cl)[0]->isEquality() || !(*cl)[0]->isPositive() ) {
+  if(cl->length()!=1 || !(*cl)[0]->isEquality() || !(*cl)[0]->isPositive()
+      || cl->containsFunctionDefinition()) {
     simplifications=BwSimplificationRecordIterator::getEmpty();
     return;
   }
@@ -250,7 +251,7 @@ void BackwardDemodulation::perform(Clause* cl,
     pvi( getFilteredIterator(
 	    getMappingIterator(
 		    getMapAndFlattenIterator(
-			    EqHelper::getDemodulationLHSIterator(lit, false, _salg->getOrdering(), _salg->getOptions(), cl->isRecursive(lit), cl->isReversed(lit)),
+			    EqHelper::getDemodulationLHSIterator(lit, false, _salg->getOrdering(), _salg->getOptions()),
 			    RewritableClausesFn(_index)),
 		    ResultFn(cl, *this)),
  	    RemovedIsNonzeroFn()) );

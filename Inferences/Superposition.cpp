@@ -418,7 +418,7 @@ Clause* Superposition::performSuperposition(
     return 0;
   }
 
-  if(rwClause->isRecursive(rwLit)) {
+  if(rwClause->containsFunctionDefinition()) {
     return 0;
   }
 
@@ -462,7 +462,7 @@ Clause* Superposition::performSuperposition(
   //cout << "Check ordering on " << tgtTermS.toString() << " and " << rwTermS.toString() << endl;
 
   //check that we're not rewriting smaller subterm with larger
-  if(!eqClause->isRecursive(eqLit) && Ordering::isGorGEorE(ordering.compare(tgtTermS,rwTermS))) {
+  if(!eqClause->isFunctionDefinition(eqLit) && Ordering::isGorGEorE(ordering.compare(tgtTermS,rwTermS))) {
     return 0;
   }
 

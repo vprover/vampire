@@ -106,6 +106,10 @@ void BackwardSubsumptionResolution::perform(Clause* cl,
   //(which cannot generally be done when iterators are involved)
   TimeCounter tc(TC_BACKWARD_SUBSUMPTION_RESOLUTION);
 
+  if(cl->containsFunctionDefinition()) {
+    return;
+  }
+
   unsigned clen=cl->length();
 
   //by default we don't simplify anything

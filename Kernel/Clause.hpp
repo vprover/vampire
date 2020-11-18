@@ -117,22 +117,22 @@ public:
   Literal* operator[] (int n) const
   { return _literals[n]; }
 
-  void makeRecursive(Literal* lit, bool reversed) {
-    if (!_recursiveReversedLitPairs) {
-      _recursiveReversedLitPairs = new DHMap<Literal*,bool>();
+  void makeFunctionDefinition(Literal* lit, bool reversed) {
+    if (!_functionDefLitOrientationMap) {
+      _functionDefLitOrientationMap = new DHMap<Literal*,bool>();
     }
-    auto res = _recursiveReversedLitPairs->insert(lit, reversed);
+    auto res = _functionDefLitOrientationMap->insert(lit, reversed);
     if (!res) {
-      _recursiveReversedLitPairs->set(lit, reversed);
+      _functionDefLitOrientationMap->set(lit, reversed);
     }
   }
-  bool isRecursive(Literal* lit) const {
-    if (!containsRecursiveDefinition()) { return false; }
-    return _recursiveReversedLitPairs->find(lit);
+  bool isFunctionDefinition(Literal* lit) const {
+    if (!containsFunctionDefinition()) { return false; }
+    return _functionDefLitOrientationMap->find(lit);
   }
-  bool isReversed(Literal* lit) const {
-    if (!containsRecursiveDefinition()) { return false; }
-    return _recursiveReversedLitPairs->find(lit) && _recursiveReversedLitPairs->get(lit);
+  bool isReversedFunctionDefinition(Literal* lit) const {
+    if (!containsFunctionDefinition()) { return false; }
+    return _functionDefLitOrientationMap->find(lit) && _functionDefLitOrientationMap->get(lit);
   }
 
   /** Return the length (number of literals) */
@@ -197,9 +197,9 @@ public:
   }
   unsigned computeWeightForClauseSelection(const Shell::Options& opt) const;
 
-  bool containsRecursiveDefinition() const
+  bool containsFunctionDefinition() const
   {
-    return _recursiveReversedLitPairs != nullptr && !_recursiveReversedLitPairs->isEmpty();
+    return _functionDefLitOrientationMap != nullptr && !_functionDefLitOrientationMap->isEmpty();
   }
 
   /*
@@ -416,7 +416,7 @@ protected:
 
 //#endif
 
-  DHMap<Literal*,bool>* _recursiveReversedLitPairs;
+  DHMap<Literal*,bool>* _functionDefLitOrientationMap;
   /** Array of literals of this unit */
   Literal* _literals[1];
 }; // class Clause

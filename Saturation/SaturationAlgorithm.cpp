@@ -1181,6 +1181,9 @@ start:
 
   while (! _unprocessed->isEmpty()) {
     Clause* c = _unprocessed->pop();
+    // if (c->containsFunctionDefinition()) {
+    //   continue;
+    // }
     ASS(!isRefutation(c));
 
     if (forwardSimplify(c)) {

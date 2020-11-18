@@ -45,9 +45,9 @@ public:
   static TermList getOtherEqualitySide(Literal* eq, TermList lhs);
   static bool hasGreaterEqualitySide(Literal* eq, const Ordering& ord, TermList& lhs, TermList& rhs);
   static TermIterator getRewritableSubtermIterator(Literal* lit, const Ordering& ord);
-  static TermIterator getLHSIterator(Literal* lit, const Ordering& ord, bool recursive, bool reversed);
-  static TermIterator getSuperpositionLHSIterator(Literal* lit, const Ordering& ord, const Options& opt, bool recursive, bool reversed);
-  static TermIterator getDemodulationLHSIterator(Literal* lit, bool forward, const Ordering& ord, const Options& opt, bool recursive, bool reversed);
+  static TermIterator getLHSIterator(Literal* lit, const Ordering& ord, bool functionDefinition, bool reversed);
+  static TermIterator getSuperpositionLHSIterator(Literal* lit, const Ordering& ord, const Options& opt, bool functionDefinition, bool reversed);
+  static TermIterator getDemodulationLHSIterator(Literal* lit, bool forward, const Ordering& ord, const Options& opt);
   static TermIterator getEqualityArgumentIterator(Literal* lit);
 
   static Term* replace(Term* t, TermList what, TermList by);
@@ -60,7 +60,7 @@ public:
     DECL_RETURN_TYPE(VirtualIterator<pair<Literal*, TermList> >);
     OWN_RETURN_TYPE operator()(Literal* lit)
     {
-      return pvi( pushPairIntoRightIterator(lit, getLHSIterator(lit, _ord, _cl->isRecursive(lit), _cl->isReversed(lit))) );
+      return pvi( pushPairIntoRightIterator(lit, getLHSIterator(lit, _ord, _cl->isFunctionDefinition(lit), _cl->isReversedFunctionDefinition(lit))) );
     }
   private:
     const Ordering& _ord;
@@ -74,7 +74,7 @@ public:
     DECL_RETURN_TYPE(VirtualIterator<pair<Literal*, TermList> >);
     OWN_RETURN_TYPE operator()(Literal* lit)
     {
-      return pvi( pushPairIntoRightIterator(lit, getSuperpositionLHSIterator(lit, _ord, _opt, _cl->isRecursive(lit), _cl->isReversed(lit))) );
+      return pvi( pushPairIntoRightIterator(lit, getSuperpositionLHSIterator(lit, _ord, _opt, _cl->isFunctionDefinition(lit), _cl->isReversedFunctionDefinition(lit))) );
     }
   private:
     const Ordering& _ord;

@@ -484,24 +484,24 @@ public:
   /** True if the term is, in fact, a literal */
   bool isLiteral() const { return _args[0]._info.literal; }
 
-  void makeRecursiveDefinition()
+  void makeFunctionDefinition()
   {
-    _recursiveDefinition = 1;
+    _functionDefinition = 1;
   }
-  bool isRecursiveDefinition()
+  bool isFunctionDefinition()
   {
-    return _recursiveDefinition;
-  }
-
-  void negateOrientation()
-  {
-    _recursiveOrientation ^= 1;
+    return _functionDefinition;
   }
 
-  bool isOrientedReversed()
+  void reverseFunctionOrientation()
   {
-    auto res = _recursiveOrientation;
-    _recursiveOrientation = 0;
+    _functionOrientation ^= 1;
+  }
+
+  bool isFunctionOrientedReversed()
+  {
+    auto res = _functionOrientation;
+    _functionOrientation = 0;
     return res;
   }
 
@@ -678,8 +678,8 @@ protected:
   /** Weight of the symbol */
   unsigned _weight;
   /** If true, the literal is oriented reversed compared to the initial orientation */
-  unsigned _recursiveOrientation : 1;
-  unsigned _recursiveDefinition : 1;
+  unsigned _functionOrientation : 1;
+  unsigned _functionDefinition : 1;
   union {
     /** If _isTwoVarEquality is false, this value is valid and contains
      * number of occurrences of variables */

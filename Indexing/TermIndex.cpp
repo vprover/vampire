@@ -95,8 +95,15 @@ void SuperpositionLHSIndex::handleClause(Clause* c, bool adding)
   TimeCounter tc(TC_FORWARD_SUPERPOSITION_INDEX_MAINTENANCE);
 
   unsigned selCnt=c->numSelected();
+  // const bool fndef = c->containsFunctionDefinition(); 
+  // if (fndef) {
+  //   selCnt = c->length();
+  // }
   for (unsigned i=0; i<selCnt; i++) {
     Literal* lit=(*c)[i];
+    // if (fndef && !c->isFunctionDefinition(lit)) {
+    //   continue;
+    // }
     TermIterator lhsi=EqHelper::getSuperpositionLHSIterator(lit, _ord, _opt,
       c->isFunctionDefinition(lit), c->isReversedFunctionDefinition(lit));
     while (lhsi.hasNext()) {
