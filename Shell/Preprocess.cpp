@@ -165,15 +165,9 @@ void Preprocess::preprocess(Problem& prb)
 {
   CALL("Preprocess::preprocess");
 
-  //Hacky, to be undone when we have a proper schedule AYB
-  if(env.options->pragmatic() && env.options->maxXXNarrows() == 0){
-    env.options->setMaxXX(2);
-  }
-
   if(env.options->choiceReasoning()){
     env.signature->addChoiceOperator(env.signature->getChoice());
   }
-
 
   if (env.options->showPreprocessing()) {
     env.beginOutput();
