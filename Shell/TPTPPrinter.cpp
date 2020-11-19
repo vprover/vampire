@@ -40,6 +40,8 @@
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Clause.hpp"
 
+#include "Shell/Statistics.hpp"
+
 #include "TPTPPrinter.hpp"
 
 #include "Forwards.hpp"
@@ -201,9 +203,11 @@ void TPTPPrinter::printTffWrapper(Unit* u, vstring bodyStr)
  * @param symNumber
  * @param function - true if the symbol is a function symbol
  */
-void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, bool function)
+void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, SymbolType symType)
 {
   CALL("TPTPPrinter::outputSymbolTypeDefinitions");
+
+  bool function = symType == SymbolType::FUNC;
 
   Signature::Symbol* sym = function ?
       env.signature->getFunction(symNumber) : env.signature->getPredicate(symNumber);
@@ -229,7 +233,19 @@ void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, bool function)
     }
   }
 
-  tgt() << "tff(" << (function ? "func" : "pred") << "_def_" << symNumber << ",type, "
+  vstring cat = "tff(";
+  if(env.statistics->higherOrder){
+    cat = "thf(";
+  }
+
+  vstring st = "func";
+  if(symType == SymbolType::PRED){
+    st = "pred"; 
+  } else if(symType == SymbolType::TYPE_CON){
+    st = "sort";
+  }
+
+  tgt() << cat << st << "_def_" << symNumber << ",type, "
       << sym->name() << ": ";
 
   tgt() <<  type->toString();
@@ -256,21 +272,14 @@ void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, bool function)
   unsigned sorts = env.sorts->count();
   //check the sorts of the function symbols and collect information about used sorts
   for (i = 0; i < env.signature->functions(); i++) {
+    if(env.signature->isTypeConOrSup(f)){ continue; }
     sym = env.signature->getFunction(i);
     type = sym->fnType();
     unsigned arity = sym->arity();
-<<<<<<< HEAD
-    if (arity > 0) {
-      for (unsigned i = 0; i < arity; i++) {
-        if(! List<unsigned>::member(type->arg(i), _usedSorts))
-          List<unsigned>::push(type->arg(i), _usedSorts);
-      }
-=======
     // NOTE: for function types, the last entry (i.e., type->arg(arity)) contains the type of the result
     for (unsigned i = 0; i <= arity; i++) {
       if(! List<unsigned>::member(type->arg(i), _usedSorts))
         List<unsigned>::push(type->arg(i), _usedSorts);
->>>>>>> master
     }
   }
   //check the sorts of the predicates and collect information about used sorts
@@ -304,16 +313,18 @@ void TPTPPrinter::ensureHeadersPrinted(Unit* u)
   if(_headersPrinted) {
     return;
   }
-
+  
   //ensureNecesarySorts();
 
   unsigned funs = env.signature->functions();
   for(unsigned i=0; i<funs; i++) {
-    outputSymbolTypeDefinitions(i, true);
+    SymbolType st = SymbolType::FUNC;
+    if(env.signature->isTypeConOrSup(i)){ st = SymbolType::TYPE_CON; }
+    outputSymbolTypeDefinitions(i, st);
   }
   unsigned preds = env.signature->predicates();
   for(unsigned i=1; i<preds; i++) {
-    outputSymbolTypeDefinitions(i, false);
+    outputSymbolTypeDefinitions(i, SymbolType::PRED);
   }
 
   _headersPrinted = true;

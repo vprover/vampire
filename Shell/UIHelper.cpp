@@ -603,20 +603,21 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
     return;
   }
 
-  /*unsigned dummy;
+  unsigned dummy;
   if (Theory::tuples()->findProjection(symNumber, !function, dummy)) {
     return;
   }
 
   if (function) {
-    unsigned sort = env.signature->getFunction(symNumber)->fnType()->result();
-    if (env.sorts->isOfStructuredSort(sort, Sorts::StructuredSort::TUPLE)) {
+    TermList sort = env.signature->getFunction(symNumber)->fnType()->result();
+    if (SortHelper::isTupleSort(sort)) {
       return;
     }
-  }*/
+  }
 
   if(sym->name() == "$tType" || sym->name() == "$o" || 
      sym->name() == "$i" || sym->name() == ">"){
+    //todo $int, $rat etc.?
     return;
   }
 

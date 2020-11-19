@@ -799,7 +799,7 @@ void FiniteModelBuilder::init()
 
     if(env.signature->functionArity(f)==0){ 
       TermList vsrtT = env.signature->getFunction(f)->fnType()->result();
-      if(SortHelper::isBoolSort(vsrtT)){
+      if(!SortHelper::isBoolSort(vsrtT)){
         unsigned vsrt = SortHelper::sortNum(vsrtT);
         ASS(_sortedSignature->vampireToDistinctParent.find(vsrt));
         unsigned dsrt = _sortedSignature->vampireToDistinctParent.get(vsrt);
