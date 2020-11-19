@@ -898,6 +898,8 @@ bool SortHelper::areImmediateSortsValidMono(Term* t)
     return true;
   }
 
+  if(t->isSuper()){ return true; }
+
   OperatorType* type = getType(t);
   unsigned arity = t->arity();
   for (unsigned i=0; i<arity; i++) {

@@ -194,8 +194,8 @@ OperatorType* Signature::Symbol::fnType() const
   CALL("Signature::Symbol::fnType");
   ASS(!super());
 
-  TermList def = Term::defaultSort();
   if (!_type) {
+    TermList def = Term::defaultSort();
     _type = OperatorType::getFunctionTypeUniformRange(arity(), def, def, VarList::empty());
   }
   return _type;
@@ -211,8 +211,8 @@ OperatorType* Signature::Symbol::predType() const
 {
   CALL("Signature::Symbol::predType");
   
-  TermList def = Term::defaultSort();
   if (!_type) {
+    TermList def = Term::defaultSort();
     _type = OperatorType::getPredicateTypeUniformRange(arity(), def, VarList::empty());
   }
   return _type;
@@ -234,8 +234,8 @@ Signature::Signature ():
     _strings(0),
     _integers(0),
     _rationals(0),
-    _reals(0)/*,
-    _termAlgebras()*/
+    _reals(0),
+    _termAlgebras()
 {
   CALL("Signature::Signature");
 

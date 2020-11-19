@@ -54,6 +54,7 @@ void TimeCounter::reinitialize()
 {
   CALL("TimeCounter::reinitialize");
 
+  s_measuring = true;
   s_initialized=0;
 
   initialize();
