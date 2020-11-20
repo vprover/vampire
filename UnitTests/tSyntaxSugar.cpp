@@ -15,15 +15,23 @@ void perform_test(const A&...)
 { /* dummy function to get rid of warnings */ }
 
 TEST_FUN(some_meaningful_testname) {
-  NUMBER_SUGAR(Real) /* <-- imports syntax sugar */
+  
+  NUMBER_SUGAR(Real) // <- imports syntax sugar for +, *, /, and other 
+                     //    intepreted functions & predicates on reals
 
-  Literal* lit = ~(0 < (x * frac(7,1)));
+  DECL_DEFAULT_VARS  // <- creates variables x ... variable X0
+                     //                      y ... variable X1
+                     //                      z ... variable X2
+
+  Literal* lit = ~(0 < (x * frac(7,2)));
+  //                        ^^^^^^^^^ creates the numeral 7 / 2
 
   perform_test(lit);
 }
 
 TEST_FUN(some_other_meaningful_testname) {
   NUMBER_SUGAR(Rat)
+  DECL_DEFAULT_VARS
 
   TermList t = x * frac(7,3);
 
@@ -31,15 +39,34 @@ TEST_FUN(some_other_meaningful_testname) {
 }
 
 
-TEST_FUN(add_uninterpreted_stuff) {
-  NUMBER_SUGAR(Rat)                   /* <-- imports syntax sugar */
-  DECL_FUNC(fn      , {Rat,Rat}, Rat) /* <-- creates an uninterpreted  function over the rational sort with arity 2 */
-  DECL_PRED(relation, {Rat,Rat})      /* <-- creates an uninterpreted predicate over the rational sort with arity 2 */
+TEST_FUN(uninterpreted_and_interpreted_stuff) {
+  NUMBER_SUGAR(Rat)                
+  DECL_DEFAULT_VARS
 
-  Literal* t = relation(x, fn(frac(7,3), x));
+  DECL_SORT(alpha)     // <- creates an uninterpred sort 
+  DECL_CONST(a, alpha) // <- creates an constant of sort alpha
+  DECL_FUNC(fn      , {Rat,alpha}, Rat) // creates an uninterpreted function  f : Rat x alpha -> Rat
+  DECL_PRED(relation, {Rat,Rat})        // creates an uninterpreted predicate p : P(Rat x Rat)
+
+
+  Literal* t = relation(x, fn(frac(7,3), a));
 
   perform_test(t);
 }
+
+TEST_FUN(only_uninterpreted_stuff) {
+  DECL_DEFAULT_VARS /* <-- declares variables x (= X0), y (= X1), z (= X2) */
+
+  DECL_SORT(alpha)  /* <- declares a sort */
+  DECL_SORT(beta)   /* <- declares another sort */
+
+  DECL_FUNC(f, {beta, beta}, alpha); /* <- declares a function f : alpha x alpha -> beta */
+  DECL_CONST(a, alpha); /* <- declares a function f : alpha x alpha -> beta */
+  DECL_CONST(b, beta);  /* <- declares a function f : alpha x alpha -> beta */
+
+  perform_test(f(b,b) == a);
+}
+
 
 TEST_FUN(watch_out_for_this) {
   NUMBER_SUGAR(Real)
@@ -67,12 +94,12 @@ TEST_FUN(watch_out_for_this) {
 
 
 TEST_FUN(get_functors) {
-  NUMBER_SUGAR(Rat)                 /* <-- imports syntax sugar */
-  DECL_FUNC( fn  , {Rat, Rat}, Rat) /* <-- creates an uninterpreted  function over the rational sort with arity 2 */
-  DECL_PRED( pred, {Rat})           /* <-- creates an uninterpreted predicate over the rational sort with arity 1 */
-  DECL_CONST(cons, Rat)             /* <-- creates an uninterpreted  constant */
+  NUMBER_SUGAR(Rat)                 
+  DECL_FUNC( fn  , {Rat, Rat}, Rat)
+  DECL_PRED( pred, {Rat})          
+  DECL_CONST(cons, Rat)           
 
-  /* we can query the functors of functionsm, constants and predicates */
+  // we can query the functors of functionsm, constants and predicates 
   unsigned fnFunctor   = fn.functor(); 
   unsigned consFunctor = cons.functor(); 
   unsigned predFunctor = pred.functor(); 
@@ -85,27 +112,16 @@ TEST_FUN(get_functors) {
 }
 
 TEST_FUN(create_equalities) {
-  NUMBER_SUGAR(Rat) /* <-- imports syntax sugar */
-  DECL_FUNC(fn, {Rat, Rat}, Rat) /* <-- creates an uninterpreted  function over the rational sort with arity 2 */
-  DECL_CONST(cons, Rat)          /* <-- creates an uninterpreted  constant */
+  NUMBER_SUGAR(Rat)
+  DECL_DEFAULT_VARS
+  DECL_FUNC(fn, {Rat, Rat}, Rat)
+  DECL_CONST(cons, Rat)
 
+  // we can creat equality literals
   Literal* l1 = fn(cons, x) == y;
   Literal* l2 = fn(cons, x) != y;
 
   perform_test(l1, l2);
-}
-
-TEST_FUN(uninterpreted_sugar) {
-  DECL_DEFAULT_VARS /* <-- declares variables x (= X0), y (= X1), z (= X2) */
-
-  DECL_SORT(alpha)  /* <- declares a sort */
-  DECL_SORT(beta)   /* <- declares another sort */
-
-  DECL_FUNC(f, {beta, beta}, alpha); /* <- declares a function f : alpha x alpha -> beta */
-  DECL_CONST(a, alpha); /* <- declares a function f : alpha x alpha -> beta */
-  DECL_CONST(b, beta);  /* <- declares a function f : alpha x alpha -> beta */
-
-  perform_test(f(b,b) == a);
 }
 
 TEST_FUN(term_algebra) {

@@ -62,6 +62,8 @@ REGISTER_SIMPL_TESTER(SimplificationTester)
 
 #define SIMPL_SUGAR_(num)                                                                                     \
   NUMBER_SUGAR(num)                                                                                           \
+  DECL_DEFAULT_VARS                                                                                           \
+  DECL_CONST(a, num)                                                                                          \
   DECL_PRED(p , {num})                                                                                        \
   DECL_PRED(p1, {num})                                                                                        \
   DECL_PRED(p2, {num})                                                                                        \

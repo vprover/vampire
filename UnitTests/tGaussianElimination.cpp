@@ -82,6 +82,7 @@ REGISTER_SIMPL_TESTER(GveSimplTester)
  */
 #define MY_SYNTAX_SUGAR                                                                                       \
   NUMBER_SUGAR(Real)                                                                                          \
+  DECL_DEFAULT_VARS                                                                                           \
   DECL_FUNC(f, {Real}, Real)                                                                                  \
   DECL_PRED(p, {Real})                                                                                        \
   DECL_PRED(q, {Real})                                                                                        \
