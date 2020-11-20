@@ -24,6 +24,7 @@
 #include "Indexing/TermSharing.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/Sorts.hpp"
+#include "Shell/TermAlgebra.hpp"
 
 #define __TO_SORT_RAT Sorts::SRT_RATIONAL
 #define __TO_SORT_INT Sorts::SRT_INTEGER
@@ -42,7 +43,7 @@
 #define __ARGS_EXPR_2(Type) arg0_, arg1_
 
 #define __CLSR_FUN_INTERPRETED(arity, mul, INT, _MULTIPLY)                                                    \
-    auto mul = [](__ARGS_DECL(TermSugar, arity)) -> TermSugar {                                           \
+    auto mul = [](__ARGS_DECL(TermSugar, arity)) -> TermSugar {                                               \
       return TermList(Term::create ## arity(                                                                  \
             env.signature->getInterpretingSymbol(Theory::Interpretation:: INT ## _MULTIPLY),                  \
             __ARGS_EXPR(Type, arity))                                                                         \
@@ -61,14 +62,18 @@
 #define __REPEAT_10(sort) sort, __REPEAT_9(sort)
 #define __REPEAT(arity, sort) __REPEAT_ ## arity(sort)
 
-#define __DECLARE_CONST(f, sort) auto f = ConstSugar(#f, sort);
-#define __DECLARE_FUNC(f, ...)   auto f = FuncSugar(#f, __VA_ARGS__);
-#define __DECLARE_PRED(f, ...)   auto f = PredSugar(#f, __VA_ARGS__);
+#define DECL_CONST(f, sort) auto f = ConstSugar(#f, sort);
+#define DECL_FUNC(f, ...)   auto f = FuncSugar(#f, __VA_ARGS__);
+#define DECL_PRED(f, ...)   auto f = PredSugar(#f, __VA_ARGS__);
+#define DECL_SORT(s)        auto s = SortSugar(#s);
 
-#define __DEFAULT_VARS                                                                                        \
-    auto x = TermSugar(TermList::var(0));                                                                   \
-    auto y = TermSugar(TermList::var(1));                                                                   \
-    auto z = TermSugar(TermList::var(2));                                                                   \
+#define DECL_DEFAULT_VARS                                                                                     \
+  _Pragma("GCC diagnostic push")                                                                              \
+  _Pragma("GCC diagnostic ignored \"-Wunused\"")                                                              \
+    auto x = TermSugar(TermList::var(0));                                                                     \
+    auto y = TermSugar(TermList::var(1));                                                                     \
+    auto z = TermSugar(TermList::var(2));                                                                     \
+  _Pragma("GCC diagnostic pop")                                                                               \
 
 
 /** tldr: For examples on usage see UnitTesting/tSyntaxSugar.cpp
@@ -76,16 +81,16 @@
  * This macro provides syntax sugar for building terms and clauses in a one-sorted theory of numbers. 
  *
  * i.e. the theories supported are:
- * THEORY_SYNTAX_SUGAR(Int) ==> integer arithmetic 
- * THEORY_SYNTAX_SUGAR(Rat) ==> rational arithmetic 
- * THEORY_SYNTAX_SUGAR(Real) ==> rational arithmetic 
+ * NUMBER_SUGAR(Int) ==> integer arithmetic 
+ * NUMBER_SUGAR(Rat) ==> rational arithmetic 
+ * NUMBER_SUGAR(Real) ==> rational arithmetic 
  *
  * The macro is meant to be called within a TEST_FUN(...){...} block to import the syntax sugar for 
  * the corresponding test case. It provides a class TermSugar that implicitly converts number literals 
  * to terms in the corresponding sort, and operators to build complex terms and literals. Further it sets 
  * some (C++) variables to variable terms and some to constant terms.
  *
- * Additionally the macros `THEORY_SYNTAX_SUGAR_FUN`, `THEORY_SYNTAX_SUGAR_CONST`, and `THEORY_SYNTAX_SUGAR_PRED` can be 
+ * Additionally the macros `DECL_FUNC`, `DECL_CONST`, and `DECL_PRED` can be 
  * used to declare uninterpreted functions/predicates/constants over the sort.
  *
  * These are the automatically defined operators and variables
@@ -126,43 +131,23 @@
  *
  * For examples see UnitTesting/tSyntaxSugar.cpp.
  */
-#define THEORY_SYNTAX_SUGAR(Sort)                                                                             \
+#define NUMBER_SUGAR(Sort)                                                                                    \
   _Pragma("GCC diagnostic push")                                                                              \
   _Pragma("GCC diagnostic ignored \"-Wunused\"")                                                              \
-    using NumTraits = Sort##Traits; \
-    syntaxSugarGlobals().setNumTraits(NumTraits{});                                                          \
-                                                                                                              \
-    __DEFAULT_VARS                                                                                            \
-    __DECLARE_CONST(a, syntaxSugarGlobals().defaultSort)                                                                         \
-    __DECLARE_CONST(b, syntaxSugarGlobals().defaultSort)                                                                         \
-    __DECLARE_CONST(c, syntaxSugarGlobals().defaultSort)                                                                         \
+    using NumTraits = Sort##Traits;                                                                           \
+    syntaxSugarGlobals().setNumTraits(NumTraits{});                                                           \
+    auto Sort = SortSugar(NumTraits::sort);                                                                   \
+    DECL_DEFAULT_VARS                                                                                         \
+    DECL_CONST(a, Sort)                                                                                  \
+    DECL_CONST(b, Sort)                                                                                  \
+    DECL_CONST(c, Sort)                                                                                  \
   _Pragma("GCC diagnostic pop")                                                                               \
 
-#define THEORY_SYNTAX_SUGAR_FUN(f, arity)  __DECLARE_FUNC(f, { __REPEAT(arity, syntaxSugarGlobals().defaultSort) }, syntaxSugarGlobals().defaultSort)
-#define THEORY_SYNTAX_SUGAR_PRED(f, arity) __DECLARE_PRED(f, { __REPEAT(arity, syntaxSugarGlobals().defaultSort) })
-#define THEORY_SYNTAX_SUGAR_CONST(f)       __DECLARE_CONST(f, syntaxSugarGlobals().defaultSort)
+#define DECL_TERM_ALGEBRA(...) createTermAlgebra(__VA_ARGS__);
 
-#define SYNTAX_SUGAR_PRED(f, ...) __DECLARE_PRED(f, __VA_ARGS__)
-#define SYNTAX_SUGAR_CONST(f, sort) __DECLARE_CONST(f, sort)
-
-#define SYNTAX_SUGAR_SORT(name)                                                                               \
-    UninterpretedTraits name(#name);                                                                          \
-
-#define FOF_SYNTAX_SUGAR                                                                                      \
-  _Pragma("GCC diagnostic push")                                                                              \
-  _Pragma("GCC diagnostic ignored \"-Wunused\"")                                                              \
-    syntaxSugarGlobals().defaultSort = env.sorts->addSort("alpha", false); \
-    __DEFAULT_VARS                                                                                            \
-  _Pragma("GCC diagnostic pop")                                                                               \
-
-#define FOF_SYNTAX_SUGAR_PRED(f, arity) __DECLARE_PRED( f, { __REPEAT(arity, syntaxSugarGlobals().defaultSort) })
-#define FOF_SYNTAX_SUGAR_FUN(f, arity)  __DECLARE_FUNC( f, { __REPEAT(arity, syntaxSugarGlobals().defaultSort) }, syntaxSugarGlobals().defaultSort)
-#define FOF_SYNTAX_SUGAR_CONST(f)       __DECLARE_CONST(f, syntaxSugarGlobals().defaultSort)
-
-#define __IF_FRAC(sort, ...) __IF_FRAC_##sort(__VA_ARGS__)
-#define __IF_FRAC_Int(...)
-#define __IF_FRAC_Rat(...) __VA_ARGS__
-#define __IF_FRAC_Real(...) __VA_ARGS__
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// implementation
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 struct SortSugar 
 {
@@ -202,7 +187,6 @@ class SyntaxSugarGlobals
     isRat = NumTraits::isRat;
     isReal = NumTraits::isReal;
 
-    defaultSort = NumTraits::sort;
   }
 
 
@@ -264,7 +248,6 @@ public:
   std::function<Literal*(bool, TermList)> isRat;
   std::function<Literal*(bool, TermList)> isReal;
 
-  unsigned defaultSort;
 };
 
 inline SyntaxSugarGlobals& syntaxSugarGlobals() 
@@ -330,8 +313,8 @@ inline TermSugar operator*(TermSugar lhs, TermSugar rhs)  { return syntaxSugarGl
 inline TermSugar operator/(TermSugar lhs, TermSugar rhs)  { return syntaxSugarGlobals().div(lhs, rhs); }  
 
 #define __IMPL_NUMBER_BIN_FUN(op, result_t)                                                                   \
-  inline result_t op(int lhs, TermSugar rhs) { return op(TermSugar(lhs), rhs); }              \
-  inline result_t op(TermSugar lhs, int rhs) { return op(lhs, TermSugar(rhs)); }              \
+  inline result_t op(int lhs, TermSugar rhs) { return op(TermSugar(lhs), rhs); }                              \
+  inline result_t op(TermSugar lhs, int rhs) { return op(lhs, TermSugar(rhs)); }                              \
 
 __IMPL_NUMBER_BIN_FUN(operator+, TermSugar)
 __IMPL_NUMBER_BIN_FUN(operator*, TermSugar)
@@ -394,19 +377,34 @@ __IMPL_NUMBER_BIN_FUN(operator>=, Lit)
 
 class FuncSugar {
   unsigned _functor;
+  unsigned _arity;
 
 public:
-  FuncSugar(const char* name, Stack<SortSugar> as_, SortSugar result) 
+  explicit FuncSugar(unsigned functor) 
+    : _functor(functor)
+    , _arity(env.signature->getFunction(functor)->arity()) {}
+
+  FuncSugar(vstring const& name, Stack<SortSugar> as_, SortSugar result) 
   {
-    BYPASSING_ALLOCATOR
     Stack<unsigned> as;
     for (auto a : as_) 
       as.push(a.sortNumber());
 
-    _functor = env.signature->addFunction(name, as.size());
-    env.signature
-      ->getFunction(_functor)
-      ->setType(OperatorType::getFunctionType(as.size(), as.begin(), result.sortNumber()));    
+    bool added = false;
+    _functor = env.signature->addFunction(name, as.size(), added);
+    _arity = as.size();
+    if (added)
+      env.signature
+        ->getFunction(_functor)
+        ->setType(OperatorType::getFunctionType(as.size(), as.begin(), result.sortNumber()));    
+  }
+
+  FuncSugar dtor(unsigned i) const {
+    ASS_L(i, arity())
+    vstringstream name;
+    auto symbol = env.signature->getFunction(_functor);
+    name << symbol->name() << "_" << i;
+    return FuncSugar(name.str(), { SortSugar(symbol->fnType()->result()) }, SortSugar(symbol->fnType()->arg(i)));
   }
 
   template<class... As>
@@ -418,13 +416,15 @@ public:
         as.begin()));
   }
   unsigned functor() const { return _functor; }
+  unsigned arity() const { return _arity; }
 };
 
-class ConstSugar : public TermSugar
+class ConstSugar : public TermSugar, public FuncSugar
 {
 public:
   ConstSugar(const char* name, SortSugar s) 
     : TermSugar(TermSugar::createConstant(name, s).toTerm()) 
+    , FuncSugar(functor())
   { }
   unsigned functor() const { return this->toTerm().term()->functor(); }
 };
@@ -486,6 +486,26 @@ inline Stack<Clause*> clauses(std::initializer_list<std::initializer_list<Lit>> 
     out.push(clause(cl));
   }
   return out;
+}
+
+inline void createTermAlgebra(SortSugar sort, initializer_list<FuncSugar> fs) {
+
+  using namespace Shell;
+
+  Stack<FuncSugar> funcs = fs;
+  Stack<TermAlgebraConstructor*> cons;
+
+  for (auto f : funcs) {
+    env.signature->getFunction(f.functor())
+      ->markTermAlgebraCons();
+
+    Array<unsigned> dtors(f.arity()); 
+    for (int i = 0; i < f.arity(); i++) {
+      dtors[i] = f.dtor(i).functor();
+    }
+    cons.push(new TermAlgebraConstructor(f.functor(), dtors));
+  }
+  env.signature->addTermAlgebra(new TermAlgebra(sort.sortNumber(), cons.size(), cons.begin()));
 }
 
 #endif // __TEST__SYNTAX_SUGAR__H__

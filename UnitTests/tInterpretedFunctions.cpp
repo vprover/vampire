@@ -201,19 +201,19 @@ void check_eval(Lit orig_, Lit expected_) {
   CHECK_EQ(*result.unwrap().template unwrap<0>(), expected, "result not evaluated correctly", orig)
 }
 
-#define ADDITIONAL_FUNCTIONS                                                                                  \
+#define ADDITIONAL_FUNCTIONS(Num)                                                                             \
       _Pragma("GCC diagnostic push")                                                                          \
       _Pragma("GCC diagnostic ignored \"-Wunused\"")                                                          \
-        THEORY_SYNTAX_SUGAR_FUN(f, 1)                                                                         \
-        THEORY_SYNTAX_SUGAR_FUN(f2, 2)                                                                        \
-        THEORY_SYNTAX_SUGAR_PRED(p, 1)                                                                        \
-        THEORY_SYNTAX_SUGAR_PRED(r, 2)                                                                        \
+        DECL_FUNC(f , {Num}    , Num)                                                                         \
+        DECL_FUNC(f2, {Num,Num}, Num)                                                                         \
+        DECL_PRED(p, {Num})                                                                                   \
+        DECL_PRED(r, {Num,Num})                                                                               \
       _Pragma("GCC diagnostic pop")                                                                           \
 
 #define NUM_TEST(NUM, name, formula, expected)                                                                \
     TEST_FUN(name ## _ ## NUM) {                                                                              \
-      THEORY_SYNTAX_SUGAR(NUM);                                                                               \
-      ADDITIONAL_FUNCTIONS                                                                                    \
+      NUMBER_SUGAR(NUM);                                                                                      \
+      ADDITIONAL_FUNCTIONS(NUM)                                                                               \
       check_eval(( formula ), ( expected ));                                                                  \
     }                                                                                                         \
 

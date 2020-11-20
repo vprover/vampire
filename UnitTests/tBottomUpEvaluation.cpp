@@ -14,10 +14,11 @@ UT_CREATE;
 
 TEST_FUN(example_01__replace_all_vars_by_term) {
   /* syntax sugar imports */
-  FOF_SYNTAX_SUGAR
-  FOF_SYNTAX_SUGAR_CONST(a)
-  FOF_SYNTAX_SUGAR_FUN (f, 1)
-  FOF_SYNTAX_SUGAR_FUN (g, 2)
+  DECL_DEFAULT_VARS
+  DECL_SORT(s)
+  DECL_CONST(a, s)
+  DECL_FUNC(f, {s}, s)
+  DECL_FUNC(g, {s,s}, s)
 
   /* defines how to evaluate bottom up. 
    * all variables are being replaced by a constant term in this case */
@@ -49,10 +50,11 @@ TEST_FUN(example_01__replace_all_vars_by_term) {
 
 TEST_FUN(example_02__compute_size) {
   /* syntax sugar imports */
-  FOF_SYNTAX_SUGAR
-  FOF_SYNTAX_SUGAR_CONST(a)
-  FOF_SYNTAX_SUGAR_FUN (f, 1)
-  FOF_SYNTAX_SUGAR_FUN (g, 2)
+  DECL_DEFAULT_VARS
+  DECL_SORT(s)
+  DECL_CONST(a, s)
+  DECL_FUNC(f, {s}, s)
+  DECL_FUNC(g, {s,s}, s)
 
   /* defines how to evaluate bottom up. 
    * computes the size of the term (number of function & variable symbols) */
