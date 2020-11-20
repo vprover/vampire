@@ -97,6 +97,16 @@ class Signature
     unsigned _arity;
     /** arity of type arguments */
     unsigned _typeArgsArity;
+
+    /** Either a FunctionType of a PredicateType object */
+    mutable OperatorType* _type;
+    /** List of distinct groups the constant is a member of, all members of a distinct group should be distinct from each other */
+    List<unsigned>* _distinctGroups;
+    /** number of times it is used in the problem */
+    unsigned _usageCount;
+    /** number of units it is used in in the problem */
+    unsigned _unitUsageCount;
+
     /** the object is of type InterpretedSymbol */
     unsigned _interpreted : 1;
     /** symbol that doesn't come from input problem, but was introduced by Vampire */
@@ -122,14 +132,6 @@ class Signature
     unsigned _overflownConstant : 1;
     /** marks term algebra constructors */
     unsigned _termAlgebraCons : 1;
-    /** Either a FunctionType of a PredicateType object */
-    mutable OperatorType* _type;
-    /** List of distinct groups the constant is a member of, all members of a distinct group should be distinct from each other */
-    List<unsigned>* _distinctGroups;
-    /** number of times it is used in the problem */
-    unsigned _usageCount;
-    /** number of units it is used in in the problem */
-    unsigned _unitUsageCount;
     /** if used in the goal **/
     unsigned _inGoal : 1;
     /** if used in a unit **/
