@@ -593,6 +593,14 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
   Signature::Symbol* sym = function ?
       env.signature->getFunction(symNumber) : env.signature->getPredicate(symNumber);
 
+  if (sym->super()  || sym->arraySort()  || sym->tupleSort()){
+    return;
+  }
+
+  if(sym->defaultSort() || (sym->boolSort() && !env.options->showFOOL())){
+    return;
+  }
+
   if (sym->interpreted()) {
     //there is no need to output type definitions for interpreted symbols
     return;
@@ -615,12 +623,6 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
     }
   }
 
-  if(sym->name() == "$tType" || sym->name() == "$o" || 
-     sym->name() == "$i" || sym->name() == ">"){
-    //todo $int, $rat etc.?
-    return;
-  }
-
   OperatorType* type = function ? sym->fnType() : sym->predType();
 
   if (type->isAllDefault()) {//TODO required
@@ -632,7 +634,8 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
 
   if(!sym->app()){
     out << (env.statistics->higherOrder ? "thf(" : "tff(")
-        << (function ? "func" : "pred") << "_def_" << symNumber << ", type, "
+        << (function ? (sym->typeCon() ?  "type" : "func") : "pred") 
+        << "_def_" << symNumber << ", type, "
         << sym->name() << ": ";
     out << type->toString();
     out << ")." << endl;
@@ -672,7 +675,7 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
  * @author Evgeny Kotelnikov
  * @since 04/09/2015 Gothneburg
  */
-void UIHelper::outputSortDeclarations(ostream& out)
+/*void UIHelper::outputSortDeclarations(ostream& out)
 {
   CALL("UIHelper::outputSortDeclarations");
 
@@ -690,7 +693,7 @@ void UIHelper::outputSortDeclarations(ostream& out)
     }
     out << "tff(type_def_" << sort << ", type, " << env.sorts->sortName(sort) << ": $tType)." << endl;
   }
-} // UIHelper::outputSortDeclarations
+}*/ // UIHelper::outputSortDeclarations
 
 #if GNUMP
 /**

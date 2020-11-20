@@ -523,7 +523,8 @@ struct InferenceStore::TPTPProofPrinter
 
   void print()
   {
-    UIHelper::outputSortDeclarations(env.out());
+    //outputSymbolDeclarations also deals with sorts for now
+    //UIHelper::outputSortDeclarations(env.out());
     UIHelper::outputSymbolDeclarations(env.out());
     ProofPrinter::print();
   }
@@ -896,7 +897,8 @@ protected:
     InferenceRule rule;
     UnitIterator parents=_is->getParents(cs, rule);
  
-    UIHelper::outputSortDeclarations(out);
+    //outputSymbolDeclarations also deals with sorts for now
+    //UIHelper::outputSortDeclarations(out);
     UIHelper::outputSymbolDeclarations(out);
 
     vstring kind = "fof";

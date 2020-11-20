@@ -452,7 +452,8 @@ void preprocessMode(bool theory)
   prepro.preprocess(*prb);
 
   env.beginOutput();
-  UIHelper::outputSortDeclarations(env.out());
+  //outputSymbolDeclarations also deals with sorts for now
+  //UIHelper::outputSortDeclarations(env.out());
   UIHelper::outputSymbolDeclarations(env.out());
   UnitList::Iterator units(prb->units());
   while (units.hasNext()) {
@@ -515,7 +516,8 @@ void outputMode()
   Problem* prb = UIHelper::getInputProblem(*env.options);
 
   env.beginOutput();
-  UIHelper::outputSortDeclarations(env.out());
+  //outputSymbolDeclarations also deals with sorts for now
+  //UIHelper::outputSortDeclarations(env.out());
   UIHelper::outputSymbolDeclarations(env.out());
   UnitList::Iterator units(prb->units());
 
@@ -709,7 +711,8 @@ void clausifyMode(bool theory)
   ScopedPtr<Problem> prb(getPreprocessedProblem());
 
   env.beginOutput();
-  UIHelper::outputSortDeclarations(env.out());
+  //outputSymbolDeclarations deals with sorts as well for now
+  //UIHelper::outputSortDeclarations(env.out());
   UIHelper::outputSymbolDeclarations(env.out());
 
   ClauseIterator cit = prb->clauseIterator();

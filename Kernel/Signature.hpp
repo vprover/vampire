@@ -148,6 +148,10 @@ class Signature
     unsigned _array : 1;  
     /** if super sort */
     unsigned _superSort : 1;
+    /** if Boolean sort */
+    unsigned _boolSort : 1;
+    /** if any non-Boolean default sort */
+    unsigned _defaultSort : 1;
     /** if type constructor */
     unsigned _typeConstructor : 1;
     /** proxy type */
@@ -245,6 +249,12 @@ class Signature
     inline void markArray(){ _array = 1; }
     inline bool arraySort(){ return _array; }
 
+    inline void markBoolSort(){ _boolSort = 1; }
+    inline const bool boolSort() const { return _boolSort; }
+
+    inline void markDefaultSort(){ _defaultSort = 1; }    
+    inline const bool defaultSort() const { return _defaultSort; }   
+
     inline void setProxy(Proxy prox){ _prox = prox; }
     inline Proxy proxy(){ return _prox; }
 
@@ -252,7 +262,7 @@ class Signature
     inline Combinator combinator(){ return _comb; }
 
     inline const bool super() const { return _superSort; }
-    inline const bool typeCon() const { return _typeConstructor; }
+    inline const bool typeCon() const { return _typeConstructor; } 
 
     inline void markInductionSkolem(){ _inductionSkolem=1; _skolem=1;}
     inline bool inductionSkolem(){ return _inductionSkolem;}
@@ -612,6 +622,7 @@ class Signature
     unsigned individualSort = addFunction("$i",0, added);
     if(added){
       getFunction(individualSort)->setType(OperatorType::getConstantsType(Term::superSort(), VarList::empty()));
+      getFunction(individualSort)->markDefaultSort();    
     }
     return individualSort;
   }
@@ -623,6 +634,7 @@ class Signature
     unsigned boolSort = addFunction("$o",0, added);
     if(added){
       getFunction(boolSort)->setType(OperatorType::getConstantsType(Term::superSort(), VarList::empty()));
+      getFunction(boolSort)->markBoolSort();
     }
     return boolSort;
   }
@@ -632,6 +644,7 @@ class Signature
     unsigned realSort = addFunction("$real",0, added);
     if(added){
       getFunction(realSort)->setType(OperatorType::getConstantsType(Term::superSort(), VarList::empty()));
+      getFunction(realSort)->markDefaultSort();
     }
     return realSort;
   }
@@ -641,6 +654,7 @@ class Signature
     unsigned intSort = addFunction("$int",0, added);
     if(added){
       getFunction(intSort)->setType(OperatorType::getConstantsType(Term::superSort(), VarList::empty()));
+      getFunction(intSort)->markDefaultSort();
     }
     return intSort;
   }  
@@ -650,6 +664,7 @@ class Signature
     unsigned ratSort = addFunction("$rat",0, added);
     if(added){
       getFunction(ratSort)->setType(OperatorType::getConstantsType(Term::superSort(), VarList::empty()));
+      getFunction(ratSort)->markDefaultSort();    
     }
     return ratSort;    
   }

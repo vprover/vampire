@@ -70,6 +70,8 @@ Signature::Symbol::Symbol(const vstring& nm, unsigned arity, bool interpreted, b
     _tuple(0),
     _array(0),
     _superSort(super),
+    _boolSort(0),
+    _defaultSort(0),
     _typeConstructor(0),
     _prox(NOT_PROXY),
     _comb(NOT_COMB)

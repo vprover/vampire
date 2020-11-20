@@ -969,6 +969,13 @@ bool SortHelper::isInterpretedNonDefault(unsigned s)
 
   return (s < Sorts::FIRST_USER_SORT && s > 0);
 }
+
+bool SortHelper::isInterpretedNonBool(unsigned s)
+{
+  CALL("SortHelper::isInterpretedNonBool");  
+
+  return (s < Sorts::FIRST_USER_SORT && s != 1);
+}
 /**
  * Return true iff sorts of all terms (both functions and variables) match
  * in clause @c cl.
