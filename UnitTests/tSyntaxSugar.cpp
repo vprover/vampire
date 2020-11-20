@@ -107,3 +107,23 @@ TEST_FUN(uninterpreted_sugar) {
 
   perform_test(f(b,b) == a);
 }
+
+TEST_FUN(term_algebra) {
+  DECL_DEFAULT_VARS 
+
+  DECL_SORT(alpha)
+  DECL_SORT(list)  
+ 
+  DECL_CONST(a, alpha)  
+  DECL_PRED(p, {list})  
+
+  // creating a term algebra:
+  // declare constructors first
+  DECL_CONST(nil               , list)
+  DECL_FUNC(cons, {alpha, list}, list)
+
+  // then turn them into a term algebra
+  DECL_TERM_ALGEBRA(list, {nil, cons})
+  
+  perform_test(p(cons(a,nil)));
+}

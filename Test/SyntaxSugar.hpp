@@ -143,11 +143,7 @@
     DECL_CONST(c, Sort)                                                                                  \
   _Pragma("GCC diagnostic pop")                                                                               \
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// single sorted formulas & terms
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-#define SORTED_SUGAR_TERM_ALGEBRA(sort, ...) createTermAlgebra(sort, __VA_ARGS__);
+#define DECL_TERM_ALGEBRA(...) createTermAlgebra(__VA_ARGS__);
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // implementation
@@ -384,6 +380,10 @@ class FuncSugar {
   unsigned _arity;
 
 public:
+  explicit FuncSugar(unsigned functor) 
+    : _functor(functor)
+    , _arity(env.signature->getFunction(functor)->arity()) {}
+
   FuncSugar(vstring const& name, Stack<SortSugar> as_, SortSugar result) 
   {
     Stack<unsigned> as;
@@ -419,11 +419,12 @@ public:
   unsigned arity() const { return _arity; }
 };
 
-class ConstSugar : public TermSugar
+class ConstSugar : public TermSugar, public FuncSugar
 {
 public:
   ConstSugar(const char* name, SortSugar s) 
     : TermSugar(TermSugar::createConstant(name, s).toTerm()) 
+    , FuncSugar(functor())
   { }
   unsigned functor() const { return this->toTerm().term()->functor(); }
 };
