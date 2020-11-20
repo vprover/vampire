@@ -100,10 +100,6 @@
  * y ... variable X1
  * z ... variable X2
  *
- * a ... constant a
- * b ... constant b
- * c ... constant c
- *
  * Operators for creating complex terms:
  * operator* ... interpreted multiplication
  * operator+ ... interpreted addition
@@ -137,10 +133,6 @@
     using NumTraits = Sort##Traits;                                                                           \
     syntaxSugarGlobals().setNumTraits(NumTraits{});                                                           \
     auto Sort = SortSugar(NumTraits::sort);                                                                   \
-    DECL_DEFAULT_VARS                                                                                         \
-    DECL_CONST(a, Sort)                                                                                  \
-    DECL_CONST(b, Sort)                                                                                  \
-    DECL_CONST(c, Sort)                                                                                  \
   _Pragma("GCC diagnostic pop")                                                                               \
 
 #define DECL_TERM_ALGEBRA(...) createTermAlgebra(__VA_ARGS__);

@@ -53,9 +53,12 @@ void test_rebalance(Literal* lit, initializer_list<expected_t> expected);
 #define TEST_REBALANCE(name, type, equality, __list)                                                          \
     TEST_FUN(name ## _ ## type) {                                                                             \
       NUMBER_SUGAR(type)                                                                                      \
+      DECL_DEFAULT_VARS                                                                                       \
       _Pragma("GCC diagnostic push")                                                                          \
       _Pragma("GCC diagnostic ignored \"-Wunused\"")                                                          \
-        DECL_FUNC(f, {type}, type)                                                                                \
+        DECL_FUNC(f, {type}, type)                                                                            \
+        DECL_CONST(a, type)                                                                                   \
+        DECL_CONST(b, type)                                                                                   \
       _Pragma("GCC diagnostic pop")                                                                           \
       test_rebalance<ToConstantType(type)>((equality), __expand ## __list);                                   \
     }                                                                                                         \
