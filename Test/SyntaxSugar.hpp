@@ -62,15 +62,18 @@
 #define __REPEAT_10(sort) sort, __REPEAT_9(sort)
 #define __REPEAT(arity, sort) __REPEAT_ ## arity(sort)
 
-#define __DECLARE_CONST(f, sort) auto f = ConstSugar(#f, sort);
-#define __DECLARE_FUNC(f, ...)   auto f = FuncSugar(#f, __VA_ARGS__);
-#define __DECLARE_PRED(f, ...)   auto f = PredSugar(#f, __VA_ARGS__);
-#define __DECLARE_SORT(s)        auto s = SortSugar(#s);
+#define DECL_CONST(f, sort) auto f = ConstSugar(#f, sort);
+#define DECL_FUNC(f, ...)   auto f = FuncSugar(#f, __VA_ARGS__);
+#define DECL_PRED(f, ...)   auto f = PredSugar(#f, __VA_ARGS__);
+#define DECL_SORT(s)        auto s = SortSugar(#s);
 
-#define __DEFAULT_VARS                                                                                        \
+#define DECL_DEFAULT_VARS                                                                                     \
+  _Pragma("GCC diagnostic push")                                                                              \
+  _Pragma("GCC diagnostic ignored \"-Wunused\"")                                                              \
     auto x = TermSugar(TermList::var(0));                                                                     \
     auto y = TermSugar(TermList::var(1));                                                                     \
     auto z = TermSugar(TermList::var(2));                                                                     \
+  _Pragma("GCC diagnostic pop")                                                                               \
 
 
 /** tldr: For examples on usage see UnitTesting/tSyntaxSugar.cpp
@@ -87,7 +90,7 @@
  * to terms in the corresponding sort, and operators to build complex terms and literals. Further it sets 
  * some (C++) variables to variable terms and some to constant terms.
  *
- * Additionally the macros `NUMBER_SUGAR_FUN`, `NUMBER_SUGAR_CONST`, and `NUMBER_SUGAR_PRED` can be 
+ * Additionally the macros `DECL_FUNC`, `DECL_CONST`, and `DECL_PRED` can be 
  * used to declare uninterpreted functions/predicates/constants over the sort.
  *
  * These are the automatically defined operators and variables
@@ -133,53 +136,17 @@
   _Pragma("GCC diagnostic ignored \"-Wunused\"")                                                              \
     using NumTraits = Sort##Traits;                                                                           \
     syntaxSugarGlobals().setNumTraits(NumTraits{});                                                           \
-                                                                                                              \
-    __DEFAULT_VARS                                                                                            \
-    __DECLARE_CONST(a, syntaxSugarGlobals().defaultSort)                                                      \
-    __DECLARE_CONST(b, syntaxSugarGlobals().defaultSort)                                                      \
-    __DECLARE_CONST(c, syntaxSugarGlobals().defaultSort)                                                      \
+    auto Sort = SortSugar(NumTraits::sort);                                                                   \
+    DECL_DEFAULT_VARS                                                                                         \
+    DECL_CONST(a, Sort)                                                                                  \
+    DECL_CONST(b, Sort)                                                                                  \
+    DECL_CONST(c, Sort)                                                                                  \
   _Pragma("GCC diagnostic pop")                                                                               \
-
-#define NUMBER_SUGAR_FUN(f, arity)  __DECLARE_FUNC(f, { __REPEAT(arity, syntaxSugarGlobals().defaultSort) }, syntaxSugarGlobals().defaultSort)
-#define NUMBER_SUGAR_PRED(f, arity) __DECLARE_PRED(f, { __REPEAT(arity, syntaxSugarGlobals().defaultSort) })
-#define NUMBER_SUGAR_CONST(f)       __DECLARE_CONST(f, syntaxSugarGlobals().defaultSort)
-
-#define SYNTAX_SUGAR_PRED(f, ...) __DECLARE_PRED(f, __VA_ARGS__)
-#define SYNTAX_SUGAR_CONST(f, sort) __DECLARE_CONST(f, sort)
-
-#define SYNTAX_SUGAR_SORT(name)                                                                               \
-    UninterpretedTraits name(#name);                                                                          \
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // single sorted formulas & terms
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#define UNSORTED_SUGAR                                                                                        \
-  _Pragma("GCC diagnostic push")                                                                              \
-  _Pragma("GCC diagnostic ignored \"-Wunused\"")                                                              \
-    syntaxSugarGlobals().defaultSort = env.sorts->addSort("alpha", false);                                    \
-    __DEFAULT_VARS                                                                                            \
-  _Pragma("GCC diagnostic pop")                                                                               \
-
-#define UNSORTED_SUGAR_PRED(f, arity) __DECLARE_PRED( f, { __REPEAT(arity, syntaxSugarGlobals().defaultSort) })
-#define UNSORTED_SUGAR_FUN(f, arity)  __DECLARE_FUNC( f, { __REPEAT(arity, syntaxSugarGlobals().defaultSort) }, syntaxSugarGlobals().defaultSort)
-#define UNSORTED_SUGAR_CONST(f)       __DECLARE_CONST(f, syntaxSugarGlobals().defaultSort)
-
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// single sorted formulas & terms
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-#define SORTED_SUGAR                                                                                          \
-  _Pragma("GCC diagnostic push")                                                                              \
-  _Pragma("GCC diagnostic ignored \"-Wunused\"")                                                              \
-    __DEFAULT_VARS                                                                                            \
-  _Pragma("GCC diagnostic pop")                                                                               \
-
-#define SORTED_SUGAR_PRED(f, ...)   __DECLARE_PRED( f, __VA_ARGS__);
-#define SORTED_SUGAR_FUN (f, ...)   __DECLARE_FUNC( f, __VA_ARGS__);
-#define SORTED_SUGAR_CONST(f, sort) __DECLARE_CONST(f, sort);
-#define SORTED_SUGAR_SORT(sort)     __DECLARE_SORT(sort);
 #define SORTED_SUGAR_TERM_ALGEBRA(sort, ...) createTermAlgebra(sort, __VA_ARGS__);
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -224,7 +191,6 @@ class SyntaxSugarGlobals
     isRat = NumTraits::isRat;
     isReal = NumTraits::isReal;
 
-    defaultSort = NumTraits::sort;
   }
 
 
@@ -286,7 +252,6 @@ public:
   std::function<Literal*(bool, TermList)> isRat;
   std::function<Literal*(bool, TermList)> isReal;
 
-  unsigned defaultSort;
 };
 
 inline SyntaxSugarGlobals& syntaxSugarGlobals() 

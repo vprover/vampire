@@ -62,12 +62,12 @@ REGISTER_SIMPL_TESTER(SimplificationTester)
 
 #define SIMPL_SUGAR_(num)                                                                                     \
   NUMBER_SUGAR(num)                                                                                           \
-  NUMBER_SUGAR_PRED(p, 1)                                                                                     \
-  NUMBER_SUGAR_PRED(p1, 1)                                                                                    \
-  NUMBER_SUGAR_PRED(p2, 1)                                                                                    \
-  NUMBER_SUGAR_PRED(p3, 1)                                                                                    \
-  NUMBER_SUGAR_PRED(r, 2)                                                                                     \
-  NUMBER_SUGAR_FUN (f, 1)                                                                                     \
+  DECL_PRED(p , {num})                                                                                        \
+  DECL_PRED(p1, {num})                                                                                        \
+  DECL_PRED(p2, {num})                                                                                        \
+  DECL_PRED(p3, {num})                                                                                        \
+  DECL_PRED(r , {num, num})                                                                                   \
+  DECL_FUNC(f,  {num}, num)                                                                                   \
 
 #define TEST_SIMPLIFY_FRACTIONAL(name, ...)                                                                   \
     TEST_SIMPLIFY_WITH_SUGAR(CAT(name, _Real), SIMPL_SUGAR_(Real), __VA_ARGS__)                               \

@@ -11,9 +11,8 @@
 UT_CREATE;
 
 template<class... A>
-void perform_test(const A&...) { 
-  /* dummy function to get rid of warnings */ 
-}
+void perform_test(const A&...) 
+{ /* dummy function to get rid of warnings */ }
 
 TEST_FUN(some_meaningful_testname) {
   NUMBER_SUGAR(Real) /* <-- imports syntax sugar */
@@ -33,9 +32,9 @@ TEST_FUN(some_other_meaningful_testname) {
 
 
 TEST_FUN(add_uninterpreted_stuff) {
-  NUMBER_SUGAR(Rat) /* <-- imports syntax sugar */
-  NUMBER_SUGAR_FUN (fn,       2) /* <-- creates an uninterpreted  function over the rational sort with arity 2 */
-  NUMBER_SUGAR_PRED(relation, 2) /* <-- creates an uninterpreted predicate over the rational sort with arity 2 */
+  NUMBER_SUGAR(Rat)                   /* <-- imports syntax sugar */
+  DECL_FUNC(fn      , {Rat,Rat}, Rat) /* <-- creates an uninterpreted  function over the rational sort with arity 2 */
+  DECL_PRED(relation, {Rat,Rat})      /* <-- creates an uninterpreted predicate over the rational sort with arity 2 */
 
   Literal* t = relation(x, fn(frac(7,3), x));
 
@@ -44,7 +43,7 @@ TEST_FUN(add_uninterpreted_stuff) {
 
 TEST_FUN(watch_out_for_this) {
   NUMBER_SUGAR(Real)
-  NUMBER_SUGAR_PRED(p, 1) 
+  DECL_PRED(p, {Real}) 
 
   /* 
    * !!!!! watch out for bugs like this !!!! 
@@ -68,10 +67,10 @@ TEST_FUN(watch_out_for_this) {
 
 
 TEST_FUN(get_functors) {
-  NUMBER_SUGAR(Rat) /* <-- imports syntax sugar */
-  NUMBER_SUGAR_FUN  (fn,   2) /* <-- creates an uninterpreted  function over the rational sort with arity 2 */
-  NUMBER_SUGAR_PRED (pred, 1) /* <-- creates an uninterpreted predicate over the rational sort with arity 1 */
-  NUMBER_SUGAR_CONST(cons   ) /* <-- creates an uninterpreted  constant */
+  NUMBER_SUGAR(Rat)                 /* <-- imports syntax sugar */
+  DECL_FUNC( fn  , {Rat, Rat}, Rat) /* <-- creates an uninterpreted  function over the rational sort with arity 2 */
+  DECL_PRED( pred, {Rat})           /* <-- creates an uninterpreted predicate over the rational sort with arity 1 */
+  DECL_CONST(cons, Rat)             /* <-- creates an uninterpreted  constant */
 
   /* we can query the functors of functionsm, constants and predicates */
   unsigned fnFunctor   = fn.functor(); 
@@ -87,8 +86,8 @@ TEST_FUN(get_functors) {
 
 TEST_FUN(create_equalities) {
   NUMBER_SUGAR(Rat) /* <-- imports syntax sugar */
-  NUMBER_SUGAR_FUN  (fn, 2) /* <-- creates an uninterpreted  function over the rational sort with arity 2 */
-  NUMBER_SUGAR_CONST(cons ) /* <-- creates an uninterpreted  constant */
+  DECL_FUNC(fn, {Rat, Rat}, Rat) /* <-- creates an uninterpreted  function over the rational sort with arity 2 */
+  DECL_CONST(cons, Rat)          /* <-- creates an uninterpreted  constant */
 
   Literal* l1 = fn(cons, x) == y;
   Literal* l2 = fn(cons, x) != y;
@@ -96,15 +95,15 @@ TEST_FUN(create_equalities) {
   perform_test(l1, l2);
 }
 
+TEST_FUN(uninterpreted_sugar) {
+  DECL_DEFAULT_VARS /* <-- declares variables x (= X0), y (= X1), z (= X2) */
 
-TEST_FUN(create_unitnterpreted) {
-  UNSORTED_SUGAR             /* <-- imports syntax sugar for an uninterpreted sort alpha */
-  UNSORTED_SUGAR_FUN  (f, 2) /* <-- creates an uninterpreted  function over the unitererpreted sort alpha with arity 2 */
-  UNSORTED_SUGAR_PRED (p, 1) /* <-- creates an uninterpreted predicate over the unitererpreted sort alpha with arity 2 */
-  UNSORTED_SUGAR_CONST(c)    /* <-- creates an uninterpreted  constant of sort alpha*/
+  DECL_SORT(alpha)  /* <- declares a sort */
+  DECL_SORT(beta)   /* <- declares another sort */
 
-  Literal* l1 = f(c, x) == y;
-  Literal* l2 = p(z);
+  DECL_FUNC(f, {beta, beta}, alpha); /* <- declares a function f : alpha x alpha -> beta */
+  DECL_CONST(a, alpha); /* <- declares a function f : alpha x alpha -> beta */
+  DECL_CONST(b, beta);  /* <- declares a function f : alpha x alpha -> beta */
 
-  perform_test(l1, l2);
+  perform_test(f(b,b) == a);
 }
