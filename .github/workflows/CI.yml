@@ -40,3 +40,6 @@ jobs:
     - name: Build
       working-directory: ${{runner.workspace}}/vampire/build
       run: make -j8
+    - name: Run Unit Tests
+      working-directory: ${{runner.workspace}}/vampire/build
+      run: ctest --output-on-failure
