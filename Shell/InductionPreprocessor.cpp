@@ -34,6 +34,10 @@ bool isConstructorTerm(TermList t)
     return true;
   }
 
+  if (t.term()->isSpecial()) {
+    return false;
+  }
+
   auto term = t.term();
   if (!env.signature->isTermAlgebraSort(SortHelper::getResultSort(term))
     || !isTermAlgebraCons(t)) {
@@ -264,7 +268,19 @@ ostream& operator<<(ostream& out, const InductionTemplate& templ)
       out << ",";
     }
   }
-  out << ")";
+  out << ") and variable order (";
+  for (const auto& r : templ._order) {
+    if (r.size() == 1) {
+      out << *r.begin() << ",";
+    } else {
+      out << "{";
+      for (const auto& v : r) {
+        out << v << ",";
+      }
+      out << "},";
+    }
+  }
+  out << ")" << endl;
   return out;
 }
 
@@ -392,17 +408,29 @@ void InductionPreprocessor::findPossibleRecursiveDefinitions(Formula* f, vvector
             }
           };
           if (succlhs) {
-            cout << lhs << "=" << rhs << " is probably a function definition axiom" << endl;
             mergeDefs(lhs.term(), tlhs);
           }
           if (succrhs) {
-            cout << rhs << "=" << lhs << " is probably a function definition axiom" << endl;
             mergeDefs(rhs.term(), trhs);
+          }
+          if(env.options->showInduction()){
+            env.beginOutput();
+            if (succlhs) {
+              env.out() << "[Induction] Equality " << lhs << "=" << rhs << " is probably a function definition axiom" << endl;
+            }
+            if (succrhs) {
+              env.out() << "[Induction] Equality " << rhs << "=" << lhs << " is probably a function definition axiom" << endl;
+            }
+            env.endOutput();
           }
         }
       } else {
         if (isHeader(TermList(lit))) {
-          cout << "Literal " << *lit << " is probably a predicate definition axiom" << endl;
+          if(env.options->showInduction()){
+            env.beginOutput();
+            env.out() << "[Induction] Literal " << *lit << " is probably a predicate definition axiom" << endl;
+            env.endOutput();
+          }
           auto it = foundPredicateDefinitions.find(lit->functor());
           if (it == foundPredicateDefinitions.end()) {
             InductionTemplate templ;
@@ -472,12 +500,20 @@ void InductionPreprocessor::findPossibleRecursiveDefinitions(Formula* f, vvector
           }
         };
         if (succlhs) {
-          cout << "Equivalence " << lhs << "<=>" << rhs << " is probably a predicate definition axiom" << endl;
           mergeDefs(lhs->literal(), tlhs);
         }
         if (succrhs) {
-          cout << "Equivalence " << rhs << "<=>" << lhs << " is probably a predicate definition axiom" << endl;
           mergeDefs(rhs->literal(), trhs);
+        }
+        if(env.options->showInduction()){
+          env.beginOutput();
+          if (succlhs) {
+            env.out() << "[Induction] Equivalence " << lhs << "<=>" << rhs << " is probably a predicate definition axiom" << endl;
+          }
+          if (succrhs) {
+            env.out() << "[Induction] Equivalence " << rhs << "<=>" << lhs << " is probably a predicate definition axiom" << endl;
+          }
+          env.endOutput();
         }
       }
       break;
@@ -520,6 +556,11 @@ void InductionPreprocessor::processFormulaBody(Formula* body, Literal* header, v
       }
       break;
     }
+    case FALSE:
+    case TRUE: {
+      templ._rDescriptions.emplace_back(TermList(header), conditions);
+      break;
+    }
     case OR:
     case IMP:
     case IFF:
@@ -528,8 +569,6 @@ void InductionPreprocessor::processFormulaBody(Formula* body, Literal* header, v
     case FORALL:
     case EXISTS:
     case BOOL_TERM:
-    case FALSE:
-    case TRUE:
     case NAME:
     case NOCONN: {
       break;

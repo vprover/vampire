@@ -226,6 +226,17 @@ void InductionScheme::init(Term* t, const InductionTemplate& templ)
         for (auto& indTerm : its) {
           // This argument might have already been mapped
           if (stepSubst.count(indTerm)) {
+            // TODO(mhajdu): this hack needs to be generalized
+            // the idea is to overwrite the substitution only when
+            // the current substitution is a variable and this argument
+            // is not plus there are no recursive calls so they would
+            // not be messed up by this change
+            if (rdesc._recursiveCalls.empty() && argStep.isTerm() && stepSubst.at(indTerm).isVar()) {
+              VarReplacement cr(varMap, var);
+              auto res = cr.transform(argStep.term());
+              stepSubst.at(indTerm) = TermList(res);
+              continue;
+            }
             if (stepSubst.at(indTerm).isTerm() && argStep.isTerm() &&
                 stepSubst.at(indTerm).term()->functor() != argStep.term()->functor()) {
               // If this argument in the RDescription header contains a different
@@ -265,6 +276,21 @@ void InductionScheme::init(Term* t, const InductionTemplate& templ)
     for (auto& c : rdesc._conditions) {
       VarReplacement cr(varMap, var);
       auto res = cr.transform(c);
+      // TODO(mhajdu): check if this hack is okay
+      // this substitutes non-induction terms into conditions
+      // as well, induction terms are already there from the template
+      for (unsigned i = 0; i < templ._inductionVariables.size(); i++) {
+        if (!templ._inductionVariables[i]) {
+          auto arg = *(rdesc._step.term()->nthArgument(i));
+          if (arg.isTerm()) {
+            arg = TermList(cr.transform(arg.term()));
+          } else {
+            arg = TermList(varMap.get(arg.var()), false);
+          }
+          TermListReplacement tr(arg, *t->nthArgument(i));
+          res = tr.transform(res);
+        }
+      }
       condSubstList.push_back(res);
     }
     vvector<vmap<TermList,TermList>> recCallSubstList;
