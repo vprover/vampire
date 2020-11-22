@@ -28,10 +28,8 @@ bool canInductOn(TermList t)
   if (t.isVar()) {
     return false;
   }
-  return isSkolem(t);
-
-  // induct on complex terms
-  // return true;
+  static bool complexTermsAllowed = env.options->inductionOnComplexTerms();
+  return isSkolem(t) || (complexTermsAllowed && !isTermAlgebraCons(t));
 }
 
 OperatorType* getType(TermList t)

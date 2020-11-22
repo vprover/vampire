@@ -42,10 +42,12 @@ using namespace Lib;
  */
 struct InductionSchemeFilter {
   void filter(vvector<pair<InductionScheme, DHMap<Literal*, Clause*>*>>& primary,
-    vvector<pair<InductionScheme, DHMap<Literal*, Clause*>*>>& secondary);
+    vvector<pair<InductionScheme, DHMap<Literal*, Clause*>*>>& secondary,
+    DHMap<Literal*, DHMap<TermList, unsigned>*>* currOccMaps);
 
 private:
-  void filter(vvector<pair<InductionScheme, DHMap<Literal*, Clause*>*>>& schemes);
+  void filter(vvector<pair<InductionScheme, DHMap<Literal*, Clause*>*>>& schemes,
+    DHMap<Literal*, DHMap<TermList, unsigned>*>* currOccMaps);
 
   bool mergeSchemes(const InductionScheme& sch1, const InductionScheme& sch2, InductionScheme& res);
   bool checkSubsumption(const InductionScheme& sch1, const InductionScheme& sch2);

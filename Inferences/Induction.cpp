@@ -794,7 +794,7 @@ void InductionClauseIterator::performStructInductionFour(Clause* premise, Litera
     }
   }
 
-  InductionSchemeFilter().filter(gen._primarySchemes, gen._secondarySchemes);
+  InductionSchemeFilter().filter(gen._primarySchemes, gen._secondarySchemes, &gen._currOccMaps);
   for (const auto& kv : gen._primarySchemes) {
     if(env.options->showInduction()){
       env.beginOutput();

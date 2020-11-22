@@ -696,12 +696,13 @@ void mergeLitClausePairsInto(DHMap<Literal*, Clause*>* from, DHMap<Literal*, Cla
 }
 
 void InductionSchemeFilter::filter(vvector<pair<InductionScheme, DHMap<Literal*, Clause*>*>>& primary,
-    vvector<pair<InductionScheme, DHMap<Literal*, Clause*>*>>& secondary)
+    vvector<pair<InductionScheme, DHMap<Literal*, Clause*>*>>& secondary,
+    DHMap<Literal*, DHMap<TermList, unsigned>*>* currOccMaps)
 {
   CALL("InductionSchemeGenerator::filter");
 
-  filter(primary);
-  filter(secondary);
+  filter(primary, currOccMaps);
+  filter(secondary, currOccMaps);
 
   // merge secondary schemes into primary ones if possible, remove the rest
   for (unsigned i = 0; i < secondary.size(); i++) {
@@ -746,9 +747,67 @@ void InductionSchemeFilter::filter(vvector<pair<InductionScheme, DHMap<Literal*,
   secondary.clear();
 }
 
-void InductionSchemeFilter::filter(vvector<pair<InductionScheme, DHMap<Literal*, Clause*>*>>& schemes)
+void InductionSchemeFilter::filter(vvector<pair<InductionScheme, DHMap<Literal*, Clause*>*>>& schemes,
+  DHMap<Literal*, DHMap<TermList, unsigned>*>* currOccMaps)
 {
-  CALL("InductionSchemeGenerator::filterSchemes");
+  CALL("InductionSchemeFilter::filter");
+
+  for (unsigned i = 0; i < schemes.size();) {
+    bool filter = false;
+    for (const auto& rdesc : schemes[i].first._rDescriptionInstances) {
+      for (const auto& kv : rdesc._step) {
+        auto term = kv.first;
+        if (isSkolem(term)) {
+          continue;
+        }
+        // filter out complex terms that contain
+        // Skolem constants that are not exclusively
+        // present in occurrences of this complex term
+        // also filter out ones without Skolem constants
+        DHMap<Literal*, Clause*>::Iterator it(*schemes[i].second);
+        while (it.hasNext()) {
+          auto lit = it.nextKey();
+          auto occ = currOccMaps->get(lit)->get(term);
+          // if (occ == 1) {
+          //   filter = true;
+          //   break;
+          // }
+          SubtermIterator it(term.term());
+          vmap<TermList,unsigned> skolemCount;
+          while (it.hasNext()) {
+            auto st = it.next();
+            if (isSkolem(st)) {
+              auto res = skolemCount.insert(make_pair(st, 0));
+              res.first->second++;
+            }
+          }
+          if (skolemCount.empty()) {
+            filter = true;
+          }
+          for (const auto kv2 : skolemCount) {
+            if (kv2.second*occ != currOccMaps->get(lit)->get(kv2.first)) {
+              cout << "literal " << *lit << " contains " << kv2.first << " outside of " << kv.first << endl;
+              filter = true;
+              break;
+            }
+          }
+          if (filter) {
+            break;
+          }
+        }
+      }
+      if (filter) {
+        break;
+      }
+    }
+    if (filter) {
+      cout << "scheme inducting on complex terms filtered out " << schemes[i].first << endl;
+      schemes[i] = std::move(schemes.back());
+      schemes.pop_back();
+    } else {
+      i++;
+    }
+  }
 
   for (unsigned i = 0; i < schemes.size();) {
     bool subsumed = false;
