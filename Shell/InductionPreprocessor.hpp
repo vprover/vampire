@@ -78,6 +78,7 @@ ostream& operator<<(ostream& out, const RDescription& rdesc);
  */
 struct InductionTemplate {
   bool postprocess();
+  bool checkWellDefinedness();
 
   enum class VarType {
     SUBTERM,

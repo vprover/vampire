@@ -296,75 +296,6 @@ bool checkQuasiCommutation(const InductionScheme& sch1, const InductionScheme& s
   return true;
 }
 
-vvector<TermList> generateAvailableTerms(const Term* t, unsigned& var) {
-  const auto taSort = SortHelper::getResultSort(t);
-  const auto ta = env.signature->getTermAlgebraOfSort(taSort);
-  vvector<TermList> res;
-  Stack<TermList> argTerms;
-  for (unsigned i = 0; i < ta->nConstructors(); i++) {
-    TermAlgebraConstructor *c = ta->constructor(i);
-    argTerms.reset();
-
-    for (unsigned j = 0; j < c->arity(); j++) {
-      argTerms.push(TermList(var++, false));
-    }
-
-    res.emplace_back(Term::create(c->functor(), argTerms.size(), argTerms.begin()));
-  }
-  return res;
-}
-
-void excludeTermFromAvailables(vvector<TermList>& possible, TermList e, unsigned& var) {
-  ASS(e.isTerm());
-  auto last = possible.size();
-  for (unsigned i = 0; i < last;) {
-    auto p = possible[i];
-    ASS(p.isTerm());
-    RobSubstitution subst;
-    if (subst.unify(p, 0, e, 1)) {
-      // if they are unifiable, p will be either
-      // replaced by more specific terms, or removed
-      possible[i] = possible.back();
-      possible.pop_back();
-      last--;
-      // if e is more special than p,
-      // we go into the arguments and
-      // create the remaining more special terms
-      auto t1 = subst.apply(p, 0);
-      Renaming r;
-      r.normalizeVariables(p);
-      auto t2 = r.apply(p);
-      if (t1 != t2) {
-        ASS(p.term()->functor()==e.term()->functor());
-        vvector<TermList> newTerms;
-        newTerms.push_back(p);
-        Term::Iterator pIt(p.term());
-        Term::Iterator eIt(e.term());
-        while (pIt.hasNext()) {
-          auto pArg = pIt.next();
-          auto eArg = eIt.next();
-
-          if (pArg.isVar() && eArg.isTerm()) {
-            auto terms = generateAvailableTerms(eArg.term(), var);
-            excludeTermFromAvailables(terms, eArg, var);
-            vvector<TermList> replacedTerms;
-            for (auto& t : newTerms) {
-              for (auto& r : terms) {
-                TermListReplacement tr(pArg, r);
-                replacedTerms.push_back(TermList(tr.transform(t.term())));
-              }
-            }
-            newTerms = replacedTerms;
-          }
-        }
-        possible.insert(possible.end(), newTerms.begin(), newTerms.end());
-      }
-      continue;
-    }
-    i++;
-  }
-}
-
 bool createSingleRDescription(const RDescriptionInst& rdesc, const InductionScheme& other,
   const vset<TermList>& combinedInductionTerms, vvector<RDescriptionInst>& res)
 {
@@ -413,9 +344,9 @@ bool createSingleRDescription(const RDescriptionInst& rdesc, const InductionSche
             // generate the available terms for it now
             pIt = availableTerms.insert(make_pair(
               kv.first,
-              generateAvailableTerms(kv.first.term(), var))).first;
+              TermAlgebra::generateAvailableTerms(kv.first.term(), var))).first;
           }
-          excludeTermFromAvailables(availableTerms.at(kv.first), t2, var);
+          TermAlgebra::excludeTermFromAvailables(availableTerms.at(kv.first), t2, var);
         }
         nextAvailableTermsList.insert(nextAvailableTermsList.end(), tempLists.begin(), tempLists.end());
       }
@@ -565,9 +496,9 @@ void addBaseCases(InductionScheme& sch) {
           auto pIt = availableTerms.find(kv.first);
           if (pIt == availableTerms.end()) {
             pIt = availableTerms.insert(
-              make_pair(kv.first, generateAvailableTerms(kv.first.term(), var))).first;
+              make_pair(kv.first, TermAlgebra::generateAvailableTerms(kv.first.term(), var))).first;
           }
-          excludeTermFromAvailables(pIt->second, kv.second, var);
+          TermAlgebra::excludeTermFromAvailables(pIt->second, kv.second, var);
         }
         nextAvailableTermsLists.insert(nextAvailableTermsLists.end(),
           tempLists.begin(), tempLists.end());

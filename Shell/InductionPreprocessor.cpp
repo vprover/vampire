@@ -190,6 +190,59 @@ bool InductionTemplate::findVarOrder(
   return false;
 }
 
+bool InductionTemplate::checkWellDefinedness()
+{
+  unsigned var = 0;
+  vvector<vvector<TermList>> availableTermsEmpty;
+  for (unsigned i = 0; i < _inductionVariables.size(); i++) {
+    vvector<TermList> v;
+    v.push_back(TermList(var++, false));
+    availableTermsEmpty.push_back(v);
+  }
+  vvector<vvector<vvector<TermList>>> availableTermsLists;
+  availableTermsLists.push_back(availableTermsEmpty);
+
+  for (auto& rdesc : _rDescriptions) {
+    vvector<vvector<vvector<TermList>>> nextAvailableTermsLists;
+    Term::Iterator it(rdesc._step.term());
+    unsigned j = 0;
+    while (it.hasNext()) {
+      auto arg = it.next();
+      if (arg.isTerm()) {
+        auto tempLists = availableTermsLists;
+        for (auto& availableTerms : tempLists) {
+          TermAlgebra::excludeTermFromAvailables(availableTerms[j], arg, var);
+        }
+        nextAvailableTermsLists.insert(nextAvailableTermsLists.end(),
+          tempLists.begin(), tempLists.end());
+      }
+      j++;
+    }
+    availableTermsLists = nextAvailableTermsLists;
+  }
+
+  for (const auto& availableTerms : availableTermsLists) {
+    unsigned i = 0;
+    for (const auto& v : availableTerms) {
+      if (!v.empty() && v[0].isTerm()) {
+        //TODO(mhajdu): output a warning here as well
+        if(env.options->showInduction()){
+          env.beginOutput();
+          env.out() << "[Induction] could not save induction template for function "
+                    << _rDescriptions.begin()->_step.term()->functionName()
+                    << " because it is not defined on value " << v[0]
+                    << " in argument position " << i << endl;
+          env.endOutput();
+        }
+        return false;
+      }
+      i++;
+    }
+  }
+  // TODO(mhajdu): check conditions too
+  return true;
+}
+
 bool InductionTemplate::postprocess()
 {
   CALL("InductionTemplate::postprocess");
@@ -200,12 +253,23 @@ bool InductionTemplate::postprocess()
   _rDescriptions.shrink_to_fit();
 
   // fill in bit vector of induction variables
+  bool discard = true;
   auto arity = _rDescriptions[0]._step.term()->arity();
   _inductionVariables = vvector<bool>(arity, false);
   vset<unsigned> candidatePositions;
   vvector<vvector<VarType>> relations;
   for (auto& rdesc : _rDescriptions) {
     auto step = rdesc._step.term();
+    Term::Iterator argIt(step);
+    if (!rdesc._recursiveCalls.empty()) {
+      discard = false;
+    }
+    while (argIt.hasNext()) {
+      auto arg = argIt.next();
+      if (arg.isTerm()) {
+        discard = false;
+      }
+    }
     for (auto& r : rdesc._recursiveCalls) {
       vvector<VarType> relation(arity, VarType::OTHER);
       Term::Iterator argIt1(r.term());
@@ -228,26 +292,7 @@ bool InductionTemplate::postprocess()
       relations.push_back(relation);
     }
   }
-  VarOrder res;
-  if (findVarOrder(relations, candidatePositions, res)) {
-    _order = res;
-    cout << "Found ordering of variables: (";
-    for (const auto& r : res) {
-      if (r.size() == 1) {
-        cout << *r.begin() << ",";
-      } else {
-        cout << "{";
-        for (const auto& v : r) {
-          cout << v << ",";
-        }
-        cout << "},";
-      }
-    }
-    cout << ")" << endl;
-    return true;
-  }
-  cout << "Could not find order for variables" << endl;
-  return false;
+  return !discard && findVarOrder(relations, candidatePositions, _order);
 }
 
 ostream& operator<<(ostream& out, const InductionTemplate& templ)
@@ -288,7 +333,7 @@ void InductionPreprocessor::preprocess(Problem& prb)
 {
   preprocess(prb.units());
   for (auto& kv : foundFunctionDefinitions) {
-    if (kv.second.postprocess()) {
+    if (kv.second.postprocess() && kv.second.checkWellDefinedness()) {
       if(env.options->showInduction()){
         env.beginOutput();
         env.out() << "[Induction] recursive function definition has been discovered: "
@@ -300,7 +345,7 @@ void InductionPreprocessor::preprocess(Problem& prb)
     }
   }
   for (auto& kv : foundPredicateDefinitions) {
-    if (kv.second.postprocess()) {
+    if (kv.second.postprocess() && kv.second.checkWellDefinedness()) {
       if(env.options->showInduction()){
         env.beginOutput();
         env.out() << "[Induction] recursive predicate definition has been discovered: "
@@ -351,7 +396,9 @@ void InductionPreprocessor::parseRecursiveDefinition(Literal* lit)
   InductionTemplate templ;
   TermList term(lhterm);
   processBody(*rhs, term, vvector<Formula*>(), templ);
-  templ.postprocess();
+  if (!templ.postprocess() || !templ.checkWellDefinedness()) {
+    return;
+  }
 
   if(env.options->showInduction()){
     env.beginOutput();
@@ -398,7 +445,6 @@ void InductionPreprocessor::findPossibleRecursiveDefinitions(Formula* f, vvector
             }
             auto it = definitions.find(t->functor());
             if (it == definitions.end()) {
-              cout << *t << endl;
               definitions.insert(make_pair(t->functor(), templ));
             } else {
               it->second._rDescriptions.insert(
