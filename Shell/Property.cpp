@@ -92,7 +92,6 @@ Property::Property()
 {
   _interpretationPresence.init(Theory::instance()->numberOfFixedInterpretations(), false);
   env.property = this;
-  _symbolsInFormula = new DHSet<int>();
 } // Property::Property
 
 /**
@@ -126,7 +125,6 @@ Property::~Property()
 {
   CALL("Property::~Property");
 
-  delete _symbolsInFormula;
   if (this == env.property) {
     env.property = 0;
   }
@@ -233,8 +231,7 @@ void Property::scan(Unit* unit)
 {
   CALL("Property::scan(const Unit*)");
 
-  ASS(_symbolsInFormula);
-  _symbolsInFormula->reset();
+  _symbolsInFormula.reset();
 
   if (unit->isClause()) {
     scan(static_cast<Clause*>(unit));
@@ -251,7 +248,7 @@ void Property::scan(Unit* unit)
     }
   }
 
-  DHSet<int>::Iterator it(*_symbolsInFormula);
+  DHSet<int>::Iterator it(_symbolsInFormula);
   while(it.hasNext()){
     int symbol = it.next();
     if(symbol >= 0){
@@ -550,7 +547,7 @@ void Property::scan(Literal* lit, int polarity, unsigned cLen, bool goal)
     scanSort(SortHelper::getEqualityArgumentSort(lit));
   }
   else {
-    _symbolsInFormula->insert(-lit->functor());
+    _symbolsInFormula.insert(-lit->functor());
     int arity = lit->arity();
     if (arity > _maxPredArity) {
       _maxPredArity = arity;
@@ -629,7 +626,7 @@ void Property::scan(TermList ts,bool unit,bool goal)
   } else {
     scanForInterpreted(t);
 
-    _symbolsInFormula->insert(t->functor());
+    _symbolsInFormula.insert(t->functor());
     Signature::Symbol* func = env.signature->getFunction(t->functor());
     func->incUsageCnt();
     if(unit){ func->markInUnit();}
