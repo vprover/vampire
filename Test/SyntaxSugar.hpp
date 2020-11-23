@@ -66,13 +66,14 @@
 #define DECL_FUNC(f, ...)   auto f = FuncSugar(#f, __VA_ARGS__);
 #define DECL_PRED(f, ...)   auto f = PredSugar(#f, __VA_ARGS__);
 #define DECL_SORT(s)        auto s = SortSugar(#s);
+#define DECL_VAR(x, i) auto x = TermSugar(TermList::var(i));
 
 #define DECL_DEFAULT_VARS                                                                                     \
   _Pragma("GCC diagnostic push")                                                                              \
   _Pragma("GCC diagnostic ignored \"-Wunused\"")                                                              \
-    auto x = TermSugar(TermList::var(0));                                                                     \
-    auto y = TermSugar(TermList::var(1));                                                                     \
-    auto z = TermSugar(TermList::var(2));                                                                     \
+    DECL_VAR(x, 0)                                                                                            \
+    DECL_VAR(y, 1)                                                                                            \
+    DECL_VAR(z, 2)                                                                                            \
   _Pragma("GCC diagnostic pop")                                                                               \
 
 
@@ -251,6 +252,10 @@ class TermSugar
   TermList _trm;
 
 public:
+  TermSugar(bool foolConst) 
+    : _trm(TermList(foolConst ? Term::foolTrue() : Term::foolFalse()))
+  { }
+
   TermSugar(int trm) 
     : _trm(TermList(syntaxSugarGlobals().createNumeral(trm)))
   { }
@@ -297,6 +302,9 @@ inline TermSugar frac(int a, int b)
 
 inline TermSugar num(int a)
 { return syntaxSugarGlobals().createNumeral(a); }
+
+inline TermSugar fool(bool b)
+{ return TermSugar(b); }
 
 ////////////////////////// operators to create terms ////////////////////////// 
 

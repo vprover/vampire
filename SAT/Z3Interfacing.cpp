@@ -49,11 +49,15 @@ using namespace Shell;
 using namespace Lib;  
 
 //using namespace z3;
-  
+
 Z3Interfacing::Z3Interfacing(const Shell::Options& opts,SAT2FO& s2f, bool unsatCoresForAssumptions):
+  Z3Interfacing(s2f, opts.showZ3(), opts.z3UnsatCores(), unsatCoresForAssumptions)
+{ }
+
+Z3Interfacing::Z3Interfacing(SAT2FO& s2f, bool showZ3, bool unsatCoreForRefutations, bool unsatCoresForAssumptions):
   _varCnt(0), sat2fo(s2f),_status(SATISFIABLE), _solver(_context),
   _model((_solver.check(),_solver.get_model())), _assumptions(_context), _unsatCoreForAssumptions(unsatCoresForAssumptions),
-  _showZ3(opts.showZ3()),_unsatCoreForRefutations(opts.z3UnsatCores())
+  _showZ3(showZ3),_unsatCoreForRefutations(unsatCoreForRefutations)
 {
   CALL("Z3Interfacing::Z3Interfacing");
   _solver.reset();
@@ -126,7 +130,7 @@ void Z3Interfacing::addAssumption(SATLiteral lit,bool withGuard)
   _assumptions.push_back(getRepresentation(lit,withGuard));
 }
 
-SATSolver::Status Z3Interfacing::solve(unsigned conflictCountLimit)
+SATSolver::Status Z3Interfacing::solve()
 {
   CALL("Z3Interfacing::solve");
   BYPASSING_ALLOCATOR;

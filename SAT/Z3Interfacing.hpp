@@ -66,13 +66,15 @@ public:
    * called via solveUnderAssumptions.
    */
   Z3Interfacing(const Shell::Options& opts, SAT2FO& s2f, bool unsatCoresForAssumptions = false);
+  Z3Interfacing(SAT2FO& s2f, bool showZ3, bool unsatCoreForRefutations, bool unsatCoresForAssumptions);
 
   static char const* z3_full_version();
 
   void addClause(SATClause* cl, bool withGuard);
   void addClause(SATClause* cl) override { addClause(cl,false); }
 
-  virtual Status solve(unsigned conflictCountLimit) override;
+  virtual Status solve();
+  virtual Status solve(unsigned conflictCountLimit) override { return solve(); };
   /**
    * If status is @c SATISFIABLE, return assignment of variable @c var
    */
