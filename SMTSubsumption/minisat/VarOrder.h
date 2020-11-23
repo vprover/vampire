@@ -42,6 +42,8 @@ namespace SMTSubsumption { namespace Minisat {
 // - collect #decisions, (#backtrackings; dubious?), success/failure
 //   save for each subsumption call, analyze distribution
 //   table: (Problem, strategy, Sequence number, #decisions, success/failure)
+//          (save premises? because seq number is not enough for LRS/... strategies)
+//          => LRS hack: record sequence of limits and replay later (ask Martin Suda if I want to use this)
 // - #decisions: both for MLMatcher and SMTSubsumption
 // - amount of time spent in FS/BS (e.g., % of overall runtime)
 //   second table: (problem, strategy, time FS, time BS, time total)
@@ -50,11 +52,48 @@ namespace SMTSubsumption { namespace Minisat {
 //   - with only SMTSubsumption, collect stats+timings
 //   - (with both, just compare results)
 // - strategy:
-//   * default mode
-//   * portfolio mode
-//   * fishing for good examples: no avatar, otter, no split queues, no additional simplifications
+//   * NOW: default mode with -sa otter -av off -t 60
+//   * LATER: portfolio mode
+//   * (fishing for good examples: no avatar, otter, no split queues, no additional simplifications)
 //
 // Then isolate ~100 hardest subsumption instances.
+
+
+/*
+
+Example:
+
+    Side premise:       P(x)            Q(y)            R(x,y)
+                        b1              b2              b3      b4
+    Main premise:       P(c)            Q(d)            R(c,c)  R(d,d)
+
+    b1: x->c
+    b2: y->d
+    b3: x->c,y->c
+    b4: x->d,y->d
+
+    What we do:
+        ENQUEUE b1
+        TPROP ¬b4
+        ENQUEUE b2
+        TPROP ¬b3
+        CONFLICT b3 \/ b4  (when adding the clause)
+
+    If we add the binary clause first, we discover this during propagation of b4:
+        PROP b1
+        PROP ¬b4 => b3 (CONFLICT with enqueued ¬b3)
+
+    During search, if there's other literals P(e), Q(e):
+        DECIDE b1
+        TPROP ¬b4
+        PROP b3
+        TPROP ¬b2
+        (ok)
+*/
+
+
+
+
 
 struct VarOrder_lt {
     const vec<double>&  activity;
