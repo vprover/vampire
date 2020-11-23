@@ -533,7 +533,9 @@ VTEST_DEP = $(VAMP_BASIC) $(VT_OBJ) $(VUT_OBJ) $(DP_OBJ) Global.o vtest.o
 LIBVAPI_DEP = $(VD_OBJ) $(API_OBJ) Global.o
 VAPI_DEP =  $(LIBVAPI_DEP) test_vapi.o
 
-all:#default make disabled
+all: #default make disabled
+	@echo "The make(1)-based build is no longer supported: use the CMake build instead."
+	@echo "If you know what you're doing and want to use it, read the Makefile."
 
 #the $(CONF_ID) directory is considered intermediate and make would otherwise try to delete it
 #(this forbids deletion of intermediate files)

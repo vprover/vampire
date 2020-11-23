@@ -1,73 +1,68 @@
 # Vampire
+This is the main source repository of the [Vampire](https://vprover.github.io) project, an advanced tool for automated reasoning.
+The following is for end-users of Vampire: new developers should read `HACKING.md` as well.
 
-This is a brief introduction to this repository. Please see <a href="https://vprover.github.io/">the Vampire website</a> for more general information about Vampire. Please see LICENCE for usage restrictions. Note that Vampire makes use of minisat and z3 and some of this code is included in this codebase, such code is provided under their own licence.
+## Licensing
+Please see LICENCE for usage restrictions.
+Note that Vampire's source includes a vendored copy of [Minisat](http://minisat.se/) and optionally links to [Z3](https://github.com/Z3Prover/z3).
+Such code is provided under their own licence.
 
-Found a bug? Have a feature request? Please use the GitHub Issues tab for these.
+## Issue Tracking
+Please use GitHub's integrated issue tracker to file bug reports and make suggestions for future Vampire features.
+Please provide as much information and detail as possible in either case.
 
-## Making
+## Download
+A statically-linked build suitable for running on StarExec is provided with each release; this may well run on your system also.
+If not, you will need to build Vampire from source, but this is not too onerous.
 
-There is a nice Makefile. You can make
- * vampire_dbg for a debug version 
- * vampire_rel for a release version
- * vampire_z3_rel to build with z3 (also works with debug) but for this you will need a z3 binary in include to link against
- * vampire is a shortcut for vampire_dbg that doesn't rely on git commands - use this if you download Vampire as a zip file
- * clean to clean things up
+## Source Build
+Vampire is built with the help of [CMake](cmake.org).
+CMake does not run any build commands directly: instead, it can generate a number of different [output formats](https://cmake.org/cmake/help/latest/manual/cmake-generators.7.html), such as UNIX Makefiles.
+If you are completely new to CMake, there is an [tutorial](https://cmake.org/cmake/help/latest/guide/user-interaction/index.html) for end-users.
 
-You can also make
- * vtest for a set of unit tests. Run vtest -ls for help once compiled
- * vampire_gcov for a version with coverage information
- * vampire_static for a statically linked version, necessary for portability
- 
+Vampire can optionally link to the external Z3 library.
+If you wish to do this, [initialise the `z3` submodule](https://git-scm.com/book/en/v2/Git-Tools-Submodules#_cloning_submodules) in the Vampire source directory.
+Then follow the Z3 instructions to build Z3 into `z3/build/`.
+This is where Vampire's build system will look for Z3: if it finds it, it will automatically link to Z3.
 
-## Some notes for developers
+A typical build on a UNIX-like system might look like this:
+```sh
+# make a clean directory to build Vampire into
+$ mkdir /tmp/build && cd /tmp/build
 
-Please do not work on master! 
+# Configure the build and generate files with CMake
+$ cmake /path/to/vampire
+-- The C compiler identification is GNU 9.3.0
+-- The CXX compiler identification is GNU 9.3.0
+-- Check for working C compiler: /usr/bin/cc
+-- Check for working C compiler: /usr/bin/cc -- works
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Check for working CXX compiler: /usr/bin/c++
+-- Check for working CXX compiler: /usr/bin/c++ -- works
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Setting build type to 'Release' as none was specified.
+-- Found Z3 4.8.9.0
+-- Setting binary name to 'vampire_z3_rel_master_4933'
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /tmp/build
 
-The main top level file is vampire.cpp. This is the head of the main vampire executable. The main method parses options and checks the mode.
+# Build Vampire, in this case with make(1)
+$ make
+<snip>
 
-Other top level files include vX.cpp (i.e. vclausify.cpp) these are cut down versions of vampire that are not currently maintained. They run a single mode of vampire. If you want to do this you might need to fix them based on vampire.cpp. The vtest.cpp file works for unit testing.
+# You now have a Vampire binary
+$ ls bin/
+vampire_z3_rel_master_4933
+$
+```
 
-There are some other top-level files that are left over from previous use cases. Some of described below under Scripts, others may be cleaned up at a later date.
-
-Note that Forwards.hpp contains a lot of forward declarations of things.
-
-When making a pull request, please try to:
- - add Doxygen comments to new items (bonus points for adding or improving existing comments)
- - add unit tests for new or related/untested functionality
- - consider running `clang-format` on code in the vicinity of your change as a companion pull request - this allows incremental automatic formatting of the codebase without breaking everything
-
-### Namespaces
-
-The code is organised into a number of namespaces. Here is a brief overview.
-
-The core of Vampire is defined in: 
- * Kernel contains the core prover-related structures
- * Lib contains the main generic data structures (also Allocator for memory allocation)
- * Shell contains things that help perform proofs, including preprocessing
- 
-Vampire mode is implemented using
-* Indexing
-* Inferences
-* SAT contains SAT solvers for use in various places
-* InstGen, see IGAlgorithm
-* Saturation, see SaturationAlgorithm (and Splitter for AVATAR)
-* Tabulation, see TabulationAlgorithm
-
-Other key namespaces are
- * CASC
- * Debug 
- * Parse
- * UnitTests
-
-Other namespaces have specific purposes that you will find out by looking at them.
-
-### Documentation
-
-Running make doc makes documentation using doxygen; this has not been fully maintained but ideally each function and class would have an appropriate comment to be parsed by doxygen. 
-
-### Scripts
-
-There are some scripts that might be useful. This list can be expanded:
- * dogcov.sh produces coverage data when running vampire_gcov
- * vinter is a front-end script for that tool
- * runner.sh and ltb_mode are scripts that have been used to run vampire in the past
+### Build Configuration
+* Vampire can be statically linked, with e.g. `cmake /path/to/vampire -DBUILD_SHARED_LIBS=0`
+* You may find setting a CMake installation directory (e.g. with `cmake /path/to/vampire -DCMAKE_INSTALL_PREFIX=/opt/vampire`) helpful.
