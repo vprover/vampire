@@ -19,7 +19,7 @@ A statically-linked build suitable for running on StarExec is provided with each
 If not, you will need to build Vampire from source, but this is not too onerous.
 
 ## Usage
-See the website's [usage section](https://github.com/Z3Prover/z3/blob/master/README-CMake.md).
+See the website's [usage section](https://vprover.github.io/usage.html).
 
 ## Source Build
 Vampire is built with the help of [CMake](cmake.org).
