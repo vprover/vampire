@@ -1,3 +1,6 @@
+![GitHub Workflow Status (branch)](https://img.shields.io/github/workflow/status/vprover/vampire/CI/master)
+![GitHub release (latest by date)](https://img.shields.io/github/v/release/vprover/vampire)
+
 # Vampire
 This is the main source repository of the [Vampire](https://vprover.github.io) project, an advanced tool for automated reasoning.
 The following is for end-users of Vampire: new developers should read `HACKING.md` as well.
@@ -15,14 +18,17 @@ Please provide as much information and detail as possible in either case.
 A statically-linked build suitable for running on StarExec is provided with each release; this may well run on your system also.
 If not, you will need to build Vampire from source, but this is not too onerous.
 
+## Usage
+See the website's [usage section](https://github.com/Z3Prover/z3/blob/master/README-CMake.md).
+
 ## Source Build
 Vampire is built with the help of [CMake](cmake.org).
 CMake does not run any build commands directly: instead, it can generate a number of different [output formats](https://cmake.org/cmake/help/latest/manual/cmake-generators.7.html), such as UNIX Makefiles.
-If you are completely new to CMake, there is an [tutorial](https://cmake.org/cmake/help/latest/guide/user-interaction/index.html) for end-users.
+If you are completely new to CMake, there is a [tutorial](https://cmake.org/cmake/help/latest/guide/user-interaction/index.html) for end-users.
 
-Vampire can optionally link to the external Z3 library.
+Vampire can optionally link to a fixed version of the external Z3 library.
 If you wish to do this, [initialise the `z3` submodule](https://git-scm.com/book/en/v2/Git-Tools-Submodules#_cloning_submodules) in the Vampire source directory.
-Then follow the Z3 instructions to build Z3 into `z3/build/`.
+Then follow the Z3 [CMake instructions](https://github.com/Z3Prover/z3/blob/master/README-CMake.md) to build the Z3 libraries into Vampire's tree at `z3/build/`.
 This is where Vampire's build system will look for Z3: if it finds it, it will automatically link to Z3.
 
 A typical build on a UNIX-like system might look like this:
