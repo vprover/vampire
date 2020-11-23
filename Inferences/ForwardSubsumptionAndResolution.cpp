@@ -12,9 +12,9 @@
  *
  * In summary, you are allowed to use Vampire for non-commercial
  * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
+ * or use in competitions.
  * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
+ * licence, which we will make an effort to provide.
  */
 /**
  * @file ForwardSubsumptionAndResolution.cpp
@@ -52,7 +52,6 @@
 
 #include "ForwardSubsumptionAndResolution.hpp"
 
-extern bool reporting;
 
 namespace Inferences
 {
@@ -60,6 +59,11 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
+
+
+
+#define CHECK_SMT_SUBSUMPTION 0
+
 
 
 ForwardSubsumptionAndResolution::ForwardSubsumptionAndResolution(bool subsumptionResolution)
@@ -182,6 +186,7 @@ public:
 
 typedef Stack<ClauseMatches*> CMStack;
 
+/*
 bool isSubsumed(Clause* cl, CMStack& cmStore)
 {
   CALL("isSubsumed");
@@ -202,6 +207,7 @@ bool isSubsumed(Clause* cl, CMStack& cmStore)
   }
   return false;
 }
+*/
 
 Clause* ForwardSubsumptionAndResolution::generateSubsumptionResolutionClause(Clause* cl, Literal* lit, Clause* baseClause)
 {
@@ -337,7 +343,13 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
         env.statistics->forwardSubsumed++;
         ASS_LE(premise->weight(), cl->weight());
         result = true;
-        ASS(smtsubs.checkSubsumption(premise, cl));
+#if CHECK_SMT_SUBSUMPTION
+        if (!smtsubs.checkSubsumption(premise, cl)) {
+          std::cerr << "\% ***WRONG RESULT OF SMT-SUBSUMPTION***    UNIT expecting 1" << std::endl;
+          std::cerr << "\% premise = " << premise->toString() << std::endl;
+          std::cerr << "\% cl = " << cl->toString() << std::endl;
+        }
+#endif
         // NOTE: we do not care about outputting the inference here, since this branch is not a target where we want to use SMT-Subsumption.
         goto fin;
       }
@@ -353,8 +365,8 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
       SLQueryResult res=rit.next();
       Clause* mcl=res.clause;
       if(mcl->hasAux()) {
-	//we've already checked this clause
-	continue;
+        //we've already checked this clause
+        continue;
       }
       unsigned mlen=mcl->length();
       ASS_G(mlen,1);
@@ -367,13 +379,14 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
       cms->fillInMatches(&miniIndex);
 
       if(cms->anyNonMatched()) {
-	continue;
+        continue;
       }
 
       if (mcl->weight() > cl->weight()) {
         RSTAT_CTR_INC("fw subsumption impossible due to weight");
       }
 
+      RSTAT_CTR_INC("MLSubsumption Calls");
       bool isSubsumed =
         MLMatcher::canBeMatched(mcl,cl,cms->_matches,0)
         && ColorHelper::compatible(cl->color(), mcl->color());
@@ -381,28 +394,21 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
       if (m_logger) {
         m_logger->log(mcl, cl, isSubsumed);
       }
-//         vstringstream id_stream;
-//         id_stream << mcl->number() << "_" << cl->number() << "_" << (isSubsumed ? "success" : "failure");
-//         vstring id = id_stream.str();
-//         env.beginOutput();
-//         env.out() << "\% Begin Inference \"FS-" << id << "\"\n";
-//         // env.out() << "\% isSubsumed: " << isSubsumed << "\n";
-//         TPTPPrinter tptp;
-//         // NOTE: do not output the splitLevels here, because those will be set for newCl only later
-//         tptp.printWithRole("side_premise_" + id, "hypothesis", mcl,   false);  // subsumer
-//         tptp.printWithRole("main_premise_" + id, "hypothesis", cl,    false);  // subsumed (if isSubsumed == 1)
-//         env.out() << "\% End Inference \"FS-" << id << "\"" << std::endl;
-//         env.endOutput();
+
+#if CHECK_SMT_SUBSUMPTION
+        if (smtsubs.checkSubsumption(mcl, cl) != isSubsumed) {
+          std::cerr << "\% ***WRONG RESULT OF SMT-SUBSUMPTION***    MULTI expecting " << isSubsumed << std::endl;
+          std::cerr << "\% mcl = " << mcl->toString() << std::endl;
+          std::cerr << "\%  cl = " <<  cl->toString() << std::endl;
+        };
+#endif
 
       if (isSubsumed) {
         premises = pvi( getSingletonIterator(mcl) );
         env.statistics->forwardSubsumed++;
         ASS_LE(mcl->weight(), cl->weight());
         result = true;
-        ASS(smtsubs.checkSubsumption(mcl, cl));
         goto fin;
-      } else {
-        ASS(!smtsubs.checkSubsumption(mcl, cl));
       }
     }
   }
