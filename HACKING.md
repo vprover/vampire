@@ -5,7 +5,7 @@ We've compiled some information below to help you on your way.
 ## Team
 The [team page](https://vprover.github.io/team.html) is kept somewhat up-to-date.
 You should add yourself by following the instructions in the [website repository](https://github.com/vprover/vprover.github.io)!
-Team discussion currently happens on [Slack](https://vampireglobal.slack.com) - hang out there and do ask questions.
+Team discussion currently happens on [Slack](https://vampireglobal.slack.com) - hang out there and ask questions.
 
 ## Reading Vampire
 Vampire is not always easy to read, especially with acronyms like `FMB`, `LTB`, `CASC` scattered about as well as the usual theorem-proving nonsense words like "superposition".
@@ -40,12 +40,12 @@ If you don't know [CMake](cmake.org), we suggest you take a little time to learn
 Vampire uses a relatively-simple CMake build, so you can read `CMakeLists.txt` if you like to figure out how it works.
 Generally you should only need to touch the build system to add new files and un-break builds; ask the team if something isn't working for you.
 
-### Build Optiona
+### Build Options
 All build options are controlled as additional arguments to CMake.
 For example, `cmake -DEXAMPLE=value ..`, or you can use a GUI tool if you prefer.
 Notable options are:
 * Debug build: `-DCMAKE_BUILD_TYPE=Debug`
-* Target directory: `-DCMAKE_INSTALL_PREFIX=/opt/vampire-devel`; helpful when compiling z3 to avoid collisions with other installed versions.
+* Target directory: `-DCMAKE_INSTALL_PREFIX=/opt/vampire-devel` - helpful when compiling z3 to avoid collisions with other installed versions.
 * Static compilation: `-DBUILD_SHARED_LIBS=0`
   This option only prefers static libraries over shared libraries which can
   lead to a mixed binary.
@@ -79,21 +79,26 @@ TODO @Joe can you write something here?
 The Vampire repository is currently setup with GitHub Actions to build `master` every day at `00:00` UTC, or to build a branch when a PR is created or updated.
 Additionally, the build can be run manually by going to the "actions" tab in GitHub.
 
-The CI script caches the Z3 build (unless the submodule changes!) and builds a debug version of Vampire from scratch, then runs the unit tests.
+The CI script caches the Z3 build (unless the submodule changes!) and builds a Z3+debug version of Vampire from scratch, then runs the unit tests.
 Currently it takes around 4-6 minutes for the remote server to build Vampire - if this suddenly takes longer this is worth investigating to preserve the quick-iteration value of the CI script.
+
+The CI script is located in `.github/workflows`.
 
 ## Guidelines for `git`
 Vampire uses the `git` VCS.
 All changes are made by authorised persons merging branches from others into `master` after review.
 `master` should always build and be generally sane, but may not be a stable release.
 
-Try and keep pull requests short and sweet, this makes it easier for review, to avoid breaking things, and makes _your_ life easier as `master` is less likely to change significantly underneath you.
+Try and keep pull requests short and making exactly one change.
+This makes it easier for review, to avoid breaking things, and makes _your_ life easier as `master` is less likely to change significantly underneath you.
 Many seemingly-large changes can be broken down into smaller steps!
 However, there are occasions which justify long-lived branches.
 
-To make a change, start by making a personal branch, calling it something related to the feature but also prepending your name to avoid clashes.
+To make a change, start by making a personal branch.
+Call it something related to the feature, but also prepend your name to avoid clashes.
 For example, `michael-static-assert` removed the old static assertion mechanism in favour of C++11's `static_assert`.
 You can then make commits to this branch and create a PR on GitHub when the work in the branch is ready for review.
+
 Commits can be kept tidy by occasionally [rewriting history](https://git-scm.com/book/en/v2/Git-Tools-Rewriting-History), provided nobody is using your branch.
 If you have pushed commits to remote and want to rewrite them, you can _carefully_ use `git push --force-with-lease` to push the rewritten commits while not accidentally breaking other people's work.
 
@@ -132,7 +137,9 @@ Authors and reviewers, try and ensure the following.
 Before merging a PR:
 * CI passes with a clean build, free of warnings or test failures (read the build log!)
 * Unit tests where reasonable for new functionality (bonus points for unit tests for existing functionality!)
-* commit history is sane
+* Doxygen comments where sensible
+* Remove code made dead by PR
+* Commit history is sane
 * `clang-format`ted new files
 
 After merging:
