@@ -29,6 +29,7 @@
 #include "Forwards.hpp"
 #include "InferenceEngine.hpp"
 #include "SMTSubsumption/SMTSubsumption.hpp"
+#include "Lib/STL.hpp"
 
 namespace Inferences {
 
@@ -53,6 +54,10 @@ public:
   bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override;
 
   static Clause* generateSubsumptionResolutionClause(Clause* cl, Literal* lit, Clause* baseClause);
+
+  static ForwardSubsumptionAndResolution const* getInstance();
+  void printStats(std::ostream& out) const;
+
 private:
   /** Simplification unit index */
   UnitClauseLiteralIndex* _unitIndex;
@@ -62,6 +67,14 @@ private:
 
   SMTSubsumption::ProofOfConcept smtsubs;
   std::unique_ptr<SubsumptionLogger> m_logger;
+
+  // Store numDecisions as histogram
+  // m_numDecisions_frequence[numDecisions] = absolute number of MLMatcher calls that return numDecisions
+  vvector<int64_t> m_numDecisions_frequency;
+  // only those where MLMatcher returned 'true'
+  vvector<int64_t> m_numDecisions_successes;
+  uint64_t m_seq = 0;
+  uint64_t m_seq_output = 0;
 };
 
 

@@ -12,9 +12,9 @@
  *
  * In summary, you are allowed to use Vampire for non-commercial
  * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
+ * or use in competitions.
  * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
+ * licence, which we will make an effort to provide.
  */
 /**
  * @file Statistics.cpp
@@ -36,6 +36,8 @@
 #include "Shell/UIHelper.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
+
+#include "Inferences/ForwardSubsumptionAndResolution.hpp"
 
 #if GNUMP
 #include "Kernel/Assignment.hpp"
@@ -231,7 +233,7 @@ void Statistics::print(ostream& out)
   case Statistics::SAT_SATISFIABLE:
     out << "SAT Satisfiable";
     break;
-  case Statistics::SAT_UNSATISFIABLE: 
+  case Statistics::SAT_UNSATISFIABLE:
     out << "SAT Unsatisfiable";
     break;
   case Statistics::UNKNOWN:
@@ -419,6 +421,11 @@ void Statistics::print(ostream& out)
   addCommentSignForSZS(out);
   out << "------------------------------\n";
 
+  auto fwsubs = ForwardSubsumptionAndResolution::getInstance();
+  fwsubs->printStats(out);
+  addCommentSignForSZS(out);
+  out << "------------------------------\n";
+
 #undef SEPARATOR
 #undef COND_OUT
 
@@ -478,7 +485,7 @@ const char* Statistics::phaseToString(ExecutionPhase p)
     return "Finalization";
   case UNKNOWN_PHASE:
     return "Unknown";
-  case PREPROCESSING: 
+  case PREPROCESSING:
     return "BP Preprocessing ";
   case SOLVING:
     return "Solving with Conflict Resolution";

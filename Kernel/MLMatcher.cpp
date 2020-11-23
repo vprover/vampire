@@ -688,6 +688,7 @@ bool MLMatcher::Impl::nextMatch()
         }
 
         s_currBLit--;  // prepare for next round
+        stats.result = true;
         return true;
       }
       md->nextAlts[s_currBLit]=0;

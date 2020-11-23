@@ -35,7 +35,7 @@ using namespace Lib;
 
 struct MLMatchStats
 {
-  int numDecisions = 0;
+  uint64_t numDecisions = 0;
   // int numDecisionsAdjusted = 0;  // adjusted to "smt-like decisions"
   bool result = false;  // true iff match was found
 };

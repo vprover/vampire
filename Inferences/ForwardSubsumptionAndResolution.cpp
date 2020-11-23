@@ -64,7 +64,7 @@ using namespace Saturation;
 
 #define CHECK_SMT_SUBSUMPTION 0
 
-
+static ForwardSubsumptionAndResolution const* fwsubsandres_instance = nullptr;
 
 ForwardSubsumptionAndResolution::ForwardSubsumptionAndResolution(bool subsumptionResolution)
   : _subsumptionResolution(subsumptionResolution)
@@ -85,6 +85,25 @@ void ForwardSubsumptionAndResolution::attach(SaturationAlgorithm* salg)
 	  _salg->getIndexManager()->request(SIMPLIFYING_UNIT_CLAUSE_SUBST_TREE) );
   _fwIndex=static_cast<FwSubsSimplifyingLiteralIndex*>(
 	  _salg->getIndexManager()->request(FW_SUBSUMPTION_SUBST_TREE) );
+  if (fwsubsandres_instance != nullptr && fwsubsandres_instance != this) {
+    VAMPIRE_EXCEPTION;
+  }
+  fwsubsandres_instance = this;
+}
+
+ForwardSubsumptionAndResolution const* ForwardSubsumptionAndResolution::getInstance()
+{
+  return fwsubsandres_instance;
+}
+
+void ForwardSubsumptionAndResolution::printStats(std::ostream& out) const
+{
+  out << "\% Subsumption MLMatcher Statistics\n\% (numDecisions Frequency Successes)\n";
+  for (size_t n = 0; n < m_numDecisions_frequency.size(); ++n) {
+    if (m_numDecisions_frequency[n] > 0) {
+      out << "\% " << n << ' ' << m_numDecisions_frequency[n] << ' ' << m_numDecisions_successes[n] << '\n';
+    }
+  }
 }
 
 void ForwardSubsumptionAndResolution::detach()
@@ -395,6 +414,43 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
         m_logger->log(mcl, cl, isSubsumed);
       }
 
+      m_seq += 1;
+      m_seq_output += 1;
+      auto stats = MLMatcher::getStaticStats();
+      // env.beginOutput();
+      // // env.out() << "\% MLMatcher(" << mcl->number() << "," << cl->number() << ")\n";
+      // // env.out() << "\% mcl = " << mcl->toString() << "\n";
+      // // env.out() << "\%  cl = " << cl->toString() << "\n";
+      // env.out() << "\% Subsumption "
+      //           << "{ \"seq\": " << seq
+      //           << ", \"mcl\": " << mcl->number()
+      //           << ", \"cl\": " << cl->number()
+      //           << ", \"stats\": " << MLMatcher::getStaticStats()
+      //           << " }\n";
+      // env.endOutput();
+      if (stats.numDecisions >= 100) {
+        env.beginOutput();
+        env.out() << "\% Subsumption(" << mcl->number() << "," << cl->number() << ")\n";
+        env.out() << "\% mcl = " << mcl->toString() << "\n";
+        env.out() << "\%  cl = " << cl->toString() << "\n";
+        env.out() << "\% Subsumption "
+                  << "{ \"seq\": " << m_seq
+                  << ", \"mcl\": " << mcl->number()
+                  << ", \"cl\": " << cl->number()
+                  << ", \"stats\": " << MLMatcher::getStaticStats()
+                  << " }\n";
+        env.endOutput();
+      }
+      if (stats.numDecisions >= m_numDecisions_frequency.size()) {
+        size_t new_size = std::max(std::max(256ul, stats.numDecisions+1), m_numDecisions_frequency.size() * 2);
+        m_numDecisions_frequency.resize(new_size, 0);
+        m_numDecisions_successes.resize(new_size, 0);
+      }
+      m_numDecisions_frequency[stats.numDecisions] += 1;
+      if (stats.result) {
+        m_numDecisions_successes[stats.numDecisions] += 1;
+      }
+
 #if CHECK_SMT_SUBSUMPTION
         if (smtsubs.checkSubsumption(mcl, cl) != isSubsumed) {
           std::cerr << "\% ***WRONG RESULT OF SMT-SUBSUMPTION***    MULTI expecting " << isSubsumed << std::endl;
@@ -414,6 +470,13 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
   }
 
   tc_fs.stop();
+
+  // if (m_seq_output > 10000) {
+  //   m_seq_output = 0;
+  //   env.beginOutput();
+  //   printStats(env.out());
+  //   env.endOutput();
+  // }
 
   if(!_subsumptionResolution) {
     goto fin;

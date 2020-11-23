@@ -1,4 +1,3 @@
-
 /*
  * File Statistics.hpp.
  *
@@ -12,9 +11,9 @@
  *
  * In summary, you are allowed to use Vampire for non-commercial
  * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
+ * or use in competitions.
  * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
+ * licence, which we will make an effort to provide.
  */
 /**
  * @file Statistics.hpp
@@ -264,7 +263,7 @@ public:
    * @since 25.10.2012 Vienna
    * @author Ioan Dragan
    */
-  
+
   // Input
   /** number of input constraints */
   unsigned inputConstraints;
@@ -345,13 +344,13 @@ public:
   ScopedPtr<Assignment> satisfyingAssigment;
 
 #endif //GNUMP
-  
+
   /** termination reason */
   enum TerminationReason {
     /** refutation found */
     REFUTATION,
     /** SAT SATISFIABLE */
-    SAT_SATISFIABLE, 
+    SAT_SATISFIABLE,
     /** satisfiability detected (saturated set built) */
     SATISFIABLE,
     /** sat solver Unsatisfiable */
@@ -359,7 +358,7 @@ public:
     /** saturation terminated but an incomplete strategy was used */
     REFUTATION_NOT_FOUND,
     /** inappropriate strategy **/
-    INAPPROPRIATE, 
+    INAPPROPRIATE,
     /** unknown termination reason */
     UNKNOWN,
     /** time limit reached */
