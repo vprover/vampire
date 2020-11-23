@@ -9,7 +9,6 @@ Axioms
 tptp
 
 # ctags
-.ctags.d/
 tags
 
 # Callgrind?
