@@ -173,7 +173,7 @@ class AtMostOne
     /// Create new AtMostOne constraint over the given literals.
     /// The given vector should contain at least two literals,
     /// and the variables of the given literals should be pairwise distinct.
-    static AtMostOne* from_literals(vec<Lit> const& ls)
+    static AtMostOne* new_from_literals(vec<Lit> const& ls)
     {
       assert(ls.size() >= 2);  // otherwise this constraint is somewhat useless
       void* mem = xmalloc<char>(sizeof(AtMostOne) + sizeof(Lit)*(ls.size() - 1));

@@ -24,7 +24,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 using namespace SMTSubsumption::Minisat;
 
-#define TRACE_SOLVER 1
+#define TRACE_SOLVER 0
 #define DEBUG_STREAM_ENABLED TRACE_SOLVER
 #include "SMTSubsumption/cdebug.hpp"
 
@@ -111,13 +111,13 @@ void Solver::newClause(const vec<Lit>& ps_, bool learnt)
         ok = false;
     }
     else if (ps.size() == 1) {
-        cdebug << "NEW UNIT: " << ps[0];
+        CDEBUG("NEW UNIT: " << ps[0]);
         // NOTE: If enqueue takes place at root level, the assignment will be lost in incremental use (it doesn't seem to hurt much though).
         if (!enqueue(ps[0])) {
             ok = false;
-            cdebug << "\t=> ROOT CONFLICT";
+            CDEBUG("\t=> ROOT CONFLICT");
         } else {
-            cdebug << "\t=> OK";
+            CDEBUG("\t=> OK");
         }
     }
     else if (ps.size() == 2) {
@@ -185,7 +185,7 @@ void Solver::addConstraint_AtMostOne(const vec<Lit>& ps_)
     ps_.copyTo(ps);
 
     // Remove duplicates
-    sortUnique(ps);
+    sortUnique(ps);  // TODO: we can move this to precondition and convert this check into an assertion
 
     // Check if constraint is already violated:
     int num_true = 0;
@@ -207,8 +207,6 @@ void Solver::addConstraint_AtMostOne(const vec<Lit>& ps_)
       if (value(ps[i]) != l_False)
         ps[j++] = ps[i];
     }
-    // std::cerr << "shrinking by " << (i-j) << std::endl;
-    // ASS_EQ(i-j, 0);  // in our use case this should never happen! (TODO: is this true? also for SR/SD? does it hurt to keep this?); not true anymore since we now do theory propagation during clause addition
     ps.shrink(i - j);
 
     // 'ps' is now the (possibly) reduced vector of literals.
@@ -229,7 +227,7 @@ void Solver::addConstraint_AtMostOne(const vec<Lit>& ps_)
     }
     else {
       // Allocate and store constraint
-      AtMostOne* c = AtMostOne::from_literals(ps);
+      AtMostOne* c = AtMostOne::new_from_literals(ps);
       at_most_one_constraints.push(c);
       IF_MINISAT_STATS(stats.clauses_literals += c->size());  // TODO
 
@@ -569,7 +567,7 @@ void Solver::analyzeFinal(Clause* confl, bool skip_first)
 |________________________________________________________________________________________________@*/
 bool Solver::basicEnqueue(Lit p, GClause from)
 {
-    cdebug << "ENQUEUE: " << p << " (current value: " << value(p) << ")";
+    CDEBUG("ENQUEUE: " << p << " (current value: " << value(p) << ")");
     if (value(p) != l_Undef) {
         return (value(p) != l_False);
     } else {
@@ -601,7 +599,7 @@ bool Solver::enqueue(Lit p, GClause from)
 
 void Solver::theoryPropagate()
 {
-    cdebug << "PROPAGATE THEORY";
+    CDEBUG("PROPAGATE THEORY");
 
     assert(!subst_theory.empty());
     assert(qhead <= tqhead);
@@ -611,13 +609,13 @@ void Solver::theoryPropagate()
     {
         Lit q = trail[tqhead++];  // 'q' is enqueued fact to theory-propagate
 
-        cdebug << "PROPAGATE THEORY for q = " << q;
+        CDEBUG("PROPAGATE THEORY for q = " << q);
 
         if (q.isPositive())
         {
             bool enabled =
                 subst_theory.enable(var(q), decisionLevel(), [this, q](Lit propagated_lit, GClause reason) {
-                    cdebug << "tpropagated: " << propagated_lit;
+                    CDEBUG("tpropagated: " << propagated_lit);
                     bool no_conflict = basicEnqueue(propagated_lit, reason);
                     assert(no_conflict);
                     return true;
@@ -640,7 +638,7 @@ void Solver::theoryPropagate()
 |________________________________________________________________________________________________@*/
 Clause* Solver::propagate()
 {
-    cdebug << "PROPAGATE";
+    CDEBUG("PROPAGATE");
 
     assert(tqhead == trail.size());  // theory is always fully propagated before regular propagation
 
@@ -654,7 +652,7 @@ Clause* Solver::propagate()
         ASS_EQ(tqhead, trail.size());  // all theory stuff is propagated, now we turn to the watch lists
         Lit p = trail[qhead++]; // 'p' is enqueued fact to propagate.
 
-        cdebug << "PROPAGATE p = " << p;
+        CDEBUG("PROPAGATE p = " << p);
 
         // TODO:
         // note additional invariant:
@@ -669,7 +667,7 @@ Clause* Solver::propagate()
         GClause* j = ws.begin();
         GClause* end = ws.end();
         while (i != end) {
-            cdebug << "PROPAGATE WATCHER: " << *i;
+            CDEBUG("PROPAGATE WATCHER: " << *i);
             if (i->isLit()) {
                 if (!enqueue(i->lit(), GClause_new(p))) {
                     if (decisionLevel() == 0) {   // TODO: is that right? should we compare to root_level instead?  (probably not. If we're not at the root level, we stay "ok")

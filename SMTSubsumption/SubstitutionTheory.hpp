@@ -1,4 +1,3 @@
-#define DEBUG_STREAM_ENABLED 1
 /*
  * SubstitutionTheory.hpp
  * Copyright (C) 2020 Jakob Rath <git@jakobrath.eu>
@@ -13,9 +12,14 @@
 #include "Kernel/Term.hpp"
 #include "Lib/STL.hpp"
 #include "SMTSubsumption/minisat/SolverTypes.h"
-#include "SMTSubsumption/cdebug.hpp"
 
 #include <algorithm>
+
+#include "SMTSubsumption/cdebug.hpp"
+
+
+#define TRACK_CURRENT_SUBSTITUTION 0
+
 
 namespace SMTSubsumption {
 
@@ -108,6 +112,7 @@ class SubstitutionTheory
     /// Maps FOL variables to the list of substitution constraints for this variable
     vector_map<domain, vvector<std::pair<range, Minisat::Var>>> atoms_by_domain;
 
+#if TRACK_CURRENT_SUBSTITUTION
     // TODO: use this instead of two arrays for current_substitution
     struct SubstEntry {
       range value;
@@ -122,6 +127,7 @@ class SubstitutionTheory
     /// This means when backjumping, we do not have to change anything in current_substitution.
     /// Note that also in other implementations we would need a check whether the entry in current_substitution has been set or not.
     vector_map<domain, Level> current_substitution_level;
+#endif
 
   public:
     // empty substitution theory
@@ -146,19 +152,21 @@ class SubstitutionTheory
           ASS(p.second.isNonEmpty());  // we use empty TermLists to mean "unassigned" (TODO: not anymore)
         }
       }
-      cdebug << "max_d = " << max_d;
+      CDEBUG("max_d = " << max_d);
 
+#if TRACK_CURRENT_SUBSTITUTION
       TermList t_empty;
       t_empty.makeEmpty();
       current_substitution.resize(max_d+1, t_empty);
       // ASS(std::all_of(current_substitution.begin(), current_substitution.end(), [](range t) { return t.isEmpty(); }));
       current_substitution_level.resize(max_d+1, std::numeric_limits<Level>::max());
+#endif
 
       atoms_by_domain.resize(max_d+1);
       for (Minisat::Var var = 0; var < atoms.size(); ++var) {
         auto const& atom = atoms[var];
         for (auto const& p : atom.mapping()) {
-          cdebug << "b_" << var << ": " << TermList(p.first, false) << " -> " << p.second;
+          CDEBUG("b_" << var << ": " << TermList(p.first, false) << " -> " << p.second);
           atoms_by_domain[p.first].push_back({ p.second, var });
         }
       }
@@ -168,8 +176,10 @@ class SubstitutionTheory
     {
       atoms.clear();
       atoms_by_domain.clear();
+#if TRACK_CURRENT_SUBSTITUTION
       current_substitution.clear();
       current_substitution_level.clear();
+#endif
     }
 
     /// Call this when a SAT variable has been set to true
@@ -177,32 +187,34 @@ class SubstitutionTheory
     template < typename PropagateCallback >
     bool enable(Minisat::Var var, Level level, PropagateCallback propagate)
     {
-      cdebug << "SubstitutionTheory::enable: " << var << " at level " << level;
+      CDEBUG("SubstitutionTheory::enable: " << var << " at level " << level);
       // Since all our propositional variables have some theory meaning attached,
       // we can assert this.
       // Otherwise we should need whether the variable has some theory component
       // and only proceed if it does.
       ASS_L(var, atoms.size());
       SubstitutionAtom const& atom = atoms[var];
-      cdebug << "atom = " << atom;
+      CDEBUG("atom = " << atom);
 
       // Exhaustively propagate conflicting atoms
       for (auto p : atom.mapping()) {  // go through list of constraints (x -> t)
 
+#if TRACK_CURRENT_SUBSTITUTION
         if (current_substitution_level[p.first] > level) {
-          cdebug << "Extending current_substitution by " << TermList(p.first, false) << " -> " << p.second;
+          CDEBUG("Extending current_substitution by " << TermList(p.first, false) << " -> " << p.second);
           current_substitution[p.first] = p.second;
           current_substitution_level[p.first] = level;
         } else {
-          cdebug << "Already in current_substitution: " << TermList(p.first, false) << " -> " << current_substitution[p.first] << " from level " << current_substitution_level[p.first] << " (new value: " << p.second  << ")";
+          CDEBUG("Already in current_substitution: " << TermList(p.first, false) << " -> " << current_substitution[p.first] << " from level " << current_substitution_level[p.first] << " (new value: " << p.second  << ")");
           // Must be the same value due to exhaustive theory propagation
           ASS_EQ(current_substitution[p.first], p.second);
           // This also means that all theory consequences have been propagated previously,
           // so we can skip here.
           continue;
         }
+#endif
 
-        cdebug << "Propagating theory constraint " << TermList(p.first, false) << " -> " << p.second << "...";
+        CDEBUG("Propagating theory constraint " << TermList(p.first, false) << " -> " << p.second << "...");
 
         // p: (domain, range)  -- one particular mapping of the newly-enabled substitution
         //    (Vampire::Variable, TermList)
@@ -236,7 +248,7 @@ class SubstitutionTheory
         }
       }
 
-      cdebug << "enable done";
+      CDEBUG("enable done");
       return true;
     }  // enable(...)
 
@@ -244,13 +256,15 @@ class SubstitutionTheory
     void backjump(Level level)
     {
       // Reset current_substitution
-      cdebug << "BACKJUMP to level " << level;
+      CDEBUG("BACKJUMP to level " << level);
+#if TRACK_CURRENT_SUBSTITUTION
       for (size_t i = 0; i < current_substitution.size(); ++i) {
         if (current_substitution_level[i] > level) {
           current_substitution[i].makeEmpty();
           current_substitution_level[i] = std::numeric_limits<Level>::max();
         }
       }
+#endif
     }
 
     bool empty() const
