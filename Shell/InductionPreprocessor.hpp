@@ -77,7 +77,8 @@ ostream& operator<<(ostream& out, const RDescription& rdesc);
  * (i.e. the induction variables) of the function.
  */
 struct InductionTemplate {
-  bool postprocess();
+  bool checkUsefulness();
+  bool checkWellFoundedness();
   bool checkWellDefinedness();
 
   enum class VarType {
@@ -117,7 +118,7 @@ private:
   void processBody(TermList body, TermList header, vvector<Formula*> conditions, InductionTemplate& templ);
   void processCase(const unsigned recFun, const bool isPred, TermList body, vvector<TermList>& recursiveCalls);
 
-  vmap<unsigned, InductionTemplate> foundFunctionDefinitions;
+  vmap<unsigned, vvector<pair<InductionTemplate, vvector<pair<Literal*,bool>>>>> foundFunctionDefinitions;
   vmap<unsigned, InductionTemplate> foundPredicateDefinitions;
 };
 

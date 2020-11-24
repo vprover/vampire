@@ -60,22 +60,22 @@ bool isHeader(TermList t)
     return false;
   }
 
-  if (t.term()->isSpecial()) {
-    return false;
-  }
-
-  if (isTermAlgebraCons(t)) {
+  if (t.term()->isSpecial() || isTermAlgebraCons(t)) {
     return false;
   }
 
   Term::Iterator it(t.term());
+  bool hasTermArg = false;
   while (it.hasNext()) {
     auto arg = it.next();
+    if (arg.isTerm()) {
+      hasTermArg = true;
+    }
     if (!isConstructorTerm(arg)) {
       return false;
     }
   }
-  return true;
+  return hasTermArg;
 }
 
 TermList TermListReplacement::transformSubterm(TermList trm)
@@ -208,7 +208,7 @@ bool InductionTemplate::checkWellDefinedness()
     unsigned j = 0;
     while (it.hasNext()) {
       auto arg = it.next();
-      if (arg.isTerm()) {
+      if (_inductionVariables[j] && arg.isTerm()) {
         auto tempLists = availableTermsLists;
         for (auto& availableTerms : tempLists) {
           TermAlgebra::excludeTermFromAvailables(availableTerms[j], arg, var);
@@ -222,45 +222,48 @@ bool InductionTemplate::checkWellDefinedness()
   }
 
   for (const auto& availableTerms : availableTermsLists) {
-    unsigned i = 0;
+    bool valid = true;
+    vvector<TermList> validArgs;
     for (const auto& v : availableTerms) {
-      if (!v.empty() && v[0].isTerm()) {
-        //TODO(mhajdu): output a warning here as well
-        if(env.options->showInduction()){
-          env.beginOutput();
-          env.out() << "[Induction] could not save induction template for function "
-                    << _rDescriptions.begin()->_step.term()->functionName()
-                    << " because it is not defined on value " << v[0]
-                    << " in argument position " << i << endl;
-          env.endOutput();
-        }
-        return false;
+      if (v.empty()) {
+        valid = false;
+        break;
       }
-      i++;
+      validArgs.push_back(*v.begin());
+    }
+    if (valid) {
+      if (env.options->showInduction()) {
+        env.beginOutput();
+        auto t = _rDescriptions.begin()->_step.term();
+        env.out() << "[Induction] could not determine well-definedness for "
+                  << (t->isLiteral() ? "predicate " : "function ")
+                  << (t->isLiteral() ? static_cast<Literal*>(t)->predicateName() : t->functionName())
+                  << " with template " << *this << " because it is not defined on argument combination ";
+        for (const auto& v : validArgs) {
+          env.out() << v << ", ";
+        }
+        env.out() << endl;
+        env.endOutput();
+      }
+      return false;
     }
   }
   // TODO(mhajdu): check conditions too
   return true;
 }
 
-bool InductionTemplate::postprocess()
+
+bool InductionTemplate::checkUsefulness()
 {
-  CALL("InductionTemplate::postprocess");
+  CALL("InductionTemplate::checkUsefulness");
 
-  if (_rDescriptions.empty()) {
-    return false;
-  }
-  _rDescriptions.shrink_to_fit();
-
-  // fill in bit vector of induction variables
+  // discard whenever:
+  // (1) no r-descriptions or
+  // (2) no terms in any argument positions or
+  // (3) no recursive calls
   bool discard = true;
-  auto arity = _rDescriptions[0]._step.term()->arity();
-  _inductionVariables = vvector<bool>(arity, false);
-  vset<unsigned> candidatePositions;
-  vvector<vvector<VarType>> relations;
   for (auto& rdesc : _rDescriptions) {
-    auto step = rdesc._step.term();
-    Term::Iterator argIt(step);
+    Term::Iterator argIt(rdesc._step.term());
     if (!rdesc._recursiveCalls.empty()) {
       discard = false;
     }
@@ -270,10 +273,37 @@ bool InductionTemplate::postprocess()
         discard = false;
       }
     }
+  }
+  if (discard) {
+    auto t = _rDescriptions.begin()->_step.term();
+    env.beginOutput();
+    env.out() << "% Warning: template for "
+              << (t->isLiteral() ? "predicate " : "function ")
+              << (t->isLiteral() ? static_cast<Literal*>(t)->predicateName() : t->functionName())
+              << " is discarded because it is not useful" << endl;
+    env.endOutput();
+  }
+  return !discard;
+}
+
+bool InductionTemplate::checkWellFoundedness()
+{
+  CALL("InductionTemplate::checkWellFoundedness");
+
+  if (_rDescriptions.empty()) {
+    return true;
+  }
+
+  // fill in bit vector of induction variables
+  auto arity = _rDescriptions[0]._step.term()->arity();
+  _inductionVariables = vvector<bool>(arity, false);
+  vset<unsigned> candidatePositions;
+  vvector<vvector<VarType>> relations;
+  for (auto& rdesc : _rDescriptions) {
     for (auto& r : rdesc._recursiveCalls) {
       vvector<VarType> relation(arity, VarType::OTHER);
       Term::Iterator argIt1(r.term());
-      Term::Iterator argIt2(step);
+      Term::Iterator argIt2(rdesc._step.term());
       unsigned i = 0;
       while (argIt1.hasNext()) {
         auto t1 = argIt1.next();
@@ -292,7 +322,8 @@ bool InductionTemplate::postprocess()
       relations.push_back(relation);
     }
   }
-  return !discard && findVarOrder(relations, candidatePositions, _order);
+  _order.clear();
+  return findVarOrder(relations, candidatePositions, _order);
 }
 
 ostream& operator<<(ostream& out, const InductionTemplate& templ)
@@ -333,27 +364,80 @@ void InductionPreprocessor::preprocess(Problem& prb)
 {
   preprocess(prb.units());
   for (auto& kv : foundFunctionDefinitions) {
-    if (kv.second.postprocess() && kv.second.checkWellDefinedness()) {
-      if(env.options->showInduction()){
-        env.beginOutput();
-        env.out() << "[Induction] recursive function definition has been discovered: "
-                  << env.signature->functionName(kv.first) << endl
-                  << ", with induction template: " << kv.second << endl;
-        env.endOutput();
+    if (env.signature->hasInductionTemplate(kv.first, false)) {
+      env.beginOutput();
+      env.out() << "% Warning: function definition already found for "
+                << env.signature->functionName(kv.first) << endl;
+      env.endOutput();
+      continue;
+    }
+    bool found = false;
+    for (auto& kv2 : kv.second) {
+      if (kv2.first.checkWellFoundedness()
+          && kv2.first.checkWellDefinedness()
+          && kv2.first.checkUsefulness()) {
+        if (found) {
+          env.beginOutput();
+          env.out() << "% Warning: at least two function definition were found for "
+                    << env.signature->functionName(kv.first) << endl;
+          env.endOutput();
+          break;
+        }
+        if(env.options->showInduction()){
+          env.beginOutput();
+          env.out() << "[Induction] recursive function definition has been discovered: "
+                    << env.signature->functionName(kv.first) << endl
+                    << ", with induction template: " << kv2.first << endl;
+          env.endOutput();
+        }
+        env.signature->addInductionTemplate(kv.first, false, std::move(kv2.first));
+        for (auto& kv3 : kv2.second) {
+          kv3.first->makeFunctionDefinition();
+          // cout << *kv3.first << " " << kv3.first->isFunctionOrientedReversed() << " " << kv3.second << endl;
+          // if (kv3.first->isFunctionOrientedReversed() != kv3.second) {
+          //   kv3.first->reverseFunctionOrientation();
+          // }
+          // reset value
+          kv3.first->isFunctionOrientedReversed();
+          if (kv3.second) {
+            kv3.first->reverseFunctionOrientation();
+          }
+        }
+        found = true;
       }
-      env.signature->addInductionTemplate(kv.first, false, std::move(kv.second));
+    }
+    if (!found) {
+      env.beginOutput();
+      env.out() << "% Warning: could not determine function definition "
+                << env.signature->functionName(kv.first) << endl;
+      env.endOutput();
     }
   }
   for (auto& kv : foundPredicateDefinitions) {
-    if (kv.second.postprocess() && kv.second.checkWellDefinedness()) {
+    if (env.signature->hasInductionTemplate(kv.first, true)) {
+      env.beginOutput();
+      env.out() << "% Warning: predicate definition already found for "
+                << env.signature->predicateName(kv.first) << endl;
+      env.endOutput();
+      continue;
+    }
+    auto templ = kv.second;
+    if (templ.checkWellFoundedness()
+        && templ.checkWellDefinedness()
+        && templ.checkUsefulness()) {
       if(env.options->showInduction()){
         env.beginOutput();
         env.out() << "[Induction] recursive predicate definition has been discovered: "
                   << env.signature->predicateName(kv.first) << endl
-                  << ", with induction template: " << kv.second << endl;
+                  << ", with induction template: " << templ << endl;
         env.endOutput();
       }
-      env.signature->addInductionTemplate(kv.first, true, std::move(kv.second));
+      env.signature->addInductionTemplate(kv.first, true, std::move(templ));
+    } else {
+      env.beginOutput();
+      env.out() << "% Warning: could not determine predicate definition "
+                << env.signature->predicateName(kv.first) << endl;
+      env.endOutput();
     }
   }
 }
@@ -396,7 +480,9 @@ void InductionPreprocessor::parseRecursiveDefinition(Literal* lit)
   InductionTemplate templ;
   TermList term(lhterm);
   processBody(*rhs, term, vvector<Formula*>(), templ);
-  if (!templ.postprocess() || !templ.checkWellDefinedness()) {
+  if (!templ.checkWellFoundedness()
+      || !templ.checkWellDefinedness()
+      || !templ.checkUsefulness()) {
     return;
   }
 
@@ -424,7 +510,7 @@ void InductionPreprocessor::findPossibleRecursiveDefinitions(Formula* f, vvector
           // we have to check that the found relations
           // are decreasing, e.g. f(c(x),c(y))=f(x,y)
           // is checked both ways but only one is decreasing
-          return templ.postprocess();
+          return templ.checkWellFoundedness();
         };
         InductionTemplate tlhs;
         auto succlhs = processFn(lhs, rhs, tlhs);
@@ -434,41 +520,72 @@ void InductionPreprocessor::findPossibleRecursiveDefinitions(Formula* f, vvector
           && lhs.term()->functor() == rhs.term()->functor()
           && lhs.term()->isFormula() == rhs.term()->isFormula())
         {
-          // TODO(mhajdu): this can happen and only one can be correct,
-          // deal with it by creating two sets of templates
-          ASSERTION_VIOLATION;
-        } else {
-          auto mergeDefs = [this](Term* t, const InductionTemplate& templ) {
-            auto& definitions = foundFunctionDefinitions;
-            if (t->isFormula()) {
-              definitions = foundPredicateDefinitions;
+          auto it = foundFunctionDefinitions.find(lhs.term()->functor());
+          if (it == foundFunctionDefinitions.end()) {
+            vvector<pair<InductionTemplate, vvector<pair<Literal*,bool>>>> v;
+            vvector<pair<Literal*,bool>> v1;
+            v1.push_back(make_pair(lit, false));
+            vvector<pair<Literal*,bool>> v2;
+            v2.push_back(make_pair(lit, true));
+            v.push_back(make_pair(tlhs, v1));
+            v.push_back(make_pair(trhs, v2));
+            it = foundFunctionDefinitions.insert(make_pair(lhs.term()->functor(), v)).first;
+          } else {
+            vvector<pair<InductionTemplate, vvector<pair<Literal*,bool>>>> newv;
+            for (auto v : it->second) {
+              v.first._rDescriptions.insert(
+                v.first._rDescriptions.end(),
+                tlhs._rDescriptions.begin(),
+                tlhs._rDescriptions.end());
+              v.second.push_back(make_pair(lit, false));
+              newv.push_back(v);
             }
-            auto it = definitions.find(t->functor());
-            if (it == definitions.end()) {
-              definitions.insert(make_pair(t->functor(), templ));
+            for (auto v : it->second) {
+              v.first._rDescriptions.insert(
+                v.first._rDescriptions.end(),
+                trhs._rDescriptions.begin(),
+                trhs._rDescriptions.end());
+              v.second.push_back(make_pair(lit, true));
+              newv.push_back(v);
+            }
+            it->second = newv;
+          }
+        } else {
+          auto mergeDefs = [this](Term* t, Literal* lit, bool rhsHeader, const InductionTemplate& templ) {
+            ASS(!t->isFormula());
+            auto it = foundFunctionDefinitions.find(t->functor());
+            if (it == foundFunctionDefinitions.end()) {
+              vvector<pair<InductionTemplate, vvector<pair<Literal*,bool>>>> v;
+              v.push_back(make_pair(templ, vvector<pair<Literal*,bool>>()));
+              it = foundFunctionDefinitions.insert(make_pair(t->functor(), v)).first;
             } else {
-              it->second._rDescriptions.insert(
-                it->second._rDescriptions.end(),
-                templ._rDescriptions.begin(),
-                templ._rDescriptions.end());
+              for (auto& v : it->second) {
+                v.first._rDescriptions.insert(
+                  v.first._rDescriptions.end(),
+                  templ._rDescriptions.begin(),
+                  templ._rDescriptions.end());
+              }
+            }
+            for (auto& v : it->second) {
+              v.second.push_back(make_pair(lit, rhsHeader));
             }
           };
           if (succlhs) {
-            mergeDefs(lhs.term(), tlhs);
+            mergeDefs(lhs.term(), lit, false, tlhs);
           }
           if (succrhs) {
-            mergeDefs(rhs.term(), trhs);
+            mergeDefs(rhs.term(), lit, true, trhs);
           }
-          if(env.options->showInduction()){
-            env.beginOutput();
-            if (succlhs) {
-              env.out() << "[Induction] Equality " << lhs << "=" << rhs << " is probably a function definition axiom" << endl;
-            }
-            if (succrhs) {
-              env.out() << "[Induction] Equality " << rhs << "=" << lhs << " is probably a function definition axiom" << endl;
-            }
-            env.endOutput();
+        }
+        if(env.options->showInduction()){
+          env.beginOutput();
+          if (succlhs) {
+            env.out() << "[Induction] Equality " << lhs << "=" << rhs << " is probably a function definition axiom" << endl;
           }
+          if (succrhs) {
+            env.out() << "[Induction] Equality " << rhs << "=" << lhs << " is probably a function definition axiom" << endl;
+          }
+          env.endOutput();
         }
       } else {
         if (isHeader(TermList(lit))) {
@@ -521,7 +638,7 @@ void InductionPreprocessor::findPossibleRecursiveDefinitions(Formula* f, vvector
         // we have to check that the found relations
         // are decreasing, e.g. p(c(x),c(y))<=>p(x,y)
         // is checked both ways but only one is decreasing
-        return templ.postprocess();
+        return templ.checkWellFoundedness();
       };
       InductionTemplate tlhs;
       auto succlhs = processFn(lhs, rhs, tlhs);
@@ -551,16 +668,16 @@ void InductionPreprocessor::findPossibleRecursiveDefinitions(Formula* f, vvector
         if (succrhs) {
           mergeDefs(rhs->literal(), trhs);
         }
-        if(env.options->showInduction()){
-          env.beginOutput();
-          if (succlhs) {
-            env.out() << "[Induction] Equivalence " << lhs << "<=>" << rhs << " is probably a predicate definition axiom" << endl;
-          }
-          if (succrhs) {
-            env.out() << "[Induction] Equivalence " << rhs << "<=>" << lhs << " is probably a predicate definition axiom" << endl;
-          }
-          env.endOutput();
+      }
+      if(env.options->showInduction()){
+        env.beginOutput();
+        if (succlhs) {
+          env.out() << "[Induction] Equivalence " << lhs << "<=>" << rhs << " is probably a predicate definition axiom" << endl;
         }
+        if (succrhs) {
+          env.out() << "[Induction] Equivalence " << rhs << "<=>" << lhs << " is probably a predicate definition axiom" << endl;
+        }
+        env.endOutput();
       }
       break;
     }
@@ -588,13 +705,15 @@ void InductionPreprocessor::processFormulaBody(Formula* body, Literal* header, v
   switch(body->connective()) {
     case LITERAL: {
       auto lit = body->literal();
-      ASS(!lit->isEquality());
-      vvector<TermList> recCalls;
-      processCase(header->functor(), header->isFormula(), TermList(lit), recCalls);
-      templ._rDescriptions.emplace_back(recCalls, TermList(header), conditions);
+      if (!lit->isEquality()) {
+        vvector<TermList> recCalls;
+        processCase(header->functor(), header->isFormula(), TermList(lit), recCalls);
+        templ._rDescriptions.emplace_back(recCalls, TermList(header), conditions);
+      }
       break;
     }
-    case AND: {
+    case AND:
+    case OR: {
       FormulaList::Iterator it(body->args());
       while (it.hasNext()) {
         auto arg = it.next();
@@ -607,11 +726,16 @@ void InductionPreprocessor::processFormulaBody(Formula* body, Literal* header, v
       templ._rDescriptions.emplace_back(TermList(header), conditions);
       break;
     }
-    case OR:
+    case NOT: {
+      processFormulaBody(body->uarg(), header, conditions, templ);
+      break;
+    }
     case IMP:
-    case IFF:
+    case IFF: {
+      processFormulaBody(body->left(), header, conditions, templ);
+      break;
+    }
     case XOR:
-    case NOT:
     case FORALL:
     case EXISTS:
     case BOOL_TERM:
