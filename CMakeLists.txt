@@ -725,7 +725,6 @@ set(UNIT_TESTS
 )
 source_group(unit_tests FILES ${UNIT_TESTS})
 
-# also include forwards.hpp?
 set(VAMPIRE_SOURCES 
     ${VAMPIRE_DEBUG_SOURCES}
     ${VAMPIRE_LIB_SOURCES}
