@@ -1,0 +1,30 @@
+The authors, designers, and main contributors to Vampire are listed below.
+Vampire's copyright is held by these individuals and the affiliated
+institutions at the time of their contributions (note that some authors have
+had more than one affiliated institution).  See the file LICENCEfor details on
+the copyright and licensing of Vampire.
+
+The developers and authors of Vampire are as below. This list is usually reflect
+in the online page https://vprover.github.io/team.html:
+
+Current:
+  Ahmed Bhayat, University of Manchester
+  Bernhard Gleiss, TU Wein
+  Petra Hozzová, TU Wein
+  Laura Kovacs, Chalmers, TU Wein
+  Jakob Rath, TU Wein
+  Michael Rawson, University of Manchester
+  Giles Reger, University of Manchester
+  Martin Riener, University of Manchester, TU Wein
+  Martin Suda, University of Manchester, TU Wein, CTU/CIIRC
+  Johannes Schoisswohl, TU Wein, University of Manchester
+  Andrei Voronkov, University of Manchester, EasyChair
+
+Alumni:
+  Ioan Dragan, TU Wein
+  Krystof Hoder, University of Manchester
+  Evgeny Kotelnikov, Chalmers
+  Bernhard Kragl, TU Wein
+  Simon Robillard, Chalmers
+
+Other contributors to Vampire are listed in the THANKS file.
