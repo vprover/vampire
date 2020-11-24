@@ -67,7 +67,6 @@
 #include "Shell/Property.hpp"
 #include "Saturation/ProvingHelper.hpp"
 #include "Shell/Preprocess.hpp"
-#include "Shell/Refutation.hpp"
 #include "Shell/TheoryFinder.hpp"
 #include "Shell/TPTPPrinter.hpp"
 #include "Parse/TPTP.hpp"

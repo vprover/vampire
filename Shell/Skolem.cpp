@@ -31,7 +31,6 @@
 
 #include "Options.hpp"
 #include "Rectify.hpp"
-// #include "Refutation.hpp"
 #include "Skolem.hpp"
 #include "VarManager.hpp"
 

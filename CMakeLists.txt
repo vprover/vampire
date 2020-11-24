@@ -533,7 +533,6 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/Preprocess.cpp
     Shell/Property.cpp
     Shell/Rectify.cpp
-    #Shell/Refutation.cpp
     Shell/Skolem.cpp
     Shell/SimplifyFalseTrue.cpp
     Shell/SineUtils.cpp
@@ -597,7 +596,6 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/Preprocess.hpp
     Shell/Property.hpp
     Shell/Rectify.hpp
-    #Shell/Refutation.hpp
     Shell/Skolem.hpp
     Shell/SimplifyFalseTrue.hpp
     Shell/SineUtils.hpp
