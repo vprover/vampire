@@ -746,11 +746,10 @@ set(VAMPIRE_SOURCES
     ${VAMPIRE_SMTCOMP_SOURCES}
     ${VAMPIRE_MINISAT_SOURCES}
     ${VAMPIRE_CASC_SOURCES}
-    ${VAMPIRE_TESTING_SOURCES}
     # Test/CheckedSatSolver.cpp
     # Test/CheckedSatSolver.hpp
+    Forwards.hpp
     Global.cpp
-    vampire.cpp
     "${CMAKE_CURRENT_BINARY_DIR}/version.cpp"
     )
 
@@ -813,29 +812,27 @@ endif()
 # build objects
 ################################################################
 add_library(obj OBJECT ${VAMPIRE_SOURCES})
+add_library(test_obj OBJECT ${VAMPIRE_TESTING_SOURCES})
 
 ################################################################
 # UNIT TESTING 
 ################################################################
 
 include(CTest)
-# the base library all unit tests depend on. Helps to avoid unnecessary re-compilations
-add_library(
-  unit_test_base
-  STATIC
-  $<FILTER:$<TARGET_OBJECTS:obj>,EXCLUDE,vampire\.cpp\.o>
-)
-
 foreach(test_file ${UNIT_TESTS})
   get_filename_component(test_name ${test_file} NAME_WE)
   string(REGEX REPLACE "^t" "" test_name ${test_name})
 
   # compiling the test case executable
-  add_executable(${test_name} ${test_file})
-  target_link_libraries(${test_name} unit_test_base)
-  target_compile_definitions(${test_name} PRIVATE CTEST=1)
+  add_executable(
+    test-${test_name}
+    ${test_file}
+    $<TARGET_OBJECTS:obj>
+    $<TARGET_OBJECTS:test_obj>
+  )
+  target_compile_definitions(test-${test_name} PRIVATE CTEST=1)
   set(test_bin_dir ${CMAKE_BINARY_DIR}/bin/unit-tests)
-  set_target_properties(${test_name} PROPERTIES
+  set_target_properties(test-${test_name} PROPERTIES
       OUTPUT_NAME ${test_name}
       RUNTIME_OUTPUT_DIRECTORY ${test_bin_dir})   
 
@@ -844,9 +841,7 @@ foreach(test_file ${UNIT_TESTS})
   set_tests_properties(${test_name}
         PROPERTIES
         TIMEOUT 20)
-
 endforeach()
-
 
 #################################################################
 # automated generation of Vampire revision information from git #
@@ -911,7 +906,7 @@ message(STATUS "Setting binary name to '${VAMPIRE_BINARY}'")
 ################################################################
 # epilogue
 ################################################################
-add_executable(vampire $<TARGET_OBJECTS:obj>)
+add_executable(vampire vampire.cpp $<TARGET_OBJECTS:obj>)
 set_target_properties(vampire PROPERTIES
   OUTPUT_NAME ${VAMPIRE_BINARY}
   RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
