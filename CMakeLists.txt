@@ -119,7 +119,6 @@ set(VAMPIRE_LIB_SOURCES
     Lib/MemoryLeak.cpp
     Lib/MultiCounter.cpp
     Lib/NameArray.cpp
-#    Lib/OptionsReader.cpp
     Lib/Random.cpp
     Lib/StringUtils.cpp
     Lib/System.cpp
@@ -167,7 +166,6 @@ set(VAMPIRE_LIB_SOURCES
     Lib/MultiCounter.hpp
     Lib/NameArray.hpp
     Lib/Numbering.hpp
-#    Lib/OptionsReader.hpp
     Lib/PairUtils.hpp
     Lib/Portability.hpp
     Lib/Random.hpp
