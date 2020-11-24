@@ -34,7 +34,6 @@
 
 #if VDEBUG
 #include <iostream>
-#include "Test/Output.hpp"
 #endif
 
 #define MLMATCHERSD_DEBUG_OUTPUT false

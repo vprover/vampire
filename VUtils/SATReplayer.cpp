@@ -27,8 +27,6 @@
 
 #include "SAT/TWLSolver.hpp"
 
-#include "Test/RecordingSatSolver.hpp"
-
 #include "SATReplayer.hpp"
 
 namespace VUtils

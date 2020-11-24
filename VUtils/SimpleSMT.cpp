@@ -55,8 +55,6 @@
 #include "Shell/Statistics.hpp"
 #include "Shell/UIHelper.hpp"
 
-#include "Test/CheckedSatSolver.hpp"
-
 #include "PreprocessingEvaluator.hpp"
 
 using namespace VUtils;
@@ -71,7 +69,6 @@ SimpleSMT::SimpleSMT()
   CALL("SimpleSMT::SimpleSMT");
 
   Shell::Options opt;
-//  _solver = new Test::CheckedSatSolver(new MinimizingSolver(new TWLSolver(opt, false)));
 //  _solver = new MinimizingSolver(new TWLSolver(opt, false));
   _solver = new TWLSolver(opt, false);
   _dp = new ShortConflictMetaDP(new DP::SimpleCongruenceClosure(), _map, *_solver);

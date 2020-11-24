@@ -432,13 +432,7 @@ VFMB_OBJ = FMB/ClauseFlattening.o\
            FMB/FiniteModelBuilder.o
 
 # testing procedures
-VT_OBJ = Test/CheckedSatSolver.o\
-         Test/CompitOutput.o\
-         Test/Compit2Output.o\
-         Test/Output.o\
-         Test/UnitTesting.o
-#         Test/TestUtils.o\         
- #Test/CheckedFwSimplifier.o\
+VT_OBJ = Test/UnitTesting.o
 
 VUT_OBJ = $(patsubst %.cpp,%.o,$(wildcard UnitTests/*.cpp))
 
@@ -524,7 +518,7 @@ OTHER_CL_DEP = Indexing/FormulaIndex.o\
 VAMP_DIRS := Api Debug DP Lib Lib/Sys Kernel FMB Indexing Inferences InstGen Shell CASC SAT Saturation Test UnitTests VUtils Parse Minisat Minisat/core Minisat/mtl Minisat/simp Minisat/utils Kernel/Rebalancing
 
 VAMP_BASIC := $(MINISAT_OBJ) $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(BP_VD_OBJ) $(BP_VL_OBJ) $(BP_VLS_OBJ) $(BP_VSOL_OBJ) $(BP_VT_OBJ) $(BP_MPS_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VIG_OBJ) $(VSAT_OBJ) $(DP_OBJ) $(VST_OBJ) $(VS_OBJ) $(PARSE_OBJ) $(VFMB_OBJ)
-VSAT_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VSAT_OBJ) Test/CheckedSatSolver.o $(LIB_DEP)
+VSAT_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VSAT_OBJ) $(LIB_DEP)
 
 VAMPIRE_DEP := $(VAMP_BASIC) $(CASC_OBJ) $(TKV_BASIC) Global.o vampire.o
 VUTIL_DEP = $(VAMP_BASIC) $(CASC_OBJ) $(VUTIL_OBJ) Global.o vutil.o
