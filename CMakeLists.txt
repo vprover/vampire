@@ -613,20 +613,21 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/TPTPPrinter.hpp
     Shell/UIHelper.hpp
     Shell/VarManager.hpp
+    Shell/Lexer.hpp
+    Shell/Preprocess.hpp
+    Shell/SubexpressionIterator.cpp
+    Shell/SubexpressionIterator.hpp
+    # Shell/version.cpp
+    # TODO: GNUMP build depends on these, remove with GNUMP
     #Shell/ConstantRemover.hpp
     #Shell/ConstraintReaderBack.hpp
     #Shell/EqualityVariableRemover.hpp
     #Shell/EquivalentVariableRemover.hpp
     #Shell/HalfBoundingRemover.hpp
-    Shell/Lexer.hpp
     #Shell/PARSER_TKV.hpp
-    Shell/Preprocess.hpp
     #Shell/SMTLEX.hpp
     #Shell/SMTPAR.hpp
     #Shell/SubsumptionRemover.hpp
-    Shell/SubexpressionIterator.cpp
-    Shell/SubexpressionIterator.hpp
-    # Shell/version.cpp
     )
 source_group(shell_source_files FILES ${VAMPIRE_SHELL_SOURCES})
 
