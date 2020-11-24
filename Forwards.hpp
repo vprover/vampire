@@ -272,7 +272,6 @@ class LiteralIndexingStructure;
 class TermIndex;
 class TermIndexingStructure;
 class ClauseSubsumptionIndex;
-class FormulaIndex;
 
 class TermSharing;
 
