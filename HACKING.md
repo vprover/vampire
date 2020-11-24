@@ -22,6 +22,8 @@ Many of us use a navigation tool like `ctags` or an IDE to get about.
 In a pinch, `grep PAT $(git ls-files)` works OK too.
 * `CASC/` implements special routines for [CASC](http://www.tptp.org/CASC/)
 * `Debug/` provides debugging utilities like assertions and tracebacks
+* `Test/` contains various utilities for unit testing, as well as the main functions to integrate `UnitTests/` with `ctest`.
+* `UnitTests/` contains one testing unit per file. See the section on testing for details.
 * TODO something about each directory please (even if just "unused")
 
 ### Vampire idioms and quirks
@@ -73,7 +75,76 @@ E.g. details of build configuration, linking, Spider?
 
 ## Testing with CTest
 Vampire now has some units tests which can run with CTest.
-TODO @Joe can you write something here?
+
+### Running tests
+tl;dr: 
+```
+mkdir cmake-build
+cd cmake-build 
+cmake ..
+make 
+ctest --output-on-failure
+```
+
+Unit test binaries are automatically built when building with cmake. They can be run by calling `ctest` in the build directory. 
+
+Options you will probably find useful are the following:
+* `--output-on-failure`
+* `--rerun-failed`
+* `-R <regex>` run only tests with names matching `<regex>`
+* `-E <regex>` do not run tests with names matching `<regex>`
+
+### Creating new unit tests
+tl;dr: 
+```
+# choose a name
+MY_TEST_NAME=...
+
+# create test file
+cp UnitTests/tSyntaxSugar.cpp UnitTests/t${MY_TEST_NAME}.cpp
+sed -e "s/UNIT_ID SyntaxSugar/UNIT_ID $MY_TEST_NAME/" \
+    -i '' UnitTests/t${MY_TEST_NAME}.cpp
+
+# alter CMakeLists.txt
+sed -e "{/tSyntaxSugar.cpp/p;s/tSyntaxSugar.cpp/t${MY_TEST_NAME}.cpp/;}" \
+    -i '' CMakeLists.txt
+
+# write the unit test
+vim UnitTests/t${MY_TEST_NAME}.cpp
+```
+
+The unit tests are located in the directory `UnitTests/`. The tests are expected to be `cpp` files, and are prefixed with a `t` (e.g.: `UnitTests/tSyntaxSugar.cpp`). Each new test file must be added to the source list `UNIT_TEST` in `CMakeLists.txt`.
+
+A test file must contain the following statements to initalize unit testing.
+```
+#define UNIT_ID <name> // required for legacy compability with our executable vtest
+UT_CREATE;             // initializes the unit test, creating a main as an entry point for ctest
+```
+
+After this test functions can be defined:
+```
+TEST_FUN(<test_name>) {
+  /* testing code goes here */
+}
+```
+
+Every test function will be run as its own process. It is considered successful if the process exits with code `0`, or the test function returns void, and considered a failure when the process throws an exception, violates an assertion, or exits with code `-1`.
+
+
+Consider the following guide-lines for writing unit tests:
+* what every individual test case does should be visible at first sight
+* keep them short and concise
+* don't test multiple things in one test
+* don't rely on stdout printing of your unit tests. their success is meant to be machine checked.
+* for that use and extend the test utilities mentioned in the next section.
+
+### Test utilities
+
+Testing utilities can be found in `Test/`. The most notable are currently (all not yet merged):
+- `Test/TestUtils.hpp`, containing utilites like checking equality of terms, literals and clauses modulo AC
+- `Test/SyntaxSugar.hpp`, containing utilities to create terms, literals and clauses in a nicely read and writable way
+- `Test/GenerationTester.hpp`, framework for writing tests for `SimplifyingGeneratingInference`s and `GeneratingInferenceEngine`s. An example for these tests is given in `UnitTests/tEqalityResolution.cpp`. Pitfully we do not have unit-test for all our old inference rules, as these were not written with unit testing in mind, and are tightly bound to the `Saturation/SaturationAlgorithm.hpp` framework, which will hopefully be resolved by refactoring in the future.
+- `Test/SimplificationTester.hpp`, framework for testing `SimplifyingInferenceEngine`s. An example for these tests if given by `UnitTests/tGaussianElimination.cpp`
 
 ## Continuous Integration
 The Vampire repository is currently setup with GitHub Actions to build `master` every day at `00:00` UTC, or to build a branch when a PR is created or updated.
@@ -158,3 +229,4 @@ TODO what's a reasonable set of problems to run Vampire on to check for introduc
 ---
 
 Happy hacking! -- the Vampire team.
+
