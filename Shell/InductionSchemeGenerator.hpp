@@ -35,6 +35,8 @@ namespace Shell {
 using namespace Kernel;
 using namespace Lib;
 
+bool isSkolem(TermList t);
+
 /**
  * Replaces a subset of occurrences for given TermLists
  */
@@ -159,10 +161,13 @@ struct InductionSchemeGenerator {
   DHMap<Literal*, DHMap<TermList, unsigned>*> _currOccMaps;
 
 private:
-  void generate(Clause* premise, Literal* lit, vvector<pair<InductionScheme, DHMap<Literal*, Clause*>*>>& schemes);
-  void process(TermList curr, bool active,
+  bool generate(Clause* premise, Literal* lit,
+    vvector<pair<InductionScheme, DHMap<Literal*, Clause*>*>>& schemes,
+    bool returnOnMatch);
+  bool process(TermList curr, bool active,
     Stack<bool>& actStack, Clause* premise, Literal* lit,
-    vvector<pair<InductionScheme, DHMap<Literal*, Clause*>*>>& schemes);
+    vvector<pair<InductionScheme, DHMap<Literal*, Clause*>*>>& schemes,
+    bool returnOnMatch);
 };
 
 } // Shell

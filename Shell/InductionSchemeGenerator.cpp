@@ -1,6 +1,7 @@
 #include "InductionSchemeGenerator.hpp"
 
 #include "Kernel/Formula.hpp"
+#include "Kernel/Matcher.hpp"
 #include "Kernel/Problem.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
@@ -494,16 +495,19 @@ InductionSchemeGenerator::~InductionSchemeGenerator()
 
 void InductionSchemeGenerator::generatePrimary(Clause* premise, Literal* lit)
 {
-  generate(premise, lit, _primarySchemes);
+  if (!generate(premise, lit, _primarySchemes, true)) {
+    _primarySchemes.clear();
+  };
 }
 
 void InductionSchemeGenerator::generateSecondary(Clause* premise, Literal* lit)
 {
-  generate(premise, lit, _secondarySchemes);
+  generate(premise, lit, _secondarySchemes, false);
 }
 
-void InductionSchemeGenerator::generate(Clause* premise, Literal* lit,
-  vvector<pair<InductionScheme, DHMap<Literal*, Clause*>*>>& schemes)
+bool InductionSchemeGenerator::generate(Clause* premise, Literal* lit,
+  vvector<pair<InductionScheme, DHMap<Literal*, Clause*>*>>& schemes,
+  bool returnOnMatch)
 {
   CALL("InductionSchemeGenerator::generate");
 
@@ -512,7 +516,7 @@ void InductionSchemeGenerator::generate(Clause* premise, Literal* lit,
   // terms. The literal itself and both sides
   // of the equality count as active positions.
   if (_actOccMaps.find(lit)) {
-    return;
+    return true;
   }
   _actOccMaps.insert(lit, new DHMap<TermList, DHSet<unsigned>*>());
   _currOccMaps.insert(lit, new DHMap<TermList, unsigned>());
@@ -522,25 +526,33 @@ void InductionSchemeGenerator::generate(Clause* premise, Literal* lit,
     actStack.push(true);
     actStack.push(true);
   } else {
-    process(TermList(lit), true, actStack, premise, lit, schemes);
+    if (!process(TermList(lit), true, actStack, premise, lit, schemes, returnOnMatch)
+        /* short circuit */ && returnOnMatch) {
+      return false;
+    }
   }
   SubtermIterator it(lit);
   while(it.hasNext()){
     TermList curr = it.next();
     bool active = actStack.pop();
-    process(curr, active, actStack, premise, lit, schemes);
+    if (!process(curr, active, actStack, premise, lit, schemes, returnOnMatch)
+        /* short circuit */ && returnOnMatch) {
+      return false;
+    }
   }
   ASS(actStack.isEmpty());
+  return true;
 }
 
-void InductionSchemeGenerator::process(TermList curr, bool active,
+bool InductionSchemeGenerator::process(TermList curr, bool active,
   Stack<bool>& actStack, Clause* premise, Literal* lit,
-  vvector<pair<InductionScheme, DHMap<Literal*, Clause*>*>>& schemes)
+  vvector<pair<InductionScheme, DHMap<Literal*, Clause*>*>>& schemes,
+  bool returnOnMatch)
 {
   CALL("InductionSchemeGenerator::process");
 
   if (!curr.isTerm()) {
-    return;
+    return true;
   }
   auto t = curr.term();
 
@@ -569,7 +581,7 @@ void InductionSchemeGenerator::process(TermList curr, bool active,
     }
 
     if (!active) {
-      return;
+      return true;
     }
 
     IteratorByInductiveVariables argIt(t, indVars);
@@ -580,6 +592,13 @@ void InductionSchemeGenerator::process(TermList curr, bool active,
       if (its.size() != 1) {
         match = false;
         break;
+      }
+    }
+    if (returnOnMatch) {
+      for (const auto& rdesc : templ._rDescriptions) {
+        if (MatchingUtils::matchTerms(rdesc._step, curr)) {
+          return false;
+        }
       }
     }
 
@@ -596,16 +615,12 @@ void InductionSchemeGenerator::process(TermList curr, bool active,
       }
       schemes.push_back(make_pair(std::move(scheme), litClMap));
     }
-  // We induct on subterms of term algebra constructors
-  } else if (isTermAlgebraCons(curr)) {
+  } else {
     for (unsigned i = 0; i < t->arity(); i++) {
       actStack.push(active);
     }
-  } else {
-    for (unsigned i = 0; i < t->arity(); i++) {
-      actStack.push(false);
-    }
   }
+  return true;
 }
 
 } // Shell

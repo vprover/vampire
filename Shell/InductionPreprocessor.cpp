@@ -393,10 +393,6 @@ void InductionPreprocessor::preprocess(Problem& prb)
         env.signature->addInductionTemplate(kv.first, false, std::move(kv2.first));
         for (auto& kv3 : kv2.second) {
           kv3.first->makeFunctionDefinition();
-          // cout << *kv3.first << " " << kv3.first->isFunctionOrientedReversed() << " " << kv3.second << endl;
-          // if (kv3.first->isFunctionOrientedReversed() != kv3.second) {
-          //   kv3.first->reverseFunctionOrientation();
-          // }
           // reset value
           kv3.first->isFunctionOrientedReversed();
           if (kv3.second) {
