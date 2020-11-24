@@ -62,9 +62,9 @@ using namespace Saturation;
 
 
 
-#define CHECK_SMT_SUBSUMPTION 0
+#define CHECK_SMT_SUBSUMPTION 1
 
-static ForwardSubsumptionAndResolution const* fwsubsandres_instance = nullptr;
+static ForwardSubsumptionAndResolution* fwsubsandres_instance = nullptr;
 
 ForwardSubsumptionAndResolution::ForwardSubsumptionAndResolution(bool subsumptionResolution)
   : _subsumptionResolution(subsumptionResolution)
@@ -91,19 +91,9 @@ void ForwardSubsumptionAndResolution::attach(SaturationAlgorithm* salg)
   fwsubsandres_instance = this;
 }
 
-ForwardSubsumptionAndResolution const* ForwardSubsumptionAndResolution::getInstance()
+ForwardSubsumptionAndResolution* ForwardSubsumptionAndResolution::getInstance()
 {
   return fwsubsandres_instance;
-}
-
-void ForwardSubsumptionAndResolution::printStats(std::ostream& out) const
-{
-  out << "\% Subsumption MLMatcher Statistics\n\% (numDecisions Frequency Successes)\n";
-  for (size_t n = 0; n < m_numDecisions_frequency.size(); ++n) {
-    if (m_numDecisions_frequency[n] > 0) {
-      out << "\% " << n << ' ' << m_numDecisions_frequency[n] << ' ' << m_numDecisions_successes[n] << '\n';
-    }
-  }
 }
 
 void ForwardSubsumptionAndResolution::detach()
@@ -295,7 +285,8 @@ class SubsumptionLogger
     CLASS_NAME(SubsumptionLogger);
     USE_ALLOCATOR(SubsumptionLogger);
     SubsumptionLogger(vstring logfile_path);
-    void log(Clause* side_premise, Clause* main_premise, bool isSubsumed);
+    void log(Clause* side_premise, Clause* main_premise, bool isSubsumed, MLMatchStats const* opt_stats);
+    void flush() { m_logfile.flush(); }
 };
 
 SubsumptionLogger::SubsumptionLogger(vstring logfile_path)
@@ -308,7 +299,7 @@ SubsumptionLogger::SubsumptionLogger(vstring logfile_path)
   ASS(m_logfile.is_open());
 }
 
-void SubsumptionLogger::log(Clause* side_premise, Clause* main_premise, bool isSubsumed)
+void SubsumptionLogger::log(Clause* side_premise, Clause* main_premise, bool isSubsumed, MLMatchStats const* opt_stats)
 {
   vstringstream id_stream;
   id_stream
@@ -319,13 +310,27 @@ void SubsumptionLogger::log(Clause* side_premise, Clause* main_premise, bool isS
   vstring id = id_stream.str();
 
   m_logfile << "\% Begin Inference \"FS-" << id << "\"\n";
-  // env.out() << "\% isSubsumed: " << isSubsumed << "\n";
+  if (opt_stats) {
+    m_logfile << "\% Stats: " << (*opt_stats) << '\n';
+  }
   m_tptp.printWithRole("side_premise_" + id, "hypothesis", side_premise, false);  // subsumer
   m_tptp.printWithRole("main_premise_" + id, "hypothesis", main_premise, false);  // subsumed (if isSubsumed == 1)
   m_logfile << "\% End Inference \"FS-" << id << "\"" << std::endl;
-  m_logfile.flush();   // this should actually be done by endl in the previous line?
 
   m_seq += 1;
+}
+
+void ForwardSubsumptionAndResolution::printStats(std::ostream& out)
+{
+  out << "\% Subsumption MLMatcher Statistics\n\% (numDecisions Frequency Successes)\n";
+  for (size_t n = 0; n < m_numDecisions_frequency.size(); ++n) {
+    if (m_numDecisions_frequency[n] > 0) {
+      out << "\% " << n << ' ' << m_numDecisions_frequency[n] << ' ' << m_numDecisions_successes[n] << '\n';
+    }
+  }
+  if (m_logger) {
+    m_logger->flush();
+  }
 }
 
 
@@ -410,9 +415,12 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
         MLMatcher::canBeMatched(mcl,cl,cms->_matches,0)
         && ColorHelper::compatible(cl->color(), mcl->color());
 
+// Enable if you want to log *every* subsumption instance
+#if 0
       if (m_logger) {
-        m_logger->log(mcl, cl, isSubsumed);
+        m_logger->log(mcl, cl, isSubsumed, nullptr);
       }
+#endif
 
       m_seq += 1;
       m_seq_output += 1;
@@ -429,6 +437,10 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
       //           << " }\n";
       // env.endOutput();
       if (stats.numDecisions >= 100) {
+        if (m_logger) {
+          // Log "interesting" subsumption instances
+          m_logger->log(mcl, cl, isSubsumed, &stats);
+        }
         env.beginOutput();
         env.out() << "\% Subsumption(" << mcl->number() << "," << cl->number() << ")\n";
         env.out() << "\% mcl = " << mcl->toString() << "\n";
@@ -438,7 +450,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
                   << ", \"mcl\": " << mcl->number()
                   << ", \"cl\": " << cl->number()
                   << ", \"stats\": " << MLMatcher::getStaticStats()
-                  << " }\n";
+                  << " }\n\%\n";
         env.endOutput();
       }
       if (stats.numDecisions >= m_numDecisions_frequency.size()) {

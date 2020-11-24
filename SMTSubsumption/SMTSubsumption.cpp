@@ -450,7 +450,7 @@ uint64_t rdtscp()
 
 
 
-#define ENABLE_BENCHMARK 0
+#define ENABLE_BENCHMARK 1
 
 
 #if ENABLE_BENCHMARK
@@ -459,7 +459,7 @@ uint64_t rdtscp()
 #include <benchmark/benchmark.h>
 
 
-void bench_smt_alloc(benchmark::State& state, SubsumptionInstance instance)
+void bench_smt_total(benchmark::State& state, SubsumptionInstance instance)
 {
   for (auto _ : state) {
     SMTSubsumptionImpl smt_impl;
@@ -472,14 +472,24 @@ void bench_smt_alloc(benchmark::State& state, SubsumptionInstance instance)
   }
 }
 
+void bench_smt_setup(benchmark::State& state, SubsumptionInstance instance)
+{
+  for (auto _ : state) {
+    SMTSubsumptionImpl smt_impl;
+    bool smt_setup_result = smt_impl.setup(instance.side_premise, instance.main_premise);
+    benchmark::DoNotOptimize(smt_setup_result);
+    benchmark::ClobberMemory();
+  }
+}
+
 void bench_smt_search(benchmark::State& state, SubsumptionInstance instance)
 {
   for (auto _ : state) {
     state.PauseTiming();
     SMTSubsumptionImpl smt_impl;
-    smt_impl.setup(instance.side_premise, instance.main_premise);
+    bool smt_setup_result = smt_impl.setup(instance.side_premise, instance.main_premise);
     state.ResumeTiming();
-    bool smt_result = smt_impl.solve();
+    bool smt_result = smt_setup_result && smt_impl.solve();
     benchmark::DoNotOptimize(smt_result);
     if (smt_result != instance.subsumed) {
       state.SkipWithError("Wrong result!");
@@ -488,7 +498,7 @@ void bench_smt_search(benchmark::State& state, SubsumptionInstance instance)
   }
 }
 
-void bench_orig_alloc(benchmark::State& state, SubsumptionInstance instance)
+void bench_orig_total(benchmark::State& state, SubsumptionInstance instance)
 {
   for (auto _ : state) {
     OriginalSubsumption::Impl orig_impl;
@@ -501,7 +511,7 @@ void bench_orig_alloc(benchmark::State& state, SubsumptionInstance instance)
   }
 }
 
-void bench_orig_reuse(benchmark::State& state, SubsumptionInstance instance)
+void bench_orig_total_reusing(benchmark::State& state, SubsumptionInstance instance)
 {
   OriginalSubsumption::Impl orig_impl;
   benchmark::ClobberMemory();
@@ -514,6 +524,33 @@ void bench_orig_reuse(benchmark::State& state, SubsumptionInstance instance)
     }
   }
 }
+
+void bench_orig_setup(benchmark::State& state, SubsumptionInstance instance)
+{
+  for (auto _ : state) {
+    OriginalSubsumption::Impl orig_impl;
+    bool orig_setup_result = orig_impl.setup(instance.side_premise, instance.main_premise);
+    benchmark::DoNotOptimize(orig_setup_result);
+    benchmark::ClobberMemory();
+  }
+}
+
+void bench_orig_search(benchmark::State& state, SubsumptionInstance instance)
+{
+  for (auto _ : state) {
+    state.PauseTiming();
+    OriginalSubsumption::Impl orig_impl;
+    bool orig_setup_result = orig_impl.setup(instance.side_premise, instance.main_premise);
+    state.ResumeTiming();
+    bool orig_result = orig_setup_result && orig_impl.solve();
+    benchmark::DoNotOptimize(orig_result);
+    if (orig_result != instance.subsumed) {
+      state.SkipWithError("Wrong result!");
+      return;
+    }
+  }
+}
+
 #endif
 
 
@@ -541,31 +578,36 @@ void ProofOfConcept::benchmark_micro(vvector<SubsumptionInstance> instances)
   int argc = args.size();
 
   // for (auto instance : instances)
-  for (int i = 0; i < 5; ++i)
+  // for (int i = 0; i < 5; ++i)
+  for (int i = 0; i < instances.size(); ++i)
   {
     auto instance = instances[i];
     std::string name;
     std::string suffix =
-        std::to_string(instance.number) + (instance.subsumed ? "_success" : "_failure");
+        std::to_string(instance.number); // + (instance.subsumed ? "_success" : "_failure");
 
-    name = "smt_alloc_" + suffix;
-    benchmark::RegisterBenchmark(name.c_str(), bench_smt_alloc, instance);
-    // name = "smt_reuse_" + suffix;
-    // benchmark::RegisterBenchmark(name.c_str(), bench_smt_reuse, instance);
+    name = "smt_setup_" + suffix;
+    benchmark::RegisterBenchmark(name.c_str(), bench_smt_setup, instance);
     name = "smt_search_" + suffix;
     benchmark::RegisterBenchmark(name.c_str(), bench_smt_search, instance);
+    name = "smt_total_" + suffix;
+    benchmark::RegisterBenchmark(name.c_str(), bench_smt_total, instance);
 
-    name = "orig_alloc_" + suffix;
-    benchmark::RegisterBenchmark(name.c_str(), bench_orig_alloc, instance);
-    name = "orig_reuse_" + suffix;
-    benchmark::RegisterBenchmark(name.c_str(), bench_orig_reuse, instance);
+    name = "orig_setup_" + suffix;
+    benchmark::RegisterBenchmark(name.c_str(), bench_orig_setup, instance);
+    name = "orig_search_" + suffix;
+    benchmark::RegisterBenchmark(name.c_str(), bench_orig_search, instance);
+    name = "orig_total_" + suffix;
+    benchmark::RegisterBenchmark(name.c_str(), bench_orig_total, instance);
+    name = "orig_total_reusing_" + suffix;
+    benchmark::RegisterBenchmark(name.c_str(), bench_orig_total_reusing, instance);
   }
 
   benchmark::Initialize(&argc, args.data());
   benchmark::RunSpecifiedBenchmarks();
 #endif
 
-  std::cerr << "Benchmarking done, will probably segfault now during shutdown..." << std::endl;
+  std::cerr << "Benchmarking done, shutting down..." << std::endl;
 }
 
 /*

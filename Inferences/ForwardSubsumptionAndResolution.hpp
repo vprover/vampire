@@ -55,8 +55,8 @@ public:
 
   static Clause* generateSubsumptionResolutionClause(Clause* cl, Literal* lit, Clause* baseClause);
 
-  static ForwardSubsumptionAndResolution const* getInstance();
-  void printStats(std::ostream& out) const;
+  static ForwardSubsumptionAndResolution* getInstance();
+  void printStats(std::ostream& out);
 
 private:
   /** Simplification unit index */

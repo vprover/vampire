@@ -16,8 +16,8 @@
 
 // By default, enable output in debug mode
 #ifndef DEBUG_STREAM_ENABLED
-// #   define DEBUG_STREAM_ENABLED VDEBUG
-#   define DEBUG_STREAM_ENABLED 1
+#   define DEBUG_STREAM_ENABLED VDEBUG
+// #   define DEBUG_STREAM_ENABLED 0
 #endif
 
 #ifdef CDEBUG
