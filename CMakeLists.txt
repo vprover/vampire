@@ -562,7 +562,6 @@ set(VAMPIRE_SHELL_SOURCES
     #Shell/SMTPAR.cpp
     #Shell/SubsumptionRemover.cpp
     Shell/AnswerExtractor.hpp
-    #Shell/AxiomGenerator.hpp
     Shell/CommandLine.hpp
     Shell/CNF.hpp
     Shell/NewCNF.hpp
