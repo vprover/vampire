@@ -617,7 +617,6 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/Preprocess.hpp
     Shell/SubexpressionIterator.cpp
     Shell/SubexpressionIterator.hpp
-    # Shell/version.cpp
     # TODO: GNUMP build depends on these, remove with GNUMP
     #Shell/ConstantRemover.hpp
     #Shell/ConstraintReaderBack.hpp
