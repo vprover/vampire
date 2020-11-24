@@ -230,7 +230,6 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/LiteralSelector.cpp
     Kernel/LookaheadLiteralSelector.cpp
     Kernel/MainLoop.cpp
-#    Kernel/MatchTag.cpp
     Kernel/Matcher.cpp
     Kernel/MaximalLiteralSelector.cpp
     Kernel/MLMatcher.cpp
@@ -283,7 +282,6 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/LiteralSelector.hpp
     Kernel/LookaheadLiteralSelector.hpp
     Kernel/MainLoop.hpp
-#    Kernel/MatchTag.hpp
     Kernel/Matcher.hpp
     Kernel/MaximalLiteralSelector.hpp
     Kernel/MLMatcher.hpp
