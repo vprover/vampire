@@ -50,7 +50,6 @@
 #include "TheoryAxioms.hpp"
 #include "TheoryFlattening.hpp"
 #include "BlockedClauseElimination.hpp"
-#include "TrivialPredicateRemover.hpp"
 
 #include "UIHelper.hpp"
 #if GNUMP
@@ -376,16 +375,6 @@ void Preprocess::preprocess(Problem& prb)
      resolver.apply(prb);
    }
 
-/*
-   //TODO consider using this in conjunction with unused predicate removal i.e. when it is off
-   if (_options.trivialPredicateRemoval()) {
-     env.statistics->phase=Statistics::UNKNOWN_PHASE;
-     if (env.options->showPreprocessing())
-      env.out() << "trivial predicate removal" << std::endl;
-
-     TrivialPredicateRemover().apply(prb);
-   }
-*/
    if (_options.generalSplitting()!=Options::RuleActivity::OFF) {
      env.statistics->phase=Statistics::GENERAL_SPLITTING;
      if (env.options->showPreprocessing())
