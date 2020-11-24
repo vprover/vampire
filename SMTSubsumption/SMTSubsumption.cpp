@@ -489,6 +489,7 @@ void bench_smt_search(benchmark::State& state, SubsumptionInstance instance)
     SMTSubsumptionImpl smt_impl;
     bool smt_setup_result = smt_impl.setup(instance.side_premise, instance.main_premise);
     state.ResumeTiming();
+    benchmark::ClobberMemory();
     bool smt_result = smt_setup_result && smt_impl.solve();
     benchmark::DoNotOptimize(smt_result);
     if (smt_result != instance.subsumed) {
@@ -542,6 +543,7 @@ void bench_orig_search(benchmark::State& state, SubsumptionInstance instance)
     OriginalSubsumption::Impl orig_impl;
     bool orig_setup_result = orig_impl.setup(instance.side_premise, instance.main_premise);
     state.ResumeTiming();
+    benchmark::ClobberMemory();
     bool orig_result = orig_setup_result && orig_impl.solve();
     benchmark::DoNotOptimize(orig_result);
     if (orig_result != instance.subsumed) {
