@@ -45,7 +45,6 @@
 #include "Statistics.hpp"
 #include "TPTPPrinter.hpp"
 #include "UIHelper.hpp"
-// #include "SMTPrinter.hpp"
 
 #include "Lib/RCPtr.hpp"
 #include "Lib/List.hpp"
