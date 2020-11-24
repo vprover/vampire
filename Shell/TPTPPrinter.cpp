@@ -213,8 +213,6 @@ void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, SymbolType sym
       env.signature->getFunction(symNumber) : env.signature->getPredicate(symNumber);
   OperatorType* type = function ? sym->fnType() : sym->predType();
 
-  cout << "here and the name is " + sym->name() << endl;
-
   if(type->isAllDefault()) {
     return;
   }
