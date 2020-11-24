@@ -295,7 +295,6 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/Induction.o\
          Inferences/URResolution.o \
          Inferences/GaussianVariableElimination.o
-#         Inferences/CTFwSubsAndRes.o\
 
 VSAT_OBJ=SAT/DIMACS.o\
          SAT/MinimizingSolver.o\
