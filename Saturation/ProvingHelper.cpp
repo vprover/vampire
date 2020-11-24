@@ -32,6 +32,8 @@
 #include "Shell/Property.hpp"
 #include "Shell/UIHelper.hpp"
 
+#include "Indexing/TermSharing.hpp"
+
 #include "SaturationAlgorithm.hpp"
 
 #include "ProvingHelper.hpp"
@@ -145,6 +147,9 @@ void ProvingHelper::runVampire(Problem& prb, const Options& opt)
    * This should help improve reproducibility when using vampire mode + "--decode" to reply a behavior of a strat from a schedule
    */
   Lib::Random::setSeed(opt.randomSeed());
+  //decide whether to use poly or mono well-typedness test
+  //after options have been read. Equality Proxy can introduce poly in mono.
+  env.sharing->setPoly();
 
   env.statistics->phase=Statistics::SATURATION;
   ScopedPtr<MainLoop> salg(MainLoop::createFromOptions(prb, opt));

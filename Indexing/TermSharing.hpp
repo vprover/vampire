@@ -53,6 +53,8 @@ public:
 
   Literal* tryGetOpposite(Literal* l);
 
+  void setPoly();
+
   /** The hash function of this literal */
   inline static unsigned hash(const Literal* l)
   { return l->hash(); }
@@ -93,6 +95,8 @@ private:
   unsigned _literalInsertions;
   /** Number of term insertions */
   unsigned _termInsertions;
+
+  bool _poly;
 }; // class TermSharing
 
 } // namespace Indexing

@@ -52,7 +52,8 @@ TermSharing::TermSharing()
     _totalLiterals(0),
     // _groundLiterals(0), //MS: unused
     _literalInsertions(0),
-    _termInsertions(0)
+    _termInsertions(0),
+    _poly(1)
 {
   CALL("TermSharing::TermSharing");
 }
@@ -75,6 +76,18 @@ TermSharing::~TermSharing()
     ls.next()->destroy();
   }
 #endif
+}
+
+void TermSharing::setPoly()
+{
+  CALL("TermSharing::setPoly()");
+
+  //combinatory superposiiton can introduce polymorphism into a 
+  //monomorphic problem
+  _poly = env.statistics->higherOrder ||
+          env.statistics->polymorphic ||
+          env.options->equalityProxy() != Options::EqualityProxy::OFF ||
+          env.options->saturationAlgorithm() == Options::SaturationAlgorithm::INST_GEN;
 }
 
 /**
@@ -185,16 +198,12 @@ Term* TermSharing::insert(Term* t)
     t->setInterpretedConstantsPresence(hasInterpretedConstants);
     _totalTerms++;
 
-    //combinatory superposiiton can introduce polymorphism into a 
-    //monomorphic problem
-    static bool poly_or_hol = env.statistics->higherOrder ||
-                                   env.statistics->polymorphic ;
     //poly function works for mono as well, but is slow
     //it is fine to use for debug
     ASS_REP(SortHelper::areImmediateSortsValidPoly(t), t->toString());
-    if (!poly_or_hol && !SortHelper::areImmediateSortsValidMono(t)){
+    if (!_poly && !SortHelper::areImmediateSortsValidMono(t)){
       USER_ERROR("Immediate (shared) subterms of  term/literal "+t->toString()+" have different types/not well-typed!");
-    } else if (poly_or_hol && !SortHelper::areImmediateSortsValidPoly(t)){
+    } else if (_poly && !SortHelper::areImmediateSortsValidPoly(t)){
       USER_ERROR("Immediate (shared) subterms of  term/literal "+t->toString()+" have different types/not well-typed!");      
     }
   }
@@ -272,15 +281,12 @@ Literal* TermSharing::insert(Literal* t)
     t->setInterpretedConstantsPresence(hasInterpretedConstants);
     _totalLiterals++;
 
-    //combinatory superposiiton can introduce polymorphism into a 
-    //monomorphic problem
-    static bool poly_or_hol = env.statistics->higherOrder ||
-                              env.statistics->polymorphic ;
 
-    ASS_REP(SortHelper::areImmediateSortsValidPoly(t), t->toString());
-    if (!poly_or_hol && !SortHelper::areImmediateSortsValidMono(t)){
+
+     ASS_REP(SortHelper::areImmediateSortsValidPoly(t), t->toString());
+    if (!_poly && !SortHelper::areImmediateSortsValidMono(t)){
       USER_ERROR("Immediate (shared) subterms of  term/literal "+t->toString()+" have different types/not well-typed!");
-    } else if (poly_or_hol && !SortHelper::areImmediateSortsValidPoly(t)){
+    } else if (_poly && !SortHelper::areImmediateSortsValidPoly(t)){
       USER_ERROR("Immediate (shared) subterms of  term/literal "+t->toString()+" have different types/not well-typed!");      
     }
   }
