@@ -786,7 +786,9 @@ void InductionClauseIterator::performStructInductionFour(Clause* premise, Litera
         if (inst.clause == premise) {
           continue;
         }
-        if (inst.clause->size() > 1 || inst.literal->isNegative() || inst.literal->freeVariables() != IntList::empty()) {
+        if ((env.options->inductionUnitOnly() && inst.clause->size() > 1)
+            || inst.literal->isNegative()
+            || inst.literal->freeVariables() != IntList::empty()) {
           continue;
         }
         gen.generateSecondary(inst.clause, inst.literal);
@@ -794,7 +796,10 @@ void InductionClauseIterator::performStructInductionFour(Clause* premise, Litera
     }
   }
 
-  InductionSchemeFilter().filter(gen._primarySchemes, gen._secondarySchemes, &gen._currOccMaps);
+  InductionSchemeFilter f;
+  f.filter(gen._primarySchemes, gen._secondarySchemes);
+  f.filterComplex(gen._primarySchemes, &gen._currOccMaps);
+
   for (const auto& kv : gen._primarySchemes) {
     if(env.options->showInduction()){
       env.beginOutput();
