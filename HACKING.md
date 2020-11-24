@@ -107,6 +107,13 @@ If `master` changes under you in such a way that you want to reconcile the two (
  This keeps commit history neat and is the preferred option if nobody is currently using your branch and if a rebase is feasible.
 2. Otherwise, merging `master` into your branch is OK as well and can be easier for large changes.
 
+[Please, oh please, use "git pull --rebase"](https://coderwall.com/p/7aymfa/please-oh-please-use-git-pull-rebase)
+This can be even configured [globally](https://coderwall.com/p/tnoiug/rebase-by-default-when-doing-git-pull).
+To explain: While it is fine to have merge-commits as a documentation for where a long-lived feature branch joined master
+(or where a long lived feature branch had to be synced with master by mergeing with it), 
+"git pull --rebase" prevents you from creating a useless merge commit on pulling a branch that your colleague recently modified.
+(This can happen, for instance, when someone reviewing your pull request fixes a tiny bug, while you were in the meantime fixing another.)
+
 ## General Code Guidelines
 * Compiler warnings are there to help you; do not suppress them without Really Good Reasons!
 * In the same vein, master should build free of warnings. Pull requests to fix warnings (preferably by not doing the thing the compiler is warning you not to do) are valuable that allows you and others to notice when you introduce code that produces warnings.
