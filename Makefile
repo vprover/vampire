@@ -379,7 +379,6 @@ VS_OBJ = Shell/AnswerExtractor.o\
 #         Shell/SMTLEX.o\
 #         Shell/SMTPAR.o\
 #         Shell/Lexer.o\
-#         Shell/PDUtils.o\
 #         Shell/ConstantRemover.o\
 #         Shell/ConstraintReaderBack.o\
 #         Shell/EqualityVariableRemover.o\
