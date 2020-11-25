@@ -1,4 +1,4 @@
-Vampire license - BSD 3-Clause
+Vampire licence - BSD 3-Clause
 
 Vampire Software Licence Agreement
 Copyright © 2020
@@ -7,14 +7,14 @@ Vampire is copyright (C) 2020 by
 its authors and contributors (see AUTHORS) and their institutional
 affiliations. All rights reserved.
 
-The Vampire license is a (modified) BSD 3-Clause license.
+The Vampire licence is a (modified) BSD 3-Clause licence.
 This Vampire licence supersedes all previous licences covering usage of Vampire.
 
 
 The source code of Vampire is open and available to students, researchers,
 software companies, and everyone else to study, to modify, and to redistribute
 original or modified versions; distribution is under the terms of the modified
-BSD license (reproduced below).
+BSD licence (reproduced below).
 
 Note that some software included with Vampire is available under a more permissive licence.
 For example, both Minisat and Z3 are used internally by Vampire.
