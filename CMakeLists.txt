@@ -35,6 +35,13 @@ if (NOT BUILD_SHARED_LIBS)
   set(VAMPIRE_BINARY_STATIC _static)
 endif()
 
+# We compile tests only in debug mode, since in release mode assertions are NOPs anyways.
+if(CMAKE_BUILD_TYPE STREQUAL Debug)
+  SET(COMPILE_TESTS ON)
+else()
+  SET(COMPILE_TESTS OFF)
+endif()
+
 ################################################################
 # define all vampire sources,
 # generate the main target and 
@@ -698,38 +705,40 @@ set(VAMPIRE_CASC_SOURCES
     )
 source_group(casc_source_files FILES ${VAMPIRE_CASC_SOURCES})
 
-set(VAMPIRE_TESTING_SOURCES
-    Test/UnitTesting.cpp
-    Test/UnitTesting.hpp
-)
-source_group(testing_files FILES ${VAMPIRE_TESTING_SOURCES})
+if(COMPILE_TESTS) 
+  set(VAMPIRE_TESTING_SOURCES
+      Test/UnitTesting.cpp
+      Test/UnitTesting.hpp
+  )
+  source_group(testing_files FILES ${VAMPIRE_TESTING_SOURCES})
 
-set(UNIT_TESTS
-    UnitTests/tDHMap.cpp
-    UnitTests/tQuotientE.cpp
-    UnitTests/tImplicationSetClosure.cpp
-    UnitTests/tUnificationWithAbstraction.cpp
-    UnitTests/tGaussianElimination.cpp
-    UnitTests/tDisagreement.cpp
-    UnitTests/tDynamicHeap.cpp
-    UnitTests/tIntegerConstantType.cpp
-    UnitTests/tSATSolver.cpp
-    UnitTests/tArithCompare.cpp
-    UnitTests/tSyntaxSugar.cpp
-    UnitTests/tSkipList.cpp
-    UnitTests/tfork.cpp
-    UnitTests/tBinaryHeap.cpp
-    UnitTests/tSafeRecursion.cpp
-    UnitTests/tKBO.cpp
-    UnitTests/tRatioKeeper.cpp
-    UnitTests/tTwoVampires.cpp
-    UnitTests/tOptionConstraints.cpp
-    UnitTests/tSCCAnalyzer.cpp
-    UnitTests/tDHMultiset.cpp
-    UnitTests/tList.cpp
-    UnitTests/tStack.cpp
-)
-source_group(unit_tests FILES ${UNIT_TESTS})
+  set(UNIT_TESTS
+      UnitTests/tDHMap.cpp
+      UnitTests/tQuotientE.cpp
+      UnitTests/tImplicationSetClosure.cpp
+      UnitTests/tUnificationWithAbstraction.cpp
+      UnitTests/tGaussianElimination.cpp
+      UnitTests/tDisagreement.cpp
+      UnitTests/tDynamicHeap.cpp
+      UnitTests/tIntegerConstantType.cpp
+      UnitTests/tSATSolver.cpp
+      UnitTests/tArithCompare.cpp
+      UnitTests/tSyntaxSugar.cpp
+      UnitTests/tSkipList.cpp
+      UnitTests/tfork.cpp
+      UnitTests/tBinaryHeap.cpp
+      UnitTests/tSafeRecursion.cpp
+      UnitTests/tKBO.cpp
+      UnitTests/tRatioKeeper.cpp
+      UnitTests/tTwoVampires.cpp
+      UnitTests/tOptionConstraints.cpp
+      UnitTests/tSCCAnalyzer.cpp
+      UnitTests/tDHMultiset.cpp
+      UnitTests/tList.cpp
+      UnitTests/tStack.cpp
+  )
+  source_group(unit_tests FILES ${UNIT_TESTS})
+endif() # COMPILE_TESTS
 
 # also include forwards.hpp?
 set(VAMPIRE_SOURCES 
@@ -813,36 +822,39 @@ endif()
 # build objects
 ################################################################
 add_library(obj OBJECT ${VAMPIRE_SOURCES})
-add_library(test_obj OBJECT ${VAMPIRE_TESTING_SOURCES})
+if (COMPILE_TESTS) 
+  add_library(test_obj OBJECT ${VAMPIRE_TESTING_SOURCES})
+endif()
 
 ################################################################
 # UNIT TESTING 
 ################################################################
 
-include(CTest)
-foreach(test_file ${UNIT_TESTS})
-  get_filename_component(test_name ${test_file} NAME_WE)
-  string(REGEX REPLACE "^t" "" test_name ${test_name})
+if (COMPILE_TESTS) 
+  include(CTest)
+  foreach(test_file ${UNIT_TESTS})
+    get_filename_component(test_name ${test_file} NAME_WE)
+    string(REGEX REPLACE "^t" "" test_name ${test_name})
 
-  # compiling the test case executable
-  add_executable(
-    test-${test_name}
-    ${test_file}
-    $<TARGET_OBJECTS:obj>
-    $<TARGET_OBJECTS:test_obj>
-  )
-  target_compile_definitions(test-${test_name} PRIVATE CTEST=1)
-  set(test_bin_dir ${CMAKE_BINARY_DIR}/bin/unit-tests)
-  set_target_properties(test-${test_name} PROPERTIES
-      OUTPUT_NAME ${test_name}
-      RUNTIME_OUTPUT_DIRECTORY ${test_bin_dir})   
+    # compiling the test case executable
+    add_executable(
+      test-${test_name}
+      ${test_file}
+      $<TARGET_OBJECTS:obj>
+      $<TARGET_OBJECTS:test_obj>
+    )
+    set(test_bin_dir ${CMAKE_BINARY_DIR}/bin/unit-tests)
+    set_target_properties(test-${test_name} PROPERTIES
+        OUTPUT_NAME ${test_name}
+        RUNTIME_OUTPUT_DIRECTORY ${test_bin_dir})   
 
-  # configuring ctest
-  add_test(${test_name} ${test_bin_dir}/${test_name})
-  set_tests_properties(${test_name}
-        PROPERTIES
-        TIMEOUT 20)
-endforeach()
+    # configuring ctest
+    add_test(${test_name} ${test_bin_dir}/${test_name})
+    set_tests_properties(${test_name}
+          PROPERTIES
+          TIMEOUT 20)
+  endforeach()
+endif() # COMPILE_TESTS
 
 #################################################################
 # automated generation of Vampire revision information from git #
