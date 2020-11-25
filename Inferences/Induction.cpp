@@ -833,9 +833,10 @@ void InductionClauseIterator::instantiateScheme(DHMap<Literal*, Clause*>* litClM
     // We replace all induction terms with the corresponding step case terms
     FormulaList* stepFormulas = FormulaList::empty();
     DHMap<Literal*, Clause*>::Iterator litClIt(*litClMap);
+    vmap<TermList, TermList> empty;
     while (litClIt.hasNext()) {
       auto lit = litClIt.nextKey();
-      TermOccurrenceReplacement tr(desc._step, *activeOccurrenceMaps.get(lit), *occurrenceCountMaps.get(lit), var);
+      TermOccurrenceReplacement tr(desc._step, *activeOccurrenceMaps.get(lit), *occurrenceCountMaps.get(lit), var, empty);
       stepFormulas = new FormulaList(new AtomicFormula(Literal::complementaryLiteral(tr.transform(lit))), stepFormulas);
     }
     auto right = JunctionFormula::generalJunction(Connective::OR, stepFormulas);
@@ -847,9 +848,10 @@ void InductionClauseIterator::instantiateScheme(DHMap<Literal*, Clause*>* litClM
     for (const auto& r : desc._recursiveCalls) {
       FormulaList* innerHyp = FormulaList::empty();
       DHMap<Literal*, Clause*>::Iterator litClIt(*litClMap);
+      vmap<TermList, TermList> r_g;
       while (litClIt.hasNext()) {
         auto lit = litClIt.nextKey();
-        TermOccurrenceReplacement tr(r, *activeOccurrenceMaps.get(lit), *occurrenceCountMaps.get(lit), var, strengthen);
+        TermOccurrenceReplacement tr(r, *activeOccurrenceMaps.get(lit), *occurrenceCountMaps.get(lit), var, r_g, strengthen);
         innerHyp = new FormulaList(new AtomicFormula(Literal::complementaryLiteral(tr.transform(lit))),innerHyp);
       }
       hyp = new FormulaList(JunctionFormula::generalJunction(Connective::OR,innerHyp),hyp);
@@ -902,10 +904,11 @@ void InductionClauseIterator::instantiateScheme(DHMap<Literal*, Clause*>* litClM
   DHMap<Literal*, Literal*> conclusionToOrigLitMap;
   FormulaList* conclusionList = FormulaList::empty();
   DHMap<Literal*, Clause*>::Iterator litClIt(*litClMap);
+  vmap<TermList, TermList> empty;
   while (litClIt.hasNext()) {
     auto lit = litClIt.nextKey();
     TermOccurrenceReplacement tr(r, *activeOccurrenceMaps.get(lit),
-      *occurrenceCountMaps.get(lit), var);
+      *occurrenceCountMaps.get(lit), var, empty);
     auto conclusion = Literal::complementaryLiteral(tr.transform(lit));
     conclusionToOrigLitMap.insert(conclusion, lit);
     conclusionList = new FormulaList(new AtomicFormula(conclusion), conclusionList);
