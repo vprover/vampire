@@ -705,40 +705,38 @@ set(VAMPIRE_CASC_SOURCES
     )
 source_group(casc_source_files FILES ${VAMPIRE_CASC_SOURCES})
 
-if(COMPILE_TESTS) 
-  set(VAMPIRE_TESTING_SOURCES
-      Test/UnitTesting.cpp
-      Test/UnitTesting.hpp
-  )
-  source_group(testing_files FILES ${VAMPIRE_TESTING_SOURCES})
+set(VAMPIRE_TESTING_SOURCES
+    Test/UnitTesting.cpp
+    Test/UnitTesting.hpp
+)
+source_group(testing_files FILES ${VAMPIRE_TESTING_SOURCES})
 
-  set(UNIT_TESTS
-      UnitTests/tDHMap.cpp
-      UnitTests/tQuotientE.cpp
-      UnitTests/tImplicationSetClosure.cpp
-      UnitTests/tUnificationWithAbstraction.cpp
-      UnitTests/tGaussianElimination.cpp
-      UnitTests/tDisagreement.cpp
-      UnitTests/tDynamicHeap.cpp
-      UnitTests/tIntegerConstantType.cpp
-      UnitTests/tSATSolver.cpp
-      UnitTests/tArithCompare.cpp
-      UnitTests/tSyntaxSugar.cpp
-      UnitTests/tSkipList.cpp
-      UnitTests/tfork.cpp
-      UnitTests/tBinaryHeap.cpp
-      UnitTests/tSafeRecursion.cpp
-      UnitTests/tKBO.cpp
-      UnitTests/tRatioKeeper.cpp
-      UnitTests/tTwoVampires.cpp
-      UnitTests/tOptionConstraints.cpp
-      UnitTests/tSCCAnalyzer.cpp
-      UnitTests/tDHMultiset.cpp
-      UnitTests/tList.cpp
-      UnitTests/tStack.cpp
-  )
-  source_group(unit_tests FILES ${UNIT_TESTS})
-endif() # COMPILE_TESTS
+set(UNIT_TESTS
+    UnitTests/tDHMap.cpp
+    UnitTests/tQuotientE.cpp
+    UnitTests/tImplicationSetClosure.cpp
+    UnitTests/tUnificationWithAbstraction.cpp
+    UnitTests/tGaussianElimination.cpp
+    UnitTests/tDisagreement.cpp
+    UnitTests/tDynamicHeap.cpp
+    UnitTests/tIntegerConstantType.cpp
+    UnitTests/tSATSolver.cpp
+    UnitTests/tArithCompare.cpp
+    UnitTests/tSyntaxSugar.cpp
+    UnitTests/tSkipList.cpp
+    UnitTests/tfork.cpp
+    UnitTests/tBinaryHeap.cpp
+    UnitTests/tSafeRecursion.cpp
+    UnitTests/tKBO.cpp
+    UnitTests/tRatioKeeper.cpp
+    UnitTests/tTwoVampires.cpp
+    UnitTests/tOptionConstraints.cpp
+    UnitTests/tSCCAnalyzer.cpp
+    UnitTests/tDHMultiset.cpp
+    UnitTests/tList.cpp
+    UnitTests/tStack.cpp
+)
+source_group(unit_tests FILES ${UNIT_TESTS})
 
 # also include forwards.hpp?
 set(VAMPIRE_SOURCES 
