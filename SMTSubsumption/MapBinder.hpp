@@ -28,7 +28,12 @@ class MapBinder
 
   public:
     using Var = unsigned int;
-    using BindingsMap = vunordered_map<Var, TermList>;
+    struct VarIdentityHash {
+      std::size_t operator() (Var v) const {
+        return v;
+      }
+    };
+    using BindingsMap = vunordered_map<Var, TermList, VarIdentityHash>;  // slow!
 
     MapBinder()
       : m_bindings(16)
@@ -61,6 +66,11 @@ class MapBinder
     BindingsMap const& bindings() const
     {
       return m_bindings;
+    }
+
+    size_t size() const
+    {
+      return m_bindings.size();
     }
 
   private:

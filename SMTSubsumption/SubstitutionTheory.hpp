@@ -84,6 +84,8 @@ class SubstitutionTheoryConfiguration
       atoms.push_back(std::move(atom));
     }
 
+    vvector<SubstitutionAtom> const& get_atoms() { return atoms; }
+
   private:
     /// Maps boolean variables to the theory atoms they represent.
     /// Dense mapping from Minisat::Var to SubstitutionAtom;

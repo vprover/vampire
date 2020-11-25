@@ -19,6 +19,8 @@ using namespace SMTSubsumption;
 #include "SMTSubsumption/cdebug.hpp"
 
 
+#define ENABLE_BENCHMARK 1
+
 
 /****************************************************************************
  * Original subsumption implementation (from ForwardSubsumptionAndResolution)
@@ -464,7 +466,6 @@ uint64_t rdtscp()
 
 
 
-#define ENABLE_BENCHMARK 1
 
 
 #if ENABLE_BENCHMARK
@@ -495,6 +496,263 @@ void bench_smt_setup(benchmark::State& state, SubsumptionInstance instance)
     benchmark::ClobberMemory();
   }
 }
+
+
+
+
+void bench_general_matching_no_bindings(benchmark::State& state, SubsumptionInstance instance)
+{
+  Clause* side_premise = instance.side_premise;
+  Clause* main_premise = instance.main_premise;
+
+  for (auto _ : state) {
+    int nmatches = 0;  // count matches to prevent optimization from removing code
+
+    for (unsigned i = 0; i < side_premise->length(); ++i) {
+      Literal* base_lit = side_premise->literals()[i];
+
+      for (unsigned j = 0; j < main_premise->length(); ++j) {
+        Literal* inst_lit = main_premise->literals()[j];
+
+        if (!Literal::headersMatch(base_lit, inst_lit, false)) {
+          continue;
+        }
+
+        if (base_lit->arity() == 0 || MatchingUtils::matchArgs(base_lit, inst_lit)) {
+          nmatches += 1;
+        }
+
+        if (base_lit->commutative()) {
+          ASS_EQ(base_lit->arity(), 2);
+          ASS_EQ(inst_lit->arity(), 2);
+          if (MatchingUtils::matchReversedArgs(base_lit, inst_lit)) {
+            nmatches += 1;
+          }
+        }
+      }
+    }
+
+    benchmark::DoNotOptimize(nmatches);
+  }
+}
+
+typedef DHMap<unsigned, TermList, IdentityHash> CustomBindingMap;
+struct CustomMapBinder {
+  bool bind(unsigned var, TermList term)
+  {
+    TermList* aux;
+    return _map.getValuePtr(var, aux, term) || *aux == term;
+  }
+  void specVar(unsigned var, TermList term)
+  {
+    ASSERTION_VIOLATION;
+  }
+  void reset() { _map.reset(); }
+  size_t size() { return _map.size(); }
+
+private:
+  CustomBindingMap _map;
+};
+
+void bench_general_matching_custom(benchmark::State& state, SubsumptionInstance instance)
+{
+  Clause* side_premise = instance.side_premise;
+  Clause* main_premise = instance.main_premise;
+  CustomMapBinder binder;
+
+  for (auto _ : state) {
+    int nmatches = 0;  // count matches to prevent optimization from removing code
+    int nbindings = 0;
+
+    for (unsigned i = 0; i < side_premise->length(); ++i) {
+      Literal* base_lit = side_premise->literals()[i];
+
+      for (unsigned j = 0; j < main_premise->length(); ++j) {
+        Literal* inst_lit = main_premise->literals()[j];
+
+        if (!Literal::headersMatch(base_lit, inst_lit, false)) {
+          continue;
+        }
+
+        binder.reset();
+        if (base_lit->arity() == 0 || MatchingUtils::matchArgs(base_lit, inst_lit, binder)) {
+          nmatches += 1;
+          nbindings += binder.size();
+        }
+
+        if (base_lit->commutative()) {
+          ASS_EQ(base_lit->arity(), 2);
+          ASS_EQ(inst_lit->arity(), 2);
+          binder.reset();
+          if (MatchingUtils::matchReversedArgs(base_lit, inst_lit, binder)) {
+            nmatches += 1;
+            nbindings += binder.size();
+          }
+        }
+      }
+    }
+
+    benchmark::DoNotOptimize(nmatches);
+    benchmark::DoNotOptimize(nbindings);
+  }
+}
+
+void bench_general_matching_stl(benchmark::State& state, SubsumptionInstance instance)
+{
+  Clause* side_premise = instance.side_premise;
+  Clause* main_premise = instance.main_premise;
+  MapBinder binder;
+
+  for (auto _ : state) {
+    int nmatches = 0;  // count matches to prevent optimization from removing code
+    int nbindings = 0;
+
+    for (unsigned i = 0; i < side_premise->length(); ++i) {
+      Literal* base_lit = side_premise->literals()[i];
+
+      for (unsigned j = 0; j < main_premise->length(); ++j) {
+        Literal* inst_lit = main_premise->literals()[j];
+
+        if (!Literal::headersMatch(base_lit, inst_lit, false)) {
+          continue;
+        }
+
+        binder.reset();
+        if (base_lit->arity() == 0 || MatchingUtils::matchArgs(base_lit, inst_lit, binder)) {
+          nmatches += 1;
+          nbindings += binder.size();
+        }
+
+        if (base_lit->commutative()) {
+          ASS_EQ(base_lit->arity(), 2);
+          ASS_EQ(inst_lit->arity(), 2);
+          binder.reset();
+          if (MatchingUtils::matchReversedArgs(base_lit, inst_lit, binder)) {
+            nmatches += 1;
+            nbindings += binder.size();
+          }
+        }
+      }
+    }
+
+    benchmark::DoNotOptimize(nmatches);
+    benchmark::DoNotOptimize(nbindings);
+  }
+}
+
+
+
+// Optimization notes:
+// Initial version: ~15000 ns
+// Removing SubstitutionAtom::from_binder and stc.register_atom calls: ~10000ns
+//
+// Changelog:
+void bench_smt_matching(benchmark::State& state, SubsumptionInstance instance)
+{
+  Clause* side_premise = instance.side_premise;
+  Clause* main_premise = instance.main_premise;
+
+  for (auto _ : state) {
+
+    vvector<vvector<Alt>> alts;
+    alts.reserve(side_premise->length());
+
+    // for each instance literal (of main_premise),
+    // the possible variables indicating a match with the instance literal
+    vvector<vvector<Minisat::Var>> possible_base_vars;
+    // start with empty vector for each instance literal
+    possible_base_vars.resize(main_premise->length());
+
+    SubstitutionTheoryConfiguration stc;
+    MapBinder binder;
+
+    // Matching for subsumption checks whether
+    //
+    //      side_premise\theta \subseteq main_premise
+    //
+    // holds.
+    Minisat::Var nextVar = 0;
+    for (unsigned i = 0; i < side_premise->length(); ++i) {
+      Literal* base_lit = side_premise->literals()[i];
+
+      vvector<Alt> base_lit_alts;
+      base_lit_alts.reserve(2*main_premise->length());
+
+      // TODO: use LiteralMiniIndex here (need to extend InstanceIterator to a version that returns the binder)
+      // LiteralMiniIndex::InstanceIterator inst_it(main_premise_mini_index, base_lit, false);
+      for (unsigned j = 0; j < main_premise->length(); ++j) {
+        Literal* inst_lit = main_premise->literals()[j];
+
+        if (!Literal::headersMatch(base_lit, inst_lit, false)) {
+          continue;
+        }
+
+        binder.reset();
+        if (base_lit->arity() == 0 || MatchingUtils::matchArgs(base_lit, inst_lit, binder)) {
+          Minisat::Var b = nextVar++;
+
+          if (binder.bindings().size() > 0) {
+            ASS(!base_lit->ground());
+            auto atom = SubstitutionAtom::from_binder(binder);
+            stc.register_atom(b, std::move(atom));
+          }
+          else {
+            ASS(base_lit->ground());
+            ASS_EQ(base_lit, inst_lit);
+            // TODO: in this case, at least for subsumption, we should skip this base_lit and this inst_list.
+            // probably best to have a separate loop first that deals with ground literals? since those are only pointer equality checks.
+            //
+            // For now, just register an empty substitution atom.
+            auto atom = SubstitutionAtom::from_binder(binder);
+            stc.register_atom(b, std::move(atom));
+          }
+
+          base_lit_alts.push_back({
+              // .lit = inst_lit,
+              // .j = j,
+              .b = b,
+              // .reversed = false,
+          });
+          possible_base_vars[j].push_back(b);
+        }
+
+        if (base_lit->commutative()) {
+          ASS_EQ(base_lit->arity(), 2);
+          ASS_EQ(inst_lit->arity(), 2);
+          binder.reset();
+          if (MatchingUtils::matchReversedArgs(base_lit, inst_lit, binder)) {
+            Minisat::Var b = nextVar++;
+
+            auto atom = SubstitutionAtom::from_binder(binder);
+            stc.register_atom(b, std::move(atom));
+
+            base_lit_alts.push_back({
+                // .lit = inst_lit,
+                // .j = j,
+                .b = b,
+                // .reversed = true,
+            });
+            possible_base_vars[j].push_back(b);
+          }
+        }
+      }
+      if (base_lit_alts.empty()) {
+        state.SkipWithError("hmm, in this case it should take that long");
+      }
+      alts.push_back(std::move(base_lit_alts));
+      }
+
+    benchmark::DoNotOptimize(alts.data());
+    benchmark::DoNotOptimize(possible_base_vars.data());
+    benchmark::DoNotOptimize(stc.get_atoms().data());
+    benchmark::ClobberMemory();
+
+  }
+}
+
+
+
+
 
 void bench_smt_search(benchmark::State& state, SubsumptionInstance instance)
 {
@@ -603,21 +861,31 @@ void ProofOfConcept::benchmark_micro(vvector<SubsumptionInstance> instances)
     std::string suffix =
         std::to_string(instance.number); // + (instance.subsumed ? "_success" : "_failure");
 
+    name = "general_matching_no_bindings_" + suffix;
+    benchmark::RegisterBenchmark(name.c_str(), bench_general_matching_no_bindings, instance);
+    name = "general_matching_custom_" + suffix;
+    benchmark::RegisterBenchmark(name.c_str(), bench_general_matching_custom, instance);
+    name = "general_matching_stl_" + suffix;
+    benchmark::RegisterBenchmark(name.c_str(), bench_general_matching_stl, instance);
+
     name = "smt_setup_" + suffix;
     benchmark::RegisterBenchmark(name.c_str(), bench_smt_setup, instance);
+    name = "smt_matching_" + suffix;
+    benchmark::RegisterBenchmark(name.c_str(), bench_smt_matching, instance);
+    // break;
     name = "smt_search_" + suffix;
     benchmark::RegisterBenchmark(name.c_str(), bench_smt_search, instance);
-    // name = "smt_total_" + suffix;
-    // benchmark::RegisterBenchmark(name.c_str(), bench_smt_total, instance);
+    name = "smt_total_" + suffix;
+    benchmark::RegisterBenchmark(name.c_str(), bench_smt_total, instance);
 
-    // name = "orig_setup_" + suffix;
-    // benchmark::RegisterBenchmark(name.c_str(), bench_orig_setup, instance);
-    // name = "orig_search_" + suffix;
-    // benchmark::RegisterBenchmark(name.c_str(), bench_orig_search, instance);
-    // name = "orig_total_" + suffix;
-    // benchmark::RegisterBenchmark(name.c_str(), bench_orig_total, instance);
-    // name = "orig_total_reusing_" + suffix;
-    // benchmark::RegisterBenchmark(name.c_str(), bench_orig_total_reusing, instance);
+    name = "orig_setup_" + suffix;
+    benchmark::RegisterBenchmark(name.c_str(), bench_orig_setup, instance);
+    name = "orig_search_" + suffix;
+    benchmark::RegisterBenchmark(name.c_str(), bench_orig_search, instance);
+    name = "orig_total_" + suffix;
+    benchmark::RegisterBenchmark(name.c_str(), bench_orig_total, instance);
+    name = "orig_total_reusing_" + suffix;
+    benchmark::RegisterBenchmark(name.c_str(), bench_orig_total_reusing, instance);
   }
 
   benchmark::Initialize(&argc, args.data());
