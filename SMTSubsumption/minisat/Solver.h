@@ -287,7 +287,7 @@ public:
     // Problem specification:
     //
     Var     newVar    ();
-    Var     newVars   (int n);
+    void    newVars   (int n);
     int     nVars     ()                    { return assigns.size(); }
     void    addUnit   (Lit p)               { if (ok) ok = enqueue(p); }
     void    addBinary (Lit p, Lit q)        { addBinary_tmp [0] = p; addBinary_tmp [1] = q; addClause(addBinary_tmp); }

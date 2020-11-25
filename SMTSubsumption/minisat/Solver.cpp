@@ -305,21 +305,22 @@ Var Solver::newVar()
 }
 
 // Create n new SAT variables in the solver.
-// Returns index of the last created variable.
-Var Solver::newVars(int n)
+void Solver::newVars(int n)
 {
-    int new_nVars = nVars() + n;
-    watches.growTo(2*new_nVars);
-    reason.growTo(new_nVars, GClause_NULL);
-    assigns.growTo(new_nVars, toInt(l_Undef));
-    level.growTo(new_nVars, -1);
-    activity.growTo(new_nVars, 0);
+    // int new_nVars = nVars() + n;
+    // watches.growTo(2*new_nVars);
+    // reason.growTo(new_nVars, GClause_NULL);
+    // assigns.growTo(new_nVars, toInt(l_Undef));
+    // level.growTo(new_nVars, -1);
+    // activity.growTo(new_nVars, 0);
+    //   order.newVar();  // needs to be called only once
+    // analyze_seen.growTo(new_nVars, 0);
+    // assert(new_nVars == nVars());
+
+    // TODO: there's a bug in the above bulk addition code
     for (int i = 0; i < n; ++i) {
-      order.newVar();
+        newVar();
     }
-    analyze_seen.growTo(new_nVars, 0);
-    assert(new_nVars == nVars());
-    return new_nVars - 1;
 }
 
 // Returns FALSE if immediate conflict.
