@@ -19,10 +19,6 @@
 
 #include "Test/UnitTesting.hpp"
 
-#define UNIT_ID two_vampires
-UT_CREATE;
-
-
 #include <sstream>
 #include <sys/wait.h>
 

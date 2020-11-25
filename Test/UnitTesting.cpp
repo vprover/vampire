@@ -27,84 +27,25 @@
 
 #include "UnitTesting.hpp"
 
-namespace Test
-{
+namespace Test {
 
 using namespace Lib;
 using namespace Lib::Sys;
 
-TestUnit::TestUnit(const char* id)
-: _id(id), _tests(0)
+TestUnit::TestUnit()
+: _tests()
+{ }
+
+TestUnit TestUnit::_instance;
+TestUnit& TestUnit::instance() 
+{ return _instance; }
+
+bool TestUnit::run(ostream& out)
 {
-  CALL("TestUnit::TestUnit");
+  Stack<Test>::BottomFirstIterator uit(_tests);
 
-  UnitTesting::instance()->add(this);
-}
-
-
-/**
- * Return iterator over the tests in this unit
- *
- * All elements of the iterator must be retrieved, or
- * a memory leak will occur
- */
-TestUnit::Iterator TestUnit::getTests()
-{
-  CALL("TestUnit::getTests");
-
-  TestList* lst = TestList::reverse(TestList::copy(_tests));
-  return TestList::DestructiveIterator(lst);
-}
-
-
-UnitTesting* UnitTesting::instance()
-{
-  static UnitTesting inst;
-
-  return &inst;
-}
-
-UnitTesting::UnitTesting()
-: _units(0)
-{
-}
-
-UnitTesting::~UnitTesting()
-{
-  TestUnitList::destroy(_units);
-}
-
-TestUnit* UnitTesting::get(const char* unitId)
-{
-  CALL("UnitTesting::get");
-
-  TestUnitList::Iterator it(_units);
-  while(it.hasNext()) {
-    TestUnit* u=it.next();
-    if(!strcmp(u->id(), unitId)) {
-      return u;
-    }
-  }
-  return 0;
-}
-
-// TestUnit* UnitTesting::getUnit(const char* unitId)
-// {
-//   TestUnit* unit=get(unitId);
-//   if(!unit) {
-//     return false;
-//   }
-//   runUnit(unit, out);
-//   return true;
-// }
-
-bool UnitTesting::runUnit(TestUnit* unit, ostream& out)
-{
-  out<<"Testing unit "<<unit->id()<<":"<<endl;
-
-  TestUnit::Iterator uit=unit->getTests();
   if(!uit.hasNext()) {
-    out<<"No tests in this unit"<<endl;
+    out<<"No tests to run."<<endl;
   }
   unsigned cnt_fail = 0;
   unsigned cnt_ok  = 0;
@@ -130,18 +71,21 @@ bool UnitTesting::runUnit(TestUnit* unit, ostream& out)
   return cnt_fail == 0;
 }
 
+void TestUnit::add(Test t)
+{ _tests.push(t); }
+
+
 /**
  * Run test in a different process and wait for its termination
  * This is to provide isolation when running multiple tests in one go.
  *
  * returns true iff the test process exited with status code 0
  */
-bool UnitTesting::spawnTest(TestProc proc)
+bool TestUnit::spawnTest(TestProc proc)
 {
-
   auto mp = Multiprocessing::instance();
   pid_t fres = mp->fork();
-  if(!fres) {
+  if(fres == 0) {
     proc();
     _exit(0); // don't call parent's atexit! 
   } else {
@@ -151,29 +95,11 @@ bool UnitTesting::spawnTest(TestProc proc)
   }
 }
 
-bool UnitTesting::runAllTests(ostream& out)
-{
-  TestUnitList::Iterator tuit(_units);
-  bool allOk = true;
-  while(tuit.hasNext()) {
-    allOk &= runUnit(tuit.next(), out);
-    if(tuit.hasNext()) {
-      out<<endl;
-    }
-  }
-  return allOk;
+} // namespace Test
+
+int main() {
+  bool success = Test::TestUnit::instance().run(std::cout);
+  return success ? 0 : -1;
 }
 
-void UnitTesting::printTestNames(ostream& out)
-{
-  CALL("UnitTesting::printTestNames");
-
-  TestUnitList::Iterator tuit(_units);
-  while(tuit.hasNext()) {
-    out<<tuit.next()->id()<<endl;
-  }
-}
-
-
-}
 
