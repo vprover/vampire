@@ -43,7 +43,6 @@
 
 #if VDEBUG
 #include <iostream>
-#include "Test/Output.hpp"
 using namespace std;
 #endif
 

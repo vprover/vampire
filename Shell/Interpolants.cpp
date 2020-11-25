@@ -506,8 +506,7 @@ void Interpolants::generateInterpolant(ItemState& st)
 
   TRACE(cout << "GenerateInterpolant for " << u->toString() << endl);
 
-  Color color=st.usColor();
-  ASS_EQ(color, COLOR_TRANSPARENT);
+  ASS_EQ(st.usColor(), COLOR_TRANSPARENT);
 
   Formula* interpolant;
   Formula* unitFormula=u->getFormula();//st.us().prop());

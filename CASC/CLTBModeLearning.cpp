@@ -227,8 +227,9 @@ void CLTBModeLearning::solveBatch(istream& batchFile, bool first,vstring inputDi
     int resValue;
     // wait until the child terminates
     try {
-      pid_t finishedChild = Multiprocessing::instance()->waitForChildTermination(resValue);
-      ASS_EQ(finishedChild, child);
+      ALWAYS(
+        Multiprocessing::instance()->waitForChildTermination(resValue) == child
+      );
     }
     catch(SystemFailException& ex) {
       cerr << "% SystemFailException at batch level" << endl;
@@ -360,8 +361,9 @@ void CLTBModeLearning::doTraining(int time, bool startup)
     }
     int resValue;
     try {
-      pid_t finishedChild = Multiprocessing::instance()->waitForChildTermination(resValue);
-      ASS_EQ(finishedChild, child);
+      ALWAYS(
+        Multiprocessing::instance()->waitForChildTermination(resValue) == child
+      );
     }
     catch(SystemFailException& ex) {
       cerr << "% SystemFailException at batch level" << endl;

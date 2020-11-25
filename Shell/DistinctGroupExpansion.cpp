@@ -73,9 +73,7 @@ bool DistinctGroupExpansion::apply(UnitList*& units)
 
   // If this is updated then make sure you update the check in
   // Kernel::Signature::Symol::addToDistinctGroup as well
-  bool expandEverything = 
-    env.options->saturationAlgorithm()==Options::SaturationAlgorithm::FINITE_MODEL_BUILDING ||
-    env.options->bfnt();
+  bool expandEverything = env.options->saturationAlgorithm()==Options::SaturationAlgorithm::FINITE_MODEL_BUILDING;
 
   bool someLeft = false;
 

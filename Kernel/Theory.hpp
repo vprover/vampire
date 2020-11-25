@@ -24,7 +24,7 @@
 #ifndef __Theory__
 #define __Theory__
 
-#include <math.h>
+#include <cmath>
 
 #include "Forwards.hpp"
 

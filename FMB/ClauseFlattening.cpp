@@ -71,8 +71,6 @@ bool ClauseFlattening::isShallow(Literal* lit)
  * Apply equality resolution to all negative equalities between variables
  * in cl and return the result. If cl contains no such inequalities, return cl
  * itself.
- *
- * Copied from BFNT, put here in case we remove BFNT 
  */
 Clause* ClauseFlattening::resolveNegativeVariableEqualities(Clause* cl)
 {
@@ -125,8 +123,6 @@ Clause* ClauseFlattening::resolveNegativeVariableEqualities(Clause* cl)
 
 /**
  * Flatten clauses
- *
- * Largely based on BFNT::apply
  *
  * @author Giles
  */

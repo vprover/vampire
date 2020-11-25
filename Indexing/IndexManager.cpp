@@ -28,7 +28,6 @@
 #include "Saturation/SaturationAlgorithm.hpp"
 
 #include "AcyclicityIndex.hpp"
-//#include "ArithmeticIndex.hpp"
 #include "CodeTreeInterfaces.hpp"
 #include "GroundingIndex.hpp"
 #include "LiteralIndex.hpp"
@@ -293,11 +292,6 @@ Index* IndexManager::create(IndexType t)
     res = new GroundingIndex(_alg->getOptions());
     isGenerating = false;
     break;
-
-//  case ARITHMETIC_INDEX:
-//    res=new ArithmeticIndex();
-//    isGenerating = false;
-//    break;
 
   default:
     INVALID_OPERATION("Unsupported IndexType.");

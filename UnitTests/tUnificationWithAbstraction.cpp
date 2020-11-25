@@ -38,6 +38,7 @@
 
 #include "Test/UnitTesting.hpp"
 
+// TODO make this test use assertions, instead of printing output
 
 #define UNIT_ID uwa 
 UT_CREATE;
@@ -149,7 +150,7 @@ void reportMatches(LiteralIndexingStructure* index, Literal* qlit)
   while(it.hasNext()){
     SLQueryResult qr = it.next();
     cout << qr.clause->toString() << " matches with substitution: "<< endl;
-    cout << qr.substitution->tryGetRobSubstitution()->toString() << endl;
+    // cout << qr.substitution->tryGetRobSubstitution()->toString() << endl;
     cout << "and constraints: "<< endl;
     auto constraints = qr.constraints;
     for(unsigned i=0;i<constraints->size();i++){
@@ -222,7 +223,7 @@ void reportRobUnify(TermList a, TermList b)
   bool result = sub.unify(a,NORM_QUERY_BANK,b,NORM_RESULT_BANK,hndlr);
   cout << "Result is " << result << endl;
   if(result){
-    cout << "> Substitution is " << endl << sub.toString();
+    // cout << "> Substitution is " << endl << sub.toString();
     cout << "> Constraints are:" << endl;
     auto rs = ResultSubstitution::fromSubstitution(&sub,NORM_QUERY_BANK,NORM_RESULT_BANK);
     for(unsigned i=0;i<constraints.size();i++){

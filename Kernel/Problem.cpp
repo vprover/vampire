@@ -508,10 +508,10 @@ void Problem::collectPredicates(Stack<unsigned>& acc) const
   }
 }
 
+#if VDEBUG
 ///////////////////////
 // debugging
 //
-
 void Problem::assertValid()
 {
   CALL("Problem::assertValid");
@@ -522,3 +522,4 @@ void Problem::assertValid()
     ASSERT_VALID(*u);
   }
 }
+#endif

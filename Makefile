@@ -353,7 +353,6 @@ VST_OBJ= Saturation/AWPassiveClauseContainer.o\
          Saturation/Discount.o\
          Saturation/ExtensionalityClauseContainer.o\
 	 Saturation/LabelFinder.o\
-         Saturation/Limits.o\
          Saturation/LRS.o\
          Saturation/Otter.o\
          Saturation/ProvingHelper.o\
@@ -363,8 +362,6 @@ VST_OBJ= Saturation/AWPassiveClauseContainer.o\
          Saturation/ManCSPassiveClauseContainer.o\
 
 VS_OBJ = Shell/AnswerExtractor.o\
-         Shell/BFNT.o\
-         Shell/BFNTMainLoop.o\
          Shell/CommandLine.o\
          Shell/CNF.o\
          Shell/NewCNF.o\
@@ -397,7 +394,6 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/Rectify.o\
          Shell/Skolem.o\
          Shell/SimplifyFalseTrue.o\
-         Shell/SimplifyProver.o\
          Shell/SineUtils.o\
          Shell/SMTFormula.o\
          Shell/FOOLElimination.o\
@@ -444,10 +440,6 @@ PARSE_OBJ = Parse/SMTLIB2.o\
 DP_OBJ = DP/ShortConflictMetaDP.o\
          DP/SimpleCongruenceClosure.o
 
-LTB_OBJ = Shell/LTB/Builder.o\
-          Shell/LTB/Selector.o\
-          Shell/LTB/Storage.o
-
 CASC_OBJ = CASC/PortfolioMode.o\
            CASC/Schedules.o\
 	   CASC/ScheduleExecutor.o\
@@ -463,29 +455,9 @@ VFMB_OBJ = FMB/ClauseFlattening.o\
            FMB/FiniteModelBuilder.o
 
 # testing procedures
-VT_OBJ = Test/CheckedSatSolver.o\
-         Test/CompitOutput.o\
-         Test/Compit2Output.o\
-         Test/Output.o\
-         Test/UnitTesting.o
-#         Test/TestUtils.o\         
- #Test/CheckedFwSimplifier.o\
+VT_OBJ = Test/UnitTesting.o
 
 VUT_OBJ = $(patsubst %.cpp,%.o,$(wildcard UnitTests/*.cpp))
-
-VUTIL_OBJ = VUtils/AnnotationColoring.o\
-            VUtils/CPAInterpolator.o\
-            VUtils/DPTester.o\
-            VUtils/EPRRestoringScanner.o\
-            VUtils/FOEquivalenceDiscovery.o\
-            VUtils/LocalityRestoring.o\
-            VUtils/PreprocessingEvaluator.o\
-            VUtils/ProblemColoring.o\
-            VUtils/RangeColoring.o\
-            VUtils/SATReplayer.o\
-            VUtils/SimpleSMT.o\
-            VUtils/SMTLIBConcat.o\
-            VUtils/Z3InterpolantExtractor.o
 
 LIB_DEP = Indexing/TermSharing.o\
 	  Inferences/DistinctEqualitySimplifier.o\
@@ -554,28 +526,20 @@ OTHER_CL_DEP = Indexing/FormulaIndex.o\
 	       SAT/TWLSolver.o\
 	       SAT/VariableSelector.o	
 
-VAMP_DIRS := Api Debug DP Lib Lib/Sys Kernel FMB Indexing Inferences InstGen Shell CASC Shell/LTB SAT Saturation Test UnitTests VUtils Parse Minisat Minisat/core Minisat/mtl Minisat/simp Minisat/utils Kernel/Rebalancing
+VAMP_DIRS := Api Debug DP Lib Lib/Sys Kernel FMB Indexing Inferences InstGen Shell CASC SAT Saturation Test UnitTests VUtils Parse Minisat Minisat/core Minisat/mtl Minisat/simp Minisat/utils Kernel/Rebalancing
 
 VAMP_BASIC := $(MINISAT_OBJ) $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(BP_VD_OBJ) $(BP_VL_OBJ) $(BP_VLS_OBJ) $(BP_VSOL_OBJ) $(BP_VT_OBJ) $(BP_MPS_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VIG_OBJ) $(VSAT_OBJ) $(DP_OBJ) $(VST_OBJ) $(VS_OBJ) $(PARSE_OBJ) $(VFMB_OBJ)
-#VCLAUSIFY_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VSAT_OBJ) $(VST_OBJ) $(VS_OBJ) $(VT_OBJ)
-VCLAUSIFY_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(filter-out Shell/InterpolantMinimizer.o Shell/AnswerExtractor.o Shell/BFNTMainLoop.o, $(VS_OBJ)) $(PARSE_OBJ) $(LIB_DEP) $(OTHER_CL_DEP) 
-VSAT_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VSAT_OBJ) Test/CheckedSatSolver.o $(LIB_DEP)
-#VGROUND_BASIC := $(VD_OBJ) $(VL_OBJ) $(VK_OBJ) $(VI_OBJ) $(VSAT_OBJ) $(VS_OBJ) $(VT_OBJ)  
+VSAT_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VSAT_OBJ) $(LIB_DEP)
 
 VAMPIRE_DEP := $(VAMP_BASIC) $(CASC_OBJ) $(TKV_BASIC) Global.o vampire.o
-VCOMPIT_DEP = $(VAMP_BASIC) Global.o vcompit.o
-VLTB_DEP = $(VAMP_BASIC) $(LTB_OBJ) Global.o vltb.o
-VCLAUSIFY_DEP = $(VCLAUSIFY_BASIC) Global.o vclausify.o
-VUTIL_DEP = $(VAMP_BASIC) $(CASC_OBJ) $(VUTIL_OBJ) Global.o vutil.o
-VSAT_DEP = $(VSAT_BASIC) Global.o vsat.o
+VSAT_DEP = $(VSAT_BASIC) Global.o
 VTEST_DEP = $(VAMP_BASIC) $(VT_OBJ) $(VUT_OBJ) $(DP_OBJ) Global.o vtest.o
-LIBVAPI_DEP = $(VD_OBJ) $(API_OBJ) $(VCLAUSIFY_BASIC) Global.o
+LIBVAPI_DEP = $(VD_OBJ) $(API_OBJ) Global.o
 VAPI_DEP =  $(LIBVAPI_DEP) test_vapi.o
-#UCOMPIT_OBJ = $(VCOMPIT_BASIC) Global.o compit2.o compit2_impl.o
-VGROUND_DEP = $(VAMP_BASIC) Global.o vground.o
 
-
-all:#default make disabled
+all: #default make disabled
+	@echo "The make(1)-based build is no longer supported: use the CMake build instead."
+	@echo "If you know what you're doing and want to use it, read the Makefile."
 
 #the $(CONF_ID) directory is considered intermediate and make would otherwise try to delete it
 #(this forbids deletion of intermediate files)
@@ -640,15 +604,11 @@ $(CONF_ID)/%.o : %.cc | $(CONF_ID)
 # targets for executables
 
 VAMPIRE_OBJ := $(addprefix $(CONF_ID)/, $(VAMPIRE_DEP))
-VCOMPIT_OBJ := $(addprefix $(CONF_ID)/, $(VCOMPIT_DEP))
-VLTB_OBJ := $(addprefix $(CONF_ID)/, $(VLTB_DEP))
-VCLAUSIFY_OBJ := $(addprefix $(CONF_ID)/, $(VCLAUSIFY_DEP))
 VTEST_OBJ := $(addprefix $(CONF_ID)/, $(VTEST_DEP))
 VUTIL_OBJ := $(addprefix $(CONF_ID)/, $(VUTIL_DEP))
 VSAT_OBJ := $(addprefix $(CONF_ID)/, $(VSAT_DEP))
 VAPI_OBJ := $(addprefix $(CONF_ID)/, $(VAPI_DEP))
 LIBVAPI_OBJ := $(addprefix $(CONF_ID)/, $(LIBVAPI_DEP))
-VGROUND_OBJ := $(addprefix $(CONF_ID)/, $(VGROUND_DEP))
 TKV_OBJ := $(addprefix $(CONF_ID)/, $(TKV_DEP))
 
 LGMP = 
@@ -689,22 +649,7 @@ vampire_dbg vampire_rel vampire_dbg_static vampire_dbg_gcov vampire_rel_static v
 vampire: $(VAMPIRE_OBJ) $(EXEC_DEF_PREREQ)
 	$(COMPILE_CMD_SIMPLE)
 
-vcompit: $(VCOMPIT_OBJ) $(EXEC_DEF_PREREQ)
-	$(COMPILE_CMD)
-
-vltb vltb_rel vltb_dbg: -lmemcached $(VLTB_OBJ) $(EXEC_DEF_PREREQ)
-	$(COMPILE_CMD)
-
-vclausify vclausify_rel vclausify_dbg: $(VCLAUSIFY_OBJ) $(EXEC_DEF_PREREQ)
-	$(COMPILE_CMD)
-
 vtest vtest_z3: $(VTEST_OBJ) $(EXEC_DEF_PREREQ)
-	$(COMPILE_CMD)
-
-vutil vutil_rel vutil_dbg: $(VUTIL_OBJ) $(EXEC_DEF_PREREQ)
-	$(COMPILE_CMD)
-
-vsat vsat_rel vsat_dbg: $(VSAT_OBJ) $(EXEC_DEF_PREREQ)
 	$(COMPILE_CMD)
 
 vapi vapi_dbg vapi_rel: $(VAPI_OBJ) $(EXEC_DEF_PREREQ)
@@ -736,59 +681,15 @@ compile_commands.json: $(foreach x, $(VAMPIRE_DEP), compile_commands/$x)
 	echo '  }'>> $@
 	echo ']' >> $@
 
-clausify_src:
-	rm -rf $@
-	mkdir $@
-	mkdir $(patsubst %, $@/%, $(VAMP_DIRS))
-	tar cf - $(sort $(patsubst %.o,%.cpp,$(VCLAUSIFY_DEP))) | (cd $@ ; tar xvf -) 2>/dev/null
-	cp Makefile Makefile_depend $@
-	tar cf - $(sort $(shell $(CXX) -I. -MM -DVDEBUG=1 -DVTEST=1 -DCHECK_LEAKS=1 $(sort $(patsubst %.o,%.cpp,$(VCLAUSIFY_DEP))) |tr '\n' ' '|tr -d ':\\'|sed -E 's/(^| )[^ ]+\.(o|cpp)//g' )) | (cd $@ ; tar xvf -) 2>/dev/null
-	rm -f $@.tgz
-	tar -czf $@.tgz $@
-
 api_src:
 	rm -rf $@
 	mkdir $@
 	mkdir $(patsubst %, $@/%, $(VAMP_DIRS))
-	tar cf - $(sort $(patsubst %.o,%.cpp,$(VCLAUSIFY_DEP) $(VAPI_DEP) test_libvapi.o)) | (cd $@ ; tar xvf -) 2>/dev/null
+	tar cf - $(sort $(patsubst %.o,%.cpp, $(VAPI_DEP) test_libvapi.o)) | (cd $@ ; tar xvf -) 2>/dev/null
 	cp Makefile Makefile_depend test_vapi.cpp $@
-	tar cf - $(sort $(shell $(CXX) -I. -MM -DVDEBUG=1 -DVTEST=1 -DCHECK_LEAKS=1 $(sort $(patsubst %.o,%.cpp,$(VCLAUSIFY_DEP) $(VAPI_DEP))) |tr '\n' ' '|tr -d ':\\'|sed -E 's/(^| )[^ ]+\.(o|cpp)//g' )) | (cd $@ ; tar xvf -) 2>/dev/null
+	tar cf - $(sort $(shell $(CXX) -I. -MM -DVDEBUG=1 -DVTEST=1 -DCHECK_LEAKS=1 $(sort $(patsubst %.o,%.cpp, $(VAPI_DEP))) |tr '\n' ' '|tr -d ':\\'|sed -E 's/(^| )[^ ]+\.(o|cpp)//g' )) | (cd $@ ; tar xvf -) 2>/dev/null
 	rm -f $@.tgz
 	tar -czf $@.tgz $@
-
-
-vground: $(VGROUND_OBJ) $(EXEC_DEF_PREREQ)
-	$(COMPILE_CMD)
-
-#
-#ucompit: $(UCOMPIT_OBJ) $(EXEC_DEF_PREREQ)
-#	$(CXX) $(CXXFLAGS) $^ -o $@
-#
-#sat: $(SAT_OBJ) $(EXEC_DEF_PREREQ)
-#	$(CXX) $(CXXFLAGS) $^ -o $@
-##	strip sat
-#
-#test: $(TEST_OBJ) $(EXEC_DEF_PREREQ)
-#	$(CXX) $(CXXFLAGS) $^ -o $@
-#
-#rtest: $(RTEST_OBJ) $(EXEC_DEF_PREREQ)
-#	$(CXX) $(CXXFLAGS) $^ -o $@
-#
-#test_alloc: $(ALLOCTEST_OBJ) $(EXEC_DEF_PREREQ)
-#	$(CXX) $(CXXFLAGS) $^ -o $@
-#
-#
-#test_DHMap: $(DHTEST_OBJ) $(EXEC_DEF_PREREQ)
-#	$(CXX) $(CXXFLAGS) $^ -o $@
-#
-#test_DHMultiset: $(DHMSTEST_OBJ) $(EXEC_DEF_PREREQ)
-#	$(CXX) $(CXXFLAGS) $^ -o $@
-#
-#test_BinaryHeap: $(BHTEST_OBJ) $(EXEC_DEF_PREREQ)
-#	$(CXX) $(CXXFLAGS) $^ -o $@
-#
-#test_SkipList: $(SLTEST_OBJ) $(EXEC_DEF_PREREQ)
-#	$(CXX) $(CXXFLAGS) $^ -o $@
 
 clean:
 	rm -rf obj version.cpp
@@ -797,7 +698,7 @@ doc:
 	rm -fr doc/html
 	doxygen config.doc
 
-.PHONY: doc clean clausify_src api_src
+.PHONY: doc clean api_src
 
 ###########################
 # include header dependencies

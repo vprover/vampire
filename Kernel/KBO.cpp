@@ -839,4 +839,11 @@ bool KboSpecialWeights<FuncSigTraits>::tryGetWeight(unsigned functor, unsigned& 
   return false;
 }
 
+template KboWeightMap<FuncSigTraits> KboWeightMap<FuncSigTraits>::dflt();
+template KboWeight KboWeightMap<FuncSigTraits>::symbolWeight(unsigned) const;
+#if __KBO__CUSTOM_PREDICATE_WEIGHTS__
+template KboWeightMap<PredSigTraits> KboWeightMap<PredSigTraits>::dflt();
+template KboWeight KboWeightMap<PredSigTraits>::symbolWeight(unsigned) const;
+#endif
+
 }

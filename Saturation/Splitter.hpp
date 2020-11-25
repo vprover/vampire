@@ -120,7 +120,7 @@ private:
    */
   ArraySet _trueInCCModel;
 
-#ifdef VDEBUG
+#if VDEBUG
   unsigned lastCheckedVar;
 #endif
 };

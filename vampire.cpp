@@ -296,12 +296,6 @@ void boundPropagationMode(){
 
   ConstraintRCList* constraints(UIHelper::getPreprocessedConstraints(*env.options));
 
-#if 0
-  ConstraintRCList::Iterator ite(constraints);
-  while(ite.hasNext())
-      std::cout<<"preproc: "<<ite.next()->toString()<<"\n";
-#endif
-
   start:
   try
   {

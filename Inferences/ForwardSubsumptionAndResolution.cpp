@@ -320,8 +320,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
         //we've already checked this clause
         continue;
       }
-      unsigned mlen=mcl->length();
-      ASS_G(mlen,1);
+      ASS_G(mcl->length(),1);
 
       ClauseMatches* cms=new ClauseMatches(mcl);
       mcl->setAux(cms);

@@ -168,8 +168,6 @@ Statistics::Statistics()
     instGenKeptClauses(0),
     instGenIterations(0),
 
-    maxBFNTModelSize(0),
-
     satPureVarsEliminated(0),
     terminationReason(UNKNOWN),
     refutation(0),
@@ -409,10 +407,6 @@ void Statistics::print(ostream& out)
   SEPARATOR;
 
   //TODO record statistics for FMB
-  HEADING("Model Building",maxBFNTModelSize);
-  COND_OUT("Max BFNT model size", maxBFNTModelSize);
-  SEPARATOR;
-
 
   //TODO record statistics for MiniSAT
   HEADING("SAT Solver Statistics",satTWLClauseCount+satTWLVariablesCount+

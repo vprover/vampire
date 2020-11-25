@@ -390,8 +390,6 @@ public:
    * @since 26/08/2009 Redmond
    */
   enum class InputSyntax : unsigned int {
-    /** syntax of the Simplify prover */
-    //SIMPLIFY = 0,
     /** syntax of SMTLIB1.2 */
     //SMTLIB = 1,
     SMTLIB2 = 0,
@@ -1935,7 +1933,6 @@ bool _hard;
     static OptionProblemConstraintUP isRandOn();
     static OptionProblemConstraintUP isRandSat();
     static OptionProblemConstraintUP saNotInstGen();
-    static OptionProblemConstraintUP isBfnt();
 
   //==========================================================
   // Getter functions
@@ -2068,8 +2065,6 @@ public:
   unsigned forwardSubsumptionDemodulationMaxMatches() const { return _forwardSubsumptionDemodulationMaxMatches.actualValue; }
   Demodulation forwardDemodulation() const { return _forwardDemodulation.actualValue; }
   bool binaryResolution() const { return _binaryResolution.actualValue; }
-  bool bfnt() const { return _bfnt.actualValue; }
-  void setBfnt(bool newVal) { _bfnt.actualValue = newVal; }
   URResolution unitResultingResolution() const { return _unitResultingResolution.actualValue; }
   bool hyperSuperposition() const { return _hyperSuperposition.actualValue; }
   bool simulatenousSuperposition() const { return _simultaneousSuperposition.actualValue; }
@@ -2440,7 +2435,6 @@ private:
   ChoiceOptionValue<Subsumption> _backwardSubsumptionResolution;
   BoolOptionValue _backwardSubsumptionDemodulation;
   UnsignedOptionValue _backwardSubsumptionDemodulationMaxMatches;
-  BoolOptionValue _bfnt;
   BoolOptionValue _binaryResolution;
   BoolOptionValue _bpCollapsingPropagation;
   UnsignedOptionValue _bpAllowedFMBalance;

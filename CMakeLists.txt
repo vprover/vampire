@@ -1,7 +1,7 @@
 ################################################################
 # general configuration
 ################################################################
-cmake_minimum_required (VERSION 3.5.1)
+cmake_minimum_required (VERSION 3.12.0)
 project(Vampire)
 
 # require the compiler to use C++11
@@ -520,7 +520,6 @@ set(VAMPIRE_SATURATION_SOURCES
     Saturation/Discount.cpp
     Saturation/ExtensionalityClauseContainer.cpp
     Saturation/LabelFinder.cpp
-    Saturation/Limits.cpp
     Saturation/LRS.cpp
     Saturation/Otter.cpp
     Saturation/ProvingHelper.cpp
@@ -534,7 +533,6 @@ set(VAMPIRE_SATURATION_SOURCES
     Saturation/Discount.hpp
     Saturation/ExtensionalityClauseContainer.hpp
     Saturation/LabelFinder.hpp
-    Saturation/Limits.hpp
     Saturation/LRS.hpp
     Saturation/Otter.hpp
     Saturation/ProvingHelper.hpp
@@ -548,8 +546,6 @@ source_group(saturation_source_files FILES ${VAMPIRE_SATURATION_SOURCES})
 set(VAMPIRE_SHELL_SOURCES
     Shell/AnswerExtractor.cpp
     #Shell/AxiomGenerator.cpp
-    Shell/BFNT.cpp
-    Shell/BFNTMainLoop.cpp
     Shell/CommandLine.cpp
     Shell/CNF.cpp
     Shell/NewCNF.cpp
@@ -587,7 +583,6 @@ set(VAMPIRE_SHELL_SOURCES
     #Shell/Refutation.cpp
     Shell/Skolem.cpp
     Shell/SimplifyFalseTrue.cpp
-    Shell/SimplifyProver.cpp
     Shell/SineUtils.cpp
     Shell/SMTFormula.cpp
     #Shell/SMTPrinter.cpp
@@ -619,8 +614,6 @@ set(VAMPIRE_SHELL_SOURCES
     #Shell/SubsumptionRemover.cpp
     Shell/AnswerExtractor.hpp
     #Shell/AxiomGenerator.hpp
-    Shell/BFNT.hpp
-    Shell/BFNTMainLoop.hpp
     Shell/CommandLine.hpp
     Shell/CNF.hpp
     Shell/NewCNF.hpp
@@ -657,7 +650,6 @@ set(VAMPIRE_SHELL_SOURCES
     #Shell/Refutation.hpp
     Shell/Skolem.hpp
     Shell/SimplifyFalseTrue.hpp
-    Shell/SimplifyProver.hpp
     Shell/SineUtils.hpp
     Shell/SMTFormula.hpp
     Shell/SMTLIBLogic.hpp
@@ -744,6 +736,39 @@ set(VAMPIRE_CASC_SOURCES
     )
 source_group(casc_source_files FILES ${VAMPIRE_CASC_SOURCES})
 
+set(VAMPIRE_TESTING_SOURCES
+    Test/UnitTesting.cpp
+    Test/UnitTesting.hpp
+)
+source_group(testing_files FILES ${VAMPIRE_TESTING_SOURCES})
+
+set(UNIT_TESTS
+    UnitTests/tDHMap.cpp
+    UnitTests/tQuotientE.cpp
+    UnitTests/tImplicationSetClosure.cpp
+    UnitTests/tUnificationWithAbstraction.cpp
+    UnitTests/tGaussianElimination.cpp
+    UnitTests/tDisagreement.cpp
+    UnitTests/tDynamicHeap.cpp
+    UnitTests/tIntegerConstantType.cpp
+    UnitTests/tSATSolver.cpp
+    UnitTests/tArithCompare.cpp
+    UnitTests/tSyntaxSugar.cpp
+    UnitTests/tSkipList.cpp
+    UnitTests/tfork.cpp
+    UnitTests/tBinaryHeap.cpp
+    UnitTests/tSafeRecursion.cpp
+    UnitTests/tKBO.cpp
+    UnitTests/tRatioKeeper.cpp
+    UnitTests/tTwoVampires.cpp
+    UnitTests/tOptionConstraints.cpp
+    UnitTests/tSCCAnalyzer.cpp
+    UnitTests/tDHMultiset.cpp
+    UnitTests/tList.cpp
+    UnitTests/tStack.cpp
+)
+source_group(unit_tests FILES ${UNIT_TESTS})
+
 # also include forwards.hpp?
 set(VAMPIRE_SOURCES 
     ${VAMPIRE_DEBUG_SOURCES}
@@ -762,14 +787,10 @@ set(VAMPIRE_SOURCES
     ${VAMPIRE_SMTCOMP_SOURCES}
     ${VAMPIRE_MINISAT_SOURCES}
     ${VAMPIRE_CASC_SOURCES}
-    # Test/CheckedSatSolver.cpp
-    # Test/CheckedSatSolver.hpp
+    Forwards.hpp
     Global.cpp
-    vampire.cpp
     "${CMAKE_CURRENT_BINARY_DIR}/version.cpp"
     )
-
-add_executable(vampire ${VAMPIRE_SOURCES})
 
 ################################################################
 # compiler flag configuration
@@ -786,19 +807,19 @@ add_executable(vampire ${VAMPIRE_SOURCES})
 # "$<$<CONFIG:RELEASE>:-O3>"
 
 # add top level directory to the search path of compiler
-target_include_directories(vampire PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 # set preprocessor defines
-target_compile_definitions(vampire PRIVATE CHECK_LEAKS=0)
+add_compile_definitions(CHECK_LEAKS=0)
 if(CMAKE_BUILD_TYPE STREQUAL Debug)
-  target_compile_definitions(vampire PRIVATE VDEBUG=1 UNIX_USE_SIGALRM=1 GNUMP=0)
+  add_compile_definitions(VDEBUG=1 UNIX_USE_SIGALRM=1 GNUMP=0)
 elseif(CMAKE_BUILD_TYPE STREQUAL Release)
-  target_compile_definitions(vampire PRIVATE VDEBUG=0)
+  add_compile_definitions(VDEBUG=0)
 endif()
 
 # configure warning flags
 if(CMAKE_CXX_COMPILER_ID STREQUAL GNU OR CMAKE_CXX_COMPILER_ID MATCHES Clang$)
-#  target_compile_options(vampire PRIVATE -Wall)
+  add_compile_options(-Wall)
 endif()
 
 ################################################################
@@ -808,23 +829,58 @@ endif()
 find_package(Z3 CONFIG NO_DEFAULT_PATH PATHS ${CMAKE_SOURCE_DIR}/z3/build/)
 if (NOT Z3_FOUND)
   message(STATUS "No Z3 found -- Compiling without SMT support.")
-  target_compile_definitions(vampire PRIVATE VZ3=0)
+  add_compile_definitions(VZ3=0)
 else ()
   message(STATUS "Found Z3 ${Z3_VERSION_STRING}")
-  target_include_directories(vampire PRIVATE ${Z3_CXX_INCLUDE_DIRS})
+  include_directories(${Z3_CXX_INCLUDE_DIRS})
   if(NOT BUILD_SHARED_LIBS AND Z3_FOUND AND CMAKE_CXX_COMPILER_ID STREQUAL GNU)
     # https://stackoverflow.com/questions/58848694/gcc-whole-archive-recipe-for-static-linking-to-pthread-stopped-working-in-rec
     message(STATUS "Adding workaround for gcc static linking against pthread")
-    target_link_libraries(vampire PRIVATE ${Z3_LIBRARIES} -pthread -Wl,--whole-archive -lrt -lpthread -Wl,--no-whole-archive)
+    link_libraries(${Z3_LIBRARIES} -pthread -Wl,--whole-archive -lrt -lpthread -Wl,--no-whole-archive)
   else()
-    target_link_libraries(vampire PRIVATE ${Z3_LIBRARIES})
+    link_libraries(${Z3_LIBRARIES})
   endif()
 
   add_library(Z3 SHARED IMPORTED)
   set_property(TARGET Z3 PROPERTY IMPORTED_LOCATION ${Z3_LIBRARY})
-  target_compile_definitions(vampire PRIVATE VZ3=1)
+  add_compile_definitions(VZ3=1)
   set(VAMPIRE_BINARY_Z3 _z3)
 endif()
+
+################################################################
+# build objects
+################################################################
+add_library(obj OBJECT ${VAMPIRE_SOURCES})
+add_library(test_obj OBJECT ${VAMPIRE_TESTING_SOURCES})
+
+################################################################
+# UNIT TESTING 
+################################################################
+
+include(CTest)
+foreach(test_file ${UNIT_TESTS})
+  get_filename_component(test_name ${test_file} NAME_WE)
+  string(REGEX REPLACE "^t" "" test_name ${test_name})
+
+  # compiling the test case executable
+  add_executable(
+    test-${test_name}
+    ${test_file}
+    $<TARGET_OBJECTS:obj>
+    $<TARGET_OBJECTS:test_obj>
+  )
+  target_compile_definitions(test-${test_name} PRIVATE CTEST=1)
+  set(test_bin_dir ${CMAKE_BINARY_DIR}/bin/unit-tests)
+  set_target_properties(test-${test_name} PROPERTIES
+      OUTPUT_NAME ${test_name}
+      RUNTIME_OUTPUT_DIRECTORY ${test_bin_dir})   
+
+  # configuring ctest
+  add_test(${test_name} ${test_bin_dir}/${test_name})
+  set_tests_properties(${test_name}
+        PROPERTIES
+        TIMEOUT 20)
+endforeach()
 
 #################################################################
 # automated generation of Vampire revision information from git #
@@ -889,6 +945,7 @@ message(STATUS "Setting binary name to '${VAMPIRE_BINARY}'")
 ################################################################
 # epilogue
 ################################################################
+add_executable(vampire vampire.cpp $<TARGET_OBJECTS:obj>)
 set_target_properties(vampire PROPERTIES
   OUTPUT_NAME ${VAMPIRE_BINARY}
   RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin

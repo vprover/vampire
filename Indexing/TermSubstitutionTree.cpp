@@ -409,7 +409,11 @@ struct TermSubstitutionTree::LeafToLDIteratorFn
 struct TermSubstitutionTree::UnifyingContext
 {
   UnifyingContext(TermList queryTerm,bool withConstraints)
-  : _queryTerm(queryTerm),_withConstraints(withConstraints) {}
+  : _queryTerm(queryTerm)
+#if VDEBUG
+    , _withConstraints(withConstraints)
+#endif
+  {}
   bool enter(TermQueryResult qr)
   {
     //if(_withConstraints){ cout << "enter " << qr.term << endl; }
@@ -434,7 +438,9 @@ struct TermSubstitutionTree::UnifyingContext
   }
 private:
   TermList _queryTerm;
+#if VDEBUG
   bool _withConstraints;
+#endif
 };
 
 template<class LDIt>

@@ -429,7 +429,7 @@ Inference::Inference(const TheoryAxiom& ta) {
   CALL("Inference::Inference(TheoryAxiom)");
 
   init0(UnitInputType::AXIOM,ta.rule);
-  ASS_REP(isTheoryAxiomRule(ta.rule),ruleName(ta.rule));
+  ASS_REP(isInternalTheoryAxiomRule(ta.rule) || isExternalTheoryAxiomRule(ta.rule), ruleName(ta.rule));
 }
 
 Inference::Inference(const FormulaTransformation& ft) {
@@ -784,8 +784,6 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "choice axiom";
   case InferenceRule::DISTINCTNESS_AXIOM:
     return "distinctness axiom";
-  case InferenceRule::SIMPLIFY_PROVER_DISTINCT_NUMBERS_AXIOM:
-    return "distinct numbers";
   case InferenceRule::THEORY_TAUTOLOGY_SAT_CONFLICT:
     return "theory tautology sat conflict";
   case InferenceRule::GENERIC_THEORY_AXIOM:
@@ -894,12 +892,6 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "external";
   case InferenceRule::CLAIM_DEFINITION:
     return "claim definition";
-  case InferenceRule::BFNT_FLATTENING:
-    return "bfnt flattening";
-  case InferenceRule::BFNT_DISTINCT:
-    return "bfnt distinct";
-  case InferenceRule::BFNT_TOTALITY:
-    return "bfnt totality";
   case InferenceRule::FMB_FLATTENING:
     return "flattening (finite model building)";
   case InferenceRule::FMB_FUNC_DEF:

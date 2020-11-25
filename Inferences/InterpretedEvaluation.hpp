@@ -51,7 +51,9 @@ private:
   bool simplifyLiteral(Literal* lit, bool& constant, Literal*& res, bool& constantTrue,Stack<Literal*>& sideConditions);
 
   InterpretedLiteralEvaluator* _simpl;
+#if VDEBUG
   Ordering& _ordering;
+#endif
 };
 
 };

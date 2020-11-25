@@ -147,7 +147,7 @@ void Signature::Symbol::addToDistinctGroup(unsigned group,unsigned this_number)
   env.signature->_distinctGroupsAddedTo=true;
 
   Signature::DistinctGroupMembers members = env.signature->_distinctGroupMembers[group];
-  if(members->size() <= DistinctGroupExpansion::EXPAND_UP_TO_SIZE || env.options->bfnt()
+  if(members->size() <= DistinctGroupExpansion::EXPAND_UP_TO_SIZE
                        || env.options->saturationAlgorithm()==Options::SaturationAlgorithm::FINITE_MODEL_BUILDING){
     // we add one more than EXPAND_UP_TO_SIZE to signal to DistinctGroupExpansion::apply not to expand
     // ... instead DistinctEqualitySimplifier will take over

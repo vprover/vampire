@@ -25,7 +25,7 @@
 #ifndef __BitUtils__
 #define __BitUtils__
 
-#include <string.h>
+#include <cstring>
 
 #include "Lib/Portability.hpp"
 
