@@ -1187,71 +1187,50 @@ Term* Term::create(unsigned fn, std::initializer_list<TermList> args)
  * Create singleton FOOL constants
  */ 
 Term* Term::foolTrue(){
-  static Term* _foolTrue = 0;
-  if(!_foolTrue){ _foolTrue = createConstant(env.signature->getFoolConstantSymbol(true));}
+  CALL("Term::foolTrue");
+  static Term* _foolTrue = createConstant(env.signature->getFoolConstantSymbol(true));
   return _foolTrue;
 }
 
 Term* Term::foolFalse(){
-  static Term* _foolFalse = 0;
-  if(!_foolFalse){ _foolFalse = createConstant(env.signature->getFoolConstantSymbol(false));}
+  CALL("Term::foolFalse");
+  static Term* _foolFalse = createConstant(env.signature->getFoolConstantSymbol(false));
   return _foolFalse;
 }
 
 TermList Term::superSort(){
   CALL("Term::superSort");
-  static Term* _super = 0;
-  if(!_super){ _super = createConstant("$tType"); }
+  static Term* _super = createConstant("$tType");
   return TermList(_super);
 }
 
 TermList Term::defaultSort(){
   CALL("Term::defaultSort");
-  static Term* _default = 0;
-  if(!_default){ 
-    _default = createConstant(env.signature->getDefaultSort()); 
-    env.sorts->addSort(TermList(_default));
-  }
+  static Term* _default = createConstant(env.signature->getDefaultSort());
   return TermList(_default); 
 }
   
 TermList Term::boolSort(){
   CALL("Term::boolSort");
-  static Term* _bool = 0;
-  if(!_bool){ 
-    _bool = createConstant(env.signature->getBoolSort()); 
-     env.sorts->addSort(TermList(_bool));
-  }
+  static Term* _bool = createConstant(env.signature->getBoolSort()); 
   return TermList(_bool); 
 }
 
 TermList Term::intSort(){
   CALL("Term::intSort");
-  static Term* _int = 0;
-  if(!_int){ 
-    _int = createConstant(env.signature->getIntSort()); 
-    env.sorts->addSort(TermList(_int));
-  }
+  static Term* _int = createConstant(env.signature->getIntSort()); 
   return TermList(_int); 
 }
  
 TermList Term::realSort(){
   CALL("Term::realSort");
-  static Term* _real = 0;
-  if(!_real){ 
-    _real = createConstant(env.signature->getRealSort()); 
-    env.sorts->addSort(TermList(_real));
-  }
+  static Term* _real = createConstant(env.signature->getRealSort()); 
   return TermList(_real); 
 }
 
 TermList Term::rationalSort(){
   CALL("Term::rationalSort");
-  static Term* _rat = 0;
-  if(!_rat){ 
-    _rat = createConstant(env.signature->getRatSort()); 
-    env.sorts->addSort(TermList(_rat));
-  }
+  static Term* _rat = createConstant(env.signature->getRatSort());
   return TermList(_rat); 
 }
 
@@ -1394,7 +1373,7 @@ bool Term::isBoolean() const {
 
 bool Term::isSuper() const {
   CALL("Term::isSuper")
-  return !isLiteral() && env.signature->getFunction(_functor)->super(); 
+  return this == Term::superSort().term(); 
 }
 
 /**
