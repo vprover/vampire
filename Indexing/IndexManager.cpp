@@ -251,7 +251,11 @@ Index* IndexManager::create(IndexType t)
 
   case DEMODULATION_SUBTERM_SUBST_TREE:
     tis=new TermSubstitutionTree();
-    res=new DemodulationSubtermIndex(tis);
+    if (env.options->combinatorySup()) {
+      res=new DemodulationSubtermIndexImpl<true>(tis);
+    } else {
+      res=new DemodulationSubtermIndexImpl<false>(tis);
+    }
     isGenerating = false;
     break;
   case DEMODULATION_LHS_SUBST_TREE:

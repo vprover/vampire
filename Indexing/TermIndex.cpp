@@ -24,15 +24,12 @@
 #include "Lib/DHSet.hpp"
 #include "Lib/DHMap.hpp"
 
-#include "Kernel/Clause.hpp"
 #include "Kernel/EqHelper.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Kernel/Term.hpp"
-#include "Kernel/TermIterators.hpp"
 #include "Kernel/ApplicativeHelper.hpp"
 #include "Kernel/SortHelper.hpp"
 
-#include "TermIndexingStructure.hpp"
 #include "TermIndex.hpp"
 
 using namespace Lib;
@@ -349,53 +346,6 @@ void RenamingFormulaIndex::handleClause(Clause* c, bool adding)
     }
   }
 }
-
-
-void DemodulationSubtermIndex::handleClause(Clause* c, bool adding)
-{
-  CALL("DemodulationSubtermIndex::handleClause");
-
-  TimeCounter tc(TC_BACKWARD_DEMODULATION_INDEX_MAINTENANCE);
-
-  static DHSet<TermList> inserted;
-
-  unsigned cLen=c->length();
-  for (unsigned i=0; i<cLen; i++) {
-    // it is true (as stated below) that inserting only once per clause would be sufficient
-    // however, vampire does not guarantee the order of literals stays the same in a clause (selected literals are moved to front)
-    // so if the order changes while a clause is in the index (which can happen with "-sa otter")
-    // the removes could be called on different literals than the inserts!
-    inserted.reset();
-    Literal* lit=(*c)[i];
-    IteratorCore<TermList>* it;
-    if(!env.options->combinatorySup()){
-      it = new NonVariableNonTypeIterator(lit);
-    } else {
-      it = new FirstOrderSubtermIt(lit);
-    }
-    while (it->hasNext()) {
-      TermList t=it->next();
-      if (!inserted.insert(t)) {//TODO existing error? Terms are inserted once per a literal
-        //It is enough to insert a term only once per clause.
-        //Also, once we know term was inserted, we know that all its
-        //subterms were inserted as well, so we can skip them.
-        if(!env.options->combinatorySup()){
-          static_cast<FirstOrderSubtermIt*>(it)->right();
-        } else {
-          static_cast<NonVariableNonTypeIterator*>(it)->right();
-        }
-        continue;
-      }
-      if (adding) {
-        _is->insert(t, lit, c);
-      }
-      else {
-        _is->remove(t, lit, c);
-      }
-    }
-  }
-}
-
 
 void DemodulationLHSIndex::handleClause(Clause* c, bool adding)
 {
