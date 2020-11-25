@@ -426,29 +426,9 @@ VFMB_OBJ = FMB/ClauseFlattening.o\
            FMB/FiniteModelBuilder.o
 
 # testing procedures
-VT_OBJ = Test/CheckedSatSolver.o\
-         Test/CompitOutput.o\
-         Test/Compit2Output.o\
-         Test/Output.o\
-         Test/UnitTesting.o
-#         Test/TestUtils.o\         
- #Test/CheckedFwSimplifier.o\
+VT_OBJ = Test/UnitTesting.o
 
 VUT_OBJ = $(patsubst %.cpp,%.o,$(wildcard UnitTests/*.cpp))
-
-VUTIL_OBJ = VUtils/AnnotationColoring.o\
-            VUtils/CPAInterpolator.o\
-            VUtils/DPTester.o\
-            VUtils/EPRRestoringScanner.o\
-            VUtils/FOEquivalenceDiscovery.o\
-            VUtils/LocalityRestoring.o\
-            VUtils/PreprocessingEvaluator.o\
-            VUtils/ProblemColoring.o\
-            VUtils/RangeColoring.o\
-            VUtils/SATReplayer.o\
-            VUtils/SimpleSMT.o\
-            VUtils/SMTLIBConcat.o\
-            VUtils/Z3InterpolantExtractor.o
 
 LIB_DEP = Indexing/TermSharing.o\
 	  Inferences/DistinctEqualitySimplifier.o\
@@ -518,10 +498,9 @@ OTHER_CL_DEP = Indexing/FormulaIndex.o\
 VAMP_DIRS := Api Debug DP Lib Lib/Sys Kernel FMB Indexing Inferences InstGen Shell CASC SAT Saturation Test UnitTests VUtils Parse Minisat Minisat/core Minisat/mtl Minisat/simp Minisat/utils Kernel/Rebalancing
 
 VAMP_BASIC := $(MINISAT_OBJ) $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(BP_VD_OBJ) $(BP_VL_OBJ) $(BP_VLS_OBJ) $(BP_VSOL_OBJ) $(BP_VT_OBJ) $(BP_MPS_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VIG_OBJ) $(VSAT_OBJ) $(DP_OBJ) $(VST_OBJ) $(VS_OBJ) $(PARSE_OBJ) $(VFMB_OBJ)
-VSAT_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VSAT_OBJ) Test/CheckedSatSolver.o $(LIB_DEP)
+VSAT_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VSAT_OBJ) $(LIB_DEP)
 
 VAMPIRE_DEP := $(VAMP_BASIC) $(CASC_OBJ) $(TKV_BASIC) Global.o vampire.o
-VUTIL_DEP = $(VAMP_BASIC) $(CASC_OBJ) $(VUTIL_OBJ) Global.o vutil.o
 VSAT_DEP = $(VSAT_BASIC) Global.o
 VTEST_DEP = $(VAMP_BASIC) $(VT_OBJ) $(VUT_OBJ) $(DP_OBJ) Global.o vtest.o
 LIBVAPI_DEP = $(VD_OBJ) $(API_OBJ) Global.o
@@ -640,9 +619,6 @@ vampire: $(VAMPIRE_OBJ) $(EXEC_DEF_PREREQ)
 	$(COMPILE_CMD_SIMPLE)
 
 vtest vtest_z3: $(VTEST_OBJ) $(EXEC_DEF_PREREQ)
-	$(COMPILE_CMD)
-
-vutil vutil_rel vutil_dbg: $(VUTIL_OBJ) $(EXEC_DEF_PREREQ)
 	$(COMPILE_CMD)
 
 vapi vapi_dbg vapi_rel: $(VAPI_OBJ) $(EXEC_DEF_PREREQ)

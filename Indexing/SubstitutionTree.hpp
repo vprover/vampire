@@ -47,10 +47,7 @@
 #include "Index.hpp"
 
 #if VDEBUG
-
 #include <iostream>
-#include "Test/Output.hpp"
-
 #endif
 
 using namespace std;

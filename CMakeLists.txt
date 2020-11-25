@@ -698,7 +698,10 @@ set(VAMPIRE_CASC_SOURCES
     )
 source_group(casc_source_files FILES ${VAMPIRE_CASC_SOURCES})
 
-set(VAMPIRE_TESTING_SOURCES Test/UnitTesting.cpp)
+set(VAMPIRE_TESTING_SOURCES
+    Test/UnitTesting.cpp
+    Test/UnitTesting.hpp
+)
 source_group(testing_files FILES ${VAMPIRE_TESTING_SOURCES})
 
 set(UNIT_TESTS
@@ -746,8 +749,6 @@ set(VAMPIRE_SOURCES
     ${VAMPIRE_SMTCOMP_SOURCES}
     ${VAMPIRE_MINISAT_SOURCES}
     ${VAMPIRE_CASC_SOURCES}
-    # Test/CheckedSatSolver.cpp
-    # Test/CheckedSatSolver.hpp
     Forwards.hpp
     Global.cpp
     "${CMAKE_CURRENT_BINARY_DIR}/version.cpp"
