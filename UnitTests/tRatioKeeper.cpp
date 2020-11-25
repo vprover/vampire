@@ -22,9 +22,6 @@
 
 #include "Test/UnitTesting.hpp"
 
-#define UNIT_ID rkeeper
-UT_CREATE;
-
 using namespace std;
 using namespace Lib;
 

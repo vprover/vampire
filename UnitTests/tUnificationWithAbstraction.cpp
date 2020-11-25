@@ -40,9 +40,6 @@
 
 // TODO make this test use assertions, instead of printing output
 
-#define UNIT_ID uwa 
-UT_CREATE;
-
 using namespace Kernel;
 using namespace Indexing;
 

@@ -102,8 +102,6 @@ MY_TEST_NAME=...
 
 # create test file
 cp UnitTests/tSyntaxSugar.cpp UnitTests/t${MY_TEST_NAME}.cpp
-sed -e "s/UNIT_ID SyntaxSugar/UNIT_ID $MY_TEST_NAME/" \
-    -i '' UnitTests/t${MY_TEST_NAME}.cpp
 
 # alter CMakeLists.txt
 sed -e "{/tSyntaxSugar.cpp/p;s/tSyntaxSugar.cpp/t${MY_TEST_NAME}.cpp/;}" \
@@ -115,10 +113,9 @@ vim UnitTests/t${MY_TEST_NAME}.cpp
 
 The unit tests are located in the directory `UnitTests/`. The tests are expected to be `cpp` files, and are prefixed with a `t` (e.g.: `UnitTests/tSyntaxSugar.cpp`). Each new test file must be added to the source list `UNIT_TEST` in `CMakeLists.txt`.
 
-A test file must contain the following statements to initalize unit testing.
+A test file must include `Test/UnitTesting.hpp` contain the following statements to initalize unit testing.
 ```
-#define UNIT_ID <name> // required for legacy compability with our executable vtest
-UT_CREATE;             // initializes the unit test, creating a main as an entry point for ctest
+#include "Test/UnitTesting.hpp"
 ```
 
 After this test functions can be defined:
