@@ -26,6 +26,24 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include <limits>
 
 
+
+#define ENABLE_CLAUSE_DELETION 0
+
+#if ENABLE_CLAUSE_DELETION
+#define IF_ENABLE_CLAUSE_DELETION(stmt) \
+  do                           \
+  {                            \
+    stmt;                      \
+  } while (false)
+#else
+#define IF_ENABLE_CLAUSE_DELETION(stmt) \
+  do                           \
+  { /* nothing */              \
+  } while (false)
+#endif
+
+
+
 namespace SMTSubsumption { namespace Minisat {
 
 //=================================================================================================
@@ -100,6 +118,7 @@ inline std::ostream& operator<<(std::ostream& o, Lit l)
 // Clause -- a simple class for representing a clause:
 
 
+#if ENABLE_CLAUSE_DELETION
 class Clause {
     uint    size_learnt;
     Lit     data[1];
@@ -135,6 +154,45 @@ inline Clause* Clause_new(bool learnt, const vec<Lit>& ps)
     void* mem = xmalloc<char>(sizeof(Clause) - sizeof(Lit) + sizeof(uint)*(ps.size() + (int)learnt));
     return new (mem) Clause(learnt, ps);
 }
+#else
+class Clause {
+    uint    m_size;
+    Lit     data[1];
+
+    // NOTE: This constructor cannot be used directly (doesn't allocate enough memory).
+    Clause(const vec<Lit>& ps)
+    {
+        m_size = ps.size();
+        for (int i = 0; i < ps.size(); i++) data[i] = ps[i];
+    }
+
+    Clause(Clause&) = delete;
+    Clause(Clause&&) = delete;
+    Clause& operator=(Clause&) = delete;
+    Clause& operator=(Clause&&) = delete;
+
+public:
+    // -- use this function instead:
+    friend Clause* Clause_new(const vec<Lit>& ps);
+
+    int       size        ()      const { return m_size; }
+    Lit       operator [] (int i) const { return data[i]; }
+    Lit&      operator [] (int i)       { return data[i]; }
+};
+
+inline Clause* Clause_new(const vec<Lit>& ps)
+{
+  assert(ps.size() > 0);
+  void* mem = xmalloc<char>(sizeof(Clause) - sizeof(Lit) + sizeof(Lit) * ps.size());
+  return new (mem) Clause(ps);
+}
+
+// for API compatibility
+inline Clause* Clause_new(bool learnt, const vec<Lit>& ps)
+{
+  return Clause_new(ps);
+}
+#endif
 
 inline std::ostream& operator<<(std::ostream& o, Clause const& c)
 {

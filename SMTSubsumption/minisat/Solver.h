@@ -46,6 +46,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
   } while (false)
 #endif
 
+
 namespace SMTSubsumption { namespace Minisat {
 
 // Redefine if you want output to go somewhere else:
@@ -105,6 +106,7 @@ protected:
 
     // Temporaries (to reduce allocation overhead). Each variable is prefixed by the method in which is used:
     //
+    vec<Lit>            newClause_qs;
     vec<char>           analyze_seen;
     vec<Lit>            analyze_stack;
     vec<Lit>            analyze_toclear;
@@ -130,7 +132,9 @@ protected:
     bool        enqueue          (Lit fact, GClause from = GClause_new((Clause*)NULL));
     void        theoryPropagate();
     Clause*     propagate        ();
-    void        reduceDB         ();   // TODO: remove?
+#if ENABLE_CLAUSE_DELETION
+    void reduceDB(); // TODO: remove?
+#endif
     Lit         pickBranchLit    (const SearchParams& params);
     lbool       search           (int nof_conflicts, int nof_learnts, const SearchParams& params);
     double      progressEstimate ();   // TODO: remove?
@@ -145,13 +149,17 @@ protected:
     }
     void     varDecayActivity  () { if (var_decay >= 0) var_inc *= var_decay; }
     void     varRescaleActivity();
+#if ENABLE_CLAUSE_DELETION
     void     claDecayActivity  () { cla_inc *= cla_decay; }
     void     claRescaleActivity();
+#endif
 
     // Operations on clauses:
     //
     void     newClause(const vec<Lit>& ps, bool learnt = false);
+#if ENABLE_CLAUSE_DELETION
     void     claBumpActivity (Clause* c) { if ( (c->activity() += cla_inc) > 1e20 ) claRescaleActivity(); }
+#endif
     void     remove          (Clause* c, bool just_dealloc = false);
     bool     locked          (const Clause* c) const { GClause r = reason[var((*c)[0])]; return !r.isLit() && r.clause() == c; }
     bool     simplify        (Clause* c) const;
@@ -279,6 +287,7 @@ public:
     // Problem specification:
     //
     Var     newVar    ();
+    Var     newVars   (int n);
     int     nVars     ()                    { return assigns.size(); }
     void    addUnit   (Lit p)               { if (ok) ok = enqueue(p); }
     void    addBinary (Lit p, Lit q)        { addBinary_tmp [0] = p; addBinary_tmp [1] = q; addClause(addBinary_tmp); }

@@ -1,6 +1,7 @@
 #include "SMTSubsumption.hpp"
 #include "SubstitutionTheory.hpp"
 #include "SMTSubsumption/minisat/Solver.h"
+#include "SMTSubsumption/slice.hpp"
 #include "Indexing/LiteralMiniIndex.hpp"
 #include "Lib/STL.hpp"
 #include "Kernel/Matcher.hpp"
@@ -177,13 +178,20 @@ using Impl = OriginalSubsumptionImpl;  // shorthand if we use qualified namespac
  ****************************************************************************/
 
 
+// Optimizations log:
+// - move MapBinder declaration in setup() out of loop: ~5000ns
+// - allocate all variables at once: ~2000ns
+// - remove clause deletion from solver: imperceptible (but note that this is only setup)
+// (benchmark smt_setup_1 of file slog_GEO312+1_manydecisions.txt)
+
+
 /// Possible match alternative for a certain literal of the side premise.
 struct Alt
 {
-  Literal* lit;  // the FOL literal
-  unsigned j;    // index of lit in the main_premise
+  // Literal* lit;  // the FOL literal
+  // unsigned j;    // index of lit in the main_premise
   Minisat::Var b;  // the b_{ij} representing this choice in the SAT solver
-  bool reversed;
+  // bool reversed;
 };
 
 
@@ -220,12 +228,14 @@ class SMTSubsumptionImpl
       possible_base_vars.resize(main_premise->length());
 
       SubstitutionTheoryConfiguration stc;
+      MapBinder binder;
 
       // Matching for subsumption checks whether
       //
       //      side_premise\theta \subseteq main_premise
       //
       // holds.
+      Minisat::Var nextVar = 0;
       for (unsigned i = 0; i < side_premise->length(); ++i) {
         Literal* base_lit = side_premise->literals()[i];
 
@@ -240,11 +250,9 @@ class SMTSubsumptionImpl
             continue;
           }
 
-          MapBinder binder;
-
           binder.reset();
           if (base_lit->arity() == 0 || MatchingUtils::matchArgs(base_lit, inst_lit, binder)) {
-            Minisat::Var b = solver.newVar();
+            Minisat::Var b = nextVar++;
 
             if (binder.bindings().size() > 0) {
               ASS(!base_lit->ground());
@@ -263,10 +271,10 @@ class SMTSubsumptionImpl
             }
 
             base_lit_alts.push_back({
-                .lit = inst_lit,
-                .j = j,
+                // .lit = inst_lit,
+                // .j = j,
                 .b = b,
-                .reversed = false,
+                // .reversed = false,
             });
             possible_base_vars[j].push_back(b);
           }
@@ -278,21 +286,26 @@ class SMTSubsumptionImpl
             if (MatchingUtils::matchReversedArgs(base_lit, inst_lit, binder)) {
               auto atom = SubstitutionAtom::from_binder(binder);
 
-              Minisat::Var b = solver.newVar();
+              Minisat::Var b = nextVar++;
               stc.register_atom(b, std::move(atom));
 
               base_lit_alts.push_back({
-                  .lit = inst_lit,
-                  .j = j,
+                  // .lit = inst_lit,
+                  // .j = j,
                   .b = b,
-                  .reversed = true,
+                  // .reversed = true,
               });
               possible_base_vars[j].push_back(b);
             }
           }
         }
+        if (base_lit_alts.empty()) {
+          return false;
+        }
         alts.push_back(std::move(base_lit_alts));
       }
+
+      solver.newVars(nextVar);
 
       CDEBUG("setting substitution theory...");
       solver.setSubstitutionTheory(std::move(stc));
@@ -300,6 +313,7 @@ class SMTSubsumptionImpl
       // Pre-matching done
       for (auto const& v : alts) {
         if (v.empty()) {
+          ASSERTION_VIOLATION; // should have been discovered above
           // There is a base literal without any possible matches => abort
           return false;
         }
@@ -581,7 +595,8 @@ void ProofOfConcept::benchmark_micro(vvector<SubsumptionInstance> instances)
 
   // for (auto instance : instances)
   // for (int i = 0; i < 5; ++i)
-  for (int i = 0; i < instances.size(); ++i)
+  // for (int i = 0; i < instances.size(); ++i)
+  for (int i = 0; i < 1; ++i)
   {
     auto instance = instances[i];
     std::string name;
@@ -592,17 +607,17 @@ void ProofOfConcept::benchmark_micro(vvector<SubsumptionInstance> instances)
     benchmark::RegisterBenchmark(name.c_str(), bench_smt_setup, instance);
     name = "smt_search_" + suffix;
     benchmark::RegisterBenchmark(name.c_str(), bench_smt_search, instance);
-    name = "smt_total_" + suffix;
-    benchmark::RegisterBenchmark(name.c_str(), bench_smt_total, instance);
+    // name = "smt_total_" + suffix;
+    // benchmark::RegisterBenchmark(name.c_str(), bench_smt_total, instance);
 
-    name = "orig_setup_" + suffix;
-    benchmark::RegisterBenchmark(name.c_str(), bench_orig_setup, instance);
-    name = "orig_search_" + suffix;
-    benchmark::RegisterBenchmark(name.c_str(), bench_orig_search, instance);
-    name = "orig_total_" + suffix;
-    benchmark::RegisterBenchmark(name.c_str(), bench_orig_total, instance);
-    name = "orig_total_reusing_" + suffix;
-    benchmark::RegisterBenchmark(name.c_str(), bench_orig_total_reusing, instance);
+    // name = "orig_setup_" + suffix;
+    // benchmark::RegisterBenchmark(name.c_str(), bench_orig_setup, instance);
+    // name = "orig_search_" + suffix;
+    // benchmark::RegisterBenchmark(name.c_str(), bench_orig_search, instance);
+    // name = "orig_total_" + suffix;
+    // benchmark::RegisterBenchmark(name.c_str(), bench_orig_total, instance);
+    // name = "orig_total_reusing_" + suffix;
+    // benchmark::RegisterBenchmark(name.c_str(), bench_orig_total_reusing, instance);
   }
 
   benchmark::Initialize(&argc, args.data());

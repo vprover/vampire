@@ -112,32 +112,34 @@ bool createLiteralBindings(Literal* baseLit, LiteralList const* alts, Clause* in
     if(alit->isEquality()) {
       //we must try both possibilities
       if(MatchingUtils::matchArgs(baseLit,alit)) {
-	ArrayStoringBinder binder(altBindingData, variablePositions);
-	MatchingUtils::matchArgs(baseLit,alit,binder);
-	*altBindingPtrs=altBindingData;
-	altBindingPtrs++;
-	altBindingData+=numVars;
-	if(resolvedLit) {
-	  new(altBindingData++) TermList((size_t)0);
-	} else {
+        ArrayStoringBinder binder(altBindingData, variablePositions);
+        MatchingUtils::matchArgs(baseLit, alit, binder);
+        *altBindingPtrs = altBindingData;
+        altBindingPtrs++;
+        altBindingData += numVars;
+        if (resolvedLit) {
+          new (altBindingData++) TermList((size_t)0);
+        }
+        else {
           // add index of the literal in instance clause at the end of the binding sequence
-	  new(altBindingData++) TermList((size_t)instCl->getLiteralPosition(alit));
-	}
+          new (altBindingData++) TermList((size_t)instCl->getLiteralPosition(alit));
+        }
       }
       if(MatchingUtils::matchReversedArgs(baseLit, alit)) {
-	ArrayStoringBinder binder(altBindingData, variablePositions);
-	MatchingUtils::matchTerms(*baseLit->nthArgument(0),*alit->nthArgument(1),binder);
-	MatchingUtils::matchTerms(*baseLit->nthArgument(1),*alit->nthArgument(0),binder);
+        ArrayStoringBinder binder(altBindingData, variablePositions);
+        MatchingUtils::matchTerms(*baseLit->nthArgument(0), *alit->nthArgument(1), binder);
+        MatchingUtils::matchTerms(*baseLit->nthArgument(1), *alit->nthArgument(0), binder);
 
-	*altBindingPtrs=altBindingData;
-	altBindingPtrs++;
-	altBindingData+=numVars;
-	if(resolvedLit) {
-	  new(altBindingData++) TermList((size_t)0);
-	} else {
+        *altBindingPtrs = altBindingData;
+        altBindingPtrs++;
+        altBindingData += numVars;
+        if (resolvedLit) {
+          new (altBindingData++) TermList((size_t)0);
+        }
+        else {
           // add index of the literal in instance clause at the end of the binding sequence
-	  new(altBindingData++) TermList((size_t)instCl->getLiteralPosition(alit));
-	}
+          new (altBindingData++) TermList((size_t)instCl->getLiteralPosition(alit));
+        }
       }
 
     } else {

@@ -9,7 +9,7 @@
 #define SLICE_HPP
 
 
-/// A non-owning vector.
+/// A fixed-size non-owning vector.
 template < typename T >
 class slice
 {

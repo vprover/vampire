@@ -79,7 +79,7 @@ void Solver::newClause(const vec<Lit>& ps_, bool learnt)
     std::cerr << std::endl;
 #endif
 
-    vec<Lit> qs;  // TODO: could use class member to reduce allocation overhead
+    vec<Lit>& qs = newClause_qs;  // TODO: could use class member to reduce allocation overhead
     if (!learnt) {
         assert(decisionLevel() == 0);
         ps_.copyTo(qs);             // Make a copy of the input vector.
@@ -105,7 +105,7 @@ void Solver::newClause(const vec<Lit>& ps_, bool learnt)
                 qs[j++] = qs[i];
         qs.shrink(i - j);
     }
-    const vec<Lit>& ps = learnt ? ps_ : qs;     // 'ps' is now the (possibly) reduced vector of literals.
+    const vec<Lit>& ps = learnt ? ps_ : qs; // 'ps' is now the (possibly) reduced vector of literals.
 
     if (ps.size() == 0) {
         ok = false;
@@ -151,7 +151,7 @@ void Solver::newClause(const vec<Lit>& ps_, bool learnt)
             (*c)[max_i] = ps[1];
 
             // Bump, enqueue, store clause:
-            claBumpActivity(c);         // (newly learnt clauses should be considered active)
+            IF_ENABLE_CLAUSE_DELETION(claBumpActivity(c));         // (newly learnt clauses should be considered active)
             check(enqueue((*c)[0], GClause_new(c)));
             learnts.push(c);
             IF_MINISAT_STATS(stats.learnts_literals += c->size());
@@ -304,6 +304,23 @@ Var Solver::newVar()
     return index;
 }
 
+// Create n new SAT variables in the solver.
+// Returns index of the last created variable.
+Var Solver::newVars(int n)
+{
+    int new_nVars = nVars() + n;
+    watches.growTo(2*new_nVars);
+    reason.growTo(new_nVars, GClause_NULL);
+    assigns.growTo(new_nVars, toInt(l_Undef));
+    level.growTo(new_nVars, -1);
+    activity.growTo(new_nVars, 0);
+    for (int i = 0; i < n; ++i) {
+      order.newVar();
+    }
+    analyze_seen.growTo(new_nVars, 0);
+    assert(new_nVars == nVars());
+    return new_nVars - 1;
+}
 
 // Returns FALSE if immediate conflict.
 bool Solver::assume(Lit p)
@@ -391,8 +408,10 @@ void Solver::analyze(Clause* _confl, vec<Lit>& out_learnt, int& out_btlevel)
             }
         }();
 
+#if ENABLE_CLAUSE_DELETION
         if (c.learnt())
             claBumpActivity(&c);
+#endif
 
         for (int j = (p == lit_Undef) ? 0 : 1; j < c.size(); j++) {
             Lit q = c[j];
@@ -773,6 +792,7 @@ Clause* Solver::propagate()
 }
 
 
+#if ENABLE_CLAUSE_DELETION
 /*_________________________________________________________________________________________________
 |
 |  reduceDB : ()  ->  [void]
@@ -805,6 +825,7 @@ void Solver::reduceDB()
     }
     learnts.shrink(i - j);
 }
+#endif
 
 
 /*_________________________________________________________________________________________________
@@ -905,7 +926,7 @@ lbool Solver::search(int nof_conflicts, int nof_learnts, const SearchParams& par
             newClause(learnt_clause, true);
             if (learnt_clause.size() == 1) level[var(learnt_clause[0])] = 0;    // (this is ugly (but needed for 'analyzeFinal()') -- in future versions, we will backtrack past the 'root_level' and redo the assumptions)
             varDecayActivity();
-            claDecayActivity();
+            IF_ENABLE_CLAUSE_DELETION(claDecayActivity());
 
         }else{
             // NO CONFLICT
@@ -922,9 +943,11 @@ lbool Solver::search(int nof_conflicts, int nof_learnts, const SearchParams& par
                 assert(ok);
             }
 
+#if ENABLE_CLAUSE_DELETION
             if (nof_learnts >= 0 && learnts.size()-nAssigns() >= nof_learnts)
                 // Reduce the set of learnt clauses:
                 reduceDB();
+#endif
 
             // New variable decision:
             IF_MINISAT_STATS(stats.decisions++);
@@ -967,6 +990,7 @@ void Solver::varRescaleActivity()
 }
 
 
+#if ENABLE_CLAUSE_DELETION
 // Divide all constraint activities by 1e100.
 //
 void Solver::claRescaleActivity()
@@ -975,6 +999,7 @@ void Solver::claRescaleActivity()
         learnts[i]->activity() *= 1e-20;
     cla_inc *= 1e-20;
 }
+#endif
 
 
 /*_________________________________________________________________________________________________

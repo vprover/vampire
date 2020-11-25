@@ -18,7 +18,7 @@
 #include "SMTSubsumption/cdebug.hpp"
 
 
-#define TRACK_CURRENT_SUBSTITUTION 0
+#define TRACK_CURRENT_SUBSTITUTION 0  // TODO: enable in VDEBUG, so we have the no-collisions assertions
 
 
 namespace SMTSubsumption {
