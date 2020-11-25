@@ -334,10 +334,9 @@ void RenamingFormulaIndex::handleClause(Clause* c, bool adding)
 
   for (unsigned i=0; i<c->length(); i++) {
     Literal* lit=(*c)[i];
-    IteratorCore<TermList>* it = new NonVariableNonTypeIterator(lit);
-
-    while (it->hasNext()) {
-      TermList trm = it->next();
+    NonVariableNonTypeIterator it(lit);
+    while (it.hasNext()) {
+      TermList trm = it.next();
       Term* t = trm.term();
       if(SortHelper::getResultSort(t) == Term::boolSort() && 
          AH::getProxy(AH::getHead(t)) != Signature::NOT_PROXY){
