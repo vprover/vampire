@@ -42,12 +42,27 @@ class SubstitutionAtom
     { }
 
     explicit
-    SubstitutionAtom(MapBinder const& binder)
+    SubstitutionAtom(MapBinderSTL const& binder)
     {
       auto const& bindings = binder.bindings();
       subst.reserve(bindings.size());
       for (auto p : bindings) {
         subst.push_back(p);
+      }
+      std::sort(subst.begin(), subst.end());
+    }
+
+    explicit
+    SubstitutionAtom(MapBinderVampire const& binder)
+    {
+      auto const& bindings = binder.bindings();
+      subst.reserve(bindings.size());
+      MapBinderVampire::BindingsMap::Iterator it(binder.bindings());
+      while (it.hasNext()) {
+        domain d;
+        range r;
+        it.next(d, r);
+        subst.push_back({d,r});
       }
       std::sort(subst.begin(), subst.end());
     }

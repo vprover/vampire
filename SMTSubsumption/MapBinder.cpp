@@ -11,7 +11,7 @@
 namespace SMTSubsumption {
 
 
-std::ostream& operator<<(std::ostream& o, MapBinder const& binder)
+std::ostream& operator<<(std::ostream& o, MapBinderSTL const& binder)
 {
   o << "MapBinder { ";
   bool first = true;

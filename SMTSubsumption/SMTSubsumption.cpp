@@ -184,6 +184,7 @@ using Impl = OriginalSubsumptionImpl;  // shorthand if we use qualified namespac
 // - move MapBinder declaration in setup() out of loop: ~5000ns
 // - allocate all variables at once: ~2000ns
 // - remove clause deletion from solver: imperceptible (but note that this is only setup)
+// - use DHMap instead of std::unordered_map: ~5000ns
 // (benchmark smt_setup_1 of file slog_GEO312+1_manydecisions.txt)
 
 
@@ -601,7 +602,7 @@ void bench_general_matching_stl(benchmark::State& state, SubsumptionInstance ins
 {
   Clause* side_premise = instance.side_premise;
   Clause* main_premise = instance.main_premise;
-  MapBinder binder;
+  MapBinderSTL binder;
 
   for (auto _ : state) {
     int nmatches = 0;  // count matches to prevent optimization from removing code

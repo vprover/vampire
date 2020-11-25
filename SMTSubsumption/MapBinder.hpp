@@ -16,15 +16,55 @@ namespace SMTSubsumption {
 
 using namespace Kernel;
 
+class MapBinderVampire
+{
+  CLASS_NAME(MapBinderVampire);
+  USE_ALLOCATOR(MapBinderVampire);
+
+public:
+  using Var = unsigned int;
+  using BindingsMap = DHMap<Var, TermList, IdentityHash>;
+
+  MapBinderVampire()
+  { }
+
+  bool bind(Var var, TermList term)
+  {
+    TermList* aux;
+    return m_bindings.getValuePtr(var, aux, term) || *aux == term;
+  }
+  void specVar(unsigned var, TermList term)
+  {
+    ASSERTION_VIOLATION;
+  }
+
+  void reset()
+  {
+    m_bindings.reset();
+  }
+
+  BindingsMap const& bindings() const
+  {
+    return m_bindings;
+  }
+
+  size_t size() const
+  {
+    return m_bindings.size();
+  }
+
+private:
+  BindingsMap m_bindings;
+};
 
 /**
  * This class implements the Binder interface as described in Kernel/Matcher.hpp.
  * Does not support special variables.
  */
-class MapBinder
+class MapBinderSTL
 {
-  CLASS_NAME(MapBinder);
-  USE_ALLOCATOR(MapBinder);
+  CLASS_NAME(MapBinderSTL);
+  USE_ALLOCATOR(MapBinderSTL);
 
   public:
     using Var = unsigned int;
@@ -35,12 +75,12 @@ class MapBinder
     };
     using BindingsMap = vunordered_map<Var, TermList, VarIdentityHash>;  // slow!
 
-    MapBinder()
+    MapBinderSTL()
       : m_bindings(16)
     { }
 
     explicit
-    MapBinder(BindingsMap&& bindings)
+    MapBinderSTL(BindingsMap&& bindings)
       : m_bindings(std::move(bindings))
     { }
 
@@ -76,11 +116,14 @@ class MapBinder
   private:
     BindingsMap m_bindings;
 
-    friend std::ostream& operator<<(std::ostream&, MapBinder const&);
+    friend std::ostream& operator<<(std::ostream&, MapBinderSTL const&);
 };  // class MapBinder
 
 
-std::ostream& operator<<(std::ostream&, MapBinder const&);
+std::ostream& operator<<(std::ostream&, MapBinderSTL const&);
+
+
+using MapBinder = MapBinderVampire;
 
 
 }
