@@ -386,7 +386,7 @@ void InductionPreprocessor::preprocess(Problem& prb)
         if(env.options->showInduction()){
           env.beginOutput();
           env.out() << "[Induction] recursive function definition has been discovered: "
-                    << env.signature->functionName(kv.first) << endl
+                    << env.signature->functionName(kv.first)
                     << ", with induction template: " << kv2.first << endl;
           env.endOutput();
         }
@@ -417,18 +417,17 @@ void InductionPreprocessor::preprocess(Problem& prb)
       env.endOutput();
       continue;
     }
-    auto templ = kv.second;
-    if (templ.checkWellFoundedness()
-        && templ.checkWellDefinedness()
-        && templ.checkUsefulness()) {
+    if (kv.second.checkWellFoundedness()
+        && kv.second.checkWellDefinedness()
+        && kv.second.checkUsefulness()) {
       if(env.options->showInduction()){
         env.beginOutput();
         env.out() << "[Induction] recursive predicate definition has been discovered: "
-                  << env.signature->predicateName(kv.first) << endl
-                  << ", with induction template: " << templ << endl;
+                  << env.signature->predicateName(kv.first)
+                  << ", with induction template: " << kv.second << endl;
         env.endOutput();
       }
-      env.signature->addInductionTemplate(kv.first, true, std::move(templ));
+      env.signature->addInductionTemplate(kv.first, true, std::move(kv.second));
     } else {
       env.beginOutput();
       env.out() << "% Warning: could not determine predicate definition "
@@ -701,11 +700,20 @@ void InductionPreprocessor::processFormulaBody(Formula* body, Literal* header, v
   switch(body->connective()) {
     case LITERAL: {
       auto lit = body->literal();
-      if (!lit->isEquality()) {
-        vvector<TermList> recCalls;
+      vvector<TermList> recCalls;
+      if (lit->isEquality()) {
+        processCase(header->functor(), header->isFormula(), *lit->nthArgument(0), recCalls);
+        processCase(header->functor(), header->isFormula(), *lit->nthArgument(1), recCalls);
+      } else {
         processCase(header->functor(), header->isFormula(), TermList(lit), recCalls);
-        templ._rDescriptions.emplace_back(recCalls, TermList(header), conditions);
       }
+      templ._rDescriptions.emplace_back(recCalls, TermList(header), conditions);
+      break;
+    }
+    case BOOL_TERM: {
+      vvector<TermList> recCalls;
+      processCase(header->functor(), header->isFormula(), body->getBooleanTerm(), recCalls);
+      templ._rDescriptions.emplace_back(recCalls, TermList(header), conditions);
       break;
     }
     case AND:
@@ -727,14 +735,14 @@ void InductionPreprocessor::processFormulaBody(Formula* body, Literal* header, v
       break;
     }
     case IMP:
-    case IFF: {
+    case IFF:
+    case XOR: {
       processFormulaBody(body->left(), header, conditions, templ);
+      processFormulaBody(body->right(), header, conditions, templ);
       break;
     }
-    case XOR:
     case FORALL:
     case EXISTS:
-    case BOOL_TERM:
     case NAME:
     case NOCONN: {
       break;
@@ -814,6 +822,10 @@ void InductionPreprocessor::processCase(const unsigned recFun, const bool isPred
         processCase(recFun, isPred, lit, recursiveCalls);
         break;
       }
+      case BOOL_TERM: {
+        processCase(recFun, isPred, formula->getBooleanTerm(), recursiveCalls);
+        break;
+      }
       case AND:
       case OR: {
         FormulaList::Iterator it(formula->args());
@@ -822,6 +834,11 @@ void InductionPreprocessor::processCase(const unsigned recFun, const bool isPred
           TermList ft(Term::createFormula(it.next()));
           processCase(recFun, isPred, ft, recursiveCalls);
         }
+        break;
+      }
+      case IFF:
+      case XOR:
+      case IMP: {
         break;
       }
       case TRUE:
