@@ -1,6 +1,6 @@
 /*
  * This file is part of the source code of the software program
- * Vampire.(unstable). It is protected by applicable
+ * Vampire. It is protected by applicable
  * copyright laws.
  *
  * This source code is distributed under the licence found here
