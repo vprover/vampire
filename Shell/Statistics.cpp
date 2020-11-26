@@ -28,11 +28,6 @@
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
-#if GNUMP
-#include "Kernel/Assignment.hpp"
-#include "Kernel/Constraint.hpp"
-#endif
-
 #include "Options.hpp"
 #include "Statistics.hpp"
 

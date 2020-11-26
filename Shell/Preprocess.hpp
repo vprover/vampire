@@ -41,10 +41,6 @@ public:
     _clausify(true),_stillSimplify(false)
   {}
   void preprocess(Problem& prb);
-#if GNUMP
-  void preprocess(ConstraintRCList*& constraints);
-#endif
-
   void preprocess1(Problem& prb);
   /** turn off clausification, can be used when only preprocessing without clausification is needed */
   void turnClausifierOff() {_clausify = false;}
@@ -63,11 +59,7 @@ private:
   /** If true, clausification is included in preprocessing */
   bool _clausify;
   bool _stillSimplify;
-#if GNUMP
-  void unfoldEqualities(ConstraintRCList*& constraints);
-#endif
 }; // class Preprocess
-
 
 }
 
