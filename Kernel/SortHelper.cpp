@@ -831,6 +831,8 @@ bool SortHelper::areImmediateSortsValidPoly(Term* t)
 {
   CALL("SortHelper::areImmediateSortsValidPoly");
 
+  ASS(!t->isSuper());  
+
   if (t->isLiteral() && static_cast<Literal*>(t)->isEquality()) {
     Literal* lit = static_cast<Literal*>(t);
     TermList eqSrt = getEqualityArgumentSort(lit);
@@ -846,8 +848,6 @@ bool SortHelper::areImmediateSortsValidPoly(Term* t)
     return true;
   }
     
-  if(t->isSuper()){ return true; }
-  
   OperatorType* type = getType(t);
   unsigned arity = t->arity();
   Substitution subst;
@@ -883,6 +883,8 @@ bool SortHelper::areImmediateSortsValidMono(Term* t)
 {
   CALL("SortHelper::areImmediateSortsValidMono");
 
+  ASS(!t->isSuper());  
+
   if (t->isLiteral() && static_cast<Literal*>(t)->isEquality()) {
     Literal* lit = static_cast<Literal*>(t);
     TermList eqSrt = getEqualityArgumentSort(lit);
@@ -897,8 +899,6 @@ bool SortHelper::areImmediateSortsValidMono(Term* t)
     }
     return true;
   }
-
-  if(t->isSuper()){ return true; }
 
   OperatorType* type = getType(t);
   unsigned arity = t->arity();

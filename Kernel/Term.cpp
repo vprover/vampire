@@ -1200,7 +1200,8 @@ Term* Term::foolFalse(){
 
 TermList Term::superSort(){
   CALL("Term::superSort");
-  static Term* _super = createConstant("$tType");
+  static unsigned super = env.signature->addFunction("$tType",0);
+  static Term* _super  = createNonShared(super, 0, 0);
   return TermList(_super);
 }
 
