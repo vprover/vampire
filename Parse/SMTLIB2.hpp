@@ -1,4 +1,3 @@
-
 /*
  * File SMTLIB2.hpp.
  *

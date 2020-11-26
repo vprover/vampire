@@ -1,4 +1,3 @@
-
 /*
  * File GlobalSubsumption.hpp.
  *

@@ -1,4 +1,3 @@
-
 /*
  * File BacktrackIterators.hpp.
  *

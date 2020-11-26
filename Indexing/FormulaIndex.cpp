@@ -1,4 +1,3 @@
-
 /*
  * File FormulaIndex.cpp.
  *

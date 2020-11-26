@@ -1,4 +1,3 @@
-
 /*
  * File test_libvapi.cpp.
  *

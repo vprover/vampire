@@ -1,4 +1,3 @@
-
 /*
  * File Ordering_Equality.cpp.
  *

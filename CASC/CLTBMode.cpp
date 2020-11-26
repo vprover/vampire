@@ -1,4 +1,3 @@
-
 /*
  * File CLTBMode.cpp.
  *

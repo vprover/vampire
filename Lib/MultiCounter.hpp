@@ -1,4 +1,3 @@
-
 /*
  * File MultiCounter.hpp.
  *

@@ -1,4 +1,3 @@
-
 /*
  * File LookaheadLiteralSelector.hpp.
  *

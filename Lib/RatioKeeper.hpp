@@ -1,4 +1,3 @@
-
 /*
  * File RatioKeeper.hpp.
  *

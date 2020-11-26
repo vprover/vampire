@@ -1,4 +1,3 @@
-
 /*
  * File CNF.hpp.
  *

@@ -1,4 +1,3 @@
-
 /*
  * File Z3MainLoop.cpp.
  *

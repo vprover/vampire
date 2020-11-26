@@ -1,4 +1,3 @@
-
 /*
  * File TPTP.hpp.
  *

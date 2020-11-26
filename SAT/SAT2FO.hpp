@@ -1,4 +1,3 @@
-
 /*
  * File SAT2FO.hpp.
  *

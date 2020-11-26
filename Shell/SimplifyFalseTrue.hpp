@@ -1,4 +1,3 @@
-
 /*
  * File SimplifyFalseTrue.hpp.
  *

@@ -1,4 +1,3 @@
-
 /*
  * File SymbolDefinitionInlining.cpp.
  *

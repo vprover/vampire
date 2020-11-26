@@ -1,4 +1,3 @@
-
 /*
  * File SubstitutionTree_FastGen.cpp.
  *

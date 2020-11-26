@@ -1,4 +1,3 @@
-
 /*
  * File ELiteralSelector.cpp.
  *

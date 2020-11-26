@@ -1,4 +1,3 @@
-
 /*
  * File SLQueryForwardSubsumption.hpp.
  *

@@ -1,4 +1,3 @@
-
 /*
  * File MinisatInterfacing.cpp.
  *

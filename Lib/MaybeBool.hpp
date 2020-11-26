@@ -1,4 +1,3 @@
-
 /*
  * File MaybeBool.hpp.
  *

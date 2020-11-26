@@ -1,4 +1,3 @@
-
 /*
  * File EquivalentVariableRemover.hpp.
  *

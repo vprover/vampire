@@ -1,4 +1,3 @@
-
 /*
  * File V2CIndex.cpp.
  *

@@ -1,4 +1,3 @@
-
 /*
  * File FiniteModel.hpp.
  *

@@ -1,4 +1,3 @@
-
 /*
  * File SymbolOccurrenceReplacement.hpp.
  *

@@ -1,4 +1,3 @@
-
 #include "Rebalancing.hpp"
 
 namespace Kernel {

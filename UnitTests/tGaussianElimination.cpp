@@ -1,4 +1,3 @@
-
 #include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
 #include "Indexing/TermSharing.hpp"

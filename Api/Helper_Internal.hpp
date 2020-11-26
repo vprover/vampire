@@ -1,4 +1,3 @@
-
 /*
  * File Helper_Internal.hpp.
  *
