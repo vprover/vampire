@@ -10,7 +10,7 @@ do
 		echo "source file $file does not have the correct header"
 	fi
 done
-if test -n $failed
+if test -n "$failed"
 then
 	exit 1
 fi
