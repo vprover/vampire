@@ -237,22 +237,6 @@ Problem* UIHelper::getInputProblem(const Options& opts)
       s_haveConjecture=parser.containsConjecture();
     }
     break;
-/*
-  case Options::InputSyntax::SMTLIB:
-      {
-        Parse::SMTLIB parser(opts);
-        parser.parse(*input);
-        units = parser.getFormulas();
-        s_haveConjecture=true;
-      }
-      break; 
-    if (outputAllowed()) {
-      env.beginOutput();
-      addCommentSignForSZS(env.out());
-      env.out() << "Vampire no longer supports the old smtlib format, trying with smtlib2 instead." << endl;
-      env.endOutput();
-    }
-*/
   case Options::InputSyntax::SMTLIB2:
   {
 	  Parse::SMTLIB2 parser(opts);
