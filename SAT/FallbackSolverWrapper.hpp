@@ -111,10 +111,6 @@ public:
     _inner->suggestPolarity(var,pol); 
     _fallback->suggestPolarity(var,pol); 
   }
-  virtual void recordSource(unsigned var, Literal* lit) override {
-    _inner->recordSource(var,lit);
-    _fallback->recordSource(var,lit);
-  }
 
 private:
 

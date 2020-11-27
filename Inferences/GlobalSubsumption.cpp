@@ -115,7 +115,7 @@ Clause* GlobalSubsumption::perform(Clause* cl, Stack<Unit*>& prems)
     
   // first abstract cl's FO literals using grounder,
   // start filling assumps and initialize lookup
-  grounder.groundNonProp(cl, plits, false);
+  grounder.groundNonProp(cl, plits);
   
   unsigned clen = plits.size();    
   for (unsigned i = 0; i < clen; i++) {

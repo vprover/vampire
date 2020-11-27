@@ -84,7 +84,6 @@
 
 #include "SAT/MinisatInterfacing.hpp"
 #include "SAT/MinisatInterfacingNewSimp.hpp"
-#include "SAT/TWLSolver.hpp"
 #include "SAT/Preprocess.hpp"
 
 #include "FMB/ModelCheck.hpp"
@@ -539,11 +538,8 @@ void satSolverMode()
   CALL("satSolverMode()");
   TimeCounter tc(TC_SAT_SOLVER);
   SATSolverSCP solver;
-  
+
   switch(env.options->satSolver()) {
-    case Options::SatSolver::VAMPIRE:  
-      solver = new TWLSolver(*env.options);
-      break;
     case Options::SatSolver::MINISAT:
       solver = new MinisatInterfacingNewSimp(*env.options);
       break;      

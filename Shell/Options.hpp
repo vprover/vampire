@@ -475,10 +475,9 @@ public:
 
   /** Possible values for sat_solver */
   enum class SatSolver : unsigned int {
-     MINISAT = 0,
-     VAMPIRE = 1
+     MINISAT = 0
 #if VZ3
-     ,Z3 = 2
+     ,Z3 = 1
 #endif
   };
 
@@ -600,31 +599,6 @@ public:
     OFF = 3
   };
 
-  enum class SatRestartStrategy : unsigned int {
-    FIXED = 0,
-    GEOMETRIC = 1,
-    LUBY = 2,
-    MINISAT = 3,
-  };
-
-  enum class SatVarSelector : unsigned int {
-    ACTIVE = 0,
-    NICENESS = 1,
-    RECENTLY_LEARNT = 2,
-  };
-
-  enum class Niceness: unsigned int {
-    AVERAGE = 0,
-    NONE=1,
-    SUM = 2,
-    TOP = 3,
-  };
-
-  enum class SatClauseDisposer : unsigned int {
-    GROWING = 0,
-    MINISAT = 1,
-  };
-  
   enum class SplittingLiteralPolarityAdvice : unsigned int {
     FALSE,
     TRUE,
@@ -2172,24 +2146,7 @@ public:
   bool instGenWithResolution() const { return _instGenWithResolution.actualValue; }
   bool useHashingVariantIndex() const { return _useHashingVariantIndex.actualValue; }
 
-  float satClauseActivityDecay() const { return _satClauseActivityDecay.actualValue; }
-  SatClauseDisposer satClauseDisposer() const { return _satClauseDisposer.actualValue; }
-  bool satLearntMinimization() const { return _satLearntMinimization.actualValue; }
-  bool satLearntSubsumptionResolution() const { return _satLearntSubsumptionResolution.actualValue; }
-  int satRestartFixedCount() const { return _satRestartFixedCount.actualValue; }
-  float satRestartGeometricIncrease() const { return _satRestartGeometricIncrease.actualValue; }
-  int satRestartGeometricInit() const { return _satRestartGeometricInit.actualValue; }
-  int satRestartLubyFactor() const { return _satRestartLubyFactor.actualValue; }
-  float satRestartMinisatIncrease() const { return _satRestartMinisatIncrease.actualValue; }
-  int satRestartMinisatInit() const { return _satRestartMinisatInit.actualValue; }
-  SatRestartStrategy satRestartStrategy() const { return _satRestartStrategy.actualValue; }
-  float satVarActivityDecay() const { return _satVarActivityDecay.actualValue; }
-  SatVarSelector satVarSelector() const { return _satVarSelector.actualValue; }
-
-  Niceness nicenessOption() const { return _nicenessOption.actualValue; }
-
   void setMemoryLimit(size_t newVal) { _memoryLimit.actualValue = newVal; }
-  
   void setTimeLimitInSeconds(int newVal) { _timeLimitInDeciseconds.actualValue = 10*newVal; }
   void setTimeLimitInDeciseconds(int newVal) { _timeLimitInDeciseconds.actualValue = newVal; }
   int getWhileNumber(){return _whileNumber.actualValue;}
@@ -2499,7 +2456,6 @@ private:
 
   StringOptionValue _namePrefix;
   IntOptionValue _naming;
-  ChoiceOptionValue<Niceness> _nicenessOption;
   BoolOptionValue _nonliteralsInClauseWeight;
   BoolOptionValue _normalize;
 
@@ -2520,19 +2476,6 @@ private:
 
   IntOptionValue _activationLimit;
 
-  FloatOptionValue _satClauseActivityDecay;
-  ChoiceOptionValue<SatClauseDisposer> _satClauseDisposer;
-  BoolOptionValue _satLearntMinimization;
-  BoolOptionValue _satLearntSubsumptionResolution;
-  IntOptionValue _satRestartFixedCount;
-  FloatOptionValue _satRestartGeometricIncrease;
-  IntOptionValue _satRestartGeometricInit;
-  IntOptionValue _satRestartLubyFactor;
-  FloatOptionValue _satRestartMinisatIncrease;
-  IntOptionValue _satRestartMinisatInit;
-  ChoiceOptionValue<SatRestartStrategy> _satRestartStrategy;
-  FloatOptionValue _satVarActivityDecay;
-  ChoiceOptionValue<SatVarSelector> _satVarSelector;
   ChoiceOptionValue<SatSolver> _satSolver;
   ChoiceOptionValue<SaturationAlgorithm> _saturationAlgorithm;
   BoolOptionValue _selectUnusedVariablesFirst;
