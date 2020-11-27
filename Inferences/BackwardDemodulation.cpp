@@ -132,9 +132,9 @@ struct BackwardDemodulation::ResultFn
     }
 
     TermList qrSort = SortHelper::getTermSort(qr.term, qr.literal);
-    static RobSubstitution sub;
-    sub.reset();
-    if(!sub.match(_eqSort, 0, qrSort, 1)){
+    RobSubstitution* sub = qr.substitution->tryGetRobSubstitution();
+    ASS(sub);
+    if(!sub->match(_eqSort, 0, qrSort, 1)){
       return BwSimplificationRecord(0);
     }
 
