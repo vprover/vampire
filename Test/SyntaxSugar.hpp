@@ -247,8 +247,7 @@ using SortType = TermList;
   _Pragma("GCC diagnostic push")                                                                              \
   _Pragma("GCC diagnostic ignored \"-Wunused\"")                                                              \
     __TERM_WRAPPER_CLASS()                                                                                    \
-    auto __default_sort = SortType(Term::createConstant("alpha"));                                            \
-    env.sorts->addSort(__default_sort);                                                                       \
+    auto __default_sort = Term::defaultSort();                                            \
     __DEFAULT_VARS                                                                                            \
   _Pragma("GCC diagnostic pop")                                                                               \
 
