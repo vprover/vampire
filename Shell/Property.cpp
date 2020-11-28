@@ -465,7 +465,7 @@ void Property::scan(Formula* f, int polarity)
         while(vit.hasNext()){
           int v = vit.next();
           if(SortHelper::tryGetVariableSort(v, f->qarg(), s)){
-            if(s.isTerm() && env.signature->getFunction(s.term()->functor())->super()){
+            if(s.isTerm() && s.term()->isSuper()){
               _quantifiesOverPolymorphicVar = true;
               break;
             }

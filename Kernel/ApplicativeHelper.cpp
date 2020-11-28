@@ -324,7 +324,7 @@ bool ApplicativeHelper::isArrowType(const Term* t)
 bool ApplicativeHelper::isType(const Term* t)
 {
   CALL("ApplicativeHelper::isType(Term*)");
-  return env.signature->getFunction(t->functor())->super() ||
+  return t->isSuper() ||
          SortHelper::getResultSort(t) == Term::superSort();
 }
 
