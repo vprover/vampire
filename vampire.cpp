@@ -12,9 +12,9 @@
  *
  * In summary, you are allowed to use Vampire for non-commercial
  * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
+ * or use in competitions.
  * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
+ * licence, which we will make an effort to provide.
  */
 /**
  * @file vampire.cpp. Implements the top-level procedures of Vampire.
@@ -170,7 +170,7 @@ Problem* getPreprocessedProblem()
   Shell::Preprocess prepro(*env.options);
   //phases for preprocessing are being set inside the preprocess method
   prepro.preprocess(*prb);
-  
+
   // TODO: could this be the right way to freeing the currently leaking classes like Units, Clauses and Inferences?
   // globUnitList = prb->units();
 
@@ -193,10 +193,10 @@ void getRandomStrategy()
   }
 
   // One call to randomize before preprocessing (see Options)
-  env.options->randomizeStrategy(0); 
+  env.options->randomizeStrategy(0);
   ScopedPtr<Problem> prb(getPreprocessedProblem());
   // Then again when the property is here
-  env.options->randomizeStrategy(prb->getProperty()); 
+  env.options->randomizeStrategy(prb->getProperty());
 
   // It is possible that the random strategy is still incorrect as we don't
   // have access to the Property when setting preprocessing
@@ -212,10 +212,10 @@ void doProving()
   ScopedPtr<Problem> prb(getPreprocessedProblem());
 
   // Then again when the property is here (this will only randomize non-default things if an option is set to do so)
-  env.options->randomizeStrategy(prb->getProperty()); 
+  env.options->randomizeStrategy(prb->getProperty());
 
   // this will provide warning if options don't make sense for problem
-  //env.options->checkProblemOptionConstraints(prb->getProperty()); 
+  //env.options->checkProblemOptionConstraints(prb->getProperty());
 
   ProvingHelper::runVampireSaturation(*prb, *env.options);
 }
@@ -434,7 +434,7 @@ void outputProblemToLaTeX(Problem* prb)
  * per se or also for converting one syntax to another. For the latter, the input
  * and the output syntaxes must be set to different values. Note that for
  * simply translating one syntax to another, output mode is the right one.
- * 
+ *
  * @author Andrei Voronkov
  * @since 02/07/2013 Manchester
  */
@@ -545,7 +545,7 @@ static SATClauseList* getInputClauses(const char* fname, unsigned& varCnt)
 static SATClauseIterator preprocessClauses(SATClauseList* clauses) {
   CALL("preprocessClauses");
   TimeCounter tc(TC_PREPROCESSING);
-  
+
   return SAT::Preprocess::removeDuplicateLiterals(pvi(SATClauseList::DestructiveIterator(clauses)));
 }
 
@@ -555,26 +555,26 @@ void satSolverMode()
   CALL("satSolverMode()");
   TimeCounter tc(TC_SAT_SOLVER);
   SATSolverSCP solver;
-  
+
   switch(env.options->satSolver()) {
-    case Options::SatSolver::VAMPIRE:  
+    case Options::SatSolver::VAMPIRE:
       solver = new TWLSolver(*env.options);
       break;
     case Options::SatSolver::MINISAT:
       solver = new MinisatInterfacingNewSimp(*env.options);
-      break;      
+      break;
     default:
       ASSERTION_VIOLATION(env.options->satSolver());
   }
-    
-  //get the clauses; 
+
+  //get the clauses;
   SATClauseList* clauses;
   unsigned varCnt=0;
 
-  SATSolver::Status res; 
-  
+  SATSolver::Status res;
+
   clauses = getInputClauses(env.options->inputFile().c_str(), varCnt);
-  
+
   solver->ensureVarCount(varCnt);
   solver->addClausesIter(preprocessClauses(clauses));
 
@@ -690,6 +690,10 @@ void subsumptionTestingMode()
   ASS(main_premise);
   ASS(side_premise);
   ASS(main_premise != side_premise);
+
+  // the parser reverses the order of literals in the clause as given in the input file, so we correct this here
+  std::reverse(side_premise->literals(), side_premise->literals() + side_premise->length());
+  std::reverse(main_premise->literals(), main_premise->literals() + main_premise->length());
 
   SMTSubsumption::ProofOfConcept s;
   s.test(side_premise, main_premise);
@@ -809,6 +813,19 @@ void subsumptionBenchmarkMode(bool simulate_full_run)
     });
   }
 
+  // The parser reverses the order of literals in the clause as given in the input file, so we correct this here
+  DHSet<Clause*> seen;
+  for (auto instance : instances) {
+    Clause* side_premise = instance.side_premise;
+    if (seen.insert(side_premise)) {
+      std::reverse(side_premise->literals(), side_premise->literals() + side_premise->length());
+    }
+    Clause* main_premise = instance.main_premise;
+    if (seen.insert(main_premise)) {
+      std::reverse(main_premise->literals(), main_premise->literals() + main_premise->length());
+    }
+  }
+
   if (instances.size() != main_premises.size()) {
     ASS(instances.size() < main_premises.size());
     throw UserErrorException("Got main premise without corresponding side premise");
@@ -843,7 +860,7 @@ void spiderMode()
     noException = false;
 #if VZ3
   } catch(z3::exception& e){
-    z3_exception = &e; 
+    z3_exception = &e;
     noException = false;
 #endif
   } catch (...) {
@@ -891,8 +908,8 @@ void spiderMode()
     else{
 #endif
       reportSpiderFail();
-      ASS(exception); 
-      explainException(*exception); 
+      ASS(exception);
+      explainException(*exception);
 #if VZ3
     }
 #endif
@@ -1258,7 +1275,7 @@ int main(int argc, char* argv[])
     MemoryLeak::cancelReport();
 #endif
     explainException(exception);
-  } 
+  }
 catch (Parse::TPTP::ParseErrorException& exception) {
     vampireReturnValue = VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION;
     reportSpiderFail();
@@ -1291,4 +1308,3 @@ catch (Parse::TPTP::ParseErrorException& exception) {
 
   return vampireReturnValue;
 } // main
-
