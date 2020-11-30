@@ -24,7 +24,6 @@
 
 #include "Lib/Environment.hpp"
 #include "Lib/List.hpp"
-#include "Lib/XML.hpp"
 
 #include "Kernel/Signature.hpp"
 
@@ -82,8 +81,6 @@ public:
   void collectPredicates(Stack<unsigned>& acc);
   void collectPredicatesWithPolarity(Stack<pair<unsigned,int> >& acc, int polarity=1);
 
-  XMLElement toXML() const;
-
   // output
   vstring toString() const;
   vstring toStringInScopeOf(Connective con) const;
@@ -121,8 +118,6 @@ protected:
 
   /** connective */
   Connective _connective;
-  // auxiliary functions
-  static vstring _connectiveNames[];
 }; // class Formula
 
 /**

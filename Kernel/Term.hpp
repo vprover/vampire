@@ -28,7 +28,6 @@
 
 #include "Lib/Allocator.hpp"
 #include "Lib/Portability.hpp"
-#include "Lib/XML.hpp"
 #include "Lib/Comparison.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/Metaiterators.hpp"
@@ -326,7 +325,6 @@ public:
   /** Function or predicate symbol of a term */
   const unsigned functor() const { return _functor; }
 
-  static XMLElement variableToXML(unsigned var);
   vstring toString() const;
   static vstring variableToString(unsigned var);
   static vstring variableToString(TermList var);
@@ -875,9 +873,6 @@ public:
 #endif
   }
 
-
-
-//   XMLElement toXML() const;
   vstring toString() const;
   const vstring& predicateName() const;
 

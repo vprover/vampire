@@ -561,12 +561,6 @@ void Options::init()
     //_lookup.insert(&_logFile);
     _logFile.tag(OptionTag::OUTPUT);
 
-    //used?
-    _xmlOutput = StringOptionValue("xml_output","","off");
-    _xmlOutput.description="File to put XML output in.";
-    //_lookup.insert(&_xmlOutput);
-    _xmlOutput.tag(OptionTag::OUTPUT);
-
     _latexOutput = StringOptionValue("latex_output","","off");
     _latexOutput.description="File that will contain proof in the LaTeX format.";
     _lookup.insert(&_latexOutput);
@@ -2315,27 +2309,6 @@ void Options::output (ostream& str) const
   }
 
 } // Options::output (ostream& str) const
-
-
-//  * Convert options to an XML element.
-//  *
-//  * @since 15/11/2004 Manchester
-//  */
-// XMLElement Options::toXML () const
-// {
-//   CALL("Options::toXML");
-
-//   XMLElement options("options");
-//   for (int i = 0;i < Constants::optionNames.length;i++) {
-//     ostringstream str;
-//     outputValue(str,i);
-//     XMLElement OptionValue("option",true);
-//     options.addChild(option);
-//     option.addAttribute("name",Constants::optionNames[i]);
-//     option.addAttribute("value",str.str());
-//   }
-//   return options;
-// } // Options::toXML
 
 template<typename T>
 bool Options::OptionValue<T>::randomize(Property* prop){

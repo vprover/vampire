@@ -16,35 +16,10 @@
  * @since 11/12/2003 Manchester
  */
 
-#if VDEBUG
-#  include "Debug/Assertion.hpp"
-#endif
-
-#include "Lib/Enumerator.hpp"
-
-#include "Kernel/Formula.hpp"
-#include "Kernel/Unit.hpp"
-
-#include "Shell/UIHelper.hpp"
-
 #include "Lib/Array.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/List.hpp"
 #include "Lib/System.hpp"
-
-// the elements below are simple and can be initialised before
-// any objects
-Lib::Enumerator Lib::Enumerator::unitEnumerator;
-unsigned Kernel::Unit::_lastNumber = 0;
-bool Shell::UIHelper::portfolioParent=false;
-bool Shell::UIHelper::satisfiableStatusWasAlreadyOutput=false;
-
-/**
- * String names of connectives. Used in the function toXML().
- */
-Lib::vstring Kernel::Formula::_connectiveNames[] =
-  {"atomic", "and", "or", "imp", "iff", "xor", "not", "forall", "exists"};
-
 
 // From here the order does matter
 

@@ -128,7 +128,6 @@ set(VAMPIRE_LIB_SOURCES
     Lib/DHMultiset.hpp
     Lib/DHSet.hpp
     Lib/DynamicHeap.hpp
-    Lib/Enumerator.hpp
     Lib/Environment.hpp
     Lib/Event.hpp
     Lib/Exception.hpp
