@@ -12,9 +12,9 @@
  *
  * In summary, you are allowed to use Vampire for non-commercial
  * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
+ * or use in competitions.
  * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
+ * licence, which we will make an effort to provide.
  */
 /**
  * @file Clause.hpp
@@ -76,7 +76,7 @@ public:
     /** queue of unprocessed clauses */
     UNPROCESSED = 2u,
     /** anything else */
-    NONE = 3u,  
+    NONE = 3u,
     /** clause is selected from the passive container
      * and is not added to the active one yet */
     SELECTED = 4u
@@ -157,7 +157,7 @@ public:
     notifyLiteralReorder();
   }
 
-  /** Return the weight */
+  /** Return the weight = number of symbols */
   unsigned weight() const
   {
     if(!_weight) {
@@ -203,7 +203,7 @@ public:
 
   bool isComponent() const { return _component; }
   void setComponent(bool c) { _component = c; }
-  
+
   bool skip() const;
 
   unsigned getLiteralPosition(Literal* lit);
@@ -263,7 +263,7 @@ public:
     ASS(_weight == 0);
     _inference.setSplits(splits);
   }
-  
+
   int getNumActiveSplits() const { return _numActiveSplits; }
   void setNumActiveSplits(int newVal) { _numActiveSplits = newVal; }
   void incNumActiveSplits() { _numActiveSplits++; }

@@ -34,9 +34,67 @@ namespace SMTSubsumption { namespace Minisat {
 //  (also compare to decisions of old MLMatcher)
 //
 // Ideas:
-// - order by number of alternatives of literal
-// - as tie breaker: try base literals with higher number of variables first
+// - order by number of alternatives of literal                                         //  these two are "remaining-choices"
+// - as tie breaker: try base literals with higher number of variables first            //
 // - how to interact with activity?
+// Question: how to combine with activity? (alternate in fixed ratio? or multiply values? something else?)
+// Try different ways to combine and evaluate:
+// - alternate between random/activity (default in minisat)
+// - use only remaining-choices heuristic (as described above)
+// - alternate between remaining-choices and activity (fixed ratio, try a few different ones; e.g. 0.02, 0.5, 0.8, ....)
+// - check paper below, remaining choices divided by activity?
+//              intuition: many remaining choices are bad, high activity is good, choose smallest value of (rem. choices / activity)
+//              TODO: activity is bumped: 0 -> 1 -> 2 -> 3
+//              (rem. choices) / (activity + k)
+//              k...constant, the higher k is, the less influence one activity bump has on the heuristic.
+//              test different k values: 1, 3, 5, ((10, 100))
+//              (considering choice between literals with 2/3 remaining choices: with k=5 e.g. 3 would be preferred over 2 once it has ~3 more activity)
+//      => Armin
+// (- use rem.choices alone at the beginning of the run, introduce activity later)
+//   each decision leads to max. one conflict => activity is useless for small instances
+//       => k = 3, 5 probably better, has similar effect and is smoother
+// - to compare: record number of decisions !!!
+// - priority for test: default minisat heuristic, alternation 0.5, division k=3
+//
+// - NOTE: this VarOrder selects a boolean variable, but sets of boolean variables represent "integer variables"
+//          remaining-choices is defined for "integer variables"
+//          So:
+//              1. choose the set
+//              2. choose boolean variable inside set
+//
+//          For each set we have two possibilities:
+//          a) some undefined, some false, none true
+//          b) one true, all others false
+//
+//          Only a) is possible choice for heuristic.
+//          Remaining-choices is the number of undefined variables in the set.
+//          We always want to set positive value.
+//
+//          How to compute activity for the "integer variable"?
+//          i) bump "integer variable" whenever corresponding boolean variable is bumped
+//                  Q: when analyzing conflict, does each integer variable occur only once?
+//                      Not necessarily, e.g., if initial clause is the conflict clause
+//                  (if this were true, would be the argument to just bump the integer variable each time the corresponding boolean var is bumped)
+//          ii) like i) but implementation in analyze(), and track which "integer variable" has already been bumped (to do it at most once)
+// !!       iii) activity of integer variable = max(activity of boolean variable in set)
+//                  => keep activity per boolean variable as it is now
+//                      (remaining choices still tracked per set)
+//              (impl.: one counter per set with bool->set mapping vs. one counter per variable)
+//              problem: this must be updated during backtracking; also unnecessary for propagation
+//
+//
+// (technique in newest minisat: no need to check for changes if literal is still true => "blocking literal")
+//
+//
+// TODO: benchmark 'drand' vs. faster custom implementation of choice
+//
+// TODO: read paper below
+// More importantly, we should change VSIDS to take into account the number of
+// remaining possibilities for each literal to match to, and prefer those
+// literals that are more constrained: CSP-community has already looked at this
+// a bit, see e.g.
+// https://www.researchgate.net/profile/Christophe_Lecoutre/publication/220838185_Boosting_Systematic_Search_by_Weighting_Constraints/links/55af6bc608aee0799221004e.pdf
+//
 //
 // Statistics:
 // - collect #decisions, (#backtrackings; dubious?), success/failure
@@ -142,6 +200,7 @@ void VarOrder::undo(Var x)
 
 Var VarOrder::select(double random_var_freq)
 {
+    // TODO: plugin our heuristic (instead of random)
     // Random decision:
     if (drand(random_seed) < random_var_freq && !heap.empty()){
         Var next = irand(random_seed,assigns.size());
