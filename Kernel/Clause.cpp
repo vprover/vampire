@@ -351,18 +351,18 @@ vstring Clause::literalsOnlyToString() const
     vstring result;
     result += _literals[0]->toString();
     if (isFunctionDefinition(_literals[0])) {
-      result += " [rec]";
+      result += " [fn]";
       if (isReversedFunctionDefinition(_literals[0])) {
-        result +="[f]";
+        result +="[r]";
       }
     }
     for(unsigned i = 1; i < _length; i++) {
       result += " | ";
       result += _literals[i]->toString();
       if (isFunctionDefinition(_literals[i])) {
-        result += " [rec]";
+        result += " [fn]";
         if (isReversedFunctionDefinition(_literals[i])) {
-          result +="[f]";
+          result +="[r]";
         }
       }
     }

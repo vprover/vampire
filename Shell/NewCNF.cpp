@@ -288,7 +288,7 @@ void NewCNF::process(Literal* literal, Occurrences &occurrences) {
   ASS(thenBranches.isEmpty());
   ASS(elseBranches.isEmpty());
 
-  auto functionDefinition = literal->isFunctionDefinition() && env.options->functionDefinitionRewriting();
+  auto functionDefinition = literal->isFunctionDefinition();
 
   while (occurrences.isNonEmpty()) {
     Occurrence occ = pop(occurrences);
@@ -1556,10 +1556,11 @@ Clause* NewCNF::toClause(SPGenClause gc)
     properLiterals.push(l);
   }
 
+  static bool rewriting = env.options->functionDefinitionRewriting();
   Clause* clause = new(gc->size()) Clause(gc->size(),FormulaTransformation(InferenceRule::CLAUSIFY,_beingClausified));
   for (int i = gc->size() - 1; i >= 0; i--) {
     (*clause)[i] = properLiterals[i];
-    if (properLiterals[i]->isFunctionDefinition()) {
+    if (rewriting && properLiterals[i]->isFunctionDefinition()) {
       clause->makeFunctionDefinition(properLiterals[i],
         properLiterals[i]->isFunctionOrientedReversed());
     }

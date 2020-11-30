@@ -227,9 +227,8 @@ Literal* TermSharing::insert(Literal* t)
   else {
     t->destroy();
   }
-  // this nulls the current orientation
-  // TODO(mhajdu): explain
-  s->isFunctionOrientedReversed();
+  // overwrite current orientation with new
+  s->resetFunctionOrientation();
   if (reverseOrientation) {
     s->reverseFunctionOrientation();
   }

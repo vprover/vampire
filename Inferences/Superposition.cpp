@@ -113,6 +113,10 @@ struct Superposition::RewriteableSubtermsFn
   OWN_RETURN_TYPE operator()(Literal* lit)
   {
     CALL("Superposition::RewriteableSubtermsFn()");
+    if (env.options->functionDefinitionRewriting()) {
+      NonVariableIterator nvi(lit);
+      return pvi( pushPairIntoRightIterator(lit, getUniquePersistentIteratorFromPtr(&nvi)) );
+    }
     return pvi( pushPairIntoRightIterator(lit, EqHelper::getRewritableSubtermIterator(lit, _ord)) );
   }
 
@@ -466,7 +470,7 @@ Clause* Superposition::performSuperposition(
     return 0;
   }
 
-  if(rwLitS->isEquality()) {
+  if(!eqClause->isFunctionDefinition(eqLit) && rwLitS->isEquality()) {
     //check that we're not rewriting only the smaller side of an equality
     TermList arg0=*rwLitS->nthArgument(0);
     TermList arg1=*rwLitS->nthArgument(1);

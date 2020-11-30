@@ -495,7 +495,11 @@ InductionSchemeGenerator::~InductionSchemeGenerator()
 
 void InductionSchemeGenerator::generatePrimary(Clause* premise, Literal* lit)
 {
-  if (!generate(premise, lit, _primarySchemes, true)) {
+  // we can only hope to simplify anything by function definitions if
+  // this flag is on, otherwise maybe no more simplifications can be
+  // applied and we have to induct anyway
+  static bool rewriting = env.options->functionDefinitionRewriting();
+  if (!generate(premise, lit, _primarySchemes, rewriting)) {
     _primarySchemes.clear();
   };
 }

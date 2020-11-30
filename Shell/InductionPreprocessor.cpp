@@ -248,7 +248,55 @@ bool InductionTemplate::checkWellDefinedness()
       return false;
     }
   }
-  // TODO(mhajdu): check conditions too
+
+  for (const auto& rdesc : _rDescriptions) {
+    if (rdesc._conditions.empty()) {
+      continue;
+    }
+
+    // we don't check any conditions more
+    // complex than a single literal
+    if (rdesc._conditions.size() > 1) {
+      return false;
+    }
+
+    auto f1 = rdesc._conditions[0];
+    const bool negation = f1->connective() == NOT;
+    if (negation) {
+      f1 = f1->uarg();
+    }
+    if (f1->connective() != LITERAL) {
+      return false;
+    }
+    auto l1 = f1->literal();
+
+    bool foundNeg = false;
+    for (const auto& rdesc2 : _rDescriptions) {
+      if (rdesc2._step != rdesc._step || rdesc2._conditions.size() != 1) {
+        continue;
+      }
+      auto f2 = rdesc2._conditions[0];
+      const bool negation2 = f2->connective() == NOT;
+      if (negation2) {
+        f2 = f2->uarg();
+      }
+      if (f2->connective() != LITERAL) {
+        continue;
+      }
+      auto l2 = f2->literal();
+      if (negation == negation2 || l1->isPositive() == l2->isPositive()) {
+        continue;
+      }
+      if (l1->nthArgument(0) == l2->nthArgument(0) && l1->nthArgument(1) == l2->nthArgument(1)) {
+        foundNeg = true;
+        break;
+      }
+    }
+    if (!foundNeg) {
+      return false;
+    }
+  }
+
   return true;
 }
 
@@ -391,12 +439,13 @@ void InductionPreprocessor::preprocess(Problem& prb)
           env.endOutput();
         }
         env.signature->addInductionTemplate(kv.first, false, std::move(kv2.first));
-        for (auto& kv3 : kv2.second) {
-          kv3.first->makeFunctionDefinition();
-          // reset value
-          kv3.first->isFunctionOrientedReversed();
-          if (kv3.second) {
-            kv3.first->reverseFunctionOrientation();
+        if (env.options->functionDefinitionRewriting()) {
+          for (auto& kv3 : kv2.second) {
+            kv3.first->makeFunctionDefinition();
+            kv3.first->resetFunctionOrientation();
+            if (kv3.second) {
+              kv3.first->reverseFunctionOrientation();
+            }
           }
         }
         found = true;

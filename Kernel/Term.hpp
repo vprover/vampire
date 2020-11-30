@@ -498,11 +498,14 @@ public:
     _functionOrientation ^= 1;
   }
 
+  void resetFunctionOrientation()
+  {
+    _functionOrientation = 0;
+  }
+
   bool isFunctionOrientedReversed()
   {
-    auto res = _functionOrientation;
-    _functionOrientation = 0;
-    return res;
+    return _functionOrientation;
   }
 
   /** Return an index of the argument to which @b arg points */
