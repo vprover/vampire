@@ -120,6 +120,12 @@ class OriginalSubsumptionImpl
   private:
     Kernel::MLMatcher matcher;
   public:
+
+    void printStats(std::ostream& out)
+    {
+      out << "Stats: " << matcher.getStats() << std::endl;
+    }
+
     bool setup(Clause* side_premise, Clause* main_premise)
     {
       Clause* mcl = side_premise;
@@ -204,6 +210,24 @@ class SMTSubsumptionImpl
     Minisat::Solver solver;
 
   public:
+    void printStats(std::ostream& out)
+    {
+      // printf("==================================[MINISAT]===================================\n");
+      // printf("| Conflicts |     ORIGINAL     |              LEARNT              | Progress |\n");
+      // printf("|           | Clauses Literals |   Limit Clauses Literals  Lit/Cl |          |\n");
+      // printf("==============================================================================\n");
+      // printf("| %9d | %7d %8d | %7d %7d %8d %7.1f | %6.3f %% |\n",
+      //        (int)solver.stats.conflicts,
+      //        solver.nClauses(), (int)solver.stats.clauses_literals,
+      //        -1, solver.nLearnts(), (int)solver.stats.learnts_literals, (double)solver.stats.learnts_literals / solver.nLearnts(),
+      //        -1);
+      // fflush(stdout);
+      out << "Starts:       " << std::setw(8) << solver.stats.starts << std::endl;
+      out << "Decisions:    " << std::setw(8) << solver.stats.decisions << std::endl;
+      out << "Conflicts:    " << std::setw(8) << solver.stats.conflicts << std::endl;
+      out << "Propagations: " << std::setw(8) << solver.stats.propagations << std::endl;
+    }
+
     /// Set up the subsumption problem.
     /// Returns false if no solution is possible.
     /// Otherwise, solve() needs to be called.
@@ -423,11 +447,15 @@ void ProofOfConcept::test(Clause* side_premise, Clause* main_premise)
   static_assert(sizeof(Minisat::Clause) == 8, "");
   static_assert(sizeof(Minisat::Clause *) == 8, "");
 
-  bool subsumed = checkSubsumption(side_premise, main_premise);
-  std::cout << "subsumed: " << subsumed << std::endl;
+  SMTSubsumptionImpl impl;
+  std::cout << "subsumed: " << impl.checkSubsumption(side_premise, main_premise) << std::endl;
+  impl.printStats(std::cout);
+
+  std::cout << std::endl;
 
   OriginalSubsumption::Impl orig;
   std::cout << "MLMatcher says: " << orig.checkSubsumption(side_premise, main_premise) << std::endl;
+  orig.printStats(std::cout);
 }
 
 bool ProofOfConcept::checkSubsumption(Kernel::Clause *side_premise, Kernel::Clause *main_premise)

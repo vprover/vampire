@@ -797,8 +797,12 @@ void MLMatcher::getBindings(vunordered_map<unsigned, TermList>& outBindings) con
 
 MLMatchStats MLMatcher::getStats() const
 {
-  ASS(m_impl);
-  return m_impl->getStats();
+  if (m_impl) {
+    return m_impl->getStats();
+  }
+  else {
+    return {};
+  }
 }
 
 

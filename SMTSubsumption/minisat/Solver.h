@@ -30,7 +30,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 // By default, collect stats only in debug mode
 #ifndef MINISAT_STATS
 // #   define MINISAT_STATS VDEBUG
-#   define MINISAT_STATS 0
+#   define MINISAT_STATS 1
 #endif
 
 #if MINISAT_STATS
