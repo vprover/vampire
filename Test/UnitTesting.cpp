@@ -16,6 +16,7 @@
  */
 
 #include <iomanip>
+#include <fstream>
 #include "Debug/Tracer.hpp"
 
 #include "Lib/Sys/Multiprocessing.hpp"
@@ -32,13 +33,85 @@ namespace Test {
 using namespace Lib;
 using namespace Lib::Sys;
 
-TestUnit::TestUnit()
-: _tests()
+TestUnit::TestUnit(vstring const& name)
+: _tests(), _name(name)
 { }
 
-TestUnit TestUnit::_instance;
-TestUnit& TestUnit::instance() 
-{ return _instance; }
+UnitTesting* UnitTesting::_instance = nullptr;  
+
+UnitTesting& UnitTesting::instance() 
+{ 
+  if (_instance == nullptr) {
+    _instance = new UnitTesting();
+  }
+  return *_instance; 
+}
+
+bool UnitTesting::runTest(vstring const& unitId, vstring const& testCase) 
+{
+  auto unit = findUnit(unitId);
+  if (unit == nullptr) return false;
+  else return unit->runTest(testCase);
+}
+bool TestUnit::runTest(vstring const& testCase)
+{
+  for (auto test : _tests) {
+    if (test.name == testCase) {
+      test.proc();
+      return true;
+    }
+  }
+  std::cerr << "test \"" << testCase << "\" not found in " << id() << std::endl;
+  return false;
+}
+
+bool UnitTesting::run(Stack<vstring> const& args) 
+{
+  if (args.size() == 2) {
+    return runTest(args[0], args[1]);
+  } else {
+    ASS_EQ(args.size(), 1)
+    return runUnit(args[0]);
+  }
+}
+
+TestUnit* UnitTesting::findUnit(vstring const& id) 
+{
+  TestUnit* found = nullptr;
+  for (auto& test : _units) {
+    if (test.id() == id) {
+      if (found == nullptr) {
+        found = &test;
+        break;
+      } else {
+        std::cerr << "found duplicate test id: " << test.id() << std::endl;
+        return nullptr;
+      }
+    }
+  }
+  if (found == nullptr) {
+    std::cerr << "test not found: " << id << std::endl;
+  }
+  return found;
+}
+
+bool UnitTesting::runUnit(vstring const& id)
+{
+  auto unit = findUnit(id);
+  if (unit == nullptr) return false;
+  else return unit->run(std::cout);
+}
+
+bool UnitTesting::listTests(Stack<vstring> const&)
+{
+  auto& out = std::cout;
+  for (auto unit : _units) {
+    for (auto test : unit.tests()) {
+      out << unit.id() << "\t" << test.name << std::endl;
+    }
+  }
+  return true;
+}
 
 bool TestUnit::run(ostream& out)
 {
@@ -74,6 +147,8 @@ bool TestUnit::run(ostream& out)
 void TestUnit::add(Test t)
 { _tests.push(t); }
 
+TestAdder::TestAdder(const char* unitId, TestProc proc, const char* name)
+{ UnitTesting::instance().add(unitId, TestUnit::Test(proc, name)); }
 
 /**
  * Run test in a different process and wait for its termination
@@ -95,11 +170,43 @@ bool TestUnit::spawnTest(TestProc proc)
   }
 }
 
-} // namespace Test
-
-int main() {
-  bool success = Test::TestUnit::instance().run(std::cout);
-  return success ? 0 : -1;
+bool UnitTesting::add(vstring const& testUnit, TestUnit::Test test)
+{
+  for (auto& unit : _units) {
+    if (unit.id() == testUnit) {
+      unit.add(test);
+      return true;
+    }
+  }
+  _units.push(TestUnit(testUnit));
+  _units.top().add(test);
+  return true;
 }
 
+std::ostream& operator<<(ostream& out, TestUnit::Test const& t) 
+{ return out << t.name; }
+
+} // namespace Test
+
+int main(int argc, const char** argv) 
+{
+  CALL("UnitTesting::main")
+  using namespace Lib;
+  using namespace std;
+  bool success;
+  auto cmd = vstring(argv[1]);
+  auto args = Stack<vstring>(argc - 2);
+  for (unsigned i = 2; i < argc; i++) {
+    args.push(vstring(argv[i]));
+  }
+  if (cmd == "ls") {
+    success = Test::UnitTesting::instance().listTests(args);
+  } else if (cmd == "run") {
+    success = Test::UnitTesting::instance().run(args);
+  } else {
+    cerr << "unknown command: " << cmd << endl;
+    success = false;
+  }
+  return success ? 0 : -1;
+}
 
