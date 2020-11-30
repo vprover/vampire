@@ -70,6 +70,7 @@ template<class T> static inline T* xmalloc(size_t size)
 {
     T* tmp = static_cast<T*>(ALLOC_UNKNOWN(size * sizeof(T), "SMTSubsumption::Minisat"));
     assert(size == 0 || tmp != NULL);
+    // std::cerr << "xmalloc:  " << (size * sizeof(T))  << " bytes -> " << (void*)tmp << std::endl;
     return tmp;
 }
 
@@ -77,11 +78,13 @@ template<class T> static inline T* xrealloc(T* ptr, size_t size)
 {
     T* tmp = static_cast<T*>(REALLOC_UNKNOWN(ptr, size * sizeof(T), "SMTSubsumption::Minisat"));
     assert(size == 0 || tmp != NULL);
+    // std::cerr << "xrealloc: " << (size * sizeof(T))  << " bytes / " << (void*)ptr << " -> " << (void*)tmp << std::endl;
     return tmp;
 }
 
 template<class T> static inline void xfree(T *ptr)
 {
+    // std::cerr << "xfree:    " << (void*)ptr << std::endl;
     DEALLOC_UNKNOWN(ptr, "SMTSubsumption::Minisat");
 }
 
