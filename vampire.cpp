@@ -517,74 +517,6 @@ void outputMode()
   vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
 } // outputMode
 
-static SATClauseList* getInputClauses(const char* fname, unsigned& varCnt)
-{
-  CALL("getInputClauses");
-  TimeCounter tc(TC_PARSING);
-
-  return DIMACS::parse(fname, varCnt);
-}
-
-static SATClauseIterator preprocessClauses(SATClauseList* clauses) {
-  CALL("preprocessClauses");
-  TimeCounter tc(TC_PREPROCESSING);
-  
-  return SAT::Preprocess::removeDuplicateLiterals(pvi(SATClauseList::DestructiveIterator(clauses)));
-}
-
-
-void satSolverMode()
-{
-  CALL("satSolverMode()");
-  TimeCounter tc(TC_SAT_SOLVER);
-  SATSolverSCP solver;
-
-  switch(env.options->satSolver()) {
-    case Options::SatSolver::MINISAT:
-      solver = new MinisatInterfacingNewSimp(*env.options);
-      break;      
-    default:
-      ASSERTION_VIOLATION(env.options->satSolver());
-  }
-    
-  //get the clauses; 
-  SATClauseList* clauses;
-  unsigned varCnt=0;
-
-  SATSolver::Status res; 
-  
-  clauses = getInputClauses(env.options->inputFile().c_str(), varCnt);
-  
-  solver->ensureVarCount(varCnt);
-  solver->addClausesIter(preprocessClauses(clauses));
-
-  res = solver->solve();
-
-  env.statistics->phase = Statistics::FINALIZATION;
-
-  switch(res) {
-  case SATSolver::SATISFIABLE:
-    cout<<"SATISFIABLE\n";
-    env.statistics->terminationReason = Statistics::SAT_SATISFIABLE;
-    break;
-  case SATSolver::UNSATISFIABLE:
-    cout<<"UNSATISFIABLE\n";
-    env.statistics->terminationReason = Statistics::SAT_UNSATISFIABLE;
-    break;
-  case SATSolver::UNKNOWN:
-    cout<<"Unknown\n";
-    break;
-  }
-
-  env.beginOutput();
-  UIHelper::outputResult(env.out());
-  env.endOutput();
-  if (env.statistics->terminationReason == Statistics::SAT_UNSATISFIABLE
-      || env.statistics->terminationReason == Statistics::SAT_SATISFIABLE) {
-      vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
-  }
-
-}
 void vampireMode()
 {
   CALL("vampireMode()");
@@ -987,10 +919,6 @@ int main(int argc, char* argv[])
 
     case Options::Mode::TPREPROCESS:
       preprocessMode(true);
-      break;
-
-    case Options::Mode::SAT:
-      satSolverMode();
       break;
 
     default:

@@ -415,7 +415,6 @@ public:
     PREPROCESS2,
     PROFILE,
     RANDOM_STRATEGY,
-    SAT,
     SMTCOMP,
     SPIDER,
     TCLAUSIFY,

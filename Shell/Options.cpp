@@ -115,7 +115,6 @@ void Options::init()
                                         "preprocess2",
                                         "profile",
                                         "random_strategy",
-                                        "sat_solver",
                                         "smtcomp",
                                         "spider",
                                         "tclausify",
@@ -129,7 +128,6 @@ void Options::init()
     "  -preprocess,axiom_selection,clausify,grounding: modes for producing output\n      for other solvers.\n"
     "  -tpreprocess,tclausify: output modes for theory input (clauses are quantified\n      with sort information).\n"
     "  -output,profile: output information about the problem\n"
-    "  -sat_solver: accepts problems in DIMACS and uses the internal sat solver\n      directly\n"
     "Some modes are not currently maintained (get in touch if interested):\n"
     "  -bpa: perform bound propagation\n"
     "  -consequence_elimination: perform consequence elimination\n"
