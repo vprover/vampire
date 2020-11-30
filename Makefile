@@ -487,10 +487,10 @@ VAMP_DIRS := Api Debug DP Lib Lib/Sys Kernel FMB Indexing Inferences InstGen She
 VAMP_BASIC := $(MINISAT_OBJ) $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(BP_VD_OBJ) $(BP_VL_OBJ) $(BP_VLS_OBJ) $(BP_VSOL_OBJ) $(BP_VT_OBJ) $(BP_MPS_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VIG_OBJ) $(VSAT_OBJ) $(DP_OBJ) $(VST_OBJ) $(VS_OBJ) $(PARSE_OBJ) $(VFMB_OBJ)
 VSAT_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VSAT_OBJ) $(LIB_DEP)
 
-VAMPIRE_DEP := $(VAMP_BASIC) $(CASC_OBJ) $(TKV_BASIC) Global.o vampire.o
-VSAT_DEP = $(VSAT_BASIC) Global.o
-VTEST_DEP = $(VAMP_BASIC) $(VT_OBJ) $(VUT_OBJ) $(DP_OBJ) Global.o vtest.o
-LIBVAPI_DEP = $(VD_OBJ) $(API_OBJ) Global.o
+VAMPIRE_DEP := $(VAMP_BASIC) $(CASC_OBJ) $(TKV_BASIC) vampire.o
+VSAT_DEP = $(VSAT_BASIC)
+VTEST_DEP = $(VAMP_BASIC) $(VT_OBJ) $(VUT_OBJ) $(DP_OBJ) vtest.o
+LIBVAPI_DEP = $(VD_OBJ) $(API_OBJ)
 VAPI_DEP =  $(LIBVAPI_DEP) test_vapi.o
 
 all: #default make disabled

@@ -212,4 +212,6 @@ void Environment::setPriorityOutput(ostream* stm)
 
 }
 
+// global environment object, constructed before main() and used everywhere
+Environment env;
 }

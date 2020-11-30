@@ -740,7 +740,6 @@ set(VAMPIRE_SOURCES
     ${VAMPIRE_MINISAT_SOURCES}
     ${VAMPIRE_CASC_SOURCES}
     Forwards.hpp
-    Global.cpp
     "${CMAKE_CURRENT_BINARY_DIR}/version.cpp"
     )
 
