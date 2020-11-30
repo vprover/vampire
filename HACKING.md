@@ -74,7 +74,7 @@ E.g. details of build configuration, linking, Spider?
 * Verbose compilation for UNIX Makefiles: if you would like to disable the progress reports and see the commands that are run, call `make VERBOSE=1`.
 
 ## Testing with CTest
-Vampire now has some units tests which can run with CTest.
+Vampire now has units tests which can run with CTest.
 
 ### Running tests
 tl;dr: 
@@ -93,6 +93,22 @@ Options you will probably find useful are the following:
 * `--rerun-failed`
 * `-R <regex>` run only tests with names matching `<regex>`
 * `-E <regex>` do not run tests with names matching `<regex>`
+
+Every test unit consists of multiple test cases, which will be run each as a separate process. This can be annoying if one wants to debug a single test case using `lldb` or similar tools. Therefore you can also run a single test case without launching a separarate process:
+```
+mkdir cmake-build
+cd cmake-build
+cmake ..
+make 
+./vtest run <unit_id> <test_case>
+```
+All available test cases and test units can be listed with 
+```
+./vtest ls
+```
+
+Compiling tests can also slow down compile times. Compiling them can be circumvented by calling `make vampire` instead of `make` in your cmake directory.
+
 
 ### Creating new unit tests
 tl;dr: 

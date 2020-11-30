@@ -828,30 +828,40 @@ endif()
 # UNIT TESTING 
 ################################################################
 
+set(UNIT_TEST_OBJ   )
+set(UNIT_TEST_CASES )
 if (COMPILE_TESTS) 
   include(CTest)
   foreach(test_file ${UNIT_TESTS})
     get_filename_component(test_name ${test_file} NAME_WE)
     string(REGEX REPLACE "^t" "" test_name ${test_name})
 
-    # compiling the test case executable
-    add_executable(
-      test-${test_name}
-      ${test_file}
-      $<TARGET_OBJECTS:obj>
-      $<TARGET_OBJECTS:test_obj>
-    )
-    set(test_bin_dir ${CMAKE_BINARY_DIR}/bin/unit-tests)
-    set_target_properties(test-${test_name} PROPERTIES
-        OUTPUT_NAME ${test_name}
-        RUNTIME_OUTPUT_DIRECTORY ${test_bin_dir})   
+    # compiling the test case object 
+    add_library(${test_name}_obj OBJECT ${test_file})
+    target_compile_definitions(${test_name}_obj PUBLIC 
+      UNIT_ID_STR=\"${test_name}\"
+      UNIT_ID=${test_name}
+      )
+    set(UNIT_TEST_OBJ   ${UNIT_TEST_OBJ}   $<TARGET_OBJECTS:${test_name}_obj>)
+    set(UNIT_TEST_CASES ${UNIT_TEST_CASES} ${test_name})
+  endforeach()
 
-    # configuring ctest
-    add_test(${test_name} ${test_bin_dir}/${test_name})
-    set_tests_properties(${test_name}
+  # build test executable
+  add_executable(
+    vtest
+    ${UNIT_TEST_OBJ}
+    $<TARGET_OBJECTS:obj>
+    $<TARGET_OBJECTS:test_obj>
+    )
+
+  # add indivitual units as test cases
+  foreach(case ${UNIT_TEST_CASES})
+    add_test(${case} ${CMAKE_BINARY_DIR}/vtest run ${case})
+    set_tests_properties(${case}
           PROPERTIES
           TIMEOUT 20)
   endforeach()
+
 endif() # COMPILE_TESTS
 
 #################################################################
