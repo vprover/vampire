@@ -962,7 +962,8 @@ lbool Solver::search(int nof_conflicts, int nof_learnts, const SearchParams& par
                 return l_True;
             }
 
-            check(assume(~Lit(next)));
+            // NOTE: decisions should always do the positive choice first, because this triggers lots of propagations
+            check(assume(Lit(next)));
         }
     }
 }
