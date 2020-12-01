@@ -651,7 +651,6 @@ source_group(shell_source_files FILES ${VAMPIRE_SHELL_SOURCES})
 set(VAMPIRE_PARSE_SOURCES
     Parse/SMTLIB2.cpp
     Parse/TPTP.cpp
-    Parse/SMTLIB.hpp
     Parse/SMTLIB2.hpp
     Parse/TPTP.hpp
     )

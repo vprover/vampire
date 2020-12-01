@@ -384,8 +384,6 @@ public:
    * @since 26/08/2009 Redmond
    */
   enum class InputSyntax : unsigned int {
-    /** syntax of SMTLIB1.2 */
-    //SMTLIB = 1,
     SMTLIB2 = 0,
     /** syntax of the TPTP prover */
     TPTP = 1, 
