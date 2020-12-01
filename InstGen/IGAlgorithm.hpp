@@ -170,7 +170,6 @@ private:
   TautologyDeletionISE _tautologyDeletion;
   DistinctEqualitySimplifier _distinctEqualitySimplifier;
 
-  bool _use_niceness;
   /*
   bool _use_dm;
 

@@ -19,7 +19,6 @@
 #include "SAT/SATLiteral.hpp"
 #include "SAT/SATInference.hpp"
 #include "SAT/SATSolver.hpp"
-#include "SAT/TWLSolver.hpp"
 #include "SAT/MinisatInterfacing.hpp"
 #include "SAT/Z3Interfacing.hpp"
 
@@ -79,6 +78,10 @@ void ensurePrepared(SATSolver& s)
   s.ensureVarCount(27);
 }
 
+// TODO this test used to work with TWLSolver
+// It doesn't work with Minisat but could
+// see Minisat::getZeroImpliedCertificate
+/*
 void testZICert1(SATSolverWithAssumptions& s)
 {
   CALL("testZICert1");
@@ -108,9 +111,10 @@ void testZICert1(SATSolverWithAssumptions& s)
 
 TEST_FUN(satSolverZeroImpliedCert)
 {
-  TWLSolver s(*env.options,true);
+  MinisatInterfacing s(*env.options,true);
   testZICert1(s);
 }
+*/
 
 void testProofWithAssumptions(SATSolver& s)
 {
@@ -140,7 +144,7 @@ void testProofWithAssumptions(SATSolver& s)
 
 TEST_FUN(testProofWithAssums)
 {
-  TWLSolver s(*env.options,true);
+  MinisatInterfacing s(*env.options,true);
   testProofWithAssumptions(s);    
 }
 
@@ -234,10 +238,6 @@ TEST_FUN(testSATSolverInterface)
   MinisatInterfacing sMini(*env.options,true);
   testInterface(sMini);
     
-  cout << endl << "TWL" << endl;
-  TWLSolver sTWL(*env.options,true);
-  testInterface(sTWL);  
-
   /* Not fully conforming - does not support zeroImplied and resource-limited solving
   cout << endl << "Z3" << endl;
   {
@@ -297,10 +297,6 @@ TEST_FUN(testSolvingUnderAssumptions)
   cout << endl << "Minisat" << endl;
   MinisatInterfacing sMini(*env.options,true);
   testAssumptions(sMini);
-
-  cout << endl << "TWL" << endl;
-  TWLSolver sTWL(*env.options,true);
-  testAssumptions(sTWL);
 
   /*cout << endl << "Z3" << endl;
   {

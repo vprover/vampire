@@ -433,34 +433,26 @@ source_group(instancegeneration_source_files FILES ${VAMPIRE_INSTANCEGENERATION_
 
 set(VAMPIRE_SAT_SOURCES
     SAT/BufferedSolver.cpp
-    SAT/ClauseDisposer.cpp
     SAT/DIMACS.cpp
     SAT/FallbackSolverWrapper.cpp
     SAT/MinimizingSolver.cpp
     SAT/Preprocess.cpp
-    SAT/RestartStrategy.cpp
     SAT/SAT2FO.cpp
     SAT/SATClause.cpp
     SAT/SATInference.cpp
     SAT/SATLiteral.cpp
-    SAT/TWLSolver.cpp
-    SAT/VariableSelector.cpp
     SAT/Z3Interfacing.cpp
 
     SAT/BufferedSolver.hpp
-    SAT/ClauseDisposer.hpp
     SAT/DIMACS.hpp
     SAT/FallbackSolverWrapper.hpp
     SAT/MinimizingSolver.hpp
     SAT/Preprocess.hpp
-    SAT/RestartStrategy.hpp
     SAT/SAT2FO.hpp
     SAT/SATClause.hpp
     SAT/SATInference.hpp
     SAT/SATLiteral.hpp
     SAT/SATSolver.hpp
-    SAT/TWLSolver.hpp
-    SAT/VariableSelector.hpp
     SAT/Z3Interfacing.hpp
     )
 source_group(sat_source_files FILES ${VAMPIRE_SAT_SOURCES})

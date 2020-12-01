@@ -315,10 +315,6 @@ void TimeCounter::outputSingleStat(TimeCounterUnit tcu, ostream& out)
   case TC_SAT_SOLVER:
     out<<"SAT solver time";
     break;
-  case TC_TWLSOLVER_ADD:
-    out<<"TWLSolver add clauses";
-    break;
-    break;
   case TC_MINIMIZING_SOLVER:
     out << "minimizing solver time";
     break;

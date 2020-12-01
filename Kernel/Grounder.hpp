@@ -40,10 +40,10 @@ public:
   virtual ~Grounder() { CALL("Grounder::~Grounder"); }
 
   // TODO: sort out the intended semantics and the names of these four beasts:
-  SATLiteral groundLiteral(Literal* lit,bool use_n);
-  SATClause* ground(Clause* cl,bool use_n);
-  SATClause* groundNonProp(Clause* cl, bool use_n, Literal** normLits=0);
-  void groundNonProp(Clause* cl, SATLiteralStack& acc, bool use_n, Literal** normLits=0);
+  SATLiteral groundLiteral(Literal* lit);
+  SATClause* ground(Clause* cl);
+  SATClause* groundNonProp(Clause* cl, Literal** normLits=0);
+  void groundNonProp(Clause* cl, SATLiteralStack& acc, Literal** normLits=0);
 
   LiteralIterator groundedLits();
 

@@ -116,14 +116,6 @@ public:
   virtual Status solveUnderAssumptions(const SATLiteralStack& assumps, unsigned c, bool p) override
   { return solveUnderAssumptions(assumps,c,p,false); }
 
- /**
-  * Record the association between a SATLiteral var and a Literal
-  * In TWLSolver this is used for computing niceness values
-  */
-  virtual void recordSource(unsigned satlitvar, Literal* lit) override {
-    // unsupported by Z3; intentionally no-op
-  };
-  
   /**
    * The set of inserted clauses may not be propositionally UNSAT
    * due to theory reasoning inside Z3.

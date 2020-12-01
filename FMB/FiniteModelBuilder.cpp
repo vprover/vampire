@@ -34,7 +34,6 @@
 #include "Kernel/FormulaUnit.hpp"
 
 #include "SAT/Preprocess.hpp"
-#include "SAT/TWLSolver.hpp"
 #include "SAT/MinisatInterfacingNewSimp.hpp"
 #include "SAT/BufferedSolver.hpp"
 
@@ -269,9 +268,6 @@ bool FiniteModelBuilder::reset(){
   */
 /*
   switch(_opt.satSolver()){
-    case Options::SatSolver::VAMPIRE:
-      _solver = new TWLSolver(_opt, true);
-      break;
 #if VZ3
     case Options::SatSolver::Z3:
         ASSERTION_VIOLATION_REP("Do not use fmb with Z3");
