@@ -67,7 +67,6 @@ FiniteModelMultiSorted::FiniteModelMultiSorted(DHMap<unsigned,unsigned> sizes) :
   // the actual index
   unsigned offsets=1;
   for(unsigned f=0; f<env.signature->functions();f++){
-    if(env.signature->isTypeConOrSup(f)){ continue; }
     unsigned arity=env.signature->functionArity(f);
     f_offsets[f]=offsets;
 
@@ -264,7 +263,6 @@ vstring FiniteModelMultiSorted::toString()
   }
   //Constants
   for(unsigned f=0;f<env.signature->functions();f++){
-    if(env.signature->isTypeConOrSup(f)){ continue; }
     if(env.signature->getFunction(f)->usageCnt()==0) continue;
     unsigned arity = env.signature->functionArity(f);
     if(arity>0) continue;
@@ -288,7 +286,6 @@ vstring FiniteModelMultiSorted::toString()
 
   //Functions
   for(unsigned f=0;f<env.signature->functions();f++){
-    if(env.signature->isTypeConOrSup(f)){ continue; }
     if(env.signature->getFunction(f)->usageCnt()==0) continue;
     unsigned arity = env.signature->functionArity(f);
     if(arity==0) continue;

@@ -64,7 +64,7 @@ public:
   static void outputSaturatedSet(ostream& out, UnitIterator uit);
 
   static void outputSymbolDeclarations(ostream& out);
-  static void outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, unsigned symNumber);
+  static void outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, bool typecon, unsigned symNumber);
 
   static void outputSortDeclarations(ostream& out);//TODO modify all places that call function
 

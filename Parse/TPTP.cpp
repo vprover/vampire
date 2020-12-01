@@ -3265,12 +3265,43 @@ TermList TPTP::createFunctionApplication(vstring name, unsigned arity)
   if (safe) {
     t = env.sharing->insert(t);
   }
-  TermList ts(t);
-  TermList resultSort = type->result();
-  if(resultSort == Term::superSort()){
-    env.sorts->addSort(ts);
+  return TermList(t);
+}
+
+/**
+ * Creates a term that is a function application from
+ * provided function symbol name and arity. If arity is greater than zero,
+ * the arguments are assumed to be on the _termLists stack.
+ * @since 13/04/2015 Gothenburg, major changes to support FOOL
+ */
+TermList TPTP::createTypeConApplication(vstring name, unsigned arity)
+{ 
+  CALL("TPTP::createTypeConApplication");
+  ASS_GE(_termLists.size(), arity);
+
+  bool dummy;
+  //TODO not checking for overflown constant. Is that OK?
+  //seems to be done this way for predicates as well.
+  unsigned typeCon = env.signature->addTypeCon(name,arity,dummy);
+
+  PolySort* s = new(arity) PolySort;
+  s->makeSymbol(typeCon,arity);
+  OperatorType* type = env.signature->getTypeCon(typeCon)->fnType();
+  bool safe = true;
+  for (int i = arity-1;i >= 0;i--) {
+    TermList ss = _termLists.pop();
+    TermList ssSort = sortOf(ss);
+    if(ssSort != Term::superSort()){
+        USER_ERROR("The sort " + ssSort.toString() + " of type argument " + ss.toString() + " "
+                   "is not $ttype as mandated by TF1");
+    }
+    *(s->nthArgument(i)) = ss;
+    safe = safe && ss.isSafe();
   }
-  return ts;
+  if (safe) {
+    s = env.sharing->insert(s);
+  }
+  return TermList(s);
 }
 
 /**
@@ -3746,6 +3777,7 @@ void TPTP::endTff()
 
   unsigned arity = ot->arity();
   bool isPredicate = ot->isPredicateType() && !_isThf;
+  bool isTypeCon = !isPredicate && (ot->result() == Term::superSort());
 
   bool added;
   Signature::Symbol* symbol;
@@ -3763,6 +3795,18 @@ void TPTP::endTff()
         symbol->setType(ot);
       }
     }
+  } else if (isTypeCon){
+    unsigned typeCon = env.signature->addTypeCon(name, arity, added);
+    symbol = env.signature->getTypeCon(typeCon);
+    if (!added) {
+      // GR: Multiple identical type declarations for a symbol are allowed
+      if(symbol->typeConType() != ot){
+        USER_ERROR("Type constructor type is declared after its use: " + name);
+      }
+    }
+    else{
+      symbol->setType(ot);
+    }
   } else {
     unsigned fun = arity == 0
                    ? addUninterpretedConstant(name, _overflow, added)
@@ -3775,6 +3819,7 @@ void TPTP::endTff()
     }
     else {   
       symbol->setType(ot);
+      //TODO check whether the below is actually required or not.
       if(_isThf){
         if(!_typeArities.insert(name, ot->typeArgsArity())){
           USER_ERROR("Symbol " + name + " used with different type arities");
@@ -4277,7 +4322,7 @@ TermList TPTP::readSort()
           }
         }
       } 
-      return createFunctionApplication(fname, arity);
+      return createTypeConApplication(fname, arity);
     }
   case T_VAR:
     {

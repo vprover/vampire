@@ -48,10 +48,12 @@ typedef ApplicativeHelper AH;
  */
 TermSharing::TermSharing()
   : _totalTerms(0),
+    _totalSorts(0),
     // _groundTerms(0), //MS: unused
     _totalLiterals(0),
     // _groundLiterals(0), //MS: unused
     _literalInsertions(0),
+    _sortInsertions(0),
     _termInsertions(0),
     _poly(1)
 {
@@ -74,6 +76,10 @@ TermSharing::~TermSharing()
   Set<Literal*,TermSharing>::Iterator ls(_literals);
   while (ls.hasNext()) {
     ls.next()->destroy();
+  }
+  Set<PolySort*,TermSharing>::Iterator ss(_sorts);
+  while (ss.hasNext()) {
+    ss.next()->destroy();
   }
 #endif
 }
@@ -209,6 +215,60 @@ Term* TermSharing::insert(Term* t)
   }
   else {
     t->destroy();
+  }
+  return s;
+} // TermSharing::insert
+
+PolySort* TermSharing::insert(PolySort* sort)
+{
+
+  CALL("TermSharing::insert(PolySort*)");
+  ASS(!sort->isLiteral());
+  ASS(!sort->isSpecial());
+  //ASS(t->isSort());
+
+  TimeCounter tc(TC_TERM_SHARING);
+
+
+  _sortInsertions++;
+  PolySort* s = _sorts.insert(sort);
+   if (s == sort) {
+    unsigned weight = 1;
+    unsigned vars = 0;
+
+    for (TermList* tt = sort->args(); ! tt->isEmpty(); tt = tt->next()) {
+      if (tt->isVar()) {
+        ASS(tt->isOrdinaryVar());
+        vars++;
+        weight += 1;
+      }
+      else 
+      {
+        ASS_REP(tt->term()->shared(), tt->term()->toString());
+        
+        Term* r = tt->term();
+  
+        vars += r->vars();
+        weight += r->weight();
+      }
+    }
+    sort->markShared();
+    sort->setId(_totalSorts);
+    sort->setVars(vars);
+    sort->setWeight(weight);
+      
+    _totalSorts++;
+
+    //TODO replace with a function that checks that all arguments are of type $tType
+    /*ASS_REP(SortHelper::areImmediateSortsValidPoly(sort), sort->toString());
+    if (!_poly && !SortHelper::areImmediateSortsValidMono(t)){
+      USER_ERROR("Immediate (shared) subterms of sort "+sort->toString()+" have different types/not well-typed!");
+    } else if (_poly && !SortHelper::areImmediateSortsValidPoly(t)){
+      USER_ERROR("Immediate (shared) subterms of sort "+sort->toString()+" have different types/not well-typed!");      
+    }*/
+  }
+  else {
+    sort->destroy();
   }
   return s;
 } // TermSharing::insert

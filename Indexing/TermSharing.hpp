@@ -48,6 +48,8 @@ public:
   Term* insert(Term*);
   Term* insertRecurrently(Term*);
 
+  PolySort* insert(PolySort*);
+
   Literal* insert(Literal*);
   Literal* insertVariableEquality(Literal* lit,TermList sort);
 
@@ -83,8 +85,12 @@ private:
   Set<Term*,TermSharing> _terms;
   /** The set storing all literals */
   Set<Literal*,TermSharing> _literals;
+    /** The set storing all sorts */
+  Set<PolySort*,TermSharing> _sorts;
   /** Number of terms stored */
   unsigned _totalTerms;
+  /** Number of sorts stored */
+  unsigned _totalSorts;
   /** Number of ground terms stored */
   // unsigned _groundTerms; // MS: unused
   /** Number of literals stored */
@@ -93,6 +99,8 @@ private:
   // unsigned _groundLiterals; // MS: unused
   /** Number of literal insertions */
   unsigned _literalInsertions;
+  /** number of sort insertions */
+  unsigned _sortInsertions;
   /** Number of term insertions */
   unsigned _termInsertions;
 

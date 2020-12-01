@@ -72,7 +72,6 @@ Signature::Symbol::Symbol(const vstring& nm, unsigned arity, bool interpreted, b
     _superSort(super),
     _boolSort(0),
     _defaultSort(0),
-    _typeConstructor(0),
     _prox(NOT_PROXY),
     _comb(NOT_COMB)
 {
@@ -127,6 +126,14 @@ void Signature::Symbol::destroyPredSymbol()
   }
 }
 
+void Signature::Symbol::destroyTypeConSymbol()
+{
+  CALL("Signature::Symbol::destroyTypeConSymbol");
+  ASS(!interpreted());
+
+  delete this;
+}
+
 /**
  * Add constant symbol into a distinct group
  *
@@ -168,7 +175,6 @@ void Signature::Symbol::setType(OperatorType* type)
   CALL("Signature::Symbol::setType");
   ASS_REP(!_type, _type->toString());
 
-  _typeConstructor = (type->result() == Term::superSort());
   _typeArgsArity = type->typeArgsArity(); 
   _type = type;
 }
@@ -204,6 +210,24 @@ OperatorType* Signature::Symbol::fnType() const
 }
 
 /**
+ * Return the type of a typeConType symbol
+ *
+ * If the @c setType() function was not called before, the function
+ * symbol is assigned a default type.
+ */
+OperatorType* Signature::Symbol::typeConType() const
+{
+  CALL("Signature::Symbol::typeConType");
+  ASS(!super());
+
+  if (!_type) {
+    TermList sup = Term::superSort();
+    _type = OperatorType::getFunctionTypeUniformRange(arity(), sup, sup, VarList::empty());
+  }
+  return _type;
+}
+
+/**
  * Return the type of a predicate symbol
  *
  * If the @c setType() function was not called before, the function
@@ -230,6 +254,7 @@ Signature::Signature ():
     _foolConstantsDefined(false), _foolTrue(0), _foolFalse(0),
     _funs(32),
     _preds(32),
+    _typeCons(32),
     _nextFreshSymbolNumber(0),
     _skolemFunctionCount(0),
     _distinctGroupsAddedTo(false),
@@ -278,6 +303,9 @@ Signature::~Signature ()
   }
   for (int i = _preds.length()-1;i >= 0;i--) {
     _preds[i]->destroyPredSymbol();
+  }
+  for (int i = _typeCons.length()-1;i >= 0;i--) {
+    _preds[i]->destroyTypeConSymbol();
   }
 } // Signature::~Signature
 
@@ -672,10 +700,7 @@ unsigned Signature::addFunction (const vstring& name,
     }
     _arityCheck.insert(name,2*arity+1);
   }
-  
-  /*if(name == "$tType"){
-    ASSERTION_VIOLATION;
-  }*/
+
   result = _funs.length();
   bool super = (name == "$tType");
   _funs.push(new Symbol(name, arity, false, false, false, overflowConstant, super));
@@ -810,6 +835,29 @@ unsigned Signature::formulaCount(Term* t){
   return 0;
 }
 
+
+/**
+ * If a type constructor with this name and arity exists, return its number.
+ * Otherwise, add a new one and return its number.
+ */
+unsigned Signature::addTypeCon (const vstring& name,
+         unsigned arity,
+         bool& added)
+{
+  vstring symbolKey = key(name,arity);
+  unsigned result;
+  if (_typeConNames.find(symbolKey,result)) {
+    added = false;
+    return result;
+  }
+  //TODO no arity check. Is this safe?
+
+  result = _typeCons.length();
+  _typeCons.push(new Symbol(name,arity));
+  _typeConNames.insert(symbolKey,result);
+  added = true;
+  return result;
+}
 
 /**
  * If a predicate with this name and arity exists, return its number.

@@ -154,8 +154,6 @@ class Signature
     unsigned _boolSort : 1;
     /** if any non-Boolean default sort */
     unsigned _defaultSort : 1;
-    /** if type constructor */
-    unsigned _typeConstructor : 1;
     /** proxy type */
     Proxy _prox;
     /** combinator type */
@@ -166,6 +164,7 @@ class Signature
     Symbol(const vstring& nm,unsigned arity, bool interpreted=false, bool stringConstant=false,bool numericConstant=false,bool overflownConstant=false, bool super = false);
     void destroyFnSymbol();
     void destroyPredSymbol();
+    void destroyTypeConSymbol();
 
     void addColor(Color color);
     /** mark symbol that doesn't come from input problem, but was introduced by Vampire */
@@ -264,7 +263,6 @@ class Signature
     inline Combinator combinator(){ return _comb; }
 
     inline const bool super() const { return _superSort; }
-    inline const bool typeCon() const { return _typeConstructor; } 
 
     inline void markInductionSkolem(){ _inductionSkolem=1; _skolem=1;}
     inline bool inductionSkolem(){ return _inductionSkolem;}
@@ -303,6 +301,7 @@ class Signature
     void forceType(OperatorType* type);
     OperatorType* fnType() const;
     OperatorType* predType() const;
+    OperatorType* typeConType() const;
 
     CLASS_NAME(Signature::Symbol);
     USE_ALLOCATOR(Symbol);
@@ -396,6 +395,7 @@ class Signature
   //
 
   unsigned addPredicate(const vstring& name,unsigned arity,bool& added);
+  unsigned addTypeCon(const vstring& name,unsigned arity,bool& added);
   unsigned addFunction(const vstring& name,unsigned arity,bool& added,bool overflowConstant = false);
 
   /**
@@ -505,6 +505,12 @@ class Signature
     return _preds[number]->arity();
   }
 
+  const unsigned typeConArity(int number)
+  {
+    CALL("Signature::typeConArity");
+    return _typeCons[number]->arity();
+  }
+
   const bool predicateColored(int number)
   {
     return _preds[number]->color()!=COLOR_TRANSPARENT;
@@ -539,6 +545,8 @@ class Signature
   unsigned functions() const { return _funs.length(); }
   /** return the number of predicates */
   unsigned predicates() const { return _preds.length(); }
+  /** return the number of typecons */
+  unsigned typeCons() const { return _typeCons.length(); }
 
   /** Return the function symbol by its number */
   inline Symbol* getFunction(unsigned n)
@@ -552,6 +560,11 @@ class Signature
     ASS(n < _preds.length());
     return _preds[n];
   } // getPredicate
+  inline Symbol* getTypeCon(unsigned n)
+  {
+    ASS(n < _typeCons.length());
+    return _typeCons[n];
+  }
 
   static inline bool isEqualityPredicate(unsigned p)
   {
@@ -567,11 +580,6 @@ class Signature
 
   bool functionExists(const vstring& name,unsigned arity) const;
   bool predicateExists(const vstring& name,unsigned arity) const;
-
-  bool isTypeConOrSup(unsigned fun) { 
-    Symbol* sym =  getFunction(fun);
-    return sym->typeCon() || sym->super(); 
-  }
 
   bool tryGetFunctionNumber(const vstring& name, unsigned arity, unsigned& out) const;
   bool tryGetPredicateNumber(const vstring& name, unsigned arity, unsigned& out) const;
@@ -621,10 +629,10 @@ class Signature
     CALL("Signature::getDefaultSort");
 
     bool added = false;
-    unsigned individualSort = addFunction("$i",0, added);
+    unsigned individualSort = addTypeCon("$i",0, added);
     if(added){
-      getFunction(individualSort)->setType(OperatorType::getConstantsType(Term::superSort(), VarList::empty()));
-      getFunction(individualSort)->markDefaultSort();    
+      getTypeCon(individualSort)->setType(OperatorType::getConstantsType(Term::superSort(), VarList::empty()));
+      getTypeCon(individualSort)->markDefaultSort();    
     }
     return individualSort;
   }
@@ -633,50 +641,50 @@ class Signature
     CALL("Signature::getBoolSort");
 
     bool added = false;
-    unsigned boolSort = addFunction("$o",0, added);
+    unsigned boolSort = addTypeCon("$o",0, added);
     if(added){
-      getFunction(boolSort)->setType(OperatorType::getConstantsType(Term::superSort(), VarList::empty()));
-      getFunction(boolSort)->markBoolSort();
+      getTypeCon(boolSort)->setType(OperatorType::getConstantsType(Term::superSort(), VarList::empty()));
+      getTypeCon(boolSort)->markBoolSort();
     }
     return boolSort;
   }
 
   unsigned getRealSort(){
     bool added = false;
-    unsigned realSort = addFunction("$real",0, added);
+    unsigned realSort = addTypeCon("$real",0, added);
     if(added){
-      getFunction(realSort)->setType(OperatorType::getConstantsType(Term::superSort(), VarList::empty()));
-      getFunction(realSort)->markDefaultSort();
+      getTypeCon(realSort)->setType(OperatorType::getConstantsType(Term::superSort(), VarList::empty()));
+      getTypeCon(realSort)->markDefaultSort();
     }
     return realSort;
   }
 
   unsigned getIntSort(){
     bool added = false;
-    unsigned intSort = addFunction("$int",0, added);
+    unsigned intSort = addTypeCon("$int",0, added);
     if(added){
-      getFunction(intSort)->setType(OperatorType::getConstantsType(Term::superSort(), VarList::empty()));
-      getFunction(intSort)->markDefaultSort();
+      getTypeCon(intSort)->setType(OperatorType::getConstantsType(Term::superSort(), VarList::empty()));
+      getTypeCon(intSort)->markDefaultSort();
     }
     return intSort;
   }  
 
   unsigned getRatSort(){
     bool added = false;
-    unsigned ratSort = addFunction("$rat",0, added);
+    unsigned ratSort = addTypeCon("$rat",0, added);
     if(added){
-      getFunction(ratSort)->setType(OperatorType::getConstantsType(Term::superSort(), VarList::empty()));
-      getFunction(ratSort)->markDefaultSort();    
+      getTypeCon(ratSort)->setType(OperatorType::getConstantsType(Term::superSort(), VarList::empty()));
+      getTypeCon(ratSort)->markDefaultSort();    
     }
     return ratSort;    
   }
 
   unsigned getArrowConstructor(){
     bool added = false;
-    unsigned arrow = addFunction(">",2, added);
+    unsigned arrow = addTypeCon(">",2, added);
     if(added){
       TermList ss = Term::superSort();
-      Symbol* arr = getFunction(arrow);
+      Symbol* arr = getTypeCon(arrow);
       arr->setType(OperatorType::getFunctionType({ss, ss}, ss, VarList::empty()));
       arr->markArrow();
     }
@@ -685,10 +693,10 @@ class Signature
 
   unsigned getArrayConstructor(){
     bool added = false;
-    unsigned array = addFunction("Array",2, added);
+    unsigned array = addTypeCon("Array",2, added);
     if(added){
       TermList ss = Term::superSort();
-      Symbol* arr = getFunction(array);
+      Symbol* arr = getTypeCon(array);
       arr->setType(OperatorType::getFunctionType({ss, ss}, ss, VarList::empty()));
       arr->markArray();
     }
@@ -698,10 +706,10 @@ class Signature
   unsigned getTupleConstructor(unsigned arity){
     bool added = false;
     //TODO make the name unique
-    unsigned tuple = addFunction("Tuple", arity, added);
+    unsigned tuple = addTypeCon("Tuple", arity, added);
     if(added){
       TermList ss = Term::superSort();
-      Symbol* tup = getFunction(tuple);
+      Symbol* tup = getTypeCon(tuple);
       tup->setType(OperatorType::getFunctionTypeUniformRange(arity, ss, ss));
       tup->markTuple();
     }
@@ -803,19 +811,18 @@ class Signature
     } else {
       comb = addFunction(name,1, added);
     }
-    
-    VarList* vl = new VarList(2);
-    VarList::push(1, vl);
-    VarList::push(0, vl);
-    TermList x0 = TermList(0, false);
-    TermList x1 = TermList(1, false);
-    TermList x2 = TermList(2, false);
-    TermList t0 = Term::arrowSort(x1, x2);
-    TermList t1 = Term::arrowSort(x0, t0);
-    TermList t2 = Term::arrowSort(x0, x1);
-    TermList t3 = Term::arrowSort(x0, x2);
 
     if(added){
+      VarList* vl = new VarList(2);
+      VarList::push(1, vl);
+      VarList::push(0, vl);
+      TermList x0 = TermList(0, false);
+      TermList x1 = TermList(1, false);
+      TermList x2 = TermList(2, false);
+      TermList t0 = Term::arrowSort(x1, x2);
+      TermList t1 = Term::arrowSort(x0, t0);
+      TermList t2 = Term::arrowSort(x0, x1);
+      TermList t3 = Term::arrowSort(x0, x2);
       TermList sort; 
       if(c == S_COMB){
         sort = Term::arrowSort(t1, t2, t3);
@@ -871,6 +878,10 @@ private:
   Stack<Symbol*> _funs;
   /** Stack of predicate symbols */
   Stack<Symbol*> _preds;
+  /** Stack of type constructor symbols */  
+  Stack<Symbol*> _typeCons;
+  /** Super is special. It doesnt belong in any of the above above */
+  Symbol* _super;
 
   DHSet<unsigned> _choiceSymbols;
   /**
@@ -882,6 +893,8 @@ private:
   SymbolMap _funNames;
   /** Map from vstring "name_arity" to their numbers */
   SymbolMap _predNames;
+  /** Map from vstring "name_arity" to their numbers */
+  SymbolMap _typeConNames;
   /** Map for the arity_check options: maps symbols to their arities */
   SymbolMap _arityCheck;
   /** Last number used for fresh functions and predicates */

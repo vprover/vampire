@@ -756,6 +756,26 @@ public:
   }; // Term::Iterator
 }; // class Term
 
+
+/**
+ * Class of PolySort.
+ * @since 06/05/2007 Manchester
+ */
+class PolySort
+  : public Term
+{
+public:
+  PolySort();
+  explicit PolySort(const PolySort& t) throw();
+  static PolySort* create(unsigned typeCon, unsigned arity, const TermList* args);
+  static PolySort* createConstant(unsigned typeCon) { return create(typeCon,0,0); }
+
+private:
+
+  static PolySort* createNonShared(unsigned typeCon, unsigned arity, TermList* arg);
+  static PolySort* createNonSharedConstant(unsigned typeCon) { return createNonShared(typeCon,0,0); }
+};
+
 /**
  * Class of literals.
  * @since 06/05/2007 Manchester

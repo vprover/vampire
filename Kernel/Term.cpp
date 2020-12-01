@@ -1265,7 +1265,6 @@ TermList Term::arraySort(TermList indexSort, TermList innerSort)
   CALL("Term::arraySort");
   unsigned array = env.signature->getArrayConstructor();
   TermList sort = TermList(create2(array, indexSort, innerSort));
-  env.sorts->addSort(sort);
   return sort;
 }
 
@@ -1274,7 +1273,6 @@ TermList Term::tupleSort(unsigned arity, TermList* sorts)
   CALL("Term::tupleSort");
   unsigned tuple = env.signature->getTupleConstructor(arity);
   TermList sort = TermList(create(tuple, arity, sorts));
-  env.sorts->addSort(sort);
   return sort;
 }
 
@@ -1377,6 +1375,60 @@ bool Term::isSuper() const {
   return this == Term::superSort().term(); 
 }
 
+/** Create a new sort, and insert it into the sharing
+ *  structure if all arguments are shared.
+ */
+PolySort* PolySort::create(unsigned typeCon, unsigned arity, const TermList* args)
+{
+  CALL("PolySort::create");
+
+  ASS_EQ(env.signature->typeConArity(typeCon), arity);
+
+  PolySort* s = new(arity) PolySort;
+  s->makeSymbol(typeCon,arity);
+
+  bool share = true;
+  TermList* ss = s->args();
+
+  const TermList* curArg = args;
+  const TermList* argStopper = args+arity;
+  while (curArg!=argStopper) {
+    *ss = *curArg;
+    --ss;
+    if (!curArg->isSafe()) {
+      share = false;
+    }
+    ++curArg;
+  }
+  if (share) {
+    s = env.sharing->insert(s);
+  }
+  return s;
+}
+
+/** Create a new complex term, and insert it into the sharing
+ *  structure if all arguments are shared.
+ */
+PolySort* PolySort::createNonShared(unsigned typeCon, unsigned arity, TermList* args)
+{
+  CALL("PolySort::createNonShared");
+  ASS_EQ(env.signature->typeConArity(typeCon), arity);
+
+  PolySort* s = new(arity) PolySort;
+  s->makeSymbol(typeCon,arity);
+
+  TermList* ss = s->args();
+
+  TermList* curArg = args;
+  TermList* argStopper = args+arity;
+  while (curArg!=argStopper) {
+    *ss = *curArg;
+    --ss;
+    ++curArg;
+  }
+  return s;
+}
+
 /**
  * Return true iff headers of literals match each other. We check also whether
  * sorts of equality literals are equal.
@@ -1416,6 +1468,7 @@ Literal* Literal::create(unsigned predicate, unsigned arity, bool polarity, bool
   }
   return l;
 }
+
 
 /** Create a new literal, copy from @b l its predicate symbol and
  *  its arguments, and set its polarity to @b polarity. Insert it
@@ -1595,6 +1648,13 @@ Literal::Literal(const Literal& l) throw()
   CALL("Literal::Literal/1");
 }
 
+/** create a new PolySort and copy from l its content */
+PolySort::PolySort(const PolySort& p) throw()
+  : Term(p)
+{
+  CALL("PolySort::PolySort/1");
+}
+
 /** dummy term constructor */
 Term::Term() throw()
   :_functor(0),
@@ -1623,6 +1683,11 @@ Term::Term() throw()
 Literal::Literal()
 {
   CALL("Literal::Literal/0");
+}
+
+PolySort::PolySort()
+{
+  CALL("PolySort::PolySort/0");
 }
 
 #include <iostream>

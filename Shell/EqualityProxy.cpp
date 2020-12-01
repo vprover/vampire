@@ -226,12 +226,9 @@ void EqualityProxy::addCongruenceAxioms(UnitList*& units)
   unsigned funs = env.signature->functions();
   for (unsigned i=0; i<funs; i++) {
     Signature::Symbol* fnSym = env.signature->getFunction(i);
-    if(fnSym->super()){
-      continue;
-    }
     unsigned arity = fnSym->arity();
     OperatorType* fnType = fnSym->fnType();
-    if (arity == 0 || fnType->result() == Term::superSort()) {
+    if (arity == 0) {
       continue;
     }
     getArgumentEqualityLiterals(arity, lits, vars1, vars2, fnType);

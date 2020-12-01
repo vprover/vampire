@@ -316,11 +316,13 @@ void TPTPPrinter::ensureHeadersPrinted(Unit* u)
   
   //ensureNecesarySorts();
 
+  unsigned typeCons = env.signature->typeCons();
+  for(unsigned i=1; i<typeCons; i++) {
+    outputSymbolTypeDefinitions(i, SymbolType::TYPE_CON);
+  }
   unsigned funs = env.signature->functions();
   for(unsigned i=0; i<funs; i++) {
-    SymbolType st = SymbolType::FUNC;
-    if(env.signature->isTypeConOrSup(i)){ st = SymbolType::TYPE_CON; }
-    outputSymbolTypeDefinitions(i, st);
+    outputSymbolTypeDefinitions(i, SymbolType::FUNC);
   }
   unsigned preds = env.signature->predicates();
   for(unsigned i=1; i<preds; i++) {

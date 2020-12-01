@@ -552,6 +552,10 @@ void UIHelper::outputSymbolDeclarations(ostream& out)
 
   Signature& sig = *env.signature;
 
+  unsigned typeCons = sig.typeCons();
+  for (unsigned i=0; i<typeCons; ++i) {
+    outputSymbolTypeDeclarationIfNeeded(out, false, true, i);
+  }
   unsigned funcs = sig.functions();
   for (unsigned i=0; i<funcs; ++i) {
     if (!env.options->showFOOL()) {
@@ -559,11 +563,11 @@ void UIHelper::outputSymbolDeclarations(ostream& out)
         continue;
       }
     }
-    outputSymbolTypeDeclarationIfNeeded(out, true, i);
+    outputSymbolTypeDeclarationIfNeeded(out, true, false, i);
   }
   unsigned preds = sig.predicates();
   for (unsigned i=0; i<preds; ++i) {
-    outputSymbolTypeDeclarationIfNeeded(out, false, i);
+    outputSymbolTypeDeclarationIfNeeded(out, false, false, i);
   }
 } // UIHelper::outputSymbolDeclarations
 
@@ -573,18 +577,27 @@ void UIHelper::outputSymbolDeclarations(ostream& out)
  * @author Andrei Voronkov
  * @since 03/07/2013 Manchester
  */
-void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, unsigned symNumber)
+void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, bool typeCon, unsigned symNumber)
 {
   CALL("UIHelper::outputSymbolTypeDeclarationIfNeeded");
 
-  Signature::Symbol* sym = function ?
-      env.signature->getFunction(symNumber) : env.signature->getPredicate(symNumber);
+  Signature::Symbol* sym;
 
-  if (sym->super()  || sym->arraySort()  || sym->tupleSort()){
+  if(function){
+    sym = env.signature->getFunction(symNumber);
+  } else if(typeCon){
+    sym = env.signature->getTypeCon(symNumber);
+  } else {
+    sym = env.signature->getPredicate(symNumber);    
+  }
+
+  ASS(!sym->super());
+
+  if (sym->defaultSort() || sym->arraySort()  || sym->tupleSort()){
     return;
   }
 
-  if(sym->defaultSort() || (sym->boolSort() && !env.options->showFOOL())){
+  if(sym->boolSort() && !env.options->showFOOL()){
     return;
   }
 
@@ -610,7 +623,8 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
     }
   }
 
-  OperatorType* type = function ? sym->fnType() : sym->predType();
+  OperatorType* type = function ? sym->fnType() : 
+               (typeCon ? sym->typeConType() : sym->predType());
 
   if (type->isAllDefault()) {//TODO required
     return;
@@ -621,38 +635,12 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
 
   if(!sym->app()){
     out << (env.statistics->higherOrder ? "thf(" : "tff(")
-        << (function ? (sym->typeCon() ?  "type" : "func") : "pred") 
+        << (function ? "func" : (typeCon ?  "type" : "pred")) 
         << "_def_" << symNumber << ", type, "
         << sym->name() << ": ";
     out << type->toString();
     out << ")." << endl;
   }
-
-  //out << type->toString();
-
-  /*unsigned arity = sym->arity();
-  if (arity>0) {
-    if (arity==1) {
-      out << (type->arg(0)).toString();
-    }
-    else {
-      out << "(";
-      for (unsigned i=0; i<arity; i++) {
-        if (i>0) {
-          out << " * ";
-        }
-        out << (type->arg(i)).toString();
-      }
-      out << ")";
-    }
-    out << " > ";
-  }
-  if (function) {
-    out << (sym->fnType()->result()).toString();
-  }
-  else {
-    out << "$o";
-  }*/
   //out << ")." << endl;
 }
 
