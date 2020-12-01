@@ -22,6 +22,10 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 #include "SMTSubsumption/minisat/SolverTypes.h"
 #include "SMTSubsumption/minisat/Heap.h"
+#include <algorithm>
+
+
+#define ENABLE_VARORDER_EXPERIMENTS 1
 
 
 namespace SMTSubsumption { namespace Minisat {
@@ -34,7 +38,7 @@ namespace SMTSubsumption { namespace Minisat {
 //  (also compare to decisions of old MLMatcher)
 //
 // Ideas:
-// - order by number of alternatives of literal                                         //  these two are "remaining-choices"
+// - order by number of alternatives of base literal                                    //  these two are "remaining-choices"
 // - as tie breaker: try base literals with higher number of variables first            //
 // - how to interact with activity?
 // Question: how to combine with activity? (alternate in fixed ratio? or multiply values? something else?)
@@ -152,6 +156,139 @@ Example:
 
 
 
+#if ENABLE_VARORDER_EXPERIMENTS
+
+
+enum class VarOrderStrategy {
+    MinisatDefault,    // random + activity-based
+    RemainingChoices,  // with number of distinct variables in baselit as tie-breaker
+};
+
+struct VarOrder_info {
+    VarOrderStrategy strategy;
+    int num_baselits;
+    // Some (currently all) boolean variables represent assignments to variables in a larger domain
+    vec<int> var_baselit;  // the base literal represented by this variable
+    vec<int> baseLit_distinctVars;  // number of distinct variables in a base literal
+};
+
+
+struct VarOrder_lt {
+    const vec<double>&  activity;
+    bool operator () (Var x, Var y) { return activity[x] > activity[y]; }
+    VarOrder_lt(const vec<double>&  act) : activity(act) { }
+};
+
+class VarOrder {
+    const vec<char>&    assigns;     // var->val. Pointer to external assignment table.
+    const vec<double>&  activity;    // var->act. Pointer to external activity table.
+    const VarOrder_info& info;
+    Heap<VarOrder_lt>   heap;
+    double              random_seed; // For the internal random number generator
+
+public:
+    VarOrder(const vec<char>& ass, const vec<double>& act, const VarOrder_info& the_vo_info) :
+        assigns(ass), activity(act), info(the_vo_info), heap(VarOrder_lt(act)), random_seed(91648253)
+        { }
+
+    inline void newVar(void);
+    inline void update(Var x);                  // Called when variable increased in activity.
+    inline void undo(Var x);                    // Called when variable is unassigned and may be selected again.
+    inline Var  select(double random_freq =.0); // Selects a new, unassigned variable (or 'var_Undef' if none exists).
+
+private:
+    inline Var select_RemainingChoices();
+    inline Var select_MinisatDefault(double random_var_freq);
+};
+
+
+Var VarOrder::select(double random_var_freq)
+{
+    switch (info.strategy) {
+        case VarOrderStrategy::MinisatDefault:
+            return select_MinisatDefault(random_var_freq);
+        case VarOrderStrategy::RemainingChoices:
+          return select_RemainingChoices();
+    }
+}
+
+Var VarOrder::select_RemainingChoices()
+{
+    // Select one with the least remaining choices
+    int max_baselit = *std::max_element(info.var_baselit.begin(), info.var_baselit.end());
+    assert(max_baselit == info.num_baselits + 1);  // not necessarily true... but if one has no match, then we don't even go here (no call to solve())
+    vec<int> baselit_remainingChoices(max_baselit+1, 0);
+    for (Var v = 0; v < assigns.size(); ++v) {
+      if (info.var_baselit[v] >= 0             // >=0 means "represents a constraint variable assignment"
+          && toLbool(assigns[v]) == l_Undef) { // represents a remaining choice iff current value is undefined
+        baselit_remainingChoices[info.var_baselit[v]] += 1;
+      }
+    }
+    int best_baselit = 0;
+    for (int baselit = 1; baselit <= max_baselit; ++baselit) {
+      if (baselit_remainingChoices[baselit] > baselit_remainingChoices[best_baselit] || (baselit_remainingChoices[baselit] == baselit_remainingChoices[best_baselit] && info.baseLit_distinctVars[baselit] > info.baseLit_distinctVars[best_baselit])) {
+        best_baselit = baselit;
+      }
+    }
+    // got the best baselit, now choose the best boolean var among those. (for now: first free one, like mlmatcher is doing)
+    assert(baselit_remainingChoices[best_baselit] > 0);  // there must be at least one (otherwise we would not select() -- at least for the subsumption problems)
+    for (Var v = 0; v < assigns.size(); ++v) {
+        if (info.var_baselit[v] == best_baselit) {
+            if (toLbool(assigns[v]) == l_Undef) {
+                return v;
+            }
+        }
+    }
+
+    assert(false);
+    return var_Undef;
+}
+
+Var VarOrder::select_MinisatDefault(double random_var_freq)
+{
+    // Random decision:
+    if (drand(random_seed) < random_var_freq && !heap.empty()){
+        Var next = irand(random_seed,assigns.size());
+        if (toLbool(assigns[next]) == l_Undef)
+            return next;
+    }
+
+    // Activity based decision:
+    while (!heap.empty()){
+        Var next = heap.getmin();
+        if (toLbool(assigns[next]) == l_Undef)
+            return next;
+    }
+
+    return var_Undef;
+}
+
+void VarOrder::newVar(void)
+{
+    heap.setBounds(assigns.size());
+    heap.insert(assigns.size()-1);
+}
+
+
+void VarOrder::update(Var x)
+{
+    if (heap.inHeap(x))
+        heap.increase(x);
+}
+
+
+void VarOrder::undo(Var x)
+{
+    if (!heap.inHeap(x))
+        heap.insert(x);
+}
+
+
+
+
+#else
+
+// default minisat VarOrder
 
 struct VarOrder_lt {
     const vec<double>&  activity;
@@ -217,6 +354,9 @@ Var VarOrder::select(double random_var_freq)
 
     return var_Undef;
 }
+
+#endif
+
 
 
 } }

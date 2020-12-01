@@ -231,7 +231,7 @@ class SMTSubsumptionImpl
     /// Set up the subsumption problem.
     /// Returns false if no solution is possible.
     /// Otherwise, solve() needs to be called.
-    bool setup(Kernel::Clause* side_premise, Kernel::Clause* main_premise)
+    bool setup(Kernel::Clause* side_premise, Kernel::Clause* main_premise, Minisat::VarOrderStrategy vo_strategy = Minisat::VarOrderStrategy::MinisatDefault)
     {
       CDEBUG("SMTSubsumptionImpl::setup()");
       // solver.reset();  // TODO
@@ -257,6 +257,11 @@ class SMTSubsumptionImpl
       SubstitutionTheoryConfiguration stc;
       MapBinder binder;
 
+      Minisat::VarOrder_info& vo_info = solver.vo_info;
+      vo_info.strategy = vo_strategy;
+      vo_info.var_baselit.clear();
+      vo_info.num_baselits = side_premise->length();
+
       // Matching for subsumption checks whether
       //
       //      side_premise\theta \subseteq main_premise
@@ -265,6 +270,7 @@ class SMTSubsumptionImpl
       Minisat::Var nextVar = 0;
       for (unsigned i = 0; i < side_premise->length(); ++i) {
         Literal* base_lit = side_premise->literals()[i];
+        vo_info.baseLit_distinctVars.push(base_lit->getDistinctVars());
 
         vvector<Alt> base_lit_alts;
 
@@ -280,6 +286,7 @@ class SMTSubsumptionImpl
           binder.reset();
           if (base_lit->arity() == 0 || MatchingUtils::matchArgs(base_lit, inst_lit, binder)) {
             Minisat::Var b = nextVar++;
+            vo_info.var_baselit.push(i);
 
             if (binder.bindings().size() > 0) {
               ASS(!base_lit->ground());
@@ -314,6 +321,7 @@ class SMTSubsumptionImpl
               auto atom = SubstitutionAtom::from_binder(binder);
 
               Minisat::Var b = nextVar++;
+              vo_info.var_baselit.push(i);
               stc.register_atom(b, std::move(atom));
 
               base_lit_alts.push_back({
@@ -333,6 +341,8 @@ class SMTSubsumptionImpl
       }
 
       solver.newVars(nextVar);
+      ASS_EQ(solver.var_baselit.size(), solver.nVars());
+      ASS_EQ(solver.baselit_distinctVars.size(), side_premise->length());
 
       CDEBUG("setting substitution theory...");
       solver.setSubstitutionTheory(std::move(stc));
@@ -439,6 +449,7 @@ void ProofOfConcept::test(Clause* side_premise, Clause* main_premise)
   std::cout << "\% SMTSubsumption::test" << std::endl;
   std::cout << "\% side_premise: " << side_premise->toString() << std::endl;
   std::cout << "\% main_premise: " << main_premise->toString() << std::endl;
+  std::cout << std::endl;
 
   static_assert(alignof(Minisat::Solver) == 8, "");
   static_assert(alignof(Minisat::Solver *) == 8, "");
@@ -447,11 +458,22 @@ void ProofOfConcept::test(Clause* side_premise, Clause* main_premise)
   static_assert(sizeof(Minisat::Clause) == 8, "");
   static_assert(sizeof(Minisat::Clause *) == 8, "");
 
-  SMTSubsumptionImpl impl;
-  std::cout << "subsumed: " << impl.checkSubsumption(side_premise, main_premise) << std::endl;
-  impl.printStats(std::cout);
+  std::pair<char const*, Minisat::VarOrderStrategy> vo_strategies[] = {
+      { "MinisatDefault", Minisat::VarOrderStrategy::MinisatDefault },
+      { "RemainingChoices", Minisat::VarOrderStrategy::RemainingChoices },
+  };
+  for (auto p : vo_strategies) {
+    auto vo_strategy_name = p.first;
+    auto vo_strategy = p.second;
 
-  std::cout << std::endl;
+    SMTSubsumptionImpl impl;
+    std::cout << "SMTSubsumption with vo_strategy = " << vo_strategy_name << std::endl;
+    bool subsumed = impl.setup(side_premise, main_premise, vo_strategy) && impl.solve();
+    std::cout << "Subsumed: " << subsumed << std::endl;
+    impl.printStats(std::cout);
+
+    std::cout << std::endl;
+  }
 
   OriginalSubsumption::Impl orig;
   std::cout << "MLMatcher says: " << orig.checkSubsumption(side_premise, main_premise) << std::endl;

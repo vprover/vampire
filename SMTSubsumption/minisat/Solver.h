@@ -173,7 +173,7 @@ public:
              , cla_decay        (1)
              , var_inc          (1)
              , var_decay        (1)
-             , order            (assigns, activity)
+             , order            (assigns, activity, vo_info)
              , root_level       (0)  // ???
              , tqhead           (0)
              , qhead            (0)
@@ -305,6 +305,8 @@ public:
     double      progress_estimate;  // Set by 'search()'.
     vec<lbool>  model;              // If problem is satisfiable, this vector contains the model (if any).
     vec<Lit>    conflict;           // If problem is unsatisfiable (possibly under assumptions), this vector represent the conflict clause expressed in the assumptions.
+
+    VarOrder_info vo_info;
 };
 
 
