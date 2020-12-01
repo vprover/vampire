@@ -1164,7 +1164,7 @@ MLMatcherSD::MLMatcherSD()
 void MLMatcherSD::init(Literal** baseLits, unsigned baseLen, Clause* instance, LiteralList const* const* alts)
 {
   if (!m_impl) {
-    m_impl = make_unique<MLMatcherSD::Impl>();
+    m_impl = std::make_unique<MLMatcherSD::Impl>();
   }
   m_impl->init(baseLits, baseLen, instance, alts);
 }

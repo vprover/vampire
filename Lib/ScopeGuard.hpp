@@ -39,7 +39,7 @@ class ScopeGuard final
     ScopeGuard& operator=(ScopeGuard const&) = delete;
 
     ScopeGuard(ScopeGuard&& other)
-      : active{exchange(other.active, false)}
+      : active{std::exchange(other.active, false)}
       , f(std::move(other.f))
     { }
 
