@@ -270,7 +270,7 @@ class SMTSubsumptionImpl
       Minisat::Var nextVar = 0;
       for (unsigned i = 0; i < side_premise->length(); ++i) {
         Literal* base_lit = side_premise->literals()[i];
-        vo_info.baseLit_distinctVars.push(base_lit->getDistinctVars());
+        vo_info.baselit_distinctVars.push(base_lit->getDistinctVars());
 
         vvector<Alt> base_lit_alts;
 
@@ -341,8 +341,8 @@ class SMTSubsumptionImpl
       }
 
       solver.newVars(nextVar);
-      ASS_EQ(solver.var_baselit.size(), solver.nVars());
-      ASS_EQ(solver.baselit_distinctVars.size(), side_premise->length());
+      ASS_EQ(vo_info.var_baselit.size(), solver.nVars());
+      ASS_EQ(vo_info.baselit_distinctVars.size(), side_premise->length());
 
       CDEBUG("setting substitution theory...");
       solver.setSubstitutionTheory(std::move(stc));

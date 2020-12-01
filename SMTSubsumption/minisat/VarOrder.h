@@ -169,7 +169,7 @@ struct VarOrder_info {
     int num_baselits;
     // Some (currently all) boolean variables represent assignments to variables in a larger domain
     vec<int> var_baselit;  // the base literal represented by this variable
-    vec<int> baseLit_distinctVars;  // number of distinct variables in a base literal
+    vec<int> baselit_distinctVars;  // number of distinct variables in a base literal
 };
 
 
@@ -226,7 +226,7 @@ Var VarOrder::select_RemainingChoices()
     }
     int best_baselit = 0;
     for (int baselit = 1; baselit <= max_baselit; ++baselit) {
-      if (baselit_remainingChoices[baselit] > baselit_remainingChoices[best_baselit] || (baselit_remainingChoices[baselit] == baselit_remainingChoices[best_baselit] && info.baseLit_distinctVars[baselit] > info.baseLit_distinctVars[best_baselit])) {
+      if (baselit_remainingChoices[baselit] > baselit_remainingChoices[best_baselit] || (baselit_remainingChoices[baselit] == baselit_remainingChoices[best_baselit] && info.baselit_distinctVars[baselit] > info.baselit_distinctVars[best_baselit])) {
         best_baselit = baselit;
       }
     }
