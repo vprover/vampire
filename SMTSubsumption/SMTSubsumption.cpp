@@ -461,6 +461,10 @@ void ProofOfConcept::test(Clause* side_premise, Clause* main_premise)
   std::pair<char const*, Minisat::VarOrderStrategy> vo_strategies[] = {
       { "MinisatDefault", Minisat::VarOrderStrategy::MinisatDefault },
       { "RemainingChoices", Minisat::VarOrderStrategy::RemainingChoices },
+      { "10% RemainingChoices, rest activity", Minisat::VarOrderStrategy::Alternate_10 },
+      { "50% RemainingChoices, rest activity", Minisat::VarOrderStrategy::Alternate_50 },
+      { "80% RemainingChoices, rest activity", Minisat::VarOrderStrategy::Alternate_80 },
+      { "RemainingChoices / (activity + 3)", Minisat::VarOrderStrategy::Combined_k3 },
   };
   for (auto p : vo_strategies) {
     auto vo_strategy_name = p.first;
@@ -475,6 +479,7 @@ void ProofOfConcept::test(Clause* side_premise, Clause* main_premise)
     std::cout << std::endl;
   }
 
+  std::cout << "MLMatcher" << std::endl;
   OriginalSubsumption::Impl orig;
   std::cout << "MLMatcher says: " << orig.checkSubsumption(side_premise, main_premise) << std::endl;
   orig.printStats(std::cout);
