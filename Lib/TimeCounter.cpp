@@ -198,20 +198,8 @@ void TimeCounter::outputSingleStat(TimeCounterUnit tcu, ostream& out)
   case TC_BACKWARD_SUBSUMPTION_DEMODULATION:
     out<<"backward subsumption demodulation";
     break;
-  case TC_BDD:
-    out<<"BDD operations";
-    break;
-  case TC_BDD_CLAUSIFICATION:
-    out<<"BDD clausification";
-    break;
-  case TC_BDD_MARKING_SUBSUMPTION:
-    out<<"BDD marking subsumption";
-    break;
   case TC_INTERPRETED_EVALUATION:
     out<<"interpreted evaluation";
-    break;
-  case TC_INTERPRETED_SIMPLIFICATION:
-    out<<"interpreted simplification";
     break;
   case TC_CONDENSATION:
     out<<"condensation";
@@ -357,12 +345,6 @@ void TimeCounter::outputSingleStat(TimeCounterUnit tcu, ostream& out)
     break;
   case TC_BOUND_PROPAGATION:
     out << "Bound propagation";
-    break;
-  case TC_HANDLING_CONFLICTS:
-    out << "handling conflicts";
-    break;
-  case TC_VARIABLE_SELECTION:
-    out << "variable selection";
     break;
   case TC_DISMATCHING:
     out << "dismatching";
