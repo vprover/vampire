@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file IndexManager.cpp
@@ -28,7 +22,6 @@
 #include "Saturation/SaturationAlgorithm.hpp"
 
 #include "AcyclicityIndex.hpp"
-#include "ArithmeticIndex.hpp"
 #include "CodeTreeInterfaces.hpp"
 #include "GroundingIndex.hpp"
 #include "LiteralIndex.hpp"
@@ -245,11 +238,6 @@ Index* IndexManager::create(IndexType t)
     res = new GroundingIndex(_alg->getOptions());
     isGenerating = false;
     break;
-
-//  case ARITHMETIC_INDEX:
-//    res=new ArithmeticIndex();
-//    isGenerating = false;
-//    break;
 
   default:
     INVALID_OPERATION("Unsupported IndexType.");

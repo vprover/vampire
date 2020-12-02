@@ -1,14 +1,24 @@
+
+  /*
+   * File tQuotientE.cpp.
+   *
+   * This file is part of the source code of the software program
+   * Vampire. It is protected by applicable
+   * copyright laws.
+   *
+   * This source code is distributed under the licence found here
+   * https://vprover.github.io/license.html
+   * and in the source directory
+   */
+
 #include "Debug/Tracer.hpp"
 #include "Test/SyntaxSugar.hpp"
 #include "Test/UnitTesting.hpp"
 
 #include <climits>
 
-#define UNIT_ID QuotientE
 #define DEBUG(...) //DBG(__VA_ARGS__)
 #define DEBUGE(x) DEBUG(#x, " = ", x)
-
-UT_CREATE;
 
 IntegerConstantType quotientE(int lhs, int rhs) {
   return IntegerConstantType(lhs).quotientE(rhs);

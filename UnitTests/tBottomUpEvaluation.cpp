@@ -1,3 +1,16 @@
+
+  /*
+   * File tBottomUpEvaluation.cpp.
+   *
+   * This file is part of the source code of the software program
+   * Vampire. It is protected by applicable
+   * copyright laws.
+   *
+   * This source code is distributed under the licence found here
+   * https://vprover.github.io/license.html
+   * and in the source directory
+   */
+
 #include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
 #include "Kernel/BottomUpEvaluation.hpp"
@@ -7,10 +20,6 @@
 using namespace Kernel;
 using namespace Inferences;
 using namespace Test;
-
-
-#define UNIT_ID BottomUpEvaluation
-UT_CREATE;
 
 TEST_FUN(example_01__replace_all_vars_by_term) {
   /* syntax sugar imports */

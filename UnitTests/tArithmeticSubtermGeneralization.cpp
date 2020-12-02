@@ -1,4 +1,17 @@
 
+  /*
+   * File tArithmeticSubtermGeneralization.cpp.
+   *
+   * This file is part of the source code of the software program
+   * Vampire. It is protected by applicable
+   * copyright laws.
+   *
+   * This source code is distributed under the licence found here
+   * https://vprover.github.io/license.html
+   * and in the source directory
+   */
+
+
 #include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
 #include "Indexing/TermSharing.hpp"
@@ -24,9 +37,6 @@ using namespace Test;
 /////////////////////////////////////
 
 #define PHASE 1
-
-#define UNIT_ID ArithmeticSubtermGeneralization
-UT_CREATE;
 
 class SimplificationTester : public Test::Simplification::SimplificationTester
 {

@@ -35,6 +35,13 @@ if (NOT BUILD_SHARED_LIBS)
   set(VAMPIRE_BINARY_STATIC _static)
 endif()
 
+# We compile tests only in debug mode, since in release mode assertions are NOPs anyways.
+if(CMAKE_BUILD_TYPE STREQUAL Debug)
+  SET(COMPILE_TESTS ON)
+else()
+  SET(COMPILE_TESTS OFF)
+endif()
+
 ################################################################
 # define all vampire sources,
 # generate the main target and 
@@ -716,11 +723,14 @@ set(VAMPIRE_CASC_SOURCES
     )
 source_group(casc_source_files FILES ${VAMPIRE_CASC_SOURCES})
 
-set(VAMPIRE_TESTING_SOURCES 
-  Test/UnitTesting.cpp
-  Test/SyntaxSugar.cpp
-  Test/TestUtils.cpp
-  )
+set(VAMPIRE_TESTING_SOURCES
+    Test/UnitTesting.cpp
+    Test/UnitTesting.hpp
+    Test/SyntaxSugar.hpp
+    Test/SyntaxSugar.cpp
+    Test/TestUtils.hpp
+    Test/TestUtils.cpp
+    )
 source_group(testing_files FILES ${VAMPIRE_TESTING_SOURCES})
 
 set(UNIT_TESTS
@@ -777,11 +787,8 @@ set(VAMPIRE_SOURCES
     ${VAMPIRE_SMTCOMP_SOURCES}
     ${VAMPIRE_MINISAT_SOURCES}
     ${VAMPIRE_CASC_SOURCES}
-    ${VAMPIRE_TESTING_SOURCES}
-    # Test/CheckedSatSolver.cpp
-    # Test/CheckedSatSolver.hpp
+    Forwards.hpp
     Global.cpp
-    vampire.cpp
     "${CMAKE_CURRENT_BINARY_DIR}/version.cpp"
     )
 
@@ -844,40 +851,49 @@ endif()
 # build objects
 ################################################################
 add_library(obj OBJECT ${VAMPIRE_SOURCES})
+if (COMPILE_TESTS) 
+  add_library(test_obj OBJECT ${VAMPIRE_TESTING_SOURCES})
+endif()
 
 ################################################################
 # UNIT TESTING 
 ################################################################
 
-include(CTest)
-# the base library all unit tests depend on. Helps to avoid unnecessary re-compilations
-add_library(
-  unit_test_base
-  STATIC
-  $<FILTER:$<TARGET_OBJECTS:obj>,EXCLUDE,vampire\.cpp\.o>
-)
+set(UNIT_TEST_OBJ   )
+set(UNIT_TEST_CASES )
+if (COMPILE_TESTS) 
+  include(CTest)
+  foreach(test_file ${UNIT_TESTS})
+    get_filename_component(test_name ${test_file} NAME_WE)
+    string(REGEX REPLACE "^t" "" test_name ${test_name})
 
-foreach(test_file ${UNIT_TESTS})
-  get_filename_component(test_name ${test_file} NAME_WE)
-  string(REGEX REPLACE "^t" "" test_name ${test_name})
+    # compiling the test case object 
+    add_library(${test_name}_obj OBJECT ${test_file})
+    target_compile_definitions(${test_name}_obj PUBLIC 
+      UNIT_ID_STR=\"${test_name}\"
+      UNIT_ID=${test_name}
+      )
+    set(UNIT_TEST_OBJ   ${UNIT_TEST_OBJ}   $<TARGET_OBJECTS:${test_name}_obj>)
+    set(UNIT_TEST_CASES ${UNIT_TEST_CASES} ${test_name})
+  endforeach()
 
-  # compiling the test case executable
-  add_executable(${test_name} ${test_file})
-  target_link_libraries(${test_name} unit_test_base)
-  target_compile_definitions(${test_name} PRIVATE CTEST=1)
-  set(test_bin_dir ${CMAKE_BINARY_DIR}/bin/unit-tests)
-  set_target_properties(${test_name} PROPERTIES
-      OUTPUT_NAME ${test_name}
-      RUNTIME_OUTPUT_DIRECTORY ${test_bin_dir})   
+  # build test executable
+  add_executable(
+    vtest
+    ${UNIT_TEST_OBJ}
+    $<TARGET_OBJECTS:obj>
+    $<TARGET_OBJECTS:test_obj>
+    )
 
-  # configuring ctest
-  add_test(${test_name} ${test_bin_dir}/${test_name})
-  set_tests_properties(${test_name}
-        PROPERTIES
-        TIMEOUT 20)
+  # add indivitual units as test cases
+  foreach(case ${UNIT_TEST_CASES})
+    add_test(${case} ${CMAKE_BINARY_DIR}/vtest run ${case})
+    set_tests_properties(${case}
+          PROPERTIES
+          TIMEOUT 20)
+  endforeach()
 
-endforeach()
-
+endif() # COMPILE_TESTS
 
 #################################################################
 # automated generation of Vampire revision information from git #
@@ -942,7 +958,7 @@ message(STATUS "Setting binary name to '${VAMPIRE_BINARY}'")
 ################################################################
 # epilogue
 ################################################################
-add_executable(vampire $<TARGET_OBJECTS:obj>)
+add_executable(vampire vampire.cpp $<TARGET_OBJECTS:obj>)
 set_target_properties(vampire PROPERTIES
   OUTPUT_NAME ${VAMPIRE_BINARY}
   RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin

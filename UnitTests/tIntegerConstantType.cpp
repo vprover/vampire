@@ -1,10 +1,20 @@
+
+  /*
+   * File tIntegerConstantType.cpp.
+   *
+   * This file is part of the source code of the software program
+   * Vampire. It is protected by applicable
+   * copyright laws.
+   *
+   * This source code is distributed under the licence found here
+   * https://vprover.github.io/license.html
+   * and in the source directory
+   */
+
 #include <iostream>
 #include "Lib/List.hpp"
 
 #include "Test/UnitTesting.hpp"
-
-#define UNIT_ID IntegerConstantType
-UT_CREATE;
 
 using namespace std;
 using namespace Lib;
