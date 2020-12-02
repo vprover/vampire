@@ -1017,6 +1017,8 @@ public:
 	backtrack();
     }
     ASS(_bdata.isEmpty());
+    //remove any sort unifiers
+    _subst->reset();
   }
   bool hasNext()
   {

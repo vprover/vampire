@@ -88,8 +88,6 @@ TermList SortHelper::getResultSort(const Term* t)
   ASS(!t->isSpecial());
   ASS(!t->isLiteral());
 
- // cout << "the term is " + t->toString() + " with functor " << t->functor() << endl;
-
   Substitution subst;
   getTypeSub(t, subst);
   Signature::Symbol* sym = env.signature->getFunction(t->functor());
@@ -861,7 +859,7 @@ bool SortHelper::areImmediateSortsValidPoly(Term* t)
     if (instantiatedTypeSort != argSort) { //TODO problem here?
 #if VDEBUG
       cout << "the term is " + t->toString() << endl;
-      cout << "the type of function " + env.signature->getPredicate(t->functor())->name() + " is: " + type->toString() << endl;
+      cout << "the type of function " + env.signature->getFunction(t->functor())->name() + " is: " + type->toString() << endl;
       //cout << "function name : "+ env.signature->getFunction(t->functor())->name() << endl;
       //cout << "function name 2 :" + t->functionName() << endl;
       cout << "error with expected " << instantiatedTypeSort.toString() << " and actual " << argSort.toString() << " when functor is " << t->functor() << " and arg is " << arg << endl;
