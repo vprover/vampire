@@ -79,7 +79,7 @@ void Solver::newClause(const vec<Lit>& ps_, bool learnt)
     std::cerr << std::endl;
 #endif
 
-    vec<Lit>& qs = newClause_qs;  // TODO: could use class member to reduce allocation overhead
+    vec<Lit>& qs = newClause_qs;
     if (!learnt) {
         assert(decisionLevel() == 0);
         ps_.copyTo(qs);             // Make a copy of the input vector.
@@ -98,7 +98,7 @@ void Solver::newClause(const vec<Lit>& ps_, bool learnt)
         }
 
         // Remove false literals:
-        // TODO: in our use case this will never happen!
+        // TODO: in our use case this will never happen! (no, it can happen due to theory propagation)
         int i, j;
         for (i = j = 0; i < qs.size(); i++)
             if (value(qs[i]) != l_False)
@@ -160,6 +160,73 @@ void Solver::newClause(const vec<Lit>& ps_, bool learnt)
             clauses.push(c);
             IF_MINISAT_STATS(stats.clauses_literals += c->size());
         }
+        // Watch clause:
+        watches[index(~(*c)[0])].push(GClause_new(c));
+        watches[index(~(*c)[1])].push(GClause_new(c));
+    }
+}
+
+void Solver::addClause_unchecked(const vec<Lit>& ps)
+{
+    assert(decisionLevel() == 0);
+
+    if (!ok) return;
+
+#if TRACE_SOLVER
+    std::cerr << "addClause_unchecked:";
+    for (Lit l : ps_) {
+      std::cerr << " " << l;
+    }
+    std::cerr << std::endl;
+#endif
+
+#if VDEBUG
+    // Even if this is called "unchecked", we still do the checks in debug mode.
+    // ps is sorted without duplicates
+    for (int i = 0; i < ps.size()-1; ++i) {
+        assert(ps[i] < ps[i+1]);
+    }
+    // clause is not yet satisfied
+    // and there are no false literals in the clause
+    for (int i = 0; i < ps.size()-1; ++i) {
+        assert(ps[i] != ~ps[i+1]);
+    }
+    for (int i = 0; i < ps.size(); ++i) {
+        assert(value(ps[i]) != l_True);
+        assert(value(ps[i]) != l_False);
+        assert(value(ps[i]) == l_Undef);
+    }
+#endif
+
+    if (ps.size() == 0) {
+        ok = false;
+    }
+    else if (ps.size() == 1) {
+        CDEBUG("NEW UNIT: " << ps[0]);
+        // NOTE: If enqueue takes place at root level, the assignment will be lost in incremental use (it doesn't seem to hurt much though).
+        if (!enqueue(ps[0])) {
+            ok = false;
+            CDEBUG("\t=> ROOT CONFLICT");
+        } else {
+            CDEBUG("\t=> OK");
+        }
+    }
+    else if (ps.size() == 2) {
+        // Create special binary clause watch:
+        watches[index(~ps[0])].push(GClause_new(ps[1]));
+        watches[index(~ps[1])].push(GClause_new(ps[0]));
+
+        IF_MINISAT_STATS(stats.clauses_literals += ps.size());
+        n_bin_clauses++;
+    }
+    else {
+        // Allocate clause:
+        Clause* c = Clause_new(false, ps);
+
+        // Store clause:
+        clauses.push(c);
+        IF_MINISAT_STATS(stats.clauses_literals += c->size());
+
         // Watch clause:
         watches[index(~(*c)[0])].push(GClause_new(c));
         watches[index(~(*c)[1])].push(GClause_new(c));

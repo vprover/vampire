@@ -98,6 +98,8 @@ bool createLiteralBindings(Literal* baseLit, LiteralList const* alts, Clause* in
     if(variablePositions.insert(var,nextPos)) {
       *(boundVarData++)=var;
       nextPos++;
+    } else {
+      ASSERTION_VIOLATION;  // we remove all same variables above so how can this happen.
     }
   }
   unsigned numVars=nextPos;

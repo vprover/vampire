@@ -33,6 +33,7 @@ public:
     TermList* aux;
     return m_bindings.getValuePtr(var, aux, term) || *aux == term;
   }
+
   void specVar(unsigned var, TermList term)
   {
     ASSERTION_VIOLATION;

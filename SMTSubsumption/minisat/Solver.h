@@ -293,6 +293,7 @@ public:
     void    addBinary (Lit p, Lit q)        { addBinary_tmp [0] = p; addBinary_tmp [1] = q; addClause(addBinary_tmp); }
     void    addTernary(Lit p, Lit q, Lit r) { addTernary_tmp[0] = p; addTernary_tmp[1] = q; addTernary_tmp[2] = r; addClause(addTernary_tmp); }
     void    addClause (const vec<Lit>& ps)  { newClause(ps); }  // (there used to be a difference between internal and external method...)
+    void    addClause_unchecked(const vec<Lit>& ps);
     void    addConstraint_AtMostOne(const vec<Lit>& ps);
 
     // Solving:
