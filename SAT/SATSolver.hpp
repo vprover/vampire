@@ -1,7 +1,4 @@
-
 /*
- * File SATSolver.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file SATSolver.hpp
@@ -173,14 +164,6 @@ public:
    */
   virtual SATClauseList* getRefutationPremiseList() { return SATClauseList::empty(); }
 
-  /**
-  * Record the association between a SATLiteral var and a Literal
-  * In TWLSolver this is used for computing niceness values
-  * 
-  * TODO: an experimental hack; test it, and then either incorporate properly or remove
-  */
-  virtual void recordSource(unsigned satlitvar, Literal* lit) = 0;
-  
   /**
    * If status is @c SATISFIABLE, return assignment of variable @c var
    */

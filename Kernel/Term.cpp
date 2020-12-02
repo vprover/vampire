@@ -1,7 +1,4 @@
-
 /*
- * File Term.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file Term.cpp
@@ -1378,8 +1369,7 @@ bool Term::isSuper() const {
 }
 
 /**
- * Return true iff headers of literals match each other. We check also whether
- * sorts of equality literals are equal.
+ * Return true iff headers of literals match each other.
  */
 bool Literal::headersMatch(Literal* l1, Literal* l2, bool complementary)
 {

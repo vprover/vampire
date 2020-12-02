@@ -1,7 +1,4 @@
-
 /*
- * File RobSubstitution.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file RobSubstitution.cpp
@@ -884,14 +875,6 @@ size_t RobSubstitution::getApplicationResultWeight(Literal* lit, int index) cons
 SubstIterator RobSubstitution::matches(Literal* base, int baseIndex,
 	Literal* instance, int instanceIndex, bool complementary)
 {
-  if(base->isTwoVarEquality()){
-    TermList sb = SortHelper::getEqualityArgumentSort(base);
-    TermList si = SortHelper::getEqualityArgumentSort(instance);
-    if(!match(sb, baseIndex, si, instanceIndex)){
-      return SubstIterator::getEmpty();
-    }
-  }
-
   return getAssocIterator<MatchingFn>(this, base, baseIndex,
 	  instance, instanceIndex, complementary);
 }
@@ -905,14 +888,6 @@ SubstIterator RobSubstitution::matches(Literal* base, int baseIndex,
 SubstIterator RobSubstitution::unifiers(Literal* l1, int l1Index,
 	Literal* l2, int l2Index, bool complementary)
 {
-  if(l1->isEquality() && l2->isEquality()){
-    TermList s1 = SortHelper::getEqualityArgumentSort(l1);
-    TermList s2 = SortHelper::getEqualityArgumentSort(l2);
-    if(!unify(s1, l1Index, s2, l2Index)){
-      return SubstIterator::getEmpty();
-    }
-  }
-
   return getAssocIterator<UnificationFn>(this, l1, l1Index,
 	  l2, l2Index, complementary);
 }
@@ -924,7 +899,6 @@ SubstIterator RobSubstitution::getAssocIterator(RobSubstitution* subst,
   CALL("RobSubstitution::getAssocIterator");
 
   if( !Literal::headersMatch(l1,l2,complementary) ) {
-    // We also get here if the sorts of equality literals do not match.
     return SubstIterator::getEmpty();
   }
 
@@ -941,7 +915,7 @@ template<class Fn>
 struct RobSubstitution::AssocContext
 {
   AssocContext(Literal* l1, int l1Index, Literal* l2, int l2Index)
-  : _l1(l1), _l1i(l1Index), _l2(l2), _l2i(l2Index) {}
+  : _l1(l1), _l1i(l1Index), _l2(l2), _l2i(l2Index) { ASS(!l1->isEquality()); ASS(!l2->isEquality()); } // only used for non-commutative, i.e. also non-equality, literals
   bool enter(RobSubstitution* subst)
   {
     subst->bdRecord(_bdata);
@@ -962,7 +936,6 @@ private:
   int _l1i;
   Literal* _l2;
   int _l2i;
-  bool _complementary;
   BacktrackData _bdata;
 };
 
@@ -986,112 +959,117 @@ private:
  *
  * Template parameter class Fn has to contain following
  * methods:
+ * bool associateEqualitySorts(RobSubstitution* subst,
+ *  Literal* l1, int l1Index, Literal* l2, int l2Index)
  * bool associate(RobSubstitution*, Literal* l1, int l1Index,
  * 	Literal* l2, int l2Index, bool complementary)
  * bool associate(RobSubstitution*, TermList t1, int t1Index,
  * 	TermList t2, int t2Index)
+ *
  * There is supposed to be one Fn class for unification and
  * one for matching.
  *
  * [1] associate means either match or unify
  */
 template<class Fn>
-class RobSubstitution::AssocIterator
-:public IteratorCore<RobSubstitution*>
-{
+class RobSubstitution::AssocIterator: public IteratorCore<RobSubstitution*> {
 public:
-  AssocIterator(RobSubstitution* subst, Literal* l1, int l1Index,
-	  Literal* l2, int l2Index)
-  : _subst(subst), _l1(l1), _l1i(l1Index), _l2(l2),
-  _l2i(l2Index), _state(FIRST), _used(true)
-  {
-    ASS_EQ(_l1->functor(),_l2->functor());
+  AssocIterator(RobSubstitution* subst, Literal* l1, int l1Index, Literal* l2,
+      int l2Index) :
+      _subst(subst), _l1(l1), _l1i(l1Index), _l2(l2), _l2i(l2Index),
+      _state(FIRST), _used(true) {
+    ASS_EQ(_l1->functor(), _l2->functor());
     ASS(_l1->commutative());
-    ASS_EQ(_l1->arity(),2);
+    ASS_EQ(_l1->arity(), 2);
   }
-  ~AssocIterator()
-  {
+  ~AssocIterator() {
     CALL("RobSubstitution::AssocIterator::~AssocIterator");
-
-    if(_state!=FINISHED && _state!=FIRST) {
-	backtrack();
+    if (_state != FINISHED && _state != FIRST) {
+      backtrack(_bdataMain);
+      backtrack(_bdataEqAssoc);
     }
-    ASS(_bdata.isEmpty());
-    //remove any sort unifiers
-    _subst->reset();
+    ASS(_bdataMain.isEmpty());
+    ASS(_bdataEqAssoc.isEmpty());
   }
-  bool hasNext()
-  {
+  bool hasNext() {
     CALL("RobSubstitution::AssocIterator::hasNext");
 
-    if(_state==FINISHED) {
+    if (_state == FINISHED) {
       return false;
     }
-    if(!_used) {
+    if (!_used) {
       return true;
     }
-    _used=false;
+    _used = false;
 
-    if(_state!=FIRST) {
-      backtrack();
+    if (_state != FIRST) {
+      backtrack(_bdataMain);
+    } else {
+      _subst->bdRecord(_bdataEqAssoc);
+      if (!Fn::associateEqualitySorts(_subst, _l1, _l1i, _l2, _l2i)) {
+        backtrack(_bdataEqAssoc); // this might not be necessary
+        _state = FINISHED;
+        return false;
+      }
     }
-    _subst->bdRecord(_bdata);
 
-    switch(_state) {
+    _subst->bdRecord(_bdataMain);
+
+    switch (_state) {
     case NEXT_STRAIGHT:
-      if(Fn::associate(_subst, _l1, _l1i, _l2, _l2i)) {
-	_state=NEXT_REVERSED;
-	break;
+      if (Fn::associate(_subst, _l1, _l1i, _l2, _l2i)) {
+        _state = NEXT_REVERSED;
+        break;
       }
       //no break here intentionally
-    case NEXT_REVERSED:
-    {
-      TermList t11=*_l1->nthArgument(0);
-      TermList t12=*_l1->nthArgument(1);
-      TermList t21=*_l2->nthArgument(0);
-      TermList t22=*_l2->nthArgument(1);
-      if(Fn::associate(_subst, t11, _l1i, t22, _l2i)) {
-	if(Fn::associate(_subst, t12, _l1i, t21, _l2i)) {
-	  _state=NEXT_CLEANUP;
-	  break;
-	}
-	//the first successful association will be undone
-	//in case NEXT_CLEANUP
+    case NEXT_REVERSED: {
+      TermList t11 = *_l1->nthArgument(0);
+      TermList t12 = *_l1->nthArgument(1);
+      TermList t21 = *_l2->nthArgument(0);
+      TermList t22 = *_l2->nthArgument(1);
+      if (Fn::associate(_subst, t11, _l1i, t22, _l2i)) {
+        if (Fn::associate(_subst, t12, _l1i, t21, _l2i)) {
+          _state = NEXT_CLEANUP;
+          break;
+        }
+        //the first successful association will be undone
+        //in case NEXT_CLEANUP
       }
     }
-    //no break here intentionally
+      //no break here intentionally
     case NEXT_CLEANUP:
       //undo the previous match
-      backtrack();
-      _state=FINISHED;
+      backtrack(_bdataMain);
+      //undo associateEqualitySorts
+      backtrack(_bdataEqAssoc);
+      _state = FINISHED;
       break;
     case FINISHED:
       ASSERTION_VIOLATION;
     }
-    ASS(_state!=FINISHED || _bdata.isEmpty());
-    return _state!=FINISHED;
+    ASS(_state != FINISHED || (_bdataMain.isEmpty() && _bdataEqAssoc.isEmpty()));
+    return _state != FINISHED;
   }
 
-  RobSubstitution* next()
-  {
-    _used=true;
+  RobSubstitution* next() {
+    _used = true;
     return _subst;
   }
 private:
-  void backtrack()
-  {
+  void backtrack(BacktrackData &_bdata) {
     CALL("RobSubstitution::AssocIterator::backtrack");
 
-    ASS_EQ(&_bdata,&_subst->bdGet());
+    ASS_EQ(&_bdata, &_subst->bdGet());
     _subst->bdDone();
     _bdata.backtrack();
   }
+
   enum State {
-    FIRST=0,
-    NEXT_STRAIGHT=0,
-    NEXT_REVERSED=1,
-    NEXT_CLEANUP=2,
-    FINISHED=3
+    FIRST = 0,
+    NEXT_STRAIGHT = 0,
+    NEXT_REVERSED = 1,
+    NEXT_CLEANUP = 2,
+    FINISHED = 3
   };
 
   RobSubstitution* _subst;
@@ -1099,7 +1077,8 @@ private:
   int _l1i;
   Literal* _l2;
   int _l2i;
-  BacktrackData _bdata;
+  BacktrackData _bdataMain;
+  BacktrackData _bdataEqAssoc;
 
   State _state;
   /**
@@ -1109,7 +1088,18 @@ private:
    */
   bool _used;
 };
+
 struct RobSubstitution::MatchingFn {
+  static bool associateEqualitySorts(RobSubstitution* subst, Literal* l1, int l1Index,
+      Literal* l2, int l2Index) {
+    if(l1->isEquality()){
+      ASS(l2->isEquality());
+      TermList sb = SortHelper::getEqualityArgumentSort(l1);
+      TermList si = SortHelper::getEqualityArgumentSort(l2);
+      return subst->match(sb, l1Index, si, l2Index);
+    }
+    return true;
+  }
   static bool associate(RobSubstitution* subst, Literal* l1, int l1Index,
 	  Literal* l2, int l2Index)
   { return subst->matchArgs(l1,l1Index,l2,l2Index); }
@@ -1118,7 +1108,20 @@ struct RobSubstitution::MatchingFn {
 	  TermList t2, int t2Index)
   { return subst->match(t1,t1Index,t2,t2Index); }
 };
+
 struct RobSubstitution::UnificationFn {
+
+  static bool associateEqualitySorts(RobSubstitution* subst, Literal* l1, int l1Index,
+      Literal* l2, int l2Index) {
+    if(l1->isEquality()) {
+      ASS(l2->isEquality());
+      TermList s1 = SortHelper::getEqualityArgumentSort(l1);
+      TermList s2 = SortHelper::getEqualityArgumentSort(l2);
+      return subst->unify(s1, l1Index, s2, l2Index);
+    }
+    return true;
+  }
+
   static bool associate(RobSubstitution* subst, Literal* l1, int l1Index,
 	  Literal* l2, int l2Index)
   { return subst->unifyArgs(l1,l1Index,l2,l2Index); }

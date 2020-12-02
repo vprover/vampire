@@ -1,0 +1,16 @@
+#!/bin/sh
+
+HASH='73079e33800bc9141bde50a221ea5918'
+for file in `git ls-files | egrep '\.(h|c)pp$'`
+do
+	hash=`head -n 9 $file | md5sum | cut -d' ' -f1`
+	if test $hash != $HASH
+	then
+		failed=$file
+		echo "source file $file does not have the correct header"
+	fi
+done
+if test -n "$failed"
+then
+	exit 1
+fi
