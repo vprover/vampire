@@ -123,6 +123,7 @@ public:
   }
 
   bool matchNext(unsigned specVar, TermList nodeTerm, bool separate=true);
+  bool matchNextAux(TermList queryTerm, TermList nodeTerm, bool separate=true);
 
   void backtrack();
   bool tryBacktrack();
@@ -259,6 +260,8 @@ public:
     return _resultDenormalizer->apply(normalized);
   }
 
+  InstMatcher* getMatcher() { return _parent; }
+  
   bool isIdentityOnResultWhenQueryBound() { return true; }
 private:
   InstMatcher* _parent;
@@ -412,12 +415,7 @@ bool SubstitutionTree::InstMatcher::tryBacktrack()
   return false;
 }
 
-/**
- * Match @b nodeTerm to term in the special variable @b specVar.
- * If @b separate is true, join this match with the previous one
- * on backtracking stack, so they will be undone both by one
- * call to the backtrack() method.
- */
+
 bool SubstitutionTree::InstMatcher::matchNext(unsigned specVar, TermList nodeTerm, bool separate)
 {
   CALL("SubstitutionTree::InstMatcher::matchNext");
@@ -435,18 +433,37 @@ bool SubstitutionTree::InstMatcher::matchNext(unsigned specVar, TermList nodeTer
     while(vit.hasNext()) {
       TermList var=vit.next();
       if(var.isSpecialVar()) {
-	ASS(!isBound(var));
+  ASS(!isBound(var));
       }
     }
   }
 #endif
+  return matchNextAux(TermList(specVar, true), nodeTerm, separate);
+}
+
+/**
+ * Match @b nodeTerm to term in the special variable @b specVar.
+ * If @b separate is true, join this match with the previous one
+ * on backtracking stack, so they will be undone both by one
+ * call to the backtrack() method.
+ */
+bool SubstitutionTree::InstMatcher::matchNextAux(TermList queryTerm, TermList nodeTerm, bool separate)
+{
+  CALL("SubstitutionTree::InstMatcher::matchNextAux");
+
+  unsigned specVar;
+  TermSpec tsBinding;
 
   TermSpec tsNode(false, nodeTerm);
 
-  TermSpec tsBinding;
-  if(!findSpecVarBinding(specVar,tsBinding)) {
-    bind(TermList(specVar,true), tsNode);
-    return true;
+  if(queryTerm.isSpecialVar()){
+    specVar = queryTerm.var();
+    if(!findSpecVarBinding(specVar,tsBinding)) {
+      bind(TermList(specVar,true), tsNode);
+      return true;
+    }
+  } else {
+    tsBinding = TermSpec(true, queryTerm);
   }
 
   if(tsBinding.q && tsBinding.t.isOrdinaryVar() && !isBound(tsBinding.t)) {
