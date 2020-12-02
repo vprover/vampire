@@ -1,7 +1,4 @@
-
 /*
- * File tDHMap.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 
 #include <iostream>
@@ -25,6 +16,7 @@
 
 #define UNIT_ID dhmap
 UT_CREATE;
+
 
 using namespace std;
 using namespace Lib;
@@ -137,6 +129,7 @@ TEST_FUN(dhmap1)
   for(unsigned i=0;i<cnt;i++) {
     unsigned v;
     bool res=m1.find(i,v);
+
     ASS(res==(i%2==0));
     ASS(!res||v==i*i);
   }

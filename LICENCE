@@ -1,19 +1,50 @@
+Vampire licence - BSD 3-Clause
+
 Vampire Software Licence Agreement
-Copyright (c) 2017, Andrei Voronkov, the University of Manchester
+Copyright © 2020
 
-In the below, this Software refers to the tool known as Vampire in any form, including an executable binary, source code, any executable produced form this source code, and supporting documentation. In addition, this licence applies to all content contained within the GitHub repository including all source files (where those files are not covered by a different licence) and commit messages on all branches.
+Vampire is copyright (C) 2020 by
+its authors and contributors (see AUTHORS) and their institutional
+affiliations. All rights reserved.
 
-Permission is hereby granted, free of charge, to use this Software for evaluation and research purposes.
+The Vampire licence is a (modified) BSD 3-Clause licence.
+This Vampire licence supersedes all previous licences covering usage of Vampire.
 
-This license does not allow this Software to be used in a commercial context. Users wishing to use the Software in a commercial context should contact the copyright holder for an alternative licence.
 
-It is further prohibited to use this Software or a substantial portion of it in a competition or a similar competetive event, such as the CASC or SMT-COMP competitions or evaluations, without explicit written permission by the copyright holder. However, competition organizers are allowed to use this software as part of the evaluation process of a particular competition, evaluation or competetive event, if the copyright holder of this software submitted this software to this particular competition, evaluation or event explicitly.
+The source code of Vampire is open and available to students, researchers,
+software companies, and everyone else to study, to modify, and to redistribute
+original or modified versions; distribution is under the terms of the modified
+BSD licence (reproduced below).
 
-All other usage is reserved. To remove doubt, the redistribution or modification of the Software is prohibited by this licence and users wishing to do either should contact the copyright holder for an alternative licence.
+Note that some software included with Vampire is available under a more permissive licence.
+For example, both Minisat and Z3 are used internally by Vampire.
 
-The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+In the below, this Software refers to Vampire in any form. 
 
-This licence supersedes all previous licences covering usage of Vampire.
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are
+met:
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+1. Redistributions of source code must retain the above copyright
+notice, this list of conditions and the following disclaimer.
 
+2. Redistributions in binary form must reproduce the above copyright
+notice, this list of conditions and the following disclaimer in the
+documentation and/or other materials provided with the distribution.
+
+3. Neither the name of the copyright holder nor the names of its
+contributors may be used to endorse or promote products derived from
+this software without specific prior written permission.
+
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT OWNERS AND CONTRIBUTORS
+''AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+OWNERS OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.

@@ -1,7 +1,4 @@
-
 /*
- * File Property.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file Property.cpp (syntactic properties of problems)
@@ -92,7 +83,6 @@ Property::Property()
 {
   _interpretationPresence.init(Theory::instance()->numberOfFixedInterpretations(), false);
   env.property = this;
-  _symbolsInFormula = new DHSet<int>();
 } // Property::Property
 
 /**
@@ -126,7 +116,6 @@ Property::~Property()
 {
   CALL("Property::~Property");
 
-  delete _symbolsInFormula;
   if (this == env.property) {
     env.property = 0;
   }
@@ -233,8 +222,7 @@ void Property::scan(Unit* unit)
 {
   CALL("Property::scan(const Unit*)");
 
-  ASS(_symbolsInFormula);
-  _symbolsInFormula->reset();
+  _symbolsInFormula.reset();
 
   if (unit->isClause()) {
     scan(static_cast<Clause*>(unit));
@@ -251,7 +239,7 @@ void Property::scan(Unit* unit)
     }
   }
 
-  DHSet<int>::Iterator it(*_symbolsInFormula);
+  DHSet<int>::Iterator it(_symbolsInFormula);
   while(it.hasNext()){
     int symbol = it.next();
     if(symbol >= 0){
@@ -550,7 +538,7 @@ void Property::scan(Literal* lit, int polarity, unsigned cLen, bool goal)
     scanSort(SortHelper::getEqualityArgumentSort(lit));
   }
   else {
-    _symbolsInFormula->insert(-lit->functor());
+    _symbolsInFormula.insert(-lit->functor());
     int arity = lit->arity();
     if (arity > _maxPredArity) {
       _maxPredArity = arity;
@@ -629,7 +617,7 @@ void Property::scan(TermList ts,bool unit,bool goal)
   } else {
     scanForInterpreted(t);
 
-    _symbolsInFormula->insert(t->functor());
+    _symbolsInFormula.insert(t->functor());
     Signature::Symbol* func = env.signature->getFunction(t->functor());
     func->incUsageCnt();
     if(unit){ func->markInUnit();}

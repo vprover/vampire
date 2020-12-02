@@ -1,7 +1,4 @@
-
 /*
- * File KBO.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file KBO.cpp
@@ -839,5 +830,12 @@ bool KboSpecialWeights<FuncSigTraits>::tryGetWeight(unsigned functor, unsigned& 
   if (sym->realConstant())     { weight = _numReal; return true; }
   return false;
 }
+
+template KboWeightMap<FuncSigTraits> KboWeightMap<FuncSigTraits>::dflt();
+template KboWeight KboWeightMap<FuncSigTraits>::symbolWeight(unsigned) const;
+#if __KBO__CUSTOM_PREDICATE_WEIGHTS__
+template KboWeightMap<PredSigTraits> KboWeightMap<PredSigTraits>::dflt();
+template KboWeight KboWeightMap<PredSigTraits>::symbolWeight(unsigned) const;
+#endif
 
 }

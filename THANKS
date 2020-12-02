@@ -1,0 +1,5 @@
+Thanks to:
+
+ - Geoff Sutcliffe for numerous bug reports and for running the annual CASC competition 
+
+ - Nikolaj Bjørner for his support in integrating the Z3 SMT solver into Vampire (and then support in helping us debug things when they go wrong)
