@@ -233,7 +233,7 @@ private:
  * After the change that should be backtrackable are
  * done, client calls the @b bdDone function to stop recording.
  *
- * Changes of muptiple objects can be stored into one @b bd object.
+ * Changes of multiple objects can be stored into one @b bd object.
  *
  * To backtrack the changes client can call the @b BacktrackData::backtrack
  * function. All involved objects must be in the same state as
@@ -296,7 +296,7 @@ public:
   /**
    * Move all change records from @b bd to the BacktrackData object associated
    * with this object. If there is no such object, the backtrack data from the
-   * @c bd object are siply dropped.
+   * @c bd object are simply dropped.
    * The @b bd object
    * is empty after call to his function.
    */
