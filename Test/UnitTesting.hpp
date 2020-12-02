@@ -104,13 +104,16 @@ public:
   TestAdder(const char* unit, TestProc proc, const char* name);
 };
 
-#define __TEST_ADDER_(id, name) __addTest__## id ##__ ## name 
-#define __TEST_ADDER(name) __TEST_ADDER_(UNIT_ID, name)// macro indirection needed to expand UNIT_ID before concat
+#define EXPAND(a) a
+#define _CAT(a,b) a ## b
+#define CAT(a,b) EXPAND(_CAT(a,b)) // expands arguments before concattentation
+#define __TEST_ADDER(name)   CAT(CAT(CAT(__addTest__, UNIT_ID), __), name)
+#define __TEST_FN_NAME(name) CAT(CAT(CAT(__testFn__ , UNIT_ID), __), name)
 
 #define TEST_FUN(name)                                                                                        \
-    void name();                                                                                              \
-    Test::TestAdder __TEST_ADDER(name)(UNIT_ID_STR, name, #name);                                             \
-    void name()
+    void __TEST_FN_NAME(name)();                                                                              \
+    Test::TestAdder __TEST_ADDER(name)(UNIT_ID_STR, __TEST_FN_NAME(name), #name);                             \
+    void __TEST_FN_NAME(name)()
 
 } // namespace Test
 
