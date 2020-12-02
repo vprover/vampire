@@ -70,8 +70,6 @@ public:
 
 REGISTER_SIMPL_TESTER(SimplificationTester)
 
-#define CAT(a,b) a ## b // expands a and b before concatenation
-
 #define SIMPL_SUGAR_(num)                                                                                     \
   NUMBER_SUGAR(num)                                                                                           \
   DECL_DEFAULT_VARS                                                                                           \
