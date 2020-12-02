@@ -1369,8 +1369,7 @@ bool Term::isSuper() const {
 }
 
 /**
- * Return true iff headers of literals match each other. We check also whether
- * sorts of equality literals are equal.
+ * Return true iff headers of literals match each other.
  */
 bool Literal::headersMatch(Literal* l1, Literal* l2, bool complementary)
 {

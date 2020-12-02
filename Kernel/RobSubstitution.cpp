@@ -915,7 +915,6 @@ SubstIterator RobSubstitution::getAssocIterator(RobSubstitution* subst,
   CALL("RobSubstitution::getAssocIterator");
 
   if( !Literal::headersMatch(l1,l2,complementary) ) {
-    // We also get here if the sorts of equality literals do not match.
     return SubstIterator::getEmpty();
   }
 
