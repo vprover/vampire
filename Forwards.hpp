@@ -1,20 +1,11 @@
-
 /*
- * File Forwards.hpp.
- *
  * This file is part of the source code of the software program
- * Vampire.(unstable). It is protected by applicable
+ * Vampire. It is protected by applicable
  * copyright laws.
  *
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file Forwards.hpp
@@ -361,15 +352,6 @@ class SATInference;
 
 class SATSolver;
 typedef ScopedPtr<SATSolver> SATSolverSCP;
-class TWLSolver;
-
-class RestartStrategy;
-typedef ScopedPtr<RestartStrategy> RestartStrategySCP;
-class VariableSelector;
-typedef ScopedPtr<VariableSelector> VariableSelectorSCP;
-class RLCSelector;
-class ClauseDisposer;
-typedef ScopedPtr<ClauseDisposer> ClauseDisposerSCP;
 
 typedef VirtualIterator<SATClause*> SATClauseIterator;
 typedef List<SATClause*> SATClauseList;
