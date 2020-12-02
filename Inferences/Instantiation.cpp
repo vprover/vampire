@@ -337,6 +337,10 @@ ClauseIterator Instantiation::generateClauses(Clause* premise)
 {
   CALL("Instantiation::generateClauses");
 
+  if (premise->containsFunctionDefinition()) {
+    return ClauseIterator::getEmpty();
+  }
+
   //cout << "Instantiate " << premise->toString() << endl;
 
   Stack<Substitution> subs;

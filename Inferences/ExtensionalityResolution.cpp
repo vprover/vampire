@@ -285,6 +285,10 @@ ClauseIterator ExtensionalityResolution::generateClauses(Clause* premise)
 {
   CALL("ExtensionalityResolution::generateClauses");
 
+  if (premise->containsFunctionDefinition()) {
+    return ClauseIterator::getEmpty();
+  }
+
   ExtensionalityClauseContainer* extClauses = _salg->getExtensionalityClauseContainer();
   ClauseIterator backwardIterator;
 

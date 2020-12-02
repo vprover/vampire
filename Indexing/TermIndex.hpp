@@ -84,6 +84,19 @@ private:
   const Options& _opt;
 };
 
+class FnDefLHSIndex
+: public TermIndex
+{
+public:
+  CLASS_NAME(FnDefLHSIndex);
+  USE_ALLOCATOR(FnDefLHSIndex);
+
+  FnDefLHSIndex(TermIndexingStructure* is)
+  : TermIndex(is) {};
+protected:
+  void handleClause(Clause* c, bool adding);
+};
+
 /**
  * Term index for backward demodulation
  */

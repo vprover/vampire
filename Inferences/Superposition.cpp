@@ -189,6 +189,9 @@ private:
 ClauseIterator Superposition::generateClauses(Clause* premise)
 {
   CALL("Superposition::generateClauses");
+  if (premise->containsFunctionDefinition()) {
+    return ClauseIterator::getEmpty();
+  }
   PassiveClauseContainer* passiveClauseContainer = _salg->getPassiveClauseContainer();
 
   //cout << "SUPERPOSITION with " << premise->toString() << endl;
@@ -422,10 +425,6 @@ Clause* Superposition::performSuperposition(
     return 0;
   }
 
-  if(rwClause->containsFunctionDefinition()) {
-    return 0;
-  }
-
   unsigned rwLength = rwClause->length();
   unsigned eqLength = eqClause->length();
   unsigned conLength = hasConstraints ? constraints->size() : 0;
@@ -466,11 +465,11 @@ Clause* Superposition::performSuperposition(
   //cout << "Check ordering on " << tgtTermS.toString() << " and " << rwTermS.toString() << endl;
 
   //check that we're not rewriting smaller subterm with larger
-  if(!eqClause->isFunctionDefinition(eqLit) && Ordering::isGorGEorE(ordering.compare(tgtTermS,rwTermS))) {
+  if(Ordering::isGorGEorE(ordering.compare(tgtTermS,rwTermS))) {
     return 0;
   }
 
-  if(!eqClause->isFunctionDefinition(eqLit) && rwLitS->isEquality()) {
+  if(rwLitS->isEquality()) {
     //check that we're not rewriting only the smaller side of an equality
     TermList arg0=*rwLitS->nthArgument(0);
     TermList arg1=*rwLitS->nthArgument(1);

@@ -94,6 +94,10 @@ Clause* GlobalSubsumption::perform(Clause* cl, Stack<Unit*>& prems)
 {
   CALL("GlobalSubsumption::perform/2");
 
+  if (cl->containsFunctionDefinition()) {
+    return cl;
+  }
+
   TimeCounter tc(TC_GLOBAL_SUBSUMPTION);
 
   if(cl->color()==COLOR_LEFT) {
@@ -285,6 +289,10 @@ struct GlobalSubsumption::Unit2ClFn
 bool GlobalSubsumption::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
 {
   CALL("GlobalSubsumption::perform/3");
+
+  if (cl->containsFunctionDefinition()) {
+    return false;
+  }
 
   static Stack<Unit*> prems;
   

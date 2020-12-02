@@ -115,6 +115,10 @@ ClauseIterator Induction::generateClauses(Clause* premise)
 {
   CALL("Induction::generateClauses");
 
+  if (premise->containsFunctionDefinition()) {
+    return ClauseIterator::getEmpty();
+  }
+
   return pvi(InductionClauseIterator(premise, _index));
 }
 

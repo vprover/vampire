@@ -57,6 +57,10 @@ bool ForwardLiteralRewriting::perform(Clause* cl, Clause*& replacement, ClauseIt
 {
   CALL("ForwardLiteralRewriting::perform");
 
+  if (cl->containsFunctionDefinition()) {
+    return false;
+  }
+
   Ordering& ordering = _salg->getOrdering();
 
   TimeCounter tc(TC_FORWARD_LITERAL_REWRITING);

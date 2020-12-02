@@ -248,6 +248,10 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
 {
   CALL("ForwardSubsumptionAndResolution::perform");
 
+  if (cl->containsFunctionDefinition()) {
+    return false;
+  }
+
   Clause* resolutionClause=0;
 
   unsigned clen=cl->length();

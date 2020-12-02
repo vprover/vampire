@@ -231,6 +231,8 @@ enum class InferenceRule : unsigned char {
   CONSTRAINED_FACTORING,
   /** superposition inference */
   SUPERPOSITION,
+  /** function definition rewriting inference */
+  FNDEF_SUPERPOSITION,
   /** superposition with constraints */
   CONSTRAINED_SUPERPOSITION,
   /** equality factoring inference */

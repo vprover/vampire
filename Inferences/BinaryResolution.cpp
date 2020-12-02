@@ -329,6 +329,10 @@ ClauseIterator BinaryResolution::generateClauses(Clause* premise)
 {
   CALL("BinaryResolution::generateClauses");
 
+  if (premise->containsFunctionDefinition()) {
+    return ClauseIterator::getEmpty();
+  }
+
   //cout << "BinaryResolution for " << premise->toString() << endl;
 
   PassiveClauseContainer* passiveClauseContainer = _salg->getPassiveClauseContainer();

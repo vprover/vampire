@@ -71,6 +71,10 @@ void SuperpositionSubtermIndex::handleClause(Clause* c, bool adding)
 {
   CALL("SuperpositionSubtermIndex::handleClause");
 
+  if (c->containsFunctionDefinition()) {
+    return;
+  }
+
   TimeCounter tc(TC_BACKWARD_SUPERPOSITION_INDEX_MAINTENANCE);
 
   unsigned selCnt=c->numSelected();
@@ -94,18 +98,14 @@ void SuperpositionLHSIndex::handleClause(Clause* c, bool adding)
 
   TimeCounter tc(TC_FORWARD_SUPERPOSITION_INDEX_MAINTENANCE);
 
+  if (c->containsFunctionDefinition()) {
+    return;
+  }
+
   unsigned selCnt=c->numSelected();
-  // const bool fndef = c->containsFunctionDefinition(); 
-  // if (fndef) {
-  //   selCnt = c->length();
-  // }
   for (unsigned i=0; i<selCnt; i++) {
     Literal* lit=(*c)[i];
-    // if (fndef && !c->isFunctionDefinition(lit)) {
-    //   continue;
-    // }
-    TermIterator lhsi=EqHelper::getSuperpositionLHSIterator(lit, _ord, _opt,
-      c->isFunctionDefinition(lit), c->isReversedFunctionDefinition(lit));
+    TermIterator lhsi=EqHelper::getSuperpositionLHSIterator(lit, _ord, _opt);
     while (lhsi.hasNext()) {
       TermList lhs=lhsi.next();
       if (adding) {
@@ -118,11 +118,46 @@ void SuperpositionLHSIndex::handleClause(Clause* c, bool adding)
   }
 }
 
+void FnDefLHSIndex::handleClause(Clause* c, bool adding)
+{
+  CALL("SuperpositionLHSIndex::handleClause");
+
+  TimeCounter tc(TC_FORWARD_SUPERPOSITION_INDEX_MAINTENANCE);
+
+  if (!c->containsFunctionDefinition()) {
+    return;
+  }
+
+  unsigned cnt = 0;
+  for (unsigned i = 0; i < c->length(); i++) {
+    Literal* lit=(*c)[i];
+    if (!c->isFunctionDefinition(lit)) {
+      continue;
+    }
+    cnt++;
+    TermIterator lhsi=EqHelper::getFnDefLHSIterator(lit, c->isReversedFunctionDefinition(lit));
+    while (lhsi.hasNext()) {
+      TermList lhs=lhsi.next();
+      if (adding) {
+	_is->insert(lhs, lit, c);
+      }
+      else {
+	_is->remove(lhs, lit, c);
+      }
+    }
+  }
+  ASS_EQ(cnt, 1);
+}
+
 void DemodulationSubtermIndex::handleClause(Clause* c, bool adding)
 {
   CALL("DemodulationSubtermIndex::handleClause");
 
   TimeCounter tc(TC_BACKWARD_DEMODULATION_INDEX_MAINTENANCE);
+
+  if (c->containsFunctionDefinition()) {
+    return;
+  }
 
   static DHSet<TermList> inserted;
 

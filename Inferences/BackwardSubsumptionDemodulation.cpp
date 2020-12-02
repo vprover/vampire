@@ -128,6 +128,10 @@ void BackwardSubsumptionDemodulation::perform(Clause* sideCl, BwSimplificationRe
 
   simplifications = BwSimplificationRecordIterator::getEmpty();
 
+  if (sideCl->containsFunctionDefinition()) {
+    return;
+  }
+
   if (sideCl->length() == 0) {
     // No BSD with empty side clause possible
     return;

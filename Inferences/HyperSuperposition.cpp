@@ -411,6 +411,10 @@ ClauseIterator HyperSuperposition::generateClauses(Clause* cl)
 {
   CALL("HyperSuperposition::generateClauses");
 
+  if (cl->containsFunctionDefinition()) {
+    return ClauseIterator::getEmpty();
+  }
+
   TimeCounter tc(TC_HYPER_SUPERPOSITION);
 
   static ClausePairStack res;
@@ -559,7 +563,7 @@ bool HyperSuperposition::tryUnifyingToResolveSimpl(Clause* cl, Clause*& replacem
 bool HyperSuperposition::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
 {
   CALL("HyperSuperposition::perform");
-  if(cl->length()!=1) {
+  if(cl->containsFunctionDefinition() || cl->length()!=1) {
     return false;
   }
 

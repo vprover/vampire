@@ -43,6 +43,10 @@ namespace Inferences {
 ClauseIterator FOOLParamodulation::generateClauses(Clause* premise) {
   CALL("FOOLParamodulation::generateClauses");
 
+  if (premise->containsFunctionDefinition()) {
+    return ClauseIterator::getEmpty();
+  }
+
   /**
    * We are going to implement the following inference rule, taken from the paper:
    *

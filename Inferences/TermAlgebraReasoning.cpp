@@ -224,6 +224,10 @@ namespace Inferences {
   {
     CALL("InjectivityGIE::generateClauses");
 
+    if (c->containsFunctionDefinition()) {
+      return ClauseIterator::getEmpty();
+    }
+
     auto it1 = c->getSelectedLiteralIterator();
     auto it2 = getMappingIterator(it1, SubtermEqualityFn(c));
     auto it3 = getFlattenedIterator(it2);
@@ -428,6 +432,10 @@ namespace Inferences {
   {
     CALL("AcyclicityGIE::generateClauses");
 
+    if (c->containsFunctionDefinition()) {
+      return ClauseIterator::getEmpty();
+    }
+
     auto it1 = c->getSelectedLiteralIterator();
     auto it2 = getMappingIterator(it1, AcyclicityGenFn(_acyclIndex, c));
     auto it3 = getFlattenedIterator(it2);
@@ -569,6 +577,10 @@ namespace Inferences {
   ClauseIterator AcyclicityGIE1::generateClauses(Clause* c)
   {
     CALL("AcyclicityGIE1::generateClauses");
+
+    if (c->containsFunctionDefinition()) {
+      return ClauseIterator::getEmpty();
+    }
 
     LiteralIterator it1(c);
     auto it2 = getMappingIterator(it1, SubtermDisequalityFn(c));

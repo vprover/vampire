@@ -839,6 +839,10 @@ ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise,bool& premiseR
 {
   CALL("TheoryInstAndSimp::generateClauses");
 
+  if (premise->containsFunctionDefinition()) {
+    return ClauseIterator::getEmpty();
+  }
+
   if(premise->isPureTheoryDescendant()){ return ClauseIterator::getEmpty(); }
 
   static Options::TheoryInstSimp thi = env.options->theoryInstAndSimp();
