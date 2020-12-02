@@ -15,10 +15,6 @@
 
 #include "Test/UnitTesting.hpp"
 
-
-#define UNIT_ID Option
-UT_CREATE;
-
 using namespace Kernel;
 using namespace Lib;
 

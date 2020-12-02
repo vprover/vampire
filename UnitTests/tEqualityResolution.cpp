@@ -21,12 +21,6 @@
 
 using namespace Test;
 
-/** 
- * NECESSARY: as for every test unit we need to specify a name, and initialize the unit 
- */
-#define UNIT_ID EqualityResolution
-UT_CREATE;
-
 REGISTER_GEN_TESTER(Test::Generation::GenerationTester<Inferences::EqualityResolution>)
 
 /**

@@ -33,9 +33,6 @@
 #include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
 
-#define UNIT_ID InterpretedFunctions
-UT_CREATE;
-
 using namespace std;
 using namespace Lib;
 using namespace Test;

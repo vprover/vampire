@@ -16,9 +16,6 @@
 #include "Test/TestUtils.hpp"
 #include "Kernel/Theory.hpp"
 
-#define UNIT_ID arithCompareTest
-UT_CREATE;
-
 using namespace std;
 using namespace Lib;
 using namespace Kernel;

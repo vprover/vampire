@@ -38,12 +38,6 @@ using namespace Test;
 /////////////////////////////////////
 
 /** 
- * NECESSARY: as for every test unit we need to specify a name, and initialize the unit 
- */
-#define UNIT_ID GaussianVariableElimination
-UT_CREATE;
-
-/** 
  * NECESSARY: We need a subclass of SimplificationTester
  */
 class GveSimplTester : public Test::Simplification::SimplificationTester

@@ -16,9 +16,6 @@
 
 #include "Test/UnitTesting.hpp"
 
-#define UNIT_ID optionConstraints
-UT_CREATE;
-
 using namespace Shell;
 
 bool testGlobal(Options& o)

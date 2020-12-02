@@ -38,9 +38,6 @@ using namespace Test;
 
 #define PHASE 1
 
-#define UNIT_ID ArithmeticSubtermGeneralization
-UT_CREATE;
-
 class SimplificationTester : public Test::Simplification::SimplificationTester
 {
 public:
@@ -72,6 +69,8 @@ public:
 };
 
 REGISTER_SIMPL_TESTER(SimplificationTester)
+
+#define CAT(a,b) a ## b // expands a and b before concatenation
 
 #define SIMPL_SUGAR_(num)                                                                                     \
   NUMBER_SUGAR(num)                                                                                           \

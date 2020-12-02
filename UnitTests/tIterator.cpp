@@ -16,9 +16,6 @@
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Stack.hpp"
 
-#define UNIT_ID Iterator
-UT_CREATE;
-
 using namespace Lib;
 
 TEST_FUN(test_collect) {

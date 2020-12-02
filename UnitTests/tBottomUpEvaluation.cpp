@@ -21,10 +21,6 @@ using namespace Kernel;
 using namespace Inferences;
 using namespace Test;
 
-
-#define UNIT_ID BottomUpEvaluation
-UT_CREATE;
-
 TEST_FUN(example_01__replace_all_vars_by_term) {
   /* syntax sugar imports */
   DECL_DEFAULT_VARS

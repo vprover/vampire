@@ -23,8 +23,6 @@
 #include "Shell/TermAlgebra.hpp"
 
 
-#define UNIT_ID Rebalancing
-UT_CREATE;
 using namespace std;
 using namespace Kernel;
 using namespace Rebalancing;
