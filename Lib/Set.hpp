@@ -26,6 +26,7 @@
 #include "Allocator.hpp"
 #include "Hash.hpp"
 #include "Reflection.hpp"
+#include "Lib/Metaiterators.hpp"
 
 namespace Lib {
 
@@ -429,6 +430,10 @@ public:
     Cell* _last;
   };
   DECL_ITERATOR_TYPE(Iterator);
+
+  IterTraits<Iterator> iter() 
+  { return iterTraits(Iterator(*this)); }
+
 
 }; // class Set
 
