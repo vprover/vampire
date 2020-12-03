@@ -17,7 +17,6 @@
 
 #if VZ3
 #define UNIMPLEMENTED ASSERTION_VIOLATION
-#define DEBUG(...) DBG(__VA_ARGS__)
 
 #include "Forwards.hpp"
 
@@ -28,16 +27,18 @@
 
 #include "Lib/Environment.hpp"
 #include "Lib/System.hpp"
+
 #include "Kernel/Signature.hpp"
 #include "Kernel/Sorts.hpp"
 #include "Kernel/SortHelper.hpp"
+#include "Kernel/BottomUpEvaluation.hpp"
+#include "Kernel/BottomUpEvaluation/TermList.hpp"
 
 #include "Shell/UIHelper.hpp"
-
 #include "Indexing/TermSharing.hpp"
-
 #include "Z3Interfacing.hpp"
 
+#define DEBUG(...) DBG(__VA_ARGS__)
 namespace SAT
 {
 
@@ -291,7 +292,7 @@ Term* Z3Interfacing::evaluateInModel(Term* trm)
 
   unsigned srt = SortHelper::getResultSort(trm);
   bool name; //TODO what do we do about naming?
-  z3::expr rep = getz3expr(trm,false,name,false); 
+  z3::expr rep = getz3expr(trm,name,false); 
   z3::expr assignment = _model.eval(rep,true); // true means "model_completion"
 
   // now translate assignment back into a term!
@@ -574,20 +575,21 @@ z3::func_decl const& Z3Interfacing::findConstructor(FuncId id)
   }
 }
 
-/**
- * Translate a Vampire term into a Z3 term
- * - Assumes term is ground
- * - Translates the ground structure
- * - Some interpreted functions/predicates are handled
- */
-z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool withGuard)
-{
-  CALL("Z3Interfacing::getz3expr");
-  // TODO de-recurify
-  DEBUG("in: ", *trm)
-  BYPASSING_ALLOCATOR;
-  ASS(trm);
-  ASS(trm->ground());
+struct ToZ3Expr {
+  Z3Interfacing& self;
+  bool& nameExpression;
+  bool withGuard;
+
+  using Arg    = TermList;
+  using Result = z3::expr;
+
+  z3::expr operator()(TermList toEval, z3::expr* evaluatedArgs) 
+  {
+    CALL("ToZ3Expr::operator()");
+    DBG("in: ", toEval)
+    ASS(toEval.isTerm())
+    auto trm = toEval.term();
+    bool isLit = trm->isLiteral();
 
     Signature::Symbol* symb; 
     unsigned range_sort;
@@ -617,24 +619,24 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
 
         PRINT_CPP("exprs.push_back(c.int_val(" << value.toInner() << "));")
 
-        return _context.int_val(value.toInner());
+        return self._context.int_val(value.toInner());
       }
       if(symb->realConstant()) {
         RealConstantType value = symb->realValue();
-        return _context.real_val(value.numerator().toInner(),value.denominator().toInner());
+        return self._context.real_val(value.numerator().toInner(),value.denominator().toInner());
       }
       if(symb->rationalConstant()) {
         RationalConstantType value = symb->rationalValue();
-        return _context.real_val(value.numerator().toInner(),value.denominator().toInner());
+        return self._context.real_val(value.numerator().toInner(),value.denominator().toInner());
       }
       if(!isLit && env.signature->isFoolConstantSymbol(true,trm->functor())) {
-        return _context.bool_val(true);
+        return self._context.bool_val(true);
       }
       if(!isLit && env.signature->isFoolConstantSymbol(false,trm->functor())) {
-        return _context.bool_val(false);
+        return self._context.bool_val(false);
       }
       if(symb->termAlgebraCons()) {
-        auto ctor = findConstructor(trm->functor());
+        auto ctor = self.findConstructor(trm->functor());
         return ctor();
       }
       // TODO do we really have overflownConstants ?? not in evaluation(s) at least
@@ -644,11 +646,11 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
         switch (symb->fnType()->result()) {
         case Sorts::SRT_INTEGER:
           PRINT_CPP("exprs.push_back(c.int_val(\"" << symb->name() << "\"));")
-          return _context.int_val(symb->name().c_str());
+          return self._context.int_val(symb->name().c_str());
         case Sorts::SRT_RATIONAL:
-          return _context.real_val(symb->name().c_str());
+          return self._context.real_val(symb->name().c_str());
         case Sorts::SRT_REAL:
-          return _context.real_val(symb->name().c_str());
+          return self._context.real_val(symb->name().c_str());
         default:
           ;
           // intentional fallthrough; the input is fof (and not tff), so let's just treat this as a constant
@@ -657,22 +659,21 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
 
       // If not value then create constant symbol
       //cout << "HERE " << env.sorts->sortName(range_sort) << " for " << symb->name() << endl; 
-      return getNameConst(symb->name(),getz3sort(range_sort));
+      return self.getNameConst(symb->name(), self.getz3sort(range_sort));
     }
     ASS(trm->arity()>0);
 
     // Next translate term arguments
     //IMPORTANT - every push_back to args must be matched by a pop_back
     // note that the z3 functions do this already
-    z3::expr_vector args = z3::expr_vector(_context);
+    z3::expr_vector args = z3::expr_vector(self._context);
+    args.resize(trm->arity());
     for (unsigned i=0; i<trm->arity(); i++) {
-      TermList* arg = trm->nthArgument(i);
-      ASS(!arg->isVar());// Term should be ground
-      args.push_back(getz3expr(arg->term(),false,nameExpression,withGuard));
+      args.set(i, evaluatedArgs[i]);
     }
 
     // dummy return
-    z3::expr ret = z3::expr(_context);
+    z3::expr ret = z3::expr(self._context);
 
    //Check for equality
     if(is_equality){
@@ -720,10 +721,10 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
       switch(interp){
         // Numerical operations
         case Theory::INT_DIVIDES:
-          if(withGuard){addIntNonZero(args[0]);}
+          if(withGuard){self.addIntNonZero(args[0]);}
           //cout << "SET name=true" << endl;
           nameExpression = true;
-          ret = z3::mod(args[1], args[0]) == _context.int_val(0);
+          ret = z3::mod(args[1], args[0]) == self._context.int_val(0);
           break;
 
         case Theory::INT_UNARY_MINUS:
@@ -760,12 +761,12 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
 
         case Theory::RAT_QUOTIENT:
         case Theory::REAL_QUOTIENT:
-          if(withGuard){addRealNonZero(args[1]);}
+          if(withGuard){self.addRealNonZero(args[1]);}
           ret= args[0] / args[1];
           break;
 
         case Theory::INT_QUOTIENT_E: 
-          if(withGuard){addIntNonZero(args[1]);}
+          if(withGuard){self.addIntNonZero(args[1]);}
           ret= args[0] / args[1];
           break;
 
@@ -779,25 +780,25 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
         case Theory::INT_FLOOR:
         case Theory::RAT_FLOOR:
         case Theory::REAL_FLOOR:
-          ret = to_real(to_int(args[0])); 
+          ret = self.to_real(self.to_int(args[0])); 
           break;
 
         case Theory::INT_TO_REAL:
         case Theory::RAT_TO_REAL:
         case Theory::INT_TO_RAT: //I think this works also
-          ret = to_real(args[0]);
+          ret = self.to_real(args[0]);
           break;
 
         case Theory::INT_CEILING:
         case Theory::RAT_CEILING:
         case Theory::REAL_CEILING:
-          ret = ceiling(args[0]);
+          ret = self.ceiling(args[0]);
           break;
 
         case Theory::INT_TRUNCATE:
         case Theory::RAT_TRUNCATE:
         case Theory::REAL_TRUNCATE:
-          ret = truncate(args[0]); 
+          ret = self.truncate(args[0]); 
           break;
 
         case Theory::INT_ROUND:
@@ -805,9 +806,9 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
         case Theory::REAL_ROUND:
           {
             z3::expr t = args[0];
-            z3::expr i = to_int(t);
-            z3::expr i2 = i + _context.real_val(1,2);
-            ret = ite(t > i2, i+1, ite(t==i2, ite(is_even(i),i,i+1),i));
+            z3::expr i = self.to_int(t);
+            z3::expr i2 = i + self._context.real_val(1,2);
+            ret = ite(t > i2, i+1, ite(t==i2, ite(self.is_even(i),i,i+1),i));
             break;
           }
 
@@ -820,69 +821,69 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
 
          case Theory::INT_QUOTIENT_T:
          case Theory::INT_REMAINDER_T:
-           if(withGuard){addIntNonZero(args[1]);}
+           if(withGuard){self.addIntNonZero(args[1]);}
            // leave as uninterpreted
-           addTruncatedOperations(args,Theory::INT_QUOTIENT_T,Theory::INT_REMAINDER_T,range_sort);
+           self.addTruncatedOperations(args,Theory::INT_QUOTIENT_T,Theory::INT_REMAINDER_T,range_sort);
            skip=true;
            break;
          case Theory::RAT_QUOTIENT_T:
-           if(withGuard){addRealNonZero(args[1]);}
-           ret = truncate(args[0]/args[1]);
-           addTruncatedOperations(args,Theory::RAT_QUOTIENT_T,Theory::RAT_REMAINDER_T,range_sort);
+           if(withGuard){self.addRealNonZero(args[1]);}
+           ret = self.truncate(args[0]/args[1]);
+           self.addTruncatedOperations(args,Theory::RAT_QUOTIENT_T,Theory::RAT_REMAINDER_T,range_sort);
            break;
          case Theory::RAT_REMAINDER_T:
-           if(withGuard){addRealNonZero(args[1]);}
+           if(withGuard){self.addRealNonZero(args[1]);}
            skip=true;
-           addTruncatedOperations(args,Theory::RAT_QUOTIENT_T,Theory::RAT_REMAINDER_T,range_sort);
+           self.addTruncatedOperations(args,Theory::RAT_QUOTIENT_T,Theory::RAT_REMAINDER_T,range_sort);
            break;
          case Theory::REAL_QUOTIENT_T:
-           if(withGuard){addRealNonZero(args[1]);}
-           ret = truncate(args[0]/args[1]);
-           addTruncatedOperations(args,Theory::REAL_QUOTIENT_T,Theory::REAL_REMAINDER_T,range_sort);
+           if(withGuard){self.addRealNonZero(args[1]);}
+           ret = self.truncate(args[0]/args[1]);
+           self.addTruncatedOperations(args,Theory::REAL_QUOTIENT_T,Theory::REAL_REMAINDER_T,range_sort);
            break;
          case Theory::REAL_REMAINDER_T:
-           if(withGuard){addRealNonZero(args[1]);}
+           if(withGuard){self.addRealNonZero(args[1]);}
            skip=true;
-           addTruncatedOperations(args,Theory::REAL_QUOTIENT_T,Theory::REAL_REMAINDER_T,range_sort);
+           self.addTruncatedOperations(args,Theory::REAL_QUOTIENT_T,Theory::REAL_REMAINDER_T,range_sort);
            break;
 
          case Theory::INT_QUOTIENT_F:
          case Theory::INT_REMAINDER_F:
-           if(withGuard){addIntNonZero(args[1]);}
+           if(withGuard){self.addIntNonZero(args[1]);}
            // leave as uninterpreted
-           addFloorOperations(args,Theory::INT_QUOTIENT_F,Theory::INT_REMAINDER_F,range_sort);
+           self.addFloorOperations(args,Theory::INT_QUOTIENT_F,Theory::INT_REMAINDER_F,range_sort);
            skip=true;
            break;
          case Theory::RAT_QUOTIENT_F:
-           if(withGuard){addRealNonZero(args[1]);}
-           ret = to_real(to_int(args[0] / args[1]));
-           addFloorOperations(args,Theory::RAT_QUOTIENT_F,Theory::RAT_REMAINDER_F,range_sort);
+           if(withGuard){self.addRealNonZero(args[1]);}
+           ret = self.to_real(self.to_int(args[0] / args[1]));
+           self.addFloorOperations(args,Theory::RAT_QUOTIENT_F,Theory::RAT_REMAINDER_F,range_sort);
            break;
          case Theory::RAT_REMAINDER_F:
-           if(withGuard){addRealNonZero(args[1]);}
+           if(withGuard){self.addRealNonZero(args[1]);}
            skip=true;
-           addFloorOperations(args,Theory::RAT_QUOTIENT_F,Theory::RAT_REMAINDER_F,range_sort);
+           self.addFloorOperations(args,Theory::RAT_QUOTIENT_F,Theory::RAT_REMAINDER_F,range_sort);
            break;
          case Theory::REAL_QUOTIENT_F:
-           if(withGuard){addRealNonZero(args[1]);}
-           ret = to_real(to_int(args[0] / args[1]));
-           addFloorOperations(args,Theory::REAL_QUOTIENT_F,Theory::REAL_REMAINDER_F,range_sort);
+           if(withGuard){self.addRealNonZero(args[1]);}
+           ret = self.to_real(self.to_int(args[0] / args[1]));
+           self.addFloorOperations(args,Theory::REAL_QUOTIENT_F,Theory::REAL_REMAINDER_F,range_sort);
            break;
          case Theory::REAL_REMAINDER_F:
-           if(withGuard){addRealNonZero(args[1]);}
+           if(withGuard){self.addRealNonZero(args[1]);}
            skip=true;
-           addFloorOperations(args,Theory::REAL_QUOTIENT_F,Theory::REAL_REMAINDER_F,range_sort);
+           self.addFloorOperations(args,Theory::REAL_QUOTIENT_F,Theory::REAL_REMAINDER_F,range_sort);
            break;
 
          case Theory::RAT_REMAINDER_E:
          case Theory::REAL_REMAINDER_E:
-           if(withGuard){addRealNonZero(args[1]);}
+           if(withGuard){self.addRealNonZero(args[1]);}
            nameExpression = true; 
            ret = z3::mod(args[0], args[1]);
            break;
 
          case Theory::INT_REMAINDER_E:
-           if(withGuard){addIntNonZero(args[1]);}
+           if(withGuard){self.addIntNonZero(args[1]);}
            nameExpression = true;
            ret = z3::mod(args[0], args[1]);
            break;
@@ -899,22 +900,19 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
        case Theory::INT_LESS:
        case Theory::RAT_LESS:
        case Theory::REAL_LESS:
-          PRINT_CPP("{ expr e2 = exprs.back(); exprs.pop_back(); expr e1 = exprs.back(); exprs.pop_back(); exprs.push_back((e1 < e2)); } ")
           ret = args[0] < args[1];
           break;
 
        case Theory::INT_GREATER:
        case Theory::RAT_GREATER:
        case Theory::REAL_GREATER:
-          PRINT_CPP("{ expr e2 = exprs.back(); exprs.pop_back(); expr e1 = exprs.back(); exprs.pop_back(); exprs.push_back((e1 > e2)); } ")
 
           ret= args[0] > args[1];
           break;
-          
+
        case Theory::INT_LESS_EQUAL:
        case Theory::RAT_LESS_EQUAL:
        case Theory::REAL_LESS_EQUAL:
-         PRINT_CPP("{ expr e2 = exprs.back(); exprs.pop_back(); expr e1 = exprs.back(); exprs.pop_back(); exprs.push_back((e1 <= e2)); } ")
 
           ret= args[0] <= args[1];
           break;
@@ -922,7 +920,6 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
        case Theory::INT_GREATER_EQUAL:
        case Theory::RAT_GREATER_EQUAL:
        case Theory::REAL_GREATER_EQUAL:
-         PRINT_CPP("{ expr e2 = exprs.back(); exprs.pop_back(); expr e1 = exprs.back(); exprs.pop_back(); exprs.push_back((e1 >= e2)); } ")
 
           ret= args[0] >= args[1];
           break;
@@ -943,21 +940,35 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
 
     }
     //TODO check domain_sorts for args in equality and interpretted?
-    z3::sort_vector domain_sorts = z3::sort_vector(_context);
-    for(unsigned i=0;i<type->arity();i++){
-      domain_sorts.push_back(getz3sort(type->arg(i)));
+    z3::sort_vector domain_sorts = z3::sort_vector(self._context);
+    for (unsigned i=0; i<type->arity(); i++) {
+      domain_sorts.push_back(self.getz3sort(type->arg(i)));
     }
 
-    z3::symbol name = _context.str_symbol(symb->name().c_str());
+    z3::symbol name = self._context.str_symbol(symb->name().c_str());
 
     z3::func_decl f = symb->termAlgebraCons() 
-        ? findConstructor(trm->functor())
-        : _context.function(name,domain_sorts,getz3sort(range_sort));
+        ? self.findConstructor(trm->functor())
+        : self._context.function(name,domain_sorts,self.getz3sort(range_sort));
 
 
     // Finally create expr
     z3::expr e = f(args); 
     return e;
+
+  }
+};
+
+/**
+ * Translate a Vampire term into a Z3 term
+ * - Assumes term is ground
+ * - Translates the ground structure
+ * - Some interpreted functions/predicates are handled
+ */
+z3::expr Z3Interfacing::getz3expr(Term* trm, bool&nameExpression,bool withGuard)
+{
+  CALL("Z3Interfacing::getz3expr");
+  return evaluateBottomUp(TermList(trm), ToZ3Expr{ *this, nameExpression, withGuard });
 }
 
 z3::expr Z3Interfacing::getRepresentation(SATLiteral slit,bool withGuard)
@@ -974,7 +985,7 @@ z3::expr Z3Interfacing::getRepresentation(SATLiteral slit,bool withGuard)
     try{
       // TODO everything is being named!!
       bool nameExpression = true;
-      z3::expr e = getz3expr(lit,true,nameExpression,withGuard);
+      z3::expr e = getz3expr(lit,nameExpression,withGuard);
       // cout << "got rep " << e << endl;
 
       if(nameExpression && _namedExpressions.insert(slit.var())) {

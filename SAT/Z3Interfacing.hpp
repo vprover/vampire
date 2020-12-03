@@ -193,9 +193,10 @@ private:
   void addIntNonZero(z3::expr);
   void addRealNonZero(z3::expr);
 
-public:
   // not sure why this one is public
-  z3::expr getz3expr(Term* trm,bool islit,bool&nameExpression, bool withGuard=false);
+  friend struct ToZ3Expr;
+  z3::expr getz3expr(Term* trm, bool&nameExpression, bool withGuard=false);
+public:
   Term* evaluateInModel(Term* trm);
 #ifdef VDEBUG
   z3::model& getModel() { return _model; }
