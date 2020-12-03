@@ -294,13 +294,20 @@ bool InductionTemplate::checkWellDefinedness()
         continue;
       }
       auto l2 = f2->literal();
-      if (negation == negation2 || l1->isPositive() == l2->isPositive()) {
+      if (l1->isEquality() != l2->isEquality()) {
         continue;
       }
-      if (l1->nthArgument(0) == l2->nthArgument(0) && l1->nthArgument(1) == l2->nthArgument(1)) {
-        foundNeg = true;
-        break;
+      if (negation == negation2 && l1->isPositive() == l2->isPositive()) {
+        continue;
       }
+      if (l1->nthArgument(0) != l2->nthArgument(0)) {
+        continue;
+      }
+      if (l1->isEquality() && l1->nthArgument(1) != l2->nthArgument(1)) {
+        continue;
+      }
+      foundNeg = true;
+      break;
     }
     if (!foundNeg) {
       return false;
