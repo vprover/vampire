@@ -161,7 +161,12 @@ bool TestUnit::spawnTest(TestProc proc)
   auto mp = Multiprocessing::instance();
   pid_t fres = mp->fork();
   if(fres == 0) {
-    proc();
+    try {
+      proc();
+    } catch (Exception& e) {
+      e.cry(std::cout);
+      _exit(-1);
+    }
     _exit(0); // don't call parent's atexit! 
   } else {
     int childRes;

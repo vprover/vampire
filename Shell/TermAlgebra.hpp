@@ -19,6 +19,7 @@
 #include "Lib/List.hpp"
 #include "Lib/Array.hpp"
 #include "Lib/VString.hpp"
+#include "Lib/Metaiterators.hpp"
 #include "Kernel/Sorts.hpp"
 
 namespace Shell {
@@ -53,7 +54,27 @@ namespace Shell {
     void addDiscriminator(unsigned d) { ASS(!_hasDiscriminator); _hasDiscriminator = true; _discriminator = d; }
 
     Lib::vstring discriminatorName();
-    
+ 
+    class IterArgSorts 
+    {
+      TermAlgebraConstructor& _self;
+      unsigned _idx;
+    public:
+      DECL_ELEMENT_TYPE(unsigned);
+
+      IterArgSorts(TermAlgebraConstructor& ta) : _self(ta), _idx(0) {}
+
+      bool hasNext() const 
+      { return _idx < _self.arity(); }
+
+      unsigned next() 
+      { return _self.argSort(_idx++); }
+    };
+
+    Lib::IterTraits<IterArgSorts> iterArgSorts()
+    { return Lib::iterTraits(IterArgSorts(*this)); }
+
+   
   private:
     Kernel::OperatorType* _type;
     unsigned _functor;
@@ -90,6 +111,26 @@ namespace Shell {
     unsigned sort() { return _sort; }
     unsigned nConstructors() { return _n; }
     TermAlgebraConstructor* constructor(unsigned ith) { ASS_L(ith, _n); return _constrs[ith]; }
+
+    class IterCons 
+    {
+      TermAlgebra& _ta;
+      unsigned _idx;
+    public:
+      DECL_ELEMENT_TYPE(TermAlgebraConstructor*);
+
+      IterCons(TermAlgebra& ta) : _ta(ta), _idx(0) {}
+
+      bool hasNext() const 
+      { return _idx < _ta.nConstructors(); }
+
+      TermAlgebraConstructor* next() 
+      { return _ta.constructor(_idx++); }
+    };
+
+    Lib::IterTraits<IterCons> iterCons()
+    { return Lib::iterTraits(IterCons(*this)); }
+
     bool allowsCyclicTerms() { return _allowsCyclicTerms; }
 
     /* True iff the algebra defines an empty domain, which could be

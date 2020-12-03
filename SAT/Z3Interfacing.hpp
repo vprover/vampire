@@ -27,17 +27,29 @@
 #define PRINT_CPP(X) // cout << X << endl;
 
 #include "Lib/DHMap.hpp"
+#include "Lib/Map.hpp"
+#include "Lib/Set.hpp"
 
 #include "SATSolver.hpp"
 #include "SATLiteral.hpp"
 #include "SATClause.hpp"
 #include "SATInference.hpp"
 #include "SAT2FO.hpp"
+#include "Lib/Option.hpp"
 
+#define __EXCEPTIONS 1
 #include "z3++.h"
 #include "z3_api.h"
 
 namespace SAT{
+
+  class Z3Exception : Exception
+  {
+    Z3_error_code _code;
+  public:
+    Z3Exception(Z3_error_code code) : _code(code) {}
+    virtual void cry(std::ostream& out) override;
+  };
 
   struct UninterpretedForZ3Exception : public ThrowableBase
   {
@@ -61,6 +73,7 @@ public:
    */
   Z3Interfacing(const Shell::Options& opts, SAT2FO& s2f, bool unsatCoresForAssumptions = false);
   Z3Interfacing(SAT2FO& s2f, bool showZ3, bool unsatCoreForRefutations, bool unsatCoresForAssumptions);
+  ~Z3Interfacing();
 
   static char const* z3_full_version();
 
@@ -143,14 +156,15 @@ public:
     _status = UNKNOWN; // I set it to unknown as I do not reset
   }
 private:
-  // just to conform to the interface
-  unsigned _varCnt;
+  using FuncId = unsigned;
+  using SortId = unsigned;
+  Map<unsigned,z3::sort> _sorts;
+  Map<FuncId,z3::func_decl> _datatypeFunctionLookup;
+  Set<SortId> _createdTermAlgebras;
 
-  // Memory belongs to Splitter
-  SAT2FO& sat2fo;
+  z3::func_decl const& findConstructor(FuncId id);
+  void createTermAlgebra(Shell::TermAlgebra&);
 
-  DHMap<unsigned,Z3_sort> _sorts;
-  DHMap<unsigned,Z3_func_decl> _datatypeFunctionLookup;
   z3::sort getz3sort(unsigned s);
 
   // Helper funtions for the translation
@@ -183,13 +197,23 @@ public:
   // not sure why this one is public
   z3::expr getz3expr(Term* trm,bool islit,bool&nameExpression, bool withGuard=false);
   Term* evaluateInModel(Term* trm);
+#ifdef VDEBUG
+  z3::model& getModel() { return _model; }
+#endif
 private:
   z3::expr getRepresentation(SATLiteral lit,bool withGuard);
 
+  // just to conform to the interface
+  unsigned _varCnt;
+  // Memory belongs to Splitter
+  SAT2FO& sat2fo;
+
   Status _status;
+  z3::config _config;
   z3::context _context;
   z3::solver _solver;
   z3::model _model;
+
 
   z3::expr_vector _assumptions;
   bool _unsatCoreForAssumptions;
