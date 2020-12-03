@@ -187,10 +187,7 @@ public:
   inline ~Map ()
   {
     CALL("Map::~Map");
-    if (_entries) {
-      array_delete(_entries, _capacity);
-      DEALLOC_KNOWN(_entries,sizeof(Entry)*_capacity,"Map<>");
-    }
+    clear();
   } // Map::~Map
 
   /**
@@ -541,6 +538,15 @@ public:
     return true;
   }
   
+  void clear()
+  {
+    if (_entries) {
+      array_delete(_entries, _capacity);
+      DEALLOC_KNOWN(_entries,sizeof(Entry)*_capacity,"Map<>");
+    }
+    _entries = nullptr;
+    _capacity = 0;
+  }
   
   /**
    * Delete all entries.
