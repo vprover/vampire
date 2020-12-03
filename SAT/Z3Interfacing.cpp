@@ -366,42 +366,30 @@ z3::sort Z3Interfacing::getz3sort(unsigned s)
 {
   CALL("Z3Interfacing::getz3sort");
   BYPASSING_ALLOCATOR;
-  // Deal with known sorts differently
-  if(s==Sorts::SRT_BOOL) {
-    PRINT_CPP("sorts.push_back(c.bool_sort());")
-    return _context.bool_sort();
-  }
-  if(s==Sorts::SRT_INTEGER) {
-    PRINT_CPP("sorts.push_back(c.int_sort());")
-    return _context.int_sort();
-  }
-  if(s==Sorts::SRT_REAL) {
-    PRINT_CPP("sorts.push_back(c.real_sort());")
-    return _context.real_sort();
-  }
-  if(s==Sorts::SRT_RATIONAL) return _context.real_sort(); // Drop notion of rationality 
+  return _sorts.getOrInit(s, [&](){
+    // TODO what about built-in tuples?
 
-  // Deal with arrays
-  if(env.sorts->isOfStructuredSort(s,Sorts::StructuredSort::ARRAY)){
-    
-    z3::sort index_sort = getz3sort(env.sorts->getArraySort(s)->getIndexSort());
-    z3::sort value_sort = getz3sort(env.sorts->getArraySort(s)->getInnerSort());
- 
-    PRINT_CPP("{ sort s2 = sorts.back(); sorts.pop_back(); sort s1 = sorts.back(); sorts.pop_back(); sorts.push_back(c.array_sort(s1,s2)); }")
+    // Deal with known sorts differently
+    if(s==Sorts::SRT_BOOL    ) return _context.bool_sort();
+    if(s==Sorts::SRT_INTEGER ) return _context.int_sort();
+    if(s==Sorts::SRT_REAL    ) return _context.real_sort();
+    if(s==Sorts::SRT_RATIONAL) return _context.real_sort(); // Drop notion of rationality 
+    // TODO: are we really allowed to do this ???              ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-    return _context.array_sort(index_sort,value_sort);
-  } 
+    // Deal with arrays
+    if(env.sorts->isOfStructuredSort(s, Sorts::StructuredSort::ARRAY)){
+      
+      z3::sort index_sort = getz3sort(env.sorts->getArraySort(s)->getIndexSort());
+      z3::sort value_sort = getz3sort(env.sorts->getArraySort(s)->getInnerSort());
+   
+      return _context.array_sort(index_sort,value_sort);
+    } 
 
-  // Deal with datatypes
-  if(env.signature->isTermAlgebraSort(s)){
-    return _sorts.get(s);
-  }
- 
-  // TODO what about built-in tuples?
-  PRINT_CPP("sorts.push_back(c.uninterpreted_sort(\"" << Lib::Int::toString(s).c_str() << "\"));")
+    // term algebra sorts are created and inserted into the map in `createTermAlgebra(..)`
+    ASS(!env.signature->isTermAlgebraSort(s))
 
-  // TODO use cache for string symbols
-  return _context.uninterpreted_sort(_context.str_symbol(env.sorts->sortName(s).c_str()));
+    return _context.uninterpreted_sort(_context.str_symbol(env.sorts->sortName(s).c_str()));
+  });
 }
 
 template<class A>
@@ -605,7 +593,7 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
     unsigned range_sort;
     OperatorType* type;
     bool is_equality = false;
-    if(isLit){
+    if (isLit) {
       symb = env.signature->getPredicate(trm->functor());
       OperatorType* ptype = symb->predType();
       type = ptype;
@@ -615,7 +603,7 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
          is_equality=true;
          ASS(trm->arity()==2);
       }
-    }else{
+    } else {
       symb = env.signature->getFunction(trm->functor());
       OperatorType* ftype = symb->fnType();
       type = ftype;
@@ -623,7 +611,7 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
     }
 
     //if constant treat specially
-    if(trm->arity()==0){
+    if(trm->arity()==0) {
       if(symb->integerConstant()){
         IntegerConstantType value = symb->integerValue();
 
@@ -631,30 +619,25 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
 
         return _context.int_val(value.toInner());
       }
-      if(symb->realConstant()){
+      if(symb->realConstant()) {
         RealConstantType value = symb->realValue();
         return _context.real_val(value.numerator().toInner(),value.denominator().toInner());
       }
-      if(symb->rationalConstant()){
+      if(symb->rationalConstant()) {
         RationalConstantType value = symb->rationalValue();
         return _context.real_val(value.numerator().toInner(),value.denominator().toInner());
       }
-      if(!isLit && env.signature->isFoolConstantSymbol(true,trm->functor())){
-
-        PRINT_CPP("exprs.push_back(c.bool_val(true));")
-
+      if(!isLit && env.signature->isFoolConstantSymbol(true,trm->functor())) {
         return _context.bool_val(true);
       }
-      if(!isLit && env.signature->isFoolConstantSymbol(false,trm->functor())){
-
-        PRINT_CPP("exprs.push_back(c.bool_val(false));")
-
+      if(!isLit && env.signature->isFoolConstantSymbol(false,trm->functor())) {
         return _context.bool_val(false);
       }
-      if(symb->termAlgebraCons()){
+      if(symb->termAlgebraCons()) {
         auto ctor = findConstructor(trm->functor());
         return ctor();
       }
+      // TODO do we really have overflownConstants ?? not in evaluation(s) at least
       if (symb->overflownConstant()) {
         // too large for native representation, but z3 should cope
 
@@ -682,7 +665,7 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
     //IMPORTANT - every push_back to args must be matched by a pop_back
     // note that the z3 functions do this already
     z3::expr_vector args = z3::expr_vector(_context);
-    for(unsigned i=0;i<trm->arity();i++){
+    for (unsigned i=0; i<trm->arity(); i++) {
       TermList* arg = trm->nthArgument(i);
       ASS(!arg->isVar());// Term should be ground
       args.push_back(getz3expr(arg->term(),false,nameExpression,withGuard));
@@ -693,10 +676,9 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
 
    //Check for equality
     if(is_equality){
-      PRINT_CPP("{ expr e2 = exprs.back(); exprs.pop_back(); expr e1 = exprs.back(); exprs.pop_back(); exprs.push_back((e1 == e2)); } ")
-
       ret = args[0] == args[1]; 
-      args.pop_back();args.pop_back();
+      args.pop_back();
+      args.pop_back();
       return ret;
     }
 
@@ -708,7 +690,7 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
       bool skip=false; 
       unsigned argsToPop=theory->getArity(interp);
 
-      if(Theory::isPolymorphic(interp)){
+      if (Theory::isPolymorphic(interp)) {
         nameExpression = true;
         switch(interp){
           case Theory::ARRAY_SELECT:
@@ -733,7 +715,7 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
             break;
         }
 
-      }else{
+      } else {
 
       switch(interp){
         // Numerical operations
@@ -961,21 +943,12 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
 
     }
     //TODO check domain_sorts for args in equality and interpretted?
-    PRINT_CPP("{")
-    PRINT_CPP("vector<expr> rev_args;")
-    PRINT_CPP("sort_vector domain_sorts = sort_vector(c);")
-
     z3::sort_vector domain_sorts = z3::sort_vector(_context);
     for(unsigned i=0;i<type->arity();i++){
       domain_sorts.push_back(getz3sort(type->arg(i)));
-      PRINT_CPP("rev_args.push_back(exprs.back()); exprs.pop_back();")
-      PRINT_CPP("{ sort s = sorts.back(); sorts.pop_back(); domain_sorts.push_back(s); }")
     }
-    PRINT_CPP("expr_vector args = expr_vector(c);")
-    PRINT_CPP("while (rev_args.size() > 0) { args.push_back(rev_args.back()); rev_args.pop_back(); }")
 
     z3::symbol name = _context.str_symbol(symb->name().c_str());
-    PRINT_CPP("symbol name = c.str_symbol(\""<< symb->name() << "\");")
 
     z3::func_decl f = symb->termAlgebraCons() 
         ? findConstructor(trm->functor())
@@ -984,11 +957,6 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
 
     // Finally create expr
     z3::expr e = f(args); 
-    //cout << "created " << e << endl;
-
-    PRINT_CPP("exprs.push_back(f(args));")
-    PRINT_CPP("}")
-
     return e;
 }
 
