@@ -1092,7 +1092,9 @@ private:
 struct RobSubstitution::MatchingFn {
   static bool associateEqualitySorts(RobSubstitution* subst, Literal* l1, int l1Index,
       Literal* l2, int l2Index) {
-    if(l1->isEquality()){
+    /* Only in the case l1 is of the form X = Y ad l2 is of the form 
+       t1 = t2 can the literals be matched without their sorts being matched */
+    if(l1->isTwoVarEquality()){
       ASS(l2->isEquality());
       TermList sb = SortHelper::getEqualityArgumentSort(l1);
       TermList si = SortHelper::getEqualityArgumentSort(l2);

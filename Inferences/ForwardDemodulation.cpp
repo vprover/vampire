@@ -123,11 +123,16 @@ bool ForwardDemodulation::perform(Clause* cl, Clause*& replacement, ClauseIterat
           continue;
         }
 
-        TermList eqSort = SortHelper::getEqualityArgumentSort(qr.literal);
-        static RobSubstitution sub;
-        sub.reset();
-        if(!sub.match(eqSort, 0, querySort, 1)) {
-          continue;
+
+        if(qr.term.isVar()){
+          TermList eqSort = SortHelper::getEqualityArgumentSort(qr.literal);
+          RobSubstitution* sub = qr.substitution->tryGetRobSubstitution();
+          ASS(sub)
+          //rather than 0 and 1, we should use the constants delared in
+          //substitution tree
+          if(!sub->match(eqSort, 0, querySort, 1)){
+            continue;        
+          }
         }
 
         TermList rhs=EqHelper::getOtherEqualitySide(qr.literal,qr.term);

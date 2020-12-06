@@ -122,14 +122,22 @@ struct BackwardDemodulation::ResultFn
       return BwSimplificationRecord(0);
     }
 
+    TermList lhs=arg.first;
+
     TermList qrSort = SortHelper::getTermSort(qr.term, qr.literal);
-    RobSubstitution* sub = qr.substitution->tryGetRobSubstitution();
-    ASS(sub);
-    if(!sub->match(_eqSort, 0, qrSort, 1)){
-      return BwSimplificationRecord(0);
+
+    if(lhs.isVar()){
+      //when finding instances of a variable, RobSubstitution is used
+      //view Indexing::TermSubstitutionTree::getInstances
+      RobSubstitution* sub = qr.substitution->tryGetRobSubstitution();
+      ASS(sub)
+      //rather than 0 and 1, we should use the constants delared in
+      //substitution tree
+      if(!sub->match(_eqSort, 0, qrSort, 1)){
+        return BwSimplificationRecord(0);        
+      }
     }
 
-    TermList lhs=arg.first;
     TermList rhs=EqHelper::getOtherEqualitySide(_eqLit, lhs);
 
     TermList lhsS=qr.term;

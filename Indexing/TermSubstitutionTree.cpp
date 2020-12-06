@@ -98,8 +98,6 @@ void TermSubstitutionTree::handleTerm(TermList t, Literal* lit, Clause* cls, boo
 {
   CALL("TermSubstitutionTree::handleTerm");
 
-  //ASSERTION_VIOLATION;
-
   LeafData ld(cls, lit, t);
 
   //cout << "1 t is " + t.toString() << endl;
@@ -202,9 +200,6 @@ TermQueryResultIterator TermSubstitutionTree::getUnificationsUsingSorts(TermList
                TermQueryResultIterator::getEmpty();
     auto it3 = sortVar || sortAtomic ? getResultIterator<UnificationsIterator>(t.term(), retrieveSubstitutions,false):
                TermQueryResultIterator::getEmpty();
-    /*if(t.toString() == "hot @ (X9 @ (sK0 @ (kCOMB @ X9)))"){
-      cout << "here" << endl;
-    }*/
     return pvi(getConcatenatedIterator(getConcatenatedIterator(it1, it2), it3));
   }
 }

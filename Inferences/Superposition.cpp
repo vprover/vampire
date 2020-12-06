@@ -414,7 +414,10 @@ Clause* Superposition::performSuperposition(
   ASS(!hasConstraints || !isTypeSub);
   TermList eqLHSsort = SortHelper::getEqualityArgumentSort(eqLit); 
 
-  if(eqLHS.isVar()) { //TODO fix this unification or what? AYB
+  if(eqLHS.isVar()) { 
+    //The case where eqLHS is a variable suffices because superposition 
+    //is never carried out into variables. When unifying two terms
+    //sort unification is guaranteed
     RobSubstitution* sub = subst->tryGetRobSubstitution();
     ASS(sub);
     TermList rwTermSort = SortHelper::getTermSort(rwTerm, rwLit);

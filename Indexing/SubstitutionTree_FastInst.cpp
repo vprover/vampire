@@ -235,6 +235,13 @@ public:
   {
   }
 
+  bool matchSorts(TermList base, TermList instance) override
+  {
+    CALL("SubstitutionTree::InstMatcher::Substitution::matchSorts");
+
+    return _parent->matchNextAux(base, instance, false);
+  }
+
   TermList applyToBoundQuery(TermList t)
   {
     CALL("SubstitutionTree::InstMatcher::Substitution::applyToBoundQuery");
@@ -250,8 +257,6 @@ public:
     ASS_REP(!normalized.isTerm() || normalized.term()->shared(), normalized);
     return _resultDenormalizer->apply(normalized);
   }
-
-  InstMatcher* getMatcher() { return _parent; }
   
   bool isIdentityOnResultWhenQueryBound() { return true; }
 private:

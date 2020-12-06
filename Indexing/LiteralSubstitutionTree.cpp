@@ -21,6 +21,8 @@
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Term.hpp"
 
+#include "Shell/Statistics.hpp"
+
 #include "LiteralSubstitutionTree.hpp"
 
 namespace Indexing
@@ -29,6 +31,7 @@ namespace Indexing
 LiteralSubstitutionTree::LiteralSubstitutionTree(bool useC)
 : SubstitutionTree(2*env.signature->predicates(),useC)
 {
+  _polymorphic = env.statistics->polymorphic;
 }
 
 void LiteralSubstitutionTree::insert(Literal* lit, Clause* cls)
@@ -63,15 +66,25 @@ SLQueryResultIterator LiteralSubstitutionTree::getUnifications(Literal* lit,
 	  bool complementary, bool retrieveSubstitutions)
 {
   CALL("LiteralSubstitutionTree::getUnifications");
-  return getResultIterator<UnificationsIterator>(lit,
-	  complementary, retrieveSubstitutions,false);
+  if(_polymorphic){
+    return getResultIterator<UnificationsIterator, UnificationFilter<true>>(lit,
+  	  complementary, retrieveSubstitutions,false);
+  } else {
+    return getResultIterator<UnificationsIterator, UnificationFilter<false>>(lit,
+      complementary, retrieveSubstitutions,false);  
+  }
 }
 SLQueryResultIterator LiteralSubstitutionTree::getUnificationsWithConstraints(Literal* lit,
           bool complementary, bool retrieveSubstitutions)
 {
   CALL("LiteralSubstitutionTree::getUnificationsWithConstraints");
-  return getResultIterator<UnificationsIterator>(lit,
-          complementary, retrieveSubstitutions,true);
+  if(_polymorphic){
+    return getResultIterator<UnificationsIterator, UnificationFilter<true>>(lit,
+      complementary, retrieveSubstitutions,true);
+  } else {
+    return getResultIterator<UnificationsIterator, UnificationFilter<false>>(lit,
+      complementary, retrieveSubstitutions,true);
+  }
 }
 
 SLQueryResultIterator LiteralSubstitutionTree::getGeneralizations(Literal* lit,
@@ -81,7 +94,7 @@ SLQueryResultIterator LiteralSubstitutionTree::getGeneralizations(Literal* lit,
 
   SLQueryResultIterator res=
 //  getResultIterator<GeneralizationsIterator>(lit,
-    getResultIterator<FastGeneralizationsIterator>(lit,
+    getResultIterator<FastGeneralizationsIterator, MatchingFilter<false>>(lit,
 	  	  complementary, retrieveSubstitutions,false);
 //  ASS_EQ(res.hasNext(), getResultIterator<GeneralizationsIterator>(lit,
 //	  	  complementary, retrieveSubstitutions).hasNext());
@@ -104,7 +117,7 @@ SLQueryResultIterator LiteralSubstitutionTree::getInstances(Literal* lit,
 
   SLQueryResultIterator res=
 //      getResultIterator<InstancesIterator>(lit,
-      getResultIterator<FastInstancesIterator>(lit,
+      getResultIterator<FastInstancesIterator, MatchingFilter<true>>(lit,
 	  complementary, retrieveSubstitutions, false);
 //  ASS_EQ(res.hasNext(), getResultIterator<InstancesIterator>(lit,
 //      complementary, retrieveSubstitutions).hasNext());
@@ -251,29 +264,7 @@ SLQueryResultIterator LiteralSubstitutionTree::getAll()
       LDToSLQueryResultFn()) ) ;
 }
 
-//Eqality check moved into the various inference.
-/*struct LiteralSubstitutionTree::EqualitySortFilter
-{
-  DECL_RETURN_TYPE(bool);
-
-  EqualitySortFilter(Literal* queryLit)
-  : _queryEqSort(SortHelper::getEqualityArgumentSort(queryLit)) {}
-
-  bool operator()(const SLQueryResult& res)
-  {
-    CALL("LiteralSubstitutionTree::EqualitySortFilter::operator()");
-    ASS(res.literal->isEquality());
-
-    TermList resSort = SortHelper::getEqualityArgumentSort(res.literal);
-    RobSubstitution* subst = res.substitution->tryGetRobSubstitution();
-    ASS(subst);
-    return subst->unify(_queryEqSort, 0, resSort, 1); //TODO equality on termlists
-  }
-private:
-  TermList _queryEqSort;
-};*/
-
-template<class Iterator>
+template<class Iterator, class Filter>
 SLQueryResultIterator LiteralSubstitutionTree::getResultIterator(Literal* lit,
 	  bool complementary, bool retrieveSubstitutions, bool useConstraints)
 {
@@ -307,10 +298,10 @@ SLQueryResultIterator LiteralSubstitutionTree::getResultIterator(Literal* lit,
   	    new Iterator(this, root, lit, retrieveSubstitutions, true, false, useConstraints) );
     ASS(lit->isEquality());
     return pvi(
-//	getFilteredIterator(
+	getContextualIterator(
 	    getMappingIterator(
-		getConcatenatedIterator(qrit1,qrit2), SLQueryResultFunctor())//,
-	  //  EqualitySortFilter(lit))
+		getConcatenatedIterator(qrit1,qrit2), SLQueryResultFunctor()),
+	    Filter(lit, retrieveSubstitutions))
 	);
   } else {
     VirtualIterator<QueryResult> qrit=VirtualIterator<QueryResult>(
