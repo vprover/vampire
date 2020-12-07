@@ -87,7 +87,7 @@ public:
     Literal* subbedLit = static_cast<Literal*>(apply(static_cast<Term*>(lit),applicator));
     if(subbedLit->isTwoVarEquality()){ //either nothing's changed or variant
       TermList newSort = apply(sort, applicator);
-      if((sort != newSort) && (subbedLit == lit)){
+      if((sort != newSort)){
         subbedLit = Literal::createEquality(lit->polarity(), *lit->nthArgument(0), *lit->nthArgument(1), newSort);
       }
     }

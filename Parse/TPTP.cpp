@@ -2882,6 +2882,27 @@ void TPTP::term()
       _states.push(FUN_APP);
       return;
 
+    
+    case T_INTEGER_TYPE:
+    case T_REAL_TYPE:
+    case T_RATIONAL_TYPE: {
+      resetToks();
+      switch (tok.tag) {
+        case T_INTEGER_TYPE:
+          _termLists.push(Term::intSort());
+          break;
+        case T_REAL_TYPE:
+          _termLists.push(Term::realSort());
+          break;        
+        case T_RATIONAL_TYPE:
+          _termLists.push(Term::rationalSort());
+          break;
+        default:
+          ASSERTION_VIOLATION;
+      }
+      return;
+    }
+
     case T_STRING:
     case T_INT:
     case T_REAL:
@@ -2894,15 +2915,12 @@ void TPTP::term()
           break;
         case T_INT:
           number = addIntegerConstant(tok.content,_overflow,_isFof);
-          //PARSE_ERROR("Sorry, polymorphic vampire doesn't support thoeries yet", tok);
           break;
         case T_REAL:
           number = addRealConstant(tok.content,_overflow,_isFof);
-          //PARSE_ERROR("Sorry, polymorphic vampire doesn't support thoeries yet", tok);
           break;
         case T_RAT:
           number = addRationalConstant(tok.content,_overflow,_isFof);
-          //PARSE_ERROR("Sorry, polymorphic vampire doesn't support thoeries yet", tok);
           break;
         default:
           ASSERTION_VIOLATION;
