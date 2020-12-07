@@ -27,6 +27,15 @@ namespace Inferences
 
 using namespace Kernel;
 
+/* NOTE / TODO:
+ * the ExtensionalityResolution rule has not yet been updated
+ *  to fully capitalize on vampire's support for polymorphism.
+ *  In particular, opportunities to apply the rule are detected
+ *  based on sort equality rather then sort unifyability.
+ *  See, e.g. NegEqSortFn (for BackwardPairingFn),
+ *  ExtensionalityClauseContainer::activeIterator (for ForwardPairingFn).
+ **/
+
 class ExtensionalityResolution
 : public GeneratingInferenceEngine
 {
