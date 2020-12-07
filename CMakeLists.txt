@@ -311,6 +311,7 @@ set(VAMPIRE_INDEXING_SOURCES
     Indexing/CodeTree.cpp
     Indexing/CodeTreeInterfaces.cpp
 #    Indexing/FormulaIndex.cpp
+    Indexing/FingerprintIndex.cpp
     Indexing/GroundingIndex.cpp
     Indexing/Index.cpp
     Indexing/IndexManager.cpp
@@ -331,6 +332,7 @@ set(VAMPIRE_INDEXING_SOURCES
     Indexing/ClauseVariantIndex.hpp
     Indexing/CodeTree.hpp
     Indexing/CodeTreeInterfaces.hpp
+    Indexing/FingerprintIndex.hpp
     Indexing/FormulaIndex.hpp
     Indexing/GroundingIndex.hpp
     Indexing/Index.hpp
