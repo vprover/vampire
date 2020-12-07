@@ -482,6 +482,10 @@ void modelCheckMode()
   env.options->setOutputAxiomNames(true);
   Problem* prb = UIHelper::getInputProblem(*env.options);
 
+  if(env.statistics->polymorphic || env.statistics->higherOrder){
+    USER_ERROR("Polymorphic Vampire is not yet compatible with theory reasoning");
+  }
+
   FMB::ModelCheck::doCheck(prb);
 
 } // modelCheckMode
@@ -913,9 +917,9 @@ int main(int argc, char* argv[])
       vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       break;
     }
-   /* case Options::Mode::MODEL_CHECK:
+    case Options::Mode::MODEL_CHECK:
       modelCheckMode();
-      break; */
+      break; 
 
     case Options::Mode::CLAUSIFY:
       clausifyMode(false);

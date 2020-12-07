@@ -2278,6 +2278,9 @@ void TPTP::funApp()
       return;
 
     case T_ITE:
+      if(env.statistics->polymorphic || env.statistics->higherOrder){
+        USER_ERROR("Polymorphic Vampire is currently not compatible with FOOL reasoning");
+      }
       consumeToken(T_LPAR);
       addTagState(T_RPAR);
       _states.push(TERM);
@@ -2288,6 +2291,9 @@ void TPTP::funApp()
       return;
 
     case T_LET: {
+      if(env.statistics->polymorphic || env.statistics->higherOrder){
+        USER_ERROR("Polymorphic Vampire is currently not compatible with FOOL reasoning");
+      }
       consumeToken(T_LPAR);
       addTagState(T_RPAR);
       _states.push(TERM);
@@ -2886,6 +2892,9 @@ void TPTP::term()
     case T_INTEGER_TYPE:
     case T_REAL_TYPE:
     case T_RATIONAL_TYPE: {
+      USER_ERROR("Polymorphic Vampire is currently not compatible with theory reasoning");
+      //the code below is in preparation for 
+      //when theorey reasoning is updated to deal with polymorphism
       resetToks();
       switch (tok.tag) {
         case T_INTEGER_TYPE:
@@ -2907,6 +2916,9 @@ void TPTP::term()
     case T_INT:
     case T_REAL:
     case T_RAT: {
+      if(env.statistics->polymorphic || env.statistics->higherOrder){
+        USER_ERROR("Polymorphic Vampire is currently not compatible with theory reasoning");
+      }
       resetToks();
       unsigned number;
       switch (tok.tag) {
