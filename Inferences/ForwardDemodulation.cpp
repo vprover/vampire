@@ -124,13 +124,12 @@ bool ForwardDemodulation::perform(Clause* cl, Clause*& replacement, ClauseIterat
         }
 
 
-        if(qr.term.isVar()){
+        static RobSubstitution subst; // to deal with polymorphic matching
+        bool resultTermIsVar = qr.term.isVar();
+        if(resultTermIsVar){
           TermList eqSort = SortHelper::getEqualityArgumentSort(qr.literal);
-          RobSubstitution* sub = qr.substitution->tryGetRobSubstitution();
-          ASS(sub)
-          //rather than 0 and 1, we should use the constants delared in
-          //substitution tree
-          if(!sub->match(eqSort, 0, querySort, 1)){
+          subst.reset(); 
+          if(!subst.match(eqSort, 0, querySort, 1)){
             continue;        
           }
         }
@@ -151,6 +150,9 @@ bool ForwardDemodulation::perform(Clause* cl, Clause*& replacement, ClauseIterat
           rhsS=qDenorm.apply(rNorm.apply(rhsSBadVars));
         } else {
           rhsS=qr.substitution->applyToBoundResult(rhs);
+        }
+        if(resultTermIsVar){
+          rhsS = subst.apply(rhsS, 0);
         }
 
         Ordering::Result argOrder = ordering.getEqualityArgumentOrder(qr.literal);
