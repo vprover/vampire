@@ -1479,7 +1479,8 @@ Literal* Literal::create(Literal* l,TermList* args)
 
 /**
  * Return a new equality literal, with polarity @b polarity and
- * arguments @b arg1 and @b arg2. These arguments must be of sort @c sort.
+ * arguments @b arg1 and @b arg2. These arguments must be of sort @c sort
+ * (or more specific, in the polymorphic case) unless they are variables.
  * Insert the new literal into the sharing structure if all arguments
  * are shared.
  *
@@ -1491,8 +1492,8 @@ Literal* Literal::createEquality (bool polarity, TermList arg1, TermList arg2, T
 
    TermList srt1, srt2;
 #if VDEBUG
-   static RobSubstitution subst;
-   subst.reset(); 
+   static RobSubstitution checkSortSubst;
+   checkSortSubst.reset();
 #endif
 
    if (!SortHelper::tryGetResultSort(arg1, srt1)) {
@@ -1501,14 +1502,14 @@ Literal* Literal::createEquality (bool polarity, TermList arg1, TermList arg2, T
        ASS_REP(arg2.isVar(), arg2.toString());
        return createVariableEquality(polarity, arg1, arg2, sort);
      }
-     ASS(subst.match(sort, 0, srt2, 1));
+     ASS(checkSortSubst.match(sort, 0, srt2, 1));
    }
    else {    
-    ASS_REP2(subst.match(sort, 0, srt1, 1), sort.toString(), srt1.toString());
+    ASS_REP2(checkSortSubst.match(sort, 0, srt1, 1), sort.toString(), srt1.toString());
 #if VDEBUG
      if (SortHelper::tryGetResultSort(arg2, srt2)) {
-       subst.reset();
-       ASS_REP2(subst.match(sort, 0, srt2, 1), sort.toString(), arg2.toString() + " :  " + srt2.toString());
+       checkSortSubst.reset();
+       ASS_REP2(checkSortSubst.match(sort, 0, srt2, 1), sort.toString(), arg2.toString() + " :  " + srt2.toString());
      }
 #endif
    }
