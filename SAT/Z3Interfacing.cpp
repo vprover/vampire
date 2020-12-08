@@ -28,17 +28,46 @@
 #include "Lib/Environment.hpp"
 #include "Lib/System.hpp"
 
+#include "Kernel/NumTraits.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/Sorts.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/BottomUpEvaluation.hpp"
 #include "Kernel/BottomUpEvaluation/TermList.hpp"
+#include "Lib/Coproduct.hpp"
 
 #include "Shell/UIHelper.hpp"
 #include "Indexing/TermSharing.hpp"
 #include "Z3Interfacing.hpp"
 
-#define DEBUG(...) DBG(__VA_ARGS__)
+#define DEBUG(...) // DBG(__VA_ARGS__)
+namespace Lib {
+
+template<> 
+struct BottomUpChildIter<z3::expr>
+{
+  unsigned _idx;
+  z3::expr _self;
+
+  /** constructs an iterator over the children of the current node */
+  BottomUpChildIter(z3::expr a) : _idx(0), _self(a) {}
+
+  /** returns the node this iterator was constructed with */
+  z3::expr self() { return _self; }
+
+  /** returns the next child of the node this this object was constructed with */
+  z3::expr next() { return _self.arg(_idx++); }
+
+  /** returns the next child of the current node in the structure to be traversed */
+  bool hasNext() { return _self.is_app() && _idx < _self.num_args(); }
+
+  /** returns how many children this node has */
+  unsigned nChildren() { return _self.is_app() ? _self.num_args() : 0; }
+};
+
+} // namespace Lib
+
+
 namespace SAT
 {
 
@@ -284,61 +313,211 @@ SATSolver::VarAssignment Z3Interfacing::getAssignment(unsigned var)
   return NOT_KNOWN;
 }
 
-Term* Z3Interfacing::evaluateInModel(Term* trm)
+struct EvaluateInModel 
 {
-  CALL("Z3Interfacing::evaluateInModel");
 
-  ASS(!trm->isLiteral());
+  Z3Interfacing& self;
+  using Copro = Coproduct<Term*, RationalConstantType, IntegerConstantType>;
 
-  unsigned srt = SortHelper::getResultSort(trm);
-  bool name; //TODO what do we do about naming?
-  z3::expr rep = getz3expr(trm,name,false); 
-  z3::expr assignment = _model.eval(rep,true); // true means "model_completion"
+  using Arg    = z3::expr;
+  using Result = Option<Copro>;
 
-  // now translate assignment back into a term!
+  static Term* toTerm(Copro const& co, unsigned sort) {
+    return co.match(
+            [&](Term* t) 
+            { return t; },
 
-  // For now just deal with the case where it is an integer 
-  if(assignment.is_numeral()){
-    bool is_int = assignment.is_int();
-    ASS(is_int || assignment.is_real()); 
-    if(is_int){
-      ASS(srt == Sorts::SRT_INTEGER);
-      int value;
-      if (assignment.is_numeral_i(value)) {
-        Term* t = theory->representConstant(IntegerConstantType(value));
-        // cout << "evaluteInModel: " << trm->toString() <<" has value " << value << endl;
-        return t;
-      } else {
-        return 0;
-      }
-    }
-    else{
-      int n;
-      int d;
-      z3::expr numerator = assignment.numerator();
-      z3::expr denominator = assignment.denominator(); 
-      if(!numerator.is_numeral_i(n) || !denominator.is_numeral_i(d)){
-          return 0;
-      }
-       
-       if(srt == Sorts::SRT_RATIONAL){
-         Term* t = theory->representConstant(RationalConstantType(n,d));
-         return t;
-       }
-       else{
-         ASS(srt == Sorts::SRT_REAL);
-         Term* t = theory->representConstant(RealConstantType(RationalConstantType(n,d)));
-         return t;
-       }
-    }
-  } else {
-    // TODO" assignment such as "(root-obj (+ (^ x 2) (- 128)) 1)" is an algebraic number, but not a numeral
-    // would be interesting to allow such Sorts::SRT_REAL things to live in vampire
-    // of course, they are not in general Sorts::SRT_RATIONAL
+            [&](RationalConstantType c) 
+            { 
+              return sort == RealTraits::sort 
+                ? theory->representConstant(RealConstantType(c))
+                : theory->representConstant(c); 
+            },
+
+            [&](IntegerConstantType c) 
+            { return theory->representConstant(c); }
+            );
   }
 
-  return 0;
+  Result operator()(z3::expr expr, Result* evaluatedArgs) 
+  {
+    auto intVal = [](z3::expr e) -> Option<int> {
+      int val;
+      return e.is_numeral_i(val) 
+        ? Option<int>(val) 
+        : Option<int>();
+    };
+
+    if (expr.is_int()) {
+      return intVal(expr)
+        .map([](int i) { return Copro(IntTraits::constantT(i)); });
+
+    } else if(expr.is_real()) {
+      auto toFrac = [&](int l, int r)  { return Copro(RatTraits::constant(l,r)); };
+
+      auto nonFractional = intVal(expr).map([&](int i) { return toFrac(i,1); });
+      if (nonFractional.isSome()) {
+        return nonFractional;
+      } else {
+        auto num = intVal(expr.numerator());
+        auto den = intVal(expr.denominator());
+        if (num.isSome() && den.isSome()) {
+          return Result(Copro(toFrac(num.unwrap(), den.unwrap())));
+        } else {
+          return Result();
+        }
+      }
+
+    } else if (expr.is_app()) {
+      auto f = expr.decl();
+      auto vfunc = self._funcTranslation.get(f);
+      Stack<TermList> args(f.arity());
+      for (int i = 0; i < f.arity(); i++) {
+        if (evaluatedArgs[i].isNone()) {
+          // evaluation failed somewhere in a recursive call
+          return Result();
+        } else {
+          auto argSort = env.signature->getFunction(vfunc)->fnType()->arg(i);
+          auto t = TermList(toTerm(evaluatedArgs[i].unwrap(), argSort));
+          DBGE(t)
+          args.push(t);
+        }
+      }
+      // return Copro(Term::create(vfunc, std::move(args)));
+      return Result(Copro(Term::create(vfunc, args.size(), args.begin())));
+
+    } else {
+      //TODO support datatypes
+      
+      return Result();
+    }
+// expr.
+//     bool is_int = assignment.is_int();
+//     ASS(is_int || assignment.is_real()); 
+//     if (is_int) {
+//       ASS(srt == Sorts::SRT_INTEGER);
+//       int value;
+//       if (assignment.is_numeral_i(value)) {
+//         Term* t = theory->representConstant(IntegerConstantType(value));
+//         // cout << "evaluteInModel: " << trm->toString() <<" has value " << value << endl;
+//         return t;
+//       } else {
+//         return 0;
+//       }
+//     } else {
+//       int n;
+//       int d;
+//       z3::expr numerator = assignment.numerator();
+//       z3::expr denominator = assignment.denominator(); 
+//       if(!numerator.is_numeral_i(n) || !denominator.is_numeral_i(d)){
+//           return 0;
+//       }
+//        
+//        if(srt == Sorts::SRT_RATIONAL){
+//          Term* t = theory->representConstant(RationalConstantType(n,d));
+//          return t;
+//        }
+//        else{
+//          ASS(srt == Sorts::SRT_REAL);
+//          Term* t = theory->representConstant(RealConstantType(RationalConstantType(n,d)));
+//          return t;
+//        }
+//     }
+//   } else {
+//     // TODO" assignment such as "(root-obj (+ (^ x 2) (- 128)) 1)" is an algebraic number, but not a numeral
+//     // would be interesting to allow such Sorts::SRT_REAL things to live in vampire
+//     // of course, they are not in general Sorts::SRT_RATIONAL
+//   
+  }
+};
+
+Term* Z3Interfacing::evaluateInModel(Term* trm)
+{
+  CALL("evaluateInModel(Term*)")
+  DEBUG("in: ", *trm)
+  ASS(!trm->isLiteral());
+
+  bool name; //TODO what do we do about naming?
+  z3::expr rep = getz3expr(trm,name,false); 
+  DBGE(rep)
+  z3::expr ev = _model.eval(rep,true); // true means "model_completion"
+  DBGE(ev)
+  unsigned sort = SortHelper::getResultSort(trm);
+
+  return evaluateBottomUp(ev, EvaluateInModel { *this })
+    .map([&](EvaluateInModel::Copro co) { 
+        return co.match(
+            [&](Term* t) 
+            { return t; },
+
+            [&](RationalConstantType c) 
+            { 
+              return sort == RealTraits::sort 
+                ? theory->representConstant(RealConstantType(c))
+                : theory->representConstant(c); 
+            },
+
+            [&](IntegerConstantType c) 
+            { return theory->representConstant(c); }
+            );
+      })
+    .unwrapOrElse([](){ return nullptr; });
+
 }
+// Term* Z3Interfacing::evaluateInModel(Term* trm)
+// {
+//   CALL("Z3Interfacing::evaluateInModel");
+//
+//   ASS(!trm->isLiteral());
+//
+//   unsigned srt = SortHelper::getResultSort(trm);
+//   bool name; //TODO what do we do about naming?
+//   z3::expr rep = getz3expr(trm,name,false); 
+//   z3::expr assignment = _model.eval(rep,true); // true means "model_completion"
+//
+//   // now translate assignment back into a term!
+//
+//   // For now just deal with the case where it is an integer 
+//   if(assignment.is_numeral()) {
+//     bool is_int = assignment.is_int();
+//     ASS(is_int || assignment.is_real()); 
+//     if (is_int) {
+//       ASS(srt == Sorts::SRT_INTEGER);
+//       int value;
+//       if (assignment.is_numeral_i(value)) {
+//         Term* t = theory->representConstant(IntegerConstantType(value));
+//         // cout << "evaluteInModel: " << trm->toString() <<" has value " << value << endl;
+//         return t;
+//       } else {
+//         return 0;
+//       }
+//     } else {
+//       int n;
+//       int d;
+//       z3::expr numerator = assignment.numerator();
+//       z3::expr denominator = assignment.denominator(); 
+//       if(!numerator.is_numeral_i(n) || !denominator.is_numeral_i(d)){
+//           return 0;
+//       }
+//        
+//        if(srt == Sorts::SRT_RATIONAL){
+//          Term* t = theory->representConstant(RationalConstantType(n,d));
+//          return t;
+//        }
+//        else{
+//          ASS(srt == Sorts::SRT_REAL);
+//          Term* t = theory->representConstant(RealConstantType(RationalConstantType(n,d)));
+//          return t;
+//        }
+//     }
+//   } else {
+//     // TODO" assignment such as "(root-obj (+ (^ x 2) (- 128)) 1)" is an algebraic number, but not a numeral
+//     // would be interesting to allow such Sorts::SRT_REAL things to live in vampire
+//     // of course, they are not in general Sorts::SRT_RATIONAL
+//   }
+//
+//   return 0;
+// }
 
 bool Z3Interfacing::isZeroImplied(unsigned var)
 {
@@ -363,34 +542,38 @@ SATClause* Z3Interfacing::getZeroImpliedCertificate(unsigned)
 }
 
 //TODO: should handle function/predicate types really
-z3::sort Z3Interfacing::getz3sort(unsigned s)
+z3::sort Z3Interfacing::getz3sort(SortId s)
 {
   CALL("Z3Interfacing::getz3sort");
   BYPASSING_ALLOCATOR;
-  return _sorts.getOrInit(s, [&](){
+  auto srt = _sorts.tryGet(s);
+  if (srt.isSome()) {
+    return srt.unwrap();
+  } else {
+    auto insert = [&](z3::sort x) { _sorts.insert(s, x); };
     // TODO what about built-in tuples?
 
     // Deal with known sorts differently
-    if(s==Sorts::SRT_BOOL    ) return _context.bool_sort();
-    if(s==Sorts::SRT_INTEGER ) return _context.int_sort();
-    if(s==Sorts::SRT_REAL    ) return _context.real_sort();
-    if(s==Sorts::SRT_RATIONAL) return _context.real_sort(); // Drop notion of rationality 
-    // TODO: are we really allowed to do this ???              ^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-    // Deal with arrays
-    if(env.sorts->isOfStructuredSort(s, Sorts::StructuredSort::ARRAY)){
+         if(s == Sorts::SRT_BOOL    ) insert(_context.bool_sort());
+    else if(s == Sorts::SRT_INTEGER ) insert(_context.int_sort());
+    else if(s == Sorts::SRT_REAL    ) insert(_context.real_sort());
+    else if(s == Sorts::SRT_RATIONAL) insert(_context.real_sort()); // Drop notion of rationality 
+    // TODO: are we really allowed to do this ???                      ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    else if(env.sorts->isOfStructuredSort(s, Sorts::StructuredSort::ARRAY)) {
       
       z3::sort index_sort = getz3sort(env.sorts->getArraySort(s)->getIndexSort());
       z3::sort value_sort = getz3sort(env.sorts->getArraySort(s)->getInnerSort());
    
-      return _context.array_sort(index_sort,value_sort);
-    } 
+      insert(_context.array_sort(index_sort,value_sort));
 
-    // term algebra sorts are created and inserted into the map in `createTermAlgebra(..)`
-    ASS(!env.signature->isTermAlgebraSort(s))
+    } else if (env.signature->isTermAlgebraSort(s)) {
+      createTermAlgebra(*env.signature->getTermAlgebraOfSort(s));
 
-    return _context.uninterpreted_sort(_context.str_symbol(env.sorts->sortName(s).c_str()));
-  });
+    } else {
+      insert(_context.uninterpreted_sort(_context.str_symbol(env.sorts->sortName(s).c_str())));
+    }
+  }
+  return _sorts.get(s);
 }
 
 template<class A>
@@ -405,6 +588,9 @@ void Z3Interfacing::createTermAlgebra(TermAlgebra& start)
 {
 #define INT_IDENTS 0
   CALL("createTermAlgebra(TermAlgebra&)")
+  if (_createdTermAlgebras.contains(start.sort())) return;
+  DBGE(_createdTermAlgebras)
+  DBGE(start)
 
   // detecting mutually exclusive term algebra sorts 
   Stack<TermAlgebra*> tas;        // <- stack of term algebra sorts
@@ -415,6 +601,7 @@ void Z3Interfacing::createTermAlgebra(TermAlgebra& start)
   work.push(&start);
   tas.push(&start);
   recSorts.insert(start.sort(), 0);
+  _createdTermAlgebras.insert(start.sort());
   while (!work.isEmpty()) {
     auto& ta = *work.pop();
     ASS(recSorts.find(ta.sort()));
@@ -423,7 +610,6 @@ void Z3Interfacing::createTermAlgebra(TermAlgebra& start)
         if (env.signature->isTermAlgebraSort(s)   
             && !_createdTermAlgebras.contains(s)) // <- we initialize each term algebra only once, per Z3 context
         {
-
           recSorts.getOrInit(s, [&](){
             auto t2 = env.signature->getTermAlgebraOfSort(s);
             _createdTermAlgebras.insert(s); 
@@ -435,6 +621,10 @@ void Z3Interfacing::createTermAlgebra(TermAlgebra& start)
         }
       }
     }
+  }
+  DBG("creating: ")
+  for ( auto t : tas ) {
+    DBG(*t);
   }
 
 #if !INT_IDENTS
@@ -484,7 +674,6 @@ void Z3Interfacing::createTermAlgebra(TermAlgebra& start)
         :  "$$is_"+env.signature->functionName(cons->functor());
       
       DEBUG("\t", env.sorts->sortName(ta->sort()), "::", env.signature->getFunction(cons->functor())->name());
-      DBG(argSortRefs)
 
       ASS_EQ(argSortRefs.size(), cons->arity())
       ASS_EQ(   argSorts.size(), cons->arity())
@@ -537,13 +726,14 @@ void Z3Interfacing::createTermAlgebra(TermAlgebra& start)
                            &discr,
                            destr.begin());
 
-      _datatypeFunctionLookup.insert(ctor->functor(), z3::func_decl(_context, constr));
+      DBG(*ctor)
+      _funcTranslation.insert(ctor->functor(), z3::func_decl(_context, constr));
       if (ctor->hasDiscriminator()) {
-        _datatypeFunctionLookup.insert(ctor->discriminator(), z3::func_decl(_context, discr));
+        _funcTranslation.insert(ctor->discriminator(), z3::func_decl(_context, discr));
       }
       for (unsigned iDestr = 0; iDestr < ctor->arity(); iDestr++)  {
         auto dtor = destr[iDestr];
-        _datatypeFunctionLookup.insert(ctor->destructorFunctor(iDestr), z3::func_decl(_context, dtor));
+        _funcTranslation.insert(ctor->destructorFunctor(iDestr), z3::func_decl(_context, dtor));
       }
     }
   }
@@ -559,19 +749,20 @@ void Z3Interfacing::createTermAlgebra(TermAlgebra& start)
   }
 
 
+  DBGE(_createdTermAlgebras)
 }
 
 z3::func_decl const& Z3Interfacing::findConstructor(FuncId id) 
 {
   CALL("Z3Interfacing::findConstructor(FuncId id)")
-  auto f = _datatypeFunctionLookup.tryGet(id);
+  auto f = _funcTranslation.tryGet(id);
   if (f.isSome()) {
     return f.unwrap();
   } else {
     auto sym = env.signature->getFunction(id);
     auto domain = sym->fnType()->result(); 
     createTermAlgebra(*env.signature->getTermAlgebraOfSort(domain));
-    return _datatypeFunctionLookup.get(id);
+    return _funcTranslation.get(id);
   }
 }
 
@@ -586,7 +777,7 @@ struct ToZ3Expr {
   z3::expr operator()(TermList toEval, z3::expr* evaluatedArgs) 
   {
     CALL("ToZ3Expr::operator()");
-    DBG("in: ", toEval)
+    DEBUG("in: ", toEval)
     ASS(toEval.isTerm())
     auto trm = toEval.term();
     bool isLit = trm->isLiteral();
@@ -663,6 +854,7 @@ struct ToZ3Expr {
     }
     ASS(trm->arity()>0);
 
+    DBG("lala 3")
     // Next translate term arguments
     //IMPORTANT - every push_back to args must be matched by a pop_back
     // note that the z3 functions do this already
@@ -939,18 +1131,36 @@ struct ToZ3Expr {
       } 
 
     }
-    //TODO check domain_sorts for args in equality and interpretted?
-    z3::sort_vector domain_sorts = z3::sort_vector(self._context);
-    for (unsigned i=0; i<type->arity(); i++) {
-      domain_sorts.push_back(self.getz3sort(type->arg(i)));
-    }
 
     z3::symbol name = self._context.str_symbol(symb->name().c_str());
 
-    z3::func_decl f = symb->termAlgebraCons() 
-        ? self.findConstructor(trm->functor())
-        : self._context.function(name,domain_sorts,self.getz3sort(range_sort));
+    auto functor = trm->functor();
+    z3::func_decl f = self._funcTranslation.tryGet(functor)
+      .toOwned()
+      .unwrapOrElse([&]() {
 
+          // TODO check domain_sorts for args in equality and interpretted?
+          z3::sort_vector domain_sorts = z3::sort_vector(self._context);
+          for (unsigned i=0; i<type->arity(); i++) {
+            domain_sorts.push_back(self.getz3sort(type->arg(i)));
+          }
+
+          // func_decl is not cached. Might be a term algebra constructor/destructor/discriminator
+          auto createIfNecessary = [&](unsigned s) 
+          { if (env.signature->isTermAlgebraSort(s) && !self._createdTermAlgebras.contains(s)) 
+              self.createTermAlgebra(*env.signature->getTermAlgebraOfSort(s)); };
+
+          for (auto s : domain_sorts) {
+            createIfNecessary(s);
+          }
+          createIfNecessary(range_sort);
+
+          return self._funcTranslation
+            .getOrInit(functor, [&](){
+              // not a datatype function. must be an uninterpreted one
+              return self._context.function(name,domain_sorts,self.getz3sort(range_sort));
+            });
+      });
 
     // Finally create expr
     z3::expr e = f(args); 
@@ -1220,7 +1430,7 @@ void Z3Interfacing::addFloorOperations(z3::expr_vector args, Interpretation qi, 
 Z3Interfacing::~Z3Interfacing()
 {
   _sorts.clear();
-  _datatypeFunctionLookup.clear();
+  _funcTranslation.clear();
 }
 
 

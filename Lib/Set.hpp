@@ -431,14 +431,28 @@ public:
   };
   DECL_ITERATOR_TYPE(Iterator);
 
-  IterTraits<Iterator> iter() 
+  IterTraits<Iterator> iter() const
   { return iterTraits(Iterator(*this)); }
 
 
 }; // class Set
 
 
+template<class A, class B>
+std::ostream& operator<<(std::ostream& out, Set<A, B> const& self)
+{ 
+  out << "{ ";
+  auto iter = self.iter();
+  if (iter.hasNext()) {
+    out << iter.next();
+    while (iter.hasNext()) 
+      out << ", " << iter.next();
+  }
+  return out << " }";
 }
+
+
+} // namespace Lib
 
 #endif // __Set__
 

@@ -27,7 +27,7 @@
 #define PRINT_CPP(X) // cout << X << endl;
 
 #include "Lib/DHMap.hpp"
-#include "Lib/Map.hpp"
+#include "Lib/BiMap.hpp"
 #include "Lib/Set.hpp"
 
 #include "SATSolver.hpp"
@@ -159,7 +159,11 @@ private:
   using FuncId = unsigned;
   using SortId = unsigned;
   Map<unsigned,z3::sort> _sorts;
-  Map<FuncId,z3::func_decl> _datatypeFunctionLookup;
+  struct Z3Hash {
+    static unsigned hash(z3::func_decl const& c) { return c.hash(); }
+    static bool equals(z3::func_decl const& l, z3::func_decl const& r) { return z3::eq(l,r); }
+  };
+  BiMap<FuncId, z3::func_decl, Lib::Hash, Z3Hash> _funcTranslation;
   Set<SortId> _createdTermAlgebras;
 
   z3::func_decl const& findConstructor(FuncId id);
@@ -195,6 +199,7 @@ private:
 
   // not sure why this one is public
   friend struct ToZ3Expr;
+  friend struct EvaluateInModel;
   z3::expr getz3expr(Term* trm, bool&nameExpression, bool withGuard=false);
 public:
   Term* evaluateInModel(Term* trm);

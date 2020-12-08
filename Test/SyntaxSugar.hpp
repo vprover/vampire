@@ -46,6 +46,11 @@
 #define __CONSTANT_TYPE_INT  IntegerConstantType
 #define __CONSTANT_TYPE_REAL RealConstantType
 #define __CONSTANT_TYPE_RAT  RationalConstantType
+#define __ALLOW_UNUSED(...)                                                                                   \
+  _Pragma("GCC diagnostic push")                                                                              \
+  _Pragma("GCC diagnostic ignored \"-Wunused\"")                                                              \
+  __VA_ARGS__                                                                                                 \
+  _Pragma("GCC diagnostic pop")                                                                               \
  
 #define __ARGS_DECL(Type, arity) __ARGS_DECL_ ## arity(Type)
 #define __ARGS_DECL_1(Type) Type arg0_ 
@@ -82,12 +87,11 @@
 #define DECL_VAR(x, i) auto x = TermSugar(TermList::var(i));
 
 #define DECL_DEFAULT_VARS                                                                                     \
-  _Pragma("GCC diagnostic push")                                                                              \
-  _Pragma("GCC diagnostic ignored \"-Wunused\"")                                                              \
+  __ALLOW_UNUSED(                                                                                             \
     DECL_VAR(x, 0)                                                                                            \
     DECL_VAR(y, 1)                                                                                            \
     DECL_VAR(z, 2)                                                                                            \
-  _Pragma("GCC diagnostic pop")                                                                               \
+  )                                                                                                           \
 
 
 /** tldr: For examples on usage see UnitTesting/tSyntaxSugar.cpp
@@ -142,12 +146,11 @@
  * For examples see UnitTesting/tSyntaxSugar.cpp.
  */
 #define NUMBER_SUGAR(Sort)                                                                                    \
-  _Pragma("GCC diagnostic push")                                                                              \
-  _Pragma("GCC diagnostic ignored \"-Wunused\"")                                                              \
+  __ALLOW_UNUSED(                                                                                             \
     using NumTraits = Sort##Traits;                                                                           \
     syntaxSugarGlobals().setNumTraits(NumTraits{});                                                           \
     auto Sort = SortSugar(NumTraits::sort);                                                                   \
-  _Pragma("GCC diagnostic pop")                                                                               \
+  )                                                                                                           \
 
 #define DECL_TERM_ALGEBRA(...) createTermAlgebra(__VA_ARGS__);
 
@@ -376,9 +379,7 @@ inline Lit operator~(Lit lit)
 }
 
 inline Lit operator!=(TermSugar lhs, TermSugar rhs) 
-{
-  return ~(lhs == rhs);
-}
+{ return ~(lhs == rhs); }
 
 __IMPL_NUMBER_BIN_FUN(operator==, Lit)
 __IMPL_NUMBER_BIN_FUN(operator!=, Lit)
@@ -413,12 +414,16 @@ public:
   }
 
   FuncSugar dtor(unsigned i) const {
+    CALL("FuncSugar::dtor(unsigned)")
     ASS_L(i, arity())
-    vstringstream name;
-    auto symbol = env.signature->getFunction(_functor);
-    name << symbol->name() << "_" << i;
-    return FuncSugar(name.str(), { SortSugar(symbol->fnType()->result()) }, SortSugar(symbol->fnType()->arg(i)));
+    ASS (symbol()->termAlgebraCons()) 
+    return FuncSugar(
+        env.signature->getTermAlgebraConstructor(functor())
+          ->destructorFunctor(i));
   }
+
+  unsigned result()        const { return symbol()->fnType()->result(); }
+  unsigned arg(unsigned i) const { return symbol()->fnType()->arg(i); }
 
   template<class... As>
   TermSugar operator()(As... args) const {
@@ -430,6 +435,10 @@ public:
   }
   unsigned functor() const { return _functor; }
   unsigned arity() const { return _arity; }
+  Signature::Symbol* symbol() const { return env.signature->getFunction(functor()); }
+
+  friend std::ostream& operator<<(std::ostream& out, FuncSugar const& self) 
+  { return out << self.symbol()->name(); }
 };
 
 class ConstSugar : public TermSugar, public FuncSugar
@@ -512,10 +521,17 @@ inline void createTermAlgebra(SortSugar sort, initializer_list<FuncSugar> fs) {
     env.signature->getFunction(f.functor())
       ->markTermAlgebraCons();
 
+    auto dtor = [&](unsigned i) {
+      vstringstream name;
+      name << f << "@" << i;
+      return FuncSugar(name.str(), { f.result() }, f.arg(i));
+    };
+
     Array<unsigned> dtors(f.arity()); 
     for (int i = 0; i < f.arity(); i++) {
-      dtors[i] = f.dtor(i).functor();
+      dtors[i] = dtor(i).functor();
     }
+
     cons.push(new TermAlgebraConstructor(f.functor(), dtors));
   }
   env.signature->addTermAlgebra(new TermAlgebra(sort.sortNumber(), cons.size(), cons.begin()));

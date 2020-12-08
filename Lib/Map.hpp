@@ -48,6 +48,7 @@ template <typename Key, typename Val,class Hash>
 class Map
 {
 public:
+  using HashFn = Hash;
   class Entry
   {
     friend class Map;

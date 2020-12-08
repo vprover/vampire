@@ -32,10 +32,14 @@ using namespace SAT;
 using Sort = unsigned;
 using FuncId = unsigned;
 
+/////////////////////////////////////////////////////////////////////////////////////////
+// 1) TEST SOLVING
+/////////////////////////////////////////////////////////////////////////////////////////
+
 /** runs z3 on a bunch of vampire literals as assuptions, and checks the status afterwards */
 void checkStatus(SATSolver::Status expected, Stack<Literal*> assumptions) 
 {
-
+  CALL("checkStatus(..)")
   SAT2FO s2f;
   SAT::Z3Interfacing z3(s2f, DBG_ON == 1, false, false);
 
@@ -58,39 +62,37 @@ void checkStatus(SATSolver::Status expected, Stack<Literal*> assumptions)
     exit(-1);
   }
 }
-/////////////////////////////////////////////////////////////////////////////////////////
-// Simple tests
-/////////////////////////////////////////////////////////////////////////////////////////
+
 
 ////////////////////////////////////
-// Rational Tests
+// Real Tests
 /////////////////
 
-TEST_FUN(rat__simple_01) {
-  NUMBER_SUGAR(Rat)
+TEST_FUN(solve__real__simple_01) {
+  NUMBER_SUGAR(Real)
   checkStatus(
       SATSolver::UNSATISFIABLE, 
       { num(3) == num(0) });
 }
 
-TEST_FUN(rat__simple_02) {
-  NUMBER_SUGAR(Rat)
-  DECL_CONST(a, Rat)
+TEST_FUN(solve__real__simple_02) {
+  NUMBER_SUGAR(Real)
+  DECL_CONST(a, Real)
   checkStatus(
       SATSolver::SATISFIABLE, 
       { num(3) == a });
 }
 
 
-TEST_FUN(rat__simple_03) {
-  NUMBER_SUGAR(Rat)
+TEST_FUN(solve__rat__simple_03) {
+  NUMBER_SUGAR(Real)
   checkStatus(
       SATSolver::UNSATISFIABLE, 
       { num(3) == num(3) + 2 * num(7) });
 }
 
-TEST_FUN(rat__simple_04) {
-  NUMBER_SUGAR(Rat)
+TEST_FUN(solve__rat__simple_04) {
+  NUMBER_SUGAR(Real)
   checkStatus(
       SATSolver::UNSATISFIABLE, 
       { num(17) != num(3) + 2 * num(7) });
@@ -100,14 +102,14 @@ TEST_FUN(rat__simple_04) {
 // FOOL Tests
 /////////////////
 
-TEST_FUN(fool__simple_01) {
+TEST_FUN(solve__fool__simple_01) {
   DECL_VAR(x, 0);
   checkStatus(
       SATSolver::SATISFIABLE, 
       { fool(false) == x });
 }
 
-TEST_FUN(fool__simple_02) {
+TEST_FUN(solve__fool__simple_02) {
   DECL_VAR(x, 0);
   checkStatus(
       SATSolver::SATISFIABLE, 
@@ -115,7 +117,7 @@ TEST_FUN(fool__simple_02) {
 }
 
 
-TEST_FUN(fool__simple_03) {
+TEST_FUN(solve__fool__simple_03) {
   checkStatus(
       SATSolver::UNSATISFIABLE, 
       { fool(true) == fool(false) });
@@ -132,10 +134,14 @@ TEST_FUN(fool__simple_03) {
   DECL_FUNC(cons, { sort, list  }, list)                                                                      \
                                                                                                               \
   DECL_TERM_ALGEBRA(list, {nil, cons})                                                                        \
+  __ALLOW_UNUSED(                                                                                             \
+    auto head = cons.dtor(0);                                                                                 \
+    auto tail = cons.dtor(1);                                                                                 \
+  )                                                                                                           \
 
 
 
-TEST_FUN(dty__01) {
+TEST_FUN(solve__dty__01) {
   DECL_SORT(alpha)
   DECL_LIST(alpha)
 
@@ -162,13 +168,13 @@ TEST_FUN(dty__01) {
   DECL_TERM_ALGEBRA(odd , {      succOdd })                                                                   \
 
 
-TEST_FUN(dty__02) {
+TEST_FUN(solve__dty__02) {
   DECL_EVEN_ODD
   checkStatus(SATSolver::UNSATISFIABLE, { succEven(succOdd(zero)) == zero });
 }
 
 
-TEST_FUN(dty__03_01) {
+TEST_FUN(solve__dty__03_01) {
   // we have a non-mutually recursive datatype that depends on a non-mutual but recursive datatype that 
   DECL_EVEN_ODD
   DECL_LIST(even)
@@ -176,7 +182,7 @@ TEST_FUN(dty__03_01) {
   checkStatus(SATSolver::UNSATISFIABLE, { cons(succEven(succOdd(zero)), nil) == cons(zero, nil) });
 }
 
-TEST_FUN(dty__03_02) {
+TEST_FUN(solve__dty__03_02) {
   // we have a non-mutually recursive datatype that depends on a non-mutual but recursive datatype that 
   DECL_EVEN_ODD
   DECL_LIST(even)
@@ -184,7 +190,7 @@ TEST_FUN(dty__03_02) {
   checkStatus(SATSolver::UNSATISFIABLE, { succEven(succOdd(zero)) == zero });
 }
 
-TEST_FUN(dty__03_03) {
+TEST_FUN(solve__dty__03_03) {
   // we have a non-mutually recursive datatype that depends on a non-mutual but recursive datatype that 
   DECL_EVEN_ODD
   DECL_LIST(even)
@@ -193,60 +199,97 @@ TEST_FUN(dty__03_03) {
   checkStatus(SATSolver::UNSATISFIABLE, { cons(succEven(succOdd(zero)), nil) == cons(zero, nil) });
 }
 
+/////////////////////////////////////////////////////////////////////////////////////////
+// 2) TEST INSTANTIATION
+/////////////////////////////////////////////////////////////////////////////////////////
 
-/**
-   \brief Create the binary function application: <tt>(f x y)</tt>.
-*/
-Z3_ast Z3_mk_binary_app(Z3_context ctx, Z3_func_decl f, Z3_ast x, Z3_ast y)
-{
-    Z3_ast args[2] = {x, y};
-    return Z3_mk_app(ctx, f, 2, args);
-}
-
-/**
-   \brief Create a variable using the given name and type.
-*/
-Z3_ast Z3_mk_var(Z3_context ctx, const char * name, Z3_sort ty)
-{
-    Z3_symbol   s  = Z3_mk_string_symbol(ctx, name);
-    return Z3_mk_const(ctx, s, ty);
-}
-/**
-   \brief exit gracefully in case of error.
-*/
-void exitf(const char* message)
-{
-  fprintf(stderr,"BUG: %s.\n", message);
-  exit(1);
-}
-
-/**
-   \brief Simpler error handler.
+/** 
+ * Runs z3 on a bunch of vampire literals as assuptions, that need to be satisfyable. 
+ * Then  the term toInstantiate will be instantiated with the model. The instantiated 
+ * term will be checked to be equal to the term expected.
  */
-void error_handler(Z3_context c, Z3_error_code e)
+void checkInstantiation(Stack<Literal*> assumptions, TermList toInstantiate, TermList expected) 
 {
-    printf("Error code: %d\n", e);
-    exitf("incorrect use of Z3");
+  CALL("checkInstantiation(..)")
+  SAT2FO s2f;
+  SAT::Z3Interfacing z3(s2f, DBG_ON == 1, false, false);
+
+  for (auto a : assumptions) {
+    z3.addAssumption(s2f.toSAT(a));
+  }
+
+  auto status = z3.solve();
+  ASS_EQ(status, Z3Interfacing::SATISFIABLE);
+  auto result = z3.evaluateInModel(toInstantiate.term());
+  if (result != expected.term()) {
+    cout << "[ input    ] " << endl;
+    for (auto a : assumptions) {
+      cout << "\t" << *a << endl;
+    }
+    cout << "[ toInstantiate ] " <<  toInstantiate << endl;
+    cout << "[ expected      ] " <<  expected << endl;
+    cout << "[ is            ] " <<  ( result == nullptr ? "null" : result->toString() ) << endl;
+    cout << "[ model         ] " <<  z3.getModel() << endl;
+    exit(-1);
+  }
 }
 
-/**
-   \brief Create a logical context.
 
-   Enable model construction. Other configuration parameters can be passed in the cfg variable.
+////////////////////////////////////
+// Real Tests
+/////////////////
 
-   Also enable tracing to stderr and register custom error handler.
-*/
-Z3_context mk_context_custom(Z3_config cfg, Z3_error_handler err)
-{
-    Z3_context ctx;
+TEST_FUN(instantiate__rat__simple_01) {
+  NUMBER_SUGAR(Real)
+  DECL_CONST(c, Real)
+  checkInstantiation(
+      { c * 3 == 9 },
+      c, num(3)
+      );
+}
 
-    Z3_set_param_value(cfg, "model", "true");
-    ctx = Z3_mk_context(cfg);
-    Z3_set_error_handler(ctx, err);
+TEST_FUN(instantiate__rat__simple_02) {
+  NUMBER_SUGAR(Real)
+  DECL_CONST(c, Real)
+  checkInstantiation(
+      { c * c == 9, c < 0 },
+      c, num(-3)
+      );
+}
 
-    return ctx;
+////////////////////////////////////
+// term algebra tests
+/////////////////
+
+
+TEST_FUN(instantiate__list_01) {
+  NUMBER_SUGAR(Real)
+  DECL_LIST(Real)
+
+  DECL_CONST(c, Real)
+
+  checkInstantiation(
+      { cons(c, nil) == cons(num(3), nil) },
+      c, num(3)
+      );
 }
 
 
+TEST_FUN(instantiate__list_02) {
+  NUMBER_SUGAR(Real)
+  DECL_LIST(Real)
+
+  DECL_CONST(l, list)
+  DECL_CONST(h, Real)
+  DECL_CONST(t, list)
+
+  checkInstantiation(
+      { tail(l) == cons(num(2), nil)
+      , head(l) == 1
+      , cons(h,t) == l  // <- necessary since selectors are partial
+      },
+      l, cons(1,cons(2,nil))
+      );
+}
 
 #endif // VZ3

@@ -14,6 +14,7 @@
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Inference.hpp"
+#include "Kernel/Signature.hpp"
 
 using namespace Kernel;
 using namespace Lib;
@@ -163,5 +164,11 @@ unsigned TermAlgebra::getSubtermPredicate() {
 
   return s;
 }
+
+std::ostream& operator<<(std::ostream& out, TermAlgebraConstructor const& self) 
+{ return out << "ctor " << env.signature->getFunction(self.functor())->name(); }
+
+std::ostream& operator<<(std::ostream& out, TermAlgebra const& self) 
+{ return out << "term_algebra " << env.sorts->sortName(self.sort()); }
 
 }

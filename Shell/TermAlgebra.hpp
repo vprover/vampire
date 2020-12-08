@@ -46,7 +46,7 @@ namespace Shell {
     /* The numbers of the constructor and destructors functions in the
        environment signature. These functions should be called only
        after createSymbols() has been called once */
-    unsigned functor() {return _functor; }
+    unsigned functor() const { return _functor; }
     unsigned destructorFunctor(unsigned ith) { return _destructors[ith]; }
 
     bool hasDiscriminator() { return _hasDiscriminator; }
@@ -75,6 +75,7 @@ namespace Shell {
     { return Lib::iterTraits(IterArgSorts(*this)); }
 
    
+    friend std::ostream& operator<<(std::ostream& out, TermAlgebraConstructor const& self);
   private:
     Kernel::OperatorType* _type;
     unsigned _functor;
@@ -108,8 +109,8 @@ namespace Shell {
                 bool allowsCyclicTerms = false);
     ~TermAlgebra() {}
 
-    unsigned sort() { return _sort; }
-    unsigned nConstructors() { return _n; }
+    unsigned sort() const { return _sort; }
+    unsigned nConstructors() const { return _n; }
     TermAlgebraConstructor* constructor(unsigned ith) { ASS_L(ith, _n); return _constrs[ith]; }
 
     class IterCons 
@@ -150,6 +151,7 @@ namespace Shell {
     Lib::vstring getSubtermPredicateName();
     unsigned getSubtermPredicate();
 
+    friend std::ostream& operator<<(std::ostream& out, TermAlgebra const& self);
   private:
     unsigned _sort;
     unsigned _n; /* number of constructors */

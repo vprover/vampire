@@ -163,8 +163,13 @@ bool TestUnit::spawnTest(TestProc proc)
   if(fres == 0) {
     try {
       proc();
+    } catch (Debug::AssertionViolationException& e) {
+      // e.cry(std::cout);
+      e.cry(std::cerr);
+      _exit(-1);
     } catch (Exception& e) {
-      e.cry(std::cout);
+      // e.cry(std::cout);
+      e.cry(std::cerr);
       _exit(-1);
     }
     _exit(0); // don't call parent's atexit! 
