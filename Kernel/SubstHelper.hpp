@@ -88,7 +88,7 @@ public:
     if(subbedLit->isTwoVarEquality()){ //either nothing's changed or variant
       TermList newSort = apply(sort, applicator);
       if((sort != newSort)){
-        subbedLit = Literal::createEquality(lit->polarity(), *lit->nthArgument(0), *lit->nthArgument(1), newSort);
+        subbedLit = Literal::createEquality(subbedLit->polarity(), *subbedLit->nthArgument(0), *subbedLit->nthArgument(1), newSort);
       }
     }
     return subbedLit;

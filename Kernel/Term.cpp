@@ -159,6 +159,10 @@ IntList* TermList::freeVariables() const
   return result;
 } // TermList::freeVariables
 
+
+//The same as the above function, but returns List<unsigned>
+//The two functions should be merged, either by removing one,
+//or through the use of templates AYB
 VList* TermList::freeVars() const
 {
   CALL("TermList::freeVars");
@@ -1486,8 +1490,10 @@ Literal* Literal::createEquality (bool polarity, TermList arg1, TermList arg2, T
    CALL("Literal::createEquality/4");
 
    TermList srt1, srt2;
+#if VDEBUG
    static RobSubstitution subst;
    subst.reset(); 
+#endif
 
    if (!SortHelper::tryGetResultSort(arg1, srt1)) {
      if (!SortHelper::tryGetResultSort(arg2, srt2)) {

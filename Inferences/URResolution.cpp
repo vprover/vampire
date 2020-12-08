@@ -274,20 +274,9 @@ void URResolution::processLiteral(ItemList*& itms, unsigned idx)
       iit.insert(itm2);
     }
 
-    TermList litSort; bool eqLit = false;
-    if(lit->isEquality()){
-      litSort = SortHelper::getEqualityArgumentSort(lit);
-      eqLit = true;
-    }
-
     SLQueryResultIterator unifs = _unitIndex->getUnifications(lit, true, true);
     while(unifs.hasNext()) {
       SLQueryResult unif = unifs.next();
-
-      RobSubstitution* subst = unif.substitution->tryGetRobSubstitution();
-      if(eqLit && !subst->unify(litSort, 0, SortHelper::getEqualityArgumentSort(unif.literal), 1)){
-        continue;
-      } 
 
       if( !ColorHelper::compatible(itm->_color, unif.clause->color()) ) {
         continue;
@@ -350,23 +339,11 @@ void URResolution::doBackwardInferences(Clause* cl, ClauseList*& acc)
   ASS_EQ(cl->size(), 1);
 
   Literal* lit = (*cl)[0];
-  TermList litSort; bool eqLit = false;
-  if(lit->isEquality()){
-    litSort = SortHelper::getEqualityArgumentSort(lit);
-    eqLit = true;
-  }
 
   SLQueryResultIterator unifs = _nonUnitIndex->getUnifications(lit, true, true);
   while(unifs.hasNext()) {
     SLQueryResult unif = unifs.next();
     Clause* ucl = unif.clause;
-
-
-
-    RobSubstitution* subst = unif.substitution->tryGetRobSubstitution();
-    if(eqLit && !subst->unify(litSort, 0, SortHelper::getEqualityArgumentSort(unif.literal), 1)){
-      continue;
-    } 
 
     if( !ColorHelper::compatible(cl->color(), ucl->color()) ) {
       continue;
