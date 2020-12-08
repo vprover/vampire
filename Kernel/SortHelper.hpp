@@ -84,8 +84,8 @@ public:
   static unsigned sortNum(TermList sort){
     return env.sorts->getSortNum(sort);
   }
-  static TermList sortTerm(unsigned sort){
-    return env.sorts->getSortTerm(sort);
+  static TermList sortTerm(unsigned sortNum){
+    return env.sorts->getSortTerm(sortNum);
   }
 
   static OperatorType* getType(Term* t);

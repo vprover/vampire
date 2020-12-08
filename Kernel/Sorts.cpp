@@ -72,12 +72,12 @@ unsigned Sorts::getSortNum(TermList sort)
   return _termListsToUnsigned.get(sort);
 }
 
-TermList Sorts::getSortTerm(unsigned sort)
+TermList Sorts::getSortTerm(unsigned sortNum)
 {
   CALL("Sorts::getSortTerm");
   
-  ASS(sort < _sorts.size())
-  return _sorts[sort];
+  ASS(sortNum < _sorts.size())
+  return _sorts[sortNum];
 }
 
 /**
