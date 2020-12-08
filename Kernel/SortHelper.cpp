@@ -911,12 +911,14 @@ bool SortHelper::isTupleSort(TermList sort)
   return env.signature->getFunction(sort.term()->functor())->tupleSort(); 
 }
 
+/*
 bool SortHelper::isStructuredSort(unsigned s)
 {
   CALL("SortHelper::isStructuredSort");  
   TermList sort = sortTerm(s);
   return isArraySort(sort) || isTupleSort(sort); 
 }
+*/
 
 bool SortHelper::isArraySort(TermList sort)
 {

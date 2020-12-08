@@ -47,6 +47,9 @@ public:
   bool addSort(TermList sort);
   vstring sortName(unsigned sort){ return _sorts[sort].toString(); }
   vstring sortName(TermList sort){ return sort.toString(); }
+#if __cplusplus >= 201402L // c++14 and newer
+  [[deprecated("consider using sort.term()->getId() instead of getSortNum; if you are in a situation where a variable sort does not make sense")]]
+#endif
   unsigned getSortNum(TermList sort);
   TermList getSortTerm(unsigned sort);
   unsigned count(){return (unsigned)_sorts.size(); }

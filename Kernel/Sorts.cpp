@@ -63,7 +63,6 @@ bool Sorts::addSort(TermList sort)
   return true;
 }
 
-
 unsigned Sorts::getSortNum(TermList sort)
 { 
   CALL("Sorts::getSortNum");
