@@ -81,6 +81,7 @@ public:
   Induction() = default;
   ClauseIterator generateClauses(Clause* premise) override;
   void attach(SaturationAlgorithm* salg) override;
+  void detach() override;
 
 private:
   TermIndex* _index;

@@ -119,9 +119,15 @@ void Induction::attach(SaturationAlgorithm* salg)
   CALL("Induction::attach");
   GeneratingInferenceEngine::attach(salg);
   _index=static_cast<TermIndex*>(
-	  _salg->getIndexManager()->request(SUPERPOSITION_SUBTERM_SUBST_TREE) );
-  //SUPERPOSITION_SUBTERM_SUBST_TREE
-  //DEMODULATION_SUBTERM_SUBST_TREE
+	  _salg->getIndexManager()->request(DEMODULATION_SUBTERM_SUBST_TREE) );
+}
+
+void Induction::detach()
+{
+  CALL("Induction::detach");
+  _index=0;
+  _salg->getIndexManager()->release(DEMODULATION_SUBTERM_SUBST_TREE);
+  GeneratingInferenceEngine::detach();
 }
 
 InductionClauseIterator::InductionClauseIterator(Clause* premise, TermIndex* index)
