@@ -191,19 +191,21 @@ public:
     }
   }
 
-  TermList applyToBoundResult(TermList t)
+  TermList applyToBoundResult(TermList t) override
   { return SubstHelper::apply(t, *getApplicator()); }
 
-  Literal* applyToBoundResult(Literal* lit)
+  Literal* applyToBoundResult(Literal* lit) override
   { return SubstHelper::apply(lit, *getApplicator()); }
 
   bool matchSorts(TermList base, TermList instance) override
   { return _parent->matchNextAux(instance, base, false); }
 
-  bool isIdentityOnQueryWhenResultBound() {return true;}
+  bool isIdentityOnQueryWhenResultBound() override
+  { return true; }
 
 #if VDEBUG
-  virtual vstring toString(){ return _resultNormalizer->toString(); }
+  virtual vstring toString() override
+  { return _resultNormalizer->toString(); }
 #endif
 
 private:

@@ -37,7 +37,7 @@ public:
 
   void attach(SaturationAlgorithm* salg) override;
   void detach() override;
-  bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) = 0;
+  bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override = 0;
 protected:
   bool _preorderedOnly;
   DemodulationLHSIndex* _index;
