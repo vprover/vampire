@@ -242,7 +242,7 @@ public:
     return _parent->matchNextAux(base, instance, false);
   }
 
-  TermList applyToBoundQuery(TermList t)
+  TermList applyToBoundQuery(TermList t) override
   {
     CALL("SubstitutionTree::InstMatcher::Substitution::applyToBoundQuery");
 
@@ -258,7 +258,8 @@ public:
     return _resultDenormalizer->apply(normalized);
   }
   
-  bool isIdentityOnResultWhenQueryBound() { return true; }
+  bool isIdentityOnResultWhenQueryBound() override
+  { return true; }
 private:
   InstMatcher* _parent;
   Renaming* _resultDenormalizer;
