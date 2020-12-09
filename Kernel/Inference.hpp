@@ -341,6 +341,8 @@ enum class InferenceRule : unsigned char {
 
   /* Induction hypothesis*/
   INDUCTION_AXIOM,
+  MAIN_MULTICLAUSE_INDUCTION_AXIOM,
+  SIDE_MULTICLAUSE_INDUCTION_AXIOM,
   /* Generalized nduction hypothesis*/
   GEN_INDUCTION_AXIOM,
 

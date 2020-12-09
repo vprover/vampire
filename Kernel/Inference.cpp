@@ -866,6 +866,10 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "finite model not found";
   case InferenceRule::INDUCTION_AXIOM:
     return "induction hypothesis";
+  case InferenceRule::MAIN_MULTICLAUSE_INDUCTION_AXIOM:
+    return "multi-clause induction hypothesis (main)";
+  case InferenceRule::SIDE_MULTICLAUSE_INDUCTION_AXIOM:
+    return "multi-clause induction hypothesis (side)";
   case InferenceRule::GEN_INDUCTION_AXIOM:
     return "generalized induction hypothesis";
   case InferenceRule::GAUSSIAN_VARIABLE_ELIMINIATION:

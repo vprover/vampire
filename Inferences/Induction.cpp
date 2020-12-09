@@ -271,24 +271,14 @@ void InductionClauseIterator::process(Clause* premise, Literal* lit, TermIndex* 
    }
 }
 
-void InductionClauseIterator::produceClauses(
-  DHMap<Literal*, Clause*>* origLitToPremiseMap,
-  Formula* hypothesis,
-  DHMap<Literal*, Literal*>* conclusionToOrigLitMap,
-  InferenceRule rule,
-  ResultSubstitutionSP& substitution)
+void InductionClauseIterator::produceClauses(Clause* premise, Literal* origLit, Formula* hypothesis, Literal* conclusion, InferenceRule rule, ResultSubstitutionSP& substitution)
 {
   CALL("InductionClauseIterator::produceClauses");
   NewCNF cnf(0);
   cnf.setForInduction();
   Stack<Clause*> hyp_clauses;
   Inference inf = NonspecificInference0(UnitInputType::AXIOM,rule);
-  DHMap<Literal*, Clause*>::Iterator it(*origLitToPremiseMap);
-  while (it.hasNext()) {
-    Literal* lit;
-    auto premise = it.nextRef(lit);
-    inf.setInductionDepth(premise->inference().inductionDepth()+1);
-  }
+  inf.setInductionDepth(premise->inference().inductionDepth()+1);
   FormulaUnit* fu = new FormulaUnit(hypothesis,inf);
   cnf.clausify(NNF::ennf(fu), hyp_clauses);
 
@@ -297,18 +287,14 @@ void InductionClauseIterator::produceClauses(
   Stack<Clause*>::Iterator cit(hyp_clauses);
   while(cit.hasNext()){
     Clause* c = cit.next();
-    DHMap<Literal*, Literal*>::Iterator cIt(*conclusionToOrigLitMap);
-    while (cIt.hasNext()) {
-      Literal* conclusion;
-      Literal* origLit;
-      cIt.next(conclusion, origLit);
-      if(c->contains(conclusion)){
-        auto premise = origLitToPremiseMap->get(origLit);
-        SLQueryResult qr(origLit,premise,substitution);
-        c = BinaryResolution::generateClause(c,conclusion,qr,*env.options);
-      }
+    if(c->contains(conclusion)){
+      SLQueryResult qr(origLit,premise, substitution);
+      Clause* r = BinaryResolution::generateClause(c,conclusion,qr,*env.options);
+      _clauses.push(r);
     }
-    _clauses.push(c);
+    else{
+      _clauses.push(c);
+    }
   }
   env.statistics->induction++;
   if (rule == InferenceRule::GEN_INDUCTION_AXIOM) {
@@ -393,12 +379,8 @@ void InductionClauseIterator::performMathInductionOne(Clause* premise, Literal* 
   // When producing clauses, 'y' should be unified with 'term'
   subst->unify(TermList(term), 0, y, 1);
   ResultSubstitutionSP result_subst = ResultSubstitution::fromSubstitution(subst.ptr(), 1, 0);
-  DHMap<Literal*, Clause*> origLitToPremiseMap;
-  origLitToPremiseMap.insert(origLit, premise);
-  DHMap<Literal*, Literal*> conclusionToOrigLitMap;
-  conclusionToOrigLitMap.insert(Ly->literal(), origLit);
-  produceClauses(&origLitToPremiseMap, hyp1, &conclusionToOrigLitMap, rule, result_subst);
-  produceClauses(&origLitToPremiseMap, hyp2, &conclusionToOrigLitMap, rule, result_subst);
+  produceClauses(premise, origLit, hyp1, Ly->literal(), rule, result_subst);
+  produceClauses(premise, origLit, hyp2, Ly->literal(), rule, result_subst);
   subst->reset();
 }
 
@@ -495,13 +477,8 @@ void InductionClauseIterator::performStructInductionOne(Clause* premise, Literal
                             Formula::quantify(indPremise),
                             Formula::quantify(new AtomicFormula(conclusion)));
 
-  DHMap<Literal*, Clause*> origLitToPremiseMap;
-  origLitToPremiseMap.insert(origLit, premise);
-  DHMap<Literal*, Literal*> conclusionToOrigLitMap;
-  conclusionToOrigLitMap.insert(conclusion, origLit);
-
   static ResultSubstitutionSP identity = ResultSubstitutionSP(new IdentitySubstitution());
-  produceClauses(&origLitToPremiseMap, hypothesis, &conclusionToOrigLitMap, rule, identity);
+  produceClauses(premise, origLit, hypothesis, conclusion, rule, identity);
 }
 
 /**
@@ -590,13 +567,8 @@ void InductionClauseIterator::performStructInductionTwo(Clause* premise, Literal
   FormulaList* orf = new FormulaList(exists,new FormulaList(Formula::quantify(new AtomicFormula(conclusion)),FormulaList::empty()));
   Formula* hypothesis = new JunctionFormula(Connective::OR,orf);
 
-  DHMap<Literal*, Clause*> origLitToPremiseMap;
-  origLitToPremiseMap.insert(origLit, premise);
-  DHMap<Literal*, Literal*> conclusionToOrigLitMap;
-  conclusionToOrigLitMap.insert(conclusion, origLit);
-
   static ResultSubstitutionSP identity = ResultSubstitutionSP(new IdentitySubstitution());
-  produceClauses(&origLitToPremiseMap, hypothesis, &conclusionToOrigLitMap, rule, identity);
+  produceClauses(premise, origLit, hypothesis, conclusion, rule, identity);
 }
 
 /*
@@ -722,13 +694,8 @@ void InductionClauseIterator::performStructInductionThree(Clause* premise, Liter
 
   //cout << hypothesis->toString() << endl;
 
-  DHMap<Literal*, Clause*> origLitToPremiseMap;
-  origLitToPremiseMap.insert(origLit, premise);
-  DHMap<Literal*, Literal*> conclusionToOrigLitMap;
-  conclusionToOrigLitMap.insert(conclusion, origLit);
-
   static ResultSubstitutionSP identity = ResultSubstitutionSP(new IdentitySubstitution());
-  produceClauses(&origLitToPremiseMap, hypothesis, &conclusionToOrigLitMap, rule, identity);
+  produceClauses(premise, origLit, hypothesis, conclusion, rule, identity);
 }
 
 bool InductionClauseIterator::notDone(Literal* lit, Term* term)
@@ -776,154 +743,14 @@ void InductionClauseIterator::performStructInductionFour(Clause* premise, Litera
   InductionSchemeGenerator gen;
   gen.generatePrimary(premise, lit);
 
-  if (env.options->inductionMultiClause()) {
-    vset<TermList> indTerms;
-    for (const auto& kv : gen._primarySchemes) {
-      indTerms.insert(kv.first._inductionTerms.begin(), kv.first._inductionTerms.end());
-    }
-    for (const auto& t : indTerms) {
-      auto instIt = index->getInstances(t, false);
-      while (instIt.hasNext()) {
-        auto inst = instIt.next();
-        if (inst.clause == premise) {
-          continue;
-        }
-        if ((env.options->inductionUnitOnly() && inst.clause->size() > 1)
-            || inst.literal->isNegative()
-            || inst.literal->freeVariables() != IntList::empty()) {
-          continue;
-        }
-        gen.generateSecondary(inst.clause, inst.literal);
-      }
-    }
+  for (const auto& kv : gen.instantiateSchemes()) {
+    const auto& hypothesis = kv.first;
+    const auto& conclusionToOrigLitClauseMap = kv.second;
+    ASS_EQ(conclusionToOrigLitClauseMap.size(), 1);
+    auto p = *conclusionToOrigLitClauseMap.begin();
+    static ResultSubstitutionSP identity = ResultSubstitutionSP(new IdentitySubstitution());
+    produceClauses(p.second.second, p.second.first, hypothesis, p.first, rule, identity);
   }
-
-  InductionSchemeFilter f;
-  f.filter(gen._primarySchemes, gen._secondarySchemes);
-  f.filterComplex(gen._primarySchemes, &gen._currOccMaps);
-
-  for (const auto& kv : gen._primarySchemes) {
-    if(env.options->showInduction()){
-      env.beginOutput();
-      env.out() << "[Induction] generated scheme " << kv.first << " for literals ";
-      DHMap<Literal*, Clause*>::Iterator litClIt(*kv.second);
-      while (litClIt.hasNext()) {
-        Literal* lit;
-        Clause* cl;
-        litClIt.next(lit, cl);
-        env.out() << lit->toString() << " in " << cl->toString() << ", ";
-      }
-      env.out() << endl;
-      env.endOutput();
-    }
-    instantiateScheme(kv.second, gen._actOccMaps, gen._currOccMaps, rule, kv.first);
-  }
-}
-
-void InductionClauseIterator::instantiateScheme(DHMap<Literal*, Clause*>* litClMap,
-  const DHMap<Literal*, DHMap<TermList, DHSet<unsigned>*>*>& activeOccurrenceMaps,
-  const DHMap<Literal*, DHMap<TermList, unsigned>*>& occurrenceCountMaps,
-  InferenceRule rule, const InductionScheme& scheme)
-{
-  CALL("InductionClauseIterator::instantiateScheme");
-
-  FormulaList* formulas = FormulaList::empty();
-  unsigned var = scheme._maxVar;
-  const bool strengthen = env.options->inductionStrengthen();
-
-  for (auto& desc : scheme._rDescriptionInstances) {
-    // We replace all induction terms with the corresponding step case terms
-    FormulaList* stepFormulas = FormulaList::empty();
-    DHMap<Literal*, Clause*>::Iterator litClIt(*litClMap);
-    vmap<TermList, TermList> empty;
-    while (litClIt.hasNext()) {
-      auto lit = litClIt.nextKey();
-      TermOccurrenceReplacement tr(desc._step, *activeOccurrenceMaps.get(lit), *occurrenceCountMaps.get(lit), var, empty);
-      stepFormulas = new FormulaList(new AtomicFormula(Literal::complementaryLiteral(tr.transform(lit))), stepFormulas);
-    }
-    auto right = JunctionFormula::generalJunction(Connective::OR, stepFormulas);
-
-    FormulaList* hyp = FormulaList::empty();
-
-    // Then we replace the arguments of the term with the
-    // corresponding recursive cases for this step case (if not base case)
-    for (const auto& r : desc._recursiveCalls) {
-      FormulaList* innerHyp = FormulaList::empty();
-      DHMap<Literal*, Clause*>::Iterator litClIt(*litClMap);
-      vmap<TermList, TermList> r_g;
-      while (litClIt.hasNext()) {
-        auto lit = litClIt.nextKey();
-        TermOccurrenceReplacement tr(r, *activeOccurrenceMaps.get(lit), *occurrenceCountMaps.get(lit), var, r_g, strengthen);
-        innerHyp = new FormulaList(new AtomicFormula(Literal::complementaryLiteral(tr.transform(lit))),innerHyp);
-      }
-      hyp = new FormulaList(JunctionFormula::generalJunction(Connective::OR,innerHyp),hyp);
-    }
-
-    // add conditions
-    if (!desc._conditions.empty()) {
-      for (const auto& cond : desc._conditions) {
-        hyp = new FormulaList(cond, hyp);
-      }
-    }
-    Formula* res = nullptr;
-    if (hyp == 0) {
-      // base case
-      res = right;
-    } else {
-      auto left = JunctionFormula::generalJunction(Connective::AND,hyp);
-      // there may be free variables present only in the conditions or
-      // hypoheses, quantify these first so that they won't be skolemized away
-      auto leftVarLst = left->freeVariables();
-      FormulaVarIterator fvit(right);
-      while(fvit.hasNext()) {
-        auto v = fvit.next();
-        if (Formula::VarList::member(v, leftVarLst)) {
-          leftVarLst = Formula::VarList::remove(v, leftVarLst);
-        }
-      }
-      if (leftVarLst) {
-        left = new QuantifiedFormula(FORALL, leftVarLst, 0, left);
-      }
-      res = new BinaryFormula(Connective::IMP,left,right);
-    }
-    formulas = new FormulaList(Formula::quantify(res), formulas);
-  }
-  ASS(formulas != 0);
-  Formula* indPremise = JunctionFormula::generalJunction(Connective::AND,formulas);
-
-  // After creating all cases, we need the main implicant to be resolved with
-  // the literal. For this, we use new variables starting from the max. var of
-  // the scheme.
-  vmap<TermList, TermList> r;
-  for (const auto& desc : scheme._rDescriptionInstances) {
-    for (const auto& kv : desc._step) {
-      if (r.count(kv.first) > 0) {
-        continue;
-      }
-      r.insert(make_pair(kv.first, TermList(var++,false)));
-    }
-  }
-  DHMap<Literal*, Literal*> conclusionToOrigLitMap;
-  FormulaList* conclusionList = FormulaList::empty();
-  DHMap<Literal*, Clause*>::Iterator litClIt(*litClMap);
-  vmap<TermList, TermList> empty;
-  while (litClIt.hasNext()) {
-    auto lit = litClIt.nextKey();
-    TermOccurrenceReplacement tr(r, *activeOccurrenceMaps.get(lit),
-      *occurrenceCountMaps.get(lit), var, empty);
-    auto conclusion = Literal::complementaryLiteral(tr.transform(lit));
-    conclusionToOrigLitMap.insert(conclusion, lit);
-    conclusionList = new FormulaList(new AtomicFormula(conclusion), conclusionList);
-  }
-  Formula* conclusions = JunctionFormula::generalJunction(Connective::OR, conclusionList);
-  Formula* hypothesis = new BinaryFormula(Connective::IMP,
-                            Formula::quantify(indPremise),
-                            Formula::quantify(conclusions));
-
-  // cout << hypothesis->toString() << endl << endl;
-
-  static ResultSubstitutionSP identity = ResultSubstitutionSP(new IdentitySubstitution());
-  produceClauses(litClMap, hypothesis, &conclusionToOrigLitMap, rule, identity);
 }
 
 }

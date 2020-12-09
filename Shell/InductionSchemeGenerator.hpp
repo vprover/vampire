@@ -146,6 +146,7 @@ struct InductionSchemeGenerator {
 
   void generatePrimary(Clause* premise, Literal* lit);
   void generateSecondary(Clause* premise, Literal* lit);
+  vvector<pair<Formula*, vmap<Literal*, pair<Literal*, Clause*>>>> instantiateSchemes();
 
   vvector<pair<InductionScheme, DHMap<Literal*, Clause*>*>> _primarySchemes;
   vvector<pair<InductionScheme, DHMap<Literal*, Clause*>*>> _secondarySchemes;
@@ -160,6 +161,7 @@ private:
     Stack<bool>& actStack, Clause* premise, Literal* lit,
     vvector<pair<InductionScheme, DHMap<Literal*, Clause*>*>>& schemes,
     bool returnOnMatch);
+  pair<Formula*, vmap<Literal*, pair<Literal*, Clause*>>> instantiateScheme(unsigned index) const;
 };
 
 } // Shell

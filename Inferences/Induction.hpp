@@ -111,11 +111,7 @@ public:
 private:
   void process(Clause* premise, Literal* lit, TermIndex* index);
 
-  void produceClauses(DHMap<Literal*, Clause*>* origLitToPremiseMap,
-    Formula* hypothesis,
-    DHMap<Literal*, Literal*>* conclusionToOrigLitMap,
-    InferenceRule rule,
-    ResultSubstitutionSP& substitution);
+  void produceClauses(Clause* premise, Literal* origLit, Formula* hypothesis, Literal* conclusion, InferenceRule rule, ResultSubstitutionSP& substitution);
 
   void performMathInductionOne(Clause* premise, Literal* origLit, Literal* lit, Term* t, InferenceRule rule); 
   void performMathInductionTwo(Clause* premise, Literal* origLit, Literal* lit, Term* t, InferenceRule rule);

@@ -298,6 +298,7 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/TermAlgebraReasoning.o\
          Inferences/TheoryInstAndSimp.o\
          Inferences/Induction.o\
+         Inferences/MultiClauseInduction.o\
          Inferences/URResolution.o \
          Inferences/GaussianVariableElimination.o
 #         Inferences/CTFwSubsAndRes.o\

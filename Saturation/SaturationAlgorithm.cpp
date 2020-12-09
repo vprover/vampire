@@ -72,6 +72,7 @@
 #include "Inferences/Instantiation.hpp"
 #include "Inferences/TheoryInstAndSimp.hpp"
 #include "Inferences/Induction.hpp"
+#include "Inferences/MultiClauseInduction.hpp"
 
 #include "Saturation/ExtensionalityClauseContainer.hpp"
 
@@ -1445,7 +1446,11 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
 
   //TODO here induction is last, is that right?
   if(opt.induction()!=Options::Induction::NONE){
-    gie->addFront(new Induction());
+    if (opt.inductionMultiClause()) {
+      gie->addFront(new MultiClauseInduction());
+    } else {
+      gie->addFront(new Induction());
+    }
   }
 
   if(opt.instantiation()!=Options::Instantiation::OFF){
