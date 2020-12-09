@@ -36,6 +36,7 @@
 #include "SATInference.hpp"
 #include "SAT2FO.hpp"
 #include "Lib/Option.hpp"
+#include "Lib/Coproduct.hpp"
 
 #define __EXCEPTIONS 1
 #include "z3++.h"
@@ -158,12 +159,32 @@ public:
 private:
   using FuncId = unsigned;
   using SortId = unsigned;
+
+  struct NoMeta {};
+
+  struct DestructorMeta
+  { z3::func_decl selector; };
+
+  struct Z3FuncEntry {
+    using Metadata = Coproduct<NoMeta, DestructorMeta>;
+    z3::func_decl self;
+    Metadata metadata;
+
+    static Z3FuncEntry plain(z3::func_decl d) 
+    { return  Z3FuncEntry { .self = d, .metadata = Metadata(NoMeta {}) }; }
+
+    static Z3FuncEntry destructor(z3::func_decl destr, z3::func_decl sel) 
+    { return  Z3FuncEntry { .self = destr, .metadata = Metadata(DestructorMeta { .selector = sel, }) }; }
+  };
+
+
   Map<unsigned,z3::sort> _sorts;
   struct Z3Hash {
     static unsigned hash(z3::func_decl const& c) { return c.hash(); }
     static bool equals(z3::func_decl const& l, z3::func_decl const& r) { return z3::eq(l,r); }
   };
-  BiMap<FuncId, z3::func_decl, Lib::Hash, Z3Hash> _funcTranslation;
+  Map<z3::func_decl, FuncId,      Z3Hash   > _fromZ3;
+  Map<FuncId,        Z3FuncEntry, Lib::Hash> _toZ3;
   Set<SortId> _createdTermAlgebras;
 
   z3::func_decl const& findConstructor(FuncId id);
@@ -206,7 +227,9 @@ public:
 #ifdef VDEBUG
   z3::model& getModel() { return _model; }
 #endif
+
 private:
+
   z3::expr getRepresentation(SATLiteral lit,bool withGuard);
 
   // just to conform to the interface

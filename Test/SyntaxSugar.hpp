@@ -524,7 +524,10 @@ inline void createTermAlgebra(SortSugar sort, initializer_list<FuncSugar> fs) {
     auto dtor = [&](unsigned i) {
       vstringstream name;
       name << f << "@" << i;
-      return FuncSugar(name.str(), { f.result() }, f.arg(i));
+      auto d = FuncSugar(name.str(), { f.result() }, f.arg(i));
+      env.signature->getFunction(d.functor())
+        ->markTermAlgebraDest();
+      return d;
     };
 
     Array<unsigned> dtors(f.arity()); 

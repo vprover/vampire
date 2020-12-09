@@ -1048,11 +1048,10 @@ TermAlgebraConstructor* SMTLIB2::buildTermAlgebraConstructor(vstring constrName,
 
     LOG1("build destructor "+destructorName+": "+destructorType->toString());
 
-    if (isPredicate) {
-      env.signature->getPredicate(destructorFunctor)->setType(destructorType);
-    } else {
-      env.signature->getFunction(destructorFunctor)->setType(destructorType);
-    }
+    auto destSym = isPredicate ? env.signature->getPredicate(destructorFunctor)
+                               : env.signature->getFunction (destructorFunctor);
+    destSym->setType(destructorType);
+    destSym->markTermAlgebraDest();
 
     ALWAYS(_declaredFunctions.insert(destructorName, make_pair(destructorFunctor, !isPredicate)));
 

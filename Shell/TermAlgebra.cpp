@@ -31,6 +31,9 @@ TermAlgebraConstructor::TermAlgebraConstructor(unsigned functor, Lib::Array<unsi
   _type = env.signature->getFunction(_functor)->fnType();
   ASS_REP(env.signature->getFunction(_functor)->termAlgebraCons(), env.signature->functionName(_functor));
   ASS_EQ(_type->arity(), destructors.size());
+  for (auto d : destructors) {
+    ASS(env.signature->getFunction(d)->termAlgebraDest())
+  }
 }
 
 TermAlgebraConstructor::TermAlgebraConstructor(unsigned functor, unsigned discriminator, Lib::Array<unsigned> destructors)
@@ -39,6 +42,9 @@ TermAlgebraConstructor::TermAlgebraConstructor(unsigned functor, unsigned discri
   _type = env.signature->getFunction(_functor)->fnType();
   ASS_REP(env.signature->getFunction(_functor)->termAlgebraCons(), env.signature->functionName(_functor));
   ASS_EQ(_type->arity(), destructors.size());
+  for (auto d : destructors) {
+    ASS(env.signature->getFunction(d)->termAlgebraDest())
+  }
 }
 
 unsigned TermAlgebraConstructor::arity()               { return _type->arity();  }

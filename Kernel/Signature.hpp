@@ -83,6 +83,8 @@ class Signature
     unsigned _overflownConstant : 1;
     /** marks term algebra constructors */
     unsigned _termAlgebraCons : 1;
+    /** marks term algebra destructors */
+    unsigned _termAlgebraDest : 1;
     /** Either a FunctionType of a PredicateType object */
     mutable OperatorType* _type;
     /** List of distinct groups the constant is a member of, all members of a distinct group should be distinct from each other */
@@ -126,6 +128,8 @@ class Signature
     void markOverflownConstant() { _overflownConstant=1; }
     /** mark symbol as a term algebra constructor */
     void markTermAlgebraCons() { _termAlgebraCons=1; }
+    /** mark symbol as a term algebra destructor */
+    void markTermAlgebraDest() { _termAlgebraDest=1; }
 
     /** return true iff symbol is marked as skip for the purpose of symbol elimination */
     bool skip() const { return _skip; }
@@ -156,6 +160,8 @@ class Signature
     inline bool overflownConstant() const { return _overflownConstant; }
     /** Return true iff symbol is a term algebra constructor */
     inline bool termAlgebraCons() const { return _termAlgebraCons; }
+    /** Return true iff symbol is a term algebra destructor */
+    inline bool termAlgebraDest() const { return _termAlgebraDest; }
 
     /** Increase the usage count of this symbol **/
     inline void incUsageCnt(){ _usageCount++; }

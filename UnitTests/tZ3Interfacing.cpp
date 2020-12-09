@@ -208,14 +208,14 @@ TEST_FUN(solve__dty__03_03) {
  * Then  the term toInstantiate will be instantiated with the model. The instantiated 
  * term will be checked to be equal to the term expected.
  */
-void checkInstantiation(Stack<Literal*> assumptions, TermList toInstantiate, TermList expected) 
+void checkInstantiation(Stack<Literal*> assumptions, TermList toInstantiate, TermList expected, bool withGuard = false) 
 {
   CALL("checkInstantiation(..)")
   SAT2FO s2f;
   SAT::Z3Interfacing z3(s2f, DBG_ON == 1, false, false);
 
   for (auto a : assumptions) {
-    z3.addAssumption(s2f.toSAT(a));
+    z3.addAssumption(s2f.toSAT(a), withGuard);
   }
 
   auto status = z3.solve();
@@ -233,6 +233,8 @@ void checkInstantiation(Stack<Literal*> assumptions, TermList toInstantiate, Ter
     exit(-1);
   }
 }
+void checkInstantiationWithGuards(Stack<Literal*> assumptions, TermList toInstantiate, TermList expected)
+{ checkInstantiation(std::move(assumptions), toInstantiate, expected, true); }
 
 
 ////////////////////////////////////
@@ -274,7 +276,6 @@ TEST_FUN(instantiate__list_01) {
       );
 }
 
-
 TEST_FUN(instantiate__list_02) {
   NUMBER_SUGAR(Real)
   DECL_LIST(Real)
@@ -287,6 +288,20 @@ TEST_FUN(instantiate__list_02) {
       { tail(l) == cons(num(2), nil)
       , head(l) == 1
       , cons(h,t) == l  // <- necessary since selectors are partial
+      },
+      l, cons(1,cons(2,nil))
+      );
+}
+
+TEST_FUN(instantiate__list_03) {
+  NUMBER_SUGAR(Real)
+  DECL_LIST(Real)
+
+  DECL_CONST(l, list)
+
+  checkInstantiationWithGuards(
+      { tail(l) == cons(num(2), nil)
+      , head(l) == 1
       },
       l, cons(1,cons(2,nil))
       );

@@ -1513,13 +1513,17 @@ void Theory::defineTupleTermAlgebra(unsigned arity, unsigned* sorts) {
   for (unsigned i = 0; i < arity; i++) {
     unsigned projSort = sorts[i];
     unsigned destructor;
+    Signature::Symbol* destSym;
     if (projSort == Sorts::SRT_BOOL) {
       destructor = env.signature->addFreshPredicate(1, "proj");
-      env.signature->getPredicate(destructor)->setType(OperatorType::getPredicateType({ tupleSort }));
+      destSym = env.signature->getPredicate(destructor);
+      destSym->setType(OperatorType::getPredicateType({ tupleSort }));
     } else {
       destructor = env.signature->addFreshFunction(1, "proj");
-      env.signature->getFunction(destructor)->setType(OperatorType::getFunctionType({ tupleSort }, projSort));
+      destSym = env.signature->getFunction(destructor);
+      destSym->setType(OperatorType::getFunctionType({ tupleSort }, projSort));
     }
+    destSym->markTermAlgebraDest();
     destructors[i] = destructor;
   }
 
