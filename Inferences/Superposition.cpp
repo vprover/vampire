@@ -104,10 +104,6 @@ struct Superposition::RewriteableSubtermsFn
   OWN_RETURN_TYPE operator()(Literal* lit)
   {
     CALL("Superposition::RewriteableSubtermsFn()");
-    if (env.options->functionDefinitionRewriting()) {
-      NonVariableIterator nvi(lit);
-      return pvi( pushPairIntoRightIterator(lit, getUniquePersistentIteratorFromPtr(&nvi)) );
-    }
     return pvi( pushPairIntoRightIterator(lit, EqHelper::getRewritableSubtermIterator(lit, _ord)) );
   }
 
@@ -206,7 +202,7 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
   auto itf4 = getMappingIterator(itf3,ForwardResultFn(premise, passiveClauseContainer, *this));
 
   auto itb1 = premise->getSelectedLiteralIterator();
-  auto itb2 = getMapAndFlattenIterator(itb1,EqHelper::SuperpositionLHSIteratorFn(_salg->getOrdering(), _salg->getOptions(), premise));
+  auto itb2 = getMapAndFlattenIterator(itb1,EqHelper::SuperpositionLHSIteratorFn(_salg->getOrdering(), _salg->getOptions()));
   auto itb3 = getMapAndFlattenIterator(itb2,RewritableResultsFn(_subtermIndex,withConstraints));
 
   //Perform backward superposition

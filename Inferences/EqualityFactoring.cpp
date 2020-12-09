@@ -178,7 +178,7 @@ ClauseIterator EqualityFactoring::generateClauses(Clause* premise)
 
   auto it2 = getFilteredIterator(it1,IsPositiveEqualityFn());
 
-  auto it3 = getMapAndFlattenIterator(it2,EqHelper::LHSIteratorFn(_salg->getOrdering(), premise));
+  auto it3 = getMapAndFlattenIterator(it2,EqHelper::LHSIteratorFn(_salg->getOrdering()));
 
   auto it4 = getMapAndFlattenIterator(it3,FactorablePairsFn(premise));
 

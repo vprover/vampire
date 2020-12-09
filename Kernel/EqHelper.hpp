@@ -47,7 +47,7 @@ public:
 
   struct LHSIteratorFn
   {
-    LHSIteratorFn(const Ordering& ord, Clause* cl) : _ord(ord), _cl(cl) {}
+    LHSIteratorFn(const Ordering& ord) : _ord(ord) {}
 
     DECL_RETURN_TYPE(VirtualIterator<pair<Literal*, TermList> >);
     OWN_RETURN_TYPE operator()(Literal* lit)
@@ -56,12 +56,11 @@ public:
     }
   private:
     const Ordering& _ord;
-    Clause* _cl;
   };
 
   struct SuperpositionLHSIteratorFn
   {
-    SuperpositionLHSIteratorFn(const Ordering& ord, const Options& opt, Clause* cl) : _ord(ord), _opt(opt), _cl(cl) {}
+    SuperpositionLHSIteratorFn(const Ordering& ord, const Options& opt) : _ord(ord), _opt(opt) {}
 
     DECL_RETURN_TYPE(VirtualIterator<pair<Literal*, TermList> >);
     OWN_RETURN_TYPE operator()(Literal* lit)
@@ -71,7 +70,6 @@ public:
   private:
     const Ordering& _ord;
     const Options& _opt;
-    Clause* _cl;
   };
 
   struct EqualityArgumentIteratorFn

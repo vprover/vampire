@@ -20,9 +20,7 @@
 
 #include "Forwards.hpp"
 
-#include "Indexing/TermIndex.hpp"
 #include "Kernel/TermTransformer.hpp"
-#include "Shell/InductionSchemeGenerator.hpp"
 
 #include "InferenceEngine.hpp"
 
@@ -80,18 +78,14 @@ public:
 
   Induction() = default;
   ClauseIterator generateClauses(Clause* premise) override;
-  void attach(SaturationAlgorithm* salg) override;
-  void detach() override;
 
-private:
-  TermIndex* _index;
 };
 
 class InductionClauseIterator
 {
 public:
   // all the work happens in the constructor!
-  InductionClauseIterator(Clause* premise, TermIndex* index);
+  InductionClauseIterator(Clause* premise);
 
   CLASS_NAME(InductionClauseIterator);
   USE_ALLOCATOR(InductionClauseIterator);
@@ -109,7 +103,7 @@ public:
   }
 
 private:
-  void process(Clause* premise, Literal* lit, TermIndex* index);
+  void process(Clause* premise, Literal* lit);
 
   void produceClauses(Clause* premise, Literal* origLit, Formula* hypothesis, Literal* conclusion, InferenceRule rule, ResultSubstitutionSP& substitution);
 
@@ -119,12 +113,7 @@ private:
   void performStructInductionOne(Clause* premise, Literal* origLit, Literal* lit, Term* t, InferenceRule rule);
   void performStructInductionTwo(Clause* premise, Literal* origLit, Literal* lit, Term* t, InferenceRule rule);
   void performStructInductionThree(Clause* premise, Literal* origLit, Literal* lit, Term* t, InferenceRule rule);
-
-  void performStructInductionFour(Clause* premise, Literal* origLit, InferenceRule rule, TermIndex* index);
-  void instantiateScheme(DHMap<Literal*, Clause*>* litClMap,
-    const DHMap<Literal*, DHMap<TermList, DHSet<unsigned>*>*>& activeOccurrenceMaps,
-    const DHMap<Literal*, DHMap<TermList, unsigned>*>& occurrenceCountMaps,
-    InferenceRule rule, const InductionScheme& scheme);
+  void performStructInductionFour(Clause* premise, Literal* origLit, InferenceRule rule);
 
   bool notDone(Literal* lit, Term* t);
   Term* getPlaceholderForTerm(Term* t);

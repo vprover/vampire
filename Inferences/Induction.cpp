@@ -30,11 +30,10 @@
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Connective.hpp"
 #include "Kernel/RobSubstitution.hpp"
-#include "Kernel/FormulaVarIterator.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
-#include "Shell/InductionSchemeFilter.hpp"
+#include "Shell/InductionSchemeGenerator.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/NewCNF.hpp"
@@ -51,6 +50,7 @@ namespace Inferences
 {
 using namespace Kernel;
 using namespace Lib; 
+
 
 TermList TermReplacement::transformSubterm(TermList trm)
 {
@@ -111,26 +111,10 @@ ClauseIterator Induction::generateClauses(Clause* premise)
     return ClauseIterator::getEmpty();
   }
 
-  return pvi(InductionClauseIterator(premise, _index));
+  return pvi(InductionClauseIterator(premise));
 }
 
-void Induction::attach(SaturationAlgorithm* salg)
-{
-  CALL("Induction::attach");
-  GeneratingInferenceEngine::attach(salg);
-  _index=static_cast<TermIndex*>(
-	  _salg->getIndexManager()->request(DEMODULATION_SUBTERM_SUBST_TREE) );
-}
-
-void Induction::detach()
-{
-  CALL("Induction::detach");
-  _index=0;
-  _salg->getIndexManager()->release(DEMODULATION_SUBTERM_SUBST_TREE);
-  GeneratingInferenceEngine::detach();
-}
-
-InductionClauseIterator::InductionClauseIterator(Clause* premise, TermIndex* index)
+InductionClauseIterator::InductionClauseIterator(Clause* premise)
 {
   CALL("InductionClauseIterator::InductionClauseIterator");
 
@@ -148,13 +132,13 @@ InductionClauseIterator::InductionClauseIterator(Clause* premise, TermIndex* ind
     )
   {
     for(unsigned i=0;i<premise->length();i++){
-      process(premise,(*premise)[i],index);
+      process(premise,(*premise)[i]);
     }
   }
 }
 
 
-void InductionClauseIterator::process(Clause* premise, Literal* lit, TermIndex* index)
+void InductionClauseIterator::process(Clause* premise, Literal* lit)
 {
   CALL("Induction::ClauseIterator::process");
 
@@ -186,9 +170,8 @@ void InductionClauseIterator::process(Clause* premise, Literal* lit, TermIndex* 
       SubtermIterator it(lit);
       while(it.hasNext()){
         TermList ts = it.next();
-        // TODO: this should be ts.isTerm
-        if(!ts.term()){ continue; }
-        unsigned f = ts.term()->functor();
+        if(!ts.isTerm()){ continue; }
+        unsigned f = ts.term()->functor(); 
         if((complexTermsAllowed || env.signature->functionArity(f)==0) &&
            (
                all
@@ -234,7 +217,6 @@ void InductionClauseIterator::process(Clause* premise, Literal* lit, TermIndex* 
           } while (generalize && (ilit = subsetReplacement.transformSubset(rule)));
         }
       }
-
       Set<Term*>::Iterator citer2(ta_terms);
       while(citer2.hasNext()){
         Term* t = citer2.next();
@@ -262,11 +244,11 @@ void InductionClauseIterator::process(Clause* premise, Literal* lit, TermIndex* 
             }
           } while (generalize && (ilit = subsetReplacement.transformSubset(rule)));
         }
-      }
+      } 
       static bool four = env.options->structInduction() == Options::StructuralInductionKind::FOUR ||
                         env.options->structInduction() == Options::StructuralInductionKind::ALL;
       if(four){
-        performStructInductionFour(premise,lit,InferenceRule::INDUCTION_AXIOM, index);
+        performStructInductionFour(premise,lit,InferenceRule::INDUCTION_AXIOM);
       }
    }
 }
@@ -374,13 +356,13 @@ void InductionClauseIterator::performMathInductionOne(Clause* premise, Literal* 
                         Lxmo))
                     ,0))),
                     Formula::quantify(new BinaryFormula(Connective::IMP,Lylz,Ly)));
-
+  
   static ScopedPtr<RobSubstitution> subst(new RobSubstitution());
   // When producing clauses, 'y' should be unified with 'term'
   subst->unify(TermList(term), 0, y, 1);
   ResultSubstitutionSP result_subst = ResultSubstitution::fromSubstitution(subst.ptr(), 1, 0);
-  produceClauses(premise, origLit, hyp1, Ly->literal(), rule, result_subst);
-  produceClauses(premise, origLit, hyp2, Ly->literal(), rule, result_subst);
+  produceClauses(premise, lit, hyp1, Ly->literal(), rule, result_subst);
+  produceClauses(premise, lit, hyp2, Ly->literal(), rule, result_subst);
   subst->reset();
 }
 
@@ -692,8 +674,6 @@ void InductionClauseIterator::performStructInductionThree(Clause* premise, Liter
   FormulaList* orf = new FormulaList(exists,new FormulaList(Formula::quantify(new AtomicFormula(conclusion)),0));
   Formula* hypothesis = new JunctionFormula(Connective::OR,orf);
 
-  //cout << hypothesis->toString() << endl;
-
   static ResultSubstitutionSP identity = ResultSubstitutionSP(new IdentitySubstitution());
   produceClauses(premise, origLit, hypothesis, conclusion, rule, identity);
 }
@@ -737,7 +717,7 @@ Term* InductionClauseIterator::getPlaceholderForTerm(Term* t) {
   return Term::createConstant(placeholderConstNumber);
 }
 
-void InductionClauseIterator::performStructInductionFour(Clause* premise, Literal* lit, InferenceRule rule, TermIndex* index) {
+void InductionClauseIterator::performStructInductionFour(Clause* premise, Literal* lit, InferenceRule rule) {
   CALL("InductionClauseIterator::performStructInductionFour");
 
   InductionSchemeGenerator gen;

@@ -49,4 +49,4 @@ private:
 
 };
 
-#endif /*__Induction__*/
+#endif /*__MultiClauseInduction__*/
