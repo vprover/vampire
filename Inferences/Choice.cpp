@@ -22,6 +22,7 @@
 #include "Kernel/ApplicativeHelper.hpp"
 #include "Kernel/RobSubstitution.hpp"
 #include "Kernel/TermIterators.hpp"
+#include "Kernel/FormulaVarIterator.hpp"
 
 #include "Lib/Environment.hpp"
 #include "Lib/Metaiterators.hpp"
@@ -50,13 +51,13 @@ Clause* Choice::createChoiceAxiom(TermList op, TermList set)
   TermList opType = SortHelper::getResultSort(op.term());
   TermList setType = ApplicativeHelper::getNthArg(opType, 1);
 
-  VList* fvars = set.freeVars();
   unsigned max = 0;
-  while(fvars){
-    if(fvars->head() > max){
-      max = fvars->head();
+  FormulaVarIterator fvi(&set);
+  while (fvi.hasNext()) {
+    unsigned var = fvi.next();
+    if (var > max) {
+      max = var;
     }
-    fvars = fvars->tail();
   }
   TermList freshVar = TermList(max+1, false);
 

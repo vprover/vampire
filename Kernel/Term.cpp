@@ -142,7 +142,14 @@ bool TermList::isSafe() const
  * Return the list of all free variables of the term.
  * The result is only non-empty when there are quantified
  * formulas or $let-terms inside the term.
+ *
  * Each variable in the term is returned just once.
+ *
+ * NOTE: don't use this function, if you don't actually need a List
+ * (FormulaVarIterator is a better choice)
+ *
+ * NOTE: remember to free the list when done with it
+ * (otherwise we leak memory!)
  *
  * @since 15/05/2015 Gothenburg
  */
