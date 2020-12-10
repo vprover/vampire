@@ -23,6 +23,7 @@
 
 #include "Debug/Assertion.hpp"
 #include "Debug/Tracer.hpp"
+#include "Lib/Option.hpp"
 
 #include "Allocator.hpp"
 #include "Backtrackable.hpp"
@@ -61,24 +62,38 @@ public:
   DECLARE_PLACEMENT_NEW;
 
 
+  explicit Stack ()
+    : _capacity(0), _stack(nullptr), _cursor(nullptr), _end(nullptr)
+  {}
+
   /**
    * Create a stack having initialCapacity.
    */
   inline
-  explicit Stack (size_t initialCapacity=0)
-    : _capacity(initialCapacity)
+  explicit Stack (size_t initialCapacity)
+    : Stack()
   {
     CALL("Stack::Stack");
 
-    if(_capacity) {
-      void* mem = ALLOC_KNOWN(_capacity*sizeof(C),className());
-      _stack = static_cast<C*>(mem);
-    }
-    else {
-      _stack = 0;
-    }
-    _cursor = _stack;
-    _end = _stack+_capacity;
+    reserve(initialCapacity);
+  }
+
+  void reserve(size_t new_capacity) 
+  {
+    ASS_GE(new_capacity, _capacity)
+    auto new_stack = static_cast<C*>(ALLOC_KNOWN(new_capacity*sizeof(C),className()));
+    auto new_cursor = new_stack;
+    auto new_end = new_stack+new_capacity;
+    if (_stack) {
+      for (int i = 0; i < size(); i++) {
+        ::new(&new_stack[i]) C(_stack[i]);
+      }
+      DEALLOC_KNOWN(_stack, _capacity * sizeof(C), className());
+    } 
+    _capacity = new_capacity;
+    _stack    = new_stack;
+    _cursor   = new_cursor;
+    _end      = new_end;
   }
 
   Stack(const Stack& s)
@@ -152,6 +167,18 @@ public:
   }
 
 
+  template<class It>
+  void reserveIter(It& iter)
+  {  
+    iter.sizeLeft()
+      .andThen([&](unsigned toAdd){
+          auto surplus = _capacity - size();
+          if (surplus < toAdd) {
+            reserve(toAdd + size());
+          }
+      });
+  }
+
   /**
    * Put all elements of an iterator onto the stack.
    */
@@ -159,10 +186,36 @@ public:
   void loadFromIterator(It it) {
     CALL("Stack::loadFromIterator");
 
+    reserveIter(it);
     while(it.hasNext()) {
       push(it.next());
     }
   }
+
+  /**
+   * Put all elements of an iterator onto the stack.
+   */
+  template<class It>
+  void moveFromIterator(It it) {
+    CALL("Stack::loadFromIterator");
+    reserveIter(it);
+    while(it.hasNext()) {
+      push(std::move(it.next()));
+    }
+  }
+
+
+  /**
+   * Create a new stack with the contents of the itererator.
+   */
+  template<class It>
+  static Stack fromIterator(It it) {
+    CALL("Stack::fromIterator");
+    Stack out;
+    out.moveFromIterator(it);
+    return out;
+  }
+
 
   /**
    * Return a reference to the n-th element of the stack.
@@ -474,6 +527,8 @@ public:
 
       *_pointer = val;
     }
+
+    Option<unsigned> sizeLeft() { return Option<unsigned>(_pointer - _stack._stack); }
   private:
     /** pointer to the stack element returned by next() */
     C* _pointer;
@@ -512,6 +567,8 @@ public:
       return *_pointer;
     }
 
+    Option<unsigned> sizeLeft() { return Option<unsigned>(_pointer - _stack._stack); }
+
   private:
     /** pointer to the stack element returned by next() */
     C* _pointer;
@@ -536,6 +593,8 @@ public:
 	_afterLast(s._cursor)
     {
     }
+
+    Option<unsigned> sizeLeft() { return Option<unsigned>(_afterLast - _pointer); }
 
     /** true if there exists the next element */
     inline
@@ -595,6 +654,8 @@ public:
 	}
       }
     }
+
+    Option<unsigned> sizeLeft() { return Option<unsigned>(_stack.size() - (_reader - _stack._stack)); }
 
     /** true if there exists the next element */
     inline
@@ -745,6 +806,33 @@ public:
     out << " ]";
     return out;
   }
+
+  Stack(std::initializer_list<C> cont)
+   : Stack(cont.size())
+  {
+    CALL("Stack::Stack(initializer_list<C>)");
+
+    for (auto const& x : cont) {
+      push(x);
+    }
+  }
+
+
+  Iterator iterLifo() &
+  { return Iterator(*this); }
+
+  ConstIterator iterLifo() const&
+  { return ConstIterator(*this); }
+
+  /* a first-in-first-out iterator  */
+  BottomFirstIterator iterFifo() const 
+  { return BottomFirstIterator(*this); }
+
+  /* a first-in-first-out iterator  */
+  BottomFirstIterator iterFifoMut() const 
+  { return BottomFirstIterator(*this); }
+
+
 };
 
 template<typename C>

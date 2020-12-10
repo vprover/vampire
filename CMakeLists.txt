@@ -183,6 +183,7 @@ set(VAMPIRE_LIB_SOURCES
     Lib/VirtualIterator.hpp
     Lib/VString.hpp
     Lib/STL.hpp
+    Lib/Iterator.hpp
     )
 source_group(lib_source_files FILES ${VAMPIRE_LIB_SOURCES})
 
@@ -701,6 +702,7 @@ set(UNIT_TESTS
     UnitTests/tImplicationSetClosure.cpp
     UnitTests/tUnificationWithAbstraction.cpp
     UnitTests/tGaussianElimination.cpp
+    UnitTests/tIterator.cpp
     UnitTests/tDisagreement.cpp
     UnitTests/tDynamicHeap.cpp
     UnitTests/tIntegerConstantType.cpp

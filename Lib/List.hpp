@@ -45,6 +45,7 @@
 
 #include "Allocator.hpp"
 #include "VirtualIterator.hpp"
+#include "Lib/Option.hpp"
 
 #if VDEBUG
 
@@ -518,6 +519,7 @@ public:
 
     inline void reset(const List* l) { _lst = l; }
 
+    Option<unsigned> sizeLeft() const { return Option<unsigned>(); }
    private:
     /** the rest of the list */
     const List* _lst;
@@ -556,6 +558,7 @@ public:
 
     inline void reset(List* l) { _lst = l; }
 
+    Option<unsigned> sizeLeft() const { return Option<unsigned>(); }
    private:
     /** the rest of the list */
     List* _lst;
@@ -579,6 +582,7 @@ public:
       _l=_l->tail();
       return res;
     }
+    Option<unsigned> sizeLeft() const { return Option<unsigned>(); }
   protected:
     List* _l;
   };
@@ -705,6 +709,8 @@ public:
       _prev = lst;
     } // List::DelIterator::insert
 
+    Option<unsigned> sizeLeft() const { return Option<unsigned>(); }
+
   private:
     /** The reference to the list over which the iteration is done */
     List*& _lst;
@@ -746,6 +752,7 @@ public:
     {
       return isNonEmpty(_lst);
     }
+    Option<unsigned> sizeLeft() const { return Option<unsigned>(); }
    private:
     /** the rest of the list */
     List* _lst;

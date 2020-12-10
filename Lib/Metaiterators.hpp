@@ -26,6 +26,7 @@
 #include "Recycler.hpp"
 #include "VirtualIterator.hpp"
 #include "TimeCounter.hpp"
+#include "Lib/Option.hpp"
 
 namespace Lib {
 
@@ -95,8 +96,9 @@ public:
   _index(0), _size(size) {}
   inline bool hasNext() { return _index<_size; }
   inline ELEMENT_TYPE(Arr) next() { ASS(_index<_size); return _arr[_index++]; }
-  inline bool knowsSize() { return true;}
-  inline bool size() { return _size;}
+
+  Option<unsigned> sizeLeft()
+  { return Option<unsigned>(_size - _index); }
 private:
   Arr& _arr;
   size_t _index;
@@ -202,8 +204,7 @@ public:
   explicit SingletonIterator(T el) : _finished(false), _el(el) {}
   inline bool hasNext() { return !_finished; };
   inline T next() { ASS(!_finished); _finished=true; return _el; };
-  inline bool knowsSize() const { return true; }
-  inline size_t size() const { return 1; }
+  Option<unsigned> sizeLeft() { return Option<unsigned>(1); }
 private:
   bool _finished;
   T _el;
@@ -1044,8 +1045,7 @@ public:
   : _next(from), _from(from), _to(to) {}
   inline bool hasNext() { return _next<_to; };
   inline T next() { return _next++; };
-  inline bool knowsSize() const { return true; }
-  inline size_t size() const { return (_to>_from) ? (_to-_from) : 0; }
+  Option<unsigned> sizeLeft() const { return Option<unsigned>((_to>_next) ? (_to-_next) : 0); }
 private:
   T _next;
   T _from;

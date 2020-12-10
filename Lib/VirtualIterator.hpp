@@ -24,6 +24,7 @@
 #include "Allocator.hpp"
 #include "Exception.hpp"
 #include "Reflection.hpp"
+#include "Lib/Option.hpp"
 
 namespace Lib {
 
@@ -69,18 +70,19 @@ public:
    * called and return true.
    */
   virtual T next() = 0;
-  /** Return true if the function @b size() can be called */
-  virtual bool knowsSize() const { return false; }
-  /**
-   * Return the total number of elements of this iterator
-   *
-   * The number of elements at the construction of the iterator object
-   * is always returned (even when there are no more elements left).
-   *
-   * @warning This function can be called only if the function @b knowsSize()
-   * returns true.
-   */
-  virtual size_t size() const { INVALID_OPERATION("This iterator cannot retrieve its size."); }
+  // /** Return true if the function @b size() can be called */
+  // virtual bool knowsSize() const { return false; }
+  // /**
+  //  * Return the total number of elements of this iterator
+  //  *
+  //  * The number of elements at the construction of the iterator object
+  //  * is always returned (even when there are no more elements left).
+  //  *
+  //  * @warning This function can be called only if the function @b knowsSize()
+  //  * returns true.
+  //  */
+  // virtual size_t size() const { INVALID_OPERATION("This iterator cannot retrieve its size."); }
+  virtual Option<unsigned> sizeLeft() const { return Option<unsigned>(); }
 
   CLASS_NAME(IteratorCore);
 //  CLASS_NAME(typeid(IteratorCore).name());
@@ -255,31 +257,12 @@ public:
     return _core->next();
   }
 
-  /** Return true if the function @b size() can be called */
-  bool knowsSize() const
+  Option<unsigned> sizeLeft() const
   {
     CALL("VirtualIterator::knowsSize");
     ASS(_core);
 
-    return _core->knowsSize();
-  }
-
-  /**
-   * Return the total number of elements of this iterator
-   *
-   * The number of elements at the construction of the iterator object
-   * is always returned (even when there are no more elements left).
-   *
-   * @warning This function can be called only if the function @b knowsSize()
-   * returns true.
-   */
-  size_t size() const
-  {
-    CALL("VirtualIterator::size");
-    ASS(_core);
-    ASS(knowsSize());
-
-    return _core->size();
+    return _core->sizeLeft();
   }
 
   /**

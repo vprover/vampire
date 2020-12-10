@@ -21,6 +21,7 @@
 #include <stack>
 #include <queue>
 
+#include "Lib/Option.hpp"
 #include "Forwards.hpp"
 
 namespace Shell
@@ -34,6 +35,7 @@ namespace Shell
       ProofIteratorPostOrder(Kernel::Unit* refutation);
       bool hasNext();
       Kernel::Unit* next();
+      Lib::Option<unsigned> sizeLeft() { return Lib::Option<unsigned>(); }
 
     private:
       std::stack<Kernel::Unit*> todo;
@@ -49,6 +51,7 @@ namespace Shell
       ProofIteratorBFSPreOrder(Kernel::Unit* refutation);
       bool hasNext();
       Kernel::Unit* next();
+      Lib::Option<unsigned> sizeLeft() { return Lib::Option<unsigned>(); }
 
     private:
       std::queue<Kernel::Unit*> todo;
