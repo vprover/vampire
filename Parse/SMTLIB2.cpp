@@ -1825,16 +1825,16 @@ bool SMTLIB2::parseAsBuiltinFormulaSymbol(const vstring& id, LExpr* exp)
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
 
-      Formula::VarList* qvars = nullptr;
-      Formula::SortList* qsorts = nullptr;
+      VList* qvars = VList::empty();
+      SList* qsorts = SList::empty();
 
       TermLookup::Iterator varIt(*_scopes.top());
       while(varIt.hasNext()) {
         SortedTerm vTerm = varIt.next();
         unsigned varIdx = vTerm.first.var();
         TermList sort = vTerm.second;
-        Formula::VarList::push(varIdx, qvars);
-        Formula::SortList::push(sort,qsorts);
+        VList::push(varIdx, qvars);
+        SList::push(sort,qsorts);
       }
       delete _scopes.pop();
 

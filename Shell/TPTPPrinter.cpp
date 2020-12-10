@@ -445,12 +445,12 @@ vstring TPTPPrinter::toString(const Formula* formula)
       {
         vstring result = vstring("(") + names[c] + "[";
         bool needsComma = false;
-        Formula::VarList::Iterator vs(f->vars());
-        Formula::SortList::Iterator ss(f->sorts());
+        VList::Iterator vs(f->vars());
+        SList::Iterator ss(f->sorts());
         bool hasSorts = f->sorts();
 
         while (vs.hasNext()) {
-          int var = vs.next();
+          unsigned var = vs.next();
 
           if (needsComma) {
             result += ", ";
@@ -569,7 +569,7 @@ vstring TPTPPrinter::toString (const Unit* unit)
       }
       if(quant!=f) {
 	ASS_EQ(quant->connective(),FORALL);
-        Formula::VarList::destroy(static_cast<QuantifiedFormula*>(quant)->vars());
+        VList::destroy(static_cast<QuantifiedFormula*>(quant)->vars());
 	quant->destroy();
       }
     }

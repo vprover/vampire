@@ -46,7 +46,7 @@ private:
 
   Stack<Clause*> _predDefs;
   unsigned _splittingTreshold;
-  bool _appify;
+  bool _appify; // do it the higher-order way
 };
 
 };

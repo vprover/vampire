@@ -194,12 +194,12 @@ Formula* Flattening::flatten (Formula* f)
 
       // arg is a quantified formula with the same quantifier
       // the sort list is either empty (if one of the parts have empty sorts) or the concatentation
-      Formula::SortList* sl = 0;
+      SList* sl = SList::empty();
       if(f->sorts() && arg->sorts()){
-        sl = Formula::SortList::append(f->sorts(), arg->sorts());
+        sl = SList::append(f->sorts(), arg->sorts());
       }
       return new QuantifiedFormula(con,
-				   Formula::VarList::append(f->vars(), arg->vars()),
+				   VList::append(f->vars(), arg->vars()),
                                    sl, 
 				   arg->qarg());
     }

@@ -149,7 +149,7 @@ Literal* InequalitySplitting::splitLiteral(Literal* lit, UnitInputType inpType, 
   ASS(isSplittable(lit));
 
   TermList srt = SortHelper::getEqualityArgumentSort(lit);
-  VList* vars = srt.freeVars();
+  VList* vars = srt.freeVariables();
   unsigned fun;
   OperatorType* type;
   if(!_appify){

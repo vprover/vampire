@@ -67,7 +67,6 @@ template<typename C> class Vector;
 
 class ArraySet;
 
-typedef List<unsigned> VList;
 typedef List<int> IntList;
 typedef List<VoidFunc> VoidFuncList;
 
@@ -159,7 +158,9 @@ typedef Stack<ConstraintRCPtr> ConstraintRCStack;
 class TermList;
 typedef VirtualIterator<TermList> TermIterator;
 typedef Stack<TermList> TermStack;
-typedef List<TermList> SList;
+
+typedef List<unsigned> VList; // a list of variables (which are unsigned)
+typedef List<TermList> SList; // a list of sorts (which are now, with polymorphism, TermLists)
 
 typedef std::pair<std::pair<TermList,unsigned>,std::pair<TermList,unsigned>> UnificationConstraint;
 typedef Stack<UnificationConstraint> UnificationConstraintStack;

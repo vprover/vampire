@@ -153,34 +153,29 @@ bool TermList::isSafe() const
  *
  * @since 15/05/2015 Gothenburg
  */
-IntList* TermList::freeVariables() const
+VList* TermList::freeVariables() const
 {
   CALL("TermList::freeVariables");
 
   FormulaVarIterator fvi(this);
-  Formula::VarList* result = Formula::VarList::empty();
-  Formula::VarList::FIFO stack(result);
+  VList* result = VList::empty();
+  VList::FIFO stack(result);
   while (fvi.hasNext()) {
     stack.push(fvi.next());
   }
   return result;
 } // TermList::freeVariables
 
-
-//The same as the above function, but returns List<unsigned>
-//The two functions should be merged, either by removing one,
-//or through the use of templates AYB
-VList* TermList::freeVars() const
+bool TermList::isFreeVariable(unsigned var) const
 {
-  CALL("TermList::freeVars");
-  
+  CALL("TermList::isFreeVariable");
   FormulaVarIterator fvi(this);
-  VList* result = VList::empty();
-  VList::FIFO stack(result);
   while (fvi.hasNext()) {
-    stack.push((unsigned)fvi.next());
+    if (var == fvi.next()) {
+      return true;
+    }
   }
-  return result; 
+  return false;
 }
 
 /**
@@ -492,16 +487,16 @@ vstring Term::headToString() const
         OperatorType* type = isPredicate ? env.signature->getPredicate(sd->getFunctor())->predType()
                                          : env.signature->getFunction(sd->getFunctor())->fnType();
 
-        const IntList* variables = sd->getVariables();
+        const VList* variables = sd->getVariables();
         vstring variablesList = "";
-        for (unsigned i = 0; i < IntList::length(variables); i++) {
-          unsigned var = (unsigned) IntList::nth(variables, i);
+        for (unsigned i = 0; i < VList::length(variables); i++) {
+          unsigned var = VList::nth(variables, i);
           variablesList += Term::variableToString(var);
-          if (i < IntList::length(variables) - 1) {
+          if (i < VList::length(variables) - 1) {
             variablesList += ", ";
           }
         }
-        if (IntList::length(variables)) {
+        if (VList::length(variables)) {
           variablesList = "(" + variablesList + ")";
         }
         return "$let(" + functor + ": " + type->toString() + ", " + functor + variablesList + " := " + binding.toString() + ", ";
@@ -526,7 +521,7 @@ vstring Term::headToString() const
       }
       case Term::SF_LET_TUPLE: {
         ASS_EQ(arity(), 1);
-        IntList* symbols = sd->getTupleSymbols();
+        VList* symbols = sd->getTupleSymbols();
         unsigned tupleFunctor = sd->getFunctor();
         TermList binding = sd->getBinding();
 
@@ -534,13 +529,13 @@ vstring Term::headToString() const
 
         vstring symbolsList = "";
         vstring typesList = "";
-        for (unsigned i = 0; i < IntList::length(symbols); i++) {
+        for (unsigned i = 0; i < VList::length(symbols); i++) {
           Signature::Symbol* symbol = (fnType->arg(i) == Term::boolSort())
-            ? env.signature->getPredicate((unsigned)IntList::nth(symbols, i))
-            : env.signature->getFunction((unsigned)IntList::nth(symbols, i));
+            ? env.signature->getPredicate(VList::nth(symbols, i))
+            : env.signature->getFunction(VList::nth(symbols, i));
           symbolsList += symbol->name();
           typesList += symbol->name() + ": " + fnType->arg(i).toString();
-          if (i != IntList::length(symbols) - 1) {
+          if (i != VList::length(symbols) - 1) {
             symbolsList += ", ";
             typesList += ", ";
           }
@@ -549,13 +544,13 @@ vstring Term::headToString() const
         return "$let([" + typesList + "], [" + symbolsList + "] := " + binding.toString() + ", ";
       }
       case Term:: SF_LAMBDA: {
-        IntList* vars = sd->getLambdaVars();
+        VList* vars = sd->getLambdaVars();
         SList* sorts = sd->getLambdaVarSorts();
         TermList lambdaExp = sd->getLambdaExp();
      
         vstring varList = "[";
          
-        IntList::Iterator vs(vars);
+        VList::Iterator vs(vars);
         SList::Iterator ss(sorts);
         TermList sort;
         bool first = true;
@@ -1003,22 +998,22 @@ Term* Term::createITE(Formula * condition, TermList thenBranch, TermList elseBra
  * Create (let lhs <- rhs in t) expression and return
  * the resulting term
  */
-Term* Term::createLet(unsigned functor, IntList* variables, TermList binding, TermList body, TermList bodySort)
+Term* Term::createLet(unsigned functor, VList* variables, TermList binding, TermList body, TermList bodySort)
 {
   CALL("Term::createLet");
 
 #if VDEBUG
-  Set<int> distinctVars;
-  IntList::Iterator vit(variables);
+  Set<unsigned> distinctVars;
+  VList::Iterator vit(variables);
   while (vit.hasNext()) {
     distinctVars.insert(vit.next());
   }
-  ASS_EQ(distinctVars.size(), IntList::length(variables));
+  ASS_EQ(distinctVars.size(), VList::length(variables));
 
   bool isPredicate = binding.isTerm() && binding.term()->isBoolean();
   const unsigned int arity = isPredicate ? env.signature->predicateArity(functor)
                                          : env.signature->functionArity(functor);
-  ASS_EQ(arity, IntList::length(variables));
+  ASS_EQ(arity, VList::length(variables));
 #endif
 
   Term* s = new(1,sizeof(SpecialTermData)) Term;
@@ -1037,20 +1032,20 @@ Term* Term::createLet(unsigned functor, IntList* variables, TermList binding, Te
  * Create (let [a, b, c] <- rhs in t) expression and return
  * the resulting term
  */
-Term* Term::createTupleLet(unsigned tupleFunctor, IntList* symbols, TermList binding, TermList body, TermList bodySort)
+Term* Term::createTupleLet(unsigned tupleFunctor, VList* symbols, TermList binding, TermList body, TermList bodySort)
 {
   CALL("Term::createTupleLet");
 
 #if VDEBUG
   Signature::Symbol* tupleSymbol = env.signature->getFunction(tupleFunctor);
-  ASS_EQ(tupleSymbol->arity(), IntList::length(symbols));
+  ASS_EQ(tupleSymbol->arity(), VList::length(symbols));
   ASS_REP(SortHelper::isTupleSort(tupleSymbol->fnType()->result()), tupleFunctor);
 
   Set<pair<int,bool> > distinctSymbols;
-  IntList::Iterator sit(symbols);
+  VList::Iterator sit(symbols);
   unsigned arg = 0;
   while (sit.hasNext()) {
-    unsigned symbol = (unsigned)sit.next();
+    unsigned symbol = sit.next();
     bool isPredicate = tupleSymbol->fnType()->arg(arg) == Term::boolSort();
     if (!distinctSymbols.contains(make_pair(symbol, isPredicate))) {
       distinctSymbols.insert(make_pair(symbol, isPredicate));
@@ -1092,7 +1087,7 @@ Term* Term::createFormula(Formula* formula)
  * Create a lambda term from a list of lambda vars and an 
  * expression and returns the resulting term
  */
-Term* Term::createLambda(TermList lambdaExp, IntList* vars, SList* sorts, TermList expSort){
+Term* Term::createLambda(TermList lambdaExp, VList* vars, SList* sorts, TermList expSort){
   CALL("Term::createLambda");
   
   Term* s = new(0, sizeof(SpecialTermData)) Term;
@@ -1287,20 +1282,38 @@ TermList Term::tupleSort(unsigned arity, TermList* sorts)
  * formulas or $let-terms inside the term.
  * Each variable in the term is returned just once.
  *
+ * NOTE: don't use this function, if you don't actually need a List
+ * (FormulaVarIterator is a better choice)
+ *
+ * NOTE: remember to free the list when done with it
+ * (otherwise we leak memory!)
+ *
  * @since 07/05/2015 Gothenburg
  */
-IntList* Term::freeVariables() const
+VList* Term::freeVariables() const
 {
   CALL("Term::freeVariables");
 
   FormulaVarIterator fvi(this);
-  Formula::VarList* result = Formula::VarList::empty();
-  Formula::VarList::FIFO stack(result);
+  VList* result = VList::empty();
+  VList::FIFO stack(result);
   while (fvi.hasNext()) {
     stack.push(fvi.next());
   }
   return result;
 } // Term::freeVariables
+
+bool Term::isFreeVariable(unsigned var) const
+{
+  CALL("Term::isFreeVariable");
+  FormulaVarIterator fvi(this);
+  while (fvi.hasNext()) {
+    if (var == fvi.next()) {
+      return true;
+    }
+  }
+  return false;
+}
 
 unsigned Term::computeDistinctVars() const
 {

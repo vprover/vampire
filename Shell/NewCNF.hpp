@@ -599,7 +599,7 @@ private:
 
   void skolemise(QuantifiedFormula* g, BindingList* &bindings, BindingList*& foolBindings);
 
-  Literal* createNamingLiteral(Formula* g, List<unsigned>* free);
+  Literal* createNamingLiteral(Formula* g, VList* free);
   void nameSubformula(Formula* g, Occurrences &occurrences);
 
   void enqueue(Formula* formula, Occurrences occurrences = Occurrences()) {
@@ -645,8 +645,8 @@ private:
   void processLet(Term::SpecialTermData* sd, TermList contents, Occurrences &occurrences);
   TermList eliminateLet(Term::SpecialTermData *sd, TermList contents);
 
-  TermList nameLetBinding(unsigned symbol, Formula::VarList *bindingVariables, TermList binding, TermList contents);
-  TermList inlineLetBinding(unsigned symbol, Formula::VarList *bindingVariables, TermList binding, TermList contents);
+  TermList nameLetBinding(unsigned symbol, VList *bindingVariables, TermList binding, TermList contents);
+  TermList inlineLetBinding(unsigned symbol, VList *bindingVariables, TermList binding, TermList contents);
 
   TermList findITEs(TermList ts, Stack<unsigned> &variables, Stack<Formula*> &conditions,
                                  Stack<TermList> &thenBranches, Stack<TermList> &elseBranches);

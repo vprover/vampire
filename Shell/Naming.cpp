@@ -1096,9 +1096,9 @@ bool Naming::canBeInDefinition(Formula* f, Where where) {
     }
   }
 
-  Formula::VarList* fvars = f->freeVariables();
+  VList* fvars = f->freeVariables();
   bool freeVars = fvars;
-  Formula::VarList::destroy(fvars);
+  VList::destroy(fvars);
 
   if (!_varsInScope && freeVars
       && (exQuant || (unQuant && where == UNDER_IFF))) {
@@ -1108,10 +1108,10 @@ bool Naming::canBeInDefinition(Formula* f, Where where) {
   return true;
 }
 
-Literal* Naming::getDefinitionLiteral(Formula* f, Formula::VarList* freeVars) {
+Literal* Naming::getDefinitionLiteral(Formula* f, VList* freeVars) {
   CALL("Naming::getDefinitionLiteral");
 
-  unsigned length = Formula::VarList::length(freeVars);
+  unsigned length = VList::length(freeVars);
   /*if (env.colorUsed) { //TODO what are colors all about?
     Color fc = f->getColor();
     if (fc != COLOR_TRANSPARENT) {
@@ -1133,7 +1133,7 @@ Literal* Naming::getDefinitionLiteral(Formula* f, Formula::VarList* freeVars) {
 
   SortHelper::collectVariableSorts(f, varSorts);
 
-  Formula::VarList::Iterator vit(freeVars);
+  VList::Iterator vit(freeVars);
   while (vit.hasNext()) {
     unsigned uvar = vit.next();
     TermList sort = varSorts.get(uvar, Term::defaultSort());
@@ -1190,7 +1190,7 @@ Formula* Naming::introduceDefinition(Formula* f, bool iff) {
 
   RSTAT_CTR_INC("naming_introduced_defs");
 
-  Formula::VarList* vs;
+  VList* vs;
   vs = f->freeVariables();
   Literal* atom = getDefinitionLiteral(f, vs);
   Formula* name = new AtomicFormula(atom);
@@ -1205,7 +1205,7 @@ Formula* Naming::introduceDefinition(Formula* f, bool iff) {
     FormulaList::push(nameFormula, fs);
     def = new JunctionFormula(OR, fs);
   }
-  if (Formula::VarList::isNonEmpty(vs)) {
+  if (VList::isNonEmpty(vs)) {
     //TODO do we know the sorts of the free variabls vs?
     def = new QuantifiedFormula(FORALL, vs, 0, def);
   }

@@ -151,8 +151,8 @@ public:
 
   bool isSafe() const;
 
-  IntList* freeVariables() const;
-  VList* freeVars() const;
+  VList* freeVariables() const;
+  bool isFreeVariable(unsigned var) const;
 
 #if VDEBUG
   void assertValid() const;
@@ -244,9 +244,9 @@ public:
       } _iteData;
       struct {
         unsigned functor;
-        IntList* variables;
+        VList* variables;
 	//The size_t stands for TermList expression which cannot be here
-	//since C++ doesnot allow objects with constructor inside a union
+	//since C++ does not allow objects with constructor inside a union
   //Above comment doesn't hold in C++11
   //https://www.stroustrup.com/C++11FAQ.html#unions
         size_t binding;
@@ -260,13 +260,13 @@ public:
       } _tupleData;
       struct {
         unsigned functor;
-        IntList* symbols;
+        VList* symbols;
         size_t binding;
         TermList sort;
       } _letTupleData;
       struct {
         TermList lambdaExp;
-        IntList* _vars;
+        VList* _vars;
         SList* _sorts;  
         TermList sort; 
         TermList expSort;//TODO is this needed?
@@ -285,11 +285,11 @@ public:
       ASS_REP(getType() == SF_LET || getType() == SF_LET_TUPLE, getType());
       return getType() == SF_LET ? _letData.functor : _letTupleData.functor;
     }
-    IntList* getLambdaVars() const { ASS_EQ(getType(), SF_LAMBDA); return _lambdaData._vars; }
+    VList* getLambdaVars() const { ASS_EQ(getType(), SF_LAMBDA); return _lambdaData._vars; }
     SList* getLambdaVarSorts() const { ASS_EQ(getType(), SF_LAMBDA); return _lambdaData._sorts; }
     TermList getLambdaExp() const { ASS_EQ(getType(), SF_LAMBDA); return _lambdaData.lambdaExp; }
-    IntList* getVariables() const { ASS_EQ(getType(), SF_LET); return _letData.variables; }
-    IntList* getTupleSymbols() const { return _letTupleData.symbols; }
+    VList* getVariables() const { ASS_EQ(getType(), SF_LET); return _letData.variables; }
+    VList* getTupleSymbols() const { return _letTupleData.symbols; }
     TermList getBinding() const {
       ASS_REP(getType() == SF_LET || getType() == SF_LET_TUPLE, getType());
       return TermList(getType() == SF_LET ? _letData.binding : _letTupleData.binding);
@@ -328,9 +328,9 @@ public:
   /** Create a new constant and insert in into the sharing structure */
   static Term* createConstant(unsigned symbolNumber) { return create(symbolNumber,0,0); }
   static Term* createITE(Formula * condition, TermList thenBranch, TermList elseBranch, TermList branchSort);
-  static Term* createLet(unsigned functor, IntList* variables, TermList binding, TermList body, TermList bodySort);
-  static Term* createLambda(TermList lambdaExp, IntList* vars, SList* sorts, TermList expSort);
-  static Term* createTupleLet(unsigned functor, IntList* symbols, TermList binding, TermList body, TermList bodySort);
+  static Term* createLet(unsigned functor, VList* variables, TermList binding, TermList body, TermList bodySort);
+  static Term* createLambda(TermList lambdaExp, VList* vars, SList* sorts, TermList expSort);
+  static Term* createTupleLet(unsigned functor, VList* symbols, TermList binding, TermList body, TermList bodySort);
   static Term* createFormula(Formula* formula);
   static Term* createTuple(unsigned arity, TermList* sorts, TermList* elements);
   static Term* createTuple(Term* tupleTerm);
@@ -353,7 +353,8 @@ public:
   static TermList realSort();
   static TermList rationalSort(); 
 
-  IntList* freeVariables() const;
+  VList* freeVariables() const;
+  bool isFreeVariable(unsigned var) const;
 
   /** Return number of bytes before the start of the term that belong to it */
   size_t getPreDataSize() { return isSpecial() ? sizeof(SpecialTermData) : 0; }

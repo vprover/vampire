@@ -234,7 +234,7 @@ bool ConjunctionGoalAnswerExractor::tryGetAnswer(Clause* refutation, Stack<TermL
   if(form->connective()!=EXISTS) {
     return false;
   }
-  Formula::VarList* answerVariables = form->vars();
+  VList* answerVariables = form->vars();
   form = form->qarg();
 
   LiteralStack goalLits;
@@ -327,13 +327,13 @@ bool AnswerLiteralManager::tryGetAnswer(Clause* refutation, Stack<TermList>& ans
   return false;
 }
 
-Literal* AnswerLiteralManager::getAnswerLiteral(Formula::VarList* vars,Formula* f)
+Literal* AnswerLiteralManager::getAnswerLiteral(VList* vars,Formula* f)
 {
   CALL("AnswerLiteralManager::getAnswerLiteral");
 
   static Stack<TermList> litArgs;
   litArgs.reset();
-  Formula::VarList::Iterator vit(vars);
+  VList::Iterator vit(vars);
   TermStack sorts;
   while(vit.hasNext()) {
     unsigned var = vit.next();
@@ -367,7 +367,7 @@ Unit* AnswerLiteralManager::tryAddingAnswerLiteral(Unit* unit)
   }
 
   Formula* quant =form->uarg();
-  Formula::VarList* vars = quant->vars();
+  VList* vars = quant->vars();
   ASS(vars);
 
   FormulaList* conjArgs = 0;

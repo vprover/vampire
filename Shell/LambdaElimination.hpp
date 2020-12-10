@@ -61,7 +61,7 @@ private:
   TermList sortOf(TermList t);
 
   void addToProcessed(TermList ts, Stack<unsigned> &_argNums);
-  void dealWithApp(TermList lhs, TermList rhs, int lambdaVar, TermStack &toBeProcessed, Stack<unsigned> &argNums);
+  void dealWithApp(TermList lhs, TermList rhs, const unsigned lambdaVar, TermStack &toBeProcessed, Stack<unsigned> &argNums);
 
   TermList createKTerm(TermList s1, TermList s2, TermList arg1);
   TermList createSCorBTerm(TermList arg1, TermList arg2, Signature::Combinator comb);

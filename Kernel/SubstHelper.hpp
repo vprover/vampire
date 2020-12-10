@@ -508,22 +508,22 @@ Formula* SubstHelper::applyImpl(Formula* f, Applicator& applicator, bool noShari
   case EXISTS:
   {
     bool varsModified = false;
-    Formula::VarList* newVars = 0;
-    Formula::VarList::Iterator vit(f->vars());
+    VList* newVars = VList::empty();
+    VList::Iterator vit(f->vars());
     while(vit.hasNext()) {
       unsigned v = vit.next();
       TermList binding = applicator.apply(v);
       ASS(binding.isVar());
       unsigned newVar = binding.var();
-      Formula::VarList::push(newVar, newVars);
+      VList::push(newVar, newVars);
       if(newVar!=v) {
-	varsModified = true;
+        varsModified = true;
       }
     }
 
     Formula* arg = applyImpl<ProcessSpecVars>(f->qarg(), applicator, noSharing);
     if (!varsModified && arg == f->qarg()) {
-      Formula::VarList::destroy(newVars);
+      VList::destroy(newVars);
       return f;
     }
     //TODO compute an updated sorts list

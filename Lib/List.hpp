@@ -248,6 +248,12 @@ public:
     return new List(elem, l);
   } // List::cons
 
+  /** return list with one element, the given elem */
+  static inline List* singleton(C elem)
+  {
+    return new List(elem);
+  }
+
   /** push elem to lst */
   inline static void push(C elem,List* &lst)
   {

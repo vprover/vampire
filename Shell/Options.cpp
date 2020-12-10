@@ -543,6 +543,7 @@ void Options::init()
     _newCNF.description="Use NewCNF algorithm to do naming, preprecess3 and clausificiation.";
     _lookup.insert(&_newCNF);
     _newCNF.tag(OptionTag::PREPROCESSING);
+    _newCNF.setRandomChoices({"on","off"});
 
     _iteInliningThreshold = IntOptionValue("ite_inlining_threshold","", 0);
     _iteInliningThreshold.description="Threashold of inlining of if-then-else expressions. "

@@ -449,8 +449,8 @@ void Property::scan(Formula* f, int polarity)
     }
     case FORALL:
       if(!_quantifiesOverPolymorphicVar){
-        Formula::VarList* vars = f->vars();
-        Formula::VarList::Iterator vit(vars);
+        VList* vars = f->vars();
+        VList::Iterator vit(vars);
 
         TermList s;
         while(vit.hasNext()){
@@ -469,8 +469,8 @@ void Property::scan(Formula* f, int polarity)
       break;
     case EXISTS:
       if(!_quantifiesOverPolymorphicVar){
-        Formula::VarList* vars = f->vars();
-        Formula::VarList::Iterator vit(vars);
+        VList* vars = f->vars();
+        VList::Iterator vit(vars);
 
         TermList s;
         while(vit.hasNext()){
@@ -1005,10 +1005,10 @@ bool Property::hasXEqualsY(const Formula* f)
     case FORALL:
       // remember universally quantified variables
       if (pol >= 0) {
-	Formula::VarList::Iterator vs(f->vars());
-	while (vs.hasNext()) {
-	  posVars.inc(vs.next());
-	}
+        VList::Iterator vs(f->vars());
+        while (vs.hasNext()) {
+          posVars.inc(vs.next());
+        }
       }
       forms.push(f->qarg());
       pols.push(pol);
@@ -1017,10 +1017,10 @@ bool Property::hasXEqualsY(const Formula* f)
   case EXISTS:
       // remember universally quantified variables
       if (pol <= 0) {
-	Formula::VarList::Iterator vs(f->vars());
-	while (vs.hasNext()) {
-	  posVars.inc(vs.next());
-	}
+        VList::Iterator vs(f->vars());
+        while (vs.hasNext()) {
+          posVars.inc(vs.next());
+        }
       }
       forms.push(f->qarg());
       pols.push(pol);

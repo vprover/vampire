@@ -53,12 +53,12 @@ unsigned FormulaUnit::varCnt()
   CALL("FormulaUnit::varCnt");
 
   Formula* frm = formula();
-  Formula::VarList* fv = frm->freeVariables();
-  Formula::VarList* bv = frm->boundVariables();
+  VList* fv = frm->freeVariables();
+  VList* bv = frm->boundVariables();
 
-  unsigned res = Formula::VarList::length(fv) + Formula::VarList::length(bv);
-  Formula::VarList::destroy(fv);
-  Formula::VarList::destroy(bv);
+  unsigned res = VList::length(fv) + VList::length(bv);
+  VList::destroy(fv);
+  VList::destroy(bv);
   return res;
 }
 

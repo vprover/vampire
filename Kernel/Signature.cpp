@@ -189,7 +189,7 @@ OperatorType* Signature::Symbol::fnType() const
 
   if (!_type) {
     TermList def = Term::defaultSort();
-    _type = OperatorType::getFunctionTypeUniformRange(arity(), def, def, VarList::empty());
+    _type = OperatorType::getFunctionTypeUniformRange(arity(), def, def);
   }
   return _type;
 }
@@ -206,7 +206,7 @@ OperatorType* Signature::Symbol::predType() const
   
   if (!_type) {
     TermList def = Term::defaultSort();
-    _type = OperatorType::getPredicateTypeUniformRange(arity(), def, VarList::empty());
+    _type = OperatorType::getPredicateTypeUniformRange(arity(), def);
   }
   return _type;
 }
@@ -748,7 +748,7 @@ unsigned Signature::getChoice(){
   bool added = false;
   unsigned choice = addFunction("vEPSILON",1, added);      
   if(added){
-    VarList* vl = new VarList(0);
+    VList* vl = VList::singleton(0);
     TermList alpha = TermList(0, false);
     TermList bs = Term::boolSort();
     TermList alphaBs = Term::arrowSort(alpha, bs);

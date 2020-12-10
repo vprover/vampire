@@ -529,7 +529,7 @@ void InductionClauseIterator::performStructInductionTwo(Clause* premise, Literal
       
     }
   }
-  Formula* exists = new QuantifiedFormula(Connective::EXISTS, new Formula::VarList(y.var(),0),0,
+  Formula* exists = new QuantifiedFormula(Connective::EXISTS, VList::singleton(y.var()),0,
                         FormulaList::length(formulas) > 0 ? static_cast<Formula*>(new JunctionFormula(
                                                                 Connective::AND,new FormulaList(new AtomicFormula(Ly),formulas)))
                                                           : static_cast<Formula*>(new AtomicFormula(Ly)));
@@ -656,7 +656,7 @@ void InductionClauseIterator::performStructInductionThree(Clause* premise, Liter
                             new AtomicFormula(cr2.transform(clit))));
 
   conjunction = new FormulaList(smallerImpNL,conjunction);
-  Formula* exists = new QuantifiedFormula(Connective::EXISTS, new Formula::VarList(y.var(),0),0,
+  Formula* exists = new QuantifiedFormula(Connective::EXISTS, VList::singleton(y.var()),0,
                        new JunctionFormula(Connective::AND,conjunction));
 
   TermReplacement cr3(term,x);

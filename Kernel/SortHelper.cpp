@@ -402,9 +402,9 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermL
             Signature::Symbol* symbol = isPredicate ? env.signature->getPredicate(sd->getFunctor())
                                                     : env.signature->getFunction(sd->getFunctor());
             unsigned position = 0;
-            Formula::VarList::Iterator vit(sd->getVariables());
+            VList::Iterator vit(sd->getVariables());
             while (vit.hasNext()) {
-              unsigned var = (unsigned)vit.next();
+              unsigned var = vit.next();
               TermList sort = isPredicate ? symbol->predType()->arg(position) : symbol->fnType()->arg(position);
               if (!map.insert(var, sort)) {
                 ASS_EQ(sort, map.get(var));

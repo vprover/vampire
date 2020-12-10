@@ -87,8 +87,6 @@ public:
   CLASS_NAME(OperatorType);
   USE_ALLOCATOR(OperatorType);
 
-  typedef List<unsigned> VarList;
-
 private:
   typedef Vector<TermList> OperatorKey; // Vector of argument sorts together with "0" appended for predicates and resultSort appended for functions
   OperatorKey* _key;
@@ -100,21 +98,21 @@ private:
   /**
    * Convenience functions for creating a key
    */
-  static OperatorKey* setupKey(unsigned arity, const TermList* sorts=0, VarList* vars = 0);
-  static OperatorKey* setupKey(std::initializer_list<TermList> sorts, VarList* vars);
-  static OperatorKey* setupKeyUniformRange(unsigned arity, TermList argsSort, VarList* vars);
+  static OperatorKey* setupKey(unsigned arity, const TermList* sorts, VList* vars);
+  static OperatorKey* setupKey(std::initializer_list<TermList> sorts, VList* vars);
+  static OperatorKey* setupKeyUniformRange(unsigned arity, TermList argsSort, VList* vars);
 
   typedef Map<OperatorKey*,OperatorType*,PointerDereferencingHash> OperatorTypes;
   static OperatorTypes& operatorTypes(); // just a wrapper around a static OperatorTypes object, to ensure a correct initialization order
 
-  static OperatorType* getTypeFromKey(OperatorKey* key, VarList* vars);
+  static OperatorType* getTypeFromKey(OperatorKey* key, VList* vars);
 
   //static const TermList PREDICATE_FLAG;
 
 public:
   ~OperatorType() { _key->deallocate(); }
 
-  static OperatorType* getPredicateType(unsigned arity, const TermList* sorts=0, VarList* vars=0) {
+  static OperatorType* getPredicateType(unsigned arity, const TermList* sorts=0, VList* vars=0) {
     CALL("OperatorType::getPredicateType(unsigned,const unsigned*)");
 
     OperatorKey* key = setupKey(arity,sorts,vars);
@@ -122,7 +120,7 @@ public:
     return getTypeFromKey(key,vars);
   }
 
-  static OperatorType* getPredicateType(std::initializer_list<TermList> sorts, VarList* vars = 0) {
+  static OperatorType* getPredicateType(std::initializer_list<TermList> sorts, VList* vars = 0) {
     CALL("OperatorType::getPredicateType(std::initializer_list<unsigned>)");
 
     OperatorKey* key = setupKey(sorts,vars);
@@ -130,7 +128,7 @@ public:
     return getTypeFromKey(key,vars);
   }
 
-  static OperatorType* getPredicateTypeUniformRange(unsigned arity, TermList argsSort, VarList* vars = 0) {
+  static OperatorType* getPredicateTypeUniformRange(unsigned arity, TermList argsSort, VList* vars = 0) {
     CALL("OperatorType::getPredicateTypeUniformRange");
 
     OperatorKey* key = setupKeyUniformRange(arity,argsSort,vars);
@@ -138,7 +136,7 @@ public:
     return getTypeFromKey(key,vars);
   }
 
-  static OperatorType* getFunctionType(unsigned arity, const TermList* sorts, TermList resultSort, VarList* vars = 0) {
+  static OperatorType* getFunctionType(unsigned arity, const TermList* sorts, TermList resultSort, VList* vars = 0) {
     CALL("OperatorType::getFunctionType");
 
     OperatorKey* key = setupKey(arity,sorts,vars);
@@ -146,7 +144,7 @@ public:
     return getTypeFromKey(key,vars);
   }
 
-  static OperatorType* getFunctionType(std::initializer_list<TermList> sorts, TermList resultSort, VarList* vars = 0) {
+  static OperatorType* getFunctionType(std::initializer_list<TermList> sorts, TermList resultSort, VList* vars = 0) {
     CALL("OperatorType::getFunctionType(std::initializer_list<unsigned>)");
  
     OperatorKey* key = setupKey(sorts,vars);
@@ -154,7 +152,7 @@ public:
     return getTypeFromKey(key,vars);
   }
 
-  static OperatorType* getFunctionTypeUniformRange(unsigned arity, TermList argsSort, TermList resultSort, VarList* vars = 0) {
+  static OperatorType* getFunctionTypeUniformRange(unsigned arity, TermList argsSort, TermList resultSort, VList* vars = 0) {
     CALL("OperatorType::getFunctionTypeUniformRange");
 
     OperatorKey* key = setupKeyUniformRange(arity,argsSort,vars);
@@ -166,7 +164,7 @@ public:
    * Convenience function for creating OperatorType for constants (as symbols).
    * Constants are function symbols of 0 arity, so just provide the result sort.
    */
-  static OperatorType* getConstantsType(TermList resultSort, VarList* vars = 0) { 
+  static OperatorType* getConstantsType(TermList resultSort, VList* vars = 0) {
     return getFunctionType(0,nullptr,resultSort, vars); 
   }
 

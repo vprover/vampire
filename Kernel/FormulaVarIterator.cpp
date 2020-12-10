@@ -64,7 +64,7 @@ FormulaVarIterator::FormulaVarIterator(const TermList* ts)
  * Return the next free variable.
  * @since 06/01/2004 Manchester
  */
-int FormulaVarIterator::next()
+unsigned FormulaVarIterator::next()
 {
   CALL("FormulaVarIterator::next");
 
@@ -244,7 +244,7 @@ bool FormulaVarIterator::hasNext()
       }
 
       case FVI_BIND: {
-        Formula::VarList::Iterator vs(_vars.top());
+        VList::Iterator vs(_vars.top());
         while (vs.hasNext()) {
           _bound.inc(vs.next());
         }
@@ -252,7 +252,7 @@ bool FormulaVarIterator::hasNext()
       }
 
       case FVI_UNBIND: {
-        Formula::VarList::Iterator vs(_vars.pop());
+        VList::Iterator vs(_vars.pop());
         while (vs.hasNext()) {
           _bound.dec(vs.next());
         }

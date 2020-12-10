@@ -155,7 +155,7 @@ bool TheoryInstAndSimp::isPure(Literal* lit) {
 bool TheoryInstAndSimp::isXeqTerm(const TermList* left, const TermList* right) {
   bool r = left->isVar() &&
     right->isTerm() &&
-    !IntList::member(left->var(), right->term()->freeVariables());
+    !VList::member(left->var(), right->term()->freeVariables());
   return r;
 }
 

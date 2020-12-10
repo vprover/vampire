@@ -46,7 +46,7 @@ ClauseList* getCheckingClauses();
 
 void addClaimForFunction(TermList x, TermList y, TermList fx, TermList fy,
                          unsigned fname,
-                         TermList arg_srt, TermList ret_srt, Formula::VarList* existential,
+                         TermList arg_srt, TermList ret_srt, VList* existential,
                          ClauseList*& newClauses);
 
 void addClaim(Formula* conjecture, ClauseList*& newClauses);

@@ -42,12 +42,11 @@ namespace Shell {
 class Skolem
 {
 public:
-  typedef List<unsigned> VarList; // not to be confused with Formula::VarList which is a list of ints
   static FormulaUnit* skolemise(FormulaUnit*, bool appify = false);
-  static unsigned addSkolemFunction(unsigned arity, TermList* domainSorts, TermList rangeSort, unsigned var, VarList* vl=0);
-  static unsigned addSkolemFunction(unsigned arity, TermList* domainSorts, TermList rangeSort, VarList* vl=0, const char* suffix=0);
-  static unsigned addSkolemPredicate(unsigned arity, TermList* domainSorts, unsigned var, VarList* vl=0);
-  static unsigned addSkolemPredicate(unsigned arity, TermList* domainSorts, VarList* vl=0, const char* suffix=0);
+  static unsigned addSkolemFunction(unsigned arity, TermList* domainSorts, TermList rangeSort, unsigned var, VList* vl=0);
+  static unsigned addSkolemFunction(unsigned arity, TermList* domainSorts, TermList rangeSort, VList* vl=0, const char* suffix=0);
+  static unsigned addSkolemPredicate(unsigned arity, TermList* domainSorts, unsigned var, VList* vl=0);
+  static unsigned addSkolemPredicate(unsigned arity, TermList* domainSorts, VList* vl=0, const char* suffix=0);
 private:
   /** Initialise a Skolem object */
   Skolem () :  _beingSkolemised(0) {}
@@ -98,7 +97,7 @@ private:
 
   UnitList* _skolimizingDefinitions;
 
-  bool _appify;
+  bool _appify; // a higher-order solution
 
 }; // class Skolem
 
