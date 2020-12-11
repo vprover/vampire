@@ -608,6 +608,7 @@ void Z3Interfacing::createTermAlgebra(TermAlgebra& start)
 
   Array<Z3_sort> sorts(tas.size());
 
+  DBG("calling Z3_mk_datatypes(...)")
   Z3_mk_datatypes(_context, tas.size(), sortNames.begin(), sorts.begin(), ctorss_z3.begin());
 
   for (unsigned iSort = 0; iSort < sorts.size(); iSort++) {
@@ -632,12 +633,15 @@ void Z3Interfacing::createTermAlgebra(TermAlgebra& start)
       auto constr = z3::func_decl(_context, constr_);
 
       auto ctorId = FuncOrPredId::function(ctor->functor());
+      DBG("inserting ", *ctor)
       _toZ3.insert(ctorId, Z3FuncEntry::plain(constr));
       _fromZ3.insert(constr, ctorId);
       if (ctor->hasDiscriminator()) {
+        DBG("inserting discr")
         _toZ3.insert(FuncOrPredId::predicate(ctor->discriminator()), Z3FuncEntry::plain(discr));
       }
       for (unsigned iDestr = 0; iDestr < ctor->arity(); iDestr++)  {
+        DBG("inserting dtor ", iDestr)
         auto dtor = destr[iDestr];
         _toZ3.insert(FuncOrPredId::function(ctor->destructorFunctor(iDestr)), 
             Z3FuncEntry::destructor(z3::func_decl(_context, dtor), discr));
@@ -645,10 +649,13 @@ void Z3Interfacing::createTermAlgebra(TermAlgebra& start)
     }
   }
 
+  DBG("for(...) Z3_del_constructor_list(..)")
+
   for (auto clist : ctorss_z3) {
     Z3_del_constructor_list(_context, clist);
   }
 
+  DBG("for(...) Z3_del_constructor(..)")
   for (auto ctors : ctorss) {
     for (auto ctor : ctors) {
       Z3_del_constructor(_context, ctor);
