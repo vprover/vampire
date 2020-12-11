@@ -40,7 +40,7 @@
 #include "Indexing/TermSharing.hpp"
 #include "Z3Interfacing.hpp"
 
-#define DEBUG(...) // DBG(__VA_ARGS__)
+#define DEBUG(...) DBG(__VA_ARGS__)
 namespace Lib {
 
 template<> 
@@ -769,7 +769,6 @@ struct ToZ3Expr {
       //IMPORTANT - every arg must be popped from the stack
       // note that the z3 functions do this already
       args.set(i, evaluatedArgs[i]);
-      DBGE(evaluatedArgs[i]);
     }
 
     // dummy return
@@ -1044,7 +1043,6 @@ struct ToZ3Expr {
     auto functor = Z3Interfacing::FuncOrPredId(trm);
     Z3FuncEntry entry = self._toZ3.tryGet(functor).toOwned()
       .unwrapOrElse([&]() {
-          DBG("not chached")
 
           // TODO check domain_sorts for args in equality and interpretted?
           z3::sort_vector domain_sorts = z3::sort_vector(self._context);
@@ -1072,7 +1070,6 @@ struct ToZ3Expr {
             });
       });
 
-  DBG("lala 00004")
     z3::func_decl f = entry.self;
 
     if (entry.metadata.is<DestructorMeta>() && withGuard) {
@@ -1081,11 +1078,8 @@ struct ToZ3Expr {
       self._solver.add(selector(args[0]));
     }
 
-  DBG("lala 00005")
     // Finally create expr
-    DBGE(f)
     z3::expr e = f(args); 
-  DBG("lala 00006")
     return e;
   }
 };
