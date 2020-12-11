@@ -160,16 +160,30 @@ public:
     static FuncOrPredId predicate(PredId id) { return FuncOrPredId ( id, true ); } 
     unsigned id;
     bool isPredicate;
-    unsigned hash() { return Lib::HashUtils::combine(id, isPredicate); }
+    
+    friend struct std::hash<FuncOrPredId> ;
     friend bool operator==(FuncOrPredId const& l, FuncOrPredId const& r)
     { return l.id == r.id && l.isPredicate == r.isPredicate; }
+    friend std::ostream& operator<<(std::ostream& out, FuncOrPredId const& self)
+    { return out << (self.isPredicate ? "pred " : "func " ) 
+      << (self.isPredicate ? env.signature->getPredicate(self.id)->name() : env.signature->getFunction(self.id)->name());
+    }
   };
 
 private:
-  struct NoMeta {};
+  struct NoMeta 
+  {
+    friend std::ostream& operator<<(std::ostream& out, NoMeta const& self)
+    { return out << "NoMeta"; }
+  };
 
   struct DestructorMeta
-  { z3::func_decl selector; };
+  { 
+    z3::func_decl selector; 
+
+    friend std::ostream& operator<<(std::ostream& out, DestructorMeta const& self)
+    { return out << "ctor(" << self.selector << ")"; }
+  };
 
   struct Z3FuncEntry {
     using Metadata = Coproduct<NoMeta, DestructorMeta>;
@@ -181,6 +195,9 @@ private:
 
     static Z3FuncEntry destructor(z3::func_decl destr, z3::func_decl sel) 
     { return  Z3FuncEntry { .self = destr, .metadata = Metadata(DestructorMeta { .selector = sel, }) }; }
+
+    friend std::ostream& operator<<(std::ostream& out, Z3FuncEntry const& self)
+    { return out << self.self << "@(" << self.metadata << ")"; }
   };
 
 
@@ -189,8 +206,8 @@ private:
     static unsigned hash(z3::func_decl const& c) { return c.hash(); }
     static bool equals(z3::func_decl const& l, z3::func_decl const& r) { return z3::eq(l,r); }
   };
-  Map<z3::func_decl, FuncOrPredId, Z3Hash   > _fromZ3;
-  Map<FuncOrPredId,  Z3FuncEntry,  Lib::Hash> _toZ3;
+  Map<z3::func_decl, FuncOrPredId, Z3Hash > _fromZ3;
+  Map<FuncOrPredId,  Z3FuncEntry,  StlHash<FuncOrPredId>> _toZ3;
   Set<SortId> _createdTermAlgebras;
 
   z3::func_decl const& findConstructor(FuncId id);
@@ -278,6 +295,13 @@ private:
 };
 
 }//end SAT namespace
+namespace std {
+    template<>
+    struct hash<SAT::Z3Interfacing::FuncOrPredId> {
+      size_t operator()(SAT::Z3Interfacing::FuncOrPredId const& self) 
+      { return Lib::HashUtils::combine(self.id, self.isPredicate); }
+    };
+}
 
 #endif /* if VZ3 */
 #endif /*Z3Interfacing*/
