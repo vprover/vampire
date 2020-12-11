@@ -44,14 +44,6 @@
 
 namespace SAT{
 
-  class Z3Exception : Exception
-  {
-    Z3_error_code _code;
-  public:
-    Z3Exception(Z3_error_code code) : _code(code) {}
-    virtual void cry(std::ostream& out) override;
-  };
-
   struct UninterpretedForZ3Exception : public ThrowableBase
   {
     UninterpretedForZ3Exception() 
@@ -156,10 +148,24 @@ public:
     _solver.reset();
     _status = UNKNOWN; // I set it to unknown as I do not reset
   }
-private:
   using FuncId = unsigned;
+  using PredId = unsigned;
   using SortId = unsigned;
 
+  struct FuncOrPredId 
+  {
+    explicit FuncOrPredId(unsigned id, bool isPredicate) : id(id), isPredicate(isPredicate) {}
+    explicit FuncOrPredId(Term* term) : FuncOrPredId(term->functor(), term->isLiteral()) {}
+    static FuncOrPredId function(FuncId id) { return FuncOrPredId ( id, false ); } 
+    static FuncOrPredId predicate(PredId id) { return FuncOrPredId ( id, true ); } 
+    unsigned id;
+    bool isPredicate;
+    unsigned hash() { return Lib::HashUtils::combine(id, isPredicate); }
+    friend bool operator==(FuncOrPredId const& l, FuncOrPredId const& r)
+    { return l.id == r.id && l.isPredicate == r.isPredicate; }
+  };
+
+private:
   struct NoMeta {};
 
   struct DestructorMeta
@@ -183,8 +189,8 @@ private:
     static unsigned hash(z3::func_decl const& c) { return c.hash(); }
     static bool equals(z3::func_decl const& l, z3::func_decl const& r) { return z3::eq(l,r); }
   };
-  Map<z3::func_decl, FuncId,      Z3Hash   > _fromZ3;
-  Map<FuncId,        Z3FuncEntry, Lib::Hash> _toZ3;
+  Map<z3::func_decl, FuncOrPredId, Z3Hash   > _fromZ3;
+  Map<FuncOrPredId,  Z3FuncEntry,  Lib::Hash> _toZ3;
   Set<SortId> _createdTermAlgebras;
 
   z3::func_decl const& findConstructor(FuncId id);

@@ -99,13 +99,10 @@ const char* errToString(Z3_error_code code)
   }
 }
 
-void Z3Exception::cry(std::ostream& out) 
-{ out << "Z3 Exception: " << errToString(_code) << endl; }
-
 void handleZ3Error(Z3_context ctxt, Z3_error_code code) 
 {
   DEBUG(errToString(code))
-  throw Z3Exception(code);
+  throw z3::exception(errToString(code));
 }
 
 Z3Interfacing::Z3Interfacing(SAT2FO& s2f, bool showZ3, bool unsatCoreForRefutations, bool unsatCoresForAssumptions):
@@ -305,6 +302,21 @@ SATSolver::VarAssignment Z3Interfacing::getAssignment(unsigned var)
   return NOT_KNOWN;
 }
 
+OperatorType* operatorType(Z3Interfacing::FuncOrPredId f) 
+{
+  return f.isPredicate 
+    ? env.signature->getPredicate(f.id)->predType()
+    : env.signature->getFunction (f.id)->fnType();
+}
+
+
+Term* createTermOrPred(Z3Interfacing::FuncOrPredId f, unsigned arity, TermList* ts) 
+{
+  return f.isPredicate 
+    ? Literal::create(f.id, arity, true, false, ts)
+    : Term::create(f.id, arity, ts);
+}
+
 struct EvaluateInModel 
 {
 
@@ -369,12 +381,12 @@ struct EvaluateInModel
           // evaluation failed somewhere in a recursive call
           return Result();
         } else {
-          auto argSort = env.signature->getFunction(vfunc)->fnType()->arg(i);
+          auto argSort = operatorType(vfunc)->arg(i);
           auto t = TermList(toTerm(evaluatedArgs[i].unwrap(), argSort));
           args.push(t);
         }
       }
-      return Result(Copro(Term::create(vfunc, args.size(), args.begin())));
+      return Result(Copro(createTermOrPred(vfunc, args.size(), args.begin())));
 
     } else {
       
@@ -619,14 +631,15 @@ void Z3Interfacing::createTermAlgebra(TermAlgebra& start)
       auto discr = z3::func_decl(_context, discr_);
       auto constr = z3::func_decl(_context, constr_);
 
-      _toZ3.insert(ctor->functor(), Z3FuncEntry::plain(constr));
-      _fromZ3.insert(constr, ctor->functor());
+      auto ctorId = FuncOrPredId::function(ctor->functor());
+      _toZ3.insert(ctorId, Z3FuncEntry::plain(constr));
+      _fromZ3.insert(constr, ctorId);
       if (ctor->hasDiscriminator()) {
-        _toZ3.insert(ctor->discriminator(), Z3FuncEntry::plain(discr));
+        _toZ3.insert(FuncOrPredId::predicate(ctor->discriminator()), Z3FuncEntry::plain(discr));
       }
       for (unsigned iDestr = 0; iDestr < ctor->arity(); iDestr++)  {
         auto dtor = destr[iDestr];
-        _toZ3.insert(ctor->destructorFunctor(iDestr), 
+        _toZ3.insert(FuncOrPredId::function(ctor->destructorFunctor(iDestr)), 
             Z3FuncEntry::destructor(z3::func_decl(_context, dtor), discr));
       }
     }
@@ -645,14 +658,15 @@ void Z3Interfacing::createTermAlgebra(TermAlgebra& start)
 
 }
 
-z3::func_decl const& Z3Interfacing::findConstructor(FuncId id) 
+z3::func_decl const& Z3Interfacing::findConstructor(FuncId id_) 
 {
   CALL("Z3Interfacing::findConstructor(FuncId id)")
+  auto id = FuncOrPredId::function(id_);
   auto f = _toZ3.tryGet(id);
   if (f.isSome()) {
     return f.unwrap().self;
   } else {
-    auto sym = env.signature->getFunction(id);
+    auto sym = env.signature->getFunction(id_);
     auto domain = sym->fnType()->result(); 
     createTermAlgebra(*env.signature->getTermAlgebraOfSort(domain));
     return _toZ3.get(id).self;
@@ -755,6 +769,7 @@ struct ToZ3Expr {
       //IMPORTANT - every arg must be popped from the stack
       // note that the z3 functions do this already
       args.set(i, evaluatedArgs[i]);
+      DBGE(evaluatedArgs[i]);
     }
 
     // dummy return
@@ -1026,9 +1041,10 @@ struct ToZ3Expr {
     }
 
 
-    auto functor = trm->functor();
+    auto functor = Z3Interfacing::FuncOrPredId(trm);
     Z3FuncEntry entry = self._toZ3.tryGet(functor).toOwned()
       .unwrapOrElse([&]() {
+          DBG("not chached")
 
           // TODO check domain_sorts for args in equality and interpretted?
           z3::sort_vector domain_sorts = z3::sort_vector(self._context);
@@ -1056,6 +1072,7 @@ struct ToZ3Expr {
             });
       });
 
+  DBG("lala 00004")
     z3::func_decl f = entry.self;
 
     if (entry.metadata.is<DestructorMeta>() && withGuard) {
@@ -1064,8 +1081,11 @@ struct ToZ3Expr {
       self._solver.add(selector(args[0]));
     }
 
+  DBG("lala 00005")
     // Finally create expr
+    DBGE(f)
     z3::expr e = f(args); 
+  DBG("lala 00006")
     return e;
   }
 };
