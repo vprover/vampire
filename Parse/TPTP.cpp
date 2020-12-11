@@ -3802,6 +3802,7 @@ void TPTP::endTff()
   }
 } // endTff
 
+
 OperatorType* TPTP::constructOperatorType(Type* t, VList* vars)
 {
   CALL("TPTP::constructOperatorType");
@@ -3860,8 +3861,7 @@ OperatorType* TPTP::constructOperatorType(Type* t, VList* vars)
 
     case TT_QUANTIFIED: {
       QuantifiedType* qt = static_cast<QuantifiedType*>(t);
-      VList* quantifiedVars = VList::reverse(qt->vars());
-      OperatorType* ot = constructOperatorType(qt->qtype(), quantifiedVars);
+      OperatorType* ot = constructOperatorType(qt->qtype(), qt->vars());
       return ot;
       //TODO check that all free variables in ot are from quantifiedVars
     }
