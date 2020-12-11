@@ -198,6 +198,12 @@ public:
   inline bool find(Key const& key) const
   { return tryGet(key).isSome(); }
 
+  inline unsigned hashCode(Key const& key) const 
+  { 
+    auto code = Hash::hash(key);
+    return code == 0 ? 1 : code;
+  }
+
   /**
    * Find value by the key, and return it if it exists. Return an empty option otherwise
    * 
@@ -208,10 +214,7 @@ public:
     CALL("Map::find/2");
     using Opt = Option<Val&>;
 
-    unsigned code = Hash::hash(key);
-    if (code == 0) {
-      code = 1;
-    }
+    auto code = hashCode(key);
     Entry* entry;
     for (entry = firstEntryForCode(code); entry->occupied(); entry = nextEntry(entry)) {
       if (entry->code == code && Hash::equals(entry->key(),key)) {
@@ -253,10 +256,7 @@ public:
   Val* getPtr(const Key& key) 
   {
     CALL("Val* Map::getPtr(const Key&)");
-    unsigned code = Hash::hash(key);
-    if (code == 0) {
-      code = 1;
-    }
+    auto code = hashCode(key);
     Entry* entry;
     for (entry = firstEntryForCode(code); entry->occupied(); entry = nextEntry(entry)) {
       if (entry->code == code && Hash::equals(entry->key(),key)) {
@@ -276,10 +276,7 @@ public:
   const Val* getPtr(const Key& key) const
   {
     CALL("const Val* Map::getPtr(const Key&)");
-    unsigned code = Hash::hash(key);
-    if (code == 0) {
-      code = 1;
-    }
+    auto code = hashCode(key);
     Entry* entry;
     for (entry = firstEntryForCode(code); entry->occupied(); entry = nextEntry(entry)) {
       if (entry->code == code && Hash::equals(entry->key(),key)) {
@@ -302,10 +299,7 @@ public:
   {
     CALL("Map::get");
 
-    unsigned code = Hash::hash(key);
-    if (code == 0) {
-      code = 1;
-    }
+    auto code = hashCode(key);
     Entry* entry;
     for (entry = firstEntryForCode(code); !Hash::equals(entry->key(),key); entry = nextEntry(entry)) {
       ASS(entry->occupied());
@@ -349,10 +343,7 @@ public:
     if (_noOfEntries >= _maxEntries) { // too many entries
       expand();
     }
-    unsigned code = Hash::hash(key);
-    if (code == 0) {
-      code = 1;
-    }
+    auto code = hashCode(key);
     return insert(std::move(key),std::move(val),code);
   } // Map::insert
 
@@ -401,10 +392,7 @@ public:
     if (_noOfEntries >= _maxEntries) { // too many entries
       expand();
     }
-    unsigned code = Hash::hash(key);
-    if (code == 0) {
-      code = 1;
-    }
+    auto code = hashCode(key);
     Entry* entry;
     for (entry = firstEntryForCode(code); entry->occupied(); entry = nextEntry(entry)) {
       if (entry->code == code && Hash::equals(entry->key(), key)) {
@@ -432,10 +420,7 @@ public:
     if (_noOfEntries >= _maxEntries) { // too many entries
       expand();
     }
-    unsigned code = Hash::hash(key);
-    if (code == 0) {
-      code = 1;
-    }
+    auto code = hashCode(key);
     Entry* entry;
     for (entry = firstEntryForCode(code); entry->occupied(); entry = nextEntry(entry)) {
       if (entry->code == code && Hash::equals(entry->key(), key)) {
@@ -478,10 +463,7 @@ public:
     if (_noOfEntries >= _maxEntries) { // too many entries
       expand();
     }
-    unsigned code = Hash::hash(key);
-    if (code == 0) {
-      code = 1;
-    }
+    auto code = hashCode(key);
     Entry* entry;
     for (entry = firstEntryForCode(code); entry->occupied(); entry = nextEntry(entry)) {
       if (entry->code == code && Hash::equals(entry->key(), key)) {
@@ -521,10 +503,7 @@ public:
     if (_noOfEntries >= _maxEntries) { // too many entries
       expand();
     }
-    unsigned code = Hash::hash(key);
-    if (code == 0) {
-      code = 1;
-    }
+    auto code = hashCode(key);
     Entry* entry;
     for (entry = firstEntryForCode(code); entry->occupied(); entry = nextEntry(entry)) {
       if (entry->code == code && Hash::equals(entry->key(), key)) {
