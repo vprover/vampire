@@ -770,8 +770,7 @@ public:
   public:
     /** constructor */
     inline explicit FIFO(List* &lst)
-      : _last(0),
-	_initial(lst)
+      : _last(0), _initial(lst)
     {
       ASS_EQ(_initial,0);
     }
@@ -780,9 +779,11 @@ public:
     inline void push(C elem)
     {
       List* newLast = new List(elem);
-      if (_last) 
-	_last->setTail(newLast);
-      else _initial = newLast;
+      if (_last) {
+        _last->setTail(newLast);
+      } else {
+        _initial = newLast;
+      }
 
       _last = newLast;
     } // FIFO::push
@@ -797,6 +798,9 @@ public:
     inline void pushFront(C elem)
     {
       _initial = new List(elem, _initial);
+      if (!_last) {
+        _last = _initial;
+      }
     }
 
   private:
