@@ -183,6 +183,11 @@ public:
   unsigned typeArgsArity() const { return _typeArgsArity; }
   unsigned arity() const { return _key->length()-1; }
 
+  /**
+   * These are the free variables of the sorts of the arguments (and the return type in case of functions) in the polymorphic case.
+   *
+   * For the non-polymorphic case, _typeArgsArity==0 and this function cannot be used meaninfully.
+   */
   TermList quantifiedVar(unsigned idx) const
   {
     CALL("OperatorType::quantifiedVar");
@@ -190,6 +195,11 @@ public:
     return (*_key)[idx];
   }
 
+   /**
+    * In the polymorhpic case, the first _typeArgsArity arguments of a predicate / function symbol are actually sorts, so their sort is "superSort"
+    *
+    * For idx >= _typeArgsArity (== 0 in the non-polymorphic case) this returns the actual sort of the idx-th argument
+    */
   TermList arg(unsigned idx) const
   {
     CALL("OperatorType::arg");
@@ -203,6 +213,10 @@ public:
   //In higher-order we have boolean functions
   bool isPredicateType() const { return (*_key)[arity()] == Term::boolSort(); };
   bool isFunctionType() const { return (*_key)[arity()] != Term::boolSort(); };
+
+  /**
+   * The result sort of function types; or Term::boolSort() for predicates.
+   */
   TermList result() const {
     CALL("OperatorType::result");
     //ASS(isFunctionType()); //TODO how best to deal with this?
