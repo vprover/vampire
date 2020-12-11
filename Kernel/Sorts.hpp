@@ -71,15 +71,27 @@ private:
 };
 
 /**
- * The OperatorType class represents the predicate and function types (which are not sorts in first-order logic).
- * These are determined by their kind (either PREDICATE or FUNCTION), arity, a corresponding list of argument sorts,
- * and a return sort in the case of functions.
+ * The OperatorType class represents the predicate and function types 
+ * the only difference between the two is that a predicate type has return type
+ * $o whilst a function type has any other return type.
  *
- * The class stores all this data in one Vector<unsigned>*, of length arity+1,
- * where the last element is the return sort for functions and "MAX_UNSIGNED" for predicates (which distinguishes the two kinds).
+ * The class can be used to store polymorphic types which are of the form:
+ * !>[vars](sort1 * ... * sortn) > return_sort where sorts can only contain variables 
+ * from vars. View "A Polymorphic Vampire" for more details:
+ *
+ * https://link.springer.com/chapter/10.1007/978-3-030-51054-1_21
+ *
+ * The class stores data in a Vector<TermList>*, of length num_of_bound_vars +
+ * num_of_sorts + 1. In the monomorphic case, num_of_bound_vars = 0 and each
+ * sort_i is a constant.
  *
  * The objects of this class are perfectly shared (so that equal predicate / function types correspond to equal pointers)
  * and are obtained via static methods (to guarantee the sharing).
+ *
+ * Currently, bound variables are passed to functions in this class by a pointer to a list
+ * of unsigneds (representing the bound vars). To enable perfect sharing, these lists 
+ * are then converted into TermLists and stored at the beginning of the vector as 
+ * mentioned above. 
  */
 class OperatorType
 {
