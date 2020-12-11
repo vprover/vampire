@@ -88,10 +88,6 @@ bool ForwardDemodulation::perform(Clause* cl, Clause*& replacement, ClauseIterat
   static DHSet<TermList> attempted;
   attempted.reset();
 
-  if(cl->containsFunctionDefinition()) {
-    return 0;
-  }
-
   unsigned cLen=cl->length();
   for(unsigned li=0;li<cLen;li++) {
     Literal* lit=(*cl)[li];

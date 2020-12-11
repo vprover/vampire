@@ -1087,6 +1087,10 @@ bool Splitter::doSplitting(Clause* cl)
     return false;
   }
 
+  if (cl->containsFunctionDefinition()) {
+    return false;
+  }
+
   if (_fastRestart && _haveBranchRefutation) {
     _fastClauses.push(cl);
     return true; // the clause is ours now

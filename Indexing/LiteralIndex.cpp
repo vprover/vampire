@@ -83,6 +83,10 @@ void GeneratingLiteralIndex::handleClause(Clause* c, bool adding)
 {
   CALL("GeneratingLiteralIndex::handleClause");
 
+  if (c->containsFunctionDefinition()) {
+    return;
+  }
+
   TimeCounter tc(TC_BINARY_RESOLUTION_INDEX_MAINTENANCE);
 
   int selCnt=c->numSelected();
@@ -94,6 +98,10 @@ void GeneratingLiteralIndex::handleClause(Clause* c, bool adding)
 void SimplifyingLiteralIndex::handleClause(Clause* c, bool adding)
 {
   CALL("SimplifyingLiteralIndex::handleClause");
+
+  if (c->containsFunctionDefinition()) {
+    return;
+  }
 
   TimeCounter tc(TC_BACKWARD_SUBSUMPTION_INDEX_MAINTENANCE);
 
@@ -108,7 +116,7 @@ void FwSubsSimplifyingLiteralIndex::handleClause(Clause* c, bool adding)
 {
   CALL("FwSubsSimplifyingLiteralIndex::handleClause");
 
-  if (c->length() < 2) {
+  if (c->length() < 2 || c->containsFunctionDefinition()) {
     return;
   }
 
@@ -122,7 +130,7 @@ void FSDLiteralIndex::handleClause(Clause* c, bool adding)
 {
   CALL("FSDLiteralIndex::handleClause");
 
-  if (c->length() < 2) {
+  if (c->length() < 2 || c->containsFunctionDefinition()) {
     return;
   }
 
@@ -159,7 +167,7 @@ void UnitClauseLiteralIndex::handleClause(Clause* c, bool adding)
 {
   CALL("UnitClauseLiteralIndex::handleClause");
 
-  if(c->length()==1) {
+  if(c->length()==1 && !c->containsFunctionDefinition()) {
     TimeCounter tc(TC_SIMPLIFYING_UNIT_LITERAL_INDEX_MAINTENANCE);
 
     handleLiteral((*c)[0], c, adding);
@@ -171,7 +179,7 @@ void NonUnitClauseLiteralIndex::handleClause(Clause* c, bool adding)
   CALL("NonUnitClauseLiteralIndex::handleClause");
 
   unsigned clen=c->length();
-  if(clen<2) {
+  if(clen<2 || c->containsFunctionDefinition()) {
     return;
   }
   TimeCounter tc(TC_NON_UNIT_LITERAL_INDEX_MAINTENANCE);
@@ -233,7 +241,7 @@ void RewriteRuleIndex::handleClause(Clause* c, bool adding)
 {
   CALL("RewriteRuleIndex::handleClause");
 
-  if(c->length()!=2) {
+  if(c->length()!=2 || c->containsFunctionDefinition()) {
     return;
   }
 
@@ -388,6 +396,10 @@ void RewriteRuleIndex::handleEquivalence(Clause* c, Literal* cgr, Clause* d, Lit
 void DismatchingLiteralIndex::handleClause(Clause* c, bool adding)
 {
   CALL("DismatchingLiteralIndex::handleClause");
+
+  if (c->containsFunctionDefinition()) {
+    return;
+  }
 
   //TODO add time counter for dismatching
 
