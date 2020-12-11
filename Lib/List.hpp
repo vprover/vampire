@@ -775,6 +775,7 @@ public:
     {
       ASS_EQ(_initial,0);
     }
+    
     /** add element at the end of the original list */
     inline void push(C elem)
     {
@@ -785,6 +786,18 @@ public:
 
       _last = newLast;
     } // FIFO::push
+
+    /** push retained for compatibility with existing code.
+        pushBack synonym for push */
+    inline void pushBack(C elem)
+    {
+      push(elem);
+    }
+
+    inline void pushFront(C elem)
+    {
+      _initial = new List(elem, _initial);
+    }
 
   private:
     /** last element */

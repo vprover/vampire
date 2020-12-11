@@ -372,7 +372,8 @@ Formula* Skolem::skolemise (Formula* f)
       args.reset();
 
       // for proof recording purposes, see below
-      VList* var_args = VList::empty();
+      VList* varArgs = VList::empty();
+      VList::FIFO vArgs(varArgs);
       Formula* before = SubstHelper::apply(f, _subst);
 
       ExVarDepInfo& depInfo = _varDeps.get(f);
@@ -401,17 +402,15 @@ Formula* Skolem::skolemise (Formula* f)
         unsigned uvar = vuIt.next();
         TermList sort = _varSorts.get(uvar, Term::defaultSort());
         if(sort == Term::superSort()){
-          args.push(TermList(uvar, false));//TODO check that this works
-          VList::push(uvar,var_args); //TODO not too sure about this bit
+          args.push(TermList(uvar, false));
+          vArgs.pushFront(uvar);
         } else {
           if(sort.isVar() || !sort.term()->shared() || !sort.term()->ground()){
             sort = SubstHelper::apply(sort, _subst);
           }
           argSorts.push(sort);
           termArgs.push(TermList(uvar, false));
-          VList* var_arg = VList::empty();
-          VList::push(uvar, var_arg);
-          var_args = VList::concat(var_args, var_arg);
+          vArgs.pushBack(uvar);
         }
         arity++;
       }
@@ -479,7 +478,7 @@ Formula* Skolem::skolemise (Formula* f)
         Formula* def = new BinaryFormula(IMP, before, after);
 
         if (arity > 0) {
-          def = new QuantifiedFormula(FORALL,var_args,nullptr,def);
+          def = new QuantifiedFormula(FORALL,varArgs,nullptr,def);
         }
 
         Unit* defUnit = new FormulaUnit(def,NonspecificInference0(UnitInputType::AXIOM,InferenceRule::CHOICE_AXIOM));

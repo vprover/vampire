@@ -3802,22 +3802,6 @@ void TPTP::endTff()
   }
 } // endTff
 
-VList* reverse_nondestructively(VList* vars)
-{
-  CALL("TPTP-reverse_nondestructively");
-
-  Stack<unsigned> varStack;
-  while(!VList::isEmpty(vars)){
-    varStack.push(vars->head());
-    vars = vars->tail();
-  }
-  VList* vl = VList::empty();
-  while(!varStack.isEmpty()){
-    VList::push(varStack.pop(), vl);
-  }
-  return vl;
-}
-
 OperatorType* TPTP::constructOperatorType(Type* t, VList* vars)
 {
   CALL("TPTP::constructOperatorType");
@@ -3876,7 +3860,7 @@ OperatorType* TPTP::constructOperatorType(Type* t, VList* vars)
 
     case TT_QUANTIFIED: {
       QuantifiedType* qt = static_cast<QuantifiedType*>(t);
-      VList* quantifiedVars = reverse_nondestructively(qt->vars());
+      VList* quantifiedVars = VList::reverse(qt->vars());
       OperatorType* ot = constructOperatorType(qt->qtype(), quantifiedVars);
       return ot;
       //TODO check that all free variables in ot are from quantifiedVars
