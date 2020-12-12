@@ -18,7 +18,7 @@
 #include "Lib/VString.hpp"
 #include "Kernel/Sorts.hpp"
 
-using namespace Kernel;
+using Kernel::TermList;
 
 namespace Shell {
   class TermAlgebraConstructor {
