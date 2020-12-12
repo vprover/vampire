@@ -678,9 +678,9 @@ void axiomSelectionMode()
 
   ScopedPtr<Problem> prb(UIHelper::getInputProblem(*env.options));
 
-  /*if (prb->hasFOOL()) {
+  if (prb->hasFOOL()) {
     FOOLElimination().apply(*prb);
-  }*/
+  }
 
   // reorder units
   if (env.options->normalize()) {

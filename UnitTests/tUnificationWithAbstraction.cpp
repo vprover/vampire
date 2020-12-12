@@ -75,7 +75,7 @@ TermList int_plus(TermList n1, TermList n2)
 {
   return binary(Theory::INT_PLUS,n1,n2);
 }
-Literal* equals(TermList t1, SortType t2)
+Literal* equals(TermList t1, TermList t2)
 {
    SortType srt;
    if(!SortHelper::tryGetResultSort(t1,srt)){
