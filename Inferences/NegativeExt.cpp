@@ -72,7 +72,7 @@ struct NegativeExt::ResultFn
     varSorts.reset();
    
     TermList eqSort = SortHelper::getEqualityArgumentSort(lit);
-    if(eqSort.isVar() || !ApplicativeHelper::isArrowType(eqSort.term())){
+    if(eqSort.isVar() || !ApplicativeHelper::isArrowSort(eqSort)){
       return 0;
     }
     

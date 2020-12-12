@@ -105,7 +105,7 @@ void TermSubstitutionTree::handleTerm(TermList t, Literal* lit, Clause* cls, boo
   if(_extByAbs && t.isTerm()){ 
     TermList sort = SortHelper::getResultSort(t.term());
     bool sortVar = sort.isVar();
-    bool sortArr = !sortVar && ApplicativeHelper::isArrowType(sort.term());
+    bool sortArr = ApplicativeHelper::isArrowSort(sort);
     if(sortVar || sortArr){
       _funcSubtermsByType->handleTerm(sort, ld, insert);
       if(sortArr){ return; }
@@ -180,7 +180,7 @@ TermQueryResultIterator TermSubstitutionTree::getUnificationsUsingSorts(TermList
   //cout << this->toString() << endl;
 
   bool sortVar = sort.isVar();
-  bool sortArrow = !sortVar && ApplicativeHelper::isArrowType(sort.term());
+  bool sortArrow = ApplicativeHelper::isArrowSort(sort);
   bool sortAtomic = !sortVar && !sortArrow;
 
   if(t.isOrdinaryVar()) {

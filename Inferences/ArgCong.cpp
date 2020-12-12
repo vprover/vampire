@@ -73,7 +73,7 @@ struct ArgCong::ResultFn
 
     TermList eqSort = SortHelper::getEqualityArgumentSort(lit);
     bool sortIsVar = eqSort.isVar();
-    if(!sortIsVar && !ApplicativeHelper::isArrowType(eqSort.term())){
+    if(!sortIsVar && !ApplicativeHelper::isArrowSort(eqSort)){
       return 0;
     }
    

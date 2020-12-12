@@ -366,7 +366,7 @@ bool RewritableVarsIt::hasNext()
     TermList s = _sorts.pop();
     AH::getHeadSortAndArgs(t, head, headSort, args);
     if(head.isVar() && args.size() <= 1 && _unstableVars->find(head.var()) 
-       && (s.isVar() || AH::isArrowType(s.term()))){
+       && (s.isVar() || AH::isArrowSort(s))){
       _next = head;
     }
     if(!AH::isComb(head) || AH::isUnderApplied(head, args.size())){

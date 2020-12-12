@@ -336,7 +336,7 @@ TermIterator EqHelper::getSubVarSupLHSIterator(Literal* lit, const Ordering& ord
 
   TermList eqSort = SortHelper::getEqualityArgumentSort(lit);
 
-  if (eqSort.isVar() || ApplicativeHelper::isArrowType(eqSort.term())) {
+  if (eqSort.isVar() || ApplicativeHelper::isArrowSort(eqSort)) {
     if (lit->isNegative()) {
       return TermIterator::getEmpty();
     }
