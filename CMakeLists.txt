@@ -779,7 +779,20 @@ endif()
 # z3 stuff
 ################################################################
 
-find_package(Z3 CONFIG NO_DEFAULT_PATH PATHS ${CMAKE_SOURCE_DIR}/z3/build/)
+# find Z3 automatically!
+# normally this is just in /z3/build/, but this can be overridden
+find_package(
+  Z3
+  CONFIG
+    NO_CMAKE_PATH
+    NO_CMAKE_ENVIRONMENT_PATH
+    NO_SYSTEM_ENVIRONMENT_PATH
+    NO_CMAKE_PACKAGE_REGISTRY
+    NO_CMAKE_SYSTEM_PATH
+    NO_CMAKE_SYSTEM_PACKAGE_REGISTRY
+    PATHS
+      ${CMAKE_SOURCE_DIR}/z3/build/
+)
 if (NOT Z3_FOUND)
   message(STATUS "No Z3 found -- Compiling without SMT support.")
   add_compile_definitions(VZ3=0)
