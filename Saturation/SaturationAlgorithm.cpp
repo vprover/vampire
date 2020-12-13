@@ -1448,9 +1448,8 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   if(opt.induction()!=Options::Induction::NONE){
     if (opt.inductionMultiClause()) {
       gie->addFront(new MultiClauseInduction());
-    } else {
-      gie->addFront(new Induction());
     }
+    gie->addFront(new Induction());
   }
 
   if(opt.instantiation()!=Options::Instantiation::OFF){

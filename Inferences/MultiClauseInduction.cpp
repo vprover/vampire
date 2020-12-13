@@ -149,7 +149,13 @@ ClauseIterator MultiClauseInduction::generateClauses(Clause* premise)
       if (!lit->ground()) {
         continue;
       }
+      InductionSchemeGenerator mainGen;
+      mainGen.generatePrimary(premise, lit);
+      if (mainGen._primarySchemes.empty()) {
+        continue;
+      }
       vset<TermList> skolems;
+      vset<TermList> indTerms;
       SubtermIterator stit(lit);
       while (stit.hasNext()) {
         auto st = stit.next();
@@ -157,14 +163,14 @@ ClauseIterator MultiClauseInduction::generateClauses(Clause* premise)
           skolems.insert(st);
         }
       }
-      auto it = Indexing::TermQueryResultIterator::getEmpty();
-      for (const auto& sk : skolems) {
-        it = pvi(getConcatenatedIterator(it, _index->getInstances(sk, false)));
+      for (const auto& scheme : mainGen._primarySchemes) {
+        for (const auto& t : scheme.first._inductionTerms) {
+          indTerms.insert(t);
+        }
       }
-      InductionSchemeGenerator mainGen;
-      mainGen.generatePrimary(premise, lit);
-      if (mainGen._primarySchemes.empty()) {
-        continue;
+      auto it = Indexing::TermQueryResultIterator::getEmpty();
+      for (const auto& t : indTerms) {
+        it = pvi(getConcatenatedIterator(it, _index->getInstances(t, false)));
       }
       if (lit->isNegative()) {
         while (it.hasNext()) {
@@ -188,8 +194,13 @@ ClauseIterator MultiClauseInduction::generateClauses(Clause* premise)
           }
           mainGen.generateSecondary(qr.clause, qr.literal);
         }
+        if (mainGen._secondarySchemes.empty()) {
+          continue;
+        }
         for (const auto& kv : mainGen.instantiateSchemes()) {
-          clIt.produceClauses(kv.first, kv.second, InferenceRule::MAIN_MULTICLAUSE_INDUCTION_AXIOM);
+          if (kv.second.size() > 1) {
+            clIt.produceClauses(kv.first, kv.second, InferenceRule::MAIN_MULTICLAUSE_INDUCTION_AXIOM);
+          }
         }
       } else {
         while (it.hasNext()) {
@@ -213,8 +224,13 @@ ClauseIterator MultiClauseInduction::generateClauses(Clause* premise)
           InductionSchemeGenerator sideGen;
           sideGen.generatePrimary(premise, lit);
           sideGen.generateSecondary(qr.clause, qr.literal);
+          if (sideGen._secondarySchemes.empty()) {
+            continue;
+          }
           for (const auto& kv : sideGen.instantiateSchemes()) {
-            clIt.produceClauses(kv.first, kv.second, InferenceRule::SIDE_MULTICLAUSE_INDUCTION_AXIOM);
+            if (kv.second.size() > 1) {
+              clIt.produceClauses(kv.first, kv.second, InferenceRule::SIDE_MULTICLAUSE_INDUCTION_AXIOM);
+            }
           }
         }
       }
