@@ -44,7 +44,7 @@ bool canInductOn(TermList t)
     return false;
   }
   static bool complexTermsAllowed = env.options->inductionOnComplexTerms();
-  return isSkolem(t) || (complexTermsAllowed && !isTermAlgebraCons(t));
+  return t.freeVariables() == IntList::empty() && (isSkolem(t) || (complexTermsAllowed && !isTermAlgebraCons(t)));
 }
 
 OperatorType* getType(TermList t)
@@ -83,12 +83,14 @@ vvector<TermList> getInductionTerms(TermList t)
     const auto& indVars = templ._inductionVariables;
 
     IteratorByInductiveVariables argIt(t.term(), indVars);
+    unsigned i = 0;
     while (argIt.hasNext()) {
       auto arg = argIt.next();
-      if (getType(arg)->result() == type->result()) {
+      if (type->arg(i) == type->result()) {
         auto indTerms = getInductionTerms(arg);
         v.insert(v.end(), indTerms.begin(), indTerms.end());
       }
+      i++;
     }
   }
   if (isTermAlgebraCons(t)) {
@@ -99,7 +101,7 @@ vvector<TermList> getInductionTerms(TermList t)
       if (st.isVar()) {
         continue;
       }
-      if (getType(st)->result() == type->result()) {
+      if (type->arg(i) == type->result()) {
         auto indTerms = getInductionTerms(st);
         v.insert(v.end(), indTerms.begin(), indTerms.end());
       }
@@ -625,6 +627,14 @@ bool InductionSchemeGenerator::process(TermList curr, bool active,
       actStack.push(*it && active);
     }
 
+    if (returnOnMatch) {
+      for (const auto& rdesc : templ._rDescriptions) {
+        if (MatchingUtils::matchTerms(rdesc._step, curr)) {
+          return false;
+        }
+      }
+    }
+
     if (!active) {
       return true;
     }
@@ -637,13 +647,6 @@ bool InductionSchemeGenerator::process(TermList curr, bool active,
       if (its.size() != 1) {
         match = false;
         break;
-      }
-    }
-    if (returnOnMatch) {
-      for (const auto& rdesc : templ._rDescriptions) {
-        if (MatchingUtils::matchTerms(rdesc._step, curr)) {
-          return false;
-        }
       }
     }
 
@@ -683,6 +686,7 @@ pair<Formula*, vmap<Literal*, pair<Literal*, Clause*>>> InductionSchemeGenerator
     // We replace all induction terms with the corresponding step case terms
     FormulaList* stepFormulas = FormulaList::empty();
     DHMap<Literal*, Clause*>::Iterator litClIt(*litClMap);
+    ASS(litClIt.hasNext());
     vmap<TermList, TermList> empty;
     while (litClIt.hasNext()) {
       auto lit = litClIt.nextKey();

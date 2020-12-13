@@ -389,7 +389,7 @@ bool createSingleRDescription(const RDescriptionInst& rdesc, const InductionSche
           // term to get the substitution needed for
           // conditions and recursive calls
           RobSubstitution subst;
-          ASS(subst.unify(rIt->second, 0, p, 1));
+          ALWAYS(subst.unify(rIt->second, 0, p, 1));
           rIt->second = subst.apply(rIt->second, 0);
           for (auto& cond : rdesc._conditions) {
             cond = applySubst(subst, 0, cond);
