@@ -42,9 +42,10 @@ public:
   void detach() override;
 
 private:
-  struct InductionClauseIterator;
+  class InductionClauseIterator;
 
   TermIndex* _index;
+  Splitter* _splitter;
 };
 
 };

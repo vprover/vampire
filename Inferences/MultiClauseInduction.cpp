@@ -33,6 +33,7 @@
 #include "Kernel/FormulaVarIterator.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
+#include "Saturation/Splitter.hpp"
 
 #include "Shell/InductionSchemeFilter.hpp"
 #include "Shell/Options.hpp"
@@ -64,11 +65,14 @@ bool canDoInductionOn(Clause* cl) {
      (maxD == 0 || cl->inference().inductionDepth() < maxD);
 }
 
-struct MultiClauseInduction::InductionClauseIterator
+class MultiClauseInduction::InductionClauseIterator
 {
+public:
   CLASS_NAME(InductionClauseIterator);
   USE_ALLOCATOR(InductionClauseIterator);
   DECL_ELEMENT_TYPE(Clause*);
+
+  InductionClauseIterator(Splitter* splitter) : _splitter(splitter) {}
 
   inline bool hasNext() { return _clauses.isNonEmpty(); }
   inline OWN_ELEMENT_TYPE next() { 
@@ -109,6 +113,9 @@ struct MultiClauseInduction::InductionClauseIterator
           auto premise = kv.second.second;
           SLQueryResult qr(origLit,premise,identity);
           c = BinaryResolution::generateClause(c,conclusion,qr,*env.options);
+          if (_splitter) {
+            _splitter->onNewClause(c);
+          }
         }
       }
       _clauses.push(c);
@@ -116,9 +123,10 @@ struct MultiClauseInduction::InductionClauseIterator
     env.statistics->induction++;
   }
 
+private:
   Stack<Clause*> _clauses;
+  Splitter* _splitter;
 };
-
 
 ClauseIterator MultiClauseInduction::generateClauses(Clause* premise)
 {
@@ -133,7 +141,7 @@ ClauseIterator MultiClauseInduction::generateClauses(Clause* premise)
   ASS(env.options->structInduction() == Options::StructuralInductionKind::FOUR ||
       env.options->structInduction() == Options::StructuralInductionKind::ALL);
 
-  InductionClauseIterator clIt;
+  InductionClauseIterator clIt(_splitter);
   if(canDoInductionOn(premise))
   {
     for(unsigned i=0;i<premise->length();i++){
@@ -222,11 +230,13 @@ void MultiClauseInduction::attach(SaturationAlgorithm* salg)
   GeneratingInferenceEngine::attach(salg);
   _index=static_cast<TermIndex*>(
 	  _salg->getIndexManager()->request(DEMODULATION_SUBTERM_SUBST_TREE) );
+  _splitter=_salg->getSplitter();
 }
 
 void MultiClauseInduction::detach()
 {
   CALL("MultiClauseInduction::detach");
+  _splitter=0;
   _index=0;
   _salg->getIndexManager()->release(DEMODULATION_SUBTERM_SUBST_TREE);
   GeneratingInferenceEngine::detach();
