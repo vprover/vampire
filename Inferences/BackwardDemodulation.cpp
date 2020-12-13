@@ -231,8 +231,7 @@ void BackwardDemodulation::perform(Clause* cl,
 {
   CALL("BackwardDemodulation::perform");
 
-  if(cl->length()!=1 || !(*cl)[0]->isEquality() || !(*cl)[0]->isPositive()
-      || cl->containsFunctionDefinition()) {
+  if(cl->length()!=1 || !(*cl)[0]->isEquality() || !(*cl)[0]->isPositive()) {
     simplifications=BwSimplificationRecordIterator::getEmpty();
     return;
   }
@@ -242,7 +241,7 @@ void BackwardDemodulation::perform(Clause* cl,
     pvi( getFilteredIterator(
 	    getMappingIterator(
 		    getMapAndFlattenIterator(
-			    EqHelper::getDemodulationLHSIterator(lit, false, _salg->getOrdering(), _salg->getOptions()),
+			    EqHelper::getDemodulationLHSIterator(lit, false, _salg->getOrdering(), _salg->getOptions(), cl->containsFunctionDefinition(), cl->isReversedFunctionDefinition(lit)),
 			    RewritableClausesFn(_index)),
 		    ResultFn(cl, *this)),
  	    RemovedIsNonzeroFn()) );

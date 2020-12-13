@@ -38,7 +38,7 @@ public:
   static TermIterator getRewritableSubtermIterator(Literal* lit, const Ordering& ord);
   static TermIterator getLHSIterator(Literal* lit, const Ordering& ord);
   static TermIterator getSuperpositionLHSIterator(Literal* lit, const Ordering& ord, const Options& opt);
-  static TermIterator getDemodulationLHSIterator(Literal* lit, bool forward, const Ordering& ord, const Options& opt);
+  static TermIterator getDemodulationLHSIterator(Literal* lit, bool forward, const Ordering& ord, const Options& opt, bool fndef, bool reversed);
   static TermIterator getEqualityArgumentIterator(Literal* lit);
   static TermIterator getFnDefLHSIterator(Literal* lit, bool reversed);
 

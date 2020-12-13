@@ -273,7 +273,7 @@ TermIterator EqHelper::getSuperpositionLHSIterator(Literal* lit, const Ordering&
  *
  * If the literal @b lit is not a positive equality, empty iterator is returned.
  */
-TermIterator EqHelper::getDemodulationLHSIterator(Literal* lit, bool forward, const Ordering& ord, const Options& opt)
+TermIterator EqHelper::getDemodulationLHSIterator(Literal* lit, bool forward, const Ordering& ord, const Options& opt, bool fndef, bool reversed)
 {
   CALL("EqHelper::getDemodulationLHSIterator");
 
@@ -287,7 +287,7 @@ TermIterator EqHelper::getDemodulationLHSIterator(Literal* lit, bool forward, co
     {
     case Ordering::INCOMPARABLE:
       if ( forward ? (opt.forwardDemodulation() == Options::Demodulation::PREORDERED)
-		  : (opt.backwardDemodulation() == Options::Demodulation::PREORDERED) ) {
+		  : (opt.backwardDemodulation() == Options::Demodulation::PREORDERED) || fndef ) {
 	return TermIterator::getEmpty();
       }
       if (t0.containsAllVariablesOf(t1)) {
@@ -304,11 +304,19 @@ TermIterator EqHelper::getDemodulationLHSIterator(Literal* lit, bool forward, co
     case Ordering::GREATER:
     case Ordering::GREATER_EQ:
       ASS(t0.containsAllVariablesOf(t1));
-      return pvi( getSingletonIterator(t0) );
+      if (!fndef || !reversed) {
+        return pvi( getSingletonIterator(t0) );
+      } else {
+        return TermIterator::getEmpty();
+      }
     case Ordering::LESS:
     case Ordering::LESS_EQ:
       ASS(t1.containsAllVariablesOf(t0));
-      return pvi( getSingletonIterator(t1) );
+      if (!fndef || reversed) {
+        return pvi( getSingletonIterator(t1) );
+      } else {
+        return TermIterator::getEmpty();
+      }
     //there should be no equality literals of equal terms
     case Ordering::EQUAL:
       ASSERTION_VIOLATION;

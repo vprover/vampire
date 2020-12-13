@@ -185,14 +185,14 @@ void DemodulationLHSIndex::handleClause(Clause* c, bool adding)
 {
   CALL("DemodulationLHSIndex::handleClause");
 
-  if (c->length()!=1 || c->containsFunctionDefinition()) {
+  if (c->length()!=1) {
     return;
   }
 
   TimeCounter tc(TC_FORWARD_DEMODULATION_INDEX_MAINTENANCE);
 
   Literal* lit=(*c)[0];
-  TermIterator lhsi=EqHelper::getDemodulationLHSIterator(lit, true, _ord, _opt);
+  TermIterator lhsi=EqHelper::getDemodulationLHSIterator(lit, true, _ord, _opt, c->containsFunctionDefinition(), c->isReversedFunctionDefinition(lit));
   while (lhsi.hasNext()) {
     if (adding) {
       _is->insert(lhsi.next(), lit, c);
