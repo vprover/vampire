@@ -82,6 +82,9 @@ private:
                            Interpretation unaryMinus, TermList zeroElement);
   void addIntegerDividesAxioms(Interpretation divides, Interpretation multiply, TermList zero, TermList n);
 
+  /**
+   * TODO: we should have polymorphic array axioms only!
+   **/
   void addBooleanArrayExtensionalityAxioms(TermList arraySort, unsigned skolem);
   void addArrayExtensionalityAxioms(TermList arraySort, unsigned skolem);
   void addBooleanArrayWriteAxioms(TermList arraySort);

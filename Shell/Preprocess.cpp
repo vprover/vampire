@@ -81,6 +81,7 @@
 #include "Kernel/TermIterators.hpp"
 
 
+
 using namespace Shell;
 #if GNUMP
 /**
@@ -213,9 +214,8 @@ void Preprocess::preprocess(Problem& prb)
   }
 
   if (prb.hasFOOL() || env.statistics->higherOrder) {//or lambda
-    //FOOL + polymorphism should work, but has not yet been tested
-    //Once it has been, this assertion can be removed AYB
-    ASS(!prb.hasPolymorphicSym());
+    ASS(!env.statistics->polymorphic); //FOOL + polymorphism currently does not work
+
     // This is the point to extend the signature with $$true and $$false
     // If we don't have fool then these constants get in the way (a lot)
 
@@ -333,7 +333,15 @@ void Preprocess::preprocess(Problem& prb)
 
     newCnf(prb);
   } else {
-
+    if (prb.mayHaveFormulas() && _options.newCNF()) { // TODO: update newCNF to deal with polymorphism / higher-order
+      ASS(prb.hasPolymorphicSym() || env.statistics->higherOrder);
+      if (outputAllowed()) {
+        env.beginOutput();
+        addCommentSignForSZS(env.out());
+        env.out() << "WARNING: Not using newCnf currently not compatible with polymorphic/higer-order inputs." << endl;
+        env.endOutput();
+      }
+    }
 
     if (prb.mayHaveFormulas() && _options.naming()) {
       if (env.options->showPreprocessing())
@@ -424,14 +432,22 @@ void Preprocess::preprocess(Problem& prb)
 
    //Both general splitting and equality proxy ought to removed from a higher-order schedule
    //TODO currently general splitting is broken for higher-order problems
-   if (!env.statistics->higherOrder && !prb.hasPolymorphicSym() &&
-        _options.generalSplitting()!=Options::RuleActivity::OFF) {
-     env.statistics->phase=Statistics::GENERAL_SPLITTING;
-     if (env.options->showPreprocessing())
-       env.out() << "general splitting" << std::endl;
+   if (_options.generalSplitting()!=Options::RuleActivity::OFF) {
+     if (env.statistics->higherOrder || prb.hasPolymorphicSym()) {  // TODO: extend GeneralSplitting to support polymorphism (would higher-order make sense?)
+       if (outputAllowed()) {
+         env.beginOutput();
+         addCommentSignForSZS(env.out());
+         env.out() << "WARNING: Not using GeneralSplitting currently not compatible with polymorphic/higher-order inputs." << endl;
+         env.endOutput();
+       }
+     } else {
+       env.statistics->phase=Statistics::GENERAL_SPLITTING;
+       if (env.options->showPreprocessing())
+         env.out() << "general splitting" << std::endl;
 
-     GeneralSplitting gs;
-     gs.apply(prb);
+       GeneralSplitting gs;
+       gs.apply(prb);
+     }
    }
 
    if (!env.statistics->higherOrder && _options.equalityProxy()!=Options::EqualityProxy::OFF && prb.mayHaveEquality()) {
@@ -444,22 +460,40 @@ void Preprocess::preprocess(Problem& prb)
    }
 
    
-   if(_options.theoryFlattening() && !prb.hasPolymorphicSym()){
-     if(env.options->showPreprocessing())
-       env.out() << "theory flattening" << std::endl;
+   if(_options.theoryFlattening()) {
+     if (prb.hasPolymorphicSym()) { // TODO: extend theoryFlattening to support polymorphism?
+       if (outputAllowed()) {
+         env.beginOutput();
+         addCommentSignForSZS(env.out());
+         env.out() << "WARNING: Not using TheoryFlattening currently not compatible with polymorphic inputs." << endl;
+         env.endOutput();
+       }
+     } else {
+       if(env.options->showPreprocessing())
+         env.out() << "theory flattening" << std::endl;
 
-     TheoryFlattening tf;
-     tf.apply(prb);
+       TheoryFlattening tf;
+       tf.apply(prb);
+     }
    }
 
    //bce hasn't been updated to deal with polymorphism
-   if (_options.blockedClauseElimination() && !prb.hasPolymorphicSym()) {
-     env.statistics->phase=Statistics::BLOCKED_CLAUSE_ELIMINATION;
-     if(env.options->showPreprocessing())
-       env.out() << "blocked clause elimination" << std::endl;
+   if (_options.blockedClauseElimination()) {
+     if (prb.hasPolymorphicSym()) { // TODO: extend BlockedClauseElimination to support polymorphism!
+       if (outputAllowed()) {
+         env.beginOutput();
+         addCommentSignForSZS(env.out());
+         env.out() << "WARNING: Not using BlockedClauseElimination currently not compatible with polymorphic inputs." << endl;
+         env.endOutput();
+       }
+     } else {
+       env.statistics->phase=Statistics::BLOCKED_CLAUSE_ELIMINATION;
+       if(env.options->showPreprocessing())
+         env.out() << "blocked clause elimination" << std::endl;
 
-     BlockedClauseElimination bce;
-     bce.apply(prb);
+       BlockedClauseElimination bce;
+       bce.apply(prb);
+     }
    }
 
    if (env.options->showPreprocessing()) {
@@ -518,9 +552,8 @@ void Preprocess::preprocess1 (Problem& prb)
     fu = Rectify::rectify(fu);
     FormulaUnit* rectFu = fu;
     // Simplify the formula if it contains true or false
-    if (!_options.newCNF() || env.statistics->higherOrder ||
-        prb.hasPolymorphicSym()) {
-      // NewCNF effectively implements this simplification already
+    if (!_options.newCNF() || env.statistics->higherOrder || prb.hasPolymorphicSym()) {
+      // NewCNF effectively implements this simplification already (but could have been skipped if higherOrder || hasPolymorphicSym)
       fu = SimplifyFalseTrue::simplify(fu);
     }
     if (fu!=rectFu) {

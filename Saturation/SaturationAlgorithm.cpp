@@ -1645,8 +1645,17 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     // NOTE:
     // fsd should be performed after forward subsumption,
     // because every successful forward subsumption will lead to a (useless) match in fsd.
-    if (opt.forwardSubsumptionDemodulation() && !prb.hasPolymorphicSym()) {
-      res->addForwardSimplifierToFront(new ForwardSubsumptionDemodulation(false));
+    if (opt.forwardSubsumptionDemodulation()) {
+      if (prb.hasPolymorphicSym()) { // TODO: extend ForwardSubsumptionDemodulation to support polymorphism
+        if (outputAllowed()) {
+          env.beginOutput();
+          addCommentSignForSZS(env.out());
+          env.out() << "WARNING: Not using ForwardSubsumptionDemodulation currently not compatible with polymorphic inputs." << endl;
+          env.endOutput();
+        }
+      } else {
+        res->addForwardSimplifierToFront(new ForwardSubsumptionDemodulation(false));
+      }
     }
   }
   if (prb.hasEquality()) {
@@ -1696,9 +1705,17 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
 #endif
     }
   }
-  if (prb.hasEquality() && opt.backwardSubsumptionDemodulation() &&
-      !prb.hasPolymorphicSym()) {
-    res->addBackwardSimplifierToFront(new BackwardSubsumptionDemodulation());
+  if (prb.hasEquality() && opt.backwardSubsumptionDemodulation()) {
+    if (prb.hasPolymorphicSym()) { // TODO: extend BackwardSubsumptionDemodulation to support polymorphism
+      if (outputAllowed()) {
+        env.beginOutput();
+        addCommentSignForSZS(env.out());
+        env.out() << "WARNING: Not using BackwardSubsumptionDemodulation currently not compatible with polymorphic inputs." << endl;
+        env.endOutput();
+      }
+    } else {
+      res->addBackwardSimplifierToFront(new BackwardSubsumptionDemodulation());
+    }
   }
   if (opt.backwardSubsumption() != Options::Subsumption::OFF) {
     bool byUnitsOnly=opt.backwardSubsumption()==Options::Subsumption::UNIT_ONLY;
@@ -1784,12 +1801,29 @@ ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, cons
       res->addFront(new NegativeInjectivityISE());
     }
   }
-  if(!prb.hasPolymorphicSym() && 
-    (prb.hasInterpretedOperations() || prb.hasInterpretedEquality())) {
+  if(prb.hasInterpretedOperations() || prb.hasInterpretedEquality()) {
     if (env.options->gaussianVariableElimination()) {
-      res->addFront(new GaussianVariableElimination()); 
+      if (prb.hasPolymorphicSym()) { // TODO: extend GaussianVariableElimination to live alongside polymorphism!
+        if (outputAllowed()) {
+          env.beginOutput();
+          addCommentSignForSZS(env.out());
+          env.out() << "WARNING: Not using GaussianVariableElimination currently not compatible with polymorphic inputs." << endl;
+          env.endOutput();
+        }
+      } else {
+        res->addFront(new GaussianVariableElimination());
+      }
     }
-    res->addFront(new InterpretedEvaluation(env.options->inequalityNormalization(), ordering));
+    if (prb.hasPolymorphicSym()) { // TODO: extend InterpretedEvaluation to alongside polymorphism!
+      if (outputAllowed()) {
+        env.beginOutput();
+        addCommentSignForSZS(env.out());
+        env.out() << "WARNING: Not using InterpretedEvaluation currently not compatible with polymorphic inputs." << endl;
+        env.endOutput();
+      }
+    } else {
+      res->addFront(new InterpretedEvaluation(env.options->inequalityNormalization(), ordering));
+    }
   }
   if(prb.hasEquality()) {
     res->addFront(new TrivialInequalitiesRemovalISE());
