@@ -441,6 +441,7 @@ void RationalConstantType::cannonize()
     _den = 1;
     return;
   }
+
   // now it's safe to treat this unsigned as signed
   ASS_LE(gcd,(unsigned)numeric_limits<signed>::max());
   if (gcd!=1) {
