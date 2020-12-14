@@ -673,7 +673,7 @@ void Preprocess::newCnf(Problem& prb)
  * </ol>
  * @since 14/07/2005 flight Tel-Aviv-Barcelona
  */
-Unit* Preprocess::preprocess3 (Unit* u, bool appify)
+Unit* Preprocess::preprocess3 (Unit* u, bool appify /*higher order stuff*/)
 {
   CALL("Preprocess::preprocess3(Unit*)");
 

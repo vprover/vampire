@@ -226,7 +226,7 @@ Term* Rectify::rectifySpecialTerm(Term* t)
       if(sort != rectifiedSort){
         modified = true;
       }
-      rectifiedSorts = SList::addLast(rectifiedSorts, rectifiedSort);
+      rectifiedSorts = SList::addLast(rectifiedSorts, rectifiedSort); // careful: quadratic complexity
     }
     _removeUnusedVars = removeUnusedVars; // restore the status quo
     unbindVars(sd->getLambdaVars());
@@ -294,7 +294,7 @@ SList* Rectify::rectifySortList(SList* from, bool& modified)
     if(sort != rectifiedSort){
       modified = true;
     }
-    SList::addLast(to, rectifiedSort);
+    SList::addLast(to, rectifiedSort); // careful: quadratic complexity
   }
   return to;
 }
@@ -328,7 +328,10 @@ Literal* Rectify::rectify (Literal* l)
   if(l->isTwoVarEquality()){
     TermList srt = SortHelper::getEqualityArgumentSort(l);
     rectifiedSrt = rectify(srt);
-    if(srt != rectifiedSrt){ //TODO dangerous. Assume types are shared terms!
+
+    ASS(!srt.isTerm() || srt.term()->shared());
+    ASS(!rectifiedSrt.isTerm() || rectifiedSrt.term()->shared());
+    if(srt != rectifiedSrt){ // assumes shared
       sortChanged = true;
     }
   }
