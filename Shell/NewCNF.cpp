@@ -778,8 +778,9 @@ TermList NewCNF::nameLetBinding(unsigned symbol, VList* bindingVariables, TermLi
     }
   }
 
+
   Stack<TermList> arguments;
-  VList::DestructiveIterator bfvit(bindingFreeVars);
+  VList::Iterator bfvit(bindingFreeVars);
   while (bfvit.hasNext()) {
     unsigned var = bfvit.next();
     arguments.push(TermList(var, false));
@@ -789,6 +790,7 @@ TermList NewCNF::nameLetBinding(unsigned symbol, VList* bindingVariables, TermLi
     unsigned var = vbit.next();
     arguments.push(TermList(var, false));
   }
+
 
   if (isPredicate) {
     Literal* name = Literal::create(freshSymbol, nameArity, POSITIVE, false, arguments.begin());
@@ -808,11 +810,12 @@ TermList NewCNF::nameLetBinding(unsigned symbol, VList* bindingVariables, TermLi
 
     introduceGenClause(GenLit(nameFormula, POSITIVE));
   }
-
+  
   if (renameSymbol) {
     SymbolOccurrenceReplacement replacement(isPredicate, symbol, freshSymbol, bindingFreeVars);
     return replacement.process(contents);
   }
+
 
   return contents;
 }
