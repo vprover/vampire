@@ -20,7 +20,7 @@ public:
   CLASS_NAME(FingerprintIndex);
   USE_ALLOCATOR(FingerprintIndex);
 
-  static const unsigned FINGERPRINT_SIZE = 2;
+  static const unsigned FINGERPRINT_SIZE = 6;
   static std::array<signed, FINGERPRINT_SIZE> fingerprint(TermList ts);
   FingerprintIndex();
   unsigned getBucket(TermList ts);

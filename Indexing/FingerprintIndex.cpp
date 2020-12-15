@@ -20,26 +20,45 @@ std::array<signed, FingerprintIndex::FINGERPRINT_SIZE> FingerprintIndex::fingerp
 {
   CALL("FingerprintIndex::fingerprint");
   std::array<signed, FINGERPRINT_SIZE> result{N};
-  if (p.isVar()) {
-    result[0] = A;
-    result[1] = B;
-    return result;
-  }
+  ASS(!p.isVar());
+
   Term *t = p.term();
   result[0] = t->functor();
-
   if (t->arity() == 0) {
-    result[1] = N;
     return result;
   }
+
   TermList *p1 = t->nthArgument(0);
   if (p1->isVar()) {
     result[1] = A;
-    return result;
+    result[4] = B;
+    result[5] = B;
+  }
+  else {
+    Term *t1 = p1->term();
+    result[1] = t1->functor();
+    if(t1->arity() > 0) {
+      TermList *p11 = t1->nthArgument(0);
+      result[4] = p11->isVar() ? A : p11->term()->functor();
+    }
+    if(t1->arity() > 1) {
+      TermList *p12 = t1->nthArgument(1);
+      result[5] = p12->isVar() ? A : p12->term()->functor();
+    }
   }
 
-  Term *t1 = p1->term();
-  result[1] = t1->functor();
+  if(t->arity() == 1) {
+    return result;
+  }
+  TermList *p2 = t->nthArgument(1);
+  result[2] = p2->isVar() ? A : p2->term()->functor();
+
+  if(t->arity() == 2) {
+    return result;
+  }
+  TermList *p3 = t->nthArgument(2);
+  result[3] = p3->isVar() ? A : p3->term()->functor();
+
   return result;
 }
 
