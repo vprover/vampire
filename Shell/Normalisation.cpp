@@ -253,7 +253,6 @@ Comparison Normalisation::compare (Formula* fm1, Formula* fm2)
       if (comp != EQUAL) {
         return comp;
       }
-      break;
     }
     break;
 
@@ -264,7 +263,7 @@ Comparison Normalisation::compare (Formula* fm1, Formula* fm2)
       comp = compare((int) VList::length(f1->vars()),
                      (int) VList::length(f2->vars()));
       if (comp != EQUAL) {
-	return comp;
+        return comp;
       }
       break;
 

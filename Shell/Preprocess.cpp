@@ -338,7 +338,7 @@ void Preprocess::preprocess(Problem& prb)
       if (outputAllowed()) {
         env.beginOutput();
         addCommentSignForSZS(env.out());
-        env.out() << "WARNING: Not using newCnf currently not compatible with polymorphic/higer-order inputs." << endl;
+        env.out() << "WARNING: Not using newCnf currently not compatible with polymorphic/higher-order inputs." << endl;
         env.endOutput();
       }
     }
