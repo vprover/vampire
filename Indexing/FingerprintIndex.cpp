@@ -154,29 +154,38 @@ bool TermFingerprintIndex::Entry::operator!=(const Entry &other) const {
 }
 
 TermFingerprintIndex::ResultIterator::ResultIterator(
-  TermFingerprintIndex *index,
+  const TermFingerprintIndex &index,
   Stack<unsigned> &&buckets
 ) :
   _index(index),
-  _buckets(buckets),
-  _entryIt()
-{}
+  _buckets(buckets)
+{
+  nextBucket();
+}
+
+void TermFingerprintIndex::ResultIterator::nextBucket() {
+  if(!_buckets.isEmpty()) {
+    unsigned bucket = _buckets.pop();
+    auto &entries = _index._buckets[bucket];
+    _entry = entries.begin();
+    _end = entries.end();
+  }
+}
 
 bool TermFingerprintIndex::ResultIterator::hasNext() {
   CALL("TermFingerprintIndex::ResultIterator::hasNext");
-  while(!_entryIt.hasNext()) {
+  while(_entry == _end) {
     if(_buckets.isEmpty()) {
       return false;
     }
-    unsigned bucket = _buckets.pop();
-    _entryIt = Set<Entry>::Iterator(_index->_buckets[bucket]);
+    nextBucket();
   }
   return true;
 }
 
 TermQueryResult TermFingerprintIndex::ResultIterator::next() {
   CALL("TermFingerprintIndex::ResultIterator::next");
-  Entry entry = _entryIt.next();
+  Entry entry = *_entry++;
   return TermQueryResult(entry.term, entry.lit, entry.cls);
 }
 
@@ -224,14 +233,21 @@ void TermFingerprintIndex::insert(TermList trm, Literal *lit, Clause *cls)
 {
   CALL("TermFingerprintIndex::insert");
   //std::cout << "insert: " << trm << " in " << *lit << std::endl;
-  _buckets[_index.makeBucket(trm)].insert(Entry{cls, lit, trm});
+  _buckets[_index.makeBucket(trm)].emplace_back(Entry{cls, lit, trm});
 }
 
 void TermFingerprintIndex::remove(TermList trm, Literal *lit, Clause *cls)
 {
   CALL("TermFingerprintIndex::remove");
   //std::cout << "remove: " << trm << " in " << *lit << std::endl;
-  _buckets[_index.makeBucket(trm)].remove(Entry{cls, lit, trm});
+  auto &entries = _buckets[_index.makeBucket(trm)];
+  Entry remove {cls, lit, trm};
+  for(auto it = entries.begin(); it != entries.end(); ++it) {
+    if(*it == remove) {
+      entries.erase(it);
+      break;
+    }
+  }
 }
 
 TermQueryResultIterator TermFingerprintIndex::getUnifications(TermList t, bool retrieveSubstitutions)
@@ -240,6 +256,6 @@ TermQueryResultIterator TermFingerprintIndex::getUnifications(TermList t, bool r
   Stack<unsigned> buckets;
   _index.getUnifications(buckets, t);
   return
-    pvi(UnificationIterator(ResultIterator(this, std::move(buckets)), t));
+    pvi(UnificationIterator(ResultIterator(*this, std::move(buckets)), t));
 }
 } // namespace Indexing

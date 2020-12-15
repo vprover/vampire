@@ -11,8 +11,8 @@
 #define __FingerprintIndex__
 
 #include "Lib/Array.hpp"
-#include "Lib/Set.hpp"
 #include "Lib/Stack.hpp"
+#include "Lib/STL.hpp"
 
 namespace Indexing {
 class FingerprintIndex {
@@ -88,14 +88,16 @@ private:
 
   class ResultIterator {
   public:
-    ResultIterator(TermFingerprintIndex *index, Stack<unsigned> &&buckets);
+    ResultIterator(const TermFingerprintIndex &index, Stack<unsigned> &&buckets);
     DECL_ELEMENT_TYPE(TermQueryResult);
     bool hasNext();
+    void nextBucket();
     OWN_ELEMENT_TYPE next();
   private:
-    TermFingerprintIndex *_index;
+    const TermFingerprintIndex &_index;
     Stack<unsigned> _buckets;
-    Set<Entry>::Iterator _entryIt;
+    vvector<Entry>::const_iterator _entry;
+    vvector<Entry>::const_iterator _end;
   };
 
   class UnificationIterator {
@@ -114,7 +116,7 @@ private:
 
   friend class ResultIterator;
   FingerprintIndex _index;
-  Array<Set<Entry>> _buckets;
+  Array<vvector<Entry>> _buckets;
 }; // class TermFingerprintIndex
 } //namespace Indexing
 
