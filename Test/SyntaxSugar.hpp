@@ -118,7 +118,7 @@ using SortType = TermList;
   class __ ## name ## __CLASS {                                                                               \
     TermWrapper _self;                                                                                        \
     public:                                                                                                   \
-    __ ## name ## __CLASS(const char* name, TermList s)                                                       \
+    __ ## name ## __CLASS(const char* name, SortType s)                                                       \
       : _self( TermWrapper::createConstant(#name, s) )                                                        \
     { }                                                                                                       \
                                                                                                               \
