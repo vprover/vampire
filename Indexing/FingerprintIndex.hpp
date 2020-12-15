@@ -23,41 +23,12 @@ public:
   static const unsigned FINGERPRINT_SIZE = 2;
   static std::array<signed, FINGERPRINT_SIZE> fingerprint(TermList ts);
   FingerprintIndex();
-  ~FingerprintIndex();
-  unsigned makeBucket(TermList ts);
+  unsigned getBucket(TermList ts);
   void getUnifications(Stack<unsigned> &results, TermList ts);
 
 private:
-  class Node {
-  public:
-    virtual ~Node() = default;
-    virtual unsigned makeBucket(const std::array<signed, FingerprintIndex::FINGERPRINT_SIZE> &fingerprint, unsigned &fresh, unsigned index) = 0;
-    virtual void getUnifications(Stack<unsigned> &results, const std::array<signed, FingerprintIndex::FINGERPRINT_SIZE> &fingerprint, unsigned index) = 0;
-  };
-
-  class Leaf final : public Node {
-  public:
-    CLASS_NAME(FingerprintIndex::Leaf);
-    USE_ALLOCATOR(FingerprintIndex::Leaf);
-    Leaf(unsigned);
-    unsigned makeBucket(const std::array<signed, FingerprintIndex::FINGERPRINT_SIZE> &fingerprint, unsigned &fresh, unsigned index);
-    void getUnifications(Stack<unsigned> &results, const std::array<signed, FingerprintIndex::FINGERPRINT_SIZE> &fingerprint, unsigned index);
-  private:
-    unsigned _bucket;
-  };
-
-  class Branch final : public Node {
-  public:
-    CLASS_NAME(FingerprintIndex::Branch);
-    USE_ALLOCATOR(FingerprintIndex::Branch);
-    ~Branch();
-    unsigned makeBucket(const std::array<signed, FingerprintIndex::FINGERPRINT_SIZE> &fingerprint, unsigned &fresh, unsigned index);
-    void getUnifications(Stack<unsigned> &results, const std::array<signed, FingerprintIndex::FINGERPRINT_SIZE> &fingerprint, unsigned index);
-  private:
-    Map<signed, Node *> _children;
-  };
-
-  Node *_root;
+  vmap<std::pair<unsigned, signed>, unsigned> _edges;
+  unsigned _fresh_node;
   unsigned _fresh_bucket;
 }; // class FingerprintIndex
 

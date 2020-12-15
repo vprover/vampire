@@ -13,7 +13,7 @@
 #include "FingerprintIndex.hpp"
 #include <iostream>
 
-static const signed A = -1, B = -2, N = -4;
+static const signed A = -1, B = -2, N = -3;
 
 namespace Indexing {
 std::array<signed, FingerprintIndex::FINGERPRINT_SIZE> FingerprintIndex::fingerprint(TermList p)
@@ -43,106 +43,79 @@ std::array<signed, FingerprintIndex::FINGERPRINT_SIZE> FingerprintIndex::fingerp
   return result;
 }
 
-FingerprintIndex::FingerprintIndex() : _root(new Branch()), _fresh_bucket(0) {}
-FingerprintIndex::~FingerprintIndex()
-{
-  CALL("FingerprintIndex::~FingerprintIndex()");
-  delete _root;
-}
+FingerprintIndex::FingerprintIndex() : _fresh_node(0), _fresh_bucket(0) {}
 
-unsigned FingerprintIndex::makeBucket(TermList t)
+unsigned FingerprintIndex::getBucket(TermList t)
 {
-  CALL("FingerprintIndex::make");
+  CALL("FingerprintIndex::getBucket");
   auto fp = fingerprint(t);
-  return _root->makeBucket(fp, _fresh_bucket, 0);
-}
-
-void FingerprintIndex::getUnifications(Stack<unsigned> &results, TermList t)
-{
-  CALL("FingerprintIndex::insert");
-  auto fp = fingerprint(t);
-  _root->getUnifications(results, fp, 0);
-}
-
-FingerprintIndex::Branch::~Branch()
-{
-  CALL("FingerprintIndex::Branch::~Branch");
-  _children.deleteAll();
-}
-
-FingerprintIndex::Leaf::Leaf(unsigned bucket) : _bucket(bucket) {}
-
-unsigned FingerprintIndex::Leaf::makeBucket(const std::array<signed, FINGERPRINT_SIZE> &fingerprint, unsigned &fresh, unsigned index)
-{
-  CALL("FingerprintIndex::Leaf::makeBucket");
-  return _bucket;
-}
-
-void FingerprintIndex::Leaf::getUnifications(Stack<unsigned> &results, const std::array<signed, FingerprintIndex::FINGERPRINT_SIZE> &fingerprint, unsigned index)
-{
-  CALL("FingerprintIndex::Leaf::getUnifications");
-  results.push(_bucket);
-}
-
-unsigned FingerprintIndex::Branch::makeBucket(const std::array<signed, FINGERPRINT_SIZE> &fingerprint, unsigned &fresh, unsigned index)
-{
-  CALL("FingerprintIndex::Branch::makeBucket");
-  Node *next;
-  Node **next_ptr = _children.getPtr(fingerprint[index]);
-  if (next_ptr) {
-    next = *next_ptr;
-  }
-  else {
-    if (index + 1 == FINGERPRINT_SIZE) {
-      next = new Leaf(fresh++);
+  unsigned node = 0;
+  for(unsigned i = 0; i < FINGERPRINT_SIZE; i++) {
+    unsigned &next = _edges[std::make_pair(node, fp[i])];
+    if(!next) {
+      next = i + 1 == FINGERPRINT_SIZE ? _fresh_bucket++ : ++_fresh_node;
     }
-    else {
-      next = new Branch();
-    }
-    _children.insert(fingerprint[index], next);
+    node = next;
   }
-  return next->makeBucket(fingerprint, fresh, index + 1);
+  return node;
 }
 
-void FingerprintIndex::Branch::getUnifications(Stack<unsigned> &results, const std::array<signed, FingerprintIndex::FINGERPRINT_SIZE> &fingerprint, unsigned index)
-{
-  CALL("FingerprintIndex::Branch::getUnifications");
-  signed value = fingerprint[index];
-
-  auto node = [&](signed n) {
-    if (Node **next_ptr = _children.getPtr(n)) {
-      (*next_ptr)->getUnifications(results, fingerprint, index + 1);
+static void unifications(
+  Stack<unsigned> &results,
+  const vmap<std::pair<unsigned, signed>, unsigned> &edges,
+  const std::array<signed, FingerprintIndex::FINGERPRINT_SIZE> &fp,
+  unsigned node,
+  unsigned index
+) {
+  CALL("FingerprintIndex::getUnifications::unifications");
+  if(index == FingerprintIndex::FINGERPRINT_SIZE) {
+    results.push(node);
+    return;
+  }
+  signed fpi = fp[index];
+  auto do_edge = [&](signed edge) {
+    auto search = edges.find(std::make_pair(node, edge));
+    if(search != edges.end()) {
+      unifications(results, edges, fp, search->second, index + 1);
     }
   };
-  auto nodes_if = [&](bool (*condition)(signed)) {
-    decltype(_children)::Iterator it(_children);
-    signed key;
-    Node *next;
-    while (it.hasNext()) {
-      it.next(key, next);
-      if (condition(key)) {
-        next->getUnifications(results, fingerprint, index + 1);
+  auto edges_if = [&](bool (*condition)(signed)) {
+    auto lower = std::make_pair(node, std::numeric_limits<signed>::lowest());
+    auto upper = std::make_pair(node, std::numeric_limits<signed>::max());
+    auto lower_bound = edges.lower_bound(lower);
+    auto upper_bound = edges.upper_bound(upper);
+    for(auto it = lower_bound; it != upper_bound; it++) {
+      signed edge = it->first.second;
+      if(condition(edge)) {
+        unifications(results, edges, fp, it->second, index + 1);
       }
     }
   };
-  switch (value) {
+
+  switch (fpi) {
     case N:
-      node(B);
-      node(N);
+      do_edge(B);
+      do_edge(N);
       break;
     case B:
-      nodes_if([](signed key) { return true; });
+      edges_if([](signed edge) { return true; });
       break;
     case A:
-      nodes_if([](signed key) { return key != N; });
+      edges_if([](signed edge) { return edge != N; });
       break;
     default:
-      ASS_GE(value, 0);
-      node(value);
-      node(A);
-      node(B);
+      ASS_GE(fpi, 0);
+      do_edge(fpi);
+      do_edge(A);
+      do_edge(B);
       break;
   }
+}
+
+void FingerprintIndex::getUnifications(Stack<unsigned> &results, TermList t) {
+  CALL("FingerprintIndex::getUnifications");
+  auto fp = fingerprint(t);
+  unifications(results, _edges, fp, 0, 0);
 }
 
 bool TermFingerprintIndex::Entry::operator==(const Entry &other) const {
@@ -233,14 +206,14 @@ void TermFingerprintIndex::insert(TermList trm, Literal *lit, Clause *cls)
 {
   CALL("TermFingerprintIndex::insert");
   //std::cout << "insert: " << trm << " in " << *lit << std::endl;
-  _buckets[_index.makeBucket(trm)].emplace_back(Entry{cls, lit, trm});
+  _buckets[_index.getBucket(trm)].emplace_back(Entry{cls, lit, trm});
 }
 
 void TermFingerprintIndex::remove(TermList trm, Literal *lit, Clause *cls)
 {
   CALL("TermFingerprintIndex::remove");
   //std::cout << "remove: " << trm << " in " << *lit << std::endl;
-  auto &entries = _buckets[_index.makeBucket(trm)];
+  auto &entries = _buckets[_index.getBucket(trm)];
   Entry remove {cls, lit, trm};
   for(auto it = entries.begin(); it != entries.end(); ++it) {
     if(*it == remove) {
