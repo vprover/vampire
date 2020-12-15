@@ -126,7 +126,7 @@ private:
    * Corresponds to the value of the epr_preserving_naming option.
    */
   bool _preserveEpr;
-  bool _appify;
+  bool _appify; // higher-order stuff
   /**
    * True if there are universally quantified variables at the scope of the current formula
    *
