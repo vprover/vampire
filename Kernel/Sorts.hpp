@@ -53,11 +53,12 @@ public:
   unsigned getSortNum(TermList sort);
   TermList getSortTerm(unsigned sort);
   unsigned count(){return (unsigned)_sorts.size(); }
-  
+  bool hasSort() { return !_sorts.isEmpty(); }
+
   //once arrays are fixed and axiomatused by a fixed number of polymorphic axioms
   //_arraySorts can be deleted
   //Once finite model buuilding is refactored (Giles Reger knows how)
-  //There is no longer a need to store any sorts at all.
+  //there is no longer a need to store any sorts at all.
   void addArraySort(TermList sort){ _arraySorts->insert(sort); }
   DHSet<TermList>* getArraySorts(){
     return _arraySorts;

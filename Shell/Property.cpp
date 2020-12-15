@@ -149,9 +149,9 @@ void Property::add(UnitList* units)
   }
 
   // information about sorts is read from the environment, not from the problem
-  /*if (env.sorts->hasSort()) {
+  if (env.sorts->hasSort()) {
     addProp(PR_SORTS);
-  }*/
+  }
     
   // information about interpreted constant is read from the signature
   if (env.signature->strings()) {

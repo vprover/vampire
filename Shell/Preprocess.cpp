@@ -430,8 +430,6 @@ void Preprocess::preprocess(Problem& prb)
    }
 */
 
-   //Both general splitting and equality proxy ought to removed from a higher-order schedule
-   //TODO currently general splitting is broken for higher-order problems
    if (_options.generalSplitting()!=Options::RuleActivity::OFF) {
      if (env.statistics->higherOrder || prb.hasPolymorphicSym()) {  // TODO: extend GeneralSplitting to support polymorphism (would higher-order make sense?)
        if (outputAllowed()) {

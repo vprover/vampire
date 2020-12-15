@@ -1112,15 +1112,6 @@ Literal* Naming::getDefinitionLiteral(Formula* f, VList* freeVars) {
   CALL("Naming::getDefinitionLiteral");
 
   unsigned length = VList::length(freeVars);
-  /*if (env.colorUsed) { //TODO what are colors all about?
-    Color fc = f->getColor();
-    if (fc != COLOR_TRANSPARENT) {
-      predSym->addColor(fc);
-    }
-    if (f->getSkip()) {
-      predSym->markSkip();
-    }
-  }*/
 
   static Stack<TermList> argSorts;
   static Stack<TermList> termArgs;
@@ -1158,6 +1149,17 @@ Literal* Naming::getDefinitionLiteral(Formula* f, VList* freeVars) {
   if(!_appify){
     unsigned pred = env.signature->addNamePredicate(length);
     Signature::Symbol* predSym = env.signature->getPredicate(pred);
+
+    if (env.colorUsed) {
+      Color fc = f->getColor();
+      if (fc != COLOR_TRANSPARENT) {
+        predSym->addColor(fc);
+      }
+      if (f->getSkip()) {
+        predSym->markSkip();
+      }
+    }
+
     predSym->setType(OperatorType::getPredicateType(length - VList::length(vl), argSorts.begin(), vl));
     return Literal::create(pred, length, true, false, args.begin());
   } else {
