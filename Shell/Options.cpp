@@ -1416,8 +1416,8 @@ void Options::init()
     _superpositionFromVariables.setRandomChoices({"on","off"});
     
     _combinatorySuperposition = BoolOptionValue("combinatory_sup","csup",false);
-    _combinatorySuperposition.description="Switches on a speciic ordering and that orients combinator axioms left-right."
-                               "also turns on a number of special inference rules";
+    _combinatorySuperposition.description="Switches on a specific ordering and that orients combinator axioms left-right."
+                                          "also turns on a number of special inference rules";
     _lookup.insert(&_combinatorySuperposition);
     _combinatorySuperposition.reliesOn(_addCombAxioms.is(equal(false))); //no point having two together
     _combinatorySuperposition.tag(OptionTag::INFERENCES);
