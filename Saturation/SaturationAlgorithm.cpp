@@ -574,7 +574,13 @@ void SaturationAlgorithm::onClauseReduction(Clause* cl, ClauseIterator replaceme
   }
 
   if (replacement) {
-    //TODO fix this
+    //Where an inference has multiple conclusions, onParenthood will only be run 
+    //for the final conclusion. This is unsafe when running with symbol elimination
+    //at the moment the only simplification rules that have multiple conclusions
+    //are higher-order and it is assumed that we will not run higher-order along
+    //with symbol elimination.
+    //In the future if a first-order simplification rule is added with multiple 
+    //conclusions, this code should be updated.
     onParenthood(replacement, cl);
     while (premStack.isNonEmpty()) {
       onParenthood(replacement, premStack.pop());

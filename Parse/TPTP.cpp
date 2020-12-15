@@ -3328,7 +3328,7 @@ void TPTP::endFormula()
   case FORALL:
   case EXISTS:
     f = _formulas.pop();
-    _formulas.push(new QuantifiedFormula((Connective)con,_varLists.pop(),_sortLists.pop(),f)); //TODO this is broken currently.
+    _formulas.push(new QuantifiedFormula((Connective)con,_varLists.pop(),_sortLists.pop(),f));
     _states.push(END_FORMULA);
     return;
   case LITERAL:
