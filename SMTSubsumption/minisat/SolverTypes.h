@@ -121,8 +121,8 @@ inline std::ostream& operator<<(std::ostream& o, Lit l)
 #if ENABLE_CLAUSE_DELETION
 class Clause {
     struct {
-      bool learnt : 1;
       uint32_t size : 31;
+      bool learnt : 1;  // should be most-significant bit
     } size_learnt;
     // uint32_t size_learnt;  // TODO: use bitfield + static_assert on size
     Lit      data[1];
@@ -307,7 +307,7 @@ class GClause {
       Tag_Lit       = 0b001,
       Tag_AtMostOne = 0b011,
 
-      Tag_Mask      = 0b111,
+      Tag_Mask      = 0b011,   // TODO: update docs, we switched to 2-bit tags now!  TODO: also update shift_width below (3->2), extract it into a constant  TODO: actually, we should properly fix the alignment in SMTSubsumption.cpp
     };
 
     Tag tag() const

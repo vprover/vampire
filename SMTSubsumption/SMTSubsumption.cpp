@@ -362,6 +362,8 @@ class SMTSubsumptionImpl
       // vvector<vvector<Alt>> alts;
       // alts.reserve(side_premise->length());
 
+      // TODO: preserve alignment for storage? to 8-byte boundary (i.e., lowest 3 bits of pointers should be 0, exactly as if Clause* was allocated normally)
+
       // The match clauses + AtMostOne constraints saying that each base literal is matches to exactly one instance literal.
       // Worst case: each base literal may be matchable to two boolean vars per instance literal (two orientations of equalities).
       // First slot stores the length.
@@ -493,19 +495,32 @@ class SMTSubsumptionImpl
       //     return false;
       //   }
       // }
-      return bindings_storage.size() > 10 && bindings_storage.back().first > 5
-            && instance_constraints_storage.size() > 20 && instance_constraints_storage[20] > 3
-            && clause_storage.size() > 5 && clause_storage[5] > 1;
+      // return bindings_storage.size() > 10 && bindings_storage.back().first > 5
+      //       && instance_constraints_storage.size() > 20 && instance_constraints_storage[20] > 3
+      //       && clause_storage.size() > 5 && clause_storage[5] > 1;
 
       using Minisat::Lit;
+
+      std::cerr << "clause_storage:";
+      for (auto x : clause_storage) {
+        std::cerr << " " << x;
+      }
+      std::cerr << std::endl;
 
       { // add match clauses/constraints
       size_t c_index = 0;
       while (c_index < clause_storage.size()) {
+        std::cerr << "Adding clause at index " << c_index << std::endl;
         uint32_t* c_size = &clause_storage[c_index];
         uint32_t* c_lits = &clause_storage[c_index + 1];
         uint32_t const c_original_size = *c_size;
         ASS_G(c_original_size, 0);  // otherwise we would have returned in the matching loop already
+
+        std::cerr << "  *c_size = " << *c_size << std::endl;
+        std::cerr << "  c_original_size = " << c_original_size << std::endl;
+        for (int k = 0; k < c_original_size; ++k) {
+          std::cerr << "  c_lits[" << k << "] = " << c_lits[k] << std::endl;
+        }
 
         // Clean the constraint (remove literals with already-known value)
         // TODO: maybe extract this into a separate function?
@@ -517,25 +532,35 @@ class SMTSubsumptionImpl
           if (lvalue == Minisat::l_True) {
             n_true += 1;
             // skip literal (in this case we don't really care about the constraint anymore)
+            std::cerr << "    skip " << j << std::endl;
             ++j;
           }
           else if (lvalue == Minisat::l_False) {
             // skip literal
+            std::cerr << "    skip " << j << std::endl;
             ++j;
           }
           else {
             ASS_EQ(lvalue, Minisat::l_Undef);
             // copy literal
+            std::cerr << "    copy " << j << " to " << i << std::endl;
             c_lits[i] = c_lits[j];
             ++i; ++j;
           }
         }
         *c_size = i;
+
+        std::cerr << "  *c_size = " << *c_size << std::endl;
+        std::cerr << "  c_original_size = " << c_original_size << std::endl;
+        for (int k = 0; k < c_original_size; ++k) {
+          std::cerr << "  c_lits[" << k << "] = " << c_lits[k] << std::endl;
+        }
+
         // we use the same storage for both Clause and AtMostOne constraint
-        Minisat::Clause* c1 = reinterpret_cast<Minisat::Clause*>(&instance_constraints_storage[c_index]);
-        Minisat::AtMostOne* c2 = reinterpret_cast<Minisat::AtMostOne*>(&instance_constraints_storage[c_index]);
-        ASS_EQ(*c_size, c1->size());  // TODO: if VDEBUG check contents too?
+        Minisat::Clause* c1 = reinterpret_cast<Minisat::Clause*>(&clause_storage[c_index]);
+        Minisat::AtMostOne* c2 = reinterpret_cast<Minisat::AtMostOne*>(&clause_storage[c_index]);
         ASS(!c1->learnt());
+        ASS_EQ(*c_size, c1->size());  // TODO: if VDEBUG check contents too?
         ASS_EQ(*c_size, c2->size());  // TODO: if VDEBUG check contents too?
 
         if (n_true == 0) {
@@ -559,11 +584,11 @@ class SMTSubsumptionImpl
         }
 
         // go to next clause
-        c_index += c_original_size;
+        c_index += 1 + c_original_size;
       }
       ASS_EQ(c_index, clause_storage.size());
       }
-/* TODO clause_storage : clean+add
+/* OLD below
       // Add constraints:
       // \Land_i ExactlyOneOf(b_{i1}, ..., b_{ij})
       Minisat::vec<Lit> ls;
@@ -607,7 +632,6 @@ class SMTSubsumptionImpl
       }
       */
 
-// TODO: this is from instance_constraints_storage, need to clean each constraint, then reinterpret_cast, then add
       // Add constraints:
       // \Land_j AtMostOneOf(b_{1j}, ..., b_{ij})
       for (size_t c_index = 0; c_index < instance_constraints_storage.size(); c_index += max_instance_constraint_len) {
@@ -663,7 +687,7 @@ class SMTSubsumptionImpl
           return false;
         }
 
-      /*
+      /* OLD below
         if (w.size() >= 2) {
           ls.clear();
           int n_true = 0;
@@ -995,6 +1019,38 @@ void ProofOfConcept::test(Clause* side_premise, Clause* main_premise)
   static_assert(alignof(Minisat::Clause *) == 8, "");
   static_assert(sizeof(Minisat::Clause) == 8, "");
   static_assert(sizeof(Minisat::Clause *) == 8, "");
+
+  {
+    using Minisat::index;
+    using Minisat::Lit;
+    uint32_t storage[] = {
+      27,
+      5,
+      (uint32_t)index(Lit(1)),
+      (uint32_t)index(Lit(2)),
+      (uint32_t)index(Lit(7)),
+      (uint32_t)index(~Lit(8)),
+      (uint32_t)index(Lit(13)),
+    };
+    Minisat::AtMostOne* c2 = reinterpret_cast<Minisat::AtMostOne*>(&storage[1]);
+    ASS_EQ(c2->size(), 5);
+    ASS_EQ((*c2)[0], Lit(1));
+    ASS_EQ((*c2)[3], ~Lit(8));
+    Minisat::Clause* c1 = reinterpret_cast<Minisat::Clause*>(&storage[1]);
+    ASS(!c1->learnt());
+    ASS_EQ(c1->size(), 5);
+    ASS_EQ((*c1)[0], Lit(1));
+    ASS_EQ((*c1)[3], ~Lit(8));
+  }
+
+  SMTSubsumptionImpl impl;
+  std::cout << "SETUP" << std::endl;
+  bool subsumed1 = impl.setup2(side_premise, main_premise);
+  std::cout << "  => " << subsumed1 << std::endl;
+  std::cout << "SOLVE" << std::endl;
+  bool subsumed = subsumed1 && impl.solve();
+  std::cout << "  => " << subsumed << std::endl;
+  return;
 
   std::pair<char const*, Minisat::VarOrderStrategy> vo_strategies[] = {
       { "MinisatDefault", Minisat::VarOrderStrategy::MinisatDefault },
