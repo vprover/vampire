@@ -291,6 +291,12 @@ class SubstitutionTheory
 };
 
 
+class LazyInitSubstitutionTheory
+{
+  // TODO: still with exhaustive propagation, but the data structures are initialized lazily
+};
+
+
 }
 
 #endif /* !SUBSTITUTIONTHEORY_HPP */

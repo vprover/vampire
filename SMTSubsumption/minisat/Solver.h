@@ -301,6 +301,7 @@ public:
     void    addClause_unchecked(const vec<Lit>& ps);
     void    addConstraint_AtMostOne(const vec<Lit>& ps);
     void    addConstraint_AtMostOne_unchecked(const vec<Lit>& ps);
+    void    addConstraint_AtMostOne_unchecked(AtMostOne* c);
 
     // Solving:
     //

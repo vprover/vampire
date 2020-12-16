@@ -25,6 +25,25 @@ using namespace SMTSubsumption;
 #define ENABLE_BENCHMARK 1
 
 
+
+template <typename T, typename Allocator = STLAllocator<T>>
+class pinned_vector
+{
+  // owns a vector but hides all interfaces that may re-allocate,
+  // effectively pinning the pointer v->data() in memory.
+  // only constructor: move from existing vector
+
+  pinned_vector(std::vector<T, Allocator>&& v)
+    : v{std::move(v)}
+  { }
+
+  // TODO
+
+private:
+  std::vector<T, Allocator> v;
+};
+
+
 /****************************************************************************
  * Original subsumption implementation (from ForwardSubsumptionAndResolution)
  ****************************************************************************/
@@ -192,6 +211,99 @@ using Impl = OriginalSubsumptionImpl;  // shorthand if we use qualified namespac
 // TODO: early exit in case time limit hits, like in MLMatcher which checks every 50k iterations if time limit has been exceeded
 
 
+// Binder that stores mapping into an array, using linear search to check entries.
+// Rationale: due to CPU caches, this is faster than maps for a small number of bindings.
+//            Typically, literals have few variables.
+class VectorStoringBinder
+{
+  CLASS_NAME(VectorStoringBinder);
+  USE_ALLOCATOR(VectorStoringBinder);
+
+public:
+  using Var = unsigned int;
+  using Entry = std::pair<Var, TermList>;
+  using Vector = vvector<Entry>;
+
+  VectorStoringBinder(Vector& bindings_storage)
+    : m_bindings_storage{bindings_storage}
+    , m_bindings_start{bindings_storage.size()}
+  { }
+
+  VectorStoringBinder(VectorStoringBinder&) = delete;
+  VectorStoringBinder& operator=(VectorStoringBinder&) = delete;
+  VectorStoringBinder(VectorStoringBinder&&) = delete;
+  VectorStoringBinder& operator=(VectorStoringBinder&&) = delete;
+
+  bool bind(Var var, TermList term)
+  {
+    for (auto it = m_bindings_storage.begin() + m_bindings_start; it != m_bindings_storage.end(); ++it) {
+      Entry entry = *it;
+      if (entry.first == var)
+      {
+        // 'var' is already bound => successful iff we bind to the same term again
+        return entry.second == term;
+      }
+    }
+    // 'var' is not bound yet => store new binding
+    m_bindings_storage.emplace_back(var, term);
+    return true;
+  }
+
+  void specVar(unsigned var, TermList term)
+  {
+    ASSERTION_VIOLATION;
+  }
+
+  void reset()
+  {
+    ASS_GE(m_bindings_storage.size(), m_bindings_start);
+    m_bindings_storage.resize(m_bindings_start);
+  }
+
+  size_t index() const
+  {
+    return m_bindings_start;
+  }
+
+  size_t size() const
+  {
+    ASS_GE(m_bindings_storage.size(), m_bindings_start);
+    return m_bindings_storage.size() - m_bindings_start;
+  }
+
+private:
+  Vector& m_bindings_storage;
+  /// First index of the current bindings in m_bindings_storage
+  size_t const m_bindings_start;
+};
+
+
+/*
+template <typename T>
+class SectionedVector
+{
+  CLASS_NAME(SectionedVector);
+  USE_ALLOCATOR(SectionedVector);
+
+  struct SectionToken {
+    size_t index;
+  };
+  SectionToken begin_section();
+  end_section(SectionToken t);
+
+private:
+  using index_type = uint32_t;  // should technically be size_t but for our small stuff 32 bits are more than enough
+  struct SectionRef {
+    index_type index;
+    index_type size;
+  };
+  vvector<SectionRef> m_sections;
+  vvector<T> m_storage;
+};
+*/
+
+
+
 // Optimizations log:
 // - move MapBinder declaration in setup() out of loop: ~5000ns
 // - allocate all variables at once: ~2000ns
@@ -216,6 +328,297 @@ class SMTSubsumptionImpl
     Minisat::Solver solver;
 
   public:
+
+    struct BindingsRef {
+      uint32_t index;
+      uint32_t size;
+      BindingsRef(VectorStoringBinder const& binder)
+        : index(binder.index())
+        , size(binder.size())
+      { }
+      /// last index + 1
+      uint32_t end() {
+        return index + size;
+      }
+    };
+
+    /// Set up the subsumption problem.
+    /// Returns false if no solution is possible.
+    /// Otherwise, solve() needs to be called.
+    bool setup2(Kernel::Clause* side_premise, Kernel::Clause* main_premise)
+    {
+      CDEBUG("SMTSubsumptionImpl::setup2()");
+
+      // TODO: use miniindex
+      // LiteralMiniIndex const main_premise_mini_index(main_premise);
+      // (need to extend InstanceIterator to a version that returns the binder)
+      // then in loop: LiteralMiniIndex::InstanceIterator inst_it(main_premise_mini_index, base_lit, false);
+
+      // Pre-matching
+      // Determine which literals of the side_premise can be matched to which
+      // literals of the main_premise when considered on their own.
+      // Along with this, we create variables b_ij and the mapping for substitution
+      // constraints.
+      vvector<vvector<Alt>> alts;
+      alts.reserve(side_premise->length());
+
+/*
+      // for each instance literal (of main_premise),
+      // the possible variables indicating a match with the instance literal
+      vvector<vvector<Minisat::Var>> possible_base_vars;
+      // start with empty vector for each instance literal
+      possible_base_vars.resize(main_premise->length());
+      */
+
+      // Here we store the AtMostOne constraints saying that each instance literal may be matched at most once.
+      // Each instance literal can be matched by at most 2 boolean vars per base literal (two orientations of a equalities).
+      // First slot stores the length.
+      size_t max_instance_constraint_len = 1 + 2 * side_premise->length();
+      size_t instance_constraints_storage_size = main_premise->length() * max_instance_constraint_len;
+      // vvector<uint32_t> instance_constraints_storage;
+      // instance_constraints_storage.resize( main_premise->length() * (1 + max_instance_constraint_len) );
+      DArray<uint32_t> instance_constraints_storage;
+      instance_constraints_storage.ensure(instance_constraints_storage_size);  // TODO: if VDEBUG, set all entries to 999999 or smth like that
+      // uint32_t* instance_constraints_storage = static_cast<uint32_t*>(ALLOC_UNKNOWN(instance_constraints_storage_size * sizeof(uint32_t), "hoho"));  // somehow even this initializes the memory? so whatever...
+      // initialize sizes to 0
+      for (size_t i = 0; i < instance_constraints_storage.size(); i += max_instance_constraint_len) {
+        instance_constraints_storage[i] = 0;
+      }
+
+      // Minisat::Var b ... boolean variable with FO bindings attached
+      // bindings_table[b] ... index/size of FO bindings for b
+      // bindings_storage[bindings_table[b].index .. bindings_table[b].end] ... FO bindings for b
+      vvector<BindingsRef> bindings_table;
+      bindings_table.reserve(32);
+      vvector<std::pair<unsigned, TermList>> bindings_storage;
+      bindings_storage.reserve(128);
+
+      // Matching for subsumption checks whether
+      //
+      //      side_premise\theta \subseteq main_premise
+      //
+      // holds.
+      Minisat::Var nextVar = 0;
+      for (unsigned i = 0; i < side_premise->length(); ++i) {
+        Literal* base_lit = side_premise->literals()[i];
+
+        vvector<Alt> base_lit_alts;
+
+        for (unsigned j = 0; j < main_premise->length(); ++j) {
+          Literal* inst_lit = main_premise->literals()[j];
+
+          if (!Literal::headersMatch(base_lit, inst_lit, false)) {
+            continue;
+          }
+
+          VectorStoringBinder binder(bindings_storage);
+          if (base_lit->arity() == 0 || MatchingUtils::matchArgs(base_lit, inst_lit, binder)) {
+            Minisat::Var b = nextVar++;
+
+            if (binder.size() > 0) {
+              ASS(!base_lit->ground());
+            } else {
+              ASS(base_lit->ground());
+              ASS_EQ(base_lit, inst_lit);
+              // TODO: in this case, at least for subsumption, we should skip this base_lit and this inst_list.
+              // probably best to have a separate loop first that deals with ground literals? since those are only pointer equality checks.
+            }
+
+            ASS_EQ(bindings_table.size(), b);
+            bindings_table.emplace_back(binder);
+
+            base_lit_alts.push_back({ .b = b, });
+            uint32_t* inst_constraint = &instance_constraints_storage[j * max_instance_constraint_len];
+            inst_constraint[0] += 1;
+            inst_constraint[inst_constraint[0]] = Minisat::index(Minisat::Lit(b));
+            // possible_base_vars[j].push_back(b);
+          }
+
+          if (base_lit->commutative()) {
+            ASS_EQ(base_lit->arity(), 2);
+            ASS_EQ(inst_lit->arity(), 2);
+            binder.reset();
+            if (MatchingUtils::matchReversedArgs(base_lit, inst_lit, binder)) {
+
+              Minisat::Var b = nextVar++;
+
+              ASS_EQ(bindings_table.size(), b);
+              bindings_table.emplace_back(binder);
+
+              base_lit_alts.push_back({ .b = b, });
+              uint32_t* inst_constraint = &instance_constraints_storage[j * max_instance_constraint_len];
+              inst_constraint[0] += 1;
+              inst_constraint[inst_constraint[0]] = Minisat::index(Minisat::Lit(b));
+              // possible_base_vars[j].push_back(b);
+            }
+          }
+        }
+        if (base_lit_alts.empty()) {
+          return false;
+        }
+        alts.push_back(std::move(base_lit_alts));
+      }
+
+      solver.newVars(nextVar);
+
+      CDEBUG("setting substitution theory...");
+      // solver.setSubstitutionTheory(std::move(stc));  // TODO lazy version
+
+      // Pre-matching done
+      for (auto const& v : alts) {
+        if (v.empty()) {
+          ASSERTION_VIOLATION; // should have been discovered above
+          // There is a base literal without any possible matches => abort
+          return false;
+        }
+      }
+      return bindings_storage.size() > 10 && bindings_storage.back().first > 5
+            && instance_constraints_storage.size() > 20 && instance_constraints_storage[20] > 3;
+
+      // Add constraints:
+      // \Land_i ExactlyOneOf(b_{i1}, ..., b_{ij})
+      using Minisat::Lit;
+      Minisat::vec<Lit> ls;
+      for (auto const& v : alts) {
+        ls.clear();
+        // Collect still-undefined literals
+        int n_true = 0;
+        for (auto const& alt : v) {
+          Lit l = Lit(alt.b);
+          Minisat::lbool lvalue = solver.value(l);
+          if (lvalue == Minisat::l_True) {
+            // skip clause and AtMostOne-constraint
+            n_true += 1;
+          } else if (lvalue == Minisat::l_False) {
+            // skip literal
+          } else {
+            ASS_EQ(lvalue, Minisat::l_Undef);
+            ls.push(l);
+          }
+        }
+        if (n_true == 0) {
+          // At least one must be true
+          solver.addClause_unchecked(ls);
+          // At most one must be true
+          if (ls.size() >= 2) {
+            solver.addConstraint_AtMostOne_unchecked(ls);
+          }
+        } else if (n_true == 1) {
+          // one is already true => skip clause, propagate AtMostOne constraint
+          for (auto const& alt : v) {
+            Lit l = Lit(alt.b);
+            if (solver.value(l) == Minisat::l_Undef) {
+              solver.addUnit(~l);
+            }
+          }
+        } else {
+          ASS(n_true >= 2);
+          // conflict at root level due to AtMostOne constraint
+          return false;
+        }
+      }
+
+// TODO: this is from instance_constraints_storage, need to clean each constraint, then reinterpret_cast, then add
+      // Add constraints:
+      // \Land_j AtMostOneOf(b_{1j}, ..., b_{ij})
+      for (size_t c_index = 0; c_index < instance_constraints_storage.size(); c_index += max_instance_constraint_len) {
+        uint32_t* c_size = &instance_constraints_storage[c_index];  // TODO
+        uint32_t* c_lits = &instance_constraints_storage[c_index + 1];
+
+        int n_true = 0;
+        int i = 0, j = 0;
+        while (j < *c_size) {
+          Lit l = Minisat::toLit(c_lits[j]);
+          Minisat::lbool lvalue = solver.value(l);
+          if (lvalue == Minisat::l_True) {
+            n_true += 1;
+            // skip literal (in this case we don't really care about the constraint anymore)
+            ++j;
+          }
+          else if (lvalue == Minisat::l_False) {
+            // skip literal
+            ++j;
+          }
+          else {
+            ASS_EQ(lvalue, Minisat::l_Undef);
+            // copy literal
+            c_lits[i] = c_lits[j];
+            ++i; ++j;
+          }
+        }
+        *c_size = i;
+        Minisat::AtMostOne* c = reinterpret_cast<Minisat::AtMostOne*>(&instance_constraints_storage[c_index]);
+        ASS_EQ(*c_size, c->size());  // TODO if VDEBUG check contents too?
+
+        if (n_true == 0) {
+          // At most one must be true
+          if (c->size() >= 2) {
+            solver.addConstraint_AtMostOne_unchecked(c);
+          }
+        }
+        else if (n_true == 1) {
+          // one is already true => propagate AtMostOne constraint
+          for (int k = 0; k < c->size(); ++k) {
+            Lit l = (*c)[k];
+            ASS(solver.value(l) == Minisat::l_Undef);
+            solver.addUnit(~l);
+          }
+        }
+        else {
+          ASS(n_true >= 2);
+          // conflict at root level due to AtMostOne constraint
+          return false;
+        }
+
+      /*
+        if (w.size() >= 2) {
+          ls.clear();
+          int n_true = 0;
+          for (auto const b : w) {
+            Lit l = Lit(b);
+            Minisat::lbool lvalue = solver.value(l);
+            if (lvalue == Minisat::l_True) {
+              n_true += 1;
+            }
+            else if (lvalue == Minisat::l_False) {
+              // skip literal
+            }
+            else {
+              ASS_EQ(lvalue, Minisat::l_Undef);
+              ls.push(l);
+            }
+            // ls.push(Lit(b));
+          }
+          // solver.addConstraint_AtMostOne(ls);
+          if (n_true == 0) {
+            // At most one must be true
+            if (ls.size() >= 2) {
+              solver.addConstraint_AtMostOne_unchecked(ls);
+            }
+          }
+          else if (n_true == 1) {
+            // one is already true => propagate AtMostOne constraint
+            for (auto const b : w) {
+              Lit l = Lit(b);
+              if (solver.value(l) == Minisat::l_Undef) {
+                solver.addUnit(~l);
+              }
+            }
+          }
+          else {
+            ASS(n_true >= 2);
+            // conflict at root level due to AtMostOne constraint
+            return false;
+          }
+        }
+        */
+      }
+
+      return true;
+    }
+
+
+
     void printStats(std::ostream& out)
     {
       // printf("==================================[MINISAT]===================================\n");
@@ -280,7 +683,7 @@ class SMTSubsumptionImpl
 
         vvector<Alt> base_lit_alts;
 
-        // TODO: use LiteralMiniIndex here (need to extend InstanceIterator to a version that returns the binder)
+        // TODO: use LiteralMiniIndex here? (need to extend InstanceIterator to a version that returns the binder)
         // LiteralMiniIndex::InstanceIterator inst_it(main_premise_mini_index, base_lit, false);
         for (unsigned j = 0; j < main_premise->length(); ++j) {
           Literal* inst_lit = main_premise->literals()[j];
@@ -361,8 +764,6 @@ class SMTSubsumptionImpl
           return false;
         }
       }
-
-#define USE_ATMOSTONE_CONSTRAINTS 1
 
       // Add constraints:
       // \Land_i ExactlyOneOf(b_{i1}, ..., b_{ij})
@@ -454,6 +855,7 @@ class SMTSubsumptionImpl
 
       return true;
     }
+
 
     /// Solve the subsumption instance created by the previous call to setup()
     bool solve()
@@ -593,6 +995,16 @@ void bench_smt_setup(benchmark::State& state, SubsumptionInstance instance)
   for (auto _ : state) {
     SMTSubsumptionImpl smt_impl;
     bool smt_setup_result = smt_impl.setup(instance.side_premise, instance.main_premise);
+    benchmark::DoNotOptimize(smt_setup_result);
+    benchmark::ClobberMemory();
+  }
+}
+
+void bench_smt_setup2(benchmark::State& state, SubsumptionInstance instance)
+{
+  for (auto _ : state) {
+    SMTSubsumptionImpl smt_impl;
+    bool smt_setup_result = smt_impl.setup2(instance.side_premise, instance.main_premise);
     benchmark::DoNotOptimize(smt_setup_result);
     benchmark::ClobberMemory();
   }
@@ -892,7 +1304,7 @@ public:
   }
 
 public:  // this is just for benchmarking anyways
-  std::vector<std::pair<Var, TermList>> m_bindings;
+  vvector<std::pair<Var, TermList>> m_bindings;
 };
 
 
@@ -1466,14 +1878,14 @@ void ProofOfConcept::benchmark_micro(vvector<SubsumptionInstance> instances)
 
 #if ENABLE_BENCHMARK
 
-  vvector<char*> args = {
+  vvector<char const*> args = {
     "vampire-sbench-micro",
     // "--benchmark_repetitions=10",  // Enable this to get mean/median/stddev
-    // "--benchmark_report_aggregates_only=true",
+    // // "--benchmark_report_aggregates_only=true",
     // "--benchmark_display_aggregates_only=true",
-    // "--help",
+    // // "--help",
   };
-  std::cerr << "sizeof args = " << args.size() << std::endl;
+  char** argv = const_cast<char**>(args.data());  // not really legal but whatever
   int argc = args.size();
 
   // for (auto instance : instances)
@@ -1507,6 +1919,8 @@ void ProofOfConcept::benchmark_micro(vvector<SubsumptionInstance> instances)
     benchmark::RegisterBenchmark(name.c_str(), bench_smt_until_create_theory, instance);
     name = "smt_setup_" + suffix;
     benchmark::RegisterBenchmark(name.c_str(), bench_smt_setup, instance);
+    name = "smt_setup2_" + suffix;
+    benchmark::RegisterBenchmark(name.c_str(), bench_smt_setup2, instance);
     // break;
     name = "smt_search_" + suffix;
     benchmark::RegisterBenchmark(name.c_str(), bench_smt_search, instance);
@@ -1523,7 +1937,7 @@ void ProofOfConcept::benchmark_micro(vvector<SubsumptionInstance> instances)
     benchmark::RegisterBenchmark(name.c_str(), bench_orig_total_reusing, instance);
   }
 
-  benchmark::Initialize(&argc, args.data());
+  benchmark::Initialize(&argc, argv);
   benchmark::RunSpecifiedBenchmarks();
 #endif
 

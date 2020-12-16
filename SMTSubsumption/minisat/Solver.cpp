@@ -377,6 +377,65 @@ void Solver::addConstraint_AtMostOne_unchecked(const vec<Lit>& ps)
     }
 }
 
+/// Add non-owned AtMostOne constraint
+void Solver::addConstraint_AtMostOne_unchecked(AtMostOne* c)
+{
+    if (!ok) return;
+
+#if TRACE_SOLVER
+    std::cerr << "addConstraint_AtMostOne_unchecked:";
+    for (Lit l : ps_) {
+      std::cerr << " " << l;
+    }
+    std::cerr << std::endl;
+#endif
+
+    assert(decisionLevel() == 0);
+
+#if VDEBUG
+    // Even if this is called "unchecked", we still do the checks in debug mode.
+    // ps is sorted without duplicates
+    for (int i = 0; i < c->size()-1; ++i) {
+        assert((*c)[i] < (*c)[i+1]);
+    }
+    // All literals are undefined
+    for (int i = 0; i < c->size(); ++i) {
+        assert(value((*c)[i]) == l_Undef);
+    }
+#endif
+
+    if (c->size() <= 1) {
+      // nothing to do
+    }
+    else if (c->size() == 2) {
+      // In this case, we create a binary clause instead,
+      // because AtMostOne(p, q) == ~p \/ ~q
+
+      // Create special binary clause watch
+      watches[index((*c)[0])].push(GClause(~(*c)[1]));
+      watches[index((*c)[1])].push(GClause(~(*c)[0]));
+
+      IF_MINISAT_STATS(stats.clauses_literals += 2);
+      n_bin_clauses++;
+    }
+    else {
+      // Allocate and store constraint
+    //   AtMostOne* c = AtMostOne::new_from_literals(ps);   // don't add because we don't need to dealloc
+    //   at_most_one_constraints.push(c);
+      IF_MINISAT_STATS(stats.clauses_literals += c->size());  // TODO
+
+      // Set up watches for the constraint
+      // AtMostOne is equivalent to a set of binary clauses
+      // (~p \/ ~q for all p,q in ps)
+      // When any one of the literals in ps becomes true, the others will be propagated to false.
+      // so we need to watch all literals in ps.
+      for (int i = 0; i < c->size(); ++i) {
+          Lit l = (*c)[i];
+          watches[index(l)].push(GClause(c));
+      }
+    }
+}
+
 
 // Disposes a clauses and removes it from watcher lists.
 // NOTE! Low-level; does NOT change the 'clauses' and 'learnts' vector.

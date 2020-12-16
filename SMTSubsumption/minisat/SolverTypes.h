@@ -210,12 +210,13 @@ inline std::ostream& operator<<(std::ostream& o, Clause const& c)
 class AtMostOne
 {
   private:
-    int m_size;
+    uint32_t m_size;
     Lit m_data[1];
+    static_assert(sizeof(uint32_t) == sizeof(Lit), "size of uint32_t and Lit must be the same");
 
     // NOTE: This constructor cannot be used directly (doesn't allocate enough memory).
     AtMostOne(vec<Lit> const& ls)
-      : m_size{ls.size()}
+      : m_size(ls.size())
     {
       for (int i = 0; i < ls.size(); ++i) {
         m_data[i] = ls[i];
