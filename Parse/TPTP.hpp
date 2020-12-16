@@ -273,6 +273,16 @@ public:
     TM,
   };
 
+  static const int HOL_CONSTANTS_LOWER_BOUND;
+  /** operator lambda */
+  static const int LAMBDA;
+  /** application of any number of terms */
+  static const int APP;
+  /** Pi function for universal quantification */
+  static const int PI;
+  /** Sigma function for existential quantification */
+  static const int SIGMA;
+
   /** token */
   struct Token {
     /** token type */
