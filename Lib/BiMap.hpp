@@ -137,8 +137,12 @@ public:
   {
     CALL("BiMap::insert");
     bool inserted = _map1.insert(key1, key2);
+#if VDEBUG
     bool inserted2 = _map2.insert(key2, key1);
     ASS(inserted == inserted2);
+#else
+    _map2.insert(key2, key1);
+#endif
     return inserted;
   }
 

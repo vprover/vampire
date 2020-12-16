@@ -83,8 +83,10 @@ public:
 
   void removeActiveOrPassiveClause(Clause* cl);
 
-  void onClauseReduction(Clause* cl, ClauseIterator replacements, Clause* premise, bool forward=true);
-  void onClauseReduction(Clause* cl, ClauseIterator replacements, ClauseIterator premises,
+  void onClauseReduction(Clause* cl, Clause** replacements, unsigned numOfReplacements, 
+                         Clause* premise, bool forward=true);
+  void onClauseReduction(Clause* cl, Clause** replacements, unsigned numOfReplacements, 
+                         ClauseIterator premises,
       bool forward=true);
   void onNonRedundantClause(Clause* c);
   void onParenthood(Clause* cl, Clause* parent);

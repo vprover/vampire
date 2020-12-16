@@ -520,7 +520,8 @@ void SaturationAlgorithm::onClauseRetained(Clause* cl)
  * Called whenever a clause is simplified or deleted at any point of the
  * saturation algorithm
  */
-void SaturationAlgorithm::onClauseReduction(Clause* cl, ClauseIterator replacements, Clause* premise, bool forward)
+void SaturationAlgorithm::onClauseReduction(Clause* cl, Clause** replacements, unsigned numOfReplacements,
+    Clause* premise, bool forward)
 {
   CALL("SaturationAlgorithm::onClauseReduction/5");
   ASS(cl);
@@ -534,10 +535,10 @@ void SaturationAlgorithm::onClauseReduction(Clause* cl, ClauseIterator replaceme
     premises=ClauseIterator::getEmpty();
   }
 
-  onClauseReduction(cl, replacements, premises, forward);
+  onClauseReduction(cl, replacements, numOfReplacements, premises, forward);
 }
 
-void SaturationAlgorithm::onClauseReduction(Clause* cl, ClauseIterator replacements,
+void SaturationAlgorithm::onClauseReduction(Clause* cl, Clause** replacements, unsigned numOfReplacements,
     ClauseIterator premises, bool forward)
 {
   CALL("SaturationAlgorithm::onClauseReduction/4");
@@ -547,19 +548,15 @@ void SaturationAlgorithm::onClauseReduction(Clause* cl, ClauseIterator replaceme
   premStack.reset();
   premStack.loadFromIterator(premises);
 
-  static ClauseStack repStack;
-  repStack.reset();
-  repStack.loadFromIterator(replacements);
-
-  Clause* replacement = repStack.size() ? repStack[0] : 0;
+  Clause* replacement = numOfReplacements ? *replacements : 0;
 
   if (env.options->showReductions()) {
     env.beginOutput();
     env.out() << "[SA] " << (forward ? "forward" : "backward") << " reduce: " << cl->toString() << endl;
-    ClauseStack::Iterator rit(repStack);
-    while(rit.hasNext()){
-      Clause* replacement = rit.next();
+    for(unsigned i = 0; i < numOfReplacements; i++){
+      Clause* replacement = *replacements;
       if(replacement){ env.out() << "      replaced by " << replacement->toString() << endl; }
+      replacements++;
     }
     ClauseStack::Iterator pit(premStack);
     while(pit.hasNext()){
@@ -729,7 +726,7 @@ simpl_start:
   Clause* simplCl=_immediateSimplifier->simplify(cl);
   if (simplCl != cl) {
     if (!simplCl) {
-      onClauseReduction(cl, ClauseIterator::getEmpty(), 0);
+      onClauseReduction(cl, 0, 0, 0);
       goto fin;
     }
 
@@ -737,7 +734,7 @@ simpl_start:
     cl->decRefCnt(); //now cl is referenced from simplCl, so after removing the extra reference, it won't be destroyed
 
     onNewClause(simplCl);
-    onClauseReduction(cl, pvi(getSingletonIterator(simplCl)), 0);
+    onClauseReduction(cl, &simplCl, 1 , 0);
     cl=simplCl;
     goto simpl_start;
   }
@@ -814,7 +811,7 @@ Clause* SaturationAlgorithm::doImmediateSimplification(Clause* cl0)
     if (simplCl) {
       addNewClause(simplCl);
     }
-    onClauseReduction(cl, pvi(getSingletonIterator(simplCl)), 0);
+    onClauseReduction(cl, &simplCl, 1, 0);
     return 0;
   }
 
@@ -832,7 +829,7 @@ Clause* SaturationAlgorithm::doImmediateSimplification(Clause* cl0)
       repStack.push(simpedCl);
       addNewClause(simpedCl);
     }
-    onClauseReduction(cl, pvi( ClauseStack::Iterator(repStack)), 0);
+    onClauseReduction(cl, repStack.begin(), repStack.size(), 0);
     return 0;
   }
 
@@ -1017,7 +1014,7 @@ bool SaturationAlgorithm::forwardSimplify(Clause* cl)
         if (replacement) {
           addNewClause(replacement);
         }
-        onClauseReduction(cl, pvi(getSingletonIterator(replacement)), premises);
+        onClauseReduction(cl, &replacement, 1, premises);
 
         return false;
       }
@@ -1042,7 +1039,7 @@ bool SaturationAlgorithm::forwardSimplify(Clause* cl)
           repStack.push(simpedCl);
           addNewClause(simpedCl);
         }
-        onClauseReduction(cl, pvi(ClauseStack::Iterator(repStack)), 0);
+        onClauseReduction(cl, repStack.begin(), repStack.size(), 0);
         return false;
       }
     }
@@ -1084,7 +1081,7 @@ void SaturationAlgorithm::backwardSimplify(Clause* cl)
       if (replacement) {
 	addNewClause(replacement);
       }
-      onClauseReduction(redundant, pvi(getSingletonIterator(replacement)), cl, false);
+      onClauseReduction(redundant, &replacement, 1, cl, false);
 
       //we must remove the redundant clause before adding its replacement,
       //as otherwise the redundant one might demodulate the replacement into
