@@ -125,8 +125,13 @@ bool ForwardDemodulation::perform(Clause* cl, Clause*& replacement, ClauseIterat
 	unsigned eqSort = SortHelper::getEqualityArgumentSort(qr.literal);
 
 	if(querySort!=eqSort) {
-		ASSERTION_VIOLATION; /// HMMM what is this check good for?
-	  continue;
+      // Why do we need this check?
+      // Assume we rewrite using the equality X0 = c,
+      // where X0 is a variable and c is a constant.
+      // Then we could match X0 to f(c), and since f(c) > c, rewriting f(c) to c is possible.
+      // But if the result sort of f is different than the sort of c, the rewriting would be unsound.
+      // So we guard against this case here.
+      continue;
 	}
 
 	TermList rhs=EqHelper::getOtherEqualitySide(qr.literal,qr.term);
