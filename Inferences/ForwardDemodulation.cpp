@@ -12,9 +12,9 @@
  *
  * In summary, you are allowed to use Vampire for non-commercial
  * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
+ * or use in competitions.
  * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
+ * licence, which we will make an effort to provide.
  */
 /**
  * @file ForwardDemodulation.cpp
@@ -125,6 +125,7 @@ bool ForwardDemodulation::perform(Clause* cl, Clause*& replacement, ClauseIterat
 	unsigned eqSort = SortHelper::getEqualityArgumentSort(qr.literal);
 
 	if(querySort!=eqSort) {
+		ASSERTION_VIOLATION; /// HMMM what is this check good for?
 	  continue;
 	}
 

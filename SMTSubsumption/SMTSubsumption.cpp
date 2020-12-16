@@ -189,6 +189,9 @@ using Impl = OriginalSubsumptionImpl;  // shorthand if we use qualified namespac
  ****************************************************************************/
 
 
+// TODO: early exit in case time limit hits, like in MLMatcher which checks every 50k iterations if time limit has been exceeded
+
+
 // Optimizations log:
 // - move MapBinder declaration in setup() out of loop: ~5000ns
 // - allocate all variables at once: ~2000ns
@@ -367,49 +370,86 @@ class SMTSubsumptionImpl
       Minisat::vec<Lit> ls;
       for (auto const& v : alts) {
         ls.clear();
-        // At least one must be true
+        // Collect still-undefined literals
+        int n_true = 0;
         for (auto const& alt : v) {
-          ls.push(Lit(alt.b));
-        }
-        solver.addClause(ls);     // TODO: use different addClause/addConstraint_... version that doesn't do as many checks! (can do some checks here before adding variable to vector)
-        // At most one must be true
-#if USE_ATMOSTONE_CONSTRAINTS
-        if (ls.size() >= 2) {
-          solver.addConstraint_AtMostOne(ls);
-        }
-#else
-        for (size_t j1 = 0; j1 < v.size(); ++j1) {
-          for (size_t j2 = j1 + 1; j2 < v.size(); ++j2) {
-            auto b1 = v[j1].b;
-            auto b2 = v[j2].b;
-            ASS_NEQ(b1, b2);
-            solver.addBinary(~Lit(b1), ~Lit(b2));
+          Lit l = Lit(alt.b);
+          Minisat::lbool lvalue = solver.value(l);
+          if (lvalue == Minisat::l_True) {
+            // skip clause and AtMostOne-constraint
+            n_true += 1;
+          } else if (lvalue == Minisat::l_False) {
+            // skip literal
+          } else {
+            ASS_EQ(lvalue, Minisat::l_Undef);
+            ls.push(l);
           }
         }
-#endif
+        if (n_true == 0) {
+          // At least one must be true
+          solver.addClause_unchecked(ls);
+          // At most one must be true
+          if (ls.size() >= 2) {
+            solver.addConstraint_AtMostOne_unchecked(ls);
+          }
+        } else if (n_true == 1) {
+          // one is already true => skip clause, propagate AtMostOne constraint
+          for (auto const& alt : v) {
+            Lit l = Lit(alt.b);
+            if (solver.value(l) == Minisat::l_Undef) {
+              solver.addUnit(~l);
+            }
+          }
+        } else {
+          ASS(n_true >= 2);
+          // conflict at root level due to AtMostOne constraint
+          return false;
+        }
       }
 
       // Add constraints:
       // \Land_j AtMostOneOf(b_{1j}, ..., b_{ij})
       for (auto const& w : possible_base_vars) {
-#if USE_ATMOSTONE_CONSTRAINTS
         if (w.size() >= 2) {
           ls.clear();
-          for (auto const& b : w) {
-            ls.push(Lit(b));
+          int n_true = 0;
+          for (auto const b : w) {
+            Lit l = Lit(b);
+            Minisat::lbool lvalue = solver.value(l);
+            if (lvalue == Minisat::l_True) {
+              n_true += 1;
+            }
+            else if (lvalue == Minisat::l_False) {
+              // skip literal
+            }
+            else {
+              ASS_EQ(lvalue, Minisat::l_Undef);
+              ls.push(l);
+            }
+            // ls.push(Lit(b));
           }
-          solver.addConstraint_AtMostOne(ls);
-        }
-#else
-        for (size_t i1 = 0; i1 < w.size(); ++i1) {
-          for (size_t i2 = i1 + 1; i2 < w.size(); ++i2) {
-            auto b1 = w[i1];
-            auto b2 = w[i2];
-            ASS_NEQ(b1, b2);
-            solver.addBinary(~Lit(b1), ~Lit(b2));
+          // solver.addConstraint_AtMostOne(ls);
+          if (n_true == 0) {
+            // At most one must be true
+            if (ls.size() >= 2) {
+              solver.addConstraint_AtMostOne_unchecked(ls);
+            }
+          }
+          else if (n_true == 1) {
+            // one is already true => propagate AtMostOne constraint
+            for (auto const b : w) {
+              Lit l = Lit(b);
+              if (solver.value(l) == Minisat::l_Undef) {
+                solver.addUnit(~l);
+              }
+            }
+          }
+          else {
+            ASS(n_true >= 2);
+            // conflict at root level due to AtMostOne constraint
+            return false;
           }
         }
-#endif
       }
 
       return true;
@@ -467,7 +507,9 @@ void ProofOfConcept::test(Clause* side_premise, Clause* main_premise)
       { "10% RemainingChoices, rest activity", Minisat::VarOrderStrategy::Alternate_10 },
       { "50% RemainingChoices, rest activity", Minisat::VarOrderStrategy::Alternate_50 },
       { "80% RemainingChoices, rest activity", Minisat::VarOrderStrategy::Alternate_80 },
-      { "RemainingChoices / (activity + 3)", Minisat::VarOrderStrategy::Combined_k3 },
+      { "RemainingChoices / (activity + 1) [per-boolean activity]", Minisat::VarOrderStrategy::CombinedBoolAct_k1 },
+      { "RemainingChoices / (activity + 3) [per-boolean activity]", Minisat::VarOrderStrategy::CombinedBoolAct_k3 },
+      { "RemainingChoices / (activity + 5) [per-boolean activity]", Minisat::VarOrderStrategy::CombinedBoolAct_k5 },
   };
   for (auto p : vo_strategies) {
     auto vo_strategy_name = p.first;

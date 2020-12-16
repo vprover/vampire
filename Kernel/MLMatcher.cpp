@@ -539,6 +539,17 @@ void MLMatcher::Impl::initMatchingData(Literal** baseLits0, unsigned baseLen, Cl
     swapLits(mostDistVarsLit, singleAlts);
   }
 
+  // std::cout << "matchings:\n";
+  // for (unsigned i=0; i<baseLen; ++i) {
+  //   std::cout << s_baseLits[i]->toString() << "\t\t";
+  //   LiteralList::Iterator ait(s_altsArr[i]);
+  //   while(ait.hasNext()) {
+  //     std::cout << ait.next()->toString() << "  ";
+  //   }
+  // std::cout << std::endl;
+  // }
+  // std::cout << std::endl;
+
   s_boundVarNumData.ensure(baseLitVars);
   s_altBindingPtrs.ensure(altCnt);
   s_altBindingsData.ensure(altBindingsCnt);

@@ -248,7 +248,7 @@ void Solver::addConstraint_AtMostOne(const vec<Lit>& ps_)
     assert(decisionLevel() == 0);
 
     // Make a copy of the input vector.
-    vec<Lit> ps;  // TODO: could use class member to reduce allocation overhead
+    vec<Lit>& ps = addConstraint_AtMostOne_ps;
     ps_.copyTo(ps);
 
     // Remove duplicates
@@ -267,6 +267,17 @@ void Solver::addConstraint_AtMostOne(const vec<Lit>& ps_)
         }
       }
     }
+    assert(num_true == 0 || num_true == 1);
+    // If one is already true, we can already set all other literals to false.
+    if (num_true == 1) {
+        CDEBUG("Can propagate AtMostOne constraint already during creation");
+        // std::cerr << "Can propagate AtMostOne constraint already during creation" << std::endl;;
+        for (Lit p : ps) {
+            if (value(p) == l_Undef) {
+                check(enqueue(~p));
+            }
+        }
+    }
 
     // Remove false literals
     int i, j;
@@ -277,6 +288,63 @@ void Solver::addConstraint_AtMostOne(const vec<Lit>& ps_)
     ps.shrink(i - j);
 
     // 'ps' is now the (possibly) reduced vector of literals.
+
+    if (ps.size() <= 1) {
+      // nothing to do
+    }
+    else if (ps.size() == 2) {
+      // In this case, we create a binary clause instead,
+      // because AtMostOne(p, q) == ~p \/ ~q
+
+      // Create special binary clause watch
+      watches[index(ps[0])].push(GClause(~ps[1]));
+      watches[index(ps[1])].push(GClause(~ps[0]));
+
+      IF_MINISAT_STATS(stats.clauses_literals += 2);
+      n_bin_clauses++;
+    }
+    else {
+      // Allocate and store constraint
+      AtMostOne* c = AtMostOne::new_from_literals(ps);
+      at_most_one_constraints.push(c);
+      IF_MINISAT_STATS(stats.clauses_literals += c->size());  // TODO
+
+      // Set up watches for the constraint
+      // AtMostOne is equivalent to a set of binary clauses
+      // (~p \/ ~q for all p,q in ps)
+      // When any one of the literals in ps becomes true, the others will be propagated to false.
+      // so we need to watch all literals in ps.
+      for (Lit l : ps) {
+        watches[index(l)].push(GClause(c));
+      }
+    }
+}
+
+void Solver::addConstraint_AtMostOne_unchecked(const vec<Lit>& ps)
+{
+    if (!ok) return;
+
+#if TRACE_SOLVER
+    std::cerr << "addConstraint_AtMostOne_unchecked:";
+    for (Lit l : ps_) {
+      std::cerr << " " << l;
+    }
+    std::cerr << std::endl;
+#endif
+
+    assert(decisionLevel() == 0);
+
+#if VDEBUG
+    // Even if this is called "unchecked", we still do the checks in debug mode.
+    // ps is sorted without duplicates
+    for (int i = 0; i < ps.size()-1; ++i) {
+        assert(ps[i] < ps[i+1]);
+    }
+    // All literals are undefined
+    for (int i = 0; i < ps.size(); ++i) {
+        assert(value(ps[i]) == l_Undef);
+    }
+#endif
 
     if (ps.size() <= 1) {
       // nothing to do
@@ -999,11 +1067,12 @@ lbool Solver::search(int nof_conflicts, int nof_learnts, const SearchParams& par
         }else{
             // NO CONFLICT
 
-            if (nof_conflicts >= 0 && conflictC >= nof_conflicts){
-                // Reached bound on number of conflicts:
-                progress_estimate = progressEstimate();
-                cancelUntil(root_level);
-                return l_Undef; }
+            // TODO: in the 300-million pigeonhole-like example, we're faster without restarts
+            // if (nof_conflicts >= 0 && conflictC >= nof_conflicts){
+            //     // Reached bound on number of conflicts:
+            //     progress_estimate = progressEstimate();
+            //     cancelUntil(root_level);
+            //     return l_Undef; }
 
             if (decisionLevel() == 0) {
                 // Simplify the set of problem clauses:

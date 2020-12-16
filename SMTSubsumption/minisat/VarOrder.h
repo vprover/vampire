@@ -161,12 +161,14 @@ Example:
 
 
 enum class VarOrderStrategy {
-    MinisatDefault,    // random + activity-based
-    RemainingChoices,  // with number of distinct variables in baselit as tie-breaker
-    Alternate_10,      // 10% remaining choices, 90% activity
-    Alternate_50,      // 50% remaining choices, 50% activity
-    Alternate_80,      // 80% remaining choices, 20% activity
-    Combined_k3        // order by remaining-choices / (activity + 3)
+    MinisatDefault,      // random + activity-based
+    RemainingChoices,    // with number of distinct variables in baselit as tie-breaker
+    Alternate_10,        // 10% remaining choices, 90% activity
+    Alternate_50,        // 50% remaining choices, 50% activity
+    Alternate_80,        // 80% remaining choices, 20% activity
+    CombinedBoolAct_k1,  // order by remaining-choices / (activity + 1)  [per-boolean activity]
+    CombinedBoolAct_k3,  // order by remaining-choices / (activity + 3)  [per-boolean activity]
+    CombinedBoolAct_k5,  // order by remaining-choices / (activity + 5)  [per-boolean activity]
 };
 
 struct VarOrder_info {
@@ -204,7 +206,7 @@ public:
 private:
     inline Var select_RemainingChoices();
     inline Var select_Alternate(double remaining_choices_freq);
-    inline Var select_Combined(double k);
+    inline Var select_CombinedBoolAct(double k);
     inline Var select_MinisatDefault(double random_var_freq);
     inline Var select_Activity();
 };
@@ -223,8 +225,14 @@ Var VarOrder::select(double random_var_freq)
           return select_Alternate(0.5);
         case VarOrderStrategy::Alternate_80:
           return select_Alternate(0.8);
-        case VarOrderStrategy::Combined_k3:
-          return select_Combined(3);
+        case VarOrderStrategy::CombinedBoolAct_k1:
+          return select_CombinedBoolAct(1);
+        case VarOrderStrategy::CombinedBoolAct_k3:
+          return select_CombinedBoolAct(3);
+        case VarOrderStrategy::CombinedBoolAct_k5:
+          return select_CombinedBoolAct(5);
+        default:
+          ASSERTION_VIOLATION;
     }
 }
 
@@ -232,9 +240,11 @@ Var VarOrder::select(double random_var_freq)
 Var VarOrder::select_RemainingChoices()
 {
     int max_baselit = *std::max_element(info.var_baselit.begin(), info.var_baselit.end());
+    // std::cerr << "max_baselit = " << max_baselit << std::endl;
     assert(max_baselit + 1 == info.num_baselits);  // not necessarily true... but if one has no match, then we don't even go here (no call to solve())
     vec<int> baselit_remainingChoices(max_baselit+1, 0);
     for (Var v = 0; v < assigns.size(); ++v) {
+      assert(info.var_baselit[v] >= 0);  // all are constraint variables atm!
       if (info.var_baselit[v] >= 0             // >=0 means "represents a constraint variable assignment"
           && toLbool(assigns[v]) == l_Undef) { // represents a remaining choice iff current value is undefined
         baselit_remainingChoices[info.var_baselit[v]] += 1;
@@ -242,12 +252,22 @@ Var VarOrder::select_RemainingChoices()
     }
     int best_baselit = 0;
     for (int baselit = 1; baselit <= max_baselit; ++baselit) {
-      if (baselit_remainingChoices[baselit] > baselit_remainingChoices[best_baselit] || (baselit_remainingChoices[baselit] == baselit_remainingChoices[best_baselit] && info.baselit_distinctVars[baselit] > info.baselit_distinctVars[best_baselit])) {
+        // std::cerr << "remainingChoices[" << baselit << "] == " << baselit_remainingChoices[baselit] << std::endl;
+      if (baselit_remainingChoices[baselit] > baselit_remainingChoices[best_baselit] ||
+          (baselit_remainingChoices[baselit] == baselit_remainingChoices[best_baselit] && info.baselit_distinctVars[baselit] > info.baselit_distinctVars[best_baselit])) {
         best_baselit = baselit;
       }
     }
+    // std::cerr << "best_baselit = " << best_baselit << std::endl;
+    if (baselit_remainingChoices[best_baselit] == 0) {
+      for (Var v = 0; v < assigns.size(); ++v) {
+        // std::cerr << "v = " << v << "     baselit = " << info.var_baselit[v] << "     choices = " << baselit_remainingChoices[info.var_baselit[v]] << "    value = " << toLbool(assigns[v]) << std::endl;
+        assert(toLbool(assigns[v]) != l_Undef);
+      }
+      return var_Undef;  // apparently this can happen after all, and we just return var_Undef
+    }
     // got the best baselit, now choose the best boolean var among those. (for now: first free one, like mlmatcher is doing)
-    assert(baselit_remainingChoices[best_baselit] > 0);  // there must be at least one (otherwise we would not select() -- at least for the subsumption problems)
+    ASS_G(baselit_remainingChoices[best_baselit], 0);  // there must be at least one (otherwise we would not select() -- at least for the subsumption problems)
     for (Var v = 0; v < assigns.size(); ++v) {
         if (info.var_baselit[v] == best_baselit) {
             if (toLbool(assigns[v]) == l_Undef) {
@@ -260,9 +280,9 @@ Var VarOrder::select_RemainingChoices()
     return var_Undef;
 }
 
-/// remaining_choices / (activity + k)
-/// TODO: what is activity here?
-Var VarOrder::select_Combined(double k)
+/// remaining_choices / (activity + k) [per-boolean activity]
+/// TODO: try version with per-constraint activity
+Var VarOrder::select_CombinedBoolAct(double k)
 {
     // Compute remaining choices
     int max_baselit = *std::max_element(info.var_baselit.begin(), info.var_baselit.end());
@@ -278,7 +298,7 @@ Var VarOrder::select_Combined(double k)
     double best_value = std::numeric_limits<double>::lowest();
     for (Var v = 0; v < assigns.size(); ++v) {
       if (toLbool(assigns[v]) == l_Undef) {
-          // NOTE: version with bug was much better, had baselit_remainingChoices[v] instead (accesses memory out of bounds)
+        // NOTE: weirdly, the version with bug was better, it had baselit_remainingChoices[v] instead (which accesses memory out of bounds; obviously that's not good)
         double value = static_cast<double>(baselit_remainingChoices[info.var_baselit[v]]) / (activity[v] + k);
         // std::cerr << "rem_choices=" << baselit_remainingChoices[info.var_baselit[v]] << "  activity=" << activity[v] << "     value=" << value << std::endl;
         if (value > best_value) {
@@ -287,7 +307,7 @@ Var VarOrder::select_Combined(double k)
         }
       }
     }
-    assert(best_v != var_Undef);
+    // assert(best_v != var_Undef);
     return best_v;
 }
 

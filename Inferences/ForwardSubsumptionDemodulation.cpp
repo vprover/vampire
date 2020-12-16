@@ -426,6 +426,13 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
             }
 
             if (SortHelper::getTermSort(lhsS, dlit) != eqSort) {
+              // Why do we need this check?
+              // Assume we rewrite using the equality X0 = c,
+              // where X0 is a variable and c is a constant.
+              // Then lhs = X0. Now assume lhsS = f(c).
+              // We can match lhs to lhsS and have f(c) > c, so we would rewrite f(c) -> c.
+              // But matchTerms below doesn't know anything about sorts,
+              // so here we need to check that the return value of f(c) is of the same sort as the equality.
               continue;
             }
 

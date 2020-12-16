@@ -107,6 +107,7 @@ protected:
     // Temporaries (to reduce allocation overhead). Each variable is prefixed by the method in which is used:
     //
     vec<Lit>            newClause_qs;
+    vec<Lit>            addConstraint_AtMostOne_ps;
     vec<char>           analyze_seen;
     vec<Lit>            analyze_stack;
     vec<Lit>            analyze_toclear;
@@ -144,7 +145,11 @@ protected:
     void varBumpActivity(Lit p)
     {
         if (var_decay < 0) return;     // (negative decay means static variable order -- don't bump)
+
+        double old_activity = activity[var(p)];
         if ( (activity[var(p)] += var_inc) > 1e100 ) varRescaleActivity();
+        double new_activity = activity[var(p)];
+        // std::cerr << "Bump: " << old_activity << " -> " << new_activity << " [inc = " << var_inc << "]" << std::endl;
         order.update(var(p));
     }
     void     varDecayActivity  () { if (var_decay >= 0) var_inc *= var_decay; }
@@ -295,6 +300,7 @@ public:
     void    addClause (const vec<Lit>& ps)  { newClause(ps); }  // (there used to be a difference between internal and external method...)
     void    addClause_unchecked(const vec<Lit>& ps);
     void    addConstraint_AtMostOne(const vec<Lit>& ps);
+    void    addConstraint_AtMostOne_unchecked(const vec<Lit>& ps);
 
     // Solving:
     //
