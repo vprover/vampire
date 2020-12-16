@@ -640,7 +640,7 @@ private:
   Stack<LetSymbols> _letSymbols;
   Stack<LetSymbols> _letTypedSymbols;
 
-  /** Record wether a formula or term has been pushed more recently */
+  /** Record wheter a formula or term has been pushed more recently */
   LastPushed _lastPushed;
 
   /** finds if the symbol has been defined in an enclosing $let */
