@@ -120,8 +120,12 @@ inline std::ostream& operator<<(std::ostream& o, Lit l)
 
 #if ENABLE_CLAUSE_DELETION
 class Clause {
-    uint    size_learnt;
-    Lit     data[1];
+    // struct {
+    //   bool learnt : 1;
+    //   uint32_t size : 31;
+    // } size_learntt;
+    uint32_t size_learnt;  // TODO: use bitfield + static_assert on size
+    Lit      data[1];
 
     // NOTE: This constructor cannot be used directly (doesn't allocate enough memory).
     Clause(bool learnt, const vec<Lit>& ps)
@@ -149,9 +153,9 @@ public:
 
 inline Clause* Clause_new(bool learnt, const vec<Lit>& ps)
 {
-    static_assert(sizeof(Lit)   == sizeof(uint), "unexpected size of Lit");
-    static_assert(sizeof(float) == sizeof(uint), "unexpected size of float");
-    void* mem = xmalloc<char>(sizeof(Clause) - sizeof(Lit) + sizeof(uint)*(ps.size() + (int)learnt));
+    static_assert(sizeof(Lit)   == sizeof(uint32_t), "unexpected size of Lit");
+    static_assert(sizeof(float) == sizeof(uint32_t), "unexpected size of float");
+    void* mem = xmalloc<char>(sizeof(Clause) - sizeof(Lit) + sizeof(uint32_t)*(ps.size() + (int)learnt));
     return new (mem) Clause(learnt, ps);
 }
 #else

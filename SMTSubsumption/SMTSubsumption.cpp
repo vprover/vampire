@@ -359,8 +359,18 @@ class SMTSubsumptionImpl
       // literals of the main_premise when considered on their own.
       // Along with this, we create variables b_ij and the mapping for substitution
       // constraints.
-      vvector<vvector<Alt>> alts;
-      alts.reserve(side_premise->length());
+      // vvector<vvector<Alt>> alts;
+      // alts.reserve(side_premise->length());
+
+      // The match clauses + AtMostOne constraints saying that each base literal is matches to exactly one instance literal.
+      // Worst case: each base literal may be matchable to two boolean vars per instance literal (two orientations of equalities).
+      // First slot stores the length.
+      size_t clause_maxsize = 1 + 2 * main_premise->length();
+      size_t clause_storage_size = side_premise->length() * clause_maxsize;
+      vvector<uint32_t> clause_storage;
+      clause_storage.reserve(clause_storage_size);
+      // clause_storage.ensure(clause_storage_size);
+      // NOTE: match clauses+constraints can be packed densely.
 
 /*
       // for each instance literal (of main_premise),
@@ -371,7 +381,7 @@ class SMTSubsumptionImpl
       */
 
       // Here we store the AtMostOne constraints saying that each instance literal may be matched at most once.
-      // Each instance literal can be matched by at most 2 boolean vars per base literal (two orientations of a equalities).
+      // Each instance literal can be matched by at most 2 boolean vars per base literal (two orientations of equalities).
       // First slot stores the length.
       size_t max_instance_constraint_len = 1 + 2 * side_premise->length();
       size_t instance_constraints_storage_size = main_premise->length() * max_instance_constraint_len;
@@ -384,6 +394,7 @@ class SMTSubsumptionImpl
       for (size_t i = 0; i < instance_constraints_storage.size(); i += max_instance_constraint_len) {
         instance_constraints_storage[i] = 0;
       }
+      // NOTE: instance constraints cannot be packed densely because we only know their shape at the end.
 
       // Minisat::Var b ... boolean variable with FO bindings attached
       // bindings_table[b] ... index/size of FO bindings for b
@@ -402,7 +413,9 @@ class SMTSubsumptionImpl
       for (unsigned i = 0; i < side_premise->length(); ++i) {
         Literal* base_lit = side_premise->literals()[i];
 
-        vvector<Alt> base_lit_alts;
+        size_t clause_index = clause_storage.size();
+        clause_storage.push_back(0);  // size field
+        // vvector<Alt> base_lit_alts;
 
         for (unsigned j = 0; j < main_premise->length(); ++j) {
           Literal* inst_lit = main_premise->literals()[j];
@@ -427,7 +440,8 @@ class SMTSubsumptionImpl
             ASS_EQ(bindings_table.size(), b);
             bindings_table.emplace_back(binder);
 
-            base_lit_alts.push_back({ .b = b, });
+            // base_lit_alts.push_back({ .b = b, });
+            clause_storage.push_back(Minisat::index(Minisat::Lit(b)));
             uint32_t* inst_constraint = &instance_constraints_storage[j * max_instance_constraint_len];
             inst_constraint[0] += 1;
             inst_constraint[inst_constraint[0]] = Minisat::index(Minisat::Lit(b));
@@ -445,7 +459,8 @@ class SMTSubsumptionImpl
               ASS_EQ(bindings_table.size(), b);
               bindings_table.emplace_back(binder);
 
-              base_lit_alts.push_back({ .b = b, });
+              // base_lit_alts.push_back({ .b = b, });
+              clause_storage.push_back(Minisat::index(Minisat::Lit(b)));
               uint32_t* inst_constraint = &instance_constraints_storage[j * max_instance_constraint_len];
               inst_constraint[0] += 1;
               inst_constraint[inst_constraint[0]] = Minisat::index(Minisat::Lit(b));
@@ -453,10 +468,16 @@ class SMTSubsumptionImpl
             }
           }
         }
-        if (base_lit_alts.empty()) {
+        uint32_t clause_size = clause_storage.size() - clause_index - 1;
+        if (clause_size == 0) {
+          // no matches for this base literal => conflict on root level due to empty clause
           return false;
         }
-        alts.push_back(std::move(base_lit_alts));
+        clause_storage[clause_index] = clause_size;
+        // if (base_lit_alts.empty()) {
+        //   return false;
+        // }
+        // alts.push_back(std::move(base_lit_alts));
       }
 
       solver.newVars(nextVar);
@@ -464,20 +485,23 @@ class SMTSubsumptionImpl
       CDEBUG("setting substitution theory...");
       // solver.setSubstitutionTheory(std::move(stc));  // TODO lazy version
 
-      // Pre-matching done
-      for (auto const& v : alts) {
-        if (v.empty()) {
-          ASSERTION_VIOLATION; // should have been discovered above
-          // There is a base literal without any possible matches => abort
-          return false;
-        }
-      }
+      // // Pre-matching done
+      // for (auto const& v : alts) {
+      //   if (v.empty()) {
+      //     ASSERTION_VIOLATION; // should have been discovered above
+      //     // There is a base literal without any possible matches => abort
+      //     return false;
+      //   }
+      // }
       return bindings_storage.size() > 10 && bindings_storage.back().first > 5
-            && instance_constraints_storage.size() > 20 && instance_constraints_storage[20] > 3;
+            && instance_constraints_storage.size() > 20 && instance_constraints_storage[20] > 3
+            && clause_storage.size() > 5 && clause_storage[5] > 1;
 
+      using Minisat::Lit;
+
+/* TODO clause_storage : clean+add
       // Add constraints:
       // \Land_i ExactlyOneOf(b_{i1}, ..., b_{ij})
-      using Minisat::Lit;
       Minisat::vec<Lit> ls;
       for (auto const& v : alts) {
         ls.clear();
@@ -517,6 +541,7 @@ class SMTSubsumptionImpl
           return false;
         }
       }
+      */
 
 // TODO: this is from instance_constraints_storage, need to clean each constraint, then reinterpret_cast, then add
       // Add constraints:
@@ -525,6 +550,10 @@ class SMTSubsumptionImpl
         uint32_t* c_size = &instance_constraints_storage[c_index];  // TODO
         uint32_t* c_lits = &instance_constraints_storage[c_index + 1];
 
+        // Clean constraints (remove literals with already-known value)
+        // => actually, this should be done in the solver in addConstraint_AtMostOne_unchecked(AtMostOne*)
+        //    (the 'unchecked' then just is about the properties no-duplicates and sorted.)
+        // => OTOH, above we can use the same structure for clause AND constraint. So we don't really want to do this twice. (or modify at all, after adding one)
         int n_true = 0;
         int i = 0, j = 0;
         while (j < *c_size) {
