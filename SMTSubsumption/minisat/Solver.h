@@ -299,6 +299,7 @@ public:
     void    addTernary(Lit p, Lit q, Lit r) { addTernary_tmp[0] = p; addTernary_tmp[1] = q; addTernary_tmp[2] = r; addClause(addTernary_tmp); }
     void    addClause (const vec<Lit>& ps)  { newClause(ps); }  // (there used to be a difference between internal and external method...)
     void    addClause_unchecked(const vec<Lit>& ps);
+    void    addClause_unchecked(Clause* c);
     void    addConstraint_AtMostOne(const vec<Lit>& ps);
     void    addConstraint_AtMostOne_unchecked(const vec<Lit>& ps);
     void    addConstraint_AtMostOne_unchecked(AtMostOne* c);

@@ -499,6 +499,70 @@ class SMTSubsumptionImpl
 
       using Minisat::Lit;
 
+      { // add match clauses/constraints
+      size_t c_index = 0;
+      while (c_index < clause_storage.size()) {
+        uint32_t* c_size = &clause_storage[c_index];
+        uint32_t* c_lits = &clause_storage[c_index + 1];
+        uint32_t const c_original_size = *c_size;
+        ASS_G(c_original_size, 0);  // otherwise we would have returned in the matching loop already
+
+        // Clean the constraint (remove literals with already-known value)
+        // TODO: maybe extract this into a separate function?
+        int n_true = 0;
+        int i = 0, j = 0;
+        while (j < *c_size) {
+          Lit l = Minisat::toLit(c_lits[j]);
+          Minisat::lbool lvalue = solver.value(l);
+          if (lvalue == Minisat::l_True) {
+            n_true += 1;
+            // skip literal (in this case we don't really care about the constraint anymore)
+            ++j;
+          }
+          else if (lvalue == Minisat::l_False) {
+            // skip literal
+            ++j;
+          }
+          else {
+            ASS_EQ(lvalue, Minisat::l_Undef);
+            // copy literal
+            c_lits[i] = c_lits[j];
+            ++i; ++j;
+          }
+        }
+        *c_size = i;
+        // we use the same storage for both Clause and AtMostOne constraint
+        Minisat::Clause* c1 = reinterpret_cast<Minisat::Clause*>(&instance_constraints_storage[c_index]);
+        Minisat::AtMostOne* c2 = reinterpret_cast<Minisat::AtMostOne*>(&instance_constraints_storage[c_index]);
+        ASS_EQ(*c_size, c1->size());  // TODO: if VDEBUG check contents too?
+        ASS(!c1->learnt());
+        ASS_EQ(*c_size, c2->size());  // TODO: if VDEBUG check contents too?
+
+        if (n_true == 0) {
+          // At least one must be true
+          solver.addClause_unchecked(c1);
+          // At most one must be true
+          if (c2->size() >= 2) {
+            solver.addConstraint_AtMostOne_unchecked(c2);
+          }
+        } else if (n_true == 1) {
+          // one is already true => skip clause, propagate AtMostOne constraint
+          for (int k = 0; k < c2->size(); ++k) {
+            Lit l = (*c2)[k];
+            ASS(solver.value(l) == Minisat::l_Undef);
+            solver.addUnit(~l);
+          }
+        } else {
+          ASS(n_true >= 2);
+          // conflict at root level due to AtMostOne constraint
+          return false;
+        }
+
+        // go to next clause
+        c_index += c_original_size;
+      }
+      ASS_EQ(c_index, clause_storage.size());
+      }
 /* TODO clause_storage : clean+add
       // Add constraints:
       // \Land_i ExactlyOneOf(b_{i1}, ..., b_{ij})
@@ -550,7 +614,7 @@ class SMTSubsumptionImpl
         uint32_t* c_size = &instance_constraints_storage[c_index];  // TODO
         uint32_t* c_lits = &instance_constraints_storage[c_index + 1];
 
-        // Clean constraints (remove literals with already-known value)
+        // Clean the constraint (remove literals with already-known value)
         // => actually, this should be done in the solver in addConstraint_AtMostOne_unchecked(AtMostOne*)
         //    (the 'unchecked' then just is about the properties no-duplicates and sorted.)
         // => OTOH, above we can use the same structure for clause AND constraint. So we don't really want to do this twice. (or modify at all, after adding one)

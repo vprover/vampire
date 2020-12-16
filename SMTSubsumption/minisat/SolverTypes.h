@@ -120,17 +120,19 @@ inline std::ostream& operator<<(std::ostream& o, Lit l)
 
 #if ENABLE_CLAUSE_DELETION
 class Clause {
-    // struct {
-    //   bool learnt : 1;
-    //   uint32_t size : 31;
-    // } size_learntt;
-    uint32_t size_learnt;  // TODO: use bitfield + static_assert on size
+    struct {
+      bool learnt : 1;
+      uint32_t size : 31;
+    } size_learnt;
+    // uint32_t size_learnt;  // TODO: use bitfield + static_assert on size
     Lit      data[1];
 
     // NOTE: This constructor cannot be used directly (doesn't allocate enough memory).
     Clause(bool learnt, const vec<Lit>& ps)
     {
-        size_learnt = (ps.size() << 1) | (int)learnt;
+      size_learnt.learnt = learnt;
+      size_learnt.size = ps.size();
+        // size_learnt = (ps.size() << 1) | (int)learnt;
         for (int i = 0; i < ps.size(); i++) data[i] = ps[i];
         if (learnt) activity() = 0;
     }
@@ -144,8 +146,10 @@ public:
     // -- use this function instead:
     friend Clause* Clause_new(bool learnt, const vec<Lit>& ps);
 
-    int       size        ()      const { return size_learnt >> 1; }
-    bool      learnt      ()      const { return size_learnt & 1; }
+    // int       size        ()      const { return size_learnt >> 1; }
+    // bool      learnt      ()      const { return size_learnt & 1; }
+    int       size        ()      const { return size_learnt.size; }
+    bool      learnt      ()      const { return size_learnt.learnt; }
     Lit       operator [] (int i) const { return data[i]; }
     Lit&      operator [] (int i)       { return data[i]; }
     float&    activity    ()      const { return *((float*)&data[size()]); }  // TODO remove activity? since we are not doing any clause deletion

@@ -233,6 +233,70 @@ void Solver::addClause_unchecked(const vec<Lit>& ps)
     }
 }
 
+
+// Add non-owned clause
+void Solver::addClause_unchecked(Clause* pc)
+{
+    assert(decisionLevel() == 0);
+
+    if (!ok) return;
+
+#if TRACE_SOLVER
+    std::cerr << "addClause_unchecked:";
+    for (Lit l : ps_) {
+      std::cerr << " " << l;
+    }
+    std::cerr << std::endl;
+#endif
+
+    Clause& c = *pc;
+
+#if VDEBUG
+    // Even if this is called "unchecked", we still do the checks in debug mode.
+    // ps is sorted without duplicates
+    for (int i = 0; i < c.size()-1; ++i) {
+        assert(c[i] < c[i+1]);
+    }
+    // clause is not yet satisfied
+    // and there are no false literals in the clause
+    for (int i = 0; i < c.size()-1; ++i) {
+        assert(c[i] != ~c[i+1]);
+    }
+    for (int i = 0; i < c.size(); ++i) {
+        assert(value(c[i]) == l_Undef);
+    }
+#endif
+
+    if (c.size() == 0) {
+        ok = false;
+    }
+    else if (c.size() == 1) {
+        CDEBUG("NEW UNIT: " << c[0]);
+        // NOTE: If enqueue takes place at root level, the assignment will be lost in incremental use (it doesn't seem to hurt much though).
+        if (!enqueue(c[0])) {
+            ok = false;
+            CDEBUG("\t=> ROOT CONFLICT");
+        } else {
+            CDEBUG("\t=> OK");
+        }
+    }
+    else if (c.size() == 2) {
+        // Create special binary clause watch:
+        watches[index(~c[0])].push(GClause_new(c[1]));
+        watches[index(~c[1])].push(GClause_new(c[0]));
+
+        IF_MINISAT_STATS(stats.clauses_literals += c.size());
+        n_bin_clauses++;
+    }
+    else {
+        IF_MINISAT_STATS(stats.clauses_literals += c.size());
+
+        // Watch clause:
+        watches[index(~c[0])].push(GClause_new(&c));
+        watches[index(~c[1])].push(GClause_new(&c));
+    }
+}
+
 void Solver::addConstraint_AtMostOne(const vec<Lit>& ps_)
 {
     if (!ok) return;
