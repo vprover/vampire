@@ -639,7 +639,7 @@ TermList sigmaRemoval(TermList sigmaTerm, TermList expsrt){
   varSorts.reset();
 
   if(sigmaTerm.isTerm()){
-    VariableIterator2 vit(sigmaTerm.term());
+    VariableWithSortIterator vit(sigmaTerm.term());
     while(vit.hasNext()){
       pair<TermList, TermList> varTypePair = vit.next();
       if(!varSorts.find(varTypePair.first.var())){
@@ -649,7 +649,7 @@ TermList sigmaRemoval(TermList sigmaTerm, TermList expsrt){
   } else {
     varSorts.insert(sigmaTerm.var(), expsrt);
     if(expsrt.isTerm()){
-      VariableIterator2 vit(expsrt.term());
+      VariableWithSortIterator vit(expsrt.term());
       while(vit.hasNext()){
         pair<TermList, TermList> varTypePair = vit.next();
         if(!varSorts.find(varTypePair.first.var())){

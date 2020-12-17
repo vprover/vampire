@@ -64,9 +64,9 @@ bool VariableIterator::hasNext()
 
 ///////////////////////////////////////////
 
-bool VariableIterator2::hasNext()
+bool VariableWithSortIterator::hasNext()
 {
-  CALL("VariableIterator2::hasNext");
+  CALL("VariableWithSortIterator::hasNext");
   if(_stack.isEmpty()) {
     return false;
   }
@@ -149,6 +149,12 @@ void SubtermIterator::right()
 }
 
 
+//////////////////////////////////////////////////////////////////////////
+///                                                                    ///
+///            ITERATORS REQUIRED FOR HIGHER-ORDER REASONING           ///
+///                                                                    ///
+//////////////////////////////////////////////////////////////////////////
+
 bool UnstableSubtermIt::hasNext()
 {
   CALL("UnstableSubtermIt::hasNext");
@@ -179,32 +185,6 @@ bool UnstableSubtermIt::hasNext()
   return false;  
 }
 
-/*bool UnstableSubtermIt::unstable(Term* t)
-{
-  CALL("UnstableSubtermIt::unstable");
-  
-  TermStack args;
-  TermList head;
-  
-  AH::getHeadAndArgs(t, head, args);
-  while(!args.isEmpty()){
-    TermList tm = args.pop();
-    if(tm.isVar()){
-      return true;
-    }
-    head = AH::getHead(tm);
-    if(AH::isComb(head)){
-      TermStack args2;
-      AH::getHeadAndArgs(tm, head, args2);
-      while(!args2.isEmpty()){
-        args.push(args2.pop());
-      }
-    }
-  }
-  return false;
-}*/
-
-///////////////////////////////////////////
 
 bool StableVarIt::hasNext()
 {
@@ -236,30 +216,6 @@ bool StableVarIt::hasNext()
   return false;  
 
 }
-
-
-///////////////////////////////////////////
-
-/**
- * True if there exists next subterm
- */
-bool PolishSubtermIterator::hasNext()
-{
-  CALL("PolishSubtermIterator::hasNext");
-
-  if(_stack.isEmpty()) {
-    return false;
-  }
-  if(!_used) {
-    return true;
-  }
-  _used=false;
-  const TermList* t=_stack.pop();
-  pushNext(t->next());
-  return !_stack.isEmpty();
-}
-
-//////////////////////////////////
 
 TermList FirstOrderSubtermIt::next()
 {
@@ -414,6 +370,34 @@ bool UnstableVarIt::hasNext()
 
 }
 
+//////////////////////////////////////////////////////////////////////////
+///                                                                    ///
+///                    END OF HIGHER-ORDER ITERATORS                   ///
+///                                                                    ///
+//////////////////////////////////////////////////////////////////////////
+
+/**
+ * True if there exists next subterm
+ */
+bool PolishSubtermIterator::hasNext()
+{
+  CALL("PolishSubtermIterator::hasNext");
+
+  if(_stack.isEmpty()) {
+    return false;
+  }
+  if(!_used) {
+    return true;
+  }
+  _used=false;
+  const TermList* t=_stack.pop();
+  pushNext(t->next());
+  return !_stack.isEmpty();
+}
+
+//////////////////////////////////
+
+
 /**
  * Return the next non-variable subterm.
  * @since 04/05/2013 Manchester
@@ -491,8 +475,6 @@ TermList NonVariableNonTypeIterator::next()
 
 /**
  * Skip all subterms of the terms returned by the last call to next()
- * @since 04/05/2013 Manchester
- * @author Andrei Voronkov
  */
 void NonVariableNonTypeIterator::right()
 {

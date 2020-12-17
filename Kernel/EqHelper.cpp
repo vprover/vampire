@@ -187,6 +187,9 @@ TermIterator EqHelper::getNarrowableSubtermIterator(Literal* lit, const Ordering
   return getRewritableSubtermIterator<NarrowableSubtermIt>(lit, ord);
 } 
 
+/*
+ * Function is used in the higher-order inference SubVarSup
+ */
 TermIterator EqHelper::getRewritableVarsIterator(DHSet<unsigned>* unstableVars, Literal* lit, const Ordering& ord)
 {
   CALL("EqHelper::getNarrowableSubtermIterator");

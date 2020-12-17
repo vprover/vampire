@@ -80,7 +80,7 @@ struct NegativeExt::ResultFn
     if(lhs.isVar()){
       varSorts.insert(lhs.var(), eqSort);
     } else {
-      VariableIterator2 vit(lhs.term());
+      VariableWithSortIterator vit(lhs.term());
       while(vit.hasNext()){
         pair<TermList, TermList> varTypePair = vit.next();
         if(!varSorts.find(varTypePair.first.var())){
@@ -95,7 +95,7 @@ struct NegativeExt::ResultFn
         varSorts.insert(rhs.var(), eqSort);
       }
     } else {
-      VariableIterator2 vit(rhs.term());
+      VariableWithSortIterator vit(rhs.term());
       while(vit.hasNext()){
         pair<TermList, TermList> varTypePair = vit.next();
         if(!varSorts.find(varTypePair.first.var())){
@@ -105,7 +105,7 @@ struct NegativeExt::ResultFn
     }
 
     //cout << "the eqSort is " + eqSort.toString() << endl;
-    VariableIterator2 vit(eqSort.term());
+    VariableWithSortIterator vit(eqSort.term());
     while(vit.hasNext()){
       pair<TermList, TermList> varTypePair = vit.next();
       //cout << "variable " + varTypePair.first.toString() + " has type " + varTypePair.second.toString() << endl;
