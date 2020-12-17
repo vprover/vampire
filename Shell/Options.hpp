@@ -384,6 +384,7 @@ public:
     SMTLIB2 = 0,
     /** syntax of the TPTP prover */
     TPTP = 1, 
+    AUTO = 2
     //HUMAN = 4, 
     //MPS = 5, 
     //NETLIB = 6
