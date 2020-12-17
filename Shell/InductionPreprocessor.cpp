@@ -218,7 +218,7 @@ bool InductionTemplate::checkWellDefinedness()
     unsigned j = 0;
     while (it.hasNext()) {
       auto arg = it.next();
-      if (_inductionVariables[j] && arg.isTerm()) {
+      if (arg.isTerm()) {
         auto tempLists = availableTermsLists;
         for (auto& availableTerms : tempLists) {
           TermAlgebra::excludeTermFromAvailables(availableTerms[j], arg, var);

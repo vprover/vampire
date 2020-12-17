@@ -54,6 +54,21 @@ bool subsumes(Formula* subsumer, Formula* subsumed) {
   return false;
 }
 
+bool beforeMergeCheck(const InductionScheme& sch1, const InductionScheme& sch2) {
+  // If one of the induction terms from sch2 contains
+  // one from sch1, it means that those subterms are also
+  // in active positions and we lose some structure
+  // of sch1 if we discard it because of subsumption
+  for (auto t1 : sch1._inductionTerms) { // copy here because of const
+    for (auto t2 : sch2._inductionTerms) {
+      if (t1 != t2 && (t2.containsSubterm(t1) || t1.containsSubterm(t2))) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
 Formula* applySubst(RobSubstitution& subst, int index, Formula* f) {
   if (f->connective() == Connective::LITERAL) {
     return new AtomicFormula(subst.apply(f->literal(), index));
@@ -554,6 +569,7 @@ bool checkInductionTerms(const InductionScheme& sch1, const InductionScheme& sch
 {
   if (includes(sch1._inductionTerms.begin(), sch1._inductionTerms.end(),
       sch2._inductionTerms.begin(), sch2._inductionTerms.end())) {
+    combined = sch1._inductionTerms;
     return true;
   }
   if (env.options->inductionForceMerge()) {
@@ -584,9 +600,9 @@ bool InductionSchemeFilter::mergeSchemes(const InductionScheme& sch1, const Indu
     || (!checkQuasiCommutation(sch1, sch2) && !checkQuasiCommutation(sch2, sch1)))
   {
     if (checkInductionTerms(sch2, sch1, combinedInductionTerms) && checkQuasiCommutation(sch2, sch1)) {
-      sch2copy.addInductionTerms(combinedInductionTerms);
-    } else if (checkInductionTerms(sch1, sch2, combinedInductionTerms) && checkQuasiCommutation(sch1, sch2)) {
       sch1copy.addInductionTerms(combinedInductionTerms);
+    } else if (checkInductionTerms(sch1, sch2, combinedInductionTerms) && checkQuasiCommutation(sch1, sch2)) {
+      sch2copy.addInductionTerms(combinedInductionTerms);
     } else {
       return false;
     }
@@ -649,6 +665,11 @@ void InductionSchemeFilter::filter(vvector<pair<InductionScheme, DHMap<Literal*,
     for (unsigned j = 0; j < primary.size(); j++) {
       auto& p = primary[j];
       auto& s = secondary[i];
+
+      if (!beforeMergeCheck(p.first, s.first)) {
+        continue;
+      }
+
       InductionScheme merged;
       if (checkSubsumption(s.first, p.first)) {
         if(env.options->showInduction()){
@@ -694,6 +715,12 @@ void InductionSchemeFilter::filter(vvector<pair<InductionScheme, DHMap<Literal*,
   for (unsigned i = 0; i < schemes.size();) {
     bool subsumed = false;
     for (unsigned j = i+1; j < schemes.size();) {
+
+      if (!beforeMergeCheck(schemes[i].first, schemes[j].first)) {
+        j++;
+        continue;
+      }
+
       InductionScheme merged;
       if (checkSubsumption(schemes[j].first, schemes[i].first)) {
         if(env.options->showInduction()){

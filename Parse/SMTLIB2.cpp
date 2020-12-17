@@ -1591,6 +1591,8 @@ void SMTLIB2::parseMatchBegin(LExpr* exp)
     }
     LExpr* body = pRdr.readNext();
 
+    //TODO(mhajdu): I suspect the lookups are not correctly created,
+    // as it can see variables from other scopes, find out why
     _scopes.push(lookup);
     _todo.push(make_pair(PO_PARSE,pattern));
     _todo.push(make_pair(PO_PARSE,body));

@@ -184,7 +184,6 @@ void TermAlgebra::excludeTermFromAvailables(vvector<TermList>& availables, TermL
           newTerms = generateAvailableTerms(e.term(), var);
           excludeTermFromAvailables(newTerms, e, var);
         } else {
-          newTerms.push_back(p);
           Term::Iterator pIt(p.term());
           Term::Iterator eIt(e.term());
           while (pIt.hasNext()) {
@@ -194,14 +193,10 @@ void TermAlgebra::excludeTermFromAvailables(vvector<TermList>& availables, TermL
             if (pArg.isVar() && eArg.isTerm()) {
               auto terms = generateAvailableTerms(eArg.term(), var);
               excludeTermFromAvailables(terms, eArg, var);
-              vvector<TermList> replacedTerms;
-              for (auto& t : newTerms) {
-                for (auto& r : terms) {
-                  TermListReplacement tr(pArg, r);
-                  replacedTerms.push_back(TermList(tr.transform(t.term())));
-                }
+              for (auto& r : terms) {
+                TermListReplacement tr(pArg, r);
+                newTerms.push_back(TermList(tr.transform(p.term())));
               }
-              newTerms = replacedTerms;
             }
           }
         }
