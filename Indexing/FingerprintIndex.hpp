@@ -25,6 +25,8 @@ public:
   FingerprintIndex();
   unsigned getBucket(TermList ts);
   void getUnifications(Stack<unsigned> &results, TermList ts);
+  void getGeneralizations(Stack<unsigned> &results, TermList ts);
+  void getInstances(Stack<unsigned> &results, TermList ts);
 
 private:
   vmap<std::pair<unsigned, signed>, unsigned> _edges;
@@ -39,12 +41,23 @@ public:
   void insert(TermList t, Literal *lit, Clause *cls) override;
   void remove(TermList t, Literal *lit, Clause *cls) override;
 
-  TermQueryResultIterator getUnifications(TermList t, bool retrieveSubstitutions = true) override;
-  TermQueryResultIterator getUnificationsWithConstraints(TermList t, bool retrieveSubstitutions = true) override { NOT_IMPLEMENTED; }
-  TermQueryResultIterator getGeneralizations(TermList t, bool retrieveSubstitutions = true) override { NOT_IMPLEMENTED; }
-  TermQueryResultIterator getInstances(TermList t, bool retrieveSubstitutions = true) override { NOT_IMPLEMENTED; }
+  TermQueryResultIterator getUnifications(
+    TermList t,
+    bool retrieveSubstitutions = true
+  ) override;
+  TermQueryResultIterator getUnificationsWithConstraints(
+    TermList t,
+    bool retrieveSubstitutions = true
+  ) override { NOT_IMPLEMENTED; }
+  TermQueryResultIterator getGeneralizations(
+    TermList t,
+    bool retrieveSubstitutions = true
+  ) override;
+  TermQueryResultIterator getInstances(
+    TermList t,
+    bool retrieveSubstitutions = true
+  );
 
-  bool generalizationExists(TermList t) override { NOT_IMPLEMENTED; }
 #if VDEBUG
   void markTagged() override {};
 #endif
@@ -54,13 +67,15 @@ private:
     Literal *lit;
     TermList term;
     bool operator==(const Entry &other) const;
-    bool operator!=(const Entry &other) const;
   };
 
-  class ResultIterator {
+  class EntryIterator {
   public:
-    ResultIterator(const TermFingerprintIndex &index, Stack<unsigned> &&buckets);
-    DECL_ELEMENT_TYPE(TermQueryResult);
+    EntryIterator(
+      const TermFingerprintIndex &index,
+      Stack<unsigned> &&buckets
+    );
+    DECL_ELEMENT_TYPE(Entry);
     bool hasNext();
     void nextBucket();
     OWN_ELEMENT_TYPE next();
@@ -71,21 +86,40 @@ private:
     vvector<Entry>::const_iterator _end;
   };
 
-  class UnificationIterator {
+  class TQRIterator {
   public:
-    UnificationIterator(ResultIterator results, TermList query);
+    TQRIterator(EntryIterator results, TermList query);
     DECL_ELEMENT_TYPE(TermQueryResult);
     bool hasNext();
     OWN_ELEMENT_TYPE next();
-  private:
-    ResultIterator _it;
+    virtual bool prepareSubst() = 0;
+  protected:
+    EntryIterator _it;
     TermList _query;
     RobSubstitutionSP _subst;
     TermQueryResult _next;
     bool _hasNext;
   };
 
-  friend class ResultIterator;
+  class UnificationIterator final : public TQRIterator {
+  public:
+    using TQRIterator::TQRIterator;
+    bool prepareSubst() override;
+  };
+
+  class GeneralizationIterator final : public TQRIterator {
+  public:
+    using TQRIterator::TQRIterator;
+    bool prepareSubst() override;
+  };
+
+  class InstanceIterator final : public TQRIterator {
+  public:
+    using TQRIterator::TQRIterator;
+    bool prepareSubst() override;
+  };
+
+  friend class EntryIterator;
   FingerprintIndex _index;
   Array<vvector<Entry>> _buckets;
 }; // class TermFingerprintIndex

@@ -79,6 +79,26 @@ unsigned FingerprintIndex::getBucket(TermList t)
   return node;
 }
 
+#define EDGE(EDGE) {\
+  auto search = edges.find(std::make_pair(node, EDGE));\
+  if(search != edges.end()) {\
+    RECURSE(results, edges, fp, search->second, index + 1);\
+  }\
+};
+#define EDGES_IF(COND) {\
+  auto lower = std::make_pair(node, std::numeric_limits<signed>::lowest());\
+  auto upper = std::make_pair(node, std::numeric_limits<signed>::max());\
+  auto lower_bound = edges.lower_bound(lower);\
+  auto upper_bound = edges.upper_bound(upper);\
+  for(auto it = lower_bound; it != upper_bound; it++) {\
+    signed edge = it->first.second;\
+    if(COND) {\
+      RECURSE(results, edges, fp, it->second, index + 1);\
+    }\
+    (void)edge;\
+  }\
+};\
+
 static void unifications(
   Stack<unsigned> &results,
   const vmap<std::pair<unsigned, signed>, unsigned> &edges,
@@ -91,45 +111,102 @@ static void unifications(
     results.push(node);
     return;
   }
-  signed fpi = fp[index];
-  auto do_edge = [&](signed edge) {
-    auto search = edges.find(std::make_pair(node, edge));
-    if(search != edges.end()) {
-      unifications(results, edges, fp, search->second, index + 1);
-    }
-  };
-  auto edges_if = [&](bool (*condition)(signed)) {
-    auto lower = std::make_pair(node, std::numeric_limits<signed>::lowest());
-    auto upper = std::make_pair(node, std::numeric_limits<signed>::max());
-    auto lower_bound = edges.lower_bound(lower);
-    auto upper_bound = edges.upper_bound(upper);
-    for(auto it = lower_bound; it != upper_bound; it++) {
-      signed edge = it->first.second;
-      if(condition(edge)) {
-        unifications(results, edges, fp, it->second, index + 1);
-      }
-    }
-  };
+  signed f = fp[index];
 
-  switch (fpi) {
+#define RECURSE unifications
+  switch (f) {
     case N:
-      do_edge(B);
-      do_edge(N);
+      EDGE(B);
+      EDGE(N);
       break;
     case B:
-      edges_if([](signed edge) { return true; });
+      EDGES_IF(true);
       break;
     case A:
-      edges_if([](signed edge) { return edge != N; });
+      EDGES_IF(edge != N);
       break;
     default:
-      ASS_GE(fpi, 0);
-      do_edge(fpi);
-      do_edge(A);
-      do_edge(B);
+      ASS_GE(f, 0);
+      EDGE(f);
+      EDGE(A);
+      EDGE(B);
       break;
   }
+#undef RECURSE
 }
+
+static void generalizations(
+  Stack<unsigned> &results,
+  const vmap<std::pair<unsigned, signed>, unsigned> &edges,
+  const std::array<signed, FingerprintIndex::FINGERPRINT_SIZE> &fp,
+  unsigned node,
+  unsigned index
+) {
+  CALL("FingerprintIndex::getUnifications::generalizations");
+  if(index == FingerprintIndex::FINGERPRINT_SIZE) {
+    results.push(node);
+    return;
+  }
+  signed f = fp[index];
+
+#define RECURSE generalizations
+  switch (f) {
+    case N:
+      EDGE(B);
+      EDGE(N);
+      break;
+    case B:
+      EDGE(B);
+      break;
+    case A:
+      EDGE(A);
+      EDGE(B);
+      break;
+    default:
+      ASS_GE(f, 0);
+      EDGE(f);
+      EDGE(A);
+      EDGE(B);
+      break;
+  }
+#undef RECURSE
+}
+
+static void instances(
+  Stack<unsigned> &results,
+  const vmap<std::pair<unsigned, signed>, unsigned> &edges,
+  const std::array<signed, FingerprintIndex::FINGERPRINT_SIZE> &fp,
+  unsigned node,
+  unsigned index
+) {
+  CALL("FingerprintIndex::getUnifications::instances");
+  if(index == FingerprintIndex::FINGERPRINT_SIZE) {
+    results.push(node);
+    return;
+  }
+  signed f = fp[index];
+
+#define RECURSE instances
+  switch (f) {
+    case N:
+      EDGE(N);
+      break;
+    case B:
+      EDGES_IF(true);
+      break;
+    case A:
+      EDGES_IF(edge != B && edge != N);
+      break;
+    default:
+      ASS_GE(f, 0);
+      EDGE(f);
+      break;
+  }
+#undef RECURSE
+}
+
+#undef EDGE
+#undef EDGES_IF
 
 void FingerprintIndex::getUnifications(Stack<unsigned> &results, TermList t) {
   CALL("FingerprintIndex::getUnifications");
@@ -137,15 +214,26 @@ void FingerprintIndex::getUnifications(Stack<unsigned> &results, TermList t) {
   unifications(results, _edges, fp, 0, 0);
 }
 
+void FingerprintIndex::getGeneralizations(
+  Stack<unsigned> &results,
+  TermList t
+) {
+  CALL("FingerprintIndex::getGeneralizations");
+  auto fp = fingerprint(t);
+  generalizations(results, _edges, fp, 0, 0);
+}
+
+void FingerprintIndex::getInstances(Stack<unsigned> &results, TermList t) {
+  CALL("FingerprintIndex::getInstances");
+  auto fp = fingerprint(t);
+  instances(results, _edges, fp, 0, 0);
+}
+
 bool TermFingerprintIndex::Entry::operator==(const Entry &other) const {
   return cls == other.cls && lit == other.lit && term == other.term;
 }
 
-bool TermFingerprintIndex::Entry::operator!=(const Entry &other) const {
-  return cls != other.cls || lit != other.lit || term != other.term;
-}
-
-TermFingerprintIndex::ResultIterator::ResultIterator(
+TermFingerprintIndex::EntryIterator::EntryIterator(
   const TermFingerprintIndex &index,
   Stack<unsigned> &&buckets
 ) :
@@ -155,7 +243,7 @@ TermFingerprintIndex::ResultIterator::ResultIterator(
   nextBucket();
 }
 
-void TermFingerprintIndex::ResultIterator::nextBucket() {
+void TermFingerprintIndex::EntryIterator::nextBucket() {
   if(!_buckets.isEmpty()) {
     unsigned bucket = _buckets.pop();
     auto &entries = _index._buckets[bucket];
@@ -164,8 +252,8 @@ void TermFingerprintIndex::ResultIterator::nextBucket() {
   }
 }
 
-bool TermFingerprintIndex::ResultIterator::hasNext() {
-  CALL("TermFingerprintIndex::ResultIterator::hasNext");
+bool TermFingerprintIndex::EntryIterator::hasNext() {
+  CALL("TermFingerprintIndex::EntryIterator::hasNext");
   while(_entry == _end) {
     if(_buckets.isEmpty()) {
       return false;
@@ -175,14 +263,13 @@ bool TermFingerprintIndex::ResultIterator::hasNext() {
   return true;
 }
 
-TermQueryResult TermFingerprintIndex::ResultIterator::next() {
-  CALL("TermFingerprintIndex::ResultIterator::next");
-  Entry entry = *_entry++;
-  return TermQueryResult(entry.term, entry.lit, entry.cls);
+TermFingerprintIndex::Entry TermFingerprintIndex::EntryIterator::next() {
+  CALL("TermFingerprintIndex::EntryIterator::next");
+  return *_entry++;
 }
 
-TermFingerprintIndex::UnificationIterator::UnificationIterator(
-  ResultIterator it,
+TermFingerprintIndex::TQRIterator::TQRIterator(
+  EntryIterator it,
   TermList query
 ) :
   _it(it),
@@ -192,46 +279,68 @@ TermFingerprintIndex::UnificationIterator::UnificationIterator(
   _hasNext(false)
 {}
 
-bool TermFingerprintIndex::UnificationIterator::hasNext() {
-  CALL("TermFingerprintIndex::UnificationIterator::hasNext");
+bool TermFingerprintIndex::TQRIterator::hasNext() {
+  CALL("TermFingerprintIndex::TQRIterator::hasNext");
   if(_hasNext) {
     return true;
   }
-  //std::cout << "candidates for " << _query << std::endl;
   while(_it.hasNext()) {
-    _next = _it.next();
-    //std::cout << _next.term << std::endl;
-    _subst->reset();
-    if(_subst->unify(_query, 0, _next.term, 1)) {
-      _next.substitution =
-        ResultSubstitution::fromSubstitution(_subst.ptr(), 0, 1);
+    Entry entry = _it.next();
+    _next = TermQueryResult(entry.term, entry.lit, entry.cls);
+    if(prepareSubst()) {
       _hasNext = true;
       return true;
     }
   }
-  //std::cout << "done" << std::endl;
   return false;
 }
 
-TermQueryResult TermFingerprintIndex::UnificationIterator::next() {
-  CALL("TermFingerprintIndex::UnificationIterator::next");
-  //std::cout << _query << " unifies with " << _next.term << std::endl;
-  //std::cout << _subst->toString() << std::endl;
+TermQueryResult TermFingerprintIndex::TQRIterator::next() {
+  CALL("TermFingerprintIndex::TQRIterator::next");
   _hasNext = false;
   return _next;
 }
 
-void TermFingerprintIndex::insert(TermList trm, Literal *lit, Clause *cls)
-{
+bool TermFingerprintIndex::UnificationIterator::prepareSubst() {
+  CALL("TermFingerprintIndex::UnificationIterator::prepareSubst");
+  _subst->reset();
+  if(_subst->unify(_query, 0, _next.term, 1)) {
+    _next.substitution =
+      ResultSubstitution::fromSubstitution(_subst.ptr(), 0, 1);
+    return true;
+  }
+  return false;
+}
+
+bool TermFingerprintIndex::GeneralizationIterator::prepareSubst() {
+  CALL("TermFingerprintIndex::GeneralizationIterator::prepareSubst");
+  _subst->reset();
+  if(_subst->match(_next.term, 0, _query, 1)) {
+    _next.substitution =
+      ResultSubstitution::fromSubstitution(_subst.ptr(), 0, 1);
+    return true;
+  }
+  return false;
+}
+
+bool TermFingerprintIndex::InstanceIterator::prepareSubst() {
+  CALL("TermFingerprintIndex::InstanceIterator::prepareSubst");
+  _subst->reset();
+  if(_subst->match(_query, 0, _next.term, 1)) {
+    _next.substitution =
+      ResultSubstitution::fromSubstitution(_subst.ptr(), 0, 1);
+    return true;
+  }
+  return false;
+}
+
+void TermFingerprintIndex::insert(TermList trm, Literal *lit, Clause *cls) {
   CALL("TermFingerprintIndex::insert");
-  //std::cout << "insert: " << trm << " in " << *lit << std::endl;
   _buckets[_index.getBucket(trm)].emplace_back(Entry{cls, lit, trm});
 }
 
-void TermFingerprintIndex::remove(TermList trm, Literal *lit, Clause *cls)
-{
+void TermFingerprintIndex::remove(TermList trm, Literal *lit, Clause *cls) {
   CALL("TermFingerprintIndex::remove");
-  //std::cout << "remove: " << trm << " in " << *lit << std::endl;
   auto &entries = _buckets[_index.getBucket(trm)];
   Entry remove {cls, lit, trm};
   for(auto it = entries.begin(); it != entries.end(); ++it) {
@@ -242,12 +351,36 @@ void TermFingerprintIndex::remove(TermList trm, Literal *lit, Clause *cls)
   }
 }
 
-TermQueryResultIterator TermFingerprintIndex::getUnifications(TermList t, bool retrieveSubstitutions)
-{
+TermQueryResultIterator TermFingerprintIndex::getUnifications(
+  TermList t,
+  bool retrieveSubstitutions
+) {
   CALL("TermFingerprintIndex::getUnifications");
   Stack<unsigned> buckets;
   _index.getUnifications(buckets, t);
   return
-    pvi(UnificationIterator(ResultIterator(*this, std::move(buckets)), t));
+    pvi(UnificationIterator(EntryIterator(*this, std::move(buckets)), t));
+}
+
+TermQueryResultIterator TermFingerprintIndex::getGeneralizations(
+  TermList t,
+  bool retrieveSubstitutions
+) {
+  CALL("TermFingerprintIndex::getGeneralizations");
+  Stack<unsigned> buckets;
+  _index.getGeneralizations(buckets, t);
+  return
+    pvi(GeneralizationIterator(EntryIterator(*this, std::move(buckets)), t));
+}
+
+TermQueryResultIterator TermFingerprintIndex::getInstances(
+  TermList t,
+  bool retrieveSubstitutions
+) {
+  CALL("TermFingerprintIndex::geInstances");
+  Stack<unsigned> buckets;
+  _index.getInstances(buckets, t);
+  return
+    pvi(InstanceIterator(EntryIterator(*this, std::move(buckets)), t));
 }
 } // namespace Indexing
