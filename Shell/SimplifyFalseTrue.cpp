@@ -1,7 +1,4 @@
-
 /*
- * File SimplifyFalseTrue.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file SimplifyFalseTrue.cpp
@@ -430,7 +421,7 @@ TermList SimplifyFalseTrue::simplify(TermList ts)
       }
       case Term::SF_LET: {
         unsigned functor = sd->getFunctor();
-        IntList* variables = sd->getVariables();
+        VList* variables = sd->getVariables();
         TermList binding = simplify(sd->getBinding());
         TermList body = simplify(*term->nthArgument(0));
         if ((binding == sd->getBinding()) && (body == *term->nthArgument(0))) {
@@ -441,7 +432,7 @@ TermList SimplifyFalseTrue::simplify(TermList ts)
       }
       case Term::SF_LET_TUPLE: {
         unsigned functor = sd->getFunctor();
-        IntList* symbols = sd->getTupleSymbols();
+        VList* symbols = sd->getTupleSymbols();
         TermList binding = simplify(sd->getBinding());
         TermList body = simplify(*term->nthArgument(0));
         if ((binding == sd->getBinding()) && (body == *term->nthArgument(0))) {

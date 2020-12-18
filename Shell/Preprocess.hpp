@@ -1,7 +1,4 @@
-
 /*
- * File Preprocess.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file Shell/Preprocess.hpp
@@ -61,7 +52,7 @@ public:
 private:
   void preprocess2(Problem& prb);
   void naming(Problem& prb);
-  Unit* preprocess3(Unit* u, bool appify);
+  Unit* preprocess3(Unit* u, bool appify /*higher order stuff*/);
   void preprocess3(Problem& prb);
   void clausify(Problem& prb);
 

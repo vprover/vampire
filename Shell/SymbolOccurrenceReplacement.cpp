@@ -1,7 +1,4 @@
-
 /*
- * File SymbolOccurrenceReplacement.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 #include "Kernel/Formula.hpp"
 
@@ -68,9 +59,9 @@ Term* SymbolOccurrenceReplacement::process(Term* term) {
   Stack<TermList> arguments;
 
   if (renaming) {
-    Formula::VarList::Iterator fvit(_freeVars);
+    VList::Iterator fvit(_freeVars);
     while (fvit.hasNext()) {
-      unsigned var = (unsigned)fvit.next();
+      unsigned var = fvit.next();
       arguments.push(TermList(var, false));
     }
   }
@@ -81,7 +72,7 @@ Term* SymbolOccurrenceReplacement::process(Term* term) {
   }
 
   if (renaming) {
-    unsigned arity = term->arity() + Formula::VarList::length(_freeVars);
+    unsigned arity = term->arity() + VList::length(_freeVars);
     return Term::create(_freshSymbol, arity, arguments.begin());
   } else {
     return Term::create(term, arguments.begin());
@@ -109,9 +100,9 @@ Formula* SymbolOccurrenceReplacement::process(Formula* formula) {
       Stack<TermList> arguments;
 
       if (renaming) {
-        Formula::VarList::Iterator fvit(_freeVars);
+        VList::Iterator fvit(_freeVars);
         while (fvit.hasNext()) {
-          arguments.push(TermList((unsigned)fvit.next(), false));
+          arguments.push(TermList(fvit.next(), false));
         }
       }
 
@@ -122,7 +113,7 @@ Formula* SymbolOccurrenceReplacement::process(Formula* formula) {
 
       Literal* processedLiteral;
       if (renaming) {
-        unsigned arity = literal->arity() + Formula::VarList::length(_freeVars);
+        unsigned arity = literal->arity() + VList::length(_freeVars);
         bool polarity = (bool)literal->polarity();
         bool commutative = (bool)literal->commutative();
         processedLiteral = Literal::create(_freshSymbol, arity, polarity, commutative, arguments.begin());

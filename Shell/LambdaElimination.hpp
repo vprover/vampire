@@ -1,3 +1,12 @@
+/*
+ * This file is part of the source code of the software program
+ * Vampire. It is protected by applicable
+ * copyright laws.
+ *
+ * This source code is distributed under the licence found here
+ * https://vprover.github.io/license.html
+ * and in the source directory
+ */
 /**
  * @file LambdaElimination.hpp
  * Defines class LambdaElimination.
@@ -52,7 +61,7 @@ private:
   TermList sortOf(TermList t);
 
   void addToProcessed(TermList ts, Stack<unsigned> &_argNums);
-  void dealWithApp(TermList lhs, TermList rhs, int lambdaVar, TermStack &toBeProcessed, Stack<unsigned> &argNums);
+  void dealWithApp(TermList lhs, TermList rhs, const unsigned lambdaVar, TermStack &toBeProcessed, Stack<unsigned> &argNums);
 
   TermList createKTerm(TermList s1, TermList s2, TermList arg1);
   TermList createSCorBTerm(TermList arg1, TermList arg2, Signature::Combinator comb);

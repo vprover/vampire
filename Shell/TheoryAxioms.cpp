@@ -1,7 +1,4 @@
-
 /*
- * File TheoryAxioms.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file TheoryAxioms.cpp
@@ -831,8 +822,8 @@ void TheoryAxioms::addBooleanArrayExtensionalityAxioms(TermList arraySort, unsig
   Formula* sel_y_sk = new AtomicFormula(Literal::create2(sel, true, y, sk)); //select(y,sk(x,y))
   Formula* sx_neq_sy = new BinaryFormula(XOR, sel_x_sk, sel_y_sk); //select(x,sk(x,y)) <~> select(y,sk(x,y))
 
-  Formula* axiom = new QuantifiedFormula(FORALL, new Formula::VarList(0, new Formula::VarList(1, 0)),
-                                         new Formula::SortList(arraySort, new Formula::SortList(arraySort,0)),
+  Formula* axiom = new QuantifiedFormula(FORALL, VList::cons(0, VList::cons(1, VList::empty())),
+                                         SList::cons(arraySort, SList::cons(arraySort,SList::empty())),
                                          new BinaryFormula(IMP, x_neq_y, sx_neq_sy));
 
   addAndOutputTheoryUnit(new FormulaUnit(axiom, TheoryAxiom(InferenceRule::THA_BOOLEAN_ARRAY_EXTENSIONALITY)),CHEAP);
@@ -1226,8 +1217,8 @@ void TheoryAxioms::addExhaustivenessAxiom(TermAlgebra* ta) {
       }
       disjunction = new JunctionFormula(Connective::OR, fl);
     }
-    Formula::VarList* vars = Formula::VarList::cons(x.var(), Formula::VarList::empty());
-    Formula::SortList* sorts = Formula::SortList::cons(ta->sort(), Formula::SortList::empty());
+    VList* vars = VList::singleton(x.var());
+    SList* sorts = SList::singleton(ta->sort());
     auto universal = new QuantifiedFormula(Connective::FORALL, vars, sorts, disjunction);
 
     axiom = new FormulaUnit(universal, TheoryAxiom(InferenceRule::TERM_ALGEBRA_EXHAUSTIVENESS_AXIOM));

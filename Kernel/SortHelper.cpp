@@ -1,7 +1,4 @@
-
 /*
- * File SortHelper.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file SortHelper.cpp
@@ -53,18 +44,20 @@ OperatorType* SortHelper::getType(Term* t)
 } // getType
 
 /**
- * Return the type of a term or a literal @c t
+ * This function achieves the following. Let t = f<a1, a2>(t1, t2)
+ * where ai are type arguments and ti are terms arguments. Let f have
+ * type !>[X, Y]: (s1 * s2) > s3. The function returns the subsitution
+ * \sigma = [X -> a1, Y -> a2]. The type of t is is s3\sigma, the type of
+ * t1 s1\sigma and the type of t2 s2\sigma 
+ * 
  * @author Ahmed Bhayat
  */
 void SortHelper::getTypeSub(const Term* t, Substitution& subst)
 {
   CALL("SortHelper::getTypeSub(Term*)");
   
-  //cout << "attempting to get type Substitution for term " + t->toString() << endl;
-
   TermList* typeArg;
   OperatorType* ot       = getType(const_cast<Term*>(t)); //sym->fnType();
-  //cout << "the type is " + ot->toString() << endl;
   unsigned typeArgsArity = ot->typeArgsArity();
   //cout << "typeArgsArity " << typeArgsArity << endl;
 
@@ -72,7 +65,6 @@ void SortHelper::getTypeSub(const Term* t, Substitution& subst)
   for(unsigned i = 0; i < typeArgsArity; i++){
     TermList var = ot->quantifiedVar(i);
     ASS_REP(var.isVar(), t->toString());
-    //cout << "binding X" << var << " to " << typeArg->toString() << endl; 
     subst.bind(var.var(), *typeArg);
     typeArg = typeArg->next();
   }  
@@ -81,6 +73,11 @@ void SortHelper::getTypeSub(const Term* t, Substitution& subst)
 /**
  * Return the sort of a non-variable term t. This function cannot be applied
  * to a special term, such as if-then-else.
+ *
+ * The return sort is calculated by applying the relavant type substitution
+ * to return sort of the type of the head symbol of t. For monomorphic problems,
+ * it is more efficient to use getResultSortMono since the substitution will always
+ * be empty.
  */
 TermList SortHelper::getResultSort(const Term* t)
 {
@@ -88,14 +85,12 @@ TermList SortHelper::getResultSort(const Term* t)
   ASS(!t->isSpecial());
   ASS(!t->isLiteral());
 
- // cout << "the term is " + t->toString() + " with functor " << t->functor() << endl;
-
   Substitution subst;
   getTypeSub(t, subst);
   Signature::Symbol* sym = env.signature->getFunction(t->functor());
   TermList result = sym->fnType()->result();
   //cout << "the type is " + sym->fnType()->toString() << endl;
-  ASS(!subst.isEmpty() || (result.isTerm() && result.term()->ground()));  
+  ASS(!subst.isEmpty()  || (result.isTerm() && (result.term()->isSuper() || result.term()->ground())));  
   return SubstHelper::apply(result, subst);
 }
 
@@ -413,9 +408,9 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermL
             Signature::Symbol* symbol = isPredicate ? env.signature->getPredicate(sd->getFunctor())
                                                     : env.signature->getFunction(sd->getFunctor());
             unsigned position = 0;
-            Formula::VarList::Iterator vit(sd->getVariables());
+            VList::Iterator vit(sd->getVariables());
             while (vit.hasNext()) {
-              unsigned var = (unsigned)vit.next();
+              unsigned var = vit.next();
               TermList sort = isPredicate ? symbol->predType()->arg(position) : symbol->fnType()->arg(position);
               if (!map.insert(var, sort)) {
                 ASS_EQ(sort, map.get(var));
@@ -754,7 +749,6 @@ bool SortHelper::tryGetVariableSort(TermList var, Term* t0, TermList& result)
           // get result sort of the functor
           unsigned f = t->getSpecialData()->getFunctor();
           Signature::Symbol* sym = env.signature->getFunction(f);
-          //TODO is this correct? Master seems faulty here AYB
           result = sym->fnType()->result();
           return true;
         }
@@ -861,7 +855,7 @@ bool SortHelper::areImmediateSortsValidPoly(Term* t)
     if (instantiatedTypeSort != argSort) { //TODO problem here?
 #if VDEBUG
       cout << "the term is " + t->toString() << endl;
-      cout << "the type of function " + env.signature->getPredicate(t->functor())->name() + " is: " + type->toString() << endl;
+      cout << "the type of function " + env.signature->getFunction(t->functor())->name() + " is: " + type->toString() << endl;
       //cout << "function name : "+ env.signature->getFunction(t->functor())->name() << endl;
       //cout << "function name 2 :" + t->functionName() << endl;
       cout << "error with expected " << instantiatedTypeSort.toString() << " and actual " << argSort.toString() << " when functor is " << t->functor() << " and arg is " << arg << endl;
@@ -922,12 +916,14 @@ bool SortHelper::isTupleSort(TermList sort)
   return env.signature->getFunction(sort.term()->functor())->tupleSort(); 
 }
 
+/*
 bool SortHelper::isStructuredSort(unsigned s)
 {
   CALL("SortHelper::isStructuredSort");  
   TermList sort = sortTerm(s);
   return isArraySort(sort) || isTupleSort(sort); 
 }
+*/
 
 bool SortHelper::isArraySort(TermList sort)
 {

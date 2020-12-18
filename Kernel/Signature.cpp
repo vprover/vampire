@@ -1,7 +1,4 @@
-
 /*
- * File Signature.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file Signature.cpp
@@ -204,7 +195,7 @@ OperatorType* Signature::Symbol::fnType() const
 
   if (!_type) {
     TermList def = Term::defaultSort();
-    _type = OperatorType::getFunctionTypeUniformRange(arity(), def, def, VarList::empty());
+    _type = OperatorType::getFunctionTypeUniformRange(arity(), def, def);
   }
   return _type;
 }
@@ -239,7 +230,7 @@ OperatorType* Signature::Symbol::predType() const
   
   if (!_type) {
     TermList def = Term::defaultSort();
-    _type = OperatorType::getPredicateTypeUniformRange(arity(), def, VarList::empty());
+    _type = OperatorType::getPredicateTypeUniformRange(arity(), def);
   }
   return _type;
 }
@@ -782,7 +773,7 @@ unsigned Signature::getChoice(){
   bool added = false;
   unsigned choice = addFunction("vEPSILON",1, added);      
   if(added){
-    VarList* vl = new VarList(0);
+    VList* vl = VList::singleton(0);
     TermList alpha = TermList(0, false);
     TermList bs = Term::boolSort();
     TermList alphaBs = Term::arrowSort(alpha, bs);

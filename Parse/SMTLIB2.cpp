@@ -1,7 +1,4 @@
-
 /*
- * File SMTLIB2.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file SMTLIB.cpp
@@ -1834,16 +1825,16 @@ bool SMTLIB2::parseAsBuiltinFormulaSymbol(const vstring& id, LExpr* exp)
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
 
-      Formula::VarList* qvars = nullptr;
-      Formula::SortList* qsorts = nullptr;
+      VList* qvars = VList::empty();
+      SList* qsorts = SList::empty();
 
       TermLookup::Iterator varIt(*_scopes.top());
       while(varIt.hasNext()) {
         SortedTerm vTerm = varIt.next();
         unsigned varIdx = vTerm.first.var();
         TermList sort = vTerm.second;
-        Formula::VarList::push(varIdx, qvars);
-        Formula::SortList::push(sort,qsorts);
+        VList::push(varIdx, qvars);
+        SList::push(sort,qsorts);
       }
       delete _scopes.pop();
 

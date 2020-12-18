@@ -1,7 +1,4 @@
-
 /*
- * File Unit.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file Unit.hpp
@@ -83,10 +74,13 @@ public:
   bool derivedFromGoal() const { return _inference.derivedFromGoal(); }
   /** see isPureTheoryDescendant in Inference.cpp */
   bool isPureTheoryDescendant() const { return _inference.isPureTheoryDescendant(); }
-  /** see isTheoryAxiom in Inference.cpp */
+  /** see isCombAxiomsDescendant in Inference.cpp */
   bool isCombAxiomsDescendant() const { return _inference.isCombAxiomsDescendant(); }
+  /** see isProxyAxiomsDescendant in Inference.cpp */
   bool isProxyAxiomsDescendant() const { return _inference.isProxyAxiomsDescendant(); }
+  /** see isHolAxiomsDescendant in Inference.cpp */
   bool isHolAxiomsDescendant() const { return _inference.isHolAxiomsDescendant(); }
+  /** see isTheoryAxiom in Inference.cpp */
   bool isTheoryAxiom() const { return _inference.isTheoryAxiom(); }
 
   /** return true if there is an input node in the deriviation  */

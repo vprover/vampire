@@ -1,7 +1,4 @@
-
 /*
- * File SymbolDefinitionInlining.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 #ifndef __SymbolDefinitionInlining__
 #define __SymbolDefinitionInlining__
@@ -32,7 +23,7 @@ using namespace Shell;
 
 class SymbolDefinitionInlining {
   public:
-    SymbolDefinitionInlining(unsigned symbol, Formula::VarList* bindingVariables, TermList binding, unsigned freshVarOffset)
+    SymbolDefinitionInlining(unsigned symbol, VList* bindingVariables, TermList binding, unsigned freshVarOffset)
             : _isPredicate(binding.isTerm() && binding.term()->isBoolean()), _symbol(symbol),
               _bindingVariables(bindingVariables), _binding(binding),
               _bound(0), _counter(0), _freshVarOffset(freshVarOffset), _varRenames(0) {}
@@ -46,9 +37,9 @@ class SymbolDefinitionInlining {
   private:
     const bool _isPredicate;
     const unsigned _symbol;
-    const Formula::VarList* _bindingVariables;
+    const VList* _bindingVariables;
     const TermList _binding;
-    Formula::VarList* _bound;
+    VList* _bound;
 
     TermList substitute(Term::Iterator tit);
 

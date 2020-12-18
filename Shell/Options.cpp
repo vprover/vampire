@@ -1,7 +1,4 @@
-
 /*
- * File Options.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file Options.cpp
@@ -123,7 +114,6 @@ void Options::init()
                                         "preprocess2",
                                         "profile",
                                         "random_strategy",
-                                        "sat_solver",
                                         "smtcomp",
                                         "spider",
                                         "tclausify",
@@ -137,7 +127,6 @@ void Options::init()
     "  -preprocess,axiom_selection,clausify,grounding: modes for producing output\n      for other solvers.\n"
     "  -tpreprocess,tclausify: output modes for theory input (clauses are quantified\n      with sort information).\n"
     "  -output,profile: output information about the problem\n"
-    "  -sat_solver: accepts problems in DIMACS and uses the internal sat solver\n      directly\n"
     "Some modes are not currently maintained (get in touch if interested):\n"
     "  -bpa: perform bound propagation\n"
     "  -consequence_elimination: perform consequence elimination\n"
@@ -554,6 +543,7 @@ void Options::init()
     _newCNF.description="Use NewCNF algorithm to do naming, preprecess3 and clausificiation.";
     _lookup.insert(&_newCNF);
     _newCNF.tag(OptionTag::PREPROCESSING);
+    _newCNF.setRandomChoices({"on","off"});
 
     _iteInliningThreshold = IntOptionValue("ite_inlining_threshold","", 0);
     _iteInliningThreshold.description="Threashold of inlining of if-then-else expressions. "
@@ -1426,8 +1416,8 @@ void Options::init()
     _superpositionFromVariables.setRandomChoices({"on","off"});
     
     _combinatorySuperposition = BoolOptionValue("combinatory_sup","csup",false);
-    _combinatorySuperposition.description="Switches on a speciic ordering and that orients combinator axioms left-right."
-                               "also turns on a number of special inference rules";
+    _combinatorySuperposition.description="Switches on a specific ordering and that orients combinator axioms left-right."
+                                          "also turns on a number of special inference rules";
     _lookup.insert(&_combinatorySuperposition);
     _combinatorySuperposition.reliesOn(_addCombAxioms.is(equal(false))); //no point having two together
     _combinatorySuperposition.tag(OptionTag::INFERENCES);
@@ -1671,15 +1661,6 @@ void Options::init()
     _use_dm.reliesOn(_saturationAlgorithm.is(equal(SaturationAlgorithm::INST_GEN)));
     */
 
-    _nicenessOption = ChoiceOptionValue<Niceness>("niceness_option","none",Niceness::NONE,{"average","none","sum","top"});
-    _nicenessOption.description="";
-    _lookup.insert(&_nicenessOption);
-    _nicenessOption.tag(OptionTag::INST_GEN);
-    _nicenessOption.setExperimental();
-    _nicenessOption.reliesOn(_saturationAlgorithm.is(equal(SaturationAlgorithm::INST_GEN)));
-    _nicenessOption.reliesOn(_satSolver.is(equal(SatSolver::VAMPIRE)));
-    _nicenessOption.setRandomChoices({"none","none","none","none","none","average","sum","top"});
-
 //*********************** AVATAR  ***********************
 
     _splitting = BoolOptionValue("avatar","av",true);
@@ -1823,94 +1804,22 @@ void Options::init()
     _nonliteralsInClauseWeight.setRandomChoices({"on","off"});
 
 //*********************** SAT solver (used in various places)  ***********************
-
-    _satClauseActivityDecay = FloatOptionValue("sat_clause_activity_decay","",1.001f);
-    _satClauseActivityDecay.description="";
-    _lookup.insert(&_satClauseActivityDecay);
-    _satClauseActivityDecay.tag(OptionTag::SAT);
-    _satClauseActivityDecay.addConstraint(greaterThan(1.0f));
-    _satClauseActivityDecay.setExperimental();
-
-    _satClauseDisposer = ChoiceOptionValue<SatClauseDisposer>("sat_clause_disposer","",SatClauseDisposer::MINISAT,
-                                                              {"growing","minisat"});
-    _satClauseDisposer.description="";
-    _lookup.insert(&_satClauseDisposer);
-    _satClauseDisposer.tag(OptionTag::SAT);
-    _satClauseDisposer.setExperimental();
-
-    _satLearntMinimization = BoolOptionValue("sat_learnt_minimization","",true);
-    _satLearntMinimization.description="";
-    _lookup.insert(&_satLearntMinimization);
-    _satLearntMinimization.tag(OptionTag::SAT);
-    _satLearntMinimization.setExperimental();
-
-    _satLearntSubsumptionResolution = BoolOptionValue("sat_learnt_subsumption_resolution","",true);
-    _satLearntSubsumptionResolution.description="";
-    _lookup.insert(&_satLearntSubsumptionResolution);
-    _satLearntSubsumptionResolution.tag(OptionTag::SAT);
-    _satLearntSubsumptionResolution.setExperimental();
-
-    _satRestartFixedCount = IntOptionValue("sat_restart_fixed_count","",16000);
-    _satRestartFixedCount.description="";
-    _lookup.insert(&_satRestartFixedCount);
-    _satRestartFixedCount.tag(OptionTag::SAT);
-    _satRestartFixedCount.setExperimental();
-
-    _satRestartGeometricIncrease = FloatOptionValue("sat_restart_geometric_increase","",1.1);
-    _satRestartGeometricIncrease.description="";
-    _lookup.insert(&_satRestartGeometricIncrease);
-    _satRestartGeometricIncrease.tag(OptionTag::SAT);
-    _satRestartGeometricIncrease.addConstraint(greaterThan(1.0f));
-    _satRestartGeometricIncrease.setExperimental();
-
-    _satRestartGeometricInit = IntOptionValue("sat_restart_geometric_init","",32);
-    _satRestartGeometricInit.description="";
-    _lookup.insert(&_satRestartGeometricInit);
-    _satRestartGeometricInit.tag(OptionTag::SAT);
-    _satRestartGeometricInit.setExperimental();
-
-    _satRestartLubyFactor = IntOptionValue("sat_restart_luby_factor","",100);
-    _satRestartLubyFactor.description="";
-    _lookup.insert(&_satRestartLubyFactor);
-    _satRestartLubyFactor.tag(OptionTag::SAT);
-    _satRestartLubyFactor.setExperimental();
-
-    _satRestartMinisatIncrease = FloatOptionValue("sat_restart_minisat_increase","",1.1);
-    _satRestartMinisatIncrease.description="";
-    _lookup.insert(&_satRestartMinisatIncrease);
-    _satRestartMinisatIncrease.tag(OptionTag::SAT);
-    _satRestartMinisatIncrease.addConstraint(greaterThan(1.0f));
-    _satRestartMinisatIncrease.setExperimental();
-
-    _satRestartMinisatInit = IntOptionValue("sat_restart_minisat_init","",100);
-    _satRestartMinisatInit.description="";
-    _lookup.insert(&_satRestartMinisatInit);
-    _satRestartMinisatInit.tag(OptionTag::SAT);
-    _satRestartMinisatInit.setExperimental();
-
-    _satRestartStrategy = ChoiceOptionValue<SatRestartStrategy>("sat_restart_strategy","",SatRestartStrategy::LUBY,
-                                                                {"fixed","geometric","luby","minisat"});
-    _satRestartStrategy.description="";
-    _lookup.insert(&_satRestartStrategy);
-    _satRestartStrategy.tag(OptionTag::SAT);
-    _satRestartStrategy.setExperimental();
-
-    _satSolver = ChoiceOptionValue<SatSolver>("sat_solver","sas",SatSolver::MINISAT,
+    _satSolver = ChoiceOptionValue<SatSolver>("sat_solver","sas",SatSolver::MINISAT, {
+      "minisat"
 #if VZ3
-            {"minisat","vampire","z3"});
-#else
-    {"minisat","vampire"});
+      ,"z3"
 #endif
+    });
     _satSolver.description=
     "Select the SAT solver to be used throughout the solver. This will be used in AVATAR (for splitting) when the saturation algorithm is discount,lrs or otter and in instance generation for selection and global subsumption.";
     _lookup.insert(&_satSolver);
     _satSolver.tag(OptionTag::SAT);
-    _satSolver.setRandomChoices(
+    _satSolver.setRandomChoices({
+      "minisat"
 #if VZ3
-            {"minisat","vampire","z3"});
-#else
-            {"minisat","vampire"});
+      ,"z3"
 #endif
+    });
 
 #if VZ3
     _satFallbackForSMT = BoolOptionValue("sat_fallback_for_smt","sffsmt",false);
@@ -1925,20 +1834,6 @@ void Options::init()
     _lookup.insert(&_z3UnsatCores);
     _z3UnsatCores.tag(OptionTag::SAT);
 #endif
-
-    _satVarActivityDecay = FloatOptionValue("sat_var_activity_decay","",1.05f);
-    _satVarActivityDecay.description="";
-    _lookup.insert(&_satVarActivityDecay);
-    _satVarActivityDecay.tag(OptionTag::SAT);
-    _satVarActivityDecay.addConstraint(greaterThan(1.0f));
-    _satVarActivityDecay.setExperimental();
-
-    _satVarSelector = ChoiceOptionValue<SatVarSelector>("sat_var_selector","svs",SatVarSelector::ACTIVE,
-                                                        {"active","niceness","recently_learnt"});
-    _satVarSelector.description="";
-    _lookup.insert(&_satVarSelector);
-    _satVarSelector.tag(OptionTag::SAT);
-    _satVarSelector.setExperimental();
 
     //*************************************************************
     //*********************** which mode or tag?  ************************

@@ -1,7 +1,4 @@
-
 /*
- * File ForwardSubsumptionAndResolution.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file ForwardSubsumptionAndResolution.cpp
@@ -35,8 +26,6 @@
 #include "Kernel/Matcher.hpp"
 #include "Kernel/MLMatcher.hpp"
 #include "Kernel/ColorHelper.hpp"
-#include "Kernel/RobSubstitution.hpp"
-#include "Kernel/SortHelper.hpp"
 
 #include "Indexing/Index.hpp"
 #include "Indexing/LiteralIndex.hpp"
@@ -124,8 +113,8 @@ public:
     for(unsigned bi=0;bi<blen;bi++) {
       LiteralMiniIndex::InstanceIterator instIt(*miniIndex, (*_cl)[bi], false);
       while(instIt.hasNext()) {
-        Literal* matched=instIt.next();
-        addMatch(bi, matched);
+	Literal* matched=instIt.next();
+	addMatch(bi, matched);
       }
     }
   }
@@ -263,29 +252,15 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
 
   Clause::requestAux();
 
-  static RobSubstitution subst;
-
   static CMStack cmStore(64);
   ASS(cmStore.isEmpty());
 
   for(unsigned li=0;li<clen;li++) {
-    Literal* lit = (*cl)[li];
-    SLQueryResultIterator rit=_unitIndex->getGeneralizations(lit, false, false);
-    TermList litSort; bool eqLit = false;
-    if(lit->isEquality()){
-      litSort = SortHelper::getEqualityArgumentSort(lit);
-      eqLit = true; 
-    }
+    SLQueryResultIterator rit=_unitIndex->getGeneralizations( (*cl)[li], false, false);
     while(rit.hasNext()) {
-      SLQueryResult res = rit.next();
-      Clause* premise=res.clause;
-
-      subst.reset();
-      if(eqLit && !subst.match(SortHelper::getEqualityArgumentSort(res.literal), 0, litSort, 1)){
-        continue;
-      } 
+      Clause* premise=rit.next().clause;
       if(premise->hasAux()) {
-        continue;
+	continue;
       }
       premise->setAux(0);
       if(ColorHelper::compatible(cl->color(), premise->color()) ) {
@@ -301,24 +276,13 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
   LiteralMiniIndex miniIndex(cl);
 
   for(unsigned li=0;li<clen;li++) {
-    Literal* lit = (*cl)[li];
-    SLQueryResultIterator rit=_fwIndex->getGeneralizations(lit, false, false);
-    TermList litSort; bool eqLit = false;
-    if(lit->isEquality()){
-      litSort = SortHelper::getEqualityArgumentSort(lit);
-      eqLit = true; 
-    }
+    SLQueryResultIterator rit=_fwIndex->getGeneralizations( (*cl)[li], false, false);
     while(rit.hasNext()) {
       SLQueryResult res=rit.next();
       Clause* mcl=res.clause;
-
-      subst.reset();
-      if(eqLit && !subst.match(SortHelper::getEqualityArgumentSort(res.literal), 0, litSort, 1)){
-        continue;
-      } 
       if(mcl->hasAux()) {
-        //we've already checked this clause
-        continue;
+	//we've already checked this clause
+	continue;
       }
       ASS_G(mcl->length(),1);
 
@@ -330,7 +294,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
       cms->fillInMatches(&miniIndex);
 
       if(cms->anyNonMatched()) {
-        continue;
+	continue;
       }
 
       if(MLMatcher::canBeMatched(mcl,cl,cms->_matches,0) && ColorHelper::compatible(cl->color(), mcl->color())) {
@@ -353,83 +317,64 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
 
     for(unsigned li=0;li<clen;li++) {
       Literal* resLit=(*cl)[li];
-      SLQueryResultIterator rit=_unitIndex->getGeneralizations(resLit, true, false);
-      TermList resLitSort; bool eqLit = false;
-      if(resLit->isEquality()){
-        resLitSort = SortHelper::getEqualityArgumentSort(resLit);
-        eqLit = true; 
-      }
+      SLQueryResultIterator rit=_unitIndex->getGeneralizations( resLit, true, false);
       while(rit.hasNext()) {
-        SLQueryResult res = rit.next();
-        Clause* mcl = res.clause;
-
-        subst.reset();
-        if(eqLit && !subst.match(SortHelper::getEqualityArgumentSort(res.literal), 0, resLitSort, 1)){
-          continue;
-        } 
-        if(ColorHelper::compatible(cl->color(), mcl->color())) {
-          resolutionClause=generateSubsumptionResolutionClause(cl,resLit,mcl);
-          env.statistics->forwardSubsumptionResolution++;
-          premises = pvi( getSingletonIterator(mcl) );
-          replacement = resolutionClause;
-          result = true;
-          goto fin;
-        }
+	Clause* mcl=rit.next().clause;
+	if(ColorHelper::compatible(cl->color(), mcl->color())) {
+	  resolutionClause=generateSubsumptionResolutionClause(cl,resLit,mcl);
+	  env.statistics->forwardSubsumptionResolution++;
+	  premises = pvi( getSingletonIterator(mcl) );
+	  replacement = resolutionClause;
+	  result = true;
+	  goto fin;
+	}
       }
     }
 
     {
       CMStack::Iterator csit(cmStore);
       while(csit.hasNext()) {
-        ClauseMatches* cms=csit.next();
-        for(unsigned li=0;li<clen;li++) {
-          Literal* resLit=(*cl)[li];
-          if(checkForSubsumptionResolution(cl, cms, resLit) && ColorHelper::compatible(cl->color(), cms->_cl->color()) ) {
-            resolutionClause=generateSubsumptionResolutionClause(cl,resLit,cms->_cl);
-            env.statistics->forwardSubsumptionResolution++;
-            premises = pvi( getSingletonIterator(cms->_cl) );
-            replacement = resolutionClause;
-            result = true;
-            goto fin;
-          }
-        }
+	ClauseMatches* cms=csit.next();
+	for(unsigned li=0;li<clen;li++) {
+	  Literal* resLit=(*cl)[li];
+	  if(checkForSubsumptionResolution(cl, cms, resLit) && ColorHelper::compatible(cl->color(), cms->_cl->color()) ) {
+	    resolutionClause=generateSubsumptionResolutionClause(cl,resLit,cms->_cl);
+	    env.statistics->forwardSubsumptionResolution++;
+	    premises = pvi( getSingletonIterator(cms->_cl) );
+	    replacement = resolutionClause;
+	    result = true;
+	    goto fin;
+	  }
+	}
       }
     }
 
     for(unsigned li=0;li<clen;li++) {
       Literal* resLit=(*cl)[li];	//resolved literal
-      SLQueryResultIterator rit=_fwIndex->getGeneralizations(resLit, true, false);
-      TermList resLitSort; bool eqLit = false;
-      if(resLit->isEquality()){
-        resLitSort = SortHelper::getEqualityArgumentSort(resLit);
-        eqLit = true; 
-      }
+      SLQueryResultIterator rit=_fwIndex->getGeneralizations( resLit, true, false);
       while(rit.hasNext()) {
-        SLQueryResult res=rit.next();
-        Clause* mcl=res.clause;
+	SLQueryResult res=rit.next();
+	Clause* mcl=res.clause;
 
-        subst.reset();
-        if(eqLit && !subst.match(SortHelper::getEqualityArgumentSort(res.literal), 0, resLitSort, 1)){
-          continue;
-        } 
-        if(mcl->hasAux()) {
-          //we have already examined this clause
-          continue;
-        }
+	if(mcl->hasAux()) {
+	  //we have already examined this clause
+	  continue;
+	}
 
-        ClauseMatches* cms=new ClauseMatches(mcl);
-        res.clause->setAux(cms);
-        cmStore.push(cms);
-        cms->fillInMatches(&miniIndex);
+	ClauseMatches* cms=new ClauseMatches(mcl);
+	res.clause->setAux(cms);
+	cmStore.push(cms);
+	cms->fillInMatches(&miniIndex);
 
-        if(checkForSubsumptionResolution(cl, cms, resLit) && ColorHelper::compatible(cl->color(), cms->_cl->color())) {
-          resolutionClause=generateSubsumptionResolutionClause(cl,resLit,cms->_cl);
-          env.statistics->forwardSubsumptionResolution++;
-                premises = pvi( getSingletonIterator(cms->_cl) );
-                replacement = resolutionClause;
-                result = true;
-          goto fin;
-        }
+	if(checkForSubsumptionResolution(cl, cms, resLit) && ColorHelper::compatible(cl->color(), cms->_cl->color())) {
+	  resolutionClause=generateSubsumptionResolutionClause(cl,resLit,cms->_cl);
+	  env.statistics->forwardSubsumptionResolution++;
+          premises = pvi( getSingletonIterator(cms->_cl) );
+          replacement = resolutionClause;
+          result = true;
+	  goto fin;
+	}
+
       }
     }
   }

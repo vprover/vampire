@@ -1,7 +1,4 @@
-
 /*
- * File Formula.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file Formula.hpp
@@ -49,8 +40,6 @@ using namespace Lib;
 class Formula
 {
 public:
-  typedef List<int> VarList;
-  typedef List<TermList> SortList;
   /**
    * Constructor of constant formulas (true/false)
    * @since 02/07/2007 Manchester
@@ -73,18 +62,19 @@ public:
   Formula* right();
   const Formula* qarg() const;
   Formula* qarg();
-  const VarList* vars() const;
-  VarList* vars();
-  const SortList* sorts() const;
-  SortList* sorts();
+  const VList* vars() const;
+  VList* vars();
+  const SList* sorts() const;
+  SList* sorts();
   const Formula* uarg() const;
   Formula* uarg();
   const Literal* literal() const;
   Literal* literal();
   const TermList getBooleanTerm() const;
   TermList getBooleanTerm();
-  VarList* freeVariables () const;
-  VarList* boundVariables () const;
+  VList* freeVariables () const;
+  bool isFreeVariable(unsigned var) const;
+  VList* boundVariables () const;
 
   // miscellaneous
   bool equals(const Formula*) const;
@@ -115,8 +105,8 @@ public:
   static Formula* falseFormula();
 
   static Formula* createITE(Formula* condition, Formula* thenArg, Formula* elseArg);
-  static Formula* createLet(unsigned functor, Formula::VarList* variables, TermList body, Formula* contents);
-  static Formula* createLet(unsigned predicate, Formula::VarList* variables, Formula* body, Formula* contents);
+  static Formula* createLet(unsigned functor, VList* variables, TermList body, Formula* contents);
+  static Formula* createLet(unsigned predicate, VList* variables, Formula* body, Formula* contents);
 
   // use allocator to (de)allocate objects of this class
   CLASS_NAME(Formula);
@@ -192,7 +182,7 @@ class QuantifiedFormula
 {
  public:
   /** Build a quantified formula */
-  QuantifiedFormula(Connective con, VarList* vs, SortList* ss, Formula* arg)
+  QuantifiedFormula(Connective con, VList* vs, SList* ss, Formula* arg)
     : Formula(con),
       _vars(vs),
       _sorts(ss),
@@ -200,7 +190,7 @@ class QuantifiedFormula
   {
     ASS(con == FORALL || con == EXISTS);
     ASS(vs);
-    ASS(!ss || VarList::length(vs) == SortList::length(ss));
+    ASS(!ss || VList::length(vs) == SList::length(ss));
   }
 
   /** Return the immediate subformula */
@@ -208,22 +198,22 @@ class QuantifiedFormula
   /** Return the immediate subformula */
   Formula* subformula () { return _arg; }
   /** Return the list of variables */
-  const VarList* varList() const { return _vars; }
+  const VList* varList() const { return _vars; }
   /** Return the list of variables */
-  VarList* varList() { return _vars; }
+  VList* varList() { return _vars; }
   /** Return the list of sorts */
-  const SortList* sortList() const { return _sorts; }
+  const SList* sortList() const { return _sorts; }
   /** Return the list of sorts */
-  SortList* sortList() { return _sorts; }
+  SList* sortList() { return _sorts; }
 
   // use allocator to (de)allocate objects of this class
   CLASS_NAME(QuantifiedFormula);
   USE_ALLOCATOR(QuantifiedFormula);
  protected:
   /** list of variables */
-  VarList* _vars;
+  VList* _vars;
   /** list of sorts */
-  SortList* _sorts;
+  SList* _sorts;
   /** argument */
   Formula* _arg;
 }; // class Formula::QuantifiedData
@@ -388,14 +378,14 @@ class BoolTermFormula
 
 /** Return the list of variables of a quantified formula */
 inline
-const Formula::VarList* Formula::vars() const
+const VList* Formula::vars() const
 {
   ASS(_connective == FORALL || _connective == EXISTS);
   return static_cast<const QuantifiedFormula*>(this)->varList();
 }
 /** Return the list of variables of a quantified formula */
 inline
-Formula::VarList* Formula::vars()
+VList* Formula::vars()
 {
   ASS(_connective == FORALL || _connective == EXISTS);
   return static_cast<QuantifiedFormula*>(this)->varList();
@@ -403,14 +393,14 @@ Formula::VarList* Formula::vars()
 
 /** Return the list of sorts of a quantified formula */
 inline
-const Formula::SortList* Formula::sorts() const
+const SList* Formula::sorts() const
 {
   ASS(_connective == FORALL || _connective == EXISTS);
   return static_cast<const QuantifiedFormula*>(this)->sortList();
 }
 /** Return the list of sorts of a quantified formula */
 inline
-Formula::SortList* Formula::sorts()
+SList* Formula::sorts()
 {
   ASS(_connective == FORALL || _connective == EXISTS);
   return static_cast<QuantifiedFormula*>(this)->sortList();

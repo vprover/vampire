@@ -1,7 +1,4 @@
-
 /*
- * File Sorts.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file Sorts.hpp
@@ -56,14 +47,18 @@ public:
   bool addSort(TermList sort);
   vstring sortName(unsigned sort){ return _sorts[sort].toString(); }
   vstring sortName(TermList sort){ return sort.toString(); }
+#if __cplusplus >= 201402L // c++14 and newer
+  [[deprecated("consider using sort.term()->getId() instead of getSortNum; if you are in a situation where a variable sort does not make sense")]]
+#endif
   unsigned getSortNum(TermList sort);
   TermList getSortTerm(unsigned sort);
   unsigned count(){return (unsigned)_sorts.size(); }
-  
+  bool hasSort() { return !_sorts.isEmpty(); }
+
   //once arrays are fixed and axiomatused by a fixed number of polymorphic axioms
   //_arraySorts can be deleted
   //Once finite model buuilding is refactored (Giles Reger knows how)
-  //There is no longer a need to store any sorts at all.
+  //there is no longer a need to store any sorts at all.
   void addArraySort(TermList sort){ _arraySorts->insert(sort); }
   DHSet<TermList>* getArraySorts(){
     return _arraySorts;
@@ -77,23 +72,33 @@ private:
 };
 
 /**
- * The OperatorType class represents the predicate and function types (which are not sorts in first-order logic).
- * These are determined by their kind (either PREDICATE or FUNCTION), arity, a corresponding list of argument sorts,
- * and a return sort in the case of functions.
+ * The OperatorType class represents the predicate and function types 
+ * the only difference between the two is that a predicate type has return type
+ * $o whilst a function type has any other return type.
  *
- * The class stores all this data in one Vector<unsigned>*, of length arity+1,
- * where the last element is the return sort for functions and "MAX_UNSIGNED" for predicates (which distinguishes the two kinds).
+ * The class can be used to store polymorphic types which are of the form:
+ * !>[vars](sort1 * ... * sortn) > return_sort where sorts can only contain variables 
+ * from vars. View "A Polymorphic Vampire" for more details:
+ *
+ * https://link.springer.com/chapter/10.1007/978-3-030-51054-1_21
+ *
+ * The class stores data in a Vector<TermList>*, of length num_of_bound_vars +
+ * num_of_sorts + 1. In the monomorphic case, num_of_bound_vars = 0 and each
+ * sort_i is a constant.
  *
  * The objects of this class are perfectly shared (so that equal predicate / function types correspond to equal pointers)
  * and are obtained via static methods (to guarantee the sharing).
+ *
+ * Currently, bound variables are passed to functions in this class by a pointer to a list
+ * of unsigneds (representing the bound vars). To enable perfect sharing, these lists 
+ * are then converted into TermLists and stored at the beginning of the vector as 
+ * mentioned above. 
  */
 class OperatorType
 {
 public:
   CLASS_NAME(OperatorType);
   USE_ALLOCATOR(OperatorType);
-
-  typedef List<unsigned> VarList;
 
 private:
   typedef Vector<TermList> OperatorKey; // Vector of argument sorts together with "0" appended for predicates and resultSort appended for functions
@@ -106,21 +111,21 @@ private:
   /**
    * Convenience functions for creating a key
    */
-  static OperatorKey* setupKey(unsigned arity, const TermList* sorts=0, VarList* vars = 0);
-  static OperatorKey* setupKey(std::initializer_list<TermList> sorts, VarList* vars);
-  static OperatorKey* setupKeyUniformRange(unsigned arity, TermList argsSort, VarList* vars);
+  static OperatorKey* setupKey(unsigned arity, const TermList* sorts, VList* vars);
+  static OperatorKey* setupKey(std::initializer_list<TermList> sorts, VList* vars);
+  static OperatorKey* setupKeyUniformRange(unsigned arity, TermList argsSort, VList* vars);
 
   typedef Map<OperatorKey*,OperatorType*,PointerDereferencingHash> OperatorTypes;
   static OperatorTypes& operatorTypes(); // just a wrapper around a static OperatorTypes object, to ensure a correct initialization order
 
-  static OperatorType* getTypeFromKey(OperatorKey* key, VarList* vars);
+  static OperatorType* getTypeFromKey(OperatorKey* key, VList* vars);
 
   //static const TermList PREDICATE_FLAG;
 
 public:
   ~OperatorType() { _key->deallocate(); }
 
-  static OperatorType* getPredicateType(unsigned arity, const TermList* sorts=0, VarList* vars=0) {
+  static OperatorType* getPredicateType(unsigned arity, const TermList* sorts=0, VList* vars=0) {
     CALL("OperatorType::getPredicateType(unsigned,const unsigned*)");
 
     OperatorKey* key = setupKey(arity,sorts,vars);
@@ -128,7 +133,7 @@ public:
     return getTypeFromKey(key,vars);
   }
 
-  static OperatorType* getPredicateType(std::initializer_list<TermList> sorts, VarList* vars = 0) {
+  static OperatorType* getPredicateType(std::initializer_list<TermList> sorts, VList* vars = 0) {
     CALL("OperatorType::getPredicateType(std::initializer_list<unsigned>)");
 
     OperatorKey* key = setupKey(sorts,vars);
@@ -136,7 +141,7 @@ public:
     return getTypeFromKey(key,vars);
   }
 
-  static OperatorType* getPredicateTypeUniformRange(unsigned arity, TermList argsSort, VarList* vars = 0) {
+  static OperatorType* getPredicateTypeUniformRange(unsigned arity, TermList argsSort, VList* vars = 0) {
     CALL("OperatorType::getPredicateTypeUniformRange");
 
     OperatorKey* key = setupKeyUniformRange(arity,argsSort,vars);
@@ -144,7 +149,7 @@ public:
     return getTypeFromKey(key,vars);
   }
 
-  static OperatorType* getFunctionType(unsigned arity, const TermList* sorts, TermList resultSort, VarList* vars = 0) {
+  static OperatorType* getFunctionType(unsigned arity, const TermList* sorts, TermList resultSort, VList* vars = 0) {
     CALL("OperatorType::getFunctionType");
 
     OperatorKey* key = setupKey(arity,sorts,vars);
@@ -152,7 +157,7 @@ public:
     return getTypeFromKey(key,vars);
   }
 
-  static OperatorType* getFunctionType(std::initializer_list<TermList> sorts, TermList resultSort, VarList* vars = 0) {
+  static OperatorType* getFunctionType(std::initializer_list<TermList> sorts, TermList resultSort, VList* vars = 0) {
     CALL("OperatorType::getFunctionType(std::initializer_list<unsigned>)");
  
     OperatorKey* key = setupKey(sorts,vars);
@@ -160,7 +165,7 @@ public:
     return getTypeFromKey(key,vars);
   }
 
-  static OperatorType* getFunctionTypeUniformRange(unsigned arity, TermList argsSort, TermList resultSort, VarList* vars = 0) {
+  static OperatorType* getFunctionTypeUniformRange(unsigned arity, TermList argsSort, TermList resultSort, VList* vars = 0) {
     CALL("OperatorType::getFunctionTypeUniformRange");
 
     OperatorKey* key = setupKeyUniformRange(arity,argsSort,vars);
@@ -172,13 +177,18 @@ public:
    * Convenience function for creating OperatorType for constants (as symbols).
    * Constants are function symbols of 0 arity, so just provide the result sort.
    */
-  static OperatorType* getConstantsType(TermList resultSort, VarList* vars = 0) { 
+  static OperatorType* getConstantsType(TermList resultSort, VList* vars = 0) {
     return getFunctionType(0,nullptr,resultSort, vars); 
   }
 
   unsigned typeArgsArity() const { return _typeArgsArity; }
   unsigned arity() const { return _key->length()-1; }
 
+  /**
+   * These are the free variables of the sorts of the arguments (and the return type in case of functions) in the polymorphic case.
+   *
+   * For the non-polymorphic case, _typeArgsArity==0 and this function cannot be used meaninfully.
+   */
   TermList quantifiedVar(unsigned idx) const
   {
     CALL("OperatorType::quantifiedVar");
@@ -186,6 +196,11 @@ public:
     return (*_key)[idx];
   }
 
+   /**
+    * In the polymorhpic case, the first _typeArgsArity arguments of a predicate / function symbol are actually sorts, so their sort is "superSort"
+    *
+    * For idx >= _typeArgsArity (== 0 in the non-polymorphic case) this returns the actual sort of the idx-th argument
+    */
   TermList arg(unsigned idx) const
   {
     CALL("OperatorType::arg");
@@ -199,6 +214,10 @@ public:
   //In higher-order we have boolean functions
   bool isPredicateType() const { return (*_key)[arity()] == Term::boolSort(); };
   bool isFunctionType() const { return (*_key)[arity()] != Term::boolSort(); };
+
+  /**
+   * The result sort of function types; or Term::boolSort() for predicates.
+   */
   TermList result() const {
     CALL("OperatorType::result");
     //ASS(isFunctionType()); //TODO how best to deal with this?

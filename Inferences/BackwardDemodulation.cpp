@@ -1,7 +1,4 @@
-
 /*
- * File BackwardDemodulation.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file BackwardDemodulation.cpp
@@ -131,14 +122,22 @@ struct BackwardDemodulation::ResultFn
       return BwSimplificationRecord(0);
     }
 
+    TermList lhs=arg.first;
+
     TermList qrSort = SortHelper::getTermSort(qr.term, qr.literal);
-    static RobSubstitution sub;
-    sub.reset();
-    if(!sub.match(_eqSort, 0, qrSort, 1)){
-      return BwSimplificationRecord(0);
+
+    if(lhs.isVar()){
+      //when finding instances of a variable, RobSubstitution is used
+      //view Indexing::TermSubstitutionTree::getInstances
+      RobSubstitution* sub = qr.substitution->tryGetRobSubstitution();
+      ASS(sub)
+      //rather than 0 and 1, we should use the constants delared in
+      //substitution tree
+      if(!sub->match(_eqSort, 0, qrSort, 1)){
+        return BwSimplificationRecord(0);        
+      }
     }
 
-    TermList lhs=arg.first;
     TermList rhs=EqHelper::getOtherEqualitySide(_eqLit, lhs);
 
     TermList lhsS=qr.term;

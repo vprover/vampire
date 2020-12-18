@@ -1,7 +1,4 @@
-
 /*
- * File SymbolDefinitionInlining.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 #include "Kernel/Substitution.hpp"
 #include "Kernel/Formula.hpp"
@@ -31,9 +22,9 @@ TermList SymbolDefinitionInlining::substitute(Term::Iterator tit) {
 
   Substitution substitution;
 
-  Formula::VarList::Iterator vit(_bindingVariables);
+  VList::Iterator vit(_bindingVariables);
   while (vit.hasNext()) {
-    unsigned var = (unsigned) vit.next();
+    unsigned var = vit.next();
     ASS(tit.hasNext());
     TermList arg = tit.next();
     substitution.bind(var, arg);
@@ -57,9 +48,9 @@ TermList SymbolDefinitionInlining::substitute(Term::Iterator tit) {
       collectBoundVariables(_binding);
     }
 
-    Formula::VarList::Iterator bit(_bound);
+    VList::Iterator bit(_bound);
     while (bit.hasNext()) {
-      unsigned boundVar = (unsigned) bit.next();
+      unsigned boundVar = bit.next();
       unsigned freshVar = ++_freshVarOffset;
       substitution.bind(boundVar, TermList(freshVar, false));
       List<pair<unsigned, unsigned>>::push(make_pair(boundVar, freshVar), _varRenames);
@@ -382,8 +373,8 @@ void SymbolDefinitionInlining::collectBoundVariables(Term* t) {
       }
       case Term::SF_LET: {
         collectBoundVariables(sd->getBinding());
-        Formula::VarList::Iterator vit(sd->getVariables());
-        Formula::VarList::pushFromIterator(vit, _bound);
+        VList::Iterator vit(sd->getVariables());
+        VList::pushFromIterator(vit, _bound);
         break;
       }
       case Term::SF_LET_TUPLE: {
@@ -412,8 +403,8 @@ void SymbolDefinitionInlining::collectBoundVariables(Formula* formula) {
     case FORALL:
     case EXISTS: {
       collectBoundVariables(formula->qarg());
-      Formula::VarList::Iterator vit(formula->vars());
-      Formula::VarList::pushFromIterator(vit, _bound);
+      VList::Iterator vit(formula->vars());
+      VList::pushFromIterator(vit, _bound);
       break;
     }
 

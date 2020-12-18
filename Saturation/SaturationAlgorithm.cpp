@@ -1,7 +1,4 @@
-
 /*
- * File SaturationAlgorithm.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file SaturationAlgorithm.cpp
@@ -529,7 +520,8 @@ void SaturationAlgorithm::onClauseRetained(Clause* cl)
  * Called whenever a clause is simplified or deleted at any point of the
  * saturation algorithm
  */
-void SaturationAlgorithm::onClauseReduction(Clause* cl, ClauseIterator replacements, Clause* premise, bool forward)
+void SaturationAlgorithm::onClauseReduction(Clause* cl, Clause** replacements, unsigned numOfReplacements,
+    Clause* premise, bool forward)
 {
   CALL("SaturationAlgorithm::onClauseReduction/5");
   ASS(cl);
@@ -543,10 +535,10 @@ void SaturationAlgorithm::onClauseReduction(Clause* cl, ClauseIterator replaceme
     premises=ClauseIterator::getEmpty();
   }
 
-  onClauseReduction(cl, replacements, premises, forward);
+  onClauseReduction(cl, replacements, numOfReplacements, premises, forward);
 }
 
-void SaturationAlgorithm::onClauseReduction(Clause* cl, ClauseIterator replacements,
+void SaturationAlgorithm::onClauseReduction(Clause* cl, Clause** replacements, unsigned numOfReplacements,
     ClauseIterator premises, bool forward)
 {
   CALL("SaturationAlgorithm::onClauseReduction/4");
@@ -556,19 +548,15 @@ void SaturationAlgorithm::onClauseReduction(Clause* cl, ClauseIterator replaceme
   premStack.reset();
   premStack.loadFromIterator(premises);
 
-  static ClauseStack repStack;
-  repStack.reset();
-  repStack.loadFromIterator(replacements);
-
-  Clause* replacement = repStack.size() ? repStack[0] : 0;
+  Clause* replacement = numOfReplacements ? *replacements : 0;
 
   if (env.options->showReductions()) {
     env.beginOutput();
     env.out() << "[SA] " << (forward ? "forward" : "backward") << " reduce: " << cl->toString() << endl;
-    ClauseStack::Iterator rit(repStack);
-    while(rit.hasNext()){
-      Clause* replacement = rit.next();
+    for(unsigned i = 0; i < numOfReplacements; i++){
+      Clause* replacement = *replacements;
       if(replacement){ env.out() << "      replaced by " << replacement->toString() << endl; }
+      replacements++;
     }
     ClauseStack::Iterator pit(premStack);
     while(pit.hasNext()){
@@ -583,7 +571,13 @@ void SaturationAlgorithm::onClauseReduction(Clause* cl, ClauseIterator replaceme
   }
 
   if (replacement) {
-    //TODO fix this
+    //Where an inference has multiple conclusions, onParenthood will only be run 
+    //for the final conclusion. This is unsafe when running with symbol elimination
+    //at the moment the only simplification rules that have multiple conclusions
+    //are higher-order and it is assumed that we will not run higher-order along
+    //with symbol elimination.
+    //In the future if a first-order simplification rule is added with multiple 
+    //conclusions, this code should be updated.
     onParenthood(replacement, cl);
     while (premStack.isNonEmpty()) {
       onParenthood(replacement, premStack.pop());
@@ -732,7 +726,7 @@ simpl_start:
   Clause* simplCl=_immediateSimplifier->simplify(cl);
   if (simplCl != cl) {
     if (!simplCl) {
-      onClauseReduction(cl, ClauseIterator::getEmpty(), 0);
+      onClauseReduction(cl, 0, 0, 0);
       goto fin;
     }
 
@@ -740,7 +734,7 @@ simpl_start:
     cl->decRefCnt(); //now cl is referenced from simplCl, so after removing the extra reference, it won't be destroyed
 
     onNewClause(simplCl);
-    onClauseReduction(cl, pvi(getSingletonIterator(simplCl)), 0);
+    onClauseReduction(cl, &simplCl, 1 , 0);
     cl=simplCl;
     goto simpl_start;
   }
@@ -817,7 +811,7 @@ Clause* SaturationAlgorithm::doImmediateSimplification(Clause* cl0)
     if (simplCl) {
       addNewClause(simplCl);
     }
-    onClauseReduction(cl, pvi(getSingletonIterator(simplCl)), 0);
+    onClauseReduction(cl, &simplCl, 1, 0);
     return 0;
   }
 
@@ -835,7 +829,7 @@ Clause* SaturationAlgorithm::doImmediateSimplification(Clause* cl0)
       repStack.push(simpedCl);
       addNewClause(simpedCl);
     }
-    onClauseReduction(cl, pvi( ClauseStack::Iterator(repStack)), 0);
+    onClauseReduction(cl, repStack.begin(), repStack.size(), 0);
     return 0;
   }
 
@@ -1020,7 +1014,7 @@ bool SaturationAlgorithm::forwardSimplify(Clause* cl)
         if (replacement) {
           addNewClause(replacement);
         }
-        onClauseReduction(cl, pvi(getSingletonIterator(replacement)), premises);
+        onClauseReduction(cl, &replacement, 1, premises);
 
         return false;
       }
@@ -1045,7 +1039,7 @@ bool SaturationAlgorithm::forwardSimplify(Clause* cl)
           repStack.push(simpedCl);
           addNewClause(simpedCl);
         }
-        onClauseReduction(cl, pvi(ClauseStack::Iterator(repStack)), 0);
+        onClauseReduction(cl, repStack.begin(), repStack.size(), 0);
         return false;
       }
     }
@@ -1087,7 +1081,7 @@ void SaturationAlgorithm::backwardSimplify(Clause* cl)
       if (replacement) {
 	addNewClause(replacement);
       }
-      onClauseReduction(redundant, pvi(getSingletonIterator(replacement)), cl, false);
+      onClauseReduction(redundant, &replacement, 1, cl, false);
 
       //we must remove the redundant clause before adding its replacement,
       //as otherwise the redundant one might demodulate the replacement into
@@ -1654,15 +1648,28 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     // NOTE:
     // fsd should be performed after forward subsumption,
     // because every successful forward subsumption will lead to a (useless) match in fsd.
-    if (opt.forwardSubsumptionDemodulation() && !prb.hasPolymorphicSym()) {
-      res->addForwardSimplifierToFront(new ForwardSubsumptionDemodulation(false));
+    if (opt.forwardSubsumptionDemodulation()) {
+      if (prb.hasPolymorphicSym()) { // TODO: extend ForwardSubsumptionDemodulation to support polymorphism
+        if (outputAllowed()) {
+          env.beginOutput();
+          addCommentSignForSZS(env.out());
+          env.out() << "WARNING: Not using ForwardSubsumptionDemodulation currently not compatible with polymorphic inputs." << endl;
+          env.endOutput();
+        }
+      } else {
+        res->addForwardSimplifierToFront(new ForwardSubsumptionDemodulation(false));
+      }
     }
   }
   if (prb.hasEquality()) {
     switch(opt.forwardDemodulation()) {
     case Options::Demodulation::ALL:
     case Options::Demodulation::PREORDERED:
-      res->addForwardSimplifierToFront(new ForwardDemodulation());
+      if(opt.combinatorySup()){
+        res->addForwardSimplifierToFront(new ForwardDemodulationImpl<true>());
+      } else {
+        res->addForwardSimplifierToFront(new ForwardDemodulationImpl<false>());
+      }
       break;
     case Options::Demodulation::OFF:
       break;
@@ -1701,9 +1708,17 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
 #endif
     }
   }
-  if (prb.hasEquality() && opt.backwardSubsumptionDemodulation() &&
-      !prb.hasPolymorphicSym()) {
-    res->addBackwardSimplifierToFront(new BackwardSubsumptionDemodulation());
+  if (prb.hasEquality() && opt.backwardSubsumptionDemodulation()) {
+    if (prb.hasPolymorphicSym()) { // TODO: extend BackwardSubsumptionDemodulation to support polymorphism
+      if (outputAllowed()) {
+        env.beginOutput();
+        addCommentSignForSZS(env.out());
+        env.out() << "WARNING: Not using BackwardSubsumptionDemodulation currently not compatible with polymorphic inputs." << endl;
+        env.endOutput();
+      }
+    } else {
+      res->addBackwardSimplifierToFront(new BackwardSubsumptionDemodulation());
+    }
   }
   if (opt.backwardSubsumption() != Options::Subsumption::OFF) {
     bool byUnitsOnly=opt.backwardSubsumption()==Options::Subsumption::UNIT_ONLY;
@@ -1789,12 +1804,29 @@ ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, cons
       res->addFront(new NegativeInjectivityISE());
     }
   }
-  if(!prb.hasPolymorphicSym() && 
-    (prb.hasInterpretedOperations() || prb.hasInterpretedEquality())) {
+  if(prb.hasInterpretedOperations() || prb.hasInterpretedEquality()) {
     if (env.options->gaussianVariableElimination()) {
-      res->addFront(new GaussianVariableElimination()); 
+      if (prb.hasPolymorphicSym()) { // TODO: extend GaussianVariableElimination to live alongside polymorphism!
+        if (outputAllowed()) {
+          env.beginOutput();
+          addCommentSignForSZS(env.out());
+          env.out() << "WARNING: Not using GaussianVariableElimination currently not compatible with polymorphic inputs." << endl;
+          env.endOutput();
+        }
+      } else {
+        res->addFront(new GaussianVariableElimination());
+      }
     }
-    res->addFront(new InterpretedEvaluation(env.options->inequalityNormalization(), ordering));
+    if (prb.hasPolymorphicSym()) { // TODO: extend InterpretedEvaluation to alongside polymorphism!
+      if (outputAllowed()) {
+        env.beginOutput();
+        addCommentSignForSZS(env.out());
+        env.out() << "WARNING: Not using InterpretedEvaluation currently not compatible with polymorphic inputs." << endl;
+        env.endOutput();
+      }
+    } else {
+      res->addFront(new InterpretedEvaluation(env.options->inequalityNormalization(), ordering));
+    }
   }
   if(prb.hasEquality()) {
     res->addFront(new TrivialInequalitiesRemovalISE());

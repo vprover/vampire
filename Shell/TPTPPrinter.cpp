@@ -1,7 +1,4 @@
-
 /*
- * File TPTPPrinter.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file TPTPPrinter.cpp
@@ -373,7 +364,7 @@ vstring TPTPPrinter::toString(const Formula* formula)
   CALL("TPTPPrinter::toString(const Formula*)");
   static vstring names [] =
     { "", " & ", " | ", " => ", " <=> ", " <~> ",
-      "~", "!", "?", "!!", "??", "$term", "$false", "$true", "^", "@", "", ""};
+      "~", "!", "?", "$term", "$false", "$true", "", ""};
   ASS_EQ(sizeof(names)/sizeof(vstring), NOCONN+1);
 
   vstring res;
@@ -456,12 +447,12 @@ vstring TPTPPrinter::toString(const Formula* formula)
       {
         vstring result = vstring("(") + names[c] + "[";
         bool needsComma = false;
-        Formula::VarList::Iterator vs(f->vars());
-        Formula::SortList::Iterator ss(f->sorts());
+        VList::Iterator vs(f->vars());
+        SList::Iterator ss(f->sorts());
         bool hasSorts = f->sorts();
 
         while (vs.hasNext()) {
-          int var = vs.next();
+          unsigned var = vs.next();
 
           if (needsComma) {
             result += ", ";
@@ -580,7 +571,7 @@ vstring TPTPPrinter::toString (const Unit* unit)
       }
       if(quant!=f) {
 	ASS_EQ(quant->connective(),FORALL);
-        Formula::VarList::destroy(static_cast<QuantifiedFormula*>(quant)->vars());
+        VList::destroy(static_cast<QuantifiedFormula*>(quant)->vars());
 	quant->destroy();
       }
     }

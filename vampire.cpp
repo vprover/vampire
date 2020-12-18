@@ -1,7 +1,4 @@
-
 /*
- * File vampire.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file vampire.cpp. Implements the top-level procedures of Vampire.
@@ -90,7 +81,6 @@
 
 #include "SAT/MinisatInterfacing.hpp"
 #include "SAT/MinisatInterfacingNewSimp.hpp"
-#include "SAT/TWLSolver.hpp"
 #include "SAT/Preprocess.hpp"
 
 #include "FMB/ModelCheck.hpp"
@@ -492,6 +482,10 @@ void modelCheckMode()
   env.options->setOutputAxiomNames(true);
   Problem* prb = UIHelper::getInputProblem(*env.options);
 
+  if(env.statistics->polymorphic || env.statistics->higherOrder){
+    USER_ERROR("Polymorphic Vampire is not yet compatible with theory reasoning");
+  }
+
   FMB::ModelCheck::doCheck(prb);
 
 } // modelCheckMode
@@ -527,77 +521,6 @@ void outputMode()
   vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
 } // outputMode
 
-static SATClauseList* getInputClauses(const char* fname, unsigned& varCnt)
-{
-  CALL("getInputClauses");
-  TimeCounter tc(TC_PARSING);
-
-  return DIMACS::parse(fname, varCnt);
-}
-
-static SATClauseIterator preprocessClauses(SATClauseList* clauses) {
-  CALL("preprocessClauses");
-  TimeCounter tc(TC_PREPROCESSING);
-  
-  return SAT::Preprocess::removeDuplicateLiterals(pvi(SATClauseList::DestructiveIterator(clauses)));
-}
-
-
-void satSolverMode()
-{
-  CALL("satSolverMode()");
-  TimeCounter tc(TC_SAT_SOLVER);
-  SATSolverSCP solver;
-  
-  switch(env.options->satSolver()) {
-    case Options::SatSolver::VAMPIRE:  
-      solver = new TWLSolver(*env.options);
-      break;
-    case Options::SatSolver::MINISAT:
-      solver = new MinisatInterfacingNewSimp(*env.options);
-      break;      
-    default:
-      ASSERTION_VIOLATION(env.options->satSolver());
-  }
-    
-  //get the clauses; 
-  SATClauseList* clauses;
-  unsigned varCnt=0;
-
-  SATSolver::Status res; 
-  
-  clauses = getInputClauses(env.options->inputFile().c_str(), varCnt);
-  
-  solver->ensureVarCount(varCnt);
-  solver->addClausesIter(preprocessClauses(clauses));
-
-  res = solver->solve();
-
-  env.statistics->phase = Statistics::FINALIZATION;
-
-  switch(res) {
-  case SATSolver::SATISFIABLE:
-    cout<<"SATISFIABLE\n";
-    env.statistics->terminationReason = Statistics::SAT_SATISFIABLE;
-    break;
-  case SATSolver::UNSATISFIABLE:
-    cout<<"UNSATISFIABLE\n";
-    env.statistics->terminationReason = Statistics::SAT_UNSATISFIABLE;
-    break;
-  case SATSolver::UNKNOWN:
-    cout<<"Unknown\n";
-    break;
-  }
-
-  env.beginOutput();
-  UIHelper::outputResult(env.out());
-  env.endOutput();
-  if (env.statistics->terminationReason == Statistics::SAT_UNSATISFIABLE
-      || env.statistics->terminationReason == Statistics::SAT_SATISFIABLE) {
-      vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
-  }
-
-}
 void vampireMode()
 {
   CALL("vampireMode()");
@@ -755,9 +678,9 @@ void axiomSelectionMode()
 
   ScopedPtr<Problem> prb(UIHelper::getInputProblem(*env.options));
 
-  /*if (prb->hasFOOL()) {
+  if (prb->hasFOOL()) {
     FOOLElimination().apply(*prb);
-  }*/
+  }
 
   // reorder units
   if (env.options->normalize()) {
@@ -994,9 +917,9 @@ int main(int argc, char* argv[])
       vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       break;
     }
-   /* case Options::Mode::MODEL_CHECK:
+    case Options::Mode::MODEL_CHECK:
       modelCheckMode();
-      break; */
+      break; 
 
     case Options::Mode::CLAUSIFY:
       clausifyMode(false);
@@ -1023,10 +946,6 @@ int main(int argc, char* argv[])
       preprocessMode(true);
       break;
 
-    case Options::Mode::SAT:
-      satSolverMode();
-      break;
-
     default:
       USER_ERROR("Unsupported mode");
     }
@@ -1035,15 +954,6 @@ int main(int argc, char* argv[])
     env.signature = 0;
 #endif
   }
-#if VDEBUG
-  catch (Debug::AssertionViolationException& exception) {
-    vampireReturnValue = VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION;
-    reportSpiderFail();
-#if CHECK_LEAKS
-    MemoryLeak::cancelReport();
-#endif
-  }
-#endif
 #if VZ3
   catch(z3::exception& exception){
     BYPASSING_ALLOCATOR;

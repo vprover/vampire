@@ -1,7 +1,4 @@
-
 /*
- * File TPTP.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file Parse/TPTP.cpp
@@ -58,6 +49,18 @@ using namespace Parse;
 #define DEBUG_SOURCE 0
 
 DHMap<unsigned, vstring> TPTP::_axiomNames;
+
+//Numbers chosen to avoid clashing with connectives.
+//Unlikely to ever have 100 connectives, so this should be ok.
+const int TPTP::HOL_CONSTANTS_LOWER_BOUND = 99u;
+/** operator lambda */
+const int TPTP::LAMBDA = 100u;
+/** application of any number of terms */
+const int TPTP::APP = 101u;
+/** Pi function for universal quantification */
+const int TPTP::PI = 102u;
+/** Sigma function for existential quantification */
+const int TPTP::SIGMA = 103u;
 
 /**
  * Create a parser, parse the input and return the parsed list of units.
@@ -1715,8 +1718,7 @@ void TPTP::endHolFormula()
     return;
   }  
   
-  if ((con != APP) && (con != LAMBDA) && (con != -1) && 
-      (con != PI)  && (con != SIGMA)  && (_lastPushed == TM)){
+  if ((con < HOL_CONSTANTS_LOWER_BOUND) && (con != -1) && (_lastPushed == TM)){
     //At the moment, APP and LAMBDA are the only connectives that can take terms of type
     //Other than $o as arguments.
     endTermAsFormula();
@@ -1777,7 +1779,7 @@ void TPTP::endHolFormula()
 
   Token& tok = getTok(0);
   Tag tag = tok.tag;
-  Connective c;
+  int c;
   bool cReverse = false;
 switch (tag) {
   case T_AND:
@@ -2287,6 +2289,9 @@ void TPTP::funApp()
       return;
 
     case T_ITE:
+      if(env.statistics->polymorphic || env.statistics->higherOrder){
+        USER_ERROR("Polymorphic Vampire is currently not compatible with FOOL reasoning");
+      }
       consumeToken(T_LPAR);
       addTagState(T_RPAR);
       _states.push(TERM);
@@ -2297,6 +2302,9 @@ void TPTP::funApp()
       return;
 
     case T_LET: {
+      if(env.statistics->polymorphic || env.statistics->higherOrder){
+        USER_ERROR("Polymorphic Vampire is currently not compatible with FOOL reasoning");
+      }
       consumeToken(T_LPAR);
       addTagState(T_RPAR);
       _states.push(TERM);
@@ -2498,7 +2506,7 @@ void TPTP::symbolDefinition()
 
   vstring nm = _strings.pop();
   unsigned arity = 0;
-  Formula::VarList* vs = Formula::VarList::empty();
+  VList* vs = VList::empty();
 
   Stack<unsigned> vars;
   if (getTok(0).tag == T_LPAR) {
@@ -2511,7 +2519,6 @@ void TPTP::symbolDefinition()
       } else {
         PARSE_ERROR("variable expected", getTok(0));
       }
-
 
       if (getTok(0).tag == T_COMMA) {
         resetToks();
@@ -2544,10 +2551,10 @@ void TPTP::symbolDefinition()
 
     unsigned index = 0;
     while (vars.isNonEmpty()) {
-      int var = vars.pop();
+      unsigned var = vars.pop();
       TermList sort = type->arg(arity - 1 - index++);
       bindVariable(var, sort);
-      vs = new Formula::VarList(var, vs);
+      VList::push(var, vs);
     }
 
     _bindLists.push(vs);
@@ -2619,8 +2626,8 @@ void TPTP::tupleDefinition()
   definitions.push(LetSymbolReference(tupleFunctor, false));
   _letDefinitions.push(definitions);
 
-  IntList* constants = IntList::empty();
-  IntList::pushFromIterator(Stack<unsigned>::Iterator(symbols), constants);
+  VList* constants = VList::empty();
+  VList::pushFromIterator(Stack<unsigned>::Iterator(symbols), constants);
   _varLists.push(constants);
 
   _states.push(END_DEFINITION);
@@ -2712,7 +2719,7 @@ void TPTP::endLet()
     unsigned symbol = SYMBOL(ref);
     bool isPredicate = IS_PREDICATE(ref);
 
-    Formula::VarList* varList = _varLists.pop();
+    VList* varList = _varLists.pop();
     TermList definition = _termLists.pop();
 
     bool isTuple = false;
@@ -2797,17 +2804,15 @@ void TPTP::endArgs()
  * Bind a variable to a sort
  * @since 22/04/2011 Manchester
  */
-void TPTP::bindVariable(int var,TermList sort)
+void TPTP::bindVariable(unsigned var,TermList sort)
 {
   CALL("TPTP::bindVariable");
 
-  SortList* definitions;
-  if (_variableSorts.find(var,definitions)) {
-    _variableSorts.replace(var,new SortList(sort,definitions));
-  }
-  else {
-    _variableSorts.insert(var,new SortList(sort));
-  }
+  SList** definitions;
+  // definitions will be a pointer to the list inside _variableSorts,
+  // either the one that was there, or a freshly inserted empty one
+  _variableSorts.getValuePtr(var,definitions,SList::empty());
+  SList::push(sort,*definitions); // and this will modify that list
 } // bindVariable
 
 /**
@@ -2855,12 +2860,12 @@ void TPTP::varList()
         if (!sortDeclared) {
           bindVariable(var,Term::defaultSort());
         }
-        Formula::VarList* vs = Formula::VarList::empty();
-        SortList* ss = SortList::empty();
+        VList* vs = VList::empty();
+        SList* ss = SList::empty();
         while (!vars.isEmpty()) {
           int v = vars.pop();
-          vs = new Formula::VarList(v,vs);
-          ss = new SortList(sortOf(TermList(v,false)),ss);
+          VList::push(v,vs);
+          SList::push(sortOf(TermList(v,false)),ss);
         }
         _varLists.push(vs);
         _sortLists.push(ss);
@@ -2891,10 +2896,37 @@ void TPTP::term()
       _states.push(FUN_APP);
       return;
 
+    
+    case T_INTEGER_TYPE:
+    case T_REAL_TYPE:
+    case T_RATIONAL_TYPE: {
+      USER_ERROR("Polymorphic Vampire is currently not compatible with theory reasoning");
+      //the code below is in preparation for 
+      //when theorey reasoning is updated to deal with polymorphism
+      resetToks();
+      switch (tok.tag) {
+        case T_INTEGER_TYPE:
+          _termLists.push(Term::intSort());
+          break;
+        case T_REAL_TYPE:
+          _termLists.push(Term::realSort());
+          break;        
+        case T_RATIONAL_TYPE:
+          _termLists.push(Term::rationalSort());
+          break;
+        default:
+          ASSERTION_VIOLATION;
+      }
+      return;
+    }
+
     case T_STRING:
     case T_INT:
     case T_REAL:
     case T_RAT: {
+      if(env.statistics->polymorphic || env.statistics->higherOrder){
+        USER_ERROR("Polymorphic Vampire is currently not compatible with theory reasoning");
+      }
       resetToks();
       unsigned number;
       switch (tok.tag) {
@@ -2903,15 +2935,12 @@ void TPTP::term()
           break;
         case T_INT:
           number = addIntegerConstant(tok.content,_overflow,_isFof);
-          //PARSE_ERROR("Sorry, polymorphic vampire doesn't support thoeries yet", tok);
           break;
         case T_REAL:
           number = addRealConstant(tok.content,_overflow,_isFof);
-          //PARSE_ERROR("Sorry, polymorphic vampire doesn't support thoeries yet", tok);
           break;
         case T_RAT:
           number = addRationalConstant(tok.content,_overflow,_isFof);
-          //PARSE_ERROR("Sorry, polymorphic vampire doesn't support thoeries yet", tok);
           break;
         default:
           ASSERTION_VIOLATION;
@@ -3118,7 +3147,7 @@ Literal* TPTP::createEquality(bool polarity,TermList& lhs,TermList& rhs)
     // If term is a variable, the master variable is the variable itself. The
     // trickier case is when we have an if-then-else expression with variable
     // arguments.
-    SortList* vs;
+    SList* vs;
     if (_variableSorts.find(masterVar.var(),vs) && vs) {
       sort = vs->head();
     }
@@ -3341,7 +3370,7 @@ void TPTP::endFormula()
   case FORALL:
   case EXISTS:
     f = _formulas.pop();
-    _formulas.push(new QuantifiedFormula((Connective)con,_varLists.pop(),_sortLists.pop(),f)); //TODO this is broken currently.
+    _formulas.push(new QuantifiedFormula((Connective)con,_varLists.pop(),_sortLists.pop(),f));
     _states.push(END_FORMULA);
     return;
   case LITERAL:
@@ -3538,7 +3567,7 @@ void TPTP::endType()
     tt = _typeTags.pop();
     break;
   case TT_QUANTIFIED:
-    Formula::VarList* vl = _varLists.pop();
+    VList* vl = _varLists.pop();
     t = new QuantifiedType(t, vl);
     tt = _typeTags.pop();
     break;    
@@ -3682,31 +3711,30 @@ void TPTP::endFof()
     if (_isQuestion && ((env.options->mode() == Options::Mode::CLAUSIFY) || (env.options->mode() == Options::Mode::TCLAUSIFY)) && f->connective() == EXISTS) {
       // create an answer predicate
       QuantifiedFormula* g = static_cast<QuantifiedFormula*>(f);
-      unsigned arity = Formula::VarList::length(g->vars());
+      unsigned arity = VList::length(g->vars());
       unsigned pred = env.signature->addPredicate("$$answer",arity);
       env.signature->getPredicate(pred)->markAnswerPredicate();
       Literal* a = new(arity) Literal(pred,arity,true,false);
-      Formula::VarList::Iterator vs(g->vars());
+      VList::Iterator vs(g->vars());
       int i = 0;
       while (vs.hasNext()) {
-  a->nthArgument(i++)->makeVar(vs.next());
+        a->nthArgument(i++)->makeVar(vs.next());
       }
       a = env.sharing->insert(a);
       f = new QuantifiedFormula(FORALL,
         g->vars(),
-                                g->sorts(),
+        g->sorts(),
         new BinaryFormula(IMP,g->subformula(),new AtomicFormula(a)));
-      unit = new FormulaUnit(f,
-			     FormulaTransformation(InferenceRule::ANSWER_LITERAL,unit));
+        unit = new FormulaUnit(f,FormulaTransformation(InferenceRule::ANSWER_LITERAL,unit));
     }
     else {
-      Formula::VarList* vs = f->freeVariables();
-      if (Formula::VarList::isEmpty(vs)) {
-  f = new NegatedFormula(f);
+      VList* vs = f->freeVariables();
+      if (VList::isEmpty(vs)) {
+        f = new NegatedFormula(f);
       }
       else {
         // TODO can we use sortOf to get the sorts of vs? 
-  f = new NegatedFormula(new QuantifiedFormula(FORALL,vs,0,f));
+        f = new NegatedFormula(new QuantifiedFormula(FORALL,vs,0,f));
       }
       unit = new FormulaUnit(f,
 			     FormulaTransformation(InferenceRule::NEGATED_CONJECTURE,unit));
@@ -3724,10 +3752,10 @@ void TPTP::endFof()
       Literal* a = new(0) Literal(pred,0,true,false);
       a = env.sharing->insert(a);
       Formula* claim = new AtomicFormula(a);
-      Formula::VarList* vs = f->freeVariables();
-      if (Formula::VarList::isNonEmpty(vs)) {
+      VList* vs = f->freeVariables();
+      if (VList::isNonEmpty(vs)) {
         //TODO can we use sortOf to get sorts of vs?
-  f = new QuantifiedFormula(FORALL,vs,0,f);
+        f = new QuantifiedFormula(FORALL,vs,0,f);
       }
       f = new BinaryFormula(IFF,claim,f);
       unit = new FormulaUnit(f,
@@ -3830,6 +3858,7 @@ void TPTP::endTff()
   }
 } // endTff
 
+
 OperatorType* TPTP::constructOperatorType(Type* t, VList* vars)
 {
   CALL("TPTP::constructOperatorType");
@@ -3888,8 +3917,7 @@ OperatorType* TPTP::constructOperatorType(Type* t, VList* vars)
 
     case TT_QUANTIFIED: {
       QuantifiedType* qt = static_cast<QuantifiedType*>(t);
-      VList* quantifiedVars = convert(qt->vars());
-      OperatorType* ot = constructOperatorType(qt->qtype(), quantifiedVars);
+      OperatorType* ot = constructOperatorType(qt->qtype(), qt->vars());
       return ot;
       //TODO check that all free variables in ot are from quantifiedVars
     }
@@ -4153,13 +4181,12 @@ void TPTP::unbindVariables()
 {
   CALL("TPTP::unbindVariables");
 
-  Formula::VarList::Iterator vs(_bindLists.pop());
+  VList::Iterator vs(_bindLists.pop());
   while (vs.hasNext()) {
-    int var = vs.next();
-    SortList* sorts;
-    ALWAYS(_variableSorts.find(var,sorts));
-    _variableSorts.replace(var,sorts->tail());
-    delete sorts; // this deletes just the "popped" cell
+    unsigned var = vs.next();
+    SList** sorts = _variableSorts.getPtr(var); // sorts is now a pointer to the list stored inside _variableSorts
+    ALWAYS(sorts);
+    SList::pop(*sorts); // so this will modify that stored list
   }
 } // unbindVariables
 
@@ -4760,8 +4787,8 @@ TermList TPTP::sortOf(TermList t)
 
   for (;;) {
     if (t.isVar()) {
-      SortList* sorts;
-      if (_variableSorts.find(t.var(),sorts) && SortList::isNonEmpty(sorts)) {
+      SList* sorts;
+      if (_variableSorts.find(t.var(),sorts) && SList::isNonEmpty(sorts)) {
         return sorts->head();
       }
       // there might be variables whose sort is undeclared,
@@ -4924,23 +4951,6 @@ bool TPTP::findAxiomName(const Unit* unit, vstring& result)
   CALL("Parser::findAxiomName");
   return _axiomNames.find(unit->number(), result);
 } // TPTP::findAxiomName
-
-VList* TPTP::convert(Formula::VarList* vars)
-{
-  CALL("Parser::convert");
-  
-  Stack<unsigned> varStack;
-  VList* vl = VList::empty();
-  
-  while(!Formula::VarList::isEmpty(vars)){
-    varStack.push((unsigned) vars->head());
-    vars = vars->tail();
-  }
-  while(!varStack.isEmpty()){
-    VList::push((unsigned)varStack.pop(), vl);
-  }
-  return vl;
-}
 
 /**
  * Process vampire() declaration

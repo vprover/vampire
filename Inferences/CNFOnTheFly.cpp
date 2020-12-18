@@ -1,7 +1,4 @@
-
 /*
- * File ProxyElimination.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file ProxyElimination.cpp
@@ -648,7 +639,7 @@ TermList sigmaRemoval(TermList sigmaTerm, TermList expsrt){
   varSorts.reset();
 
   if(sigmaTerm.isTerm()){
-    VariableIterator2 vit(sigmaTerm.term());
+    VariableWithSortIterator vit(sigmaTerm.term());
     while(vit.hasNext()){
       pair<TermList, TermList> varTypePair = vit.next();
       if(!varSorts.find(varTypePair.first.var())){
@@ -658,7 +649,7 @@ TermList sigmaRemoval(TermList sigmaTerm, TermList expsrt){
   } else {
     varSorts.insert(sigmaTerm.var(), expsrt);
     if(expsrt.isTerm()){
-      VariableIterator2 vit(expsrt.term());
+      VariableWithSortIterator vit(expsrt.term());
       while(vit.hasNext()){
         pair<TermList, TermList> varTypePair = vit.next();
         if(!varSorts.find(varTypePair.first.var())){

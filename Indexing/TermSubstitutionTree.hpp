@@ -1,7 +1,4 @@
-
 /*
- * File TermSubstitutionTree.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file TermSubstitutionTree.hpp
@@ -37,13 +28,30 @@
 
 namespace Indexing {
 
+/*
+ * Note that unlike LiteralSubstitutionTree, TermSubstitutionTree does
+ * not (yet) carry out sort checking when attempting to find unifiers, generalisations
+ * or instances. In particular, if the query or result is a variable, it is the callers'
+ * responsibility to ensure that the sorts are unifiable/matchable
+ */
+
 class TermSubstitutionTree
 : public TermIndexingStructure, SubstitutionTree
 {
 public:
   CLASS_NAME(TermSubstitutionTree);
   USE_ALLOCATOR(TermSubstitutionTree);
-
+  
+  /* 
+   * The extra flag is a higher-order concern. it is set to true when 
+   * we require the term query result to include two terms, the result term
+   * and another. 
+   *
+   * The main use case is to store a different term in the leaf to the one indexed 
+   * in the tree. This use for example in Skolemisation on the fly where we 
+   * store Terms of type $o (formulas) in the tree, but in the leaf we store
+   * the skolem terms used to witness them (to facilitate the reuse of Skolems)
+   */
   TermSubstitutionTree(bool useC=false, bool replaceFunctionalSubterms = false, bool extra = false);
 
   void insert(TermList t, Literal* lit, Clause* cls);
@@ -60,6 +68,9 @@ public:
   TermQueryResultIterator getUnificationsWithConstraints(TermList t,
     bool retrieveSubstitutions);
 
+  /*
+   * A higher order concern (though it may be useful in other situations)
+   */
   TermQueryResultIterator getUnificationsUsingSorts(TermList t, TermList sort,
     bool retrieveSubstitutions);
 
@@ -106,6 +117,7 @@ private:
   typedef SkipList<LeafData,LDComparator> LDSkipList;
   LDSkipList _vars;
 
+  //higher-order concerns
   bool _extra;
   bool _extByAbs;
 

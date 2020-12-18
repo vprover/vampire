@@ -1,3 +1,12 @@
+/*
+ * This file is part of the source code of the software program
+ * Vampire. It is protected by applicable
+ * copyright laws.
+ *
+ * This source code is distributed under the licence found here
+ * https://vprover.github.io/license.html
+ * and in the source directory
+ */
 
 #include "Kernel/Signature.hpp"
 #include "Kernel/SortHelper.hpp"
@@ -315,10 +324,13 @@ bool ApplicativeHelper::isApp(const TermList* tl)
   return false;
 }
 
-bool ApplicativeHelper::isArrowType(const Term* t)
+bool ApplicativeHelper::isArrowSort(const TermList t)
 {
   CALL("ApplicativeHelper::isApp(Term*)");
-  return env.signature->getFunction(t->functor())->arrow(); 
+  if(t.isVar()){
+    return false;
+  }
+  return env.signature->getFunction(t.term()->functor())->arrow(); 
 }
 
 bool ApplicativeHelper::isType(const Term* t)
@@ -454,7 +466,7 @@ TermList ApplicativeHelper::replaceFunctionalAndBooleanSubterms(Term* term, Func
     TermList tl= argIts.top()->next();
     if(tl.isTerm()){
       TermList sort = SortHelper::getResultSort(tl.term());
-      if(sort.isVar() || ApplicativeHelper::isArrowType(sort.term()) ||
+      if(sort.isVar() || ApplicativeHelper::isArrowSort(sort) ||
          sort == Term::boolSort()){
         tl = getVSpecVar(tl.term(), fsm);
         modified.setTop(true);

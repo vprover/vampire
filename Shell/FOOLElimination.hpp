@@ -1,7 +1,4 @@
-
 /*
- * File FOOLElimination.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file FOOLElimination.hpp
@@ -50,7 +41,7 @@ public:
 private:
   FormulaUnit* apply(FormulaUnit* fu);
 
-  /** The currenly processed unit */
+  /** The currently processed unit */
   Unit* _unit;
 
   /** A list of definitions, produced during preprocessing */
@@ -87,12 +78,12 @@ private:
   Formula* processAsFormula(Term* term);
 
   /** Processing helper functions */
-  static void buildApplication(unsigned function, Formula::VarList* vars, Context context,
+  static void buildApplication(unsigned function, VList* vars, Context context,
                                TermList& functionApplication, Formula*& predicateApplication);
   // Shortcuts for buildApplication
-  static TermList buildFunctionApplication(unsigned function, Formula::VarList* vars);
+  static TermList buildFunctionApplication(unsigned function, VList* vars);
   //NOT used, remove? AYB
-  static Formula* buildPredicateApplication(unsigned predicate, Formula::VarList* vars);
+  static Formula* buildPredicateApplication(unsigned predicate, VList* vars);
 
   // Depending on the context, build an equivalence or an equality
   // between pairs of arguments
@@ -101,7 +92,7 @@ private:
   
   // Creates a stack of sorts for the given variables, using the sorting
   // context of the current formula
-  TermStack collectSorts(Formula::VarList* vars);
+  TermStack collectSorts(VList* vars);
 
   // Converts a boolean term t to a formula 't = true'
   static Formula* toEquality(TermList booleanTerm);

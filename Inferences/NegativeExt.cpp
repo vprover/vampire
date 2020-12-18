@@ -1,7 +1,4 @@
-
 /*
- * File NegativeExt.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file NegativeExt.cpp
@@ -81,7 +72,7 @@ struct NegativeExt::ResultFn
     varSorts.reset();
    
     TermList eqSort = SortHelper::getEqualityArgumentSort(lit);
-    if(eqSort.isVar() || !ApplicativeHelper::isArrowType(eqSort.term())){
+    if(eqSort.isVar() || !ApplicativeHelper::isArrowSort(eqSort)){
       return 0;
     }
     
@@ -89,7 +80,7 @@ struct NegativeExt::ResultFn
     if(lhs.isVar()){
       varSorts.insert(lhs.var(), eqSort);
     } else {
-      VariableIterator2 vit(lhs.term());
+      VariableWithSortIterator vit(lhs.term());
       while(vit.hasNext()){
         pair<TermList, TermList> varTypePair = vit.next();
         if(!varSorts.find(varTypePair.first.var())){
@@ -104,7 +95,7 @@ struct NegativeExt::ResultFn
         varSorts.insert(rhs.var(), eqSort);
       }
     } else {
-      VariableIterator2 vit(rhs.term());
+      VariableWithSortIterator vit(rhs.term());
       while(vit.hasNext()){
         pair<TermList, TermList> varTypePair = vit.next();
         if(!varSorts.find(varTypePair.first.var())){
@@ -114,7 +105,7 @@ struct NegativeExt::ResultFn
     }
 
     //cout << "the eqSort is " + eqSort.toString() << endl;
-    VariableIterator2 vit(eqSort.term());
+    VariableWithSortIterator vit(eqSort.term());
     while(vit.hasNext()){
       pair<TermList, TermList> varTypePair = vit.next();
       //cout << "variable " + varTypePair.first.toString() + " has type " + varTypePair.second.toString() << endl;

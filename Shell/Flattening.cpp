@@ -1,7 +1,4 @@
-
 /*
- * File Flattening.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file Flattening.cpp
@@ -203,12 +194,12 @@ Formula* Flattening::flatten (Formula* f)
 
       // arg is a quantified formula with the same quantifier
       // the sort list is either empty (if one of the parts have empty sorts) or the concatentation
-      Formula::SortList* sl = 0;
+      SList* sl = SList::empty();
       if(f->sorts() && arg->sorts()){
-        sl = Formula::SortList::append(f->sorts(), arg->sorts());
+        sl = SList::append(f->sorts(), arg->sorts());
       }
       return new QuantifiedFormula(con,
-				   Formula::VarList::append(f->vars(), arg->vars()),
+				   VList::append(f->vars(), arg->vars()),
                                    sl, 
 				   arg->qarg());
     }

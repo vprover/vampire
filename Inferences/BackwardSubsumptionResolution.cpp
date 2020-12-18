@@ -1,7 +1,4 @@
-
 /*
- * File BackwardSubsumptionResolution.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file BackwardSubsumptionResolution.cpp
@@ -36,8 +27,6 @@
 #include "Kernel/MLMatcher.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/Term.hpp"
-#include "Kernel/RobSubstitution.hpp"
-#include "Kernel/SortHelper.hpp"
 
 #include "Indexing/Index.hpp"
 #include "Indexing/LiteralIndex.hpp"
@@ -117,30 +106,18 @@ void BackwardSubsumptionResolution::perform(Clause* cl,
     return;
   }
 
-  static RobSubstitution subst;
-
   static DHSet<Clause*> checkedClauses;
   checkedClauses.reset();
 
   if(clen==1) {
     List<BwSimplificationRecord>* simplRes=0;
 
-    Literal* lit = (*cl)[0];
-    SLQueryResultIterator rit=_index->getInstances(lit, true, false);
-    TermList litSort; bool eqLit = false;
-    if(lit->isEquality()){
-      litSort = SortHelper::getEqualityArgumentSort(lit);
-      eqLit = true; 
-    }
+    SLQueryResultIterator rit=_index->getInstances( (*cl)[0], true, false);
     while(rit.hasNext()) {
       SLQueryResult qr=rit.next();
 
-      subst.reset();
-      if(eqLit && !subst.match(litSort, 0, SortHelper::getEqualityArgumentSort(qr.literal), 1)){
-        continue;
-      } 
       if(!checkedClauses.insert(qr.clause)) {
-        continue;
+	continue;
       }
 
       Clause* resCl=ForwardSubsumptionAndResolution::generateSubsumptionResolutionClause(qr.clause, qr.literal, cl);
@@ -169,11 +146,6 @@ void BackwardSubsumptionResolution::perform(Clause* cl,
     }
   }
   Literal* lmLit=(*cl)[lmIndex];
-  TermList lmSort; bool eqLit = false;
-  if(lmLit->isEquality()){
-    lmSort = SortHelper::getEqualityArgumentSort(lmLit);
-    eqLit = true; 
-  }
   unsigned lmPred=lmLit->functor();
   unsigned lmHeader=lmLit->header();
 
@@ -196,10 +168,7 @@ void BackwardSubsumptionResolution::perform(Clause* cl,
     if(ilen<clen || icl==cl) {
       continue;
     }
-    subst.reset();
-    if(eqLit && !subst.match(lmSort, 0, SortHelper::getEqualityArgumentSort(ilit), 1)){
-      continue;
-    } 
+
     if(!checkedClauses.insert(icl)) {
       continue;
     }
@@ -211,9 +180,9 @@ void BackwardSubsumptionResolution::perform(Clause* cl,
     if(!mustPredInit) {
       mustPred=lmHeader;
       for(unsigned bi=0;bi<clen;bi++) {
-        if(bi==lmIndex) {
-          continue;
-        }
+	if(bi==lmIndex) {
+	  continue;
+	}
         unsigned pred=(*cl)[bi]->header();
         if(pred!=lmHeader && (mustPred==lmHeader || pred>mustPred)) {
           mustPred=pred;
@@ -224,11 +193,11 @@ void BackwardSubsumptionResolution::perform(Clause* cl,
     for(unsigned ii=0;ii<ilen;ii++) {
       Literal* l=(*icl)[ii];
       if(l==ilit) {
-        continue;
+	continue;
       }
       unsigned pred=l->header();
       if(pred==mustPred) {
-        haveMustPred=true;
+	haveMustPred=true;
       }
     }
     if(!haveMustPred) {
@@ -242,9 +211,9 @@ void BackwardSubsumptionResolution::perform(Clause* cl,
       basePredsInit=true;
       basePreds.reset();
       for(unsigned bi=0;bi<clen;bi++) {
-        if(bi==lmIndex) {
-          continue;
-        }
+	if(bi==lmIndex) {
+	  continue;
+	}
         unsigned pred=(*cl)[bi]->header();
         basePreds.insert(pred);
       }
@@ -254,17 +223,17 @@ void BackwardSubsumptionResolution::perform(Clause* cl,
     for(unsigned ii=0;ii<ilen;ii++) {
       Literal* l=(*icl)[ii];
       if(l==ilit) {
-        continue;
+	continue;
       }
       unsigned pred=l->header();
       if(!basePreds.find(pred)) {
-        if(allowedMisses==0) {
-          fail=true;
-          break;
-        }
-        else {
-          allowedMisses--;
-        }
+	if(allowedMisses==0) {
+	  fail=true;
+	  break;
+	}
+	else {
+	  allowedMisses--;
+	}
       }
     }
     if(fail) {
@@ -278,15 +247,15 @@ void BackwardSubsumptionResolution::perform(Clause* cl,
     LiteralList::push(qr.literal, matchedLits[lmIndex]);
     for(unsigned bi=0;bi<clen;bi++) {
       for(unsigned ii=0;ii<ilen;ii++) {
-        if(bi==lmIndex && (*icl)[ii]==qr.literal) {
-          continue;
-        }
-        if(MatchingUtils::match((*cl)[bi],(*icl)[ii],false)) {
-          LiteralList::push((*icl)[ii], matchedLits[bi]);
-        }
+	if(bi==lmIndex && (*icl)[ii]==qr.literal) {
+	  continue;
+	}
+	if(MatchingUtils::match((*cl)[bi],(*icl)[ii],false)) {
+	  LiteralList::push((*icl)[ii], matchedLits[bi]);
+	}
       }
       if(!matchedLits[bi]) {
-        goto match_fail;
+	goto match_fail;
       }
     }
 
@@ -312,7 +281,7 @@ void BackwardSubsumptionResolution::perform(Clause* cl,
   mustPredInit=false;
   basePredsInit=false;
 
-  rit=_index->getInstances(lmLit, false, false);
+  rit=_index->getInstances( lmLit, false, false);
   while(rit.hasNext()) {
     SLQueryResult qr=rit.next();
     Clause* icl=qr.clause;
@@ -321,10 +290,7 @@ void BackwardSubsumptionResolution::perform(Clause* cl,
     if(ilen<clen || icl==cl) {
       continue;
     }
-    subst.reset();
-    if(eqLit && !subst.match(lmSort, 0, SortHelper::getEqualityArgumentSort(ilit), 1)){
-      continue;
-    } 
+
     if(!checkedClauses.insert(icl)) {
       continue;
     }
@@ -338,9 +304,9 @@ void BackwardSubsumptionResolution::perform(Clause* cl,
     if(!mustPredInit) {
       mustPred=lmPred;
       for(unsigned bi=0;bi<clen;bi++) {
-        if(bi==lmIndex) {
-          continue;
-        }
+	if(bi==lmIndex) {
+	  continue;
+	}
         unsigned pred=(*cl)[bi]->functor();
         if(pred!=lmPred && (mustPred==lmPred || pred>mustPred)) {
           mustPred=pred;
@@ -351,11 +317,11 @@ void BackwardSubsumptionResolution::perform(Clause* cl,
     for(unsigned ii=0;ii<ilen;ii++) {
       Literal* l=(*icl)[ii];
       if(l==ilit) {
-        continue;
+	continue;
       }
       unsigned pred=l->functor();
       if(pred==mustPred) {
-        haveMustPred=true;
+	haveMustPred=true;
       }
     }
     if(!haveMustPred) {
@@ -369,9 +335,9 @@ void BackwardSubsumptionResolution::perform(Clause* cl,
       basePredsInit=true;
       basePreds.reset();
       for(unsigned bi=0;bi<clen;bi++) {
-        if(bi==lmIndex) {
-          continue;
-        }
+	if(bi==lmIndex) {
+	  continue;
+	}
         unsigned pred=(*cl)[bi]->header();
         basePreds.insert(pred);
       }
@@ -382,20 +348,20 @@ void BackwardSubsumptionResolution::perform(Clause* cl,
     for(unsigned ii=0;ii<ilen;ii++) {
       Literal* l=(*icl)[ii];
       if(l==ilit) {
-        continue;
+	continue;
       }
       unsigned pred=l->header();
       if(!haveNeg && basePreds.find(pred^1)) {
-        haveNeg=true;
+	haveNeg=true;
       }
       if(!basePreds.find(pred)) {
-        if(allowedMisses==0) {
-          fail=true;
-          break;
-        }
-        else {
-          allowedMisses--;
-        }
+	if(allowedMisses==0) {
+	  fail=true;
+	  break;
+	}
+	else {
+	  allowedMisses--;
+	}
       }
     }
     if(fail || !haveNeg) {
@@ -408,13 +374,13 @@ void BackwardSubsumptionResolution::perform(Clause* cl,
     Literal* resolvedLit=0;
     for(unsigned bi=0;bi<clen;bi++) {
       for(unsigned ii=0;ii<ilen;ii++) {
-        if(bi==lmIndex && (*icl)[ii]==qr.literal) {
-          continue;
-        }
-        if(MatchingUtils::match((*cl)[bi],(*icl)[ii],true)) {
-          resolvedLit=(*icl)[ii];
-          goto res_lit_found;
-        }
+	if(bi==lmIndex && (*icl)[ii]==qr.literal) {
+	  continue;
+	}
+	if(MatchingUtils::match((*cl)[bi],(*icl)[ii],true)) {
+	  resolvedLit=(*icl)[ii];
+	  goto res_lit_found;
+	}
       }
     }
     ASS_EQ(resolvedLit,0);
@@ -426,16 +392,16 @@ void BackwardSubsumptionResolution::perform(Clause* cl,
     LiteralList::push(qr.literal, matchedLits[lmIndex]);
     for(unsigned bi=0;bi<clen;bi++) {
       for(unsigned ii=0;ii<ilen;ii++) {
-        Literal* ilit=(*icl)[ii];
-        if( ilit==resolvedLit || (bi==lmIndex && ilit==qr.literal) ) {
-          continue;
-        }
-        if(MatchingUtils::match((*cl)[bi],ilit,false)) {
-          LiteralList::push(ilit, matchedLits[bi]);
-        }
+	Literal* ilit=(*icl)[ii];
+	if( ilit==resolvedLit || (bi==lmIndex && ilit==qr.literal) ) {
+	  continue;
+	}
+	if(MatchingUtils::match((*cl)[bi],ilit,false)) {
+	  LiteralList::push(ilit, matchedLits[bi]);
+	}
       }
       if(!matchedLits[bi]) {
-        goto match_fail2;
+	goto match_fail2;
       }
     }
 

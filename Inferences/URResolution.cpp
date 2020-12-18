@@ -1,7 +1,4 @@
-
 /*
- * File URResolution.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file URResolution.cpp
@@ -283,20 +274,9 @@ void URResolution::processLiteral(ItemList*& itms, unsigned idx)
       iit.insert(itm2);
     }
 
-    TermList litSort; bool eqLit = false;
-    if(lit->isEquality()){
-      litSort = SortHelper::getEqualityArgumentSort(lit);
-      eqLit = true;
-    }
-
     SLQueryResultIterator unifs = _unitIndex->getUnifications(lit, true, true);
     while(unifs.hasNext()) {
       SLQueryResult unif = unifs.next();
-
-      RobSubstitution* subst = unif.substitution->tryGetRobSubstitution();
-      if(eqLit && !subst->unify(litSort, 0, SortHelper::getEqualityArgumentSort(unif.literal), 1)){
-        continue;
-      } 
 
       if( !ColorHelper::compatible(itm->_color, unif.clause->color()) ) {
         continue;
@@ -359,23 +339,11 @@ void URResolution::doBackwardInferences(Clause* cl, ClauseList*& acc)
   ASS_EQ(cl->size(), 1);
 
   Literal* lit = (*cl)[0];
-  TermList litSort; bool eqLit = false;
-  if(lit->isEquality()){
-    litSort = SortHelper::getEqualityArgumentSort(lit);
-    eqLit = true;
-  }
 
   SLQueryResultIterator unifs = _nonUnitIndex->getUnifications(lit, true, true);
   while(unifs.hasNext()) {
     SLQueryResult unif = unifs.next();
     Clause* ucl = unif.clause;
-
-
-
-    RobSubstitution* subst = unif.substitution->tryGetRobSubstitution();
-    if(eqLit && !subst->unify(litSort, 0, SortHelper::getEqualityArgumentSort(unif.literal), 1)){
-      continue;
-    } 
 
     if( !ColorHelper::compatible(cl->color(), ucl->color()) ) {
       continue;

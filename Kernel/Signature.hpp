@@ -1,7 +1,4 @@
-
 /*
- * File Signature.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file Signature.hpp
@@ -59,7 +50,6 @@ using namespace Lib;
 class Signature
 {
  public:
-  typedef List<unsigned> VarList;
   /** Function or predicate symbol */
   
   //Order is important
@@ -344,7 +334,7 @@ class Signature
     {
       CALL("IntegerSymbol");
 
-      setType(OperatorType::getConstantsType(Term::intSort(), VarList::empty()));
+      setType(OperatorType::getConstantsType(Term::intSort()));
     }
     CLASS_NAME(Signature::IntegerSymbol);
     USE_ALLOCATOR(IntegerSymbol);
@@ -364,7 +354,7 @@ class Signature
     {
       CALL("RationalSymbol");
 
-      setType(OperatorType::getConstantsType(Term::rationalSort(), VarList::empty()));
+      setType(OperatorType::getConstantsType(Term::rationalSort()));
     }
     CLASS_NAME(Signature::RationalSymbol);
     USE_ALLOCATOR(RationalSymbol);
@@ -384,7 +374,7 @@ class Signature
     {
       CALL("RealSymbol");
 
-      setType(OperatorType::getConstantsType(Term::realSort(), VarList::empty()));
+      setType(OperatorType::getConstantsType(Term::realSort()));
     }
     CLASS_NAME(Signature::RealSymbol);
     USE_ALLOCATOR(RealSymbol);
@@ -613,9 +603,9 @@ class Signature
   unsigned getFoolConstantSymbol(bool isTrue){ 
     if(!_foolConstantsDefined){
       _foolFalse = addFunction("$$false",0); 
-      getFunction(_foolFalse)->setType(OperatorType::getConstantsType(Term::boolSort(), VarList::empty()));
+      getFunction(_foolFalse)->setType(OperatorType::getConstantsType(Term::boolSort()));
       _foolTrue = addFunction("$$true",0);
-      getFunction(_foolTrue)->setType(OperatorType::getConstantsType(Term::boolSort(), VarList::empty()));
+      getFunction(_foolTrue)->setType(OperatorType::getConstantsType(Term::boolSort()));
       _foolConstantsDefined=true;
     }
     return isTrue ? _foolTrue : _foolFalse;
@@ -631,8 +621,8 @@ class Signature
     bool added = false;
     unsigned individualSort = addTypeCon("$i",0, added);
     if(added){
-      getTypeCon(individualSort)->setType(OperatorType::getConstantsType(Term::superSort(), VarList::empty()));
-      getTypeCon(individualSort)->markDefaultSort();    
+      getFunction(individualSort)->setType(OperatorType::getConstantsType(Term::superSort()));
+      getFunction(individualSort)->markDefaultSort();    
     }
     return individualSort;
   }
@@ -643,8 +633,8 @@ class Signature
     bool added = false;
     unsigned boolSort = addTypeCon("$o",0, added);
     if(added){
-      getTypeCon(boolSort)->setType(OperatorType::getConstantsType(Term::superSort(), VarList::empty()));
-      getTypeCon(boolSort)->markBoolSort();
+      getFunction(boolSort)->setType(OperatorType::getConstantsType(Term::superSort()));
+      getFunction(boolSort)->markBoolSort();
     }
     return boolSort;
   }
@@ -653,8 +643,8 @@ class Signature
     bool added = false;
     unsigned realSort = addTypeCon("$real",0, added);
     if(added){
-      getTypeCon(realSort)->setType(OperatorType::getConstantsType(Term::superSort(), VarList::empty()));
-      getTypeCon(realSort)->markDefaultSort();
+      getFunction(realSort)->setType(OperatorType::getConstantsType(Term::superSort()));
+      getFunction(realSort)->markDefaultSort();
     }
     return realSort;
   }
@@ -663,8 +653,8 @@ class Signature
     bool added = false;
     unsigned intSort = addTypeCon("$int",0, added);
     if(added){
-      getTypeCon(intSort)->setType(OperatorType::getConstantsType(Term::superSort(), VarList::empty()));
-      getTypeCon(intSort)->markDefaultSort();
+      getFunction(intSort)->setType(OperatorType::getConstantsType(Term::superSort()));
+      getFunction(intSort)->markDefaultSort();
     }
     return intSort;
   }  
@@ -673,8 +663,8 @@ class Signature
     bool added = false;
     unsigned ratSort = addTypeCon("$rat",0, added);
     if(added){
-      getTypeCon(ratSort)->setType(OperatorType::getConstantsType(Term::superSort(), VarList::empty()));
-      getTypeCon(ratSort)->markDefaultSort();    
+      getFunction(ratSort)->setType(OperatorType::getConstantsType(Term::superSort()));
+      getFunction(ratSort)->markDefaultSort();    
     }
     return ratSort;    
   }
@@ -684,8 +674,8 @@ class Signature
     unsigned arrow = addTypeCon(">",2, added);
     if(added){
       TermList ss = Term::superSort();
-      Symbol* arr = getTypeCon(arrow);
-      arr->setType(OperatorType::getFunctionType({ss, ss}, ss, VarList::empty()));
+      Symbol* arr = getFunction(arrow);
+      arr->setType(OperatorType::getFunctionType({ss, ss}, ss));
       arr->markArrow();
     }
     return arrow;    
@@ -696,8 +686,8 @@ class Signature
     unsigned array = addTypeCon("Array",2, added);
     if(added){
       TermList ss = Term::superSort();
-      Symbol* arr = getTypeCon(array);
-      arr->setType(OperatorType::getFunctionType({ss, ss}, ss, VarList::empty()));
+      Symbol* arr = getFunction(array);
+      arr->setType(OperatorType::getFunctionType({ss, ss}, ss));
       arr->markArray();
     }
     return array;    
@@ -720,7 +710,7 @@ class Signature
     bool added = false;
     unsigned eqProxy = addFunction("vEQ",1, added);
     if(added){
-      VarList* vl = new VarList(0);
+      VList* vl = VList::singleton(0);
       TermList tv = TermList(0, false);
       TermList result = Term::arrowSort(tv, tv, Term::boolSort());
       Symbol * sym = getFunction(eqProxy);
@@ -747,7 +737,7 @@ class Signature
       TermList bs = Term::boolSort();
       TermList result = Term::arrowSort(bs, bs, bs);
       Symbol * sym = getFunction(proxy);
-      sym->setType(OperatorType::getConstantsType(result, VarList::empty()));
+      sym->setType(OperatorType::getConstantsType(result));
       sym->setProxy(convert(name));
     }
     return proxy;  
@@ -760,7 +750,7 @@ class Signature
       TermList bs = Term::boolSort();
       TermList result = Term::arrowSort(bs, bs);
       Symbol * sym = getFunction(notProxy);
-      sym->setType(OperatorType::getConstantsType(result, VarList::empty()));
+      sym->setType(OperatorType::getConstantsType(result));
       sym->setProxy(NOT);
     }
     return notProxy;  
@@ -771,7 +761,7 @@ class Signature
     bool added = false;
     unsigned proxy = addFunction(name,1, added);
     if(added){
-      VarList* vl = new VarList(0);
+      VList* vl = VList::singleton(0);
       TermList tv = TermList(0, false);
       TermList result = Term::arrowSort(tv, Term::boolSort());
       result = Term::arrowSort(result, Term::boolSort());
@@ -811,7 +801,7 @@ class Signature
     } else {
       comb = addFunction(name,1, added);
     }
-
+    
     if(added){
       VarList* vl = new VarList(2);
       VarList::push(1, vl);

@@ -1,7 +1,4 @@
-
 /*
- * File Skolem.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file Skolem.hpp
@@ -51,12 +42,11 @@ namespace Shell {
 class Skolem
 {
 public:
-  typedef List<unsigned> VarList; // not to be confused with Formula::VarList which is a list of ints
   static FormulaUnit* skolemise(FormulaUnit*, bool appify = false);
-  static unsigned addSkolemFunction(unsigned arity, TermList* domainSorts, TermList rangeSort, unsigned var, VarList* vl=0);
-  static unsigned addSkolemFunction(unsigned arity, TermList* domainSorts, TermList rangeSort, VarList* vl=0, const char* suffix=0);
-  static unsigned addSkolemPredicate(unsigned arity, TermList* domainSorts, unsigned var, VarList* vl=0);
-  static unsigned addSkolemPredicate(unsigned arity, TermList* domainSorts, VarList* vl=0, const char* suffix=0);
+  static unsigned addSkolemFunction(unsigned arity, TermList* domainSorts, TermList rangeSort, unsigned var, VList* vl=0);
+  static unsigned addSkolemFunction(unsigned arity, TermList* domainSorts, TermList rangeSort, VList* vl=0, const char* suffix=0);
+  static unsigned addSkolemPredicate(unsigned arity, TermList* domainSorts, unsigned var, VList* vl=0);
+  static unsigned addSkolemPredicate(unsigned arity, TermList* domainSorts, VList* vl=0, const char* suffix=0);
 private:
   /** Initialise a Skolem object */
   Skolem () :  _beingSkolemised(0) {}
@@ -107,7 +97,7 @@ private:
 
   UnitList* _skolimizingDefinitions;
 
-  bool _appify;
+  bool _appify; // a higher-order solution
 
 }; // class Skolem
 

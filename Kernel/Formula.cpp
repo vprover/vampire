@@ -1,7 +1,4 @@
-
 /*
- * File Formula.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  *  @file Formula.cpp
@@ -247,7 +238,7 @@ void Formula::destroy ()
 vstring Formula::toString (Connective c)
 {
   static vstring names [] =
-    { "", "&", "|", "=>", "<=>", "<~>", "~", "!", "?", "$var", "$false", "$true", "^", "@", "!!", "??","",""};
+    { "", "&", "|", "=>", "<=>", "<~>", "~", "!", "?", "$var", "$false", "$true","",""};
   ASS_EQ(sizeof(names)/sizeof(vstring), NOCONN+1);
 
   return names[(int)c];
@@ -346,8 +337,8 @@ vstring Formula::toString(const Formula* formula)
     case EXISTS:
       {
         res += toString(c) + " [";
-        VarList::Iterator vs(f->vars());
-        SortList::Iterator ss(f->sorts());
+        VList::Iterator vs(f->vars());
+        SList::Iterator ss(f->sorts());
         bool hasSorts = f->sorts();
         bool first=true;
         while (vs.hasNext()) {
@@ -546,20 +537,39 @@ vstring Formula::toStringInScopeOf (Connective outer) const
  *
  * Each variable in the formula is returned just once.
  *
+ * NOTE: don't use this function, if you don't actually need a List
+ * (FormulaVarIterator is a better choice)
+ *
+ * NOTE: remember to free the list when done with it
+ * (otherwise we leak memory!)
+ *
  * @since 12/12/2004 Manchester
  */
-Formula::VarList* Formula::freeVariables () const
+VList* Formula::freeVariables () const
 {
   CALL("Formula::freeVariables");
 
   FormulaVarIterator fvi(this);
-  VarList* result = VarList::empty();
-  VarList::FIFO stack(result);
+  VList* result = VList::empty();
+  VList::FIFO stack(result);
   while (fvi.hasNext()) {
     stack.push(fvi.next());
   }
   return result;
 } // Formula::freeVariables
+
+bool Formula::isFreeVariable(unsigned var) const
+{
+  CALL("Formula::isFreeVariable");
+
+  FormulaVarIterator fvi(this);
+  while (fvi.hasNext()) {
+    if (var == fvi.next()) {
+      return true;
+    }
+  }
+  return false;
+}
 
 /**
  * Return the list of all bound variables of the formula
@@ -567,18 +577,18 @@ Formula::VarList* Formula::freeVariables () const
  * If a variable is bound multiple times in the formula,
  * it appears in the list the same number of times as well.
  */
-Formula::VarList* Formula::boundVariables () const
+VList* Formula::boundVariables () const
 {
   CALL("Formula::boundVariables");
 
-  VarList* res = 0;
+  VList* res = VList::empty();
   SubformulaIterator sfit(const_cast<Formula*>(this));
   while(sfit.hasNext()) {
     Formula* sf = sfit.next();
     if(sf->connective() == FORALL || sf->connective() == EXISTS) {
-      VarList* qvars = sf->vars();
-      VarList* qvCopy = VarList::copy(qvars);
-      res = VarList::concat(qvCopy, res);
+      VList* qvars = sf->vars();
+      VList* qvCopy = VList::copy(qvars);
+      res = VList::concat(qvCopy, res);
     }
   }
   return res;
@@ -799,7 +809,7 @@ Formula* Formula::createITE(Formula* condition, Formula* thenArg, Formula* elseA
  * and lhs and rhs form a binding for a function
  * @since 16/04/2015 Gothenburg
  */
-Formula* Formula::createLet(unsigned functor, Formula::VarList* variables, TermList body, Formula* contents)
+Formula* Formula::createLet(unsigned functor, VList* variables, TermList body, Formula* contents)
 {
   CALL("Formula::createLet(TermList)");
   TermList contentsTerm(Term::createFormula(contents));
@@ -812,7 +822,7 @@ Formula* Formula::createLet(unsigned functor, Formula::VarList* variables, TermL
  * and lhs and rhs form a binding for a predicate
  * @since 16/04/2015 Gothenburg
  */
-Formula* Formula::createLet(unsigned predicate, Formula::VarList* variables, Formula* body, Formula* contents)
+Formula* Formula::createLet(unsigned predicate, VList* variables, Formula* body, Formula* contents)
 {
   CALL("Formula::createLet(Formula*)");
   TermList bodyTerm(Term::createFormula(body));
@@ -830,10 +840,10 @@ Formula* Formula::quantify(Formula* f)
   }
 
   //we have to quantify the formula
-  VarList* varLst=0;
+  VList* varLst = VList::empty();
   Set<unsigned>::Iterator vit(vars);
   while(vit.hasNext()) {
-    VarList::push(vit.next(), varLst);
+    VList::push(vit.next(), varLst);
   }
   if(varLst) {
     //TODO could compute the sorts list, but don't want to!
@@ -867,10 +877,10 @@ Formula* Formula::fromClause(Clause* cl)
   }
 
   //we have to quantify the formula
-  VarList* varLst=0;
+  VList* varLst = VList::empty();
   Set<unsigned>::Iterator vit(vars);
   while(vit.hasNext()) {
-    VarList::push(vit.next(), varLst);
+    VList::push(vit.next(), varLst);
   }
   if(varLst) {
     //TODO could compute the sorts list, but don't want to!

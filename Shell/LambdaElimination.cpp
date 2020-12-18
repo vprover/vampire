@@ -1,3 +1,12 @@
+/*
+ * This file is part of the source code of the software program
+ * Vampire. It is protected by applicable
+ * copyright laws.
+ *
+ * This source code is distributed under the licence found here
+ * https://vprover.github.io/license.html
+ * and in the source directory
+ */
 /**
  * @file LambdaElimination.cpp
  * Takes a single lambda term and eliminates the lambda(s)
@@ -196,10 +205,10 @@ TermList LambdaElimination::processBeyondLambda(Formula* formula)
     }
     case FORALL:
     case EXISTS: {
-      Formula::VarList* vars = formula->vars();
-      Formula::VarList::Iterator vit(vars);
-      SList* sort = new SList(TermList(0, true)); //dummy data
-      IntList* var = new IntList(0);
+      VList* vars = formula->vars();
+      VList::Iterator vit(vars);
+      SList* sort = SList::singleton(TermList(0, true)); //dummy data
+      VList* var = VList::singleton(0);
 
       TermList form = processBeyondLambda(formula->qarg());
       vstring name = (conn == FORALL ? "vPI" : "vSIGMA");
@@ -288,9 +297,9 @@ TermList LambdaElimination::elimLambda(Term* lambdaTerm)
   
   TermList lambdaExp;
   SList* srts = sd->getLambdaVarSorts();
-  IntList* vrs = sd->getLambdaVars();
+  VList* vrs = sd->getLambdaVars();
   
-  IntList::Iterator vlit(vrs);
+  VList::Iterator vlit(vrs);
   SList::Iterator slit(srts);
 
   while(vlit.hasNext()){
@@ -327,9 +336,8 @@ void LambdaElimination::process(Stack<int>& vars, TermStack& sorts, TermStack &t
       if (processing.isTerm()){ 
         
         Term* lExpTerm = processing.term();
-        IntList* freeVars = lExpTerm->freeVariables();
         
-        if(IntList::member(lambdaVar, freeVars)){
+        if(lExpTerm->isFreeVariable(lambdaVar)){
           if(lExpTerm->isSpecial()){ 
             toBeProcessed.push(processBeyondLambda(lExpTerm));   
           }
@@ -352,7 +360,6 @@ void LambdaElimination::process(Stack<int>& vars, TermStack& sorts, TermStack &t
         }else{ //an expression of the form \x.y 
           addToProcessed(createKTerm(sortOf(processing), lambdaVarSort, processing), argNums);
         }       
-       //freeVars = List<unsigned>(sd->getLambdaExp().var());
       }
     }//of while
    
@@ -406,30 +413,30 @@ void LambdaElimination::addToProcessed(TermList ts, Stack<unsigned> &_argNums){
 }
 
 
-void LambdaElimination::dealWithApp(TermList lhs, TermList rhs, int lambdaVar, TermStack &toBeProcessed, Stack<unsigned> &argNums)
+void LambdaElimination::dealWithApp(TermList lhs, TermList rhs, const unsigned lambdaVar, TermStack &toBeProcessed, Stack<unsigned> &argNums)
 {
   CALL("LambdaElimination::dealWithApp");
 
-  IntList* lhsFVs = lhs.freeVariables();
-  IntList* rhsFVs = rhs.freeVariables();
+  bool freeInLhs = lhs.isFreeVariable(lambdaVar);
+  bool freeInRhs = rhs.isFreeVariable(lambdaVar);
 
-  if(rhs.isVar() && (rhs.var() == (unsigned)lambdaVar) && !IntList::member(lambdaVar, lhsFVs)){
+  if(rhs.isVar() && (rhs.var() == (unsigned)lambdaVar) && !freeInLhs){
     //This is the case [\x. exp @ x] wehere x is not free in exp.
     lhs.isTerm() ? addToProcessed(processBeyondLambda(lhs.term()), argNums) : addToProcessed(lhs, argNums);
     return;
   }
 
-  if ((IntList::member(lambdaVar, lhsFVs)) && (IntList::member(lambdaVar, rhsFVs))){
+  if (freeInLhs && freeInRhs){
     _combinators.push(Signature::S_COMB);
     argNums.push(0);
     toBeProcessed.push(lhs);
     toBeProcessed.push(rhs); 
-  }else if(IntList::member(lambdaVar, lhsFVs)){
+  }else if (freeInLhs) {
     _combinators.push(Signature::C_COMB);
     argNums.push(0);
     toBeProcessed.push(lhs);
     rhs.isTerm() ? addToProcessed(processBeyondLambda(rhs.term()), argNums) : addToProcessed(rhs, argNums);  
-  }else if(IntList::member(lambdaVar, rhsFVs)){
+  }else if (freeInRhs) {
     _combinators.push(Signature::B_COMB);            
     argNums.push(0);
     toBeProcessed.push(rhs);

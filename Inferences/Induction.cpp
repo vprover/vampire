@@ -1,6 +1,4 @@
 /*
- * File Induction 
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -8,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file Induction.cpp
@@ -537,7 +529,7 @@ void InductionClauseIterator::performStructInductionTwo(Clause* premise, Literal
       
     }
   }
-  Formula* exists = new QuantifiedFormula(Connective::EXISTS, new Formula::VarList(y.var(),0),0,
+  Formula* exists = new QuantifiedFormula(Connective::EXISTS, VList::singleton(y.var()),0,
                         FormulaList::length(formulas) > 0 ? static_cast<Formula*>(new JunctionFormula(
                                                                 Connective::AND,new FormulaList(new AtomicFormula(Ly),formulas)))
                                                           : static_cast<Formula*>(new AtomicFormula(Ly)));
@@ -664,7 +656,7 @@ void InductionClauseIterator::performStructInductionThree(Clause* premise, Liter
                             new AtomicFormula(cr2.transform(clit))));
 
   conjunction = new FormulaList(smallerImpNL,conjunction);
-  Formula* exists = new QuantifiedFormula(Connective::EXISTS, new Formula::VarList(y.var(),0),0,
+  Formula* exists = new QuantifiedFormula(Connective::EXISTS, VList::singleton(y.var()),0,
                        new JunctionFormula(Connective::AND,conjunction));
 
   TermReplacement cr3(term,x);

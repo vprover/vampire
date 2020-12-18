@@ -1,7 +1,4 @@
-
 /*
- * File Rectify.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file Rectify.hpp
@@ -58,8 +49,7 @@ public:
   static FormulaUnit* rectify(FormulaUnit*, bool removeUnusedVars=true);
   static void rectify(UnitList*& units);
 private:
-  typedef List<int> VarList;
-  typedef pair<int,bool> VarWithUsageInfo;
+  typedef pair<unsigned,bool> VarWithUsageInfo;
   typedef List<VarWithUsageInfo> VarUsageTrackingList;
   /** Renaming stores bindings for free and bound variables */
   class Renaming
@@ -75,12 +65,12 @@ private:
     ~Renaming();
     bool tryGetBoundAndMarkUsed (int var,int& boundTo) const;
     VarWithUsageInfo getBoundAndUsage(int var) const;
-    int bind (int v);
-    void undoBinding(int v);
+    unsigned bind (unsigned v);
+    void undoBinding(unsigned v);
   private:
     virtual void fillInterval (size_t start,size_t end);
     /** next variable to rename to */
-    int _nextVar;
+    unsigned _nextVar;
     /** Variables that already appeared in the formula
      *
      * This field is used only when VarManager::varNamePreserving()
@@ -94,9 +84,9 @@ private:
 
   Formula* rectify(Formula*);
   FormulaList* rectify(FormulaList*);
-  void bindVars(VarList*);
-  void unbindVars(VarList*);
-  VarList* rectifyBoundVars(VarList*);
+  void bindVars(VList*);
+  void unbindVars(VList*);
+  VList* rectifyBoundVars(VList*);
   TermList rectify(TermList);
   Term* rectify(Term* t);
   Term* rectifySpecialTerm(Term* t);
@@ -112,7 +102,7 @@ private:
   /** Renaming to store bindings for both free and bound variables */
   Renaming _renaming;
   /** placeholder for free variables */
-  List<int>* _free;
+  VList* _free;
 
   /** if true, unused quantified variables will be removed */
   bool _removeUnusedVars;

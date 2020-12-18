@@ -1,7 +1,4 @@
-
 /*
- * File ForwardDemodulation.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file ForwardDemodulation.cpp
@@ -78,8 +69,8 @@ void ForwardDemodulation::detach()
   ForwardSimplificationEngine::detach();
 }
 
-
-bool ForwardDemodulation::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
+template <bool combinatorySupSupport>
+bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
 {
   CALL("ForwardDemodulation::perform");
 
@@ -97,24 +88,17 @@ bool ForwardDemodulation::perform(Clause* cl, Clause*& replacement, ClauseIterat
   unsigned cLen=cl->length();
   for(unsigned li=0;li<cLen;li++) {
     Literal* lit=(*cl)[li];
-    IteratorCore<TermList>* it;
-    if(!env.options->combinatorySup()){
-      it = new NonVariableNonTypeIterator(lit);
-    } else {
-      it = new FirstOrderSubtermIt(lit);
-    }
-    while(it->hasNext()) {
-      TermList trm=it->next();
+    typename std::conditional<!combinatorySupSupport,
+      NonVariableNonTypeIterator,
+      FirstOrderSubtermIt>::type it(lit);
+    while(it.hasNext()) {
+      TermList trm=it.next();
       if(!attempted.insert(trm)) {
         //We have already tried to demodulate the term @b trm and did not
         //succeed (otherwise we would have returned from the function).
         //If we have tried the term @b trm, we must have tried to
         //demodulate also its subterms, so we can skip them too.
-        if(env.options->combinatorySup()){
-          static_cast<FirstOrderSubtermIt*>(it)->right();
-        } else {
-          static_cast<NonVariableNonTypeIterator*>(it)->right(); 
-        }
+        it.right();
         continue;
       }
 
@@ -132,11 +116,15 @@ bool ForwardDemodulation::perform(Clause* cl, Clause*& replacement, ClauseIterat
           continue;
         }
 
-        TermList eqSort = SortHelper::getEqualityArgumentSort(qr.literal);
-        static RobSubstitution sub;
-        sub.reset();
-        if(!sub.match(eqSort, 0, querySort, 1)) {
-          continue;
+
+        static RobSubstitution subst; // to deal with polymorphic matching
+        bool resultTermIsVar = qr.term.isVar();
+        if(resultTermIsVar){
+          TermList eqSort = SortHelper::getEqualityArgumentSort(qr.literal);
+          subst.reset(); 
+          if(!subst.match(eqSort, 0, querySort, 1)){
+            continue;        
+          }
         }
 
         TermList rhs=EqHelper::getOtherEqualitySide(qr.literal,qr.term);
@@ -155,6 +143,9 @@ bool ForwardDemodulation::perform(Clause* cl, Clause*& replacement, ClauseIterat
           rhsS=qDenorm.apply(rNorm.apply(rhsSBadVars));
         } else {
           rhsS=qr.substitution->applyToBoundResult(rhs);
+        }
+        if(resultTermIsVar){
+          rhsS = subst.apply(rhsS, 0);
         }
 
         Ordering::Result argOrder = ordering.getEqualityArgumentOrder(qr.literal);
@@ -233,5 +224,10 @@ bool ForwardDemodulation::perform(Clause* cl, Clause*& replacement, ClauseIterat
 
   return false;
 }
+
+// This is necessary for templates defined in cpp files.
+// We are happy to do it for ForwardDemodulationImpl, since it (at the moment) has only two specializations:
+template class ForwardDemodulationImpl<false>;
+template class ForwardDemodulationImpl<true>;
 
 }

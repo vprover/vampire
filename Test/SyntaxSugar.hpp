@@ -1,3 +1,12 @@
+/*
+ * This file is part of the source code of the software program
+ * Vampire. It is protected by applicable
+ * copyright laws.
+ *
+ * This source code is distributed under the licence found here
+ * https://vprover.github.io/license.html
+ * and in the source directory
+ */
 /**! This file contains macros to provide syntax sugar for building formulas,
  * terms, etc. for test cases.
  *
@@ -109,7 +118,7 @@ using SortType = TermList;
   class __ ## name ## __CLASS {                                                                               \
     TermWrapper _self;                                                                                        \
     public:                                                                                                   \
-    __ ## name ## __CLASS(const char* name, TermList s)                                                       \
+    __ ## name ## __CLASS(const char* name, SortType s)                                                       \
       : _self( TermWrapper::createConstant(#name, s) )                                                        \
     { }                                                                                                       \
                                                                                                               \

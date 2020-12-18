@@ -1,7 +1,4 @@
-
 /*
- * File TheoryFinder.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file TheoryFinder.cpp
@@ -552,11 +543,11 @@ bool TheoryFinder::matchCode(const void* obj,
     if (f->connective() != FORALL) {
       goto backtrack;
     }
-    if (Formula::VarList::length(f->vars()) != code[cp+1]) {
+    if (VList::length(f->vars()) != code[cp+1]) {
       goto backtrack;
     }
     cp += 2;
-    List<int>::Iterator vs(f->vars());
+    VList::Iterator vs(f->vars());
     while (vs.hasNext()) {
       vars[code[cp++]] = vs.next();
     }

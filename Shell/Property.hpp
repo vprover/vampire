@@ -1,7 +1,4 @@
-
 /*
- * File Property.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file Property.hpp (syntactic properties of problems)
@@ -241,7 +232,7 @@ public:
     CALL("Property::usesSort");
     if(_usesSort.size() <= sort) return false;
     return _usesSort[sort]; 
-  } //TODO only utilised by FMB which I am switching off
+  } //TODO only utilised by FMB which should eventually update to use the new sorts (as TermLists)
   bool usesSingleSort() const { return _sortsUsed==1; }
   unsigned sortsUsed() const { return _sortsUsed; }
   bool onlyFiniteDomainDatatypes() const { return _onlyFiniteDomainDatatypes; }

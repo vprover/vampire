@@ -1,7 +1,4 @@
-
 /*
- * File Rectify.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file Rectify.cpp
@@ -90,13 +81,13 @@ FormulaUnit* Rectify::rectify (FormulaUnit* unit0, bool removeUnusedVars)
   rect._removeUnusedVars = removeUnusedVars;
   Formula* g = rect.rectify(f);
 
-  VarList* vars = rect._free;
+  VList* vars = rect._free;
 
   if (f != g) {
     unit = new FormulaUnit(g,FormulaTransformation(InferenceRule::RECTIFY,unit));
   }
 
-  if (VarList::isNonEmpty(vars)) {
+  if (VList::isNonEmpty(vars)) {
     //TODO do we know the sorts of vars?
     unit = new FormulaUnit(new QuantifiedFormula(FORALL,vars,0,g),FormulaTransformation(InferenceRule::CLOSURE,unit));
   }
@@ -177,12 +168,11 @@ Term* Rectify::rectifySpecialTerm(Term* t)
      */
     bool removeUnusedVars = _removeUnusedVars;
     _removeUnusedVars = false;
-    VarList* variables = rectifyBoundVars(sd->getVariables());
+    VList* variables = rectifyBoundVars(sd->getVariables());
     _removeUnusedVars = removeUnusedVars; // restore the status quo
     unbindVars(sd->getVariables());
 
-    ASS_EQ(VarList::length(variables),
-           VarList::length(sd->getVariables()));
+    ASS_EQ(VList::length(variables),VList::length(sd->getVariables()));
 
     TermList contents = rectify(*t->nthArgument(0));
     if (sd->getVariables() == variables && binding == sd->getBinding() && contents == *t->nthArgument(0)) {
@@ -226,7 +216,7 @@ Term* Rectify::rectifySpecialTerm(Term* t)
      */
     bool removeUnusedVars = _removeUnusedVars;
     _removeUnusedVars = false;
-    VarList* vs = rectifyBoundVars(sd->getLambdaVars());
+    VList* vs = rectifyBoundVars(sd->getLambdaVars());
     SList* sorts = sd->getLambdaVarSorts();
     SList* rectifiedSorts = SList::empty();
     SList::Iterator slit(sorts);
@@ -236,7 +226,7 @@ Term* Rectify::rectifySpecialTerm(Term* t)
       if(sort != rectifiedSort){
         modified = true;
       }
-      rectifiedSorts = SList::addLast(rectifiedSorts, rectifiedSort);
+      rectifiedSorts = SList::addLast(rectifiedSorts, rectifiedSort); // careful: quadratic complexity
     }
     _removeUnusedVars = removeUnusedVars; // restore the status quo
     unbindVars(sd->getLambdaVars());
@@ -304,7 +294,7 @@ SList* Rectify::rectifySortList(SList* from, bool& modified)
     if(sort != rectifiedSort){
       modified = true;
     }
-    SList::addLast(to, rectifiedSort);
+    SList::addLast(to, rectifiedSort); // careful: quadratic complexity
   }
   return to;
 }
@@ -338,7 +328,10 @@ Literal* Rectify::rectify (Literal* l)
   if(l->isTwoVarEquality()){
     TermList srt = SortHelper::getEqualityArgumentSort(l);
     rectifiedSrt = rectify(srt);
-    if(srt != rectifiedSrt){ //TODO dangerous. Assume types are shared terms!
+
+    ASS(!srt.isTerm() || srt.term()->shared());
+    ASS(!rectifiedSrt.isTerm() || rectifiedSrt.term()->shared());
+    if(srt != rectifiedSrt){ // assumes shared
       sortChanged = true;
     }
   }
@@ -408,7 +401,7 @@ unsigned Rectify::rectifyVar(unsigned v)
   int newV;
   if (! _renaming.tryGetBoundAndMarkUsed(v,newV)) {
     newV = _renaming.bind(v);
-    _free = new VarList(newV,_free);
+    VList::push(newV,_free);
   }
   return newV;
 }
@@ -487,12 +480,12 @@ Formula* Rectify::rectify (Formula* f)
   {
     bindVars(f->vars());
     Formula* arg = rectify(f->qarg());
-    VarList* vs = rectifyBoundVars(f->vars());
+    VList* vs = rectifyBoundVars(f->vars());
     unbindVars(f->vars());
     if (vs == f->vars() && arg == f->qarg()) {
       return f;
     }
-    if(VarList::isEmpty(vs)) {
+    if(VList::isEmpty(vs)) {
       return arg;
     }
     //TODO should update the sorts from f->sorts() wrt to updated vs
@@ -520,12 +513,11 @@ Formula* Rectify::rectify (Formula* f)
  * Undo the last binding for variable var.
  * @since 07/06/2007 Manchester
  */
-void Rectify::Renaming::undoBinding (int var)
+void Rectify::Renaming::undoBinding (unsigned var)
 {
   CALL("Rectify::Renaming::undoBinding");
 
   ASS(var < (int)_capacity);
-  ASS(var >= 0);
 
   VarUsageTrackingList::pop(_array[var]);
 } // Rectify::Renaming::undoBinding
@@ -534,11 +526,11 @@ void Rectify::Renaming::undoBinding (int var)
  * Bind var to a new variable and return the new variable.
  * @since 07/06/2007 Manchester
  */
-int Rectify::Renaming::bind (int var)
+unsigned Rectify::Renaming::bind (unsigned var)
 {
   CALL("Rectify::Renaming::bind");
 
-  int result;
+  unsigned result;
 
   if(VarManager::varNamePreserving()) {
     if(!_used) {
@@ -564,13 +556,13 @@ int Rectify::Renaming::bind (int var)
 /**
  * Add fresh bindings to a list of variables
  */
-void Rectify::bindVars(VarList* vs)
+void Rectify::bindVars(VList* vs)
 {
   CALL ("Rectify::bindVars (VarList*)");
 
-  VarList::Iterator vit(vs);
+  VList::Iterator vit(vs);
   while(vit.hasNext()) {
-    int v = vit.next();
+    unsigned v = vit.next();
     _renaming.bind(v);
   }
 }
@@ -578,13 +570,13 @@ void Rectify::bindVars(VarList* vs)
 /**
  * Undo bindings to variables of a list
  */
-void Rectify::unbindVars(VarList* vs)
+void Rectify::unbindVars(VList* vs)
 {
   CALL ("Rectify::unbindVars (VarList*)");
 
-  VarList::Iterator vit(vs);
+  VList::Iterator vit(vs);
   while(vit.hasNext()) {
-    int v = vit.next();
+    unsigned v = vit.next();
     _renaming.undoBinding(v);
   }
 }
@@ -594,28 +586,28 @@ void Rectify::unbindVars(VarList* vs)
  *
  * @param vs the list to rectify
  */
-Rectify::VarList* Rectify::rectifyBoundVars (VarList* vs)
+VList* Rectify::rectifyBoundVars (VList* vs)
 {
   CALL ("Rectify::rectifyBoundVars(VarList*)");
 
-  if (VarList::isEmpty(vs)) {
+  if (VList::isEmpty(vs)) {
     return vs;
   }
 
-  Stack<VarList*> args;
-  while (VarList::isNonEmpty(vs)) {
+  Stack<VList*> args;
+  while (VList::isNonEmpty(vs)) {
     args.push(vs);
     vs = vs->tail();
   }
 
-  VarList* res = VarList::empty();
+  VList* res = VList::empty();
 
   DHSet<int> seen;
   while (args.isNonEmpty()) {
     vs = args.pop();
 
-    VarList* vtail = vs->tail();
-    VarList* ws = res; // = rectifyBoundVars(vtail);
+    VList* vtail = vs->tail();
+    VList* ws = res; // = rectifyBoundVars(vtail);
 
     int v = vs->head();
 
@@ -632,7 +624,7 @@ Rectify::VarList* Rectify::rectifyBoundVars (VarList* vs)
       if (v == w && vtail == ws) {
         res = vs;
       } else {
-        res = new VarList(w,ws);
+        res = VList::cons(w,ws);
       }
     }
     // else nothing, because "else" means dropping the variable from the list and returning ws, but res == ws already ...

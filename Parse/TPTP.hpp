@@ -1,7 +1,4 @@
-
 /*
- * File TPTP.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file Parse/TPTP.hpp
@@ -282,6 +273,16 @@ public:
     TM,
   };
 
+  static const int HOL_CONSTANTS_LOWER_BOUND;
+  /** operator lambda */
+  static const int LAMBDA;
+  /** application of any number of terms */
+  static const int APP;
+  /** Pi function for universal quantification */
+  static const int PI;
+  /** Sigma function for existential quantification */
+  static const int SIGMA;
+
   /** token */
   struct Token {
     /** token type */
@@ -292,8 +293,6 @@ public:
     vstring content;
     vstring toString() const;
   };
-
-  typedef List<TermList> SortList;
 
   /**
    * Implements lexer and parser exceptions.
@@ -433,18 +432,18 @@ private:
   public:
     CLASS_NAME(QuantifiedType);
     USE_ALLOCATOR(QuantifiedType);
-    QuantifiedType(Type* t, Formula::VarList* vars)
+    QuantifiedType(Type* t, VList* vars)
       : Type(TT_QUANTIFIED), _type(t), _vars(vars)
     {}
     /** the bound type variables */
-    Formula::VarList* vars() const {return _vars;}
+    VList* vars() const {return _vars;}
     /** the right hand side type */
     Type* qtype() const {return _type;}
   private:
-    /** the quantiefied type */
+    /** the quantified type */
     Type* _type;
     /** bound type variables */
-     Formula::VarList* _vars;
+     VList* _vars;
   }; // ProductType
 
   /**
@@ -595,11 +594,11 @@ private:
   /** various integer values saved during parsing */
   Stack<int> _ints;
   /** variable lists for building formulas */
-  Stack<Formula::VarList*> _varLists;
+  Stack<VList*> _varLists;
   /** sort lists for building formulas */
-  Stack<SortList*> _sortLists;
+  Stack<SList*> _sortLists;
   /** variable lists for binding variables */
-  Stack<Formula::VarList*> _bindLists;
+  Stack<VList*> _bindLists;
   /** various tokens to consume */
   Stack<Tag> _tags;
   /** various formulas */
@@ -617,7 +616,7 @@ private:
   /**  */
   Stack<TheoryFunction> _theoryFunctions;
   /** bindings of variables to sorts */
-  Map<int,SortList*> _variableSorts;
+  Map<unsigned,SList*> _variableSorts;
   /** overflown arithmetical constants for which uninterpreted constants are introduced */
   Set<vstring> _overflow;
   /** current color, if the input contains colors */
@@ -807,7 +806,7 @@ private:
   TermList readSort();
   void readTypeArgs(unsigned arity);
   unsigned getConstructorArity();
-  void bindVariable(int var,TermList sort);
+  void bindVariable(unsigned var,TermList sort);
   void unbindVariables();
   void skipToRPAR();
   void skipToRBRA();
@@ -824,8 +823,6 @@ private:
   vstring convert(Tag t);
 
   bool findInterpretedPredicate(vstring name, unsigned arity);
-
-  VList* convert(Formula::VarList* vars);
 
   OperatorType* constructOperatorType(Type* t, VList* vars = 0);
 

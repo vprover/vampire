@@ -1,7 +1,4 @@
-
 /*
- * File TermIterators.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file TermIterators.hpp
@@ -40,6 +31,10 @@ namespace Kernel {
 /**
  * Iterator that yields variables of specified
  * @b term in DFS left to right order.
+ *
+ * - This iterator returns sort variables
+ * - If the sort of the returned variables is required, please
+ *   use VariableIterator2 below, having read its documentation.
  */
 class VariableIterator
 : public IteratorCore<TermList>
@@ -155,15 +150,21 @@ struct OrdVarNumberExtractorFn
 
 
 /**
- * Iterator that yields variables along with types of specified
- * @b term in DFS left to right order.
+ * Iterator that yields variables of @b term along with the 
+ * types of the variables. Notes on the use off this iterator:
+ *
+ * - The iterator is NOT compatible with special terms
+ * - The itertaor is NOT compatible with literals
+ * - For situations where it can be guaranteed that a term is not special
+ *   this iterator should be prefered to VariableIterator used in conjunction
+ *   with SortHelper::collectVariableSorts as it is more efficient.
  */
-class VariableIterator2
+class VariableWithSortIterator
 : public IteratorCore<pair<TermList,TermList>>
 {
 public:
 
-  VariableIterator2(const Term* term) : _stack(8), _terms(8), _used(false)
+  VariableWithSortIterator(const Term* term) : _stack(8), _terms(8), _used(false)
   {
     ASS(!term->isLiteral());
     if(!term->shared() || !term->ground()) {
@@ -242,6 +243,12 @@ protected:
   Stack<const TermList*>* _stack;
   bool _used;
 };
+
+//////////////////////////////////////////////////////////////////////////
+///                                                                    ///
+///            ITERATORS REQUIRED FOR HIGHER-ORDER REASONING           ///
+///                                                                    ///
+//////////////////////////////////////////////////////////////////////////
 
 /**
  * Iterator that yields the arguments of @b
@@ -374,7 +381,6 @@ class RewritableVarsIt
   : public IteratorCore<TermList>
 {
 public: //includeSelf for compatibility
-  //TODO using iterator requires care!
   RewritableVarsIt(DHSet<unsigned>* unstableVars, Term* t, bool includeSelf = false) : _stack(8)
   {
     CALL("RewritableVarsIt");
@@ -510,6 +516,9 @@ private:
   Stack<Term*> _stack;
 };
 
+/*
+ *  Returns Boolean subterms of a term.
+ */
 class BooleanSubtermIt
 : public IteratorCore<TermList>
 {
@@ -540,6 +549,12 @@ private:
   TermList _next;
   Stack<Term*> _stack;
 };
+
+//////////////////////////////////////////////////////////////////////////
+///                                                                    ///
+///                    END OF HIGHER-ORDER ITERATORS                   ///
+///                                                                    ///
+//////////////////////////////////////////////////////////////////////////
 
 /**
  * Iterator that yields proper subterms of commutative
@@ -610,6 +625,11 @@ private:
 /**
  * Iterator that yields non-variable subterms
  * of specified @b term in DFS left to right order.
+ *
+ * - For polymorphic terms, this iterator returns both type and term subterms
+ * - For monomorphic terms, this iterator and the one below behave identically
+ * - This iterator should be used in circumstances where all non-variable subterms
+ *   are required. 
  */
 class NonVariableIterator
   : public IteratorCore<TermList>
@@ -648,7 +668,14 @@ private:
 
 /**
  * Iterator that yields non-variable subterms that are not type arguments
- * of specified @b term in DFS left to right order.
+ * or subterms of type arguments of @b term in DFS left to right order.
+ *
+ * - This iterator should be used when only subterms of TERM arguments are required.
+ *   Typical usecases are:
+ *   - Subterms to be rewritten by an inference. See for example superposition,
+ *     backward and forward demodulation.
+ *   - Iterating through subterms to see whether a term occurs as a subterm of 
+ *     another
  */
 class NonVariableNonTypeIterator
   : public IteratorCore<TermList>
@@ -656,10 +683,7 @@ class NonVariableNonTypeIterator
 public:
   NonVariableNonTypeIterator(const NonVariableNonTypeIterator&);
   /**
-   * Create an iterator. If @c includeSelf is false, then only proper subterms
-   * of @c term will be included.
-   * @since 04/05/2013 Manchester, argument includeSelf added
-   * @author Andrei Voronkov
+   * If @c includeSelf is false, then only proper subterms of @c term will be included.
    */
   NonVariableNonTypeIterator(Term* term, bool includeSelf=false)
   : _stack(8),

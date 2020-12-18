@@ -1,7 +1,4 @@
-
 /*
- * File Property.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file Property.cpp (syntactic properties of problems)
@@ -158,9 +149,9 @@ void Property::add(UnitList* units)
   }
 
   // information about sorts is read from the environment, not from the problem
-  /*if (env.sorts->hasSort()) {
+  if (env.sorts->hasSort()) {
     addProp(PR_SORTS);
-  }*/
+  }
     
   // information about interpreted constant is read from the signature
   if (env.signature->strings()) {
@@ -458,8 +449,8 @@ void Property::scan(Formula* f, int polarity)
     }
     case FORALL:
       if(!_quantifiesOverPolymorphicVar){
-        Formula::VarList* vars = f->vars();
-        Formula::VarList::Iterator vit(vars);
+        VList* vars = f->vars();
+        VList::Iterator vit(vars);
 
         TermList s;
         while(vit.hasNext()){
@@ -478,8 +469,8 @@ void Property::scan(Formula* f, int polarity)
       break;
     case EXISTS:
       if(!_quantifiesOverPolymorphicVar){
-        Formula::VarList* vars = f->vars();
-        Formula::VarList::Iterator vit(vars);
+        VList* vars = f->vars();
+        VList::Iterator vit(vars);
 
         TermList s;
         while(vit.hasNext()){
@@ -598,7 +589,7 @@ void Property::scan(Literal* lit, int polarity, unsigned cLen, bool goal)
     if((lhs.isVar() || rhs.isVar()) && eqSort == Term::boolSort()){
       _hasBoolVar = true;
     }
-    if((eqSort.isVar() || eqSort.term()->arity()) && 
+    if((eqSort.isVar() || eqSort.term()->arity()) && !ApplicativeHelper::isArrowSort(eqSort) &&
       !SortHelper::isArraySort(eqSort) && !SortHelper::isTupleSort(eqSort)){
       _hasPolymorphicSym = true;      
     } 
@@ -1014,10 +1005,10 @@ bool Property::hasXEqualsY(const Formula* f)
     case FORALL:
       // remember universally quantified variables
       if (pol >= 0) {
-	Formula::VarList::Iterator vs(f->vars());
-	while (vs.hasNext()) {
-	  posVars.inc(vs.next());
-	}
+        VList::Iterator vs(f->vars());
+        while (vs.hasNext()) {
+          posVars.inc(vs.next());
+        }
       }
       forms.push(f->qarg());
       pols.push(pol);
@@ -1026,10 +1017,10 @@ bool Property::hasXEqualsY(const Formula* f)
   case EXISTS:
       // remember universally quantified variables
       if (pol <= 0) {
-	Formula::VarList::Iterator vs(f->vars());
-	while (vs.hasNext()) {
-	  posVars.inc(vs.next());
-	}
+        VList::Iterator vs(f->vars());
+        while (vs.hasNext()) {
+          posVars.inc(vs.next());
+        }
       }
       forms.push(f->qarg());
       pols.push(pol);

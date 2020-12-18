@@ -1,3 +1,12 @@
+/*
+ * This file is part of the source code of the software program
+ * Vampire. It is protected by applicable
+ * copyright laws.
+ *
+ * This source code is distributed under the licence found here
+ * https://vprover.github.io/license.html
+ * and in the source directory
+ */
 /**
  * @file ApplicativeHelper.hpp
  * Defines class ApplicativeHelper.
@@ -62,7 +71,7 @@ public:
   static TermList getHead(Term* t);  
   static bool isApp(const Term* t); 
   static bool isType(const Term* t);
-  static bool isArrowType(const Term* t);
+  static bool isArrowSort(const TermList t);
   static bool isApp(const TermList* tl);
   static bool isUnderApplied(TermList head, unsigned argNum);
   static bool isExactApplied(TermList head, unsigned argNum);
