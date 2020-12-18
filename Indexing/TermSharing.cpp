@@ -313,14 +313,14 @@ Literal* TermSharing::insertVariableEquality(Literal* t, TermList sort)
   t->markTwoVarEquality();
   t->setTwoVarEqSort(sort);
 
+  unsigned sortWeight = sort.isVar() ? 1 : sort.term()->weight();
+
   _literalInsertions++;
   Literal* s = _literals.insert(t);
   if (s == t) {
     t->markShared();
     t->setId(_totalLiterals);
-    //TODO AYB why weight 3? Should the sort be taken into account?
-    //Look at Kernel/LiteralByMatchability
-    t->setWeight(3);
+    t->setWeight(2 + sortWeight);
     if (env.colorUsed) {
       t->setColor(COLOR_TRANSPARENT);
     }

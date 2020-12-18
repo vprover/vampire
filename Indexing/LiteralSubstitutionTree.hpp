@@ -100,7 +100,10 @@ private:
       }
     }
 
-    //dummy
+    //dummy. UnificationFilter needs a leave function to undo the sort unification
+    //MatchingFilter doesn't require this, since the sort unifier is added onto
+    //the final term unifier and undone by the next call to backTrack() in FatsGen 
+    //or FastInst iterator.
     void leave(const SLQueryResult& res){  }
   private:
     TermList _queryEqSort;
@@ -122,6 +125,10 @@ private:
       CALL("LiteralSubstitutionTree::UnificationFilter::enter()");
       ASS(res.literal->isEquality());
       
+      //the polymorphism check isn't strictly necessary. However, if it wasn't
+      //included, on monomorphic problems we would be using unification to check
+      //whether two constant are identical
+
       TermList resSort = SortHelper::getEqualityArgumentSort(res.literal);
       if(!polymorphic){
         return _queryEqSort == resSort;
@@ -144,7 +151,7 @@ private:
 
     void leave(const SLQueryResult& res){
       CALL("LiteralSubstitutionTree::UnificationFilter::leave()");
-      if(_retrieveSubs){
+      if(_retrieveSubs && polymorphic){
         _bdataEq.backtrack();
         ASS(_bdataEq.isEmpty());
       }

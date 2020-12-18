@@ -44,18 +44,20 @@ OperatorType* SortHelper::getType(Term* t)
 } // getType
 
 /**
- * Return the type of a term or a literal @c t
+ * This function achieves the following. Let t = f<a1, a2>(t1, t2)
+ * where ai are type arguments and ti are terms arguments. Let f have
+ * type !>[X, Y]: (s1 * s2) > s3. The function returns the subsitution
+ * \sigma = [X -> a1, Y -> a2]. The type of t is is s3\sigma, the type of
+ * t1 s1\sigma and the type of t2 s2\sigma 
+ * 
  * @author Ahmed Bhayat
  */
 void SortHelper::getTypeSub(const Term* t, Substitution& subst)
 {
   CALL("SortHelper::getTypeSub(Term*)");
   
-  //cout << "attempting to get type Substitution for term " + t->toString() << endl;
-
   TermList* typeArg;
   OperatorType* ot       = getType(const_cast<Term*>(t)); //sym->fnType();
-  //cout << "the type is " + ot->toString() << endl;
   unsigned typeArgsArity = ot->typeArgsArity();
   //cout << "typeArgsArity " << typeArgsArity << endl;
 
@@ -63,7 +65,6 @@ void SortHelper::getTypeSub(const Term* t, Substitution& subst)
   for(unsigned i = 0; i < typeArgsArity; i++){
     TermList var = ot->quantifiedVar(i);
     ASS_REP(var.isVar(), t->toString());
-    //cout << "binding X" << var << " to " << typeArg->toString() << endl; 
     subst.bind(var.var(), *typeArg);
     typeArg = typeArg->next();
   }  
@@ -72,6 +73,11 @@ void SortHelper::getTypeSub(const Term* t, Substitution& subst)
 /**
  * Return the sort of a non-variable term t. This function cannot be applied
  * to a special term, such as if-then-else.
+ *
+ * The return sort is calculated by applying the relavant type substitution
+ * to return sort of the type of the head symbol of t. For monomorphic problems,
+ * it is more efficient to use getResultSortMono since the substitution will always
+ * be empty.
  */
 TermList SortHelper::getResultSort(const Term* t)
 {
@@ -743,7 +749,6 @@ bool SortHelper::tryGetVariableSort(TermList var, Term* t0, TermList& result)
           // get result sort of the functor
           unsigned f = t->getSpecialData()->getFunctor();
           Signature::Symbol* sym = env.signature->getFunction(f);
-          //TODO is this correct? Master seems faulty here AYB
           result = sym->fnType()->result();
           return true;
         }
