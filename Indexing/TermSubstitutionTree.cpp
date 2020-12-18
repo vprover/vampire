@@ -131,30 +131,6 @@ TermQueryResultIterator TermSubstitutionTree::getUnificationsWithConstraints(Ter
   }
 }
 
-
-bool TermSubstitutionTree::generalizationExists(TermList t)
-{
-  if(!_vars.isEmpty()) {
-    return true;
-  }
-  if(!t.isTerm()) {
-    return false;
-  }
-  Term* trm=t.term();
-  unsigned rootIndex=getRootNodeIndex(trm);
-  Node* root=_nodes[rootIndex];
-  if(!root) {
-    return false;
-  }
-  if(root->isLeaf()) {
-    return true;
-  }
-  // Currently we do not need to generate constraints with generalisations
-  // FastGeneralizationsIterator does not support constraints anyway
-  bool useC = false; 
-  return FastGeneralizationsIterator(this, root, trm, false,false,false,useC).hasNext();
-}
-
 /**
  * Return iterator, that yields generalizations of the given term.
  */

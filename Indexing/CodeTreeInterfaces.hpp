@@ -47,7 +47,6 @@ public:
   void remove(TermList t, Literal* lit, Clause* cls);
 
   TermQueryResultIterator getGeneralizations(TermList t, bool retrieveSubstitutions = true);
-  bool generalizationExists(TermList t);
 
 #if VDEBUG
   virtual void markTagged(){ NOT_IMPLEMENTED; } 
@@ -58,22 +57,6 @@ private:
 
   TermCodeTree _ct;
 };
-/*
-class CodeTreeLIS : public LiteralIndexingStructure
-{
-public:
-  void insert(Literal* lit, Clause* cls);
-  void remove(Literal* lit, Clause* cls);
-
-  SLQueryResultIterator getGeneralizations(Literal* lit,
-	  bool complementary, bool retrieveSubstitutions = true);
-private:
-  struct LiteralInfo;
-  class ResultIterator;
-
-  TermCodeTree _ct;
-};
-*/
 
 class CodeTreeSubsumptionIndex
 : public ClauseSubsumptionIndex
