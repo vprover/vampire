@@ -926,15 +926,6 @@ int main(int argc, char* argv[])
     env.signature = 0;
 #endif
   }
-#if VDEBUG
-  catch (Debug::AssertionViolationException& exception) {
-    vampireReturnValue = VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION;
-    reportSpiderFail();
-#if CHECK_LEAKS
-    MemoryLeak::cancelReport();
-#endif
-  }
-#endif
 #if VZ3
   catch(z3::exception& exception){
     BYPASSING_ALLOCATOR;
