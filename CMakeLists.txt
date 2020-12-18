@@ -918,14 +918,6 @@ set(VAMPIRE_BINARY "vampire${VAMPIRE_BINARY_Z3}${VAMPIRE_BINARY_BUILD}${VAMPIRE_
 message(STATUS "Setting binary name to '${VAMPIRE_BINARY}'")
 
 ################################################################
-# link-time optimisation
-################################################################
-if(CMAKE_BUILD_TYPE STREQUAL Release AND IPO)
-  message(STATUS "compiling with IPO")
-  set_property(TARGET vampire PROPERTY INTERPROCEDURAL_OPTIMIZATION true)
-endif()
-
-################################################################
 # epilogue
 ################################################################
 add_executable(vampire vampire.cpp $<TARGET_OBJECTS:obj>)
@@ -934,3 +926,8 @@ set_target_properties(vampire PROPERTIES
   RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
   )
 configure_file(version.cpp.in version.cpp)
+
+if(CMAKE_BUILD_TYPE STREQUAL Release AND IPO)
+  message(STATUS "compiling Vampire with IPO: this might take a while")
+  set_property(TARGET vampire PROPERTY INTERPROCEDURAL_OPTIMIZATION true)
+endif()

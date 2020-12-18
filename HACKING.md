@@ -54,6 +54,7 @@ Notable options are:
   lead to a mixed binary.
   You can check the output of the linking which libraries were not linked in.
   Please be also aware that Mac OS X does not support completely statically linked libraries (see also Apple's [Technical Q&A](https://developer.apple.com/library/archive/qa/qa1118/_index.html)).
+* "Inter-Procedural Optimisation": `-DIPO=ON`. This enables potentially-expensive linker options (depending on your system) which may produce a small performance improvement. Probably only useful for competitions.
 
 ### Z3
 We fix a known version of Z3 via `git-submodule`.
