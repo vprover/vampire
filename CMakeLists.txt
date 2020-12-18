@@ -30,9 +30,19 @@ endif()
 # statically link libraries
 option(BUILD_SHARED_LIBS "Build an executable dynamically linking to libraries instead of a statically-linked one (static not working on Mac)" ON)
 if (NOT BUILD_SHARED_LIBS)
-  SET(CMAKE_FIND_LIBRARY_SUFFIXES .a)
-  SET(CMAKE_EXE_LINKER_FLAGS -static)
+  set(CMAKE_FIND_LIBRARY_SUFFIXES .a)
+  set(CMAKE_EXE_LINKER_FLAGS -static)
   set(VAMPIRE_BINARY_STATIC _static)
+endif()
+
+option(IPO "If supported, build with link-time optimisation." OFF)
+# check whether IPO is available
+include(CheckIPOSupported)
+check_ipo_supported(RESULT IPO_SUPPORTED OUTPUT IPO_ERROR)
+if (IPO_SUPPORTED)
+  message(STATUS "IPO supported")
+else()
+  message(STATUS "IPO not supported: ${IPO_ERROR}")
 endif()
 
 ################################################################
@@ -137,7 +147,6 @@ set(VAMPIRE_LIB_SOURCES
 #    Lib/Graph.hpp
     Lib/Hash.hpp
     Lib/ImplicationSetClosure.hpp
-    Lib/InPlaceStack.hpp
     Lib/Int.hpp
     Lib/IntNameTable.hpp
     Lib/IntUnionFind.hpp
@@ -955,3 +964,8 @@ set_target_properties(vampire PROPERTIES
   RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
   )
 configure_file(version.cpp.in version.cpp)
+
+if(CMAKE_BUILD_TYPE STREQUAL Release AND IPO)
+  message(STATUS "compiling Vampire with IPO: this might take a while")
+  set_property(TARGET vampire PROPERTY INTERPROCEDURAL_OPTIMIZATION true)
+endif()
