@@ -137,7 +137,6 @@ set(VAMPIRE_LIB_SOURCES
 #    Lib/Graph.hpp
     Lib/Hash.hpp
     Lib/ImplicationSetClosure.hpp
-    Lib/InPlaceStack.hpp
     Lib/Int.hpp
     Lib/IntNameTable.hpp
     Lib/IntUnionFind.hpp
