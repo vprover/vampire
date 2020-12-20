@@ -68,7 +68,7 @@ Clause* Cases::performParamodulation(Clause* premise, Literal* lit, TermList t) 
   }
 
   // Add s = false to the clause
-  (*conclusion)[conclusionLength - 1] = Literal::createEquality(true, t, fols, Term::boolSort());
+  (*conclusion)[conclusionLength - 1] = Literal::createEquality(true, t, fols, AtomicSort::boolSort());
 
   return conclusion;
 }

@@ -107,7 +107,7 @@ TermList ApplicativeHelper::getResultApplieadToNArgs(TermList arrowSort, unsigne
   CALL("ApplicativeHelper::getResultApplieadToNArgs");
   
   while(argNum > 0){
-    ASS(arrowSort.isTerm() && env.signature->getFunction(arrowSort.term()->functor())->arrow());
+    ASS(arrowSort.isArrowSort());
     arrowSort = *arrowSort.term()->nthArgument(1);
     argNum--;
   }
@@ -123,7 +123,7 @@ TermList ApplicativeHelper::getNthArg(TermList arrowSort, unsigned argNum)
 
   TermList res;
   while(argNum >=1){
-    ASS(arrowSort.isTerm() && env.signature->getFunction(arrowSort.term()->functor())->arrow());
+    ASS(arrowSort.isArrowSort());
     res = *arrowSort.term()->nthArgument(0);
     arrowSort = *arrowSort.term()->nthArgument(1);
     argNum--;
@@ -135,7 +135,7 @@ TermList ApplicativeHelper::getResultSort(TermList sort)
 {
   CALL("ApplicativeHelper::getResultSort");
 
-  while(sort.isTerm() && env.signature->getFunction(sort.term()->functor())->arrow()){
+  while(sort.isArrowSort()){
     sort = *sort.term()->nthArgument(1);
   }
   return sort;
@@ -146,7 +146,7 @@ unsigned ApplicativeHelper::getArity(TermList sort)
   CALL("ApplicativeHelper::getArity");
 
   unsigned arity = 0;
-  while(sort.isTerm() && env.signature->getFunction(sort.term()->functor())->arrow()){
+  while(sort.isArrowSort()){
     sort = *sort.term()->nthArgument(1);
     arity++; 
   }
@@ -193,7 +193,7 @@ void ApplicativeHelper::getHeadSortAndArgs(TermList term, TermList& head,
     args.push(*t->nthArgument(3)); 
     term = *t->nthArgument(2);
     if(!term.isTerm() || !isApp(term.term())){
-      headSort = Term::arrowSort(*t->nthArgument(0), *t->nthArgument(1));
+      headSort = AtomicSort::arrowSort(*t->nthArgument(0), *t->nthArgument(1));
       break;   
     } 
   }
@@ -324,20 +324,11 @@ bool ApplicativeHelper::isApp(const TermList* tl)
   return false;
 }
 
-bool ApplicativeHelper::isArrowSort(const TermList t)
-{
-  CALL("ApplicativeHelper::isApp(Term*)");
-  if(t.isVar()){
-    return false;
-  }
-  return env.signature->getFunction(t.term()->functor())->arrow(); 
-}
-
 bool ApplicativeHelper::isType(const Term* t)
 {
   CALL("ApplicativeHelper::isType(Term*)");
   return t->isSuper() ||
-         SortHelper::getResultSort(t) == Term::superSort();
+         SortHelper::getResultSort(t) == AtomicSort::superSort();
 }
 
 bool ApplicativeHelper::isUnderApplied(TermList head, unsigned argNum){
@@ -466,8 +457,8 @@ TermList ApplicativeHelper::replaceFunctionalAndBooleanSubterms(Term* term, Func
     TermList tl= argIts.top()->next();
     if(tl.isTerm()){
       TermList sort = SortHelper::getResultSort(tl.term());
-      if(sort.isVar() || ApplicativeHelper::isArrowSort(sort) ||
-         sort == Term::boolSort()){
+      if(sort.isVar() || sort.isArrowSort() ||
+         sort == AtomicSort::boolSort()){
         tl = getVSpecVar(tl.term(), fsm);
         modified.setTop(true);
       }      

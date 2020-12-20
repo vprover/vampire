@@ -65,7 +65,7 @@ struct PrimitiveInstantiation::IsInstantiable
   DECL_RETURN_TYPE(bool);
   bool operator()(Literal* l)
   { 
-    if(SortHelper::getEqualityArgumentSort(l) != Term::boolSort()){
+    if(SortHelper::getEqualityArgumentSort(l) != AtomicSort::boolSort()){
       return false;
     }
     

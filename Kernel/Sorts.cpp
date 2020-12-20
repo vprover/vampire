@@ -102,7 +102,7 @@ OperatorType::OperatorKey* OperatorType::setupKey(unsigned arity, const TermList
   if (!sorts) {
     // initialise all argument types to the default type
     for (unsigned i=numOfQuantVars; i < arity+numOfQuantVars; i++) {
-      (*key)[i] = Term::defaultSort();
+      (*key)[i] = AtomicSort::defaultSort();
     }
   } else {
     // initialise all the argument types to those taken from sorts

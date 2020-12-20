@@ -72,7 +72,7 @@ struct NegativeExt::ResultFn
     varSorts.reset();
    
     TermList eqSort = SortHelper::getEqualityArgumentSort(lit);
-    if(eqSort.isVar() || !ApplicativeHelper::isArrowSort(eqSort)){
+    if(eqSort.isVar() || !eqSort.isArrowSort()){
       return 0;
     }
     
@@ -126,7 +126,7 @@ struct NegativeExt::ResultFn
     DHMap<unsigned, TermList>::Iterator mapIt(varSorts);
     while(mapIt.hasNext()) {
       mapIt.next(var, varSort);
-      if(varSort == Term::superSort()){
+      if(varSort == AtomicSort::superSort()){
         args.push(TermList(var, false));
       } else {
         argSorts.push(varSort);
@@ -143,7 +143,7 @@ struct NegativeExt::ResultFn
     TermList alpha1 = *eqSort.term()->nthArgument(0);
     TermList alpha2 = *eqSort.term()->nthArgument(1);
 
-    TermList skSymSort = Term::arrowSort(argSorts, alpha1);
+    TermList skSymSort = AtomicSort::arrowSort(argSorts, alpha1);
     unsigned fun = Skolem::addSkolemFunction(VList::length(vl), 0, skSymSort, vl);
     TermList head = TermList(Term::create(fun, args.size(), args.begin()));
     //cout << "the head is " + head.toString() << endl;

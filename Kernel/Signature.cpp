@@ -32,7 +32,7 @@ const unsigned Signature::STRING_DISTINCT_GROUP = 0;
  * @author Andrei Voronkov
  */
 Signature::Symbol::Symbol(const vstring& nm, unsigned arity, bool interpreted, bool stringConstant,bool numericConstant,
-                          bool overflownConstant, bool super)
+                          bool overflownConstant)
   : _name(nm),
     _arity(arity),
     _typeArgsArity(0),
@@ -60,7 +60,6 @@ Signature::Symbol::Symbol(const vstring& nm, unsigned arity, bool interpreted, b
     _app(0),
     _tuple(0),
     _array(0),
-    _superSort(super),
     _boolSort(0),
     _defaultSort(0),
     _prox(NOT_PROXY),
@@ -69,7 +68,7 @@ Signature::Symbol::Symbol(const vstring& nm, unsigned arity, bool interpreted, b
   CALL("Signature::Symbol::Symbol");
   ASS(!stringConstant || arity==0);
 
-  if (!stringConstant && !numericConstant && !overflownConstant && !super &&
+  if (!stringConstant && !numericConstant && !overflownConstant &&
        symbolNeedsQuoting(_name, interpreted,arity)) {
     _name="'"+_name+"'";
   }
@@ -191,10 +190,9 @@ void Signature::Symbol::forceType(OperatorType* type)
 OperatorType* Signature::Symbol::fnType() const
 {
   CALL("Signature::Symbol::fnType");
-  ASS(!super());
 
   if (!_type) {
-    TermList def = Term::defaultSort();
+    TermList def = AtomicSort::defaultSort();
     _type = OperatorType::getFunctionTypeUniformRange(arity(), def, def);
   }
   return _type;
@@ -209,11 +207,10 @@ OperatorType* Signature::Symbol::fnType() const
 OperatorType* Signature::Symbol::typeConType() const
 {
   CALL("Signature::Symbol::typeConType");
-  ASS(!super());
 
   if (!_type) {
-    TermList sup = Term::superSort();
-    _type = OperatorType::getFunctionTypeUniformRange(arity(), sup, sup, VarList::empty());
+    TermList sup = AtomicSort::superSort();
+    _type = OperatorType::getFunctionTypeUniformRange(arity(), sup, sup);
   }
   return _type;
 }
@@ -229,7 +226,7 @@ OperatorType* Signature::Symbol::predType() const
   CALL("Signature::Symbol::predType");
   
   if (!_type) {
-    TermList def = Term::defaultSort();
+    TermList def = AtomicSort::defaultSort();
     _type = OperatorType::getPredicateTypeUniformRange(arity(), def);
   }
   return _type;
@@ -269,9 +266,9 @@ Signature::Signature ():
   ASS_EQ(STRING_DISTINCT_GROUP, aux);
 } // Signature::Signature
 
-/* adding equality predicate used to be carried out in the constructor
- * however now that sorts are TermLists, this involves a call to Signature
- * from Term::defaultSort before the Signature has been consstucted. hence
+/* adding equality predicate used to be carried out in the constructor.
+ * However now that sorts are TermLists, this involves a call to Signature
+ * from AtomicSort::defaultSort before the Signature has been constructed. hence
  * the function below
  */
 void Signature::addEquality()
@@ -693,8 +690,7 @@ unsigned Signature::addFunction (const vstring& name,
   }
 
   result = _funs.length();
-  bool super = (name == "$tType");
-  _funs.push(new Symbol(name, arity, false, false, false, overflowConstant, super));
+  _funs.push(new Symbol(name, arity, false, false, false, overflowConstant));
   _funNames.insert(symbolKey, result);
   added = true;
   return result;
@@ -738,7 +734,7 @@ unsigned Signature::getApp()
     VList::push(0, vl);
     TermList tv1 = TermList(0, false);
     TermList tv2 = TermList(1, false);
-    TermList arrowType = Term::arrowSort(tv1, tv2);
+    TermList arrowType = AtomicSort::arrowSort(tv1, tv2);
     OperatorType* ot = OperatorType::getFunctionType({arrowType, tv1}, tv2, vl);
     Symbol* sym = getFunction(app);
     sym->setType(ot);
@@ -758,8 +754,8 @@ unsigned Signature::getDiff(){
     VList::push(0, vl);
     TermList alpha = TermList(0, false);
     TermList beta = TermList(1, false);
-    TermList alphaBeta = Term::arrowSort(alpha, beta);
-    TermList result = Term::arrowSort(alphaBeta, alphaBeta, alpha);
+    TermList alphaBeta = AtomicSort::arrowSort(alpha, beta);
+    TermList result = AtomicSort::arrowSort(alphaBeta, alphaBeta, alpha);
     Symbol * sym = getFunction(diff);
     sym->setType(OperatorType::getConstantsType(result, vl));
   }
@@ -775,9 +771,9 @@ unsigned Signature::getChoice(){
   if(added){
     VList* vl = VList::singleton(0);
     TermList alpha = TermList(0, false);
-    TermList bs = Term::boolSort();
-    TermList alphaBs = Term::arrowSort(alpha, bs);
-    TermList result = Term::arrowSort(alphaBs, alpha);
+    TermList bs = AtomicSort::boolSort();
+    TermList alphaBs = AtomicSort::arrowSort(alpha, bs);
+    TermList result = AtomicSort::arrowSort(alphaBs, alpha);
     Symbol * sym = getFunction(choice);
     sym->setType(OperatorType::getConstantsType(result, vl));
   }
@@ -786,7 +782,7 @@ unsigned Signature::getChoice(){
 
 void Signature::incrementFormulaCount(Term* t){
   CALL("Signature::incrementFormulaCount");
-  ASS(SortHelper::getResultSort(t) == Term::boolSort());
+  ASS(SortHelper::getResultSort(t) == AtomicSort::boolSort());
 
   if(_formulaCounts.find(t)){
     int count =  _formulaCounts.get(t);
@@ -800,7 +796,7 @@ void Signature::incrementFormulaCount(Term* t){
 
 void Signature::decrementFormulaCount(Term* t){
   CALL("Signature::incrementFormulaCount");
-  ASS(SortHelper::getResultSort(t) == Term::boolSort());
+  ASS(SortHelper::getResultSort(t) == AtomicSort::boolSort());
 
   ASS(_formulaCounts.find(t))
   int count = _formulaCounts.get(t);
@@ -811,7 +807,7 @@ void Signature::decrementFormulaCount(Term* t){
 
 void Signature::formulaNamed(Term* t){
   CALL("Signature::formulaNamed");
-  ASS(SortHelper::getResultSort(t) == Term::boolSort());
+  ASS(SortHelper::getResultSort(t) == AtomicSort::boolSort());
 
   ASS(_formulaCounts.find(t));
   _formulaCounts.set(t, -1);

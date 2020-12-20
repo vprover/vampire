@@ -286,7 +286,7 @@ TermList NewCNF::findITEs(TermList ts, Stack<unsigned> &variables, Stack<Formula
   Term::SpecialTermData* sd = term->getSpecialData();
   switch (sd->getType()) {
     case Term::SF_FORMULA: {
-      sort = Term::boolSort();
+      sort = AtomicSort::boolSort();
       conditions.push(sd->getFormula());
       thenBranches.push(TermList(Term::foolTrue()));
       elseBranches.push(TermList(Term::foolFalse()));
@@ -637,7 +637,7 @@ TermList NewCNF::eliminateLet(Term::SpecialTermData *sd, TermList contents)
 
     for (unsigned proj = 0; proj < tupleType->arity(); proj++) {
       unsigned symbol = VList::nth(symbols, proj);
-      bool isPredicate = tupleType->arg(proj) == Term::boolSort();
+      bool isPredicate = tupleType->arg(proj) == AtomicSort::boolSort();
 
       unsigned projFunctor = Theory::tuples()->getProjectionFunctor(proj, tupleSort);
       Term* projectedArgument;
@@ -764,7 +764,7 @@ TermList NewCNF::nameLetBinding(unsigned symbol, VList* bindingVariables, TermLi
     VList::Iterator vit(bindingFreeVars);
     while (vit.hasNext()) {
       unsigned var = vit.next();
-      sorts.push(_varSorts.get(var, Term::defaultSort()));
+      sorts.push(_varSorts.get(var, AtomicSort::defaultSort()));
     }
 
     if (isPredicate) {
@@ -879,7 +879,7 @@ Term* NewCNF::createSkolemTerm(unsigned var, VarSet* free)
   unsigned arity = free->size();
 
   ensureHavingVarSorts();
-  TermList rangeSort=_varSorts.get(var, Term::defaultSort());
+  TermList rangeSort=_varSorts.get(var, AtomicSort::defaultSort());
   static Stack<TermList> domainSorts;
   static Stack<TermList> fnArgs;
   ASS(domainSorts.isEmpty());
@@ -888,12 +888,12 @@ Term* NewCNF::createSkolemTerm(unsigned var, VarSet* free)
   VarSet::Iterator vit(*free);
   while(vit.hasNext()) {
     unsigned uvar = vit.next();
-    domainSorts.push(_varSorts.get(uvar, Term::defaultSort()));
+    domainSorts.push(_varSorts.get(uvar, AtomicSort::defaultSort()));
     fnArgs.push(TermList(uvar, false));
   }
 
   Term* res;
-  bool isPredicate = (rangeSort == Term::boolSort());
+  bool isPredicate = (rangeSort == AtomicSort::boolSort());
   if (isPredicate) {
     unsigned pred = Skolem::addSkolemPredicate(arity, domainSorts.begin(), var);
     if(_beingClausified->derivedFromGoal()){
@@ -1130,7 +1130,7 @@ Literal* NewCNF::createNamingLiteral(Formula* f, VList* free)
   VList::DestructiveIterator vit(free);
   while (vit.hasNext()) {
     unsigned uvar = vit.next();
-    domainSorts.push(_varSorts.get(uvar, Term::defaultSort()));
+    domainSorts.push(_varSorts.get(uvar, AtomicSort::defaultSort()));
     predArgs.push(TermList(uvar, false));
   }
 

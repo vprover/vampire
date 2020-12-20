@@ -129,7 +129,7 @@ public:
     CALL("OperatorType::getPredicateType(unsigned,const unsigned*)");
 
     OperatorKey* key = setupKey(arity,sorts,vars);
-    (*key)[VList::length(vars) + arity] = Term::boolSort();
+    (*key)[VList::length(vars) + arity] = AtomicSort::boolSort();
     return getTypeFromKey(key,vars);
   }
 
@@ -137,7 +137,7 @@ public:
     CALL("OperatorType::getPredicateType(std::initializer_list<unsigned>)");
 
     OperatorKey* key = setupKey(sorts,vars);
-    (*key)[VList::length(vars) + sorts.size()] = Term::boolSort();
+    (*key)[VList::length(vars) + sorts.size()] = AtomicSort::boolSort();
     return getTypeFromKey(key,vars);
   }
 
@@ -145,7 +145,7 @@ public:
     CALL("OperatorType::getPredicateTypeUniformRange");
 
     OperatorKey* key = setupKeyUniformRange(arity,argsSort,vars);
-    (*key)[VList::length(vars) + arity] = Term::boolSort();
+    (*key)[VList::length(vars) + arity] = AtomicSort::boolSort();
     return getTypeFromKey(key,vars);
   }
 
@@ -205,18 +205,18 @@ public:
   {
     CALL("OperatorType::arg");
     if(idx < _typeArgsArity){
-      return Term::superSort();
+      return AtomicSort::superSort();
     } 
     return (*_key)[idx];
   }
 
   //TODO functions below do not hold for higher-order
   //In higher-order we have boolean functions
-  bool isPredicateType() const { return (*_key)[arity()] == Term::boolSort(); };
-  bool isFunctionType() const { return (*_key)[arity()] != Term::boolSort(); };
+  bool isPredicateType() const { return (*_key)[arity()] == AtomicSort::boolSort(); };
+  bool isFunctionType() const { return (*_key)[arity()] != AtomicSort::boolSort(); };
 
   /**
-   * The result sort of function types; or Term::boolSort() for predicates.
+   * The result sort of function types; or AtomicSort::boolSort() for predicates.
    */
   TermList result() const {
     CALL("OperatorType::result");
@@ -227,7 +227,7 @@ public:
   vstring toString() const;  
 
   bool isSingleSortType(TermList sort) const;
-  bool isAllDefault() const { return isSingleSortType(Term::defaultSort()); }
+  bool isAllDefault() const { return isSingleSortType(AtomicSort::defaultSort()); }
 
 private:
   vstring argsToString() const;

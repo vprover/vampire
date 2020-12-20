@@ -41,7 +41,7 @@ Clause* BoolSimp::simplify(Clause* premise) {
 
     while (nvi.hasNext()) {
       subTerm = nvi.next();
-      if(SortHelper::getResultSort(subTerm.term()) == Term::boolSort()){
+      if(SortHelper::getResultSort(subTerm.term()) == AtomicSort::boolSort()){
         simpedSubTerm = boolSimplify(subTerm);
         if(simpedSubTerm != subTerm){
           goto substitution;

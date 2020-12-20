@@ -348,8 +348,8 @@ Formula* FunctionRelationshipInference::getName(TermList fromSrt, TermList toSrt
     unsigned label= env.signature->addFreshPredicate(0,"label");
     env.signature->getPredicate(label)->markLabel();
 
-    unsigned fsT = SortHelper::sortNum(fromSrt);
-    unsigned tsT = SortHelper::sortNum(toSrt);
+    unsigned fsT = fromSrt.term()->functor();
+    unsigned tsT = toSrt.term()->functor();
 
     if(strict)
       _labelMap_strict.insert(label,make_pair(fsT, tsT));

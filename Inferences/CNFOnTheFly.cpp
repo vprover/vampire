@@ -46,7 +46,7 @@ typedef ApplicativeHelper AH;
 /*Clause* NotProxyISE::simplify(Clause* c){
   CALL("NotProxyISE::simplify");
 
-  TermList boolSort = Term::boolSort();
+  TermList boolSort = AtomicSort::boolSort();
   TermList troo = TermList(Term::foolTrue());
   TermList fols = TermList(Term::foolFalse());
 
@@ -90,7 +90,7 @@ typedef ApplicativeHelper AH;
 Clause* EqualsProxyISE::simplify(Clause* c){
   CALL("EqualsProxyISE::simplify");
 
-  TermList boolSort = Term::boolSort();
+  TermList boolSort = AtomicSort::boolSort();
   TermList troo = TermList(Term::foolTrue());
   TermList fols = TermList(Term::foolFalse());
 
@@ -134,7 +134,7 @@ Clause* EqualsProxyISE::simplify(Clause* c){
 Clause* PiSigmaProxyISE::simplify(Clause* c){
   CALL("PiSigmaProxyISE::simplify");
 
-  TermList boolSort = Term::boolSort();
+  TermList boolSort = AtomicSort::boolSort();
   TermList troo = TermList(Term::foolTrue());
   TermList fols = TermList(Term::foolFalse());
 
@@ -189,7 +189,7 @@ Clause* PiSigmaProxyISE::simplify(Clause* c){
 Clause* OrImpAndProxyISE::simplify(Clause* c){
   CALL("rImpAndProxyISE::simplify"); 
 
-  TermList boolSort = Term::boolSort();
+  TermList boolSort = AtomicSort::boolSort();
   TermList troo = TermList(Term::foolTrue());
   TermList fols = TermList(Term::foolFalse());
 
@@ -259,7 +259,7 @@ ClauseIterator ProxyISE::simplifyMany(Clause* c){
 
   TermList troo = TermList(Term::foolTrue());
   TermList fols = TermList(Term::foolFalse());
-  TermList boolSort = Term::boolSort();
+  TermList boolSort = AtomicSort::boolSort();
 
   static TermStack args;
   TermList head;
@@ -420,7 +420,7 @@ ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaInde
 
   TermList troo = TermList(Term::foolTrue());
   TermList fols = TermList(Term::foolFalse());
-  TermList boolSort = Term::boolSort();
+  TermList boolSort = AtomicSort::boolSort();
 
   static TermStack args;
   TermList head;
@@ -657,7 +657,7 @@ TermList sigmaRemoval(TermList sigmaTerm, TermList expsrt){
         }
       }
     } else {
-      varSorts.insert(expsrt.var(), Term::superSort());
+      varSorts.insert(expsrt.var(), AtomicSort::superSort());
     }
   }
 
@@ -673,7 +673,7 @@ TermList sigmaRemoval(TermList sigmaTerm, TermList expsrt){
   DHMap<unsigned, TermList>::Iterator mapIt(varSorts);
   while(mapIt.hasNext()) {
     mapIt.next(var, varSort);
-    if(varSort == Term::superSort()){
+    if(varSort == AtomicSort::superSort()){
       args.push(TermList(var, false));
     } else {
       argSorts.push(varSort);
@@ -689,14 +689,14 @@ TermList sigmaRemoval(TermList sigmaTerm, TermList expsrt){
 
   //do{ 
     TermList resultSort = *expsrt.term()->nthArgument(0);
-    TermList skSymSort = Term::arrowSort(argSorts, resultSort);
+    TermList skSymSort = AtomicSort::arrowSort(argSorts, resultSort);
     unsigned fun = Skolem::addSkolemFunction(VList::length(vl), 0, skSymSort, vl);
     TermList head = TermList(Term::create(fun, args.size(), args.begin()));
     TermList skolemTerm = ApplicativeHelper::createAppTerm(skSymSort, head, termArgs);
     //sigmaTerm = ApplicativeHelper::createAppTerm(expsrt, sigmaTerm, skolemTerm);
     //expsrt = *expsrt.term()->nthArgument(1);
-    ASS(*expsrt.term()->nthArgument(1) == Term::boolSort())
-  //}while(expsrt != Term::boolSort());   
+    ASS(*expsrt.term()->nthArgument(1) == AtomicSort::boolSort())
+  //}while(expsrt != AtomicSort::boolSort());   
 
   //cout << "OUT OF sigmaRemoval " + sigmaTerm.toString() << endl;
 
@@ -713,7 +713,7 @@ TermList piRemoval(TermList piTerm, Clause* clause, TermList expsrt){
     TermList newVar = TermList(maxVar, false);
     piTerm = ApplicativeHelper::createAppTerm(expsrt, piTerm, newVar);
     expsrt = *expsrt.term()->nthArgument(1);
-  }while(expsrt != Term::boolSort()); 
+  }while(expsrt != AtomicSort::boolSort()); 
   
   return piTerm;
 }
@@ -722,7 +722,7 @@ TermList piRemoval(TermList piTerm, Clause* clause, TermList expsrt){
 Clause* IFFXORRewriterISE::simplify(Clause* c){
   CALL("IFFXORRewriterISE::simplify");
 
-  TermList boolSort = Term::boolSort();
+  TermList boolSort = AtomicSort::boolSort();
 
   static TermStack args;
   TermList head;

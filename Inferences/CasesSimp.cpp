@@ -54,8 +54,8 @@ ClauseIterator CasesSimp::performSimplification(Clause* premise, Literal* lit, T
   static TermList troo(Term::foolTrue());
   static TermList fols(Term::foolFalse());
 
-  Literal* litFols = Literal::createEquality(true, t, fols, Term::boolSort());
-  Literal* litTroo = Literal::createEquality(true, t, troo, Term::boolSort());
+  Literal* litFols = Literal::createEquality(true, t, fols, AtomicSort::boolSort());
+  Literal* litTroo = Literal::createEquality(true, t, troo, AtomicSort::boolSort());
 
 
   unsigned conclusionLength = premise->length() + 1;

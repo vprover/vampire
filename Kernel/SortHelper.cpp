@@ -159,7 +159,7 @@ bool SortHelper::getResultSortOrMasterVariable(const Term* t, TermList& resultSo
       resultSort = t->getSpecialData()->getSort();
       return true;
     case Term::SF_FORMULA:
-      resultSort = Term::boolSort();
+      resultSort = AtomicSort::boolSort();
       return true;
     case Term::SF_LAMBDA: {
       resultSort = t->getSpecialData()->getSort();
@@ -208,7 +208,7 @@ TermList SortHelper::getArgSort(Term* t, unsigned argIndex)
   OperatorType* ot = getType(t);
 
   if(argIndex < ot->typeArgsArity()){
-    return Term::superSort();
+    return AtomicSort::superSort();
   }
   
   getTypeSub(t, subst);
@@ -303,7 +303,7 @@ bool SortHelper::tryGetVariableSort(unsigned var, Formula* f, TermList& res)
     if(sf->connective() == BOOL_TERM){
       TermList stt = sf->getBooleanTerm();
       if(stt.isVar() && stt.var()==var){
-        res = Term::boolSort();
+        res = AtomicSort::boolSort();
         return true;
       }
       if(stt.isTerm()){
@@ -493,7 +493,7 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermL
                 CollectTask newTask;
                 newTask.fncTag = COLLECT_TERMLIST;
                 newTask.ts = lit->twoVarEqSort();
-                newTask.contextSort = Term::superSort();
+                newTask.contextSort = AtomicSort::superSort();
                 todo.push(newTask);
               }
               CollectTask newTask;
@@ -506,8 +506,8 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermL
             case BOOL_TERM: {
               TermList ts = sf->getBooleanTerm();
               if (ts.isVar()) {
-                if (!map.insert(ts.var(), Term::boolSort())) {
-                  ASS_EQ(Term::boolSort(), map.get(ts.var()));
+                if (!map.insert(ts.var(), AtomicSort::boolSort())) {
+                  ASS_EQ(AtomicSort::boolSort(), map.get(ts.var()));
                 }
               } else {
                 ASS(ts.isTerm());
@@ -519,7 +519,7 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermL
                   newTask.fncTag = COLLECT_TERM;                  
                 }
                 newTask.t = ts.term();
-                newTask.contextSort = Term::boolSort();
+                newTask.contextSort = AtomicSort::boolSort();
 
                 todo.push(newTask);
               }
@@ -935,7 +935,7 @@ bool SortHelper::isArraySort(TermList sort)
 bool SortHelper::isBoolSort(TermList sort)
 {
   CALL("SortHelper::isBoolSort");  
-  return sort == Term::boolSort();
+  return sort == AtomicSort::boolSort();
 }
 
 TermList SortHelper::getIndexSort(TermList arraySort)

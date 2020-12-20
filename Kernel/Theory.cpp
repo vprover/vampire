@@ -998,7 +998,7 @@ TermList Theory::getOperationSort(Interpretation i)
   case INT_IS_INT:
   case INT_IS_RAT:
   case INT_IS_REAL:
-    return Term::intSort();
+    return AtomicSort::intSort();
 
   case RAT_UNARY_MINUS:
   case RAT_PLUS:
@@ -1024,7 +1024,7 @@ TermList Theory::getOperationSort(Interpretation i)
   case RAT_IS_INT:
   case RAT_IS_RAT:
   case RAT_IS_REAL:
-    return Term::rationalSort();
+    return AtomicSort::rationalSort();
 
   case REAL_UNARY_MINUS:
   case REAL_PLUS:
@@ -1050,7 +1050,7 @@ TermList Theory::getOperationSort(Interpretation i)
   case REAL_IS_INT:
   case REAL_IS_RAT:
   case REAL_IS_REAL:
-    return Term::realSort();
+    return AtomicSort::realSort();
     
   default:
     ASSERTION_VIOLATION;
@@ -1189,7 +1189,7 @@ unsigned Theory::getArrayExtSkolemFunction(TermList sort) {
 
 unsigned Theory::Tuples::getFunctor(unsigned arity, TermList* sorts) {
   CALL("Theory::Tuples::getFunctor(unsigned arity, unsigned* sorts)");
-  return getFunctor(Term::tupleSort(arity, sorts));
+  return getFunctor(AtomicSort::tupleSort(arity, sorts));
 }
 
 unsigned Theory::Tuples::getFunctor(TermList tupleSort) {
@@ -1277,28 +1277,28 @@ OperatorType* Theory::getConversionOperationType(Interpretation i)
   TermList from, to;
   switch(i) {
   case INT_TO_RAT:
-    from = Term::intSort();
-    to = Term::rationalSort();
+    from = AtomicSort::intSort();
+    to = AtomicSort::rationalSort();
     break;
   case INT_TO_REAL:
-    from = Term::intSort();
-    to = Term::realSort();
+    from = AtomicSort::intSort();
+    to = AtomicSort::realSort();
     break;
   case RAT_TO_INT:
-    from = Term::rationalSort();
-    to = Term::intSort();
+    from = AtomicSort::rationalSort();
+    to = AtomicSort::intSort();
     break;
   case RAT_TO_REAL:
-    from = Term::rationalSort();
-    to = Term::realSort();
+    from = AtomicSort::rationalSort();
+    to = AtomicSort::realSort();
     break;
   case REAL_TO_INT:
-    from = Term::realSort();
-    to = Term::intSort();
+    from = AtomicSort::realSort();
+    to = AtomicSort::intSort();
     break;
   case REAL_TO_RAT:
-    from = Term::realSort();
-    to = Term::rationalSort();
+    from = AtomicSort::realSort();
+    to = AtomicSort::rationalSort();
     break;
   default:
     ASSERTION_VIOLATION;
@@ -1474,7 +1474,7 @@ OperatorType* Theory::getNonpolymorphicOperatorType(Interpretation i)
 void Theory::defineTupleTermAlgebra(unsigned arity, TermList* sorts) {
   CALL("Signature::defineTupleTermAlgebra");
 
-  TermList tupleSort = Term::tupleSort(arity, sorts);
+  TermList tupleSort = AtomicSort::tupleSort(arity, sorts);
 
   if (env.signature->isTermAlgebraSort(tupleSort)) {
     return;
@@ -1489,7 +1489,7 @@ void Theory::defineTupleTermAlgebra(unsigned arity, TermList* sorts) {
   for (unsigned i = 0; i < arity; i++) {
     TermList projSort = sorts[i];
     unsigned destructor;
-    if (projSort == Term::boolSort()) {
+    if (projSort == AtomicSort::boolSort()) {
       destructor = env.signature->addFreshPredicate(1, "proj");
       env.signature->getPredicate(destructor)->setType(OperatorType::getPredicateType({ tupleSort }));
     } else {
@@ -1577,7 +1577,7 @@ bool Theory::isInterpretedPredicate(Literal* lit)
 
   if(lit->isEquality()){
     TermList srt = SortHelper::getEqualityArgumentSort(lit);
-    return (srt == Term::intSort() || srt == Term::realSort() || srt == Term::rationalSort());
+    return (srt == AtomicSort::intSort() || srt == AtomicSort::realSort() || srt == AtomicSort::rationalSort());
   }
 
   return isInterpretedPredicate(lit->functor());

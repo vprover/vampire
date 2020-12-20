@@ -566,8 +566,6 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
     sym = env.signature->getPredicate(symNumber);    
   }
 
-  ASS(!sym->super());
-
   if (sym->defaultSort() || sym->arraySort()  || sym->tupleSort()){
     return;
   }

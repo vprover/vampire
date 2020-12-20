@@ -68,7 +68,7 @@ TermSharing::~TermSharing()
   while (ls.hasNext()) {
     ls.next()->destroy();
   }
-  Set<PolySort*,TermSharing>::Iterator ss(_sorts);
+  Set<AtomicSort*,TermSharing>::Iterator ss(_sorts);
   while (ss.hasNext()) {
     ss.next()->destroy();
   }
@@ -97,6 +97,7 @@ Term* TermSharing::insert(Term* t)
   CALL("TermSharing::insert(Term*)");
   ASS(!t->isLiteral());
   ASS(!t->isSpecial());
+  ASS(!t->isSort());
 
   TimeCounter tc(TC_TERM_SHARING);
 
@@ -210,19 +211,19 @@ Term* TermSharing::insert(Term* t)
   return s;
 } // TermSharing::insert
 
-PolySort* TermSharing::insert(PolySort* sort)
+AtomicSort* TermSharing::insert(AtomicSort* sort)
 {
 
-  CALL("TermSharing::insert(PolySort*)");
+  CALL("TermSharing::insert(AtomicSort*)");
   ASS(!sort->isLiteral());
   ASS(!sort->isSpecial());
-  //ASS(t->isSort());
+  ASS(sort->isSort());
 
   TimeCounter tc(TC_TERM_SHARING);
 
 
   _sortInsertions++;
-  PolySort* s = _sorts.insert(sort);
+  AtomicSort* s = _sorts.insert(sort);
    if (s == sort) {
     unsigned weight = 1;
     unsigned vars = 0;
@@ -276,6 +277,7 @@ Literal* TermSharing::insert(Literal* t)
 {
   CALL("TermSharing::insert(Literal*)");
   ASS(t->isLiteral());
+  ASS(!t->isSort());
   ASS(!t->isSpecial());
 
   //equalities between variables must be inserted using insertVariableEquality() function
@@ -373,14 +375,12 @@ Literal* TermSharing::insertVariableEquality(Literal* t, TermList sort)
   t->markTwoVarEquality();
   t->setTwoVarEqSort(sort);
 
-  unsigned sortWeight = sort.isVar() ? 1 : sort.term()->weight();
-
   _literalInsertions++;
   Literal* s = _literals.insert(t);
   if (s == t) {
     t->markShared();
     t->setId(_totalLiterals);
-    t->setWeight(2 + sortWeight);
+    t->setWeight(2 + sort.weight());
     if (env.colorUsed) {
       t->setColor(COLOR_TRANSPARENT);
     }

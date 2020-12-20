@@ -39,7 +39,7 @@
 
 //#include "Sorts.hpp"
 
-#define TERM_DIST_VAR_UNKNOWN 0x7FFFFF
+#define TERM_DIST_VAR_UNKNOWN 0x3FFFFF
 
 namespace Kernel {
 
@@ -145,6 +145,8 @@ public:
   static TermList var(unsigned var, bool special = false) { return TermList(var, special); }
   /** if not var, the inner term must be shared */
   unsigned weight() const;
+  /** returns true if this termList is wrapping a higher-order "arrow" sort */
+  bool isArrowSort() const;
   bool containsSubterm(TermList v);
   bool containsAllVariablesOf(TermList t);
   bool containsAllVariableOccurrencesOf(TermList t);
@@ -187,6 +189,8 @@ private:
       unsigned shared : 1;
       /** true if literal */
       unsigned literal : 1;
+      /** true if atomic sort */
+      unsigned sort : 1;
       /** Ordering comparison result for commutative term arguments, one of
        * 0 (unknown) 1 (less), 2 (equal), 3 (greater), 4 (incomparable)
        * @see Term::ArgumentOrder */
@@ -194,7 +198,7 @@ private:
       /** Number of distincs variables in the term, equal
        * to TERM_DIST_VAR_UNKNOWN if the number has not been
        * computed yet. */
-      mutable unsigned distinctVars : 23;
+      mutable unsigned distinctVars : 22;
       /** reserved for whatever */
 #if ARCH_X64
 # if USE_MATCH_TAG
@@ -210,6 +214,7 @@ private:
   friend class Indexing::TermSharing;
   friend class Term;
   friend class Literal;
+  friend class AtomicSort;
 }; // class TermList
 
 static_assert(
@@ -340,18 +345,6 @@ public:
   //** fool constants
   static Term* foolTrue(); 
   static Term* foolFalse(); 
-
-  static TermList arrowSort(TermStack& domSorts, TermList range);
-  static TermList arrowSort(TermList s1, TermList s2);
-  static TermList arrowSort(TermList s1, TermList s2, TermList s3);
-  static TermList arraySort(TermList indexSort, TermList innerSort);
-  static TermList tupleSort(unsigned arity, TermList* sorts);
-  static TermList defaultSort();
-  static TermList superSort();
-  static TermList boolSort();
-  static TermList intSort();
-  static TermList realSort();
-  static TermList rationalSort(); 
 
   VList* freeVariables() const;
   bool isFreeVariable(unsigned var) const;
@@ -512,7 +505,13 @@ public:
 
   /** True if the term is, in fact, a literal */
   bool isLiteral() const { return _args[0]._info.literal; }
-  
+  /** True if the term is, in fact, a sort */
+  bool isSort() const { return _args[0]._info.sort; }
+  /** True if the term is actually an arrow sort */
+  bool isArrowSort() const;
+  /** true if the term is an application */
+  bool isApplication() const;
+
   /** Return an index of the argument to which @b arg points */
   unsigned getArgumentIndex(TermList* arg)
   {
@@ -750,22 +749,42 @@ public:
 
 
 /**
- * Class of PolySort.
- * @since 06/05/2007 Manchester
+ * Class of AtomicSort.
  */
-class PolySort
+class AtomicSort
   : public Term
 {
 public:
-  PolySort();
-  explicit PolySort(const PolySort& t) throw();
-  static PolySort* create(unsigned typeCon, unsigned arity, const TermList* args);
-  static PolySort* createConstant(unsigned typeCon) { return create(typeCon,0,0); }
+  AtomicSort();
+  explicit AtomicSort(const AtomicSort& t) throw();
+
+  AtomicSort(unsigned functor,unsigned arity) throw()
+  {
+    _functor = functor;
+    _arity = arity;
+    _args[0]._info.literal = 0u;
+    _args[0]._info.sort = 1u;
+  }
+
+  static AtomicSort* create(unsigned typeCon, unsigned arity, const TermList* args);
+  static AtomicSort* createConstant(unsigned typeCon) { return create(typeCon,0,0); }
+
+  static TermList arrowSort(TermStack& domSorts, TermList range);
+  static TermList arrowSort(TermList s1, TermList s2);
+  static TermList arrowSort(TermList s1, TermList s2, TermList s3);
+  static TermList arraySort(TermList indexSort, TermList innerSort);
+  static TermList tupleSort(unsigned arity, TermList* sorts);
+  static TermList defaultSort();
+  static TermList superSort();
+  static TermList boolSort();
+  static TermList intSort();
+  static TermList realSort();
+  static TermList rationalSort();
 
 private:
 
-  static PolySort* createNonShared(unsigned typeCon, unsigned arity, TermList* arg);
-  static PolySort* createNonSharedConstant(unsigned typeCon) { return createNonShared(typeCon,0,0); }
+  static AtomicSort* createNonShared(unsigned typeCon, unsigned arity, TermList* arg);
+  static AtomicSort* createNonSharedConstant(unsigned typeCon) { return createNonShared(typeCon,0,0); }
 };
 
 /**
@@ -793,6 +812,7 @@ public:
     _arity = arity;
     _args[0]._info.polarity = polarity;
     _args[0]._info.commutative = commutative;
+    _args[0]._info.sort = 0u;
     _args[0]._info.literal = 1u;
   }
 
@@ -844,7 +864,8 @@ public:
   static Literal* create2(unsigned predicate, bool polarity, TermList arg1, TermList arg2);
   static Literal* create(unsigned fn, bool polarity, std::initializer_list<TermList> args);
 
-  static Literal* flattenOnArgument(const Literal*,int argumentNumber);
+  //No longer used AYB
+  //static Literal* flattenOnArgument(const Literal*,int argumentNumber);
 
   unsigned hash() const;
   unsigned oppositeHash() const;

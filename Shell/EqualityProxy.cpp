@@ -184,7 +184,7 @@ void EqualityProxy::getArgumentEqualityLiterals(unsigned cnt, LiteralStack& lits
     TermList v1(2*i, false);
     TermList v2(2*i+1, false);
     TermList sort = symbolType->arg(i);
-    if(sort != Term::superSort()){
+    if(sort != AtomicSort::superSort()){
       lits.push(makeProxyLiteral(false, v1, v2, SubstHelper::apply(sort, localSubst)));
       vars1.push(v1);
       vars2.push(v2);

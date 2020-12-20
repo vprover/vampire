@@ -126,7 +126,7 @@ struct EqualityFactoring::ResultFn
       TermList sLHSreplaced = sLHS;
       TermList fLHSreplaced = fLHS;
       if(!sLHS.isVar() && !fLHS.isVar() && 
-         !srtS.isVar() && !ApplicativeHelper::isArrowSort(srtS)){
+         !srtS.isVar() && !srtS.isArrowSort()){
         sLHSreplaced = ApplicativeHelper::replaceFunctionalAndBooleanSubterms(sLHS.term(), &funcSubtermMap);
         fLHSreplaced = ApplicativeHelper::replaceFunctionalAndBooleanSubterms(fLHS.term(), &funcSubtermMap);
       }

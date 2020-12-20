@@ -67,8 +67,8 @@ void TheoryInstAndSimp::attach(SaturationAlgorithm* salg)
 
 bool TheoryInstAndSimp::isSupportedSort(const TermList sort) {
   //TODO: extend for more sorts (arrays, datatypes)
-  if(sort == Term::intSort() || sort == Term::realSort() ||
-     sort == Term::rationalSort()){
+  if(sort == AtomicSort::intSort() || sort == AtomicSort::realSort() ||
+     sort == AtomicSort::rationalSort()){
     return true;
   }
   return false;

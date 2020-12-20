@@ -220,7 +220,7 @@ TermList LambdaElimination::processBeyondLambda(Formula* formula)
         ALWAYS(SortHelper::tryGetVariableSort(v, formula->qarg(), s));
         var->setHead(v);
         sort->setHead(s);
-        form = elimLambda(Term::createLambda(form, var, sort, Term::boolSort())); 
+        form = elimLambda(Term::createLambda(form, var, sort, AtomicSort::boolSort())); 
         constant = TermList(Term::create1(proxy, s));
         form = AH::createAppTerm(sortOf(constant), constant, form);
       }
@@ -506,7 +506,7 @@ void LambdaElimination::addCombinatorAxioms(Problem& prb)
   unsigned s_comb = env.signature->getCombinator(Signature::S_COMB);
   TermList constant = TermList(Term::create(s_comb, 3, args));
   TermList lhs = AH::createAppTerm(srtOf(constant), constant, x, y, z); //TODO fix
-  TermList rhs = AH::createAppTerm3(Term::arrowSort(s1, s2, s3), x, z, AH::createAppTerm(Term::arrowSort(s1, s2), y, z));
+  TermList rhs = AH::createAppTerm3(AtomicSort::arrowSort(s1, s2, s3), x, z, AH::createAppTerm(AtomicSort::arrowSort(s1, s2), y, z));
 
   Clause* sAxiom = new(1) Clause(1, TheoryAxiom(InferenceRule::COMBINATOR_AXIOM));
   (*sAxiom)[0] = Literal::createEquality(true, lhs, rhs, s3);
@@ -516,7 +516,7 @@ void LambdaElimination::addCombinatorAxioms(Problem& prb)
   unsigned c_comb = env.signature->getCombinator(Signature::C_COMB);
   constant = TermList(Term::create(c_comb, 3, args));
   lhs = AH::createAppTerm(srtOf(constant), constant, x, y, z); //TODO fix
-  rhs = AH::createAppTerm3(Term::arrowSort(s1, s2, s3), x, z, y);
+  rhs = AH::createAppTerm3(AtomicSort::arrowSort(s1, s2, s3), x, z, y);
 
   Clause* cAxiom = new(1) Clause(1, TheoryAxiom(InferenceRule::COMBINATOR_AXIOM));
   (*cAxiom)[0] = Literal::createEquality(true, lhs, rhs, s3);
@@ -526,7 +526,7 @@ void LambdaElimination::addCombinatorAxioms(Problem& prb)
   unsigned b_comb = env.signature->getCombinator(Signature::B_COMB);
   constant = TermList(Term::create(b_comb, 3, args));
   lhs = AH::createAppTerm(srtOf(constant), constant, x, y, z); //TODO fix
-  rhs = AH::createAppTerm(Term::arrowSort(s2, s3), x, AH::createAppTerm(Term::arrowSort(s1, s2), y, z));
+  rhs = AH::createAppTerm(AtomicSort::arrowSort(s2, s3), x, AH::createAppTerm(AtomicSort::arrowSort(s1, s2), y, z));
 
   Clause* bAxiom = new(1) Clause(1, TheoryAxiom(InferenceRule::COMBINATOR_AXIOM));
   (*bAxiom)[0] = Literal::createEquality(true, lhs, rhs, s3);
@@ -584,7 +584,7 @@ void LambdaElimination::addFunctionExtensionalityAxiom(Problem& prb)
 
   Clause* funcExtAx = new(2) Clause(2,  NonspecificInference0(UnitInputType::AXIOM,InferenceRule::FUNC_EXT_AXIOM));
   (*funcExtAx)[0] = Literal::createEquality(false, lhs, rhs, beta);
-  (*funcExtAx)[1] = Literal::createEquality(true, x, y, Term::arrowSort(alpha, beta));
+  (*funcExtAx)[1] = Literal::createEquality(true, x, y, AtomicSort::arrowSort(alpha, beta));
   UnitList::push(funcExtAx, prb.units());
 
 
@@ -599,8 +599,8 @@ void LambdaElimination::addChoiceAxiom(Problem& prb)
   CALL("LambdaElimination::addChoiceAxiom"); 
  
   TermList alpha = TermList(0, false);
-  TermList boolS = Term::boolSort();
-  TermList alphaBool = Term::arrowSort(alpha, Term::boolSort());
+  TermList boolS = AtomicSort::boolSort();
+  TermList alphaBool = AtomicSort::arrowSort(alpha, AtomicSort::boolSort());
   TermList p = TermList(1, false);
   TermList x = TermList(2, false);
   unsigned choice = env.signature->getChoice();
@@ -634,7 +634,7 @@ void LambdaElimination::addProxyAxioms(Problem& prb)
   TermList s1 = TermList(0, false);  
   TermList x = TermList(1, false);
   TermList y = TermList(2, false);
-  TermList choiceSort = Term::arrowSort(Term::arrowSort(s1, Term::boolSort()), s1);
+  TermList choiceSort = AtomicSort::arrowSort(AtomicSort::arrowSort(s1, AtomicSort::boolSort()), s1);
   unsigned skolem1 = Skolem::addSkolemFunction(1,0, choiceSort, new VList(0));
   unsigned skolem2 = Skolem::addSkolemFunction(1,0, choiceSort, new VList(0));
   TermList sk1 = TermList(Term::create1(skolem1, s1));
@@ -675,13 +675,13 @@ void LambdaElimination::addProxyAxioms(Problem& prb)
 
   Clause* piAxiom1 = new(2) Clause(2, TheoryAxiom(InferenceRule::PI_PROXY_AXIOM));
   (*piAxiom1)[0] = toEquality(AH::createAppTerm(srtOf(constant), constant, x), true);
-  (*piAxiom1)[1] = toEquality(AH::createAppTerm(s1, Term::boolSort(), x, AH::createAppTerm(srtOf(sk1), sk1, x)), false);
+  (*piAxiom1)[1] = toEquality(AH::createAppTerm(s1, AtomicSort::boolSort(), x, AH::createAppTerm(srtOf(sk1), sk1, x)), false);
   piAxiom1->inference().setProxyAxiomsDescendant(true);    
   UnitList::push(piAxiom1, prb.units());
 
   Clause* piAxiom2 = new(2) Clause(2, TheoryAxiom(InferenceRule::PI_PROXY_AXIOM));
   (*piAxiom2)[0] = toEquality(AH::createAppTerm(srtOf(constant), constant, x), false);
-  (*piAxiom2)[1] = toEquality(AH::createAppTerm(s1, Term::boolSort(), x, y), true);
+  (*piAxiom2)[1] = toEquality(AH::createAppTerm(s1, AtomicSort::boolSort(), x, y), true);
   piAxiom2->inference().setProxyAxiomsDescendant(true);      
   UnitList::push(piAxiom2, prb.units());  
 
@@ -690,13 +690,13 @@ void LambdaElimination::addProxyAxioms(Problem& prb)
 
   Clause* sigmaAxiom1 = new(2) Clause(2, TheoryAxiom(InferenceRule::SIGMA_PROXY_AXIOM));
   (*sigmaAxiom1)[0] = toEquality(AH::createAppTerm(srtOf(constant), constant, x), true); 
-  (*sigmaAxiom1)[1] = toEquality(AH::createAppTerm(s1, Term::boolSort(), x, y), false);
+  (*sigmaAxiom1)[1] = toEquality(AH::createAppTerm(s1, AtomicSort::boolSort(), x, y), false);
   sigmaAxiom1->inference().setProxyAxiomsDescendant(true);      
   UnitList::push(sigmaAxiom1, prb.units());
 
   Clause* sigmaAxiom2 = new(2) Clause(2, TheoryAxiom(InferenceRule::SIGMA_PROXY_AXIOM));
   (*sigmaAxiom2)[0] = toEquality(AH::createAppTerm(srtOf(constant), constant, x), false);
-  (*sigmaAxiom2)[1] = toEquality(AH::createAppTerm(s1, Term::boolSort(), x, AH::createAppTerm(srtOf(sk2), sk2, x)), true);
+  (*sigmaAxiom2)[1] = toEquality(AH::createAppTerm(s1, AtomicSort::boolSort(), x, AH::createAppTerm(srtOf(sk2), sk2, x)), true);
   sigmaAxiom2->inference().setProxyAxiomsDescendant(true);    
   UnitList::push(sigmaAxiom2, prb.units()); 
 
@@ -794,5 +794,5 @@ void LambdaElimination::addProxyAxioms(Problem& prb)
  
 Literal* LambdaElimination::toEquality(TermList booleanTerm, bool polarity) {
   TermList boolVal = polarity ? TermList(Term::foolTrue()) : TermList(Term::foolFalse());
-  return Literal::createEquality(true, booleanTerm, boolVal, Term::boolSort());
+  return Literal::createEquality(true, booleanTerm, boolVal, AtomicSort::boolSort());
 }

@@ -293,7 +293,7 @@ bool BooleanSubtermIt::hasNext()
   while(!_stack.isEmpty()){
     Term* t = _stack.pop();
     AH::getHeadAndArgs(t, head, args);
-    if(SortHelper::getResultSort(t) == Term::boolSort() && !AH::isBool(head)){
+    if(SortHelper::getResultSort(t) == AtomicSort::boolSort() && !AH::isBool(head)){
       _next = TermList(t);
       _used = false;
     }
@@ -322,7 +322,7 @@ bool RewritableVarsIt::hasNext()
     TermList s = _sorts.pop();
     AH::getHeadSortAndArgs(t, head, headSort, args);
     if(head.isVar() && args.size() <= 1 && _unstableVars->find(head.var()) 
-       && (s.isVar() || AH::isArrowSort(s))){
+       && (s.isVar() || s.isArrowSort())){
       _next = head;
     }
     if(!AH::isComb(head) || AH::isUnderApplied(head, args.size())){

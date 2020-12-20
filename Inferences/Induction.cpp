@@ -181,7 +181,7 @@ void InductionClauseIterator::process(Clause* premise, Literal* lit)
             ta_terms.insert(ts.term());
           }
           if(mathInd && 
-             env.signature->getFunction(f)->fnType()->result()==Term::intSort() &&
+             env.signature->getFunction(f)->fnType()->result()==AtomicSort::intSort() &&
              !theory->isInterpretedConstant(f)
             ){
             int_terms.insert(ts.term());

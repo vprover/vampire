@@ -115,7 +115,7 @@ void Monotonicity::safe(Clause* c, Literal* parent, TermList* t,Stack<SATLiteral
   if(t->isVar()){
     unsigned var = t->var();
     TermList s = SortHelper::getVariableSort(*t,parent);
-    if(SortHelper::sortNum(s)==_srt){
+    if(s.term()->functor()==_srt){
       Clause::Iterator lit(*c);
       while(lit.hasNext()){
         Literal* l = lit.next(); 
@@ -182,12 +182,12 @@ void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, DArray<
   }
 
   // Now create a sort predicate per non-monotonic sort
-  DArray<unsigned> sortPredicates(env.sorts->count());
-  for(unsigned s=0;s<env.sorts->count();s++){
+  DArray<unsigned> sortPredicates(env.signature->typeCons());
+  for(unsigned s=0;s<env.signature->typeCons();s++){
     if(!isMonotonic[s]){
       vstring name = "sortPredicate_"+env.sorts->sortName(s);
       unsigned p = env.signature->addFreshPredicate(1,name.c_str());
-      env.signature->getPredicate(p)->setType(OperatorType::getPredicateType({SortHelper::sortTerm(s)}));
+      env.signature->getPredicate(p)->setType(OperatorType::getPredicateType({AtomicSort::createConstant(s)}));
       sortPredicates[s] = p;
     }
     else{ sortPredicates[s]=0; }
@@ -201,16 +201,18 @@ void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, DArray<
   // 2) for each function f with return sort s 
   //    !args : p(f(args))
   unsigned function_count = env.signature->functions();
-  for(unsigned s=0;s<env.sorts->count();s++){
+  for(unsigned s=0;s<env.signature->typeCons();s++){
     if(isMonotonic[s]) continue;
 
     unsigned p = sortPredicates[s];
     ASS(p>0);
 
+    TermList sTerm = AtomicSort::createConstant(s);
+
     for(unsigned f=0; f < function_count; f++){
       if(del_f[f]) continue;
 
-      if(env.signature->getFunction(f)->fnType()->result() != SortHelper::sortTerm(s))
+      if(env.signature->getFunction(f)->fnType()->result() != sTerm)
         continue;
 
       unsigned arity = env.signature->functionArity(f);
@@ -228,7 +230,7 @@ void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, DArray<
 
     // Next the non-empty constraint
     unsigned skolemConstant = env.signature->addSkolemFunction(0);
-    env.signature->getFunction(skolemConstant)->setType(OperatorType::getConstantsType(SortHelper::sortTerm(s)));
+    env.signature->getFunction(skolemConstant)->setType(OperatorType::getConstantsType(sTerm));
     Literal* psk = Literal::create1(p,true,TermList(Term::createConstant(skolemConstant)));
     Clause* nonEmpty = new(1) Clause(1,NonspecificInference0(UnitInputType::AXIOM,InferenceRule::INPUT));
     (*nonEmpty)[0] = psk;
@@ -253,7 +255,7 @@ void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, DArray<
      for(unsigned v=0;v<cl->varCnt();v++){
        TermList vsrt;
        if(varSorts.find(v,vsrt)){
-        unsigned vsrtU = SortHelper::sortNum(vsrt);
+        unsigned vsrtU = vsrt.term()->functor();
          if(!isMonotonic[vsrtU]) sortedVariables.push(make_pair(v,vsrtU));
        }
        // else the var isn't used in the clause...they're not normalised
@@ -304,9 +306,9 @@ TermList transformSubterm(TermList trm){
   // cout << "transformSubterm " << trm.toString() << endl;
 
   TermList srt = SortHelper::getTermSort(trm, _lit);
-  if(_isM[SortHelper::sortNum(srt)]) return trm;
+  if(_isM[srt.term()->functor()]) return trm;
 
-  unsigned f =  _sf[SortHelper::sortNum(srt)];
+  unsigned f =  _sf[srt.term()->functor()];
 
   return TermList(Term::create1(f,trm));
 }
@@ -344,7 +346,7 @@ void Monotonicity::addSortFunctions(bool withMon, ClauseList*& clauses)
     if(!isMonotonic[s]){
       vstring name = "sortFunction_"+env.sorts->sortName(s);
       unsigned f = env.signature->addFreshFunction(1,name.c_str());
-      TermList sT = SortHelper::sortTerm(s);
+      TermList sT = AtomicSort::createConstant(s);
       env.signature->getFunction(f)->setType(OperatorType::getFunctionType({sT},sT));
       sortFunctions[s] = f;
     }

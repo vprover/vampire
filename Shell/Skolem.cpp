@@ -400,8 +400,8 @@ Formula* Skolem::skolemise (Formula* f)
       VarSet::Iterator vuIt(*dep);
       while(vuIt.hasNext()) {
         unsigned uvar = vuIt.next();
-        TermList sort = _varSorts.get(uvar, Term::defaultSort());
-        if(sort == Term::superSort()){
+        TermList sort = _varSorts.get(uvar, AtomicSort::defaultSort());
+        if(sort == AtomicSort::superSort()){
           args.push(TermList(uvar, false));
           vArgs.pushFront(uvar);
         } else {
@@ -428,7 +428,7 @@ Formula* Skolem::skolemise (Formula* f)
       VList::Iterator vs(f->vars());
       while (vs.hasNext()) {
         unsigned v = vs.next();
-        TermList rangeSort=_varSorts.get(v, Term::defaultSort());
+        TermList rangeSort=_varSorts.get(v, AtomicSort::defaultSort());
         if(rangeSort.isVar() || !rangeSort.term()->shared() || 
            !rangeSort.term()->ground()){
           rangeSort = SubstHelper::apply(rangeSort, _subst);
@@ -440,7 +440,7 @@ Formula* Skolem::skolemise (Formula* f)
           _introducedSkolemFuns.push(fun);
           skolemTerm = Term::create(fun, arity, args.begin());
         } else {
-          TermList skSymSort = Term::arrowSort(argSorts, rangeSort);
+          TermList skSymSort = AtomicSort::arrowSort(argSorts, rangeSort);
           unsigned fun = addSkolemFunction(VList::length(vl), 0, skSymSort, v, vl);
           _introducedSkolemFuns.push(fun);
           TermList head = TermList(Term::create(fun, args.size(), args.begin()));

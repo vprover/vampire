@@ -41,7 +41,7 @@ class DivByZeroException         : public ArithmeticException {  };
 class IntegerConstantType
 {
 public:
-  static TermList getSort() { return Term::intSort(); }
+  static TermList getSort() { return AtomicSort::intSort(); }
 
   typedef int InnerType;
 
@@ -112,7 +112,7 @@ std::ostream& operator<< (ostream& out, const IntegerConstantType& val) {
 struct RationalConstantType {
   typedef IntegerConstantType InnerType;
 
-  static TermList getSort() { return Term::rationalSort(); }
+  static TermList getSort() { return AtomicSort::rationalSort(); }
 
   RationalConstantType() {}
 
@@ -179,7 +179,7 @@ std::ostream& operator<< (ostream& out, const RationalConstantType& val) {
 class RealConstantType : public RationalConstantType
 {
 public:
-  static TermList getSort() { return Term::realSort(); }
+  static TermList getSort() { return AtomicSort::realSort(); }
 
   RealConstantType() {}
   explicit RealConstantType(const vstring& number);

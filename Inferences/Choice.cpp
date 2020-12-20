@@ -67,8 +67,8 @@ Clause* Choice::createChoiceAxiom(TermList op, TermList set)
 
   Clause* axiom = new(2) Clause(2, NonspecificInference0(UnitInputType::AXIOM, InferenceRule::CHOICE_AXIOM));
 
-  (*axiom)[0] = Literal::createEquality(true, t1, TermList(Term::foolFalse()), Term::boolSort());;
-  (*axiom)[1] = Literal::createEquality(true, t2, TermList(Term::foolTrue()), Term::boolSort());;
+  (*axiom)[0] = Literal::createEquality(true, t1, TermList(Term::foolFalse()), AtomicSort::boolSort());;
+  (*axiom)[1] = Literal::createEquality(true, t2, TermList(Term::foolTrue()), AtomicSort::boolSort());;
 
   return axiom;
 }
@@ -81,7 +81,7 @@ struct Choice::AxiomsIterator
 
     ASS(term.isTerm());
     _set = *term.term()->nthArgument(3);
-    _headSort = Term::arrowSort(*term.term()->nthArgument(0),*term.term()->nthArgument(1));
+    _headSort = AtomicSort::arrowSort(*term.term()->nthArgument(0),*term.term()->nthArgument(1));
     _resultSort = ApplicativeHelper::getResultApplieadToNArgs(_headSort, 1);
 
     //cout << "the result sort is " + _resultSort.toString() << endl;
@@ -174,11 +174,11 @@ struct Choice::IsChoiceTerm
     ApplicativeHelper::getHeadAndArgs(t, head, args);
     if(args.size() != 1){ return false; }
     
-    TermList headSort = Term::arrowSort(*t.term()->nthArgument(0), *t.term()->nthArgument(1));
+    TermList headSort = AtomicSort::arrowSort(*t.term()->nthArgument(0), *t.term()->nthArgument(1));
 
     TermList tv = TermList(0, false);
-    TermList o  = Term::boolSort();
-    TermList sort = Term::arrowSort(Term::arrowSort(tv, o), tv);
+    TermList o  = AtomicSort::boolSort();
+    TermList sort = AtomicSort::arrowSort(AtomicSort::arrowSort(tv, o), tv);
  
     static RobSubstitution subst;
     subst.reset();

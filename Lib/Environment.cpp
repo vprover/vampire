@@ -62,16 +62,16 @@ Environment::Environment()
 
   //view comment in Signature.cpp
   signature->addEquality();
-  // Below is a hack. We would like to remove sorts altogether
-  // However, FMB and SubstitutionTree rely on sorts being unsigned
-  // and also require that interpreted sorts are 0 - 5 for efficiency purposes
-  // Therefore, these are added first. Once FMB and SubstitutionTree are 
-  // fixed this hack can be removed AYB.
-  sorts->addSort(Term::defaultSort());
-  sorts->addSort(Term::boolSort());
-  sorts->addSort(Term::intSort());
-  sorts->addSort(Term::realSort());
-  sorts->addSort(Term::rationalSort());
+  // These functions are called here in order to ensure the order
+  // of creation of these sorts. The order is VITAL. 
+  //
+  // A number of places in the code rely on the type constructor for
+  // $i being 0, that for $o being 1 and so on.
+  AtomicSort::defaultSort();
+  AtomicSort::boolSort();
+  AtomicSort::intSort();
+  AtomicSort::realSort();
+  AtomicSort::rationalSort();
 
   timer = Timer::instance();
   timer->start();

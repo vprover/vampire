@@ -96,7 +96,7 @@ ClauseIterator FOOLParamodulation::generateClauses(Clause* premise) {
       }
 
       TermList resultType = env.signature->getFunction(functor)->fnType()->result();
-      if (resultType == Term::boolSort()) {
+      if (resultType == AtomicSort::boolSort()) {
         booleanTerm = subterm;
         goto substitution;
       }
@@ -122,7 +122,7 @@ ClauseIterator FOOLParamodulation::generateClauses(Clause* premise) {
   }
 
   // Add s = false to the clause
-  (*conclusion)[conclusion->length() - 1] = Literal::createEquality(true, booleanTerm, fols, Term::boolSort());
+  (*conclusion)[conclusion->length() - 1] = Literal::createEquality(true, booleanTerm, fols, AtomicSort::boolSort());
 
   return pvi(getSingletonIterator(conclusion));
 }

@@ -479,7 +479,7 @@ void FiniteModelBuilder::init()
            right->isTerm() && right->term()->arity()==0){
 
           TermList srtT = SortHelper::getResultSort(left->term());
-          unsigned srt = SortHelper::sortNum(srtT);
+          unsigned srt = srtT.term()->functor();
           auto map = _distinctConstants[srt];
           if(map==0){
             map = new DHMap<unsigned,DHSet<unsigned>*>();
@@ -782,7 +782,7 @@ void FiniteModelBuilder::init()
     if(env.signature->functionArity(f)==0){ 
       TermList vsrtT = env.signature->getFunction(f)->fnType()->result();
       if(!SortHelper::isBoolSort(vsrtT)){
-        unsigned vsrt = SortHelper::sortNum(vsrtT);
+        unsigned vsrt = vsrtT.term()->functor();
         ASS(_sortedSignature->vampireToDistinctParent.find(vsrt));
         unsigned dsrt = _sortedSignature->vampireToDistinctParent.get(vsrt);
         _distinctSortConstantCount[dsrt]++;
@@ -891,7 +891,7 @@ void FiniteModelBuilder::init()
           // tell me what sorts they should have by appearance in a function or predicate symbol
           // So I use the special sort for this
           TermList litSort = lit->twoVarEqSort();
-          unsigned litSortU = SortHelper::sortNum(litSort);
+          unsigned litSortU = litSort.term()->functor();
           unsigned dsort = _sortedSignature->vampireToDistinctParent.get(litSortU);
           unsigned sort = _sortedSignature->varEqSorts[dsort];
           (*csig)[var1] = sort;
@@ -2067,7 +2067,7 @@ pModelLabel:
       for(unsigned i=0;i<arity-1;i++){
         grounding[i]=1;
         TermList vs = env.signature->getFunction(f)->fnType()->arg(i);
-        unsigned vampireSrt = SortHelper::sortNum(vs);
+        unsigned vampireSrt = vs.term()->functor();
         ASS(_sortedSignature->vampireToDistinctParent.find(vampireSrt));
         unsigned dsrt = _sortedSignature->vampireToDistinctParent.get(vampireSrt);
         f_signature_distinct[i] = dsrt;
@@ -2088,7 +2088,7 @@ ffModelLabel:
           Substitution subst;
           for(unsigned j=0;j<arity;j++){
             TermList vs = env.signature->getFunction(f)->fnType()->arg(j); 
-            unsigned vampireSrt = SortHelper::sortNum(vs);
+            unsigned vampireSrt = vs.term()->functor();
             //cout << grounding[j] << " is " << model.getDomainConstant(grounding[j],vampireSrt)->toString() << endl;
             subst.bind(vars[j],model.getDomainConstant(grounding[j],vampireSrt));
           }
@@ -2205,7 +2205,7 @@ ffModelLabel:
     for(unsigned i=0;i<arity;i++){
       grounding[i]=1;
       TermList vs = env.signature->getPredicate(f)->predType()->arg(i);
-      unsigned vampireSrt = SortHelper::sortNum(vs);
+      unsigned vampireSrt = vs.term()->functor();
       unsigned dsrt = _sortedSignature->vampireToDistinctParent.get(vampireSrt); 
       p_signature_distinct[i] = dsrt;
     }
@@ -2229,7 +2229,7 @@ ppModelLabel:
             for(unsigned j=0;j<arity;j++){ 
               //cout << grounding[j] << " is " << model.getDomainConstant(grounding[j])->toString() << endl;
               TermList vs = env.signature->getPredicate(f)->predType()->arg(j); 
-              unsigned vampireSrt = SortHelper::sortNum(vs);
+              unsigned vampireSrt = vs.term()->functor();
               subst.bind(vars[j],model.getDomainConstant(grounding[j],vampireSrt));
             }
             Formula* predDefGround = SubstHelper::apply(predDef,subst);

@@ -56,7 +56,7 @@ ClauseIterator BoolEqToDiseq::generateClauses(Clause* cl)
       continue;
     }
     TermList eqSort = SortHelper::getEqualityArgumentSort(lit);
-    if(eqSort == Term::boolSort()){
+    if(eqSort == AtomicSort::boolSort()){
       TermList lhs = *lit->nthArgument(0);
       TermList rhs = *lit->nthArgument(1);
       if(AH::isBool(lhs) || AH::isBool(rhs)){
@@ -70,7 +70,7 @@ ClauseIterator BoolEqToDiseq::generateClauses(Clause* cl)
           TermList vNot = TermList(Term::createConstant(env.signature->getNotProxy()));
           TermList vNotSort = SortHelper::getResultSort(vNot.term());
           TermList newLhs = AH::createAppTerm(vNotSort, vNot, lhs);
-          newLit = Literal::createEquality(false, newLhs, rhs, Term::boolSort());
+          newLit = Literal::createEquality(false, newLhs, rhs, AtomicSort::boolSort());
           goto afterLoop;
         } 
       }
@@ -81,7 +81,7 @@ ClauseIterator BoolEqToDiseq::generateClauses(Clause* cl)
           TermList vNot = TermList(Term::createConstant(env.signature->getNotProxy()));
           TermList vNotSort = SortHelper::getResultSort(vNot.term());
           TermList newRhs = AH::createAppTerm(vNotSort, vNot, rhs);
-          newLit = Literal::createEquality(false, lhs, newRhs, Term::boolSort());
+          newLit = Literal::createEquality(false, lhs, newRhs, AtomicSort::boolSort());
           goto afterLoop;
         } 
       }
