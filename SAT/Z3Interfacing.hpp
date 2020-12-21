@@ -277,17 +277,11 @@ private:
 
   z3::expr getNameExpr(unsigned var){
     vstring name = "v"+Lib::Int::toString(var);
-
-    PRINT_CPP("exprs.push_back(c.bool_const(\""<< name << "\"));")
-
     return  _context.bool_const(name.c_str());
   }
   // careful: keep native constants' names distinct from the above ones (hence the "c"-prefix below)
   z3::expr getNameConst(const vstring& symbName, z3::sort srt){
-    vstring name = "c"+symbName;
-
-    PRINT_CPP("{ sort s = sorts.back(); sorts.pop_back(); exprs.push_back(c.constant(\""<< name << "\",s)); }")
-
+    vstring name("c"+symbName);
     return _context.constant(name.c_str(),srt);
   }
 

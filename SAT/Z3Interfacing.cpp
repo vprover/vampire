@@ -67,7 +67,6 @@ struct BottomUpChildIter<z3::expr>
 
 } // namespace Lib
 
-
 namespace SAT
 {
 
@@ -96,6 +95,7 @@ const char* errToString(Z3_error_code code)
     case Z3_INVALID_USAGE: return "Z3_INVALID_USAGE";
     case Z3_DEC_REF_ERROR: return "Z3_DEC_REF_ERROR";
     case Z3_EXCEPTION: return "Z3_EXCEPTION";
+    default: ASSERTION_VIOLATION; return "UNKNOWN ERROR";
   }
 }
 
@@ -109,8 +109,7 @@ Z3Interfacing::Z3Interfacing(SAT2FO& s2f, bool showZ3, bool unsatCoreForRefutati
   _varCnt(0), 
   sat2fo(s2f),_status(SATISFIABLE), 
   _config(),
-  _context(( //_config.set("model", "true"),
-            _config)),
+  _context(_config),
   _solver(_context),
   _model((_solver.check(),_solver.get_model())), _assumptions(_context), _unsatCoreForAssumptions(unsatCoresForAssumptions),
   _showZ3(showZ3),_unsatCoreForRefutations(unsatCoreForRefutations)
@@ -119,6 +118,7 @@ Z3Interfacing::Z3Interfacing(SAT2FO& s2f, bool showZ3, bool unsatCoreForRefutati
   _solver.reset();
 
   z3::set_param("rewriter.expand_store_eq", "true");
+  //z3::set_param("trace", "true");
 
     z3::params p(_context);
   if (_unsatCoreForAssumptions) {
@@ -127,6 +127,7 @@ Z3Interfacing::Z3Interfacing(SAT2FO& s2f, bool showZ3, bool unsatCoreForRefutati
     //p.set(":smtlib2-compliant",true);
   _solver.set(p);
   Z3_set_error_handler(_context, handleZ3Error);
+  //Z3_enable_trace("memory");
 }
 
 char const* Z3Interfacing::z3_full_version()
@@ -164,6 +165,7 @@ void Z3Interfacing::addClause(SATClause* cl,bool withGuard)
   for(unsigned i=0;i<clen;i++){
     SATLiteral l = (*cl)[i];
     z3::expr e = getRepresentation(l,withGuard);
+
     z3clause = z3clause || e;
 
     PRINT_CPP("{ expr e = exprs.back(); exprs.pop_back(); expr cl = exprs.back(); exprs.pop_back(); exprs.push_back(cl || e); } // append a literal");
@@ -376,7 +378,7 @@ struct EvaluateInModel
       auto f = expr.decl();
       auto vfunc = self._fromZ3.get(f);
       Stack<TermList> args(f.arity());
-      for (int i = 0; i < f.arity(); i++) {
+      for (unsigned i = 0; i < f.arity(); i++) {
         if (evaluatedArgs[i].isNone()) {
           // evaluation failed somewhere in a recursive call
           return Result();
@@ -406,7 +408,7 @@ Term* Z3Interfacing::evaluateInModel(Term* trm)
   z3::expr ev = _model.eval(rep,true); // true means "model_completion"
   unsigned sort = SortHelper::getResultSort(trm);
 
-  return evaluateBottomUp(ev, EvaluateInModel { *this })
+  auto result = evaluateBottomUp(ev, EvaluateInModel { *this })
     .map([&](EvaluateInModel::Copro co) { 
         return co.match(
             [&](Term* t) 
@@ -424,6 +426,7 @@ Term* Z3Interfacing::evaluateInModel(Term* trm)
             );
       })
     .unwrapOrElse([](){ return nullptr; });
+  return result;
 
 }
 
@@ -544,7 +547,7 @@ void Z3Interfacing::createTermAlgebra(TermAlgebra& start)
   Stack<Z3_constructor_list> ctorss_z3(tas.size());
   Stack<Z3_symbol> sortNames(tas.size());
   DEBUG("creating constructors: ");
-  for (auto ta : tas ) {
+  for (auto ta : tas) {
     Stack<Z3_constructor> ctors(ta->nConstructors());
 
     for (auto cons : ta->iterCons()) {
@@ -613,13 +616,13 @@ void Z3Interfacing::createTermAlgebra(TermAlgebra& start)
   for (unsigned iSort = 0; iSort < sorts.size(); iSort++) {
     _sorts.insert(tas[iSort]->sort(), z3::sort(_context, sorts[iSort]));
     auto ta = tas[iSort];
-    auto ctors = ctorss[iSort];
+    auto& ctors = ctorss[iSort];
     for (unsigned iCons = 0; iCons < ta->nConstructors(); iCons++) {
       auto ctor = ta->constructor(iCons);
 
       Z3_func_decl constr_;
       Z3_func_decl discr_;
-      Array<Z3_func_decl> destr(ta->nConstructors());
+      Array<Z3_func_decl> destr(ctor->arity());
 
       Z3_query_constructor(_context,
                            ctors[iCons],
@@ -656,8 +659,6 @@ void Z3Interfacing::createTermAlgebra(TermAlgebra& start)
       Z3_del_constructor(_context, ctor);
     }
   }
-
-
 }
 
 z3::func_decl const& Z3Interfacing::findConstructor(FuncId id_) 
@@ -1095,7 +1096,8 @@ struct ToZ3Expr {
 z3::expr Z3Interfacing::getz3expr(Term* trm, bool&nameExpression,bool withGuard)
 {
   CALL("Z3Interfacing::getz3expr");
-  return evaluateBottomUp(TermList(trm), ToZ3Expr{ *this, nameExpression, withGuard });
+  auto result = evaluateBottomUp(TermList(trm), ToZ3Expr{ *this, nameExpression, withGuard });
+  return result;
 }
 
 z3::expr Z3Interfacing::getRepresentation(SATLiteral slit,bool withGuard)
@@ -1121,11 +1123,11 @@ z3::expr Z3Interfacing::getRepresentation(SATLiteral slit,bool withGuard)
         PRINT_CPP("{ expr nm = exprs.back(); exprs.pop_back(); expr e = exprs.back(); exprs.pop_back(); expr naming = (nm == e); cout << \"naming: \" << naming << endl; solver.add(naming); }")
         z3::expr naming = (bname == e);
         _solver.add(naming);
-  if(_showZ3){
-    env.beginOutput();
-    env.out() << "[Z3] add (naming): " << naming << std::endl;
-    env.endOutput();
-  }
+        if(_showZ3){
+          env.beginOutput();
+          env.out() << "[Z3] add (naming): " << naming << std::endl;
+          env.endOutput();
+        }
       }
 
       if(slit.isNegative()){
