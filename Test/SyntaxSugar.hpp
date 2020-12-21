@@ -27,7 +27,7 @@
 
 #include "Indexing/TermSharing.hpp"
 #include "Kernel/Signature.hpp"
-#include "Kernel/Sorts.hpp"
+#include "Kernel/OperatorType.hpp"
 
 using SortType = TermList;
 
