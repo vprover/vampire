@@ -171,7 +171,7 @@ typename EvalFn::Result evaluateBottomUp(typename EvalFn::Arg const& term, EvalF
   ASS(recResults.size() == 1);
   auto result = recResults.pop();
   DEBUG("eval result: ", term, " -> ", result);
-  return std::move(result);
+  return result;
 }
 
 /** convenience wrapper for using evaluateBottomUp without a memo. */

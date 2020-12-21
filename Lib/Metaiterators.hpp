@@ -432,7 +432,7 @@ public:
     ASS(_next.isSome());
     auto out = std::move(_next).unwrap();
     _next = Option<OWN_ELEMENT_TYPE>();
-    return std::move(out);
+    return out;
   };
 private:
   
@@ -477,7 +477,7 @@ public:
     ASS(_next.isSome());
     auto out = std::move(_next).unwrap();
     _next = Option<OWN_ELEMENT_TYPE>();
-    return std::move(out);
+    return out;
   };
 
 private:

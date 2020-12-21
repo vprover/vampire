@@ -240,7 +240,7 @@ struct EvaluateMonom
     using Polynom   = Kernel::Polynom<NumTraits>;
     using Monom  = Kernel::Monom<NumTraits>;
 
-    auto offs = 0;
+    unsigned offs = 0;
     return perfect(Polynom(
                 poly->iterSummands()
                  .map([&](Monom m) -> Monom { 
@@ -316,10 +316,10 @@ Stack<C> intersectSortedStack(Stack<C>&& l, Stack<C>&& r)
   if (l.size() == 0) return std::move(l);
   if (r.size() == 0) return std::move(r);
 
-  auto outOffs = 0;
+  unsigned outOffs = 0;
   auto& out = l.size() <= r.size() ? l : r;
-  auto loffs = 0;
-  auto roffs = 0;
+  unsigned loffs = 0;
+  unsigned roffs = 0;
   while (loffs < l.size() && roffs < r.size()) {
     if (l[loffs] == r[roffs]) {
       out[outOffs++] = l[loffs];

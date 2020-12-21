@@ -31,6 +31,7 @@ ostream& operator<<(ostream& out, UMinus const& self) {
     case UMinus::Real: return out << "UMinus::Real";
     case UMinus::None: return out << "UMinus::None";
   }
+  ASSERTION_VIOLATION
 }
 
 
@@ -45,6 +46,7 @@ TermList pushUMinus(UMinus outerMinus, TermList t)
       case UMinus::Real: return RealTraits::minus(t);
       case UMinus::None: return t;
     }
+    ASSERTION_VIOLATION
   };
 
   if (t.isVar()) {
@@ -78,7 +80,7 @@ TermList pushUMinus(UMinus outerMinus, TermList t)
       }
     }
     Stack<TermList> args(term->arity());
-    for (int i =0; i < term->arity(); i++) {
+    for (unsigned i =0; i < term->arity(); i++) {
       args.push(pushUMinus(UMinus::None, *term->nthArgument(i)));
     }
     return wrapMinus(TermList(Term::create(term, args.begin())));
@@ -98,10 +100,10 @@ Clause* PushUnaryMinus::simplify(Clause* cl_)
 
   bool changed = false;
 
-  for (int i = 0; i < cl.size(); i++) {
+  for (unsigned i = 0; i < cl.size(); i++) {
     auto litIn = cl[i];
     Stack<TermList> litStack;
-    for (int j = 0; j < litIn->arity(); j++) {
+    for (unsigned j = 0; j < litIn->arity(); j++) {
       auto tIn = *litIn->nthArgument(j);
       auto tOut = pushUMinus(UMinus::None, tIn);
       changed = changed || tIn != tOut;

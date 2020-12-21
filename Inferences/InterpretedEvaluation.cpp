@@ -157,7 +157,7 @@ Clause* InterpretedEvaluation::simplify(Clause* cl)
     env.statistics->evaluationCnt++;
     return res; 
 
-  } catch (MachineArithmeticException) {
+  } catch (MachineArithmeticException&) {
     /* overflow while evaluating addition, subtraction, etc. */
     return cl;
   }

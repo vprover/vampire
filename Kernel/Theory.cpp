@@ -319,7 +319,7 @@ Comparison IntegerConstantType::comparePrecedence(IntegerConstantType n1, Intege
       }
     }
   }
-  catch(ArithmeticException) {
+  catch(ArithmeticException&) {
     ASSERTION_VIOLATION;
     throw;
   }
@@ -456,7 +456,7 @@ void RationalConstantType::cannonize()
     return;
   }
   // now it's safe to treat this unsigned as signed
-  ASS_LE(gcd,numeric_limits<signed>::max());
+  ASS_LE(gcd,(unsigned)numeric_limits<signed>::max());
   if (gcd!=1) {
     _num = _num.intDivide(gcd);
     _den = _den.intDivide(gcd);
@@ -583,7 +583,7 @@ bool RealConstantType::parseDouble(const vstring& num, RationalConstantType& res
     }
     IntegerConstantType numerator(newNum);
     res = RationalConstantType(numerator, denominator);
-  } catch(ArithmeticException) {
+  } catch(ArithmeticException&) {
     return false;
   }
   return true;

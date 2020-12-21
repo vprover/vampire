@@ -206,6 +206,7 @@ inline std::ostream& operator<<(ostream& out, SATSolver::Status const& s)
     case SATSolver::SATISFIABLE: return out << "SATISFIABLE";
     case SATSolver::UNSATISFIABLE: return out << "UNSATISFIABLE";
     case SATSolver::UNKNOWN: return out << "UNKNOWN";
+    default: ASSERTION_VIOLATION; return  out << "INVALID STATUS";
   }
 }
 
