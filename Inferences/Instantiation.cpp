@@ -23,7 +23,7 @@
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/Inference.hpp"
-#include "Kernel/Sorts.hpp"
+#include "Kernel/OperatorType.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Substitution.hpp"
 #include "Kernel/SubstHelper.hpp"

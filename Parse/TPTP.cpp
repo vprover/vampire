@@ -2001,7 +2001,7 @@ void TPTP::endTheoryFunction() {
       TermList array = _termLists.pop();
 
       arraySort = sortOf(array);
-      if (!SortHelper::isArraySort(arraySort)) {
+      if (!arraySort.isArraySort()) {
         USER_ERROR("$select is being incorrectly used on a type of array " + arraySort.toString() + " that has not be defined");
       }
 
@@ -2026,7 +2026,7 @@ void TPTP::endTheoryFunction() {
       TermList array = _termLists.pop();
 
       arraySort = sortOf(array);
-      if (!SortHelper::isArraySort(arraySort)) {
+      if (!arraySort.isArraySort()) {
         USER_ERROR("store is being incorrectly used on a type of array that has not be defined");
       }
 
@@ -2725,7 +2725,7 @@ void TPTP::endLet()
     bool isTuple = false;
     if (!isPredicate) {
       TermList resultSort = env.signature->getFunction(symbol)->fnType()->result();
-      isTuple = SortHelper::isTupleSort(resultSort);
+      isTuple = resultSort.isTupleSort();
     }
 
     if (isTuple) {

@@ -30,7 +30,7 @@
 #include "Kernel/Substitution.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/SubstHelper.hpp"
-#include "Kernel/Sorts.hpp"
+#include "Kernel/OperatorType.hpp"
 #include "Kernel/Theory.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"

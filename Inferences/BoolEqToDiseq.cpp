@@ -14,7 +14,7 @@
 
 #include "Debug/RuntimeStatistics.hpp"
 
-#include "Kernel/Sorts.hpp"
+#include "Kernel/OperatorType.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Signature.hpp"

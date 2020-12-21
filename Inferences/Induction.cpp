@@ -24,7 +24,7 @@
 #include "Kernel/Clause.hpp"
 #include "Kernel/Unit.hpp"
 #include "Kernel/Inference.hpp"
-#include "Kernel/Sorts.hpp"
+#include "Kernel/OperatorType.hpp"
 #include "Kernel/Theory.hpp"
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"

@@ -20,7 +20,7 @@
 #include "Lib/Set.hpp"
 
 #include "Kernel/Signature.hpp"
-#include "Kernel/Sorts.hpp"
+#include "Kernel/OperatorType.hpp"
 #include "Kernel/Term.hpp"
 
 #include "Shell/LispParser.hpp"

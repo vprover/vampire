@@ -15,7 +15,7 @@
 #include "Debug/RuntimeStatistics.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
 
-#include "Kernel/Sorts.hpp"
+#include "Kernel/OperatorType.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/Inference.hpp"

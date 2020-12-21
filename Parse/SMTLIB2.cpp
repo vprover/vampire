@@ -623,9 +623,6 @@ TermList SMTLIB2::declareSort(LExpr* sExpr)
         }
         TermList sort = TermList(Term::createConstant(newSort));
         results.push(sort);
-        if(added){
-          env.sorts->addSort(sort);
-        }
         continue;
       }
 
@@ -954,7 +951,6 @@ void SMTLIB2::readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool 
     ASS(added);
     env.signature->getFunction(srt)->setType(OperatorType::getConstantsType(AtomicSort::superSort()));
     TermList sort = TermList(Term::createConstant(srt));
-    env.sorts->addSort(sort);
     //(void)srt; // to get rid of compiler warning when logging is off
     // TODO: is it really OK we normally don't need the sort?
     LOG2("reading datatype "+dtypeName+" as sort ",sort);
@@ -1915,7 +1911,7 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
       TermList arraySortIdx = _results.pop().asTerm(theArray);
-      if (!SortHelper::isArraySort(arraySortIdx)) {
+      if (!arraySortIdx.isArraySort()) {
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
 
@@ -1950,7 +1946,7 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
       TermList arraySortIdx = _results.pop().asTerm(theArray);
-      if (!SortHelper::isArraySort(arraySortIdx)) {
+      if (!arraySortIdx.isArraySort()) {
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
 
