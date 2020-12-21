@@ -67,8 +67,8 @@ void SortInference::doInference()
       _sig->distinctToVampire.insert(dsorts,stack);
     }
 
-    for(unsigned s=0;s<env.sorts->count();s++){
-      if(env.property->usesSort(s) || SortHelper::isNotDefaultSort(s)){
+    for(unsigned s=0;s<env.signature->typeCons();s++){
+      if(env.property->usesSort(s) || env.signature->isNonDefaultCon(s)){
         if(_assumeMonotonic){
           _sig->distinctToVampire.get(dsorts)->push(s);
           Stack<unsigned>* stack = new Stack<unsigned>();
@@ -123,11 +123,11 @@ void SortInference::doInference()
 
     // we need at least one constant for symmetry breaking
     for(unsigned s=0;s<env.signature->typeCons();s++){
-      if(env.property->usesSort(s) || SortHelper::isNotDefaultSort(s)){
+      if(env.property->usesSort(s) || env.signature->isNonDefaultCon(s)){
         unsigned dsort = (*_sig->vampireToDistinct.get(s))[0];
         if(_sig->sortedConstants[dsort].isEmpty()){
           unsigned fresh = env.signature->addFreshFunction(0,"fmbFreshConstant");
-          TermList sT = AtomicSort::createConstant(s);
+          TermList sT = TermList(AtomicSort::createConstant(s));
           env.signature->getFunction(fresh)->setType(OperatorType::getConstantsType(sT));
           _sig->sortedConstants[dsort].push(fresh);
         }
@@ -185,8 +185,8 @@ void SortInference::doInference()
       cout << "Monotonicity information:" << endl;
       if(_assumeMonotonic){ cout << "Assuming all sorts monotonic due to translation" << endl; }
     }
-    for(unsigned s=0;s<env.sorts->count();s++){
-      if(env.property->usesSort(s) || SortHelper::isNotDefaultSort(s)){
+    for(unsigned s=0;s<env.signature->typeCons();s++){
+      if(env.property->usesSort(s) || env.signature->isNonDefaultCon(s)){
         bool monotonic = _assumeMonotonic;
         if(!monotonic){
           Monotonicity m(_clauses,s);
@@ -197,7 +197,7 @@ void SortInference::doInference()
         }
         if(_print){
           if(monotonic && !_assumeMonotonic){
-            cout << "Input sort " << env.sorts->sortName(s) << " is monotonic" << endl;
+            cout << "Input sort " << env.signature->typeConName(s) << " is monotonic" << endl;
           }
         }
       }
@@ -512,7 +512,7 @@ void SortInference::doInference()
 #if VDEBUG
       //cout << "FUNCTION " << env.signature->functionName(f) << endl;
       TermList vs = fnType->result();
-      unsigned vampireSort = s.term()->functor();
+      unsigned vampireSort = vs.term()->functor();
       unsigned ourSort = getDistinctSort(rangeSort,vampireSort,false);
       ASS_EQ(ourSort,_sig->parents[rangeSort]);
       ASS(_sig->distinctToVampire.find(ourSort));
@@ -520,7 +520,7 @@ void SortInference::doInference()
       bool found=false;
       //cout << "<<<<" << rangeSort << endl;
       while(it.hasNext()){ unsigned vs = it.next(); if(vs==vampireSort) found=true;  }
-      ASS_REP(found,Lib::Int::toString(rangeSort)+","+env.sorts->sortName(vampireSort));
+      ASS_REP(found,Lib::Int::toString(rangeSort)+","+env.signature->typeConName(vampireSort));
 #endif
     }
     else{
@@ -548,7 +548,7 @@ void SortInference::doInference()
       Stack<unsigned>::Iterator it(* _sig->distinctToVampire.get(ourSort));
       bool found=false;
       while(it.hasNext()){ unsigned vs = it.next(); if(vs==vampireSort) found=true; }
-      ASS_REP(found,Lib::Int::toString(argSort)+","+env.sorts->sortName(vampireSort));
+      ASS_REP(found,Lib::Int::toString(argSort)+","+env.signature->typeConName(vampireSort));
 #endif
       }
       else{
@@ -570,7 +570,7 @@ void SortInference::doInference()
     unsigned srt = freshMap.get(f);
     unsigned dsrt = _sig->parents[srt];
     unsigned vsrt = (*_sig->distinctToVampire.get(dsrt))[0];
-    TermList vsrtT = AtomicSort::createConstant(vsrt);
+    TermList vsrtT = TermList(AtomicSort::createConstant(vsrt));
     env.signature->getFunction(f)->setType(OperatorType::getConstantsType(vsrtT));
     env.signature->getFunction(f)->markIntroduced();
   }
@@ -607,7 +607,7 @@ void SortInference::doInference()
       Stack<unsigned>::Iterator it(* _sig->distinctToVampire.get(ourSort));
       bool found=false;
       while(it.hasNext()){ unsigned vs = it.next(); if(vs==vampireSort) found=true; }
-      ASS_REP(found,Lib::Int::toString(argSort)+","+env.sorts->sortName(vampireSort));
+      ASS_REP(found,Lib::Int::toString(argSort)+","+env.signature->typeConName(vampireSort));
 #endif
       }
       else{
@@ -677,16 +677,16 @@ void SortInference::doInference()
     for(unsigned i=0;i<_sig->distinctSorts;i++){
 
       Stack<unsigned>* vs = _sig->distinctToVampire.get(i);
-      if(vs->size()==1) cout << env.sorts->sortName((*vs)[0]);
-      else cout << env.sorts->sortName((*vs)[0]) << "(+)";
+      if(vs->size()==1) cout << env.signature->typeConName((*vs)[0]);
+      else cout << env.signature->typeConName((*vs)[0]) << "(+)";
 
       if(i==_sig->distinctSorts-1) cout << "]" << endl;
       else cout << ",";
     }
   }
 
-  for(unsigned s=0;s<env.sorts->count();s++){
-    if(env.property->usesSort(s) || SortHelper::isNotDefaultSort(s)){
+  for(unsigned s=0;s<env.signature->typeCons();s++){
+    if(env.property->usesSort(s) || env.signature->isNonDefaultCon(s)){
       // if sort is not here then it does not appear in signature (check)
       if(!_sig->vampireToDistinct.find(s)){ continue; }
 
@@ -702,14 +702,14 @@ void SortInference::doInference()
       // add those constraints between children and parent
       unsigned parent = _sig->vampireToDistinctParent.get(s);
 #if DEBUG_SORT_INFERENCE 
-      cout << "Parent " << parent << " for " << env.sorts->sortName(s) << endl;
+      cout << "Parent " << parent << " for " << env.signature->typeConName(s) << endl;
 #endif
       Stack<unsigned>::Iterator children(*_sig->vampireToDistinct.get(s));
       while(children.hasNext()){
         unsigned child = children.next();
         if(child==parent) continue;
 #if DEBUG_SORT_INFERENCE 
-        cout << "Child " << child << " for " << env.sorts->sortName(s) << endl;
+        cout << "Child " << child << " for " << env.signature->typeConName(s) << endl;
 #endif
         _sort_constraints.push(make_pair(parent,child));
       }
@@ -729,7 +729,7 @@ unsigned SortInference::getDistinctSort(unsigned subsort, unsigned realVampireSo
   unsigned vampireSort = realVampireSort;
   if(_expandSubsorts){
     if(!posEqualitiesOnSort[subsort]){
-      vampireSort = env.sorts->count()+subsort+1;
+      vampireSort = env.signature->typeCons()+subsort+1;
     }
   }
 

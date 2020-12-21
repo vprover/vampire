@@ -91,7 +91,7 @@ public:
    if(_domainConstants.find(pair,t)) return t;
    vstring name = "domCon_"+env.signature->typeConName(srt)+"_"+Lib::Int::toString(c);
    unsigned f = env.signature->addFreshFunction(0,name.c_str()); 
-   TermList srtT = Termlist(AtomicSort::createConstant(srt));
+   TermList srtT = TermList(AtomicSort::createConstant(srt));
    env.signature->getFunction(f)->setType(OperatorType::getConstantsType(srtT));
    t = Term::createConstant(f);
    _domainConstants.insert(pair,t);

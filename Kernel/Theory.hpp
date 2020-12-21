@@ -24,7 +24,7 @@
 
 #include "Shell/TermAlgebra.hpp"
 
-#include "Sorts.hpp"
+#include "OperatorType.hpp"
 #include "Term.hpp"
 
 namespace Kernel {

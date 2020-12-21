@@ -35,7 +35,7 @@
 #include "Shell/TermAlgebra.hpp"
 #include "Shell/Options.hpp"
 
-#include "Sorts.hpp"
+#include "OperatorType.hpp"
 #include "Theory.hpp"
 
 
@@ -51,6 +51,19 @@ class Signature
 {
  public:
   /** Function or predicate symbol */
+  
+  /** The default sort of all individuals, always in the non-sorted case */  
+  static const unsigned DEFAULT_SORT_CON=0;
+  /** Boolean sort */
+  static const unsigned BOOL_SRT_CON=1;
+  /** sort of integers */
+  static const unsigned INTEGER_SRT_CON=2;
+  /** sort of rationals */
+  static const unsigned RATIONAL_SRT_CON=3;
+  /** sort of reals */  
+  static const unsigned REAL_SRT_CON=4;
+  /** this is not a sort, it is just used to denote the first index of a user-define sort */
+  static const unsigned FIRST_USER_CON=5;
   
   //Order is important
   //Narrow.cpp relies on it
@@ -130,18 +143,8 @@ class Signature
     unsigned _inductionSkolem : 1;
     /** if skolem function in general **/
     unsigned _skolem : 1;
-    /** if arrow constructor */
-    unsigned _arrow : 1;
-    /** if app function symbol */
-    unsigned _app : 1;
     /** if tuple sort */
     unsigned _tuple : 1;
-    /** if array sort */
-    unsigned _array : 1;
-    /** if Boolean sort */
-    unsigned _boolSort : 1;
-    /** if any non-Boolean default sort */
-    unsigned _defaultSort : 1;
     /** proxy type */
     Proxy _prox;
     /** combinator type */
@@ -228,9 +231,6 @@ class Signature
 
     inline void markTuple(){ _tuple = 1; }
     inline bool tupleSort(){ return _tuple; }
-
-    inline void markArray(){ _array = 1; }
-    inline bool arraySort(){ return _array; }
 
     inline void setProxy(Proxy prox){ _prox = prox; }
     inline Proxy proxy(){ return _prox; }
@@ -400,7 +400,7 @@ class Signature
    * If a unique string constant with this name and arity exists, return its number.
    * Otherwise, add a new one and return its number.
    *
-   * The added constant is of sort Sorts::SRT_DEFAULT.
+   * The added constant is of default ($i) sort.
    */
   unsigned addStringConstant(const vstring& name);
   unsigned addFreshFunction(unsigned arity, const char* prefix, const char* suffix = 0);
@@ -560,6 +560,46 @@ class Signature
   bool functionExists(const vstring& name,unsigned arity) const;
   bool predicateExists(const vstring& name,unsigned arity) const;
 
+  /** true if there are user defined sorts */
+  bool hasSorts() const{
+    return typeCons() >= FIRST_USER_CON;
+  }
+
+  bool isDefaultSortCon(unsigned con) const{
+    return con < FIRST_USER_CON;
+  }
+
+  bool isInterpretedNonDefault(unsigned con) const{
+    return con < FIRST_USER_CON && con != DEFAULT_SORT_CON;    
+  }
+
+  bool isNonDefaultCon(unsigned con) const{
+    return con >= FIRST_USER_CON;    
+  }
+
+  bool isBoolCon(unsigned con) const{
+    return con == BOOL_SRT_CON;    
+  }
+
+  bool isTupleCon(unsigned con) {
+    return getTypeCon(con)->tupleSort();
+  }
+
+  bool isArrayCon(unsigned con) const{
+    ASS(_arrayCon > 0);
+    return con == _arrayCon;    
+  }
+
+  bool isArrowCon(unsigned con) const{
+    ASS(_arrowCon > 0);
+    return con == _arrowCon;    
+  }
+  
+  bool isAppFun(unsigned fun) const{
+    ASS(_appFun > 0);
+    return fun == _appFun;
+  }
+
   bool tryGetFunctionNumber(const vstring& name, unsigned arity, unsigned& out) const;
   bool tryGetPredicateNumber(const vstring& name, unsigned arity, unsigned& out) const;
   unsigned getFunctionNumber(const vstring& name, unsigned arity) const;
@@ -611,7 +651,6 @@ class Signature
     unsigned individualSort = addTypeCon("$i",0, added);
     if(added){
       getFunction(individualSort)->setType(OperatorType::getConstantsType(AtomicSort::superSort()));
-      getFunction(individualSort)->markDefaultSort();    
     }
     return individualSort;
   }
@@ -623,7 +662,6 @@ class Signature
     unsigned boolSort = addTypeCon("$o",0, added);
     if(added){
       getFunction(boolSort)->setType(OperatorType::getConstantsType(AtomicSort::superSort()));
-      getFunction(boolSort)->markBoolSort();
     }
     return boolSort;
   }
@@ -633,7 +671,6 @@ class Signature
     unsigned realSort = addTypeCon("$real",0, added);
     if(added){
       getFunction(realSort)->setType(OperatorType::getConstantsType(AtomicSort::superSort()));
-      getFunction(realSort)->markDefaultSort();
     }
     return realSort;
   }
@@ -643,7 +680,6 @@ class Signature
     unsigned intSort = addTypeCon("$int",0, added);
     if(added){
       getFunction(intSort)->setType(OperatorType::getConstantsType(AtomicSort::superSort()));
-      getFunction(intSort)->markDefaultSort();
     }
     return intSort;
   }  
@@ -653,7 +689,6 @@ class Signature
     unsigned ratSort = addTypeCon("$rat",0, added);
     if(added){
       getFunction(ratSort)->setType(OperatorType::getConstantsType(AtomicSort::superSort()));
-      getFunction(ratSort)->markDefaultSort();    
     }
     return ratSort;    
   }
@@ -666,7 +701,6 @@ class Signature
       TermList ss = AtomicSort::superSort();
       Symbol* arr = getFunction(arrow);
       arr->setType(OperatorType::getFunctionType({ss, ss}, ss));
-      arr->markArrow();
     }
     return arrow;    
   }
@@ -675,10 +709,10 @@ class Signature
     bool added = false;
     unsigned array = addTypeCon("Array",2, added);
     if(added){
+      _arrayCon = array;
       TermList ss = AtomicSort::superSort();
       Symbol* arr = getFunction(array);
       arr->setType(OperatorType::getFunctionType({ss, ss}, ss));
-      arr->markArray();
     }
     return array;    
   }
@@ -910,6 +944,7 @@ private:
   /** the number of real constants */
   unsigned _reals;
 
+  unsigned _arrayCon;
   unsigned _arrowCon;
   unsigned _appFun;
 

@@ -21,7 +21,7 @@
 #include "Indexing/TermSharing.hpp"
 
 #include "Kernel/Signature.hpp"
-#include "Kernel/Sorts.hpp"
+#include "Kernel/OperatorType.hpp"
 
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
@@ -56,7 +56,6 @@ Environment::Environment()
 
   options = new Options;
   statistics = new Statistics;  
-  sorts = new Sorts;
   signature = new Signature;
   sharing = new TermSharing;
 
@@ -94,7 +93,6 @@ Environment::~Environment()
 // #if CHECK_LEAKS
   delete sharing;
   delete signature;
-  delete sorts;
   delete statistics;
   if (predicateSineLevels) delete predicateSineLevels;
   {

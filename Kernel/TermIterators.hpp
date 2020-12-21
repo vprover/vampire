@@ -323,7 +323,7 @@ public:
   UnstableSubtermIt(Term* term)
   {
     _next = 0;
-    if(ApplicativeHelper::isApp(term) && !term->ground()){
+    if(term->isApplication() && !term->ground()){
       _stack.push(term);
     }
   }

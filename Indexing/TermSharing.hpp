@@ -58,6 +58,10 @@ public:
 
   static bool equals(const Literal* l1, const Literal* l2, bool opposite=false);
 
+  DHSet<TermList>* getArraySorts(){
+    return _arraySorts;
+  }
+
   struct OpLitWrapper {
     OpLitWrapper(Literal* l) : l(l) {}
     Literal* l;
@@ -76,8 +80,12 @@ private:
   Set<Term*,TermSharing> _terms;
   /** The set storing all literals */
   Set<Literal*,TermSharing> _literals;
-    /** The set storing all sorts */
+  /** The set storing all sorts */
   Set<AtomicSort*,TermSharing> _sorts;
+  /* Set containing all array sorts. 
+   * Can be deleted once array axioms are made truly poltmorphic
+   */  
+  DHSet<TermList>* _arraySorts;
   /** Number of terms stored */
   unsigned _totalTerms;
   /** Number of sorts stored */

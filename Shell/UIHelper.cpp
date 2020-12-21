@@ -566,11 +566,13 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
     sym = env.signature->getPredicate(symNumber);    
   }
 
-  if (sym->defaultSort() || sym->arraySort()  || sym->tupleSort()){
+  if (typeCon && (env.signature->isArrayCon(symNumber) ||
+                  env.signature->isTupleCon(symNumber))){
     return;
   }
 
-  if(sym->boolSort() && !env.options->showFOOL()){
+  if(typeCon && env.signature->isDefaultSortCon(symNumber) && 
+    (!env.signature->isBoolCon(symNumber) || !env.options->showFOOL())){
     return;
   }
 
@@ -591,7 +593,7 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
 
   if (function) {
     TermList sort = env.signature->getFunction(symNumber)->fnType()->result();
-    if (SortHelper::isTupleSort(sort)) {
+    if (sort.isTupleSort()) {
       return;
     }
   }
@@ -606,7 +608,8 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
   //out << "tff(" << (function ? "func" : "pred") << "_def_" << symNumber << ", type, "
   //    << sym->name() << ": ";
 
-  if(!sym->app()){
+  //don't output type of app. It is an internal Vampire thing
+  if(!(function && env.signature->isAppFun(symNumber))){
     out << (env.statistics->higherOrder ? "thf(" : "tff(")
         << (function ? "func" : (typeCon ?  "type" : "pred")) 
         << "_def_" << symNumber << ", type, "

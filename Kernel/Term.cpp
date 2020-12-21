@@ -266,21 +266,68 @@ unsigned TermList::weight() const
   return isVar() ? 1 : term()->weight();
 }
 
-bool TermList::isArrowSort() const
+bool TermList::isArrowSort()
 {
-  return !isVar() && term()->isArrowSort();
+  CALL("TermList::isArrowSort");
+  return !isVar() && term()->isSort() && 
+         static_cast<AtomicSort*>(term())->isArrowSort();
 }
 
-bool Term::isArrowSort() const { 
-  CALL("Term::isArrowSort");
+bool TermList::isBoolSort()
+{
+  CALL("TermList::isBoolSort");
+  return !isVar() && term()->isSort() && 
+         static_cast<AtomicSort*>(term())->isBoolSort();
+}
+
+bool TermList::isArraySort()
+{
+  CALL("TermList::isArraySort");  
+  return !isVar() && term()->isSort() && 
+         static_cast<AtomicSort*>(term())->isArraySort();
+}
+
+bool TermList::isTupleSort()
+{
+  CALL("TermList::isTupleSort");    
+  return !isVar() && term()->isSort() && 
+         static_cast<AtomicSort*>(term())->isTupleSort();
+}
+
+bool AtomicSort::isArrowSort() const { 
+  CALL("AtomicSort::isArrowSort");
   
-  return isSort() && env.signature->getTypeCon(_functor)->arrow();
+  return env.signature->isArrowCon(_functor);
+}
+
+bool AtomicSort::isBoolSort() const { 
+  CALL("AtomicSort::isBoolSort");
+  
+  return env.signature->isBoolCon(_functor);
+}
+
+bool AtomicSort::isArraySort() const { 
+  CALL("AtomicSort::isArraySort");
+  
+  return env.signature->isArrayCon(_functor);
+}
+
+bool AtomicSort::isTupleSort() const { 
+  CALL("AtomicSort::isTupleSort");
+  
+  return env.signature->isTupleCon(_functor);
+}
+
+bool TermList::isApplication() const { 
+  CALL("Term::isApplication");
+  
+  return !isVar() && term()->isApplication();
 }
 
 bool Term::isApplication() const {
   CALL("Term::isApplication");
   
-  return !isSort() && !isLiteral() && env.signature->getFunction(_functor)->app();    
+  return !isSort() && !isLiteral() && env.signature->isAppFun(_functor);    
 }
 
 bool TermList::containsSubterm(TermList trm)
@@ -636,7 +683,7 @@ vstring TermList::asArgsToString() const
     }
     const Term* t = ts->term();
   
-    if(!t->isSpecial() && env.signature->getFunction(t->functor())->arrow()){
+    if(!(t->isSort() && static_cast<AtomicSort*>(const_cast<Term*>(t))->isArrowSort())){
       res += t->toString();
       continue;
     }
@@ -684,7 +731,7 @@ vstring Term::toString(bool topLevel) const
   }
 
   if(!isSpecial() && !isLiteral()){
-    if(isArrowSort()){
+    if(isSort() && static_cast<AtomicSort*>(const_cast<Term*>(this))->isArrowSort()){
       ASS(arity() == 2);
       vstring res;
       TermList arg1 = *(nthArgument(0));
@@ -1061,7 +1108,7 @@ Term* Term::createTupleLet(unsigned tupleFunctor, VList* symbols, TermList bindi
 #if VDEBUG
   Signature::Symbol* tupleSymbol = env.signature->getFunction(tupleFunctor);
   ASS_EQ(tupleSymbol->arity(), VList::length(symbols));
-  ASS_REP(SortHelper::isTupleSort(tupleSymbol->fnType()->result()), tupleFunctor);
+  ASS_REP(tupleSymbol->fnType()->result().isTupleSort(), tupleFunctor);
 
   Set<pair<int,bool> > distinctSymbols;
   VList::Iterator sit(symbols);

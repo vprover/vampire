@@ -456,8 +456,8 @@ void FiniteModelBuilder::init()
 
   // Store distinct constants by type
   DArray<DHMap<unsigned,DHSet<unsigned>*>*> _distinctConstants;
-  _distinctConstants.ensure(env.sorts->count());
-  for(unsigned i=0;i<env.sorts->count();i++){ _distinctConstants[i]=0; }
+  _distinctConstants.ensure(env.signature->typeCons());
+  for(unsigned i=0;i<env.signature->typeCons();i++){ _distinctConstants[i]=0; }
 
   // Apply flattening and split clauses into ground and non-ground
   while(cit.hasNext()){
@@ -679,8 +679,8 @@ void FiniteModelBuilder::init()
 
     // if we've done the sort expansion thing then the max for the parent should be
     // the max of all children
-    for(unsigned s=0;s<env.sorts->count();s++){
-      if((env.property->usesSort(s) || SortHelper::isNotDefaultSort(s)) && _sortedSignature->vampireToDistinct.find(s)){
+    for(unsigned s=0;s<env.signature->typeCons();s++){
+      if((env.property->usesSort(s) || env.signature->isNonDefaultCon(s)) && _sortedSignature->vampireToDistinct.find(s)){
         Stack<unsigned>* dmembers = _sortedSignature->vampireToDistinct.get(s);
         ASS(dmembers);
         if(dmembers->size() > 1){ 
@@ -697,7 +697,7 @@ void FiniteModelBuilder::init()
     }
 
     //_distinctConstants
-    for(unsigned s=0;s<env.sorts->count();s++){
+    for(unsigned s=0;s<env.signature->typeCons();s++){
       if(_distinctConstants[s]!=0){
 
         ASS(_sortedSignature->vampireToDistinct.find(s));
@@ -709,7 +709,7 @@ void FiniteModelBuilder::init()
           _distinctSortMins[ds.next()]=max;
         }
 #if VTRACE_FMB
-        cout << "Setting min for " << env.sorts->sortName(s) << " to " << max << endl;
+        cout << "Setting min for " << env.signature->typeConName(s) << " to " << max << endl;
 #endif
       }
     }
@@ -781,7 +781,7 @@ void FiniteModelBuilder::init()
 
     if(env.signature->functionArity(f)==0){ 
       TermList vsrtT = env.signature->getFunction(f)->fnType()->result();
-      if(!SortHelper::isBoolSort(vsrtT)){
+      if(!vsrtT.isBoolSort()){
         unsigned vsrt = vsrtT.term()->functor();
         ASS(_sortedSignature->vampireToDistinctParent.find(vsrt));
         unsigned dsrt = _sortedSignature->vampireToDistinctParent.get(vsrt);
@@ -1856,7 +1856,7 @@ void FiniteModelBuilder::onModelFound()
 
 
  DHMap<unsigned,unsigned> vampireSortSizes;
- for(unsigned vSort=0;vSort<env.sorts->count();vSort++){
+ for(unsigned vSort=0;vSort<env.signature->typeCons();vSort++){
    unsigned size = 0;
    unsigned dsort;
    if(_sortedSignature->vampireToDistinctParent.find(vSort,dsort)){

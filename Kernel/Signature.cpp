@@ -56,12 +56,7 @@ Signature::Symbol::Symbol(const vstring& nm, unsigned arity, bool interpreted, b
     _inUnit(0),
     _inductionSkolem(0),
     _skolem(0),
-    _arrow(0),
-    _app(0),
     _tuple(0),
-    _array(0),
-    _boolSort(0),
-    _defaultSort(0),
     _prox(NOT_PROXY),
     _comb(NOT_COMB)
 {
@@ -250,6 +245,9 @@ Signature::Signature ():
     _integers(0),
     _rationals(0),
     _reals(0),
+    _arrayCon(0),
+    _arrowCon(0),
+    _appFun(0),
     _termAlgebras()
 {
   CALL("Signature::Signature");
@@ -729,6 +727,7 @@ unsigned Signature::getApp()
   bool added = false;
   unsigned app = addFunction("vAPP", 4, added);
   if(added){
+    _appFun = app;
     VList* vl = VList::empty();
     VList::push(1, vl);
     VList::push(0, vl);
@@ -738,7 +737,6 @@ unsigned Signature::getApp()
     OperatorType* ot = OperatorType::getFunctionType({arrowType, tv1}, tv2, vl);
     Symbol* sym = getFunction(app);
     sym->setType(ot);
-    sym->markApp();
   }
   return app;
 }

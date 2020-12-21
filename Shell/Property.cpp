@@ -149,7 +149,7 @@ void Property::add(UnitList* units)
   }
 
   // information about sorts is read from the environment, not from the problem
-  if (env.sorts->hasSort()) {
+  if (env.signature->hasSorts()) {
     addProp(PR_SORTS);
   }
     
@@ -521,7 +521,7 @@ void Property::scanSort(TermList sort)
   _hasNonDefaultSorts = true;
   env.statistics->hasTypes=true;
 
-  if(SortHelper::isArraySort(sort)){
+  if(sort.isArraySort()){
     // an array sort is infinite, if the index or value sort is infinite
     // we rely on the recursive calls setting appropriate flags
     TermList idx = *sort.term()->nthArgument(0);
@@ -589,8 +589,8 @@ void Property::scan(Literal* lit, int polarity, unsigned cLen, bool goal)
     if((lhs.isVar() || rhs.isVar()) && eqSort == AtomicSort::boolSort()){
       _hasBoolVar = true;
     }
-    if((eqSort.isVar() || eqSort.term()->arity()) && !eqSort.isArrowSort() &&
-      !SortHelper::isArraySort(eqSort) && !SortHelper::isTupleSort(eqSort)){
+    if((eqSort.isVar() || eqSort.term()->arity()) && 
+       !eqSort.isArrowSort() && !eqSort.isArraySort() && !eqSort.isTupleSort()){
       _hasPolymorphicSym = true;      
     } 
     scanSort(eqSort);
@@ -690,7 +690,7 @@ void Property::scan(TermList ts,bool unit,bool goal)
     if(unit){ func->markInUnit();}
     if(goal){ func->markInGoal();}
 
-    if(func->app()){
+    if(t->isApplication()){
       _hasApp = true;
       TermList sort = SortHelper::getResultSort(t);
       if(ApplicativeHelper::getResultSort(sort) == AtomicSort::boolSort()){
@@ -715,7 +715,7 @@ void Property::scan(TermList ts,bool unit,bool goal)
     }
 
     OperatorType* type = func->fnType();
-    if(!func->app() && type->typeArgsArity()){
+    if(!t->isApplication() && type->typeArgsArity()){
       _hasPolymorphicSym = true;
     }
 

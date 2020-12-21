@@ -17,7 +17,7 @@
 #include "Clause.hpp"
 #include "FormulaUnit.hpp"
 #include "Signature.hpp"
-#include "Sorts.hpp"
+#include "OperatorType.hpp"
 #include "SubformulaIterator.hpp"
 #include "Term.hpp"
 #include "TermIterators.hpp"
@@ -909,13 +909,6 @@ bool SortHelper::areImmediateSortsValidMono(Term* t)
   return true;
 }
 
-bool SortHelper::isTupleSort(TermList sort)
-{
-  CALL("SortHelper::isTupleSort");  
-  if(!sort.isTerm()){ return false; }
-  return env.signature->getFunction(sort.term()->functor())->tupleSort(); 
-}
-
 /*
 bool SortHelper::isStructuredSort(unsigned s)
 {
@@ -925,53 +918,20 @@ bool SortHelper::isStructuredSort(unsigned s)
 }
 */
 
-bool SortHelper::isArraySort(TermList sort)
-{
-  CALL("SortHelper::isArraySort");  
-  if(!sort.isTerm()){ return false; }
-  return env.signature->getFunction(sort.term()->functor())->arraySort(); 
-}
-
-bool SortHelper::isBoolSort(TermList sort)
-{
-  CALL("SortHelper::isBoolSort");  
-  return sort == AtomicSort::boolSort();
-}
-
 TermList SortHelper::getIndexSort(TermList arraySort)
 {
   CALL("SortHelper::getIndexSort");  
-  ASS(isArraySort(arraySort));
+  ASS(arraySort.isArraySort());
   return *arraySort.term()->nthArgument(0);
 }
 
 TermList SortHelper::getInnerSort(TermList arraySort)
 {
   CALL("SortHelper::getInnerSort");  
-  ASS(isArraySort(arraySort));
+  ASS(arraySort.isArraySort());
   return *arraySort.term()->nthArgument(1);
 }
 
-bool SortHelper::isNotDefaultSort(unsigned s)
-{
-  CALL("SortHelper::isNotDefaultSort");  
-
-  return s >= Sorts::FIRST_USER_SORT;
-}
-
-bool SortHelper::isInterpretedNonDefault(unsigned s)
-{
-  CALL("SortHelper::isInterpretedNonDefault");  
-
-  return (s < Sorts::FIRST_USER_SORT && s > 0);
-}
-
-bool SortHelper::isInterpretedNonBool(unsigned s)
-{
-  CALL("SortHelper::isInterpretedNonBool");  
-
-  return (s < Sorts::FIRST_USER_SORT && s != 1);
-}
 /**
  * Return true iff sorts of all terms (both functions and variables) match
  * in clause @c cl.

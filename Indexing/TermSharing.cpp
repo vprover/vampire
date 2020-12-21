@@ -19,7 +19,7 @@
 #include "Lib/Environment.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/SortHelper.hpp"
-#include "Kernel/Sorts.hpp"
+#include "Kernel/OperatorType.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/ApplicativeHelper.hpp"
@@ -59,6 +59,8 @@ TermSharing::~TermSharing()
 {
   CALL("TermSharing::~TermSharing");
 
+  delete _arraySorts;
+  
 #if CHECK_LEAKS
   Set<Term*,TermSharing>::Iterator ts(_terms);
   while (ts.hasNext()) {
@@ -121,7 +123,7 @@ Term* TermSharing::insert(Term* t)
 	env.signature->getFunction(t->functor())->interpreted();
     Color color = COLOR_TRANSPARENT;
 
-    if(env.options->combinatorySup() && !AH::isType(t)){ 
+    if(env.options->combinatorySup()){ 
       int maxRedLength = -1;
       TermList head;
       TermStack args;
@@ -213,7 +215,6 @@ Term* TermSharing::insert(Term* t)
 
 AtomicSort* TermSharing::insert(AtomicSort* sort)
 {
-
   CALL("TermSharing::insert(AtomicSort*)");
   ASS(!sort->isLiteral());
   ASS(!sort->isSpecial());
@@ -221,6 +222,9 @@ AtomicSort* TermSharing::insert(AtomicSort* sort)
 
   TimeCounter tc(TC_TERM_SHARING);
 
+  if(sort->isArraySort()){
+    _arraySorts->insert(TermList(sort));
+  }
 
   _sortInsertions++;
   AtomicSort* s = _sorts.insert(sort);

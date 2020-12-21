@@ -21,7 +21,7 @@
 
 #include "Kernel/Term.hpp"
 #include "Kernel/Substitution.hpp"
-#include "Kernel/Sorts.hpp"
+#include "Kernel/OperatorType.hpp"
 
 namespace Kernel {
 
@@ -72,21 +72,8 @@ public:
   static bool areImmediateSortsValidPoly(Term* t); 
   static bool areImmediateSortsValidMono(Term* t);
   // static bool isStructuredSort(unsigned s);
-  static bool isTupleSort(TermList sort);
-  static bool isArraySort(TermList sort);
-  static bool isBoolSort(TermList sort);
   static TermList getIndexSort(TermList arraySort);
   static TermList getInnerSort(TermList arraySort);
-  static bool isNotDefaultSort(unsigned s);
-  static bool isInterpretedNonDefault(unsigned s);
-  static bool isInterpretedNonBool(unsigned s);
-  //convenience functions
-  static unsigned sortNum(TermList sort){
-    return env.sorts->getSortNum(sort);
-  }
-  static TermList sortTerm(unsigned sortNum){
-    return env.sorts->getSortTerm(sortNum);
-  }
 
   static OperatorType* getType(Term* t);
 

@@ -31,7 +31,7 @@
 #include "Kernel/Connective.hpp" 
 #include "Kernel/Inference.hpp"
 #include "Kernel/MainLoop.hpp"                      
-#include "Kernel/Sorts.hpp"
+#include "Kernel/OperatorType.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 #include "Saturation/LabelFinder.hpp"

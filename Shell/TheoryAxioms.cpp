@@ -23,11 +23,12 @@
 #include "Kernel/Inference.hpp"
 #include "Kernel/Problem.hpp"
 #include "Kernel/Signature.hpp"
-#include "Kernel/Sorts.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Theory.hpp"
 #include "Kernel/SortHelper.hpp"
+
+#include "Indexing/TermSharing.hpp"
 
 #include "Property.hpp"
 #include "SymCounter.hpp"
@@ -1082,7 +1083,7 @@ void TheoryAxioms::apply()
     modified = true;
   }
 
-  DHSet<TermList>* arraySorts = env.sorts->getArraySorts();
+  DHSet<TermList>* arraySorts = env.sharing->getArraySorts();
   DHSet<TermList>::Iterator it(*arraySorts);
   while(it.hasNext()){
     TermList arraySort = it.next();

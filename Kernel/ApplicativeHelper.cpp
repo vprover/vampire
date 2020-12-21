@@ -156,16 +156,10 @@ unsigned ApplicativeHelper::getArity(TermList sort)
 void ApplicativeHelper::getHeadAndAllArgs(TermList term, TermList& head, TermStack& args)
 {
   CALL("ApplicativeHelper::getHeadAndAllArgs");
- 
-  if(!term.isTerm()){
-    head = term;
-    return;
-  }
 
-  while(isApp(term.term())){
+  while(term.isApplication()){
     args.push(*term.term()->nthArgument(3)); 
     term = *term.term()->nthArgument(2);
-    if(!term.isTerm()){ break; } 
   }
   head = term;  
   if(term.isTerm()){
@@ -188,11 +182,11 @@ void ApplicativeHelper::getHeadSortAndArgs(TermList term, TermList& head,
     return;
   }
 
-  while(isApp(term.term())){
+  while(term.isApplication()){
     Term* t = term.term();   
     args.push(*t->nthArgument(3)); 
     term = *t->nthArgument(2);
-    if(!term.isTerm() || !isApp(term.term())){
+    if(!term.isApplication()){
       headSort = AtomicSort::arrowSort(*t->nthArgument(0), *t->nthArgument(1));
       break;   
     } 
@@ -208,15 +202,9 @@ void ApplicativeHelper::getHeadAndArgs(TermList term, TermList& head, TermStack&
 
   if(!args.isEmpty()){ args.reset(); }
 
-  if(!term.isTerm()){
-    head = term;
-    return;
-  } 
-
-  while(isApp(term.term())){
+  while(term.isApplication()){
     args.push(*term.term()->nthArgument(3)); 
     term = *term.term()->nthArgument(2);
-    if(!term.isTerm()){ break; } 
   }
   head = term;
 
@@ -231,7 +219,7 @@ void ApplicativeHelper::getHeadAndArgs(Term* term, TermList& head, TermStack& ar
 
   head = TermList(term);
 
-  while(isApp(term)){
+  while(term->isApplication()){
     args.push(*term->nthArgument(3)); 
     head = *term->nthArgument(2);
     if(head.isTerm()){ 
@@ -245,11 +233,11 @@ void ApplicativeHelper::getHeadAndArgs(const Term* term, TermList& head, Deque<T
 {
   CALL("ApplicativeHelper::getHeadAndArgs/3");
 
-  ASS(isApp(term));
+  ASS(term->isApplication());
 
   if(!args.isEmpty()){ args.reset(); }
 
-  while(isApp(term)){
+  while(term->isApplication()){
     args.push_front(*term->nthArgument(3)); 
     head = *term->nthArgument(2);
     if(head.isTerm()){ 
@@ -268,7 +256,7 @@ TermList ApplicativeHelper::getHead(TermList t)
     return t; 
   }
 
-  while(env.signature->getFunction(t.term()->functor())->app()){
+  while(t.isApplication()){
     t = *t.term()->nthArgument(2);
     if(!t.isTerm() || t.term()->isSpecial()){ break; } 
   }
@@ -280,7 +268,7 @@ TermList ApplicativeHelper::getHead(Term* t)
   CALL("ApplicativeHelper::getHead(Term*)");
   
   TermList trm = TermList(t);
-  while(env.signature->getFunction(t->functor())->app()){
+  while(t->isApplication()){
     trm = *t->nthArgument(2);
     if(!trm.isTerm() || trm.term()->isSpecial()){ break; }
     t = trm.term(); 
@@ -308,27 +296,6 @@ Signature::Proxy ApplicativeHelper::getProxy(const TermList t)
     return Signature::NOT_PROXY;
   }
   return env.signature->getFunction(t.term()->functor())->proxy();
-}
-
-
-bool ApplicativeHelper::isApp(const Term* t)
-{
-  CALL("ApplicativeHelper::isApp(Term*)");
-  return env.signature->getFunction(t->functor())->app(); 
-}
-
-bool ApplicativeHelper::isApp(const TermList* tl)
-{
-  CALL("ApplicativeHelper::isApp(TermList*)");
-  if(tl->isTerm()){ return isApp(tl->term()); }
-  return false;
-}
-
-bool ApplicativeHelper::isType(const Term* t)
-{
-  CALL("ApplicativeHelper::isType(Term*)");
-  return t->isSuper() ||
-         SortHelper::getResultSort(t) == AtomicSort::superSort();
 }
 
 bool ApplicativeHelper::isUnderApplied(TermList head, unsigned argNum){

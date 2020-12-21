@@ -92,8 +92,8 @@ FiniteModelMultiSorted::FiniteModelMultiSorted(DHMap<unsigned,unsigned> sizes) :
   }
   p_interpretation.expand(offsets+1,0);
 
-  sortRepr.ensure(env.sorts->count());
-  for(unsigned s=0;s<env.sorts->count();s++){
+  sortRepr.ensure(env.signature->typeCons());
+  for(unsigned s=0;s<env.signature->typeCons();s++){
     sortRepr[s].ensure(_sizes.get(s)+1);
     for(unsigned i=0;i<=_sizes.get(s);i++){
       sortRepr[s][i] = -1;
@@ -201,7 +201,7 @@ vstring FiniteModelMultiSorted::toString()
     if(size==0) continue;
 
     vstring sortName = env.signature->typeConName(s);
-    vstring sortNameLabel = (SortHelper::isBoolSort(AtomicSort::createConstant(s))) ? "bool" : sortName;
+    vstring sortNameLabel = (env.signature->isBoolCon(s)) ? "bool" : sortName;
 
     // Sort declaration
     modelStm << "tff(" << prepend("declare_", sortNameLabel) << ",type,"<<sortName<<":$tType)." <<endl;
@@ -265,7 +265,7 @@ vstring FiniteModelMultiSorted::toString()
     vstring cname = cnames[srt][res];
     if(name == cname) continue;
 
-    vstring sortName = env.sorts->sortName(srt);
+    vstring sortName = env.signature->typeConName(srt);
     modelStm << "tff("<<prepend("declare_", name)<<",type,"<<name<<":"<<sortName<<")."<<endl;
     if(res>0){ 
       modelStm << "tff("<<append(name,"_definition")<<",axiom,"<<name<<" = " << cname << ")."<<endl;
@@ -286,10 +286,10 @@ vstring FiniteModelMultiSorted::toString()
     OperatorType* sig = env.signature->getFunction(f)->fnType();
     modelStm << "tff("<<prepend("declare_", name)<<",type,"<<name<<": ";
     for(unsigned i=0;i<arity;i++){
-      modelStm << env.sorts->sortName(sig->arg(i));
+      modelStm << sig->arg(i).toString();
       if(i+1 < arity) modelStm << " * ";
     }
-    modelStm << " > " << env.sorts->sortName(sig->result()) << ")." << endl; 
+    modelStm << " > " << sig->result().toString() << ")." << endl; 
 
     modelStm << "tff("<<prepend("function_", name)<<",axiom,"<<endl;
 
@@ -382,7 +382,7 @@ fModelLabel:
     for(unsigned i=0;i<arity;i++){
       TermList argST = sig->arg(i);
       unsigned argS = argST.term()->functor();      
-      modelStm << env.sorts->sortName(argS);
+      modelStm << env.signature->typeConName(argS);
       if(i+1 < arity) modelStm << " * ";
     }
     modelStm << " > $o )." << endl;

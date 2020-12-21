@@ -166,9 +166,9 @@ void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, DArray<
   CALL("Monotonicity::addSortPredicates");
 
   // First compute the monotonic sorts
-  DArray<bool> isMonotonic(env.sorts->count());
-  for(unsigned s=0;s<env.sorts->count();s++){
-    if(env.property->usesSort(s) || SortHelper::isNotDefaultSort(s)){
+  DArray<bool> isMonotonic(env.signature->typeCons());
+  for(unsigned s=0;s<env.signature->typeCons();s++){
+    if(env.property->usesSort(s) || env.signature->isNonDefaultCon(s)){
        if(withMon){
          Monotonicity m(clauses,s);
          bool monotonic = m.check();
@@ -185,9 +185,9 @@ void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, DArray<
   DArray<unsigned> sortPredicates(env.signature->typeCons());
   for(unsigned s=0;s<env.signature->typeCons();s++){
     if(!isMonotonic[s]){
-      vstring name = "sortPredicate_"+env.sorts->sortName(s);
+      vstring name = "sortPredicate_"+env.signature->typeConName(s);
       unsigned p = env.signature->addFreshPredicate(1,name.c_str());
-      env.signature->getPredicate(p)->setType(OperatorType::getPredicateType({AtomicSort::createConstant(s)}));
+      env.signature->getPredicate(p)->setType(OperatorType::getPredicateType({TermList(AtomicSort::createConstant(s))}));
       sortPredicates[s] = p;
     }
     else{ sortPredicates[s]=0; }
@@ -207,7 +207,7 @@ void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, DArray<
     unsigned p = sortPredicates[s];
     ASS(p>0);
 
-    TermList sTerm = AtomicSort::createConstant(s);
+    TermList sTerm = TermList(AtomicSort::createConstant(s));
 
     for(unsigned f=0; f < function_count; f++){
       if(del_f[f]) continue;
@@ -325,9 +325,9 @@ void Monotonicity::addSortFunctions(bool withMon, ClauseList*& clauses)
   CALL("Monotonicity::addSortFunctions");
 
   // First compute the monotonic sorts
-  DArray<bool> isMonotonic(env.sorts->count());
-  for(unsigned s=0;s<env.sorts->count();s++){
-    if(env.property->usesSort(s) || SortHelper::isNotDefaultSort(s)){
+  DArray<bool> isMonotonic(env.signature->typeCons());
+  for(unsigned s=0;s<env.signature->typeCons();s++){
+    if(env.property->usesSort(s) || env.signature->isNonDefaultCon(s)){
        if(withMon){
          Monotonicity m(clauses,s);
          bool monotonic = m.check();
@@ -341,12 +341,12 @@ void Monotonicity::addSortFunctions(bool withMon, ClauseList*& clauses)
   }
 
   // Now create a sort function per non-monotonic sort
-  DArray<unsigned> sortFunctions(env.sorts->count());
-  for(unsigned s=0;s<env.sorts->count();s++){
+  DArray<unsigned> sortFunctions(env.signature->typeCons());
+  for(unsigned s=0;s<env.signature->typeCons();s++){
     if(!isMonotonic[s]){
-      vstring name = "sortFunction_"+env.sorts->sortName(s);
+      vstring name = "sortFunction_"+env.signature->typeConName(s);
       unsigned f = env.signature->addFreshFunction(1,name.c_str());
-      TermList sT = AtomicSort::createConstant(s);
+      TermList sT = TermList(AtomicSort::createConstant(s));
       env.signature->getFunction(f)->setType(OperatorType::getFunctionType({sT},sT));
       sortFunctions[s] = f;
     }

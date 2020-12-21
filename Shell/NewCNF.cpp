@@ -15,7 +15,7 @@
 
 #include "Debug/Tracer.hpp"
 
-#include "Kernel/Sorts.hpp"
+#include "Kernel/OperatorType.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/Formula.hpp"
 #include "Kernel/Inference.hpp"

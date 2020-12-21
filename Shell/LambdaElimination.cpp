@@ -259,7 +259,7 @@ TermList LambdaElimination::processBeyondLambda(Term* term)
     }
   }
   
-  if(env.signature->getFunction(term->functor())->app()){
+  if(term->isApplication()){
     TermList s1 = *(term->nthArgument(0));
     TermList s2 = *(term->nthArgument(1));
     TermList arg1 = *(term->nthArgument(2));

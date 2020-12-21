@@ -37,7 +37,7 @@
 // #include "MatchTag.hpp" // MS: disconnecting MatchTag, January 2017
 #define USE_MATCH_TAG 0
 
-//#include "Sorts.hpp"
+//#include "OperatorType.hpp"
 
 #define TERM_DIST_VAR_UNKNOWN 0x3FFFFF
 
@@ -146,7 +146,11 @@ public:
   /** if not var, the inner term must be shared */
   unsigned weight() const;
   /** returns true if this termList is wrapping a higher-order "arrow" sort */
-  bool isArrowSort() const;
+  bool isArrowSort();
+  bool isBoolSort();
+  bool isArraySort();
+  bool isTupleSort();
+  bool isApplication() const;
   bool containsSubterm(TermList v);
   bool containsAllVariablesOf(TermList t);
   bool containsAllVariableOccurrencesOf(TermList t);
@@ -507,8 +511,6 @@ public:
   bool isLiteral() const { return _args[0]._info.literal; }
   /** True if the term is, in fact, a sort */
   bool isSort() const { return _args[0]._info.sort; }
-  /** True if the term is actually an arrow sort */
-  bool isArrowSort() const;
   /** true if the term is an application */
   bool isApplication() const;
 
@@ -768,7 +770,16 @@ public:
 
   static AtomicSort* create(unsigned typeCon, unsigned arity, const TermList* args);
   static AtomicSort* createConstant(unsigned typeCon) { return create(typeCon,0,0); }
-
+  
+  /** True if the sort is a higher-order arrow sort */
+  bool isArrowSort() const;
+  /** True if the sort $o */
+  bool isBoolSort() const;
+  /** true if sort is the sort of an array */
+  bool isArraySort() const;
+  /** true if sort is the sort of an tuple */
+  bool isTupleSort() const;
+  
   static TermList arrowSort(TermStack& domSorts, TermList range);
   static TermList arrowSort(TermList s1, TermList s2);
   static TermList arrowSort(TermList s1, TermList s2, TermList s3);

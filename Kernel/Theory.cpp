@@ -24,7 +24,7 @@
 
 #include "Signature.hpp"
 #include "SortHelper.hpp"
-#include "Sorts.hpp"
+#include "OperatorType.hpp"
 #include "Term.hpp"
 
 #include "Theory.hpp"
@@ -1172,7 +1172,7 @@ bool Theory::isPartialFunction(Interpretation i)
  */
 unsigned Theory::getArrayExtSkolemFunction(TermList sort) {
   CALL("Theory::getArrayExtSkolemFunction")
-  ASS(SortHelper::isArraySort(sort));
+  ASS(sort.isArraySort());
 
   if(_arraySkolemFunctions.find(sort)){
     return _arraySkolemFunctions.get(sort);
@@ -1195,7 +1195,7 @@ unsigned Theory::Tuples::getFunctor(unsigned arity, TermList* sorts) {
 unsigned Theory::Tuples::getFunctor(TermList tupleSort) {
   CALL("Theory::Tuples::getFunctor(unsigned tupleSort)");
 
-  ASS_REP(SortHelper::isTupleSort(tupleSort), tupleSort.toString());
+  ASS_REP(tupleSort.isTupleSort(), tupleSort.toString());
 
   unsigned  arity = tupleSort.term()->arity();
   TermList* sorts = tupleSort.term()->args();
@@ -1210,13 +1210,13 @@ unsigned Theory::Tuples::getFunctor(TermList tupleSort) {
 bool Theory::Tuples::isFunctor(unsigned functor) {
   CALL("Theory::Tuples::isFunctor(unsigned)");
   TermList tupleSort = env.signature->getFunction(functor)->fnType()->result();
-  return SortHelper::isTupleSort(tupleSort);
+  return tupleSort.isTupleSort();
 }
 
 unsigned Theory::Tuples::getProjectionFunctor(unsigned proj, TermList tupleSort) {
   CALL("Theory::Tuples::getProjectionFunctor");
 
-  ASS_REP(SortHelper::isTupleSort(tupleSort), tupleSort.toString());
+  ASS_REP(tupleSort.isTupleSort(), tupleSort.toString());
 
   unsigned  arity = tupleSort.term()->arity();
   TermList* sorts = tupleSort.term()->args();
@@ -1245,7 +1245,7 @@ bool Theory::Tuples::findProjection(unsigned projFunctor, bool isPredicate, unsi
 
   TermList tupleSort = projType->arg(0);
 
-  if (!SortHelper::isTupleSort(tupleSort)) {
+  if (!tupleSort.isTupleSort()) {
     return false;
   }
 
@@ -1424,7 +1424,7 @@ vstring Theory::getInterpretationName(Interpretation interp) {
 
 OperatorType* Theory::getArrayOperatorType(TermList arraySort, Interpretation i) {
   CALL("Theory::getArrayOperatorType");
-  ASS(SortHelper::isArraySort(arraySort));
+  ASS(arraySort.isArraySort());
 
   TermList indexSort = SortHelper::getIndexSort(arraySort);
   TermList innerSort = SortHelper::getInnerSort(arraySort);

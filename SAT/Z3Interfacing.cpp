@@ -24,7 +24,7 @@
 #include "Lib/Environment.hpp"
 #include "Lib/System.hpp"
 #include "Kernel/Signature.hpp"
-#include "Kernel/Sorts.hpp"
+#include "Kernel/OperatorType.hpp"
 #include "Kernel/SortHelper.hpp"
 
 #include "Shell/UIHelper.hpp"
