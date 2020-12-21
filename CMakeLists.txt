@@ -929,5 +929,6 @@ configure_file(version.cpp.in version.cpp)
 
 if(CMAKE_BUILD_TYPE STREQUAL Release AND IPO)
   message(STATUS "compiling Vampire with IPO: this might take a while")
+  set_property(TARGET obj PROPERTY INTERPROCEDURAL_OPTIMIZATION true)
   set_property(TARGET vampire PROPERTY INTERPROCEDURAL_OPTIMIZATION true)
 endif()
