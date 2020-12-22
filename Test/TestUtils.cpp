@@ -60,8 +60,7 @@ bool __permEq(const List& lhs, const List& rhs, Eq elemEq, DArray<unsigned>& per
     ASS_EQ(lhs.size(), perm.size());
     ASS_EQ(rhs.size(), perm.size());
 
-    for (int i = 0; i < perm.size(); i++) {
-      // DBG(lhs[i], " ?= ", rhs[perm[i]]);
+    for (unsigned i = 0; i < perm.size(); i++) {
       if (!elemEq(lhs[i], rhs[perm[i]])) return false;
     }
     return true;
@@ -88,7 +87,7 @@ bool TestUtils::permEq(const List& lhs, const List& rhs, Eq elemEq)
   if (lhs.size() != rhs.size()) return false;
   // ASS_EQ(lhs.size(), rhs.size());
   DArray<unsigned> perm(lhs.size());
-  for (int i = 0; i < lhs.size(); i++) {
+  for (unsigned i = 0; i < lhs.size(); i++) {
     perm[i] = i;
   }
   return __permEq(lhs, rhs, elemEq, perm, 0);
@@ -151,15 +150,15 @@ std::ostream& Pretty<Literal*>::prettyPrint(std::ostream& out) const
 template<>
 std::ostream& Pretty<Clause>::prettyPrint(std::ostream& out) const
 { 
-  // out << "{ ";
   auto iter = _self.iterLits();
   if (iter.hasNext()) {
     out << pretty(*iter.next());
     while(iter.hasNext()) {
       out << " \\/ " << pretty(*iter.next());
     }
+  } else {
+    out << "bot";
   }
-  // out << " }";
   return out;
 }
 
@@ -239,12 +238,6 @@ bool TestUtils::isAC(Theory::Interpretation i)
   }
 }
 
-// bool TestUtils::eqModACVar(const Kernel::Clause* lhs, const Kernel::Clause* rhs)
-// { 
-//   RectMap map;
-//   return permEq(*lhs, *rhs, [&](Literal* l, Literal* r) -> bool { return TestUtils::eqModACVar(l, r, map); }); 
-// }
-
 bool TestUtils::eqModAC(const Kernel::Clause* lhs, const Kernel::Clause* rhs)
 { return permEq(*lhs, *rhs, [](Literal* l, Literal* r) -> bool { return TestUtils::eqModAC(l, r); }); }
 
@@ -256,7 +249,7 @@ bool TestUtils::eqModAC(Kernel::Literal* lhs, Kernel::Literal* rhs)
 
 void __collect(unsigned functor, Term* t, Stack<TermList>& out) {
   ASS_EQ(t->functor(), functor);
-  for (int i = 0; i < t->arity(); i++) {
+  for (unsigned i = 0; i < t->arity(); i++) {
     auto trm = t->nthArgument(i);
     if (trm->isVar()) {
       out.push(*trm);
@@ -295,7 +288,7 @@ bool TestUtils::eqModAC_(TermList lhs, TermList rhs, Comparisons comp)
             return comp.subterm(l, r);
       });
     } else {
-      for (int i = 0; i < l.arity(); i++) {
+      for (unsigned i = 0; i < l.arity(); i++) {
         if (!comp.subterm(*l.nthArgument(i), *r.nthArgument(i))) {
           return false;
         }
