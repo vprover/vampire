@@ -55,7 +55,7 @@ TEST_FUN(check_spec) {
       } catch (const MachineArithmeticException &) {
         DEBUG("quotientE (", i, ", ", j, ")\t= MachineArithmeticException");
         bothOK = false;
-      } catch (DivByZeroException) {
+      } catch (DivByZeroException&) {
         ASS_EQ(j, 0);
         bothOK = false;
       }
@@ -67,7 +67,7 @@ TEST_FUN(check_spec) {
       } catch (const MachineArithmeticException &) {
         DEBUG("remainderE(", i, ", ", j, ")\t= MachineArithmeticException");
         bothOK = false;
-      } catch (DivByZeroException) {
+      } catch (DivByZeroException&) {
         ASS_EQ(j, 0);
         bothOK = false;
       }
@@ -124,7 +124,7 @@ void checkQuotientE(Const i, Const j) {
     DEBUG("remainderE(", i, ", ", j, ")\t= ", r);
     ASS_EQ(q * j + r, i)
     ASS(Const(0) <= r && r < j.abs())
-  } catch (DivByZeroException) {
+  } catch (DivByZeroException&) {
     ASS_EQ(j,Const(0))
   }
 }

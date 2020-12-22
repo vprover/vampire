@@ -193,8 +193,7 @@ void check_eval(Lit orig_, Lit expected_) {
 }
 
 #define ADDITIONAL_FUNCTIONS(Num)                                                                             \
-      _Pragma("GCC diagnostic push")                                                                          \
-      _Pragma("GCC diagnostic ignored \"-Wunused\"")                                                          \
+  __ALLOW_UNUSED(                                                                                             \
         DECL_CONST(a , Num)                                                                                   \
         DECL_CONST(b , Num)                                                                                   \
         DECL_CONST(c , Num)                                                                                   \
@@ -202,7 +201,7 @@ void check_eval(Lit orig_, Lit expected_) {
         DECL_FUNC(f2, {Num,Num}, Num)                                                                         \
         DECL_PRED(p, {Num})                                                                                   \
         DECL_PRED(r, {Num,Num})                                                                               \
-      _Pragma("GCC diagnostic pop")                                                                           \
+      )                                                                                                       \
 
 #define NUM_TEST(NUM, name, formula, expected)                                                                \
     TEST_FUN(name ## _ ## NUM) {                                                                              \

@@ -49,6 +49,7 @@
 #define __ALLOW_UNUSED(...)                                                                                   \
   _Pragma("GCC diagnostic push")                                                                              \
   _Pragma("GCC diagnostic ignored \"-Wunused\"")                                                              \
+  _Pragma("GCC diagnostic ignored \"-Wunused-but-set-variable\"")                                                              \
   __VA_ARGS__                                                                                                 \
   _Pragma("GCC diagnostic pop")                                                                               \
  
