@@ -54,7 +54,6 @@ Property::Property()
     _goalFormulas(0),
     _axiomFormulas(0),
     _subformulas(0),
-    _terms(0),
     _unitGoals(0),
     _unitAxioms(0),
     _hornGoals(0),
@@ -652,12 +651,15 @@ void Property::scan(Literal* lit, int polarity, unsigned cLen, bool goal)
 void Property::scan(TermList ts,bool unit,bool goal)
 {
   CALL("Property::scan(TermList)");
-  _terms++;
+
   if (ts.isVar()) {
     _variablesInThisClause++;
     return;
   }
 
+  if(ts.term()->isSort()){
+    return;
+  }
 
   ASS(ts.isTerm());
   Term* t = ts.term();

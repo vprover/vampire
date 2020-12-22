@@ -209,6 +209,11 @@ void SymCounter::count(Term* term, int polarity, int add)
 {
   CALL("SymCounter::count(Term*)");
 
+  /* We may wish to count type constructor as well in the future */
+  if(term->isSort()){
+    return;
+  }
+
   if (!term->shared()) {
     if (term->isSpecial()) {
       Term::SpecialTermData *sd = term->getSpecialData();
@@ -256,7 +261,7 @@ void SymCounter::count(Term* term, int polarity, int add)
     ASS_REP(_noOfFuns > fun, term->toString());
     _funs[fun].add(add);
 
-    NonVariableIterator nvi(term);
+    NonVariableNonTypeIterator nvi(term);
     while (nvi.hasNext()) {
       Term *t = nvi.next().term();
       int fun = t->functor();

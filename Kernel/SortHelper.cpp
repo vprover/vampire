@@ -39,6 +39,8 @@ OperatorType* SortHelper::getType(Term* t)
 
   if (t->isLiteral()) {
     return env.signature->getPredicate(t->functor())->predType();
+  } else if (t->isSort()) {
+    return env.signature->getTypeCon(t->functor())->typeConType();
   }
   return env.signature->getFunction(t->functor())->fnType();
 } // getType
@@ -85,11 +87,14 @@ TermList SortHelper::getResultSort(const Term* t)
   ASS(!t->isSpecial());
   ASS(!t->isLiteral());
 
+  if(t->isSort()){
+    return TermList(AtomicSort::superSort());
+  }
+
   Substitution subst;
   getTypeSub(t, subst);
   Signature::Symbol* sym = env.signature->getFunction(t->functor());
   TermList result = sym->fnType()->result();
-  //cout << "the type is " + sym->fnType()->toString() << endl;
   ASS(!subst.isEmpty()  || (result.isTerm() && (result.term()->isSuper() || result.term()->ground())));  
   return SubstHelper::apply(result, subst);
 }
@@ -152,6 +157,11 @@ bool SortHelper::getResultSortOrMasterVariable(const Term* t, TermList& resultSo
 {
   CALL("SortHelper::getResultSortOrMasterVariable");
 
+  if(t->isSort()){
+    resultSort = AtomicSort::superSort();
+    return true;
+  }
+
   switch(t->functor()) {
     case Term::SF_LET:
     case Term::SF_LET_TUPLE:
@@ -199,6 +209,10 @@ TermList SortHelper::getArgSort(Term* t, unsigned argIndex)
 {
   CALL("SortHelper::getArgSort(Term*,unsigned)");
   ASS_L(argIndex, t->arity());
+
+  if(t->isSort()){
+    return AtomicSort::superSort();
+  }
 
   if (t->isLiteral() && static_cast<Literal*>(t)->isEquality()) {
     return getEqualityArgumentSort(static_cast<Literal*>(t));

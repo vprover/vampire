@@ -486,7 +486,12 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
       arguments.push(process(ait.next()));
     }
 
-    TermList processedTerm = TermList(Term::create(term, arguments.begin()));
+    TermList processedTerm;
+    if(term->isSort()){
+      processedTerm = TermList(AtomicSort::create(static_cast<AtomicSort*>(term), arguments.begin()));      
+    } else {
+      processedTerm = TermList(Term::create(term, arguments.begin()));
+    }
 
     if (context == FORMULA_CONTEXT) {
       formulaResult = toEquality(processedTerm);

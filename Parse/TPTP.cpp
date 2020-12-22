@@ -3011,7 +3011,12 @@ void TPTP::endTerm()
     return;
   }
 
-  _termLists.push(createFunctionApplication(name, arity));
+  if(env.signature->typeConExists(name, arity)){
+    _termLists.push(createTypeConApplication(name, arity));    
+    return;
+  }
+
+  _termLists.push(createFunctionApplication(name, arity)); 
 } // endTerm
 
 /**
@@ -3224,7 +3229,7 @@ Formula* TPTP::createPredicateApplication(vstring name, unsigned arity)
     if((unsigned)i < type->typeArgsArity()){
       if(tsSort != AtomicSort::superSort()){
         USER_ERROR("The sort " + tsSort.toString() + " of type argument " + ts.toString() + " "
-                   "is not $ttype as madated by TFF1");
+                   "is not $ttype as mandated by TF1");
       }
     } else {
       static RobSubstitution subst;
@@ -3277,7 +3282,7 @@ TermList TPTP::createFunctionApplication(vstring name, unsigned arity)
     if((unsigned)i < type->typeArgsArity()){
       if(ssSort != AtomicSort::superSort()){
         USER_ERROR("The sort " + ssSort.toString() + " of type argument " + ss.toString() + " "
-                   "is not $ttype as mandated by TF1");
+                   "is not $tType as mandated by TF1");
       }
     } else {
       static RobSubstitution subst;
@@ -4782,7 +4787,7 @@ unsigned TPTP::addOverloadedPredicate(vstring name,int arity,int symbolArity,boo
 TermList TPTP::sortOf(TermList t)
 {
   CALL("TPTP::sortOf");
-
+  
   for (;;) {
     if (t.isVar()) {
       SList* sorts;

@@ -769,6 +769,8 @@ public:
   }
 
   static AtomicSort* create(unsigned typeCon, unsigned arity, const TermList* args);
+  static AtomicSort* create2(unsigned tc, TermList arg1, TermList arg2);
+  static AtomicSort* create(AtomicSort* t,TermList* args);
   static AtomicSort* createConstant(unsigned typeCon) { return create(typeCon,0,0); }
   
   /** True if the sort is a higher-order arrow sort */
@@ -779,6 +781,8 @@ public:
   bool isArraySort() const;
   /** true if sort is the sort of an tuple */
   bool isTupleSort() const;
+
+  const vstring& typeConName() const;  
   
   static TermList arrowSort(TermStack& domSorts, TermList range);
   static TermList arrowSort(TermList s1, TermList s2);

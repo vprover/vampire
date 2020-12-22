@@ -240,7 +240,7 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/MismatchHandler.cpp
     Kernel/Signature.cpp
     Kernel/SortHelper.cpp
-    Kernel/Sorts.cpp
+    Kernel/OperatorType.cpp
     Kernel/SpassLiteralSelector.cpp
     Kernel/SubformulaIterator.cpp
     Kernel/Substitution.cpp
@@ -292,7 +292,7 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/MismatchHandler.hpp
     Kernel/Signature.hpp
     Kernel/SortHelper.hpp
-    Kernel/Sorts.hpp
+    Kernel/OperatorType.hpp
     Kernel/SpassLiteralSelector.hpp
     Kernel/SubformulaIterator.hpp
     Kernel/SubstHelper.hpp

@@ -900,7 +900,12 @@ void SimpleCongruenceClosure::computeConstsNormalForm(unsigned c, NFMap& normalF
       d = pair.first;
     }
     ASS_EQ(_cInfos[d].sigSymbol,t->functor());
-    cInfo.normalForm = TermList(Term::create(t,args.array()));
+    if(t->isSort()){
+      cInfo.normalForm = TermList(AtomicSort::create(static_cast<AtomicSort*>(t),args.array()));
+    } else {
+      cout << "the term is " + t->toString() << endl;
+      cInfo.normalForm = TermList(Term::create(t,args.array()));
+    }
   }
 }
 

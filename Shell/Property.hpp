@@ -291,7 +291,6 @@ public:
   int _axiomFormulas;
   int _subformulas;
 
-  int _terms;
   int _unitGoals;
   int _unitAxioms;
   int _hornGoals;

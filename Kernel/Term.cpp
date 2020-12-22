@@ -633,15 +633,20 @@ vstring Term::headToString() const
     }
   } else {
     unsigned proj;
-    if(isSuper()){
-      return functionName();
-    }
-    if (Theory::tuples()->findProjection(functor(), isLiteral(), proj)) {
+    if (!isSort() && Theory::tuples()->findProjection(functor(), isLiteral(), proj)) {
       return "$proj(" + Int::toString(proj) + ", ";
     }
-    bool print = isLiteral() || isSort() ||
-                 ((env.signature->getFunction(_functor)->combinator() == Signature::NOT_COMB) && arity()) ;
-    return (isLiteral() ? static_cast<const Literal *>(this)->predicateName() : functionName() + (print ? "(" : ""));
+    bool print = (isLiteral() || isSort() ||
+                 (env.signature->getFunction(_functor)->combinator() == Signature::NOT_COMB)) && arity();
+    vstring name = "";
+    if(isLiteral()) {
+      name = static_cast<const Literal *>(this)->predicateName();
+    } else if (isSort()) {
+      name = static_cast<const AtomicSort *>(this)->typeConName();
+    } else {
+      name = functionName();
+    }
+    return name + (print ? "(" : "");
   }
 }
 
@@ -737,10 +742,10 @@ vstring Term::toString(bool topLevel) const
       TermList arg1 = *(nthArgument(0));
       TermList arg2 = *(nthArgument(1));
       res += topLevel ? "" : "("; 
-      res += arg1.toString(false) + " " + functionName() + " " + arg2.toString();
+      res += arg1.toString(false) + " > " + arg2.toString();
       res += topLevel ? "" : ")";
       return res;
-    }else if(isApplication()){
+    }/*else if(isApplication()){
       ASS(arity() == 4);
       vstring res;
       TermList arg1 = *(nthArgument(2));
@@ -749,7 +754,7 @@ vstring Term::toString(bool topLevel) const
       res += "(" + arg1.toString() + " @ " + arg2.toString(false) + ")";
     //  res += topLevel ? "" : ")";
       return res;
-    }
+    }*/
     printArgs = isSort() || env.signature->getFunction(_functor)->combinator() == Signature::NOT_COMB;
   }
 
@@ -823,6 +828,23 @@ const vstring& Term::functionName() const
 #endif
 
   return env.signature->functionName(_functor);
+} // Term::functionName
+
+/**
+ * Return the print name of the type constructor symbol of this sort.
+ */
+const vstring& AtomicSort::typeConName() const
+{
+  CALL("AtomcicSort::typeConName");
+
+#if VDEBUG
+  static vstring nonexisting("<type constructor does not exists>");
+  if (_functor>=static_cast<unsigned>(env.signature->typeCons())) {
+    return nonexisting;
+  }
+#endif
+
+  return env.signature->typeConName(_functor);
 } // Term::functionName
 
 /**
@@ -1492,7 +1514,43 @@ AtomicSort* AtomicSort::create(unsigned typeCon, unsigned arity, const TermList*
   return s;
 }
 
-/** Create a new complex term, and insert it into the sharing
+/** Create a new complex term, copy from @b t its function symbol and
+ *  from the array @b args its arguments. Insert it into the sharing
+ *  structure if all arguments are shared.
+ * @since 07/01/2008 Torrevieja
+ */
+AtomicSort* AtomicSort::create(AtomicSort* sort,TermList* args)
+{
+  CALL("AtomicSort::create/2");
+
+  int arity = sort->arity();
+  AtomicSort* s = new(arity) AtomicSort(*sort);
+  bool share = true;
+  TermList* ss = s->args();
+  for (int i = 0;i < arity;i++) {
+    ASS(!args[i].isEmpty());
+    *ss-- = args[i];
+    if (!args[i].isSafe()) {
+      share = false;
+    }
+  }
+  if (share) {
+    s = env.sharing->insert(s);
+  }
+  return s;
+}
+
+
+AtomicSort* AtomicSort::create2(unsigned tc, TermList arg1, TermList arg2)
+{
+  CALL("AtomicSort::create2");
+
+  TermList args[] = {arg1, arg2};
+  return AtomicSort::create(tc, 2, args);
+}
+
+
+/** Create a new complex sort, and insert it into the sharing
  *  structure if all arguments are shared.
  */
 AtomicSort* AtomicSort::createNonShared(unsigned typeCon, unsigned arity, TermList* args)

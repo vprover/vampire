@@ -559,6 +559,7 @@ class Signature
 
   bool functionExists(const vstring& name,unsigned arity) const;
   bool predicateExists(const vstring& name,unsigned arity) const;
+  bool typeConExists(const vstring& name,unsigned arity) const;
 
   /** true if there are user defined sorts */
   bool hasSorts() const{
@@ -586,18 +587,17 @@ class Signature
   }
 
   bool isArrayCon(unsigned con) const{
-    ASS(_arrayCon > 0);
-    return con == _arrayCon;    
+    //second part of conditions ensures that _arrayCon
+    //has been initialised.
+    return (con == _arrayCon && _arrayCon != 0);    
   }
 
   bool isArrowCon(unsigned con) const{
-    ASS(_arrowCon > 0);
-    return con == _arrowCon;    
+    return (con == _arrowCon && _arrowCon != 0);    
   }
   
   bool isAppFun(unsigned fun) const{
-    ASS(_appFun > 0);
-    return fun == _appFun;
+    return (fun == _appFun && _appFun != 0);
   }
 
   bool tryGetFunctionNumber(const vstring& name, unsigned arity, unsigned& out) const;
@@ -650,7 +650,7 @@ class Signature
     bool added = false;
     unsigned individualSort = addTypeCon("$i",0, added);
     if(added){
-      getFunction(individualSort)->setType(OperatorType::getConstantsType(AtomicSort::superSort()));
+      getTypeCon(individualSort)->setType(OperatorType::getConstantsType(AtomicSort::superSort()));
     }
     return individualSort;
   }
@@ -661,7 +661,7 @@ class Signature
     bool added = false;
     unsigned boolSort = addTypeCon("$o",0, added);
     if(added){
-      getFunction(boolSort)->setType(OperatorType::getConstantsType(AtomicSort::superSort()));
+      getTypeCon(boolSort)->setType(OperatorType::getConstantsType(AtomicSort::superSort()));
     }
     return boolSort;
   }
@@ -670,7 +670,7 @@ class Signature
     bool added = false;
     unsigned realSort = addTypeCon("$real",0, added);
     if(added){
-      getFunction(realSort)->setType(OperatorType::getConstantsType(AtomicSort::superSort()));
+      getTypeCon(realSort)->setType(OperatorType::getConstantsType(AtomicSort::superSort()));
     }
     return realSort;
   }
@@ -679,7 +679,7 @@ class Signature
     bool added = false;
     unsigned intSort = addTypeCon("$int",0, added);
     if(added){
-      getFunction(intSort)->setType(OperatorType::getConstantsType(AtomicSort::superSort()));
+      getTypeCon(intSort)->setType(OperatorType::getConstantsType(AtomicSort::superSort()));
     }
     return intSort;
   }  
@@ -688,7 +688,7 @@ class Signature
     bool added = false;
     unsigned ratSort = addTypeCon("$rat",0, added);
     if(added){
-      getFunction(ratSort)->setType(OperatorType::getConstantsType(AtomicSort::superSort()));
+      getTypeCon(ratSort)->setType(OperatorType::getConstantsType(AtomicSort::superSort()));
     }
     return ratSort;    
   }
@@ -699,7 +699,7 @@ class Signature
     if(added){
       _arrowCon = arrow;
       TermList ss = AtomicSort::superSort();
-      Symbol* arr = getFunction(arrow);
+      Symbol* arr = getTypeCon(arrow);
       arr->setType(OperatorType::getFunctionType({ss, ss}, ss));
     }
     return arrow;    
@@ -711,7 +711,7 @@ class Signature
     if(added){
       _arrayCon = array;
       TermList ss = AtomicSort::superSort();
-      Symbol* arr = getFunction(array);
+      Symbol* arr = getTypeCon(array);
       arr->setType(OperatorType::getFunctionType({ss, ss}, ss));
     }
     return array;    

@@ -264,7 +264,7 @@ Signature::Signature ():
   ASS_EQ(STRING_DISTINCT_GROUP, aux);
 } // Signature::Signature
 
-/* adding equality predicate used to be carried out in the constructor.
+/* Adding equality predicate used to be carried out in the constructor.
  * However now that sorts are TermLists, this involves a call to Signature
  * from AtomicSort::defaultSort before the Signature has been constructed. hence
  * the function below
@@ -291,7 +291,7 @@ Signature::~Signature ()
     _preds[i]->destroyPredSymbol();
   }
   for (int i = _typeCons.length()-1;i >= 0;i--) {
-    _preds[i]->destroyTypeConSymbol();
+    _typeCons[i]->destroyTypeConSymbol();
   }
 } // Signature::~Signature
 
@@ -607,6 +607,16 @@ bool Signature::predicateExists(const vstring& name,unsigned arity) const
   CALL("Signature::predicateExists");
 
   return _predNames.find(key(name, arity));
+}
+
+/**
+ * Return true if specified type constructor exists
+ */
+bool Signature::typeConExists(const vstring& name,unsigned arity) const
+{
+  CALL("Signature::typeConExists");
+
+  return _typeConNames.find(key(name, arity));
 }
 
 unsigned Signature::getFunctionNumber(const vstring& name, unsigned arity) const

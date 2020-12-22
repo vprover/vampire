@@ -340,7 +340,7 @@ z3::sort Z3Interfacing::getz3sort(TermList s)
   if(s==AtomicSort::rationalSort()) return _context.real_sort(); // Drop notion of rationality 
 
   // Deal with arrays
-  if(SortHelper::isArraySort(s)){
+  if(s.isArraySort()){
     
     z3::sort index_sort = getz3sort(SortHelper::getIndexSort(s));
     z3::sort value_sort = getz3sort(SortHelper::getInnerSort(s));
