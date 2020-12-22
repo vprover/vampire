@@ -69,7 +69,7 @@ bool __permEq(const List& lhs, const List& rhs, Eq elemEq, DArray<unsigned>& per
   if (checkPerm(lhs, rhs, perm)) {
     return true;
   }
-  for (int i = idx; i < perm.size(); i++) {
+  for (unsigned i = idx; i < perm.size(); i++) {
     swap(perm[i], perm[idx]);
 
 
