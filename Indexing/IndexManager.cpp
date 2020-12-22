@@ -20,6 +20,7 @@
 
 #include "AcyclicityIndex.hpp"
 #include "CodeTreeInterfaces.hpp"
+#include "FingerprintIndex.hpp"
 #include "GroundingIndex.hpp"
 #include "LiteralIndex.hpp"
 #include "LiteralSubstitutionTree.hpp"
@@ -176,7 +177,12 @@ Index* IndexManager::create(IndexType t)
     break;
 
   case SUPERPOSITION_SUBTERM_SUBST_TREE:
-    tis=new TermSubstitutionTree(useConstraints);
+    if(useConstraints) {
+      tis=new TermSubstitutionTree(useConstraints);
+    }
+    else {
+      tis=new TermFingerprintIndex();
+    }
 #if VDEBUG
     //tis->markTagged();
 #endif
@@ -184,19 +190,24 @@ Index* IndexManager::create(IndexType t)
     isGenerating = true;
     break;
   case SUPERPOSITION_LHS_SUBST_TREE:
-    tis=new TermSubstitutionTree(useConstraints);
+    if(useConstraints) {
+      tis=new TermSubstitutionTree(useConstraints);
+    }
+    else {
+      tis=new TermFingerprintIndex();
+    }
     res=new SuperpositionLHSIndex(tis, _alg->getOrdering(), _alg->getOptions());
     isGenerating = true;
     break;
 
   case ACYCLICITY_INDEX:
-    tis = new TermSubstitutionTree();
+    tis=new TermFingerprintIndex();
     res = new AcyclicityIndex(tis);
     isGenerating = true;
     break;
 
   case DEMODULATION_SUBTERM_SUBST_TREE:
-    tis=new TermSubstitutionTree();
+    tis=new TermFingerprintIndex();
     res=new DemodulationSubtermIndex(tis);
     isGenerating = false;
     break;
