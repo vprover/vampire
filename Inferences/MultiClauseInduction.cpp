@@ -62,7 +62,8 @@ bool canDoInductionOn(Clause* cl) {
   static bool unitOnly = env.options->inductionUnitOnly();
   return (!unitOnly || cl->length()==1) && 
      (all || ( (goal || goal_plus) && cl->derivedFromGoal())) &&
-     (maxD == 0 || cl->inference().inductionDepth() < maxD);
+     (maxD == 0 || cl->inference().inductionDepth() < maxD) &&
+     !cl->containsFunctionDefinition();
 }
 
 class MultiClauseInduction::InductionClauseIterator
