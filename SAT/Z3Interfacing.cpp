@@ -105,16 +105,24 @@ void handleZ3Error(Z3_context ctxt, Z3_error_code code)
   throw z3::exception(errToString(code));
 }
 
+#define STATEMENTS_TO_EXPRESSION(...) [&]() { __VA_ARGS__; return 0; }()
+
 Z3Interfacing::Z3Interfacing(SAT2FO& s2f, bool showZ3, bool unsatCoreForRefutations, bool unsatCoresForAssumptions):
   _varCnt(0), 
   sat2fo(s2f),_status(SATISFIABLE), 
   _config(),
   _context(_config),
   _solver(_context),
-  _model((_solver.check(),_solver.get_model())), _assumptions(_context), _unsatCoreForAssumptions(unsatCoresForAssumptions),
-  _showZ3(showZ3),_unsatCoreForRefutations(unsatCoreForRefutations)
+  _model((STATEMENTS_TO_EXPRESSION(
+            BYPASSING_ALLOCATOR; 
+            _solver.check(); ),
+         _solver.get_model())), 
+  _assumptions(_context), _unsatCoreForAssumptions(unsatCoresForAssumptions),
+  _showZ3(showZ3),
+  _unsatCoreForRefutations(unsatCoreForRefutations)
 {
   CALL("Z3Interfacing::Z3Interfacing");
+  BYPASSING_ALLOCATOR
   _solver.reset();
 
   z3::set_param("rewriter.expand_store_eq", "true");
@@ -143,12 +151,12 @@ unsigned Z3Interfacing::newVar()
   ++_varCnt;
 
   // to make sure all the literals we will ask about later have allocated counterparts internally
-  getRepresentation(SATLiteral(_varCnt,1),false);
+  getRepresentationWithoutGuard(SATLiteral(_varCnt,1));
 
   return _varCnt;
 }
 
-void Z3Interfacing::addClause(SATClause* cl,bool withGuard)
+void Z3Interfacing::addClause(SATClause* cl, bool withGuard, bool& addedGuard)
 {
   CALL("Z3Interfacing::addClause");
   BYPASSING_ALLOCATOR;
@@ -164,7 +172,7 @@ void Z3Interfacing::addClause(SATClause* cl,bool withGuard)
   unsigned clen=cl->length();
   for(unsigned i=0;i<clen;i++){
     SATLiteral l = (*cl)[i];
-    z3::expr e = getRepresentation(l,withGuard);
+    z3::expr e = getRepresentation(l, withGuard, addedGuard);
 
     z3clause = z3clause || e;
 
@@ -182,11 +190,11 @@ void Z3Interfacing::addClause(SATClause* cl,bool withGuard)
   _solver.add(z3clause);
 }
 
-void Z3Interfacing::addAssumption(SATLiteral lit,bool withGuard)
+void Z3Interfacing::addAssumption(SATLiteral lit, bool withGuard, bool& addedGuard)
 {
   CALL("Z3Interfacing::addAssumption");
 
-  _assumptions.push_back(getRepresentation(lit,withGuard));
+  _assumptions.push_back(getRepresentation(lit, withGuard, addedGuard));
 }
 
 SATSolver::Status Z3Interfacing::solve()
@@ -227,7 +235,7 @@ SATSolver::Status Z3Interfacing::solve()
   return _status;
 }
 
-SATSolver::Status Z3Interfacing::solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit, bool onlyProperSubusets,bool withGuard)
+SATSolver::Status Z3Interfacing::solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit, bool onlyProperSubusets,bool withGuard, bool& addedGuard)
 {
   CALL("Z3Interfacing::solveUnderAssumptions");
 
@@ -249,7 +257,7 @@ SATSolver::Status Z3Interfacing::solveUnderAssumptions(const SATLiteralStack& as
 
   while (it.hasNext()) {
     SATLiteral v_assump = it.next();
-    z3::expr z_assump = getRepresentation(v_assump,withGuard);
+    z3::expr z_assump = getRepresentation(v_assump,withGuard, addedGuard);
 
     vstring p = ps+Int::toString(n++);
     _solver.add(z_assump,p.c_str());
@@ -288,7 +296,7 @@ SATSolver::VarAssignment Z3Interfacing::getAssignment(unsigned var)
 
   ASS_EQ(_status,SATISFIABLE);
   bool named = _namedExpressions.find(var);
-  z3::expr rep = named ? getNameExpr(var) : getRepresentation(SATLiteral(var,1),false);
+  z3::expr rep = named ? getNameExpr(var) : getRepresentationWithoutGuard(SATLiteral(var,1));
   z3::expr assignment = _model.eval(rep,true /*model_completion*/);
 
   if(assignment.bool_value()==Z3_L_TRUE){
@@ -404,7 +412,7 @@ Term* Z3Interfacing::evaluateInModel(Term* trm)
   ASS(!trm->isLiteral());
 
   bool name; //TODO what do we do about naming?
-  z3::expr rep = getz3expr(trm,name,false); 
+  z3::expr rep = getz3expr(trm,name); 
   z3::expr ev = _model.eval(rep,true); // true means "model_completion"
   unsigned sort = SortHelper::getResultSort(trm);
 
@@ -682,6 +690,7 @@ struct ToZ3Expr {
   Z3Interfacing& self;
   bool& nameExpression;
   bool withGuard;
+  bool& addedGuard;
 
   using Arg    = TermList;
   using Result = z3::expr;
@@ -693,6 +702,18 @@ struct ToZ3Expr {
     ASS(toEval.isTerm())
     auto trm = toEval.term();
     bool isLit = trm->isLiteral();
+
+    auto addGuardIfNecessary = [&](z3::expr guard) {
+      if (withGuard) {
+        if(self._showZ3){
+          env.beginOutput();
+          env.out() << "[Z3] adding guard: " << guard << std::endl;
+          env.endOutput();
+        }
+        addedGuard = true;
+        self._solver.add(guard);
+      }
+    };
 
     Signature::Symbol* symb; 
     unsigned range_sort;
@@ -819,14 +840,17 @@ struct ToZ3Expr {
         }
 
       } else {
+        auto int_zero = self._context.int_val(0);
+        auto real_zero = self._context.real_val(0);
 
       switch(interp){
         // Numerical operations
         case Theory::INT_DIVIDES:
-          if(withGuard){self.addIntNonZero(args[0]);}
+          // TODO shouldn't zero divide zero?
+          addGuardIfNecessary(args[0] != int_zero);
           //cout << "SET name=true" << endl;
           nameExpression = true;
-          ret = z3::mod(args[1], args[0]) == self._context.int_val(0);
+          ret = z3::mod(args[1], args[0]) == int_zero;
           break;
 
         case Theory::INT_UNARY_MINUS:
@@ -863,12 +887,12 @@ struct ToZ3Expr {
 
         case Theory::RAT_QUOTIENT:
         case Theory::REAL_QUOTIENT:
-          if(withGuard){self.addRealNonZero(args[1]);}
+          addGuardIfNecessary(args[1] != real_zero);
           ret= args[0] / args[1];
           break;
 
         case Theory::INT_QUOTIENT_E: 
-          if(withGuard){self.addIntNonZero(args[1]);}
+          addGuardIfNecessary(args[1] != int_zero);
           ret= args[0] / args[1];
           break;
 
@@ -923,69 +947,69 @@ struct ToZ3Expr {
 
          case Theory::INT_QUOTIENT_T:
          case Theory::INT_REMAINDER_T:
-           if(withGuard){self.addIntNonZero(args[1]);}
+          addGuardIfNecessary(args[1] != int_zero);
            // leave as uninterpreted
            self.addTruncatedOperations(args,Theory::INT_QUOTIENT_T,Theory::INT_REMAINDER_T,range_sort);
            skip=true;
            break;
          case Theory::RAT_QUOTIENT_T:
-           if(withGuard){self.addRealNonZero(args[1]);}
+           addGuardIfNecessary(args[1] != real_zero);
            ret = self.truncate(args[0]/args[1]);
            self.addTruncatedOperations(args,Theory::RAT_QUOTIENT_T,Theory::RAT_REMAINDER_T,range_sort);
            break;
          case Theory::RAT_REMAINDER_T:
-           if(withGuard){self.addRealNonZero(args[1]);}
+           addGuardIfNecessary(args[1] != real_zero);
            skip=true;
            self.addTruncatedOperations(args,Theory::RAT_QUOTIENT_T,Theory::RAT_REMAINDER_T,range_sort);
            break;
          case Theory::REAL_QUOTIENT_T:
-           if(withGuard){self.addRealNonZero(args[1]);}
+           addGuardIfNecessary(args[1] != real_zero);
            ret = self.truncate(args[0]/args[1]);
            self.addTruncatedOperations(args,Theory::REAL_QUOTIENT_T,Theory::REAL_REMAINDER_T,range_sort);
            break;
          case Theory::REAL_REMAINDER_T:
-           if(withGuard){self.addRealNonZero(args[1]);}
+           addGuardIfNecessary(args[1] != real_zero);
            skip=true;
            self.addTruncatedOperations(args,Theory::REAL_QUOTIENT_T,Theory::REAL_REMAINDER_T,range_sort);
            break;
 
          case Theory::INT_QUOTIENT_F:
          case Theory::INT_REMAINDER_F:
-           if(withGuard){self.addIntNonZero(args[1]);}
+           addGuardIfNecessary(args[1] != int_zero);
            // leave as uninterpreted
            self.addFloorOperations(args,Theory::INT_QUOTIENT_F,Theory::INT_REMAINDER_F,range_sort);
            skip=true;
            break;
          case Theory::RAT_QUOTIENT_F:
-           if(withGuard){self.addRealNonZero(args[1]);}
+           addGuardIfNecessary(args[1] != real_zero);
            ret = self.to_real(self.to_int(args[0] / args[1]));
            self.addFloorOperations(args,Theory::RAT_QUOTIENT_F,Theory::RAT_REMAINDER_F,range_sort);
            break;
          case Theory::RAT_REMAINDER_F:
-           if(withGuard){self.addRealNonZero(args[1]);}
+           addGuardIfNecessary(args[1] != real_zero);
            skip=true;
            self.addFloorOperations(args,Theory::RAT_QUOTIENT_F,Theory::RAT_REMAINDER_F,range_sort);
            break;
          case Theory::REAL_QUOTIENT_F:
-           if(withGuard){self.addRealNonZero(args[1]);}
+           addGuardIfNecessary(args[1] != real_zero);
            ret = self.to_real(self.to_int(args[0] / args[1]));
            self.addFloorOperations(args,Theory::REAL_QUOTIENT_F,Theory::REAL_REMAINDER_F,range_sort);
            break;
          case Theory::REAL_REMAINDER_F:
-           if(withGuard){self.addRealNonZero(args[1]);}
+           addGuardIfNecessary(args[1] != real_zero);
            skip=true;
            self.addFloorOperations(args,Theory::REAL_QUOTIENT_F,Theory::REAL_REMAINDER_F,range_sort);
            break;
 
          case Theory::RAT_REMAINDER_E:
          case Theory::REAL_REMAINDER_E:
-           if(withGuard){self.addRealNonZero(args[1]);}
+           addGuardIfNecessary(args[1] != real_zero);
            nameExpression = true; 
            ret = z3::mod(args[0], args[1]);
            break;
 
          case Theory::INT_REMAINDER_E:
-           if(withGuard){self.addIntNonZero(args[1]);}
+           addGuardIfNecessary(args[1] != int_zero);
            nameExpression = true;
            ret = z3::mod(args[0], args[1]);
            break;
@@ -1075,14 +1099,18 @@ struct ToZ3Expr {
 
     z3::func_decl f = entry.self;
 
-    if (entry.metadata.is<DestructorMeta>() && withGuard) {
+    if (entry.metadata.is<DestructorMeta>()) {
       auto selector = entry.metadata.unwrap<DestructorMeta>().selector;
       // asserts e.g. isCons(l) for a term that contains the subterm head(l) for lists
-      self._solver.add(selector(args[0]));
+      addGuardIfNecessary(selector(args[0]));
     }
 
     // Finally create expr
     z3::expr e = f(args); 
+
+    ASS(toEval.term()->isLiteral() 
+        || !theory->isPartiallyInterpretedFunction(toEval.term()) || 
+        !withGuard || addedGuard)
     return e;
   }
 };
@@ -1093,14 +1121,14 @@ struct ToZ3Expr {
  * - Translates the ground structure
  * - Some interpreted functions/predicates are handled
  */
-z3::expr Z3Interfacing::getz3expr(Term* trm, bool&nameExpression,bool withGuard)
+z3::expr Z3Interfacing::getz3expr(Term* trm, bool&nameExpression,bool withGuard,bool& addedGuard)
 {
   CALL("Z3Interfacing::getz3expr");
-  auto result = evaluateBottomUp(TermList(trm), ToZ3Expr{ *this, nameExpression, withGuard });
+  auto result = evaluateBottomUp(TermList(trm), ToZ3Expr{ *this, nameExpression, withGuard, addedGuard });
   return result;
 }
 
-z3::expr Z3Interfacing::getRepresentation(SATLiteral slit,bool withGuard)
+z3::expr Z3Interfacing::getRepresentation(SATLiteral slit, bool withGuard, bool& addedGuard)
 {
   CALL("Z3Interfacing::getRepresentation");
   BYPASSING_ALLOCATOR;
@@ -1114,7 +1142,7 @@ z3::expr Z3Interfacing::getRepresentation(SATLiteral slit,bool withGuard)
     try{
       // TODO everything is being named!!
       bool nameExpression = true;
-      z3::expr e = getz3expr(lit,nameExpression,withGuard);
+      z3::expr e = getz3expr(lit,nameExpression,withGuard,addedGuard);
       // cout << "got rep " << e << endl;
 
       if(nameExpression && _namedExpressions.insert(slit.var())) {
@@ -1177,7 +1205,7 @@ SATClause* Z3Interfacing::getRefutation() {
       unsigned clen=cl->length();
       for(unsigned i=0;i<clen;i++){
         SATLiteral l = (*cl)[i];
-        z3::expr e = getRepresentation(l,false); 
+        z3::expr e = getRepresentationWithoutGuard(l); 
         z3clause = z3clause || e;
       }
       vstring p = ps+Int::toString(n++);
@@ -1204,29 +1232,6 @@ SATClause* Z3Interfacing::getRefutation() {
     refutation->setInference(new PropInference(prems));
 
     return refutation; 
-}
-
-void Z3Interfacing::addIntNonZero(z3::expr t)
-{
-  CALL("Z3Interfacing::addIntNonZero");
-
-   z3::expr zero = _context.int_val(0);
-
-  _solver.add(t != zero);
-}
-
-void Z3Interfacing::addRealNonZero(z3::expr t)
-{
-  CALL("Z3Interfacing::addRealNonZero");
-
-   z3::expr zero = _context.real_val(0);
-   z3::expr side = t!=zero;
-  if(_showZ3){
-    env.beginOutput();
-    env.out() << "[Z3] add (RealNonZero): " << side << std::endl;
-    env.endOutput();
-  }
-  _solver.add(side);
 }
 
 /**
@@ -1348,6 +1353,7 @@ void Z3Interfacing::addFloorOperations(z3::expr_vector args, Interpretation qi, 
 }
 Z3Interfacing::~Z3Interfacing()
 {
+  CALL("~Z3Interfacing")
   _sorts.clear();
   _toZ3.clear();
   _fromZ3.clear();

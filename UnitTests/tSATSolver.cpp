@@ -267,7 +267,7 @@ void testAssumptions(SATSolverWithAssumptions &s) {
   ASS_EQ(s.solveUnderAssumptions(assumps),SATSolver::UNSATISFIABLE);
 
   const SATLiteralStack& failed = s.failedAssumptions();
-  for (int i = 0; i < failed.size(); i++) {
+  for (unsigned i = 0; i < failed.size(); i++) {
     SATLiteral lit = failed[i];
     if (lit.polarity()) {
       cout << (char)('A' + lit.var()-1);
@@ -278,7 +278,7 @@ void testAssumptions(SATSolverWithAssumptions &s) {
   cout << endl;
 
   const SATLiteralStack& minimized = s.explicitlyMinimizedFailedAssumptions();
-  for (int i = 0; i < minimized.size(); i++) {
+  for (unsigned i = 0; i < minimized.size(); i++) {
     SATLiteral lit = minimized[i];
     if (lit.polarity()) {
       cout << (char)('A' + lit.var()-1);

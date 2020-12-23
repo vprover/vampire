@@ -70,8 +70,8 @@ public:
 
   static char const* z3_full_version();
 
-  void addClause(SATClause* cl, bool withGuard);
-  void addClause(SATClause* cl) override { addClause(cl,false); }
+  void addClause(SATClause* cl, bool withGuard, bool& guardAdded);
+  void addClause(SATClause* cl) override { bool _; addClause(cl,false,_); }
 
   virtual Status solve();
   virtual Status solve(unsigned conflictCountLimit) override { return solve(); };
@@ -115,14 +115,15 @@ public:
   // Currently not implemented for Z3
   virtual void suggestPolarity(unsigned var, unsigned pol) override {}
   
-  void addAssumption(SATLiteral lit, bool withGuard);
+  void addAssumption(SATLiteral lit, bool withGuard, bool& guardAdded);
+  void addAssumption(SATLiteral lit, bool withGuard) { bool _; addAssumption(lit, withGuard, _); }
   virtual void addAssumption(SATLiteral lit) override { addAssumption(lit,false); }
   virtual void retractAllAssumptions() override { _assumptions.resize(0); }
   virtual bool hasAssumptions() const override { return !_assumptions.empty(); }
 
-  Status solveUnderAssumptions(const SATLiteralStack& assumps, unsigned,bool,bool);
-  virtual Status solveUnderAssumptions(const SATLiteralStack& assumps, unsigned c, bool p) override
-  { return solveUnderAssumptions(assumps,c,p,false); }
+  Status solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit, bool onlyProperSubusets,bool withGuard, bool& addedGuard);
+  virtual Status solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit, bool onlyProperSubusets) override
+  { bool _; return solveUnderAssumptions(assumps,conflictCountLimit,onlyProperSubusets,false,_); }
 
  /**
   * Record the association between a SATLiteral var and a Literal
@@ -238,13 +239,12 @@ private:
 
   void addTruncatedOperations(z3::expr_vector, Interpretation qi, Interpretation ti, unsigned srt);
   void addFloorOperations(z3::expr_vector, Interpretation qi, Interpretation ti, unsigned srt);
-  void addIntNonZero(z3::expr);
-  void addRealNonZero(z3::expr);
 
   // not sure why this one is public
   friend struct ToZ3Expr;
   friend struct EvaluateInModel;
-  z3::expr getz3expr(Term* trm, bool&nameExpression, bool withGuard=false);
+  z3::expr getz3expr(Term* trm, bool&nameExpression) { bool _; return getz3expr(trm, nameExpression, false, _); }
+  z3::expr getz3expr(Term* trm, bool&nameExpression, bool withGuard, bool& guardAdded);
 public:
   Term* evaluateInModel(Term* trm);
 #ifdef VDEBUG
@@ -253,7 +253,9 @@ public:
 
 private:
 
-  z3::expr getRepresentation(SATLiteral lit,bool withGuard);
+  z3::expr getRepresentation(SATLiteral lit, bool withGuard, bool& addedGuard);
+  z3::expr getRepresentationWithoutGuard(SATLiteral lit) { bool _; return getRepresentation(lit, false, _); }
+  z3::expr getRepresentationWithGuard(SATLiteral lit, bool& guardAdded) { return getRepresentation(lit, true, guardAdded); }
 
   // just to conform to the interface
   unsigned _varCnt;

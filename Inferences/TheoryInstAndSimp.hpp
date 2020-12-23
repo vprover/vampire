@@ -24,6 +24,8 @@
 #include "Forwards.hpp"
 #include "InferenceEngine.hpp"
 #include "Kernel/Substitution.hpp"
+#include "Shell/Options.hpp"
+#include "SAT/Z3Interfacing.hpp"
 
 namespace Inferences
 {
@@ -46,11 +48,29 @@ public:
   CLASS_NAME(TheoryInstAndSimp);
   USE_ALLOCATOR(TheoryInstAndSimp);
 
-  TheoryInstAndSimp() : _splitter(0) {}
+  ~TheoryInstAndSimp();
+  TheoryInstAndSimp() : TheoryInstAndSimp(*env.options) {}
+  TheoryInstAndSimp(Options& opts) : TheoryInstAndSimp(opts.theoryInstAndSimp(), opts.showZ3(), opts.z3UnsatCores()) {}
+  TheoryInstAndSimp(Options::TheoryInstSimp mode, bool showZ3, bool unsatCoreForRefutations) 
+    : _splitter(0)
+    , _mode(mode)
+    , _naming()
+    , _solver([&](){ 
+        BYPASSING_ALLOCATOR; 
+        return new Z3Interfacing(_naming, showZ3, unsatCoreForRefutations,  /* unsatCoresForAssumptions = */ false); 
+      }())
+  {}
+
   void attach(SaturationAlgorithm* salg);
 
   ClauseGenerationResult generateSimplify(Clause* premise);
-  VirtualIterator<Solution> getSolutions(Stack<Literal*>& theoryLiterals,bool guarded=true);
+  VirtualIterator<Solution> getSolutions(Stack<Literal*>& theoryLiterals, bool guarded, bool& addedGuards);
+
+  VirtualIterator<Solution> getSolutionsWithGuards(Stack<Literal*>& theoryLiterals, bool& addedGuards) 
+  { return getSolutions(theoryLiterals, true, addedGuards); }
+
+  VirtualIterator<Solution> getSolutionsWithoutGuards(Stack<Literal*>& theoryLiterals)
+  { bool _; return getSolutions(theoryLiterals, false, _); }
 
 private:
 
@@ -59,8 +79,7 @@ private:
   void originalSelectTheoryLiterals(Clause* cl, Stack<Literal*>& theoryLits,bool forZ3);
 
   void applyFilters(Stack<Literal*>& theoryLits, bool forZ3);
-  void filterDivisionByZero(Stack<Literal*>& theoryLits, Stack<Literal*>& filteredLits);
-  void filterDivisionByZeroDeep(Stack<Literal*>& theoryLits, Stack<Literal*>& filteredLits);
+  void filterUninterpretedPartialFunctionDeep(Stack<Literal*>& theoryLits, Stack<Literal*>& filteredLits);
   
   /** Fills trivialLits with all clauses trivial in cl
    */
@@ -91,8 +110,9 @@ private:
   bool literalContainsVar(const Literal* lit, unsigned v);
 
   Splitter* _splitter;
-  //SAT2F0 _naming;
-  //Z3Interfacing* _solver;
+  Options::TheoryInstSimp _mode;
+  SAT2FO _naming;
+  Z3Interfacing* _solver;
 
 };
 

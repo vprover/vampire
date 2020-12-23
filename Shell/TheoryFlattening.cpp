@@ -173,8 +173,6 @@ Clause* TheoryFlattening::apply(Clause*& cl,Stack<Literal*>& target)
 
   Clause* rep = Clause::fromStack(result,SimplifyingInference1(InferenceRule::THEORY_FLATTENING,cl));
 
-  //cout << cl->toString() << " replaced by " << rep->toString() << endl;
-
   return rep;
 }
 
@@ -189,12 +187,18 @@ Clause* TheoryFlattening::apply(Clause*& cl,Stack<Literal*>& target)
   //cout << "replaceTopTerms " << lit->toString() << endl;
 
   // Tells us if we're looking for interpreted are non-interpreted terms to flatten out
-  bool interpreted = theory->isInterpretedPredicate(lit);
+  bool interpreted = theory->isInterpretedPredicate(lit->functor());
   bool equalityWithNumber = false;
   if(lit->isEquality()){
     interpreted=false;
     for(TermList* ts = lit->args(); ts->isNonEmpty(); ts = ts->next()){
-      if(ts->isTerm() && env.signature->getFunction(ts->term()->functor())->interpreted()){
+      if(ts->isTerm() 
+          && (
+            env.signature->getFunction(ts->term()->functor())->interpreted()
+            || env.signature->getFunction(ts->term()->functor())->termAlgebraCons() // TODO 
+            || env.signature->getFunction(ts->term()->functor())->termAlgebraDest()
+            )
+          ){
         interpreted=true;
       }
       if(ts->isTerm() && theory->isInterpretedConstant(ts->term())){
@@ -284,8 +288,8 @@ Clause* TheoryFlattening::apply(Clause*& cl,Stack<Literal*>& target)
   
     //special check
     if(interpretedStatus &&
-       theory->isInterpretedPartialFunction(t->functor()) &&
-       theory->isZero(*(t->nthArgument(1)))){
+            Theory::isPartiallyInterpretedFunction(t)
+         && Theory::partiallyDefinedFunctionUndefinedForArgs(t)){
 
        // If we have something of the form /0 or %0 then we treat it as uninterpreted
          interpretedStatus=false; 

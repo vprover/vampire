@@ -48,6 +48,7 @@
 #include "SAT/Z3Interfacing.hpp"
 
 #include "TheoryInstAndSimp.hpp"
+#include "Kernel/NumTraits.hpp"
 
 
 namespace Inferences
@@ -76,6 +77,7 @@ bool TheoryInstAndSimp::isSupportedSort(const unsigned sort) {
   case Kernel::Sorts::SRT_REAL:
     return true;
   }
+  if (env.signature->isTermAlgebraSort(sort)) return true;
   return false;
 }
 
@@ -85,12 +87,11 @@ bool TheoryInstAndSimp::isSupportedSort(const unsigned sort) {
 bool TheoryInstAndSimp::isSupportedLiteral(Literal* lit) {
   //check equality spearately (X=Y needs special handling)
   if (lit->isEquality()) {
-    unsigned sort = SortHelper::getEqualityArgumentSort(lit);
-    return isSupportedSort(sort);
+    return isSupportedSort(SortHelper::getEqualityArgumentSort(lit));
   }
 
   //check if predicate is interpreted
-  if (! theory->isInterpretedPredicate(lit)){
+  if (! theory->isInterpretedPredicate(lit->functor())){
     return false;
   }
 
@@ -104,6 +105,13 @@ bool TheoryInstAndSimp::isSupportedLiteral(Literal* lit) {
   return true;
 }
 
+bool isUninterpretedFunction(Term* trm) {
+  return !(theory->isInterpretedFunction(trm) 
+      || theory->isInterpretedConstant(trm) 
+      || env.signature->getFunction(trm->functor())->termAlgebraCons()
+      || env.signature->getFunction(trm->functor())->termAlgebraDest()
+      );
+}
 
 bool TheoryInstAndSimp::isPure(Literal* lit) {
   if (lit->isSpecial()) /* TODO: extend for let .. in / if then else */ {
@@ -114,7 +122,6 @@ bool TheoryInstAndSimp::isPure(Literal* lit) {
   }
 
   //check if the predicate is a theory predicate
-  Theory* theory = Theory::instance();
   if (! isSupportedLiteral(lit) ) {
     //    cout << "uninterpreted predicate symbol " << lit -> toString() << endl;
     return false;
@@ -131,8 +138,7 @@ bool TheoryInstAndSimp::isPure(Literal* lit) {
       Term* term = tl.term();
 
       //we can stop if we found an uninterpreted function / constant
-      if (! (theory->isInterpretedFunction(term)  ||
-             theory->isInterpretedConstant(term) )){
+      if (isUninterpretedFunction(term)){
         return false;
       }
       //check if return value of term is supported
@@ -349,39 +355,7 @@ void TheoryInstAndSimp::selectTheoryLiterals(Clause* cl, Stack<Literal*>& theory
 }
 
 
-// literals containing top-level terms that are partial functions with 0 on the right should never be selected
-// we only focus on top-level terms as otherwise the literal can be selected and have such terms abstracted out (abstraction treats
-// these terms as uninterpreted) and then in the abstracted version we want them to not be selected!
-  void TheoryInstAndSimp::filterDivisionByZero(Stack<Literal*>& theoryLits, Stack<Literal*>& filteredLits) {
-  Stack<Literal*>::BottomFirstIterator it(theoryLits);
-  while(it.hasNext()) {
-    Literal* lit = it.next();
-    bool keep_lit = true;
-    for(TermList* ts = lit->args(); ts->isNonEmpty(); ts = ts->next()){
-#if DPRINT
-          cout << "div zero filtering checking: " << lit->toString() << endl;
-#endif
-      
-      if(ts->isTerm()){
-        Term* t = ts->term();
-        if(theory->isInterpretedPartialFunction(t->functor()) &&
-           theory->isZero(*(t->nthArgument(1)))){
-          // treat this literal as uninterpreted
-          keep_lit = false;
-#if DPRINT
-          cout << "division by zero removed: " << lit->toString() << endl;
-#endif
-        }
-      }
-    }
-
-    if (keep_lit) {
-      filteredLits.push(lit);
-    }
-  }
-}
-
-void TheoryInstAndSimp::filterDivisionByZeroDeep(Stack<Literal*>& theoryLits, Stack<Literal*>& filteredLits) {
+void TheoryInstAndSimp::filterUninterpretedPartialFunctionDeep(Stack<Literal*>& theoryLits, Stack<Literal*>& filteredLits) {
 #if DPRINT
   cout << "div zero filtering checking!" << endl;
 #endif
@@ -397,8 +371,9 @@ void TheoryInstAndSimp::filterDivisionByZeroDeep(Stack<Literal*>& theoryLits, St
       auto ts = sit.next();
       if(ts.isTerm()){
         Term* t = ts.term();
-        if(theory->isInterpretedPartialFunction(t->functor()) &&
-           theory->isZero(*(t->nthArgument(1)))){
+        if( theory->isPartiallyInterpretedFunction(t)
+         && theory->partiallyDefinedFunctionUndefinedForArgs(t)
+            ){
           // treat this literal as uninterpreted
           keep_lit = false;
 #if DPRINT
@@ -418,7 +393,7 @@ void TheoryInstAndSimp::applyFilters(Stack<Literal*>& theoryLits, bool forZ3) {
   //TODO: too much copying, optimize
   if (forZ3) {
     Stack<Literal*> filteredLits;
-    filterDivisionByZeroDeep(theoryLits, filteredLits);
+    filterUninterpretedPartialFunctionDeep(theoryLits, filteredLits);
     theoryLits=filteredLits; 
   }
 }
@@ -433,8 +408,7 @@ void TheoryInstAndSimp::originalSelectTheoryLiterals(Clause* cl, Stack<Literal*>
   cout << "originalSelectTheoryLiterals["<<forZ3<<"] in " << cl->toString() << endl;
 #endif
 
-  static Shell::Options::TheoryInstSimp selection = env.options->theoryInstAndSimp();
-  ASS(selection!=Shell::Options::TheoryInstSimp::OFF);
+  ASS(_mode!=Shell::Options::TheoryInstSimp::OFF);
 
   Stack<Literal*> weak;
   Set<unsigned> strong_vars;
@@ -445,7 +419,7 @@ void TheoryInstAndSimp::originalSelectTheoryLiterals(Clause* cl, Stack<Literal*>
   Clause::Iterator it(*cl);
   while(it.hasNext()){
     Literal* lit = it.next();
-    bool interpreted = theory->isInterpretedPredicate(lit);
+    bool interpreted = isSupportedLiteral(lit);
 
     // two var equalities are correctly identified as interpreted and should be added
     // for the other equalities, we make sure they don't contain uninterpreted stuff (after flattenning)
@@ -453,7 +427,7 @@ void TheoryInstAndSimp::originalSelectTheoryLiterals(Clause* cl, Stack<Literal*>
     //TODO I do this kind of check all over the place but differently every time!
     if(interpreted && lit->isEquality() && !lit->isTwoVarEquality()) {  
       for(TermList* ts = lit->args(); ts->isNonEmpty(); ts = ts->next()){
-        if(ts->isTerm() && !env.signature->getFunction(ts->term()->functor())->interpreted()){
+        if(ts->isTerm() && isUninterpretedFunction(ts->term())){
           interpreted=false;
           break;
         }
@@ -467,8 +441,7 @@ void TheoryInstAndSimp::originalSelectTheoryLiterals(Clause* cl, Stack<Literal*>
     for(TermList* ts = lit->args(); ts->isNonEmpty(); ts = ts->next()){
       if(ts->isTerm()){
         Term* t = ts->term();
-        if(theory->isInterpretedPartialFunction(t->functor()) &&
-           theory->isZero(*(t->nthArgument(1)))){
+        if(isUninterpretedFunction(t)){
           // treat this literal as uninterpreted
           interpreted=false;
 #if DPRINT
@@ -484,8 +457,8 @@ void TheoryInstAndSimp::originalSelectTheoryLiterals(Clause* cl, Stack<Literal*>
       bool pos_equality = lit->isEquality() && lit->polarity();
       // currently weak literals are postive equalities or ground literals
       bool is_weak = !vit.hasNext() || pos_equality;
-      if(selection != Shell::Options::TheoryInstSimp::ALL && 
-         selection != Shell::Options::TheoryInstSimp::FULL && 
+      if(_mode != Shell::Options::TheoryInstSimp::ALL && 
+         _mode != Shell::Options::TheoryInstSimp::FULL && 
          is_weak){
         weak.push(lit);
       }
@@ -504,7 +477,7 @@ void TheoryInstAndSimp::originalSelectTheoryLiterals(Clause* cl, Stack<Literal*>
       }
     } 
   }
-  if(selection == Shell::Options::TheoryInstSimp::OVERLAP){
+  if(_mode == Shell::Options::TheoryInstSimp::OVERLAP){
 
   Stack<Literal*>::Iterator wit(weak);
   while(wit.hasNext()){
@@ -555,7 +528,7 @@ void TheoryInstAndSimp::originalSelectTheoryLiterals(Clause* cl, Stack<Literal*>
       bool deselect=false;
       while(nit.hasNext() && !deselect){
         Term* t = nit.next().term();
-        deselect = !(theory->isInterpretedFunction(t->functor()) || theory->isInterpretedConstant(t->functor())); 
+        deselect = isUninterpretedFunction(t); 
         if(deselect){
 #if DPRINT
           cout << "deselect " << t->toString() << endl;
@@ -610,7 +583,7 @@ Term* getFreshConstant(unsigned index, unsigned srt)
   return (*sortedConstants)[index];
 }
 
-VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theoryLiterals, bool guarded){
+VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theoryLiterals, bool withGuards, bool& addedGuards){
   CALL("TheoryInstAndSimp::getSolutions");
 
   BYPASSING_ALLOCATOR;
@@ -619,9 +592,7 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
 
   // We use a new SMT solver
   // currently these are not needed outside of this function so we put them here
-  static SAT2FO naming;
-  static Z3Interfacing solver(*env.options,naming);
-  solver.reset(); // the solver will reset naming
+  _solver->reset(); // the solver will reset naming
 
 
   // Firstly, we need to consistently replace variables by constants (i.e. Skolemize)
@@ -662,8 +633,8 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
     cout << " to get " << lit->toString() << endl;
 #endif
 
-    // register the lit in naming in such a way that the solver will pick it up!
-    SATLiteral slit = naming.toSAT(lit);
+    // register the lit in naming in such a way that the _solver will pick it up!
+    SATLiteral slit = _naming.toSAT(lit);
 
     // now add the SAT representation
     static SATLiteralStack satLits;
@@ -673,7 +644,7 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
     //clause->setInference(new FOConversionInference(cl));
     // guarded is normally true, apart from when we are checking a theory tautology
     try{
-      solver.addClause(sc,guarded);
+      _solver->addClause(sc,withGuards, addedGuards);
     }
     catch(UninterpretedForZ3Exception){
       return VirtualIterator<Solution>::getEmpty();
@@ -681,7 +652,7 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
   }
 
   // now we can call the solver
-  SATSolver::Status status = solver.solve(UINT_MAX);
+  SATSolver::Status status = _solver->solve(UINT_MAX);
 
   if(status == SATSolver::UNSATISFIABLE){
 #if DPRINT
@@ -697,7 +668,7 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
       Term* t = subst.apply(v).term();
       ASS(t);
       //cout << v << ": " << t->toString() << endl;
-      t = solver.evaluateInModel(t);
+      t = _solver->evaluateInModel(t);
       // If we could evaluate the term in the model then bind it
       if(t){
         //cout << "evaluate to " << t->toString() << endl;
@@ -728,9 +699,9 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
 struct InstanceFn
 {
   InstanceFn(Clause* cl, Stack<Literal*>& tl,Splitter* splitter,
-             TheoryInstAndSimp* parent,bool& red) :
+             TheoryInstAndSimp* parent, bool addedGuards, bool& red) :
           _cl(cl), _theoryLits(tl), _splitter(splitter),
-         _parent(parent), _red(red) {}
+         _parent(parent), _red(red), _addedGuards(addedGuards)  {}
 
   Clause* operator()(Solution sol)
   {
@@ -741,35 +712,19 @@ struct InstanceFn
 #if DPRINT
       cout << "Potential theory tautology" << endl;
 #endif
-      // if the theoryLits contain partial functions that need to be guarded then it may not
-      // be a tautology, we would need to confirm this without the guards
-      bool containsPartial = false;
-      Stack<Literal*>::Iterator lit(_theoryLits);
-      while(lit.hasNext()){
-        NonVariableIterator tit(lit.next());
-        while(tit.hasNext()){
-          if(theory->isInterpretedPartialFunction(tit.next().term()->functor())){
-            containsPartial=true;
-            goto partial_check_end;
-          }
-        }
-      }
-partial_check_end:
 
       // now we run SMT solver again without guarding
-      if(containsPartial){
-        auto solutions = _parent->getSolutions(_theoryLits,false);
+      if(_addedGuards){
+        _red = true;
+      } else {
+        auto solutions = _parent->getSolutionsWithoutGuards(_theoryLits);
         // we have an unsat solution without guards
-        if(solutions.hasNext() && !solutions.next().status){
-          containsPartial=false;
-        }
+        auto unsat = solutions.hasNext() && !solutions.next().status;
+        _red = unsat;
       }
 
-      if(!containsPartial){
+      if (_red) {
         env.statistics->theoryInstSimpTautologies++;
-        // do this directly in salg
-        //_salg->removeActiveOrPassiveClause(_premise);
-        _red=true;
       }
 
       return 0;
@@ -826,6 +781,7 @@ private:
   Splitter* _splitter;
   TheoryInstAndSimp* _parent;
   bool& _red;
+  bool _addedGuards;
 };
 
 SimplifyingGeneratingInference::ClauseGenerationResult TheoryInstAndSimp::generateSimplify(Clause* premise)
@@ -841,18 +797,18 @@ SimplifyingGeneratingInference::ClauseGenerationResult TheoryInstAndSimp::genera
     return empty;
   }
 
-  static Options::TheoryInstSimp thi = env.options->theoryInstAndSimp();
 
   static Stack<Literal*> selectedLiterals;
   selectedLiterals.reset();
 
-  if(thi == Options::TheoryInstSimp::NEW){
+  if(_mode == Options::TheoryInstSimp::NEW){
     selectTheoryLiterals(premise,selectedLiterals);
     applyFilters(selectedLiterals,true);
   }
   else{
     originalSelectTheoryLiterals(premise,selectedLiterals,false);
   }
+
 
   // if there are no eligable theory literals selected then there is nothing to do
   if(selectedLiterals.isEmpty()){
@@ -865,13 +821,11 @@ SimplifyingGeneratingInference::ClauseGenerationResult TheoryInstAndSimp::genera
   // TODO use limits
 
   Clause* flattened = premise;
-  if(thi != Options::TheoryInstSimp::NEW){
+  if(_mode != Options::TheoryInstSimp::NEW){
     // we will use flattening which is non-recursive and sharing
-    static TheoryFlattening flattener((thi==Options::TheoryInstSimp::FULL),true);
+    static TheoryFlattening flattener((_mode==Options::TheoryInstSimp::FULL),true);
 
     flattened = flattener.apply(premise,selectedLiterals);
-
-    ASS(flattened);
 
     // ensure that splits are copied to flattened
     if(_splitter && flattened!=premise){
@@ -881,9 +835,11 @@ SimplifyingGeneratingInference::ClauseGenerationResult TheoryInstAndSimp::genera
     static Stack<Literal*> theoryLiterals;
     theoryLiterals.reset();
 
+
     // Now go through the abstracted clause and select the things we send to SMT
     // Selection and abstraction could be done in a single step but we are reusing existing theory flattening
     originalSelectTheoryLiterals(flattened,theoryLiterals,true);
+
 
     // At this point theoryLiterals should contain abstracted versions of what is in selectedLiterals
     // all of the namings will be ineligable as, by construction, they will contain uninterpreted things
@@ -903,12 +859,13 @@ SimplifyingGeneratingInference::ClauseGenerationResult TheoryInstAndSimp::genera
   {
     TimeCounter t(TC_THEORY_INST_SIMP);
     bool premiseRedundant = false;
+    bool addedGuards;
 
     //auto it1 = getSolutions(theoryLiterals);
-    auto it1 = getSolutions(selectedLiterals);
+    auto it1 = getSolutionsWithGuards(selectedLiterals, addedGuards);
 
     auto it2 = getMappingIterator(it1,
-               InstanceFn(flattened,selectedLiterals,_splitter,this,premiseRedundant));
+               InstanceFn(flattened,selectedLiterals,_splitter,this, addedGuards, premiseRedundant));
 
     // filter out only non-zero results
     auto it3 = getFilteredIterator(it2, NonzeroFn());
@@ -937,6 +894,13 @@ std::ostream& operator<<(std::ostream& out, Solution const& self)
 {
   return out << "Solution(" << (self.status ? "sat" : "unsat") << ", " << self.subst << ")";
   // return out;
+}
+
+TheoryInstAndSimp::~TheoryInstAndSimp()
+{
+  CALL("~TheoryInstAndSimp")
+  BYPASSING_ALLOCATOR
+  delete _solver;
 }
 
 }

@@ -157,7 +157,7 @@ void InductionClauseIterator::process(Clause* premise, Literal* lit)
   static bool complexTermsAllowed = env.options->inductionOnComplexTerms();
 
   if((!negOnly || lit->isNegative() || 
-         (theory->isInterpretedPredicate(lit) && theory->isInequality(theory->interpretPredicate(lit)))
+         (theory->isInterpretedPredicate(lit->functor()) && theory->isInequality(theory->interpretPredicate(lit)))
        )&& 
        lit->ground()
       ){

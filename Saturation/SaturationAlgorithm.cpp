@@ -270,7 +270,9 @@ SaturationAlgorithm::~SaturationAlgorithm()
   s_instance=0;
 
   if (_splitter) {
+    DBG("lala 101")
     delete _splitter;
+    DBG("lala 102")
   }
   if (_consFinder) {
     delete _consFinder;

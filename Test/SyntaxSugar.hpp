@@ -429,7 +429,7 @@ public:
   template<class... As>
   TermSugar operator()(As... args) const {
     BYPASSING_ALLOCATOR
-    Stack<TermList> as = { TermSugar(args).toTerm()... };
+    Stack<TermList> as { TermSugar(args).toTerm()... };
     return TermList(Term::create(_functor, 
         as.size(), 
         as.begin()));
@@ -471,7 +471,7 @@ public:
 
   template<class... As>
   Lit operator()(As... args) const {
-    Stack<TermList> as = { TermSugar(args).toTerm()... };
+    Stack<TermList> as { TermSugar(args).toTerm()... };
     return Literal::create(_functor, 
         as.size(), 
         /* polarity */ true, 

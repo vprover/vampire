@@ -559,7 +559,7 @@ public:
   virtual PredEvalResult tryEvaluatePred(Literal* lit) override
   {
     CALL("InterpretedLiteralEvaluator::tryEvaluatePred");
-    ASS(theory->isInterpretedPredicate(lit));
+    ASS(theory->isInterpretedPredicate(lit->functor()));
     bool res;
 
     try {
