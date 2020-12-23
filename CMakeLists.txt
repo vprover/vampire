@@ -36,13 +36,19 @@ if (NOT BUILD_SHARED_LIBS)
 endif()
 
 option(IPO "If supported, build with link-time optimisation." OFF)
+option(DEBUG_IPO "Print information about why IPO isn't supported" OFF)
 # check whether IPO is available
 include(CheckIPOSupported)
 check_ipo_supported(RESULT IPO_SUPPORTED OUTPUT IPO_ERROR)
 if (IPO_SUPPORTED)
   message(STATUS "IPO supported")
 else()
-  message(STATUS "IPO not supported: ${IPO_ERROR}")
+  message(STATUS "IPO not supported")
+  if(DEBUG_IPO)
+    message(STATUS "${IPO_ERROR}")
+  else()
+    message(STATUS "(if you need IPO, set DEBUG_IPO=ON to investigate)")
+  endif()
 endif()
 
 ################################################################
@@ -967,5 +973,6 @@ configure_file(version.cpp.in version.cpp)
 
 if(CMAKE_BUILD_TYPE STREQUAL Release AND IPO)
   message(STATUS "compiling Vampire with IPO: this might take a while")
+  set_property(TARGET obj PROPERTY INTERPROCEDURAL_OPTIMIZATION true)
   set_property(TARGET vampire PROPERTY INTERPROCEDURAL_OPTIMIZATION true)
 endif()
