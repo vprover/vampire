@@ -1176,6 +1176,12 @@ void Options::init()
             _functionDefinitionRewriting.reliesOn(_newCNF.is(equal(true)));
             _lookup.insert(&_functionDefinitionRewriting);
 
+            _simplifyBeforeInduction = BoolOptionValue("simplify_before_induction","inds",false);
+            _simplifyBeforeInduction.description = "Do not allow induction on literals that can be rewritten with some function definition";
+            _simplifyBeforeInduction.tag(OptionTag::INFERENCES);
+            // _simplifyBeforeInduction.reliesOn(_functionDefinitionRewriting.is(equal(true)));
+            _lookup.insert(&_simplifyBeforeInduction);
+
 	    _instantiation = ChoiceOptionValue<Instantiation>("instantiation","inst",Instantiation::OFF,{"off","on"});
 	    _instantiation.description = "Heuristically instantiate variables. Often wastes a lot of effort. Consider using thi instead.";
 	    _instantiation.tag(OptionTag::INFERENCES);

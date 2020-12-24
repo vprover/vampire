@@ -2143,6 +2143,7 @@ public:
   bool inductionMultiClause() const { return _inductionMultiClause.actualValue; }
   InductionTermOccurrenceSelectionHeuristic inductionTermOccurrenceSelectionHeuristic() const { return _inductionTermOccHeuristic.actualValue; }
   bool functionDefinitionRewriting() const { return _functionDefinitionRewriting.actualValue; }
+  bool simplifyBeforeInduction() const { return _simplifyBeforeInduction.actualValue; }
 
   float instGenBigRestartRatio() const { return _instGenBigRestartRatio.actualValue; }
   bool instGenPassiveReactivation() const { return _instGenPassiveReactivation.actualValue; }
@@ -2445,6 +2446,7 @@ private:
   BoolOptionValue _inductionMultiClause;
   ChoiceOptionValue<InductionTermOccurrenceSelectionHeuristic> _inductionTermOccHeuristic;
   BoolOptionValue _functionDefinitionRewriting;
+  BoolOptionValue _simplifyBeforeInduction;
 
   StringOptionValue _latexOutput;
   BoolOptionValue _latexUseDefaultSymbols;
