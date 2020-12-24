@@ -479,6 +479,10 @@ public:
   {
     _functionDefinition = 1;
   }
+  void unmakeFunctionDefinition()
+  {
+    _functionDefinition = 0;
+  }
   bool isFunctionDefinition()
   {
     return _functionDefinition;

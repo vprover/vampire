@@ -1554,6 +1554,12 @@ Clause* NewCNF::toClause(SPGenClause gc)
     if (rewriting && properLiterals[i]->isFunctionDefinition()) {
       clause->makeFunctionDefinition(properLiterals[i],
         properLiterals[i]->isFunctionOrientedReversed());
+      // TODO(mhajdu): this is only a half-measure in trying to avoid
+      // function definitions popping out of nowhere.
+      // This does the opposite: there may be fn defs
+      // which come out non-fn defs because some other clause
+      // contains the same literal and we unmark it.
+      properLiterals[i]->unmakeFunctionDefinition();
     }
   }
 

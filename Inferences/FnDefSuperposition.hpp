@@ -43,15 +43,15 @@ private:
   Clause* performSuperposition(
 	  Clause* rwClause, Literal* rwLiteral, TermList rwTerm,
 	  Clause* eqClause, Literal* eqLiteral, TermList eqLHS,
-	  ResultSubstitutionSP subst, bool eqIsResult,
-    UnificationConstraintStackSP constraints);
+	  ResultSubstitutionSP subst, bool eqIsResult);
 
   struct ForwardResultFn;
   struct RewriteableSubtermsFn;
-  struct UnificationsFn;
+  struct InstancesFn;
+  struct GeneralizationsFn;
   struct BackwardResultFn;
 
-  SuperpositionSubtermIndex* _subtermIndex;
+  DemodulationSubtermIndex* _subtermIndex;
   FnDefLHSIndex* _lhsIndex;
 };
 
