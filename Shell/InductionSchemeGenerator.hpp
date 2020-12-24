@@ -114,7 +114,6 @@ struct RDescriptionInst {
   vvector<vmap<TermList, TermList>> _recursiveCalls;
   vmap<TermList, TermList> _step;
   vvector<Formula*> _conditions;
-  vset<TermList> _inactive;
 };
 
 ostream& operator<<(ostream& out, const RDescriptionInst& inst);
@@ -131,7 +130,6 @@ struct InductionScheme {
   vvector<RDescriptionInst> _rDescriptionInstances;
   unsigned _maxVar;
   vset<TermList> _inductionTerms;
-  vset<TermList> _inactive;
 };
 
 ostream& operator<<(ostream& out, const InductionScheme& scheme);

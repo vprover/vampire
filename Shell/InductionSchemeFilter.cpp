@@ -264,8 +264,6 @@ bool checkQuasiCommutation(const InductionScheme& sch1, const InductionScheme& s
           auto indTerm = kv2.first;
           auto t2 = kv2.second;
           auto it = rdesc1._step.find(indTerm);
-          auto inactive = sch1._inactive.count(indTerm) > 0;
-          ASS(it != rdesc1._step.end() || inactive);
 
           if (it != rdesc1._step.end()) {
             RobSubstitutionSP subst(new RobSubstitution);
@@ -424,13 +422,6 @@ bool createSingleRDescription(const RDescriptionInst& rdesc, const InductionSche
     }
   }
 
-  vset<TermList> diff;
-  set_difference(rdesc._inactive.begin(), rdesc._inactive.end(),
-    combinedInductionTerms.begin(), combinedInductionTerms.end(),
-    inserter(diff, diff.end()));
-  for (auto& rdesc : res) {
-    rdesc._inactive = diff;
-  }
   return true;
 }
 
@@ -496,13 +487,6 @@ bool createMergedRDescription(const RDescriptionInst& rdesc1, const RDescription
   conditions.insert(conditions.end(), rdesc2._conditions.begin(), rdesc2._conditions.end());
   res = RDescriptionInst(std::move(recCalls), std::move(step), std::move(conditions));
 
-  auto inactive = rdesc1._inactive;
-  inactive.insert(rdesc2._inactive.begin(), rdesc2._inactive.end());
-  vset<TermList> diff;
-  set_difference(inactive.begin(), inactive.end(),
-    combinedInductionTerms.begin(), combinedInductionTerms.end(),
-    inserter(diff, diff.end()));
-  res._inactive = diff;
   return true;
 }
 
@@ -567,21 +551,19 @@ void addBaseCases(InductionScheme& sch) {
 
 bool checkInductionTerms(const InductionScheme& sch1, const InductionScheme& sch2, vset<TermList>& combined)
 {
+  combined.clear();
   if (includes(sch1._inductionTerms.begin(), sch1._inductionTerms.end(),
       sch2._inductionTerms.begin(), sch2._inductionTerms.end())) {
-    combined = sch1._inductionTerms;
+    // combined = sch1._inductionTerms;
     return true;
   }
   if (env.options->inductionForceMerge()) {
     vset<TermList> diff;
     set_difference(sch2._inductionTerms.begin(), sch2._inductionTerms.end(),
       sch1._inductionTerms.begin(), sch1._inductionTerms.end(), inserter(diff, diff.begin()));
-    if (includes(sch1._inactive.begin(), sch1._inactive.end(),
-      diff.begin(), diff.end())) {
-      combined = sch1._inductionTerms;
-      combined.insert(diff.begin(), diff.end());
-      return true;
-    }
+    combined = sch1._inductionTerms;
+    combined.insert(diff.begin(), diff.end());
+    return true;
   }
   return false;
 }

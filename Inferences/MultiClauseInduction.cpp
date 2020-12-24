@@ -104,6 +104,10 @@ public:
     // Now perform resolution between origLit and the hyp_clauses on conclusion if conclusion in the clause
     // If conclusion not in the clause then the clause is a definition from clausification and just keep
     Stack<Clause*>::Iterator cit(hyp_clauses);
+    // TODO(mhajdu): here technically the substitution should contain
+    // the inductionterm -> variable mappings but this now works as we
+    // know exactly what to resolve in the call below. This, however,
+    // should be fixed later.
     static ResultSubstitutionSP identity = ResultSubstitutionSP(new IdentitySubstitution());
     while(cit.hasNext()){
       Clause* c = cit.next();
@@ -147,6 +151,11 @@ ClauseIterator MultiClauseInduction::generateClauses(Clause* premise)
   {
     for(unsigned i=0;i<premise->length();i++){
       auto lit = (*premise)[i];
+      if(env.options->showInduction()){
+        env.beginOutput();
+        env.out() << "[MultiClauseInduction] process " << lit->toString() << " in " << premise->toString() << endl;
+        env.endOutput();
+      }
       if (!lit->ground()) {
         continue;
       }

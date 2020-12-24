@@ -210,13 +210,6 @@ ostream& operator<<(ostream& out, const RDescriptionInst& inst)
     out << kv.first << " -> " << kv.second << ", ";
   }
   out << endl;
-  if (!inst._inactive.empty()) {
-    out << "** inactive terms: ";
-    for (const auto& i : inst._inactive) {
-      out << i << ", ";
-    }
-    out << endl;
-  }
   return out;
 }
 
@@ -364,22 +357,6 @@ void InductionScheme::init(Term* t, const InductionTemplate& templ)
     }
     _rDescriptionInstances.emplace_back(std::move(recCallSubstList), std::move(stepSubst), std::move(condSubstList));
   }
-  // We now collect inactive/passive terms by just
-  // collecting any non-induction term. For the strongest
-  // hypotheses however, we need to check on a case to case
-  // basis and collect anything that is not changing
-  Term::Iterator it(t);
-  while(it.hasNext()) {
-    auto arg = it.next();
-    auto ind = getInductionTerms(arg);
-    // ASS(ind.size() <= 1);
-    if (!ind.empty() && !_inductionTerms.count(ind[0])) {
-      _inactive.insert(ind[0]);
-    }
-  }
-  for (auto& rdesc : _rDescriptionInstances) {
-    rdesc._inactive = _inactive;
-  }
   _rDescriptionInstances.shrink_to_fit();
   _maxVar = var;
 }
@@ -408,7 +385,6 @@ void InductionScheme::init(vvector<RDescriptionInst>&& rdescs)
           : TermList(vr.transform(kv.second.term()));
       }
     }
-    _inactive.insert(rdesc._inactive.begin(), rdesc._inactive.end());
     for (auto& f : rdesc._conditions) {
       f = vr.transform(f);
     }
@@ -419,7 +395,6 @@ void InductionScheme::init(vvector<RDescriptionInst>&& rdescs)
 InductionScheme InductionScheme::makeCopyWithVariablesShifted(unsigned shift) const {
   InductionScheme res;
   res._inductionTerms = _inductionTerms;
-  res._inactive = _inactive;
   VarShiftReplacement vsr(shift);
 
   for (const auto& rdesc : _rDescriptionInstances) {
@@ -447,9 +422,6 @@ InductionScheme InductionScheme::makeCopyWithVariablesShifted(unsigned shift) co
     }
     res._rDescriptionInstances.emplace_back(std::move(resRecCalls),
       std::move(resStep), std::move(resCond));
-  }
-  for (auto& rdesc : res._rDescriptionInstances) {
-    rdesc._inactive = res._inactive;
   }
   res._maxVar = _maxVar + shift;
   return res;
@@ -484,12 +456,6 @@ ostream& operator<<(ostream& out, const InductionScheme& scheme)
   out << "induction terms: ";
   for (const auto& t : scheme._inductionTerms) {
     out << t << ", ";
-  }
-  if (!scheme._inactive.empty()) {
-    out << " inactive terms: ";
-    for (const auto& t : scheme._inactive) {
-      out << t << ", ";
-    }
   }
 
   return out;
