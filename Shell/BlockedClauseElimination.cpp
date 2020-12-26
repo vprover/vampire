@@ -64,8 +64,9 @@ void BlockedClauseElimination::apply(Problem& prb)
   // put the clauses into the index
   UnitList::Iterator uit(prb.units());
   while(uit.hasNext()) {
-    Clause* cl=static_cast<Clause*>(uit.next());
-    ASS(cl->isClause());
+    Unit* u = uit.next();
+    ASS(u->isClause());
+    Clause* cl=static_cast<Clause*>(u);
 
     ClWrapper* clw = new ClWrapper(cl);
     wrappers.push(clw);
@@ -86,11 +87,11 @@ void BlockedClauseElimination::apply(Problem& prb)
   typedef BinaryHeap<Candidate*, CandidateComparator> BlockClauseCheckPriorityQueue;
   BlockClauseCheckPriorityQueue queue;
 
-  for (bool pos : {false, true}) {
-    DArray<Stack<Candidate*>>& one   = pos ? positive : negative;
-    DArray<Stack<Candidate*>>& other = pos ? negative : positive;
+  for (bool isPos : {false, true}) {
+    DArray<Stack<Candidate*>>& one   = isPos ? positive : negative;
+    DArray<Stack<Candidate*>>& other = isPos ? negative : positive;
 
-    for (unsigned pred = 1; pred < one.size(); pred++) { // skipping 0; the empty slot for equality
+    for (unsigned pred = 1; pred < one.size(); pred++) { // skipping 0, the empty slot for equality
       Stack<Candidate*>& predsCandidates = one[pred];
       unsigned predsRemaining = other[pred].size();
       for (unsigned i = 0; i < predsCandidates.size(); i++) {
@@ -159,8 +160,8 @@ void BlockedClauseElimination::apply(Problem& prb)
   }
 
   // delete candidates:
-  for (bool pos : {false, true}) {
-    DArray<Stack<Candidate*>> & one   = pos ? positive : negative;
+  for (bool isPos : {false, true}) {
+    DArray<Stack<Candidate*>> & one   = isPos ? positive : negative;
 
     for (unsigned pred = 0; pred < one.size(); pred++) {
       Stack<Candidate*>& predsCandidates = one[pred];
@@ -362,7 +363,6 @@ bool BlockedClauseElimination::resolvesToTautologyEq(Clause* cl, Literal* lit, C
   // cout << "varMax: " << varMax << endl;
 
   // to do replacements in pcl, we need a mapping for all plit's arguments.
-  // As a bonus we also allow ground arguments of lit
   replacements.reset();
   for(unsigned i = 0; i<n; i++) {
     TermList arg = *plit->nthArgument(i);
@@ -375,6 +375,7 @@ bool BlockedClauseElimination::resolvesToTautologyEq(Clause* cl, Literal* lit, C
     // cout << "map2: " << arg.toString() << " --> " << target.toString() << endl;
   }
 
+  // As a bonus we also allow ground arguments of lit
   for(unsigned i = 0; i<n; i++) {
     TermList arg = *lit->nthArgument(i);
     if (arg.isTerm() && arg.term()->ground()) {

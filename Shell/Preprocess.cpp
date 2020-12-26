@@ -483,21 +483,12 @@ void Preprocess::preprocess(Problem& prb)
 
    //bce hasn't been updated to deal with polymorphism
    if (_options.blockedClauseElimination()) {
-     if (prb.hasPolymorphicSym()) { // TODO: extend BlockedClauseElimination to support polymorphism!
-       if (outputAllowed()) {
-         env.beginOutput();
-         addCommentSignForSZS(env.out());
-         env.out() << "WARNING: Not using BlockedClauseElimination currently not compatible with polymorphic inputs." << endl;
-         env.endOutput();
-       }
-     } else {
-       env.statistics->phase=Statistics::BLOCKED_CLAUSE_ELIMINATION;
-       if(env.options->showPreprocessing())
-         env.out() << "blocked clause elimination" << std::endl;
+     env.statistics->phase=Statistics::BLOCKED_CLAUSE_ELIMINATION;
+     if(env.options->showPreprocessing())
+       env.out() << "blocked clause elimination" << std::endl;
 
-       BlockedClauseElimination bce;
-       bce.apply(prb);
-     }
+     BlockedClauseElimination bce;
+     bce.apply(prb);
    }
 
    if (env.options->showPreprocessing()) {
