@@ -538,6 +538,7 @@ void SaturationAlgorithm::embed_and_evaluate(Clause* cl, const char* method_name
   if (eval) {
     inputs.clear();
     inputs.push_back(id);
+    inputs.push_back(torch::tensor(env.options->neuralEvalEvalTweak()));
 
     auto out = _model.forward(inputs);
     cl->setModelSaid(-out.toDouble()); // already here, we reverse the logit's logic to "small is good"!
@@ -598,6 +599,7 @@ void SaturationAlgorithm::talkToKarel(Clause* cl, bool embed, bool eval)
           (int64_t)cl->weight(),
           (int64_t)cl->size(),
           (int64_t)(orig ? orig->number() : -1)));
+      inputs.push_back(torch::tensor(env.options->neuralEvalDerivTweak()));
 
       embed_and_evaluate(cl,"new_avat","new_avat",inputs,eval);
 
@@ -710,6 +712,8 @@ void SaturationAlgorithm::talkToKarel(Clause* cl, bool embed, bool eval)
       }
 
       inputs.push_back(torch::jit::IValue(parents));
+
+      inputs.push_back(torch::tensor(env.options->neuralEvalDerivTweak()));
 
       char specific_method_name[20];
       char default_method_name[20];

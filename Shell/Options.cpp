@@ -1034,6 +1034,12 @@ void Options::Options::init()
     _neuralEvalSplitQueueRatios.reliesOn(_useNeuralEvalSplitQueues.is(equal(true)));
     _neuralEvalSplitQueueRatios.tag(OptionTag::SATURATION);
 
+    _neuralEvalEvalTweak = FloatOptionValue("neural_eval_eval_tweak","neet",0.0);    
+    _lookup.insert(&_neuralEvalEvalTweak);
+    
+    _neuralEvalDerivTweak = FloatOptionValue("neural_eval_deriv_tweak","nedt",0.0);    
+    _lookup.insert(&_neuralEvalDerivTweak);
+
     _literalMaximalityAftercheck = BoolOptionValue("literal_maximality_aftercheck","lma",false);
     _literalMaximalityAftercheck.description = 
                                    "For efficiency we perform maximality checks before applying substitutions. Sometimes this can " 
