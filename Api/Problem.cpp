@@ -1714,8 +1714,15 @@ void outputSymbolTypeDefinitions(ostream& out, unsigned symNumber, bool function
       env.signature->getFunction(symNumber) : env.signature->getPredicate(symNumber);
 
   if(sym->interpreted()) {
-    //there is no need to output type definitions for interpreted symbols
-    return;
+    switch (sym->interpret()) {
+      case Theory::TA_CONSTRUCTOR:
+      case Theory::TA_DESTRUCTOR:
+      case Theory::TA_DISCRIMINATOR:
+        throw new UserErrorException("cannot serialize datatypes to TPTP syntax");
+      default:
+        //there is no need to output type definitions for interpreted symbols
+        return;
+    }
   }
 
   BaseType* type = function ? static_cast<BaseType*>(sym->fnType()) : sym->predType();

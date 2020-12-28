@@ -145,8 +145,8 @@ struct EqualityResolution::ResultFn
 
       if(uwa==Options::UnificationWithAbstraction::GROUND &&
          !constraint->ground() &&
-         (!theory->isInterpretedFunction(qT) && !theory->isInterpretedConstant(qT)) &&
-         (!theory->isInterpretedFunction(rT) && !theory->isInterpretedConstant(rT))){
+         !theory->isInterpretedFunction(qT) &&
+         !theory->isInterpretedFunction(rT)){
 
         // the unification was between two uninterpreted things that were not ground 
         res->destroy();

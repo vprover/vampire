@@ -28,9 +28,10 @@ const unsigned Signature::STRING_DISTINCT_GROUP = 0;
 /**
  * Standard constructor.
  * @since 03/05/2013 train London-Manchester, argument numericConstant added
+ * @since 28/12/2020 argument numericConstant removed. value was constant `false`.
  * @author Andrei Voronkov
  */
-Signature::Symbol::Symbol(const vstring& nm,unsigned arity, bool interpreted, bool stringConstant,bool numericConstant, bool overflownConstant)
+Signature::Symbol::Symbol(const vstring& nm,unsigned arity, bool interpreted, bool stringConstant,bool overflownConstant)
   : _name(nm),
     _arity(arity),
     _interpreted(interpreted ? 1 : 0),
@@ -41,10 +42,8 @@ Signature::Symbol::Symbol(const vstring& nm,unsigned arity, bool interpreted, bo
     _equalityProxy(0),
     _color(COLOR_TRANSPARENT),
     _stringConstant(stringConstant ? 1: 0),
-    _numericConstant(numericConstant ? 1: 0),
     _answerPredicate(0),
     _overflownConstant(overflownConstant ? 1 : 0),
-    _termAlgebraCons(0),
     _type(0),
     _distinctGroups(0),
     _usageCount(0),
@@ -56,10 +55,12 @@ Signature::Symbol::Symbol(const vstring& nm,unsigned arity, bool interpreted, bo
 {
   CALL("Signature::Symbol::Symbol");
   ASS(!stringConstant || arity==0);
+  DBG(*this, ": ", _type ? _type->toString() : "null");
 
-  if (!stringConstant && !numericConstant && !overflownConstant && symbolNeedsQuoting(_name, interpreted,arity)) {
+  if (!stringConstant && !overflownConstant && symbolNeedsQuoting(_name, interpreted,arity)) {
     _name="'"+_name+"'";
   }
+  DBG(*this, ": ", _type ? _type->toString() : "null");
   if (_interpreted || isProtectedName(nm)) {
     markProtected();
   }
@@ -143,7 +144,12 @@ void Signature::Symbol::addToDistinctGroup(unsigned group,unsigned this_number)
 void Signature::Symbol::setType(OperatorType* type)
 {
   CALL("Signature::Symbol::setType");
-  ASS(!_type);
+  if (_type) {
+    DBG(*this)
+    DBG(_type->toString())
+    DBG(type->toString())
+    ASSERTION_VIOLATION
+  }
 
   _type = type;
 }
@@ -398,72 +404,95 @@ unsigned Signature::addRealConstant(const RealConstantType& value)
 /**
  * Add interpreted function
  */
-unsigned Signature::addInterpretedFunction(Interpretation interpretation, OperatorType* type, const vstring& name)
+unsigned Signature::addInterpretedFunction(Interpretation interpretation, OperatorType* type, const vstring& name, bool& added)
 {
   CALL("Signature::addInterpretedFunction(Interpretation,OperatorType*,const vstring&)");
   ASS(Theory::isFunction(interpretation));
+  auto monomorph = Theory::isMonomorphisable(interpretation);
 
   Theory::MonomorphisedInterpretation mi = std::make_pair(interpretation,type);
 
-  unsigned res;
-  if (_iSymbols.find(mi,res)) { // already declared
-    if (name!=functionName(res)) {
-      USER_ERROR("Interpreted function '"+functionName(res)+"' has the same interpretation as '"+name+"' should have");
+  if (monomorph) {
+
+    unsigned res;
+
+    if (_iSymbols.find(mi,res)) { // already declared
+      if (name!=functionName(res)) {
+        USER_ERROR("Interpreted function '"+functionName(res)+"' has the same interpretation as '"+name+"' should have");
+      }
+      added = false;
+      return res;
     }
-    return res;
   }
 
   vstring symbolKey = name+"_i"+Int::toString(interpretation)+(Theory::isPolymorphic(interpretation) ? type->toString() : "");
-  ASS(!_funNames.find(symbolKey));
 
-  unsigned fnNum = _funs.length();
-  InterpretedSymbol* sym = new InterpretedSymbol(name, interpretation);
-  _funs.push(sym);
-  _funNames.insert(symbolKey, fnNum);
-  ALWAYS(_iSymbols.insert(mi, fnNum));
+  unsigned fnNum;
+  if (_funNames.find(symbolKey, fnNum)) {
+    added = false;
 
-  OperatorType* fnType = type;
-  ASS(fnType->isFunctionType());
-  sym->setType(fnType);
+  } else {
+    fnNum = _funs.length();
+    InterpretedSymbol* sym = new InterpretedSymbol(name, type->arity(), interpretation);
+    _funs.push(sym);
+    if (monomorph) {
+      ALWAYS(_iSymbols.insert(mi, fnNum));
+    }
+    OperatorType* fnType = type;
+    ASS(fnType->isFunctionType());
+    sym->setType(fnType);
+    added = true;
+  }
   return fnNum;
 } // Signature::addInterpretedFunction
 
 /**
  * Add interpreted predicate
  */
-unsigned Signature::addInterpretedPredicate(Interpretation interpretation, OperatorType* type, const vstring& name)
+unsigned Signature::addInterpretedPredicate(Interpretation interpretation, OperatorType* type, const vstring& name, bool& added)
 {
   CALL("Signature::addInterpretedPredicate(Interpretation,OperatorType*,const vstring&)");
   ASS(!Theory::isFunction(interpretation));
 
   // cout << "addInterpretedPredicate " << (type ? type->toString() : "nullptr") << " " << name << endl;
+  bool monomorph = Theory::isMonomorphisable(interpretation);
 
   Theory::MonomorphisedInterpretation mi = std::make_pair(interpretation,type);
 
-  unsigned res;
-  if (_iSymbols.find(mi,res)) { // already declared
-    if (name!=predicateName(res)) {
-      USER_ERROR("Interpreted predicate '"+predicateName(res)+"' has the same interpretation as '"+name+"' should have");
+  if (monomorph) {
+    unsigned res;
+    if (_iSymbols.find(mi,res)) { // already declared
+      if (name!=predicateName(res)) {
+        USER_ERROR("Interpreted predicate '"+predicateName(res)+"' has the same interpretation as '"+name+"' should have");
+      }
+      added = false;
+      return res;
     }
-    return res;
   }
 
   vstring symbolKey = name+"_i"+Int::toString(interpretation)+(Theory::isPolymorphic(interpretation) ? type->toString() : "");
 
   // cout << "symbolKey " << symbolKey << endl;
 
-  ASS(!_predNames.find(symbolKey));
-
-  unsigned predNum = _preds.length();
-  InterpretedSymbol* sym = new InterpretedSymbol(name, interpretation);
-  _preds.push(sym);
-  _predNames.insert(symbolKey,predNum);
-  ALWAYS(_iSymbols.insert(mi, predNum));
-  if (predNum!=0) {
-    OperatorType* predType = type;
-    ASS_REP(!predType->isFunctionType(), predType->toString());
-    sym->setType(predType);
+  unsigned predNum;
+  if(_predNames.find(symbolKey, predNum)) {
+    added = false;
+  } else {
+    predNum = _preds.length();
+    InterpretedSymbol* sym = new InterpretedSymbol(name, type->arity(), interpretation);
+    _preds.push(sym);
+    _predNames.insert(symbolKey,predNum);
+    if (monomorph) {
+      ALWAYS(_iSymbols.insert(mi, predNum));
+    }
+    if (predNum!=0) {
+      OperatorType* predType = type;
+      ASS_REP(!predType->isFunctionType(), predType->toString());
+      sym->setType(predType);
+    }
+    added = true;
   }
+  DBG(symbolKey)
   return predNum;
 } // Signature::addInterpretedPredicate
 
@@ -630,7 +659,7 @@ unsigned Signature::addFunction (const vstring& name,
   }
 
   result = _funs.length();
-  _funs.push(new Symbol(name, arity, false, false, false, overflowConstant));
+  _funs.push(new Symbol(name, arity, false, false, overflowConstant));
   _funNames.insert(symbolKey, result);
   added = true;
   return result;
@@ -723,7 +752,7 @@ unsigned Signature::addNamePredicate(unsigned arity)
  * prefixI_suffix. The new function will be marked as skip for the purpose of equality
  * elimination.
  */
-unsigned Signature::addFreshFunction(unsigned arity, const char* prefix, const char* suffix)
+inline unsigned Signature::addFreshFunction(OperatorType* type, const char* prefix, const char* suffix, Interpretation* itp)
 {
   CALL("Signature::addFreshFunction");
 
@@ -737,7 +766,12 @@ unsigned Signature::addFreshFunction(unsigned arity, const char* prefix, const c
 //  unsigned result = addFunction(pref+suf,arity,added);
 //  if (!added) {
     do {
-      result = addFunction(pref+Int::toString(_nextFreshSymbolNumber++)+suf,arity,added);
+      auto name = pref+Int::toString(_nextFreshSymbolNumber++)+suf;
+      if (itp) {
+        result = addInterpretedFunction(*itp, type, name,added);
+      } else {
+        result = addFunction(name,type->arity(),added);
+      }
     }
     while (!added);
 //  }
@@ -747,13 +781,25 @@ unsigned Signature::addFreshFunction(unsigned arity, const char* prefix, const c
   return result;
 } // addFreshFunction
 
+
+
+unsigned Signature::addFreshPredicate(unsigned arity, const char* prefix, const char* suffix)
+{ return addFreshPredicate(OperatorType::getPredicateType(arity, nullptr), prefix, suffix, nullptr); }
+unsigned Signature::addFreshPredicate(OperatorType* op, const char* prefix, const char* suffix, Interpretation itp)
+{ return addFreshPredicate(op, prefix, suffix, &itp); } 
+
+unsigned Signature::addFreshFunction(unsigned arity, const char* prefix, const char* suffix)
+{ return addFreshFunction(OperatorType::getFunctionType(arity, nullptr, Sorts::SRT_DEFAULT), prefix, suffix, nullptr); }
+unsigned Signature::addFreshFunction(OperatorType* op, const char* prefix, const char* suffix, Interpretation itp)
+{ return addFreshFunction(op, prefix, suffix, &itp); } 
+
 /**
  * Add fresh predicate of a given arity and with a given prefix. If suffix is non-zero,
  * the predicate name will be prefixI, where I is an integer, otherwise it will be
  * prefixI_suffix. The new predicate will be marked as skip for the purpose of equality
  * elimination.
  */
-unsigned Signature::addFreshPredicate(unsigned arity, const char* prefix, const char* suffix)
+unsigned Signature::addFreshPredicate(OperatorType* type, const char* prefix, const char* suffix, Interpretation* itp)
 {
   CALL("Signature::addFreshPredicate");
 
@@ -769,7 +815,12 @@ unsigned Signature::addFreshPredicate(unsigned arity, const char* prefix, const 
 //  }
 //  if (!added) {
     do {
-      result = addPredicate(pref+Int::toString(_nextFreshSymbolNumber++)+suf,arity,added);
+      auto name = pref+Int::toString(_nextFreshSymbolNumber++)+suf;
+      if (itp) {
+        result = addInterpretedPredicate(*itp, type, name,added);
+      } else {
+        result = addPredicate(name,type->arity(),added);
+      }
     }
     while (!added);
 //  }

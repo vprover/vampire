@@ -310,6 +310,7 @@ int PrecedenceOrdering::predicateLevel (unsigned pred) const
   int basic=pred >= _predicates ? 1 : _predicateLevels[pred];
   if(NONINTERPRETED_LEVEL_BOOST && !env.signature->getPredicate(pred)->interpreted()) {
     ASS(!Signature::isEqualityPredicate(pred)); //equality is always interpreted
+    // TODO semantics changed here: termalgebra symbols are not considered as uninterpreted anymore
     basic+=NONINTERPRETED_LEVEL_BOOST;
   }
   if(env.signature->predicateColored(pred)) {
@@ -385,10 +386,12 @@ Ordering::Result PrecedenceOrdering::compareFunctionPrecedences(unsigned fun1, u
   Signature::Symbol* s1=env.signature->getFunction(fun1);
   Signature::Symbol* s2=env.signature->getFunction(fun2);
   // term algebra constructors are smaller than other symbols
-  if(s1->termAlgebraCons() && !s2->termAlgebraCons()) {
+  auto isCons = [](Kernel::Signature::Symbol* s) -> bool 
+  { return s->interpreted() && static_cast<Signature::InterpretedSymbol*>(s)->getInterpretation();  };
+  if(isCons(s1) && !isCons(s2)) {
     return LESS;
   }
-  if(!s1->termAlgebraCons() && s2->termAlgebraCons()) {
+  if(!isCons(s1) && isCons(s2)) {
     return GREATER;
   }
   // uninterpreted things are greater than interpreted things
@@ -417,7 +420,7 @@ Ordering::Result PrecedenceOrdering::compareFunctionPrecedences(unsigned fun1, u
   }
   //two interpreted constants
 
-  if (!s1->numericConstant() || !s2->numericConstant()) {
+  if (!s1->interpretedNumber() || !s2->interpretedNumber()) {
     return fromComparison(Int::compare(fun1, fun2));
   }
 

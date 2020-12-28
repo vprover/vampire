@@ -841,6 +841,8 @@ bool Theory::isFunction(Interpretation i)
           
   case ARRAY_SELECT:
   case ARRAY_STORE:
+  case TA_CONSTRUCTOR:
+  case TA_DESTRUCTOR:
 
     return true;
 
@@ -874,9 +876,13 @@ bool Theory::isFunction(Interpretation i)
 
   case ARRAY_BOOL_SELECT:
 
+  case TA_DISCRIMINATOR:
+  case TA_DESTRUCTOR_PRED:
+
     return false;
 
-  default:
+
+  case INVALID_INTERPRETATION:
     ASSERTION_VIOLATION;
   }
 }
@@ -956,6 +962,118 @@ bool Theory::isPolymorphic(Interpretation i)
     return true;
   default:
     return false;
+  }
+}
+
+
+bool Theory::isMonomorphisable(Interpretation i)
+{
+  CALL("Theory::isMonomorphisable");
+
+  if (Theory::isPolymorphic(i)) { 
+    return true;
+  }
+
+  switch(i) {
+    case TA_CONSTRUCTOR: return false;
+    case TA_DESTRUCTOR: return false;
+    case TA_DESTRUCTOR_PRED: return false;
+    case TA_DISCRIMINATOR: return false;
+    case INT_NUMERAL: return true;
+    case RAT_NUMERAL: return true;
+    case REAL_NUMERAL: return true;
+
+    case EQUAL: return true;
+
+    case INT_IS_INT: return true;
+    case INT_IS_RAT: return true;
+    case INT_IS_REAL: return true;
+    case INT_GREATER: return true;
+    case INT_GREATER_EQUAL: return true;
+    case INT_LESS: return true;
+    case INT_LESS_EQUAL: return true;
+    case INT_DIVIDES: return true;
+
+    case RAT_IS_INT: return true;
+    case RAT_IS_RAT: return true;
+    case RAT_IS_REAL: return true;
+    case RAT_GREATER: return true;
+    case RAT_GREATER_EQUAL: return true;
+    case RAT_LESS: return true;
+    case RAT_LESS_EQUAL: return true;
+
+    case REAL_IS_INT: return true;
+    case REAL_IS_RAT: return true;
+    case REAL_IS_REAL: return true;
+    case REAL_GREATER: return true;
+    case REAL_GREATER_EQUAL: return true;
+    case REAL_LESS: return true;
+    case REAL_LESS_EQUAL: return true;
+
+    case INT_SUCCESSOR: return true;
+    case INT_UNARY_MINUS: return true;
+    case INT_PLUS: return true;
+    case INT_MINUS: return true;
+    case INT_MULTIPLY: return true;
+    case INT_QUOTIENT_E: return true;
+    case INT_QUOTIENT_T: return true;
+    case INT_QUOTIENT_F: return true;
+    case INT_REMAINDER_E: return true;
+    case INT_REMAINDER_T: return true;
+    case INT_REMAINDER_F: return true;
+    case INT_FLOOR: return true;
+    case INT_CEILING: return true;
+    case INT_TRUNCATE: return true;
+    case INT_ROUND: return true;
+    case INT_ABS: return true;
+
+    case RAT_UNARY_MINUS: return true;
+    case RAT_PLUS: return true;
+    case RAT_MINUS: return true;
+    case RAT_MULTIPLY: return true;
+    case RAT_QUOTIENT: return true;
+    case RAT_QUOTIENT_E: return true;
+    case RAT_QUOTIENT_T: return true;
+    case RAT_QUOTIENT_F: return true;
+    case RAT_REMAINDER_E: return true;
+    case RAT_REMAINDER_T: return true;
+    case RAT_REMAINDER_F: return true;
+    case RAT_FLOOR: return true;
+    case RAT_CEILING: return true;
+    case RAT_TRUNCATE: return true;
+    case RAT_ROUND: return true;
+
+    case REAL_UNARY_MINUS: return true;
+    case REAL_PLUS: return true;
+    case REAL_MINUS: return true;
+    case REAL_MULTIPLY: return true;
+    case REAL_QUOTIENT: return true;
+    case REAL_QUOTIENT_E: return true;
+    case REAL_QUOTIENT_T: return true;
+    case REAL_QUOTIENT_F: return true;
+    case REAL_REMAINDER_E: return true;
+    case REAL_REMAINDER_T: return true;
+    case REAL_REMAINDER_F: return true;
+    case REAL_FLOOR: return true;
+    case REAL_CEILING: return true;
+    case REAL_TRUNCATE: return true;
+    case REAL_ROUND: return true;
+
+    case INT_TO_INT: return true;
+    case INT_TO_RAT: return true;
+    case INT_TO_REAL: return true;
+    case RAT_TO_INT: return true;
+    case RAT_TO_RAT: return true;
+    case RAT_TO_REAL: return true;
+    case REAL_TO_INT: return true;
+    case REAL_TO_RAT: return true;
+    case REAL_TO_REAL: return true;
+
+    case ARRAY_SELECT: return true;
+    case ARRAY_BOOL_SELECT: return true;
+    case ARRAY_STORE: return true;
+
+    case INVALID_INTERPRETATION: ASSERTION_VIOLATION;
   }
 }
 
@@ -1486,10 +1604,7 @@ void Theory::defineTupleTermAlgebra(unsigned arity, unsigned* sorts) {
     return;
   }
 
-  unsigned functor = env.signature->addFreshFunction(arity, "tuple");
-  OperatorType* tupleType = OperatorType::getFunctionType(arity, sorts, tupleSort);
-  env.signature->getFunction(functor)->setType(tupleType);
-  env.signature->getFunction(functor)->markTermAlgebraCons();
+  unsigned functor = env.signature->addFreshFunction(OperatorType::getFunctionType(arity, sorts, tupleSort), "tuple", nullptr, Theory::TA_CONSTRUCTOR);
 
   Array<unsigned> destructors(arity);
   for (unsigned i = 0; i < arity; i++) {
@@ -1499,8 +1614,10 @@ void Theory::defineTupleTermAlgebra(unsigned arity, unsigned* sorts) {
       destructor = env.signature->addFreshPredicate(1, "proj");
       env.signature->getPredicate(destructor)->setType(OperatorType::getPredicateType({ tupleSort }));
     } else {
-      destructor = env.signature->addFreshFunction(1, "proj");
-      env.signature->getFunction(destructor)->setType(OperatorType::getFunctionType({ tupleSort }, projSort));
+      destructor = env.signature->addFreshFunction(
+          OperatorType::getFunctionType({ tupleSort }, projSort), 
+          "proj", /* suffix = */ nullptr,
+          Theory::TA_DESTRUCTOR);
     }
     destructors[i] = destructor;
   }
@@ -1543,6 +1660,9 @@ bool Theory::isInterpretedConstant(TermList t)
 
   return t.isTerm() && isInterpretedConstant(t.term());
 }
+
+bool Theory::isInterpretedNumber(Interpretation i)
+{ return i == INT_NUMERAL || i == RAT_NUMERAL || i == REAL_NUMERAL; }
 
 /**
  * Return true iff @b t is a constant with a numerical interpretation
@@ -1609,7 +1729,7 @@ bool Theory::isInterpretedFunction(unsigned func)
     return false;
   }
 
-  return env.signature->getFunction(func)->interpreted() && env.signature->functionArity(func)!=0;
+  return env.signature->getFunction(func)->interpreted();
 }
 bool Theory::isInterpretedPartialFunction(unsigned func)
 {

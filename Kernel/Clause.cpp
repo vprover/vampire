@@ -532,7 +532,7 @@ unsigned Clause::getNumeralWeight() const {
   Iterator litIt(*this);
   while (litIt.hasNext()) {
     Literal* lit = litIt.next();
-    if (!lit->hasInterpretedConstants()) {
+    if (!lit->hasNumerals()) {
       continue;
     }
     NonVariableIterator nvi(lit);

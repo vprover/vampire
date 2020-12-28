@@ -67,7 +67,13 @@ private:
   /** Fills trivialLits with all clauses trivial in cl
    */
   void selectTrivialLiterals(Clause* cl, Stack<Literal*>& trivialLits);
+#ifdef VDEBUG
+public:
+#endif
   bool isPure(Literal* lit);
+#ifdef VDEBUG
+private:
+#endif
 
   /**
    Checks if left = right is of the form X = t where X does not occur in t.

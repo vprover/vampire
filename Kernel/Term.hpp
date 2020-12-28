@@ -550,9 +550,9 @@ public:
   bool skip() const;
 
   /** Return true if term is an interpreted constant or contains one as its subterm */
-  bool hasInterpretedConstants() const { return _hasInterpretedConstants; }
-  /** Assign value that will be returned by the hasInterpretedConstants() function */
-  void setInterpretedConstantsPresence(bool value) { _hasInterpretedConstants=value; }
+  bool hasNumerals() const { return _hasNumerals; }
+  /** Assign value that will be returned by the hasNumerals() function */
+  void setNumeralPresence(bool value) { _hasNumerals=value; }
 
   /** Return true if term is either an if-then-else or a let...in expression */
   bool isSpecial() const { return functor()>=SPECIAL_FUNCTOR_LOWER_BOUND; }
@@ -631,8 +631,8 @@ protected:
   unsigned _arity : 27;
   /** colour, used in interpolation and symbol elimination */
   unsigned _color : 2;
-  /** Equal to 1 if the term/literal contains any interpreted constants */
-  unsigned _hasInterpretedConstants : 1;
+  /** Equal to 1 if the term/literal contains any numeral constants */
+  unsigned _hasNumerals : 1;
   /** If true, the object is an equality literal between two variables */
   unsigned _isTwoVarEquality : 1;
   /** Weight of the symbol */

@@ -72,14 +72,10 @@ class Signature
     unsigned _color : 2;
     /** marks distinct string constants */
     unsigned _stringConstant : 1;
-    /** marks numeric constants, they are only used in TPTP's fof declarations */
-    unsigned _numericConstant : 1;
     /** predicate introduced for query answering */
     unsigned _answerPredicate : 1;
     /** marks numbers too large to represent natively */
     unsigned _overflownConstant : 1;
-    /** marks term algebra constructors */
-    unsigned _termAlgebraCons : 1;
     /** Either a FunctionType of a PredicateType object */
     mutable OperatorType* _type;
     /** List of distinct groups the constant is a member of, all members of a distinct group should be distinct from each other */
@@ -99,7 +95,7 @@ class Signature
 
   public:
     /** standard constructor */
-    Symbol(const vstring& nm,unsigned arity, bool interpreted=false, bool stringConstant=false,bool numericConstant=false,bool overflownConstant=false);
+    Symbol(const vstring& nm,unsigned arity, bool interpreted=false, bool stringConstant=false,bool overflownConstant=false);
     void destroyFnSymbol();
     void destroyPredSymbol();
 
@@ -121,8 +117,6 @@ class Signature
     void markEqualityProxy() { _equalityProxy=1; }
     /** mark constant as overflown */
     void markOverflownConstant() { _overflownConstant=1; }
-    /** mark symbol as a term algebra constructor */
-    void markTermAlgebraCons() { _termAlgebraCons=1; }
 
     /** return true iff symbol is marked as skip for the purpose of symbol elimination */
     bool skip() const { return _skip; }
@@ -143,16 +137,12 @@ class Signature
     inline bool protectedSymbol() const { return _protected; }
     /** Return true iff symbol is a distinct string constant */
     inline bool stringConstant() const { return _stringConstant; }
-    /** Return true iff symbol is a numeric constant */
-    inline bool numericConstant() const { return _numericConstant; }
     /** Return true iff symbol is an answer predicate */
     inline bool answerPredicate() const { return _answerPredicate; }
     /** Return true iff symbol is an equality proxy */
     inline bool equalityProxy() const { return _equalityProxy; }
     /** Return true iff symbol is an overflown constant */
     inline bool overflownConstant() const { return _overflownConstant; }
-    /** Return true iff symbol is a term algebra constructor */
-    inline bool termAlgebraCons() const { return _termAlgebraCons; }
 
     /** Increase the usage count of this symbol **/
     inline void incUsageCnt(){ _usageCount++; }
@@ -176,6 +166,9 @@ class Signature
     inline void markInductionSkolem(){ _inductionSkolem=1; _skolem=1;}
     inline bool inductionSkolem(){ return _inductionSkolem;}
       
+    Theory::Interpretation interpret() const 
+    { ASS(interpreted()); return static_cast<InterpretedSymbol const*>(this)->getInterpretation(); }
+
     /** Return true if symbol is an integer constant */
     inline bool integerConstant() const
     { return interpreted() && arity()==0 && fnType()->result()==Sorts::SRT_INTEGER; }
@@ -186,9 +179,12 @@ class Signature
     inline bool realConstant() const
     { return interpreted() && arity()==0 && fnType()->result()==Sorts::SRT_REAL; }
 
-    /** return true if an interpreted number, note subtle but significant difference from numericConstant **/
+    /** return true if an interpreted number **/
     inline bool interpretedNumber() const
     { return integerConstant() || rationalConstant() || realConstant(); }
+
+    inline bool termAlgebraCons() const
+    { return interpreted() && interpret() == Theory::TA_CONSTRUCTOR; }
 
     /** Return value of an integer constant */
     inline IntegerConstantType integerValue() const
@@ -213,6 +209,7 @@ class Signature
 
     CLASS_NAME(Signature::Symbol);
     USE_ALLOCATOR(Symbol);
+
   }; // class Symbol
 
   class InterpretedSymbol
@@ -225,8 +222,8 @@ class Signature
 
   public:
 
-    InterpretedSymbol(const vstring& nm, Interpretation interp)
-    : Symbol(nm, Theory::getArity(interp), true), _interp(interp)
+    InterpretedSymbol(const vstring& nm, unsigned arity, Interpretation interp)
+    : Symbol(nm, arity, true), _interp(interp)
     {
       CALL("InterpretedSymbol");
     }
@@ -239,7 +236,7 @@ class Signature
   };
 
   class IntegerSymbol
-  : public Symbol
+  : public InterpretedSymbol
   {
     friend class Signature;
     friend class Symbol;
@@ -248,7 +245,7 @@ class Signature
 
   public:
     IntegerSymbol(const IntegerConstantType& val)
-    : Symbol(val.toString(), 0, true), _intValue(val)
+    : InterpretedSymbol(val.toString(), 0, Theory::INT_NUMERAL), _intValue(val)
     {
       CALL("IntegerSymbol");
 
@@ -259,7 +256,7 @@ class Signature
   };
 
   class RationalSymbol
-  : public Symbol
+  : public InterpretedSymbol
   {
     friend class Signature;
     friend class Symbol;
@@ -268,7 +265,7 @@ class Signature
 
   public:
     RationalSymbol(const RationalConstantType& val)
-    : Symbol(val.toString(), 0, true), _ratValue(val)
+    : InterpretedSymbol(val.toString(), 0, Theory::RAT_NUMERAL), _ratValue(val)
     {
       CALL("RationalSymbol");
 
@@ -279,7 +276,7 @@ class Signature
   };
 
   class RealSymbol
-  : public Symbol
+  : public InterpretedSymbol
   {
     friend class Signature;
     friend class Symbol;
@@ -288,10 +285,9 @@ class Signature
 
   public:
     RealSymbol(const RealConstantType& val)
-    : Symbol((env.options->proof() == Shell::Options::Proof::PROOFCHECK) ? "$to_real("+val.toString()+")" : val.toNiceString(), 0, true), _realValue(val)
+    : InterpretedSymbol((env.options->proof() == Shell::Options::Proof::PROOFCHECK) ? "$to_real("+val.toString()+")" : val.toNiceString(), 0, Theory::REAL_NUMERAL), _realValue(val)
     {
       CALL("RealSymbol");
-
       setType(OperatorType::getConstantsType(Sorts::SRT_REAL));
     }
     CLASS_NAME(Signature::RealSymbol);
@@ -336,9 +332,19 @@ class Signature
    * The added constant is of sort Sorts::SRT_DEFAULT.
    */
   unsigned addStringConstant(const vstring& name);
-  unsigned addFreshFunction(unsigned arity, const char* prefix, const char* suffix = 0);
+ private: 
+  /** private, because operatortype is only actually set for interpreted predicates. 
+   * Therefore this function only works as expected for interpretation = nullptr 
+   * if operatortype is a function/predidcte with default sorts arguments and result type 
+   * */
+  unsigned addFreshFunction(OperatorType*, const char* prefix, const char* suffix, Theory::Interpretation*);
+  unsigned addFreshPredicate(OperatorType*, const char* prefix, const char* suffix, Theory::Interpretation*);
+ public:
+  unsigned addFreshFunction(OperatorType*, const char* prefix, const char* suffix, Theory::Interpretation);
+  unsigned addFreshPredicate(OperatorType*, const char* prefix, const char* suffix, Theory::Interpretation);
+  unsigned addFreshFunction(unsigned, const char* prefix, const char* suffix = 0);
+  unsigned addFreshPredicate(unsigned, const char* prefix, const char* suffix = 0);
   unsigned addSkolemFunction(unsigned arity,const char* suffix = 0);
-  unsigned addFreshPredicate(unsigned arity, const char* prefix, const char* suffix = 0);
   unsigned addSkolemPredicate(unsigned arity,const char* suffix = 0);
   unsigned addNamePredicate(unsigned arity);
 
@@ -351,15 +357,28 @@ class Signature
   unsigned addRationalConstant(const RationalConstantType& number);
   unsigned addRealConstant(const RealConstantType& number);
 
-  unsigned addInterpretedFunction(Interpretation itp, OperatorType* type, const vstring& name);
+  unsigned addInterpretedFunction(Interpretation itp, OperatorType* type, const vstring& name, bool& added);
+  unsigned addInterpretedFunction(Interpretation itp, OperatorType* type, const vstring& name) 
+  {
+    bool added;
+    auto out = addInterpretedFunction(itp, type, name, added);
+    return out;
+  }
   unsigned addInterpretedFunction(Interpretation itp, const vstring& name)
   {
     CALL("Signature::addInterpretedFunction(Interpretation,const vstring&)");
     ASS(!Theory::isPolymorphic(itp));
-    return addInterpretedFunction(itp,Theory::getNonpolymorphicOperatorType(itp),name);
+    bool _;
+    return addInterpretedFunction(itp,Theory::getNonpolymorphicOperatorType(itp),name, _);
   }
 
-  unsigned addInterpretedPredicate(Interpretation itp, OperatorType* type, const vstring& name);
+  unsigned addInterpretedPredicate(Interpretation itp, OperatorType* type, const vstring& name, bool& added);
+  unsigned addInterpretedPredicate(Interpretation itp, OperatorType* type, const vstring& name)
+  {
+    bool added;
+    auto out = addInterpretedPredicate(itp,type,name,added);
+    return out;
+  }
   unsigned addInterpretedPredicate(Interpretation itp, const vstring& name)
   {
     CALL("Signature::addInterpretedPredicate(Interpretation,const vstring&)");

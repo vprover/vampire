@@ -308,8 +308,8 @@ struct TermSubstitutionTree::UnifyingContext
       //we assume the unification will fail
 
       static Options::UnificationWithAbstraction opt = env.options->unificationWithAbstraction();
-      bool queryInterp = (theory->isInterpretedFunction(_queryTerm) || theory->isInterpretedConstant(_queryTerm));
-      bool termInterp = (theory->isInterpretedFunction(qr.term) || theory->isInterpretedConstant(qr.term));
+      bool queryInterp = (theory->isInterpretedFunction(_queryTerm));
+      bool termInterp = (theory->isInterpretedFunction(qr.term));
       bool bothNumbers = (theory->isInterpretedConstant(_queryTerm) && theory->isInterpretedConstant(qr.term));
 
       // I don't expect okay to be false at this point as if one is a variable the above unify would succeed 

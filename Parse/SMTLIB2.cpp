@@ -1014,12 +1014,8 @@ TermAlgebraConstructor* SMTLIB2::buildTermAlgebraConstructor(vstring constrName,
   unsigned arity = (unsigned)argSorts.size();
 
   bool added;
-  unsigned functor = env.signature->addFunction(constrName, arity, added);
+  unsigned functor = env.signature->addInterpretedFunction(Theory::TA_CONSTRUCTOR, OperatorType::getFunctionType(arity, argSorts.begin(), taSort), constrName, added);
   ASS(added);
-
-  OperatorType* constructorType = OperatorType::getFunctionType(arity, argSorts.begin(), taSort);
-  env.signature->getFunction(functor)->setType(constructorType);
-  env.signature->getFunction(functor)->markTermAlgebraCons();
 
   LOG1("build constructor "+constrName+": "+constructorType->toString());
 
@@ -1036,20 +1032,16 @@ TermAlgebraConstructor* SMTLIB2::buildTermAlgebraConstructor(vstring constrName,
 
     bool isPredicate = destructorSort == Sorts::SRT_BOOL;
     bool added;
-    unsigned destructorFunctor = isPredicate ? env.signature->addPredicate(destructorName, 1, added)
-                                             : env.signature->addFunction(destructorName,  1, added);
+    unsigned destructorFunctor = isPredicate 
+      ? env.signature->addInterpretedPredicate(Theory::TA_DESTRUCTOR_PRED, 
+          OperatorType::getPredicateType(1, &taSort),
+          destructorName, added)
+      : env.signature->addInterpretedFunction(Theory::TA_DESTRUCTOR, 
+          OperatorType::getFunctionType(1, &taSort, destructorSort),
+          destructorName,  added);
     ASS(added);
 
-    OperatorType* destructorType = isPredicate ? OperatorType::getPredicateType(1, &taSort)
-                                           : OperatorType::getFunctionType(1, &taSort, destructorSort);
-
     LOG1("build destructor "+destructorName+": "+destructorType->toString());
-
-    if (isPredicate) {
-      env.signature->getPredicate(destructorFunctor)->setType(destructorType);
-    } else {
-      env.signature->getFunction(destructorFunctor)->setType(destructorType);
-    }
 
     ALWAYS(_declaredFunctions.insert(destructorName, make_pair(destructorFunctor, !isPredicate)));
 
@@ -2125,10 +2117,10 @@ void SMTLIB2::parseRankedFunctionApplication(LExpr* exp)
           if (!c->hasDiscriminator()) {
             // add discriminator predicate
             bool added;
-            unsigned pred = env.signature->addPredicate(c->discriminatorName(), 1, added);
+            unsigned pred = env.signature->addInterpretedPredicate(Interpretation::TA_DISCRIMINATOR, 
+                OperatorType::getPredicateType({ sort }),
+                c->discriminatorName(), added);
             ASS(added);
-            OperatorType* type = OperatorType::getPredicateType({ sort });
-            env.signature->getPredicate(pred)->setType(type);
             c->addDiscriminator(pred);
             // this predicate is not declare for the parser as it has a reserved name
           }

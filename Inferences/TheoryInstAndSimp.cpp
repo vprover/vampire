@@ -128,8 +128,7 @@ bool TheoryInstAndSimp::isPure(Literal* lit) {
       Term* term = tl.term();
 
       //we can stop if we found an uninterpreted function / constant
-      if (! (theory->isInterpretedFunction(term)  ||
-             theory->isInterpretedConstant(term) )){
+      if (!theory->isInterpretedFunction(term) ){
         return false;
       }
       //check if return value of term is supported
@@ -552,7 +551,7 @@ void TheoryInstAndSimp::originalSelectTheoryLiterals(Clause* cl, Stack<Literal*>
       bool deselect=false;
       while(nit.hasNext() && !deselect){
         Term* t = nit.next().term();
-        deselect = !(theory->isInterpretedFunction(t->functor()) || theory->isInterpretedConstant(t->functor())); 
+        deselect = !theory->isInterpretedFunction(t->functor()); 
         if(deselect){
 #if DPRINT
           cout << "deselect " << t->toString() << endl;

@@ -450,6 +450,8 @@ public:
 
     if (theory->isPolymorphic(interp)) { return false; } // typed evaulator not for polymorphic stuff
 
+    if (theory->isInterpretedNumber(interp)) { return false; } // already evaluated
+
     unsigned opSort = theory->getOperationSort(interp);
     return opSort==T::getSort();
   }
@@ -1162,7 +1164,7 @@ bool InterpretedLiteralEvaluator::balance(Literal* lit,Literal*& resLit,Stack<Li
 
   bool modified = false;
 
-  while(theory->isInterpretedFunction(t2)){
+  while(theory->isInterpretedFunction(t2) && !theory->isInterpretedNumber(t2)){
     TermList* args = t2.term()->args();
     
     // find which arg of t2 is the non_constant bit, this is what we are unwrapping 

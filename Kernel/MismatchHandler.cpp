@@ -45,35 +45,30 @@ bool UWAMismatchHandler::checkUWA(TermList t1, TermList t2)
   CALL("UWAMismatchHandler::checkUWA");
 
     if(!(t1.isTerm() && t2.isTerm())) return false;
+    ASS_NEQ(t1, t2);
 
-    bool t1Interp = (theory->isInterpretedFunction(t1) || theory->isInterpretedConstant(t1));
-    bool t2Interp = (theory->isInterpretedFunction(t2) || theory->isInterpretedConstant(t2));
-    bool bothNumbers = (theory->isInterpretedConstant(t1) && theory->isInterpretedConstant(t2));
+    bool t1Interp = theory->isInterpretedFunction(t1);
+    bool t2Interp = theory->isInterpretedFunction(t2);
+    /* for distinct constants it does not make sense to abstract, because c1 != c2 will always be evaluated to true */
+    bool bothDistinctConstants = (theory->isInterpretedConstant(t1) && theory->isInterpretedConstant(t2)); 
 
-    bool okay = true;
-   
     static Shell::Options::UnificationWithAbstraction opt = env.options->unificationWithAbstraction();
-    if(opt == Shell::Options::UnificationWithAbstraction::OFF){ return false; }
-
       switch(opt){
+        case Shell::Options::UnificationWithAbstraction::OFF:
+          return false;
         case Shell::Options::UnificationWithAbstraction::INTERP_ONLY:
-          okay &= (t1Interp && t2Interp && !bothNumbers);
-          break;
+          return (t1Interp && t2Interp && !bothDistinctConstants);
         case Shell::Options::UnificationWithAbstraction::ONE_INTERP:
-          okay &= !bothNumbers && (t1Interp || t2Interp);
-          break;
+          return !bothDistinctConstants && (t1Interp || t2Interp);
         case Shell::Options::UnificationWithAbstraction::CONSTANT:
-          okay &= !bothNumbers && (t1Interp || t2Interp);
-          okay &= (t1Interp || env.signature->functionArity(t1.term()->functor()));
-          okay &= (t2Interp || env.signature->functionArity(t2.term()->functor()));
-          break; 
+          return !bothDistinctConstants && (t1Interp || t2Interp)
+            && (t1Interp || env.signature->functionArity(t1.term()->functor()))
+            && (t2Interp || env.signature->functionArity(t2.term()->functor()));
         case Shell::Options::UnificationWithAbstraction::ALL:
+          return true;
         case Shell::Options::UnificationWithAbstraction::GROUND:
-          break;
-        default:
-          ASSERTION_VIOLATION;
+          return true;
       }
-   return okay;
 }
 
 bool UWAMismatchHandler::introduceConstraint(RobSubstitution* subst,TermList t1,unsigned index1, TermList t2,unsigned index2)

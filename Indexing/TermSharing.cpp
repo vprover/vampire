@@ -91,7 +91,7 @@ Term* TermSharing::insert(Term* t)
    if (s == t) {
     unsigned weight = 1;
     unsigned vars = 0;
-    bool hasInterpretedConstants=t->arity()==0 &&
+    bool hasNumerals=t->arity()==0 &&
 	env.signature->getFunction(t->functor())->interpreted();
     Color color = COLOR_TRANSPARENT;
     for (TermList* tt = t->args(); ! tt->isEmpty(); tt = tt->next()) {
@@ -111,8 +111,8 @@ Term* TermSharing::insert(Term* t)
           if (env.colorUsed) {
               color = static_cast<Color>(color | r->color());
           }
-          if(!hasInterpretedConstants && r->hasInterpretedConstants()) {
-              hasInterpretedConstants=true; 
+          if(!hasNumerals && r->hasNumerals()) {
+              hasNumerals=true; 
           }
       }
     }
@@ -126,7 +126,7 @@ Term* TermSharing::insert(Term* t)
       t->setColor(color);
     }
       
-    t->setInterpretedConstantsPresence(hasInterpretedConstants);
+    t->setNumeralPresence(hasNumerals);
     _totalTerms++;
      
     ASS_REP(SortHelper::areImmediateSortsValid(t), t->toString());
@@ -175,7 +175,7 @@ Literal* TermSharing::insert(Literal* t)
     unsigned weight = 1;
     unsigned vars = 0;
     Color color = COLOR_TRANSPARENT;
-    bool hasInterpretedConstants=false;
+    bool hasNumerals=false;
     for (TermList* tt = t->args(); ! tt->isEmpty(); tt = tt->next()) {
       if (tt->isVar()) {
 	ASS(tt->isOrdinaryVar());
@@ -191,8 +191,8 @@ Literal* TermSharing::insert(Literal* t)
 	  ASS(color == COLOR_TRANSPARENT || r->color() == COLOR_TRANSPARENT || color == r->color());
 	  color = static_cast<Color>(color | r->color());
 	}
-	if(!hasInterpretedConstants && r->hasInterpretedConstants()) {
-	  hasInterpretedConstants=true;
+	if(!hasNumerals && r->hasNumerals()) {
+	  hasNumerals=true;
 	}
       }
     }
@@ -205,7 +205,7 @@ Literal* TermSharing::insert(Literal* t)
       color = static_cast<Color>(color | fcolor);
       t->setColor(color);
     }
-    t->setInterpretedConstantsPresence(hasInterpretedConstants);
+    t->setNumeralPresence(hasNumerals);
     _totalLiterals++;
 
     ASS_REP(SortHelper::areImmediateSortsValid(t), t->toString());
@@ -254,7 +254,7 @@ Literal* TermSharing::insertVariableEquality(Literal* t,unsigned sort)
     if (env.colorUsed) {
       t->setColor(COLOR_TRANSPARENT);
     }
-    t->setInterpretedConstantsPresence(false);
+    t->setNumeralPresence(false);
     _totalLiterals++;
   }
   else {

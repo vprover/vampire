@@ -264,6 +264,7 @@ public:
 
     //numeric functions
 
+    INT_NUMERAL,
     INT_SUCCESSOR,
     INT_UNARY_MINUS,
     INT_PLUS,  // sum in TPTP
@@ -281,6 +282,7 @@ public:
     INT_ROUND,
     INT_ABS,
 
+    RAT_NUMERAL,
     RAT_UNARY_MINUS,
     RAT_PLUS, // sum in TPTP
     RAT_MINUS,// difference in TPTP
@@ -297,6 +299,7 @@ public:
     RAT_TRUNCATE,
     RAT_ROUND,
 
+    REAL_NUMERAL,
     REAL_UNARY_MINUS,
     REAL_PLUS,  // plus in TPTP
     REAL_MINUS, // difference in TPTP
@@ -328,6 +331,12 @@ public:
     ARRAY_SELECT,
     ARRAY_BOOL_SELECT,
     ARRAY_STORE,
+
+    // term algebra functions
+    TA_CONSTRUCTOR,
+    TA_DESTRUCTOR,
+    TA_DESTRUCTOR_PRED, /* e.g. proj1 for tuple<int, bool> */
+    TA_DISCRIMINATOR,
 
     INVALID_INTERPRETATION // LEAVE THIS AS THE LAST ELEMENT OF THE ENUM
   };
@@ -397,6 +406,7 @@ public:
   static bool isPartialFunction(Interpretation i);
 
   static bool isPolymorphic(Interpretation i);
+  static bool isMonomorphisable(Interpretation i);
 
   unsigned getArrayExtSkolemFunction(unsigned i);
 
@@ -412,6 +422,7 @@ public:
   bool isInterpretedConstant(TermList t);
   /** Returns true if the argument is an interpreted number
    */
+  bool isInterpretedNumber(Interpretation t);
   bool isInterpretedNumber(Term* t);
   bool isInterpretedNumber(TermList t);
 
@@ -430,10 +441,12 @@ public:
   bool isInterpretedFunction(TermList t);
   bool isInterpretedFunction(Term* t, Interpretation itp);
   bool isInterpretedFunction(TermList t, Interpretation itp);
+  bool isInterpretedAs(unsigned func, Interpretation itp);
 
   bool isInterpretedPartialFunction(unsigned func);
   bool isZero(TermList t);
 
+  Interpretation interpretFunctionOrConst(unsigned func);
   Interpretation interpretFunction(unsigned func);
   Interpretation interpretFunction(Term* t);
   Interpretation interpretFunction(TermList t);

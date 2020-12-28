@@ -214,6 +214,10 @@ void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, bool function)
     case Theory::INT_DIVIDES:
       //for interpreted symbols that do not belong to TPTP standard we still have to output sort
       break;
+    case Theory::TA_CONSTRUCTOR:
+    case Theory::TA_DESTRUCTOR:
+    case Theory::TA_DISCRIMINATOR:
+      throw new UserErrorException("cannot serialize datatypes to TPTP syntax");
     default:
       return;
     }

@@ -222,8 +222,8 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
       static Options::UnificationWithAbstraction uwa = opts.unificationWithAbstraction();
       if(uwa==Options::UnificationWithAbstraction::GROUND &&
          !constraint->ground() &&
-         (!theory->isInterpretedFunction(qT) && !theory->isInterpretedConstant(qT)) && 
-         (!theory->isInterpretedFunction(rT) && !theory->isInterpretedConstant(rT))){
+         !theory->isInterpretedFunction(qT) && 
+         !theory->isInterpretedFunction(rT)){
 
         // the unification was between two uninterpreted things that were not ground 
         res->destroy();
