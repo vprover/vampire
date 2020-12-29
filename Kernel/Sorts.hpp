@@ -226,7 +226,7 @@ private:
    */
   static OperatorKey* setupKey(unsigned arity, const unsigned* sorts=0);
   static OperatorKey* setupKey(std::initializer_list<unsigned> sorts);
-  static OperatorKey* setupKeyUniformRange(unsigned arity, unsigned argsSort);
+  static OperatorKey* setupKeyUniformDomain(unsigned arity, unsigned argsSort);
 
   typedef Map<OperatorKey*,OperatorType*,PointerDereferencingHash> OperatorTypes;
   static OperatorTypes& operatorTypes(); // just a wrapper around a static OperatorTypes object, to ensure a correct initialization order
@@ -254,10 +254,10 @@ public:
     return getTypeFromKey(key);
   }
 
-  static OperatorType* getPredicateTypeUniformRange(unsigned arity, unsigned argsSort) {
-    CALL("OperatorType::getPredicateTypeUniformRange");
+  static OperatorType* getPredicateTypeUniformDomain(unsigned arity, unsigned argsSort) {
+    CALL("OperatorType::getPredicateTypeUniformDomain");
 
-    OperatorKey* key = setupKeyUniformRange(arity,argsSort);
+    OperatorKey* key = setupKeyUniformDomain(arity,argsSort);
     (*key)[arity] = PREDICATE_FLAG;
     return getTypeFromKey(key);
   }
@@ -278,10 +278,10 @@ public:
     return getTypeFromKey(key);
   }
 
-  static OperatorType* getFunctionTypeTypeUniformRange(unsigned arity, unsigned argsSort, unsigned resultSort) {
-    CALL("OperatorType::getFunctionTypeTypeUniformRange");
+  static OperatorType* getFunctionTypeUniformDomain(unsigned arity, unsigned argsSort, unsigned resultSort) {
+    CALL("OperatorType::getFunctionTypeUniformDomain");
 
-    OperatorKey* key = setupKeyUniformRange(arity,argsSort);
+    OperatorKey* key = setupKeyUniformDomain(arity,argsSort);
     (*key)[arity] = resultSort;
     return getTypeFromKey(key);
   }

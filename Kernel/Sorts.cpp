@@ -261,9 +261,9 @@ OperatorType::OperatorKey* OperatorType::setupKey(std::initializer_list<unsigned
 /**
  * Pre-initialise an OperatorKey from using a uniform range.
  */
-OperatorType::OperatorKey* OperatorType::setupKeyUniformRange(unsigned arity, unsigned argsSort)
+OperatorType::OperatorKey* OperatorType::setupKeyUniformDomain(unsigned arity, unsigned argsSort)
 {
-  CALL("OperatorType::setupKeyUniformRange");
+  CALL("OperatorType::setupKeyUniformDomain");
 
   OperatorKey* key = OperatorKey::allocate(arity+1);
 

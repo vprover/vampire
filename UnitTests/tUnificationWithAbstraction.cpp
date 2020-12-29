@@ -51,7 +51,7 @@ unsigned function_symbol(vstring name,unsigned arity,unsigned srt)
   unsigned f = env.signature->addFunction(name,arity,added);
   if(added){
     Signature::Symbol* symbol = env.signature->getFunction(f);
-    OperatorType* ot = OperatorType::getFunctionTypeTypeUniformRange(arity,srt,srt);
+    OperatorType* ot = OperatorType::getFunctionTypeUniformDomain(arity,srt,srt);
     symbol->setType(ot); 
   }
   return f; 
@@ -89,7 +89,7 @@ Literal* pred(vstring p, TermList t, unsigned srt)
   unsigned ps = env.signature->addPredicate(p,1,added);
   if(added){
     Signature::Symbol* symbol = env.signature->getPredicate(ps);
-    OperatorType* ot = OperatorType::getPredicateTypeUniformRange(1,srt);
+    OperatorType* ot = OperatorType::getPredicateTypeUniformDomain(1,srt);
     symbol->setType(ot);
   }
   return Literal::create1(ps,true,t);
