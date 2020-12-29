@@ -480,9 +480,8 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
     // - constants dealt with above
     // - unary funs/preds like is_rat interpretation unclear
     if(symb->interpreted()){
-      Interpretation interp = static_cast<Signature::InterpretedSymbol*>(symb)->getInterpretation();
+      Interpretation interp = symb->interpret();
       bool skip=false; 
-      unsigned argsToPop=theory->getArity(interp);
 
       if(Theory::isPolymorphic(interp)){
         nameExpression = true;
@@ -731,6 +730,7 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
       }
 
       if(!skip){
+        unsigned argsToPop=theory->getArity(interp);
         while(argsToPop--){ args.pop_back(); }
         return ret;
       } 

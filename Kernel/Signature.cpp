@@ -55,12 +55,10 @@ Signature::Symbol::Symbol(const vstring& nm,unsigned arity, bool interpreted, bo
 {
   CALL("Signature::Symbol::Symbol");
   ASS(!stringConstant || arity==0);
-  DBG(*this, ": ", _type ? _type->toString() : "null");
 
   if (!stringConstant && !overflownConstant && symbolNeedsQuoting(_name, interpreted,arity)) {
     _name="'"+_name+"'";
   }
-  DBG(*this, ": ", _type ? _type->toString() : "null");
   if (_interpreted || isProtectedName(nm)) {
     markProtected();
   }
@@ -144,13 +142,7 @@ void Signature::Symbol::addToDistinctGroup(unsigned group,unsigned this_number)
 void Signature::Symbol::setType(OperatorType* type)
 {
   CALL("Signature::Symbol::setType");
-  if (_type) {
-    DBG(*this)
-    DBG(_type->toString())
-    DBG(type->toString())
-    ASSERTION_VIOLATION
-  }
-
+  ASS(!_type)
   _type = type;
 }
 
@@ -492,7 +484,6 @@ unsigned Signature::addInterpretedPredicate(Interpretation interpretation, Opera
     }
     added = true;
   }
-  DBG(symbolKey)
   return predNum;
 } // Signature::addInterpretedPredicate
 

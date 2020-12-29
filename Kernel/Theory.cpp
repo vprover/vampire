@@ -808,6 +808,7 @@ bool Theory::isFunction(Interpretation i)
   case INT_TRUNCATE:
   case INT_ROUND:
   case INT_ABS:
+  case INT_NUMERAL:
 
   case RAT_PLUS:
   case RAT_MINUS:
@@ -823,6 +824,7 @@ bool Theory::isFunction(Interpretation i)
   case RAT_CEILING:
   case RAT_TRUNCATE:
   case RAT_ROUND:
+  case RAT_NUMERAL:
 
   case REAL_PLUS:
   case REAL_MINUS:
@@ -838,7 +840,8 @@ bool Theory::isFunction(Interpretation i)
   case REAL_CEILING:
   case REAL_TRUNCATE:
   case REAL_ROUND:
-          
+  case REAL_NUMERAL:
+
   case ARRAY_SELECT:
   case ARRAY_STORE:
   case TA_CONSTRUCTOR:
@@ -881,10 +884,10 @@ bool Theory::isFunction(Interpretation i)
 
     return false;
 
-
   case INVALID_INTERPRETATION:
     ASSERTION_VIOLATION;
   }
+  ASSERTION_VIOLATION
 }
 
 /**
@@ -965,6 +968,104 @@ bool Theory::isPolymorphic(Interpretation i)
   }
 }
 
+std::ostream& operator<<(std::ostream& out, Interpretation self)
+{
+  switch (self) {
+    case Theory::EQUAL: return out << "EQUAL";
+    case Theory::INT_IS_INT: return out << "INT_IS_INT";
+    case Theory::INT_IS_RAT: return out << "INT_IS_RAT";
+    case Theory::INT_IS_REAL: return out << "INT_IS_REAL";
+    case Theory::INT_GREATER: return out << "INT_GREATER";
+    case Theory::INT_GREATER_EQUAL: return out << "INT_GREATER_EQUAL";
+    case Theory::INT_LESS: return out << "INT_LESS";
+    case Theory::INT_LESS_EQUAL: return out << "INT_LESS_EQUAL";
+    case Theory::INT_DIVIDES: return out << "INT_DIVIDES";
+    case Theory::RAT_IS_INT: return out << "RAT_IS_INT";
+    case Theory::RAT_IS_RAT: return out << "RAT_IS_RAT";
+    case Theory::RAT_IS_REAL: return out << "RAT_IS_REAL";
+    case Theory::RAT_GREATER: return out << "RAT_GREATER";
+    case Theory::RAT_GREATER_EQUAL: return out << "RAT_GREATER_EQUAL";
+    case Theory::RAT_LESS: return out << "RAT_LESS";
+    case Theory::RAT_LESS_EQUAL: return out << "RAT_LESS_EQUAL";
+    case Theory::REAL_IS_INT: return out << "REAL_IS_INT";
+    case Theory::REAL_IS_RAT: return out << "REAL_IS_RAT";
+    case Theory::REAL_IS_REAL: return out << "REAL_IS_REAL";
+    case Theory::REAL_GREATER: return out << "REAL_GREATER";
+    case Theory::REAL_GREATER_EQUAL: return out << "REAL_GREATER_EQUAL";
+    case Theory::REAL_LESS: return out << "REAL_LESS";
+    case Theory::REAL_LESS_EQUAL: return out << "REAL_LESS_EQUAL";
+    case Theory::INT_NUMERAL: return out << "INT_NUMERAL";
+    case Theory::INT_SUCCESSOR: return out << "INT_SUCCESSOR";
+    case Theory::INT_UNARY_MINUS: return out << "INT_UNARY_MINUS";
+    case Theory::INT_PLUS: return out << "INT_PLUS";
+    case Theory::INT_MINUS: return out << "INT_MINUS";
+    case Theory::INT_MULTIPLY: return out << "INT_MULTIPLY";
+    case Theory::INT_QUOTIENT_E: return out << "INT_QUOTIENT_E";
+    case Theory::INT_QUOTIENT_T: return out << "INT_QUOTIENT_T";
+    case Theory::INT_QUOTIENT_F: return out << "INT_QUOTIENT_F";
+    case Theory::INT_REMAINDER_E: return out << "INT_REMAINDER_E";
+    case Theory::INT_REMAINDER_T: return out << "INT_REMAINDER_T";
+    case Theory::INT_REMAINDER_F: return out << "INT_REMAINDER_F";
+    case Theory::INT_FLOOR: return out << "INT_FLOOR";
+    case Theory::INT_CEILING: return out << "INT_CEILING";
+    case Theory::INT_TRUNCATE: return out << "INT_TRUNCATE";
+    case Theory::INT_ROUND: return out << "INT_ROUND";
+    case Theory::INT_ABS: return out << "INT_ABS";
+    case Theory::RAT_NUMERAL: return out << "RAT_NUMERAL";
+    case Theory::RAT_UNARY_MINUS: return out << "RAT_UNARY_MINUS";
+    case Theory::RAT_PLUS: return out << "RAT_PLUS";
+    case Theory::RAT_MINUS: return out << "RAT_MINUS";
+    case Theory::RAT_MULTIPLY: return out << "RAT_MULTIPLY";
+    case Theory::RAT_QUOTIENT: return out << "RAT_QUOTIENT";
+    case Theory::RAT_QUOTIENT_E: return out << "RAT_QUOTIENT_E";
+    case Theory::RAT_QUOTIENT_T: return out << "RAT_QUOTIENT_T";
+    case Theory::RAT_QUOTIENT_F: return out << "RAT_QUOTIENT_F";
+    case Theory::RAT_REMAINDER_E: return out << "RAT_REMAINDER_E";
+    case Theory::RAT_REMAINDER_T: return out << "RAT_REMAINDER_T";
+    case Theory::RAT_REMAINDER_F: return out << "RAT_REMAINDER_F";
+    case Theory::RAT_FLOOR: return out << "RAT_FLOOR";
+    case Theory::RAT_CEILING: return out << "RAT_CEILING";
+    case Theory::RAT_TRUNCATE: return out << "RAT_TRUNCATE";
+    case Theory::RAT_ROUND: return out << "RAT_ROUND";
+    case Theory::REAL_NUMERAL: return out << "REAL_NUMERAL";
+    case Theory::REAL_UNARY_MINUS: return out << "REAL_UNARY_MINUS";
+    case Theory::REAL_PLUS: return out << "REAL_PLUS";
+    case Theory::REAL_MINUS: return out << "REAL_MINUS";
+    case Theory::REAL_MULTIPLY: return out << "REAL_MULTIPLY";
+    case Theory::REAL_QUOTIENT: return out << "REAL_QUOTIENT";
+    case Theory::REAL_QUOTIENT_E: return out << "REAL_QUOTIENT_E";
+    case Theory::REAL_QUOTIENT_T: return out << "REAL_QUOTIENT_T";
+    case Theory::REAL_QUOTIENT_F: return out << "REAL_QUOTIENT_F";
+    case Theory::REAL_REMAINDER_E: return out << "REAL_REMAINDER_E";
+    case Theory::REAL_REMAINDER_T: return out << "REAL_REMAINDER_T";
+    case Theory::REAL_REMAINDER_F: return out << "REAL_REMAINDER_F";
+    case Theory::REAL_FLOOR: return out << "REAL_FLOOR";
+    case Theory::REAL_CEILING: return out << "REAL_CEILING";
+    case Theory::REAL_TRUNCATE: return out << "REAL_TRUNCATE";
+    case Theory::REAL_ROUND: return out << "REAL_ROUND";
+    case Theory::INT_TO_INT: return out << "INT_TO_INT";
+    case Theory::INT_TO_RAT: return out << "INT_TO_RAT";
+    case Theory::INT_TO_REAL: return out << "INT_TO_REAL";
+    case Theory::RAT_TO_INT: return out << "RAT_TO_INT";
+    case Theory::RAT_TO_RAT: return out << "RAT_TO_RAT";
+    case Theory::RAT_TO_REAL: return out << "RAT_TO_REAL";
+    case Theory::REAL_TO_INT: return out << "REAL_TO_INT";
+    case Theory::REAL_TO_RAT: return out << "REAL_TO_RAT";
+    case Theory::REAL_TO_REAL: return out << "REAL_TO_REAL";
+    case Theory::ARRAY_SELECT: return out << "ARRAY_SELECT";
+    case Theory::ARRAY_BOOL_SELECT: return out << "ARRAY_BOOL_SELECT";
+    case Theory::ARRAY_STORE: return out << "ARRAY_STORE";
+    case Theory::TA_CONSTRUCTOR: return out << "TA_CONSTRUCTOR";
+    case Theory::TA_DESTRUCTOR: return out << "TA_DESTRUCTOR";
+    case Theory::TA_DESTRUCTOR_PRED: return out << "TA_DESTRUCTOR_PRED";
+    case Theory::TA_DISCRIMINATOR: return out << "TA_DISCRIMINATOR";
+    case Theory::INVALID_INTERPRETATION: return out << "INVALID_INTERPRETATION";
+  }
+  ASSERTION_VIOLATION
+}
+
+bool Theory::isMonomorphic(Interpretation i)
+{ return isMonomorphisable(i) && !isPolymorphic(i); }
 
 bool Theory::isMonomorphisable(Interpretation i)
 {
@@ -975,106 +1076,110 @@ bool Theory::isMonomorphisable(Interpretation i)
   }
 
   switch(i) {
-    case TA_CONSTRUCTOR: return false;
-    case TA_DESTRUCTOR: return false;
-    case TA_DESTRUCTOR_PRED: return false;
-    case TA_DISCRIMINATOR: return false;
-    case INT_NUMERAL: return true;
-    case RAT_NUMERAL: return true;
-    case REAL_NUMERAL: return true;
+    case TA_CONSTRUCTOR:
+    case TA_DESTRUCTOR:
+    case TA_DESTRUCTOR_PRED:
+    case TA_DISCRIMINATOR: 
+      return false;
 
-    case EQUAL: return true;
+    case INT_NUMERAL:
+    case RAT_NUMERAL:
+    case REAL_NUMERAL:
 
-    case INT_IS_INT: return true;
-    case INT_IS_RAT: return true;
-    case INT_IS_REAL: return true;
-    case INT_GREATER: return true;
-    case INT_GREATER_EQUAL: return true;
-    case INT_LESS: return true;
-    case INT_LESS_EQUAL: return true;
-    case INT_DIVIDES: return true;
+    case EQUAL:
 
-    case RAT_IS_INT: return true;
-    case RAT_IS_RAT: return true;
-    case RAT_IS_REAL: return true;
-    case RAT_GREATER: return true;
-    case RAT_GREATER_EQUAL: return true;
-    case RAT_LESS: return true;
-    case RAT_LESS_EQUAL: return true;
+    case INT_IS_INT:
+    case INT_IS_RAT:
+    case INT_IS_REAL:
+    case INT_GREATER:
+    case INT_GREATER_EQUAL:
+    case INT_LESS:
+    case INT_LESS_EQUAL:
+    case INT_DIVIDES:
 
-    case REAL_IS_INT: return true;
-    case REAL_IS_RAT: return true;
-    case REAL_IS_REAL: return true;
-    case REAL_GREATER: return true;
-    case REAL_GREATER_EQUAL: return true;
-    case REAL_LESS: return true;
-    case REAL_LESS_EQUAL: return true;
+    case RAT_IS_INT:
+    case RAT_IS_RAT:
+    case RAT_IS_REAL:
+    case RAT_GREATER:
+    case RAT_GREATER_EQUAL:
+    case RAT_LESS:
+    case RAT_LESS_EQUAL:
 
-    case INT_SUCCESSOR: return true;
-    case INT_UNARY_MINUS: return true;
-    case INT_PLUS: return true;
-    case INT_MINUS: return true;
-    case INT_MULTIPLY: return true;
-    case INT_QUOTIENT_E: return true;
-    case INT_QUOTIENT_T: return true;
-    case INT_QUOTIENT_F: return true;
-    case INT_REMAINDER_E: return true;
-    case INT_REMAINDER_T: return true;
-    case INT_REMAINDER_F: return true;
-    case INT_FLOOR: return true;
-    case INT_CEILING: return true;
-    case INT_TRUNCATE: return true;
-    case INT_ROUND: return true;
-    case INT_ABS: return true;
+    case REAL_IS_INT:
+    case REAL_IS_RAT:
+    case REAL_IS_REAL:
+    case REAL_GREATER:
+    case REAL_GREATER_EQUAL:
+    case REAL_LESS:
+    case REAL_LESS_EQUAL:
 
-    case RAT_UNARY_MINUS: return true;
-    case RAT_PLUS: return true;
-    case RAT_MINUS: return true;
-    case RAT_MULTIPLY: return true;
-    case RAT_QUOTIENT: return true;
-    case RAT_QUOTIENT_E: return true;
-    case RAT_QUOTIENT_T: return true;
-    case RAT_QUOTIENT_F: return true;
-    case RAT_REMAINDER_E: return true;
-    case RAT_REMAINDER_T: return true;
-    case RAT_REMAINDER_F: return true;
-    case RAT_FLOOR: return true;
-    case RAT_CEILING: return true;
-    case RAT_TRUNCATE: return true;
-    case RAT_ROUND: return true;
+    case INT_SUCCESSOR:
+    case INT_UNARY_MINUS:
+    case INT_PLUS:
+    case INT_MINUS:
+    case INT_MULTIPLY:
+    case INT_QUOTIENT_E:
+    case INT_QUOTIENT_T:
+    case INT_QUOTIENT_F:
+    case INT_REMAINDER_E:
+    case INT_REMAINDER_T:
+    case INT_REMAINDER_F:
+    case INT_FLOOR:
+    case INT_CEILING:
+    case INT_TRUNCATE:
+    case INT_ROUND:
+    case INT_ABS:
 
-    case REAL_UNARY_MINUS: return true;
-    case REAL_PLUS: return true;
-    case REAL_MINUS: return true;
-    case REAL_MULTIPLY: return true;
-    case REAL_QUOTIENT: return true;
-    case REAL_QUOTIENT_E: return true;
-    case REAL_QUOTIENT_T: return true;
-    case REAL_QUOTIENT_F: return true;
-    case REAL_REMAINDER_E: return true;
-    case REAL_REMAINDER_T: return true;
-    case REAL_REMAINDER_F: return true;
-    case REAL_FLOOR: return true;
-    case REAL_CEILING: return true;
-    case REAL_TRUNCATE: return true;
-    case REAL_ROUND: return true;
+    case RAT_UNARY_MINUS:
+    case RAT_PLUS:
+    case RAT_MINUS:
+    case RAT_MULTIPLY:
+    case RAT_QUOTIENT:
+    case RAT_QUOTIENT_E:
+    case RAT_QUOTIENT_T:
+    case RAT_QUOTIENT_F:
+    case RAT_REMAINDER_E:
+    case RAT_REMAINDER_T:
+    case RAT_REMAINDER_F:
+    case RAT_FLOOR:
+    case RAT_CEILING:
+    case RAT_TRUNCATE:
+    case RAT_ROUND:
 
-    case INT_TO_INT: return true;
-    case INT_TO_RAT: return true;
-    case INT_TO_REAL: return true;
-    case RAT_TO_INT: return true;
-    case RAT_TO_RAT: return true;
-    case RAT_TO_REAL: return true;
-    case REAL_TO_INT: return true;
-    case REAL_TO_RAT: return true;
-    case REAL_TO_REAL: return true;
+    case REAL_UNARY_MINUS:
+    case REAL_PLUS:
+    case REAL_MINUS:
+    case REAL_MULTIPLY:
+    case REAL_QUOTIENT:
+    case REAL_QUOTIENT_E:
+    case REAL_QUOTIENT_T:
+    case REAL_QUOTIENT_F:
+    case REAL_REMAINDER_E:
+    case REAL_REMAINDER_T:
+    case REAL_REMAINDER_F:
+    case REAL_FLOOR:
+    case REAL_CEILING:
+    case REAL_TRUNCATE:
+    case REAL_ROUND:
 
-    case ARRAY_SELECT: return true;
-    case ARRAY_BOOL_SELECT: return true;
-    case ARRAY_STORE: return true;
+    case INT_TO_INT:
+    case INT_TO_RAT:
+    case INT_TO_REAL:
+    case RAT_TO_INT:
+    case RAT_TO_RAT:
+    case RAT_TO_REAL:
+    case REAL_TO_INT:
+    case REAL_TO_RAT:
+    case REAL_TO_REAL:
+
+    case ARRAY_SELECT:
+    case ARRAY_BOOL_SELECT:
+    case ARRAY_STORE: 
+      return true;
 
     case INVALID_INTERPRETATION: ASSERTION_VIOLATION;
   }
+  ASSERTION_VIOLATION
 }
 
 /**
@@ -1087,7 +1192,7 @@ unsigned Theory::getOperationSort(Interpretation i)
 
   ASS(hasSingleSort(i));
   ASS_L(i,INVALID_INTERPRETATION);
-  ASS(!isPolymorphic(i));
+  ASS_REP(isMonomorphic(i), i);
 
   switch(i) {
   case INT_GREATER:
@@ -1111,11 +1216,11 @@ unsigned Theory::getOperationSort(Interpretation i)
   case INT_TRUNCATE:
   case INT_ROUND:
   case INT_ABS:
-
   case INT_TO_INT:
-  case INT_IS_INT:
-  case INT_IS_RAT:
-  case INT_IS_REAL:
+  case REAL_TO_INT:
+  case RAT_TO_INT:
+  case INT_TO_REAL:
+  case INT_NUMERAL:
     return Sorts::SRT_INTEGER;
 
   case RAT_UNARY_MINUS:
@@ -1137,11 +1242,10 @@ unsigned Theory::getOperationSort(Interpretation i)
   case RAT_GREATER_EQUAL:
   case RAT_LESS:
   case RAT_LESS_EQUAL:
-
+  case RAT_NUMERAL:
   case RAT_TO_RAT:
-  case RAT_IS_INT:
-  case RAT_IS_RAT:
-  case RAT_IS_REAL:
+  case INT_TO_RAT:
+  case REAL_TO_RAT:
     return Sorts::SRT_RATIONAL;
 
   case REAL_UNARY_MINUS:
@@ -1163,16 +1267,32 @@ unsigned Theory::getOperationSort(Interpretation i)
   case REAL_GREATER_EQUAL:
   case REAL_LESS:
   case REAL_LESS_EQUAL:
-
+  case REAL_NUMERAL:
   case REAL_TO_REAL:
+  case RAT_TO_REAL:
+    return Sorts::SRT_REAL;
+
+  case INT_IS_INT:
+  case INT_IS_RAT:
+  case INT_IS_REAL:
   case REAL_IS_INT:
   case REAL_IS_RAT:
   case REAL_IS_REAL:
-    return Sorts::SRT_REAL;
-
-  default:
+  case RAT_IS_INT:
+  case RAT_IS_RAT:
+  case RAT_IS_REAL:
+  case EQUAL: 
+  case ARRAY_SELECT: 
+  case ARRAY_BOOL_SELECT:
+  case ARRAY_STORE:
+  case TA_CONSTRUCTOR:
+  case TA_DESTRUCTOR:
+  case TA_DESTRUCTOR_PRED:
+  case TA_DISCRIMINATOR:
+  case INVALID_INTERPRETATION:
     ASSERTION_VIOLATION;
   }
+  ASSERTION_VIOLATION
 }
 
 bool Theory::isConversionOperation(Interpretation i)

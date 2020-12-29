@@ -448,7 +448,7 @@ public:
     // This is why we cannot evaluate Equality here... we cannot determine its sort
     if (!theory->hasSingleSort(interp)) { return false; } //To skip conversions and EQUAL
 
-    if (theory->isPolymorphic(interp)) { return false; } // typed evaulator not for polymorphic stuff
+    if (!theory->isMonomorphic(interp)) { return false; } // typed evaulator not for polymorphic stuff, or term algebras
 
     if (theory->isInterpretedNumber(interp)) { return false; } // already evaluated
 

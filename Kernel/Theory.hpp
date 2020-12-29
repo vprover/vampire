@@ -407,6 +407,7 @@ public:
 
   static bool isPolymorphic(Interpretation i);
   static bool isMonomorphisable(Interpretation i);
+  static bool isMonomorphic(Interpretation i);
 
   unsigned getArrayExtSkolemFunction(unsigned i);
 
@@ -534,7 +535,10 @@ public:
   static Theory::Tuples* tuples();
 };
 
+
 typedef Theory::Interpretation Interpretation;
+
+std::ostream& operator<<(std::ostream& out, Interpretation self);
 
 /**
  * Pointer to the singleton Theory instance

@@ -673,6 +673,14 @@ void Property::scanForInterpreted(Term* t)
     return;
   }
 
+  if (!Theory::isMonomorphisable(itp)) {
+    // not polymorphic, not monomorphic. We have an interpretation with variadic arity, or an 
+    // interpretation where there may exist multiple different functions/predicates with the same 
+    // signature and the same interpretation. currently these are TA_CONSTRUCTOR, TA_DESTRUCTOR, 
+    // and TA_DISCRIMINATOR
+    return;
+  }
+
   unsigned sort = Theory::getOperationSort(itp);
   if(Theory::isInequality(itp)){
     switch(sort){

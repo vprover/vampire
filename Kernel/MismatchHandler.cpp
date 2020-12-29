@@ -69,6 +69,7 @@ bool UWAMismatchHandler::checkUWA(TermList t1, TermList t2)
         case Shell::Options::UnificationWithAbstraction::GROUND:
           return true;
       }
+      ASSERTION_VIOLATION
 }
 
 bool UWAMismatchHandler::introduceConstraint(RobSubstitution* subst,TermList t1,unsigned index1, TermList t2,unsigned index2)
