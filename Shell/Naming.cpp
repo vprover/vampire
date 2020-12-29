@@ -1109,20 +1109,6 @@ bool Naming::canBeInDefinition(Formula* f, Where where) {
 Literal* Naming::getDefinitionLiteral(Formula* f, Formula::VarList* freeVars) {
   CALL("Naming::getDefinitionLiteral");
 
-  unsigned length = Formula::VarList::length(freeVars);
-  unsigned pred = env.signature->addNamePredicate(length);
-  Signature::Symbol* predSym = env.signature->getPredicate(pred);
-
-  if (env.colorUsed) {
-    Color fc = f->getColor();
-    if (fc != COLOR_TRANSPARENT) {
-      predSym->addColor(fc);
-    }
-    if (f->getSkip()) {
-      predSym->markSkip();
-    }
-  }
-
   static Stack<unsigned> domainSorts;
   static Stack<TermList> predArgs;
   static DHMap<unsigned, unsigned> varSorts;
@@ -1139,8 +1125,20 @@ Literal* Naming::getDefinitionLiteral(Formula* f, Formula::VarList* freeVars) {
     predArgs.push(TermList(uvar, false));
   }
 
-  predSym->setType(OperatorType::getPredicateType(length, domainSorts.begin()));
 
+  unsigned length = Formula::VarList::length(freeVars);
+  unsigned pred = env.signature->addNamePredicate(OperatorType::getPredicateType(length, domainSorts.begin()));
+  Signature::Symbol* predSym = env.signature->getPredicate(pred);
+
+  if (env.colorUsed) {
+    Color fc = f->getColor();
+    if (fc != COLOR_TRANSPARENT) {
+      predSym->addColor(fc);
+    }
+    if (f->getSkip()) {
+      predSym->markSkip();
+    }
+  }
   return Literal::create(pred, length, true, false, predArgs.begin());
 }
 

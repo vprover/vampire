@@ -77,7 +77,7 @@ class Signature
     /** marks numbers too large to represent natively */
     unsigned _overflownConstant : 1;
     /** Either a FunctionType of a PredicateType object */
-    mutable OperatorType* _type;
+    OperatorType* _type;
     /** List of distinct groups the constant is a member of, all members of a distinct group should be distinct from each other */
     List<unsigned>* _distinctGroups;
     /** number of times it is used in the problem */
@@ -92,10 +92,10 @@ class Signature
     unsigned _inductionSkolem : 1;
     /** if skolem function in general **/
     unsigned _skolem : 1;
-
+  
   public:
     /** standard constructor */
-    Symbol(const vstring& nm,unsigned arity, bool interpreted=false, bool stringConstant=false,bool overflownConstant=false);
+    Symbol(const vstring& nm, OperatorType* type, bool interpreted=false, bool stringConstant=false,bool overflownConstant=false);
     void destroyFnSymbol();
     void destroyPredSymbol();
 
@@ -160,6 +160,8 @@ class Signature
     inline void markInUnit(){ _inUnit=1; }
     inline bool inUnit(){ return _inUnit; }
 
+    inline void overrideType(OperatorType* type){ _type = type; }
+
     inline void markSkolem(){ _skolem = 1;}
     inline bool skolem(){ return _skolem; }
 
@@ -202,7 +204,6 @@ class Signature
     void addToDistinctGroup(unsigned group,unsigned this_number);
     friend ostream& operator<<(ostream& out, const Signature::Symbol& self){ return out << self.name(); };
 
-    void setType(OperatorType* type);
     void forceType(OperatorType* type);
     OperatorType* fnType() const;
     OperatorType* predType() const;
@@ -222,11 +223,9 @@ class Signature
 
   public:
 
-    InterpretedSymbol(const vstring& nm, unsigned arity, Interpretation interp)
-    : Symbol(nm, arity, true), _interp(interp)
-    {
-      CALL("InterpretedSymbol");
-    }
+    InterpretedSymbol(const vstring& nm, OperatorType* type, Interpretation interp)
+    : Symbol(nm, type, true), _interp(interp)
+    { }
 
     CLASS_NAME(Signature::InterpretedSymbol);
     USE_ALLOCATOR(InterpretedSymbol);
@@ -245,12 +244,8 @@ class Signature
 
   public:
     IntegerSymbol(const IntegerConstantType& val)
-    : InterpretedSymbol(val.toString(), 0, Theory::INT_NUMERAL), _intValue(val)
-    {
-      CALL("IntegerSymbol");
-
-      setType(OperatorType::getConstantsType(Sorts::SRT_INTEGER));
-    }
+    : InterpretedSymbol(val.toString(), OperatorType::getConstantsType(Sorts::SRT_INTEGER), Theory::INT_NUMERAL), _intValue(val)
+    { }
     CLASS_NAME(Signature::IntegerSymbol);
     USE_ALLOCATOR(IntegerSymbol);
   };
@@ -265,12 +260,8 @@ class Signature
 
   public:
     RationalSymbol(const RationalConstantType& val)
-    : InterpretedSymbol(val.toString(), 0, Theory::RAT_NUMERAL), _ratValue(val)
-    {
-      CALL("RationalSymbol");
-
-      setType(OperatorType::getConstantsType(Sorts::SRT_RATIONAL));
-    }
+    : InterpretedSymbol(val.toString(), OperatorType::getConstantsType(Sorts::SRT_RATIONAL), Theory::RAT_NUMERAL), _ratValue(val)
+    { }
     CLASS_NAME(Signature::RationalSymbol);
     USE_ALLOCATOR(RationalSymbol);
   };
@@ -285,11 +276,8 @@ class Signature
 
   public:
     RealSymbol(const RealConstantType& val)
-    : InterpretedSymbol((env.options->proof() == Shell::Options::Proof::PROOFCHECK) ? "$to_real("+val.toString()+")" : val.toNiceString(), 0, Theory::REAL_NUMERAL), _realValue(val)
-    {
-      CALL("RealSymbol");
-      setType(OperatorType::getConstantsType(Sorts::SRT_REAL));
-    }
+    : InterpretedSymbol((env.options->proof() == Shell::Options::Proof::PROOFCHECK) ? "$to_real("+val.toString()+")" : val.toNiceString(), OperatorType::getConstantsType(Sorts::SRT_REAL), Theory::REAL_NUMERAL), _realValue(val)
+    { }
     CLASS_NAME(Signature::RealSymbol);
     USE_ALLOCATOR(RealSymbol);
   };
@@ -298,8 +286,8 @@ class Signature
   // Uninterpreted symbol declarations
   //
 
-  unsigned addPredicate(const vstring& name,unsigned arity,bool& added);
-  unsigned addFunction(const vstring& name,unsigned arity,bool& added,bool overflowConstant = false);
+  unsigned addPredicate(const vstring& name,OperatorType* type,bool& added);
+  unsigned addFunction(const vstring& name, OperatorType* type,bool& added,bool overflowConstant = false);
 
   /**
    * If a predicate with this name and arity exists, return its number.
@@ -309,10 +297,10 @@ class Signature
    * @param arity arity of the symbol
    * @since 07/05/2007 Manchester
    */
-  unsigned addPredicate(const vstring& name,unsigned arity)
+  unsigned addPredicate(const vstring& name,OperatorType* type)
   {
     bool added;
-    return addPredicate(name,arity,added);
+    return addPredicate(name,type,added);
   }
   /**
    * If a function with this name and arity exists, return its number.
@@ -320,10 +308,10 @@ class Signature
    *
    * @since 28/12/2007 Manchester
    */
-  unsigned addFunction(const vstring& name,unsigned arity)
+  unsigned addFunction(const vstring& name,OperatorType* type)
   {
     bool added;
-    return addFunction(name,arity,added);
+    return addFunction(name,type,added);
   }
   /**
    * If a unique string constant with this name and arity exists, return its number.
@@ -331,7 +319,7 @@ class Signature
    *
    * The added constant is of sort Sorts::SRT_DEFAULT.
    */
-  unsigned addStringConstant(const vstring& name);
+  unsigned addStringConstant(const vstring& name, OperatorType* type);
  private: 
   /** private, because operatortype is only actually set for interpreted predicates. 
    * Therefore this function only works as expected for interpretation = nullptr 
@@ -342,11 +330,11 @@ class Signature
  public:
   unsigned addFreshFunction(OperatorType*, const char* prefix, const char* suffix, Theory::Interpretation);
   unsigned addFreshPredicate(OperatorType*, const char* prefix, const char* suffix, Theory::Interpretation);
-  unsigned addFreshFunction(unsigned, const char* prefix, const char* suffix = 0);
-  unsigned addFreshPredicate(unsigned, const char* prefix, const char* suffix = 0);
-  unsigned addSkolemFunction(unsigned arity,const char* suffix = 0);
-  unsigned addSkolemPredicate(unsigned arity,const char* suffix = 0);
-  unsigned addNamePredicate(unsigned arity);
+  unsigned addFreshFunction(OperatorType* type, const char* prefix, const char* suffix = 0);
+  unsigned addFreshPredicate(OperatorType* type, const char* prefix, const char* suffix = 0);
+  unsigned addSkolemFunction(OperatorType* type,const char* suffix = 0);
+  unsigned addSkolemPredicate(OperatorType* type,const char* suffix = 0);
+  unsigned addNamePredicate(OperatorType* type);
 
   // Interpreted symbol declarations
   unsigned addIntegerConstant(const vstring& number,bool defaultSort);
@@ -506,20 +494,8 @@ class Signature
 
   static const unsigned STRING_DISTINCT_GROUP;
 
-  unsigned getFoolConstantSymbol(bool isTrue){ 
-    if(!_foolConstantsDefined){
-      _foolFalse = addFunction("$$false",0); 
-      getFunction(_foolFalse)->setType(OperatorType::getConstantsType(Sorts::SRT_BOOL));
-      _foolTrue = addFunction("$$true",0);
-      getFunction(_foolTrue)->setType(OperatorType::getConstantsType(Sorts::SRT_BOOL));
-      _foolConstantsDefined=true;
-    }
-    return isTrue ? _foolTrue : _foolFalse;
-  }
-  bool isFoolConstantSymbol(bool isTrue, unsigned number){
-    if(!_foolConstantsDefined) return false;
-    return isTrue ? number==_foolTrue : number==_foolFalse;
-  }
+  unsigned getFoolConstantSymbol(bool isTrue);
+  bool isFoolConstantSymbol(bool isTrue, unsigned number);
 
   bool isTermAlgebraSort(unsigned sort) { return _termAlgebras.find(sort); }
   Shell::TermAlgebra *getTermAlgebraOfSort(unsigned sort) { return _termAlgebras.get(sort); }

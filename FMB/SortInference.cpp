@@ -124,8 +124,7 @@ void SortInference::doInference()
       if(env.property->usesSort(s) || s >= Sorts::FIRST_USER_SORT){
         unsigned dsort = (*_sig->vampireToDistinct.get(s))[0];
         if(_sig->sortedConstants[dsort].isEmpty()){
-          unsigned fresh = env.signature->addFreshFunction(0,"fmbFreshConstant");
-          env.signature->getFunction(fresh)->setType(OperatorType::getConstantsType(s));
+          unsigned fresh = env.signature->addFreshFunction(OperatorType::getConstantsType(s),"fmbFreshConstant");
           _sig->sortedConstants[dsort].push(fresh);
         }
       }
@@ -414,7 +413,9 @@ void SortInference::doInference()
       if(!posEqualitiesOnSort[s]){ cout << "No positive equalities for subsort " << s << endl; }
 #endif
     if(_sig->sortedConstants[s].size()==0 && _sig->sortedFunctions[s].size()>0){
-      unsigned fresh = env.signature->addFreshFunction(0,"fmbFreshConstant");
+      unsigned fresh = env.signature->addFreshFunction(
+          OperatorType::getConstantsType(Sorts::SRT_DEFAULT), // <- dummy type. will be overridden later
+          "fmbFreshConstant");
       _sig->sortedConstants[s].push(fresh);
       freshMap.insert(fresh,s);
       if(firstFreshConstant==UINT_MAX) firstFreshConstant=fresh;
@@ -557,7 +558,7 @@ void SortInference::doInference()
     unsigned srt = freshMap.get(f);
     unsigned dsrt = _sig->parents[srt];
     unsigned vsrt = (*_sig->distinctToVampire.get(dsrt))[0];
-    env.signature->getFunction(f)->setType(OperatorType::getConstantsType(vsrt));
+    env.signature->getFunction(f)->overrideType(OperatorType::getConstantsType(vsrt));
     env.signature->getFunction(f)->markIntroduced();
   }
 

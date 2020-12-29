@@ -262,6 +262,9 @@ public:
     return getTypeFromKey(key);
   }
 
+  static OperatorType* getPredicateTypeDefaultSort(unsigned arity) 
+  { return getPredicateTypeUniformDomain(arity, Sorts::SRT_DEFAULT); }
+
   static OperatorType* getFunctionType(unsigned arity, const unsigned* sorts, unsigned resultSort) {
     CALL("OperatorType::getFunctionType");
 
@@ -285,6 +288,9 @@ public:
     (*key)[arity] = resultSort;
     return getTypeFromKey(key);
   }
+
+  static OperatorType* getFunctionTypeDefaultSort(unsigned arity) 
+  { return getFunctionTypeUniformDomain(arity, Sorts::SRT_DEFAULT, Sorts::SRT_DEFAULT); }
 
   /**
    * Convenience function for creating OperatorType for constants (as symbols).

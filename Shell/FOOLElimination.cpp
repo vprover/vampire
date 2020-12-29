@@ -920,21 +920,13 @@ unsigned FOOLElimination::introduceFreshSymbol(Context context, const char* pref
   CALL("FOOLElimination::introduceFreshSymbol");
 
   unsigned arity = (unsigned)sorts.size();
-  OperatorType* type;
-  if (context == FORMULA_CONTEXT) {
-    type = OperatorType::getPredicateType(arity, sorts.begin());
-  } else {
-    type = OperatorType::getFunctionType(arity, sorts.begin(), resultSort);
-  }
+  OperatorType* type = context == FORMULA_CONTEXT 
+    ? OperatorType::getPredicateType(arity, sorts.begin())
+    : OperatorType::getFunctionType(arity, sorts.begin(), resultSort);
 
-  unsigned symbol;
-  if (context == FORMULA_CONTEXT) {
-    symbol = env.signature->addFreshPredicate(arity, prefix);
-    env.signature->getPredicate(symbol)->setType(type);
-  } else {
-    symbol = env.signature->addFreshFunction(arity, prefix);
-    env.signature->getFunction(symbol)->setType(type);
-  }
+  unsigned symbol = context == FORMULA_CONTEXT 
+    ? env.signature->addFreshPredicate(type, prefix)
+    : env.signature->addFreshFunction(type, prefix);
 
   if (env.options->showPreprocessing()) {
     env.beginOutput();

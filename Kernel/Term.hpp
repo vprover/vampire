@@ -771,8 +771,6 @@ public:
   static Literal* create2(unsigned predicate, bool polarity, TermList arg1, TermList arg2);
   static Literal* create(unsigned fn, bool polarity, std::initializer_list<TermList> args);
 
-  static Literal* flattenOnArgument(const Literal*,int argumentNumber);
-
   unsigned hash() const;
   unsigned oppositeHash() const;
   static Literal* complementaryLiteral(Literal* l);

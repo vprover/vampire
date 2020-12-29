@@ -87,8 +87,7 @@
     unsigned _functor;                                                                                                  \
   public:                                                                                                               \
     __ ##  f ## __CLASS(unsigned sort)                                                                                  \
-     : _functor(env.signature->addFunction(#f, arity)) {                                                                \
-      env.signature->getFunction(_functor)->setType(OperatorType::getFunctionType({ __REPEAT(arity, sort) }, sort));    \
+     : _functor(env.signature->addFunction(#f, OperatorType::getFunctionType({ __REPEAT(arity, sort) }, sort))) {       \
     }                                                                                                                   \
     TermWrapper operator()(__ARGS_DECL(TermWrapper, arity)) {                                                           \
       return TermList(Term::create(_functor, {__ARGS_EXPR(TermWrapper, arity)}));                                       \
@@ -102,8 +101,7 @@
     unsigned _functor;                                                                                                  \
   public:                                                                                                               \
     __ ##  f ## __CLASS(unsigned sort)                                                                                  \
-     : _functor(env.signature->addPredicate(#f, arity)) {                                                               \
-      env.signature->getPredicate(_functor)->setType(OperatorType::getPredicateType({ __REPEAT(arity, sort) }));        \
+     : _functor(env.signature->addPredicate(#f, OperatorType::getPredicateType({ __REPEAT(arity, sort) }))) {           \
     }                                                                                                                   \
     LiteralWrapper operator()(__ARGS_DECL(TermWrapper, arity)) {                                                              \
       return Literal::create(_functor, true, {__ARGS_EXPR(TermWrapper, arity)});                                       \
@@ -136,8 +134,7 @@
       operator TermList() {return _term;}                                                                               \
       TermList toTerm() {return _term;}                                                                                 \
       static TermWrapper createConstant(const char* name, unsigned sort) {                                              \
-        unsigned f = env.signature->addFunction(name,0);                                                                \
-        env.signature->getFunction(f)->setType(OperatorType::getFunctionType({},sort));                                 \
+        unsigned f = env.signature->addFunction(name,OperatorType::getFunctionType({},sort));                           \
         return TermWrapper(TermList(Term::createConstant(f)));                                                          \
       }                                                                                                                 \
       __VA_ARGS__                                                                                                       \

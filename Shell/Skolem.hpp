@@ -43,12 +43,8 @@ class Skolem
 {
 public:
   static FormulaUnit* skolemise(FormulaUnit*);
-  static unsigned addSkolemFunction(unsigned arity, unsigned* domainSorts,
-      unsigned rangeSort, unsigned var);
-  static unsigned addSkolemFunction(unsigned arity, unsigned* domainSorts,
-      unsigned rangeSort, const char* suffix=0);
+  static unsigned addSkolemFunction(unsigned arity, unsigned* domainSorts, unsigned rangeSort, unsigned var);
   static unsigned addSkolemPredicate(unsigned arity, unsigned* domainSorts, unsigned var);
-  static unsigned addSkolemPredicate(unsigned arity, unsigned* domainSorts, const char* suffix=0);
 private:
   /** Initialise a Skolem object */
   Skolem () :  _beingSkolemised(0) {}

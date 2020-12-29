@@ -804,33 +804,24 @@ SMTLIB2::DeclaredFunction SMTLIB2::declareFunctionOrPredicate(const vstring& nam
 
   bool added;
   unsigned symNum;
-  Signature::Symbol* sym;
   OperatorType* type;
 
   if (rangeSort == Sorts::SRT_BOOL) { // predicate
-    symNum = env.signature->addPredicate(name, argSorts.size(), added);
-
-    sym = env.signature->getPredicate(symNum);
-
     type = OperatorType::getPredicateType(argSorts.size(),argSorts.begin());
+    symNum = env.signature->addPredicate(name, type, added);
 
     LOG1("declareFunctionOrPredicate-Predicate");
   } else { // proper function
-    if (argSorts.size() > 0) {
-      symNum = env.signature->addFunction(name, argSorts.size(), added);
-    } else {
-      symNum = TPTP::addUninterpretedConstant(name,_overflow,added);
-    }
-
-    sym = env.signature->getFunction(symNum);
-
     type = OperatorType::getFunctionType(argSorts.size(), argSorts.begin(), rangeSort);
+    if (argSorts.size() > 0) {
+      symNum = env.signature->addFunction(name, type, added);
+    } else {
+      symNum = TPTP::addUninterpretedConstant(name,type, _overflow,added);
+    }
 
     LOG1("declareFunctionOrPredicate-Function");
   }
-
   ASS(added);
-  sym->setType(type);
 
   DeclaredFunction res = make_pair(symNum,type->isFunctionType());
 
@@ -1324,16 +1315,12 @@ void SMTLIB2::parseLetPrepareLookup(LExpr* exp)
 
     TermList trm;
     if (sort == Sorts::SRT_BOOL) {
-      unsigned symb = env.signature->addFreshPredicate(0,"sLP");
-      OperatorType* type = OperatorType::getPredicateType(0, nullptr);
-      env.signature->getPredicate(symb)->setType(type);
+      unsigned symb = env.signature->addFreshPredicate(OperatorType::getPredicateType(0, nullptr),"sLP");
 
       Formula* atom = new AtomicFormula(Literal::create(symb,0,true,false,nullptr));
       trm = TermList(Term::createFormula(atom));
     } else {
-      unsigned symb = env.signature->addFreshFunction (0,"sLF");
-      OperatorType* type = OperatorType::getFunctionType(0, nullptr, sort);
-      env.signature->getFunction(symb)->setType(type);
+      unsigned symb = env.signature->addFreshFunction (OperatorType::getFunctionType(0, nullptr, sort),"sLF");
 
       trm = TermList(Term::createConstant(symb));
     }

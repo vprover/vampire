@@ -627,8 +627,7 @@ TermList NewCNF::eliminateLet(Term::SpecialTermData *sd, TermList contents)
 
     ASS_EQ(tupleType->arity(), IntList::length(symbols));
 
-    unsigned tuple = env.signature->addFreshFunction(0, "tuple");
-    env.signature->getFunction(tuple)->setType(OperatorType::getConstantsType(tupleSort));
+    unsigned tuple = env.signature->addFreshFunction(OperatorType::getConstantsType(tupleSort), "tuple");
 
     TermList tupleTerm = TermList(Term::createConstant(tuple));
 
@@ -767,13 +766,9 @@ TermList NewCNF::nameLetBinding(unsigned symbol, Formula::VarList* bindingVariab
     }
 
     if (isPredicate) {
-      OperatorType* type = OperatorType::getPredicateType(nameArity, sorts.begin());
-      freshSymbol = env.signature->addFreshPredicate(nameArity, "lG");
-      env.signature->getPredicate(freshSymbol)->setType(type);
+      freshSymbol = env.signature->addFreshPredicate(OperatorType::getPredicateType(nameArity, sorts.begin()), "lG");
     } else {
-      OperatorType* type = OperatorType::getFunctionType(nameArity, sorts.begin(), nameSort);
-      freshSymbol = env.signature->addFreshFunction(nameArity, "lG");
-      env.signature->getFunction(freshSymbol)->setType(type);
+      freshSymbol = env.signature->addFreshFunction(OperatorType::getFunctionType(nameArity, sorts.begin(), nameSort), "lG");
     }
   }
 
@@ -1100,20 +1095,6 @@ Literal* NewCNF::createNamingLiteral(Formula* f, List<unsigned>* free)
 {
   CALL("NewCNF::createNamingLiteral");
 
-  unsigned length = List<unsigned>::length(free);
-  unsigned pred = env.signature->addNamePredicate(length);
-  Signature::Symbol* predSym = env.signature->getPredicate(pred);
-
-  if (env.colorUsed) {
-    Color fc = f->getColor();
-    if (fc != COLOR_TRANSPARENT) {
-      predSym->addColor(fc);
-    }
-    if (f->getSkip()) {
-      predSym->markSkip();
-    }
-  }
-
   static Stack<unsigned> domainSorts;
   static Stack<TermList> predArgs;
   domainSorts.reset();
@@ -1128,8 +1109,20 @@ Literal* NewCNF::createNamingLiteral(Formula* f, List<unsigned>* free)
     predArgs.push(TermList(uvar, false));
   }
 
-  predSym->setType(OperatorType::getPredicateType(length, domainSorts.begin()));
 
+  unsigned length = List<unsigned>::length(free);
+  unsigned pred = env.signature->addNamePredicate(OperatorType::getPredicateType(length, domainSorts.begin()));
+  Signature::Symbol* predSym = env.signature->getPredicate(pred);
+
+  if (env.colorUsed) {
+    Color fc = f->getColor();
+    if (fc != COLOR_TRANSPARENT) {
+      predSym->addColor(fc);
+    }
+    if (f->getSkip()) {
+      predSym->markSkip();
+    }
+  }
   return Literal::create(pred, length, true, false, predArgs.begin());
 }
 

@@ -662,6 +662,11 @@ unsigned Theory::getArity(Interpretation i)
   ASS_L(i,INVALID_INTERPRETATION);
 
   switch(i) {
+  case INT_NUMERAL:
+  case RAT_NUMERAL:
+  case REAL_NUMERAL:
+    return 0;
+
   case INT_IS_INT:
   case INT_IS_RAT:
   case INT_IS_REAL:
@@ -703,6 +708,9 @@ unsigned Theory::getArity(Interpretation i)
   case REAL_TRUNCATE:
   case REAL_ROUND:
 
+  case TA_DESTRUCTOR:
+  case TA_DESTRUCTOR_PRED:
+  case TA_DISCRIMINATOR:
     return 1;
 
   case EQUAL:
@@ -764,9 +772,11 @@ unsigned Theory::getArity(Interpretation i)
 
     return 3;
           
-  default:
-    ASSERTION_VIOLATION_REP(i);
+  case TA_CONSTRUCTOR:
+  case INVALID_INTERPRETATION:
+    ASSERTION_VIOLATION
   }
+  ASSERTION_VIOLATION
 }
 
 /**
@@ -1416,9 +1426,8 @@ unsigned Theory::getArrayExtSkolemFunction(unsigned sort) {
 
   Sorts::ArraySort* arraySort = env.sorts->getArraySort(sort);
 
-  unsigned indexSort = arraySort->getIndexSort();
-  unsigned params[] = {sort, sort};
-  unsigned skolemFunction = Shell::Skolem::addSkolemFunction(2, params, indexSort, "arrayDiff");
+  auto ty = OperatorType::getFunctionType({sort,sort}, arraySort->getIndexSort());
+  unsigned skolemFunction = env.signature->addSkolemFunction(ty, "arrayDiff");
 
   _arraySkolemFunctions.insert(sort,skolemFunction);
 
@@ -1731,8 +1740,10 @@ void Theory::defineTupleTermAlgebra(unsigned arity, unsigned* sorts) {
     unsigned projSort = sorts[i];
     unsigned destructor;
     if (projSort == Sorts::SRT_BOOL) {
-      destructor = env.signature->addFreshPredicate(1, "proj");
-      env.signature->getPredicate(destructor)->setType(OperatorType::getPredicateType({ tupleSort }));
+      destructor = env.signature->addFreshPredicate(
+          OperatorType::getPredicateType({ tupleSort }), 
+          "proj", /* suffix = */ nullptr,
+          Theory::TA_DESTRUCTOR_PRED);
     } else {
       destructor = env.signature->addFreshFunction(
           OperatorType::getFunctionType({ tupleSort }, projSort), 
@@ -2160,14 +2171,14 @@ vstring Theory::tryGetInterpretedLaTeXName(unsigned func, bool pred,bool polarit
       if(_predLaTeXnamesPos.find(func)){ return _predLaTeXnamesPos.get(func); }
       else if(_predLaTeXnamesNeg.find(func)){ 
         // If a negative record is found but no positive we negate it
-        return "\neg ("+_predLaTeXnamesNeg.get(func)+")";
+        return "\\neg ("+_predLaTeXnamesNeg.get(func)+")";
       }
     }
     else{ 
       if(_predLaTeXnamesNeg.find(func)){ return _predLaTeXnamesNeg.get(func); }
       else if(_predLaTeXnamesPos.find(func)){ 
         // If a positive record is found but no negative we negate it
-        return "\neg ("+_predLaTeXnamesPos.get(func)+")";
+        return "\\neg ("+_predLaTeXnamesPos.get(func)+")";
       }
     }
     // We get here if no record is found for a predicate

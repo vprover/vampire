@@ -349,11 +349,8 @@ unsigned EqualityProxy::getProxyPredicate(unsigned sort)
   if (s_proxyPredicates[sort] != 0) {
     return s_proxyPredicates[sort];
   }
-  unsigned newPred = env.signature->addFreshPredicate(2,"sQ","eqProxy");
-  Signature::Symbol* predSym = env.signature->getPredicate(newPred);
-  OperatorType* predType = OperatorType::getPredicateType({sort, sort});
-  predSym->setType(predType);
-  predSym->markEqualityProxy();
+  unsigned newPred = env.signature->addFreshPredicate(OperatorType::getPredicateType({sort, sort}),"sQ","eqProxy");
+  env.signature->getPredicate(newPred)->markEqualityProxy();
 
   s_proxyPredicates[sort] = newPred;
   s_proxyPredicateSorts.insert(newPred,sort);

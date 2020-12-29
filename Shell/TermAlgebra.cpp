@@ -125,17 +125,7 @@ Lib::vstring TermAlgebra::getSubtermPredicateName() {
 unsigned TermAlgebra::getSubtermPredicate() {
   CALL("TermAlgebra::getSubtermPredicate");
 
-  bool added;
-  unsigned s = env.signature->addPredicate(getSubtermPredicateName(), 2, added);
-
-  if (added) {
-    // declare a binary predicate subterm
-    Stack<unsigned> args;
-    args.push(_sort); args.push(_sort);
-    env.signature->getPredicate(s)->setType(OperatorType::getPredicateType(args.size(),args.begin()));
-  }
-
-  return s;
+  return env.signature->addPredicate(getSubtermPredicateName(), OperatorType::getPredicateType({_sort, _sort}));
 }
 
 }

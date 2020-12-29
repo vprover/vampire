@@ -749,8 +749,8 @@ private:
   void unbindVariables();
   void skipToRPAR();
   void skipToRBRA();
-  unsigned addFunction(vstring name,int arity,bool& added,TermList& someArgument);
-  int addPredicate(vstring name,int arity,bool& added,TermList& someArgument);
+  unsigned getFunction(vstring name,int arity,bool& added,TermList& someArgument);
+  int getPredicate(vstring name,int arity,bool& added,TermList& someArgument);
   unsigned addOverloadedFunction(vstring name,int arity,int symbolArity,bool& added,TermList& arg,
 				 Theory::Interpretation integer,Theory::Interpretation rational,
 				 Theory::Interpretation real);
@@ -769,7 +769,7 @@ public:
   static unsigned addIntegerConstant(const vstring&, Set<vstring>& overflow, bool defaultSort);
   static unsigned addRationalConstant(const vstring&, Set<vstring>& overflow, bool defaultSort);
   static unsigned addRealConstant(const vstring&, Set<vstring>& overflow, bool defaultSort);
-  static unsigned addUninterpretedConstant(const vstring& name, Set<vstring>& overflow, bool& added);
+  static unsigned addUninterpretedConstant(const vstring& name, OperatorType* ty, Set<vstring>& overflow, bool& added);
 
   /**
    * Used to store the contents of the 'source' of an input formula

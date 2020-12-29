@@ -146,12 +146,9 @@ Literal* InequalitySplitting::splitLiteral(Literal* lit, UnitInputType inpType, 
   CALL("InequalitySplitting::splitLiteral");
   ASS(isSplittable(lit));
 
-  unsigned predNum=env.signature->addNamePredicate(1);
   unsigned srt = SortHelper::getEqualityArgumentSort(lit);
-  OperatorType* type = OperatorType::getPredicateType({srt});
-
+  unsigned predNum=env.signature->addNamePredicate(OperatorType::getPredicateType({srt}));
   Signature::Symbol* predSym = env.signature->getPredicate(predNum);
-  predSym->setType(type);
 
   TermList s;
   TermList t; //the ground inequality argument, that'll be split out

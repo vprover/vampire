@@ -333,9 +333,7 @@ void ModelPrinter::analyzeEqualityAndPopulateDomain()
     TermList firstTerm = TermList(Term::create(firstFunc, 0, 0));
     vstring firstTermStr = firstTerm.toString();
     unsigned eqClassSort = SortHelper::getResultSort(firstTerm.term());
-    unsigned reprFunc = env.signature->addStringConstant(firstTermStr);
-    OperatorType* reprType = OperatorType::getConstantsType(eqClassSort);
-    env.signature->getFunction(reprFunc)->setType(reprType);
+    unsigned reprFunc = env.signature->addStringConstant(firstTermStr, OperatorType::getConstantsType(eqClassSort));
     TermList reprTerm = TermList(Term::create(reprFunc, 0, 0));
     _rewrites.insert(firstTerm, reprTerm);
 

@@ -60,10 +60,8 @@ void AnswerExtractor::tryOutputAnswer(Clause* refutation)
     // try evaluating aLit
     if(aLit.isTerm()){
       InterpretedLiteralEvaluator eval;
-      unsigned p = env.signature->addFreshPredicate(1,"p"); 
       unsigned sort = SortHelper::getResultSort(aLit.term());
-      OperatorType* type = OperatorType::getPredicateType({sort});
-      env.signature->getPredicate(p)->setType(type);
+      unsigned p = env.signature->addFreshPredicate(OperatorType::getPredicateType({sort}),"p"); 
       Literal* l = Literal::create1(p,true,aLit); 
       Literal* res =0;
       bool constant, constTrue;
@@ -344,9 +342,8 @@ Literal* AnswerLiteralManager::getAnswerLiteral(Formula::VarList* vars,Formula* 
   }
 
   unsigned vcnt = litArgs.size();
-  unsigned pred = env.signature->addFreshPredicate(vcnt,"ans");
+  unsigned pred = env.signature->addFreshPredicate(OperatorType::getPredicateType(sorts.size(), sorts.begin()),"ans");
   Signature::Symbol* predSym = env.signature->getPredicate(pred);
-  predSym->setType(OperatorType::getPredicateType(sorts.size(), sorts.begin()));
   predSym->markAnswerPredicate();
   return Literal::create(pred, vcnt, true, false, litArgs.begin());
 }

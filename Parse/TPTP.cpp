@@ -1862,14 +1862,8 @@ void TPTP::endLetTypes()
   bool isPredicate = type->isPredicateType();
 
   unsigned symbol = isPredicate
-                  ? env.signature->addFreshPredicate(arity, name.c_str())
-                  : env.signature->addFreshFunction(arity,  name.c_str());
-
-  if (isPredicate) {
-    env.signature->getPredicate(symbol)->setType(type);
-  } else {
-    env.signature->getFunction(symbol)->setType(type);
-  }
+                  ? env.signature->addFreshPredicate(type, name.c_str())
+                  : env.signature->addFreshFunction(type,  name.c_str());
 
   LetSymbolName symbolName(name, arity);
   LetSymbolReference symbolReference(symbol, isPredicate);
@@ -2393,7 +2387,7 @@ void TPTP::term()
       unsigned number;
       switch (tok.tag) {
         case T_STRING:
-          number = env.signature->addStringConstant(tok.content);
+          number = env.signature->addStringConstant(tok.content, OperatorType::getFunctionTypeDefaultSort(0));
           break;
         case T_INT:
           number = addIntegerConstant(tok.content,_overflow,_isFof);
@@ -2632,12 +2626,8 @@ Formula* TPTP::createPredicateApplication(vstring name, unsigned arity)
   if (findLetSymbol(LetSymbolName(name, arity), ref) && IS_PREDICATE(ref)) {
     pred = (int)SYMBOL(ref);
   } else {
-    if (arity > 0) {
-      bool dummy;
-      pred = addPredicate(name, arity, dummy, _termLists.top());
-    } else {
-      pred = env.signature->addPredicate(name, 0);
-    }
+    bool dummy;
+    pred = getPredicate(name, arity, dummy, _termLists.top());
   }
   if (pred == -1) { // equality
     TermList rhs = _termLists.pop();
@@ -2710,11 +2700,7 @@ TermList TPTP::createFunctionApplication(vstring name, unsigned arity)
     fun = SYMBOL(ref);
   } else {
     bool dummy;
-    if (arity > 0) {
-      fun = addFunction(name, arity, dummy, _termLists.top());
-    } else {
-      fun = addUninterpretedConstant(name, _overflow, dummy);
-    }
+    fun = getFunction(name, arity, dummy, _termLists.top());
   }
   Term* t = new(arity) Term;
   t->makeSymbol(fun,arity);
@@ -3109,7 +3095,7 @@ void TPTP::endFof()
       // create an answer predicate
       QuantifiedFormula* g = static_cast<QuantifiedFormula*>(f);
       unsigned arity = Formula::VarList::length(g->vars());
-      unsigned pred = env.signature->addPredicate("$$answer",arity);
+      unsigned pred = env.signature->addPredicate("$$answer",OperatorType::getPredicateTypeDefaultSort(arity));
       env.signature->getPredicate(pred)->markAnswerPredicate();
       Literal* a = new(arity) Literal(pred,arity,true,false);
       Formula::VarList::Iterator vs(g->vars());
@@ -3208,7 +3194,7 @@ void TPTP::endTff()
   bool added;
   Signature::Symbol* symbol;
   if (isPredicate) {
-    unsigned pred = env.signature->addPredicate(name, arity, added);
+    unsigned pred = env.signature->addPredicate(name, ot, added);
     symbol = env.signature->getPredicate(pred);
     if (!added) {
       // GR: Multiple identical type declarations for a symbol are allowed
@@ -3216,24 +3202,16 @@ void TPTP::endTff()
         USER_ERROR("Predicate symbol type is declared after its use: " + name);
       }
     }
-    else{
-      if (arity != 0) {
-        symbol->setType(ot);
-      }
-    }
   } else {
     unsigned fun = arity == 0
-                   ? addUninterpretedConstant(name, _overflow, added)
-                   : env.signature->addFunction(name, arity, added);
+                   ? addUninterpretedConstant(name, ot, _overflow, added)
+                   : env.signature->addFunction(name, ot, added);
     symbol = env.signature->getFunction(fun);
     if (!added) {
       // GR: Multiple identical type declarations for a symbol are allowed
       if(symbol->fnType() != ot){
         USER_ERROR("Function symbol type is declared after its use: " + name);
       }
-    }
-    else{
-      symbol->setType(ot);
     }
   }
 } // endTff
@@ -3729,9 +3707,9 @@ Formula* TPTP::makeJunction (Connective c,Formula* lhs,Formula* rhs)
  * @param arg some argument of the function, require to resolve its type for overloaded
  *        built-in functions
  */
-unsigned TPTP::addFunction(vstring name,int arity,bool& added,TermList& arg)
+unsigned TPTP::getFunction(vstring name,int arity,bool& added,TermList& arg)
 {
-  CALL("TPTP::addFunction");
+  CALL("TPTP::getFunction");
 
   if (name == "$sum") {
     return addOverloadedFunction(name,arity,2,added,arg,
@@ -3879,11 +3857,9 @@ unsigned TPTP::addFunction(vstring name,int arity,bool& added,TermList& arg)
 				 Theory::REAL_TO_REAL);
   }
 
-  if (arity > 0) {
-    return env.signature->addFunction(name,arity,added);
-  }
-  return addUninterpretedConstant(name,_overflow,added);
-} // addFunction
+  added = false;
+  return env.signature->getFunctionNumber(name, arity);
+} // getFunction
 
 /** Add a predicate to the signature
  * @param name the predicate name
@@ -3894,7 +3870,7 @@ unsigned TPTP::addFunction(vstring name,int arity,bool& added,TermList& arg)
  * @return the predicate number in the signature, or -1 if it is a different name for an equality
  *         predicate
  */
-int TPTP::addPredicate(vstring name,int arity,bool& added,TermList& arg)
+int TPTP::getPredicate(vstring name,int arity,bool& added,TermList& arg)
 {
   CALL("TPTP::addPredicate");
 
@@ -3950,8 +3926,9 @@ int TPTP::addPredicate(vstring name,int arity,bool& added,TermList& arg)
     // special case for distinct, dealt with in formulaInfix
     return -2;
   }
-  return env.signature->addPredicate(name,arity,added);
-} // addPredicate
+  added = false;
+  return env.signature->getPredicateNumber(name, arity);
+} // getPredicate
 
 
 unsigned TPTP::addOverloadedFunction(vstring name,int arity,int symbolArity,bool& added,TermList& arg,
@@ -4059,11 +4036,9 @@ unsigned TPTP::addIntegerConstant(const vstring& name, Set<vstring>& overflow, b
   }
   catch (Kernel::ArithmeticException&) {
     bool added;
-    unsigned fun = env.signature->addFunction(name,0,added,true /* overflown constant*/);
+    unsigned fun = env.signature->addFunction(name,OperatorType::getConstantsType(defaultSort ? Sorts::SRT_DEFAULT : Sorts::SRT_INTEGER),added,true /* overflown constant*/);
     if (added) {
       overflow.insert(name);
-      Signature::Symbol* symbol = env.signature->getFunction(fun);
-      symbol->setType(OperatorType::getConstantsType(defaultSort ? Sorts::SRT_DEFAULT : Sorts::SRT_INTEGER));
     }
     else if (!overflow.contains(name)) {
       USER_ERROR((vstring)"Cannot use name '" + name + "' as an atom name since it collides with an integer number");
@@ -4095,11 +4070,9 @@ unsigned TPTP::addRationalConstant(const vstring& name, Set<vstring>& overflow, 
   }
   catch(Kernel::ArithmeticException&) {
     bool added;
-    unsigned fun = env.signature->addFunction(name,0,added,true /* overflown constant*/);
+    unsigned fun = env.signature->addFunction(name,OperatorType::getConstantsType(defaultSort ? Sorts::SRT_DEFAULT : Sorts::SRT_RATIONAL),added,true /* overflown constant*/);
     if (added) {
       overflow.insert(name);
-      Signature::Symbol* symbol = env.signature->getFunction(fun);
-      symbol->setType(OperatorType::getConstantsType(defaultSort ? Sorts::SRT_DEFAULT : Sorts::SRT_RATIONAL));
     }
     else if (!overflow.contains(name)) {
       USER_ERROR((vstring)"Cannot use name '" + name + "' as an atom name since it collides with an rational number");
@@ -4127,11 +4100,9 @@ unsigned TPTP::addRealConstant(const vstring& name, Set<vstring>& overflow, bool
   }
   catch(Kernel::ArithmeticException&) {
     bool added;
-    unsigned fun = env.signature->addFunction(name,0,added,true /* overflown constant*/);
+    unsigned fun = env.signature->addFunction(name,OperatorType::getConstantsType(defaultSort ? Sorts::SRT_DEFAULT : Sorts::SRT_REAL),added,true /* overflown constant*/);
     if (added) {
       overflow.insert(name);
-      Signature::Symbol* symbol = env.signature->getFunction(fun);
-      symbol->setType(OperatorType::getConstantsType(defaultSort ? Sorts::SRT_DEFAULT : Sorts::SRT_REAL));
     }
     else if (!overflow.contains(name)) {
       USER_ERROR((vstring)"Cannot use name '" + name + "' as an atom name since it collides with an real number");
@@ -4147,14 +4118,14 @@ unsigned TPTP::addRealConstant(const vstring& name, Set<vstring>& overflow, bool
  * created by the parser from overflown input numbers.
  * @since 22/07/2011 Manchester
  */
-unsigned TPTP::addUninterpretedConstant(const vstring& name, Set<vstring>& overflow, bool& added)
+unsigned TPTP::addUninterpretedConstant(const vstring& name, OperatorType* ty, Set<vstring>& overflow, bool& added)
 {
   CALL("TPTP::addUninterpretedConstant");
 
   if (overflow.contains(name)) {
     USER_ERROR((vstring)"Cannot use name '" + name + "' as an atom name since it collides with an integer number");
   }
-  return env.signature->addFunction(name,0,added);
+  return env.signature->addFunction(name,ty,added);
 } // TPTP::addUninterpretedConstant
 
 /**
@@ -4243,12 +4214,20 @@ void TPTP::vampire()
       bool polarity;
       if(pol=="true"){polarity=true;}else if(pol=="false"){polarity=false;}
       else{ PARSE_ERROR("polarity expected (true/false)",getTok(0)); }
-      unsigned f = env.signature->addPredicate(symb,arity);
-      theory->registerLaTeXPredName(f,polarity,temp);
+      unsigned f; 
+      if (env.signature->tryGetPredicateNumber(symb,arity,f)) {
+        theory->registerLaTeXPredName(f,polarity,temp);
+      } else {
+        throw UserErrorException("could not find predicate ", symb, " with arity ", arity);
+      }
     }
     else{
-      unsigned f = env.signature->addFunction(symb,arity);
-      theory->registerLaTeXFuncName(f,temp);
+      unsigned f;
+      if (env.signature->tryGetFunctionNumber(symb,arity,f)) {
+        theory->registerLaTeXFuncName(f,temp);
+      } else {
+        USER_ERROR("could not find function ", symb, " with arity ", arity);
+      }
     }
   }
   else if (nm == "symbol") {
@@ -4293,15 +4272,21 @@ void TPTP::vampire()
       PARSE_ERROR("'left', 'right' or 'skip' expected",getTok(0));
     }
     env.colorUsed = true;
-    Signature::Symbol* sym = pred
-                             ? env.signature->getPredicate(env.signature->addPredicate(symb,arity))
-                             : env.signature->getFunction(env.signature->addFunction(symb,arity));
-    if (skip) {
-      sym->markSkip();
+    unsigned functor;
+    if (pred ? env.signature->tryGetPredicateNumber(symb, arity, functor)
+             : env.signature->tryGetFunctionNumber(symb, arity, functor)) {
+      Signature::Symbol* sym = pred ? env.signature->getPredicate(functor)
+                                    : env.signature->getFunction(functor);
+      if (skip) {
+        sym->markSkip();
+      }
+      else {
+        sym->addColor(color);
+      }
+    } else {
+      USER_ERROR("could not find ", pred ? "predicate" : "function" ," ", symb, " with arity ", arity);
     }
-    else {
-      sym->addColor(color);
-    }
+
   }
   else if (nm == "left_formula") { // e.g. vampire(left_formula)
     _currentColor = COLOR_LEFT;

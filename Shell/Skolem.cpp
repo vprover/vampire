@@ -115,49 +115,26 @@ unsigned Skolem::addSkolemFunction(unsigned arity, unsigned* domainSorts,
 {
   CALL("Skolem::addSkolemFunction(unsigned,unsigned*,unsigned,unsigned)");
 
+  auto ty = OperatorType::getFunctionType(arity, domainSorts, rangeSort);
   if(VarManager::varNamePreserving()) {
     vstring varName=VarManager::getVarName(var);
-    return addSkolemFunction(arity, domainSorts, rangeSort, varName.c_str());
+    return env.signature->addSkolemFunction(ty, varName.c_str());
+  } else {
+    return env.signature->addSkolemFunction(ty);
   }
-  else {
-    return addSkolemFunction(arity, domainSorts, rangeSort);
-  }
-}
-
-unsigned Skolem::addSkolemFunction(unsigned arity, unsigned* domainSorts,
-    unsigned rangeSort, const char* suffix)
-{
-  CALL("Skolem::addSkolemFunction(unsigned,unsigned*,unsigned,const char*)");
-  ASS(arity==0 || domainSorts!=0);
-
-  unsigned fun = env.signature->addSkolemFunction(arity, suffix);
-  Signature::Symbol* fnSym = env.signature->getFunction(fun);
-  fnSym->setType(OperatorType::getFunctionType(arity, domainSorts, rangeSort));
-  return fun;
 }
 
 unsigned Skolem::addSkolemPredicate(unsigned arity, unsigned* domainSorts, unsigned var)
 {
   CALL("Skolem::addSkolemPredicate(unsigned,unsigned*,unsigned,unsigned)");
 
+  auto ty = OperatorType::getPredicateType(arity, domainSorts);
   if(VarManager::varNamePreserving()) {
     vstring varName=VarManager::getVarName(var);
-    return addSkolemPredicate(arity, domainSorts, varName.c_str());
+    return env.signature->addSkolemPredicate(ty, varName.c_str());
+  } else {
+    return env.signature->addSkolemPredicate(ty);
   }
-  else {
-    return addSkolemPredicate(arity, domainSorts);
-  }
-}
-
-unsigned Skolem::addSkolemPredicate(unsigned arity, unsigned* domainSorts, const char* suffix)
-{
-  CALL("Skolem::addSkolemPredicate(unsigned,unsigned*,unsigned,const char*)");
-  ASS(arity==0 || domainSorts!=0);
-
-  unsigned pred = env.signature->addSkolemPredicate(arity, suffix);
-  Signature::Symbol* pSym = env.signature->getPredicate(pred);
-  pSym->setType(OperatorType::getPredicateType(arity, domainSorts));
-  return pred;
 }
 
 void Skolem::ensureHavingVarSorts()

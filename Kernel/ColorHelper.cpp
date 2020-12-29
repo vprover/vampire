@@ -137,7 +137,7 @@ void ColorHelper::ensureSkolemReplacement(Term* t, TermMap& map)
     return;
   }
   unsigned varCnt = norm->getDistinctVars();
-  unsigned newFn = env.signature->addSkolemFunction(varCnt, "CU");
+  unsigned newFn = env.signature->addSkolemFunction(OperatorType::getFunctionTypeDefaultSort(varCnt), "CU");
 
   static Stack<TermList> argStack;
   argStack.reset();

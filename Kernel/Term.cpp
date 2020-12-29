@@ -1448,51 +1448,6 @@ std::ostream& Kernel::operator<< (ostream& out, const Literal& l )
   return out<<l.toString();
 }
 
-
-/**
- * If the literal has the form p(R,f(S),T), where f(S) is the
- * n-th argument, then return the literal, then return the
- * literal p%f(R,S,T).
- */
-Literal* Literal::flattenOnArgument(const Literal* lit,int n)
-{
-  ASS(lit->shared());
-
-  const TermList* ts = lit->nthArgument(n);
-  ASS(! ts->isVar());
-  const Term* t = ts->term();
-  unsigned newArity = lit->arity() + t->arity() - 1;
-  vstring newName = lit->predicateName() + '%' + Int::toString(n) +
-                   '%' + t->functionName();
-  unsigned newPredicate = env.signature->addPredicate(newName,newArity);
-
-  Literal* newLiteral = new(newArity) Literal(newPredicate,newArity,
-					      lit->polarity(),false);
-  // copy all arguments
-  TermList* newArgs = newLiteral->args();
-  const TermList* args = lit->args();
-  for (int i = 0;i < n;i++) {
-    *newArgs = *args;
-    newArgs = newArgs->next();
-    args = args->next();
-  }
-  // now copy the arguments of t
-  for (const TermList* ss=t->args();! ss->isEmpty();ss = ss->next()) {
-    *newArgs = *ss;
-    newArgs = newArgs->next();
-  }
-  args = args->next();
-  while (! args->isEmpty()) {
-    *newArgs = *args;
-    newArgs = newArgs->next();
-    args = args->next();
-  }
-  ASS(newArgs->isEmpty());
-
-  return env.sharing->insert(newLiteral);
-} // Literal::flattenOnArgument
-
-
 bool Kernel::positionIn(TermList& subterm,TermList* term,vstring& position)
 {
   CALL("positionIn(TermList)");

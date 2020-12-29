@@ -570,8 +570,7 @@ void InductionClauseIterator::performStructInductionThree(Clause* premise, Liter
   Literal* Ly = cr.transform(lit);
 
   // make smallerThanY
-  unsigned sty = env.signature->addFreshPredicate(1,"smallerThan");
-  env.signature->getPredicate(sty)->setType(OperatorType::getPredicateType({ta_sort}));
+  unsigned sty = env.signature->addFreshPredicate(OperatorType::getPredicateType({ta_sort}),"smallerThan");
 
   // make ( y = con_i(..dec(y)..) -> smaller(dec(y)))  for each constructor 
   FormulaList* conjunction = new FormulaList(new AtomicFormula(Ly),0); 
@@ -677,8 +676,7 @@ bool InductionClauseIterator::notDone(Literal* lit, Term* term)
   unsigned srt = env.signature->getFunction(term->functor())->fnType()->result();
 
   if(!blanks.find(srt)){
-    unsigned fresh = env.signature->addFreshFunction(0,"blank");
-    env.signature->getFunction(fresh)->setType(OperatorType::getConstantsType(srt));
+    unsigned fresh = env.signature->addFreshFunction(OperatorType::getConstantsType(srt),"blank");
     TermList blank = TermList(Term::createConstant(fresh));
     blanks.insert(srt,blank);
   }
@@ -700,10 +698,7 @@ Term* InductionClauseIterator::getPlaceholderForTerm(Term* t) {
 
   OperatorType* ot = env.signature->getFunction(t->functor())->fnType();
   bool added; 
-  unsigned placeholderConstNumber = env.signature->addFunction("placeholder_" + ot->toString(), 0, added);
-  if (added) {
-    env.signature->getFunction(placeholderConstNumber)->setType(OperatorType::getConstantsType(ot->result()));
-  }
+  unsigned placeholderConstNumber = env.signature->addFunction("placeholder_" + ot->toString(), OperatorType::getConstantsType(ot->result()), added);
   return Term::createConstant(placeholderConstNumber);
 }
 

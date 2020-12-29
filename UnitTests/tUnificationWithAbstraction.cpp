@@ -48,12 +48,7 @@ TermList var(unsigned i)
 unsigned function_symbol(vstring name,unsigned arity,unsigned srt)
 {
   bool added;
-  unsigned f = env.signature->addFunction(name,arity,added);
-  if(added){
-    Signature::Symbol* symbol = env.signature->getFunction(f);
-    OperatorType* ot = OperatorType::getFunctionTypeUniformDomain(arity,srt,srt);
-    symbol->setType(ot); 
-  }
+  unsigned f = env.signature->addFunction(name,OperatorType::getFunctionTypeUniformDomain(arity,srt,srt),added);
   return f; 
 }
 TermList constant(vstring name,unsigned srt)
@@ -86,12 +81,7 @@ Literal* equals(TermList t1, TermList t2)
 Literal* pred(vstring p, TermList t, unsigned srt)
 {
   bool added;
-  unsigned ps = env.signature->addPredicate(p,1,added);
-  if(added){
-    Signature::Symbol* symbol = env.signature->getPredicate(ps);
-    OperatorType* ot = OperatorType::getPredicateTypeUniformDomain(1,srt);
-    symbol->setType(ot);
-  }
+  unsigned ps = env.signature->addPredicate(p,OperatorType::getPredicateTypeUniformDomain(1,srt),added);
   return Literal::create1(ps,true,t);
 }
 Literal* pred(vstring p, TermList t)
