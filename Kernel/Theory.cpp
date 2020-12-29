@@ -1090,11 +1090,11 @@ bool Theory::isMonomorphisable(Interpretation i)
     case TA_DESTRUCTOR:
     case TA_DESTRUCTOR_PRED:
     case TA_DISCRIMINATOR: 
-      return false;
 
     case INT_NUMERAL:
     case RAT_NUMERAL:
     case REAL_NUMERAL:
+      return false;
 
     case EQUAL:
 

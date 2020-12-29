@@ -386,12 +386,10 @@ Ordering::Result PrecedenceOrdering::compareFunctionPrecedences(unsigned fun1, u
   Signature::Symbol* s1=env.signature->getFunction(fun1);
   Signature::Symbol* s2=env.signature->getFunction(fun2);
   // term algebra constructors are smaller than other symbols
-  auto isCons = [](Kernel::Signature::Symbol* s) -> bool 
-  { return s->interpreted() && static_cast<Signature::InterpretedSymbol*>(s)->getInterpretation();  };
-  if(isCons(s1) && !isCons(s2)) {
+  if(s1->termAlgebraCons() && !s2->termAlgebraCons()) {
     return LESS;
   }
-  if(!isCons(s1) && isCons(s2)) {
+  if(!s1->termAlgebraCons() && s2->termAlgebraCons()) {
     return GREATER;
   }
   // uninterpreted things are greater than interpreted things
