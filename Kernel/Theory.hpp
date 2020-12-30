@@ -341,6 +341,15 @@ public:
     INVALID_INTERPRETATION // LEAVE THIS AS THE LAST ELEMENT OF THE ENUM
   };
 
+  enum class InterpretationKind {
+    MONOMORPHIC_FUNCTION,
+    MONOMORPHIC_PREDICATE,
+    POLYMORPHIC_FUNCTION,
+    POLYMORPHIC_PREDICATE,
+    SET_OF_FUNCTIONS,
+    SET_OF_PREDICATES,
+  };
+
   enum IndexedInterpretation {
     FOR_NOW_EMPTY
   };
@@ -405,6 +414,7 @@ public:
   static bool isNonLinearOperation(Interpretation i);
   static bool isPartialFunction(Interpretation i);
 
+  static InterpretationKind interpretationKind(Interpretation i);
   static bool isPolymorphic(Interpretation i);
   static bool isMonomorphisable(Interpretation i);
   static bool isMonomorphic(Interpretation i);

@@ -29,6 +29,7 @@
 
 #include "Theory.hpp"
 #define USES_2_COMPLEMENT (~0 == -1)
+typedef Theory::InterpretationKind InterpretationKind;
 
 namespace Kernel
 {
@@ -785,117 +786,18 @@ unsigned Theory::getArity(Interpretation i)
  */
 bool Theory::isFunction(Interpretation i)
 {
-  CALL("Signature::InterpretedSymbol::isFunction");
+  CALL("Theory::isFunction");
   ASS_L(i,INVALID_INTERPRETATION);
 
-  switch(i) {
-  case INT_TO_INT:
-  case INT_TO_RAT:
-  case INT_TO_REAL:
-  case RAT_TO_INT:
-  case RAT_TO_RAT:
-  case RAT_TO_REAL:
-  case REAL_TO_INT:
-  case REAL_TO_RAT:
-  case REAL_TO_REAL:
-
-  case INT_SUCCESSOR:
-  case INT_UNARY_MINUS:
-  case RAT_UNARY_MINUS:
-  case REAL_UNARY_MINUS:
-
-  case INT_PLUS:
-  case INT_MINUS:
-  case INT_MULTIPLY:
-  case INT_QUOTIENT_E:
-  case INT_QUOTIENT_T:
-  case INT_QUOTIENT_F:
-  case INT_REMAINDER_E:
-  case INT_REMAINDER_T:
-  case INT_REMAINDER_F:
-  case INT_FLOOR:
-  case INT_CEILING:
-  case INT_TRUNCATE:
-  case INT_ROUND:
-  case INT_ABS:
-  case INT_NUMERAL:
-
-  case RAT_PLUS:
-  case RAT_MINUS:
-  case RAT_MULTIPLY:
-  case RAT_QUOTIENT:
-  case RAT_QUOTIENT_E:
-  case RAT_QUOTIENT_T:
-  case RAT_QUOTIENT_F:
-  case RAT_REMAINDER_E:
-  case RAT_REMAINDER_T:
-  case RAT_REMAINDER_F:
-  case RAT_FLOOR:
-  case RAT_CEILING:
-  case RAT_TRUNCATE:
-  case RAT_ROUND:
-  case RAT_NUMERAL:
-
-  case REAL_PLUS:
-  case REAL_MINUS:
-  case REAL_MULTIPLY:
-  case REAL_QUOTIENT:
-  case REAL_QUOTIENT_E:
-  case REAL_QUOTIENT_T:
-  case REAL_QUOTIENT_F:
-  case REAL_REMAINDER_E:
-  case REAL_REMAINDER_T:
-  case REAL_REMAINDER_F:
-  case REAL_FLOOR:
-  case REAL_CEILING:
-  case REAL_TRUNCATE:
-  case REAL_ROUND:
-  case REAL_NUMERAL:
-
-  case ARRAY_SELECT:
-  case ARRAY_STORE:
-  case TA_CONSTRUCTOR:
-  case TA_DESTRUCTOR:
-
-    return true;
-
-  case EQUAL:
-
-  case INT_GREATER:
-  case INT_GREATER_EQUAL:
-  case INT_LESS:
-  case INT_LESS_EQUAL:
-  case INT_DIVIDES:
-
-  case RAT_GREATER:
-  case RAT_GREATER_EQUAL:
-  case RAT_LESS:
-  case RAT_LESS_EQUAL:
-
-  case REAL_GREATER:
-  case REAL_GREATER_EQUAL:
-  case REAL_LESS:
-  case REAL_LESS_EQUAL:
-
-  case INT_IS_INT:
-  case INT_IS_RAT:
-  case INT_IS_REAL:
-  case RAT_IS_INT:
-  case RAT_IS_RAT:
-  case RAT_IS_REAL:
-  case REAL_IS_INT:
-  case REAL_IS_RAT:
-  case REAL_IS_REAL:
-
-  case ARRAY_BOOL_SELECT:
-
-  case TA_DISCRIMINATOR:
-  case TA_DESTRUCTOR_PRED:
-
-    return false;
-
-  case INVALID_INTERPRETATION:
-    ASSERTION_VIOLATION;
+  switch(interpretationKind(i)) {
+    case InterpretationKind::POLYMORPHIC_FUNCTION:
+    case InterpretationKind::SET_OF_FUNCTIONS:
+    case InterpretationKind::MONOMORPHIC_FUNCTION:
+      return true;
+    case InterpretationKind::POLYMORPHIC_PREDICATE:
+    case InterpretationKind::MONOMORPHIC_PREDICATE:
+    case InterpretationKind::SET_OF_PREDICATES:
+      return false;
   }
   ASSERTION_VIOLATION
 }
@@ -965,17 +867,17 @@ bool Theory::isPolymorphic(Interpretation i)
   if (i >= numberOfFixedInterpretations()) { // indexed are all polymorphic (for now)
     return true;
   }
-
-  switch(i) {
-  case EQUAL:
-  case ARRAY_SELECT:
-  case ARRAY_BOOL_SELECT:
-  case ARRAY_STORE:
-
-    return true;
-  default:
-    return false;
+  switch(interpretationKind(i)) {
+    case InterpretationKind::POLYMORPHIC_FUNCTION:
+    case InterpretationKind::POLYMORPHIC_PREDICATE:
+      return true;
+    case InterpretationKind::MONOMORPHIC_FUNCTION:
+    case InterpretationKind::MONOMORPHIC_PREDICATE:
+    case InterpretationKind::SET_OF_FUNCTIONS:
+    case InterpretationKind::SET_OF_PREDICATES:
+      return false;
   }
+  ASSERTION_VIOLATION
 }
 
 std::ostream& operator<<(std::ostream& out, Interpretation self)
@@ -1077,35 +979,30 @@ std::ostream& operator<<(std::ostream& out, Interpretation self)
 bool Theory::isMonomorphic(Interpretation i)
 { return isMonomorphisable(i) && !isPolymorphic(i); }
 
-bool Theory::isMonomorphisable(Interpretation i)
+Theory::InterpretationKind Theory::interpretationKind(Interpretation i) 
 {
-  CALL("Theory::isMonomorphisable");
-
-  if (Theory::isPolymorphic(i)) { 
-    return true;
-  }
-
-  switch(i) {
+  CALL("Theory::interpretationKind");
+   switch(i) {
     case TA_CONSTRUCTOR:
     case TA_DESTRUCTOR:
-    case TA_DESTRUCTOR_PRED:
     case TA_DISCRIMINATOR: 
-
     case INT_NUMERAL:
     case RAT_NUMERAL:
     case REAL_NUMERAL:
-      return false;
+      return Theory::InterpretationKind::SET_OF_FUNCTIONS;
 
     case EQUAL:
+    case TA_DESTRUCTOR_PRED:
+      return Theory::InterpretationKind::SET_OF_PREDICATES;
 
     case INT_IS_INT:
     case INT_IS_RAT:
     case INT_IS_REAL:
+    case INT_DIVIDES:
     case INT_GREATER:
     case INT_GREATER_EQUAL:
     case INT_LESS:
     case INT_LESS_EQUAL:
-    case INT_DIVIDES:
 
     case RAT_IS_INT:
     case RAT_IS_RAT:
@@ -1122,6 +1019,23 @@ bool Theory::isMonomorphisable(Interpretation i)
     case REAL_GREATER_EQUAL:
     case REAL_LESS:
     case REAL_LESS_EQUAL:
+      return Theory::InterpretationKind::MONOMORPHIC_PREDICATE;
+
+    case RAT_UNARY_MINUS:
+    case RAT_PLUS:
+    case RAT_MINUS:
+    case RAT_MULTIPLY:
+    case RAT_QUOTIENT:
+    case RAT_QUOTIENT_E:
+    case RAT_QUOTIENT_T:
+    case RAT_QUOTIENT_F:
+    case RAT_REMAINDER_E:
+    case RAT_REMAINDER_T:
+    case RAT_REMAINDER_F:
+    case RAT_FLOOR:
+    case RAT_CEILING:
+    case RAT_TRUNCATE:
+    case RAT_ROUND:
 
     case INT_SUCCESSOR:
     case INT_UNARY_MINUS:
@@ -1139,22 +1053,6 @@ bool Theory::isMonomorphisable(Interpretation i)
     case INT_TRUNCATE:
     case INT_ROUND:
     case INT_ABS:
-
-    case RAT_UNARY_MINUS:
-    case RAT_PLUS:
-    case RAT_MINUS:
-    case RAT_MULTIPLY:
-    case RAT_QUOTIENT:
-    case RAT_QUOTIENT_E:
-    case RAT_QUOTIENT_T:
-    case RAT_QUOTIENT_F:
-    case RAT_REMAINDER_E:
-    case RAT_REMAINDER_T:
-    case RAT_REMAINDER_F:
-    case RAT_FLOOR:
-    case RAT_CEILING:
-    case RAT_TRUNCATE:
-    case RAT_ROUND:
 
     case REAL_UNARY_MINUS:
     case REAL_PLUS:
@@ -1181,13 +1079,31 @@ bool Theory::isMonomorphisable(Interpretation i)
     case REAL_TO_INT:
     case REAL_TO_RAT:
     case REAL_TO_REAL:
+      return Theory::InterpretationKind::MONOMORPHIC_FUNCTION;
 
     case ARRAY_SELECT:
-    case ARRAY_BOOL_SELECT:
     case ARRAY_STORE: 
-      return true;
+      return Theory::InterpretationKind::POLYMORPHIC_FUNCTION;
+
+    case ARRAY_BOOL_SELECT:
+      return Theory::InterpretationKind::POLYMORPHIC_PREDICATE;
 
     case INVALID_INTERPRETATION: ASSERTION_VIOLATION;
+  } 
+}
+
+bool Theory::isMonomorphisable(Interpretation i)
+{
+  CALL("Theory::isMonomorphisable");
+  switch(interpretationKind(i)) {
+    case InterpretationKind::MONOMORPHIC_FUNCTION:
+    case InterpretationKind::MONOMORPHIC_PREDICATE:
+    case InterpretationKind::POLYMORPHIC_FUNCTION:
+    case InterpretationKind::POLYMORPHIC_PREDICATE:
+      return true;
+    case InterpretationKind::SET_OF_FUNCTIONS:
+    case InterpretationKind::SET_OF_PREDICATES:
+      return false;
   }
   ASSERTION_VIOLATION
 }
@@ -1400,6 +1316,7 @@ bool Theory::isPartialFunction(Interpretation i)
   case REAL_REMAINDER_E:
   case REAL_REMAINDER_T:
   case REAL_REMAINDER_F:
+  case TA_DESTRUCTOR:
     return true;
   default:
     return false;
