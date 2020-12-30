@@ -1183,7 +1183,7 @@ bool Theory::isPartiallyInterpretedFunction(Term* t) {
     if (sym->termAlgebraCons()) {
       return false;
     } else {
-      ASS(sym->termAlgebraDest());
+      ASS_REP(sym->termAlgebraDest(), *t);
       return true;
     }
   }

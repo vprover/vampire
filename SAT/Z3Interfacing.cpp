@@ -1109,8 +1109,9 @@ struct ToZ3Expr {
     z3::expr e = f(args); 
 
     ASS(toEval.term()->isLiteral() 
-        || !theory->isPartiallyInterpretedFunction(toEval.term()) || 
-        !withGuard || addedGuard)
+        || !env.signature->getFunction(toEval.term()->functor())->interpreted()
+        || !theory->isPartiallyInterpretedFunction(toEval.term()) 
+        || !withGuard || addedGuard)
     return e;
   }
 };
