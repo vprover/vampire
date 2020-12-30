@@ -927,7 +927,7 @@ struct ToZ3Expr {
 
          case Theory::REAL_REMAINDER_T:
            addGuardIfNecessary(args[1] != real_zero);
-         self.addTruncatedOperations(args[0],args[1],Theory::REAL_QUOTIENT_T,Theory::REAL_REMAINDER_T,range_sort);
+           self.addTruncatedOperations(args[0],args[1],Theory::REAL_QUOTIENT_T,Theory::REAL_REMAINDER_T,range_sort);
            break;
 
          case Theory::INT_QUOTIENT_F:
@@ -1012,7 +1012,6 @@ struct ToZ3Expr {
     Z3FuncEntry entry = self._toZ3.tryGet(functor).toOwned()
       .unwrapOrElse([&]() {
 
-          // TODO check domain_sorts for args in equality and interpretted?
           z3::sort_vector domain_sorts = z3::sort_vector(self._context);
           for (unsigned i=0; i<type->arity(); i++) {
             domain_sorts.push_back(self.getz3sort(type->arg(i)));
@@ -1166,99 +1165,62 @@ SATClause* Z3Interfacing::getRefutation() {
  * uninterpreted
  *
  **/
-void Z3Interfacing::addTruncatedOperations(z3::expr e1, z3::expr e2, Interpretation qi, Interpretation ti, unsigned srt) 
+void Z3Interfacing::addTruncatedOperations(z3::expr e1, z3::expr e2, Interpretation qi, Interpretation ri, unsigned srt) 
 {
   CALL("Z3Interfacing::addTruncatedOperations");
   
-  unsigned qfun = env.signature->getInterpretingSymbol(qi);
-  Signature::Symbol* qsymb = env.signature->getFunction(qfun); 
-  ASS(qsymb);
-  z3::symbol qs = _context.str_symbol(qsymb->name().c_str());
-  
-  unsigned rfun = env.signature->getInterpretingSymbol(ti);
-  Signature::Symbol* rsymb = env.signature->getFunction(rfun);
-  z3::symbol rs = _context.str_symbol(rsymb->name().c_str());
+  auto z3BinFun = [&](Interpretation i) -> z3::func_del {
+    auto sym = env.signaure->getFunction(env.signature->getInterpretingSymbol(i));
+    auto z3sym = _context.str_symbol(sym->name().c_str());
+    auto z3srt = getz3sort(srt);
+    return _context.function(z3sym, z3srt, z3srt, z3srt);
+  };
 
-  z3::sort_vector domain_sorts = z3::sort_vector(_context);
-  domain_sorts.push_back(getz3sort(srt));
-  domain_sorts.push_back(getz3sort(srt));
+  z3::func_decl rem = z3BinFun(ri);
 
-  z3::func_decl rem = _context.function(rs,domain_sorts,getz3sort(srt));
-
-  if(srt == Sorts::SRT_INTEGER){
-
-    domain_sorts = z3::sort_vector(_context);
-    domain_sorts.push_back(getz3sort(srt));
-    domain_sorts.push_back(getz3sort(srt));
-    z3::func_decl quot = _context.function(qs,domain_sorts,getz3sort(srt));
+  if (srt == Sorts::SRT_INTEGER) {
+    z3::func_decl quot = z3BinFun(qi);
 
     // e1 >= 0 & e2 > 0 -> e2 * quot(e1,e2) <= e1 & e2 * quot(e1,e2) > e1 - e2
-    z3::expr one = implies(( (e1 >= 0) && (e2 > 0) ), ( ( (e2*quot(e1,e2)) <= e1) && ( (e2*quot(e1,e2)) > (e1-e2) ) ) );
-    _solver.add(one);
-
     // e1 >= 0 & e2 < 0 -> e2 * quot(e1,e2) <= e1 & e2 * quot(e1,e2) > e1 + e2
-    z3::expr two = implies(( (e1 >=0) && (e2 <0) ), ( (e2*quot(e1,e2)) <= e1) && ( (e2*quot(e1,e2)) > (e1+e2) ) );
-    _solver.add(two);
-
-    // e1 < 0 & e2 > 0 -> e2 * quot(e1,e2) >= e1 & e2 * quot(e1,e2) < e1 + e2
-    z3::expr three = implies( ((e1<0) && (e2>0)), ( ( (e2*quot(e1,e2)) >= e1 ) && ( (e2*quot(e1,e2)) < (e1+e2) ) ) );
-    _solver.add(three);
-
-    // e1 < 0 & e2 < 0 -> e2 * quot(e1,e2) >= e1 & e2 * quot(e1,e2) < e1 - e2
-    z3::expr four = implies( ((e1<0) && (e2<0)), ( ((e2*quot(e1,e2)) >= e1) && ( (e2*quot(e1,e2)) < (e1-e2) ) ) ); 
-    _solver.add(four);
+    // e1  < 0 & e2 > 0 -> e2 * quot(e1,e2) >= e1 & e2 * quot(e1,e2) < e1 + e2
+    // e1  < 0 & e2 < 0 -> e2 * quot(e1,e2) >= e1 & e2 * quot(e1,e2) < e1 - e2
+    _solver.add(implies(e1 >= 0 && e2 > 0, e2 * quot(e1,e2) <= e1 && e2 * quot(e1,e2) > e1 - e2 ));
+    _solver.add(implies(e1 >= 0 && e2 < 0, e2 * quot(e1,e2) <= e1 && e2 * quot(e1,e2) > e1 + e2 ));
+    _solver.add(implies(e1 <  0 && e2 > 0, e2 * quot(e1,e2) >= e1 && e2 * quot(e1,e2) < e1 + e2 ));
+    _solver.add(implies(e1 <  0 && e2 < 0, e2 * quot(e1,e2) >= e1 && e2 * quot(e1,e2) < e1 - e2 ));
 
     // e2 != 0 -> e2 * quot(e1,e2) + rem(e1,e2) = e1
-    z3::expr five = implies( (e2!=0), ( ((e2*quot(e1,e2))+ rem(e1,e2)) == e1 ) );
-    _solver.add(five);
-  }
-  else{
+    _solver.add(implies( e2 != 0, e2 * quot(e1,e2) + rem(e1,e2) == e1 ));
+  } else {
     // e2 != 0 -> e2 * quot(e1,e2) + rem(e1,e2) = e1
-    z3::expr five = implies( (e2!=0), ( ((e2*truncate(e1/e2))+ rem(e1,e2)) == e1 ) );
-    _solver.add(five);
+    _solver.add(implies( e2!=0, e2 * truncate(e1/e2) + rem(e1,e2) == e1 ));
   }
 } // void Z3Interfacing::addTruncatedOperations
 
-/**
- *
- **/ 
-void Z3Interfacing::addFloorOperations(z3::expr e1, z3::expr e2, Interpretation qi, Interpretation ti, unsigned srt)
+void Z3Interfacing::addFloorOperations(z3::expr e1, z3::expr e2, Interpretation qi, Interpretation ri, unsigned srt)
 {
   CALL("Z3Interfacing::addFloorOperations");
+  
+  auto z3BinFun = [&](Interpretation i) -> z3::func_del {
+    auto sym = env.signaure->getFunction(env.signature->getInterpretingSymbol(i));
+    auto z3sym = _context.str_symbol(sym->name().c_str());
+    auto z3srt = getz3sort(srt);
+    return _context.function(z3sym, z3srt, z3srt, z3srt);
+  };
 
-  unsigned qfun = env.signature->getInterpretingSymbol(qi);
-  Signature::Symbol* qsymb = env.signature->getFunction(qfun);
-  z3::symbol qs = _context.str_symbol(qsymb->name().c_str());
+  z3::func_decl rem = z3BinFun(ri);
 
-  unsigned rfun = env.signature->getInterpretingSymbol(ti);
-  Signature::Symbol* rsymb = env.signature->getFunction(rfun);
-  z3::symbol rs = _context.str_symbol(rsymb->name().c_str());
+  if (srt == Sorts::SRT_INTEGER) {
+    z3::func_decl quot = z3BinFun(qi);
 
-  z3::sort_vector domain_sorts = z3::sort_vector(_context);
-  domain_sorts.push_back(getz3sort(srt));
-  domain_sorts.push_back(getz3sort(srt));
-
-  z3::func_decl rem = _context.function(rs,domain_sorts,getz3sort(srt));
-
-  if(srt == Sorts::SRT_INTEGER){
-
-    domain_sorts = z3::sort_vector(_context);
-    domain_sorts.push_back(getz3sort(srt));
-    domain_sorts.push_back(getz3sort(srt));
-    z3::func_decl quot = _context.function(qs,domain_sorts,getz3sort(srt));
-
-    // e2 != 0 -> e2*quot(e1,e2) <= e1 & e2*quot(e1,e2) > e1 - e2 
-    z3::expr one = implies( (e2!=0), ( ((e2*quot(e1,e2)) <= e1) && ((e2*quot(e1,e2)) > (e1-e2) ) ) );
-     _solver.add(one);
-
+    // e2 != 0 -> e2 * quot(e1,e2) <= e1 & e2*quot(e1,e2) > e1 - e2 
     // e2 != 0 -> e2 * quot(e1,e2) + rem(e1,e2) = e1
-    z3::expr five = implies( (e2!=0), ( ((e2*quot(e1,e2))+ rem(e1,e2)) == e1 ) );
-    _solver.add(five);
-  }
-  else{
+    _solver.add(implies(e2!=0, e2 * quot(e1,e2) <= e1 && e2 * quot(e1,e2) > e1 - e2 ));
+    _solver.add(implies(e2!=0, e2 * quot(e1,e2) + rem(e1,e2) == e1 ));
+  } else {
     // e2 != 0 -> e2 * quot(e1,e2) + rem(e1,e2) = e1
-    z3::expr five = implies( (e2!=0), ( ((e2*to_real(to_int(e1/e2)))+ rem(e1,e2)) == e1 ) );
-    _solver.add(five);
+    _solver.add(implies( e2!=0, e2 * to_real(to_int(e1/e2)) + rem(e1,e2) == e1 ));
   }
 }
 
