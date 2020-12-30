@@ -695,7 +695,7 @@ struct ToZ3Expr {
   using Arg    = TermList;
   using Result = z3::expr;
 
-  z3::expr operator()(TermList toEval, z3::expr* evaluatedArgs) 
+  z3::expr operator()(TermList toEval, z3::expr* args) 
   {
     CALL("ToZ3Expr::operator()");
     DEBUG("in: ", toEval)
@@ -714,6 +714,7 @@ struct ToZ3Expr {
         self._solver.add(guard);
       }
     };
+
 
     Signature::Symbol* symb; 
     unsigned range_sort;
@@ -734,6 +735,9 @@ struct ToZ3Expr {
       OperatorType* ftype = symb->fnType();
       type = ftype;
       range_sort = ftype->result();
+      if (env.signature->isTermAlgebraSort(range_sort) &&  !self._createdTermAlgebras.contains(range_sort) ) {
+        self.createTermAlgebra(*env.signature->getTermAlgebraOfSort(range_sort));
+      }
     }
 
     //if constant treat specially
@@ -787,23 +791,9 @@ struct ToZ3Expr {
     }
     ASS(trm->arity()>0);
 
-    z3::expr_vector args = z3::expr_vector(self._context);
-    args.resize(trm->arity());
-    for (unsigned i=0; i<trm->arity(); i++) {
-      //IMPORTANT - every arg must be popped from the stack
-      // note that the z3 functions do this already
-      args.set(i, evaluatedArgs[i]);
-    }
-
-    // dummy return
-    z3::expr ret = z3::expr(self._context);
-
    //Check for equality
     if(is_equality){
-      ret = args[0] == args[1]; 
-      args.pop_back();
-      args.pop_back();
-      return ret;
+      return args[0] == args[1]; 
     }
 
     // Currently do not deal with all intepreted operations, should extend 
@@ -811,8 +801,6 @@ struct ToZ3Expr {
     // - unary funs/preds like is_rat interpretation unclear
     if(symb->interpreted()){
       Interpretation interp = static_cast<Signature::InterpretedSymbol*>(symb)->getInterpretation();
-      bool skip=false; 
-      unsigned argsToPop=theory->getArity(interp);
 
       if (Theory::isPolymorphic(interp)) {
         nameExpression = true;
@@ -820,23 +808,14 @@ struct ToZ3Expr {
           case Theory::ARRAY_SELECT:
           case Theory::ARRAY_BOOL_SELECT:
             // select(array,index)
-
-            PRINT_CPP("{ expr e_idx = exprs.back(); exprs.pop_back(); expr e_arr = exprs.back(); exprs.pop_back(); exprs.push_back(select(e_arr,e_idx)); }")
-
-            ret = select(args[0],args[1]);
-            break;
+            return select(args[0],args[1]);
 
           case Theory::ARRAY_STORE:
             // store(array,index,value)
-
-            PRINT_CPP("{ expr e_val = exprs.back(); exprs.pop_back(); expr e_idx = exprs.back(); exprs.pop_back(); expr e_arr = exprs.back(); exprs.pop_back(); exprs.push_back(store(e_arr,e_idx,e_val)); }")
-
-            ret = store(args[0],args[1],args[2]);
-            break;
+            return store(args[0],args[1],args[2]);
 
           default:
-            skip=true;//skip it and treat the function as uninterpretted
-            break;
+            {}//skip it and treat the function as uninterpretted
         }
 
       } else {
@@ -850,51 +829,37 @@ struct ToZ3Expr {
           addGuardIfNecessary(args[0] != int_zero);
           //cout << "SET name=true" << endl;
           nameExpression = true;
-          ret = z3::mod(args[1], args[0]) == int_zero;
-          break;
+          return z3::mod(args[1], args[0]) == int_zero;
 
         case Theory::INT_UNARY_MINUS:
         case Theory::RAT_UNARY_MINUS:
         case Theory::REAL_UNARY_MINUS:
-          PRINT_CPP("exprs.back() = -exprs.back();")
-          ret = -args[0];
-          break;
+          return -args[0];
 
         case Theory::INT_PLUS:
         case Theory::RAT_PLUS:
         case Theory::REAL_PLUS:
-          PRINT_CPP("{ expr e2 = exprs.back(); exprs.pop_back(); expr e1 = exprs.back(); exprs.pop_back(); exprs.push_back((e1 + e2)); } ")
-
-          ret = args[0] + args[1];
-          break;
+          return args[0] + args[1];
 
         // Don't really need as it's preprocessed away
         case Theory::INT_MINUS:
         case Theory::RAT_MINUS:
         case Theory::REAL_MINUS:
-          PRINT_CPP("{ expr e2 = exprs.back(); exprs.pop_back(); expr e1 = exprs.back(); exprs.pop_back(); exprs.push_back((e1 - e2)); } ")
-
-          ret = args[0] - args[1];
-          break;
+          return args[0] - args[1];
 
         case Theory::INT_MULTIPLY:
         case Theory::RAT_MULTIPLY:
         case Theory::REAL_MULTIPLY:
-          PRINT_CPP("{ expr e2 = exprs.back(); exprs.pop_back(); expr e1 = exprs.back(); exprs.pop_back(); exprs.push_back((e1 * e2)); } ")
-
-          ret = args[0] * args[1];
-          break;
+          return args[0] * args[1];
 
         case Theory::RAT_QUOTIENT:
         case Theory::REAL_QUOTIENT:
           addGuardIfNecessary(args[1] != real_zero);
-          ret= args[0] / args[1];
-          break;
+          return args[0] / args[1];
 
         case Theory::INT_QUOTIENT_E: 
           addGuardIfNecessary(args[1] != int_zero);
-          ret= args[0] / args[1];
-          break;
+          return args[0] / args[1];
 
         // The z3 header must be wrong
         //case Theory::RAT_QUOTIENT_E: 
@@ -906,26 +871,22 @@ struct ToZ3Expr {
         case Theory::INT_FLOOR:
         case Theory::RAT_FLOOR:
         case Theory::REAL_FLOOR:
-          ret = self.to_real(self.to_int(args[0])); 
-          break;
+          return self.to_real(self.to_int(args[0])); 
 
         case Theory::INT_TO_REAL:
         case Theory::RAT_TO_REAL:
         case Theory::INT_TO_RAT: //I think this works also
-          ret = self.to_real(args[0]);
-          break;
+          return self.to_real(args[0]);
 
         case Theory::INT_CEILING:
         case Theory::RAT_CEILING:
         case Theory::REAL_CEILING:
-          ret = self.ceiling(args[0]);
-          break;
+          return self.ceiling(args[0]);
 
         case Theory::INT_TRUNCATE:
         case Theory::RAT_TRUNCATE:
         case Theory::REAL_TRUNCATE:
-          ret = self.truncate(args[0]); 
-          break;
+          return self.truncate(args[0]); 
 
         case Theory::INT_ROUND:
         case Theory::RAT_ROUND:
@@ -934,85 +895,78 @@ struct ToZ3Expr {
             z3::expr t = args[0];
             z3::expr i = self.to_int(t);
             z3::expr i2 = i + self._context.real_val(1,2);
-            ret = ite(t > i2, i+1, ite(t==i2, ite(self.is_even(i),i,i+1),i));
-            break;
+            return ite(t > i2, i+1, ite(t==i2, ite(self.is_even(i),i,i+1),i));
           }
 
         case Theory::INT_ABS:
           {
             z3::expr t = args[0];
-            ret = ite(t > 0, t, -t);
-            break;
+            return ite(t > 0, t, -t);
           }
 
          case Theory::INT_QUOTIENT_T:
          case Theory::INT_REMAINDER_T:
+// TODO joe undestand this
           addGuardIfNecessary(args[1] != int_zero);
            // leave as uninterpreted
-           self.addTruncatedOperations(args,Theory::INT_QUOTIENT_T,Theory::INT_REMAINDER_T,range_sort);
-           skip=true;
+           self.addTruncatedOperations(args[0],args[1],Theory::INT_QUOTIENT_T,Theory::INT_REMAINDER_T,range_sort);
            break;
          case Theory::RAT_QUOTIENT_T:
            addGuardIfNecessary(args[1] != real_zero);
-           ret = self.truncate(args[0]/args[1]);
-           self.addTruncatedOperations(args,Theory::RAT_QUOTIENT_T,Theory::RAT_REMAINDER_T,range_sort);
-           break;
+           self.addTruncatedOperations(args[0],args[1],Theory::RAT_QUOTIENT_T,Theory::RAT_REMAINDER_T,range_sort);
+           return self.truncate(args[0]/args[1]);
+
          case Theory::RAT_REMAINDER_T:
            addGuardIfNecessary(args[1] != real_zero);
-           skip=true;
-           self.addTruncatedOperations(args,Theory::RAT_QUOTIENT_T,Theory::RAT_REMAINDER_T,range_sort);
+           self.addTruncatedOperations(args[0],args[1],Theory::RAT_QUOTIENT_T,Theory::RAT_REMAINDER_T,range_sort);
            break;
          case Theory::REAL_QUOTIENT_T:
            addGuardIfNecessary(args[1] != real_zero);
-           ret = self.truncate(args[0]/args[1]);
-           self.addTruncatedOperations(args,Theory::REAL_QUOTIENT_T,Theory::REAL_REMAINDER_T,range_sort);
-           break;
+           self.addTruncatedOperations(args[0],args[1],Theory::REAL_QUOTIENT_T,Theory::REAL_REMAINDER_T,range_sort);
+           return self.truncate(args[0]/args[1]);
+
          case Theory::REAL_REMAINDER_T:
            addGuardIfNecessary(args[1] != real_zero);
-           skip=true;
-           self.addTruncatedOperations(args,Theory::REAL_QUOTIENT_T,Theory::REAL_REMAINDER_T,range_sort);
+         self.addTruncatedOperations(args[0],args[1],Theory::REAL_QUOTIENT_T,Theory::REAL_REMAINDER_T,range_sort);
            break;
 
          case Theory::INT_QUOTIENT_F:
          case Theory::INT_REMAINDER_F:
            addGuardIfNecessary(args[1] != int_zero);
            // leave as uninterpreted
-           self.addFloorOperations(args,Theory::INT_QUOTIENT_F,Theory::INT_REMAINDER_F,range_sort);
-           skip=true;
+           self.addFloorOperations(args[0],args[1],Theory::INT_QUOTIENT_F,Theory::INT_REMAINDER_F,range_sort);
            break;
+
          case Theory::RAT_QUOTIENT_F:
            addGuardIfNecessary(args[1] != real_zero);
-           ret = self.to_real(self.to_int(args[0] / args[1]));
-           self.addFloorOperations(args,Theory::RAT_QUOTIENT_F,Theory::RAT_REMAINDER_F,range_sort);
-           break;
+           self.addFloorOperations(args[0],args[1],Theory::RAT_QUOTIENT_F,Theory::RAT_REMAINDER_F,range_sort);
+           return self.to_real(self.to_int(args[0] / args[1]));
+
          case Theory::RAT_REMAINDER_F:
            addGuardIfNecessary(args[1] != real_zero);
-           skip=true;
-           self.addFloorOperations(args,Theory::RAT_QUOTIENT_F,Theory::RAT_REMAINDER_F,range_sort);
+           self.addFloorOperations(args[0],args[1],Theory::RAT_QUOTIENT_F,Theory::RAT_REMAINDER_F,range_sort);
            break;
+
          case Theory::REAL_QUOTIENT_F:
            addGuardIfNecessary(args[1] != real_zero);
-           ret = self.to_real(self.to_int(args[0] / args[1]));
-           self.addFloorOperations(args,Theory::REAL_QUOTIENT_F,Theory::REAL_REMAINDER_F,range_sort);
-           break;
+           self.addFloorOperations(args[0],args[1],Theory::REAL_QUOTIENT_F,Theory::REAL_REMAINDER_F,range_sort);
+           return self.to_real(self.to_int(args[0] / args[1]));
+
          case Theory::REAL_REMAINDER_F:
            addGuardIfNecessary(args[1] != real_zero);
-           skip=true;
-           self.addFloorOperations(args,Theory::REAL_QUOTIENT_F,Theory::REAL_REMAINDER_F,range_sort);
+           self.addFloorOperations(args[0],args[1],Theory::REAL_QUOTIENT_F,Theory::REAL_REMAINDER_F,range_sort);
            break;
 
          case Theory::RAT_REMAINDER_E:
          case Theory::REAL_REMAINDER_E:
            addGuardIfNecessary(args[1] != real_zero);
            nameExpression = true; 
-           ret = z3::mod(args[0], args[1]);
-           break;
+           return z3::mod(args[0], args[1]);
 
          case Theory::INT_REMAINDER_E:
            addGuardIfNecessary(args[1] != int_zero);
            nameExpression = true;
-           ret = z3::mod(args[0], args[1]);
-           break;
+           return z3::mod(args[0], args[1]);
 
        // Numerical comparisons
        // is_rat and to_rat not supported
@@ -1020,52 +974,39 @@ struct ToZ3Expr {
        case Theory::INT_IS_INT:
        case Theory::RAT_IS_INT:
        case Theory::REAL_IS_INT:
-         ret = z3::is_int(args[0]);
-         break;
+         return z3::is_int(args[0]);
 
        case Theory::INT_LESS:
        case Theory::RAT_LESS:
        case Theory::REAL_LESS:
-          ret = args[0] < args[1];
-          break;
+          return args[0] < args[1];
 
        case Theory::INT_GREATER:
        case Theory::RAT_GREATER:
        case Theory::REAL_GREATER:
-
-          ret= args[0] > args[1];
-          break;
+          return args[0] > args[1];
 
        case Theory::INT_LESS_EQUAL:
        case Theory::RAT_LESS_EQUAL:
        case Theory::REAL_LESS_EQUAL:
-
-          ret= args[0] <= args[1];
-          break;
+          return args[0] <= args[1];
 
        case Theory::INT_GREATER_EQUAL:
        case Theory::RAT_GREATER_EQUAL:
        case Theory::REAL_GREATER_EQUAL:
-
-          ret= args[0] >= args[1];
-          break;
+          return args[0] >= args[1];
 
         default: 
           if(withGuard){
             throw UninterpretedForZ3Exception();
           }
-          skip=true;//skip it and treat the function as uninterpretted
+          //skip it and treat the function as uninterpretted
           break;
       }
       }
-
-      if(!skip){
-        while(argsToPop--){ args.pop_back(); }
-        return ret;
-      } 
-
     }
 
+    // uninterpretd function
 
     auto functor = Z3Interfacing::FuncOrPredId(trm);
     Z3FuncEntry entry = self._toZ3.tryGet(functor).toOwned()
@@ -1076,25 +1017,8 @@ struct ToZ3Expr {
           for (unsigned i=0; i<type->arity(); i++) {
             domain_sorts.push_back(self.getz3sort(type->arg(i)));
           }
-
-          // func_decl is not cached. Might be a term algebra constructor/destructor/discriminator
-          auto createIfNecessary = [&](unsigned s) 
-          { if (env.signature->isTermAlgebraSort(s) && !self._createdTermAlgebras.contains(s)) 
-              self.createTermAlgebra(*env.signature->getTermAlgebraOfSort(s)); };
-
-          for (auto s : domain_sorts) {
-            createIfNecessary(s);
-          }
-          createIfNecessary(range_sort);
-
-          return self._toZ3
-            .getOrInit(functor, [&](){
-              // createIfNecessary did not insert into the cache 
-              // => not a datatype function
-              // => must be an uninterpreted one
-              z3::symbol name = self._context.str_symbol(symb->name().c_str());
-              return Z3FuncEntry::plain(self._context.function(name,domain_sorts,self.getz3sort(range_sort)));
-            });
+          z3::symbol name = self._context.str_symbol(symb->name().c_str());
+          return Z3FuncEntry::plain(self._context.function(name,domain_sorts,self.getz3sort(range_sort)));
       });
 
     z3::func_decl f = entry.self;
@@ -1106,7 +1030,7 @@ struct ToZ3Expr {
     }
 
     // Finally create expr
-    z3::expr e = f(args); 
+    z3::expr e = f(trm->arity(), args); 
 
     ASS(toEval.term()->isLiteral() 
         || !env.signature->getFunction(toEval.term()->functor())->interpreted()
@@ -1235,12 +1159,14 @@ SATClause* Z3Interfacing::getRefutation() {
     return refutation; 
 }
 
+
+
 /**
  * Add axioms for quotient_t and remainder_t that will be treated
  * uninterpreted
  *
  **/
-void Z3Interfacing::addTruncatedOperations(z3::expr_vector args, Interpretation qi, Interpretation ti, unsigned srt) 
+void Z3Interfacing::addTruncatedOperations(z3::expr e1, z3::expr e2, Interpretation qi, Interpretation ti, unsigned srt) 
 {
   CALL("Z3Interfacing::addTruncatedOperations");
   
@@ -1253,58 +1179,50 @@ void Z3Interfacing::addTruncatedOperations(z3::expr_vector args, Interpretation 
   Signature::Symbol* rsymb = env.signature->getFunction(rfun);
   z3::symbol rs = _context.str_symbol(rsymb->name().c_str());
 
-  z3::expr e1 = args[0];
-  z3::expr e2 = args[1];
-
-
   z3::sort_vector domain_sorts = z3::sort_vector(_context);
   domain_sorts.push_back(getz3sort(srt));
   domain_sorts.push_back(getz3sort(srt));
 
-  z3::func_decl r = _context.function(rs,domain_sorts,getz3sort(srt));
-  z3::expr r_e1_e2 = r(args);
+  z3::func_decl rem = _context.function(rs,domain_sorts,getz3sort(srt));
 
   if(srt == Sorts::SRT_INTEGER){
 
     domain_sorts = z3::sort_vector(_context);
     domain_sorts.push_back(getz3sort(srt));
     domain_sorts.push_back(getz3sort(srt));
-    z3::func_decl q = _context.function(qs,domain_sorts,getz3sort(srt));
-    z3::expr_vector qargs = z3::expr_vector(_context);
-    qargs.push_back(e1);
-    qargs.push_back(e2);
-    z3::expr q_e1_e2 = q(qargs);
+    z3::func_decl quot = _context.function(qs,domain_sorts,getz3sort(srt));
 
-    // e1 >= 0 & e2 > 0 -> e2 * q(e1,e2) <= e1 & e2 * q(e1,e2) > e1 - e2
-    z3::expr one = implies(( (e1 >= 0) && (e2 > 0) ), ( ( (e2*q_e1_e2) <= e1) && ( (e2*q_e1_e2) > (e1-e2) ) ) );
+    // e1 >= 0 & e2 > 0 -> e2 * quot(e1,e2) <= e1 & e2 * quot(e1,e2) > e1 - e2
+    z3::expr one = implies(( (e1 >= 0) && (e2 > 0) ), ( ( (e2*quot(e1,e2)) <= e1) && ( (e2*quot(e1,e2)) > (e1-e2) ) ) );
     _solver.add(one);
 
-    // e1 >= 0 & e2 < 0 -> e2 * q(e1,e2) <= e1 & e2 * q(e1,e2) > e1 + e2
-    z3::expr two = implies(( (e1 >=0) && (e2 <0) ), ( (e2*q_e1_e2) <= e1) && ( (e2*q_e1_e2) > (e1+e2) ) );
+    // e1 >= 0 & e2 < 0 -> e2 * quot(e1,e2) <= e1 & e2 * quot(e1,e2) > e1 + e2
+    z3::expr two = implies(( (e1 >=0) && (e2 <0) ), ( (e2*quot(e1,e2)) <= e1) && ( (e2*quot(e1,e2)) > (e1+e2) ) );
     _solver.add(two);
 
-    // e1 < 0 & e2 > 0 -> e2 * q(e1,e2) >= e1 & e2 * q(e1,e2) < e1 + e2
-    z3::expr three = implies( ((e1<0) && (e2>0)), ( ( (e2*q_e1_e2) >= e1 ) && ( (e2*q_e1_e2) < (e1+e2) ) ) );
+    // e1 < 0 & e2 > 0 -> e2 * quot(e1,e2) >= e1 & e2 * quot(e1,e2) < e1 + e2
+    z3::expr three = implies( ((e1<0) && (e2>0)), ( ( (e2*quot(e1,e2)) >= e1 ) && ( (e2*quot(e1,e2)) < (e1+e2) ) ) );
     _solver.add(three);
 
-    // e1 < 0 & e2 < 0 -> e2 * q(e1,e2) >= e1 & e2 * q(e1,e2) < e1 - e2
-    z3::expr four = implies( ((e1<0) && (e2<0)), ( ((e2*q_e1_e2) >= e1) && ( (e2*q_e1_e2) < (e1-e2) ) ) ); 
+    // e1 < 0 & e2 < 0 -> e2 * quot(e1,e2) >= e1 & e2 * quot(e1,e2) < e1 - e2
+    z3::expr four = implies( ((e1<0) && (e2<0)), ( ((e2*quot(e1,e2)) >= e1) && ( (e2*quot(e1,e2)) < (e1-e2) ) ) ); 
     _solver.add(four);
 
-    // e2 != 0 -> e2 * q(e1,e2) + r(e1,e2) = e1
-    z3::expr five = implies( (e2!=0), ( ((e2*q_e1_e2)+ r_e1_e2) == e1 ) );
+    // e2 != 0 -> e2 * quot(e1,e2) + rem(e1,e2) = e1
+    z3::expr five = implies( (e2!=0), ( ((e2*quot(e1,e2))+ rem(e1,e2)) == e1 ) );
     _solver.add(five);
   }
   else{
-    // e2 != 0 -> e2 * q(e1,e2) + r(e1,e2) = e1
-    z3::expr five = implies( (e2!=0), ( ((e2*truncate(e1/e2))+ r_e1_e2) == e1 ) );
+    // e2 != 0 -> e2 * quot(e1,e2) + rem(e1,e2) = e1
+    z3::expr five = implies( (e2!=0), ( ((e2*truncate(e1/e2))+ rem(e1,e2)) == e1 ) );
     _solver.add(five);
   }
-}
+} // void Z3Interfacing::addTruncatedOperations
+
 /**
  *
  **/ 
-void Z3Interfacing::addFloorOperations(z3::expr_vector args, Interpretation qi, Interpretation ti, unsigned srt)
+void Z3Interfacing::addFloorOperations(z3::expr e1, z3::expr e2, Interpretation qi, Interpretation ti, unsigned srt)
 {
   CALL("Z3Interfacing::addFloorOperations");
 
@@ -1316,42 +1234,34 @@ void Z3Interfacing::addFloorOperations(z3::expr_vector args, Interpretation qi, 
   Signature::Symbol* rsymb = env.signature->getFunction(rfun);
   z3::symbol rs = _context.str_symbol(rsymb->name().c_str());
 
-  z3::expr e1 = args[0];
-  z3::expr e2 = args[1];
-
   z3::sort_vector domain_sorts = z3::sort_vector(_context);
   domain_sorts.push_back(getz3sort(srt));
   domain_sorts.push_back(getz3sort(srt));
 
-  z3::func_decl r = _context.function(rs,domain_sorts,getz3sort(srt));
-  z3::expr r_e1_e2 = r(args);
+  z3::func_decl rem = _context.function(rs,domain_sorts,getz3sort(srt));
 
   if(srt == Sorts::SRT_INTEGER){
 
     domain_sorts = z3::sort_vector(_context);
     domain_sorts.push_back(getz3sort(srt));
     domain_sorts.push_back(getz3sort(srt));
-    z3::func_decl q = _context.function(qs,domain_sorts,getz3sort(srt));
-    z3::expr_vector qargs = z3::expr_vector(_context);
-    qargs.push_back(e1);
-    qargs.push_back(e2);
-    z3::expr q_e1_e2 = q(qargs);
+    z3::func_decl quot = _context.function(qs,domain_sorts,getz3sort(srt));
 
-    // e2 != 0 -> e2*q(e1,e2) <= e1 & e2*q(e1,e2) > e1 - e2 
-    z3::expr one = implies( (e2!=0), ( ((e2*q_e1_e2) <= e1) && ((e2*q_e1_e2) > (e1-e2) ) ) );
+    // e2 != 0 -> e2*quot(e1,e2) <= e1 & e2*quot(e1,e2) > e1 - e2 
+    z3::expr one = implies( (e2!=0), ( ((e2*quot(e1,e2)) <= e1) && ((e2*quot(e1,e2)) > (e1-e2) ) ) );
      _solver.add(one);
 
-    // e2 != 0 -> e2 * q(e1,e2) + r(e1,e2) = e1
-    z3::expr five = implies( (e2!=0), ( ((e2*q_e1_e2)+ r_e1_e2) == e1 ) );
+    // e2 != 0 -> e2 * quot(e1,e2) + rem(e1,e2) = e1
+    z3::expr five = implies( (e2!=0), ( ((e2*quot(e1,e2))+ rem(e1,e2)) == e1 ) );
     _solver.add(five);
   }
   else{
-    // e2 != 0 -> e2 * q(e1,e2) + r(e1,e2) = e1
-    z3::expr five = implies( (e2!=0), ( ((e2*to_real(to_int(e1/e2)))+ r_e1_e2) == e1 ) );
+    // e2 != 0 -> e2 * quot(e1,e2) + rem(e1,e2) = e1
+    z3::expr five = implies( (e2!=0), ( ((e2*to_real(to_int(e1/e2)))+ rem(e1,e2)) == e1 ) );
     _solver.add(five);
   }
-
 }
+
 Z3Interfacing::~Z3Interfacing()
 {
   CALL("~Z3Interfacing")

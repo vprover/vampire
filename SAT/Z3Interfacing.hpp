@@ -237,8 +237,8 @@ private:
         return ite(e >= 0, to_int(e), ceiling(e));
   }
 
-  void addTruncatedOperations(z3::expr_vector, Interpretation qi, Interpretation ti, unsigned srt);
-  void addFloorOperations(z3::expr_vector, Interpretation qi, Interpretation ti, unsigned srt);
+  void addTruncatedOperations(z3::expr lhs, z3::expr rhs, Interpretation quotient, Interpretation ti, unsigned srt);
+  void addFloorOperations(z3::expr lhs, z3::expr rhs, Interpretation quotient, Interpretation ti, unsigned srt);
 
   // not sure why this one is public
   friend struct ToZ3Expr;
