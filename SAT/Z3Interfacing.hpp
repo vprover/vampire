@@ -188,17 +188,17 @@ private:
 
   struct Z3FuncEntry {
     using Metadata = Coproduct<NoMeta, DestructorMeta>;
-    z3::func_decl self;
+    z3::func_decl decl;
     Metadata metadata;
 
     static Z3FuncEntry plain(z3::func_decl d) 
-    { return  Z3FuncEntry { .self = d, .metadata = Metadata(NoMeta {}) }; }
+    { return  Z3FuncEntry { .decl = d, .metadata = Metadata(NoMeta {}) }; }
 
     static Z3FuncEntry destructor(z3::func_decl destr, z3::func_decl sel) 
-    { return  Z3FuncEntry { .self = destr, .metadata = Metadata(DestructorMeta { .selector = sel, }) }; }
+    { return  Z3FuncEntry { .decl = destr, .metadata = Metadata(DestructorMeta { .selector = sel, }) }; }
 
     friend std::ostream& operator<<(std::ostream& out, Z3FuncEntry const& self)
-    { return out << self.self << "@(" << self.metadata << ")"; }
+    { return out << self.decl << "@(" << self.metadata << ")"; }
   };
 
 
@@ -237,6 +237,8 @@ private:
         return ite(e >= 0, to_int(e), ceiling(e));
   }
 
+  Z3FuncEntry z3Function(FuncOrPredId function);
+  Z3FuncEntry z3Function(Theory::Interpretation itp);
   void addTruncatedOperations(z3::expr lhs, z3::expr rhs, Interpretation quotient, Interpretation ti, unsigned srt);
   void addFloorOperations(z3::expr lhs, z3::expr rhs, Interpretation quotient, Interpretation ti, unsigned srt);
 

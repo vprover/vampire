@@ -675,12 +675,12 @@ z3::func_decl const& Z3Interfacing::findConstructor(FuncId id_)
   auto id = FuncOrPredId::function(id_);
   auto f = _toZ3.tryGet(id);
   if (f.isSome()) {
-    return f.unwrap().self;
+    return f.unwrap().decl;
   } else {
     auto sym = env.signature->getFunction(id_);
     auto domain = sym->fnType()->result(); 
     createTermAlgebra(*env.signature->getTermAlgebraOfSort(domain));
-    return _toZ3.get(id).self;
+    return _toZ3.get(id).decl;
   }
 }
 
@@ -718,12 +718,9 @@ struct ToZ3Expr {
 
     Signature::Symbol* symb; 
     unsigned range_sort;
-    OperatorType* type;
     bool is_equality = false;
     if (isLit) {
       symb = env.signature->getPredicate(trm->functor());
-      OperatorType* ptype = symb->predType();
-      type = ptype;
       range_sort = Sorts::SRT_BOOL;
       // check for equality
       if(trm->functor()==0){
@@ -733,7 +730,6 @@ struct ToZ3Expr {
     } else {
       symb = env.signature->getFunction(trm->functor());
       OperatorType* ftype = symb->fnType();
-      type = ftype;
       range_sort = ftype->result();
       if (env.signature->isTermAlgebraSort(range_sort) &&  !self._createdTermAlgebras.contains(range_sort) ) {
         self.createTermAlgebra(*env.signature->getTermAlgebraOfSort(range_sort));
@@ -1008,19 +1004,7 @@ struct ToZ3Expr {
 
     // uninterpretd function
 
-    auto functor = Z3Interfacing::FuncOrPredId(trm);
-    Z3FuncEntry entry = self._toZ3.tryGet(functor).toOwned()
-      .unwrapOrElse([&]() {
-
-          z3::sort_vector domain_sorts = z3::sort_vector(self._context);
-          for (unsigned i=0; i<type->arity(); i++) {
-            domain_sorts.push_back(self.getz3sort(type->arg(i)));
-          }
-          z3::symbol name = self._context.str_symbol(symb->name().c_str());
-          return Z3FuncEntry::plain(self._context.function(name,domain_sorts,self.getz3sort(range_sort)));
-      });
-
-    z3::func_decl f = entry.self;
+    auto entry = self.z3Function(Z3Interfacing::FuncOrPredId(trm));
 
     if (entry.metadata.is<DestructorMeta>()) {
       auto selector = entry.metadata.unwrap<DestructorMeta>().selector;
@@ -1028,6 +1012,7 @@ struct ToZ3Expr {
       addGuardIfNecessary(selector(args[0]));
     }
 
+    z3::func_decl f = entry.decl;
     // Finally create expr
     z3::expr e = f(trm->arity(), args); 
 
@@ -1038,6 +1023,35 @@ struct ToZ3Expr {
     return e;
   }
 };
+
+
+
+Z3Interfacing::Z3FuncEntry Z3Interfacing::z3Function(Theory::Interpretation itp)
+{
+  return z3Function(Theory::isFunction(itp)  
+    ? FuncOrPredId::function(env.signature->getInterpretingSymbol(itp))
+    : FuncOrPredId::predicate(env.signature->getInterpretingSymbol(itp)));
+}
+
+Z3Interfacing::Z3FuncEntry Z3Interfacing::z3Function(FuncOrPredId functor)
+{
+  auto& self = *this;
+  return self._toZ3.tryGet(functor).toOwned()
+    .unwrapOrElse([&]() {
+        auto symb = functor.isPredicate ? env.signature->getPredicate(functor.id) 
+                                        : env.signature->getPredicate(functor.id);
+        auto type = functor.isPredicate ? symb->predType() : symb->fnType();
+
+        // Does not yet exits. initialize it!
+        z3::sort_vector domain_sorts = z3::sort_vector(self._context);
+        for (unsigned i=0; i<type->arity(); i++) {
+          domain_sorts.push_back(self.getz3sort(type->arg(i)));
+        }
+        z3::symbol name = self._context.str_symbol(symb->name().c_str());
+        auto range_sort = functor.isPredicate ? self._context.bool_sort() : self.getz3sort(type->result());
+        return Z3FuncEntry::plain(self._context.function(name,domain_sorts,range_sort));
+    });
+}
 
 /**
  * Translate a Vampire term into a Z3 term
@@ -1169,17 +1183,10 @@ void Z3Interfacing::addTruncatedOperations(z3::expr e1, z3::expr e2, Interpretat
 {
   CALL("Z3Interfacing::addTruncatedOperations");
   
-  auto z3BinFun = [&](Interpretation i) -> z3::func_del {
-    auto sym = env.signaure->getFunction(env.signature->getInterpretingSymbol(i));
-    auto z3sym = _context.str_symbol(sym->name().c_str());
-    auto z3srt = getz3sort(srt);
-    return _context.function(z3sym, z3srt, z3srt, z3srt);
-  };
-
-  z3::func_decl rem = z3BinFun(ri);
+  z3::func_decl rem = z3Function(ri).decl;
 
   if (srt == Sorts::SRT_INTEGER) {
-    z3::func_decl quot = z3BinFun(qi);
+    z3::func_decl quot = z3Function(qi).decl;
 
     // e1 >= 0 & e2 > 0 -> e2 * quot(e1,e2) <= e1 & e2 * quot(e1,e2) > e1 - e2
     // e1 >= 0 & e2 < 0 -> e2 * quot(e1,e2) <= e1 & e2 * quot(e1,e2) > e1 + e2
@@ -1202,17 +1209,11 @@ void Z3Interfacing::addFloorOperations(z3::expr e1, z3::expr e2, Interpretation 
 {
   CALL("Z3Interfacing::addFloorOperations");
   
-  auto z3BinFun = [&](Interpretation i) -> z3::func_del {
-    auto sym = env.signaure->getFunction(env.signature->getInterpretingSymbol(i));
-    auto z3sym = _context.str_symbol(sym->name().c_str());
-    auto z3srt = getz3sort(srt);
-    return _context.function(z3sym, z3srt, z3srt, z3srt);
-  };
 
-  z3::func_decl rem = z3BinFun(ri);
+  z3::func_decl rem = z3Function(ri).decl;
 
   if (srt == Sorts::SRT_INTEGER) {
-    z3::func_decl quot = z3BinFun(qi);
+    z3::func_decl quot = z3Function(qi).decl;
 
     // e2 != 0 -> e2 * quot(e1,e2) <= e1 & e2*quot(e1,e2) > e1 - e2 
     // e2 != 0 -> e2 * quot(e1,e2) + rem(e1,e2) = e1
