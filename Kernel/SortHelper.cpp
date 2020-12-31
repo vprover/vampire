@@ -923,14 +923,27 @@ bool SortHelper::areImmediateSortsValidMono(Term* t)
   return true;
 }
 
-/*
-bool SortHelper::isStructuredSort(unsigned s)
+/**
+ * Return true iff immediate subterms of sort @c sort are all
+ * sorts
+ *
+ * @pre Arguments of sorts must be shared.
+ */
+bool SortHelper::allTopLevelArgsAreSorts(AtomicSort* sort)
 {
-  CALL("SortHelper::isStructuredSort");  
-  TermList sort = sortTerm(s);
-  return isArraySort(sort) || isTupleSort(sort); 
+  CALL("SortHelper::allTopLevelArgsAreSorts");
+
+  for(unsigned i = 0; i < sort->arity(); i++){
+    TermList arg = *sort->nthArgument(i);
+    if(arg.isVar()){
+      continue;
+    }
+    if(!arg.term()->isSort()){
+      return false;
+    }
+  }
+  return true;
 }
-*/
 
 TermList SortHelper::getIndexSort(TermList arraySort)
 {

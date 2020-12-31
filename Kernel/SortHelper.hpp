@@ -71,7 +71,8 @@ public:
   static bool areSortsValid(Clause* cl);
   static bool areImmediateSortsValidPoly(Term* t); 
   static bool areImmediateSortsValidMono(Term* t);
-  // static bool isStructuredSort(unsigned s);
+  static bool allTopLevelArgsAreSorts(AtomicSort* sort);
+
   static TermList getIndexSort(TermList arraySort);
   static TermList getInnerSort(TermList arraySort);
 

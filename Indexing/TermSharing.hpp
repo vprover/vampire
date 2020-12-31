@@ -59,7 +59,7 @@ public:
   static bool equals(const Literal* l1, const Literal* l2, bool opposite=false);
 
   DHSet<TermList>* getArraySorts(){
-    return _arraySorts;
+    return &_arraySorts;
   }
 
   struct OpLitWrapper {
@@ -85,7 +85,7 @@ private:
   /* Set containing all array sorts. 
    * Can be deleted once array axioms are made truly poltmorphic
    */  
-  DHSet<TermList>* _arraySorts;
+  DHSet<TermList> _arraySorts;
   /** Number of terms stored */
   unsigned _totalTerms;
   /** Number of sorts stored */

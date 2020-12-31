@@ -289,7 +289,8 @@ struct SimpleCongruenceClosure::FOConversionWorker
     else {
       ASS(t.isTerm());
       Term* trm = t.term();
-      res = _parent.getSignatureConst(trm->functor(), SignatureKind::FUNCTION);
+      SignatureKind sk = trm->isSort() ? SignatureKind::TYPECON : SignatureKind::FUNCTION;
+      res = _parent.getSignatureConst(trm->functor(), sk);
       for(size_t i=0; i<childCnt; i++) {
         res = _parent.getPairName(CPair(res, childRes[i]));
       }
@@ -903,7 +904,6 @@ void SimpleCongruenceClosure::computeConstsNormalForm(unsigned c, NFMap& normalF
     if(t->isSort()){
       cInfo.normalForm = TermList(AtomicSort::create(static_cast<AtomicSort*>(t),args.array()));
     } else {
-      cout << "the term is " + t->toString() << endl;
       cInfo.normalForm = TermList(Term::create(t,args.array()));
     }
   }

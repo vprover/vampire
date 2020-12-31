@@ -82,6 +82,7 @@ Term* EqHelper::replace(Term* trm0, TermList tSrc, TermList tDest)
 {
   CALL("EqHelper::replace(Term*,...)");
   ASS(trm0->shared());
+  ASS(!trm0->isSort());
 
   static Stack<TermList*> toDo(8);
   static Stack<Term*> terms(8);

@@ -616,12 +616,12 @@ TermList SMTLIB2::declareSort(LExpr* sExpr)
         sortName += ")";
 
         bool added = false;
-        unsigned newSort = TPTP::addUninterpretedConstant(sortName,_overflow,added);
+        unsigned newSort = env.signature->addTypeCon(sortName,0,added);
         if(added){
           OperatorType* ot = OperatorType::getConstantsType(AtomicSort::superSort());
-          env.signature->getFunction(newSort)->setType(ot);
+          env.signature->getTypeCon(newSort)->setType(ot);
         }
-        TermList sort = TermList(Term::createConstant(newSort));
+        TermList sort = TermList(AtomicSort::createConstant(newSort));
         results.push(sort);
         continue;
       }
@@ -947,10 +947,10 @@ void SMTLIB2::readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool 
 
     ALWAYS(_declaredSorts.insert(dtypeName, 0));
     bool added = false;
-    unsigned srt = TPTP::addUninterpretedConstant(dtypeName + "()",_overflow,added);
+    unsigned srt = env.signature->addTypeCon(dtypeName + "()",0,added);
     ASS(added);
-    env.signature->getFunction(srt)->setType(OperatorType::getConstantsType(AtomicSort::superSort()));
-    TermList sort = TermList(Term::createConstant(srt));
+    env.signature->getTypeCon(srt)->setType(OperatorType::getConstantsType(AtomicSort::superSort()));
+    TermList sort = TermList(AtomicSort::createConstant(srt));
     //(void)srt; // to get rid of compiler warning when logging is off
     // TODO: is it really OK we normally don't need the sort?
     LOG2("reading datatype "+dtypeName+" as sort ",sort);
@@ -968,9 +968,9 @@ void SMTLIB2::readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool 
     constructors.reset();
     const vstring& taName = dtypeNameIter.next(); 
     bool added = false;
-    unsigned sort = TPTP::addUninterpretedConstant(taName,_overflow,added);
+    unsigned sort = env.signature->addTypeCon(taName,0,added);
     ASS(!added);
-    TermList taSort = TermList(Term::createConstant(sort));
+    TermList taSort = TermList(AtomicSort::createConstant(sort));
 
     LispListReader dtypeRdr(dtypesDefsRdr.readList());
     while (dtypeRdr.hasNext()) {

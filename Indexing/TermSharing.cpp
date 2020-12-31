@@ -58,8 +58,6 @@ TermSharing::TermSharing()
 TermSharing::~TermSharing()
 {
   CALL("TermSharing::~TermSharing");
-
-  delete _arraySorts;
   
 #if CHECK_LEAKS
   Set<Term*,TermSharing>::Iterator ts(_terms);
@@ -222,13 +220,12 @@ AtomicSort* TermSharing::insert(AtomicSort* sort)
 
   TimeCounter tc(TC_TERM_SHARING);
 
-  if(sort->isArraySort()){
-    _arraySorts->insert(TermList(sort));
-  }
-
   _sortInsertions++;
   AtomicSort* s = _sorts.insert(sort);
-   if (s == sort) {
+  if (s == sort) {
+    if(sort->isArraySort()){
+      _arraySorts.insert(TermList(sort));
+    }    
     unsigned weight = 1;
     unsigned vars = 0;
 
@@ -255,13 +252,10 @@ AtomicSort* TermSharing::insert(AtomicSort* sort)
       
     _totalSorts++;
 
-    //TODO replace with a function that checks that all arguments are of type $tType
-    /*ASS_REP(SortHelper::areImmediateSortsValidPoly(sort), sort->toString());
-    if (!_poly && !SortHelper::areImmediateSortsValidMono(t)){
-      USER_ERROR("Immediate (shared) subterms of sort "+sort->toString()+" have different types/not well-typed!");
-    } else if (_poly && !SortHelper::areImmediateSortsValidPoly(t)){
-      USER_ERROR("Immediate (shared) subterms of sort "+sort->toString()+" have different types/not well-typed!");      
-    }*/
+    ASS_REP(SortHelper::allTopLevelArgsAreSorts(sort), sort->toString());
+    if (!SortHelper::allTopLevelArgsAreSorts(sort)){
+      USER_ERROR("Immediate subterms of sort "+sort->toString()+" are not all sorts as mandated in rank-1 polymorphism!");      
+    }
   }
   else {
     sort->destroy();

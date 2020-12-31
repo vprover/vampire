@@ -666,6 +666,12 @@ Term* FunctionDefinition::applyDefinitions(Literal* lit, Stack<Def*>* usedDefs)
       t=tl.term();
     }
 
+    //sorts can never contain definitions
+    if(t->isSort()){
+      args.push(tl);
+      continue;      
+    }
+
     Def* d;
     if( !defIndex && _defs.find(t->functor(), d) && d->mark!=Def::BLOCKED) {
       ASS_EQ(d->mark, Def::UNFOLDED);
