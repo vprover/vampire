@@ -8,13 +8,13 @@
  * and in the source directory
  */
 /**
- * @file FnDefSuperposition.hpp
- * Defines class FnDefSuperposition.
+ * @file FnDefRewriting.hpp
+ * Defines class FnDefRewriting.
  */
 
 
-#ifndef __FnDefSuperposition__
-#define __FnDefSuperposition__
+#ifndef __FnDefRewriting__
+#define __FnDefRewriting__
 
 #include "Forwards.hpp"
 #include "Indexing/TermIndex.hpp"
@@ -27,12 +27,12 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
-class FnDefSuperposition
+class FnDefRewriting
 : public GeneratingInferenceEngine
 {
 public:
-  CLASS_NAME(FnDefSuperposition);
-  USE_ALLOCATOR(FnDefSuperposition);
+  CLASS_NAME(FnDefRewriting);
+  USE_ALLOCATOR(FnDefRewriting);
 
   void attach(SaturationAlgorithm* salg);
   void detach();
@@ -40,7 +40,7 @@ public:
   ClauseIterator generateClauses(Clause* premise) override;
 
 private:
-  Clause* performSuperposition(
+  static Clause* perform(
 	  Clause* rwClause, Literal* rwLiteral, TermList rwTerm,
 	  Clause* eqClause, Literal* eqLiteral, TermList eqLHS,
 	  ResultSubstitutionSP subst, bool eqIsResult);
@@ -58,4 +58,4 @@ private:
 
 };
 
-#endif /* __Superposition__ */
+#endif /* __FnDefRewriting__ */

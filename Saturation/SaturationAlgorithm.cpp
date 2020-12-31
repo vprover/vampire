@@ -57,7 +57,7 @@
 #include "Inferences/ExtensionalityResolution.hpp"
 #include "Inferences/FOOLParamodulation.hpp"
 #include "Inferences/Factoring.hpp"
-#include "Inferences/FnDefSuperposition.hpp"
+#include "Inferences/FnDefRewriting.hpp"
 #include "Inferences/ForwardDemodulation.hpp"
 #include "Inferences/ForwardLiteralRewriting.hpp"
 #include "Inferences/ForwardSubsumptionAndResolution.hpp"
@@ -1490,7 +1490,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     }
   }
   if (env.options->functionDefinitionRewriting()) {
-    gie->addFront(new FnDefSuperposition());
+    gie->addFront(new FnDefRewriting());
   }
 #if VZ3
   if (opt.theoryInstAndSimp() != Shell::Options::TheoryInstSimp::OFF){

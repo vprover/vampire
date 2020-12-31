@@ -8,8 +8,8 @@
  * and in the source directory
  */
 /**
- * @file FnDefSuperposition.cpp
- * Implements class FnDefSuperposition.
+ * @file FnDefRewriting.cpp
+ * Implements class FnDefRewriting.
  */
 
 #include "Debug/RuntimeStatistics.hpp"
@@ -21,15 +21,11 @@
 #include "Lib/VirtualIterator.hpp"
 
 #include "Kernel/Clause.hpp"
-#include "Kernel/ColorHelper.hpp"
 #include "Kernel/EqHelper.hpp"
 #include "Kernel/Inference.hpp"
-#include "Kernel/Ordering.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
-#include "Kernel/Unit.hpp"
-#include "Kernel/LiteralSelector.hpp"
 
 #include "Indexing/Index.hpp"
 #include "Indexing/IndexManager.hpp"
@@ -39,7 +35,7 @@
 
 #include "Shell/Options.hpp"
 
-#include "FnDefSuperposition.hpp"
+#include "FnDefRewriting.hpp"
 
 #if VDEBUG
 #include <iostream>
@@ -52,9 +48,9 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
-void FnDefSuperposition::attach(SaturationAlgorithm* salg)
+void FnDefRewriting::attach(SaturationAlgorithm* salg)
 {
-  CALL("Superposition::attach");
+  CALL("FnDefRewriting::attach");
 
   GeneratingInferenceEngine::attach(salg);
   _subtermIndex=static_cast<DemodulationSubtermIndex*> (
@@ -63,9 +59,9 @@ void FnDefSuperposition::attach(SaturationAlgorithm* salg)
 	  _salg->getIndexManager()->request(FNDEF_LHS_SUBST_TREE) );
 }
 
-void FnDefSuperposition::detach()
+void FnDefRewriting::detach()
 {
-  CALL("Superposition::detach");
+  CALL("FnDefRewriting::detach");
 
   _subtermIndex=0;
   _lhsIndex=0;
@@ -74,89 +70,87 @@ void FnDefSuperposition::detach()
   GeneratingInferenceEngine::detach();
 }
 
-struct FnDefSuperposition::InstancesFn
+struct FnDefRewriting::InstancesFn
 {
   InstancesFn(TermIndex* index) : _index(index) {}
   DECL_RETURN_TYPE(VirtualIterator<pair<pair<Literal*, TermList>, TermQueryResult> >);
   OWN_RETURN_TYPE operator()(pair<Literal*, TermList> arg)
   {
-    CALL("FnDefSuperposition::InstancesFn()");
+    CALL("FnDefRewriting::InstancesFn()");
     return pvi( pushPairIntoRightIterator(arg, _index->getInstances(arg.second, true)) );
   }
 private:
   TermIndex* _index;
 };
 
-struct FnDefSuperposition::GeneralizationsFn
+struct FnDefRewriting::GeneralizationsFn
 {
   GeneralizationsFn(TermIndex* index) : _index(index) {}
   DECL_RETURN_TYPE(VirtualIterator<pair<pair<Literal*, TermList>, TermQueryResult> >);
   OWN_RETURN_TYPE operator()(pair<Literal*, TermList> arg)
   {
-    CALL("FnDefSuperposition::UnificationsFn()");
+    CALL("FnDefRewriting::UnificationsFn()");
     return pvi( pushPairIntoRightIterator(arg, _index->getGeneralizations(arg.second, true)) );
   }
 private:
   TermIndex* _index;
 };
 
-struct FnDefSuperposition::RewriteableSubtermsFn
+struct FnDefRewriting::RewriteableSubtermsFn
 {
   RewriteableSubtermsFn() = default;
 
   DECL_RETURN_TYPE(VirtualIterator<pair<Literal*, TermList> >);
   OWN_RETURN_TYPE operator()(Literal* lit)
   {
-    CALL("Superposition::RewriteableSubtermsFn()");
+    CALL("FnDefRewriting::RewriteableSubtermsFn()");
     NonVariableIterator nvi(lit);
     return pvi( pushPairIntoRightIterator(lit,
       getUniquePersistentIteratorFromPtr(&nvi)) );
   }
 };
 
-struct FnDefSuperposition::ForwardResultFn
+struct FnDefRewriting::ForwardResultFn
 {
-  ForwardResultFn(Clause* cl, FnDefSuperposition& parent) : _cl(cl), _parent(parent) {}
+  ForwardResultFn(Clause* cl) : _cl(cl) {}
   DECL_RETURN_TYPE(Clause*);
   OWN_RETURN_TYPE operator()(pair<pair<Literal*, TermList>, TermQueryResult> arg)
   {
-    CALL("Superposition::ForwardResultFn::operator()");
+    CALL("FnDefRewriting::ForwardResultFn::operator()");
 
     TermQueryResult& qr = arg.second;
-    return _parent.performSuperposition(_cl, arg.first.first, arg.first.second,
+    return FnDefRewriting::perform(_cl, arg.first.first, arg.first.second,
 	    qr.clause, qr.literal, qr.term, qr.substitution, true);
   }
 private:
   Clause* _cl;
-  FnDefSuperposition& _parent;
 };
 
 
-struct FnDefSuperposition::BackwardResultFn
+struct FnDefRewriting::BackwardResultFn
 {
-  BackwardResultFn(Clause* cl, FnDefSuperposition& parent) : _cl(cl), _parent(parent) {}
+  BackwardResultFn(Clause* cl) : _cl(cl) {}
   DECL_RETURN_TYPE(Clause*);
   OWN_RETURN_TYPE operator()(pair<pair<Literal*, TermList>, TermQueryResult> arg)
   {
-    CALL("Superposition::BackwardResultFn::operator()");
+    CALL("FnDefRewriting::BackwardResultFn::operator()");
 
     if(_cl==arg.second.clause) {
       return 0;
     }
 
     TermQueryResult& qr = arg.second;
-    return _parent.performSuperposition(qr.clause, qr.literal, qr.term,
+    return FnDefRewriting::perform(qr.clause, qr.literal, qr.term,
 	    _cl, arg.first.first, arg.first.second, qr.substitution, false);
   }
 private:
   Clause* _cl;
-  FnDefSuperposition& _parent;
 };
 
 
-ClauseIterator FnDefSuperposition::generateClauses(Clause* premise)
+ClauseIterator FnDefRewriting::generateClauses(Clause* premise)
 {
-  CALL("Superposition::generateClauses");
+  CALL("FnDefRewriting::generateClauses");
 
   if (!premise->containsFunctionDefinition()) {
     auto itf1 = premise->getSelectedLiteralIterator();
@@ -170,12 +164,12 @@ ClauseIterator FnDefSuperposition::generateClauses(Clause* premise)
     auto itf3 = getMapAndFlattenIterator(itf2,GeneralizationsFn(_lhsIndex));
 
     //Perform forward rewriting
-    auto itf4 = getMappingIterator(itf3,ForwardResultFn(premise, *this));
+    auto itf4 = getMappingIterator(itf3,ForwardResultFn(premise));
 
-    // Remove null elements - these can come from performSuperposition
+    // Remove null elements
     auto it6 = getFilteredIterator(itf4,NonzeroFn());
 
-    // The outer iterator ensures we update the time counter for superposition
+    // The outer iterator ensures we update the time counter for rewriting
     auto it7 = getTimeCountedIterator(it6, TC_FNDEF_REWRITING);
 
     return pvi( it7 );
@@ -194,25 +188,25 @@ ClauseIterator FnDefSuperposition::generateClauses(Clause* premise)
       EqHelper::getFnDefLHSIterator(selected, premise->isReversedFunctionDefinition(selected))) );
     auto itb2 = getMapAndFlattenIterator(itb1,InstancesFn(_subtermIndex));
 
-    //Perform backward superposition
-    auto itb4 = getMappingIterator(itb2,BackwardResultFn(premise, *this));
+    //Perform backward rewriting
+    auto itb4 = getMappingIterator(itb2,BackwardResultFn(premise));
 
-    // Remove null elements - these can come from performSuperposition
+    // Remove null elements
     auto it6 = getFilteredIterator(itb4,NonzeroFn());
 
-    // The outer iterator ensures we update the time counter for superposition
+    // The outer iterator ensures we update the time counter for rewriting
     auto it7 = getTimeCountedIterator(it6, TC_FNDEF_REWRITING);
 
     return pvi( it7 );
   }
 }
 
-Clause* FnDefSuperposition::performSuperposition(
+Clause* FnDefRewriting::perform(
     Clause* rwClause, Literal* rwLit, TermList rwTerm,
     Clause* eqClause, Literal* eqLit, TermList eqLHS,
     ResultSubstitutionSP subst, bool eqIsResult)
 {
-  CALL("FnDefSuperposition::perform");
+  CALL("FnDefRewriting::perform");
   // the rwClause may not be active as
   // it is from a demodulation index
   if (rwClause->store() != Clause::ACTIVE) {
@@ -234,7 +228,7 @@ Clause* FnDefSuperposition::performSuperposition(
 
   TermList tgtTerm = EqHelper::getOtherEqualitySide(eqLit, eqLHS);
 
-  Inference inf(GeneratingInference2(InferenceRule::FNDEF_SUPERPOSITION, rwClause, eqClause));
+  Inference inf(GeneratingInference2(InferenceRule::FNDEF_REWRITING, rwClause, eqClause));
   Inference::Destroyer inf_destroyer(inf);
 
 	TermList tgtTermS;
@@ -259,7 +253,7 @@ Clause* FnDefSuperposition::performSuperposition(
 
   Literal* tgtLitS = EqHelper::replace(rwLit,rwTerm,tgtTermS);
 
-  static bool doSimS = getOptions().simulatenousSuperposition();
+  static bool doSimS = env.options->simulatenousSuperposition();
 
   if(EqHelper::isEqTautology(tgtLitS)) {
     return 0;

@@ -693,7 +693,7 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "subsumption resolution";
   case InferenceRule::SUPERPOSITION:
     return "superposition";
-  case InferenceRule::FNDEF_SUPERPOSITION:
+  case InferenceRule::FNDEF_REWRITING:
     return "fn def rewriting";
   case InferenceRule::CONSTRAINED_SUPERPOSITION:
     return "constrained superposition";

@@ -278,7 +278,7 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/ExtensionalityResolution.o\
          Inferences/Factoring.o\
          Inferences/FastCondensation.o\
-         Inferences/FnDefSuperposition.o\
+         Inferences/FnDefRewriting.o\
          Inferences/FOOLParamodulation.o\
          Inferences/ForwardDemodulation.o\
          Inferences/ForwardLiteralRewriting.o\
