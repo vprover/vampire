@@ -51,10 +51,12 @@ using namespace Test;
 #define MY_SYNTAX_SUGAR                                                                                       \
   NUMBER_SUGAR(Int)                                                                                           \
   DECL_DEFAULT_VARS                                                                                           \
+                                                                                                              \
   DECL_FUNC(f, {Int}, Int)                                                                                    \
   DECL_PRED(p, {Int})                                                                                         \
   DECL_PRED(q, {Int})                                                                                         \
   DECL_PRED(r, {Int,Int})                                                                                     \
+                                                                                                              \
   DECL_LIST(Int)                                                                                              \
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -72,7 +74,7 @@ REGISTER_GEN_TESTER(Test::Generation::GenerationTester<TheoryInstAndSimp>)
 TEST_GENERATION(test_01,
     Generation::TestCase()
       .rule(theoryInstAndSimp(Options::TheoryInstSimp::ALL))
-      .input(    clause({  x * y != 6, ~(0 < x), ~(x < y), r(x,y)  }))
+      .input(    clause({ x == 1, x * y != 6, ~(0 < x), ~(x < y), r(x,y)  }))
       .expected(exactly(
             clause({ r(2,3)  })
       ))
@@ -89,6 +91,24 @@ TEST_GENERATION(test_02,
           p(head(tail(x))), p(head(tail(y)))  }))
       .expected(exactly(
             clause({  p(head(tail(cons(0, nil())))), p(head(tail(cons(1,nil()))))  })
+      ))
+      .premiseRedundant(false)
+    )
+
+#define LIST_ALPHA_SUGAR                                                                                      \
+  DECL_DEFAULT_VARS                                                                                           \
+  DECL_SORT(alpha)                                                                                            \
+  DECL_LIST(alpha)                                                                                            \
+  DECL_CONST(a, alpha)                                                                                            \
+  DECL_PRED(p, {list})                                                                                        \
+
+TEST_GENERATION_WITH_SUGAR(test_03,
+    LIST_ALPHA_SUGAR,
+    Generation::TestCase()
+      .rule(theoryInstAndSimp(Options::TheoryInstSimp::ALL))
+      .input(    clause({  cons(a, nil()) != cons(x, nil()), 
+          p(x)  }))
+      .expected(exactly(
       ))
       .premiseRedundant(false)
     )

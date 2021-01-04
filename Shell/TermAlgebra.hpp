@@ -21,6 +21,7 @@
 #include "Lib/VString.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Kernel/Sorts.hpp"
+#include "Lib/Set.hpp"
 
 namespace Shell {
   class TermAlgebraConstructor {
@@ -131,6 +132,19 @@ namespace Shell {
 
     Lib::IterTraits<IterCons> iterCons()
     { return Lib::iterTraits(IterCons(*this)); }
+
+
+    /** returns all sorts contained in this term algebra, including the term algebra sort itself. 
+     * consider for example: 
+     *  intList ::= Cons(int,      intList) | Nil
+     * listList ::= Cons(intList, listList) | Nil
+     *
+     * then listList.subSorts() == { int, intList, listLit }
+     */
+    Lib::Set<unsigned> subSorts();
+  private:
+    void subSorts(Lib::Set<unsigned>);
+  public:
 
     bool allowsCyclicTerms() { return _allowsCyclicTerms; }
 

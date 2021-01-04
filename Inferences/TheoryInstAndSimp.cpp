@@ -17,7 +17,7 @@
 
 #if VZ3
 
-#define DPRINT 0
+#define DPRINT 1
 
 #include "Debug/RuntimeStatistics.hpp"
 
@@ -77,7 +77,11 @@ bool TheoryInstAndSimp::isSupportedSort(const unsigned sort) {
   case Kernel::Sorts::SRT_REAL:
     return true;
   }
-  if (env.signature->isTermAlgebraSort(sort)) return true;
+  if (env.signature->isTermAlgebraSort(sort)) {
+    return env.signature->getTermAlgebraOfSort(sort)
+                        ->subSorts().iter()
+                         .all([&](unsigned s){ return env.signature->isTermAlgebraSort(s) || isSupportedSort(s); });
+  }
   return false;
 }
 

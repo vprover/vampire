@@ -40,7 +40,7 @@
 #include "Indexing/TermSharing.hpp"
 #include "Z3Interfacing.hpp"
 
-#define DEBUG(...) //DBG(__VA_ARGS__)
+#define DEBUG(...) DBG(__VA_ARGS__)
 namespace Lib {
 
 template<> 
@@ -355,6 +355,8 @@ struct EvaluateInModel
 
   Result operator()(z3::expr expr, Result* evaluatedArgs) 
   {
+    CALL("EvaluateInModel::operator()")
+   DEBUG("in: ", expr)
     auto intVal = [](z3::expr e) -> Option<int> {
       int val;
       return e.is_numeral_i(val) 
@@ -384,6 +386,7 @@ struct EvaluateInModel
 
     } else if (expr.is_app()) {
       auto f = expr.decl();
+      DBGE(f)
       auto vfunc = self._fromZ3.get(f);
       Stack<TermList> args(f.arity());
       for (unsigned i = 0; i < f.arity(); i++) {
@@ -409,6 +412,7 @@ Term* Z3Interfacing::evaluateInModel(Term* trm)
 {
   CALL("evaluateInModel(Term*)")
   DEBUG("in: ", *trm)
+  DEBUG("model: ", _model)
   ASS(!trm->isLiteral());
 
   bool name; //TODO what do we do about naming?
@@ -416,6 +420,7 @@ Term* Z3Interfacing::evaluateInModel(Term* trm)
   z3::expr ev = _model.eval(rep,true); // true means "model_completion"
   unsigned sort = SortHelper::getResultSort(trm);
 
+  DEBUG("z3 expr: ", ev)
   auto result = evaluateBottomUp(ev, EvaluateInModel { *this })
     .map([&](EvaluateInModel::Copro co) { 
         return co.match(
@@ -434,6 +439,7 @@ Term* Z3Interfacing::evaluateInModel(Term* trm)
             );
       })
     .unwrapOrElse([](){ return nullptr; });
+  DEBUG("vampire expr: ", ev)
   return result;
 
 }
@@ -509,45 +515,22 @@ void Z3Interfacing::createTermAlgebra(TermAlgebra& start)
   CALL("createTermAlgebra(TermAlgebra&)")
   if (_createdTermAlgebras.contains(start.sort())) return;
 
-  // detecting mutually exclusive term algebra sorts 
   Stack<TermAlgebra*> tas;        // <- stack of term algebra sorts
   Map<SortId, unsigned> recSorts; // <- mapping term algeba -> index
 
-  /* connected component finding without recursion */
-  Stack<TermAlgebra*> work; // <- stack for simulating recursion
-  work.push(&start);
-  tas.push(&start);
-  recSorts.insert(start.sort(), 0);
-  _createdTermAlgebras.insert(start.sort());
-  while (!work.isEmpty()) {
-    auto& ta = *work.pop();
-    ASS(recSorts.find(ta.sort()));
-    for (auto cons : ta.iterCons()) {
-      for (unsigned s : cons->iterArgSorts()) {
-        if (env.signature->isTermAlgebraSort(s)   
-            && !_createdTermAlgebras.contains(s)) // <- we initialize each term algebra only once, per Z3 context
-        {
-          recSorts.getOrInit(s, [&](){
-            auto t2 = env.signature->getTermAlgebraOfSort(s);
-            _createdTermAlgebras.insert(s); 
-            auto idx = tas.size(); 
-            tas.push(t2);
-            work.push(t2);
-            return idx;
-          });
-        }
-      }
+  for (auto s  : start.subSorts().iter()) {
+    if (env.signature->isTermAlgebraSort(s) 
+        && !_createdTermAlgebras.contains(s)) {
+      auto ta = env.signature->getTermAlgebraOfSort(s);
+      auto idx = tas.size();
+      tas.push(ta);
+      recSorts.insert(s, idx);
     }
   }
 
 #if !INT_IDENTS
-  // Stack<vstring> string_symbols;
   auto new_string_symobl = [&](vstring str) 
-  { 
-    // string_symbols.push(std::move(str));
-    // return Z3_mk_string_symbol(_context, string_symbols.top().c_str()); 
-    return Z3_mk_string_symbol(_context, str.c_str()); 
-  };
+  { return Z3_mk_string_symbol(_context, str.c_str()); };
 #endif
 
   // create the data needed for Z3_mk_datatypes(...)
@@ -619,8 +602,10 @@ void Z3Interfacing::createTermAlgebra(TermAlgebra& start)
 
   Array<Z3_sort> sorts(tas.size());
 
+  // actually created the datatypes
   Z3_mk_datatypes(_context, tas.size(), sortNames.begin(), sorts.begin(), ctorss_z3.begin());
 
+  // register the `z3::func_decl`s created by `Z3_mk_datatypes` in indices to be queried when needed
   for (unsigned iSort = 0; iSort < sorts.size(); iSort++) {
     _sorts.insert(tas[iSort]->sort(), z3::sort(_context, sorts[iSort]));
     auto ta = tas[iSort];
@@ -657,6 +642,7 @@ void Z3Interfacing::createTermAlgebra(TermAlgebra& start)
     }
   }
 
+  // clean up
 
   for (auto clist : ctorss_z3) {
     Z3_del_constructor_list(_context, clist);
@@ -688,9 +674,9 @@ struct ToZ3Expr {
   using Z3FuncEntry = Z3Interfacing::Z3FuncEntry;
   using DestructorMeta = Z3Interfacing::DestructorMeta;
   Z3Interfacing& self;
-  bool& nameExpression;
+  bool& _nameExpression;
   bool withGuard;
-  bool& addedGuard;
+  bool& _addedGuard;
 
   using Arg    = TermList;
   using Result = z3::expr;
@@ -710,7 +696,7 @@ struct ToZ3Expr {
           env.out() << "[Z3] adding guard: " << guard << std::endl;
           env.endOutput();
         }
-        addedGuard = true;
+        _addedGuard = true;
         self._solver.add(guard);
       }
     };
@@ -740,9 +726,6 @@ struct ToZ3Expr {
     if(trm->arity()==0) {
       if(symb->integerConstant()){
         IntegerConstantType value = symb->integerValue();
-
-        PRINT_CPP("exprs.push_back(c.int_val(" << value.toInner() << "));")
-
         return self._context.int_val(value.toInner());
       }
       if(symb->realConstant()) {
@@ -769,20 +752,17 @@ struct ToZ3Expr {
 
         switch (symb->fnType()->result()) {
         case Sorts::SRT_INTEGER:
-          PRINT_CPP("exprs.push_back(c.int_val(\"" << symb->name() << "\"));")
           return self._context.int_val(symb->name().c_str());
         case Sorts::SRT_RATIONAL:
           return self._context.real_val(symb->name().c_str());
         case Sorts::SRT_REAL:
           return self._context.real_val(symb->name().c_str());
         default:
-          ;
-          // intentional fallthrough; the input is fof (and not tff), so let's just treat this as a constant
+          ; // intentional fallthrough; the input is fof (and not tff), so let's just treat this as a constant
         }
       }
 
       // If not value then create constant symbol
-      //cout << "HERE " << env.sorts->sortName(range_sort) << " for " << symb->name() << endl; 
       return self.getNameConst(symb->name(), self.getz3sort(range_sort));
     }
     ASS(trm->arity()>0);
@@ -799,7 +779,7 @@ struct ToZ3Expr {
       Interpretation interp = static_cast<Signature::InterpretedSymbol*>(symb)->getInterpretation();
 
       if (Theory::isPolymorphic(interp)) {
-        nameExpression = true;
+        _nameExpression = true;
         switch(interp){
           case Theory::ARRAY_SELECT:
           case Theory::ARRAY_BOOL_SELECT:
@@ -823,8 +803,7 @@ struct ToZ3Expr {
         case Theory::INT_DIVIDES:
           // TODO shouldn't zero divide zero?
           addGuardIfNecessary(args[0] != int_zero);
-          //cout << "SET name=true" << endl;
-          nameExpression = true;
+          _nameExpression = true;
           return z3::mod(args[1], args[0]) == int_zero;
 
         case Theory::INT_UNARY_MINUS:
@@ -956,12 +935,12 @@ struct ToZ3Expr {
          case Theory::RAT_REMAINDER_E:
          case Theory::REAL_REMAINDER_E:
            addGuardIfNecessary(args[1] != real_zero);
-           nameExpression = true; 
+           _nameExpression = true; 
            return z3::mod(args[0], args[1]);
 
          case Theory::INT_REMAINDER_E:
            addGuardIfNecessary(args[1] != int_zero);
-           nameExpression = true;
+           _nameExpression = true;
            return z3::mod(args[0], args[1]);
 
        // Numerical comparisons
@@ -1019,7 +998,7 @@ struct ToZ3Expr {
     ASS(toEval.term()->isLiteral() 
         || !env.signature->getFunction(toEval.term()->functor())->interpreted()
         || !theory->isPartiallyInterpretedFunction(toEval.term()) 
-        || !withGuard || addedGuard)
+        || !withGuard || _addedGuard)
     return e;
   }
 };
@@ -1059,9 +1038,11 @@ Z3Interfacing::Z3FuncEntry Z3Interfacing::z3Function(FuncOrPredId functor)
  * - Translates the ground structure
  * - Some interpreted functions/predicates are handled
  */
-z3::expr Z3Interfacing::getz3expr(Term* trm, bool&nameExpression,bool withGuard,bool& addedGuard)
+z3::expr Z3Interfacing::getz3expr(Term* trm, bool& nameExpression,bool withGuard,bool& addedGuard)
 {
   CALL("Z3Interfacing::getz3expr");
+  nameExpression = false;
+  addedGuard = false;
   auto result = evaluateBottomUp(TermList(trm), ToZ3Expr{ *this, nameExpression, withGuard, addedGuard });
   return result;
 }

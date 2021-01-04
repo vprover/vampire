@@ -51,6 +51,30 @@ unsigned TermAlgebraConstructor::arity()               { return _type->arity(); 
 unsigned TermAlgebraConstructor::argSort(unsigned ith) { return _type->arg(ith); }
 unsigned TermAlgebraConstructor::rangeSort()           { return _type->result(); }
 
+Lib::Set<unsigned> TermAlgebra::subSorts()
+{
+
+  Set<unsigned> out; 
+  /* connected component finding without recursion */
+  Stack<TermAlgebra*> work; // <- stack for simulating recursion
+  work.push(this);
+  out.insert(this->sort());
+  while (!work.isEmpty()) {
+    auto& ta = *work.pop();
+    for (auto cons : ta.iterCons()) {
+      for (unsigned s : cons->iterArgSorts()) {
+        if (!out.contains(s)) {
+          out.insert(s);
+          if (env.signature->isTermAlgebraSort(s)) {
+            work.push(env.signature->getTermAlgebraOfSort(s));
+          }
+        }
+      }
+    }
+  }
+  return out;
+}
+
 bool TermAlgebraConstructor::recursive()
 {
   CALL("TermAlgebraConstructor::recursive");

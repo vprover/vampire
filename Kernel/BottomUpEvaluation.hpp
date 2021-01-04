@@ -14,7 +14,7 @@
 #ifndef __LIB__BOTTOM_UP_EVALUATION_HPP__
 #define __LIB__BOTTOM_UP_EVALUATION_HPP__
 
-#define DEBUG(...) //DBG(__VA_ARGS__)
+#define DEBUG(...) // DBG(__VA_ARGS__)
 
 /**
  * @file Kernel/BottomUpEvaluation.hpp
