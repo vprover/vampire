@@ -635,9 +635,10 @@ void Z3Interfacing::createTermAlgebra(TermAlgebra& start)
         _toZ3.insert(FuncOrPredId::predicate(ctor->discriminator()), Z3FuncEntry::plain(discr));
       }
       for (unsigned iDestr = 0; iDestr < ctor->arity(); iDestr++)  {
-        auto dtor = destr[iDestr];
-        _toZ3.insert(FuncOrPredId::function(ctor->destructorFunctor(iDestr)), 
-            Z3FuncEntry::destructor(z3::func_decl(_context, dtor), discr));
+        auto dtor = z3::func_decl(_context, destr[iDestr]);
+        auto id = FuncOrPredId::function(ctor->destructorFunctor(iDestr));
+        _toZ3.insert(id, Z3FuncEntry::destructor(dtor, discr));
+        _fromZ3.insert(dtor, id);
       }
     }
   }
