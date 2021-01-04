@@ -145,7 +145,7 @@ public:
   SATClause* getRefutation() override;  
 
   void reset(){
-    sat2fo.reset();
+    _sat2fo.reset();
     _solver.reset();
     _status = UNKNOWN; // I set it to unknown as I do not reset
   }
@@ -262,7 +262,7 @@ private:
   // just to conform to the interface
   unsigned _varCnt;
   // Memory belongs to Splitter
-  SAT2FO& sat2fo;
+  SAT2FO& _sat2fo;
 
   Status _status;
   z3::config _config;

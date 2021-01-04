@@ -40,7 +40,7 @@
 #include "Indexing/TermSharing.hpp"
 #include "Z3Interfacing.hpp"
 
-#define DEBUG(...) DBG(__VA_ARGS__)
+#define DEBUG(...) //DBG(__VA_ARGS__)
 namespace Lib {
 
 template<> 
@@ -109,7 +109,8 @@ void handleZ3Error(Z3_context ctxt, Z3_error_code code)
 
 Z3Interfacing::Z3Interfacing(SAT2FO& s2f, bool showZ3, bool unsatCoreForRefutations, bool unsatCoresForAssumptions):
   _varCnt(0), 
-  sat2fo(s2f),_status(SATISFIABLE), 
+  _sat2fo(s2f),
+  _status(SATISFIABLE), 
   _config(),
   _context(_config),
   _solver(_context),
@@ -386,7 +387,6 @@ struct EvaluateInModel
 
     } else if (expr.is_app()) {
       auto f = expr.decl();
-      DBGE(f)
       auto vfunc = self._fromZ3.get(f);
       Stack<TermList> args(f.arity());
       for (unsigned i = 0; i < f.arity(); i++) {
@@ -1018,7 +1018,7 @@ Z3Interfacing::Z3FuncEntry Z3Interfacing::z3Function(FuncOrPredId functor)
   return self._toZ3.tryGet(functor).toOwned()
     .unwrapOrElse([&]() {
         auto symb = functor.isPredicate ? env.signature->getPredicate(functor.id) 
-                                        : env.signature->getPredicate(functor.id);
+                                        : env.signature->getFunction(functor.id);
         auto type = functor.isPredicate ? symb->predType() : symb->fnType();
 
         // Does not yet exits. initialize it!
@@ -1054,7 +1054,7 @@ z3::expr Z3Interfacing::getRepresentation(SATLiteral slit, bool withGuard, bool&
 
 
   //First, does this represent a ground literal
-  Literal* lit = sat2fo.toFO(slit);
+  Literal* lit = _sat2fo.toFO(slit);
   if(lit && lit->ground()){
     //cout << "getRepresentation of " << lit->toString() << endl;
     // Now translate it into an SMT object 
