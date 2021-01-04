@@ -840,20 +840,22 @@ struct Relocator<Stack<C> >
 {
   static void relocate(Stack<C>* oldStack, void* newAddr)
   {
-    size_t sz=oldStack->size();
-    if(sz) {
-      Stack<C>* newStack=new(newAddr) Stack<C>( sz );
-
-      for(size_t i=0;i<sz;i++) {
-        newStack->push(std::move((*oldStack)[i]));
-      }
-
-      oldStack->~Stack<C>();
-    } else {
-      new(newAddr) Stack<C>();
-      oldStack->~Stack<C>();
-
-    }
+    ::new(newAddr) Stack<C>(std::move(*oldStack));
+    oldStack->~Stack<C>();
+    // size_t sz=oldStack->size();
+    // if(sz) {
+    //   Stack<C>* newStack=new(newAddr) Stack<C>( sz );
+    //
+    //   for(size_t i=0;i<sz;i++) {
+    //     newStack->push(std::move((*oldStack)[i]));
+    //   }
+    //
+    //   oldStack->~Stack<C>();
+    // } else {
+    //   new(newAddr) Stack<C>();
+    //   oldStack->~Stack<C>();
+    //
+    // }
   }
 };
 

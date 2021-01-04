@@ -103,7 +103,7 @@ TEST_FUN(test_for) {
   ASS_EQ(in, out);
 }
 
-TEST_FUN(testFlatMap1) {
+TEST_FUN(test_flatMap_1) {
   auto in  = Stack<Stack<int>>{ Stack<int>{1, 2},    
                                 Stack<int>{3, 4},    
                                 Stack<int>{5, 6}, };
@@ -115,7 +115,7 @@ TEST_FUN(testFlatMap1) {
       | collect<Stack>(), out)
 }
 
-TEST_FUN(testFlatMap2) {
+TEST_FUN(test_flatMap_2) {
   auto in  = Stack<Stack<int>>{ Stack<int>{1, 2},    
                                 Stack<int>{3, 4},    
                                 Stack<int>{5, 6}, };
@@ -142,7 +142,7 @@ public:
   int next() { return _stack[_index++]; }
 };
 
-TEST_FUN(testFlatMap3) {
+TEST_FUN(test_flatMap_3) {
   auto in  = Stack<int>{ 1, 3, 5, };
   auto out = Stack<int>{ 1, 2, 3, 4, 5, 6, };
 
@@ -151,7 +151,7 @@ TEST_FUN(testFlatMap3) {
       | collect<Stack>(), out)
 }
 
-TEST_FUN(testFlatMap4) {
+TEST_FUN(test_flatMap_4) {
   auto in  = Stack<int>{ 1, 3, 5, };
   auto out = Stack<int>{ 1, 2, 3, 4, 5, 6, };
 
@@ -159,4 +159,40 @@ TEST_FUN(testFlatMap4) {
       | flatMap([](int i) { return OwnedStackIter(Stack<int>{i, i + 1}); })
       | sizeHint(6)
       | collect<Stack>(), out)
+}
+
+TEST_FUN(test_all_1) {
+  auto in  = Stack<int>{ 1, 3, 5, };
+
+  ASS(in.iterFifo() | all([](int i) { return i % 2 == 1; }))
+}
+
+TEST_FUN(test_all_2) {
+  auto in  = Stack<int>{ 1, 3, 5, };
+
+  ASS(in.iterFifo() | !all([](int i) { return i % 2 == 0; }))
+}
+
+TEST_FUN(test_all_3) {
+  auto in  = Stack<int>{ 1, 3, 6, };
+
+  ASS(in.iterFifo() | !all([](int i) { return i % 2 == 0; }))
+}
+
+TEST_FUN(test_any_1) {
+  auto in  = Stack<int>{ 1, 3, 6, };
+
+  ASS(in.iterFifo() | any([](int i) { return i % 2 == 0; }))
+}
+
+TEST_FUN(test_any_2) {
+  auto in  = Stack<int>{ 1, 3, 6, };
+
+  ASS(in.iterFifo() | any([](int i) { return i % 2 == 1; }))
+}
+
+TEST_FUN(test_any_3) {
+  auto in  = Stack<int>{ 1, 3, 6, };
+
+  ASS(in.iterFifo() | !any([](int i) { return i < 0; }))
 }

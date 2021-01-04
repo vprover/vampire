@@ -31,6 +31,27 @@ typename std::result_of<Adaptor(Iter)>::type operator|(Iter iter, Adaptor adapto
 template<class Iter>
 using ElemT = ELEMENT_TYPE(Iter);
 
+template<class C>
+struct is_iterator 
+{ 
+  using Next = decltype(&C::next);
+  static constexpr bool value = std::is_member_function_pointer<Next>::value
+    && std::is_same<typename std::result_of<Next()>::type, ElemT<C>>::value;
+};
+
+#define ASSERT_ITERATOR(...) \
+  static_assert(is_iterator<__VA_ARGS__>::value, "not an iterator type")
+
+template<class E>
+class DynIterator 
+{
+public:
+  DECL_ELEMENT_TYPE(E);
+  virtual E next();
+  virtual bool hasNext();
+  virtual Option<unsigned> sizeLeft();
+};
+
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // ITERATOR ADAPTORS
@@ -338,7 +359,6 @@ HkCollector<C> collect()
 } // namespace Collect
 
 
-
 namespace ForEach {
 
 template<class F>
@@ -361,6 +381,58 @@ ForEach<F> forEach(F f)
 
 } // namespace ForEach
 
+
+namespace AllAny {
+
+using Adaptors::ToStl::toStl;
+
+template<class Fn>
+class Not 
+{
+  Fn _inner;
+public:
+  Not(Fn inner) : _inner(std::move(inner)) {}
+
+  Fn operator!() { return std::move(_inner); }
+
+  template<class Arg>
+  bool operator()(Arg iter) 
+  { return !_inner(iter); }
+};
+
+template<class F>
+class Any { 
+  F _f;
+public:
+  Any(F f) : _f(f) {}
+
+  Not<Any> operator!() 
+  { return Not<Any>(std::move(*this)); }
+
+  template<class Iter>
+  bool operator()(Iter iter) 
+  { 
+    for ( auto x : iter | toStl()) {
+      if (_f(x))
+        return true;
+    }
+    return false;
+  }
+};
+
+template<class F>
+Any<F> any(F f)
+{ return Any<F>(f); }
+
+template<class F> 
+using All = Not<Any<Not<F>>>;
+
+template<class F>
+All<F> all(F f)
+{ return !any(Not<F>(f)); }
+
+} // namespace AllAny
+
 } // namespace Destructors
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -376,6 +448,8 @@ using Adaptors::SizeHint::sizeHint;
 
 using Destructors::Collect::collect;
 using Destructors::ForEach::forEach;
+using Destructors::AllAny::all;
+using Destructors::AllAny::any;
 
 } // namespace Iteartor
 } // namespace Lib
