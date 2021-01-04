@@ -314,6 +314,7 @@ public:
    */
   inline Entry* firstEntryForCode(unsigned code) const
   {
+    ASS(_entries)
     return _entries + (code % _capacity);
   } // Map::firstEntryForCode
 

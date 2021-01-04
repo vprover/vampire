@@ -97,6 +97,7 @@ private:
      Checks if models for sort can be mapped back to terms.
   */
   bool isSupportedSort(const unsigned sort);
+  bool isUninterpretedFunction(Term* trm);
 
   /**
      Checks if literal can be mapped back to terms. Works around

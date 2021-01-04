@@ -539,6 +539,7 @@ void Z3Interfacing::createTermAlgebra(TermAlgebra& start)
   Stack<Z3_symbol> sortNames(tas.size());
   DEBUG("creating constructors: ");
   for (auto ta : tas) {
+    _createdTermAlgebras.insert(ta->sort());
     Stack<Z3_constructor> ctors(ta->nConstructors());
 
     for (auto cons : ta->iterCons()) {

@@ -81,8 +81,9 @@ bool TheoryInstAndSimp::isSupportedSort(const unsigned sort) {
     return env.signature->getTermAlgebraOfSort(sort)
                         ->subSorts().iter()
                          .all([&](unsigned s){ return env.signature->isTermAlgebraSort(s) || isSupportedSort(s); });
+  } else {
+    return false;
   }
-  return false;
 }
 
 /**
@@ -109,11 +110,12 @@ bool TheoryInstAndSimp::isSupportedLiteral(Literal* lit) {
   return true;
 }
 
-bool isUninterpretedFunction(Term* trm) {
+bool TheoryInstAndSimp::isUninterpretedFunction(Term* trm) {
+  auto sym = env.signature->getFunction(trm->functor());
   return !(theory->isInterpretedFunction(trm) 
       || theory->isInterpretedConstant(trm) 
-      || env.signature->getFunction(trm->functor())->termAlgebraCons()
-      || env.signature->getFunction(trm->functor())->termAlgebraDest()
+      || (sym->termAlgebraCons() && isSupportedSort(sym->fnType()->result()))
+      || (sym->termAlgebraDest() && isSupportedSort(sym->fnType()->arg(0)))
       );
 }
 
