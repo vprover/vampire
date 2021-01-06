@@ -81,6 +81,10 @@ public:
   void reserve(size_t new_capacity) 
   {
     ASS_GE(new_capacity, _capacity)
+    if (new_capacity == 0) {
+      ASS_EQ(_capacity, 0);
+      return;
+    }
     auto new_stack = static_cast<C*>(ALLOC_KNOWN(new_capacity*sizeof(C),className()));
     auto new_cursor = new_stack;
     auto new_end = new_stack+new_capacity;
