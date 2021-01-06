@@ -49,7 +49,8 @@ public:
    */
   virtual void addClause(SATClause* cl) = 0;
 
-  void addClausesIter(SATClauseIterator cit) {
+  template<class ClauseIter>
+  void addClausesIter(ClauseIter cit) {
     CALL("SATSolver::addClauses");
     while (cit.hasNext()) {
       addClause(cit.next());

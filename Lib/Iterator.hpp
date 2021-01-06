@@ -24,23 +24,32 @@ namespace Lib {
 namespace Iterator {
 
 
-template<class Iter, class Adaptor>
-typename std::result_of<Adaptor(Iter)>::type operator|(Iter iter, Adaptor adaptor) 
-{ return adaptor(iter); }
-
 template<class Iter>
 using ElemT = ELEMENT_TYPE(Iter);
 
-template<class C>
+template<class Iter>
 struct is_iterator 
 { 
-  using Next = decltype(&C::next);
-  static constexpr bool value = std::is_member_function_pointer<Next>::value
-    && std::is_same<typename std::result_of<Next()>::type, ElemT<C>>::value;
+  static constexpr bool value = 
+    std::is_same<decltype(((Iter*)nullptr)->sizeLeft()), Option<unsigned>>::value &&
+    std::is_same<decltype(((Iter*)nullptr)-> hasNext()), bool>::value &&
+    std::is_same<decltype(((Iter*)nullptr)->    next()), ElemT<Iter>>::value;
 };
 
 #define ASSERT_ITERATOR(...) \
   static_assert(is_iterator<__VA_ARGS__>::value, "not an iterator type")
+
+template<class Iter, class Adaptor>
+typename std::result_of<Adaptor(Iter)>::type operator|(Iter iter, Adaptor adaptor) 
+{ 
+  ASSERT_ITERATOR(Iter);
+  return adaptor(iter); 
+}
+
+
+///////////////////////////////////////////////////////////////////////////////////////
+// BASE ITERATORS
+//////////////////////
 
 template<class E>
 class DynIterator 
@@ -50,8 +59,41 @@ public:
   virtual E next();
   virtual bool hasNext();
   virtual Option<unsigned> sizeLeft();
+  ASSERT_ITERATOR(DynIterator);
 };
 
+template<class T> T&& fwd(typename std::remove_reference<T>::type&  t) { return std::forward<T>(t); }
+template<class T> T&& fwd(typename std::remove_reference<T>::type&& t) { return std::forward<T>(t); }
+template<class T> T&& fwd(typename std::remove_reference<T>::type   t) { return std::move<T>(t); }
+
+/** Iterator for any object that implements the indexing operator */
+template<class Array, class Idx = unsigned>
+class IndexIter {
+  Idx _idx;
+  Idx _size;
+  Array _array;
+public:
+  DECL_ELEMENT_TYPE(decltype(_array[_idx]));
+  IndexIter(Array array, Idx size) : _array(fwd(array)), _idx(0), _size(_array.size()) {}
+  IndexIter(Array array) : IndexIter(fwd(array), _array.size()) {}
+  bool hasNext() { return _idx < _size; }
+  ElemT<IndexIter> next() { return _array[_idx]; }
+  Option<unsigned> sizeLeft() { return Option<unsigned>(_size - _idx); }
+};
+
+// TODO remove me
+template<class Iter>
+class IterWrapper {
+  Iter _iter;
+public:
+  DECL_ELEMENT_TYPE(ELEMENT_TYPE(Iter));
+  IterWrapper(Iter iter) : _iter(std::move(iter)) {}
+  bool hasNext() { return _iter.hasNext(); }
+  ElemT<Iter> next() { return _iter.next(); }
+  Option<unsigned> sizeLeft() { return 
+    _iter.knownSize() ? Option<unsigned>(_iter.size())
+                      : Option<unsigned>(); }
+};
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // ITERATOR ADAPTORS
@@ -124,7 +166,7 @@ public:
       return true;
     }
     while(_inn.hasNext()) {
-      auto next = _inn.next();
+      ElemT<Iter> next = _inn.next();
       if(_func(next)) {
         _next = Option<ElemT<Iter>>(std::move(next));
         return true;
@@ -138,9 +180,10 @@ public:
     CALL("Filter::next")
     ALWAYS(hasNext());
     ASS(_next.isSome());
-    auto out = std::move(_next).unwrap();
+    ElemT<Iter> out = std::move(_next).unwrap();
+    DBGE(out)
     _next = Option<ElemT<Iter>>();
-    return std::move(out);
+    return out;
   };
 };
 
@@ -203,6 +246,20 @@ Adaptor<Flatten> flatten()
 
 } // namespace Flatten
 
+namespace Cloned {
+
+using Map::Map;
+
+struct Clone {
+  template<class A> A operator()(A const& val) { return A(val); }
+  template<class A> A operator()(A      & val) { return A(val); }
+  template<class A> A operator()(A     && val) { return A(val); }
+};
+
+Adaptor<Map, Clone> cloned() 
+{ return Adaptor<Map, Clone>(Clone{}); }
+
+} // namespace Cloned
 
 namespace SizeHint {
 
@@ -412,7 +469,7 @@ public:
   template<class Iter>
   bool operator()(Iter iter) 
   { 
-    for ( auto x : iter | toStl()) {
+    for ( ElemT<Iter> x : iter | toStl()) {
       if (_f(x))
         return true;
     }
@@ -433,6 +490,63 @@ All<F> all(F f)
 
 } // namespace AllAny
 
+namespace Fold {
+using Adaptors::ToStl::toStl;
+
+template<class A, class F>
+class Fold {
+  A _state;
+  F _combine;
+public:
+  Fold(A initial, F combine): _state(std::move(initial)), _combine(std::move(combine)) {}
+  
+  template<class Iter>
+  typename std::result_of<F(A, ElemT<Iter>)>::type operator()(Iter i) 
+  {
+    typename std::result_of<F(A, ElemT<Iter>)>::type state = std::move(_state);
+    for ( ElemT<Iter> x : i | toStl()) {
+      state = _combine(std::move(state), std::forward<ElemT<Iter>>(x));
+    }
+    return state;
+  }
+};
+
+template<class A, class F>
+Fold<A,F> fold(A initial, F combine)
+{ return Fold<A,F>(std::move(initial), std::move(combine)); }
+
+
+template<class F>
+class FoldNonEmpty {
+  F _combine;
+public:
+  FoldNonEmpty(F combine): _combine(std::move(combine)) {}
+  
+  template<class Iter>
+  using ResultT = typename std::result_of<F(ElemT<Iter>&&, ElemT<Iter>&&)>::type;
+
+  template<class Iter>
+  Option<ResultT<Iter>> operator()(Iter i) 
+  {
+    if (i.hasNext()) {
+      ResultT<Iter> state = std::move(i.next());
+      for (ElemT<Iter> x : i | toStl()) {
+        state = _combine(std::move(state), std::forward<ElemT<Iter>>(x));
+      }
+      return Option<ResultT<Iter>>(std::move(state));
+    } else {
+      return Option<ResultT<Iter>>();
+    }
+  }
+};
+
+template<class F>
+FoldNonEmpty<F> fold(F combine)
+{ return FoldNonEmpty<F>(std::move(combine)); }
+
+
+} // namespace Fold
+
 } // namespace Destructors
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -444,12 +558,14 @@ using Adaptors::Filter::filter;
 using Adaptors::ToStl::toStl;
 using Adaptors::Flatten::flatten;
 using Adaptors::FlatMap::flatMap;
+using Adaptors::Cloned::cloned;
 using Adaptors::SizeHint::sizeHint;
 
 using Destructors::Collect::collect;
 using Destructors::ForEach::forEach;
 using Destructors::AllAny::all;
 using Destructors::AllAny::any;
+using Destructors::Fold::fold;
 
 } // namespace Iteartor
 } // namespace Lib

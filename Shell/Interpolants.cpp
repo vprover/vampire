@@ -77,7 +77,7 @@ VirtualIterator<Unit*> Interpolants::getParents(Unit* u)
     u = toDo.pop();
   }
 
-  return getPersistentIterator(Stack<Unit*>::BottomFirstIterator(parents));
+  return getPersistentIterator(getClonedIterator(Stack<Unit*>::BottomFirstIterator(parents)));
 }
 
 struct Interpolants::ItemState

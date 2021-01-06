@@ -85,7 +85,7 @@ public:
     auto new_cursor = new_stack;
     auto new_end = new_stack+new_capacity;
     if (_stack) {
-      for (int i = 0; i < size(); i++) {
+      for (unsigned i = 0; i < size(); i++) {
         ::new(&new_stack[i]) C(_stack[i]);
       }
       DEALLOC_KNOWN(_stack, _capacity * sizeof(C), className());
@@ -585,7 +585,7 @@ public:
    */
   class BottomFirstIterator {
   public:
-    DECL_ELEMENT_TYPE(C);
+    DECL_ELEMENT_TYPE(const C&);
     /** create an iterator for @b s */
     inline
     explicit BottomFirstIterator (const Stack& s)

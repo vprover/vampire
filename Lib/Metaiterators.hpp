@@ -889,6 +889,23 @@ VirtualIterator<ELEMENT_TYPE(Inner)> getPersistentIterator(Inner it)
   return vi( new PersistentIterator<Inner>(it) );
 }
 
+template<class Iter>
+class ClonedIterator {
+  Iter _iter;
+public:
+  ClonedIterator(Iter iter) : _iter(std::move(iter)) {}
+  DECL_ELEMENT_TYPE(typename std::remove_const<
+                    typename std::remove_reference<
+                                ELEMENT_TYPE(Iter)
+                    >::type>::type);
+  OWN_ELEMENT_TYPE next() { return _iter.next(); }
+  bool hasNext() { return _iter.hasNext(); }
+};
+
+
+template<class Iter>
+ClonedIterator<Iter> getClonedIterator(Iter iter) 
+{ return ClonedIterator<Iter>(std::move(iter)); }
 
 /**
  * Iterator that in its constructor stores elements of an inner iterator

@@ -28,14 +28,14 @@ TEST_FUN(test_collect_1) {
   // An iterator can be collected into a container type C that 
   // implements the function
   // template<class Iter> static C fromIterator(Iter);
-  ASS_EQ(s.iterFifo() | collect<Stack<int>>(), s)
+  ASS_EQ(s.iterFifo() | cloned() | collect<Stack<int>>(), s)
 }
 
 
 TEST_FUN(test_collect_2) {
   auto s = Stack<int>{ 1, 2, 3 };
 
-  ASS_EQ(s.iterFifo() | collect<Stack>(), s)
+  ASS_EQ(s.iterFifo() | cloned() | collect<Stack>(), s)
 }
 
 
@@ -78,7 +78,7 @@ TEST_FUN(test_filter) {
   auto out = Stack<int>{    2,    4 };
 
   ASS_EQ(in.iterFifo()
-      | filter([](int i) { return i % 2 == 0; })
+      | filter([](int const& i) { return i % 2 == 0; })
       | collect<Stack<int>>(), out)
 }
 
@@ -112,6 +112,7 @@ TEST_FUN(test_flatMap_1) {
   ASS_EQ(in.iterFifo()
       | map([](Stack<int> const& i) { return i.iterFifo(); })
       | flatten()
+      | cloned()
       | collect<Stack>(), out)
 }
 
@@ -123,6 +124,7 @@ TEST_FUN(test_flatMap_2) {
 
   ASS_EQ(in.iterFifo()
       | flatMap([](Stack<int> const& i) { return i.iterFifo(); })
+      | cloned()
       | collect<Stack>(), out)
 }
 
@@ -195,4 +197,27 @@ TEST_FUN(test_any_3) {
   auto in  = Stack<int>{ 1, 3, 6, };
 
   ASS(in.iterFifo() | !any([](int i) { return i < 0; }))
+}
+
+TEST_FUN(test_fold_1) {
+  auto in  = Stack<int>{ 1, 2, 3, };
+
+  ASS_EQ(6, in.iterFifo() | fold(0, [](int i, int j) { return i + j; }))
+}
+
+TEST_FUN(test_fold_2) {
+  auto in  = Stack<int>{ 1, 2, 3, };
+
+  ASS_EQ(", odd, even, odd", 
+      in.iterFifo() | fold("", [](vstring str, int j)
+        { return str + ", " + ( j % 2 == 0 ? "even" : "odd" ); }))
+}
+
+TEST_FUN(test_fold_3) {
+  auto in  = Stack<int>{ 1, 2, 3, };
+
+  ASS_EQ("odd, even, odd", 
+      (in.iterFifo() 
+      | map([](int i ) -> vstring { return i % 2 == 0 ? "even" : "odd"; })
+      | fold([](vstring i, vstring j) { return i + ", " + j; })).unwrap())
 }
