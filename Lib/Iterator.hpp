@@ -18,6 +18,7 @@
 #include "Lib/Reflection.hpp" // <-- TODO remove this
 #include "Lib/TypeList.hpp"
 #include "Lib/Option.hpp"
+#include "Lib/TimeCounter.hpp"
 
 
 namespace Lib {
@@ -94,6 +95,9 @@ public:
     _iter.knownSize() ? Option<unsigned>(_iter.size())
                       : Option<unsigned>(); }
 };
+template<class Iter>
+IterWrapper<Iter> wrap(Iter iter) 
+{ return IterWrapper<Iter>(std::move(iter)); }
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // ITERATOR ADAPTORS
@@ -175,6 +179,7 @@ public:
     return false;
   };
   inline Option<unsigned> sizeLeft() { return Option<unsigned>(); }
+
   ElemT<Iter> next()
   {
     CALL("Filter::next")
@@ -199,49 +204,49 @@ namespace Flatten {
 template<typename Outer>
 class Flatten
 {
-using Inner = ElemT<Outer>;
-private:
-Outer _master;
-Option<Inner> _current;
+  using Inner = ElemT<Outer>;
+  Outer _master;
+  Option<Inner> _current;
 public:
-DECL_ELEMENT_TYPE(ElemT<Inner>);
+  ASSERT_ITERATOR(Outer);
+  ASSERT_ITERATOR(ElemT<Outer>);
+  DECL_ELEMENT_TYPE(ElemT<Inner>);
 
+  explicit Flatten(Outer master)
+  : _master(std::move(master))
+  , _current(std::move(_master.hasNext() 
+        ? Option<Inner>(std::move(_master.next()))
+        : Option<Inner>()))
+  { }
 
-explicit Flatten(Outer master)
-: _master(std::move(master))
-, _current(std::move(_master.hasNext() 
-      ? Option<Inner>(std::move(_master.next()))
-      : Option<Inner>()))
-{ }
-
-bool hasNext()
-{
-  CALL("Flatten::hasNext");
-  while (_current.isSome()) {
-    if (_current.unwrap().hasNext()) {
-      return true;
-    } else {
-      _current = std::move(_master.hasNext() 
-          ? Option<Inner>(std::move(_master.next()))
-          : Option<Inner>());
+  bool hasNext()
+  {
+    CALL("Flatten::hasNext");
+    while (_current.isSome()) {
+      if (_current.unwrap().hasNext()) {
+        return true;
+      } else {
+        _current = std::move(_master.hasNext() 
+            ? Option<Inner>(std::move(_master.next()))
+            : Option<Inner>());
+      }
     }
+    return false;
   }
-  return false;
-}
 
-ElemT<Inner> next()
-{
-  CALL("Flatten::next");
-  ASS(_current.isSome());
-  ASS(_current.unwrap().hasNext());
-  return _current.unwrap().next();
-}
+  ElemT<Inner> next()
+  {
+    CALL("Flatten::next");
+    ASS(_current.isSome());
+    ASS(_current.unwrap().hasNext());
+    return _current.unwrap().next();
+  }
 
-inline Option<unsigned> sizeLeft() 
-{ return Option<unsigned>(); }
+  inline Option<unsigned> sizeLeft() 
+  { return Option<unsigned>(); }
 };
 
-Adaptor<Flatten> flatten() 
+inline Adaptor<Flatten> flatten() 
 { return Adaptor<Flatten>(); }
 
 } // namespace Flatten
@@ -256,7 +261,7 @@ struct Clone {
   template<class A> A operator()(A     && val) { return A(val); }
 };
 
-Adaptor<Map, Clone> cloned() 
+inline Adaptor<Map, Clone> cloned() 
 { return Adaptor<Map, Clone>(Clone{}); }
 
 } // namespace Cloned
@@ -288,7 +293,7 @@ public:
   { return Option<unsigned>(_size); }
 };
 
-Adaptor<SizeHint, unsigned> sizeHint(unsigned size) 
+inline Adaptor<SizeHint, unsigned> sizeHint(unsigned size) 
 { return Adaptor<SizeHint, unsigned>(size); }
 
 } // namespace SizeHint
@@ -362,13 +367,113 @@ public:
   StlIter end() { return StlIter(); }
 };
 
-Adaptor<Stl> toStl()
+inline Adaptor<Stl> toStl()
 { return Adaptor<Stl>(); }
 
 } // namespace ToStl
 
+namespace TimeCounted {
+
+template<class Inner, class TCU>
+class TimeCounted
+{
+public:
+  DECL_ELEMENT_TYPE(ElemT<Inner>);
+
+  TimeCounted(Inner inn, TimeCounterUnit tcu)
+  : _inn(std::move(inn)), _tcu(tcu) {}
+
+  inline bool hasNext()
+  {
+    TimeCounter tc(_tcu);
+    return _inn.hasNext();
+  };
+
+  inline ElemT<Inner> next()
+  {
+    TimeCounter tc(_tcu);
+    return _inn.next();
+  };
+
+
+  inline Option<unsigned> leftSize()
+  { return _inn.leftSize(); };
+
+private:
+  Inner _inn;
+  TimeCounterUnit _tcu;
+};
+
+
+inline Adaptor<TimeCounted, TimeCounterUnit> timeCounted(TimeCounterUnit tcu) 
+{ return Adaptor<TimeCounted, TimeCounterUnit>(tcu); }
+
+} // namespace TimeCounted
+
 } // namespace Adaptors
 
+///////////////////////////////////////////////////////////////////////////////////////
+// ITERATOR COMBINATORS
+//////////////////////
+
+namespace Combinators {
+
+namespace Concat {
+
+template<class Iter1, class Iter2>
+class Concat {
+  enum { Fst, Snd, End } _idx;
+  Iter1 _i1;
+  Iter2 _i2;
+public:
+  static_assert(std::is_same<ElemT<Iter1>, ElemT<Iter2>>::value, 
+      "can only concat iterators with same element types");
+  DECL_ELEMENT_TYPE(ElemT<Iter1>);
+  Concat(Iter1 i1, Iter2 i2) : _idx(Fst), _i1(std::move(i1)), _i2(std::move(i2)) {}
+  bool hasNext() { 
+    switch (_idx) {
+      case Fst: 
+        if (_i1.hasNext()) {
+          return true;
+        } else {
+          _idx = Snd;
+          hasNext();
+        }
+      case Snd:
+        if (_i2.hasNext()) {
+          return true;
+        } else {
+          _idx = End;
+          hasNext();
+        }
+      case End:
+        return false;
+    }
+    ASSERTION_VIOLATION
+  }
+  ElemT<Concat> next() {
+    switch (_idx) {
+      case Fst: return _i1.next();
+      case Snd: return _i2.next();
+      case End: ASSERTION_VIOLATION
+    }
+    ASSERTION_VIOLATION
+  }
+
+  Option<unsigned> sizeLeft() { 
+    return _i1.sizeLeft().andThen([&](unsigned i){ 
+      return _i2.sizeLeft().map([&](unsigned j){ return i + j; });  
+    });
+  }
+};
+
+template<class Iter1, class Iter2>
+Concat<Iter1, Iter2> concat(Iter1 i1, Iter2 i2) 
+{ return Concat<Iter1, Iter2>(std::move(i1),std::move(i2)); }
+
+} // namespace Concat
+
+} // namespace Combinators
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // ITERATOR DESTRUCTORS
@@ -560,6 +665,9 @@ using Adaptors::Flatten::flatten;
 using Adaptors::FlatMap::flatMap;
 using Adaptors::Cloned::cloned;
 using Adaptors::SizeHint::sizeHint;
+using Adaptors::TimeCounted::timeCounted;
+
+using Combinators::Concat::concat;
 
 using Destructors::Collect::collect;
 using Destructors::ForEach::forEach;

@@ -142,6 +142,7 @@ public:
 
   bool hasNext() const { return _index < _stack.size(); }
   int next() { return _stack[_index++]; }
+  Option<unsigned> sizeLeft() { return Option<unsigned>(); }
 };
 
 TEST_FUN(test_flatMap_3) {
