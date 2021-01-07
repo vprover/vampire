@@ -90,7 +90,7 @@ public:
     auto new_end = new_stack+new_capacity;
     if (_stack) {
       for (unsigned i = 0; i < size(); i++) {
-        ::new(&new_stack[i]) C(_stack[i]);
+        ::new(&new_stack[i]) C(std::move(_stack[i]));
       }
       DEALLOC_KNOWN(_stack, _capacity * sizeof(C), className());
     } 
@@ -216,7 +216,7 @@ public:
   static Stack fromIterator(It it) {
     CALL("Stack::fromIterator");
     Stack out;
-    out.moveFromIterator(it);
+    out.moveFromIterator(std::move(it));
     return out;
   }
 
@@ -598,7 +598,7 @@ public:
     {
     }
 
-    Option<unsigned> sizeLeft() { return Option<unsigned>(_afterLast - _pointer); }
+    Option<unsigned> sizeLeft() const { return Option<unsigned>(_afterLast - _pointer); }
 
     /** true if there exists the next element */
     inline
