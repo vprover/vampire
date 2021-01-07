@@ -308,7 +308,7 @@ SATSolver::VarAssignment Z3Interfacing::getAssignment(unsigned var)
   }
 
 #if VDEBUG
-  DBG(rep)
+  std::cout << rep << std::endl;
   ASSERTION_VIOLATION_REP(assignment);
 #endif
   return NOT_KNOWN;
@@ -993,6 +993,7 @@ struct ToZ3Expr {
 
     if (entry.metadata.is<DestructorMeta>()) {
       auto selector = entry.metadata.unwrap<DestructorMeta>().selector;
+      _nameExpression = true;
       // asserts e.g. isCons(l) for a term that contains the subterm head(l) for lists
       addGuardIfNecessary(selector(args[0]));
     }
