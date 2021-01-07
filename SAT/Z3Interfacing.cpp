@@ -308,6 +308,7 @@ SATSolver::VarAssignment Z3Interfacing::getAssignment(unsigned var)
   }
 
 #if VDEBUG
+  DBG(rep)
   ASSERTION_VIOLATION_REP(assignment);
 #endif
   return NOT_KNOWN;
@@ -632,8 +633,11 @@ void Z3Interfacing::createTermAlgebra(TermAlgebra& start)
       _toZ3.insert(ctorId, Z3FuncEntry::plain(constr));
       ASS(_toZ3.find(ctorId))
       _fromZ3.insert(constr, ctorId);
+
       if (ctor->hasDiscriminator()) {
-        _toZ3.insert(FuncOrPredId::predicate(ctor->discriminator()), Z3FuncEntry::plain(discr));
+        auto discrId = FuncOrPredId::predicate(ctor->discriminator());
+        _toZ3.insert(discrId, Z3FuncEntry::plain(discr));
+        // _fromZ3.insert(discr, discrId);
       }
       for (unsigned iDestr = 0; iDestr < ctor->arity(); iDestr++)  {
         auto dtor = z3::func_decl(_context, destr[iDestr]);
