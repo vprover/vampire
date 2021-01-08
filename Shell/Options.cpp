@@ -110,6 +110,9 @@ void Options::init()
                                         "model_check",
                                         "output",
                                         "portfolio",
+#if VTHREADED
+                                        "threaded",
+#endif
                                         "preprocess",
                                         "preprocess2",
                                         "profile",
@@ -124,6 +127,9 @@ void Options::init()
     "  -vampire: the standard mode of operation for first-order theorem proving\n"
     "  -portfolio: a portfolio mode running a specified schedule (see schedule)\n"
     "  -casc, casc_sat, smtcomp - like portfolio mode, with competition specific\n     presets for schedule, etc.\n"
+#if VTHREADED
+    "  -threaded: like portfolio, but in thread-parallel (experimental)\n"
+#endif
     "  -preprocess,axiom_selection,clausify,grounding: modes for producing output\n      for other solvers.\n"
     "  -tpreprocess,tclausify: output modes for theory input (clauses are quantified\n      with sort information).\n"
     "  -output,profile: output information about the problem\n"
@@ -152,7 +158,15 @@ void Options::init()
          "struct_induction"});
     _schedule.description = "Schedule to be run by the portfolio mode. casc and smtcomp usually point to the most recent schedule in that category. Note that some old schedules may contain option values that are no longer supported - see ignore_missing.";
     _lookup.insert(&_schedule);
-    _schedule.reliesOnHard(Or(_mode.is(equal(Mode::CASC)),_mode.is(equal(Mode::CASC_SAT)),_mode.is(equal(Mode::SMTCOMP)),_mode.is(equal(Mode::PORTFOLIO))));
+    _schedule.reliesOnHard(Or(
+      _mode.is(equal(Mode::CASC)),
+      _mode.is(equal(Mode::CASC_SAT)),
+      _mode.is(equal(Mode::SMTCOMP)),
+#if VTHREADED
+      _mode.is(equal(Mode::THREADED)),
+#endif
+      _mode.is(equal(Mode::PORTFOLIO))
+    ));
 
     _multicore = UnsignedOptionValue("cores","",1);
     _multicore.description = "When running in portfolio modes (including casc or smtcomp modes) specify the number of cores, set to 0 to use maximum";

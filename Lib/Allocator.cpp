@@ -1059,6 +1059,9 @@ unsigned Allocator::Descriptor::hash (const void* addr)
 
 #endif
 
+// TSan provides its own global new/delete
+#if (defined(__has_feature) && __has_feature(thread_sanitizer))
+#else
 /**
  * In debug mode we replace the global new and delete (also the array versions)
  * and terminate in cases when they are used "unwillingly".
@@ -1129,6 +1132,7 @@ void operator delete[](void* obj) throw() {
     DEALLOC_UNKNOWN(obj,"global new[]");
   }
 }
+#endif // !TSan
 
 #if VTEST
 

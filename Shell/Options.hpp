@@ -414,6 +414,9 @@ public:
     /** this mode only outputs the input problem, without any preprocessing */
     OUTPUT,
     PORTFOLIO,
+#if VTHREADED
+    THREADED,
+#endif
     PREPROCESS,
     PREPROCESS2,
     PROFILE,

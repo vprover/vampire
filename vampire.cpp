@@ -892,13 +892,15 @@ int main(int argc, char* argv[])
       break;
 
     case Options::Mode::PORTFOLIO:
+#if VTHREADED
+    case Options::Mode::THREADED:
+#endif
       env.options->setIgnoreMissing(Options::IgnoreMissing::WARN);
 
       if (CASC::PortfolioMode::perform(1.0)) {
         vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       }
       break;
-
     case Options::Mode::CASC_LTB: {
       bool learning = env.options->ltbLearning()!=Options::LTBLearning::OFF;
       try {

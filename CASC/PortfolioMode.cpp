@@ -39,6 +39,10 @@
 #include "Kernel/Problem.hpp"
 
 #include "Schedules.hpp"
+#include "ProcessScheduleExecutor.hpp"
+#if VTHREADED
+#include "ThreadScheduleExecutor.hpp"
+#endif
 
 #include "PortfolioMode.hpp"
 
@@ -340,7 +344,7 @@ void PortfolioMode::getSchedules(Property& prop, Schedule& quick, Schedule& fall
 
 
 // Simple one-after-the-other priority.
-float PortfolioProcessPriorityPolicy::staticPriority(vstring sliceCode)
+float PortfolioPriorityPolicy::staticPriority(vstring sliceCode)
 {
   static float priority = 0.;
   priority += 1.;
@@ -348,7 +352,7 @@ float PortfolioProcessPriorityPolicy::staticPriority(vstring sliceCode)
 }
 
 //should never be called
-float PortfolioProcessPriorityPolicy::dynamicPriority(pid_t pid)
+float PortfolioPriorityPolicy::dynamicPriority(pid_t pid)
 {
   ASSERTION_VIOLATION;
   return 0.;
@@ -396,10 +400,17 @@ bool PortfolioMode::runSchedule(Schedule& schedule)
 
   UIHelper::portfolioParent = true; // to report on overall-solving-ended in Timer.cpp
 
-  PortfolioProcessPriorityPolicy policy;
+  PortfolioPriorityPolicy policy;
   PortfolioSliceExecutor executor(this);
-  ScheduleExecutor sched(&policy, &executor);
 
+#if VTHREADED
+  if(env.options->mode() == Options::Mode::THREADED) {
+    ThreadScheduleExecutor sched(&policy, &executor);
+    return sched.run(schedule);
+  }
+#endif
+
+  ProcessScheduleExecutor sched(&policy, &executor);
   bool result = sched.run(schedule);
 
   //All children have been killed. Now safe to print proof
@@ -507,15 +518,16 @@ void PortfolioMode::runSlice(vstring sliceCode, unsigned timeLimitInDeciseconds)
   if (stl) {
     opt.setSimulatedTimeLimit(int(stl * _slowness));
   }
-  runSlice(opt);
+  runSlice(&opt);
+
 } // runSlice
 
 /**
  * Run a slice given by its options
  */
-void PortfolioMode::runSlice(Options& strategyOpt)
+void PortfolioMode::runSlice(Options *strategyOpt)
 {
-  CALL("PortfolioMode::runSlice(Option&)");
+  CALL("PortfolioMode::runSlice(Option *)");
 
   System::registerForSIGHUPOnParentDeath();
   UIHelper::portfolioParent=false;
@@ -526,20 +538,21 @@ void PortfolioMode::runSlice(Options& strategyOpt)
   TimeCounter::reinitialize();
   Timer::setTimeLimitEnforcement(true);
 
-  Options opt = strategyOpt;
+  Options *opt = strategyOpt;
   //we have already performed the normalization
-  opt.setNormalize(false);
-  opt.setForcedOptionValues();
-  opt.checkGlobalOptionConstraints();
-  *env.options = opt; //just temporarily until we get rid of dependencies on env.options in solving
+  opt->setNormalize(false);
+  opt->setForcedOptionValues();
+  opt->checkGlobalOptionConstraints();
+  Options *saveOpt = env.options;
+  env.options = opt; //just temporarily until we get rid of dependencies on env.options in solving
 
   if (outputAllowed()) {
     env.beginOutput();
-    addCommentSignForSZS(env.out()) << opt.testId() << " on " << opt.problemName() << endl;
+    addCommentSignForSZS(env.out()) << opt->testId() << " on " << opt->problemName() << endl;
     env.endOutput();
   }
 
-  Saturation::ProvingHelper::runVampire(*_prb, opt);
+  Saturation::ProvingHelper::runVampire(*_prb, *opt);
 
   //set return value to zero if we were successful
   if (env.statistics->terminationReason == Statistics::REFUTATION ||
@@ -614,9 +627,13 @@ void PortfolioMode::runSlice(Options& strategyOpt)
     _syncSemaphore.inc(SEM_LOCK); // would be also released after the processes' death, but we are polite and do it already here
   }
 
+  env.options = saveOpt;
   STOP_CHECKING_FOR_ALLOCATOR_BYPASSES;
 
-  exit(resultValue);
+#if VTHREADED
+  if(env.options->mode() != Options::Mode::THREADED || !resultValue)
+#endif
+    exit(resultValue);
 } // runSlice
 
 // BELOW ARE TWO LEFT-OVER FUNCTIONS FROM THE ORIGINAL (SINGLE-CHILD) CASC-MODE

@@ -58,6 +58,25 @@ else()
   endif()
 endif()
 
+# experimental thread-parallel strategy scheduling
+option(THREADING "Build Vampire with experimental threaded mode." OFF)
+if (THREADING)
+  message(STATUS "building with threading enabled: EXPERIMENTAL")
+  add_compile_definitions(VTHREADED=1)
+  find_package(Threads REQUIRED)
+  link_libraries(Threads::Threads)
+else()
+  add_compile_definitions(VTHREADED=0)
+endif()
+
+# ThreadSanitizer tool
+option(TSAN "Build Vampire with ThreadSanitizer." OFF)
+if (TSAN)
+  message(STATUS "building with ThreadSanitizer: EXPERIMENTAL")
+  add_compile_options(-fsanitize=thread)
+  add_link_options(-fsanitize=thread)
+endif()
+
 ################################################################
 # define all vampire sources,
 # generate the main target and 
@@ -197,6 +216,7 @@ set(VAMPIRE_LIB_SOURCES
     Lib/STLAllocator.hpp
     Lib/StringUtils.hpp
     Lib/System.hpp
+    Lib/Threading.hpp
     Lib/TimeCounter.hpp
     Lib/Timer.hpp
     Lib/TriangularArray.hpp
@@ -742,11 +762,15 @@ set(VAMPIRE_CASC_SOURCES
     CASC/PortfolioMode.cpp
     CASC/Schedules.cpp
     CASC/ScheduleExecutor.cpp
+    CASC/ProcessScheduleExecutor.cpp
+    CASC/ThreadScheduleExecutor.cpp
     CASC/CLTBMode.cpp
     CASC/CLTBModeLearning.cpp
     CASC/PortfolioMode.hpp
     CASC/Schedules.hpp
     CASC/ScheduleExecutor.hpp
+    CASC/ProcessScheduleExecutor.hpp
+    CASC/ThreadScheduleExecutor.hpp
     CASC/CLTBMode.hpp
     CASC/CLTBModeLearning.hpp
     )
