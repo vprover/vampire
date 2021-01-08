@@ -70,7 +70,6 @@ vvector<TermList> getInductionTerms(TermList t)
   }
   if (canInductOn(t)) {
     v.push_back(t);
-    return v;
   }
   unsigned f = t.term()->functor();
   bool isPred = t.term()->isFormula();
@@ -92,8 +91,7 @@ vvector<TermList> getInductionTerms(TermList t)
       }
       i++;
     }
-  }
-  if (isTermAlgebraCons(t)) {
+  } else if (isTermAlgebraCons(t)) {
     //TODO(mhajdu): eventually check whether we really recurse on a specific
     // subterm of the constructor terms
     for (unsigned i = 0; i < t.term()->arity(); i++) {
@@ -213,7 +211,7 @@ ostream& operator<<(ostream& out, const RDescriptionInst& inst)
   return out;
 }
 
-void InductionScheme::init(Term* t, const InductionTemplate& templ)
+void InductionScheme::init(const vvector<TermList>& argTerms, const InductionTemplate& templ)
 {
   CALL("InductionScheme::init");
 
@@ -230,46 +228,43 @@ void InductionScheme::init(Term* t, const InductionTemplate& templ)
     bool mismatch = false;
     for (const auto& vars : templ._order) {
       for (const auto& v : vars) {
-        auto argTerm = *t->nthArgument(v);
+        auto argTerm = argTerms.at(v);
         auto argStep = *rdesc._step.term()->nthArgument(v);
-        auto its = getInductionTerms(argTerm);
-        for (auto& indTerm : its) {
-          // This argument might have already been mapped
-          if (stepSubst.count(indTerm)) {
-            // TODO(mhajdu): this hack needs to be generalized
-            // the idea is to overwrite the substitution only when
-            // the current substitution is a variable and this argument
-            // is not plus there are no recursive calls so they would
-            // not be messed up by this change
-            if (rdesc._recursiveCalls.empty() && argStep.isTerm() && stepSubst.at(indTerm).isVar()) {
-              VarReplacement cr(varMap, var);
-              auto res = cr.transform(argStep.term());
-              stepSubst.at(indTerm) = TermList(res);
-              continue;
-            }
-            if (stepSubst.at(indTerm).isTerm() && argStep.isTerm() &&
-                stepSubst.at(indTerm).term()->functor() != argStep.term()->functor()) {
-              // If this argument in the RDescription header contains a different
-              // term algebra ctor than the already substituted one, we cannot create
-              // this case
-              mismatch = true;
-              break;
-            }
-            continue;
-          }
-          if (argStep.isVar()) {
-            if (!varMap.find(argStep.var())) {
-              varMap.insert(argStep.var(), var++);
-            }
-            stepSubst.insert(make_pair(
-                indTerm, TermList(varMap.get(argStep.var()), false)));
-          } else {
+        // This argument might have already been mapped
+        if (stepSubst.count(argTerm)) {
+          // TODO(mhajdu): this hack needs to be generalized
+          // the idea is to overwrite the substitution only when
+          // the current substitution is a variable and this argument
+          // is not plus there are no recursive calls so they would
+          // not be messed up by this change
+          if (rdesc._recursiveCalls.empty() && argStep.isTerm() && stepSubst.at(argTerm).isVar()) {
             VarReplacement cr(varMap, var);
             auto res = cr.transform(argStep.term());
-            stepSubst.insert(make_pair(indTerm, TermList(res)));
+            stepSubst.at(argTerm) = TermList(res);
+            continue;
           }
-          _inductionTerms.insert(indTerm);
+          if (stepSubst.at(argTerm).isTerm() && argStep.isTerm() &&
+              stepSubst.at(argTerm).term()->functor() != argStep.term()->functor()) {
+            // If this argument in the RDescription header contains a different
+            // term algebra ctor than the already substituted one, we cannot create
+            // this case
+            mismatch = true;
+            break;
+          }
+          continue;
         }
+        if (argStep.isVar()) {
+          if (!varMap.find(argStep.var())) {
+            varMap.insert(argStep.var(), var++);
+          }
+          stepSubst.insert(make_pair(
+              argTerm, TermList(varMap.get(argStep.var()), false)));
+        } else {
+          VarReplacement cr(varMap, var);
+          auto res = cr.transform(argStep.term());
+          stepSubst.insert(make_pair(argTerm, TermList(res)));
+        }
+        _inductionTerms.insert(argTerm);
       }
     }
     if (mismatch) {
@@ -297,7 +292,7 @@ void InductionScheme::init(Term* t, const InductionTemplate& templ)
           } else {
             arg = TermList(varMap.get(arg.var()), false);
           }
-          TermListReplacement tr(arg, *t->nthArgument(i));
+          TermListReplacement tr(arg, argTerms.at(i));
           res = tr.transform(res);
         }
       }
@@ -316,36 +311,33 @@ void InductionScheme::init(Term* t, const InductionTemplate& templ)
       for (const auto& vars : templ._order) {
         bool changing = false;
         for (const auto& v : vars) {
-          auto argTerm = *t->nthArgument(v);
+          auto argTerm = argTerms.at(v);
           auto argRecCall = *r.term()->nthArgument(v);
-          auto its = getInductionTerms(argTerm);
-          for (auto& indTerm : its) {
-            // if strengthen option is on and this
-            // set of variables is irrelevant for
-            // the order, we add new variables
-            if (changed && strengthen) {
-              recCallSubst.insert(make_pair(
-                indTerm, TermList(var++, false)));
-              continue;
-            }
-            // otherwise we find out if this is a changing set
-            auto argStep = *rdesc._step.term()->nthArgument(v);
-            if (argStep != argRecCall) {
-              changing = true;
-            }
-            // term is already added, move on to next
-            if (recCallSubst.count(indTerm)) {
-              continue;
-            }
-            // if the argument is a variable, it must be in the varMap
-            if (argRecCall.isVar()) {
-              recCallSubst.insert(make_pair(
-                indTerm, TermList(varMap.get(argRecCall.var()), false)));
-            } else {
-              VarReplacement cr(varMap, var);
-              auto res = cr.transform(argRecCall.term());
-              recCallSubst.insert(make_pair(indTerm, TermList(res)));
-            }
+          // if strengthen option is on and this
+          // set of variables is irrelevant for
+          // the order, we add new variables
+          if (changed && strengthen) {
+            recCallSubst.insert(make_pair(
+              argTerm, TermList(var++, false)));
+            continue;
+          }
+          // otherwise we find out if this is a changing set
+          auto argStep = *rdesc._step.term()->nthArgument(v);
+          if (argStep != argRecCall) {
+            changing = true;
+          }
+          // term is already added, move on to next
+          if (recCallSubst.count(argTerm)) {
+            continue;
+          }
+          // if the argument is a variable, it must be in the varMap
+          if (argRecCall.isVar()) {
+            recCallSubst.insert(make_pair(
+              argTerm, TermList(varMap.get(argRecCall.var()), false)));
+          } else {
+            VarReplacement cr(varMap, var);
+            auto res = cr.transform(argRecCall.term());
+            recCallSubst.insert(make_pair(argTerm, TermList(res)));
           }
         }
         // If this was the changing set, all other will be irrelevant
@@ -607,26 +599,38 @@ bool InductionSchemeGenerator::process(TermList curr, bool active,
       return true;
     }
 
-    IteratorByInductiveVariables argIt(t, indVars);
-    bool match = true;
+    Term::Iterator argIt(t);
+    unsigned i = 0;
+    vvector<vvector<TermList>> argTermsList(1); // initially 1 empty vector
     while (argIt.hasNext()) {
       auto arg = argIt.next();
-      auto its = getInductionTerms(arg);
-      if (its.size() != 1) {
-        match = false;
-        break;
+      if (!indVars[i]) {
+        for (auto& argTerms : argTermsList) {
+          argTerms.push_back(arg);
+        }
+      } else {
+        auto its = getInductionTerms(arg);
+        vvector<vvector<TermList>> newArgTermsList;
+        for (const auto& indTerm : its) {
+          for (auto argTerms : argTermsList) {
+            argTerms.push_back(indTerm);
+            newArgTermsList.push_back(std::move(argTerms));
+          }
+        }
+        argTermsList = newArgTermsList;
       }
+      i++;
     }
 
-    if (match) {
+    for (const auto& argTerms : argTermsList) {
       InductionScheme scheme;
-      scheme.init(t, templ);
+      scheme.init(argTerms, templ);
       auto litClMap = new DHMap<Literal*, Clause*>();
       litClMap->insert(lit, premise);
       if(env.options->showInduction()){
         env.beginOutput();
         env.out() << "[Induction] induction scheme " << scheme
-                  << " was suggested by term " << *t << endl;
+                  << " was suggested by term " << *t << " in " << *lit << endl;
         env.endOutput();
       }
       schemes.push_back(make_pair(std::move(scheme), litClMap));
