@@ -142,7 +142,7 @@ public:
 
   bool hasNext() const { return _index < _stack.size(); }
   int next() { return _stack[_index++]; }
-  Option<unsigned> sizeLeft() { return Option<unsigned>(); }
+  Option<unsigned> sizeLeft() const { return Option<unsigned>(_stack.size() - _index); }
 };
 
 TEST_FUN(test_flatMap_3) {
@@ -222,3 +222,39 @@ TEST_FUN(test_fold_3) {
       | map([](int i ) -> vstring { return i % 2 == 0 ? "even" : "odd"; })
       | fold([](vstring i, vstring j) { return i + ", " + j; })).unwrap())
 }
+
+TEST_FUN(test_dyn_move_semantics_1) {
+  auto in  = Stack<int>{ 1, 3, 5, };
+  auto out = Stack<int>{ 1, 2, 3, 4, 5, 6, };
+
+  ASS_EQ((in.iterFifo()
+      | map([](int i) -> DynIter<int> { return dyn(OwnedStackIter(Stack<int>{i, i + 1})); })
+      | fold([](DynIter<int> s1, DynIter<int> s2) { return dyn(concat(std::move(s1), std::move(s2))); })).unwrap()
+      | collect<Stack>(), out)
+}
+
+TEST_FUN(test_dyn_move_semantics_2) {
+  auto in  = Stack<int>{ 1, 3, 5, };
+  auto dynIterStack = in.iterFifo()
+      | map([](int i) { return dyn(OwnedStackIter(Stack<int>{i, i + 1})); })
+      | collect<Stack<DynIter<int>>>();
+
+
+  auto expected = Stack<int>{ 2, 2, 2 };
+  ASS_EQ(expected,
+        indexIter<Stack<DynIter<int>>&>(dynIterStack)
+          | map([](DynIter<int> & iter) { return iter.sizeLeft().unwrap(); } )
+          | collect<Stack<int>>())
+  ASS_EQ(expected,
+        indexIter<Stack<DynIter<int>>&>(dynIterStack)
+          | map([](DynIter<int> & iter) { return iter.sizeLeft().unwrap(); } )
+          | collect<Stack<int>>())
+
+  // expected = Stack<int>{ 1,2,3,4,5,6 };
+  // ASS_EQ(expected, 
+  //        (indexIter<Stack<DynIter<int>>&>(dynIterStack)
+  //         | fold([](DynIter<int>&& s1, DynIter<int>& s2) -> DynIter<int> { return dyn(concat(std::move(s1), std::move(s2))); })).unwrap()
+  //         | collect<Stack<int>>())
+
+}
+
