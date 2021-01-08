@@ -471,6 +471,7 @@ SATClause* Z3Interfacing::getZeroImpliedCertificate(unsigned)
 z3::sort Z3Interfacing::getz3sort(SortId s)
 {
   CALL("Z3Interfacing::getz3sort");
+
   BYPASSING_ALLOCATOR;
   auto srt = _sorts.tryGet(s);
   if (srt.isSome()) {
@@ -519,7 +520,8 @@ void Z3Interfacing::createTermAlgebra(TermAlgebra& start)
   Stack<TermAlgebra*> tas;        // <- stack of term algebra sorts
   Map<SortId, unsigned> recSorts; // <- mapping term algeba -> index
 
-  for (auto s  : start.subSorts().iter()) {
+  auto subsorts = start.subSorts();
+  for (auto s : subsorts.iter()) {
     if (env.signature->isTermAlgebraSort(s) 
         && !_createdTermAlgebras.contains(s)) {
       auto ta = env.signature->getTermAlgebraOfSort(s);
