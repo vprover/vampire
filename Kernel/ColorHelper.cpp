@@ -43,10 +43,10 @@ bool ColorHelper::isTransparent(bool predicate, unsigned functor)
 
   Signature::Symbol* sym;
   if (predicate) {
-    sym = env.signature->getPredicate(functor);
+    sym = env->signature->getPredicate(functor);
   }
   else {
-    sym = env.signature->getFunction(functor);
+    sym = env->signature->getFunction(functor);
   }
   return sym->color()==COLOR_TRANSPARENT;
 }
@@ -104,7 +104,7 @@ Clause* ColorHelper::skolemizeColoredConstants(Clause* c)
   }
 
   unsigned clen = c->length();
-  static LiteralStack resStack;
+  VTHREAD_LOCAL static LiteralStack resStack;
   resStack.reset();
   resStack.loadFromIterator(Clause::Iterator(*c));
 
@@ -113,7 +113,7 @@ Clause* ColorHelper::skolemizeColoredConstants(Clause* c)
   while (coloredConstants.isNonEmpty()) {
     TermList replaced = TermList(coloredConstants.pop());
 
-    unsigned newFn = env.signature->addSkolemFunction(0);
+    unsigned newFn = env->signature->addSkolemFunction(0);
     TermList newTrm = TermList(Term::create(newFn, 0, 0));
 
     for (unsigned i=0; i<clen; i++) {
@@ -137,9 +137,9 @@ void ColorHelper::ensureSkolemReplacement(Term* t, TermMap& map)
     return;
   }
   unsigned varCnt = norm->getDistinctVars();
-  unsigned newFn = env.signature->addSkolemFunction(varCnt, "CU");
+  unsigned newFn = env->signature->addSkolemFunction(varCnt, "CU");
 
-  static Stack<TermList> argStack;
+  VTHREAD_LOCAL static Stack<TermList> argStack;
   argStack.reset();
   //variables in normalized term are X0,..X<varCnt-1>, so we put the
   //same into the Skolem term
@@ -193,7 +193,7 @@ Clause* ColorHelper::skolemizeColoredTerms(Clause* c)
 {
   CALL("ColorHelper::skolemizeColoredTerms");
 
-  static TermMap replMap;
+  VTHREAD_LOCAL static TermMap replMap;
   replMap.reset();
 
   collectSkolemReplacements(c, replMap);
@@ -201,7 +201,7 @@ Clause* ColorHelper::skolemizeColoredTerms(Clause* c)
     return 0;
   }
 
-  static LiteralStack resStack;
+  VTHREAD_LOCAL static LiteralStack resStack;
   resStack.reset();
 
   unsigned clen = c->length();
@@ -235,10 +235,10 @@ void ColorHelper::tryUnblock(Clause* c, SaturationAlgorithm* salg)
 //    Clause* unblocked = skolemizeColoredConstants(c);
     Clause* unblocked = skolemizeColoredTerms(c);
     if (unblocked) {
-      if (env.options->showBlocked()) {
-	env.beginOutput();
-	env.out()<<"Unblocking clause "<<unblocked->toString()<<endl;
-	env.endOutput();
+      if (env->options->showBlocked()) {
+	env->beginOutput();
+	env->out()<<"Unblocking clause "<<unblocked->toString()<<endl;
+	env->endOutput();
       }
       salg->addNewClause(unblocked);
     }

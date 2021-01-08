@@ -53,7 +53,7 @@ bool UWAMismatchHandler::checkUWA(TermList t1, TermList t2)
 
     bool okay = true;
    
-    static Shell::Options::UnificationWithAbstraction opt = env.options->unificationWithAbstraction();
+    VTHREAD_LOCAL static Shell::Options::UnificationWithAbstraction opt = env->options->unificationWithAbstraction();
     if(opt == Shell::Options::UnificationWithAbstraction::OFF){ return false; }
 
       switch(opt){
@@ -65,8 +65,8 @@ bool UWAMismatchHandler::checkUWA(TermList t1, TermList t2)
           break;
         case Shell::Options::UnificationWithAbstraction::CONSTANT:
           okay &= !bothNumbers && (t1Interp || t2Interp);
-          okay &= (t1Interp || env.signature->functionArity(t1.term()->functor()));
-          okay &= (t2Interp || env.signature->functionArity(t2.term()->functor()));
+          okay &= (t1Interp || env->signature->functionArity(t1.term()->functor()));
+          okay &= (t2Interp || env->signature->functionArity(t2.term()->functor()));
           break; 
         case Shell::Options::UnificationWithAbstraction::ALL:
         case Shell::Options::UnificationWithAbstraction::GROUND:

@@ -158,17 +158,17 @@ void Preprocess::preprocess(Problem& prb)
 {
   CALL("Preprocess::preprocess");
 
-  if(env.options->choiceReasoning()){
-    env.signature->addChoiceOperator(env.signature->getChoice());
+  if(env->options->choiceReasoning()){
+    env->signature->addChoiceOperator(env->signature->getChoice());
   }
 
-  if (env.options->showPreprocessing()) {
-    env.beginOutput();
-    env.out() << "preprocessing started" << std::endl;
+  if (env->options->showPreprocessing()) {
+    env->beginOutput();
+    env->out() << "preprocessing started" << std::endl;
     UnitList::Iterator uit(prb.units());
     while(uit.hasNext()) {
       Unit* u = uit.next();
-      env.out() << "[PP] input: " << u->toString() << std::endl;
+      env->out() << "[PP] input: " << u->toString() << std::endl;
     }
   }
 
@@ -182,15 +182,15 @@ void Preprocess::preprocess(Problem& prb)
    * in profileMode() in vampire.cpp and PortfolioMode::searchForProof()
    * to preserve reproducibility out of casc mode when using --decode */
   if (_options.normalize()) { // reorder units
-    env.statistics->phase=Statistics::NORMALIZATION;
-    if (env.options->showPreprocessing())
-      env.out() << "normalization" << std::endl;
+    env->statistics->phase=Statistics::NORMALIZATION;
+    if (env->options->showPreprocessing())
+      env->out() << "normalization" << std::endl;
 
     Normalisation().normalise(prb);
   }
 
   if (prb.hasInterpretedOperations()) {
-    env.interpretedOperationsUsed = true;
+    env->interpretedOperationsUsed = true;
   }
 
   if(_options.guessTheGoal() != Options::GoalGuess::OFF){
@@ -200,89 +200,89 @@ void Preprocess::preprocess(Problem& prb)
   }
 
   // If there are interpreted operations
-  if (prb.hasInterpretedOperations() || env.signature->hasTermAlgebras()){
+  if (prb.hasInterpretedOperations() || env->signature->hasTermAlgebras()){
     // Normalizer is needed, because the TheoryAxioms code assumes Normalized problem
     InterpretedNormalizer().apply(prb);
    
     // Add theory axioms if needed
     if( _options.theoryAxioms() != Options::TheoryAxiomLevel::OFF){
-      env.statistics->phase=Statistics::INCLUDING_THEORY_AXIOMS;
-      if (env.options->showPreprocessing())
-        env.out() << "adding theory axioms" << std::endl;
+      env->statistics->phase=Statistics::INCLUDING_THEORY_AXIOMS;
+      if (env->options->showPreprocessing())
+        env->out() << "adding theory axioms" << std::endl;
 
       TheoryAxioms(prb).apply();
     }
   }
 
-  if (prb.hasFOOL() || env.statistics->higherOrder) {//or lambda
+  if (prb.hasFOOL() || env->statistics->higherOrder) {//or lambda
 
     // This is the point to extend the signature with $$true and $$false
     // If we don't have fool then these constants get in the way (a lot)
 
-    if (!_options.newCNF() || env.statistics->polymorphic || env.statistics->higherOrder) {
-      if (env.options->showPreprocessing())
-        env.out() << "FOOL elimination" << std::endl;
+    if (!_options.newCNF() || env->statistics->polymorphic || env->statistics->higherOrder) {
+      if (env->options->showPreprocessing())
+        env->out() << "FOOL elimination" << std::endl;
   
       TheoryAxioms(prb).applyFOOL();
       FOOLElimination().apply(prb);
     }
   }
 
-  if(env.options->functionExtensionality() == Options::FunctionExtensionality::AXIOM){
+  if(env->options->functionExtensionality() == Options::FunctionExtensionality::AXIOM){
     LambdaElimination::addFunctionExtensionalityAxiom(prb);
   }
 
-  if(env.options->choiceAxiom()){
+  if(env->options->choiceAxiom()){
     LambdaElimination::addChoiceAxiom(prb);    
   }
 
   prb.getProperty();
 
-  if ((prb.hasCombs() || prb.hasAppliedVar()) && env.options->addCombAxioms()){
+  if ((prb.hasCombs() || prb.hasAppliedVar()) && env->options->addCombAxioms()){
     LambdaElimination::addCombinatorAxioms(prb);
   }
 
-  if ((prb.hasLogicalProxy() || prb.hasBoolVar()) && env.options->addProxyAxioms()){
+  if ((prb.hasLogicalProxy() || prb.hasBoolVar()) && env->options->addProxyAxioms()){
     LambdaElimination::addProxyAxioms(prb);
   }
   
-  if (prb.hasInterpretedOperations() || env.signature->hasTermAlgebras()){
+  if (prb.hasInterpretedOperations() || env->signature->hasTermAlgebras()){
     // Some axioms needed to be normalized, so we call InterpretedNormalizer twice
     InterpretedNormalizer().apply(prb);
   }
 
   // Expansion of distinct groups happens before other preprocessing
   // If a distinct group is small enough it will add inequality to describe it
-  if(env.signature->hasDistinctGroups()){
-    if(env.options->showPreprocessing())
-      env.out() << "distinct group expansion" << std::endl;
+  if(env->signature->hasDistinctGroups()){
+    if(env->options->showPreprocessing())
+      env->out() << "distinct group expansion" << std::endl;
     DistinctGroupExpansion().apply(prb);
   }
 
   if (_options.sineToAge() || _options.useSineLevelSplitQueues() || (_options.sineToPredLevels() != Options::PredicateSineLevels::OFF)) {
-    env.statistics->phase=Statistics::SINE_SELECTION;
+    env->statistics->phase=Statistics::SINE_SELECTION;
 
     if (_options.sineToPredLevels() != Options::PredicateSineLevels::OFF) {
-      env.predicateSineLevels = new DHMap<unsigned,unsigned>();
+      env->predicateSineLevels = new DHMap<unsigned,unsigned>();
     }
 
-    // just to initialize ``env.clauseSineLevels'' or ``env.predicateSineLevels''
+    // just to initialize ``env->clauseSineLevels'' or ``env->predicateSineLevels''
     SineSelector(false,_options.sineToAgeTolerance(),0,
         _options.sineToAgeGeneralityThreshold(),true).perform(prb);
   }
 
   if (_options.sineSelection()!=Options::SineSelection::OFF) {
-    env.statistics->phase=Statistics::SINE_SELECTION;
-    if (env.options->showPreprocessing())
-      env.out() << "sine selection" << std::endl;
+    env->statistics->phase=Statistics::SINE_SELECTION;
+    if (env->options->showPreprocessing())
+      env->out() << "sine selection" << std::endl;
 
     SineSelector(_options).perform(prb);
   }
 
   if (_options.questionAnswering()==Options::QuestionAnsweringMode::ANSWER_LITERAL) {
-    env.statistics->phase=Statistics::UNKNOWN_PHASE;
-    if (env.options->showPreprocessing())
-      env.out() << "answer literal addition" << std::endl;
+    env->statistics->phase=Statistics::UNKNOWN_PHASE;
+    if (env->options->showPreprocessing())
+      env->out() << "answer literal addition" << std::endl;
 
     AnswerLiteralManager::getInstance()->addAnswerLiterals(prb);
   }
@@ -293,8 +293,8 @@ void Preprocess::preprocess(Problem& prb)
   }
 
   if (prb.mayHaveFormulas()) {
-    if (env.options->showPreprocessing())
-      env.out() << "preprocess1 (rectify, simplify false true, flatten)" << std::endl;
+    if (env->options->showPreprocessing())
+      env->out() << "preprocess1 (rectify, simplify false true, flatten)" << std::endl;
 
     preprocess1(prb);
   }
@@ -311,55 +311,55 @@ void Preprocess::preprocess(Problem& prb)
   // - unused definitions
   // I think TrivialPredicateRemoval just removes pures
   if (_options.unusedPredicateDefinitionRemoval()) {
-    env.statistics->phase=Statistics::UNUSED_PREDICATE_DEFINITION_REMOVAL;
-    if (env.options->showPreprocessing())
-      env.out() << "unused predicate definition removal" << std::endl;
+    env->statistics->phase=Statistics::UNUSED_PREDICATE_DEFINITION_REMOVAL;
+    if (env->options->showPreprocessing())
+      env->out() << "unused predicate definition removal" << std::endl;
 
     PredicateDefinition pdRemover;
     pdRemover.removeUnusedDefinitionsAndPurePredicates(prb);
   }
 
   if (prb.mayHaveFormulas()) {
-    if (env.options->showPreprocessing())
-      env.out() << "preprocess 2 (ennf,flatten)" << std::endl;
+    if (env->options->showPreprocessing())
+      env->out() << "preprocess 2 (ennf,flatten)" << std::endl;
 
     preprocess2(prb);
   }
 
   if (prb.mayHaveFormulas() && _options.newCNF() && 
-     !prb.hasPolymorphicSym() && !env.statistics->higherOrder) {
-    if (env.options->showPreprocessing())
-      env.out() << "newCnf" << std::endl;
+     !prb.hasPolymorphicSym() && !env->statistics->higherOrder) {
+    if (env->options->showPreprocessing())
+      env->out() << "newCnf" << std::endl;
 
     newCnf(prb);
   } else {
     if (prb.mayHaveFormulas() && _options.newCNF()) { // TODO: update newCNF to deal with polymorphism / higher-order
-      ASS(prb.hasPolymorphicSym() || env.statistics->higherOrder);
+      ASS(prb.hasPolymorphicSym() || env->statistics->higherOrder);
       if (outputAllowed()) {
-        env.beginOutput();
-        addCommentSignForSZS(env.out());
-        env.out() << "WARNING: Not using newCnf currently not compatible with polymorphic/higher-order inputs." << endl;
-        env.endOutput();
+        env->beginOutput();
+        addCommentSignForSZS(env->out());
+        env->out() << "WARNING: Not using newCnf currently not compatible with polymorphic/higher-order inputs." << endl;
+        env->endOutput();
       }
     }
 
     if (prb.mayHaveFormulas() && _options.naming()) {
-      if (env.options->showPreprocessing())
-        env.out() << "naming" << std::endl;
+      if (env->options->showPreprocessing())
+        env->out() << "naming" << std::endl;
 
       naming(prb);
     }
 
     if (prb.mayHaveFormulas()) {
-      if (env.options->showPreprocessing())
-        env.out() << "preprocess3 (nnf, flatten, skolemize)" << std::endl;
+      if (env->options->showPreprocessing())
+        env->out() << "preprocess3 (nnf, flatten, skolemize)" << std::endl;
 
       preprocess3(prb);
     }
 
     if (prb.mayHaveFormulas()) {
-      if (env.options->showPreprocessing())
-        env.out() << "clausify" << std::endl;
+      if (env->options->showPreprocessing())
+        env->out() << "clausify" << std::endl;
 
       clausify(prb);
     }
@@ -368,9 +368,9 @@ void Preprocess::preprocess(Problem& prb)
   prb.getProperty();
 
   if (prb.mayHaveFunctionDefinitions()) {
-    env.statistics->phase=Statistics::FUNCTION_DEFINITION_ELIMINATION;
-    if (env.options->showPreprocessing())
-      env.out() << "function definition elimination" << std::endl;
+    env->statistics->phase=Statistics::FUNCTION_DEFINITION_ELIMINATION;
+    if (env->options->showPreprocessing())
+      env->out() << "function definition elimination" << std::endl;
 
     if (_options.functionDefinitionElimination() == Options::FunctionDefinitionElimination::ALL) {
       FunctionDefinition fd;
@@ -383,10 +383,10 @@ void Preprocess::preprocess(Problem& prb)
 
 
   if (prb.mayHaveEquality() && _options.inequalitySplitting() != 0) {
-    if (env.options->showPreprocessing())
-      env.out() << "inequality splitting" << std::endl;
+    if (env->options->showPreprocessing())
+      env->out() << "inequality splitting" << std::endl;
 
-    env.statistics->phase=Statistics::INEQUALITY_SPLITTING;
+    env->statistics->phase=Statistics::INEQUALITY_SPLITTING;
     InequalitySplitting is(_options);
     is.perform(prb);
   }
@@ -411,9 +411,9 @@ void Preprocess::preprocess(Problem& prb)
 
    if (_options.equalityResolutionWithDeletion()!=Options::RuleActivity::OFF &&
 	   prb.mayHaveInequalityResolvableWithDeletion() ) {
-     env.statistics->phase=Statistics::EQUALITY_RESOLUTION_WITH_DELETION;
-     if (env.options->showPreprocessing())
-      env.out() << "equality resolution with deletion" << std::endl;
+     env->statistics->phase=Statistics::EQUALITY_RESOLUTION_WITH_DELETION;
+     if (env->options->showPreprocessing())
+      env->out() << "equality resolution with deletion" << std::endl;
 
      EqResWithDeletion resolver;
      resolver.apply(prb);
@@ -422,36 +422,36 @@ void Preprocess::preprocess(Problem& prb)
 /*
    //TODO consider using this in conjunction with unused predicate removal i.e. when it is off
    if (_options.trivialPredicateRemoval()) {
-     env.statistics->phase=Statistics::UNKNOWN_PHASE;
-     if (env.options->showPreprocessing())
-      env.out() << "trivial predicate removal" << std::endl;
+     env->statistics->phase=Statistics::UNKNOWN_PHASE;
+     if (env->options->showPreprocessing())
+      env->out() << "trivial predicate removal" << std::endl;
 
      TrivialPredicateRemover().apply(prb);
    }
 */
 
    if (_options.generalSplitting()!=Options::RuleActivity::OFF) {
-     if (env.statistics->higherOrder || prb.hasPolymorphicSym()) {  // TODO: extend GeneralSplitting to support polymorphism (would higher-order make sense?)
+     if (env->statistics->higherOrder || prb.hasPolymorphicSym()) {  // TODO: extend GeneralSplitting to support polymorphism (would higher-order make sense?)
        if (outputAllowed()) {
-         env.beginOutput();
-         addCommentSignForSZS(env.out());
-         env.out() << "WARNING: Not using GeneralSplitting currently not compatible with polymorphic/higher-order inputs." << endl;
-         env.endOutput();
+         env->beginOutput();
+         addCommentSignForSZS(env->out());
+         env->out() << "WARNING: Not using GeneralSplitting currently not compatible with polymorphic/higher-order inputs." << endl;
+         env->endOutput();
        }
      } else {
-       env.statistics->phase=Statistics::GENERAL_SPLITTING;
-       if (env.options->showPreprocessing())
-         env.out() << "general splitting" << std::endl;
+       env->statistics->phase=Statistics::GENERAL_SPLITTING;
+       if (env->options->showPreprocessing())
+         env->out() << "general splitting" << std::endl;
 
        GeneralSplitting gs;
        gs.apply(prb);
      }
    }
 
-   if (!env.statistics->higherOrder && _options.equalityProxy()!=Options::EqualityProxy::OFF && prb.mayHaveEquality()) {
-     env.statistics->phase=Statistics::EQUALITY_PROXY;
-     if (env.options->showPreprocessing())
-       env.out() << "equality proxy" << std::endl;
+   if (!env->statistics->higherOrder && _options.equalityProxy()!=Options::EqualityProxy::OFF && prb.mayHaveEquality()) {
+     env->statistics->phase=Statistics::EQUALITY_PROXY;
+     if (env->options->showPreprocessing())
+       env->out() << "equality proxy" << std::endl;
 
      if(_options.useMonoEqualityProxy() && !prb.hasPolymorphicSym()){
        EqualityProxyMono proxy(_options.equalityProxy());
@@ -467,14 +467,14 @@ void Preprocess::preprocess(Problem& prb)
    if(_options.theoryFlattening()) {
      if (prb.hasPolymorphicSym()) { // TODO: extend theoryFlattening to support polymorphism?
        if (outputAllowed()) {
-         env.beginOutput();
-         addCommentSignForSZS(env.out());
-         env.out() << "WARNING: Not using TheoryFlattening currently not compatible with polymorphic inputs." << endl;
-         env.endOutput();
+         env->beginOutput();
+         addCommentSignForSZS(env->out());
+         env->out() << "WARNING: Not using TheoryFlattening currently not compatible with polymorphic inputs." << endl;
+         env->endOutput();
        }
      } else {
-       if(env.options->showPreprocessing())
-         env.out() << "theory flattening" << std::endl;
+       if(env->options->showPreprocessing())
+         env->out() << "theory flattening" << std::endl;
 
        TheoryFlattening tf;
        tf.apply(prb);
@@ -482,19 +482,19 @@ void Preprocess::preprocess(Problem& prb)
    }
 
    if (_options.blockedClauseElimination()) {
-     env.statistics->phase=Statistics::BLOCKED_CLAUSE_ELIMINATION;
-     if(env.options->showPreprocessing())
-       env.out() << "blocked clause elimination" << std::endl;
+     env->statistics->phase=Statistics::BLOCKED_CLAUSE_ELIMINATION;
+     if(env->options->showPreprocessing())
+       env->out() << "blocked clause elimination" << std::endl;
 
      BlockedClauseElimination bce;
      bce.apply(prb);
    }
 
-   if (env.options->showPreprocessing()) {
+   if (env->options->showPreprocessing()) {
      UnitList::Iterator uit(prb.units());
      while(uit.hasNext()) {
       Unit* u = uit.next();
-      env.out() << "[PP] final: " << u->toString() << std::endl;
+      env->out() << "[PP] final: " << u->toString() << std::endl;
      }
    }
 
@@ -502,9 +502,9 @@ void Preprocess::preprocess(Problem& prb)
      UIHelper::outputAllPremises(cerr, prb.units());
    }
 
-   if (env.options->showPreprocessing()) {
-     env.out() << "preprocessing finished" << std::endl;
-     env.endOutput();
+   if (env->options->showPreprocessing()) {
+     env->out() << "preprocessing finished" << std::endl;
+     env->endOutput();
    }
 } // Preprocess::preprocess ()
 
@@ -527,7 +527,7 @@ void Preprocess::preprocess1 (Problem& prb)
 {
   CALL("Preprocess::preprocess1");
 
-  ScopedLet<Statistics::ExecutionPhase> epLet(env.statistics->phase, Statistics::PREPROCESS_1);
+  ScopedLet<Statistics::ExecutionPhase> epLet(env->statistics->phase, Statistics::PREPROCESS_1);
 
   bool formulasSimplified = false;
 
@@ -546,7 +546,7 @@ void Preprocess::preprocess1 (Problem& prb)
     fu = Rectify::rectify(fu);
     FormulaUnit* rectFu = fu;
     // Simplify the formula if it contains true or false
-    if (!_options.newCNF() || env.statistics->higherOrder || prb.hasPolymorphicSym()) {
+    if (!_options.newCNF() || env->statistics->higherOrder || prb.hasPolymorphicSym()) {
       // NewCNF effectively implements this simplification already (but could have been skipped if higherOrder || hasPolymorphicSym)
       fu = SimplifyFalseTrue::simplify(fu);
     }
@@ -580,7 +580,7 @@ void Preprocess::preprocess2(Problem& prb)
 {
   CALL("Preprocess::preprocess2");
 
-  env.statistics->phase=Statistics::PREPROCESS_2;
+  env->statistics->phase=Statistics::PREPROCESS_2;
 
   UnitList::DelIterator us(prb.units());
   while (us.hasNext()) {
@@ -610,10 +610,10 @@ void Preprocess::naming(Problem& prb)
   CALL("Preprocess::naming");
   ASS(_options.naming());
 
-  env.statistics->phase=Statistics::NAMING;
+  env->statistics->phase=Statistics::NAMING;
   UnitList::DelIterator us(prb.units());
   //TODO fix the below
-  Naming naming(_options.naming(),false, env.statistics->higherOrder); // For now just force eprPreservingNaming to be false, should update Naming
+  Naming naming(_options.naming(),false, env->statistics->higherOrder); // For now just force eprPreservingNaming to be false, should update Naming
   while (us.hasNext()) {
     Unit* u = us.next();
     if (u->isClause()) {
@@ -638,7 +638,7 @@ void Preprocess::newCnf(Problem& prb)
 {
   CALL("Preprocess::newCnf");
 
-  env.statistics->phase=Statistics::NEW_CNF;
+  env->statistics->phase=Statistics::NEW_CNF;
 
   // TODO: this is an ugly copy-paste of "Preprocess::clausify"
 
@@ -648,14 +648,14 @@ void Preprocess::newCnf(Problem& prb)
   bool modified = false;
 
   UnitList::DelIterator us(prb.units());
-  NewCNF cnf(env.options->naming());
+  NewCNF cnf(env->options->naming());
   Stack<Clause*> clauses(32);
   while (us.hasNext()) {
     Unit* u = us.next();
-    if (env.options->showPreprocessing()) {
-      env.beginOutput();
-      env.out() << "[PP] clausify: " << u->toString() << std::endl;
-      env.endOutput();
+    if (env->options->showPreprocessing()) {
+      env->beginOutput();
+      env->out() << "[PP] clausify: " << u->toString() << std::endl;
+      env->endOutput();
     }
     if (u->isClause()) {
       if (static_cast<Clause*>(u)->isEmpty()) {
@@ -739,11 +739,11 @@ void Preprocess::preprocess3 (Problem& prb)
 
   bool modified = false;
 
-  env.statistics->phase=Statistics::PREPROCESS_3;
+  env->statistics->phase=Statistics::PREPROCESS_3;
   UnitList::DelIterator us(prb.units());
   while (us.hasNext()) {
     Unit* u = us.next();
-    Unit* v = preprocess3(u, env.statistics->higherOrder);
+    Unit* v = preprocess3(u, env->statistics->higherOrder);
     if (u!=v) {
       us.replace(v);
       modified = true;
@@ -759,7 +759,7 @@ void Preprocess::clausify(Problem& prb)
 {
   CALL("Preprocess::clausify");
 
-  env.statistics->phase=Statistics::CLAUSIFICATION;
+  env->statistics->phase=Statistics::CLAUSIFICATION;
 
   //we check if we haven't discovered an empty clause during preprocessing
   Unit* emptyClause = 0;
@@ -771,10 +771,10 @@ void Preprocess::clausify(Problem& prb)
   Stack<Clause*> clauses(32);
   while (us.hasNext()) {
     Unit* u = us.next();
-    if (env.options->showPreprocessing()) {
-      env.beginOutput();
-      env.out() << "[PP] clausify: " << u->toString() << std::endl;
-      env.endOutput();
+    if (env->options->showPreprocessing()) {
+      env->beginOutput();
+      env->out() << "[PP] clausify: " << u->toString() << std::endl;
+      env->endOutput();
     }
     if (u->isClause()) {
       if (static_cast<Clause*>(u)->isEmpty()) {

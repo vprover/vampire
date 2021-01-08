@@ -60,11 +60,11 @@ bool DistinctGroupExpansion::apply(UnitList*& units)
 
   bool added=false;
 
-  Stack<Signature::DistinctGroupMembers>& group_members = env.signature->distinctGroupMembers();
+  Stack<Signature::DistinctGroupMembers>& group_members = env->signature->distinctGroupMembers();
 
   // If this is updated then make sure you update the check in
   // Kernel::Signature::Symol::addToDistinctGroup as well
-  bool expandEverything = env.options->saturationAlgorithm()==Options::SaturationAlgorithm::FINITE_MODEL_BUILDING;
+  bool expandEverything = env->options->saturationAlgorithm()==Options::SaturationAlgorithm::FINITE_MODEL_BUILDING;
 
   bool someLeft = false;
 
@@ -74,8 +74,8 @@ bool DistinctGroupExpansion::apply(UnitList*& units)
       if( members->size()>1 && (members->size() <= EXPAND_UP_TO_SIZE || expandEverything)) {
         added=true;
         Formula* expansion = expand(*members);
-        if(env.options->showPreprocessing()){
-          env.out() << "  expansion adding " << expansion->toString() << endl;
+        if(env->options->showPreprocessing()){
+          env->out() << "  expansion adding " << expansion->toString() << endl;
         }
         // Currently we just say that these are from the Input, not $distinct or theory of ints
         UnitList::push(
@@ -87,7 +87,7 @@ bool DistinctGroupExpansion::apply(UnitList*& units)
   } 
 
   if(!someLeft){
-    env.signature->noDistinctGroupsLeft();
+    env->signature->noDistinctGroupsLeft();
   }
 
   return added;

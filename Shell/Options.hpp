@@ -206,6 +206,13 @@ public:
         LAST_TAG // Used for counting the number of tags
     };
     // update _tagNames at the end of Options constructor if you add a tag
+
+  enum class GroundingChoice : unsigned int {
+    FRESH,      // a fresh  constant (per sort)
+    COMMON,     // the most common constant in the input (per  sort)
+    INPUT,      // every constant in the input signature
+    ALL         // every constant in the universal signature
+  };
     
   enum class TheoryInstSimp : unsigned int {
     OFF,
@@ -376,6 +383,9 @@ public:
     /** this mode only outputs the input problem, without any preprocessing */
     OUTPUT,
     PORTFOLIO,
+#if VTHREADED
+    THREADED,
+#endif
     PREPROCESS,
     PREPROCESS2,
     PROFILE,
@@ -1844,7 +1854,7 @@ bool _hard;
     }
 
 
-    //Cheating - we refer to env.options to ask about option values
+    //Cheating - we refer to env->options to ask about option values
     // There is an assumption that the option values used have been
     // set to their final values
     // These are used in randomisation where we guarantee a certain
@@ -2207,6 +2217,11 @@ public:
   bool splittingEagerRemoval() const { return _splittingEagerRemoval.actualValue; }
   SplittingCongruenceClosure splittingCongruenceClosure() const { return _splittingCongruenceClosure.actualValue; }
   CCUnsatCores ccUnsatCores() const { return _ccUnsatCores.actualValue; }
+
+#if VTHREADED
+  bool persistentGrounding() const { return _persistentGrounding.actualValue; }
+  GroundingChoice persistentGroundingChoice() const { return _persistentGroundingChoice.actualValue; }
+#endif
 
   void setProof(Proof p) { _proof.actualValue = p; }
     
@@ -2576,6 +2591,11 @@ private:
   ChoiceOptionValue<SplittingDeleteDeactivated> _splittingDeleteDeactivated;
   BoolOptionValue _splittingFastRestart;
   BoolOptionValue _splittingBufferedSolver;
+
+#if VTHREADED
+  BoolOptionValue _persistentGrounding;
+  ChoiceOptionValue<GroundingChoice> _persistentGroundingChoice;
+#endif
 
   ChoiceOptionValue<Statistics> _statistics;
   BoolOptionValue _superpositionFromVariables;

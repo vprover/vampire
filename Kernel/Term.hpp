@@ -385,6 +385,7 @@ public:
   TermList* args()
   { return _args + _arity; }
   unsigned hash() const;
+
   /** return the arity */
   unsigned arity() const
   { return _arity; }
@@ -535,6 +536,9 @@ public:
   }
   unsigned getDistinctVars() const
   {
+#if VTHREADED
+    return computeDistinctVars();
+#else
     if(_args[0]._info.distinctVars==TERM_DIST_VAR_UNKNOWN) {
       unsigned res=computeDistinctVars();
       if(res<TERM_DIST_VAR_UNKNOWN) {
@@ -545,6 +549,7 @@ public:
       ASS_L(_args[0]._info.distinctVars,0x100000);
       return _args[0]._info.distinctVars;
     }
+#endif
   }
 
   bool couldBeInstanceOf(Term* t)
@@ -640,6 +645,12 @@ protected:
   unsigned _id;
   /** The number of this symbol in a signature */
   unsigned _functor;
+#if VTHREADED
+public:
+  // functor ID for multi-threaded term sharing
+  unsigned functorId;
+protected:
+#endif
   /** Arity of the symbol */
   unsigned _arity : 27;
   /** colour, used in interpolation and symbol elimination */

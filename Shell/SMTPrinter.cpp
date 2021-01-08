@@ -58,7 +58,7 @@ void SMTPrinter::smtPrint(Formula* formula, ostream& out)
 {
   CALL("SMTPrinter::smtPrint");
         
-  Signature *sig = env.signature;
+  Signature *sig = env->signature;
   unsigned symbNum;
   Symbol* symb;
   TermList* args;
@@ -152,7 +152,7 @@ void SMTPrinter::smtPrint(Formula* formula, ostream& out)
 /*print terms in SMT format*/    
 void SMTPrinter::smtPrint(Term* term, ostream& out)
 {
-  Signature *sig = env.signature;
+  Signature *sig = env->signature;
   unsigned int symbNum = term->functor();
   Symbol* symb = sig->getFunction(symbNum);
         

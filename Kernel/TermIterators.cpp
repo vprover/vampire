@@ -448,9 +448,9 @@ TermList NonVariableNonTypeIterator::next()
   _added = 0;  
   Signature::Symbol* sym;
   if (t->isLiteral()) {
-    sym = env.signature->getPredicate(t->functor());
+    sym = env->signature->getPredicate(t->functor());
   } else{
-    sym = env.signature->getFunction(t->functor());
+    sym = env->signature->getFunction(t->functor());
   }
   unsigned taArity; 
   unsigned arity;

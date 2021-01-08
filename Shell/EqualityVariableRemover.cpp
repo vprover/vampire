@@ -163,13 +163,13 @@ void EqualityVariableRemover::eliminate(Constraint* c, ConstraintRCList*& lst)
       }
     }
   }
-  env.statistics->equalityPropagationVariables++;
+  env->statistics->equalityPropagationVariables++;
 
-  static DHSet<Constraint*> toRemove;
+  VTHREAD_LOCAL static DHSet<Constraint*> toRemove;
   toRemove.reset();
   toRemove.loadFromIterator(_v2c.getConsraintsWithBound(posId));
   toRemove.loadFromIterator(_v2c.getConsraintsWithBound(negId));
-  env.statistics->equalityPropagationConstraints += toRemove.size();
+  env->statistics->equalityPropagationConstraints += toRemove.size();
 
   ConstraintRCList::DelIterator cit(lst);
   while(cit.hasNext()) {
@@ -194,7 +194,7 @@ bool EqualityVariableRemover::allowedEquality(Constraint& c)
   CALL("EqualityVariableRemover::allowedEquality");
 
 //  return true;
-  return c.coeffCnt()<=env.options->bpMaximalPropagatedEqualityLength();
+  return c.coeffCnt()<=env->options->bpMaximalPropagatedEqualityLength();
 }
 
 void EqualityVariableRemover::scan(ConstraintRCList* lst)

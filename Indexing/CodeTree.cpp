@@ -211,7 +211,7 @@ void CodeTree::ILStruct::putIntoSequence(ILStruct* previous_)
 
   if(!varCnt) { return; }
 
-  static DArray<pair<unsigned,unsigned> > gvArr;
+  VTHREAD_LOCAL static DArray<pair<unsigned,unsigned> > gvArr;
   gvArr.ensure(varCnt);
   for(unsigned i=0;i<varCnt;i++) {
     gvArr[i].first=globalVarNumbers[i];
@@ -391,7 +391,7 @@ CodeTree::SearchStruct* CodeTree::CodeOp::getSearchStruct()
   //the following line gives warning for not being according
   //to the standard, so we have to work around
 //  static const size_t opOfs=offsetof(SearchStruct,landingOp);
-  static const size_t opOfs=reinterpret_cast<size_t>(
+  const size_t opOfs=reinterpret_cast<size_t>(
 	&reinterpret_cast<SearchStruct*>(8)->landingOp)-8;
 
   SearchStruct* res=reinterpret_cast<SearchStruct*>(
@@ -632,7 +632,7 @@ CodeTree::~CodeTree()
 {
   CALL("CodeTree::~CodeTree");
       
-  static Stack<CodeOp*> top_ops; 
+  VTHREAD_LOCAL static Stack<CodeOp*> top_ops; 
   // each top_op is either a first op of a Block or a SearchStruct
   // but it cannot be both since SearchStructs don't occur inside blocks
   top_ops.reset();
@@ -684,7 +684,7 @@ CodeTree::CodeBlock* CodeTree::firstOpToCodeBlock(CodeOp* op)
   //the following line gives warning for not being according
   //to the standard, so we have to work around
 //  static const size_t opOfs=offsetof(CodeBlock,_array);
-  static const size_t opOfs=reinterpret_cast<size_t>(
+  const size_t opOfs=reinterpret_cast<size_t>(
 	&reinterpret_cast<CodeBlock*>(8)->_array[0])-8;
 
   CodeBlock* res=reinterpret_cast<CodeBlock*>(
@@ -699,7 +699,7 @@ void CodeTree::visitAllOps(Visitor visitor)
 {
   CALL("CodeTree::visitAllOps");
 
-  static Stack<CodeOp*> top_ops; 
+  VTHREAD_LOCAL static Stack<CodeOp*> top_ops; 
   // each top_op is either a first op of a Block or a SearchStruct
   // but it cannot be both since SearchStructs don't occur inside blocks
   top_ops.reset();
@@ -779,7 +779,7 @@ void CodeTree::compileTerm(Term* trm, CodeStack& code, CompileContext& cctx, boo
 {
   CALL("CodeTree::compileTerm");
 
-  static Stack<unsigned> globalCounterparts;
+  VTHREAD_LOCAL static Stack<unsigned> globalCounterparts;
   globalCounterparts.reset();
 
   cctx.nextLit();
@@ -887,8 +887,8 @@ void CodeTree::incorporate(CodeStack& code)
     return;
   }
 
-  static const unsigned checkFunOpThreshold=5; //must be greater than 1 or it would cause loops
-  static const unsigned checkGroundTermOpThreshold=3; //must be greater than 1 or it would cause loops
+  const unsigned checkFunOpThreshold=5; //must be greater than 1 or it would cause loops
+  const unsigned checkGroundTermOpThreshold=3; //must be greater than 1 or it would cause loops
 
   size_t clen=code.length();
   CodeOp** tailTarget;
@@ -1011,9 +1011,9 @@ void CodeTree::compressCheckOps(CodeOp* chainStart, SearchStruct::Kind kind)
   CALL("CodeTree::compressCheckOps");
   ASS(chainStart->alternative());
 
-  static Stack<CodeOp*> toDo;
-  static Stack<CodeOp*> chfOps;
-  static Stack<CodeOp*> otherOps;
+  VTHREAD_LOCAL static Stack<CodeOp*> toDo;
+  VTHREAD_LOCAL static Stack<CodeOp*> chfOps;
+  VTHREAD_LOCAL static Stack<CodeOp*> otherOps;
   toDo.reset();
   chfOps.reset();
   otherOps.reset();

@@ -45,15 +45,15 @@ bool ModelPrinter::haveNonDefaultSorts()
 {
   CALL("ModelPrinter::haveNonDefaultSorts");
 
-  unsigned funs = env.signature->functions();
+  unsigned funs = env->signature->functions();
   for(unsigned i=0; i<funs; i++) {
-    if(env.signature->isTypeConOrSup(i)){ continue; }
-    OperatorType* type = env.signature->getFunction(i)->fnType();
+    if(env->signature->isTypeConOrSup(i)){ continue; }
+    OperatorType* type = env->signature->getFunction(i)->fnType();
     if(!type->isAllDefault()) { return false; }
   }
-  unsigned preds = env.signature->predicates();
+  unsigned preds = env->signature->predicates();
   for(unsigned i=1; i<preds; i++) {
-    OperatorType* type = env.signature->getPredicate(i)->predType();
+    OperatorType* type = env->signature->getPredicate(i)->predType();
     if(!type->isAllDefault()) { return false; }
   }
   return true;
@@ -63,10 +63,10 @@ bool ModelPrinter::isEprProblem()
 {
   CALL("ModelPrinter::isEprProblem");
 
-  unsigned funCnt = env.signature->functions();
+  unsigned funCnt = env->signature->functions();
   for(unsigned i=0; i<funCnt; i++) {
-    if(env.signature->isTypeConOrSup(i)){ continue; }
-    if(env.signature->functionArity(i)>0) {
+    if(env->signature->isTypeConOrSup(i)){ continue; }
+    if(env->signature->functionArity(i)>0) {
       return false;
     }
   }
@@ -88,7 +88,7 @@ bool ModelPrinter::tryOutput(ostream& stm)
     bool assignment;
     removedPreds.next(pred, assignment);
     ASS_NEQ(pred,0);
-    unsigned arity = env.signature->predicateArity(pred);
+    unsigned arity = env->signature->predicateArity(pred);
     args.reset();
     for(unsigned i=0; i<arity; i++) {
       args.push(TermList(i, false));
@@ -99,9 +99,9 @@ bool ModelPrinter::tryOutput(ostream& stm)
 
   collectTrueLits();
   //TODO fix the below AYB
-  if(env.signature->functions()!=0) {
+  if(env->signature->functions()!=0) {
     if(_usedConstants.isEmpty()) {
-      unsigned newFunc = env.signature->addFreshFunction(0,"c");
+      unsigned newFunc = env->signature->addFreshFunction(0,"c");
       TermList newConstTrm(Term::create(newFunc, 0, 0));
       _usedConstants.push(newConstTrm);
       _usedConstantSet.insert(newFunc);
@@ -121,7 +121,7 @@ bool ModelPrinter::isEquality(Literal* lit)
 {
   CALL("ModelPrinter::isEquality");
 
-  return lit->isEquality() || env.signature->getPredicate(lit->functor())->equalityProxy();
+  return lit->isEquality() || env->signature->getPredicate(lit->functor())->equalityProxy();
 }
 
 /**
@@ -196,10 +196,10 @@ void ModelPrinter::generateNewInstances(Literal* base, TermStack& domain, DHSet<
   unsigned arity = base->arity();
   unsigned domSz= domain.size();
 
-  static DArray<TermList> args;
-  static DArray<bool> variables;
-  static DArray<unsigned> nextIndexes;
-  OperatorType* predType = env.signature->getPredicate(base->functor())->predType();
+  VTHREAD_LOCAL static DArray<TermList> args;
+  VTHREAD_LOCAL static DArray<bool> variables;
+  VTHREAD_LOCAL static DArray<unsigned> nextIndexes;
+  OperatorType* predType = env->signature->getPredicate(base->functor())->predType();
 
   args.ensure(arity);
   variables.ensure(arity);
@@ -284,7 +284,7 @@ void ModelPrinter::getInstances(LiteralStack& trueLits, TermStack& domain, Liter
 {
   CALL("ModelPrinter::getInstances");
 
-  static DHSet<Literal*> instSet;
+  VTHREAD_LOCAL static DHSet<Literal*> instSet;
   instSet.reset();
 
   std::sort(trueLits.begin(), trueLits.end(), InstLitComparator());
@@ -303,7 +303,7 @@ void ModelPrinter::analyzeEqualityAndPopulateDomain()
   LiteralStack eqInsts;
   getInstances(_trueEqs, eqInstDomain, eqInsts);
 
-  unsigned funCnt = env.signature->functions();
+  unsigned funCnt = env->signature->functions();
   IntUnionFind uif(funCnt);
 
   LiteralStack::Iterator eqit(eqInsts);
@@ -329,7 +329,7 @@ void ModelPrinter::analyzeEqualityAndPopulateDomain()
     ALWAYS(ecElIt.hasNext());
     unsigned firstFunc = ecElIt.next();
     //TODO is the below correct? AYB
-    if(env.signature->isTypeConOrSup(firstFunc)){ continue; }
+    if(env->signature->isTypeConOrSup(firstFunc)){ continue; }
 
     if(!_usedConstantSet.contains(firstFunc)) {
       ASS(!ecElIt.hasNext()); //constant that is not used is alone in its equivalence class
@@ -338,9 +338,9 @@ void ModelPrinter::analyzeEqualityAndPopulateDomain()
     TermList firstTerm = TermList(Term::create(firstFunc, 0, 0));
     vstring firstTermStr = firstTerm.toString();
     TermList eqClassSort = SortHelper::getResultSort(firstTerm.term());
-    unsigned reprFunc = env.signature->addStringConstant(firstTermStr);
+    unsigned reprFunc = env->signature->addStringConstant(firstTermStr);
     OperatorType* reprType = OperatorType::getConstantsType(eqClassSort);
-    env.signature->getFunction(reprFunc)->setType(reprType);
+    env->signature->getFunction(reprFunc)->setType(reprType);
     TermList reprTerm = TermList(Term::create(reprFunc, 0, 0));
     _rewrites.insert(firstTerm, reprTerm);
 
@@ -359,7 +359,7 @@ void ModelPrinter::rewriteLits(LiteralStack& lits)
 {
   CALL("ModelPrinter::rewriteLits");
 
-  static TermStack args;
+  VTHREAD_LOCAL static TermStack args;
 
   LiteralStack::Iterator iter(lits);
   while(iter.hasNext()) {

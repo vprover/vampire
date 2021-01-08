@@ -52,7 +52,7 @@ void TermCodeTree::insert(TermInfo* ti)
 {
   CALL("TermCodeTree::insert");
   
-  static CodeStack code;
+  VTHREAD_LOCAL static CodeStack code;
   code.reset();
 
 
@@ -63,7 +63,7 @@ void TermCodeTree::insert(TermInfo* ti)
   else {
     ASS(t.isTerm());
     
-    static CompileContext cctx;
+    VTHREAD_LOCAL static CompileContext cctx;
     cctx.init();
     compileTerm(t.term(), code, cctx, false);
     cctx.deinit(this);
@@ -81,8 +81,8 @@ void TermCodeTree::remove(const TermInfo& ti)
 {
   CALL("TermCodeTree::remove");
   
-  static RemovingTermMatcher rtm;
-  static Stack<CodeOp*> firstsInBlocks;
+  VTHREAD_LOCAL static RemovingTermMatcher rtm;
+  VTHREAD_LOCAL static Stack<CodeOp*> firstsInBlocks;
   firstsInBlocks.reset();
   
   FlatTerm* ft=FlatTerm::create(ti.t);

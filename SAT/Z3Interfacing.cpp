@@ -102,9 +102,9 @@ void Z3Interfacing::addClause(SATClause* cl,bool withGuard)
   PRINT_CPP("{ expr cl = exprs.back(); exprs.pop_back(); cout << \"clause: \" << cl << endl; solver.add(cl); }")
   
   if(_showZ3){
-    env.beginOutput();
-    env.out() << "[Z3] add (clause): " << z3clause << std::endl;
-    env.endOutput();
+    env->beginOutput();
+    env->out() << "[Z3] add (clause): " << z3clause << std::endl;
+    env->endOutput();
   }
 
   _solver.add(z3clause);
@@ -125,9 +125,9 @@ SATSolver::Status Z3Interfacing::solve(unsigned conflictCountLimit)
   z3::check_result result = _assumptions.empty() ? _solver.check() : _solver.check(_assumptions);
 
   if(_showZ3){
-    env.beginOutput();
-    env.out() << "[Z3] solve result: " << result << std::endl;
-    env.endOutput();
+    env->beginOutput();
+    env->out() << "[Z3] solve result: " << result << std::endl;
+    env->endOutput();
   }
 
   switch(result){
@@ -170,7 +170,7 @@ SATSolver::Status Z3Interfacing::solveUnderAssumptions(const SATLiteralStack& as
   // load assumptions:
   SATLiteralStack::ConstIterator it(assumps);
 
-  static DHMap<vstring,SATLiteral> lookup;
+  VTHREAD_LOCAL static DHMap<vstring,SATLiteral> lookup;
   lookup.reset();
   unsigned n=0;
   vstring ps="$_$_$";
@@ -387,7 +387,7 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
     OperatorType* type;
     bool is_equality = false;
     if(isLit){
-      symb = env.signature->getPredicate(trm->functor());
+      symb = env->signature->getPredicate(trm->functor());
       OperatorType* ptype = symb->predType();
       type = ptype;
       range_sort = Term::boolSort();
@@ -397,7 +397,7 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
          ASS(trm->arity()==2);
       }
     }else{
-      symb = env.signature->getFunction(trm->functor());
+      symb = env->signature->getFunction(trm->functor());
       OperatorType* ftype = symb->fnType();
       type = ftype;
       range_sort = SortHelper::getResultSort(trm);
@@ -420,13 +420,13 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
         RationalConstantType value = symb->rationalValue();
         return _context.real_val(value.numerator().toInner(),value.denominator().toInner());
       }
-      if(!isLit && env.signature->isFoolConstantSymbol(true,trm->functor())){
+      if(!isLit && env->signature->isFoolConstantSymbol(true,trm->functor())){
 
         PRINT_CPP("exprs.push_back(c.bool_val(true));")
 
         return _context.bool_val(true);
       }
-      if(!isLit && env.signature->isFoolConstantSymbol(false,trm->functor())){
+      if(!isLit && env->signature->isFoolConstantSymbol(false,trm->functor())){
 
         PRINT_CPP("exprs.push_back(c.bool_val(false));")
 
@@ -450,7 +450,7 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
       }
 
       // If not value then create constant symbol
-      //cout << "HERE " << env.sorts->sortName(range_sort) << " for " << symb->name() << endl; 
+      //cout << "HERE " << env->sorts->sortName(range_sort) << " for " << symb->name() << endl; 
       return getNameConst(symb->name(),getz3sort(range_sort));
     }
     ASS(trm->arity()>0);
@@ -792,9 +792,9 @@ z3::expr Z3Interfacing::getRepresentation(SATLiteral slit,bool withGuard)
         z3::expr naming = (bname == e);
         _solver.add(naming);
   if(_showZ3){
-    env.beginOutput();
-    env.out() << "[Z3] add (naming): " << naming << std::endl;
-    env.endOutput();
+    env->beginOutput();
+    env->out() << "[Z3] add (naming): " << naming << std::endl;
+    env->endOutput();
   }
       }
 
@@ -890,9 +890,9 @@ void Z3Interfacing::addRealNonZero(z3::expr t)
    z3::expr zero = _context.real_val(0);
    z3::expr side = t!=zero;
   if(_showZ3){
-    env.beginOutput();
-    env.out() << "[Z3] add (RealNonZero): " << side << std::endl;
-    env.endOutput();
+    env->beginOutput();
+    env->out() << "[Z3] add (RealNonZero): " << side << std::endl;
+    env->endOutput();
   }
   _solver.add(side);
 }
@@ -906,13 +906,13 @@ void Z3Interfacing::addTruncatedOperations(z3::expr_vector args, Interpretation 
 {
   CALL("Z3Interfacing::addTruncatedOperations");
   
-  unsigned qfun = env.signature->getInterpretingSymbol(qi);
-  Signature::Symbol* qsymb = env.signature->getFunction(qfun); 
+  unsigned qfun = env->signature->getInterpretingSymbol(qi);
+  Signature::Symbol* qsymb = env->signature->getFunction(qfun); 
   ASS(qsymb);
   z3::symbol qs = _context.str_symbol(qsymb->name().c_str());
   
-  unsigned rfun = env.signature->getInterpretingSymbol(ti);
-  Signature::Symbol* rsymb = env.signature->getFunction(rfun);
+  unsigned rfun = env->signature->getInterpretingSymbol(ti);
+  Signature::Symbol* rsymb = env->signature->getFunction(rfun);
   z3::symbol rs = _context.str_symbol(rsymb->name().c_str());
 
   z3::expr e1 = args[0];
@@ -970,12 +970,12 @@ void Z3Interfacing::addFloorOperations(z3::expr_vector args, Interpretation qi, 
 {
   CALL("Z3Interfacing::addFloorOperations");
 
-  unsigned qfun = env.signature->getInterpretingSymbol(qi);
-  Signature::Symbol* qsymb = env.signature->getFunction(qfun);
+  unsigned qfun = env->signature->getInterpretingSymbol(qi);
+  Signature::Symbol* qsymb = env->signature->getFunction(qfun);
   z3::symbol qs = _context.str_symbol(qsymb->name().c_str());
 
-  unsigned rfun = env.signature->getInterpretingSymbol(ti);
-  Signature::Symbol* rsymb = env.signature->getFunction(rfun);
+  unsigned rfun = env->signature->getInterpretingSymbol(ti);
+  Signature::Symbol* rsymb = env->signature->getFunction(rfun);
   z3::symbol rs = _context.str_symbol(rsymb->name().c_str());
 
   z3::expr e1 = args[0];

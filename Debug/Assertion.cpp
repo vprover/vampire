@@ -20,6 +20,7 @@
 #include "Lib/Allocator.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/System.hpp"
+#include "Lib/Threading.hpp"
 #include "Lib/Timer.hpp"
 #include "Shell/Options.hpp"
 
@@ -76,6 +77,7 @@ void Assertion::violatedStrEquality(const char* file, int line, const char* val1
 void Assertion::checkType(const char* file, int line, const void* ptr, const char* assumed,
                           const char* ptrStr)
 {
+#if !TSAN
   Allocator::Descriptor* desc = Allocator::Descriptor::find(ptr);
 
   if (!desc) {
@@ -112,6 +114,7 @@ void Assertion::checkType(const char* file, int line, const void* ptr, const cha
     cout << "----- end of stack dump -----\n";
   }
   abortAfterViolation();
+#endif
 } // Assertion::violated
 
 /**

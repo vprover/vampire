@@ -34,8 +34,8 @@
 
 using namespace Kernel;
 
-unsigned Unit::_lastNumber = 0;
-unsigned Unit::_firstNonPreprocessingNumber = 0;
+VTHREAD_LOCAL unsigned Unit::_firstNonPreprocessingNumber = 0;
+VATOMIC(unsigned) Unit::_lastNumber(0);
 unsigned Unit::_lastParsingNumber = 0;
 
 /**

@@ -158,7 +158,7 @@ void FlatTerm::swapCommutativePredicateArguments()
   }
   ASS_EQ(secStart+secLen,_length);
 
-  static DArray<Entry> buf;
+  VTHREAD_LOCAL static DArray<Entry> buf;
   if(firstLen>secLen) {
     buf.ensure(firstLen);
     memcpy(buf.array(), &_data[firstStart], firstLen*sizeof(Entry));

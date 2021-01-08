@@ -103,6 +103,9 @@ void Options::init()
                                         "model_check",
                                         "output",
                                         "portfolio",
+#if VTHREADED
+                                        "threaded",
+#endif
                                         "preprocess",
                                         "preprocess2",
                                         "profile",
@@ -117,6 +120,9 @@ void Options::init()
     "  -vampire: the standard mode of operation for first-order theorem proving\n"
     "  -portfolio: a portfolio mode running a specified schedule (see schedule)\n"
     "  -casc, casc_sat, smtcomp - like portfolio mode, with competition specific\n     presets for schedule, etc.\n"
+#if VTHREADED
+    "  -threaded: like portfolio, but in thread-parallel (experimental)\n"
+#endif
     "  -preprocess,axiom_selection,clausify,grounding: modes for producing output\n      for other solvers.\n"
     "  -tpreprocess,tclausify: output modes for theory input (clauses are quantified\n      with sort information).\n"
     "  -output,profile: output information about the problem\n"
@@ -145,12 +151,30 @@ void Options::init()
          "struct_induction"});
     _schedule.description = "Schedule to be run by the portfolio mode. casc and smtcomp usually point to the most recent schedule in that category. Note that some old schedules may contain option values that are no longer supported - see ignore_missing.";
     _lookup.insert(&_schedule);
-    _schedule.reliesOnHard(Or(_mode.is(equal(Mode::CASC_HOL)),_mode.is(equal(Mode::CASC)),_mode.is(equal(Mode::CASC_SAT)),_mode.is(equal(Mode::SMTCOMP)),_mode.is(equal(Mode::PORTFOLIO))));
+    _schedule.reliesOnHard(Or(
+      _mode.is(equal(Mode::CASC)),
+      _mode.is(equal(Mode::CASC_HOL)),
+      _mode.is(equal(Mode::CASC_SAT)),
+      _mode.is(equal(Mode::SMTCOMP)),
+#if VTHREADED
+      _mode.is(equal(Mode::THREADED)),
+#endif
+      _mode.is(equal(Mode::PORTFOLIO))
+    ));
 
     _multicore = UnsignedOptionValue("cores","",1);
     _multicore.description = "When running in portfolio modes (including casc or smtcomp modes) specify the number of cores, set to 0 to use maximum";
     _lookup.insert(&_multicore);
-    _multicore.reliesOnHard(Or(_mode.is(equal(Mode::CASC)),_mode.is(equal(Mode::CASC_HOL)),_mode.is(equal(Mode::CASC_SAT)),_mode.is(equal(Mode::SMTCOMP)),_mode.is(equal(Mode::PORTFOLIO))));
+    _multicore.reliesOnHard(Or(
+      _mode.is(equal(Mode::CASC)),
+      _mode.is(equal(Mode::CASC_HOL)),
+      _mode.is(equal(Mode::CASC_SAT)),
+      _mode.is(equal(Mode::SMTCOMP)),
+#if VTHREADED
+      _mode.is(equal(Mode::THREADED)),
+#endif
+      _mode.is(equal(Mode::PORTFOLIO))
+    ));
 
     _ltbLearning = ChoiceOptionValue<LTBLearning>("ltb_learning","ltbl",LTBLearning::OFF,{"on","off","biased"});
     _ltbLearning.description = "Perform learning in LTB mode";
@@ -971,6 +995,21 @@ void Options::init()
     _lookup.insert(&_simulatedTimeLimit);
     _simulatedTimeLimit.tag(OptionTag::LRS);
 
+#if VTHREADED
+      _persistentGrounding = BoolOptionValue("persistent_grounding", "pg", false);
+      _persistentGrounding.description = "Ground all clauses and feed them into a SAT solver. SAT solver persists across proof attempts.";
+      _persistentGrounding.tag(OptionTag::SATURATION);
+      _persistentGrounding.setExperimental(); 
+      _lookup.insert(&_persistentGrounding);
+
+      _persistentGroundingChoice = ChoiceOptionValue<GroundingChoice>("persistent_grounding_choice", "pgc", 
+                                                            GroundingChoice::FRESH, {"fresh","common",
+                                                                                     "input","all"});
+      _persistentGroundingChoice.description = "How to ground clauses with persistent grounding";
+      _persistentGroundingChoice.tag(OptionTag::SATURATION);
+      _persistentGroundingChoice.setExperimental(); 
+      _lookup.insert(&_persistentGroundingChoice);
+#endif
 
   //*********************** Inferences  ***********************
 
@@ -2119,10 +2158,10 @@ void Options::set(const char* name,const char* value, bool longOpt)
         break;
       case IgnoreMissing::WARN:
         if (outputAllowed()) {
-          env.beginOutput();
-          addCommentSignForSZS(env.out());
-          env.out() << "WARNING: invalid value "<< value << " for option " << name << endl;
-          env.endOutput();
+          env->beginOutput();
+          addCommentSignForSZS(env->out());
+          env->out() << "WARNING: invalid value "<< value << " for option " << name << endl;
+          env->endOutput();
         }
         break;
       case IgnoreMissing::ON:
@@ -2135,10 +2174,10 @@ void Options::set(const char* name,const char* value, bool longOpt)
       vstring msg = (vstring)name + (longOpt ? " is not a valid option" : " is not a valid short option (did you mean --?)");
       if (_ignoreMissing.actualValue == IgnoreMissing::WARN) {
         if (outputAllowed()) {
-          env.beginOutput();
-          addCommentSignForSZS(env.out());
-          env.out() << "WARNING: " << msg << endl;
-          env.endOutput();
+          env->beginOutput();
+          addCommentSignForSZS(env->out());
+          env->out() << "WARNING: " << msg << endl;
+          env->endOutput();
         }
         return;
       } // else:
@@ -2169,7 +2208,7 @@ void Options::set(const vstring& name,const vstring& value)
 
 bool Options::OptionHasValue::check(Property*p){
           CALL("Options::OptionHasValue::check");
-          AbstractOptionValue* opt = env.options->getOptionValueByName(option_value);
+          AbstractOptionValue* opt = env->options->getOptionValueByName(option_value);
           ASS(opt);
           return opt->getStringOfActual()==value;
 }
@@ -2397,10 +2436,10 @@ bool Options::OptionValue<T>::randomize(Property* prop){
   CALL("Options::OptionValue::randomize()");
 
   DArray<vstring>* choices = nullptr;
-  if(env.options->randomStrategy()==RandomStrategy::NOCHECK) prop=0;
+  if(env->options->randomStrategy()==RandomStrategy::NOCHECK) prop=0;
 
   // Only randomize if we have a property and need it or don't have one and don't need it!
-  if( env.options->randomStrategy()!=RandomStrategy::NOCHECK && 
+  if( env->options->randomStrategy()!=RandomStrategy::NOCHECK && 
       ((prop && !hasProblemConstraints()) || (!prop && hasProblemConstraints()))
     ){
     return false;
@@ -2425,7 +2464,7 @@ bool Options::OptionValue<T>::randomize(Property* prop){
   return true;
 }
 
-//TODO should not use cout, should use env.out
+//TODO should not use cout, should use env->out
 template<typename T>
 bool Options::OptionValue<T>::checkConstraints(){
      CALL("Options::OptionValue::checkConstraints");
@@ -2434,17 +2473,17 @@ bool Options::OptionValue<T>::checkConstraints(){
        const OptionValueConstraintUP<T>& con = it.next();
        if(!con->check(*this)){
 
-         if(env.options->mode()==Mode::SPIDER){
+         if(env->options->mode()==Mode::SPIDER){
            reportSpiderFail();
            USER_ERROR("\nBroken Constraint: "+con->msg(*this));
          }
 
          if(con->isHard()){ 
-           if(env.options->randomStrategy()!=RandomStrategy::OFF)
+           if(env->options->randomStrategy()!=RandomStrategy::OFF)
               return false; // Skip warning for Hard
            USER_ERROR("\nBroken Constraint: "+con->msg(*this));
          }
-         switch(env.options->getBadOptionChoice()){
+         switch(env->options->getBadOptionChoice()){
            case BadOption::HARD :
                USER_ERROR("\nBroken Constraint: "+con->msg(*this));
            case BadOption::SOFT :
@@ -2476,12 +2515,12 @@ bool Options::OptionValue<T>::checkProblemConstraints(Property* prop){
       // Constraint should hold whenever the option is set
       if(is_set && !con->check(prop)){
 
-         if(env.options->mode()==Mode::SPIDER){
+         if(env->options->mode()==Mode::SPIDER){
            reportSpiderFail();
            USER_ERROR("WARNING: " + longName + con->msg());
          }
 
-         switch(env.options->getBadOptionChoice()){
+         switch(env->options->getBadOptionChoice()){
          case BadOption::OFF: break;
          default:
            cout << "WARNING: " << longName << con->msg() << endl;
@@ -2826,12 +2865,12 @@ void Options::readOptionsString(vstring optionsString,bool assign)
                 USER_ERROR("value "+value+" for option "+ param +" not known");
                 break;
               case IgnoreMissing::WARN:
-                env.beginOutput();
+                env->beginOutput();
                 if (outputAllowed()) {
-                  env.beginOutput();
-                  addCommentSignForSZS(env.out());
-                  env.out() << "WARNING: value " << value << " for option "<< param <<" not known" << endl;
-                  env.endOutput();
+                  env->beginOutput();
+                  addCommentSignForSZS(env->out());
+                  env->out() << "WARNING: value " << value << " for option "<< param <<" not known" << endl;
+                  env->endOutput();
                 }
                 break;
               case IgnoreMissing::ON:
@@ -2852,12 +2891,12 @@ void Options::readOptionsString(vstring optionsString,bool assign)
         USER_ERROR("option "+param+" not known");
         break;
       case IgnoreMissing::WARN:
-        env.beginOutput();
+        env->beginOutput();
         if (outputAllowed()) {
-          env.beginOutput();
-          addCommentSignForSZS(env.out());
-          env.out() << "WARNING: option "<< param << " not known." << endl;
-          env.endOutput();
+          env->beginOutput();
+          addCommentSignForSZS(env->out());
+          env->out() << "WARNING: option "<< param << " not known." << endl;
+          env->endOutput();
         }
         break;
       case IgnoreMissing::ON:
@@ -3043,7 +3082,7 @@ bool Options::complete(const Problem& prb) const
 {
   CALL("Options::complete");
 
-  if(env.statistics->higherOrder){
+  if(env->statistics->higherOrder){
     //safer for competition
     return false;
   }
@@ -3072,7 +3111,7 @@ bool Options::complete(const Problem& prb) const
   }
 
   // preprocessing
-  if (env.signature->hasDistinctGroups()) {
+  if (env->signature->hasDistinctGroups()) {
     return false;
   }
 

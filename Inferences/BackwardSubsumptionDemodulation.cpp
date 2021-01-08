@@ -151,7 +151,7 @@ void BackwardSubsumptionDemodulation::perform(Clause* sideCl, BwSimplificationRe
   Literal* lmLit1 = best2.first.lit();
   Literal* lmLit2 = best2.second.lit();
 
-  static vvector<BwSimplificationRecord> simplificationsStorage;
+  VTHREAD_LOCAL static vvector<BwSimplificationRecord> simplificationsStorage;
   ASS_EQ(simplificationsStorage.size(), 0);
 
   if (!lmLit1->isEquality() || !lmLit1->isPositive()) {
@@ -296,7 +296,7 @@ void BackwardSubsumptionDemodulation::performWithQueryLit(Clause* sideCl, Litera
 /// Returns true iff the main premise has been simplified.
 bool BackwardSubsumptionDemodulation::simplifyCandidate(Clause* sideCl, Clause* mainCl, vvector<BwSimplificationRecord>& simplifications)
 {
-    static vvector<LiteralList*> alts;
+    VTHREAD_LOCAL static vvector<LiteralList*> alts;
 
     alts.clear();
     alts.resize(sideCl->length(), LiteralList::empty());
@@ -356,10 +356,10 @@ bool BackwardSubsumptionDemodulation::simplifyCandidate(Clause* sideCl, Clause* 
     ASS_LE(baseLitsWithoutAlternatives, 1);
     ASS_EQ(sideCl->length(), alts.size());
 
-    static MLMatcherSD matcher;
+    VTHREAD_LOCAL static MLMatcherSD matcher;
     matcher.init(sideCl, mainCl, alts.data());
 
-    static unsigned const maxMatches =
+    VTHREAD_LOCAL static unsigned const maxMatches =
       getOptions().backwardSubsumptionDemodulationMaxMatches() == 0
       ? std::numeric_limits<decltype(maxMatches)>::max()
       : getOptions().backwardSubsumptionDemodulationMaxMatches();
@@ -404,7 +404,7 @@ bool BackwardSubsumptionDemodulation::rewriteCandidate(Clause* sideCl, Clause* m
     }
 #endif
     ASS(replacement == nullptr);
-    env.statistics->backwardSubsumed++;
+    env->statistics->backwardSubsumed++;
     return true;
   }
   ASS(eqLit->isEquality());
@@ -419,15 +419,15 @@ bool BackwardSubsumptionDemodulation::rewriteCandidate(Clause* sideCl, Clause* m
   }
 
   // isMatched[i] is true iff (*mainCl)[i] is matched by some literal in sideCl (other than eqLit)
-  static vvector<bool> isMatched;
+  VTHREAD_LOCAL static vvector<bool> isMatched;
   matcher.getMatchedAltsBitmap(isMatched);
 
-  static OverlayBinder binder;
+  VTHREAD_LOCAL static OverlayBinder binder;
   binder.clear();
   matcher.getBindings(binder.base());
 
   // NOTE: for explanation see comments in ForwardSubsumptionDemodulation::perform
-  static vvector<TermList> lhsVector;
+  VTHREAD_LOCAL static vvector<TermList> lhsVector;
   lhsVector.clear();
   {
     TermList t0 = *eqLit->nthArgument(0);
@@ -476,7 +476,7 @@ bool BackwardSubsumptionDemodulation::rewriteCandidate(Clause* sideCl, Clause* m
 
 
 
-  static DHSet<TermList> attempted;  // Terms we already attempted to demodulate
+  VTHREAD_LOCAL static DHSet<TermList> attempted;  // Terms we already attempted to demodulate
   attempted.reset();
 
   for (unsigned dli = 0; dli < mainCl->length(); ++dli) {
@@ -489,7 +489,7 @@ bool BackwardSubsumptionDemodulation::rewriteCandidate(Clause* sideCl, Clause* m
 
     // TODO higher-order support not yet implemented; see forward demodulation
     //      (maybe it's enough to just use the different iterator)
-    ASS(!env.options->combinatorySup());
+    ASS(!env->options->combinatorySup());
     NonVariableNonTypeIterator nvi(dlit);
     while (nvi.hasNext()) {
       TermList lhsS = nvi.next();  // named 'lhsS' because it will be matched against 'lhs'
@@ -582,7 +582,7 @@ bool BackwardSubsumptionDemodulation::rewriteCandidate(Clause* sideCl, Clause* m
               }
 #endif
               ASS(replacement == nullptr);
-              env.statistics->backwardSubsumed++;
+              env->statistics->backwardSubsumed++;
               return true;
             } else {
               // Here, we have subsumption resolution
@@ -598,7 +598,7 @@ bool BackwardSubsumptionDemodulation::rewriteCandidate(Clause* sideCl, Clause* m
                 ASS(SDHelper::clauseIsSmaller(replacement, mainCl, ordering));
               }
 #endif
-              env.statistics->backwardSubsumptionResolution++;
+              env->statistics->backwardSubsumptionResolution++;
               return true;
             }
           }
@@ -656,7 +656,7 @@ isRedundant:
 #endif
 
         if (EqHelper::isEqTautology(newLit)) {
-          env.statistics->backwardSubsumptionDemodulationsToEqTaut++;
+          env->statistics->backwardSubsumptionDemodulationsToEqTaut++;
           ASS(replacement == nullptr);
           return true;
         }
@@ -672,17 +672,17 @@ isRedundant:
           }
         }
 
-        env.statistics->backwardSubsumptionDemodulations++;
+        env->statistics->backwardSubsumptionDemodulations++;
 
         replacement = newCl;
 
 #if BSD_LOG_INFERENCES
-        env.beginOutput();
-        env.out() << "\% Begin Inference \"BSD-" << newCl->number() << "\"\n";
-        env.out() << "\% eqLit: " << eqLit->toString() << "\n";
-        env.out() << "\% eqLitS: " << binder.applyTo(eqLit)->toString() << "\n";
-        env.out() << "\% dlit: " << dlit->toString() << "\n";
-        // env.out() << "\% numMatches+1: success at match #" << (numMatches+1) << "\n";
+        env->beginOutput();
+        env->out() << "\% Begin Inference \"BSD-" << newCl->number() << "\"\n";
+        env->out() << "\% eqLit: " << eqLit->toString() << "\n";
+        env->out() << "\% eqLitS: " << binder.applyTo(eqLit)->toString() << "\n";
+        env->out() << "\% dlit: " << dlit->toString() << "\n";
+        // env->out() << "\% numMatches+1: success at match #" << (numMatches+1) << "\n";
         TPTPPrinter tptp;
         // NOTE: do not output the splitLevels here, because those will be set for newCl only later
         tptp.printWithRole("side_premise", "hypothesis", sideCl, false);
@@ -694,8 +694,8 @@ isRedundant:
         //       Problem: how to detect that situation??
         //       probably if the input only contains FOF and no TFF
         // TODO: Also don't output type defs for $$false and $$true, see problem SYO091^5.p
-        env.out() << "\% End Inference \"BSD-" << newCl->number() << "\"" << std::endl;
-        env.endOutput();
+        env->out() << "\% End Inference \"BSD-" << newCl->number() << "\"" << std::endl;
+        env->endOutput();
 #endif
 
 #if VDEBUG && BSD_VDEBUG_REDUNDANCY_ASSERTIONS

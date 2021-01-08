@@ -28,11 +28,15 @@
 
 #define SAFE_OUT_OF_MEM_SOLUTION 1
 
-#ifndef USE_SYSTEM_ALLOCATION
-/** If the following is set to true the Vampire will use the
+/** If USE_SYSTEM_ALLOCATION set to true Vampire will use the
  *  C++ new and delete for (de)allocating all data structures.
  */
+#ifndef USE_SYSTEM_ALLOCATION
+#if VTHREADED
+#define USE_SYSTEM_ALLOCATION 1
+#else
 #define USE_SYSTEM_ALLOCATION 0
+#endif
 #endif
 
 #if USE_SYSTEM_ALLOCATION
@@ -85,7 +89,7 @@ unsigned watchAddressLastValue = 0;
 using namespace Lib;
 using namespace Shell;
 
-int Allocator::_initialised = 0;
+VATOMIC(int) Allocator::_initialised(0);
 int Allocator::_total = 0;
 size_t Allocator::_memoryLimit;
 size_t Allocator::_tolerated;
@@ -101,7 +105,7 @@ size_t Allocator::Descriptor::maxEntries;
 size_t Allocator::Descriptor::capacity;
 Allocator::Descriptor* Allocator::Descriptor::map;
 Allocator::Descriptor* Allocator::Descriptor::afterLast;
-unsigned Allocator::_tolerantZone = 1; // starts > 0; we are not checking by default, until we say so with START_CHECKING_FOR_BYPASSES
+VTHREAD_LOCAL unsigned Allocator::_tolerantZone = 1; // starts > 0; we are not checking by default, until we say so with START_CHECKING_FOR_BYPASSES
 #endif
 
 #if VDEBUG && USE_PRECISE_CLASS_NAMES && defined(__GNUC__)
@@ -343,7 +347,7 @@ void Allocator::deallocateKnown(void* obj,size_t size)
   CALLC("Allocator::deallocateKnown",MAKE_CALLS);
   ASS(obj);
 
-#if VDEBUG
+#if VDEBUG && !TSAN
   Descriptor* desc = Descriptor::find(obj);
   desc->timestamp = ++Descriptor::globalTimestamp;
 #if TRACE_ALLOCATIONS
@@ -358,7 +362,7 @@ void Allocator::deallocateKnown(void* obj,size_t size)
 #endif
 
 #if USE_SYSTEM_ALLOCATION
-#if VDEBUG
+#if VDEBUG && !TSAN
   desc->allocated = 0;
 #endif
   free(obj);
@@ -375,7 +379,7 @@ void Allocator::deallocateKnown(void* obj,size_t size)
     _freeList[index] = mem;
   }
 
-#if VDEBUG
+#if VDEBUG && !TSAN
   desc->allocated = 0;
 #endif
 
@@ -416,7 +420,7 @@ void Allocator::deallocateUnknown(void* obj)
 {
   CALLC("Allocator::deallocateUnknown",MAKE_CALLS);
 
-#if VDEBUG
+#if VDEBUG && !TSAN
   Descriptor* desc = Descriptor::find(obj);
   desc->timestamp = ++Descriptor::globalTimestamp;
 #if TRACE_ALLOCATIONS
@@ -439,7 +443,9 @@ void Allocator::deallocateUnknown(void* obj)
   char* mem = reinterpret_cast<char*>(obj) - sizeof(Known);
   Unknown* unknown = reinterpret_cast<Unknown*>(mem);
   size_t size = unknown->size;
+#if !TSAN
   ASS_EQ(desc->size, size);
+#endif
 
   if (size >= REQUIRES_PAGE) {
     mem = mem-PAGE_PREFIX_SIZE;
@@ -468,8 +474,10 @@ void Allocator::deallocateUnknown(void* obj)
       watchAddressLastValue = currentValue;
       cout << "  Value: " << (void*)watchAddressLastValue << '\n';
     }
+#if !TSAN
     cout << "  " << *desc << '\n'
 	 << "Watch! end\n";
+#endif
   }
 #endif
 } // Allocator::deallocateUnknown
@@ -566,16 +574,16 @@ Allocator::Page* Allocator::allocatePages(size_t size)
   // check if the allocation isn't too big
   if(index>=MAX_PAGES) {
 #if SAFE_OUT_OF_MEM_SOLUTION
-    env.beginOutput();
+    env->beginOutput();
     reportSpiderStatus('m');
-    env.out() << "Unsupported amount of allocated memory: "<<realSize<<"!\n";
-    if(env.statistics) {
-      env.statistics->print(env.out());
+    env->out() << "Unsupported amount of allocated memory: "<<realSize<<"!\n";
+    if(env->statistics) {
+      env->statistics->print(env->out());
     }
 #if VDEBUG
-    Debug::Tracer::printStack(env.out());
+    Debug::Tracer::printStack(env->out());
 #endif
-    env.endOutput();
+    env->endOutput();
     System::terminateImmediately(1);
 #else
     throw Lib::MemoryLimitExceededException();
@@ -589,21 +597,21 @@ Allocator::Page* Allocator::allocatePages(size_t size)
   else {
     size_t newSize = _usedMemory+realSize;
     if (_tolerated && newSize > _tolerated) {
-      env.statistics->terminationReason = Shell::Statistics::MEMORY_LIMIT;
+      env->statistics->terminationReason = Shell::Statistics::MEMORY_LIMIT;
       //increase the limit, so that the exception can be handled properly.
       _tolerated=newSize+1000000;
 
 #if SAFE_OUT_OF_MEM_SOLUTION
-      env.beginOutput();
+      env->beginOutput();
       reportSpiderStatus('m');
-      env.out() << "Memory limit exceeded!\n";
+      env->out() << "Memory limit exceeded!\n";
 # if VDEBUG
 	Allocator::reportUsageByClasses();
 # endif
-      if(env.statistics) {
-	env.statistics->print(env.out());
+      if(env->statistics) {
+	env->statistics->print(env->out());
       }
-      env.endOutput();
+      env->endOutput();
       System::terminateImmediately(1);
 #else
       throw Lib::MemoryLimitExceededException();
@@ -613,15 +621,15 @@ Allocator::Page* Allocator::allocatePages(size_t size)
 
     char* mem = static_cast<char*>(malloc(realSize));
     if (!mem) {
-      env.beginOutput();
+      env->beginOutput();
       reportSpiderStatus('m');
-      env.out() << "Memory limit exceeded!\n";
-      if(env.statistics) {
+      env->out() << "Memory limit exceeded!\n";
+      if(env->statistics) {
         // statistics should be fine when out of memory, but not RuntimeStatistics, which allocate a Stack
         // (i.e. potential crazy exception recursion may happen in DEBUG mode)
-        env.statistics->print(env.out());
+        env->statistics->print(env->out());
       }
-      env.endOutput();
+      env->endOutput();
       System::terminateImmediately(1);
 
       // CANNOT throw vampire exception when out of memory - it contains allocations because of the message string
@@ -631,7 +639,7 @@ Allocator::Page* Allocator::allocatePages(size_t size)
   }
   result->size = realSize;
 
-#if VDEBUG
+#if VDEBUG && !TSAN
   Descriptor* desc = Descriptor::find(result);
   ASS(! desc->allocated);
 
@@ -643,7 +651,7 @@ Allocator::Page* Allocator::allocatePages(size_t size)
   desc->known = 0;
   desc->page = 1;
 
-#if TRACE_ALLOCATIONS
+#if TRACE_ALLOCATIONS && !TSAN
   cout << *desc << ": AP\n" << flush;
 #endif // TRACE_ALLOCATIONS
 #endif // VDEBUG
@@ -693,7 +701,7 @@ void Allocator::deallocatePages(Page* page)
 #else
   CALLC("Allocator::deallocatePages",MAKE_CALLS);
 
-#if VDEBUG
+#if VDEBUG && !TSAN
   Descriptor* desc = Descriptor::find(page);
   desc->timestamp = ++Descriptor::globalTimestamp;
 #if TRACE_ALLOCATIONS
@@ -765,7 +773,7 @@ void* Allocator::allocateKnown(size_t size)
 
   char* result = allocatePiece(size);
 
-#if VDEBUG
+#if VDEBUG && !TSAN
   Descriptor* desc = Descriptor::find(result);
   ASS_REP(! desc->allocated, size);
 
@@ -845,7 +853,7 @@ char* Allocator::allocatePiece(size_t size)
       if (_reserveBytesAvailable) {
 	index = (_reserveBytesAvailable-1)/sizeof(Known);
 	Known* save = reinterpret_cast<Known*>(_nextAvailableReserve);
-#if VDEBUG
+#if VDEBUG && !TSAN
 	Descriptor* desc = Descriptor::find(save);
 	ASS(! desc->allocated);
 	desc->size = _reserveBytesAvailable;
@@ -890,7 +898,7 @@ void* Allocator::allocateUnknown(size_t size)
   unknown->size = size;
   result += sizeof(Known);
 
-#if VDEBUG
+#if VDEBUG && !TSAN
   Descriptor* desc = Descriptor::find(result);
   ASS(! desc->allocated);
 
@@ -954,10 +962,10 @@ Allocator::Descriptor* Allocator::Descriptor::find (const void* addr)
     try {
       map = new Descriptor [capacity];
     } catch(bad_alloc&) {
-      env.beginOutput();
+      env->beginOutput();
       reportSpiderStatus('m');
-      env.out() << "Memory limit exceeded!\n";
-      env.endOutput();
+      env->out() << "Memory limit exceeded!\n";
+      env->endOutput();
       System::terminateImmediately(1);
 
       // CANNOT throw vampire exception when out of memory - it contains allocations because of the message string
@@ -1059,6 +1067,8 @@ unsigned Allocator::Descriptor::hash (const void* addr)
 
 #endif
 
+// TSan provides its own global new/delete
+#if !TSAN
 /**
  * In debug mode we replace the global new and delete (also the array versions)
  * and terminate in cases when they are used "unwillingly".
@@ -1081,8 +1091,18 @@ unsigned Allocator::Descriptor::hash (const void* addr)
 #if VDEBUG
 
 void* operator new(size_t sz) {    
+  /*
+   * here be dragons!
+   * 
+   * space for thread_local variables are allocated lazily by calling this function
+   * this messes with some assumptions that Allocator has, and doesn't always show up immediately
+   * 
+   * TODO: fix this properly somehow?
+   */
+#if !VTHREADED
   ASS_REP(Allocator::_tolerantZone > 0,"Attempted to use global new operator, thus bypassing Allocator!");
   // Please read: https://github.com/easychair/vampire/wiki/Attempted-to-use-global-new-operator,-thus-bypassing-Allocator!
+#endif
   
   static Allocator::Initialiser i; // to initialize Allocator even for other libraries
   
@@ -1095,6 +1115,15 @@ void* operator new(size_t sz) {
     throw bad_alloc();
   
   return res;
+}
+
+void* operator new(size_t sz, const std::nothrow_t &) noexcept {
+  try {
+    return operator new(sz);
+  }
+  catch(const std::bad_alloc &) {
+    return nullptr;
+  }
 }
 
 void* operator new[](size_t sz) {  
@@ -1135,6 +1164,7 @@ void operator delete[](void* obj) throw() {
     DEALLOC_UNKNOWN(obj,"global new[]");
   }
 }
+#endif // !TSan
 
 #endif
 

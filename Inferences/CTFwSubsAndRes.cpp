@@ -110,10 +110,10 @@ bool CTFwSubsAndRes::perform(Clause* cl, Clause*& replacement, ClauseIterator& p
 
     if(res.resolved) {
       replacement=buildSResClause(cl, res.resolvedQueryLiteralIndex, premise);
-      env.statistics->forwardSubsumptionResolution++;
+      env->statistics->forwardSubsumptionResolution++;
     }
     else {
-      env.statistics->forwardSubsumed++;
+      env->statistics->forwardSubsumed++;
     }
     
     break;

@@ -82,7 +82,7 @@ void SuperpositionSubtermIndex::handleClause(Clause* c, bool adding)
   for (unsigned i=0; i<selCnt; i++) {
     Literal* lit=(*c)[i];
     TermIterator rsti;
-    if(!env.options->combinatorySup()){
+    if(!env->options->combinatorySup()){
       rsti = EqHelper::getSubtermIterator(lit,_ord);
     } else {
       rsti = EqHelper::getFoSubtermIterator(lit,_ord);
@@ -127,7 +127,7 @@ void DemodulationSubtermIndexImpl<combinatorySupSupport>::handleClause(Clause* c
 
   TimeCounter tc(TC_BACKWARD_DEMODULATION_INDEX_MAINTENANCE);
 
-  static DHSet<TermList> inserted;
+  VTHREAD_LOCAL static DHSet<TermList> inserted;
 
   unsigned cLen=c->length();
   for (unsigned i=0; i<cLen; i++) {
@@ -268,7 +268,7 @@ void PrimitiveInstantiationIndex::populateIndex()
 
   typedef ApplicativeHelper AH;
 
-  static Options::PISet set = env.options->piSet();
+  static Options::PISet set = env->options->piSet();
 
   auto srtOf = [] (TermList t) {
     ASS(t.isTerm());
@@ -285,13 +285,13 @@ void PrimitiveInstantiationIndex::populateIndex()
   TermList args1[] = {s1, boolS, boolS};
   TermList args2[] = {s1, s1_bool, s1_bool};
 
-  unsigned k_comb = env.signature->getCombinator(Signature::K_COMB);
-  unsigned b_comb = env.signature->getCombinator(Signature::B_COMB);
-  unsigned v_and = env.signature->getBinaryProxy("vAND");
-  unsigned v_or = env.signature->getBinaryProxy("vOR");
-  unsigned v_imp = env.signature->getBinaryProxy("vIMP");
-  unsigned v_not = env.signature->getNotProxy();
-  unsigned v_equals = env.signature->getEqualityProxy();
+  unsigned k_comb = env->signature->getCombinator(Signature::K_COMB);
+  unsigned b_comb = env->signature->getCombinator(Signature::B_COMB);
+  unsigned v_and = env->signature->getBinaryProxy("vAND");
+  unsigned v_or = env->signature->getBinaryProxy("vOR");
+  unsigned v_imp = env->signature->getBinaryProxy("vIMP");
+  unsigned v_not = env->signature->getNotProxy();
+  unsigned v_equals = env->signature->getEqualityProxy();
 
   TermList kcomb = TermList(Term::create2(k_comb, Term::boolSort(), s1));
   TermList bcomb1 = TermList(Term::create(b_comb, 3, args1));
@@ -349,7 +349,7 @@ void NarrowingIndex::populateIndex()
 
   typedef ApplicativeHelper AH;
 
-  static Options::Narrow set = env.options->narrow();
+  static Options::Narrow set = env->options->narrow();
 
   auto srtOf = [] (TermList t) {
      ASS(t.isTerm());
@@ -364,30 +364,30 @@ void NarrowingIndex::populateIndex()
   TermList z = TermList(5, false);
   TermList args[] = {s1, s2, s3};
 
-  unsigned s_comb = env.signature->getCombinator(Signature::S_COMB);
+  unsigned s_comb = env->signature->getCombinator(Signature::S_COMB);
   TermList constant = TermList(Term::create(s_comb, 3, args));
   TermList lhsS = AH::createAppTerm(srtOf(constant), constant, x, y, z);
   TermList rhsS = AH::createAppTerm3(Term::arrowSort(s1, s2, s3), x, z, AH::createAppTerm(Term::arrowSort(s1, s2), y, z));
   Literal* sLit = Literal::createEquality(true, lhsS, rhsS, s3);
 
-  unsigned c_comb = env.signature->getCombinator(Signature::C_COMB);
+  unsigned c_comb = env->signature->getCombinator(Signature::C_COMB);
   constant = TermList(Term::create(c_comb, 3, args));
   TermList lhsC = AH::createAppTerm(srtOf(constant), constant, x, y, z);
   TermList rhsC = AH::createAppTerm3(Term::arrowSort(s1, s2, s3), x, z, y);
   Literal* cLit = Literal::createEquality(true, lhsC, rhsC, s3);
 
-  unsigned b_comb = env.signature->getCombinator(Signature::B_COMB);
+  unsigned b_comb = env->signature->getCombinator(Signature::B_COMB);
   constant = TermList(Term::create(b_comb, 3, args));
   TermList lhsB = AH::createAppTerm(srtOf(constant), constant, x, y, z);
   TermList rhsB = AH::createAppTerm(Term::arrowSort(s2, s3), x, AH::createAppTerm(Term::arrowSort(s1, s2), y, z));
   Literal* bLit = Literal::createEquality(true, lhsB, rhsB, s3);
 
-  unsigned k_comb = env.signature->getCombinator(Signature::K_COMB);
+  unsigned k_comb = env->signature->getCombinator(Signature::K_COMB);
   constant = TermList(Term::create2(k_comb, s1, s2));
   TermList lhsK = AH::createAppTerm3(srtOf(constant), constant, x, y);
   Literal* kLit = Literal::createEquality(true, lhsK, x, s1);
 
-  unsigned i_comb = env.signature->getCombinator(Signature::I_COMB);
+  unsigned i_comb = env->signature->getCombinator(Signature::I_COMB);
   constant = TermList(Term::create1(i_comb, s1));
   TermList lhsI = AH::createAppTerm(srtOf(constant), constant, x);
   Literal* iLit = Literal::createEquality(true, lhsI, x, s1);
@@ -512,9 +512,9 @@ void RenamingFormulaIndex::handleClause(Clause* c, bool adding)
       if(SortHelper::getResultSort(t) == Term::boolSort() &&
          AH::getProxy(AH::getHead(t)) != Signature::NOT_PROXY){
         if(adding){
-          env.signature->incrementFormulaCount(t);
+          env->signature->incrementFormulaCount(t);
         } else {
-          env.signature->decrementFormulaCount(t);
+          env->signature->decrementFormulaCount(t);
         }
       }
     }

@@ -10,13 +10,12 @@
 #ifndef __ScheduleExecutor__
 #define __ScheduleExecutor__
 
-#include <unistd.h>
 #include "Schedules.hpp"
 
 namespace CASC
 {
 
-class ProcessPriorityPolicy
+class StrategyPriorityPolicy
 {
 public:
   virtual float staticPriority(Lib::vstring sliceCode) = 0;
@@ -26,20 +25,18 @@ public:
 class SliceExecutor
 {
 public:
-  virtual void runSlice(Lib::vstring sliceCode, int remaminingTime) NO_RETURN = 0;
+  virtual void runSlice(Lib::vstring sliceCode, int remaminingTime) = 0;
 };
 
 class ScheduleExecutor
 {
 public:
-  ScheduleExecutor(ProcessPriorityPolicy *policy, SliceExecutor *executor);
-  bool run(const Schedule &schedule);
+  ScheduleExecutor(StrategyPriorityPolicy *policy, SliceExecutor *executor);
+  virtual bool run(const Schedule &schedule) = 0;
+  virtual ~ScheduleExecutor() = default;
 
-private:
-  pid_t spawn(Lib::vstring code, int remaminingTime);
-  unsigned getNumWorkers();
-
-  ProcessPriorityPolicy *_policy;
+protected:
+  StrategyPriorityPolicy *_policy;
   SliceExecutor *_executor;
   unsigned _numWorkers;
 };

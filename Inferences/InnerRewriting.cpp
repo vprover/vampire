@@ -42,7 +42,7 @@ bool InnerRewriting::perform(Clause* cl, Clause*& replacement, ClauseIterator& p
           Literal* nLit = EqHelper::replace(lit,lhs,rhs);
           if (nLit != lit) {
             if(EqHelper::isEqTautology(nLit)) {
-              env.statistics->innerRewritesToEqTaut++;
+              env->statistics->innerRewritesToEqTaut++;
               return true;
             }
 
@@ -59,7 +59,7 @@ bool InnerRewriting::perform(Clause* cl, Clause*& replacement, ClauseIterator& p
                 Literal* oLit = (*cl)[k];
                 Literal* rLit = EqHelper::replace(oLit,lhs,rhs);
                 if(EqHelper::isEqTautology(rLit)) {
-                  env.statistics->innerRewritesToEqTaut++;
+                  env->statistics->innerRewritesToEqTaut++;
                   res->destroy();
                   return true;
                 }
@@ -67,7 +67,7 @@ bool InnerRewriting::perform(Clause* cl, Clause*& replacement, ClauseIterator& p
               }
             }
 
-            env.statistics->innerRewrites++;
+            env->statistics->innerRewrites++;
 
             replacement = res;
             return true;

@@ -53,7 +53,7 @@ using namespace Shell;
  */
 bool canExpandToBytes(size_t sz)
 {
-  return sz<(MAXIMAL_ALLOCATION/2) && sz<(env.options->memoryLimit()-Allocator::getUsedMemory());
+  return sz<(MAXIMAL_ALLOCATION/2) && sz<(env->options->memoryLimit()-Allocator::getUsedMemory());
 }
 
 }

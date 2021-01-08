@@ -91,7 +91,7 @@ private:
         return instantiation ? res.substitution->matchSorts(_queryEqSort, resSort) 
                              : res.substitution->matchSorts(resSort, _queryEqSort); 
       } else {
-        static RobSubstitution subst;
+        VTHREAD_LOCAL static RobSubstitution subst;
         subst.reset();
         return instantiation ? subst.match(_queryEqSort, 0, resSort, 1):
                                subst.match(resSort, 0, _queryEqSort, 1);           
@@ -139,7 +139,7 @@ private:
         }
         return success;
       } else {
-        static RobSubstitution subst;
+        VTHREAD_LOCAL static RobSubstitution subst;
         subst.reset();
         return subst.unify(_queryEqSort, 0, resSort, 1);
       }

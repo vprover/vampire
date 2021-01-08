@@ -29,5 +29,5 @@ bool UnificationWithAbstractionConfig::isInterpreted(Term* t)
 {
   return theory->isInterpretedFunction(t) 
     || theory->isInterpretedConstant(t) 
-    || env.signature->getFunction(t->functor())->termAlgebraCons();
+    || env->signature->getFunction(t->functor())->termAlgebraCons();
 }

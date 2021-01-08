@@ -54,7 +54,7 @@ using namespace Kernel;
  */
 SineSymbolExtractor::SymId SineSymbolExtractor::getSymIdBound()
 {
-  return max(env.signature->predicates()*2-1, env.signature->functions()*2);
+  return max(env->signature->predicates()*2-1, env->signature->functions()*2);
 }
 
 void SineSymbolExtractor::addSymIds(Term* term, Stack<SymId>& ids)
@@ -145,12 +145,12 @@ bool SineSymbolExtractor::validSymId(SymId s)
   unsigned functor;
   decodeSymId(s, pred, functor);
   if (pred) {
-    if (functor>=static_cast<unsigned>(env.signature->predicates())) {
+    if (functor>=static_cast<unsigned>(env->signature->predicates())) {
       return false;
     }
   }
   else {
-    if (functor>=static_cast<unsigned>(env.signature->functions())) {
+    if (functor>=static_cast<unsigned>(env->signature->functions())) {
       return false;
     }
   }
@@ -220,7 +220,7 @@ SineSymbolExtractor::SymIdIterator SineSymbolExtractor::extractSymIds(Unit* u)
 {
   CALL("SineSymbolExtractor::extractSymIds");
 
-  static Stack<SymId> itms;
+  VTHREAD_LOCAL static Stack<SymId> itms;
   itms.reset();
 
   if (u->isClause()) {
@@ -305,7 +305,7 @@ void SineSelector::updateDefRelation(Unit* u)
     return;
   }
 
-  static Stack<SymId> equalGenerality;
+  VTHREAD_LOCAL static Stack<SymId> equalGenerality;
   equalGenerality.reset();
 
   SymId leastGenSym=sit.next();
@@ -399,7 +399,7 @@ bool SineSelector::perform(UnitList*& units)
     numberUnitsLeftOut++;
     Unit* u=uit2.next();
     bool performSelection= _onIncluded ? u->included() : ((u->inputType()==UnitInputType::AXIOM)
-                            || (env.options->guessTheGoal() != Options::GoalGuess::OFF && u->inputType()==UnitInputType::ASSUMPTION));
+                            || (env->options->guessTheGoal() != Options::GoalGuess::OFF && u->inputType()==UnitInputType::ASSUMPTION));
     if (performSelection) { // register the unit for later
       updateDefRelation(u);
     }
@@ -418,7 +418,7 @@ bool SineSelector::perform(UnitList*& units)
   unsigned depth=0;
   newlySelected.push_back(0);
 
-  // cout << "env.maxClausePriority starts as" << env.maxClausePriority << endl;
+  // cout << "env->maxClausePriority starts as" << env->maxClausePriority << endl;
 
   //select required axiom formulas
   while (newlySelected.isNonEmpty()) {
@@ -433,8 +433,8 @@ bool SineSelector::perform(UnitList*& units)
       }
       ASS(!_depthLimit || depth<_depthLimit);
       if(_justForSineLevels){
-        if (env.maxSineLevel < std::numeric_limits<decltype(env.maxSineLevel)>::max()) { // saturate at 255 or something
-          env.maxSineLevel++;
+        if (env->maxSineLevel < std::numeric_limits<decltype(env->maxSineLevel)>::max()) { // saturate at 255 or something
+          env->maxSineLevel++;
         }
       }
       // cout << "Time to inc" << endl;
@@ -450,13 +450,13 @@ bool SineSelector::perform(UnitList*& units)
     while (sit.hasNext()) {
       SymId sym=sit.next();
 
-      if (env.predicateSineLevels) {
+      if (env->predicateSineLevels) {
         bool pred;
         unsigned functor;
         SineSymbolExtractor::decodeSymId(sym,pred,functor);
-        if (pred && !env.predicateSineLevels->find(functor)) {
-          env.predicateSineLevels->insert(functor,env.maxSineLevel);
-          // cout << "set level of predicate " << functor << " i.e. " << env.signature->predicateName(functor) << " to " << env.maxClausePriority << endl;
+        if (pred && !env->predicateSineLevels->find(functor)) {
+          env->predicateSineLevels->insert(functor,env->maxSineLevel);
+          // cout << "set level of predicate " << functor << " i.e. " << env->signature->predicateName(functor) << " to " << env->maxClausePriority << endl;
         }
       }
 
@@ -471,8 +471,8 @@ bool SineSelector::perform(UnitList*& units)
         newlySelected.push_back(du);
 
         if(_justForSineLevels){
-          du->inference().setSineLevel(env.maxSineLevel);
-          //cout << "set level for " << du->toString() << " in iteration as " << env.maxClausePriority << endl;
+          du->inference().setSineLevel(env->maxSineLevel);
+          //cout << "set level for " << du->toString() << " in iteration as " << env->maxClausePriority << endl;
         }
       }
       //all defining units for the symbol sym were selected,
@@ -487,10 +487,10 @@ bool SineSelector::perform(UnitList*& units)
     return false;
   }
 
-  env.statistics->sineIterations=depth;
-  env.statistics->selectedBySine=_unitsWithoutSymbols.size() + selectedStack.size();
+  env->statistics->sineIterations=depth;
+  env->statistics->selectedBySine=_unitsWithoutSymbols.size() + selectedStack.size();
 
-  numberUnitsLeftOut -= env.statistics->selectedBySine;
+  numberUnitsLeftOut -= env->statistics->selectedBySine;
 
   UnitList::destroy(units);
   units=0;
@@ -555,7 +555,7 @@ void SineTheorySelector::updateDefRelation(Unit* u)
     return;
   }
 
-  static Stack<SymId> symIds;
+  VTHREAD_LOCAL static Stack<SymId> symIds;
   symIds.reset();
   symIds.loadFromIterator(sit0);
 
@@ -653,7 +653,7 @@ void SineTheorySelector::perform(UnitList*& units)
   while (uit2.hasNext()) {
     Unit* u=uit2.next();
     bool performSelection= sineOnIncluded ? u->included() : ((u->inputType()==UnitInputType::AXIOM)
-                   || (env.options->guessTheGoal() != Options::GoalGuess::OFF && u->inputType()==UnitInputType::ASSUMPTION));
+                   || (env->options->guessTheGoal() != Options::GoalGuess::OFF && u->inputType()==UnitInputType::ASSUMPTION));
 
     if (performSelection) {
       updateDefRelation(u);
@@ -717,8 +717,8 @@ void SineTheorySelector::perform(UnitList*& units)
 //  units=res->reverse(); //we want to resemble the original SInE as much as possible
   units=res;
 
-  env.statistics->sineIterations=depth;
-  env.statistics->selectedBySine=_unitsWithoutSymbols.size() + selected.size();
+  env->statistics->sineIterations=depth;
+  env->statistics->selectedBySine=_unitsWithoutSymbols.size() + selected.size();
 
 #if SINE_PRINT_SELECTED
   UnitList::Iterator selIt(units);

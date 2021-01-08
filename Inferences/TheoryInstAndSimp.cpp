@@ -326,7 +326,7 @@ void TheoryInstAndSimp::selectTheoryLiterals(Clause* cl, Stack<Literal*>& theory
 #endif
 
   ASS_NEQ(
-    env.options->theoryInstAndSimp(),
+    env->options->theoryInstAndSimp(),
     Shell::Options::TheoryInstSimp::OFF
   );
 
@@ -428,7 +428,7 @@ void TheoryInstAndSimp::originalSelectTheoryLiterals(Clause* cl, Stack<Literal*>
   cout << "originalSelectTheoryLiterals["<<forZ3<<"] in " << cl->toString() << endl;
 #endif
 
-  static Shell::Options::TheoryInstSimp selection = env.options->theoryInstAndSimp();
+  VTHREAD_LOCAL static Shell::Options::TheoryInstSimp selection = env->options->theoryInstAndSimp();
   ASS(selection!=Shell::Options::TheoryInstSimp::OFF);
 
   Stack<Literal*> weak;
@@ -448,7 +448,7 @@ void TheoryInstAndSimp::originalSelectTheoryLiterals(Clause* cl, Stack<Literal*>
     //TODO I do this kind of check all over the place but differently every time!
     if(interpreted && lit->isEquality() && !lit->isTwoVarEquality()) {  
       for(TermList* ts = lit->args(); ts->isNonEmpty(); ts = ts->next()){
-        if(ts->isTerm() && !env.signature->getFunction(ts->term()->functor())->interpreted()){
+        if(ts->isTerm() && !env->signature->getFunction(ts->term()->functor())->interpreted()){
           interpreted=false;
           break;
         }
@@ -588,7 +588,7 @@ void TheoryInstAndSimp::originalSelectTheoryLiterals(Clause* cl, Stack<Literal*>
 Term* getFreshConstant(unsigned index, TermList srt)
 {
   CALL("TheoryInstAndSimp::getFreshConstant");
-  static Map<TermList, Stack<Term*>*> constants;
+  VTHREAD_LOCAL static Map<TermList, Stack<Term*>*> constants;
 
   /*
   We skolemize at some point in instantiation. For that we need fresh constants.
@@ -600,9 +600,9 @@ Term* getFreshConstant(unsigned index, TermList srt)
 
   Stack<Term*>* sortedConstants = constants.getOrInit(move(srt), []() { return new Stack<Term*>(); });
   while(index+1 > sortedConstants->length()){
-    unsigned sym = env.signature->addFreshFunction(0,"$inst");
+    unsigned sym = env->signature->addFreshFunction(0,"$inst");
     OperatorType* type = OperatorType::getConstantsType(srt);
-    env.signature->getFunction(sym)->setType(type);
+    env->signature->getFunction(sym)->setType(type);
     Term* fresh = Term::createConstant(sym);
     sortedConstants->push(fresh);
   }
@@ -618,8 +618,8 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
 
   // We use a new SMT solver
   // currently these are not needed outside of this function so we put them here
-  static SAT2FO naming;
-  static Z3Interfacing solver(*env.options,naming);
+  VTHREAD_LOCAL static SAT2FO naming;
+  VTHREAD_LOCAL static Z3Interfacing solver(*env->options,naming);
   solver.reset(); // the solver will reset naming
 
 
@@ -665,7 +665,7 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
     SATLiteral slit = naming.toSAT(lit);
 
     // now add the SAT representation
-    static SATLiteralStack satLits;
+    VTHREAD_LOCAL static SATLiteralStack satLits;
     satLits.reset();
     satLits.push(slit);
     SATClause* sc = SATClause::fromStack(satLits);
@@ -703,7 +703,7 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
         sol.subst.bind(v,t);
       } else {
         // Failed to obtain a value; could be an algebraic number or some other currently unhandled beast...
-        env.statistics->theoryInstSimpLostSolution++;
+        env->statistics->theoryInstSimpLostSolution++;
         goto fail;
       }
     }
@@ -765,7 +765,7 @@ partial_check_end:
       }
 
       if(!containsPartial){
-        env.statistics->theoryInstSimpTautologies++;
+        env->statistics->theoryInstSimpTautologies++;
         // do this directly in salg
         //_salg->removeActiveOrPassiveClause(_premise);
         _red=true;
@@ -812,7 +812,7 @@ partial_check_end:
       _splitter->onNewClause(inst);
     }
 
-    env.statistics->theoryInstSimp++;
+    env->statistics->theoryInstSimp++;
 #if DPRINT
     cout << "to get " << res->toString() << endl;
 #endif
@@ -840,9 +840,9 @@ SimplifyingGeneratingInference::ClauseGenerationResult TheoryInstAndSimp::genera
     return empty;
   }
 
-  static Options::TheoryInstSimp thi = env.options->theoryInstAndSimp();
+  VTHREAD_LOCAL static Options::TheoryInstSimp thi = env->options->theoryInstAndSimp();
 
-  static Stack<Literal*> selectedLiterals;
+  VTHREAD_LOCAL static Stack<Literal*> selectedLiterals;
   selectedLiterals.reset();
 
   if(thi == Options::TheoryInstSimp::NEW){
@@ -859,14 +859,14 @@ SimplifyingGeneratingInference::ClauseGenerationResult TheoryInstAndSimp::genera
   }
 
   // we have an eligable candidate
-  env.statistics->theoryInstSimpCandidates++;
+  env->statistics->theoryInstSimpCandidates++;
 
   // TODO use limits
 
   Clause* flattened = premise;
   if(thi != Options::TheoryInstSimp::NEW){
     // we will use flattening which is non-recursive and sharing
-    static TheoryFlattening flattener((thi==Options::TheoryInstSimp::FULL),true);
+    VTHREAD_LOCAL static TheoryFlattening flattener((thi==Options::TheoryInstSimp::FULL),true);
 
     flattened = flattener.apply(premise,selectedLiterals);
 
@@ -877,7 +877,7 @@ SimplifyingGeneratingInference::ClauseGenerationResult TheoryInstAndSimp::genera
       _splitter->onNewClause(flattened);
     }
 
-    static Stack<Literal*> theoryLiterals;
+    VTHREAD_LOCAL static Stack<Literal*> theoryLiterals;
     theoryLiterals.reset();
 
     // Now go through the abstracted clause and select the things we send to SMT
@@ -916,7 +916,7 @@ SimplifyingGeneratingInference::ClauseGenerationResult TheoryInstAndSimp::genera
     auto it4 = getTimeCountedIterator(it3,TC_THEORY_INST_SIMP);
 
     auto clauses =  getPersistentIterator(it4);
-    if (premiseRedundant && env.options->thiTautologyDeletion()) {
+    if (premiseRedundant && env->options->thiTautologyDeletion()) {
 
       return ClauseGenerationResult {
         .clauses          = ClauseIterator::getEmpty(),

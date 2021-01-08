@@ -56,7 +56,7 @@ SimplifyingGeneratingInference1::Result GaussianVariableElimination::simplify(Cl
 SimplifyingGeneratingInference1::Result GaussianVariableElimination::rewrite(Clause& cl, TermList find, TermList replace, unsigned skipLiteral, bool doCheckOrdering) const 
 {
   CALL("GaussianVariableElimination::rewrite");
-  env.statistics->gveCnt++;
+  env->statistics->gveCnt++;
 
   Inference inf(SimplifyingInference1(Kernel::InferenceRule::GAUSSIAN_VARIABLE_ELIMINIATION, &cl));
 
@@ -86,7 +86,7 @@ SimplifyingGeneratingInference1::Result GaussianVariableElimination::rewrite(Cla
   }
 
   if(!premiseRedundant) {
-    env.statistics->gveViolations++;
+    env->statistics->gveViolations++;
   }
 
   return SimplifyingGeneratingInference1::Result{&out, premiseRedundant};

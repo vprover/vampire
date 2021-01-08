@@ -70,10 +70,10 @@ bool Preprocess::filterPureLiterals(unsigned varCnt, SATClauseList*& res)
 {
   CALL("Preprocess::filterPureLiterals(unsigned,SATClauseList*&)");
 
-  static Stack<unsigned> pureVars(64);
-  static DArray<int> positiveOccurences(128);
-  static DArray<int> negativeOccurences(128);
-  static DArray<SATClauseList*> occurences(128);
+  VTHREAD_LOCAL static Stack<unsigned> pureVars(64);
+  VTHREAD_LOCAL static DArray<int> positiveOccurences(128);
+  VTHREAD_LOCAL static DArray<int> negativeOccurences(128);
+  VTHREAD_LOCAL static DArray<SATClauseList*> occurences(128);
 
   // variables start from 1, but we want to use them as indexes to zero based arrays
   // current solution: add one extra (unused) slot
@@ -103,7 +103,7 @@ bool Preprocess::filterPureLiterals(unsigned varCnt, SATClauseList*& res)
   for(unsigned i=1;i<=varCnt;i++) {
     if( ((positiveOccurences[i]!=0)^(negativeOccurences[i]!=0)) && occurences[i] ) {
       pureVars.push(i);
-      env.statistics->satPureVarsEliminated++;
+      env->statistics->satPureVarsEliminated++;
     }
   }
 
@@ -130,13 +130,13 @@ bool Preprocess::filterPureLiterals(unsigned varCnt, SATClauseList*& res)
 	  positiveOccurences[lvar]--;
 	  if( positiveOccurences[lvar]==0 && negativeOccurences[lvar]!=0 && occurences[lvar] ) {
 	    pureVars.push(lvar);
-	    env.statistics->satPureVarsEliminated++;
+	    env->statistics->satPureVarsEliminated++;
 	  }
 	} else {
 	  negativeOccurences[lvar]--;
 	  if( positiveOccurences[lvar]!=0 && negativeOccurences[lvar]==0 && occurences[lvar] ) {
 	    pureVars.push(lvar);
-	    env.statistics->satPureVarsEliminated++;
+	    env->statistics->satPureVarsEliminated++;
 	  }
 	}
       }
@@ -173,8 +173,8 @@ void Preprocess::propagateUnits(SATClauseIterator clauses,
 {
   CALL("Preprocess::propagateUnits");
 
-  static DHMap<unsigned, bool, IdentityHash> unitBindings;
-  static Stack<unsigned> removedLitIndexes(64);
+  VTHREAD_LOCAL static DHMap<unsigned, bool, IdentityHash> unitBindings;
+  VTHREAD_LOCAL static Stack<unsigned> removedLitIndexes(64);
 
   unitBindings.reset();
   SATClauseList* res=0;

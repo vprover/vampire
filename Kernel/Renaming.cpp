@@ -87,7 +87,7 @@ bool Renaming::identity() const
  */
 void Renaming::normalizeVariables(const Term* t)
 {
-  static VariableIterator vit;
+  VTHREAD_LOCAL static VariableIterator vit;
   vit.reset(t);
   while(vit.hasNext()) {
     TermList var=vit.next();
@@ -125,7 +125,7 @@ Literal* Renaming::normalize(Literal* l)
 {
   CALL("Renaming::normalize(Literal*)");
 
-  static Renaming n;
+  VTHREAD_LOCAL static Renaming n;
   n.reset();
   n.normalizeVariables(l);
   return n.apply(l);
@@ -135,7 +135,7 @@ Term* Renaming::normalize(Term* trm)
 {
   CALL("Renaming::normalize(Term*)");
 
-  static Renaming n;
+  VTHREAD_LOCAL static Renaming n;
   n.reset();
   n.normalizeVariables(trm);
   return n.apply(trm);

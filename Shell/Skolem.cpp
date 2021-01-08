@@ -64,7 +64,7 @@ FormulaUnit* Skolem::skolemise (FormulaUnit* unit, bool appify)
     break;
   }
 
-  static Skolem skol;
+  VTHREAD_LOCAL static Skolem skol;
   return skol.skolemiseImpl(unit, appify);
 } // Skolem::skolemise
 
@@ -104,7 +104,7 @@ FormulaUnit* Skolem::skolemiseImpl (FormulaUnit* unit, bool appify)
     unsigned fn = _introducedSkolemFuns.pop();
     InferenceStore::instance()->recordIntroducedSymbol(res,true,fn);
     if(unit->derivedFromGoal()){
-      env.signature->getFunction(fn)->markInGoal();
+      env->signature->getFunction(fn)->markInGoal();
     }
   }
 
@@ -131,8 +131,8 @@ unsigned Skolem::addSkolemFunction(unsigned arity, unsigned taArity, TermList* d
   CALL("Skolem::addSkolemFunction(unsigned,TermList*,TermList,const char*)");
   //ASS(arity==0 || domainSorts!=0);
 
-  unsigned fun = env.signature->addSkolemFunction(arity, suffix);
-  Signature::Symbol* fnSym = env.signature->getFunction(fun);
+  unsigned fun = env->signature->addSkolemFunction(arity, suffix);
+  Signature::Symbol* fnSym = env->signature->getFunction(fun);
   OperatorType* ot = OperatorType::getFunctionType(arity - taArity, domainSorts, rangeSort, taArity);
   fnSym->setType(ot);
   return fun;
@@ -156,8 +156,8 @@ unsigned Skolem::addSkolemPredicate(unsigned arity, unsigned taArity, TermList* 
   CALL("Skolem::addSkolemPredicate(unsigned,unsigned*,unsigned,const char*)");
   //ASS(arity==0 || domainSorts!=0);
 
-  unsigned pred = env.signature->addSkolemPredicate(arity, suffix);
-  Signature::Symbol* pSym = env.signature->getPredicate(pred);
+  unsigned pred = env->signature->addSkolemPredicate(arity, suffix);
+  Signature::Symbol* pSym = env->signature->getPredicate(pred);
   OperatorType* ot = OperatorType::getPredicateType(arity - taArity, domainSorts, taArity);
   pSym->setType(ot);
   return pred;
@@ -253,8 +253,8 @@ void Skolem::preskolemise (Formula* f)
         _varOccs.remove(vs.next());
       }
 
-      static Stack<unsigned> univ_dep_stack;
-      static Stack<unsigned> exists_deps_stack;
+      VTHREAD_LOCAL static Stack<unsigned> univ_dep_stack;
+      VTHREAD_LOCAL static Stack<unsigned> exists_deps_stack;
       ASS(univ_dep_stack.isEmpty());
       ASS(exists_deps_stack.isEmpty());
 
@@ -363,10 +363,10 @@ Formula* Skolem::skolemise (Formula* f)
       // and bind them in _subst
       unsigned arity = 0;
       ensureHavingVarSorts();
-      static TermStack allVars;
-      static TermStack typeVars;
-      static TermStack termVars;
-      static TermStack termVarSorts;
+      VTHREAD_LOCAL static TermStack allVars;
+      VTHREAD_LOCAL static TermStack typeVars;
+      VTHREAD_LOCAL static TermStack termVars;
+      VTHREAD_LOCAL static TermStack termVarSorts;
       termVarSorts.reset();
       termVars.reset();
       allVars.reset();
@@ -459,20 +459,20 @@ Formula* Skolem::skolemise (Formula* f)
           skolemTerm = ApplicativeHelper::createAppTerm(skSymSort, head, termVars).term();
         }
 
-        env.statistics->skolemFunctions++;
+        env->statistics->skolemFunctions++;
 
         _subst.bind(v,skolemTerm);
 
-        if (env.options->showSkolemisations()) {
-          env.beginOutput();
-          env.out() << "Skolemising: "<<skolemTerm->toString()<<" for X"<< v
+        if (env->options->showSkolemisations()) {
+          env->beginOutput();
+          env->out() << "Skolemising: "<<skolemTerm->toString()<<" for X"<< v
             <<" in "<<f->toString()<<" in formula "<<_beingSkolemised->toString() << endl;
-          env.endOutput();
+          env->endOutput();
         }
 
-        if (env.options->showNonconstantSkolemFunctionTrace() && arity!=0) {
-          env.beginOutput();
-          ostream& out = env.out();
+        if (env->options->showNonconstantSkolemFunctionTrace() && arity!=0) {
+          env->beginOutput();
+          ostream& out = env->out();
             out <<"Nonconstant skolem function introduced: "
             <<skolemTerm->toString()<<" for X"<<v<<" in "<<f->toString()
             <<" in formula "<<_beingSkolemised->toString()<<endl;
@@ -481,7 +481,7 @@ Formula* Skolem::skolemise (Formula* f)
           Refutation ref(_beingSkolemised, true);
           ref.output(out);
           */
-          env.endOutput();
+          env->endOutput();
         }
       }
 

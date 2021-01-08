@@ -42,7 +42,7 @@ namespace Kernel
  * the polarity of the predicate should be reversed for the purposes of
  * literal selection
  */
-ZIArray<bool> LiteralSelector::_reversePredicate;
+VTHREAD_LOCAL ZIArray<bool> LiteralSelector::_reversePredicate;
 
 
 /**
@@ -79,7 +79,7 @@ int LiteralSelector::getSelectionPriority(Literal* l) const
 {
   CALL("LiteralSelector::getSelectionPriority");
 
-  Signature::Symbol* psym=env.signature->getPredicate(l->functor());
+  Signature::Symbol* psym=env->signature->getPredicate(l->functor());
   if(psym->label() || psym->answerPredicate()) {
     return -2;
   }

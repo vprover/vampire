@@ -92,7 +92,7 @@ Clause* InterpretedEvaluation::simplify(Clause* cl)
     if(cl->isTheoryAxiom()) return cl;
 
 
-    static DArray<Literal*> newLits(32);
+    VTHREAD_LOCAL static DArray<Literal*> newLits(32);
     unsigned clen=cl->length();
     bool modified=false;
     newLits.ensure(clen);
@@ -111,7 +111,7 @@ Clause* InterpretedEvaluation::simplify(Clause* cl)
       if(constant) {
         if(constTrue) {
           //cout << "evaluate " << cl->toString() << " to true" << endl;
-          env.statistics->evaluationCnt++;
+          env->statistics->evaluationCnt++;
           return 0;
         } else {
           continue;
@@ -135,7 +135,7 @@ Clause* InterpretedEvaluation::simplify(Clause* cl)
       (*res)[i] = newLits[i];
     }
 
-    env.statistics->evaluationCnt++;
+    env->statistics->evaluationCnt++;
     return res; 
 
   } catch (MachineArithmeticException&) {

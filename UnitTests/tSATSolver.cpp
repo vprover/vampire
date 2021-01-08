@@ -105,7 +105,7 @@ void testZICert1(SATSolverWithAssumptions& s)
 
 TEST_FUN(satSolverZeroImpliedCert)
 {
-  MinisatInterfacing s(*env.options,true);
+  MinisatInterfacing s(*env->options,true);
   testZICert1(s);
 }
 */
@@ -138,7 +138,7 @@ void testProofWithAssumptions(SATSolver& s)
 
 TEST_FUN(testProofWithAssums)
 {
-  MinisatInterfacing s(*env.options,true);
+  MinisatInterfacing s(*env->options,true);
   testProofWithAssumptions(s);    
 }
 
@@ -229,14 +229,14 @@ void testInterface(SATSolverWithAssumptions &s) {
 TEST_FUN(testSATSolverInterface)
 { 
   cout << endl << "Minisat" << endl;  
-  MinisatInterfacing sMini(*env.options,true);
+  MinisatInterfacing sMini(*env->options,true);
   testInterface(sMini);
     
   /* Not fully conforming - does not support zeroImplied and resource-limited solving
   cout << endl << "Z3" << endl;
   {
     SAT2FO sat2fo;
-    Z3Interfacing sZ3(*env.options,sat2fo);
+    Z3Interfacing sZ3(*env->options,sat2fo);
     testInterface(sZ3);
   }
   */
@@ -289,13 +289,13 @@ void testAssumptions(SATSolverWithAssumptions &s) {
 TEST_FUN(testSolvingUnderAssumptions)
 {
   cout << endl << "Minisat" << endl;
-  MinisatInterfacing sMini(*env.options,true);
+  MinisatInterfacing sMini(*env->options,true);
   testAssumptions(sMini);
 
   /*cout << endl << "Z3" << endl;
   {
     SAT2FO sat2fo;
-    Z3Interfacing sZ3(*env.options,sat2fo,true);
+    Z3Interfacing sZ3(*env->options,sat2fo,true);
     testAssumptions(sZ3);
   }*/
 }

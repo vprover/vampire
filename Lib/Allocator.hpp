@@ -25,6 +25,7 @@
 #include "Debug/Tracer.hpp"
 
 #include "Portability.hpp"
+#include "Threading.hpp"
 
 #if VDEBUG
 #include <string>
@@ -68,7 +69,7 @@ public:
 
   Allocator();
   ~Allocator();
-  
+
   /** Return the amount of used memory */
   static size_t getUsedMemory()
   {
@@ -144,7 +145,7 @@ private:
   /** Total number of allocators currently available */
   static int _total;
   /** > 0 if the global page manager has been initialised */
-  static int _initialised;
+  static VATOMIC(int) _initialised;
 
   /**
    * A piece of memory whose size is known by procedures de-allocating
@@ -294,7 +295,7 @@ private:
   /** All pages allocated by this allocator and not returned to 
    *  the global manager via deallocatePages (doubly linked).  */
   Page* _myPages;
-#if ! USE_SYSTEM_ALLOCATION
+#if !USE_SYSTEM_ALLOCATION && !TSAN
   /** Number of bytes available on the reserve page */
   size_t _reserveBytesAvailable;
   /** next available known */
@@ -314,7 +315,7 @@ private:
    * A tool for marking pieces of code which are allowed to bypass Allocator.
    * See also Allocator::AllowBypassing and the BYPASSING_ALLOCATOR macro.
    */
-  static unsigned _tolerantZone;  
+  VTHREAD_LOCAL static unsigned _tolerantZone;
   friend void* ::operator new(size_t);
   friend void* ::operator new[](size_t);
   friend void ::operator delete(void*) noexcept;

@@ -252,7 +252,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
 
   Clause::requestAux();
 
-  static CMStack cmStore(64);
+  VTHREAD_LOCAL static CMStack cmStore(64);
   ASS(cmStore.isEmpty());
 
   for(unsigned li=0;li<clen;li++) {
@@ -265,7 +265,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
       premise->setAux(0);
       if(ColorHelper::compatible(cl->color(), premise->color()) ) {
         premises = pvi( getSingletonIterator(premise) );
-        env.statistics->forwardSubsumed++;
+        env->statistics->forwardSubsumed++;
         result = true;
         goto fin;
       }
@@ -299,7 +299,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
 
       if(MLMatcher::canBeMatched(mcl,cl,cms->_matches,0) && ColorHelper::compatible(cl->color(), mcl->color())) {
         premises = pvi( getSingletonIterator(mcl) );
-        env.statistics->forwardSubsumed++;
+        env->statistics->forwardSubsumed++;
         result = true;
         goto fin;
       }
@@ -322,7 +322,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
 	Clause* mcl=rit.next().clause;
 	if(ColorHelper::compatible(cl->color(), mcl->color())) {
 	  resolutionClause=generateSubsumptionResolutionClause(cl,resLit,mcl);
-	  env.statistics->forwardSubsumptionResolution++;
+	  env->statistics->forwardSubsumptionResolution++;
 	  premises = pvi( getSingletonIterator(mcl) );
 	  replacement = resolutionClause;
 	  result = true;
@@ -339,7 +339,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
 	  Literal* resLit=(*cl)[li];
 	  if(checkForSubsumptionResolution(cl, cms, resLit) && ColorHelper::compatible(cl->color(), cms->_cl->color()) ) {
 	    resolutionClause=generateSubsumptionResolutionClause(cl,resLit,cms->_cl);
-	    env.statistics->forwardSubsumptionResolution++;
+	    env->statistics->forwardSubsumptionResolution++;
 	    premises = pvi( getSingletonIterator(cms->_cl) );
 	    replacement = resolutionClause;
 	    result = true;
@@ -368,7 +368,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
 
 	if(checkForSubsumptionResolution(cl, cms, resLit) && ColorHelper::compatible(cl->color(), cms->_cl->color())) {
 	  resolutionClause=generateSubsumptionResolutionClause(cl,resLit,cms->_cl);
-	  env.statistics->forwardSubsumptionResolution++;
+	  env->statistics->forwardSubsumptionResolution++;
           premises = pvi( getSingletonIterator(cms->_cl) );
           replacement = resolutionClause;
           result = true;

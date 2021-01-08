@@ -98,16 +98,16 @@ Clause* GlobalSubsumption::perform(Clause* cl, Stack<Unit*>& prems)
   Grounder& grounder = _index->getGrounder();
   
   // SAT literals of the prop. abstraction of cl
-  static SATLiteralStack plits;
+  VTHREAD_LOCAL static SATLiteralStack plits;
   plits.reset();
   
   // assumptions corresponding to the negation of the new prop clause
   // (and perhaps additional ones used to "activate" AVATAR-conditional clauses)
-  static SATLiteralStack assumps;
+  VTHREAD_LOCAL static SATLiteralStack assumps;
   assumps.reset();
   
   // lookup to retrieve the FO lits later back
-  static DHMap<SATLiteral,Literal*> lookup;
+  VTHREAD_LOCAL static DHMap<SATLiteral,Literal*> lookup;
   lookup.reset();
     
   // first abstract cl's FO literals using grounder,
@@ -177,10 +177,10 @@ Clause* GlobalSubsumption::perform(Clause* cl, Stack<Unit*>& prems)
       // proper subset sufficed for UNSAT - that's the interesting case
       const SATLiteralStack& failedFinal = _explicitMinim ? solver.explicitlyMinimizedFailedAssumptions(_uprOnly,_randomizeMinim) : failed;
 
-      static LiteralStack survivors;
+      VTHREAD_LOCAL static LiteralStack survivors;
       survivors.reset();
 
-      static Set<SATLiteral> splitAssumps;
+      VTHREAD_LOCAL static Set<SATLiteral> splitAssumps;
       splitAssumps.reset();
 
       for (unsigned i = 0; i < failedFinal.size(); i++) {
@@ -238,7 +238,7 @@ Clause* GlobalSubsumption::perform(Clause* cl, Stack<Unit*>& prems)
           UnitList::push(us, premList);
         }
         
-        SATClauseList* satPremises = env.options->minimizeSatProofs() ?
+        SATClauseList* satPremises = env->options->minimizeSatProofs() ?
             solver.getRefutationPremiseList() : nullptr; // getRefutationPremiseList may be nullptr already, if our solver does not support minimization
 
         Inference inf(FromSatRefutation(InferenceRule::GLOBAL_SUBSUMPTION, premList, satPremises, failedFinal));
@@ -251,7 +251,7 @@ Clause* GlobalSubsumption::perform(Clause* cl, Stack<Unit*>& prems)
         
         Clause* replacement = Clause::fromIterator(LiteralStack::BottomFirstIterator(survivors),inf);
 
-        env.statistics->globalSubsumption++;
+        env->statistics->globalSubsumption++;
         ASS_L(replacement->length(), clen);
         
         return replacement;       
@@ -276,7 +276,7 @@ bool GlobalSubsumption::perform(Clause* cl, Clause*& replacement, ClauseIterator
 {
   CALL("GlobalSubsumption::perform/3");
 
-  static Stack<Unit*> prems;
+  VTHREAD_LOCAL static Stack<Unit*> prems;
   
   Clause* newCl = perform(cl,prems);
   if(newCl==cl) {

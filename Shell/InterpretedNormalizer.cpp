@@ -55,9 +55,9 @@ public:
   {
     CALL("InterpretedNormalizer::RoundingFunctionTranslator::RoundingFunctionTranslator");
 
-    _origFun = env.signature->getInterpretingSymbol(origf);
-    _newFun = env.signature->getInterpretingSymbol(newf);
-    _roundingFun = env.signature->getInterpretingSymbol(roundf);
+    _origFun = env->signature->getInterpretingSymbol(origf);
+    _newFun = env->signature->getInterpretingSymbol(newf);
+    _roundingFun = env->signature->getInterpretingSymbol(roundf);
 
   }
 
@@ -96,8 +96,8 @@ public:
   {
     CALL("InterpretedNormalizer::SuccessorTranslator::SuccessorTranslator");
 
-    _succFun = env.signature->getInterpretingSymbol(Theory::INT_SUCCESSOR);
-    _plusFun = env.signature->getInterpretingSymbol(Theory::INT_PLUS);
+    _succFun = env->signature->getInterpretingSymbol(Theory::INT_SUCCESSOR);
+    _plusFun = env->signature->getInterpretingSymbol(Theory::INT_PLUS);
     _one = TermList(theory->representConstant(IntegerConstantType(1)));
   }
 
@@ -133,9 +133,9 @@ public:
   {
     CALL("InterpretedNormalizer::BinaryMinusTranslator::BinaryMinusTranslator");
 
-    _bMinusFun = env.signature->getInterpretingSymbol(bMinus);
-    _plusFun = env.signature->getInterpretingSymbol(plus);
-    _uMinusFun = env.signature->getInterpretingSymbol(uMinus);
+    _bMinusFun = env->signature->getInterpretingSymbol(bMinus);
+    _plusFun = env->signature->getInterpretingSymbol(plus);
+    _uMinusFun = env->signature->getInterpretingSymbol(uMinus);
   }
 
   virtual TermList translate(Term* trm)
@@ -172,10 +172,10 @@ public:
    : _swapArguments(swapArguments), _reversePolarity(reversePolarity)
   {
     CALL("InterpretedNormalizer::IneqTranslator::IneqTranslator");
-    _srcPred = env.signature->getInterpretingSymbol(src);
-    _tgtPred = env.signature->getInterpretingSymbol(tgt);
-    ASS_EQ(env.signature->predicateArity(_srcPred), 2);
-    ASS_EQ(env.signature->predicateArity(_tgtPred), 2);
+    _srcPred = env->signature->getInterpretingSymbol(src);
+    _tgtPred = env->signature->getInterpretingSymbol(tgt);
+    ASS_EQ(env->signature->predicateArity(_srcPred), 2);
+    ASS_EQ(env->signature->predicateArity(_tgtPred), 2);
 
   }
 
@@ -211,8 +211,8 @@ public:
   USE_ALLOCATOR(InterpretedNormalizer::NLiteralTransformer);
   
   NLiteralTransformer()
-  : _ineqTransls(env.signature->predicates()),
-    _fnTransfs(env.signature->functions())
+  : _ineqTransls(env->signature->predicates()),
+    _fnTransfs(env->signature->functions())
   {
     CALL("InterpretedNormalizer::NLiteralTransformer::NLiteralTransformer");
 
@@ -306,7 +306,7 @@ private:
   {
     CALL("InterpretedNormalizer::NLiteralTransformer::addMinusTransformer");
 
-    if(!env.signature->haveInterpretingSymbol(bMinus)) {
+    if(!env->signature->haveInterpretingSymbol(bMinus)) {
       return; //the symbol to be transformed doesn't exist, so we don't need to worry
     }
     BinaryMinusTranslator* transl = new BinaryMinusTranslator(bMinus, plus, uMinus);
@@ -322,7 +322,7 @@ private:
   {
     CALL("InterpretedNormalizer::NLiteralTransformer::addSuccessorTransformer");
 
-    if(!env.signature->haveInterpretingSymbol(Theory::INT_SUCCESSOR)) {
+    if(!env->signature->haveInterpretingSymbol(Theory::INT_SUCCESSOR)) {
       return; //the symbol to be transformed doesn't exist, so we don't need to worry
     }
     SuccessorTranslator* transl = new SuccessorTranslator();
@@ -338,7 +338,7 @@ private:
   {
     CALL("InterpretedNormalizer::NLiteralTransformer::addRoundingFunctionTransformer");
 
-    if(!env.signature->haveInterpretingSymbol(origF)) {
+    if(!env->signature->haveInterpretingSymbol(origF)) {
       return; //the symbol to be transformed doesn't exist, so we don't need to worry
     }
     RoundingFunctionTranslator* transl = new RoundingFunctionTranslator(origF,newF,roundF);
@@ -356,7 +356,7 @@ private:
   {
     CALL("InterpretedNormalizer::NLiteralTransformer::addIneqTransformer");
 
-    if(!env.signature->haveInterpretingSymbol(from)) {
+    if(!env->signature->haveInterpretingSymbol(from)) {
       return; //the symbol to be transformed doesn't exist, so we don't need to worry
     }
     IneqTranslator* transl = new IneqTranslator(from, to, swapArguments, reversePolarity);
@@ -500,7 +500,7 @@ Clause* InterpretedNormalizer::apply(Clause* cl)
 {
   CALL("InterpretedNormalizer::apply(Clause* cl)");
 
-  static LiteralStack lits;
+  VTHREAD_LOCAL static LiteralStack lits;
   lits.reset();
   unsigned clen = cl->length();
   bool modified = false;

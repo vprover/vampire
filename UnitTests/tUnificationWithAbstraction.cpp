@@ -37,7 +37,7 @@ using SortType = TermList;
 
 TermList number(vstring n)
 {
-  return TermList(Term::create(env.signature->addIntegerConstant(n,false),0,0));
+  return TermList(Term::create(env->signature->addIntegerConstant(n,false),0,0));
 }
 TermList var(unsigned i)
 {
@@ -46,9 +46,9 @@ TermList var(unsigned i)
 unsigned function_symbol(vstring name,unsigned arity,SortType srt)
 {
   bool added;
-  unsigned f = env.signature->addFunction(name,arity,added);
+  unsigned f = env->signature->addFunction(name,arity,added);
   if(added){
-    Signature::Symbol* symbol = env.signature->getFunction(f);
+    Signature::Symbol* symbol = env->signature->getFunction(f);
     OperatorType* ot = OperatorType::getFunctionTypeUniformRange(arity,srt,srt);
     symbol->setType(ot); 
   }
@@ -66,7 +66,7 @@ TermList int_constant(vstring name)
 }
 TermList binary(Interpretation fun, TermList n1, TermList n2)
 {
-  return TermList(Term::create2(env.signature->getInterpretingSymbol(fun),n1,n2));
+  return TermList(Term::create2(env->signature->getInterpretingSymbol(fun),n1,n2));
 }
 TermList int_plus(TermList n1, TermList n2)
 {
@@ -84,9 +84,9 @@ Literal* equals(TermList t1, TermList t2)
 Literal* pred(vstring p, TermList t, SortType srt)
 {
   bool added;
-  unsigned ps = env.signature->addPredicate(p,1,added);
+  unsigned ps = env->signature->addPredicate(p,1,added);
   if(added){
-    Signature::Symbol* symbol = env.signature->getPredicate(ps);
+    Signature::Symbol* symbol = env->signature->getPredicate(ps);
     OperatorType* ot = OperatorType::getPredicateTypeUniformRange(1,srt);
     symbol->setType(ot);
   }
@@ -155,7 +155,7 @@ void reportMatches(LiteralIndexingStructure* index, Literal* qlit)
 // This test demonstrates the current issue. The constraints produced depend on
 TEST_FUN(current_issue)
 {
-  env.options->setUWA(Options::UnificationWithAbstraction::ALL); 
+  env->options->setUWA(Options::UnificationWithAbstraction::ALL); 
 
   LiteralIndexingStructure* index = getBasicIndex();
 
@@ -227,7 +227,7 @@ void reportRobUnify(TermList a, TermList b)
 
 TEST_FUN(using_robsub)
 {
-  env.options->setUWA(Options::UnificationWithAbstraction::ALL);
+  env->options->setUWA(Options::UnificationWithAbstraction::ALL);
 
   TermList b_plus_two = int_plus(int_constant("b"),number("2"));
   TermList one_plus_a = int_plus(number("1"),int_constant("a"));
@@ -241,7 +241,7 @@ TEST_FUN(using_robsub)
 
 TEST_FUN(complex_case)
 {
-  env.options->setUWA(Options::UnificationWithAbstraction::ALL);
+  env->options->setUWA(Options::UnificationWithAbstraction::ALL);
 
   // The complex case is where we have a variable that needs to be instantiated elsewhere
   // e.g. unifying f(f(g(X),X),f(Y,a)) with f(f(1,2),(3,g(Z)))

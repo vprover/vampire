@@ -112,7 +112,7 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
         }
 
         premises = pvi(getSingletonIterator(premise));
-        env.statistics->forwardSubsumed++;
+        env->statistics->forwardSubsumed++;
         return true;
       }
     }
@@ -155,7 +155,7 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
       /**
        * Step 2: choose a positive equality in mcl to use for demodulation and try to instantiate the rest to some subset of cl
        */
-      static vvector<LiteralList*> alts;
+      VTHREAD_LOCAL static vvector<LiteralList*> alts;
       alts.clear();
       alts.reserve(mcl->length());
       ASS_EQ(alts.size(), 0);
@@ -222,10 +222,10 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
 
       ASS_EQ(mcl->length(), alts.size());
 
-      static MLMatcherSD matcher;
+      VTHREAD_LOCAL static MLMatcherSD matcher;
       matcher.init(mcl, cl, alts.data());
 
-      static unsigned const maxMatches =
+      VTHREAD_LOCAL static unsigned const maxMatches =
         getOptions().forwardSubsumptionDemodulationMaxMatches() == 0
         ? std::numeric_limits<decltype(maxMatches)>::max()
         : getOptions().forwardSubsumptionDemodulationMaxMatches();
@@ -252,7 +252,7 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
 #endif
           ASS(replacement == nullptr);
           premises = pvi(getSingletonIterator(mcl));
-          env.statistics->forwardSubsumed++;
+          env->statistics->forwardSubsumed++;
           return true;
         }
         ASS(eqLit->isEquality());
@@ -267,10 +267,10 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
         }
 
         // isMatched[i] is true iff (*cl)[i] is matched my some literal in mcl (without eqLit)
-        static vvector<bool> isMatched;
+        VTHREAD_LOCAL static vvector<bool> isMatched;
         matcher.getMatchedAltsBitmap(isMatched);
 
-        static OverlayBinder binder;
+        VTHREAD_LOCAL static OverlayBinder binder;
         binder.clear();
         matcher.getBindings(binder.base());
 
@@ -296,7 +296,7 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
         // 1. No LHS (if INCOMPARABLE and no side contains all variables of the other side)
         // 2. One LHS (oriented, or INCOMPARABLE with exactly one variable-free side)
         // 3. Two LHSs (INCOMPARABLE and same variables)
-        static vvector<TermList> lhsVector;
+        VTHREAD_LOCAL static vvector<TermList> lhsVector;
         lhsVector.clear();
         {
           TermList t0 = *eqLit->nthArgument(0);
@@ -393,7 +393,7 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
           continue;
         }
 
-        static DHSet<TermList> attempted;  // Terms we already attempted to demodulate
+        VTHREAD_LOCAL static DHSet<TermList> attempted;  // Terms we already attempted to demodulate
         attempted.reset();
 
         for (unsigned dli = 0; dli < cl->length(); ++dli) {
@@ -406,7 +406,7 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
 
           // TODO higher-order support not yet implemented; see forward demodulation
           //      (maybe it's enough to just use the different iterator)
-          ASS(!env.options->combinatorySup());
+          ASS(!env->options->combinatorySup());
           NonVariableNonTypeIterator nvi(dlit);
           while (nvi.hasNext()) {
             TermList lhsS = nvi.next();  // named 'lhsS' because it will be matched against 'lhs'
@@ -532,7 +532,7 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
 #endif
                     ASS(replacement == nullptr);
                     premises = pvi(getSingletonIterator(mcl));
-                    env.statistics->forwardSubsumed++;
+                    env->statistics->forwardSubsumed++;
                     return true;
                   } else {
                     // Here, we have subsumption resolution
@@ -549,7 +549,7 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
                     }
 #endif
                     premises = pvi(getSingletonIterator(mcl));
-                    env.statistics->forwardSubsumptionResolution++;
+                    env->statistics->forwardSubsumptionResolution++;
                     return true;
                   }
                 }
@@ -607,7 +607,7 @@ isRedundant:
 #endif
 
               if (EqHelper::isEqTautology(newLit)) {
-                env.statistics->forwardSubsumptionDemodulationsToEqTaut++;
+                env->statistics->forwardSubsumptionDemodulationsToEqTaut++;
                 premises = pvi(getSingletonIterator(mcl));
                 replacement = nullptr;
                 return true;
@@ -624,18 +624,18 @@ isRedundant:
                 }
               }
 
-              env.statistics->forwardSubsumptionDemodulations++;
+              env->statistics->forwardSubsumptionDemodulations++;
 
               premises = pvi(getSingletonIterator(mcl));
               replacement = newCl;
 
 #if FSD_LOG_INFERENCES
-              env.beginOutput();
-              env.out() << "\% Begin Inference \"FSD-" << newCl->number() << "\"\n";
-              env.out() << "\% eqLit: " << eqLit->toString() << "\n";
-              env.out() << "\% eqLitS: " << binder.applyTo(eqLit)->toString() << "\n";
-              env.out() << "\% dlit: " << dlit->toString() << "\n";
-              env.out() << "\% numMatches+1: success at match #" << (numMatches+1) << "\n";
+              env->beginOutput();
+              env->out() << "\% Begin Inference \"FSD-" << newCl->number() << "\"\n";
+              env->out() << "\% eqLit: " << eqLit->toString() << "\n";
+              env->out() << "\% eqLitS: " << binder.applyTo(eqLit)->toString() << "\n";
+              env->out() << "\% dlit: " << dlit->toString() << "\n";
+              env->out() << "\% numMatches+1: success at match #" << (numMatches+1) << "\n";
               TPTPPrinter tptp;
               // NOTE: do not output the splitLevels here, because those will be set for newCl only later
               tptp.printWithRole("side_premise_mcl", "hypothesis", mcl,   false);
@@ -647,8 +647,8 @@ isRedundant:
               //       Problem: how to detect that situation??
               //       probably if the input only contains FOF and no TFF
               // TODO: Also don't output type defs for $$false and $$true, see problem SYO091^5.p
-              env.out() << "\% End Inference \"FSD-" << newCl->number() << "\"" << std::endl;
-              env.endOutput();
+              env->out() << "\% End Inference \"FSD-" << newCl->number() << "\"" << std::endl;
+              env->endOutput();
 #endif
 
               RSTAT_MCTR_INC("FSD, successes by MLMatch", numMatches + 1);  // +1 so it fits with the previous output

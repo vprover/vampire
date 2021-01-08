@@ -69,10 +69,10 @@ FormulaUnit* Naming::apply(FormulaUnit* unit, UnitList*& defs) {
   ASS_REP(unit->formula()->freeVariables() == 0, *unit);
   ASS(!_varsInScope); //_varsInScope can be true only when traversing inside a formula
 
-  if (env.options->showPreprocessing()) {
-    env.beginOutput();
-    env.out() << "[PP] naming args: " << unit->toString() << std::endl;
-    env.endOutput();
+  if (env->options->showPreprocessing()) {
+    env->beginOutput();
+    env->out() << "[PP] naming args: " << unit->toString() << std::endl;
+    env->endOutput();
   }
 
   Formula* f = unit->formula();
@@ -1113,10 +1113,10 @@ Literal* Naming::getDefinitionLiteral(Formula* f, VList* freeVars) {
 
   unsigned arity = VList::length(freeVars);
 
-  static TermStack termVarSorts;
-  static TermStack termVars;
-  static TermStack typeVars;
-  static DHMap<unsigned, TermList> varSorts;
+  VTHREAD_LOCAL static TermStack termVarSorts;
+  VTHREAD_LOCAL static TermStack termVars;
+  VTHREAD_LOCAL static TermStack typeVars;
+  VTHREAD_LOCAL static DHMap<unsigned, TermList> varSorts;
   termVarSorts.reset();
   termVars.reset();
   typeVars.reset();
@@ -1146,10 +1146,10 @@ Literal* Naming::getDefinitionLiteral(Formula* f, VList* freeVars) {
   }
 
   if(!_appify){
-    unsigned pred = env.signature->addNamePredicate(arity);
-    Signature::Symbol* predSym = env.signature->getPredicate(pred);
+    unsigned pred = env->signature->addNamePredicate(arity);
+    Signature::Symbol* predSym = env->signature->getPredicate(pred);
 
-    if (env.colorUsed) {
+    if (env->colorUsed) {
       Color fc = f->getColor();
       if (fc != COLOR_TRANSPARENT) {
         predSym->addColor(fc);
@@ -1162,9 +1162,9 @@ Literal* Naming::getDefinitionLiteral(Formula* f, VList* freeVars) {
     predSym->setType(OperatorType::getPredicateType(arity - typeArgArity, termVarSorts.begin(), typeArgArity));
     return Literal::create(pred, arity, true, false, allVars.begin());
   } else {
-    unsigned fun = env.signature->addNameFunction(typeVars.size());
+    unsigned fun = env->signature->addNameFunction(typeVars.size());
     TermList sort = Term::arrowSort(termVarSorts, Term::boolSort());
-    Signature::Symbol* sym = env.signature->getFunction(fun);
+    Signature::Symbol* sym = env->signature->getFunction(fun);
     sym->setType(OperatorType::getConstantsType(sort, typeArgArity)); 
     TermList head = TermList(Term::create(fun, typeVars.size(), typeVars.begin()));
     TermList t = ApplicativeHelper::createAppTerm(sort, head, termVars);
@@ -1215,13 +1215,13 @@ Formula* Naming::introduceDefinition(Formula* f, bool iff) {
   InferenceStore::instance()->recordIntroducedSymbol(definition, false,
       atom->functor());
 
-  env.statistics->formulaNames++;
+  env->statistics->formulaNames++;
   UnitList::push(definition, _defs);
 
-  if (env.options->showPreprocessing()) {
-    env.beginOutput();
-    env.out() << "[PP] naming defs: " << definition->toString() << std::endl;
-    env.endOutput();
+  if (env->options->showPreprocessing()) {
+    env->beginOutput();
+    env->out() << "[PP] naming defs: " << definition->toString() << std::endl;
+    env->endOutput();
   }
 
   return name;

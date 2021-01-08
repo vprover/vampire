@@ -63,7 +63,7 @@ TermList MatchingUtils::getInstanceFromMatch(TermList matchedBase,
 
   using namespace __MU_Aux;
 
-  static MapBinderAndApplicator bap;
+  VTHREAD_LOCAL static MapBinderAndApplicator bap;
   bap.reset();
 
   ALWAYS( matchTerms(matchedBase, matchedInstance, bap) );
@@ -77,7 +77,7 @@ Formula* MatchingUtils::getInstanceFromMatch(Literal* matchedBase,
 
   using namespace __MU_Aux;
 
-  static MapBinderAndApplicator bap;
+  VTHREAD_LOCAL static MapBinderAndApplicator bap;
   bap.reset();
 
   ALWAYS( match(matchedBase, matchedInstance, false, bap) );
@@ -121,8 +121,8 @@ bool MatchingUtils::haveReversedVariantArgs(Term* l1, Term* l2)
   ASS_EQ(l1->arity(), 2);
   ASS_EQ(l2->arity(), 2);
 
-  static DHMap<unsigned,unsigned,IdentityHash> leftToRight;
-  static DHMap<unsigned,unsigned,IdentityHash> rightToLeft;
+  VTHREAD_LOCAL static DHMap<unsigned,unsigned,IdentityHash> leftToRight;
+  VTHREAD_LOCAL static DHMap<unsigned,unsigned,IdentityHash> rightToLeft;
   leftToRight.reset();
   rightToLeft.reset();
 
@@ -177,8 +177,8 @@ bool MatchingUtils::haveVariantArgs(Term* l1, Term* l2)
     return true;
   }
 
-  static DHMap<unsigned,unsigned,IdentityHash> leftToRight;
-  static DHMap<unsigned,unsigned,IdentityHash> rightToLeft;
+  VTHREAD_LOCAL static DHMap<unsigned,unsigned,IdentityHash> leftToRight;
+  VTHREAD_LOCAL static DHMap<unsigned,unsigned,IdentityHash> rightToLeft;
   leftToRight.reset();
   rightToLeft.reset();
 
@@ -210,7 +210,7 @@ bool MatchingUtils::matchReversedArgs(Literal* base, Literal* instance)
   ASS_EQ(base->arity(), 2);
   ASS_EQ(instance->arity(), 2);
 
-  static MapBinder binder;
+  VTHREAD_LOCAL static MapBinder binder;
   binder.reset();
 
   bool bTwoVarEq = base->isTwoVarEquality();
@@ -225,7 +225,7 @@ bool MatchingUtils::matchArgs(Term* base, Term* instance)
 {
   CALL("MatchingUtils::matchArgs");
 
-  static MapBinder binder;
+  VTHREAD_LOCAL static MapBinder binder;
   binder.reset();
 
   return matchArgs(base, instance, binder);
@@ -341,8 +341,8 @@ bool OCMatchIterator::occursCheck()
 {
   CALL("OCMatchIterator::occursCheck");
 
-  static DHMap<unsigned, OCStatus> statuses;
-  static Stack<int> toDo;
+  VTHREAD_LOCAL static DHMap<unsigned, OCStatus> statuses;
+  VTHREAD_LOCAL static Stack<int> toDo;
   statuses.reset();
   toDo.reset();
   BoundStack::Iterator bit(_bound);

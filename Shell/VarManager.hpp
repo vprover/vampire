@@ -39,7 +39,7 @@ public:
   static unsigned getVarAlias(unsigned var);
   static vstring getVarName(unsigned var);
 private:
-  static VarFactory* _fact;
+  VTHREAD_LOCAL static VarFactory* _fact;
 };
 
 }

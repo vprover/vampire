@@ -72,9 +72,9 @@ Formula* InterpolantMinimizer::getInterpolant(Unit* refutation)
   }
 
   if(_showStats) {
-    env.beginOutput();
-    env.out() << _statsPrefix << " cost: " <<res.assignment.get(costFunction()) << endl;
-    env.endOutput();
+    env->beginOutput();
+    env->out() << _statsPrefix << " cost: " <<res.assignment.get(costFunction()) << endl;
+    env->endOutput();
   }
 
   collectSlicedOffNodes(res, slicedOff);
@@ -91,7 +91,7 @@ void InterpolantMinimizer::prettyPrint(Formula* formula, ostream& out)
 {
   CALL("SMTLibPrinter::prettyPrint");
         
-  Signature *sig = env.signature;
+  Signature *sig = env->signature;
   unsigned symbNum;
   Symbol* symb;
   TermList* args;
@@ -179,7 +179,7 @@ void InterpolantMinimizer::prettyPrint(Formula* formula, ostream& out)
 /*print terms in SMT*/    
 void InterpolantMinimizer::prettyPrint(Term* term, ostream& out)
 {
-    Signature *sig = env.signature;
+    Signature *sig = env->signature;
     unsigned int symbNum = term->functor();
     Symbol* symb = sig->getFunction(symbNum);
         
@@ -313,7 +313,7 @@ void InterpolantMinimizer::addNodeFormulas(Unit* u)
 {
   CALL("InterpolantMinimizer::addNodeFormulas");
 
-  static ParentSummary psum;
+  VTHREAD_LOCAL static ParentSummary psum;
   psum.reset();
 
   UnitIterator pit = InferenceStore::instance()->getParents(u);
@@ -473,7 +473,7 @@ protected:
 
   void doSplitting(Clause* cl) {
 
-    static Stack<LiteralStack> comps;
+    VTHREAD_LOCAL static Stack<LiteralStack> comps;
     comps.reset();
     // fills comps with components, returning if not splittable
     if(!Saturation::Splitter::getComponents(cl, comps)) {
@@ -623,7 +623,7 @@ void InterpolantMinimizer::collectAtoms(Unit* u, Stack<vstring>& atoms)
   
   Clause* cl = u->asClause();
     
-  static ClauseStack components;
+  VTHREAD_LOCAL static ClauseStack components;
   components.reset();
   _splitter->getComponents(cl, components);
   ASS(components.isNonEmpty());
@@ -649,7 +649,7 @@ void InterpolantMinimizer::addAtomImplicationFormula(Unit* u)
   CALL("InterpolantMinimizer::getAtomImplicationFormula");
   
   
-  static Stack<vstring> atoms;
+  VTHREAD_LOCAL static Stack<vstring> atoms;
   atoms.reset();
   
   collectAtoms(u, atoms);
@@ -991,7 +991,7 @@ void InterpolantMinimizer::traverse(Unit* refutationUnit)
 
   Unit* refutation = refutationUnit;
 
-  static Stack<TraverseStackEntry> stack;
+  VTHREAD_LOCAL static Stack<TraverseStackEntry> stack;
   stack.reset();
 
   stack.push(TraverseStackEntry(*this, refutation));

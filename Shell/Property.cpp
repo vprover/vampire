@@ -90,7 +90,7 @@ Property::Property()
     _smtlibLogic(SMTLIBLogic::SMT_UNDEFINED)
 {
   _interpretationPresence.init(Theory::instance()->numberOfFixedInterpretations(), false);
-  env.property = this;
+  env->property = this;
 } // Property::Property
 
 /**
@@ -102,13 +102,13 @@ Property* Property::scan(UnitList* units)
   CALL("Property::scan");
 
   // a bit of a hack, these counts belong in Property
-  for(unsigned f=0;f<env.signature->functions();f++){ 
-    env.signature->getFunction(f)->resetUsageCnt(); 
-    env.signature->getFunction(f)->resetUnitUsageCnt(); 
+  for(unsigned f=0;f<env->signature->functions();f++){ 
+    env->signature->getFunction(f)->resetUsageCnt(); 
+    env->signature->getFunction(f)->resetUnitUsageCnt(); 
    }
-  for(unsigned p=0;p<env.signature->predicates();p++){ 
-    env.signature->getPredicate(p)->resetUsageCnt(); 
-    env.signature->getPredicate(p)->resetUnitUsageCnt(); 
+  for(unsigned p=0;p<env->signature->predicates();p++){ 
+    env->signature->getPredicate(p)->resetUsageCnt(); 
+    env->signature->getPredicate(p)->resetUnitUsageCnt(); 
    }
 
   Property* prop = new Property;
@@ -117,15 +117,15 @@ Property* Property::scan(UnitList* units)
 } // Property::scan
 
 /**
- * Destroy the property. If this property is used as env.property, set env.property to null.
+ * Destroy the property. If this property is used as env->property, set env->property to null.
  * @since 22/07/2011 Manchester
  */
 Property::~Property()
 {
   CALL("Property::~Property");
 
-  if (this == env.property) {
-    env.property = 0;
+  if (this == env->property) {
+    env->property = 0;
   }
 }
 
@@ -149,21 +149,21 @@ void Property::add(UnitList* units)
   }
 
   // information about sorts is read from the environment, not from the problem
-  if (env.sorts->hasSort()) {
+  if (env->sorts->hasSort()) {
     addProp(PR_SORTS);
   }
     
   // information about interpreted constant is read from the signature
-  if (env.signature->strings()) {
+  if (env->signature->strings()) {
     addProp(PR_HAS_STRINGS);
   }
-  if (env.signature->integers()) {
+  if (env->signature->integers()) {
     addProp(PR_HAS_INTEGERS);
   }
-  if (env.signature->rationals()) {
+  if (env->signature->rationals()) {
     addProp(PR_HAS_RATS);
   }
-  if (env.signature->reals()) {
+  if (env->signature->reals()) {
     addProp(PR_HAS_REALS);
   }
 
@@ -251,10 +251,10 @@ void Property::scan(Unit* unit)
   while(it.hasNext()){
     int symbol = it.next();
     if(symbol >= 0){
-      env.signature->getFunction(symbol)->incUnitUsageCnt();
+      env->signature->getFunction(symbol)->incUnitUsageCnt();
     }else{
       symbol = -symbol;
-      env.signature->getPredicate(symbol)->incUnitUsageCnt();
+      env->signature->getPredicate(symbol)->incUnitUsageCnt();
     }
   }
 
@@ -476,7 +476,7 @@ void Property::scan(Formula* f, int polarity)
         while(vit.hasNext()){
           int v = vit.next();
           if(SortHelper::tryGetVariableSort(v, f->qarg(), s)){
-            if(s.isTerm() && env.signature->getFunction(s.term()->functor())->super()){
+            if(s.isTerm() && env->signature->getFunction(s.term()->functor())->super()){
               _quantifiesOverPolymorphicVar = true;
               break;
             }
@@ -505,7 +505,7 @@ void Property::scanSort(TermList sort)
     return;
   }
 
-  if(!env.statistics->higherOrder && !_hasPolymorphicSym){
+  if(!env->statistics->higherOrder && !_hasPolymorphicSym){
     //used sorts is for FMB which is not compatible with 
     //higher-order or polymorphism
     unsigned sortU = SortHelper::sortNum(sort);
@@ -519,7 +519,7 @@ void Property::scanSort(TermList sort)
     return;
   }
   _hasNonDefaultSorts = true;
-  env.statistics->hasTypes=true;
+  env->statistics->hasTypes=true;
 
   if(SortHelper::isArraySort(sort)){
     // an array sort is infinite, if the index or value sort is infinite
@@ -532,8 +532,8 @@ void Property::scanSort(TermList sort)
     addProp(PR_HAS_ARRAYS);
     return;
   }
-  if (env.signature->isTermAlgebraSort(sort)) {
-    TermAlgebra* ta = env.signature->getTermAlgebraOfSort(sort);
+  if (env->signature->isTermAlgebraSort(sort)) {
+    TermAlgebra* ta = env->signature->getTermAlgebraOfSort(sort);
     if (!ta->finiteDomain()) {
       _onlyFiniteDomainDatatypes = false;
     }
@@ -601,9 +601,9 @@ void Property::scan(Literal* lit, int polarity, unsigned cLen, bool goal)
     if (arity > _maxPredArity) {
       _maxPredArity = arity;
     }
-    Signature::Symbol* pred = env.signature->getPredicate(lit->functor());
-    static bool weighted = env.options->symbolPrecedence() == Options::SymbolPrecedence::WEIGHTED_FREQUENCY ||
-                           env.options->symbolPrecedence() == Options::SymbolPrecedence::REVERSE_WEIGHTED_FREQUENCY;
+    Signature::Symbol* pred = env->signature->getPredicate(lit->functor());
+    bool weighted = env->options->symbolPrecedence() == Options::SymbolPrecedence::WEIGHTED_FREQUENCY ||
+                           env->options->symbolPrecedence() == Options::SymbolPrecedence::REVERSE_WEIGHTED_FREQUENCY;
     unsigned w = weighted ? cLen : 1; 
     for(unsigned i=0;i<w;i++){pred->incUsageCnt();}
     if(cLen==1){
@@ -685,7 +685,7 @@ void Property::scan(TermList ts,bool unit,bool goal)
     scanForInterpreted(t);
 
     _symbolsInFormula.insert(t->functor());
-    Signature::Symbol* func = env.signature->getFunction(t->functor());
+    Signature::Symbol* func = env->signature->getFunction(t->functor());
     func->incUsageCnt();
     if(unit){ func->markInUnit();}
     if(goal){ func->markInGoal();}
@@ -763,7 +763,7 @@ void Property::scanForInterpreted(Term* t)
 
   if (Theory::isPolymorphic(itp)) {
     OperatorType* type = t->isLiteral() ?
-        env.signature->getPredicate(t->functor())->predType() : env.signature->getFunction(t->functor())->fnType();
+        env->signature->getPredicate(t->functor())->predType() : env->signature->getFunction(t->functor())->fnType();
 
     _polymorphicInterpretations.insert(std::make_pair(itp,type));
     return;

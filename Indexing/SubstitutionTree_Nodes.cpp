@@ -144,7 +144,7 @@ SubstitutionTree::IntermediateNode* SubstitutionTree::createIntermediateNode(Ter
 
 void SubstitutionTree::IntermediateNode::destroyChildren()
 {
-  static Stack<Node*> toDelete;
+  VTHREAD_LOCAL static Stack<Node*> toDelete;
   toDelete.reset();
   toDelete.push(this);
   while(toDelete.isNonEmpty()) {

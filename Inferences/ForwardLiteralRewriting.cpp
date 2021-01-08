@@ -111,7 +111,7 @@ bool ForwardLiteralRewriting::perform(Clause* cl, Clause*& replacement, ClauseIt
       }
       ASS_EQ(next,clen);
 
-      env.statistics->forwardLiteralRewrites++;
+      env->statistics->forwardLiteralRewrites++;
 
       premises = pvi( getSingletonIterator(premise));
       replacement = res;

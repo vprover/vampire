@@ -24,16 +24,16 @@ TermAlgebraConstructor::TermAlgebraConstructor(unsigned functor, std::initialize
 TermAlgebraConstructor::TermAlgebraConstructor(unsigned functor, Lib::Array<unsigned> destructors)
   : _functor(functor), _hasDiscriminator(false), _destructors(destructors)
 {
-  _type = env.signature->getFunction(_functor)->fnType();
-  ASS_REP(env.signature->getFunction(_functor)->termAlgebraCons(), env.signature->functionName(_functor));
+  _type = env->signature->getFunction(_functor)->fnType();
+  ASS_REP(env->signature->getFunction(_functor)->termAlgebraCons(), env->signature->functionName(_functor));
   ASS_EQ(_type->arity(), destructors.size());
 }
 
 TermAlgebraConstructor::TermAlgebraConstructor(unsigned functor, unsigned discriminator, Lib::Array<unsigned> destructors)
   : _functor(functor), _hasDiscriminator(true), _discriminator(discriminator), _destructors(destructors)
 {
-  _type = env.signature->getFunction(_functor)->fnType();
-  ASS_REP(env.signature->getFunction(_functor)->termAlgebraCons(), env.signature->functionName(_functor));
+  _type = env->signature->getFunction(_functor)->fnType();
+  ASS_REP(env->signature->getFunction(_functor)->termAlgebraCons(), env->signature->functionName(_functor));
   ASS_EQ(_type->arity(), destructors.size());
 }
 
@@ -61,7 +61,7 @@ Lib::vstring TermAlgebraConstructor::discriminatorName()
 
   //Giles: the function name may contain quotes so we should remove them
   //       before appending $is.
-  vstring name = env.signature->functionName(_functor);
+  vstring name = env->signature->functionName(_functor);
   vstring ret = "$is";
   for(size_t i = 0; i < name.size(); i++){
     char c = name[i];
@@ -158,14 +158,14 @@ unsigned TermAlgebra::getSubtermPredicate() {
   CALL("TermAlgebra::getSubtermPredicate");
 
   bool added;
-  unsigned s = env.signature->addPredicate(getSubtermPredicateName(), 2, added);
+  unsigned s = env->signature->addPredicate(getSubtermPredicateName(), 2, added);
 
   if (added) {
     // declare a binary predicate subterm
     TermStack args;
     args.push(_sort); 
     args.push(_sort);
-    env.signature->getPredicate(s)->setType(OperatorType::getPredicateType(args.size(),args.begin()));
+    env->signature->getPredicate(s)->setType(OperatorType::getPredicateType(args.size(),args.begin()));
   }
 
   return s;

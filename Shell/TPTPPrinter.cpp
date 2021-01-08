@@ -96,7 +96,7 @@ vstring TPTPPrinter::getBodyStr(Unit* u, bool includeSplitLevels)
   vostringstream res;
 
   typedef DHMap<unsigned,TermList> SortMap;
-  static SortMap varSorts;
+  VTHREAD_LOCAL static SortMap varSorts;
   varSorts.reset();
   SortHelper::collectVariableSorts(u, varSorts);
 
@@ -201,7 +201,7 @@ void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, SymbolType sym
   bool function = symType == SymbolType::FUNC;
 
   Signature::Symbol* sym = function ?
-      env.signature->getFunction(symNumber) : env.signature->getPredicate(symNumber);
+      env->signature->getFunction(symNumber) : env->signature->getPredicate(symNumber);
   OperatorType* type = function ? sym->fnType() : sym->predType();
 
   if(type->isAllDefault()) {
@@ -225,7 +225,7 @@ void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, SymbolType sym
   }
 
   vstring cat = "tff(";
-  if(env.statistics->higherOrder){
+  if(env->statistics->higherOrder){
     cat = "thf(";
   }
 
@@ -260,11 +260,11 @@ void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, SymbolType sym
   List<TermList> *_usedSorts(0);
   OperatorType* type;
   Signature::Symbol* sym;
-  unsigned sorts = env.sorts->count();
+  unsigned sorts = env->sorts->count();
   //check the sorts of the function symbols and collect information about used sorts
-  for (i = 0; i < env.signature->functions(); i++) {
-    if(env.signature->isTypeConOrSup(f)){ continue; }
-    sym = env.signature->getFunction(i);
+  for (i = 0; i < env->signature->functions(); i++) {
+    if(env->signature->isTypeConOrSup(f)){ continue; }
+    sym = env->signature->getFunction(i);
     type = sym->fnType();
     unsigned arity = sym->arity();
     // NOTE: for function types, the last entry (i.e., type->arg(arity)) contains the type of the result
@@ -274,8 +274,8 @@ void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, SymbolType sym
     }
   }
   //check the sorts of the predicates and collect information about used sorts
-  for (i = 0; i < env.signature->predicates(); i++) {
-    sym = env.signature->getPredicate(i);
+  for (i = 0; i < env->signature->predicates(); i++) {
+    sym = env->signature->getPredicate(i);
     type = sym->predType();
     unsigned arity = sym->arity();
     if (arity > 0) {
@@ -288,7 +288,7 @@ void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, SymbolType sym
   //output the sort definition for the used sorts, but not for the built-in sorts
   for (i = Sorts::FIRST_USER_SORT; i < sorts; i++) {
     if (List<unsigned>::member(i, _usedSorts))
-      tgt() << "tff(sort_def_" << i << ",type, " << env.sorts->sortName(i)
+      tgt() << "tff(sort_def_" << i << ",type, " << env->sorts->sortName(i)
             	      << ": $tType" << " )." << endl;
 
   }
@@ -307,13 +307,13 @@ void TPTPPrinter::ensureHeadersPrinted(Unit* u)
   
   //ensureNecesarySorts();
 
-  unsigned funs = env.signature->functions();
+  unsigned funs = env->signature->functions();
   for(unsigned i=0; i<funs; i++) {
     SymbolType st = SymbolType::FUNC;
-    if(env.signature->isTypeConOrSup(i)){ st = SymbolType::TYPE_CON; }
+    if(env->signature->isTypeConOrSup(i)){ st = SymbolType::TYPE_CON; }
     outputSymbolTypeDefinitions(i, st);
   }
-  unsigned preds = env.signature->predicates();
+  unsigned preds = env->signature->predicates();
   for(unsigned i=1; i<preds; i++) {
     outputSymbolTypeDefinitions(i, SymbolType::PRED);
   }
@@ -332,26 +332,26 @@ ostream& TPTPPrinter::tgt()
     return *_tgtStream;
   }
   else {
-    return env.out();
+    return env->out();
   }
 }
 
 /**
  * In case there is no specified output stream, than print to the one
- * specified in the env.beginOutput();
+ * specified in the env->beginOutput();
  */
 void TPTPPrinter::beginOutput()
 {
   CALL("TPTPPrinter::beginOutput");
 
-  if(!_tgtStream) { env.beginOutput(); }
+  if(!_tgtStream) { env->beginOutput(); }
 }
 
 void TPTPPrinter::endOutput()
 {
   CALL("TPTPPrinter::endOutput");
 
-  if(!_tgtStream) { env.endOutput(); }
+  if(!_tgtStream) { env->endOutput(); }
 }
 
 /**

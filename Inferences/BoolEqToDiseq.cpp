@@ -65,9 +65,9 @@ ClauseIterator BoolEqToDiseq::generateClauses(Clause* cl)
       }
       TermList head = AH::getHead(lhs);
       if(!head.isVar()){
-        Signature::Symbol* sym = env.signature->getFunction(head.term()->functor());
+        Signature::Symbol* sym = env->signature->getFunction(head.term()->functor());
         if(sym->proxy() != Signature::NOT){
-          TermList vNot = TermList(Term::createConstant(env.signature->getNotProxy()));
+          TermList vNot = TermList(Term::createConstant(env->signature->getNotProxy()));
           TermList vNotSort = SortHelper::getResultSort(vNot.term());
           TermList newLhs = AH::createAppTerm(vNotSort, vNot, lhs);
           newLit = Literal::createEquality(false, newLhs, rhs, Term::boolSort());
@@ -76,9 +76,9 @@ ClauseIterator BoolEqToDiseq::generateClauses(Clause* cl)
       }
       head = AH::getHead(rhs);
       if(!head.isVar()){
-        Signature::Symbol* sym = env.signature->getFunction(head.term()->functor());
+        Signature::Symbol* sym = env->signature->getFunction(head.term()->functor());
         if(sym->proxy() != Signature::NOT){
-          TermList vNot = TermList(Term::createConstant(env.signature->getNotProxy()));
+          TermList vNot = TermList(Term::createConstant(env->signature->getNotProxy()));
           TermList vNotSort = SortHelper::getResultSort(vNot.term());
           TermList newRhs = AH::createAppTerm(vNotSort, vNot, rhs);
           newLit = Literal::createEquality(false, lhs, newRhs, Term::boolSort());

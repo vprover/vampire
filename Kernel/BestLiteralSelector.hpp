@@ -137,10 +137,10 @@ protected:
     CALL("CompleteBestLiteralSelector::doSelection");
     ASS_G(eligible, 1); //trivial cases should be taken care of by the base LiteralSelector
 
-    static bool combSup = env.options->combinatorySup();
+    VTHREAD_LOCAL static bool combSup = env->options->combinatorySup();
 
-    static DArray<Literal*> litArr(64);
-    static Set<unsigned> maxTermHeads;
+    VTHREAD_LOCAL static DArray<Literal*> litArr(64);
+    VTHREAD_LOCAL static Set<unsigned> maxTermHeads;
     maxTermHeads.reset();
     litArr.initFromArray(eligible,*c);
     litArr.sortInversed(_comp);
@@ -205,7 +205,7 @@ protected:
       c->setSelected(eligible);
     } else if(!singleSelected) {
       //select multiple maximal literals
-      static Stack<Literal*> replaced(16);
+      VTHREAD_LOCAL static Stack<Literal*> replaced(16);
       Set<Literal*> maxSet;
       unsigned selCnt=0;
 

@@ -52,9 +52,9 @@ Clause* Condensation::simplify(Clause* cl)
   unsigned newLen=clen-1;
 
   // stores newLen new literals
-  static DArray<Literal*> newLits(32);
+  VTHREAD_LOCAL static DArray<Literal*> newLits(32);
   //
-  static DArray<LiteralList*> alts(32);
+  VTHREAD_LOCAL static DArray<LiteralList*> alts(32);
   //static OCMatchIterator matcher;
 
   LiteralMiniIndex cmi(cl);
@@ -138,7 +138,7 @@ Clause* Condensation::simplify(Clause* cl)
           (*res)[i] = newLits[i];
         }
 
-        env.statistics->condensations++;
+        env->statistics->condensations++;
         return res;
       }
     }

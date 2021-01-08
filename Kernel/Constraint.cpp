@@ -140,7 +140,7 @@ void Constraint::reduce(bool allowDecimals)
 {
   CALL("Constraint::reduce");
 
-  static Stack<CoeffNumber*> nums;
+  VTHREAD_LOCAL static Stack<CoeffNumber*> nums;
   nums.reset();
 
   nums.push(&_freeCoeff);
@@ -198,8 +198,8 @@ Constraint* Constraint::resolve(Var resolvedVar, Constraint& c1, Constraint& c2,
   rc1 = CoeffNumber::zero();
   rc2 = CoeffNumber::zero();
 #endif
-  static CoeffStack otherC1;
-  static CoeffStack otherC2;
+  VTHREAD_LOCAL static CoeffStack otherC1;
+  VTHREAD_LOCAL static CoeffStack otherC2;
   otherC1.reset();
   otherC2.reset();
 
@@ -237,7 +237,7 @@ Constraint* Constraint::resolve(Var resolvedVar, Constraint& c1, Constraint& c2,
   CoeffNumber c1Mul = rc2.abs();
   CoeffNumber c2Mul = rc1.abs();
 
-  static CoeffStack acc;
+  VTHREAD_LOCAL static CoeffStack acc;
   acc.reset();
 
   CoeffNumber val;

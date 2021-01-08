@@ -423,11 +423,11 @@ void NewCNF::BindingStore::pushAndRememberWhileApplying(Binding b, BindingList* 
   CALL("NewCNF::pushAndRememberWhileApplying");
 
   // turn b into a singleton substitution
-  static Substitution subst;
+  VTHREAD_LOCAL static Substitution subst;
   subst.bind(b.first,b.second);
 
   // to go through the bindings from the end, put them on a stack...
-  static Stack<BindingList*> st(5);
+  VTHREAD_LOCAL static Stack<BindingList*> st(5);
   BindingList* traverse = lst;
   while (BindingList::isNonEmpty(traverse)) {
     st.push(traverse);
@@ -516,8 +516,8 @@ void NewCNF::processBoolVar(SIGN sign, unsigned var, Occurrences &occurrences)
       continue;
     }
 
-    bool isTrue  = env.signature->isFoolConstantSymbol(true,  skolem->functor());
-    bool isFalse = env.signature->isFoolConstantSymbol(false, skolem->functor());
+    bool isTrue  = env->signature->isFoolConstantSymbol(true,  skolem->functor());
+    bool isFalse = env->signature->isFoolConstantSymbol(false, skolem->functor());
 
     if (isTrue || isFalse) {
       SIGN bindingSign = isTrue ? POSITIVE : NEGATIVE;
@@ -584,7 +584,7 @@ TermList NewCNF::eliminateLet(Term::SpecialTermData *sd, TermList contents)
     VList* symbols = sd->getTupleSymbols();
     TermList bodySort = sd->getSort();
 
-    OperatorType* tupleType = env.signature->getFunction(tupleFunctor)->fnType();
+    OperatorType* tupleType = env->signature->getFunction(tupleFunctor)->fnType();
 
     Term* bindingTuple = binding.term()->getSpecialData()->getTupleTerm();
     unsigned arity = VList::length(symbols);
@@ -606,13 +606,13 @@ TermList NewCNF::eliminateLet(Term::SpecialTermData *sd, TermList contents)
     ASS(!sit.hasNext());
     ASS(!bit.hasNext());
 
-    if (env.options->showPreprocessing()) {
-      env.beginOutput();
+    if (env->options->showPreprocessing()) {
+      env->beginOutput();
       Term* tupleLet = Term::createTupleLet(tupleFunctor, symbols, binding, contents, tupleType->result());
-      env.out() << "[PP] clausify (detuplify let) in:  " << tupleLet->toString() << endl;
+      env->out() << "[PP] clausify (detuplify let) in:  " << tupleLet->toString() << endl;
       Term* processedLet = Term::createLet(symbol, 0, processedBinding, processedContents, bodySort);
-      env.out() << "[PP] clausify (detuplify let) out: " << processedLet->toString() << endl;
-      env.endOutput();
+      env->out() << "[PP] clausify (detuplify let) out: " << processedLet->toString() << endl;
+      env->endOutput();
     }
 
     variables = VList::empty();
@@ -623,13 +623,13 @@ TermList NewCNF::eliminateLet(Term::SpecialTermData *sd, TermList contents)
     VList* symbols = sd->getTupleSymbols();
     TermList bodySort = sd->getSort();
 
-    OperatorType* tupleType = env.signature->getFunction(tupleFunctor)->fnType();
+    OperatorType* tupleType = env->signature->getFunction(tupleFunctor)->fnType();
     TermList tupleSort = tupleType->result();
 
     ASS_EQ(tupleType->arity(), VList::length(symbols));
 
-    unsigned tuple = env.signature->addFreshFunction(0, "tuple");
-    env.signature->getFunction(tuple)->setType(OperatorType::getConstantsType(tupleSort));
+    unsigned tuple = env->signature->addFreshFunction(0, "tuple");
+    env->signature->getFunction(tuple)->setType(OperatorType::getConstantsType(tupleSort));
 
     TermList tupleTerm = TermList(Term::createConstant(tuple));
 
@@ -651,13 +651,13 @@ TermList NewCNF::eliminateLet(Term::SpecialTermData *sd, TermList contents)
       detupledContents = inlining.process(detupledContents);
     }
 
-    if (env.options->showPreprocessing()) {
-      env.beginOutput();
+    if (env->options->showPreprocessing()) {
+      env->beginOutput();
       Term* tupleLet = Term::createTupleLet(tupleFunctor, symbols, binding, contents, tupleType->result());
-      env.out() << "[PP] clausify (detuplify let) in:  " << tupleLet->toString() << endl;
+      env->out() << "[PP] clausify (detuplify let) in:  " << tupleLet->toString() << endl;
       Term* processedLet = Term::createLet(tuple, 0, binding, detupledContents, bodySort);
-      env.out() << "[PP] clausify (detuplify let) out: " << processedLet->toString() << endl;
-      env.endOutput();
+      env->out() << "[PP] clausify (detuplify let) out: " << processedLet->toString() << endl;
+      env->endOutput();
     }
 
     symbol = tuple;
@@ -665,7 +665,7 @@ TermList NewCNF::eliminateLet(Term::SpecialTermData *sd, TermList contents)
     contents = detupledContents;
   }
 
-  bool inlineLet = env.options->getIteInlineLet();
+  bool inlineLet = env->options->getIteInlineLet();
 
   if (binding.isVar()) {
     inlineLet = true;
@@ -696,21 +696,21 @@ TermList NewCNF::eliminateLet(Term::SpecialTermData *sd, TermList contents)
   TermList processedContents;
   if (inlineLet) {
     processedContents = inlineLetBinding(symbol, variables, binding, contents);
-    if (env.options->showPreprocessing()) {
-      env.beginOutput();
-      env.out() << "[PP] clausify (inline let) binding: " << binding.toString() << endl;
-      env.out() << "[PP] clausify (inline let) in:  " << contents.toString() << endl;
-      env.out() << "[PP] clausify (inline let) out: " << processedContents.toString() << endl;
-      env.endOutput();
+    if (env->options->showPreprocessing()) {
+      env->beginOutput();
+      env->out() << "[PP] clausify (inline let) binding: " << binding.toString() << endl;
+      env->out() << "[PP] clausify (inline let) in:  " << contents.toString() << endl;
+      env->out() << "[PP] clausify (inline let) out: " << processedContents.toString() << endl;
+      env->endOutput();
     }
   } else {
     processedContents = nameLetBinding(symbol, variables, binding, contents);
-    if (env.options->showPreprocessing()) {
-      env.beginOutput();
-      env.out() << "[PP] clausify (name let) binding: " << binding.toString() << endl;
-      env.out() << "[PP] clausify (name let) in:  " << contents.toString() << endl;
-      env.out() << "[PP] clausify (name let) out: " << processedContents.toString() << endl;
-      env.endOutput();
+    if (env->options->showPreprocessing()) {
+      env->beginOutput();
+      env->out() << "[PP] clausify (name let) binding: " << binding.toString() << endl;
+      env->out() << "[PP] clausify (name let) in:  " << contents.toString() << endl;
+      env->out() << "[PP] clausify (name let) out: " << processedContents.toString() << endl;
+      env->endOutput();
     }
   }
 
@@ -749,14 +749,14 @@ TermList NewCNF::nameLetBinding(unsigned symbol, VList* bindingVariables, TermLi
   unsigned nameArity = VList::length(bindingVariables) + VList::length(bindingFreeVars);
   TermList nameSort;
   if (!isPredicate) {
-    nameSort = env.signature->getFunction(symbol)->fnType()->result();
+    nameSort = env->signature->getFunction(symbol)->fnType()->result();
   }
 
   unsigned freshSymbol = symbol;
 
   bool renameSymbol = VList::isNonEmpty(bindingFreeVars);
   if (renameSymbol) {
-    static Stack<TermList> sorts;
+    VTHREAD_LOCAL static Stack<TermList> sorts;
     sorts.reset();
 
     ensureHavingVarSorts();
@@ -769,12 +769,12 @@ TermList NewCNF::nameLetBinding(unsigned symbol, VList* bindingVariables, TermLi
 
     if (isPredicate) {
       OperatorType* type = OperatorType::getPredicateType(nameArity, sorts.begin());
-      freshSymbol = env.signature->addFreshPredicate(nameArity, "lG");
-      env.signature->getPredicate(freshSymbol)->setType(type);
+      freshSymbol = env->signature->addFreshPredicate(nameArity, "lG");
+      env->signature->getPredicate(freshSymbol)->setType(type);
     } else {
       OperatorType* type = OperatorType::getFunctionType(nameArity, sorts.begin(), nameSort);
-      freshSymbol = env.signature->addFreshFunction(nameArity, "lG");
-      env.signature->getFunction(freshSymbol)->setType(type);
+      freshSymbol = env->signature->addFreshFunction(nameArity, "lG");
+      env->signature->getFunction(freshSymbol)->setType(type);
     }
   }
 
@@ -883,8 +883,8 @@ Term* NewCNF::createSkolemTerm(unsigned var, VarSet* free)
 
   ensureHavingVarSorts();
   TermList rangeSort=_varSorts.get(var, Term::defaultSort());
-  static Stack<TermList> domainSorts;
-  static Stack<TermList> fnArgs;
+  VTHREAD_LOCAL static Stack<TermList> domainSorts;
+  VTHREAD_LOCAL static Stack<TermList> fnArgs;
   ASS(domainSorts.isEmpty());
   ASS(fnArgs.isEmpty());
 
@@ -900,16 +900,16 @@ Term* NewCNF::createSkolemTerm(unsigned var, VarSet* free)
   if (isPredicate) {
     unsigned pred = Skolem::addSkolemPredicate(arity, domainSorts.begin(), var);
     if(_beingClausified->derivedFromGoal()){
-      env.signature->getPredicate(pred)->markInGoal();
+      env->signature->getPredicate(pred)->markInGoal();
     }
     res = Term::createFormula(new AtomicFormula(Literal::create(pred, arity, true, false, fnArgs.begin())));
   } else {
     unsigned fun = Skolem::addSkolemFunction(arity, domainSorts.begin(), rangeSort, var);
     if(_beingClausified->derivedFromGoal()){
-      env.signature->getFunction(fun)->markInGoal();
+      env->signature->getFunction(fun)->markInGoal();
     }
     if(_forInduction){
-      env.signature->getFunction(fun)->markInductionSkolem();
+      env->signature->getFunction(fun)->markInductionSkolem();
     }
     res = Term::create(fun, arity, fnArgs.begin());
   }
@@ -941,9 +941,9 @@ void NewCNF::skolemise(QuantifiedFormula* g, BindingList*& bindings, BindingList
 
     VarSet* frees = freeVars(g);
 
-    static Stack<unsigned> toSubtract;
+    VTHREAD_LOCAL static Stack<unsigned> toSubtract;
     toSubtract.reset();
-    static Stack<unsigned> toAddOnTop;
+    VTHREAD_LOCAL static Stack<unsigned> toAddOnTop;
     toAddOnTop.reset();
 
     BindingList::Iterator bIt(bindings);
@@ -982,7 +982,7 @@ void NewCNF::skolemise(QuantifiedFormula* g, BindingList*& bindings, BindingList
         unsigned var = vs.next();
         Term* skolem = createSkolemTerm(var, unboundFreeVars);
 
-        env.statistics->skolemFunctions++;
+        env->statistics->skolemFunctions++;
 
         Binding binding(var, skolem);
         if (skolem->isSpecial()) {
@@ -1110,10 +1110,10 @@ Literal* NewCNF::createNamingLiteral(Formula* f, VList* free)
   CALL("NewCNF::createNamingLiteral");
 
   unsigned length = VList::length(free);
-  unsigned pred = env.signature->addNamePredicate(length);
-  Signature::Symbol* predSym = env.signature->getPredicate(pred);
+  unsigned pred = env->signature->addNamePredicate(length);
+  Signature::Symbol* predSym = env->signature->getPredicate(pred);
 
-  if (env.colorUsed) {
+  if (env->colorUsed) {
     Color fc = f->getColor();
     if (fc != COLOR_TRANSPARENT) {
       predSym->addColor(fc);
@@ -1123,8 +1123,8 @@ Literal* NewCNF::createNamingLiteral(Formula* f, VList* free)
     }
   }
 
-  static Stack<TermList> domainSorts;
-  static Stack<TermList> predArgs;
+  VTHREAD_LOCAL static Stack<TermList> domainSorts;
+  VTHREAD_LOCAL static Stack<TermList> predArgs;
   domainSorts.reset();
   predArgs.reset();
 
@@ -1163,7 +1163,7 @@ void NewCNF::nameSubformula(Formula* g, Occurrences &occurrences)
   Literal* naming = createNamingLiteral(g, fv);
   Formula* name = new AtomicFormula(naming);
 
-  env.statistics->formulaNames++;
+  env->statistics->formulaNames++;
 
   occurrences.replaceBy(name);
 
@@ -1428,7 +1428,7 @@ Clause* NewCNF::toClause(SPGenClause gc)
     _substitutionsByBindings.insert(gc->bindings, subst);
   }
 
-  static Stack<Literal*> properLiterals;
+  VTHREAD_LOCAL static Stack<Literal*> properLiterals;
   ASS(properLiterals.isEmpty());
 
   GenClause::Iterator lit = gc->genLiterals();

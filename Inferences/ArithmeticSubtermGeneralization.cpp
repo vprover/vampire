@@ -135,9 +135,9 @@ SimplifyingGeneratingInference1::Result generalizeBottomUp(Clause* cl, EvalFn ev
   ASS (anyChange) 
   Inference inf(SimplifyingInference1(Kernel::InferenceRule::ARITHMETIC_SUBTERM_GENERALIZATION, cl));
   bool redundant = allLessEq && oneLess;
-  env.statistics->asgCnt++;
+  env->statistics->asgCnt++;
   if (!redundant) {
-    env.statistics->asgViolations++;
+    env->statistics->asgViolations++;
   }
   return SimplifyingGeneratingInference1::Result{
     .simplified = Clause::fromStack(stack, inf), 

@@ -39,7 +39,7 @@ using namespace Shell;
 class PortfolioMode;
 
 // Simple one-after-the-other priority.
-class PortfolioProcessPriorityPolicy : public ProcessPriorityPolicy
+class PortfolioPriorityPolicy : public StrategyPriorityPolicy
 {
 public:
   float staticPriority(vstring sliceCode) override;
@@ -78,8 +78,8 @@ private:
   void getExtraSchedules(Property& prop, Schedule& old, Schedule& extra, bool add_extra, int time_multiplier); 
   bool runSchedule(Schedule& schedule);
   bool waitForChildAndCheckIfProofFound();
-  void runSlice(vstring slice, unsigned timeLimitInDeciseconds) NO_RETURN;
-  void runSlice(Options& strategyOpt) NO_RETURN;
+  void runSlice(vstring slice, unsigned timeLimitInDeciseconds);
+  void runSlice(Options& strategyOpt);
 
 #if VDEBUG
   DHSet<pid_t> childIds;

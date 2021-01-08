@@ -36,7 +36,7 @@ private:
   
     inline explicit RefCounter(int v) : _val(v) {}
   
-    int _val;
+    VATOMIC(int) _val;
   };
 
 public:
@@ -54,8 +54,7 @@ public:
   SmartPtr(const SmartPtr& ptr) : _obj(ptr._obj), _refCnt(ptr._refCnt)
   {
     if(_obj && _refCnt) {
-      ASS(_refCnt->_val > 0);
-      (_refCnt->_val)++;
+      ALWAYS(_refCnt->_val++ > 0);
     }
   }
   inline
@@ -64,9 +63,9 @@ public:
     if(!_obj || !_refCnt) {
       return;
     }
-    (_refCnt->_val)--;
-    ASS(_refCnt->_val >= 0);
-    if(! _refCnt->_val) {
+    auto after = --_refCnt->_val;
+    ASS(after >= 0);
+    if(!after) {
       checked_delete(_obj);
       delete _refCnt;
     }
@@ -85,9 +84,9 @@ public:
     }
 
     if(oldObj && oldCnt) {
-      (oldCnt->_val)--;
-      ASS(oldCnt->_val >= 0);
-      if(! oldCnt->_val) {
+      auto after = --oldCnt->_val;
+      ASS(after >= 0);
+      if(!after) {
         checked_delete(oldObj);
         delete oldCnt;
       }

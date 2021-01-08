@@ -31,7 +31,7 @@ namespace FMB {
 
   public:
     DefinitionIntroduction(ClauseIterator cit) : _cit(cit) {
-      //_ng = env.options->fmbNonGroundDefs();
+      //_ng = env->options->fmbNonGroundDefs();
     }
 
 
@@ -62,7 +62,7 @@ namespace FMB {
 
       //cout << "Process " << c->toString() << endl;
 
-      static Stack<Literal*> lits; // to rebuild the clause
+      VTHREAD_LOCAL static Stack<Literal*> lits; // to rebuild the clause
       lits.reset();
 
       bool anyUpdated = false;
@@ -121,9 +121,9 @@ namespace FMB {
         //cout << "Considering " << t->toString() << endl;
         if(t->arity()==0) continue;
         if(!_introduced.find(t)){
-          unsigned newConstant = env.signature->addFreshFunction(0,"fmbdef");
+          unsigned newConstant = env->signature->addFreshFunction(0,"fmbdef");
           TermList srt = SortHelper::getResultSort(t);
-          Signature::Symbol* newConstantSymb = env.signature->getFunction(newConstant);
+          Signature::Symbol* newConstantSymb = env->signature->getFunction(newConstant);
           newConstantSymb->setType(OperatorType::getConstantsType(srt));
           newConstantSymb->incUsageCnt();
           Term* c = Term::createConstant(newConstant); 
@@ -149,7 +149,7 @@ namespace FMB {
           }
           TermList sort = SortHelper::getResultSort(t); //TODO set sort of c as this
           Literal* l = Literal::createEquality(true,TermList(t),TermList(c),sort);
-          static Stack<Literal*> lstack;
+          VTHREAD_LOCAL static Stack<Literal*> lstack;
           lstack.reset();
           lstack.push(l);
           Clause* def = Clause::fromStack(lstack,NonspecificInference1(InferenceRule::FMB_DEF_INTRO,from));
@@ -192,7 +192,7 @@ namespace FMB {
         unsigned vars = t->vars();
 
         // then create a fresh function symbol for the definition
-        newf = env.signature->addFreshFunction(vars,"fmbdef");
+        newf = env->signature->addFreshFunction(vars,"fmbdef");
         // and save it
         _introducedNG.insert(t,newf);
         

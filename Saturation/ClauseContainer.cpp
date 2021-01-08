@@ -200,8 +200,8 @@ void ActiveClauseContainer::onLimitsUpdated()
     return;
   }
 
-  static DHSet<Clause*> checked;
-  static Stack<Clause*> toRemove(64);
+  VTHREAD_LOCAL static DHSet<Clause*> checked;
+  VTHREAD_LOCAL static Stack<Clause*> toRemove(64);
   checked.reset();
   toRemove.reset();
 
@@ -232,7 +232,7 @@ void ActiveClauseContainer::onLimitsUpdated()
     ASS(removed->store()==Clause::ACTIVE);
 
     RSTAT_CTR_INC("clauses discarded from active on weight limit update");
-    env.statistics->discardedNonRedundantClauses++;
+    env->statistics->discardedNonRedundantClauses++;
 
     remove(removed);
     // ASS_NEQ(removed->store(), Clause::ACTIVE); -- the remove could have deleted the clause - do not touch!

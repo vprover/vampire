@@ -80,7 +80,7 @@ Clause* FastCondensation::simplify(Clause* cl)
 
   //if variable is present in only one literal, the map contains its index,
   //otherwise it contains -1
-  static DHMap<unsigned, int> varLits;
+  VTHREAD_LOCAL static DHMap<unsigned, int> varLits;
   varLits.reset();
 
   for(unsigned i=0;i<clen;i++) {
@@ -99,7 +99,7 @@ Clause* FastCondensation::simplify(Clause* cl)
     }
   }
 
-  static CondensationBinder cbinder;
+  VTHREAD_LOCAL static CondensationBinder cbinder;
   cbinder.init(&varLits);
 
   for(unsigned cIndex=0;cIndex<clen;cIndex++) {
@@ -126,7 +126,7 @@ Clause* FastCondensation::simplify(Clause* cl)
         }
         ASS_EQ(ri, newLen);
  
-        env.statistics->condensations++;
+        env->statistics->condensations++;
  
         return res;
       }

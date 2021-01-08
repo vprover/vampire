@@ -187,7 +187,7 @@ void SyncPipe::neverWrite()
   CALL("SyncPipe::neverWrite");
   ASS(canWrite());  //@b neverWrite() can only be called once
   ASS(!isWriting());
-  ASS(env.getOutputPipe()!=this); //we cannot forbid writing to pipe that we use as output
+  ASS(env->getOutputPipe()!=this); //we cannot forbid writing to pipe that we use as output
 
   int res=close(_writeDescriptor);
   if(res==-1) {

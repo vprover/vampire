@@ -281,12 +281,12 @@ Clause* ChoiceDefinitionISE::simplify(Clause* c)
   if(!isPositive(lit1) && is_of_form_xy(lit1, x) &&
       isPositive(lit2) && is_of_form_xfx(lit2, x, f)){
     unsigned fun = f.term()->functor();
-    env.signature->addChoiceOperator(fun);
+    env->signature->addChoiceOperator(fun);
     return 0;
   } else if(!isPositive(lit2) && is_of_form_xy(lit2, x) && 
              isPositive(lit1) && is_of_form_xfx(lit1, x, f)) {
     unsigned fun = f.term()->functor();
-    env.signature->addChoiceOperator(fun);
+    env->signature->addChoiceOperator(fun);
     return 0;
   }
   return c;
@@ -345,7 +345,7 @@ Clause* DuplicateLiteralRemovalISE::simplify(Clause* c)
 
   //literals that will be skipped, skipping starts on the top of the stack
   //and goes from the end of the clause
-  static LiteralStack skipped;
+  VTHREAD_LOCAL static LiteralStack skipped;
   skipped.reset();
 
   //we handle low length specially, not to have to use the set
@@ -373,7 +373,7 @@ Clause* DuplicateLiteralRemovalISE::simplify(Clause* c)
     }
   }
   else {
-    static DHSet<Literal*> seen;
+    VTHREAD_LOCAL static DHSet<Literal*> seen;
     seen.reset();
     //here we rely on the fact that the iterator traverses the clause from
     //the first to the last literal
@@ -410,13 +410,13 @@ Clause* DuplicateLiteralRemovalISE::simplify(Clause* c)
   }
   ASS(skipped.isEmpty());
   ASS_EQ(origIdx,-1);
-  env.statistics->duplicateLiterals += length - newLength;
+  env->statistics->duplicateLiterals += length - newLength;
 
 #if DEBUG_DUPLICATE_LITERALS
   {
-    static DHSet<Literal*> origLits;
+    VTHREAD_LOCAL static DHSet<Literal*> origLits;
     origLits.reset();
-    static DHSet<Literal*> newLits;
+    VTHREAD_LOCAL static DHSet<Literal*> newLits;
     newLits.reset();
     origLits.loadFromIterator(Clause::Iterator(*c));
     newLits.loadFromIterator(Clause::Iterator(*d));
@@ -488,7 +488,7 @@ Clause* TrivialInequalitiesRemovalISE::simplify(Clause* c)
 {
   CALL("TrivialInequalitiesRemovalISE::simplify");
 
-  static DArray<Literal*> lits(32);
+  VTHREAD_LOCAL static DArray<Literal*> lits(32);
 
   typedef ApplicativeHelper AH;
 
@@ -531,7 +531,7 @@ Clause* TrivialInequalitiesRemovalISE::simplify(Clause* c)
   for (int i = newLength-1;i >= 0;i--) {
     (*d)[i] = lits[newLength-i-1];
   }
-  env.statistics->trivialInequalities += found;
+  env->statistics->trivialInequalities += found;
 
   return d;
 }
@@ -591,7 +591,7 @@ SimplifyingGeneratingInference1::Result SimplifyingGeneratingLiteralSimplificati
       out.push(orig);
     } else {
       auto simpl = result;
-      env.statistics->evaluationCnt++;
+      env->statistics->evaluationCnt++;
 
       if (simpl.isConstant()) {
 
@@ -626,9 +626,9 @@ SimplifyingGeneratingInference1::Result SimplifyingGeneratingLiteralSimplificati
             case Ordering::Result::GREATER:
             case Ordering::Result::GREATER_EQ:
               if (cmp == Ordering::Result::INCOMPARABLE) {
-                env.statistics->evaluationIncomp++;
+                env->statistics->evaluationIncomp++;
               } else {
-                env.statistics->evaluationGreater++;
+                env->statistics->evaluationGreater++;
               }
               DEBUG("ordering violated: ", cmp)
               DEBUG("orig: ", *orig)

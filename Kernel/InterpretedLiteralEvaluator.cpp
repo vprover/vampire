@@ -136,7 +136,7 @@ CLASS_NAME(InterpretedLiteralEvaluator::ACFunEvaluator<AbelianGroup>);
 
   using ConstantType = typename AbelianGroup::ConstantType;
 
-  ACFunEvaluator() : _fun(env.signature->getInterpretingSymbol(AbelianGroup::interpreation)) { }
+  ACFunEvaluator() : _fun(env->signature->getInterpretingSymbol(AbelianGroup::interpreation)) { }
   const unsigned _fun; 
 
   virtual bool canEvaluateFunc(unsigned func) { return func == _fun; }
@@ -213,7 +213,7 @@ class FracLess {
   inline static unsigned functor() { return number::lessF(); }
 
   static Literal* normalizedLit(bool polarity, TermList lhs, TermList rhs) {
-    static auto zero = TermList(number::zeroT());
+    VTHREAD_LOCAL static auto zero = TermList(number::zeroT());
     return number::less(
               polarity,
               zero,
@@ -234,8 +234,8 @@ class IntLess {
   inline static unsigned functor() { return number::lessF(); }
 
   static Literal* normalizedLit(bool polarity, TermList lhs, TermList rhs) {
-    static auto one  = TermList(number::oneT());
-    static auto zero = TermList(number::zeroT());
+    VTHREAD_LOCAL static auto one  = TermList(number::oneT());
+    VTHREAD_LOCAL static auto zero = TermList(number::zeroT());
     if (polarity) {
       return number::less(
               /* polarity */ true, 
@@ -621,7 +621,7 @@ protected:
   bool trySimplifyUnaryMinus(const unsigned& uminus_functor, const TermList& inner, TermList& result)
   { 
     DEBUG("trySimplifyUnaryMinus(uminus(", inner, "))")
-    ASS_EQ(uminus_functor, env.signature->getInterpretingSymbol(number::minusI));
+    ASS_EQ(uminus_functor, env->signature->getInterpretingSymbol(number::minusI));
     if (inner.isTerm()) {
       /* complex term */
       auto& t = *inner.term();
@@ -1033,7 +1033,7 @@ InterpretedLiteralEvaluator::InterpretedLiteralEvaluator(bool doNormalize) : _no
   _evals.push(new ConversionEvaluator());
   _evals.push(new EqualityEvaluator());
 
-  if(env.options->useACeval()){
+  if(env->options->useACeval()){
 
   // Special AC evaluators are added to be tried first for Plus and Multiply
 
@@ -1143,7 +1143,7 @@ bool InterpretedLiteralEvaluator::balance(Literal* lit,Literal*& resLit,Stack<Li
   }
   // so we have t1 a constant and t2 something that has an interpreted function at the top
 
-  Signature::Symbol* conSym = env.signature->getFunction(t1.term()->functor());
+  Signature::Symbol* conSym = env->signature->getFunction(t1.term()->functor());
   TermList srt;
   if(conSym->integerConstant()) srt = Term::intSort();
   else if(conSym->rationalConstant()) srt = Term::rationalSort();
@@ -1264,8 +1264,8 @@ bool InterpretedLiteralEvaluator::balancePlus(Interpretation plus, Interpretatio
 {
   CALL("InterpretedLiteralEvaluator::balancePlus");
 
-    unsigned um = env.signature->getInterpretingSymbol(unaryMinus);
-    unsigned ip = env.signature->getInterpretingSymbol(plus);
+    unsigned um = env->signature->getInterpretingSymbol(unaryMinus);
+    unsigned ip = env->signature->getInterpretingSymbol(plus);
     TermList* B = 0;
     if(AplusB->nthArgument(0)==A){
       B = AplusB->nthArgument(1);
@@ -1291,7 +1291,7 @@ bool InterpretedLiteralEvaluator::balanceMultiply(Interpretation divide,Constant
     ASS(srt == Term::realSort() || srt == Term::rationalSort()); 
 #endif
 
-    unsigned div = env.signature->getInterpretingSymbol(divide);
+    unsigned div = env->signature->getInterpretingSymbol(divide);
     TermList* B = 0;
     if(AmultiplyB->nthArgument(0)==A){
       B = AmultiplyB->nthArgument(1);
@@ -1330,7 +1330,7 @@ bool InterpretedLiteralEvaluator::balanceIntegerMultiply(
     if(!theory->tryInterpretConstant(C,ccon)){ return false; }
 
     // we are going to use rounding division but ensure that it is non-rounding
-    unsigned div = env.signature->getInterpretingSymbol(Theory::INT_QUOTIENT_E);
+    unsigned div = env->signature->getInterpretingSymbol(Theory::INT_QUOTIENT_E);
     TermList* B = 0;
     if(AmultiplyB->nthArgument(0)==A){
       B = AmultiplyB->nthArgument(1);
@@ -1360,7 +1360,7 @@ bool InterpretedLiteralEvaluator::balanceDivide(Interpretation multiply,
     ASS(srt == Term::realSort() || srt == Term::rationalSort());
 #endif
 
-    unsigned mul = env.signature->getInterpretingSymbol(multiply);
+    unsigned mul = env->signature->getInterpretingSymbol(multiply);
     if(AoverB->nthArgument(0)!=A)return false;
 
     TermList* B = AoverB->nthArgument(1);
@@ -1418,7 +1418,7 @@ class LiteralNormalizer
   // static bool canNormalizePred(Theory::Interpretation pred);
   // static bool canNormalize(const Literal& l)
   // {
-  //   return canNormalize(env.signature->getPredicate(l.getPredicate))
+  //   return canNormalize(env->signature->getPredicate(l.getPredicate))
   // }
 
 public:
@@ -1505,7 +1505,7 @@ bool InterpretedLiteralEvaluator::evaluate(Literal* lit, bool& isConstant, Liter
   // ASS(tit.hasNext()); tit.next(); // pop off literal symbol
   // while(tit.hasNext()){
   //   unsigned f = tit.next();
-  //   if(!env.signature->getFunction(f)->interpreted()){
+  //   if(!env->signature->getFunction(f)->interpreted()){
   //     isConstant=false;
   //     return (lit!=resLit);
   //   } 

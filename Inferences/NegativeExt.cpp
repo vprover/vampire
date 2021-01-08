@@ -155,7 +155,7 @@ struct NegativeExt::ResultFn
       }
     }
 
-    env.statistics->negativeExtensionality++;
+    env->statistics->negativeExtensionality++;
  
     return res;
   }

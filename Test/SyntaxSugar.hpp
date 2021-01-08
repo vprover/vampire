@@ -73,7 +73,7 @@
 #define __CLSR_FUN_INTERPRETED(arity, mul, INT, _MULTIPLY)                                                    \
     auto mul = [](__ARGS_DECL(TermSugar, arity)) -> TermSugar {                                               \
       return TermList(Term::create ## arity(                                                                  \
-            env.signature->getInterpretingSymbol(Theory::Interpretation:: INT ## _MULTIPLY),                  \
+            env->signature->getInterpretingSymbol(Theory::Interpretation:: INT ## _MULTIPLY),                  \
             __ARGS_EXPR(Type, arity))                                                                         \
           );                                                                                                  \
     };                                                                                                        \

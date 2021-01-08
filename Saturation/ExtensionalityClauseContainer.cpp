@@ -61,7 +61,7 @@ Literal* ExtensionalityClauseContainer::addIfExtensionality(Clause* c) {
     //   * Exactly one X=Y
     //   * No inequality of same sort as X=Y
     //   * No equality except X=Y (optional).
-    static DHSet<TermList> negEqSorts;
+    VTHREAD_LOCAL static DHSet<TermList> negEqSorts;
     negEqSorts.reset();
   
     for (Clause::Iterator ci(*c); ci.hasNext(); ) {
@@ -94,7 +94,7 @@ Literal* ExtensionalityClauseContainer::addIfExtensionality(Clause* c) {
     c->setExtensionality(true);
     add(ExtensionalityClause(c, varEq, sort));
     _size++;
-    env.statistics->extensionalityClauses++;
+    env->statistics->extensionalityClauses++;
     return varEq;
   }
 

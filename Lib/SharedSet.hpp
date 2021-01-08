@@ -116,7 +116,7 @@ public:
     bool p1Superset = true;
     bool p2Superset = true;
 
-    static ItemStack acc;
+    VTHREAD_LOCAL static ItemStack acc;
     acc.reset();
 
     const T* p1=_items;
@@ -175,7 +175,7 @@ public:
       return this;
     }
 
-    static ItemStack acc;
+    VTHREAD_LOCAL static ItemStack acc;
     ASS(acc.isEmpty());
 
     const T* p1=_items;
@@ -216,7 +216,7 @@ public:
       return getEmpty();
     }
 
-    static ItemStack acc;
+    VTHREAD_LOCAL static ItemStack acc;
     ASS(acc.isEmpty());
 
     const T* p1=_items;
@@ -326,7 +326,7 @@ public:
   {
     CALL("SharedSet::getEmpty");
 
-    static SharedSet empty(0);    
+    VTHREAD_LOCAL static SharedSet empty(0);    
     
     return &empty;
   }
@@ -335,7 +335,7 @@ public:
   {
     CALL("SharedSet::getRange");
 
-    static ItemStack is;
+    VTHREAD_LOCAL static ItemStack is;
     ASS(is.isEmpty());
 
     for(T itm=first;itm!=afterLast;itm++) {
@@ -351,7 +351,7 @@ public:
   template<class It>
   static const SharedSet* getFromIterator(It it)
   {
-    static ItemStack is;
+    VTHREAD_LOCAL static ItemStack is;
     is.reset();
     is.loadFromIterator(it);
     return getFromArray(is.begin(), is.length());
@@ -365,7 +365,7 @@ public:
       return getEmpty();
     }
 
-    static ItemStack is;
+    VTHREAD_LOCAL static ItemStack is;
     ASS(is.isEmpty());
 
     bool sorted=true;
@@ -522,7 +522,7 @@ private:
 
   static SharingStruct& getSStruct()
   {
-    static SharingStruct sstruct;
+    VTHREAD_LOCAL static SharingStruct sstruct;
     return sstruct;
   }
 

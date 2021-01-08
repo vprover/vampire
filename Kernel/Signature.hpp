@@ -81,6 +81,10 @@ class Signature
   class Symbol {
   
   protected:
+#if VTHREADED
+    /** unique identifier between threads */
+    unsigned  _id;
+#endif
     /** print name */
     vstring _name;
 
@@ -155,6 +159,16 @@ class Signature
     Combinator _comb;
 
   public:
+#if VTHREADED
+    /**
+     * virtual constructor ("clone") for Symbol and its subclasses
+     * see https://isocpp.org/wiki/faq/virtual-functions#virtual-ctors
+    */
+    virtual Symbol *clone() const { return new Symbol(*this); }
+#endif
+    //dummy: ensure we call the right operator-delete for derived classes
+    virtual ~Symbol() = default;
+
     /** standard constructor */
     Symbol(const vstring& nm,unsigned arity, bool interpreted=false, bool stringConstant=false,bool numericConstant=false,bool overflownConstant=false, bool super = false);
     void destroyFnSymbol();
@@ -192,6 +206,10 @@ class Signature
     inline unsigned arity() const { return _arity; }
     /** Return the type argument arity of the symbol. Only accurate once type has been set. */
     inline unsigned typeArgsArity() const { ASS_REP(_type, name()); return _typeArgsArity; }
+#if VTHREADED
+    /** Return the unique id of the symbol */
+    inline const unsigned id() const { return _id; }
+#endif
     /** Return the name of the symbol */
     inline const vstring& name() const { return _name; }
     /** Return true iff the object is of type InterpretedSymbol */
@@ -301,7 +319,7 @@ class Signature
     USE_ALLOCATOR(Symbol);
   }; // class Symbol
 
-  class InterpretedSymbol
+  class InterpretedSymbol final
   : public Symbol
   {
     friend class Signature;
@@ -310,7 +328,9 @@ class Signature
     Interpretation _interp;
 
   public:
-
+#if VTHREADED
+    InterpretedSymbol *clone() const override { return new InterpretedSymbol(*this); }
+#endif
     InterpretedSymbol(const vstring& nm, Interpretation interp)
     : Symbol(nm, Theory::getArity(interp), true), _interp(interp)
     {
@@ -324,7 +344,7 @@ class Signature
     inline Interpretation getInterpretation() const { ASS_REP(interpreted(), _name); return _interp; }
   };
 
-  class IntegerSymbol
+  class IntegerSymbol final
   : public Symbol
   {
     friend class Signature;
@@ -333,6 +353,9 @@ class Signature
     IntegerConstantType _intValue;
 
   public:
+#if VTHREADED
+    IntegerSymbol *clone() const override { return new IntegerSymbol(*this); }
+#endif
     IntegerSymbol(const IntegerConstantType& val)
     : Symbol(val.toString(), 0, true), _intValue(val)
     {
@@ -344,7 +367,7 @@ class Signature
     USE_ALLOCATOR(IntegerSymbol);
   };
 
-  class RationalSymbol
+  class RationalSymbol final
   : public Symbol
   {
     friend class Signature;
@@ -353,6 +376,9 @@ class Signature
     RationalConstantType _ratValue;
 
   public:
+#if VTHREADED
+    RationalSymbol *clone() const override { return new RationalSymbol(*this); }
+#endif
     RationalSymbol(const RationalConstantType& val)
     : Symbol(val.toString(), 0, true), _ratValue(val)
     {
@@ -364,7 +390,7 @@ class Signature
     USE_ALLOCATOR(RationalSymbol);
   };
 
-  class RealSymbol
+  class RealSymbol final
   : public Symbol
   {
     friend class Signature;
@@ -373,8 +399,11 @@ class Signature
     RealConstantType _realValue;
 
   public:
+#if VTHREADED
+    RealSymbol *clone() const override { return new RealSymbol(*this); }
+#endif
     RealSymbol(const RealConstantType& val)
-    : Symbol((env.options->proof() == Shell::Options::Proof::PROOFCHECK) ? "$to_real("+val.toString()+")" : val.toNiceString(), 0, true), _realValue(val)
+    : Symbol((env->options->proof() == Shell::Options::Proof::PROOFCHECK) ? "$to_real("+val.toString()+")" : val.toNiceString(), 0, true), _realValue(val)
     {
       CALL("RealSymbol");
 
@@ -478,6 +507,17 @@ class Signature
     return haveInterpretingSymbol(interp,Theory::getNonpolymorphicOperatorType(interp));
   }
 
+#if VTHREADED
+  /** return the id of a function with a given number */
+  const unsigned functionId(int number) {
+    return _funs[number]->id();
+  }
+  /** return the id of a predicate with a given number */
+  const unsigned predicateId(int number) {
+    return _preds[number]->id();
+  }
+#endif
+
   /** return the name of a function with a given number */
   const vstring& functionName(int number);
   /** return the name of a predicate with a given number */
@@ -554,6 +594,9 @@ class Signature
 
   Signature();
   ~Signature();
+#if VTHREADED
+  Signature(const Signature &);
+#endif
 
   CLASS_NAME(Signature);
   USE_ALLOCATOR(Signature);
@@ -874,7 +917,7 @@ private:
   /** Map for the arity_check options: maps symbols to their arities */
   SymbolMap _arityCheck;
   /** Last number used for fresh functions and predicates */
-  int _nextFreshSymbolNumber;
+  static VATOMIC(int) _nextFreshSymbolNumber;
 
   /** Number of Skolem functions (this is just for LaTeX output) */
   unsigned _skolemFunctionCount;

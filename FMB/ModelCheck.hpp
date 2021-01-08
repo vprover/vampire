@@ -184,7 +184,7 @@ static void checkIsDomainLiteral(Literal* l, int& single_var, Set<Term*>& domain
             // store and check the ground constant used
             Term* constant = right->term();
             unsigned f = constant->functor();
-            if(env.signature->functionArity(f)!=0) USER_ERROR("finite_domain is not a domain axiom");
+            if(env->signature->functionArity(f)!=0) USER_ERROR("finite_domain is not a domain axiom");
             if(domainConstants.contains(constant)) USER_ERROR("finite_domain is not a domain axiom");
 
             domainConstants.insert(constant);
@@ -213,7 +213,7 @@ static void addDefinition(FiniteModel& model,Literal* lit,bool negated,
           if(left->isVar()) USER_ERROR("Expect term on left of definition");
           Term* fun = left->term();
           unsigned f = fun->functor();
-          unsigned arity = env.signature->functionArity(f);
+          unsigned arity = env->signature->functionArity(f);
           if(arity==0) model.addConstantDefinition(f,res);
           else{
             DArray<unsigned> args(arity);
@@ -230,7 +230,7 @@ static void addDefinition(FiniteModel& model,Literal* lit,bool negated,
           if(!lit->polarity()) negated=!negated;
           // Defining a predicate or proposition
           unsigned p = lit->functor();
-          unsigned arity = env.signature->predicateArity(p);
+          unsigned arity = env->signature->predicateArity(p);
           if(arity==0) model.addPropositionalDefinition(p,!negated);
           else{
             DArray<unsigned> args(arity);

@@ -65,12 +65,12 @@ SATClause::SATClause(unsigned length,bool kept)
   : _activity(0), _length(length), _kept(kept?1:0), _nonDestroyable(0), _inference(0)
 //      , _genCounter(0xFFFFFFFF)
 {
-  env.statistics->satClauses++;
+  env->statistics->satClauses++;
   if(length==1) {
-    env.statistics->unitSatClauses++;
+    env->statistics->unitSatClauses++;
   }
   else if(length==2) {
-    env.statistics->binarySatClauses++;
+    env->statistics->binarySatClauses++;
   }
 
   // call a constructor on the literals
@@ -147,7 +147,7 @@ bool SATClause::hasUniqueVariables() const
 {
   CALL("SATClause::hasUniqueVariables");
 
-  static DHSet<int> seen;
+  VTHREAD_LOCAL static DHSet<int> seen;
   seen.reset();
   unsigned clen=length();
   for(unsigned i=0; i<clen; i++) {

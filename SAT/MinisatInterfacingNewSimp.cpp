@@ -47,16 +47,16 @@ MinisatInterfacingNewSimp::MinisatInterfacingNewSimp(const Shell::Options& opts,
 }
 
 void MinisatInterfacingNewSimp::reportMinisatOutOfMemory() {
-  env.beginOutput();
+  env->beginOutput();
   reportSpiderStatus('m');
-  env.out() << "Minisat ran out of memory" << endl;
-  if(env.statistics) {
-    env.statistics->print(env.out());
+  env->out() << "Minisat ran out of memory" << endl;
+  if(env->statistics) {
+    env->statistics->print(env->out());
   }
 #if VDEBUG
-  Debug::Tracer::printStack(env.out());
+  Debug::Tracer::printStack(env->out());
 #endif
-  env.endOutput();
+  env->endOutput();
   System::terminateImmediately(1);
 }
 
@@ -156,7 +156,7 @@ void MinisatInterfacingNewSimp::addClause(SATClause* cl)
   ASS_EQ(_assumptions.size(),0);
 
   try {
-    static vec<Lit> mcl;
+    VTHREAD_LOCAL static vec<Lit> mcl;
     mcl.clear();
     
     unsigned clen=cl->length();

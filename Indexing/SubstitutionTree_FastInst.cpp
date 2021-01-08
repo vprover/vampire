@@ -295,7 +295,7 @@ TermList SubstitutionTree::InstMatcher::derefQueryBinding(unsigned var)
       return varBinding.t;
     }
   }
-  static Stack<DerefTask> toDo;
+  VTHREAD_LOCAL static Stack<DerefTask> toDo;
   toDo.reset();
 
   for(;;) {
@@ -476,8 +476,8 @@ bool SubstitutionTree::InstMatcher::matchNextAux(TermList queryTerm, TermList no
     goto finish;
   }
 
-  static Stack<pair<TermSpec,TermSpec> > toDo;
-  static DisagreementSetIterator dsit;
+  VTHREAD_LOCAL static Stack<pair<TermSpec,TermSpec> > toDo;
+  VTHREAD_LOCAL static DisagreementSetIterator dsit;
 
   toDo.reset();
   toDo.push(make_pair(tsBinding, tsNode));
