@@ -262,7 +262,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
       if(premise->hasAux()) {
 	continue;
       }
-      premise->setAux(0);
+      premise->setAux();
       if(ColorHelper::compatible(cl->color(), premise->color()) ) {
         premises = pvi( getSingletonIterator(premise) );
         env.statistics->forwardSubsumed++;
@@ -287,7 +287,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
       ASS_G(mcl->length(),1);
 
       ClauseMatches* cms=new ClauseMatches(mcl);
-      mcl->setAux(cms);
+      mcl->setAux();
       cmStore.push(cms);
       //      cms->addMatch(res.literal, (*cl)[li]);
       //      cms->fillInMatches(&miniIndex, res.literal, (*cl)[li]);
@@ -362,7 +362,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
 	}
 
 	ClauseMatches* cms=new ClauseMatches(mcl);
-	res.clause->setAux(cms);
+	res.clause->setAux();
 	cmStore.push(cms);
 	cms->fillInMatches(&miniIndex);
 

@@ -208,7 +208,7 @@ void BackwardSubsumptionDemodulation::performWithQueryLit(Clause* sideCl, Litera
     if (candidate->hasAux()) {
       continue;  // we've already checked this premise
     }
-    candidate->setAux(nullptr);
+    candidate->setAux();
 
     if (!ColorHelper::compatible(sideCl->color(), candidate->color())) {
       continue;

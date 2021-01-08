@@ -105,7 +105,7 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
         if (premise->hasAux()) {
           continue;  // we've already checked this premise
         }
-        premise->setAux(nullptr);
+        premise->setAux();
 
         if (!ColorHelper::compatible(cl->color(), premise->color())) {
           continue;
@@ -140,7 +140,7 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
         // we've already checked this clause
         continue;
       }
-      mcl->setAux(nullptr);
+      mcl->setAux();
 
       // No multiset match possible if base is longer than instance
       // (this check exists only to improve performance and does not affect correctness)

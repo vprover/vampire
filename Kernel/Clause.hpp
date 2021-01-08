@@ -268,36 +268,6 @@ public:
     _auxTimestamp=_auxCurrTimestamp;
   }
 
-  /** Set auxiliary value of this clause. */
-  void setAux(void* ptr)
-  {
-    ASS(_auxInUse);
-    _auxTimestamp=_auxCurrTimestamp;
-    _auxData=ptr;
-  }
-  /**
-   * If there is an auxiliary value stored in this clause,
-   * return true and assign it into @b ptr. Otherwise
-   * return false.
-   */
-  template<typename T>
-  bool tryGetAux(T*& ptr)
-  {
-    ASS(_auxInUse);
-    if(_auxTimestamp==_auxCurrTimestamp) {
-      ptr=static_cast<T*>(_auxData);
-      return true;
-    }
-    return false;
-  }
-  /** Return auxiliary value stored in this clause. */
-  template<typename T>
-  T* getAux()
-  {
-    ASS(_auxInUse);
-    ASS(_auxTimestamp==_auxCurrTimestamp);
-    return static_cast<T*>(_auxData);
-  }
   bool hasAux()
   {
     return _auxTimestamp==_auxCurrTimestamp;
@@ -375,7 +345,6 @@ protected:
   int _numActiveSplits;
 
   size_t _auxTimestamp;
-  void* _auxData;
 
   static size_t _auxCurrTimestamp;
 #if VDEBUG
