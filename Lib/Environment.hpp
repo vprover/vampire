@@ -22,6 +22,7 @@
 #include "Forwards.hpp"
 #include "Exception.hpp"
 #include "DHMap.hpp"
+#include "Threading.hpp"
 
 namespace Lib {
 
@@ -100,7 +101,7 @@ private:
   SyncPipe* _pipe;
 }; // class Environment
 
-extern Environment env;
+extern VTHREAD_LOCAL Environment env;
 
 }
 #endif

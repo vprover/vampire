@@ -47,7 +47,7 @@
 using namespace Lib;
 using namespace Kernel;
 
-OrderingSP Ordering::s_globalOrdering;
+VTHREAD_LOCAL OrderingSP Ordering::s_globalOrdering;
 
 Ordering::Ordering()
 {
@@ -251,7 +251,10 @@ Ordering::Result Ordering::getEqualityArgumentOrder(Literal* eq) const
   }
   else {
     res = compare(*eq->nthArgument(0), *eq->nthArgument(1));
-    eq->setArgumentOrderValue(res);
+#if VTHREADED
+    if(env.options->mode() != Options::Mode::THREADED)
+#endif
+      eq->setArgumentOrderValue(res);
   }
   return res;
 }

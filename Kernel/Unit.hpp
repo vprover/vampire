@@ -20,6 +20,7 @@
 #include "Forwards.hpp"
 
 #include "Lib/List.hpp"
+#include "Lib/Threading.hpp"
 #include "Lib/VString.hpp"
 #include "Kernel/Inference.hpp"
 

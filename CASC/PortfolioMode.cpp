@@ -552,7 +552,14 @@ void PortfolioMode::runSlice(Options *strategyOpt)
     env.endOutput();
   }
 
-  Saturation::ProvingHelper::runVampire(*_prb, *opt);
+#if VTHREADED
+  if(env.options->mode() == Options::Mode::THREADED) {
+    ScopedPtr<Problem> problem(_prb->copy(true));
+    Saturation::ProvingHelper::runVampire(*problem, *opt);
+  }
+  else
+#endif
+    Saturation::ProvingHelper::runVampire(*_prb, *opt);
 
   //set return value to zero if we were successful
   if (env.statistics->terminationReason == Statistics::REFUTATION ||

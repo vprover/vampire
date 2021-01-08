@@ -124,7 +124,7 @@ using namespace Saturation;
 #define REPORT_BW_SIMPL 0
 
 
-SaturationAlgorithm* SaturationAlgorithm::s_instance = 0;
+VTHREAD_LOCAL SaturationAlgorithm* SaturationAlgorithm::s_instance = 0;
 
 std::unique_ptr<PassiveClauseContainer> makeLevel0(bool isOutermost, const Options& opt, vstring name)
 {

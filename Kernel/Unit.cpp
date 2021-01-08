@@ -45,9 +45,9 @@ unsigned Unit::_lastParsingNumber = 0;
 void Unit::onPreprocessingEnd()
 {
   CALL("Unit::onPreprocessingEnd");
-  ASS(!_firstNonPreprocessingNumber);
-
-  _firstNonPreprocessingNumber=_lastNumber+1;
+  if(!_firstNonPreprocessingNumber) {
+    _firstNonPreprocessingNumber=_lastNumber+1;
+  }
 }
 
 /** New unit of a given kind */

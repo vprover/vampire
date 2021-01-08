@@ -120,7 +120,7 @@ public:
 
   static void syncClock();
 
-  static bool s_timeLimitEnforcement;
+  VTHREAD_LOCAL static bool s_timeLimitEnforcement;
 private:
   /** true if the timer must account for the time spent in
    * children (otherwise it may or may not) */

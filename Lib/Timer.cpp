@@ -12,6 +12,9 @@
  * Implements class Timer.
  */
 
+#if VTHREADED
+#include <atomic>
+#endif
 #include <ctime>
 #include <unistd.h>
 #include <sys/types.h>
@@ -36,7 +39,7 @@
 using namespace std;
 using namespace Lib;
 
-bool Timer::s_timeLimitEnforcement = true;
+VTHREAD_LOCAL bool Timer::s_timeLimitEnforcement = true;
 
 #if UNIX_USE_SIGALRM
 
@@ -51,7 +54,11 @@ bool Timer::s_timeLimitEnforcement = true;
 
 #include "Shell/UIHelper.hpp"
 
+#if VTHREADED
+std::atomic<int> timer_sigalrm_counter(-1);
+#else
 int timer_sigalrm_counter=-1;
+#endif
 
 long Timer::s_ticksPerSec;
 int Timer::s_initGuarantedMiliseconds;
@@ -100,7 +107,6 @@ timer_sigalrm_handler (int sig)
     System::terminateImmediately(1);
   }
 #endif
-
 
   timer_sigalrm_counter++;
 
@@ -348,7 +354,7 @@ void Timer::printMSString(ostream& str, int ms)
 
 Timer* Timer::instance()
 {
-  static ScopedPtr<Timer> inst(new Timer());
+  VTHREAD_LOCAL static ScopedPtr<Timer> inst(new Timer());
   
   return inst.ptr();
 }
