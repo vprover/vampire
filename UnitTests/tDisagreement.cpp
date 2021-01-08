@@ -26,7 +26,7 @@ using namespace Kernel;
 TEST_FUN(dis1)
 {
 
-  unsigned p = env.signature->addFunction("p",1);
+  unsigned p = env->signature->addFunction("p",1);
   TermList x(0,false);
   TermList y(1,false);
   Term* px = Term::create1(p,x);

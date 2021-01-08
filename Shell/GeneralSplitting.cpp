@@ -206,9 +206,9 @@ bool GeneralSplitting::apply(Clause*& cl, UnitList*& resultStack)
     }
   }
 
-  static TermStack args;
+  VTHREAD_LOCAL static TermStack args;
   args.reset();
-  static TermStack argSorts;
+  VTHREAD_LOCAL static TermStack argSorts;
   argSorts.reset();
 
   DHMap<unsigned,TermList> varSorts;
@@ -233,16 +233,16 @@ bool GeneralSplitting::apply(Clause*& cl, UnitList*& resultStack)
   }
 
 
-  unsigned namingPred=env.signature->addNamePredicate(minDeg);
+  unsigned namingPred=env->signature->addNamePredicate(minDeg);
   OperatorType* npredType = OperatorType::getPredicateType(minDeg, argSorts.begin());
-  env.signature->getPredicate(namingPred)->setType(npredType);
+  env->signature->getPredicate(namingPred)->setType(npredType);
 
   if(mdvColor!=COLOR_TRANSPARENT && otherColor!=COLOR_TRANSPARENT) {
     ASS_EQ(mdvColor, otherColor);
-    env.signature->getPredicate(namingPred)->addColor(mdvColor);
+    env->signature->getPredicate(namingPred)->addColor(mdvColor);
   }
-  if(env.colorUsed && cl->skip()) {
-    env.signature->getPredicate(namingPred)->markSkip();
+  if(env->colorUsed && cl->skip()) {
+    env->signature->getPredicate(namingPred)->markSkip();
   }
 
 

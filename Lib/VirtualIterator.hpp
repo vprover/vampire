@@ -137,7 +137,7 @@ public:
   /** Return an empty iterator */
   static VirtualIterator getEmpty()
   {
-    static VirtualIterator inst(new EmptyIterator<T>());
+    VTHREAD_LOCAL static VirtualIterator inst(new EmptyIterator<T>());
     return inst;
   }
 

@@ -59,7 +59,7 @@ private:
   void endOutput();
   ostream& tgt();
 
-  /** if zero, we print to env.out() */
+  /** if zero, we print to env->out() */
   ostream* _tgtStream;
 
   bool _headersPrinted;

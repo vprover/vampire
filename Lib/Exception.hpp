@@ -19,6 +19,7 @@
 #include <iostream>
 
 #include "LastCopyWatcher.hpp"
+#include "Threading.hpp"
 #include "VString.hpp"
 
 namespace Lib {
@@ -98,7 +99,7 @@ protected:
 
   /** Number of currently existing Exception objects
    * (not counting copies of the same object) */
-  static int s_exceptionCounter;
+  VTHREAD_LOCAL static int s_exceptionCounter;
 
 }; // Exception
 

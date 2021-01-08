@@ -75,8 +75,8 @@ void Profile::output(const Literal* lit,ostream& str,char pred)
 
 void Profile::output(const Clause* clause,ostream& str)
 {
-  static int lastPredicate = -1;
-  static bool nonUnitFound;
+  VTHREAD_LOCAL static int lastPredicate = -1;
+  VTHREAD_LOCAL static bool nonUnitFound;
 
   int length = clause->length();
   const Literal* head = (*clause)[0];
@@ -190,7 +190,7 @@ Profile::Profile ()
     _lits[i] = 0;
   }
 
-  Signature* sig = env.signature;
+  Signature* sig = env->signature;
   int fn = sig->functions();
   _funs = (int*)ALLOC_UNKNOWN(sizeof(int)*fn,"Profile::funs");
   _funClauses = (const Clause**)ALLOC_UNKNOWN(sizeof(Clause*)*fn,
@@ -222,7 +222,7 @@ void Profile::scan(const UnitList* units)
 {
   CALL("Profile::scan(UnitList*)");
 
-  Signature* sig = env.signature;
+  Signature* sig = env->signature;
   int fn = sig->functions();
   for (int i = fn-1;i >= 0;i--) {
     _funs[i] = 0;
@@ -426,7 +426,7 @@ vstring Profile::toString () const
   result += vstring(" >") + Int::toString(HOW_MANY-2) + ':'
     + Int::toString(_lits[HOW_MANY-1]) + '\n';
 
-  Signature* sig = env.signature;
+  Signature* sig = env->signature;
 
   result += "Functions with more than 10 occurrences:\n";
   int fn = sig->functions();

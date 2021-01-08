@@ -52,18 +52,18 @@ void AnswerExtractor::tryOutputAnswer(Clause* refutation)
       return;
     }
   }
-  env.beginOutput();
-  env.out() << "% SZS answers Tuple [[";
+  env->beginOutput();
+  env->out() << "% SZS answers Tuple [[";
   Stack<TermList>::BottomFirstIterator ait(answer);
   while(ait.hasNext()) {
     TermList aLit = ait.next();
     // try evaluating aLit
     if(aLit.isTerm()){
       InterpretedLiteralEvaluator eval;
-      unsigned p = env.signature->addFreshPredicate(1,"p"); 
+      unsigned p = env->signature->addFreshPredicate(1,"p"); 
       TermList sort = SortHelper::getResultSort(aLit.term());
       OperatorType* type = OperatorType::getPredicateType({sort});
-      env.signature->getPredicate(p)->setType(type);
+      env->signature->getPredicate(p)->setType(type);
       Literal* l = Literal::create1(p,true,aLit); 
       Literal* res =0;
       bool constant, constTrue;
@@ -74,13 +74,13 @@ void AnswerExtractor::tryOutputAnswer(Clause* refutation)
       }
     }
 
-    env.out() << aLit.toString();
+    env->out() << aLit.toString();
     if(ait.hasNext()) {
-      env.out() << ',';
+      env->out() << ',';
     }
   }
-  env.out() << "]|_] for " << env.options->problemName() << endl;
-  env.endOutput();
+  env->out() << "]|_] for " << env->options->problemName() << endl;
+  env->endOutput();
 }
 
 
@@ -302,7 +302,7 @@ AnswerLiteralManager* AnswerLiteralManager::getInstance()
 {
   CALL("AnswerLiteralManager::getInstance");
 
-  static AnswerLiteralManager instance;
+  VTHREAD_LOCAL static AnswerLiteralManager instance;
 
   return &instance;
 }
@@ -331,7 +331,7 @@ Literal* AnswerLiteralManager::getAnswerLiteral(VList* vars,Formula* f)
 {
   CALL("AnswerLiteralManager::getAnswerLiteral");
 
-  static Stack<TermList> litArgs;
+  VTHREAD_LOCAL static Stack<TermList> litArgs;
   litArgs.reset();
   VList::Iterator vit(vars);
   TermStack sorts;
@@ -344,8 +344,8 @@ Literal* AnswerLiteralManager::getAnswerLiteral(VList* vars,Formula* f)
   }
 
   unsigned vcnt = litArgs.size();
-  unsigned pred = env.signature->addFreshPredicate(vcnt,"ans");
-  Signature::Symbol* predSym = env.signature->getPredicate(pred);
+  unsigned pred = env->signature->addFreshPredicate(vcnt,"ans");
+  Signature::Symbol* predSym = env->signature->getPredicate(pred);
   predSym->setType(OperatorType::getPredicateType(sorts.size(), sorts.begin()));
   predSym->markAnswerPredicate();
   return Literal::create(pred, vcnt, true, false, litArgs.begin());
@@ -421,7 +421,7 @@ bool AnswerLiteralManager::isAnswerLiteral(Literal* lit)
   CALL("AnswerLiteralManager::isAnswerLiteral");
 
   unsigned pred = lit->functor();
-  Signature::Symbol* sym = env.signature->getPredicate(pred);
+  Signature::Symbol* sym = env->signature->getPredicate(pred);
   return sym->answerPredicate();
 }
 
@@ -446,9 +446,9 @@ void AnswerLiteralManager::onNewClause(Clause* cl)
 
   throw MainLoop::RefutationFoundException(refutation);
 
-//  env.beginOutput();
-//  env.out()<<cl->toString()<<endl;
-//  env.endOutput();
+//  env->beginOutput();
+//  env->out()<<cl->toString()<<endl;
+//  env->endOutput();
 }
 
 Clause* AnswerLiteralManager::getResolverClause(unsigned pred)
@@ -460,10 +460,10 @@ Clause* AnswerLiteralManager::getResolverClause(unsigned pred)
     return res;
   }
 
-  static Stack<TermList> args;
+  VTHREAD_LOCAL static Stack<TermList> args;
   args.reset();
 
-  Signature::Symbol* predSym = env.signature->getPredicate(pred);
+  Signature::Symbol* predSym = env->signature->getPredicate(pred);
   ASS(predSym->answerPredicate());
   unsigned arity = predSym->arity();
 

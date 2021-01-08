@@ -212,7 +212,7 @@ void Statistics::explainRefutationNotFound(ostream& out)
 
 void Statistics::print(ostream& out)
 {
-  if (env.options->statistics()==Options::Statistics::NONE) {
+  if (env->options->statistics()==Options::Statistics::NONE) {
     return;
   }
 
@@ -275,7 +275,7 @@ void Statistics::print(ostream& out)
   }
   out << endl;
 
-  if (env.options->statistics()==Options::Statistics::FULL) {
+  if (env->options->statistics()==Options::Statistics::FULL) {
 
   HEADING("Input",inputClauses+inputFormulas);
   COND_OUT("Input clauses", inputClauses);
@@ -472,7 +472,7 @@ void Statistics::print(ostream& out)
 
   addCommentSignForSZS(out);
   out << "Time elapsed: ";
-  Timer::printMSString(out,env.timer->elapsedMilliseconds());
+  Timer::printMSString(out,env->timer->elapsedMilliseconds());
   out << endl;
   addCommentSignForSZS(out);
   out << "------------------------------\n";
@@ -484,7 +484,7 @@ void Statistics::print(ostream& out)
 #undef SEPARATOR
 #undef COND_OUT
 
-  if (env.options && env.options->timeStatistics()) {
+  if (env->options && env->options->timeStatistics()) {
     TimeCounter::printReport(out);
   }
 }

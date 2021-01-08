@@ -170,7 +170,7 @@ vstring getQuantifiedStr(const VarContainer& vars, vstring inner, DHMap<unsigned
     unsigned var =vit.next();
     vstring ty="";
     TermList t;
-    if(t_map.find(var,t) && env.statistics->hasTypes){
+    if(t_map.find(var,t) && env->statistics->hasTypes){
       //hasTypes is true if the problem that contains a sort
       //that is not $i and not a variable
       ty=" : " + t.toString();
@@ -207,7 +207,7 @@ template<typename VarContainer>
 vstring getQuantifiedStr(const VarContainer& vars, vstring inner, bool innerParentheses=true)
 {
   CALL("getQuantifiedStr(VarContainer, vstring)");
-  static DHMap<unsigned,TermList> d;
+  VTHREAD_LOCAL static DHMap<unsigned,TermList> d;
   return getQuantifiedStr(vars,inner,d,innerParentheses);
 }
 
@@ -270,9 +270,9 @@ struct InferenceStore::ProofPrinter
   {
     CALL("InferenceStore::ProofPrinter::ProofPrinter");
 
-    outputAxiomNames=env.options->outputAxiomNames();
+    outputAxiomNames=env->options->outputAxiomNames();
     delayPrinting=true;
-    proofExtra=env.options->proofExtra()!=Options::ProofExtra::OFF;
+    proofExtra=env->options->proofExtra()!=Options::ProofExtra::OFF;
   }
 
   void scheduleForPrinting(Unit* us)
@@ -328,7 +328,7 @@ protected:
       case InferenceRule::INT_INF_DOWN_GEN_INDUCTION_AXIOM:
       case InferenceRule::INT_FIN_DOWN_GEN_INDUCTION_AXIOM:
       case InferenceRule::INT_DB_DOWN_GEN_INDUCTION_AXIOM:
-        env.statistics->generalizedInductionInProof++;
+        env->statistics->generalizedInductionInProof++;
       case InferenceRule::INDUCTION_AXIOM:
       case InferenceRule::INT_INF_UP_INDUCTION_AXIOM:
       case InferenceRule::INT_FIN_UP_INDUCTION_AXIOM:
@@ -336,7 +336,7 @@ protected:
       case InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM:
       case InferenceRule::INT_FIN_DOWN_INDUCTION_AXIOM:
       case InferenceRule::INT_DB_DOWN_INDUCTION_AXIOM:
-        env.statistics->inductionInProof++;
+        env->statistics->inductionInProof++;
         break;
       default:
         ;
@@ -344,25 +344,25 @@ protected:
     switch (rule) {
       case InferenceRule::INDUCTION_AXIOM:
       case InferenceRule::GEN_INDUCTION_AXIOM:
-        env.statistics->structInductionInProof++;
+        env->statistics->structInductionInProof++;
         break;
       case InferenceRule::INT_INF_UP_INDUCTION_AXIOM:
       case InferenceRule::INT_INF_UP_GEN_INDUCTION_AXIOM:
       case InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM:
       case InferenceRule::INT_INF_DOWN_GEN_INDUCTION_AXIOM:
-        env.statistics->intInfInductionInProof++;
+        env->statistics->intInfInductionInProof++;
         break;
       case InferenceRule::INT_FIN_UP_INDUCTION_AXIOM:
       case InferenceRule::INT_FIN_UP_GEN_INDUCTION_AXIOM:
       case InferenceRule::INT_FIN_DOWN_INDUCTION_AXIOM:
       case InferenceRule::INT_FIN_DOWN_GEN_INDUCTION_AXIOM:
-        env.statistics->intFinInductionInProof++;
+        env->statistics->intFinInductionInProof++;
         break;
       case InferenceRule::INT_DB_UP_INDUCTION_AXIOM:
       case InferenceRule::INT_DB_UP_GEN_INDUCTION_AXIOM:
       case InferenceRule::INT_DB_DOWN_INDUCTION_AXIOM:
       case InferenceRule::INT_DB_DOWN_GEN_INDUCTION_AXIOM:
-        env.statistics->intDBInductionInProof++;
+        env->statistics->intDBInductionInProof++;
         break;
       default:
         ;
@@ -370,27 +370,27 @@ protected:
     switch (rule) {
       case InferenceRule::INT_INF_UP_INDUCTION_AXIOM:
       case InferenceRule::INT_INF_UP_GEN_INDUCTION_AXIOM:
-        env.statistics->intInfUpInductionInProof++;
+        env->statistics->intInfUpInductionInProof++;
         break;
       case InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM:
       case InferenceRule::INT_INF_DOWN_GEN_INDUCTION_AXIOM:
-        env.statistics->intInfDownInductionInProof++;
+        env->statistics->intInfDownInductionInProof++;
         break;
       case InferenceRule::INT_FIN_UP_INDUCTION_AXIOM:
       case InferenceRule::INT_FIN_UP_GEN_INDUCTION_AXIOM:
-        env.statistics->intFinUpInductionInProof++;
+        env->statistics->intFinUpInductionInProof++;
         break;
       case InferenceRule::INT_FIN_DOWN_INDUCTION_AXIOM:
       case InferenceRule::INT_FIN_DOWN_GEN_INDUCTION_AXIOM:
-        env.statistics->intFinDownInductionInProof++;
+        env->statistics->intFinDownInductionInProof++;
         break;
       case InferenceRule::INT_DB_UP_INDUCTION_AXIOM:
       case InferenceRule::INT_DB_UP_GEN_INDUCTION_AXIOM:
-        env.statistics->intDBUpInductionInProof++;
+        env->statistics->intDBUpInductionInProof++;
         break;
       case InferenceRule::INT_DB_DOWN_INDUCTION_AXIOM:
       case InferenceRule::INT_DB_DOWN_GEN_INDUCTION_AXIOM:
-        env.statistics->intDBDownInductionInProof++;
+        env->statistics->intDBDownInductionInProof++;
         break;
       default:
         ;
@@ -403,7 +403,7 @@ protected:
     else {
       out << _is->getUnitIdStr(cs) << ". ";
       FormulaUnit* fu=static_cast<FormulaUnit*>(cs);
-      if (env.colorUsed && fu->inheritedColor() != COLOR_INVALID) {
+      if (env->colorUsed && fu->inheritedColor() != COLOR_INVALID) {
         out << " IC" << fu->inheritedColor() << " ";
       }
       out << fu->formula()->toString() << ' ';
@@ -428,7 +428,7 @@ protected:
 
       // print Extra
       vstring extra;
-      if (env.proofExtra && env.proofExtra->find(cs,extra) && extra != "") {
+      if (env->proofExtra && env->proofExtra->find(cs,extra) && extra != "") {
         out << ", " << extra;
       }
       out << "]" << endl;
@@ -509,8 +509,8 @@ protected:
 
   void printStep(Unit* us)
   {
-    static unsigned lastP = Unit::getLastParsingNumber();
-    static float chunk = lastP / 10.0;
+    VTHREAD_LOCAL static unsigned lastP = Unit::getLastParsingNumber();
+    float chunk = lastP / 10.0;
     if(us->number() <= lastP){
       if(us->number() == lastP){ 
         last_one = true;
@@ -669,8 +669,8 @@ protected:
     CALL("InferenceStore::TPTPProofPrinter::getFofString");
 
     vstring kind = "fof";
-    if(env.statistics->hasTypes){ kind="tff"; }
-    if(env.statistics->higherOrder){ kind="thf"; }
+    if(env->statistics->hasTypes){ kind="tff"; }
+    if(env->statistics->higherOrder){ kind="thf"; }
 
     return kind+"("+id+","+getRole(rule,origin)+",("+"\n"
 	+"  "+formula+"),\n"
@@ -718,10 +718,10 @@ protected:
     while(symIt.hasNext()) {
       SymbolId sym = symIt.next();
       if (sym.first) {
-	symsStr << env.signature->functionName(sym.second);
+	symsStr << env->signature->functionName(sym.second);
       }
       else {
-	symsStr << env.signature->predicateName(sym.second);
+	symsStr << env->signature->predicateName(sym.second);
       }
       if (symIt.hasNext()) {
 	symsStr << ',';
@@ -771,11 +771,11 @@ protected:
     vstring inferenceStr;
     if (rule==InferenceRule::INPUT) {
       vstring fileName;
-      if (env.options->inputFile()=="") {
+      if (env->options->inputFile()=="") {
 	fileName="unknown";
       }
       else {
-	fileName="'"+env.options->inputFile()+"'";
+	fileName="'"+env->options->inputFile()+"'";
       }
       vstring axiomName;
       if (!outputAxiomNames || !Parse::TPTP::findAxiomName(us, axiomName)) {
@@ -963,8 +963,8 @@ protected:
     UIHelper::outputSymbolDeclarations(out);
 
     vstring kind = "fof";
-    if(env.statistics->hasTypes){ kind="tff"; } 
-    if(env.statistics->higherOrder){ kind="thf"; }
+    if(env->statistics->hasTypes){ kind="tff"; } 
+    if(env->statistics->higherOrder){ kind="thf"; }
 
     out << kind
         << "(r"<<_is->getUnitIdStr(cs)
@@ -1028,7 +1028,7 @@ InferenceStore::ProofPrinter* InferenceStore::createProofPrinter(ostream& out)
 {
   CALL("InferenceStore::createProofPrinter");
 
-  switch(env.options->proof()) {
+  switch(env->options->proof()) {
   case Options::Proof::ON:
     return new ProofPrinter(out, this);
   case Options::Proof::PROOFCHECK:
@@ -1123,7 +1123,7 @@ void InferenceStore::outputProof(ostream& out, UnitList* units)
 
 InferenceStore* InferenceStore::instance()
 {
-  static ScopedPtr<InferenceStore> inst(new InferenceStore());
+  VTHREAD_LOCAL static ScopedPtr<InferenceStore> inst(new InferenceStore());
   
   return inst.ptr();
 }

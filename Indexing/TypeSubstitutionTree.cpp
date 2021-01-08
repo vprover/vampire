@@ -36,7 +36,7 @@ using namespace Lib;
 using namespace Kernel;
 
 TypeSubstitutionTree::TypeSubstitutionTree()
-: SubstitutionTree(env.signature->functions())
+: SubstitutionTree(env->signature->functions())
 {
 }
 

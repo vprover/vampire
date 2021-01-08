@@ -144,8 +144,8 @@ void SATInference::collectFilteredFOPremises(SATClause* cl, Stack<Unit*>& acc, F
   CALL("SATInference::collectFilteredFOPremises");
   ASS_ALLOC_TYPE(cl, "SATClause");
 
-  static Stack<SATClause*> toDo;
-  static DHSet<SATClause*> seen;
+  VTHREAD_LOCAL static Stack<SATClause*> toDo;
+  VTHREAD_LOCAL static DHSet<SATClause*> seen;
   toDo.reset();
   seen.reset();
 

@@ -159,7 +159,7 @@ Clause* ArrayTheoryISE::simplify(Clause* c)
     return c;
   }
   
-  static DArray<Literal*> lits(32);
+  VTHREAD_LOCAL static DArray<Literal*> lits(32);
   int length = c->length();
   lits.ensure(length);
   bool modified = false;

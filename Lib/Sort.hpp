@@ -61,7 +61,7 @@ void sort(C* first, C* afterLast)
   }
 
   // array behaves as a stack of calls to quicksort
-  static DArray<size_t> ft(32);
+  VTHREAD_LOCAL static DArray<size_t> ft(32);
 
   size_t from = 0;
   size_t to=size-1;

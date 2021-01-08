@@ -120,7 +120,7 @@ void MinisatInterfacing::addClause(SATClause* cl)
   
   ASS_EQ(_assumptions.size(),0);
                 
-  static vec<Lit> mcl;
+  VTHREAD_LOCAL static vec<Lit> mcl;
   mcl.clear();
     
   unsigned clen=cl->length();
@@ -218,10 +218,10 @@ SATClauseList* MinisatInterfacing::minimizePremiseList(SATClauseList* premises, 
 
   Minisat::Solver solver;
 
-  static DHMap<int,SATClause*> var2prem;
+  VTHREAD_LOCAL static DHMap<int,SATClause*> var2prem;
   var2prem.reset();
 
-  static vec<Lit> ass; // assumptions for the final call
+  VTHREAD_LOCAL static vec<Lit> ass; // assumptions for the final call
   ass.clear();
 
   int cl_no = 0;
@@ -253,7 +253,7 @@ SATClauseList* MinisatInterfacing::minimizePremiseList(SATClauseList* premises, 
   while(it) {
     SATClause* cl = it->head();
 
-    static vec<Lit> mcl;
+    VTHREAD_LOCAL static vec<Lit> mcl;
     mcl.clear();
 
     // translate the clause to minisat's language (shift vars by offset)

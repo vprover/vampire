@@ -84,7 +84,7 @@ Option<LitSimplResult> PolynomialEvaluation::tryEvalPredicate(Literal* orig, Pol
       HANDLE_CASE(NUM ## _LESS)                                                                               \
       HANDLE_CASE(NUM ## _LESS_EQUAL) 
 
-  auto sym = env.signature->getPredicate(orig->functor());
+  auto sym = env->signature->getPredicate(orig->functor());
   if (sym->interpreted()) {
     auto inter = static_cast<Signature::InterpretedSymbol*>(sym)->getInterpretation();
 

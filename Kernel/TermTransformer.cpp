@@ -230,9 +230,9 @@ Term* TermTransformerTransformTransformed::transform(Term* term)
   CALL("TermTransformerTransformTransformed::transform(Term* term)");
   ASS(term->shared());
 
-  static Stack<TermList*> toDo(8);
-  static Stack<Term*> terms(8);
-  static Stack<TermList> args(8);
+  VTHREAD_LOCAL static Stack<TermList*> toDo(8);
+  VTHREAD_LOCAL static Stack<Term*> terms(8);
+  VTHREAD_LOCAL static Stack<TermList> args(8);
   /* all stacks must be reset since the function might have been aborted by an exception */
   args.reset();
   terms.reset();
@@ -314,7 +314,7 @@ Literal* TermTransformerTransformTransformed::transform(Literal* lit)
 Formula* TermTransformerTransformTransformed::transform(Formula* f)
 {
   CALL("TermTransformerTransformTransformed::transform(Formula* f)");
-  static TermTransformerTransformTransformedFormulaTransformer ttft(*this);
+  VTHREAD_LOCAL static TermTransformerTransformTransformedFormulaTransformer ttft(*this);
   return ttft.transform(f);
 }
 

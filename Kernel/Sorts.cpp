@@ -53,9 +53,9 @@ Sorts::~Sorts()
 TermList Sorts::addSort(vstring const& name)
 {
   bool added;
-  auto fun = env.signature->addFunction(name, /*arity*/ 0, added);
+  auto fun = env->signature->addFunction(name, /*arity*/ 0, added);
   if (added) {
-    env.signature->getFunction(fun)->setType(OperatorType::getConstantsType(Term::superSort()));
+    env->signature->getFunction(fun)->setType(OperatorType::getConstantsType(Term::superSort()));
   }
   return TermList(Term::createConstant(fun));
 }
@@ -157,7 +157,7 @@ OperatorType::OperatorTypes& OperatorType::operatorTypes() {
     }
   };
 
-  static DeletingOperatorTypes _operatorTypes;
+  VTHREAD_LOCAL static DeletingOperatorTypes _operatorTypes;
   return _operatorTypes;
 }
 
@@ -175,7 +175,7 @@ OperatorType* OperatorType::getTypeFromKey(OperatorType::OperatorKey* key, unsig
   /*
   cout << "getTypeFromKey(" << key->length() << "): ";
   for (unsigned i = 0; i < key->length(); i++) {
-    cout << (((*key)[i] == PREDICATE_FLAG) ? "FFFF" : env.sorts->sortName((*key)[i])) << ",";
+    cout << (((*key)[i] == PREDICATE_FLAG) ? "FFFF" : env->sorts->sortName((*key)[i])) << ",";
   }
   */
 

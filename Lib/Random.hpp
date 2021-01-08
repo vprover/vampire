@@ -24,6 +24,8 @@
 #include <cstdlib>
 #include <ctime>
 
+#include "Lib/Threading.hpp"
+
 namespace Lib
 {
 
@@ -34,13 +36,13 @@ namespace Lib
 class Random 
 {
   /** seed */
-  static int _seed;
+  VTHREAD_LOCAL static int _seed;
   /** number of remaining bits */
-  static int _remainingBits;
+  VTHREAD_LOCAL static int _remainingBits;
   /** number of random bits that can be extracted from one random integer */
   static const int _bitsPerInt; 
   /** integer used for extracting random bits */
-  static unsigned _bits; 
+  VTHREAD_LOCAL static unsigned _bits; 
 
   static int bitsPerInt ();     // finds _bitsPerInt;
 

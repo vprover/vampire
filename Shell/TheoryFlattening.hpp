@@ -37,7 +37,7 @@ public:
   bool apply(ClauseList*& units);
   Clause* apply(Clause*& cl,Stack<Literal*>& target);
   Clause* apply(Clause*& cl){
-    static Stack<Literal*> dummy;
+    VTHREAD_LOCAL static Stack<Literal*> dummy;
     return apply(cl,dummy);
   }
 private:

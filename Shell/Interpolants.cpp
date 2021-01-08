@@ -54,8 +54,8 @@ VirtualIterator<Unit*> Interpolants::getParents(Unit* u)
     return InferenceStore::instance()->getParents(u);
   }
 
-  static Stack<Unit*> toDo;
-  static Stack<Unit*> parents;
+  VTHREAD_LOCAL static Stack<Unit*> toDo;
+  VTHREAD_LOCAL static Stack<Unit*> parents;
 
   toDo.reset();
   parents.reset();

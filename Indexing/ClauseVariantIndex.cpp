@@ -54,7 +54,7 @@ public:
       return 0;
     }
 
-    static DArray<LiteralList*> alts(32);
+    VTHREAD_LOCAL static DArray<LiteralList*> alts(32);
     alts.init(_length, 0);
 
     for(unsigned i=0;i<_length;i++) {
@@ -198,7 +198,7 @@ Literal* SubstitutionTreeClauseVariantIndex::getMainLiteral(Literal* const * lit
   CALL("SubstitutionTreeClauseVariantIndex::getMainLiteral");
   ASS_G(length,0);
 
-  static LiteralComparators::NormalizedLinearComparatorByWeight<> comp;
+  VTHREAD_LOCAL static LiteralComparators::NormalizedLinearComparatorByWeight<> comp;
 
   Literal* best=lits[0];
   unsigned bestVal=best->weight()-best->getDistinctVars();
@@ -307,7 +307,7 @@ struct HashingClauseVariantIndex::VariableIgnoringComparator {
     CALL("HashingClauseVariantIndex::VariableIgnoringComparator::disagreement");
 
     //now get just some total deterministic order while ignoring variables
-    static DisagreementSetIterator dsit;
+    VTHREAD_LOCAL static DisagreementSetIterator dsit;
     dsit.reset(t1, t2, false);
     while(dsit.hasNext()) {
       pair<TermList, TermList> dis=dsit.next();
@@ -512,13 +512,13 @@ unsigned HashingClauseVariantIndex::computeHash(Literal* const * lits, unsigned 
 
   TimeCounter tc( TC_HCVI_COMPUTE_HASH );
 
-  static Stack<unsigned> litOrder;
+  VTHREAD_LOCAL static Stack<unsigned> litOrder;
   litOrder.reset();
   litOrder.loadFromIterator(getRangeIterator(0u,length));
 
   std::sort(litOrder.begin(), litOrder.end(), VariableIgnoringComparator(lits));
 
-  static VarCounts varCnts;
+  VTHREAD_LOCAL static VarCounts varCnts;
   varCnts.reset();
 
   unsigned hash = 2166136261u;
@@ -528,7 +528,7 @@ unsigned HashingClauseVariantIndex::computeHash(Literal* const * lits, unsigned 
   }
 
   if (varCnts.size() > 0) {
-    static Stack<unsigned char> varCntHistogram;
+    VTHREAD_LOCAL static Stack<unsigned char> varCntHistogram;
     varCntHistogram.reset();
     VarCounts::Iterator it(varCnts);
     while (it.hasNext()) {

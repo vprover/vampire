@@ -87,21 +87,21 @@ public:
                 Stack<DHSet<unsigned>*> equiv_v_sorts,
                 Stack<std::pair<unsigned,unsigned>>& cons) :
                 _clauses(clauses), _del_f(del_f), _del_p(del_p),
-                _equiv_v_sorts(equiv_v_sorts), _equiv_vs(env.sorts->count()),
+                _equiv_v_sorts(equiv_v_sorts), _equiv_vs(env->sorts->count()),
                 _sort_constraints(cons) {
 
                   _sig = new SortedSignature();
-                  _print = env.options->showFMBsortInfo();
+                  _print = env->options->showFMBsortInfo();
 
                    // ignore inference if there are no clauses
                   _ignoreInference = !clauses; 
-                  _expandSubsorts = env.options->fmbAdjustSorts() == Options::FMBAdjustSorts::EXPAND;
+                  _expandSubsorts = env->options->fmbAdjustSorts() == Options::FMBAdjustSorts::EXPAND;
 
                   _usingMonotonicity = true;
-                  _collapsingMonotonicSorts = (env.options->fmbAdjustSorts() != Options::FMBAdjustSorts::OFF && 
-                                               env.options->fmbAdjustSorts() != Options::FMBAdjustSorts::EXPAND);
+                  _collapsingMonotonicSorts = (env->options->fmbAdjustSorts() != Options::FMBAdjustSorts::OFF && 
+                                               env->options->fmbAdjustSorts() != Options::FMBAdjustSorts::EXPAND);
                   _assumeMonotonic = _collapsingMonotonicSorts && 
-                                     env.options->fmbAdjustSorts() != Options::FMBAdjustSorts::GROUP;
+                                     env->options->fmbAdjustSorts() != Options::FMBAdjustSorts::GROUP;
 
                   _distinctSorts=0;
                   _collapsed=0;

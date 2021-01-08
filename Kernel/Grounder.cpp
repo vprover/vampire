@@ -73,7 +73,7 @@ void Grounder::groundNonProp(Clause* cl, SATLiteralStack& acc, Literal** normLit
 {
   CALL("Grounder::groundNonProp/2");
 
-  static DArray<Literal*> lits;
+  VTHREAD_LOCAL static DArray<Literal*> lits;
 
   unsigned clen = cl->length();
 
@@ -109,7 +109,7 @@ SATClause* Grounder::groundNonProp(Clause* cl, Literal** normLits)
 {
   CALL("Grounder::groundNonProp(Clause*,Literal**)");
 
-  static SATLiteralStack gndLits;
+  VTHREAD_LOCAL static SATLiteralStack gndLits;
   gndLits.reset();
 
   groundNonProp(cl, gndLits, normLits);
@@ -181,7 +181,7 @@ struct GlobalSubsumptionGrounder::OrderNormalizingComparator
       return la->header()<lb->header();
     }
     //now get just some total deterministic order
-    static DisagreementSetIterator dsit;
+    VTHREAD_LOCAL static DisagreementSetIterator dsit;
     dsit.reset(la, lb, false);
     ALWAYS(dsit.hasNext());
     pair<TermList,TermList> da = dsit.next();
@@ -211,13 +211,13 @@ void GlobalSubsumptionGrounder::normalize(unsigned cnt, Literal** lits)
     lits[0] = Renaming::normalize(lits[0]);
   }
 
-  static Stack<unsigned> litOrder;
+  VTHREAD_LOCAL static Stack<unsigned> litOrder;
   litOrder.reset();
   litOrder.loadFromIterator(getRangeIterator(0u,cnt));
 
   std::sort(litOrder.begin(), litOrder.end(), OrderNormalizingComparator(lits));
 
-  static Renaming normalizer;
+  VTHREAD_LOCAL static Renaming normalizer;
   normalizer.reset();
 
   for(unsigned i=0; i<cnt; i++) {
@@ -236,9 +236,9 @@ IGGrounder::IGGrounder(SATSolver* satSolver) : Grounder(satSolver)
 {
   _tgtTerm = TermList(0, false);
   //TODO: make instantiation happen with the most prolific symbol of each sort
-/*  unsigned funs = env.signature->functions();
+/*  unsigned funs = env->signature->functions();
   for(unsigned i=0; i<funs; i++) {
-    if(env.signature->functionArity(i)==0) {
+    if(env->signature->functionArity(i)==0) {
       _tgtTerm = TermList(Term::createConstant(i));
       break;
     }

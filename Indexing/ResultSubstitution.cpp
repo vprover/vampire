@@ -77,7 +77,7 @@ ResultSubstitutionSP IdentitySubstitution::instance()
 {
   CALL("IdentitySubstitution::instance");
 
-  static ResultSubstitutionSP inst = ResultSubstitutionSP(new IdentitySubstitution());
+  VTHREAD_LOCAL static ResultSubstitutionSP inst = ResultSubstitutionSP(new IdentitySubstitution());
 
   return inst;
 }

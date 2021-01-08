@@ -37,12 +37,12 @@ extern const char* VERSION_STRING;
 using namespace std;
 using namespace Debug;
 
-const char* Tracer::_lastControlPoint;
-Tracer* Tracer::_current = 0;
-unsigned Tracer::_depth = 0;
-unsigned Tracer::_passedControlPoints = 0L;
-ControlPointKind Tracer::_lastPointKind = CP_MID;
-bool Tracer::_forced = false;
+VTHREAD_LOCAL const char* Tracer::_lastControlPoint;
+VTHREAD_LOCAL Tracer* Tracer::_current = 0;
+VTHREAD_LOCAL unsigned Tracer::_depth = 0;
+VTHREAD_LOCAL unsigned Tracer::_passedControlPoints = 0L;
+VTHREAD_LOCAL ControlPointKind Tracer::_lastPointKind = CP_MID;
+VTHREAD_LOCAL bool Tracer::_forced = false;
 
 /** This variable is needed when all changes in the value of an
  *  an address are traced. To make it work one should define
@@ -53,7 +53,7 @@ bool Tracer::_forced = false;
  *  In order to watch also all changes of the address one should
  *  define WATCH_ADDR in this file. 
  */
-bool Tracer::canWatch = false;
+VTHREAD_LOCAL bool Tracer::canWatch = false;
 
 /** To understand how to use the following variable read documentation
  *  to Tracer::canWatch */

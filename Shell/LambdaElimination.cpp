@@ -132,12 +132,12 @@ TermList LambdaElimination::elimLambda(Formula* formula)
                 
       TermList equalsSort = SortHelper::getEqualityArgumentSort(lit);
       
-      unsigned eqProxy = env.signature->getEqualityProxy();
+      unsigned eqProxy = env->signature->getEqualityProxy();
       constant = TermList(Term::create1(eqProxy, equalsSort));             
       appTerm = AH::createAppTerm3(sortOf(constant), constant, lhs, rhs);
       
       if(!lit->polarity()){
-        constant = TermList(Term::createConstant(env.signature->getNotProxy()));
+        constant = TermList(Term::createConstant(env->signature->getNotProxy()));
         appTerm = AH::createAppTerm(sortOf(constant), constant, appTerm);
       }
       return appTerm;
@@ -149,7 +149,7 @@ TermList LambdaElimination::elimLambda(Formula* formula)
       Formula* rhs = formula->right();
                     
       vstring name = (conn == IFF ? "vIFF" : (conn == IMP ? "vIMP" : "vXOR"));
-      constant = TermList(Term::createConstant(env.signature->getBinaryProxy(name)));
+      constant = TermList(Term::createConstant(env->signature->getBinaryProxy(name)));
 
       TermList form1 = elimLambda(lhs);
       TermList form2 = elimLambda(rhs);
@@ -168,7 +168,7 @@ TermList LambdaElimination::elimLambda(Formula* formula)
       FormulaList::Iterator argsIt(formula->args());
       
       vstring name = (conn == AND ? "vAND" : "vOR");
-      constant = TermList(Term::createConstant(env.signature->getBinaryProxy(name)));
+      constant = TermList(Term::createConstant(env->signature->getBinaryProxy(name)));
       
       /*TermListComparator tlc;
       unsigned length = FormulaList::length(formula->args());
@@ -199,7 +199,7 @@ TermList LambdaElimination::elimLambda(Formula* formula)
       return appTerm;                           
     }
     case NOT: {
-      constant = TermList(Term::createConstant(env.signature->getNotProxy()));
+      constant = TermList(Term::createConstant(env->signature->getNotProxy()));
       TermList form = elimLambda(formula->uarg());
       return  AH::createAppTerm(sortOf(constant), constant, form);                                                    
     }
@@ -212,7 +212,7 @@ TermList LambdaElimination::elimLambda(Formula* formula)
 
       TermList form = elimLambda(formula->qarg());
       vstring name = (conn == FORALL ? "vPI" : "vSIGMA");
-      unsigned proxy = env.signature->getPiSigmaProxy(name);
+      unsigned proxy = env->signature->getPiSigmaProxy(name);
 
       TermList s;
       while(vit.hasNext()){
@@ -322,7 +322,7 @@ TermList LambdaElimination::elimLambda(int var, TermList varSort,
 
   if(body.isVar()){
     ASS(body.var() == (unsigned)var);
-    return TermList(Term::create1(env.signature->getCombinator(Signature::I_COMB), varSort));
+    return TermList(Term::create1(env->signature->getCombinator(Signature::I_COMB), varSort));
   }
 
   Term* t = body.term();
@@ -375,7 +375,7 @@ TermList LambdaElimination::createKTerm(TermList s1, TermList s2, TermList arg1)
 {
   CALL("LambdaElimination::createKTerm");
   
-  unsigned kcomb = env.signature->getCombinator(Signature::K_COMB);
+  unsigned kcomb = env->signature->getCombinator(Signature::K_COMB);
   TermList res = TermList(Term::create2(kcomb, s1, s2));
   return AH::createAppTerm(sortOf(res), res, arg1);             
 }   
@@ -386,7 +386,7 @@ TermList LambdaElimination::createSCorBTerm(TermList arg1, TermList arg1sort,
   CALL("LambdaElimination::createSCorBTerm");
   
   TermList s1, s2, s3;
-  unsigned cb = env.signature->getCombinator(comb);
+  unsigned cb = env->signature->getCombinator(comb);
   
   if(comb == Signature::S_COMB || comb == Signature::C_COMB){
     s1 = AH::getNthArg(arg1sort, 1);
@@ -428,7 +428,7 @@ void LambdaElimination::addCombinatorAxioms(Problem& prb)
   TermList z = TermList(5, false);
   TermList args[] = {s1, s2, s3};
   
-  unsigned s_comb = env.signature->getCombinator(Signature::S_COMB);
+  unsigned s_comb = env->signature->getCombinator(Signature::S_COMB);
   TermList constant = TermList(Term::create(s_comb, 3, args));
   TermList lhs = AH::createAppTerm(srtOf(constant), constant, x, y, z); //TODO fix
   TermList rhs = AH::createAppTerm3(Term::arrowSort(s1, s2, s3), x, z, AH::createAppTerm(Term::arrowSort(s1, s2), y, z));
@@ -438,7 +438,7 @@ void LambdaElimination::addCombinatorAxioms(Problem& prb)
   sAxiom->inference().setCombAxiomsDescendant(true);
   UnitList::push(sAxiom, prb.units());
 
-  unsigned c_comb = env.signature->getCombinator(Signature::C_COMB);
+  unsigned c_comb = env->signature->getCombinator(Signature::C_COMB);
   constant = TermList(Term::create(c_comb, 3, args));
   lhs = AH::createAppTerm(srtOf(constant), constant, x, y, z); //TODO fix
   rhs = AH::createAppTerm3(Term::arrowSort(s1, s2, s3), x, z, y);
@@ -448,7 +448,7 @@ void LambdaElimination::addCombinatorAxioms(Problem& prb)
   cAxiom->inference().setCombAxiomsDescendant(true);
   UnitList::push(cAxiom, prb.units());
      
-  unsigned b_comb = env.signature->getCombinator(Signature::B_COMB);
+  unsigned b_comb = env->signature->getCombinator(Signature::B_COMB);
   constant = TermList(Term::create(b_comb, 3, args));
   lhs = AH::createAppTerm(srtOf(constant), constant, x, y, z); //TODO fix
   rhs = AH::createAppTerm(Term::arrowSort(s2, s3), x, AH::createAppTerm(Term::arrowSort(s1, s2), y, z));
@@ -458,7 +458,7 @@ void LambdaElimination::addCombinatorAxioms(Problem& prb)
   bAxiom->inference().setCombAxiomsDescendant(true);
   UnitList::push(bAxiom, prb.units());
 
-  unsigned k_comb = env.signature->getCombinator(Signature::K_COMB);
+  unsigned k_comb = env->signature->getCombinator(Signature::K_COMB);
   constant = TermList(Term::create2(k_comb, s1, s2));
   lhs = AH::createAppTerm3(srtOf(constant), constant, x, y);
   
@@ -467,7 +467,7 @@ void LambdaElimination::addCombinatorAxioms(Problem& prb)
   bAxiom->inference().setCombAxiomsDescendant(true);
   UnitList::push(kAxiom, prb.units());
 
-  unsigned i_comb = env.signature->getCombinator(Signature::I_COMB);
+  unsigned i_comb = env->signature->getCombinator(Signature::I_COMB);
   constant = TermList(Term::create1(i_comb, s1));
   lhs = AH::createAppTerm(srtOf(constant), constant, x);
   
@@ -476,13 +476,13 @@ void LambdaElimination::addCombinatorAxioms(Problem& prb)
   iAxiom->inference().setCombAxiomsDescendant(true);  
   UnitList::push(iAxiom, prb.units());
 
-  if (env.options->showPreprocessing()) {
-    env.out() << "Added combinator axioms: " << std::endl;
-    env.out() << sAxiom->toString() << std::endl;
-    env.out() << cAxiom->toString() << std::endl;
-    env.out() << bAxiom->toString() << std::endl;
-    env.out() << kAxiom->toString() << std::endl;  
-    env.out() << iAxiom->toString() << std::endl;        
+  if (env->options->showPreprocessing()) {
+    env->out() << "Added combinator axioms: " << std::endl;
+    env->out() << sAxiom->toString() << std::endl;
+    env->out() << cAxiom->toString() << std::endl;
+    env->out() << bAxiom->toString() << std::endl;
+    env->out() << kAxiom->toString() << std::endl;  
+    env->out() << iAxiom->toString() << std::endl;        
   }
 }
 
@@ -500,7 +500,7 @@ void LambdaElimination::addFunctionExtensionalityAxiom(Problem& prb)
   TermList beta = TermList(1, false);
   TermList x = TermList(2, false);
   TermList y = TermList(3, false);
-  unsigned diff = env.signature->getDiff();
+  unsigned diff = env->signature->getDiff();
 
   TermList diffT = TermList(Term::create2(diff, alpha, beta));
   TermList diffTApplied = AH::createAppTerm3(srtOf(diffT), diffT, x, y);
@@ -513,9 +513,9 @@ void LambdaElimination::addFunctionExtensionalityAxiom(Problem& prb)
   UnitList::push(funcExtAx, prb.units());
 
 
-  if (env.options->showPreprocessing()) {
-    env.out() << "Added functional extensionality axiom: " << std::endl;
-    env.out() << funcExtAx->toString() << std::endl;       
+  if (env->options->showPreprocessing()) {
+    env->out() << "Added functional extensionality axiom: " << std::endl;
+    env->out() << funcExtAx->toString() << std::endl;       
   }
 }
 
@@ -528,7 +528,7 @@ void LambdaElimination::addChoiceAxiom(Problem& prb)
   TermList alphaBool = Term::arrowSort(alpha, Term::boolSort());
   TermList p = TermList(1, false);
   TermList x = TermList(2, false);
-  unsigned choice = env.signature->getChoice();
+  unsigned choice = env->signature->getChoice();
 
   TermList choiceT = TermList(Term::create1(choice, alpha));
   TermList choiceTApplied = AH::createAppTerm(alphaBool, alpha, choiceT, p);
@@ -541,9 +541,9 @@ void LambdaElimination::addChoiceAxiom(Problem& prb)
   UnitList::push(choiceAx, prb.units());
 
 
-  if (env.options->showPreprocessing()) {
-    env.out() << "Added Hilbert choice axiom: " << std::endl;
-    env.out() << choiceAx->toString() << std::endl;       
+  if (env->options->showPreprocessing()) {
+    env->out() << "Added Hilbert choice axiom: " << std::endl;
+    env->out() << choiceAx->toString() << std::endl;       
   }
 }
 
@@ -565,7 +565,7 @@ void LambdaElimination::addProxyAxioms(Problem& prb)
   TermList sk1 = TermList(Term::create1(skolem1, s1));
   TermList sk2 = TermList(Term::create1(skolem2, s1));
 
-  unsigned eqProxy = env.signature->getEqualityProxy();
+  unsigned eqProxy = env->signature->getEqualityProxy();
   TermList constant = TermList(Term::create1(eqProxy, s1));
 
   Clause* eqAxiom1 = new(2) Clause(2, TheoryAxiom(InferenceRule::EQUALITY_PROXY_AXIOM));
@@ -580,7 +580,7 @@ void LambdaElimination::addProxyAxioms(Problem& prb)
   eqAxiom2->inference().setProxyAxiomsDescendant(true);   
   UnitList::push(eqAxiom2, prb.units());
 
-  unsigned notProxy = env.signature->getNotProxy();
+  unsigned notProxy = env->signature->getNotProxy();
   constant = TermList(Term::createConstant(notProxy));
 
   Clause* notAxiom1 = new(2) Clause(2, TheoryAxiom(InferenceRule::NOT_PROXY_AXIOM));
@@ -595,7 +595,7 @@ void LambdaElimination::addProxyAxioms(Problem& prb)
   notAxiom2->inference().setProxyAxiomsDescendant(true);    
   UnitList::push(notAxiom2, prb.units());  
 
-  unsigned piProxy = env.signature->getPiSigmaProxy("vPI");
+  unsigned piProxy = env->signature->getPiSigmaProxy("vPI");
   constant = TermList(Term::create1(piProxy, s1));
 
   Clause* piAxiom1 = new(2) Clause(2, TheoryAxiom(InferenceRule::PI_PROXY_AXIOM));
@@ -610,7 +610,7 @@ void LambdaElimination::addProxyAxioms(Problem& prb)
   piAxiom2->inference().setProxyAxiomsDescendant(true);      
   UnitList::push(piAxiom2, prb.units());  
 
-  unsigned sigmaProxy = env.signature->getPiSigmaProxy("vSIGMA");
+  unsigned sigmaProxy = env->signature->getPiSigmaProxy("vSIGMA");
   constant = TermList(Term::create1(sigmaProxy, s1));
 
   Clause* sigmaAxiom1 = new(2) Clause(2, TheoryAxiom(InferenceRule::SIGMA_PROXY_AXIOM));
@@ -625,7 +625,7 @@ void LambdaElimination::addProxyAxioms(Problem& prb)
   sigmaAxiom2->inference().setProxyAxiomsDescendant(true);    
   UnitList::push(sigmaAxiom2, prb.units()); 
 
-  unsigned impProxy = env.signature->getBinaryProxy("vIMP");
+  unsigned impProxy = env->signature->getBinaryProxy("vIMP");
   constant = TermList(Term::createConstant(impProxy));
 
   Clause* impAxiom1 = new(2) Clause(2, TheoryAxiom(InferenceRule::IMPLIES_PROXY_AXIOM));
@@ -647,7 +647,7 @@ void LambdaElimination::addProxyAxioms(Problem& prb)
   impAxiom3->inference().setProxyAxiomsDescendant(true);
   UnitList::push(impAxiom3, prb.units());
 
-  unsigned andProxy = env.signature->getBinaryProxy("vAND");
+  unsigned andProxy = env->signature->getBinaryProxy("vAND");
   constant = TermList(Term::createConstant(andProxy));
 
   Clause* andAxiom1 = new(2) Clause(2, TheoryAxiom(InferenceRule::AND_PROXY_AXIOM));
@@ -669,7 +669,7 @@ void LambdaElimination::addProxyAxioms(Problem& prb)
   andAxiom3->inference().setProxyAxiomsDescendant(true);  
   UnitList::push(andAxiom3, prb.units());
 
-  unsigned orProxy = env.signature->getBinaryProxy("vOR");
+  unsigned orProxy = env->signature->getBinaryProxy("vOR");
   constant = TermList(Term::createConstant(orProxy));
 
   Clause* orAxiom1 = new(2) Clause(2, TheoryAxiom(InferenceRule::OR_PROXY_AXIOM));
@@ -694,25 +694,25 @@ void LambdaElimination::addProxyAxioms(Problem& prb)
 
   //TODO iff and xor
 
-  if (env.options->showPreprocessing()) {
-    env.out() << "Added proxy axioms: " << std::endl;
-    env.out() << eqAxiom1->toString() << std::endl;
-    env.out() << eqAxiom2->toString() << std::endl;
-    env.out() << notAxiom1->toString() << std::endl;
-    env.out() << notAxiom2->toString() << std::endl;  
-    env.out() << piAxiom1->toString() << std::endl;
-    env.out() << piAxiom2->toString() << std::endl;            
-    env.out() << sigmaAxiom1->toString() << std::endl;
-    env.out() << sigmaAxiom2->toString() << std::endl;
-    env.out() << impAxiom1->toString() << std::endl;  
-    env.out() << impAxiom2->toString() << std::endl;
-    env.out() << impAxiom3->toString() << std::endl;  
-    env.out() << andAxiom1->toString() << std::endl;  
-    env.out() << andAxiom2->toString() << std::endl;
-    env.out() << andAxiom3->toString() << std::endl;   
-    env.out() << orAxiom1->toString() << std::endl;  
-    env.out() << orAxiom2->toString() << std::endl;
-    env.out() << orAxiom3->toString() << std::endl;      
+  if (env->options->showPreprocessing()) {
+    env->out() << "Added proxy axioms: " << std::endl;
+    env->out() << eqAxiom1->toString() << std::endl;
+    env->out() << eqAxiom2->toString() << std::endl;
+    env->out() << notAxiom1->toString() << std::endl;
+    env->out() << notAxiom2->toString() << std::endl;  
+    env->out() << piAxiom1->toString() << std::endl;
+    env->out() << piAxiom2->toString() << std::endl;            
+    env->out() << sigmaAxiom1->toString() << std::endl;
+    env->out() << sigmaAxiom2->toString() << std::endl;
+    env->out() << impAxiom1->toString() << std::endl;  
+    env->out() << impAxiom2->toString() << std::endl;
+    env->out() << impAxiom3->toString() << std::endl;  
+    env->out() << andAxiom1->toString() << std::endl;  
+    env->out() << andAxiom2->toString() << std::endl;
+    env->out() << andAxiom3->toString() << std::endl;   
+    env->out() << orAxiom1->toString() << std::endl;  
+    env->out() << orAxiom2->toString() << std::endl;
+    env->out() << orAxiom3->toString() << std::endl;      
   }
     
 }

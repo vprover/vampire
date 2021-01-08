@@ -76,7 +76,7 @@ start_applying:
 
   _subst.reset();
 
-  static Stack<Literal*> resLits(8);
+  VTHREAD_LOCAL static Stack<Literal*> resLits(8);
   resLits.reset();
 
   bool foundResolvable=false;

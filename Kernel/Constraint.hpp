@@ -168,7 +168,7 @@ public:
   {
     CALL("Constraint::fromBagIterator");
 
-    static CoeffArray bag;
+    VTHREAD_LOCAL static CoeffArray bag;
     bag.initFromIterator(coeffIterator);
     bag.sort(CoeffComparator());
 

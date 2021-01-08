@@ -83,8 +83,8 @@ void createLiteralBindings(Literal* baseLit, LiteralList const* const alts, Clau
 {
   CALL("createLiteralBindings");
 
-  static UUMap variablePositions;
-  static BinaryHeap<unsigned,Int> varNums;
+  VTHREAD_LOCAL static UUMap variablePositions;
+  VTHREAD_LOCAL static BinaryHeap<unsigned,Int> varNums;
   variablePositions.reset();
   varNums.reset();
 
@@ -1079,7 +1079,7 @@ bool MLMatcherSD::Impl::nextMatch()
     if(s_counter==50000) {
       // std::cerr << "counter reached 50k" << std::endl;
       s_counter=0;
-      if(env.timeLimitReached()) {
+      if(env->timeLimitReached()) {
         throw TimeLimitExceededException();
       }
     }

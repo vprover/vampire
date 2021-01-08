@@ -22,10 +22,10 @@
 
 using namespace Lib;
 
-int Random::_seed = 1;
-int Random::_remainingBits = 0;
+VTHREAD_LOCAL int Random::_seed = 1;
+VTHREAD_LOCAL int Random::_remainingBits = 0;
 const int Random::_bitsPerInt = Random::bitsPerInt ();
-unsigned Random::_bits;
+VTHREAD_LOCAL unsigned Random::_bits;
 
 /**
  * Return value between @c min and @c max (excluding the bounds)

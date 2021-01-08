@@ -159,7 +159,7 @@ void EqualityProxyMono::addAxioms(UnitList*& units)
   unsigned proxyPredArrSz = s_proxyPredicates.size();
   for (unsigned sort=0; sort<proxyPredArrSz; sort++) {
     if (haveProxyPredicate(sort)) {
-      addLocalAxioms(units, env.sorts->getSortTerm(sort));
+      addLocalAxioms(units, env->sorts->getSortTerm(sort));
     }
   }
 } // addAxioms
@@ -184,7 +184,7 @@ bool EqualityProxyMono::getArgumentEqualityLiterals(unsigned cnt, LiteralStack& 
     TermList v1(2*i, false);
     TermList v2(2*i+1, false);
     TermList sort = symbolType->arg(i);
-    if (!skipSortsWithoutEquality || haveProxyPredicate(env.sorts->getSortNum(sort))) {
+    if (!skipSortsWithoutEquality || haveProxyPredicate(env->sorts->getSortNum(sort))) {
       lits.push(makeProxyLiteral(false, v1, v2, sort));
       vars1.push(v1);
       vars2.push(v2);
@@ -198,7 +198,7 @@ bool EqualityProxyMono::getArgumentEqualityLiterals(unsigned cnt, LiteralStack& 
 }
 
 /**
- * For every symbol occurring in env.signature, add to the units equality congruence axioms
+ * For every symbol occurring in env->signature, add to the units equality congruence axioms
  * for this symbol.
  * @author Andrei Voronkov
  * @since 16/05/2014 Manchester
@@ -213,9 +213,9 @@ void EqualityProxyMono::addCongruenceAxioms(UnitList*& units)
   Stack<TermList> vars2;
   LiteralStack lits;
 
-  unsigned funs = env.signature->functions();
+  unsigned funs = env->signature->functions();
   for (unsigned i=0; i<funs; i++) {
-    Signature::Symbol* fnSym = env.signature->getFunction(i);
+    Signature::Symbol* fnSym = env->signature->getFunction(i);
     if(fnSym->super()){
       continue;
     }
@@ -233,9 +233,9 @@ void EqualityProxyMono::addCongruenceAxioms(UnitList*& units)
     UnitList::push(cl,units);
   }
 
-  unsigned preds = env.signature->predicates();
+  unsigned preds = env->signature->predicates();
   for (unsigned i = 1; i < preds; i++) {
-    Signature::Symbol* predSym = env.signature->getPredicate(i);
+    Signature::Symbol* predSym = env->signature->getPredicate(i);
     unsigned arity = predSym->arity();
     if (predSym->equalityProxy() || predSym->arity() == 0) {
       continue;
@@ -275,7 +275,7 @@ Clause* EqualityProxyMono::apply(Clause* cl)
       ASS(lit->isEquality());
       modified = true;
       TermList srt = s_proxyPredicateSorts.get(rlit->functor());
-      Unit* prem = s_proxyPremises[env.sorts->getSortNum(srt)];
+      Unit* prem = s_proxyPremises[env->sorts->getSortNum(srt)];
       proxyPremises.push(prem);
     }
   }
@@ -348,16 +348,16 @@ unsigned EqualityProxyMono::getProxyPredicate(TermList sort)
 {
   CALL("EqualityProxyMono::getProxyPredicate");
 
-  if (s_proxyPredicates[env.sorts->getSortNum(sort)] != 0) {
-    return s_proxyPredicates[env.sorts->getSortNum(sort)];
+  if (s_proxyPredicates[env->sorts->getSortNum(sort)] != 0) {
+    return s_proxyPredicates[env->sorts->getSortNum(sort)];
   }
-  unsigned newPred = env.signature->addFreshPredicate(2,"sQ","eqProxy");
-  Signature::Symbol* predSym = env.signature->getPredicate(newPred);
+  unsigned newPred = env->signature->addFreshPredicate(2,"sQ","eqProxy");
+  Signature::Symbol* predSym = env->signature->getPredicate(newPred);
   OperatorType* predType = OperatorType::getPredicateType({sort, sort});
   predSym->setType(predType);
   predSym->markEqualityProxy();
 
-  s_proxyPredicates[env.sorts->getSortNum(sort)] = newPred;
+  s_proxyPredicates[env->sorts->getSortNum(sort)] = newPred;
   s_proxyPredicateSorts.insert(newPred,sort);
 
   Literal* proxyLit = Literal::create2(newPred,true,TermList(0,false),TermList(1,false));
@@ -367,7 +367,7 @@ unsigned EqualityProxyMono::getProxyPredicate(TermList sort)
 
   FormulaUnit* defUnit = new FormulaUnit(quantDefForm,NonspecificInference0(UnitInputType::AXIOM,InferenceRule::EQUALITY_PROXY_AXIOM1));
 
-  s_proxyPremises[env.sorts->getSortNum(sort)] = defUnit;
+  s_proxyPremises[env->sorts->getSortNum(sort)] = defUnit;
   InferenceStore::instance()->recordIntroducedSymbol(defUnit, false, newPred);
   return newPred;
 }
@@ -395,7 +395,7 @@ Clause* EqualityProxyMono::createEqProxyAxiom(const LiteralStack& literalStack)
     if (!sorts.insert(srt)) {
       continue;
     }
-    Unit* prem = s_proxyPremises[env.sorts->getSortNum(srt)];
+    Unit* prem = s_proxyPremises[env->sorts->getSortNum(srt)];
     ASS(prem);
     UnitList::push(prem, prems);
   }

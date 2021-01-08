@@ -111,7 +111,7 @@ void SLQueryForwardSubsumption::perform(Clause* cl, ForwardSimplificationPerform
       SLQueryResult res=rit.next();
       unsigned rlen=res.clause->length();
       if(rlen==1 && ColorHelper::compatible(cl->color(), res.clause->color())) {
-	env.statistics->forwardSubsumed++;
+	env->statistics->forwardSubsumed++;
 	simplPerformer->perform(res.clause, 0);
 	goto fin;
       } else if(rlen>clen) {
@@ -133,8 +133,8 @@ void SLQueryForwardSubsumption::perform(Clause* cl, ForwardSimplificationPerform
 
   if(gens)
   {
-    static DArray<LiteralList*> matches(32);
-    static MatchMap matchMap;
+    VTHREAD_LOCAL static DArray<LiteralList*> matches(32);
+    VTHREAD_LOCAL static MatchMap matchMap;
 
     CMMap::Iterator git(*gens);
     while(git.hasNext()) {
@@ -180,7 +180,7 @@ void SLQueryForwardSubsumption::perform(Clause* cl, ForwardSimplificationPerform
       }
 
       if(!mclMatchFailed && ColorHelper::compatible(cl->color(), mcl->color())) {
-	env.statistics->forwardSubsumed++;
+	env->statistics->forwardSubsumed++;
 	simplPerformer->perform(mcl, 0);
 	goto fin;
       }

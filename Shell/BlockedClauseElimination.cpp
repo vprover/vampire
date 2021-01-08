@@ -57,8 +57,8 @@ void BlockedClauseElimination::apply(Problem& prb)
   bool modified = false;
   bool equationally = prb.hasEquality() && prb.getProperty()->positiveEqualityAtoms();
 
-  DArray<Stack<Candidate*>> positive(env.signature->predicates());
-  DArray<Stack<Candidate*>> negative(env.signature->predicates());
+  DArray<Stack<Candidate*>> positive(env->signature->predicates());
+  DArray<Stack<Candidate*>> negative(env->signature->predicates());
 
   Stack<ClWrapper*> wrappers; // just to delete easily in the end
 
@@ -75,7 +75,7 @@ void BlockedClauseElimination::apply(Problem& prb)
     for(unsigned i=0; i<cl->length(); i++) {
       Literal* lit = (*cl)[i];
       unsigned pred = lit->functor();
-      if (!env.signature->getPredicate(pred)->protectedSymbol()) { // don't index on interpreted or otherwise protected predicates (=> the cannot be ``flipped'')
+      if (!env->signature->getPredicate(pred)->protectedSymbol()) { // don't index on interpreted or otherwise protected predicates (=> the cannot be ``flipped'')
         ASS(pred); // equality predicate is protected
 
         (lit->isPositive() ? positive : negative)[pred].push(new Candidate {clw,i,0,0});
@@ -144,11 +144,11 @@ void BlockedClauseElimination::apply(Problem& prb)
     }
 
     // resolves to tautology with all partners -- blocked!
-    if (env.options->showPreprocessing()) {
+    if (env->options->showPreprocessing()) {
       cout << "[PP] Blocked clause[" << cand->litIdx << "]: " << cl->toString() << endl;
     }
 
-    env.statistics->blockedClauses++;
+    env->statistics->blockedClauses++;
     modified = true;
 
     clw->blocked = true;
@@ -256,7 +256,7 @@ bool BlockedClauseElimination::resolvesToTautologyEq(Clause* cl, Literal* lit, C
   CALL("BlockedClauseElimination::resolvesToTautologyEq");
 
   // With polymorphism, some intermediate terms created here are not well sorted, but that's OK
-  TermSharing::WellSortednessCheckingLocalDisabler disableInScope(env.sharing);
+  TermSharing::WellSortednessCheckingLocalDisabler disableInScope(env->sharing);
   // cout << "cl: " << cl->toString() << endl;
   // cout << "lit: " << lit->toString() << endl;
   // cout << "pcl: " << pcl->toString() << endl;
@@ -267,9 +267,9 @@ bool BlockedClauseElimination::resolvesToTautologyEq(Clause* cl, Literal* lit, C
   unsigned n = lit->arity();
 
   IntUnionFind uf(n ? 2*n : 1); // IntUnionFind does not like 0
-  static Lib::DHMap<TermList, unsigned>  litArgIds;
+  VTHREAD_LOCAL static Lib::DHMap<TermList, unsigned>  litArgIds;
   litArgIds.reset();
-  static Lib::DHMap<TermList, unsigned> plitArgIds;
+  VTHREAD_LOCAL static Lib::DHMap<TermList, unsigned> plitArgIds;
   plitArgIds.reset();
 
   int varMax = -1;
@@ -312,7 +312,7 @@ bool BlockedClauseElimination::resolvesToTautologyEq(Clause* cl, Literal* lit, C
 
   // to do replacements in cl, we need a mapping for all lit's arguments.
   // As a bonus we also allow ground arguments of plit
-  static Lib::DHMap<TermList, TermList> replacements;
+  VTHREAD_LOCAL static Lib::DHMap<TermList, TermList> replacements;
   replacements.reset();
   for(unsigned i = 0; i<n; i++) {
     TermList arg = *lit->nthArgument(i);
@@ -336,7 +336,7 @@ bool BlockedClauseElimination::resolvesToTautologyEq(Clause* cl, Literal* lit, C
 
   VarMaxUpdatingNormalizer clNormalizer(replacements,varMax);
 
-  static DHSet<Literal*> norm_lits;
+  VTHREAD_LOCAL static DHSet<Literal*> norm_lits;
   norm_lits.reset();
 
   for (unsigned i = 0; i < cl->length(); i++) {
@@ -383,11 +383,11 @@ bool BlockedClauseElimination::resolvesToTautologyEq(Clause* cl, Literal* lit, C
     }
   }
 
-  static Lib::DHMap<unsigned, unsigned> varMap;
+  VTHREAD_LOCAL static Lib::DHMap<unsigned, unsigned> varMap;
   varMap.reset();
   RenanigApartNormalizer pclNormalizer(replacements,varMax,varMap);
 
-  static DHSet<Literal*> pcl_lits;
+  VTHREAD_LOCAL static DHSet<Literal*> pcl_lits;
   pcl_lits.reset();
 
   for (unsigned i = 0; i < pcl->length(); i++) {
@@ -503,13 +503,13 @@ bool BlockedClauseElimination::resolvesToTautologyUn(Clause* cl, Literal* lit, C
   // cout << "lit: " << lit->toString() << endl;
   // cout << "plit: " << plit->toString() << endl;
 
-  static RobSubstitution subst_main;
+  VTHREAD_LOCAL static RobSubstitution subst_main;
   subst_main.reset();
   if(!subst_main.unifyArgs(lit,0,plit,1)) {
     return true; // since they don't resolve
   }
 
-  static DHSet<Literal*> cl_lits;
+  VTHREAD_LOCAL static DHSet<Literal*> cl_lits;
   cl_lits.reset();
 
   Literal* opslit = 0;
@@ -535,10 +535,10 @@ bool BlockedClauseElimination::resolvesToTautologyUn(Clause* cl, Literal* lit, C
 
   ASS_NEQ(opslit,0);
 
-  static DHSet<Literal*> pcl_lits;
+  VTHREAD_LOCAL static DHSet<Literal*> pcl_lits;
   pcl_lits.reset();
 
-  static RobSubstitution subst_aux;
+  VTHREAD_LOCAL static RobSubstitution subst_aux;
   subst_aux.reset();
 
   for (unsigned i = 0; i < pcl->length(); i++) {

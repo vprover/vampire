@@ -22,6 +22,7 @@
 #include "Debug/Assertion.hpp"
 
 #include "Lib/Comparison.hpp"
+#include "Lib/Threading.hpp"
 #include "Lib/SmartPtr.hpp"
 #include "Lib/DArray.hpp"
 
@@ -148,7 +149,7 @@ private:
    * better performance, as the equality orientation will be cached
    * inside the sharing structure.
    */
-  static OrderingSP s_globalOrdering;
+  VTHREAD_LOCAL static OrderingSP s_globalOrdering;
 }; // class Ordering
 
 // orderings that rely on symbol precedence

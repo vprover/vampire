@@ -85,7 +85,7 @@ int IntUnionFind::root(int c) const
 {
   CALL("IntUnionFind::root");
 
-  static Stack<int> path(8);
+  VTHREAD_LOCAL static Stack<int> path(8);
   ASS(path.isEmpty());
   int prev=-1;
 

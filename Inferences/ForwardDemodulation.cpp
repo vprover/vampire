@@ -82,7 +82,7 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
   //replace subterms in some special order, like
   //the heaviest first...
 
-  static DHSet<TermList> attempted;
+  VTHREAD_LOCAL static DHSet<TermList> attempted;
   attempted.reset();
 
   unsigned cLen=cl->length();
@@ -198,7 +198,7 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
 
         Literal* resLit = EqHelper::replace(lit,trm,rhsS);
         if(EqHelper::isEqTautology(resLit)) {
-          env.statistics->forwardDemodulationsToEqTaut++;
+          env->statistics->forwardDemodulationsToEqTaut++;
           premises = pvi( getSingletonIterator(qr.clause));
           return true;
         }
@@ -218,7 +218,7 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         }
         ASS_EQ(next,cLen);
 
-        env.statistics->forwardDemodulations++;
+        env->statistics->forwardDemodulations++;
 
         premises = pvi( getSingletonIterator(qr.clause));
         replacement = res;

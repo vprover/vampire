@@ -227,18 +227,18 @@ void HyperSuperposition::tryUnifyingSuperpositioins(Clause* cl, unsigned literal
 
   Color clauseClr = cl->color();
 
-  static RobSubstitution subst;
+  VTHREAD_LOCAL static RobSubstitution subst;
   subst.reset();
 
   int bank2 = disjointVariables ? 1 : 0;
   int nextAvailBank = bank2+1;
 
-  static ClauseStack premises;
+  VTHREAD_LOCAL static ClauseStack premises;
   premises.reset();
   //the int is a variable bank index
   typedef pair<TermPair, int> RewriterEntry;
   typedef Stack<RewriterEntry> RewriterStack;
-  static RewriterStack rewriters;
+  VTHREAD_LOCAL static RewriterStack rewriters;
   rewriters.reset();
 
   if(!tryGetRewriters(t1, t2, bank2, nextAvailBank, premises, rewriters, subst, clauseClr)) {
@@ -275,13 +275,13 @@ void HyperSuperposition::tryUnifyingSuperpositioins(Clause* cl, unsigned literal
     t1Rwr = EqHelper::replace(t1Rwr, src, tgt);
   }
 
-  static RobSubstitution checkerSubst;
+  VTHREAD_LOCAL static RobSubstitution checkerSubst;
   checkerSubst.reset();
   if(!checkerSubst.unifyArgs(t1Rwr, 0, t2, bank2)) {
     return;
   }
 
-  static LiteralStack resLits;
+  VTHREAD_LOCAL static LiteralStack resLits;
   resLits.reset();
 
   unsigned clen = cl->length();
@@ -333,7 +333,7 @@ void HyperSuperposition::tryUnifyingNonequality(Clause* cl, unsigned literalInde
     return;
   }
 
-  static ClauseStack localRes;
+  VTHREAD_LOCAL static ClauseStack localRes;
   tryUnifyingSuperpositioins(cl, literalIndex, t1.term(), t2.term(), false, localRes);
 
   while(localRes.isNonEmpty()) {
@@ -349,7 +349,7 @@ Literal* HyperSuperposition::getUnifQueryLit(Literal* base)
   CALL("HyperSuperposition::getUnifQueryLit");
 
   unsigned arity = base->arity();
-  static TermStack varArgs;
+  VTHREAD_LOCAL static TermStack varArgs;
   for(unsigned i=varArgs.size(); i<arity; i++) {
     varArgs.push(TermList(i, false));
   }
@@ -382,7 +382,7 @@ void HyperSuperposition::tryUnifyingToResolveWithUnit(Clause* cl, unsigned liter
   Literal* queryLit = getUnifQueryLit(lit);
   SLQueryResultIterator unifIt = _index->getUnifications(queryLit, true, false);
 
-  static ClauseStack localRes;
+  VTHREAD_LOCAL static ClauseStack localRes;
 
   while(unifIt.hasNext()) {
     SLQueryResult unifRes = unifIt.next();
@@ -404,7 +404,7 @@ ClauseIterator HyperSuperposition::generateClauses(Clause* cl)
 
   TimeCounter tc(TC_HYPER_SUPERPOSITION);
 
-  static ClausePairStack res;
+  VTHREAD_LOCAL static ClausePairStack res;
   res.reset();
 
   unsigned clen = cl->length();
@@ -430,13 +430,13 @@ bool HyperSuperposition::tryGetUnifyingPremises(Term* t1, Term* t2, Color clr, b
 
   Color clauseClr = clr;
 
-  static RobSubstitution subst;
+  VTHREAD_LOCAL static RobSubstitution subst;
   subst.reset();
 
   int bank2 = disjointVariables ? 1 : 0;
   int nextAvailBank = bank2+1;
 
-  static RewriterStack rewriters;
+  VTHREAD_LOCAL static RewriterStack rewriters;
   rewriters.reset();
 
   return tryGetRewriters(t1, t2, bank2, nextAvailBank, premises, rewriters, subst, clauseClr);
@@ -512,7 +512,7 @@ bool HyperSuperposition::tryUnifyingNonequalitySimpl(Clause* cl, Clause*& replac
     return false;
   }
 
-  static ClauseStack premStack;
+  VTHREAD_LOCAL static ClauseStack premStack;
   premStack.reset();
 
   return trySimplifyingFromUnification(cl, t1.term(), t2.term(), false, premStack, replacement, premises);
@@ -531,7 +531,7 @@ bool HyperSuperposition::tryUnifyingToResolveSimpl(Clause* cl, Clause*& replacem
   Literal* queryLit = getUnifQueryLit(lit);
   SLQueryResultIterator unifIt = _index->getUnifications(queryLit, true, false);
 
-  static ClauseStack prems;
+  VTHREAD_LOCAL static ClauseStack prems;
 
   while(unifIt.hasNext()) {
     SLQueryResult unifRes = unifIt.next();

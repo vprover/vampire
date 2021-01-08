@@ -407,11 +407,11 @@ ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaInde
 {
   CALL("CNFOnTheFly::produceClauses");
 
-  static bool eager = env.options->cnfOnTheFly() == Options::CNFOnTheFly::EAGER;
-  static bool simp = env.options->cnfOnTheFly() == Options::CNFOnTheFly::LAZY_SIMP;
-  static bool gen = env.options->cnfOnTheFly() == Options::CNFOnTheFly::LAZY_GEN;
-  static bool simp_except_not_be_off = env.options->cnfOnTheFly() == Options::CNFOnTheFly::LAZY_SIMP_NOT_GEN_BOOL_EQ_OFF;
-  static bool simp_except_not_and_be = env.options->cnfOnTheFly() == Options::CNFOnTheFly::LAZY_SIMP_NOT_GEN_BOOL_EQ_GEN;
+  static bool eager = env->options->cnfOnTheFly() == Options::CNFOnTheFly::EAGER;
+  static bool simp = env->options->cnfOnTheFly() == Options::CNFOnTheFly::LAZY_SIMP;
+  static bool gen = env->options->cnfOnTheFly() == Options::CNFOnTheFly::LAZY_GEN;
+  static bool simp_except_not_be_off = env->options->cnfOnTheFly() == Options::CNFOnTheFly::LAZY_SIMP_NOT_GEN_BOOL_EQ_OFF;
+  static bool simp_except_not_and_be = env->options->cnfOnTheFly() == Options::CNFOnTheFly::LAZY_SIMP_NOT_GEN_BOOL_EQ_GEN;
   bool not_be = simp_except_not_be_off || (!generating && simp_except_not_and_be);
 
 

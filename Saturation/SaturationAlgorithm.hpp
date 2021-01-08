@@ -168,7 +168,7 @@ private:
   class TotalSimplificationPerformer;
   class PartialSimplificationPerformer;
 
-  static SaturationAlgorithm* s_instance;
+  VTHREAD_LOCAL static SaturationAlgorithm* s_instance;
 protected:
 
   bool _completeOptionSettings;

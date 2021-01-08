@@ -50,11 +50,11 @@ void runChild(UnitList* units, vstring slice)
   
   int resultValue=1;
   try {    
-    env.timer->reset();
-    env.timer->start();
+    env->timer->reset();
+    env->timer->start();
     TimeCounter::reinitialize();
 
-    env.options->readFromEncodedOptions(slice);
+    env->options->readFromEncodedOptions(slice);
 
     //To make sure the outputs of the two child Vampires don't interfere,
     //the pipe allows only one process at a time to possess the output for
@@ -62,37 +62,37 @@ void runChild(UnitList* units, vstring slice)
 
     //However, not to block other processes from running, we claim the output
     //only when we actually need it -- this we announce it by calling the
-    //functions env.beginOutput() and env.endOutput().
+    //functions env->beginOutput() and env->endOutput().
 
     //As outputs can happen all over the Vampire, every (non-debugging) output
     //is now encapsulated by a call to these two functions.
 
-    //Also, to allow easy switching between cout and the pipe, the env.out
-    //member has now become a function env.out().
-    env.beginOutput();
-    env.out()<<env.options->testId()<<" on "<<env.options->problemName()<<endl;
-    env.endOutput();
+    //Also, to allow easy switching between cout and the pipe, the env->out
+    //member has now become a function env->out().
+    env->beginOutput();
+    env->out()<<env->options->testId()<<" on "<<env->options->problemName()<<endl;
+    env->endOutput();
 
     Problem prob(units);
-    ProvingHelper::runVampire(prob, *env.options);
+    ProvingHelper::runVampire(prob, *env->options);
 
     //set return value to zero if we were successful
-    if(env.statistics->terminationReason==Statistics::REFUTATION) {
+    if(env->statistics->terminationReason==Statistics::REFUTATION) {
       resultValue=0;
     }
 
-    env.beginOutput();
-    UIHelper::outputResult(env.out());
-    env.endOutput();
+    env->beginOutput();
+    UIHelper::outputResult(env->out());
+    env->endOutput();
   } 
   catch (Exception& exception) {        
-    env.beginOutput();
-    exception.cry(env.out());
-    env.endOutput();
+    env->beginOutput();
+    exception.cry(env->out());
+    env->endOutput();
   } catch (std::bad_alloc& _) {    
-    env.beginOutput();
-    env.out() << "Insufficient system memory" << '\n';
-    env.endOutput();
+    env->beginOutput();
+    env->out() << "Insufficient system memory" << '\n';
+    env->endOutput();
   }
   
   
@@ -121,7 +121,7 @@ TEST_FUN(two_vampires1)
   if(!child1) {
     //we're in child1
     childOutputPipe.neverRead(); //we won't be reading from the pipe in children
-    env.setPipeOutput(&childOutputPipe); //direct output into the pipe
+    env->setPipeOutput(&childOutputPipe); //direct output into the pipe
       runChild(units, "dis+10_32_nwc=2.0:sac=on:spl=backtracking_20"); //start proving
   }
 
@@ -130,7 +130,7 @@ TEST_FUN(two_vampires1)
   if(!child2) {
     //we're in child2
     childOutputPipe.neverRead();
-    env.setPipeOutput(&childOutputPipe);
+    env->setPipeOutput(&childOutputPipe);
     runChild(units, "dis+4_8_30");
   }
 

@@ -38,7 +38,6 @@ using namespace std;
 using namespace Lib;
 using namespace Kernel;
 
-
 /**
  * Constructor, simply memorizes the value of the equality proxy option.
  */
@@ -168,7 +167,7 @@ void EqualityProxy::getArgumentEqualityLiterals(unsigned cnt, LiteralStack& lits
   vars1.reset();
   vars2.reset();
 
-  static Substitution localSubst;
+  VTHREAD_LOCAL static Substitution localSubst;
   localSubst.reset();
 
   for (unsigned i=0; i<cnt; i++) {
@@ -189,7 +188,7 @@ void EqualityProxy::getArgumentEqualityLiterals(unsigned cnt, LiteralStack& lits
 }
 
 /**
- * For every symbol occurring in env.signature, add to the units equality congruence axioms
+ * For every symbol occurring in env->signature, add to the units equality congruence axioms
  * for this symbol.
  * @author Andrei Voronkov
  * @since 16/05/2014 Manchester
@@ -205,9 +204,9 @@ void EqualityProxy::addCongruenceAxioms(UnitList*& units)
   LiteralStack lits;
   TermList srt;
 
-  unsigned funs = env.signature->functions();
+  unsigned funs = env->signature->functions();
   for (unsigned i=0; i<funs; i++) {
-    Signature::Symbol* fnSym = env.signature->getFunction(i);
+    Signature::Symbol* fnSym = env->signature->getFunction(i);
     if(fnSym->super()){
       continue;
     }
@@ -226,9 +225,9 @@ void EqualityProxy::addCongruenceAxioms(UnitList*& units)
     UnitList::push(cl,units);
   }
 
-  unsigned preds = env.signature->predicates();
+  unsigned preds = env->signature->predicates();
   for (unsigned i = 1; i < preds; i++) {
-    Signature::Symbol* predSym = env.signature->getPredicate(i);
+    Signature::Symbol* predSym = env->signature->getPredicate(i);
     unsigned arity = predSym->arity();
     if (predSym->equalityProxy() || predSym->arity() == 0) {
       continue;
@@ -316,18 +315,18 @@ unsigned EqualityProxy::getProxyPredicate()
 
   if(_addedPred){ return _proxyPredicate; }
 
-  unsigned newPred = env.signature->addFreshPredicate(3,"sQ","eqProxy");
+  unsigned newPred = env->signature->addFreshPredicate(3,"sQ","eqProxy");
   
   TermList sort = TermList(0,false);
   TermList var1 = TermList(1,false);
   TermList var2 = TermList(2,false);
 
-  Signature::Symbol* predSym = env.signature->getPredicate(newPred);
+  Signature::Symbol* predSym = env->signature->getPredicate(newPred);
   OperatorType* predType = OperatorType::getPredicateType({sort, sort}, 1);
   predSym->setType(predType);
   predSym->markEqualityProxy();
 
-  static TermStack args;
+  VTHREAD_LOCAL static TermStack args;
   args.reset();
 
   args.push(sort);

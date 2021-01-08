@@ -37,10 +37,10 @@ using namespace Kernel;
 using namespace Shell;
 
 /**
- * Run the Vampire saturation loop (based on the content of @b env.options )
+ * Run the Vampire saturation loop (based on the content of @b env->options )
  * on @b clauses
  *
- * The result of the loop is in @b env.statistics
+ * The result of the loop is in @b env->statistics
  *
  * The content of the @b units list after return from the function is
  * undefined
@@ -56,28 +56,28 @@ using namespace Shell;
     runVampireSaturationImpl(prb, opt);
   }
   catch(MemoryLimitExceededException&) {
-    env.statistics->terminationReason=Statistics::MEMORY_LIMIT;
-    env.statistics->refutation=0;
+    env->statistics->terminationReason=Statistics::MEMORY_LIMIT;
+    env->statistics->refutation=0;
     size_t limit=Allocator::getMemoryLimit();
     //add extra 1 MB to allow proper termination
     Allocator::setMemoryLimit(limit+1000000);
   }
   catch(TimeLimitExceededException&) {
-    env.statistics->terminationReason=Statistics::TIME_LIMIT;
-    env.statistics->refutation=0;
+    env->statistics->terminationReason=Statistics::TIME_LIMIT;
+    env->statistics->refutation=0;
   }
   catch(ActivationLimitExceededException&) {
-    env.statistics->terminationReason=Statistics::ACTIVATION_LIMIT;
-    env.statistics->refutation=0;
+    env->statistics->terminationReason=Statistics::ACTIVATION_LIMIT;
+    env->statistics->refutation=0;
   }
 }
 
 /**
  * Run the Vampire preprocessing and saturation loop (based on the content
- * of @b env.options ) on @b units. If @b prop is nonzero, do not scan
+ * of @b env->options ) on @b units. If @b prop is nonzero, do not scan
  * properties of the units, but use @b prop as a property object instead.
  *
- * The result of the loop is in @b env.statistics
+ * The result of the loop is in @b env->statistics
  *
  * The content of the @b units list after return from the function is
  * undefined
@@ -101,19 +101,19 @@ void ProvingHelper::runVampire(Problem& prb, const Options& opt)
     runVampireSaturationImpl(prb, opt);
   }
   catch(MemoryLimitExceededException&) {
-    env.statistics->terminationReason=Statistics::MEMORY_LIMIT;
-    env.statistics->refutation=0;
+    env->statistics->terminationReason=Statistics::MEMORY_LIMIT;
+    env->statistics->refutation=0;
     size_t limit=Allocator::getMemoryLimit();
     //add extra 1 MB to allow proper termination
     Allocator::setMemoryLimit(limit+1000000);
   }
   catch(TimeLimitExceededException&) {
-    env.statistics->terminationReason=Statistics::TIME_LIMIT;
-    env.statistics->refutation=0;
+    env->statistics->terminationReason=Statistics::TIME_LIMIT;
+    env->statistics->refutation=0;
   }
   catch(ActivationLimitExceededException&) {
-    env.statistics->terminationReason=Statistics::ACTIVATION_LIMIT;
-    env.statistics->refutation=0;
+    env->statistics->terminationReason=Statistics::ACTIVATION_LIMIT;
+    env->statistics->refutation=0;
   }
 }
 
@@ -126,11 +126,11 @@ void ProvingHelper::runVampire(Problem& prb, const Options& opt)
   CALL("ProvingHelper::runVampireSaturationImpl");
 
   Unit::onPreprocessingEnd();
-  if (env.options->showPreprocessing()) {
-    env.beginOutput();
-    env.out() << "[PP] onPreprocessingEnd(), Proving Helper" << std::endl;
-    UIHelper::outputAllPremises(env.out(), prb.units(), "New: ");
-    env.endOutput();
+  if (env->options->showPreprocessing()) {
+    env->beginOutput();
+    env->out() << "[PP] onPreprocessingEnd(), Proving Helper" << std::endl;
+    UIHelper::outputAllPremises(env->out(), prb.units(), "New: ");
+    env->endOutput();
   }
 
   //this point is reached both by the vampire mode (single strategy) and the portfolio mode (strategy schedule) when inside a strategy
@@ -140,13 +140,13 @@ void ProvingHelper::runVampire(Problem& prb, const Options& opt)
   Lib::Random::setSeed(opt.randomSeed());
   //decide whether to use poly or mono well-typedness test
   //after options have been read. Equality Proxy can introduce poly in mono.
-  env.sharing->setPoly();
+  env->sharing->setPoly();
 
-  env.statistics->phase=Statistics::SATURATION;
+  env->statistics->phase=Statistics::SATURATION;
   ScopedPtr<MainLoop> salg(MainLoop::createFromOptions(prb, opt));
 
   MainLoopResult sres(salg->run());
-  env.statistics->phase=Statistics::FINALIZATION;
+  env->statistics->phase=Statistics::FINALIZATION;
   Timer::setTimeLimitEnforcement(false);
   sres.updateStatistics();
 }

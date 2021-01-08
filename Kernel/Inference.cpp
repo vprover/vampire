@@ -276,20 +276,20 @@ vstring Inference::toString() const
 
   result += ", incl: " + Int::toString(_included);
   result += ", ptd: " + Int::toString(_isPureTheoryDescendant);
-  if(env.options->addCombAxioms()){
+  if(env->options->addCombAxioms()){
     result += ", cad: " + Int::toString(_combAxiomsDescendant);
   }
-  if(env.options->addProxyAxioms()){
+  if(env->options->addProxyAxioms()){
    result += ", pad: " + Int::toString(_proxyAxiomsDescendant);
   }
-  if(env.options->addCombAxioms() && env.options->addProxyAxioms()){
+  if(env->options->addCombAxioms() && env->options->addProxyAxioms()){
     result += ", had: " + Int::toString(_holAxiomsDescendant);
   }
   result += ", id: " + Int::toString(_inductionDepth);
-  if(env.options->maxXXNarrows() > 0){
+  if(env->options->maxXXNarrows() > 0){
     result += ", xxNarrs " + Int::toString(_XXNarrows);
   }
-  if(env.options->prioritiseClausesProducedByLongReduction()){
+  if(env->options->prioritiseClausesProducedByLongReduction()){
     result += ", redLen " + Int::toString(_reductions);
   }
   result += ", sl: " + Int::toString(_sineLevel);
@@ -640,6 +640,8 @@ vstring Kernel::ruleName(InferenceRule rule)
   switch (rule) {
   case InferenceRule::INPUT:
     return "input";
+  case InferenceRule::COPY_FOR_THREAD:
+    return "copy into thread";
   case InferenceRule::NEGATED_CONJECTURE:
     return "negated conjecture";
   case InferenceRule::ANSWER_LITERAL:

@@ -110,7 +110,7 @@ void SLQueryBackwardSubsumption::perform(Clause* cl,
     unsigned subsumedCnt=subsumedClauses.size();
     simplifications=pvi( getMappingIterator(
 	    subsumedClauses, ClauseToBwSimplRecordFn()) );
-    env.statistics->backwardSubsumed+=subsumedCnt;
+    env->statistics->backwardSubsumed+=subsumedCnt;
     return;
   }
 
@@ -124,7 +124,7 @@ void SLQueryBackwardSubsumption::perform(Clause* cl,
     unsigned subsumedCnt=subsumedClauses.size();
     simplifications=pvi( getMappingIterator(
 	    subsumedClauses, ClauseToBwSimplRecordFn()) );
-    env.statistics->backwardSubsumed+=subsumedCnt;
+    env->statistics->backwardSubsumed+=subsumedCnt;
     RSTAT_CTR_INC_MANY("bs0 unit performed",subsumedCnt);
     return;
   }
@@ -144,17 +144,17 @@ void SLQueryBackwardSubsumption::perform(Clause* cl,
     }
   }
 
-  static DArray<LiteralList*> matchedLits(32);
+  VTHREAD_LOCAL static DArray<LiteralList*> matchedLits(32);
   matchedLits.init(clen, 0);
 
   ClauseList* subsumed=0;
 
-  static DHSet<unsigned> basePreds;
+  VTHREAD_LOCAL static DHSet<unsigned> basePreds;
   bool basePredsInit=false;
   bool mustPredInit=false;
   unsigned mustPred;
 
-  static DHSet<Clause*> checkedClauses;
+  VTHREAD_LOCAL static DHSet<Clause*> checkedClauses;
   checkedClauses.reset();
 
   SLQueryResultIterator rit=_index->getInstances( (*cl)[lmIndex], false, false);
@@ -262,7 +262,7 @@ void SLQueryBackwardSubsumption::perform(Clause* cl,
     RSTAT_CTR_INC("bs1 3 final check");
     if(MLMatcher::canBeMatched(cl,icl,matchedLits.array(),0)) {
       ClauseList::push(icl, subsumed);
-      env.statistics->backwardSubsumed++;
+      env->statistics->backwardSubsumed++;
       RSTAT_CTR_INC("bs1 4 performed");
     }
 

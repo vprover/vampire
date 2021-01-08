@@ -142,7 +142,7 @@ void SMTBenchmark::output(ostream& out)
     out << ":extrafuns ((" << func << " " << fType << "))" <<endl;
   }
 
-  static Stack<vstring> predDeclStack;
+  VTHREAD_LOCAL static Stack<vstring> predDeclStack;
   predDeclStack.reset();
   predDeclStack.loadFromIterator(_predDecls.iterator());
   sort<DefaultComparator>(predDeclStack.begin(), predDeclStack.end());
@@ -250,7 +250,7 @@ void YicesSolver::run(SMTBenchmark& problem, SMTSolverResult& res, unsigned time
   vostringstream problemStm;
   problem.output(problemStm);
 
-  static Stack<vstring> proverOut;
+  VTHREAD_LOCAL static Stack<vstring> proverOut;
   proverOut.reset();
 
   vstring execName = System::guessExecutableDirectory()+"/yices";

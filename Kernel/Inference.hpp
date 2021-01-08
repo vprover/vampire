@@ -111,6 +111,8 @@ enum class InferenceRule : unsigned char {
    * (preprocessing/normalisation) FORMULA TRANSFORMATION SHOULD BELONG
    * (see also INTERNAL_FORMULA_TRANSFORMATION_LAST and isFormulaTransformation below). */
   GENERIC_FORMULA_TRANSFORMATION,
+  /** copying for threaded mode */
+  COPY_FOR_THREAD,
   /** negated conjecture from the input */
   NEGATED_CONJECTURE,
   /** introduction of answer literal into the conjecture,

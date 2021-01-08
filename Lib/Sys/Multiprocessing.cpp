@@ -80,7 +80,7 @@ void Multiprocessing::executeFuncList(VoidFuncList* lst)
 pid_t Multiprocessing::fork()
 {
   CALL("Multiprocessing::fork");
-  ASS(!env.haveOutput());
+  ASS(!env->haveOutput());
 
   executeFuncList(_preFork);
   errno=0;
@@ -138,7 +138,7 @@ pid_t Multiprocessing::waitForChildTerminationOrTime(unsigned timeMs,int& resVal
   int status;
   pid_t childPid;
 
-  int dueTime = env.timer->elapsedMilliseconds()+timeMs;
+  int dueTime = env->timer->elapsedMilliseconds()+timeMs;
 
   for(;;) {
     errno=0;
@@ -147,7 +147,7 @@ pid_t Multiprocessing::waitForChildTerminationOrTime(unsigned timeMs,int& resVal
       SYSTEM_FAIL("Call to waitpid() function failed.", errno);
     }
     if(childPid==0) {
-      if(dueTime<=env.timer->elapsedMilliseconds()) {
+      if(dueTime<=env->timer->elapsedMilliseconds()) {
 	return 0;
       }
       sleep(50);

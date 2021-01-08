@@ -28,12 +28,12 @@ using namespace std;
 using namespace Shell;
 using namespace Lib;
 
-bool TimeCounter::s_measuring = true;
-bool TimeCounter::s_initialized = false;
-int TimeCounter::s_measuredTimes[__TC_ELEMENT_COUNT];
-int TimeCounter::s_measuredTimesChildren[__TC_ELEMENT_COUNT];
-int TimeCounter::s_measureInitTimes[__TC_ELEMENT_COUNT];
-TimeCounter* TimeCounter::s_currTop = 0;
+VTHREAD_LOCAL bool TimeCounter::s_measuring = true;
+VTHREAD_LOCAL bool TimeCounter::s_initialized = false;
+VTHREAD_LOCAL int TimeCounter::s_measuredTimes[__TC_ELEMENT_COUNT];
+VTHREAD_LOCAL int TimeCounter::s_measuredTimesChildren[__TC_ELEMENT_COUNT];
+VTHREAD_LOCAL int TimeCounter::s_measureInitTimes[__TC_ELEMENT_COUNT];
+VTHREAD_LOCAL TimeCounter* TimeCounter::s_currTop = 0;
 
 /**
  * Reinitializes the time counting
@@ -50,7 +50,7 @@ void TimeCounter::reinitialize()
 
   initialize();
 
-  int currTime=env.timer->elapsedMilliseconds();
+  int currTime=env->timer->elapsedMilliseconds();
 
   TimeCounter* counter = s_currTop;
   while(counter) {
@@ -68,7 +68,7 @@ void TimeCounter::initialize()
 
   s_initialized=true;
 
-  if(!env.options->timeStatistics()) {
+  if(!env->options->timeStatistics()) {
     s_measuring=false;
     return;
   }
@@ -101,7 +101,7 @@ void TimeCounter::startMeasuring(TimeCounterUnit tcu)
   previousTop = s_currTop;
   s_currTop = this;
 
-  int currTime=env.timer->elapsedMilliseconds();
+  int currTime=env->timer->elapsedMilliseconds();
 
   _tcu=tcu;
   s_measureInitTimes[_tcu]=currTime;
@@ -117,7 +117,7 @@ void TimeCounter::stopMeasuring()
   }
   ASS_GE(s_measureInitTimes[_tcu], 0);
 
-  int currTime=env.timer->elapsedMilliseconds();
+  int currTime=env->timer->elapsedMilliseconds();
   int measuredTime = currTime-s_measureInitTimes[_tcu];
   s_measuredTimes[_tcu] += measuredTime;
   s_measureInitTimes[_tcu]=-1;
@@ -136,7 +136,7 @@ void TimeCounter::snapShot()
 {
   CALL("TimeCounter::snapShot");
 
-  int currTime=env.timer->elapsedMilliseconds();
+  int currTime=env->timer->elapsedMilliseconds();
 
   TimeCounter* counter = s_currTop;
   while(counter) {

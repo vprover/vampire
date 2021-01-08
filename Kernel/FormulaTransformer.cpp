@@ -460,7 +460,7 @@ bool ScanAndApplyLiteralTransformer::apply(FormulaUnit* unit, Unit*& res)
 
   Formula* f = unit->formula();
 
-  static UnitStack prems;
+  VTHREAD_LOCAL static UnitStack prems;
   prems.reset();
 
   LitFormulaTransformer ft(*this, prems);
@@ -485,10 +485,10 @@ bool ScanAndApplyLiteralTransformer::apply(Clause* cl, Unit*& res)
 {
   CALL("ScanAndApplyLiteralTransformer::apply(Clause*,Unit*&)");
 
-  static LiteralStack lits;
+  VTHREAD_LOCAL static LiteralStack lits;
   lits.reset();
 
-  static UnitStack prems;
+  VTHREAD_LOCAL static UnitStack prems;
   prems.reset();
 
   bool modified = false;

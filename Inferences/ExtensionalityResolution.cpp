@@ -110,7 +110,7 @@ struct ExtensionalityResolution::ForwardResultFn
     Literal* extLit = arg.first.second.literal;
 
     return performExtensionalityResolution(extCl, extLit, _otherCl, otherLit, subst,
-                                             env.statistics->forwardExtensionalityResolution,
+                                             env->statistics->forwardExtensionalityResolution,
                                              _parent.getOptions());
   }
 private:
@@ -199,7 +199,7 @@ struct ExtensionalityResolution::BackwardResultFn
     Literal* otherLit = arg.first.second;
 
     return performExtensionalityResolution(_extCl, _extLit, otherCl, otherLit, subst,
-                                             env.statistics->backwardExtensionalityResolution,
+                                             env->statistics->backwardExtensionalityResolution,
                                              _parent.getOptions());
   }
 private:
@@ -224,11 +224,11 @@ Clause* ExtensionalityResolution::performExtensionalityResolution(
   CALL("ExtensionalityResolution::performExtensionalityResolution");
   
   if(!ColorHelper::compatible(extCl->color(),otherCl->color()) ) {
-    env.statistics->inferencesSkippedDueToColors++;
+    env->statistics->inferencesSkippedDueToColors++;
     if(opts.showBlocked()) {
-      env.beginOutput();
-      env.out()<<"Blocked extensionality resolution of "<<extCl->toString()<<" and "<<otherCl->toString()<<endl;
-      env.endOutput();
+      env->beginOutput();
+      env->out()<<"Blocked extensionality resolution of "<<extCl->toString()<<" and "<<otherCl->toString()<<endl;
+      env->endOutput();
     }
     return 0;
   }

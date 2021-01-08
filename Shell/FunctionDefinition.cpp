@@ -87,8 +87,8 @@ struct FunctionDefinition::Def
   IntList* dependentFns;
 
   bool lhsIsBool(){
-    return (env.signature->isFoolConstantSymbol(true , fun) ||
-            env.signature->isFoolConstantSymbol(false, fun));
+    return (env->signature->isFoolConstantSymbol(true , fun) ||
+            env->signature->isFoolConstantSymbol(false, fun));
   }
 
   /**
@@ -162,7 +162,7 @@ bool FunctionDefinition::removeUnusedDefinitions(UnitList*& units, Problem* prb)
 {
   CALL("FunctionDefinition::removeUnusedDefinitions");
 
-  unsigned funs=env.signature->functions();
+  unsigned funs=env->signature->functions();
 
   Stack<Def*> defStack;
   DArray<Def*> def;
@@ -365,12 +365,12 @@ bool FunctionDefinition::removeAllDefinitions(UnitList*& units)
       _processedProblem->addEliminatedFunction(d->fun, (*d->defCl)[0]);
     }
 
-    if (env.options->showPreprocessing()) {
-      env.beginOutput();
-      env.out() << "[PP] fn def discovered: "<<(*d->defCl)<<"\n  unfolded: "<<(*d->rhs) << std::endl;
-      env.endOutput();
+    if (env->options->showPreprocessing()) {
+      env->beginOutput();
+      env->out() << "[PP] fn def discovered: "<<(*d->defCl)<<"\n  unfolded: "<<(*d->rhs) << std::endl;
+      env->endOutput();
     }
-    env.statistics->functionDefinitions++;
+    env->statistics->functionDefinitions++;
   }
 
   UnitList::DelIterator unfoldIterator(units);
@@ -398,13 +398,13 @@ void FunctionDefinition::checkDefinitions(Def* def0)
 
   //Next argument of the current-level term to be processed.
   //An empty term means we've processed all arguments of the term.
-  static Stack<TermList*> stack(4);
+  VTHREAD_LOCAL static Stack<TermList*> stack(4);
   //Definition whose rhs is the current-level term (or zero if none).
-  static Stack<Def*> defCheckingStack(4);
+  VTHREAD_LOCAL static Stack<Def*> defCheckingStack(4);
   //Definition whose lhs is the current-level term (or zero if none).
-  static Stack<Def*> defArgStack(4);
+  VTHREAD_LOCAL static Stack<Def*> defArgStack(4);
   //Current-level term.
-  static Stack<Term*> termArgStack(4);
+  VTHREAD_LOCAL static Stack<Term*> termArgStack(4);
 
   //loop invariant: the four above stacks contain the same number of elements
   for(;;) {
@@ -502,7 +502,7 @@ void FunctionDefinition::assignArgOccursData(Def* updDef)
 	    "FunctionDefinition::Def::argOccurs"));
   BitUtils::zeroMemory(updDef->argOccurs, updDef->lhs->arity()*sizeof(bool));
 
-  static DHMap<unsigned, unsigned, IdentityHash> var2argIndex;
+  VTHREAD_LOCAL static DHMap<unsigned, unsigned, IdentityHash> var2argIndex;
   var2argIndex.reset();
   int argIndex=0;
   for (TermList* ts = updDef->lhs->args(); ts->isNonEmpty(); ts=ts->next()) {
@@ -512,9 +512,9 @@ void FunctionDefinition::assignArgOccursData(Def* updDef)
   }
 
   TermList t=TermList(updDef->rhs);
-  static Stack<TermList*> stack(4);
-  static Stack<Def*> defArgStack(4);
-  static Stack<Term*> termArgStack(4);
+  VTHREAD_LOCAL static Stack<TermList*> stack(4);
+  VTHREAD_LOCAL static Stack<Def*> defArgStack(4);
+  VTHREAD_LOCAL static Stack<Term*> termArgStack(4);
   for(;;) {
     Def* d;
     if(t.isEmpty()) {
@@ -569,10 +569,10 @@ Term* FunctionDefinition::applyDefinitions(Literal* lit, Stack<Def*>* usedDefs)
 
   //cout << "applying definitions to " + lit->toString() << endl;
 
-  if (env.options->showPreprocessing()) {
-    env.beginOutput();
-    env.out() << "[PP] applying function definitions to literal "<<(*lit) << std::endl;
-    env.endOutput();
+  if (env->options->showPreprocessing()) {
+    env->beginOutput();
+    env->out() << "[PP] applying function definitions to literal "<<(*lit) << std::endl;
+    env->endOutput();
   }
   BindingMap bindings;
   UnfoldedSet unfolded;
@@ -670,10 +670,10 @@ Term* FunctionDefinition::applyDefinitions(Literal* lit, Stack<Def*>* usedDefs)
     if( !defIndex && _defs.find(t->functor(), d) && d->mark!=Def::BLOCKED) {
       ASS_EQ(d->mark, Def::UNFOLDED);
       usedDefs->push(d);
-      if (env.options->showPreprocessing()) {
-        env.beginOutput();
-        env.out() << "[PP] definition of "<<(*t)<<"\n  expanded to "<<(*d->rhs) << std::endl;
-        env.endOutput();
+      if (env->options->showPreprocessing()) {
+        env->beginOutput();
+        env->out() << "[PP] definition of "<<(*t)<<"\n  expanded to "<<(*d->rhs) << std::endl;
+        env->endOutput();
       }
 
       defIndex=nextDefIndex++;
@@ -720,8 +720,8 @@ Clause* FunctionDefinition::applyDefinitions(Clause* cl)
 
   unsigned clen=cl->length();
 
-  static Stack<Def*> usedDefs(8);
-  static Stack<Literal*> resLits(8);
+  VTHREAD_LOCAL static Stack<Def*> usedDefs(8);
+  VTHREAD_LOCAL static Stack<Literal*> resLits(8);
   ASS(usedDefs.isEmpty());
   resLits.reset();
 
@@ -777,7 +777,7 @@ FunctionDefinition::Def*
 FunctionDefinition::isFunctionDefinition (Unit& unit)
 {
   CALL("FunctionDefinition::isFunctionDefinition(const Unit&)");
-  if(unit.derivedFromGoal() && env.options->ignoreConjectureInPreprocessing()){
+  if(unit.derivedFromGoal() && env->options->ignoreConjectureInPreprocessing()){
     return 0;
   }
 
@@ -866,10 +866,10 @@ FunctionDefinition::defines (Term* lhs, Term* rhs)
     return 0;
   }
   unsigned f = lhs->functor();
-  if(env.signature->getFunction(f)->protectedSymbol()) {
+  if(env->signature->getFunction(f)->protectedSymbol()) {
     return 0;
   }
-  if(env.signature->getFunction(f)->distinctGroups()!=0) {
+  if(env->signature->getFunction(f)->distinctGroups()!=0) {
     return 0;
   }
   if(lhs->color()==COLOR_TRANSPARENT && rhs->color()!=COLOR_TRANSPARENT) {
@@ -880,19 +880,19 @@ FunctionDefinition::defines (Term* lhs, Term* rhs)
     return 0;
   }
   if (!lhs->arity()) {
-    if(env.signature->isFoolConstantSymbol(true , f) ||
-       env.signature->isFoolConstantSymbol(false, f)){
+    if(env->signature->isFoolConstantSymbol(true , f) ||
+       env->signature->isFoolConstantSymbol(false, f)){
       return 0;
     }
     //Higher-order often contains definitions of the form
     //f = ^x^y...
-    if (rhs->arity() && !env.statistics->higherOrder) { // c = f(...)
+    if (rhs->arity() && !env->statistics->higherOrder) { // c = f(...)
       return 0;
     }
     if (rhs->functor() == f) {
       return 0;
     }
-    if(!env.statistics->higherOrder){
+    if(!env->statistics->higherOrder){
       return new Def(lhs,rhs,true,true);
     }
   }

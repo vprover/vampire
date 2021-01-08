@@ -88,7 +88,7 @@ bool SubsumptionRemover::apply(ConstraintRCList*& lst)
     if(map.get(&c->coeffArray())!=c) {
       dcit.del();
       someRemoved = true;
-      env.statistics->subsumedConstraints++;
+      env->statistics->subsumedConstraints++;
     }
   }
   pinned->destroy();

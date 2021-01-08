@@ -324,7 +324,7 @@ void URResolution::processAndGetClauses(Item* itm, unsigned startIdx, ClauseList
   while(itms) {
     Item* itm = ItemList::pop(itms);
     ClauseList::push(itm->generateClause(), acc);
-    env.statistics->urResolution++;
+    env->statistics->urResolution++;
     delete itm;
   }
 }

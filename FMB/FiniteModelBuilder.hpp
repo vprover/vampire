@@ -147,7 +147,7 @@ private:
   void addSATClause(SATClause* cl);
   // Add a singleton SATClause in the form of a SATLiteral to the SAT solver
   void addSATClause(SATLiteral lit){
-    static SATLiteralStack satClauseLits;
+    VTHREAD_LOCAL static SATLiteralStack satClauseLits;
     satClauseLits.reset();
     satClauseLits.push(lit);
     addSATClause(SATClause::fromStack(satClauseLits));

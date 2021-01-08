@@ -51,11 +51,11 @@ FormulaUnit* SimplifyFalseTrue::simplify (FormulaUnit* unit)
 
   FormulaUnit* res = new FormulaUnit(g,FormulaTransformation(InferenceRule::REDUCE_FALSE_TRUE,unit));
 
-  if (env.options->showPreprocessing()) {
-    env.beginOutput();
-    env.out() << "[PP] simplify in: " << unit->toString() << std::endl;
-    env.out() << "[PP] simplify out: " << res->toString() << std::endl;
-    env.endOutput();
+  if (env->options->showPreprocessing()) {
+    env->beginOutput();
+    env->out() << "[PP] simplify in: " << unit->toString() << std::endl;
+    env->out() << "[PP] simplify out: " << res->toString() << std::endl;
+    env->endOutput();
   }
   return res;
 } // SimplifyFalseTrue::simplify
@@ -85,7 +85,7 @@ Formula* SimplifyFalseTrue::simplify (Formula* f)
       TermList ts = simplify(f->getBooleanTerm());
       if (ts.isTerm()) {
         for (bool constant : { true, false }) {
-          if (env.signature->isFoolConstantSymbol(constant, ts.term()->functor())) {
+          if (env->signature->isFoolConstantSymbol(constant, ts.term()->functor())) {
             return new Formula(constant);
           }
         }
@@ -116,8 +116,8 @@ Formula* SimplifyFalseTrue::simplify (Formula* f)
         if (literal->isEquality() && !literal->isTwoVarEquality()) {
           for (unsigned argument : { 0u, 1u }) {
             if (arguments[argument].isTerm()) {
-              bool isTrue  = env.signature->isFoolConstantSymbol(true,  arguments[argument].term()->functor());
-              bool isFalse = env.signature->isFoolConstantSymbol(false, arguments[argument].term()->functor());
+              bool isTrue  = env->signature->isFoolConstantSymbol(true,  arguments[argument].term()->functor());
+              bool isFalse = env->signature->isFoolConstantSymbol(false, arguments[argument].term()->functor());
               if (isTrue || isFalse) {
                 Formula* simplifiedFormula = BoolTermFormula::create(arguments[argument == 0 ? 1 : 0]);
                 return (isTrue == literal->polarity()) ? simplifiedFormula
@@ -388,8 +388,8 @@ TermList SimplifyFalseTrue::simplify(TermList ts)
          */
         for (BRANCH branch : { THEN, ELSE }) {
           bool isTerm = branches[branch].isTerm();
-          isTrue[branch]  = isTerm && env.signature->isFoolConstantSymbol(true,  branches[branch].term()->functor());
-          isFalse[branch] = isTerm && env.signature->isFoolConstantSymbol(false, branches[branch].term()->functor());
+          isTrue[branch]  = isTerm && env->signature->isFoolConstantSymbol(true,  branches[branch].term()->functor());
+          isFalse[branch] = isTerm && env->signature->isFoolConstantSymbol(false, branches[branch].term()->functor());
         }
 
         for (BRANCH branch : {THEN, ELSE }) {

@@ -83,7 +83,7 @@ private:
   template<typename T>
   static Stack<T*>& getStore() throw()
   {
-    static OwnedPtrStack<T> store(4);
+    VTHREAD_LOCAL static OwnedPtrStack<T> store(4);
     return store;
   }
 };

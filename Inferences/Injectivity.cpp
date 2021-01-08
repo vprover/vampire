@@ -119,9 +119,9 @@ TermList Injectivity::createNewLhs(TermList oldhead, TermStack& termArgs, unsign
     typeArg = typeArg->next();
   }
 
-  Signature::Symbol* func = env.signature->getFunction(oldhead.term()->functor());
+  Signature::Symbol* func = env->signature->getFunction(oldhead.term()->functor());
   vstring pref = "inv_" + func->name() + "_";
-  unsigned iFunc = env.signature->addFreshFunction(func->arity(), pref.c_str() ); 
+  unsigned iFunc = env->signature->addFreshFunction(func->arity(), pref.c_str() ); 
 
   OperatorType* funcType = func->fnType();
   TermList type = funcType->result(); 
@@ -142,7 +142,7 @@ TermList Injectivity::createNewLhs(TermList oldhead, TermStack& termArgs, unsign
   TermList inverseType = Term::arrowSort(sorts, newResult);
 
   OperatorType* invFuncType = OperatorType::getConstantsType(inverseType, funcType->typeArgsArity());
-  Signature::Symbol* invFunc = env.signature->getFunction(iFunc);
+  Signature::Symbol* invFunc = env->signature->getFunction(iFunc);
   invFunc->setType(invFuncType);
   TermList invFuncHead = TermList(Term::create(iFunc, func->arity(), typeArgs.begin()));
 

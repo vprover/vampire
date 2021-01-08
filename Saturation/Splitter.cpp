@@ -47,6 +47,7 @@
 
 #include "DP/ShortConflictMetaDP.hpp"
 
+#include "PersistentGrounding.hpp"
 #include "SaturationAlgorithm.hpp"
 
 namespace Saturation
@@ -183,10 +184,10 @@ void SplittingBranchSelector::handleSatRefutation()
   CALL("SplittingBranchSelector::handleSatRefutation");
 
   SATClause* satRefutation = _solver->getRefutation();
-  SATClauseList* satPremises = env.options->minimizeSatProofs() ?
+  SATClauseList* satPremises = env->options->minimizeSatProofs() ?
       _solver->getRefutationPremiseList() : nullptr; // getRefutationPremiseList may be nullptr already, if our solver does not support minimization
 
-  if (!env.colorUsed) { // color oblivious, simple approach
+  if (!env->colorUsed) { // color oblivious, simple approach
     UnitList* prems = SATInference::getFOPremises(satRefutation);
 
     Clause* foRef = Clause::fromIterator(LiteralIterator::getEmpty(),FromSatRefutation(InferenceRule::AVATAR_REFUTATION, prems, satPremises));
@@ -391,8 +392,8 @@ SATSolver::Status SplittingBranchSelector::processDPConflicts()
   }
   
   SAT2FO& s2f = _parent.satNaming();
-  static LiteralStack gndAssignment;
-  static LiteralStack unsatCore;
+  VTHREAD_LOCAL static LiteralStack gndAssignment;
+  VTHREAD_LOCAL static LiteralStack unsatCore;
 
   while (true) { // breaks inside
     {
@@ -448,7 +449,7 @@ SATSolver::Status SplittingBranchSelector::processDPConflicts()
 
     RSTAT_CTR_INC("ssat_dp_model");
 
-    static LiteralStack model;
+    VTHREAD_LOCAL static LiteralStack model;
     model.reset();
 
     _dpModel->reset();
@@ -598,7 +599,7 @@ void SplittingBranchSelector::recomputeModel(SplitLevelStack& addedComps, SplitL
     handleSatRefutation(); // noreturn!
   }
   if(stat == SATSolver::UNKNOWN){
-    env.statistics->smtReturnedUnknown=true;
+    env->statistics->smtReturnedUnknown=true;
     throw MainLoop::MainLoopFinishedException(Statistics::REFUTATION_NOT_FOUND);
   }
   ASS_EQ(stat,SATSolver::SATISFIABLE);
@@ -613,7 +614,7 @@ void SplittingBranchSelector::recomputeModel(SplitLevelStack& addedComps, SplitL
      * (While violating an assertion in debug - see getAssignment in Z3Interfacing).
      */
     if (asgn == SATSolver::NOT_KNOWN) {
-      env.statistics->smtDidNotEvaluate=true;
+      env->statistics->smtDidNotEvaluate=true;
       throw MainLoop::MainLoopFinishedException(Statistics::REFUTATION_NOT_FOUND);
     }
 
@@ -638,16 +639,16 @@ void SplittingBranchSelector::recomputeModel(SplitLevelStack& addedComps, SplitL
 // Splitter
 //////////////
 
-vstring Splitter::splPrefix = "";
+VTHREAD_LOCAL vstring Splitter::splPrefix = "";
 
 Splitter::Splitter()
 : _deleteDeactivated(Options::SplittingDeleteDeactivated::ON), _branchSelector(*this),
   _clausesAdded(false), _haveBranchRefutation(false)
 {
   CALL("Splitter::Splitter");
-  if(env.options->proof()==Options::Proof::TPTP){
-    unsigned spl = env.signature->addFreshFunction(0,"spl");
-    splPrefix = env.signature->functionName(spl)+"_";
+  if(env->options->proof()==Options::Proof::TPTP){
+    unsigned spl = env->signature->addFreshFunction(0,"spl");
+    splPrefix = env->signature->functionName(spl)+"_";
   }
 }
 
@@ -810,8 +811,8 @@ void Splitter::onAllProcessed()
   }
   _clausesAdded = false;
 
-  static SplitLevelStack toAdd;
-  static SplitLevelStack toRemove;
+  VTHREAD_LOCAL static SplitLevelStack toAdd;
+  VTHREAD_LOCAL static SplitLevelStack toRemove;
   
   toAdd.reset();
   toRemove.reset();  
@@ -819,17 +820,17 @@ void Splitter::onAllProcessed()
   _branchSelector.recomputeModel(toAdd, toRemove, flushing);
   
   if (_showSplitting) { // TODO: this is just one of many ways Splitter could report about changes
-    env.beginOutput();
-    env.out() << "[AVATAR] recomputeModel: + ";
+    env->beginOutput();
+    env->out() << "[AVATAR] recomputeModel: + ";
     for (unsigned i = 0; i < toAdd.size(); i++) {
-      env.out() << getLiteralFromName(toAdd[i]) << ",";
+      env->out() << getLiteralFromName(toAdd[i]) << ",";
     }
-    env.out() << "\t - ";
+    env->out() << "\t - ";
     for (unsigned i = 0; i < toRemove.size(); i++) {
-      env.out() << getLiteralFromName(toRemove[i]) << ",";
+      env->out() << getLiteralFromName(toRemove[i]) << ",";
     }
-    env.out() << std::endl;
-    env.endOutput();
+    env->out() << std::endl;
+    env->endOutput();
   }
 
   {
@@ -950,7 +951,7 @@ bool Splitter::handleNonSplittable(Clause* cl)
 
     RSTAT_CTR_INC("ssat_self_dependent_component");
   } else {
-    static SATLiteralStack satLits;
+    VTHREAD_LOCAL static SATLiteralStack satLits;
     satLits.reset();
     collectDependenceLits(cl->splits(), satLits);
     satLits.push(getLiteralFromName(compName));
@@ -977,12 +978,17 @@ bool Splitter::handleNonSplittable(Clause* cl)
     Formula* f = JunctionFormula::generalJunction(OR,resLst);
     FormulaUnit* scl = new FormulaUnit(f,NonspecificInferenceMany(InferenceRule::AVATAR_SPLIT_CLAUSE,ps));
 
+#if VTHREADED
+    if(env->options->persistentGrounding())
+      PersistentGrounding::instance()->enqueueSATClause(nsClause);
+#endif
+
     nsClause->setInference(new FOConversionInference(scl));
 
     if (_showSplitting) {
-      env.beginOutput();
-      env.out() << "[AVATAR] registering a non-splittable: "<< cl->toString() << std::endl;
-      env.endOutput();
+      env->beginOutput();
+      env->out() << "[AVATAR] registering a non-splittable: "<< cl->toString() << std::endl;
+      env->endOutput();
     }
 
     addSatClauseToSolver(nsClause, false);
@@ -1038,7 +1044,7 @@ bool Splitter::getComponents(Clause* cl, Stack<LiteralStack>& acc)
 
   //Master literal of an variable is the literal
   //with lowest index, in which it appears.
-  static DHMap<unsigned, unsigned, IdentityHash> varMasters;
+  VTHREAD_LOCAL static DHMap<unsigned, unsigned, IdentityHash> varMasters;
   varMasters.reset();
   IntUnionFind components(clen);
 
@@ -1060,8 +1066,8 @@ bool Splitter::getComponents(Clause* cl, Stack<LiteralStack>& acc)
     return false;
   }
 
-  env.statistics->splitClauses++;
-  env.statistics->splitComponents+=compCnt;
+  env->statistics->splitClauses++;
+  env->statistics->splitComponents+=compCnt;
 
   IntUnionFind::ComponentIterator cit(components);
   ASS(cit.hasNext());
@@ -1093,11 +1099,11 @@ bool Splitter::doSplitting(Clause* cl)
   if (hasStopped) {
     return false;
   }
-  if (_stopSplittingAt && (unsigned)env.timer->elapsedMilliseconds() >= _stopSplittingAt) {
+  if (_stopSplittingAt && (unsigned)env->timer->elapsedMilliseconds() >= _stopSplittingAt) {
     if (_showSplitting) {
-      env.beginOutput();
-      env.out() << "[AVATAR] Stopping the splitting process."<< std::endl;
-      env.endOutput();
+      env->beginOutput();
+      env->out() << "[AVATAR] Stopping the splitting process."<< std::endl;
+      env->endOutput();
     }
     hasStopped = true;
     return false;
@@ -1113,14 +1119,14 @@ bool Splitter::doSplitting(Clause* cl)
     return true; // the clause is ours now
   }
 
-  static Stack<LiteralStack> comps;
+  VTHREAD_LOCAL static Stack<LiteralStack> comps;
   comps.reset();
   // fills comps with components, returning if not splittable
   if(!getComponents(cl, comps)) {
     return handleNonSplittable(cl);
   }
 
-  static SATLiteralStack satClauseLits;
+  VTHREAD_LOCAL static SATLiteralStack satClauseLits;
   satClauseLits.reset();
 
   // Add literals for existing constraints 
@@ -1142,11 +1148,15 @@ bool Splitter::doSplitting(Clause* cl)
   }
 
   SATClause* splitClause = SATClause::fromStack(satClauseLits);
+#if VTHREADED
+    if(env->options->persistentGrounding())
+      PersistentGrounding::instance()->enqueueSATClause(splitClause);
+#endif
 
   if (_showSplitting) {
-    env.beginOutput();
-    env.out() << "[AVATAR] split a clause: "<< cl->toString() << std::endl;
-    env.endOutput();
+    env->beginOutput();
+    env->out() << "[AVATAR] split a clause: "<< cl->toString() << std::endl;
+    env->endOutput();
   }
 
   // now do splits
@@ -1166,7 +1176,7 @@ bool Splitter::doSplitting(Clause* cl)
 
   addSatClauseToSolver(splitClause, false);
 
-  env.statistics->satSplits++;
+  env->statistics->satSplits++;
   return true;
 }
 
@@ -1559,7 +1569,7 @@ void Splitter::onNewClause(Clause* cl)
     assignClauseSplitSet(cl, splits);
   }
 
-  if (env.colorUsed) {
+  if (env->colorUsed) {
     SplitSet* splits = cl->splits();
 
     Color color = cl->color();
@@ -1651,7 +1661,7 @@ bool Splitter::handleEmptyClause(Clause* cl)
     return false;
   }
 
-  static SATLiteralStack conflictLits;
+  VTHREAD_LOCAL static SATLiteralStack conflictLits;
   conflictLits.reset();
 
   collectDependenceLits(cl->splits(), conflictLits);
@@ -1675,20 +1685,20 @@ bool Splitter::handleEmptyClause(Clause* cl)
   addSatClauseToSolver(confl,true);
 
     if (_showSplitting) {
-      env.beginOutput();
-      env.out() << "[AVATAR] proved ";
+      env->beginOutput();
+      env->out() << "[AVATAR] proved ";
       SplitSet::Iterator sit(*cl->splits());
       while(sit.hasNext()){
-        env.out() << (_db[sit.next()]->component)->toString();
-        if(sit.hasNext()){ env.out() << " | "; }
+        env->out() << (_db[sit.next()]->component)->toString();
+        if(sit.hasNext()){ env->out() << " | "; }
       }
-      env.out() << endl; 
-      env.endOutput();
+      env->out() << endl; 
+      env->endOutput();
     }
 
 
 
-  env.statistics->satSplitRefutations++;
+  env->statistics->satSplitRefutations++;
   return true;
 }
 

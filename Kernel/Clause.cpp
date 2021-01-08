@@ -52,9 +52,9 @@ using namespace Lib;
 using namespace Saturation;
 using namespace Shell;
 
-size_t Clause::_auxCurrTimestamp = 0;
+VTHREAD_LOCAL size_t Clause::_auxCurrTimestamp = 0;
 #if VDEBUG
-bool Clause::_auxInUse = false;
+VTHREAD_LOCAL bool Clause::_auxInUse = false;
 #endif
 
 
@@ -153,17 +153,17 @@ Clause* Clause::fromStack(const Stack<Literal*>& lits, const Inference& inf)
 
 /**
  * Create a clause with the same content as @c c. The inference of the
- * created clause refers to @c c using the REORDER_LITERALS inference.
+ * created clause refers to @c c using the @c rule inference.
  *
  * The age of @c c is used, however the selected literals are not kept.
  *
  * BDDs and splitting history from @c c is also copied into the new clause.
  */
-Clause* Clause::fromClause(Clause* c)
+Clause* Clause::fromClause(Clause* c, InferenceRule rule)
 {
   CALL("Clause::fromClause");
 
-  Clause* res = fromIterator(Clause::Iterator(*c), SimplifyingInference1(InferenceRule::REORDER_LITERALS, c));
+  Clause* res = fromIterator(Clause::Iterator(*c), NonspecificInference1(rule, c));
 
   if (c->splits()) {
     res->setSplits(c->splits());
@@ -198,7 +198,7 @@ void Clause::destroy()
 {
   CALL("Clause::destroy");
 
-  static Stack<Clause*> toDestroy(32);
+  VTHREAD_LOCAL static Stack<Clause*> toDestroy(32);
   Clause* cl = this;
   for(;;) {
     Inference::Iterator it = cl->_inference.iterator();
@@ -232,7 +232,7 @@ void Clause::setStore(Store s)
 
 #if VDEBUG
   //assure there is one selected clause
-  static Clause* selected=0;
+  VTHREAD_LOCAL static Clause* selected=0;
   if (_store==SELECTED) {
     ASS_EQ(selected, this);
     selected=0;
@@ -395,7 +395,7 @@ vstring Clause::toString() const
   // print inference and ids of parent clauses
   result += " " + inferenceAsString();
 
-  if(env.options->proofExtra()!=Options::ProofExtra::OFF){
+  if(env->options->proofExtra()!=Options::ProofExtra::OFF){
     // print statistics: each entry should have the form key:value
     result += vstring(" {");
       
@@ -403,7 +403,7 @@ vstring Clause::toString() const
     unsigned weight = (_weight ? _weight : computeWeight());
     result += vstring(",w:") + Int::toString(weight);
     
-    unsigned weightForClauseSelection = (_weightForClauseSelection ? _weightForClauseSelection : computeWeightForClauseSelection(*env.options));
+    unsigned weightForClauseSelection = (_weightForClauseSelection ? _weightForClauseSelection : computeWeightForClauseSelection(*env->options));
     if(weightForClauseSelection!=weight){
       result += vstring(",wCS:") + Int::toString(weightForClauseSelection);
     }
@@ -412,14 +412,14 @@ vstring Clause::toString() const
       result += vstring(",nSel:") + Int::toString(numSelected());
     }
 
-    if (env.colorUsed) {
+    if (env->colorUsed) {
       result += vstring(",col:") + Int::toString(color());
     }
 
     if(derivedFromGoal()){
       result += vstring(",goal:1");
     }
-    if(env.maxSineLevel > 1) { // this is a cryptic way of saying "did we run Sine to compute sine levels?"
+    if(env->maxSineLevel > 1) { // this is a cryptic way of saying "did we run Sine to compute sine levels?"
       result += vstring(",sine:")+Int::toString((unsigned)_inference.getSineLevel());
     }
 
@@ -427,13 +427,13 @@ vstring Clause::toString() const
       result += vstring(",ptD:1");
     }
 
-    if(env.options->induction() != Shell::Options::Induction::NONE){
+    if(env->options->induction() != Shell::Options::Induction::NONE){
       result += vstring(",inD:") + Int::toString(_inference.inductionDepth());
     }
     result += ",thAx:" + Int::toString((int)(_inference.th_ancestors));
     result += ",allAx:" + Int::toString((int)(_inference.all_ancestors));
 
-    result += ",thDist:" + Int::toString( _inference.th_ancestors * env.options->theorySplitQueueExpectedRatioDenom() - _inference.all_ancestors);
+    result += ",thDist:" + Int::toString( _inference.th_ancestors * env->options->theorySplitQueueExpectedRatioDenom() - _inference.all_ancestors);
     result += vstring("}");
   }
 
@@ -478,7 +478,7 @@ void Clause::computeColor() const
 
   Color color = COLOR_TRANSPARENT;
 
-  if (env.colorUsed) {
+  if (env->colorUsed) {
     unsigned clen=length();
     for(unsigned i=0;i<clen;i++) {
       color = static_cast<Color>(color | (*this)[i]->color());
@@ -612,7 +612,7 @@ unsigned Clause::computeWeightForClauseSelection(const Options& opt) const
       TermFunIterator it(_literals[i]);
       it.next(); // skip literal symbol
       while(it.hasNext()){
-        found |= env.signature->getFunction(it.next())->inGoal();
+        found |= env->signature->getFunction(it.next())->inGoal();
       }
     }
     if(!found){ derivedFromGoal=false; }
@@ -629,8 +629,8 @@ unsigned Clause::computeWeightForClauseSelection(unsigned w, unsigned splitWeigh
 {
   CALL("Clause::computeWeightForClauseSelection(unsigned w, ...)");
 
-  static unsigned nongoalWeightCoeffNum = opt.nongoalWeightCoefficientNumerator();
-  static unsigned nongoalWeightCoefDenom = opt.nongoalWeightCoefficientDenominator();
+  VTHREAD_LOCAL static unsigned nongoalWeightCoeffNum = opt.nongoalWeightCoefficientNumerator();
+  VTHREAD_LOCAL static unsigned nongoalWeightCoefDenom = opt.nongoalWeightCoefficientDenominator();
 
   w += splitWeight;
 
@@ -674,7 +674,7 @@ unsigned Clause::varCnt()
 {
   CALL("Clause::varCnt");
 
-  static DHSet<unsigned> vars;
+  VTHREAD_LOCAL static DHSet<unsigned> vars;
   vars.reset();
   collectVars(vars);
   return vars.size();

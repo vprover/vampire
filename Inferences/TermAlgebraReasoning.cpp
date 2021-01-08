@@ -76,7 +76,7 @@ namespace Inferences {
     CALL("termAlgebraConstructor");
 
     if (t->isTerm()) {
-      Signature::Symbol *s = env.signature->getFunction(t->term()->functor());
+      Signature::Symbol *s = env->signature->getFunction(t->term()->functor());
 
       if (s->termAlgebraCons()) {
         return s;
@@ -130,11 +130,11 @@ namespace Inferences {
         if (lit->isPositive()) {
           // equality of the form f(x) = g(y), delete literal from clause
           Clause* res = removeLit(c, i, SimplifyingInference1(InferenceRule::TERM_ALGEBRA_DISTINCTNESS, c));
-          env.statistics->taDistinctnessSimplifications++;
+          env->statistics->taDistinctnessSimplifications++;
           return res;
         } else {
           // inequality of the form f(x) != g(y) are theory tautologies
-          env.statistics->taDistinctnessTautologyDeletions++;
+          env->statistics->taDistinctnessTautologyDeletions++;
           return 0;
         }
       }
@@ -157,7 +157,7 @@ namespace Inferences {
         _clause(clause)
     {
       if (lit->polarity() && sameConstructorsEquality(lit)) {
-        _type = env.signature->getFunction(lit->nthArgument(0)->term()->functor())->fnType();
+        _type = env->signature->getFunction(lit->nthArgument(0)->term()->functor())->fnType();
         _length = lit->nthArgument(0)->term()->arity();
       } else {
         _length = 0;
@@ -181,7 +181,7 @@ namespace Inferences {
       
       Clause * res = replaceLit(_clause, _lit, l, GeneratingInference1(InferenceRule::TERM_ALGEBRA_INJECTIVITY_GENERATING, _clause));
       _index++;
-      env.statistics->taInjectivitySimplifications++;
+      env->statistics->taInjectivitySimplifications++;
       return res;
     }
   private:
@@ -232,13 +232,13 @@ namespace Inferences {
       Literal *lit = (*c)[i];
       if (sameConstructorsEquality(lit) && lit->isPositive()) {
         if (lit->nthArgument(0)->term()->arity() == 1) {
-          OperatorType *type = env.signature->getFunction(lit->nthArgument(0)->term()->functor())->fnType();
+          OperatorType *type = env->signature->getFunction(lit->nthArgument(0)->term()->functor())->fnType();
           Literal *newlit = Literal::createEquality(true,
                                                     *lit->nthArgument(0)->term()->nthArgument(0),
                                                     *lit->nthArgument(1)->term()->nthArgument(0),
                                                     type->arg(0));
           Clause* res = replaceLit(c, lit, newlit, SimplifyingInference1(InferenceRule::TERM_ALGEBRA_INJECTIVITY_SIMPLIFYING, c));
-          env.statistics->taInjectivitySimplifications++;
+          env->statistics->taInjectivitySimplifications++;
           return res;
         }
       }
@@ -252,7 +252,7 @@ namespace Inferences {
     Literal *lit = (*c)[i];
     if (sameConstructorsEquality(lit) && !lit->polarity()) {
       unsigned arity = lit->nthArgument(0)->term()->arity();
-      OperatorType *type = env.signature->getFunction(lit->nthArgument(0)->term()->functor())->fnType();
+      OperatorType *type = env->signature->getFunction(lit->nthArgument(0)->term()->functor())->fnType();
       for (unsigned j = 0; j < arity; j++) {
         Literal *l = Literal::createEquality(true,
                                              *lit->nthArgument(0)->term()->nthArgument(j),
@@ -282,7 +282,7 @@ namespace Inferences {
     for (int i = length - 1; i >= 0; i--) {
       if (litCondition(c, i)) {
         Literal *lit = (*c)[i];
-        OperatorType *type = env.signature->getFunction(lit->nthArgument(0)->term()->functor())->fnType();
+        OperatorType *type = env->signature->getFunction(lit->nthArgument(0)->term()->functor())->fnType();
         unsigned oldLength = c->length();
         unsigned arity = lit->nthArgument(0)->term()->arity();
         unsigned newLength = oldLength + arity - 1;
@@ -303,7 +303,7 @@ namespace Inferences {
                                            type->arg(i));
           (*res)[oldLength + i - 1] = newLit;
         }
-        env.statistics->taNegativeInjectivitySimplifications++;
+        env->statistics->taNegativeInjectivitySimplifications++;
 
         return res;
       }
@@ -435,9 +435,9 @@ namespace Inferences {
     Term *t = tl->term();
     
     TermList sort = SortHelper::getResultSort(t);
-    ASS(env.signature->isTermAlgebraSort(sort));
+    ASS(env->signature->isTermAlgebraSort(sort));
 
-    if (env.signature->getTermAlgebraOfSort(sort)->allowsCyclicTerms()) {
+    if (env->signature->getTermAlgebraOfSort(sort)->allowsCyclicTerms()) {
       return;
     }
 
@@ -455,7 +455,7 @@ namespace Inferences {
 
     while (toVisit.isNonEmpty()) {
       Term *u = toVisit.pop();
-      if (env.signature->getFunction(u->functor())->termAlgebraCons()) {
+      if (env->signature->getFunction(u->functor())->termAlgebraCons()) {
         for (unsigned i = 0; i < u->arity(); i++) {
           if (SortHelper::getArgSort(u, i) == sort) {
             TermList *s = u->nthArgument(i);
@@ -506,7 +506,7 @@ namespace Inferences {
                                                 *_subterms.pop(),
                                                 _sort);
       Clause* res = replaceLit(_clause, _lit, newlit, GeneratingInference1(InferenceRule::TERM_ALGEBRA_ACYCLICITY, _clause));
-      env.statistics->taAcyclicityGeneratedDisequalities++;
+      env->statistics->taAcyclicityGeneratedDisequalities++;
       return res;
     }
         

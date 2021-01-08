@@ -107,7 +107,7 @@ private:
    */
   bool _reversePolarity;
 
-  static ZIArray<bool> _reversePredicate;
+  VTHREAD_LOCAL static ZIArray<bool> _reversePredicate;
 };
 
 /**

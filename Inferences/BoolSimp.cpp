@@ -62,7 +62,7 @@ substitution:
     (*conclusion)[i] = i == literalPosition ? EqHelper::replace((*premise)[i], subTerm, simpedSubTerm) : (*premise)[i];
   }
 
-  env.statistics->booleanSimps++;
+  env->statistics->booleanSimps++;
   return conclusion;
 }
 
@@ -75,7 +75,7 @@ bool BoolSimp::areComplements(TermList t1, TermList t2){
 
   ApplicativeHelper::getHeadAndArgs(t1, head, args);
   if(!head.isVar()){
-    sym = env.signature->getFunction(head.term()->functor());
+    sym = env->signature->getFunction(head.term()->functor());
     if(sym->proxy() == Signature::NOT){
       ASS(args.size() == 1);
       if(args[0] == t2){ return true;}
@@ -84,7 +84,7 @@ bool BoolSimp::areComplements(TermList t1, TermList t2){
 
   ApplicativeHelper::getHeadAndArgs(t2, head, args);
   if(!head.isVar()){
-    sym = env.signature->getFunction(head.term()->functor());
+    sym = env->signature->getFunction(head.term()->functor());
     if(sym->proxy() == Signature::NOT){
       ASS(args.size() == 1);
       if(args[0] == t1){ return true;}
@@ -100,7 +100,7 @@ TermList BoolSimp::negate(TermList term){
   
   TermList constant, constSort;
 
-  constant = TermList(Term::createConstant(env.signature->getNotProxy()));
+  constant = TermList(Term::createConstant(env->signature->getNotProxy()));
   constSort = SortHelper::getResultSort(constant.term());
   return ApplicativeHelper::createAppTerm(constSort, constant, term);
 }
@@ -117,7 +117,7 @@ TermList BoolSimp::boolSimplify(TermList term){
 
   if(head.isVar()){ return term; }
 
-  Signature::Symbol* sym = env.signature->getFunction(head.term()->functor());
+  Signature::Symbol* sym = env->signature->getFunction(head.term()->functor());
   switch(sym->proxy()){
     case Signature::AND:{
       ASS(args.size() == 2);
@@ -163,7 +163,7 @@ TermList BoolSimp::boolSimplify(TermList term){
       if(args[0] == fols){ return troo; }
       ApplicativeHelper::getHeadAndArgs(args[0], head, args);
       if(!head.isVar()){
-        sym = env.signature->getFunction(head.term()->functor());
+        sym = env->signature->getFunction(head.term()->functor());
         if(sym->proxy() == Signature::NOT){
           ASS(args.size() == 1);
           return args[0];

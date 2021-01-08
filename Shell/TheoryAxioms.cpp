@@ -48,12 +48,12 @@ void TheoryAxioms::addAndOutputTheoryUnit(Unit* unit, unsigned level)
 {
   CALL("TheoryAxioms::addAndOutputTheoryUnit");
 
-  static Options::TheoryAxiomLevel opt_level = env.options->theoryAxioms();
+  Options::TheoryAxiomLevel opt_level = env->options->theoryAxioms();
   // if the theory axioms are some or off (want this case for some things like fool) and the axiom is not
   // a cheap one then don't add it
   if(opt_level != Options::TheoryAxiomLevel::ON && level != CHEAP){ return; }
 
-  if (env.options->showTheoryAxioms()) {
+  if (env->options->showTheoryAxioms()) {
     Unit* qunit = unit;
     Formula* f = 0;
     if(unit->isClause()){
@@ -97,7 +97,7 @@ void TheoryAxioms::addCommutativity(Interpretation op)
   ASS(theory->isFunction(op));
   ASS_EQ(theory->getArity(op),2);
 
-  unsigned f = env.signature->getInterpretingSymbol(op);
+  unsigned f = env->signature->getInterpretingSymbol(op);
   TermList srt = theory->getOperationSort(op);
   TermList x(0,false);
   TermList y(1,false);
@@ -118,7 +118,7 @@ void TheoryAxioms::addAssociativity(Interpretation op)
   ASS(theory->isFunction(op));
   ASS_EQ(theory->getArity(op),2);
 
-  unsigned f = env.signature->getInterpretingSymbol(op);
+  unsigned f = env->signature->getInterpretingSymbol(op);
   TermList srt = theory->getOperationSort(op);
   TermList x(0,false);
   TermList y(1,false);
@@ -143,7 +143,7 @@ void TheoryAxioms::addRightIdentity(Interpretation op, TermList e)
   ASS(theory->isFunction(op));
   ASS_EQ(theory->getArity(op),2);
 
-  unsigned f = env.signature->getInterpretingSymbol(op);
+  unsigned f = env->signature->getInterpretingSymbol(op);
   TermList srt = theory->getOperationSort(op);
   TermList x(0,false);
   TermList fxe(Term::create2(f,x,e));
@@ -160,7 +160,7 @@ void TheoryAxioms::addLeftIdentity(Interpretation op, TermList e)
   ASS(theory->isFunction(op));
   ASS_EQ(theory->getArity(op),2);
 
-  unsigned f = env.signature->getInterpretingSymbol(op);
+  unsigned f = env->signature->getInterpretingSymbol(op);
   TermList srt = theory->getOperationSort(op);
   TermList x(0,false);
   TermList fex(Term::create2(f,e,x));
@@ -194,8 +194,8 @@ void TheoryAxioms::addCommutativeGroupAxioms(Interpretation op, Interpretation i
   addRightIdentity(op,e);
 
   // i(f(x,y)) = f(i(y),i(x))
-  unsigned f = env.signature->getInterpretingSymbol(op);
-  unsigned i = env.signature->getInterpretingSymbol(inverse);
+  unsigned f = env->signature->getInterpretingSymbol(op);
+  unsigned i = env->signature->getInterpretingSymbol(inverse);
   TermList srt = theory->getOperationSort(op);
   ASS_EQ(srt, theory->getOperationSort(inverse));
 
@@ -223,8 +223,8 @@ void TheoryAxioms::addRightInverse(Interpretation op, Interpretation inverse)
 {
   TermList x(0,false);
   TermList y(0,false);
-  unsigned f = env.signature->getInterpretingSymbol(op);
-  unsigned i = env.signature->getInterpretingSymbol(inverse);
+  unsigned f = env->signature->getInterpretingSymbol(op);
+  unsigned i = env->signature->getInterpretingSymbol(inverse);
   TermList srt = theory->getOperationSort(op);
   ASS_EQ(srt, theory->getOperationSort(inverse));
 
@@ -245,7 +245,7 @@ void TheoryAxioms::addNonReflexivity(Interpretation op)
   ASS(!theory->isFunction(op));
   ASS_EQ(theory->getArity(op),2);
 
-  unsigned opPred = env.signature->getInterpretingSymbol(op);
+  unsigned opPred = env->signature->getInterpretingSymbol(op);
   TermList x(0,false);
   Literal* l11 = Literal::create2(opPred, false, x, x);
   addTheoryClauseFromLits({l11}, InferenceRule::THA_NONREFLEX, CHEAP);
@@ -260,7 +260,7 @@ void TheoryAxioms::addTransitivity(Interpretation op)
   ASS(!theory->isFunction(op));
   ASS_EQ(theory->getArity(op),2);
 
-  unsigned opPred = env.signature->getInterpretingSymbol(op);
+  unsigned opPred = env->signature->getInterpretingSymbol(op);
   TermList x(0,false);
   TermList y(1,false);
   TermList v3(2,false);
@@ -281,7 +281,7 @@ void TheoryAxioms::addOrderingTotality(Interpretation less)
   ASS(!theory->isFunction(less));
   ASS_EQ(theory->getArity(less),2);
 
-  unsigned opPred = env.signature->getInterpretingSymbol(less);
+  unsigned opPred = env->signature->getInterpretingSymbol(less);
   TermList x(0,false);
   TermList y(1,false);
 
@@ -317,8 +317,8 @@ void TheoryAxioms::addMonotonicity(Interpretation less, Interpretation addition)
   ASS(theory->isFunction(addition));
   ASS_EQ(theory->getArity(addition),2);
 
-  unsigned lessPred = env.signature->getInterpretingSymbol(less);
-  unsigned addFun = env.signature->getInterpretingSymbol(addition);
+  unsigned lessPred = env->signature->getInterpretingSymbol(less);
+  unsigned addFun = env->signature->getInterpretingSymbol(addition);
   TermList x(0,false);
   TermList y(1,false);
   TermList v3(2,false);
@@ -344,8 +344,8 @@ void TheoryAxioms::addPlusOneGreater(Interpretation plus, TermList oneElement,
   ASS(theory->isFunction(plus));
   ASS_EQ(theory->getArity(plus),2);
 
-  unsigned lessPred = env.signature->getInterpretingSymbol(less);
-  unsigned addFun = env.signature->getInterpretingSymbol(plus);
+  unsigned lessPred = env->signature->getInterpretingSymbol(less);
+  unsigned addFun = env->signature->getInterpretingSymbol(plus);
   TermList x(0,false);
 
   TermList xPo(Term::create2(addFun,x,oneElement));
@@ -366,8 +366,8 @@ void TheoryAxioms::addAdditionAndOrderingAxioms(Interpretation plus, Interpretat
   addMonotonicity(less, plus);
 
   // y < x+one | x<y
-  unsigned plusFun = env.signature->getInterpretingSymbol(plus);
-  unsigned lessPred = env.signature->getInterpretingSymbol(less);
+  unsigned plusFun = env->signature->getInterpretingSymbol(plus);
+  unsigned lessPred = env->signature->getInterpretingSymbol(less);
   TermList x(0,false);
   TermList y(1,false);
   Literal* xLy = Literal::create2(lessPred,true,x,y);
@@ -378,7 +378,7 @@ void TheoryAxioms::addAdditionAndOrderingAxioms(Interpretation plus, Interpretat
 
   // add that --x = x
   TermList varSort = theory->getOperationSort(unaryMinus);
-  unsigned unaryMinusFun = env.signature->getInterpretingSymbol(unaryMinus);
+  unsigned unaryMinusFun = env->signature->getInterpretingSymbol(unaryMinus);
   TermList mx(Term::create1(unaryMinusFun,x));
   TermList mmx(Term::create1(unaryMinusFun,mx));
   Literal* mmxEqx = Literal::createEquality(true,mmx,x,varSort);
@@ -405,7 +405,7 @@ void TheoryAxioms::addAdditionOrderingAndMultiplicationAxioms(Interpretation plu
   addRightIdentity(multiply, oneElement);
 
   //axiom( X0*zero==zero );
-  unsigned mulFun = env.signature->getInterpretingSymbol(multiply);
+  unsigned mulFun = env->signature->getInterpretingSymbol(multiply);
   TermList x(0,false);
   TermList xMulZero(Term::create2(mulFun, x, zeroElement));
   Literal* xEqXMulZero = Literal::createEquality(true, xMulZero, zeroElement, srt);
@@ -414,7 +414,7 @@ void TheoryAxioms::addAdditionOrderingAndMultiplicationAxioms(Interpretation plu
   // Distributivity
   //axiom x*(y+z) = (x*y)+(x*z)
 
-  unsigned plusFun = env.signature->getInterpretingSymbol(plus);
+  unsigned plusFun = env->signature->getInterpretingSymbol(plus);
   TermList y(1,false);
   TermList z(2,false);
 
@@ -462,13 +462,13 @@ void TheoryAxioms::addIntegerDivisionWithModuloAxioms(Interpretation plus, Inter
   ASS_EQ(srt, theory->getOperationSort(modulo));
   ASS_EQ(srt, theory->getOperationSort(abs));
 
-  unsigned lessPred = env.signature->getInterpretingSymbol(less);
-  unsigned umFun = env.signature->getInterpretingSymbol(unaryMinus);
-  unsigned mulFun = env.signature->getInterpretingSymbol(multiply);
-  unsigned divFun = env.signature->getInterpretingSymbol(divide);
-  unsigned modFun = env.signature->getInterpretingSymbol(modulo);
-  unsigned absFun = env.signature->getInterpretingSymbol(abs);
-  unsigned plusFun = env.signature->getInterpretingSymbol(plus);
+  unsigned lessPred = env->signature->getInterpretingSymbol(less);
+  unsigned umFun = env->signature->getInterpretingSymbol(unaryMinus);
+  unsigned mulFun = env->signature->getInterpretingSymbol(multiply);
+  unsigned divFun = env->signature->getInterpretingSymbol(divide);
+  unsigned modFun = env->signature->getInterpretingSymbol(modulo);
+  unsigned absFun = env->signature->getInterpretingSymbol(abs);
+  unsigned plusFun = env->signature->getInterpretingSymbol(plus);
 
   addIntegerAbsAxioms(abs,less,unaryMinus,zeroElement);
 
@@ -520,8 +520,8 @@ void TheoryAxioms::addIntegerDividesAxioms(Interpretation divides, Interpretatio
   TermList srt = theory->getOperationSort(divides);
   ASS_EQ(srt, theory->getOperationSort(multiply));
 
-  unsigned divsPred = env.signature->getInterpretingSymbol(divides);
-  unsigned mulFun   = env.signature->getInterpretingSymbol(multiply);
+  unsigned divsPred = env->signature->getInterpretingSymbol(divides);
+  unsigned mulFun   = env->signature->getInterpretingSymbol(multiply);
 
   TermList y(1,false);
   TermList z(2,false);
@@ -536,8 +536,8 @@ void TheoryAxioms::addIntegerDividesAxioms(Interpretation divides, Interpretatio
   Literal* ndivsXY = Literal::create2(divsPred,false,n,y);
   
   // create a skolem function with signature srt*srt>srt
-  unsigned skolem = env.signature->addSkolemFunction(2);
-  Signature::Symbol* sym = env.signature->getFunction(skolem);
+  unsigned skolem = env->signature->addSkolemFunction(2);
+  Signature::Symbol* sym = env->signature->getFunction(skolem);
   sym->setType(OperatorType::getFunctionType({srt,srt},srt));
   TermList skXY(Term::create2(skolem,n,y));
   TermList msxX(Term::create2(mulFun,skXY,n));
@@ -555,9 +555,9 @@ void TheoryAxioms::addIntegerAbsAxioms(Interpretation abs, Interpretation less,
   ASS_EQ(srt, theory->getOperationSort(less));
   ASS_EQ(srt, theory->getOperationSort(unaryMinus));
 
-  unsigned lessPred = env.signature->getInterpretingSymbol(less);
-  unsigned absFun = env.signature->getInterpretingSymbol(abs);
-  unsigned umFun = env.signature->getInterpretingSymbol(unaryMinus);
+  unsigned lessPred = env->signature->getInterpretingSymbol(less);
+  unsigned absFun = env->signature->getInterpretingSymbol(abs);
+  unsigned umFun = env->signature->getInterpretingSymbol(unaryMinus);
 
   TermList x(1,false);
   TermList absX(Term::create1(absFun,x));
@@ -593,8 +593,8 @@ void TheoryAxioms::addQuotientAxioms(Interpretation quotient, Interpretation mul
   TermList x(1,false);
   TermList y(2,false);
 
-  unsigned mulFun = env.signature->getInterpretingSymbol(multiply);
-  unsigned divFun = env.signature->getInterpretingSymbol(quotient);
+  unsigned mulFun = env->signature->getInterpretingSymbol(multiply);
+  unsigned divFun = env->signature->getInterpretingSymbol(quotient);
 
   Literal* guardx = Literal::createEquality(true,x,zeroElement,srt); 
 
@@ -631,8 +631,8 @@ void TheoryAxioms::addExtraIntegerOrderingAxiom(Interpretation plus, TermList on
 {
   CALL("TheoryAxioms::addExtraIntegerOrderingAxiom");
 
-  unsigned lessPred = env.signature->getInterpretingSymbol(less);
-  unsigned plusFun = env.signature->getInterpretingSymbol(plus);
+  unsigned lessPred = env->signature->getInterpretingSymbol(less);
+  unsigned plusFun = env->signature->getInterpretingSymbol(plus);
   TermList x(0,false);
   TermList y(1,false);
   Literal* nxLy = Literal::create2(lessPred, false, x, y);
@@ -651,10 +651,10 @@ void TheoryAxioms::addFloorAxioms(Interpretation floor, Interpretation less, Int
 {
   CALL("TheoryAxioms::addFloorAxioms");
 
-  unsigned lessPred = env.signature->getInterpretingSymbol(less);
-  unsigned plusFun = env.signature->getInterpretingSymbol(plus);
-  unsigned umFun = env.signature->getInterpretingSymbol(unaryMinus);
-  unsigned floorFun = env.signature->getInterpretingSymbol(floor);
+  unsigned lessPred = env->signature->getInterpretingSymbol(less);
+  unsigned plusFun = env->signature->getInterpretingSymbol(plus);
+  unsigned umFun = env->signature->getInterpretingSymbol(unaryMinus);
+  unsigned floorFun = env->signature->getInterpretingSymbol(floor);
   TermList x(0,false);
   TermList floorX(Term::create1(floorFun,x));
 
@@ -680,9 +680,9 @@ void TheoryAxioms::addCeilingAxioms(Interpretation ceiling, Interpretation less,
 {
   CALL("TheoryAxioms::addCeilingAxioms");
 
-  unsigned lessPred = env.signature->getInterpretingSymbol(less);
-  unsigned plusFun = env.signature->getInterpretingSymbol(plus);
-  unsigned ceilingFun = env.signature->getInterpretingSymbol(ceiling);
+  unsigned lessPred = env->signature->getInterpretingSymbol(less);
+  unsigned plusFun = env->signature->getInterpretingSymbol(plus);
+  unsigned ceilingFun = env->signature->getInterpretingSymbol(ceiling);
   TermList x(0,false);
   TermList ceilingX(Term::create1(ceilingFun,x));
 
@@ -735,10 +735,10 @@ void TheoryAxioms::addTruncateAxioms(Interpretation truncate, Interpretation les
 {
   CALL("TheoryAxioms::addTruncateAxioms");
 
-  unsigned lessPred = env.signature->getInterpretingSymbol(less);
-  unsigned plusFun = env.signature->getInterpretingSymbol(plus);
-  unsigned umFun = env.signature->getInterpretingSymbol(unaryMinus);
-  unsigned truncateFun = env.signature->getInterpretingSymbol(truncate);
+  unsigned lessPred = env->signature->getInterpretingSymbol(less);
+  unsigned plusFun = env->signature->getInterpretingSymbol(plus);
+  unsigned umFun = env->signature->getInterpretingSymbol(unaryMinus);
+  unsigned truncateFun = env->signature->getInterpretingSymbol(truncate);
   TermList x(0,false);
   TermList truncateX(Term::create1(truncateFun,x));
 
@@ -781,7 +781,7 @@ void TheoryAxioms::addArrayExtensionalityAxioms(TermList arraySort, unsigned sko
 {
   CALL("TheoryAxioms::addArrayExtenstionalityAxioms");
 
-  unsigned sel = env.signature->getInterpretingSymbol(Theory::ARRAY_SELECT,Theory::getArrayOperatorType(arraySort,Theory::ARRAY_SELECT));
+  unsigned sel = env->signature->getInterpretingSymbol(Theory::ARRAY_SELECT,Theory::getArrayOperatorType(arraySort,Theory::ARRAY_SELECT));
 
   TermList rangeSort = SortHelper::getInnerSort(arraySort);
 
@@ -810,7 +810,7 @@ void TheoryAxioms::addBooleanArrayExtensionalityAxioms(TermList arraySort, unsig
 
   OperatorType* selectType = Theory::getArrayOperatorType(arraySort,Theory::ARRAY_BOOL_SELECT);
 
-  unsigned sel = env.signature->getInterpretingSymbol(Theory::ARRAY_BOOL_SELECT,selectType);
+  unsigned sel = env->signature->getInterpretingSymbol(Theory::ARRAY_BOOL_SELECT,selectType);
 
   TermList x(0,false);
   TermList y(1,false);
@@ -838,8 +838,8 @@ void TheoryAxioms::addArrayWriteAxioms(TermList arraySort)
 {
   CALL("TheoryAxioms::addArrayWriteAxioms");
         
-  unsigned func_select = env.signature->getInterpretingSymbol(Theory::ARRAY_SELECT,Theory::getArrayOperatorType(arraySort,Theory::ARRAY_SELECT));
-  unsigned func_store = env.signature->getInterpretingSymbol(Theory::ARRAY_STORE,Theory::getArrayOperatorType(arraySort,Theory::ARRAY_STORE));
+  unsigned func_select = env->signature->getInterpretingSymbol(Theory::ARRAY_SELECT,Theory::getArrayOperatorType(arraySort,Theory::ARRAY_SELECT));
+  unsigned func_store = env->signature->getInterpretingSymbol(Theory::ARRAY_STORE,Theory::getArrayOperatorType(arraySort,Theory::ARRAY_STORE));
 
   TermList rangeSort = SortHelper::getInnerSort(arraySort);
   TermList domainSort = SortHelper::getIndexSort(arraySort);
@@ -874,8 +874,8 @@ void TheoryAxioms::addBooleanArrayWriteAxioms(TermList arraySort)
 {
   CALL("TheoryAxioms::addArrayWriteAxioms");
 
-  unsigned pred_select = env.signature->getInterpretingSymbol(Theory::ARRAY_BOOL_SELECT,Theory::getArrayOperatorType(arraySort,Theory::ARRAY_BOOL_SELECT));
-  unsigned func_store = env.signature->getInterpretingSymbol(Theory::ARRAY_STORE,Theory::getArrayOperatorType(arraySort,Theory::ARRAY_STORE));
+  unsigned pred_select = env->signature->getInterpretingSymbol(Theory::ARRAY_BOOL_SELECT,Theory::getArrayOperatorType(arraySort,Theory::ARRAY_BOOL_SELECT));
+  unsigned func_store = env->signature->getInterpretingSymbol(Theory::ARRAY_STORE,Theory::getArrayOperatorType(arraySort,Theory::ARRAY_STORE));
 
   TermList domainSort = SortHelper::getIndexSort(arraySort);
 
@@ -971,7 +971,7 @@ void TheoryAxioms::apply()
                                  Theory::INT_REMAINDER_E, Theory::INT_ABS, zero,one);
       }
       else if(haveIntDivides){ 
-        Stack<TermList>& ns = env.signature->getDividesNvalues(); 
+        Stack<TermList>& ns = env->signature->getDividesNvalues(); 
         Stack<TermList>::Iterator nsit(ns);
         while(nsit.hasNext()){
           TermList n = nsit.next();
@@ -1082,7 +1082,7 @@ void TheoryAxioms::apply()
     modified = true;
   }
 
-  DHSet<TermList>* arraySorts = env.sorts->getArraySorts();
+  DHSet<TermList>* arraySorts = env->sorts->getArraySorts();
   DHSet<TermList>::Iterator it(*arraySorts);
   while(it.hasNext()){
     TermList arraySort = it.next();
@@ -1112,7 +1112,7 @@ void TheoryAxioms::apply()
     }
   }
 
-  VirtualIterator<TermAlgebra*> tas = env.signature->termAlgebrasIterator();
+  VirtualIterator<TermAlgebra*> tas = env->signature->termAlgebrasIterator();
   while (tas.hasNext()) {
     TermAlgebra* ta = tas.next();
 
@@ -1121,7 +1121,7 @@ void TheoryAxioms::apply()
     addInjectivityAxiom(ta);
     addDiscriminationAxiom(ta);
 
-    if (env.options->termAlgebraCyclicityCheck() == Options::TACyclicityCheck::AXIOM) {
+    if (env->options->termAlgebraCyclicityCheck() == Options::TACyclicityCheck::AXIOM) {
       addAcyclicityAxiom(ta);
     }
 
@@ -1145,8 +1145,8 @@ void TheoryAxioms::applyFOOL() {
   addTheoryClauseFromLits({tneqf},InferenceRule::FOOL_AXIOM_TRUE_NEQ_FALSE,CHEAP);
 
   // Do not add the finite domain axiom if --fool_paradomulation on
-  if (env.options->FOOLParamodulation() || env.options->cases() ||
-      env.options->casesSimp()) {
+  if (env->options->FOOLParamodulation() || env->options->cases() ||
+      env->options->casesSimp()) {
     return;
   }
 
@@ -1333,7 +1333,7 @@ void TheoryAxioms::addAcyclicityAxiom(TermAlgebra* ta)
     return;
   }
 
-  static TermList x(0, false);
+  VTHREAD_LOCAL static TermList x(0, false);
 
   Literal* sub = Literal::create2(pred, false, x, x);
   addTheoryClauseFromLits({sub}, InferenceRule::TERM_ALGEBRA_ACYCLICITY_AXIOM,CHEAP);

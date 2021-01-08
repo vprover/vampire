@@ -59,7 +59,7 @@ SATSolver::Status FallbackSolverWrapper::solve(unsigned conflictCountLimit)
     status = _fallback->solve(conflictCountLimit);
     _usingFallback = true;
     ASS(status != Status::UNKNOWN);
-    env.statistics->smtFallbacks++;
+    env->statistics->smtFallbacks++;
   } 
   else{
     _usingFallback = false;

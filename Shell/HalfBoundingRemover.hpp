@@ -29,7 +29,7 @@ using namespace Kernel;
 /**
  * Preprocessing rule that performs half-bounding, almost-half bounding and
  * FM variable elimination according to the options specified in
- * @c env.options.
+ * @c env->options.
  */
 class HalfBoundingRemover {
 public:

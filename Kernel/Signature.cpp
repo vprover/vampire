@@ -25,6 +25,11 @@ using namespace Kernel;
 using namespace Shell;
 
 const unsigned Signature::STRING_DISTINCT_GROUP = 0;
+VATOMIC(int) Signature::_nextFreshSymbolNumber(0);
+
+#if VTHREADED
+static std::atomic<unsigned> fresh_id(0);
+#endif
 
 /**
  * Standard constructor.
@@ -33,7 +38,11 @@ const unsigned Signature::STRING_DISTINCT_GROUP = 0;
  */
 Signature::Symbol::Symbol(const vstring& nm, unsigned arity, bool interpreted, bool stringConstant,bool numericConstant,
                           bool overflownConstant, bool super)
-  : _name(nm),
+  :
+#if VTHREADED
+    _id(fresh_id++),
+#endif
+    _name(nm),
     _arity(arity),
     _typeArgsArity(0),
     _type(0),
@@ -80,45 +89,6 @@ Signature::Symbol::Symbol(const vstring& nm, unsigned arity, bool interpreted, b
 } // Symbol::Symbol
 
 /**
- * Deallocate function Symbol object
- */
-void Signature::Symbol::destroyFnSymbol()
-{
-  CALL("Signature::Symbol::destroyFnSymbol");
-
-  if (integerConstant()) {
-    delete static_cast<IntegerSymbol*>(this);
-  }
-  else if (rationalConstant()) {
-    delete static_cast<RationalSymbol*>(this);
-  }
-  else if (realConstant()) {
-    delete static_cast<RealSymbol*>(this);
-  }
-  else if (interpreted()) {
-    delete static_cast<InterpretedSymbol*>(this);
-  }
-  else {
-    delete this;
-  }
-}
-
-/**
- * Deallocate predicate Symbol object
- */
-void Signature::Symbol::destroyPredSymbol()
-{
-  CALL("Signature::Symbol::destroyPredSymbol");
-
-  if (interpreted()) {
-    delete static_cast<InterpretedSymbol*>(this);
-  }
-  else {
-    delete this;
-  }
-}
-
-/**
  * Add constant symbol into a distinct group
  *
  * A constant can be added into one particular distinct group
@@ -135,11 +105,11 @@ void Signature::Symbol::addToDistinctGroup(unsigned group,unsigned this_number)
 
   List<unsigned>::push(group, _distinctGroups);
 
-  env.signature->_distinctGroupsAddedTo=true;
+  env->signature->_distinctGroupsAddedTo=true;
 
-  Signature::DistinctGroupMembers members = env.signature->_distinctGroupMembers[group];
+  Signature::DistinctGroupMembers members = env->signature->_distinctGroupMembers[group];
   if(members->size() <= DistinctGroupExpansion::EXPAND_UP_TO_SIZE
-                       || env.options->saturationAlgorithm()==Options::SaturationAlgorithm::FINITE_MODEL_BUILDING){
+                       || env->options->saturationAlgorithm()==Options::SaturationAlgorithm::FINITE_MODEL_BUILDING){
     // we add one more than EXPAND_UP_TO_SIZE to signal to DistinctGroupExpansion::apply not to expand
     // ... instead DistinctEqualitySimplifier will take over
     members->push(this_number);
@@ -223,7 +193,6 @@ Signature::Signature ():
     _foolConstantsDefined(false), _foolTrue(0), _foolFalse(0),
     _funs(32),
     _preds(32),
-    _nextFreshSymbolNumber(0),
     _skolemFunctionCount(0),
     _distinctGroupsAddedTo(false),
     _strings(0),
@@ -234,16 +203,27 @@ Signature::Signature ():
 {
   CALL("Signature::Signature");
 
-  /*bool added;
-  addPredicate("=", 2, added);
-  ASS(added);
-  ASS_EQ(predicateName(0), "=");
-  getPredicate(0)->markSkip();
-  getPredicate(0)->markProtected();*/
+  // if this is the first time the constructor runs, do equality shenanigans
+#if VTHREADED
+  static bool is_main = true;
+  if(is_main) {
+#endif
+    /*bool added;
+    addPredicate("=", 2, added);
+    ASS(added);
+    ASS_EQ(predicateName(0), "=");
+    getPredicate(0)->markSkip();
+    getPredicate(0)->markProtected();*/
 
-  unsigned aux;
-  aux = createDistinctGroup();
-  ASS_EQ(STRING_DISTINCT_GROUP, aux);
+    unsigned aux;
+    aux = createDistinctGroup();
+    ASS_EQ(STRING_DISTINCT_GROUP, aux);
+
+#if VTHREADED
+    is_main = false;
+  }
+#endif
+  // otherwise, don't bother: we're about to be cloned from the parent thread
 } // Signature::Signature
 
 /* adding equality predicate used to be carried out in the constructor
@@ -267,12 +247,57 @@ void Signature::addEquality()
 Signature::~Signature ()
 {
   for (int i = _funs.length()-1;i >= 0;i--) {
-    _funs[i]->destroyFnSymbol();
+    delete _funs[i];
   }
   for (int i = _preds.length()-1;i >= 0;i--) {
-    _preds[i]->destroyPredSymbol();
+    delete _preds[i];
   }
 } // Signature::~Signature
+
+#if VTHREADED
+/** 
+ * Copy-construct Signature. Used after spawning threads.
+ */
+Signature::Signature(const Signature &other) {
+  _dividesNvalues = other._dividesNvalues;
+  _foolConstantsDefined = other._foolConstantsDefined;
+  _foolTrue = other._foolTrue;
+  _foolFalse = other._foolFalse;
+  _skolemFunctionCount = other._skolemFunctionCount;
+  _distinctGroupPremises = other._distinctGroupPremises;
+  _distinctGroupMembers = other._distinctGroupMembers;
+  _distinctGroupsAddedTo = other._distinctGroupsAddedTo;
+  _iSymbols.loadFromMap(other._iSymbols);
+  _strings = other._strings;
+  _integers = other._integers;
+  _rationals = other._rationals;
+  _reals = other._reals;
+  _termAlgebras.loadFromMap(other._termAlgebras);
+
+#define CLONE_SYMBOL_TABLE(NAME) {\
+  Stack<Symbol*>::BottomFirstIterator NAME_it(other.NAME);\
+  while(NAME_it.hasNext()) {\
+    NAME.push(NAME_it.next()->clone());\
+  }\
+}
+  CLONE_SYMBOL_TABLE(_funs);
+  CLONE_SYMBOL_TABLE(_preds);
+#undef CLONE_SYMBOL_TABLE
+
+#define CLONE_NAME_LOOKUP(NAME) {\
+  SymbolMap::ConstIterator NAME_it(other.NAME);\
+  while(NAME_it.hasNext()) {\
+    const auto &next = NAME_it.next();\
+    NAME.insert(next.key(), next.value());\
+  }\
+}
+  CLONE_NAME_LOOKUP(_funNames);
+  CLONE_NAME_LOOKUP(_predNames);
+  CLONE_NAME_LOOKUP(_varNames);
+  CLONE_NAME_LOOKUP(_arityCheck);
+#undef CLONE_NAME_LOOKUP
+} // Signature(const Signature &)
+#endif
 
 /**
  * Add an integer constant to the signature. If defaultSort is true, treat it as
@@ -558,11 +583,11 @@ const vstring& Signature::functionName(int number)
   // because the user cannot define constants with these names herself
   // and the formula, obtained by toString() with "$true" or "$false"
   // in term position would be syntactically valid in FOOL
-  if (!env.options->showFOOL() && isFoolConstantSymbol(false,number)) {
+  if (!env->options->showFOOL() && isFoolConstantSymbol(false,number)) {
     static vstring fols("$false");
     return fols;
   }
-  if (!env.options->showFOOL() && isFoolConstantSymbol(true,number)) { 
+  if (!env->options->showFOOL() && isFoolConstantSymbol(true,number)) { 
     static vstring troo("$true");
     return troo;
   }
@@ -654,7 +679,7 @@ unsigned Signature::addFunction (const vstring& name,
     getFunction(result)->unmarkIntroduced();
     return result;
   }
-  if (env.options->arityCheck()) {
+  if (env->options->arityCheck()) {
     unsigned prev;
     if (_arityCheck.find(name,prev)) {
       unsigned prevArity = prev/2;
@@ -824,7 +849,7 @@ unsigned Signature::addPredicate (const vstring& name,
     getPredicate(result)->unmarkIntroduced();
     return result;
   }
-  if (env.options->arityCheck()) {
+  if (env->options->arityCheck()) {
     unsigned prev;
     if (_arityCheck.find(name,prev)) {
       unsigned prevArity = prev/2;
@@ -979,7 +1004,7 @@ void Signature::Symbol::addColor(Color color)
 {
   ASS_L(color,3);
   ASS_G(color,0);
-  ASS(env.colorUsed);
+  ASS(env->colorUsed);
 
   if (_color && color != static_cast<Color>(_color)) {
     USER_ERROR("A symbol cannot have two colors");
@@ -1034,7 +1059,7 @@ bool Signature::isProtectedName(vstring name)
     return true;
   }
 
-  vstring protectedPrefix = env.options->protectedPrefix();
+  vstring protectedPrefix = env->options->protectedPrefix();
   if (protectedPrefix.size()==0) {
     return false;
   }

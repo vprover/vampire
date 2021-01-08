@@ -160,7 +160,7 @@ afterLoop:
 
   TermList var = TermList(lerPosLit.var, false);
 
-  TermList vEquals = TermList(Term::create1(env.signature->getEqualityProxy(), argS));
+  TermList vEquals = TermList(Term::create1(env->signature->getEqualityProxy(), argS));
   TermList t1 = AH::createAppTerm(SH::getResultSort(vEquals.term()), vEquals, lerNegLit.arg);
   if(subst.unify(var, 0, t1, 0)){
     Clause* c = createConclusion(premise, newLit, posLit, negLit, subst);
@@ -171,10 +171,10 @@ afterLoop:
   TermList t2 = AH::createAppTerm(SH::getResultSort(vEquals.term()), vEquals, lerPosLit.arg);
   
   TermList typeArgs[] = {argS, Term::boolSort(), Term::boolSort()};
-  unsigned b_comb = env.signature->getCombinator(Signature::B_COMB);
+  unsigned b_comb = env->signature->getCombinator(Signature::B_COMB);
   
   TermList bComb  = TermList(Term::create(b_comb, 3, typeArgs));
-  TermList vNot   = TermList(Term::createConstant(env.signature->getNotProxy()));
+  TermList vNot   = TermList(Term::createConstant(env->signature->getNotProxy()));
   t2 = AH::createAppTerm3(SH::getResultSort(bComb.term()), bComb,vNot,t2);
 
   if(subst.unify(var, 0, t2, 0)){
@@ -182,7 +182,7 @@ afterLoop:
     clauses.push(c);
   }  
 
-  env.statistics->leibnizElims++;
+  env->statistics->leibnizElims++;
   return pvi(getUniquePersistentIterator(ClauseStack::Iterator(clauses)));
 
 }

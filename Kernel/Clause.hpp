@@ -42,7 +42,7 @@ using namespace Lib;
  * When creating a clause object, several things usually need to be done
  * besides calling a constructor:
  * - Fill the Clause with Literals
- * - Increase a relevant counter in the env.statistics object
+ * - Increase a relevant counter in the env->statistics object
  */
 class Clause
   : public Unit
@@ -88,13 +88,13 @@ public:
   {
     CALL("Clause::fromIterator");
 
-    static Stack<Literal*> st;
+    VTHREAD_LOCAL static Stack<Literal*> st;
     st.reset();
     st.loadFromIterator(litit);
     return fromStack(st, inf);
   }
 
-  static Clause* fromClause(Clause* c);
+  static Clause* fromClause(Clause* c, InferenceRule rule = InferenceRule::REORDER_LITERALS);
 
   /**
    * Return the (reference to) the nth literal
@@ -382,7 +382,7 @@ protected:
   unsigned _weightForClauseSelection;
 
   /** number of references to this clause */
-  unsigned _refCnt;
+  VATOMIC(unsigned) _refCnt;
   /** for splitting: timestamp marking when has the clause been reduced or restored by splitting */
   unsigned _reductionTimestamp;
   /** a map that translates Literal* to its index in the clause */
@@ -393,9 +393,9 @@ protected:
   size_t _auxTimestamp;
   void* _auxData;
 
-  static size_t _auxCurrTimestamp;
+  VTHREAD_LOCAL static size_t _auxCurrTimestamp;
 #if VDEBUG
-  static bool _auxInUse;
+  VTHREAD_LOCAL static bool _auxInUse;
 #endif
 
 //#endif

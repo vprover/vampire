@@ -38,7 +38,7 @@ struct __InitHelper
   {
     ResourceLimits::disableLimits();
 
-    env.options->setOutputAxiomNames(true);
+    env->options->setOutputAxiomNames(true);
   }
 
   __InitHelper()
@@ -55,10 +55,10 @@ void ResourceLimits::setLimits(size_t memoryInBytes, int timeInDeciseconds)
 {
   CALL("ResourceLimits::setLimits");
 
-  env.options->setMemoryLimit(memoryInBytes);
+  env->options->setMemoryLimit(memoryInBytes);
   Allocator::setMemoryLimit(memoryInBytes);
 
-  env.options->setTimeLimitInDeciseconds(timeInDeciseconds);
+  env->options->setTimeLimitInDeciseconds(timeInDeciseconds);
 }
 
 }

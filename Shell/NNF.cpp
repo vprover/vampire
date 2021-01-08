@@ -45,11 +45,11 @@ FormulaUnit* NNF::ennf(FormulaUnit* unit)
 
   FormulaUnit* res = new FormulaUnit(g,FormulaTransformation(InferenceRule::ENNF,unit));
 
-  if (env.options->showPreprocessing()) {
-    env.beginOutput();
-    env.out() << "[PP] ennf in: " << unit->toString() << std::endl;
-    env.out() << "[PP] ennf out: " << res->toString() << std::endl;
-    env.endOutput();
+  if (env->options->showPreprocessing()) {
+    env->beginOutput();
+    env->out() << "[PP] ennf in: " << unit->toString() << std::endl;
+    env->out() << "[PP] ennf out: " << res->toString() << std::endl;
+    env->endOutput();
   }
 
   return res;
@@ -241,11 +241,11 @@ TermList NNF::ennf(TermList ts, bool polarity)
 
   Term* term = ts.term();
 
-  if (env.signature->isFoolConstantSymbol(true, term->functor())) {
+  if (env->signature->isFoolConstantSymbol(true, term->functor())) {
     return polarity ? ts : TermList(Term::foolFalse());
   }
 
-  if (env.signature->isFoolConstantSymbol(false, term->functor())) {
+  if (env->signature->isFoolConstantSymbol(false, term->functor())) {
     return polarity ? ts : TermList(Term::foolTrue());
   }
 

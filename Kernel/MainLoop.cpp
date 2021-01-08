@@ -43,11 +43,11 @@ void MainLoopResult::updateStatistics()
 {
   CALL("MainLoopResult::updateStatistics");
 
-  env.statistics->terminationReason = terminationReason;
-  env.statistics->refutation = refutation;
-  env.statistics->saturatedSet = saturatedSet;
+  env->statistics->terminationReason = terminationReason;
+  env->statistics->refutation = refutation;
+  env->statistics->saturatedSet = saturatedSet;
   if(refutation) {
-    env.statistics->maxInductionDepth = refutation->inference().inductionDepth();
+    env->statistics->maxInductionDepth = refutation->inference().inductionDepth();
   }
 }
 
@@ -110,13 +110,13 @@ MainLoop* MainLoop::createFromOptions(Problem& prb, const Options& opt)
 
   switch (opt.saturationAlgorithm()) {
   case Options::SaturationAlgorithm::INST_GEN:
-    if(env.statistics->polymorphic || env.statistics->higherOrder){
+    if(env->statistics->polymorphic || env->statistics->higherOrder){
       USER_ERROR("The inst gen calculus is currently not compatible with polymorphism or higher-order constructs");       
     }
     res = new IGAlgorithm(prb, opt);
     break;
   case Options::SaturationAlgorithm::FINITE_MODEL_BUILDING:
-    if(env.statistics->polymorphic || env.statistics->higherOrder){
+    if(env->statistics->polymorphic || env->statistics->higherOrder){
       USER_ERROR("Finite model buillding is currently not compatible with polymorphism or higher-order constructs");       
     }
     //TODO should return inappropriate result instead of error

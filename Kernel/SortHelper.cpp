@@ -38,9 +38,9 @@ OperatorType* SortHelper::getType(Term* t)
   CALL("SortHelper::getType(Term*)");
 
   if (t->isLiteral()) {
-    return env.signature->getPredicate(t->functor())->predType();
+    return env->signature->getPredicate(t->functor())->predType();
   }
-  return env.signature->getFunction(t->functor())->fnType();
+  return env->signature->getFunction(t->functor())->fnType();
 } // getType
 
 /**
@@ -87,7 +87,7 @@ TermList SortHelper::getResultSort(const Term* t)
 
   Substitution subst;
   getTypeSub(t, subst);
-  Signature::Symbol* sym = env.signature->getFunction(t->functor());
+  Signature::Symbol* sym = env->signature->getFunction(t->functor());
   TermList result = sym->fnType()->result();
   //cout << "the type is " + sym->fnType()->toString() << endl;
   ASS(!subst.isEmpty()  || (result.isTerm() && (result.term()->isSuper() || result.term()->ground())));  
@@ -100,7 +100,7 @@ TermList SortHelper::getResultSortMono(const Term* t)
   ASS(!t->isSpecial());
   ASS(!t->isLiteral());
 
-  Signature::Symbol* sym = env.signature->getFunction(t->functor());
+  Signature::Symbol* sym = env->signature->getFunction(t->functor());
   return sym->fnType()->result();
 }
 
@@ -405,8 +405,8 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermL
           case Term::SF_LET: {
             TermList binding = sd->getBinding();
             bool isPredicate = binding.isTerm() && binding.term()->isBoolean();
-            Signature::Symbol* symbol = isPredicate ? env.signature->getPredicate(sd->getFunctor())
-                                                    : env.signature->getFunction(sd->getFunctor());
+            Signature::Symbol* symbol = isPredicate ? env->signature->getPredicate(sd->getFunctor())
+                                                    : env->signature->getFunction(sd->getFunctor());
             unsigned position = 0;
             VList::Iterator vit(sd->getVariables());
             while (vit.hasNext()) {
@@ -437,7 +437,7 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermL
 
           case Term::SF_LET_TUPLE: {
             TermList binding = sd->getBinding();
-            Signature::Symbol* symbol = env.signature->getFunction(sd->getFunctor());
+            Signature::Symbol* symbol = env->signature->getFunction(sd->getFunctor());
 
             CollectTask newTask;
             newTask.fncTag = COLLECT_TERMLIST;
@@ -626,8 +626,8 @@ void SortHelper::collectVariableSorts(TermList ts, TermList contextSort, DHMap<u
     case Term::SF_LET: {
       TermList binding = sd->getBinding();
       bool isPredicate = binding.isTerm() && binding.term()->isBoolean();
-      Signature::Symbol* symbol = isPredicate ? env.signature->getPredicate(sd->getFunctor())
-                                              : env.signature->getFunction(sd->getFunctor());
+      Signature::Symbol* symbol = isPredicate ? env->signature->getPredicate(sd->getFunctor())
+                                              : env->signature->getFunction(sd->getFunctor());
       unsigned position = 0;
       Formula::VarList::Iterator vit(sd->getVariables());
       while (vit.hasNext()) {
@@ -651,7 +651,7 @@ void SortHelper::collectVariableSorts(TermList ts, TermList contextSort, DHMap<u
 
     case Term::SF_LET_TUPLE: {
       TermList binding = sd->getBinding();
-      Signature::Symbol* symbol = env.signature->getFunction(sd->getFunctor());
+      Signature::Symbol* symbol = env->signature->getFunction(sd->getFunctor());
       collectVariableSorts(binding, symbol->fnType()->result(), map);
       ts.push(term->nthArgument(0));
       break;
@@ -806,7 +806,7 @@ bool SortHelper::tryGetVariableSort(TermList var, Term* t0, TermList& result)
         if ( binding == var) {
           // get result sort of the functor
           unsigned f = t->getSpecialData()->getFunctor();
-          Signature::Symbol* sym = env.signature->getFunction(f);
+          Signature::Symbol* sym = env->signature->getFunction(f);
           result = sym->fnType()->result();
           return true;
         }
@@ -914,8 +914,8 @@ bool SortHelper::areImmediateSortsValidPoly(Term* t)
 /*
 #if VDEBUG
       cout << "the term is " + t->toString() << endl;
-      cout << "the type of function " + env.signature->getFunction(t->functor())->name() + " is: " + type->toString() << endl;
-      //cout << "function name : "+ env.signature->getFunction(t->functor())->name() << endl;
+      cout << "the type of function " + env->signature->getFunction(t->functor())->name() + " is: " + type->toString() << endl;
+      //cout << "function name : "+ env->signature->getFunction(t->functor())->name() << endl;
       //cout << "function name 2 :" + t->functionName() << endl;
       cout << "error with expected " << instantiatedTypeSort.toString() << " and actual " << argSort.toString() << " when functor is " << t->functor() << " and arg is " << arg << endl;
       ASSERTION_VIOLATION;
@@ -974,7 +974,7 @@ bool SortHelper::isTupleSort(TermList sort)
 {
   CALL("SortHelper::isTupleSort");  
   if(!sort.isTerm()){ return false; }
-  return env.signature->getFunction(sort.term()->functor())->tupleSort(); 
+  return env->signature->getFunction(sort.term()->functor())->tupleSort(); 
 }
 
 /*
@@ -990,7 +990,7 @@ bool SortHelper::isArraySort(TermList sort)
 {
   CALL("SortHelper::isArraySort");  
   if(!sort.isTerm()){ return false; }
-  return env.signature->getFunction(sort.term()->functor())->arraySort(); 
+  return env->signature->getFunction(sort.term()->functor())->arraySort(); 
 }
 
 bool SortHelper::isBoolSort(TermList sort)
@@ -1043,7 +1043,7 @@ bool SortHelper::areSortsValid(Clause* cl)
 {
   CALL("SortHelper::areSortsValid");
 
-  static DHMap<unsigned,TermList> varSorts;
+  VTHREAD_LOCAL static DHMap<unsigned,TermList> varSorts;
   varSorts.reset();
 
   unsigned clen = cl->length();
@@ -1095,7 +1095,7 @@ bool SortHelper::areSortsValid(Term* t0, DHMap<unsigned,TermList>& varSorts)
 } // areSortsValid 
 
 TermList SortHelper::sortTerm(unsigned sortNum)
-{ return env.sorts->getSortTerm(sortNum); }
+{ return env->sorts->getSortTerm(sortNum); }
 
 unsigned SortHelper::sortNum(TermList sort)
-{ return env.sorts->getSortNum(sort); }
+{ return env->sorts->getSortNum(sort); }

@@ -22,6 +22,11 @@
 #include "Forwards.hpp"
 #include "Exception.hpp"
 #include "DHMap.hpp"
+#include "Threading.hpp"
+
+namespace CASC {
+  class ThreadScheduleExecutor;
+};
 
 namespace Lib {
 
@@ -39,6 +44,10 @@ class Environment
 public:
   Environment();
   ~Environment();
+  // we need to poke about with members when setting up a thread
+#if VTHREADED
+  friend class CASC::ThreadScheduleExecutor;
+#endif
 
   /** options for the current proof attempt */
   Shell::Options* options;
@@ -77,7 +86,7 @@ public:
   template<int Period>
   void checkTimeSometime() const
   {
-    static int counter=0;
+    VTHREAD_LOCAL static int counter=0;
     counter++;
     if(counter==Period) {
       counter=0;
@@ -100,7 +109,8 @@ private:
   SyncPipe* _pipe;
 }; // class Environment
 
-extern Environment env;
+extern VTHREAD_LOCAL Environment *env;
+extern Environment _ROOT_ENV;
 
 }
 #endif

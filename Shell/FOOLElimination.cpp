@@ -163,11 +163,11 @@ FormulaUnit* FOOLElimination::apply(FormulaUnit* unit) {
   FormulaUnit* processedUnit = new FormulaUnit(processedFormula,
       NonspecificInference1(InferenceRule::FOOL_ELIMINATION, rectifiedUnit));
 
-  if (env.options->showPreprocessing()) {
-    env.beginOutput();
-    env.out() << "[PP] " << unit->toString() << endl;
-    env.out() << "[PP] " << processedUnit->toString()  << endl;
-    env.endOutput();
+  if (env->options->showPreprocessing()) {
+    env->beginOutput();
+    env->out() << "[PP] " << unit->toString() << endl;
+    env->out() << "[PP] " << processedUnit->toString()  << endl;
+    env->endOutput();
   }
 
   return processedUnit;
@@ -176,13 +176,13 @@ FormulaUnit* FOOLElimination::apply(FormulaUnit* unit) {
 Formula* FOOLElimination::process(Formula* formula) {
   CALL("FOOLElimination::process(Formula*)");
 
-  if(env.options->cnfOnTheFly() != Options::CNFOnTheFly::EAGER &&
+  if(env->options->cnfOnTheFly() != Options::CNFOnTheFly::EAGER &&
      !_polymorphic){
     LambdaElimination le = LambdaElimination();
     TermList proxifiedFormula = le.elimLambda(formula);
     Formula* processedFormula = toEquality(proxifiedFormula);
 
-    if (env.options->showPreprocessing()) {
+    if (env->options->showPreprocessing()) {
       reportProcessed(formula->toString(), processedFormula->toString());
     }
 
@@ -212,7 +212,7 @@ Formula* FOOLElimination::process(Formula* formula) {
        */
 
       if (literal->isEquality() && 
-         (!env.statistics->higherOrder || env.options->equalityToEquivalence())) { 
+         (!env->statistics->higherOrder || env->options->equalityToEquivalence())) { 
         ASS_EQ(literal->arity(), 2);
         TermList lhs = *literal->nthArgument(0);
         TermList rhs = *literal->nthArgument(1);
@@ -227,7 +227,7 @@ Formula* FOOLElimination::process(Formula* formula) {
           Connective connective = literal->polarity() ? IFF : XOR;
           Formula* processedFormula = new BinaryFormula(connective, lhsFormula, rhsFormula);
 
-          if (env.options->showPreprocessing()) {
+          if (env->options->showPreprocessing()) {
             reportProcessed(formula->toString(), processedFormula->toString());
           }
 
@@ -243,7 +243,7 @@ Formula* FOOLElimination::process(Formula* formula) {
 
       Formula* processedFormula = new AtomicFormula(Literal::create(literal, arguments.begin()));
 
-      if (env.options->showPreprocessing()) {
+      if (env->options->showPreprocessing()) {
         reportProcessed(formula->toString(), processedFormula->toString());
       }
 
@@ -275,7 +275,7 @@ Formula* FOOLElimination::process(Formula* formula) {
         Literal* equality = Literal::createEquality(polarity, process(lhsTerm), process(rhsTerm), Term::boolSort());
         Formula* processedFormula = new AtomicFormula(equality);
 
-        if (env.options->showPreprocessing()) {
+        if (env->options->showPreprocessing()) {
           reportProcessed(formula->toString(), processedFormula->toString());
         }
 
@@ -301,7 +301,7 @@ Formula* FOOLElimination::process(Formula* formula) {
     case BOOL_TERM: {
       Formula* processedFormula = processAsFormula(formula->getBooleanTerm());
 
-      if (env.options->showPreprocessing()) {
+      if (env->options->showPreprocessing()) {
         reportProcessed(formula->toString(), processedFormula->toString());
       }
 
@@ -645,8 +645,8 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
          * If the symbol is not marked as introduced then this means it was used
          * in the input after introduction, therefore it should be renamed here
          */
-        if(bindingContext == TERM_CONTEXT && !env.signature->getFunction(symbol)->introduced()) renameSymbol = true;
-        if(bindingContext == FORMULA_CONTEXT && !env.signature->getPredicate(symbol)->introduced()) renameSymbol = true;
+        if(bindingContext == TERM_CONTEXT && !env->signature->getFunction(symbol)->introduced()) renameSymbol = true;
+        if(bindingContext == FORMULA_CONTEXT && !env->signature->getPredicate(symbol)->introduced()) renameSymbol = true;
 
         // create a fresh function or predicate symbol g
         unsigned freshSymbol = renameSymbol ? introduceFreshSymbol(bindingContext, LET_PREFIX, termVarSorts, bindingSort, typeVars.size()) : symbol;
@@ -682,10 +682,10 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         // replace occurrences of f(s1, ..., sj,t1, ..., tk) by 
         // g(A1, ..., Am, s1, ..., sj,X1, ..., Xn, t1, ..., tk)
         if (renameSymbol) {
-          if (env.options->showPreprocessing()) {
-            env.beginOutput();
-            env.out() << "[PP] FOOL replace in:  " << contents.toString() << endl;
-            env.endOutput();
+          if (env->options->showPreprocessing()) {
+            env->beginOutput();
+            env->out() << "[PP] FOOL replace in:  " << contents.toString() << endl;
+            env->endOutput();
           }
 
           SymbolOccurrenceReplacement replacement(bindingContext == FORMULA_CONTEXT, 
@@ -693,10 +693,10 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
 
           contents = replacement.process(contents);
 
-          if (env.options->showPreprocessing()) {
-            env.beginOutput();
-            env.out() << "[PP] FOOL replace out: " << contents.toString() << endl;
-            env.endOutput();
+          if (env->options->showPreprocessing()) {
+            env->beginOutput();
+            env->out() << "[PP] FOOL replace out: " << contents.toString() << endl;
+            env->endOutput();
           }
         }
 
@@ -775,7 +775,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
 #endif
     }
 
-    if (env.options->showPreprocessing()) {
+    if (env->options->showPreprocessing()) {
       reportProcessed(term->toString(), context == FORMULA_CONTEXT ? formulaResult->toString() : termResult.toString());
     }
   }
@@ -920,10 +920,10 @@ void FOOLElimination::addDefinition(FormulaUnit* def) {
 
   _defs = new UnitList(def, _defs);
 
-  if (env.options->showPreprocessing()) {
-    env.beginOutput();
-    env.out() << "[PP] FOOL added definition: " << def->toString() << endl;
-    env.endOutput();
+  if (env->options->showPreprocessing()) {
+    env->beginOutput();
+    env->out() << "[PP] FOOL added definition: " << def->toString() << endl;
+    env->endOutput();
   }
 }
 
@@ -947,23 +947,23 @@ unsigned FOOLElimination::introduceFreshSymbol(Context context, const char* pref
 
   unsigned symbol;
   if (context == FORMULA_CONTEXT) {
-    symbol = env.signature->addFreshPredicate(arity + typeArgsArity, prefix);
-    env.signature->getPredicate(symbol)->setType(type);
+    symbol = env->signature->addFreshPredicate(arity + typeArgsArity, prefix);
+    env->signature->getPredicate(symbol)->setType(type);
   } else {
-    symbol = env.signature->addFreshFunction(arity + typeArgsArity, prefix);
-    env.signature->getFunction(symbol)->setType(type);
+    symbol = env->signature->addFreshFunction(arity + typeArgsArity, prefix);
+    env->signature->getFunction(symbol)->setType(type);
   }
 
-  if (env.options->showPreprocessing()) {
-    env.beginOutput();
-    env.out() << "[PP] FOOL: introduced fresh ";
+  if (env->options->showPreprocessing()) {
+    env->beginOutput();
+    env->out() << "[PP] FOOL: introduced fresh ";
     if (context == FORMULA_CONTEXT) {
-      env.out() << "predicate symbol " << env.signature->predicateName(symbol);
+      env->out() << "predicate symbol " << env->signature->predicateName(symbol);
     } else {
-      env.out() << "function symbol " << env.signature->functionName(symbol);
+      env->out() << "function symbol " << env->signature->functionName(symbol);
     }
-    env.out() << " of the sort " << type->toString() << endl;
-    env.endOutput();
+    env->out() << " of the sort " << type->toString() << endl;
+    env->endOutput();
   }
 
   return symbol;
@@ -981,9 +981,9 @@ void FOOLElimination::reportProcessed(vstring inputRepr, vstring outputRepr) {
      * the output seeming the same, we will not log such processings at
      * all. Setting show_fool to on, however, will display everything.
      */
-    env.beginOutput();
-    env.out() << "[PP] FOOL in:  " << inputRepr  << endl;
-    env.out() << "[PP] FOOL out: " << outputRepr << endl;
-    env.endOutput();
+    env->beginOutput();
+    env->out() << "[PP] FOOL in:  " << inputRepr  << endl;
+    env->out() << "[PP] FOOL out: " << outputRepr << endl;
+    env->endOutput();
   }
 }

@@ -111,7 +111,7 @@ bool WeightQueue::lessThan(Clause* c1,Clause* c2)
 {
   CALL("WeightQueue::lessThan");
 
-  if(env.options->prioritiseClausesProducedByLongReduction()){
+  if(env->options->prioritiseClausesProducedByLongReduction()){
     if(c1->inference().reductions() < c2->inference().reductions()){
       return false;
     }
@@ -267,7 +267,7 @@ Clause* AWPassiveClauseContainer::popSelected()
 
   auto shape = _opt.ageWeightRatioShape();
   unsigned frequency = _opt.ageWeightRatioShapeFrequency();
-  static unsigned count = 0;
+  VTHREAD_LOCAL static unsigned count = 0;
   count++;
 
   bool is_converging = shape == Options::AgeWeightRatioShape::CONVERGE;
@@ -325,7 +325,7 @@ void AWPassiveClauseContainer::onLimitsUpdated()
   //of clauses, differing only in their order.
   //(unless one of _ageRation or _weightRatio is equal to 0)
 
-  static Stack<Clause*> toRemove(256);
+  VTHREAD_LOCAL static Stack<Clause*> toRemove(256);
   ClauseQueue::Iterator wit(_weightQueue);
   while (wit.hasNext()) {
     Clause* cl=wit.next();
@@ -345,7 +345,7 @@ void AWPassiveClauseContainer::onLimitsUpdated()
   while (toRemove.isNonEmpty()) {
     Clause* removed=toRemove.pop();
     RSTAT_CTR_INC("clauses discarded from passive on weight limit update");
-    env.statistics->discardedNonRedundantClauses++;
+    env->statistics->discardedNonRedundantClauses++;
     remove(removed);
   }
 }

@@ -104,7 +104,7 @@ void BackwardSubsumptionResolution::perform(Clause* cl,
     return;
   }
 
-  static DHSet<Clause*> checkedClauses;
+  VTHREAD_LOCAL static DHSet<Clause*> checkedClauses;
   checkedClauses.reset();
 
   if(clen==1) {
@@ -121,7 +121,7 @@ void BackwardSubsumptionResolution::perform(Clause* cl,
       Clause* resCl=ForwardSubsumptionAndResolution::generateSubsumptionResolutionClause(qr.clause, qr.literal, cl);
 
       List<BwSimplificationRecord>::push(BwSimplificationRecord(qr.clause,resCl), simplRes);
-      env.statistics->backwardSubsumptionResolution++;
+      env->statistics->backwardSubsumptionResolution++;
       RSTAT_CTR_INC("bsr0 performed (units)");
     }
     if(simplRes) {
@@ -147,12 +147,12 @@ void BackwardSubsumptionResolution::perform(Clause* cl,
   unsigned lmPred=lmLit->functor();
   unsigned lmHeader=lmLit->header();
 
-  static DArray<LiteralList*> matchedLits(32);
+  VTHREAD_LOCAL static DArray<LiteralList*> matchedLits(32);
   matchedLits.init(clen, 0);
 
   bool mustPredInit=false;
   unsigned mustPred;
-  static DHSet<unsigned> basePreds;
+  VTHREAD_LOCAL static DHSet<unsigned> basePreds;
   bool basePredsInit=false;
 
   List<BwSimplificationRecord>* simplRes=0;
@@ -262,7 +262,7 @@ void BackwardSubsumptionResolution::perform(Clause* cl,
       RSTAT_CTR_INC("bsr1 4 performed");
       Clause* resCl=ForwardSubsumptionAndResolution::generateSubsumptionResolutionClause(qr.clause, qr.literal, cl);
       List<BwSimplificationRecord>::push(BwSimplificationRecord(qr.clause,resCl), simplRes);
-      env.statistics->backwardSubsumptionResolution++;      
+      env->statistics->backwardSubsumptionResolution++;      
     }
 
   match_fail:
@@ -408,7 +408,7 @@ void BackwardSubsumptionResolution::perform(Clause* cl,
       RSTAT_CTR_INC("bsr2 5 performed");
       Clause* resCl=ForwardSubsumptionAndResolution::generateSubsumptionResolutionClause(qr.clause, resolvedLit, cl);
       List<BwSimplificationRecord>::push(BwSimplificationRecord(qr.clause,resCl), simplRes);
-      env.statistics->backwardSubsumptionResolution++;
+      env->statistics->backwardSubsumptionResolution++;
     }
 
   match_fail2:

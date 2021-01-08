@@ -38,13 +38,20 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Shell;
 
+VTHREAD_LOCAL Environment *env(nullptr);
+Environment _ROOT_ENV;
+
 /**
  * @since 06/05/2007 Manchester
  */
 Environment::Environment()
-  : signature(0),
-    sharing(0),
-    property(0),
+  : options(nullptr),
+    sorts(nullptr),
+    signature(nullptr),
+    sharing(nullptr),
+    statistics(nullptr),
+    property(nullptr),
+    timer(nullptr),
     maxSineLevel(1),
     predicateSineLevels(nullptr),
     colorUsed(false),
@@ -53,6 +60,15 @@ Environment::Environment()
     _pipe(0)
 {
   START_CHECKING_FOR_ALLOCATOR_BYPASSES;
+
+#if VTHREADED
+  static bool is_thread = false;
+  if(is_thread) {
+    return;
+  }
+  is_thread = true;
+#endif
+  env = this;
 
   options = new Options;
   statistics = new Statistics;  
@@ -92,15 +108,17 @@ Environment::~Environment()
   }
 
 // #if CHECK_LEAKS
-  delete sharing;
   delete signature;
-  delete sorts;
   delete statistics;
-  if (predicateSineLevels) delete predicateSineLevels;
   {
     BYPASSING_ALLOCATOR; // use of std::function in options
     delete options;
   }
+#if !VTHREADED
+  delete sorts;
+  delete sharing;
+#endif
+  if (predicateSineLevels) delete predicateSineLevels;
 // #endif
 }
 
@@ -114,7 +132,7 @@ bool Environment::timeLimitReached() const
   CALL("Environment::timeLimitReached");
 
   if (options->timeLimitInDeciseconds() &&
-      timer->elapsedDeciseconds() > options->timeLimitInDeciseconds()) {
+      timer->elapsedDeciseconds() >= options->timeLimitInDeciseconds()) {
     statistics->terminationReason = Shell::Statistics::TIME_LIMIT;
     Timer::setTimeLimitEnforcement(false);
     return true;
@@ -204,7 +222,7 @@ ostream& Environment::out()
 }
 
 /**
- * Direct @b env.out() into @b pipe or to @b cout if @b pipe is zero
+ * Direct @b env->out() into @b pipe or to @b cout if @b pipe is zero
  *
  * This function cannot be called when an output is in progress.
  */
@@ -224,7 +242,4 @@ void Environment::setPriorityOutput(ostream* stm)
   _priorityOutput=stm;
 
 }
-
-// global environment object, constructed before main() and used everywhere
-Environment env;
 }

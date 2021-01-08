@@ -165,7 +165,7 @@ void SubstitutionTree::insert(Node** pnode,BindingMap& svBindings,LeafData ld)
   }
 
   typedef BinaryHeap<UnresolvedSplitRecord, BindingComparator> SplitRecordHeap;
-  static SplitRecordHeap unresolvedSplits;
+  VTHREAD_LOCAL static SplitRecordHeap unresolvedSplits;
   unresolvedSplits.reset();
 
   ASS((*pnode));
@@ -365,7 +365,7 @@ void SubstitutionTree::remove(Node** pnode,BindingMap& svBindings,LeafData ld)
 
   ASS(*pnode);
 
-  static Stack<Node**> history(1000);
+  VTHREAD_LOCAL static Stack<Node**> history(1000);
   history.reset();
 
   while (! (*pnode)->isLeaf()) {

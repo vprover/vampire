@@ -33,6 +33,10 @@ using namespace Indexing;
 
 typedef ApplicativeHelper AH;
 
+#if VTHREADED
+std::mutex TermSharing::_term_mutex, TermSharing::_literal_mutex;
+#endif
+
 /**
  * Initialise the term sharing structure.
  * @since 29/12/2007 Manchester
@@ -58,7 +62,7 @@ TermSharing::~TermSharing()
 {
   CALL("TermSharing::~TermSharing");
 
-#if CHECK_LEAKS
+#if !VTHREADED && CHECK_LEAKS
   Set<Term*,TermSharing>::Iterator ts(_terms);
   while (ts.hasNext()) {
     ts.next()->destroy();
@@ -76,10 +80,15 @@ void TermSharing::setPoly()
 
   //combinatory superposiiton can introduce polymorphism into a 
   //monomorphic problem
-  _poly = env.statistics->higherOrder ||
-          env.statistics->polymorphic ||
-          env.options->equalityProxy() != Options::EqualityProxy::OFF ||
-          env.options->saturationAlgorithm() == Options::SaturationAlgorithm::INST_GEN;
+  bool needs_poly = env->statistics->higherOrder ||
+          env->statistics->polymorphic ||
+          env->options->equalityProxy() != Options::EqualityProxy::OFF ||
+          env->options->saturationAlgorithm() == Options::SaturationAlgorithm::INST_GEN;
+  #if VTHREADED
+  // for the moment, poly-ness latches: if any attempt needs it, it's switched on
+  if(needs_poly)
+  #endif
+    _poly = needs_poly;
 }
 
 /**
@@ -88,7 +97,6 @@ void TermSharing::setPoly()
  */
 Term* TermSharing::insert(Term* t)
 {
-
   CALL("TermSharing::insert(Term*)");
   ASS(!t->isLiteral());
   ASS(!t->isSpecial());
@@ -107,15 +115,20 @@ Term* TermSharing::insert(Term* t)
   }
 
   _termInsertions++;
+#if VTHREADED
+  std::lock_guard<std::mutex> lock(_term_mutex);
+  t->functorId = env->signature->functionId(t->functor());
+#endif
   Term* s = _terms.insert(t);
-   if (s == t) {
+  Signature *signature = env->signature;
+  if (s == t) {
     unsigned weight = 1;
     unsigned vars = 0;
     bool hasInterpretedConstants=t->arity()==0 &&
-	env.signature->getFunction(t->functor())->interpreted();
+	signature->getFunction(t->functor())->interpreted();
     Color color = COLOR_TRANSPARENT;
 
-    if(env.options->combinatorySup() && !AH::isType(t)){ 
+    if(env->options->combinatorySup() && !AH::isType(t)){ 
       int maxRedLength = -1;
       TermList head;
       TermStack args;
@@ -169,7 +182,7 @@ Term* TermSharing::insert(Term* t)
   
         vars += r->vars();
         weight += r->weight();
-        if (env.colorUsed) {
+        if (env->colorUsed) {
             color = static_cast<Color>(color | r->color());
         }
         if(!hasInterpretedConstants && r->hasInterpretedConstants()) {
@@ -181,8 +194,8 @@ Term* TermSharing::insert(Term* t)
     t->setId(_totalTerms);
     t->setVars(vars);
     t->setWeight(weight);
-    if (env.colorUsed) {
-      Color fcolor = env.signature->getFunction(t->functor())->color();
+    if (env->colorUsed) {
+      Color fcolor = signature->getFunction(t->functor())->color();
       color = static_cast<Color>(color | fcolor);
       t->setColor(color);
     }
@@ -235,7 +248,12 @@ Literal* TermSharing::insert(Literal* t)
   }
 
   _literalInsertions++;
+#if VTHREADED
+  std::lock_guard<std::mutex> lock(_literal_mutex);
+  t->functorId = env->signature->predicateId(t->functor());
+#endif
   Literal* s = _literals.insert(t);
+  Signature *signature = env->signature;
   if (s == t) {
     unsigned weight = 1;
     unsigned vars = 0;
@@ -252,7 +270,7 @@ Literal* TermSharing::insert(Literal* t)
 	Term* r = tt->term();
 	vars += r->vars();
 	weight += r->weight();
-	if (env.colorUsed) {
+	if (env->colorUsed) {
 	  ASS(color == COLOR_TRANSPARENT || r->color() == COLOR_TRANSPARENT || color == r->color());
 	  color = static_cast<Color>(color | r->color());
 	}
@@ -265,8 +283,8 @@ Literal* TermSharing::insert(Literal* t)
     t->setId(_totalLiterals);
     t->setVars(vars);
     t->setWeight(weight);
-    if (env.colorUsed) {
-      Color fcolor = env.signature->getPredicate(t->functor())->color();
+    if (env->colorUsed) {
+      Color fcolor = signature->getPredicate(t->functor())->color();
       color = static_cast<Color>(color | fcolor);
       t->setColor(color);
     }
@@ -315,12 +333,16 @@ Literal* TermSharing::insertVariableEquality(Literal* t, TermList sort)
   unsigned sortWeight = sort.isVar() ? 1 : sort.term()->weight();
 
   _literalInsertions++;
+#if VTHREADED
+  std::lock_guard<std::mutex> lock(_literal_mutex);
+  t->functorId = env->signature->predicateId(t->functor());
+#endif
   Literal* s = _literals.insert(t);
   if (s == t) {
     t->markShared();
     t->setId(_totalLiterals);
     t->setWeight(2 + sortWeight);
-    if (env.colorUsed) {
+    if (env->colorUsed) {
       t->setColor(COLOR_TRANSPARENT);
     }
     t->setInterpretedConstantsPresence(false);
@@ -346,8 +368,8 @@ Term* TermSharing::insertRecurrently(Term* t)
   tRef.setTerm(t);
 
   TermList* ts=&tRef;
-  static Stack<TermList*> stack(4);
-  static Stack<TermList*> insertingStack(8);
+  VTHREAD_LOCAL static Stack<TermList*> stack(4);
+  VTHREAD_LOCAL static Stack<TermList*> insertingStack(8);
   for(;;) {
     if(ts->isTerm() && !ts->term()->shared()) {
       stack.push(ts->term()->args());
@@ -376,6 +398,10 @@ Literal* TermSharing::tryGetOpposite(Literal* l)
 {
   CALL("TermSharing::tryGetOpposite");
 
+#if VTHREADED
+  std::lock_guard<std::mutex> lock(_literal_mutex);
+  l->functorId = env->signature->predicateId(l->functor());
+#endif
   Literal* res;
   if(_literals.find(OpLitWrapper(l), res)) {
     return res;
@@ -427,7 +453,16 @@ bool TermSharing::argNormGt(TermList t1, TermList t2)
   return (trm1->getId() > trm2->getId());
 }
 
-
+static bool equalArgs(const TermList *ss, const TermList *tt) {
+  while(!ss->isEmpty()) {
+    if(*ss != *tt) {
+      return false;
+    }
+    ss = ss->next();
+    tt = tt->next();
+  }
+  return true;
+}
 /**
  * True if the the top-levels of @b s and @b t are equal.
  * Used for inserting terms in a hash table.
@@ -438,18 +473,13 @@ bool TermSharing::equals(const Term* s,const Term* t)
 {
   CALL("TermSharing::equals(Term*,Term*)");
 
-  if (s->functor() != t->functor()) return false;
-
-  const TermList* ss = s->args();
-  const TermList* tt = t->args();
-  while (! ss->isEmpty()) {
-    if (ss->_content != tt->_content) {
-      return false;
-    }
-    ss = ss->next();
-    tt = tt->next();
-  }
-  return true;
+#if VTHREADED
+  if(s->functorId != t->functorId)
+#else
+  if(s->functor() != t->functor())
+#endif
+    return false;
+  return equalArgs(s->args(), t->args());
 } // TermSharing::equals
 
 /**
@@ -468,8 +498,11 @@ bool TermSharing::equals(const Literal* l1, const Literal* l2, bool opposite)
     return false;
   }
 
-  return equals(static_cast<const Term*>(l1),
-		static_cast<const Term*>(l2));
+#if VTHREADED
+  if(l1->functorId != l2->functorId)
+#else
+  if(l1->functor() != l2->functor())
+#endif
+    return false;
+  return equalArgs(l1->args(), l2->args());
 }
-
-

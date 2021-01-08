@@ -21,6 +21,7 @@
 #  define __Tracer__
 
 #if VDEBUG
+#include "Lib/Threading.hpp"
 
 #include <iostream>
 #include <iomanip>
@@ -54,7 +55,7 @@ class Tracer {
   static void forceOutput() { _forced = true; }
   /** stop outputting forced by startOutput */
   static void stopOutput() { _forced = false; }
-  static bool canWatch;
+  VTHREAD_LOCAL static bool canWatch;
  private:
   const char* _fun;
   Tracer* _previous;
@@ -63,17 +64,17 @@ class Tracer {
   static void spaces(ostream& str,int number);
 
   /** current trace point */
-  static Tracer* _current;
+  VTHREAD_LOCAL static Tracer* _current;
   /** current depth */
-  static unsigned _depth;
+  VTHREAD_LOCAL static unsigned _depth;
   /** description of the last control point (function name) */
-  static const char* _lastControlPoint;
+  VTHREAD_LOCAL static const char* _lastControlPoint;
   /** total number of passed control points */
-  static unsigned _passedControlPoints;
+  VTHREAD_LOCAL static unsigned _passedControlPoints;
   /** kind of the last point */
-  static ControlPointKind _lastPointKind;
+  VTHREAD_LOCAL static ControlPointKind _lastPointKind;
   /** forced by startTrace */
-  static bool _forced;
+  VTHREAD_LOCAL static bool _forced;
   static void controlPoint (const char*, ControlPointKind);
   static void outputLastControlPoint (ostream& str);
 public:

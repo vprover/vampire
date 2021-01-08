@@ -53,7 +53,7 @@ bool DistinctProcessor::apply(FormulaUnit* unit, Unit*& res)
   Formula* form = unit->formula();
 
 
-  static Stack<unsigned> distConsts;
+  VTHREAD_LOCAL static Stack<unsigned> distConsts;
   if(form->connective()==LITERAL) {
     Literal* tlLit = form->literal();
     if(isDistinctPred(tlLit) && tlLit->isPositive()) {
@@ -70,9 +70,9 @@ bool DistinctProcessor::apply(FormulaUnit* unit, Unit*& res)
       }
 
       if(justConsts) {
-	unsigned grpIdx = env.signature->createDistinctGroup(unit);
+	unsigned grpIdx = env->signature->createDistinctGroup(unit);
 	while(distConsts.isNonEmpty()) {
-	  env.signature->addToDistinctGroup(distConsts.pop(), grpIdx);
+	  env->signature->addToDistinctGroup(distConsts.pop(), grpIdx);
 	}
       }else{
         USER_ERROR("$distinct should only be used positively with constants");

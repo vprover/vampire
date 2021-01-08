@@ -57,7 +57,7 @@ void BinaryResolution::attach(SaturationAlgorithm* salg)
   _index=static_cast<GeneratingLiteralIndex*> (
 	  _salg->getIndexManager()->request(GENERATING_SUBST_TREE) );
 
-  _unificationWithAbstraction = env.options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF;
+  _unificationWithAbstraction = env->options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF;
 }
 
 void BinaryResolution::detach()
@@ -123,11 +123,11 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
   ASS(qr.clause->store()==Clause::ACTIVE);//Added to check that generation only uses active clauses
 
   if(!ColorHelper::compatible(queryCl->color(),qr.clause->color()) ) {
-    env.statistics->inferencesSkippedDueToColors++;
+    env->statistics->inferencesSkippedDueToColors++;
     if(opts.showBlocked()) {
-      env.beginOutput();
-      env.out()<<"Blocked resolution of "<<queryCl->toString()<<" and "<<qr.clause->toString()<<endl;
-      env.endOutput();
+      env->beginOutput();
+      env->out()<<"Blocked resolution of "<<queryCl->toString()<<" and "<<qr.clause->toString()<<endl;
+      env->endOutput();
     }
     if(opts.colorUnblocking()) {
       SaturationAlgorithm* salg = SaturationAlgorithm::tryGetInstance();
@@ -174,7 +174,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
     }
     if(!passiveClauseContainer->fulfilsWeightLimit(wlb, numPositiveLiteralsLowerBound, inf)) {
       RSTAT_CTR_INC("binary resolutions skipped for weight limit before building clause");
-      env.statistics->discardedNonRedundantClauses++;
+      env->statistics->discardedNonRedundantClauses++;
       return 0;
     }
   }
@@ -220,7 +220,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
 
       Literal* constraint = Literal::createEquality(false,qT,rT,sort);
 
-      static Options::UnificationWithAbstraction uwa = opts.unificationWithAbstraction();
+      VTHREAD_LOCAL static Options::UnificationWithAbstraction uwa = opts.unificationWithAbstraction();
       if(uwa==Options::UnificationWithAbstraction::GROUND &&
          !constraint->ground() &&
          (!UnificationWithAbstractionConfig::isInterpreted(qT) && 
@@ -243,7 +243,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
         wlb+=newLit->weight() - curr->weight();
         if(!passiveClauseContainer->fulfilsWeightLimit(wlb, numPositiveLiteralsLowerBound, res->inference())) {
           RSTAT_CTR_INC("binary resolutions skipped for weight limit while building clause");
-          env.statistics->discardedNonRedundantClauses++;
+          env->statistics->discardedNonRedundantClauses++;
           res->destroy();
           return 0;
         }
@@ -256,7 +256,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
         if (o == Ordering::GREATER ||
             (ls->isPositiveForSelection(newLit)    // strict maximimality for positive literals
                 && (o == Ordering::GREATER_EQ || o == Ordering::EQUAL))) { // where is GREATER_EQ ever coming from?
-          env.statistics->inferencesBlockedForOrderingAftercheck++;
+          env->statistics->inferencesBlockedForOrderingAftercheck++;
           res->destroy();
           return 0;
         }
@@ -281,7 +281,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
         wlb+=newLit->weight() - curr->weight();
         if(!passiveClauseContainer->fulfilsWeightLimit(wlb, numPositiveLiteralsLowerBound, res->inference())) {
           RSTAT_CTR_INC("binary resolutions skipped for weight limit while building clause");
-          env.statistics->discardedNonRedundantClauses++;
+          env->statistics->discardedNonRedundantClauses++;
           res->destroy();
           return 0;
         }
@@ -294,7 +294,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
         if (o == Ordering::GREATER ||
             (ls->isPositiveForSelection(newLit)   // strict maximimality for positive literals
                 && (o == Ordering::GREATER_EQ || o == Ordering::EQUAL))) { // where is GREATER_EQ ever coming from?
-          env.statistics->inferencesBlockedForOrderingAftercheck++;
+          env->statistics->inferencesBlockedForOrderingAftercheck++;
           res->destroy();
           return 0;
         }
@@ -306,10 +306,10 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
   }
 
   if(withConstraints){
-    env.statistics->cResolution++;
+    env->statistics->cResolution++;
   }
   else{ 
-    env.statistics->resolution++;
+    env->statistics->resolution++;
   }
 
   //cout << "RESULT " << res->toString() << endl;

@@ -48,8 +48,8 @@ protected:
 
   static NativeNumber parseString(vstring str);
 
-  static bool _usePrecise;
-  static bool _useRational;
+  VTHREAD_LOCAL static bool _usePrecise;
+  VTHREAD_LOCAL static bool _useRational;
 };
 
 /**

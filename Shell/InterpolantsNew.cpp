@@ -352,7 +352,7 @@ namespace Shell
 
         // do dfs on the derivation and present results in the reversed order (using stack for it)
         ProofIteratorPostOrder pipo(refutation);
-        static UnitStack buffer;
+        VTHREAD_LOCAL static UnitStack buffer;
         buffer.reset();
         buffer.loadFromIterator(pipo);
 

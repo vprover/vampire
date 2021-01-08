@@ -78,7 +78,7 @@ void ConsequenceFinder::onNewPropositionalClause(Clause* cl)
   Clause::Iterator it(*cl);
   while(it.hasNext()) {
     Literal* l=it.next();
-    if(!env.signature->getPredicate(l->functor())->label()) {
+    if(!env->signature->getPredicate(l->functor())->label()) {
       return;
     }
     if(l->isPositive()) {
@@ -91,9 +91,9 @@ void ConsequenceFinder::onNewPropositionalClause(Clause* cl)
     }
   }
 
-  env.beginOutput();
-  env.out() << "Pure cf clause: " << cl->toNiceString() <<endl;
-  env.endOutput();
+  env->beginOutput();
+  env->out() << "Pure cf clause: " << cl->toNiceString() <<endl;
+  env->endOutput();
 
   if(!horn || !pos) {
     return;
@@ -109,9 +109,9 @@ void ConsequenceFinder::onNewPropositionalClause(Clause* cl)
   //of the saturation algorithm loop
   _redundantsToHandle.push(red);
 
-  env.beginOutput();
-  env.out() << "Consequence found: " << env.signature->predicateName(red) << endl;
-  env.endOutput();
+  env->beginOutput();
+  env->out() << "Consequence found: " << env->signature->predicateName(red) << endl;
+  env->endOutput();
 }
 
 void ConsequenceFinder::onAllProcessed()
@@ -154,7 +154,7 @@ bool ConsequenceFinder::isRedundant(Clause* cl)
   Clause::Iterator it(*cl);
   while(it.hasNext()) {
     unsigned fn=it.next()->functor();
-    if(!env.signature->getPredicate(fn)->label()) {
+    if(!env->signature->getPredicate(fn)->label()) {
       continue;
     }
     if(_redundant[fn]) {
@@ -175,7 +175,7 @@ void ConsequenceFinder::onClauseInserted(Clause* cl)
   Clause::Iterator it(*cl);
   while(it.hasNext()) {
     unsigned fn=it.next()->functor();
-    if(!env.signature->getPredicate(fn)->label()) {
+    if(!env->signature->getPredicate(fn)->label()) {
       continue;
     }
     if(_redundant[fn]) {
@@ -205,7 +205,7 @@ void ConsequenceFinder::onClauseRemoved(Clause* cl)
   Clause::Iterator it(*cl);
   while(it.hasNext()) {
     unsigned fn=it.next()->functor();
-    if(!env.signature->getPredicate(fn)->label()) {
+    if(!env->signature->getPredicate(fn)->label()) {
       continue;
     }
     if(!_redundant[fn]) {

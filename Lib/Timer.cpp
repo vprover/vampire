@@ -12,6 +12,40 @@
  * Implements class Timer.
  */
 
+#include "Int.hpp"
+#include "Timer.hpp"
+#include "ScopedPtr.hpp"
+
+VTHREAD_LOCAL bool Lib::Timer::s_timeLimitEnforcement = true;
+
+#if VTHREADED
+#define USE_SIMPLE_TIMER 1
+#endif
+
+#ifndef USE_SIMPLE_TIMER
+#define USE_SIMPLE_TIMER 0
+#endif
+
+#if USE_SIMPLE_TIMER
+#include <chrono>
+
+void Lib::Timer::syncClock() {}
+void Lib::Timer::ensureTimerInitialized() {}
+void Lib::Timer::deinitializeTimer() {}
+void Lib::Timer::makeChildrenIncluded() {}
+
+int Lib::Timer::miliseconds() {
+  CALL("Timer::miliseconds");
+
+  auto now = std::chrono::steady_clock::now();
+  auto ms = std::chrono::time_point_cast<std::chrono::milliseconds>(now);
+  auto epoch = std::chrono::duration_cast<std::chrono::milliseconds>(
+    ms.time_since_epoch()
+  );
+  return epoch.count();
+}
+#else
+
 #include <ctime>
 #include <unistd.h>
 #include <sys/types.h>
@@ -20,7 +54,6 @@
 #include "Debug/Tracer.hpp"
 
 #include "Environment.hpp"
-#include "Int.hpp"
 #include "Portability.hpp"
 #include "System.hpp"
 #include "TimeCounter.hpp"
@@ -29,14 +62,9 @@
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 
-#include "Timer.hpp"
-
 #define DEBUG_TIMER_CHANGES 0
 
 using namespace std;
-using namespace Lib;
-
-bool Timer::s_timeLimitEnforcement = true;
 
 #if UNIX_USE_SIGALRM
 
@@ -65,28 +93,28 @@ void timeLimitReached()
   // so any code below that allocates might corrupt the allocator state.
   // Therefore, the printing below should avoid allocations!
 
-  env.beginOutput();
+  env->beginOutput();
   reportSpiderStatus('t');
   if (outputAllowed()) {
-    addCommentSignForSZS(env.out());
-    env.out() << "Time limit reached!\n";
+    addCommentSignForSZS(env->out());
+    env->out() << "Time limit reached!\n";
 
     if (UIHelper::portfolioParent) { // the boss
-      addCommentSignForSZS(env.out());
-      env.out() << "Proof not found in time ";
-      Timer::printMSString(env.out(),env.timer->elapsedMilliseconds());
-      env.out() << endl;
+      addCommentSignForSZS(env->out());
+      env->out() << "Proof not found in time ";
+      Timer::printMSString(env->out(),env->timer->elapsedMilliseconds());
+      env->out() << endl;
 
       if (szsOutputMode()) {
-        env.out() << "% SZS status Timeout for "
-                        << (env.options ? env.options->problemName().c_str() : "unknown") << endl;
+        env->out() << "% SZS status Timeout for "
+                        << (env->options ? env->options->problemName().c_str() : "unknown") << endl;
       }
     } else // the actual child
-      if (env.statistics) {
-        env.statistics->print(env.out());
+      if (env->statistics) {
+        env->statistics->print(env->out());
     }
   }
-  env.endOutput();
+  env->endOutput();
 
   System::terminateImmediately(1);
 }
@@ -101,10 +129,9 @@ timer_sigalrm_handler (int sig)
   }
 #endif
 
-
   timer_sigalrm_counter++;
 
-  if(Timer::s_timeLimitEnforcement && env.timeLimitReached()) {
+  if(Timer::s_timeLimitEnforcement && env->timeLimitReached()) {
     timeLimitReached();
   }
 
@@ -301,7 +328,7 @@ void Lib::Timer::makeChildrenIncluded()
   _mustIncludeChildren=true;
 }
 
-
+#endif
 #endif
 
 namespace Lib
@@ -348,7 +375,7 @@ void Timer::printMSString(ostream& str, int ms)
 
 Timer* Timer::instance()
 {
-  static ScopedPtr<Timer> inst(new Timer());
+  VTHREAD_LOCAL static ScopedPtr<Timer> inst(new Timer());
   
   return inst.ptr();
 }

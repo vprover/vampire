@@ -35,7 +35,7 @@ Clause* EquationalTautologyRemoval::simplify(Clause* cl)
   bool has_pos_eq = false;
   bool has_complement = false;
 
-  static DHSet<int> preds;
+  VTHREAD_LOCAL static DHSet<int> preds;
   preds.reset();
 
   for (unsigned i = 0; i < cl->length(); i++) {
@@ -85,7 +85,7 @@ Clause* EquationalTautologyRemoval::simplify(Clause* cl)
   if (_cc.getStatus(false) == DP::DecisionProcedure::UNSATISFIABLE) {
     // cout << "Deep equational: " << cl->toString() << endl;
 
-    env.statistics->deepEquationalTautologies++;
+    env->statistics->deepEquationalTautologies++;
     return 0;
   } else {
     return cl;

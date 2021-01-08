@@ -28,7 +28,7 @@ vstring StringUtils::replaceChar(vstring str, char src, char target)
   CALL("StringUtils::replaceChar");
 
   size_t len=str.size();
-  static DArray<char> buf;
+  VTHREAD_LOCAL static DArray<char> buf;
   buf.ensure(len);
 
   const char* sptr=str.c_str();
@@ -57,7 +57,7 @@ vstring StringUtils::sanitizeSuffix(vstring str)
   CALL("StringUtils::sanitizeSuffix");
 
   size_t len=str.size();
-  static DArray<char> buf;
+  VTHREAD_LOCAL static DArray<char> buf;
   buf.ensure(len);
 
   const char* sptr=str.c_str();
@@ -133,7 +133,7 @@ void StringUtils::splitStr(const char* str, char delimiter, Stack<vstring>& stri
 {
   CALL("StringUtils::splitStr");
 
-  static Stack<char> currPart;
+  VTHREAD_LOCAL static Stack<char> currPart;
   currPart.reset();
 
   const char* curr = str;
@@ -156,7 +156,7 @@ bool StringUtils::readEquality(const char* str, char eqChar, vstring& lhs, vstri
 {
   CALL("StringUtils::readEquality");
 
-  static Stack<vstring> parts;
+  VTHREAD_LOCAL static Stack<vstring> parts;
   parts.reset();
   splitStr(str, eqChar, parts);
   if(parts.size()!=2) {
@@ -174,7 +174,7 @@ bool StringUtils::readEqualities(const char* str, char delimiter, char eqChar, D
 {
   CALL("StringUtils::readEqualities");
 
-  static Stack<vstring> parts;
+  VTHREAD_LOCAL static Stack<vstring> parts;
   parts.reset();
   splitStr(str, delimiter, parts);
 

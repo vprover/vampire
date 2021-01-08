@@ -72,11 +72,11 @@ FormulaUnit* Flattening::flatten (FormulaUnit* unit)
 
   FormulaUnit* res = new FormulaUnit(g,
       FormulaTransformation(InferenceRule::FLATTEN,unit));
-  if (env.options->showPreprocessing()) {
-    env.beginOutput();
-    env.out() << "[PP] flatten in: " << unit->toString() << std::endl;
-    env.out() << "[PP] flatten out: " << res->toString() << std::endl;
-    env.endOutput();
+  if (env->options->showPreprocessing()) {
+    env->beginOutput();
+    env->out() << "[PP] flatten in: " << unit->toString() << std::endl;
+    env->out() << "[PP] flatten out: " << res->toString() << std::endl;
+    env->endOutput();
   }
   return res;
 } // Flattening::flatten
@@ -104,8 +104,8 @@ Formula* Flattening::flatten (Formula* f)
     {
       Literal* lit = f->literal();
 
-      if (env.options->newCNF() && !env.statistics->higherOrder &&
-          !env.property->hasPolymorphicSym()) {
+      if (env->options->newCNF() && !env->statistics->higherOrder &&
+          !env->property->hasPolymorphicSym()) {
         // Convert equality between boolean FOOL terms to equivalence
         if (lit->isEquality()) {
           TermList lhs = *lit->nthArgument(0);

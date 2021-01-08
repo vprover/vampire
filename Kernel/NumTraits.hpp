@@ -90,7 +90,7 @@ struct NumTraits;
     static constexpr Theory::Interpretation name ## I = Theory::SORT_SHORT ## _INTERPRETATION;                \
                                                                                                               \
     static unsigned name ## F() {                                                                             \
-      static const unsigned functor = env.signature->getInterpretingSymbol(name ## I);                        \
+      VTHREAD_LOCAL static const unsigned functor = env->signature->getInterpretingSymbol(name ## I);          \
       return functor;                                                                                         \
     }                                                                                                         \
 
@@ -120,7 +120,7 @@ struct NumTraits;
 #define IMPL_NUM_TRAITS__SPECIAL_CONSTANT(name, value, isName)                                                \
     constexpr static ConstantType name ## C = ConstantType(value);                                            \
     static Term* name ## T() {  /* TODO refactor to const& Term */                                            \
-      static Term* trm = theory->representConstant(name ## C);                                                \
+      VTHREAD_LOCAL static Term* trm = theory->representConstant(name ## C);                                  \
       return trm;                                                                                             \
     }                                                                                                         \
     static TermList name()                                                                                    \

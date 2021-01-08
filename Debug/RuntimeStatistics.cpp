@@ -78,7 +78,7 @@ void RSMultiStatistic::print(ostream& out)
 
 RuntimeStatistics* RuntimeStatistics::instance()
 {
-  static RuntimeStatistics inst;
+  VTHREAD_LOCAL static RuntimeStatistics inst;
 
   return &inst;
 }

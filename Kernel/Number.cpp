@@ -161,7 +161,7 @@ void reduceIntNumbers(size_t cnt, NativeNumber** vals)
 int getDecimalPlaces(double dbVal)
 {
   dbVal = fmod(dbVal, 1); /* NO NEED TO CONSIDER NUMBERS TO THE LEFT OF THE DECIMAL */
-  static const int MAX_DP = 24;
+  const int MAX_DP = 24;
   double THRES = pow(0.1, MAX_DP);
   if (dbVal == 0.0)
     return 0;
@@ -362,7 +362,7 @@ void CoeffNumber::reduceNumbers(size_t cnt, CoeffNumber** vals, bool allowDecima
 ;
   }
   else {
-    static Stack<NativeNumber*> numPtrs;
+    VTHREAD_LOCAL static Stack<NativeNumber*> numPtrs;
     numPtrs.reset();
     for(size_t i=0; i<cnt; i++) {
       numPtrs.push(&(vals[i]->native()));
@@ -382,7 +382,7 @@ BoundNumber BoundNumber::getRandomValue(const BoundNumber& min, const BoundNumbe
 
   ASS_L(min,max);
   if(usePrecise()) {
-    static const unsigned randomDivisor = 64;
+    const unsigned randomDivisor = 64;
     Precise diff = max.precise()-min.precise();
     Precise part = (diff*(Random::getInteger(randomDivisor-2)+1))/randomDivisor;
     return BoundNumber(min.precise()+part);

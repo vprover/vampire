@@ -145,7 +145,7 @@ public:
   static Literal* applyToLiteral(Literal* lit, Subst subst)
   {
     CALL("SubstHelper::applyToLiteral");
-    static DArray<TermList> ts(32);
+    VTHREAD_LOCAL static DArray<TermList> ts(32);
 
     int arity = lit->arity();
     ts.ensure(arity);

@@ -155,7 +155,7 @@ private:
    *
    * The currently passing time contribute's to this counter's "own" time.
    */
-  static TimeCounter* s_currTop;
+  VTHREAD_LOCAL static TimeCounter* s_currTop;
 
   /**
    * To store s_currTop when (*this) becomes the new top.
@@ -166,31 +166,31 @@ private:
    * Determines whether the time measurement will be performed.
    *
    * Initially is set to @b true, and the first time the measurement is requested,
-   * the env.options structure is checked, whether measurement should indeed be done,
+   * the env->options structure is checked, whether measurement should indeed be done,
    * and if not, it is set to @b false.
    */
-  static bool s_measuring;
+  VTHREAD_LOCAL static bool s_measuring;
   /**
    * Contains true if the @b s_measuredTimes and @b s_measureInitTimes arrays
    * have been initialized.
    */
-  static bool s_initialized;
+  VTHREAD_LOCAL static bool s_initialized;
   /**
    * Contains number of milliseconds passed in each TimeCounterUnit.
    */
-  static int s_measuredTimes[];
+  VTHREAD_LOCAL static int s_measuredTimes[];
   /**
    * Contains number of milliseconds passed in each TimeCounterUnit's children.
    *
    * "ownTime" = "measuredTime" - "measuredTimesChildren"
    */
-  static int s_measuredTimesChildren[];
+  VTHREAD_LOCAL static int s_measuredTimesChildren[];
   /**
    * For each TimeCounterUnit contains either -1 if the unit is not being
    * measured, or a non-negative number representing initial time of the current
    * block in the unit.
    */
-  static int s_measureInitTimes[];
+  VTHREAD_LOCAL static int s_measureInitTimes[];
 };
 
 };

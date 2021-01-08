@@ -36,7 +36,7 @@ using namespace Lib;
 using namespace Kernel;
 
 TermSubstitutionTree::TermSubstitutionTree(bool useC, bool rfSubs, bool extra)
-: SubstitutionTree(env.signature->functions(),useC, rfSubs), _extByAbs(rfSubs)
+: SubstitutionTree(env->signature->functions(),useC, rfSubs), _extByAbs(rfSubs)
 {
   _extra = extra;
   if(rfSubs){

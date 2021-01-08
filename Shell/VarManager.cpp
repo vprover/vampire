@@ -22,7 +22,7 @@ namespace Shell
 
 using namespace std;
 
-VarManager::VarFactory* VarManager::_fact = 0;
+VTHREAD_LOCAL VarManager::VarFactory* VarManager::_fact = 0;
 
 unsigned VarManager::getVarAlias(unsigned var)
 {

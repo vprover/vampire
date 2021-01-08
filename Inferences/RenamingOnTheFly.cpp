@@ -60,7 +60,7 @@ ClauseIterator RenamingOnTheFly::produceClauses(Clause* c)
   CALL("RenamingOnTheFly::produceClauses");  
 
   //0 means dont rename
-  static int namingBound = env.options->naming();
+  static int namingBound = env->options->naming();
 
   TermList troo = TermList(Term::foolTrue());
   TermList boolSort = Term::boolSort();
@@ -150,8 +150,8 @@ ClauseIterator RenamingOnTheFly::produceClauses(Clause* c)
       }
 
       if(namingBound > 0 && 
-         env.signature->formulaCount(formula.term()) >= namingBound) {
-        env.signature->formulaNamed(formula.term());
+         env->signature->formulaCount(formula.term()) >= namingBound) {
+        env->signature->formulaNamed(formula.term());
 
         //create name
         static DHMap<unsigned,TermList> varSorts;
@@ -191,9 +191,9 @@ ClauseIterator RenamingOnTheFly::produceClauses(Clause* c)
           VList::push(args[i].var(), vl);
         }
 
-        unsigned fun = env.signature->addNameFunction(args.size());
+        unsigned fun = env->signature->addNameFunction(args.size());
         TermList sort = Term::arrowSort(argSorts, Term::boolSort());
-        Signature::Symbol* sym = env.signature->getFunction(fun);
+        Signature::Symbol* sym = env->signature->getFunction(fun);
         sym->setType(OperatorType::getConstantsType(sort, vl)); 
         TermList funApplied = TermList(Term::create(fun, args.size(), args.begin()));
         TermList name = AH::createAppTerm(sort, funApplied, termArgs);

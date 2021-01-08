@@ -44,7 +44,7 @@ UnitList* SATInference::getFOPremises(SATClause* cl)
   ASS(cl);
   ASS(cl->inference());
 
-  static Stack<Unit*> prems;
+  VTHREAD_LOCAL static Stack<Unit*> prems;
   prems.reset();
 
   collectFOPremises(cl, prems);
@@ -78,8 +78,8 @@ void SATInference::collectPropAxioms(SATClause* cl, SATClauseStack& res)
 {
   CALL("SATInference::collectPropAxioms");
 
-  static Stack<SATClause*> toDo;
-  static DHSet<SATClause*> seen;
+  VTHREAD_LOCAL static Stack<SATClause*> toDo;
+  VTHREAD_LOCAL static DHSet<SATClause*> seen;
   toDo.reset();
   seen.reset();
 

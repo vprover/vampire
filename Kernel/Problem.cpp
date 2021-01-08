@@ -19,10 +19,12 @@
 #include "Lib/TimeCounter.hpp"
 #include "Lib/VirtualIterator.hpp"
 
+#include "Shell/Options.hpp"
 #include "Shell/Property.hpp"
 #include "Shell/Statistics.hpp"
 
 #include "Clause.hpp"
+#include "FormulaUnit.hpp"
 #include "Term.hpp"
 
 #include "Problem.hpp"
@@ -118,8 +120,17 @@ void Problem::addUnits(UnitList* newUnits)
     if(u->isClause()) {
       static_cast<Clause*>(u)->incRefCnt();
     }
+#if VTHREADED 
+    if(env->options->mode() == Options::Mode::THREADED) {
+      if(u->isClause())
+        u = Clause::fromClause(static_cast<Clause *>(u), InferenceRule::COPY_FOR_THREAD);
+      else
+        u = new FormulaUnit(static_cast<FormulaUnit *>(u)->formula(), FormulaTransformation(InferenceRule::COPY_FOR_THREAD, u));
+    }
+#endif
+    UnitList::push(u, _units);
   }
-  _units = UnitList::concat(newUnits, _units);
+
   if(_propertyValid) {
     TimeCounter tc(TC_PROPERTY_EVALUATION);
     _property->add(newUnits);
@@ -276,7 +287,7 @@ void Problem::refreshProperty() const
   CALL("Problem::refreshProperty");
 
   TimeCounter tc(TC_PROPERTY_EVALUATION);
-  ScopedLet<Statistics::ExecutionPhase> phaseLet(env.statistics->phase, Statistics::PROPERTY_SCANNING);
+  ScopedLet<Statistics::ExecutionPhase> phaseLet(env->statistics->phase, Statistics::PROPERTY_SCANNING);
 
   if(_property) {
     delete _property;

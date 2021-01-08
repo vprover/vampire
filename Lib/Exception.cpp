@@ -23,7 +23,7 @@
 namespace Lib
 {
 
-int Exception::s_exceptionCounter=0;
+VTHREAD_LOCAL int Exception::s_exceptionCounter=0;
 
 Exception::Exception (const char* msg, int line)
   : _message((vstring(msg)+": "+Int::toString(line)).c_str())

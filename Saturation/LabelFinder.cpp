@@ -55,8 +55,8 @@ void LabelFinder::onNewPropositionalClause(Clause* cl)
   unsigned predicate = (*cl)[0]->functor();
 
   // Looking for predicates
-  ASS(env.signature->getPredicate(predicate));
-  if(!env.signature->getPredicate(predicate)->label()){
+  ASS(env->signature->getPredicate(predicate));
+  if(!env->signature->getPredicate(predicate)->label()){
     return;
   }
 
