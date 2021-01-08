@@ -120,7 +120,9 @@ Z3Interfacing::Z3Interfacing(SAT2FO& s2f, bool showZ3, bool unsatCoreForRefutati
          _solver.get_model())), 
   _assumptions(_context), _unsatCoreForAssumptions(unsatCoresForAssumptions),
   _showZ3(showZ3),
-  _unsatCoreForRefutations(unsatCoreForRefutations)
+  _unsatCoreForRefutations(unsatCoreForRefutations),
+  // TODO makes z3::solver::get_model way faster. gives a 400% overall speed up in some cases where there is a lot of avatar reasoning. should we remoe this as option?
+  _nameAllLiterals(true)
 {
   CALL("Z3Interfacing::Z3Interfacing");
   BYPASSING_ALLOCATOR
@@ -130,6 +132,7 @@ Z3Interfacing::Z3Interfacing(SAT2FO& s2f, bool showZ3, bool unsatCoreForRefutati
   //z3::set_param("trace", "true");
 
     z3::params p(_context);
+    p.set("model.compact", false); // keeps z3 from compressing its model. ~50% of the runtime of get_model is spent doing that otherwise
   if (_unsatCoreForAssumptions) {
     p.set(":unsat-core", true);
   }
@@ -296,7 +299,7 @@ SATSolver::VarAssignment Z3Interfacing::getAssignment(unsigned var)
   BYPASSING_ALLOCATOR;
 
   ASS_EQ(_status,SATISFIABLE);
-  bool named = _namedExpressions.find(var);
+  bool named = isNamedExpr(var);
   z3::expr rep = named ? getNameExpr(var) : getRepresentationWithoutGuard(SATLiteral(var,1));
   z3::expr assignment = _model.eval(rep,true /*model_completion*/);
 
@@ -1053,6 +1056,8 @@ z3::expr Z3Interfacing::getz3expr(Term* trm, bool& nameExpression,bool withGuard
   nameExpression = false;
   addedGuard = false;
   auto result = evaluateBottomUp(TermList(trm), ToZ3Expr{ *this, nameExpression, withGuard, addedGuard });
+  if (_nameAllLiterals)
+    nameExpression = true;
   return result;
 }
 
@@ -1073,7 +1078,7 @@ z3::expr Z3Interfacing::getRepresentation(SATLiteral slit, bool withGuard, bool&
       z3::expr e = getz3expr(lit,nameExpression,withGuard,addedGuard);
       // cout << "got rep " << e << endl;
 
-      if(nameExpression && _namedExpressions.insert(slit.var())) {
+      if(nameExpression) {
         z3::expr bname = getNameExpr(slit.var()); 
         // cout << "Naming " << e << " as " << bname << endl;
         PRINT_CPP("{ expr nm = exprs.back(); exprs.pop_back(); expr e = exprs.back(); exprs.pop_back(); expr naming = (nm == e); cout << \"naming: \" << naming << endl; solver.add(naming); }")

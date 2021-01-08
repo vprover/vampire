@@ -272,17 +272,25 @@ private:
 
 
   z3::expr_vector _assumptions;
-  bool _unsatCoreForAssumptions;
+  const bool _unsatCoreForAssumptions;
+  const bool _showZ3;
+  const bool _unsatCoreForRefutations;
+  const bool _nameAllLiterals;
 
-  bool _showZ3;
-  bool _unsatCoreForRefutations;
+  Map<unsigned, z3::expr> _varNames;
 
-  DHSet<unsigned> _namedExpressions;
+  bool isNamedExpr(unsigned var)
+  { return _varNames.find(var); }
 
   z3::expr getNameExpr(unsigned var){
-    vstring name = "v"+Lib::Int::toString(var);
-    return  _context.bool_const(name.c_str());
+    return _varNames.getOrInit(var, [&](){
+        // this method is called very often in runs with a lot of avatar reasoning. Cache the constants to avoid that z3 has to search for the string name in its function index
+        vstring name = "v"+Lib::Int::toString(var);
+        return  _context.bool_const(name.c_str());
+    });
   }
+
+
   // careful: keep native constants' names distinct from the above ones (hence the "c"-prefix below)
   z3::expr getNameConst(const vstring& symbName, z3::sort srt){
     vstring name("c"+symbName);
