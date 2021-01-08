@@ -69,8 +69,9 @@ void TheoryInstAndSimp::attach(SaturationAlgorithm* salg)
   _splitter = salg->getSplitter();
 }
 
-bool TheoryInstAndSimp::isSupportedSort(const unsigned sort) {
-  //TODO: extend for more sorts (arrays, datatypes)
+bool TheoryInstAndSimp::calcIsSupportedSort(const unsigned sort)
+{
+  CALL("TheoryInstAndSimp::calcIsSupportedSort")
   switch (sort) {
   case Kernel::Sorts::SRT_INTEGER:
   case Kernel::Sorts::SRT_RATIONAL:
@@ -80,11 +81,14 @@ bool TheoryInstAndSimp::isSupportedSort(const unsigned sort) {
   if (env.signature->isTermAlgebraSort(sort)) {
     return env.signature->getTermAlgebraOfSort(sort)
                         ->subSorts().iter()
-                         .all([&](unsigned s){ return env.signature->isTermAlgebraSort(s) || isSupportedSort(s); });
+                         .all([&](unsigned s){ return env.signature->isTermAlgebraSort(s) || calcIsSupportedSort(s); });
   } else {
     return false;
   }
 }
+
+bool TheoryInstAndSimp::isSupportedSort(const unsigned sort) 
+{ return _supportedSorts.getOrInit(sort, [&](){ return calcIsSupportedSort(sort); }); }
 
 /**
   Wraps around interpretePredicate to support interpreted equality

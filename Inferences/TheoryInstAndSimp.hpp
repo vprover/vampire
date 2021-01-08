@@ -97,6 +97,7 @@ private:
      Checks if models for sort can be mapped back to terms.
   */
   bool isSupportedSort(const unsigned sort);
+  bool calcIsSupportedSort(const unsigned sort);
   bool isUninterpretedFunction(Term* trm);
 
   /**
@@ -114,6 +115,7 @@ private:
   Options::TheoryInstSimp _mode;
   SAT2FO _naming;
   Z3Interfacing* _solver;
+  Map<unsigned, bool> _supportedSorts;
 
 };
 
