@@ -81,11 +81,11 @@ vvector<TermList> getInductionTerms(TermList t)
     auto& templ = env.signature->getInductionTemplate(f, isPred);
     const auto& indVars = templ._inductionVariables;
 
-    IteratorByInductiveVariables argIt(t.term(), indVars);
+    Term::Iterator argIt(t.term());
     unsigned i = 0;
     while (argIt.hasNext()) {
       auto arg = argIt.next();
-      if (type->arg(i) == type->result()) {
+      if (indVars.at(i) && type->arg(i) == type->result()) {
         auto indTerms = getInductionTerms(arg);
         v.insert(v.end(), indTerms.begin(), indTerms.end());
       }
@@ -96,9 +96,6 @@ vvector<TermList> getInductionTerms(TermList t)
     // subterm of the constructor terms
     for (unsigned i = 0; i < t.term()->arity(); i++) {
       auto st = *t.term()->nthArgument(i);
-      if (st.isVar()) {
-        continue;
-      }
       if (type->arg(i) == type->result()) {
         auto indTerms = getInductionTerms(st);
         v.insert(v.end(), indTerms.begin(), indTerms.end());

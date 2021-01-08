@@ -20,6 +20,8 @@
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Unit.hpp"
 
+#define COMMUTATION_CHECK_LIMIT 10
+
 using namespace Kernel;
 
 namespace Shell {
@@ -218,6 +220,9 @@ bool findCommutator(const vmap<TermList, pair<TermList, TermList>>& initialGoalP
     if (success) {
       return true;
     }
+  }
+  if (counter >= COMMUTATION_CHECK_LIMIT) {
+    return false;
   }
   if (counter > 0 && firstRound) {
     return false;
