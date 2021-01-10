@@ -159,13 +159,15 @@ vvector<TermList> TermAlgebra::generateAvailableTerms(const Term* t, unsigned& v
   return res;
 }
 
-void TermAlgebra::excludeTermFromAvailables(vvector<TermList>& availables, TermList e, unsigned& var) {
+bool TermAlgebra::excludeTermFromAvailables(vvector<TermList>& availables, TermList e, unsigned& var) {
   ASS(e.isTerm());
   auto last = availables.size();
+  bool excluded = false;
   for (unsigned i = 0; i < last;) {
     auto p = availables[i];
     RobSubstitution subst;
     if (subst.unify(p, 0, e, 1)) {
+      excluded = true;
       // if they are unifiable, p will be either
       // replaced by more specific terms, or removed
       availables[i] = availables.back();
@@ -207,6 +209,7 @@ void TermAlgebra::excludeTermFromAvailables(vvector<TermList>& availables, TermL
     i++;
   }
   availables.shrink_to_fit();
+  return excluded;
 }
 
 }

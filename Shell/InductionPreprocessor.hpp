@@ -109,7 +109,7 @@ private:
   void processBody(TermList body, TermList header, vvector<Formula*> conditions, InductionTemplate& templ);
   void processCase(const unsigned recFun, const bool isPred, TermList body, vvector<TermList>& recursiveCalls);
 
-  vmap<unsigned, vvector<pair<InductionTemplate, vvector<pair<Literal*,bool>>>>> foundFunctionDefinitions;
+  vvector<vmap<unsigned, pair<InductionTemplate, vvector<pair<Literal*,bool>>>>> foundFunctionDefinitions;
   vmap<unsigned, InductionTemplate> foundPredicateDefinitions;
 };
 

@@ -75,17 +75,13 @@ bool isHeader(TermList t)
   }
 
   Term::Iterator it(t.term());
-  bool hasTermArg = false;
   while (it.hasNext()) {
     auto arg = it.next();
-    if (arg.isTerm()) {
-      hasTermArg = true;
-    }
     if (!isConstructorTerm(arg)) {
       return false;
     }
   }
-  return hasTermArg;
+  return true;
 }
 
 TermList TermListReplacement::transformSubterm(TermList trm)
@@ -221,10 +217,18 @@ bool InductionTemplate::checkWellDefinedness()
       if (arg.isTerm()) {
         auto tempLists = availableTermsLists;
         for (auto& availableTerms : tempLists) {
-          TermAlgebra::excludeTermFromAvailables(availableTerms[j], arg, var);
+          if (!TermAlgebra::excludeTermFromAvailables(availableTerms[j], arg, var) && rdesc._conditions.empty()) {
+            return false;
+          }
         }
         nextAvailableTermsLists.insert(nextAvailableTermsLists.end(),
           tempLists.begin(), tempLists.end());
+      } else {
+        for (const auto& availableTerms : availableTermsLists) {
+          if ((availableTerms[j].size() != 1 || availableTerms[j][0].isTerm()) && rdesc._conditions.empty()) {
+            return false;
+          }
+        }
       }
       j++;
     }
@@ -425,54 +429,110 @@ ostream& operator<<(ostream& out, const InductionTemplate& templ)
   return out;
 }
 
-void InductionPreprocessor::preprocess(Problem& prb)
+
+bool checkContains(const RDescription& rdesc1, const RDescription& rdesc2)
 {
-  preprocess(prb.units());
-  for (auto& kv : foundFunctionDefinitions) {
-    if (env.signature->hasInductionTemplate(kv.first, false)) {
-      env.beginOutput();
-      env.out() << "% Warning: function definition already found for "
-                << env.signature->functionName(kv.first) << endl;
-      env.endOutput();
-      continue;
-    }
+  RobSubstitutionSP subst(new RobSubstitution);
+  // try to unify the step cases
+  if (!subst->unify(rdesc2._step, 0, rdesc1._step, 1)) {
+    return false;
+  }
+  auto t1 = subst->apply(rdesc1._step, 1);
+  Renaming r1, r2;
+  r1.normalizeVariables(rdesc1._step);
+  r2.normalizeVariables(rdesc2._step);
+  auto t2 = subst->apply(rdesc2._step, 0);
+  if (t1 != r1.apply(rdesc1._step) || t2 != r2.apply(rdesc2._step)) {
+    return false;
+  }
+  if (!rdesc1._conditions.empty() || !rdesc2._conditions.empty()) {
+    return false;
+  }
+  for (const auto& recCall1 : rdesc1._recursiveCalls) {
     bool found = false;
-    for (auto& kv2 : kv.second) {
-      if (kv2.first.checkWellFoundedness()
-          && kv2.first.checkWellDefinedness()
-          && kv2.first.checkUsefulness()) {
-        if (found) {
-          env.beginOutput();
-          env.out() << "% Warning: at least two function definition were found for "
-                    << env.signature->functionName(kv.first) << endl;
-          env.endOutput();
-          break;
-        }
-        if(env.options->showInduction()){
-          env.beginOutput();
-          env.out() << "[Induction] recursive function definition has been discovered: "
-                    << env.signature->functionName(kv.first)
-                    << ", with induction template: " << kv2.first << endl;
-          env.endOutput();
-        }
-        env.signature->addInductionTemplate(kv.first, false, std::move(kv2.first));
-        if (env.options->functionDefinitionRewriting()) {
-          for (auto& kv3 : kv2.second) {
-            kv3.first->makeFunctionDefinition();
-            kv3.first->resetFunctionOrientation();
-            if (kv3.second) {
-              kv3.first->reverseFunctionOrientation();
-            }
-          }
-        }
+    for (const auto& recCall2 : rdesc2._recursiveCalls) {
+      const auto& r1 = subst->apply(recCall1, 1);
+      const auto& r2 = subst->apply(recCall2, 0);
+      if (r1 == r2) {
         found = true;
+        break;
       }
     }
     if (!found) {
-      env.beginOutput();
-      env.out() << "% Warning: could not determine function definition "
-                << env.signature->functionName(kv.first) << endl;
-      env.endOutput();
+      return false;
+    }
+  }
+  return true;
+}
+
+void InductionPreprocessor::preprocess(Problem& prb)
+{
+  // add empty set of templates
+  foundFunctionDefinitions.emplace_back();
+  preprocess(prb.units());
+  vvector<unsigned> viableSets;
+  vvector<unsigned> wellFoundedSets;
+  unsigned i = 0;
+  for (auto& fndefs : foundFunctionDefinitions) {
+    bool viable = true;
+    bool wellFounded = true;
+    for (auto& kv : fndefs) {
+
+      auto& rdescs = kv.second.first._rDescriptions;
+      for (unsigned i = 0; i < rdescs.size(); i++) {
+        for (unsigned j = i+1; j < rdescs.size();) {
+          if (checkContains(rdescs[j], rdescs[i])) {
+            rdescs[j] = rdescs.back();
+            rdescs.pop_back();
+          } else {
+            j++;
+          }
+        }
+      }
+
+      if (!kv.second.first.checkWellFoundedness()) 
+      {
+        wellFounded = false;
+        viable = false;
+        break;
+      }
+      if (!kv.second.first.checkWellDefinedness())
+      {
+        viable = false;
+      }
+    }
+    if (wellFounded) {
+      wellFoundedSets.push_back(i);
+    }
+    if (viable) {
+      viableSets.push_back(i);
+    }
+    i++;
+  }
+  ALWAYS(wellFoundedSets.size() > 1);
+  auto& fndefs = foundFunctionDefinitions[wellFoundedSets[0]];
+  if (viableSets.size() > 1) {
+    fndefs = foundFunctionDefinitions[viableSets[0]];
+  }
+  for (auto& kv : fndefs) {
+    if (kv.second.first.checkUsefulness()) {
+      if(env.options->showInduction()){
+        env.beginOutput();
+        env.out() << "[Induction] recursive function definition has been discovered: "
+                  << env.signature->functionName(kv.first)
+                  << ", with induction template: " << kv.second.first << endl;
+        env.endOutput();
+      }
+      env.signature->addInductionTemplate(kv.first, false, std::move(kv.second.first));
+      if (env.options->functionDefinitionRewriting()) {
+        for (auto& kv2 : kv.second.second) {
+          kv2.first->makeFunctionDefinition();
+          kv2.first->resetFunctionOrientation();
+          if (kv2.second) {
+            kv2.first->reverseFunctionOrientation();
+          }
+        }
+      }
     }
   }
   for (auto& kv : foundPredicateDefinitions) {
@@ -577,66 +637,36 @@ void InductionPreprocessor::findPossibleRecursiveDefinitions(Formula* f, vvector
         auto succlhs = processFn(lhs, rhs, tlhs);
         InductionTemplate trhs;
         auto succrhs = processFn(rhs, lhs, trhs);
-        if (succlhs && succrhs
-          && lhs.term()->functor() == rhs.term()->functor()
-          && lhs.term()->isFormula() == rhs.term()->isFormula())
-        {
-          auto it = foundFunctionDefinitions.find(lhs.term()->functor());
-          if (it == foundFunctionDefinitions.end()) {
-            vvector<pair<InductionTemplate, vvector<pair<Literal*,bool>>>> v;
-            vvector<pair<Literal*,bool>> v1;
-            v1.push_back(make_pair(lit, false));
-            vvector<pair<Literal*,bool>> v2;
-            v2.push_back(make_pair(lit, true));
-            v.push_back(make_pair(tlhs, v1));
-            v.push_back(make_pair(trhs, v2));
-            it = foundFunctionDefinitions.insert(make_pair(lhs.term()->functor(), v)).first;
-          } else {
-            vvector<pair<InductionTemplate, vvector<pair<Literal*,bool>>>> newv;
-            for (auto v : it->second) {
-              v.first._rDescriptions.insert(
-                v.first._rDescriptions.end(),
-                tlhs._rDescriptions.begin(),
-                tlhs._rDescriptions.end());
-              v.second.push_back(make_pair(lit, false));
-              newv.push_back(v);
-            }
-            for (auto v : it->second) {
-              v.first._rDescriptions.insert(
-                v.first._rDescriptions.end(),
-                trhs._rDescriptions.begin(),
-                trhs._rDescriptions.end());
-              v.second.push_back(make_pair(lit, true));
-              newv.push_back(v);
-            }
-            it->second = newv;
-          }
-        } else {
-          auto mergeDefs = [this](Term* t, Literal* lit, bool rhsHeader, const InductionTemplate& templ) {
-            ASS(!t->isFormula());
-            auto it = foundFunctionDefinitions.find(t->functor());
-            if (it == foundFunctionDefinitions.end()) {
-              vvector<pair<InductionTemplate, vvector<pair<Literal*,bool>>>> v;
-              v.push_back(make_pair(templ, vvector<pair<Literal*,bool>>()));
-              it = foundFunctionDefinitions.insert(make_pair(t->functor(), v)).first;
+
+        auto temp = foundFunctionDefinitions;
+        if (succlhs || succrhs) {
+          foundFunctionDefinitions.clear();
+        }
+        auto insertFn = [this, temp, lit](TermList t, InductionTemplate templ, bool reversed) {
+          for (auto fndefs : temp) {
+            auto it = fndefs.find(t.term()->functor());
+            if (it == fndefs.end()) {
+              vvector<pair<Literal*,bool>> v;
+              auto p = make_pair(templ, vvector<pair<Literal*,bool>>());
+              p.second.push_back(make_pair(lit, reversed));
+              fndefs.insert(make_pair(t.term()->functor(), p));
             } else {
-              for (auto& v : it->second) {
-                v.first._rDescriptions.insert(
-                  v.first._rDescriptions.end(),
-                  templ._rDescriptions.begin(),
-                  templ._rDescriptions.end());
-              }
+              it->second.first._rDescriptions.insert(
+                it->second.first._rDescriptions.end(),
+                templ._rDescriptions.begin(),
+                templ._rDescriptions.end());
+              it->second.second.push_back(make_pair(lit, reversed));
             }
-            for (auto& v : it->second) {
-              v.second.push_back(make_pair(lit, rhsHeader));
-            }
-          };
-          if (succlhs) {
-            mergeDefs(lhs.term(), lit, false, tlhs);
+            foundFunctionDefinitions.push_back(fndefs);
           }
-          if (succrhs) {
-            mergeDefs(rhs.term(), lit, true, trhs);
-          }
+        };
+        if (succlhs)
+        {
+          insertFn(lhs, tlhs, false);
+        }
+        if (succrhs)
+        {
+          insertFn(rhs, trhs, true);
         }
         if(env.options->showInduction()){
           env.beginOutput();
