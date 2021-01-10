@@ -394,12 +394,6 @@ Formula* Rectify::rectify (Formula* f)
   case LITERAL: 
   {
     Literal* lit = rectify(f->literal());
-    if (f->literal() && f->literal()->isFunctionDefinition()) {
-      lit->makeFunctionDefinition();
-      if (lit->isFunctionOrientedReversed() != f->literal()->isFunctionOrientedReversed()) {
-        lit->reverseFunctionOrientation();
-      }
-    }
     return lit == f->literal() ? f : new AtomicFormula(lit);
   }
 

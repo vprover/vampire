@@ -344,10 +344,10 @@ TermIterator EqHelper::getFnDefLHSIterator(Literal* lit, bool reversed)
   TermList t0=*lit->nthArgument(0);
   TermList t1=*lit->nthArgument(1);
   if (reversed) {
-    ASS(t1.containsAllVariablesOf(t0));
+    ASS_REP(t1.containsAllVariablesOf(t0), *lit);
     return pvi( getSingletonIterator(t1) );
   }
-  ASS(t0.containsAllVariablesOf(t1));
+  ASS_REP(t0.containsAllVariablesOf(t1), *lit);
   return pvi( getSingletonIterator(t0) );
 }
 

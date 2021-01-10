@@ -219,6 +219,7 @@ Literal* TermSharing::insert(Literal* t)
     t->destroy();
   }
   // overwrite current orientation with new
+  reverseOrientation = reverseOrientation ^ t->isFunctionOrientedReversed();
   s->resetFunctionOrientation();
   if (reverseOrientation) {
     s->reverseFunctionOrientation();

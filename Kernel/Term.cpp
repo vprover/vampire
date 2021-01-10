@@ -1380,8 +1380,8 @@ Term::Term(const Term& t) throw()
     _hasInterpretedConstants(0),
     _isTwoVarEquality(0),
     _weight(0),
-    _functionOrientation(0),
-    _functionDefinition(0),
+    _functionOrientation(t._functionOrientation),
+    _functionDefinition(t._functionDefinition),
     _vars(0)
 {
   CALL("Term::Term/1");
