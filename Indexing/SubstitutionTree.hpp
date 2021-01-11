@@ -257,7 +257,7 @@ public:
           TermList srt;
           // only consider interpreted sorts
           if(SortHelper::tryGetResultSort(t,srt) && !srt.isVar() 
-             && !srt.term()->isSuper() && srt.term()->ground() &&
+             && !srt.term()->isSuper() && !srt.term()->arity() &&
              SortHelper::isInterpretedNonDefault(SortHelper::sortNum(srt))){
             unsigned top = t.term()->functor();
             TermStack::Iterator fit(bySortTerms[SortHelper::sortNum(srt)]);
@@ -281,7 +281,7 @@ public:
           if(!t.isTerm()){ return; }
           TermList srtT;
           if(SortHelper::tryGetResultSort(t,srtT) && !srtT.isVar() && 
-             !srtT.term()->isSuper() && srtT.term()->ground()){
+             !srtT.term()->isSuper() && !srtT.term()->arity()){
             unsigned srt = SortHelper::sortNum(srtT);
             if(SortHelper::isInterpretedNonDefault(srt)){
               unsigned f = t.term()->functor();
@@ -296,8 +296,9 @@ public:
           CALL("SubstitutionTree::ChildBySortHelper::remove");
           if(!t.isTerm()){ return;}
           TermList srtT;
+
           if(SortHelper::tryGetResultSort(t,srtT) && !srtT.isVar() && 
-             !srtT.term()->isSuper()){
+             !srtT.term()->isSuper() && !srtT.term()->arity()){
             unsigned srt = SortHelper::sortNum(srtT);
             if(SortHelper::isInterpretedNonDefault(srt)){
               unsigned f = t.term()->functor();
