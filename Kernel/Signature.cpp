@@ -449,7 +449,7 @@ unsigned Signature::addInterpretedFunction(Interpretation interpretation, Operat
   }
 
   vstring symbolKey = name+"_i"+Int::toString(interpretation)+(Theory::isPolymorphic(interpretation) ? type->toString() : "");
-  ASS(!_funNames.find(symbolKey));
+  ASS_REP(!_funNames.find(symbolKey), name);
 
   unsigned fnNum = _funs.length();
   InterpretedSymbol* sym = new InterpretedSymbol(name, interpretation);
