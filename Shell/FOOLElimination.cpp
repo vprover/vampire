@@ -440,31 +440,10 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
 
   // collect free variables of the term and their sorts
   VList* freeVars = term->freeVariables();
-  TermStack argSorts;
-  TermStack termArgs;
-  TermStack args;
-
-  VList::Iterator fvi(freeVars);
-  while (fvi.hasNext()) {
-    unsigned var = fvi.next();
-    ASS_REP(_varSorts.find(var), var);    
-    TermList sort = _varSorts.get(var, Term::defaultSort());
-    if(sort == Term::superSort()){
-      args.push(TermList(var, false));
-    } else {
-      argSorts.push(sort);
-      termArgs.push(TermList(var, false));
-    }   
-  }
-  ASS(termArgs.size() == argSorts.size());
-
-  VList* vl = VList::empty();
-  for(int i = args.size() -1; i >= 0 ; i--){
-    VList::push(args[i].var(), vl);
-  }
-  for(unsigned i = 0; i < termArgs.size(); i++){
-    args.push(termArgs[i]);
-  }
+  TermStack termVarSorts;
+  TermStack termVars;
+  TermStack typeVars;
+  TermStack allVars;
   
   /**
    * Note that we collected free variables before processing subterms. That
@@ -528,6 +507,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
          *  3) Replace the term with g(X1, ..., Xn)
          */
         
+
         Formula* condition = process(sd->getCondition());
 
         TermList thenBranch;
@@ -544,17 +524,22 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
           resultSort = SortHelper::getResultSort(thenBranch, _varSorts);
           ASS_EQ(resultSort, SortHelper::getResultSort(elseBranch, _varSorts));
         }
-
-        //FOOL doesn't (yet) support polymorphism
-        ASS(!vl);
+ 
+        collectSorts(freeVars, typeVars, termVars, allVars, termVarSorts);
+        SortHelper::normaliseSort(typeVars, resultSort);
         // create a fresh symbol g
-        unsigned freshSymbol = introduceFreshSymbol(context, ITE_PREFIX, argSorts, resultSort, vl);
+        unsigned freshSymbol = introduceFreshSymbol(context, ITE_PREFIX, termVarSorts, resultSort, typeVars.size());
 
         // build g(X1, ..., Xn)
         TermList freshFunctionApplication;
         Formula* freshPredicateApplication;
-        buildApplication(freshSymbol, freeVars, context, freshFunctionApplication, freshPredicateApplication);
 
+        if (context == FORMULA_CONTEXT) {
+          freshPredicateApplication = new AtomicFormula(Literal::create(freshSymbol, allVars.size(), true, false, allVars.begin()));
+        } else {
+          freshFunctionApplication = TermList(Term::create(freshSymbol, allVars.size(), allVars.begin()));
+        }
+        
         // build g(X1, ..., Xn) == s
         Formula* thenEq = buildEq(context, freshPredicateApplication, thenBranchFormula,
                                            freshFunctionApplication, thenBranch, resultSort);
@@ -637,12 +622,14 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
 
         // build the list X1, ..., Xn, Y1, ..., Yk of variables and their sorts
         VList* vars = VList::append(bodyFreeVars, argumentVars);
-        TermStack sorts = collectSorts(vars);
+        collectSorts(vars, typeVars, termVars, allVars, termVarSorts);
 
         // take the defined function symbol and its result sort
         unsigned symbol = sd->getFunctor();
         TermList bindingSort = SortHelper::getResultSort(binding, _varSorts); 
 
+        SortHelper::normaliseSort(typeVars, bindingSort);
+  
         /**
          * Here we can take a simple shortcut. If the there are no free variables,
          * f and g would have the same type, but g would have an ugly generated name.
@@ -658,10 +645,8 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         if(bindingContext == TERM_CONTEXT && !env.signature->getFunction(symbol)->introduced()) renameSymbol = true;
         if(bindingContext == FORMULA_CONTEXT && !env.signature->getPredicate(symbol)->introduced()) renameSymbol = true;
 
-        //FOOL doesn't (yet) support polymorphism
-        ASS(!vl);
         // create a fresh function or predicate symbol g
-        unsigned freshSymbol = renameSymbol ? introduceFreshSymbol(bindingContext, LET_PREFIX, sorts, bindingSort, vl) : symbol;
+        unsigned freshSymbol = renameSymbol ? introduceFreshSymbol(bindingContext, LET_PREFIX, termVarSorts, bindingSort, typeVars.size()) : symbol;
 
         // process the body of the function
         TermList processedBody;
@@ -671,7 +656,15 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         // build g(X1, ..., Xn, Y1, ..., Yk)
         TermList freshFunctionApplication;
         Formula* freshPredicateApplication;
-        buildApplication(freshSymbol, vars, bindingContext, freshFunctionApplication, freshPredicateApplication);
+
+        if (bindingContext == FORMULA_CONTEXT) {
+          freshPredicateApplication = new AtomicFormula(Literal::create(freshSymbol, allVars.size(), true, false, allVars.begin()));
+        } else {
+          freshFunctionApplication = TermList(Term::create(freshSymbol, allVars.size(), allVars.begin()));
+        }
+
+        Term* freshApplication = bindingContext == FORMULA_CONTEXT ? freshPredicateApplication->literal() : 
+                                                                     freshFunctionApplication.term();
 
         // build g(X1, ..., Xn, Y1, ..., Yk) == s
         Formula* freshSymbolDefinition = buildEq(bindingContext, freshPredicateApplication, processedBodyFormula,
@@ -679,16 +672,6 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
 
         // build ![X1, ..., Xn, Y1, ..., Yk]: g(X1, ..., Xn, Y1, ..., Yk) == s
         if (VList::length(vars) > 0) {
-        /*
-          Formula::SortList* sortList = Formula::SortList::empty();
-          Formula::VarList* vp = vars;
-          while(vp){
-            cout << vp->head() << endl;
-            sortList = new Formula::SortList(sorts[vp->head()],sortList);
-            vp = vp->tail();
-            cout << vp << endl;
-          }
-        */ 
           freshSymbolDefinition = new QuantifiedFormula(FORALL, vars, 0, freshSymbolDefinition);
         }
 
@@ -706,7 +689,9 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
             env.endOutput();
           }
 
-          SymbolOccurrenceReplacement replacement(bindingContext == FORMULA_CONTEXT, symbol, freshSymbol, bodyFreeVars);
+          SymbolOccurrenceReplacement replacement(bindingContext == FORMULA_CONTEXT, 
+              freshApplication, symbol, argumentVars);
+
           contents = replacement.process(contents);
 
           if (env.options->showPreprocessing()) {
@@ -740,19 +725,22 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         }
 
         /**
-         * Having a formula in a term context and the list X1, ..., Xn of its
-         * free variables we will do the following:
-         *  1) Create a fresh function symbol g of arity n that spans over sorts of X1, ..., Xn
-         *  2) Add the definition: ![X1, ..., Xn]: (f <=> g(X1, ..., Xn) = true),
+         * Having a formula in a term context and the list Y1,...,Ym, X1, ..., Xn of its
+         * free type and term variables we will do the following:
+         *  1) Create a fresh function symbol g of arity m + n that spans
+         *     has type !>[Y1,...,Ym]:(sort(X1) x ... x sort(Xn) > $o)
+         *  2) Add the definition: ![Y1, ..., Ym, X1, ..., Xn]: (f <=> g(Y1, ..., Ym, X1, ..., Xn) = true),
          *     where true is FOOL constant
-         *  3) Replace the term with g(X1, ..., Xn)
+         *  3) Replace the term with g(Y1, ..., Ym, X1, ..., Xn)
          */
         if(!_higherOrder){
           Formula *formula = process(sd->getFormula());
 
+          collectSorts(freeVars, typeVars, termVars, allVars, termVarSorts);
+
           // create a fresh symbol g and build g(X1, ..., Xn)
-          unsigned freshSymbol = introduceFreshSymbol(context, BOOL_PREFIX, argSorts, Term::boolSort(), vl);
-          TermList freshSymbolApplication = TermList(Term::create(freshSymbol, args.size(), args.begin()));
+          unsigned freshSymbol = introduceFreshSymbol(context, BOOL_PREFIX, termVarSorts, Term::boolSort(), typeVars.size());
+          TermList freshSymbolApplication = TermList(Term::create(freshSymbol, allVars.size(), allVars.begin()));
 
           // build f <=> g(X1, ..., Xn) = true
           Formula* freshSymbolDefinition = new BinaryFormula(IFF, formula, toEquality(freshSymbolApplication));
@@ -857,64 +845,6 @@ Formula* FOOLElimination::processAsFormula(Term* term) {
   return formula;
 }
 
-/**
- * Given a symbol g of a given arity n and a list of variables X1, ..., Xn
- * builds a term g(X1, ..., Xn). Depending on a context, g is assumed to be
- * a function or a predicate symbol. In the former case, the result in written
- * to functionApplication, otherwise to predicateApplication.
- */
-void FOOLElimination::buildApplication(unsigned symbol, VList* vars, Context context,
-                                       TermList& functionApplication, Formula*& predicateApplication) {
-  CALL("FOOLElimination::buildApplication");
-
-  unsigned arity = VList::length(vars);
-  if (context == FORMULA_CONTEXT) {
-    ASS_EQ(env.signature->predicateArity(symbol), arity);
-  } else {
-    ASS_EQ(env.signature->functionArity(symbol), arity);
-  }
-
-  Stack<TermList> arguments;
-  VList::Iterator vit(vars);
-  while (vit.hasNext()) {
-    unsigned var = vit.next();
-    arguments.push(TermList(var, false));
-  }
-
-  if (context == FORMULA_CONTEXT) {
-    predicateApplication = new AtomicFormula(Literal::create(symbol, arity, true, false, arguments.begin()));
-  } else {
-    functionApplication = TermList(Term::create(symbol, arity, arguments.begin()));
-  }
-}
-
-/**
- * A shortcut of buildApplication for TERM_CONTEXT.
- */
-TermList FOOLElimination::buildFunctionApplication(unsigned function, VList* vars) {
-  CALL("FOOLElimination::buildFunctionApplication");
-
-  TermList functionApplication;
-  Formula* dummy;
-
-  buildApplication(function, vars, TERM_CONTEXT, functionApplication, dummy);
-
-  return functionApplication;
-}
-
-/**
- * A shortcut of buildApplication for FORMULA_CONTEXT.
- */
-Formula* FOOLElimination::buildPredicateApplication(unsigned predicate, VList* vars) {
-  CALL("FOOLElimination::buildPredicateApplication");
-
-  TermList dummy;
-  Formula* predicateApplication;
-
-  buildApplication(predicate, vars, FORMULA_CONTEXT, dummy, predicateApplication);
-
-  return predicateApplication;
-}
 
 /**
  * Builds an equivalence or an equality between provided pairs of expressions.
@@ -937,17 +867,30 @@ Formula* FOOLElimination::buildEq(Context context, Formula* lhsFormula, Formula*
  * Creates a stack of sorts for the given variables, using the sorting context
  * of the current formula.
  */
-TermStack FOOLElimination::collectSorts(VList* vars) {
+void FOOLElimination::collectSorts(VList* vars, TermStack& typeVars, 
+                                   TermStack& termVars, TermStack& allVars, TermStack& termVarSorts)
+{
   CALL("FOOLElimination::collectSorts");
 
-  TermStack sorts;
   VList::Iterator fvi(vars);
   while (fvi.hasNext()) {
     unsigned var = fvi.next();
-    ASS_REP(_varSorts.find(var), var);
-    sorts.push(_varSorts.get(var));
+    ASS_REP(_varSorts.find(var), var);    
+    TermList sort = _varSorts.get(var, Term::defaultSort());
+    if(sort == Term::superSort()){
+      allVars.push(TermList(var, false));
+      typeVars.push(TermList(var, false));
+    } else {
+      termVarSorts.push(sort);
+      termVars.push(TermList(var, false));
+    }   
   }
-  return sorts;
+  
+  for(unsigned i = 0; i < termVars.size(); i++){
+    allVars.push(termVars[i]);
+  }
+
+  SortHelper::normaliseArgSorts(typeVars, termVarSorts);
 }
 
 /**
@@ -975,23 +918,23 @@ Formula* FOOLElimination::toEquality(TermList booleanTerm) {
 }
 
 unsigned FOOLElimination::introduceFreshSymbol(Context context, const char* prefix,
-                                               TermStack sorts, TermList resultSort, VList* vl) {
+                                               TermStack sorts, TermList resultSort, unsigned typeArgsArity) {
   CALL("FOOLElimination::introduceFreshSymbol");
 
   unsigned arity = (unsigned)sorts.size();
   OperatorType* type;
   if (context == FORMULA_CONTEXT) {
-    type = OperatorType::getPredicateType(arity, sorts.begin(), vl);
+    type = OperatorType::getPredicateType(arity, sorts.begin(), typeArgsArity);
   } else {
-    type = OperatorType::getFunctionType(arity, sorts.begin(), resultSort, vl);
+    type = OperatorType::getFunctionType(arity, sorts.begin(), resultSort, typeArgsArity);
   }
 
   unsigned symbol;
   if (context == FORMULA_CONTEXT) {
-    symbol = env.signature->addFreshPredicate(arity + VList::length(vl), prefix);
+    symbol = env.signature->addFreshPredicate(arity + typeArgsArity, prefix);
     env.signature->getPredicate(symbol)->setType(type);
   } else {
-    symbol = env.signature->addFreshFunction(arity + VList::length(vl), prefix);
+    symbol = env.signature->addFreshFunction(arity + typeArgsArity, prefix);
     env.signature->getFunction(symbol)->setType(type);
   }
 

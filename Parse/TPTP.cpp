@@ -1418,7 +1418,7 @@ void TPTP::tff()
             ? addUninterpretedConstant(nm, _overflow, added)
             : env.signature->addFunction(nm, arity, added);
         Signature::Symbol* symbol = env.signature->getFunction(fun);
-        OperatorType* ot = OperatorType::getFunctionTypeUniformRange(arity, Term::superSort(), Term::superSort(), VList::empty());
+        OperatorType* ot = OperatorType::getFunctionTypeUniformRange(arity, Term::superSort(), Term::superSort());
         if (!added) {
           if(symbol->fnType()!=ot){
             PARSE_ERROR("Type constructor declared with two different types",tok);
@@ -2289,7 +2289,7 @@ void TPTP::funApp()
       return;
 
     case T_ITE:
-      if(env.statistics->polymorphic || env.statistics->higherOrder){
+      if(/*env.statistics->polymorphic ||*/ env.statistics->higherOrder){
         USER_ERROR("Polymorphic Vampire is currently not compatible with FOOL reasoning");
       }
       consumeToken(T_LPAR);
@@ -2302,7 +2302,7 @@ void TPTP::funApp()
       return;
 
     case T_LET: {
-      if(env.statistics->polymorphic || env.statistics->higherOrder){
+      if(/*env.statistics->polymorphic ||*/ env.statistics->higherOrder){
         USER_ERROR("Polymorphic Vampire is currently not compatible with FOOL reasoning");
       }
       consumeToken(T_LPAR);
@@ -2900,7 +2900,7 @@ void TPTP::term()
     case T_INTEGER_TYPE:
     case T_REAL_TYPE:
     case T_RATIONAL_TYPE: {
-      USER_ERROR("Polymorphic Vampire is currently not compatible with theory reasoning");
+      //USER_ERROR("Polymorphic Vampire is currently not compatible with theory reasoning");
       //the code below is in preparation for 
       //when theorey reasoning is updated to deal with polymorphism
       resetToks();
@@ -2924,7 +2924,7 @@ void TPTP::term()
     case T_INT:
     case T_REAL:
     case T_RAT: {
-      if(env.statistics->polymorphic || env.statistics->higherOrder){
+      if(/*env.statistics->polymorphic ||*/ env.statistics->higherOrder){
         USER_ERROR("Polymorphic Vampire is currently not compatible with theory reasoning");
       }
       resetToks();
@@ -3885,10 +3885,16 @@ OperatorType* TPTP::constructOperatorType(Type* t, VList* vars)
 
   bool isPredicate = resultSort == Term::boolSort();
   unsigned arity = (unsigned)argumentSorts.size();
+
+  if(env.statistics->polymorphic){
+    SortHelper::normaliseArgSorts(vars, argumentSorts);
+    SortHelper::normaliseSort(vars, resultSort);
+  }
+
   if (isPredicate && !_isThf) { //in THF, we treat predicates and boolean terms the same
-    return OperatorType::getPredicateType(arity, argumentSorts.begin(), vars);
+    return OperatorType::getPredicateType(arity, argumentSorts.begin(), VList::length(vars));
   } else {
-    return OperatorType::getFunctionType(arity, argumentSorts.begin(), resultSort, vars);
+    return OperatorType::getFunctionType(arity, argumentSorts.begin(), resultSort, VList::length(vars));
   }
 } // constructOperatorType
 

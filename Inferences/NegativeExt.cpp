@@ -83,43 +83,36 @@ struct NegativeExt::ResultFn
       VariableWithSortIterator vit(lhs.term());
       while(vit.hasNext()){
         pair<TermList, TermList> varTypePair = vit.next();
-        if(!varSorts.find(varTypePair.first.var())){
-          varSorts.insert(varTypePair.first.var(), varTypePair.second);
-        }
+        varSorts.insert(varTypePair.first.var(), varTypePair.second);
       }
     }
 
     TermList rhs = *lit->nthArgument(1); 
     if(rhs.isVar()){
-      if(!varSorts.find(rhs.var())){
-        varSorts.insert(rhs.var(), eqSort);
-      }
+      varSorts.insert(rhs.var(), eqSort);
     } else {
       VariableWithSortIterator vit(rhs.term());
       while(vit.hasNext()){
         pair<TermList, TermList> varTypePair = vit.next();
-        if(!varSorts.find(varTypePair.first.var())){
-          varSorts.insert(varTypePair.first.var(), varTypePair.second);
-        }
+        varSorts.insert(varTypePair.first.var(), varTypePair.second);
       }
     }
 
-    //cout << "the eqSort is " + eqSort.toString() << endl;
-    VariableWithSortIterator vit(eqSort.term());
-    while(vit.hasNext()){
-      pair<TermList, TermList> varTypePair = vit.next();
-      //cout << "variable " + varTypePair.first.toString() + " has type " + varTypePair.second.toString() << endl;
-      if(!varSorts.find(varTypePair.first.var())){
+    if(lit->isTwoVarEquality()){
+      VariableWithSortIterator vit(eqSort.term());
+      while(vit.hasNext()){
+        pair<TermList, TermList> varTypePair = vit.next();
+        //cout << "variable " + varTypePair.first.toString() + " has type " + varTypePair.second.toString() << endl;
         varSorts.insert(varTypePair.first.var(), varTypePair.second);
       }
     }
    
-    static Stack<TermList> argSorts;
-    static Stack<TermList> termArgs;
-    static Stack<TermList> args;
-    argSorts.reset();
-    termArgs.reset();
-    args.reset();
+    static TermStack termVarSorts;
+    static TermStack termVars;
+    static TermStack typeVars;
+    termVarSorts.reset();
+    termVars.reset();
+    typeVars.reset();
    
     unsigned var;
     TermList varSort; 
@@ -127,28 +120,26 @@ struct NegativeExt::ResultFn
     while(mapIt.hasNext()) {
       mapIt.next(var, varSort);
       if(varSort == Term::superSort()){
-        args.push(TermList(var, false));
+        typeVars.push(TermList(var, false));
       } else {
-        argSorts.push(varSort);
-        termArgs.push(TermList(var, false));
+        termVarSorts.push(varSort);
+        termVars.push(TermList(var, false));
       }
-    }
-    ASS(termArgs.size() == argSorts.size());
-
-    VList* vl = VList::empty();
-    for(int i = args.size() -1; i >= 0 ; i--){
-      VList::push(args[i].var(), vl);
     }
 
     TermList alpha1 = *eqSort.term()->nthArgument(0);
     TermList alpha2 = *eqSort.term()->nthArgument(1);
+   
+    TermList resultSort = alpha1;
+    SortHelper::normaliseArgSorts(typeVars, termVarSorts);
+    SortHelper::normaliseSort(typeVars, resultSort);
 
-    TermList skSymSort = Term::arrowSort(argSorts, alpha1);
-    unsigned fun = Skolem::addSkolemFunction(VList::length(vl), 0, skSymSort, vl);
-    TermList head = TermList(Term::create(fun, args.size(), args.begin()));
+    TermList skSymSort = Term::arrowSort(termVarSorts, resultSort);
+    unsigned fun = Skolem::addSkolemFunction(typeVars.size(), typeVars.size(), 0, skSymSort);
+    TermList head = TermList(Term::create(fun, typeVars.size(), typeVars.begin()));
     //cout << "the head is " + head.toString() << endl;
     //cout << "It has sort " + skSymSort.toString() << endl;
-    TermList skolemTerm = ApplicativeHelper::createAppTerm(skSymSort, head, termArgs);
+    TermList skolemTerm = ApplicativeHelper::createAppTerm(SortHelper::getResultSort(head.term()), head, termVars);
 
     TermList newLhs = ApplicativeHelper::createAppTerm(alpha1, alpha2, lhs, skolemTerm);
     TermList newRhs = ApplicativeHelper::createAppTerm(alpha1, alpha2, rhs, skolemTerm);
@@ -168,10 +159,6 @@ struct NegativeExt::ResultFn
 
     env.statistics->negativeExtensionality++;
  
-    /*if(_cl->number() == 55){
-      cout << "the original clause " + _cl->toString() << endl;
-      cout << "the new clause " + res->toString() << endl;
-    }*/
     return res;
   }
 private:

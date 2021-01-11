@@ -635,8 +635,8 @@ void LambdaElimination::addProxyAxioms(Problem& prb)
   TermList x = TermList(1, false);
   TermList y = TermList(2, false);
   TermList choiceSort = Term::arrowSort(Term::arrowSort(s1, Term::boolSort()), s1);
-  unsigned skolem1 = Skolem::addSkolemFunction(1,0, choiceSort, new VList(0));
-  unsigned skolem2 = Skolem::addSkolemFunction(1,0, choiceSort, new VList(0));
+  unsigned skolem1 = Skolem::addSkolemFunction(1,1,0, choiceSort);
+  unsigned skolem2 = Skolem::addSkolemFunction(1,1,0, choiceSort);
   TermList sk1 = TermList(Term::create1(skolem1, s1));
   TermList sk2 = TermList(Term::create1(skolem2, s1));
 

@@ -326,16 +326,13 @@ unsigned EqualityProxy::getProxyPredicate()
   if(_addedPred){ return _proxyPredicate; }
 
   unsigned newPred = env.signature->addFreshPredicate(3,"sQ","eqProxy");
-
-  VList* vl = VList::empty();
-  VList::push(0, vl);
   
   TermList sort = TermList(0,false);
   TermList var1 = TermList(1,false);
   TermList var2 = TermList(2,false);
 
   Signature::Symbol* predSym = env.signature->getPredicate(newPred);
-  OperatorType* predType = OperatorType::getPredicateType({sort, sort}, vl);
+  OperatorType* predType = OperatorType::getPredicateType({sort, sort}, 1);
   predSym->setType(predType);
   predSym->markEqualityProxy();
 

@@ -126,13 +126,6 @@ TermList Injectivity::createNewLhs(TermList oldhead, TermStack& termArgs, unsign
   OperatorType* funcType = func->fnType();
   TermList type = funcType->result(); 
 
-  //really nasty hack. What we really want is to create a new type from 
-  //an old by keeping the quantified variables the same.
-  VList* vl = VList::empty();
-  for(int i = funcType->typeArgsArity() - 1; i >= 0; i--){
-    VList::push(funcType->quantifiedVar((unsigned)i).var(), vl);
-  }
-
   TermList oldResult = ApplicativeHelper::getResultApplieadToNArgs(type, termArgs.size());
   TermStack sorts;
   TermList newResult;
@@ -148,7 +141,7 @@ TermList Injectivity::createNewLhs(TermList oldhead, TermStack& termArgs, unsign
 
   TermList inverseType = Term::arrowSort(sorts, newResult);
 
-  OperatorType* invFuncType = OperatorType::getConstantsType(inverseType, vl);
+  OperatorType* invFuncType = OperatorType::getConstantsType(inverseType, funcType->typeArgsArity());
   Signature::Symbol* invFunc = env.signature->getFunction(iFunc);
   invFunc->setType(invFuncType);
   TermList invFuncHead = TermList(Term::create(iFunc, func->arity(), typeArgs.begin()));

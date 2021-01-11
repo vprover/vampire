@@ -1180,7 +1180,7 @@ unsigned Theory::getArrayExtSkolemFunction(TermList sort) {
 
   TermList indexSort = SortHelper::getIndexSort(sort);
   TermList params[] = {sort, sort};
-  unsigned skolemFunction = Shell::Skolem::addSkolemFunction(2, params, indexSort, 0, "arrayDiff");
+  unsigned skolemFunction = Shell::Skolem::addSkolemFunction(2, 0, params, indexSort, "arrayDiff");
 
   _arraySkolemFunctions.insert(sort,skolemFunction);
 

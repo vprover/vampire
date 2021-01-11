@@ -88,6 +88,11 @@ public:
     return env.sorts->getSortTerm(sortNum);
   }
 
+  static void normaliseArgSorts(VList* qVars, TermStack& argSorts);
+  static void normaliseSort(VList* qVars, TermList& sort);
+  static void normaliseArgSorts(TermStack& qVars, TermStack& argSorts);
+  static void normaliseSort(TermStack qVars, TermList& sort);    
+
   static OperatorType* getType(Term* t);
 
   static void getTypeSub(const Term* t, Substitution& subst);

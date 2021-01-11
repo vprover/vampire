@@ -214,12 +214,11 @@ void Preprocess::preprocess(Problem& prb)
   }
 
   if (prb.hasFOOL() || env.statistics->higherOrder) {//or lambda
-    ASS(!env.statistics->polymorphic); //FOOL + polymorphism currently does not work
 
     // This is the point to extend the signature with $$true and $$false
     // If we don't have fool then these constants get in the way (a lot)
 
-    if (!_options.newCNF() || env.statistics->higherOrder) {
+    if (!_options.newCNF() || env.statistics->polymorphic || env.statistics->higherOrder) {
       if (env.options->showPreprocessing())
         env.out() << "FOOL elimination" << std::endl;
   

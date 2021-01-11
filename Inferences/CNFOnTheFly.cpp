@@ -642,9 +642,7 @@ TermList sigmaRemoval(TermList sigmaTerm, TermList expsrt){
     VariableWithSortIterator vit(sigmaTerm.term());
     while(vit.hasNext()){
       pair<TermList, TermList> varTypePair = vit.next();
-      if(!varSorts.find(varTypePair.first.var())){
-        varSorts.insert(varTypePair.first.var(), varTypePair.second);
-      }
+      varSorts.insert(varTypePair.first.var(), varTypePair.second);
     }
   } else {
     varSorts.insert(sigmaTerm.var(), expsrt);
@@ -652,21 +650,19 @@ TermList sigmaRemoval(TermList sigmaTerm, TermList expsrt){
       VariableWithSortIterator vit(expsrt.term());
       while(vit.hasNext()){
         pair<TermList, TermList> varTypePair = vit.next();
-        if(!varSorts.find(varTypePair.first.var())){
-          varSorts.insert(varTypePair.first.var(), varTypePair.second);
-        }
+        varSorts.insert(varTypePair.first.var(), varTypePair.second);
       }
     } else {
       varSorts.insert(expsrt.var(), Term::superSort());
     }
   }
 
-  static Stack<TermList> argSorts;
-  static Stack<TermList> termArgs;
-  static Stack<TermList> args;
-  argSorts.reset();
-  termArgs.reset();
-  args.reset();
+  static TermStack termVarSorts;
+  static TermStack termVars;
+  static TermStack typeVars;
+  termVarSorts.reset();
+  termVars.reset();
+  typeVars.reset();
  
   unsigned var;
   TermList varSort; 
@@ -674,29 +670,24 @@ TermList sigmaRemoval(TermList sigmaTerm, TermList expsrt){
   while(mapIt.hasNext()) {
     mapIt.next(var, varSort);
     if(varSort == Term::superSort()){
-      args.push(TermList(var, false));
+      typeVars.push(TermList(var, false));
     } else {
-      argSorts.push(varSort);
-      termArgs.push(TermList(var, false));
+      termVarSorts.push(varSort);
+      termVars.push(TermList(var, false));
     }
   }
-  ASS(termArgs.size() == argSorts.size());
 
-  VList* vl = VList::empty();
-  for(int i = args.size() -1; i >= 0 ; i--){
-    VList::push(args[i].var(), vl);
-  }
+  TermList resultSort = *expsrt.term()->nthArgument(0);
 
-  //do{ 
-    TermList resultSort = *expsrt.term()->nthArgument(0);
-    TermList skSymSort = Term::arrowSort(argSorts, resultSort);
-    unsigned fun = Skolem::addSkolemFunction(VList::length(vl), 0, skSymSort, vl);
-    TermList head = TermList(Term::create(fun, args.size(), args.begin()));
-    TermList skolemTerm = ApplicativeHelper::createAppTerm(skSymSort, head, termArgs);
-    //sigmaTerm = ApplicativeHelper::createAppTerm(expsrt, sigmaTerm, skolemTerm);
-    //expsrt = *expsrt.term()->nthArgument(1);
-    ASS(*expsrt.term()->nthArgument(1) == Term::boolSort())
-  //}while(expsrt != Term::boolSort());   
+  SortHelper::normaliseArgSorts(typeVars, termVarSorts);
+  SortHelper::normaliseSort(typeVars, resultSort);
+
+  TermList skSymSort = Term::arrowSort(termVarSorts, resultSort);
+  unsigned fun = Skolem::addSkolemFunction(typeVars.size(), typeVars.size(), 0, skSymSort);
+  TermList head = TermList(Term::create(fun, typeVars.size(), typeVars.begin()));
+  TermList skolemTerm = ApplicativeHelper::createAppTerm(skSymSort, head, termVars);
+
+  ASS(*expsrt.term()->nthArgument(1) == Term::boolSort())
 
   //cout << "OUT OF sigmaRemoval " + sigmaTerm.toString() << endl;
 

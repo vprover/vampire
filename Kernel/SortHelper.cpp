@@ -728,6 +728,64 @@ void SortHelper::collectVariableSorts(Unit* u, DHMap<unsigned,TermList>& map)
   }
 }
 
+void SortHelper::normaliseArgSorts(VList* qVars, TermStack& argSorts)
+{
+  CALL("SortHelper::normaliseArgSorts/1");
+
+  Substitution subst;
+  unsigned i = 0;
+  while(qVars){
+    unsigned var = qVars->head();
+    subst.bind(var, TermList(i++, false));
+    qVars = qVars->tail();
+  }
+
+  for(unsigned i = 0; i < argSorts.size(); i++){
+    argSorts[i] = SubstHelper::apply(argSorts[i], subst);
+  }
+}
+
+void SortHelper::normaliseSort(VList* qVars, TermList& sort)
+{
+  CALL("SortHelper::normaliseSort/1");
+
+  Substitution subst;
+  unsigned i = 0;
+  while(qVars){
+    unsigned var = qVars->head();
+    subst.bind(var, TermList(i++, false));
+    qVars = qVars->tail();
+  }
+
+  sort = SubstHelper::apply(sort, subst);
+}
+
+void SortHelper::normaliseArgSorts(TermStack& qVars, TermStack& argSorts)
+{
+  CALL("SortHelper::normaliseArgSorts/2");
+
+  Substitution subst;
+  for(unsigned i = 0; i < qVars.size(); i++){
+    subst.bind(qVars[i].var(), TermList(i, false));
+  }
+
+  for(unsigned i = 0; i < argSorts.size(); i++){
+    argSorts[i] = SubstHelper::apply(argSorts[i], subst);
+  }
+}
+
+void SortHelper::normaliseSort(TermStack qVars, TermList& sort)
+{
+  CALL("SortHelper::normaliseSort/2");  
+
+  Substitution subst;
+  for(unsigned i = 0; i < qVars.size(); i++){
+    subst.bind(qVars[i].var(), TermList(i, false));
+  }
+
+  sort = SubstHelper::apply(sort, subst);
+}
+
 /**
  * If variable @c var occurrs in term @c t, set @c result to its
  * sort and return true. Otherwise return false.
@@ -859,6 +917,7 @@ bool SortHelper::areImmediateSortsValidPoly(Term* t)
       //cout << "function name : "+ env.signature->getFunction(t->functor())->name() << endl;
       //cout << "function name 2 :" + t->functionName() << endl;
       cout << "error with expected " << instantiatedTypeSort.toString() << " and actual " << argSort.toString() << " when functor is " << t->functor() << " and arg is " << arg << endl;
+      ASSERTION_VIOLATION;
 #endif
       return false;
     }

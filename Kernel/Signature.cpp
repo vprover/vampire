@@ -708,13 +708,10 @@ unsigned Signature::getApp()
   bool added = false;
   unsigned app = addFunction("vAPP", 4, added);
   if(added){
-    VList* vl = VList::empty();
-    VList::push(1, vl);
-    VList::push(0, vl);
     TermList tv1 = TermList(0, false);
     TermList tv2 = TermList(1, false);
     TermList arrowType = Term::arrowSort(tv1, tv2);
-    OperatorType* ot = OperatorType::getFunctionType({arrowType, tv1}, tv2, vl);
+    OperatorType* ot = OperatorType::getFunctionType({arrowType, tv1}, tv2, 2);
     Symbol* sym = getFunction(app);
     sym->setType(ot);
     sym->markApp();
@@ -728,15 +725,12 @@ unsigned Signature::getDiff(){
   bool added = false;
   unsigned diff = addFunction("diff",2, added);      
   if(added){
-    VList* vl = VList::empty();
-    VList::push(1, vl);
-    VList::push(0, vl);
     TermList alpha = TermList(0, false);
     TermList beta = TermList(1, false);
     TermList alphaBeta = Term::arrowSort(alpha, beta);
     TermList result = Term::arrowSort(alphaBeta, alphaBeta, alpha);
     Symbol * sym = getFunction(diff);
-    sym->setType(OperatorType::getConstantsType(result, vl));
+    sym->setType(OperatorType::getConstantsType(result, 2));
   }
   return diff;
 }
@@ -748,13 +742,12 @@ unsigned Signature::getChoice(){
   bool added = false;
   unsigned choice = addFunction("vEPSILON",1, added);      
   if(added){
-    VList* vl = VList::singleton(0);
     TermList alpha = TermList(0, false);
     TermList bs = Term::boolSort();
     TermList alphaBs = Term::arrowSort(alpha, bs);
     TermList result = Term::arrowSort(alphaBs, alpha);
     Symbol * sym = getFunction(choice);
-    sym->setType(OperatorType::getConstantsType(result, vl));
+    sym->setType(OperatorType::getConstantsType(result, 1));
   }
   return choice;
 }
