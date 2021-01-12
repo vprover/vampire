@@ -490,7 +490,7 @@ void InductionPreprocessor::preprocess(Problem& prb)
         }
       }
 
-      if (!kv.second.first.checkWellFoundedness()) 
+      if (!kv.second.first.checkWellFoundedness())
       {
         wellFounded = false;
         viable = false;
@@ -509,9 +509,9 @@ void InductionPreprocessor::preprocess(Problem& prb)
     }
     i++;
   }
-  ALWAYS(wellFoundedSets.size() > 1);
+  ALWAYS(!wellFoundedSets.empty());
   auto& fndefs = foundFunctionDefinitions[wellFoundedSets[0]];
-  if (viableSets.size() > 1) {
+  if (!viableSets.empty()) {
     fndefs = foundFunctionDefinitions[viableSets[0]];
   }
   for (auto& kv : fndefs) {
