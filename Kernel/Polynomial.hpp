@@ -406,8 +406,7 @@ public:
 
   template<class N> friend std::ostream& operator<<(std::ostream& out, const MonomFactors<N>& self);
   template<class N> friend bool operator==(const MonomFactors<N>& l, const MonomFactors<N>& r);
-  template<class N> friend bool operator!=(const MonomFactors<N>& l, const MonomFactors<N>& r)
-  { return !(l == r); }
+  template<class N> friend bool operator!=(const MonomFactors<N>& l, const MonomFactors<N>& r);
 
   /** helper function for PolyNf::denormalize() */
   TermList denormalize(TermList* results)  const;
@@ -932,10 +931,11 @@ std::ostream& operator<<(std::ostream& out, const MonomFactors<Number>& self)
 }
 
 
-template<class Number>
-bool operator==(const MonomFactors<Number>& l, const MonomFactors<Number>& r) {
-  return l._factors == r._factors;
-}
+template<class Number> bool operator==(const MonomFactors<Number>& l, const MonomFactors<Number>& r) 
+{ return l._factors == r._factors; }
+
+template<class Number> bool operator!=(const MonomFactors<Number>& l, const MonomFactors<Number>& r) 
+{ return !(l == r); }
 
 template<class Number>
 TermList MonomFactors<Number>::denormalize(TermList* results)  const
