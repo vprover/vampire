@@ -130,7 +130,6 @@ void checkCancelMul(Polynom<Number> const& oldl, Polynom<Number> const& oldr)
     if (l.factors == r.factors) {
       if( *l.factors != MonomFactors<Number>::one()) {
         nonZeroFail = true;
-        DBG("lalala ", l, " ", r);
         if (l.factors->ground())  {
           ground = true;
           break;
