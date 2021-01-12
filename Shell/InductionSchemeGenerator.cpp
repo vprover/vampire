@@ -335,7 +335,7 @@ bool RDescriptionInst::contains(const RDescriptionInst& other) const
   return true;
 }
 
-void InductionScheme::init(const vvector<TermList>& argTerms, const InductionTemplate& templ)
+bool InductionScheme::init(const vvector<TermList>& argTerms, const InductionTemplate& templ)
 {
   CALL("InductionScheme::init");
 
@@ -378,7 +378,9 @@ void InductionScheme::init(const vvector<TermList>& argTerms, const InductionTem
         freeVars.insert(rIt.next());
       }
     }
-    ASS(includes(stepFreeVars.begin(), stepFreeVars.end(), freeVars.begin(), freeVars.end()));
+    if (!includes(stepFreeVars.begin(), stepFreeVars.end(), freeVars.begin(), freeVars.end())) {
+      return false;
+    }
     vvector<vmap<TermList,TermList>> recCallSubstList(recCalls.size());
     vvector<bool> changed(recCalls.size(), false);
     vvector<bool> invalid(recCalls.size(), false);
@@ -399,11 +401,11 @@ void InductionScheme::init(const vvector<TermList>& argTerms, const InductionTem
             break;
           }
           stepSubst.at(argTerm) = subst.apply(stepSubst.at(argTerm), 0);
+          if (!condSubstList.empty()) {
+            return false;
+          }
           for (auto& c : condSubstList) {
             c = applySubst(subst, 0, c);
-            cout << "1: " << *c << endl;
-            c = applySubst(subst, 1, c);
-            cout << "2: " << *c << endl;
           }
         } else {
           stepSubst.insert(make_pair(argTerm, argStep));
@@ -486,6 +488,7 @@ void InductionScheme::init(const vvector<TermList>& argTerms, const InductionTem
   }
   _maxVar = var;
   // clean();
+  return true;
 }
 
 void InductionScheme::init(vvector<RDescriptionInst>&& rdescs)
@@ -870,7 +873,9 @@ bool InductionSchemeGenerator::process(TermList curr, bool active,
 
     for (const auto& argTerms : argTermsList) {
       InductionScheme scheme;
-      scheme.init(argTerms, templ);
+      if (!scheme.init(argTerms, templ)) {
+        continue;
+      }
       if (!scheme.checkWellFoundedness()) {
         if (env.options->showInduction()) {
           env.beginOutput();

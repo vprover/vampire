@@ -70,7 +70,8 @@ ostream& operator<<(ostream& out, const RDescription& rdesc);
 struct InductionTemplate {
   bool checkUsefulness();
   bool checkWellFoundedness();
-  bool checkWellDefinedness();
+  bool checkWellDefinedness(vvector<vvector<TermList>>& missingCases);
+  void addMissingCases(const vvector<vvector<TermList>>& missingCases);
 
   enum class VarType {
     SUBTERM,

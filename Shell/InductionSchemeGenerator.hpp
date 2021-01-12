@@ -126,7 +126,7 @@ struct RDescriptionInst {
  * An instantiated induction template for a term.
  */
 struct InductionScheme {
-  void init(const vvector<TermList>& argTerms, const InductionTemplate& templ);
+  bool init(const vvector<TermList>& argTerms, const InductionTemplate& templ);
   void init(vvector<RDescriptionInst>&& rdescs);
   void clean();
   InductionScheme makeCopyWithVariablesShifted(unsigned shift) const;

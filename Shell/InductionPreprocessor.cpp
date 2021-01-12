@@ -196,11 +196,19 @@ bool InductionTemplate::findVarOrder(
   return false;
 }
 
-bool InductionTemplate::checkWellDefinedness()
+bool InductionTemplate::checkWellDefinedness(vvector<vvector<TermList>>& missingCases)
 {
+  missingCases.clear();
+  auto arity = _rDescriptions[0]._step.term()->arity();
+  if (arity == 0) {
+    return true;
+  }
+  if (_rDescriptions.empty()) {
+    return false;
+  }
   unsigned var = 0;
   vvector<vvector<TermList>> availableTermsEmpty;
-  for (unsigned i = 0; i < _inductionVariables.size(); i++) {
+  for (unsigned i = 0; i < _rDescriptions[0]._step.term()->arity(); i++) {
     vvector<TermList> v;
     v.push_back(TermList(var++, false));
     availableTermsEmpty.push_back(v);
@@ -208,27 +216,33 @@ bool InductionTemplate::checkWellDefinedness()
   vvector<vvector<vvector<TermList>>> availableTermsLists;
   availableTermsLists.push_back(availableTermsEmpty);
 
+  bool overdefined = false;
   for (auto& rdesc : _rDescriptions) {
     vvector<vvector<vvector<TermList>>> nextAvailableTermsLists;
     Term::Iterator it(rdesc._step.term());
     unsigned j = 0;
     while (it.hasNext()) {
       auto arg = it.next();
+      bool excluded = false;
       if (arg.isTerm()) {
         auto tempLists = availableTermsLists;
         for (auto& availableTerms : tempLists) {
-          if (!TermAlgebra::excludeTermFromAvailables(availableTerms[j], arg, var) && rdesc._conditions.empty()) {
-            return false;
+          if (TermAlgebra::excludeTermFromAvailables(availableTerms[j], arg, var) && rdesc._conditions.empty()) {
+            excluded = true;
           }
         }
         nextAvailableTermsLists.insert(nextAvailableTermsLists.end(),
           tempLists.begin(), tempLists.end());
       } else {
         for (const auto& availableTerms : availableTermsLists) {
-          if ((availableTerms[j].size() != 1 || availableTerms[j][0].isTerm()) && rdesc._conditions.empty()) {
-            return false;
+          if (!availableTerms[j].empty()) {
+            excluded = true;
+            break;
           }
         }
+      }
+      if (!excluded && rdesc._conditions.empty()) {
+        overdefined = true;
       }
       j++;
     }
@@ -237,30 +251,28 @@ bool InductionTemplate::checkWellDefinedness()
 
   for (const auto& availableTerms : availableTermsLists) {
     bool valid = true;
-    vvector<TermList> validArgs;
+    vvector<vvector<TermList>> argTuples(1);
     for (const auto& v : availableTerms) {
       if (v.empty()) {
         valid = false;
         break;
       }
-      validArgs.push_back(*v.begin());
+      for (const auto& e : v) {
+        vvector<vvector<TermList>> temp;
+        for (auto a : argTuples) {
+          a.push_back(e);
+          temp.push_back(a);
+        }
+        argTuples = temp;
+      }
     }
     if (valid) {
-      if (env.options->showInduction()) {
-        env.beginOutput();
-        auto t = _rDescriptions.begin()->_step.term();
-        env.out() << "[Induction] could not determine well-definedness for "
-                  << (t->isLiteral() ? "predicate " : "function ")
-                  << (t->isLiteral() ? static_cast<Literal*>(t)->predicateName() : t->functionName())
-                  << " with template " << *this << " because it is not defined on argument combination ";
-        for (const auto& v : validArgs) {
-          env.out() << v << ", ";
-        }
-        env.out() << endl;
-        env.endOutput();
-      }
-      return false;
+      missingCases.insert(missingCases.end(),
+        argTuples.begin(), argTuples.end());
     }
+  }
+  if (overdefined || !missingCases.empty()) {
+    return false;
   }
 
   for (const auto& rdesc : _rDescriptions) {
@@ -321,6 +333,34 @@ bool InductionTemplate::checkWellDefinedness()
   return true;
 }
 
+void InductionTemplate::addMissingCases(const vvector<vvector<TermList>>& missingCases)
+{
+  auto mainTerm = _rDescriptions.begin()->_step.term();
+  auto fn = mainTerm->functor();
+  auto arity = mainTerm->arity();
+  bool isPred = mainTerm->isLiteral();
+
+  env.beginOutput();
+  env.out() << "% Warning: adding missing cases ";
+  for (const auto& m : missingCases) {
+    Stack<TermList> args;
+    ASS_EQ(m.size(),arity);
+    for(const auto& arg : m) {
+      args.push(arg);
+    }
+    TermList t;
+    if (isPred) {
+      t = TermList(Literal::create(static_cast<Literal*>(mainTerm), args.begin()));
+    } else {
+      t = TermList(Term::create(fn, arity, args.begin()));
+    }
+    vvector<Formula*> empty;
+    env.out() << t << ", ";
+    _rDescriptions.emplace_back(t, empty);
+  }
+  env.out() << "to template " << *this << endl;
+  env.endOutput();
+}
 
 bool InductionTemplate::checkUsefulness()
 {
@@ -345,12 +385,14 @@ bool InductionTemplate::checkUsefulness()
   }
   if (discard) {
     auto t = _rDescriptions.begin()->_step.term();
-    env.beginOutput();
-    env.out() << "% Warning: template for "
-              << (t->isLiteral() ? "predicate " : "function ")
-              << (t->isLiteral() ? static_cast<Literal*>(t)->predicateName() : t->functionName())
-              << " is discarded because it is not useful" << endl;
-    env.endOutput();
+    if (env.options->showInduction()) {
+      env.beginOutput();
+      env.out() << "% Warning: template for "
+                << (t->isLiteral() ? "predicate " : "function ")
+                << (t->isLiteral() ? static_cast<Literal*>(t)->predicateName() : t->functionName())
+                << " is discarded because it is not useful" << endl;
+      env.endOutput();
+    }
   }
   return !discard;
 }
@@ -425,7 +467,7 @@ ostream& operator<<(ostream& out, const InductionTemplate& templ)
       out << "},";
     }
   }
-  out << ")" << endl;
+  out << ")";
   return out;
 }
 
@@ -470,14 +512,13 @@ void InductionPreprocessor::preprocess(Problem& prb)
   // add empty set of templates
   foundFunctionDefinitions.emplace_back();
   preprocess(prb.units());
-  vvector<unsigned> viableSets;
-  vvector<unsigned> wellFoundedSets;
+  auto n = foundFunctionDefinitions.size();
+  vvector<vset<unsigned>> nonWellFounded(n);
+  vvector<vset<unsigned>> nonWellDefined(n);
+  vvector<vmap<unsigned, vvector<vvector<TermList>>>> missingCases(n);
   unsigned i = 0;
   for (auto& fndefs : foundFunctionDefinitions) {
-    bool viable = true;
-    bool wellFounded = true;
     for (auto& kv : fndefs) {
-
       auto& rdescs = kv.second.first._rDescriptions;
       for (unsigned i = 0; i < rdescs.size(); i++) {
         for (unsigned j = i+1; j < rdescs.size();) {
@@ -492,38 +533,58 @@ void InductionPreprocessor::preprocess(Problem& prb)
 
       if (!kv.second.first.checkWellFoundedness())
       {
-        wellFounded = false;
-        viable = false;
-        break;
+        nonWellFounded[i].insert(kv.first);
       }
-      if (!kv.second.first.checkWellDefinedness())
+      ALWAYS(missingCases[i].insert(make_pair(kv.first, vvector<vvector<TermList>>())).second);
+      if (!kv.second.first.checkWellDefinedness(missingCases[i].at(kv.first)))
       {
-        viable = false;
+        nonWellDefined[i].insert(kv.first);
       }
-    }
-    if (wellFounded) {
-      wellFoundedSets.push_back(i);
-    }
-    if (viable) {
-      viableSets.push_back(i);
     }
     i++;
   }
-  ALWAYS(!wellFoundedSets.empty());
-  auto& fndefs = foundFunctionDefinitions[wellFoundedSets[0]];
-  if (!viableSets.empty()) {
-    fndefs = foundFunctionDefinitions[viableSets[0]];
+  // calculate score: non well-founded templates count more
+  unsigned best = nonWellFounded[0].size() * 5 + nonWellDefined[0].size();
+  unsigned best_i = 0;
+  for (unsigned i = 1; i < n; i++) {
+    auto curr = nonWellFounded[i].size() * 5 + nonWellDefined[i].size();
+    if (curr < best) {
+      best = curr;
+      best_i = i;
+    }
+  }
+  auto& fndefs = foundFunctionDefinitions[best_i];
+  if (best > 0) {
+    env.beginOutput();
+    env.out() << "% Warning: all function orientations contain non well-founded"
+      " or non well-defined sets, best score " << best << " with "
+      << nonWellFounded[best_i].size() << " non well-founded and "
+      << nonWellDefined[best_i].size() << " non well-defined " << endl;
+    env.endOutput();
   }
   for (auto& kv : fndefs) {
     if (kv.second.first.checkUsefulness()) {
+      if (nonWellDefined[best_i].count(kv.first)
+        && missingCases[best_i].at(kv.first).size() > 0)
+      {
+        kv.second.first.addMissingCases(missingCases[best_i].at(kv.first));
+      }
       if(env.options->showInduction()){
         env.beginOutput();
-        env.out() << "[Induction] recursive function definition has been discovered: "
-                  << env.signature->functionName(kv.first)
-                  << ", with induction template: " << kv.second.first << endl;
+        env.out() << "[Induction] function definition has been discovered: "
+                  << env.signature->functionName(kv.first) << endl;
+        if (!nonWellFounded[best_i].count(kv.first)) {
+          env.out() << " with induction template: " << kv.second.first << endl;
+        }
         env.endOutput();
       }
-      env.signature->addInductionTemplate(kv.first, false, std::move(kv.second.first));
+      if (!nonWellFounded[best_i].count(kv.first)) {
+        env.signature->addInductionTemplate(kv.first, false, std::move(kv.second.first));
+      } else {
+        env.beginOutput();
+        env.out() << "% Warning: non-well-founded template is discarded: " << kv.second.first << endl;
+        env.endOutput();
+      }
       if (env.options->functionDefinitionRewriting()) {
         for (auto& kv2 : kv.second.second) {
           kv2.first->makeFunctionDefinition();
@@ -536,29 +597,23 @@ void InductionPreprocessor::preprocess(Problem& prb)
     }
   }
   for (auto& kv : foundPredicateDefinitions) {
-    if (env.signature->hasInductionTemplate(kv.first, true)) {
-      env.beginOutput();
-      env.out() << "% Warning: predicate definition already found for "
-                << env.signature->predicateName(kv.first) << endl;
-      env.endOutput();
-      continue;
-    }
-    if (kv.second.checkWellFoundedness()
-        && kv.second.checkWellDefinedness()
-        && kv.second.checkUsefulness()) {
-      if(env.options->showInduction()){
-        env.beginOutput();
-        env.out() << "[Induction] recursive predicate definition has been discovered: "
-                  << env.signature->predicateName(kv.first)
-                  << ", with induction template: " << kv.second << endl;
-        env.endOutput();
+    if (kv.second.checkUsefulness()) {
+      vvector<vvector<TermList>> missingCases;
+      if (!kv.second.checkWellDefinedness(missingCases)
+          && missingCases.size() > 0)
+      {
+        kv.second.addMissingCases(missingCases);
       }
-      env.signature->addInductionTemplate(kv.first, true, std::move(kv.second));
-    } else {
-      env.beginOutput();
-      env.out() << "% Warning: could not determine predicate definition "
-                << env.signature->predicateName(kv.first) << endl;
-      env.endOutput();
+      if (kv.second.checkWellFoundedness()) {
+        if(env.options->showInduction()){
+          env.beginOutput();
+          env.out() << "[Induction] predicate definition has been discovered: "
+                    << env.signature->predicateName(kv.first)
+                    << ", with induction template: " << kv.second << endl;
+          env.endOutput();
+        }
+        env.signature->addInductionTemplate(kv.first, true, std::move(kv.second));
+      }
     }
   }
 }
@@ -601,15 +656,17 @@ void InductionPreprocessor::parseRecursiveDefinition(Literal* lit)
   InductionTemplate templ;
   TermList term(lhterm);
   processBody(*rhs, term, vvector<Formula*>(), templ);
+  vvector<vvector<TermList>> missingCases;
+  // TODO(mhajdu): consider adding missing cases here
   if (!templ.checkWellFoundedness()
-      || !templ.checkWellDefinedness()
+      || !templ.checkWellDefinedness(missingCases)
       || !templ.checkUsefulness()) {
     return;
   }
 
   if(env.options->showInduction()){
     env.beginOutput();
-    env.out() << "[Induction] recursive function: " << *lit << endl << ", with induction template: " << templ << endl;
+    env.out() << "[Induction] function: " << *lit << endl << ", with induction template: " << templ << endl;
     env.endOutput();
   }
   env.signature->addInductionTemplate(lhterm->functor(), isPred, std::move(templ));
@@ -634,9 +691,9 @@ void InductionPreprocessor::findPossibleRecursiveDefinitions(Formula* f, vvector
           return templ.checkWellFoundedness();
         };
         InductionTemplate tlhs;
-        auto succlhs = processFn(lhs, rhs, tlhs);
+        auto succlhs = processFn(lhs, rhs, tlhs) && lhs.containsAllVariablesOf(rhs);
         InductionTemplate trhs;
-        auto succrhs = processFn(rhs, lhs, trhs);
+        auto succrhs = processFn(rhs, lhs, trhs) && rhs.containsAllVariablesOf(lhs);
 
         auto temp = foundFunctionDefinitions;
         if (succlhs || succrhs) {
