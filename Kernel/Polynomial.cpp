@@ -1,15 +1,14 @@
-
-  /*
-   * File Polynomial.cpp.
-   *
-   * This file is part of the source code of the software program
-   * Vampire. It is protected by applicable
-   * copyright laws.
-   *
-   * This source code is distributed under the licence found here
-   * https://vprover.github.io/license.html
-   * and in the source directory
-   */
+/*
+ * File Polynomial.cpp.
+ *
+ * This file is part of the source code of the software program
+ * Vampire. It is protected by applicable
+ * copyright laws.
+ *
+ * This source code is distributed under the licence found here
+ * https://vprover.github.io/license.html
+ * and in the source directory
+ */
 
 
 #include "Kernel/Polynomial.hpp"
@@ -114,6 +113,17 @@ FuncId FuncTerm::function() const
 PolyNf const& FuncTerm::arg(unsigned i) const 
 { return _args[i]; }
 
+bool FuncTerm::ground() const
+{ 
+  for (auto arg : this->iter()){
+    if (!arg.ground()) return false;
+  }
+  return true;
+}
+
+FuncTerm::ArgIter FuncTerm::iter() const
+{ return iterTraits(getArrayishObjectIterator<no_ref_t>(_args)); }
+
 std::ostream& operator<<(std::ostream& out, const FuncTerm& self) 
 { 
   out << self._fun;
@@ -158,6 +168,9 @@ unsigned AnyPoly::nFactors(unsigned i) const
 std::ostream& operator<<(std::ostream& out, const AnyPoly& self) 
 { return self.apply(Polymorphic::outputOp{out}); }
 
+bool AnyPoly::ground() const { return apply(IsGround{}); }
+
+
 
 /////////////////////////////////////////////////////////
 // impl PolyNf 
@@ -166,7 +179,6 @@ std::ostream& operator<<(std::ostream& out, const AnyPoly& self)
 PolyNf::PolyNf(Perfect<FuncTerm> t) : Coproduct(t) {}
 PolyNf::PolyNf(Variable          t) : Coproduct(t) {}
 PolyNf::PolyNf(AnyPoly           t) : Coproduct(t) {}
-
 
 bool operator==(PolyNf const& lhs, PolyNf const& rhs) 
 { return static_cast<PolyNfSuper const&>(lhs) == static_cast<PolyNfSuper const&>(rhs); }
@@ -210,6 +222,9 @@ bool PolyNf::SubtermIter::hasNext() const
   CALL("PolyNf::SubtermIter::hasNext")
   return !_stack.isEmpty(); 
 }
+
+bool PolyNf::ground() const 
+{ return this->apply(IsGround{}); }
 
 
 /////////////////////////////////////////////////////////

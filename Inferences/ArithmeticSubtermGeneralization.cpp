@@ -1,15 +1,14 @@
-
-  /*
-   * File ArithmeticSubtermGeneralization.cpp.
-   *
-   * This file is part of the source code of the software program
-   * Vampire. It is protected by applicable
-   * copyright laws.
-   *
-   * This source code is distributed under the licence found here
-   * https://vprover.github.io/license.html
-   * and in the source directory
-   */
+/*
+ * File ArithmeticSubtermGeneralization.cpp.
+ *
+ * This file is part of the source code of the software program
+ * Vampire. It is protected by applicable
+ * copyright laws.
+ *
+ * This source code is distributed under the licence found here
+ * https://vprover.github.io/license.html
+ * and in the source directory
+ */
 
 #include "Debug/Assertion.hpp"
 #include "Inferences/ArithmeticSubtermGeneralization.hpp"
@@ -340,8 +339,18 @@ Stack<C> intersectSortedStack(Stack<C>&& l, Stack<C>&& r)
 
 #include "ArithmeticSubtermGeneralization/NumeralMultiplicationGeneralizationImpl.cpp"
 #include "ArithmeticSubtermGeneralization/AdditionGeneralizationImpl.cpp"
+#include "ArithmeticSubtermGeneralization/NonZeroMuliplicationGeneralizationImpl.cpp"
 #include "ArithmeticSubtermGeneralization/VariableMultiplicationGeneralizationImpl.cpp"
 #include "ArithmeticSubtermGeneralization/VariablePowerGeneralizationImpl.cpp"
+
+SimplifyingGeneratingInference1::Result NonZeroMultiplicationGeneralization::simplify(Clause* cl, bool doOrderingCheck) 
+{ 
+  CALL("NonZeroMultiplicationGeneralization::simplify")
+  return NonZeroMultiplicationGeneralizationImpl::applyRule(cl,doOrderingCheck);
+}
+
+NonZeroMultiplicationGeneralization::~NonZeroMultiplicationGeneralization()  {}
+
 
 SimplifyingGeneratingInference1::Result AdditionGeneralization::simplify(Clause* cl, bool doOrderingCheck) 
 { 
@@ -382,7 +391,8 @@ Stack<SimplifyingGeneratingInference1*> allArithmeticSubtermGeneralizations()
       new VariableMultiplicationGeneralization(),
       new VariablePowerGeneralization(),
       new NumeralMultiplicationGeneralization(),
-      new AdditionGeneralization()
+      new AdditionGeneralization(),
+      new NonZeroMultiplicationGeneralization()
   };
 }
 

@@ -183,6 +183,16 @@ public:
   /** number of simplifications by PolynomialNormalizer */
   unsigned evaluationCnt;
 
+  /** number of failures of cancellation due to non-zeronoess */
+  unsigned nonZeroFailuresCanc;
+  unsigned nonZeroFailuresCancGround;
+  unsigned nonZeroFailuresAsg;
+  unsigned nonZeroFailuresAsgGround;
+  unsigned nonZeroFailuresEv;
+  unsigned nonZeroFailuresEvGround;
+  unsigned nonZeroFailuresGve;
+  unsigned nonZeroFailuresGveGround;
+
   /** number of (proper) inner rewrites */
   unsigned innerRewrites;
   /** number of inner rewrites into equational tautologies */

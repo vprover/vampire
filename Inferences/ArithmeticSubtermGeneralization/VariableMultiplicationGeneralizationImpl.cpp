@@ -193,8 +193,7 @@ struct Generalize
   Monom<NumTraits> operator()(Monom<NumTraits> p, PolyNf* evaluatedArgs)  
   {
     CALL("Generalize::operator()")
-    using Pair = Monom<NumTraits>;
-    return Pair(p.numeral, perfect(MonomFactors<NumTraits>(filter(p.factors, evaluatedArgs))));
+    return Monom<NumTraits>(p.numeral, perfect(MonomFactors<NumTraits>(filter(p.factors, evaluatedArgs))));
   }
 
   template<class NumTraits>
@@ -227,7 +226,7 @@ struct Generalize
     }
 
     std::sort(out.begin(), out.end());
-    return move(out);
+    return out;
   }
 };
 

@@ -15,7 +15,7 @@ namespace AdditionGeneralizationImpl {
 
 /**
  * Rule' 2)
- *   generalize multiplication
+ *   generalize addition
  *   C[X + d] 
  *   ------------ 
  *   C[X]

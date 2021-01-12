@@ -1,15 +1,16 @@
+/*
+ * File FunctionEvaluation.cpp.
+ *
+ * This file is part of the source code of the software program
+ * Vampire. It is protected by applicable
+ * copyright laws.
+ *
+ * This source code is distributed under the licence found here
+ * https://vprover.github.io/license.html
+ * and in the source directory
+ */
 
-  /*
-   * File FunctionEvaluation.cpp.
-   *
-   * This file is part of the source code of the software program
-   * Vampire. It is protected by applicable
-   * copyright laws.
-   *
-   * This source code is distributed under the licence found here
-   * https://vprover.github.io/license.html
-   * and in the source directory
-   */
+#include "Kernel/NonZeroness.hpp"
 
 template<Interpretation i>
 struct FunctionEvaluator; 
@@ -119,6 +120,7 @@ IMPL_QUOTIENT_REMAINDER(E)
       if (lhs.isSome() && rhs.isSome() && rhs.unwrap() != Numeral(0)) {                                       \
         return Option<PolyNf>(PolyNf(AnyPoly(perfect(Polynom<NumTraits>(lhs.unwrap() / rhs.unwrap())))));     \
       } else {                                                                                                \
+        NON_ZERO_FAIL(Ev, evalArgs[1].ground());                                                              \
         return Option<PolyNf>();                                                                              \
       }                                                                                                       \
     }                                                                                                         \
