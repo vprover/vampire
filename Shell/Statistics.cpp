@@ -111,6 +111,15 @@ Statistics::Statistics()
     evaluationGreater(0),
     evaluationCnt(0),
 
+    nonZeroFailuresCanc(0),
+    nonZeroFailuresCancGround(0),
+    nonZeroFailuresAsg(0),
+    nonZeroFailuresAsgGround(0),
+    nonZeroFailuresEv(0),
+    nonZeroFailuresEvGround(0),
+    nonZeroFailuresGve(0),
+    nonZeroFailuresGveGround(0),
+
     innerRewrites(0),
     innerRewritesToEqTaut(0),
     deepEquationalTautologies(0),
@@ -322,6 +331,15 @@ void Statistics::print(ostream& out)
   COND_OUT("Evaluation count",         evaluationCnt);
   COND_OUT("Evaluation results greater than premise", evaluationGreater);
   COND_OUT("Evaluation results incomparable to premise", evaluationIncomp);
+
+  COND_OUT("nonZeroFailuresCanc      ", nonZeroFailuresCanc);
+  COND_OUT("nonZeroFailuresCancGround", nonZeroFailuresCancGround);
+  COND_OUT("nonZeroFailuresAsg       ", nonZeroFailuresAsg);
+  COND_OUT("nonZeroFailuresAsgGround ", nonZeroFailuresAsgGround);
+  COND_OUT("nonZeroFailuresEv        ", nonZeroFailuresEv);
+  COND_OUT("nonZeroFailuresEvGround  ", nonZeroFailuresEvGround);
+  COND_OUT("nonZeroFailuresGve       ", nonZeroFailuresGve);
+  COND_OUT("nonZeroFailuresGveGround ", nonZeroFailuresGveGround);
   SEPARATOR;
 
   HEADING("Deletion Inferences",simpleTautologies+equationalTautologies+

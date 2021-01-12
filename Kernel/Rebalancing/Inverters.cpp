@@ -1,18 +1,19 @@
+/*
+ * File Inverters.cpp.
+ *
+ * This file is part of the source code of the software program
+ * Vampire. It is protected by applicable
+ * copyright laws.
+ *
+ * This source code is distributed under the licence found here
+ * https://vprover.github.io/license.html
+ * and in the source directory
+ */
 
-  /*
-   * File Inverters.cpp.
-   *
-   * This file is part of the source code of the software program
-   * Vampire. It is protected by applicable
-   * copyright laws.
-   *
-   * This source code is distributed under the licence found here
-   * https://vprover.github.io/license.html
-   * and in the source directory
-   */
-
+#include "Kernel/NonZeroness.hpp"
 #include "Inverters.hpp"
 #include "Debug/Tracer.hpp"
+#include "Shell/Statistics.hpp"
 
 namespace Kernel {
 namespace Rebalancing {
@@ -154,6 +155,7 @@ bool tryInvertDiv(const InversionContext &ctxt, TermList &out) {
       out = NumTraits::mul(u, t);
       return true;
     } else {
+      NON_ZERO_FAIL(Gve, t.ground());
       return false;
     }
   } else {
@@ -213,7 +215,8 @@ bool canInvertMulInt(const InversionContext &ctxt) {
   return tryInvertMulInt(ctxt, _inv);
 }
 
-template <class Number> bool nonZero(const TermList &t) {
+template <class Number> bool nonZero(const TermList &t) 
+{
   typename Number::ConstantType c;
   return theory->tryInterpretConstant(t, c) && Number::zeroC != c;
 }

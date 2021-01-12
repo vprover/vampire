@@ -1746,6 +1746,28 @@ public:
   }
 
 
+
+  template<class F>
+  bool any(F f)
+  { 
+    CALL("IterTraits::any")
+    while (hasNext())  {
+      if (f(next())) return true;
+    }
+    return true;
+  }
+
+  template<class F>
+  bool all(F f)
+  { 
+    CALL("IterTraits::all")
+    while (hasNext())  {
+      if (!f(next())) return false;
+    }
+    return true;
+  }
+
+
   template<class Container>
   Container collect()
   { 

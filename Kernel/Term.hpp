@@ -148,6 +148,7 @@ public:
   bool containsSubterm(TermList v);
   bool containsAllVariablesOf(TermList t);
   bool containsAllVariableOccurrencesOf(TermList t);
+  bool ground() const;
 
   bool isSafe() const;
 

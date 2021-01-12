@@ -1,20 +1,21 @@
+/*
+ * File Cancellation.cpp.
+ *
+ * This file is part of the source code of the software program
+ * Vampire. It is protected by applicable
+ * copyright laws.
+ *
+ * This source code is distributed under the licence found here
+ * https://vprover.github.io/license.html
+ * and in the source directory
+ */
 
-  /*
-   * File Cancellation.cpp.
-   *
-   * This file is part of the source code of the software program
-   * Vampire. It is protected by applicable
-   * copyright laws.
-   *
-   * This source code is distributed under the licence found here
-   * https://vprover.github.io/license.html
-   * and in the source directory
-   */
-
+#include "Kernel/NonZeroness.hpp"
 #include "Inferences/Cancellation.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Kernel/NumTraits.hpp"
 #include "Kernel/PolynomialNormalizer.hpp"
+#include "Shell/Statistics.hpp"
 
 #define DEBUG(...) //DBG(__VA_ARGS__)
 
@@ -24,14 +25,18 @@ namespace Inferences {
 Cancellation::~Cancellation() {}
 
 
+// TODO add possivility for a nop, which means nothing was performed, so nothing needs to be copied
 template<class Number>
-struct CancelAddResult {
+struct CancellationResult {
   Polynom<Number> lhs;
   Polynom<Number> rhs;
 };
 
 template<class Number>
-CancelAddResult<Number> cancelAdd(Polynom<Number> const& oldl, Polynom<Number> const& oldr) ;
+void checkCancelMul(Polynom<Number> const& oldl, Polynom<Number> const& oldr);
+
+template<class Number>
+CancellationResult<Number> cancelAdd(Polynom<Number> const& oldl, Polynom<Number> const& oldr);
 
 template<class NumTraits>
 Literal* cancelAdd(Literal* lit) {
@@ -45,6 +50,8 @@ Literal* cancelAdd(Literal* lit) {
 
   res.lhs.integrity();
   res.rhs.integrity();
+
+  checkCancelMul(res.lhs, res.rhs);
 
   auto newL = perfect(std::move(res.lhs));
   auto newR = perfect(std::move(res.rhs));
@@ -101,14 +108,57 @@ Cancellation::Result Cancellation::simplifyLiteral(Literal* litIn)
 }
 
 template<class Number>
-CancelAddResult<Number> cancelAdd(Polynom<Number> const& oldl, Polynom<Number> const& oldr) 
+void checkCancelMul(Polynom<Number> const& oldl, Polynom<Number> const& oldr) 
 {
-  CALL("Polynom::cancelAdd(Polynom<Number> const& oldl, Polynom<Number> const& oldr)")
+  CALL("checkCancelMul(Polynom<Number> const& oldl, Polynom<Number> const& oldr)")
+  DEBUG("in:  ", oldl, " <> ", oldr)
+
+  using Monom        = Monom       <Number>;
+  using MonomVec   = Stack<Monom>;
+  auto itl = 0;
+  auto itr = 0;
+  auto endl = oldl.nSummands();
+  auto endr = oldr.nSummands();
+
+  MonomVec newl;
+  MonomVec newr;
+  bool nonZeroFail = false;
+  bool ground = false;
+  while(itl != endl && itr !=  endr) {
+    auto l = oldl.summandAt(itl);
+    auto r = oldr.summandAt(itr);
+    if (l.factors == r.factors) {
+      if( *l.factors != MonomFactors<Number>::one()) {
+        nonZeroFail = true;
+        DBG("lalala ", l, " ", r);
+        if (l.factors->ground())  {
+          ground = true;
+          break;
+        }
+      }
+      itl++;
+      itr++;
+    } else if (l.factors < r.factors) {
+      itl++;
+    } else {
+      ASS(r.factors < l.factors)
+      itr++;
+    }
+  }
+  if (nonZeroFail) {
+    NON_ZERO_FAIL(Canc, ground);
+  }
+}
+
+template<class Number>
+CancellationResult<Number> cancelAdd(Polynom<Number> const& oldl, Polynom<Number> const& oldr) 
+{
+  CALL("cancelAdd(Polynom<Number> const& oldl, Polynom<Number> const& oldr)")
   DEBUG("in:  ", oldl, " <> ", oldr)
 
   using Numeral = typename Number::ConstantType;
   using Monom        = Monom       <Number>;
-  using NumeralVec   = Stack<Monom>;
+  using MonomVec   = Stack<Monom>;
   auto itl = 0;
   auto itr = 0;
   auto endl = oldl.nSummands();
@@ -131,8 +181,8 @@ CancelAddResult<Number> cancelAdd(Polynom<Number> const& oldl, Polynom<Number> c
     return Numeral::comparePrecedence(l,r) == Comparison::LESS;
   };
 
-  NumeralVec newl;
-  NumeralVec newr;
+  MonomVec newl;
+  MonomVec newr;
   while(itl != endl && itr !=  endr) {
     auto l = oldl.summandAt(itl);
     auto r = oldr.summandAt(itr);
@@ -203,7 +253,7 @@ CancelAddResult<Number> cancelAdd(Polynom<Number> const& oldl, Polynom<Number> c
   auto outl = Polynom<Number>(std::move(newl));
   auto outr = Polynom<Number>(std::move(newr));
   DEBUG("out: ", outl, " <> ", outr)
-  return CancelAddResult<Number> { 
+  return CancellationResult<Number> { 
     .lhs = std::move(outl), 
     .rhs = std::move(outr), 
   };

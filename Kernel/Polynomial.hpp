@@ -58,6 +58,7 @@ public:
   Variable();
   explicit Variable(unsigned num);
   unsigned id() const;
+  bool ground() const { return false; }
 
   friend struct std::hash<Variable>;
   friend bool operator==(Variable lhs, Variable rhs);
@@ -148,6 +149,7 @@ struct Monom
   Monom(Numeral numeral, Perfect<MonomFactors<Number>> factors);
 
   static Monom zero();
+  bool ground() const;
 
   Option<Variable> tryVar() const;
 
@@ -176,6 +178,12 @@ public:
 
   template<class Number> 
   Option<typename Number::ConstantType> tryNumeral() const;
+
+  bool ground() const;
+
+  using ArgIter = IterTraits<ArrayishObjectIterator<typename std::remove_reference<decltype(_args)>::type, no_ref_t>>;
+
+  ArgIter iter() const;
 
   friend std::ostream& operator<<(std::ostream& out, const FuncTerm& self);
   friend bool operator==(FuncTerm const& lhs, FuncTerm const& rhs);
@@ -207,6 +215,8 @@ public:
 
   /** \see template<class N> Polynom<N>::replaceTerms */
   AnyPoly replaceTerms(PolyNf* newTs) const;
+
+  bool ground() const;
 
   /** \see template<class N> Polynom<N>::nSummands */
   unsigned nSummands() const;
@@ -269,6 +279,9 @@ public:
 
   /** if this PolyNf is a Variable, the variable is returned */
   Option<Variable> tryVar() const;
+
+  /** returns whether this term is ground */
+  bool ground() const;
 
   /** an iterator over all PolyNf s that are subterms of this one */
   class SubtermIter;
@@ -351,6 +364,9 @@ public:
   /** returns the number of factors */
   PolyNf const& termAt(unsigned i) const;
 
+  /** returns whether this term is ground */
+  bool ground() const;
+
   /** returns whether this monom is a polynom, i.e. if its only factor is a polynom */
   bool isPolynom() const;
 
@@ -390,6 +406,8 @@ public:
 
   template<class N> friend std::ostream& operator<<(std::ostream& out, const MonomFactors<N>& self);
   template<class N> friend bool operator==(const MonomFactors<N>& l, const MonomFactors<N>& r);
+  template<class N> friend bool operator!=(const MonomFactors<N>& l, const MonomFactors<N>& r)
+  { return !(l == r); }
 
   /** helper function for PolyNf::denormalize() */
   TermList denormalize(TermList* results)  const;
@@ -482,6 +500,8 @@ public:
 
   Stack<Monom>& raw();
 
+  bool ground() const;
+
   template<class N> friend bool operator==(const Polynom<N>& lhs, const Polynom<N>& rhs);
   template<class N> friend std::ostream& operator<<(std::ostream& out, const Polynom<N>& self);
 };  
@@ -550,6 +570,10 @@ Monom<Number> Monom<Number>::zero()
   static Monom p = Monom(Numeral(0), perfect(MonomFactors<Number>()));
   return p; 
 }
+
+template<class Number>
+bool Monom<Number>::ground()  const
+{ return factors->ground(); }
 
 template<class Number>
 Option<Variable> Monom<Number>::tryVar() const 
@@ -645,12 +669,23 @@ template<> struct std::hash<Kernel::FuncTerm>
 
 namespace Kernel {
 
+POLYMORPHIC_FUNCTION(bool, ground        , const& t,) { return t.ground(); }
 POLYMORPHIC_FUNCTION(TermList, denormalize   , const& t, TermList* results; ) { return t->denormalize(results); }
 POLYMORPHIC_FUNCTION(unsigned, nSummands, const& t,            ) { return t->nSummands(); }
 POLYMORPHIC_FUNCTION(unsigned, nFactors , const& t, unsigned i;) { return t->nFactors(i); }
 POLYMORPHIC_FUNCTION(ostream&, outputOp , const& t, ostream& o;) { return o << t; }
 POLYMORPHIC_FUNCTION(PolyNf const&, termAt   , const& t, unsigned summand; unsigned factor;) { return t->summandAt(summand).factors->termAt(factor); }
-  
+
+template<class C> struct __IsGroundHelper 
+{ bool operator()(C const& c) { return c.ground(); } };
+
+template<class C> struct __IsGroundHelper<Perfect<C>>
+{ bool operator()(Perfect<C> const& c) { return c->ground(); } };
+
+struct IsGround
+{ template<class C> bool operator()(C const& c) { return __IsGroundHelper<C>{}(c); } };
+
+
 template<class NumTraits>
 AnyPoly::AnyPoly(Perfect<Polynom<NumTraits>> x) : Coproduct(std::move(x)) {  }
 
@@ -842,6 +877,10 @@ MonomFactor<Number> & MonomFactors<Number>::factorAt(unsigned i)
 template<class Number>
 MonomFactor<Number> const& MonomFactors<Number>::factorAt(unsigned i) const
 { return _factors[i]; }
+
+template<class Number>
+bool MonomFactors<Number>::ground() const
+{ return iter().all([](MonomFactor f) { return f.term.ground(); }); }
 
 template<class Number>
 PolyNf const& MonomFactors<Number>::termAt(unsigned i) const
@@ -1055,8 +1094,13 @@ Polynom<Number> Polynom<Number>::zero()
 { 
   auto out = Polynom(Stack<Monom>{Monom::zero()}); 
   out.integrity();
-  return std::move(out);
+  return out;
 }
+
+
+template<class Number>
+bool Polynom<Number>::ground() const
+{ return iterSummands().all([](Monom const& x) { return x.ground(); }); }
 
 template<class Number>
 Option<typename Number::ConstantType> Polynom<Number>::toNumber() const& 

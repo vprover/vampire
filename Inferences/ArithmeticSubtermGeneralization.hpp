@@ -18,6 +18,7 @@
 #include "InferenceEngine.hpp"
 #include "Lib/Stack.hpp"
 #include "PolynomialEvaluation.hpp"
+#include "Kernel/NonZeroness.hpp"
 
 
 namespace Inferences {
@@ -69,6 +70,19 @@ public:
   USE_ALLOCATOR(AdditionGeneralization);
 
   virtual ~AdditionGeneralization();
+
+  SimplifyingGeneratingInference1::Result simplify(Clause* cl, bool doOrderingCheck);
+};
+
+
+class NonZeroMultiplicationGeneralization
+: public SimplifyingGeneratingInference1
+{
+public:
+  CLASS_NAME(NonZeroMultiplicationGeneralization);
+  USE_ALLOCATOR(NonZeroMultiplicationGeneralization);
+
+  virtual ~NonZeroMultiplicationGeneralization();
 
   SimplifyingGeneratingInference1::Result simplify(Clause* cl, bool doOrderingCheck);
 };
