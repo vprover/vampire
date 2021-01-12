@@ -1146,13 +1146,6 @@ void Options::init()
             _inductionStrengthen.reliesOn(_structInduction.is(equal(StructuralInductionKind::FOUR)));
             _lookup.insert(&_inductionStrengthen);
 
-            _inductionForceMerge = BoolOptionValue("induction_force_merge","indfm",false);
-            _inductionForceMerge.description = "Try to merge induction schemes with distinct sets of induction terms";
-            _inductionForceMerge.tag(OptionTag::INFERENCES);
-            _inductionForceMerge.reliesOn(_induction.is(equal(Induction::STRUCTURAL)));
-            _inductionForceMerge.reliesOn(_structInduction.is(equal(StructuralInductionKind::FOUR)));
-            _lookup.insert(&_inductionForceMerge);
-
             _inductionMultiClause = BoolOptionValue("induction_multiclause","indmc",false);
             _inductionMultiClause.description = "Induct on multiple clauses together when they contain the same induction terms";
             _inductionMultiClause.tag(OptionTag::INFERENCES);

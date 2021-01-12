@@ -15,6 +15,8 @@
 #include "Kernel/FormulaVarIterator.hpp"
 #include "Kernel/Matcher.hpp"
 #include "Kernel/Problem.hpp"
+#include "Kernel/Renaming.hpp"
+#include "Kernel/RobSubstitution.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Unit.hpp"
@@ -176,36 +178,161 @@ TermList IteratorByInductiveVariables::next()
   return _it.next();
 }
 
-ostream& operator<<(ostream& out, const RDescriptionInst& inst)
-{
-  if (!inst._conditions.empty()) {
-    out << "* conditions: ";
-    for (const auto& c : inst._conditions) {
-      out << *c << ", ";
-    }
-    out << endl;
+Formula* applyVarReplacement(Formula* f, VarReplacement& vr) {
+  if (f->connective() == Connective::LITERAL) {
+    auto lit = vr.transform(f->literal());
+    return new AtomicFormula(lit);
   }
-  auto basecase = inst._recursiveCalls.empty();
-  if (!basecase) {
-    out << "** recursive calls: ";
-    for (const auto& r : inst._recursiveCalls) {
-      for (const auto& kv : r) {
-        out << kv.first << " -> " << kv.second << ", ";
+
+  switch (f->connective()) {
+    case Connective::AND:
+    case Connective::OR: {
+      FormulaList* res = f->args();
+      FormulaList::RefIterator it(res);
+      while (it.hasNext()) {
+        auto& curr = it.next();
+        curr = applyVarReplacement(curr, vr);
       }
-      out << "; ";
+      return JunctionFormula::generalJunction(f->connective(), res);
     }
-    out << endl;
+    case Connective::IMP:
+    case Connective::XOR:
+    case Connective::IFF: {
+      auto left = applyVarReplacement(f->left(), vr);
+      auto right = applyVarReplacement(f->right(), vr);
+      return new BinaryFormula(f->connective(), left, right);
+    }
+    case Connective::NOT: {
+      return new NegatedFormula(applyVarReplacement(f->uarg(), vr));
+    }
+    default:
+      ASSERTION_VIOLATION;
   }
-  if (basecase) {
-    out << "** base: ";
-  } else {
-    out << "** step: ";
+}
+
+Formula* applySubst(RobSubstitution& subst, int index, Formula* f) {
+  if (f->connective() == Connective::LITERAL) {
+    auto lit = subst.apply(f->literal(), index);
+    return new AtomicFormula(lit);
   }
-  for (const auto& kv : inst._step) {
-    out << kv.first << " -> " << kv.second << ", ";
+
+  switch (f->connective()) {
+    case Connective::AND:
+    case Connective::OR: {
+      FormulaList* res = f->args();
+      FormulaList::RefIterator it(res);
+      while (it.hasNext()) {
+        auto& curr = it.next();
+        curr = applySubst(subst, index, curr);
+      }
+      return JunctionFormula::generalJunction(f->connective(), res);
+    }
+    case Connective::IMP:
+    case Connective::XOR:
+    case Connective::IFF: {
+      auto left = applySubst(subst, index, f->left());
+      auto right = applySubst(subst, index, f->right());
+      return new BinaryFormula(f->connective(), left, right);
+    }
+    case Connective::NOT: {
+      return new NegatedFormula(applySubst(subst, index, f->uarg()));
+    }
+    default:
+      ASSERTION_VIOLATION;
   }
-  out << endl;
-  return out;
+}
+
+bool subsumes(Formula* subsumer, Formula* subsumed) {
+  if (subsumer->connective() != subsumed->connective()) {
+    return false;
+  }
+  switch (subsumer->connective()) {
+    case LITERAL: {
+      return subsumer->literal() == subsumed->literal();
+      break;
+    }
+    case NOT: {
+      return subsumes(subsumer->uarg(), subsumed->uarg());
+    }
+    case AND:
+    case OR:
+    case IMP:
+    case IFF:
+    case XOR:
+    case FORALL:
+    case EXISTS:
+    case BOOL_TERM:
+    case FALSE:
+    case TRUE:
+    case NAME:
+    case NOCONN: {
+      break;
+    }
+  }
+  return false;
+}
+
+bool RDescriptionInst::contains(const RDescriptionInst& other) const
+{
+  vmap<TermList, RobSubstitutionSP> substs;
+  for (const auto& kv : other._step) {
+    // we only check this on relations with the same
+    // induction terms
+    ASS (_step.count(kv.first));
+    auto s2 = _step.at(kv.first);
+    RobSubstitutionSP subst(new RobSubstitution);
+    // try to unify the step cases
+    if (!subst->unify(s2, 0, kv.second, 1)) {
+      return false;
+    }
+    auto t1 = subst->apply(kv.second, 1);
+    Renaming r1, r2;
+    r1.normalizeVariables(kv.second);
+    r2.normalizeVariables(s2);
+    auto t2 = subst->apply(s2, 0);
+    if (t1 != r1.apply(kv.second) || t2 != r2.apply(s2)) {
+      return false;
+    }
+    substs.insert(make_pair(kv.first, subst));
+  }
+  // check condition subsumption
+  for (const auto& c1 : other._conditions) {
+    bool found = false;
+    for (const auto& c2 : _conditions) {
+      // TODO(mhajdu): this check should be based on the unification on the arguments
+      if (subsumes(c2, c1)) {
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      return false;
+    }
+  }
+  // if successful, find pair for each recCall in sch1
+  // don't check if recCall1 or recCall2 contain kv.first
+  // as they should by definition
+  for (const auto& recCall1 : other._recursiveCalls) {
+    bool found = false;
+    for (const auto& recCall2 : _recursiveCalls) {
+      for (const auto& kv : recCall1) {
+        if (!recCall1.count(kv.first) || !recCall2.count(kv.first)) {
+          continue;
+        }
+        auto subst = substs.at(kv.first);
+        const auto& r1 = subst->apply(recCall1.at(kv.first), 1);
+        const auto& r2 = subst->apply(recCall2.at(kv.first), 0);
+        if (r1 == r2) {
+          found = true;
+          break;
+        }
+      }
+    }
+    if (!found) {
+      return false;
+    }
+  }
+  return true;
 }
 
 void InductionScheme::init(const vvector<TermList>& argTerms, const InductionTemplate& templ)
@@ -379,6 +506,22 @@ void InductionScheme::init(vvector<RDescriptionInst>&& rdescs)
     }
   }
   _maxVar = var;
+  clean();
+}
+
+void InductionScheme::clean()
+{
+  for (unsigned i = 0; i < _rDescriptionInstances.size(); i++) {
+    for (unsigned j = i+1; j < _rDescriptionInstances.size();) {
+      if (_rDescriptionInstances[i].contains(_rDescriptionInstances[j])) {
+        _rDescriptionInstances[j] = _rDescriptionInstances.back();
+        _rDescriptionInstances.pop_back();
+      } else {
+        j++;
+      }
+    }
+  }
+  _rDescriptionInstances.shrink_to_fit();
 }
 
 InductionScheme InductionScheme::makeCopyWithVariablesShifted(unsigned shift) const {
@@ -434,17 +577,112 @@ void InductionScheme::addInductionTerms(const vset<TermList>& terms) {
   }
 }
 
+bool InductionScheme::checkWellFoundedness()
+{
+  vvector<pair<vmap<TermList,TermList>&,vmap<TermList,TermList>&>> relations;
+  for (auto& rdesc : _rDescriptionInstances) {
+    for (auto& recCall : rdesc._recursiveCalls) {
+      relations.push_back(
+        pair<vmap<TermList,TermList>&,vmap<TermList,TermList>&>(
+          recCall, rdesc._step));
+    }
+  }
+  return checkWellFoundedness(relations, _inductionTerms);
+}
+
+bool InductionScheme::checkWellFoundedness(
+  vvector<pair<vmap<TermList,TermList>&,vmap<TermList,TermList>&>> relations,
+  vset<TermList> inductionTerms)
+{
+  if (relations.empty()) {
+    return true;
+  }
+  if (inductionTerms.empty()) {
+    return false;
+  }
+  for (const auto& indTerm : inductionTerms) {
+    vvector<pair<vmap<TermList,TermList>&,vmap<TermList,TermList>&>> remaining;
+    bool check = true;
+    for (const auto& rel : relations) {
+      auto it1 = rel.first.find(indTerm);
+      auto it2 = rel.second.find(indTerm);
+      // if either one is missing or the step term
+      // does not contain the recursive term as subterm
+      if (it1 == rel.first.end() || it2 == rel.second.end()
+        || !it2->second.containsSubterm(it1->second))
+      {
+        check = false;
+        break;
+      }
+      if (it1->second == it2->second) {
+        remaining.push_back(rel);
+      }
+    }
+    if (check) {
+      auto remIndTerms = inductionTerms;
+      remIndTerms.erase(indTerm);
+      if (checkWellFoundedness(remaining, std::move(remIndTerms))) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 ostream& operator<<(ostream& out, const InductionScheme& scheme)
 {
-  out << endl;
-  out << "* r-description instances: " << endl;
-  auto i = 0;
-  for (const auto& inst : scheme._rDescriptionInstances) {
-    out << ++i << "." << endl << inst;
+  unsigned k = 0;
+  unsigned l = scheme._inductionTerms.size();
+  for (const auto& indTerm : scheme._inductionTerms) {
+    out << indTerm;
+    if (++k < l) {
+      out << ',';
+    }
   }
-  out << "induction terms: ";
-  for (const auto& t : scheme._inductionTerms) {
-    out << t << ", ";
+  out << ':';
+  unsigned i;
+  unsigned j = 0;
+  for (const auto& rdesc : scheme._rDescriptionInstances) {
+    i = 0;
+    for (const auto& cond : rdesc._conditions) {
+      out << '[' << *cond << ']';
+      if (++i < rdesc._conditions.size()) {
+        out << ',';
+      }
+    }
+    i = 0;
+    for (const auto& recCall : rdesc._recursiveCalls) {
+      out << '[';
+      k = 0;
+      for (const auto& indTerm : scheme._inductionTerms) {
+        auto it = recCall.find(indTerm);
+        out << ((it != recCall.end()) ? it->second.toString() : "_");
+        if (++k < l) {
+          out << ',';
+        }
+      }
+      out << ']';
+      if (++i < rdesc._recursiveCalls.size()) {
+        out << ',';
+      }
+    }
+    if (!rdesc._conditions.empty() || !rdesc._recursiveCalls.empty()) {
+      out << "=>";
+    }
+    k = 0;
+    out << '[';
+    for (const auto& indTerm : scheme._inductionTerms) {
+      auto it = rdesc._step.find(indTerm);
+      out << ((it != rdesc._step.end()) ? it->second.toString() : "_");
+      if (++k < l) {
+        out << ',';
+      }
+      k++;
+    }
+    out << ']';
+    if (++j < scheme._rDescriptionInstances.size()) {
+      out << ';';
+    }
   }
 
   return out;
@@ -622,15 +860,29 @@ bool InductionSchemeGenerator::process(TermList curr, bool active,
     for (const auto& argTerms : argTermsList) {
       InductionScheme scheme;
       scheme.init(argTerms, templ);
-      auto litClMap = new DHMap<Literal*, Clause*>();
-      litClMap->insert(lit, premise);
-      if(env.options->showInduction()){
-        env.beginOutput();
-        env.out() << "[Induction] induction scheme " << scheme
-                  << " was suggested by term " << *t << " in " << *lit << endl;
-        env.endOutput();
+      if (!scheme.checkWellFoundedness()) {
+        if (env.options->showInduction()) {
+          env.beginOutput();
+          env.out() << "[Induction] induction scheme is not well-founded: " << endl
+            << scheme << endl << "suggested by template " << templ << endl << "and terms ";
+          for (const auto& argTerm : argTerms) {
+            env.out() << argTerm << ",";
+          }
+          env.out() << endl;
+          env.endOutput();
+        }
+        ALWAYS(false);
+      } else {
+        auto litClMap = new DHMap<Literal*, Clause*>();
+        litClMap->insert(lit, premise);
+        if(env.options->showInduction()){
+          env.beginOutput();
+          env.out() << "[Induction] induction scheme " << scheme
+                    << " was suggested by term " << *t << " in " << *lit << endl;
+          env.endOutput();
+        }
+        schemes.push_back(make_pair(std::move(scheme), litClMap));
       }
-      schemes.push_back(make_pair(std::move(scheme), litClMap));
     }
   } else {
     for (unsigned i = 0; i < t->arity(); i++) {

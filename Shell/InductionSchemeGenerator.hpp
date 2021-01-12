@@ -67,6 +67,11 @@ private:
   unsigned& _v;                       // current minimal unused var
 };
 
+inline TermList applyVarReplacement(TermList t, VarReplacement& vr) {
+  return t.isVar() ? vr.transformSubterm(t)
+    : TermList(vr.transform(t.term()));
+}
+
 class VarShiftReplacement : public TermTransformer {
 public:
   VarShiftReplacement(unsigned shift) : _shift(shift) {}
@@ -110,13 +115,12 @@ struct RDescriptionInst {
                    vmap<TermList, TermList>&& step,
                    vvector<Formula*>&& conditions)
     : _recursiveCalls(recursiveCalls), _step(step), _conditions(conditions) {}
+  bool contains(const RDescriptionInst& other) const;
 
   vvector<vmap<TermList, TermList>> _recursiveCalls;
   vmap<TermList, TermList> _step;
   vvector<Formula*> _conditions;
 };
-
-ostream& operator<<(ostream& out, const RDescriptionInst& inst);
 
 /**
  * An instantiated induction template for a term.
@@ -124,8 +128,13 @@ ostream& operator<<(ostream& out, const RDescriptionInst& inst);
 struct InductionScheme {
   void init(const vvector<TermList>& argTerms, const InductionTemplate& templ);
   void init(vvector<RDescriptionInst>&& rdescs);
+  void clean();
   InductionScheme makeCopyWithVariablesShifted(unsigned shift) const;
   void addInductionTerms(const vset<TermList>& terms);
+  bool checkWellFoundedness();
+  bool checkWellFoundedness(
+    vvector<pair<vmap<TermList,TermList>&,vmap<TermList,TermList>&>> relations,
+    vset<TermList> inductionTerms);
 
   vvector<RDescriptionInst> _rDescriptionInstances;
   unsigned _maxVar;
