@@ -476,7 +476,7 @@ inline Clause* clause(std::initializer_list<Lit> ls_) {
   Clause& out = *new(ls.size()) Clause(ls.size(), testInf); 
 
   auto l = ls.begin(); 
-  for (int i = 0; i < ls.size(); i++) { 
+  for (unsigned i = 0; i < ls.size(); i++) { 
     Literal* lit = *l;
     out[i] = lit; 
     l++; 
@@ -505,7 +505,7 @@ inline void createTermAlgebra(SortSugar sort, initializer_list<FuncSugar> fs) {
       ->markTermAlgebraCons();
 
     Array<unsigned> dtors(f.arity()); 
-    for (int i = 0; i < f.arity(); i++) {
+    for (unsigned i = 0; i < f.arity(); i++) {
       dtors[i] = f.dtor(i).functor();
     }
     cons.push(new TermAlgebraConstructor(f.functor(), dtors));

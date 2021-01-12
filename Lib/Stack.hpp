@@ -373,7 +373,7 @@ public:
     C res = std::move(*_cursor);
     _cursor->~C();
 
-    return std::move(res);
+    return res;
   } // Stack::pop()
 
 

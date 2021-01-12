@@ -308,7 +308,7 @@ public:
     Coproduct self;                                                                                           \
     self._tag = idx;                                                                                          \
     CoproductImpl::InitStaticTag<idx, Ts>{}(self._content, MOVE(value));                                      \
-    return MOVE(self);                                                                                        \
+    return self;                                                                                              \
   }                                                                                                           \
                                                                                                               \
   /**                                                                                                         \

@@ -964,7 +964,7 @@ MonomFactors<Number> MonomFactors<Number>::replaceTerms(PolyNf* simplifiedTerms)
     out._factors.push(MonomFactor(simplifiedTerms[offs++], fac.power));
   }
 
-  return std::move(out);
+  return out;
 }
 
 template<class Number>
