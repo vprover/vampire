@@ -1,7 +1,4 @@
-
 /*
- * File Statistics.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -131,18 +128,11 @@ Statistics::Statistics()
     satClauses(0),
     unitSatClauses(0),
     binarySatClauses(0),
-    learntSatClauses(0),
-    learntSatLiterals(0),
 
     satSplits(0),
     satSplitRefutations(0),
 
     smtFallbacks(0),
-
-    /**TODO Remove the next var*/
-    satTWLClauseCount(0),
-    satTWLVariablesCount(0),
-    satTWLSATCalls(0),
 
     instGenGeneratedClauses(0),
     instGenRedundantClauses(0),
@@ -378,17 +368,10 @@ void Statistics::print(ostream& out)
   //TODO record statistics for FMB
 
   //TODO record statistics for MiniSAT
-  HEADING("SAT Solver Statistics",satTWLClauseCount+satTWLVariablesCount+
-        satTWLSATCalls+satClauses+unitSatClauses+binarySatClauses+
-        learntSatClauses+learntSatLiterals+satPureVarsEliminated);
+  HEADING("SAT Solver Statistics",satClauses+unitSatClauses+binarySatClauses+satPureVarsEliminated);
   COND_OUT("SAT solver clauses", satClauses);
   COND_OUT("SAT solver unit clauses", unitSatClauses);
   COND_OUT("SAT solver binary clauses", binarySatClauses);
-  COND_OUT("TWL SAT solver learnt clauses", learntSatClauses);
-  COND_OUT("TWL SAT solver learnt literals", learntSatLiterals);
-  COND_OUT("TWLsolver clauses", satTWLClauseCount);
-  COND_OUT("TWLsolver variables", satTWLVariablesCount);
-  COND_OUT("TWLsolver calls for satisfiability", satTWLSATCalls);
   COND_OUT("Pure propositional variables eliminated by SAT solver", satPureVarsEliminated);
   SEPARATOR;
 

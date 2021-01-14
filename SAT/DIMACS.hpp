@@ -1,7 +1,4 @@
-
 /*
- * File DIMACS.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -29,11 +26,8 @@ namespace SAT
 class DIMACS
 {
 public:
-  static SATClauseList* parse(const char* fname, unsigned& maxVar);
-
   static void outputGroundedProblem(MapToLIFO<Clause*, SATClause*>& insts,
 	  SATClause::NamingContext& nctx, ostream& out);
-  static void outputProblem(SATClauseList* clauses, ostream& out);
 
 private:
   static void getStats(SATClauseIterator clauses, unsigned& clauseCnt, unsigned& maxVar);

@@ -1,7 +1,4 @@
-
 /*
- * File Statistics.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -227,20 +224,11 @@ public:
   unsigned unitSatClauses;
   /** Number of binary clauses generated for the SAT solver */
   unsigned binarySatClauses;
-  /** Number of clauses learned by the SAT solver */
-  unsigned learntSatClauses;
-  /** Number of literals in clauses learned by the SAT solver */
-  unsigned learntSatLiterals;
 
   unsigned satSplits;
   unsigned satSplitRefutations;
 
   unsigned smtFallbacks;
-
-  /* the next three variables keep statistics for Vampire default sat solver*/
-  unsigned satTWLClauseCount;
-  unsigned satTWLVariablesCount;
-  unsigned satTWLSATCalls;
 
   unsigned instGenGeneratedClauses;
   unsigned instGenRedundantClauses;
