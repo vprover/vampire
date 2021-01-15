@@ -25,6 +25,14 @@
 #include "Debug/Tracer.hpp"
 
 #include "Portability.hpp"
+#include "Threading.hpp"
+
+#if VTHREADED
+#include <mutex>
+#define ACQ_ALLOCATOR_LOCK const std::lock_guard<std::recursive_mutex> __vampire_allocator_lock(_mutex)
+#else
+#define ACQ_ALLOCATOR_LOCK
+#endif
 
 #if VDEBUG
 #include <string>
@@ -68,23 +76,35 @@ public:
 
   Allocator();
   ~Allocator();
+
+// mutex for global allocator data
+#if VTHREADED
+  static std::recursive_mutex _mutex;
+
+  static void lockPermanently() {
+    _mutex.lock();
+  };
+#endif
   
   /** Return the amount of used memory */
   static size_t getUsedMemory()
   {
     CALLC("Allocator::getUsedMemory",MAKE_CALLS);
+    ACQ_ALLOCATOR_LOCK;
     return _usedMemory;
   }
   /** Return the global memory limit (in bytes) */
   static size_t getMemoryLimit()
   {
     CALLC("Allocator::getMemoryLimit",MAKE_CALLS);
+    ACQ_ALLOCATOR_LOCK;
     return _memoryLimit;
   }
   /** Set the global memory limit (in bytes) */
   static void setMemoryLimit(size_t size)
   {
     CALLC("Allocator::setMemoryLimit",MAKE_CALLS);
+    ACQ_ALLOCATOR_LOCK;
     _memoryLimit = size;
     _tolerated = size + (size/10);
   }
@@ -144,7 +164,7 @@ private:
   /** Total number of allocators currently available */
   static int _total;
   /** > 0 if the global page manager has been initialised */
-  static int _initialised;
+  static VATOMIC(int) _initialised;
 
   /**
    * A piece of memory whose size is known by procedures de-allocating
@@ -294,7 +314,7 @@ private:
   /** All pages allocated by this allocator and not returned to 
    *  the global manager via deallocatePages (doubly linked).  */
   Page* _myPages;
-#if ! USE_SYSTEM_ALLOCATION
+#if !USE_SYSTEM_ALLOCATION && !TSAN
   /** Number of bytes available on the reserve page */
   size_t _reserveBytesAvailable;
   /** next available known */
@@ -314,7 +334,7 @@ private:
    * A tool for marking pieces of code which are allowed to bypass Allocator.
    * See also Allocator::AllowBypassing and the BYPASSING_ALLOCATOR macro.
    */
-  static unsigned _tolerantZone;  
+  VTHREAD_LOCAL static unsigned _tolerantZone;
   friend void* ::operator new(size_t);
   friend void* ::operator new[](size_t);
   friend void ::operator delete(void*) noexcept;

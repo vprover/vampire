@@ -30,8 +30,8 @@ Clause* TautologyDeletionISE::simplify(Clause* c)
 {
   CALL("TautologyDeletionISE::simplify");
 
-  static DArray<Literal*> plits(32); // array of positive literals
-  static DArray<Literal*> nlits(32); // array of negative literals
+  VTHREAD_LOCAL static DArray<Literal*> plits(32); // array of positive literals
+  VTHREAD_LOCAL static DArray<Literal*> nlits(32); // array of negative literals
 
   int pos = 0;
   int neg = 0;
@@ -152,7 +152,7 @@ void TautologyDeletionISE::sort(Literal** lits,int to)
   ASS(to > 1);
 
   // array behaves as a stack of calls to quicksort
-  static DArray<int> ft(32);
+  VTHREAD_LOCAL static DArray<int> ft(32);
 
   to--;
   ft.ensure(to);

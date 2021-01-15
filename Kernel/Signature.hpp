@@ -554,6 +554,7 @@ class Signature
 
   Signature();
   ~Signature();
+  void clone_from(Signature *);
 
   CLASS_NAME(Signature);
   USE_ALLOCATOR(Signature);

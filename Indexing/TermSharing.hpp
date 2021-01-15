@@ -22,6 +22,10 @@
 
 #include "Lib/Allocator.hpp"
 
+#if VTHREADED
+#include <mutex>
+#endif
+
 using namespace Lib;
 using namespace Kernel;
 
@@ -35,6 +39,11 @@ public:
 
   TermSharing();
   ~TermSharing();
+
+// instance-level mutex
+#if VTHREADED
+  std::recursive_mutex _mutex;
+#endif
 
   Term* insert(Term*);
   Term* insertRecurrently(Term*);

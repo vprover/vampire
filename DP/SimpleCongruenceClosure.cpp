@@ -97,7 +97,7 @@ void SimpleCongruenceClosure::ConstInfo::resetEquivalences(SimpleCongruenceClosu
   predecessorPremise = CEq(0,0);
   classList.reset();
 
-  static ArraySet seen;
+  VTHREAD_LOCAL static ArraySet seen;
   seen.ensure(parent.getMaxConst()+1);
   seen.reset();
 
@@ -583,7 +583,7 @@ bool SimpleCongruenceClosure::checkPositiveDistincts(bool retrieveMultipleCores)
   CALL("SimpleCongruenceClosure::checkPositiveDistincts");
 
   //map from a representative to constant in its class present in the current distinct group
-  static ArrayMap<unsigned> reprs;
+  VTHREAD_LOCAL static ArrayMap<unsigned> reprs;
   reprs.ensure(getMaxConst()+1);
 
   bool foundConflict = false;
@@ -617,7 +617,7 @@ bool SimpleCongruenceClosure::checkPositiveDistincts(bool retrieveMultipleCores)
 DecisionProcedure::Status SimpleCongruenceClosure::checkNegativeDistincts(bool retrieveMultipleCores)
 {
   //map from a representative to constant in its class present in the current distinct group
-  static ArrayMap<unsigned> reprs;
+  VTHREAD_LOCAL static ArrayMap<unsigned> reprs;
   reprs.ensure(getMaxConst()+1);
 
   DistinctStack::BottomFirstIterator distIt(_negDistinctConstraints);
@@ -787,12 +787,12 @@ void SimpleCongruenceClosure::getUnsatCore(LiteralStack& res, unsigned coreIndex
     res.push(unsatEq.foPremise);
   }
 
-  static Stack<CPair> toExplain;
+  VTHREAD_LOCAL static Stack<CPair> toExplain;
   toExplain.push(CPair(unsatEq.c1, unsatEq.c2));
   ASS_EQ(deref(toExplain.top().first), deref(toExplain.top().second));
 
   IntUnionFind explained(getMaxConst()+1);
-  static Stack<unsigned> pathStack;
+  VTHREAD_LOCAL static Stack<unsigned> pathStack;
 
   while(toExplain.isNonEmpty()) {
     CPair curr = toExplain.pop();
@@ -890,7 +890,7 @@ void SimpleCongruenceClosure::computeConstsNormalForm(unsigned c, NFMap& normalF
     unsigned idx = t->arity();
     unsigned d = c;
     
-    static DArray<TermList> args(8);
+    VTHREAD_LOCAL static DArray<TermList> args(8);
     args.ensure(idx);
     while (idx-->0) {
       CPair pair = _cInfos[d].namedPair;
@@ -917,12 +917,12 @@ void SimpleCongruenceClosure::getModel(LiteralStack& model)
   CALL("SimpleCongruenceClosure::getModel");
   
   // a heap of candidate constants to process
-  static DynamicHeap<unsigned, ConstOrderingComparator, ArrayMap<unsigned> >
+  VTHREAD_LOCAL static DynamicHeap<unsigned, ConstOrderingComparator, ArrayMap<unsigned> >
     candidates(ConstOrderingComparator(_cInfos,*_ord));
   ASS(candidates.isEmpty());
   
   // a map of already computed normal forms, indexed by class representatives
-  static NFMap normalForms;
+  VTHREAD_LOCAL static NFMap normalForms;
   normalForms.reset();
   
   unsigned maxConst = getMaxConst();
@@ -1052,7 +1052,7 @@ void SimpleCongruenceClosure::getModel(LiteralStack& model)
     
     //cout << "Outputting for class " << r << " with nf " << nf.toString() << endl;
     
-    static DHSet<TermList> seen;
+    VTHREAD_LOCAL static DHSet<TermList> seen;
     seen.reset();
     seen.insert(nf); // this way we avoid generating the identity equality
     

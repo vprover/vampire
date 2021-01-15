@@ -49,7 +49,7 @@ public:
   {
     CALL("MatchingUtils::match");
 
-    static MapBinder binder;
+    VTHREAD_LOCAL static MapBinder binder;
     return match(base, instance, complementary, binder);
   }
 
@@ -334,7 +334,7 @@ bool MatchingUtils::matchArgs(Term* base, Term* instance, Binder& binder)
   TermList* bt=base->args();
   TermList* it=instance->args();
 
-  static Stack<TermList*> subterms(32);
+  VTHREAD_LOCAL static Stack<TermList*> subterms(32);
   subterms.reset();
 
   for (;;) {

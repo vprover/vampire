@@ -1113,10 +1113,10 @@ Literal* Naming::getDefinitionLiteral(Formula* f, VList* freeVars) {
 
   unsigned arity = VList::length(freeVars);
 
-  static TermStack termVarSorts;
-  static TermStack termVars;
-  static TermStack typeVars;
-  static DHMap<unsigned, TermList> varSorts;
+  VTHREAD_LOCAL static TermStack termVarSorts;
+  VTHREAD_LOCAL static TermStack termVars;
+  VTHREAD_LOCAL static TermStack typeVars;
+  VTHREAD_LOCAL static DHMap<unsigned, TermList> varSorts;
   termVarSorts.reset();
   termVars.reset();
   typeVars.reset();

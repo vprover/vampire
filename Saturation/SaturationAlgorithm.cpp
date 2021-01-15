@@ -544,7 +544,7 @@ void SaturationAlgorithm::onClauseReduction(Clause* cl, Clause** replacements, u
   CALL("SaturationAlgorithm::onClauseReduction/4");
   ASS(cl);
 
-  static ClauseStack premStack;
+  VTHREAD_LOCAL static ClauseStack premStack;
   premStack.reset();
   premStack.loadFromIterator(premises);
 
@@ -793,9 +793,9 @@ Clause* SaturationAlgorithm::doImmediateSimplification(Clause* cl0)
 {
   CALL("SaturationAlgorithm::doImmediateSimplification");
 
-  static bool sosTheoryLimit = _opt.sos()==Options::Sos::THEORY;
-  static unsigned sosTheoryLimitAge = _opt.sosTheoryLimit();
-  static ClauseStack repStack;
+  VTHREAD_LOCAL static bool sosTheoryLimit = _opt.sos()==Options::Sos::THEORY;
+  VTHREAD_LOCAL static unsigned sosTheoryLimitAge = _opt.sosTheoryLimit();
+  VTHREAD_LOCAL static ClauseStack repStack;
   repStack.reset();
 
   SplitSet* splitSet = 0;

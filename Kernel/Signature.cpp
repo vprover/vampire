@@ -234,16 +234,25 @@ Signature::Signature ():
 {
   CALL("Signature::Signature");
 
-  /*bool added;
-  addPredicate("=", 2, added);
-  ASS(added);
-  ASS_EQ(predicateName(0), "=");
-  getPredicate(0)->markSkip();
-  getPredicate(0)->markProtected();*/
+#if VTHREADED
+  static bool is_main = true;
+  if(is_main) {
+#endif
+    /*bool added;
+    addPredicate("=", 2, added);
+    ASS(added);
+    ASS_EQ(predicateName(0), "=");
+    getPredicate(0)->markSkip();
+    getPredicate(0)->markProtected();*/
 
-  unsigned aux;
-  aux = createDistinctGroup();
-  ASS_EQ(STRING_DISTINCT_GROUP, aux);
+    unsigned aux;
+    aux = createDistinctGroup();
+    ASS_EQ(STRING_DISTINCT_GROUP, aux);
+
+#if VTHREADED
+    is_main = false;
+  }
+#endif
 } // Signature::Signature
 
 /* adding equality predicate used to be carried out in the constructor
@@ -273,6 +282,52 @@ Signature::~Signature ()
     _preds[i]->destroyPredSymbol();
   }
 } // Signature::~Signature
+
+/** 
+ * Clone a Signature data from another. Used after spawning threads.
+ */
+void Signature::clone_from(Signature *other) {
+  _dividesNvalues = other->_dividesNvalues;
+  _foolConstantsDefined = other->_foolConstantsDefined;
+  _foolTrue = other->_foolTrue;
+  _foolFalse = other->_foolFalse;
+  _nextFreshSymbolNumber = other->_nextFreshSymbolNumber;
+  _skolemFunctionCount = other->_skolemFunctionCount;
+  _distinctGroupPremises = other->_distinctGroupPremises;
+  _distinctGroupMembers = other->_distinctGroupMembers;
+  _distinctGroupsAddedTo = other->_distinctGroupsAddedTo;
+  _iSymbols.loadFromMap(other->_iSymbols);
+  _strings = other->_strings;
+  _integers = other->_integers;
+  _rationals = other->_rationals;
+  _reals = other->_reals;
+  _termAlgebras.loadFromMap(other->_termAlgebras);
+
+#define CLONE_SYMBOL_TABLE(NAME) {\
+  Stack<Symbol*>::BottomFirstIterator NAME_it(other->NAME);\
+  while(NAME_it.hasNext()) {\
+    NAME.push(new Symbol(*NAME_it.next()));\
+  }\
+}
+  CLONE_SYMBOL_TABLE(_funs);
+  CLONE_SYMBOL_TABLE(_preds);
+#undef CLONE_SYMBOL_TABLE
+
+#define CLONE_NAME_LOOKUP(NAME) {\
+  SymbolMap::Iterator NAME_it(other->NAME);\
+  while(NAME_it.hasNext()) {\
+    vstring key;\
+    unsigned value;\
+    NAME_it.next(key, value);\
+    NAME.insert(key, value);\
+  }\
+}
+  CLONE_NAME_LOOKUP(_funNames);
+  CLONE_NAME_LOOKUP(_predNames);
+  CLONE_NAME_LOOKUP(_varNames);
+  CLONE_NAME_LOOKUP(_arityCheck);
+#undef CLONE_NAME_LOOKUP
+} // Signature::copy_from
 
 /**
  * Add an integer constant to the signature. If defaultSort is true, treat it as

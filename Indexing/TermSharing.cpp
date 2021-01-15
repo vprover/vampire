@@ -28,6 +28,12 @@
 
 #include "TermSharing.hpp"
 
+#if VTHREADED
+#define ACQ_TERM_SHARING_LOCK const std::lock_guard<std::recursive_mutex> __vampire_term_sharing_lock(_mutex)
+#else
+#define ACQ_TERM_SHARING_LOCK
+#endif
+
 using namespace Kernel;
 using namespace Indexing;
 
@@ -90,6 +96,7 @@ Term* TermSharing::insert(Term* t)
 {
 
   CALL("TermSharing::insert(Term*)");
+  ACQ_TERM_SHARING_LOCK;
   ASS(!t->isLiteral());
   ASS(!t->isSpecial());
 
@@ -216,6 +223,7 @@ Term* TermSharing::insert(Term* t)
 Literal* TermSharing::insert(Literal* t)
 {
   CALL("TermSharing::insert(Literal*)");
+  ACQ_TERM_SHARING_LOCK;
   ASS(t->isLiteral());
   ASS(!t->isSpecial());
 
@@ -293,6 +301,7 @@ Literal* TermSharing::insert(Literal* t)
 Literal* TermSharing::insertVariableEquality(Literal* t, TermList sort)
 {
   CALL("TermSharing::insertVariableEquality");
+  ACQ_TERM_SHARING_LOCK;
   ASS(t->isLiteral());
   ASS(t->commutative());
   ASS(t->isEquality());
@@ -339,6 +348,7 @@ Literal* TermSharing::insertVariableEquality(Literal* t, TermList sort)
 Term* TermSharing::insertRecurrently(Term* t)
 {
   CALL("TermSharing::insert");
+  ACQ_TERM_SHARING_LOCK;
 
   TimeCounter tc(TC_TERM_SHARING);
 
@@ -346,8 +356,8 @@ Term* TermSharing::insertRecurrently(Term* t)
   tRef.setTerm(t);
 
   TermList* ts=&tRef;
-  static Stack<TermList*> stack(4);
-  static Stack<TermList*> insertingStack(8);
+  VTHREAD_LOCAL static Stack<TermList*> stack(4);
+  VTHREAD_LOCAL static Stack<TermList*> insertingStack(8);
   for(;;) {
     if(ts->isTerm() && !ts->term()->shared()) {
       stack.push(ts->term()->args());
@@ -375,6 +385,7 @@ Term* TermSharing::insertRecurrently(Term* t)
 Literal* TermSharing::tryGetOpposite(Literal* l)
 {
   CALL("TermSharing::tryGetOpposite");
+  ACQ_TERM_SHARING_LOCK;
 
   Literal* res;
   if(_literals.find(OpLitWrapper(l), res)) {

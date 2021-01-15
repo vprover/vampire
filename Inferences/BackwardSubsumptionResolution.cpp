@@ -106,7 +106,7 @@ void BackwardSubsumptionResolution::perform(Clause* cl,
     return;
   }
 
-  static DHSet<Clause*> checkedClauses;
+  VTHREAD_LOCAL static DHSet<Clause*> checkedClauses;
   checkedClauses.reset();
 
   if(clen==1) {
@@ -149,12 +149,12 @@ void BackwardSubsumptionResolution::perform(Clause* cl,
   unsigned lmPred=lmLit->functor();
   unsigned lmHeader=lmLit->header();
 
-  static DArray<LiteralList*> matchedLits(32);
+  VTHREAD_LOCAL static DArray<LiteralList*> matchedLits(32);
   matchedLits.init(clen, 0);
 
   bool mustPredInit=false;
   unsigned mustPred;
-  static DHSet<unsigned> basePreds;
+  VTHREAD_LOCAL static DHSet<unsigned> basePreds;
   bool basePredsInit=false;
 
   List<BwSimplificationRecord>* simplRes=0;

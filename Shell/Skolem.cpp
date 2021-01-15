@@ -64,7 +64,7 @@ FormulaUnit* Skolem::skolemise (FormulaUnit* unit, bool appify)
     break;
   }
 
-  static Skolem skol;
+  VTHREAD_LOCAL static Skolem skol;
   return skol.skolemiseImpl(unit, appify);
 } // Skolem::skolemise
 
@@ -253,8 +253,8 @@ void Skolem::preskolemise (Formula* f)
         _varOccs.remove(vs.next());
       }
 
-      static Stack<unsigned> univ_dep_stack;
-      static Stack<unsigned> exists_deps_stack;
+      VTHREAD_LOCAL static Stack<unsigned> univ_dep_stack;
+      VTHREAD_LOCAL static Stack<unsigned> exists_deps_stack;
       ASS(univ_dep_stack.isEmpty());
       ASS(exists_deps_stack.isEmpty());
 
@@ -363,10 +363,10 @@ Formula* Skolem::skolemise (Formula* f)
       // and bind them in _subst
       unsigned arity = 0;
       ensureHavingVarSorts();
-      static TermStack allVars;
-      static TermStack typeVars;
-      static TermStack termVars;
-      static TermStack termVarSorts;
+      VTHREAD_LOCAL static TermStack allVars;
+      VTHREAD_LOCAL static TermStack typeVars;
+      VTHREAD_LOCAL static TermStack termVars;
+      VTHREAD_LOCAL static TermStack termVarSorts;
       termVarSorts.reset();
       termVars.reset();
       allVars.reset();

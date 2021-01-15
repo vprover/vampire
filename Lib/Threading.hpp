@@ -11,9 +11,18 @@
 #define __Threading__
 
 #if VTHREADED
+#include <atomic>
 #define VTHREAD_LOCAL thread_local
+#define VATOMIC(T) std::atomic<T>
 #else
 #define VTHREAD_LOCAL
+#define VATOMIC(T) T
+#endif
+
+#if (defined(__has_feature) && __has_feature(thread_sanitizer))
+#define TSAN 1
+#else
+#define TSAN 0
 #endif
 
 #endif

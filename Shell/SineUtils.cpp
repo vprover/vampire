@@ -220,7 +220,7 @@ SineSymbolExtractor::SymIdIterator SineSymbolExtractor::extractSymIds(Unit* u)
 {
   CALL("SineSymbolExtractor::extractSymIds");
 
-  static Stack<SymId> itms;
+  VTHREAD_LOCAL static Stack<SymId> itms;
   itms.reset();
 
   if (u->isClause()) {
@@ -305,7 +305,7 @@ void SineSelector::updateDefRelation(Unit* u)
     return;
   }
 
-  static Stack<SymId> equalGenerality;
+  VTHREAD_LOCAL static Stack<SymId> equalGenerality;
   equalGenerality.reset();
 
   SymId leastGenSym=sit.next();
@@ -555,7 +555,7 @@ void SineTheorySelector::updateDefRelation(Unit* u)
     return;
   }
 
-  static Stack<SymId> symIds;
+  VTHREAD_LOCAL static Stack<SymId> symIds;
   symIds.reset();
   symIds.loadFromIterator(sit0);
 

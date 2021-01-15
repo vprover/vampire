@@ -162,12 +162,12 @@ protected:
   Unit(Kind kind, const Inference& inf);
 
   /** Used to enumerate units */
-  static unsigned _lastNumber;
+  static VATOMIC(unsigned) _lastNumber;
 
   /** Used to determine which clauses come from preprocessing
    *
    * 0 means preprocessing is not over yet.*/
-  static unsigned _firstNonPreprocessingNumber;
+  VTHREAD_LOCAL static unsigned _firstNonPreprocessingNumber;
 
   static unsigned _lastParsingNumber;
 }; // class Unit

@@ -252,7 +252,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
 
   Clause::requestAux();
 
-  static CMStack cmStore(64);
+  VTHREAD_LOCAL static CMStack cmStore(64);
   ASS(cmStore.isEmpty());
 
   for(unsigned li=0;li<clen;li++) {

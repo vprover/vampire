@@ -206,9 +206,9 @@ bool GeneralSplitting::apply(Clause*& cl, UnitList*& resultStack)
     }
   }
 
-  static TermStack args;
+  VTHREAD_LOCAL static TermStack args;
   args.reset();
-  static TermStack argSorts;
+  VTHREAD_LOCAL static TermStack argSorts;
   argSorts.reset();
 
   DHMap<unsigned,TermList> varSorts;

@@ -59,7 +59,7 @@ struct LookaheadLiteralSelector::GenIteratorIterator
 
     SaturationAlgorithm* salg=SaturationAlgorithm::tryGetInstance();
     if(!salg) {
-      static bool errAnnounced = false;
+      VTHREAD_LOCAL static bool errAnnounced = false;
       if(!errAnnounced) {
 	errAnnounced = true;
 	env.beginOutput();
@@ -187,14 +187,14 @@ Literal* LookaheadLiteralSelector::pickTheBest(Literal** lits, unsigned cnt)
   CALL("LookaheadLiteralSelector::pickTheBest");
   ASS_G(cnt,1); //special cases are handled elsewhere
 
-  static DArray<VirtualIterator<void> > runifs; //resolution unification iterators
+  VTHREAD_LOCAL static DArray<VirtualIterator<void> > runifs; //resolution unification iterators
   runifs.ensure(cnt);
 
   for(unsigned i=0;i<cnt;i++) {
     runifs[i]=getGeneraingInferenceIterator(lits[i]);
   }
 
-  static Stack<Literal*> candidates;
+  VTHREAD_LOCAL static Stack<Literal*> candidates;
   candidates.reset();
   do {
     for(unsigned i=0;i<cnt;i++) {
@@ -273,7 +273,7 @@ void LookaheadLiteralSelector::doSelection(Clause* c, unsigned eligible)
   LiteralList* maximals=0;
   Literal* singleSel=0;
 
-  static LiteralStack selectable;
+  VTHREAD_LOCAL static LiteralStack selectable;
   selectable.reset();
 
   if(_completeSelection) {

@@ -400,7 +400,7 @@ public:
 
   unsigned getArrayExtSkolemFunction(TermList sort);
 
-  static Theory theory_obj;
+  VTHREAD_LOCAL static Theory theory_obj;
   static Theory* instance();
 
   void defineTupleTermAlgebra(unsigned arity, TermList* sorts);
@@ -517,7 +517,7 @@ public:
     bool findProjection(unsigned projFunctor, bool isPredicate, unsigned &proj);
   };
 
-  static Theory::Tuples tuples_obj;
+  VTHREAD_LOCAL static Theory::Tuples tuples_obj;
   static Theory::Tuples* tuples();
 };
 
@@ -526,7 +526,7 @@ typedef Theory::Interpretation Interpretation;
 /**
  * Pointer to the singleton Theory instance
  */
-extern Theory* theory;
+VTHREAD_LOCAL extern Theory* theory;
 
 }
 

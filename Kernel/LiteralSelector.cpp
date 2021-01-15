@@ -42,7 +42,7 @@ namespace Kernel
  * the polarity of the predicate should be reversed for the purposes of
  * literal selection
  */
-ZIArray<bool> LiteralSelector::_reversePredicate;
+VTHREAD_LOCAL ZIArray<bool> LiteralSelector::_reversePredicate;
 
 
 /**

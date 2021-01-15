@@ -88,7 +88,7 @@ public:
   {
     CALL("Clause::fromIterator");
 
-    static Stack<Literal*> st;
+    VTHREAD_LOCAL static Stack<Literal*> st;
     st.reset();
     st.loadFromIterator(litit);
     return fromStack(st, inf);
@@ -376,7 +376,7 @@ protected:
   unsigned _weightForClauseSelection;
 
   /** number of references to this clause */
-  unsigned _refCnt;
+  VATOMIC(unsigned) _refCnt;
   /** for splitting: timestamp marking when has the clause been reduced or restored by splitting */
   unsigned _reductionTimestamp;
   /** a map that translates Literal* to its index in the clause */
@@ -387,9 +387,9 @@ protected:
   size_t _auxTimestamp;
   void* _auxData;
 
-  static size_t _auxCurrTimestamp;
+  VTHREAD_LOCAL static size_t _auxCurrTimestamp;
 #if VDEBUG
-  static bool _auxInUse;
+  VTHREAD_LOCAL static bool _auxInUse;
 #endif
 
 //#endif

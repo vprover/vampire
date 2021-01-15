@@ -83,10 +83,10 @@ Term* EqHelper::replace(Term* trm0, TermList tSrc, TermList tDest)
   CALL("EqHelper::replace(Term*,...)");
   ASS(trm0->shared());
 
-  static Stack<TermList*> toDo(8);
-  static Stack<Term*> terms(8);
-  static Stack<bool> modified(8);
-  static Stack<TermList> args(8);
+  VTHREAD_LOCAL static Stack<TermList*> toDo(8);
+  VTHREAD_LOCAL static Stack<Term*> terms(8);
+  VTHREAD_LOCAL static Stack<bool> modified(8);
+  VTHREAD_LOCAL static Stack<TermList> args(8);
   ASS(toDo.isEmpty());
   ASS(terms.isEmpty());
   modified.reset();

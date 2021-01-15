@@ -78,7 +78,7 @@ public:
   template<int Period>
   void checkTimeSometime() const
   {
-    static int counter=0;
+    VTHREAD_LOCAL static int counter=0;
     counter++;
     if(counter==Period) {
       counter=0;

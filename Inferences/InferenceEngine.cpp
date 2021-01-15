@@ -283,7 +283,7 @@ Clause* DuplicateLiteralRemovalISE::simplify(Clause* c)
 
   //literals that will be skipped, skipping starts on the top of the stack
   //and goes from the end of the clause
-  static LiteralStack skipped;
+  VTHREAD_LOCAL static LiteralStack skipped;
   skipped.reset();
 
   //we handle low length specially, not to have to use the set
@@ -311,7 +311,7 @@ Clause* DuplicateLiteralRemovalISE::simplify(Clause* c)
     }
   }
   else {
-    static DHSet<Literal*> seen;
+    VTHREAD_LOCAL static DHSet<Literal*> seen;
     seen.reset();
     //here we rely on the fact that the iterator traverses the clause from
     //the first to the last literal
@@ -352,9 +352,9 @@ Clause* DuplicateLiteralRemovalISE::simplify(Clause* c)
 
 #if DEBUG_DUPLICATE_LITERALS
   {
-    static DHSet<Literal*> origLits;
+    VTHREAD_LOCAL static DHSet<Literal*> origLits;
     origLits.reset();
-    static DHSet<Literal*> newLits;
+    VTHREAD_LOCAL static DHSet<Literal*> newLits;
     newLits.reset();
     origLits.loadFromIterator(Clause::Iterator(*c));
     newLits.loadFromIterator(Clause::Iterator(*d));
@@ -426,7 +426,7 @@ Clause* TrivialInequalitiesRemovalISE::simplify(Clause* c)
 {
   CALL("TrivialInequalitiesRemovalISE::simplify");
 
-  static DArray<Literal*> lits(32);
+  VTHREAD_LOCAL static DArray<Literal*> lits(32);
 
   typedef ApplicativeHelper AH;
 

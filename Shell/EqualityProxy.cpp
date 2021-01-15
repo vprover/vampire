@@ -38,7 +38,6 @@ using namespace std;
 using namespace Lib;
 using namespace Kernel;
 
-
 /**
  * Constructor, simply memorizes the value of the equality proxy option.
  */

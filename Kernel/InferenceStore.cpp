@@ -1084,7 +1084,7 @@ void InferenceStore::outputProof(ostream& out, UnitList* units)
 
 InferenceStore* InferenceStore::instance()
 {
-  static ScopedPtr<InferenceStore> inst(new InferenceStore());
+  VTHREAD_LOCAL static ScopedPtr<InferenceStore> inst(new InferenceStore());
   
   return inst.ptr();
 }

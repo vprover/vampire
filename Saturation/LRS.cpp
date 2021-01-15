@@ -75,7 +75,7 @@ bool LRS::shouldUpdateLimits()
 {
   CALL("LRS::shouldUpdateLimits");
 
-  static unsigned cnt=0;
+  VTHREAD_LOCAL static unsigned cnt=0;
   cnt++;
 
   //when there are limits, we check more frequently so we don't skip too much inferences
@@ -95,7 +95,7 @@ long long LRS::estimatedReachableCount()
   CALL("LRS::estimatedReachableCount");
 
 #if DETERMINISE_LRS_LOAD
-  static std::ifstream infile("lrs_data.txt");
+  VTHREAD_LOCAL static std::ifstream infile("lrs_data.txt");
   long long thing;
   if (infile >> thing) {
     cout << "reading " << thing << endl;
@@ -134,7 +134,7 @@ long long LRS::estimatedReachableCount()
   finish:
 
 #if DETERMINISE_LRS_SAVE
-  static std::ofstream outfile("lrs_data.txt");
+  VTHREAD_LOCAL static std::ofstream outfile("lrs_data.txt");
   outfile << result << endl;
 #endif
 

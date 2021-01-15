@@ -398,13 +398,13 @@ void FunctionDefinition::checkDefinitions(Def* def0)
 
   //Next argument of the current-level term to be processed.
   //An empty term means we've processed all arguments of the term.
-  static Stack<TermList*> stack(4);
+  VTHREAD_LOCAL static Stack<TermList*> stack(4);
   //Definition whose rhs is the current-level term (or zero if none).
-  static Stack<Def*> defCheckingStack(4);
+  VTHREAD_LOCAL static Stack<Def*> defCheckingStack(4);
   //Definition whose lhs is the current-level term (or zero if none).
-  static Stack<Def*> defArgStack(4);
+  VTHREAD_LOCAL static Stack<Def*> defArgStack(4);
   //Current-level term.
-  static Stack<Term*> termArgStack(4);
+  VTHREAD_LOCAL static Stack<Term*> termArgStack(4);
 
   //loop invariant: the four above stacks contain the same number of elements
   for(;;) {
@@ -502,7 +502,7 @@ void FunctionDefinition::assignArgOccursData(Def* updDef)
 	    "FunctionDefinition::Def::argOccurs"));
   BitUtils::zeroMemory(updDef->argOccurs, updDef->lhs->arity()*sizeof(bool));
 
-  static DHMap<unsigned, unsigned, IdentityHash> var2argIndex;
+  VTHREAD_LOCAL static DHMap<unsigned, unsigned, IdentityHash> var2argIndex;
   var2argIndex.reset();
   int argIndex=0;
   for (TermList* ts = updDef->lhs->args(); ts->isNonEmpty(); ts=ts->next()) {
@@ -512,9 +512,9 @@ void FunctionDefinition::assignArgOccursData(Def* updDef)
   }
 
   TermList t=TermList(updDef->rhs);
-  static Stack<TermList*> stack(4);
-  static Stack<Def*> defArgStack(4);
-  static Stack<Term*> termArgStack(4);
+  VTHREAD_LOCAL static Stack<TermList*> stack(4);
+  VTHREAD_LOCAL static Stack<Def*> defArgStack(4);
+  VTHREAD_LOCAL static Stack<Term*> termArgStack(4);
   for(;;) {
     Def* d;
     if(t.isEmpty()) {
@@ -720,8 +720,8 @@ Clause* FunctionDefinition::applyDefinitions(Clause* cl)
 
   unsigned clen=cl->length();
 
-  static Stack<Def*> usedDefs(8);
-  static Stack<Literal*> resLits(8);
+  VTHREAD_LOCAL static Stack<Def*> usedDefs(8);
+  VTHREAD_LOCAL static Stack<Literal*> resLits(8);
   ASS(usedDefs.isEmpty());
   resLits.reset();
 

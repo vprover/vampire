@@ -69,8 +69,8 @@ bool createLiteralBindings(Literal* baseLit, LiteralList const* alts, Clause* in
 {
   CALL("createLiteralBindings");
 
-  static UUMap variablePositions;
-  static BinaryHeap<unsigned,Int> varNums;
+  VTHREAD_LOCAL static UUMap variablePositions;
+  VTHREAD_LOCAL static BinaryHeap<unsigned,Int> varNums;
   variablePositions.reset();
   varNums.reset();
 
@@ -736,7 +736,7 @@ void MLMatcher::getBindings(vunordered_map<unsigned, TermList>& outBindings) con
 
 bool MLMatcher::canBeMatched(Literal** baseLits, unsigned baseLen, Clause* instance, LiteralList const* const* alts, Literal* resolvedLit, bool multiset)
 {
-  static MLMatcher::Impl matcher;
+  VTHREAD_LOCAL static MLMatcher::Impl matcher;
   matcher.init(baseLits, baseLen, instance, alts, resolvedLit, multiset);
   return matcher.nextMatch();
 }

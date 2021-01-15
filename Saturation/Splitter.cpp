@@ -391,8 +391,8 @@ SATSolver::Status SplittingBranchSelector::processDPConflicts()
   }
   
   SAT2FO& s2f = _parent.satNaming();
-  static LiteralStack gndAssignment;
-  static LiteralStack unsatCore;
+  VTHREAD_LOCAL static LiteralStack gndAssignment;
+  VTHREAD_LOCAL static LiteralStack unsatCore;
 
   while (true) { // breaks inside
     {
@@ -448,7 +448,7 @@ SATSolver::Status SplittingBranchSelector::processDPConflicts()
 
     RSTAT_CTR_INC("ssat_dp_model");
 
-    static LiteralStack model;
+    VTHREAD_LOCAL static LiteralStack model;
     model.reset();
 
     _dpModel->reset();
@@ -810,8 +810,8 @@ void Splitter::onAllProcessed()
   }
   _clausesAdded = false;
 
-  static SplitLevelStack toAdd;
-  static SplitLevelStack toRemove;
+  VTHREAD_LOCAL static SplitLevelStack toAdd;
+  VTHREAD_LOCAL static SplitLevelStack toRemove;
   
   toAdd.reset();
   toRemove.reset();  
@@ -950,7 +950,7 @@ bool Splitter::handleNonSplittable(Clause* cl)
 
     RSTAT_CTR_INC("ssat_self_dependent_component");
   } else {
-    static SATLiteralStack satLits;
+    VTHREAD_LOCAL static SATLiteralStack satLits;
     satLits.reset();
     collectDependenceLits(cl->splits(), satLits);
     satLits.push(getLiteralFromName(compName));
@@ -1038,7 +1038,7 @@ bool Splitter::getComponents(Clause* cl, Stack<LiteralStack>& acc)
 
   //Master literal of an variable is the literal
   //with lowest index, in which it appears.
-  static DHMap<unsigned, unsigned, IdentityHash> varMasters;
+  VTHREAD_LOCAL static DHMap<unsigned, unsigned, IdentityHash> varMasters;
   varMasters.reset();
   IntUnionFind components(clen);
 
@@ -1113,14 +1113,14 @@ bool Splitter::doSplitting(Clause* cl)
     return true; // the clause is ours now
   }
 
-  static Stack<LiteralStack> comps;
+  VTHREAD_LOCAL static Stack<LiteralStack> comps;
   comps.reset();
   // fills comps with components, returning if not splittable
   if(!getComponents(cl, comps)) {
     return handleNonSplittable(cl);
   }
 
-  static SATLiteralStack satClauseLits;
+  VTHREAD_LOCAL static SATLiteralStack satClauseLits;
   satClauseLits.reset();
 
   // Add literals for existing constraints 
@@ -1651,7 +1651,7 @@ bool Splitter::handleEmptyClause(Clause* cl)
     return false;
   }
 
-  static SATLiteralStack conflictLits;
+  VTHREAD_LOCAL static SATLiteralStack conflictLits;
   conflictLits.reset();
 
   collectDependenceLits(cl->splits(), conflictLits);

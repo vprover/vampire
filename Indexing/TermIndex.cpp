@@ -127,7 +127,7 @@ void DemodulationSubtermIndexImpl<combinatorySupSupport>::handleClause(Clause* c
 
   TimeCounter tc(TC_BACKWARD_DEMODULATION_INDEX_MAINTENANCE);
 
-  static DHSet<TermList> inserted;
+  VTHREAD_LOCAL static DHSet<TermList> inserted;
 
   unsigned cLen=c->length();
   for (unsigned i=0; i<cLen; i++) {

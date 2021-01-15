@@ -375,7 +375,7 @@ void PredicateDefinition::removeUnusedDefinitionsAndPurePredicates(UnitList*& un
 {
   CALL("PredicateDefinition::removeUnusedDefinitionsAndPurePredicates");
 
-  static DHMap<Unit*, Unit*> replacements;
+  VTHREAD_LOCAL static DHMap<Unit*, Unit*> replacements;
   replacements.reset();
 
   collectReplacements(units, replacements);

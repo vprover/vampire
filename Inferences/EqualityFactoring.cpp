@@ -102,8 +102,8 @@ struct EqualityFactoring::ResultFn
 
     TermList srt = SortHelper::getEqualityArgumentSort(sLit);
 
-    static RobSubstitution subst;
-    static UnificationConstraintStack constraints;
+    VTHREAD_LOCAL static RobSubstitution subst;
+    VTHREAD_LOCAL static UnificationConstraintStack constraints;
     subst.reset();
     constraints.reset();
 
@@ -119,7 +119,7 @@ struct EqualityFactoring::ResultFn
     TermList fRHS=EqHelper::getOtherEqualitySide(fLit, fLHS);
     ASS_NEQ(sLit, fLit);
 
-    static Options::FunctionExtensionality ext = env.options->functionExtensionality();
+    VTHREAD_LOCAL static Options::FunctionExtensionality ext = env.options->functionExtensionality();
     bool use_ho_handler = (ext == Options::FunctionExtensionality::ABSTRACTION) && env.statistics->higherOrder;
 
     if(use_ho_handler){

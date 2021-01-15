@@ -52,9 +52,9 @@ using namespace Lib;
 using namespace Saturation;
 using namespace Shell;
 
-size_t Clause::_auxCurrTimestamp = 0;
+VTHREAD_LOCAL size_t Clause::_auxCurrTimestamp = 0;
 #if VDEBUG
-bool Clause::_auxInUse = false;
+VTHREAD_LOCAL bool Clause::_auxInUse = false;
 #endif
 
 
@@ -198,7 +198,7 @@ void Clause::destroy()
 {
   CALL("Clause::destroy");
 
-  static Stack<Clause*> toDestroy(32);
+  VTHREAD_LOCAL static Stack<Clause*> toDestroy(32);
   Clause* cl = this;
   for(;;) {
     Inference::Iterator it = cl->_inference.iterator();
@@ -232,7 +232,7 @@ void Clause::setStore(Store s)
 
 #if VDEBUG
   //assure there is one selected clause
-  static Clause* selected=0;
+  VTHREAD_LOCAL static Clause* selected=0;
   if (_store==SELECTED) {
     ASS_EQ(selected, this);
     selected=0;
@@ -629,8 +629,8 @@ unsigned Clause::computeWeightForClauseSelection(unsigned w, unsigned splitWeigh
 {
   CALL("Clause::computeWeightForClauseSelection(unsigned w, ...)");
 
-  static unsigned nongoalWeightCoeffNum = opt.nongoalWeightCoefficientNumerator();
-  static unsigned nongoalWeightCoefDenom = opt.nongoalWeightCoefficientDenominator();
+  VTHREAD_LOCAL static unsigned nongoalWeightCoeffNum = opt.nongoalWeightCoefficientNumerator();
+  VTHREAD_LOCAL static unsigned nongoalWeightCoefDenom = opt.nongoalWeightCoefficientDenominator();
 
   w += splitWeight;
 
@@ -674,7 +674,7 @@ unsigned Clause::varCnt()
 {
   CALL("Clause::varCnt");
 
-  static DHSet<unsigned> vars;
+  VTHREAD_LOCAL static DHSet<unsigned> vars;
   vars.reset();
   collectVars(vars);
   return vars.size();

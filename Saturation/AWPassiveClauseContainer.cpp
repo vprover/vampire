@@ -267,7 +267,7 @@ Clause* AWPassiveClauseContainer::popSelected()
 
   auto shape = _opt.ageWeightRatioShape();
   unsigned frequency = _opt.ageWeightRatioShapeFrequency();
-  static unsigned count = 0;
+  VTHREAD_LOCAL static unsigned count = 0;
   count++;
 
   bool is_converging = shape == Options::AgeWeightRatioShape::CONVERGE;
@@ -325,7 +325,7 @@ void AWPassiveClauseContainer::onLimitsUpdated()
   //of clauses, differing only in their order.
   //(unless one of _ageRation or _weightRatio is equal to 0)
 
-  static Stack<Clause*> toRemove(256);
+  VTHREAD_LOCAL static Stack<Clause*> toRemove(256);
   ClauseQueue::Iterator wit(_weightQueue);
   while (wit.hasNext()) {
     Clause* cl=wit.next();

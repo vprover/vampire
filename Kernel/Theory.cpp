@@ -623,11 +623,11 @@ vstring RealConstantType::toNiceString() const
 // Theory
 //
 
-Theory Theory::theory_obj;  // to facilitate destructor call at deinitization
-Theory::Tuples Theory::tuples_obj;
+VTHREAD_LOCAL Theory Theory::theory_obj;  // to facilitate destructor call at deinitization
+VTHREAD_LOCAL Theory::Tuples Theory::tuples_obj;
 
-Theory* theory = &Theory::theory_obj;
-Theory::Tuples* theory_tuples = &Theory::tuples_obj;
+VTHREAD_LOCAL Theory* theory = &Theory::theory_obj;
+VTHREAD_LOCAL Theory::Tuples* theory_tuples = &Theory::tuples_obj;
 
 /**
  * Accessor for the singleton instance of the Theory class.

@@ -544,6 +544,9 @@ public:
   }
   unsigned getDistinctVars() const
   {
+#if VTHREADED
+    return computeDistinctVars();
+#else
     if(_args[0]._info.distinctVars==TERM_DIST_VAR_UNKNOWN) {
       unsigned res=computeDistinctVars();
       if(res<TERM_DIST_VAR_UNKNOWN) {
@@ -554,6 +557,7 @@ public:
       ASS_L(_args[0]._info.distinctVars,0x100000);
       return _args[0]._info.distinctVars;
     }
+#endif
   }
 
   bool couldBeInstanceOf(Term* t)

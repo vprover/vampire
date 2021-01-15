@@ -518,16 +518,16 @@ void PortfolioMode::runSlice(vstring sliceCode, unsigned timeLimitInDeciseconds)
   if (stl) {
     opt.setSimulatedTimeLimit(int(stl * _slowness));
   }
-  runSlice(&opt);
+  runSlice(opt);
 
 } // runSlice
 
 /**
  * Run a slice given by its options
  */
-void PortfolioMode::runSlice(Options *strategyOpt)
+void PortfolioMode::runSlice(Options &strategyOpt)
 {
-  CALL("PortfolioMode::runSlice(Option *)");
+  CALL("PortfolioMode::runSlice(Option &)");
 
   System::registerForSIGHUPOnParentDeath();
   UIHelper::portfolioParent=false;
@@ -538,28 +538,27 @@ void PortfolioMode::runSlice(Options *strategyOpt)
   TimeCounter::reinitialize();
   Timer::setTimeLimitEnforcement(true);
 
-  Options *opt = strategyOpt;
+  Options opt = strategyOpt;
   //we have already performed the normalization
-  opt->setNormalize(false);
-  opt->setForcedOptionValues();
-  opt->checkGlobalOptionConstraints();
-  Options *saveOpt = env.options;
-  env.options = opt; //just temporarily until we get rid of dependencies on env.options in solving
+  opt.setNormalize(false);
+  opt.setForcedOptionValues();
+  opt.checkGlobalOptionConstraints();
+  *env.options = opt; //just temporarily until we get rid of dependencies on env.options in solving
 
   if (outputAllowed()) {
     env.beginOutput();
-    addCommentSignForSZS(env.out()) << opt->testId() << " on " << opt->problemName() << endl;
+    addCommentSignForSZS(env.out()) << opt.testId() << " on " << opt.problemName() << endl;
     env.endOutput();
   }
 
 #if VTHREADED
   if(env.options->mode() == Options::Mode::THREADED) {
     ScopedPtr<Problem> problem(_prb->copy(true));
-    Saturation::ProvingHelper::runVampire(*problem, *opt);
+    Saturation::ProvingHelper::runVampire(*problem, opt);
   }
   else
 #endif
-    Saturation::ProvingHelper::runVampire(*_prb, *opt);
+    Saturation::ProvingHelper::runVampire(*_prb, opt);
 
   //set return value to zero if we were successful
   if (env.statistics->terminationReason == Statistics::REFUTATION ||
@@ -573,8 +572,15 @@ void PortfolioMode::runSlice(Options *strategyOpt)
     */
   }
 
-  System::ignoreSIGHUP(); // don't interrupt now, we need to finish printing the proof !
+#if VTHREADED
+  if(env.options->mode() != Options::Mode::THREADED)
+#endif
+    System::ignoreSIGHUP(); // don't interrupt now, we need to finish printing the proof !
 
+#if VTHREADED
+  static std::mutex critical_section;
+  std::lock_guard<std::mutex> entering_critical_section(critical_section);
+#endif
   bool outputResult = false;
   if (!resultValue) {
     // only successfull vampires get here
@@ -634,13 +640,21 @@ void PortfolioMode::runSlice(Options *strategyOpt)
     _syncSemaphore.inc(SEM_LOCK); // would be also released after the processes' death, but we are polite and do it already here
   }
 
-  env.options = saveOpt;
   STOP_CHECKING_FOR_ALLOCATOR_BYPASSES;
-
 #if VTHREADED
-  if(env.options->mode() != Options::Mode::THREADED || !resultValue)
+  if(env.options->mode() == Options::Mode::THREADED) {
+    if(!resultValue) {
+      // problem: other threads are still running while destructors run
+      // hack: lock the allocator, this stops them dead (?)
+      Allocator::lockPermanently();
+      exit(resultValue);
+    }
+    else {
+      return;
+    }
+  }
 #endif
-    exit(resultValue);
+  exit(resultValue);
 } // runSlice
 
 // BELOW ARE TWO LEFT-OVER FUNCTIONS FROM THE ORIGINAL (SINGLE-CHILD) CASC-MODE

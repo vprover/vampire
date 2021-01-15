@@ -100,7 +100,7 @@ Clause* InequalitySplitting::trySplitClause(Clause* cl)
     return cl;
   }
 
-  static DArray<Literal*> resLits(8);
+  VTHREAD_LOCAL static DArray<Literal*> resLits(8);
   resLits.ensure(clen);
 
   UnitInputType inpType = cl->inputType();

@@ -202,7 +202,7 @@ void KBO::State::traverse(TermList tl,int coef)
   }
 
   TermList* ts=t->args();
-  static Stack<TermList*> stack(4);
+  VTHREAD_LOCAL static Stack<TermList*> stack(4);
   for(;;) {
     if(!ts->next()->isEmpty()) {
       stack.push(ts->next());
@@ -236,7 +236,7 @@ void KBO::State::traverse(Term* t1, Term* t2)
   unsigned depth=1;
   unsigned lexValidDepth=0;
 
-  static Stack<TermList*> stack(32);
+  VTHREAD_LOCAL static Stack<TermList*> stack(32);
   stack.push(t1->args());
   stack.push(t2->args());
   TermList* ss; //t1 subterms

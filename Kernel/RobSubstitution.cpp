@@ -153,7 +153,7 @@ TermList RobSubstitution::getSpecialVarTop(unsigned specialVar) const
     TermSpec binding;
     bool found=_bank.find(v,binding);
     if(!found || binding.index==UNBOUND_INDEX) {
-      static TermList auxVarTerm(1,false);
+      VTHREAD_LOCAL static TermList auxVarTerm(1,false);
       return auxVarTerm;
     } else if(binding.term.isTerm()) {
       return binding.term;
@@ -336,7 +336,7 @@ bool RobSubstitution::occurs(VarSpec vs, TermSpec ts)
     }
   }
   typedef DHSet<VarSpec, VarSpec::Hash1> EncounterStore;
-  static EncounterStore encountered;
+  VTHREAD_LOCAL static EncounterStore encountered;
   encountered.reset();
 
   for(;;){
@@ -388,8 +388,8 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2,MismatchHandler* hndlr)
   BacktrackData localBD;
   bdRecord(localBD);
 
-  static Stack<TTPair> toDo(64);
-  static Stack<TermList*> subterms(64);
+  VTHREAD_LOCAL static Stack<TTPair> toDo(64);
+  VTHREAD_LOCAL static Stack<TermList*> subterms(64);
   ASS(toDo.isEmpty() && subterms.isEmpty());
 
   // Save encountered unification pairs to avoid
@@ -553,7 +553,7 @@ bool RobSubstitution::match(TermSpec base, TermSpec instance)
   BacktrackData localBD;
   bdRecord(localBD);
 
-  static Stack<TermList*> subterms(64);
+  VTHREAD_LOCAL static Stack<TermList*> subterms(64);
   ASS(subterms.isEmpty());
 
   TermList* bt=&base.term;
@@ -644,7 +644,7 @@ bool RobSubstitution::match(TermSpec base, TermSpec instance)
 Literal* RobSubstitution::apply(Literal* lit, int index) const
 {
   CALL("RobSubstitution::apply(Literal*...)");
-  static DArray<TermList> ts(32);
+  VTHREAD_LOCAL static DArray<TermList> ts(32);
 
   if (lit->ground()) {
     return lit;
@@ -667,12 +667,12 @@ TermList RobSubstitution::apply(TermList trm, int index) const
 {
   CALL("RobSubstitution::apply(TermList...)");
 
-  static Stack<TermList*> toDo(8);
-  static Stack<int> toDoIndex(8);
-  static Stack<Term*> terms(8);
-  static Stack<VarSpec> termRefVars(8);
-  static Stack<TermList> args(8);
-  static DHMap<VarSpec, TermList, VarSpec::Hash1, VarSpec::Hash2> known;
+  VTHREAD_LOCAL static Stack<TermList*> toDo(8);
+  VTHREAD_LOCAL static Stack<int> toDoIndex(8);
+  VTHREAD_LOCAL static Stack<Term*> terms(8);
+  VTHREAD_LOCAL static Stack<VarSpec> termRefVars(8);
+  VTHREAD_LOCAL static Stack<TermList> args(8);
+  VTHREAD_LOCAL static DHMap<VarSpec, TermList, VarSpec::Hash1, VarSpec::Hash2> known;
 
   //is inserted into termRefVars, if respective
   //term in terms isn't referenced by any variable
@@ -757,13 +757,13 @@ size_t RobSubstitution::getApplicationResultWeight(TermList trm, int index) cons
 {
   CALL("RobSubstitution::getApplicationResultWeight");
 
-  static Stack<TermList*> toDo(8);
-  static Stack<int> toDoIndex(8);
-  static Stack<Term*> terms(8);
-  static Stack<VarSpec> termRefVars(8);
-  static Stack<size_t> argSizes(8);
+  VTHREAD_LOCAL static Stack<TermList*> toDo(8);
+  VTHREAD_LOCAL static Stack<int> toDoIndex(8);
+  VTHREAD_LOCAL static Stack<Term*> terms(8);
+  VTHREAD_LOCAL static Stack<VarSpec> termRefVars(8);
+  VTHREAD_LOCAL static Stack<size_t> argSizes(8);
 
-  static DHMap<VarSpec, size_t, VarSpec::Hash1, VarSpec::Hash2> known;
+  VTHREAD_LOCAL static DHMap<VarSpec, size_t, VarSpec::Hash1, VarSpec::Hash2> known;
   known.reset();
 
   //is inserted into termRefVars, if respective
@@ -848,7 +848,7 @@ size_t RobSubstitution::getApplicationResultWeight(TermList trm, int index) cons
 size_t RobSubstitution::getApplicationResultWeight(Literal* lit, int index) const
 {
   CALL("RobSubstitution::getApplicationResultWeight");
-  static DArray<TermList> ts(32);
+  VTHREAD_LOCAL static DArray<TermList> ts(32);
 
   if (lit->ground()) {
     return lit->weight();

@@ -10,6 +10,7 @@
 #if VTHREADED
 #include "ThreadScheduleExecutor.hpp"
 
+#include "Kernel/Signature.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Timer.hpp"
 #include "Shell/Options.hpp"
@@ -36,24 +37,25 @@ bool ThreadScheduleExecutor::run(const Schedule &schedule)
     it.hasNext()
   ) {
     vstring code = it.next();
+    auto parent_signature = env.signature;
+    auto parent_sharing = env.sharing;
+    auto parent_options = env.options;
+    auto task = [&] {
+      *env.options = *parent_options;
+      env.signature->clone_from(parent_signature);
+      auto sharing = env.sharing;
+      env.sharing = parent_sharing;
+      _executor->runSlice(code, remainingTime);
+      env.sharing = sharing;
+    };
     {
       BYPASSING_ALLOCATOR;
-      auto parent_options = env.options;
-      auto parent_signature = env.signature;
-      auto parent_sharing = env.sharing;
-      std::thread t([&] {
-        auto options = env.options;
-        auto signature = env.signature;
-        auto sharing = env.sharing;
-        env.options = parent_options;
-        env.signature = parent_signature;
-        env.sharing = parent_sharing;
-        _executor->runSlice(code, remainingTime);
-        env.sharing = sharing;
-        env.signature = signature;
-        env.options = options;
-      });
-      t.join();
+      const int num_threads = 8;
+      std::thread threads[num_threads];
+      for(int i = 0; i < num_threads; i++)
+        threads[i] = std::thread(task);
+      for(int i = 0; i < num_threads; i++)
+        threads[i].join();
     }
   }
 

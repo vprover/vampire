@@ -200,8 +200,8 @@ void ActiveClauseContainer::onLimitsUpdated()
     return;
   }
 
-  static DHSet<Clause*> checked;
-  static Stack<Clause*> toRemove(64);
+  VTHREAD_LOCAL static DHSet<Clause*> checked;
+  VTHREAD_LOCAL static Stack<Clause*> toRemove(64);
   checked.reset();
   toRemove.reset();
 

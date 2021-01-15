@@ -146,17 +146,17 @@ void SLQueryBackwardSubsumption::perform(Clause* cl,
     }
   }
 
-  static DArray<LiteralList*> matchedLits(32);
+  VTHREAD_LOCAL static DArray<LiteralList*> matchedLits(32);
   matchedLits.init(clen, 0);
 
   ClauseList* subsumed=0;
 
-  static DHSet<unsigned> basePreds;
+  VTHREAD_LOCAL static DHSet<unsigned> basePreds;
   bool basePredsInit=false;
   bool mustPredInit=false;
   unsigned mustPred;
 
-  static DHSet<Clause*> checkedClauses;
+  VTHREAD_LOCAL static DHSet<Clause*> checkedClauses;
   checkedClauses.reset();
 
   SLQueryResultIterator rit=_index->getInstances( (*cl)[lmIndex], false, false);

@@ -104,8 +104,8 @@ void Term::destroyNonShared()
   TermList selfRef;
   selfRef.setTerm(this);
   TermList* ts=&selfRef;
-  static Stack<TermList*> stack(4);
-  static Stack<Term*> deletingStack(8);
+  VTHREAD_LOCAL static Stack<TermList*> stack(4);
+  VTHREAD_LOCAL static Stack<Term*> deletingStack(8);
 
   for(;;) {
     if (ts->tag()==REF && !ts->term()->shared()) {
@@ -213,7 +213,7 @@ bool TermList::sameTopFunctor(TermList ss, TermList tt)
  */
 bool TermList::equals(TermList t1, TermList t2)
 {
-  static Stack<TermList*> stack(8);
+  VTHREAD_LOCAL static Stack<TermList*> stack(8);
   ASS(stack.isEmpty());
 
   TermList* ss=&t1;
@@ -291,7 +291,7 @@ bool Term::containsSubterm(TermList trm)
   }
 
   TermList* ts=args();
-  static Stack<TermList*> stack(4);
+  VTHREAD_LOCAL static Stack<TermList*> stack(4);
   stack.reset();
   for(;;) {
     if (*ts==trm) {
@@ -355,10 +355,10 @@ bool TermList::containsAllVariablesOf(TermList t)
 bool Term::containsAllVariablesOf(Term* t)
 {
   CALL("Term::containsAllVariablesOf");
-  static DHSet<TermList> vars;
+  VTHREAD_LOCAL static DHSet<TermList> vars;
   vars.reset();
 
-  static VariableIterator vit;
+  VTHREAD_LOCAL static VariableIterator vit;
 
   //collect own vars
   vit.reset(this);
@@ -380,10 +380,10 @@ bool TermList::containsAllVariableOccurrencesOf(TermList t)
 {
   CALL("TermList:containsAllVariableOccurrencesOf");
   // varBalance[x] = (#occurrences of x in this) - (#occurrences of x in t)
-  static vunordered_map<unsigned int, int> varBalance(16);
+  VTHREAD_LOCAL static vunordered_map<unsigned int, int> varBalance(16);
   varBalance.clear();
 
-  static VariableIterator vit;
+  VTHREAD_LOCAL static VariableIterator vit;
 
   // collect own vars
   vit.reset(*this);

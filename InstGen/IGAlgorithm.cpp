@@ -227,7 +227,7 @@ redundancy_check:
   }
 
   if(_globalSubsumption) {
-    static Stack<Unit*> prems_dummy;
+    VTHREAD_LOCAL static Stack<Unit*> prems_dummy;
     
     Clause* newCl = _globalSubsumption->perform(cl,prems_dummy);
     if(newCl!=cl) {
@@ -438,8 +438,8 @@ void IGAlgorithm::tryGeneratingInstances(Clause* cl, unsigned litIdx)
       continue;//literal is no longer selected
     }
 
-    static LiteralStack genLits1;
-    static LiteralStack genLits2;
+    VTHREAD_LOCAL static LiteralStack genLits1;
+    VTHREAD_LOCAL static LiteralStack genLits2;
     bool properInstance1;
     bool properInstance2;
 
@@ -498,7 +498,7 @@ unsigned IGAlgorithm::lookaheadSelection(Clause* cl, unsigned selCnt)
 {
   CALL("IGAlgorithm::lookaheadSelection");
 
-  static DArray<VirtualIterator<SLQueryResult>> iters; //IG unification iterators
+  VTHREAD_LOCAL static DArray<VirtualIterator<SLQueryResult>> iters; //IG unification iterators
   iters.ensure(selCnt);
 
   for(unsigned i=0; i<selCnt; i++) {
@@ -507,7 +507,7 @@ unsigned IGAlgorithm::lookaheadSelection(Clause* cl, unsigned selCnt)
         [this](SLQueryResult& unif) { return isSelected(unif.literal); }));
   }
 
-  static Stack<unsigned> candidates; // just to make sure we break the ties in a fair way
+  VTHREAD_LOCAL static Stack<unsigned> candidates; // just to make sure we break the ties in a fair way
   candidates.reset();
   do {
     for(unsigned i=0;i<selCnt;i++) {
@@ -690,7 +690,7 @@ void IGAlgorithm::doImmediateReactivation()
 {
   CALL("IGAlgorithm::doImmediateReactivation");
 
-  static ClauseStack toActivate;
+  VTHREAD_LOCAL static ClauseStack toActivate;
   toActivate.reset();
 
   ClauseStack::Iterator dit(_deactivated);
@@ -713,7 +713,7 @@ void IGAlgorithm::doPassiveReactivation()
 {
   CALL("IGAlgorithm::doPassiveReactivation");
 
-  static ClauseStack toActivate;
+  VTHREAD_LOCAL static ClauseStack toActivate;
   toActivate.reset();
 
   RCClauseStack::DelIterator ait(_active);
@@ -754,7 +754,7 @@ void IGAlgorithm::restartWithCurrentClauses()
 {
   CALL("IGAlgorithm::restartWithCurrentClauses");
 
-  static RCClauseStack allClauses;
+  VTHREAD_LOCAL static RCClauseStack allClauses;
   allClauses.reset();
 
   while(_active.isNonEmpty()) {

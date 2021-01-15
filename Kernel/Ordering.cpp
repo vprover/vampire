@@ -243,6 +243,9 @@ Ordering::Result Ordering::getEqualityArgumentOrder(Literal* eq) const
     return compare(*eq->nthArgument(0), *eq->nthArgument(1));
   }
 
+#if VTHREADED
+  return compare(*eq->nthArgument(0), *eq->nthArgument(1));
+#else
   Result res;
   ArgumentOrderVals precomputed = static_cast<ArgumentOrderVals>(eq->getArgumentOrderValue());
   if(precomputed!=0) {
@@ -251,12 +254,10 @@ Ordering::Result Ordering::getEqualityArgumentOrder(Literal* eq) const
   }
   else {
     res = compare(*eq->nthArgument(0), *eq->nthArgument(1));
-#if VTHREADED
-    if(env.options->mode() != Options::Mode::THREADED)
-#endif
-      eq->setArgumentOrderValue(res);
+    eq->setArgumentOrderValue(res);
   }
   return res;
+#endif
 }
 
 //////////////////////////////////////////////////

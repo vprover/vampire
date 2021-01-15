@@ -75,8 +75,8 @@ struct EqualityResolution::ResultFn
     TermList arg0 = *lit->nthArgument(0);
     TermList arg1 = *lit->nthArgument(1);
 
-    static Options::UnificationWithAbstraction uwa = env.options->unificationWithAbstraction();
-    static Options::FunctionExtensionality ext = env.options->functionExtensionality();
+    VTHREAD_LOCAL static Options::UnificationWithAbstraction uwa = env.options->unificationWithAbstraction();
+    VTHREAD_LOCAL static Options::FunctionExtensionality ext = env.options->functionExtensionality();
     bool use_uwa_handler = uwa != Options::UnificationWithAbstraction::OFF;
     bool use_ho_handler = (ext == Options::FunctionExtensionality::ABSTRACTION) &&
                           env.statistics->higherOrder;
@@ -100,8 +100,8 @@ struct EqualityResolution::ResultFn
       use_uwa_handler = false;
     }
 
-    static RobSubstitution subst;
-    static UnificationConstraintStack constraints;
+    VTHREAD_LOCAL static RobSubstitution subst;
+    VTHREAD_LOCAL static UnificationConstraintStack constraints;
     subst.reset();
     constraints.reset();
     subst.setMap(&funcSubtermMap);

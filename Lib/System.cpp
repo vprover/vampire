@@ -283,7 +283,7 @@ void System::onTermination()
 {
   CALL("System::onTermination");
 
-  static bool called=false;
+  static VATOMIC(bool) called(false);
   if(called) {
     return;
   }

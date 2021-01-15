@@ -28,11 +28,15 @@
 
 #define SAFE_OUT_OF_MEM_SOLUTION 1
 
-#ifndef USE_SYSTEM_ALLOCATION
-/** If the following is set to true the Vampire will use the
+/** If USE_SYSTEM_ALLOCATION set to true Vampire will use the
  *  C++ new and delete for (de)allocating all data structures.
  */
+#ifndef USE_SYSTEM_ALLOCATION
+#if TSAN
+#define USE_SYSTEM_ALLOCATION 1
+#else
 #define USE_SYSTEM_ALLOCATION 0
+#endif
 #endif
 
 #if USE_SYSTEM_ALLOCATION
@@ -85,7 +89,11 @@ unsigned watchAddressLastValue = 0;
 using namespace Lib;
 using namespace Shell;
 
-int Allocator::_initialised = 0;
+#if VTHREADED
+std::recursive_mutex Allocator::_mutex;
+#endif
+
+VATOMIC(int) Allocator::_initialised(0);
 int Allocator::_total = 0;
 size_t Allocator::_memoryLimit;
 size_t Allocator::_tolerated;
@@ -101,7 +109,7 @@ size_t Allocator::Descriptor::maxEntries;
 size_t Allocator::Descriptor::capacity;
 Allocator::Descriptor* Allocator::Descriptor::map;
 Allocator::Descriptor* Allocator::Descriptor::afterLast;
-unsigned Allocator::_tolerantZone = 1; // starts > 0; we are not checking by default, until we say so with START_CHECKING_FOR_BYPASSES
+VTHREAD_LOCAL unsigned Allocator::_tolerantZone = 1; // starts > 0; we are not checking by default, until we say so with START_CHECKING_FOR_BYPASSES
 #endif
 
 #if VDEBUG && USE_PRECISE_CLASS_NAMES && defined(__GNUC__)
@@ -140,6 +148,7 @@ void Allocator::operator delete(void* obj) {
 Allocator::Allocator()
 {
   CALLC("Allocator::Allocator",MAKE_CALLS);
+  ACQ_ALLOCATOR_LOCK;
 
 #if ! USE_SYSTEM_ALLOCATION
   for (int i = REQUIRES_PAGE/4-1;i >= 0;i--) {
@@ -159,6 +168,7 @@ Allocator::Allocator()
 Lib::Allocator::~Allocator ()
 {
   CALLC("Allocator::~Allocator",MAKE_CALLS);
+  ACQ_ALLOCATOR_LOCK;
 
   while (_myPages) {
     deallocatePages(_myPages);
@@ -172,6 +182,7 @@ Lib::Allocator::~Allocator ()
 void Allocator::initialise()
 {
   CALLC("Allocator::initialise",MAKE_CALLS)
+  ACQ_ALLOCATOR_LOCK;
 
 #if VDEBUG
   Descriptor::map = 0;
@@ -198,6 +209,7 @@ void Allocator::initialise()
 void Allocator::addressStatus(const void* address)
 {
   CALLC("Allocator::addressStatus",MAKE_CALLS);
+  ACQ_ALLOCATOR_LOCK;
 
   Descriptor* pg = 0; // page descriptor
   cout << "Status of address " << address << '\n';
@@ -234,6 +246,7 @@ void Allocator::addressStatus(const void* address)
 
 void Allocator::reportUsageByClasses()
 {
+  ACQ_ALLOCATOR_LOCK;
   Lib::DHMap<const char*, size_t> summary;
   Lib::DHMap<const char*, size_t> cntSummary;
   for (int i = Descriptor::capacity-1;i >= 0;i--) {
@@ -273,6 +286,7 @@ void Allocator::reportUsageByClasses()
 void Allocator::cleanup()
 {
   CALLC("Allocator::cleanup",MAKE_CALLS);
+  ACQ_ALLOCATOR_LOCK;
   BYPASSING_ALLOCATOR;
 
   // delete all allocators
@@ -341,9 +355,10 @@ void Allocator::deallocateKnown(void* obj,size_t size)
 #endif
 {
   CALLC("Allocator::deallocateKnown",MAKE_CALLS);
+  ACQ_ALLOCATOR_LOCK;
   ASS(obj);
 
-#if VDEBUG
+#if VDEBUG && !TSAN
   Descriptor* desc = Descriptor::find(obj);
   desc->timestamp = ++Descriptor::globalTimestamp;
 #if TRACE_ALLOCATIONS
@@ -358,7 +373,7 @@ void Allocator::deallocateKnown(void* obj,size_t size)
 #endif
 
 #if USE_SYSTEM_ALLOCATION
-#if VDEBUG
+#if VDEBUG && !TSAN
   desc->allocated = 0;
 #endif
   free(obj);
@@ -375,7 +390,7 @@ void Allocator::deallocateKnown(void* obj,size_t size)
     _freeList[index] = mem;
   }
 
-#if VDEBUG
+#if VDEBUG && !TSAN
   desc->allocated = 0;
 #endif
 
@@ -415,8 +430,9 @@ void Allocator::deallocateUnknown(void* obj)
 #endif
 {
   CALLC("Allocator::deallocateUnknown",MAKE_CALLS);
+  ACQ_ALLOCATOR_LOCK;
 
-#if VDEBUG
+#if VDEBUG && !TSAN
   Descriptor* desc = Descriptor::find(obj);
   desc->timestamp = ++Descriptor::globalTimestamp;
 #if TRACE_ALLOCATIONS
@@ -439,7 +455,9 @@ void Allocator::deallocateUnknown(void* obj)
   char* mem = reinterpret_cast<char*>(obj) - sizeof(Known);
   Unknown* unknown = reinterpret_cast<Unknown*>(mem);
   size_t size = unknown->size;
+#if !TSAN
   ASS_EQ(desc->size, size);
+#endif
 
   if (size >= REQUIRES_PAGE) {
     mem = mem-PAGE_PREFIX_SIZE;
@@ -468,8 +486,10 @@ void Allocator::deallocateUnknown(void* obj)
       watchAddressLastValue = currentValue;
       cout << "  Value: " << (void*)watchAddressLastValue << '\n';
     }
+#if !TSAN
     cout << "  " << *desc << '\n'
 	 << "Watch! end\n";
+#endif
   }
 #endif
 } // Allocator::deallocateUnknown
@@ -491,6 +511,7 @@ void* Allocator::reallocateUnknown(void* obj, size_t newsize)
 #endif
 {
   CALLC("Allocator::reallocateUnknown",MAKE_CALLS);
+  ACQ_ALLOCATOR_LOCK;
 
   // cout << "reallocateUnknown " << obj << " newsize " << newsize << endl;
 
@@ -530,6 +551,7 @@ void* Allocator::reallocateUnknown(void* obj, size_t newsize)
 Allocator* Allocator::newAllocator()
 {
   CALLC("Allocator::newAllocator",MAKE_CALLS);
+  ACQ_ALLOCATOR_LOCK;
   BYPASSING_ALLOCATOR;
   
 #if VDEBUG && USE_SYSTEM_ALLOCATION
@@ -552,6 +574,7 @@ Allocator* Allocator::newAllocator()
 Allocator::Page* Allocator::allocatePages(size_t size)
 {
   CALLC("Allocator::allocatePages",MAKE_CALLS);
+  ACQ_ALLOCATOR_LOCK;
   ASS(size >= 0);
 
 #if VDEBUG && USE_SYSTEM_ALLOCATION
@@ -631,7 +654,7 @@ Allocator::Page* Allocator::allocatePages(size_t size)
   }
   result->size = realSize;
 
-#if VDEBUG
+#if VDEBUG && !TSAN
   Descriptor* desc = Descriptor::find(result);
   ASS(! desc->allocated);
 
@@ -643,7 +666,7 @@ Allocator::Page* Allocator::allocatePages(size_t size)
   desc->known = 0;
   desc->page = 1;
 
-#if TRACE_ALLOCATIONS
+#if TRACE_ALLOCATIONS && !TSAN
   cout << *desc << ": AP\n" << flush;
 #endif // TRACE_ALLOCATIONS
 #endif // VDEBUG
@@ -686,6 +709,7 @@ Allocator::Page* Allocator::allocatePages(size_t size)
  */
 void Allocator::deallocatePages(Page* page)
 {
+  ACQ_ALLOCATOR_LOCK;
   ASS(page);
 
 #if VDEBUG && USE_SYSTEM_ALLOCATION
@@ -693,7 +717,7 @@ void Allocator::deallocatePages(Page* page)
 #else
   CALLC("Allocator::deallocatePages",MAKE_CALLS);
 
-#if VDEBUG
+#if VDEBUG && !TSAN
   Descriptor* desc = Descriptor::find(page);
   desc->timestamp = ++Descriptor::globalTimestamp;
 #if TRACE_ALLOCATIONS
@@ -761,11 +785,12 @@ void* Allocator::allocateKnown(size_t size)
 #endif
 {
   CALLC("Allocator::allocateKnown",MAKE_CALLS);
+  ACQ_ALLOCATOR_LOCK;
   ASS(size > 0);
 
   char* result = allocatePiece(size);
 
-#if VDEBUG
+#if VDEBUG && !TSAN
   Descriptor* desc = Descriptor::find(result);
   ASS_REP(! desc->allocated, size);
 
@@ -814,6 +839,7 @@ void* Allocator::allocateKnown(size_t size)
 char* Allocator::allocatePiece(size_t size)
 {
   CALLC("Allocator::allocatePiece",MAKE_CALLS);
+  ACQ_ALLOCATOR_LOCK;
 
   char* result;
 #if USE_SYSTEM_ALLOCATION
@@ -845,7 +871,7 @@ char* Allocator::allocatePiece(size_t size)
       if (_reserveBytesAvailable) {
 	index = (_reserveBytesAvailable-1)/sizeof(Known);
 	Known* save = reinterpret_cast<Known*>(_nextAvailableReserve);
-#if VDEBUG
+#if VDEBUG && !TSAN
 	Descriptor* desc = Descriptor::find(save);
 	ASS(! desc->allocated);
 	desc->size = _reserveBytesAvailable;
@@ -882,6 +908,7 @@ void* Allocator::allocateUnknown(size_t size)
 #endif
 {
   CALLC("Allocator::allocateUnknown",MAKE_CALLS);
+  ACQ_ALLOCATOR_LOCK;
   ASS(size>0);
 
   size += sizeof(Known);
@@ -890,7 +917,7 @@ void* Allocator::allocateUnknown(size_t size)
   unknown->size = size;
   result += sizeof(Known);
 
-#if VDEBUG
+#if VDEBUG && !TSAN
   Descriptor* desc = Descriptor::find(result);
   ASS(! desc->allocated);
 
@@ -939,6 +966,7 @@ void* Allocator::allocateUnknown(size_t size)
 Allocator::Descriptor* Allocator::Descriptor::find (const void* addr)
 {    
   CALLC("Allocator::Descriptor::find",MAKE_CALLS);
+  ACQ_ALLOCATOR_LOCK;
   BYPASSING_ALLOCATOR;
 
   if (noOfEntries >= maxEntries) { // too many entries
@@ -1060,8 +1088,7 @@ unsigned Allocator::Descriptor::hash (const void* addr)
 #endif
 
 // TSan provides its own global new/delete
-#if (defined(__has_feature) && __has_feature(thread_sanitizer))
-#else
+#if !TSAN
 /**
  * In debug mode we replace the global new and delete (also the array versions)
  * and terminate in cases when they are used "unwillingly".

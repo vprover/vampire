@@ -428,7 +428,7 @@ void TheoryInstAndSimp::originalSelectTheoryLiterals(Clause* cl, Stack<Literal*>
   cout << "originalSelectTheoryLiterals["<<forZ3<<"] in " << cl->toString() << endl;
 #endif
 
-  static Shell::Options::TheoryInstSimp selection = env.options->theoryInstAndSimp();
+  VTHREAD_LOCAL static Shell::Options::TheoryInstSimp selection = env.options->theoryInstAndSimp();
   ASS(selection!=Shell::Options::TheoryInstSimp::OFF);
 
   Stack<Literal*> weak;
@@ -588,7 +588,7 @@ void TheoryInstAndSimp::originalSelectTheoryLiterals(Clause* cl, Stack<Literal*>
 Term* getFreshConstant(unsigned index, TermList srt)
 {
   CALL("TheoryInstAndSimp::getFreshConstant");
-  static Map<TermList, Stack<Term*>*> constants;
+  VTHREAD_LOCAL static Map<TermList, Stack<Term*>*> constants;
 
   /*
   We skolemize at some point in instantiation. For that we need fresh constants.
@@ -618,8 +618,8 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
 
   // We use a new SMT solver
   // currently these are not needed outside of this function so we put them here
-  static SAT2FO naming;
-  static Z3Interfacing solver(*env.options,naming);
+  VTHREAD_LOCAL static SAT2FO naming;
+  VTHREAD_LOCAL static Z3Interfacing solver(*env.options,naming);
   solver.reset(); // the solver will reset naming
 
 
@@ -665,7 +665,7 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
     SATLiteral slit = naming.toSAT(lit);
 
     // now add the SAT representation
-    static SATLiteralStack satLits;
+    VTHREAD_LOCAL static SATLiteralStack satLits;
     satLits.reset();
     satLits.push(slit);
     SATClause* sc = SATClause::fromStack(satLits);
@@ -834,9 +834,9 @@ ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise,bool& premiseR
 
   if(premise->isPureTheoryDescendant()){ return ClauseIterator::getEmpty(); }
 
-  static Options::TheoryInstSimp thi = env.options->theoryInstAndSimp();
+  VTHREAD_LOCAL static Options::TheoryInstSimp thi = env.options->theoryInstAndSimp();
 
-  static Stack<Literal*> selectedLiterals;
+  VTHREAD_LOCAL static Stack<Literal*> selectedLiterals;
   selectedLiterals.reset();
 
   if(thi == Options::TheoryInstSimp::NEW){
@@ -860,7 +860,7 @@ ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise,bool& premiseR
   Clause* flattened = premise;
   if(thi != Options::TheoryInstSimp::NEW){
     // we will use flattening which is non-recursive and sharing
-    static TheoryFlattening flattener((thi==Options::TheoryInstSimp::FULL),true);
+    VTHREAD_LOCAL static TheoryFlattening flattener((thi==Options::TheoryInstSimp::FULL),true);
 
     flattened = flattener.apply(premise,selectedLiterals);
 
@@ -871,7 +871,7 @@ ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise,bool& premiseR
       _splitter->onNewClause(flattened);
     }
 
-    static Stack<Literal*> theoryLiterals;
+    VTHREAD_LOCAL static Stack<Literal*> theoryLiterals;
     theoryLiterals.reset();
 
     // Now go through the abstracted clause and select the things we send to SMT

@@ -423,11 +423,11 @@ void NewCNF::BindingStore::pushAndRememberWhileApplying(Binding b, BindingList* 
   CALL("NewCNF::pushAndRememberWhileApplying");
 
   // turn b into a singleton substitution
-  static Substitution subst;
+  VTHREAD_LOCAL static Substitution subst;
   subst.bind(b.first,b.second);
 
   // to go through the bindings from the end, put them on a stack...
-  static Stack<BindingList*> st(5);
+  VTHREAD_LOCAL static Stack<BindingList*> st(5);
   BindingList* traverse = lst;
   while (BindingList::isNonEmpty(traverse)) {
     st.push(traverse);
@@ -756,7 +756,7 @@ TermList NewCNF::nameLetBinding(unsigned symbol, VList* bindingVariables, TermLi
 
   bool renameSymbol = VList::isNonEmpty(bindingFreeVars);
   if (renameSymbol) {
-    static Stack<TermList> sorts;
+    VTHREAD_LOCAL static Stack<TermList> sorts;
     sorts.reset();
 
     ensureHavingVarSorts();
@@ -883,8 +883,8 @@ Term* NewCNF::createSkolemTerm(unsigned var, VarSet* free)
 
   ensureHavingVarSorts();
   TermList rangeSort=_varSorts.get(var, Term::defaultSort());
-  static Stack<TermList> domainSorts;
-  static Stack<TermList> fnArgs;
+  VTHREAD_LOCAL static Stack<TermList> domainSorts;
+  VTHREAD_LOCAL static Stack<TermList> fnArgs;
   ASS(domainSorts.isEmpty());
   ASS(fnArgs.isEmpty());
 
@@ -941,9 +941,9 @@ void NewCNF::skolemise(QuantifiedFormula* g, BindingList*& bindings, BindingList
 
     VarSet* frees = freeVars(g);
 
-    static Stack<unsigned> toSubtract;
+    VTHREAD_LOCAL static Stack<unsigned> toSubtract;
     toSubtract.reset();
-    static Stack<unsigned> toAddOnTop;
+    VTHREAD_LOCAL static Stack<unsigned> toAddOnTop;
     toAddOnTop.reset();
 
     BindingList::Iterator bIt(bindings);
@@ -1123,8 +1123,8 @@ Literal* NewCNF::createNamingLiteral(Formula* f, VList* free)
     }
   }
 
-  static Stack<TermList> domainSorts;
-  static Stack<TermList> predArgs;
+  VTHREAD_LOCAL static Stack<TermList> domainSorts;
+  VTHREAD_LOCAL static Stack<TermList> predArgs;
   domainSorts.reset();
   predArgs.reset();
 
@@ -1428,7 +1428,7 @@ Clause* NewCNF::toClause(SPGenClause gc)
     _substitutionsByBindings.insert(gc->bindings, subst);
   }
 
-  static Stack<Literal*> properLiterals;
+  VTHREAD_LOCAL static Stack<Literal*> properLiterals;
   ASS(properLiterals.isEmpty());
 
   GenClause::Iterator lit = gc->genLiterals();

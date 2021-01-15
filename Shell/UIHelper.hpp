@@ -65,7 +65,7 @@ public:
    * A hacky global flag distinguishing the parent and the child in portfolio modes.
    * Currently affects how things are reported during timeout (see Timer.cpp)
    */
-  static bool portfolioParent;
+  VTHREAD_LOCAL static bool portfolioParent;
   /**
    * Hack not to output satisfiable status twice (we may output it earlier in
    * IGAlgorithm, before we start generating model)

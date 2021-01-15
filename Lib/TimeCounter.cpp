@@ -28,12 +28,12 @@ using namespace std;
 using namespace Shell;
 using namespace Lib;
 
-bool TimeCounter::s_measuring = true;
-bool TimeCounter::s_initialized = false;
-int TimeCounter::s_measuredTimes[__TC_ELEMENT_COUNT];
-int TimeCounter::s_measuredTimesChildren[__TC_ELEMENT_COUNT];
-int TimeCounter::s_measureInitTimes[__TC_ELEMENT_COUNT];
-TimeCounter* TimeCounter::s_currTop = 0;
+VTHREAD_LOCAL bool TimeCounter::s_measuring = true;
+VTHREAD_LOCAL bool TimeCounter::s_initialized = false;
+VTHREAD_LOCAL int TimeCounter::s_measuredTimes[__TC_ELEMENT_COUNT];
+VTHREAD_LOCAL int TimeCounter::s_measuredTimesChildren[__TC_ELEMENT_COUNT];
+VTHREAD_LOCAL int TimeCounter::s_measureInitTimes[__TC_ELEMENT_COUNT];
+VTHREAD_LOCAL TimeCounter* TimeCounter::s_currTop = 0;
 
 /**
  * Reinitializes the time counting

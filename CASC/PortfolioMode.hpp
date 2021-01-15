@@ -79,7 +79,7 @@ private:
   bool runSchedule(Schedule& schedule);
   bool waitForChildAndCheckIfProofFound();
   void runSlice(vstring slice, unsigned timeLimitInDeciseconds);
-  void runSlice(Options *strategyOpt);
+  void runSlice(Options &strategyOpt);
 
 #if VDEBUG
   DHSet<pid_t> childIds;

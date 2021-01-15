@@ -80,8 +80,8 @@ bool createLiteralBindings(Literal* baseLit, LiteralList* alts, Clause* instCl,
 {
   CALL("createLiteralBindings");
 
-  static UUMap variablePositions;
-  static BinaryHeap<unsigned,Int> varNums;
+  VTHREAD_LOCAL static UUMap variablePositions;
+  VTHREAD_LOCAL static BinaryHeap<unsigned,Int> varNums;
   variablePositions.reset();
   varNums.reset();
 
@@ -203,7 +203,7 @@ struct MatchingData {
 
     //we'll create inverse binding to check that two variables
     //don't have the same binding
-    static UUMap inverse;
+    VTHREAD_LOCAL static UUMap inverse;
     inverse.reset();
 
     //check that no variable is bound to two different ones
@@ -313,22 +313,22 @@ MatchingData* getMatchingData(Literal* const * baseLits0, unsigned baseLen, Clau
 {
   CALL("getMatchingData");
 
-  static DArray<Literal*> baseLits(32);
-  static DArray<LiteralList*> altsArr(32);
+  VTHREAD_LOCAL static DArray<Literal*> baseLits(32);
+  VTHREAD_LOCAL static DArray<LiteralList*> altsArr(32);
   baseLits.initFromArray(baseLen,baseLits0);
   altsArr.initFromArray(baseLen,alts);
 
-  static DArray<unsigned> varCnts(32);
-  static DArray<unsigned*> boundVarNums(32);
-  static DArray<unsigned**> altPtrs(32);
-  static TriangularArray<unsigned> remaining(32);
-  static DArray<unsigned> nextAlts(32);
+  VTHREAD_LOCAL static DArray<unsigned> varCnts(32);
+  VTHREAD_LOCAL static DArray<unsigned*> boundVarNums(32);
+  VTHREAD_LOCAL static DArray<unsigned**> altPtrs(32);
+  VTHREAD_LOCAL static TriangularArray<unsigned> remaining(32);
+  VTHREAD_LOCAL static DArray<unsigned> nextAlts(32);
 
-  static DArray<unsigned> boundVarNumData(64);
+  VTHREAD_LOCAL static DArray<unsigned> boundVarNumData(64);
   //Referenced list of an alternative contains binding for each variable of
   //the base literal, and then a record identifying the alternative literal itself.
-  static DArray<unsigned*> altBindingPtrs(128);
-  static DArray<unsigned> altBindingsData(256);
+  VTHREAD_LOCAL static DArray<unsigned*> altBindingPtrs(128);
+  VTHREAD_LOCAL static DArray<unsigned> altBindingsData(256);
   varCnts.ensure(baseLen);
   boundVarNums.init(baseLen,0);
   altPtrs.ensure(baseLen);
@@ -374,7 +374,7 @@ MatchingData* getMatchingData(Literal* const * baseLits0, unsigned baseLen, Clau
   altBindingPtrs.ensure(altCnt);
   altBindingsData.ensure(altBindingsCnt);
 
-  static MatchingData res;
+  VTHREAD_LOCAL static MatchingData res;
   res.len=baseLen;
   res.varCnts=varCnts.array();
   res.boundVarNums=boundVarNums.array();
@@ -411,7 +411,7 @@ bool MLVariant::isVariant(Literal* const * cl1Lits, Clause* cl2, LiteralList** a
     return false;
   }
 
-  static DArray<unsigned> matchRecord(32);
+  VTHREAD_LOCAL static DArray<unsigned> matchRecord(32);
   unsigned matchRecordLen=clen;
   matchRecord.init(matchRecordLen,0xFFFFFFFF);
 
@@ -478,7 +478,7 @@ bool MLVariant::isVariant(Literal* const * cl1Lits, Clause* cl2, bool complement
 
   bool fail=false;
   unsigned clen=cl2->length();
-  static DArray<LiteralList*> alts(32);
+  VTHREAD_LOCAL static DArray<LiteralList*> alts(32);
   alts.init(clen, 0);
 
   for(unsigned i2=0;i2<clen;i2++) {

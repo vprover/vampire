@@ -196,9 +196,9 @@ void ModelPrinter::generateNewInstances(Literal* base, TermStack& domain, DHSet<
   unsigned arity = base->arity();
   unsigned domSz= domain.size();
 
-  static DArray<TermList> args;
-  static DArray<bool> variables;
-  static DArray<unsigned> nextIndexes;
+  VTHREAD_LOCAL static DArray<TermList> args;
+  VTHREAD_LOCAL static DArray<bool> variables;
+  VTHREAD_LOCAL static DArray<unsigned> nextIndexes;
   OperatorType* predType = env.signature->getPredicate(base->functor())->predType();
 
   args.ensure(arity);
@@ -284,7 +284,7 @@ void ModelPrinter::getInstances(LiteralStack& trueLits, TermStack& domain, Liter
 {
   CALL("ModelPrinter::getInstances");
 
-  static DHSet<Literal*> instSet;
+  VTHREAD_LOCAL static DHSet<Literal*> instSet;
   instSet.reset();
 
   std::sort(trueLits.begin(), trueLits.end(), InstLitComparator());
@@ -359,7 +359,7 @@ void ModelPrinter::rewriteLits(LiteralStack& lits)
 {
   CALL("ModelPrinter::rewriteLits");
 
-  static TermStack args;
+  VTHREAD_LOCAL static TermStack args;
 
   LiteralStack::Iterator iter(lits);
   while(iter.hasNext()) {

@@ -82,7 +82,7 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
   //replace subterms in some special order, like
   //the heaviest first...
 
-  static DHSet<TermList> attempted;
+  VTHREAD_LOCAL static DHSet<TermList> attempted;
   attempted.reset();
 
   unsigned cLen=cl->length();
