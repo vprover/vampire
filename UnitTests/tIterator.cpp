@@ -39,6 +39,14 @@ TEST_FUN(test_collect_2) {
 }
 
 
+TEST_FUN(test_range_1) {
+  auto s = Stack<int>{ 1, 2, 3 };
+
+  ASS_EQ(rangeExcl(1,4) | collect<Stack>(), s)
+  ASS_EQ(rangeIncl(1,3) | collect<Stack>(), s)
+}
+
+
 
 TEST_FUN(test_map_1) {
   auto in  = Stack<int>{ 1, 2, 3 };

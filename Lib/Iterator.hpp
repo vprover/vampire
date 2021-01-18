@@ -143,6 +143,25 @@ template<class Array, class Idx>
 IndexIter<Array, Idx> indexIter(Array array, Idx size) 
 { return IndexIter<Array, Idx>(moveValue<Array>(array), size); }
 
+template<class Number>
+class RangeIter {
+  Number _idx;
+  Number const _endExclusive;
+public:
+  DECL_ELEMENT_TYPE(Number);
+  RangeIter(Number start, Number endExclusive) : _idx(start), _endExclusive(endExclusive) {}
+  bool hasNext() { return _idx < _endExclusive; }
+  Number next() { return _idx++; }
+  Option<unsigned> sizeLeft() const { return Option<unsigned>(_endExclusive - _idx); }
+};
+
+template<class Number> auto rangeExcl(Number start, Number end) -> RangeIter<Number>
+{ return RangeIter<Number>(start, end); }
+
+template<class Number> auto rangeIncl(Number start, Number end) -> RangeIter<Number>
+{ return RangeIter<Number>(start, end + 1); }
+
+
 
 // TODO remove me
 template<class Iter>
