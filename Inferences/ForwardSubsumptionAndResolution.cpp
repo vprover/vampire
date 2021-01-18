@@ -62,7 +62,7 @@ using namespace Saturation;
 
 
 
-#define CHECK_SMT_SUBSUMPTION 1
+#define CHECK_SMT_SUBSUMPTION 0
 
 static ForwardSubsumptionAndResolution* fwsubsandres_instance = nullptr;
 
@@ -74,6 +74,14 @@ ForwardSubsumptionAndResolution::ForwardSubsumptionAndResolution(bool subsumptio
   if (!logfile.empty()) {
     BYPASSING_ALLOCATOR;
     m_logger = make_unique<SubsumptionLogger>(logfile);
+  }
+}
+
+ForwardSubsumptionAndResolution::~ForwardSubsumptionAndResolution()
+{
+  if (m_logger) {
+    BYPASSING_ALLOCATOR;
+    m_logger.reset();
   }
 }
 
