@@ -122,7 +122,10 @@ bool PortfolioMode::searchForProof()
 {
   CALL("PortfolioMode::searchForProof");
 
-  env.timer->makeChildrenIncluded();
+#if VTHREADED
+  if(env.options->mode() != Options::Mode::THREADED)
+#endif
+    env.timer->makeChildrenIncluded();
   TimeCounter::reinitialize();
 
   _prb = UIHelper::getInputProblem(*env.options);
@@ -519,15 +522,14 @@ void PortfolioMode::runSlice(vstring sliceCode, unsigned timeLimitInDeciseconds)
     opt.setSimulatedTimeLimit(int(stl * _slowness));
   }
   runSlice(opt);
-
 } // runSlice
 
 /**
  * Run a slice given by its options
  */
-void PortfolioMode::runSlice(Options &strategyOpt)
+void PortfolioMode::runSlice(Options& strategyOpt)
 {
-  CALL("PortfolioMode::runSlice(Option &)");
+  CALL("PortfolioMode::runSlice(Option& )");
 
   System::registerForSIGHUPOnParentDeath();
   UIHelper::portfolioParent=false;
@@ -551,6 +553,7 @@ void PortfolioMode::runSlice(Options &strategyOpt)
     env.endOutput();
   }
 
+  // if multi-threaded, we should deep-copy the problem to allow mutation
 #if VTHREADED
   if(env.options->mode() == Options::Mode::THREADED) {
     ScopedPtr<Problem> problem(_prb->copy(true));
@@ -572,15 +575,13 @@ void PortfolioMode::runSlice(Options &strategyOpt)
     */
   }
 
-#if VTHREADED
-  if(env.options->mode() != Options::Mode::THREADED)
-#endif
-    System::ignoreSIGHUP(); // don't interrupt now, we need to finish printing the proof !
-
+  // single-threaded from here, lots of evil things to go wrong
+  // minimal performance penalty so probably OK
 #if VTHREADED
   static std::mutex critical_section;
   std::lock_guard<std::mutex> entering_critical_section(critical_section);
 #endif
+  System::ignoreSIGHUP(); // don't interrupt now, we need to finish printing the proof !
   bool outputResult = false;
   if (!resultValue) {
     // only successfull vampires get here
@@ -644,16 +645,18 @@ void PortfolioMode::runSlice(Options &strategyOpt)
 #if VTHREADED
   if(env.options->mode() == Options::Mode::THREADED) {
     if(!resultValue) {
-      // problem: other threads are still running while destructors run
-      // hack: lock the allocator, this stops them dead (?)
+      // problem: other threads are still running while global destructors run
+      // hack: lock the allocator, this stops them dead (mostly?)
       Allocator::lockPermanently();
       exit(resultValue);
     }
+    // allow other threads to fight the good fight, don't exit() the process
     else {
       return;
     }
   }
 #endif
+  // non-threaded case, OK to exit() happily
   exit(resultValue);
 } // runSlice
 

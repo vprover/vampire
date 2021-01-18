@@ -21,9 +21,7 @@
 #  define __Tracer__
 
 #if VDEBUG
-#if VTHREADED
 #include "Lib/Threading.hpp"
-#endif
 
 #include <iostream>
 

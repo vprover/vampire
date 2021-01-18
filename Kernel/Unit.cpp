@@ -45,9 +45,9 @@ VTHREAD_LOCAL unsigned Unit::_lastParsingNumber = 0;
 void Unit::onPreprocessingEnd()
 {
   CALL("Unit::onPreprocessingEnd");
-  if(!_firstNonPreprocessingNumber) {
-    _firstNonPreprocessingNumber=_lastNumber+1;
-  }
+  ASS(!_firstNonPreprocessingNumber);
+
+  _firstNonPreprocessingNumber=_lastNumber+1;
 }
 
 /** New unit of a given kind */

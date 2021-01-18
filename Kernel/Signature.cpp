@@ -234,6 +234,7 @@ Signature::Signature ():
 {
   CALL("Signature::Signature");
 
+  // if this is the first time the constructor runs, do equality shenanigans
 #if VTHREADED
   static bool is_main = true;
   if(is_main) {
@@ -253,6 +254,7 @@ Signature::Signature ():
     is_main = false;
   }
 #endif
+  // otherwise, don't bother: we're about to be cloned from the parent thread
 } // Signature::Signature
 
 /* adding equality predicate used to be carried out in the constructor

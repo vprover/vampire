@@ -26,10 +26,9 @@ bool ThreadScheduleExecutor::run(const Schedule &schedule)
 {
   CALL("ThreadScheduleExecutor::run");
 
-  const int num_threads = 8;
-  std::thread threads[num_threads]{};
+  vvector<std::thread> threads(_numWorkers);
   // if the thread in question is running or not
-  std::atomic<bool> busy[num_threads]{};
+  vvector<std::atomic<bool>> busy(_numWorkers);
   // basically a nasty counting semaphore, but we don't have one until C++20
   std::condition_variable task_done;
   std::mutex task_mutex;
@@ -57,7 +56,6 @@ bool ThreadScheduleExecutor::run(const Schedule &schedule)
     tasks_idle++;
     busy[i] = false;
     task_done.notify_one();
-    std::cout << "finished" << std::endl;
   };
 
   // ...but this closure _starts_ the thread
@@ -73,7 +71,7 @@ bool ThreadScheduleExecutor::run(const Schedule &schedule)
   };
 
   // start some threads so we can wait on them
-  for(int i = 0; i < num_threads && it.hasNext(); i++) {
+  for(int i = 0; i < _numWorkers && it.hasNext(); i++) {
     launch_task(i);
   }
 
@@ -86,7 +84,7 @@ bool ThreadScheduleExecutor::run(const Schedule &schedule)
     std::unique_lock<std::mutex> task_lock(task_mutex);
     task_done.wait(task_lock, [&]() { return tasks_idle > 0; });
     tasks_idle--;
-    for(int i = 0; i < num_threads; i++) {
+    for(int i = 0; i < _numWorkers; i++) {
       if(!busy[i]) {
         if(threads[i].joinable())
           threads[i].join();
@@ -98,7 +96,7 @@ bool ThreadScheduleExecutor::run(const Schedule &schedule)
   }
 
   // cleanup after time runs out
-  for(int i = 0; i < num_threads; i++) {
+  for(int i = 0; i < _numWorkers; i++) {
     if(threads[i].joinable())
       threads[i].join();
   }

@@ -39,6 +39,7 @@ using namespace Lib;
 VTHREAD_LOCAL bool Timer::s_timeLimitEnforcement = true;
 
 // threads + SIGALRM is not a happy combination
+// there again, rusage() is also broken, but less broken than SIGALRM
 // TODO: figure this out
 #if UNIX_USE_SIGALRM && !VTHREADED
 
