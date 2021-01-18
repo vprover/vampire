@@ -723,7 +723,6 @@ public:
     POLYNOMIAL_FORCE,
     POLYNOMIAL_CAUTIOUS,
   };
-
   enum class ArithmeticSimplificationMode : unsigned int {
     FORCE,
     CAUTIOUS,
@@ -2259,6 +2258,7 @@ public:
   bool pushUnaryMinus() const { return _pushUnaryMinus.actualValue || _highSchool.actualValue; }
   ArithmeticSimplificationMode cancellation() const { return _highSchool.actualValue ? ArithmeticSimplificationMode::CAUTIOUS : _cancellation.actualValue; }
   ArithmeticSimplificationMode arithmeticSubtermGeneralizations() const { return  _highSchool.actualValue ? ArithmeticSimplificationMode::CAUTIOUS : _arithmeticSubtermGeneralizations.actualValue; }
+  bool gveGenerateGuards() const { return _gveGenerateGuards.actualValue; }
 
 private:
     
@@ -2677,6 +2677,7 @@ private:
   BoolOptionValue _inequalityNormalization;
   BoolOptionValue _pushUnaryMinus;
   BoolOptionValue _highSchool;
+  BoolOptionValue _gveGenerateGuards;
   ChoiceOptionValue<ArithmeticSimplificationMode> _gaussianVariableElimination;
   ChoiceOptionValue<ArithmeticSimplificationMode> _cancellation;
   ChoiceOptionValue<ArithmeticSimplificationMode> _arithmeticSubtermGeneralizations;

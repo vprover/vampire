@@ -16,6 +16,7 @@
 
 #include "Forwards.hpp"
 #include "Lib/Environment.hpp"
+#include "Lib/Option.hpp"
 #include "Kernel/Rebalancing.hpp"
 #include <iostream>
 
@@ -26,11 +27,21 @@ namespace Rebalancing {
 namespace Inverters {
 
 class NumberTheoryInverter {
-  static bool canInvertTop(Interpretation i, const Term &t, unsigned index);
+  const bool _generateGuards;
 
 public:
-  static TermList invertTop(const InversionContext &ctxt);
-  static bool canInvertTop(const InversionContext &ctxt);
+
+  NumberTheoryInverter(bool generateGuards) : _generateGuards(generateGuards) {}
+  InversionResult invertTop(const InversionContext &ctxt) const;
+  bool canInvertTop(const InversionContext &ctxt) const;
+private: 
+
+  bool tryInvertTop(const InversionContext &ctxt, InversionResult *out) const;
+  void addGuard(Literal* lit);
+
+  template<class NumTraits> InversionResult doInvertDiv(const InversionContext &ctxt) const;
+  template<class NumTraits> bool canInvertDiv(const InversionContext &ctxt) const;
+  template<class NumTraits> bool tryInvertDiv(const InversionContext &ctxt, InversionResult *out) const;
 };
 
 } // namespace Inverters

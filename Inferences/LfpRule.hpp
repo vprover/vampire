@@ -27,7 +27,8 @@ public:
   CLASS_NAME(LfpRule);
   USE_ALLOCATOR(LfpRule);
  
-  LfpRule(Rule rule);
+  template<class... As>
+  LfpRule(As... as);
   LfpRule();
   SimplifyingGeneratingInference1::Result simplify(Clause *cl, bool doCheckOrdering) override;
   void attach(SaturationAlgorithm* alg) override { SimplifyingGeneratingInference1::attach(alg); _inner.attach(alg); }
@@ -36,7 +37,8 @@ public:
 
 
 template<class Rule> 
-LfpRule<Rule>::LfpRule(Rule rule) : _inner(std::move(rule)) {}
+template<class... As>
+LfpRule<Rule>::LfpRule(As... as) : _inner(std::forward<As...>(as...)) {}
 
 template<class Rule> 
 LfpRule<Rule>::LfpRule() : _inner() {}

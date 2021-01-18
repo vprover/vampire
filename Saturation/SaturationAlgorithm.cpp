@@ -1481,7 +1481,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
 
   if (env.options->gaussianVariableElimination() == Options::ArithmeticSimplificationMode::CAUTIOUS) {
-    sgi->push(new LfpRule<GaussianVariableElimination>(GaussianVariableElimination())); 
+    sgi->push(new LfpRule<GaussianVariableElimination>(GaussianVariableElimination(env.options->gveGenerateGuards()))); 
   }
 
   if (env.options->arithmeticSubtermGeneralizations() == Options::ArithmeticSimplificationMode::CAUTIOUS) {
@@ -1633,7 +1633,7 @@ ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, cons
     }
 
     if (env.options->gaussianVariableElimination() == Options::ArithmeticSimplificationMode::FORCE) {
-      res->addFront(&(new GaussianVariableElimination())->asISE()); 
+     res->addFront(&(new GaussianVariableElimination(env.options->gveGenerateGuards()))->asISE()); 
     }
 
     if (env.options->cancellation() == Options::ArithmeticSimplificationMode::FORCE) {

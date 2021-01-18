@@ -25,7 +25,8 @@
 
 namespace Inferences {
 
-using Balancer = Kernel::Rebalancing::Balancer<Kernel::Rebalancing::Inverters::NumberTheoryInverter>;
+using Inverter = Kernel::Rebalancing::Inverters::NumberTheoryInverter;
+using Balancer = Kernel::Rebalancing::Balancer<Inverter>;
 
 SimplifyingGeneratingInference1::Result GaussianVariableElimination::simplify(Clause* in, bool doCheckOrdering) 
 {
@@ -37,18 +38,18 @@ SimplifyingGeneratingInference1::Result GaussianVariableElimination::simplify(Cl
   for(unsigned i = 0; i < cl.size(); i++) {
     auto& lit = *cl[i];
     if (lit.isEquality() && lit.isNegative()) { 
-      for (auto b : Balancer(lit)) {
+      for (auto b : Balancer(lit, Inverter(_generateGuards))) {
 
         /* found a rebalancing: lhs = rhs[lhs, ...] */
         auto lhs = b.lhs();
         auto rhs = b.buildRhs();
         ASS_REP(lhs.isVar(), lhs);
 
-        if (!rhs.containsSubterm(lhs)) {
+        if (!rhs.term.containsSubterm(lhs)) {
           /* lhs = rhs[...] */
-          DEBUG(lhs, " -> ", rhs);
+          DEBUG(lhs, " -> ", rhs.term, " (with guards ", rhs.guards, ")");
 
-          return rewrite(cl, lhs, rhs, i, doCheckOrdering);
+          return rewrite(cl, lhs, std::move(rhs), i, doCheckOrdering);
         }
       }
     }
@@ -57,7 +58,7 @@ SimplifyingGeneratingInference1::Result GaussianVariableElimination::simplify(Cl
   return SimplifyingGeneratingInference1::Result{in, false};
 }
 
-SimplifyingGeneratingInference1::Result GaussianVariableElimination::rewrite(Clause& cl, TermList find, TermList replace, unsigned skipLiteral, bool doCheckOrdering) const 
+SimplifyingGeneratingInference1::Result GaussianVariableElimination::rewrite(Clause& cl, TermList find, Kernel::Rebalancing::InversionResult rebalance, unsigned skipLiteral, bool doCheckOrdering) const 
 {
   CALL("GaussianVariableElimination::rewrite");
   env.statistics->gveCnt++;
@@ -68,6 +69,8 @@ SimplifyingGeneratingInference1::Result GaussianVariableElimination::rewrite(Cla
 
   auto checkLeq = [&](Literal* orig, Literal* rewritten) 
   { 
+    // TODO
+    DBG("WARNING: ordering check does not work properly atm.")
     if (doCheckOrdering) {
       if (rewritten != orig && rewritten->isEquality()) {
         // as soon as we rewrite some clause x /= t \/ C[x] into C[t], the result will be incomparable
@@ -75,20 +78,30 @@ SimplifyingGeneratingInference1::Result GaussianVariableElimination::rewrite(Cla
         // than C[x]. 
         // For non-equality literals this argument is not true, since in vampire equality literals are bigger than the ones with other predicates (due to our transfinite-ish KBO)
         // Hence, as we always get rid of one equality in gve we can make other predicates bigger if we want.
+
+        // as soon as we rewrite some clause x /= t \/ C[x] into C[t], the result will be incomparable
+        // since the weight of t will be at least as big as the weight of x, hence we C[t] won't be smaller 
+        // than C[x]
         premiseRedundant = false;
       }
     }
     return rewritten;
   };
 
-  auto sz = cl.size() - 1;
+
+
+  auto sz = cl.size() - 1 + rebalance.guards.size(); 
   Clause& out = *new(sz) Clause(sz, inf); 
   for (unsigned i = 0; i < skipLiteral; i++) {
-    out[i] = checkLeq(cl[i], EqHelper::replace(cl[i], find, replace));
+    out[i] = checkLeq(cl[i], EqHelper::rebalance(cl[i], find, rebalance.term));
   }
 
-  for (unsigned i = skipLiteral; i < sz; i++)  {
-    out[i] = checkLeq(cl[i+1], EqHelper::replace(cl[i+1], find, replace));
+  for (unsigned i = skipLiteral; i < cl.size() - 1; i++)  {
+    out[i] = checkLeq(cl[i+1], EqHelper::replace(cl[i+1], find, rebalance.term));
+  }
+
+  for (unsigned i = 0; i < rebalance.guards.size(); i++) {
+    out[cl.size() - 1 + i] = rebalance.guards[i];
   }
 
   if(!premiseRedundant) {

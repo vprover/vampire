@@ -1098,6 +1098,11 @@ void Options::init()
            _lookup.insert(&_gaussianVariableElimination);
            _gaussianVariableElimination.tag(OptionTag::INFERENCES);
 
+           _gveGenerateGuards = BoolOptionValue( "gve_gen_guards", "", false);
+           _lookup.insert(&_gveGenerateGuards);
+           _gveGenerateGuards.tag(OptionTag::INFERENCES);
+           _gveGenerateGuards.setExperimental();
+
 
            _arithmeticSubtermGeneralizations = choiceArithmeticSimplificationMode(
                "arithmetic_subterm_generalizations", "asg",

@@ -57,15 +57,34 @@ namespace Kernel {
 
     template<class C> 
     class Balancer {
-      const Literal& _lit;
+      Literal const& _lit;
+      C const _theoryFunctionInverter;
       friend class BalanceIter<C>;
     public:
-      Balancer(const Literal& l);
+      Balancer(const Literal& l, C theoryFunctionInverter);
       BalanceIter<C> begin() const;
       BalanceIter<C> end() const;
     };
 
     std::ostream& operator<<(std::ostream& out, const Node&);
+
+    struct InversionResult 
+    {
+      TermList term;
+      Stack<Literal*> guards;
+
+      InversionResult() : term(), guards() {}
+      InversionResult(InversionResult&&) = default;
+      InversionResult& operator=(InversionResult&&) = default;
+      InversionResult(TermList t, Stack<Literal*> g) : term(t), guards(std::move(g)) {}
+
+      static InversionResult withoutGuards(TermList t) 
+      { return InversionResult(t,Stack<Literal*>()); }
+
+      static InversionResult withGuard(TermList t, Literal* lit) 
+      { return InversionResult(t,Stack<Literal*>{lit}); }
+    };
+
 
     /** An iterator over all possible rebalancings of a literal. 
      * For example iterating over `x * 7 = y + 1`  gives the formulas
@@ -88,10 +107,10 @@ namespace Kernel {
       /* index of the side of the equality that is to be investigated next. i.e.:
        */
       unsigned _litIndex;
-      const Balancer<C>& _balancer;
+      Balancer<C> const& _balancer;
 
       friend class Balancer<C>;
-      BalanceIter(const Balancer<C>&, bool end);
+      BalanceIter(Balancer<C> const&, bool end);
 
       bool inBounds() const;
       void findNextVar();
@@ -105,7 +124,7 @@ namespace Kernel {
       friend bool operator!=(const BalanceIter<D>&, const BalanceIter<D>&);
 
       TermList lhs() const;
-      TermList buildRhs() const;
+      InversionResult buildRhs() const;
       Literal& build() const;
     };
 
@@ -132,9 +151,9 @@ namespace Kernel {
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 template<class C> 
-Balancer<C>::Balancer(const Literal& l) : _lit(l) { }
+Balancer<C>::Balancer(const Literal& l, C theoryFunctionInverter) : _lit(l), _theoryFunctionInverter(theoryFunctionInverter) { }
 
-template<class C> BalanceIter<C>::BalanceIter(const Balancer<C>& balancer, bool end) 
+template<class C> BalanceIter<C>::BalanceIter(Balancer<C> const& balancer, bool end) 
   : _path(Stack<Node>())
   , _litIndex(end ? 2 : 0)
   , _balancer(balancer)
@@ -150,14 +169,12 @@ template<class C> BalanceIter<C>::BalanceIter(const Balancer<C>& balancer, bool 
 }
 
 template<class C> 
-BalanceIter<C> Balancer<C>::begin() const {
-  return BalanceIter<C>(*this, false);
-}
+BalanceIter<C> Balancer<C>::begin() const
+{ return BalanceIter<C>(*this, false); }
 
 template<class C> 
-BalanceIter<C> Balancer<C>::end() const {
-  return BalanceIter<C>(*this, true);
-}
+BalanceIter<C> Balancer<C>::end() const
+{ return BalanceIter<C>(*this, true); }
 
 
 template<class C> bool BalanceIter<C>::inBounds() const
@@ -185,7 +202,7 @@ template<class C> bool BalanceIter<C>::canInvert() const
     return true;/* <- we can 'invert' an equality by doing nothing*/
   } else {
     auto ctxt = InversionContext(_path.top().term(), _path.top().index(), _balancer._lit[1 - _litIndex]);
-    return C::canInvertTop(ctxt);
+    return _balancer._theoryFunctionInverter.canInvertTop(ctxt);
   }
 }
 
@@ -287,12 +304,14 @@ TermList BalanceIter<C>::lhs() const
 }
    
 template<class C> 
-TermList BalanceIter<C>::buildRhs() const { 
+InversionResult BalanceIter<C>::buildRhs() const { 
   ASS(_balancer._lit.arity() == 2 && _litIndex < 2)
-  TermList rhs = _balancer._lit[1 - _litIndex];
+  auto rhs = InversionResult::withoutGuards(_balancer._lit[1 - _litIndex]);
   for (auto n : _path) {
-    auto ctxt = InversionContext(n.term(), n.index(), rhs);
-    rhs = C::invertTop(ctxt);
+    auto ctxt = InversionContext(n.term(), n.index(), rhs.term);
+    auto res = _balancer._theoryFunctionInverter.invertTop(ctxt);
+    rhs.term = res.term;
+    rhs.guards.moveFromIterator(res.guards.iter());
   }
   return rhs;
 }

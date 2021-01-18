@@ -56,7 +56,7 @@ public:
       static Cancellation cancel(*Ordering::tryGetGlobalOrdering());
       return cancel.asISE().simplify(eval.asISE().simplify(cl));
     };
-    static GaussianVariableElimination gve = GaussianVariableElimination();
+    static GaussianVariableElimination gve = GaussianVariableElimination(/* generateGuards */ false);
 
     /* applies gve and evaluation until they're not applicable anymore */
     Kernel::Clause* last = simpl(in);
@@ -92,6 +92,7 @@ REGISTER_SIMPL_TESTER(GveSimplTester)
   DECL_DEFAULT_VARS                                                                                           \
   DECL_FUNC(f, {Real}, Real)                                                                                  \
   DECL_PRED(p, {Real})                                                                                        \
+  DECL_CONST(c, Real)                                                                                        \
   DECL_PRED(q, {Real})                                                                                        \
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -164,8 +165,11 @@ TEST_SIMPLIFY(gve_test_div,
 ////// TEST CASES for generating inferences
 /////////////////////////////////////
 
-
-REGISTER_GEN_TESTER(Test::Generation::GenerationTester<LfpRule<GaussianVariableElimination>>)
+static GaussianVariableElimination gve  = GaussianVariableElimination(true);
+struct MyGenerationTester : public Test::Generation::GenerationTester<LfpRule<GaussianVariableElimination>> {
+  MyGenerationTester() : Test::Generation::GenerationTester<LfpRule<GaussianVariableElimination>>(/* generateGuards */ true) {}
+};
+REGISTER_GEN_TESTER(MyGenerationTester) 
 
 TEST_GENERATION(test_redundancy_01,
     Generation::TestCase()
@@ -218,6 +222,68 @@ TEST_GENERATION(test_redundancy_06,
       .input(     clause({  y != 5, x != 4, p(x), q(y)  }))
       .expected( exactly(
             clause({  p(4), q(5)  })
+      ))
+      .premiseRedundant(false)
+    )
+
+// I found potential issue with adding guards in gve:
+//
+// As we discussed before there may be multiple options of how to perform the rewriting of the equality. 
+//
+// Consider this clause: 
+// ```
+// (y * f(c)) + (x * 4) != 0 4 \/ p(x, y)
+// ```
+//
+// Option 1)
+// ```
+//  (y * f(c)) + (x * 4) !=  0 \/ p(x, y)
+// ======================================= rewriting to y != (x * -4) / f(c)
+//    p(x,  (x * -4) / f(c)) \/ f(c) = 0
+// ```
+//
+// Option 2)
+// ```
+//  (y * f(c)) + (x * 4) !=  0 \/ p(x, y)
+// ======================================= rewriting to x != (-y * f(c))/4
+//    p((-y * f(c))/4, y)
+// ```
+//
+// Right now we just choose the first possible rebalancing (depth first; left to right), hence we'd choose Option 1). 
+// But what I'd intuitively want is Option 2), because we don't need the guard there, hence it feels more general. 
+// 
+// So my question is the following: do you think Option 2 is better than Option 1? And if so, why how would you argue for that (in a paper)?
+// If we'd prefer cases without guards over the ones with guards, I'd suggest we'd first try to apply the original gve, and if it fails we try to apply it with guards.
+//
+// What do you think?
+
+
+
+TEST_GENERATION(test_redundancy_07,
+    Generation::TestCase()
+      .input(     clause({ c != f(c) * x, p(x)  }))
+      .expected( exactly(
+            clause({  p(c / f(c)), f(c) == 0 })
+      ))
+      .premiseRedundant(false)
+    )
+
+TEST_GENERATION(test_redundancy_08,
+    Generation::TestCase()
+      .input(     clause({ c !=  x / f(c), p(x)  }))
+      .expected( exactly(
+            clause({  p(c * f(c)), f(c) == 0 })
+      ))
+      .premiseRedundant(false)
+    )
+
+TEST_GENERATION(test_redundancy_09,
+    Generation::TestCase()
+      .input(     clause({ c != f(c) / x, p(x)  }))
+      //                 { c * x != f(c) , p(x), x == 0  }
+      //                 { x != f(c) / c , p(x), x == 0, c == 0  }
+      .expected( exactly(
+            clause({ p(f(c) / c), x == 0, c == 0 })
       ))
       .premiseRedundant(false)
     )
