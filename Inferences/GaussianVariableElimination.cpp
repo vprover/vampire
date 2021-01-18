@@ -69,10 +69,12 @@ SimplifyingGeneratingInference1::Result GaussianVariableElimination::rewrite(Cla
   auto checkLeq = [&](Literal* orig, Literal* rewritten) 
   { 
     if (doCheckOrdering) {
-      if (rewritten != orig) {
+      if (rewritten != orig && rewritten->isEquality()) {
         // as soon as we rewrite some clause x /= t \/ C[x] into C[t], the result will be incomparable
         // since the weight of t will be at least as big as the weight of x, hence we C[t] won't be smaller 
-        // than C[x]
+        // than C[x]. 
+        // For non-equality literals this argument is not true, since in vampire equality literals are bigger than the ones with other predicates (due to our transfinite-ish KBO)
+        // Hence, as we always get rid of one equality in gve we can make other predicates bigger if we want.
         premiseRedundant = false;
       }
     }
