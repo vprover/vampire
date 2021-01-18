@@ -310,26 +310,34 @@ void SubsumptionLogger::log(Clause* side_premise, Clause* main_premise, bool isS
   vstring id = id_stream.str();
 
   m_logfile << "\% Begin Inference \"FS-" << id << "\"\n";
+
+  m_logfile << "\% Info: "
+            // << "{ \"seq\": " << m_seq
+            << "{ \"side_premise\": " << side_premise->number()
+            << ", \"main_premise\": " << main_premise->number();
   if (opt_stats) {
-    m_logfile << "\% Stats: " << (*opt_stats) << '\n';
+    m_logfile << ", \"stats\": " << (*opt_stats);
+    // m_logfile << "\% Stats: " << (*opt_stats) << '\n';
   }
+  m_logfile << " }\n";
+
   m_tptp.printWithRole("side_premise_" + id, "hypothesis", side_premise, false);  // subsumer
   m_tptp.printWithRole("main_premise_" + id, "hypothesis", main_premise, false);  // subsumed (if isSubsumed == 1)
-  m_logfile << "\% End Inference \"FS-" << id << "\"" << std::endl;
+  m_logfile << "\% End Inference \"FS-" << id << "\"\n\%" << std::endl;
 
   m_seq += 1;
 }
 
 void ForwardSubsumptionAndResolution::printStats(std::ostream& out)
 {
+  if (m_logger) {
+    m_logger->flush();
+  }
   out << "\% Subsumption MLMatcher Statistics\n\% (numDecisions Frequency Successes)\n";
   for (size_t n = 0; n < m_numDecisions_frequency.size(); ++n) {
     if (m_numDecisions_frequency[n] > 0) {
       out << "\% " << n << ' ' << m_numDecisions_frequency[n] << ' ' << m_numDecisions_successes[n] << '\n';
     }
-  }
-  if (m_logger) {
-    m_logger->flush();
   }
 }
 
@@ -418,7 +426,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
 // Enable if you want to log *every* subsumption instance
 #if 0
       if (m_logger) {
-        m_logger->log(mcl, cl, isSubsumed, nullptr);
+        m_logger->log(mcl, cl, isSubsumed, MLMatcher::getStaticStats());
       }
 #endif
 
@@ -449,7 +457,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
                   << "{ \"seq\": " << m_seq
                   << ", \"mcl\": " << mcl->number()
                   << ", \"cl\": " << cl->number()
-                  << ", \"stats\": " << MLMatcher::getStaticStats()
+                  << ", \"stats\": " << stats
                   << " }\n\%\n";
         env.endOutput();
       }
