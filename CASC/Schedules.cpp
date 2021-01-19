@@ -2841,8 +2841,12 @@ void Schedules::getInductionSchedule(Schedule& sched) {
   sched.push("lrs+11_5:1_newcnf=on:ind=struct:sik=four:indoct=on_60");
   sched.push("lrs+11_5:1_newcnf=on:ind=struct:sik=four:indstr=on_60");
   sched.push("lrs+11_5:1_newcnf=on:ind=struct:sik=four:indmc=on_60");
-  sched.push("lrs+11_5:1_newcnf=on:ind=struct:sik=four:indtosh=two_60");
   sched.push("lrs+11_5:1_newcnf=on:ind=struct:sik=four:fnrw=on_60");
+  sched.push("lrs+11_5:1_newcnf=on:ind=struct:sik=four:indtosh=two_60");
+  sched.push("lrs+11_5:1_newcnf=on:ind=struct:sik=four:indoct=on:indtosh=two_60");
+  sched.push("lrs+11_5:1_newcnf=on:ind=struct:sik=four:indstr:indtosh=two=on_60");
+  sched.push("lrs+11_5:1_newcnf=on:ind=struct:sik=four:indmc:indtosh=two=on_60");
+  sched.push("lrs+11_5:1_newcnf=on:ind=struct:sik=four:fnrw:indtosh=two=on_60");
 
   sched.push("lrs+11_5:1_newcnf=on:ind=struct:indgen=on_60");
   sched.push("lrs+11_5:1_newcnf=on:ind=struct:indgen=on:indoct=on_60");
