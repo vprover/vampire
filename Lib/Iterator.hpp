@@ -29,7 +29,6 @@ struct ElementTypeInfo<std::unique_ptr<T>> {
   using Type = ELEMENT_TYPE(T);
 };
 
-
 template<class T,
          typename std::enable_if<
             !std::is_lvalue_reference<T>::value
@@ -82,6 +81,7 @@ typename std::result_of<Adaptor(Iter)>::type operator|(Iter iter, Adaptor adapto
 // BASE ITERATORS
 //////////////////////
 
+namespace Iterators {
 
 template<class E>
 class DynIter 
@@ -181,6 +181,8 @@ public:
 template<class Iter>
 IterWrapper<Iter> wrap(Iter iter) 
 { return IterWrapper<Iter>(std::move(iter)); }
+
+} // namespace Iterators
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // ITERATOR ADAPTORS
@@ -758,6 +760,13 @@ using Adaptors::FlatMap::flatMap;
 using Adaptors::Cloned::cloned;
 using Adaptors::SizeHint::sizeHint;
 using Adaptors::TimeCounted::timeCounted;
+
+using Iterators::wrap;
+using Iterators::rangeExcl;
+using Iterators::rangeIncl;
+using Iterators::indexIter;
+using Iterators::dyn;
+using Iterators::DynIter;
 
 using Combinators::Concat::concat;
 
