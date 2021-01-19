@@ -93,6 +93,7 @@ class DynIter
     virtual E next() = 0;
     virtual bool hasNext() = 0;
     virtual Option<unsigned> sizeLeft() const = 0;
+    virtual ~Interface() {}
   };
 
   template<class Iter> class Implementation : public Interface<ElemT<Iter>>
@@ -103,6 +104,7 @@ class DynIter
     virtual ElemT<Iter> next()                override { return _iter.next(); }
     virtual bool hasNext()                    override { return _iter.hasNext(); }
     virtual Option<unsigned> sizeLeft() const override { return _iter.sizeLeft(); }
+    virtual ~Implementation() {}
   };
 
 
@@ -554,6 +556,10 @@ public:
 template<class Iter1, class Iter2>
 Concat<Iter1, Iter2> concat(Iter1 i1, Iter2 i2) 
 { return Concat<Iter1, Iter2>(std::move(i1),std::move(i2)); }
+
+template<class Iter1, class Iter2, class Iter3, class... Iters>
+auto concat(Iter1 i1, Iter2 i2, Iter3 i3, Iters... is) -> decltype(concat(Concat<Iter1, Iter2>(std::move(i1),std::move(i2)), std::move(i3), std::move(is)...))
+{ return concat(Concat<Iter1, Iter2>(std::move(i1),std::move(i2)), std::move(i3), std::move(is)...); }
 
 } // namespace Concat
 

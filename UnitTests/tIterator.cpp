@@ -47,6 +47,15 @@ TEST_FUN(test_range_1) {
 }
 
 
+TEST_FUN(test_range_2) {
+  auto s = Stack<int>{ 1,   2, 3,
+                       7,   8,
+                       11, 12, 13};
+
+  ASS_EQ(concat(rangeIncl(1,3), rangeIncl(7,8), rangeIncl(11,13)) | collect<Stack>(), s)
+}
+
+
 
 TEST_FUN(test_map_1) {
   auto in  = Stack<int>{ 1, 2, 3 };
