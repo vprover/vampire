@@ -101,7 +101,7 @@ static Failure evaluationFail;
 
 Option<LitSimplResult> evaluate(Literal* lit) 
 {
-  auto ord = KBO::testKBO();
+  auto ord = KBO::randomized();
   Ordering::trySetGlobalOrdering(SmartPtr<Ordering>(&ord, true));
 
   using Opt = Option<LitSimplResult>;

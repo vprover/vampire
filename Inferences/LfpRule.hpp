@@ -38,7 +38,7 @@ public:
 
 template<class Rule> 
 template<class... As>
-LfpRule<Rule>::LfpRule(As... as) : _inner(std::forward<As...>(as...)) {}
+LfpRule<Rule>::LfpRule(As... as) : _inner(std::forward<As>(as)...) {}
 
 template<class Rule> 
 LfpRule<Rule>::LfpRule() : _inner() {}
@@ -70,7 +70,6 @@ SimplifyingGeneratingInference1::Result LfpRule<Rule>::simplify(Clause *cl, bool
     c0 = c1;
     c1 = c2.simplified;
   }
-
 
   return Result {
     .simplified       = c1,

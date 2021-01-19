@@ -152,7 +152,8 @@ public:
       bool reverseLCM);
 
 #if VDEBUG
-  static KBO testKBO();
+  static KBO randomized();
+  static KBO dflt();
 #endif
 
   virtual ~KBO();

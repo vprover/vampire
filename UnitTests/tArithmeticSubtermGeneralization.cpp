@@ -47,7 +47,7 @@ public:
 
   virtual Kernel::Clause* simplify(Kernel::Clause* in) const override 
   {
-    auto ord = KBO::testKBO();
+    auto ord = KBO::randomized();
     Ordering::trySetGlobalOrdering(SmartPtr<Ordering>(&ord, true));
     auto apply = [](SimplifyingGeneratingInference1& simpl, Kernel::Clause* in) {
      auto out = simpl.asISE().simplify(in);

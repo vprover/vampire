@@ -49,14 +49,14 @@ public:
    */
   virtual Kernel::Clause* simplify(Kernel::Clause* in) const override 
   {
-    KBO ord = KBO::testKBO();
+    KBO ord = KBO::randomized();
     auto simpl = [](Clause* cl)  -> Clause*
     {
       static PolynomialEvaluation eval(*Ordering::tryGetGlobalOrdering());
       static Cancellation cancel(*Ordering::tryGetGlobalOrdering());
       return cancel.asISE().simplify(eval.asISE().simplify(cl));
     };
-    static GaussianVariableElimination gve = GaussianVariableElimination(/* generateGuards */ false);
+    static GaussianVariableElimination gve = GaussianVariableElimination(/* generateGuards */ false, Ordering::tryGetGlobalOrdering());
 
     /* applies gve and evaluation until they're not applicable anymore */
     Kernel::Clause* last = simpl(in);
@@ -165,9 +165,9 @@ TEST_SIMPLIFY(gve_test_div,
 ////// TEST CASES for generating inferences
 /////////////////////////////////////
 
-static GaussianVariableElimination gve  = GaussianVariableElimination(true);
 struct MyGenerationTester : public Test::Generation::GenerationTester<LfpRule<GaussianVariableElimination>> {
-  MyGenerationTester() : Test::Generation::GenerationTester<LfpRule<GaussianVariableElimination>>(/* generateGuards */ true) {}
+  KBO _kbo  = KBO::dflt();
+  MyGenerationTester() : Test::Generation::GenerationTester<LfpRule<GaussianVariableElimination>>(/* generateGuards */ true, &_kbo) {}
 };
 REGISTER_GEN_TESTER(MyGenerationTester) 
 
@@ -177,7 +177,7 @@ TEST_GENERATION(test_redundancy_01,
       .expected(exactly(
             clause({  p(4)  })
       ))
-      .premiseRedundant(false)
+      .premiseRedundant(true)
     )
 
 TEST_GENERATION(test_redundancy_02,
@@ -195,7 +195,7 @@ TEST_GENERATION(test_redundancy_03,
       .expected( exactly(
             clause({  p(y), q(4)  })
       ))
-      .premiseRedundant(false)
+      .premiseRedundant(true)
     )
 
 TEST_GENERATION(test_redundancy_04,
@@ -204,7 +204,7 @@ TEST_GENERATION(test_redundancy_04,
       .expected( exactly(
             clause({  p(4), q(4)  })
       ))
-      .premiseRedundant(false)
+      .premiseRedundant(true)
     )
 
 TEST_GENERATION(test_redundancy_05,
@@ -222,6 +222,15 @@ TEST_GENERATION(test_redundancy_06,
       .input(     clause({  y != 5, x != 4, p(x), q(y)  }))
       .expected( exactly(
             clause({  p(4), q(5)  })
+      ))
+      .premiseRedundant(true)
+    )
+
+TEST_GENERATION(test_redundancy_07,
+    Generation::TestCase()
+      .input(     clause({  y != 5, y != c  }))
+      .expected( exactly(
+            clause({  5 != c  })
       ))
       .premiseRedundant(false)
     )
@@ -259,25 +268,35 @@ TEST_GENERATION(test_redundancy_06,
 
 
 
-TEST_GENERATION(test_redundancy_07,
+TEST_GENERATION(test_least_guards_01,
+    Generation::TestCase()
+      .input(     clause({ c != f(c) * x, p(x), x != 0  }))
+      .expected( exactly(
+            // clause({  p(c / f(c)), f(c) == 0, c / f(x) != 0 })
+            clause({ c != f(c) * 0, p(0)  })
+      ))
+      .premiseRedundant(false)
+    )
+
+TEST_GENERATION(test_guards_01,
     Generation::TestCase()
       .input(     clause({ c != f(c) * x, p(x)  }))
       .expected( exactly(
             clause({  p(c / f(c)), f(c) == 0 })
       ))
-      .premiseRedundant(false)
+      .premiseRedundant(true)
     )
 
-TEST_GENERATION(test_redundancy_08,
+TEST_GENERATION(test_guards_02,
     Generation::TestCase()
-      .input(     clause({ c !=  x / f(c), p(x)  }))
+      .input(     clause({ c != x / f(c), f(x) != c  }))
       .expected( exactly(
-            clause({  p(c * f(c)), f(c) == 0 })
+            clause({  f(c * f(c)) != c, f(c) == 0 })
       ))
       .premiseRedundant(false)
     )
 
-TEST_GENERATION(test_redundancy_09,
+TEST_GENERATION(test_guards_03,
     Generation::TestCase()
       .input(     clause({ c != f(c) / x, p(x)  }))
       //                 { c * x != f(c) , p(x), x == 0  }
@@ -285,5 +304,5 @@ TEST_GENERATION(test_redundancy_09,
       .expected( exactly(
             clause({ p(f(c) / c), x == 0, c == 0 })
       ))
-      .premiseRedundant(false)
+      .premiseRedundant(true)
     )

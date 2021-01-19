@@ -20,13 +20,15 @@
 #include "Inferences/InterpretedEvaluation.hpp"
 #include "Kernel/PolynomialNormalizer.hpp"
 #include "Shell/Statistics.hpp"
+#include "Lib/Option.hpp"
 
-#define DEBUG(...)  //DBG(__VA_ARGS__)
+#define DEBUG(...)  DBG(__VA_ARGS__)
 
 namespace Inferences {
 
 using Inverter = Kernel::Rebalancing::Inverters::NumberTheoryInverter;
 using Balancer = Kernel::Rebalancing::Balancer<Inverter>;
+using InversionResult = Kernel::Rebalancing::InversionResult;
 
 SimplifyingGeneratingInference1::Result GaussianVariableElimination::simplify(Clause* in, bool doCheckOrdering) 
 {
@@ -35,10 +37,11 @@ SimplifyingGeneratingInference1::Result GaussianVariableElimination::simplify(Cl
 
   auto& cl = *in;
   
+  Option<std::tuple<TermList, InversionResult, unsigned>> leastGuards;
   for(unsigned i = 0; i < cl.size(); i++) {
     auto& lit = *cl[i];
     if (lit.isEquality() && lit.isNegative()) { 
-      for (auto b : Balancer(lit, Inverter(_generateGuards))) {
+      for (auto& b : Balancer(lit, Inverter(_generateGuards))) {
 
         /* found a rebalancing: lhs = rhs[lhs, ...] */
         auto lhs = b.lhs();
@@ -48,17 +51,26 @@ SimplifyingGeneratingInference1::Result GaussianVariableElimination::simplify(Cl
         if (!rhs.term.containsSubterm(lhs)) {
           /* lhs = rhs[...] */
           DEBUG(lhs, " -> ", rhs.term, " (with guards ", rhs.guards, ")");
+          if (rhs.guards.size() == 0) {
+            return rewrite(cl, lhs, std::move(rhs), i, doCheckOrdering);
 
-          return rewrite(cl, lhs, std::move(rhs), i, doCheckOrdering);
+          } else if (leastGuards.isNone() 
+              || rhs.guards.size() < get<1>(leastGuards.unwrap()).guards.size() ) {
+            leastGuards = decltype(leastGuards)(std::make_tuple(lhs, std::move(rhs), i));
+          }
         }
       }
     }
   }
-
-  return SimplifyingGeneratingInference1::Result{in, false};
+  if (leastGuards.isSome()) {
+    auto& b = leastGuards.unwrap();
+    return rewrite(cl, get<0>(b), std::move(get<1>(b)), get<2>(b), doCheckOrdering);
+  } else {
+    return SimplifyingGeneratingInference1::Result{in, false};
+  }
 }
 
-SimplifyingGeneratingInference1::Result GaussianVariableElimination::rewrite(Clause& cl, TermList find, Kernel::Rebalancing::InversionResult rebalance, unsigned skipLiteral, bool doCheckOrdering) const 
+SimplifyingGeneratingInference1::Result GaussianVariableElimination::rewrite(Clause& cl, TermList find, InversionResult rebalance, unsigned skipLiteral, bool doCheckOrdering) const 
 {
   CALL("GaussianVariableElimination::rewrite");
   env.statistics->gveCnt++;
@@ -69,8 +81,6 @@ SimplifyingGeneratingInference1::Result GaussianVariableElimination::rewrite(Cla
 
   auto checkLeq = [&](Literal* orig, Literal* rewritten) 
   { 
-    // TODO
-    DBG("WARNING: ordering check does not work properly atm.")
     if (doCheckOrdering) {
       if (rewritten != orig && rewritten->isEquality()) {
         // as soon as we rewrite some clause x /= t \/ C[x] into C[t], the result will be incomparable
@@ -88,12 +98,10 @@ SimplifyingGeneratingInference1::Result GaussianVariableElimination::rewrite(Cla
     return rewritten;
   };
 
-
-
   auto sz = cl.size() - 1 + rebalance.guards.size(); 
   Clause& out = *new(sz) Clause(sz, inf); 
   for (unsigned i = 0; i < skipLiteral; i++) {
-    out[i] = checkLeq(cl[i], EqHelper::rebalance(cl[i], find, rebalance.term));
+    out[i] = checkLeq(cl[i], EqHelper::replace(cl[i], find, rebalance.term));
   }
 
   for (unsigned i = skipLiteral; i < cl.size() - 1; i++)  {
@@ -103,6 +111,11 @@ SimplifyingGeneratingInference1::Result GaussianVariableElimination::rewrite(Cla
   for (unsigned i = 0; i < rebalance.guards.size(); i++) {
     out[cl.size() - 1 + i] = rebalance.guards[i];
   }
+
+  if (doCheckOrdering && !Inverter::guardsRedundant(cl, skipLiteral, find, rebalance, out, _ordering)) {
+    premiseRedundant = false;
+  }
+  
 
   if(!premiseRedundant) {
     env.statistics->gveViolations++;

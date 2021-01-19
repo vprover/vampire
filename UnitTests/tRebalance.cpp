@@ -16,6 +16,7 @@
 
 #include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
+#include "Test/TestUtils.hpp"
 #include "Kernel/Rebalancing.hpp"
 #include "Kernel/Rebalancing/Inverters.hpp"
 #include "Indexing/TermSharing.hpp"
@@ -28,18 +29,7 @@ using namespace Kernel;
 using namespace Rebalancing;
 using namespace Inverters;
 using namespace Shell;
-
-// TODO inline these macros
-#define add(a,b) (a + b)
-#define mul(a,b) (a * b)
-#define minus(a) -(a)
-#define lt(a,b) (a < b)
-#define gt(a,b) (a > b)
-#define leq(a,b) (a <= b)
-#define geq(a,b) (a >= b)
-#define neg(a)   ~(a)
-#define eq(a,b)  (a == b)
-#define neq(a,b) (a != b)
+using namespace Test;
 
 #define __expand__frac(...) { __VA_ARGS__ }
 #define __expand__int(...)  { __VA_ARGS__ }
@@ -129,58 +119,47 @@ void test_rebalance(Literal* lit, initializer_list<expected_t> expected);
 
 
 TEST_REBALANCE_SPLIT(constants_1
-    , eq(mul(2, x), 5)
+    , 2 * x == 5
     , __frac( 
-        bal(x, frac(5,2)) 
+        bal(x, num(5) / 2) 
     )
     , __int( ))
 
-TEST_REBALANCE_SPLIT(constants_2,
-    eq(mul(2, x), 4),
-    __frac(
-        bal(x, 2)
-    ),
-    __int())
+TEST_REBALANCE_SPLIT(constants_2
+    , 2 * x == 4
+    , __frac(
+        bal(x, num(4) / 2)
+    )
+    , __int())
 
 TEST_REBALANCE_ALL(uninterpreted_1
-    , eq(add(2, x), a)
+    , 2 + x == a
     , __list(
-        bal(x, add(a, -2))
+        bal(x, a + -num(2))
     ))
 
 TEST_REBALANCE_SPLIT(uninterpreted_2
-    , eq(mul(x, 2), a)
+    , x * 2 == a
     , __frac(
-      bal(x, mul(a, frac(1, 2)))
+      bal(x, a / 2)
     )
     , __int( ))
 
 TEST_REBALANCE_SPLIT(multi_var_1
-    , eq(mul(x, 2), mul(y, 2))
+    , x * 2 == y * 2
     , __frac(
-        bal(x, y)
-      , bal(y, x)
+        bal(x, (y * 2) / 2)
+      , bal(y, (x * 2) / 2)
     )
     , __int( )
     )
 
+
 TEST_REBALANCE_SPLIT(multi_var_2
-    , eq(mul(x, 4), mul(y, 2))
+    , x * 6 == y * 2
     , __frac( 
-        bal(y, mul(2,         x))
-      , bal(x, mul(frac(1,2), y))
-    )
-    , __int( 
-        // bal(y, mul(2, x))
-    )
-    )
-
-
-TEST_REBALANCE_SPLIT(multi_var_3
-    , eq(mul(x, 6), mul(y, 2))
-    , __frac( 
-        bal(y, mul(3,         x))
-      , bal(x, mul(frac(1,3), y))
+        bal(y,  (x * 6) / 2)
+      , bal(x,  (y * 2) / 6)
     )
     , __frac( 
         // bal(y, mul(3, x))
@@ -188,87 +167,87 @@ TEST_REBALANCE_SPLIT(multi_var_3
     )
 
 
-TEST_REBALANCE_SPLIT(multi_var_4
-    , eq(mul(x, 2), y)
+TEST_REBALANCE_SPLIT(multi_var_3
+    , x * 2 == y
     , __frac(
-        bal(x, mul(y, frac(1, 2)))
-      , bal(y, mul(x , 2))
+        bal(x, y / 2)
+      , bal(y, x * 2)
     )
     , __int( 
-      bal(y, mul(x, 2))
+      bal(y, x * 2)
     ))
 
-TEST_REBALANCE_SPLIT(multi_var_5
-    , eq(mul(x, 2), mul(y, 3))
+TEST_REBALANCE_SPLIT(multi_var_4
+    , x * 2 == y * 3
     , __frac(
-        bal(x, mul(frac(3, 2), y))
-      , bal(y, mul(frac(2, 3), x))
+        bal(x, (3 * y) / 2)
+      , bal(y, (2 * x) / 3)
     )
     , __int( ))
 
 
 TEST_REBALANCE_ALL(rebalance_multiple_vars
-    , eq(add(x, minus(y)), f(y))
+    , x + -y == f(y)
     , __list(
-        bal(x, add(f(y), y))
-      , bal(y, minus(add(f(y), minus(x))))
+        bal(x,  (f(y) + -(-y)))
+      , bal(y, -(f(y) + -x   ))
     ))
 
 TEST_REBALANCE_SPLIT(div_zero_1
-    , eq(mul(x, 0), 7)
+    , x * 0 == 7
     , __int()
     , __frac()
     )
 
 TEST_REBALANCE_SPLIT(div_zero_2
-    , eq(mul(x, a), 7)
+    , x * a == 7
     , __int()
     , __frac()
     )
 
 TEST_REBALANCE_SPLIT(div_zero_3
-    , eq(mul(x, y), 7)
+    , x * y == 7
     , __int()
     , __frac()
     )
 
 TEST_REBALANCE_SPLIT(div_zero_4
-    , eq(mul(x, f(y)), 7)
+    , x * f(y) == 7
     , __int()
     , __frac()
     )
 
 TEST_REBALANCE_SPLIT(div_zero_5
-    , eq(mul(0, x), 0)
+    , 0 * x == 0
     , __int()
     , __frac()
     )
 
 TEST_REBALANCE_SPLIT(div_zero_6
-    , eq(mul(2, x), 0)
+    , 2 * x == 0
     , __frac( 
-          bal(x, 0)
+          bal(x, 0 / num(2))
       )
     , __int()
     )
 
 TEST_REBALANCE_ALL(bug_1
-    , neq(f(mul(16, z)), y)
+    , f(16 * z) != y
     , __list(
-      bal(y, f(mul(16, z)))
+      bal(y, f(16 * z))
     ))
 
 TEST_REBALANCE_SPLIT(bug_2
-    , neq(add(x,mul(-1,x)), y)
+    , x + ( -1 * x ) != y
     , __list(
-        bal(y, add(x,mul(-1,x)))
-      , bal(x, add(y, minus(mul(-1,x))))
-      , bal(x, mul( add(y, minus(x)), -1))
+        bal(y, x +  (-1 * x))
+      , bal(x, y + -(-1 * x))
+      , bal(x, (y + -x) / -1)
     )
     , __list(
-        bal(y, add(x,mul(-1,x)))
-      , bal(x, add(y, minus(mul(-1,x))))
-      , bal(x, mul(-1, add(y, minus(x))))
+        bal(y, x +  (-1 * x))
+      , bal(x, y + -(-1 * x))
+      , bal(x, -1 * (y + -x))
     ))
 
 // UNSOUND
@@ -278,7 +257,7 @@ TEST_REBALANCE_SPLIT(bug_2
 //  * ==> y = uncons2(t)
 //  */
 // TEST_LIST(rebalance_list_01
-//     , neq(cons(x, yL), t)
+//     , cons(x, yL) != t
 //     , __list(
 //         bal(yL, uncons2(t))
 //       , bal(x , uncons1(t))
@@ -333,10 +312,10 @@ void test_rebalance(Literal* lit_, initializer_list<expected_t> expected) {
   using balancer_t = Balancer<NumberTheoryInverter>;
   auto simplified = [](TermList t) -> TermList { 
     // DBG("simplifying ", t)
-    static InterpretedLiteralEvaluator e = InterpretedLiteralEvaluator();
-    if (t.isTerm()) {
-      t = e.evaluate(t);
-    }
+    // static InterpretedLiteralEvaluator e = InterpretedLiteralEvaluator();
+    // if (t.isTerm()) {
+    //   t = e.evaluate(t);
+    // }
     // DBG("end simplifying ", t)
     return t;
   };
@@ -354,7 +333,7 @@ void test_rebalance(Literal* lit_, initializer_list<expected_t> expected) {
     results.push(expected_t(lhs, rhs));
     
     if (!any(expected, [&](const expected_t& ex) -> bool 
-          { return get<0>(ex) == lhs && get<1>(ex) == rhs; }
+          { return TestUtils::eqModAC(get<0>(ex), lhs) &&  TestUtils::eqModAC(get<1>(ex), rhs); }
       )) {
 
       cout << "case: " << lit << endl;

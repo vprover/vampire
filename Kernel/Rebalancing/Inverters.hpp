@@ -31,17 +31,15 @@ class NumberTheoryInverter {
 
 public:
 
-  NumberTheoryInverter(bool generateGuards) : _generateGuards(generateGuards) {}
+  NumberTheoryInverter(bool generateGuards);
+
   InversionResult invertTop(const InversionContext &ctxt) const;
   bool canInvertTop(const InversionContext &ctxt) const;
+
+  static bool guardsRedundant(Clause& cl, unsigned skipLiteral, TermList find, Kernel::Rebalancing::InversionResult const& rebalance, Clause& rewritten, Ordering* ord);
 private: 
 
   bool tryInvertTop(const InversionContext &ctxt, InversionResult *out) const;
-  void addGuard(Literal* lit);
-
-  template<class NumTraits> InversionResult doInvertDiv(const InversionContext &ctxt) const;
-  template<class NumTraits> bool canInvertDiv(const InversionContext &ctxt) const;
-  template<class NumTraits> bool tryInvertDiv(const InversionContext &ctxt, InversionResult *out) const;
 };
 
 } // namespace Inverters

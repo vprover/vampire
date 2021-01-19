@@ -15,6 +15,8 @@
 #include "Debug/Tracer.hpp"
 #include "Shell/Statistics.hpp"
 #include "Lib/Option.hpp"
+#include "Kernel/Ordering.hpp"
+#include "Kernel/Clause.hpp"
 
 namespace Kernel {
 namespace Rebalancing {
@@ -24,6 +26,10 @@ namespace Inverters {
 using InvRes = InversionResult;
 
 template<class A> void __ignoreWarnUnusedLocalTypedefHack() {}
+NumberTheoryInverter::NumberTheoryInverter(bool generateGuards) 
+  : _generateGuards(generateGuards)
+{
+}
 
 #define CASE(sort, funI, ...)                                                                                 \
   case NumTraits<sort>::funI:   {                                                                             \
@@ -89,28 +95,24 @@ bool NumberTheoryInverter::tryInvertTop(const InversionContext &ctxt, InversionR
 
       CASE_ANY_NUM(addI, { /* lhs != s + _ ==> _ !=  lhs - s*/
           auto s = t[1 - index];
-          if (out) 
-            *out = InversionResult::withoutGuards(Number::add(lhs, Number::minus(s)));
+          if (out) *out = InversionResult::withoutGuards(Number::add(lhs, Number::minus(s)));
           return true;
       })
 
       CASE_ANY_NUM(minusI, { /* lhs != - _ ==> _ != -lhs*/
-          if (out) 
-            *out = InversionResult::withoutGuards(Number::minus(lhs));
+          if (out) *out = InversionResult::withoutGuards(Number::minus(lhs));
           return true;
       })
 
       CASE_FRAC(mulI, { /* lhs != s * rhs ==> rhs != lhs / s  (if s is non-zero )*/
           auto s = t[1 - ctxt.topIdx()];
           if (nonZero<Number>(s) ) {
-            if (out) 
-              *out = InversionResult::withoutGuards(Number::div(lhs, s));
+            if (out) *out = InversionResult::withoutGuards(Number::div(lhs, s));
             return true;
           } else if (_generateGuards && s != Number::zero()) {
-            if (out)
-              *out = InversionResult::withGuard(
-                  Number::div(lhs, s),
-                  nonZeroGuard<Number>(s));
+            if (out) *out = InversionResult::withGuard(
+                              Number::div(lhs, s),
+                              nonZeroGuard<Number>(s));
             return true;
           } else {
             return false;
@@ -121,13 +123,12 @@ bool NumberTheoryInverter::tryInvertTop(const InversionContext &ctxt, InversionR
           /* lhs  != rhs / s ==> rhs != lhs * s ( if s is non-zero ) */
           auto s = t[1 - index];
           if (nonZero<Number>(s)) {
-            if (out)
-              *out = InversionResult::withoutGuards(Number::mul(lhs, s));
+            if (out) *out = InversionResult::withoutGuards(Number::mul(lhs, s));
             return true;
           } else if (_generateGuards) {
-            if (out) 
-              *out = InversionResult::withGuard(Number::mul(lhs, s),
-                  nonZeroGuard<Number>(s));
+            if (out) *out = InversionResult::withGuard(
+                              Number::mul(lhs, s),
+                              nonZeroGuard<Number>(s));
             return true;
           } else {
             return false;
@@ -135,7 +136,7 @@ bool NumberTheoryInverter::tryInvertTop(const InversionContext &ctxt, InversionR
       } else {
         ASS(index == 1)
         /* lhs != s / rhs ==> rhs * lhs != s (if rhs is non-zero )
-         *              ==> rhs != s / lhs (is lhs is non-zero ) */
+         *                ==> rhs != s / lhs (is lhs is non-zero ) */
         auto s = t[1 - index];
         auto rhs   = t[index];
         if (nonZero<Number>(lhs) && nonZero<Number>(rhs)) {
@@ -173,6 +174,36 @@ bool NumberTheoryInverter::tryInvertTop(const InversionContext &ctxt, InversionR
     /* cannot invert uninterpreted functions */
     return false;
   }
+}
+bool NumberTheoryInverter::guardsRedundant(Clause& cl, unsigned skipLiteral, TermList find, Kernel::Rebalancing::InversionResult const& rebalance, Clause& rewritten, Ordering* ord)
+{ 
+  ASS(ord)
+
+  // TODO improve performance. this can be potentially be speeded up a lot taking into account the structure of guards
+  auto guardRedundant = [&](Literal* guard)  -> bool
+  {
+    for (auto lit : iterTraits(rewritten.iterLits())) {
+      switch (ord->compare(guard,lit)) {
+        case Ordering::LESS:
+          return true;
+        case Ordering::GREATER:
+        case Ordering::EQUAL:
+        case Ordering::INCOMPARABLE:
+          break;
+        case Ordering::GREATER_EQ:
+        case Ordering::LESS_EQ:
+          ASSERTION_VIOLATION
+      }
+    }
+    return false;
+  };
+
+  for (unsigned i = 0; i < rebalance.guards.size(); i++) {
+    if (!guardRedundant(rebalance.guards[i])) {
+      return false;
+    }
+  }
+  return true;
 }
 
 } // namespace Inverters

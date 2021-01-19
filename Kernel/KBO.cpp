@@ -501,41 +501,53 @@ KBO::KBO(
 }
 
 #if VDEBUG
+auto testFuncPrec() -> DArray<int> {
+  unsigned num = env.signature->functions();
+  DArray<int> out(num);
+  out.initFromIterator(getRangeIterator(0u, num));
+  return out;
+};
 
-KBO KBO::testKBO() 
+auto testPredPrec() -> DArray<int> {
+  unsigned num = env.signature->predicates();
+  DArray<int> out(num);
+  out.initFromIterator(getRangeIterator(0u, num));
+  return out;
+};
+
+auto testPredLevels() -> DArray<int> {
+  DArray<int> out(env.signature->predicates());
+  out.init(out.size(), 1);
+  return out;
+};
+
+KBO KBO::randomized() 
 {
-
-  auto funcPrec = []() -> DArray<int>{
-    unsigned num = env.signature->functions();
-    DArray<int> out(num);
-    out.initFromIterator(getRangeIterator(0u, num));
-    return out;
-  };
-
-  auto predPrec = []() -> DArray<int>{
-    unsigned num = env.signature->predicates();
-    DArray<int> out(num);
-    out.initFromIterator(getRangeIterator(0u, num));
-    return out;
-  };
-
-  auto predLevels = []() -> DArray<int>{
-    DArray<int> out(env.signature->predicates());
-    out.init(out.size(), 1);
-    return out;
-  };
 
   return KBO(
       KboWeightMap<FuncSigTraits>::randomized(),
 #if __KBO__CUSTOM_PREDICATE_WEIGHTS__
       KboWeightMap<PredSigTraits>::randomized(), 
 #endif
-      funcPrec(),
-      predPrec(),
-      predLevels(),
+      testFuncPrec(),
+      testPredPrec(),
+      testPredLevels(),
       false);
 }
-#endif 
+
+KBO KBO::dflt() 
+{
+  return KBO(
+      KboWeightMap<FuncSigTraits>::dflt(),
+#if __KBO__CUSTOM_PREDICATE_WEIGHTS__
+      KboWeightMap<PredSigTraits>::dflt(), 
+#endif
+      testFuncPrec(),
+      testPredPrec(),
+      testPredLevels(),
+      false);
+}
+#endif  // VDEBUG
 
 
 template<class HandleError>

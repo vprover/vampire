@@ -57,7 +57,12 @@ bool TestUnit::runTest(vstring const& testCase)
 {
   for (auto test : _tests) {
     if (test.name == testCase) {
-      test.proc();
+      try {
+        test.proc();
+      } catch (Lib::Exception& e) {
+        e.cry(cout);
+        throw e;
+      }
       return true;
     }
   }

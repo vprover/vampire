@@ -118,6 +118,7 @@ namespace Kernel {
       void incrementPath();
       bool canInvert() const;
     public:
+      BalanceIter(BalanceIter&&) = default;
       void operator++();
       const BalanceIter& operator*() const;
       template<class D>
