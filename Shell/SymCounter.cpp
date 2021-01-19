@@ -231,6 +231,9 @@ void SymCounter::count(Term* term, int polarity, int add)
           count(sd->getTupleTerm(), 0, add);
           break;
         }
+        case Term::SF_MATCH: {
+          break;
+        }
         default:
           ASSERTION_VIOLATION;
       }

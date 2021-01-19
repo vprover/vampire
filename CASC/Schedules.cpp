@@ -2835,3 +2835,15 @@ void Schedules::getLtb2017DefaultSchedule(const Property& property, Schedule& sc
   sched.push("lrs+11_3:1_bsr=unit_only:br=off:cond=on:ep=RST:fsr=off:gs=on:gsaa=from_current:gsem=off:nwc=3:stl=300:sd=2:ss=axioms:st=2.0:sac=on:add=large:afr=on:afp=100000:afq=1.4:amm=sco:anc=none:sp=reverse_arity:urr=on_60"); // MZR 30 (3)
   sched.push("lrs+1003_4_bsr=unit_only:cond=fast:fsr=off:gsp=input_only:gs=on:gsaa=from_current:nm=0:nwc=1:stl=300:sos=on:sac=on:add=large:afp=10000:afq=1.1:anc=none:urr=ec_only:uhcvi=on_60"); // HLL 50 (1)
 }
+
+void Schedules::getInductionSchedule(Schedule& sched) {
+  sched.push("lrs+11_5:1_newcnf=on:ind=struct:sik=four_60");
+  sched.push("lrs+11_5:1_newcnf=on:ind=struct:sik=four:indoct=on_60");
+  sched.push("lrs+11_5:1_newcnf=on:ind=struct:sik=four:indstr=on_60");
+  sched.push("lrs+11_5:1_newcnf=on:ind=struct:sik=four:indmc=on_60");
+  sched.push("lrs+11_5:1_newcnf=on:ind=struct:sik=four:indtosh=two_60");
+  sched.push("lrs+11_5:1_newcnf=on:ind=struct:sik=four:fnrw=on_60");
+
+  sched.push("lrs+11_5:1_newcnf=on:ind=struct:indgen=on_60");
+  sched.push("lrs+11_5:1_newcnf=on:ind=struct:indgen=on:indoct=on_60");
+}

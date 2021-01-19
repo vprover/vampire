@@ -437,7 +437,8 @@ public:
     LTB_ISA_2017,
     LTB_MZR_2017,
     SMTCOMP,
-    SMTCOMP_2018
+    SMTCOMP_2018,
+    INDUCTION,
   };
 
 /* TODO: use an enum for Selection. The current issue is the way these values are manipulated as ints
