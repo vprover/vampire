@@ -383,9 +383,15 @@ void addBaseCases(InductionScheme& sch) {
   }
 
   // each step gets an empty recursive call and condition set
+  var = sch._maxVar;
   for (auto step : steps) {
     vvector<vmap<TermList,TermList>> emptyRecCalls;
     vvector<Formula*> emptyConds;
+    DHMap<unsigned, unsigned> varMap;
+    VarReplacement vr(varMap, var);
+    for (auto& kv : step) {
+      kv.second = applyVarReplacement(kv.second, vr);
+    }
     sch._rDescriptionInstances.emplace_back(std::move(emptyRecCalls), std::move(step), std::move(emptyConds));
   }
   sch._maxVar = var;
