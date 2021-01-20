@@ -2837,17 +2837,41 @@ void Schedules::getLtb2017DefaultSchedule(const Property& property, Schedule& sc
 }
 
 void Schedules::getInductionSchedule(Schedule& sched) {
-  sched.push("lrs+11_5:1_newcnf=on:ind=struct:sik=four_60");
-  sched.push("lrs+11_5:1_newcnf=on:ind=struct:sik=four:indoct=on_60");
-  sched.push("lrs+11_5:1_newcnf=on:ind=struct:sik=four:indstr=on_60");
-  sched.push("lrs+11_5:1_newcnf=on:ind=struct:sik=four:indmc=on_60");
-  sched.push("lrs+11_5:1_newcnf=on:ind=struct:sik=four:fnrw=on_60");
-  sched.push("lrs+11_5:1_newcnf=on:ind=struct:sik=four:indtosh=two_60");
-  sched.push("lrs+11_5:1_newcnf=on:ind=struct:sik=four:indoct=on:indtosh=two_60");
-  sched.push("lrs+11_5:1_newcnf=on:ind=struct:sik=four:indstr:indtosh=two=on_60");
-  sched.push("lrs+11_5:1_newcnf=on:ind=struct:sik=four:indmc:indtosh=two=on_60");
-  sched.push("lrs+11_5:1_newcnf=on:ind=struct:sik=four:fnrw:indtosh=two=on_60");
+  sched.push("lrs+10_1:1_newcnf=on:ind=struct:sik=four:indoct=off:indstr=off:indmc=off:fnrw=off:indtosh=one:inds=off_60");
+  sched.push("lrs+10_1:1_newcnf=on:ind=struct:sik=four:indoct=off:indstr=off:indmc=off:fnrw=off:indtosh=two:inds=off_60");
+  sched.push("lrs+10_1:1_newcnf=on:ind=struct:sik=four:indoct=off:indstr=off:indmc=off:fnrw=on:indtosh=one:inds=off_60");
+  sched.push("lrs+10_1:1_newcnf=on:ind=struct:sik=four:indoct=off:indstr=off:indmc=off:fnrw=on:indtosh=two:inds=off_60");
+  sched.push("lrs+10_1:1_newcnf=on:ind=struct:sik=four:indoct=off:indstr=off:indmc=on:fnrw=off:indtosh=one:inds=off_60");
+  sched.push("lrs+10_1:1_newcnf=on:ind=struct:sik=four:indoct=off:indstr=off:indmc=on:fnrw=off:indtosh=two:inds=off_60");
+  sched.push("lrs+10_1:1_newcnf=on:ind=struct:sik=four:indoct=off:indstr=off:indmc=on:fnrw=on:indtosh=one:inds=off_60");
+  sched.push("lrs+10_1:1_newcnf=on:ind=struct:sik=four:indoct=off:indstr=off:indmc=on:fnrw=on:indtosh=two:inds=off_60");
+  sched.push("lrs+10_1:1_newcnf=on:ind=struct:sik=four:indoct=off:indstr=on:indmc=off:fnrw=off:indtosh=one:inds=off_60");
+  sched.push("lrs+10_1:1_newcnf=on:ind=struct:sik=four:indoct=off:indstr=on:indmc=off:fnrw=off:indtosh=two:inds=off_60");
+  sched.push("lrs+10_1:1_newcnf=on:ind=struct:sik=four:indoct=off:indstr=on:indmc=off:fnrw=on:indtosh=one:inds=off_60");
+  sched.push("lrs+10_1:1_newcnf=on:ind=struct:sik=four:indoct=off:indstr=on:indmc=off:fnrw=on:indtosh=two:inds=off_60");
+  sched.push("lrs+10_1:1_newcnf=on:ind=struct:sik=four:indoct=off:indstr=on:indmc=on:fnrw=off:indtosh=one:inds=off_60");
+  sched.push("lrs+10_1:1_newcnf=on:ind=struct:sik=four:indoct=off:indstr=on:indmc=on:fnrw=off:indtosh=two:inds=off_60");
+  sched.push("lrs+10_1:1_newcnf=on:ind=struct:sik=four:indoct=off:indstr=on:indmc=on:fnrw=on:indtosh=one:inds=off_60");
+  sched.push("lrs+10_1:1_newcnf=on:ind=struct:sik=four:indoct=off:indstr=on:indmc=on:fnrw=on:indtosh=two:inds=off_60");
+  sched.push("lrs+10_1:1_newcnf=on:ind=struct:sik=four:indoct=on:indstr=off:indmc=off:fnrw=off:indtosh=one:inds=off_60");
+  sched.push("lrs+10_1:1_newcnf=on:ind=struct:sik=four:indoct=on:indstr=off:indmc=off:fnrw=off:indtosh=two:inds=off_60");
+  sched.push("lrs+10_1:1_newcnf=on:ind=struct:sik=four:indoct=on:indstr=off:indmc=off:fnrw=on:indtosh=one:inds=off_60");
+  sched.push("lrs+10_1:1_newcnf=on:ind=struct:sik=four:indoct=on:indstr=off:indmc=off:fnrw=on:indtosh=two:inds=off_60");
+  sched.push("lrs+10_1:1_newcnf=on:ind=struct:sik=four:indoct=on:indstr=off:indmc=on:fnrw=off:indtosh=one:inds=off_60");
+  sched.push("lrs+10_1:1_newcnf=on:ind=struct:sik=four:indoct=on:indstr=off:indmc=on:fnrw=off:indtosh=two:inds=off_60");
+  sched.push("lrs+10_1:1_newcnf=on:ind=struct:sik=four:indoct=on:indstr=off:indmc=on:fnrw=on:indtosh=one:inds=off_60");
+  sched.push("lrs+10_1:1_newcnf=on:ind=struct:sik=four:indoct=on:indstr=off:indmc=on:fnrw=on:indtosh=two:inds=off_60");
+  sched.push("lrs+10_1:1_newcnf=on:ind=struct:sik=four:indoct=on:indstr=on:indmc=off:fnrw=off:indtosh=one:inds=off_60");
+  sched.push("lrs+10_1:1_newcnf=on:ind=struct:sik=four:indoct=on:indstr=on:indmc=off:fnrw=off:indtosh=two:inds=off_60");
+  sched.push("lrs+10_1:1_newcnf=on:ind=struct:sik=four:indoct=on:indstr=on:indmc=off:fnrw=on:indtosh=one:inds=off_60");
+  sched.push("lrs+10_1:1_newcnf=on:ind=struct:sik=four:indoct=on:indstr=on:indmc=off:fnrw=on:indtosh=two:inds=off_60");
+  sched.push("lrs+10_1:1_newcnf=on:ind=struct:sik=four:indoct=on:indstr=on:indmc=on:fnrw=off:indtosh=one:inds=off_60");
+  sched.push("lrs+10_1:1_newcnf=on:ind=struct:sik=four:indoct=on:indstr=on:indmc=on:fnrw=off:indtosh=two:inds=off_60");
+  sched.push("lrs+10_1:1_newcnf=on:ind=struct:sik=four:indoct=on:indstr=on:indmc=on:fnrw=on:indtosh=one:inds=off_60");
+  sched.push("lrs+10_1:1_newcnf=on:ind=struct:sik=four:indoct=on:indstr=on:indmc=on:fnrw=on:indtosh=two:inds=off_60");
 
-  sched.push("lrs+11_5:1_newcnf=on:ind=struct:indgen=on_60");
-  sched.push("lrs+11_5:1_newcnf=on:ind=struct:indgen=on:indoct=on_60");
+  sched.push("lrs+10_1:1_newcnf=on:ind=struct:indgen=on_60");
+  sched.push("lrs+10_1:1_newcnf=on:ind=struct:indgen=on:indoct=on_60");
+  sched.push("lrs+10_1:1_newcnf=on:ind=struct:indgen=on:fnrw=on_60");
+  sched.push("lrs+10_1:1_newcnf=on:ind=struct:indgen=on:indoct=on:fnrw=on_60");
 }
