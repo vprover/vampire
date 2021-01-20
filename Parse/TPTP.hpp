@@ -798,6 +798,10 @@ public:
   SourceRecord* getSource();
 
   void setFilterReserved(){ _filterReserved=true; }
+  
+  static void resetAxiomNames(){
+    _axiomNames.reset();
+  }
 
 private:
   DHMap<Unit*,SourceRecord*>* _unitSources;

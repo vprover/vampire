@@ -21,6 +21,7 @@
 #include "Helper.hpp"
 
 #include "Lib/VString.hpp"
+#include <vector>
 
 namespace Api {
 
@@ -253,8 +254,7 @@ public:
   Lib::vstring getVariableName(Var v);
 
 
-
-
+  //TODO do we need these? Currently not exposed in Solver
   void addAttribute(Predicate p, Lib::vstring name, Lib::vstring value);
   unsigned attributeCount(Predicate p);
   Lib::vstring getAttributeName(Predicate p, unsigned index);
@@ -277,10 +277,10 @@ public:
   Term varTerm(const Var& v);
 
   /** build a term f(t,ts) */
-  Term term(const Function& f,const Term* args);
+  Term term(const Function& f,const std::vector<Term>& args);
 
   /** build an atomic formula different from equality */
-  Formula atom(const Predicate& p, const Term* args, bool positive=true);
+  Formula atom(const Predicate& p, const std::vector<Term>& args, bool positive=true);
 
   /** build an equality */
   Formula equality(const Term& lhs,const Term& rhs, bool positive=true);
@@ -355,6 +355,13 @@ public:
    */
   Term replaceConstant(Term original, Term replaced, Term target);
 
+  /** Return true if function and predicate symbols need to be checked for
+    * syntactic correctness.
+    */
+  bool checkNames();
+
+  void reset();
+
   /**
    * Return copy of formula @c f that has all occurrences of term
    * @c replaced replaced by @c target. @c replaced must be a constant.
@@ -363,8 +370,12 @@ public:
    * @warning Constant replacement can change order of arguments of the equality
    * predicate.
    */
-  Formula replaceConstant(Formula f, Term replaced, Term target);
-  AnnotatedFormula replaceConstant(AnnotatedFormula f, Term replaced, Term target);
+  // The old method of carrying this out was to create a formula level let statement
+  // and then use FOOLElimination to get rid of the let.
+  // Formula level lets are no longer supported, so we need to find another
+  // strategy.
+  //Formula replaceConstant(Formula f, Term replaced, Term target);
+  //AnnotatedFormula replaceConstant(AnnotatedFormula f, Term replaced, Term target);
 private:
   FBHelper _aux;
 
@@ -452,9 +463,12 @@ public:
   operator unsigned() const { return _num; }
 
   static Sort getInvalid() { return Sort(UINT_MAX); }
-  bool isValid() const { return _num!=UINT_MAX; }
+  bool isValid() const;  
 private:
+  ApiHelper _aux;
+
   unsigned _num;
+  friend class FormulaBuilder;
 };
 
 class Function
@@ -464,7 +478,14 @@ public:
   explicit Function(unsigned num) : _num(num) {}
   operator unsigned() const { return _num; }
 private:
+  ApiHelper _aux;
+
+  bool isValid() const;
+
   unsigned _num;
+
+  friend class FBHelperCore;
+  friend class FormulaBuilder;
 };
 
 class Predicate
@@ -474,7 +495,14 @@ public:
   explicit Predicate(unsigned num) : _num(num) {}
   operator unsigned() const { return _num; }
 private:
+  ApiHelper _aux;
+
+  bool isValid() const;
+
   unsigned _num;
+
+  friend class FBHelperCore;
+  friend class FormulaBuilder;
 };
 
 class Term
@@ -532,6 +560,8 @@ public:
 private:
   size_t content;
   ApiHelper _aux;
+
+  bool isValid() const;
 
   friend class FormulaBuilder;
   friend class FBHelperCore;
@@ -626,6 +656,8 @@ private:
   Kernel::Formula* form;
   ApiHelper _aux;
 
+  bool isValid() const;
+
   friend class FormulaBuilder;
   friend class FBHelperCore;
   friend class Problem;
@@ -686,6 +718,8 @@ private:
 
   Kernel::Unit* unit;
   ApiHelper _aux;
+
+  bool isValid() const;
 
   friend class FormulaBuilder;
   friend class Problem;

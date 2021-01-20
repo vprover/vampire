@@ -69,6 +69,7 @@ class FBHelper
 : public ApiHelper
 {
 public:
+  void resetCore();
   FBHelper();
   FBHelperCore* operator->() const;
 };

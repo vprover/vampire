@@ -695,6 +695,21 @@ set(VAMPIRE_TESTING_SOURCES
 )
 source_group(testing_files FILES ${VAMPIRE_TESTING_SOURCES})
 
+set(VAMPIRE_API_SOURCES
+    Api/FormulaBuilder.cpp  
+    Api/Helper.cpp
+    Api/ResourceLimits.cpp
+    Api/Problem.cpp
+    Api/Solver.cpp
+    Api/Helper_Internal.hpp 
+    Api/Problem.hpp         
+    Api/ResourceLimits.hpp  
+    Api/FormulaBuilder.hpp 
+    Api/Helper.hpp
+    Api/Solver.hpp       
+   )
+source_group(api_source_files FILES ${VAMPIRE_API_SOURCES})
+
 set(UNIT_TESTS
     UnitTests/tDHMap.cpp
     UnitTests/tQuotientE.cpp
@@ -722,6 +737,11 @@ set(UNIT_TESTS
 )
 source_group(unit_tests FILES ${UNIT_TESTS})
 
+set(API_EXAMPLES
+    ExamplesApi/TestExample.cpp
+)
+source_group(api_examples FILES ${API_EXAMPLES})
+
 # also include forwards.hpp?
 set(VAMPIRE_SOURCES 
     ${VAMPIRE_DEBUG_SOURCES}
@@ -735,6 +755,7 @@ set(VAMPIRE_SOURCES
     ${VAMPIRE_DECISION_PROCEDURES_SOURCES}
     ${VAMPIRE_SATURATION_SOURCES}
     ${VAMPIRE_SHELL_SOURCES}
+    ${VAMPIRE_API_SOURCES}
     ${VAMPIRE_PARSE_SOURCES}
     ${VAMPIRE_FINITEMODELBUILDING_SOURCES}
     ${VAMPIRE_SMTCOMP_SOURCES}
@@ -833,6 +854,32 @@ foreach(test_file ${UNIT_TESTS})
   set_tests_properties(${test_name}
         PROPERTIES
         TIMEOUT 20)
+endforeach()
+
+################################################################
+# API EXAMPLES
+################################################################
+
+foreach(example_file ${API_EXAMPLES})
+  get_filename_component(example_name ${example_file} NAME_WE)
+
+  # compiling the test case executable
+  add_executable(
+    ${example_name}
+    ${example_file}
+    $<TARGET_OBJECTS:obj>
+  )
+  #target_compile_definitions(test-${test_name} PRIVATE CTEST=1)
+  set(examples_bin_dir ${CMAKE_BINARY_DIR}/bin/api-examples)
+  set_target_properties(${example_name} PROPERTIES
+      OUTPUT_NAME ${example_name}
+      RUNTIME_OUTPUT_DIRECTORY ${examples_bin_dir})   
+
+  # configuring ctest
+  # add_test(${example_file} ${test_bin_dir}/${test_name})
+  # set_tests_properties(${test_name}
+  #      PROPERTIES
+  #      TIMEOUT 20)
 endforeach()
 
 #################################################################
