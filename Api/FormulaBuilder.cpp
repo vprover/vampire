@@ -229,6 +229,40 @@ Function FormulaBuilder::integerConstant(vstring i)
   return Function(f);
 }
 
+Function FormulaBuilder::rationalConstantSymbol(Lib::vstring numerator, Lib::vstring denom)
+{
+  CALL("FormulaBuilder::rationalConstantSymbol");
+
+  unsigned fun;
+  try {
+    fun = env.signature->addRationalConstant(RationalConstantType(numerator, denom));
+  }
+  catch (MachineArithmeticException) {
+    throw FormulaBuilderException("An arithmetic exception occured during the creation of constant: " + numerator + "/" + denom);
+  } catch (DivByZeroException) {
+    throw FormulaBuilderException("The denominator of a rational cannot be 0");    
+  }
+  Function f(fun);
+  f._aux=_aux;
+  return Function(f);
+}
+
+Function FormulaBuilder::realConstantSymbol(Lib::vstring r)
+{
+  CALL("FormulaBuilder::realConstantSymbol");
+
+  unsigned fun;
+  try {
+    fun = env.signature->addRealConstant(RealConstantType(r));
+  }
+  catch (ArithmeticException) {
+    throw FormulaBuilderException("An arithmetic exception occured during the creation of constant " + r);
+  }
+  Function f(fun);
+  f._aux=_aux;
+  return Function(f);
+}
+
 bool FormulaBuilder::checkNames(){
   CALL("FormulaBuilder::checkNames");
   
@@ -281,31 +315,32 @@ Predicate FormulaBuilder::predicate(const vstring& predName, unsigned arity, Sor
   return pred;
 }
 
-Predicate FormulaBuilder::interpretedPredicate(InterpretedPredicate symbol)
+Predicate FormulaBuilder::interpretedPredicate(Kernel::Theory::Interpretation interp)
 {
   CALL("FormulaBuilder::interpretedPredicate");
 
-  Interpretation itp;
-  switch(symbol)
-  {
-  case INT_GREATER:
-    itp = Kernel::Theory::INT_GREATER;
-    break;
-  case INT_GREATER_EQUAL:
-    itp = Kernel::Theory::INT_GREATER_EQUAL;
-    break;
-  case INT_LESS:
-    itp = Kernel::Theory::INT_LESS;
-    break;
-  case INT_LESS_EQUAL:
-    itp = Kernel::Theory::INT_LESS_EQUAL;
-    break;
-  }
+  //This function is not exposed to API users, so no need
+  //to raise an exception
+  ASS(!Theory::isFunction(interp));
 
-  unsigned res = env.signature->getInterpretingSymbol(itp);
+  unsigned res = env.signature->getInterpretingSymbol(interp);
   Predicate pred(res);
   pred._aux=_aux;
   return pred;
+}
+
+Function FormulaBuilder::interpretedFunction(Kernel::Theory::Interpretation interp)
+{
+  CALL("FormulaBuilder::interpretedFunction");
+  
+  //This function is not exposed to API users, so no need
+  //to raise an exception
+  ASS(Theory::isFunction(interp));
+
+  unsigned res = env.signature->getInterpretingSymbol(interp);
+  Function func(res);
+  func._aux=_aux;
+  return func;
 }
 
 void FormulaBuilder::addAttribute(Sort p, vstring name, vstring value)
@@ -791,6 +826,18 @@ Term FormulaBuilder::replaceConstant(Term original, Term replaced, Term target)
 //////////////////////////////
 // Convenience functions
 
+void FormulaBuilder::checkForSortError(const Term& t1, const Term& t2)
+{
+  CALL("FormulaBuilder::checkForSortError")
+
+  if(t1.sort() != t2.sort()){
+    throw ApiException("Attempting to apply an arithmetic operation on terms of different sorts");
+  }
+  if(t1.sort() != integerSort() && t1.sort() != realSort() && t1.sort() != rationalSort()){
+    throw ApiException("Attempting to apply an arithmetic operation on terms which are not of integer, real or rational sort");          
+  }
+}
+
 Term FormulaBuilder::term(const Function& c)
 {
   CALL("FormulaBuilder::term/0");
@@ -819,6 +866,214 @@ Term FormulaBuilder::term(const Function& f,const Term& t1,const Term& t2,const 
 
   Term args[]={t1, t2, t3};
   return _aux->term(f,args,3);
+}
+
+Term FormulaBuilder::integerConstantTerm(int i)
+{
+  CALL("FormulaBuilder::integerConstantTerm");
+
+  return term(integerConstant(i));
+}
+
+Term FormulaBuilder::integerConstantTerm(Lib::vstring i)
+{
+  CALL("FormulaBuilder::integerConstantTerm");
+
+  return term(integerConstant(i));
+}
+
+
+Term FormulaBuilder::rationalConstant(Lib::vstring numerator, Lib::vstring denom)
+{
+  CALL("FormulaBuilder::rationalConstant");
+
+  return term(rationalConstantSymbol(numerator, denom));
+}
+
+Term FormulaBuilder::realConstant(Lib::vstring i)
+{
+  CALL("Solver::realConstant");
+
+  return term(realConstantSymbol(i));
+}
+
+Term FormulaBuilder::sum(const Term& t1,const Term& t2)
+{
+  CALL("FormulaBuilder::sum");
+
+  checkForSortError(t1, t2);
+  
+  Function sum;
+  if(t1.sort() == integerSort()){
+    sum = interpretedFunction(Kernel::Theory::INT_PLUS);
+  } else if(t1.sort() == realSort()){
+    sum = interpretedFunction(Kernel::Theory::REAL_PLUS);
+  } else {
+    sum = interpretedFunction(Kernel::Theory::RAT_PLUS);
+  } 
+  return term(sum, t1, t2);
+}
+
+
+Term FormulaBuilder::difference(const Term& t1,const Term& t2)
+{
+  CALL("FormulaBuilder::difference");
+
+  checkForSortError(t1, t2);
+  
+  Function minus;
+  if(t1.sort() == integerSort()){
+    minus = interpretedFunction(Kernel::Theory::INT_MINUS);
+  } else if(t1.sort() == realSort()){
+    minus = interpretedFunction(Kernel::Theory::REAL_MINUS);
+  } else {
+    minus = interpretedFunction(Kernel::Theory::RAT_MINUS);
+  } 
+  return term(minus, t1, t2);
+}
+
+Term FormulaBuilder::multiply(const Term& t1,const Term& t2)
+{
+  CALL("FormulaBuilder::multiply");
+
+  checkForSortError(t1, t2);
+  
+  Function mult;
+  if(t1.sort() == integerSort()){
+    mult = interpretedFunction(Kernel::Theory::INT_MULTIPLY);
+  } else if(t1.sort() == realSort()){
+    mult = interpretedFunction(Kernel::Theory::REAL_MULTIPLY);
+  } else {
+    mult = interpretedFunction(Kernel::Theory::RAT_MULTIPLY);
+  } 
+  return term(mult, t1, t2);
+}
+
+/* TODO what do we want here?
+Term FormulaBuilder::divide(const Term& t1,const Term& t2)
+{
+  CALL("FormulaBuilder::divide");
+
+  checkForSortError(t1, t2);
+  
+}*/
+
+Term FormulaBuilder::floor(const Term& t1)
+{
+  CALL("FormulaBuilder::floor");
+
+  if(t1.sort() != integerSort() && t1.sort() != realSort() && t1.sort() != rationalSort()){
+    throw ApiException("Attempting to floor a term which is not of integer, real or rational sort");          
+  }
+
+  Function floor;
+  if(t1.sort() == integerSort()){
+    floor = interpretedFunction(Kernel::Theory::INT_FLOOR);
+  } else if(t1.sort() == realSort()){
+    floor = interpretedFunction(Kernel::Theory::REAL_FLOOR);
+  } else {
+    floor = interpretedFunction(Kernel::Theory::RAT_FLOOR);
+  } 
+  return term(floor, t1);
+}
+
+Term FormulaBuilder::ceiling(const Term& t1)
+{
+  CALL("FormulaBuilder::ceiling");
+
+  if(t1.sort() != integerSort() && t1.sort() != realSort() && t1.sort() != rationalSort()){
+    throw ApiException("Attempting to create the ceiling of a term which is not of integer, real or rational sort");          
+  }
+
+  Function ceiling;
+  if(t1.sort() == integerSort()){
+    ceiling = interpretedFunction(Kernel::Theory::INT_CEILING);
+  } else if(t1.sort() == realSort()){
+    ceiling = interpretedFunction(Kernel::Theory::REAL_CEILING);
+  } else {
+    ceiling = interpretedFunction(Kernel::Theory::RAT_CEILING);
+  } 
+  return term(ceiling, t1);
+}
+
+Term FormulaBuilder::absolute(const Term& t1)
+{
+  CALL("FormulaBuilder::absolute");
+
+  if(t1.sort() != integerSort()){
+    throw ApiException("Attempting to creat the absolute of a term which is not of integer sort");          
+  }
+
+  Function abs = interpretedFunction(Kernel::Theory::INT_ABS);
+  return term(abs, t1);
+}
+
+Formula FormulaBuilder::geq(const Term& t1, const Term& t2)
+{
+  CALL("FormulaBuilder::geq");
+
+  checkForSortError(t1, t2);
+  
+  Predicate geq;
+  if(t1.sort() == integerSort()){
+    geq = interpretedPredicate(Kernel::Theory::INT_GREATER_EQUAL);
+  } else if(t1.sort() == realSort()){
+    geq = interpretedPredicate(Kernel::Theory::REAL_GREATER_EQUAL);
+  } else {
+    geq = interpretedPredicate(Kernel::Theory::RAT_GREATER_EQUAL);
+  } 
+  return formula(geq, t1, t2);
+}
+
+Formula FormulaBuilder::leq(const Term& t1, const Term& t2)
+{
+  CALL("FormulaBuilder::leq");
+
+  checkForSortError(t1, t2);
+  
+  Predicate leq;
+  if(t1.sort() == integerSort()){
+    leq = interpretedPredicate(Kernel::Theory::INT_LESS_EQUAL);
+  } else if(t1.sort() == realSort()){
+    leq = interpretedPredicate(Kernel::Theory::REAL_LESS_EQUAL);
+  } else {
+    leq = interpretedPredicate(Kernel::Theory::RAT_LESS_EQUAL);
+  } 
+  return formula(leq, t1, t2);
+}
+
+Formula FormulaBuilder::gt(const Term& t1, const Term& t2)
+{
+  CALL("FormulaBuilder::gt");
+
+  checkForSortError(t1, t2);
+  
+  Predicate gt;
+  if(t1.sort() == integerSort()){
+    gt = interpretedPredicate(Kernel::Theory::INT_GREATER);
+  } else if(t1.sort() == realSort()){
+    gt = interpretedPredicate(Kernel::Theory::REAL_GREATER);
+  } else {
+    gt = interpretedPredicate(Kernel::Theory::RAT_GREATER);
+  } 
+  return formula(gt, t1, t2);
+}
+
+Formula FormulaBuilder::lt(const Term& t1, const Term& t2)
+{
+  CALL("FormulaBuilder::lt");
+
+  checkForSortError(t1, t2);
+  
+  Predicate lt;
+  if(t1.sort() == integerSort()){
+    lt = interpretedPredicate(Kernel::Theory::INT_LESS);
+  } else if(t1.sort() == realSort()){
+    lt = interpretedPredicate(Kernel::Theory::REAL_LESS);
+  } else {
+    lt = interpretedPredicate(Kernel::Theory::RAT_LESS);
+  } 
+  return formula(lt, t1, t2);
 }
 
 Formula FormulaBuilder::formula(const Predicate& p)

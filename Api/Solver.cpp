@@ -49,6 +49,10 @@ namespace Api
 
 
   Solver::Solver(Logic l){
+    //switch off all printing
+    env.options->setOutputMode(Shell::Options::Output::SMTCOMP);
+    //set the time limit to a default of 30. This can be overridden
+    env.options->setTimeLimitInSeconds(30);
     preprocessed = false;
     logicSet = false;
     logic = l;
@@ -101,6 +105,9 @@ namespace Api
     env.sorts = new Sorts;
     env.signature = new Signature;
     env.sharing = new Indexing::TermSharing;
+
+    env.options->setOutputMode(Shell::Options::Output::SMTCOMP);
+    env.options->setTimeLimitInSeconds(30);
   }
 
   void Solver::setSaturationAlgorithm(const Lib::vstring& satAlgorithm)
@@ -209,20 +216,6 @@ namespace Api
     return fb.function(funName, arity, rangeSort, domainSorts, builtIn);
   }
 
-  Function Solver::integerConstant(int i)
-  {
-    CALL("Solver::integerConstant");
-
-    return fb.integerConstant(i);
-  }
-
-  Function Solver::integerConstant(vstring i)
-  {
-    CALL("Solver::integerConstant");
-
-    return fb.integerConstant(i);
-  }  
-
   Predicate Solver::predicate(const vstring& predName,unsigned arity, bool builtIn)
   {
     CALL("Solver::predicate/2");
@@ -243,13 +236,6 @@ namespace Api
     }
     
     return fb.predicate(predName, arity, domainSorts, builtIn);
-  }
-
-  Predicate Solver::interpretedPredicate(InterpretedPredicate symbol)
-  {
-    CALL("Solver::interpretedPredicate");
-
-    return fb.interpretedPredicate(static_cast<FormulaBuilder::InterpretedPredicate>(symbol));
   }
 
   vstring Solver::getSortName(Sort s)
@@ -383,6 +369,112 @@ namespace Api
     CALL("Solver::term/3");
 
     return fb.term(f,t1,t2,t3);
+  }
+
+  Term Solver::integerConstant(int i)
+  {
+    CALL("Solver::integerConstant");
+
+    return fb.integerConstantTerm(i);
+  }
+
+  Term Solver::integerConstant(vstring i)
+  {
+    CALL("Solver::integerConstant");
+
+    return fb.integerConstantTerm(i);
+  }  
+
+  Term Solver::rationalConstant(Lib::vstring numerator, Lib::vstring denom)
+  {
+    CALL("Solver::rationalConstant");
+
+    return fb.rationalConstant(numerator, denom);
+  }
+
+  Term Solver::realConstant(Lib::vstring r)
+  {
+    CALL("Solver::realConstant");
+
+    return fb.realConstant(r);
+  }
+
+  Term Solver::sum(const Term& t1,const Term& t2)
+  {
+    CALL("Solver::sum");
+
+    return fb.sum(t1, t2);
+  }
+
+  Term Solver::difference(const Term& t1,const Term& t2)
+  {
+    CALL("Solver::difference");
+
+    return fb.difference(t1, t2);
+  }
+
+  Term Solver::multiply(const Term& t1,const Term& t2)
+  {
+    CALL("Solver::multiply");
+
+    return fb.multiply(t1, t2);
+  }
+
+  /*
+  Term Solver::divide(const Term& t1,const Term& t2)
+  {
+    CALL("Solver::divide");
+
+    return fb.divide(t1, t2);
+  }*/
+
+  Term Solver::absolute(const Term& t1)
+  {
+    CALL("absolute::absolute");
+
+    return fb.absolute(t1);
+  }
+
+  Term Solver::floor(const Term& t1)
+  {
+    CALL("Solver::floor");
+
+    return fb.floor(t1);
+  }
+
+  Term Solver::ceiling(const Term& t1)
+  {
+    CALL("Solver::ceiling");
+
+    return fb.ceiling(t1);
+  }
+
+  Formula Solver::geq(const Term& t1, const Term& t2)
+  {
+    CALL("Solver::geq");
+ 
+    return fb.geq(t1, t2);
+  }
+
+  Formula Solver::leq(const Term& t1, const Term& t2)
+  {
+    CALL("Solver::leq");
+
+    return fb.leq(t1, t2);
+  }
+
+  Formula Solver::gt(const Term& t1, const Term& t2)
+  {
+    CALL("Solver::gt");
+
+    return fb.gt(t1, t2);
+  }
+
+  Formula Solver::lt(const Term& t1, const Term& t2)
+  {
+    CALL("Solver::lt");
+
+    return fb.lt(t1, t2);
   }
 
   Formula Solver::formula(const Predicate& p)

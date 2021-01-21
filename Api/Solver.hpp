@@ -144,13 +144,6 @@ public:
     ITE
   };
 
-  enum InterpretedPredicate {
-    INT_GREATER,
-    INT_GREATER_EQUAL,
-    INT_LESS,
-    INT_LESS_EQUAL,
-  };
-
   ~Solver(){}
 
   /**
@@ -274,17 +267,6 @@ public:
   //Change to use std::vector ?
   Function function(const Lib::vstring& funName, unsigned arity, Sort rangeSort, Sort* domainSorts, bool builtIn=false);
 
-  /** Return constant representing @c i */
-  Function integerConstant(int i);
-  
-  /**
-   * Return constant representing @c i
-   *
-   * @c FormulaBuilderException may be thrown if @c i is not a proper value, or too large
-   * for Vampire internal representation.
-   */
-  Function integerConstant(Lib::vstring i);
-
   /**
    * Create a predicate symbol using default sorts. If @b builtIn if true, the symbol will not be
    * eliminated during preprocessing.
@@ -303,11 +285,6 @@ public:
    */
   //Change to use std::vector ?
   Predicate predicate(const Lib::vstring& predName, unsigned arity, Sort* domainSorts, bool builtIn=false);
-
-  /**
-   * Create interpreted predicate
-   */
-  Predicate interpretedPredicate(InterpretedPredicate symbol);
 
   /**
    * Return name of the sort @c s.
@@ -379,6 +356,80 @@ public:
   /** build a term f(t1,t2,t3) */
   Term term(const Function& f,const Term& t1,const Term& t2,const Term& t3);
 
+  /** Return constant representing @c i */
+  Term integerConstant(int i);
+  
+  /**
+   * Return constant representing @c i
+   *
+   * @c FormulaBuilderException may be thrown if @c i is not a proper value, or too large
+   * for Vampire internal representation.
+   */
+  Term integerConstant(Lib::vstring i);
+
+  /** Return a rationa constant representing @c numerator/ @c denom */
+  Term rationalConstant(Lib::vstring numerator, Lib::vstring denom);
+
+  /** Return a real constant representing @c i */
+  Term realConstant(Lib::vstring r);
+
+  /** Create the term t1 + t2 
+   *  Both t1 and t2 must be of the same type
+   *  which must be either integer, real or rational.
+   */
+  Term sum(const Term& t1,const Term& t2);
+
+  /** Create the term t1 - t2 
+   *  Both t1 and t2 must be of the same type
+   *  which must be either integer, real or rational.
+   */
+  Term difference(const Term& t1,const Term& t2);
+
+  /** Create the term t1 x t2 
+   *  Both t1 and t2 must be of the same type
+   *  which must be either integer, real or rational.
+   */
+  Term multiply(const Term& t1,const Term& t2);
+
+  /** Create the term t1 / t2 
+   *  Both t1 and t2 must be of the same type
+   *  which must be either integer, real or rational.
+   */
+  Term divide(const Term& t1,const Term& t2);
+
+  /** create the floor of @param t1 which must be of integer rational or real sort */
+  Term floor(const Term& t1);
+
+  /** create the ceiling of @param t1 which must be of integer rational or real sort */
+  Term ceiling(const Term& t1);
+
+  /** build  | t1 |. t1 must be of integer sort */
+  Term absolute(const Term& t1);
+
+  /** build the formula t1 >= t2 
+   *  t1 and t2 must be of the same type and their type must be
+   *  integer, rational or real
+   */
+  Formula geq(const Term& t1, const Term& t2);
+
+  /** build the formula t1 <= t2 
+   *  t1 and t2 must be of the same type and their type must be
+   *  integer, rational or real
+   */
+  Formula leq(const Term& t1, const Term& t2);
+
+  /** build the formula t1 > t2 
+   *  t1 and t2 must be of the same type and their type must be
+   *  integer, rational or real
+   */
+  Formula gt(const Term& t1, const Term& t2);
+
+  /** build the formula t1 < t2 
+   *  t1 and t2 must be of the same type and their type must be
+   *  integer, rational or real
+   */
+  Formula lt(const Term& t1, const Term& t2);
+
   /** build a propositional symbol p */
   Formula formula(const Predicate& p);
 
@@ -429,12 +480,12 @@ public:
   AnnotatedFormulaIterator formulas();
 
   /**
-   * Return number of formulas in this problem
+   * Return number of formulas currently asserted
    */
   size_t size();
 
   /**
-   * Return true if problem contains no formulas
+   * Return true if no formulas are currently asserted in the solver
    */
   bool empty();
 

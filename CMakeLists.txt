@@ -698,12 +698,10 @@ source_group(testing_files FILES ${VAMPIRE_TESTING_SOURCES})
 set(VAMPIRE_API_SOURCES
     Api/FormulaBuilder.cpp  
     Api/Helper.cpp
-    Api/ResourceLimits.cpp
     Api/Problem.cpp
     Api/Solver.cpp
     Api/Helper_Internal.hpp 
     Api/Problem.hpp         
-    Api/ResourceLimits.hpp  
     Api/FormulaBuilder.hpp 
     Api/Helper.hpp
     Api/Solver.hpp       
@@ -738,7 +736,9 @@ set(UNIT_TESTS
 source_group(unit_tests FILES ${UNIT_TESTS})
 
 set(API_EXAMPLES
-    ExamplesApi/TestExample.cpp
+    ExamplesApi/SimpleProof.cpp
+    ExamplesApi/ArithmeticReasoning.cpp
+    ExamplesApi/CeilGreaterThanEqualNum.cpp 
 )
 source_group(api_examples FILES ${API_EXAMPLES})
 

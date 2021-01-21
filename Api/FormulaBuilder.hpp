@@ -20,6 +20,8 @@
 
 #include "Helper.hpp"
 
+#include "Kernel/Theory.hpp"
+
 #include "Lib/VString.hpp"
 #include <vector>
 
@@ -98,7 +100,7 @@ class AnnotatedFormula;
  */
 class FormulaBuilder
 {
-public:
+private:
   /**
    * Create the API for building formulas
    * @param checkNames - flag to check names of function and predicate symbols. If true,
@@ -128,13 +130,6 @@ public:
     EXISTS,
     /** if-then-else connective */
     ITE
-  };
-
-  enum InterpretedPredicate {
-    INT_GREATER,
-    INT_GREATER_EQUAL,
-    INT_LESS,
-    INT_LESS_EQUAL,
   };
 
   /** Annotation of formulas */
@@ -197,15 +192,20 @@ public:
    * FormulaBuilder class. */
   Function function(const Lib::vstring& funName, unsigned arity, Sort rangeSort, Sort* domainSorts, bool builtIn=false);
 
-  /** Return constant representing @c i */
+  /** Return constant symbol representing @c i */
   Function integerConstant(int i);
+
   /**
-   * Return constant representing @c i
+   * Return constant symbol representing @c i
    *
    * @c FormulaBuilderException may be thrown if @c i is not a proper value, or too large
    * for Vampire internal representation.
    */
   Function integerConstant(Lib::vstring i);
+
+  Function rationalConstantSymbol(Lib::vstring numerator, Lib::vstring denom);
+
+  Function realConstantSymbol(Lib::vstring r);
 
   /**
    * Create a predicate symbol using default sorts. If @b builtIn if true, the symbol will not be
@@ -228,7 +228,12 @@ public:
   /**
    * Create interpreted predicate
    */
-  Predicate interpretedPredicate(InterpretedPredicate symbol);
+  Predicate interpretedPredicate(Kernel::Theory::Interpretation interp);
+
+  /**
+   * Create interpreted predicate
+   */
+  Function interpretedFunction(Kernel::Theory::Interpretation interp);
 
   /**
    * Return name of the sort @c s.
@@ -317,6 +322,51 @@ public:
   /** build a term f(t1,t2,t3) */
   Term term(const Function& f,const Term& t1,const Term& t2,const Term& t3);
 
+  /** Return constant representing @c i */
+  Term integerConstantTerm(int i);
+
+  /** Return constant representing @c i */
+  Term integerConstantTerm(Lib::vstring i);
+
+  /** Return constant representing @c i */
+  Term rationalConstant(Lib::vstring numerator, Lib::vstring denom);
+
+  /** Return constant representing @c i */
+  Term realConstant(Lib::vstring r);
+
+  /** build t1 + t2 */
+  Term sum(const Term& t1,const Term& t2);
+
+  /** build t1 - t2 */
+  Term difference(const Term& t1,const Term& t2);
+
+  /** build t1 x t2 */
+  Term multiply(const Term& t1,const Term& t2);
+
+  /** build t1 / t2 */
+  Term divide(const Term& t1,const Term& t2);
+
+  /** build floor(t1) */
+  Term floor(const Term& t1);
+
+  /** create ceiling (t1) */
+  Term ceiling(const Term& t1);
+
+  /** build  | t1 | */
+  Term absolute(const Term& t1);
+  
+  /** build the formula t1 >= t2 */
+  Formula geq(const Term& t1, const Term& t2);
+
+  /** build the formula t1 <= t2 */
+  Formula leq(const Term& t1, const Term& t2);
+
+  /** build the formula t1 > t2 */
+  Formula gt(const Term& t1, const Term& t2);
+
+  /** build the formula t1 < t2 */
+  Formula lt(const Term& t1, const Term& t2);
+
   /** build a propositional symbol p */
   Formula formula(const Predicate& p);
 
@@ -332,6 +382,7 @@ public:
   /** build an annotated formula (i.e. formula that is either axiom, goal, etc...) */
   AnnotatedFormula annotatedFormula(Formula f, Annotation a, Lib::vstring name="");
 
+  void inline checkForSortError(const Term& t1, const Term& t2);
 
   /**
    * Return copy of term @b original with all occurrences of variable @c v
@@ -376,9 +427,9 @@ public:
   // strategy.
   //Formula replaceConstant(Formula f, Term replaced, Term target);
   //AnnotatedFormula replaceConstant(AnnotatedFormula f, Term replaced, Term target);
-private:
   FBHelper _aux;
 
+  friend class Solver;
   friend class StringIterator;
   friend class Formula;
   friend class AnnotatedFormula;
