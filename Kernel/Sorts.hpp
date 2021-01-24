@@ -108,7 +108,7 @@ public:
     { 
       OperatorKey& key = *ot->key();
       unsigned typeArgsArity = ot->typeArgsArity();
-      return Hash::hash(pair<OperatorKey, unsigned>(key, typeArgsArity)); 
+      return HashUtils::combine(Hash::hash(key), Hash::hash(typeArgsArity)); 
     }
   };
 
