@@ -64,7 +64,7 @@ UnitInputType getInputType(UnitInputType t1, UnitInputType t2);
  *  3) In the /Inferences directory, create a *.cpp and *.hpp files to 
  *     contain the code which defines the functionality of the new inference.
  *  4) Vampire supports five types of inferences. Immediate simplifications,
- *     simplifications (like immediate simplifications, but occurs later in the
+ *     simplifications (like immediate simplifications, but occur later in the
  *     given clause loop), forward simplification, backward simplifications
  *     and generating inferences. The core functionality of each of these
  *     is specified via five abstract classes in InferenceEngine.hpp. The new 

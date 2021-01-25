@@ -685,7 +685,7 @@ TermList sigmaRemoval(TermList sigmaTerm, TermList expsrt){
   TermList skSymSort = Term::arrowSort(termVarSorts, resultSort);
   unsigned fun = Skolem::addSkolemFunction(typeVars.size(), typeVars.size(), 0, skSymSort);
   TermList head = TermList(Term::create(fun, typeVars.size(), typeVars.begin()));
-  TermList skolemTerm = ApplicativeHelper::createAppTerm(skSymSort, head, termVars);
+  TermList skolemTerm = ApplicativeHelper::createAppTerm(SortHelper::getResultSort(head.term()), head, termVars);
 
   ASS(*expsrt.term()->nthArgument(1) == Term::boolSort())
 
