@@ -225,7 +225,12 @@ Clause* TheoryFlattening::apply(Clause*& cl,Stack<Literal*>& target)
     // but never factor out interpreted constants e.g. numbers
     if(
         !equalityWithNumber &&
-        (interpreted != env.signature->getFunction(t->functor())->interpreted()) && 
+        (interpreted != 
+          (env.signature->getFunction(t->functor())->interpreted() 
+            || env.signature->getFunction(ts->term()->functor())->termAlgebraCons() // TODO
+            || env.signature->getFunction(ts->term()->functor())->termAlgebraDest()
+          )
+                        )&& 
         !theory->isInterpretedConstant(t) 
       ){
       //cout << "Factoring out " << t->toString() << endl;
