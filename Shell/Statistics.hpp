@@ -125,6 +125,8 @@ public:
   unsigned theoryInstSimpTautologies;
   /** number of theoryInstSimp solutions lost as we could not represent them **/
   unsigned theoryInstSimpLostSolution;
+  /** number of theoryInstSimp application where an empty substitution was applied */
+  unsigned theoryInstSimpEmptySubstitution;
   /** number of induction applications **/
   unsigned induction;
   unsigned maxInductionDepth;

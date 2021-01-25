@@ -736,10 +736,10 @@ struct InstanceFn
 
       return 0;
     }
-    // // If the solution is empty (for any reason) there is no point performing instantiation
-    // if(sol.subst.isEmpty()){
-    //   return 0;
-    // }
+    // If the solution is empty (for any reason) there is no point performing instantiation
+    if(sol.subst.isEmpty()){
+      env.statistics->theoryInstSimpEmptySubstitution++;
+    }
 #if DPRINT
     cout << "Instantiate " << _cl->toString() << endl;
     cout << "with " << sol.subst.toString() << endl;
