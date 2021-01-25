@@ -104,6 +104,9 @@ private:
  *  
  *  To see examples of this class in use, check the vampire/ExamplesApi
  *  folder
+ *
+ *  The functionality provided by the Term, Formula and Sort classes is
+ *  documented in FormulaBuilder.hpp
  */
 class Solver
 {
