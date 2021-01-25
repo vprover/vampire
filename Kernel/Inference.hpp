@@ -54,6 +54,52 @@ inline std::underlying_type<UnitInputType>::type toNumber(UnitInputType t) { ret
 UnitInputType getInputType(UnitList* units);
 UnitInputType getInputType(UnitInputType t1, UnitInputType t2);
 
+/** Step-by-step guide to adding an inference to Vampire:
+ *  1) Update the enum below with an entry for the new inference.
+ *     The enum is sorted into simplifying, generating etc. inferences.
+ *     The new inference must be placed in the appropriate section.
+ *  2) Update the ruleName(..) function in Inference.cpp to return
+ *     the name of the new inference. This name will be used in proof
+ *     printing.
+ *  3) In the /Inferences directory, create a *.cpp and *.hpp files to 
+ *     contain the code which defines the functionality of the new inference.
+ *  4) Vampire supports five types of inferences. Immediate simplifications,
+ *     simplifications (like immediate simplifications, but occurs later in the
+ *     given clause loop), forward simplification, backward simplifications
+ *     and generating inferences. The core functionality of each of these
+ *     is specified via five abstract classes in InferenceEngine.hpp. The new 
+ *     inference should inherit from one of these.
+ *  5) In SaturationAlgorithm.hpp update the createFromOptions() function
+ *     to attach the new inference to the relevant (generating, simplifying, ...)
+ *     front. This ensures that the inference is actaully carried out during
+ *     the saturation loop.
+ *  6) If the new inference involves an index of some sort then the following
+ *     needs to be done:
+ *     6.1) Update TermIndex.* / LiteralIndex.* (whichever is appropriate) to
+ *          create a new index for this inference. Specify how the index will
+ *          handle new clauses (will it index subterms of the clause, literals or
+ *          something else? How will it handle these?).
+ *     6.2) Update IndexManager.cpp create(...) function to return an 
+ *          instance of the new index on request.
+ *     6.3) Update inference code to override the attach(...) and detach(...) 
+ *          methods of the InferenceEngine class. Request the index in the 
+ *          attach(...) function and release in the detach(...) function.
+ *
+ *  Further notes on creating inferences:
+ *  - Immediate simplification inferences cannot be linked to an index
+ *  - For an infernce that works at subterms, please consider carefully
+ *    which iterator to use to return these subterms. In Vampire, terms are
+ *    of the form f(type_args, term_args). In most cases, inferences should NOT
+ *    be working on type arguments. Please view TermIterators.hpp for a list of
+ *    iterators available.
+ *  - TermSubstitutionTrees, do NOT carry out any type checking. Thus, in the case
+ *    where either the search or query term is a variable, a type check needs to
+ *    be carried out by the inference code. This check may be a unification check or 
+ *    a matching check depending on whether the inference is using unification or
+ *    matching. Please view Superposition.cpp for an example of a unification check
+ *    and ForwardDemodulation for an example of a matching check.
+ */
+
 /**
  * Tag to denote various kinds of inference rules.
  */
