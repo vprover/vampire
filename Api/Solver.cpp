@@ -572,7 +572,6 @@ namespace Api
     Kernel::Problem problem(units);
 
     if(!preprocessed){
-      preprocessed = true;
       Shell::Preprocess prepro(*env.options);
       prepro.preprocess(problem);
     }
