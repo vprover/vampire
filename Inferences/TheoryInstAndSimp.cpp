@@ -16,7 +16,7 @@
  */
 
 #if VZ3
-#define DEBUG(...) DBG(__VA_ARGS__)
+#define DEBUG(...) // DBG(__VA_ARGS__)
 
 #define DPRINT 0
 
@@ -721,7 +721,7 @@ struct InstanceFn
 #endif
 
       // now we run SMT solver again without guarding
-      if(_addedGuards){
+      if(!_addedGuards){
         _red = true;
       } else {
         auto solutions = _parent->getSolutionsWithoutGuards(_theoryLits);
@@ -736,10 +736,10 @@ struct InstanceFn
 
       return 0;
     }
-    // If the solution is empty (for any reason) there is no point performing instantiation
-    if(sol.subst.isEmpty()){
-      return 0;
-    }
+    // // If the solution is empty (for any reason) there is no point performing instantiation
+    // if(sol.subst.isEmpty()){
+    //   return 0;
+    // }
 #if DPRINT
     cout << "Instantiate " << _cl->toString() << endl;
     cout << "with " << sol.subst.toString() << endl;
@@ -880,7 +880,7 @@ SimplifyingGeneratingInference::ClauseGenerationResult TheoryInstAndSimp::genera
     auto it4 = getTimeCountedIterator(it3,TC_THEORY_INST_SIMP);
 
     auto clauses =  getPersistentIterator(it4);
-    if (premiseRedundant && env.options->thiTautologyDeletion()) {
+    if (premiseRedundant && _thiTautologyDeletion) {
 
       return ClauseGenerationResult {
         .clauses          = ClauseIterator::getEmpty(),

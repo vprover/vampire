@@ -127,7 +127,7 @@ public:
     }
 
     if (_premiseRedundant != res.premiseRedundant) {
-      auto wrapStr = [](bool b) { return b ? "premise is redundant" : "premis not redundant"; };
+      auto wrapStr = [](bool b) -> vstring { return b ? "premise is redundant" : "premis not redundant"; };
       testFail( wrapStr(res.premiseRedundant), wrapStr(_premiseRedundant));
     }
 

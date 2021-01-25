@@ -48,7 +48,7 @@ using namespace Test;
     auto tail = cons.dtor(1);                                                                                 \
   )                                                                                                           \
 
-#define MY_SYNTAX_SUGAR                                                                                       \
+#define LIST_INT_SUGAR                                                                                        \
   NUMBER_SUGAR(Int)                                                                                           \
   DECL_DEFAULT_VARS                                                                                           \
                                                                                                               \
@@ -59,11 +59,15 @@ using namespace Test;
                                                                                                               \
   DECL_LIST(Int)                                                                                              \
 
+
+#define MY_SYNTAX_SUGAR LIST_INT_SUGAR
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////// TEST CASES
 /////////////////////////////////////
 TheoryInstAndSimp* theoryInstAndSimp(Options::TheoryInstSimp mode) {
   return new TheoryInstAndSimp(mode, 
+      /* thiTautologyDeletion */ true,
       /* showZ3 */ true,
       /* unsatCoreForRefutations */ false);
 }
@@ -198,9 +202,27 @@ TEST_GENERATION_WITH_SUGAR(test_06,
 TEST_GENERATION_WITH_SUGAR(bug_01,
     PAIR_SYNTAX_SUGAR,
     Generation::TestCase()
-      .rule(theoryInstAndSimp(Options::TheoryInstSimp::NEW))
-      .input(    clause({ 0 != fst(pair(0,127)) }))
-      .expected(exactly( clause({}) ))
-      .premiseRedundant(true)
+      .rule             (theoryInstAndSimp(Options::TheoryInstSimp::NEW))
+      .input            (clause({ 0 == fst(pair(0,127)) }))
+      .expected         (exactly(  ))
+      .premiseRedundant (true)
     )
+
+TEST_GENERATION_WITH_SUGAR(bug_02,
+    LIST_INT_SUGAR,
+    Generation::TestCase()
+      .rule             (theoryInstAndSimp(Options::TheoryInstSimp::NEW))
+      .input            (clause({ tail(nil) == nil  }))
+      .expected         (exactly(  ))
+      .premiseRedundant (false)
+    )
+
+TEST_GENERATION_WITH_SUGAR(bug_03,
+    PAIR_SYNTAX_SUGAR,
+    Generation::TestCase()
+      .rule             (theoryInstAndSimp(Options::TheoryInstSimp::NEW))
+      .input            (clause({ 0 != fst(pair(0,127)) }))
+      .expected         (exactly( clause({}) ))
+    )
+
 

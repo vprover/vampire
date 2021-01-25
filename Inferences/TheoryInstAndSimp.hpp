@@ -50,10 +50,11 @@ public:
 
   ~TheoryInstAndSimp();
   TheoryInstAndSimp() : TheoryInstAndSimp(*env.options) {}
-  TheoryInstAndSimp(Options& opts) : TheoryInstAndSimp(opts.theoryInstAndSimp(), opts.showZ3(), opts.z3UnsatCores()) {}
-  TheoryInstAndSimp(Options::TheoryInstSimp mode, bool showZ3, bool unsatCoreForRefutations) 
+  TheoryInstAndSimp(Options& opts) : TheoryInstAndSimp(opts.theoryInstAndSimp(), opts.thiTautologyDeletion(), opts.showZ3(), opts.z3UnsatCores()) {}
+  TheoryInstAndSimp(Options::TheoryInstSimp mode, bool thiTautologyDeletion, bool showZ3, bool unsatCoreForRefutations) 
     : _splitter(0)
     , _mode(mode)
+    , _thiTautologyDeletion(thiTautologyDeletion)
     , _naming()
     , _solver([&](){ 
         BYPASSING_ALLOCATOR; 
@@ -111,7 +112,8 @@ private:
   bool literalContainsVar(const Literal* lit, unsigned v);
 
   Splitter* _splitter;
-  Options::TheoryInstSimp _mode;
+  Options::TheoryInstSimp const _mode;
+  bool const _thiTautologyDeletion;
   SAT2FO _naming;
   Z3Interfacing* _solver;
   Map<unsigned, bool> _supportedSorts;
