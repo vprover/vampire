@@ -608,11 +608,12 @@ public:
   bool operator==(const Term& o) const {
     return toString()==o.toString();
   }
+
+  bool isValid() const;  
 private:
   size_t content;
   ApiHelper _aux;
 
-  bool isValid() const;
 
   friend class FormulaBuilder;
   friend class FBHelperCore;

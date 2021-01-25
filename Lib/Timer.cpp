@@ -88,7 +88,10 @@ void timeLimitReached()
   }
   env.endOutput();
 
-  System::terminateImmediately(1);
+  //If running from API we don't want to terminate immediately.
+  if(!env.options->runningFromApi()){
+    System::terminateImmediately(1);
+  }
 }
 
 void

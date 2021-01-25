@@ -135,7 +135,7 @@ vstring FormulaBuilder::getFunctionName(Function f)
 }
 
 
-//TODO invalidate vars on a solver reset as well?
+//TODO invalidate vars on a hard solver reset as well?
 vstring FormulaBuilder::getVariableName(Var v)
 {
   CALL("FormulaBuilder::getVariableName");
@@ -504,7 +504,7 @@ Term FormulaBuilder::term(const Function& f,const std::vector<Term>& args)
   for (const Term& arg : args)
   {
     if(!arg.isValid()){
-      throw ApiException("Attempting to use a term created prior to a solver reset");    
+      throw ApiException("Attempting to use a term created prior to a hard solver reset");    
     }
   }
   return _aux->term(f,args.data(),env.signature->functionArity(f));
@@ -517,7 +517,7 @@ Formula FormulaBuilder::atom(const Predicate& p, const std::vector<Term>& args, 
   for (const Term& arg : args)
   {
     if(!arg.isValid()){
-      throw ApiException("Attempting to use a term created prior to a solver reset");    
+      throw ApiException("Attempting to use a term created prior to a hard solver reset");    
     }
   }
   return _aux->atom(p,positive, args.data(),env.signature->predicateArity(p));
@@ -527,9 +527,6 @@ Formula FormulaBuilder::equality(const Term& lhs,const Term& rhs, Sort sort, boo
 {
   CALL("FormulaBuilder::equality/4");
 
-  if(!lhs.isValid() || !rhs.isValid()){
-    throw ApiException("Attempting to use a term created prior to a solver reset"); 
-  }
   if(lhs.sort()!=sort) {
     throw SortMismatchException("Sorts of equality sides is not as declared");
   }
@@ -539,6 +536,10 @@ Formula FormulaBuilder::equality(const Term& lhs,const Term& rhs, Sort sort, boo
 Formula FormulaBuilder::equality(const Term& lhs,const Term& rhs, bool positive)
 {
   CALL("FormulaBuilder::equality/3");
+
+  if(!lhs.isValid() || !rhs.isValid()){
+    throw ApiException("Attempting to build an equality with a term created prior to a hard solver reset"); 
+  }
 
   _aux->ensureEqualityArgumentsSortsMatch(lhs, rhs);
   unsigned srt = lhs.sort();
@@ -574,7 +575,7 @@ Formula FormulaBuilder::negation(const Formula& f)
   CALL("FormulaBuilder::negation");
 
   if(!f.isValid()) {
-    throw ApiException("Attempting to negate a formula created prior to a solver reset");
+    throw ApiException("Attempting to negate a formula created prior to a hard solver reset");
   }
 
   Formula res(new Kernel::NegatedFormula(f.form));
@@ -587,7 +588,7 @@ Formula FormulaBuilder::formula(Connective c,const Formula& f1,const Formula& f2
   CALL("FormulaBuilder::formula(Connective,const Formula&,const Formula&)");
 
   if(!f1.isValid() || !f2.isValid()) {
-    throw ApiException("Attempting to create a complex formula from formulas created prior to a solver reset");
+    throw ApiException("Attempting to create a complex formula from formulas created prior to a hard solver reset");
   }
 
   Kernel::Connective con;
@@ -641,7 +642,7 @@ Formula FormulaBuilder::formula(Connective q,const Var& v,const Formula& f)
   CALL("FormulaBuilder::formula(Connective,const Var&,const Formula&)");
 
   if(!f.isValid()) {
-    throw ApiException("Attempting to quantify a formula created prior to a solver reset");
+    throw ApiException("Attempting to quantify a formula created prior to a hard solver reset");
   }
   if(_aux->_checkBindingBoundVariables) {
     VarList* boundVars=static_cast<Kernel::Formula*>(f)->boundVariables();
@@ -681,7 +682,7 @@ AnnotatedFormula FormulaBuilder::annotatedFormula(Formula f, Annotation a, vstri
   CALL("FormulaBuilder::annotatedFormula");
 
   if(!f.isValid()) {
-    throw FormulaBuilderException("Attempting to annontate a formula created prior to a solver reset");
+    throw FormulaBuilderException("Attempting to annontate a formula created prior to a hard solver reset");
   }
 
   Kernel::UnitInputType inputType;
@@ -1137,7 +1138,7 @@ vstring Term::toString() const
     throw ApiException("Term not initialized");
   }
   if(!isValid()){
-    throw ApiException("Term created prior to solver reset and cannot be printed");    
+    throw ApiException("Term created prior to hard solver reset and cannot be printed");    
   }
   return _aux->toString(static_cast<Kernel::TermList>(*this));
 }
@@ -1176,7 +1177,7 @@ Function Term::functor() const
     throw ApiException("Term not initialized");
   }
   if(!isValid()){
-    throw ApiException("Functor cannot be retrieved for a term created prior to a solver reset");    
+    throw ApiException("Functor cannot be retrieved for a term created prior to a hard solver reset");    
   }
   if(isVar()) {
     throw ApiException("Functor cannot be retrieved for a variable term");
@@ -1192,7 +1193,7 @@ unsigned Term::arity() const
     throw ApiException("Term not initialized");
   }
   if(!isValid()){
-    throw ApiException("Arity cannot be retrieved for a term created prior to a solver reset");    
+    throw ApiException("Arity cannot be retrieved for a term created prior to a hard solver reset");    
   }
   if(isVar()) {
     throw ApiException("Arity cannot be retrieved for a variable term");
@@ -1211,7 +1212,7 @@ Term Term::arg(unsigned i)
     throw ApiException("Arguments cannot be retrieved for a variable term");
   }
   if(!isValid()){
-    throw ApiException("Arguments cannot be retrieved for a term created prior to a solver reset");    
+    throw ApiException("Arguments cannot be retrieved for a term created prior to a hard solver reset");    
   }
   if(i>=arity()) {
     throw ApiException("Argument index out of bounds");
@@ -1224,7 +1225,7 @@ Sort Term::sort() const
   CALL("Term::sort");
 
   if(!isValid()) {
-    throw ApiException("Cannot retrieve the sort of a term created prior to a solver reset");
+    throw ApiException("Cannot retrieve the sort of a term created prior to a hard solver reset");
   }
   Sort res = static_cast<FBHelperCore*>(*_aux)->getSort(*this);
   if(!res.isValid()) {
@@ -1243,7 +1244,7 @@ vstring Formula::toString() const
   CALL("Formula::toString");
 
   if(!isValid()){
-    throw ApiException("Formula created prior to solver reset and cannot be printed");    
+    throw ApiException("Formula created prior to hard solver reset and cannot be printed");    
   }
   return static_cast<Kernel::Formula*>(*this)->toString();
 }
@@ -1298,7 +1299,7 @@ Predicate Formula::predicate() const
   CALL("Formula::predicate");
 
   if(!isValid()){
-    throw ApiException("Predicate cannot be retrieved from a formula created prior to a solver reset");    
+    throw ApiException("Predicate cannot be retrieved from a formula created prior to a hard solver reset");    
   }
   if(form->connective()!=Kernel::LITERAL) {
     throw ApiException("Predicate symbol can be retrieved only from atoms");
@@ -1311,7 +1312,7 @@ bool Formula::atomPolarity() const
   CALL("Formula::atomPolarity");
 
   if(!isValid()){
-    throw ApiException("Polarity cannot be retrieved from a formula created prior to a solver reset");    
+    throw ApiException("Polarity cannot be retrieved from a formula created prior to a hard solver reset");    
   }
   if(form->connective()!=Kernel::LITERAL) {
     throw ApiException("Polarity can be retrieved only from atoms");
@@ -1325,7 +1326,7 @@ unsigned Formula::argCnt() const
   CALL("Formula::argCnt");
   
   if(!isValid()){
-    throw ApiException("Argument count cannot be retrieved from a formula created prior to a solver reset");    
+    throw ApiException("Argument count cannot be retrieved from a formula created prior to a hard solver reset");    
   }
   
   switch(form->connective()) {
@@ -1356,7 +1357,7 @@ Formula Formula::formulaArg(unsigned i)
   CALL("Formula::formulaArg");
 
   if(!isValid()){
-    throw ApiException("Arguments cannot be retrieved from a formula created prior to a solver reset");    
+    throw ApiException("Arguments cannot be retrieved from a formula created prior to a hard solver reset");    
   }
 
   Kernel::Formula* res = 0;
@@ -1404,7 +1405,7 @@ Term Formula::termArg(unsigned i)
   CALL("Formula::termArg");
 
   if(!isValid()){
-    throw ApiException("Arguments cannot be retrieved from a formula created prior to a solver reset");    
+    throw ApiException("Arguments cannot be retrieved from a formula created prior to a hard solver reset");    
   }
   if(form->connective()!=Kernel::LITERAL) {
     throw ApiException("Term arguments can be obtained only from atoms");
@@ -1420,7 +1421,7 @@ StringIterator Formula::freeVars()
   CALL("Formula::freeVars");
 
   if(!isValid()){
-    throw ApiException("Free variables cannot be retrieved from a formula created prior to a solver reset");    
+    throw ApiException("Free variables cannot be retrieved from a formula created prior to a hard solver reset");    
   }
   if(!form) {
     return StringIterator(VirtualIterator<vstring>::getEmpty());
@@ -1434,7 +1435,7 @@ StringIterator Formula::boundVars()
   CALL("Formula::boundVars");
 
   if(!isValid()){
-    throw ApiException("Bound variables cannot be retrieved from a formula created prior to a solver reset");    
+    throw ApiException("Bound variables cannot be retrieved from a formula created prior to a hard solver reset");    
   }
   if(!form) {
     return StringIterator(VirtualIterator<vstring>::getEmpty());
@@ -1448,7 +1449,7 @@ vstring AnnotatedFormula::toString() const
   CALL("AnnotatedFormula::toString");
 
   if(!isValid()){
-    throw ApiException("Cannot print a formula created prior to a solver reset");    
+    throw ApiException("Cannot print a formula created prior to a hard solver reset");    
   }
   return unit->toString();
 }
@@ -1472,7 +1473,7 @@ StringIterator AnnotatedFormula::freeVars()
   CALL("AnnotatedFormula::freeVars");
 
   if(!isValid()){
-    throw ApiException("Free variables cannot be retrieved from a formula created prior to a solver reset");    
+    throw ApiException("Free variables cannot be retrieved from a formula created prior to a hard solver reset");    
   }
   if(!unit) {
     return StringIterator(VirtualIterator<vstring>::getEmpty());
@@ -1492,7 +1493,7 @@ StringIterator AnnotatedFormula::boundVars()
   CALL("AnnotatedFormula::boundVars");
 
   if(!isValid()){
-    throw ApiException("Bound variables cannot be retrieved from a formula created prior to a solver reset");    
+    throw ApiException("Bound variables cannot be retrieved from a formula created prior to a hard solver reset");    
   }
   if(!unit || unit->isClause()) {
     return StringIterator(VirtualIterator<vstring>::getEmpty());
@@ -1522,7 +1523,7 @@ Formula AnnotatedFormula::formula()
   CALL("AnnotatedFormula::formula");
 
   if(!isValid()){
-    throw ApiException("Cannot retrieve a formula created prior to a solver reset");    
+    throw ApiException("Cannot retrieve a formula created prior to a hard solver reset");    
   }
 
   if(unit->isClause()) {
@@ -1549,7 +1550,7 @@ void AnnotatedFormula::assignName(AnnotatedFormula& form, vstring name)
   CALL("AnnotatedFormula::assignName");
 
   if(!form.isValid()){
-    throw ApiException("Cannot assign a name to a formula created prior to a solver reset");    
+    throw ApiException("Cannot assign a name to a formula created prior to a hard solver reset");    
   }
 
   if(!OutputOptions::assignFormulaNames()) {

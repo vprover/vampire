@@ -22,10 +22,19 @@ int main() {
 
     cout << "proof found: " << res.unsatisfiable() << endl;
 
-    AnnotatedFormulaIterator afi = solver.formulas();
-    while(afi.hasNext()){
-      cout << afi.next().toString() << endl;
-    }
+    solver.resetHard();
+
+    ten = solver.integerConstant(10);
+    
+    ten_plus_ten = solver.sum(ten, ten);
+
+    ten_plus_ten_equals_twenty = solver.equality(ten_plus_ten, twenty);
+    
+    solver.addFormula(ten_plus_ten_equals_twenty);
+
+    res = solver.solve();
+
+    cout << "proof found: " << res.unsatisfiable() << endl;
 
     return 0;
   } catch (ApiException& e){

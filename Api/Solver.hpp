@@ -164,10 +164,19 @@ public:
 
   /*
    * Resets the solver. All formulas are discarded
+   * The signature is erased, all options are reset to their defaults
    *
    * WARNING all Term, Formula and Var objects created
    * before a call to reset() are invalid after the call and
-   * should not be used!
+   * should not be used! Using them will result in an ApiError
+   * being raised.
+   */
+  void resetHard();
+
+  /*
+   * Resets the solver. All formulas are discarded. However,
+   * the signature remains, Terms and formula objects continue to be valid
+   * and options retain their previous values.
    */
   void reset();
   

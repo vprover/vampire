@@ -18,9 +18,7 @@ int main() {
     Formula ceil_greater_or_equal = solver.geq(ceiling_x, x);
     Formula ceil_greater_or_equal_quanitifed = solver.formula(Solver::FORALL, var_x, ceil_greater_or_equal);
 
-    solver.addFormula(ceil_greater_or_equal_quanitifed);
-
-    Result res = solver.solve();
+    Result res = solver.checkEntailed(ceil_greater_or_equal_quanitifed);
 
     cout << "proof found: " << res.unsatisfiable() << endl;
 

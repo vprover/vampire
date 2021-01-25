@@ -73,6 +73,9 @@ void Options::init()
 {
    CALL("Options::init");
 
+    //fake option. View comment in Options.hpp
+    _runningFromApi = false;
+    
    // some options that were not give names previously
     _forceIncompleteness = BoolOptionValue("force_incompleteness","",false);
     _equivalentVariableRemoval = BoolOptionValue("equivalentVariableRemoval","",true);

@@ -15,7 +15,7 @@ int main() {
     Formula formula1 = solver.formula(p, a);
 
     Formula not_formula1 = solver.negation(formula1);
-    //p(a) \/ ~p(a)
+    //p(a) /\ ~p(a)
     Formula or_formula = solver.formula(Solver::AND, formula1, not_formula1);
 
     solver.assertFormula(or_formula);

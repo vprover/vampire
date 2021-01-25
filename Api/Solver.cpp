@@ -81,8 +81,8 @@ namespace Api
     }
   }
 
-  void Solver::reset(){
-    CALL("Solver::reset");
+  void Solver::resetHard(){
+    CALL("Solver::resetHard");
 
     preprocessed = false;
     logicSet = false;
@@ -108,6 +108,13 @@ namespace Api
 
     env.options->setOutputMode(Shell::Options::Output::SMTCOMP);
     env.options->setTimeLimitInSeconds(30);
+  }
+
+  void Solver::reset(){
+    CALL("Solver::reset");
+
+    preprocessed = false;
+    prob.removeAllFormulas();
   }
 
   void Solver::setSaturationAlgorithm(const Lib::vstring& satAlgorithm)
@@ -553,7 +560,8 @@ namespace Api
   Result Solver::solve()
   {
     CALL("Solver::solve");
-
+    
+    env.options->setRunningFromApi();
     Kernel::UnitList* units = UnitList::empty();
     AnnotatedFormulaIterator afi = formulas();
 
@@ -570,6 +578,8 @@ namespace Api
     }
   
     Saturation::ProvingHelper::runVampireSaturation(problem, *env.options);
+    //To allow multiple calls to solve() for the same problem set.
+    Unit::resetFirstNonPreprocessNumber();
     return Result(env.statistics->terminationReason);
   }
 
