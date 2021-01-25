@@ -59,7 +59,7 @@ public:
         BYPASSING_ALLOCATOR; 
         return new Z3Interfacing(_naming, showZ3, unsatCoreForRefutations,  /* unsatCoresForAssumptions = */ false); 
       }())
-  {}
+  { }
 
   void attach(SaturationAlgorithm* salg);
 
@@ -74,16 +74,15 @@ public:
 
 private:
 
-  void selectTheoryLiterals(Clause* cl, Stack<Literal*>& theoryLits);
+  Stack<Literal*> selectTheoryLiterals(Clause* cl);
 
   void originalSelectTheoryLiterals(Clause* cl, Stack<Literal*>& theoryLits,bool forZ3);
 
-  void applyFilters(Stack<Literal*>& theoryLits, bool forZ3);
+  Stack<Literal*> applyFilters(Stack<Literal*> theoryLits);
   void filterUninterpretedPartialFunctionDeep(Stack<Literal*>& theoryLits, Stack<Literal*>& filteredLits);
   
-  /** Fills trivialLits with all clauses trivial in cl
-   */
-  void selectTrivialLiterals(Clause* cl, Stack<Literal*>& trivialLits);
+  /** returns the set of literals trivial in cl */
+  Stack<Literal*> selectTrivialLiterals(Clause* cl );
   bool isPure(Literal* lit);
 
   /**

@@ -293,8 +293,8 @@ Clause* TheoryFlattening::apply(Clause*& cl,Stack<Literal*>& target)
   
     //special check
     if(interpretedStatus &&
-            Theory::isPartiallyInterpretedFunction(t)
-         && Theory::partiallyDefinedFunctionUndefinedForArgs(t)){
+            theory->isPartiallyInterpretedFunction(t)
+         && theory->partiallyDefinedFunctionUndefinedForArgs(t)){
 
        // If we have something of the form /0 or %0 then we treat it as uninterpreted
          interpretedStatus=false; 

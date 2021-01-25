@@ -1182,9 +1182,11 @@ bool Theory::isPartiallyInterpretedFunction(Term* t) {
     auto sym = env.signature->getFunction(t->functor());
     if (sym->termAlgebraCons()) {
       return false;
-    } else {
-      ASS_REP(sym->termAlgebraDest(), *t);
+    } else if (sym->termAlgebraDest()) {
       return true;
+    } else {
+      ASS_REP(isInterpretedNumber(t), *t);
+      return false;
     }
   }
 }

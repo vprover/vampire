@@ -16,6 +16,7 @@
  */
 
 #if VZ3
+#define DEBUG(...) DBG(__VA_ARGS__)
 
 #define DPRINT 0
 
@@ -236,8 +237,7 @@ bool TheoryInstAndSimp::literalContainsVar(const Literal* lit, unsigned v) {
  *   - repeat this step until no element was removed or TC is empty
  * the algorithm can be optimized by only checking the freshly removed elements
  **/
-void TheoryInstAndSimp::selectTrivialLiterals(Clause* cl,
-                                              Stack<Literal*>& trivialLits)
+Stack<Literal*> TheoryInstAndSimp::selectTrivialLiterals(Clause* cl)
 {
   CALL("TheoryInstAndSimp::selectTrivialLiterals");
 #if DPRINT
@@ -335,33 +335,32 @@ void TheoryInstAndSimp::selectTrivialLiterals(Clause* cl,
   cout << "Found " << triv_candidates.length() << " trivial literals." << endl;
 #endif
   
-  //copy triv_candidates to trivialLits
-  trivialLits = triv_candidates;
+  return triv_candidates;
 }
 
 
-void TheoryInstAndSimp::selectTheoryLiterals(Clause* cl, Stack<Literal*>& theoryLits) {
+/** 
+ * Selects the theory literals to be used for instantiation. These are all non-trivial pure theory literals.
+ */
+Stack<Literal*> TheoryInstAndSimp::selectTheoryLiterals(Clause* cl) {
   CALL("TheoryInstAndSimp::selectTheoryLiterals");
 #if DPRINT
   cout << "selectTheoryLiterals in " << cl->toString() << endl;
 #endif
 
-  ASS_NEQ(
-    env.options->theoryInstAndSimp(),
-    Shell::Options::TheoryInstSimp::OFF
-  );
+  ASS_NEQ(_mode, Shell::Options::TheoryInstSimp::OFF);
 
-  //  Stack<Literal*> pure_lits;
-  Stack<Literal*> trivial_lits;
-  selectTrivialLiterals(cl, trivial_lits);
+  Stack<Literal*> trivial_lits = selectTrivialLiterals(cl);
+  Stack<Literal*> out;
 
   Clause::Iterator cl_it(*cl);
   while (cl_it.hasNext()) {
     auto lit = cl_it.next();
+    // TODO this is O(n^2) runtime
     if (isPure(lit) && !trivial_lits.find(lit))
-      theoryLits.push(lit);
+      out.push(lit);
   }
-  
+  return out;
 }
 
 
@@ -399,13 +398,11 @@ void TheoryInstAndSimp::filterUninterpretedPartialFunctionDeep(Stack<Literal*>& 
   }
 }
 
-void TheoryInstAndSimp::applyFilters(Stack<Literal*>& theoryLits, bool forZ3) {
-  //TODO: too much copying, optimize
-  if (forZ3) {
-    Stack<Literal*> filteredLits;
-    filterUninterpretedPartialFunctionDeep(theoryLits, filteredLits);
-    theoryLits=filteredLits; 
-  }
+Stack<Literal*> TheoryInstAndSimp::applyFilters(Stack<Literal*> theoryLits) {
+  return theoryLits;
+  // Stack<Literal*> filteredLits;
+  // filterUninterpretedPartialFunctionDeep(theoryLits, filteredLits);
+  // return filteredLits;
 }
 
 /**
@@ -797,6 +794,7 @@ private:
 SimplifyingGeneratingInference::ClauseGenerationResult TheoryInstAndSimp::generateSimplify(Clause* premise)
 {
   CALL("TheoryInstAndSimp::generateSimplify");
+  DEBUG("input: ", *premise);
 
   auto empty = ClauseGenerationResult {
     .clauses          = ClauseIterator::getEmpty(),
@@ -808,12 +806,10 @@ SimplifyingGeneratingInference::ClauseGenerationResult TheoryInstAndSimp::genera
   }
 
 
-  static Stack<Literal*> selectedLiterals;
-  selectedLiterals.reset();
+  Stack<Literal*> selectedLiterals;
 
   if(_mode == Options::TheoryInstSimp::NEW){
-    selectTheoryLiterals(premise,selectedLiterals);
-    applyFilters(selectedLiterals,true);
+    selectedLiterals = applyFilters(selectTheoryLiterals(premise));
   }
   else{
     originalSelectTheoryLiterals(premise,selectedLiterals,false);

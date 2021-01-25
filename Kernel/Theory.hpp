@@ -451,8 +451,8 @@ public:
   static bool isConversionOperation(Interpretation i);
   static bool isLinearOperation(Interpretation i);
   static bool isNonLinearOperation(Interpretation i);
-  static bool isPartiallyInterpretedFunction(Term* t);
-  static bool partiallyDefinedFunctionUndefinedForArgs(Term* t);
+  bool isPartiallyInterpretedFunction(Term* t);
+  bool partiallyDefinedFunctionUndefinedForArgs(Term* t);
   // static bool isPartialFunction(Interpretation i);
 
   static bool isPolymorphic(Interpretation i);
