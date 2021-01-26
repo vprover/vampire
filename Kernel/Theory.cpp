@@ -106,7 +106,7 @@ inline typename IntegerConstantType::InnerType divideOrThrow(typename IntegerCon
 int IntegerConstantType::intDivide(const IntegerConstantType& num) const 
 {
     CALL("IntegerConstantType::intDivide");
-    ASS(num.divides(*this));
+    ASS_REP(num.divides(*this),  num.toString() + " does not divide " + this->toString() );
     return divideOrThrow(_val, num._val);
 }
 
@@ -1180,13 +1180,14 @@ bool Theory::isPartiallyInterpretedFunction(Term* t) {
     }
   } else {
     auto sym = env.signature->getFunction(t->functor());
-    if (sym->termAlgebraCons()) {
+    if (isInterpretedNumber(t)) {
+      return false;
+    } else if (sym->termAlgebraCons()) {
       return false;
     } else if (sym->termAlgebraDest()) {
       return true;
     } else {
-      ASS_REP(isInterpretedNumber(t), *t);
-      return false;
+      ASSERTION_VIOLATION_REP(t)
     }
   }
 }
