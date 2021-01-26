@@ -31,8 +31,11 @@ TermAlgebraConstructor::TermAlgebraConstructor(unsigned functor, Lib::Array<unsi
   _type = env.signature->getFunction(_functor)->fnType();
   ASS_REP(env.signature->getFunction(_functor)->termAlgebraCons(), env.signature->functionName(_functor));
   ASS_EQ(_type->arity(), destructors.size());
+  unsigned i = 0;
   for (auto d : destructors) {
-    ASS(env.signature->getFunction(d)->termAlgebraDest())
+    auto sym = _type->arg(i++) == Sorts::SRT_BOOL ? env.signature->getPredicate(d) 
+                                                  : env.signature->getFunction(d);
+    ASS_REP(sym->termAlgebraDest(), sym->name())
   }
 }
 

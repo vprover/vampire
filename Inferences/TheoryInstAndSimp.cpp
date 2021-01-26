@@ -16,7 +16,7 @@
  */
 
 #if VZ3
-#define DEBUG(...) // DBG(__VA_ARGS__)
+#define DEBUG(...) DBG(__VA_ARGS__)
 
 #define DPRINT 0
 
@@ -134,14 +134,12 @@ bool TheoryInstAndSimp::isPure(Literal* lit) {
 
   //check if the predicate is a theory predicate
   if (! isSupportedLiteral(lit) ) {
-    //    cout << "uninterpreted predicate symbol " << lit -> toString() << endl;
     return false;
   }
   //check all (proper) subterms
   SubtermIterator sti(lit);
   while( sti.hasNext() ) {
     TermList tl = sti.next();
-    //cout << "looking at subterm " << tl.toString() << endl;
     if ( tl.isEmpty() || tl.isVar() ){
       continue;
     }
@@ -651,7 +649,7 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
     //clause->setInference(new FOConversionInference(cl));
     // guarded is normally true, apart from when we are checking a theory tautology
     try{
-      _solver->addClause(sc,withGuards, addedGuards);
+      _solver->addClause(sc, withGuards, addedGuards);
     }
     catch(UninterpretedForZ3Exception){
       return VirtualIterator<Solution>::getEmpty();
@@ -668,6 +666,7 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
     return pvi(getSingletonIterator(Solution(false)));
   }
   else if(status == SATSolver::SATISFIABLE){
+    DEBUG(_solver->getModel())
     Solution sol = Solution(true);
     Stack<unsigned>::Iterator vit(vars);
     while(vit.hasNext()){
@@ -794,7 +793,6 @@ private:
 SimplifyingGeneratingInference::ClauseGenerationResult TheoryInstAndSimp::generateSimplify(Clause* premise)
 {
   CALL("TheoryInstAndSimp::generateSimplify");
-  DEBUG("input: ", *premise);
 
   auto empty = ClauseGenerationResult {
     .clauses          = ClauseIterator::getEmpty(),
@@ -863,12 +861,14 @@ SimplifyingGeneratingInference::ClauseGenerationResult TheoryInstAndSimp::genera
   }
 
   {
+    DEBUG("input: ", *premise);
+    DEBUG("selected literals: ", iterTraits(selectedLiterals.iterFifo()).map([](Literal* l) -> vstring { return l->toString(); }).collect<Stack>())
     TimeCounter t(TC_THEORY_INST_SIMP);
     bool premiseRedundant = false;
     bool addedGuards;
 
-    //auto it1 = getSolutions(theoryLiterals);
-    auto it1 = getSolutionsWithGuards(selectedLiterals, addedGuards);
+    auto it1 = iterTraits(getSolutionsWithGuards(selectedLiterals, addedGuards))
+      .map([](Solution s) -> Solution { DEBUG("found solution: ", s); return s; });
 
     auto it2 = getMappingIterator(it1,
                InstanceFn(flattened,selectedLiterals,_splitter,this, addedGuards, premiseRedundant));

@@ -186,6 +186,33 @@ TEST_GENERATION_WITH_SUGAR(test_06,
       .premiseRedundant(false)
     )
 
+TEST_GENERATION_WITH_SUGAR(test_div_by_zero_01,
+    RAT_SYNTAX_SUGAR,
+    Generation::TestCase()
+      .rule(theoryInstAndSimp(Options::TheoryInstSimp::NEW))
+      .input(    clause({ 1 / num(0) != 3 }) )
+      .expected(exactly(clause({})))
+      .premiseRedundant(false)
+    )
+
+TEST_GENERATION_WITH_SUGAR(test_div_by_zero_02,
+    RAT_SYNTAX_SUGAR,
+    Generation::TestCase()
+      .rule(theoryInstAndSimp(Options::TheoryInstSimp::NEW))
+      .input(    clause({ x / num(0) != 3 }) )
+      .expected(exactly(clause({})))
+      .premiseRedundant(false)
+    )
+
+TEST_GENERATION_WITH_SUGAR(test_div_by_zero_03,
+    RAT_SYNTAX_SUGAR,
+    Generation::TestCase()
+      .rule(theoryInstAndSimp(Options::TheoryInstSimp::NEW))
+      .input(    clause({ x / num(0) == 3 }) )
+      .expected(exactly(clause({})))
+      .premiseRedundant(false)
+    )
+
 #define PAIR_SYNTAX_SUGAR                                                                                     \
   DECL_DEFAULT_VARS                                                                                           \
   NUMBER_SUGAR(Int)                                                                                           \

@@ -40,7 +40,7 @@
 #include "Indexing/TermSharing.hpp"
 #include "Z3Interfacing.hpp"
 
-#define DEBUG(...) //DBG(__VA_ARGS__)
+#define DEBUG(...) DBG(__VA_ARGS__)
 namespace Lib {
 
 template<> 
@@ -361,7 +361,7 @@ struct EvaluateInModel
   Result operator()(z3::expr expr, Result* evaluatedArgs) 
   {
     CALL("EvaluateInModel::operator()")
-   DEBUG("in: ", expr)
+    DEBUG("in: ", expr)
     auto intVal = [](z3::expr e) -> Option<int> {
       int val;
       return e.is_numeral_i(val) 
@@ -416,7 +416,7 @@ Term* Z3Interfacing::evaluateInModel(Term* trm)
 {
   CALL("evaluateInModel(Term*)")
   DEBUG("in: ", *trm)
-  DEBUG("model: ", _model)
+  DEBUG("model: \n", _model)
   ASS(!trm->isLiteral());
 
   bool name; //TODO what do we do about naming?
@@ -681,7 +681,8 @@ z3::func_decl const& Z3Interfacing::findConstructor(FuncId id_)
   }
 }
 
-struct ToZ3Expr {
+struct ToZ3Expr 
+{
   using Z3FuncEntry = Z3Interfacing::Z3FuncEntry;
   using DestructorMeta = Z3Interfacing::DestructorMeta;
   Z3Interfacing& self;
@@ -695,7 +696,7 @@ struct ToZ3Expr {
   z3::expr operator()(TermList toEval, z3::expr* args) 
   {
     CALL("ToZ3Expr::operator()");
-    DEBUG("in: ", toEval)
+    // DEBUG("in: ", toEval)
     ASS(toEval.isTerm())
     auto trm = toEval.term();
     bool isLit = trm->isLiteral();
@@ -707,6 +708,7 @@ struct ToZ3Expr {
           env.out() << "[Z3] adding guard: " << guard << std::endl;
           env.endOutput();
         }
+        DEBUG("added guard: ", guard);
         _addedGuard = true;
         self._solver.add(guard);
       }
@@ -1053,11 +1055,13 @@ Z3Interfacing::Z3FuncEntry Z3Interfacing::z3Function(FuncOrPredId functor)
 z3::expr Z3Interfacing::getz3expr(Term* trm, bool& nameExpression,bool withGuard,bool& addedGuard)
 {
   CALL("Z3Interfacing::getz3expr");
+  DEBUG("in: ", *trm);
   nameExpression = false;
   addedGuard = false;
   auto result = evaluateBottomUp(TermList(trm), ToZ3Expr{ *this, nameExpression, withGuard, addedGuard });
   if (_nameAllLiterals)
     nameExpression = true;
+  DEBUG("out: ", result);
   return result;
 }
 

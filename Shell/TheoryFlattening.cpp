@@ -195,7 +195,7 @@ Clause* TheoryFlattening::apply(Clause*& cl,Stack<Literal*>& target)
       if(ts->isTerm() 
           && (
             env.signature->getFunction(ts->term()->functor())->interpreted()
-            || env.signature->getFunction(ts->term()->functor())->termAlgebraCons() // TODO 
+            || env.signature->getFunction(ts->term()->functor())->termAlgebraCons() 
             || env.signature->getFunction(ts->term()->functor())->termAlgebraDest()
             )
           ){
@@ -227,7 +227,7 @@ Clause* TheoryFlattening::apply(Clause*& cl,Stack<Literal*>& target)
         !equalityWithNumber &&
         (interpreted != 
           (env.signature->getFunction(t->functor())->interpreted() 
-            || env.signature->getFunction(ts->term()->functor())->termAlgebraCons() // TODO
+            || env.signature->getFunction(ts->term()->functor())->termAlgebraCons()
             || env.signature->getFunction(ts->term()->functor())->termAlgebraDest()
           )
                         )&& 
