@@ -98,7 +98,8 @@ private:
   */
   bool isSupportedSort(const unsigned sort);
   bool calcIsSupportedSort(const unsigned sort);
-  bool isUninterpretedFunction(Term* trm);
+  bool isSupportedFunction(Term* trm);
+  bool isSupportedFunction(Theory::Interpretation trm);
 
   /**
      Checks if literal can be mapped back to terms. Works around

@@ -115,14 +115,27 @@ bool TheoryInstAndSimp::isSupportedLiteral(Literal* lit) {
   return true;
 }
 
-bool TheoryInstAndSimp::isUninterpretedFunction(Term* trm) {
+bool TheoryInstAndSimp::isSupportedFunction(Term* trm) {
   auto sym = env.signature->getFunction(trm->functor());
-  return !(theory->isInterpretedFunction(trm) 
-      || theory->isInterpretedConstant(trm) 
+  return !(theory->isInterpretedConstant(trm) 
+      || (theory->isInterpretedFunction(trm) && isSupportedFunction(theory->interpretFunction(trm)) )
       || (sym->termAlgebraCons() && isSupportedSort(sym->fnType()->result()))
       || (sym->termAlgebraDest() && isSupportedSort(sym->fnType()->arg(0)))
       );
 }
+
+
+bool TheoryInstAndSimp::isSupportedFunction(Theory::Interpretation itp) {
+  switch (itp) {
+    case Theory::ARRAY_BOOL_SELECT:
+    case Theory::ARRAY_SELECT:
+    case Theory::ARRAY_STORE:
+      return false;
+    default: return true;
+  }
+}
+
+
 
 bool TheoryInstAndSimp::isPure(Literal* lit) {
   if (lit->isSpecial()) /* TODO: extend for let .. in / if then else */ {
@@ -147,7 +160,7 @@ bool TheoryInstAndSimp::isPure(Literal* lit) {
       Term* term = tl.term();
 
       //we can stop if we found an uninterpreted function / constant
-      if (isUninterpretedFunction(term)){
+      if (isSupportedFunction(term)){
         return false;
       }
       //check if return value of term is supported
@@ -432,7 +445,7 @@ void TheoryInstAndSimp::originalSelectTheoryLiterals(Clause* cl, Stack<Literal*>
     //TODO I do this kind of check all over the place but differently every time!
     if(interpreted && lit->isEquality() && !lit->isTwoVarEquality()) {  
       for(TermList* ts = lit->args(); ts->isNonEmpty(); ts = ts->next()){
-        if(ts->isTerm() && isUninterpretedFunction(ts->term())){
+        if(ts->isTerm() && isSupportedFunction(ts->term())){
           interpreted=false;
           break;
         }
@@ -446,7 +459,7 @@ void TheoryInstAndSimp::originalSelectTheoryLiterals(Clause* cl, Stack<Literal*>
     for(TermList* ts = lit->args(); ts->isNonEmpty(); ts = ts->next()){
       if(ts->isTerm()){
         Term* t = ts->term();
-        if(isUninterpretedFunction(t)){
+        if(isSupportedFunction(t)){
           // treat this literal as uninterpreted
           interpreted=false;
 #if DPRINT
@@ -533,7 +546,7 @@ void TheoryInstAndSimp::originalSelectTheoryLiterals(Clause* cl, Stack<Literal*>
       bool deselect=false;
       while(nit.hasNext() && !deselect){
         Term* t = nit.next().term();
-        deselect = isUninterpretedFunction(t); 
+        deselect = isSupportedFunction(t); 
         if(deselect){
 #if DPRINT
           cout << "deselect " << t->toString() << endl;
