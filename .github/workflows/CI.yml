@@ -16,9 +16,9 @@ jobs:
       with:
         submodules: true
     - name: Check Copyright Headers
-      run: scripts/check-headers
+      run: checks/headers
     - name: Create Z3 Build Directory
-      run: mkdir ${{runner.workspace}}/vampire/z3/build
+      run: mkdir z3/build
     - name: Cache Z3 Build
       uses: actions/cache@v2
       with:
@@ -33,7 +33,7 @@ jobs:
       working-directory: ${{runner.workspace}}/vampire/z3/build
       run: test -f libz3.so || make -j8
     - name: Create Build Directory
-      run: mkdir ${{runner.workspace}}/vampire/build
+      run: mkdir build
     - name: Configure Build
       working-directory: ${{runner.workspace}}/vampire/build
       run: cmake .. -DCMAKE_BUILD_TYPE=Debug
@@ -45,3 +45,7 @@ jobs:
     - name: Run Unit Tests
       working-directory: ${{runner.workspace}}/vampire/build
       run: ctest --output-on-failure
+    - name: Find Vampire Binary
+      run: cp build/bin/vampire_* vampire
+    - name: Run Sanity Checks
+      run: checks/sanity vampire
