@@ -16,7 +16,7 @@
  */
 
 #if VZ3
-#define DEBUG(...) DBG(__VA_ARGS__)
+#define DEBUG(...) // DBG(__VA_ARGS__)
 
 #define DPRINT 0
 
