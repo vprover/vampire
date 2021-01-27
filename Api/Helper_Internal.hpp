@@ -110,8 +110,7 @@ public:
 
   void declareInvalid(){ valid = false; }
 
-  Term term(const Function& f,const Term* args, unsigned arity);
-  Formula atom(const Predicate& p, bool positive, const Term* args, unsigned arity);
+  Expression term(const Symbol& f,const Expression* args, unsigned arity);
   virtual vstring getVarName(Var v) const;
   Sort getVarSort(Var v) const;
   Var getVar(vstring varName, Sort varSort);
@@ -135,9 +134,9 @@ public:
   /** Return arbitrary uninterpreted unary predicate */
   unsigned getUnaryPredicate();
 
-  Sort getSort(const Api::Term t);
-  void ensureArgumentsSortsMatch(OperatorType* type, const Api::Term* args);
-  void ensureEqualityArgumentsSortsMatch(const Api::Term arg1, const Api::Term arg2);
+  Sort getSort(const Api::Expression t);
+  void ensureArgumentsSortsMatch(OperatorType* type, const Api::Expression* args);
+  void ensureEqualityArgumentsSortsMatch(const Api::Expression arg1, const Api::Expression arg2);
 
   typedef pair<vstring,vstring> AttribPair;
   typedef Stack<AttribPair> AttribStack;

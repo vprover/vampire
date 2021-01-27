@@ -132,63 +132,50 @@ StringIterator DefaultHelperCore::getVarNames(VarList* l)
 
 
 /** build a term f(*args) with specified @b arity */
-Term FBHelperCore::term(const Function& f,const Term* args, unsigned arity)
+Expression FBHelperCore::term(const Symbol& s, const Expression* args, unsigned arity)
 {
   CALL("FBHelperCore::term");
 
   for(unsigned i = 0; i < arity; i++){
     if(!args[i].isValid()){
-      throw ApiException("Attempting to use a term created prior to a solver reset");
+      throw ApiException("Attempting to use an expression created prior to a hard solver reset");
+    }
+    if(!args[i].isTerm()){
+      throw ApiException("Expression " + args[i].toString() + " of Boolean sort cannot be used as an argument of an uninterpreted symbols");          
     }
   }
 
-  if(!f.isValid()){
-    throw ApiException("Attempting to use a function created prior to a solver reset");        
+  if(!s.isValid()){
+    throw ApiException("Attempting to use a symbol created prior to a hard solver reset");        
   }
-  if(f>=static_cast<unsigned>(env.signature->functions())) {
+
+  bool isFun = s.isFunctionSymbol();
+
+  if(isFun && s>=static_cast<unsigned>(env.signature->functions())) {
     throw FormulaBuilderException("Function does not exist");
-  }
-  if(arity!=env.signature->functionArity(f)) {
-    throw FormulaBuilderException("Invalid function arity: "+env.signature->functionName(f));
-  }
-  ensureArgumentsSortsMatch(env.signature->getFunction(f)->fnType(), args);
-
-  DArray<TermList> argArr;
-  argArr.initFromArray(arity, args);
-
-  Term res(Kernel::TermList(Kernel::Term::create(f,arity,argArr.array())));
-  res._aux=this; //assign the correct helper object
-  return res;
-}
-
-/** build a predicate p(*args) with specified @b arity */
-Formula FBHelperCore::atom(const Predicate& p, bool positive, const Term* args, unsigned arity)
-{
-  CALL("FBHelperCore::atom");
-
-  for(unsigned i = 0; i < arity; i++){
-    if(!args[i].isValid()){
-      throw ApiException("Attempting to use a term created prior to a solver reset");
-    }
-  }
-
-  if(!p.isValid()){
-    throw ApiException("Attempting to use a predicate created prior to a solver reset");        
-  }
-  if(p>=static_cast<unsigned>(env.signature->predicates())) {
+  } else if (!isFun && s>=static_cast<unsigned>(env.signature->predicates())){
     throw FormulaBuilderException("Predicate does not exist");
   }
-  if(arity!=env.signature->predicateArity(p)) {
-    throw FormulaBuilderException("Invalid predicate arity: "+env.signature->predicateName(p));
+
+  unsigned symArity = isFun ? env.signature->functionArity(s) : env.signature->predicateArity(s);
+  vstring symName = isFun ? env.signature->functionName(s) : env.signature->predicateName(s);
+
+  if(arity!= symArity) {
+    throw FormulaBuilderException("Invalid function arity: "+symName);
   }
-  ensureArgumentsSortsMatch(env.signature->getPredicate(p)->predType(), args);
+  ensureArgumentsSortsMatch(isFun ? env.signature->getFunction(s)->fnType() :
+                                    env.signature->getPredicate(s)->predType(), args);
 
   DArray<TermList> argArr;
   argArr.initFromArray(arity, args);
 
-  Kernel::Literal* lit=Kernel::Literal::create(p, arity, positive, false, argArr.array());
-
-  Formula res(new Kernel::AtomicFormula(lit));
+  Expression res;
+  if(isFun){
+    res = Expression(Kernel::TermList(Kernel::Term::create(s,arity,argArr.array())));
+  } else {
+    Kernel::Literal* lit=Kernel::Literal::create(s, arity, true, false, argArr.array());
+    res = Expression(new Kernel::AtomicFormula(lit));    
+  }
   res._aux=this; //assign the correct helper object
   return res;
 }
@@ -213,10 +200,11 @@ unsigned FBHelperCore::getUnaryPredicate()
   return _unaryPredicate;
 }
 
-Sort FBHelperCore::getSort(const Api::Term t)
+Sort FBHelperCore::getSort(const Api::Expression t)
 {
   CALL("FBHelperCore::getSort");
-
+  ASS(t.isTerm());
+  
   if(t.isVar()) {
     unsigned v = t.var();
     return getVarSort(v);
@@ -227,7 +215,7 @@ Sort FBHelperCore::getSort(const Api::Term t)
   }
 }
 
-void FBHelperCore::ensureArgumentsSortsMatch(OperatorType* type, const Api::Term* args)
+void FBHelperCore::ensureArgumentsSortsMatch(OperatorType* type, const Api::Expression* args)
 {
   CALL("FBHelperCore::ensureArgumentsSortsMatch");
 
@@ -241,7 +229,7 @@ void FBHelperCore::ensureArgumentsSortsMatch(OperatorType* type, const Api::Term
   }
 }
 
-void FBHelperCore::ensureEqualityArgumentsSortsMatch(const Api::Term arg1, const Api::Term arg2)
+void FBHelperCore::ensureEqualityArgumentsSortsMatch(const Api::Expression arg1, const Api::Expression arg2)
 {
   CALL("FBHelperCore::ensureEqualityArgumentsSortsMatch");
 

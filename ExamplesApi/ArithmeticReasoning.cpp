@@ -9,12 +9,12 @@ int main() {
 
     solver.setTimeLimit(2);
  
-    Term ten = solver.integerConstant(10);
-    Term twenty = solver.integerConstant(20);
+    Expression ten = solver.integerConstant(10);
+    Expression twenty = solver.integerConstant(20);
 
-    Term ten_plus_ten = solver.sum(ten, ten);
+    Expression ten_plus_ten = solver.sum(ten, ten);
 
-    Formula ten_plus_ten_equals_twenty = solver.equality(ten_plus_ten, twenty);
+    Expression ten_plus_ten_equals_twenty = solver.equality(ten_plus_ten, twenty);
 
     solver.addConjecture(ten_plus_ten_equals_twenty);
 
@@ -22,7 +22,7 @@ int main() {
 
     cout << "proof found: " << res.unsatisfiable() << endl;
 
-    solver.resetHard();
+    solver.reset();
 
     ten = solver.integerConstant(10);
     
@@ -30,7 +30,7 @@ int main() {
 
     ten_plus_ten_equals_twenty = solver.equality(ten_plus_ten, twenty);
     
-    solver.addFormula(ten_plus_ten_equals_twenty);
+    solver.addFormula(twenty);
 
     res = solver.solve();
 

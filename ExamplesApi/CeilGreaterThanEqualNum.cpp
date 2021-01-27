@@ -11,12 +11,12 @@ int main() {
  
     Sort realSort = solver.realSort();
     Var var_x = solver.var("X", realSort);
-    Term x = solver.varTerm(var_x);
-    Term ceiling_x = solver.ceiling(x);
+    Expression x = solver.varTerm(var_x);
+    Expression ceiling_x = solver.ceiling(x);
 
     //ceiling(x) >= x
-    Formula ceil_greater_or_equal = solver.geq(ceiling_x, x);
-    Formula ceil_greater_or_equal_quanitifed = solver.formula(Solver::FORALL, var_x, ceil_greater_or_equal);
+    Expression ceil_greater_or_equal = solver.geq(ceiling_x, x);
+    Expression ceil_greater_or_equal_quanitifed = solver.forall(var_x, ceil_greater_or_equal);
 
     Result res = solver.checkEntailed(ceil_greater_or_equal_quanitifed);
 

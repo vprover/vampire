@@ -187,6 +187,13 @@ namespace Api
     return FormulaBuilder::defaultSort();
   }
 
+  Sort Solver::boolSort()
+  {
+    CALL("Solver::boolSort");
+
+    return FormulaBuilder::boolSort();
+  }
+
   Var Solver::var(const vstring& varName)
   {
     CALL("Solver::var");
@@ -201,14 +208,15 @@ namespace Api
     return fb.var(varName, varSort);
   }
 
-  Function Solver::function(const vstring& funName,unsigned arity, bool builtIn)
+  Symbol Solver::function(const vstring& funName,unsigned arity, bool builtIn)
   {
     CALL("Solver::function/2");
 
-    return fb.function(funName, arity, builtIn);
+    std::vector<Sort> domainSorts(arity, defaultSort());
+    return fb.symbol(funName, arity, defaultSort(), domainSorts, builtIn);
   }
 
-  Function Solver::function(const vstring& funName, unsigned arity, Sort rangeSort, Sort* domainSorts, bool builtIn)
+  Symbol Solver::function(const vstring& funName, unsigned arity, Sort rangeSort, std::vector<Sort>& domainSorts, bool builtIn)
   {
     CALL("Solver::function/4");
 
@@ -220,17 +228,18 @@ namespace Api
       //TODO: add further checks
     }
 
-    return fb.function(funName, arity, rangeSort, domainSorts, builtIn);
+    return fb.symbol(funName, arity, rangeSort, domainSorts, builtIn);
   }
 
-  Predicate Solver::predicate(const vstring& predName,unsigned arity, bool builtIn)
+  Symbol Solver::predicate(const vstring& predName,unsigned arity, bool builtIn)
   {
     CALL("Solver::predicate/2");
 
-    return fb.predicate(predName, arity, builtIn);
+    std::vector<Sort> domainSorts(arity, defaultSort());
+    return fb.symbol(predName, arity, boolSort(), domainSorts, builtIn);
   }
 
-  Predicate Solver::predicate(const vstring& predName, unsigned arity, Sort* domainSorts, bool builtIn)
+  Symbol Solver::predicate(const vstring& predName, unsigned arity, std::vector<Sort>& domainSorts, bool builtIn)
   {
     CALL("Solver::predicate/3");
 
@@ -242,7 +251,7 @@ namespace Api
       //TODO: add further checks
     }
     
-    return fb.predicate(predName, arity, domainSorts, builtIn);
+    return fb.symbol(predName, arity, boolSort(), domainSorts, builtIn);
   }
 
   vstring Solver::getSortName(Sort s)
@@ -252,18 +261,11 @@ namespace Api
     return fb.getSortName(s);
   }
 
-  vstring Solver::getPredicateName(Predicate p)
+  vstring Solver::getSymbolName(Symbol s)
   {
     CALL("Solver::getPredicateName");
 
-    return fb.getPredicateName(p);
-  }
-
-  vstring Solver::getFunctionName(Function f)
-  {
-    CALL("Solver::getFunctionName");
-
-    return fb.getFunctionName(f);
+    return fb.getSymbolName(s);
   }
 
   vstring Solver::getVariableName(Var v)
@@ -273,154 +275,175 @@ namespace Api
     return fb.getVariableName(v);
   }
 
-  Term Solver::varTerm(const Var& v)
+  Expression Solver::varTerm(const Var& v)
   {
     CALL("Solver::varTerm");
 
     return fb.varTerm(v);
   }
 
-  Term Solver::term(const Function& f,const std::vector<Term>& args)
+  Expression Solver::term(const Symbol& s,const std::vector<Expression>& args)
   {
     CALL("Solver::term");
 
-    return fb.term(f, args);
+    return fb.term(s, args);
   }
 
-  Formula Solver::atom(const Predicate& p, const std::vector<Term>& args, bool positive)
-  {
-    CALL("Solver::atom");
-
-    return fb.atom(p, args, positive);
-  }
-
-  Formula Solver::equality(const Term& lhs,const Term& rhs, Sort sort, bool positive)
+  Expression Solver::equality(const Expression& lhs,const Expression& rhs, Sort sort, bool positive)
   {
     CALL("Solver::equality/4");
 
     return fb.equality(lhs, rhs, sort, positive);
   }
 
-  Formula Solver::equality(const Term& lhs,const Term& rhs, bool positive)
+  Expression Solver::equality(const Expression& lhs,const Expression& rhs, bool positive)
   {
     CALL("Solver::equality/3");
 
     return fb.equality(lhs, rhs, positive);;
   }
 
-  Formula Solver::trueFormula()
+  Expression Solver::trueFormula()
   {
     CALL("Solver::trueFormula");
 
     return fb.trueFormula();
   }
 
-  Formula Solver::falseFormula()
+  Expression Solver::falseFormula()
   {
     CALL("Solver::falseFormula");
 
     return fb.falseFormula();;
   }
 
-  Formula Solver::negation(const Formula& f)
+  Expression Solver::negation(const Expression& f)
   {
     CALL("Solver::negation");
 
     return fb.negation(f);
   }
 
-  Formula Solver::formula(Connective c,const Formula& f1,const Formula& f2)
+  Expression Solver::andFormula(const Expression& f1,const Expression& f2)
   {
-    CALL("Solver::formula(Connective,const Formula&,const Formula&)");
+    CALL("Solver::andFormula");
 
-    return fb.formula(static_cast<FormulaBuilder::Connective>(c), f1, f2);
+    return fb.andFormula(f1,f2);
   }
 
-  Formula Solver::formula(Connective q,const Var& v,const Formula& f)
+  Expression Solver::orFormula(const Expression& f1,const Expression& f2)
   {
-    CALL("Solver::formula(Connective,const Var&,const Formula&)");
+    CALL("Solver::orFormula");
 
-    return fb.formula(static_cast<FormulaBuilder::Connective>(q), v, f);
+    return fb.orFormula(f1,f2);
   }
 
-  AnnotatedFormula Solver::annotatedFormula(Formula f, FormulaBuilder::Annotation a, vstring name)
+  Expression Solver::implies(const Expression& f1,const Expression& f2)
   {
-    CALL("Solver::annotatedFormula");
+    CALL("Solver::implies");
 
-    return fb.annotatedFormula(f, static_cast<FormulaBuilder::Annotation>(a), name);
+    return fb.implies(f1,f2);
   }
 
-  Term Solver::term(const Function& c)
+  Expression Solver::iff(const Expression& f1,const Expression& f2)
+  {
+    CALL("Solver::iff");
+
+    return fb.iff(f1,f2);
+  }
+
+  Expression Solver::exor(const Expression& f1,const Expression& f2)
+  {
+    CALL("Solver::exor");
+
+    return fb.exor(f1,f2);
+  }
+
+  Expression Solver::forall(const Var& v,const Expression& f)
+  {
+    CALL("Solver::forall");
+
+    return fb.forall(v,f);
+  }
+
+  Expression Solver::exists(const Var& v,const Expression& f)
+  {
+    CALL("Solver::exists");
+
+    return fb.exists(v,f);
+  }
+
+  Expression Solver::term(const Symbol& s)
   {
     CALL("Solver::term/0");
 
-    return fb.term(c);
+    return fb.term(s);
   }
 
-  Term Solver::term(const Function& f,const Term& t)
+  Expression Solver::term(const Symbol& s,const Expression& t)
   {
     CALL("Solver::term/1");
 
-    return fb.term(f,t);
+    return fb.term(s,t);
   }
 
-  Term Solver::term(const Function& f,const Term& t1,const Term& t2)
+  Expression Solver::term(const Symbol& s,const Expression& t1,const Expression& t2)
   {
     CALL("Solver::term/2");
 
-    return fb.term(f,t1,t2);
+    return fb.term(s,t1,t2);
   }
 
-  Term Solver::term(const Function& f,const Term& t1,const Term& t2,const Term& t3)
+  Expression Solver::term(const Symbol& s,const Expression& t1,const Expression& t2,const Expression& t3)
   {
     CALL("Solver::term/3");
 
-    return fb.term(f,t1,t2,t3);
+    return fb.term(s,t1,t2,t3);
   }
 
-  Term Solver::integerConstant(int i)
+  Expression Solver::integerConstant(int i)
   {
     CALL("Solver::integerConstant");
 
     return fb.integerConstantTerm(i);
   }
 
-  Term Solver::integerConstant(vstring i)
+  Expression Solver::integerConstant(vstring i)
   {
     CALL("Solver::integerConstant");
 
     return fb.integerConstantTerm(i);
   }  
 
-  Term Solver::rationalConstant(Lib::vstring numerator, Lib::vstring denom)
+  Expression Solver::rationalConstant(Lib::vstring numerator, Lib::vstring denom)
   {
     CALL("Solver::rationalConstant");
 
     return fb.rationalConstant(numerator, denom);
   }
 
-  Term Solver::realConstant(Lib::vstring r)
+  Expression Solver::realConstant(Lib::vstring r)
   {
     CALL("Solver::realConstant");
 
     return fb.realConstant(r);
   }
 
-  Term Solver::sum(const Term& t1,const Term& t2)
+  Expression Solver::sum(const Expression& t1,const Expression& t2)
   {
     CALL("Solver::sum");
 
     return fb.sum(t1, t2);
   }
 
-  Term Solver::difference(const Term& t1,const Term& t2)
+  Expression Solver::difference(const Expression& t1,const Expression& t2)
   {
     CALL("Solver::difference");
 
     return fb.difference(t1, t2);
   }
 
-  Term Solver::multiply(const Term& t1,const Term& t2)
+  Expression Solver::multiply(const Expression& t1,const Expression& t2)
   {
     CALL("Solver::multiply");
 
@@ -435,84 +458,56 @@ namespace Api
     return fb.divide(t1, t2);
   }*/
 
-  Term Solver::absolute(const Term& t1)
+  Expression Solver::absolute(const Expression& t1)
   {
     CALL("absolute::absolute");
 
     return fb.absolute(t1);
   }
 
-  Term Solver::floor(const Term& t1)
+  Expression Solver::floor(const Expression& t1)
   {
     CALL("Solver::floor");
 
     return fb.floor(t1);
   }
 
-  Term Solver::ceiling(const Term& t1)
+  Expression Solver::ceiling(const Expression& t1)
   {
     CALL("Solver::ceiling");
 
     return fb.ceiling(t1);
   }
 
-  Formula Solver::geq(const Term& t1, const Term& t2)
+  Expression Solver::geq(const Expression& t1, const Expression& t2)
   {
     CALL("Solver::geq");
  
     return fb.geq(t1, t2);
   }
 
-  Formula Solver::leq(const Term& t1, const Term& t2)
+  Expression Solver::leq(const Expression& t1, const Expression& t2)
   {
     CALL("Solver::leq");
 
     return fb.leq(t1, t2);
   }
 
-  Formula Solver::gt(const Term& t1, const Term& t2)
+  Expression Solver::gt(const Expression& t1, const Expression& t2)
   {
     CALL("Solver::gt");
 
     return fb.gt(t1, t2);
   }
 
-  Formula Solver::lt(const Term& t1, const Term& t2)
+  Expression Solver::lt(const Expression& t1, const Expression& t2)
   {
     CALL("Solver::lt");
 
     return fb.lt(t1, t2);
   }
 
-  Formula Solver::formula(const Predicate& p)
-  {
-    CALL("Solver::formula/0");
-
-    return fb.formula(p);
-  }
-
-  Formula Solver::formula(const Predicate& p,const Term& t)
-  {
-    CALL("Solver::formula/1");
-
-    return fb.formula(p,t);
-  }
-
-  Formula Solver::formula(const Predicate& p,const Term& t1,const Term& t2)
-  {
-    CALL("Solver::formula/2");
-
-    return fb.formula(p,t1,t2);
-  }
-
-  Formula Solver::formula(const Predicate& p,const Term& t1,const Term& t2,const Term& t3)
-  {
-    CALL("Solver::formula/3");
-
-    return fb.formula(p, t1, t2, t3);
-  }
-
-  void Solver::addFormula(Formula f)
+  void Solver::addFormula(Expression f)
   {
     CALL("Solver::addFormula/2");
 
@@ -524,7 +519,7 @@ namespace Api
     }
   }
 
-  void Solver::addConjecture(Formula f)
+  void Solver::addConjecture(Expression f)
   {
     CALL("Solver::addConjecture");
 
@@ -582,7 +577,7 @@ namespace Api
     return Result(env.statistics->terminationReason);
   }
 
-  Result Solver::checkEntailed(Formula f)
+  Result Solver::checkEntailed(Expression f)
   {
     CALL("Solver::checkEntailed");
     
@@ -614,6 +609,7 @@ namespace Api
     
     if(current != forms->size()){
       (*forms)[current - 1] = forms->top();
+      current--;
     } 
     forms->pop();
   }

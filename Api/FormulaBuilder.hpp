@@ -21,6 +21,7 @@
 #include "Helper.hpp"
 
 #include "Kernel/Theory.hpp"
+#include "Kernel/Connective.hpp"
 
 #include "Lib/VString.hpp"
 #include <vector>
@@ -89,10 +90,8 @@ private:
 
 typedef unsigned Var;
 class Sort;
-class Function;
-class Predicate;
-class Term;
-class Formula;
+class Symbol;
+class Expression;
 class AnnotatedFormula;
 
 /**
@@ -116,22 +115,6 @@ private:
   FormulaBuilder(bool checkNames=true, bool checkBindingBoundVariables=true,
       bool allowImplicitlyTypedVariables=true, bool outputDummyNames=false);
 
-  enum Connective {
-    TRUE,
-    FALSE,
-    ATOM,
-    AND,
-    OR,
-    IMP,
-    IFF,
-    XOR,
-    NOT,
-    FORALL,
-    EXISTS,
-    /** if-then-else connective */
-    ITE
-  };
-
   /** Annotation of formulas */
   enum Annotation {
     /** Axiom or derives from axioms */
@@ -152,6 +135,9 @@ private:
   Sort rationalSort();
   /** Return sort for reals */
   Sort realSort();
+  
+  /** Return the sort of formulas */
+  static Sort boolSort();
 
   /**
    * Return the default sort that is used when no sort is specified.
@@ -174,26 +160,16 @@ private:
   Var var(const Lib::vstring& varName, Sort varSort);
 
   /**
-   * Create a function symbol using default sorts. If @b builtIn is true, the symbol will not be
-   * eliminated during preprocessing.
-   *
-   * @warning Functions of the same name and arity must have always
-   * also the same type, even across different instances of the
-   * FormulaBuilder class.
-   */
-  Function function(const Lib::vstring& funName, unsigned arity, bool builtIn=false);
-
-  /**
-   * Create a function symbol with specified range and domain sorts. If @b builtIn is
-   * true, the symbol will not be eliminated during preprocessing.
+   * Create a symbol with specified range and domain sorts (BOOL_SORT for predicates). 
+   * If @b builtIn is true, the symbol will not be eliminated during preprocessing.
    *
    * @warning Functions of the same name and arity must have always
    * also the same type, even across different instances of the
    * FormulaBuilder class. */
-  Function function(const Lib::vstring& funName, unsigned arity, Sort rangeSort, Sort* domainSorts, bool builtIn=false);
+  Symbol symbol(const Lib::vstring& funName, unsigned arity, Sort rangeSort, std::vector<Sort>& domainSorts, bool builtIn=false);
 
   /** Return constant symbol representing @c i */
-  Function integerConstant(int i);
+  Symbol integerConstant(int i);
 
   /**
    * Return constant symbol representing @c i
@@ -201,56 +177,29 @@ private:
    * @c FormulaBuilderException may be thrown if @c i is not a proper value, or too large
    * for Vampire internal representation.
    */
-  Function integerConstant(Lib::vstring i);
+  Symbol integerConstant(Lib::vstring i);
 
-  Function rationalConstantSymbol(Lib::vstring numerator, Lib::vstring denom);
+  Symbol rationalConstantSymbol(Lib::vstring numerator, Lib::vstring denom);
 
-  Function realConstantSymbol(Lib::vstring r);
-
-  /**
-   * Create a predicate symbol using default sorts. If @b builtIn if true, the symbol will not be
-   * eliminated during preprocessing.
-   *
-   * @warning Predicates of the same name and arity must have always
-   * also the same type, even across different instances of the
-   * FormulaBuilder class. */
-  Predicate predicate(const Lib::vstring& predName, unsigned arity, bool builtIn=false);
-
-  /**
-   * Create a predicate symbol with specified domain sorts. If @b builtIn if true, the symbol will not be
-   * eliminated during preprocessing.
-   *
-   * @warning Predicates of the same name and arity must have always
-   * also the same type, even across different instances of the
-   * FormulaBuilder class. */
-  Predicate predicate(const Lib::vstring& predName, unsigned arity, Sort* domainSorts, bool builtIn=false);
+  Symbol realConstantSymbol(Lib::vstring r);
 
   /**
    * Create interpreted predicate
    */
-  Predicate interpretedPredicate(Kernel::Theory::Interpretation interp);
-
-  /**
-   * Create interpreted predicate
-   */
-  Function interpretedFunction(Kernel::Theory::Interpretation interp);
+  Symbol interpretedSymbol(Kernel::Theory::Interpretation interp);
 
   /**
    * Return name of the sort @c s.
    */
   Lib::vstring getSortName(Sort s);
+
   /**
-   * Return name of the predicate @c p.
+   * Return name of the symbol @c s.
    *
    * If the output of dummy names is enabled, the dummy name will be returned here.
    */
-  Lib::vstring getPredicateName(Predicate p);
-  /**
-   * Return name of the function @c f.
-   *
-   * If the output of dummy names is enabled, the dummy name will be returned here.
-   */
-  Lib::vstring getFunctionName(Function f);
+  Lib::vstring getSymbolName(Symbol s);
+
   /**
    * Return name of the variable @c v.
    *
@@ -260,7 +209,7 @@ private:
 
 
   //TODO do we need these? Currently not exposed in Solver
-  void addAttribute(Predicate p, Lib::vstring name, Lib::vstring value);
+  /*void addAttribute(Predicate p, Lib::vstring name, Lib::vstring value);
   unsigned attributeCount(Predicate p);
   Lib::vstring getAttributeName(Predicate p, unsigned index);
   Lib::vstring getAttributeValue(Predicate p, unsigned index);
@@ -276,135 +225,140 @@ private:
   unsigned attributeCount(Sort s);
   Lib::vstring getAttributeName(Sort s, unsigned index);
   Lib::vstring getAttributeValue(Sort s, unsigned index);
-  Lib::vstring getAttributeValue(Sort s, Lib::vstring attributeName);
+  Lib::vstring getAttributeValue(Sort s, Lib::vstring attributeName);*/
 
   /** build a variable term */
-  Term varTerm(const Var& v);
+  Expression varTerm(const Var& v);
 
   /** build a term f(t,ts) */
-  Term term(const Function& f,const std::vector<Term>& args);
-
-  /** build an atomic formula different from equality */
-  Formula atom(const Predicate& p, const std::vector<Term>& args, bool positive=true);
+  Expression term(const Symbol& f,const std::vector<Expression>& args);
 
   /** build an equality */
-  Formula equality(const Term& lhs,const Term& rhs, bool positive=true);
+  Expression equality(const Expression& lhs,const Expression& rhs, bool positive=true);
 
   /** build an equality and check the sorts of the equality sides to be equal to @c sort*/
-  Formula equality(const Term& lhs,const Term& rhs, Sort sort, bool positive=true);
+  Expression equality(const Expression& lhs,const Expression& rhs, Sort sort, bool positive=true);
 
   /** build a true formula */
-  Formula trueFormula();
+  Expression trueFormula();
 
   /** build a false formula */
-  Formula falseFormula();
+  Expression falseFormula();
 
   /** build the negation of f */
-  Formula negation(const Formula& f);
+  Expression negation(const Expression& f);
 
-  /** build f1 c f2 */
-  Formula formula(Connective c,const Formula& f1,const Formula& f2);
+  /** build f1 /\ f2 */
+  Expression andFormula(const Expression& f1,const Expression& f2);
+
+  /** build f1 \/ f2 */
+  Expression orFormula(const Expression& f1,const Expression& f2);
+
+  Expression andOrOrFormula(Kernel::Connective c, const Expression& f1,const Expression& f2);
+
+  /** build f1 -> f2 */
+  Expression implies(const Expression& f1,const Expression& f2);
+
+  /** build f1 <-> f2 */
+  Expression iff(const Expression& f1,const Expression& f2);
+
+  /** build f1 XOR f2 */
+  Expression exor(const Expression& f1,const Expression& f2);
 
   /** build quantified formula (q v)f */
-  Formula formula(Connective q,const Var& v,const Formula& f);
+  Expression forall(const Var& v,const Expression& f);
+
+  /** build quantified formula (q v)f */
+  Expression exists(const Var& v,const Expression& f);
+
+  Expression quantifiedFormula(Kernel::Connective q, const Var& v,const Expression& f);
 
   // Special cases, convenient to have
 
-  /** build a constant term c */
-  Term term(const Function& c);
+  /** build a constant expression c */
+  Expression term(const Symbol& c);
 
   /** build a unary term f(t) */
-  Term term(const Function& f,const Term& t);
+  Expression term(const Symbol& s,const Expression& t);
 
   /** build a binary term f(t1,t2) */
-  Term term(const Function& f,const Term& t1,const Term& t2);
+  Expression term(const Symbol& s,const Expression& t1,const Expression& t2);
 
   /** build a term f(t1,t2,t3) */
-  Term term(const Function& f,const Term& t1,const Term& t2,const Term& t3);
+  Expression term(const Symbol& s,const Expression& t1,const Expression& t2,const Expression& t3);
 
   /** Return constant representing @c i */
-  Term integerConstantTerm(int i);
+  Expression integerConstantTerm(int i);
 
   /** Return constant representing @c i */
-  Term integerConstantTerm(Lib::vstring i);
+  Expression integerConstantTerm(Lib::vstring i);
 
   /** Return constant representing @c i */
-  Term rationalConstant(Lib::vstring numerator, Lib::vstring denom);
+  Expression rationalConstant(Lib::vstring numerator, Lib::vstring denom);
 
   /** Return constant representing @c i */
-  Term realConstant(Lib::vstring r);
+  Expression realConstant(Lib::vstring r);
 
   /** build t1 + t2 */
-  Term sum(const Term& t1,const Term& t2);
+  Expression sum(const Expression& t1,const Expression& t2);
 
   /** build t1 - t2 */
-  Term difference(const Term& t1,const Term& t2);
+  Expression difference(const Expression& t1,const Expression& t2);
 
   /** build t1 x t2 */
-  Term multiply(const Term& t1,const Term& t2);
+  Expression multiply(const Expression& t1,const Expression& t2);
 
   /** build t1 / t2 */
-  Term divide(const Term& t1,const Term& t2);
+  Expression divide(const Expression& t1,const Expression& t2);
 
   /** build floor(t1) */
-  Term floor(const Term& t1);
+  Expression floor(const Expression& t1);
 
   /** create ceiling (t1) */
-  Term ceiling(const Term& t1);
+  Expression ceiling(const Expression& t1);
 
   /** build  | t1 | */
-  Term absolute(const Term& t1);
+  Expression absolute(const Expression& t1);
   
   /** build the formula t1 >= t2 */
-  Formula geq(const Term& t1, const Term& t2);
+  Expression geq(const Expression& t1, const Expression& t2);
 
   /** build the formula t1 <= t2 */
-  Formula leq(const Term& t1, const Term& t2);
+  Expression leq(const Expression& t1, const Expression& t2);
 
   /** build the formula t1 > t2 */
-  Formula gt(const Term& t1, const Term& t2);
+  Expression gt(const Expression& t1, const Expression& t2);
 
   /** build the formula t1 < t2 */
-  Formula lt(const Term& t1, const Term& t2);
-
-  /** build a propositional symbol p */
-  Formula formula(const Predicate& p);
-
-  /** build atom p(t) */
-  Formula formula(const Predicate& p,const Term& t);
-
-  /** build atom p(t1,t2) */
-  Formula formula(const Predicate& p,const Term& t1,const Term& t2);
-
-  /** build atom p(t1,t2,t2) */
-  Formula formula(const Predicate& p,const Term& t1,const Term& t2,const Term& t3);
+  Expression lt(const Expression& t1, const Expression& t2);
 
   /** build an annotated formula (i.e. formula that is either axiom, goal, etc...) */
-  AnnotatedFormula annotatedFormula(Formula f, Annotation a, Lib::vstring name="");
+  AnnotatedFormula annotatedFormula(Expression& f, Annotation a, Lib::vstring name="");
 
-  void inline checkForSortError(const Term& t1, const Term& t2);
+  void checkForNumericalSortError(std::initializer_list<Expression> exprs);
+  void checkForTermError(std::initializer_list<Expression> exprs);
+  template<class T>
+  void checkForValidity(std::initializer_list<T> list);
 
   /**
-   * Return copy of term @b original with all occurrences of variable @c v
+   * Return copy of expression @b original with all occurrences of variable @c v
    * replaced by @c t.
-   */
-  Term substitute(Term original, Var v, Term t);
-  /**
-   * Return copy of formula @c f in which every occurrence of @c v
-   * was replaced by @c t. @c v must not be bound inside the formula.
+   * 
+   * If @c original is a formula, @c v must not be bound inside the formula.
    * @c t must no contain any varialbes that are bound inside the formula.
    *
    * @warning Substitution can change order of arguments of the equality
    * predicate.
    */
-  Formula substitute(Formula f, Var v, Term t);
-  AnnotatedFormula substitute(AnnotatedFormula af, Var v, Term t);
+  Expression substitute(Expression original, Var v, Expression t);
+
+  AnnotatedFormula substitute(AnnotatedFormula af, Var v, Expression t);
 
   /**
    * Return copy of term @c original that has all occurrences of term
    * @c replaced replaced by @c target. @c replaced must be a constant.
    */
-  Term replaceConstant(Term original, Term replaced, Term target);
+  Expression replaceConstant(Expression original, Expression replaced, Expression target);
 
   /** Return true if function and predicate symbols need to be checked for
     * syntactic correctness.
@@ -431,14 +385,14 @@ private:
 
   friend class Solver;
   friend class StringIterator;
-  friend class Formula;
+  friend class Expression;
   friend class AnnotatedFormula;
 };
 
 }
 
 std::ostream& operator<< (std::ostream& str,const Api::Sort& sort);
-std::ostream& operator<< (std::ostream& str,const Api::Formula& f);
+std::ostream& operator<< (std::ostream& str,const Api::Expression& f);
 std::ostream& operator<< (std::ostream& str,const Api::AnnotatedFormula& f);
 
 namespace Api
@@ -522,114 +476,79 @@ private:
   friend class FormulaBuilder;
 };
 
-class Function
+class Symbol
 {
 public:
-  Function() {}
-  explicit Function(unsigned num) : _num(num) {}
+  Symbol(){}
+  explicit Symbol(unsigned num, bool pred) : _num(num), _pred(pred) {}
+  explicit Symbol(unsigned num, bool pred, ApiHelper aux) : 
+           _aux(aux), _num(num), _pred(pred) {}
+  
   operator unsigned() const { return _num; }
+
+  bool isFunctionSymbol() const { return !_pred; }
 private:
   ApiHelper _aux;
 
   bool isValid() const;
 
   unsigned _num;
+  bool _pred;
 
   friend class FBHelperCore;
   friend class FormulaBuilder;
 };
 
-class Predicate
+/** Class to represents terms and formulas.
+ *  Most SMT solver APIs do not differentiate between the two.
+ *  To allow Vampire to mimic an SMT solver more easily,
+ *  we do the same.
+ */
+
+class Expression
 {
 public:
-  Predicate() {}
-  explicit Predicate(unsigned num) : _num(num) {}
-  operator unsigned() const { return _num; }
-private:
-  ApiHelper _aux;
-
-  bool isValid() const;
-
-  unsigned _num;
-
-  friend class FBHelperCore;
-  friend class FormulaBuilder;
-};
-
-class Term
-{
-public:
-  Term() : content(0) {}
+  //cannot create a formula with this constructor
+  Expression() : _isTerm(1), _content(0) {}
 
   Lib::vstring toString() const;
 
   /**
    * Return true if this object is not initialized to a term
+   * or formula
    */
-  bool isNull() const { return content==0; }
+  bool isNull() const { return !_content; }
+
 
   /**
-   * Return true if term is a variable
+   * Return true if this expression is not of Boolean sort
+   */
+  bool isTerm() const { return _isTerm; }
+
+  /**
+   * Return true if expression is a variable
    */
   bool isVar() const;
 
   /**
-   * For a variable term return its variable
+   * For a variable expression return its variable
    */
   Var var() const;
 
   /**
-   * Return the top function of a non-variable term
+   * Return the top function / predicate symbol of a non-variable expression
    */
-  Function functor() const;
+  Symbol functor() const;
 
   /**
-   * For a non-variable term, return arity of the top function.
-   */
-  unsigned arity() const;
-
-  /**
-   * Return @c i -th argument of a non-variable term.
-   */
-  Term arg(unsigned i);
-
-  /**
-   * Return sort of the term
-   *
-   * @warning this function can be used only for terms build by the
-   * FormulaBuilder, not for terms coming from the parser.
+   * Return the sort of this expression
    */
   Sort sort() const;
-
-  operator Kernel::TermList() const;
-  explicit Term(Kernel::TermList t);
-  explicit Term(Kernel::TermList t, ApiHelper aux);
-
-  bool operator==(const Term& o) const {
-    return toString()==o.toString();
-  }
-
-  bool isValid() const;  
-private:
-  size_t content;
-  ApiHelper _aux;
-
-
-  friend class FormulaBuilder;
-  friend class FBHelperCore;
-};
-
-class Formula
-{
-public:
-  Formula() : form(0) {}
-
-  Lib::vstring toString() const;
-
   /**
-   * Return true if this object is not initialized to a formula
+   * For a non-variable expression, return arity of the top function
+   * or connective (in the case of a formula)
    */
-  bool isNull() const { return form==0; }
+  unsigned arity() const;
 
   /**
    * Return true if this is a true formula
@@ -647,40 +566,16 @@ public:
   bool isNegation() const;
 
   /**
-   * Return the top-level connective of the formula
-   */
-  FormulaBuilder::Connective connective() const;
-
-  /**
-   * If formula is ATOM, return the predicate symbol. If the atom is
-   * equality, 0 is returned.
-   */
-  Predicate predicate() const;
-
-  /**
-   * If formula is ATOM, return true if it's polarity is positive and false
+   * If expression is ATOM, return true if it's polarity is positive and false
    * if it is negative.
    */
   bool atomPolarity() const;
 
   /**
-   * Return number of arguments of the top-level element in formula.
-   *
-   * If formula is an atom, arity of the predicate symbol is returned.
+   * Return @c i -th argument of expression.
+   * Throws an error if the index is out of range.
    */
-  unsigned argCnt() const;
-
-  /**
-   * Return @c i -th formula argument.
-   *
-   * For atom formulas, @c termArg() function should be used.
-   */
-  Formula formulaArg(unsigned i);
-
-  /**
-   * Return @c i -th argument of atomic formula.
-   */
-  Term termArg(unsigned i);
+  Expression arg(unsigned i);
 
   /**
    * Return iterator on names of free variables
@@ -697,23 +592,41 @@ public:
    */
   StringIterator boundVars();
 
-  operator Kernel::Formula*() const { return form; }
-  explicit Formula(Kernel::Formula* f) : form(f) {}
-  explicit Formula(Kernel::Formula* f, ApiHelper aux) : form(f), _aux(aux) {}
+  operator Kernel::TermList() const;
+  operator Kernel::Formula*() const;
 
-  bool operator==(const Formula& o) const {
-    return toString()==o.toString();
+  bool operator==(const Expression& e) const {
+    return toString()==e.toString();
   }
-private:
-  Kernel::Formula* form;
-  ApiHelper _aux;
 
-  bool isValid() const;
+private:  
+
+  explicit Expression(Kernel::TermList t);
+  explicit Expression(Kernel::TermList t, ApiHelper aux);
+
+  explicit Expression(Kernel::Formula* f) : _isTerm(0), _form(f) {}
+  explicit Expression(Kernel::Formula* f, ApiHelper aux) : _isTerm(0), _form(f), _aux(aux) {}
+
+  Expression formulaArg(unsigned i);
+  bool isValid() const; 
+
+  bool _isTerm;
+
+  union {
+    /** reference to a formula */
+    Kernel::Formula* _form;
+    /** if a term, contains a TermlList */
+    size_t _content;
+  };
+
+  ApiHelper _aux;
 
   friend class FormulaBuilder;
   friend class FBHelperCore;
   friend class Problem;
+  friend class AnnotatedFormula;  
 };
+
 
 class AnnotatedFormula
 {
@@ -756,7 +669,7 @@ public:
   FormulaBuilder::Annotation annotation() const;
 
   /** Return the formula inside this annotated formula */
-  Formula formula();
+  Expression formula();
 
   operator Kernel::Unit*() const { return unit; }
   explicit AnnotatedFormula(Kernel::Unit* fu) : unit(fu) {}

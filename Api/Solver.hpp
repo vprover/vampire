@@ -131,22 +131,6 @@ public:
 
   static Solver& getSolver(Logic l = TPTP);
 
-  enum Connective {
-    TRUE,
-    FALSE,
-    ATOM,
-    AND,
-    OR,
-    IMP,
-    IFF,
-    XOR,
-    NOT,
-    FORALL,
-    EXISTS,
-    /** if-then-else connective */
-    ITE
-  };
-
   ~Solver(){}
 
   /**
@@ -159,6 +143,7 @@ public:
   Sort rationalSort();
   /** Return sort for reals */
   Sort realSort();  
+
   /** Sets the logic that the solver works with. After a call to 
    *  addFormula, this function no longer has an effect as the logic
    *  cannot be changed.
@@ -238,12 +223,17 @@ public:
 
   /** Check whether the currently asserted formulas entail f
    */
-  Result checkEntailed(Formula f);
+  Result checkEntailed(Expression f);
 
   /*
    * Get the default sort (TPTP $i)
    */
   Sort defaultSort();
+
+  /*
+   * Get the Boolean sort (TPTP $o)
+   */
+  Sort boolSort();
 
   /** Create a variable with the default sort
    * @param varName name of the variable. If the logic is set to TPTP, must be a valid TPTP variable name, 
@@ -264,39 +254,37 @@ public:
    * Create a function symbol using default sorts. If @b builtIn is true, the symbol will not be
    * eliminated during preprocessing.
    *
-   * @warning Functions of the same name and arity must always have 
+   * @warning Symbols of the same name and arity must always have 
    * the same type.
    */
-  Function function(const Lib::vstring& funName, unsigned arity, bool builtIn=false);
+  Symbol function(const Lib::vstring& funName, unsigned arity, bool builtIn=false);
 
   /**
    * Create a function symbol with specified range and domain sorts. If @b builtIn is
    * true, the symbol will not be eliminated during preprocessing.
    *
-   * @warning Functions of the same name and arity must have
+   * @warning Symbols of the same name and arity must have
    * the same type.
    */
-  //Change to use std::vector ?
-  Function function(const Lib::vstring& funName, unsigned arity, Sort rangeSort, Sort* domainSorts, bool builtIn=false);
+  Symbol function(const Lib::vstring& funName, unsigned arity, Sort rangeSort, std::vector<Sort>& domainSorts, bool builtIn=false);
 
   /**
    * Create a predicate symbol using default sorts. If @b builtIn if true, the symbol will not be
    * eliminated during preprocessing.
    *
-   * @warning Predicates of the same name and arity must have
+   * @warning Symbols of the same name and arity must have
    * the same type.
    */
-  Predicate predicate(const Lib::vstring& predName, unsigned arity, bool builtIn=false);
+  Symbol predicate(const Lib::vstring& predName, unsigned arity, bool builtIn=false);
 
   /**
    * Create a predicate symbol with specified domain sorts. If @b builtIn if true, the symbol will not be
    * eliminated during preprocessing.
    *
-   * @warning Predicates of the same name and arity must have
+   * @warning Symbols of the same name and arity must have
    * the same type.
    */
-  //Change to use std::vector ?
-  Predicate predicate(const Lib::vstring& predName, unsigned arity, Sort* domainSorts, bool builtIn=false);
+  Symbol predicate(const Lib::vstring& predName, unsigned arity, std::vector<Sort>& domainSorts, bool builtIn=false);
 
   /**
    * Return name of the sort @c s.
@@ -304,18 +292,11 @@ public:
   Lib::vstring getSortName(Sort s);
 
   /**
-   * Return name of the predicate @c p.
+   * Return name of the symbol @c s.
    *
    * If the output of dummy names is enabled, the dummy name will be returned here.
    */
-  Lib::vstring getPredicateName(Predicate p);
-
-  /**
-   * Return name of the function @c f.
-   *
-   * If the output of dummy names is enabled, the dummy name will be returned here.
-   */
-  Lib::vstring getFunctionName(Function f);
+  Lib::vstring getSymbolName(Symbol s);
 
   /**
    * Return name of the variable @c v.
@@ -325,51 +306,67 @@ public:
   Lib::vstring getVariableName(Var v);
 
   /** build a variable term */
-  Term varTerm(const Var& v);
+  Expression varTerm(const Var& v);
 
-  /** build a term f(t,ts) */
-  Term term(const Function& f,const std::vector<Term>& args);
-
-  /** build an atomic formula different from equality */ 
-  Formula atom(const Predicate& p, const std::vector<Term>& args, bool positive=true);
+  /** build a term f(t,ts) 
+   *  
+   *  NOTE this function can be used to create formulas as well
+   *  if @param s is a predicate symbol
+   */
+  Expression term(const Symbol& s,const std::vector<Expression>& args);
 
   /** build an equality */
-  Formula equality(const Term& lhs,const Term& rhs, bool positive=true);
+  Expression equality(const Expression& lhs,const Expression& rhs, bool positive=true);
 
   /** build an equality and check the sorts of the equality sides to be equal to @c sort*/
-  Formula equality(const Term& lhs,const Term& rhs, Sort sort, bool positive=true);
+  Expression equality(const Expression& lhs,const Expression& rhs, Sort sort, bool positive=true);
 
   /** build a true formula */
-  Formula trueFormula();
+  Expression trueFormula();
 
   /** build a false formula */
-  Formula falseFormula();
+  Expression falseFormula();
 
-  /** build the negation of f */
-  Formula negation(const Formula& f);
+  /** build the negation of f. @param f must be of Boolean sort */
+  Expression negation(const Expression& f);
 
-  /** build f1 c f2 */
-  Formula formula(Connective c,const Formula& f1,const Formula& f2);
+  /** build f1 /\ f2. @param f1 and f2 must be of Boolean sort */
+  Expression andFormula(const Expression& f1,const Expression& f2);
 
-  /** build quantified formula (q v)f */
-  Formula formula(Connective q,const Var& v,const Formula& f);
+  /** build f1 \/ f2. @param f1 and f2 must be of Boolean sort */
+  Expression orFormula(const Expression& f1,const Expression& f2);
+
+  /** build f1 -> f2. @param f1 and f2 must be of Boolean sort */
+  Expression implies(const Expression& f1,const Expression& f2);
+
+  /** build f1 <-> f2. @param f1 and f2 must be of Boolean sort */
+  Expression iff(const Expression& f1,const Expression& f2);
+
+  /** build f1 XOR f2. @param f1 and f2 must be of Boolean sort */
+  Expression exor(const Expression& f1,const Expression& f2);
+
+  /** build quantified formula (q v)f. @param f must be of Boolean sort */
+  Expression forall(const Var& v,const Expression& f);
+
+  /** build quantified formula (q v)f. @param f must be of Boolean sort */
+  Expression exists(const Var& v,const Expression& f);
 
   // Special cases, convenient to have
 
-  /** build a constant term c */
-  Term term(const Function& c);
+  /** build a constant term (or formula) c */
+  Expression term(const Symbol& c);
 
-  /** build a unary term f(t) */
-  Term term(const Function& f,const Term& t);
+  /** build a unary term (or formula) f(t) */
+  Expression term(const Symbol& f,const Expression& t);
 
-  /** build a binary term f(t1,t2) */
-  Term term(const Function& f,const Term& t1,const Term& t2);
+  /** build a binary term (or formula) f(t1,t2) */
+  Expression term(const Symbol& f,const Expression& t1,const Expression& t2);
 
-  /** build a term f(t1,t2,t3) */
-  Term term(const Function& f,const Term& t1,const Term& t2,const Term& t3);
+  /** build a term (or formula) f(t1,t2,t3) */
+  Expression term(const Symbol& f,const Expression& t1,const Expression& t2,const Expression& t3);
 
   /** Return constant representing @c i */
-  Term integerConstant(int i);
+  Expression integerConstant(int i);
   
   /**
    * Return constant representing @c i
@@ -377,100 +374,86 @@ public:
    * @c FormulaBuilderException may be thrown if @c i is not a proper value, or too large
    * for Vampire internal representation.
    */
-  Term integerConstant(Lib::vstring i);
+  Expression integerConstant(Lib::vstring i);
 
   /** Return a rationa constant representing @c numerator/ @c denom */
-  Term rationalConstant(Lib::vstring numerator, Lib::vstring denom);
+  Expression rationalConstant(Lib::vstring numerator, Lib::vstring denom);
 
   /** Return a real constant representing @c i */
-  Term realConstant(Lib::vstring r);
+  Expression realConstant(Lib::vstring r);
 
   /** Create the term t1 + t2 
    *  Both t1 and t2 must be of the same type
    *  which must be either integer, real or rational.
    */
-  Term sum(const Term& t1,const Term& t2);
+  Expression sum(const Expression& t1,const Expression& t2);
 
   /** Create the term t1 - t2 
    *  Both t1 and t2 must be of the same type
    *  which must be either integer, real or rational.
    */
-  Term difference(const Term& t1,const Term& t2);
+  Expression difference(const Expression& t1,const Expression& t2);
 
   /** Create the term t1 x t2 
    *  Both t1 and t2 must be of the same type
    *  which must be either integer, real or rational.
    */
-  Term multiply(const Term& t1,const Term& t2);
+  Expression multiply(const Expression& t1,const Expression& t2);
 
   /** Create the term t1 / t2 
    *  Both t1 and t2 must be of the same type
    *  which must be either integer, real or rational.
    */
-  Term divide(const Term& t1,const Term& t2);
+  Expression divide(const Expression& t1,const Expression& t2);
 
   /** create the floor of @param t1 which must be of integer rational or real sort */
-  Term floor(const Term& t1);
+  Expression floor(const Expression& t1);
 
   /** create the ceiling of @param t1 which must be of integer rational or real sort */
-  Term ceiling(const Term& t1);
+  Expression ceiling(const Expression& t1);
 
   /** build  | t1 |. t1 must be of integer sort */
-  Term absolute(const Term& t1);
+  Expression absolute(const Expression& t1);
 
   /** build the formula t1 >= t2 
    *  t1 and t2 must be of the same type and their type must be
    *  integer, rational or real
    */
-  Formula geq(const Term& t1, const Term& t2);
+  Expression geq(const Expression& t1, const Expression& t2);
 
   /** build the formula t1 <= t2 
    *  t1 and t2 must be of the same type and their type must be
    *  integer, rational or real
    */
-  Formula leq(const Term& t1, const Term& t2);
+  Expression leq(const Expression& t1, const Expression& t2);
 
   /** build the formula t1 > t2 
    *  t1 and t2 must be of the same type and their type must be
    *  integer, rational or real
    */
-  Formula gt(const Term& t1, const Term& t2);
+  Expression gt(const Expression& t1, const Expression& t2);
 
   /** build the formula t1 < t2 
    *  t1 and t2 must be of the same type and their type must be
    *  integer, rational or real
    */
-  Formula lt(const Term& t1, const Term& t2);
+  Expression lt(const Expression& t1, const Expression& t2);
 
-  /** build a propositional symbol p */
-  Formula formula(const Predicate& p);
-
-  /** build atom p(t) */
-  Formula formula(const Predicate& p,const Term& t);
-
-  /** build atom p(t1,t2) */
-  Formula formula(const Predicate& p,const Term& t1,const Term& t2);
-
-  /** build atom p(t1,t2,t2) */
-  Formula formula(const Predicate& p,const Term& t1,const Term& t2,const Term& t3);
-
-  /** build an annotated formula (i.e. formula that is either axiom, goal, etc...) */
-  AnnotatedFormula annotatedFormula(Formula f, FormulaBuilder::Annotation a, Lib::vstring name="");
 
   /**
    * Add an axiom into the problem
    */
-  void addFormula(Formula f);
+  void addFormula(Expression f);
 
   /**
    * Add an assumption into the problem
    */
-  void assertFormula(Formula f){ addFormula(f); }
+  void assertFormula(Expression f){ addFormula(f); }
 
   /** 
     * Add a conjecture to the problem
     */
-  void addConjecture(Formula f);
+  void addConjecture(Expression f);
   
   /**
    * Add formulas parsed from a stream
