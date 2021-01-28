@@ -17,6 +17,7 @@
 
 #if VZ3
 #define UNIMPLEMENTED ASSERTION_VIOLATION
+#define TODO ASSERTION_VIOLATION
 
 #include "Forwards.hpp"
 
@@ -155,12 +156,12 @@ unsigned Z3Interfacing::newVar()
   ++_varCnt;
 
   // to make sure all the literals we will ask about later have allocated counterparts internally
-  getRepresentationWithoutGuard(SATLiteral(_varCnt,1));
+  getRepresentation(SATLiteral(_varCnt,1));
 
   return _varCnt;
 }
 
-void Z3Interfacing::addClause(SATClause* cl, bool withGuard, bool& addedGuard)
+void Z3Interfacing::addClause(SATClause* cl)
 {
   CALL("Z3Interfacing::addClause");
   BYPASSING_ALLOCATOR;
@@ -176,9 +177,12 @@ void Z3Interfacing::addClause(SATClause* cl, bool withGuard, bool& addedGuard)
   unsigned clen=cl->length();
   for(unsigned i=0;i<clen;i++){
     SATLiteral l = (*cl)[i];
-    z3::expr e = getRepresentation(l, withGuard, addedGuard);
+    auto repr = getRepresentation(l);
 
-    z3clause = z3clause || e;
+    for (auto def : repr.defs) 
+      _solver.add(def);
+
+    z3clause = z3clause || repr.expr;
 
     PRINT_CPP("{ expr e = exprs.back(); exprs.pop_back(); expr cl = exprs.back(); exprs.pop_back(); exprs.push_back(cl || e); } // append a literal");
   }
@@ -194,19 +198,29 @@ void Z3Interfacing::addClause(SATClause* cl, bool withGuard, bool& addedGuard)
   _solver.add(z3clause);
 }
 
-void Z3Interfacing::addAssumption(SATLiteral lit, bool withGuard, bool& addedGuard)
+void Z3Interfacing::addAssumption(SATLiteral lit)
 {
   CALL("Z3Interfacing::addAssumption");
 
-  _assumptions.push_back(getRepresentation(lit, withGuard, addedGuard));
+  auto repr = getRepresentation(lit);
+  for (auto def : repr.defs)
+    _assumptions.push_back(def);
+
+  _assumptions.push_back(repr.expr);
 }
 
-SATSolver::Status Z3Interfacing::solve()
+SATSolver::Status Z3Interfacing::solveWithAssumptions(Stack<SATLiteral> const& assumptions) 
 {
   CALL("Z3Interfacing::solve");
   BYPASSING_ALLOCATOR;
+  auto all_assumptions = _assumptions;
+  for (auto a : assumptions) {
+    auto repr = getRepresentation(a);
+    for (auto d : repr.defs) all_assumptions.push_back(d);
+    all_assumptions.push_back(repr.expr);
+  }
 
-  z3::check_result result = _assumptions.empty() ? _solver.check() : _solver.check(_assumptions);
+  z3::check_result result = all_assumptions.empty() ? _solver.check() : _solver.check(all_assumptions);
 
   if(_showZ3){
     env.beginOutput();
@@ -239,7 +253,7 @@ SATSolver::Status Z3Interfacing::solve()
   return _status;
 }
 
-SATSolver::Status Z3Interfacing::solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit, bool onlyProperSubusets,bool withGuard, bool& addedGuard)
+SATSolver::Status Z3Interfacing::solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit, bool onlyProperSubusets)
 {
   CALL("Z3Interfacing::solveUnderAssumptions");
 
@@ -261,10 +275,12 @@ SATSolver::Status Z3Interfacing::solveUnderAssumptions(const SATLiteralStack& as
 
   while (it.hasNext()) {
     SATLiteral v_assump = it.next();
-    z3::expr z_assump = getRepresentation(v_assump,withGuard, addedGuard);
+    auto z_assump = getRepresentation(v_assump);
+    for (auto d : z_assump.defs) 
+      _solver.add(d);
 
     vstring p = ps+Int::toString(n++);
-    _solver.add(z_assump,p.c_str());
+    _solver.add(z_assump.expr,p.c_str());
     lookup.insert(p,v_assump);
   }
 
@@ -300,7 +316,7 @@ SATSolver::VarAssignment Z3Interfacing::getAssignment(unsigned var)
 
   ASS_EQ(_status,SATISFIABLE);
   bool named = isNamedExpr(var);
-  z3::expr rep = named ? getNameExpr(var) : getRepresentationWithoutGuard(SATLiteral(var,1));
+  z3::expr rep = named ? getNameExpr(var) : getRepresentation(SATLiteral(var,1)).expr;
   z3::expr assignment = _model.eval(rep,true /*model_completion*/);
 
   if(assignment.bool_value()==Z3_L_TRUE){
@@ -420,7 +436,7 @@ Term* Z3Interfacing::evaluateInModel(Term* trm)
   ASS(!trm->isLiteral());
 
   bool name; //TODO what do we do about naming?
-  z3::expr rep = getz3expr(trm,name); 
+  z3::expr rep = getz3expr(trm, name).expr;
   z3::expr ev = _model.eval(rep,true); // true means "model_completion"
   unsigned sort = SortHelper::getResultSort(trm);
 
@@ -572,9 +588,8 @@ void Z3Interfacing::createTermAlgebra(TermAlgebra& start)
               });
       }
 
-      vstring discrName = cons->hasDiscriminator()
-        ? cons->discriminatorName()
-        :  "$$is_"+env.signature->functionName(cons->functor());
+      cons->createDiscriminator();
+      auto discrName = cons->discriminatorName().c_str();
       
       DEBUG("\t", env.sorts->sortName(ta->sort()), "::", env.signature->getFunction(cons->functor())->name());
 
@@ -588,7 +603,7 @@ void Z3Interfacing::createTermAlgebra(TermAlgebra& start)
 #else
           Z3_mk_string_symbol(_context, env.signature->getFunction(cons->functor())->name().c_str()), 
 #endif
-          Z3_mk_string_symbol(_context, discrName.c_str()),
+          Z3_mk_string_symbol(_context, discrName),
           cons->arity(),
           argNames.begin(),
           argSorts.begin(),
@@ -681,14 +696,15 @@ z3::func_decl const& Z3Interfacing::findConstructor(FuncId id_)
   }
 }
 
+
+
+
 struct ToZ3Expr 
 {
   using Z3FuncEntry = Z3Interfacing::Z3FuncEntry;
   using DestructorMeta = Z3Interfacing::DestructorMeta;
   Z3Interfacing& self;
   bool& _nameExpression;
-  bool withGuard;
-  bool& _addedGuard;
 
   using Arg    = TermList;
   using Result = z3::expr;
@@ -700,19 +716,6 @@ struct ToZ3Expr
     ASS(toEval.isTerm())
     auto trm = toEval.term();
     bool isLit = trm->isLiteral();
-
-    auto addGuardIfNecessary = [&](z3::expr guard) {
-      if (withGuard) {
-        if(self._showZ3){
-          env.beginOutput();
-          env.out() << "[Z3] adding guard: " << guard << std::endl;
-          env.endOutput();
-        }
-        DEBUG("added guard: ", guard);
-        _addedGuard = true;
-        self._solver.add(guard);
-      }
-    };
 
 
     Signature::Symbol* symb; 
@@ -814,10 +817,11 @@ struct ToZ3Expr
       switch(interp){
         // Numerical operations
         case Theory::INT_DIVIDES:
-          // TODO shouldn't zero divide zero?
-          addGuardIfNecessary(args[0] != int_zero);
-          _nameExpression = true;
-          return z3::mod(args[1], args[0]) == int_zero;
+          {
+          auto k = self.constantFor(toEval, self._context.int_sort());
+          // a divides b <-> k * a ==  b
+          return k * args[0] == args[1];
+          }
 
         case Theory::INT_UNARY_MINUS:
         case Theory::RAT_UNARY_MINUS:
@@ -842,11 +846,9 @@ struct ToZ3Expr
 
         case Theory::RAT_QUOTIENT:
         case Theory::REAL_QUOTIENT:
-          addGuardIfNecessary(args[1] != real_zero);
           return args[0] / args[1];
 
         case Theory::INT_QUOTIENT_E: 
-          addGuardIfNecessary(args[1] != int_zero);
           return args[0] / args[1];
 
         // The z3 header must be wrong
@@ -895,64 +897,52 @@ struct ToZ3Expr
          case Theory::INT_QUOTIENT_T:
          case Theory::INT_REMAINDER_T:
 // TODO joe undestand this
-          addGuardIfNecessary(args[1] != int_zero);
            // leave as uninterpreted
            self.addTruncatedOperations(args[0],args[1],Theory::INT_QUOTIENT_T,Theory::INT_REMAINDER_T,range_sort);
            break;
          case Theory::RAT_QUOTIENT_T:
-           addGuardIfNecessary(args[1] != real_zero);
            self.addTruncatedOperations(args[0],args[1],Theory::RAT_QUOTIENT_T,Theory::RAT_REMAINDER_T,range_sort);
            return self.truncate(args[0]/args[1]);
 
          case Theory::RAT_REMAINDER_T:
-           addGuardIfNecessary(args[1] != real_zero);
            self.addTruncatedOperations(args[0],args[1],Theory::RAT_QUOTIENT_T,Theory::RAT_REMAINDER_T,range_sort);
            break;
          case Theory::REAL_QUOTIENT_T:
-           addGuardIfNecessary(args[1] != real_zero);
            self.addTruncatedOperations(args[0],args[1],Theory::REAL_QUOTIENT_T,Theory::REAL_REMAINDER_T,range_sort);
            return self.truncate(args[0]/args[1]);
 
          case Theory::REAL_REMAINDER_T:
-           addGuardIfNecessary(args[1] != real_zero);
            self.addTruncatedOperations(args[0],args[1],Theory::REAL_QUOTIENT_T,Theory::REAL_REMAINDER_T,range_sort);
            break;
 
          case Theory::INT_QUOTIENT_F:
          case Theory::INT_REMAINDER_F:
-           addGuardIfNecessary(args[1] != int_zero);
            // leave as uninterpreted
            self.addFloorOperations(args[0],args[1],Theory::INT_QUOTIENT_F,Theory::INT_REMAINDER_F,range_sort);
            break;
 
          case Theory::RAT_QUOTIENT_F:
-           addGuardIfNecessary(args[1] != real_zero);
            self.addFloorOperations(args[0],args[1],Theory::RAT_QUOTIENT_F,Theory::RAT_REMAINDER_F,range_sort);
            return self.to_real(self.to_int(args[0] / args[1]));
 
          case Theory::RAT_REMAINDER_F:
-           addGuardIfNecessary(args[1] != real_zero);
            self.addFloorOperations(args[0],args[1],Theory::RAT_QUOTIENT_F,Theory::RAT_REMAINDER_F,range_sort);
            break;
 
          case Theory::REAL_QUOTIENT_F:
-           addGuardIfNecessary(args[1] != real_zero);
            self.addFloorOperations(args[0],args[1],Theory::REAL_QUOTIENT_F,Theory::REAL_REMAINDER_F,range_sort);
            return self.to_real(self.to_int(args[0] / args[1]));
 
          case Theory::REAL_REMAINDER_F:
-           addGuardIfNecessary(args[1] != real_zero);
            self.addFloorOperations(args[0],args[1],Theory::REAL_QUOTIENT_F,Theory::REAL_REMAINDER_F,range_sort);
            break;
 
          case Theory::RAT_REMAINDER_E:
          case Theory::REAL_REMAINDER_E:
-           addGuardIfNecessary(args[1] != real_zero);
            _nameExpression = true; 
            return z3::mod(args[0], args[1]);
 
          case Theory::INT_REMAINDER_E:
-           addGuardIfNecessary(args[1] != int_zero);
            _nameExpression = true;
            return z3::mod(args[0], args[1]);
 
@@ -985,9 +975,6 @@ struct ToZ3Expr
           return args[0] >= args[1];
 
         default: 
-          if(withGuard){
-            throw UninterpretedForZ3Exception();
-          }
           //skip it and treat the function as uninterpretted
           break;
       }
@@ -1001,18 +988,12 @@ struct ToZ3Expr
     if (entry.metadata.is<DestructorMeta>()) {
       auto selector = entry.metadata.unwrap<DestructorMeta>().selector;
       _nameExpression = true;
-      // asserts e.g. isCons(l) for a term that contains the subterm head(l) for lists
-      addGuardIfNecessary(selector(args[0]));
     }
 
     z3::func_decl f = entry.decl;
     // Finally create expr
     z3::expr e = f(trm->arity(), args); 
 
-    ASS(toEval.term()->isLiteral() 
-        || !env.signature->getFunction(toEval.term()->functor())->interpreted()
-        || !theory->isPartiallyInterpretedFunction(toEval.term()) 
-        || !withGuard || _addedGuard)
     return e;
   }
 };
@@ -1052,20 +1033,20 @@ Z3Interfacing::Z3FuncEntry Z3Interfacing::z3Function(FuncOrPredId functor)
  * - Translates the ground structure
  * - Some interpreted functions/predicates are handled
  */
-z3::expr Z3Interfacing::getz3expr(Term* trm, bool& nameExpression,bool withGuard,bool& addedGuard)
+Z3Interfacing::Representation Z3Interfacing::getz3expr(Term* trm, bool& nameExpression)
 {
   CALL("Z3Interfacing::getz3expr");
   DEBUG("in: ", *trm);
   nameExpression = false;
-  addedGuard = false;
-  auto result = evaluateBottomUp(TermList(trm), ToZ3Expr{ *this, nameExpression, withGuard, addedGuard });
+  Stack<z3::expr> defs;
+  auto expr = evaluateBottomUp(TermList(trm), ToZ3Expr{ *this, nameExpression,  });
   if (_nameAllLiterals)
     nameExpression = true;
-  DEBUG("out: ", result);
-  return result;
+  DEBUG("out: ", expr);
+  return Representation(expr, std::move(defs));
 }
 
-z3::expr Z3Interfacing::getRepresentation(SATLiteral slit, bool withGuard, bool& addedGuard)
+Z3Interfacing::Representation Z3Interfacing::getRepresentation(SATLiteral slit)
 {
   CALL("Z3Interfacing::getRepresentation");
   BYPASSING_ALLOCATOR;
@@ -1077,17 +1058,14 @@ z3::expr Z3Interfacing::getRepresentation(SATLiteral slit, bool withGuard, bool&
     //cout << "getRepresentation of " << lit->toString() << endl;
     // Now translate it into an SMT object 
     try{
-      // TODO everything is being named!!
-      bool nameExpression = true;
-      z3::expr e = getz3expr(lit,nameExpression,withGuard,addedGuard);
-      // cout << "got rep " << e << endl;
+      bool nameExpression;
+      auto repr = getz3expr(lit,nameExpression);
 
       if(nameExpression) {
         z3::expr bname = getNameExpr(slit.var()); 
-        // cout << "Naming " << e << " as " << bname << endl;
-        PRINT_CPP("{ expr nm = exprs.back(); exprs.pop_back(); expr e = exprs.back(); exprs.pop_back(); expr naming = (nm == e); cout << \"naming: \" << naming << endl; solver.add(naming); }")
-        z3::expr naming = (bname == e);
-        _solver.add(naming);
+        z3::expr naming = (bname == repr.expr);
+        repr.defs.push(naming);
+        repr.expr = bname;
         if(_showZ3){
           env.beginOutput();
           env.out() << "[Z3] add (naming): " << naming << std::endl;
@@ -1095,26 +1073,22 @@ z3::expr Z3Interfacing::getRepresentation(SATLiteral slit, bool withGuard, bool&
         }
       }
 
-      if(slit.isNegative()){
-        PRINT_CPP("exprs.back() = !exprs.back();")
-        e = !e;
+      if(slit.isNegative()) {
+        repr.expr = !repr.expr;
       }
 
-      return e;
+      return repr;
     }catch(z3::exception& exception){
      reportSpiderFail();
      cout << "Z3 exception:\n" << exception.msg() << endl;
      ASSERTION_VIOLATION_REP("Failed to create Z3 rep for " + lit->toString());
     }
+  } else {
+    //if non ground then just create a propositional variable
+    z3::expr e = getNameExpr(slit.var()); 
+    return Representation(slit.isPositive() ? e : !e,
+                          Stack<z3::expr>());
   }
-  //if non ground then just create a propositional variable
-  z3::expr e = getNameExpr(slit.var()); 
-
-  if(slit.isNegative()) {
-    PRINT_CPP("exprs.back() = !exprs.back();")
-    return !e;
-  }
-  else return e;
 }
 
 SATClause* Z3Interfacing::getRefutation() {
@@ -1142,8 +1116,11 @@ SATClause* Z3Interfacing::getRefutation() {
       unsigned clen=cl->length();
       for(unsigned i=0;i<clen;i++){
         SATLiteral l = (*cl)[i];
-        z3::expr e = getRepresentationWithoutGuard(l); 
-        z3clause = z3clause || e;
+        auto repr = getRepresentation(l); 
+        for (auto def : repr.defs) {
+          solver.add(def);
+        }
+        z3clause = z3clause || repr.expr;
       }
       vstring p = ps+Int::toString(n++);
       //cout << p << ": " << cl->toString() << endl;

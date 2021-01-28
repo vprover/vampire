@@ -52,6 +52,7 @@ namespace Shell {
 
     bool hasDiscriminator() { return _hasDiscriminator; }
     unsigned discriminator() { ASS(_hasDiscriminator); return _discriminator; }
+    unsigned createDiscriminator();
     void addDiscriminator(unsigned d) { ASS(!_hasDiscriminator); _hasDiscriminator = true; _discriminator = d; }
 
     Lib::vstring discriminatorName();

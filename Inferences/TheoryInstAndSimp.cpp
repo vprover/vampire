@@ -16,7 +16,7 @@
  */
 
 #if VZ3
-#define DEBUG(...) // DBG(__VA_ARGS__)
+#define DEBUG(...) DBG(__VA_ARGS__)
 
 #define DPRINT 0
 
@@ -50,7 +50,7 @@
 
 #include "TheoryInstAndSimp.hpp"
 #include "Kernel/NumTraits.hpp"
-
+#include "Kernel/TermIterators.hpp"
 
 namespace Inferences
 {
@@ -601,16 +601,12 @@ Term* getFreshConstant(unsigned index, unsigned srt)
   return (*sortedConstants)[index];
 }
 
-VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theoryLiterals, bool withGuards, bool& addedGuards){
+VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*> const& theoryLiterals, Stack<Literal*> const& guards) {
   CALL("TheoryInstAndSimp::getSolutions");
 
   BYPASSING_ALLOCATOR;
 
   // Currently we just get the single solution from Z3
-
-  // We use a new SMT solver
-  // currently these are not needed outside of this function so we put them here
-  _solver->reset(); // the solver will reset naming
 
 
   // Firstly, we need to consistently replace variables by constants (i.e. Skolemize)
@@ -618,12 +614,14 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
   // This subst is for the consistent replacement
   Substitution subst;
 
-  Stack<Literal*>::Iterator it(theoryLiterals);
+  Stack<SATLiteral> satLits;
   Stack<unsigned> vars;
   unsigned used = 0;
-  while(it.hasNext()){
-    // get the complementary of the literal
-    Literal* lit = Literal::complementaryLiteral(it.next());
+  auto iter = iterTraits(getConcatenatedIterator(
+          iterTraits(theoryLiterals.iterFifo()).map(Literal::complementaryLiteral),
+          guards.iterFifo()
+        ));
+  for (auto lit : iter) {
     // replace variables consistently by fresh constants
     DHMap<unsigned,unsigned > srtMap;
     SortHelper::collectVariableSorts(lit,srtMap);
@@ -634,43 +632,22 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
       TermList fc;
       if(!subst.findBinding(var,fc)){
         Term* fc = getFreshConstant(used++,sort);
-#if DPRINT
-    cout << "bind " << var << " to " << fc->toString() << endl;
-#endif
         subst.bind(var,fc);
         vars.push(var);
       }
     }
-#if DPRINT
-    cout << "skolem " << lit->toString();
-#endif
 
     lit = SubstHelper::apply(lit,subst);
 
-#if DPRINT
-    cout << " to get " << lit->toString() << endl;
-#endif
-
-    // register the lit in naming in such a way that the _solver will pick it up!
-    SATLiteral slit = _naming.toSAT(lit);
-
-    // now add the SAT representation
-    static SATLiteralStack satLits;
-    satLits.reset();
-    satLits.push(slit);
-    SATClause* sc = SATClause::fromStack(satLits);
-    //clause->setInference(new FOConversionInference(cl));
-    // guarded is normally true, apart from when we are checking a theory tautology
-    try{
-      _solver->addClause(sc, withGuards, addedGuards);
-    }
-    catch(UninterpretedForZ3Exception){
+    try {
+      satLits.push(_naming.toSAT(lit));
+    } catch(UninterpretedForZ3Exception){
       return VirtualIterator<Solution>::getEmpty();
     }
   }
 
   // now we can call the solver
-  SATSolver::Status status = _solver->solve(UINT_MAX);
+  SATSolver::Status status = _solver->solveWithAssumptions(satLits);
 
   if(status == SATSolver::UNSATISFIABLE){
 #if DPRINT
@@ -717,62 +694,60 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
 
 struct InstanceFn
 {
-  InstanceFn(Clause* cl, Stack<Literal*>& tl,Splitter* splitter,
-             TheoryInstAndSimp* parent, bool addedGuards, bool& red) :
-          _cl(cl), _theoryLits(tl), _splitter(splitter),
-         _parent(parent), _red(red), _addedGuards(addedGuards)  {}
-
-  Clause* operator()(Solution sol)
+  Clause* operator()(Solution sol, Clause* original, 
+      Stack<Literal*> const& theoryLits, 
+      Stack<Literal*> const& guards, 
+      Splitter* splitter,
+      TheoryInstAndSimp* parent, 
+      bool& redundant
+    )
   {
     CALL("TheoryInstAndSimp::InstanceFn::operator()");
 
     // We delete cl as it's a theory-tautology (note that if the answer was uknown no solution would be produced)
     if(!sol.status){
-#if DPRINT
-      cout << "Potential theory tautology" << endl;
-#endif
-
       // now we run SMT solver again without guarding
-      if(!_addedGuards){
-        _red = true;
+      if(!guards.isEmpty()){
+        redundant = true;
       } else {
-        auto solutions = _parent->getSolutionsWithoutGuards(_theoryLits);
+        auto solutions = parent->getSolutions(theoryLits, /* no guards */ Stack<Literal*>());
         // we have an unsat solution without guards
         auto unsat = solutions.hasNext() && !solutions.next().status;
-        _red = unsat;
+        redundant = unsat;
       }
 
-      if (_red) {
+      if (redundant) {
         env.statistics->theoryInstSimpTautologies++;
       }
 
-      return 0;
+      DEBUG("tautology")
+      return nullptr;
     }
     // If the solution is empty (for any reason) there is no point performing instantiation
     if(sol.subst.isEmpty()){
       env.statistics->theoryInstSimpEmptySubstitution++;
     }
 #if DPRINT
-    cout << "Instantiate " << _cl->toString() << endl;
+    cout << "Instantiate " << original->toString() << endl;
     cout << "with " << sol.subst.toString() << endl;
     cout << "theoryLits are" << endl;
-    Stack<Literal*>::Iterator tit(_theoryLits);
+    Stack<Literal*>::Iterator tit(theoryLits);
     while(tit.hasNext()){ cout << "\t" << tit.next()->toString() << endl;}
 #endif
-    Clause* inst = new(_cl->length()) Clause(_cl->length(),GeneratingInference1(InferenceRule::INSTANTIATION,_cl));
-    unsigned newLen = _cl->length() - _theoryLits.size();
+    Clause* inst = new(original->length()) Clause(original->length(),GeneratingInference1(InferenceRule::INSTANTIATION,original));
+    unsigned newLen = original->length() - theoryLits.size();
     Clause* res = new(newLen) Clause(newLen,SimplifyingInference1(InferenceRule::INTERPRETED_SIMPLIFICATION,inst));
 
 #if VDEBUG
     unsigned skip = 0;
 #endif
     unsigned j=0;
-    for(unsigned i=0;i<_cl->length();i++){
-      Literal* lit = (*_cl)[i];
+    for(unsigned i=0;i<original->length();i++){
+      Literal* lit = (*original)[i];
       Literal* lit_inst = SubstHelper::apply(lit,sol.subst);
       (*inst)[i] = lit_inst;
       // we implicitly remove all theoryLits as the solution makes their combination false
-      if(!_theoryLits.find(lit)){
+      if(!theoryLits.find(lit)){
         (*res)[j] = lit_inst;
         j++;
       }
@@ -780,11 +755,11 @@ struct InstanceFn
       else{skip++;}//cout << "skip " << lit->toString() << endl;}
 #endif
     }
-    ASS_EQ(skip, _theoryLits.size());
+    ASS_EQ(skip, theoryLits.size());
     ASS_EQ(j,newLen);
 
-    if(_splitter){
-      _splitter->onNewClause(inst);
+    if(splitter){
+      splitter->onNewClause(inst);
     }
 
     env.statistics->theoryInstSimp++;
@@ -793,15 +768,95 @@ struct InstanceFn
 #endif
     return res;
   }
-
-private:
-  Clause* _cl;
-  Stack<Literal*>& _theoryLits;
-  Splitter* _splitter;
-  TheoryInstAndSimp* _parent;
-  bool& _red;
-  bool _addedGuards;
 };
+
+Stack<Literal*> computeGuards(Stack<Literal*> const& lits) 
+{
+  CALL("computeGuards");
+
+  /* finds the constructor for a given distructor */
+  auto findConstructor = [](TermAlgebra* ta, unsigned destructor, bool predicate) -> TermAlgebraConstructor* 
+  {
+    // TODO get rid of this wasteful search for the right constructor
+    for (auto ctor : ta->iterCons()) {
+      for (unsigned i = 0; i < ctor->arity(); i++) {
+        auto p = ctor->argSort(i) == Sorts::SRT_BOOL;
+        auto d = ctor->destructorFunctor(i);
+        if(destructor == d && predicate == p) 
+          return ctor;
+      }
+    }
+    ASSERTION_VIOLATION
+  };
+
+  auto destructorGuard = [&findConstructor](Term* destr, unsigned sort, bool predicate) -> Literal*
+  {
+      auto ctor = findConstructor(env.signature->getTermAlgebraOfSort(sort), destr->functor(), predicate);
+      auto discr = ctor->createDiscriminator();
+      // asserts e.g. isCons(l) for a term that contains the subterm head(l) for lists
+      return Literal::create1(discr, /* polarity */ true, *destr->nthArgument(0));
+  };
+
+
+  Stack<Literal*> out;
+  for (auto lit : lits) {
+
+    /* guards for predicates */
+    auto predSym = env.signature->getPredicate(lit->functor());
+    if (predSym->termAlgebraDest()) {
+      out.push(destructorGuard(lit, predSym->predType()->arg(0), /* predicate */ true));
+    }
+
+    /* guards for subterms */
+    SubtermIterator it(lit);
+    for (auto t = it.next(); it.hasNext(); t = it.next()) {
+      ASS_REP(t.isVar() || !t.term()->isLiteral(), t);
+      if (t.isTerm()) {
+        auto term = t.term();
+        auto sym = env.signature->getFunction(t.term()->functor());
+        auto fun = term->functor();
+        if (theory->isInterpretedNumber(term)) {
+          /* no guard */
+        } else if (theory->isInterpretedFunction(fun) || theory->isInterpretedConstant(fun)) {
+
+          switch (theory->interpretFunction(fun)) {
+            case Theory::REAL_QUOTIENT:
+            case Theory::REAL_REMAINDER_E:
+            case Theory::REAL_QUOTIENT_F:
+            case Theory::REAL_QUOTIENT_T:
+            case Theory::REAL_REMAINDER_T:
+            case Theory::REAL_REMAINDER_F:
+              out.push(Literal::createEquality(false, RealTraits::zero(), *term->nthArgument(1), RealTraits::sort));
+              break;
+
+            case Theory::RAT_QUOTIENT:
+            case Theory::RAT_QUOTIENT_T:
+            case Theory::RAT_REMAINDER_T:
+            case Theory::RAT_QUOTIENT_F:
+            case Theory::RAT_REMAINDER_F:
+            case Theory::RAT_REMAINDER_E:
+              out.push(Literal::createEquality(false, RatTraits::zero(), *term->nthArgument(1), RatTraits::sort));
+              break;
+
+            case Theory::INT_QUOTIENT_F:
+            case Theory::INT_REMAINDER_F:
+            case Theory::INT_QUOTIENT_E: 
+            case Theory::INT_QUOTIENT_T:
+            case Theory::INT_REMAINDER_T:
+            case Theory::INT_REMAINDER_E:
+              out.push(Literal::createEquality(false, IntTraits::zero(), *term->nthArgument(1), IntTraits::sort));
+              break;
+
+            default:; /* no guard */
+          }
+        } else if (sym->termAlgebraDest()) { 
+          out.push(destructorGuard(term, sym->fnType()->arg(0), /* predicate */ false));
+        }
+      }
+    }
+  }
+  return out;
+}
 
 SimplifyingGeneratingInference::ClauseGenerationResult TheoryInstAndSimp::generateSimplify(Clause* premise)
 {
@@ -874,17 +929,21 @@ SimplifyingGeneratingInference::ClauseGenerationResult TheoryInstAndSimp::genera
   }
 
   {
-    DEBUG("input: ", *premise);
+    auto guards = computeGuards(selectedLiterals);
+    DEBUG("input:             ", *premise);
     DEBUG("selected literals: ", iterTraits(selectedLiterals.iterFifo()).map([](Literal* l) -> vstring { return l->toString(); }).collect<Stack>())
+    DEBUG("guards:            ", iterTraits(guards.iterFifo()).map([](Literal* l) -> vstring { return l->toString(); }).collect<Stack>())
     TimeCounter t(TC_THEORY_INST_SIMP);
+
     bool premiseRedundant = false;
-    bool addedGuards;
 
-    auto it1 = iterTraits(getSolutionsWithGuards(selectedLiterals, addedGuards))
-      .map([](Solution s) -> Solution { DEBUG("found solution: ", s); return s; });
+    auto it1 = iterTraits(getSolutions(selectedLiterals, guards))
+      .map([&](Solution s)  { 
+          DEBUG("found solution: ", s); 
+          return InstanceFn{}(s, flattened,selectedLiterals,guards, _splitter, this, premiseRedundant);
+      });
 
-    auto it2 = getMappingIterator(it1,
-               InstanceFn(flattened,selectedLiterals,_splitter,this, addedGuards, premiseRedundant));
+    auto it2 = it1;
 
     // filter out only non-zero results
     auto it3 = getFilteredIterator(it2, NonzeroFn());

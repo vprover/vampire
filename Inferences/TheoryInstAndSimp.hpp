@@ -65,13 +65,7 @@ public:
   void attach(SaturationAlgorithm* salg);
 
   ClauseGenerationResult generateSimplify(Clause* premise);
-  VirtualIterator<Solution> getSolutions(Stack<Literal*>& theoryLiterals, bool guarded, bool& addedGuards);
-
-  VirtualIterator<Solution> getSolutionsWithGuards(Stack<Literal*>& theoryLiterals, bool& addedGuards) 
-  { return getSolutions(theoryLiterals, true, addedGuards); }
-
-  VirtualIterator<Solution> getSolutionsWithoutGuards(Stack<Literal*>& theoryLiterals)
-  { bool _; return getSolutions(theoryLiterals, false, _); }
+  VirtualIterator<Solution> getSolutions(Stack<Literal*> const& theoryLiterals, Stack<Literal*> const& guards);
 
 private:
 

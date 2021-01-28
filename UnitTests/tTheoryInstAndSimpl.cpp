@@ -68,7 +68,7 @@ using namespace Test;
 TheoryInstAndSimp* theoryInstAndSimp(Options::TheoryInstSimp mode) {
   return new TheoryInstAndSimp(mode, 
       /* thiTautologyDeletion */ true,
-      /* showZ3 */ true,
+      /* showZ3 */ false,
       /* unsatCoreForRefutations */ false);
 }
 
@@ -183,33 +183,6 @@ TEST_GENERATION_WITH_SUGAR(test_06,
       .rule(theoryInstAndSimp(Options::TheoryInstSimp::NEW))
       .input(    clause({ x + y != 0 * z, x != 7, p(x,y) }) )
       .expected(exactly(clause({p(7, -7)})))
-      .premiseRedundant(false)
-    )
-
-TEST_GENERATION_WITH_SUGAR(test_div_by_zero_01,
-    RAT_SYNTAX_SUGAR,
-    Generation::TestCase()
-      .rule(theoryInstAndSimp(Options::TheoryInstSimp::NEW))
-      .input(    clause({ 1 / num(0) != 3 }) )
-      .expected(exactly(clause({})))
-      .premiseRedundant(false)
-    )
-
-TEST_GENERATION_WITH_SUGAR(test_div_by_zero_02,
-    RAT_SYNTAX_SUGAR,
-    Generation::TestCase()
-      .rule(theoryInstAndSimp(Options::TheoryInstSimp::NEW))
-      .input(    clause({ x / num(0) != 3 }) )
-      .expected(exactly(clause({})))
-      .premiseRedundant(false)
-    )
-
-TEST_GENERATION_WITH_SUGAR(test_div_by_zero_03,
-    RAT_SYNTAX_SUGAR,
-    Generation::TestCase()
-      .rule(theoryInstAndSimp(Options::TheoryInstSimp::NEW))
-      .input(    clause({ x / num(0) == 3 }) )
-      .expected(exactly(clause({})))
       .premiseRedundant(false)
     )
 

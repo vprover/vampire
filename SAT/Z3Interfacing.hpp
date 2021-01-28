@@ -70,10 +70,10 @@ public:
 
   static char const* z3_full_version();
 
-  void addClause(SATClause* cl, bool withGuard, bool& guardAdded);
-  void addClause(SATClause* cl) override { bool _; addClause(cl,false,_); }
+  void addClause(SATClause* cl) override;
 
-  virtual Status solve();
+  Status solveWithAssumptions(Stack<SATLiteral> const& assumps);
+  Status solve() { return solveWithAssumptions(Stack<SATLiteral>()); }
   virtual Status solve(unsigned conflictCountLimit) override { return solve(); };
   /**
    * If status is @c SATISFIABLE, return assignment of variable @c var
@@ -115,15 +115,11 @@ public:
   // Currently not implemented for Z3
   virtual void suggestPolarity(unsigned var, unsigned pol) override {}
   
-  void addAssumption(SATLiteral lit, bool withGuard, bool& guardAdded);
-  void addAssumption(SATLiteral lit, bool withGuard) { bool _; addAssumption(lit, withGuard, _); }
-  virtual void addAssumption(SATLiteral lit) override { addAssumption(lit,false); }
+  virtual void addAssumption(SATLiteral lit) override;
   virtual void retractAllAssumptions() override { _assumptions.resize(0); }
   virtual bool hasAssumptions() const override { return !_assumptions.empty(); }
 
-  Status solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit, bool onlyProperSubusets,bool withGuard, bool& addedGuard);
-  virtual Status solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit, bool onlyProperSubusets) override
-  { bool _; return solveUnderAssumptions(assumps,conflictCountLimit,onlyProperSubusets,false,_); }
+  virtual Status solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit, bool onlyProperSubusets) override;
 
  /**
   * Record the association between a SATLiteral var and a Literal
@@ -144,11 +140,12 @@ public:
 
   SATClause* getRefutation() override;  
 
-  void reset(){
-    _sat2fo.reset();
-    _solver.reset();
-    _status = UNKNOWN; // I set it to unknown as I do not reset
-  }
+  // void reset(){
+  //   DBG("resetting z3")
+  //   _sat2fo.reset();
+  //   _solver.reset();
+  //   _status = UNKNOWN; // I set it to unknown as I do not reset
+  // }
   using FuncId = unsigned;
   using PredId = unsigned;
   using SortId = unsigned;
@@ -245,8 +242,6 @@ private:
   // not sure why this one is public
   friend struct ToZ3Expr;
   friend struct EvaluateInModel;
-  z3::expr getz3expr(Term* trm, bool&nameExpression) { bool _; return getz3expr(trm, nameExpression, false, _); }
-  z3::expr getz3expr(Term* trm, bool&nameExpression, bool withGuard, bool& guardAdded);
 public:
   Term* evaluateInModel(Term* trm);
 #ifdef VDEBUG
@@ -255,9 +250,16 @@ public:
 
 private:
 
-  z3::expr getRepresentation(SATLiteral lit, bool withGuard, bool& addedGuard);
-  z3::expr getRepresentationWithoutGuard(SATLiteral lit) { bool _; return getRepresentation(lit, false, _); }
-  z3::expr getRepresentationWithGuard(SATLiteral lit, bool& guardAdded) { return getRepresentation(lit, true, guardAdded); }
+  struct Representation 
+  {
+    Representation(z3::expr expr, Stack<z3::expr> defs) : expr(expr), defs(defs) {}
+    Representation(Representation&&) = default;
+    z3::expr expr;
+    Stack<z3::expr> defs;
+  };
+
+  Representation getz3expr(Term* trm, bool&nameExpression);
+  Representation getRepresentation(SATLiteral lit);
 
   // just to conform to the interface
   unsigned _varCnt;
@@ -290,6 +292,15 @@ private:
     });
   }
 
+  unsigned _cntFreshConsts = 0;
+  Map<TermList, z3::expr> _termIndexedConstants;
+  z3::expr constantFor(TermList name, z3::sort sort)
+  {
+    return _termIndexedConstants.getOrInit(name, [&](){
+        auto n = name.toString();
+        return _context.constant(n.c_str(), sort);
+    });
+  }
 
   // careful: keep native constants' names distinct from the above ones (hence the "c"-prefix below)
   z3::expr getNameConst(const vstring& symbName, z3::sort srt){

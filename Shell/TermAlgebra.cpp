@@ -53,6 +53,18 @@ TermAlgebraConstructor::TermAlgebraConstructor(unsigned functor, unsigned discri
 unsigned TermAlgebraConstructor::arity()               { return _type->arity();  }
 unsigned TermAlgebraConstructor::argSort(unsigned ith) { return _type->arg(ith); }
 unsigned TermAlgebraConstructor::rangeSort()           { return _type->result(); }
+unsigned TermAlgebraConstructor::createDiscriminator() 
+{
+  if (hasDiscriminator()) {
+    return discriminator();
+  } else {
+    auto sym = env.signature->getFunction(functor());
+    auto discr = env.signature->addFreshPredicate(1, ( "$$is_" + sym->name() ).c_str());
+    env.signature->getPredicate(discr)->setType(OperatorType::getPredicateType({_type->result()}));
+    addDiscriminator(discr);
+    return discr;
+  }
+}
 
 Lib::Set<unsigned> TermAlgebra::subSorts()
 {
