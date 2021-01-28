@@ -214,29 +214,24 @@ private:
   z3::sort getz3sort(unsigned s);
 
   // Helper funtions for the translation
-  z3::expr to_int(z3::expr e) {
-        return z3::expr(e.ctx(), Z3_mk_real2int(e.ctx(), e));
-  }
-  z3::expr to_real(z3::expr e) {
-        return z3::expr(e.ctx(), Z3_mk_int2real(e.ctx(), e));
-  }
-  z3::expr ceiling(z3::expr e){
-        return -to_real(to_int(-e));
-  }
-  z3::expr is_even(z3::expr e) {
-        z3::context& ctx = e.ctx();
-        z3::expr two = ctx.int_val(2);
-        z3::expr m = z3::expr(ctx, Z3_mk_mod(ctx, e, two));
-        return m == 0;
-  }
 
-  z3::expr truncate(z3::expr e) {
-        return ite(e >= 0, to_int(e), ceiling(e));
-  }
+  // z3::expr ceiling(z3::expr e){
+  //       return -to_real(to_int(-e));
+  // }
+  // z3::expr is_even(z3::expr e) {
+  //       z3::context& ctx = e.ctx();
+  //       z3::expr two = ctx.int_val(2);
+  //       z3::expr m = z3::expr(ctx, Z3_mk_mod(ctx, e, two));
+  //       return m == 0;
+  // }
+  //
+  // z3::expr truncate(z3::expr e) {
+  //       return ite(e >= 0, to_int(e), ceiling(e));
+  // }
 
   Z3FuncEntry z3Function(FuncOrPredId function);
   Z3FuncEntry z3Function(Theory::Interpretation itp);
-  void addTruncatedOperations(z3::expr lhs, z3::expr rhs, Interpretation quotient, Interpretation ti, unsigned srt);
+  // void addTruncatedOperations(z3::expr lhs, z3::expr rhs, Interpretation quotient, Interpretation ti, unsigned srt);
   void addFloorOperations(z3::expr lhs, z3::expr rhs, Interpretation quotient, Interpretation ti, unsigned srt);
 
   // not sure why this one is public
