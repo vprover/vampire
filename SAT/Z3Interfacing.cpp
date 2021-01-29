@@ -121,9 +121,7 @@ Z3Interfacing::Z3Interfacing(SAT2FO& s2f, bool showZ3, bool unsatCoreForRefutati
          _solver.get_model())), 
   _assumptions(_context), _unsatCoreForAssumptions(unsatCoresForAssumptions),
   _showZ3(showZ3),
-  _unsatCoreForRefutations(unsatCoreForRefutations),
-  // TODO makes z3::solver::get_model way faster. gives a 400% overall speed up in some cases where there is a lot of avatar reasoning. should we remoe this as option?
-  _nameAllLiterals(true)
+  _unsatCoreForRefutations(unsatCoreForRefutations)
 {
   CALL("Z3Interfacing::Z3Interfacing");
   BYPASSING_ALLOCATOR
@@ -435,8 +433,7 @@ Term* Z3Interfacing::evaluateInModel(Term* trm)
   DEBUG("model: \n", _model)
   ASS(!trm->isLiteral());
 
-  bool name; //TODO what do we do about naming?
-  z3::expr rep = getz3expr(trm, name).expr;
+  z3::expr rep = getRepresentation(trm).expr;
   z3::expr ev = _model.eval(rep,true); // true means "model_completion"
   unsigned sort = SortHelper::getResultSort(trm);
 
@@ -650,19 +647,19 @@ void Z3Interfacing::createTermAlgebra(TermAlgebra& start)
       auto constr = z3::func_decl(_context, constr_);
 
       auto ctorId = FuncOrPredId::function(ctor->functor());
-      _toZ3.insert(ctorId, Z3FuncEntry::plain(constr));
+      _toZ3.insert(ctorId, constr);
       ASS(_toZ3.find(ctorId))
       _fromZ3.insert(constr, ctorId);
 
       if (ctor->hasDiscriminator()) {
         auto discrId = FuncOrPredId::predicate(ctor->discriminator());
-        _toZ3.insert(discrId, Z3FuncEntry::plain(discr));
+        _toZ3.insert(discrId, discr);
         // _fromZ3.insert(discr, discrId);
       }
       for (unsigned iDestr = 0; iDestr < ctor->arity(); iDestr++)  {
         auto dtor = z3::func_decl(_context, destr[iDestr]);
         auto id = FuncOrPredId::function(ctor->destructorFunctor(iDestr));
-        _toZ3.insert(id, Z3FuncEntry::destructor(dtor, discr));
+        _toZ3.insert(id, dtor);
         _fromZ3.insert(dtor, id);
       }
     }
@@ -687,12 +684,12 @@ z3::func_decl const& Z3Interfacing::findConstructor(FuncId id_)
   auto id = FuncOrPredId::function(id_);
   auto f = _toZ3.tryGet(id);
   if (f.isSome()) {
-    return f.unwrap().decl;
+    return f.unwrap();
   } else {
     auto sym = env.signature->getFunction(id_);
     auto domain = sym->fnType()->result(); 
     createTermAlgebra(*env.signature->getTermAlgebraOfSort(domain));
-    return _toZ3.get(id).decl;
+    return _toZ3.get(id);
   }
 }
 
@@ -744,10 +741,7 @@ namespace tptp {
 
 struct ToZ3Expr 
 {
-  using Z3FuncEntry = Z3Interfacing::Z3FuncEntry;
-  using DestructorMeta = Z3Interfacing::DestructorMeta;
   Z3Interfacing& self;
-  bool& _nameExpression;
   Stack<z3::expr> _defs;
 
   using Arg    = TermList;
@@ -839,7 +833,6 @@ struct ToZ3Expr
       Interpretation interp = static_cast<Signature::InterpretedSymbol*>(symb)->getInterpretation();
 
       if (Theory::isPolymorphic(interp)) {
-        _nameExpression = true;
         switch(interp){
           case Theory::ARRAY_SELECT:
           case Theory::ARRAY_BOOL_SELECT:
@@ -858,7 +851,7 @@ struct ToZ3Expr
         auto int_zero = self._context.int_val(0);
         auto real_zero = self._context.real_val(0);
 
-      switch(interp){
+        switch(interp){
         // Numerical operations
         case Theory::INT_DIVIDES:
           {
@@ -891,8 +884,6 @@ struct ToZ3Expr
         case Theory::RAT_QUOTIENT:
         case Theory::REAL_QUOTIENT:
           return args[0] / args[1];
-
-
 
         /** TPTP's ${quotient,remainder}_e */
         case Theory::INT_QUOTIENT_E:  return args[0] / args[1];          /* <--- same semantics of tptp and smtlib2 for int */
@@ -957,65 +948,45 @@ struct ToZ3Expr
             return ite(t > 0, t, -t);
           }
 
-       // Numerical comparisons
-       // is_rat and to_rat not supported
+        case Theory::INT_IS_INT:
+        case Theory::RAT_IS_INT:
+        case Theory::REAL_IS_INT:
+          return z3::is_int(args[0]);
 
-       case Theory::INT_IS_INT:
-       case Theory::RAT_IS_INT:
-       case Theory::REAL_IS_INT:
-         return z3::is_int(args[0]);
-
-       case Theory::INT_LESS:
-       case Theory::RAT_LESS:
-       case Theory::REAL_LESS:
+        case Theory::INT_LESS:
+        case Theory::RAT_LESS:
+        case Theory::REAL_LESS:
           return args[0] < args[1];
 
-       case Theory::INT_GREATER:
-       case Theory::RAT_GREATER:
-       case Theory::REAL_GREATER:
+        case Theory::INT_GREATER:
+        case Theory::RAT_GREATER:
+        case Theory::REAL_GREATER:
           return args[0] > args[1];
 
-       case Theory::INT_LESS_EQUAL:
-       case Theory::RAT_LESS_EQUAL:
-       case Theory::REAL_LESS_EQUAL:
+        case Theory::INT_LESS_EQUAL:
+        case Theory::RAT_LESS_EQUAL:
+        case Theory::REAL_LESS_EQUAL:
           return args[0] <= args[1];
 
-       case Theory::INT_GREATER_EQUAL:
-       case Theory::RAT_GREATER_EQUAL:
-       case Theory::REAL_GREATER_EQUAL:
+        case Theory::INT_GREATER_EQUAL:
+        case Theory::RAT_GREATER_EQUAL:
+        case Theory::REAL_GREATER_EQUAL:
           return args[0] >= args[1];
 
-      }
+        }
       }
     }
 
     // uninterpretd function
+    auto f = self.z3Function(Z3Interfacing::FuncOrPredId(trm));
 
-    auto entry = self.z3Function(Z3Interfacing::FuncOrPredId(trm));
-
-    if (entry.metadata.is<DestructorMeta>()) {
-      auto selector = entry.metadata.unwrap<DestructorMeta>().selector;
-      _nameExpression = true;
-    }
-
-    z3::func_decl f = entry.decl;
-    // Finally create expr
-    z3::expr e = f(trm->arity(), args); 
-
-    return e;
+    return f(trm->arity(), args); 
   }
 };
 
 
 
-Z3Interfacing::Z3FuncEntry Z3Interfacing::z3Function(Theory::Interpretation itp)
-{
-  return z3Function(Theory::isFunction(itp)  
-    ? FuncOrPredId::function(env.signature->getInterpretingSymbol(itp))
-    : FuncOrPredId::predicate(env.signature->getInterpretingSymbol(itp)));
-}
-
-Z3Interfacing::Z3FuncEntry Z3Interfacing::z3Function(FuncOrPredId functor)
+z3::func_decl Z3Interfacing::z3Function(FuncOrPredId functor)
 {
   auto& self = *this;
   return self._toZ3.tryGet(functor).toOwned()
@@ -1031,7 +1002,7 @@ Z3Interfacing::Z3FuncEntry Z3Interfacing::z3Function(FuncOrPredId functor)
         }
         z3::symbol name = self._context.str_symbol(symb->name().c_str());
         auto range_sort = functor.isPredicate ? self._context.bool_sort() : self.getz3sort(type->result());
-        return Z3FuncEntry::plain(self._context.function(name,domain_sorts,range_sort));
+        return self._context.function(name,domain_sorts,range_sort);
     });
 }
 
@@ -1041,15 +1012,12 @@ Z3Interfacing::Z3FuncEntry Z3Interfacing::z3Function(FuncOrPredId functor)
  * - Translates the ground structure
  * - Some interpreted functions/predicates are handled
  */
-Z3Interfacing::Representation Z3Interfacing::getz3expr(Term* trm, bool& nameExpression)
+Z3Interfacing::Representation Z3Interfacing::getRepresentation(Term* trm)
 {
-  CALL("Z3Interfacing::getz3expr");
+  CALL("Z3Interfacing::getRepresentation");
   DEBUG("in: ", *trm);
-  nameExpression = false;
   Stack<z3::expr> defs;
-  auto expr = evaluateBottomUp(TermList(trm), ToZ3Expr{ *this, nameExpression, defs });
-  if (_nameAllLiterals)
-    nameExpression = true;
+  auto expr = evaluateBottomUp(TermList(trm), ToZ3Expr{ *this, defs });
   DEBUG("out: ", expr);
   return Representation(expr, std::move(defs));
 }
@@ -1066,19 +1034,20 @@ Z3Interfacing::Representation Z3Interfacing::getRepresentation(SATLiteral slit)
     //cout << "getRepresentation of " << lit->toString() << endl;
     // Now translate it into an SMT object 
     try{
-      bool nameExpression;
-      auto repr = getz3expr(lit,nameExpression);
+      auto repr = getRepresentation(lit);
 
-      if(nameExpression) {
-        z3::expr bname = getNameExpr(slit.var()); 
-        z3::expr naming = (bname == repr.expr);
-        repr.defs.push(naming);
-        repr.expr = bname;
-        if(_showZ3){
-          env.beginOutput();
-          env.out() << "[Z3] add (naming): " << naming << std::endl;
-          env.endOutput();
-        }
+      /* we name all literals in order to make z3 cache their truth values. 
+       * this gives a massive performance boost in many cases.              */
+
+      z3::expr bname = getNameExpr(slit.var()); 
+      z3::expr naming = (bname == repr.expr);
+      repr.defs.push(naming);
+      repr.expr = bname;
+
+      if(_showZ3){
+        env.beginOutput();
+        env.out() << "[Z3] add (naming): " << naming << std::endl;
+        env.endOutput();
       }
 
       if(slit.isNegative()) {
@@ -1154,59 +1123,6 @@ SATClause* Z3Interfacing::getRefutation() {
     refutation->setInference(new PropInference(prems));
 
     return refutation; 
-}
-
-
-
-// /**
-//  * Add axioms for quotient_t and remainder_t that will be treated
-//  * uninterpreted
-//  *
-//  **/
-// void Z3Interfacing::addTruncatedOperations(z3::expr e1, z3::expr e2, Interpretation qi, Interpretation ri, unsigned srt) 
-// {
-//   CALL("Z3Interfacing::addTruncatedOperations");
-//   
-//   z3::func_decl rem = z3Function(ri).decl;
-//
-//   if (srt == Sorts::SRT_INTEGER) {
-//     z3::func_decl quot = z3Function(qi).decl;
-//
-//     // e1 >= 0 & e2 > 0 -> e2 * quot(e1,e2) <= e1 & e2 * quot(e1,e2) > e1 - e2
-//     // e1 >= 0 & e2 < 0 -> e2 * quot(e1,e2) <= e1 & e2 * quot(e1,e2) > e1 + e2
-//     // e1  < 0 & e2 > 0 -> e2 * quot(e1,e2) >= e1 & e2 * quot(e1,e2) < e1 + e2
-//     // e1  < 0 & e2 < 0 -> e2 * quot(e1,e2) >= e1 & e2 * quot(e1,e2) < e1 - e2
-//     _solver.add(implies(e1 >= 0 && e2 > 0, e2 * quot(e1,e2) <= e1 && e2 * quot(e1,e2) > e1 - e2 ));
-//     _solver.add(implies(e1 >= 0 && e2 < 0, e2 * quot(e1,e2) <= e1 && e2 * quot(e1,e2) > e1 + e2 ));
-//     _solver.add(implies(e1 <  0 && e2 > 0, e2 * quot(e1,e2) >= e1 && e2 * quot(e1,e2) < e1 + e2 ));
-//     _solver.add(implies(e1 <  0 && e2 < 0, e2 * quot(e1,e2) >= e1 && e2 * quot(e1,e2) < e1 - e2 ));
-//
-//     // e2 != 0 -> e2 * quot(e1,e2) + rem(e1,e2) = e1
-//     _solver.add(implies( e2 != 0, e2 * quot(e1,e2) + rem(e1,e2) == e1 ));
-//   } else {
-//     // e2 != 0 -> e2 * quot(e1,e2) + rem(e1,e2) = e1
-//     _solver.add(implies( e2!=0, e2 * truncate(e1/e2) + rem(e1,e2) == e1 ));
-//   }
-// } // void Z3Interfacing::addTruncatedOperations
-
-void Z3Interfacing::addFloorOperations(z3::expr e1, z3::expr e2, Interpretation qi, Interpretation ri, unsigned srt)
-{
-  CALL("Z3Interfacing::addFloorOperations");
-  
-
-  z3::func_decl rem = z3Function(ri).decl;
-
-  if (srt == Sorts::SRT_INTEGER) {
-    z3::func_decl quot = z3Function(qi).decl;
-
-    // e2 != 0 -> e2 * quot(e1,e2) <= e1 & e2*quot(e1,e2) > e1 - e2 
-    // e2 != 0 -> e2 * quot(e1,e2) + rem(e1,e2) = e1
-    _solver.add(implies(e2!=0, e2 * quot(e1,e2) <= e1 && e2 * quot(e1,e2) > e1 - e2 ));
-    _solver.add(implies(e2!=0, e2 * quot(e1,e2) + rem(e1,e2) == e1 ));
-  } else {
-    // e2 != 0 -> e2 * quot(e1,e2) + rem(e1,e2) = e1
-    _solver.add(implies( e2!=0, e2 * to_real(to_int(e1/e2)) + rem(e1,e2) == e1 ));
-  }
 }
 
 Z3Interfacing::~Z3Interfacing()

@@ -169,43 +169,14 @@ public:
   };
 
 private:
-  struct NoMeta 
-  {
-    friend std::ostream& operator<<(std::ostream& out, NoMeta const& self)
-    { return out << "NoMeta"; }
-  };
-
-  struct DestructorMeta
-  { 
-    z3::func_decl selector; 
-
-    friend std::ostream& operator<<(std::ostream& out, DestructorMeta const& self)
-    { return out << "ctor(" << self.selector << ")"; }
-  };
-
-  struct Z3FuncEntry {
-    using Metadata = Coproduct<NoMeta, DestructorMeta>;
-    z3::func_decl decl;
-    Metadata metadata;
-
-    static Z3FuncEntry plain(z3::func_decl d) 
-    { return  Z3FuncEntry { .decl = d, .metadata = Metadata(NoMeta {}) }; }
-
-    static Z3FuncEntry destructor(z3::func_decl destr, z3::func_decl sel) 
-    { return  Z3FuncEntry { .decl = destr, .metadata = Metadata(DestructorMeta { .selector = sel, }) }; }
-
-    friend std::ostream& operator<<(std::ostream& out, Z3FuncEntry const& self)
-    { return out << self.decl << "@(" << self.metadata << ")"; }
-  };
-
 
   Map<unsigned,z3::sort> _sorts;
   struct Z3Hash {
     static unsigned hash(z3::func_decl const& c) { return c.hash(); }
     static bool equals(z3::func_decl const& l, z3::func_decl const& r) { return z3::eq(l,r); }
   };
-  Map<z3::func_decl, FuncOrPredId, Z3Hash > _fromZ3;
-  Map<FuncOrPredId,  Z3FuncEntry,  StlHash<FuncOrPredId>> _toZ3;
+  Map<z3::func_decl, FuncOrPredId , Z3Hash > _fromZ3;
+  Map<FuncOrPredId,  z3::func_decl, StlHash<FuncOrPredId>> _toZ3;
   Set<SortId> _createdTermAlgebras;
 
   z3::func_decl const& findConstructor(FuncId id);
@@ -213,26 +184,7 @@ private:
 
   z3::sort getz3sort(unsigned s);
 
-  // Helper funtions for the translation
-
-  // z3::expr ceiling(z3::expr e){
-  //       return -to_real(to_int(-e));
-  // }
-  // z3::expr is_even(z3::expr e) {
-  //       z3::context& ctx = e.ctx();
-  //       z3::expr two = ctx.int_val(2);
-  //       z3::expr m = z3::expr(ctx, Z3_mk_mod(ctx, e, two));
-  //       return m == 0;
-  // }
-  //
-  // z3::expr truncate(z3::expr e) {
-  //       return ite(e >= 0, to_int(e), ceiling(e));
-  // }
-
-  Z3FuncEntry z3Function(FuncOrPredId function);
-  Z3FuncEntry z3Function(Theory::Interpretation itp);
-  // void addTruncatedOperations(z3::expr lhs, z3::expr rhs, Interpretation quotient, Interpretation ti, unsigned srt);
-  void addFloorOperations(z3::expr lhs, z3::expr rhs, Interpretation quotient, Interpretation ti, unsigned srt);
+  z3::func_decl z3Function(FuncOrPredId function);
 
   // not sure why this one is public
   friend struct ToZ3Expr;
@@ -253,7 +205,7 @@ private:
     Stack<z3::expr> defs;
   };
 
-  Representation getz3expr(Term* trm, bool&nameExpression);
+  Representation getRepresentation(Term* trm);
   Representation getRepresentation(SATLiteral lit);
 
   // just to conform to the interface
@@ -272,7 +224,6 @@ private:
   const bool _unsatCoreForAssumptions;
   const bool _showZ3;
   const bool _unsatCoreForRefutations;
-  const bool _nameAllLiterals;
 
   Map<unsigned, z3::expr> _varNames;
 
@@ -287,7 +238,6 @@ private:
     });
   }
 
-  unsigned _cntFreshConsts = 0;
   Map<TermList, z3::expr> _termIndexedConstants;
   z3::expr constantFor(TermList name, z3::sort sort)
   {
