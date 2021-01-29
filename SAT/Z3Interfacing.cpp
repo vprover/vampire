@@ -17,7 +17,6 @@
 
 #if VZ3
 #define UNIMPLEMENTED ASSERTION_VIOLATION
-#define TODO ASSERTION_VIOLATION
 
 #include "Forwards.hpp"
 
@@ -209,14 +208,18 @@ void Z3Interfacing::addAssumption(SATLiteral lit)
 
 SATSolver::Status Z3Interfacing::solveWithAssumptions(Stack<SATLiteral> const& assumptions) 
 {
-  CALL("Z3Interfacing::solve");
+  CALL("Z3Interfacing::solveWithAssumptions");
   BYPASSING_ALLOCATOR;
-  auto all_assumptions = _assumptions;
+  z3::expr_vector all_assumptions(_context);
+  for (auto a : _assumptions) {
+    all_assumptions.push_back(a);
+  }
   for (auto a : assumptions) {
     auto repr = getRepresentation(a);
     for (auto d : repr.defs) all_assumptions.push_back(d);
     all_assumptions.push_back(repr.expr);
   }
+  DEBUG("assumptions: ", all_assumptions);
 
   z3::check_result result = all_assumptions.empty() ? _solver.check() : _solver.check(all_assumptions);
 
@@ -483,7 +486,6 @@ SATClause* Z3Interfacing::getZeroImpliedCertificate(unsigned)
   return 0;
 }
 
-//TODO: should handle function/predicate types really
 z3::sort Z3Interfacing::getz3sort(SortId s)
 {
   CALL("Z3Interfacing::getz3sort");

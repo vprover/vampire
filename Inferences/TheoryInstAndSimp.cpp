@@ -706,8 +706,9 @@ struct InstanceFn
 
     // We delete cl as it's a theory-tautology (note that if the answer was uknown no solution would be produced)
     if(!sol.status){
+
       // now we run SMT solver again without guarding
-      if(!guards.isEmpty()){
+      if(guards.isEmpty()){
         redundant = true;
       } else {
         auto solutions = parent->getSolutions(theoryLits, /* no guards */ Stack<Literal*>());
