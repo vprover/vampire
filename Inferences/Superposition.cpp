@@ -41,6 +41,7 @@
 #include "Shell/Statistics.hpp"
 
 #include "Superposition.hpp"
+#include "Lib/Iterator.hpp"
 
 #if VDEBUG
 #include <iostream>
@@ -52,6 +53,7 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
+using namespace Lib::Iterator;
 
 void Superposition::attach(SaturationAlgorithm* salg)
 {
@@ -183,6 +185,7 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
   //TODO probably shouldn't go here!
   static bool withConstraints = env.options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF;
 
+  if (false)  {
 
   auto itf1 = premise->getSelectedLiteralIterator();
 
@@ -215,6 +218,34 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
   auto it7 = getTimeCountedIterator(it6, TC_SUPERPOSITION);
 
   return pvi( it7 );
+  }
+
+  using Lib::Iterator::map;
+  auto fwd_superposition =
+    wrap(premise->getSelectedLiteralIterator())
+    // Get an iterator of pairs of selected literals and rewritable subterms of those literals
+    // A subterm is rewritable (see EqHelper) if it is a non-variable subterm of either
+    // a maximal side of an equality or of a non-equational literal
+    | flatMap(RewriteableSubtermsFn(_salg->getOrdering()))
+    // Get clauses with a literal whose complement unifies with the rewritable subterm,
+    // returns a pair with the original pair and the unification result (includes substitution)
+    | flatMap(ApplicableRewritesFn(_lhsIndex,withConstraints))
+    //Perform forward superposition
+    | map(ForwardResultFn(premise, passiveClauseContainer, *this));
+
+  auto bwd_superposition = 
+    wrap(premise->getSelectedLiteralIterator())
+    | flatMap(EqHelper::SuperpositionLHSIteratorFn(_salg->getOrdering(), _salg->getOptions()))
+    | flatMap(RewritableResultsFn(_subtermIndex,withConstraints))
+    //Perform backward superposition
+    | map(BackwardResultFn(premise, passiveClauseContainer, *this));
+
+  return pvi(legacy(
+    concat(fwd_superposition, bwd_superposition)
+    // Remove null elements - these can come from performSuperposition
+    | filter(NonzeroFn())
+    | timeCounted(TC_SUPERPOSITION)
+  ));
 }
 
 /**

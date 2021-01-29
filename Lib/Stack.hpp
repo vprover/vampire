@@ -216,7 +216,10 @@ public:
   static Stack fromIterator(It it) {
     CALL("Stack::fromIterator");
     Stack out;
-    out.moveFromIterator(std::move(it));
+    out.reserveIter(it);
+    for (auto e = it.next(); e.isSome(); e = it.next()) {
+      out.push(std::move(e).unwrap());
+    }
     return out;
   }
 
