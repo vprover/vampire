@@ -139,6 +139,13 @@ bool InductionHelper::isIntegerComparison(Clause* c) {
   return isIntegerComparisonLiteral((*c)[0]);
 }
 
+bool InductionHelper::isIntInductionOn() {
+  CALL("InductionHelper::isIntInductionOn");
+  static bool intInd = env.options->induction() == Options::Induction::BOTH ||
+                        env.options->induction() == Options::Induction::INTEGER;
+  return intInd;
+}
+
 bool InductionHelper::isIntInductionOneOn() {
   CALL("InductionHelper::isIntInductionOneOn");
   static bool one = env.options->intInduction() == Options::IntInductionKind::ONE ||
@@ -151,6 +158,20 @@ bool InductionHelper::isIntInductionTwoOn() {
   static bool two = env.options->intInduction() == Options::IntInductionKind::TWO ||
                     env.options->intInduction() == Options::IntInductionKind::ALL;
   return isIntInductionOn() && two;
+}
+
+bool InductionHelper::isInductionForFiniteIntervalsOn() {
+  CALL("InductionHelper::isInductionForFiniteIntervalsOn");
+  static bool finite = env.options->integerInductionInterval() == Options::IntegerInductionInterval::FINITE ||
+                       env.options->integerInductionInterval() == Options::IntegerInductionInterval::BOTH;
+  return isIntInductionOn() && finite;
+}
+
+bool InductionHelper::isInductionForInfiniteIntervalsOn() {
+  CALL("InductionHelper::isInductionForInfiniteIntervalsOn");
+  static bool infinite = env.options->integerInductionInterval() == Options::IntegerInductionInterval::INFINITE ||
+                         env.options->integerInductionInterval() == Options::IntegerInductionInterval::BOTH;
+  return isIntInductionOn() && infinite;
 }
 
 bool InductionHelper::isStructInductionOn() {
@@ -203,8 +224,10 @@ bool InductionHelper::isIntInductionTermListInLiteral(TermList& tl, Literal* l) 
   ASS(tl.isTerm());
   // Term tl has to be an integer term, and not an interpreted constant.
   unsigned f = tl.term()->functor();
+  // TODO: move this check to later (when we know the bounds)
   if ((env.signature->getFunction(f)->fnType()->result() != Term::intSort()) ||
-      theory->isInterpretedConstant(f)) {
+      theory->isInterpretedConstant(f))
+  {
     return false;
   }
   // Integer term tl from literal l cannot be used for induction if l is an integer

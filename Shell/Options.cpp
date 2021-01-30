@@ -140,13 +140,16 @@ void Options::init()
          "casc_sat",
          "casc_sat_2019",
          "casc_hol_2020",
+         "induction",
+         "integer_induction",
          "ltb_default_2017",
          "ltb_hh4_2017",
          "ltb_hll_2017",
          "ltb_isa_2017",
          "ltb_mzr_2017",
          "smtcomp",
-         "smtcomp_2018"});
+         "smtcomp_2018",
+         "struct_induction"});
     _schedule.description = "Schedule to be run by the portfolio mode. casc and smtcomp usually point to the most recent schedule in that category. Note that some old schedules may contain option values that are no longer supported - see ignore_missing.";
     _lookup.insert(&_schedule);
     _schedule.reliesOnHard(Or(_mode.is(equal(Mode::CASC)),_mode.is(equal(Mode::CASC_SAT)),_mode.is(equal(Mode::SMTCOMP)),_mode.is(equal(Mode::PORTFOLIO))));
@@ -1160,6 +1163,19 @@ void Options::init()
             _inductionOnComplexTerms.tag(OptionTag::INFERENCES);
             _inductionOnComplexTerms.reliesOn(_induction.is(notEqual(Induction::NONE)));
             _lookup.insert(&_inductionOnComplexTerms);
+
+            _integerInductionDefaultBound = BoolOptionValue("int_induction_default_bound","intinddb",false);
+            _integerInductionDefaultBound.description = "Always apply integer induction with bound 0";
+            _integerInductionDefaultBound.tag(OptionTag::INFERENCES);
+            _integerInductionDefaultBound.reliesOn(Or(_induction.is(equal(Induction::INTEGER)),_induction.is(equal(Induction::BOTH))));
+            _lookup.insert(&_integerInductionDefaultBound);
+
+            _integerInductionInterval = ChoiceOptionValue<IntegerInductionInterval>("int_induction_interval","intindint",
+                                 IntegerInductionInterval::BOTH,{"infinite","finite","both"});
+            _integerInductionInterval.description="Whether integer induction is applied over infinite or finite intervals, or both";
+            _integerInductionInterval.tag(OptionTag::INFERENCES);
+            _integerInductionInterval.reliesOn(Or(_induction.is(equal(Induction::INTEGER)),_induction.is(equal(Induction::BOTH))));
+            _lookup.insert(&_integerInductionInterval);
 
 	    _instantiation = ChoiceOptionValue<Instantiation>("instantiation","inst",Instantiation::OFF,{"off","on"});
 	    _instantiation.description = "Heuristically instantiate variables. Often wastes a lot of effort. Consider using thi instead.";

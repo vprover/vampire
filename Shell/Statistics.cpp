@@ -79,8 +79,28 @@ Statistics::Statistics()
     induction(0),
     maxInductionDepth(0),
     inductionInProof(0),
+    structInduction(0),
+    structInductionInProof(0),
     generalizedInduction(0),
     generalizedInductionInProof(0),
+    intInfInduction(0),
+    intInfInductionInProof(0),
+    intFinInduction(0),
+    intFinInductionInProof(0),
+    intDBInduction(0),
+    intDBInductionInProof(0),
+    intInfUpInduction(0),
+    intInfUpInductionInProof(0),
+    intFinUpInduction(0),
+    intFinUpInductionInProof(0),
+    intDBUpInduction(0),
+    intDBUpInductionInProof(0),
+    intInfDownInduction(0),
+    intInfDownInductionInProof(0),
+    intFinDownInduction(0),
+    intFinDownInductionInProof(0),
+    intDBDownInduction(0),
+    intDBDownInductionInProof(0),
     argumentCongruence(0),
     narrow(0),
     forwardSubVarSup(0),
@@ -350,17 +370,37 @@ void Statistics::print(ostream& out)
   COND_OUT("Induction",induction);
   COND_OUT("MaxInductionDepth",maxInductionDepth);
   COND_OUT("InductionStepsInProof",inductionInProof);
+  COND_OUT("StructuralInduction",structInduction);
+  COND_OUT("StructuralInductionStepsInProof",structInductionInProof);
   COND_OUT("GeneralizedInduction",generalizedInduction);
   COND_OUT("GeneralizedInductionInProof",generalizedInductionInProof);
+  COND_OUT("IntegerInfiniteIntervalInduction",intInfInduction);
+  COND_OUT("IntegerInfiniteIntervalInductionInProof",intInfInductionInProof);
+  COND_OUT("IntegerFiniteIntervalInduction",intFinInduction);
+  COND_OUT("IntegerFiniteIntervalInductionInProof",intFinInductionInProof);
+  COND_OUT("IntegerDefaultBoundInduction",intDBInduction);
+  COND_OUT("IntegerDefaultBoundInductionInProof",intDBInductionInProof);
+  COND_OUT("IntegerInfiniteIntervalUpInduction",intInfUpInduction);
+  COND_OUT("IntegerInfiniteIntervalUpInductionInProof",intInfUpInductionInProof);
+  COND_OUT("IntegerFiniteIntervalUpInduction",intFinUpInduction);
+  COND_OUT("IntegerFiniteIntervalUpInductionInProof",intFinUpInductionInProof);
+  COND_OUT("IntegerDefaultBoundUpInduction",intDBUpInduction);
+  COND_OUT("IntegerDefaultBoundUpInductionInProof",intDBUpInductionInProof);
+  COND_OUT("IntegerInfiniteIntervalDownInduction",intInfInduction);
+  COND_OUT("IntegerInfiniteIntervalDownInductionInProof",intInfDownInductionInProof);
+  COND_OUT("IntegerFiniteIntervalDownInduction",intFinDownInduction);
+  COND_OUT("IntegerFiniteIntervalDownInductionInProof",intFinDownInductionInProof);
+  COND_OUT("IntegerDefaultBoundDownInduction",intDBDownInduction);
+  COND_OUT("IntegerDefaultBoundDownInductionInProof",intDBDownInductionInProof);
   COND_OUT("Argument congruence", argumentCongruence);
   COND_OUT("Negative extensionality", negativeExtensionality);
   COND_OUT("Primitive substitutions", primitiveInstantiations);
   COND_OUT("Elimination of Leibniz equalities", leibnizElims);
   COND_OUT("Choice axiom instances creatded", choiceInstances);
   COND_OUT("Narrow", narrow);
-  COND_OUT("Forward sub-variable superposition", forwardSubVarSup);  
-  COND_OUT("Backward sub-variable superposition", backwardSubVarSup);  
-  COND_OUT("Self sub-variable superposition", selfSubVarSup);  
+  COND_OUT("Forward sub-variable superposition", forwardSubVarSup);
+  COND_OUT("Backward sub-variable superposition", backwardSubVarSup);
+  COND_OUT("Self sub-variable superposition", selfSubVarSup);
   SEPARATOR;
 
   HEADING("Term algebra simplifications",taDistinctnessSimplifications+
