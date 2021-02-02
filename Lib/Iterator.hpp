@@ -75,7 +75,7 @@ struct is_legacy_iterator
 template<class Iter>
 struct is_legacy_iterator<Iter,
   typename std::enable_if<
-             std::is_same<decltype(((Iter      *)nullptr)->    next()), ElemT<Iter>   >::value
+             std::is_same<decltype(((Iter      *)nullptr)->    next()), ELEMENT_TYPE(Iter)   >::value
            >::type
            >
 { 
@@ -120,17 +120,19 @@ public:
   }
 };
 
-#define ASSERT_METHOD(Return, Class, method, constness)                                                       \
-    static_assert(std::is_same<decltype(((Class constness*)nullptr)->method), Return>::value,                 \
-                  "method not implemented: " #Return " " #Class "::" #method " " #constness );                \
+#define ASSERT_METHOD(Return, Iter, method, constness)                                                        \
+    static_assert(std::is_same<decltype(((Iter constness*)nullptr)->method), Return>::value,                  \
+                  "method not implemented: " #Return " " #Iter "::" #method " " #constness );                 \
 
-#define DERIVE_ITERATOR(Class)                                                                                \
-  auto begin() -> ForLoopIter<Class> { return ForLoopIter<Class>(*this);  }                                   \
-  auto end()   -> ForLoopIter<Class> { return ForLoopIter<Class>();       }                                   \
+#define DERIVE_ITERATOR(Iter, E)                                                                              \
+  auto begin() -> ForLoopIter<Iter> { return ForLoopIter<Iter>(*this);  }                                     \
+  auto end()   -> ForLoopIter<Iter> { return ForLoopIter<Iter>();       }                                     \
+  using Elem = E;                                                                                             \
+  DECL_ELEMENT_TYPE(E);                                                                                       \
   template<class Dummy> struct __is_iterator                                                                  \
   {                                                                                                           \
-    ASSERT_METHOD(Option<unsigned>, Class, sizeLeft(), const);                                                \
-    ASSERT_METHOD(Option<ElemT<Class>>, Class, next(), );                                                     \
+    ASSERT_METHOD(Option<unsigned>,    Iter, sizeLeft(), const);                                              \
+    ASSERT_METHOD(Option<ElemT<Iter>>, Iter, next()    ,      );                                              \
     static constexpr bool value = true;                                                                       \
   };                                                                                                          \
 
@@ -148,7 +150,7 @@ class DynIter
   template<class El> class Interface 
   {
   public:
-    DECL_ELEMENT_TYPE(El);
+    DERIVE_ITERATOR(Interface, El);
     virtual Option<E> next() = 0;
     virtual Option<unsigned> sizeLeft() const = 0;
     virtual ~Interface() {}
@@ -167,8 +169,7 @@ class DynIter
 
   std::unique_ptr<Interface<E>> _iter;
 public:
-  DECL_ELEMENT_TYPE(E);
-  DERIVE_ITERATOR(DynIter)
+  DERIVE_ITERATOR(DynIter, E);
 
   template<class Iter>
   DynIter(Iter iter) : _iter(new Implementation<Iter>(std::move(iter))) { }
@@ -189,8 +190,7 @@ class IndexIter
   Idx _idx;
   Idx _size;
 public:
-  DECL_ELEMENT_TYPE(decltype(_array[_idx]));
-  DERIVE_ITERATOR(IndexIter)
+  DERIVE_ITERATOR(IndexIter, decltype(_array[_idx]))
 
   IndexIter(Array array, Idx size) : _array(std::move(array)), _idx(0), _size(_array.size()) {}
   IndexIter(Array array) : IndexIter(std::move(array), array.size()) {}
@@ -234,8 +234,7 @@ class RangeIter {
   Number _idx;
   Number const _endExclusive;
 public:
-  DECL_ELEMENT_TYPE(Number);
-  DERIVE_ITERATOR(RangeIter)
+  DERIVE_ITERATOR(RangeIter, Number)
   RangeIter(Number start, Number endExclusive) : _idx(start), _endExclusive(endExclusive) {}
 
   Option<Number> next() 
@@ -257,13 +256,13 @@ template<class Iter>
 class IterWrapper {
   Iter _iter;
 public:
-  DECL_ELEMENT_TYPE(ELEMENT_TYPE(Iter));
-  DERIVE_ITERATOR(IterWrapper)
+  DERIVE_ITERATOR(IterWrapper, ELEMENT_TYPE(Iter))
+
   IterWrapper(Iter iter) : _iter(std::move(iter)) {}
 
-  Option<ElemT<Iter>> next() 
-  { return _iter.hasNext() ? Option<ElemT<Iter>>(_iter.next()) 
-                           : Option<ElemT<Iter>>(); }
+  Option<Elem> next() 
+  { return _iter.hasNext() ? Option<Elem>(_iter.next()) 
+                           : Option<Elem>(); }
 
   Option<unsigned> sizeLeft() const 
   { return _iter.knownSize() ? Option<unsigned>(_iter.size())
@@ -313,8 +312,7 @@ class Map
   Func _func;
 public:
   using Result = typename std::result_of<Func(ElemT<Iter>)>::type;
-  DECL_ELEMENT_TYPE(Result);
-  DERIVE_ITERATOR(Map)
+  DERIVE_ITERATOR(Map, Result);
 
   Map(Iter inner, Func func) : _iter(std::move(inner)), _func(std::move(func)) {}
 
@@ -331,7 +329,6 @@ public:
   inline Option<unsigned> sizeLeft() const { return _iter.sizeLeft(); }
 };
 
-
 template<class Iter, class Func>
 class Map<Iter, Func, 
       typename std::enable_if< 
@@ -343,15 +340,15 @@ class Map<Iter, Func,
   Iter _iter;
   Func _func;
 public:
-  using Result = Iterators::IterWrapper<typename std::result_of<Func(ElemT<Iter>)>::type>;
-
-  DECL_ELEMENT_TYPE(Result);
-  DERIVE_ITERATOR(Map)
+  using UnwrappedResult = typename std::result_of<Func(ElemT<Iter>)>::type;
+  using Result = Iterators::IterWrapper<UnwrappedResult>;
+  ASSERT_ITERATOR(Result);
+  DERIVE_ITERATOR(Map, Result)
 
   Map(Iter inner, Func func) : _iter(std::move(inner)), _func(std::move(func)) {}
 
   inline Option<Result> next()           
-  { Option<typename std::result_of<Func(ElemT<Iter>)>::type> out = _iter.next().map(_func); 
+  { Option<UnwrappedResult> out = _iter.next().map(_func); 
     if (out.isSome()) {
       return Option<Result>(Iterators::wrap(std::move(out).unwrap()));
     } else {
@@ -377,8 +374,7 @@ class Filter
   Func _func;
   Iter _inn;
 public:
-  DECL_ELEMENT_TYPE(ElemT<Iter>);
-  DERIVE_ITERATOR(Filter)
+  DERIVE_ITERATOR(Filter, ElemT<Iter>)
 
   Filter(Iter inn, Func func)
   : _func(func), _inn(inn) {}
@@ -413,10 +409,10 @@ class Flatten
   Option<Inner> _current;
   bool _init;
 public:
+  DERIVE_ITERATOR(Flatten, ElemT<Inner>);
+
   ASSERT_ITERATOR(Outer);
   ASSERT_ITERATOR(ElemT<Outer>);
-  DECL_ELEMENT_TYPE(ElemT<Inner>);
-  DERIVE_ITERATOR(Flatten)
 
   explicit Flatten(Outer master)
   : _outer(std::move(master))
@@ -424,7 +420,7 @@ public:
   , _init(false)
   { }
 
-  Option<ElemT<Inner>> next()
+  Option<Elem> next()
   {
     CALL("Flatten::next");
     if (!_init) {
@@ -481,8 +477,7 @@ class SizeHint
   Iter _iter;
   unsigned _size;
 public:
-  DECL_ELEMENT_TYPE(ElemT<Iter>);
-  DERIVE_ITERATOR(SizeHint)
+  DERIVE_ITERATOR(SizeHint, ElemT<Iter>)
 
 
   SizeHint(Iter iter, Unsigned size) : _iter(std::move(iter)) , _size(size) { }
@@ -513,13 +508,12 @@ class FlatMap
   using Self = Flatten::Flatten<SelfMap>;
   Self _self;
 public:
-  DECL_ELEMENT_TYPE(ElemT<Self>);
-  DERIVE_ITERATOR(FlatMap)
+  DERIVE_ITERATOR(FlatMap, ElemT<Self>)
 
   FlatMap(Iter i, F f) 
     : _self(Self(SelfMap(std::move(i), std::move(f)))) {}
 
-  Option<ElemT<Self>> next()               { return _self.next(); }
+  Option<Elem> next()                      { return _self.next(); }
   inline Option<unsigned> sizeLeft() const { return _self.sizeLeft(); }
 
 };
@@ -537,8 +531,7 @@ template<class Inner, class TCU>
 class TimeCounted
 {
 public:
-  DECL_ELEMENT_TYPE(ElemT<Inner>);
-  DERIVE_ITERATOR(TimeCounted)
+  DERIVE_ITERATOR(TimeCounted, ElemT<Inner>)
 
   TimeCounted(Inner inn, TimeCounterUnit tcu)
   : _inn(std::move(inn)), _tcu(tcu) {}
@@ -582,8 +575,7 @@ class Concat {
 public:
   static_assert(std::is_same<ElemT<Iter1>, ElemT<Iter2>>::value, 
       "can only concat iterators with same element types");
-  DECL_ELEMENT_TYPE(ElemT<Iter1>);
-  DERIVE_ITERATOR(Concat)
+  DERIVE_ITERATOR(Concat, ElemT<Iter1>);
 
   Concat(Iter1 i1, Iter2 i2) : _idx(Fst), _i1(std::move(i1)), _i2(std::move(i2)) {}
 
