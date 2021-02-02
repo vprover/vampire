@@ -1,15 +1,14 @@
-
-  /*
-   * File tGaussianElimination.cpp.
-   *
-   * This file is part of the source code of the software program
-   * Vampire. It is protected by applicable
-   * copyright laws.
-   *
-   * This source code is distributed under the licence found here
-   * https://vprover.github.io/license.html
-   * and in the source directory
-   */
+/*
+ * File tTheoyInstAndSimpl.cpp.
+ *
+ * This file is part of the source code of the software program
+ * Vampire. It is protected by applicable
+ * copyright laws.
+ *
+ * This source code is distributed under the licence found here
+ * https://vprover.github.io/license.html
+ * and in the source directory
+ */
 
 
 #include "Test/UnitTesting.hpp"
@@ -85,34 +84,9 @@ TEST_GENERATION(test_01,
       .premiseRedundant(false)
     )
 
-
-TEST_GENERATION(test_01_1,
-    Generation::TestCase()
-      .rule(theoryInstAndSimp(Options::TheoryInstSimp::NEW))
-      .input(    clause({ x == 1, x * y != 6, ~(0 < x), ~(x < y), r(x,y)  }))
-      .expected(exactly(
-            clause({ r(2,3)  })
-      ))
-      .premiseRedundant(false)
-    )
-
 TEST_GENERATION(test_02,
     Generation::TestCase()
       .rule(theoryInstAndSimp(Options::TheoryInstSimp::ALL))
-      .input(    clause({  tail(x) != tail(y), 
-          head(x) != 0, 
-          head(y) != 1, 
-          tail(x) != nil(), 
-          p(head(tail(x))), p(head(tail(y)))  }))
-      .expected(exactly(
-            clause({  p(head(tail(cons(0, nil())))), p(head(tail(cons(1,nil()))))  })
-      ))
-      .premiseRedundant(false)
-    )
-
-TEST_GENERATION(test_02_1,
-    Generation::TestCase()
-      .rule(theoryInstAndSimp(Options::TheoryInstSimp::NEW))
       .input(    clause({  tail(x) != tail(y), 
           head(x) != 0, 
           head(y) != 1, 
@@ -142,17 +116,6 @@ TEST_GENERATION_WITH_SUGAR(test_03,
       .premiseRedundant(false)
     )
 
-TEST_GENERATION_WITH_SUGAR(test_03_1,
-    LIST_ALPHA_SUGAR,
-    Generation::TestCase()
-      .rule(theoryInstAndSimp(Options::TheoryInstSimp::NEW))
-      .input(    clause({  cons(a, nil()) != cons(x, nil()), 
-          p(x)  }))
-      .expected(exactly(
-      ))
-      .premiseRedundant(false)
-    )
-
 #define RAT_SYNTAX_SUGAR                                                                                      \
     DECL_DEFAULT_VARS                                                                                         \
     NUMBER_SUGAR(Rat)                                                                                         \
@@ -161,7 +124,7 @@ TEST_GENERATION_WITH_SUGAR(test_03_1,
 TEST_GENERATION_WITH_SUGAR(test_04,
     RAT_SYNTAX_SUGAR,
     Generation::TestCase()
-      .rule(theoryInstAndSimp(Options::TheoryInstSimp::NEW))
+      .rule(theoryInstAndSimp(Options::TheoryInstSimp::ALL))
       .input(    clause({ x != 1, y != 4, p(x,y) }) )
       .expected(exactly())
       .premiseRedundant(false)
@@ -170,7 +133,7 @@ TEST_GENERATION_WITH_SUGAR(test_04,
 TEST_GENERATION_WITH_SUGAR(test_05,
     RAT_SYNTAX_SUGAR,
     Generation::TestCase()
-      .rule(theoryInstAndSimp(Options::TheoryInstSimp::NEW))
+      .rule(theoryInstAndSimp(Options::TheoryInstSimp::ALL))
       .input(    clause({ x + y != 0, x != 7, p(x,y) }) )
       .expected(exactly(clause({p(7, -7)})))
       .premiseRedundant(false)
@@ -180,10 +143,60 @@ TEST_GENERATION_WITH_SUGAR(test_05,
 TEST_GENERATION_WITH_SUGAR(test_06,
     RAT_SYNTAX_SUGAR,
     Generation::TestCase()
-      .rule(theoryInstAndSimp(Options::TheoryInstSimp::NEW))
+      .rule(theoryInstAndSimp(Options::TheoryInstSimp::ALL))
       .input(    clause({ x + y != 0 * z, x != 7, p(x,y) }) )
       .expected(exactly(clause({p(7, -7)})))
       .premiseRedundant(false)
+    )
+
+TEST_GENERATION_WITH_SUGAR(test_07,
+    RAT_SYNTAX_SUGAR,
+    Generation::TestCase()
+      .rule(theoryInstAndSimp(Options::TheoryInstSimp::STRONG))
+      .input(    clause({ x + y != 0 * z, x != 7, p(x,y) }) )
+      .expected(exactly(clause({p(7, -7)})))
+      .premiseRedundant(false)
+    )
+
+#define INT_SYNTAX_SUGAR                                                                                      \
+    DECL_DEFAULT_VARS                                                                                         \
+    NUMBER_SUGAR(Int)                                                                                         \
+    DECL_PRED(p, {Int,Int})                                                                                   \
+
+TEST_GENERATION_WITH_SUGAR(test_all_vs_strong_1a,
+    INT_SYNTAX_SUGAR,
+    Generation::TestCase()
+      .rule(theoryInstAndSimp(Options::TheoryInstSimp::STRONG))
+      .input(    clause({ ~(-1 < x), ~(x < 1), x == 0, p(x,y) }) )
+      .expected(exactly(clause({num(0) == 0, p(0, y)})))
+      .premiseRedundant(false)
+    )
+
+TEST_GENERATION_WITH_SUGAR(test_all_vs_strong_1b,
+    INT_SYNTAX_SUGAR,
+    Generation::TestCase()
+      .rule(theoryInstAndSimp(Options::TheoryInstSimp::ALL))
+      .input(    clause({ ~(-1 < x), ~(x < 1), x == 0, p(x,y) }) )
+      .expected(exactly(  ))
+      .premiseRedundant(true)
+    )
+
+TEST_GENERATION_WITH_SUGAR(test_all_vs_strong_2a,
+    INT_SYNTAX_SUGAR,
+    Generation::TestCase()
+      .rule(theoryInstAndSimp(Options::TheoryInstSimp::STRONG))
+      .input(    clause({ x == 7, x != 7, p(x,y) }) )
+      .expected(exactly(clause({ 7 == num(7), p(7, y)})))
+      .premiseRedundant(false)
+    )
+
+TEST_GENERATION_WITH_SUGAR(test_all_vs_strong_2b,
+    INT_SYNTAX_SUGAR,
+    Generation::TestCase()
+      .rule(theoryInstAndSimp(Options::TheoryInstSimp::ALL))
+      .input(    clause({ x == 7, x != 7, p(x,y) }) )
+      .expected(exactly(  ))
+      .premiseRedundant(true)
     )
 
 #define PAIR_SYNTAX_SUGAR                                                                                     \
@@ -202,7 +215,7 @@ TEST_GENERATION_WITH_SUGAR(test_06,
 TEST_GENERATION_WITH_SUGAR(bug_01,
     PAIR_SYNTAX_SUGAR,
     Generation::TestCase()
-      .rule             (theoryInstAndSimp(Options::TheoryInstSimp::NEW))
+      .rule             (theoryInstAndSimp(Options::TheoryInstSimp::ALL))
       .input            (clause({ 0 == fst(pair(0,127)) }))
       .expected         (exactly(  ))
       .premiseRedundant (true)
@@ -211,7 +224,7 @@ TEST_GENERATION_WITH_SUGAR(bug_01,
 TEST_GENERATION_WITH_SUGAR(bug_02,
     LIST_INT_SUGAR,
     Generation::TestCase()
-      .rule             (theoryInstAndSimp(Options::TheoryInstSimp::NEW))
+      .rule             (theoryInstAndSimp(Options::TheoryInstSimp::ALL))
       .input            (clause({ tail(nil) == nil  }))
       .expected         (exactly(  ))
       .premiseRedundant (false)
@@ -220,7 +233,7 @@ TEST_GENERATION_WITH_SUGAR(bug_02,
 TEST_GENERATION_WITH_SUGAR(bug_03,
     PAIR_SYNTAX_SUGAR,
     Generation::TestCase()
-      .rule             (theoryInstAndSimp(Options::TheoryInstSimp::NEW))
+      .rule             (theoryInstAndSimp(Options::TheoryInstSimp::ALL))
       .input            (clause({ 0 != fst(pair(0,127)) }))
       .expected         (exactly( clause({}) ))
     )

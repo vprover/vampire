@@ -34,8 +34,8 @@ using namespace Kernel;
 using namespace Saturation;
 
 struct Solution{
-  explicit Solution(bool s) : status(s) {}
-  const bool status;
+  explicit Solution(bool sat) : sat(sat) {}
+  const bool sat;
   Substitution subst;
   friend std::ostream& operator<<(std::ostream& out, Solution const&);
 };
@@ -112,7 +112,6 @@ private:
   SAT2FO _naming;
   Z3Interfacing* _solver;
   Map<unsigned, bool> _supportedSorts;
-
 };
 
 };
