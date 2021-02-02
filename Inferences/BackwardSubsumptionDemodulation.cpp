@@ -237,6 +237,12 @@ void BackwardSubsumptionDemodulation::performWithQueryLit(Clause* sideCl, Litera
     //
     // Summary: must skip one positive equality in the remaining literals for this "mustPred" check.
     if (!mustPredInit) {
+      unsigned const positiveEqualityHeader = 1;
+#if VDEBUG
+      // To verify the hard-coded value of positiveEqualityHeader
+      Literal* posEq = Literal::createEquality(true, TermList(0, false), TermList(1, false), Term::defaultSort());
+      ASS_EQ(posEq->header(), positiveEqualityHeader);
+#endif
       unsigned numPosEqs = 0;
       //since the base clause has at least two children, this will always
       //contain an existing literal header after the loop
@@ -255,7 +261,7 @@ void BackwardSubsumptionDemodulation::performWithQueryLit(Clause* sideCl, Litera
           mustPred = pred;
         }
       }
-      if (mustPred == 0) {
+      if (mustPred == positiveEqualityHeader) {
         // for positive equality we need to have skipped at least in the remaining literals
         mustPredActive = (numPosEqs >= 2);
       } else {
