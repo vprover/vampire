@@ -84,15 +84,12 @@ public:
     binder.reset();
 
     if(base->commutative()) {
-      ASS(base->arity()==2);
+      ASS_EQ(base->arity(), 2);
       if(matchArgs(base, instance, binder)) {
         return true;
       }
       binder.reset();
-      bool bTwoVarEq = base->isTwoVarEquality();
-      return matchTerms(*base->nthArgument(0), *instance->nthArgument(1), binder) &&
-             matchTerms(*base->nthArgument(1), *instance->nthArgument(0), binder) &&
-             (!bTwoVarEq || matchTerms(base->twoVarEqSort(), SortHelper::getEqualityArgumentSort(instance), binder));
+      return matchReversedArgs(base, instance, binder);
     } else {
       return matchArgs(base, instance, binder);
     }
@@ -131,6 +128,9 @@ public:
 
   template<class Binder>
   static bool matchArgs(Term* base, Term* instance, Binder& binder);
+
+  template<class Binder>
+  static bool matchReversedArgs(Literal* base, Literal* instance, Binder& binder);
 
   template<class Map>
   struct MapRefBinder
@@ -284,6 +284,27 @@ private:
 };
 
 /**
+ * Matches two binary literals like MatchingUtils::matchArgs,
+ * but with the arguments of one literal swapped.
+ */
+template<class Binder>
+bool MatchingUtils::matchReversedArgs(Literal* base, Literal* instance, Binder& binder)
+{
+  CALL("MatchingUtils::matchReversedArgs/3");
+  ASS_EQ(base->functor(), instance->functor());
+  ASS_EQ(base->arity(), 2);
+  ASS_EQ(instance->arity(), 2);
+
+  if (base->isTwoVarEquality()) {
+    if (!matchTerms(base->twoVarEqSort(), SortHelper::getEqualityArgumentSort(instance), binder)) {
+      return false;
+    }
+  }
+  return matchTerms(*base->nthArgument(0), *instance->nthArgument(1), binder)
+    &&   matchTerms(*base->nthArgument(1), *instance->nthArgument(0), binder);
+}
+
+/**
  * Matches two terms, using @b binder to store and check bindings
  * of base variables.
  *
@@ -299,6 +320,8 @@ bool MatchingUtils::matchArgs(Term* base, Term* instance, Binder& binder)
       return false;
     }
   }
+  // Note: while this function only cares about the term structure,
+  // for two-variable equalities we need to get the sort of the arguments from the Literal object.
   if(base->isLiteral() && static_cast<Literal*>(base)->isTwoVarEquality()){
     Literal* l1 = static_cast<Literal*>(base);
     Literal* l2 = static_cast<Literal*>(instance);
