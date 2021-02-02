@@ -487,7 +487,10 @@ bool BackwardSubsumptionDemodulation::rewriteCandidate(Clause* sideCl, Clause* m
       continue;
     }
 
-    NonVariableIterator nvi(dlit);
+    // TODO higher-order support not yet implemented; see forward demodulation
+    //      (maybe it's enough to just use the different iterator)
+    ASS(!env.options->combinatorySup());
+    NonVariableNonTypeIterator nvi(dlit);
     while (nvi.hasNext()) {
       TermList lhsS = nvi.next();  // named 'lhsS' because it will be matched against 'lhs'
 
@@ -500,9 +503,7 @@ bool BackwardSubsumptionDemodulation::rewriteCandidate(Clause* sideCl, Clause* m
         continue;
       }
 
-      if (SortHelper::getTermSort(lhsS, dlit) != eqSort) {
-        continue;
-      }
+      TermList const lhsSSort = SortHelper::getTermSort(lhsS, dlit);
 
       ASS_LE(lhsVector.size(), 2);
       for (TermList lhs : lhsVector) {
@@ -520,6 +521,10 @@ bool BackwardSubsumptionDemodulation::rewriteCandidate(Clause* sideCl, Clause* m
 
         binder.reset();  // reset binder to state after subsumption check
         if (!MatchingUtils::matchTerms(lhs, lhsS, binder)) {
+          continue;
+        }
+        // If lhs is a variable, we need to match its sort separately.
+        if (lhs.isVar() && !MatchingUtils::matchTerms(eqSort, lhsSSort, binder)) {
           continue;
         }
 
@@ -606,7 +611,7 @@ bool BackwardSubsumptionDemodulation::rewriteCandidate(Clause* sideCl, Clause* m
           }
           // We could not show redundancy with dlit alone,
           // so now we have to look at the other literals of the main premise
-          Literal* eqLitS = Literal::createEquality(true, lhsS, rhsS, eqSort);
+          Literal* eqLitS = Literal::createEquality(true, lhsS, rhsS, lhsSSort);
           ASS_EQ(eqLitS, binder.applyTo(eqLit));
           for (unsigned li2 = 0; li2 < mainCl->length(); li2++) {
             // skip dlit (already checked with r_cmp_t above) and matched literals (i.e., CΘ)

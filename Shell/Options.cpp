@@ -1198,6 +1198,7 @@ void Options::init()
             _lookup.insert(&_backwardSubsumptionDemodulation);
             _backwardSubsumptionDemodulation.tag(OptionTag::INFERENCES);
             _backwardSubsumptionDemodulation.addProblemConstraint(hasEquality());
+            _backwardSubsumptionDemodulation.reliesOn(_combinatorySuperposition.is(equal(false)));  // higher-order support is not yet implemented
             _backwardSubsumptionDemodulation.setRandomChoices({"on","off"});
 
             _backwardSubsumptionDemodulationMaxMatches = UnsignedOptionValue("backward_subsumption_demodulation_max_matches", "bsdmm", 0);
@@ -1361,6 +1362,7 @@ void Options::init()
     _lookup.insert(&_forwardSubsumptionDemodulation);
     _forwardSubsumptionDemodulation.tag(OptionTag::INFERENCES);
     _forwardSubsumptionDemodulation.addProblemConstraint(hasEquality());
+    _forwardSubsumptionDemodulation.reliesOn(_combinatorySuperposition.is(equal(false)));  // higher-order support is not yet implemented
     _forwardSubsumptionDemodulation.setRandomChoices({"off","on"});
 
     _forwardSubsumptionDemodulationMaxMatches = UnsignedOptionValue("forward_subsumption_demodulation_max_matches", "fsdmm", 0);
