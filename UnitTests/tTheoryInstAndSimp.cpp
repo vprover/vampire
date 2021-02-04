@@ -166,6 +166,24 @@ TEST_GENERATION_WITH_SUGAR(test_07,
     NUMBER_SUGAR(Int)                                                                                         \
     DECL_PRED(p, {Int,Int})                                                                                   \
 
+TEST_GENERATION_WITH_SUGAR(test_08,
+    INT_SYNTAX_SUGAR,
+    Generation::TestCase()
+      .rule(theoryInstAndSimp(Options::TheoryInstSimp::OVERLAP))
+      .input(    clause({ ~(0 <= x), ~(x <= 1), x == 1, p(x,x) }) )
+      .expected(exactly(clause({p(0, 0)})))
+      .premiseRedundant(false)
+    )
+
+TEST_GENERATION_WITH_SUGAR(test_09,
+    INT_SYNTAX_SUGAR,
+    Generation::TestCase()
+      .rule(theoryInstAndSimp(Options::TheoryInstSimp::OVERLAP))
+      .input(    clause({ ~(0 <= x), ~(x <= 1), x == 0, p(x,x) }) )
+      .expected(exactly(clause({p(1, 1)})))
+      .premiseRedundant(false)
+    )
+
 TEST_GENERATION_WITH_SUGAR(test_all_vs_strong_1a,
     INT_SYNTAX_SUGAR,
     Generation::TestCase()
@@ -200,6 +218,34 @@ TEST_GENERATION_WITH_SUGAR(test_all_vs_strong_2b,
       .input(    clause({ x == 7, x != 7, p(x,y) }) )
       .expected(exactly(  ))
       .premiseRedundant(true)
+    )
+
+TEST_GENERATION_WITH_SUGAR(test_overlap_vs_strong_1a,
+    INT_SYNTAX_SUGAR,
+    Generation::TestCase()
+      .rule(theoryInstAndSimp(Options::TheoryInstSimp::OVERLAP))
+      .input(    clause({ ~(0 <= x), ~(x <= 0), x == 0, p(x,x) }) )
+      .expected(exactly())
+      .premiseRedundant(true)
+    )
+
+TEST_GENERATION_WITH_SUGAR(test_overlap_vs_strong_1b,
+    INT_SYNTAX_SUGAR,
+    Generation::TestCase()
+      .rule(theoryInstAndSimp(Options::TheoryInstSimp::STRONG))
+      .input(    clause({ ~(0 <= x), ~(x <= 0), x == 0, p(x,x) }) )
+      .expected(exactly(clause({ 0 == num(0), p(0, 0)})))
+      .premiseRedundant(false)
+    )
+
+
+TEST_GENERATION_WITH_SUGAR(test_overlap_vs_strong_2,
+    INT_SYNTAX_SUGAR,
+    Generation::TestCase()
+      .rule(theoryInstAndSimp(Options::TheoryInstSimp::OVERLAP))
+      .input(    clause({ ~(0 <= x), ~(x <= 0), y == 0, p(x,y) }) )
+      .expected(exactly(clause({ 0 == y, p(0, y)})))
+      .premiseRedundant(false)
     )
 
 #define PAIR_SYNTAX_SUGAR                                                                                     \
@@ -283,5 +329,3 @@ TEST_GENERATION_WITH_SUGAR(generalisation_3,
       .input            (clause({ 10 != head(x) + head(tail(tail(x))), pL(x), head(x) != 2 }))
       .expected         (exactly( clause({ pL(cons(2, cons(x, cons(8, y)))) }) ))
     )
-
-

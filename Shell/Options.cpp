@@ -1013,8 +1013,26 @@ void Options::init()
 #if VZ3
 
            _theoryInstAndSimp = ChoiceOptionValue<TheoryInstSimp>("theory_instantiation","thi",
-                                                TheoryInstSimp::OFF,{"off","all","strong"});
-           _theoryInstAndSimp.description = ""; 
+                                                TheoryInstSimp::OFF, {"off", "all", "strong", "neg_eq", "overlap", "full", "new"});
+           _theoryInstAndSimp.description = ""
+           "\nEnables theory instantiation rule: "
+           "\nT[x_1, ..., x_n] \\/ C[x_1, ..., x_n]"
+           "\n-------------------------------------"
+           "\n           C[t_1, ..., t_n]          "
+           "\nwhere  "
+           "\n -  T[x_1, ..., x_n] is a pure theory clause  "
+           "\n - ~T[t_1, ...., t_n] is valid "
+           "\n"
+           "\nThe rule uses an smt solver (i.e. z3 atm) to find t_1...t_n that satisfy the requirement for the rule."
+           "\n"
+           "\nThe different option values define the behaviour of which theory literals to select."
+           "\n- all    : hmmm.. what could that mean?!"
+           "\n- neg_eq : only negative equalities"
+           "\n- strong : interpreted predicates, but no positive equalites"
+           "\n- overlap: all literals that contain variables that are also contained in a strong literal"
+           "\n- new    : deprecated"
+           "\n- full   : deprecated"
+           ""; 
            _theoryInstAndSimp.tag(OptionTag::INFERENCES);
            _lookup.insert(&_theoryInstAndSimp);
 

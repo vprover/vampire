@@ -218,6 +218,10 @@ public:
     OFF,
     ALL,    // select all interpreted
     STRONG, // select strong only
+    NEG_EQ, // select only positive equalities
+    OVERLAP,
+    FULL,   // <-+- deprecated. only exists to not break portfolio modes. behaves exactly like `ALL` now
+    NEW,    // <-+
   };
   enum class UnificationWithAbstraction : unsigned int {
     OFF,

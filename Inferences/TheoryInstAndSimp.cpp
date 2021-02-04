@@ -68,9 +68,24 @@ TheoryInstAndSimp::TheoryInstAndSimp(Options& opts) : TheoryInstAndSimp(
     /* generalisation */ false // TODO
     ) {}
 
+
+Options::TheoryInstSimp manageDeprecations(Options::TheoryInstSimp mode) 
+{
+  switch (mode) {
+    case Options::TheoryInstSimp::FULL:
+    case Options::TheoryInstSimp::NEW:
+      env.beginOutput();
+      env.out() << "WARNING: the modes full & new are deprecated for theory instantiation. using all instead." << std::endl;
+      env.endOutput();
+      return Options::TheoryInstSimp::ALL;
+    default:
+      return mode;
+  }
+}
+
 TheoryInstAndSimp::TheoryInstAndSimp(Options::TheoryInstSimp mode, bool thiTautologyDeletion, bool showZ3, bool generalisation) 
   : _splitter(0)
-  , _mode(mode)
+  , _mode(manageDeprecations(mode))
   , _thiTautologyDeletion(thiTautologyDeletion)
   , _naming()
   , _solver([&](){ 
@@ -806,9 +821,56 @@ Stack<Literal*> computeGuards(Stack<Literal*> const& lits)
   return out;
 }
 
-bool isStrong(Literal* lit) 
-{ return ( lit->isEquality() && lit->isNegative())
-      || (!lit->isEquality() && theory->isInterpretedPredicate(lit->functor())); }
+Stack<Literal*> filterLiterals(Stack<Literal*> lits, Options::TheoryInstSimp mode)
+{
+  auto isStrong = [](Literal* lit)  -> bool
+  { return ( lit->isEquality() && lit->isNegative())
+        || (!lit->isEquality() && theory->isInterpretedPredicate(lit->functor())); };
+
+  auto freeVars = [](Literal* lit) 
+  { return iterTraits(IntList::Iterator(lit->freeVariables())); };
+
+  switch(mode) {
+    case Options::TheoryInstSimp::ALL:
+      return lits;
+
+    case Options::TheoryInstSimp::STRONG:
+      return iterTraits(lits.iterFifo())
+                            .filter(isStrong)
+                            .collect<Stack>();
+
+    case Options::TheoryInstSimp::NEG_EQ:
+      return iterTraits(lits.iterFifo())
+                            .filter([](Literal* lit) 
+                               { return lit->isEquality() && lit->isNegative(); } )
+                            .collect<Stack>();
+
+    case Options::TheoryInstSimp::OVERLAP:
+      {
+        Set<unsigned> strongVars;
+
+        for (auto l : lits) {
+          if (isStrong(l)) {
+            for (auto v : freeVars(l)) {
+              strongVars.insert(v);
+            }
+          }
+        }
+
+        return iterTraits(lits.iterFifo())
+                            .filter([&](Literal* lit) 
+                                { return freeVars(lit)
+                                          .any([&](unsigned var) 
+                                              { return strongVars.contains(var); }); })
+                            .collect<Stack>();
+      }
+
+    case Options::TheoryInstSimp::FULL:
+    case Options::TheoryInstSimp::NEW:
+    case Options::TheoryInstSimp::OFF:
+      ASSERTION_VIOLATION
+  }
+}
 
 SimplifyingGeneratingInference::ClauseGenerationResult TheoryInstAndSimp::generateSimplify(Clause* premise)
 {
@@ -825,11 +887,7 @@ SimplifyingGeneratingInference::ClauseGenerationResult TheoryInstAndSimp::genera
 
 
   Stack<Literal*> selectedLiterals = selectTheoryLiterals(premise);
-  if (_mode == Options::TheoryInstSimp::STRONG) {
-    selectedLiterals = iterTraits(selectedLiterals.iterFifo())
-                          .filter(isStrong)
-                          .collect<Stack>();
-  }
+  selectedLiterals = filterLiterals(std::move(selectedLiterals), _mode);
 
   // if there are no eligable theory literals selected then there is nothing to do
   if(selectedLiterals.isEmpty()){
