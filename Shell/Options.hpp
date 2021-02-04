@@ -2018,6 +2018,7 @@ public:
   bool satFallbackForSMT() const { return _satFallbackForSMT.actualValue; }
   bool smtForGround() const { return _smtForGround.actualValue; }
   TheoryInstSimp theoryInstAndSimp() const { return _theoryInstAndSimp.actualValue; }
+  bool thiGeneralise() const { return _thiGeneralise.actualValue; }
   bool thiTautologyDeletion() const { return _thiTautologyDeletion.actualValue; }
 #endif
   UnificationWithAbstraction unificationWithAbstraction() const { return _unificationWithAbstraction.actualValue; }
@@ -2593,6 +2594,7 @@ private:
   BoolOptionValue _satFallbackForSMT;
   BoolOptionValue _smtForGround;
   ChoiceOptionValue<TheoryInstSimp> _theoryInstAndSimp;
+  BoolOptionValue _thiGeneralise;
   BoolOptionValue _thiTautologyDeletion;
 #endif
   ChoiceOptionValue<UnificationWithAbstraction> _unificationWithAbstraction; 

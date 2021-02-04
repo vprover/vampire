@@ -1036,6 +1036,13 @@ void Options::init()
            _theoryInstAndSimp.tag(OptionTag::INFERENCES);
            _lookup.insert(&_theoryInstAndSimp);
 
+           _thiGeneralise = BoolOptionValue("theory_instantiation_generalisation", "thigen", false);
+           _thiGeneralise.description = "Enable retrieval of generalised instances in theory instantiation. This can help with datatypes but requires thi to call the smt solver twice."; 
+           _thiGeneralise.tag(OptionTag::INFERENCES);
+           _lookup.insert(&_thiGeneralise);
+           _thiGeneralise.setExperimental();
+           _thiGeneralise.reliesOn(_theoryInstAndSimp.is(notEqual(TheoryInstSimp::OFF)));
+
            _thiTautologyDeletion = BoolOptionValue("theory_instantiation_tautology_deletion", "thitd", false);
            _thiTautologyDeletion.description = "Enable deletion of tautology theory subclauses detected via theory instantiation."; 
            _thiTautologyDeletion.tag(OptionTag::INFERENCES);

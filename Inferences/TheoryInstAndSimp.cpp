@@ -65,7 +65,7 @@ TheoryInstAndSimp::TheoryInstAndSimp(Options& opts) : TheoryInstAndSimp(
     opts.theoryInstAndSimp(), 
     opts.thiTautologyDeletion(), 
     opts.showZ3(),  
-    /* generalisation */ false // TODO
+    opts.thiGeneralise()
     ) {}
 
 
