@@ -34,10 +34,13 @@ using namespace Kernel;
 using namespace Saturation;
 
 struct Solution{
-  explicit Solution(bool sat) : sat(sat) {}
+  explicit Solution(Substitution subst) : sat(true), subst(std::move(subst)) {}
+  static Solution unsat() { return Solution(); }
   const bool sat;
   Substitution subst;
   friend std::ostream& operator<<(std::ostream& out, Solution const&);
+private:
+  Solution() : sat(false) {}
 };
 
 
@@ -50,24 +53,20 @@ public:
 
   ~TheoryInstAndSimp();
   TheoryInstAndSimp() : TheoryInstAndSimp(*env.options) {}
-  TheoryInstAndSimp(Options& opts) : TheoryInstAndSimp(opts.theoryInstAndSimp(), opts.thiTautologyDeletion(), opts.showZ3(), opts.z3UnsatCores()) {}
-  TheoryInstAndSimp(Options::TheoryInstSimp mode, bool thiTautologyDeletion, bool showZ3, bool unsatCoreForRefutations) 
-    : _splitter(0)
-    , _mode(mode)
-    , _thiTautologyDeletion(thiTautologyDeletion)
-    , _naming()
-    , _solver([&](){ 
-        BYPASSING_ALLOCATOR; 
-        return new Z3Interfacing(_naming, showZ3, unsatCoreForRefutations,  /* unsatCoresForAssumptions = */ false); 
-      }())
-  { }
+
+  TheoryInstAndSimp(Options& opts);
+  TheoryInstAndSimp(Options::TheoryInstSimp mode, bool thiTautologyDeletion, bool showZ3, bool generalisation);
 
   void attach(SaturationAlgorithm* salg);
 
   ClauseGenerationResult generateSimplify(Clause* premise);
-  VirtualIterator<Solution> getSolutions(Stack<Literal*> const& theoryLiterals, Stack<Literal*> const& guards);
 
+  VirtualIterator<Solution> getSolutions(Stack<Literal*> const& theoryLiterals, Stack<Literal*> const& guards);
 private:
+  Option<Substitution> instantiateWithModel(Stack<unsigned> const& vars, Substitution skolemSubst);
+  Option<Substitution> instantiateGeneralisied(Stack<unsigned> const& vars, 
+    Substitution skolemSubst, 
+    Stack<SATLiteral> theoryLits);
 
   Stack<Literal*> selectTheoryLiterals(Clause* cl);
 
@@ -106,12 +105,38 @@ private:
    */
   bool literalContainsVar(const Literal* lit, unsigned v);
 
+  class GeneralisationTree;
+  class ConstantCache 
+  {
+    class SortedConstantCache {
+      unsigned _used;
+      Stack<Term*> _constants;
+    public:
+      SortedConstantCache() : _used(0), _constants() {}
+      void reset();
+      Term* freshConstant(const char* prefix, unsigned sort);
+    };
+
+    const char* _prefix;
+    Stack<SortedConstantCache> _inner;
+
+  public:
+    ConstantCache(const char* prefix) : _prefix(prefix), _inner() {}
+
+    void reset();
+
+    Term* freshConstant(unsigned sort) ;
+  };
+
   Splitter* _splitter;
   Options::TheoryInstSimp const _mode;
   bool const _thiTautologyDeletion;
   SAT2FO _naming;
   Z3Interfacing* _solver;
   Map<unsigned, bool> _supportedSorts;
+  bool _generalisation;
+  ConstantCache _instantiationConstants;
+  ConstantCache _generalizationConstants;
 };
 
 };

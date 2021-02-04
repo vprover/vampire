@@ -58,22 +58,15 @@ public:
   CLASS_NAME(Z3Interfacing);
   USE_ALLOCATOR(Z3Interfacing);
   
-  /**
-   * If @c unsatCoresForAssumptions is set, the solver is configured to use
-   * the "unsat-core" option (may negatively affect performance) and uses
-   * this feature to extract a subset of used assumptions when
-   * called via solveUnderAssumptions.
-   */
-  Z3Interfacing(const Shell::Options& opts, SAT2FO& s2f, bool unsatCoresForAssumptions = false);
-  Z3Interfacing(SAT2FO& s2f, bool showZ3, bool unsatCoreForRefutations, bool unsatCoresForAssumptions);
+  Z3Interfacing(const Shell::Options& opts, SAT2FO& s2f, bool unsatCore = false);
+  Z3Interfacing(SAT2FO& s2f, bool showZ3, bool unsatCore);
   ~Z3Interfacing();
 
   static char const* z3_full_version();
 
   void addClause(SATClause* cl) override;
 
-  Status solveWithAssumptions(Stack<SATLiteral> const& assumps);
-  Status solve() { return solveWithAssumptions(Stack<SATLiteral>()); }
+  Status solve();
   virtual Status solve(unsigned conflictCountLimit) override { return solve(); };
   /**
    * If status is @c SATISFIABLE, return assignment of variable @c var
@@ -110,13 +103,14 @@ public:
     }
   }
 
+
   unsigned newVar() override;
 
   // Currently not implemented for Z3
   virtual void suggestPolarity(unsigned var, unsigned pol) override {}
   
   virtual void addAssumption(SATLiteral lit) override;
-  virtual void retractAllAssumptions() override { _assumptions.resize(0); }
+  virtual void retractAllAssumptions() override;
   virtual bool hasAssumptions() const override { return !_assumptions.empty(); }
 
   virtual Status solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit, bool onlyProperSubusets) override;
@@ -140,6 +134,14 @@ public:
 
   SATClause* getRefutation() override;  
 
+  template<class F>
+  auto scoped(F f)  -> decltype(f())
+  { 
+    _solver.push();
+    auto result = f();
+    _solver.pop();
+    return result;
+  }
   // void reset(){
   //   DBG("resetting z3")
   //   _sat2fo.reset();
@@ -207,6 +209,7 @@ private:
 
   Representation getRepresentation(Term* trm);
   Representation getRepresentation(SATLiteral lit);
+  Representation getRepresentation(SATClause* cl);
 
   // just to conform to the interface
   unsigned _varCnt;
@@ -221,9 +224,9 @@ private:
 
 
   z3::expr_vector _assumptions;
-  const bool _unsatCoreForAssumptions;
+  BiMap<SATLiteral, z3::expr> _assumptionLookup;
   const bool _showZ3;
-  const bool _unsatCoreForRefutations;
+  const bool _unsatCore;
 
   Map<unsigned, z3::expr> _varNames;
 

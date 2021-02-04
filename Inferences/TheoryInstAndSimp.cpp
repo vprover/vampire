@@ -61,6 +61,28 @@ using namespace Saturation;
 using namespace SAT;
 
 
+TheoryInstAndSimp::TheoryInstAndSimp(Options& opts) : TheoryInstAndSimp(
+    opts.theoryInstAndSimp(), 
+    opts.thiTautologyDeletion(), 
+    opts.showZ3(),  
+    /* generalisation */ false // TODO
+    ) {}
+
+TheoryInstAndSimp::TheoryInstAndSimp(Options::TheoryInstSimp mode, bool thiTautologyDeletion, bool showZ3, bool generalisation) 
+  : _splitter(0)
+  , _mode(mode)
+  , _thiTautologyDeletion(thiTautologyDeletion)
+  , _naming()
+  , _solver([&](){ 
+      BYPASSING_ALLOCATOR; 
+      return new Z3Interfacing(_naming, showZ3,   /* unsatCoresForAssumptions = */ generalisation); 
+    }())
+  , _generalisation(generalisation)
+  , _instantiationConstants ("$inst")
+  , _generalizationConstants("$inst$gen")
+{ }
+
+
 void TheoryInstAndSimp::attach(SaturationAlgorithm* salg)
 {
   CALL("Superposition::attach");
@@ -408,32 +430,166 @@ void TheoryInstAndSimp::filterUninterpretedPartialFunctionDeep(Stack<Literal*>& 
   }
 }
 
-Term* getFreshConstant(unsigned index, unsigned srt)
-{
-  CALL("TheoryInstAndSimp::getFreshConstant");
-  static Stack<Stack<Term*>*> constants;
+void TheoryInstAndSimp::ConstantCache::reset()
+{ for (auto x : _inner) x.reset(); }
 
-  while(srt+1 > constants.length()){
-    Stack<Term*>* stack = new Stack<Term*>;
-    constants.push(stack);
+Term* TheoryInstAndSimp::ConstantCache::freshConstant(unsigned sort) 
+{ 
+  if (_inner.size() <= sort) {
+    _inner.reserve(sort + 1);
+    while (_inner.size() <= sort) {
+      _inner.push(SortedConstantCache());
+    }
   }
-  Stack<Term*>* sortedConstants = constants[srt];
-  while(index+1 > sortedConstants->length()){
-    unsigned sym = env.signature->addFreshFunction(0,"$inst");
-    OperatorType* type = OperatorType::getConstantsType(srt);
-    env.signature->getFunction(sym)->setType(type);
-    Term* fresh = Term::createConstant(sym);
-    sortedConstants->push(fresh);
-  }
-  return (*sortedConstants)[index];
+  return _inner[sort].freshConstant(_prefix, sort);
 }
+
+void TheoryInstAndSimp::ConstantCache::SortedConstantCache::reset() 
+{ _used = 0; }
+
+Term* TheoryInstAndSimp::ConstantCache::SortedConstantCache::freshConstant(const char* prefix, unsigned sort) 
+{ 
+  if (_constants.size() >= _used)  {
+    unsigned sym = env.signature->addFreshFunction(0, prefix);
+    env.signature->getFunction(sym)
+                 ->setType(OperatorType::getConstantsType(sort));
+    _constants.push(Term::createConstant(sym));
+  }
+  return _constants[_used++];
+}
+
+class TheoryInstAndSimp::GeneralisationTree {
+  TermList _introduced;
+  unsigned _functor;
+  Stack<GeneralisationTree> _args;
+public:
+  GeneralisationTree(Term* name, TermList toAbstract, ConstantCache& cache) 
+    : _introduced(TermList(name))
+    , _functor(toAbstract.term()->functor())
+    , _args(toAbstract.term()->arity())
+  {
+    for (unsigned i = 0; i < toAbstract.term()->arity(); i++) {
+      auto arg  = *toAbstract.term()->nthArgument(i);
+      auto sort = SortHelper::getResultSort(arg.term());
+      _args.push(GeneralisationTree(cache.freshConstant(sort), arg, cache));
+    }
+  }
+
+  template<class F>
+  void foreachDef(F f) 
+  {
+    Stack<TermList> args(_args.size());
+    for (auto& a : _args) {
+      args.push(a._introduced);
+      a.foreachDef(f);
+    }
+    auto definition = TermList(Term::create(_functor, args.size(), args.begin()));
+    f(*this, Literal::createEquality(true, _introduced, definition, SortHelper::getResultSort(_introduced.term())));
+  }
+
+  TermList buildGeneralTerm(Set<TermList> const& usedDefs, unsigned& freshVar)
+  {
+    if (usedDefs.contains(_introduced)) {
+      Stack<TermList> args(_args.size());
+      for (auto& a : _args) {
+        args.push(a.buildGeneralTerm(usedDefs, freshVar));
+      }
+      return TermList(Term::create(_functor, args.size(), args.begin()));
+
+    } else {
+      return TermList::var(freshVar++);
+    }
+  }
+
+  TermList constant() { return _introduced; }
+};
+ 
+Option<Substitution> TheoryInstAndSimp::instantiateGeneralisied(
+    Stack<unsigned> const& vars, 
+    Substitution skolemSubst, 
+    Stack<SATLiteral> origTheoryLits)
+{
+  CALL("TheoryInstAndSimp::instantiateGeneralisied(Substitution skolemSubst)")
+
+  auto negatedClause = [](Stack<SATLiteral> lits) -> SATClause*
+  { 
+    for (auto& lit : lits) {
+      lit = lit.opposite();
+    }
+    return SATClause::fromStack(lits);
+  };
+
+  return _solver->scoped([&]() {
+    _solver->addClause(negatedClause(origTheoryLits));
+
+    Stack<SATLiteral> theoryLits;
+
+    _generalizationConstants.reset();
+    Map<SATLiteral, TermList> definitionLiterals;
+    Stack<GeneralisationTree> gens;
+    for (auto v : vars) {
+      auto sk = skolemSubst.apply(v);
+      auto val = _solver->evaluateInModel(sk.term());
+      if (!val) {
+        // Failed to obtain a value; could be an algebraic number or some other currently unhandled beast...
+        env.statistics->theoryInstSimpLostSolution++;
+        return Option<Substitution>();
+      }
+
+      auto gen = GeneralisationTree(sk.term(), TermList(val), _generalizationConstants);
+      gens.push(gen);
+      gen.foreachDef([&](GeneralisationTree gen, Literal* l){
+          auto named = _naming.toSAT(l);
+          theoryLits.push(named);
+          definitionLiterals.insert(named, gen.constant());
+      });
+    }
+
+    auto res = _solver->solveUnderAssumptions(theoryLits, 0, false);
+    ASS_EQ(res, SATSolver::UNSATISFIABLE)
+
+    Set<TermList> usedDefs;
+    for (auto x : _solver->failedAssumptions()) {
+      definitionLiterals
+        .tryGet(x)
+        .andThen([&](TermList t) 
+            { usedDefs.insert(t); });
+    }
+
+    unsigned freshVar = 0;
+    for (unsigned i = 0; i < vars.size(); i++) {
+      skolemSubst.rebind(vars[i], gens[i].buildGeneralTerm(usedDefs, freshVar));
+    }
+    return Option<Substitution>(std::move(skolemSubst));
+  });
+};
+
+
+Option<Substitution> TheoryInstAndSimp::instantiateWithModel(Stack<unsigned> const& vars, Substitution skolemSubst)
+{
+  CALL("TheoryInstAndSimp::instantiateWithModel(Substitution skolemSubst)")
+
+  for (auto var : vars) {
+    auto ev = _solver->evaluateInModel(skolemSubst.apply(var).term());
+    if (ev) {
+      skolemSubst.rebind(var, ev);
+    } else {
+      // Failed to obtain a value; could be an algebraic number or some other currently unhandled beast...
+      env.statistics->theoryInstSimpLostSolution++;
+      return Option<Substitution>();
+    }
+  }
+  return Option<Substitution>(std::move(skolemSubst));
+};
+
+
+
 
 
 VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*> const& theoryLiterals, Stack<Literal*> const& guards) {
   CALL("TheoryInstAndSimp::getSolutions");
 
   BYPASSING_ALLOCATOR;
-
   // Currently we just get the single solution from Z3
 
 
@@ -444,7 +600,7 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*> const&
 
   Stack<SATLiteral> skolemized;
   Stack<unsigned> vars;
-  unsigned used = 0;
+  _instantiationConstants.reset();
   auto allLits = iterTraits(getConcatenatedIterator(
           iterTraits(theoryLiterals.iterFifo()).map(Literal::complementaryLiteral),
           guards.iterFifo()
@@ -459,7 +615,7 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*> const&
       unsigned sort = srtMap.get(var);
       TermList fc;
       if(!skolemSubst.findBinding(var,fc)){
-        Term* fc = getFreshConstant(used++,sort);
+        Term* fc = _instantiationConstants.freshConstant(sort);
         skolemSubst.bind(var,fc);
         vars.push(var);
       }
@@ -475,37 +631,18 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*> const&
   }
 
   // now we can call the solver
-  SATSolver::Status status = _solver->solveWithAssumptions(skolemized);
+  SATSolver::Status status = _solver->solveUnderAssumptions(skolemized, 0, false);
 
   if(status == SATSolver::UNSATISFIABLE) {
     DEBUG("unsat")
-    return pvi(getSingletonIterator(Solution(false)));
+    return pvi(getSingletonIterator(Solution::unsat()));
 
-  } else if(status == SATSolver::SATISFIABLE){
+  } else if(status == SATSolver::SATISFIABLE) {
     DEBUG("found model: ", _solver->getModel())
-    auto buildSubstitution = [](Stack<unsigned> const& vars, Substitution& skolemSubst, Z3Interfacing& z3)  -> Option<Solution>
-    {
-      auto sol = Solution(true);
-      auto vit = vars.iterFifo();
-      while(vit.hasNext()){
-        unsigned v = vit.next();
-        Term* t = skolemSubst.apply(v).term();
-        ASS(t);
-        t = z3.evaluateInModel(t);
-        // If we could evaluate the term in the model then bind it
-        if(t){
-          sol.subst.bind(v,t);
-        } else {
-          // Failed to obtain a value; could be an algebraic number or some other currently unhandled beast...
-          env.statistics->theoryInstSimpLostSolution++;
-          return Option<Solution>();
-        }
-      }
-      return Option<Solution>(std::move(sol));
-    };
-    auto subst = buildSubstitution(vars, skolemSubst, *_solver);
+    auto subst = _generalisation ? instantiateGeneralisied(vars, std::move(skolemSubst), std::move(skolemized)) 
+                                 : instantiateWithModel(vars, std::move(skolemSubst));
     if (subst.isSome()) {
-      return pvi(getSingletonIterator(std::move(subst).unwrap()));
+      return pvi(getSingletonIterator(Solution(std::move(subst).unwrap())));
     } else {
       DEBUG("could not build substituion from model.")
     }

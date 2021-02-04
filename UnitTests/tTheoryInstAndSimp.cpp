@@ -56,7 +56,10 @@ using namespace Test;
   DECL_PRED(q, {Int})                                                                                         \
   DECL_PRED(r, {Int,Int})                                                                                     \
                                                                                                               \
+                                                                                                              \
   DECL_LIST(Int)                                                                                              \
+                                                                                                              \
+  DECL_PRED(pL, {list})                                                                                       \
 
 
 #define MY_SYNTAX_SUGAR LIST_INT_SUGAR
@@ -64,11 +67,11 @@ using namespace Test;
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////// TEST CASES
 /////////////////////////////////////
-TheoryInstAndSimp* theoryInstAndSimp(Options::TheoryInstSimp mode) {
+TheoryInstAndSimp* theoryInstAndSimp(Options::TheoryInstSimp mode, bool withGeneralization = false) {
   return new TheoryInstAndSimp(mode, 
       /* thiTautologyDeletion */ true,
       /* showZ3 */ false,
-      /* unsatCoreForRefutations */ false);
+      /* unsatCoreForRefutations */ withGeneralization);
 }
 
 using Shell::Int;
@@ -211,6 +214,8 @@ TEST_GENERATION_WITH_SUGAR(test_all_vs_strong_2b,
     auto fst = pair.dtor(0);                                                                                  \
     auto snd = pair.dtor(1);                                                                                  \
   )                                                                                                           \
+                                                                                                              \
+  DECL_PRED(p, { Int })                                                                                       \
 
 TEST_GENERATION_WITH_SUGAR(bug_01,
     PAIR_SYNTAX_SUGAR,
@@ -236,6 +241,47 @@ TEST_GENERATION_WITH_SUGAR(bug_03,
       .rule             (theoryInstAndSimp(Options::TheoryInstSimp::ALL))
       .input            (clause({ 0 != fst(pair(0,127)) }))
       .expected         (exactly( clause({}) ))
+    )
+
+
+TEST_GENERATION_WITH_SUGAR(pair_1,
+    PAIR_SYNTAX_SUGAR,
+    Generation::TestCase()
+      .rule             (theoryInstAndSimp(Options::TheoryInstSimp::ALL))
+      .input            (clause({ 0 != fst(x) + snd(x), 10 != fst(x), p(snd(x)) }))
+      .expected         (exactly( clause({ p(snd(pair(10, -10))) }) ))
+    )
+
+
+TEST_GENERATION_WITH_SUGAR(generalisation_1,
+    PAIR_SYNTAX_SUGAR,
+    Generation::TestCase()
+      .rule             (theoryInstAndSimp(Options::TheoryInstSimp::ALL, 
+                                           /* generalization: */ true))
+      .input            (clause({ 10 != fst(x), p(snd(x)) }))
+      .expected         (exactly( clause({ p(snd(pair(10, x))) }) ))
+    )
+
+
+
+TEST_GENERATION_WITH_SUGAR(generalisation_2,
+    LIST_INT_SUGAR,
+    Generation::TestCase()
+      .rule             (theoryInstAndSimp(Options::TheoryInstSimp::ALL, 
+                                           /* generalization: */ true))
+      .input            (clause({ 10 != head(x) + head(tail(x)), pL(x), head(x) != 2 }))
+      .expected         (exactly( clause({ pL(cons(2, cons(8, x))) }) ))
+    )
+
+
+
+TEST_GENERATION_WITH_SUGAR(generalisation_3,
+    LIST_INT_SUGAR,
+    Generation::TestCase()
+      .rule             (theoryInstAndSimp(Options::TheoryInstSimp::ALL, 
+                                           /* generalization: */ true))
+      .input            (clause({ 10 != head(x) + head(tail(tail(x))), pL(x), head(x) != 2 }))
+      .expected         (exactly( clause({ pL(cons(2, cons(x, cons(8, y)))) }) ))
     )
 
 

@@ -2011,7 +2011,6 @@ public:
   bool printAllTheoryAxioms() const { return _printAllTheoryAxioms.actualValue; }
 
 #if VZ3
-  bool z3UnsatCores() const { return _z3UnsatCores.actualValue;}
   bool satFallbackForSMT() const { return _satFallbackForSMT.actualValue; }
   bool smtForGround() const { return _smtForGround.actualValue; }
   TheoryInstSimp theoryInstAndSimp() const { return _theoryInstAndSimp.actualValue; }
@@ -2587,7 +2586,6 @@ private:
   BoolOptionValue _showSimplOrdering;
 #if VZ3
   BoolOptionValue _showZ3;
-  BoolOptionValue _z3UnsatCores;
   BoolOptionValue _satFallbackForSMT;
   BoolOptionValue _smtForGround;
   ChoiceOptionValue<TheoryInstSimp> _theoryInstAndSimp;

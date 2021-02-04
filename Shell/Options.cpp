@@ -1801,10 +1801,6 @@ void Options::init()
     _satFallbackForSMT.tag(OptionTag::SAT);
     _satFallbackForSMT.reliesOn(_satSolver.is(equal(SatSolver::Z3)));
 
-    _z3UnsatCores = BoolOptionValue("z3_unsat_core","z3uc",false);
-    _z3UnsatCores.description=""; 
-    _lookup.insert(&_z3UnsatCores);
-    _z3UnsatCores.tag(OptionTag::SAT);
 #endif
 
     _satVarActivityDecay = FloatOptionValue("sat_var_activity_decay","",1.05f);

@@ -41,7 +41,7 @@ void checkStatus(SATSolver::Status expected, Stack<Literal*> assumptions)
 {
   CALL("checkStatus(..)")
   SAT2FO s2f;
-  SAT::Z3Interfacing z3(s2f, DBG_ON == 1, false, false);
+  SAT::Z3Interfacing z3(s2f, DBG_ON == 1, false);
 
   for (auto a : assumptions) {
     z3.addAssumption(s2f.toSAT(a));
@@ -212,7 +212,7 @@ void checkInstantiation(Stack<Literal*> assumptions, TermList toInstantiate, Ter
 {
   CALL("checkInstantiation(..)")
   SAT2FO s2f;
-  SAT::Z3Interfacing z3(s2f, DBG_ON == 1, false, false);
+  SAT::Z3Interfacing z3(s2f, DBG_ON == 1, false);
 
   for (auto a : assumptions) {
     z3.addAssumption(s2f.toSAT(a));

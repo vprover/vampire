@@ -29,11 +29,10 @@ namespace Lib{
  */
 template<class A, class B, class HashA = Lib::Hash, class HashB = Lib::Hash>
 class BiMap : Map<A,B, HashA>, Map<B, A, HashB> {
-  // Map<A,B> _to;
-  // Map<B,A> _from;
   using Into = Map<A,B,HashA>;
   using From = Map<B,A,HashB>;
 public:
+  BiMap() : Into(), From() {}
 
   /** @see Map::get */
   using From::get;
@@ -84,6 +83,19 @@ public:
     From::insert(val, key);
     Into::insert(key, val);
   }
+
+
+  /** 
+   * @see Map::size 
+   */
+  inline unsigned size()
+  {
+    ASS_EQ(From::size(), Into::size());
+    return From::size();
+  }
+
+  friend std::ostream& operator<<(std::ostream& out, BiMap const& self) 
+  { return out << static_cast<Into const&>(self); }
 };
 
 } // namespace Lib

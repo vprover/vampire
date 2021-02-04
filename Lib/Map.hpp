@@ -525,8 +525,11 @@ public:
       array_delete(_entries, _capacity);
       DEALLOC_KNOWN(_entries,sizeof(Entry)*_capacity,"Map<>");
     }
-    _entries = nullptr;
-    _capacity = 0;
+    _capacity    = 0;
+    _noOfEntries = 0;
+    _entries     = nullptr;
+    _afterLast   = nullptr;
+    _maxEntries  = 0;
   }
   
   /**

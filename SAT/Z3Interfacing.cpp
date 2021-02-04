@@ -40,7 +40,7 @@
 #include "Indexing/TermSharing.hpp"
 #include "Z3Interfacing.hpp"
 
-#define DEBUG(...) //DBG(__VA_ARGS__)
+#define DEBUG(...) // DBG(__VA_ARGS__)
 namespace Lib {
 
 template<> 
@@ -75,8 +75,8 @@ using namespace Lib;
 
 //using namespace z3;
 
-Z3Interfacing::Z3Interfacing(const Shell::Options& opts,SAT2FO& s2f, bool unsatCoresForAssumptions):
-  Z3Interfacing(s2f, opts.showZ3(), opts.z3UnsatCores(), unsatCoresForAssumptions)
+Z3Interfacing::Z3Interfacing(const Shell::Options& opts,SAT2FO& s2f, bool unsatCore):
+  Z3Interfacing(s2f, opts.showZ3(), /* unsatCore */ unsatCore)
 { }
 
 const char* errToString(Z3_error_code code)
@@ -107,7 +107,7 @@ void handleZ3Error(Z3_context ctxt, Z3_error_code code)
 
 #define STATEMENTS_TO_EXPRESSION(...) [&]() { __VA_ARGS__; return 0; }()
 
-Z3Interfacing::Z3Interfacing(SAT2FO& s2f, bool showZ3, bool unsatCoreForRefutations, bool unsatCoresForAssumptions):
+Z3Interfacing::Z3Interfacing(SAT2FO& s2f, bool showZ3, bool unsatCore):
   _varCnt(0), 
   _sat2fo(s2f),
   _status(SATISFIABLE), 
@@ -116,11 +116,12 @@ Z3Interfacing::Z3Interfacing(SAT2FO& s2f, bool showZ3, bool unsatCoreForRefutati
   _solver(_context),
   _model((STATEMENTS_TO_EXPRESSION(
             BYPASSING_ALLOCATOR; 
-            _solver.check(); ),
+            _solver.check(); 
+          ),
          _solver.get_model())), 
-  _assumptions(_context), _unsatCoreForAssumptions(unsatCoresForAssumptions),
+  _assumptions(_context),
   _showZ3(showZ3),
-  _unsatCoreForRefutations(unsatCoreForRefutations)
+  _unsatCore(unsatCore)
 {
   CALL("Z3Interfacing::Z3Interfacing");
   BYPASSING_ALLOCATOR
@@ -129,9 +130,9 @@ Z3Interfacing::Z3Interfacing(SAT2FO& s2f, bool showZ3, bool unsatCoreForRefutati
   z3::set_param("rewriter.expand_store_eq", "true");
   //z3::set_param("trace", "true");
 
-    z3::params p(_context);
-    p.set("model.compact", false); // keeps z3 from compressing its model. ~50% of the runtime of get_model is spent doing that otherwise
-  if (_unsatCoreForAssumptions) {
+  z3::params p(_context);
+  p.set("model.compact", false); // keeps z3 from compressing its model. ~50% of the runtime of get_model is spent doing that otherwise
+  if (_unsatCore) {
     p.set(":unsat-core", true);
   }
     //p.set(":smtlib2-compliant",true);
@@ -167,90 +168,107 @@ void Z3Interfacing::addClause(SATClause* cl)
   // store to later generate the refutation
   PrimitiveProofRecordingSATSolver::addClause(cl);
 
-  z3::expr z3clause = _context.bool_val(false);
+  auto z3clause = getRepresentation(cl);
 
-  PRINT_CPP("exprs.push_back(c.bool_val(false)); // starting a clause")
-
-  unsigned clen=cl->length();
-  for(unsigned i=0;i<clen;i++){
-    SATLiteral l = (*cl)[i];
-    auto repr = getRepresentation(l);
-
-    for (auto def : repr.defs) 
-      _solver.add(def);
-
-    z3clause = z3clause || repr.expr;
-
-    PRINT_CPP("{ expr e = exprs.back(); exprs.pop_back(); expr cl = exprs.back(); exprs.pop_back(); exprs.push_back(cl || e); } // append a literal");
-  }
-
-  PRINT_CPP("{ expr cl = exprs.back(); exprs.pop_back(); cout << \"clause: \" << cl << endl; solver.add(cl); }")
-  
   if(_showZ3){
     env.beginOutput();
-    env.out() << "[Z3] add (clause): " << z3clause << std::endl;
+    env.out() << "[Z3] add (clause): " << z3clause.expr << std::endl;
     env.endOutput();
   }
 
-  _solver.add(z3clause);
+  for (auto def : z3clause.defs) 
+    _solver.add(def);
+
+  _solver.add(z3clause.expr);
+}
+
+void Z3Interfacing::retractAllAssumptions() 
+{ 
+  _assumptionLookup.clear();
+  _assumptions.resize(0); 
 }
 
 void Z3Interfacing::addAssumption(SATLiteral lit)
 {
   CALL("Z3Interfacing::addAssumption");
 
-  auto repr = getRepresentation(lit);
-  for (auto def : repr.defs)
-    _assumptions.push_back(def);
+  auto pushAssumption = [this](SATLiteral lit) -> z3::expr 
+  {
+    auto repr = getRepresentation(lit);
+    for (auto def : repr.defs) 
+      _assumptions.push_back(def);
 
-  _assumptions.push_back(repr.expr);
+    _assumptions.push_back(repr.expr);
+    return repr.expr;
+  };
+
+  if (_unsatCore) {
+    _assumptionLookup.getOrInit(lit, [&]() { return pushAssumption(lit); });
+  } else {
+    pushAssumption(lit);
+  }
 }
 
-SATSolver::Status Z3Interfacing::solveWithAssumptions(Stack<SATLiteral> const& assumptions) 
+Z3Interfacing::Representation Z3Interfacing::getRepresentation(SATClause* cl) 
 {
-  CALL("Z3Interfacing::solveWithAssumptions");
+
+  z3::expr z3clause = _context.bool_val(false);
+
+  Stack<z3::expr> defs;
+
+  unsigned clen=cl->length();
+  for(unsigned i=0;i<clen;i++){
+    SATLiteral l = (*cl)[i];
+    auto repr = getRepresentation(l);
+
+    defs.loadFromIterator(repr.defs.iterFifo());
+
+    z3clause = z3clause || repr.expr;
+  }
+
+  return Representation(std::move(z3clause), std::move(defs));
+}
+
+SATSolver::Status Z3Interfacing::solve() 
+{
+  CALL("Z3Interfacing::solve()");
   BYPASSING_ALLOCATOR;
-  z3::expr_vector all_assumptions(_context);
-  for (auto a : _assumptions) {
-    all_assumptions.push_back(a);
-  }
-  for (auto a : assumptions) {
-    auto repr = getRepresentation(a);
-    for (auto d : repr.defs) all_assumptions.push_back(d);
-    all_assumptions.push_back(repr.expr);
-  }
-  DEBUG("assumptions: ", all_assumptions);
+  DEBUG("assumptions: ", _assumptions);
 
-  z3::check_result result = all_assumptions.empty() ? _solver.check() : _solver.check(all_assumptions);
 
-  if(_showZ3){
-    env.beginOutput();
-    env.out() << "[Z3] solve result: " << result << std::endl;
-    env.endOutput();
-  }
+    z3::check_result result = _assumptions.empty() ? _solver.check() : _solver.check(_assumptions);
 
-  switch(result){
-    case z3::check_result::unsat:
-      _status = UNSATISFIABLE; 
-      break;
-    case z3::check_result::sat:
-      _status = SATISFIABLE;
-      _model = _solver.get_model();
-      /*
-      cout << "model : " << endl;
-      for(unsigned i=0; i < _model.size(); i++){
-        z3::func_decl v = _model[i];
-        cout << v.name() << " = " << _model.get_const_interp(v) << endl;
+
+    if(_showZ3){
+      env.beginOutput();
+      env.out() << "[Z3] solve result: " << result << std::endl;
+      env.endOutput();
+    }
+
+    if (_unsatCore) {
+      auto core = _solver.unsat_core();
+      for (auto phi : core) {
+        _assumptionLookup
+               .tryGet(phi)
+               .andThen([this](SATLiteral l) 
+                   { _failedAssumptionBuffer.push(l); });
       }
-      */
-      break;
-    case z3::check_result::unknown:
-      _status = UNKNOWN;
-      break;
-#if VDEBUG
-    default: ASSERTION_VIOLATION;
-#endif
-  }
+    }
+
+    switch (result) {
+      case z3::check_result::unsat:
+        _status = UNSATISFIABLE; 
+        break;
+      case z3::check_result::sat:
+        _status = SATISFIABLE;
+        _model = _solver.get_model();
+        break;
+      case z3::check_result::unknown:
+        _status = UNKNOWN;
+        break;
+      default: ASSERTION_VIOLATION;
+    }
+
   return _status;
 }
 
@@ -258,56 +276,18 @@ SATSolver::Status Z3Interfacing::solveUnderAssumptions(const SATLiteralStack& as
 {
   CALL("Z3Interfacing::solveUnderAssumptions");
 
-  if (!_unsatCoreForAssumptions) {
+  if (!_unsatCore) {
     return SATSolverWithAssumptions::solveUnderAssumptions(assumps,conflictCountLimit,onlyProperSubusets);
   }
 
   ASS(!hasAssumptions());
 
-  _solver.push();
-
-  // load assumptions:
-  SATLiteralStack::ConstIterator it(assumps);
-
-  static DHMap<vstring,SATLiteral> lookup;
-  lookup.reset();
-  unsigned n=0;
-  vstring ps="$_$_$";
-
-  while (it.hasNext()) {
-    SATLiteral v_assump = it.next();
-    auto z_assump = getRepresentation(v_assump);
-    for (auto d : z_assump.defs) 
-      _solver.add(d);
-
-    vstring p = ps+Int::toString(n++);
-    _solver.add(z_assump.expr,p.c_str());
-    lookup.insert(p,v_assump);
+  for (auto a: assumps) {
+    addAssumption(a);
   }
-
-  z3::check_result result = _solver.check();
-
-  _solver.pop();
-
-  if (result == z3::check_result::unsat) {
-
-    _failedAssumptionBuffer.reset();
-
-    z3::expr_vector  core = _solver.unsat_core();
-    for (unsigned i = 0; i < core.size(); i++) {
-      z3::expr ci = core[i];
-      vstring cip = vstring(ci.to_string().c_str());
-      SATLiteral v_assump = lookup.get(cip);
-      _failedAssumptionBuffer.push(v_assump);
-    }
-
-    return UNSATISFIABLE;
-  } else if (result == z3::check_result::sat) {
-    _model = _solver.get_model();
-    return SATISFIABLE;
-  } else {
-    return UNKNOWN;
-  }
+  auto result = solve();
+  retractAllAssumptions();
+  return result;
 }
 
 SATSolver::VarAssignment Z3Interfacing::getAssignment(unsigned var) 
@@ -318,7 +298,7 @@ SATSolver::VarAssignment Z3Interfacing::getAssignment(unsigned var)
   ASS_EQ(_status,SATISFIABLE);
   bool named = isNamedExpr(var);
   z3::expr rep = named ? getNameExpr(var) : getRepresentation(SATLiteral(var,1)).expr;
-  z3::expr assignment = _model.eval(rep,true /*model_completion*/);
+  z3::expr assignment = _model.eval(rep, true /*model_completion*/);
 
   if(assignment.bool_value()==Z3_L_TRUE){
     return TRUE;
@@ -1017,10 +997,8 @@ z3::func_decl Z3Interfacing::z3Function(FuncOrPredId functor)
 Z3Interfacing::Representation Z3Interfacing::getRepresentation(Term* trm)
 {
   CALL("Z3Interfacing::getRepresentation");
-  DEBUG("in: ", *trm);
   Stack<z3::expr> defs;
   auto expr = evaluateBottomUp(TermList(trm), ToZ3Expr{ *this, defs });
-  DEBUG("out: ", expr);
   return Representation(expr, std::move(defs));
 }
 
@@ -1070,61 +1048,80 @@ Z3Interfacing::Representation Z3Interfacing::getRepresentation(SATLiteral slit)
   }
 }
 
-SATClause* Z3Interfacing::getRefutation() {
+SATClause* Z3Interfacing::getRefutation() 
+{
 
-    if(!_unsatCoreForRefutations)
+    if(!_unsatCore)
       return PrimitiveProofRecordingSATSolver::getRefutation(); 
-
-    ASS_EQ(_solver.check(),z3::check_result::unsat);
-
-    z3::solver solver(_context);
-    z3::params p(_context);
-    p.set(":unsat-core", true);
-    solver.set(p);
-
-    SATClauseList* added = PrimitiveProofRecordingSATSolver::getRefutationPremiseList();
-    SATClauseList::Iterator cit(added);
-    unsigned n=0;
-    vstring ps="$_$_$";
-
-    DHMap<vstring,SATClause*> lookup;
-
-    while(cit.hasNext()){
-      SATClause* cl = cit.next();
-      z3::expr z3clause = _context.bool_val(false);
-      unsigned clen=cl->length();
-      for(unsigned i=0;i<clen;i++){
-        SATLiteral l = (*cl)[i];
-        auto repr = getRepresentation(l); 
-        for (auto def : repr.defs) {
-          solver.add(def);
-        }
-        z3clause = z3clause || repr.expr;
-      }
-      vstring p = ps+Int::toString(n++);
-      //cout << p << ": " << cl->toString() << endl;
-      solver.add(z3clause,p.c_str());
-      lookup.insert(p,cl);
+    else {
+      ASS_EQ(_status, SATISFIABLE);
+      //TODO
+      // SATClauseList* prems = 0;
+      //
+      // z3::expr_vector  core = _solver.unsat_core();
+      // for (unsigned i = 0; i < core.size(); i++) {
+      //     z3::expr ci = core[i];
+      //     vstring cip = Z3_ast_to_string(_context,ci);
+      //     SATClause* cl = lookup.get(cip);
+      //     SATClauseList::push(cl,prems);
+      // }
+      //
+      // SATClause* refutation = new(0) SATClause(0);
+      // refutation->setInference(new PropInference(prems));
+      //
+      // return refutation; 
     }
 
-    // the new version of Z3 does not suppot unsat-cores?
-    ALWAYS(solver.check() == z3::check_result::unsat);
+    // ASS_EQ(_solver.check(),z3::check_result::unsat);
+    //
+    // z3::solver solver(_context);
+    // z3::params p(_context);
+    // p.set(":unsat-core", true);
+    // solver.set(p);
+    //
+    // SATClauseList* added = PrimitiveProofRecordingSATSolver::getRefutationPremiseList();
+    // SATClauseList::Iterator cit(added);
+    // unsigned n=0;
+    // vstring ps="$_$_$";
+    //
+    // DHMap<vstring,SATClause*> lookup;
+    //
+    // while(cit.hasNext()){
+    //   SATClause* cl = cit.next();
+    //   z3::expr z3clause = _context.bool_val(false);
+    //   unsigned clen=cl->length();
+    //   for(unsigned i=0;i<clen;i++){
+    //     SATLiteral l = (*cl)[i];
+    //     auto repr = getRepresentation(l); 
+    //     for (auto def : repr.defs) {
+    //       solver.add(def);
+    //     }
+    //     z3clause = z3clause || repr.expr;
+    //   }
+    //   vstring p = ps+Int::toString(n++); // TODO get rid of this string allocation. use int_symbol instead.
+    //   solver.add(z3clause,p.c_str());
+    //   lookup.insert(p,cl);
+    // }
+    //
+    // // the new version of Z3 does not suppot unsat-cores?
+    // ALWAYS(solver.check() == z3::check_result::unsat);
+    //
+    // SATClauseList* prems = 0;
+    //
+    // z3::expr_vector  core = solver.unsat_core();
+    // for (unsigned i = 0; i < core.size(); i++) {
+    //     z3::expr ci = core[i];
+    //     vstring cip = Z3_ast_to_string(_context,ci);
+    //     SATClause* cl = lookup.get(cip);
+    //     SATClauseList::push(cl,prems);
+    //     //std::cout << cl->toString() << "\n";
+    // }
+    //
+    // SATClause* refutation = new(0) SATClause(0);
+    // refutation->setInference(new PropInference(prems));
+    //
+    // return refutation; 
 
-    SATClauseList* prems = 0;
-
-    z3::expr_vector  core = solver.unsat_core();
-    for (unsigned i = 0; i < core.size(); i++) {
-        z3::expr ci = core[i];
-        vstring cip = Z3_ast_to_string(_context,ci);
-        SATClause* cl = lookup.get(cip);
-        SATClauseList::push(cl,prems);
-        //std::cout << cl->toString() << "\n";
-    }
-
-    SATClause* refutation = new(0) SATClause(0);
-    refutation->setInference(new PropInference(prems));
-
-    return refutation; 
 }
 
 Z3Interfacing::~Z3Interfacing()
