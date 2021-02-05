@@ -58,7 +58,14 @@ Environment::Environment()
   statistics = new Statistics;  
   sorts = new Sorts;
   signature = new Signature;
+
+  // only one sharing object per process: guarded with internal lock
+#if VTHREADED
+  static TermSharing *shared_sharing = new TermSharing;
+  sharing = shared_sharing;
+#else
   sharing = new TermSharing;
+#endif
 
   //view comment in Signature.cpp
   signature->addEquality();
@@ -92,7 +99,9 @@ Environment::~Environment()
   }
 
 // #if CHECK_LEAKS
+#if !VTHREADED
   delete sharing;
+#endif
   delete signature;
   delete sorts;
   delete statistics;

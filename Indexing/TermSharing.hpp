@@ -40,11 +40,6 @@ public:
   TermSharing();
   ~TermSharing();
 
-// instance-level mutex
-#if VTHREADED
-  std::recursive_mutex _mutex;
-#endif
-
   Term* insert(Term*);
   Term* insertRecurrently(Term*);
 
@@ -94,6 +89,11 @@ public:
 
 private:
   int sumRedLengths(TermStack& args);
+// instance-level mutex
+#if VTHREADED
+  std::recursive_mutex _mutex;
+#endif
+
   bool argNormGt(TermList t1, TermList t2);
 
   /** The set storing all terms */

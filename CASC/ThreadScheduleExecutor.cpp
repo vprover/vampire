@@ -36,21 +36,14 @@ bool ThreadScheduleExecutor::run(const Schedule &schedule)
 
   // this closure is run _by_ a thread...
   auto parent_signature = env.signature;
-  auto parent_sharing = env.sharing;
   auto parent_options = env.options;
   auto task = [&](vstring code, int remainingTime, unsigned i) {
     // copy options from parent thread
     *env.options = *parent_options;
     // also deep-copy the signature
     env.signature->clone_from(parent_signature);
-    // but we can share the term sharing (!)
-    // keep a copy of the original to avoid a double-free though
-    auto sharing = env.sharing;
-    env.sharing = parent_sharing;
     // thread setup done, now do All The Things
     _executor->runSlice(code, remainingTime);
-    // swap the term sharing back in
-    env.sharing = sharing;
     // indicate we're done
     std::lock_guard<std::mutex> task_lock(task_mutex);
     tasks_idle++;
