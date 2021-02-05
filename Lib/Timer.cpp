@@ -12,6 +12,42 @@
  * Implements class Timer.
  */
 
+#include "Int.hpp"
+#include "Timer.hpp"
+#include "ScopedPtr.hpp"
+
+VTHREAD_LOCAL bool Lib::Timer::s_timeLimitEnforcement = true;
+
+#if VTHREADED
+#define USE_SIMPLE_TIMER 1
+#endif
+
+#ifndef USE_SIMPLE_TIMER
+#define USE_SIMPLE_TIMER 0
+#endif
+
+#if USE_SIMPLE_TIMER
+#include <chrono>
+
+void Lib::Timer::syncClock() {}
+void Lib::Timer::ensureTimerInitialized() {}
+void Lib::Timer::deinitializeTimer() {}
+void Lib::Timer::makeChildrenIncluded() {}
+
+std::chrono::steady_clock::time_point start_time =
+  std::chrono::steady_clock::now();
+
+int Lib::Timer::miliseconds() {
+  CALL("Timer::miliseconds");
+
+  auto now = std::chrono::steady_clock::now();
+  auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+    now - start_time
+  );
+  return ms.count();
+}
+#else
+
 #include <ctime>
 #include <unistd.h>
 #include <sys/types.h>
@@ -20,7 +56,6 @@
 #include "Debug/Tracer.hpp"
 
 #include "Environment.hpp"
-#include "Int.hpp"
 #include "Portability.hpp"
 #include "System.hpp"
 #include "TimeCounter.hpp"
@@ -29,19 +64,11 @@
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 
-#include "Timer.hpp"
-
 #define DEBUG_TIMER_CHANGES 0
 
 using namespace std;
-using namespace Lib;
 
-VTHREAD_LOCAL bool Timer::s_timeLimitEnforcement = true;
-
-// threads + SIGALRM is not a happy combination
-// there again, rusage() is also broken, but less broken than SIGALRM
-// TODO: figure this out
-#if UNIX_USE_SIGALRM && !VTHREADED
+#if UNIX_USE_SIGALRM
 
 #include <cerrno>
 #include <unistd.h>
@@ -303,7 +330,7 @@ void Lib::Timer::makeChildrenIncluded()
   _mustIncludeChildren=true;
 }
 
-
+#endif
 #endif
 
 namespace Lib
