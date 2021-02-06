@@ -23,6 +23,18 @@ namespace Lib
 
 using namespace std;
 
+vstring StringUtils::copy2vstr(const string &other){
+  CALL("StringUtils::copy2vstr");
+
+  return other.c_str();
+}
+
+string StringUtils::copy2str(const vstring &other) {
+  CALL("StringUtils::copy2str");
+
+  return other.c_str();
+}
+
 vstring StringUtils::replaceChar(vstring str, char src, char target)
 {
   CALL("StringUtils::replaceChar");

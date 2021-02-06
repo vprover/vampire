@@ -16,11 +16,9 @@
 #define __API_Problem__
 
 #include "FormulaBuilder.hpp"
-#include "Lib/VString.hpp"
-#include "Lib/Allocator.hpp"
-#include "Lib/Stack.hpp"
+#include <string>
 
-namespace Api {
+namespace Vampire {
 
 /**
  * Container of a list of annotated formulas
@@ -37,8 +35,6 @@ private:
 public:
   Problem();
   ~Problem();
-
-  typedef Stack<AnnotatedFormula> AnnotatedFormulaStack;
 
   /**
    * Return a copy of the problem
@@ -62,10 +58,10 @@ public:
    * @param s the tsream
    * @param includeDirectory where the parser will look for included files
    */
-  void addFromStream(istream& s, vstring includeDirectory="./", bool tptp = true);
+  void addFromStream(istream& s, std::string includeDirectory="./", bool tptp = true);
 
 
-  AnnotatedFormulaStack& formulas(){
+  std::vector<AnnotatedFormula>& formulas(){
     return _formulas;
   }
 
@@ -106,7 +102,7 @@ public:
   void outputStatistics(ostream& out);
 private:
 
-  AnnotatedFormulaStack _formulas;
+  std::vector<AnnotatedFormula> _formulas;
 };
 
 }

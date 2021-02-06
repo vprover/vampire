@@ -23,6 +23,7 @@
 #include "Lib/Exception.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/List.hpp"
+#include "Lib/StringUtils.hpp"
 
 #include "Lib/StringUtils.hpp"
 
@@ -45,7 +46,7 @@
 #include "Parse/TPTP.hpp"
 #include "Parse/SMTLIB2.hpp"
 
-namespace Api {
+namespace Vampire {
 
 //using namespace Lib;
 
@@ -63,7 +64,7 @@ void Problem::addFormula(AnnotatedFormula f)
 {
   CALL("Problem::addFormula");
   
-  _formulas.push(f);
+  _formulas.push_back(f);
 }
 
 size_t Problem::size()
@@ -85,14 +86,14 @@ bool Problem::empty()
 ///////////////////////////////////////
 // Parsing
 
-void Problem::addFromStream(istream& s, vstring includeDirectory, bool tptp)
+void Problem::addFromStream(istream& s, string includeDirectory, bool tptp)
 {
   CALL("Problem::addFromStream");
 
   using namespace Shell;
 
   vstring originalInclude=env.options->include();
-  env.options->setInclude(includeDirectory);
+  env.options->setInclude(StringUtils::copy2vstr(includeDirectory));
 
   Kernel::UnitList* units;
 
@@ -241,8 +242,9 @@ void Problem::preprocess()
   
   Kernel::UnitList* units = UnitList::empty();
 
-  while(!_formulas.isEmpty()){
-    AnnotatedFormula f = _formulas.pop();
+  while(!_formulas.empty()){
+    AnnotatedFormula f = _formulas.back();
+    _formulas.pop_back();
     Kernel::UnitList::push(f.unit, units);
   }
 
@@ -252,7 +254,7 @@ void Problem::preprocess()
 
   units = problem.units();
   while(units){
-    _formulas.push(AnnotatedFormula(units->head()));
+    _formulas.push_back(AnnotatedFormula(units->head()));
     units = units->tail();
   }
 }
@@ -261,9 +263,7 @@ void Problem::removeAllFormulas()
 {
   CALL("Problem::removeAllFormulas");
 
-  while(!_formulas.isEmpty()){
-    _formulas.pop();
-  }
+  _formulas.clear();
 }
 
 

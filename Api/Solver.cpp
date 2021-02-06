@@ -22,6 +22,8 @@
 #include "Lib/Environment.hpp"
 #include "Lib/Map.hpp"
 #include "Lib/ScopedPtr.hpp"
+#include "Lib/StringUtils.hpp"
+#include "Lib/Timer.hpp"
 
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
@@ -37,34 +39,41 @@
 #include "Shell/Options.hpp"
 #include "Shell/Preprocess.hpp"
 #include "Shell/TPTPPrinter.hpp"
-
+#include "Shell/Statistics.hpp"
 
 
 using namespace std;
 using namespace Lib;
 using namespace Shell;
 
-namespace Api
+namespace Vampire
 {
 
+  unsigned Solver::getTimeLimit() {
+    return env.options->timeLimitInDeciseconds();
+  }
+
+  unsigned Solver::getElapsedTime(){
+    return env.timer->elapsedDeciseconds();
+  }
 
   Solver::Solver(Logic l){
     //switch off all printing
     env.options->setOutputMode(Shell::Options::Output::SMTCOMP);
-    //set the time limit to a default of 30. This can be overridden
-    env.options->setTimeLimitInSeconds(30);
     preprocessed = false;
     logicSet = false;
+    timeLimit = 0;
     logic = l;
+    env.options->setTimeLimitInSeconds(0);
   }
 
   Solver& Solver::getSolver(Logic l)
   {
     CALL("Solver::getSolver");
-    
+
+    static Solver solver(l);  
     static unsigned refCount = 1;
-    static Solver solver(l);
-   
+
     if(refCount > 1){
       throw ApiException("Only a single solver object can be in existance at one time");
     }
@@ -72,6 +81,14 @@ namespace Api
     refCount++;
     return solver;
   }
+
+  Solver* Solver::getSolverPtr(Logic l)
+  {
+    CALL("Solver::getSolverPtr");
+
+    return &getSolver();
+  }
+
 
   void Solver::setLogic(Logic l){
     CALL("Solver::setLogic");
@@ -106,8 +123,10 @@ namespace Api
     env.signature = new Signature;
     env.sharing = new Indexing::TermSharing;
 
+    timeLimit = 0;
+
     env.options->setOutputMode(Shell::Options::Output::SMTCOMP);
-    env.options->setTimeLimitInSeconds(30);
+    env.options->setTimeLimitInSeconds(0);
   }
 
   void Solver::reset(){
@@ -117,7 +136,7 @@ namespace Api
     prob.removeAllFormulas();
   }
 
-  void Solver::setSaturationAlgorithm(const Lib::vstring& satAlgorithm)
+  void Solver::setSaturationAlgorithm(const string& satAlgorithm)
   {
     CALL("Solver::setSaturationAlgorithm");
 
@@ -140,19 +159,19 @@ namespace Api
     
     if(timeInSecs < 1){
       throw ApiException("Cannot set the time limit to " 
-                        + Int::toString(timeInSecs) + " since it is < 1");    
+                        + to_string(timeInSecs) + " since it is < 1");    
     }
-    env.options->setTimeLimitInSeconds(timeInSecs);
+    timeLimit = timeInSecs;
   }
 
-  void Solver::setOptions(const Lib::vstring optionString)
+  void Solver::setOptions(const string& optionString)
   {
     CALL("Solver::setOptions");
 
-    env.options->readFromEncodedOptions(optionString);
+    env.options->readFromEncodedOptions(StringUtils::copy2vstr(optionString));
   }
 
-  Sort Solver::sort(const vstring& sortName)
+  Sort Solver::sort(const string& sortName)
   {
     CALL("Solver::sort");
 
@@ -194,21 +213,42 @@ namespace Api
     return FormulaBuilder::boolSort();
   }
 
-  Var Solver::var(const vstring& varName)
+  Sort Solver::arraySort(const Sort& indexSort, const Sort& innerSort)
+  {
+    CALL("Solver::arraySort");
+
+    fb.arraySort(indexSort, innerSort);
+  }
+
+
+  Var Solver::var(const string& varName)
   {
     CALL("Solver::var");
 
     return fb.var(varName);
   }
 
-  Var Solver::var(const vstring& varName, Sort varSort)
+  Var Solver::var(const string& varName, Sort varSort)
   {
     CALL("Solver::var");
 
     return fb.var(varName, varSort);
   }
 
-  Symbol Solver::function(const vstring& funName,unsigned arity, bool builtIn)
+  Symbol Solver::constantSym(const std::string& name, Sort s)
+  {
+    CALL("Solver::constantSym");
+
+    if(s == boolSort()){
+      return predicate(name, 0);
+    } else {
+      std::vector<Sort> emptyVec;
+      return function(name, 0, s, emptyVec);
+    }
+  }
+
+
+  Symbol Solver::function(const string& funName,unsigned arity, bool builtIn)
   {
     CALL("Solver::function/2");
 
@@ -216,7 +256,7 @@ namespace Api
     return fb.symbol(funName, arity, defaultSort(), domainSorts, builtIn);
   }
 
-  Symbol Solver::function(const vstring& funName, unsigned arity, Sort rangeSort, std::vector<Sort>& domainSorts, bool builtIn)
+  Symbol Solver::function(const string& funName, unsigned arity, Sort rangeSort, std::vector<Sort>& domainSorts, bool builtIn)
   {
     CALL("Solver::function/4");
 
@@ -231,7 +271,7 @@ namespace Api
     return fb.symbol(funName, arity, rangeSort, domainSorts, builtIn);
   }
 
-  Symbol Solver::predicate(const vstring& predName,unsigned arity, bool builtIn)
+  Symbol Solver::predicate(const string& predName,unsigned arity, bool builtIn)
   {
     CALL("Solver::predicate/2");
 
@@ -239,7 +279,7 @@ namespace Api
     return fb.symbol(predName, arity, boolSort(), domainSorts, builtIn);
   }
 
-  Symbol Solver::predicate(const vstring& predName, unsigned arity, std::vector<Sort>& domainSorts, bool builtIn)
+  Symbol Solver::predicate(const string& predName, unsigned arity, std::vector<Sort>& domainSorts, bool builtIn)
   {
     CALL("Solver::predicate/3");
 
@@ -254,21 +294,21 @@ namespace Api
     return fb.symbol(predName, arity, boolSort(), domainSorts, builtIn);
   }
 
-  vstring Solver::getSortName(Sort s)
+  string Solver::getSortName(Sort s)
   {
     CALL("Solver::getSortName");
 
     return fb.getSortName(s);
   }
 
-  vstring Solver::getSymbolName(Symbol s)
+  string Solver::getSymbolName(Symbol s)
   {
     CALL("Solver::getPredicateName");
 
     return fb.getSymbolName(s);
   }
 
-  vstring Solver::getVariableName(Var v)
+  string Solver::getVariableName(Var v)
   {
     CALL("Solver::getVariableName");
 
@@ -301,6 +341,13 @@ namespace Api
     CALL("Solver::equality/3");
 
     return fb.equality(lhs, rhs, positive);;
+  }
+
+  Expression Solver::boolFormula(bool value)
+  {
+    CALL("Solver::boolFormula");
+
+    return value ? trueFormula() : falseFormula();
   }
 
   Expression Solver::trueFormula()
@@ -380,6 +427,13 @@ namespace Api
     return fb.term(s);
   }
 
+  Expression Solver::constant(const std::string& name, Sort s)
+  {
+    CALL("Solver::constant");
+
+    return term(constantSym(name, s));
+  }
+
   Expression Solver::term(const Symbol& s,const Expression& t)
   {
     CALL("Solver::term/1");
@@ -408,21 +462,21 @@ namespace Api
     return fb.integerConstantTerm(i);
   }
 
-  Expression Solver::integerConstant(vstring i)
+  Expression Solver::integerConstant(string i)
   {
     CALL("Solver::integerConstant");
 
     return fb.integerConstantTerm(i);
   }  
 
-  Expression Solver::rationalConstant(Lib::vstring numerator, Lib::vstring denom)
+  Expression Solver::rationalConstant(string numerator, string denom)
   {
     CALL("Solver::rationalConstant");
 
     return fb.rationalConstant(numerator, denom);
   }
 
-  Expression Solver::realConstant(Lib::vstring r)
+  Expression Solver::realConstant(string r)
   {
     CALL("Solver::realConstant");
 
@@ -450,13 +504,40 @@ namespace Api
     return fb.multiply(t1, t2);
   }
 
-  /*
-  Term Solver::divide(const Term& t1,const Term& t2)
+  Expression Solver::div(const Expression& t1,const Expression& t2)
   {
     CALL("Solver::divide");
 
-    return fb.divide(t1, t2);
-  }*/
+    return fb.div(t1, t2);
+  }
+
+  Expression Solver::mod(const Expression& t1,const Expression& t2)
+  {
+    CALL("Solver::divide");
+
+    return fb.mod(t1, t2);
+  }
+
+  Expression Solver::neg(const Expression& t)
+  {
+    CALL("Solver::divide");
+
+    return fb.neg(t);
+  }
+
+  Expression Solver::int2real(const Expression& t)
+  {
+    CALL("Solver::int2real");
+
+    return fb.int2real(t);
+  }
+
+  Expression Solver::real2int(const Expression& t)
+  {
+    CALL("Solver::real2int");
+
+    return fb.real2int(t);
+  }
 
   Expression Solver::absolute(const Expression& t1)
   {
@@ -531,7 +612,7 @@ namespace Api
     }
   }
 
-  void Solver::addFromStream(istream& s, vstring includeDirectory)
+  void Solver::addFromStream(istream& s, string includeDirectory)
   {
     CALL("Solver::addConjecture");
     if(!preprocessed){
@@ -556,6 +637,12 @@ namespace Api
   {
     CALL("Solver::solve");
     
+    if(!timeLimit){
+      env.options->setTimeLimitInSeconds(30);
+    } else {
+      env.options->setTimeLimitInSeconds(timeLimit);      
+    }
+
     env.options->setRunningFromApi();
     Kernel::UnitList* units = UnitList::empty();
     AnnotatedFormulaIterator afi = formulas();
@@ -566,15 +653,33 @@ namespace Api
 
     Kernel::Problem problem(units);
 
+    env.timer->start();
+
     if(!preprocessed){
       Shell::Preprocess prepro(*env.options);
       prepro.preprocess(problem);
     }
   
     Saturation::ProvingHelper::runVampireSaturation(problem, *env.options);
+
+    env.timer->reset();
+
     //To allow multiple calls to solve() for the same problem set.
     Unit::resetFirstNonPreprocessNumber();
-    return Result(env.statistics->terminationReason);
+
+    Shell::Statistics::TerminationReason str = env.statistics->terminationReason;
+    Result::TerminationReason tr;
+    if(str == Shell::Statistics::REFUTATION){
+      tr = Result::REFUTATION;
+    } else 
+    if(str == Shell::Statistics::SATISFIABLE){
+      tr = Result::SATISFIABLE;
+    } else {
+      //catch all
+      tr = Result::RESOURCED_OUT;
+    }
+
+    return Result(tr);
   }
 
   Result Solver::checkEntailed(Expression f)
@@ -608,10 +713,10 @@ namespace Api
     CALL("AnnotatedFormulaIterator::del");
     
     if(current != forms->size()){
-      (*forms)[current - 1] = forms->top();
+      (*forms)[current - 1] = forms->back();
       current--;
     } 
-    forms->pop();
+    forms->pop_back();
   }
 
 

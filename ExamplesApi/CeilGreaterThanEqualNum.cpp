@@ -1,6 +1,7 @@
-#include "Api/Solver.hpp"
+#include "Solver.hpp"
+#include <iostream>
 
-using namespace Api;
+using namespace Vampire;
 
 int main() {
 
@@ -29,10 +30,10 @@ int main() {
 
     return 0;
   } catch (ApiException& e){
-    cout<< "Exception: "<<e.msg()<<endl;
+    std::cout<< "Exception: "<<e.msg()<<std::endl;
     return 1;
-  } catch (Lib::UserErrorException& e){
+  } /*catch (Lib::UserErrorException& e){
     cout<< "Exception: "<<e.msg()<<endl;
     return 1;    
-  }
+  }*/
 }

@@ -20,13 +20,13 @@
 
 #include "Helper.hpp"
 
-#include "Kernel/Theory.hpp"
-#include "Kernel/Connective.hpp"
+//#include "Kernel/Theory.hpp"
+//#include "Kernel/Connective.hpp"
 
-#include "Lib/VString.hpp"
 #include <vector>
+#include <string>
 
-namespace Api {
+namespace Vampire {
 
 using namespace std;
 
@@ -37,13 +37,13 @@ using namespace std;
 class ApiException
 {
 public:
-  ApiException(Lib::vstring msg)
+  ApiException(std::string msg)
   : _msg(msg) {}
 
   /** Description of the cause of the exception */
-  Lib::vstring msg() const { return _msg; }
+  std::string msg() const { return _msg; }
 protected:
-  Lib::vstring _msg;
+  std::string _msg;
 };
 
 /**
@@ -54,7 +54,7 @@ class FormulaBuilderException
 : public ApiException
 {
 public:
-  FormulaBuilderException(Lib::vstring msg)
+  FormulaBuilderException(std::string msg)
   : ApiException(msg) {}
 };
 
@@ -67,7 +67,7 @@ class SortMismatchException
 : public FormulaBuilderException
 {
 public:
-  SortMismatchException(Lib::vstring msg)
+  SortMismatchException(std::string msg)
   : FormulaBuilderException(msg) {}
 };
 
@@ -79,13 +79,13 @@ class InvalidTPTPNameException
 : public FormulaBuilderException
 {
 public:
-  InvalidTPTPNameException(Lib::vstring msg, Lib::vstring name)
+  InvalidTPTPNameException(std::string msg, std::string name)
   : FormulaBuilderException(msg), _name(name) {}
 
   /** The invalid name that caused the exception to be thrown */
-  Lib::vstring name() const { return _name; }
+  std::string name() const { return _name; }
 private:
-  Lib::vstring _name;
+  std::string _name;
 };
 
 typedef unsigned Var;
@@ -108,7 +108,7 @@ private:
    * @param checkBindingBoundVariables if true, then an attempt to bind an already bound variable
    *        will result in an exception
    * @param allowImplicitlyTypedVariables allow creating variables without explicitely
-   *        specifying a type. If false, the Var var(const Lib::vstring& varName) function
+   *        specifying a type. If false, the Var var(const string& varName) function
    *        will throw and exception.
    * @param outputDummyNames if true, dummy names are output instead of actual predicate names
    */
@@ -125,16 +125,26 @@ private:
     CONJECTURE
   };
 
+  /** Connective of formulas */
+  enum Connective {
+    AND,
+    OR,
+    EXISTS,
+    FORALL
+  };
+
   /**
    * Create, or retrieve already existing sort with name @c sortName.
    */
-  Sort sort(const Lib::vstring& sortName);
+  Sort sort(const std::string& sortName);
   /** Return sort for integers */
   Sort integerSort();
   /** Return sort for rationals */
   Sort rationalSort();
   /** Return sort for reals */
   Sort realSort();
+  /** Return array sort */
+  Sort arraySort(const Sort& indexSort, const Sort& innerSort);
   
   /** Return the sort of formulas */
   static Sort boolSort();
@@ -149,7 +159,7 @@ private:
    *        with a capital-case letter. If the variable name does not conform to TPTP, an exception
    *        will be raised.
    */
-  Var var(const Lib::vstring& varName);
+  Var var(const std::string& varName);
 
   /** Create a variable
    * @param varName name of the variable. Must be a valid TPTP variable name, that is, start
@@ -157,7 +167,7 @@ private:
    *        will be raised.
    * @param varSort sort of the new variable
    */
-  Var var(const Lib::vstring& varName, Sort varSort);
+  Var var(const std::string& varName, Sort varSort);
 
   /**
    * Create a symbol with specified range and domain sorts (BOOL_SORT for predicates). 
@@ -166,7 +176,7 @@ private:
    * @warning Functions of the same name and arity must have always
    * also the same type, even across different instances of the
    * FormulaBuilder class. */
-  Symbol symbol(const Lib::vstring& funName, unsigned arity, Sort rangeSort, std::vector<Sort>& domainSorts, bool builtIn=false);
+  Symbol symbol(const std::string& funName, unsigned arity, Sort rangeSort, std::vector<Sort>& domainSorts, bool builtIn=false);
 
   /** Return constant symbol representing @c i */
   Symbol integerConstant(int i);
@@ -177,55 +187,35 @@ private:
    * @c FormulaBuilderException may be thrown if @c i is not a proper value, or too large
    * for Vampire internal representation.
    */
-  Symbol integerConstant(Lib::vstring i);
+  Symbol integerConstant(std::string i);
 
-  Symbol rationalConstantSymbol(Lib::vstring numerator, Lib::vstring denom);
+  Symbol rationalConstantSymbol(std::string numerator, std::string denom);
 
-  Symbol realConstantSymbol(Lib::vstring r);
+  Symbol realConstantSymbol(std::string r);
 
   /**
    * Create interpreted predicate
    */
-  Symbol interpretedSymbol(Kernel::Theory::Interpretation interp);
+  //Symbol interpretedSymbol(Kernel::Theory::Interpretation interp);
 
   /**
    * Return name of the sort @c s.
    */
-  Lib::vstring getSortName(Sort s);
+  std::string getSortName(Sort s);
 
   /**
    * Return name of the symbol @c s.
    *
    * If the output of dummy names is enabled, the dummy name will be returned here.
    */
-  Lib::vstring getSymbolName(Symbol s);
+  std::string getSymbolName(Symbol s);
 
   /**
    * Return name of the variable @c v.
    *
    * If the output of dummy names is enabled, the dummy name will be returned here.
    */
-  Lib::vstring getVariableName(Var v);
-
-
-  //TODO do we need these? Currently not exposed in Solver
-  /*void addAttribute(Predicate p, Lib::vstring name, Lib::vstring value);
-  unsigned attributeCount(Predicate p);
-  Lib::vstring getAttributeName(Predicate p, unsigned index);
-  Lib::vstring getAttributeValue(Predicate p, unsigned index);
-  Lib::vstring getAttributeValue(Predicate p, Lib::vstring attributeName);
-
-  void addAttribute(Function fn, Lib::vstring name, Lib::vstring value);
-  unsigned attributeCount(Function fn);
-  Lib::vstring getAttributeName(Function fn, unsigned index);
-  Lib::vstring getAttributeValue(Function fn, unsigned index);
-  Lib::vstring getAttributeValue(Function fn, Lib::vstring attributeName);
-
-  void addAttribute(Sort s, Lib::vstring name, Lib::vstring value);
-  unsigned attributeCount(Sort s);
-  Lib::vstring getAttributeName(Sort s, unsigned index);
-  Lib::vstring getAttributeValue(Sort s, unsigned index);
-  Lib::vstring getAttributeValue(Sort s, Lib::vstring attributeName);*/
+  std::string getVariableName(Var v);
 
   /** build a variable term */
   Expression varTerm(const Var& v);
@@ -254,7 +244,7 @@ private:
   /** build f1 \/ f2 */
   Expression orFormula(const Expression& f1,const Expression& f2);
 
-  Expression andOrOrFormula(Kernel::Connective c, const Expression& f1,const Expression& f2);
+  Expression andOrOrFormula(Connective con, const Expression& f1,const Expression& f2);
 
   /** build f1 -> f2 */
   Expression implies(const Expression& f1,const Expression& f2);
@@ -271,8 +261,7 @@ private:
   /** build quantified formula (q v)f */
   Expression exists(const Var& v,const Expression& f);
 
-  Expression quantifiedFormula(Kernel::Connective q, const Var& v,const Expression& f);
-
+  Expression quantifiedFormula(Connective con, const Var& v,const Expression& f);
   // Special cases, convenient to have
 
   /** build a constant expression c */
@@ -291,13 +280,13 @@ private:
   Expression integerConstantTerm(int i);
 
   /** Return constant representing @c i */
-  Expression integerConstantTerm(Lib::vstring i);
+  Expression integerConstantTerm(std::string i);
 
   /** Return constant representing @c i */
-  Expression rationalConstant(Lib::vstring numerator, Lib::vstring denom);
+  Expression rationalConstant(std::string numerator, std::string denom);
 
   /** Return constant representing @c i */
-  Expression realConstant(Lib::vstring r);
+  Expression realConstant(std::string r);
 
   /** build t1 + t2 */
   Expression sum(const Expression& t1,const Expression& t2);
@@ -309,7 +298,19 @@ private:
   Expression multiply(const Expression& t1,const Expression& t2);
 
   /** build t1 / t2 */
-  Expression divide(const Expression& t1,const Expression& t2);
+  Expression div(const Expression& t1,const Expression& t2);
+
+  /** build t1 mod t2 */
+  Expression mod(const Expression& t1,const Expression& t2);
+
+  /** build -t */
+  Expression neg(const Expression& t);
+
+  /** convert t to a real */
+  Expression int2real(const Expression& t);
+
+  /** convert t to an integer */
+  Expression real2int(const Expression& t);
 
   /** build floor(t1) */
   Expression floor(const Expression& t1);
@@ -333,7 +334,7 @@ private:
   Expression lt(const Expression& t1, const Expression& t2);
 
   /** build an annotated formula (i.e. formula that is either axiom, goal, etc...) */
-  AnnotatedFormula annotatedFormula(Expression& f, Annotation a, Lib::vstring name="");
+  AnnotatedFormula annotatedFormula(Expression& f, Annotation a, std::string name="");
 
   void checkForNumericalSortError(std::initializer_list<Expression> exprs);
   void checkForTermError(std::initializer_list<Expression> exprs);
@@ -391,11 +392,11 @@ private:
 
 }
 
-std::ostream& operator<< (std::ostream& str,const Api::Sort& sort);
-std::ostream& operator<< (std::ostream& str,const Api::Expression& f);
-std::ostream& operator<< (std::ostream& str,const Api::AnnotatedFormula& f);
+std::ostream& operator<< (std::ostream& str,const Vampire::Sort& sort);
+std::ostream& operator<< (std::ostream& str,const Vampire::Expression& f);
+std::ostream& operator<< (std::ostream& str,const Vampire::AnnotatedFormula& f);
 
-namespace Api
+namespace Vampire
 {
 
 using namespace std;
@@ -431,10 +432,11 @@ private:
   static bool _assignFormulaNames;
 };
 
+//TODO, update the iterator to return std::strings
 /**
  * An iterator object for strings
  */
-class StringIterator
+/*class StringIterator
 {
 public:
   StringIterator() : _impl(0) {};
@@ -447,18 +449,18 @@ public:
    * Return true if there is a Lib::vstring to be returned by a call
    * to the @b next() function
    */
-  bool hasNext();
+  //bool hasNext();
   /**
    * Return the next available Lib::vstring
    *
    * The @b hasNext() function must return true before a call
    * to this function.
    */
-  Lib::vstring next();
+  //Lib::vstring next();
 
-private:
-  VirtualIterator<Lib::vstring>* _impl;
-};
+//private:
+//  VirtualIterator<Lib::vstring>* _impl;
+//};
 
 class Sort
 {
@@ -466,6 +468,16 @@ public:
   Sort() {}
   explicit Sort(unsigned num) : _num(num) {}
   operator unsigned() const { return _num; }
+
+  bool isTupleSort() const;
+  bool isArraySort() const;
+
+  /** the arity of a tuple sort */
+  unsigned arity() const;
+  /** the index sort of an array sort */
+  unsigned indexSort() const;
+  /** the inner sort of an array sort */
+  unsigned innerSort() const;
 
   static Sort getInvalid() { return Sort(UINT_MAX); }
   bool isValid() const;  
@@ -511,7 +523,7 @@ public:
   //cannot create a formula with this constructor
   Expression() : _isTerm(1), _content(0) {}
 
-  Lib::vstring toString() const;
+  std::string toString() const;
 
   /**
    * Return true if this object is not initialized to a term
@@ -582,7 +594,7 @@ public:
    *
    * Each free variable is returned by the iterator just once
    */
-  StringIterator freeVars();
+  //StringIterator freeVars();
 
   /**
    * Return iterator on names of bound variables
@@ -590,7 +602,7 @@ public:
    * If a variable is bound multiple times, it is returned
    * by the iterator the same number of times as well.
    */
-  StringIterator boundVars();
+  //StringIterator boundVars();
 
   operator Kernel::TermList() const;
   operator Kernel::Formula*() const;
@@ -633,7 +645,7 @@ class AnnotatedFormula
 public:
   AnnotatedFormula() : unit(0) {}
 
-  Lib::vstring toString() const;
+  std::string toString() const;
 
   /**
    * Return name of the annotated formula
@@ -642,7 +654,7 @@ public:
    * @b FormulaBuilder::annotatedFormula() function, that name is
    * returned, otherwise an automatically generated one is returned.
    */
-  Lib::vstring name() const;
+  std::string name() const;
 
   /**
    * Return true if this object is not initialized to
@@ -655,7 +667,7 @@ public:
    *
    * Each free variable is returned by the iterator just once
    */
-  StringIterator freeVars();
+ //StringIterator freeVars();
 
   /**
    * Return iterator on names of bound variables
@@ -663,7 +675,7 @@ public:
    * If a variable is bound multiple times, it is returned
    * by the iterator the same number of times as well.
    */
-  StringIterator boundVars();
+ // StringIterator boundVars();
 
   /** Return annotation of the annotated formula */
   FormulaBuilder::Annotation annotation() const;
@@ -679,7 +691,7 @@ public:
     return toString()==o.toString();
   }
 private:
-  static void assignName(AnnotatedFormula& form, Lib::vstring name);
+  static void assignName(AnnotatedFormula& form, std::string name);
 
   Kernel::Unit* unit;
   ApiHelper _aux;

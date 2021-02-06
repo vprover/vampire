@@ -32,7 +32,7 @@ class Unit;
 class Literal;
 }
 
-namespace Api {
+namespace Vampire {
 
 
 class Problem;

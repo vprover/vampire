@@ -1,10 +1,14 @@
-#include "Api/Solver.hpp"
+#include "Solver.hpp"
+#include <iostream>
 
-using namespace Api;
+using namespace Vampire;
 
 int main() {
 
   try{
+
+    for(int i = 0; i < 1000000; i++){}
+
     Solver& solver = Solver::getSolver();
 
     solver.setTimeLimit(2);
@@ -16,7 +20,7 @@ int main() {
 
     Expression ten_plus_ten_equals_twenty = solver.equality(ten_plus_ten, twenty);
 
-    solver.addConjecture(ten_plus_ten_equals_twenty);
+    solver.addFormula(ten_plus_ten_equals_twenty);
 
     Result res = solver.solve();
 
@@ -29,8 +33,8 @@ int main() {
     ten_plus_ten = solver.sum(ten, ten);
 
     ten_plus_ten_equals_twenty = solver.equality(ten_plus_ten, twenty);
-    
-    solver.addFormula(twenty);
+
+    solver.addConjecture(ten_plus_ten_equals_twenty);
 
     res = solver.solve();
 
@@ -38,10 +42,7 @@ int main() {
 
     return 0;
   } catch (ApiException& e){
-    cout<< "Exception: "<<e.msg()<<endl;
+    std::cout<< "Exception: "<<e.msg()<<std::endl;
     return 1;
-  } catch (Lib::UserErrorException& e){
-    cout<< "Exception: "<<e.msg()<<endl;
-    return 1;    
   }
 }

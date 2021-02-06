@@ -15,17 +15,16 @@
 #ifndef __API_Solver__
 #define __API_Solver__
 
-#include <ostream>
-#include <climits>
+//#include <ostream>
+//#include <climits>
 
 #include "Problem.hpp"
 #include "FormulaBuilder.hpp"
 
-#include "Shell/Statistics.hpp"
+//get rid of vstring from this interface somehow
+#include <string>
 
-#include "Lib/VString.hpp"
-
-namespace Api {
+namespace Vampire {
 
 using namespace std;
 
@@ -45,7 +44,7 @@ public:
   void del();
 private:
   unsigned current;
-  Problem::AnnotatedFormulaStack* forms;
+  std::vector<AnnotatedFormula>* forms;
 
   friend class Solver;
 };
@@ -54,26 +53,31 @@ class Result
 {
 public:
 
-  Result(Shell::Statistics::TerminationReason tr){
-    _termReason = tr;
-  }
-
   bool satisfiable(){
-    return _termReason == Shell::Statistics::SATISFIABLE;
+    return _termReason == SATISFIABLE;
   }
 
   bool unsatisfiable(){
-    return _termReason == Shell::Statistics::REFUTATION;
+    return _termReason == REFUTATION;
   }
 
   bool resourcedLimitReached(){
-    return (_termReason == Shell::Statistics::TIME_LIMIT ||
-            _termReason == Shell::Statistics::MEMORY_LIMIT);
+    return (_termReason == RESOURCED_OUT);
   }
 
 private:
 
-  Shell::Statistics::TerminationReason _termReason;
+  friend class Solver;
+
+  enum TerminationReason {
+    SATISFIABLE,
+    REFUTATION,
+    RESOURCED_OUT
+  };
+
+  Result(TerminationReason tr): _termReason(tr) {}
+
+  TerminationReason _termReason;
 };
 
 
@@ -129,20 +133,26 @@ private:
 
 public:
 
+  unsigned getTimeLimit();
+  unsigned getElapsedTime();
+
   static Solver& getSolver(Logic l = TPTP);
+  static Solver* getSolverPtr(Logic l = TPTP);
 
   ~Solver(){}
 
   /**
    * Create, or retrieve already existing sort with name @c sortName.
    */
-  Sort sort(const Lib::vstring& sortName);
+  Sort sort(const std::string& sortName);
   /** Return sort for integers */
   Sort integerSort();
   /** Return sort for rationals */
   Sort rationalSort();
   /** Return sort for reals */
   Sort realSort();  
+  /** Return array sort */
+  Sort arraySort(const Sort& indexSort, const Sort& innerSort);
 
   /** Sets the logic that the solver works with. After a call to 
    *  addFormula, this function no longer has an effect as the logic
@@ -177,7 +187,7 @@ public:
    * Any other value will raise an ApiException. 
    * The argument is case sensitive.
    */
-  void setSaturationAlgorithm(const Lib::vstring& satAlgorithm);
+  void setSaturationAlgorithm(const std::string& satAlgorithm);
 
   /*
    * Set the time limit in seconds that Vampire will run for on a call
@@ -194,7 +204,7 @@ public:
    * WARNING this function results in a user error if @param optionString
    * is invalid
    */
-  void setOptions(const Lib::vstring optionString);
+  void setOptions(const std::string& optionString);
 
   /** Prevent the creation of cariables with implicit types.
    *
@@ -240,7 +250,7 @@ public:
    * that is, start with a capital-case letter. If the variable name does not conform to TPTP, an exception
    * will be raised.
    */
-  Var var(const Lib::vstring& varName);
+  Var var(const std::string& varName);
 
   /** Create a variable
    * @param varName name of the variable. If the logic is set to TPTP, must be a valid TPTP variable name, 
@@ -248,7 +258,7 @@ public:
    * will be raised.
    * @param varSort sort of the new variable
    */
-  Var var(const Lib::vstring& varName, Sort varSort);
+  Var var(const std::string& varName, Sort varSort);
 
   /**
    * Create a function symbol using default sorts. If @b builtIn is true, the symbol will not be
@@ -257,8 +267,12 @@ public:
    * @warning Symbols of the same name and arity must always have 
    * the same type.
    */
-  Symbol function(const Lib::vstring& funName, unsigned arity, bool builtIn=false);
+  Symbol function(const std::string& funName, unsigned arity, bool builtIn=false);
 
+  /** Convenience function for creating a symbol with arity 0.
+   *  If s is Boolean sort, then a predicate is returned.
+   */
+  Symbol constantSym(const std::string& name, Sort s);
   /**
    * Create a function symbol with specified range and domain sorts. If @b builtIn is
    * true, the symbol will not be eliminated during preprocessing.
@@ -266,7 +280,7 @@ public:
    * @warning Symbols of the same name and arity must have
    * the same type.
    */
-  Symbol function(const Lib::vstring& funName, unsigned arity, Sort rangeSort, std::vector<Sort>& domainSorts, bool builtIn=false);
+  Symbol function(const std::string& funName, unsigned arity, Sort rangeSort, std::vector<Sort>& domainSorts, bool builtIn=false);
 
   /**
    * Create a predicate symbol using default sorts. If @b builtIn if true, the symbol will not be
@@ -275,7 +289,7 @@ public:
    * @warning Symbols of the same name and arity must have
    * the same type.
    */
-  Symbol predicate(const Lib::vstring& predName, unsigned arity, bool builtIn=false);
+  Symbol predicate(const std::string& predName, unsigned arity, bool builtIn=false);
 
   /**
    * Create a predicate symbol with specified domain sorts. If @b builtIn if true, the symbol will not be
@@ -284,26 +298,26 @@ public:
    * @warning Symbols of the same name and arity must have
    * the same type.
    */
-  Symbol predicate(const Lib::vstring& predName, unsigned arity, std::vector<Sort>& domainSorts, bool builtIn=false);
+  Symbol predicate(const std::string& predName, unsigned arity, std::vector<Sort>& domainSorts, bool builtIn=false);
 
   /**
    * Return name of the sort @c s.
    */
-  Lib::vstring getSortName(Sort s);
+  std::string getSortName(Sort s);
 
   /**
    * Return name of the symbol @c s.
    *
    * If the output of dummy names is enabled, the dummy name will be returned here.
    */
-  Lib::vstring getSymbolName(Symbol s);
+  std::string getSymbolName(Symbol s);
 
   /**
    * Return name of the variable @c v.
    *
    * If the output of dummy names is enabled, the dummy name will be returned here.
    */
-  Lib::vstring getVariableName(Var v);
+  std::string getVariableName(Var v);
 
   /** build a variable term */
   Expression varTerm(const Var& v);
@@ -320,6 +334,9 @@ public:
 
   /** build an equality and check the sorts of the equality sides to be equal to @c sort*/
   Expression equality(const Expression& lhs,const Expression& rhs, Sort sort, bool positive=true);
+
+  /** build either a true or false formula */
+  Expression boolFormula(bool value);
 
   /** build a true formula */
   Expression trueFormula();
@@ -356,6 +373,11 @@ public:
   /** build a constant term (or formula) c */
   Expression term(const Symbol& c);
 
+  /** build a constant term (or formula) with name @param name 
+   *  sort @param s
+   */
+  Expression constant(const std::string& name, Sort s);
+
   /** build a unary term (or formula) f(t) */
   Expression term(const Symbol& f,const Expression& t);
 
@@ -374,13 +396,13 @@ public:
    * @c FormulaBuilderException may be thrown if @c i is not a proper value, or too large
    * for Vampire internal representation.
    */
-  Expression integerConstant(Lib::vstring i);
+  Expression integerConstant(std::string i);
 
   /** Return a rationa constant representing @c numerator/ @c denom */
-  Expression rationalConstant(Lib::vstring numerator, Lib::vstring denom);
+  Expression rationalConstant(std::string numerator, std::string denom);
 
   /** Return a real constant representing @c i */
-  Expression realConstant(Lib::vstring r);
+  Expression realConstant(std::string r);
 
   /** Create the term t1 + t2 
    *  Both t1 and t2 must be of the same type
@@ -404,7 +426,28 @@ public:
    *  Both t1 and t2 must be of the same type
    *  which must be either integer, real or rational.
    */
-  Expression divide(const Expression& t1,const Expression& t2);
+  Expression div(const Expression& t1,const Expression& t2);
+
+  /** Create the term t1 mod t2 
+   *  Both t1 and t2 must be of the same type
+   *  which must be either integer, real or rational.
+   */
+  Expression mod(const Expression& t1,const Expression& t2);
+
+  /** Create the term -t
+   *  t must be of integer, real or rational sort.
+   */
+  Expression neg(const Expression& t);
+
+  /* Converts t from integer sort to real sort.
+   * t must be of integer sort
+   */
+  Expression int2real(const Expression& t);
+
+  /* Converts t from real sort to integer sort.
+   * t must be of real sort
+   */
+  Expression real2int(const Expression& t);
 
   /** create the floor of @param t1 which must be of integer rational or real sort */
   Expression floor(const Expression& t1);
@@ -464,7 +507,7 @@ public:
    * WARNING it is assumed that the syntax of the stream matches the logic
    * of the solver
    */
-  void addFromStream(istream& s, vstring includeDirectory="./"); 
+  void addFromStream(istream& s, std::string includeDirectory="./"); 
   
   /**
    * Return iterator of formulas in the problem
@@ -489,6 +532,7 @@ private:
   Problem prob;
   Logic logic;
   bool logicSet;
+  int timeLimit;
   bool preprocessed;
 };
 

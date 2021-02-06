@@ -37,7 +37,7 @@
 #include "Shell/TPTPPrinter.hpp"
 #include "Shell/VarManager.hpp"
 
-namespace Api {
+namespace Vampire {
 
 using namespace Shell;
 
@@ -62,7 +62,7 @@ public:
 private:
   struct Var2NameMapper;
 public:
-  StringIterator getVarNames(VarList* l);
+  //StringIterator getVarNames(VarList* l);
 
   static vstring getDummyName(bool pred, unsigned functor);
   static vstring getDummyName(const Kernel::Term* t);
@@ -134,9 +134,9 @@ public:
   /** Return arbitrary uninterpreted unary predicate */
   unsigned getUnaryPredicate();
 
-  Sort getSort(const Api::Expression t);
-  void ensureArgumentsSortsMatch(OperatorType* type, const Api::Expression* args);
-  void ensureEqualityArgumentsSortsMatch(const Api::Expression arg1, const Api::Expression arg2);
+  Sort getSort(const Vampire::Expression t);
+  void ensureArgumentsSortsMatch(OperatorType* type, const Vampire::Expression* args);
+  void ensureEqualityArgumentsSortsMatch(const Vampire::Expression arg1, const Vampire::Expression arg2);
 
   typedef pair<vstring,vstring> AttribPair;
   typedef Stack<AttribPair> AttribStack;

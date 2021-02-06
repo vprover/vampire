@@ -23,6 +23,8 @@
 #include "Lib/Map.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/VirtualIterator.hpp"
+#include "Lib/VString.hpp"
+#include "Lib/StringUtils.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/EqHelper.hpp"
@@ -33,6 +35,8 @@
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/Sorts.hpp"
 #include "Kernel/Term.hpp"
+#include "Kernel/Theory.hpp"
+#include "Kernel/Connective.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Unit.hpp"
 
@@ -42,14 +46,13 @@
 #include "Shell/FOOLElimination.hpp"
 #include "Shell/TPTPPrinter.hpp"
 
-
-
 using namespace std;
 using namespace Lib;
 using namespace Shell;
 
-namespace Api
+namespace Vampire
 {
+
 
 FormulaBuilder::FormulaBuilder(bool checkNames, bool checkBindingBoundVariables,
     bool allowImplicitlyTypedVariables, bool outputDummyNames)
@@ -62,13 +65,13 @@ FormulaBuilder::FormulaBuilder(bool checkNames, bool checkBindingBoundVariables,
   _aux->_outputDummyNames=outputDummyNames;
 }
 
-Sort FormulaBuilder::sort(const vstring& sortName)
+Sort FormulaBuilder::sort(const std::string& sortName)
 {
   CALL("FormulaBuilder::sort");
-
+    
   bool added = false;
   //false means that it is not an interpreted sort
-  unsigned res = env.sorts->addSort(sortName, added, false);
+  unsigned res = env.sorts->addSort(StringUtils::copy2vstr(sortName), added, false);
   Sort sort(res);
   sort._aux=_aux;
   return sort;
@@ -109,32 +112,42 @@ Sort FormulaBuilder::defaultSort()
   return Sort(Sorts::SRT_DEFAULT);
 }
 
-vstring FormulaBuilder::getSortName(Sort s)
+Sort FormulaBuilder::arraySort(const Sort& indexSort, const Sort& innerSort)
+{
+  CALL("FormulaBuilder::arraySort");
+
+  unsigned res = env.sorts->addArraySort(indexSort, innerSort);
+  Sort sort(res);
+  sort._aux=_aux;
+  return sort;  
+}
+
+string FormulaBuilder::getSortName(Sort s)
 {
   CALL("FormulaBuilder::getSortName");
   
   checkForValidity({s});
-  return env.sorts->sortName(s);
+  return StringUtils::copy2str(env.sorts->sortName(s));
 }
 
-vstring FormulaBuilder::getSymbolName(Symbol s)
+string FormulaBuilder::getSymbolName(Symbol s)
 {
   CALL("FormulaBuilder::getSymbolName");
 
   checkForValidity({s});
-  return _aux->getSymbolName(!s.isFunctionSymbol(), s);
+  return StringUtils::copy2str(_aux->getSymbolName(!s.isFunctionSymbol(), s));
 }
 
 //TODO invalidate vars on a hard solver reset as well?
-vstring FormulaBuilder::getVariableName(Var v)
+string FormulaBuilder::getVariableName(Var v)
 {
   CALL("FormulaBuilder::getVariableName");
 
-  return _aux->getVarName(v);
+  return StringUtils::copy2str(_aux->getVarName(v));
 }
 
 
-Var FormulaBuilder::var(const vstring& varName)
+Var FormulaBuilder::var(const string& varName)
 {
   CALL("FormulaBuilder::var");
 
@@ -147,22 +160,25 @@ Var FormulaBuilder::var(const vstring& varName)
   return var(varName, defaultSort());
 }
 
-Var FormulaBuilder::var(const vstring& varName, Sort varSort)
+Var FormulaBuilder::var(const string& varName, Sort varSort)
 {
   CALL("FormulaBuilder::var");
 
-  return _aux->getVar(varName, varSort);
+  vstring vVarName = StringUtils::copy2vstr(varName);
+  return _aux->getVar(vVarName, varSort);
 }
 
-Symbol FormulaBuilder::symbol(const vstring& name, unsigned arity, Sort rangeSort, std::vector<Sort>& domainSorts, bool builtIn)
+Symbol FormulaBuilder::symbol(const string& name, unsigned arity, Sort rangeSort, std::vector<Sort>& domainSorts, bool builtIn)
 {
   CALL("FormulaBuilder::function/4");
 
   bool pred = (rangeSort == FormulaBuilder::boolSort());
 
+  vstring vname = StringUtils::copy2vstr(name);
+
   bool added;
-  unsigned res = pred ? env.signature->addPredicate(name, arity, added):
-                        env.signature->addFunction(name, arity, added);
+  unsigned res = pred ? env.signature->addPredicate(vname, arity, added):
+                        env.signature->addFunction(vname, arity, added);
   Kernel::Signature::Symbol* sym = pred ? env.signature->getPredicate(res):
                                           env.signature->getFunction(res);
 
@@ -178,7 +194,7 @@ Symbol FormulaBuilder::symbol(const vstring& name, unsigned arity, Sort rangeSor
   }
   else {
     if(type != (pred ? sym->predType() : sym->fnType())) {
-      throw FormulaBuilderException("Creating symbol " + sym->name() + " with different type than a previously created function "
+      throw FormulaBuilderException("Creating symbol " + StringUtils::copy2str(sym->name()) + " with different type than a previously created function "
 	  "of the same name and arity. (This must not happen even across different instances of the FormulaBuilder class.)");
     }
   }
@@ -196,13 +212,13 @@ Symbol FormulaBuilder::integerConstant(int i)
   return Symbol(fun, false, _aux);
 }
 
-Symbol FormulaBuilder::integerConstant(vstring i)
+Symbol FormulaBuilder::integerConstant(string i)
 {
   CALL("FormulaBuilder::integerConstant");
 
   unsigned fun;
   try {
-    fun = env.signature->addIntegerConstant(IntegerConstantType(i));
+    fun = env.signature->addIntegerConstant(IntegerConstantType(StringUtils::copy2vstr(i)));
   }
   catch (ArithmeticException) {
     throw FormulaBuilderException("Constant value invalid or does not fit into internal representation: " + i);
@@ -210,13 +226,16 @@ Symbol FormulaBuilder::integerConstant(vstring i)
   return Symbol(fun, false, _aux);
 }
 
-Symbol FormulaBuilder::rationalConstantSymbol(Lib::vstring numerator, Lib::vstring denom)
+Symbol FormulaBuilder::rationalConstantSymbol(string numerator, string denom)
 {
   CALL("FormulaBuilder::rationalConstantSymbol");
 
+  Lib::vstring num = StringUtils::copy2vstr(numerator);
+  Lib::vstring den = StringUtils::copy2vstr(denom);
+
   unsigned fun;
   try {
-    fun = env.signature->addRationalConstant(RationalConstantType(numerator, denom));
+    fun = env.signature->addRationalConstant(RationalConstantType(num, den));
   }
   catch (MachineArithmeticException) {
     throw FormulaBuilderException("An arithmetic exception occured during the creation of constant: " + numerator + "/" + denom);
@@ -226,13 +245,13 @@ Symbol FormulaBuilder::rationalConstantSymbol(Lib::vstring numerator, Lib::vstri
   return Symbol(fun, false, _aux);
 }
 
-Symbol FormulaBuilder::realConstantSymbol(Lib::vstring r)
+Symbol FormulaBuilder::realConstantSymbol(string r)
 {
   CALL("FormulaBuilder::realConstantSymbol");
 
   unsigned fun;
   try {
-    fun = env.signature->addRealConstant(RealConstantType(r));
+    fun = env.signature->addRealConstant(RealConstantType(StringUtils::copy2vstr(r)));
   }
   catch (ArithmeticException) {
     throw FormulaBuilderException("An arithmetic exception occured during the creation of constant " + r);
@@ -252,159 +271,13 @@ void FormulaBuilder::reset(){
   _aux.resetCore();
 }
 
-Symbol FormulaBuilder::interpretedSymbol(Kernel::Theory::Interpretation interp)
+Symbol interpretedSymbol(Kernel::Theory::Interpretation interp, ApiHelper& aux)
 {
-  CALL("FormulaBuilder::interpretedPredicate");
+  CALL("interpretedPredicate");
 
   unsigned res = env.signature->getInterpretingSymbol(interp);
-  return Symbol(res, !Theory::isFunction(interp), _aux);
+  return Symbol(res, !Theory::isFunction(interp), aux);
 }
-
-/*
-void FormulaBuilder::addAttribute(Sort p, vstring name, vstring value)
-{
-  CALL("FormulaBuilder::addAttribute(Sort,vstring,vstring)");
-
-  FBHelperCore::addAttribute(_aux->getSortAttributes(p), name, value);
-}
-
-unsigned FormulaBuilder::attributeCount(Sort p)
-{
-  CALL("FormulaBuilder::attributeCount(Sort)");
-
-  return _aux->getSortAttributes(p).size();
-}
-
-vstring FormulaBuilder::getAttributeName(Sort p, unsigned index)
-{
-  CALL("FormulaBuilder::getAttributeName(Sort,unsigned)");
-
-  if(index>attributeCount(p)) {
-    throw FormulaBuilderException("Attribute index out of bounds");
-  }
-  return _aux->getSortAttributes(p)[index].first;
-}
-
-vstring FormulaBuilder::getAttributeValue(Sort p, unsigned index)
-{
-  CALL("FormulaBuilder::getAttributeValue(Sort,unsigned)");
-
-  if(index>attributeCount(p)) {
-    throw FormulaBuilderException("Attribute index out of bounds");
-  }
-  return _aux->getSortAttributes(p)[index].second;
-}
-
-vstring FormulaBuilder::getAttributeValue(Sort p, vstring attributeName)
-{
-  CALL("FormulaBuilder::getAttributeValue(Sort,vstring)");
-
-  FBHelperCore::AttribStack::BottomFirstIterator it(_aux->getSortAttributes(p));
-  while(it.hasNext()) {
-    pair<vstring,vstring> curr = it.next();
-    if(curr.first==attributeName) {
-      return curr.second;
-    }
-  }
-  throw FormulaBuilderException("Requested attribute does not exist");
-}
-
-void FormulaBuilder::addAttribute(Predicate p, vstring name, vstring value)
-{
-  CALL("FormulaBuilder::addAttribute(Predicate,vstring,vstring)");
-
-  FBHelperCore::addAttribute(_aux->getPredicateAttributes(p), name, value);
-}
-
-unsigned FormulaBuilder::attributeCount(Predicate p)
-{
-  CALL("FormulaBuilder::attributeCount(Predicate)");
-
-  return _aux->getPredicateAttributes(p).size();
-}
-
-vstring FormulaBuilder::getAttributeName(Predicate p, unsigned index)
-{
-  CALL("FormulaBuilder::getAttributeName(Predicate,unsigned)");
-
-  if(index>attributeCount(p)) {
-    throw FormulaBuilderException("Attribute index out of bounds");
-  }
-  return _aux->getPredicateAttributes(p)[index].first;
-}
-
-vstring FormulaBuilder::getAttributeValue(Predicate p, unsigned index)
-{
-  CALL("FormulaBuilder::getAttributeValue(Predicate,unsigned)");
-
-  if(index>attributeCount(p)) {
-    throw FormulaBuilderException("Attribute index out of bounds");
-  }
-  return _aux->getPredicateAttributes(p)[index].second;
-}
-
-vstring FormulaBuilder::getAttributeValue(Predicate p, vstring attributeName)
-{
-  CALL("FormulaBuilder::getAttributeValue(Predicate,vstring)");
-
-  FBHelperCore::AttribStack::BottomFirstIterator it(_aux->getPredicateAttributes(p));
-  while(it.hasNext()) {
-    pair<vstring,vstring> curr = it.next();
-    if(curr.first==attributeName) {
-      return curr.second;
-    }
-  }
-  throw FormulaBuilderException("Requested attribute does not exist");
-}
-
-void FormulaBuilder::addAttribute(Function p, vstring name, vstring value)
-{
-  CALL("FormulaBuilder::addAttribute(Function,vstring,vstring)");
-
-  FBHelperCore::addAttribute(_aux->getFunctionAttributes(p), name, value);
-}
-
-unsigned FormulaBuilder::attributeCount(Function p)
-{
-  CALL("FormulaBuilder::attributeCount(Function)");
-
-  return _aux->getFunctionAttributes(p).size();
-}
-
-vstring FormulaBuilder::getAttributeName(Function p, unsigned index)
-{
-  CALL("FormulaBuilder::getAttributeName(Function,unsigned)");
-
-  if(index>attributeCount(p)) {
-    throw FormulaBuilderException("Attribute index out of bounds");
-  }
-  return _aux->getFunctionAttributes(p)[index].first;
-}
-
-vstring FormulaBuilder::getAttributeValue(Function p, unsigned index)
-{
-  CALL("FormulaBuilder::getAttributeValue(Function,unsigned)");
-
-  if(index>attributeCount(p)) {
-    throw FormulaBuilderException("Attribute index out of bounds");
-  }
-  return _aux->getFunctionAttributes(p)[index].second;
-}
-
-vstring FormulaBuilder::getAttributeValue(Function p, vstring attributeName)
-{
-  CALL("FormulaBuilder::getAttributeValue(Function,vstring)");
-
-  FBHelperCore::AttribStack::BottomFirstIterator it(_aux->getFunctionAttributes(p));
-  while(it.hasNext()) {
-    pair<vstring,vstring> curr = it.next();
-    if(curr.first==attributeName) {
-      return curr.second;
-    }
-  }
-  throw FormulaBuilderException("Requested attribute does not exist");
-}
-*/
 
 Expression FormulaBuilder::varTerm(const Var& v)
 {
@@ -478,17 +351,17 @@ Expression FormulaBuilder::andFormula(const Expression& f1,const Expression& f2)
 {
   CALL("FormulaBuilder::andFormula");
 
-  return andOrOrFormula(Kernel::AND, f1, f2);
+  return andOrOrFormula(AND, f1, f2);
 }
 
 Expression FormulaBuilder::orFormula(const Expression& f1,const Expression& f2)
 {
   CALL("FormulaBuilder::andFormula");
 
-  return andOrOrFormula(Kernel::OR, f1, f2);
+  return andOrOrFormula(OR, f1, f2);
 }
 
-Expression FormulaBuilder::andOrOrFormula(Kernel::Connective c, const Expression& f1,const Expression& f2)
+Expression FormulaBuilder::andOrOrFormula(Connective con, const Expression& f1,const Expression& f2)
 {
   CALL("FormulaBuilder::andOrOrFormula");
 
@@ -498,6 +371,7 @@ Expression FormulaBuilder::andOrOrFormula(Kernel::Connective c, const Expression
   Kernel::FormulaList* flst=0;
   Kernel::FormulaList::push(f2._form, flst);
   Kernel::FormulaList::push(f1._form, flst);
+  Kernel::Connective c = con == AND ? Kernel::AND : Kernel::OR;
   return Expression(new Kernel::JunctionFormula(c, flst), _aux);  
 }
 
@@ -532,38 +406,40 @@ Expression FormulaBuilder::exists(const Var& v,const Expression& f)
 {
   CALL("FormulaBuilder::exists");
 
-  return quantifiedFormula(Kernel::EXISTS, v, f);
+  return quantifiedFormula(EXISTS, v, f);
 }
 
 Expression FormulaBuilder::forall(const Var& v,const Expression& f)
 {
   CALL("FormulaBuilder::forall");
 
-  return quantifiedFormula(Kernel::FORALL, v, f);
+  return quantifiedFormula(FORALL, v, f);
 }
 
-Expression FormulaBuilder::quantifiedFormula(Kernel::Connective con,const Var& v,const Expression& f)
+Expression FormulaBuilder::quantifiedFormula(Connective con,const Var& v,const Expression& f)
 {
   CALL("FormulaBuilder::quantifiedFormula");
 
   checkForValidity({f});
   checkForTermError({f});
+
   if(_aux->_checkBindingBoundVariables) {
     VarList* boundVars=static_cast<Kernel::Formula*>(f)->boundVariables();
     bool alreadyBound=VarList::member(v, boundVars);
     VarList::destroy(boundVars);
     if(alreadyBound) {
-      throw FormulaBuilderException("Attempt to bind a variable that is already bound: "+_aux->getVarName(v));
+      throw FormulaBuilderException("Attempt to bind a variable that is already bound: "+ StringUtils::copy2str(_aux->getVarName(v)));
     }
   }
 
   Kernel::Formula::VarList* varList=0;
   Kernel::Formula::VarList::push(v, varList);
+  Kernel::Connective c = con == FORALL ? Kernel::FORALL : Kernel::EXISTS;
 
-  return Expression(new QuantifiedFormula(con, varList, 0, f._form), _aux);
+  return Expression(new QuantifiedFormula(c, varList, 0, f), _aux);
 }
 
-AnnotatedFormula FormulaBuilder::annotatedFormula(Expression& f, Annotation a, vstring name)
+AnnotatedFormula FormulaBuilder::annotatedFormula(Expression& f, Annotation a, string name)
 {
   CALL("FormulaBuilder::annotatedFormula");
 
@@ -799,7 +675,7 @@ Expression FormulaBuilder::integerConstantTerm(int i)
   return term(integerConstant(i));
 }
 
-Expression FormulaBuilder::integerConstantTerm(Lib::vstring i)
+Expression FormulaBuilder::integerConstantTerm(string i)
 {
   CALL("FormulaBuilder::integerConstantTerm");
 
@@ -807,14 +683,14 @@ Expression FormulaBuilder::integerConstantTerm(Lib::vstring i)
 }
 
 
-Expression FormulaBuilder::rationalConstant(Lib::vstring numerator, Lib::vstring denom)
+Expression FormulaBuilder::rationalConstant(string numerator, string denom)
 {
   CALL("FormulaBuilder::rationalConstant");
 
   return term(rationalConstantSymbol(numerator, denom));
 }
 
-Expression FormulaBuilder::realConstant(Lib::vstring i)
+Expression FormulaBuilder::realConstant(string i)
 {
   CALL("Solver::realConstant");
 
@@ -829,11 +705,11 @@ Expression FormulaBuilder::sum(const Expression& t1,const Expression& t2)
   
   Symbol sum;
   if(t1.sort() == integerSort()){
-    sum = interpretedSymbol(Kernel::Theory::INT_PLUS);
+    sum = interpretedSymbol(Kernel::Theory::INT_PLUS, _aux);
   } else if(t1.sort() == realSort()){
-    sum = interpretedSymbol(Kernel::Theory::REAL_PLUS);
+    sum = interpretedSymbol(Kernel::Theory::REAL_PLUS, _aux);
   } else {
-    sum = interpretedSymbol(Kernel::Theory::RAT_PLUS);
+    sum = interpretedSymbol(Kernel::Theory::RAT_PLUS, _aux);
   } 
   return term(sum, t1, t2);
 }
@@ -847,11 +723,11 @@ Expression FormulaBuilder::difference(const Expression& t1,const Expression& t2)
   
   Symbol minus;
   if(t1.sort() == integerSort()){
-    minus = interpretedSymbol(Kernel::Theory::INT_MINUS);
+    minus = interpretedSymbol(Kernel::Theory::INT_MINUS, _aux);
   } else if(t1.sort() == realSort()){
-    minus = interpretedSymbol(Kernel::Theory::REAL_MINUS);
+    minus = interpretedSymbol(Kernel::Theory::REAL_MINUS, _aux);
   } else {
-    minus = interpretedSymbol(Kernel::Theory::RAT_MINUS);
+    minus = interpretedSymbol(Kernel::Theory::RAT_MINUS, _aux);
   } 
   return term(minus, t1, t2);
 }
@@ -864,23 +740,89 @@ Expression FormulaBuilder::multiply(const Expression& t1,const Expression& t2)
   
   Symbol mult;
   if(t1.sort() == integerSort()){
-    mult = interpretedSymbol(Kernel::Theory::INT_MULTIPLY);
+    mult = interpretedSymbol(Kernel::Theory::INT_MULTIPLY, _aux);
   } else if(t1.sort() == realSort()){
-    mult = interpretedSymbol(Kernel::Theory::REAL_MULTIPLY);
+    mult = interpretedSymbol(Kernel::Theory::REAL_MULTIPLY, _aux);
   } else {
-    mult = interpretedSymbol(Kernel::Theory::RAT_MULTIPLY);
+    mult = interpretedSymbol(Kernel::Theory::RAT_MULTIPLY, _aux);
   } 
   return term(mult, t1, t2);
 }
 
-/* TODO what do we want here?
-Term FormulaBuilder::divide(const Term& t1,const Term& t2)
+Expression FormulaBuilder::div(const Expression& t1,const Expression& t2)
 {
-  CALL("FormulaBuilder::divide");
+  CALL("FormulaBuilder::div");
 
-  checkForNumericalSortError(t1, t2);
+  checkForNumericalSortError({t1, t2});
   
-}*/
+  Symbol div;
+  if(t1.sort() == integerSort()){
+    div = interpretedSymbol(Kernel::Theory::INT_REMAINDER_E, _aux);
+  } else if(t1.sort() == realSort()){
+    div = interpretedSymbol(Kernel::Theory::REAL_REMAINDER_E, _aux);
+  } else {
+    div = interpretedSymbol(Kernel::Theory::RAT_REMAINDER_E, _aux);
+  } 
+  return term(div, t1, t2);  
+}
+
+Expression FormulaBuilder::mod(const Expression& t1,const Expression& t2)
+{
+  CALL("FormulaBuilder::div");
+
+  checkForNumericalSortError({t1, t2});
+
+  Symbol mod;
+  if(t1.sort() == integerSort()){
+    mod = interpretedSymbol(Kernel::Theory::INT_QUOTIENT_E, _aux);
+  } else if(t1.sort() == realSort()){
+    mod = interpretedSymbol(Kernel::Theory::REAL_QUOTIENT_E, _aux);
+  } else {
+    mod = interpretedSymbol(Kernel::Theory::RAT_QUOTIENT_E, _aux);
+  } 
+  return term(mod, t1, t2);  
+}
+
+Expression FormulaBuilder::neg(const Expression& t)
+{
+  CALL("FormulaBuilder::div");
+
+  checkForNumericalSortError({t});
+
+  Symbol unaryMinus;
+  if(t.sort() == integerSort()){
+    unaryMinus = interpretedSymbol(Kernel::Theory::INT_UNARY_MINUS, _aux);
+  } else if(t.sort() == realSort()){
+    unaryMinus = interpretedSymbol(Kernel::Theory::REAL_UNARY_MINUS, _aux);
+  } else {
+    unaryMinus = interpretedSymbol(Kernel::Theory::RAT_UNARY_MINUS, _aux);
+  } 
+  return term(unaryMinus, t);  
+}
+
+Expression FormulaBuilder::int2real(const Expression& t)
+{
+  CALL("FormulaBuilder::int2real");
+  
+  if(t.sort() != integerSort()){
+    throw ApiException("Cannot call int2real on " + t.toString() + " as it is not of integer sort");             
+  }
+
+  Symbol conv = interpretedSymbol(Kernel::Theory::INT_TO_REAL, _aux);
+  return term(conv, t);
+}
+
+Expression FormulaBuilder::real2int(const Expression& t)
+{
+  CALL("FormulaBuilder::real2int");
+
+  if(t.sort() != realSort()){
+    throw ApiException("Cannot call int2real on " + t.toString() + " as it is not of real sort");             
+  }
+
+  Symbol conv = interpretedSymbol(Kernel::Theory::REAL_TO_INT, _aux);
+  return term(conv, t);
+}
 
 Expression FormulaBuilder::floor(const Expression& t1)
 {
@@ -890,11 +832,11 @@ Expression FormulaBuilder::floor(const Expression& t1)
 
   Symbol floor;
   if(t1.sort() == integerSort()){
-    floor = interpretedSymbol(Kernel::Theory::INT_FLOOR);
+    floor = interpretedSymbol(Kernel::Theory::INT_FLOOR, _aux);
   } else if(t1.sort() == realSort()){
-    floor = interpretedSymbol(Kernel::Theory::REAL_FLOOR);
+    floor = interpretedSymbol(Kernel::Theory::REAL_FLOOR, _aux);
   } else {
-    floor = interpretedSymbol(Kernel::Theory::RAT_FLOOR);
+    floor = interpretedSymbol(Kernel::Theory::RAT_FLOOR, _aux);
   } 
   return term(floor, t1);
 }
@@ -907,11 +849,11 @@ Expression FormulaBuilder::ceiling(const Expression& t1)
 
   Symbol ceiling;
   if(t1.sort() == integerSort()){
-    ceiling = interpretedSymbol(Kernel::Theory::INT_CEILING);
+    ceiling = interpretedSymbol(Kernel::Theory::INT_CEILING, _aux);
   } else if(t1.sort() == realSort()){
-    ceiling = interpretedSymbol(Kernel::Theory::REAL_CEILING);
+    ceiling = interpretedSymbol(Kernel::Theory::REAL_CEILING, _aux);
   } else {
-    ceiling = interpretedSymbol(Kernel::Theory::RAT_CEILING);
+    ceiling = interpretedSymbol(Kernel::Theory::RAT_CEILING, _aux);
   } 
   return term(ceiling, t1);
 }
@@ -924,7 +866,7 @@ Expression FormulaBuilder::absolute(const Expression& t1)
     throw ApiException("Attempting to creat the absolute of a term which is not of integer sort");          
   }
 
-  Symbol abs = interpretedSymbol(Kernel::Theory::INT_ABS);
+  Symbol abs = interpretedSymbol(Kernel::Theory::INT_ABS, _aux);
   return term(abs, t1);
 }
 
@@ -936,11 +878,11 @@ Expression FormulaBuilder::geq(const Expression& t1, const Expression& t2)
   
   Symbol geq;
   if(t1.sort() == integerSort()){
-    geq = interpretedSymbol(Kernel::Theory::INT_GREATER_EQUAL);
+    geq = interpretedSymbol(Kernel::Theory::INT_GREATER_EQUAL, _aux);
   } else if(t1.sort() == realSort()){
-    geq = interpretedSymbol(Kernel::Theory::REAL_GREATER_EQUAL);
+    geq = interpretedSymbol(Kernel::Theory::REAL_GREATER_EQUAL, _aux);
   } else {
-    geq = interpretedSymbol(Kernel::Theory::RAT_GREATER_EQUAL);
+    geq = interpretedSymbol(Kernel::Theory::RAT_GREATER_EQUAL, _aux);
   } 
   return term(geq, t1, t2);
 }
@@ -953,11 +895,11 @@ Expression FormulaBuilder::leq(const Expression& t1, const Expression& t2)
   
   Symbol leq;
   if(t1.sort() == integerSort()){
-    leq = interpretedSymbol(Kernel::Theory::INT_LESS_EQUAL);
+    leq = interpretedSymbol(Kernel::Theory::INT_LESS_EQUAL, _aux);
   } else if(t1.sort() == realSort()){
-    leq = interpretedSymbol(Kernel::Theory::REAL_LESS_EQUAL);
+    leq = interpretedSymbol(Kernel::Theory::REAL_LESS_EQUAL, _aux);
   } else {
-    leq = interpretedSymbol(Kernel::Theory::RAT_LESS_EQUAL);
+    leq = interpretedSymbol(Kernel::Theory::RAT_LESS_EQUAL, _aux);
   } 
   return term(leq, t1, t2);
 }
@@ -970,11 +912,11 @@ Expression FormulaBuilder::gt(const Expression& t1, const Expression& t2)
   
   Symbol gt;
   if(t1.sort() == integerSort()){
-    gt = interpretedSymbol(Kernel::Theory::INT_GREATER);
+    gt = interpretedSymbol(Kernel::Theory::INT_GREATER, _aux);
   } else if(t1.sort() == realSort()){
-    gt = interpretedSymbol(Kernel::Theory::REAL_GREATER);
+    gt = interpretedSymbol(Kernel::Theory::REAL_GREATER, _aux);
   } else {
-    gt = interpretedSymbol(Kernel::Theory::RAT_GREATER);
+    gt = interpretedSymbol(Kernel::Theory::RAT_GREATER, _aux);
   } 
   return term(gt, t1, t2);
 }
@@ -987,11 +929,11 @@ Expression FormulaBuilder::lt(const Expression& t1, const Expression& t2)
   
   Symbol lt;
   if(t1.sort() == integerSort()){
-    lt = interpretedSymbol(Kernel::Theory::INT_LESS);
+    lt = interpretedSymbol(Kernel::Theory::INT_LESS, _aux);
   } else if(t1.sort() == realSort()){
-    lt = interpretedSymbol(Kernel::Theory::REAL_LESS);
+    lt = interpretedSymbol(Kernel::Theory::REAL_LESS, _aux);
   } else {
-    lt = interpretedSymbol(Kernel::Theory::RAT_LESS);
+    lt = interpretedSymbol(Kernel::Theory::RAT_LESS, _aux);
   } 
   return term(lt, t1, t2);
 }
@@ -1000,12 +942,44 @@ Expression FormulaBuilder::lt(const Expression& t1, const Expression& t2)
 // Wrapper implementation
 
 bool Sort::isValid() const
-{ return _num!=UINT_MAX && 
+{ return _num!=65535 && 
         (_num < Sorts::FIRST_USER_SORT || _aux->isValid()); }
+
+bool Sort::isTupleSort() const
+{
+  CALL("Sort::isTupleSort");
+  
+  if(!isValid()){ return false; }
+
+  return env.sorts->isOfStructuredSort(_num, Kernel::Sorts::StructuredSort::TUPLE);
+}
+
+bool Sort::isArraySort() const
+{
+  CALL("Sort::isArraySort");
+
+  if(!isValid()){ return false; }
+
+  return env.sorts->isOfStructuredSort(_num, Kernel::Sorts::StructuredSort::ARRAY);
+}
+
+unsigned Sort::arity() const
+{
+  CALL("Sort::arity");
+
+  if(!isValid()){ 
+    throw ApiException("Cannot get the arity of a sort created prior to a hard solver reset");    
+  }
+
+  if(!isTupleSort()){
+    throw ApiException("Cannot get the arity of a sort that is not a tuple sort");    
+  }
+
+  return env.sorts->getTupleSort(_num)->arity();
+}
 
 bool Symbol::isValid() const
 { return _aux->isValid(); }
-
 
 Expression::Expression(Kernel::TermList t) : _isTerm(1)
 {
@@ -1017,7 +991,7 @@ Expression::Expression(Kernel::TermList t, ApiHelper aux) : _isTerm(1), _aux(aux
   _content=t.content();
 }
 
-vstring Expression::toString() const
+string Expression::toString() const
 {
   CALL("Expression::toString");
 
@@ -1028,9 +1002,9 @@ vstring Expression::toString() const
     throw ApiException("Expression created prior to hard solver reset and cannot be printed");    
   }
   if(isTerm()){
-    return _aux->toString(static_cast<Kernel::TermList>(*this));
+    return StringUtils::copy2str(_aux->toString(static_cast<Kernel::TermList>(*this)));
   }
-  return static_cast<Kernel::Formula*>(*this)->toString();
+  return StringUtils::copy2str(static_cast<Kernel::Formula*>(*this)->toString());
 }
 
 bool Expression::isValid() const
@@ -1253,7 +1227,7 @@ Expression Expression::formulaArg(unsigned i)
 }
 
 
-StringIterator Expression::freeVars()
+/*StringIterator Expression::freeVars()
 {
   CALL("Expression::freeVars");
 
@@ -1283,19 +1257,19 @@ StringIterator Expression::boundVars()
   }
   VarList* vars=_form->boundVariables();
   return _aux->getVarNames(vars);
-}
+}*/
 
-vstring AnnotatedFormula::toString() const
+string AnnotatedFormula::toString() const
 {
   CALL("AnnotatedFormula::toString");
 
   if(!isValid()){
     throw ApiException("Cannot print a formula created prior to a hard solver reset");    
   }
-  return unit->toString();
+  return StringUtils::copy2str(unit->toString());
 }
 
-vstring AnnotatedFormula::name() const
+string AnnotatedFormula::name() const
 {
   CALL("AnnotatedFormula::toString");
 
@@ -1303,13 +1277,13 @@ vstring AnnotatedFormula::name() const
   if(!Parse::TPTP::findAxiomName(unit, unitName)) {
     unitName="u" + Int::toString(unit->number());
   }
-  return unitName;
+  return StringUtils::copy2str(unitName);
 }
 
 bool AnnotatedFormula::isValid() const
 { return _aux->isValid(); }
 
-StringIterator AnnotatedFormula::freeVars()
+/*StringIterator AnnotatedFormula::freeVars()
 {
   CALL("AnnotatedFormula::freeVars");
 
@@ -1341,7 +1315,7 @@ StringIterator AnnotatedFormula::boundVars()
   }
   VarList* vl=static_cast<FormulaUnit*>(unit)->formula()->boundVariables();
   return _aux->getVarNames(vl);
-}
+}*/
 
 FormulaBuilder::Annotation AnnotatedFormula::annotation() const
 {
@@ -1386,7 +1360,7 @@ Expression AnnotatedFormula::formula()
   return Expression(negated, _aux);
 }
 
-void AnnotatedFormula::assignName(AnnotatedFormula& form, vstring name)
+void AnnotatedFormula::assignName(AnnotatedFormula& form, string name)
 {
   CALL("AnnotatedFormula::assignName");
 
@@ -1398,18 +1372,20 @@ void AnnotatedFormula::assignName(AnnotatedFormula& form, vstring name)
     return;
   }
 
+  vstring vname = StringUtils::copy2vstr(name);
+
   static DHSet<vstring> usedNames;
 
-  if(!usedNames.insert(name)) {
-    vstring name0 = name;
+  if(!usedNames.insert(vname)) {
+    vstring name0 = vname;
     unsigned idx = 0;
     do {
       idx++;
-      name = name0 + "_" + Int::toString(idx);
-    } while(!usedNames.insert(name));
+      vname = name0 + "_" + Int::toString(idx);
+    } while(!usedNames.insert(vname));
   }
 
-  Parse::TPTP::assignAxiomName(form.unit, name);
+  Parse::TPTP::assignAxiomName(form.unit, vname);
 }
 
 ///////////////////////
@@ -1432,7 +1408,7 @@ void OutputOptions::setAssignFormulaNames(bool newVal)
 //////////////////////////////
 // StringIterator implementation
 
-StringIterator::StringIterator(const VirtualIterator<vstring>& vit)
+/*StringIterator::StringIterator(const VirtualIterator<vstring>& vit)
 {
   CALL("StringIterator::StringIterator");
 
@@ -1500,7 +1476,7 @@ vstring StringIterator::next()
   }
   ASS(_impl);
   return _impl->next();
-}
+}*/
 
 } //namespace Api
 
@@ -1508,21 +1484,21 @@ vstring StringIterator::next()
 //////////////////////////////
 // Output implementation
 
-std::ostream& operator<< (std::ostream& str,const Api::Sort& sort)
+std::ostream& operator<< (std::ostream& str,const Vampire::Sort& sort)
 {
-  CALL("operator<< (ostream&,const Api::Sort&)");
+  CALL("operator<< (ostream&,const Vampire::Sort&)");
   return str<<env.sorts->sortName(sort);
 }
 
-ostream& operator<< (ostream& str,const Api::Expression& f)
+ostream& operator<< (ostream& str,const Vampire::Expression& f)
 {
-  CALL("operator<< (ostream&,const Api::Expression&)");
+  CALL("operator<< (ostream&,const Vampire::Expression&)");
   return str<<f.toString();
 }
 
-ostream& operator<< (ostream& str,const Api::AnnotatedFormula& af)
+ostream& operator<< (ostream& str,const Vampire::AnnotatedFormula& af)
 {
-  CALL("operator<< (ostream&,const Api::AnnotatedFormula&)");
+  CALL("operator<< (ostream&,const Vampire::AnnotatedFormula&)");
   return str<<af.toString();
 }
 

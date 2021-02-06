@@ -19,7 +19,9 @@
 
 #include "Helper_Internal.hpp"
 
-namespace Api
+#include "Lib/StringUtils.hpp"
+
+namespace Vampire
 {
 
 using namespace Kernel;
@@ -100,7 +102,7 @@ vstring DefaultHelperCore::getSymbolName(bool pred, unsigned functor) const
   }
 }
 
-struct DefaultHelperCore::Var2NameMapper
+/*struct DefaultHelperCore::Var2NameMapper
 {
   Var2NameMapper(DefaultHelperCore& a) : aux(a) {}
   DECL_RETURN_TYPE(vstring);
@@ -122,7 +124,7 @@ StringIterator DefaultHelperCore::getVarNames(VarList* l)
   ) );
 
   return StringIterator(res);
-}
+}*/
 
 
 
@@ -161,7 +163,7 @@ Expression FBHelperCore::term(const Symbol& s, const Expression* args, unsigned 
   vstring symName = isFun ? env.signature->functionName(s) : env.signature->predicateName(s);
 
   if(arity!= symArity) {
-    throw FormulaBuilderException("Invalid function arity: "+symName);
+    throw FormulaBuilderException("Invalid function arity: "+ StringUtils::copy2str(symName));
   }
   ensureArgumentsSortsMatch(isFun ? env.signature->getFunction(s)->fnType() :
                                     env.signature->getPredicate(s)->predType(), args);
@@ -200,7 +202,7 @@ unsigned FBHelperCore::getUnaryPredicate()
   return _unaryPredicate;
 }
 
-Sort FBHelperCore::getSort(const Api::Expression t)
+Sort FBHelperCore::getSort(const Vampire::Expression t)
 {
   CALL("FBHelperCore::getSort");
   ASS(t.isTerm());
@@ -215,7 +217,7 @@ Sort FBHelperCore::getSort(const Api::Expression t)
   }
 }
 
-void FBHelperCore::ensureArgumentsSortsMatch(OperatorType* type, const Api::Expression* args)
+void FBHelperCore::ensureArgumentsSortsMatch(OperatorType* type, const Vampire::Expression* args)
 {
   CALL("FBHelperCore::ensureArgumentsSortsMatch");
 
@@ -229,7 +231,7 @@ void FBHelperCore::ensureArgumentsSortsMatch(OperatorType* type, const Api::Expr
   }
 }
 
-void FBHelperCore::ensureEqualityArgumentsSortsMatch(const Api::Expression arg1, const Api::Expression arg2)
+void FBHelperCore::ensureEqualityArgumentsSortsMatch(const Vampire::Expression arg1, const Vampire::Expression arg2)
 {
   CALL("FBHelperCore::ensureEqualityArgumentsSortsMatch");
 
@@ -288,7 +290,8 @@ unsigned FBHelperCore::getVar(vstring varName, Sort varSort)
 {
   if(_checkNames) {
     if(!isupper(varName[0])) {
-      throw InvalidTPTPNameException("Variable name must start with an uppercase character", varName);
+      throw InvalidTPTPNameException("Variable name must start with an uppercase character", 
+                                      StringUtils::copy2str(varName));
     }
     //TODO: add further checks
   }
