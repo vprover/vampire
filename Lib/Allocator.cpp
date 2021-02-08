@@ -365,11 +365,7 @@ void Allocator::deallocateKnown(void* obj,size_t size)
   cout << *desc << ": DK\n" << flush;
 #endif
   ASS_EQ(desc->address, obj);
-// TODO shared signatures break this for threaded builds
-// this is because symbol classes don't match once copied - should be fixed with shared signatures
-#if !VTHREADED
-ASS_STR_EQ(desc->cls,className);
-#endif
+  ASS_STR_EQ(desc->cls,className);
   ASS_EQ(desc->size, size);
   ASS(desc->allocated);
   ASS(desc->known);

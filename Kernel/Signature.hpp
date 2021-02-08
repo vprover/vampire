@@ -155,6 +155,16 @@ class Signature
     Combinator _comb;
 
   public:
+#if VTHREADED
+    /**
+     * virtual constructor ("clone") for Symbol and its subclasses
+     * see https://isocpp.org/wiki/faq/virtual-functions#virtual-ctors
+    */
+    virtual Symbol *clone() const { return new Symbol(*this); }
+#endif
+    //dummy: ensure we call the right operator-delete for derived classes
+    virtual ~Symbol() = default;
+
     /** standard constructor */
     Symbol(const vstring& nm,unsigned arity, bool interpreted=false, bool stringConstant=false,bool numericConstant=false,bool overflownConstant=false, bool super = false);
     void destroyFnSymbol();
@@ -301,7 +311,7 @@ class Signature
     USE_ALLOCATOR(Symbol);
   }; // class Symbol
 
-  class InterpretedSymbol
+  class InterpretedSymbol final
   : public Symbol
   {
     friend class Signature;
@@ -310,7 +320,9 @@ class Signature
     Interpretation _interp;
 
   public:
-
+#if VTHREADED
+    InterpretedSymbol *clone() const override { return new InterpretedSymbol(*this); }
+#endif
     InterpretedSymbol(const vstring& nm, Interpretation interp)
     : Symbol(nm, Theory::getArity(interp), true), _interp(interp)
     {
@@ -324,7 +336,7 @@ class Signature
     inline Interpretation getInterpretation() const { ASS_REP(interpreted(), _name); return _interp; }
   };
 
-  class IntegerSymbol
+  class IntegerSymbol final
   : public Symbol
   {
     friend class Signature;
@@ -333,6 +345,9 @@ class Signature
     IntegerConstantType _intValue;
 
   public:
+#if VTHREADED
+    IntegerSymbol *clone() const override { return new IntegerSymbol(*this); }
+#endif
     IntegerSymbol(const IntegerConstantType& val)
     : Symbol(val.toString(), 0, true), _intValue(val)
     {
@@ -344,7 +359,7 @@ class Signature
     USE_ALLOCATOR(IntegerSymbol);
   };
 
-  class RationalSymbol
+  class RationalSymbol final
   : public Symbol
   {
     friend class Signature;
@@ -353,6 +368,9 @@ class Signature
     RationalConstantType _ratValue;
 
   public:
+#if VTHREADED
+    RationalSymbol *clone() const override { return new RationalSymbol(*this); }
+#endif
     RationalSymbol(const RationalConstantType& val)
     : Symbol(val.toString(), 0, true), _ratValue(val)
     {
@@ -364,7 +382,7 @@ class Signature
     USE_ALLOCATOR(RationalSymbol);
   };
 
-  class RealSymbol
+  class RealSymbol final
   : public Symbol
   {
     friend class Signature;
@@ -373,6 +391,9 @@ class Signature
     RealConstantType _realValue;
 
   public:
+#if VTHREADED
+    RealSymbol *clone() const override { return new RealSymbol(*this); }
+#endif
     RealSymbol(const RealConstantType& val)
     : Symbol((env.options->proof() == Shell::Options::Proof::PROOFCHECK) ? "$to_real("+val.toString()+")" : val.toNiceString(), 0, true), _realValue(val)
     {
@@ -554,7 +575,9 @@ class Signature
 
   Signature();
   ~Signature();
+#if VTHREADED
   void clone_from(Signature *);
+#endif
 
   CLASS_NAME(Signature);
   USE_ALLOCATOR(Signature);

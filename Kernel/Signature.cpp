@@ -80,45 +80,6 @@ Signature::Symbol::Symbol(const vstring& nm, unsigned arity, bool interpreted, b
 } // Symbol::Symbol
 
 /**
- * Deallocate function Symbol object
- */
-void Signature::Symbol::destroyFnSymbol()
-{
-  CALL("Signature::Symbol::destroyFnSymbol");
-
-  if (integerConstant()) {
-    delete static_cast<IntegerSymbol*>(this);
-  }
-  else if (rationalConstant()) {
-    delete static_cast<RationalSymbol*>(this);
-  }
-  else if (realConstant()) {
-    delete static_cast<RealSymbol*>(this);
-  }
-  else if (interpreted()) {
-    delete static_cast<InterpretedSymbol*>(this);
-  }
-  else {
-    delete this;
-  }
-}
-
-/**
- * Deallocate predicate Symbol object
- */
-void Signature::Symbol::destroyPredSymbol()
-{
-  CALL("Signature::Symbol::destroyPredSymbol");
-
-  if (interpreted()) {
-    delete static_cast<InterpretedSymbol*>(this);
-  }
-  else {
-    delete this;
-  }
-}
-
-/**
  * Add constant symbol into a distinct group
  *
  * A constant can be added into one particular distinct group
@@ -278,13 +239,14 @@ void Signature::addEquality()
 Signature::~Signature ()
 {
   for (int i = _funs.length()-1;i >= 0;i--) {
-    _funs[i]->destroyFnSymbol();
+    delete _funs[i];
   }
   for (int i = _preds.length()-1;i >= 0;i--) {
-    _preds[i]->destroyPredSymbol();
+    delete _preds[i];
   }
 } // Signature::~Signature
 
+#if VTHREADED
 /** 
  * Clone a Signature data from another. Used after spawning threads.
  */
@@ -308,7 +270,7 @@ void Signature::clone_from(Signature *other) {
 #define CLONE_SYMBOL_TABLE(NAME) {\
   Stack<Symbol*>::BottomFirstIterator NAME_it(other->NAME);\
   while(NAME_it.hasNext()) {\
-    NAME.push(new Symbol(*NAME_it.next()));\
+    NAME.push(NAME_it.next()->clone());\
   }\
 }
   CLONE_SYMBOL_TABLE(_funs);
@@ -330,6 +292,7 @@ void Signature::clone_from(Signature *other) {
   CLONE_NAME_LOOKUP(_arityCheck);
 #undef CLONE_NAME_LOOKUP
 } // Signature::copy_from
+#endif
 
 /**
  * Add an integer constant to the signature. If defaultSort is true, treat it as
