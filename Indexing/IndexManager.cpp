@@ -179,6 +179,12 @@ Index* IndexManager::create(IndexType t)
     isGenerating = true;
     break;
 
+  case INEQUALITY_RESOLUTION_SUBST_TREE:
+    tis=new TermSubstitutionTree(useConstraints);
+    res=new InequalityResolutionIndex(tis, _alg->getOrdering());
+    isGenerating = true;
+    break;
+
   case SUPERPOSITION_SUBTERM_SUBST_TREE:
     tis=new TermSubstitutionTree(useConstraints, extByAbs);
 #if VDEBUG
@@ -187,6 +193,7 @@ Index* IndexManager::create(IndexType t)
     res=new SuperpositionSubtermIndex(tis, _alg->getOrdering());
     isGenerating = true;
     break;
+
   case SUPERPOSITION_LHS_SUBST_TREE:
     tis=new TermSubstitutionTree(useConstraints, extByAbs);
     res=new SuperpositionLHSIndex(tis, _alg->getOrdering(), _alg->getOptions());

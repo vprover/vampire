@@ -447,6 +447,8 @@ set(VAMPIRE_INFERENCE_SOURCES
     Kernel/Rebalancing/Inverters.cpp
     Inferences/SLQueryBackwardSubsumption.cpp
     Inferences/Superposition.cpp
+    Inferences/InequalityResolution.cpp
+    Inferences/InequalityResolution.hpp
     Inferences/TautologyDeletionISE.cpp
     Inferences/TermAlgebraReasoning.cpp
     Inferences/URResolution.cpp
@@ -784,6 +786,7 @@ set(UNIT_TESTS
     UnitTests/tImplicationSetClosure.cpp
     UnitTests/tUnificationWithAbstraction.cpp
     UnitTests/tGaussianElimination.cpp
+    UnitTests/tInequalityResolution.cpp
     UnitTests/tArithmeticSubtermGeneralization.cpp
     UnitTests/tInterpretedFunctions.cpp
     UnitTests/tRebalance.cpp
