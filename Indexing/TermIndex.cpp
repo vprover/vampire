@@ -61,6 +61,28 @@ TermQueryResultIterator TermIndex::getInstances(TermList t,
 }
 
 
+void InequalityResolutionIndex::handleClause(Clause* c, bool adding)
+{
+  CALL("InequalityResolutionIndex::handleClause");
+
+  TimeCounter tc(TC_BACKWARD_SUPERPOSITION_INDEX_MAINTENANCE);
+
+  ASSERTION_VIOLATION // TODO
+  // unsigned selCnt=c->numSelected();
+  // for (unsigned i=0; i<selCnt; i++) {
+  //   Literal* lit=(*c)[i];
+  //   TermIterator rsti=EqHelper::getRewritableSubtermIterator(lit,_ord);
+  //   while (rsti.hasNext()) {
+  //     if (adding) {
+	// _is->insert(rsti.next(), lit, c);
+  //     }
+  //     else {
+	// _is->remove(rsti.next(), lit, c);
+  //     }
+  //   }
+  // }
+}
+
 void SuperpositionSubtermIndex::handleClause(Clause* c, bool adding)
 {
   CALL("SuperpositionSubtermIndex::handleClause");

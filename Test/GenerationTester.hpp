@@ -64,8 +64,10 @@ public:
 class TestCase
 {
   using Clause = Kernel::Clause;
+  Option<SimplifyingGeneratingInference*> _rule;
   Clause* _input;
   Stack<ClausePattern> _expected;
+  Stack<Clause*> _context;
   bool _premiseRedundant;
 
   template<class Is, class Expected>
@@ -79,26 +81,20 @@ class TestCase
 
 public:
 
-  TestCase() : _input(NULL), _expected(), _premiseRedundant(false) {}
+  TestCase() : _rule(), _input(NULL), _expected(), _premiseRedundant(false) {}
 
+#define BUILDER_METHOD(type, field)                                                                           \
+  TestCase field(type field)                                                                                  \
+  {                                                                                                           \
+    this->_##field = decltype(_##field)(std::move(field));                                                    \
+    return *this;                                                                                             \
+  }                                                                                                           \
 
-  TestCase input(Kernel::Clause* input) 
-  { 
-    this->_input = input; 
-    return *this;
-  }
-
-  TestCase expected(Stack<ClausePattern> expected)
-  {
-    this->_expected = expected;
-    return *this;
-  }
-
-  TestCase premiseRedundant(bool premiseRedundant)
-  {
-    this->_premiseRedundant = premiseRedundant;
-    return *this;
-  }
+  BUILDER_METHOD(Clause*, input)
+  BUILDER_METHOD(Stack<Clause*>, context)
+  BUILDER_METHOD(Stack<ClausePattern>, expected)
+  BUILDER_METHOD(bool, premiseRedundant)
+  BUILDER_METHOD(SimplifyingGeneratingInference*, rule)
 
   template<class Rule>
   void run(GenerationTester<Rule>& simpl) {
@@ -107,10 +103,11 @@ public:
     Problem p;
     Options o;
     MockedSaturationAlgorithm alg(p, o);
-    simpl._rule.attach(&alg);
+    SimplifyingGeneratingInference& rule = *_rule.unwrapOrElse([&](){ return &simpl._rule; });
+    rule.attach(&alg);
 
     // run rule
-    auto res = simpl._rule.generateSimplify(_input);
+    auto res = rule.generateSimplify(_input);
 
     // run checks
     auto& sExp = this->_expected;
@@ -132,12 +129,12 @@ public:
     }
 
     if (_premiseRedundant != res.premiseRedundant) {
-      auto wrapStr = [](bool b) { return b ? "premise is redundant" : "premis not redundant"; };
+      auto wrapStr = [](bool b) -> vstring { return b ? "premise is redundant" : "premis not redundant"; };
       testFail( wrapStr(res.premiseRedundant), wrapStr(_premiseRedundant));
     }
 
     // tear down saturation algorithm
-    simpl._rule.detach();
+    rule.detach();
   }
 };
 
@@ -149,10 +146,7 @@ public:
 #define TEST_GENERATION_WITH_SUGAR(name, syntax_sugar, ...)                                                   \
   TEST_FUN(name) {                                                                                            \
     __GenerationTester tester;                                                                                \
-    _Pragma("GCC diagnostic push")                                                                            \
-    _Pragma("GCC diagnostic ignored \"-Wunused\"")                                                            \
-      syntax_sugar                                                                                            \
-    _Pragma("GCC diagnostic pop")                                                                             \
+    __ALLOW_UNUSED(syntax_sugar)                                                                              \
     auto test = __VA_ARGS__;                                                                                  \
     test.run(tester);                                                                                         \
   }                                                                                                           \
