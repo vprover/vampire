@@ -34,6 +34,13 @@ using namespace Test;
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////// TEST UNIT INITIALIZATION
 /////////////////////////////////////
+#define DECL_VARS                                                                                             \
+  DECL_DEFAULT_VARS                                                                                           \
+  DECL_VAR(x0, 0)                                                                                             \
+  DECL_VAR(x1, 1)                                                                                             \
+  DECL_VAR(x2, 2)                                                                                             \
+  DECL_VAR(x3, 3)                                                                                             \
+  DECL_VAR(x4, 4)                                                                                             \
 
 #define DECL_LIST(sort)                                                                                       \
   DECL_SORT(list)                                                                                             \
@@ -49,7 +56,7 @@ using namespace Test;
 
 #define LIST_INT_SUGAR                                                                                        \
   NUMBER_SUGAR(Int)                                                                                           \
-  DECL_DEFAULT_VARS                                                                                           \
+  DECL_VARS                                                                                           \
                                                                                                               \
   DECL_FUNC(f, {Int}, Int)                                                                                    \
   DECL_PRED(p, {Int})                                                                                         \
@@ -71,7 +78,7 @@ using namespace Test;
   )                                                                                                           \
                                                                                                               \
   DECL_PRED(q, {nat})                                                                                         \
-  DECL_DEFAULT_VARS                                                                                           \
+  DECL_VARS                                                                                           \
 
 
 #define MY_SYNTAX_SUGAR LIST_INT_SUGAR
@@ -114,7 +121,7 @@ TEST_GENERATION(test_02,
     )
 
 #define LIST_ALPHA_SUGAR                                                                                      \
-  DECL_DEFAULT_VARS                                                                                           \
+  DECL_VARS                                                                                           \
   DECL_SORT(alpha)                                                                                            \
   DECL_LIST(alpha)                                                                                            \
   DECL_CONST(a, alpha)                                                                                        \
@@ -132,7 +139,7 @@ TEST_GENERATION_WITH_SUGAR(test_03,
     )
 
 #define RAT_SYNTAX_SUGAR                                                                                      \
-    DECL_DEFAULT_VARS                                                                                         \
+    DECL_VARS                                                                                         \
     NUMBER_SUGAR(Rat)                                                                                         \
     DECL_PRED(p, {Rat,Rat})                                                                                   \
 
@@ -174,7 +181,7 @@ TEST_GENERATION_WITH_SUGAR(test_07,
     )
 
 #define INT_SYNTAX_SUGAR                                                                                      \
-    DECL_DEFAULT_VARS                                                                                         \
+    DECL_VARS                                                                                         \
     NUMBER_SUGAR(Int)                                                                                         \
     DECL_PRED(p, {Int,Int})                                                                                   \
 
@@ -261,7 +268,7 @@ TEST_GENERATION_WITH_SUGAR(test_overlap_vs_strong_2,
     )
 
 #define PAIR_SYNTAX_SUGAR                                                                                     \
-  DECL_DEFAULT_VARS                                                                                           \
+  DECL_VARS                                                                                           \
   NUMBER_SUGAR(Int)                                                                                           \
   DECL_SORT(Pair)                                                                                             \
                                                                                                               \
@@ -326,7 +333,7 @@ TEST_GENERATION_WITH_SUGAR(generalisation_1,
       .rule             (theoryInstAndSimp(Options::TheoryInstSimp::ALL, 
                                            /* generalization: */ true))
       .input            (clause({ 10 != fst(x), p(snd(x)) }))
-      .expected         (exactly( clause({ p(snd(pair(10, x))) }) ))
+      .expected         (exactly( clause({ p(snd(pair(10, y))) }) ))
     )
 
 
@@ -337,7 +344,7 @@ TEST_GENERATION_WITH_SUGAR(generalisation_2,
       .rule             (theoryInstAndSimp(Options::TheoryInstSimp::ALL, 
                                            /* generalization: */ true))
       .input            (clause({ 10 != head(x) + head(tail(x)), pL(x), head(x) != 2 }))
-      .expected         (exactly( clause({ pL(cons(2, cons(8, x))) }) ))
+      .expected         (exactly( clause({ pL(cons(2, cons(8, y))) }) ))
     )
 
 
@@ -348,7 +355,7 @@ TEST_GENERATION_WITH_SUGAR(generalisation_3,
       .rule             (theoryInstAndSimp(Options::TheoryInstSimp::ALL, 
                                            /* generalization: */ true))
       .input            (clause({ 10 != head(x) + head(tail(tail(x))), pL(x), head(x) != 2 }))
-      .expected         (exactly( clause({ pL(cons(2, cons(x, cons(8, y)))) }) ))
+      .expected         (exactly( clause({ pL(cons(2, cons(y, cons(8, z)))) }) ))
     )
 
 TEST_GENERATION_WITH_SUGAR(generalisation_4,
@@ -357,7 +364,7 @@ TEST_GENERATION_WITH_SUGAR(generalisation_4,
       .rule             (theoryInstAndSimp(Options::TheoryInstSimp::ALL, 
                                            /* generalization: */ true))
       .input            (clause({ tail(x) == nil, pL(x) }))
-      .expected         (exactly( clause({ pL(cons(x,cons(y,z))) }) ))
+      .expected         (exactly( clause({ pL(cons(x1,cons(x2,x3))) }) ))
     )
 
 TEST_GENERATION_WITH_SUGAR(generalisation_5,
@@ -366,5 +373,5 @@ TEST_GENERATION_WITH_SUGAR(generalisation_5,
       .rule             (theoryInstAndSimp(Options::TheoryInstSimp::ALL, 
                                            /* generalization: */ true))
       .input            (clause({ p(p(x)) == zero, q(x) }))
-      .expected         (exactly( clause({ q(s(s(s(x)))) }) ))
+      .expected         (exactly( clause({ q(s(s(s(y)))) }) ))
     )

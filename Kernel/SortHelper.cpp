@@ -801,6 +801,12 @@ bool SortHelper::areSortsValid(Clause* cl)
   }
   return true;
 }
+bool SortHelper::areSortsValid(Term* t0)
+{
+  CALL("SortHelper::areSortsValid");
+  DHMap<unsigned,unsigned> varSorts;
+  return areSortsValid(t0, varSorts);
+}
 
 /**
  * Return true iff the argument sorts are valid in term or literal @c t0.

@@ -73,6 +73,7 @@ public:
 
   static OperatorType& getType(Term* t);
 
+  static bool areSortsValid(Term* t);
   static bool areSortsValid(Term* t, DHMap<unsigned,unsigned>& varSorts);
 private:
   // It is important this function is private, because it only works in cooperation with tryGetVariableSort(unsigned var, Formula* f, unsigned& res);

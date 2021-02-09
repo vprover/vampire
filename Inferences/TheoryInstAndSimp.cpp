@@ -519,10 +519,10 @@ public:
   TermList constant() { return _introduced; }
 };
  
-Option<Substitution> TheoryInstAndSimp::instantiateGeneralisied(
-    SkolemizedLiterals skolem)
+Option<Substitution> TheoryInstAndSimp::instantiateGeneralised(
+    SkolemizedLiterals skolem, unsigned freshVar)
 {
-  CALL("TheoryInstAndSimp::instantiateGeneralisied(..)")
+  CALL("TheoryInstAndSimp::instantiateGeneralised(..)")
 
   auto negatedClause = [](Stack<SATLiteral> lits) -> SATClause*
   { 
@@ -540,7 +540,10 @@ Option<Substitution> TheoryInstAndSimp::instantiateGeneralisied(
     _generalizationConstants.reset();
     Map<SATLiteral, TermList> definitionLiterals;
     Stack<GeneralisationTree> gens;
+    // unsigned freshVar = 0;
     for (auto v : skolem.vars) {
+      ASS(v < freshVar);
+      // freshVar = v >= freshVar ? v + 1 : freshVar;
       auto sk = skolem.subst.apply(v);
       auto val = _solver->evaluateInModel(sk.term());
       if (!val) {
@@ -569,7 +572,6 @@ Option<Substitution> TheoryInstAndSimp::instantiateGeneralisied(
             { usedDefs.insert(t); });
     }
 
-    unsigned freshVar = 0;
     for (unsigned i = 0; i < skolem.vars.size(); i++) {
       skolem.subst.rebind(skolem.vars[i], gens[i].buildGeneralTerm(usedDefs, freshVar));
     }
@@ -621,6 +623,7 @@ template<class IterLits> TheoryInstAndSimp::SkolemizedLiterals TheoryInstAndSimp
       TermList fc;
       if(!subst.findBinding(var,fc)){
         Term* fc = _instantiationConstants.freshConstant(sort);
+        ASS_EQ(SortHelper::getResultSort(fc), sort);
         subst.bind(var,fc);
         vars.push(var);
       }
@@ -640,7 +643,7 @@ template<class IterLits> TheoryInstAndSimp::SkolemizedLiterals TheoryInstAndSimp
 
 
 
-VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*> const& theoryLiterals, Stack<Literal*> const& guards) {
+VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*> const& theoryLiterals, Stack<Literal*> const& guards, unsigned freshVar) {
   CALL("TheoryInstAndSimp::getSolutions");
 
   BYPASSING_ALLOCATOR;
@@ -659,7 +662,7 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*> const&
 
   } else if(status == SATSolver::SATISFIABLE) {
     DEBUG("found model: ", _solver->getModel())
-    auto subst = _generalisation ? instantiateGeneralisied(skolemized) 
+    auto subst = _generalisation ? instantiateGeneralised(skolemized, freshVar) 
                                  : instantiateWithModel(skolemized);
     if (subst.isSome()) {
       return pvi(getSingletonIterator(Solution(std::move(subst).unwrap())));
@@ -682,7 +685,15 @@ Clause* instantiate(Clause* original, Substitution& subst, Stack<Literal*> const
   unsigned j=0;
   for(unsigned i=0;i<original->length();i++){
     Literal* lit = (*original)[i];
+    ASS_REP(SortHelper::areSortsValid(lit), *lit);
     Literal* lit_inst = SubstHelper::apply(lit,subst);
+    SubtermIterator iter(lit_inst);
+    while (iter.hasNext()) {
+      auto t = iter.next();
+      ASS_REP(t.isVar() || SortHelper::areSortsValid(t.term()), t);
+    }
+    ASS_REP(SortHelper::areSortsValid(lit_inst), *lit_inst);
+    // ASS()
     (*inst)[i] = lit_inst;
     // we implicitly remove all theoryLits as the solution makes their combination false
     if(!theoryLits.find(lit)){
@@ -880,6 +891,21 @@ Stack<Literal*> filterLiterals(Stack<Literal*> lits, Options::TheoryInstSimp mod
   }
 }
 
+unsigned getFreshVar(Clause& clause) 
+{
+  unsigned freshVar = 0;
+  for (unsigned i = 0; i < clause.size(); i++) {
+    VariableIterator iter(clause[i]);
+    while(iter.hasNext()) {
+      auto var = iter.next();
+      if (freshVar <= var.var()) {
+        freshVar = var.var() + 1;
+      }
+    }
+  }
+  return freshVar;
+}
+
 SimplifyingGeneratingInference::ClauseGenerationResult TheoryInstAndSimp::generateSimplify(Clause* premise)
 {
   CALL("TheoryInstAndSimp::generateSimplify");
@@ -922,7 +948,7 @@ SimplifyingGeneratingInference::ClauseGenerationResult TheoryInstAndSimp::genera
 
   bool premiseRedundant = false;
 
-  auto it1 = iterTraits(getSolutions(invertedLiterals, guards))
+  auto it1 = iterTraits(getSolutions(invertedLiterals, guards, getFreshVar(*premise)))
     .map([&](Solution s)  { 
         DEBUG("found solution: ", s); 
         return InstanceFn{}(s, premise, selectedLiterals, invertedLiterals, guards, _splitter, this, premiseRedundant);

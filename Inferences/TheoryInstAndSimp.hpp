@@ -68,11 +68,11 @@ private:
     Substitution subst;
   };
   template<class IterLits> SkolemizedLiterals skolemize(IterLits lits);
-  VirtualIterator<Solution> getSolutions(Stack<Literal*> const& theoryLiterals, Stack<Literal*> const& guards);
+  VirtualIterator<Solution> getSolutions(Stack<Literal*> const& theoryLiterals, Stack<Literal*> const& guards, unsigned freshVar);
 
 
   Option<Substitution> instantiateWithModel(SkolemizedLiterals skolemized);
-  Option<Substitution> instantiateGeneralisied(SkolemizedLiterals skolemized);
+  Option<Substitution> instantiateGeneralised(SkolemizedLiterals skolemized, unsigned freshVar);
 
   Stack<Literal*> selectTheoryLiterals(Clause* cl);
 
