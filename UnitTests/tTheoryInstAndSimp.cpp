@@ -56,7 +56,7 @@ using namespace Test;
 
 #define LIST_INT_SUGAR                                                                                        \
   NUMBER_SUGAR(Int)                                                                                           \
-  DECL_VARS                                                                                           \
+  DECL_VARS                                                                                                   \
                                                                                                               \
   DECL_FUNC(f, {Int}, Int)                                                                                    \
   DECL_PRED(p, {Int})                                                                                         \
@@ -78,7 +78,7 @@ using namespace Test;
   )                                                                                                           \
                                                                                                               \
   DECL_PRED(q, {nat})                                                                                         \
-  DECL_VARS                                                                                           \
+  DECL_VARS                                                                                                   \
 
 
 #define MY_SYNTAX_SUGAR LIST_INT_SUGAR
@@ -121,7 +121,7 @@ TEST_GENERATION(test_02,
     )
 
 #define LIST_ALPHA_SUGAR                                                                                      \
-  DECL_VARS                                                                                           \
+  DECL_VARS                                                                                                   \
   DECL_SORT(alpha)                                                                                            \
   DECL_LIST(alpha)                                                                                            \
   DECL_CONST(a, alpha)                                                                                        \
@@ -139,7 +139,7 @@ TEST_GENERATION_WITH_SUGAR(test_03,
     )
 
 #define RAT_SYNTAX_SUGAR                                                                                      \
-    DECL_VARS                                                                                         \
+    DECL_VARS                                                                                                 \
     NUMBER_SUGAR(Rat)                                                                                         \
     DECL_PRED(p, {Rat,Rat})                                                                                   \
 
@@ -181,7 +181,7 @@ TEST_GENERATION_WITH_SUGAR(test_07,
     )
 
 #define INT_SYNTAX_SUGAR                                                                                      \
-    DECL_VARS                                                                                         \
+    DECL_VARS                                                                                                 \
     NUMBER_SUGAR(Int)                                                                                         \
     DECL_PRED(p, {Int,Int})                                                                                   \
 
@@ -268,7 +268,7 @@ TEST_GENERATION_WITH_SUGAR(test_overlap_vs_strong_2,
     )
 
 #define PAIR_SYNTAX_SUGAR                                                                                     \
-  DECL_VARS                                                                                           \
+  DECL_VARS                                                                                                   \
   NUMBER_SUGAR(Int)                                                                                           \
   DECL_SORT(Pair)                                                                                             \
                                                                                                               \
