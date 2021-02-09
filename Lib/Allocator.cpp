@@ -1105,8 +1105,18 @@ unsigned Allocator::Descriptor::hash (const void* addr)
  **/ 
   
 void* operator new(size_t sz) {    
+  /*
+   * here be dragons!
+   * 
+   * space for thread_local variables are allocated lazily by calling this function
+   * this messes with some assumptions that Allocator has, * and doesn't always show up immediately
+   * 
+   * TODO: fix this properly somehow?
+   */
+#if !VTHREADED
   ASS_REP(Allocator::_tolerantZone > 0,"Attempted to use global new operator, thus bypassing Allocator!");
   // Please read: https://github.com/easychair/vampire/wiki/Attempted-to-use-global-new-operator,-thus-bypassing-Allocator!
+#endif
   
   static Allocator::Initialiser i; // to initialize Allocator even for other libraries
   
@@ -1119,6 +1129,15 @@ void* operator new(size_t sz) {
     throw bad_alloc();
   
   return res;
+}
+
+void* operator new(size_t sz, const std::nothrow_t &) noexcept {
+  try {
+    return operator new(sz);
+  }
+  catch(const std::bad_alloc &) {
+    return nullptr;
+  }
 }
 
 void* operator new[](size_t sz) {  

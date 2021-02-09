@@ -122,10 +122,7 @@ bool PortfolioMode::searchForProof()
 {
   CALL("PortfolioMode::searchForProof");
 
-#if VTHREADED
-  if(env.options->mode() != Options::Mode::THREADED)
-#endif
-    env.timer->makeChildrenIncluded();
+  env.timer->makeChildrenIncluded();
   TimeCounter::reinitialize();
 
   _prb = UIHelper::getInputProblem(*env.options);
