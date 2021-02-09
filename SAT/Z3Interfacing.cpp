@@ -176,10 +176,13 @@ void Z3Interfacing::addClause(SATClause* cl)
     env.endOutput();
   }
 
-  for (auto def : z3clause.defs) 
+  for (auto def : z3clause.defs)  {
+    DEBUG("adding def: ", def)
     _solver.add(def);
+  }
 
   _solver.add(z3clause.expr);
+  DEBUG("adding expr: ", z3clause.expr)
 }
 
 void Z3Interfacing::retractAllAssumptions() 

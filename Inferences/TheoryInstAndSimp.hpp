@@ -61,12 +61,18 @@ public:
 
   ClauseGenerationResult generateSimplify(Clause* premise);
 
-  VirtualIterator<Solution> getSolutions(Stack<Literal*> const& theoryLiterals, Stack<Literal*> const& guards);
 private:
-  Option<Substitution> instantiateWithModel(Stack<unsigned> const& vars, Substitution skolemSubst);
-  Option<Substitution> instantiateGeneralisied(Stack<unsigned> const& vars, 
-    Substitution skolemSubst, 
-    Stack<SATLiteral> theoryLits);
+  struct SkolemizedLiterals {
+    Stack<SATLiteral> lits;
+    Stack<unsigned> vars;
+    Substitution subst;
+  };
+  template<class IterLits> SkolemizedLiterals skolemize(IterLits lits);
+  VirtualIterator<Solution> getSolutions(Stack<Literal*> const& theoryLiterals, Stack<Literal*> const& guards);
+
+
+  Option<Substitution> instantiateWithModel(SkolemizedLiterals skolemized);
+  Option<Substitution> instantiateGeneralisied(SkolemizedLiterals skolemized);
 
   Stack<Literal*> selectTheoryLiterals(Clause* cl);
 
@@ -137,6 +143,7 @@ private:
   bool _generalisation;
   ConstantCache _instantiationConstants;
   ConstantCache _generalizationConstants;
+  friend struct InstanceFn;
 };
 
 };

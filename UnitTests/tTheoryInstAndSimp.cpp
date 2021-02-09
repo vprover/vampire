@@ -61,6 +61,18 @@ using namespace Test;
                                                                                                               \
   DECL_PRED(pL, {list})                                                                                       \
 
+#define NAT_SUGAR                                                                                             \
+  DECL_SORT(nat)                                                                                              \
+  DECL_CONST(zero, nat)                                                                                       \
+  DECL_FUNC(s, {nat}, nat)                                                                                    \
+  DECL_TERM_ALGEBRA(nat, {zero, s})                                                                           \
+  __ALLOW_UNUSED(                                                                                             \
+    auto p = s.dtor(0);                                                                                       \
+  )                                                                                                           \
+                                                                                                              \
+  DECL_PRED(q, {nat})                                                                                         \
+  DECL_DEFAULT_VARS                                                                                           \
+
 
 #define MY_SYNTAX_SUGAR LIST_INT_SUGAR
 
@@ -289,6 +301,15 @@ TEST_GENERATION_WITH_SUGAR(bug_03,
       .expected         (exactly( clause({}) ))
     )
 
+TEST_GENERATION_WITH_SUGAR(bug_04,
+    LIST_INT_SUGAR,
+    Generation::TestCase()
+      .rule             (theoryInstAndSimp(Options::TheoryInstSimp::ALL, 
+                                           /* generalization: */ true))
+      .input            (clause({ nil() != tail(nil()) }))
+      .expected         (exactly())
+    )
+
 
 TEST_GENERATION_WITH_SUGAR(pair_1,
     PAIR_SYNTAX_SUGAR,
@@ -328,4 +349,22 @@ TEST_GENERATION_WITH_SUGAR(generalisation_3,
                                            /* generalization: */ true))
       .input            (clause({ 10 != head(x) + head(tail(tail(x))), pL(x), head(x) != 2 }))
       .expected         (exactly( clause({ pL(cons(2, cons(x, cons(8, y)))) }) ))
+    )
+
+TEST_GENERATION_WITH_SUGAR(generalisation_4,
+    LIST_INT_SUGAR,
+    Generation::TestCase()
+      .rule             (theoryInstAndSimp(Options::TheoryInstSimp::ALL, 
+                                           /* generalization: */ true))
+      .input            (clause({ tail(x) == nil, pL(x) }))
+      .expected         (exactly( clause({ pL(cons(x,cons(y,z))) }) ))
+    )
+
+TEST_GENERATION_WITH_SUGAR(generalisation_5,
+    NAT_SUGAR,
+    Generation::TestCase()
+      .rule             (theoryInstAndSimp(Options::TheoryInstSimp::ALL, 
+                                           /* generalization: */ true))
+      .input            (clause({ p(p(x)) == zero, q(x) }))
+      .expected         (exactly( clause({ q(s(s(s(x)))) }) ))
     )

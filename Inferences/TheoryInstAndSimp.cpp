@@ -520,11 +520,9 @@ public:
 };
  
 Option<Substitution> TheoryInstAndSimp::instantiateGeneralisied(
-    Stack<unsigned> const& vars, 
-    Substitution skolemSubst, 
-    Stack<SATLiteral> origTheoryLits)
+    SkolemizedLiterals skolem)
 {
-  CALL("TheoryInstAndSimp::instantiateGeneralisied(Substitution skolemSubst)")
+  CALL("TheoryInstAndSimp::instantiateGeneralisied(..)")
 
   auto negatedClause = [](Stack<SATLiteral> lits) -> SATClause*
   { 
@@ -535,15 +533,15 @@ Option<Substitution> TheoryInstAndSimp::instantiateGeneralisied(
   };
 
   return _solver->scoped([&]() {
-    _solver->addClause(negatedClause(origTheoryLits));
+    _solver->addClause(negatedClause(skolem.lits));
 
     Stack<SATLiteral> theoryLits;
 
     _generalizationConstants.reset();
     Map<SATLiteral, TermList> definitionLiterals;
     Stack<GeneralisationTree> gens;
-    for (auto v : vars) {
-      auto sk = skolemSubst.apply(v);
+    for (auto v : skolem.vars) {
+      auto sk = skolem.subst.apply(v);
       auto val = _solver->evaluateInModel(sk.term());
       if (!val) {
         // Failed to obtain a value; could be an algebraic number or some other currently unhandled beast...
@@ -572,37 +570,33 @@ Option<Substitution> TheoryInstAndSimp::instantiateGeneralisied(
     }
 
     unsigned freshVar = 0;
-    for (unsigned i = 0; i < vars.size(); i++) {
-      skolemSubst.rebind(vars[i], gens[i].buildGeneralTerm(usedDefs, freshVar));
+    for (unsigned i = 0; i < skolem.vars.size(); i++) {
+      skolem.subst.rebind(skolem.vars[i], gens[i].buildGeneralTerm(usedDefs, freshVar));
     }
-    return Option<Substitution>(std::move(skolemSubst));
+    return Option<Substitution>(std::move(skolem.subst));
   });
 };
 
 
-Option<Substitution> TheoryInstAndSimp::instantiateWithModel(Stack<unsigned> const& vars, Substitution skolemSubst)
+Option<Substitution> TheoryInstAndSimp::instantiateWithModel(SkolemizedLiterals skolem)
 {
-  CALL("TheoryInstAndSimp::instantiateWithModel(Substitution skolemSubst)")
+  CALL("TheoryInstAndSimp::instantiateWithModel(..)")
 
-  for (auto var : vars) {
-    auto ev = _solver->evaluateInModel(skolemSubst.apply(var).term());
+  for (auto var : skolem.vars) {
+    auto ev = _solver->evaluateInModel(skolem.subst.apply(var).term());
     if (ev) {
-      skolemSubst.rebind(var, ev);
+      skolem.subst.rebind(var, ev);
     } else {
       // Failed to obtain a value; could be an algebraic number or some other currently unhandled beast...
       env.statistics->theoryInstSimpLostSolution++;
       return Option<Substitution>();
     }
   }
-  return Option<Substitution>(std::move(skolemSubst));
+  return Option<Substitution>(std::move(skolem.subst));
 };
 
-
-
-
-
-VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*> const& theoryLiterals, Stack<Literal*> const& guards) {
-  CALL("TheoryInstAndSimp::getSolutions");
+template<class IterLits> TheoryInstAndSimp::SkolemizedLiterals TheoryInstAndSimp::skolemize(IterLits lits) 
+{
 
   BYPASSING_ALLOCATOR;
   // Currently we just get the single solution from Z3
@@ -611,16 +605,12 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*> const&
   // Firstly, we need to consistently replace variables by constants (i.e. Skolemize)
   // Secondly, we take the complement of each literal and consider the conjunction
   // This subst is for the consistent replacement
-  Substitution skolemSubst;
+  Substitution subst;
 
   Stack<SATLiteral> skolemized;
   Stack<unsigned> vars;
   _instantiationConstants.reset();
-  auto allLits = iterTraits(getConcatenatedIterator(
-          iterTraits(theoryLiterals.iterFifo()).map(Literal::complementaryLiteral),
-          guards.iterFifo()
-        ));
-  for (auto lit : allLits) {
+  for (auto lit : lits) {
     // replace variables consistently by fresh constants
     DHMap<unsigned,unsigned> srtMap;
     SortHelper::collectVariableSorts(lit,srtMap);
@@ -629,24 +619,39 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*> const&
       unsigned var = vit.next();
       unsigned sort = srtMap.get(var);
       TermList fc;
-      if(!skolemSubst.findBinding(var,fc)){
+      if(!subst.findBinding(var,fc)){
         Term* fc = _instantiationConstants.freshConstant(sort);
-        skolemSubst.bind(var,fc);
+        subst.bind(var,fc);
         vars.push(var);
       }
     }
 
-    lit = SubstHelper::apply(lit,skolemSubst);
+    lit = SubstHelper::apply(lit,subst);
 
-    try {
-      skolemized.push(_naming.toSAT(lit));
-    } catch(UninterpretedForZ3Exception){
-      return VirtualIterator<Solution>::getEmpty();
-    }
+    skolemized.push(_naming.toSAT(lit));
   }
 
+  return SkolemizedLiterals {
+      .lits = std::move(skolemized),
+      .vars = std::move(vars),
+      .subst = std::move(subst),
+  };
+}
+
+
+
+VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*> const& theoryLiterals, Stack<Literal*> const& guards) {
+  CALL("TheoryInstAndSimp::getSolutions");
+
+  BYPASSING_ALLOCATOR;
+
+  auto skolemized = skolemize(iterTraits(getConcatenatedIterator(
+          iterTraits(theoryLiterals.iterFifo()),
+          guards.iterFifo()
+        )));
+
   // now we can call the solver
-  SATSolver::Status status = _solver->solveUnderAssumptions(skolemized, 0, false);
+  SATSolver::Status status = _solver->solveUnderAssumptions(skolemized.lits, 0, false);
 
   if(status == SATSolver::UNSATISFIABLE) {
     DEBUG("unsat")
@@ -654,8 +659,8 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*> const&
 
   } else if(status == SATSolver::SATISFIABLE) {
     DEBUG("found model: ", _solver->getModel())
-    auto subst = _generalisation ? instantiateGeneralisied(vars, std::move(skolemSubst), std::move(skolemized)) 
-                                 : instantiateWithModel(vars, std::move(skolemSubst));
+    auto subst = _generalisation ? instantiateGeneralisied(skolemized) 
+                                 : instantiateWithModel(skolemized);
     if (subst.isSome()) {
       return pvi(getSingletonIterator(Solution(std::move(subst).unwrap())));
     } else {
@@ -697,6 +702,7 @@ struct InstanceFn
 {
   Clause* operator()(Solution sol, Clause* original, 
       Stack<Literal*> const& theoryLits, 
+      Stack<Literal*> const& invertedLits,
       Stack<Literal*> const& guards, 
       Splitter* splitter,
       TheoryInstAndSimp* parent, 
@@ -711,9 +717,10 @@ struct InstanceFn
       if(guards.isEmpty()){
         redundant = true;
       } else {
-        auto solutions = parent->getSolutions(theoryLits, /* no guards */ Stack<Literal*>());
+        auto skolem = parent->skolemize(iterTraits(invertedLits.iterFifo() /* without guards !! */));
+        auto status = parent->_solver->solveUnderAssumptions(skolem.lits, 0, false);
         // we have an unsat solution without guards
-        redundant = solutions.hasNext() && !solutions.next().sat;
+        redundant = status == SATSolver::UNSATISFIABLE;
       }
 
       if (redundant) {
@@ -723,6 +730,7 @@ struct InstanceFn
       DEBUG("tautology")
       return nullptr;
     }
+
     // If the solution is empty (for any reason) there is no point performing instantiation
     if(sol.subst.isEmpty()){
       env.statistics->theoryInstSimpEmptySubstitution++;
@@ -908,12 +916,16 @@ SimplifyingGeneratingInference::ClauseGenerationResult TheoryInstAndSimp::genera
                                  .collect<Stack>())
   TimeCounter t(TC_THEORY_INST_SIMP);
 
+  auto invertedLiterals = iterTraits(selectedLiterals.iterFifo())
+    .map(Literal::complementaryLiteral)
+    .collect<Stack>();
+
   bool premiseRedundant = false;
 
-  auto it1 = iterTraits(getSolutions(selectedLiterals, guards))
+  auto it1 = iterTraits(getSolutions(invertedLiterals, guards))
     .map([&](Solution s)  { 
         DEBUG("found solution: ", s); 
-        return InstanceFn{}(s, premise, selectedLiterals, guards, _splitter, this, premiseRedundant);
+        return InstanceFn{}(s, premise, selectedLiterals, invertedLiterals, guards, _splitter, this, premiseRedundant);
     })
     .filter([](Clause* cl) { return cl != nullptr; });
 
