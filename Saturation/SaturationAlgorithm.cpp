@@ -913,7 +913,11 @@ void SaturationAlgorithm::addUnprocessedClause(Clause* cl)
   _generatedClauseCount++;
   env.statistics->generatedClauses++;
 
+#if VTHREADED
+  env.checkTimeSometime<1>();
+#else
   env.checkTimeSometime<64>();
+#endif
 
 
   cl=doImmediateSimplification(cl);

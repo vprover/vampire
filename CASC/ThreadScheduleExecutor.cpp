@@ -59,6 +59,9 @@ bool ThreadScheduleExecutor::run(const Schedule &schedule)
     env.sharing = penv->sharing;
     env.property = penv->property;
 
+    env.timer = Timer::instance();
+    env.timer->start();
+
     // thread setup done, now do All The Things
     _executor->runSlice(code, remainingTime);
 
@@ -66,9 +69,6 @@ bool ThreadScheduleExecutor::run(const Schedule &schedule)
     env.property = nullptr;
     env.sharing = nullptr;
     env.sorts = nullptr;
-
-    env.timer = Timer::instance();
-    env.timer->start();
 
     // indicate we're done
     std::lock_guard<std::mutex> task_lock(task_mutex);
@@ -81,12 +81,16 @@ bool ThreadScheduleExecutor::run(const Schedule &schedule)
   Schedule::BottomFirstIterator it(schedule);
   int remainingTime = DECI(env.remainingTime());
   auto launch_task = [&](int i) {
-      vstring code = it.next();
-      busy[i] = true;
-      {
-        BYPASSING_ALLOCATOR;
-        threads[i] = std::thread(task, code, remainingTime, i);
-      }
+    remainingTime = DECI(env.remainingTime());
+    if(remainingTime < 1) {
+      return;
+    }
+    vstring code = it.next();
+    busy[i] = true;
+    {
+      BYPASSING_ALLOCATOR;
+      threads[i] = std::thread(task, code, remainingTime, i);
+    }
   };
 
   // start some threads so we can wait on them

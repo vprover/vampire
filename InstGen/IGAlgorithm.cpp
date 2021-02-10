@@ -864,7 +864,11 @@ MainLoopResult IGAlgorithm::runImpl()
 	_instGenResolutionRatio.doSecond();
 	doResolutionStep();
       }
+#if VTHREADED
+      env.checkTimeSometime<1>();
+#else
       env.checkTimeSometime<100>();
+#endif
     }
     if(restarting) {
       if(restartKindRatio>0) {
