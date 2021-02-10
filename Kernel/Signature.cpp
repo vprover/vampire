@@ -248,27 +248,27 @@ Signature::~Signature ()
 
 #if VTHREADED
 /** 
- * Clone a Signature data from another. Used after spawning threads.
+ * Copy-construct Signature. Used after spawning threads.
  */
-void Signature::clone_from(Signature *other) {
-  _dividesNvalues = other->_dividesNvalues;
-  _foolConstantsDefined = other->_foolConstantsDefined;
-  _foolTrue = other->_foolTrue;
-  _foolFalse = other->_foolFalse;
-  _nextFreshSymbolNumber = other->_nextFreshSymbolNumber;
-  _skolemFunctionCount = other->_skolemFunctionCount;
-  _distinctGroupPremises = other->_distinctGroupPremises;
-  _distinctGroupMembers = other->_distinctGroupMembers;
-  _distinctGroupsAddedTo = other->_distinctGroupsAddedTo;
-  _iSymbols.loadFromMap(other->_iSymbols);
-  _strings = other->_strings;
-  _integers = other->_integers;
-  _rationals = other->_rationals;
-  _reals = other->_reals;
-  _termAlgebras.loadFromMap(other->_termAlgebras);
+Signature::Signature(const Signature &other) {
+  _dividesNvalues = other._dividesNvalues;
+  _foolConstantsDefined = other._foolConstantsDefined;
+  _foolTrue = other._foolTrue;
+  _foolFalse = other._foolFalse;
+  _nextFreshSymbolNumber = other._nextFreshSymbolNumber;
+  _skolemFunctionCount = other._skolemFunctionCount;
+  _distinctGroupPremises = other._distinctGroupPremises;
+  _distinctGroupMembers = other._distinctGroupMembers;
+  _distinctGroupsAddedTo = other._distinctGroupsAddedTo;
+  _iSymbols.loadFromMap(other._iSymbols);
+  _strings = other._strings;
+  _integers = other._integers;
+  _rationals = other._rationals;
+  _reals = other._reals;
+  _termAlgebras.loadFromMap(other._termAlgebras);
 
 #define CLONE_SYMBOL_TABLE(NAME) {\
-  Stack<Symbol*>::BottomFirstIterator NAME_it(other->NAME);\
+  Stack<Symbol*>::BottomFirstIterator NAME_it(other.NAME);\
   while(NAME_it.hasNext()) {\
     NAME.push(NAME_it.next()->clone());\
   }\
@@ -278,7 +278,7 @@ void Signature::clone_from(Signature *other) {
 #undef CLONE_SYMBOL_TABLE
 
 #define CLONE_NAME_LOOKUP(NAME) {\
-  SymbolMap::Iterator NAME_it(other->NAME);\
+  SymbolMap::Iterator NAME_it(other.NAME);\
   while(NAME_it.hasNext()) {\
     vstring key;\
     unsigned value;\
@@ -291,7 +291,7 @@ void Signature::clone_from(Signature *other) {
   CLONE_NAME_LOOKUP(_varNames);
   CLONE_NAME_LOOKUP(_arityCheck);
 #undef CLONE_NAME_LOOKUP
-} // Signature::copy_from
+} // Signature(const Signature &)
 #endif
 
 /**

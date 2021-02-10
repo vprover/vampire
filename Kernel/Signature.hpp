@@ -576,7 +576,7 @@ class Signature
   Signature();
   ~Signature();
 #if VTHREADED
-  void clone_from(Signature *);
+  Signature(const Signature &);
 #endif
 
   CLASS_NAME(Signature);

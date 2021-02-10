@@ -24,6 +24,10 @@
 #include "DHMap.hpp"
 #include "Threading.hpp"
 
+namespace CASC {
+  class ThreadScheduleExecutor;
+};
+
 namespace Lib {
 
 using namespace std;
@@ -40,6 +44,10 @@ class Environment
 public:
   Environment();
   ~Environment();
+  // we need to poke about with members when setting up a thread
+#if VTHREADED
+  friend class CASC::ThreadScheduleExecutor;
+#endif
 
   /** options for the current proof attempt */
   Shell::Options* options;

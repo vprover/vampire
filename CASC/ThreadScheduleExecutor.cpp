@@ -14,6 +14,7 @@
 #include "Lib/Environment.hpp"
 #include "Lib/Timer.hpp"
 #include "Shell/Options.hpp"
+#include "Shell/Statistics.hpp"
 #include "Shell/UIHelper.hpp"
 
 #include <thread>
@@ -35,15 +36,40 @@ bool ThreadScheduleExecutor::run(const Schedule &schedule)
   int tasks_idle = 0;
 
   // this closure is run _by_ a thread...
-  auto parent_signature = env.signature;
-  auto parent_options = env.options;
+  auto penv = &env;
   auto task = [&](vstring code, int remainingTime, unsigned i) {
-    // copy options from parent thread
-    *env.options = *parent_options;
-    // also deep-copy the signature
-    env.signature->clone_from(parent_signature);
+    // some fluff first
+    env.maxSineLevel = penv->maxSineLevel;
+    env.predicateSineLevels = penv->predicateSineLevels;
+    env.proofExtra = penv->proofExtra;
+    env.colorUsed = penv->colorUsed;
+    env.interpretedOperationsUsed = penv->interpretedOperationsUsed;
+    env._outputDepth = penv->_outputDepth;
+    env._priorityOutput = penv->_priorityOutput;
+    env._pipe = penv->_pipe;
+
+    // fresh statistics
+    env.statistics = new Shell::Statistics();
+    // deep-copy options and signature from parent thread
+    env.options = new Shell::Options(*penv->options);
+    env.signature = new Kernel::Signature(*penv->signature);
+
+    // shallow-copy sorts, sharing, property
+    env.sorts = penv->sorts;
+    env.sharing = penv->sharing;
+    env.property = penv->property;
+
     // thread setup done, now do All The Things
     _executor->runSlice(code, remainingTime);
+
+    // unbind stuff we shallow-copied to stop it being deallocated
+    env.property = nullptr;
+    env.sharing = nullptr;
+    env.sorts = nullptr;
+
+    env.timer = Timer::instance();
+    env.timer->start();
+
     // indicate we're done
     std::lock_guard<std::mutex> task_lock(task_mutex);
     tasks_idle++;

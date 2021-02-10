@@ -42,9 +42,13 @@ using namespace Shell;
  * @since 06/05/2007 Manchester
  */
 Environment::Environment()
-  : signature(0),
-    sharing(0),
-    property(0),
+  : options(nullptr),
+    sorts(nullptr),
+    signature(nullptr),
+    sharing(nullptr),
+    statistics(nullptr),
+    property(nullptr),
+    timer(nullptr),
     maxSineLevel(1),
     predicateSineLevels(nullptr),
     colorUsed(false),
@@ -54,18 +58,19 @@ Environment::Environment()
 {
   START_CHECKING_FOR_ALLOCATOR_BYPASSES;
 
+#if VTHREADED
+  static bool is_thread = false;
+  if(is_thread) {
+    return;
+  }
+  is_thread = true;
+#endif
+
   options = new Options;
   statistics = new Statistics;  
   sorts = new Sorts;
   signature = new Signature;
-
-  // only one sharing object per process: guarded with internal lock
-#if VTHREADED
-  static TermSharing *shared_sharing = new TermSharing;
-  sharing = shared_sharing;
-#else
   sharing = new TermSharing;
-#endif
 
   //view comment in Signature.cpp
   signature->addEquality();
@@ -99,9 +104,7 @@ Environment::~Environment()
   }
 
 // #if CHECK_LEAKS
-#if !VTHREADED
   delete sharing;
-#endif
   delete signature;
   delete sorts;
   delete statistics;
