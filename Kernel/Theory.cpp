@@ -1461,7 +1461,7 @@ OperatorType* Theory::getNonpolymorphicOperatorType(Interpretation i)
 
   unsigned arity = getArity(i);
 
-  static DArray<TermList> domainSorts;
+  VTHREAD_LOCAL static DArray<TermList> domainSorts;
   domainSorts.init(arity, sort);
 
   if (isFunction(i)) {

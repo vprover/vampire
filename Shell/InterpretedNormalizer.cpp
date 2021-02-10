@@ -500,7 +500,7 @@ Clause* InterpretedNormalizer::apply(Clause* cl)
 {
   CALL("InterpretedNormalizer::apply(Clause* cl)");
 
-  static LiteralStack lits;
+  VTHREAD_LOCAL static LiteralStack lits;
   lits.reset();
   unsigned clen = cl->length();
   bool modified = false;

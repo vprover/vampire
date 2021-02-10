@@ -197,8 +197,8 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
   //cout << "SUPERPOSITION with " << premise->toString() << endl;
 
   //TODO probably shouldn't go here!
-  static bool withConstraints = env.options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF;
-  static bool extByAbstraction = (env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION)
+  VTHREAD_LOCAL static bool withConstraints = env.options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF;
+  VTHREAD_LOCAL static bool extByAbstraction = (env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION)
                                && env.statistics->higherOrder;
 
   auto itf1 = premise->getSelectedLiteralIterator();
@@ -499,7 +499,7 @@ Clause* Superposition::performSuperposition(
 
   Literal* tgtLitS = EqHelper::replace(rwLitS,rwTermS,tgtTermS);
 
-  static bool doSimS = getOptions().simulatenousSuperposition();
+  VTHREAD_LOCAL static bool doSimS = getOptions().simulatenousSuperposition();
 
   //check we don't create an equational tautology (this happens during self-superposition)
   if(EqHelper::isEqTautology(tgtLitS)) {
@@ -508,7 +508,7 @@ Clause* Superposition::performSuperposition(
 
   unsigned newLength = rwLength+eqLength-1+conLength + isTypeSub;
 
-  static bool afterCheck = getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete();
+  VTHREAD_LOCAL static bool afterCheck = getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete();
 
   inf_destroyer.disable(); // ownership passed to the the clause below
   Clause* res = new(newLength) Clause(newLength, inf);
@@ -638,7 +638,7 @@ Clause* Superposition::performSuperposition(
       TermList sort = SortHelper::getResultSort(rT.term());
       Literal* constraint = Literal::createEquality(false,qT,rT,sort);
 
-      static Options::UnificationWithAbstraction uwa = env.options->unificationWithAbstraction();
+      VTHREAD_LOCAL static Options::UnificationWithAbstraction uwa = env.options->unificationWithAbstraction();
       if(uwa==Options::UnificationWithAbstraction::GROUND && 
          !constraint->ground() &&
          (!theory->isInterpretedFunction(qT) && !theory->isInterpretedConstant(qT)) &&

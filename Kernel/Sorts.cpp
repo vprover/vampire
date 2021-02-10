@@ -147,7 +147,7 @@ OperatorType::OperatorTypes& OperatorType::operatorTypes() {
     }
   };
 
-  VTHREAD_LOCAL static DeletingOperatorTypes _operatorTypes;
+  static DeletingOperatorTypes _operatorTypes;
   return _operatorTypes;
 }
 
