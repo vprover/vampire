@@ -111,7 +111,7 @@ public:
   
   virtual void addAssumption(SATLiteral lit) override;
   virtual void retractAllAssumptions() override;
-  virtual bool hasAssumptions() const override { return !_assumptions.empty(); }
+  virtual bool hasAssumptions() const override { return !_assumptions.isEmpty(); }
 
   virtual Status solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit, bool onlyProperSubusets) override;
 
@@ -223,7 +223,7 @@ private:
   z3::model _model;
 
 
-  z3::expr_vector _assumptions;
+  Stack<z3::expr> _assumptions;
   BiMap<SATLiteral, z3::expr> _assumptionLookup;
   const bool _showZ3;
   const bool _unsatCore;

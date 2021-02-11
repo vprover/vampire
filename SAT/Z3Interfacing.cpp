@@ -40,7 +40,8 @@
 #include "Indexing/TermSharing.hpp"
 #include "Z3Interfacing.hpp"
 
-#define DEBUG(...) // DBG(__VA_ARGS__)
+#define DEBUG(...) //DBG(__VA_ARGS__)
+#define TRACE_Z3 0
 namespace Lib {
 
 template<> 
@@ -119,7 +120,7 @@ Z3Interfacing::Z3Interfacing(SAT2FO& s2f, bool showZ3, bool unsatCore):
             _solver.check(); 
           ),
          _solver.get_model())), 
-  _assumptions(_context),
+  _assumptions(),
   _showZ3(showZ3),
   _unsatCore(unsatCore)
 {
@@ -128,7 +129,6 @@ Z3Interfacing::Z3Interfacing(SAT2FO& s2f, bool showZ3, bool unsatCore):
   _solver.reset();
 
   z3::set_param("rewriter.expand_store_eq", "true");
-  //z3::set_param("trace", "true");
 
   z3::params p(_context);
   p.set("model.compact", false); // keeps z3 from compressing its model. ~50% of the runtime of get_model is spent doing that otherwise
@@ -138,7 +138,12 @@ Z3Interfacing::Z3Interfacing(SAT2FO& s2f, bool showZ3, bool unsatCore):
     //p.set(":smtlib2-compliant",true);
   _solver.set(p);
   Z3_set_error_handler(_context, handleZ3Error);
-  //Z3_enable_trace("memory");
+
+#if TRACE_Z3
+  p.set("trace", "true");
+  Z3_enable_trace("memory");
+  Z3_enable_trace("datatype");
+#endif // TRACE_Z3
 }
 
 char const* Z3Interfacing::z3_full_version()
@@ -188,20 +193,20 @@ void Z3Interfacing::addClause(SATClause* cl)
 void Z3Interfacing::retractAllAssumptions() 
 { 
   _assumptionLookup.clear();
-  _assumptions.resize(0); 
+  _assumptions.truncate(0);
 }
 
 void Z3Interfacing::addAssumption(SATLiteral lit)
 {
   CALL("Z3Interfacing::addAssumption");
 
-  auto pushAssumption = [this](SATLiteral lit) -> z3::expr 
+  auto pushAssumption = [&](SATLiteral lit) -> z3::expr 
   {
     auto repr = getRepresentation(lit);
-    for (auto def : repr.defs) 
-      _assumptions.push_back(def);
+    for (auto& def : repr.defs) 
+      _assumptions.push(def);
 
-    _assumptions.push_back(repr.expr);
+    _assumptions.push(repr.expr);
     return repr.expr;
   };
 
@@ -238,39 +243,37 @@ SATSolver::Status Z3Interfacing::solve()
   BYPASSING_ALLOCATOR;
   DEBUG("assumptions: ", _assumptions);
 
+  z3::check_result result = _solver.check(_assumptions.size(), _assumptions.begin());
 
-    z3::check_result result = _assumptions.empty() ? _solver.check() : _solver.check(_assumptions);
+  if(_showZ3){
+    env.beginOutput();
+    env.out() << "[Z3] solve result: " << result << std::endl;
+    env.endOutput();
+  }
 
-
-    if(_showZ3){
-      env.beginOutput();
-      env.out() << "[Z3] solve result: " << result << std::endl;
-      env.endOutput();
+  if (_unsatCore) {
+    auto core = _solver.unsat_core();
+    for (auto phi : core) {
+      _assumptionLookup
+             .tryGet(phi)
+             .andThen([this](SATLiteral l) 
+                 { _failedAssumptionBuffer.push(l); });
     }
+  }
 
-    if (_unsatCore) {
-      auto core = _solver.unsat_core();
-      for (auto phi : core) {
-        _assumptionLookup
-               .tryGet(phi)
-               .andThen([this](SATLiteral l) 
-                   { _failedAssumptionBuffer.push(l); });
-      }
-    }
-
-    switch (result) {
-      case z3::check_result::unsat:
-        _status = UNSATISFIABLE; 
-        break;
-      case z3::check_result::sat:
-        _status = SATISFIABLE;
-        _model = _solver.get_model();
-        break;
-      case z3::check_result::unknown:
-        _status = UNKNOWN;
-        break;
-      default: ASSERTION_VIOLATION;
-    }
+  switch (result) {
+    case z3::check_result::unsat:
+      _status = UNSATISFIABLE; 
+      break;
+    case z3::check_result::sat:
+      _status = SATISFIABLE;
+      _model = _solver.get_model();
+      break;
+    case z3::check_result::unknown:
+      _status = UNKNOWN;
+      break;
+    default: ASSERTION_VIOLATION;
+  }
 
   return _status;
 }
@@ -534,13 +537,16 @@ void Z3Interfacing::createTermAlgebra(TermAlgebra& start)
 
 #if !INT_IDENTS
   auto new_string_symobl = [&](vstring str) 
-  { return Z3_mk_string_symbol(_context, str.c_str()); };
+  { 
+    return Z3_mk_string_symbol(_context, str.c_str()); 
+  };
 #endif
 
   // create the data needed for Z3_mk_datatypes(...)
   Stack<Stack<Z3_constructor>> ctorss(tas.size());
   Stack<Z3_constructor_list> ctorss_z3(tas.size());
   Stack<Z3_symbol> sortNames(tas.size());
+
   DEBUG("creating constructors: ");
   for (auto ta : tas) {
     _createdTermAlgebras.insert(ta->sort());
@@ -573,7 +579,7 @@ void Z3Interfacing::createTermAlgebra(TermAlgebra& start)
       cons->createDiscriminator();
       auto discrName = cons->discriminatorName().c_str();
       
-      DEBUG("\t", env.sorts->sortName(ta->sort()), "::", env.signature->getFunction(cons->functor())->name());
+      DEBUG("\t", env.sorts->sortName(ta->sort()), "::", env.signature->getFunction(cons->functor())->name(), ": ", env.signature->getFunction(cons->functor())->fnType()->toString());
 
       ASS_EQ(argSortRefs.size(), cons->arity())
       ASS_EQ(   argSorts.size(), cons->arity())
@@ -587,10 +593,11 @@ void Z3Interfacing::createTermAlgebra(TermAlgebra& start)
 #endif
           Z3_mk_string_symbol(_context, discrName),
           cons->arity(),
-          argNames.begin(),
-          argSorts.begin(),
-          argSortRefs.begin()
+          cons->arity() == 0 ? nullptr : argNames.begin(),
+          cons->arity() == 0 ? nullptr : argSorts.begin(),
+          cons->arity() == 0 ? nullptr : argSortRefs.begin()
       ));
+
     }
     ASS_EQ(ctors.size(), ta->nConstructors());
 
@@ -633,7 +640,6 @@ void Z3Interfacing::createTermAlgebra(TermAlgebra& start)
 
       auto ctorId = FuncOrPredId::function(ctor->functor());
       _toZ3.insert(ctorId, constr);
-      ASS(_toZ3.find(ctorId))
       _fromZ3.insert(constr, ctorId);
 
       if (ctor->hasDiscriminator()) {
@@ -651,7 +657,6 @@ void Z3Interfacing::createTermAlgebra(TermAlgebra& start)
   }
 
   // clean up
-
   for (auto clist : ctorss_z3) {
     Z3_del_constructor_list(_context, clist);
   }
@@ -661,6 +666,7 @@ void Z3Interfacing::createTermAlgebra(TermAlgebra& start)
       Z3_del_constructor(_context, ctor);
     }
   }
+
 }
 
 z3::func_decl const& Z3Interfacing::findConstructor(FuncId id_) 
@@ -974,7 +980,8 @@ struct ToZ3Expr
 z3::func_decl Z3Interfacing::z3Function(FuncOrPredId functor)
 {
   auto& self = *this;
-  return self._toZ3.tryGet(functor).toOwned()
+  return self._toZ3.tryGet(functor)
+    .toOwned()
     .unwrapOrElse([&]() {
         auto symb = functor.isPredicate ? env.signature->getPredicate(functor.id) 
                                         : env.signature->getFunction(functor.id);
@@ -1058,6 +1065,7 @@ SATClause* Z3Interfacing::getRefutation()
       return PrimitiveProofRecordingSATSolver::getRefutation(); 
     else {
       ASS_EQ(_status, SATISFIABLE);
+      ASSERTION_VIOLATION
       //TODO
       // SATClauseList* prems = 0;
       //

@@ -61,7 +61,7 @@ public:
     return Into::getOrInit(key, [&]() {
         auto val = init();
         From::insert(val, key);
-        return std::move(val);
+        return val;
     });
   } 
 

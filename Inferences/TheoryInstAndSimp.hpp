@@ -138,7 +138,9 @@ private:
   Options::TheoryInstSimp const _mode;
   bool const _thiTautologyDeletion;
   SAT2FO _naming;
+  volatile char padding00[1024];
   Z3Interfacing* _solver;
+  volatile char padding01[1024];
   Map<unsigned, bool> _supportedSorts;
   bool _generalisation;
   ConstantCache _instantiationConstants;

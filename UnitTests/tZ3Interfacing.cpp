@@ -16,6 +16,7 @@
 #include "Kernel/Sorts.hpp"
 #include "Test/SyntaxSugar.hpp"
 #include "SAT/Z3Interfacing.hpp"
+#include <fstream>
 
 #if VZ3
 
@@ -36,14 +37,14 @@ using FuncId = unsigned;
 // 1) TEST SOLVING
 /////////////////////////////////////////////////////////////////////////////////////////
 
-/** runs z3 on a bunch of vampire literals as assuptions, and checks the status afterwards */
-void checkStatus(SATSolver::Status expected, Stack<Literal*> assumptions) 
+/** runs z3 on a bunch of vampire literals as assumptions, and checks the status afterwards */
+void checkStatus(SAT::Z3Interfacing& z3, SAT2FO& s2f, SATSolver::Status expected, Stack<Literal*> assumptions) 
 {
   CALL("checkStatus(..)")
-  SAT2FO s2f;
-  SAT::Z3Interfacing z3(s2f, DBG_ON == 1, false);
 
   for (auto a : assumptions) {
+    // Stack<SATLiteral> clause{s2f.toSAT(a)};
+    // z3.addClause(SATClause::fromStack(clause));
     z3.addAssumption(s2f.toSAT(a));
   }
 
@@ -61,6 +62,14 @@ void checkStatus(SATSolver::Status expected, Stack<Literal*> assumptions)
     }
     exit(-1);
   }
+  z3.retractAllAssumptions();
+}
+
+void checkStatus(SATSolver::Status expected, Stack<Literal*> assumptions) 
+{
+  SAT2FO s2f;
+  SAT::Z3Interfacing z3(s2f, DBG_ON == 1, false);
+  checkStatus(z3, s2f, expected, assumptions);
 }
 
 
@@ -203,16 +212,9 @@ TEST_FUN(solve__dty__03_03) {
 // 2) TEST INSTANTIATION
 /////////////////////////////////////////////////////////////////////////////////////////
 
-/** 
- * Runs z3 on a bunch of vampire literals as assuptions, that need to be satisfyable. 
- * Then  the term toInstantiate will be instantiated with the model. The instantiated 
- * term will be checked to be equal to the term expected.
- */
-void checkInstantiation(Stack<Literal*> assumptions, TermList toInstantiate, TermList expected)
+void checkInstantiation(SAT::Z3Interfacing& z3, SAT2FO& s2f, Stack<Literal*> assumptions, TermList toInstantiate, TermList expected)
 {
   CALL("checkInstantiation(..)")
-  SAT2FO s2f;
-  SAT::Z3Interfacing z3(s2f, DBG_ON == 1, false);
 
   for (auto a : assumptions) {
     z3.addAssumption(s2f.toSAT(a));
@@ -232,6 +234,20 @@ void checkInstantiation(Stack<Literal*> assumptions, TermList toInstantiate, Ter
     cout << "[ model         ] " <<  z3.getModel() << endl;
     exit(-1);
   }
+  z3.retractAllAssumptions();
+}
+
+
+/** 
+ * Runs z3 on a bunch of vampire literals as assumptions, that need to be satisfyable. 
+ * Then  the term toInstantiate will be instantiated with the model. The instantiated 
+ * term will be checked to be equal to the term expected.
+ */
+void checkInstantiation(Stack<Literal*> assumptions, TermList toInstantiate, TermList expected)
+{
+  SAT2FO s2f;
+  SAT::Z3Interfacing z3(s2f, DBG_ON == 1, false);
+  return checkInstantiation(z3, s2f, assumptions, toInstantiate, expected);
 }
 
 
@@ -291,18 +307,59 @@ TEST_FUN(instantiate__list_02) {
       );
 }
 
-// TEST_FUN(instantiate__list_03) {
-//   NUMBER_SUGAR(Real)
-//   DECL_LIST(Real)
-//
-//   DECL_CONST(l, list)
-//
-//   checkInstantiationWithGuards(
-//       { tail(l) == cons(num(2), nil)
-//       , head(l) == 1
-//       },
-//       l, cons(1,cons(2,nil))
-//       );
-// }
-//
+TEST_FUN(segfault01) {
+
+
+  Z3_config config = Z3_mk_config();
+  Z3_context context = Z3_mk_context(config);
+
+  Z3_symbol consName = Z3_mk_string_symbol(context, "e00");
+  Z3_symbol sortNames = Z3_mk_string_symbol(context, "Enum");
+
+  Z3_func_decl enumCtor;
+  Z3_func_decl enumDiscr;
+  Z3_sort sorts = Z3_mk_enumeration_sort(context, 
+      sortNames, 1, 
+      &consName, &enumCtor, &enumDiscr);
+
+  Z3_symbol c1_sym = Z3_mk_string_symbol(context, "c1");
+  Z3_symbol c2_sym = Z3_mk_string_symbol(context, "c1");
+
+  Z3_ast c1 = Z3_mk_const(context, c1_sym, sorts);
+  Z3_ast c2 = Z3_mk_const(context, c2_sym, sorts);
+
+  Z3_solver solver = Z3_mk_solver(context);
+
+  Z3_solver_push(context, solver);
+
+    Z3_ast expr = Z3_mk_eq(context, c1, c2);
+    Z3_solver_assert(context, solver, expr);
+    Z3_solver_check(context, solver);
+    Z3_solver_check(context, solver);
+
+  Z3_solver_pop(context, solver, 1);
+
+  // std::cout << "segfault occurs between here ..." << std::endl;
+  Z3_solver_check(context, solver);
+  // std::cout << "... and here" << std::endl;
+}
+
+TEST_FUN(segfault02) {
+  DECL_SORT(Enum)
+
+  DECL_CONST(e00, Enum)
+
+  DECL_TERM_ALGEBRA(Enum, { e00 })
+
+  DECL_CONST(inst159, Enum)
+  DECL_CONST(inst160, Enum)
+
+
+  SAT2FO s2f;
+  SAT::Z3Interfacing z3(s2f, DBG_ON == 1, false);
+
+  checkStatus(z3, s2f, SATSolver::SATISFIABLE, { inst159 == inst160 });
+  z3.solve();
+}
+
 #endif // VZ3

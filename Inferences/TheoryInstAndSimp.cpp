@@ -15,7 +15,7 @@
  */
 
 #if VZ3
-#define DEBUG(...) // DBG(__VA_ARGS__)
+#define DEBUG(...)  //DBG(__VA_ARGS__)
 
 #define DPRINT 0
 
@@ -446,13 +446,14 @@ void TheoryInstAndSimp::filterUninterpretedPartialFunctionDeep(Stack<Literal*>& 
 }
 
 void TheoryInstAndSimp::ConstantCache::reset()
-{ for (auto x : _inner) x.reset(); }
+{ for (auto& x : _inner) x.reset(); }
 
 Term* TheoryInstAndSimp::ConstantCache::freshConstant(unsigned sort) 
 { 
   if (_inner.size() <= sort) {
     _inner.reserve(sort + 1);
     while (_inner.size() <= sort) {
+      DEBUG("new constant cache for sort ", _inner.size());
       _inner.push(SortedConstantCache());
     }
   }
@@ -464,10 +465,11 @@ void TheoryInstAndSimp::ConstantCache::SortedConstantCache::reset()
 
 Term* TheoryInstAndSimp::ConstantCache::SortedConstantCache::freshConstant(const char* prefix, unsigned sort) 
 { 
-  if (_constants.size() >= _used)  {
+  if (_constants.size() == _used)  {
     unsigned sym = env.signature->addFreshFunction(0, prefix);
     env.signature->getFunction(sym)
                  ->setType(OperatorType::getConstantsType(sort));
+    DEBUG("new constant for sort ", sort, ": ", *env.signature->getFunction(sym));
     _constants.push(Term::createConstant(sym));
   }
   return _constants[_used++];
@@ -565,7 +567,7 @@ Option<Substitution> TheoryInstAndSimp::instantiateGeneralised(
     ASS_EQ(res, SATSolver::UNSATISFIABLE)
 
     Set<TermList> usedDefs;
-    for (auto x : _solver->failedAssumptions()) {
+    for (auto& x : _solver->failedAssumptions()) {
       definitionLiterals
         .tryGet(x)
         .andThen([&](TermList t) 
@@ -649,9 +651,10 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*> const&
   BYPASSING_ALLOCATOR;
 
   auto skolemized = skolemize(iterTraits(getConcatenatedIterator(
-          iterTraits(theoryLiterals.iterFifo()),
+          theoryLiterals.iterFifo(),
           guards.iterFifo()
         )));
+  DEBUG("skolemized: ", iterTraits(skolemized.lits.iterFifo()).map([&](SATLiteral l){ return _naming.toFO(l)->toString(); }).collect<Stack>())
 
   // now we can call the solver
   SATSolver::Status status = _solver->solveUnderAssumptions(skolemized.lits, 0, false);
@@ -889,6 +892,7 @@ Stack<Literal*> filterLiterals(Stack<Literal*> lits, Options::TheoryInstSimp mod
     case Options::TheoryInstSimp::OFF:
       ASSERTION_VIOLATION
   }
+  ASSERTION_VIOLATION
 }
 
 unsigned getFreshVar(Clause& clause) 
