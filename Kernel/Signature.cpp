@@ -25,6 +25,10 @@ using namespace Kernel;
 using namespace Shell;
 
 const unsigned Signature::STRING_DISTINCT_GROUP = 0;
+VATOMIC(int) Signature::_nextFreshSymbolNumber(0);
+#if VTHREADED
+std::atomic<unsigned> fresh_id(0);
+#endif
 
 /**
  * Standard constructor.
@@ -33,7 +37,11 @@ const unsigned Signature::STRING_DISTINCT_GROUP = 0;
  */
 Signature::Symbol::Symbol(const vstring& nm, unsigned arity, bool interpreted, bool stringConstant,bool numericConstant,
                           bool overflownConstant, bool super)
-  : _name(nm),
+  :
+#if VTHREADED
+    _id(fresh_id++),
+#endif
+    _name(nm),
     _arity(arity),
     _typeArgsArity(0),
     _type(0),
@@ -184,7 +192,6 @@ Signature::Signature ():
     _foolConstantsDefined(false), _foolTrue(0), _foolFalse(0),
     _funs(32),
     _preds(32),
-    _nextFreshSymbolNumber(0),
     _skolemFunctionCount(0),
     _distinctGroupsAddedTo(false),
     _strings(0),
@@ -255,7 +262,6 @@ Signature::Signature(const Signature &other) {
   _foolConstantsDefined = other._foolConstantsDefined;
   _foolTrue = other._foolTrue;
   _foolFalse = other._foolFalse;
-  _nextFreshSymbolNumber = other._nextFreshSymbolNumber;
   _skolemFunctionCount = other._skolemFunctionCount;
   _distinctGroupPremises = other._distinctGroupPremises;
   _distinctGroupMembers = other._distinctGroupMembers;

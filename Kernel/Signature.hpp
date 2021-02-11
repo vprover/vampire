@@ -81,6 +81,10 @@ class Signature
   class Symbol {
   
   protected:
+#if VTHREADED
+    /** unique identifier between threads */
+    unsigned _id;
+#endif
     /** print name */
     vstring _name;
 
@@ -202,6 +206,10 @@ class Signature
     inline unsigned arity() const { return _arity; }
     /** Return the type argument arity of the symbol. Only accurate once type has been set. */
     inline unsigned typeArgsArity() const { ASS_REP(_type, name()); return _typeArgsArity; }
+#if VTHREADED
+    /** Return the unique id of the symbol */
+    inline const unsigned id() const { return _id; }
+#endif
     /** Return the name of the symbol */
     inline const vstring& name() const { return _name; }
     /** Return true iff the object is of type InterpretedSymbol */
@@ -498,6 +506,17 @@ class Signature
     ASS(!Theory::isPolymorphic(interp));
     return haveInterpretingSymbol(interp,Theory::getNonpolymorphicOperatorType(interp));
   }
+
+#if VTHREADED
+  /** return the id of a function with a given number */
+  const unsigned functionId(int number) {
+    return _funs[number]->id();
+  }
+  /** return the id of a predicate with a given number */
+  const unsigned predicateId(int number) {
+    return _preds[number]->id();
+  }
+#endif
 
   /** return the name of a function with a given number */
   const vstring& functionName(int number);
@@ -898,7 +917,7 @@ private:
   /** Map for the arity_check options: maps symbols to their arities */
   SymbolMap _arityCheck;
   /** Last number used for fresh functions and predicates */
-  int _nextFreshSymbolNumber;
+  static VATOMIC(int) _nextFreshSymbolNumber;
 
   /** Number of Skolem functions (this is just for LaTeX output) */
   unsigned _skolemFunctionCount;

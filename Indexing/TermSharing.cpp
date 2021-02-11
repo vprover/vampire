@@ -439,6 +439,16 @@ bool TermSharing::argNormGt(TermList t1, TermList t2)
 }
 
 
+static bool equalArgs(const TermList *ss, const TermList *tt) {
+  while(!ss->isEmpty()) {
+    if(*ss != *tt) {
+      return false;
+    }
+    ss = ss->next();
+    tt = tt->next();
+  }
+  return true;
+}
 /**
  * True if the the top-levels of @b s and @b t are equal.
  * Used for inserting terms in a hash table.
@@ -449,18 +459,17 @@ bool TermSharing::equals(const Term* s,const Term* t)
 {
   CALL("TermSharing::equals(Term*,Term*)");
 
+#if VTHREADED
+  if(
+    env.signature->functionId(s->functor()) !=
+    env.signature->functionId(t->functor())
+  )
+    return false;
+#else
   if (s->functor() != t->functor()) return false;
+#endif
 
-  const TermList* ss = s->args();
-  const TermList* tt = t->args();
-  while (! ss->isEmpty()) {
-    if (ss->_content != tt->_content) {
-      return false;
-    }
-    ss = ss->next();
-    tt = tt->next();
-  }
-  return true;
+  return equalArgs(s->args(), t->args());
 } // TermSharing::equals
 
 /**
@@ -479,8 +488,14 @@ bool TermSharing::equals(const Literal* l1, const Literal* l2, bool opposite)
     return false;
   }
 
-  return equals(static_cast<const Term*>(l1),
-		static_cast<const Term*>(l2));
+#if VTHREADED
+  if(
+    env.signature->predicateId(l1->functor()) !=
+    env.signature->predicateId(l2->functor())
+  )
+    return false;
+#else
+  if (l1->functor() != l2->functor()) return false;
+#endif
+  return equalArgs(l1->args(), l2->args());
 }
-
-

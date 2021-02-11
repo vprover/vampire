@@ -808,7 +808,12 @@ unsigned Term::hash() const
 {
   CALL("Term::hash");
 
-  unsigned hash = Hash::hash(_functor);
+#if VTHREADED
+  unsigned functor = env.signature->functionId(_functor);
+#else
+  unsigned functor = _functor;
+#endif
+  unsigned hash = Hash::hash(functor);
   if (_arity == 0) {
     return hash;
   }
@@ -824,7 +829,13 @@ unsigned Literal::hash() const
 {
   CALL("Literal::hash");
 
-  unsigned hash = Hash::hash(isPositive() ? (2*_functor) : (2*_functor+1));
+#if VTHREADED
+  unsigned functor = env.signature->predicateId(_functor);
+#else
+  unsigned functor = _functor;
+#endif
+
+  unsigned hash = Hash::hash(isPositive() ? (2*functor) : (2*functor+1));
   if (_arity == 0) {
     return hash;
   }
@@ -842,7 +853,13 @@ unsigned Literal::oppositeHash() const
 {
   CALL("Literal::hash");
 
-  unsigned hash = Hash::hash( (!isPositive()) ? (2*_functor) : (2*_functor+1));
+#if VTHREADED
+  unsigned functor = env.signature->predicateId(_functor);
+#else
+  unsigned functor = _functor;
+#endif
+
+  unsigned hash = Hash::hash( (!isPositive()) ? (2*functor) : (2*functor+1));
   if (_arity == 0) {
     return hash;
   }
