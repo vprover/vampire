@@ -70,7 +70,7 @@ public:
 
   static Curryfier* instance()
   {
-    static Curryfier* res=0;
+    VTHREAD_LOCAL static Curryfier* res=0;
     if(!res) {
       res=new Curryfier();
     }

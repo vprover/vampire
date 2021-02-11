@@ -206,7 +206,7 @@ template<typename VarContainer>
 vstring getQuantifiedStr(const VarContainer& vars, vstring inner, bool innerParentheses=true)
 {
   CALL("getQuantifiedStr(VarContainer, vstring)");
-  static DHMap<unsigned,TermList> d;
+  VTHREAD_LOCAL static DHMap<unsigned,TermList> d;
   return getQuantifiedStr(vars,inner,d,innerParentheses);
 }
 
@@ -508,8 +508,8 @@ protected:
 
   void printStep(Unit* us)
   {
-    static unsigned lastP = Unit::getLastParsingNumber();
-    static float chunk = lastP / 10.0;
+    VTHREAD_LOCAL static unsigned lastP = Unit::getLastParsingNumber();
+    float chunk = lastP / 10.0;
     if(us->number() <= lastP){
       if(us->number() == lastP){ 
         last_one = true;

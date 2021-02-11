@@ -77,7 +77,7 @@ bool HalfBoundingRemover::applyHalfBoundingRemoval(ConstraintRCList*& lst)
 {
   CALL("HalfBoundingRemover::applyHalfBoundingRemoval");
 
-  static DHSet<Var> halfBounding;
+  VTHREAD_LOCAL static DHSet<Var> halfBounding;
   halfBounding.reset();
 
   unsigned varCnt = env.signature->vars();
@@ -196,7 +196,7 @@ void HalfBoundingRemover::doFMReduction(Var v, ConstraintRCList*& constraints)
     }
   }
 
-  static DHSet<Constraint*> toRemove;
+  VTHREAD_LOCAL static DHSet<Constraint*> toRemove;
   toRemove.reset();
   toRemove.loadFromIterator(_v2c.getConsraintsWithBound(posId));
   toRemove.loadFromIterator(_v2c.getConsraintsWithBound(negId));

@@ -156,7 +156,7 @@ void MinisatInterfacingNewSimp::addClause(SATClause* cl)
   ASS_EQ(_assumptions.size(),0);
 
   try {
-    static vec<Lit> mcl;
+    VTHREAD_LOCAL static vec<Lit> mcl;
     mcl.clear();
     
     unsigned clen=cl->length();

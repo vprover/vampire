@@ -215,7 +215,7 @@ bool CodeTreeTIS::generalizationExists(TermList t)
     return false;
   }
 
-  static TermCodeTree::TermMatcher tm;
+  VTHREAD_LOCAL static TermCodeTree::TermMatcher tm;
   
   tm.init(&_ct, t);
   bool res=tm.next();

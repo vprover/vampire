@@ -30,8 +30,8 @@ Clause* DistinctEqualitySimplifier::simplify(Clause* cl)
   if(!canSimplify(cl)) {
     return cl;
   }
-  static LiteralStack lits;
-  static Stack<Unit*> prems;
+  VTHREAD_LOCAL static LiteralStack lits;
+  VTHREAD_LOCAL static Stack<Unit*> prems;
   prems.reset();
   lits.reset();
   unsigned clen = cl->length();

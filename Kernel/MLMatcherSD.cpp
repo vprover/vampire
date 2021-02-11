@@ -83,8 +83,8 @@ void createLiteralBindings(Literal* baseLit, LiteralList const* const alts, Clau
 {
   CALL("createLiteralBindings");
 
-  static UUMap variablePositions;
-  static BinaryHeap<unsigned,Int> varNums;
+  VTHREAD_LOCAL static UUMap variablePositions;
+  VTHREAD_LOCAL static BinaryHeap<unsigned,Int> varNums;
   variablePositions.reset();
   varNums.reset();
 

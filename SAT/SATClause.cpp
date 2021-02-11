@@ -147,7 +147,7 @@ bool SATClause::hasUniqueVariables() const
 {
   CALL("SATClause::hasUniqueVariables");
 
-  static DHSet<int> seen;
+  VTHREAD_LOCAL static DHSet<int> seen;
   seen.reset();
   unsigned clen=length();
   for(unsigned i=0; i<clen; i++) {

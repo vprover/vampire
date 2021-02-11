@@ -104,7 +104,7 @@ Clause* ColorHelper::skolemizeColoredConstants(Clause* c)
   }
 
   unsigned clen = c->length();
-  static LiteralStack resStack;
+  VTHREAD_LOCAL static LiteralStack resStack;
   resStack.reset();
   resStack.loadFromIterator(Clause::Iterator(*c));
 
@@ -139,7 +139,7 @@ void ColorHelper::ensureSkolemReplacement(Term* t, TermMap& map)
   unsigned varCnt = norm->getDistinctVars();
   unsigned newFn = env.signature->addSkolemFunction(varCnt, "CU");
 
-  static Stack<TermList> argStack;
+  VTHREAD_LOCAL static Stack<TermList> argStack;
   argStack.reset();
   //variables in normalized term are X0,..X<varCnt-1>, so we put the
   //same into the Skolem term
@@ -193,7 +193,7 @@ Clause* ColorHelper::skolemizeColoredTerms(Clause* c)
 {
   CALL("ColorHelper::skolemizeColoredTerms");
 
-  static TermMap replMap;
+  VTHREAD_LOCAL static TermMap replMap;
   replMap.reset();
 
   collectSkolemReplacements(c, replMap);
@@ -201,7 +201,7 @@ Clause* ColorHelper::skolemizeColoredTerms(Clause* c)
     return 0;
   }
 
-  static LiteralStack resStack;
+  VTHREAD_LOCAL static LiteralStack resStack;
   resStack.reset();
 
   unsigned clen = c->length();

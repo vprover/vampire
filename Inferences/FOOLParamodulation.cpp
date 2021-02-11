@@ -51,8 +51,8 @@ ClauseIterator FOOLParamodulation::generateClauses(Clause* premise) {
    * C[s] is deleted after the inference is applied.
    */
 
-  static TermList troo(Term::foolTrue());
-  static TermList fols(Term::foolFalse());
+  VTHREAD_LOCAL static TermList troo(Term::foolTrue());
+  VTHREAD_LOCAL static TermList fols(Term::foolFalse());
 
   /**
    * We will be looking for a literal, standing in a `literalPosition` in

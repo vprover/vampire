@@ -65,15 +65,15 @@ void ClauseCodeTree::insert(Clause* cl)
   CALL("ClauseCodeTree::insert");
 
   unsigned clen=cl->length();
-  static DArray<Literal*> lits;
+  VTHREAD_LOCAL static DArray<Literal*> lits;
   lits.initFromArray(clen, *cl);
 
   optimizeLiteralOrder(lits);
 
-  static CodeStack code;
+  VTHREAD_LOCAL static CodeStack code;
   code.reset();
 
-  static CompileContext cctx;
+  VTHREAD_LOCAL static CompileContext cctx;
   cctx.init();
 
   for(unsigned i=0;i<clen;i++) {
@@ -155,8 +155,8 @@ void ClauseCodeTree::evalSharing(Literal* lit, CodeOp* startOp, size_t& sharedLe
 {
   CALL("ClauseCodeTree::evalSharing");
 
-  static CodeStack code;
-  static CompileContext cctx;
+  VTHREAD_LOCAL static CodeStack code;
+  VTHREAD_LOCAL static CompileContext cctx;
 
   code.reset();
   cctx.init();
@@ -232,9 +232,9 @@ void ClauseCodeTree::remove(Clause* cl)
 {
   CALL("ClauseCodeTree::remove");
 
-  static DArray<LitInfo> lInfos;
-  static Stack<CodeOp*> firstsInBlocks;
-  static Stack<RemovingLiteralMatcher*> rlms;
+  VTHREAD_LOCAL static DArray<LitInfo> lInfos;
+  VTHREAD_LOCAL static Stack<CodeOp*> firstsInBlocks;
+  VTHREAD_LOCAL static Stack<RemovingLiteralMatcher*> rlms;
 
   unsigned clen=cl->length();
   lInfos.ensure(clen);
@@ -431,8 +431,8 @@ bool ClauseCodeTree::LiteralMatcher::doEagerMatching()
   //backup the current op
   CodeOp* currOp=op;
 
-  static Stack<CodeOp*> eagerResultsRevOrder;
-  static Stack<CodeOp*> successes;
+  VTHREAD_LOCAL static Stack<CodeOp*> eagerResultsRevOrder;
+  VTHREAD_LOCAL static Stack<CodeOp*> successes;
   eagerResultsRevOrder.reset();
   successes.reset();
 
@@ -843,7 +843,7 @@ bool ClauseCodeTree::ClauseMatcher::matchGlobalVars(int& resolvedQueryLit)
   //  when we get to binding j-th literal
   //  Matches in ILStruct::matches are reordered, so that we always try
   //  the _first_ remaining[j,j] literals
-  static TriangularArray<int> remaining(10);
+  VTHREAD_LOCAL static TriangularArray<int> remaining(10);
   remaining.setSide(clen);
   for(unsigned j=0;j<clen;j++) {
     ILStruct* ils=lms[j]->getILS();
@@ -864,7 +864,7 @@ bool ClauseCodeTree::ClauseMatcher::matchGlobalVars(int& resolvedQueryLit)
   }
 //  VERB_OUT("secOp:"<<(lms[1]->op-1)->instr()<<" "<<(lms[1]->op-1)->arg());
 
-  static DArray<int> matchIndex;
+  VTHREAD_LOCAL static DArray<int> matchIndex;
   matchIndex.ensure(clen);
   unsigned failLev=0;
   for(unsigned i=0;i<clen;i++) {

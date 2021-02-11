@@ -350,11 +350,11 @@ bool termContainsAllVariablesOfOtherUnderSubst(TermList term, TermList other, Ap
 {
   CALL("termContainsAllVariablesOfOtherUnderSubst");
 
-  static vunordered_set<unsigned int> vars(16);
+  VTHREAD_LOCAL static vunordered_set<unsigned int> vars(16);
   vars.clear();
 
-  static VariableIterator vit;
-  static VariableIterator vit2;
+  VTHREAD_LOCAL static VariableIterator vit;
+  VTHREAD_LOCAL static VariableIterator vit2;
 
   // collect term's vars after substitution
   vit.reset(term);

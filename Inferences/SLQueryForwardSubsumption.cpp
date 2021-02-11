@@ -133,8 +133,8 @@ void SLQueryForwardSubsumption::perform(Clause* cl, ForwardSimplificationPerform
 
   if(gens)
   {
-    static DArray<LiteralList*> matches(32);
-    static MatchMap matchMap;
+    VTHREAD_LOCAL static DArray<LiteralList*> matches(32);
+    VTHREAD_LOCAL static MatchMap matchMap;
 
     CMMap::Iterator git(*gens);
     while(git.hasNext()) {

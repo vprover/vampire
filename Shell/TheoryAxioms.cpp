@@ -48,7 +48,7 @@ void TheoryAxioms::addAndOutputTheoryUnit(Unit* unit, unsigned level)
 {
   CALL("TheoryAxioms::addAndOutputTheoryUnit");
 
-  static Options::TheoryAxiomLevel opt_level = env.options->theoryAxioms();
+  Options::TheoryAxiomLevel opt_level = env.options->theoryAxioms();
   // if the theory axioms are some or off (want this case for some things like fool) and the axiom is not
   // a cheap one then don't add it
   if(opt_level != Options::TheoryAxiomLevel::ON && level != CHEAP){ return; }
@@ -1333,7 +1333,7 @@ void TheoryAxioms::addAcyclicityAxiom(TermAlgebra* ta)
     return;
   }
 
-  static TermList x(0, false);
+  VTHREAD_LOCAL static TermList x(0, false);
 
   Literal* sub = Literal::create2(pred, false, x, x);
   addTheoryClauseFromLits({sub}, InferenceRule::TERM_ALGEBRA_ACYCLICITY_AXIOM,CHEAP);

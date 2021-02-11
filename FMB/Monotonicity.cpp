@@ -215,7 +215,7 @@ void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, DArray<
         continue;
 
       unsigned arity = env.signature->functionArity(f);
-      static Stack<TermList> vars;
+      VTHREAD_LOCAL static Stack<TermList> vars;
       vars.reset();
       for(unsigned x=0;x<arity;x++) vars.push(TermList(x,false)); 
 
@@ -246,7 +246,7 @@ void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, DArray<
    while(it.hasNext()){
      Clause* cl = it.next();
      // pair(variable,variableSort)
-     static Stack<std::pair<unsigned,unsigned>> sortedVariables;
+     VTHREAD_LOCAL static Stack<std::pair<unsigned,unsigned>> sortedVariables;
      sortedVariables.reset();
 
      DHMap<unsigned,TermList> varSorts;

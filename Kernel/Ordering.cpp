@@ -406,7 +406,7 @@ Ordering::Result PrecedenceOrdering::compareFunctionPrecedences(unsigned fun1, u
     if(s2->interpreted()) {
       return GREATER;
     }
-    static bool reverse = env.options->introducedSymbolPrecedence() == Shell::Options::IntroducedSymbolPrecedence::BOTTOM;
+    bool reverse = env.options->introducedSymbolPrecedence() == Shell::Options::IntroducedSymbolPrecedence::BOTTOM;
     //two non-interpreted functions
     return fromComparison(Int::compare(
         fun1 >= _functions ? (int)(reverse ? -fun1 : fun1) : _functionPrecedences[fun1],
@@ -472,7 +472,7 @@ struct FnBoostWrapper
 
   Comparison compare(unsigned f1, unsigned f2)
   {
-    static Options::SymbolPrecedenceBoost boost = env.options->symbolPrecedenceBoost();
+    Options::SymbolPrecedenceBoost boost = env.options->symbolPrecedenceBoost();
     Comparison res = EQUAL;
     bool u1 = env.signature->getFunction(f1)->inUnit(); 
     bool u2 = env.signature->getFunction(f2)->inUnit(); 
@@ -511,7 +511,7 @@ struct PredBoostWrapper
 
   Comparison compare(unsigned p1, unsigned p2)
   {
-    static Options::SymbolPrecedenceBoost boost = env.options->symbolPrecedenceBoost();
+    Options::SymbolPrecedenceBoost boost = env.options->symbolPrecedenceBoost();
     Comparison res = EQUAL;
     bool u1 = env.signature->getPredicate(p1)->inUnit();
     bool u2 = env.signature->getPredicate(p2)->inUnit();

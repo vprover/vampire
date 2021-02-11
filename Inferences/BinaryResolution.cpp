@@ -221,7 +221,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
 
       Literal* constraint = Literal::createEquality(false,qT,rT,sort);
 
-      static Options::UnificationWithAbstraction uwa = opts.unificationWithAbstraction();
+      VTHREAD_LOCAL static Options::UnificationWithAbstraction uwa = opts.unificationWithAbstraction();
       if(uwa==Options::UnificationWithAbstraction::GROUND &&
          !constraint->ground() &&
          (!theory->isInterpretedFunction(qT) && !theory->isInterpretedConstant(qT)) && 

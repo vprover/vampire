@@ -1043,7 +1043,7 @@ bool SortHelper::areSortsValid(Clause* cl)
 {
   CALL("SortHelper::areSortsValid");
 
-  static DHMap<unsigned,TermList> varSorts;
+  VTHREAD_LOCAL static DHMap<unsigned,TermList> varSorts;
   varSorts.reset();
 
   unsigned clen = cl->length();

@@ -212,7 +212,7 @@ vstring FiniteModel::toString()
 
     unsigned offset = f_offsets[f];
 
-    static DArray<unsigned> args;
+    VTHREAD_LOCAL static DArray<unsigned> args;
     args.ensure(arity);
     for(unsigned i=0;i<arity;i++) args[i]=1;
     args[arity-1]=0;
@@ -289,7 +289,7 @@ fModelLabel:
 
     unsigned offset = p_offsets[f];
 
-    static DArray<unsigned> args;
+    VTHREAD_LOCAL static DArray<unsigned> args;
     args.ensure(arity);
     for(unsigned i=0;i<arity;i++) args[i]=1;
     args[arity-1]=0;

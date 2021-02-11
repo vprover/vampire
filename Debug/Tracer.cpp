@@ -53,7 +53,7 @@ VTHREAD_LOCAL bool Tracer::_forced = false;
  *  In order to watch also all changes of the address one should
  *  define WATCH_ADDR in this file. 
  */
-bool Tracer::canWatch = false;
+VTHREAD_LOCAL bool Tracer::canWatch = false;
 
 /** To understand how to use the following variable read documentation
  *  to Tracer::canWatch */

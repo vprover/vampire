@@ -62,7 +62,7 @@ namespace FMB {
 
       //cout << "Process " << c->toString() << endl;
 
-      static Stack<Literal*> lits; // to rebuild the clause
+      VTHREAD_LOCAL static Stack<Literal*> lits; // to rebuild the clause
       lits.reset();
 
       bool anyUpdated = false;
@@ -149,7 +149,7 @@ namespace FMB {
           }
           TermList sort = SortHelper::getResultSort(t); //TODO set sort of c as this
           Literal* l = Literal::createEquality(true,TermList(t),TermList(c),sort);
-          static Stack<Literal*> lstack;
+          VTHREAD_LOCAL static Stack<Literal*> lstack;
           lstack.reset();
           lstack.push(l);
           Clause* def = Clause::fromStack(lstack,NonspecificInference1(InferenceRule::FMB_DEF_INTRO,from));

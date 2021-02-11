@@ -719,7 +719,7 @@ Formula* Formula::trueFormula()
 {
   CALL("Formula::trueFormula");
 
-  static Formula* res = new Formula(true);
+  VTHREAD_LOCAL static Formula* res = new Formula(true);
   return res;
 }
 
@@ -727,7 +727,7 @@ Formula* Formula::falseFormula()
 {
   CALL("Formula::falseFormula");
 
-  static Formula* res = new Formula(false);
+  VTHREAD_LOCAL static Formula* res = new Formula(false);
   return res;
 }
 

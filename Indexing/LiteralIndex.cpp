@@ -208,7 +208,7 @@ Literal* RewriteRuleIndex::getGreater(Clause* c)
   CALL("RewriteRuleIndex::getGreater");
   ASS_EQ(c->length(), 2);
 
-  static LiteralComparators::NormalizedLinearComparatorByWeight<true> comparator;
+  VTHREAD_LOCAL static LiteralComparators::NormalizedLinearComparatorByWeight<true> comparator;
 
   Comparison comp=comparator.compare((*c)[0], (*c)[1]);
 

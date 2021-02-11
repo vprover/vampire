@@ -178,8 +178,8 @@ void SymElOutput::checkForPreprocessorSymbolElimination(Clause* cl)
 
   Color inputColor=COLOR_TRANSPARENT;
 
-  static DHMap<Unit*, Color> inputFormulaColors;
-  static Stack<Unit*> units;
+  VTHREAD_LOCAL static DHMap<Unit*, Color> inputFormulaColors;
+  VTHREAD_LOCAL static Stack<Unit*> units;
   units.reset();
   units.push(cl);
 

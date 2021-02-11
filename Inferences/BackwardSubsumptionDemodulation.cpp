@@ -151,7 +151,7 @@ void BackwardSubsumptionDemodulation::perform(Clause* sideCl, BwSimplificationRe
   Literal* lmLit1 = best2.first.lit();
   Literal* lmLit2 = best2.second.lit();
 
-  static vvector<BwSimplificationRecord> simplificationsStorage;
+  VTHREAD_LOCAL static vvector<BwSimplificationRecord> simplificationsStorage;
   ASS_EQ(simplificationsStorage.size(), 0);
 
   if (!lmLit1->isEquality() || !lmLit1->isPositive()) {
@@ -296,7 +296,7 @@ void BackwardSubsumptionDemodulation::performWithQueryLit(Clause* sideCl, Litera
 /// Returns true iff the main premise has been simplified.
 bool BackwardSubsumptionDemodulation::simplifyCandidate(Clause* sideCl, Clause* mainCl, vvector<BwSimplificationRecord>& simplifications)
 {
-    static vvector<LiteralList*> alts;
+    VTHREAD_LOCAL static vvector<LiteralList*> alts;
 
     alts.clear();
     alts.resize(sideCl->length(), LiteralList::empty());
@@ -356,10 +356,10 @@ bool BackwardSubsumptionDemodulation::simplifyCandidate(Clause* sideCl, Clause* 
     ASS_LE(baseLitsWithoutAlternatives, 1);
     ASS_EQ(sideCl->length(), alts.size());
 
-    static MLMatcherSD matcher;
+    VTHREAD_LOCAL static MLMatcherSD matcher;
     matcher.init(sideCl, mainCl, alts.data());
 
-    static unsigned const maxMatches =
+    VTHREAD_LOCAL static unsigned const maxMatches =
       getOptions().backwardSubsumptionDemodulationMaxMatches() == 0
       ? std::numeric_limits<decltype(maxMatches)>::max()
       : getOptions().backwardSubsumptionDemodulationMaxMatches();
@@ -419,15 +419,15 @@ bool BackwardSubsumptionDemodulation::rewriteCandidate(Clause* sideCl, Clause* m
   }
 
   // isMatched[i] is true iff (*mainCl)[i] is matched by some literal in sideCl (other than eqLit)
-  static vvector<bool> isMatched;
+  VTHREAD_LOCAL static vvector<bool> isMatched;
   matcher.getMatchedAltsBitmap(isMatched);
 
-  static OverlayBinder binder;
+  VTHREAD_LOCAL static OverlayBinder binder;
   binder.clear();
   matcher.getBindings(binder.base());
 
   // NOTE: for explanation see comments in ForwardSubsumptionDemodulation::perform
-  static vvector<TermList> lhsVector;
+  VTHREAD_LOCAL static vvector<TermList> lhsVector;
   lhsVector.clear();
   {
     TermList t0 = *eqLit->nthArgument(0);
@@ -476,7 +476,7 @@ bool BackwardSubsumptionDemodulation::rewriteCandidate(Clause* sideCl, Clause* m
 
 
 
-  static DHSet<TermList> attempted;  // Terms we already attempted to demodulate
+  VTHREAD_LOCAL static DHSet<TermList> attempted;  // Terms we already attempted to demodulate
   attempted.reset();
 
   for (unsigned dli = 0; dli < mainCl->length(); ++dli) {

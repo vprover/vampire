@@ -170,7 +170,7 @@ SATSolver::Status Z3Interfacing::solveUnderAssumptions(const SATLiteralStack& as
   // load assumptions:
   SATLiteralStack::ConstIterator it(assumps);
 
-  static DHMap<vstring,SATLiteral> lookup;
+  VTHREAD_LOCAL static DHMap<vstring,SATLiteral> lookup;
   lookup.reset();
   unsigned n=0;
   vstring ps="$_$_$";

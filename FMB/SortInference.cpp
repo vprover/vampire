@@ -728,9 +728,9 @@ unsigned SortInference::getDistinctSort(unsigned subsort, unsigned realVampireSo
 {
   CALL("SortInference::getDistinctSort");
 
-  static bool firstMonotonicSortSeen = false;
-  static unsigned firstMonotonicSort = 0;
-  static DHMap<unsigned,unsigned> ourDistinctSorts;
+  VTHREAD_LOCAL static bool firstMonotonicSortSeen = false;
+  VTHREAD_LOCAL static unsigned firstMonotonicSort = 0;
+  VTHREAD_LOCAL static DHMap<unsigned,unsigned> ourDistinctSorts;
 
   unsigned vampireSort = realVampireSort;
   if(_expandSubsorts){

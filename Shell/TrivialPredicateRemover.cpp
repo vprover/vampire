@@ -150,11 +150,11 @@ void TrivialPredicateRemover::count(Clause* cl, int add)
   CALL("TrivialPredicateRemover::count");
 
   //1 - positive, -1 - negative, 0 - both occurrences
-  static ArrayMap<int> predOccurrences;
+  VTHREAD_LOCAL static ArrayMap<int> predOccurrences;
   predOccurrences.ensure(env.signature->predicates());
   predOccurrences.reset();
 
-  static Stack<unsigned> preds;
+  VTHREAD_LOCAL static Stack<unsigned> preds;
   preds.reset();
 
   Clause::Iterator it(*cl);

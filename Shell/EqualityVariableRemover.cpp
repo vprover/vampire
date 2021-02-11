@@ -165,7 +165,7 @@ void EqualityVariableRemover::eliminate(Constraint* c, ConstraintRCList*& lst)
   }
   env.statistics->equalityPropagationVariables++;
 
-  static DHSet<Constraint*> toRemove;
+  VTHREAD_LOCAL static DHSet<Constraint*> toRemove;
   toRemove.reset();
   toRemove.loadFromIterator(_v2c.getConsraintsWithBound(posId));
   toRemove.loadFromIterator(_v2c.getConsraintsWithBound(negId));

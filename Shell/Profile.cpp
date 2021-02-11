@@ -75,8 +75,8 @@ void Profile::output(const Literal* lit,ostream& str,char pred)
 
 void Profile::output(const Clause* clause,ostream& str)
 {
-  static int lastPredicate = -1;
-  static bool nonUnitFound;
+  VTHREAD_LOCAL static int lastPredicate = -1;
+  VTHREAD_LOCAL static bool nonUnitFound;
 
   int length = clause->length();
   const Literal* head = (*clause)[0];

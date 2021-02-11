@@ -391,7 +391,7 @@ CodeTree::SearchStruct* CodeTree::CodeOp::getSearchStruct()
   //the following line gives warning for not being according
   //to the standard, so we have to work around
 //  static const size_t opOfs=offsetof(SearchStruct,landingOp);
-  static const size_t opOfs=reinterpret_cast<size_t>(
+  const size_t opOfs=reinterpret_cast<size_t>(
 	&reinterpret_cast<SearchStruct*>(8)->landingOp)-8;
 
   SearchStruct* res=reinterpret_cast<SearchStruct*>(
@@ -684,7 +684,7 @@ CodeTree::CodeBlock* CodeTree::firstOpToCodeBlock(CodeOp* op)
   //the following line gives warning for not being according
   //to the standard, so we have to work around
 //  static const size_t opOfs=offsetof(CodeBlock,_array);
-  static const size_t opOfs=reinterpret_cast<size_t>(
+  const size_t opOfs=reinterpret_cast<size_t>(
 	&reinterpret_cast<CodeBlock*>(8)->_array[0])-8;
 
   CodeBlock* res=reinterpret_cast<CodeBlock*>(
@@ -887,8 +887,8 @@ void CodeTree::incorporate(CodeStack& code)
     return;
   }
 
-  static const unsigned checkFunOpThreshold=5; //must be greater than 1 or it would cause loops
-  static const unsigned checkGroundTermOpThreshold=3; //must be greater than 1 or it would cause loops
+  const unsigned checkFunOpThreshold=5; //must be greater than 1 or it would cause loops
+  const unsigned checkGroundTermOpThreshold=3; //must be greater than 1 or it would cause loops
 
   size_t clen=code.length();
   CodeOp** tailTarget;

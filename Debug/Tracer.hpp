@@ -54,7 +54,7 @@ class Tracer {
   static void forceOutput() { _forced = true; }
   /** stop outputting forced by startOutput */
   static void stopOutput() { _forced = false; }
-  static bool canWatch;
+  VTHREAD_LOCAL static bool canWatch;
  private:
   const char* _fun;
   Tracer* _previous;

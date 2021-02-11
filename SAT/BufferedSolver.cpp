@@ -41,7 +41,7 @@ bool BufferedSolver::checkAndRecordImplied(SATClause* cl)
 {
   CALL("BufferedSolver::checkAndRecordImplied");
 
-  static SATLiteralStack newLiterals;
+  VTHREAD_LOCAL static SATLiteralStack newLiterals;
   newLiterals.reset();
 
   for(unsigned lIndex=0;lIndex<cl->length();lIndex++)

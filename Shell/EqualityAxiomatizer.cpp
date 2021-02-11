@@ -263,9 +263,9 @@ Clause* EqualityAxiomatizer::getFnCongruenceAxiom(unsigned fn)
 {
   CALL("EqualityAxiomatizer::getFnCongruenceAxiom");
 
-  static Stack<TermList> vars1;
-  static Stack<TermList> vars2;
-  static LiteralStack lits;
+  VTHREAD_LOCAL static Stack<TermList> vars1;
+  VTHREAD_LOCAL static Stack<TermList> vars2;
+  VTHREAD_LOCAL static LiteralStack lits;
 
   vars1.reset();
   vars2.reset();
@@ -296,9 +296,9 @@ Clause* EqualityAxiomatizer::getPredCongruenceAxiom(unsigned pred)
   CALL("EqualityAxiomatizer::getPredCongruenceAxiom");
   ASS_NEQ(pred,0);
 
-  static Stack<TermList> vars1;
-  static Stack<TermList> vars2;
-  static LiteralStack lits;
+  VTHREAD_LOCAL static Stack<TermList> vars1;
+  VTHREAD_LOCAL static Stack<TermList> vars2;
+  VTHREAD_LOCAL static LiteralStack lits;
 
   vars1.reset();
   vars2.reset();

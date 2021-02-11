@@ -52,7 +52,7 @@ bool UWAMismatchHandler::checkUWA(TermList t1, TermList t2)
 
     bool okay = true;
    
-    static Shell::Options::UnificationWithAbstraction opt = env.options->unificationWithAbstraction();
+    VTHREAD_LOCAL static Shell::Options::UnificationWithAbstraction opt = env.options->unificationWithAbstraction();
     if(opt == Shell::Options::UnificationWithAbstraction::OFF){ return false; }
 
       switch(opt){

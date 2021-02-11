@@ -67,7 +67,7 @@ DecisionProcedure::Status ShortConflictMetaDP::getStatus(bool getMultipleCores)
   unsigned minSz = UINT_MAX;
 
   typedef pair<LiteralStack,unsigned> CoreWithSize;
-  static Stack<CoreWithSize> cores;
+  VTHREAD_LOCAL static Stack<CoreWithSize> cores;
   ASS(cores.isEmpty());
 
   // Record cores with their sizes in cores stack and

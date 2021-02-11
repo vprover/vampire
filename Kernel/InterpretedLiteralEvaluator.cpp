@@ -213,7 +213,7 @@ class FracLess {
   inline static unsigned functor() { return number::lessF(); }
 
   static Literal* normalizedLit(bool polarity, TermList lhs, TermList rhs) {
-    static auto zero = TermList(number::zeroT());
+    VTHREAD_LOCAL static auto zero = TermList(number::zeroT());
     return number::less(
               polarity,
               zero,
@@ -234,8 +234,8 @@ class IntLess {
   inline static unsigned functor() { return number::lessF(); }
 
   static Literal* normalizedLit(bool polarity, TermList lhs, TermList rhs) {
-    static auto one  = TermList(number::oneT());
-    static auto zero = TermList(number::zeroT());
+    VTHREAD_LOCAL static auto one  = TermList(number::oneT());
+    VTHREAD_LOCAL static auto zero = TermList(number::zeroT());
     if (polarity) {
       return number::less(
               /* polarity */ true, 

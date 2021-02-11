@@ -474,7 +474,7 @@ float TheoryMultiSplitPassiveClauseContainer::evaluateFeatureEstimate(unsigned, 
 {
   CALL("TheoryMultiSplitPassiveClauseContainer::evaluateFeatureEstimate");
   // heuristically compute likeliness that clause occurs in proof
-  static int expectedRatioDenominator = _opt.theorySplitQueueExpectedRatioDenom();
+  int expectedRatioDenominator = _opt.theorySplitQueueExpectedRatioDenom();
   return inf.th_ancestors * expectedRatioDenominator - inf.all_ancestors;
 }
 

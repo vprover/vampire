@@ -302,7 +302,7 @@ AnswerLiteralManager* AnswerLiteralManager::getInstance()
 {
   CALL("AnswerLiteralManager::getInstance");
 
-  static AnswerLiteralManager instance;
+  VTHREAD_LOCAL static AnswerLiteralManager instance;
 
   return &instance;
 }
@@ -331,7 +331,7 @@ Literal* AnswerLiteralManager::getAnswerLiteral(VList* vars,Formula* f)
 {
   CALL("AnswerLiteralManager::getAnswerLiteral");
 
-  static Stack<TermList> litArgs;
+  VTHREAD_LOCAL static Stack<TermList> litArgs;
   litArgs.reset();
   VList::Iterator vit(vars);
   TermStack sorts;
@@ -460,7 +460,7 @@ Clause* AnswerLiteralManager::getResolverClause(unsigned pred)
     return res;
   }
 
-  static Stack<TermList> args;
+  VTHREAD_LOCAL static Stack<TermList> args;
   args.reset();
 
   Signature::Symbol* predSym = env.signature->getPredicate(pred);

@@ -104,15 +104,17 @@ Environment::~Environment()
   }
 
 // #if CHECK_LEAKS
-  delete sharing;
   delete signature;
-  delete sorts;
   delete statistics;
-  if (predicateSineLevels) delete predicateSineLevels;
   {
     BYPASSING_ALLOCATOR; // use of std::function in options
     delete options;
   }
+#if !VTHREADED
+  delete sorts;
+  delete sharing;
+#endif
+  if (predicateSineLevels) delete predicateSineLevels;
 // #endif
 }
 

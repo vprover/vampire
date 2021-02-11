@@ -43,7 +43,7 @@ public:
     CALL("ImplicationSetClosure::add");
 
     if(_selected.contains(val)) { return; }
-    static Stack<T> todo;
+    VTHREAD_LOCAL static Stack<T> todo;
     todo.reset();
     todo.push(val);
     while(todo.isNonEmpty()) {

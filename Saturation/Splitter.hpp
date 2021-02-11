@@ -301,7 +301,7 @@ private:
   SaturationAlgorithm* _sa;
 
 public:
-  static vstring splPrefix;
+  VTHREAD_LOCAL static vstring splPrefix;
 
   // for observing the current model
   SplitLevel splitLevelBound() { return _db.size(); }

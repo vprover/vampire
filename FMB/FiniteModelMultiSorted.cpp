@@ -152,7 +152,7 @@ void FiniteModelMultiSorted::addPropositionalDefinition(unsigned p, bool res)
 {
   CALL("FiniteModelMultiSorted::addPropositionalDefinition");
   
-  static const DArray<unsigned> empty(0);
+  VTHREAD_LOCAL static const DArray<unsigned> empty(0);
   addPredicateDefinition(p,empty,res);
 }
 
@@ -196,7 +196,7 @@ vstring FiniteModelMultiSorted::toString()
 
   bool printIntroduced = false;
 
-  static DArray<DArray<vstring>> cnames;
+  VTHREAD_LOCAL static DArray<DArray<vstring>> cnames;
   cnames.ensure(env.sorts->count());
 
   //Output sorts and their sizes 
@@ -303,7 +303,7 @@ vstring FiniteModelMultiSorted::toString()
 
     unsigned offset = f_offsets[f];
 
-    static DArray<unsigned> args;
+    VTHREAD_LOCAL static DArray<unsigned> args;
     args.ensure(arity);
     for(unsigned i=0;i<arity;i++) args[i]=1;
     args[arity-1]=0;
@@ -399,7 +399,7 @@ fModelLabel:
 
     unsigned offset = p_offsets[f];
 
-    static DArray<unsigned> args;
+    VTHREAD_LOCAL static DArray<unsigned> args;
     args.ensure(arity);
     for(unsigned i=0;i<arity;i++) args[i]=1;
     args[arity-1]=0;

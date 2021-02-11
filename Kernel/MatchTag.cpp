@@ -29,8 +29,8 @@ const unsigned MatchTag::CONTENT_BITS;
 void MatchTag::init(Term* t) {
   ASS(t->shared());
 
-  static Stack<TermList*> stack(32);
-  static Stack<Term*> terms(32);
+  VTHREAD_LOCAL static Stack<TermList*> stack(32);
+  VTHREAD_LOCAL static Stack<Term*> terms(32);
 
   terms.push(t);
   stack.push(t->args());

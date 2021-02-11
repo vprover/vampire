@@ -155,7 +155,7 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
       /**
        * Step 2: choose a positive equality in mcl to use for demodulation and try to instantiate the rest to some subset of cl
        */
-      static vvector<LiteralList*> alts;
+      VTHREAD_LOCAL static vvector<LiteralList*> alts;
       alts.clear();
       alts.reserve(mcl->length());
       ASS_EQ(alts.size(), 0);
@@ -222,10 +222,10 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
 
       ASS_EQ(mcl->length(), alts.size());
 
-      static MLMatcherSD matcher;
+      VTHREAD_LOCAL static MLMatcherSD matcher;
       matcher.init(mcl, cl, alts.data());
 
-      static unsigned const maxMatches =
+      VTHREAD_LOCAL static unsigned const maxMatches =
         getOptions().forwardSubsumptionDemodulationMaxMatches() == 0
         ? std::numeric_limits<decltype(maxMatches)>::max()
         : getOptions().forwardSubsumptionDemodulationMaxMatches();
@@ -267,10 +267,10 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
         }
 
         // isMatched[i] is true iff (*cl)[i] is matched my some literal in mcl (without eqLit)
-        static vvector<bool> isMatched;
+        VTHREAD_LOCAL static vvector<bool> isMatched;
         matcher.getMatchedAltsBitmap(isMatched);
 
-        static OverlayBinder binder;
+        VTHREAD_LOCAL static OverlayBinder binder;
         binder.clear();
         matcher.getBindings(binder.base());
 
@@ -296,7 +296,7 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
         // 1. No LHS (if INCOMPARABLE and no side contains all variables of the other side)
         // 2. One LHS (oriented, or INCOMPARABLE with exactly one variable-free side)
         // 3. Two LHSs (INCOMPARABLE and same variables)
-        static vvector<TermList> lhsVector;
+        VTHREAD_LOCAL static vvector<TermList> lhsVector;
         lhsVector.clear();
         {
           TermList t0 = *eqLit->nthArgument(0);
@@ -393,7 +393,7 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
           continue;
         }
 
-        static DHSet<TermList> attempted;  // Terms we already attempted to demodulate
+        VTHREAD_LOCAL static DHSet<TermList> attempted;  // Terms we already attempted to demodulate
         attempted.reset();
 
         for (unsigned dli = 0; dli < cl->length(); ++dli) {

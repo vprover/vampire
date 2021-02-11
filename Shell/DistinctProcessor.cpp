@@ -53,7 +53,7 @@ bool DistinctProcessor::apply(FormulaUnit* unit, Unit*& res)
   Formula* form = unit->formula();
 
 
-  static Stack<unsigned> distConsts;
+  VTHREAD_LOCAL static Stack<unsigned> distConsts;
   if(form->connective()==LITERAL) {
     Literal* tlLit = form->literal();
     if(isDistinctPred(tlLit) && tlLit->isPositive()) {

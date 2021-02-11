@@ -96,7 +96,7 @@ vstring TPTPPrinter::getBodyStr(Unit* u, bool includeSplitLevels)
   vostringstream res;
 
   typedef DHMap<unsigned,TermList> SortMap;
-  static SortMap varSorts;
+  VTHREAD_LOCAL static SortMap varSorts;
   varSorts.reset();
   SortHelper::collectVariableSorts(u, varSorts);
 
