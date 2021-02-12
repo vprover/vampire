@@ -14,6 +14,7 @@
 #include <chrono>
 #include <iostream>
 #include <iomanip>
+#include <new>
 
 using namespace Indexing;
 using namespace Kernel;
@@ -557,8 +558,8 @@ class SMTSubsumptionImpl
         }
 
         // we use the same storage for both Clause and AtMostOne constraint
-        Minisat::Clause* c1 = reinterpret_cast<Minisat::Clause*>(&clause_storage[c_index]);
-        Minisat::AtMostOne* c2 = reinterpret_cast<Minisat::AtMostOne*>(&clause_storage[c_index]);
+        Minisat::Clause* c1 = reinterpret_cast<Minisat::Clause*>(&clause_storage[c_index]);   // use std::launder? see https://stackoverflow.com/a/39382728 (but requires C++17)
+        Minisat::AtMostOne* c2 = reinterpret_cast<Minisat::AtMostOne*>(&clause_storage[c_index]);   // use std::launder?
         ASS(!c1->learnt());
         ASS_EQ(*c_size, c1->size());  // TODO: if VDEBUG check contents too?
         ASS_EQ(*c_size, c2->size());  // TODO: if VDEBUG check contents too?
@@ -907,9 +908,11 @@ class SMTSubsumptionImpl
           // At least one must be true
           solver.addClause_unchecked(ls);
           // At most one must be true
-          if (ls.size() >= 2) {
-            solver.addConstraint_AtMostOne_unchecked(ls);
-          }
+          // NOTE: according to Armin, these redundant constraints may actually be harmful (correspond to blocked clauses which an advanced SAT solver would even remove in preprocessing)
+          //       preliminary tests show no difference in #decisions with/without this constraint (so it's better to not add them)
+          // if (ls.size() >= 2) {
+          //   solver.addConstraint_AtMostOne_unchecked(ls);
+          // }
         } else if (n_true == 1) {
           // one is already true => skip clause, propagate AtMostOne constraint
           for (auto const& alt : v) {
@@ -1045,12 +1048,17 @@ void ProofOfConcept::test(Clause* side_premise, Clause* main_premise)
 
   SMTSubsumptionImpl impl;
   std::cout << "SETUP" << std::endl;
-  bool subsumed1 = impl.setup2(side_premise, main_premise);
+  bool subsumed1 = impl.setup(side_premise, main_premise);
+  // bool subsumed1 = impl.setup2(side_premise, main_premise);
   std::cout << "  => " << subsumed1 << std::endl;
   std::cout << "SOLVE" << std::endl;
   bool subsumed = subsumed1 && impl.solve();
   std::cout << "  => " << subsumed << std::endl;
-  return;
+  // return;
+
+  bool const expected_subsumed = subsumed;
+
+  std::cout << "\n\n==================================================\nTESTING VARIABLE ORDERING STRATEGIES:\n\n";
 
   std::pair<char const*, Minisat::VarOrderStrategy> vo_strategies[] = {
       { "MinisatDefault", Minisat::VarOrderStrategy::MinisatDefault },
@@ -1061,6 +1069,9 @@ void ProofOfConcept::test(Clause* side_premise, Clause* main_premise)
       { "RemainingChoices / (activity + 1) [per-boolean activity]", Minisat::VarOrderStrategy::CombinedBoolAct_k1 },
       { "RemainingChoices / (activity + 3) [per-boolean activity]", Minisat::VarOrderStrategy::CombinedBoolAct_k3 },
       { "RemainingChoices / (activity + 5) [per-boolean activity]", Minisat::VarOrderStrategy::CombinedBoolAct_k5 },
+      { "RemainingChoices / (activity + 1) [per-integer activity]", Minisat::VarOrderStrategy::CombinedMaxAct_k1 },
+      { "RemainingChoices / (activity + 3) [per-integer activity]", Minisat::VarOrderStrategy::CombinedMaxAct_k3 },
+      { "RemainingChoices / (activity + 5) [per-integer activity]", Minisat::VarOrderStrategy::CombinedMaxAct_k5 },
   };
   for (auto p : vo_strategies) {
     auto vo_strategy_name = p.first;
@@ -1069,16 +1080,25 @@ void ProofOfConcept::test(Clause* side_premise, Clause* main_premise)
     SMTSubsumptionImpl impl;
     std::cout << "SMTSubsumption with vo_strategy = " << vo_strategy_name << std::endl;
     bool subsumed = impl.setup(side_premise, main_premise, vo_strategy) && impl.solve();
-    std::cout << "Subsumed: " << subsumed << std::endl;
+    // std::cout << "Subsumed: " << subsumed << std::endl;
+    if (subsumed != expected_subsumed) {
+      std::cout << "UNEXPECTED RESULT: " << subsumed << std::endl;
+    }
     impl.printStats(std::cout);
 
     std::cout << std::endl;
   }
 
-  std::cout << "MLMatcher" << std::endl;
-  OriginalSubsumption::Impl orig;
-  std::cout << "MLMatcher says: " << orig.checkSubsumption(side_premise, main_premise) << std::endl;
-  orig.printStats(std::cout);
+  {
+    std::cout << "MLMatcher" << std::endl;
+    OriginalSubsumption::Impl orig;
+    bool subsumed = orig.checkSubsumption(side_premise, main_premise);
+    std::cout << "MLMatcher says: " << subsumed << std::endl;
+    if (subsumed != expected_subsumed) {
+      std::cout << "UNEXPECTED RESULT: " << subsumed << std::endl;
+    }
+    orig.printStats(std::cout);
+  }
 }
 
 bool ProofOfConcept::checkSubsumption(Kernel::Clause *side_premise, Kernel::Clause *main_premise)
@@ -2068,8 +2088,8 @@ void ProofOfConcept::benchmark_micro(vvector<SubsumptionInstance> instances)
     benchmark::RegisterBenchmark(name.c_str(), bench_smt_until_create_theory, instance);
     name = "smt_setup_" + suffix;
     benchmark::RegisterBenchmark(name.c_str(), bench_smt_setup, instance);
-    name = "smt_setup2_" + suffix;
-    benchmark::RegisterBenchmark(name.c_str(), bench_smt_setup2, instance);
+    // name = "smt_setup2_" + suffix;
+    // benchmark::RegisterBenchmark(name.c_str(), bench_smt_setup2, instance);
     // break;
     name = "smt_search_" + suffix;
     benchmark::RegisterBenchmark(name.c_str(), bench_smt_search, instance);
