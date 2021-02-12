@@ -86,19 +86,21 @@ namespace SMTSubsumption { namespace Minisat {
 //                      (remaining choices still tracked per set)
 //              (impl.: one counter per set with bool->set mapping vs. one counter per variable)
 //              problem: this must be updated during backtracking; also unnecessary for propagation
+//              NOTE: this CombinedMaxAct is not that much different than just using the boolean variable activity (CombinedBoolAct)
+//                    why? the maximal activity appear as activity of one boolean variable in the set.
+//                    so the chosen set will be the same, the only difference is which boolean variable might be chosen from the set.
+//                    and currently we don't have any good heuristic for that (just choose the first one from the set); so CombinedBoolAct should be better overall (this also shows in the experiments)
 //
 //
 // (technique in newest minisat: no need to check for changes if literal is still true => "blocking literal")
 //
 //
-// TODO: benchmark 'drand' vs. faster custom implementation of choice
-//
-// TODO: read paper below
 // More importantly, we should change VSIDS to take into account the number of
 // remaining possibilities for each literal to match to, and prefer those
 // literals that are more constrained: CSP-community has already looked at this
 // a bit, see e.g.
 // https://www.researchgate.net/profile/Christophe_Lecoutre/publication/220838185_Boosting_Systematic_Search_by_Weighting_Constraints/links/55af6bc608aee0799221004e.pdf
+// ~ dom/wdeg heuristic from the paper
 //
 //
 // Statistics:
@@ -123,7 +125,6 @@ namespace SMTSubsumption { namespace Minisat {
 
 
 /*
-
 Example:
 
     Side premise:       P(x)            Q(y)            R(x,y)
@@ -169,6 +170,9 @@ enum class VarOrderStrategy {
     CombinedBoolAct_k1,  // order by remaining-choices / (activity + 1)  [per-boolean activity]
     CombinedBoolAct_k3,  // order by remaining-choices / (activity + 3)  [per-boolean activity]
     CombinedBoolAct_k5,  // order by remaining-choices / (activity + 5)  [per-boolean activity]
+    CombinedMaxAct_k1,   // order by remaining-choices / (activity + 1)  [per-integer-variable activity]
+    CombinedMaxAct_k3,   // order by remaining-choices / (activity + 3)  [per-integer-variable activity]
+    CombinedMaxAct_k5,   // order by remaining-choices / (activity + 5)  [per-integer-variable activity]
 };
 
 struct VarOrder_info {
@@ -207,6 +211,7 @@ private:
     inline Var select_RemainingChoices();
     inline Var select_Alternate(double remaining_choices_freq);
     inline Var select_CombinedBoolAct(double k);
+    inline Var select_CombinedMaxAct(double k);
     inline Var select_MinisatDefault(double random_var_freq);
     inline Var select_Activity();
 };
@@ -231,6 +236,12 @@ Var VarOrder::select(double random_var_freq)
           return select_CombinedBoolAct(3);
         case VarOrderStrategy::CombinedBoolAct_k5:
           return select_CombinedBoolAct(5);
+        case VarOrderStrategy::CombinedMaxAct_k1:
+          return select_CombinedMaxAct(1);
+        case VarOrderStrategy::CombinedMaxAct_k3:
+          return select_CombinedMaxAct(3);
+        case VarOrderStrategy::CombinedMaxAct_k5:
+          return select_CombinedMaxAct(5);
         default:
           ASSERTION_VIOLATION;
     }
@@ -281,7 +292,6 @@ Var VarOrder::select_RemainingChoices()
 }
 
 /// remaining_choices / (activity + k) [per-boolean activity]
-/// TODO: try version with per-constraint activity
 Var VarOrder::select_CombinedBoolAct(double k)
 {
     // Compute remaining choices
@@ -298,7 +308,6 @@ Var VarOrder::select_CombinedBoolAct(double k)
     double best_value = std::numeric_limits<double>::lowest();
     for (Var v = 0; v < assigns.size(); ++v) {
       if (toLbool(assigns[v]) == l_Undef) {
-        // NOTE: weirdly, the version with bug was better, it had baselit_remainingChoices[v] instead (which accesses memory out of bounds; obviously that's not good)
         double value = static_cast<double>(baselit_remainingChoices[info.var_baselit[v]]) / (activity[v] + k);
         // std::cerr << "rem_choices=" << baselit_remainingChoices[info.var_baselit[v]] << "  activity=" << activity[v] << "     value=" << value << std::endl;
         if (value > best_value) {
@@ -309,6 +318,63 @@ Var VarOrder::select_CombinedBoolAct(double k)
     }
     // assert(best_v != var_Undef);
     return best_v;
+}
+
+/// remaining_choices / (activity + k) [per-integer-variable activity]
+Var VarOrder::select_CombinedMaxAct(double k)
+{
+    // Compute remaining choices
+    int max_baselit = *std::max_element(info.var_baselit.begin(), info.var_baselit.end());
+    assert(max_baselit + 1 == info.num_baselits);  // not necessarily true... but if one has no match, then we don't even go here (no call to solve())
+    vec<int> baselit_remainingChoices(max_baselit+1, 0);
+    for (Var v = 0; v < assigns.size(); ++v) {
+      if (info.var_baselit[v] >= 0             // >=0 means "represents a constraint variable assignment"
+          && toLbool(assigns[v]) == l_Undef) { // represents a remaining choice iff current value is undefined
+        baselit_remainingChoices[info.var_baselit[v]] += 1;
+      }
+    }
+    // Compute activity of integer variables as the maximum of the boolean variable activities
+    vec<double> baselit_activity(max_baselit+1, 0);
+    for (Var v = 0; v < assigns.size(); ++v) {
+      if (info.var_baselit[v] >= 0) { // >=0 means "represents a constraint variable assignment"
+        int baselit = info.var_baselit[v];
+        baselit_activity[baselit] = std::max(baselit_activity[baselit], activity[v]);
+      }
+    }
+    // Now we can choose the best integer variable
+    auto get_baselit_value = [&](int baselit) -> double {
+      return static_cast<double>(baselit_remainingChoices[baselit]) / (baselit_activity[baselit] + k);
+    };
+    int best_baselit = 0;
+    double best_value = get_baselit_value(best_baselit);
+    for (int baselit = 1; baselit <= max_baselit; ++baselit) {
+      double value = get_baselit_value(baselit);
+      // std::cout << "baselit " << baselit << "  choices: " << baselit_remainingChoices[baselit] << "  activity: " << baselit_activity[baselit] << "  value: " << value << std::endl;
+      if (value > best_value) {
+        best_baselit = baselit;
+        best_value = value;
+      }
+    }
+    // std::cout << "best_baselit = " << best_baselit << std::endl;
+    if (baselit_remainingChoices[best_baselit] == 0) {
+      for (Var v = 0; v < assigns.size(); ++v) {
+        // std::cerr << "v = " << v << "     baselit = " << info.var_baselit[v] << "     choices = " << baselit_remainingChoices[info.var_baselit[v]] << "    value = " << toLbool(assigns[v]) << std::endl;
+        assert(toLbool(assigns[v]) != l_Undef);
+      }
+      return var_Undef;  // apparently this can happen after all, and we just return var_Undef
+    }
+    // We have the best baselit, now choose the best boolean var among those. (for now: first free one, like mlmatcher is doing)
+    ASS_G(baselit_remainingChoices[best_baselit], 0);  // there must be at least one (otherwise we would not select() -- at least for the subsumption problems)
+    for (Var v = 0; v < assigns.size(); ++v) {
+        if (info.var_baselit[v] == best_baselit) {
+            if (toLbool(assigns[v]) == l_Undef) {
+                return v;
+            }
+        }
+    }
+
+    assert(false);
+    return var_Undef;
 }
 
 Var VarOrder::select_Alternate(double remaining_choices_freq)
