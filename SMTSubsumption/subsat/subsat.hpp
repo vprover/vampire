@@ -1,6 +1,7 @@
 #ifndef SUBSAT_HPP
 #define SUBSAT_HPP
 
+#include <algorithm>
 #include <cassert>
 #include <cstdint>
 #include <cstdlib>
@@ -29,6 +30,11 @@ enum class Value : signed char {
   Unknown = 0,
   True = 1,
 };
+
+Value operator~(Value v) {
+  return static_cast<Value>(-static_cast<signed char>(v));
+}
+
 
 class Lit;
 
@@ -59,6 +65,11 @@ public:
     return Var{std::numeric_limits<uint32_t>::max()};
   }
 
+  [[nodiscard]] constexpr bool is_valid() const noexcept
+  {
+    return m_index <= max_index();
+  }
+
   // [[nodiscard]] constexpr Lit operator~() const noexcept
   // {
   //   return Lit{*this, false};
@@ -72,6 +83,18 @@ public:
 
 static_assert(Var::max_index() == static_cast<uint32_t>(INT32_MAX - 1), "unexpected max variable index");
 static_assert(Var::max_index() < Var::invalid().index(), "valid variable indices overlap with invalid sentinel value");
+
+[[nodiscard]] constexpr bool operator==(Var lhs, Var rhs) noexcept
+{
+  return lhs.index() == rhs.index();
+}
+
+[[nodiscard]] constexpr bool operator!=(Var lhs, Var rhs) noexcept
+{
+  return !operator==(lhs, rhs);
+}
+
+
 
 /// Boolean literals represented by integer index.
 /// The least significant bit indicates the sign.
@@ -132,6 +155,11 @@ public:
     return Lit{std::numeric_limits<uint32_t>::max()};
   }
 
+  [[nodiscard]] constexpr bool is_valid() const noexcept
+  {
+    return m_index <= max_index();
+  }
+
   [[nodiscard]] constexpr bool is_positive() const noexcept
   {
     return (m_index & 1) == 0;
@@ -146,9 +174,28 @@ public:
   {
     return Lit{m_index ^ 1};
   }
+
+  [[nodiscard]] constexpr Var var() const noexcept
+  {
+    return Var{m_index / 2};
+  }
 }; // Lit
 
 static_assert(Lit::max_index() < Lit::invalid().index(), "valid literal indices overlap with invalid sentinel value");
+
+
+
+[[nodiscard]] constexpr bool operator==(Lit lhs, Lit rhs) noexcept
+{
+  return lhs.index() == rhs.index();
+}
+
+[[nodiscard]] constexpr bool operator!=(Lit lhs, Lit rhs) noexcept
+{
+  return !operator==(lhs, rhs);
+}
+
+
 
 inline void* subsat_alloc(std::size_t size)
 {
@@ -246,15 +293,16 @@ private:
 }; // Clause
 
 template <typename Key>
-class IndexMember {
-  typename std::invoke_result_t<typename Key::index> operator()(Key key) const
+struct IndexMember {
+  using index_type = std::invoke_result_t<decltype(&Key::index), Key>;
+  index_type operator()(Key key) const
   {
     return key.index();
   }
 };
 
 template <typename Integer>
-class IndexIdentity {
+struct IndexIdentity {
   Integer operator()(Integer key) const noexcept
   {
     return key;
@@ -271,9 +319,10 @@ template <> struct DefaultIndex<Lit> {
 template <> struct DefaultIndex<uint32_t> {
   using type = IndexIdentity<uint32_t>;
 };
+template <typename Key> using DefaultIndex_t = typename DefaultIndex<Key>::type;
 
 // template <typename Key, typename T, typename Index = IndexMember<Key>>
-template <typename Key, typename T, typename Index = DefaultIndex<Key>>
+template <typename Key, typename T, typename Index = DefaultIndex_t<Key>>
 class ivector {
 public:
   using key_type = Key;
@@ -282,10 +331,22 @@ public:
   using const_reference = value_type const&;
   using size_type = typename std::vector<T>::size_type;
 
-  reference operator[](key_type key) { return m_data[index(key)]; }
-  const_reference operator[](key_type key) const { return m_data[index(key)]; }
+  reference operator[](key_type key)
+  {
+    size_type const idx = index(key);
+    assert(idx < size());
+    return m_data[idx];
+  }
+
+  const_reference operator[](key_type key) const
+  {
+    size_type const idx = index(key);
+    assert(idx < size());
+    return m_data[idx];
+  }
 
   void reserve(size_type new_cap) { m_data.reserve(new_cap); }
+  size_type size() const noexcept { return m_data.size(); }
 
 private:
   size_type index(Key key) const
@@ -301,11 +362,22 @@ private:
 
 
 
+class Watch {
+};
+
+using ClauseRef = uint32_t;
+using Level = uint32_t;
+#define InvalidClauseRef (std::numeric_limits<ClauseRef>::max())
+
+struct VarInfo {
+  Level level;
+  ClauseRef reason;
+};
+
+
 
 class Solver {
 public:
-  using ClauseRef = uint32_t;
-  using Level = uint32_t;
 
   /// Ensure space for a new variable and return it.
   [[nodiscard]] Var new_variable()
@@ -325,6 +397,7 @@ public:
     // TODO
   }
 
+    /*
   void add_empty_clause()
   {
   }
@@ -336,22 +409,67 @@ public:
   void add_binary_clause(Lit* lit1, Lit* lit2)
   {
   }
+  */
 
   void add_clause(Clause* clause)
   {
   }
 
-private:
-  void assign(Lit lit, Value value)
+  void solve()
   {
+    propagate_units();
+  }
+
+private:
+  /// Set the literal to true.
+  /// Precondition: literal is not assigned.
+  bool assign(Lit lit, ClauseRef reason)
+  {
+    // TODO: log
+
+    /*
+    // TODO: Assignment on root level => no need to store the reason
+    // (done in satch, but not in kitten)
+    if (m_level == 0) {
+      reason = InvalidClauseRef;
+    } */
+
+    // TODO: kitten does phase-saving as well
+
+    // precondition: not assigned
+    assert(m_values[lit] == Value::Unknown);
+    assert(m_values[~lit] == Value::Unknown);
+
+    // not assigned also means not on trail
+    assert(std::find(m_trail.begin(), m_trail.end(), lit) == m_trail.end());
+    assert(std::find(m_trail.begin(), m_trail.end(), ~lit) == m_trail.end());
+
+    m_values[lit] = Value::True;
+    m_values[~lit] = Value::False;
+
+    Var const var = lit.var();
+    m_vars[var] = {
+      .level = m_level,
+      .reason = reason,
+    };
+
+    m_trail.push_back(lit);
+
+    assert(m_unassigned > 0);
+    m_unassigned -= 1;
   }
 
   void propagate_units()
   {
+    for (Lit lit : m_units) {
+      assign(lit, InvalidClauseRef);
+    }
   }
 
   void propagate()
   {
+    while (m_propagate_head < m_trail.size()) {
+    }
   }
 
   void analyze()
@@ -362,13 +480,31 @@ private:
   bool m_inconsistent;
   uint32_t m_used_variables;
   uint32_t m_allocated_variables;
+  uint32_t m_unassigned;  ///< Number of variables that have not yet been assigned
   std::vector<Lit> m_units;
   ivector<Lit, ClauseRef> m_reasons;
-  ivector<Lit, Value> m_values; ///< Current assignment of literals
+
+  /// Current assignment of literals.
+  /// We store the value for both literal polarities to make the lookup simpler and branchless.
+  ivector<Lit, Value> m_values;
+
+  /// Decision levels and reasons of variables
+  ivector<Var, VarInfo> m_vars;
+
   ivector<ClauseRef, Clause*> m_clauses;
+  ivector<Lit, Watch> m_watches;
+  Level m_level;  ///< Current decision level
+
+  std::vector<Lit> m_trail;  ///< Currently true literals in order of assignment; TODO: pre-allocate to #variables
+  uint32_t m_propagate_head;  // index into trail, the next literal to propagate
+
   // std::vector<Clause*> clauses;
 }; // Solver
 
+
+// TODO:
+// 1. basic implementation of CDCL with only major stuff like learning and 2-watched-literals without further complications
+// 2. add optimizations as desired
 
 
 } // namespace SMTSubsumption
