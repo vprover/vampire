@@ -127,7 +127,11 @@ SaturationAlgorithm* SaturationAlgorithm::s_instance = 0;
 
 static std::unique_ptr<PassiveClauseContainer> makeLevel0(bool isOutermost, const Options& opt, vstring name)
 {
-  return Lib::make_unique<AWPassiveClauseContainer>(isOutermost, opt, name + "AWQ");
+  // return Lib::make_unique<AWPassiveClauseContainer>(isOutermost, opt, name + "AWQ");
+
+  // hardcoding neural logits
+
+  return Lib::make_unique<SingleQueuePassiveClauseContainer<NeuralLogitsQueue>>(isOutermost, opt, name + "AWQ");
 }
 
 static std::unique_ptr<PassiveClauseContainer> makeLevel1(bool isOutermost, const Options& opt, vstring name)
@@ -528,19 +532,23 @@ void SaturationAlgorithm::embed_and_evaluate(Clause* cl, const char* method_name
 #if DEBUG_MODEL
   cout << " fell back to " << backup_method_name;
 #endif
-
   }
-
-#if DEBUG_MODEL
-  cout << " and said " << eval << " in " << env.timer->elapsedMilliseconds() - start << endl;
-#endif
 
   if (eval) {
     inputs.clear();
     inputs.push_back(id);
 
     auto out = _model.forward(inputs);
+
+#if DEBUG_MODEL
+  cout << " and said " << -out.toDouble() << " in " << env.timer->elapsedMilliseconds() - start << endl;
+#endif
+
     cl->setModelSaid(-out.toDouble()); // already here, we reverse the logit's logic to "small is good"!
+  } else {
+#if DEBUG_MODEL
+  cout << " only embedded in " << env.timer->elapsedMilliseconds() - start << endl;
+#endif
   }
 }
 
@@ -1366,8 +1374,8 @@ void SaturationAlgorithm::addToPassive(Clause* cl)
   env.statistics->passiveClauses++;
 
   if (_opt.evalForKarel()) {
-    // talkToKarel(cl); // delayed evaluation trick (TODO: do this for initial as well?)
-    // cl->modelSaid(true); // the clause is born as good; see Clause::Clause
+    // delayed evaluation trick starts by removing this line:
+    talkToKarel(cl,true /*embed*/,true /*eval*/);
   }
 
   {

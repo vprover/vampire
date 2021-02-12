@@ -66,6 +66,118 @@ private:
   const Shell::Options& _opt;
 };
 
+class NeuralLogitsQueue
+  : public ClauseQueue
+{
+protected:
+  virtual bool lessThan(Clause* c1, Clause* c2) {
+    if (c1->modelSaid() < c2->modelSaid())
+      return true;
+
+    if (c1->modelSaid() > c2->modelSaid())
+      return false;
+
+    return c1->number() < c2->number();
+  }
+};
+
+/**
+ * A class to be used by the neural experiments.
+ *
+ * Currently implemented without LRS support.
+ *
+ * In the long term, AWPassiveClauseContainer should be implementable
+ * as a (binary) meta-container out of two template-instances of this class.
+ *
+ **/
+template <class QueueType>
+class SingleQueuePassiveClauseContainer
+    : public PassiveClauseContainer
+{
+public:
+  CLASS_NAME(SingleQueuePassiveClauseContainer);
+  USE_ALLOCATOR(SingleQueuePassiveClauseContainer);
+
+  SingleQueuePassiveClauseContainer(bool isOutermost, const Shell::Options& opt, vstring name) :
+    PassiveClauseContainer(isOutermost, opt, name) {}
+
+  ~SingleQueuePassiveClauseContainer() override {
+    CALL("SingleQueuePassiveClauseContainer::~SingleQueuePassiveClauseContainer");
+    ClauseQueue::Iterator cit(_myQueue);
+    while (cit.hasNext())
+    {
+      Clause* cl=cit.next();
+      ASS(!_isOutermost || cl->store()==Clause::PASSIVE);
+      cl->setStore(Clause::NONE);
+    }
+  }
+
+  void add(Clause* cl) override {
+    CALL("SingleQueuePassiveClauseContainer::add");
+    ASS(cl->store() == Clause::PASSIVE);
+    _myQueue.insert(cl);
+    _size++;
+    if (_isOutermost)
+    {
+      addedEvent.fire(cl);
+    }
+  }
+
+  void remove(Clause* cl) override {
+    CALL("SingleQueuePassiveClauseContainer::remove");
+    if (_isOutermost)
+    {
+      ASS(cl->store()==Clause::PASSIVE);
+    }
+    bool wasRemoved = _myQueue.remove(cl);
+    if (wasRemoved) {
+      _size--;
+    }
+    if (_isOutermost)
+    {
+      removedEvent.fire(cl);
+      ASS(cl->store()!=Clause::PASSIVE);
+    }
+  }
+
+  Clause* popSelected() override {
+    CALL("SingleQueuePassiveClauseContainer::popSelected");
+    ASS(!isEmpty());
+    _size--;
+
+    Clause* cl = _myQueue.pop();
+
+    if (_isOutermost) {
+      selectedEvent.fire(cl);
+    }
+
+    return cl;
+  }
+
+  bool isEmpty() const override { return _myQueue.isEmpty(); }
+  unsigned sizeEstimate() const override { return _size; }
+
+private:
+  QueueType _myQueue;
+  unsigned _size;
+public:
+  // brutally ignoring the LRS stuff
+  void simulationInit() override {}
+  bool simulationHasNext() override { return false; }
+  void simulationPopSelected() override {}
+  bool setLimitsToMax() override { return false; }
+  bool setLimitsFromSimulation() override { return false; }
+  void onLimitsUpdated() override {}
+
+  bool ageLimited() const override { return false; }
+  bool weightLimited() const override { return false; }
+  bool fulfilsAgeLimit(Clause* c) const override { return true; }
+  bool fulfilsAgeLimit(unsigned w, unsigned numPositiveLiterals, const Inference& inference) const override { return true; }
+  bool fulfilsWeightLimit(Clause* cl) const override { return true; }
+  bool fulfilsWeightLimit(unsigned w, unsigned numPositiveLiterals, const Inference& inference) const override { return true; }
+  bool childrenPotentiallyFulfilLimits(Clause* cl, unsigned upperBoundNumSelLits) const override { return true; }
+};
+
 /**
  * Defines the class Passive of passive clauses
  * @since 31/12/2007 Manchester
