@@ -6,6 +6,7 @@
 #include <cstdlib>
 #include <limits>
 #include <new>
+#include <vector>
 
 // Ensure NDEBUG and VDEBUG are synchronized
 #ifdef NDEBUG
@@ -232,11 +233,69 @@ private:
   Clause& operator=(Clause&&) = delete;
 }; // Clause
 
+template <typename Key>
+class IndexMember {
+  typename std::invoke_result_t<typename Key::index> operator()(Key key) const
+  {
+    return key.index();
+  }
+};
+
+template <typename Integer>
+class IndexIdentity {
+  Integer operator()(Integer key) const noexcept
+  {
+    return key;
+  }
+};
+
+template <typename Key> struct DefaultIndex;
+template <> struct DefaultIndex<Var> {
+  using type = IndexMember<Var>;
+};
+template <> struct DefaultIndex<Lit> {
+  using type = IndexMember<Lit>;
+};
+template <> struct DefaultIndex<uint32_t> {
+  using type = IndexIdentity<uint32_t>;
+};
+
+// template <typename Key, typename T, typename Index = IndexMember<Key>>
+template <typename Key, typename T, typename Index = DefaultIndex<Key>>
+class ivector {
+public:
+  using key_type = Key;
+  using value_type = T;
+  using reference = value_type&;
+  using const_reference = value_type const&;
+  using size_type = typename std::vector<T>::size_type;
+
+  reference operator[](key_type key) { return m_data[index(key)]; }
+  const_reference operator[](key_type key) const { return m_data[index(key)]; }
+
+private:
+  size_type index(Key key) const
+  {
+    Index index;
+    return index(key);
+  }
+
+private:
+  std::vector<T> m_data;
+};
 
 
-class Solver
-{
-  int x;
+
+
+
+class Solver {
+public:
+  using ClauseRef = uint32_t;
+
+private:
+  ivector<Lit, Value> values; ///< Current assignment of literals
+  ivector<ClauseRef, Clause*> clauses;
+  // std::vector<Clause*> clauses;
 }; // Solver
 
 
