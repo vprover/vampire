@@ -557,6 +557,7 @@ set(VAMPIRE_SATURATION_SOURCES
     Saturation/LabelFinder.cpp
     Saturation/LRS.cpp
     Saturation/Otter.cpp
+    Saturation/PersistentGrounding.cpp
     Saturation/ProvingHelper.cpp
     Saturation/SaturationAlgorithm.cpp
     Saturation/Splitter.cpp
@@ -570,6 +571,7 @@ set(VAMPIRE_SATURATION_SOURCES
     Saturation/LabelFinder.hpp
     Saturation/LRS.hpp
     Saturation/Otter.hpp
+    Saturation/PersistentGrounding.hpp
     Saturation/ProvingHelper.hpp
     Saturation/SaturationAlgorithm.hpp
     Saturation/Splitter.hpp

@@ -2241,6 +2241,10 @@ public:
   SplittingCongruenceClosure splittingCongruenceClosure() const { return _splittingCongruenceClosure.actualValue; }
   CCUnsatCores ccUnsatCores() const { return _ccUnsatCores.actualValue; }
 
+#if VTHREADED
+  bool persistentGrounding() const { return _persistentGrounding.actualValue; }
+#endif
+
   void setProof(Proof p) { _proof.actualValue = p; }
   bool bpEquivalentVariableRemoval() const { return _equivalentVariableRemoval.actualValue; }
   unsigned bpMaximalPropagatedEqualityLength() const { return _maximalPropagatedEqualityLength.actualValue; }
@@ -2648,6 +2652,10 @@ private:
   ChoiceOptionValue<SplittingDeleteDeactivated> _splittingDeleteDeactivated;
   BoolOptionValue _splittingFastRestart;
   BoolOptionValue _splittingBufferedSolver;
+
+#if VTHREADED
+  BoolOptionValue _persistentGrounding;
+#endif
 
   ChoiceOptionValue<Statistics> _statistics;
   BoolOptionValue _superpositionFromVariables;

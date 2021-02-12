@@ -319,6 +319,9 @@ typedef Lib::SmartPtr<PassiveClauseContainer> PassiveClauseContainerSP;
 class ActiveClauseContainer;
 
 class Splitter;
+#if VTHREADED
+class PersistentGrounding;
+#endif
 class ConsequenceFinder;
 class LabelFinder;
 class SymElOutput;

@@ -91,6 +91,7 @@
 
 
 #include "Saturation/ExtensionalityClauseContainer.hpp"
+#include "Saturation/PersistentGrounding.hpp"
 
 #include "Shell/AnswerExtractor.hpp"
 #include "Shell/Options.hpp"
@@ -217,6 +218,9 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
   : MainLoop(prb, opt),
     _clauseActivationInProgress(false),
     _fwSimplifiers(0), _simplifiers(0), _bwSimplifiers(0), _splitter(0),
+#if VTHREADED
+    _grounding(nullptr),
+#endif
     _consFinder(0), _labelFinder(0), _symEl(0), _answerLiteralManager(0),
     _instantiation(0),
 #if VZ3
@@ -240,6 +244,11 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
   _completeOptionSettings = opt.complete(prb);
 
   _unprocessed = new UnprocessedClauseContainer();
+
+#if VTHREADED
+  if(opt.persistentGrounding())
+    _grounding = PersistentGrounding::instance();
+#endif
 
   if (opt.useManualClauseSelection())
   {
@@ -929,6 +938,11 @@ void SaturationAlgorithm::addUnprocessedClause(Clause* cl)
     handleEmptyClause(cl);
     return;
   }
+
+#if VTHREADED
+  if(_grounding)
+    _grounding->enqueue(cl);
+#endif
 
   cl->setStore(Clause::UNPROCESSED);
   _unprocessed->add(cl);

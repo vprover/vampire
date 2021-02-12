@@ -1049,6 +1049,12 @@ void Options::init()
       _lookup.insert(&_simulatedTimeLimit);
       _simulatedTimeLimit.tag(OptionTag::LRS);
 
+#if VTHREADED
+      _persistentGrounding = BoolOptionValue("persistent_grounding", "pg", false);
+      _persistentGrounding.description = "Ground all clauses and feed them into a SAT solver. SAT solver persists across proof attempts.";
+      _persistentGrounding.tag(OptionTag::SATURATION);
+      _lookup.insert(&_persistentGrounding);
+#endif
 
   //*********************** Inferences  ***********************
 

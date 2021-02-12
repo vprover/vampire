@@ -204,6 +204,9 @@ protected:
   ScopedPtr<LiteralSelector> _selector;
 
   Splitter* _splitter;
+#if VTHREADED
+  PersistentGrounding *_grounding;
+#endif
 
   ConsequenceFinder* _consFinder;
   LabelFinder* _labelFinder;
