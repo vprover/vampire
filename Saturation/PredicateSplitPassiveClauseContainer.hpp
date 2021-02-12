@@ -27,6 +27,127 @@
 #include "Lib/STL.hpp"
 
 namespace Saturation {
+
+/**
+ * A class to be used by the neural experiments.
+ *
+ * Currently implemented without LRS support.
+ *
+ * In the long term, AWPassiveClauseContainer should be implementable
+ * as a (binary) meta-container out of two SingleQueuePassiveClauseContainer(s)
+ *
+ **/
+class BinaryMetaContainer : public PassiveClauseContainer
+{
+public:
+  CLASS_NAME(BinaryMetaContainer);
+  USE_ALLOCATOR(BinaryMetaContainer);
+
+  BinaryMetaContainer(bool isOutermost, const Shell::Options& opt, vstring name,
+      std::unique_ptr<PassiveClauseContainer> firstSubcontainer, std::unique_ptr<PassiveClauseContainer> secondSubcontainer, int firstRatio, int secondRatio)
+      : PassiveClauseContainer(isOutermost, opt, name),
+      _firstSubcontainer(std::move(firstSubcontainer)), _secondSubcontainer(std::move(secondSubcontainer)),
+      _firstRatio(firstRatio), _secondRatio(secondRatio), _balance(0) { ASS_G(firstRatio,0); ASS_G(secondRatio,0); }
+
+  virtual ~BinaryMetaContainer() {}
+
+  void add(Clause* cl) override {
+    CALL("BinaryMetaContainer::add");
+
+    ASS(cl->store() == Clause::PASSIVE);
+
+    _firstSubcontainer->add(cl);
+    _secondSubcontainer->add(cl);
+
+    if (_isOutermost)
+    {
+      addedEvent.fire(cl);
+    }
+  }
+
+  void remove(Clause* cl) override {
+    CALL("BinaryMetaContainer::remove");
+
+    if (_isOutermost)
+    {
+      ASS(cl->store()==Clause::PASSIVE);
+    }
+
+    _firstSubcontainer->remove(cl);
+    _secondSubcontainer->remove(cl);
+
+    if (_isOutermost)
+    {
+      ASS(cl->store()==Clause::PASSIVE);
+      removedEvent.fire(cl);
+      ASS(cl->store() != Clause::PASSIVE);
+    }
+  }
+
+  Clause* popSelected() override {
+    CALL("BinaryMetaContainer::popSelected");
+
+    bool selFromFirst;
+    if (_balance > 0) {
+      selFromFirst = true;
+    } else if (_balance < 0) {
+      selFromFirst = false;
+    } else {
+      selFromFirst = (_firstRatio <= _secondRatio);
+    }
+
+    Clause* cl;
+
+    if (selFromFirst) {
+      _balance -= _secondRatio;
+
+      // cout << "Sel from first" << endl;
+
+      cl = _firstSubcontainer->popSelected();
+      _secondSubcontainer->remove(cl);
+    } else {
+      _balance += _firstRatio;
+
+      // cout << "Sel from second" << endl;
+
+      cl = _secondSubcontainer->popSelected();
+      _firstSubcontainer->remove(cl);
+    }
+
+    if (_isOutermost) {
+      selectedEvent.fire(cl);
+    }
+
+    return cl;
+  }
+
+  bool isEmpty() const override { return _firstSubcontainer->isEmpty() &&  _secondSubcontainer->isEmpty(); } // they should contain the same clauses, but whatever
+  unsigned sizeEstimate() const override { return _firstSubcontainer->sizeEstimate(); }
+
+private:
+  std::unique_ptr<PassiveClauseContainer> _firstSubcontainer, _secondSubcontainer;
+  int _firstRatio, _secondRatio; // these two are not really ratios, their form a ratio as a pair
+  int _balance;
+
+public:
+  // brutally ignoring the LRS stuff
+  void simulationInit() override {}
+  bool simulationHasNext() override { return false; }
+  void simulationPopSelected() override {}
+  bool setLimitsToMax() override { return false; }
+  bool setLimitsFromSimulation() override { return false; }
+  void onLimitsUpdated() override {}
+
+  bool ageLimited() const override { return false; }
+  bool weightLimited() const override { return false; }
+  bool fulfilsAgeLimit(Clause* c) const override { return true; }
+  bool fulfilsAgeLimit(unsigned w, unsigned numPositiveLiterals, const Inference& inference) const override { return true; }
+  bool fulfilsWeightLimit(Clause* cl) const override { return true; }
+  bool fulfilsWeightLimit(unsigned w, unsigned numPositiveLiterals, const Inference& inference) const override { return true; }
+  bool childrenPotentiallyFulfilLimits(Clause* cl, unsigned upperBoundNumSelLits) const override { return true; }
+};
+
+
 class PredicateSplitPassiveClauseContainer
 : public PassiveClauseContainer
 {

@@ -1034,6 +1034,10 @@ void Options::Options::init()
     _neuralEvalSplitQueueRatios.reliesOn(_useNeuralEvalSplitQueues.is(equal(true)));
     _neuralEvalSplitQueueRatios.tag(OptionTag::SATURATION);
 
+    _secondLayerRatio = RatioOptionValue("second_layer_ratio","slr",1,1,':');
+    _lookup.insert(&_secondLayerRatio);
+    _secondLayerRatio.tag(OptionTag::SATURATION);
+
     _literalMaximalityAftercheck = BoolOptionValue("literal_maximality_aftercheck","lma",false);
     _literalMaximalityAftercheck.description = 
                                    "For efficiency we perform maximality checks before applying substitutions. Sometimes this can " 
