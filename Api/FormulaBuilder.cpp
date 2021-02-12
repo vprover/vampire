@@ -170,7 +170,7 @@ Var FormulaBuilder::var(const string& varName, Sort varSort)
 
 Symbol FormulaBuilder::symbol(const string& name, unsigned arity, Sort rangeSort, std::vector<Sort>& domainSorts, bool builtIn)
 {
-  CALL("FormulaBuilder::function/4");
+  CALL("FormulaBuilder::symbol");
 
   bool pred = (rangeSort == FormulaBuilder::boolSort());
 
@@ -208,40 +208,25 @@ Symbol FormulaBuilder::integerConstant(int i)
 {
   CALL("FormulaBuilder::integerConstant");
 
-  unsigned fun = env.signature->addIntegerConstant(IntegerConstantType(i));
-  return Symbol(fun, false, _aux);
+  return integerConstant(to_string(i));
 }
 
 Symbol FormulaBuilder::integerConstant(string i)
 {
   CALL("FormulaBuilder::integerConstant");
 
-  unsigned fun;
-  try {
-    fun = env.signature->addIntegerConstant(IntegerConstantType(StringUtils::copy2vstr(i)));
-  }
-  catch (ArithmeticException) {
-    throw FormulaBuilderException("Constant value invalid or does not fit into internal representation: " + i);
-  }
+  //no need to catch arithmetic exception as this is done in TPTP
+  vstring num = StringUtils::copy2vstr(i);
+  unsigned fun = Parse::TPTP::addIntegerConstant(num, _aux->getOverflow(), false);
   return Symbol(fun, false, _aux);
 }
 
-Symbol FormulaBuilder::rationalConstantSymbol(string numerator, string denom)
+Symbol FormulaBuilder::rationalConstantSymbol(string r)
 {
   CALL("FormulaBuilder::rationalConstantSymbol");
 
-  Lib::vstring num = StringUtils::copy2vstr(numerator);
-  Lib::vstring den = StringUtils::copy2vstr(denom);
-
-  unsigned fun;
-  try {
-    fun = env.signature->addRationalConstant(RationalConstantType(num, den));
-  }
-  catch (MachineArithmeticException) {
-    throw FormulaBuilderException("An arithmetic exception occured during the creation of constant: " + numerator + "/" + denom);
-  } catch (DivByZeroException) {
-    throw FormulaBuilderException("The denominator of a rational cannot be 0");    
-  }
+  Lib::vstring num = StringUtils::copy2vstr(r);
+  unsigned fun = Parse::TPTP::addRationalConstant(num, _aux->getOverflow(), false);
   return Symbol(fun, false, _aux);
 }
 
@@ -249,13 +234,9 @@ Symbol FormulaBuilder::realConstantSymbol(string r)
 {
   CALL("FormulaBuilder::realConstantSymbol");
 
-  unsigned fun;
-  try {
-    fun = env.signature->addRealConstant(RealConstantType(StringUtils::copy2vstr(r)));
-  }
-  catch (ArithmeticException) {
-    throw FormulaBuilderException("An arithmetic exception occured during the creation of constant " + r);
-  }
+
+  Lib::vstring num = StringUtils::copy2vstr(r);
+  unsigned fun = Parse::TPTP::addRealConstant(num, _aux->getOverflow(), false);
   return Symbol(fun, false, _aux);
 }
 
@@ -310,6 +291,13 @@ Expression FormulaBuilder::equality(const Expression& lhs,const Expression& rhs,
 {
   CALL("FormulaBuilder::equality/3");
 
+  /*cout << "lhs is " + lhs.toString() << endl;
+  cout << "rhs is " + rhs.toString() << endl;
+  cout << "lhs sort is " + getSortName(lhs.sort()) << endl;
+  cout << "rhs sort is " + getSortName(rhs.sort()) << endl;
+  cout << "lhs is term " << lhs.isTerm() << endl;
+  cout << "rhs is term " << rhs.isTerm() << endl;*/
+
   checkForValidity({lhs, rhs});
   if(!lhs.isTerm() || !rhs.isTerm()){
     throw ApiException("Formulas cannot occur on the left or right of an equality!");     
@@ -344,6 +332,7 @@ Expression FormulaBuilder::negation(const Expression& f)
 
   checkForValidity({f});
   checkForTermError({f});
+
   return Expression(new Kernel::NegatedFormula(f._form), _aux);
 }
 
@@ -369,8 +358,8 @@ Expression FormulaBuilder::andOrOrFormula(Connective con, const Expression& f1,c
   checkForTermError({f1, f2});
 
   Kernel::FormulaList* flst=0;
-  Kernel::FormulaList::push(f2._form, flst);
   Kernel::FormulaList::push(f1._form, flst);
+  Kernel::FormulaList::push(f2._form, flst);
   Kernel::Connective c = con == AND ? Kernel::AND : Kernel::OR;
   return Expression(new Kernel::JunctionFormula(c, flst), _aux);  
 }
@@ -381,6 +370,7 @@ Expression FormulaBuilder::implies(const Expression& f1,const Expression& f2)
 
   checkForValidity({f1, f2});
   checkForTermError({f1, f2});
+
   return Expression(new Kernel::BinaryFormula(Kernel::IMP, f1._form, f2._form), _aux);
 }
 
@@ -390,6 +380,7 @@ Expression FormulaBuilder::iff(const Expression& f1,const Expression& f2)
 
   checkForValidity({f1, f2});
   checkForTermError({f1, f2});
+ 
   return Expression(new Kernel::BinaryFormula(Kernel::IFF, f1._form, f2._form), _aux);
 }
 
@@ -399,6 +390,7 @@ Expression FormulaBuilder::exor(const Expression& f1,const Expression& f2)
 
   checkForValidity({f1, f2});
   checkForTermError({f1, f2});
+
   return Expression(new Kernel::BinaryFormula(Kernel::XOR, f1._form, f2._form), _aux);
 }
 
@@ -443,6 +435,7 @@ AnnotatedFormula FormulaBuilder::annotatedFormula(Expression& f, Annotation a, s
 {
   CALL("FormulaBuilder::annotatedFormula");
 
+  //TODO Allow the assertion of formula level ites
   ASS(!f.isTerm());
 
   if(!f.isValid()) {
@@ -613,7 +606,7 @@ void FormulaBuilder::checkForNumericalSortError(std::initializer_list<Expression
 
 void FormulaBuilder::checkForTermError(std::initializer_list<Expression> exprs)
 {
-  CALL("FormulaBuilder::checkForBooleanSortError");
+  CALL("FormulaBuilder::checkForTermError");
 
   for( auto e : exprs )
   {
@@ -668,6 +661,22 @@ Expression FormulaBuilder::term(const Symbol& s,const Expression& t1,const Expre
   return _aux->term(s,args,3);
 }
 
+Expression FormulaBuilder::ite(const Expression& cond,const Expression& t1,const Expression& t2)
+{
+  CALL("FormulaBuilder::ite");
+
+  checkForValidity<Expression>({cond, t1, t2});
+
+  if(cond.sort() != boolSort()){
+    throw ApiException("ITE error, cond " + cond.toString() + " is not of Boolean sort");
+  }
+  if(t1.sort() != t2.sort()){
+    throw ApiException("ITE error, then expression " + t1.toString() + " has a different sort to else expression " + t2.toString());
+  }
+  
+  return _aux->iteTerm(cond, t1, t2);
+}
+
 Expression FormulaBuilder::integerConstantTerm(int i)
 {
   CALL("FormulaBuilder::integerConstantTerm");
@@ -682,12 +691,11 @@ Expression FormulaBuilder::integerConstantTerm(string i)
   return term(integerConstant(i));
 }
 
-
-Expression FormulaBuilder::rationalConstant(string numerator, string denom)
+Expression FormulaBuilder::rationalConstant(string r)
 {
   CALL("FormulaBuilder::rationalConstant");
 
-  return term(rationalConstantSymbol(numerator, denom));
+  return term(rationalConstantSymbol(r));
 }
 
 Expression FormulaBuilder::realConstant(string i)
@@ -863,7 +871,7 @@ Expression FormulaBuilder::absolute(const Expression& t1)
   CALL("FormulaBuilder::absolute");
 
   if(t1.sort() != integerSort()){
-    throw ApiException("Attempting to creat the absolute of a term which is not of integer sort");          
+    throw ApiException("Attempting to create the absolute of a term which is not of integer sort");          
   }
 
   Symbol abs = interpretedSymbol(Kernel::Theory::INT_ABS, _aux);
@@ -936,6 +944,52 @@ Expression FormulaBuilder::lt(const Expression& t1, const Expression& t2)
     lt = interpretedSymbol(Kernel::Theory::RAT_LESS, _aux);
   } 
   return term(lt, t1, t2);
+}  
+
+Expression FormulaBuilder::store(const Expression& array, const Expression& index, const Expression& newVal)
+{
+  CALL("FormulaBuilder::store");
+
+  if(!array.sort().isArraySort()){
+    throw ApiException("Attempting to store in non-array!");          
+  }
+  if(index.sort() != array.sort().indexSort()){
+    throw ApiException("Failed due to sort of index not matching index sort of array");
+  }
+  if(newVal.sort() != array.sort().innerSort()){
+    throw ApiException("Failed due to sort of newVal not matching inner sort of array");              
+  }
+
+  OperatorType* funType = Theory::getArrayOperatorType(array.sort(),Theory::ARRAY_STORE);
+  unsigned fun = env.signature->getInterpretingSymbol(Theory::ARRAY_STORE,funType);
+  Symbol store(fun, false, _aux);
+
+  return term(store, array, index, newVal);
+}
+
+
+Expression FormulaBuilder::select(const Expression& array, const Expression& index)
+{
+  CALL("FormulaBuilder::select");
+
+  if(!array.sort().isArraySort()){
+    throw ApiException("Attempting to select from a non-array!");          
+  }
+  if(index.sort() != array.sort().indexSort()){
+    throw ApiException("Failed due to sort of index not matching index sort of array");
+  }
+
+  bool predicate = array.sort().innerSort() == boolSort();
+
+  OperatorType* funType = predicate ? Theory::getArrayOperatorType(array.sort(),Theory::ARRAY_BOOL_SELECT)
+                                    : Theory::getArrayOperatorType(array.sort(),Theory::ARRAY_SELECT);
+                                    
+  unsigned fun = predicate ? env.signature->getInterpretingSymbol(Theory::ARRAY_BOOL_SELECT,funType)
+                           : env.signature->getInterpretingSymbol(Theory::ARRAY_SELECT,funType);
+ 
+  Symbol select(fun, predicate, _aux);
+
+  return term(select, array, index);
 }
 
 //////////////////////////////
@@ -961,6 +1015,45 @@ bool Sort::isArraySort() const
   if(!isValid()){ return false; }
 
   return env.sorts->isOfStructuredSort(_num, Kernel::Sorts::StructuredSort::ARRAY);
+}
+
+bool Sort::isBoolSort() const
+{
+  CALL("Sort::isBoolSort");
+
+  if(!isValid()){ return false; }
+
+  return _num == Sorts::SRT_BOOL;
+}
+
+Sort Sort::indexSort() const
+{
+  CALL("Sort::indexSort");
+   
+  if(!isValid()){
+    throw ApiException("Cannot get the index sort of a sort created prior to a hard solver reset");        
+  }
+  if(!isArraySort()){
+    throw ApiException("Cannot get the index sort of a sort of a non-array sort");        
+  }
+  Sort index(env.sorts->getArraySort(_num)->getIndexSort());
+  index._aux=_aux;
+  return index;  
+}
+
+Sort Sort::innerSort() const
+{
+  CALL("Sort::indexSort");
+   
+  if(!isValid()){
+    throw ApiException("Cannot get the inner sort of a sort created prior to a hard solver reset");        
+  }
+  if(!isArraySort()){
+    throw ApiException("Cannot get the inner sort of a sort of a non-array sort");        
+  }
+  Sort inner(env.sorts->getArraySort(_num)->getInnerSort());
+  inner._aux=_aux;
+  return inner;  
 }
 
 unsigned Sort::arity() const
@@ -1021,6 +1114,21 @@ bool Expression::isVar() const
     return false;
   }
   return static_cast<Kernel::TermList>(*this).isVar();
+}
+
+bool Expression::isIte() const
+{
+  CALL("Expression::isIte");
+
+  if(isNull()) {
+    throw ApiException("Expression not initialized");
+  }
+  if(!isTerm()){
+    return false;
+  }
+  TermList tl = static_cast<Kernel::TermList>(*this);
+  return tl.isTerm() && tl.term()->isSpecial() && 
+         tl.term()->getSpecialData()->getType() == Term::SF_ITE;  
 }
 
 Var Expression::var() const
@@ -1125,6 +1233,9 @@ Sort Expression::sort() const
   if(!isTerm()){
     return FormulaBuilder::boolSort();
   }
+  if(isIte()){
+    return Sort(static_cast<Kernel::TermList>(*this).term()->getSpecialData()->getSort(), _aux);
+  }
   Sort res = static_cast<FBHelperCore*>(*_aux)->getSort(*this);
   if(!res.isValid()) {
     throw ApiException("Cannot determine sort of a term");
@@ -1225,7 +1336,6 @@ Expression Expression::formulaArg(unsigned i)
   ASS(res);//we do a check that i is within bounds in arity()
   return Expression(res, _aux);
 }
-
 
 /*StringIterator Expression::freeVars()
 {

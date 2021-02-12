@@ -20,9 +20,6 @@
 
 #include "Helper.hpp"
 
-//#include "Kernel/Theory.hpp"
-//#include "Kernel/Connective.hpp"
-
 #include <vector>
 #include <string>
 
@@ -189,7 +186,7 @@ private:
    */
   Symbol integerConstant(std::string i);
 
-  Symbol rationalConstantSymbol(std::string numerator, std::string denom);
+  Symbol rationalConstantSymbol(std::string r);
 
   Symbol realConstantSymbol(std::string r);
 
@@ -276,6 +273,9 @@ private:
   /** build a term f(t1,t2,t3) */
   Expression term(const Symbol& s,const Expression& t1,const Expression& t2,const Expression& t3);
 
+  /** Build a conditional: if cond then t1 else t2 */
+  Expression ite(const Expression& cond,const Expression& t1,const Expression& t2); 
+
   /** Return constant representing @c i */
   Expression integerConstantTerm(int i);
 
@@ -283,7 +283,7 @@ private:
   Expression integerConstantTerm(std::string i);
 
   /** Return constant representing @c i */
-  Expression rationalConstant(std::string numerator, std::string denom);
+  Expression rationalConstant(std::string r);
 
   /** Return constant representing @c i */
   Expression realConstant(std::string r);
@@ -332,6 +332,12 @@ private:
 
   /** build the formula t1 < t2 */
   Expression lt(const Expression& t1, const Expression& t2);
+
+  /** build expression store(array, index, newval) */
+  Expression store(const Expression& array, const Expression& index, const Expression& newVal);
+
+  /** Build the term select(array, index) */
+  Expression select(const Expression& array, const Expression& index);
 
   /** build an annotated formula (i.e. formula that is either axiom, goal, etc...) */
   AnnotatedFormula annotatedFormula(Expression& f, Annotation a, std::string name="");
@@ -467,17 +473,20 @@ class Sort
 public:
   Sort() {}
   explicit Sort(unsigned num) : _num(num) {}
+  explicit Sort(unsigned num, ApiHelper aux) : _aux(aux), _num(num) {}
+
   operator unsigned() const { return _num; }
 
   bool isTupleSort() const;
   bool isArraySort() const;
+  bool isBoolSort() const;
 
   /** the arity of a tuple sort */
   unsigned arity() const;
   /** the index sort of an array sort */
-  unsigned indexSort() const;
+  Sort indexSort() const;
   /** the inner sort of an array sort */
-  unsigned innerSort() const;
+  Sort innerSort() const;
 
   static Sort getInvalid() { return Sort(UINT_MAX); }
   bool isValid() const;  
@@ -541,6 +550,11 @@ public:
    * Return true if expression is a variable
    */
   bool isVar() const;
+
+  /**
+   * Return true if the expression is a conditional
+   */
+  bool isIte() const;
 
   /**
    * For a variable expression return its variable

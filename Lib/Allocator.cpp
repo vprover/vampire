@@ -1073,7 +1073,9 @@ unsigned Allocator::Descriptor::hash (const void* addr)
  * http://stackoverflow.com/questions/7194127/how-should-i-write-iso-c-standard-conformant-custom-new-and-delete-operators/
  * (Note that we ignore the globalHandler issue here.)
  **/ 
-  
+ 
+#if ! VAPI_LIBRARY
+
 void* operator new(size_t sz) {    
   ASS_REP(Allocator::_tolerantZone > 0,"Attempted to use global new operator, thus bypassing Allocator!");
   // Please read: https://github.com/easychair/vampire/wiki/Attempted-to-use-global-new-operator,-thus-bypassing-Allocator!
@@ -1129,6 +1131,8 @@ void operator delete[](void* obj) throw() {
     DEALLOC_UNKNOWN(obj,"global new[]");
   }
 }
+
+#endif
 
 #if VTEST
 

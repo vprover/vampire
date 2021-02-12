@@ -121,8 +121,8 @@ public:
    */
   //Add different flavours of TPTP and SMTLIB
   enum Logic {
-    SMT_LIB,
-    TPTP
+    SMT_LIB = 0,
+    TPTP = 1
   };
 
 private:
@@ -234,6 +234,13 @@ public:
   /** Check whether the currently asserted formulas entail f
    */
   Result checkEntailed(Expression f);
+
+  
+  /** Get the version of Vampire */
+  std::string version();
+
+  /** Get the commit of Vampire library currently being used */
+  std::string commit();
 
   /*
    * Get the default sort (TPTP $i)
@@ -387,6 +394,12 @@ public:
   /** build a term (or formula) f(t1,t2,t3) */
   Expression term(const Symbol& f,const Expression& t1,const Expression& t2,const Expression& t3);
 
+  /** Build a conditional: if cond then t1 else t2 
+   *  @param cond must be of Boolean sort
+   *  @param t1 and @param t2 must have the same sort
+   */
+  Expression ite(const Expression& cond,const Expression& t1,const Expression& t2); 
+
   /** Return constant representing @c i */
   Expression integerConstant(int i);
   
@@ -398,8 +411,14 @@ public:
    */
   Expression integerConstant(std::string i);
 
-  /** Return a rationa constant representing @c numerator/ @c denom */
+  /** Return a rational constant representing @c numerator/ @c denom */
   Expression rationalConstant(std::string numerator, std::string denom);
+
+  /** Return a rational constant  
+   *  @param r must be of the form numerator/denom
+   *  otherwise an exception is thrown.
+   */
+  Expression rationalConstant(std::string r);
 
   /** Return a real constant representing @c i */
   Expression realConstant(std::string r);
@@ -481,6 +500,26 @@ public:
    *  integer, rational or real
    */
   Expression lt(const Expression& t1, const Expression& t2);
+
+
+  /*******************************************************/
+  /*                Array operations                     */
+  /*******************************************************/
+
+  /**
+   *  Build the term store(array, index, newVal)
+   *  @param array must be of array sort
+   *  @param index must have the same sort as the index sort of @array
+   *  @param newVal must have the same sort as the inner sort of @array
+   */
+  Expression store(const Expression& array, const Expression& index, const Expression& newVal);
+
+  /**
+   *  Build the term select(array, index)
+   *  @param array must be of array sort
+   *  @param index must have the same sort as the index sort of @array
+   */
+  Expression select(const Expression& array, const Expression& index);
 
 
   /**

@@ -182,6 +182,25 @@ Expression FBHelperCore::term(const Symbol& s, const Expression* args, unsigned 
   return res;
 }
 
+Expression FBHelperCore::iteTerm(const Expression& cond,const Expression& t1,const Expression& t2)
+{
+  CALL("FBHelperCore::iteTerm");
+
+  TermList thenBranch = t1.isTerm() ? t1 : TermList(Term::createFormula(t1));
+  TermList elseBranch = t2.isTerm() ? t2 : TermList(Term::createFormula(t2));
+ 
+  Term * ite = Term::createITE(cond, thenBranch, elseBranch, t1.sort());
+  
+  Expression res;
+  if(!t1.sort().isBoolSort()){
+    res = Expression(TermList(ite));
+  } else {
+    res = Expression(new BoolTermFormula(TermList(ite)));
+  }  
+  res._aux=this; //assign the correct helper object
+  return res;
+}
+
 unsigned FBHelperCore::getUnaryPredicate()
 {
   CALL("FBHelperCore::getUnaryPredicate");
@@ -210,8 +229,9 @@ Sort FBHelperCore::getSort(const Vampire::Expression t)
   if(t.isVar()) {
     unsigned v = t.var();
     return getVarSort(v);
-  }
-  else {
+  } else if(t.isIte()){
+    return t.sort(); 
+  } else {
     unsigned fun = t.functor();
     return Sort(env.signature->getFunction(fun)->fnType()->result());
   }

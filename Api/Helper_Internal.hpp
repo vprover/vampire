@@ -22,6 +22,7 @@
 #include "Helper.hpp"
 
 #include "Lib/Environment.hpp"
+#include "Lib/Set.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/Connective.hpp"
@@ -110,7 +111,10 @@ public:
 
   void declareInvalid(){ valid = false; }
 
-  Expression term(const Symbol& f,const Expression* args, unsigned arity);
+  Set<vstring>& getOverflow(){ return overflow; }
+
+  Expression term(const Symbol& f,const Expression* args, unsigned arity); 
+  Expression iteTerm(const Expression& cond,const Expression& t1,const Expression& t2);
   virtual vstring getVarName(Var v) const;
   Sort getVarSort(Var v) const;
   Var getVar(vstring varName, Sort varSort);
@@ -181,6 +185,8 @@ private:
     FBHelperCore& _parent;
   };
 
+  /** overflown arithmetical constants for which uninterpreted constants are introduced */
+  Set<vstring> overflow;
   /** Map from variable names to their numbers */
   Map<vstring,Var> vars;
   /** Map from variable names to their numbers */

@@ -824,6 +824,16 @@ endif()
 ################################################################
 # build objects
 ################################################################
+
+if(NOT BUILD_SHARED_LIBS)
+  add_library(vampire_lib STATIC ${VAMPIRE_SOURCES})
+else()
+  add_library(vampire_lib SHARED ${VAMPIRE_SOURCES})
+endif()
+
+set_target_properties(vampire_lib PROPERTIES OUTPUT_NAME "vampire")
+target_compile_definitions(vampire_lib PRIVATE VAPI_LIBRARY=1)
+
 add_library(obj OBJECT ${VAMPIRE_SOURCES})
 add_library(test_obj OBJECT ${VAMPIRE_TESTING_SOURCES})
 
@@ -854,32 +864,6 @@ foreach(test_file ${UNIT_TESTS})
   set_tests_properties(${test_name}
         PROPERTIES
         TIMEOUT 20)
-endforeach()
-
-################################################################
-# API EXAMPLES
-################################################################
-
-foreach(example_file ${API_EXAMPLES})
-  get_filename_component(example_name ${example_file} NAME_WE)
-
-  # compiling the test case executable
-  add_executable(
-    ${example_name}
-    ${example_file}
-    $<TARGET_OBJECTS:obj>
-  )
-  #target_compile_definitions(test-${test_name} PRIVATE CTEST=1)
-  set(examples_bin_dir ${CMAKE_BINARY_DIR}/bin/api-examples)
-  set_target_properties(${example_name} PROPERTIES
-      OUTPUT_NAME ${example_name}
-      RUNTIME_OUTPUT_DIRECTORY ${examples_bin_dir})   
-
-  # configuring ctest
-  # add_test(${example_file} ${test_bin_dir}/${test_name})
-  # set_tests_properties(${test_name}
-  #      PROPERTIES
-  #      TIMEOUT 20)
 endforeach()
 
 #################################################################
@@ -946,8 +930,11 @@ message(STATUS "Setting binary name to '${VAMPIRE_BINARY}'")
 # epilogue
 ################################################################
 add_executable(vampire vampire.cpp $<TARGET_OBJECTS:obj>)
+target_compile_definitions(vampire PRIVATE VAPI_LIBRARY=0)
 set_target_properties(vampire PROPERTIES
   OUTPUT_NAME ${VAMPIRE_BINARY}
   RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
   )
 configure_file(version.cpp.in version.cpp)
+
+

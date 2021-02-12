@@ -86,7 +86,7 @@ namespace Vampire
   {
     CALL("Solver::getSolverPtr");
 
-    return &getSolver();
+    return &getSolver(l);
   }
 
 
@@ -199,6 +199,22 @@ namespace Vampire
     return fb.realSort();
   }
 
+  std::string Solver::version()
+  {
+    CALL("Solver::version");
+
+    string str =  VERSION_STRING;
+    return str.substr(8,5);
+  }
+
+  std::string Solver::commit()
+  {
+    CALL("Solver::commit");
+
+    string str =  VERSION_STRING;
+    return str.substr(23,7);
+  } 
+
   Sort Solver::defaultSort()
   {
     CALL("Solver::defaultSort");
@@ -217,7 +233,7 @@ namespace Vampire
   {
     CALL("Solver::arraySort");
 
-    fb.arraySort(indexSort, innerSort);
+    return fb.arraySort(indexSort, innerSort);
   }
 
 
@@ -455,6 +471,13 @@ namespace Vampire
     return fb.term(s,t1,t2,t3);
   }
 
+  Expression Solver::ite(const Expression& cond,const Expression& t1,const Expression& t2)
+  {
+    CALL("Solver::ite");
+
+    return fb.ite(cond, t1, t2);
+  }
+
   Expression Solver::integerConstant(int i)
   {
     CALL("Solver::integerConstant");
@@ -473,7 +496,18 @@ namespace Vampire
   {
     CALL("Solver::rationalConstant");
 
-    return fb.rationalConstant(numerator, denom);
+    return rationalConstant(numerator + "/" + denom);
+  }
+
+  Expression Solver::rationalConstant(string r)
+  {
+    CALL("Solver::rationalConstant/2");
+
+    std::size_t found = r.find("/");
+    if(found == std::string::npos){
+      throw ApiException("Cannot form a rational constant from " + r + " as it is not of the form a/b");  
+    }
+    return fb.rationalConstant(r);
   }
 
   Expression Solver::realConstant(string r)
@@ -587,6 +621,21 @@ namespace Vampire
 
     return fb.lt(t1, t2);
   }
+
+  Expression Solver::store(const Expression& array, const Expression& index, const Expression& newVal)
+  {
+    CALL("Solver::store");
+
+    return fb.store(array, index, newVal);
+  }
+
+  Expression Solver::select(const Expression& array, const Expression& index)
+  {
+    CALL("Solver::select");
+
+    return fb.select(array, index);
+  }
+
 
   void Solver::addFormula(Expression f)
   {
