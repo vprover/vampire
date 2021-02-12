@@ -133,10 +133,14 @@ static std::unique_ptr<PassiveClauseContainer> makeLevel0(bool isOutermost, cons
 {
   // hard-coding neural logits - in the joint mode along base strategy
 
+  /*
   return Lib::make_unique<BinaryMetaContainer>(isOutermost,opt,name + "SLMQ",
       Lib::make_unique<AWPassiveClauseContainer>(false, opt, name + "AWQ"),
       Lib::make_unique<DelayedEvalSingleQueuePassiveClauseContainer<NeuralPrioQueue>>(false, opt, name + "NLQ",delayedEvaluatorFn),
       opt.firstSLRRatio(),opt.secondSLRRatio());
+      */
+
+  return Lib::make_unique<DelayedEvalSingleQueuePassiveClauseContainer<NeuralPrioQueue>>(isOutermost, opt, name + "NLQ",delayedEvaluatorFn);
 }
 
 static std::unique_ptr<PassiveClauseContainer> makeLevel1(bool isOutermost, const Options& opt, vstring name)
