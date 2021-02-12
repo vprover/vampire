@@ -125,13 +125,17 @@ using namespace Saturation;
 
 SaturationAlgorithm* SaturationAlgorithm::s_instance = 0;
 
+static void delayedEvaluatorFn(Clause* cl) {
+  SaturationAlgorithm::tryGetInstance()->talkToKarel(cl,true/*embed*/,true/*eval*/);
+}
+
 static std::unique_ptr<PassiveClauseContainer> makeLevel0(bool isOutermost, const Options& opt, vstring name)
 {
   // hard-coding neural logits - in the joint mode along base strategy
 
   return Lib::make_unique<BinaryMetaContainer>(isOutermost,opt,name + "SLMQ",
       Lib::make_unique<AWPassiveClauseContainer>(false, opt, name + "AWQ"),
-      Lib::make_unique<SingleQueuePassiveClauseContainer<NeuralLogitsQueue>>(false, opt, name + "NLQ"),
+      Lib::make_unique<DelayedEvalSingleQueuePassiveClauseContainer<NeuralPrioQueue>>(false, opt, name + "NLQ",delayedEvaluatorFn),
       opt.firstSLRRatio(),opt.secondSLRRatio());
 }
 
@@ -209,10 +213,6 @@ static std::unique_ptr<PassiveClauseContainer> makeLevel4(bool isOutermost, cons
   {
     return makeLevel3(isOutermost, opt, name);
   }
-}
-
-static void delayedEvaluatorFn(Clause* cl) {
-  SaturationAlgorithm::tryGetInstance()->talkToKarel(cl,true/*embed*/,true/*eval*/);
 }
 
 static std::unique_ptr<PassiveClauseContainer> makeLevel5(bool isOutermost, const Options& opt, vstring name)
@@ -1376,7 +1376,7 @@ void SaturationAlgorithm::addToPassive(Clause* cl)
 
   if (_opt.evalForKarel()) {
     // delayed evaluation trick starts by removing this line:
-    talkToKarel(cl,true /*embed*/,true /*eval*/);
+    //talkToKarel(cl,true /*embed*/,true /*eval*/);
   }
 
   {

@@ -81,6 +81,24 @@ protected:
   }
 };
 
+class NeuralPrioQueue
+  : public ClauseQueue
+{
+protected:
+  virtual bool lessThan(Clause* c1, Clause* c2) {
+    bool c1modelSaidYes = (c1->modelSaid() <= 0.0);
+    bool c2modelSaidYes = (c2->modelSaid() <= 0.0);
+
+    if (c1modelSaidYes && !c2modelSaidYes)
+      return true;
+
+    if (!c1modelSaidYes && c2modelSaidYes)
+      return false;
+
+    return c1->number() < c2->number();
+  }
+};
+
 /**
  * A class to be used by the neural experiments.
  *
@@ -157,7 +175,7 @@ public:
   bool isEmpty() const override { return _myQueue.isEmpty(); }
   unsigned sizeEstimate() const override { return _size; }
 
-private:
+protected:
   QueueType _myQueue;
   unsigned _size;
 public:
@@ -177,6 +195,56 @@ public:
   bool fulfilsWeightLimit(unsigned w, unsigned numPositiveLiterals, const Inference& inference) const override { return true; }
   bool childrenPotentiallyFulfilLimits(Clause* cl, unsigned upperBoundNumSelLits) const override { return true; }
 };
+
+template <class QueueType>
+class DelayedEvalSingleQueuePassiveClauseContainer
+    : public SingleQueuePassiveClauseContainer<QueueType>
+{
+public:
+  CLASS_NAME(DelayedEvalSingleQueuePassiveClauseContainer);
+  USE_ALLOCATOR(DelayedEvalSingleQueuePassiveClauseContainer);
+
+  DelayedEvalSingleQueuePassiveClauseContainer(bool isOutermost, const Shell::Options& opt, vstring name,void (*de)(Clause* cl)) :
+    SingleQueuePassiveClauseContainer<QueueType>(isOutermost, opt, name), _delayedEvaluator(de) {}
+
+  using SingleQueuePassiveClauseContainer<QueueType>::isEmpty;
+  using SingleQueuePassiveClauseContainer<QueueType>::_myQueue;
+  using SingleQueuePassiveClauseContainer<QueueType>::_size;
+  using SingleQueuePassiveClauseContainer<QueueType>::_isOutermost;
+  using SingleQueuePassiveClauseContainer<QueueType>::selectedEvent;
+
+  Clause* popSelected() override {
+    CALL("DelayedEvalSingleQueuePassiveClauseContainer::popSelected");
+    ASS(!isEmpty());
+
+    Clause* cl = _myQueue.pop();
+    while (!cl->evalauted()) {
+      _delayedEvaluator(cl);
+
+      //cout << "Evaluated " << cl->toString() << endl;
+
+      // This shortcut only reasoably works in combination with NeuralLogitsQueue
+      if (cl->modelSaid() <= 0.0) {
+        break;
+      }
+
+      _myQueue.insert(cl);
+      cl = _myQueue.pop();
+    }
+
+    //cout << "Popping: " << cl->toString() << endl;
+
+    _size--;
+    if (_isOutermost) {
+      selectedEvent.fire(cl);
+    }
+
+    return cl;
+  }
+private:
+  void (*_delayedEvaluator)(Clause* cl);
+};
+
 
 /**
  * Defines the class Passive of passive clauses

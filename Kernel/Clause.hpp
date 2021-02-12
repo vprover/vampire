@@ -347,7 +347,12 @@ public:
   unsigned numPositiveLiterals(); // number of positive literals in the clause
 
   void setModelSaid(float value) {
+    _evaluated = 1;
     _modelSaid = value;
+  }
+
+  bool evalauted() const {
+    return _evaluated;
   }
 
   float modelSaid() const {
@@ -373,6 +378,8 @@ protected:
 
   /** number of selected literals */
   unsigned _numSelected : 20;
+
+  unsigned _evaluated : 1;
 
   float _modelSaid; // small is good
 
