@@ -194,11 +194,23 @@ public:
     return begin() + m_size;
   }
 
+  Lit& operator[](size_t idx) noexcept
+  {
+    assert(idx < m_size);
+    return m_literals[idx];
+  }
+
+  Lit const& operator[](size_t idx) const noexcept
+  {
+    assert(idx < m_size);
+    return m_literals[idx];
+  }
+
   /// Number of bytes required by a clause containing 'size' literals.
   static size_t bytes(uint32_t size) noexcept
   {
-    size_t const contained_literals = std::extent_v<decltype(m_literals)>;
-    size_t const additional_literals = (size >= contained_literals) ? (size - contained_literals) : 0;
+    size_t const embedded_literals = std::extent_v<decltype(m_literals)>;
+    size_t const additional_literals = (size >= embedded_literals) ? (size - embedded_literals) : 0;
     size_t const total_bytes = sizeof(Clause) + sizeof(Lit) * additional_literals;
     return total_bytes;
   }
@@ -273,6 +285,8 @@ public:
   reference operator[](key_type key) { return m_data[index(key)]; }
   const_reference operator[](key_type key) const { return m_data[index(key)]; }
 
+  void reserve(size_type new_cap) { m_data.reserve(new_cap); }
+
 private:
   size_type index(Key key) const
   {
@@ -291,10 +305,67 @@ private:
 class Solver {
 public:
   using ClauseRef = uint32_t;
+  using Level = uint32_t;
+
+  /// Ensure space for a new variable and return it.
+  [[nodiscard]] Var new_variable()
+  {
+    reserve_variables(1);
+    return Var{m_used_variables++};
+  }
+
+  /// Reserve space for n additional variables.
+  void reserve_variables(uint32_t count)
+  {
+    if (m_used_variables + count <= m_allocated_variables) {
+      return;
+    }
+    m_allocated_variables = m_used_variables + count;
+    m_values.reserve(2 * m_allocated_variables);
+    // TODO
+  }
+
+  void add_empty_clause()
+  {
+  }
+
+  void add_unit_clause(Lit* lit)
+  {
+  }
+
+  void add_binary_clause(Lit* lit1, Lit* lit2)
+  {
+  }
+
+  void add_clause(Clause* clause)
+  {
+  }
 
 private:
-  ivector<Lit, Value> values; ///< Current assignment of literals
-  ivector<ClauseRef, Clause*> clauses;
+  void assign(Lit lit, Value value)
+  {
+  }
+
+  void propagate_units()
+  {
+  }
+
+  void propagate()
+  {
+  }
+
+  void analyze()
+  {
+  }
+
+private:
+  bool m_inconsistent;
+  uint32_t m_used_variables;
+  uint32_t m_allocated_variables;
+  std::vector<Lit> m_units;
+  ivector<Lit, ClauseRef> m_reasons;
+  ivector<Lit, Value> m_values; ///< Current assignment of literals
+  ivector<ClauseRef, Clause*> m_clauses;
   // std::vector<Clause*> clauses;
 }; // Solver
 
