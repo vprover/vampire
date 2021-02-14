@@ -10,6 +10,7 @@
 #include <new>
 #include <ostream>
 #include <set>
+#include <map>
 #include <vector>
 
 #include "ivector.hpp"
@@ -391,23 +392,24 @@ struct Watch {
 
 class Solver {
 public:
-
   /// Ensure space for a new variable and return it.
+  /// By default, memory is increased exponentially (relying on the default behaviour of std::vector).
+  /// Use reserve_variables if you know the number of variables upfront.
   [[nodiscard]] Var new_variable()
   {
-    reserve_variables(1);
+    m_unassigned_vars++;
+    m_values.push_back(Value::Unknown); // value of positive literal
+    m_values.push_back(Value::Unknown); // value of negative literal
+    m_watches.emplace_back();           // positive literal watches
+    m_watches.emplace_back();           // negative literal watches
     return Var{m_used_vars++};
   }
 
-  /// Reserve space for n additional variables.
+  /// Reserve space for n variables (in total).
   void reserve_variables(uint32_t count)
   {
-    if (m_used_vars + count <= m_allocated_vars) {
-      return;
-    }
-    m_allocated_vars = m_used_vars + count;
-    m_values.reserve(2 * m_allocated_vars);
-    // TODO
+    m_values.reserve(2 * count);
+    // TODO: call reserve on all necessary vectors where this is necessary
   }
 
     /*
@@ -430,6 +432,7 @@ public:
 
   Result solve()
   {
+    m_trail.reserve(m_used_vars);
 
     if (m_inconsistent) {
       return Result::Unsat;
@@ -455,11 +458,17 @@ public:
   }
 
 private:
-  Clause* get_clause(ClauseRef ref)
+  Clause const* get_clause(ClauseRef ref) const // TODO: change to Clause& ??? we don't want anyone to store pointers
   {
     assert(ref != InvalidClauseRef);
     assert(ref < m_clauses.size());
     return m_clauses[ref];
+  }
+
+  Clause* get_clause(ClauseRef ref)
+  {
+    // return const_cast<Clause*>(const_cast<Solver const*>(this)->get_clause(ref));
+    return const_cast<Clause*>(std::as_const(*this).get_clause(ref));
   }
 
   /// Set the literal to true.
@@ -518,6 +527,7 @@ private:
   /// or InvalidClauseRef if all unit clauses have been propagated without conflict.
   ClauseRef propagate()
   {
+    assert(checkInvariants());
     while (m_propagate_head < m_trail.size()) {
       // p is the next literal to be propagated
       Lit const lit = m_trail[m_propagate_head];
@@ -660,6 +670,17 @@ private:
     // assigned vars + unassiged vars = used vars
     assert(m_trail.size() + m_unassigned_vars == m_used_vars);
 
+    assert(m_values.size() == 2 * m_used_vars);
+
+    // m_unassigned_values is correct
+    assert(std::count(m_values.begin(), m_values.end(), Value::Unknown) == 2 * m_unassigned_vars);
+
+    // Opposite literals have opposite values
+    for (uint32_t var_idx = 0; var_idx < m_used_vars; ++var_idx) {
+      Var x{var_idx};
+      assert(m_values[x] == m_values[~x]);
+    }
+
     // Every variable is at most once on the trail
     std::set<Var> trail_vars;
     for (Lit lit : m_trail) {
@@ -669,25 +690,46 @@ private:
     assert(trail_vars.size() == m_trail.size());
     assert(m_trail.size() <= m_used_vars);
 
-    // TODO: (after optimizations) Every stored clause has size >= 3
+    // Check clause invariants
+    // TODO: after binary clause optimization: >= 3
+    for (Clause* clause : m_clauses) {
+      // Every stored clause has size >= 2
+      assert(clause->size() >= 2);
+      // No duplicate variables in the clause
+      // (this excludes duplicate literals and tautological clauses)
+      // TODO
+    }
 
-    // TODO: watch invariants
-    // 1. status of watch literals
-    // 2. watched literals are always the first two
-    // 3. every clause in m_clauses is watched (?) [may not work with deletion?]
+    // Check watch invariants
+    assert(m_watches.size() == 2 * m_used_vars);
+    std::map<ClauseRef, int> num_watches; // counts how many times each clause is watched
+    for (uint32_t lit_idx = 0; lit_idx < m_watches.size(); ++lit_idx) {
+      Lit const lit = Lit::from_index(lit_idx);
+      for (Watch watch : m_watches[lit]) {
+        num_watches[watch.clause] += 1;
+        Clause const& clause = *get_clause(watch.clause);
+        // The watched literals are always the first two in the clause
+        assert(clause[0] == lit || clause[1] == lit);
+        // TODO: check status of watch literals
+        // (either: clause is satisfied, or both of the watch literals are false... I think)
+      }
+    }
+    // Every clause in m_clauses is watched twice
+    for (ClauseRef cr = 0; cr < m_clauses.size(); ++cr) {
+      assert(num_watches[cr] == 2);
+    }
 
     return true;
   }
 #endif
 
 private:
-  bool m_inconsistent;
-  uint32_t m_used_vars;
-  uint32_t m_allocated_vars;
-  uint32_t m_unassigned_vars; ///< Number of variables that have not yet been assigned
+  bool m_inconsistent = false;
+  uint32_t m_used_vars = 0;
+  uint32_t m_unassigned_vars = 0; ///< Number of variables that have not yet been assigned
 
   /// Current decision level
-  Level m_level;
+  Level m_level = 0;
 
   /// Current assignment of literals.
   /// We store the value for both literal polarities to make the lookup simpler and branchless.
@@ -701,7 +743,7 @@ private:
   ivector<Lit, std::vector<Watch>> m_watches;
 
   std::vector<Lit> m_trail;  ///< Currently true literals in order of assignment; TODO: pre-allocate to #variables
-  uint32_t m_propagate_head;  // index into trail, the next literal to propagate
+  uint32_t m_propagate_head = 0; // index into trail, the next literal to propagate
 
   // std::vector<Clause*> clauses;
 }; // Solver
