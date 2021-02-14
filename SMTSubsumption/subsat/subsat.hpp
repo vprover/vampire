@@ -12,6 +12,8 @@
 #include <set>
 #include <vector>
 
+#include "ivector.hpp"
+
 // Ensure NDEBUG and VDEBUG are synchronized
 #ifdef NDEBUG
 static_assert(!VDEBUG, "");
@@ -341,72 +343,14 @@ private:
   Lit m_literals[2];  // actual size is m_size, but C++ does not officially support flexible array members (as opposed to C)
 }; // Clause
 
-template <typename Key>
-struct IndexMember {
-  using index_type = std::invoke_result_t<decltype(&Key::index), Key>;
-  index_type operator()(Key key) const
-  {
-    return key.index();
-  }
-};
 
-template <typename Integer>
-struct IndexIdentity {
-  Integer operator()(Integer key) const noexcept
-  {
-    return key;
-  }
-};
-
-template <typename Key> struct DefaultIndex;
 template <> struct DefaultIndex<Var> {
   using type = IndexMember<Var>;
 };
 template <> struct DefaultIndex<Lit> {
   using type = IndexMember<Lit>;
 };
-template <> struct DefaultIndex<uint32_t> {
-  using type = IndexIdentity<uint32_t>;
-};
-template <typename Key> using DefaultIndex_t = typename DefaultIndex<Key>::type;
 
-// template <typename Key, typename T, typename Index = IndexMember<Key>>
-template <typename Key, typename T, typename Index = DefaultIndex_t<Key>>
-class ivector {
-public:
-  using key_type = Key;
-  using value_type = T;
-  using reference = value_type&;
-  using const_reference = value_type const&;
-  using size_type = typename std::vector<T>::size_type;
-
-  reference operator[](key_type key)
-  {
-    size_type const idx = index(key);
-    assert(idx < size());
-    return m_data[idx];
-  }
-
-  const_reference operator[](key_type key) const
-  {
-    size_type const idx = index(key);
-    assert(idx < size());
-    return m_data[idx];
-  }
-
-  void reserve(size_type new_cap) { m_data.reserve(new_cap); }
-  size_type size() const noexcept { return m_data.size(); }
-
-private:
-  size_type index(Key key) const
-  {
-    Index index;
-    return index(key);
-  }
-
-private:
-  std::vector<T> m_data;
-};
 
 enum class Result {
   Sat = 10,
