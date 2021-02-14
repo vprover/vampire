@@ -73,6 +73,15 @@ public:
   const_iterator end() const noexcept { return m_data.end(); }
   const_iterator cend() const noexcept { return m_data.cend(); }
 
+  void push_back(T const& value) { m_data.push_back(value); }
+  void push_back(T&& value) { m_data.push_back(std::move(value)); }
+
+  template <typename... Args>
+  reference emplace_back(Args&&... args)
+  {
+    return m_data.emplace_back(std::forward<Args>(args)...);
+  }
+
 private:
   size_type index(Key key) const
   {
