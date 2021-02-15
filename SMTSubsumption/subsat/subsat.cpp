@@ -7,20 +7,6 @@ using namespace SMTSubsumption;
 
 #ifdef SUBSAT_STANDALONE
 
-Clause* make_clause(std::initializer_list<Lit> literals)
-{
-  Clause* cl = Clause::create(literals.size());
-  for (size_t i = 0; i < literals.size(); ++i) {
-    (*cl)[i] = literals.begin()[i];
-  }
-  return cl;
-}
-
-void add_clause(Solver& solver, std::initializer_list<Lit> literals)
-{
-  solver.add_clause(make_clause(literals));
-}
-
 int main()
 {
     std::cout << "hello" << std::endl;
@@ -30,14 +16,14 @@ int main()
     Var y = s.new_variable();
     Var z = s.new_variable();
 
-    s.add_clause(make_clause({x, y, z}));
-    s.add_clause(make_clause({x, y, ~z}));
-    s.add_clause(make_clause({x, ~y, z}));
-    s.add_clause(make_clause({x, ~y, ~z}));
-    s.add_clause(make_clause({~x, y, z}));
-    s.add_clause(make_clause({~x, y, ~z}));
-    s.add_clause(make_clause({~x, ~y, z}));
-    s.add_clause(make_clause({~x, ~y, ~z}));
+    s.add_clause({x, y, z});
+    s.add_clause({x, y, ~z});
+    s.add_clause({x, ~y, z});
+    s.add_clause({x, ~y, ~z});
+    s.add_clause({~x, y, z});
+    s.add_clause({~x, y, ~z});
+    s.add_clause({~x, ~y, z});
+    s.add_clause({~x, ~y, ~z});
 
     auto res = s.solve();
 
@@ -76,6 +62,7 @@ bool Solver::checkInvariants() const
   assert(trail_vars.size() == m_trail.size());
   assert(m_trail.size() <= m_used_vars);
 
+/*
   // Check clause invariants
   for (Clause const* clause : m_clauses) {
     // Every stored clause has size >= 2
@@ -90,14 +77,15 @@ bool Solver::checkInvariants() const
     }
     assert(clause_vars.size() == clause->size());
   }
+  */
 
   // Check watch invariants
   assert(m_watches.size() == 2 * m_used_vars);
-  std::map<ClauseRef, int> num_watches; // counts how many times each clause is watched
+  std::map<ClauseRef::index_type, int> num_watches; // counts how many times each clause is watched
   for (uint32_t lit_idx = 0; lit_idx < m_watches.size(); ++lit_idx) {
     Lit const lit = Lit::from_index(lit_idx);
     for (Watch watch : m_watches[lit]) {
-      num_watches[watch.clause] += 1;
+      num_watches[watch.clause.index()] += 1;
       Clause const& clause = get_clause(watch.clause);
       // The watched literals are always the first two in the clause
       assert(clause[0] == lit || clause[1] == lit);
@@ -127,8 +115,11 @@ bool Solver::checkInvariants() const
     }
   }
   // Every clause in m_clauses is watched twice
-  for (ClauseRef cr = 0; cr < m_clauses.size(); ++cr) {
-    assert(num_watches[cr] == 2);
+  // for (ClauseRef::index_type cr = 0; cr < m_clauses.size(); ++cr) {
+  //   assert(num_watches[cr] == 2);
+  // }
+  for (auto kvpair : num_watches) {
+    assert(kvpair.second == 2);
   }
 
   return true;
@@ -154,7 +145,7 @@ Result Solver::solve()
 
     assert(checkInvariants());
 
-    if (conflict != InvalidClauseRef) {
+    if (conflict.is_valid()) {
       if (!analyze(conflict)) {
         return Result::Unsat;
       }

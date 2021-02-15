@@ -5,6 +5,7 @@
 #include <cassert>
 #include <cstdint>
 #include <cstdlib>
+#include <initializer_list>
 #include <iterator>
 #include <limits>
 #include <new>
@@ -14,6 +15,7 @@
 #include <vector>
 
 #include "./alloc.hpp"
+#include "./clause.hpp"
 #include "./types.hpp"
 #include "ivector.hpp"
 #include "cdebug.hpp"
@@ -33,126 +35,6 @@ static_assert(VDEBUG, "");
 namespace SMTSubsumption {
 
 
-class Clause final {
-public:
-  using iterator = Lit*;
-  using const_iterator = Lit const*;
-  using size_type = uint32_t;
-
-  iterator begin() noexcept
-  {
-    return &m_literals[0];
-  }
-
-  iterator end() noexcept
-  {
-    return begin() + m_size;
-  }
-
-  const_iterator begin() const noexcept
-  {
-    return cbegin();
-  }
-
-  const_iterator end() const noexcept
-  {
-    return cend();
-  }
-
-  const_iterator cbegin() const noexcept
-  {
-    return &m_literals[0];
-  }
-
-  const_iterator cend() const noexcept
-  {
-    return cbegin() + m_size;
-  }
-
-  Lit& operator[](size_type idx) noexcept
-  {
-    assert(idx < m_size);
-    return m_literals[idx];
-  }
-
-  Lit const& operator[](size_type idx) const noexcept
-  {
-    assert(idx < m_size);
-    return m_literals[idx];
-  }
-
-  size_type size() const noexcept
-  {
-    return m_size;
-  }
-
-  /// Number of bytes required by a clause containing 'size' literals.
-  static size_t bytes(size_type size) noexcept
-  {
-    size_t const embedded_literals = std::extent_v<decltype(m_literals)>;
-    size_t const additional_literals = (size >= embedded_literals) ? (size - embedded_literals) : 0;
-    size_t const total_bytes = sizeof(Clause) + sizeof(Lit) * additional_literals;
-    return total_bytes;
-  }
-
-  /// Allocate a clause with enough space for 'size' literals.
-  static Clause* create(size_type size)
-  {
-    void* p = subsat_alloc(bytes(size));
-    return new (p) Clause{size};
-  }
-
-  // static void* operator new(size_t, size_type num_literals)
-  // {
-  //   size_t const contained_literals = std::extent_v<decltype(m_literals)>;
-  //   size_t const additional_literals = std::max(0, static_cast<size_t>(num_literals) - contained_literals);
-  //   size_t const total_bytes = sizeof Clause + sizeof Lit * additional_literals;
-  //   return ::operator new(total_bytes);
-  // }
-
-private:
-  // NOTE: do not use this constructor directly
-  // because it does not allocate enough memory for the literals
-  Clause(size_type size) noexcept
-      : m_size{size}
-  {
-  }
-
-  // cannot copy/move because of flexible array member
-  Clause(Clause&) = delete;
-  Clause(Clause&&) = delete;
-  Clause& operator=(Clause&) = delete;
-  Clause& operator=(Clause&&) = delete;
-
-  friend class AllocatedClause;
-
-private:
-  size_type m_size;    // number of literals
-  Lit m_literals[2];  // actual size is m_size, but C++ does not officially support flexible array members (as opposed to C)
-}; // Clause
-
-
-std::ostream& operator<<(std::ostream& os, Clause const& c)
-{
-  os << "{ ";
-  bool first = true;
-  for (Lit lit : c) {
-    if (first) {
-      first = false;
-    } else {
-      os << ", ";
-    }
-    os << lit;
-  }
-  os << " }";
-  return os;
-}
-
-
-// TODO: the current way of using ClauseRefs doesn't make sense. In fact, we're doing additional indirections compared to using pointers.
-//       What we need is in-place allocation in a vector<uint32_t>, like kitten does.  (maybe a vector<char> would be better?)  (what about alignment?)
-using ClauseRef = uint32_t;  // TODO: make this a struct, with a function to check validity? (operator bool?)
-#define InvalidClauseRef (std::numeric_limits<ClauseRef>::max())
 using Level = uint32_t;
 #define InvalidLevel (std::numeric_limits<Level>::max())
 
@@ -162,6 +44,14 @@ struct VarInfo {
 };
 
 struct Watch {
+  constexpr Watch() noexcept
+    : clause{ClauseRef::invalid()}
+  { }
+
+  constexpr Watch(ClauseRef cr) noexcept
+    : clause{cr}
+  { }
+
   // TODO: optimizations: binary clause, blocking literal
   ClauseRef clause;
 };
@@ -178,44 +68,6 @@ static constexpr Mark MarkRemovable = 4;
 // };
 
 
-class AllocatedClause
-{
-public:
-  void push(Lit lit)
-  {
-    assert(m_clause);
-    assert(m_clause->m_size < m_capacity);
-    m_clause->m_literals[m_clause->m_size] = lit;
-    m_clause->m_size += 1;
-  }
-
-  Clause* build()
-  {
-    assert(m_clause);
-    Clause* c = m_clause;
-#ifndef NDEBUG
-    m_clause = nullptr;
-#endif
-    return c;
-  }
-
-private:
-  AllocatedClause(Clause* clause, uint32_t capacity)
-      : m_clause{clause}, m_capacity{capacity}
-  {
-    assert(m_clause);
-  }
-
-  friend class Solver;
-
-private:
-  Clause* m_clause;
-#ifndef NDEBUG
-  uint32_t m_capacity;
-#endif
-};
-
-
 class Solver
 {
 public:
@@ -225,7 +77,7 @@ public:
   [[nodiscard]] Var new_variable()
   {
     m_unassigned_vars++;
-    m_vars.push_back({ .level = InvalidLevel, .reason = InvalidClauseRef});
+    m_vars.push_back({ .level = InvalidLevel, .reason = ClauseRef::invalid()});
     m_marks.push_back(0);
     m_values.push_back(Value::Unassigned); // value of positive literal
     m_values.push_back(Value::Unassigned); // value of negative literal
@@ -242,12 +94,6 @@ public:
   }
 
 
-  AllocatedClause alloc_clause(uint32_t capacity)
-  {
-    // TODO: allocate clause of given size in the internal storage,
-    // but do not yet call add_clause.
-  }
-
     /*
   void add_empty_clause()
   {
@@ -262,23 +108,33 @@ public:
   }
   */
 
-  void add_clause(Clause* clause)
+  void add_clause(ClauseRef cr)
   {
-    // TODO
-    ClauseRef cr = m_clauses.size();
-    CDEBUG("add_clause: " << cr << " ~> " << *clause);
-    m_clauses.push_back(clause);
+    // // TODO
+    // ClauseRef cr = m_clauses.size();
+    // CDEBUG("add_clause: " << cr << " ~> " << *clause);
+    // m_clauses.push_back(clause);
     watch_clause(cr);
+  }
+
+  void add_clause(std::initializer_list<Lit> literals)
+  {
+    auto c = m_clauses.alloc(literals.size());
+    for (Lit lit : literals) {
+      c.push(lit);
+    }
+    ClauseRef ref = c.build();
+    watch_clause(ref);
   }
 
   /// Preconditions: ...
   void add_clause_unsafe(Clause* clause)
   {
-    // TODO
-    ClauseRef cr = m_clauses.size();
-    CDEBUG("add_clause: " << cr << " ~> " << *clause);
-    m_clauses.push_back(clause);
-    watch_clause(cr);
+    // // TODO
+    // ClauseRef cr = m_clauses.size();
+    // CDEBUG("add_clause: " << cr << " ~> " << *clause);
+    // m_clauses.push_back(clause);
+    // watch_clause(cr);
   }
 
   Result solve();
@@ -286,14 +142,17 @@ public:
 private:
   Clause const& get_clause(ClauseRef ref) const
   {
-    assert(ref != InvalidClauseRef);
-    assert(ref < m_clauses.size());
-    return *m_clauses[ref];
+    assert(ref.is_valid());
+    // assert(ref < m_clauses.size());
+    // return *m_clauses[ref];
+    return m_clauses.deref(ref);
   }
 
   Clause& get_clause(ClauseRef ref)
   {
-    return const_cast<Clause&>(std::as_const(*this).get_clause(ref));
+    assert(ref.is_valid());
+    return m_clauses.deref(ref);
+    // return const_cast<Clause&>(std::as_const(*this).get_clause(ref));
   }
 
   /// Set the literal to true.
@@ -307,7 +166,7 @@ private:
     // TODO: Assignment on root level => no need to store the reason
     // (done in satch, but not in kitten)
     if (m_level == 0) {
-      reason = InvalidClauseRef;
+      reason = ClauseRef::invalid();
     } */
 
     // TODO: kitten does phase-saving as well
@@ -338,7 +197,7 @@ private:
   void propagate_units()
   {
     for (Lit lit : m_units) {
-      assign(lit, InvalidClauseRef);
+      assign(lit, ClauseRef::invalid());
     }
   }
 
@@ -357,7 +216,7 @@ private:
     for (uint32_t lit_idx = 0; lit_idx < m_values.size(); ++lit_idx) {
       Lit const lit = Lit::from_index(lit_idx);
       if (m_values[lit] == Value::Unassigned) {
-        assign(lit, InvalidClauseRef);
+        assign(lit, ClauseRef::invalid());
         return;
       }
     }
@@ -366,7 +225,7 @@ private:
 
   /// Unit propagation.
   /// Returns the conflicting clause when a conflict is encountered,
-  /// or InvalidClauseRef if all unit clauses have been propagated without conflict.
+  /// or an invalid ClauseRef if all unit clauses have been propagated without conflict.
   ClauseRef propagate()
   {
     CDEBUG("propagate");
@@ -374,11 +233,11 @@ private:
     while (m_propagate_head < m_trail.size()) {
       Lit const lit = m_trail[m_propagate_head++];
       ClauseRef const conflict = propagate_literal(lit);
-      if (conflict != InvalidClauseRef) {
+      if (conflict.is_valid()) {
         return conflict;
       }
     }
-    return InvalidClauseRef;
+    return ClauseRef::invalid();
   }
 
   /// Unit propagation for the given literal.
@@ -394,9 +253,9 @@ private:
     auto q = watches.begin();   // points to updated watch, follows p
     auto p = watches.cbegin();  // points to currently processed watch
 
-    ClauseRef conflict = InvalidClauseRef;
+    ClauseRef conflict = ClauseRef::invalid();
 
-    while (conflict == InvalidClauseRef && p != watches.cend()) {
+    while (!conflict.is_valid() && p != watches.cend()) {
       Watch const& watch = *p;
       *q++ = *p++;  // keep the watch by default
 
@@ -488,7 +347,7 @@ private:
   /// Watch literal 'lit' in the given clause.
   void watch_literal(Lit lit, /* TODO: Lit blocking_lit, */ ClauseRef clause_ref)
   {
-    m_watches[lit].push_back(Watch{ .clause = clause_ref });
+    m_watches[lit].push_back(Watch{clause_ref});
   }
 
   /// Watch first to literals in the clause.
@@ -509,7 +368,7 @@ private:
     assert(!m_inconsistent);
     assert(checkInvariants());
 
-    // assert(conflict_ref != InvalidClauseRef);
+    // assert(conflict_ref.is_valid());
     // Clause const& conflict = get_clause(conflict_ref);
 
     Level const conflict_level = m_level;
@@ -539,7 +398,7 @@ private:
 
     while (true) {
       CDEBUG("reason_ref = " << reason_ref);
-      assert(reason_ref != InvalidClauseRef);
+      assert(reason_ref.is_valid());
       Clause const& reason = get_clause(reason_ref);
 
       // TODO: reason->used = true
@@ -635,7 +494,7 @@ private:
       // We learned a unit clause
       assert(jump_level == 0);
       CDEBUG("learned unit: " << not_uip);
-      assign(not_uip, InvalidClauseRef);
+      assign(not_uip, ClauseRef::invalid());
     }
     // else if (size == 2) {
     //   // TODO: binary clause optimization
@@ -656,13 +515,13 @@ private:
         }
       }
 
-      Clause* learned = Clause::create(size);
-      for (uint32_t i = 0; i < size; ++i) {
-        (*learned)[i] = clause[i];
+      auto learned = m_clauses.alloc(size);
+      for (Lit learned_lit : clause) {
+        learned.push(learned_lit);
       }
-      ClauseRef learned_ref = m_clauses.size();
-      CDEBUG("learned: " << learned_ref << " ~> " << *learned);
-      m_clauses.push_back(learned);  // TODO: call new_redundant_clause
+      ClauseRef learned_ref = learned.build();
+      // CDEBUG("learned: " << learned_ref << " ~> " << *learned);
+      // TODO: call new_redundant_clause
       watch_clause(learned_ref);
       assign(not_uip, learned_ref);
     }
@@ -732,7 +591,8 @@ private:
   ivector<Var, Mark> m_marks;
 
   // TODO: need integrated clause storage, see kitten
-  ivector<ClauseRef, Clause*> m_clauses;
+  // ivector<ClauseRef, Clause*> m_clauses;
+  ClauseArena m_clauses;
   std::vector<Lit> m_units;
   ivector<Lit, std::vector<Watch>> m_watches;
 
