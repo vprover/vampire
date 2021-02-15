@@ -7,6 +7,7 @@
  * https://vprover.github.io/license.html
  * and in the source directory
  */
+
 #ifndef __NUM_TRAITS_H__
 #define __NUM_TRAITS_H__
 

@@ -489,10 +489,9 @@ public:
   unsigned functor() const { return _functor; }
 };
 
-inline Clause* clause(std::initializer_list<Lit> ls_) { 
+inline Clause* clause(Stack<Lit> ls) { 
   static Inference testInf = Kernel::NonspecificInference0(UnitInputType::ASSUMPTION, InferenceRule::INPUT); 
 
-  Stack<Lit> ls(ls_);
   std::stable_sort(ls.begin(), ls.end(), [](Lit const& l1, Lit const& l2){ return l1.selected() > l2.selected(); });
   auto nSelected = iterTraits(ls.iterFifo())
     .findPosition([](Lit const& l) 

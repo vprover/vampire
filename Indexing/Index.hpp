@@ -84,6 +84,14 @@ struct TermQueryResult
   ResultSubstitutionSP substitution;
   UnificationConstraintStackSP constraints;
   bool isTypeSub = false; //true if the substitution only unifies the types of the terms
+  friend std::ostream& operator<<(std::ostream& out, TermQueryResult const& self)
+  { return out << "TermQueryResult("
+               <<   "term: "         << self.term
+               << ", literal: "      << self.literal
+               << ", clause: "       << self.clause
+               << ", substitution: " << self.substitution
+               << ", constraints: "  << self.constraints
+               << ")"; }
 };
 
 struct ClauseSResQueryResult
