@@ -13,6 +13,8 @@
 #include <map>
 #include <vector>
 
+#include "./alloc.hpp"
+#include "./types.hpp"
 #include "ivector.hpp"
 #include "cdebug.hpp"
 
@@ -30,238 +32,6 @@ static_assert(VDEBUG, "");
 
 namespace SMTSubsumption {
 
-using std::uint32_t;
-
-enum class Value : signed char {
-  False = -1,
-  Unassigned = 0,
-  True = 1,
-};
-
-Value operator~(Value v) {
-  return static_cast<Value>(-static_cast<signed char>(v));
-}
-
-
-class Lit;
-
-/// Boolean variable represented by its integer index.
-/// Use consecutive indices starting at 0.
-class Var final {
-  uint32_t m_index;
-
-public:
-  explicit constexpr Var(uint32_t index) noexcept
-      : m_index{index}
-  {
-    // assert(m_index <= Var::max_index());  // TODO: how to assert in constexpr constructor?
-  }
-
-  [[nodiscard]] constexpr uint32_t index() const noexcept
-  {
-    return m_index;
-  }
-
-  [[nodiscard]] static constexpr uint32_t max_index() noexcept
-  {
-    return (1u << 31) - 2;
-  }
-
-  [[nodiscard]] static constexpr Var invalid() noexcept
-  {
-    return Var{std::numeric_limits<uint32_t>::max()};
-  }
-
-  [[nodiscard]] constexpr bool is_valid() const noexcept
-  {
-    return m_index <= max_index();
-  }
-
-  [[nodiscard]] constexpr Lit operator~() const noexcept;
-  [[nodiscard]] constexpr operator Lit() const noexcept;
-}; // Var
-
-static_assert(Var::max_index() == static_cast<uint32_t>(INT32_MAX - 1), "unexpected max variable index");
-static_assert(Var::max_index() < Var::invalid().index(), "valid variable indices overlap with invalid sentinel value");
-
-[[nodiscard]] constexpr bool operator==(Var lhs, Var rhs) noexcept
-{
-  return lhs.index() == rhs.index();
-}
-
-[[nodiscard]] constexpr bool operator!=(Var lhs, Var rhs) noexcept
-{
-  return !operator==(lhs, rhs);
-}
-
-[[nodiscard]] constexpr bool operator<(Var lhs, Var rhs) noexcept
-{
-  return lhs.index() < rhs.index();
-}
-
-std::ostream& operator<<(std::ostream& os, Var var)
-{
-  os << var.index();
-  return os;
-}
-
-
-/// Boolean literals represented by integer index.
-/// The least significant bit indicates the sign.
-///
-/// Mapping from variable indices to literal indices:
-///    Lit{0} ... 0
-///   ~Lit{0} ... 1
-///    Lit{1} ... 2
-///   ~Lit{1} ... 3
-///      :
-///      :
-class Lit final {
-  uint32_t m_index;
-
-private:
-  friend class Clause;
-  /// Uninitialized value (for clause constructor)
-  Lit() noexcept
-  // : m_index{Lit::invalid().index()}
-  {
-  }
-
-  explicit constexpr Lit(uint32_t index) noexcept
-      : m_index{index}
-  {
-    // assert(m_index <= Lit::max_index()); // TODO: how to assert in constexpr constructor?
-  }
-
-public:
-  explicit constexpr Lit(Var var, bool positive) noexcept
-      : Lit{2 * var.index() + static_cast<uint32_t>(!positive)}
-  {
-  }
-
-  [[nodiscard]] static constexpr Lit from_index(uint32_t index) noexcept
-  {
-    assert(index <= Lit::max_index());
-    return Lit{index};
-  }
-
-  [[nodiscard]] static constexpr Lit pos(Var var) noexcept
-  {
-    return Lit{var, true};
-  }
-
-  [[nodiscard]] static constexpr Lit neg(Var var) noexcept
-  {
-    return Lit{var, false};
-  }
-
-  [[nodiscard]] constexpr uint32_t index() const noexcept
-  {
-    return m_index;
-  }
-
-  [[nodiscard]] static constexpr uint32_t max_index() noexcept
-  {
-    static_assert(Var::max_index() < (std::numeric_limits<uint32_t>::max() - 1) / 2, "cannot represent all literals");
-    return 2 * Var::max_index() + 1;
-  }
-
-  [[nodiscard]] static constexpr Lit invalid() noexcept
-  {
-    return Lit{std::numeric_limits<uint32_t>::max()};
-  }
-
-  [[nodiscard]] constexpr bool is_valid() const noexcept
-  {
-    return m_index <= max_index();
-  }
-
-  [[nodiscard]] constexpr bool is_positive() const noexcept
-  {
-    return (m_index & 1) == 0;
-  }
-
-  [[nodiscard]] constexpr bool is_negative() const noexcept
-  {
-    return !is_positive();
-  }
-
-  [[nodiscard]] constexpr Lit operator~() const noexcept
-  {
-    return Lit{m_index ^ 1};
-  }
-
-  [[nodiscard]] constexpr Var var() const noexcept
-  {
-    return Var{m_index / 2};
-  }
-}; // Lit
-
-static_assert(Lit::max_index() < Lit::invalid().index(), "valid literal indices overlap with invalid sentinel value");
-
-
-
-[[nodiscard]] constexpr bool operator==(Lit lhs, Lit rhs) noexcept
-{
-  return lhs.index() == rhs.index();
-}
-
-[[nodiscard]] constexpr bool operator!=(Lit lhs, Lit rhs) noexcept
-{
-  return !operator==(lhs, rhs);
-}
-
-std::ostream& operator<<(std::ostream& os, Lit lit)
-{
-  if (lit.is_negative()) {
-    os << '-';
-  }
-  os << lit.var();
-  return os;
-}
-
-
-
-[[nodiscard]] constexpr Lit Var::operator~() const noexcept
-{
-  return Lit{*this, false};
-}
-
-[[nodiscard]] constexpr Var::operator Lit() const noexcept
-{
-  return Lit{*this, true};
-}
-
-
-
-
-
-inline void* subsat_alloc(std::size_t size)
-{
-#ifdef SUBSAT_STANDALONE
-  void* p = std::malloc(size);
-#else
-  void* p = ALLOC_UNKNOWN(size, "subsat");
-#endif
-  if (!p && size > 0) {
-    throw std::bad_alloc();
-  }
-  return p;
-}
-
-inline void subsat_dealloc(void* p)
-{
-#ifdef SUBSAT_STANDALONE
-  std::free(p);
-#else
-  DEALLOC_UNKNOWN(p, "subsat");
-#endif
-}
-
-
-
-
-
 
 class Clause final {
 public:
@@ -269,32 +39,32 @@ public:
   using const_iterator = Lit const*;
   using size_type = uint32_t;
 
-  [[nodiscard]] iterator begin() noexcept
+  iterator begin() noexcept
   {
     return &m_literals[0];
   }
 
-  [[nodiscard]] iterator end() noexcept
+  iterator end() noexcept
   {
     return begin() + m_size;
   }
 
-  [[nodiscard]] const_iterator begin() const noexcept
+  const_iterator begin() const noexcept
   {
     return cbegin();
   }
 
-  [[nodiscard]] const_iterator end() const noexcept
+  const_iterator end() const noexcept
   {
     return cend();
   }
 
-  [[nodiscard]] const_iterator cbegin() const noexcept
+  const_iterator cbegin() const noexcept
   {
     return &m_literals[0];
   }
 
-  [[nodiscard]] const_iterator cend() const noexcept
+  const_iterator cend() const noexcept
   {
     return cbegin() + m_size;
   }
@@ -378,32 +148,6 @@ std::ostream& operator<<(std::ostream& os, Clause const& c)
   return os;
 }
 
-
-template <> struct DefaultIndex<Var> {
-  using type = IndexMember<Var>;
-};
-template <> struct DefaultIndex<Lit> {
-  using type = IndexMember<Lit>;
-};
-
-
-enum class Result {
-  Sat = 10,
-  Unsat = 20,
-};
-
-std::ostream& operator<<(std::ostream& os, Result r)
-{
-  switch (r) {
-    case Result::Sat:
-      os << "satisfiable";
-      break;
-    case Result::Unsat:
-      os << "unsatisfiable";
-      break;
-  }
-  return os;
-}
 
 // TODO: the current way of using ClauseRefs doesn't make sense. In fact, we're doing additional indirections compared to using pointers.
 //       What we need is in-place allocation in a vector<uint32_t>, like kitten does.  (maybe a vector<char> would be better?)  (what about alignment?)
@@ -539,6 +283,9 @@ public:
 
     while (true) {
       ClauseRef conflict = propagate();
+
+      assert(checkInvariants());
+
       if (conflict != InvalidClauseRef) {
         if (!analyze(conflict)) {
           return Result::Unsat;
@@ -641,7 +388,7 @@ private:
   ClauseRef propagate()
   {
     CDEBUG("propagate");
-    assert(checkInvariants());
+    // assert(checkInvariants());
     while (m_propagate_head < m_trail.size()) {
       Lit const lit = m_trail[m_propagate_head++];
       ClauseRef const conflict = propagate_literal(lit);
@@ -656,7 +403,7 @@ private:
   ClauseRef propagate_literal(Lit lit)
   {
     CDEBUG("propagate_literal: " << lit);
-    assert(checkInvariants());
+    // assert(checkInvariants());
     assert(m_values[lit] == Value::True);
 
     Lit const not_lit = ~lit;
@@ -958,64 +705,7 @@ private:
   }  // backtrack
 
 #ifndef NDEBUG
-  [[nodiscard]] bool checkInvariants() const
-  {
-    // assigned vars + unassiged vars = used vars
-    assert(m_trail.size() + m_unassigned_vars == m_used_vars);
-
-    assert(m_values.size() == 2 * m_used_vars);
-
-    // m_unassigned_values is correct
-    assert(std::count(m_values.begin(), m_values.end(), Value::Unassigned) == 2 * m_unassigned_vars);
-
-    // Opposite literals have opposite values
-    for (uint32_t var_idx = 0; var_idx < m_used_vars; ++var_idx) {
-      Var x{var_idx};
-      assert(m_values[x] == ~m_values[~x]);
-    }
-
-    // Every variable is at most once on the trail
-    std::set<Var> trail_vars;
-    for (Lit lit : m_trail) {
-      assert(lit.is_valid());
-      auto [_, inserted] = trail_vars.insert(lit.var());
-      assert(inserted);
-    }
-    assert(trail_vars.size() == m_trail.size());
-    assert(m_trail.size() <= m_used_vars);
-
-    // Check clause invariants
-    // TODO: after binary clause optimization: >= 3
-    for (Clause* clause : m_clauses) {
-      // Every stored clause has size >= 2
-      assert(clause->size() >= 2);
-      // No duplicate variables in the clause
-      // (this excludes duplicate literals and tautological clauses)
-      // TODO
-      // No invalid literals in clauses
-    }
-
-    // Check watch invariants
-    assert(m_watches.size() == 2 * m_used_vars);
-    std::map<ClauseRef, int> num_watches; // counts how many times each clause is watched
-    for (uint32_t lit_idx = 0; lit_idx < m_watches.size(); ++lit_idx) {
-      Lit const lit = Lit::from_index(lit_idx);
-      for (Watch watch : m_watches[lit]) {
-        num_watches[watch.clause] += 1;
-        Clause const& clause = get_clause(watch.clause);
-        // The watched literals are always the first two in the clause
-        assert(clause[0] == lit || clause[1] == lit);
-        // TODO: check status of watch literals
-        // (either: clause is satisfied, or both of the watch literals are false... I think)
-      }
-    }
-    // Every clause in m_clauses is watched twice
-    for (ClauseRef cr = 0; cr < m_clauses.size(); ++cr) {
-      assert(num_watches[cr] == 2);
-    }
-
-    return true;
-  }
+  [[nodiscard]] bool checkInvariants() const;
 #endif
 
   Level get_level(Var var) const
