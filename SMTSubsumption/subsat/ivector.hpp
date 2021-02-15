@@ -37,6 +37,7 @@ struct DefaultIndex<std::uint32_t> {
 template <typename Key>
 using DefaultIndex_t = typename DefaultIndex<Key>::type;
 
+// TODO: rename to vector_map?
 /// Vector-based map with type-safe indexing.
 template <typename Key, typename T, typename Index = DefaultIndex_t<Key>>
 class ivector {
@@ -83,6 +84,9 @@ public:
   {
     return m_data.emplace_back(std::forward<Args>(args)...);
   }
+
+  void resize(size_type count) { m_data.resize(count); }
+  void resize(size_type count, value_type const& value) { m_data.resize(count, value); }
 
 private:
   size_type index(Key key) const

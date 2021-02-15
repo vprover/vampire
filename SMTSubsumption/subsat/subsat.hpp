@@ -264,15 +264,15 @@ public:
     return begin() + m_size;
   }
 
-  // [[nodiscard]] const_iterator begin() const noexcept
-  // {
-  //   return &m_literals[0];
-  // }
+  [[nodiscard]] const_iterator begin() const noexcept
+  {
+    return cbegin();
+  }
 
-  // [[nodiscard]] const_iterator end() const noexcept
-  // {
-  //   return begin() + m_size;
-  // }
+  [[nodiscard]] const_iterator end() const noexcept
+  {
+    return cend();
+  }
 
   [[nodiscard]] const_iterator cbegin() const noexcept
   {
@@ -371,12 +371,12 @@ std::ostream& operator<<(std::ostream& os, Result r)
   return os;
 }
 
-
-
-
+// TODO: the current way of using ClauseRefs doesn't make sense. In fact, we're doing additional indirections compared to using pointers.
+//       What we need is in-place allocation in a vector<uint32_t>, like kitten does.  (maybe a vector<char> would be better?)  (what about alignment?)
 using ClauseRef = uint32_t;  // TODO: make this a struct, with a function to check validity? (operator bool?)
-using Level = uint32_t;
 #define InvalidClauseRef (std::numeric_limits<ClauseRef>::max())
+using Level = uint32_t;
+#define InvalidLevel (std::numeric_limits<Level>::max())
 
 struct VarInfo {
   Level level;
@@ -389,6 +389,17 @@ struct Watch {
 };
 
 
+using Mark = unsigned char;
+static constexpr Mark MarkSeen = 1;
+static constexpr Mark MarkPoisoned = 2;
+static constexpr Mark MarkRemovable = 4;
+// enum class Mark : char {
+//   Seen = 1,
+//   Poisoned = 2,
+//   Removable = 4,
+// };
+
+
 
 class Solver {
 public:
@@ -398,6 +409,8 @@ public:
   [[nodiscard]] Var new_variable()
   {
     m_unassigned_vars++;
+    m_vars.push_back({ .level = InvalidLevel, .reason = InvalidClauseRef});
+    m_marks.push_back(0);
     m_values.push_back(Value::Unassigned); // value of positive literal
     m_values.push_back(Value::Unassigned); // value of negative literal
     m_watches.emplace_back();           // positive literal watches
@@ -458,17 +471,16 @@ public:
   }
 
 private:
-  Clause const* get_clause(ClauseRef ref) const // TODO: change to Clause& ??? we don't want anyone to store pointers
+  Clause const& get_clause(ClauseRef ref) const
   {
     assert(ref != InvalidClauseRef);
     assert(ref < m_clauses.size());
-    return m_clauses[ref];
+    return *m_clauses[ref];
   }
 
-  Clause* get_clause(ClauseRef ref)
+  Clause& get_clause(ClauseRef ref)
   {
-    // return const_cast<Clause*>(const_cast<Solver const*>(this)->get_clause(ref));
-    return const_cast<Clause*>(std::as_const(*this).get_clause(ref));
+    return const_cast<Clause&>(std::as_const(*this).get_clause(ref));
   }
 
   /// Set the literal to true.
@@ -576,7 +588,7 @@ private:
       // TODO: blocking literal optimization
 
       ClauseRef const clause_ref = watch.clause;
-      Clause& clause = *get_clause(clause_ref);
+      Clause& clause = get_clause(clause_ref);
       assert(clause.size() >= 2);
 
       // The two watched literals of a clause are stored as the first two literals,
@@ -657,21 +669,196 @@ private:
     m_watches[lit].push_back(Watch{ .clause = clause_ref });
   }
 
+  /// Watch first to literals in the clause.
+  void watch_clause(ClauseRef clause_ref)
+  {
+    Clause const& clause = get_clause(clause_ref);
+    assert(clause.size() >= 2);
+    watch_literal(clause[0], /* TODO: clause[1], */ clause_ref);
+    watch_literal(clause[1], /* TODO: clause[0], */ clause_ref);
+  }
+
 
   /// Analyze conflict, learn a clause, backjump.
   /// Returns true if the search should continue.
-  bool analyze(ClauseRef conflict_ref)
+  [[nodiscard]] bool analyze(ClauseRef conflict_ref)
   {
-    assert(conflict_ref != InvalidClauseRef);
-    Clause* conflict = get_clause(conflict_ref);
-    // TODO
-  }
+    assert(!m_inconsistent);
+    assert(checkInvariants());
+
+    // assert(conflict_ref != InvalidClauseRef);
+    // Clause const& conflict = get_clause(conflict_ref);
+
+    Level const conflict_level = m_level;
+    if (conflict_level == 0) {
+      // Conflict on root level
+      m_inconsistent = true;
+      return false;
+    }
+
+    // TODO: move to member variable (reduce allocation overhead)
+    std::vector<Lit> clause;  // the learned clause
+    std::vector<Level> blocks;  // analyzed decision levels
+    std::vector<Var> seen;  // analyzed literals
+    ivector<Level, char> frames; // stores for each level whether we already have it in blocks; NOTE: should be bool, but C++ vector<bool> is bad
+    frames.resize(conflict_level, 0);
+    assert(clause.empty());
+    assert(blocks.empty());
+    assert(seen.empty());
+    assert(frames.size() >= conflict_level);
+    assert(std::all_of(frames.cbegin(), frames.cend(), [](auto x){ return x == 0; }));
+
+    // Make room for the first UIP
+    clause.push_back(Lit::invalid());
+
+    auto t = m_trail.crbegin();
+    uint32_t unresolved_on_current_level = 0;
+    Lit uip = Lit::invalid();
+    ClauseRef reason_ref = conflict_ref;
+
+    while (true) {
+      assert(reason_ref != InvalidClauseRef);
+      Clause const& reason = get_clause(reason_ref);
+
+      // TODO: readon->used = true
+
+      for (Lit const lit : reason) {
+        Var const var = lit.var();
+
+        if (lit == uip)
+          continue;  // TODO: why???
+
+        Level const lit_level = get_level(var);
+        if (lit_level == 0) {
+          // no need to consider literals at level 0 since they are unconditionally true
+          continue;
+        }
+
+        Mark const mark = m_marks[var];
+        assert(mark == 0 || mark == MarkSeen);
+        if (mark) {
+          continue;
+        }
+        m_marks[var] = MarkSeen;
+        seen.push_back(var);
+
+        assert(m_values[lit] == Value::False);
+        if (lit_level < conflict_level) {
+          if (!frames[lit_level]) {
+            blocks.push_back(lit_level);
+            frames[lit_level] = 1;
+          }
+          clause.push_back(lit);
+        } else {
+          assert(lit_level == conflict_level);
+          unresolved_on_current_level++;
+        }
+      }  // for (lit : reason)
+
+      do {
+        assert(t < m_trail.crend());
+        uip = *(++t);
+      } while (!m_marks[uip.var()]);
+
+      unresolved_on_current_level--;
+      if (unresolved_on_current_level == 0) {
+        break;
+      }
+
+      reason_ref = m_vars[uip.var()].reason;
+    }  // while(true)
+
+    assert(uip.is_valid());
+    Lit const not_uip = ~uip;
+    clause[0] = not_uip;
+
+    // TODO: cc-minimization?
+
+    uint32_t const glue = blocks.size();
+    Level jump_level = 0;
+    for (Level lit_level : blocks) {
+      frames[lit_level] = 0;
+      if (lit_level != conflict_level && jump_level < lit_level) {
+        jump_level = lit_level;
+      }
+    }
+    blocks.clear();
+
+    // TODO: update averages
+
+    // TODO: sort analyzed vars by time stamp
+    for (Var var : seen) {
+      // TODO: bump in varorder
+      assert(m_marks[var]);
+      m_marks[var] = 0;
+    }
+    seen.clear();
+
+    backtrack(jump_level);
+
+    uint32_t const size = clause.size();
+    assert(size > 0);
+    if (size == 1) {
+      // We learned a unit clause
+      assert(jump_level == 0);
+      assign(not_uip, InvalidClauseRef);
+    }
+    // else if (size == 2) {
+    //   // TODO: binary clause optimization
+    // }
+    else {
+      assert(size > 1);
+      assert(jump_level > 0);
+
+      // First literal at jump level becomes the other watch.
+      for (auto it = clause.begin() + 1; ; ++it) {
+        assert(it != clause.end());
+        Lit const lit = *it;
+        assert(get_level(lit) <= jump_level);
+        if (get_level(lit) == jump_level) {
+          *it = clause[1];
+          clause[1] = lit;
+          break;
+        }
+      }
+
+      Clause* learned = Clause::create(size);
+      ClauseRef learned_ref = m_clauses.size();
+      m_clauses.push_back(learned);  // TODO: call new_redundant_clause
+      watch_clause(learned_ref);
+      assign(not_uip, learned_ref);
+    }
+
+    clause.clear();
+
+    return true;
+  }  // analyze
 
   void backtrack(Level new_level)
   {
     assert(new_level <= m_level);
-    // TODO
-  }
+
+    // TODO: update VMTF
+
+    while (!m_trail.empty()) {
+      Lit const lit = m_trail.back();
+
+      if (get_level(lit) == new_level) {
+        break;
+      }
+
+      m_trail.pop_back();
+      assert(m_unassigned_vars < m_used_vars);
+      m_unassigned_vars += 1;
+      assert(m_values[lit] == Value::True);
+      assert(m_values[~lit] == Value::False);
+      m_values[lit] = Value::Unassigned;
+      m_values[~lit] = Value::Unassigned;
+    }
+
+    m_propagate_head = m_trail.size();
+    m_level = new_level;
+  }  // backtrack
 
 #ifndef NDEBUG
   [[nodiscard]] bool checkInvariants() const
@@ -687,12 +874,13 @@ private:
     // Opposite literals have opposite values
     for (uint32_t var_idx = 0; var_idx < m_used_vars; ++var_idx) {
       Var x{var_idx};
-      assert(m_values[x] == m_values[~x]);
+      assert(m_values[x] == ~m_values[~x]);
     }
 
     // Every variable is at most once on the trail
     std::set<Var> trail_vars;
     for (Lit lit : m_trail) {
+      assert(lit.is_valid());
       auto [_, inserted] = trail_vars.insert(lit.var());
       assert(inserted);
     }
@@ -707,6 +895,7 @@ private:
       // No duplicate variables in the clause
       // (this excludes duplicate literals and tautological clauses)
       // TODO
+      // No invalid literals in clauses
     }
 
     // Check watch invariants
@@ -716,7 +905,7 @@ private:
       Lit const lit = Lit::from_index(lit_idx);
       for (Watch watch : m_watches[lit]) {
         num_watches[watch.clause] += 1;
-        Clause const& clause = *get_clause(watch.clause);
+        Clause const& clause = get_clause(watch.clause);
         // The watched literals are always the first two in the clause
         assert(clause[0] == lit || clause[1] == lit);
         // TODO: check status of watch literals
@@ -732,6 +921,16 @@ private:
   }
 #endif
 
+  Level get_level(Var var) const
+  {
+    return m_vars[var].level;
+  }
+
+  Level get_level(Lit lit) const
+  {
+    return get_level(lit.var());
+  }
+
 private:
   bool m_inconsistent = false;
   uint32_t m_used_vars = 0;
@@ -746,6 +945,9 @@ private:
 
   /// Decision levels and reasons of variables
   ivector<Var, VarInfo> m_vars;
+
+  /// Mark flags of variables
+  ivector<Var, Mark> m_marks;
 
   ivector<ClauseRef, Clause*> m_clauses;
   std::vector<Lit> m_units;
