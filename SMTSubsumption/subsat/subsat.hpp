@@ -281,36 +281,7 @@ public:
     watch_clause(cr);
   }
 
-  Result solve()
-  {
-    m_trail.reserve(m_used_vars);
-    m_frames.resize(m_used_vars + 1, 0);
-
-    if (m_inconsistent) {
-      return Result::Unsat;
-    }
-
-    // propagate_units();  // TODO do this later when we add optimizations
-
-    while (true) {
-      ClauseRef conflict = propagate();
-
-      assert(checkInvariants());
-
-      if (conflict != InvalidClauseRef) {
-        if (!analyze(conflict)) {
-          return Result::Unsat;
-        }
-      } else {
-        if (m_unassigned_vars == 0) {
-          return Result::Sat;
-        } else {
-          // TODO: restart? switch mode? reduce clause db?
-          decide();
-        }
-      }
-    }
-  }
+  Result solve();
 
 private:
   Clause const& get_clause(ClauseRef ref) const
