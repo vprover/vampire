@@ -271,9 +271,20 @@ public:
     watch_clause(cr);
   }
 
+  /// Preconditions: ...
+  void add_clause_unsafe(Clause* clause)
+  {
+    // TODO
+    ClauseRef cr = m_clauses.size();
+    CDEBUG("add_clause: " << cr << " ~> " << *clause);
+    m_clauses.push_back(clause);
+    watch_clause(cr);
+  }
+
   Result solve()
   {
     m_trail.reserve(m_used_vars);
+    m_frames.resize(m_used_vars + 1, 0);
 
     if (m_inconsistent) {
       return Result::Unsat;
@@ -537,12 +548,10 @@ private:
       return false;
     }
 
-    // TODO: move to member variable (reduce allocation overhead)
-    std::vector<Lit> clause;  // the learned clause
-    std::vector<Level> blocks;  // analyzed decision levels
-    std::vector<Var> seen;  // analyzed literals
-    ivector<Level, char> frames; // stores for each level whether we already have it in blocks; NOTE: should be bool, but C++ vector<bool> is bad
-    frames.resize(conflict_level, 0);
+    std::vector<Lit>& clause = tmp_analyze_clause;
+    std::vector<Level>& blocks = tmp_analyze_blocks;
+    std::vector<Var>& seen = tmp_analyze_seen;
+    ivector<Level, char>& frames = m_frames;
     assert(clause.empty());
     assert(blocks.empty());
     assert(seen.empty());
@@ -751,20 +760,24 @@ private:
   /// Mark flags of variables
   ivector<Var, Mark> m_marks;
 
+  // TODO: need integrated clause storage, see kitten
   ivector<ClauseRef, Clause*> m_clauses;
   std::vector<Lit> m_units;
   ivector<Lit, std::vector<Watch>> m_watches;
 
-  std::vector<Lit> m_trail;  ///< Currently true literals in order of assignment; TODO: pre-allocate to #variables
-  uint32_t m_propagate_head = 0; // index into trail, the next literal to propagate
+  /// The currently true literals in order of assignment
+  std::vector<Lit> m_trail;
+  /// The next literal to propagate (index into the trail)
+  uint32_t m_propagate_head = 0;
 
-  // std::vector<Clause*> clauses;
+  // Temporary variables, defined as class members to reduce allocation overhead.
+  // Prefixed by the method where they are used.
+  std::vector<Lit> tmp_analyze_clause;  ///< learned clause
+  std::vector<Level> tmp_analyze_blocks;  ///< analyzed decision levels
+  std::vector<Var> tmp_analyze_seen;  ///< analyzed literals
+  ivector<Level, char> m_frames;  ///< stores for each level whether we already have it in blocks (we use 'char' because vector<bool> is bad)
 }; // Solver
 
-
-// TODO:
-// 1. basic implementation of CDCL with only major stuff like learning and 2-watched-literals without further complications
-// 2. add optimizations as desired
 
 
 } // namespace SMTSubsumption
