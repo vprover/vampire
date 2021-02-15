@@ -354,6 +354,8 @@ private:
   Clause& operator=(Clause&) = delete;
   Clause& operator=(Clause&&) = delete;
 
+  friend class AllocatedClause;
+
 private:
   size_type m_size;    // number of literals
   Lit m_literals[2];  // actual size is m_size, but C++ does not officially support flexible array members (as opposed to C)
@@ -432,8 +434,46 @@ static constexpr Mark MarkRemovable = 4;
 // };
 
 
+class AllocatedClause
+{
+public:
+  void push(Lit lit)
+  {
+    assert(m_clause);
+    assert(m_clause->m_size < m_capacity);
+    m_clause->m_literals[m_clause->m_size] = lit;
+    m_clause->m_size += 1;
+  }
 
-class Solver {
+  Clause* build()
+  {
+    assert(m_clause);
+    Clause* c = m_clause;
+#ifndef NDEBUG
+    m_clause = nullptr;
+#endif
+    return c;
+  }
+
+private:
+  AllocatedClause(Clause* clause, uint32_t capacity)
+      : m_clause{clause}, m_capacity{capacity}
+  {
+    assert(m_clause);
+  }
+
+  friend class Solver;
+
+private:
+  Clause* m_clause;
+#ifndef NDEBUG
+  uint32_t m_capacity;
+#endif
+};
+
+
+class Solver
+{
 public:
   /// Ensure space for a new variable and return it.
   /// By default, memory is increased exponentially (relying on the default behaviour of std::vector).
@@ -455,6 +495,13 @@ public:
   {
     m_values.reserve(2 * count);
     // TODO: call reserve on all necessary vectors where this is necessary
+  }
+
+
+  AllocatedClause alloc_clause(uint32_t capacity)
+  {
+    // TODO: allocate clause of given size in the internal storage,
+    // but do not yet call add_clause.
   }
 
     /*
@@ -768,7 +815,7 @@ private:
       assert(reason_ref != InvalidClauseRef);
       Clause const& reason = get_clause(reason_ref);
 
-      // TODO: readon->used = true
+      // TODO: reason->used = true
 
       for (Lit const lit : reason) {
         Var const var = lit.var();
