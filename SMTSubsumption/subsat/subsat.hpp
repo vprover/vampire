@@ -14,6 +14,7 @@
 #include <vector>
 
 #include "ivector.hpp"
+#include "cdebug.hpp"
 
 // Ensure NDEBUG and VDEBUG are synchronized
 #ifdef NDEBUG
@@ -96,6 +97,12 @@ static_assert(Var::max_index() < Var::invalid().index(), "valid variable indices
 [[nodiscard]] constexpr bool operator<(Var lhs, Var rhs) noexcept
 {
   return lhs.index() < rhs.index();
+}
+
+std::ostream& operator<<(std::ostream& os, Var var)
+{
+  os << var.index();
+  return os;
 }
 
 
@@ -204,6 +211,14 @@ static_assert(Lit::max_index() < Lit::invalid().index(), "valid literal indices 
   return !operator==(lhs, rhs);
 }
 
+std::ostream& operator<<(std::ostream& os, Lit lit)
+{
+  if (lit.is_negative()) {
+    os << '-';
+  }
+  os << lit.var();
+  return os;
+}
 
 
 
@@ -345,6 +360,23 @@ private:
 }; // Clause
 
 
+std::ostream& operator<<(std::ostream& os, Clause const& c)
+{
+  os << "{ ";
+  bool first = true;
+  for (Lit lit : c) {
+    if (first) {
+      first = false;
+    } else {
+      os << ", ";
+    }
+    os << lit;
+  }
+  os << " }";
+  return os;
+}
+
+
 template <> struct DefaultIndex<Var> {
   using type = IndexMember<Var>;
 };
@@ -441,6 +473,11 @@ public:
 
   void add_clause(Clause* clause)
   {
+    // TODO
+    ClauseRef cr = m_clauses.size();
+    CDEBUG("add_clause: " << cr << " ~> " << *clause);
+    m_clauses.push_back(clause);
+    watch_clause(cr);
   }
 
   Result solve()
@@ -487,6 +524,7 @@ private:
   /// Precondition: literal is not assigned.
   void assign(Lit lit, ClauseRef reason)
   {
+    CDEBUG("assign: " << lit << ", reason: " << reason);
     // TODO: log
 
     /*
@@ -531,6 +569,13 @@ private:
   /// Make a decision.
   void decide()
   {
+    CDEBUG("decide");
+    assert(m_unassigned_vars > 0);
+    assert(!m_inconsistent);
+    assert(m_level < m_used_vars);
+
+    m_level += 1;
+
     // TODO: use VMTF heuristic
     // for now, just choose the first unassigned literal
     for (uint32_t lit_idx = 0; lit_idx < m_values.size(); ++lit_idx) {
@@ -548,10 +593,10 @@ private:
   /// or InvalidClauseRef if all unit clauses have been propagated without conflict.
   ClauseRef propagate()
   {
+    CDEBUG("propagate");
     assert(checkInvariants());
     while (m_propagate_head < m_trail.size()) {
-      // p is the next literal to be propagated
-      Lit const lit = m_trail[m_propagate_head];
+      Lit const lit = m_trail[m_propagate_head++];
       ClauseRef const conflict = propagate_literal(lit);
       if (conflict != InvalidClauseRef) {
         return conflict;
@@ -563,6 +608,7 @@ private:
   /// Unit propagation for the given literal.
   ClauseRef propagate_literal(Lit lit)
   {
+    CDEBUG("propagate_literal: " << lit);
     assert(checkInvariants());
     assert(m_values[lit] == Value::True);
 
@@ -683,6 +729,7 @@ private:
   /// Returns true if the search should continue.
   [[nodiscard]] bool analyze(ClauseRef conflict_ref)
   {
+    CDEBUG("analyze: conflict clause " << conflict_ref);
     assert(!m_inconsistent);
     assert(checkInvariants());
 
@@ -717,6 +764,7 @@ private:
     ClauseRef reason_ref = conflict_ref;
 
     while (true) {
+      CDEBUG("reason_ref = " << reason_ref);
       assert(reason_ref != InvalidClauseRef);
       Clause const& reason = get_clause(reason_ref);
 
@@ -824,6 +872,7 @@ private:
 
       Clause* learned = Clause::create(size);
       ClauseRef learned_ref = m_clauses.size();
+      CDEBUG("learned: " << learned_ref << " ~> " << *learned);
       m_clauses.push_back(learned);  // TODO: call new_redundant_clause
       watch_clause(learned_ref);
       assign(not_uip, learned_ref);
@@ -836,6 +885,7 @@ private:
 
   void backtrack(Level new_level)
   {
+    CDEBUG("backtrack to level " << new_level);
     assert(new_level <= m_level);
 
     // TODO: update VMTF
