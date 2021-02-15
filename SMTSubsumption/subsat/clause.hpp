@@ -5,7 +5,6 @@
 #include <type_traits>
 #include <vector>
 
-#include "./alloc.hpp"
 #include "./types.hpp"
 
 namespace SMTSubsumption {
@@ -53,19 +52,11 @@ public:
     return total_bytes;
   }
 
-  /// Allocate a clause with enough space for 'size' literals.
-  static Clause* create(size_type size)
-  {
-    void* p = subsat_alloc(bytes(size));
-    return new (p) Clause{size};
-  }
-
-  // static void* operator new(size_t, size_type num_literals)
+  // /// Allocate a clause with enough space for 'size' literals.
+  // static Clause* create(size_type size)
   // {
-  //   size_t const contained_literals = std::extent_v<decltype(m_literals)>;
-  //   size_t const additional_literals = std::max(0, static_cast<size_t>(num_literals) - contained_literals);
-  //   size_t const total_bytes = sizeof Clause + sizeof Lit * additional_literals;
-  //   return ::operator new(total_bytes);
+  //   void* p = subsat_alloc(bytes(size));
+  //   return new (p) Clause{size};
   // }
 
 private:
@@ -89,8 +80,6 @@ private:
   Lit m_literals[2];  // actual size is m_size, but C++ does not officially support flexible array members (as opposed to C)
 }; // Clause
 
-static_assert(alignof(Clause) == 4, "unexpected Clause alignment");
-
 std::ostream& operator<<(std::ostream& os, Clause const& c)
 {
   os << "{ ";
@@ -108,10 +97,6 @@ std::ostream& operator<<(std::ostream& os, Clause const& c)
 }
 
 
-// // TODO: the current way of using ClauseRefs doesn't make sense. In fact, we're doing additional indirections compared to using pointers.
-// //       What we need is in-place allocation in a vector<uint32_t>, like kitten does.  (maybe a vector<char> would be better?)  (what about alignment?)
-// using ClauseRef = uint32_t;  // TODO: make this a struct, with a function to check validity? (operator bool?)
-// #define InvalidClauseRef (std::numeric_limits<ClauseRef>::max())
 
 
 
@@ -142,9 +127,6 @@ public:
   }
 
 private:
-  /// Creates an uninitialized ClauseRef.
-  // ClauseRef() noexcept = default;
-
   explicit constexpr ClauseRef(index_type index) noexcept
       : m_index{index}
   { }
@@ -221,7 +203,7 @@ class ClauseArena final
 {
 private:
   using storage_type = std::uint32_t;
-  static_assert(alignof(Clause) == alignof(storage_type), "alignment mismatch");
+  static_assert(alignof(Clause) == alignof(storage_type), "Clause alignment mismatch");
 
 public:
   Clause& deref(ClauseRef ref)

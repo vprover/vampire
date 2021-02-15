@@ -14,7 +14,6 @@
 #include <map>
 #include <vector>
 
-#include "./alloc.hpp"
 #include "./clause.hpp"
 #include "./types.hpp"
 #include "ivector.hpp"
@@ -45,15 +44,15 @@ struct VarInfo {
 
 struct Watch {
   constexpr Watch() noexcept
-    : clause{ClauseRef::invalid()}
+    : clause_ref{ClauseRef::invalid()}
   { }
 
   constexpr Watch(ClauseRef cr) noexcept
-    : clause{cr}
+    : clause_ref{cr}
   { }
 
   // TODO: optimizations: binary clause, blocking literal
-  ClauseRef clause;
+  ClauseRef clause_ref;
 };
 
 
@@ -268,7 +267,7 @@ private:
 
       // TODO: blocking literal optimization
 
-      ClauseRef const clause_ref = watch.clause;
+      ClauseRef const clause_ref = watch.clause_ref;
       Clause& clause = get_clause(clause_ref);
       assert(clause.size() >= 2);
 
@@ -323,7 +322,7 @@ private:
       else if (other_value != Value::Unassigned) {
         // All literals in the clause are false => conflict
         assert(other_value == Value::False);
-        conflict = watch.clause;
+        conflict = clause_ref;
       }
       else {
         // All literals except other_lit are false => propagate
@@ -590,8 +589,6 @@ private:
   /// Mark flags of variables
   ivector<Var, Mark> m_marks;
 
-  // TODO: need integrated clause storage, see kitten
-  // ivector<ClauseRef, Clause*> m_clauses;
   ClauseArena m_clauses;
   std::vector<Lit> m_units;
   ivector<Lit, std::vector<Watch>> m_watches;

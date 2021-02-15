@@ -85,8 +85,8 @@ bool Solver::checkInvariants() const
   for (uint32_t lit_idx = 0; lit_idx < m_watches.size(); ++lit_idx) {
     Lit const lit = Lit::from_index(lit_idx);
     for (Watch watch : m_watches[lit]) {
-      num_watches[watch.clause.index()] += 1;
-      Clause const& clause = get_clause(watch.clause);
+      num_watches[watch.clause_ref.index()] += 1;
+      Clause const& clause = get_clause(watch.clause_ref);
       // The watched literals are always the first two in the clause
       assert(clause[0] == lit || clause[1] == lit);
       // Check status of watch literals
