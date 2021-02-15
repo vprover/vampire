@@ -141,6 +141,8 @@ public:
 //	  int queryBank, int resultBank);
 #if VDEBUG
   virtual vstring toString(){ NOT_IMPLEMENTED; }
+  friend std::ostream& operator<<(std::ostream& out, ResultSubstitution& self)
+  { return out << self.toString(); }
 #endif
 };
 

@@ -82,6 +82,14 @@ struct TermQueryResult
   Clause* clause;
   ResultSubstitutionSP substitution;
   UnificationConstraintStackSP constraints;
+  friend std::ostream& operator<<(std::ostream& out, TermQueryResult const& self)
+  { return out << "TermQueryResult("
+               <<   "term: "         << self.term
+               << ", literal: "      << self.literal
+               << ", clause: "       << self.clause
+               << ", substitution: " << self.substitution
+               << ", constraints: "  << self.constraints
+               << ")"; }
 };
 
 struct ClauseSResQueryResult

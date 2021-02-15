@@ -59,6 +59,7 @@ public:
   bool isEmpty() const { return _map.isEmpty(); }
 #if VDEBUG
   vstring toString() const;
+  unsigned size() const { return _map.size(); }
 #endif
   friend std::ostream& operator<<(std::ostream& out, Substitution const&);
 private:
