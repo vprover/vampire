@@ -798,18 +798,17 @@ Literal* Literal::apply(Substitution& subst)
   return SubstHelper::apply(this, subst);
 } // Literal::apply
 
-
 /**
  * Return the hash function of the top-level of a complex term.
  * @pre The term must be non-variable
  * @since 28/12/2007 Manchester
  */
-unsigned Term::hash() const
+unsigned Term::hashUnderSignature(Signature *signature) const
 {
-  CALL("Term::hash");
+  CALL("Term::hashUnderSignature");
 
 #if VTHREADED
-  unsigned functor = env.signature->functionId(_functor);
+  unsigned functor = signature->functionId(_functor);
 #else
   unsigned functor = _functor;
 #endif
@@ -825,12 +824,12 @@ unsigned Term::hash() const
  * Return the hash function of the top-level of a literal.
  * @since 30/03/2008 Flight Murcia-Manchester
  */
-unsigned Literal::hash() const
+unsigned Literal::hashUnderSignature(Signature *signature) const
 {
-  CALL("Literal::hash");
+  CALL("Literal::hashUnderSignature");
 
 #if VTHREADED
-  unsigned functor = env.signature->predicateId(_functor);
+  unsigned functor = signature->predicateId(_functor);
 #else
   unsigned functor = _functor;
 #endif
@@ -849,12 +848,12 @@ unsigned Literal::hash() const
 /**
  * Return the hash function of the top-level of a literal with opposite polarity.
  */
-unsigned Literal::oppositeHash() const
+unsigned Literal::oppositeHashUnderSignature(Signature *signature) const
 {
-  CALL("Literal::hash");
+  CALL("Literal::oppositeHashUnderSignature");
 
 #if VTHREADED
-  unsigned functor = env.signature->predicateId(_functor);
+  unsigned functor = signature->predicateId(_functor);
 #else
   unsigned functor = _functor;
 #endif

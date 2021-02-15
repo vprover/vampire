@@ -27,8 +27,10 @@ using namespace SAT;
 
 namespace Saturation {
 
+VTHREAD_LOCAL DHMap<unsigned, unsigned> PersistentGrounding::_splitMap;
+
 PersistentGrounding::PersistentGrounding()
-  : _solver(new MinisatInterfacing(*env.options)) {
+  : _fresh(0), _solver(new MinisatInterfacing(*env.options)) {
   _solveTask = std::thread([&] { this->work(); });
 }
 
@@ -38,20 +40,24 @@ PersistentGrounding *PersistentGrounding::instance() {
 }
 
 void PersistentGrounding::work() {
+  bool idle = false;
   while(true) {
     // asserting phase
     {
-      std::lock_guard<std::mutex> lock{_queueLock};
-      _solver->ensureVarCount(_fresh);
+      if(idle)
+        std::this_thread::yield();
+      std::lock_guard<std::mutex> lock{_lock};
       if(_queue.isEmpty()) {
         // wait for more clauses to come through
-        std::this_thread::yield();
+        idle = true;
         continue;
       }
+      idle = false;
+      _solver->ensureVarCount(_fresh);
       while(_queue.isNonEmpty()) {
         SATClause *cl = _queue.pop_front();
         _solver->addClause(cl);
-        // std::cout << cl->toString() << std::endl;
+        //std::cout << "received: " << cl->toString() << std::endl;
       }
     }
     // solving phase
@@ -63,13 +69,12 @@ void PersistentGrounding::work() {
   }
 }
 
-void PersistentGrounding::enqueue(Clause *cl) {
-  VTHREAD_LOCAL static SATLiteralStack clause;
-  clause.reset();
+void PersistentGrounding::enqueueClause(Clause *cl) {
+  std::lock_guard<std::mutex> lock{_lock};
+  //std::cout << "clause: " << cl->toString() << std::endl;
 
+  SATLiteralStack satLiterals;
   {
-    std::lock_guard<std::mutex> lock{_groundLock};
-
     // like InstGen: maps all variables to the same distinct term
     class MapToSame
     {
@@ -88,13 +93,14 @@ void PersistentGrounding::enqueue(Clause *cl) {
       if(_literalMap.getValuePtr(positive, var)) {    
         *var = ++_fresh;
       }
-      clause.push(SATLiteral(*var, ground->isPositive()));
+      satLiterals.push(SATLiteral(*var, ground->isPositive()));
     }
   }
 
   // splits are already ground
   // but: need treating differently as they might be per-thread
-  VTHREAD_LOCAL static DHMap<unsigned, unsigned> splitMap;
+  // note thread-local, because (1) in one thread is not the same as in another
+  SATLiteralStack satSplits;
   auto splits = cl->splits();
   if(splits) {
     SplitSet::Iterator it(*splits);
@@ -102,20 +108,43 @@ void PersistentGrounding::enqueue(Clause *cl) {
       SplitLevel split = it.next();
       SATLiteral literal = Splitter::getLiteralFromName(split);
       unsigned *var;
-      if(splitMap.getValuePtr(literal.var(), var)) {
+      if(_splitMap.getValuePtr(literal.var(), var)) {
         *var = ++_fresh;
       }
       // (sp1, ... spN) -> L1 \/ ... \/ LN
       // could be read as
-      // ¬sp1 \/ ... \/ spN \/ L1 \/ ... \/ LN
-      // and therefore should be opposite polarity (i.e. isNegative()) below
-      // but it doesn't matter and this way is easier to read
-      clause.push(SATLiteral(*var, literal.isPositive()));
+      // ¬sp1 \/ ... \/ ¬spN \/ L1 \/ ... \/ LN
+      satSplits.push(SATLiteral(*var, literal.isNegative()));
     }
   }
 
-  std::lock_guard<std::mutex> lock{_queueLock};
-  _queue.push_back(SATClause::fromStack(clause));
+  // enqueue the clause
+  {
+    SATLiteralStack clause;
+    clause.loadFromIterator(SATLiteralStack::BottomFirstIterator(satLiterals));
+    clause.loadFromIterator(SATLiteralStack::BottomFirstIterator(satSplits));
+    SATClause *grounded = SATClause::fromStack(clause);
+    _queue.push_back(grounded);
+    //std::cout << "enqueued: " << grounded->toString() << std::endl;
+  }
+}
+
+void PersistentGrounding::enqueueSATClause(SATClause *cl) {
+  std::lock_guard<std::mutex> lock{_lock};
+  //std::cout << "SAT clause: " << cl->toString() << std::endl;
+
+  SATLiteralStack clause;
+  for(int i = 0; i < cl->length(); i++) {
+    SATLiteral literal = cl->literals()[i];
+    unsigned *var;
+    if(_splitMap.getValuePtr(literal.var(), var)) {
+      *var = ++_fresh;
+    }
+    clause.push(SATLiteral(*var, literal.isPositive()));
+  }
+  SATClause *grounded = SATClause::fromStack(clause);
+  _queue.push_back(grounded);
+  //std::cout << "enqueued: " << grounded->toString() << std::endl;
 }
 
 } // namespace Saturation

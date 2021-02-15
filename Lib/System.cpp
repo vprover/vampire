@@ -195,7 +195,12 @@ void handleSignal (int sigNum)
 	if(outputAllowed()) {
 	  if(env.options && env.statistics) {
 	    env.beginOutput();
-	    env.out() << getpid() << " Aborted by signal " << signalDescription << " on " << env.options->inputFile() << "\n";
+      env.out() << getpid();
+      #if VTHREADED
+      if(env.options->mode() == Options::Mode::THREADED)
+        env.out() << "/" << std::this_thread::get_id();
+      #endif
+	    env.out() << " Aborted by signal " << signalDescription << " on " << env.options->inputFile() << "\n";
 	    env.statistics->print(env.out());
 #if VDEBUG
 	    Debug::Tracer::printStack(env.out());

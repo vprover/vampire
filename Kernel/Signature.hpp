@@ -22,6 +22,7 @@
 
 #include "Debug/Assertion.hpp"
 
+#include "Indexing/TermSharing.hpp"
 #include "Lib/Allocator.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/DHSet.hpp"
@@ -510,10 +511,12 @@ class Signature
 #if VTHREADED
   /** return the id of a function with a given number */
   const unsigned functionId(int number) {
+    ACQ_TERM_SHARING_LOCK;
     return _funs[number]->id();
   }
   /** return the id of a predicate with a given number */
   const unsigned predicateId(int number) {
+    ACQ_TERM_SHARING_LOCK;
     return _preds[number]->id();
   }
 #endif

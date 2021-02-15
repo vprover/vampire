@@ -28,16 +28,11 @@
 
 #include "TermSharing.hpp"
 
-#if VTHREADED
-#define ACQ_TERM_SHARING_LOCK const std::lock_guard<std::recursive_mutex> __vampire_term_sharing_lock(_mutex)
-#else
-#define ACQ_TERM_SHARING_LOCK
-#endif
-
 using namespace Kernel;
 using namespace Indexing;
 
 typedef ApplicativeHelper AH;
+std::recursive_mutex TermSharing::_mutex;
 
 /**
  * Initialise the term sharing structure.
@@ -114,12 +109,19 @@ Term* TermSharing::insert(Term* t)
   }
 
   _termInsertions++;
+#if VTHREADED
+  auto pair = _terms.insert(std::make_pair(env.signature, t));
+  Signature *signature = pair.first;
+  Term *s = pair.second;
+#else
   Term* s = _terms.insert(t);
+  Signature *signature = env.signature;
+#endif
    if (s == t) {
     unsigned weight = 1;
     unsigned vars = 0;
     bool hasInterpretedConstants=t->arity()==0 &&
-	env.signature->getFunction(t->functor())->interpreted();
+	signature->getFunction(t->functor())->interpreted();
     Color color = COLOR_TRANSPARENT;
 
     if(env.options->combinatorySup() && !AH::isType(t)){ 
@@ -189,7 +191,7 @@ Term* TermSharing::insert(Term* t)
     t->setVars(vars);
     t->setWeight(weight);
     if (env.colorUsed) {
-      Color fcolor = env.signature->getFunction(t->functor())->color();
+      Color fcolor = signature->getFunction(t->functor())->color();
       color = static_cast<Color>(color | fcolor);
       t->setColor(color);
     }
@@ -243,7 +245,14 @@ Literal* TermSharing::insert(Literal* t)
   }
 
   _literalInsertions++;
+#if VTHREADED
+  auto pair = _literals.insert(std::make_pair(env.signature, t));
+  Signature *signature = pair.first;
+  Literal *s = pair.second;
+#else
   Literal* s = _literals.insert(t);
+  Signature *signature = env.signature;
+#endif
   if (s == t) {
     unsigned weight = 1;
     unsigned vars = 0;
@@ -274,7 +283,7 @@ Literal* TermSharing::insert(Literal* t)
     t->setVars(vars);
     t->setWeight(weight);
     if (env.colorUsed) {
-      Color fcolor = env.signature->getPredicate(t->functor())->color();
+      Color fcolor = signature->getPredicate(t->functor())->color();
       color = static_cast<Color>(color | fcolor);
       t->setColor(color);
     }
@@ -324,7 +333,11 @@ Literal* TermSharing::insertVariableEquality(Literal* t, TermList sort)
   unsigned sortWeight = sort.isVar() ? 1 : sort.term()->weight();
 
   _literalInsertions++;
+#if VTHREADED
+  Literal *s = _literals.insert(std::make_pair(env.signature, t)).second;
+#else
   Literal* s = _literals.insert(t);
+#endif
   if (s == t) {
     t->markShared();
     t->setId(_totalLiterals);
@@ -387,10 +400,17 @@ Literal* TermSharing::tryGetOpposite(Literal* l)
   CALL("TermSharing::tryGetOpposite");
   ACQ_TERM_SHARING_LOCK;
 
+#if VTHREADED
+  std::pair<Signature*, Literal*> res;
+  if(_literals.find(std::make_pair(env.signature, OpLitWrapper(l)), res)) {
+    return res.second;
+  }
+#else
   Literal* res;
   if(_literals.find(OpLitWrapper(l), res)) {
     return res;
   }
+#endif
   return 0;
 }
 
@@ -438,7 +458,6 @@ bool TermSharing::argNormGt(TermList t1, TermList t2)
   return (trm1->getId() > trm2->getId());
 }
 
-
 static bool equalArgs(const TermList *ss, const TermList *tt) {
   while(!ss->isEmpty()) {
     if(*ss != *tt) {
@@ -455,14 +474,23 @@ static bool equalArgs(const TermList *ss, const TermList *tt) {
  * @pre s and t must be non-variable terms
  * @since 28/12/2007 Manchester
  */
+#if VTHREADED
+bool TermSharing::equals(
+  std::pair<Signature*, Term*> left,
+  std::pair<Signature*, Term*> right
+)
+#else
 bool TermSharing::equals(const Term* s,const Term* t)
+#endif
 {
   CALL("TermSharing::equals(Term*,Term*)");
 
 #if VTHREADED
+  Term *s = left.second;
+  Term *t = right.second;
   if(
-    env.signature->functionId(s->functor()) !=
-    env.signature->functionId(t->functor())
+    left.first->functionId(s->functor()) !=
+    right.first->functionId(t->functor())
   )
     return false;
 #else
@@ -475,9 +503,21 @@ bool TermSharing::equals(const Term* s,const Term* t)
 /**
  * True if the two literals are equal (or equal except polarity if @c opposite is true)
  */
+#if VTHREADED
+bool TermSharing::equals(
+  std::pair<Signature*, Literal*> left,
+  std::pair<Signature*, Literal*> right,
+  bool opposite
+)
+#else
 bool TermSharing::equals(const Literal* l1, const Literal* l2, bool opposite)
+#endif
 {
   CALL("TermSharing::equals(Literal*,Literal*)");
+#if VTHREADED
+  Literal *l1 = left.second;
+  Literal *l2 = right.second;
+#endif
 
   if( (l1->polarity()==l2->polarity()) == opposite) {
     return false;
@@ -490,8 +530,8 @@ bool TermSharing::equals(const Literal* l1, const Literal* l2, bool opposite)
 
 #if VTHREADED
   if(
-    env.signature->predicateId(l1->functor()) !=
-    env.signature->predicateId(l2->functor())
+    left.first->predicateId(l1->functor()) !=
+    right.first->predicateId(l2->functor())
   )
     return false;
 #else

@@ -70,6 +70,9 @@ bool ThreadScheduleExecutor::run(const Schedule &schedule)
     env.sharing = nullptr;
     env.sorts = nullptr;
 
+    //leak signature :-( - currently TermSharing keeps handles to this
+    env.signature = nullptr;
+
     // indicate we're done
     std::lock_guard<std::mutex> task_lock(task_mutex);
     tasks_idle++;

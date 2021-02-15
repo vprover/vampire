@@ -18,6 +18,9 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <iostream>
+#if VTHREADED
+#include <thread>
+#endif
 
 #include "Forwards.hpp"
 
@@ -116,6 +119,11 @@ ostream& addCommentSignForSZS(ostream& out)
   if (szsOutputMode()) {
     out << "% ";
     if (Lib::env.options && Lib::env.options->multicore() != 1) {
+      #if VTHREADED
+      if(Lib::env.options->mode() == Options::Mode::THREADED)
+        out << "(" << std::this_thread::get_id() << ")";
+      else
+      #endif
       out << "(" << getpid() << ")";
     }
   }

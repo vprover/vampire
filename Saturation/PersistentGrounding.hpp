@@ -34,14 +34,15 @@ class PersistentGrounding {
 public:
   PersistentGrounding();
   static PersistentGrounding *instance();
-  void enqueue(Clause *);
+  void enqueueClause(Clause *);
+  void enqueueSATClause(SATClause *);
   void work();
 private:
   std::thread _solveTask;
-  std::mutex _groundLock;
-  VATOMIC(unsigned) _fresh;
+  std::mutex _lock;
+  unsigned _fresh;
   DHMap<Literal*, unsigned> _literalMap;
-  std::mutex _queueLock;
+  VTHREAD_LOCAL static DHMap<unsigned, unsigned> _splitMap;
   Deque<SATClause *> _queue;
   SATSolver *_solver;
 }; // class PersistentGrounding;

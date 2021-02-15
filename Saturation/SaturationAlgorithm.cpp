@@ -934,15 +934,15 @@ void SaturationAlgorithm::addUnprocessedClause(Clause* cl)
     return;
   }
 
+#if VTHREADED
+  if(_grounding)
+    _grounding->enqueueClause(cl);
+#endif
+
   if (cl->isEmpty()) {
     handleEmptyClause(cl);
     return;
   }
-
-#if VTHREADED
-  if(_grounding)
-    _grounding->enqueue(cl);
-#endif
 
   cl->setStore(Clause::UNPROCESSED);
   _unprocessed->add(cl);

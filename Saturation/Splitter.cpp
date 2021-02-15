@@ -47,6 +47,7 @@
 
 #include "DP/ShortConflictMetaDP.hpp"
 
+#include "PersistentGrounding.hpp"
 #include "SaturationAlgorithm.hpp"
 
 namespace Saturation
@@ -977,6 +978,11 @@ bool Splitter::handleNonSplittable(Clause* cl)
     Formula* f = JunctionFormula::generalJunction(OR,resLst);
     FormulaUnit* scl = new FormulaUnit(f,NonspecificInferenceMany(InferenceRule::AVATAR_SPLIT_CLAUSE,ps));
 
+#if VTHREADED
+    if(env.options->persistentGrounding())
+      PersistentGrounding::instance()->enqueueSATClause(nsClause);
+#endif
+
     nsClause->setInference(new FOConversionInference(scl));
 
     if (_showSplitting) {
@@ -1142,6 +1148,10 @@ bool Splitter::doSplitting(Clause* cl)
   }
 
   SATClause* splitClause = SATClause::fromStack(satClauseLits);
+#if VTHREADED
+    if(env.options->persistentGrounding())
+      PersistentGrounding::instance()->enqueueSATClause(splitClause);
+#endif
 
   if (_showSplitting) {
     env.beginOutput();
