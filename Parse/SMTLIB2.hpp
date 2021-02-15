@@ -376,8 +376,8 @@ private:
   void parseLetPrepareLookup(LExpr* exp);
   void parseLetEnd(LExpr* exp);
 
+  void addVarToLookup(LExpr* var, TermLookup* lookup, unsigned sort);
   void parseMatchBegin(LExpr* exp);
-  bool parseMatchPattern(LExpr* exp, unsigned int sort, TermLookup* lookup, unsigned int& functor);
   void parseMatchEnd(LExpr* exp);
 
   void parseQuantBegin(LExpr* exp);

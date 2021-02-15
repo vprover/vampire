@@ -25,6 +25,8 @@
 #include "Kernel/Inference.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/SortHelper.hpp"
+#include "Kernel/SubstHelper.hpp"
+#include "Kernel/Substitution.hpp"
 
 #include "Shell/LispLexer.hpp"
 #include "Shell/Options.hpp"
@@ -1514,6 +1516,24 @@ void SMTLIB2::parseLetEnd(LExpr* exp)
 
 static const char* UNDERSCORE = "_";
 
+void SMTLIB2::addVarToLookup(LExpr* var, TermLookup* lookup, unsigned sort)
+{
+  auto str = var->str;
+  TermList targ = TermList(_nextVar++, false);
+
+  // Check variable in earlier lookups
+  Scopes::Iterator sIt(_scopes);
+  while (sIt.hasNext()) {
+    SortedTerm tmp;
+    if (sIt.next()->find(str, tmp)) {
+      USER_ERROR("Variable '"+str+"' has already been defined");
+    }
+  }
+  if (!lookup->insert(str, make_pair(targ, sort))) {
+    USER_ERROR("Variable '"+str+"' has already been defined");
+  }
+}
+
 void SMTLIB2::parseMatchBegin(LExpr* exp)
 {
   CALL("SMTLIB2::parseMatchBegin");
@@ -1563,16 +1583,9 @@ void SMTLIB2::parseMatchBegin(LExpr* exp)
     USER_ERROR("Unrecognized match term '"+matched+"' in expression '"+exp->toString()+"'");
   }
 
-  TermAlgebra *ta = env.signature->getTermAlgebraOfSort(matchedTerm.second);
-  if (ta == nullptr) {
-    USER_ERROR("Match term '"+matched+"' is not of a term algebra type in expression '"+exp->toString()+"'");
-  }
-
-  Set<unsigned int> ctorSignatures;
-
   _todo.push(make_pair(PO_PARSE,matchedAtom));
 
-  bool containsVarPattern = false;
+  // LExpr* varBody = nullptr;
 
   // we then parse all cases
   while (casesRdr.hasNext()) {
@@ -1580,16 +1593,31 @@ void SMTLIB2::parseMatchBegin(LExpr* exp)
     LispListReader pRdr(pair);
 
     LExpr* pattern = pRdr.readNext();
+    LExpr* body = pRdr.readNext();
 
     // copy lookup
     TermLookup* lookup = new TermLookup;
-    unsigned int functor;
-    if (parseMatchPattern(pattern, matchedTerm.second, lookup, functor)) {
-      ctorSignatures.insert(functor);
-    } else {
-      containsVarPattern = true;
+    if (pattern->isList()) {
+      LispListReader tRdr(pattern);
+      // skip the functor
+      tRdr.readAtom();
+      while (tRdr.hasNext()) {
+        auto arg = tRdr.readNext();
+        unsigned int unused;
+        if (!arg->isAtom() || isAlreadyKnownFunctionSymbol(arg->str)) {
+          USER_ERROR("Nested ctors in match patterns are disallowed: '"+exp->toString()+"'");
+        }
+        addVarToLookup(arg, lookup, matchedTerm.second);
+      }
+    } else if (!isTermAlgebraConstructor(pattern->str)) {
+      if (isAlreadyKnownFunctionSymbol(pattern->str)) {
+        USER_ERROR("Constant symbol found in match pattern: '"+exp->toString()+"'");
+      }
+      // in case of _ no need to add to lookup
+      if (pattern->str != UNDERSCORE) {
+        addVarToLookup(pattern, lookup, matchedTerm.second);
+      }
     }
-    LExpr* body = pRdr.readNext();
 
     //TODO(mhajdu): I suspect the lookups are not correctly created,
     // as it can see variables from other scopes, find out why
@@ -1598,89 +1626,6 @@ void SMTLIB2::parseMatchBegin(LExpr* exp)
     _todo.push(make_pair(PO_PARSE,body));
     pRdr.acceptEOL();
   }
-
-  // if there is at least one variable
-  // pattern, exhaustiveness is guaranteed
-  if (containsVarPattern) {
-    return;
-  }
-
-  // check for exhaustiveness of the term algebra of this term
-  for (unsigned int i = 0; i < ta->nConstructors(); i++) {
-    if (!ctorSignatures.contains(ta->constructor(i)->functor())) {
-      USER_ERROR("Match expression for '"+matched+"' does not contain all constructors or "\
-        "at least a variable from corresponding term algebra in expression '"+exp->toString()+"'");
-    }
-  }
-}
-
-// returns true if expression is a constructor term,
-// in this case functor is assigned the proper signature id
-bool SMTLIB2::parseMatchPattern(LExpr* exp, unsigned int sort, TermLookup* lookup, unsigned int& functor)
-{
-  CALL("SMTLIB2::parseMatchPattern");
-
-  if (exp->isList()) {
-    LispListReader tRdr(exp);
-    const vstring& consName = tRdr.readAtom();
-
-    if (isTermAlgebraConstructor(consName)) {
-      auto id = _declaredFunctions.get(consName).first;
-      auto fn = env.signature->getFunction(id);
-      if (fn->fnType()->result() != sort) {
-        USER_ERROR("Match pattern '"+exp->toString()+"' is not the same type "\
-          "as matched pattern or constructor selector");
-      }
-      unsigned argcnt = 0;
-      while (tRdr.hasNext()) {
-        auto arg = tRdr.readNext();
-        unsigned int unused;
-        parseMatchPattern(arg, fn->fnType()->arg(argcnt), lookup, unused);
-        argcnt++;
-      }
-      if (argcnt != fn->fnType()->arity()) {
-        USER_ERROR("Constructor '"+consName+"' has the wrong number of "\
-          "arguments in match pattern '"+exp->toString()+"'");
-      }
-      functor = id;
-      return true;
-    }
-    USER_ERROR("'"+consName+"' is not a datatype constructor");
-  // base constructor or variable
-  } else {
-    vstring& exp_str = exp->str;
-
-    if (isTermAlgebraConstructor(exp_str)) {
-      auto id = _declaredFunctions.get(exp_str).first;
-      auto fn = env.signature->getFunction(id);
-      if (fn->fnType()->result() != sort || fn->fnType()->arity() != 0) {
-        USER_ERROR("Constructor '"+exp_str+"' is not a base "\
-          "constructor or is of the wrong type");
-      }
-      functor = id;
-      return true;
-    }
-
-    // variable
-    if (exp_str == UNDERSCORE) {
-      // nothing to do here
-    } else {
-      TermList arg = TermList(_nextVar++, false);
-
-      // Check variable in earlier lookups
-      Scopes::Iterator sIt(_scopes);
-      while (sIt.hasNext()) {
-        SortedTerm tmp;
-        if (sIt.next()->find(exp_str, tmp)) {
-          USER_ERROR("Variable '"+exp_str+"' has already been defined");
-        }
-      }
-      if (!lookup->insert(exp_str, make_pair(arg, sort))) {
-        USER_ERROR("Variable '"+exp_str+"' has already been defined");
-      }
-    }
-  }
-  return false;
 }
 
 void SMTLIB2::parseMatchEnd(LExpr* exp)
@@ -1701,16 +1646,29 @@ void SMTLIB2::parseMatchEnd(LExpr* exp)
   auto matchedTermSort = _results.pop().asTerm(matchedTerm);
   LOG2("CASE matched ", matchedTerm.toString());
 
+  vmap<unsigned, TermAlgebraConstructor*> ctorFunctors;
+  TermAlgebra *ta = env.signature->getTermAlgebraOfSort(matchedTermSort);
+  if (ta == nullptr) {
+    USER_ERROR("Match term '"+matched+"' is not of a term algebra type in expression '"+exp->toString()+"'");
+  }
+  for (unsigned int i = 0; i < ta->nConstructors(); i++) {
+    ctorFunctors.insert(make_pair(ta->constructor(i)->functor(), ta->constructor(i)));
+  }
+
   unsigned int cases = 0;
   while (casesRdr.hasNext()) {
     cases++;
     casesRdr.readNext();
   }
 
-  DArray<TermList> elements(2*cases+1);
+  TermList varPattern;
+  TermList varBody;
+  bool varUsed = false;
+  DArray<TermList> elements(2*ta->nConstructors()+1);
   elements[0] = matchedTerm;
   unsigned int sort;
-  for (unsigned int i = 0; i < cases; i++) {
+  unsigned int i = 0;
+  for (; i < cases; i++) {
     TermList pattern;
     unsigned patternSort = _results.pop().asTerm(pattern);
     TermList body;
@@ -1720,11 +1678,44 @@ void SMTLIB2::parseMatchEnd(LExpr* exp)
     LOG2("CASE body    ",body.toString());
 
     ASS_EQ(patternSort, matchedTermSort);
-
-    elements[2*i + 1] = pattern;
-    elements[2*(i+1)] = body;
-
+    if (pattern.isVar()) {
+      if (varUsed) {
+        USER_ERROR("Else branch cannot be used twice in match in '"+exp->toString()+"'");
+      }
+      varUsed = true;
+      varPattern = pattern;
+      varBody = body;
+    } else {
+      auto functor = pattern.term()->functor();
+      if (ctorFunctors.erase(functor) != 1) {
+        USER_ERROR("Match pattern '"+pattern.toString()+"' is either not ctor or was listed twice in '"+exp->toString()+"'");
+      }
+      elements[2*i + 1] = pattern;
+      elements[2*(i+1)] = body;
+    }
     delete _scopes.pop();
+  }
+
+  // if there is a variable pattern,
+  // we add the missing ctors
+  if (varUsed) {
+    Stack<TermList> argTerms;
+    for (const auto& kv : ctorFunctors) {
+      argTerms.reset();
+      for (unsigned j = 0; j < kv.second->arity(); j++) {
+        argTerms.push(TermList(_nextVar++, false));
+      }
+      TermList pattern(Term::create(kv.second->functor(), argTerms.size(), argTerms.begin()));
+      elements[2*i + 1] = pattern;
+      if (varPattern.isVar()) {
+        Substitution subst;
+        subst.bind(varPattern.var(),pattern);
+        varBody = SubstHelper::apply<Substitution>(varBody, subst);
+      }
+      elements[2*(i+1)] = varBody;
+    }
+  } else if (ctorFunctors.size() > 0) {
+    USER_ERROR("Missing ctors in match expression '"+exp->toString()+"'");
   }
 
   auto match = TermList(Term::createMatch(sort, matchedTermSort, elements.size(), elements.begin()));

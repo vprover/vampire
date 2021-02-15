@@ -522,21 +522,21 @@ vstring Term::headToString() const
         return "$let([" + typesList + "], [" + symbolsList + "] := " + binding.toString() + ", ";
       }
       case Term::SF_MATCH: {
-        ASS_EQ(arity()%2, 1);
-        auto matched = nthArgument(0);
+        // ASS_EQ(arity()%2, 1);
+        // auto matched = nthArgument(0);
 
-        vstring patternBodyList = "";
-        for (unsigned i = 1; i < arity(); i+=2) {
-          auto pattern = nthArgument(i);
-          auto body = nthArgument(i+1);
-          patternBodyList += "(" + matched->toString() + "=" + pattern->toString() + ")"
-            + " => " + body->toString();
-          if (i != arity() - 2) {
-            patternBodyList += ", ";
-          }
-        }
+        // vstring patternBodyList = "";
+        // for (unsigned i = 1; i < arity(); i+=2) {
+        //   auto pattern = nthArgument(i);
+        //   auto body = nthArgument(i+1);
+        //   patternBodyList += "(" + matched->toString() + "=" + pattern->toString() + ")"
+        //     + " => " + body->toString();
+        //   if (i != arity() - 2) {
+        //     patternBodyList += ", ";
+        //   }
+        // }
 
-        return "$match([" + patternBodyList + "], ";
+        return "$match ";
       }
       default:
         ASSERTION_VIOLATION;
