@@ -33,7 +33,7 @@ using std::uint32_t;
 
 enum class Value : signed char {
   False = -1,
-  Unknown = 0,   // TODO: rename to Unassigned
+  Unassigned = 0,
   True = 1,
 };
 
@@ -398,8 +398,8 @@ public:
   [[nodiscard]] Var new_variable()
   {
     m_unassigned_vars++;
-    m_values.push_back(Value::Unknown); // value of positive literal
-    m_values.push_back(Value::Unknown); // value of negative literal
+    m_values.push_back(Value::Unassigned); // value of positive literal
+    m_values.push_back(Value::Unassigned); // value of negative literal
     m_watches.emplace_back();           // positive literal watches
     m_watches.emplace_back();           // negative literal watches
     return Var{m_used_vars++};
@@ -487,8 +487,8 @@ private:
     // TODO: kitten does phase-saving as well
 
     // precondition: not assigned
-    assert(m_values[lit] == Value::Unknown);
-    assert(m_values[~lit] == Value::Unknown);
+    assert(m_values[lit] == Value::Unassigned);
+    assert(m_values[~lit] == Value::Unassigned);
 
     // not assigned also means not on trail
     assert(std::find(m_trail.begin(), m_trail.end(), lit) == m_trail.end());
@@ -519,7 +519,16 @@ private:
   /// Make a decision.
   void decide()
   {
-    // TODO
+    // TODO: use VMTF heuristic
+    // for now, just choose the first unassigned literal
+    for (uint32_t lit_idx = 0; lit_idx < m_values.size(); ++lit_idx) {
+      Lit const lit = Lit::from_index(lit_idx);
+      if (m_values[lit] == Value::Unassigned) {
+        assign(lit, InvalidClauseRef);
+        return;
+      }
+    }
+    assert(false);
   }
 
   /// Unit propagation.
@@ -608,7 +617,7 @@ private:
         // TODO: think about why this works. (if replacement was assigned after not_lit, it must still have been in the same decision level? so when we backtrack, we're guaranteed to undo both.)
         assert(m_vars[replacement.var()].level == m_vars[not_lit.var()].level);
       }
-      else if (replacement_value == Value::Unknown) {
+      else if (replacement_value == Value::Unassigned) {
         // The replacement literal is unassigned.
         // Unwatch not_lit
         --q;
@@ -618,14 +627,14 @@ private:
         // Watch the replacement literal
         watch_literal(replacement, /* TODO: other_lit, */ clause_ref);
       }
-      else if (other_value != Value::Unknown) {
+      else if (other_value != Value::Unassigned) {
         // All literals in the clause are false => conflict
         assert(other_value == Value::False);
         conflict = watch.clause;
       }
       else {
         // All literals except other_lit are false => propagate
-        assert(other_value == Value::Unknown);
+        assert(other_value == Value::Unassigned);
         assign(other_lit, clause_ref);
       }
 
@@ -673,7 +682,7 @@ private:
     assert(m_values.size() == 2 * m_used_vars);
 
     // m_unassigned_values is correct
-    assert(std::count(m_values.begin(), m_values.end(), Value::Unknown) == 2 * m_unassigned_vars);
+    assert(std::count(m_values.begin(), m_values.end(), Value::Unassigned) == 2 * m_unassigned_vars);
 
     // Opposite literals have opposite values
     for (uint32_t var_idx = 0; var_idx < m_used_vars; ++var_idx) {

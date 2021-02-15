@@ -73,6 +73,8 @@ public:
   const_iterator end() const noexcept { return m_data.end(); }
   const_iterator cend() const noexcept { return m_data.cend(); }
 
+  // TODO: a map-like iterator would be nice. need to extend Index with the backward conversion.
+
   void push_back(T const& value) { m_data.push_back(value); }
   void push_back(T&& value) { m_data.push_back(std::move(value)); }
 
