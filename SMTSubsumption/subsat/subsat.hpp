@@ -92,6 +92,20 @@ public:
     // TODO: call reserve on all necessary vectors where this is necessary
   }
 
+  [[nodiscard]] AllocatedClause alloc_clause(uint32_t capacity)
+  {
+    return m_clauses.alloc(capacity);
+  }
+
+  /// Reset solver to empty state, but keep allocated memory buffers.
+  void clear()
+  {
+    m_inconsistent = false;
+    m_used_vars = 0;
+    // TODO: clear everything else too
+    m_clauses.clear();
+  }
+
 
     /*
   void add_empty_clause()
@@ -107,13 +121,13 @@ public:
   }
   */
 
-  void add_clause(ClauseRef cr)
+  void add_clause(ClauseRef cref)
   {
     // // TODO
     // ClauseRef cr = m_clauses.size();
     // CDEBUG("add_clause: " << cr << " ~> " << *clause);
     // m_clauses.push_back(clause);
-    watch_clause(cr);
+    watch_clause(cref);
   }
 
   void add_clause(std::initializer_list<Lit> literals)
@@ -122,8 +136,8 @@ public:
     for (Lit lit : literals) {
       c.push(lit);
     }
-    ClauseRef ref = c.build();
-    watch_clause(ref);
+    ClauseRef cref = c.build();
+    watch_clause(cref);
   }
 
   /// Preconditions: ...
@@ -139,20 +153,6 @@ public:
   Result solve();
 
 private:
-  Clause const& get_clause(ClauseRef ref) const
-  {
-    assert(ref.is_valid());
-    // assert(ref < m_clauses.size());
-    // return *m_clauses[ref];
-    return m_clauses.deref(ref);
-  }
-
-  Clause& get_clause(ClauseRef ref)
-  {
-    assert(ref.is_valid());
-    return m_clauses.deref(ref);
-    // return const_cast<Clause&>(std::as_const(*this).get_clause(ref));
-  }
 
   /// Set the literal to true.
   /// Precondition: literal is not assigned.
@@ -164,6 +164,8 @@ private:
     /*
     // TODO: Assignment on root level => no need to store the reason
     // (done in satch, but not in kitten)
+    // probably because this is only helpful when we have clause deletion?
+    // if we don't delete clauses, we don't care if we store extra reason references.
     if (m_level == 0) {
       reason = ClauseRef::invalid();
     } */
@@ -268,7 +270,7 @@ private:
       // TODO: blocking literal optimization
 
       ClauseRef const clause_ref = watch.clause_ref;
-      Clause& clause = get_clause(clause_ref);
+      Clause& clause = m_clauses.deref(clause_ref);
       assert(clause.size() >= 2);
 
       // The two watched literals of a clause are stored as the first two literals,
@@ -346,13 +348,17 @@ private:
   /// Watch literal 'lit' in the given clause.
   void watch_literal(Lit lit, /* TODO: Lit blocking_lit, */ ClauseRef clause_ref)
   {
-    m_watches[lit].push_back(Watch{clause_ref});
+    CDEBUG("watching " << lit << /* " blocked by " << blocking_lit << */ " in " << clause_ref);
+    auto& watches = m_watches[lit];
+    assert(std::all_of(watches.cbegin(), watches.cend(), [=](auto w){ return w.clause_ref != clause_ref }));
+    watches.push_back(Watch{clause_ref});
   }
 
-  /// Watch first to literals in the clause.
+
+  /// Watch the first two literals in the given clause.
   void watch_clause(ClauseRef clause_ref)
   {
-    Clause const& clause = get_clause(clause_ref);
+    Clause const& clause = m_clauses.deref(clause_ref);
     assert(clause.size() >= 2);
     watch_literal(clause[0], /* TODO: clause[1], */ clause_ref);
     watch_literal(clause[1], /* TODO: clause[0], */ clause_ref);
@@ -368,7 +374,7 @@ private:
     assert(checkInvariants());
 
     // assert(conflict_ref.is_valid());
-    // Clause const& conflict = get_clause(conflict_ref);
+    // Clause const& conflict = m_clauses.deref(conflict_ref);
 
     Level const conflict_level = m_level;
     if (conflict_level == 0) {
@@ -398,7 +404,7 @@ private:
     while (true) {
       CDEBUG("reason_ref = " << reason_ref);
       assert(reason_ref.is_valid());
-      Clause const& reason = get_clause(reason_ref);
+      Clause const& reason = m_clauses.deref(reason_ref);
 
       // TODO: reason->used = true
 
@@ -606,6 +612,12 @@ private:
   ivector<Level, char> m_frames;  ///< stores for each level whether we already have it in blocks (we use 'char' because vector<bool> is bad)
 }; // Solver
 
+// TODO:
+// 1. VMTF decision heuristic
+// 2. binary clause optimization
+// 3. phase saving? but for our problem, just choosing 'true' will almost always be correct.
+//    => maybe add a 'hint' to 'new_variable'... that will be the first phase tried if we need to decide on it.
+// 4. AtMostOne support
 
 
 } // namespace SMTSubsumption

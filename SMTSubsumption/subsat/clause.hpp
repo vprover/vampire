@@ -133,7 +133,6 @@ private:
 
   // friend class Watch;
   friend class ClauseArena;
-  friend std::ostream& operator<<(std::ostream&, ClauseRef);
 
 private:
   /// Index into the arena storage.
@@ -144,9 +143,19 @@ private:
 #endif
 };
 
+[[nodiscard]] constexpr bool operator==(ClauseRef lhs, ClauseRef rhs) noexcept
+{
+  return lhs.index() == rhs.index();
+}
+
+[[nodiscard]] constexpr bool operator!=(ClauseRef lhs, ClauseRef rhs) noexcept
+{
+  return !operator==(lhs, rhs);
+}
+
 std::ostream& operator<<(std::ostream& os, ClauseRef cr)
 {
-  os << "ClauseRef{" << cr.m_index << "}";
+  os << "ClauseRef{" << cr.index() << "}";
   return os;
 }
 
@@ -208,6 +217,7 @@ private:
 public:
   Clause& deref(ClauseRef ref)
   {
+    assert(ref.is_valid());
     assert(ref.m_timestamp == m_timestamp);
     std::uint32_t* p = &m_storage[ref.m_index];
     return *reinterpret_cast<Clause*>(p);
@@ -215,6 +225,7 @@ public:
 
   Clause const& deref(ClauseRef ref) const
   {
+    assert(ref.is_valid());
     assert(ref.m_timestamp == m_timestamp);
     std::uint32_t const* p = &m_storage[ref.m_index];
     return *reinterpret_cast<Clause const*>(p);
