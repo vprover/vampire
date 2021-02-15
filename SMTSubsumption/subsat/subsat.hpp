@@ -564,19 +564,23 @@ private:
 
       // TODO: reason->used = true
 
+      CDEBUG("reason = " << reason);
       for (Lit const lit : reason) {
         Var const var = lit.var();
+        CDEBUG("    checking lit " << lit << "  (uip = " << uip << ")");
 
         if (lit == uip)
           continue;  // TODO: why???
 
         Level const lit_level = get_level(var);
+        CDEBUG("    lit_level = " << lit_level);
         if (lit_level == 0) {
           // no need to consider literals at level 0 since they are unconditionally true
           continue;
         }
 
         Mark const mark = m_marks[var];
+        CDEBUG("    mark = " << (int)mark);
         assert(mark == 0 || mark == MarkSeen);
         if (mark) {
           continue;
@@ -597,9 +601,11 @@ private:
         }
       }  // for (lit : reason)
 
+      // Find next literal to resolve by going backward over the trail
       do {
         assert(t < m_trail.crend());
-        uip = *(++t);
+        uip = *t;
+        t++;
       } while (!m_marks[uip.var()]);
 
       unresolved_on_current_level--;
@@ -613,6 +619,11 @@ private:
     assert(uip.is_valid());
     Lit const not_uip = ~uip;
     clause[0] = not_uip;
+
+    // CDEBUG("learning clause:");
+    // for (Lit l : clause) {
+    //   CDEBUG("    " << l);
+    // }
 
     // TODO: cc-minimization?
 
@@ -643,6 +654,7 @@ private:
     if (size == 1) {
       // We learned a unit clause
       assert(jump_level == 0);
+      CDEBUG("learned unit: " << not_uip);
       assign(not_uip, InvalidClauseRef);
     }
     // else if (size == 2) {
@@ -665,6 +677,9 @@ private:
       }
 
       Clause* learned = Clause::create(size);
+      for (uint32_t i = 0; i < size; ++i) {
+        (*learned)[i] = clause[i];
+      }
       ClauseRef learned_ref = m_clauses.size();
       CDEBUG("learned: " << learned_ref << " ~> " << *learned);
       m_clauses.push_back(learned);  // TODO: call new_redundant_clause

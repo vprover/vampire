@@ -114,8 +114,7 @@ bool Solver::checkInvariants() const
         }
         // If the clause is satisfied, one of the watches must be on the same level or above
         // at least one of the true literals.
-        // Even stronger in our code: one of the watches is on the same level. (TODO: true?)
-        assert(get_level(clause[0]) == min_true_level || get_level(clause[1]) == min_true_level);
+        assert(get_level(clause[0]) >= min_true_level || get_level(clause[1]) >= min_true_level);
       } else {
         // If the clause is not satisfied, either both watch literals must be unassigned,
         // or all literals are false (conflict).
@@ -123,10 +122,6 @@ bool Solver::checkInvariants() const
           m_values[clause[0]] == Value::Unassigned && m_values[clause[1]] == Value::Unassigned;
         bool is_conflict =
           std::all_of(clause.begin(), clause.end(), [this](auto l) { return m_values[l] == Value::False; });
-        CDEBUG("BLAH");
-        for (Lit l: clause) {
-          CDEBUG("Literal " << l << " has value " << m_values[l]);
-        }
         assert(both_watches_unassigned || is_conflict);
       }
     }
