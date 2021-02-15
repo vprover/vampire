@@ -25,6 +25,7 @@
 #include "Test/SimplificationTester.hpp"
 #include "Test/TermIndexTester.hpp"
 #include "Kernel/KBO.hpp"
+#include "Indexing/TermSubstitutionTree.hpp"
 
 using namespace std;
 using namespace Kernel;
@@ -46,6 +47,7 @@ using Test::TermIndex::subs;
 
 
 TERM_INDEX_TEST_SET_DEFAULT(withConstraints, true);
+TERM_INDEX_TEST_SET_DEFAULT(index, new InequalityResolutionIndex(new TermSubstitutionTree(), *new KBO(KBO::testKBO())));
 
 TEST_TERM_INDEX(test01,
     TermIndex::TestCase()

@@ -193,11 +193,16 @@ class TestCase
 
   void run() 
   {
+    CALL("Test::TermIndex::TestCase::run()")
+#define UNWRAP(field)  \
+      this->field().isNone() ? throw UserErrorException(#field " must be specified for a valid TermIndex test case") \
+                             : this->field().unwrap()
 
-    auto index           = this->          index().unwrap();
-    auto contents        = this->       contents().unwrap();
-    auto query           = this->          query().unwrap();
-    auto withConstraints = this->withConstraints().unwrap();
+    auto index           = UNWRAP(index);
+    auto contents        = UNWRAP(contents);
+    auto query           = UNWRAP(query);
+    auto withConstraints = UNWRAP(withConstraints);
+
     Stack<TermQueryResultPattern> expected        = this->       expected().unwrap();
 
     auto container = PlainClauseContainer();
@@ -230,6 +235,7 @@ class TestCase
         testFail(r, expected);
     }
 
+#undef UNWRAP
   }
 };
 

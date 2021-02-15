@@ -54,7 +54,13 @@ bool TestUnit::runTest(vstring const& testCase)
 {
   for (auto test : _tests) {
     if (test.name == testCase) {
-      test.proc();
+      try {
+        test.proc();
+      } catch (UserErrorException& e) {
+        e.cry(std::cout);
+        std::cout.flush();
+        exit(-1);
+      }
       return true;
     }
   }
@@ -158,7 +164,13 @@ bool TestUnit::spawnTest(TestProc proc)
   auto mp = Multiprocessing::instance();
   pid_t fres = mp->fork();
   if(fres == 0) {
-    proc();
+    try {
+      proc();
+    } catch (UserErrorException& e) {
+      e.cry(std::cout);
+      std::cout.flush();
+      exit(-1);
+    }
     _exit(0); // don't call parent's atexit! 
   } else {
     int childRes;

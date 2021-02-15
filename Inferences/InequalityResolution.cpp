@@ -40,6 +40,33 @@
 #include "InequalityResolution.hpp"
 #include "Shell/UnificationWithAbstractionConfig.hpp"
 
+namespace Indexing {
+
+void InequalityResolutionIndex::handleClause(Clause* c, bool adding)
+{
+  CALL("InequalityResolutionIndex::handleClause");
+
+  DBG("lala")
+
+  ASSERTION_VIOLATION // TODO
+  // unsigned selCnt=c->numSelected();
+  // for (unsigned i=0; i<selCnt; i++) {
+  //   Literal* lit=(*c)[i];
+  //   TermIterator rsti=EqHelper::getRewritableSubtermIterator(lit,_ord);
+  //   while (rsti.hasNext()) {
+  //     if (adding) {
+	// _is->insert(rsti.next(), lit, c);
+  //     }
+  //     else {
+	// _is->remove(rsti.next(), lit, c);
+  //     }
+  //   }
+  // }
+}
+
+}
+
+
 namespace Inferences
 {
 

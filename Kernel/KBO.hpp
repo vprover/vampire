@@ -148,9 +148,7 @@ public:
       // other
       bool reverseLCM);
 
-#if VDEBUG
   static KBO testKBO();
-#endif
 
   virtual ~KBO();
   void showConcrete(ostream&) const override;
