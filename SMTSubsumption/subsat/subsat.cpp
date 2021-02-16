@@ -6,7 +6,7 @@
 using namespace SMTSubsumption;
 
 #ifdef SUBSAT_STANDALONE
-
+// TODO: simple dimacs parser so we can test various instances
 int main()
 {
     std::cout << "hello" << std::endl;
@@ -16,6 +16,7 @@ int main()
     Var y = s.new_variable();
     Var z = s.new_variable();
 
+    std::cout << "\n\nADDING CLAUSES\n" << std::endl;
     s.add_clause({x, y, z});
     s.add_clause({x, y, ~z});
     s.add_clause({x, ~y, z});
@@ -25,11 +26,11 @@ int main()
     s.add_clause({~x, ~y, z});
     s.add_clause({~x, ~y, ~z});
 
+    std::cout << "\n\nSOLVING\n" << std::endl;
     auto res = s.solve();
 
-    std::cout << "Result: " << res << std::endl;
-
-    return 0;
+    std::cout << "\n\nRESULT: " << res << std::endl;
+    return static_cast<int>(res);
 }
 #endif
 

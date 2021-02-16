@@ -109,12 +109,12 @@ public:
     return std::numeric_limits<index_type>::max() - 1;
   }
 
-  constexpr bool is_valid() const noexcept
+  [[nodiscard]] constexpr bool is_valid() const noexcept
   {
-    return m_index != invalid().m_index;
+    return m_index <= max_index();
   }
 
-  constexpr index_type index() const noexcept
+  [[nodiscard]] constexpr index_type index() const noexcept
   {
     return m_index;
   }
@@ -124,7 +124,6 @@ private:
       : m_index{index}
   { }
 
-  // friend class Watch;
   friend class ClauseArena;
 
 private:
@@ -158,7 +157,7 @@ std::ostream& operator<<(std::ostream& os, ClauseRef cr)
 class AllocatedClause
 {
 public:
-  void push(Lit lit)
+  void push(Lit lit) noexcept
   {
     assert(m_clause);
     assert(m_clause->m_size < m_capacity);
@@ -166,19 +165,19 @@ public:
     m_clause->m_size += 1;
   }
 
-  ClauseRef build()
+  [[nodiscard]] ClauseRef build() noexcept
   {
     assert(m_clause);
 #ifndef NDEBUG
     m_clause = nullptr;
 #endif
-    return m_ref;
+    return m_clause_ref;
   }
 
 private:
-  AllocatedClause(Clause& clause, ClauseRef ref, uint32_t capacity)
+  AllocatedClause(Clause& clause, ClauseRef clause_ref, uint32_t capacity) noexcept
       : m_clause{&clause}
-      , m_ref{ref}
+      , m_clause_ref{clause_ref}
 #ifndef NDEBUG
       , m_capacity{capacity}
 #endif
@@ -191,7 +190,7 @@ private:
 
 private:
   Clause* m_clause;
-  ClauseRef m_ref;
+  ClauseRef m_clause_ref;
 #ifndef NDEBUG
   uint32_t m_capacity;
 #endif
@@ -210,33 +209,34 @@ private:
   static_assert(alignof(storage_type) % alignof(Clause) == 0, "Alignment of storage must imply alignment of clause");
   static_assert(std::is_trivially_destructible_v<Clause>, "Clause destructor must be trivial because we never call it");
 
-  void* deref_plain(ClauseRef ref)
+  [[nodiscard]] void* deref_plain(ClauseRef cr) noexcept
   {
-    assert(ref.is_valid());
-    assert(ref.m_timestamp == m_timestamp);
-    return &m_storage[ref.m_index];
+    assert(cr.is_valid());
+    assert(cr.m_timestamp == m_timestamp);
+    return &m_storage[cr.m_index];
   }
 
-  void const* deref_plain(ClauseRef ref) const
+  [[nodiscard]] void const* deref_plain(ClauseRef cr) const noexcept
   {
-    assert(ref.is_valid());
-    assert(ref.m_timestamp == m_timestamp);
-    return &m_storage[ref.m_index];
+    assert(cr.is_valid());
+    assert(cr.m_timestamp == m_timestamp);
+    return &m_storage[cr.m_index];
   }
 
 public:
-  Clause& deref(ClauseRef ref)
+  [[nodiscard]] Clause& deref(ClauseRef cr) noexcept
   {
-    return *reinterpret_cast<Clause*>(deref_plain(ref));
+    return *reinterpret_cast<Clause*>(deref_plain(cr));
   }
 
-  Clause const& deref(ClauseRef ref) const
+  [[nodiscard]] Clause const& deref(ClauseRef cr) const noexcept
   {
-    return *reinterpret_cast<Clause const*>(deref_plain(ref));
+    return *reinterpret_cast<Clause const*>(deref_plain(cr));
   }
 
   /// Allocate a new clause with enough space for 'capacity' literals.
-  AllocatedClause alloc(std::uint32_t capacity)
+  /// May throw std::bad_alloc if the arena is exhausted, or reallocating the arena fails.
+  [[nodiscard]] AllocatedClause alloc(std::uint32_t capacity)
   {
     std::size_t const old_size = m_storage.size();
     if (old_size > static_cast<std::size_t>(ClauseRef::max_index())) {
@@ -252,13 +252,13 @@ public:
     // TODO: avoid zero-initialization of vector elements by using custom allocator, or just don't use std::vector for the buffer...
     m_storage.resize(new_size);
 
-    ClauseRef ref(old_size);
+    ClauseRef cr(old_size);
 #ifndef NDEBUG
-    ref.m_timestamp = m_timestamp;
+    cr.m_timestamp = m_timestamp;
 #endif
-    void* p = deref_plain(ref);
+    void* p = deref_plain(cr);
     Clause* c = new (p) Clause{0};
-    return AllocatedClause{*c, ref, capacity};
+    return AllocatedClause{*c, cr, capacity};
   }
 
   /// Remove all clauses from the arena.

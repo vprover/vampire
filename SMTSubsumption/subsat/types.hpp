@@ -46,7 +46,7 @@ std::ostream& operator<<(std::ostream& os, Value v)
 
 
 /// Solver result.
-enum class Result {
+enum class Result : int {
   Sat = 10,
   Unsat = 20,
 };

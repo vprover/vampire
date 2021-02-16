@@ -81,7 +81,9 @@ public:
     m_values.push_back(Value::Unassigned); // value of positive literal
     m_values.push_back(Value::Unassigned); // value of negative literal
     m_watches.emplace_back();           // positive literal watches
+    // m_watches.back().reserve(16);
     m_watches.emplace_back();           // negative literal watches
+    // m_watches.back().reserve(16);
     return Var{m_used_vars++};
   }
 
@@ -121,14 +123,14 @@ public:
   }
   */
 
-  void add_clause(ClauseRef cref)
-  {
-    // // TODO
-    // ClauseRef cr = m_clauses.size();
-    // CDEBUG("add_clause: " << cr << " ~> " << *clause);
-    // m_clauses.push_back(clause);
-    watch_clause(cref);
-  }
+  // void add_clause(ClauseRef cref)
+  // {
+  //   // // TODO
+  //   // ClauseRef cr = m_clauses.size();
+  //   // CDEBUG("add_clause: " << cr << " ~> " << *clause);
+  //   // m_clauses.push_back(clause);
+  //   watch_clause(cref);
+  // }
 
   void add_clause(std::initializer_list<Lit> literals)
   {
@@ -136,8 +138,9 @@ public:
     for (Lit lit : literals) {
       c.push(lit);
     }
-    ClauseRef cref = c.build();
-    watch_clause(cref);
+    ClauseRef cr = c.build();
+    CDEBUG("add_clause: " << cr << " ~> " << m_clauses.deref(cr));
+    watch_clause(cr);
   }
 
   /// Preconditions: ...
