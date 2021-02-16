@@ -1,5 +1,5 @@
-#ifndef IVECTOR_HPP
-#define IVECTOR_HPP
+#ifndef VECTOR_MAP_HPP
+#define VECTOR_MAP_HPP
 
 #include <cstdint>
 #include <vector>
@@ -37,10 +37,9 @@ struct DefaultIndex<std::uint32_t> {
 template <typename Key>
 using DefaultIndex_t = typename DefaultIndex<Key>::type;
 
-// TODO: rename to vector_map?
 /// Vector-based map with type-safe indexing.
 template <typename Key, typename T, typename Index = DefaultIndex_t<Key>>
-class ivector {
+class vector_map {
 public:
   using key_type = Key;
   using value_type = T;
@@ -101,4 +100,4 @@ private:
 
 } // namespace SMTSubsumption
 
-#endif /* !IVECTOR_HPP */
+#endif /* !VECTOR_MAP_HPP */

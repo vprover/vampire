@@ -16,7 +16,7 @@
 
 #include "./clause.hpp"
 #include "./types.hpp"
-#include "ivector.hpp"
+#include "vector_map.hpp"
 #include "cdebug.hpp"
 
 // Ensure NDEBUG and VDEBUG are synchronized
@@ -389,7 +389,7 @@ private:
     std::vector<Lit>& clause = tmp_analyze_clause;
     std::vector<Level>& blocks = tmp_analyze_blocks;
     std::vector<Var>& seen = tmp_analyze_seen;
-    ivector<Level, char>& frames = m_frames;
+    vector_map<Level, char>& frames = m_frames;
     assert(clause.empty());
     assert(blocks.empty());
     assert(seen.empty());
@@ -590,17 +590,17 @@ private:
 
   /// Current assignment of literals.
   /// We store the value for both literal polarities to make the lookup simpler and branchless.
-  ivector<Lit, Value> m_values;
+  vector_map<Lit, Value> m_values;
 
   /// Decision levels and reasons of variables
-  ivector<Var, VarInfo> m_vars;
+  vector_map<Var, VarInfo> m_vars;
 
   /// Mark flags of variables
-  ivector<Var, Mark> m_marks;
+  vector_map<Var, Mark> m_marks;
 
   ClauseArena m_clauses;
   std::vector<Lit> m_units;
-  ivector<Lit, std::vector<Watch>> m_watches;
+  vector_map<Lit, std::vector<Watch>> m_watches;
 
   /// The currently true literals in order of assignment
   std::vector<Lit> m_trail;
@@ -612,7 +612,7 @@ private:
   std::vector<Lit> tmp_analyze_clause;  ///< learned clause
   std::vector<Level> tmp_analyze_blocks;  ///< analyzed decision levels
   std::vector<Var> tmp_analyze_seen;  ///< analyzed literals
-  ivector<Level, char> m_frames;  ///< stores for each level whether we already have it in blocks (we use 'char' because vector<bool> is bad)
+  vector_map<Level, char> m_frames;  ///< stores for each level whether we already have it in blocks (we use 'char' because vector<bool> is bad)
 }; // Solver
 
 // TODO:

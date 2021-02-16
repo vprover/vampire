@@ -6,7 +6,7 @@
 #include <limits>
 #include <ostream>
 
-#include "./ivector.hpp"
+#include "./vector_map.hpp"
 
 namespace SMTSubsumption {
 
