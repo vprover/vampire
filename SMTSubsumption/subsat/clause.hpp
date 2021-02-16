@@ -52,20 +52,12 @@ public:
     return total_bytes;
   }
 
-  // /// Allocate a clause with enough space for 'size' literals.
-  // static Clause* create(size_type size)
-  // {
-  //   void* p = subsat_alloc(bytes(size));
-  //   return new (p) Clause{size};
-  // }
-
 private:
   // NOTE: do not use this constructor directly
   // because it does not allocate enough memory for the literals
   Clause(size_type size) noexcept
       : m_size{size}
-  {
-  }
+  { }
 
   // cannot copy/move because of flexible array member
   Clause(Clause&) = delete;
@@ -73,6 +65,7 @@ private:
   Clause& operator=(Clause&) = delete;
   Clause& operator=(Clause&&) = delete;
 
+  friend class ClauseArena;
   friend class AllocatedClause;
 
 private:
@@ -213,22 +206,33 @@ class ClauseArena final
 private:
   using storage_type = std::uint32_t;
   static_assert(alignof(Clause) == alignof(storage_type), "Clause alignment mismatch");
+  // Maybe the more correct condition is this (storage alignment must be a multiple of clause alignment):
+  static_assert(alignof(storage_type) % alignof(Clause) == 0, "Alignment of storage must imply alignment of clause");
+  static_assert(std::is_trivially_destructible_v<Clause>, "Clause destructor must be trivial because we never call it");
+
+  void* deref_plain(ClauseRef ref)
+  {
+    assert(ref.is_valid());
+    assert(ref.m_timestamp == m_timestamp);
+    return &m_storage[ref.m_index];
+  }
+
+  void const* deref_plain(ClauseRef ref) const
+  {
+    assert(ref.is_valid());
+    assert(ref.m_timestamp == m_timestamp);
+    return &m_storage[ref.m_index];
+  }
 
 public:
   Clause& deref(ClauseRef ref)
   {
-    assert(ref.is_valid());
-    assert(ref.m_timestamp == m_timestamp);
-    std::uint32_t* p = &m_storage[ref.m_index];
-    return *reinterpret_cast<Clause*>(p);
+    return *reinterpret_cast<Clause*>(deref_plain(ref));
   }
 
   Clause const& deref(ClauseRef ref) const
   {
-    assert(ref.is_valid());
-    assert(ref.m_timestamp == m_timestamp);
-    std::uint32_t const* p = &m_storage[ref.m_index];
-    return *reinterpret_cast<Clause const*>(p);
+    return *reinterpret_cast<Clause const*>(deref_plain(ref));
   }
 
   /// Allocate a new clause with enough space for 'capacity' literals.
@@ -252,7 +256,9 @@ public:
 #ifndef NDEBUG
     ref.m_timestamp = m_timestamp;
 #endif
-    return AllocatedClause{deref(ref), ref, capacity};
+    void* p = deref_plain(ref);
+    Clause* c = new (p) Clause{0};
+    return AllocatedClause{*c, ref, capacity};
   }
 
   /// Remove all clauses from the arena.

@@ -350,7 +350,7 @@ private:
   {
     CDEBUG("watching " << lit << /* " blocked by " << blocking_lit << */ " in " << clause_ref);
     auto& watches = m_watches[lit];
-    assert(std::all_of(watches.cbegin(), watches.cend(), [=](auto w){ return w.clause_ref != clause_ref }));
+    assert(std::all_of(watches.cbegin(), watches.cend(), [=](auto w){ return w.clause_ref != clause_ref; }));
     watches.push_back(Watch{clause_ref});
   }
 
@@ -397,7 +397,7 @@ private:
     clause.push_back(Lit::invalid());
 
     auto t = m_trail.crbegin();
-    uint32_t unresolved_on_current_level = 0;
+    uint32_t unresolved_on_conflict_level = 0;
     Lit uip = Lit::invalid();
     ClauseRef reason_ref = conflict_ref;
 
@@ -441,7 +441,7 @@ private:
           clause.push_back(lit);
         } else {
           assert(lit_level == conflict_level);
-          unresolved_on_current_level++;
+          unresolved_on_conflict_level++;
         }
       }  // for (lit : reason)
 
@@ -452,8 +452,8 @@ private:
         t++;
       } while (!m_marks[uip.var()]);
 
-      unresolved_on_current_level--;
-      if (unresolved_on_current_level == 0) {
+      unresolved_on_conflict_level--;
+      if (unresolved_on_conflict_level == 0) {
         break;
       }
 
