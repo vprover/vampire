@@ -162,6 +162,17 @@ void SMTLIB2::readBenchmark(LExprList* bench)
       continue;
     }
 
+    if (ibRdr.tryAcceptAtom("declare-datatype")) {
+      LExpr* sort = ibRdr.readNext();
+      LExprList* datatype = ibRdr.readList();
+
+      readDeclareDatatype(sort, datatype, false);
+
+      ibRdr.acceptEOL();
+
+      continue;
+    }
+
     if (ibRdr.tryAcceptAtom("declare-datatypes")) {
       LExprList* sorts = ibRdr.readList();
       LExprList* datatypes = ibRdr.readList();
@@ -229,7 +240,8 @@ void SMTLIB2::readBenchmark(LExprList* bench)
       continue;
     }
 
-    if (ibRdr.tryAcceptAtom("assert-not")) {
+    if (ibRdr.tryAcceptAtom("assert-not")
+      || ibRdr.tryAcceptAtom("prove")) {
       readAssertNot(ibRdr.readNext());
 
       ibRdr.acceptEOL();
@@ -1020,6 +1032,66 @@ void SMTLIB2::readDefineFunRec(const vstring& name, LExprList* iArgs, LExpr* oSo
   FormulaUnit* fu = new FormulaUnit(fla, FromInput(UnitInputType::ASSUMPTION));
 
   UnitList::push(fu, _formulas);
+}
+
+void SMTLIB2::readDeclareDatatype(LExpr* sort, LExprList* datatype, bool codatatype)
+{
+  CALL("SMTLIB2::readDeclareDatatype");
+
+  // first declare the sort
+  vstring dtypeName = sort->str;
+  if (isAlreadyKnownSortSymbol(dtypeName)) {
+    USER_ERROR("Redeclaring built-in, declared or defined sort symbol as datatype: "+dtypeName);
+  }
+  ALWAYS(_declaredSorts.insert(dtypeName, 0));
+  Stack<TermAlgebraConstructor*> constructors;
+  Stack<unsigned> argSorts;
+  Stack<vstring> destructorNames;
+
+  const vstring& taName = dtypeName+"()";
+  bool added;
+  unsigned taSort = env.sorts->addSort(taName, added, false);
+  ASS(added);
+
+  LispListReader dtypeRdr(datatype);
+  while (dtypeRdr.hasNext()) {
+    argSorts.reset();
+    destructorNames.reset();
+    // read each constructor declaration
+    vstring constrName;
+    LExpr *constr = dtypeRdr.next();
+    if (constr->isAtom()) {
+      // atom, constructor of arity 0
+      constrName = constr->str;
+      if (constrName == "par") {
+        USER_ERROR("Datatype '"+dtypeName+"' is declared parametric which is unsupported");
+      }
+    } else {
+      ASS(constr->isList());
+      LispListReader constrRdr(constr);
+      constrName = constrRdr.readAtom();
+
+      while (constrRdr.hasNext()) {
+        LExpr *arg = constrRdr.next();
+        LispListReader argRdr(arg);
+        destructorNames.push(argRdr.readAtom());
+        argSorts.push(declareSort(argRdr.next()));
+        if (argRdr.hasNext()) {
+          USER_ERROR("Bad constructor argument:" + arg->toString());
+        }
+      }
+    }
+    constructors.push(buildTermAlgebraConstructor(constrName, taSort, destructorNames, argSorts));
+  }
+
+  ASS(!env.signature->isTermAlgebraSort(taSort));
+  TermAlgebra* ta = new TermAlgebra(taSort, constructors.size(), constructors.begin(), codatatype);
+
+  if (ta->emptyDomain()) {
+    USER_ERROR("Datatype " + taName + " defines an empty sort");
+  }
+
+  env.signature->addTermAlgebra(ta);
 }
 
 void SMTLIB2::readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool codatatype)
