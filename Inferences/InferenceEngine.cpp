@@ -219,12 +219,12 @@ Clause* ChoiceDefinitionISE::simplify(Clause* c)
   if(!isPositive(lit1) && is_of_form_xy(lit1, x) &&
       isPositive(lit2) && is_of_form_xfx(lit2, x, f)){
     unsigned fun = f.term()->functor();
-    env.signature->addChoiceOperator(fun);
+    env->signature->addChoiceOperator(fun);
     return 0;
   } else if(!isPositive(lit2) && is_of_form_xy(lit2, x) && 
              isPositive(lit1) && is_of_form_xfx(lit1, x, f)) {
     unsigned fun = f.term()->functor();
-    env.signature->addChoiceOperator(fun);
+    env->signature->addChoiceOperator(fun);
     return 0;
   }
   return c;
@@ -348,7 +348,7 @@ Clause* DuplicateLiteralRemovalISE::simplify(Clause* c)
   }
   ASS(skipped.isEmpty());
   ASS_EQ(origIdx,-1);
-  env.statistics->duplicateLiterals += length - newLength;
+  env->statistics->duplicateLiterals += length - newLength;
 
 #if DEBUG_DUPLICATE_LITERALS
   {
@@ -469,7 +469,7 @@ Clause* TrivialInequalitiesRemovalISE::simplify(Clause* c)
   for (int i = newLength-1;i >= 0;i--) {
     (*d)[i] = lits[newLength-i-1];
   }
-  env.statistics->trivialInequalities += found;
+  env->statistics->trivialInequalities += found;
 
   return d;
 }

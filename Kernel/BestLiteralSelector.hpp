@@ -137,7 +137,7 @@ protected:
     CALL("CompleteBestLiteralSelector::doSelection");
     ASS_G(eligible, 1); //trivial cases should be taken care of by the base LiteralSelector
 
-    VTHREAD_LOCAL static bool combSup = env.options->combinatorySup();
+    VTHREAD_LOCAL static bool combSup = env->options->combinatorySup();
 
     VTHREAD_LOCAL static DArray<Literal*> litArr(64);
     VTHREAD_LOCAL static Set<unsigned> maxTermHeads;

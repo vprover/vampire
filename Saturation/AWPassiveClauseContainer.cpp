@@ -111,7 +111,7 @@ bool WeightQueue::lessThan(Clause* c1,Clause* c2)
 {
   CALL("WeightQueue::lessThan");
 
-  if(env.options->prioritiseClausesProducedByLongReduction()){
+  if(env->options->prioritiseClausesProducedByLongReduction()){
     if(c1->inference().reductions() < c2->inference().reductions()){
       return false;
     }
@@ -345,7 +345,7 @@ void AWPassiveClauseContainer::onLimitsUpdated()
   while (toRemove.isNonEmpty()) {
     Clause* removed=toRemove.pop();
     RSTAT_CTR_INC("clauses discarded from passive on weight limit update");
-    env.statistics->discardedNonRedundantClauses++;
+    env->statistics->discardedNonRedundantClauses++;
     remove(removed);
   }
 }

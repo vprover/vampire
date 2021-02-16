@@ -60,12 +60,12 @@ vstring DefaultHelperCore::getDummyName(bool pred, unsigned functor)
   CALL("DefaultHelperCore::getDummyName/2");
 
   Signature::Symbol* sym = pred ?
-      env.signature->getPredicate(functor) :
-      env.signature->getFunction(functor);
+      env->signature->getPredicate(functor) :
+      env->signature->getFunction(functor);
 
   if(sym->interpreted()) {
-    return pred ? env.signature->predicateName(functor) :
-	env.signature->functionName(functor);
+    return pred ? env->signature->predicateName(functor) :
+	env->signature->functionName(functor);
   }
 
   if(pred) {
@@ -91,10 +91,10 @@ vstring DefaultHelperCore::getSymbolName(bool pred, unsigned functor) const
   }
   else {
     if(pred) {
-      return env.signature->predicateName(functor);
+      return env->signature->predicateName(functor);
     }
     else {
-      return env.signature->functionName(functor);
+      return env->signature->functionName(functor);
     }
   }
 }
@@ -122,7 +122,7 @@ vstring DefaultHelperCore::toString(const Kernel::Term* t0) const
 	unsigned sort = SortHelper::getEqualityArgumentSort(l);
 	res=(l->isPositive() ? "" : "~");
 	res+="$$equality_sorted(";
-	res+=env.sorts->sortName(sort)+",";
+	res+=env->sorts->sortName(sort)+",";
 	res+=toString(*l->nthArgument(0))+",";
 	res+=toString(*l->nthArgument(1))+")";
 	return res;
@@ -256,7 +256,7 @@ vstring DefaultHelperCore::toString(const Kernel::Formula* f0) const
 	    sort = Sorts::SRT_DEFAULT;
 	  }
 	}
-	result += env.sorts->sortName(sort);
+	result += env->sorts->sortName(sort);
       }
       if(vit.hasNext()) {
 	result += ',';
@@ -424,13 +424,13 @@ Term FBHelperCore::term(const Function& f,const Term* args, unsigned arity)
 {
   CALL("FBHelperCore::term");
 
-  if(f>=static_cast<unsigned>(env.signature->functions())) {
+  if(f>=static_cast<unsigned>(env->signature->functions())) {
     throw FormulaBuilderException("Function does not exist");
   }
-  if(arity!=env.signature->functionArity(f)) {
-    throw FormulaBuilderException("Invalid function arity: "+env.signature->functionName(f));
+  if(arity!=env->signature->functionArity(f)) {
+    throw FormulaBuilderException("Invalid function arity: "+env->signature->functionName(f));
   }
-  ensureArgumentsSortsMatch(env.signature->getFunction(f)->fnType(), args);
+  ensureArgumentsSortsMatch(env->signature->getFunction(f)->fnType(), args);
 
   DArray<TermList> argArr;
   argArr.initFromArray(arity, args);
@@ -445,13 +445,13 @@ Formula FBHelperCore::atom(const Predicate& p, bool positive, const Term* args, 
 {
   CALL("FBHelperCore::atom");
 
-  if(p>=static_cast<unsigned>(env.signature->predicates())) {
+  if(p>=static_cast<unsigned>(env->signature->predicates())) {
     throw FormulaBuilderException("Predicate does not exist");
   }
-  if(arity!=env.signature->predicateArity(p)) {
-    throw FormulaBuilderException("Invalid predicate arity: "+env.signature->predicateName(p));
+  if(arity!=env->signature->predicateArity(p)) {
+    throw FormulaBuilderException("Invalid predicate arity: "+env->signature->predicateName(p));
   }
-  ensureArgumentsSortsMatch(env.signature->getPredicate(p)->predType(), args);
+  ensureArgumentsSortsMatch(env->signature->getPredicate(p)->predType(), args);
 
   DArray<TermList> argArr;
   argArr.initFromArray(arity, args);
@@ -471,7 +471,7 @@ unsigned FBHelperCore::getUnaryPredicate()
     return _unaryPredicate;
   }
 
-  Kernel::Signature& sig = *env.signature;
+  Kernel::Signature& sig = *env->signature;
   unsigned cnt = sig.predicates();
   for(unsigned i=1; i<cnt; i++) {
     if(sig.predicateArity(i)==1 && !sig.getPredicate(i)->interpreted()) {
@@ -493,7 +493,7 @@ Sort FBHelperCore::getSort(const Api::Term t)
   }
   else {
     unsigned fun = t.functor();
-    return Sort(env.signature->getFunction(fun)->fnType()->result());
+    return Sort(env->signature->getFunction(fun)->fnType()->result());
   }
 }
 

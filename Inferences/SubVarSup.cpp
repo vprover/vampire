@@ -292,7 +292,7 @@ Clause* SubVarSup::performSubVarSup(
 
   // If proof extra is on let's compute the positions we have performed
   // SubVarSup on 
-  if(env.options->proofExtra()==Options::ProofExtra::FULL){
+  if(env->options->proofExtra()==Options::ProofExtra::FULL){
     //TODO update for proof extra
   }
 
@@ -317,7 +317,7 @@ Clause* SubVarSup::performSubVarSup(
       if (afterCheck) {
         TimeCounter tc(TC_LITERAL_ORDER_AFTERCHECK);
         if (i < rwClause->numSelected() && ordering.compare(currAfter,rwLitS) == Ordering::GREATER) {
-          env.statistics->inferencesBlockedForOrderingAftercheck++;
+          env->statistics->inferencesBlockedForOrderingAftercheck++;
           goto construction_fail;
         }
       }
@@ -345,11 +345,11 @@ Clause* SubVarSup::performSubVarSup(
   res->setAge(newAge);
   
   if(rwClause==eqClause) {
-    env.statistics->selfSubVarSup++;
+    env->statistics->selfSubVarSup++;
   } else if(eqIsResult) {
-    env.statistics->forwardSubVarSup++;
+    env->statistics->forwardSubVarSup++;
   } else {
-    env.statistics->backwardSubVarSup++;
+    env->statistics->backwardSubVarSup++;
   }
 
   //cout << "SUBVARSUP " + res->toString() << endl;

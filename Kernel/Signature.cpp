@@ -104,11 +104,11 @@ void Signature::Symbol::addToDistinctGroup(unsigned group,unsigned this_number)
 
   List<unsigned>::push(group, _distinctGroups);
 
-  env.signature->_distinctGroupsAddedTo=true;
+  env->signature->_distinctGroupsAddedTo=true;
 
-  Signature::DistinctGroupMembers members = env.signature->_distinctGroupMembers[group];
+  Signature::DistinctGroupMembers members = env->signature->_distinctGroupMembers[group];
   if(members->size() <= DistinctGroupExpansion::EXPAND_UP_TO_SIZE
-                       || env.options->saturationAlgorithm()==Options::SaturationAlgorithm::FINITE_MODEL_BUILDING){
+                       || env->options->saturationAlgorithm()==Options::SaturationAlgorithm::FINITE_MODEL_BUILDING){
     // we add one more than EXPAND_UP_TO_SIZE to signal to DistinctGroupExpansion::apply not to expand
     // ... instead DistinctEqualitySimplifier will take over
     members->push(this_number);
@@ -583,11 +583,11 @@ const vstring& Signature::functionName(int number)
   // because the user cannot define constants with these names herself
   // and the formula, obtained by toString() with "$true" or "$false"
   // in term position would be syntactically valid in FOOL
-  if (!env.options->showFOOL() && isFoolConstantSymbol(false,number)) {
+  if (!env->options->showFOOL() && isFoolConstantSymbol(false,number)) {
     static vstring fols("$false");
     return fols;
   }
-  if (!env.options->showFOOL() && isFoolConstantSymbol(true,number)) { 
+  if (!env->options->showFOOL() && isFoolConstantSymbol(true,number)) { 
     static vstring troo("$true");
     return troo;
   }
@@ -679,7 +679,7 @@ unsigned Signature::addFunction (const vstring& name,
     getFunction(result)->unmarkIntroduced();
     return result;
   }
-  if (env.options->arityCheck()) {
+  if (env->options->arityCheck()) {
     unsigned prev;
     if (_arityCheck.find(name,prev)) {
       unsigned prevArity = prev/2;
@@ -849,7 +849,7 @@ unsigned Signature::addPredicate (const vstring& name,
     getPredicate(result)->unmarkIntroduced();
     return result;
   }
-  if (env.options->arityCheck()) {
+  if (env->options->arityCheck()) {
     unsigned prev;
     if (_arityCheck.find(name,prev)) {
       unsigned prevArity = prev/2;
@@ -1004,7 +1004,7 @@ void Signature::Symbol::addColor(Color color)
 {
   ASS_L(color,3);
   ASS_G(color,0);
-  ASS(env.colorUsed);
+  ASS(env->colorUsed);
 
   if (_color && color != static_cast<Color>(_color)) {
     USER_ERROR("A symbol cannot have two colors");
@@ -1059,7 +1059,7 @@ bool Signature::isProtectedName(vstring name)
     return true;
   }
 
-  vstring protectedPrefix = env.options->protectedPrefix();
+  vstring protectedPrefix = env->options->protectedPrefix();
   if (protectedPrefix.size()==0) {
     return false;
   }

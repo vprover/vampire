@@ -62,7 +62,7 @@ namespace Indexing
     List<TermList>* res = List<TermList>::empty();
     
     TermList sort = SortHelper::getResultSort(t);
-    ASS(env.signature->isTermAlgebraSort(sort));
+    ASS(env->signature->isTermAlgebraSort(sort));
 
     for (unsigned i = 0; i < t->arity(); i++) {
       if (SortHelper::getArgSort(t, i) == sort) {
@@ -76,7 +76,7 @@ namespace Indexing
 
     while (toVisit.isNonEmpty()) {
       Term *u = toVisit.pop();
-      if (env.signature->getFunction(u->functor())->termAlgebraCons()) {
+      if (env->signature->getFunction(u->functor())->termAlgebraCons()) {
         for (unsigned i = 0; i < u->arity(); i++) {
           if (SortHelper::getArgSort(u, i) == sort) {
             TermList *s = u->nthArgument(i);
@@ -101,15 +101,15 @@ namespace Indexing
     }
 
     *sort = SortHelper::getEqualityArgumentSort(lit);
-    if (!env.signature->isTermAlgebraSort(*sort) || env.signature->getTermAlgebraOfSort(*sort)->allowsCyclicTerms()) {
+    if (!env->signature->isTermAlgebraSort(*sort) || env->signature->getTermAlgebraOfSort(*sort)->allowsCyclicTerms()) {
       return false;
     }
 
     TermList *l = lit->nthArgument(0);
     TermList *r = lit->nthArgument(1);
     
-    bool termAlgebraConsL = l->isTerm() && env.signature->getFunction(l->term()->functor())->termAlgebraCons();
-    bool termAlgebraConsR = r->isTerm() && env.signature->getFunction(r->term()->functor())->termAlgebraCons();
+    bool termAlgebraConsL = l->isTerm() && env->signature->getFunction(l->term()->functor())->termAlgebraCons();
+    bool termAlgebraConsR = r->isTerm() && env->signature->getFunction(r->term()->functor())->termAlgebraCons();
     
     if (!termAlgebraConsL && termAlgebraConsR) {
       t = l;

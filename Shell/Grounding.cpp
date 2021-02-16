@@ -31,11 +31,11 @@ using namespace Kernel;
 
 Grounding::GroundingApplicator::GroundingApplicator()
 {
-  int funcs=env.signature->functions();
+  int funcs=env->signature->functions();
   for(int i=0;i<funcs;i++) {
-    if(env.signature->functionArity(i)==0) {
-      if(env.signature->getFunction(i)->fnType()->result()!= Term::defaultSort()){
-        USER_ERROR("grounding mode can (currently) only be used on unsorted problems, problem with "+env.signature->functionName(i));
+    if(env->signature->functionArity(i)==0) {
+      if(env->signature->getFunction(i)->fnType()->result()!= Term::defaultSort()){
+        USER_ERROR("grounding mode can (currently) only be used on unsorted problems, problem with "+env->signature->functionName(i));
       }
       _constants.push(TermList(Term::create(i,0,0)));
     }
@@ -154,7 +154,7 @@ ClauseList* Grounding::getEqualityAxioms(bool otherThanReflexivity)
   ClauseList* res=0;
 
 /*
-  unsigned sortCnt = env.sorts->sorts();
+  unsigned sortCnt = env->sorts->sorts();
   for(unsigned i=0; i<sortCnt; ++i) {
     getLocalEqualityAxioms(i, otherThanReflexivity, res);
   }
@@ -164,14 +164,14 @@ ClauseList* Grounding::getEqualityAxioms(bool otherThanReflexivity)
   if(otherThanReflexivity) {
 
     DArray<TermList> args;
-    int preds=env.signature->predicates();
+    int preds=env->signature->predicates();
     for(int pred=1;pred<preds;pred++) { //we skip equality predicate, as transitivity was added above
-      unsigned arity=env.signature->predicateArity(pred);
+      unsigned arity=env->signature->predicateArity(pred);
       if(arity==0) {
         continue;
       }
 
-      OperatorType* predType = env.signature->getPredicate(pred)->predType();
+      OperatorType* predType = env->signature->getPredicate(pred)->predType();
 
       args.ensure(arity);
       for(unsigned i=0;i<arity;i++) {

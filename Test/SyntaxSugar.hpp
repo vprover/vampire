@@ -33,7 +33,7 @@ using SortType = TermList;
 
 #define __CLSR_RELATION(name, inter)                                                                          \
   auto name = [](TermWrapper lhs, TermWrapper rhs) -> Literal&  {                                             \
-    return *Literal::create2(env.signature->addInterpretedPredicate(inter, #name),                            \
+    return *Literal::create2(env->signature->addInterpretedPredicate(inter, #name),                            \
         true, lhs,rhs);                                                                                       \
   };                                                                                                          \
  
@@ -67,7 +67,7 @@ using SortType = TermList;
 #define __CLSR_FUN_INTERPRETED(arity, mul, INT, _MULTIPLY)                                                    \
     auto mul = [](__ARGS_DECL(TermWrapper, arity)) -> TermWrapper {                                           \
       return TermList(Term::create ## arity(                                                                  \
-            env.signature->addInterpretedFunction(Theory::Interpretation:: INT ## _MULTIPLY, #mul),           \
+            env->signature->addInterpretedFunction(Theory::Interpretation:: INT ## _MULTIPLY, #mul),           \
             __ARGS_EXPR(Type, arity))                                                                         \
           );                                                                                                  \
     };                                                                                                        \
@@ -89,8 +89,8 @@ using SortType = TermList;
     unsigned _functor;                                                                                        \
   public:                                                                                                     \
     __ ##  f ## __CLASS(SortType sort)                                                                        \
-     : _functor(env.signature->addFunction(#f, arity)) {                                                      \
-      env.signature->getFunction(_functor)->setType(OperatorType::getFunctionType({ __REPEAT(arity, sort) }, sort));    \
+     : _functor(env->signature->addFunction(#f, arity)) {                                                      \
+      env->signature->getFunction(_functor)->setType(OperatorType::getFunctionType({ __REPEAT(arity, sort) }, sort));    \
     }                                                                                                         \
     TermWrapper operator()(__ARGS_DECL(TermWrapper, arity)) {                                                 \
       return TermList(Term::create(_functor, {__ARGS_EXPR(TermWrapper, arity)}));                             \
@@ -104,8 +104,8 @@ using SortType = TermList;
     unsigned _functor;                                                                                        \
   public:                                                                                                     \
     __ ##  f ## __CLASS(SortType sort)                                                                        \
-     : _functor(env.signature->addPredicate(#f, arity)) {                                                     \
-      env.signature->getPredicate(_functor)->setType(OperatorType::getPredicateType({ __REPEAT(arity, sort) }));        \
+     : _functor(env->signature->addPredicate(#f, arity)) {                                                     \
+      env->signature->getPredicate(_functor)->setType(OperatorType::getPredicateType({ __REPEAT(arity, sort) }));        \
     }                                                                                                         \
     LiteralWrapper operator()(__ARGS_DECL(TermWrapper, arity)) {                                              \
       return Literal::create(_functor, true, {__ARGS_EXPR(TermWrapper, arity)});                              \
@@ -138,8 +138,8 @@ using SortType = TermList;
       operator TermList() {return _term;}                                                                     \
       TermList toTerm() {return _term;}                                                                       \
       static TermWrapper createConstant(const char* name, SortType sort) {                                    \
-        unsigned f = env.signature->addFunction(name,0);                                                      \
-        env.signature->getFunction(f)->setType(OperatorType::getFunctionType({},sort));                       \
+        unsigned f = env->signature->addFunction(name,0);                                                      \
+        env->signature->getFunction(f)->setType(OperatorType::getFunctionType({},sort));                       \
         return TermWrapper(TermList(Term::createConstant(f)));                                                \
       }                                                                                                       \
       __VA_ARGS__                                                                                             \

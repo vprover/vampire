@@ -46,7 +46,7 @@ Clause* DistinctEqualitySimplifier::simplify(Clause* cl)
       //we have a clause that is implied by the distinctness constraints
       return 0;
     }
-    Unit* prem = env.signature->getDistinctGroupPremise(grp);
+    Unit* prem = env->signature->getDistinctGroupPremise(grp);
     if(prem) {
       prems.push(prem);
     }
@@ -84,11 +84,11 @@ bool DistinctEqualitySimplifier::mustBeDistinct(TermList t1, TermList t2, unsign
   }
   unsigned fn1 = t1.term()->functor();
   unsigned fn2 = t2.term()->functor();
-  const List<unsigned>* dlst1 = env.signature->getFunction(fn1)->distinctGroups();
+  const List<unsigned>* dlst1 = env->signature->getFunction(fn1)->distinctGroups();
   if(!dlst1) {
     return false;
   }
-  const List<unsigned>* dlst2 = env.signature->getFunction(fn2)->distinctGroups();
+  const List<unsigned>* dlst2 = env->signature->getFunction(fn2)->distinctGroups();
   if(!dlst2) {
     return false;
   }

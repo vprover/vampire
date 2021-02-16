@@ -395,7 +395,7 @@ public:
   TermList* args()
   { return _args + _arity; }
   unsigned hash() const
-  { return hashUnderSignature(env.signature); };
+  { return hashUnderSignature(env->signature); };
   unsigned hashUnderSignature(Signature *) const;
 
   /** return the arity */
@@ -833,10 +833,10 @@ public:
   static Literal* flattenOnArgument(const Literal*,int argumentNumber);
 
   unsigned hash() const
-  { return hashUnderSignature(env.signature); }
+  { return hashUnderSignature(env->signature); }
   unsigned hashUnderSignature(Signature *) const;
   unsigned oppositeHash() const
-  { return oppositeHashUnderSignature(env.signature); }
+  { return oppositeHashUnderSignature(env->signature); }
   unsigned oppositeHashUnderSignature(Signature *) const;
   static Literal* complementaryLiteral(Literal* l);
   /** If l is positive, return l; otherwise return its complementary literal. */

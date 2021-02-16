@@ -30,7 +30,7 @@ namespace Saturation {
 VTHREAD_LOCAL DHMap<unsigned, unsigned> PersistentGrounding::_splitMap;
 
 PersistentGrounding::PersistentGrounding()
-  : _fresh(0), _solver(new MinisatInterfacing(*env.options)) {
+  : _fresh(0), _solver(new MinisatInterfacing(*env->options)) {
   _solveTask = std::thread([&] { this->work(); });
 }
 

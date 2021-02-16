@@ -326,7 +326,7 @@ void TheoryInstAndSimp::selectTheoryLiterals(Clause* cl, Stack<Literal*>& theory
 #endif
 
   ASS_NEQ(
-    env.options->theoryInstAndSimp(),
+    env->options->theoryInstAndSimp(),
     Shell::Options::TheoryInstSimp::OFF
   );
 
@@ -428,7 +428,7 @@ void TheoryInstAndSimp::originalSelectTheoryLiterals(Clause* cl, Stack<Literal*>
   cout << "originalSelectTheoryLiterals["<<forZ3<<"] in " << cl->toString() << endl;
 #endif
 
-  VTHREAD_LOCAL static Shell::Options::TheoryInstSimp selection = env.options->theoryInstAndSimp();
+  VTHREAD_LOCAL static Shell::Options::TheoryInstSimp selection = env->options->theoryInstAndSimp();
   ASS(selection!=Shell::Options::TheoryInstSimp::OFF);
 
   Stack<Literal*> weak;
@@ -448,7 +448,7 @@ void TheoryInstAndSimp::originalSelectTheoryLiterals(Clause* cl, Stack<Literal*>
     //TODO I do this kind of check all over the place but differently every time!
     if(interpreted && lit->isEquality() && !lit->isTwoVarEquality()) {  
       for(TermList* ts = lit->args(); ts->isNonEmpty(); ts = ts->next()){
-        if(ts->isTerm() && !env.signature->getFunction(ts->term()->functor())->interpreted()){
+        if(ts->isTerm() && !env->signature->getFunction(ts->term()->functor())->interpreted()){
           interpreted=false;
           break;
         }
@@ -600,9 +600,9 @@ Term* getFreshConstant(unsigned index, TermList srt)
 
   Stack<Term*>* sortedConstants = constants.getOrInit(move(srt), [](Stack<Term*>** toInit) { *toInit = new Stack<Term*>(); });
   while(index+1 > sortedConstants->length()){
-    unsigned sym = env.signature->addFreshFunction(0,"$inst");
+    unsigned sym = env->signature->addFreshFunction(0,"$inst");
     OperatorType* type = OperatorType::getConstantsType(srt);
-    env.signature->getFunction(sym)->setType(type);
+    env->signature->getFunction(sym)->setType(type);
     Term* fresh = Term::createConstant(sym);
     sortedConstants->push(fresh);
   }
@@ -619,7 +619,7 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
   // We use a new SMT solver
   // currently these are not needed outside of this function so we put them here
   VTHREAD_LOCAL static SAT2FO naming;
-  VTHREAD_LOCAL static Z3Interfacing solver(*env.options,naming);
+  VTHREAD_LOCAL static Z3Interfacing solver(*env->options,naming);
   solver.reset(); // the solver will reset naming
 
 
@@ -703,7 +703,7 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
         sol.subst.bind(v,t);
       } else {
         // Failed to obtain a value; could be an algebraic number or some other currently unhandled beast...
-        env.statistics->theoryInstSimpLostSolution++;
+        env->statistics->theoryInstSimpLostSolution++;
         goto fail;
       }
     }
@@ -766,7 +766,7 @@ partial_check_end:
       }
 
       if(!containsPartial){
-        env.statistics->theoryInstSimpTautologies++;
+        env->statistics->theoryInstSimpTautologies++;
         // do this directly in salg
         //_salg->removeActiveOrPassiveClause(_premise);
         _red=true;
@@ -813,7 +813,7 @@ partial_check_end:
       _splitter->onNewClause(inst);
     }
 
-    env.statistics->theoryInstSimp++;
+    env->statistics->theoryInstSimp++;
 #if DPRINT
     cout << "to get " << res->toString() << endl;
 #endif
@@ -834,7 +834,7 @@ ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise,bool& premiseR
 
   if(premise->isPureTheoryDescendant()){ return ClauseIterator::getEmpty(); }
 
-  VTHREAD_LOCAL static Options::TheoryInstSimp thi = env.options->theoryInstAndSimp();
+  VTHREAD_LOCAL static Options::TheoryInstSimp thi = env->options->theoryInstAndSimp();
 
   VTHREAD_LOCAL static Stack<Literal*> selectedLiterals;
   selectedLiterals.reset();
@@ -853,7 +853,7 @@ ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise,bool& premiseR
   }
 
   // we have an eligable candidate
-  env.statistics->theoryInstSimpCandidates++;
+  env->statistics->theoryInstSimpCandidates++;
 
   // TODO use limits
 
@@ -910,7 +910,7 @@ ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise,bool& premiseR
 
     auto out = getPersistentIterator(it4); // we need immediate evaluation, so that premiseRedundant is set just after the call!
 
-    if (!env.options->thiTautologyDeletion()) {
+    if (!env->options->thiTautologyDeletion()) {
       premiseRedundant = false;
     }
 

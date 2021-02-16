@@ -42,7 +42,7 @@ using namespace Lib;
  * When creating a clause object, several things usually need to be done
  * besides calling a constructor:
  * - Fill the Clause with Literals
- * - Increase a relevant counter in the env.statistics object
+ * - Increase a relevant counter in the env->statistics object
  */
 class Clause
   : public Unit

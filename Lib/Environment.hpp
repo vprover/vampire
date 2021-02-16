@@ -109,7 +109,8 @@ private:
   SyncPipe* _pipe;
 }; // class Environment
 
-extern VTHREAD_LOCAL Environment env;
+extern VTHREAD_LOCAL Environment *env;
+extern Environment _ROOT_ENV;
 
 }
 #endif

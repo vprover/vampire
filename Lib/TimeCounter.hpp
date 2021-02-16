@@ -166,7 +166,7 @@ private:
    * Determines whether the time measurement will be performed.
    *
    * Initially is set to @b true, and the first time the measurement is requested,
-   * the env.options structure is checked, whether measurement should indeed be done,
+   * the env->options structure is checked, whether measurement should indeed be done,
    * and if not, it is set to @b false.
    */
   VTHREAD_LOCAL static bool s_measuring;

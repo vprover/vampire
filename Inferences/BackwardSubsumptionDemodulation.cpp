@@ -404,7 +404,7 @@ bool BackwardSubsumptionDemodulation::rewriteCandidate(Clause* sideCl, Clause* m
     }
 #endif
     ASS(replacement == nullptr);
-    env.statistics->backwardSubsumed++;
+    env->statistics->backwardSubsumed++;
     return true;
   }
   ASS(eqLit->isEquality());
@@ -489,7 +489,7 @@ bool BackwardSubsumptionDemodulation::rewriteCandidate(Clause* sideCl, Clause* m
 
     // TODO higher-order support not yet implemented; see forward demodulation
     //      (maybe it's enough to just use the different iterator)
-    ASS(!env.options->combinatorySup());
+    ASS(!env->options->combinatorySup());
     NonVariableNonTypeIterator nvi(dlit);
     while (nvi.hasNext()) {
       TermList lhsS = nvi.next();  // named 'lhsS' because it will be matched against 'lhs'
@@ -582,7 +582,7 @@ bool BackwardSubsumptionDemodulation::rewriteCandidate(Clause* sideCl, Clause* m
               }
 #endif
               ASS(replacement == nullptr);
-              env.statistics->backwardSubsumed++;
+              env->statistics->backwardSubsumed++;
               return true;
             } else {
               // Here, we have subsumption resolution
@@ -598,7 +598,7 @@ bool BackwardSubsumptionDemodulation::rewriteCandidate(Clause* sideCl, Clause* m
                 ASS(SDHelper::clauseIsSmaller(replacement, mainCl, ordering));
               }
 #endif
-              env.statistics->backwardSubsumptionResolution++;
+              env->statistics->backwardSubsumptionResolution++;
               return true;
             }
           }
@@ -656,7 +656,7 @@ isRedundant:
 #endif
 
         if (EqHelper::isEqTautology(newLit)) {
-          env.statistics->backwardSubsumptionDemodulationsToEqTaut++;
+          env->statistics->backwardSubsumptionDemodulationsToEqTaut++;
           ASS(replacement == nullptr);
           return true;
         }
@@ -672,17 +672,17 @@ isRedundant:
           }
         }
 
-        env.statistics->backwardSubsumptionDemodulations++;
+        env->statistics->backwardSubsumptionDemodulations++;
 
         replacement = newCl;
 
 #if BSD_LOG_INFERENCES
-        env.beginOutput();
-        env.out() << "\% Begin Inference \"BSD-" << newCl->number() << "\"\n";
-        env.out() << "\% eqLit: " << eqLit->toString() << "\n";
-        env.out() << "\% eqLitS: " << binder.applyTo(eqLit)->toString() << "\n";
-        env.out() << "\% dlit: " << dlit->toString() << "\n";
-        // env.out() << "\% numMatches+1: success at match #" << (numMatches+1) << "\n";
+        env->beginOutput();
+        env->out() << "\% Begin Inference \"BSD-" << newCl->number() << "\"\n";
+        env->out() << "\% eqLit: " << eqLit->toString() << "\n";
+        env->out() << "\% eqLitS: " << binder.applyTo(eqLit)->toString() << "\n";
+        env->out() << "\% dlit: " << dlit->toString() << "\n";
+        // env->out() << "\% numMatches+1: success at match #" << (numMatches+1) << "\n";
         TPTPPrinter tptp;
         // NOTE: do not output the splitLevels here, because those will be set for newCl only later
         tptp.printWithRole("side_premise", "hypothesis", sideCl, false);
@@ -694,8 +694,8 @@ isRedundant:
         //       Problem: how to detect that situation??
         //       probably if the input only contains FOF and no TFF
         // TODO: Also don't output type defs for $$false and $$true, see problem SYO091^5.p
-        env.out() << "\% End Inference \"BSD-" << newCl->number() << "\"" << std::endl;
-        env.endOutput();
+        env->out() << "\% End Inference \"BSD-" << newCl->number() << "\"" << std::endl;
+        env->endOutput();
 #endif
 
 #if VDEBUG && BSD_VDEBUG_REDUNDANCY_ASSERTIONS

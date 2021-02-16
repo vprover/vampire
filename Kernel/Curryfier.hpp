@@ -83,14 +83,14 @@ private:
     t->makeSymbol(_applyFn,2);
     *(t->nthArgument(0))=fn;
     *(t->nthArgument(1))=arg;
-    return TermList(env.sharing->insert(t));
+    return TermList(env->sharing->insert(t));
   }
   TermList getCurryFn(unsigned function)
   {
     if(!_constantTerms.find(function)) {
       Term* t = new(0) Term;
       t->makeSymbol(_curryConstants[function],0);
-      _constantTerms.insert(function,TermList(env.sharing->insert(t)));
+      _constantTerms.insert(function,TermList(env->sharing->insert(t)));
     }
     return _constantTerms.get(function);
   }
@@ -98,7 +98,7 @@ private:
   Curryfier()
   : _curryConstants(32)
   {
-    Signature* sig=env.signature;
+    Signature* sig=env->signature;
     int funCnt=sig->functions();
     _curryConstants.ensure(funCnt);
     _constantTerms.ensure(funCnt);

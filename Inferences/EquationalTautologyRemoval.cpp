@@ -85,7 +85,7 @@ Clause* EquationalTautologyRemoval::simplify(Clause* cl)
   if (_cc.getStatus(false) == DP::DecisionProcedure::UNSATISFIABLE) {
     // cout << "Deep equational: " << cl->toString() << endl;
 
-    env.statistics->deepEquationalTautologies++;
+    env->statistics->deepEquationalTautologies++;
     return 0;
   } else {
     return cl;

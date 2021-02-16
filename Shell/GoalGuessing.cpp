@@ -37,12 +37,12 @@ void GoalGuessing::apply(Problem& prb)
 {
   CALL("GoalGuessing::apply(Problem&)");
 
-  _lookInside = env.options->guessTheGoal() != Options::GoalGuess::POSITION;
-  _checkTop = env.options->guessTheGoal() == Options::GoalGuess::EXISTS_TOP || env.options->guessTheGoal() == Options::GoalGuess::EXISTS_ALL;
-  _checkSymbols = env.options->guessTheGoal() == Options::GoalGuess::EXISTS_SYM || env.options->guessTheGoal() == Options::GoalGuess::EXISTS_ALL;
-  _checkPosition = env.options->guessTheGoal() == Options::GoalGuess::POSITION;
+  _lookInside = env->options->guessTheGoal() != Options::GoalGuess::POSITION;
+  _checkTop = env->options->guessTheGoal() == Options::GoalGuess::EXISTS_TOP || env->options->guessTheGoal() == Options::GoalGuess::EXISTS_ALL;
+  _checkSymbols = env->options->guessTheGoal() == Options::GoalGuess::EXISTS_SYM || env->options->guessTheGoal() == Options::GoalGuess::EXISTS_ALL;
+  _checkPosition = env->options->guessTheGoal() == Options::GoalGuess::POSITION;
 
-  if(env.options->guessTheGoal() == Options::GoalGuess::ALL){
+  if(env->options->guessTheGoal() == Options::GoalGuess::ALL){
     _lookInside=true;
     _checkSymbols=true;
     _checkPosition=true;
@@ -142,12 +142,12 @@ bool GoalGuessing::apply(Literal* lit)
     it.next(); // to move past the lit symbol 
     while(it.hasNext()){
       unsigned f = it.next();
-      if(f > env.signature->functions()){ continue; }
-      unsigned unitUsageCnt = env.signature->getFunction(f)->unitUsageCnt();
-      unsigned unitUsageCntLimit = env.options->gtgLimit();
+      if(f > env->signature->functions()){ continue; }
+      unsigned unitUsageCnt = env->signature->getFunction(f)->unitUsageCnt();
+      unsigned unitUsageCntLimit = env->options->gtgLimit();
       if(unitUsageCnt <= unitUsageCntLimit){
-        //cout << "IDENTIFIED AS GOAL symbol " << env.signature->functionName(f) << endl;
-        env.signature->getFunction(f)->markInGoal();
+        //cout << "IDENTIFIED AS GOAL symbol " << env->signature->functionName(f) << endl;
+        env->signature->getFunction(f)->markInGoal();
         found = true;
       }
     }

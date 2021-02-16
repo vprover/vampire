@@ -58,7 +58,7 @@ TermList ApplicativeHelper::createAppTerm(TermList s1, TermList s2, TermList arg
   args.push(s2);
   args.push(arg1);
   args.push(arg2);
-  unsigned app = env.signature->getApp();
+  unsigned app = env->signature->getApp();
   if(shared){
     return TermList(Term::create(app, 4, args.begin()));
   }
@@ -107,7 +107,7 @@ TermList ApplicativeHelper::getResultApplieadToNArgs(TermList arrowSort, unsigne
   CALL("ApplicativeHelper::getResultApplieadToNArgs");
   
   while(argNum > 0){
-    ASS(arrowSort.isTerm() && env.signature->getFunction(arrowSort.term()->functor())->arrow());
+    ASS(arrowSort.isTerm() && env->signature->getFunction(arrowSort.term()->functor())->arrow());
     arrowSort = *arrowSort.term()->nthArgument(1);
     argNum--;
   }
@@ -123,7 +123,7 @@ TermList ApplicativeHelper::getNthArg(TermList arrowSort, unsigned argNum)
 
   TermList res;
   while(argNum >=1){
-    ASS(arrowSort.isTerm() && env.signature->getFunction(arrowSort.term()->functor())->arrow());
+    ASS(arrowSort.isTerm() && env->signature->getFunction(arrowSort.term()->functor())->arrow());
     res = *arrowSort.term()->nthArgument(0);
     arrowSort = *arrowSort.term()->nthArgument(1);
     argNum--;
@@ -135,7 +135,7 @@ TermList ApplicativeHelper::getResultSort(TermList sort)
 {
   CALL("ApplicativeHelper::getResultSort");
 
-  while(sort.isTerm() && env.signature->getFunction(sort.term()->functor())->arrow()){
+  while(sort.isTerm() && env->signature->getFunction(sort.term()->functor())->arrow()){
     sort = *sort.term()->nthArgument(1);
   }
   return sort;
@@ -146,7 +146,7 @@ unsigned ApplicativeHelper::getArity(TermList sort)
   CALL("ApplicativeHelper::getArity");
 
   unsigned arity = 0;
-  while(sort.isTerm() && env.signature->getFunction(sort.term()->functor())->arrow()){
+  while(sort.isTerm() && env->signature->getFunction(sort.term()->functor())->arrow()){
     sort = *sort.term()->nthArgument(1);
     arity++; 
   }
@@ -268,7 +268,7 @@ TermList ApplicativeHelper::getHead(TermList t)
     return t; 
   }
 
-  while(env.signature->getFunction(t.term()->functor())->app()){
+  while(env->signature->getFunction(t.term()->functor())->app()){
     t = *t.term()->nthArgument(2);
     if(!t.isTerm() || t.term()->isSpecial()){ break; } 
   }
@@ -280,7 +280,7 @@ TermList ApplicativeHelper::getHead(Term* t)
   CALL("ApplicativeHelper::getHead(Term*)");
   
   TermList trm = TermList(t);
-  while(env.signature->getFunction(t->functor())->app()){
+  while(env->signature->getFunction(t->functor())->app()){
     trm = *t->nthArgument(2);
     if(!trm.isTerm() || trm.term()->isSpecial()){ break; }
     t = trm.term(); 
@@ -292,13 +292,13 @@ bool ApplicativeHelper::isComb(const TermList head)
 {
   CALL("ApplicativeHelper::isComb");
   if(head.isVar()){ return false; }
-  return env.signature->getFunction(head.term()->functor())->combinator() != Signature::NOT_COMB;
+  return env->signature->getFunction(head.term()->functor())->combinator() != Signature::NOT_COMB;
 }
 
 Signature::Combinator ApplicativeHelper::getComb (const TermList head) 
 {
   CALL("ApplicativeHelper::getComb");
-  return env.signature->getFunction(head.term()->functor())->combinator();
+  return env->signature->getFunction(head.term()->functor())->combinator();
 }
 
 Signature::Proxy ApplicativeHelper::getProxy(const TermList t)
@@ -307,14 +307,14 @@ Signature::Proxy ApplicativeHelper::getProxy(const TermList t)
   if(t.isVar()){
     return Signature::NOT_PROXY;
   }
-  return env.signature->getFunction(t.term()->functor())->proxy();
+  return env->signature->getFunction(t.term()->functor())->proxy();
 }
 
 
 bool ApplicativeHelper::isApp(const Term* t)
 {
   CALL("ApplicativeHelper::isApp(Term*)");
-  return env.signature->getFunction(t->functor())->app(); 
+  return env->signature->getFunction(t->functor())->app(); 
 }
 
 bool ApplicativeHelper::isApp(const TermList* tl)
@@ -330,7 +330,7 @@ bool ApplicativeHelper::isArrowSort(const TermList t)
   if(t.isVar()){
     return false;
   }
-  return env.signature->getFunction(t.term()->functor())->arrow(); 
+  return env->signature->getFunction(t.term()->functor())->arrow(); 
 }
 
 bool ApplicativeHelper::isType(const Term* t)
@@ -386,12 +386,12 @@ bool ApplicativeHelper::isBool(TermList t){
 
 bool ApplicativeHelper::isTrue(TermList term){
   CALL("ApplicativeHelper::isTrue");
-  return term.isTerm() && env.signature->isFoolConstantSymbol(true, term.term()->functor());
+  return term.isTerm() && env->signature->isFoolConstantSymbol(true, term.term()->functor());
 }
 
 bool ApplicativeHelper::isFalse(TermList term){
   CALL("ApplicativeHelper::isFalse");
-  return term.isTerm() && env.signature->isFoolConstantSymbol(false, term.term()->functor());
+  return term.isTerm() && env->signature->isFoolConstantSymbol(false, term.term()->functor());
 }
 
 bool ApplicativeHelper::isSafe(TermStack& args)

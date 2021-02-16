@@ -216,14 +216,14 @@ redundancy_check:
     }
     if (redundant) {
       cl->destroyIfUnnecessary();
-      env.statistics->instGenRedundantClauses++;
+      env->statistics->instGenRedundantClauses++;
       return false;
     }
   }
-  if (env.options->showNew()) {
-    env.beginOutput();
-    env.out() << "[IG] new: " << cl->toString() << std::endl;
-    env.endOutput();
+  if (env->options->showNew()) {
+    env->beginOutput();
+    env->out() << "[IG] new: " << cl->toString() << std::endl;
+    env->endOutput();
   }
 
   if(_globalSubsumption) {
@@ -248,7 +248,7 @@ redundancy_check:
   _variantIdx->insert(cl);
 
   _unprocessed.push(cl);
-  env.statistics->instGenKeptClauses++;
+  env->statistics->instGenKeptClauses++;
   return true;
 }
 
@@ -261,7 +261,7 @@ Clause* IGAlgorithm::getFORefutation(SATClause* satRefutation, SATClauseList* sa
 
   Inference foInf(FromSatRefutation(InferenceRule::SAT_INSTGEN_REFUTATION, prems,
           // satPremises may be nullptr already, if our solver does not support minimization
-          env.options->minimizeSatProofs() ? satPremises : nullptr));
+          env->options->minimizeSatProofs() ? satPremises : nullptr));
 
   Clause* foRef = Clause::fromIterator(LiteralIterator::getEmpty(), foInf);
   return foRef;
@@ -280,10 +280,10 @@ void IGAlgorithm::processUnprocessed()
     //so it cancels out with the increase we'd have to do for it
     _passive.add(cl);
     
-    if (env.options->showPassive()) {
-      env.beginOutput();
-      env.out() << "[IG] passive: " << cl->toString() << std::endl;
-      env.endOutput();
+    if (env->options->showPassive()) {
+      env->beginOutput();
+      env->out() << "[IG] passive: " << cl->toString() << std::endl;
+      env->endOutput();
     }
 
     SATClause* sc = _gnd->ground(cl);
@@ -387,7 +387,7 @@ void IGAlgorithm::finishGeneratingClause(Clause* orig, ResultSubstitution& subst
   // make age also depend on the age of otherCl
   res->setAge(max(orig->age(), otherCl->age())+1);
 
-  env.statistics->instGenGeneratedClauses++;
+  env->statistics->instGenGeneratedClauses++;
   bool added = addClause(res);
   (void)added;
 
@@ -626,7 +626,7 @@ void IGAlgorithm::doResolutionStep()
     return;
   }
   try {
-    ScopedLet<Options*> optLet(env.options,&_saturationOptions);
+    ScopedLet<Options*> optLet(env->options,&_saturationOptions);
     _saturationAlgorithm->doOneAlgorithmStep();
   }
   catch(MainLoopFinishedException e)
@@ -657,10 +657,10 @@ void IGAlgorithm::activate(Clause* cl, bool wasDeactivated)
 
   selectAndAddToIndex(cl);
   
-  if (env.options->showActive()) {
-    env.beginOutput();
-    env.out() << "[IG] active: " << cl->toString() << std::endl;
-    env.endOutput();
+  if (env->options->showActive()) {
+    env->beginOutput();
+    env->out() << "[IG] active: " << cl->toString() << std::endl;
+    env->endOutput();
   }
   
   unsigned clen = cl->length();
@@ -832,7 +832,7 @@ MainLoopResult IGAlgorithm::runImpl()
     bool restarting = false;
     unsigned loopIterCnt = 0;
     while(_unprocessed.isNonEmpty() || !_passive.isEmpty()) {
-      env.statistics->instGenIterations++;
+      env->statistics->instGenIterations++;
       processUnprocessed();
       // ASS_EQ(_satSolver->getStatus(), SATSolver::SATISFIABLE);
 
@@ -865,9 +865,9 @@ MainLoopResult IGAlgorithm::runImpl()
 	doResolutionStep();
       }
 #if VTHREADED
-      env.checkTimeSometime<1>();
+      env->checkTimeSometime<1>();
 #else
-      env.checkTimeSometime<100>();
+      env->checkTimeSometime<100>();
 #endif
     }
     if(restarting) {
@@ -911,10 +911,10 @@ MainLoopResult IGAlgorithm::onModelFound()
       //we need to print this early because model generating can take some time
       reportSpiderStatus('-');
       if(szsOutputMode()) {
-        env.beginOutput();
-        env.out() << "% SZS status "<<( UIHelper::haveConjecture() ? "CounterSatisfiable" : "Satisfiable" )
+        env->beginOutput();
+        env->out() << "% SZS status "<<( UIHelper::haveConjecture() ? "CounterSatisfiable" : "Satisfiable" )
             << " for " << _opt.problemName() << endl << flush;
-        env.endOutput();
+        env->endOutput();
         UIHelper::satisfiableStatusWasAlreadyOutput = true;
       }
 
@@ -924,7 +924,7 @@ MainLoopResult IGAlgorithm::onModelFound()
       vostringstream modelStm;
       bool modelAvailable = ModelPrinter(*this).tryOutput(modelStm);
       if(modelAvailable) {
-	env.statistics->model = modelStm.str();
+	env->statistics->model = modelStm.str();
       }
       else {
 	res.saturatedSet = 0;

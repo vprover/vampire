@@ -95,28 +95,28 @@ void timeLimitReached()
   // so any code below that allocates might corrupt the allocator state.
   // Therefore, the printing below should avoid allocations!
 
-  env.beginOutput();
+  env->beginOutput();
   reportSpiderStatus('t');
   if (outputAllowed()) {
-    addCommentSignForSZS(env.out());
-    env.out() << "Time limit reached!\n";
+    addCommentSignForSZS(env->out());
+    env->out() << "Time limit reached!\n";
 
     if (UIHelper::portfolioParent) { // the boss
-      addCommentSignForSZS(env.out());
-      env.out() << "Proof not found in time ";
-      Timer::printMSString(env.out(),env.timer->elapsedMilliseconds());
-      env.out() << endl;
+      addCommentSignForSZS(env->out());
+      env->out() << "Proof not found in time ";
+      Timer::printMSString(env->out(),env->timer->elapsedMilliseconds());
+      env->out() << endl;
 
       if (szsOutputMode()) {
-        env.out() << "% SZS status Timeout for "
-                        << (env.options ? env.options->problemName().c_str() : "unknown") << endl;
+        env->out() << "% SZS status Timeout for "
+                        << (env->options ? env->options->problemName().c_str() : "unknown") << endl;
       }
     } else // the actual child
-      if (env.statistics) {
-        env.statistics->print(env.out());
+      if (env->statistics) {
+        env->statistics->print(env->out());
     }
   }
-  env.endOutput();
+  env->endOutput();
 
   System::terminateImmediately(1);
 }
@@ -133,7 +133,7 @@ timer_sigalrm_handler (int sig)
 
   timer_sigalrm_counter++;
 
-  if(Timer::s_timeLimitEnforcement && env.timeLimitReached()) {
+  if(Timer::s_timeLimitEnforcement && env->timeLimitReached()) {
     timeLimitReached();
   }
 

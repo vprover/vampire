@@ -49,16 +49,16 @@ FiniteModel::FiniteModel(unsigned size) : _size(size), _isPartial(false)
 
   (void)_isPartial; // to suppress unused warning
 
-  f_offsets.ensure(env.signature->functions());
-  p_offsets.ensure(env.signature->predicates());
+  f_offsets.ensure(env->signature->functions());
+  p_offsets.ensure(env->signature->predicates());
 
   // generate offsets per function for indexing f_interpreation
   // see addFunctionDefinition for how the offset is used to compute
   // the actual index
   unsigned offsets=1;
-  for(unsigned f=0; f<env.signature->functions(); f++){
-    if(env.signature->isTypeConOrSup(f)){ continue; }
-    unsigned arity=env.signature->functionArity(f);
+  for(unsigned f=0; f<env->signature->functions(); f++){
+    if(env->signature->isTypeConOrSup(f)){ continue; }
+    unsigned arity=env->signature->functionArity(f);
     f_offsets[f]=offsets;
     unsigned add = pow(size,arity+1);
     ASS(UINT_MAX - add > offsets);
@@ -67,8 +67,8 @@ FiniteModel::FiniteModel(unsigned size) : _size(size), _isPartial(false)
   f_interpretation.expand(offsets+1,0);
   // can restart for predicates as indexing p_interepration instead
   offsets=1;
-  for(unsigned p=1; p<env.signature->predicates();p++){
-    unsigned arity=env.signature->predicateArity(p);
+  for(unsigned p=1; p<env->signature->predicates();p++){
+    unsigned arity=env->signature->predicateArity(p);
     p_offsets[p]=offsets;
     unsigned add = pow(size,arity+1);
     ASS(UINT_MAX - add > offsets);
@@ -89,7 +89,7 @@ void FiniteModel::addFunctionDefinition(unsigned f, const DArray<unsigned>& args
 {
   CALL("FiniteModel::addFunctionDefinition");
 
-  ASS_EQ(env.signature->functionArity(f),args.size());
+  ASS_EQ(env->signature->functionArity(f),args.size());
 
   unsigned var = f_offsets[f];
   unsigned mult = 1;
@@ -122,7 +122,7 @@ void FiniteModel::addPredicateDefinition(unsigned p, const DArray<unsigned>& arg
 {
   CALL("FiniteModel::addPredicateDefinition");
 
-  ASS_EQ(env.signature->predicateArity(p),args.size());
+  ASS_EQ(env->signature->predicateArity(p),args.size());
 
   unsigned var = p_offsets[p];
   unsigned mult = 1;
@@ -186,12 +186,12 @@ vstring FiniteModel::toString()
   }
 
   //Constants
-  for(unsigned f=0;f<env.signature->functions();f++){
-    if(env.signature->isTypeConOrSup(f)){ continue; }
-    unsigned arity = env.signature->functionArity(f);
+  for(unsigned f=0;f<env->signature->functions();f++){
+    if(env->signature->isTypeConOrSup(f)){ continue; }
+    unsigned arity = env->signature->functionArity(f);
     if(arity>0) continue;
-    if(!printIntroduced && env.signature->getFunction(f)->introduced()) continue;
-    vstring name = env.signature->functionName(f);
+    if(!printIntroduced && env->signature->getFunction(f)->introduced()) continue;
+    vstring name = env->signature->functionName(f);
     unsigned res = f_interpretation[f_offsets[f]];
     if(res>0){ 
       modelStm << "fof("<<name<<"_definition,axiom,"<<name<<" = fmb"<< res << ")."<<endl;
@@ -202,12 +202,12 @@ vstring FiniteModel::toString()
   }
 
   //Functions
-  for(unsigned f=0;f<env.signature->functions();f++){
-    if(env.signature->isTypeConOrSup(f)){ continue; }
-    unsigned arity = env.signature->functionArity(f);
+  for(unsigned f=0;f<env->signature->functions();f++){
+    if(env->signature->isTypeConOrSup(f)){ continue; }
+    unsigned arity = env->signature->functionArity(f);
     if(arity==0) continue;
-    if(!printIntroduced && env.signature->getFunction(f)->introduced()) continue;
-    vstring name = env.signature->functionName(f);
+    if(!printIntroduced && env->signature->getFunction(f)->introduced()) continue;
+    vstring name = env->signature->functionName(f);
     modelStm << "fof(function_"<<name<<",axiom,"<<endl;
 
     unsigned offset = f_offsets[f];
@@ -262,11 +262,11 @@ fModelLabel:
   }
 
   //Propositions
-  for(unsigned f=1;f<env.signature->predicates();f++){
-    unsigned arity = env.signature->predicateArity(f);
+  for(unsigned f=1;f<env->signature->predicates();f++){
+    unsigned arity = env->signature->predicateArity(f);
     if(arity>0) continue;
-    if(!printIntroduced && env.signature->getPredicate(f)->introduced()) continue;
-    vstring name = env.signature->predicateName(f);
+    if(!printIntroduced && env->signature->getPredicate(f)->introduced()) continue;
+    vstring name = env->signature->predicateName(f);
     unsigned res = p_interpretation[p_offsets[f]];
     if(res==2){
       modelStm << "fof("<<name<<"_definition,axiom,"<<name<< ")."<<endl;
@@ -280,11 +280,11 @@ fModelLabel:
   }
 
 //Predicates
-  for(unsigned f=1;f<env.signature->predicates();f++){
-    unsigned arity = env.signature->predicateArity(f);
+  for(unsigned f=1;f<env->signature->predicates();f++){
+    unsigned arity = env->signature->predicateArity(f);
     if(arity==0) continue;
-    if(!printIntroduced && env.signature->getPredicate(f)->introduced()) continue;
-    vstring name = env.signature->predicateName(f);
+    if(!printIntroduced && env->signature->getPredicate(f)->introduced()) continue;
+    vstring name = env->signature->predicateName(f);
     modelStm << "fof(predicate_"<<name<<",axiom,"<<endl;
 
     unsigned offset = p_offsets[f];
@@ -353,7 +353,7 @@ unsigned FiniteModel::evaluateGroundTerm(Term* term)
 #endif  
   if(isDomainConstant(term)) return getDomainConstant(term);
 
-  unsigned arity = env.signature->functionArity(term->functor());
+  unsigned arity = env->signature->functionArity(term->functor());
   DArray<unsigned> args(arity);
   for(unsigned i=0;i<arity;i++){
     args[i] = evaluateGroundTerm(term->nthArgument(i)->term());
@@ -384,7 +384,7 @@ bool FiniteModel::evaluateGroundLiteral(Literal* lit)
 #endif
 
   // evaluate all arguments
-  unsigned arity = env.signature->predicateArity(lit->functor());
+  unsigned arity = env->signature->predicateArity(lit->functor());
   DArray<unsigned> args(arity);
   for(unsigned i=0;i<arity;i++){
     args[i] = evaluateGroundTerm(lit->nthArgument(i)->term());

@@ -309,7 +309,7 @@ vstring Formula::toString(const Formula* formula)
 
     case BOOL_TERM: {
       vstring term = f->getBooleanTerm().toString();
-      res += env.options->showFOOL() ? "$formula{" + term + "}" : term;
+      res += env->options->showFOOL() ? "$formula{" + term + "}" : term;
 
       continue;
     }

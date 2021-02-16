@@ -94,7 +94,7 @@ Literal* ExtensionalityClauseContainer::addIfExtensionality(Clause* c) {
     c->setExtensionality(true);
     add(ExtensionalityClause(c, varEq, sort));
     _size++;
-    env.statistics->extensionalityClauses++;
+    env->statistics->extensionalityClauses++;
     return varEq;
   }
 

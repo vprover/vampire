@@ -65,18 +65,18 @@ void CLTBModeLearning::perform()
 {
   CALL("CLTBModeLearning::perform");
 
-  if (env.options->inputFile() == "") {
+  if (env->options->inputFile() == "") {
     USER_ERROR("Input file must be specified for ltb mode");
   }
   // to prevent from terminating by time limit
-  env.options->setTimeLimitInSeconds(1000000);
+  env->options->setTimeLimitInSeconds(1000000);
 
   //UIHelper::szsOutput = true;
-  env.options->setProof(Options::Proof::TPTP);
-  env.options->setStatistics(Options::Statistics::NONE);
+  env->options->setProof(Options::Proof::TPTP);
+  env->options->setStatistics(Options::Statistics::NONE);
 
   vstring line;
-  vstring inputFile = env.options->inputFile();
+  vstring inputFile = env->options->inputFile();
   std::size_t found = inputFile.find_last_of("/");
   vstring inputDirectory = ".";
   if(found != vstring::npos){
@@ -85,7 +85,7 @@ void CLTBModeLearning::perform()
 
   ifstream in(inputFile.c_str());
   if (in.fail()) {
-    USER_ERROR("Cannot open input file: " + env.options->inputFile());
+    USER_ERROR("Cannot open input file: " + env->options->inputFile());
   }
 
   //support several batches in one file
@@ -133,7 +133,7 @@ void CLTBModeLearning::solveBatch(istream& batchFile, bool first,vstring inputDi
   fillSchedule(strats);
 
   // this is the time in milliseconds since the start when this batch file should terminate
-   _timeUsedByPreviousBatches = env.timer->elapsedMilliseconds();
+   _timeUsedByPreviousBatches = env->timer->elapsedMilliseconds();
   coutLineOutput() << "Starting Vampire on the batch file " << "\n";
   int terminationTime = readInput(batchFile,first);
   loadIncludes();
@@ -144,10 +144,10 @@ void CLTBModeLearning::solveBatch(istream& batchFile, bool first,vstring inputDi
     coutLineOutput() << "Loading problems from " << (_trainingDirectory+"/Problems") << endl;
     System::readDir(_trainingDirectory+"/Problems",problems);
 
-    int elapsedTime = env.timer->elapsedMilliseconds();
+    int elapsedTime = env->timer->elapsedMilliseconds();
     int doTrainingFor = 2*_problemTimeLimit;
     doTraining(doTrainingFor,true);
-    int trainingElapsed = env.timer->elapsedMilliseconds();
+    int trainingElapsed = env->timer->elapsedMilliseconds();
     int trainingTime = trainingElapsed-elapsedTime;
     // we begin with negative surplus
     surplus = -trainingTime;
@@ -163,7 +163,7 @@ void CLTBModeLearning::solveBatch(istream& batchFile, bool first,vstring inputDi
     vstring probFile= inputDirectory+"/"+res.first;
     new_problems.push(probFile);
     vstring outFile= res.second;
-    vstring outDir = env.options->ltbDirectory();
+    vstring outDir = env->options->ltbDirectory();
     if(!outDir.empty()){
       std::size_t found = outFile.find_last_of("/");
       if(found != vstring::npos){
@@ -173,7 +173,7 @@ void CLTBModeLearning::solveBatch(istream& batchFile, bool first,vstring inputDi
     }
 
     // calculate the next problem time limit in milliseconds
-    int elapsedTime = env.timer->elapsedMilliseconds();
+    int elapsedTime = env->timer->elapsedMilliseconds();
     int timeRemainingForThisBatch = terminationTime - elapsedTime;
     coutLineOutput() << "time remaining for this batch " << timeRemainingForThisBatch << endl;
     int remainingBatchTimeForThisProblem = timeRemainingForThisBatch / remainingProblems;
@@ -192,10 +192,10 @@ void CLTBModeLearning::solveBatch(istream& batchFile, bool first,vstring inputDi
     int problemTerminationTime = elapsedTime + nextProblemTimeLimit;
     coutLineOutput() << "problem termination time " << problemTerminationTime << endl;
 
-    env.beginOutput();
-    env.out() << flush << "%" << endl;
+    env->beginOutput();
+    env->out() << flush << "%" << endl;
     lineOutput() << "SZS status Started for " << probFile << endl << flush;
-    env.endOutput();
+    env->endOutput();
 
     pid_t child = Multiprocessing::instance()->fork();
     if (!child) {
@@ -212,9 +212,9 @@ void CLTBModeLearning::solveBatch(istream& batchFile, bool first,vstring inputDi
       ASSERTION_VIOLATION;
     }
 
-    env.beginOutput();
+    env->beginOutput();
     lineOutput() << "solver pid " << child << endl;
-    env.endOutput();
+    env->endOutput();
     int resValue;
     // wait until the child terminates
     try {
@@ -228,7 +228,7 @@ void CLTBModeLearning::solveBatch(istream& batchFile, bool first,vstring inputDi
     }
 
     // output the result depending on the termination code
-    env.beginOutput();
+    env->beginOutput();
     if (!resValue) {
       lineOutput() << "SZS status Theorem for " << probFile << endl;
       solvedProblems++;
@@ -236,16 +236,16 @@ void CLTBModeLearning::solveBatch(istream& batchFile, bool first,vstring inputDi
     else {
       lineOutput() << "SZS status GaveUp for " << probFile << endl;
     }
-    env.out() << flush << '%' << endl;
+    env->out() << flush << '%' << endl;
     lineOutput() << "% SZS status Ended for " << probFile << endl << flush;
-    env.endOutput();
+    env->endOutput();
 
     Timer::syncClock();
 
     remainingProblems--;
 
     // If we used less than the time limit to solve this problem then do some more training
-    int timeNow = env.timer->elapsedMilliseconds();
+    int timeNow = env->timer->elapsedMilliseconds();
     int timeTaken = timeNow - elapsedTime; 
     int timeLeft = nextProblemTimeLimit - timeTaken;
     // update running surplus (which might be negative to start with due to startup training) 
@@ -255,16 +255,16 @@ void CLTBModeLearning::solveBatch(istream& batchFile, bool first,vstring inputDi
     if(surplus>5000){
       doTraining(surplus,false);
       // update surplus with actual time taken
-      int trainingElapsed = env.timer->elapsedMilliseconds();
+      int trainingElapsed = env->timer->elapsedMilliseconds();
       int trainingTime = trainingElapsed-timeNow;
       surplus = surplus-trainingTime;
       coutLineOutput() << "training time " << trainingTime << endl;
     }
 
   }
-  env.beginOutput();
+  env->beginOutput();
   lineOutput() << "Solved " << solvedProblems << " out of " << _problemFiles.size() << endl;
-  env.endOutput();
+  env->endOutput();
 } // CLTBModeLearning::solveBatch(batchFile)
 
 void CLTBModeLearning::loadIncludes()
@@ -274,11 +274,11 @@ void CLTBModeLearning::loadIncludes()
   UnitList* theoryAxioms=0;
   {
     TimeCounter tc(TC_PARSING);
-    env.statistics->phase=Statistics::PARSING;
+    env->statistics->phase=Statistics::PARSING;
 
     StringList::Iterator iit(_theoryIncludes);
     while (iit.hasNext()) {
-      vstring fname=env.options->includeFileName(iit.next());
+      vstring fname=env->options->includeFileName(iit.next());
 
       ifstream inp(fname.c_str());
       if (inp.fail()) {
@@ -303,7 +303,7 @@ void CLTBModeLearning::loadIncludes()
   //ensure we scan the theory axioms for property here, so we don't need to
   //do it afterward in each problem
   _baseProblem->getProperty();
-  env.statistics->phase=Statistics::UNKNOWN_PHASE;
+  env->statistics->phase=Statistics::UNKNOWN_PHASE;
 } // CLTBModeLearning::loadIncludes
 
 void CLTBModeLearning::doTraining(int time, bool startup)
@@ -338,7 +338,7 @@ void CLTBModeLearning::doTraining(int time, bool startup)
 
     // spend 5s on this problem
 
-    int elapsedTime = env.timer->elapsedMilliseconds();
+    int elapsedTime = env->timer->elapsedMilliseconds();
     int problemTerminationTime = elapsedTime + 5000; 
 
     pid_t child = Multiprocessing::instance()->fork();
@@ -363,7 +363,7 @@ void CLTBModeLearning::doTraining(int time, bool startup)
     if(!resValue){
       coutLineOutput() << "solved in training" << endl;
     }
-    int timeNow = env.timer->elapsedMilliseconds();
+    int timeNow = env->timer->elapsedMilliseconds();
     int timeTaken = timeNow - elapsedTime;
     time = time-timeTaken;
     if(time<5000) break; // we want at least 5 seconds
@@ -568,7 +568,7 @@ int CLTBModeLearning::readInput(istream& in, bool first)
     USER_ERROR("\"% SZS end BatchConfiguration\" expected, \"" + line + "\" found.");
   }
   if (_questionAnswering) {
-    env.options->setQuestionAnswering(Options::QuestionAnsweringMode::ANSWER_LITERAL);
+    env->options->setQuestionAnswering(Options::QuestionAnsweringMode::ANSWER_LITERAL);
   }
 
   getline(in, line);
@@ -803,7 +803,7 @@ void CLTBProblemLearning::performStrategy(int terminationTime,int timeLimit,  Sh
   if (runSchedule(quick,usedSlices,false,terminationTime,stopOnProof)) {
     return;
   }
-  if (env.timer->elapsedMilliseconds() >= terminationTime) {
+  if (env->timer->elapsedMilliseconds() >= terminationTime) {
     return;
   }
   //runSchedule(fallback,usedSlices,true,terminationTime,stopOnProof);
@@ -827,15 +827,15 @@ void CLTBProblemLearning::searchForProof(int terminationTime,int timeLimit, Sche
 
   System::registerForSIGHUPOnParentDeath();
 
-  env.timer->makeChildrenIncluded();
+  env->timer->makeChildrenIncluded();
   TimeCounter::reinitialize();
 
-  env.options->setInputFile(problemFile);
+  env->options->setInputFile(problemFile);
 
   // this local scope will delete a potentially large parser
   {
     TimeCounter tc(TC_PARSING);
-    env.statistics->phase=Statistics::PARSING;
+    env->statistics->phase=Statistics::PARSING;
 
     ifstream inp(problemFile.c_str());
     if (inp.fail()) {
@@ -858,12 +858,12 @@ void CLTBProblemLearning::searchForProof(int terminationTime,int timeLimit, Sche
   Shell::Property* property = prb.getProperty();
   if (property->atoms()<=1000000) {
     TimeCounter tc(TC_PREPROCESSING);
-    env.statistics->phase=Statistics::NORMALIZATION;
+    env->statistics->phase=Statistics::NORMALIZATION;
     Normalisation norm;
     norm.normalise(prb);
   }
 
-  env.statistics->phase=Statistics::UNKNOWN_PHASE;
+  env->statistics->phase=Statistics::UNKNOWN_PHASE;
 
   // now all the cpu usage will be in children, we'll just be waiting for them
   Timer::setTimeLimitEnforcement(false);
@@ -886,18 +886,18 @@ void CLTBProblemLearning::exitOnNoSuccess()
 {
   CALL("CLTBProblemLearning::exitOnNoSuccess");
 
-  env.beginOutput();
-  CLTBModeLearning::lineOutput() << "Proof not found in time " << Timer::msToSecondsString(env.timer->elapsedMilliseconds()) << endl;
-  if (env.remainingTime()/100>0) {
-    CLTBModeLearning::lineOutput() << "SZS status GaveUp for " << env.options->problemName() << endl;
+  env->beginOutput();
+  CLTBModeLearning::lineOutput() << "Proof not found in time " << Timer::msToSecondsString(env->timer->elapsedMilliseconds()) << endl;
+  if (env->remainingTime()/100>0) {
+    CLTBModeLearning::lineOutput() << "SZS status GaveUp for " << env->options->problemName() << endl;
   }
   else {
     //From time to time we may also be terminating in the timeLimitReached()
     //function in Lib/Timer.cpp in case the time runs out. We, however, output
     //the same string there as well.
-    CLTBModeLearning::lineOutput() << "SZS status Timeout for " << env.options->problemName() << endl;
+    CLTBModeLearning::lineOutput() << "SZS status Timeout for " << env->options->problemName() << endl;
   }
-  env.endOutput();
+  env->endOutput();
 
   CLTBModeLearning::coutLineOutput() << "problem proof search terminated (fail)" << endl << flush;
   System::terminateImmediately(1); //we didn't find the proof, so we return nonzero status code
@@ -943,7 +943,7 @@ bool CLTBProblemLearning::runSchedule(Schedule& schedule,StrategySet& used,bool 
       CLTBModeLearning::coutLineOutput() << "Processes available: " << processesLeft << endl << flush;
       ASS_G(processesLeft,0);
 
-      int elapsedTime = env.timer->elapsedMilliseconds();
+      int elapsedTime = env->timer->elapsedMilliseconds();
       if (elapsedTime >= terminationTime) {
 	// time limit reached
         goto finish_up;
@@ -1068,7 +1068,7 @@ void CLTBProblemLearning::runSlice(vstring sliceCode, unsigned timeLimitInMillis
   if(!printProof){
     // We're learning, don't run again if already run
     ProbRecord* rec;
-    if(parent->probRecords.find(env.options->problemName(),rec)){
+    if(parent->probRecords.find(env->options->problemName(),rec)){
       if(rec->suc.contains(sliceCode) || rec->fail.contains(sliceCode)){
         CLTBModeLearning::coutLineOutput() << " GaveUp as tried before (in learning)" << endl;
         exit(1); // GaveUp
@@ -1077,7 +1077,7 @@ void CLTBProblemLearning::runSlice(vstring sliceCode, unsigned timeLimitInMillis
     }
   }
 
-  Options opt = *env.options;
+  Options opt = *env->options;
   opt.readFromEncodedOptions(sliceCode);
   opt.setTimeLimitInDeciseconds(milliToDeci(timeLimitInMilliseconds));
   int stl = opt.simulatedTimeLimit();
@@ -1101,8 +1101,8 @@ void CLTBProblemLearning::runSlice(Options& strategyOpt, bool printProof)
   //UIHelper::cascMode=true;
 
   int resultValue=1;
-  env.timer->reset();
-  env.timer->start();
+  env->timer->reset();
+  env->timer->start();
   TimeCounter::reinitialize();
   Timer::setTimeLimitEnforcement(true);
 
@@ -1112,28 +1112,28 @@ void CLTBProblemLearning::runSlice(Options& strategyOpt, bool printProof)
   opt.setForcedOptionValues();
   opt.checkGlobalOptionConstraints();
   opt.setProblemName(problemFile);
-  *env.options = opt; //just temporarily until we get rid of dependencies on env.options in solving
+  *env->options = opt; //just temporarily until we get rid of dependencies on env->options in solving
 
-//  if (env.options->sineSelection()!=Options::SS_OFF) {
+//  if (env->options->sineSelection()!=Options::SS_OFF) {
 //    //add selected axioms from the theory
 //    parent->theorySelector.perform(probUnits);
 //
-//    env.options->setSineSelection(Options::SS_OFF);
-//    env.options->forceIncompleteness();
+//    env->options->setSineSelection(Options::SS_OFF);
+//    env->options->forceIncompleteness();
 //  }
 //  else {
 //    //if there wasn't any sine selection, just put in all theory axioms
 //    probUnits=UnitList::concat(probUnits, parent->theoryAxioms);
 //  }
 
-  env.beginOutput();
+  env->beginOutput();
   CLTBModeLearning::lineOutput() << opt.testId() << " on " << opt.problemName() << endl;
-  env.endOutput();
+  env->endOutput();
 
   ProvingHelper::runVampire(prb, opt);
 
   //set return value to zero if we were successful
-  if (env.statistics->terminationReason == Statistics::REFUTATION) {
+  if (env->statistics->terminationReason == Statistics::REFUTATION) {
     resultValue=0;
   }
   CLTBModeLearning::lineOutput() << "result " << resultValue << endl;
@@ -1152,9 +1152,9 @@ void CLTBProblemLearning::runSlice(Options& strategyOpt, bool printProof)
     }
 
   } else { // write other result to output
-    env.beginOutput();
-    UIHelper::outputResult(env.out());
-    env.endOutput();
+    env->beginOutput();
+    UIHelper::outputResult(env->out());
+    env->endOutput();
   }
 
   CLTBModeLearning::lineOutput() << "sending feedback" << endl;
@@ -1203,14 +1203,14 @@ unsigned CLTBProblemLearning::getSliceTime(vstring sliceCode,vstring& chopped)
 
 /**
  * Start line output by writing the TPTP comment sign and the current
- * elapsed time in milliseconds to env.out(). Returns env.out()
+ * elapsed time in milliseconds to env->out(). Returns env->out()
  * @since 05/06/2013 Vienna
  * @author Andrei Voronkov
  */
 ostream& CLTBModeLearning::lineOutput()
 {
   CALL("CLTBModeLearning::lineOutput");
-  return env.out() << "% (" << getpid() << ',' << (env.timer->elapsedMilliseconds()/100)/10.0 << ") ";
+  return env->out() << "% (" << getpid() << ',' << (env->timer->elapsedMilliseconds()/100)/10.0 << ") ";
 } // CLTBModeLearning::lineOutput
 
 /**
@@ -1222,6 +1222,6 @@ ostream& CLTBModeLearning::lineOutput()
 ostream& CLTBModeLearning::coutLineOutput()
 {
   CALL("CLTBModeLearning::lineOutput");
-  return cout << "% (" << getpid() << ',' << (env.timer->elapsedMilliseconds()/100)/10.0 << ") ";
+  return cout << "% (" << getpid() << ',' << (env->timer->elapsedMilliseconds()/100)/10.0 << ") ";
 } // CLTBModeLearning::coutLineOutput
 

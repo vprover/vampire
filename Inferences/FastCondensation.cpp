@@ -126,7 +126,7 @@ Clause* FastCondensation::simplify(Clause* cl)
         }
         ASS_EQ(ri, newLen);
  
-        env.statistics->condensations++;
+        env->statistics->condensations++;
  
         return res;
       }

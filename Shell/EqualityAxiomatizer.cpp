@@ -68,10 +68,10 @@ void EqualityAxiomatizer::scan(Literal* lit)
   if(lit->isEquality()) {
     unsigned eqSort = SortHelper::getEqualityArgumentSort(lit);
     _eqSorts.insert(eqSort);
-    if (env.options->showPreprocessing()) {
-      env.beginOutput();
-      env.out() << "eq sort "<<env.sorts->sortName(eqSort)<<" added because of "<<(*lit) << std::endl;
-      env.endOutput();
+    if (env->options->showPreprocessing()) {
+      env->beginOutput();
+      env->out() << "eq sort "<<env->sorts->sortName(eqSort)<<" added because of "<<(*lit) << std::endl;
+      env->endOutput();
     }    
   }
   else {
@@ -109,7 +109,7 @@ void EqualityAxiomatizer::saturateEqSorts()
   SymbolSet::Iterator fit(_fns);
   while(fit.hasNext()) {
     unsigned fn = fit.next();
-    FunctionType* ft = env.signature->getFunction(fn)->fnType();
+    FunctionType* ft = env->signature->getFunction(fn)->fnType();
     unsigned rngSort = ft->result();
     unsigned arity = ft->arity();
     for(unsigned ai = 0; ai<arity; ++ai) {
@@ -125,10 +125,10 @@ void EqualityAxiomatizer::saturateEqSorts()
   while(implIt.hasNext()) {
     unsigned eqSort = implIt.next();
     if(_eqSorts.insert(eqSort)) {
-      if (env.options->showPreprocessing()) {
-        env.beginOutput();
-        env.out() << "eq sort "<<env.sorts->sortName(eqSort)<<" added by implications" << std::endl;
-        env.endOutput();
+      if (env->options->showPreprocessing()) {
+        env->beginOutput();
+        env->out() << "eq sort "<<env->sorts->sortName(eqSort)<<" added by implications" << std::endl;
+        env->endOutput();
       }
     }
   }
@@ -188,15 +188,15 @@ UnitList* EqualityAxiomatizer::getAxioms()
     addCongruenceAxioms(res);
   }
 
-  if (env.options->showPreprocessing()) {
-    env.beginOutput();
-    ostream& out = env.out();
+  if (env->options->showPreprocessing()) {
+    env->beginOutput();
+    ostream& out = env->out();
     out << "Sorts using equality:" << endl;
     
     SortSet::Iterator sit2(_eqSorts);
     while(sit2.hasNext()) {
       unsigned srt = sit2.next();
-      out << env.sorts->sortName(srt);
+      out << env->sorts->sortName(srt);
       if(sit2.hasNext()) {
         out << ", ";
       }
@@ -209,7 +209,7 @@ UnitList* EqualityAxiomatizer::getAxioms()
       out << (*uit.next()) << endl;
     }
         
-    env.endOutput();
+    env->endOutput();
   }
                  
   return res;
@@ -239,19 +239,19 @@ bool EqualityAxiomatizer::getArgumentEqualityLiterals(BaseType* symbolType, Lite
       lits.push(Literal::createEquality(false, v1, v2, sort));
       vars1.push(v1);
       vars2.push(v2);
-      if (env.options->showPreprocessing()) {
-        env.beginOutput();
-        env.out() << "sort "<<env.sorts->sortName(sort)<<" lead to equality "<<(*lits.top()) << std::endl;
-        env.endOutput();
+      if (env->options->showPreprocessing()) {
+        env->beginOutput();
+        env->out() << "sort "<<env->sorts->sortName(sort)<<" lead to equality "<<(*lits.top()) << std::endl;
+        env->endOutput();
       }            
     }
     else {
       vars1.push(v1);
       vars2.push(v1);
-      if (env.options->showPreprocessing()) {
-        env.beginOutput();
-        env.out() << "sort "<<env.sorts->sortName(sort)<<" did not use equality" << std::endl;
-        env.endOutput();
+      if (env->options->showPreprocessing()) {
+        env->beginOutput();
+        env->out() << "sort "<<env->sorts->sortName(sort)<<" did not use equality" << std::endl;
+        env->endOutput();
       }
     }
   }
@@ -271,7 +271,7 @@ Clause* EqualityAxiomatizer::getFnCongruenceAxiom(unsigned fn)
   vars2.reset();
   lits.reset();
 
-  Signature::Symbol* fnSym = env.signature->getFunction(fn);
+  Signature::Symbol* fnSym = env->signature->getFunction(fn);
   FunctionType* fnType = fnSym->fnType();
 
   if(!_eqSorts.contains(fnType->result())) {
@@ -304,7 +304,7 @@ Clause* EqualityAxiomatizer::getPredCongruenceAxiom(unsigned pred)
   vars2.reset();
   lits.reset();
 
-  Signature::Symbol* predSym = env.signature->getPredicate(pred);
+  Signature::Symbol* predSym = env->signature->getPredicate(pred);
   unsigned arity = predSym->arity();
   ASS_G(arity,0);
   if(!getArgumentEqualityLiterals(predSym->predType(), lits, vars1, vars2)) {

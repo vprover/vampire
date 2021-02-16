@@ -395,7 +395,7 @@ vstring Clause::toString() const
   // print inference and ids of parent clauses
   result += " " + inferenceAsString();
 
-  if(env.options->proofExtra()!=Options::ProofExtra::OFF){
+  if(env->options->proofExtra()!=Options::ProofExtra::OFF){
     // print statistics: each entry should have the form key:value
     result += vstring(" {");
       
@@ -403,7 +403,7 @@ vstring Clause::toString() const
     unsigned weight = (_weight ? _weight : computeWeight());
     result += vstring(",w:") + Int::toString(weight);
     
-    unsigned weightForClauseSelection = (_weightForClauseSelection ? _weightForClauseSelection : computeWeightForClauseSelection(*env.options));
+    unsigned weightForClauseSelection = (_weightForClauseSelection ? _weightForClauseSelection : computeWeightForClauseSelection(*env->options));
     if(weightForClauseSelection!=weight){
       result += vstring(",wCS:") + Int::toString(weightForClauseSelection);
     }
@@ -412,14 +412,14 @@ vstring Clause::toString() const
       result += vstring(",nSel:") + Int::toString(numSelected());
     }
 
-    if (env.colorUsed) {
+    if (env->colorUsed) {
       result += vstring(",col:") + Int::toString(color());
     }
 
     if(derivedFromGoal()){
       result += vstring(",goal:1");
     }
-    if(env.maxSineLevel > 1) { // this is a cryptic way of saying "did we run Sine to compute sine levels?"
+    if(env->maxSineLevel > 1) { // this is a cryptic way of saying "did we run Sine to compute sine levels?"
       result += vstring(",sine:")+Int::toString((unsigned)_inference.getSineLevel());
     }
 
@@ -427,13 +427,13 @@ vstring Clause::toString() const
       result += vstring(",ptD:1");
     }
 
-    if(env.options->induction() != Shell::Options::Induction::NONE){
+    if(env->options->induction() != Shell::Options::Induction::NONE){
       result += vstring(",inD:") + Int::toString(_inference.inductionDepth());
     }
     result += ",thAx:" + Int::toString((int)(_inference.th_ancestors));
     result += ",allAx:" + Int::toString((int)(_inference.all_ancestors));
 
-    result += ",thDist:" + Int::toString( _inference.th_ancestors * env.options->theorySplitQueueExpectedRatioDenom() - _inference.all_ancestors);
+    result += ",thDist:" + Int::toString( _inference.th_ancestors * env->options->theorySplitQueueExpectedRatioDenom() - _inference.all_ancestors);
     result += vstring("}");
   }
 
@@ -478,7 +478,7 @@ void Clause::computeColor() const
 
   Color color = COLOR_TRANSPARENT;
 
-  if (env.colorUsed) {
+  if (env->colorUsed) {
     unsigned clen=length();
     for(unsigned i=0;i<clen;i++) {
       color = static_cast<Color>(color | (*this)[i]->color());
@@ -612,7 +612,7 @@ unsigned Clause::computeWeightForClauseSelection(const Options& opt) const
       TermFunIterator it(_literals[i]);
       it.next(); // skip literal symbol
       while(it.hasNext()){
-        found |= env.signature->getFunction(it.next())->inGoal();
+        found |= env->signature->getFunction(it.next())->inGoal();
       }
     }
     if(!found){ derivedFromGoal=false; }

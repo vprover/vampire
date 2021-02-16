@@ -67,7 +67,7 @@ bool ProcessScheduleExecutor::run(const Schedule &schedule)
 
   bool success = false;
   int remainingTime;
-  while(Timer::syncClock(), remainingTime = DECI(env.remainingTime()), remainingTime > 0)
+  while(Timer::syncClock(), remainingTime = DECI(env->remainingTime()), remainingTime > 0)
   {
     unsigned poolSize = pool ? Pool::length(pool) : 0;
 
@@ -121,10 +121,10 @@ bool ProcessScheduleExecutor::run(const Schedule &schedule)
       queue.insert(priority, Item(process));
     } else if (signalled) {
       // killed by an external agency (could be e.g. a slurm cluster killing for too much memory allocated)
-      env.beginOutput();
-      Shell::addCommentSignForSZS(env.out());
-      env.out()<<"Child killed by signal " << code << endl;
-      env.endOutput();
+      env->beginOutput();
+      Shell::addCommentSignForSZS(env->out());
+      env->out()<<"Child killed by signal " << code << endl;
+      env->endOutput();
       pool = Pool::remove(process, pool);
     }
 

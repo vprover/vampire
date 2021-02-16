@@ -191,7 +191,7 @@ Clause* TheoryFlattening::apply(Clause*& cl,Stack<Literal*>& target)
   if(lit->isEquality()){
     interpreted=false;
     for(TermList* ts = lit->args(); ts->isNonEmpty(); ts = ts->next()){
-      if(ts->isTerm() && env.signature->getFunction(ts->term()->functor())->interpreted()){
+      if(ts->isTerm() && env->signature->getFunction(ts->term()->functor())->interpreted()){
         interpreted=true;
       }
       if(ts->isTerm() && theory->isInterpretedConstant(ts->term())){
@@ -212,13 +212,13 @@ Clause* TheoryFlattening::apply(Clause*& cl,Stack<Literal*>& target)
     }
     Term* t = ts->term();
 
-    //cout << "term " << t->toString() << " has interp=" << env.signature->getFunction(t->functor())->interpreted() << endl;
+    //cout << "term " << t->toString() << " has interp=" << env->signature->getFunction(t->functor())->interpreted() << endl;
 
     // if interpreted status is different factor out
     // but never factor out interpreted constants e.g. numbers
     if(
         !equalityWithNumber &&
-        (interpreted != env.signature->getFunction(t->functor())->interpreted()) && 
+        (interpreted != env->signature->getFunction(t->functor())->interpreted()) && 
         !theory->isInterpretedConstant(t) 
       ){
       //cout << "Factoring out " << t->toString() << endl;
@@ -272,7 +272,7 @@ Clause* TheoryFlattening::apply(Clause*& cl,Stack<Literal*>& target)
     }
     Term* t = ts->term();
 
-    bool interpretedStatus = env.signature->getFunction(t->functor())->interpreted(); 
+    bool interpretedStatus = env->signature->getFunction(t->functor())->interpreted(); 
 
     // do not abstract numbers out of uninterpreted things, no point
     if(!interpreted && interpretedStatus){

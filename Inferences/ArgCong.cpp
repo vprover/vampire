@@ -112,7 +112,7 @@ struct ArgCong::ResultFn
           /*TimeCounter tc(TC_LITERAL_ORDER_AFTERCHECK);
 
           if (i < _cl->numSelected() && _ord->compare(currAfter,newLit) == Ordering::GREATER) {
-            env.statistics->inferencesBlockedForOrderingAftercheck++;
+            env->statistics->inferencesBlockedForOrderingAftercheck++;
             res->destroy();
             return 0;
           }*/ //TODO reintroduce check
@@ -126,7 +126,7 @@ struct ArgCong::ResultFn
       }
     }
 
-    env.statistics->argumentCongruence++;
+    env->statistics->argumentCongruence++;
 
     return res;
   }

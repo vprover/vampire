@@ -38,6 +38,9 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Shell;
 
+VTHREAD_LOCAL Environment *env(nullptr);
+Environment _ROOT_ENV;
+
 /**
  * @since 06/05/2007 Manchester
  */
@@ -65,6 +68,7 @@ Environment::Environment()
   }
   is_thread = true;
 #endif
+  env = this;
 
   options = new Options;
   statistics = new Statistics;  
@@ -218,7 +222,7 @@ ostream& Environment::out()
 }
 
 /**
- * Direct @b env.out() into @b pipe or to @b cout if @b pipe is zero
+ * Direct @b env->out() into @b pipe or to @b cout if @b pipe is zero
  *
  * This function cannot be called when an output is in progress.
  */
@@ -238,7 +242,4 @@ void Environment::setPriorityOutput(ostream* stm)
   _priorityOutput=stm;
 
 }
-
-// global environment object, constructed before main() and used everywhere
-Environment env;
 }

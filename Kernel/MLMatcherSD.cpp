@@ -1079,7 +1079,7 @@ bool MLMatcherSD::Impl::nextMatch()
     if(s_counter==50000) {
       // std::cerr << "counter reached 50k" << std::endl;
       s_counter=0;
-      if(env.timeLimitReached()) {
+      if(env->timeLimitReached()) {
         throw TimeLimitExceededException();
       }
     }

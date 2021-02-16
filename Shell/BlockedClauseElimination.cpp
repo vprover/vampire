@@ -57,8 +57,8 @@ void BlockedClauseElimination::apply(Problem& prb)
   bool modified = false;
   bool equationally = prb.hasEquality() && prb.getProperty()->positiveEqualityAtoms();
 
-  DArray<Stack<Candidate*>> positive(env.signature->predicates());
-  DArray<Stack<Candidate*>> negative(env.signature->predicates());
+  DArray<Stack<Candidate*>> positive(env->signature->predicates());
+  DArray<Stack<Candidate*>> negative(env->signature->predicates());
 
   Stack<ClWrapper*> wrappers; // just to delete easily in the end
 
@@ -75,7 +75,7 @@ void BlockedClauseElimination::apply(Problem& prb)
     for(unsigned i=0; i<cl->length(); i++) {
       Literal* lit = (*cl)[i];
       unsigned pred = lit->functor();
-      if (!env.signature->getPredicate(pred)->protectedSymbol()) { // don't index on interpreted or otherwise protected predicates (=> the cannot be ``flipped'')
+      if (!env->signature->getPredicate(pred)->protectedSymbol()) { // don't index on interpreted or otherwise protected predicates (=> the cannot be ``flipped'')
         ASS(pred); // equality predicate is protected
 
         (lit->isPositive() ? positive : negative)[pred].push(new Candidate {clw,i,0,0});
@@ -144,11 +144,11 @@ void BlockedClauseElimination::apply(Problem& prb)
     }
 
     // resolves to tautology with all partners -- blocked!
-    if (env.options->showPreprocessing()) {
+    if (env->options->showPreprocessing()) {
       cout << "[PP] Blocked clause[" << cand->litIdx << "]: " << cl->toString() << endl;
     }
 
-    env.statistics->blockedClauses++;
+    env->statistics->blockedClauses++;
     modified = true;
 
     clw->blocked = true;
@@ -256,7 +256,7 @@ bool BlockedClauseElimination::resolvesToTautologyEq(Clause* cl, Literal* lit, C
   CALL("BlockedClauseElimination::resolvesToTautologyEq");
 
   // With polymorphism, some intermediate terms created here are not well sorted, but that's OK
-  TermSharing::WellSortednessCheckingLocalDisabler disableInScope(env.sharing);
+  TermSharing::WellSortednessCheckingLocalDisabler disableInScope(env->sharing);
   // cout << "cl: " << cl->toString() << endl;
   // cout << "lit: " << lit->toString() << endl;
   // cout << "pcl: " << pcl->toString() << endl;

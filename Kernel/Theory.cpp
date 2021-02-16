@@ -1201,15 +1201,15 @@ unsigned Theory::Tuples::getFunctor(TermList tupleSort) {
   TermList* sorts = tupleSort.term()->args();
 
   theory->defineTupleTermAlgebra(arity, sorts);
-  ASS(env.signature->isTermAlgebraSort(tupleSort));
-  Shell::TermAlgebra* ta = env.signature->getTermAlgebraOfSort(tupleSort);
+  ASS(env->signature->isTermAlgebraSort(tupleSort));
+  Shell::TermAlgebra* ta = env->signature->getTermAlgebraOfSort(tupleSort);
 
   return ta->constructor(0)->functor();
 }
 
 bool Theory::Tuples::isFunctor(unsigned functor) {
   CALL("Theory::Tuples::isFunctor(unsigned)");
-  TermList tupleSort = env.signature->getFunction(functor)->fnType()->result();
+  TermList tupleSort = env->signature->getFunction(functor)->fnType()->result();
   return SortHelper::isTupleSort(tupleSort);
 }
 
@@ -1222,8 +1222,8 @@ unsigned Theory::Tuples::getProjectionFunctor(unsigned proj, TermList tupleSort)
   TermList* sorts = tupleSort.term()->args();
 
   theory->defineTupleTermAlgebra(arity, sorts);
-  ASS(env.signature->isTermAlgebraSort(tupleSort));
-  Shell::TermAlgebra* ta = env.signature->getTermAlgebraOfSort(tupleSort);
+  ASS(env->signature->isTermAlgebraSort(tupleSort));
+  Shell::TermAlgebra* ta = env->signature->getTermAlgebraOfSort(tupleSort);
 
   Shell::TermAlgebraConstructor* c = ta->constructor(0);
 
@@ -1236,8 +1236,8 @@ unsigned Theory::Tuples::getProjectionFunctor(unsigned proj, TermList tupleSort)
 bool Theory::Tuples::findProjection(unsigned projFunctor, bool isPredicate, unsigned &proj) {
   CALL("Theory::Tuples::findProjection");
 
-  OperatorType* projType = isPredicate ? env.signature->getPredicate(projFunctor)->predType()
-                                       : env.signature->getFunction(projFunctor)->fnType();
+  OperatorType* projType = isPredicate ? env->signature->getPredicate(projFunctor)->predType()
+                                       : env->signature->getFunction(projFunctor)->fnType();
 
   if (projType->arity() != 1) {
     return false;
@@ -1249,11 +1249,11 @@ bool Theory::Tuples::findProjection(unsigned projFunctor, bool isPredicate, unsi
     return false;
   }
 
-  if (!env.signature->isTermAlgebraSort(tupleSort)) {
+  if (!env->signature->isTermAlgebraSort(tupleSort)) {
     return false;
   }
 
-  Shell::TermAlgebraConstructor* c = env.signature->getTermAlgebraOfSort(tupleSort)->constructor(0);
+  Shell::TermAlgebraConstructor* c = env->signature->getTermAlgebraOfSort(tupleSort)->constructor(0);
   for (unsigned i = 0; i < c->arity(); i++) {
     if (projFunctor == c->destructorFunctor(i)) {
       proj = i;
@@ -1476,25 +1476,25 @@ void Theory::defineTupleTermAlgebra(unsigned arity, TermList* sorts) {
 
   TermList tupleSort = Term::tupleSort(arity, sorts);
 
-  if (env.signature->isTermAlgebraSort(tupleSort)) {
+  if (env->signature->isTermAlgebraSort(tupleSort)) {
     return;
   }
 
-  unsigned functor = env.signature->addFreshFunction(arity, "tuple");
+  unsigned functor = env->signature->addFreshFunction(arity, "tuple");
   OperatorType* tupleType = OperatorType::getFunctionType(arity, sorts, tupleSort);
-  env.signature->getFunction(functor)->setType(tupleType);
-  env.signature->getFunction(functor)->markTermAlgebraCons();
+  env->signature->getFunction(functor)->setType(tupleType);
+  env->signature->getFunction(functor)->markTermAlgebraCons();
 
   Array<unsigned> destructors(arity);
   for (unsigned i = 0; i < arity; i++) {
     TermList projSort = sorts[i];
     unsigned destructor;
     if (projSort == Term::boolSort()) {
-      destructor = env.signature->addFreshPredicate(1, "proj");
-      env.signature->getPredicate(destructor)->setType(OperatorType::getPredicateType({ tupleSort }));
+      destructor = env->signature->addFreshPredicate(1, "proj");
+      env->signature->getPredicate(destructor)->setType(OperatorType::getPredicateType({ tupleSort }));
     } else {
-      destructor = env.signature->addFreshFunction(1, "proj");
-      env.signature->getFunction(destructor)->setType(OperatorType::getFunctionType({ tupleSort }, projSort));
+      destructor = env->signature->addFreshFunction(1, "proj");
+      env->signature->getFunction(destructor)->setType(OperatorType::getFunctionType({ tupleSort }, projSort));
     }
     destructors[i] = destructor;
   }
@@ -1502,7 +1502,7 @@ void Theory::defineTupleTermAlgebra(unsigned arity, TermList* sorts) {
   Shell::TermAlgebraConstructor* constructor = new Shell::TermAlgebraConstructor(functor, destructors);
 
   Shell::TermAlgebraConstructor* constructors[] = { constructor };
-  env.signature->addTermAlgebra(new Shell::TermAlgebra(tupleSort, 1, constructors, false));
+  env->signature->addTermAlgebra(new Shell::TermAlgebra(tupleSort, 1, constructors, false));
 }
 
 bool Theory::isInterpretedConstant(unsigned func)
@@ -1513,7 +1513,7 @@ bool Theory::isInterpretedConstant(unsigned func)
     return false;
   }
 
-  return env.signature->getFunction(func)->interpreted() && env.signature->functionArity(func)==0;
+  return env->signature->getFunction(func)->interpreted() && env->signature->functionArity(func)==0;
 }
 
 /**
@@ -1525,7 +1525,7 @@ bool Theory::isInterpretedConstant(Term* t)
 
   if (t->isSpecial()) { return false; }
 
-  return t->arity()==0 && env.signature->getFunction(t->functor())->interpreted();
+  return t->arity()==0 && env->signature->getFunction(t->functor())->interpreted();
 }
 
 /**
@@ -1545,7 +1545,7 @@ bool Theory::isInterpretedNumber(Term* t)
 {
   CALL("Theory::isInterpretedNumber(TermList)");
 
-  return isInterpretedConstant(t) && env.signature->getFunction(t->functor())->interpretedNumber();
+  return isInterpretedConstant(t) && env->signature->getFunction(t->functor())->interpretedNumber();
 }
 
 /**
@@ -1555,7 +1555,7 @@ bool Theory::isInterpretedNumber(TermList t)
 {
   CALL("Theory::isInterpretedNumber(TermList)");
 
-  return isInterpretedConstant(t) && env.signature->getFunction(t.term()->functor())->interpretedNumber();
+  return isInterpretedConstant(t) && env->signature->getFunction(t.term()->functor())->interpretedNumber();
 }
 
 /**
@@ -1565,7 +1565,7 @@ bool Theory::isInterpretedPredicate(unsigned pred)
 {
   CALL("Theory::isInterpretedPredicate(unsigned)");
 
-  return env.signature->getPredicate(pred)->interpreted();
+  return env->signature->getPredicate(pred)->interpreted();
 }
 
 /**
@@ -1591,7 +1591,7 @@ bool Theory::isInterpretedPredicate(Literal* lit, Interpretation itp)
 {
   CALL("Theory::isInterpretedPredicate/2");
 
-  return env.signature->getPredicate(lit->functor())->interpreted() &&
+  return env->signature->getPredicate(lit->functor())->interpreted() &&
       interpretPredicate(lit)==itp;
 }
 
@@ -1603,7 +1603,7 @@ bool Theory::isInterpretedFunction(unsigned func)
     return false;
   }
 
-  return env.signature->getFunction(func)->interpreted() && env.signature->functionArity(func)!=0;
+  return env->signature->getFunction(func)->interpreted() && env->signature->functionArity(func)!=0;
 }
 bool Theory::isInterpretedPartialFunction(unsigned func)
 {
@@ -1612,7 +1612,7 @@ bool Theory::isInterpretedPartialFunction(unsigned func)
   if(!isInterpretedFunction(func)){ return false; }
 
   bool result =  isPartialFunction(interpretFunction(func));
-  ASS(!result || env.signature->functionArity(func)==2);
+  ASS(!result || env->signature->functionArity(func)==2);
   return result;
 }
 
@@ -1684,7 +1684,7 @@ Interpretation Theory::interpretFunction(unsigned func)
   ASS(isInterpretedFunction(func));
 
   Signature::InterpretedSymbol* sym =
-      static_cast<Signature::InterpretedSymbol*>(env.signature->getFunction(func));
+      static_cast<Signature::InterpretedSymbol*>(env->signature->getFunction(func));
 
   return sym->getInterpretation();
 }
@@ -1717,7 +1717,7 @@ Interpretation Theory::interpretPredicate(unsigned pred)
   ASS(isInterpretedPredicate(pred));
 
   Signature::InterpretedSymbol* sym =
-      static_cast<Signature::InterpretedSymbol*>(env.signature->getPredicate(pred));
+      static_cast<Signature::InterpretedSymbol*>(env->signature->getPredicate(pred));
 
   return sym->getInterpretation();
 }
@@ -1749,7 +1749,7 @@ bool Theory::tryInterpretConstant(const Term* t, IntegerConstantType& res)
     return false;
   }
   unsigned func = t->functor();
-  Signature::Symbol* sym = env.signature->getFunction(func);
+  Signature::Symbol* sym = env->signature->getFunction(func);
   if (!sym->integerConstant()) {
     return false;
   }
@@ -1772,7 +1772,7 @@ bool Theory::tryInterpretConstant(const Term* t, RationalConstantType& res)
     return false;
   }
   unsigned func = t->functor();
-  Signature::Symbol* sym = env.signature->getFunction(func);
+  Signature::Symbol* sym = env->signature->getFunction(func);
   if (!sym->rationalConstant()) {
     return false;
   }
@@ -1795,7 +1795,7 @@ bool Theory::tryInterpretConstant(const Term* t, RealConstantType& res)
     return false;
   }
   unsigned func = t->functor();
-  Signature::Symbol* sym = env.signature->getFunction(func);
+  Signature::Symbol* sym = env->signature->getFunction(func);
   if (!sym->realConstant()) {
     return false;
   }
@@ -1807,7 +1807,7 @@ Term* Theory::representConstant(const IntegerConstantType& num)
 {
   CALL("Theory::representConstant(const IntegerConstantType&)");
 
-  unsigned func = env.signature->addIntegerConstant(num);
+  unsigned func = env->signature->addIntegerConstant(num);
   return Term::create(func, 0, 0);
 }
 
@@ -1815,7 +1815,7 @@ Term* Theory::representConstant(const RationalConstantType& num)
 {
   CALL("Theory::representConstant(const RationalConstantType&)");
 
-  unsigned func = env.signature->addRationalConstant(num);
+  unsigned func = env->signature->addRationalConstant(num);
   return Term::create(func, 0, 0);
 }
 
@@ -1823,7 +1823,7 @@ Term* Theory::representConstant(const RealConstantType& num)
 {
   CALL("Theory::representConstant(const RealConstantType&)");
 
-  unsigned func = env.signature->addRealConstant(num);
+  unsigned func = env->signature->addRealConstant(num);
   return Term::create(func, 0, 0);
 }
 
@@ -1837,13 +1837,13 @@ Term* Theory::representIntegerConstant(vstring str)
   catch(ArithmeticException&) {
     NOT_IMPLEMENTED;
 //    bool added;
-//    unsigned fnNum = env.signature->addFunction(str, 0, added);
+//    unsigned fnNum = env->signature->addFunction(str, 0, added);
 //    if (added) {
-//      env.signature->getFunction(fnNum)->setType(new FunctionType(Sorts::SRT_INTEGER));
-//      env.signature->addToDistinctGroup(fnNum, Signature::INTEGER_DISTINCT_GROUP);
+//      env->signature->getFunction(fnNum)->setType(new FunctionType(Sorts::SRT_INTEGER));
+//      env->signature->addToDistinctGroup(fnNum, Signature::INTEGER_DISTINCT_GROUP);
 //    }
 //    else {
-//      ASS(env.signature->getFunction(fnNum))
+//      ASS(env->signature->getFunction(fnNum))
 //    }
   }
 }

@@ -115,20 +115,20 @@ struct PredicateDefinition::PredData
       ASS(!enqueuedForReplacement);
       pdObj->_eliminable.push(pred);
       enqueuedForDefEl=true;
-      if (env.options->showPreprocessing()) {
-        env.beginOutput();
-        env.out() << "[PP] pred marked for removing unused predicate definition: " 
-                << env.signature->predicateName(pred) << std::endl;
-        env.endOutput();
+      if (env->options->showPreprocessing()) {
+        env->beginOutput();
+        env->out() << "[PP] pred marked for removing unused predicate definition: " 
+                << env->signature->predicateName(pred) << std::endl;
+        env->endOutput();
       }            
     } else if(!enqueuedForReplacement && isPure()) {
       pdObj->_pureToReplace.push(pred);
       enqueuedForReplacement=true;
-      if (env.options->showPreprocessing()) {
-        env.beginOutput();
-        env.out() << "[PP] " << stateToString() << " to be replaced by " 
+      if (env->options->showPreprocessing()) {
+        env->beginOutput();
+        env->out() << "[PP] " << stateToString() << " to be replaced by " 
                 << ((nocc==0) ? "$false" : "$true") << std::endl;
-        env.endOutput();
+        env->endOutput();
       }
     }
   }
@@ -143,7 +143,7 @@ struct PredicateDefinition::PredData
   }
 
   vstring stateToString() const {
-    return env.signature->predicateName(pred) + ": +(" + Int::toString(pocc)
+    return env->signature->predicateName(pred) + ": +(" + Int::toString(pocc)
 	+ ") -(" + Int::toString(nocc) + ") 0(" + Int::toString(docc) + ")";
   }
 
@@ -152,9 +152,9 @@ struct PredicateDefinition::PredData
 };
 
 PredicateDefinition::PredicateDefinition()
-: _processedPrb(0), _predCnt(env.signature->predicates())
+: _processedPrb(0), _predCnt(env->signature->predicates())
 {
-  int predCnt=env.signature->predicates();
+  int predCnt=env->signature->predicates();
 
   _preds = new PredData[predCnt];
   for(int i=0;i<predCnt;i++) {
@@ -163,7 +163,7 @@ PredicateDefinition::PredicateDefinition()
 
   //mark built-in
   for(int i=0;i<predCnt;i++) {
-    if(env.signature->getPredicate(i)->protectedSymbol()) {
+    if(env->signature->getPredicate(i)->protectedSymbol()) {
       addBuiltInPredicate(i);
     }
   }
@@ -184,11 +184,11 @@ void PredicateDefinition::addBuiltInPredicate(unsigned pred)
 
   _preds[pred].builtIn = true;
 
-  if (env.options->showPreprocessing()) {
-    env.beginOutput();
-    env.out() << "[PP] pred marked as built-in: " 
-            << env.signature->predicateName(pred) << std::endl;
-    env.endOutput();
+  if (env->options->showPreprocessing()) {
+    env->beginOutput();
+    env->out() << "[PP] pred marked as built-in: " 
+            << env->signature->predicateName(pred) << std::endl;
+    env->endOutput();
   }  
 }
 
@@ -229,10 +229,10 @@ void PredicateDefinition::eliminatePredicateDefinition(unsigned pred, ReplMap& r
   if(pd.pocc==0 && pd.nocc==0) {
     //pred does not occur anywhere else, hence can be deleted
     repl = 0;
-    if (env.options->showPreprocessing()) {
-      env.beginOutput();
-      env.out() << "[PP] definition " << (*def) << " removed" << std::endl;
-      env.endOutput();
+    if (env->options->showPreprocessing()) {
+      env->beginOutput();
+      env->out() << "[PP] definition " << (*def) << " removed" << std::endl;
+      env->endOutput();
     }
     _processedPrb->addEliminatedPredicate(pred,def);
   }
@@ -247,25 +247,25 @@ void PredicateDefinition::eliminatePredicateDefinition(unsigned pred, ReplMap& r
     if(!repl) {
       //the definition formula was simplified by other transformation to the      
       //point it is no longer definition that can be eliminated
-      if (env.options->showPreprocessing()) {
-        env.beginOutput();
-        env.out() << "[PP] Formula " << (*def) 
+      if (env->options->showPreprocessing()) {
+        env->beginOutput();
+        env->out() << "[PP] Formula " << (*def) 
                 << " is no longer in the shape of definition of "
-                << env.signature->predicateName(pred) 
+                << env->signature->predicateName(pred) 
                 << ". The original definition was " << (*def0) 
                 << "." << std::endl;
-        env.endOutput();
+        env->endOutput();
       }
       
       return;
     }
     _processedPrb->addPartiallyEliminatedPredicate(pred,def);
 
-    if (env.options->showPreprocessing()) {
-      env.beginOutput();
-      env.out() << "[PP] definition " << (*def) << " replaced by " 
+    if (env->options->showPreprocessing()) {
+      env->beginOutput();
+      env->out() << "[PP] definition " << (*def) << " replaced by " 
               << (*repl) << std::endl;
-      env.endOutput();
+      env->endOutput();
     }    
   }
   if(repl) {
@@ -274,7 +274,7 @@ void PredicateDefinition::eliminatePredicateDefinition(unsigned pred, ReplMap& r
   count(def, -1);
   ALWAYS(replacements.insert(def, repl));
 
-  env.statistics->unusedPredicateDefinitions++;
+  env->statistics->unusedPredicateDefinitions++;
 }
 
 void PredicateDefinition::replacePurePred(unsigned pred, ReplMap& replacements)
@@ -298,14 +298,14 @@ void PredicateDefinition::replacePurePred(unsigned pred, ReplMap& replacements)
     Unit* v=replacePurePredicates(u);
 
     ASS_NEQ(u,v);
-    if (env.options->showPreprocessing()) {
-      env.beginOutput();
+    if (env->options->showPreprocessing()) {
+      env->beginOutput();
         if (v) {
-          env.out() << "unit " << (*u) << " replaced by " << (*v) << endl;
+          env->out() << "unit " << (*u) << " replaced by " << (*v) << endl;
         } else {
-          env.out() << "unit " << (*u) << " removed" << endl;
+          env->out() << "unit " << (*u) << " removed" << endl;
         }
-      env.endOutput();
+      env->endOutput();
     }
     
     count(v,1);
@@ -313,7 +313,7 @@ void PredicateDefinition::replacePurePred(unsigned pred, ReplMap& replacements)
     ALWAYS(replacements.insert(u,v));
   }
 
-  env.statistics->purePredicates++;
+  env->statistics->purePredicates++;
 }
 
 /**
@@ -329,14 +329,14 @@ void PredicateDefinition::collectReplacements(UnitList* units, ReplMap& replacem
     scan(scanIterator.next());
   }
 
-  if (env.options->showPreprocessing()) {
-    env.beginOutput();
+  if (env->options->showPreprocessing()) {
+    env->beginOutput();
     for (unsigned i = 0; i < _predCnt; ++i) {
       if (!_preds[i].pocc && !_preds[i].nocc && !_preds[i].docc)
         continue;      
-      env.out() << _preds[i].stateToString() << endl;
+      env->out() << _preds[i].stateToString() << endl;
     }    
-    env.endOutput();
+    env->endOutput();
   }  
 
   for(unsigned pred=1; pred<_predCnt; pred++) {
@@ -353,13 +353,13 @@ void PredicateDefinition::collectReplacements(UnitList* units, ReplMap& replacem
       replacePurePred(pred, replacements);
     }
   }
-  if (env.options->showPreprocessing()) {
-    env.beginOutput();
+  if (env->options->showPreprocessing()) {
+    env->beginOutput();
     for(unsigned i=0; i<_predCnt; ++i) {
       if(!_preds[i].pocc && !_preds[i].nocc  && !_preds[i].docc ) { continue; }
-      env.out() << _preds[i].stateToString() << endl;
+      env->out() << _preds[i].stateToString() << endl;
     }    
-    env.endOutput();
+    env->endOutput();
   }
 }
 
@@ -423,7 +423,7 @@ Clause* PredicateDefinition::replacePurePredicates(Clause* cl)
 
 Unit* PredicateDefinition::replacePurePredicates(Unit* u)
 {
-  if(u->derivedFromGoal() && env.options->ignoreConjectureInPreprocessing()){
+  if(u->derivedFromGoal() && env->options->ignoreConjectureInPreprocessing()){
     return u;
   }
   if(u->isClause()) {
@@ -727,7 +727,7 @@ FormulaUnit* PredicateDefinition::makeImplFromDef(FormulaUnit* def, unsigned pre
 
 void PredicateDefinition::scan(Unit* u)
 {
-  if(!(u->derivedFromGoal() && env.options->ignoreConjectureInPreprocessing())){
+  if(!(u->derivedFromGoal() && env->options->ignoreConjectureInPreprocessing())){
     if(u->isClause()) {
       scan(static_cast<Clause*>(u));
     } else {

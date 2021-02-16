@@ -203,7 +203,7 @@ struct BackwardDemodulation::ResultFn
 
     Literal* resLit=EqHelper::replace(qr.literal,lhsS,rhsS);
     if(EqHelper::isEqTautology(resLit)) {
-      env.statistics->backwardDemodulationsToEqTaut++;
+      env->statistics->backwardDemodulationsToEqTaut++;
       _removed->insert(qr.clause);
       return BwSimplificationRecord(qr.clause);
     }
@@ -222,7 +222,7 @@ struct BackwardDemodulation::ResultFn
     }
     ASS_EQ(next,cLen);
 
-    env.statistics->backwardDemodulations++;
+    env->statistics->backwardDemodulations++;
     _removed->insert(qr.clause);
     return BwSimplificationRecord(qr.clause,res);
   }

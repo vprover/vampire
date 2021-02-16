@@ -81,7 +81,7 @@ struct NumTraits;
     static const Theory::Interpretation name ## I = Theory::SORT_SHORT ## _INTERPRETATION;                    \
                                                                                                               \
     static unsigned name ## F() {                                                                             \
-      VTHREAD_LOCAL static const unsigned functor = env.signature->getInterpretingSymbol(name ## I);          \
+      VTHREAD_LOCAL static const unsigned functor = env->signature->getInterpretingSymbol(name ## I);          \
       return functor;                                                                                         \
     }                                                                                                         \
 

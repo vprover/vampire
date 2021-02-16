@@ -138,20 +138,20 @@ void SymElOutput::outputSymbolElimination(Color eliminated, Clause* c)
   ASS_EQ(c->color(),COLOR_TRANSPARENT);
   ASS(!c->skip());
 
-  env.beginOutput();
+  env->beginOutput();
 
   //BDD::instance()->allowDefinitionOutput(false);
-  env.out()<<"%";
+  env->out()<<"%";
   if(eliminated==COLOR_LEFT) {
-    env.out()<<"Left";
+    env->out()<<"Left";
   } else {
     ASS_EQ(eliminated, COLOR_RIGHT);
-    env.out()<<"Right";
+    env->out()<<"Right";
   }
-  env.out()<<" symbol elimination"<<endl;
+  env->out()<<" symbol elimination"<<endl;
 
   vstring cname = "inv"+Int::toString(_symElNextClauseNumber);
-  while(env.signature->isPredicateName(cname, 0)) {
+  while(env->signature->isPredicateName(cname, 0)) {
     _symElNextClauseNumber++;
     cname = "inv"+Int::toString(_symElNextClauseNumber);
   }
@@ -161,7 +161,7 @@ void SymElOutput::outputSymbolElimination(Color eliminated, Clause* c)
   //BDD::instance()->allowDefinitionOutput(true);
   _symElNextClauseNumber++;
 
-  env.endOutput();
+  env->endOutput();
 }
 
 
@@ -169,7 +169,7 @@ void SymElOutput::checkForPreprocessorSymbolElimination(Clause* cl)
 {
   CALL("SymElOutput::checkForPreprocessorSymbolElimination");
 
-  if(!env.colorUsed || cl->color()!=COLOR_TRANSPARENT || cl->skip()) {
+  if(!env->colorUsed || cl->color()!=COLOR_TRANSPARENT || cl->skip()) {
     return;
   }
 

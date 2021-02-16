@@ -119,8 +119,8 @@ struct EqualityFactoring::ResultFn
     TermList fRHS=EqHelper::getOtherEqualitySide(fLit, fLHS);
     ASS_NEQ(sLit, fLit);
 
-    VTHREAD_LOCAL static Options::FunctionExtensionality ext = env.options->functionExtensionality();
-    bool use_ho_handler = (ext == Options::FunctionExtensionality::ABSTRACTION) && env.statistics->higherOrder;
+    VTHREAD_LOCAL static Options::FunctionExtensionality ext = env->options->functionExtensionality();
+    bool use_ho_handler = (ext == Options::FunctionExtensionality::ABSTRACTION) && env->statistics->higherOrder;
 
     if(use_ho_handler){
       TermList sLHSreplaced = sLHS;
@@ -171,7 +171,7 @@ struct EqualityFactoring::ResultFn
         if (sLitAfter) {
           TimeCounter tc(TC_LITERAL_ORDER_AFTERCHECK);
           if (i < _cl->numSelected() && _ordering.compare(currAfter,sLitAfter) == Ordering::GREATER) {
-            env.statistics->inferencesBlockedForOrderingAftercheck++;
+            env->statistics->inferencesBlockedForOrderingAftercheck++;
             res->destroy();
             return 0;
           }
@@ -192,7 +192,7 @@ struct EqualityFactoring::ResultFn
     }
     ASS_EQ(next,newLen);
 
-    env.statistics->equalityFactoring++;
+    env->statistics->equalityFactoring++;
 
     return res;
   }

@@ -236,9 +236,9 @@ IGGrounder::IGGrounder(SATSolver* satSolver) : Grounder(satSolver)
 {
   _tgtTerm = TermList(0, false);
   //TODO: make instantiation happen with the most prolific symbol of each sort
-/*  unsigned funs = env.signature->functions();
+/*  unsigned funs = env->signature->functions();
   for(unsigned i=0; i<funs; i++) {
-    if(env.signature->functionArity(i)==0) {
+    if(env->signature->functionArity(i)==0) {
       _tgtTerm = TermList(Term::createConstant(i));
       break;
     }

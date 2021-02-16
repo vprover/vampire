@@ -34,7 +34,7 @@ bool PDUtils::isDefinitionHead(Literal* l)
 {
   CALL("PDUtils::isDefinitionHead");
 
-  Signature::Symbol* sym = env.signature->getPredicate(l->functor());
+  Signature::Symbol* sym = env->signature->getPredicate(l->functor());
   if(sym->protectedSymbol()) {
     return false;
   }

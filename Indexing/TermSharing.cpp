@@ -32,7 +32,11 @@ using namespace Kernel;
 using namespace Indexing;
 
 typedef ApplicativeHelper AH;
+
+#if VTHREADED
+#include <mutex>
 std::recursive_mutex TermSharing::_mutex;
+#endif
 
 /**
  * Initialise the term sharing structure.
@@ -77,10 +81,10 @@ void TermSharing::setPoly()
 
   //combinatory superposiiton can introduce polymorphism into a 
   //monomorphic problem
-  _poly = env.statistics->higherOrder ||
-          env.statistics->polymorphic ||
-          env.options->equalityProxy() != Options::EqualityProxy::OFF ||
-          env.options->saturationAlgorithm() == Options::SaturationAlgorithm::INST_GEN;
+  _poly = env->statistics->higherOrder ||
+          env->statistics->polymorphic ||
+          env->options->equalityProxy() != Options::EqualityProxy::OFF ||
+          env->options->saturationAlgorithm() == Options::SaturationAlgorithm::INST_GEN;
 }
 
 /**
@@ -110,12 +114,12 @@ Term* TermSharing::insert(Term* t)
 
   _termInsertions++;
 #if VTHREADED
-  auto pair = _terms.insert(std::make_pair(env.signature, t));
+  auto pair = _terms.insert(std::make_pair(env->signature, t));
   Signature *signature = pair.first;
   Term *s = pair.second;
 #else
   Term* s = _terms.insert(t);
-  Signature *signature = env.signature;
+  Signature *signature = env->signature;
 #endif
    if (s == t) {
     unsigned weight = 1;
@@ -124,7 +128,7 @@ Term* TermSharing::insert(Term* t)
 	signature->getFunction(t->functor())->interpreted();
     Color color = COLOR_TRANSPARENT;
 
-    if(env.options->combinatorySup() && !AH::isType(t)){ 
+    if(env->options->combinatorySup() && !AH::isType(t)){ 
       int maxRedLength = -1;
       TermList head;
       TermStack args;
@@ -178,7 +182,7 @@ Term* TermSharing::insert(Term* t)
   
         vars += r->vars();
         weight += r->weight();
-        if (env.colorUsed) {
+        if (env->colorUsed) {
             color = static_cast<Color>(color | r->color());
         }
         if(!hasInterpretedConstants && r->hasInterpretedConstants()) {
@@ -190,7 +194,7 @@ Term* TermSharing::insert(Term* t)
     t->setId(_totalTerms);
     t->setVars(vars);
     t->setWeight(weight);
-    if (env.colorUsed) {
+    if (env->colorUsed) {
       Color fcolor = signature->getFunction(t->functor())->color();
       color = static_cast<Color>(color | fcolor);
       t->setColor(color);
@@ -246,12 +250,12 @@ Literal* TermSharing::insert(Literal* t)
 
   _literalInsertions++;
 #if VTHREADED
-  auto pair = _literals.insert(std::make_pair(env.signature, t));
+  auto pair = _literals.insert(std::make_pair(env->signature, t));
   Signature *signature = pair.first;
   Literal *s = pair.second;
 #else
   Literal* s = _literals.insert(t);
-  Signature *signature = env.signature;
+  Signature *signature = env->signature;
 #endif
   if (s == t) {
     unsigned weight = 1;
@@ -269,7 +273,7 @@ Literal* TermSharing::insert(Literal* t)
 	Term* r = tt->term();
 	vars += r->vars();
 	weight += r->weight();
-	if (env.colorUsed) {
+	if (env->colorUsed) {
 	  ASS(color == COLOR_TRANSPARENT || r->color() == COLOR_TRANSPARENT || color == r->color());
 	  color = static_cast<Color>(color | r->color());
 	}
@@ -282,7 +286,7 @@ Literal* TermSharing::insert(Literal* t)
     t->setId(_totalLiterals);
     t->setVars(vars);
     t->setWeight(weight);
-    if (env.colorUsed) {
+    if (env->colorUsed) {
       Color fcolor = signature->getPredicate(t->functor())->color();
       color = static_cast<Color>(color | fcolor);
       t->setColor(color);
@@ -334,7 +338,7 @@ Literal* TermSharing::insertVariableEquality(Literal* t, TermList sort)
 
   _literalInsertions++;
 #if VTHREADED
-  Literal *s = _literals.insert(std::make_pair(env.signature, t)).second;
+  Literal *s = _literals.insert(std::make_pair(env->signature, t)).second;
 #else
   Literal* s = _literals.insert(t);
 #endif
@@ -342,7 +346,7 @@ Literal* TermSharing::insertVariableEquality(Literal* t, TermList sort)
     t->markShared();
     t->setId(_totalLiterals);
     t->setWeight(2 + sortWeight);
-    if (env.colorUsed) {
+    if (env->colorUsed) {
       t->setColor(COLOR_TRANSPARENT);
     }
     t->setInterpretedConstantsPresence(false);
@@ -402,7 +406,7 @@ Literal* TermSharing::tryGetOpposite(Literal* l)
 
 #if VTHREADED
   std::pair<Signature*, Literal*> res;
-  if(_literals.find(std::make_pair(env.signature, OpLitWrapper(l)), res)) {
+  if(_literals.find(std::make_pair(env->signature, OpLitWrapper(l)), res)) {
     return res.second;
   }
 #else

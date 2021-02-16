@@ -162,20 +162,20 @@ Literal* InequalitySplitting::splitLiteral(Literal* lit, UnitInputType inpType, 
   unsigned fun;
   OperatorType* type;
   if(!_appify){
-    fun=env.signature->addNamePredicate(vars.size() + 1);
+    fun=env->signature->addNamePredicate(vars.size() + 1);
     type = OperatorType::getPredicateType({srt}, vars.size());
   } else {
     srt = Term::arrowSort(srt, Term::boolSort());
-    fun=env.signature->addNameFunction(vars.size());
+    fun=env->signature->addNameFunction(vars.size());
     type = OperatorType::getConstantsType(srt, vars.size());
   }
 
 
   Signature::Symbol* sym;
   if(_appify){
-    sym = env.signature->getFunction(fun);    
+    sym = env->signature->getFunction(fun);    
   } else {
-    sym = env.signature->getPredicate(fun);    
+    sym = env->signature->getPredicate(fun);    
   }
   sym->setType(type);
 
@@ -191,10 +191,10 @@ Literal* InequalitySplitting::splitLiteral(Literal* lit, UnitInputType inpType, 
   }
 
   ASS(t.isTerm());
-  if(env.colorUsed && t.term()->color()!=COLOR_TRANSPARENT) {
+  if(env->colorUsed && t.term()->color()!=COLOR_TRANSPARENT) {
     sym->addColor(t.term()->color());
   }
-  if(env.colorUsed && t.term()->skip()) {
+  if(env->colorUsed && t.term()->skip()) {
     sym->markSkip();
   }
 
@@ -206,7 +206,7 @@ Literal* InequalitySplitting::splitLiteral(Literal* lit, UnitInputType inpType, 
 
   premise=defCl;
 
-  env.statistics->splitInequalities++;
+  env->statistics->splitInequalities++;
 
   return makeNameLiteral(fun, s, true, vars);
 }

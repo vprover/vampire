@@ -75,11 +75,11 @@ struct EqualityResolution::ResultFn
     TermList arg0 = *lit->nthArgument(0);
     TermList arg1 = *lit->nthArgument(1);
 
-    VTHREAD_LOCAL static Options::UnificationWithAbstraction uwa = env.options->unificationWithAbstraction();
-    VTHREAD_LOCAL static Options::FunctionExtensionality ext = env.options->functionExtensionality();
+    VTHREAD_LOCAL static Options::UnificationWithAbstraction uwa = env->options->unificationWithAbstraction();
+    VTHREAD_LOCAL static Options::FunctionExtensionality ext = env->options->functionExtensionality();
     bool use_uwa_handler = uwa != Options::UnificationWithAbstraction::OFF;
     bool use_ho_handler = (ext == Options::FunctionExtensionality::ABSTRACTION) &&
-                          env.statistics->higherOrder;
+                          env->statistics->higherOrder;
 
     if(use_ho_handler){
       TermList sort = SortHelper::getEqualityArgumentSort(lit);
@@ -149,7 +149,7 @@ struct EqualityResolution::ResultFn
           TimeCounter tc(TC_LITERAL_ORDER_AFTERCHECK);
 
           if (i < _cl->numSelected() && _ord->compare(currAfter,litAfter) == Ordering::GREATER) {
-            env.statistics->inferencesBlockedForOrderingAftercheck++;
+            env->statistics->inferencesBlockedForOrderingAftercheck++;
             res->destroy();
             return 0;
           }
@@ -180,7 +180,7 @@ struct EqualityResolution::ResultFn
     }
     ASS_EQ(next,newLen);
 
-    env.statistics->equalityResolution++;
+    env->statistics->equalityResolution++;
 
     return res;
   }

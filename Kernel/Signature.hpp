@@ -404,7 +404,7 @@ class Signature
     RealSymbol *clone() const override { return new RealSymbol(*this); }
 #endif
     RealSymbol(const RealConstantType& val)
-    : Symbol((env.options->proof() == Shell::Options::Proof::PROOFCHECK) ? "$to_real("+val.toString()+")" : val.toNiceString(), 0, true), _realValue(val)
+    : Symbol((env->options->proof() == Shell::Options::Proof::PROOFCHECK) ? "$to_real("+val.toString()+")" : val.toNiceString(), 0, true), _realValue(val)
     {
       CALL("RealSymbol");
 

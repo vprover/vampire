@@ -59,7 +59,7 @@ bool TrivialPredicateRemover::apply(UnitList*& units)
   while(dit.hasNext()) {
     Clause* cl = static_cast<Clause*>(dit.next());
     if(_removed.contains(cl) && 
-       !(cl->derivedFromGoal() && env.options->ignoreConjectureInPreprocessing())) {
+       !(cl->derivedFromGoal() && env->options->ignoreConjectureInPreprocessing())) {
       dit.del();
       modified = true;
     }
@@ -71,14 +71,14 @@ void TrivialPredicateRemover::scan(UnitList* units)
 {
   CALL("TrivialPredicateRemover::scan");
 
-  unsigned preds = env.signature->predicates();
+  unsigned preds = env->signature->predicates();
   _posOcc.init(preds, 0);
   _negOcc.init(preds, 0);
   _predClauses.ensure(preds);
 
 
   for(unsigned i=0; i<preds; i++) {
-    if(env.signature->getPredicate(i)->protectedSymbol()) {
+    if(env->signature->getPredicate(i)->protectedSymbol()) {
       //we add a fictional positive and negative occurrence to protected
       //predicates, so that they are never considered trivial
       _posOcc[i]++;
@@ -122,12 +122,12 @@ void TrivialPredicateRemover::scan(UnitList* units)
       }
       _removed.insert(cl);
       count(cl, -1);
-      env.statistics->trivialPredicates++;
-      if (env.options->showPreprocessing()) {
-        env.beginOutput();
-        env.out() << "[PP] ennf: Removed due to trivial predicate: " 
+      env->statistics->trivialPredicates++;
+      if (env->options->showPreprocessing()) {
+        env->beginOutput();
+        env->out() << "[PP] ennf: Removed due to trivial predicate: " 
                 << cl->toString() << std::endl;
-        env.endOutput();
+        env->endOutput();
       }      
     }
     while(_reachedZeroes.isNonEmpty()) {
@@ -151,7 +151,7 @@ void TrivialPredicateRemover::count(Clause* cl, int add)
 
   //1 - positive, -1 - negative, 0 - both occurrences
   VTHREAD_LOCAL static ArrayMap<int> predOccurrences;
-  predOccurrences.ensure(env.signature->predicates());
+  predOccurrences.ensure(env->signature->predicates());
   predOccurrences.reset();
 
   VTHREAD_LOCAL static Stack<unsigned> preds;

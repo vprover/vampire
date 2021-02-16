@@ -463,7 +463,7 @@ bool MLVariant::isVariant(Literal* const * cl1Lits, Clause* cl2, LiteralList** a
     counter++;
     if(counter==50000) {
       counter=0;
-      if(env.timeLimitReached()) {
+      if(env->timeLimitReached()) {
         throw TimeLimitExceededException();
       }
     }

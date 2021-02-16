@@ -86,7 +86,7 @@ struct Choice::AxiomsIterator
 
     //cout << "the result sort is " + _resultSort.toString() << endl;
 
-    DHSet<unsigned>* ops = env.signature->getChoiceOperators();
+    DHSet<unsigned>* ops = env->signature->getChoiceOperators();
     DHSet<unsigned>::Iterator opsIt(*ops);
     _choiceOps.loadFromIterator(opsIt);
     _inBetweenNextandHasNext = false;
@@ -102,7 +102,7 @@ struct Choice::AxiomsIterator
     while(!_choiceOps.isEmpty()){
       unsigned op = _choiceOps.getOneKey();
       _choiceOps.remove(op);
-      OperatorType* type = env.signature->getFunction(op)->fnType();
+      OperatorType* type = env->signature->getFunction(op)->fnType();
       
       static RobSubstitution subst;
       static TermStack typeArgs;
@@ -132,7 +132,7 @@ struct Choice::AxiomsIterator
     CALL("Choice::AxiomsIterator::next()");
     _inBetweenNextandHasNext = false;
     Clause* c = createChoiceAxiom(_opApplied, _setApplied); 
-    env.statistics->choiceInstances++;
+    env->statistics->choiceInstances++;
     return c;
   }
 
@@ -158,7 +158,7 @@ struct Choice::ResultFn
       return pvi(AxiomsIterator(term));
     } else {
       Clause* axiom = createChoiceAxiom(op, *term.term()->nthArgument(3));
-      env.statistics->choiceInstances++;
+      env->statistics->choiceInstances++;
       return pvi(getSingletonIterator(axiom));
     }
   }
@@ -184,7 +184,7 @@ struct Choice::IsChoiceTerm
     subst.reset();
 
     subst.reset();
-    return ((head.isVar() || env.signature->isChoiceOperator(head.term()->functor())) &&
+    return ((head.isVar() || env->signature->isChoiceOperator(head.term()->functor())) &&
            subst.match(sort,0,headSort,1));
 
   }

@@ -57,7 +57,7 @@ void FunctionRelationshipInference::findFunctionRelationships(ClauseIterator cla
                  DHSet<std::pair<unsigned,unsigned>>& strict_cons)
 {
   CALL("FunctionRelationshipInference::findFunctionRelationships");
-  bool print = env.options->showFMBsortInfo();
+  bool print = env->options->showFMBsortInfo();
 
   ClauseList* checkingClauses = getCheckingClauses();
 
@@ -67,10 +67,10 @@ void FunctionRelationshipInference::findFunctionRelationships(ClauseIterator cla
   Options opt; // default saturation algorithm options
 
   // because of bad things the time limit is actually taken from env!
-  int oldTimeLimit = env.options->timeLimitInDeciseconds();
-  Property* oldProperty = env.property;
-  unsigned useTimeLimit = env.options->fmbDetectSortBoundsTimeLimit();
-  env.options->setTimeLimitInSeconds(useTimeLimit);
+  int oldTimeLimit = env->options->timeLimitInDeciseconds();
+  Property* oldProperty = env->property;
+  unsigned useTimeLimit = env->options->fmbDetectSortBoundsTimeLimit();
+  env->options->setTimeLimitInSeconds(useTimeLimit);
   opt.setSplitting(false);
   Timer::setTimeLimitEnforcement(false);
 
@@ -86,8 +86,8 @@ void FunctionRelationshipInference::findFunctionRelationships(ClauseIterator cla
   }
 
   Timer::setTimeLimitEnforcement(true);
-  env.options->setTimeLimitInDeciseconds(oldTimeLimit);
-  env.property = oldProperty;
+  env->options->setTimeLimitInDeciseconds(oldTimeLimit);
+  env->property = oldProperty;
 
   Stack<unsigned> foundLabels = labelFinder->getFoundLabels();
 
@@ -114,7 +114,7 @@ void FunctionRelationshipInference::findFunctionRelationships(ClauseIterator cla
 /*
   Stop this for now... broken (need to check no strict) and very uncommon 
 
-  IntUnionFind uf(env.sorts->sorts());
+  IntUnionFind uf(env->sorts->sorts());
   {
     DHSet<std::pair<unsigned,unsigned>>::Iterator it1(nonstrict_constraints);
     while(it1.hasNext()){
@@ -133,9 +133,9 @@ void FunctionRelationshipInference::findFunctionRelationships(ClauseIterator cla
 
   bool header_printed = false;
   {
-    for(unsigned s=0;s<env.sorts->sorts();s++){
+    for(unsigned s=0;s<env->sorts->sorts();s++){
       DHSet<unsigned>* cls = new DHSet<unsigned>();
-      for(unsigned t=0;t<env.sorts->sorts();t++){
+      for(unsigned t=0;t<env->sorts->sorts();t++){
         if(uf.root(t)==s) cls->insert(t);
       }
       if(cls->size()>1){
@@ -205,13 +205,13 @@ ClauseList* FunctionRelationshipInference::getCheckingClauses()
 
   ClauseList* newClauses = 0;
 
-  unsigned initial_functions = env.signature->functions();
+  unsigned initial_functions = env->signature->functions();
   for(unsigned f=0; f < initial_functions; f++){
-    if(env.signature->isTypeConOrSup(f)){ continue; }
+    if(env->signature->isTypeConOrSup(f)){ continue; }
 
-    OperatorType* ftype = env.signature->getFunction(f)->fnType();
+    OperatorType* ftype = env->signature->getFunction(f)->fnType();
     TermList ret_srt = ftype->result();
-    unsigned arity = env.signature->functionArity(f);
+    unsigned arity = env->signature->functionArity(f);
 
     bool different_sorted=false;
     for(unsigned i=0;i<arity;i++){
@@ -346,8 +346,8 @@ Formula* FunctionRelationshipInference::getName(TermList fromSrt, TermList toSrt
 {
     CALL("FunctionRelationshipInference::getName");
 
-    unsigned label= env.signature->addFreshPredicate(0,"label");
-    env.signature->getPredicate(label)->markLabel();
+    unsigned label= env->signature->addFreshPredicate(0,"label");
+    env->signature->getPredicate(label)->markLabel();
 
     unsigned fsT = SortHelper::sortNum(fromSrt);
     unsigned tsT = SortHelper::sortNum(toSrt);

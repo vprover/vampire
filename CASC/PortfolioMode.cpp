@@ -54,7 +54,7 @@ PortfolioMode::PortfolioMode() : _slowness(1.0), _syncSemaphore(2) {
   // 1) dec is the only operation which is blocking
   // 2) dec is done in the mode SEM_UNDO, so is undone when a process terminates
 
-  if(env.options->printProofToFile().empty()) {
+  if(env->options->printProofToFile().empty()) {
     /* if the user does not ask for printing the proof to a file,
      * we generate a temp file name, in master,
      * to be filled up in the winning worker with the proof
@@ -89,30 +89,30 @@ bool PortfolioMode::perform(float slowness)
   }
 
   if (outputAllowed()) {
-    env.beginOutput();
+    env->beginOutput();
     if (resValue) {
-      addCommentSignForSZS(env.out());
-      env.out()<<"Success in time "<<Timer::msToSecondsString(env.timer->elapsedMilliseconds())<<endl;
+      addCommentSignForSZS(env->out());
+      env->out()<<"Success in time "<<Timer::msToSecondsString(env->timer->elapsedMilliseconds())<<endl;
     }
     else {
-      addCommentSignForSZS(env.out());
-      env.out()<<"Proof not found in time "<<Timer::msToSecondsString(env.timer->elapsedMilliseconds())<<endl;
-      if (env.remainingTime()/100>0) {
-        addCommentSignForSZS(env.out());
-        env.out()<<"SZS status GaveUp for "<<env.options->problemName()<<endl;
+      addCommentSignForSZS(env->out());
+      env->out()<<"Proof not found in time "<<Timer::msToSecondsString(env->timer->elapsedMilliseconds())<<endl;
+      if (env->remainingTime()/100>0) {
+        addCommentSignForSZS(env->out());
+        env->out()<<"SZS status GaveUp for "<<env->options->problemName()<<endl;
       }
       else {
         //From time to time we may also be terminating in the timeLimitReached()
         //function in Lib/Timer.cpp in case the time runs out. We, however, output
         //the same string there as well.
-        addCommentSignForSZS(env.out());
-        env.out()<<"SZS status Timeout for "<<env.options->problemName()<<endl;
+        addCommentSignForSZS(env->out());
+        env->out()<<"SZS status Timeout for "<<env->options->problemName()<<endl;
       }
     }
-    if (env.options && env.options->timeStatistics()) {
-      TimeCounter::printReport(env.out());
+    if (env->options && env->options->timeStatistics()) {
+      TimeCounter::printReport(env->out());
     }
-    env.endOutput();
+    env->endOutput();
   }
 
   return resValue;
@@ -122,10 +122,10 @@ bool PortfolioMode::searchForProof()
 {
   CALL("PortfolioMode::searchForProof");
 
-  env.timer->makeChildrenIncluded();
+  env->timer->makeChildrenIncluded();
   TimeCounter::reinitialize();
 
-  _prb = UIHelper::getInputProblem(*env.options);
+  _prb = UIHelper::getInputProblem(*env->options);
 
   /* CAREFUL: Make sure that the order
    * 1) getProperty, 2) normalise, 3) TheoryFinder::search
@@ -136,7 +136,7 @@ bool PortfolioMode::searchForProof()
     TimeCounter tc(TC_PREPROCESSING);
 
     //we normalize now so that we don't have to do it in every child Vampire
-    ScopedLet<Statistics::ExecutionPhase> phaseLet(env.statistics->phase,Statistics::NORMALIZATION);
+    ScopedLet<Statistics::ExecutionPhase> phaseLet(env->statistics->phase,Statistics::NORMALIZATION);
     Normalisation().normalise(*_prb);
 
     TheoryFinder(_prb->units(),property).search();
@@ -167,7 +167,7 @@ bool PortfolioMode::performStrategy(Shell::Property* property)
   // mode we do main main_extra fallback fallback_extra
  
   Stack<Schedule> schedules;
-  if(env.options->schedule() == Options::Schedule::SMTCOMP){
+  if(env->options->schedule() == Options::Schedule::SMTCOMP){
     schedules.push(fallback_extra);
     schedules.push(fallback);
     schedules.push(main_extra);
@@ -180,7 +180,7 @@ bool PortfolioMode::performStrategy(Shell::Property* property)
     schedules.push(main);
   }
 
-  int remainingTime = env.remainingTime()/100;
+  int remainingTime = env->remainingTime()/100;
 
   while(remainingTime > 0) {
     // After running for the first time we replace schedules
@@ -195,7 +195,7 @@ bool PortfolioMode::performStrategy(Shell::Property* property)
       Schedule ns;
       getExtraSchedules(*property,s,ns,false,2);
       next_schedules.push(ns);
-      remainingTime = env.remainingTime()/100;
+      remainingTime = env->remainingTime()/100;
     }
 
     schedules = next_schedules;
@@ -246,7 +246,7 @@ void PortfolioMode::getExtraSchedules(Property& prop, Schedule& old, Schedule& e
    }
 
    // If in SMT-COMP mode try guessing the goal
-   if(env.options->schedule() == Options::Schedule::SMTCOMP){
+   if(env->options->schedule() == Options::Schedule::SMTCOMP){
     extra_opts.push("gtg=exists_all");
    }
    else{
@@ -295,7 +295,7 @@ void PortfolioMode::getSchedules(Property& prop, Schedule& quick, Schedule& fall
 {
   CALL("PortfolioMode::getSchedules");
 
-  switch(env.options->schedule()) {
+  switch(env->options->schedule()) {
   case Options::Schedule::CASC_2019:
   case Options::Schedule::CASC:
     Schedules::getCasc2019Schedule(prop,quick,fallback);
@@ -404,7 +404,7 @@ bool PortfolioMode::runSchedule(Schedule& schedule)
   PortfolioSliceExecutor executor(this);
 
 #if VTHREADED
-  if(env.options->mode() == Options::Mode::THREADED) {
+  if(env->options->mode() == Options::Mode::THREADED) {
     ThreadScheduleExecutor sched(&policy, &executor);
     return sched.run(schedule);
   }
@@ -414,7 +414,7 @@ bool PortfolioMode::runSchedule(Schedule& schedule)
   bool result = sched.run(schedule);
 
   //All children have been killed. Now safe to print proof
-  if(result && env.options->printProofToFile().empty()){
+  if(result && env->options->printProofToFile().empty()){
     /*
      * the user didn't wish a proof in the file, so we printed it to the secret tmp file
      * now it's time to restore it.
@@ -427,14 +427,14 @@ bool PortfolioMode::runSchedule(Schedule& schedule)
     bool openSucceeded = !input.fail();
 
     if (openSucceeded) {
-      env.beginOutput();
-      env.out() << input.rdbuf();
-      env.endOutput();
+      env->beginOutput();
+      env->out() << input.rdbuf();
+      env->endOutput();
     } else {
       if (outputAllowed()) {
-        env.beginOutput();
-        addCommentSignForSZS(env.out()) << "Failed to restore proof from tempfile " << _tmpFileNameForProof << endl;
-        env.endOutput();
+        env->beginOutput();
+        addCommentSignForSZS(env->out()) << "Failed to restore proof from tempfile " << _tmpFileNameForProof << endl;
+        env->endOutput();
       }
     }
 
@@ -487,18 +487,18 @@ bool PortfolioMode::waitForChildAndCheckIfProofFound()
     // we have found the proof. It has been already written down by the writer child,
 
     /*
-    env.beginOutput();
+    env->beginOutput();
     lineOutput() << "terminated slice pid " << finishedChild << " (success)" << endl << flush;
-    env.endOutput();
+    env->endOutput();
     */
     return true;
   }
   // proof not found
 
   /*
-  env.beginOutput();
+  env->beginOutput();
   lineOutput() << "terminated slice pid " << finishedChild << " (fail)" << endl;
-  env.endOutput();
+  env->endOutput();
   */
   return false;
 } // waitForChildAndExitWhenProofFound
@@ -511,7 +511,7 @@ void PortfolioMode::runSlice(vstring sliceCode, unsigned timeLimitInDeciseconds)
 {
   CALL("PortfolioMode::runSlice");
 
-  Options opt = *env.options;
+  Options opt = *env->options;
   opt.readFromEncodedOptions(sliceCode);
   opt.setTimeLimitInDeciseconds(timeLimitInDeciseconds);
   int stl = opt.simulatedTimeLimit();
@@ -532,8 +532,8 @@ void PortfolioMode::runSlice(Options& strategyOpt)
   UIHelper::portfolioParent=false;
 
   int resultValue=1;
-  env.timer->reset();
-  env.timer->start();
+  env->timer->reset();
+  env->timer->start();
   TimeCounter::reinitialize();
   Timer::setTimeLimitEnforcement(true);
 
@@ -542,17 +542,17 @@ void PortfolioMode::runSlice(Options& strategyOpt)
   opt.setNormalize(false);
   opt.setForcedOptionValues();
   opt.checkGlobalOptionConstraints();
-  *env.options = opt; //just temporarily until we get rid of dependencies on env.options in solving
+  *env->options = opt; //just temporarily until we get rid of dependencies on env->options in solving
 
   if (outputAllowed()) {
-    env.beginOutput();
-    addCommentSignForSZS(env.out()) << opt.testId() << " on " << opt.problemName() << endl;
-    env.endOutput();
+    env->beginOutput();
+    addCommentSignForSZS(env->out()) << opt.testId() << " on " << opt.problemName() << endl;
+    env->endOutput();
   }
 
   // if multi-threaded, we should deep-copy the problem to allow mutation
 #if VTHREADED
-  if(env.options->mode() == Options::Mode::THREADED) {
+  if(env->options->mode() == Options::Mode::THREADED) {
     ScopedPtr<Problem> problem(_prb->copy(true));
     Saturation::ProvingHelper::runVampire(*problem, opt);
   }
@@ -561,14 +561,14 @@ void PortfolioMode::runSlice(Options& strategyOpt)
     Saturation::ProvingHelper::runVampire(*_prb, opt);
 
   //set return value to zero if we were successful
-  if (env.statistics->terminationReason == Statistics::REFUTATION ||
-      env.statistics->terminationReason == Statistics::SATISFIABLE) {
+  if (env->statistics->terminationReason == Statistics::REFUTATION ||
+      env->statistics->terminationReason == Statistics::SATISFIABLE) {
     resultValue=0;
 
     /*
-     env.beginOutput();
+     env->beginOutput();
      lineOutput() << " found solution " << endl;
-     env.endOutput();
+     env->endOutput();
     */
   }
 
@@ -594,15 +594,15 @@ void PortfolioMode::runSlice(Options& strategyOpt)
   if(outputResult) { // this get only true for the first child to find a proof
     ASS(!resultValue);
 
-    if (outputAllowed() && (Lib::env.options && Lib::env.options->multicore() != 1)) {
-      env.beginOutput();
-      addCommentSignForSZS(env.out()) << "First to succeed." << endl;
-      env.endOutput();
+    if (outputAllowed() && (Lib::env->options && Lib::env->options->multicore() != 1)) {
+      env->beginOutput();
+      addCommentSignForSZS(env->out()) << "First to succeed." << endl;
+      env->endOutput();
     }
 
     // At the moment we only save one proof. We could potentially
     // allow multiple proofs
-    vstring fname(env.options->printProofToFile());
+    vstring fname(env->options->printProofToFile());
     if (fname.empty()) {
       fname = _tmpFileNameForProof;
     }
@@ -612,26 +612,26 @@ void PortfolioMode::runSlice(Options& strategyOpt)
     ofstream output(fname.c_str());
     if (output.fail()) {
       // fallback to old printing method
-      env.beginOutput();
-      addCommentSignForSZS(env.out()) << "Solution printing to a file '" << fname <<  "' failed. Outputting to stdout" << endl;
-      UIHelper::outputResult(env.out());
-      env.endOutput();
+      env->beginOutput();
+      addCommentSignForSZS(env->out()) << "Solution printing to a file '" << fname <<  "' failed. Outputting to stdout" << endl;
+      UIHelper::outputResult(env->out());
+      env->endOutput();
     } else {
       UIHelper::outputResult(output);
-      if (!env.options->printProofToFile().empty() && outputAllowed()) {
-        env.beginOutput();
-        addCommentSignForSZS(env.out()) << "Solution written to " << fname << endl;
-        env.endOutput();
+      if (!env->options->printProofToFile().empty() && outputAllowed()) {
+        env->beginOutput();
+        addCommentSignForSZS(env->out()) << "Solution written to " << fname << endl;
+        env->endOutput();
       }
     }
   } else if (outputAllowed()) {
-    env.beginOutput();
+    env->beginOutput();
     if (resultValue) {
-      UIHelper::outputResult(env.out());
-    } else if (Lib::env.options && Lib::env.options->multicore() != 1) {
-      addCommentSignForSZS(env.out()) << "Also succeeded, but the first one will report." << endl;
+      UIHelper::outputResult(env->out());
+    } else if (Lib::env->options && Lib::env->options->multicore() != 1) {
+      addCommentSignForSZS(env->out()) << "Also succeeded, but the first one will report." << endl;
     }
-    env.endOutput();
+    env->endOutput();
   }
 
   if (outputResult) {
@@ -640,7 +640,7 @@ void PortfolioMode::runSlice(Options& strategyOpt)
 
   STOP_CHECKING_FOR_ALLOCATOR_BYPASSES;
 #if VTHREADED
-  if(env.options->mode() == Options::Mode::THREADED) {
+  if(env->options->mode() == Options::Mode::THREADED) {
     if(!resultValue) {
       // problem: other threads are still running while global destructors run
       // hack: lock the allocator, this stops them dead (mostly?)
@@ -666,11 +666,11 @@ void handleSIGINT()
 {
   CALL("CASCMode::handleSIGINT");
 
-  env.beginOutput();
-  env.out()<<"% Terminated by SIGINT!"<<endl;
-  env.out()<<"% SZS status User for "<<env.options->problemName() <<endl;
-  env.statistics->print(env.out());
-  env.endOutput();
+  env->beginOutput();
+  env->out()<<"% Terminated by SIGINT!"<<endl;
+  env->out()<<"% SZS status User for "<<env->options->problemName() <<endl;
+  env->statistics->print(env->out());
+  env->endOutput();
   exit(VAMP_RESULT_STATUS_SIGINT);
 }
 

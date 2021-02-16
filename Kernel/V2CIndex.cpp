@@ -23,7 +23,7 @@ namespace Kernel
 {
 
 V2CIndex::V2CIndex()
- : _varCnt(env.signature->vars()), _pos(_varCnt), _neg(_varCnt)
+ : _varCnt(env->signature->vars()), _pos(_varCnt), _neg(_varCnt)
 {
   CALL("V2CIndex::V2CIndex");
 }

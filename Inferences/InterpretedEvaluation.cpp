@@ -114,7 +114,7 @@ Clause* InterpretedEvaluation::simplify(Clause* cl)
       if(constant) {
         if(constTrue) {
           //cout << "evaluate " << cl->toString() << " to true" << endl;
-          env.statistics->evaluations++;
+          env->statistics->evaluations++;
           return 0;
         } else {
           continue;
@@ -124,7 +124,7 @@ Clause* InterpretedEvaluation::simplify(Clause* cl)
       newLits[next++]=res;
 /*
 #if VDEBUG
-      if (env.options->literalComparisonMode() != Options::LiteralComparisonMode::REVERSE 
+      if (env->options->literalComparisonMode() != Options::LiteralComparisonMode::REVERSE 
           && _ordering.compare(res, lit) != Ordering::Result::LESS) {
         DBG("res: ", res->toString())
         DBG("lit: ", lit->toString())
@@ -153,7 +153,7 @@ Clause* InterpretedEvaluation::simplify(Clause* cl)
       (*res)[i] = newLits[i];
     }
 
-    env.statistics->evaluations++;
+    env->statistics->evaluations++;
     return res; 
 
   } catch (MachineArithmeticException) {

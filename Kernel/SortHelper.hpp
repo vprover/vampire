@@ -82,10 +82,10 @@ public:
   static bool isInterpretedNonBool(unsigned s);
   //convenience functions
   static unsigned sortNum(TermList sort){
-    return env.sorts->getSortNum(sort);
+    return env->sorts->getSortNum(sort);
   }
   static TermList sortTerm(unsigned sortNum){
-    return env.sorts->getSortTerm(sortNum);
+    return env->sorts->getSortTerm(sortNum);
   }
 
   static void normaliseArgSorts(VList* qVars, TermStack& argSorts);

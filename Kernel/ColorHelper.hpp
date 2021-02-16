@@ -36,7 +36,7 @@ public:
   static Color combine(Color c1, Color c2)
   {
     CALL("ColorHelper::combine");
-    ASS(env.colorUsed || (c1|c2)!=COLOR_INVALID);
+    ASS(env->colorUsed || (c1|c2)!=COLOR_INVALID);
     return static_cast<Color>(c1|c2);
   }
 

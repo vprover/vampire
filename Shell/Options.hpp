@@ -1861,7 +1861,7 @@ bool _hard;
     }
 
 
-    //Cheating - we refer to env.options to ask about option values
+    //Cheating - we refer to env->options to ask about option values
     // There is an assumption that the option values used have been
     // set to their final values
     // These are used in randomisation where we guarantee a certain

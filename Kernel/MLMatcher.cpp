@@ -640,7 +640,7 @@ bool MLMatcher::Impl::nextMatch()
     s_counter++;
     if(s_counter==50000) {
       s_counter=0;
-      if(env.timeLimitReached()) {
+      if(env->timeLimitReached()) {
         throw TimeLimitExceededException();
       }
     }

@@ -170,7 +170,7 @@ Clause* SDHelper::generateSubsumptionResolutionClause(Clause* cl, Literal* resLi
 SDHelper::ClauseComparisonResult SDHelper::clauseCompare(Literal* const lits1[], unsigned n1, Literal* const lits2[], unsigned n2, Ordering const& ordering)
 {
   // "-lcm reverse" messes up the ordering
-  ASS(env.options->literalComparisonMode() != Options::LiteralComparisonMode::REVERSE);
+  ASS(env->options->literalComparisonMode() != Options::LiteralComparisonMode::REVERSE);
 
   // Copy given literals so we can sort them
   vvector<Literal*> c1(lits1, lits1+n1);

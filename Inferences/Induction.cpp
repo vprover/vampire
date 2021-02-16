@@ -225,7 +225,7 @@ Literal* LiteralSubsetReplacement::transformSubset(InferenceRule& rule) {
   CALL("LiteralSubsetReplacement::transformSubset");
   // Increment _iteration, since it either is 0, or was already used.
   _iteration++;
-  const unsigned maxSubsetSize = env.options->maxInductionGenSubsetSize();
+  const unsigned maxSubsetSize = env->options->maxInductionGenSubsetSize();
   // Note: __builtin_popcount() is a GCC built-in function.
   unsigned setBits = __builtin_popcount(_iteration);
   // Skip this iteration if not all bits are set, but more than maxSubset are set.
@@ -312,13 +312,13 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
 {
   CALL("Induction::ClauseIterator::processLiteral");
 
-  if(env.options->showInduction()){
-    env.beginOutput();
-    env.out() << "[Induction] process " << lit->toString() << " in " << premise->toString() << endl;
-    env.endOutput();
+  if(env->options->showInduction()){
+    env->beginOutput();
+    env->out() << "[Induction] process " << lit->toString() << " in " << premise->toString() << endl;
+    env->endOutput();
   }
 
-  VTHREAD_LOCAL static bool generalize = env.options->inductionGen();
+  VTHREAD_LOCAL static bool generalize = env->options->inductionGen();
 
   if(InductionHelper::isInductionLiteral(lit)){
       Set<Term*> ta_terms;
@@ -356,12 +356,12 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
       Set<Term*>::Iterator citer2(ta_terms);
       while(citer2.hasNext()){
         Term* t = citer2.next();
-        const bool one = env.options->structInduction() == Options::StructuralInductionKind::ONE ||
-                          env.options->structInduction() == Options::StructuralInductionKind::ALL; 
-        const bool two = env.options->structInduction() == Options::StructuralInductionKind::TWO ||
-                          env.options->structInduction() == Options::StructuralInductionKind::ALL; 
-        const bool three = env.options->structInduction() == Options::StructuralInductionKind::THREE ||
-                          env.options->structInduction() == Options::StructuralInductionKind::ALL;
+        const bool one = env->options->structInduction() == Options::StructuralInductionKind::ONE ||
+                          env->options->structInduction() == Options::StructuralInductionKind::ALL; 
+        const bool two = env->options->structInduction() == Options::StructuralInductionKind::TWO ||
+                          env->options->structInduction() == Options::StructuralInductionKind::ALL; 
+        const bool three = env->options->structInduction() == Options::StructuralInductionKind::THREE ||
+                          env->options->structInduction() == Options::StructuralInductionKind::ALL;
         if(notDone(lit,t)){
           InferenceRule rule = InferenceRule::INDUCTION_AXIOM;
           Term* inductionTerm = generalize ? getPlaceholderForTerm(t) : t;
@@ -405,7 +405,7 @@ void InductionClauseIterator::performIntInductionForEligibleBounds(Clause* premi
       }
     }
   }
-  VTHREAD_LOCAL static bool useDefaultBound = env.options->integerInductionDefaultBound();
+  VTHREAD_LOCAL static bool useDefaultBound = env->options->integerInductionDefaultBound();
   if (useDefaultBound && _helper.isInductionForInfiniteIntervalsOn()) {
     VTHREAD_LOCAL static TermQueryResult defaultBound(TermList(theory->representConstant(IntegerConstantType(0))), nullptr, nullptr);
     if (notDoneInt(origLit, origTerm, increasing, defaultBound.term.term(), /*optionalBound2=*/nullptr, /*fromComparison=*/false)) {
@@ -415,7 +415,7 @@ void InductionClauseIterator::performIntInductionForEligibleBounds(Clause* premi
 }
 
 void InductionClauseIterator::generalizeAndPerformIntInduction(Clause* premise, Literal* origLit, Term* origTerm, List<pair<Literal*, InferenceRule>>*& indLits, Term* indTerm, bool increasing, TermQueryResult& bound1, TermQueryResult* optionalBound2) {
-  VTHREAD_LOCAL static bool generalize = env.options->inductionGen();
+  VTHREAD_LOCAL static bool generalize = env->options->inductionGen();
   // If induction literals were not computed yet, compute them now.
   if (List<pair<Literal*, InferenceRule>>::isEmpty(indLits)) {
     bool finite = ((optionalBound2 != nullptr) && (optionalBound2->literal != nullptr));
@@ -452,7 +452,7 @@ void InductionClauseIterator::processIntegerComparison(Clause* premise, Literal*
   ASS(greaterTL != nullptr);
   Term* lt = lesserTL->term();
   Term* gt = greaterTL->term();
-  VTHREAD_LOCAL static bool generalize = env.options->inductionGen();
+  VTHREAD_LOCAL static bool generalize = env->options->inductionGen();
   DHMap<Term*, TermQueryResult> grBound;
   addToMapFromIterator(grBound, _helper.getGreaterEqual(gt));
   addToMapFromIterator(grBound, _helper.getGreater(gt));
@@ -529,13 +529,13 @@ void InductionClauseIterator::produceClauses(Clause* premise, Literal* origLit, 
           // we apply binary resolution on it.
           _helper.callSplitterOnNewClause(c);
         }
-        c = BinaryResolution::generateClause(c,litAndSLQR.first,litAndSLQR.second,*env.options);
+        c = BinaryResolution::generateClause(c,litAndSLQR.first,litAndSLQR.second,*env->options);
         resolved = true;
       }
     }
     _clauses.push(c);
   }
-  env.statistics->induction++;
+  env->statistics->induction++;
   if (rule == InferenceRule::GEN_INDUCTION_AXIOM ||
       rule == InferenceRule::INT_INF_UP_GEN_INDUCTION_AXIOM ||
       rule == InferenceRule::INT_FIN_UP_GEN_INDUCTION_AXIOM ||
@@ -543,30 +543,30 @@ void InductionClauseIterator::produceClauses(Clause* premise, Literal* origLit, 
       rule == InferenceRule::INT_INF_DOWN_GEN_INDUCTION_AXIOM ||
       rule == InferenceRule::INT_FIN_DOWN_GEN_INDUCTION_AXIOM ||
       rule == InferenceRule::INT_DB_DOWN_GEN_INDUCTION_AXIOM) {
-    env.statistics->generalizedInduction++;
+    env->statistics->generalizedInduction++;
   }
   switch (rule) {
     case InferenceRule::INDUCTION_AXIOM:
     case InferenceRule::GEN_INDUCTION_AXIOM:
-      env.statistics->structInduction++;
+      env->statistics->structInduction++;
       break;
     case InferenceRule::INT_INF_UP_INDUCTION_AXIOM:
     case InferenceRule::INT_INF_UP_GEN_INDUCTION_AXIOM:
     case InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM:
     case InferenceRule::INT_INF_DOWN_GEN_INDUCTION_AXIOM:
-      env.statistics->intInfInduction++;
+      env->statistics->intInfInduction++;
       break;
     case InferenceRule::INT_FIN_UP_INDUCTION_AXIOM:
     case InferenceRule::INT_FIN_UP_GEN_INDUCTION_AXIOM:
     case InferenceRule::INT_FIN_DOWN_INDUCTION_AXIOM:
     case InferenceRule::INT_FIN_DOWN_GEN_INDUCTION_AXIOM:
-      env.statistics->intFinInduction++;
+      env->statistics->intFinInduction++;
       break;
     case InferenceRule::INT_DB_UP_INDUCTION_AXIOM:
     case InferenceRule::INT_DB_UP_GEN_INDUCTION_AXIOM:
     case InferenceRule::INT_DB_DOWN_INDUCTION_AXIOM:
     case InferenceRule::INT_DB_DOWN_GEN_INDUCTION_AXIOM:
-      env.statistics->intDBInduction++;
+      env->statistics->intDBInduction++;
       break;
     default:
       ;
@@ -574,27 +574,27 @@ void InductionClauseIterator::produceClauses(Clause* premise, Literal* origLit, 
   switch (rule) {
     case InferenceRule::INT_INF_UP_INDUCTION_AXIOM:
     case InferenceRule::INT_INF_UP_GEN_INDUCTION_AXIOM:
-      env.statistics->intInfUpInduction++;
+      env->statistics->intInfUpInduction++;
       break;
     case InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM:
     case InferenceRule::INT_INF_DOWN_GEN_INDUCTION_AXIOM:
-      env.statistics->intInfDownInduction++;
+      env->statistics->intInfDownInduction++;
       break;
     case InferenceRule::INT_FIN_UP_INDUCTION_AXIOM:
     case InferenceRule::INT_FIN_UP_GEN_INDUCTION_AXIOM:
-      env.statistics->intFinUpInduction++;
+      env->statistics->intFinUpInduction++;
       break;
     case InferenceRule::INT_FIN_DOWN_INDUCTION_AXIOM:
     case InferenceRule::INT_FIN_DOWN_GEN_INDUCTION_AXIOM:
-      env.statistics->intFinDownInduction++;
+      env->statistics->intFinDownInduction++;
       break;
     case InferenceRule::INT_DB_UP_INDUCTION_AXIOM:
     case InferenceRule::INT_DB_UP_GEN_INDUCTION_AXIOM:
-      env.statistics->intDBUpInduction++;
+      env->statistics->intDBUpInduction++;
       break;
     case InferenceRule::INT_DB_DOWN_INDUCTION_AXIOM:
     case InferenceRule::INT_DB_DOWN_GEN_INDUCTION_AXIOM:
-      env.statistics->intDBDownInduction++;
+      env->statistics->intDBDownInduction++;
       break;
     default:
       ;
@@ -639,11 +639,11 @@ void InductionClauseIterator::performIntInduction(Clause* premise, Literal* orig
   Formula* Ly = new AtomicFormula(cr3.transform(clit));
 
   // create L[X+1] or L[X-1]
-  TermList fpo(Term::create2(env.signature->getInterpretingSymbol(Theory::INT_PLUS),x,one));
+  TermList fpo(Term::create2(env->signature->getInterpretingSymbol(Theory::INT_PLUS),x,one));
   TermReplacement cr4(term,fpo);
   Formula* Lxpo = new AtomicFormula(cr4.transform(clit));
 
-  VTHREAD_LOCAL static unsigned less = env.signature->getInterpretingSymbol(Theory::INT_LESS);
+  VTHREAD_LOCAL static unsigned less = env->signature->getInterpretingSymbol(Theory::INT_LESS);
   // create X>=b1 (which is ~X<b1) or X<=b1 (which is ~b1<X)
   Formula* Lxcompb1 = new AtomicFormula(Literal::create2(less,false,(increasing ? x : b1),(increasing ? b1 : x)));
   // create Y>=b1 (which is ~Y<b1), or Y>b1, or Y<=b1 (which is ~b1<Y), or Y<b1
@@ -729,7 +729,7 @@ void InductionClauseIterator::performStructInductionOne(Clause* premise, Literal
 {
   CALL("InductionClauseIterator::performStructInductionOne"); 
 
-  TermAlgebra* ta = env.signature->getTermAlgebraOfSort(env.signature->getFunction(term->functor())->fnType()->result());
+  TermAlgebra* ta = env->signature->getTermAlgebraOfSort(env->signature->getFunction(term->functor())->fnType()->result());
   TermList ta_sort = ta->sort();
 
   FormulaList* formulas = FormulaList::empty();
@@ -818,7 +818,7 @@ void InductionClauseIterator::performStructInductionTwo(Clause* premise, Literal
 {
   CALL("InductionClauseIterator::performStructInductionTwo"); 
 
-  TermAlgebra* ta = env.signature->getTermAlgebraOfSort(env.signature->getFunction(term->functor())->fnType()->result());
+  TermAlgebra* ta = env->signature->getTermAlgebraOfSort(env->signature->getFunction(term->functor())->fnType()->result());
   TermList ta_sort = ta->sort();
 
   Literal* clit = Literal::complementaryLiteral(lit);
@@ -913,7 +913,7 @@ void InductionClauseIterator::performStructInductionThree(Clause* premise, Liter
 {
   CALL("InductionClauseIterator::performStructInductionThree");
 
-  TermAlgebra* ta = env.signature->getTermAlgebraOfSort(env.signature->getFunction(term->functor())->fnType()->result());
+  TermAlgebra* ta = env->signature->getTermAlgebraOfSort(env->signature->getFunction(term->functor())->fnType()->result());
   TermList ta_sort = ta->sort();
 
   Literal* clit = Literal::complementaryLiteral(lit);
@@ -926,8 +926,8 @@ void InductionClauseIterator::performStructInductionThree(Clause* premise, Liter
   Literal* Ly = cr.transform(lit);
 
   // make smallerThanY
-  unsigned sty = env.signature->addFreshPredicate(1,"smallerThan");
-  env.signature->getPredicate(sty)->setType(OperatorType::getPredicateType({ta_sort}));
+  unsigned sty = env->signature->addFreshPredicate(1,"smallerThan");
+  env->signature->getPredicate(sty)->setType(OperatorType::getPredicateType({ta_sort}));
 
   // make ( y = con_i(..dec(y)..) -> smaller(dec(y)))  for each constructor 
   FormulaList* conjunction = new FormulaList(new AtomicFormula(Ly),0); 
@@ -1031,11 +1031,11 @@ bool InductionClauseIterator::notDone(Literal* lit, Term* term)
 
   VTHREAD_LOCAL static DHSet<Literal*> done;
   VTHREAD_LOCAL static DHMap<TermList,TermList> blanks;
-  TermList srt = env.signature->getFunction(term->functor())->fnType()->result();
+  TermList srt = env->signature->getFunction(term->functor())->fnType()->result();
 
   if(!blanks.find(srt)){
-    unsigned fresh = env.signature->addFreshFunction(0,"blank");
-    env.signature->getFunction(fresh)->setType(OperatorType::getConstantsType(srt));
+    unsigned fresh = env->signature->addFreshFunction(0,"blank");
+    env->signature->getFunction(fresh)->setType(OperatorType::getConstantsType(srt));
     TermList blank = TermList(Term::createConstant(fresh));
     blanks.insert(srt,blank);
   }
@@ -1064,9 +1064,9 @@ bool InductionClauseIterator::notDoneInt(Literal* lit, Term* t, bool increasing,
 
   // Create representation of lit/t combination
   VTHREAD_LOCAL static Term* blank;
-  VTHREAD_LOCAL static unsigned freshInt = env.signature->addFreshFunction(0, "blank");
+  VTHREAD_LOCAL static unsigned freshInt = env->signature->addFreshFunction(0, "blank");
   if (!blank) {
-    env.signature->getFunction(freshInt)->setType(OperatorType::getConstantsType(Term::intSort()));
+    env->signature->getFunction(freshInt)->setType(OperatorType::getConstantsType(Term::intSort()));
     blank = Term::createConstant(freshInt);
   }
   TermReplacement cr(t, TermList(blank));
@@ -1117,11 +1117,11 @@ bool InductionClauseIterator::notDoneInt(Literal* lit, Term* t, bool increasing,
 Term* InductionClauseIterator::getPlaceholderForTerm(Term* t) {
   CALL("InductionClauseIterator::getPlaceholderForTerm");
 
-  OperatorType* ot = env.signature->getFunction(t->functor())->fnType();
+  OperatorType* ot = env->signature->getFunction(t->functor())->fnType();
   bool added; 
-  unsigned placeholderConstNumber = env.signature->addFunction("placeholder_" + ot->toString(), 0, added);
+  unsigned placeholderConstNumber = env->signature->addFunction("placeholder_" + ot->toString(), 0, added);
   if (added) {
-    env.signature->getFunction(placeholderConstNumber)->setType(OperatorType::getConstantsType(ot->result()));
+    env->signature->getFunction(placeholderConstNumber)->setType(OperatorType::getConstantsType(ot->result()));
   }
   return Term::createConstant(placeholderConstNumber);
 }

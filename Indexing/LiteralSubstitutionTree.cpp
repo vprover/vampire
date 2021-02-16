@@ -29,13 +29,13 @@ namespace Indexing
 {
 
 LiteralSubstitutionTree::LiteralSubstitutionTree(bool useC)
-: SubstitutionTree(2*env.signature->predicates(),useC)
+: SubstitutionTree(2*env->signature->predicates(),useC)
 {
   //EqualityProxy transformation can introduce polymorphism in a monomorphic problem
   //However, there is no need to guard aginst it, as equalityProxy removes all
   //equality literals. The flag below is only used during the unification of 
   //equality literals.
-  _polymorphic = env.statistics->polymorphic || env.statistics->higherOrder;
+  _polymorphic = env->statistics->polymorphic || env->statistics->higherOrder;
 }
 
 void LiteralSubstitutionTree::insert(Literal* lit, Clause* cls)

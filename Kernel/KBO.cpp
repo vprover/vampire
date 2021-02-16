@@ -292,13 +292,13 @@ struct PredSigTraits {
   { return "predicate"; }
 
   static unsigned nSymbols() 
-  { return env.signature->predicates(); }
+  { return env->signature->predicates(); }
 
   static bool isColored(unsigned functor) 
-  { return env.signature->predicateColored(functor);}
+  { return env->signature->predicateColored(functor);}
 
   static bool tryGetFunctor(const vstring& sym, unsigned arity, unsigned& out) 
-  { return env.signature->tryGetPredicateNumber(sym,arity, out); }
+  { return env->signature->tryGetPredicateNumber(sym,arity, out); }
 
   static const vstring& weightFileName(const Options& opts) 
   { return opts.predicateWeights(); } 
@@ -310,7 +310,7 @@ struct PredSigTraits {
   { return false; } 
 
   static Signature::Symbol* getSymbol(unsigned functor) 
-  { return env.signature->getPredicate(functor); } 
+  { return env->signature->getPredicate(functor); } 
 };
 #endif
 
@@ -320,25 +320,25 @@ struct FuncSigTraits {
   { return "function"; }
 
   static unsigned nSymbols() 
-  { return env.signature->functions(); } 
+  { return env->signature->functions(); } 
 
   static bool isColored(unsigned functor) 
-  { return env.signature->functionColored(functor);}
+  { return env->signature->functionColored(functor);}
 
   static bool tryGetFunctor(const vstring& sym, unsigned arity, unsigned& out) 
-  { return env.signature->tryGetFunctionNumber(sym,arity, out); }
+  { return env->signature->tryGetFunctionNumber(sym,arity, out); }
 
   static const vstring& weightFileName(const Options& opts) 
   { return opts.functionWeights(); } 
 
   static bool isUnaryFunction (unsigned functor) 
-  { return env.signature->getFunction(functor)->arity() == 1; } 
+  { return env->signature->getFunction(functor)->arity() == 1; } 
 
   static bool isConstantSymbol(unsigned functor) 
-  { return env.signature->getFunction(functor)->arity() == 0; } 
+  { return env->signature->getFunction(functor)->arity() == 0; } 
 
   static Signature::Symbol* getSymbol(unsigned functor) 
-  { return env.signature->getFunction(functor); } 
+  { return env->signature->getFunction(functor); } 
 };
 
 
@@ -467,9 +467,9 @@ KboWeightMap<SigTraits> KBO::weightsFromFile(const Options& opts) const
 
 void throwError(UserErrorException e) { throw e; }
 void warnError(UserErrorException e) { 
-  env.beginOutput();
-  env.out() << "WARNING: Your KBO is probably not well-founded. Reason: " << e.msg() << std::endl;
-  env.endOutput();
+  env->beginOutput();
+  env->out() << "WARNING: Your KBO is probably not well-founded. Reason: " << e.msg() << std::endl;
+  env->endOutput();
 }
 
 
@@ -506,8 +506,8 @@ void KBO::checkAdmissibility(HandleError handle) const
   auto maximalFunctions = Map<SortType, FunctionSymbol>();
 
   for (FunctionSymbol i = 0; i < nFunctions; i++) {
-    if(env.signature->isTypeConOrSup(i)){ continue; }
-    auto sort = env.signature->getFunction(i)->fnType()->result();
+    if(env->signature->isTypeConOrSup(i)){ continue; }
+    auto sort = env->signature->getFunction(i)->fnType()->result();
     /* register min function */
     auto maxFn = maximalFunctions.getOrInit(std::move(sort), [&](FunctionSymbol* toInit){ *toInit = i; } );
     if (compareFunctionPrecedences(maxFn, i)) {
@@ -519,15 +519,15 @@ void KBO::checkAdmissibility(HandleError handle) const
   unsigned varWght = _funcWeights._specialWeights._variableWeight;
 
   for (unsigned i = 0; i < nFunctions; i++) {
-    if(env.signature->isTypeConOrSup(i)){ continue; }
-    auto sort = env.signature->getFunction(i)->fnType()->result();
-    auto arity = env.signature->getFunction(i)->arity();
+    if(env->signature->isTypeConOrSup(i)){ continue; }
+    auto sort = env->signature->getFunction(i)->fnType()->result();
+    auto arity = env->signature->getFunction(i)->arity();
 
     if (_funcWeights._weights[i] < varWght && arity == 0) {
-      handle(UserErrorException("weight of constants (i.e. ", env.signature->getFunction(i)->name(), ") must be greater or equal to the variable weight (", varWght, ")"));
+      handle(UserErrorException("weight of constants (i.e. ", env->signature->getFunction(i)->name(), ") must be greater or equal to the variable weight (", varWght, ")"));
 
     } else if (_funcWeights.symbolWeight(i) == 0 && arity == 1 && maximalFunctions.get(sort) != i) {
-      handle(UserErrorException( "a unary function of weight zero (i.e.: ", env.signature->getFunction(i)->name(), ") must be maximal wrt. the precedence ordering"));
+      handle(UserErrorException( "a unary function of weight zero (i.e.: ", env->signature->getFunction(i)->name(), ") must be maximal wrt. the precedence ordering"));
 
     }
   }
@@ -823,7 +823,7 @@ bool KboSpecialWeights<PredSigTraits>::tryGetWeight(unsigned functor, unsigned& 
 
 bool KboSpecialWeights<FuncSigTraits>::tryGetWeight(unsigned functor, unsigned& weight) const
 {
-  auto sym = env.signature->getFunction(functor);
+  auto sym = env->signature->getFunction(functor);
   if (sym->integerConstant())  { weight = _numInt;  return true; }
   if (sym->rationalConstant()) { weight = _numRat;  return true; }
   if (sym->realConstant())     { weight = _numReal; return true; }

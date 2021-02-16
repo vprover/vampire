@@ -133,7 +133,7 @@ public:
           TimeCounter tc(TC_LITERAL_ORDER_AFTERCHECK);
 
           if (i < _cl->numSelected() && _ord.compare(currAfter,skippedAfter) == Ordering::GREATER) {
-            env.statistics->inferencesBlockedForOrderingAftercheck++;
+            env->statistics->inferencesBlockedForOrderingAftercheck++;
             res->destroy();
             return 0;
           }
@@ -144,7 +144,7 @@ public:
     }
     ASS_EQ(next,newLength);
 
-    env.statistics->factoring++;
+    env->statistics->factoring++;
     return res;
   }
 private:

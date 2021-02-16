@@ -142,10 +142,10 @@ void handleSignal (int sigNum)
       }
       handled = true;
       if(outputAllowed(true)) {
-	if(env.options) {
-	  env.beginOutput();
-	  env.out() << "Aborted by signal " << signalDescription << " on " << env.options->inputFile() << "\n";
-	  env.endOutput();
+	if(env->options) {
+	  env->beginOutput();
+	  env->out() << "Aborted by signal " << signalDescription << " on " << env->options->inputFile() << "\n";
+	  env->endOutput();
 	} else {
 	  cout << "Aborted by signal " << signalDescription << "\n";
 	}
@@ -153,10 +153,10 @@ void handleSignal (int sigNum)
       return;
     case SIGXCPU:
       if(outputAllowed(true)) {
-	if(env.options) {
-	  env.beginOutput();
-	  env.out() << "External time out (SIGXCPU) on " << env.options->inputFile() << "\n";
-	  env.endOutput();
+	if(env->options) {
+	  env->beginOutput();
+	  env->out() << "External time out (SIGXCPU) on " << env->options->inputFile() << "\n";
+	  env->endOutput();
 	} else {
 	  cout << "External time out (SIGXCPU)\n";
 	}
@@ -193,19 +193,19 @@ void handleSignal (int sigNum)
 	reportSpiderFail();
 	handled = true;
 	if(outputAllowed()) {
-	  if(env.options && env.statistics) {
-	    env.beginOutput();
-      env.out() << getpid();
+	  if(env->options && env->statistics) {
+	    env->beginOutput();
+      env->out() << getpid();
       #if VTHREADED
-      if(env.options->mode() == Options::Mode::THREADED)
-        env.out() << "/" << std::this_thread::get_id();
+      if(env->options->mode() == Options::Mode::THREADED)
+        env->out() << "/" << std::this_thread::get_id();
       #endif
-	    env.out() << " Aborted by signal " << signalDescription << " on " << env.options->inputFile() << "\n";
-	    env.statistics->print(env.out());
+	    env->out() << " Aborted by signal " << signalDescription << " on " << env->options->inputFile() << "\n";
+	    env->statistics->print(env->out());
 #if VDEBUG
-	    Debug::Tracer::printStack(env.out());
+	    Debug::Tracer::printStack(env->out());
 #endif
-	    env.endOutput();
+	    env->endOutput();
 	  } else {
 	    cout << getpid() << "Aborted by signal " << signalDescription << "\n";
 #if VDEBUG

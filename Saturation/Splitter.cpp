@@ -184,10 +184,10 @@ void SplittingBranchSelector::handleSatRefutation()
   CALL("SplittingBranchSelector::handleSatRefutation");
 
   SATClause* satRefutation = _solver->getRefutation();
-  SATClauseList* satPremises = env.options->minimizeSatProofs() ?
+  SATClauseList* satPremises = env->options->minimizeSatProofs() ?
       _solver->getRefutationPremiseList() : nullptr; // getRefutationPremiseList may be nullptr already, if our solver does not support minimization
 
-  if (!env.colorUsed) { // color oblivious, simple approach
+  if (!env->colorUsed) { // color oblivious, simple approach
     UnitList* prems = SATInference::getFOPremises(satRefutation);
 
     Clause* foRef = Clause::fromIterator(LiteralIterator::getEmpty(),FromSatRefutation(InferenceRule::AVATAR_REFUTATION, prems, satPremises));
@@ -599,7 +599,7 @@ void SplittingBranchSelector::recomputeModel(SplitLevelStack& addedComps, SplitL
     handleSatRefutation(); // noreturn!
   }
   if(stat == SATSolver::UNKNOWN){
-    env.statistics->smtReturnedUnknown=true;
+    env->statistics->smtReturnedUnknown=true;
     throw MainLoop::MainLoopFinishedException(Statistics::REFUTATION_NOT_FOUND);
   }
   ASS_EQ(stat,SATSolver::SATISFIABLE);
@@ -614,7 +614,7 @@ void SplittingBranchSelector::recomputeModel(SplitLevelStack& addedComps, SplitL
      * (While violating an assertion in debug - see getAssignment in Z3Interfacing).
      */
     if (asgn == SATSolver::NOT_KNOWN) {
-      env.statistics->smtDidNotEvaluate=true;
+      env->statistics->smtDidNotEvaluate=true;
       throw MainLoop::MainLoopFinishedException(Statistics::REFUTATION_NOT_FOUND);
     }
 
@@ -646,9 +646,9 @@ Splitter::Splitter()
   _clausesAdded(false), _haveBranchRefutation(false)
 {
   CALL("Splitter::Splitter");
-  if(env.options->proof()==Options::Proof::TPTP){
-    unsigned spl = env.signature->addFreshFunction(0,"spl");
-    splPrefix = env.signature->functionName(spl)+"_";
+  if(env->options->proof()==Options::Proof::TPTP){
+    unsigned spl = env->signature->addFreshFunction(0,"spl");
+    splPrefix = env->signature->functionName(spl)+"_";
   }
 }
 
@@ -820,17 +820,17 @@ void Splitter::onAllProcessed()
   _branchSelector.recomputeModel(toAdd, toRemove, flushing);
   
   if (_showSplitting) { // TODO: this is just one of many ways Splitter could report about changes
-    env.beginOutput();
-    env.out() << "[AVATAR] recomputeModel: +";
+    env->beginOutput();
+    env->out() << "[AVATAR] recomputeModel: +";
     for (unsigned i = 0; i < toAdd.size(); i++) {
-      env.out() << toAdd[i] << ",";
+      env->out() << toAdd[i] << ",";
     }
-    env.out() << " -";
+    env->out() << " -";
     for (unsigned i = 0; i < toRemove.size(); i++) {
-      env.out() << toRemove[i] << ",";
+      env->out() << toRemove[i] << ",";
     }
-    env.out() << std::endl;
-    env.endOutput();
+    env->out() << std::endl;
+    env->endOutput();
   }
 
   {
@@ -979,16 +979,16 @@ bool Splitter::handleNonSplittable(Clause* cl)
     FormulaUnit* scl = new FormulaUnit(f,NonspecificInferenceMany(InferenceRule::AVATAR_SPLIT_CLAUSE,ps));
 
 #if VTHREADED
-    if(env.options->persistentGrounding())
+    if(env->options->persistentGrounding())
       PersistentGrounding::instance()->enqueueSATClause(nsClause);
 #endif
 
     nsClause->setInference(new FOConversionInference(scl));
 
     if (_showSplitting) {
-      env.beginOutput();
-      env.out() << "[AVATAR] registering a non-splittable: "<< cl->toString() << std::endl;
-      env.endOutput();
+      env->beginOutput();
+      env->out() << "[AVATAR] registering a non-splittable: "<< cl->toString() << std::endl;
+      env->endOutput();
     }
 
     addSatClauseToSolver(nsClause, false);
@@ -1066,8 +1066,8 @@ bool Splitter::getComponents(Clause* cl, Stack<LiteralStack>& acc)
     return false;
   }
 
-  env.statistics->splitClauses++;
-  env.statistics->splitComponents+=compCnt;
+  env->statistics->splitClauses++;
+  env->statistics->splitComponents+=compCnt;
 
   IntUnionFind::ComponentIterator cit(components);
   ASS(cit.hasNext());
@@ -1099,11 +1099,11 @@ bool Splitter::doSplitting(Clause* cl)
   if (hasStopped) {
     return false;
   }
-  if (_stopSplittingAt && env.timer->elapsedMilliseconds() >= _stopSplittingAt) {
+  if (_stopSplittingAt && env->timer->elapsedMilliseconds() >= _stopSplittingAt) {
     if (_showSplitting) {
-      env.beginOutput();
-      env.out() << "[AVATAR] Stopping the splitting process."<< std::endl;
-      env.endOutput();
+      env->beginOutput();
+      env->out() << "[AVATAR] Stopping the splitting process."<< std::endl;
+      env->endOutput();
     }
     hasStopped = true;
     return false;
@@ -1149,14 +1149,14 @@ bool Splitter::doSplitting(Clause* cl)
 
   SATClause* splitClause = SATClause::fromStack(satClauseLits);
 #if VTHREADED
-    if(env.options->persistentGrounding())
+    if(env->options->persistentGrounding())
       PersistentGrounding::instance()->enqueueSATClause(splitClause);
 #endif
 
   if (_showSplitting) {
-    env.beginOutput();
-    env.out() << "[AVATAR] split a clause: "<< cl->toString() << std::endl;
-    env.endOutput();
+    env->beginOutput();
+    env->out() << "[AVATAR] split a clause: "<< cl->toString() << std::endl;
+    env->endOutput();
   }
 
   // now do splits
@@ -1176,7 +1176,7 @@ bool Splitter::doSplitting(Clause* cl)
 
   addSatClauseToSolver(splitClause, false);
 
-  env.statistics->satSplits++;
+  env->statistics->satSplits++;
   return true;
 }
 
@@ -1569,7 +1569,7 @@ void Splitter::onNewClause(Clause* cl)
     assignClauseSplitSet(cl, splits);
   }
 
-  if (env.colorUsed) {
+  if (env->colorUsed) {
     SplitSet* splits = cl->splits();
 
     Color color = cl->color();
@@ -1685,20 +1685,20 @@ bool Splitter::handleEmptyClause(Clause* cl)
   addSatClauseToSolver(confl,true);
 
     if (_showSplitting) {
-      env.beginOutput();
-      env.out() << "[AVATAR] proved ";
+      env->beginOutput();
+      env->out() << "[AVATAR] proved ";
       SplitSet::Iterator sit(*cl->splits());
       while(sit.hasNext()){
-        env.out() << (_db[sit.next()]->component)->toString();
-        if(sit.hasNext()){ env.out() << " | "; }
+        env->out() << (_db[sit.next()]->component)->toString();
+        if(sit.hasNext()){ env->out() << " | "; }
       }
-      env.out() << endl; 
-      env.endOutput();
+      env->out() << endl; 
+      env->endOutput();
     }
 
 
 
-  env.statistics->satSplitRefutations++;
+  env->statistics->satSplitRefutations++;
   return true;
 }
 

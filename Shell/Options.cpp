@@ -2275,10 +2275,10 @@ void Options::set(const char* name,const char* value, bool longOpt)
         break;
       case IgnoreMissing::WARN:
         if (outputAllowed()) {
-          env.beginOutput();
-          addCommentSignForSZS(env.out());
-          env.out() << "WARNING: invalid value "<< value << " for option " << name << endl;
-          env.endOutput();
+          env->beginOutput();
+          addCommentSignForSZS(env->out());
+          env->out() << "WARNING: invalid value "<< value << " for option " << name << endl;
+          env->endOutput();
         }
         break;
       case IgnoreMissing::ON:
@@ -2291,10 +2291,10 @@ void Options::set(const char* name,const char* value, bool longOpt)
       vstring msg = (vstring)name + (longOpt ? " is not a valid option" : " is not a valid short option (did you mean --?)");
       if (_ignoreMissing.actualValue == IgnoreMissing::WARN) {
         if (outputAllowed()) {
-          env.beginOutput();
-          addCommentSignForSZS(env.out());
-          env.out() << "WARNING: " << msg << endl;
-          env.endOutput();
+          env->beginOutput();
+          addCommentSignForSZS(env->out());
+          env->out() << "WARNING: " << msg << endl;
+          env->endOutput();
         }
         return;
       } // else:
@@ -2325,7 +2325,7 @@ void Options::set(const vstring& name,const vstring& value)
 
 bool Options::OptionHasValue::check(Property*p){
           CALL("Options::OptionHasValue::check");
-          AbstractOptionValue* opt = env.options->getOptionValueByName(option_value);
+          AbstractOptionValue* opt = env->options->getOptionValueByName(option_value);
           ASS(opt);
           return opt->getStringOfActual()==value;
 }
@@ -2543,10 +2543,10 @@ bool Options::OptionValue<T>::randomize(Property* prop){
   CALL("Options::OptionValue::randomize()");
 
   DArray<vstring>* choices = nullptr;
-  if(env.options->randomStrategy()==RandomStrategy::NOCHECK) prop=0;
+  if(env->options->randomStrategy()==RandomStrategy::NOCHECK) prop=0;
 
   // Only randomize if we have a property and need it or don't have one and don't need it!
-  if( env.options->randomStrategy()!=RandomStrategy::NOCHECK && 
+  if( env->options->randomStrategy()!=RandomStrategy::NOCHECK && 
       ((prop && !hasProblemConstraints()) || (!prop && hasProblemConstraints()))
     ){
     return false;
@@ -2571,7 +2571,7 @@ bool Options::OptionValue<T>::randomize(Property* prop){
   return true;
 }
 
-//TODO should not use cout, should use env.out
+//TODO should not use cout, should use env->out
 template<typename T>
 bool Options::OptionValue<T>::checkConstraints(){
      CALL("Options::OptionValue::checkConstraints");
@@ -2580,17 +2580,17 @@ bool Options::OptionValue<T>::checkConstraints(){
        const OptionValueConstraintUP<T>& con = it.next();
        if(!con->check(*this)){
 
-         if(env.options->mode()==Mode::SPIDER){
+         if(env->options->mode()==Mode::SPIDER){
            reportSpiderFail();
            USER_ERROR("\nBroken Constraint: "+con->msg(*this));
          }
 
          if(con->isHard()){ 
-           if(env.options->randomStrategy()!=RandomStrategy::OFF)
+           if(env->options->randomStrategy()!=RandomStrategy::OFF)
               return false; // Skip warning for Hard
            USER_ERROR("\nBroken Constraint: "+con->msg(*this));
          }
-         switch(env.options->getBadOptionChoice()){
+         switch(env->options->getBadOptionChoice()){
            case BadOption::HARD :
                USER_ERROR("\nBroken Constraint: "+con->msg(*this));
            case BadOption::SOFT :
@@ -2622,12 +2622,12 @@ bool Options::OptionValue<T>::checkProblemConstraints(Property* prop){
       // Constraint should hold whenever the option is set
       if(is_set && !con->check(prop)){
 
-         if(env.options->mode()==Mode::SPIDER){
+         if(env->options->mode()==Mode::SPIDER){
            reportSpiderFail();
            USER_ERROR("WARNING: " + longName + con->msg());
          }
 
-         switch(env.options->getBadOptionChoice()){
+         switch(env->options->getBadOptionChoice()){
          case BadOption::OFF: break;
          default:
            cout << "WARNING: " << longName << con->msg() << endl;
@@ -2972,12 +2972,12 @@ void Options::readOptionsString(vstring optionsString,bool assign)
                 USER_ERROR("value "+value+" for option "+ param +" not known");
                 break;
               case IgnoreMissing::WARN:
-                env.beginOutput();
+                env->beginOutput();
                 if (outputAllowed()) {
-                  env.beginOutput();
-                  addCommentSignForSZS(env.out());
-                  env.out() << "WARNING: value " << value << " for option "<< param <<" not known" << endl;
-                  env.endOutput();
+                  env->beginOutput();
+                  addCommentSignForSZS(env->out());
+                  env->out() << "WARNING: value " << value << " for option "<< param <<" not known" << endl;
+                  env->endOutput();
                 }
                 break;
               case IgnoreMissing::ON:
@@ -2998,12 +2998,12 @@ void Options::readOptionsString(vstring optionsString,bool assign)
         USER_ERROR("option "+param+" not known");
         break;
       case IgnoreMissing::WARN:
-        env.beginOutput();
+        env->beginOutput();
         if (outputAllowed()) {
-          env.beginOutput();
-          addCommentSignForSZS(env.out());
-          env.out() << "WARNING: option "<< param << " not known." << endl;
-          env.endOutput();
+          env->beginOutput();
+          addCommentSignForSZS(env->out());
+          env->out() << "WARNING: option "<< param << " not known." << endl;
+          env->endOutput();
         }
         break;
       case IgnoreMissing::ON:
@@ -3189,7 +3189,7 @@ bool Options::complete(const Problem& prb) const
 {
   CALL("Options::complete");
 
-  if(env.statistics->higherOrder){
+  if(env->statistics->higherOrder){
     //safer for competition
     return false;
   }
@@ -3218,7 +3218,7 @@ bool Options::complete(const Problem& prb) const
   }
 
   // preprocessing
-  if (env.signature->hasDistinctGroups()) {
+  if (env->signature->hasDistinctGroups()) {
     return false;
   }
 

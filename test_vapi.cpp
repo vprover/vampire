@@ -119,7 +119,7 @@ void inlineTest(const char* fname)
 
 void assymmetricRewriteTest(const char* fname)
 {
-  Lib::env.options->set("protected_prefix","aaa__");
+  Lib::env->options->set("protected_prefix","aaa__");
 
   ifstream fs(fname);
   Problem p;
@@ -260,8 +260,8 @@ void readAndFilterGlobalOpts(Stack<char*>& args) {
       if(!Int::stringToUnsignedInt(memLimitStr, memLimit)) {
 	USER_ERROR("unsigned number expected as value of -m option");
       }
-      env.options->setMemoryLimit(memLimit);
-      Allocator::setMemoryLimit(env.options->memoryLimit()*1048576ul);
+      env->options->setMemoryLimit(memLimit);
+      Allocator::setMemoryLimit(env->options->memoryLimit()*1048576ul);
     }
     else {
       break;

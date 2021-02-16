@@ -23,21 +23,21 @@
 //////////////////////////////////////////////////////////////////////////////// 
 
 DArray<int> funcPrec() {
-  unsigned num = env.signature->functions();
+  unsigned num = env->signature->functions();
   DArray<int> out(num);
   out.initFromIterator(getRangeIterator(0u, num));
   return out;
 }
 
 DArray<int> predPrec() {
-  unsigned num = env.signature->predicates();
+  unsigned num = env->signature->predicates();
   DArray<int> out(num);
   out.initFromIterator(getRangeIterator(0u, num));
   return out;
 }
 
 DArray<int> predLevels() {
-  DArray<int> out(env.signature->predicates());
+  DArray<int> out(env->signature->predicates());
   out.init(out.size(), 1);
   return out;
 }
@@ -71,12 +71,12 @@ KBO kbo(unsigned introducedSymbolWeight,
           ._numInt  = variableWeight,
           ._numRat  = variableWeight,
           ._numReal = variableWeight,
-        }, funcs, env.signature->functions()), 
+        }, funcs, env->signature->functions()), 
 #if __KBO__CUSTOM_PREDICATE_WEIGHTS__
              toWeightMap<PredSigTraits>(introducedSymbolWeight,
                KboSpecialWeights<PredSigTraits>::dflt(), 
                preds,
-               env.signature->predicates()), 
+               env->signature->predicates()), 
 #endif
              funcPrec(), 
              predPrec(), 

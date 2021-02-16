@@ -138,7 +138,7 @@ Clause* Condensation::simplify(Clause* cl)
           (*res)[i] = newLits[i];
         }
 
-        env.statistics->condensations++;
+        env->statistics->condensations++;
         return res;
       }
     }

@@ -103,7 +103,7 @@ struct PrimitiveInstantiation::ResultFn
       (*res)[i] = currAfter;
     }
 
-    env.statistics->primitiveInstantiations++;  
+    env->statistics->primitiveInstantiations++;  
     return res;
   }
   

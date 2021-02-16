@@ -165,7 +165,7 @@ OperatorType* OperatorType::getTypeFromKey(OperatorType::OperatorKey* key, unsig
   /*
   cout << "getTypeFromKey(" << key->length() << "): ";
   for (unsigned i = 0; i < key->length(); i++) {
-    cout << (((*key)[i] == PREDICATE_FLAG) ? "FFFF" : env.sorts->sortName((*key)[i])) << ",";
+    cout << (((*key)[i] == PREDICATE_FLAG) ? "FFFF" : env->sorts->sortName((*key)[i])) << ",";
   }
   */
 

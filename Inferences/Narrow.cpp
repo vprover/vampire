@@ -174,11 +174,11 @@ Clause* Narrow::performNarrow(
 
   //0 means unlimited
   bool incr = false;
-  unsigned lim = env.options->maxXXNarrows();
+  unsigned lim = env->options->maxXXNarrows();
   if(lim != 0){
     if(comb < Signature::I_COMB && argNum == 1){
       if(nClause->inference().xxNarrows() == lim){
-        env.statistics->discardedNonRedundantClauses++;
+        env->statistics->discardedNonRedundantClauses++;
         return 0;
       } else {
         incr = true;
@@ -249,7 +249,7 @@ Clause* Narrow::performNarrow(
 
   // If proof extra is on let's compute the positions we have performed
   // Narrow on 
-  /*if(env.options->proofExtra()==Options::ProofExtra::FULL){
+  /*if(env->options->proofExtra()==Options::ProofExtra::FULL){
     
     inf->setExtra(extra);
   }*/ //TODO update proof extra
@@ -272,7 +272,7 @@ Clause* Narrow::performNarrow(
       if (afterCheck) {
         TimeCounter tc(TC_LITERAL_ORDER_AFTERCHECK);
         if (i < nClause->numSelected() && ordering.compare(currAfter,nLiteralS) == Ordering::GREATER) {
-          env.statistics->inferencesBlockedForOrderingAftercheck++;
+          env->statistics->inferencesBlockedForOrderingAftercheck++;
           goto construction_fail;
         }
       }
@@ -280,7 +280,7 @@ Clause* Narrow::performNarrow(
     }
   }
 
-  env.statistics->narrow++;
+  env->statistics->narrow++;
   return res;
 
 construction_fail:

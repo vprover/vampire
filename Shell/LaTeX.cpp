@@ -399,13 +399,13 @@ vstring LaTeX::symbolToString (unsigned num, bool pred) const
   vstring symbolName; // the name of this symbol, if any
 
   if(pred) {
-    symbolName = env.signature->predicateName(num);
+    symbolName = env->signature->predicateName(num);
   }
   else {
 //    if (f.isSkolemFunction()) {
 //      return (vstring)"\\sigma_{" + Int::toString(f.number()) + "}";
 //    }
-    symbolName = env.signature->functionName(num);
+    symbolName = env->signature->functionName(num);
   }
 
   // cut names longer than 8000 symbols

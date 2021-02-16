@@ -87,8 +87,8 @@ bool outputAllowed(bool debug)
 #endif
 
   // spider and smtcomp output modes are generally silent
-  return !Lib::env.options || (Lib::env.options->outputMode()!=Shell::Options::Output::SPIDER
-                               && Lib::env.options->outputMode()!=Shell::Options::Output::SMTCOMP );
+  return !Lib::env->options || (Lib::env->options->outputMode()!=Shell::Options::Output::SPIDER
+                               && Lib::env->options->outputMode()!=Shell::Options::Output::SMTCOMP );
 }
 
 void reportSpiderFail()
@@ -100,27 +100,27 @@ void reportSpiderStatus(char status)
 {
   using namespace Lib;
 
-  if(Lib::env.options && Lib::env.options->outputMode() == Shell::Options::Output::SPIDER) {
-    env.beginOutput();
-    env.out() << status << " "
-      << (Lib::env.options ? Lib::env.options->problemName() : "unknown") << " "
-      << (Lib::env.timer ? Lib::env.timer->elapsedDeciseconds() : 0) << " "
-      << (Lib::env.options ? Lib::env.options->testId() : "unknown") << "\n";
-    env.endOutput();
+  if(Lib::env->options && Lib::env->options->outputMode() == Shell::Options::Output::SPIDER) {
+    env->beginOutput();
+    env->out() << status << " "
+      << (Lib::env->options ? Lib::env->options->problemName() : "unknown") << " "
+      << (Lib::env->timer ? Lib::env->timer->elapsedDeciseconds() : 0) << " "
+      << (Lib::env->options ? Lib::env->options->testId() : "unknown") << "\n";
+    env->endOutput();
   }
 }
 
 bool szsOutputMode() {
-  return (Lib::env.options && Lib::env.options->outputMode() == Shell::Options::Output::SZS);
+  return (Lib::env->options && Lib::env->options->outputMode() == Shell::Options::Output::SZS);
 }
 
 ostream& addCommentSignForSZS(ostream& out)
 {
   if (szsOutputMode()) {
     out << "% ";
-    if (Lib::env.options && Lib::env.options->multicore() != 1) {
+    if (Lib::env->options && Lib::env->options->multicore() != 1) {
       #if VTHREADED
-      if(Lib::env.options->mode() == Options::Mode::THREADED)
+      if(Lib::env->options->mode() == Options::Mode::THREADED)
         out << "(" << std::this_thread::get_id() << ")";
       else
       #endif
@@ -136,7 +136,7 @@ bool UIHelper::s_proofHasConjecture=true;
 bool UIHelper::s_expecting_sat=false;
 bool UIHelper::s_expecting_unsat=false;
 
-bool UIHelper::portfolioParent=false;
+VTHREAD_LOCAL bool UIHelper::portfolioParent=false;
 bool UIHelper::satisfiableStatusWasAlreadyOutput=false;
 
 void UIHelper::outputAllPremises(ostream& out, UnitList* units, vstring prefix)
@@ -244,7 +244,7 @@ UnitList* UIHelper::tryParseSMTLIB2(const Options& opts,istream* input,SMTLIBLog
 
 /**
  * Return problem object with units obtained according to the content of
- * @b env.options
+ * @b env->options
  *
  * No preprocessing is performed on the units.
  */
@@ -253,7 +253,7 @@ Problem* UIHelper::getInputProblem(const Options& opts)
   CALL("UIHelper::getInputProblem");
     
   TimeCounter tc1(TC_PARSING);
-  env.statistics->phase = Statistics::PARSING;
+  env->statistics->phase = Statistics::PARSING;
 
   SMTLIBLogic smtLibLogic = SMT_UNDEFINED;
 
@@ -280,18 +280,18 @@ Problem* UIHelper::getInputProblem(const Options& opts)
        bool smtlib = hasEnding(inputFile,"smt") || hasEnding(inputFile,"smt2");
 
        if(smtlib){
-         env.beginOutput();
-         env.out() << "Running in auto input_syntax mode. Trying SMTLIB2\n";
-         env.endOutput();
+         env->beginOutput();
+         env->out() << "Running in auto input_syntax mode. Trying SMTLIB2\n";
+         env->endOutput();
          try{
            units = tryParseSMTLIB2(opts,input,smtLibLogic);
          }
          catch (UserErrorException& exception) {
-           env.beginOutput();
-           env.out() << "Failed with\n";
-           exception.cry(env.out());
-           env.out() << "Trying TPTP\n";
-           env.endOutput();
+           env->beginOutput();
+           env->out() << "Failed with\n";
+           exception.cry(env->out());
+           env->out() << "Trying TPTP\n";
+           env->endOutput();
            {
              BYPASSING_ALLOCATOR;
              delete static_cast<ifstream*>(input);
@@ -302,18 +302,18 @@ Problem* UIHelper::getInputProblem(const Options& opts)
 
        }
        else{
-         env.beginOutput();
-         env.out() << "Running in auto input_syntax mode. Trying TPTP\n";
-         env.endOutput();
+         env->beginOutput();
+         env->out() << "Running in auto input_syntax mode. Trying TPTP\n";
+         env->endOutput();
          try{
            units = tryParseTPTP(input); 
          }
          catch (UserErrorException& exception) {
-           env.beginOutput();
-           env.out() << "Failed with\n";
-           exception.cry(env.out());
-           env.out() << "Trying SMTLIB2\n";
-           env.endOutput();
+           env->beginOutput();
+           env->out() << "Failed with\n";
+           exception.cry(env->out());
+           env->out() << "Trying SMTLIB2\n";
+           env->endOutput();
            {
              BYPASSING_ALLOCATOR;
              delete static_cast<ifstream*>(input);
@@ -344,7 +344,7 @@ Problem* UIHelper::getInputProblem(const Options& opts)
   Problem* res = new Problem(units);
   res->setSMTLIBLogic(smtLibLogic);
 
-  env.statistics->phase=Statistics::UNKNOWN_PHASE;
+  env->statistics->phase=Statistics::UNKNOWN_PHASE;
   return res;
 }
 
@@ -380,7 +380,7 @@ static void printInterpolationProofTask(ostream& out, Formula* intp, Color avoid
 
 /**
  * Output result based on the content of
- * @b env.statistics->terminationReason
+ * @b env->statistics->terminationReason
  *
  * If LaTeX output is enabled, it is output in this function.
  *
@@ -390,42 +390,42 @@ void UIHelper::outputResult(ostream& out)
 {
   CALL("UIHelper::outputResult");
 
-  switch (env.statistics->terminationReason) {
+  switch (env->statistics->terminationReason) {
   case Statistics::REFUTATION:
-    if(env.options->outputMode() == Options::Output::SMTCOMP){
+    if(env->options->outputMode() == Options::Output::SMTCOMP){
       out << "unsat" << endl;
       return;
     }
     addCommentSignForSZS(out);
-    out << "Refutation found. Thanks to " << env.options->thanks() << "!\n";
+    out << "Refutation found. Thanks to " << env->options->thanks() << "!\n";
     if (szsOutputMode()) {
       out << "% SZS status " << (UIHelper::haveConjecture() ? ( UIHelper::haveConjectureInProof() ? "Theorem" : "ContradictoryAxioms" ) : "Unsatisfiable")
-	  << " for " << env.options->problemName() << endl;
+	  << " for " << env->options->problemName() << endl;
     }
-    if (env.options->questionAnswering()!=Options::QuestionAnsweringMode::OFF) {
-      ASS(env.statistics->refutation->isClause());
-      AnswerExtractor::tryOutputAnswer(static_cast<Clause*>(env.statistics->refutation));
+    if (env->options->questionAnswering()!=Options::QuestionAnsweringMode::OFF) {
+      ASS(env->statistics->refutation->isClause());
+      AnswerExtractor::tryOutputAnswer(static_cast<Clause*>(env->statistics->refutation));
     }
-    if (env.options->proof() != Options::Proof::OFF) {
+    if (env->options->proof() != Options::Proof::OFF) {
       if (szsOutputMode()) {
-        out << "% SZS output start Proof for " << env.options->problemName() << endl;
+        out << "% SZS output start Proof for " << env->options->problemName() << endl;
       }
-      InferenceStore::instance()->outputProof(out, env.statistics->refutation);
+      InferenceStore::instance()->outputProof(out, env->statistics->refutation);
       if (szsOutputMode()) {
-        out << "% SZS output end Proof for " << env.options->problemName() << endl << flush;
+        out << "% SZS output end Proof for " << env->options->problemName() << endl << flush;
       }
       // outputProof could have triggered proof minimization which might have cause inductionDepth to change (in fact, decrease)
-      env.statistics->maxInductionDepth = env.statistics->refutation->inference().inductionDepth();
+      env->statistics->maxInductionDepth = env->statistics->refutation->inference().inductionDepth();
     }
-    if (env.options->showInterpolant()!=Options::InterpolantMode::OFF) {
-      ASS(env.statistics->refutation->isClause());
+    if (env->options->showInterpolant()!=Options::InterpolantMode::OFF) {
+      ASS(env->statistics->refutation->isClause());
 
-      Interpolants::removeConjectureNodesFromRefutation(env.statistics->refutation);
-      Unit* formulifiedRefutation = Interpolants::formulifyRefutation(env.statistics->refutation);
+      Interpolants::removeConjectureNodesFromRefutation(env->statistics->refutation);
+      Unit* formulifiedRefutation = Interpolants::formulifyRefutation(env->statistics->refutation);
 
       Formula* interpolant = nullptr;
 
-      switch(env.options->showInterpolant()) {
+      switch(env->options->showInterpolant()) {
       // new interpolation methods described in master thesis of Bernhard Gleiss
       case Options::InterpolantMode::NEW_HEUR:
         InterpolantsNew().removeTheoryInferences(formulifiedRefutation); // do this only once for each proof!
@@ -452,11 +452,11 @@ void UIHelper::outputResult(ostream& out)
         interpolant = InterpolantMinimizer(InterpolantMinimizer::OT_WEIGHT, false, true, "Minimized interpolant weight").getInterpolant(formulifiedRefutation);
         
         /*
-        Formula* oldInterpolant = InterpolantMinimizer(InterpolantMinimizer::OT_WEIGHT, true, true, "Original interpolant weight").getInterpolant(static_cast<Clause*>(env.statistics->refutation));
-        Formula* interpolant = InterpolantMinimizer(InterpolantMinimizer::OT_WEIGHT, false, true, "Minimized interpolant weight").getInterpolant(static_cast<Clause*>(env.statistics->refutation));
-        InterpolantMinimizer(InterpolantMinimizer::OT_COUNT, true, true, "Original interpolant count").getInterpolant(static_cast<Clause*>(env.statistics->refutation));
-        Formula* cntInterpolant = InterpolantMinimizer(InterpolantMinimizer::OT_COUNT, false, true, "Minimized interpolant count").getInterpolant(static_cast<Clause*>(env.statistics->refutation));
-        Formula* quantInterpolant =  InterpolantMinimizer(InterpolantMinimizer::OT_QUANTIFIERS, false, true, "Minimized interpolant quantifiers").getInterpolant(static_cast<Clause*>(env.statistics->refutation));
+        Formula* oldInterpolant = InterpolantMinimizer(InterpolantMinimizer::OT_WEIGHT, true, true, "Original interpolant weight").getInterpolant(static_cast<Clause*>(env->statistics->refutation));
+        Formula* interpolant = InterpolantMinimizer(InterpolantMinimizer::OT_WEIGHT, false, true, "Minimized interpolant weight").getInterpolant(static_cast<Clause*>(env->statistics->refutation));
+        InterpolantMinimizer(InterpolantMinimizer::OT_COUNT, true, true, "Original interpolant count").getInterpolant(static_cast<Clause*>(env->statistics->refutation));
+        Formula* cntInterpolant = InterpolantMinimizer(InterpolantMinimizer::OT_COUNT, false, true, "Minimized interpolant count").getInterpolant(static_cast<Clause*>(env->statistics->refutation));
+        Formula* quantInterpolant =  InterpolantMinimizer(InterpolantMinimizer::OT_QUANTIFIERS, false, true, "Minimized interpolant quantifiers").getInterpolant(static_cast<Clause*>(env->statistics->refutation));
         */
 
         break;
@@ -469,19 +469,19 @@ void UIHelper::outputResult(ostream& out)
       out<<endl;
     }
 
-    if (env.options->latexOutput() != "off") {
+    if (env->options->latexOutput() != "off") {
       BYPASSING_ALLOCATOR; // for ofstream 
-      ofstream latexOut(env.options->latexOutput().c_str());
+      ofstream latexOut(env->options->latexOutput().c_str());
 
       LaTeX formatter;
-      latexOut << formatter.refutationToString(env.statistics->refutation);
+      latexOut << formatter.refutationToString(env->statistics->refutation);
     }
 
     ASS(!s_expecting_sat);
 
     break;
   case Statistics::TIME_LIMIT:
-    if(env.options->outputMode() == Options::Output::SMTCOMP){
+    if(env->options->outputMode() == Options::Output::SMTCOMP){
       out << "unknown" << endl;
       return;
     }
@@ -489,7 +489,7 @@ void UIHelper::outputResult(ostream& out)
     out << "Time limit reached!\n";
     break;
   case Statistics::MEMORY_LIMIT:
-    if(env.options->outputMode() == Options::Output::SMTCOMP){
+    if(env->options->outputMode() == Options::Output::SMTCOMP){
       out << "unknown" << endl;
       return;
     }
@@ -508,15 +508,15 @@ void UIHelper::outputResult(ostream& out)
     break;
   }
   case Statistics::REFUTATION_NOT_FOUND:
-    if(env.options->outputMode() == Options::Output::SMTCOMP){
+    if(env->options->outputMode() == Options::Output::SMTCOMP){
       out << "unknown" << endl;
       return;
     }
     addCommentSignForSZS(out);
-    env.statistics->explainRefutationNotFound(out);
+    env->statistics->explainRefutationNotFound(out);
     break;
   case Statistics::SATISFIABLE:
-    if(env.options->outputMode() == Options::Output::SMTCOMP){
+    if(env->options->outputMode() == Options::Output::SMTCOMP){
       out << "sat" << endl;
       return;
     }
@@ -532,7 +532,7 @@ void UIHelper::outputResult(ostream& out)
     out<<"good job\n";
     break;
   case Statistics::INAPPROPRIATE:
-    if(env.options->outputMode() == Options::Output::SMTCOMP){
+    if(env->options->outputMode() == Options::Output::SMTCOMP){
       out << "unknown" << endl;
       return;
     }
@@ -540,7 +540,7 @@ void UIHelper::outputResult(ostream& out)
     out << "Terminated due to inappropriate strategy.\n";
     break;
   case Statistics::UNKNOWN:
-    if(env.options->outputMode() == Options::Output::SMTCOMP){
+    if(env->options->outputMode() == Options::Output::SMTCOMP){
       out << "unknown" << endl;
       return;
     }
@@ -550,7 +550,7 @@ void UIHelper::outputResult(ostream& out)
   default:
     ASSERTION_VIOLATION;
   }
-  env.statistics->print(out);
+  env->statistics->print(out);
 }
 
 void UIHelper::outputSatisfiableResult(ostream& out)
@@ -560,23 +560,23 @@ void UIHelper::outputSatisfiableResult(ostream& out)
   //out << "Satisfiable!\n";
   if (szsOutputMode() && !satisfiableStatusWasAlreadyOutput) {
     out << "% SZS status " << ( UIHelper::haveConjecture() ? "CounterSatisfiable" : "Satisfiable" )
-	  <<" for " << env.options->problemName() << endl;
+	  <<" for " << env->options->problemName() << endl;
   }
-  if (!env.statistics->model.empty()) {
+  if (!env->statistics->model.empty()) {
     if (szsOutputMode()) {
-	out << "% SZS output start FiniteModel for " << env.options->problemName() << endl;
+	out << "% SZS output start FiniteModel for " << env->options->problemName() << endl;
     }
-    out << env.statistics->model;
+    out << env->statistics->model;
     if (szsOutputMode()) {
-	out << "% SZS output end FiniteModel for " << env.options->problemName() << endl;
+	out << "% SZS output end FiniteModel for " << env->options->problemName() << endl;
     }
   }
-  else //if (env.statistics->saturatedSet)
+  else //if (env->statistics->saturatedSet)
        /* -- MS: it's never incorrect to print the empty one, in fact this prevents us from losing
         * points at CASC when the input gets completely emptied, by e.g. preprocessing
         */
   {
-    outputSaturatedSet(out, pvi(UnitList::Iterator(env.statistics->saturatedSet)));
+    outputSaturatedSet(out, pvi(UnitList::Iterator(env->statistics->saturatedSet)));
   }
 }
 
@@ -590,12 +590,12 @@ void UIHelper::outputSymbolDeclarations(ostream& out)
 {
   CALL("UIHelper::outputSymbolDeclarations");
 
-  Signature& sig = *env.signature;
+  Signature& sig = *env->signature;
 
   unsigned funcs = sig.functions();
   for (unsigned i=0; i<funcs; ++i) {
-    if (!env.options->showFOOL()) {
-      if (env.signature->isFoolConstantSymbol(true,i) || env.signature->isFoolConstantSymbol(false,i)) {
+    if (!env->options->showFOOL()) {
+      if (env->signature->isFoolConstantSymbol(true,i) || env->signature->isFoolConstantSymbol(false,i)) {
         continue;
       }
     }
@@ -618,13 +618,13 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
   CALL("UIHelper::outputSymbolTypeDeclarationIfNeeded");
 
   Signature::Symbol* sym = function ?
-      env.signature->getFunction(symNumber) : env.signature->getPredicate(symNumber);
+      env->signature->getFunction(symNumber) : env->signature->getPredicate(symNumber);
 
   if (sym->super()  || sym->arraySort()  || sym->tupleSort()){
     return;
   }
 
-  if(sym->defaultSort() || (sym->boolSort() && !env.options->showFOOL())){
+  if(sym->defaultSort() || (sym->boolSort() && !env->options->showFOOL())){
     return;
   }
 
@@ -644,7 +644,7 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
   }
 
   if (function) {
-    TermList sort = env.signature->getFunction(symNumber)->fnType()->result();
+    TermList sort = env->signature->getFunction(symNumber)->fnType()->result();
     if (SortHelper::isTupleSort(sort)) {
       return;
     }
@@ -660,7 +660,7 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
   //    << sym->name() << ": ";
 
   if(!sym->app()){
-    out << (env.statistics->higherOrder ? "thf(" : "tff(")
+    out << (env->statistics->higherOrder ? "thf(" : "tff(")
         << (function ? (sym->typeCon() ?  "type" : "func") : "pred") 
         << "_def_" << symNumber << ", type, "
         << sym->name() << ": ";
@@ -706,19 +706,19 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
 {
   CALL("UIHelper::outputSortDeclarations");
 
-  if(env.statistics->higherOrder){
+  if(env->statistics->higherOrder){
     return;
   }
 
-  unsigned sorts = env.sorts->count();
+  unsigned sorts = env->sorts->count();
   for (unsigned sort = 1; sort < sorts; ++sort) {
-    if (sort < Sorts::FIRST_USER_SORT && ((sort != 1) || !env.options->showFOOL())) {
+    if (sort < Sorts::FIRST_USER_SORT && ((sort != 1) || !env->options->showFOOL())) {
       continue;
     }
     if (SortHelper::isStructuredSort(sort)) {
       continue;
     }
-    out << "tff(type_def_" << sort << ", type, " << env.sorts->sortName(sort) << ": $tType)." << endl;
+    out << "tff(type_def_" << sort << ", type, " << env->sorts->sortName(sort) << ": $tType)." << endl;
   }
 }*/ // UIHelper::outputSortDeclarations
 
@@ -731,9 +731,9 @@ ConstraintRCList* UIHelper::getInputConstraints(const Options& opts)
   CALL("UIHelper::getInputConstraints");
 
   TimeCounter tc(TC_PARSING);
-  env.statistics->phase = Statistics::PARSING;
+  env->statistics->phase = Statistics::PARSING;
 
-  vstring inputFile = env.options->inputFile();
+  vstring inputFile = env->options->inputFile();
 
   ScopedPtr<std::ifstream> inputScoped;
   istream * input;
@@ -749,7 +749,7 @@ ConstraintRCList* UIHelper::getInputConstraints(const Options& opts)
 
   ConstraintRCList* res;
 
-  switch(env.options->inputSyntax()) {
+  switch(env->options->inputSyntax()) {
   case Options::InputSyntax::TPTP:
     USER_ERROR("Format not supported for BPA");
     break;
@@ -775,7 +775,7 @@ ConstraintRCList* UIHelper::getInputConstraints(const Options& opts)
     Model* m = new Model; 
     MpsInput* mpsin = new MpsInput;
         
-    bool success = mpsin->readMps(env.options->inputFile().c_str(), m);
+    bool success = mpsin->readMps(env->options->inputFile().c_str(), m);
    // m->print(std::cout);
 
     ASS_EQ(success,true);
@@ -793,8 +793,8 @@ ConstraintRCList* UIHelper::getInputConstraints(const Options& opts)
     ASSERTION_VIOLATION;
   }
 
-  env.statistics->inputConstraints = res->length();
-  env.statistics->inputVariables = env.signature->vars();
+  env->statistics->inputConstraints = res->length();
+  env->statistics->inputVariables = env->signature->vars();
 
   return res;
 }
@@ -807,9 +807,9 @@ ConstraintRCList* UIHelper::getPreprocessedConstraints(const ConstraintRCList* i
   CALL("UIHelper::getPreprocessedConstraints/2");
 
   TimeCounter tc(TC_PREPROCESSING);
-  env.statistics->phase = Statistics::PREPROCESSING;
+  env->statistics->phase = Statistics::PREPROCESSING;
 
-  Preprocess prepr(*env.options);
+  Preprocess prepr(*env->options);
   ConstraintRCList* constraints = ConstraintRCList::copy(inputConstraints);
   prepr.preprocess(constraints);
   
@@ -887,10 +887,10 @@ void UIHelper::outputConstraintInHumanFormat(const Constraint& constraint, ostre
   closedP++;
     }
     if (coeff.value<CoeffNumber::zero()) {
-  out << " (* ( ~ " << -coeff.value << " ) " << env.signature->varName(coeff.var) << ")";
+  out << " (* ( ~ " << -coeff.value << " ) " << env->signature->varName(coeff.var) << ")";
     }
     else {
-  out <<" (* "<< coeff.value << " " << env.signature->varName(coeff.var) << " )";
+  out <<" (* "<< coeff.value << " " << env->signature->varName(coeff.var) << " )";
     }
    
   }
@@ -913,10 +913,10 @@ void UIHelper::outputConstraintInHumanFormat(const Constraint& constraint, ostre
   while (coeffs.hasNext()) {
     Constraint::Coeff coeff = coeffs.next();
     if (coeff.value<CoeffNumber::zero()) {
-  out << "(" << coeff.value << "*" << env.signature->varName(coeff.var) << ") ";
+  out << "(" << coeff.value << "*" << env->signature->varName(coeff.var) << ") ";
     }
     else {
-  out << coeff.value << "*" << env.signature->varName(coeff.var) << " ";
+  out << coeff.value << "*" << env->signature->varName(coeff.var) << " ";
     }
     if (coeffs.hasNext()) {
   out << "+ ";
@@ -975,10 +975,10 @@ void UIHelper::outputConstraintInSMTFormat(const Constraint& constraint, ostream
     
     if (coeff.value<CoeffNumber::zero()) {
   
-  out << " (* ( ~ " << -coeff.value << " ) " << env.signature->varName(coeff.var) << ")";
+  out << " (* ( ~ " << -coeff.value << " ) " << env->signature->varName(coeff.var) << ")";
     }
     else {
-  out <<" (* "<< coeff.value << " " << env.signature->varName(coeff.var) << " )";
+  out <<" (* "<< coeff.value << " " << env->signature->varName(coeff.var) << " )";
     }
    
   }
@@ -1032,9 +1032,9 @@ void UIHelper::outputConstraints(ConstraintList* constraints, ostream& out, Opti
     {
   Constraint::CoeffIterator coeffs = fun.next()->coeffs();
    while (coeffs.hasNext()) {
-       env.signature->varName(coeffs.next().var);
-       uni.push_back(env.signature->varName(coeffs.next().var));
-    //out << ":extrafuns ((" << env.signature->varName(coeffs.next().var) << " Real )) " << endl; 
+       env->signature->varName(coeffs.next().var);
+       uni.push_back(env->signature->varName(coeffs.next().var));
+    //out << ":extrafuns ((" << env->signature->varName(coeffs.next().var) << " Real )) " << endl; 
   }
   
     }
@@ -1078,7 +1078,7 @@ void UIHelper::outputAssignment(Assignment& assignemt, ostream& out, Shell::Opti
     VarIterator vars = assignemt.getAssignedVars();
     while (vars.hasNext()) {
       Var v = vars.next();
-      out << env.signature->varName(v) << ": " << assignemt[v] << endl;
+      out << env->signature->varName(v) << ": " << assignemt[v] << endl;
     }
     return;
   }

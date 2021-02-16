@@ -36,42 +36,43 @@ bool ThreadScheduleExecutor::run(const Schedule &schedule)
   int tasks_idle = 0;
 
   // this closure is run _by_ a thread...
-  auto penv = &env;
+  auto penv = env;
   auto task = [&](vstring code, int remainingTime, unsigned i) {
+    env = new Environment();
     // some fluff first
-    env.maxSineLevel = penv->maxSineLevel;
-    env.predicateSineLevels = penv->predicateSineLevels;
-    env.proofExtra = penv->proofExtra;
-    env.colorUsed = penv->colorUsed;
-    env.interpretedOperationsUsed = penv->interpretedOperationsUsed;
-    env._outputDepth = penv->_outputDepth;
-    env._priorityOutput = penv->_priorityOutput;
-    env._pipe = penv->_pipe;
+    env->maxSineLevel = penv->maxSineLevel;
+    env->predicateSineLevels = penv->predicateSineLevels;
+    env->proofExtra = penv->proofExtra;
+    env->colorUsed = penv->colorUsed;
+    env->interpretedOperationsUsed = penv->interpretedOperationsUsed;
+    env->_outputDepth = penv->_outputDepth;
+    env->_priorityOutput = penv->_priorityOutput;
+    env->_pipe = penv->_pipe;
 
     // fresh statistics
-    env.statistics = new Shell::Statistics();
+    env->statistics = new Shell::Statistics();
     // deep-copy options and signature from parent thread
-    env.options = new Shell::Options(*penv->options);
-    env.signature = new Kernel::Signature(*penv->signature);
+    env->options = new Shell::Options(*penv->options);
+    env->signature = new Kernel::Signature(*penv->signature);
 
     // shallow-copy sorts, sharing, property
-    env.sorts = penv->sorts;
-    env.sharing = penv->sharing;
-    env.property = penv->property;
+    env->sorts = penv->sorts;
+    env->sharing = penv->sharing;
+    env->property = penv->property;
 
-    env.timer = Timer::instance();
-    env.timer->start();
+    env->timer = Timer::instance();
+    env->timer->start();
 
     // thread setup done, now do All The Things
     _executor->runSlice(code, remainingTime);
 
     // unbind stuff we shallow-copied to stop it being deallocated
-    env.property = nullptr;
-    env.sharing = nullptr;
-    env.sorts = nullptr;
+    env->property = nullptr;
+    env->sharing = nullptr;
+    env->sorts = nullptr;
 
     //leak signature :-( - currently TermSharing keeps handles to this
-    env.signature = nullptr;
+    env->signature = nullptr;
 
     // indicate we're done
     std::lock_guard<std::mutex> task_lock(task_mutex);
@@ -82,9 +83,9 @@ bool ThreadScheduleExecutor::run(const Schedule &schedule)
 
   // ...but this closure _starts_ the thread
   Schedule::BottomFirstIterator it(schedule);
-  int remainingTime = DECI(env.remainingTime());
+  int remainingTime = DECI(env->remainingTime());
   auto launch_task = [&](int i) {
-    remainingTime = DECI(env.remainingTime());
+    remainingTime = DECI(env->remainingTime());
     if(remainingTime < 1) {
       return;
     }
@@ -104,7 +105,7 @@ bool ThreadScheduleExecutor::run(const Schedule &schedule)
   // while we have time, wait for threads to finish and spawn new ones
   while(
     Timer::syncClock(),
-    remainingTime = DECI(env.remainingTime()),
+    remainingTime = DECI(env->remainingTime()),
     remainingTime > 0 && it.hasNext()
   ) {
     std::unique_lock<std::mutex> task_lock(task_mutex);

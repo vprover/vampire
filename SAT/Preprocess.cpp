@@ -103,7 +103,7 @@ bool Preprocess::filterPureLiterals(unsigned varCnt, SATClauseList*& res)
   for(unsigned i=1;i<=varCnt;i++) {
     if( ((positiveOccurences[i]!=0)^(negativeOccurences[i]!=0)) && occurences[i] ) {
       pureVars.push(i);
-      env.statistics->satPureVarsEliminated++;
+      env->statistics->satPureVarsEliminated++;
     }
   }
 
@@ -130,13 +130,13 @@ bool Preprocess::filterPureLiterals(unsigned varCnt, SATClauseList*& res)
 	  positiveOccurences[lvar]--;
 	  if( positiveOccurences[lvar]==0 && negativeOccurences[lvar]!=0 && occurences[lvar] ) {
 	    pureVars.push(lvar);
-	    env.statistics->satPureVarsEliminated++;
+	    env->statistics->satPureVarsEliminated++;
 	  }
 	} else {
 	  negativeOccurences[lvar]--;
 	  if( positiveOccurences[lvar]!=0 && negativeOccurences[lvar]==0 && occurences[lvar] ) {
 	    pureVars.push(lvar);
-	    env.statistics->satPureVarsEliminated++;
+	    env->statistics->satPureVarsEliminated++;
 	  }
 	}
       }

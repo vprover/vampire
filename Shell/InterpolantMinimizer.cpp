@@ -72,9 +72,9 @@ Formula* InterpolantMinimizer::getInterpolant(Unit* refutation)
   }
 
   if(_showStats) {
-    env.beginOutput();
-    env.out() << _statsPrefix << " cost: " <<res.assignment.get(costFunction()) << endl;
-    env.endOutput();
+    env->beginOutput();
+    env->out() << _statsPrefix << " cost: " <<res.assignment.get(costFunction()) << endl;
+    env->endOutput();
   }
 
   collectSlicedOffNodes(res, slicedOff);
@@ -91,7 +91,7 @@ void InterpolantMinimizer::prettyPrint(Formula* formula, ostream& out)
 {
   CALL("SMTLibPrinter::prettyPrint");
         
-  Signature *sig = env.signature;
+  Signature *sig = env->signature;
   unsigned symbNum;
   Symbol* symb;
   TermList* args;
@@ -179,7 +179,7 @@ void InterpolantMinimizer::prettyPrint(Formula* formula, ostream& out)
 /*print terms in SMT*/    
 void InterpolantMinimizer::prettyPrint(Term* term, ostream& out)
 {
-    Signature *sig = env.signature;
+    Signature *sig = env->signature;
     unsigned int symbNum = term->functor();
     Symbol* symb = sig->getFunction(symbNum);
         

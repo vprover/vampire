@@ -42,7 +42,7 @@ using namespace Parse;
 using namespace std;
 
 SMTLib2ConstraintReader::SMTLib2ConstraintReader(Parse::SMTLIB2& parser)
-  :_sig(*env.signature), _parser(parser) {
+  :_sig(*env->signature), _parser(parser) {
   CALL("SMTLib2ConstraintReader::SMTLib2ConstraintReader(Parse::SMTLIB2)");
 }
 
@@ -249,7 +249,7 @@ ConstraintRCList* SMTConstraintReader::constraints(){
 }
 
 ConstraintReader::ConstraintReader(SMTParser& parser)
- : _sig(*env.signature), _parser(parser) {}
+ : _sig(*env->signature), _parser(parser) {}
  
 /**
  * Return list of constraints from @c _parser
@@ -364,7 +364,7 @@ void ConstraintReader::readCoefs(SMTParser::Term* term, CoeffStack& coeffs, Coef
 }
 
 MpsConstraintReader::MpsConstraintReader(Model& model)
-    : _sig(*env.signature), _model(model){ }
+    : _sig(*env->signature), _model(model){ }
 
 MpsConstraintReader::~MpsConstraintReader()
 {

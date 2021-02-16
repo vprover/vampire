@@ -251,10 +251,10 @@ void SMTLIB2::readBenchmark(LExprList* bench)
       if (bRdr.hasNext()) {
         LispListReader exitRdr(bRdr.readList());
         if (!exitRdr.tryAcceptAtom("exit")) {
-          if(env.options->mode()!=Options::Mode::SPIDER) {
-            env.beginOutput();
-            env.out() << "% Warning: check-sat is not the last entry. Skipping the rest!" << endl;
-            env.endOutput();
+          if(env->options->mode()!=Options::Mode::SPIDER) {
+            env->beginOutput();
+            env->out() << "% Warning: check-sat is not the last entry. Skipping the rest!" << endl;
+            env->endOutput();
           }
         }
       }
@@ -619,12 +619,12 @@ TermList SMTLIB2::declareSort(LExpr* sExpr)
         unsigned newSort = TPTP::addUninterpretedConstant(sortName,_overflow,added);
         if(added){
           OperatorType* ot = OperatorType::getConstantsType(Term::superSort());
-          env.signature->getFunction(newSort)->setType(ot);
+          env->signature->getFunction(newSort)->setType(ot);
         }
         TermList sort = TermList(Term::createConstant(newSort));
         results.push(sort);
         if(added){
-          env.sorts->addSort(sort);
+          env->sorts->addSort(sort);
         }
         continue;
       }
@@ -816,21 +816,21 @@ SMTLIB2::DeclaredFunction SMTLIB2::declareFunctionOrPredicate(const vstring& nam
   OperatorType* type;
 
   if (rangeSort == Term::boolSort()) { // predicate
-    symNum = env.signature->addPredicate(name, argSorts.size(), added);
+    symNum = env->signature->addPredicate(name, argSorts.size(), added);
 
-    sym = env.signature->getPredicate(symNum);
+    sym = env->signature->getPredicate(symNum);
 
     type = OperatorType::getPredicateType(argSorts.size(),argSorts.begin());
 
     LOG1("declareFunctionOrPredicate-Predicate");
   } else { // proper function
     if (argSorts.size() > 0) {
-      symNum = env.signature->addFunction(name, argSorts.size(), added);
+      symNum = env->signature->addFunction(name, argSorts.size(), added);
     } else {
       symNum = TPTP::addUninterpretedConstant(name,_overflow,added);
     }
 
-    sym = env.signature->getFunction(symNum);
+    sym = env->signature->getFunction(symNum);
 
     type = OperatorType::getFunctionType(argSorts.size(), argSorts.begin(), rangeSort);
 
@@ -952,9 +952,9 @@ void SMTLIB2::readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool 
     bool added = false;
     unsigned srt = TPTP::addUninterpretedConstant(dtypeName + "()",_overflow,added);
     ASS(added);
-    env.signature->getFunction(srt)->setType(OperatorType::getConstantsType(Term::superSort()));
+    env->signature->getFunction(srt)->setType(OperatorType::getConstantsType(Term::superSort()));
     TermList sort = TermList(Term::createConstant(srt));
-    env.sorts->addSort(sort);
+    env->sorts->addSort(sort);
     //(void)srt; // to get rid of compiler warning when logging is off
     // TODO: is it really OK we normally don't need the sort?
     LOG2("reading datatype "+dtypeName+" as sort ",sort);
@@ -1004,14 +1004,14 @@ void SMTLIB2::readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool 
       constructors.push(buildTermAlgebraConstructor(constrName, taSort, destructorNames, argSorts));
     }
 
-    ASS(!env.signature->isTermAlgebraSort(taSort));
+    ASS(!env->signature->isTermAlgebraSort(taSort));
     TermAlgebra* ta = new TermAlgebra(taSort, constructors.size(), constructors.begin(), codatatype);
 
     if (ta->emptyDomain()) {
       USER_ERROR("Datatype " + taName + " defines an empty sort");
     }
 
-    env.signature->addTermAlgebra(ta);
+    env->signature->addTermAlgebra(ta);
   }
 }
 
@@ -1026,12 +1026,12 @@ TermAlgebraConstructor* SMTLIB2::buildTermAlgebraConstructor(vstring constrName,
   unsigned arity = (unsigned)argSorts.size();
 
   bool added;
-  unsigned functor = env.signature->addFunction(constrName, arity, added);
+  unsigned functor = env->signature->addFunction(constrName, arity, added);
   ASS(added);
 
   OperatorType* constructorType = OperatorType::getFunctionType(arity, argSorts.begin(), taSort);
-  env.signature->getFunction(functor)->setType(constructorType);
-  env.signature->getFunction(functor)->markTermAlgebraCons();
+  env->signature->getFunction(functor)->setType(constructorType);
+  env->signature->getFunction(functor)->markTermAlgebraCons();
 
   LOG1("build constructor "+constrName+": "+constructorType->toString());
 
@@ -1048,8 +1048,8 @@ TermAlgebraConstructor* SMTLIB2::buildTermAlgebraConstructor(vstring constrName,
 
     bool isPredicate = destructorSort == Term::boolSort();
     bool added;
-    unsigned destructorFunctor = isPredicate ? env.signature->addPredicate(destructorName, 1, added)
-                                             : env.signature->addFunction(destructorName,  1, added);
+    unsigned destructorFunctor = isPredicate ? env->signature->addPredicate(destructorName, 1, added)
+                                             : env->signature->addFunction(destructorName,  1, added);
     ASS(added);
 
     OperatorType* destructorType = isPredicate ? OperatorType::getPredicateType(1, &taSort)
@@ -1058,9 +1058,9 @@ TermAlgebraConstructor* SMTLIB2::buildTermAlgebraConstructor(vstring constrName,
     LOG1("build destructor "+destructorName+": "+destructorType->toString());
 
     if (isPredicate) {
-      env.signature->getPredicate(destructorFunctor)->setType(destructorType);
+      env->signature->getPredicate(destructorFunctor)->setType(destructorType);
     } else {
-      env.signature->getFunction(destructorFunctor)->setType(destructorType);
+      env->signature->getFunction(destructorFunctor)->setType(destructorType);
     }
 
     ALWAYS(_declaredFunctions.insert(destructorName, make_pair(destructorFunctor, !isPredicate)));
@@ -1322,16 +1322,16 @@ void SMTLIB2::parseLetPrepareLookup(LExpr* exp)
 
     TermList trm;
     if (sort == Term::boolSort()) {
-      unsigned symb = env.signature->addFreshPredicate(0,"sLP");
+      unsigned symb = env->signature->addFreshPredicate(0,"sLP");
       OperatorType* type = OperatorType::getPredicateType(0, nullptr);
-      env.signature->getPredicate(symb)->setType(type);
+      env->signature->getPredicate(symb)->setType(type);
 
       Formula* atom = new AtomicFormula(Literal::create(symb,0,true,false,nullptr));
       trm = TermList(Term::createFormula(atom));
     } else {
-      unsigned symb = env.signature->addFreshFunction (0,"sLF");
+      unsigned symb = env->signature->addFreshFunction (0,"sLF");
       OperatorType* type = OperatorType::getFunctionType(0, nullptr, sort);
-      env.signature->getFunction(symb)->setType(type);
+      env->signature->getFunction(symb)->setType(type);
 
       trm = TermList(Term::createConstant(symb));
     }
@@ -1459,9 +1459,9 @@ void SMTLIB2::parseAnnotatedTerm(LExpr* exp)
   static bool annotation_warning = false; // print warning only once
 
   if (!annotation_warning) {
-    //env.beginOutput();
-    //env.out() << "% Warning: term annotations ignored!" << endl;
-    //env.endOutput();
+    //env->beginOutput();
+    //env->out() << "% Warning: term annotations ignored!" << endl;
+    //env->endOutput();
     annotation_warning = true;
   }
 
@@ -1529,8 +1529,8 @@ bool SMTLIB2::parseAsUserDefinedSymbol(const vstring& id,LExpr* exp)
   unsigned symbIdx = fun.first;
   bool isTrueFun = fun.second;
 
-  Signature::Symbol* symbol = isTrueFun ? env.signature->getFunction(symbIdx)
-                                        : env.signature->getPredicate(symbIdx);
+  Signature::Symbol* symbol = isTrueFun ? env->signature->getFunction(symbIdx)
+                                        : env->signature->getPredicate(symbIdx);
   OperatorType* type = isTrueFun ? symbol->fnType() : symbol->predType();
 
   unsigned arity = symbol->arity();
@@ -1697,7 +1697,7 @@ bool SMTLIB2::parseAsBuiltinFormulaSymbol(const vstring& id, LExpr* exp)
         }
       } else {
         Interpretation intp = getFormulaSymbolInterpretation(fs,firstParseResult.sort);
-        pred = env.signature->getInterpretingSymbol(intp);
+        pred = env->signature->getInterpretingSymbol(intp);
         TermList first;
         TermList second;
         firstParseResult.asTerm(first);
@@ -1734,7 +1734,7 @@ bool SMTLIB2::parseAsBuiltinFormulaSymbol(const vstring& id, LExpr* exp)
           }
         } else {
           Interpretation intp = getFormulaSymbolInterpretation(fs,firstParseResult.sort);
-          pred = env.signature->getInterpretingSymbol(intp);
+          pred = env->signature->getInterpretingSymbol(intp);
           TermList first;
           TermList second;
           firstParseResult.asTerm(first);
@@ -1809,7 +1809,7 @@ bool SMTLIB2::parseAsBuiltinFormulaSymbol(const vstring& id, LExpr* exp)
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
 
-      unsigned pred = env.signature->getInterpretingSymbol(Theory::REAL_IS_INT);
+      unsigned pred = env->signature->getInterpretingSymbol(Theory::REAL_IS_INT);
       Formula* res = new AtomicFormula(Literal::create1(pred,true,arg));
 
       _results.push(res);
@@ -1888,7 +1888,7 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
 
-      unsigned fun = env.signature->getInterpretingSymbol(Theory::INT_TO_REAL);
+      unsigned fun = env->signature->getInterpretingSymbol(Theory::INT_TO_REAL);
       TermList res = TermList(Term::create1(fun,theInt));
 
       _results.push(ParseResult(Term::realSort(),res));
@@ -1902,7 +1902,7 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
 
-      unsigned fun = env.signature->getInterpretingSymbol(Theory::REAL_TO_INT);
+      unsigned fun = env->signature->getInterpretingSymbol(Theory::REAL_TO_INT);
       TermList res = TermList(Term::create1(fun,theReal));
 
       _results.push(ParseResult(Term::intSort(),res));
@@ -1927,14 +1927,14 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
 
       if (SortHelper::getInnerSort(arraySortIdx)== Term::boolSort()) {
         OperatorType* predType = Theory::getArrayOperatorType(arraySortIdx,Theory::ARRAY_BOOL_SELECT);
-        unsigned pred = env.signature->getInterpretingSymbol(Theory::ARRAY_BOOL_SELECT,predType);
+        unsigned pred = env->signature->getInterpretingSymbol(Theory::ARRAY_BOOL_SELECT,predType);
 
         Formula* res = new AtomicFormula(Literal::create2(pred,true,theArray,theIndex));
 
         _results.push(ParseResult(res));
       } else {
         OperatorType* funType = Theory::getArrayOperatorType(arraySortIdx,Theory::ARRAY_SELECT);
-        unsigned fun = env.signature->getInterpretingSymbol(Theory::ARRAY_SELECT,funType);
+        unsigned fun = env->signature->getInterpretingSymbol(Theory::ARRAY_SELECT,funType);
 
         TermList res = TermList(Term::create2(fun,theArray,theIndex));
 
@@ -1967,7 +1967,7 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
       }
 
       OperatorType* funType = Theory::getArrayOperatorType(arraySortIdx,Theory::ARRAY_STORE);
-      unsigned fun = env.signature->getInterpretingSymbol(Theory::ARRAY_STORE,funType);
+      unsigned fun = env->signature->getInterpretingSymbol(Theory::ARRAY_STORE,funType);
 
       TermList args[] = {theArray, theIndex, theValue};
       TermList res = TermList(Term::Term::create(fun, 3, args));
@@ -1984,7 +1984,7 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
 
-      unsigned fun = env.signature->getInterpretingSymbol(Theory::INT_ABS);
+      unsigned fun = env->signature->getInterpretingSymbol(Theory::INT_ABS);
       TermList res = TermList(Term::create1(fun,theInt));
 
       _results.push(ParseResult(Term::intSort(),res));
@@ -1999,7 +1999,7 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
 
-      unsigned fun = env.signature->getInterpretingSymbol(Theory::INT_REMAINDER_E); // TS_MOD is the always positive remainder, therefore INT_REMAINDER_E
+      unsigned fun = env->signature->getInterpretingSymbol(Theory::INT_REMAINDER_E); // TS_MOD is the always positive remainder, therefore INT_REMAINDER_E
       TermList res = TermList(Term::create2(fun,int1,int2));
 
       _results.push(ParseResult(Term::intSort(),res));
@@ -2022,7 +2022,7 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
       if (_results.isEmpty() || _results.top().isSeparator()) {
         if (ts == TS_MINUS) { // unary minus
           Interpretation intp = getUnaryMinusInterpretation(sort);
-          unsigned fun = env.signature->getInterpretingSymbol(intp);
+          unsigned fun = env->signature->getInterpretingSymbol(intp);
 
           TermList res = TermList(Term::create1(fun,first));
 
@@ -2035,7 +2035,7 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
       }
 
       Interpretation intp = getTermSymbolInterpretation(ts,sort);
-      unsigned fun = env.signature->getInterpretingSymbol(intp);
+      unsigned fun = env->signature->getInterpretingSymbol(intp);
 
       TermList second;
       if (_results.pop().asTerm(second) != sort) {
@@ -2092,8 +2092,8 @@ void SMTLIB2::parseRankedFunctionApplication(LExpr* exp)
       complainAboutArgShortageOrWrongSorts("ranked function symbol",exp);
     }
 
-    unsigned pred = env.signature->getInterpretingSymbol(Theory::INT_DIVIDES);
-    env.signature->recordDividesNvalue(divisorTerm);
+    unsigned pred = env->signature->getInterpretingSymbol(Theory::INT_DIVIDES);
+    env->signature->recordDividesNvalue(divisorTerm);
 
     Formula* res = new AtomicFormula(Literal::create2(pred,true,divisorTerm,arg));
 
@@ -2106,16 +2106,16 @@ void SMTLIB2::parseRankedFunctionApplication(LExpr* exp)
     if (_declaredFunctions.find(consName)) {
       DeclaredFunction& f = _declaredFunctions.get(consName);
       if (f.second) {
-        TermAlgebraConstructor* c = env.signature->getTermAlgebraConstructor(f.first);
+        TermAlgebraConstructor* c = env->signature->getTermAlgebraConstructor(f.first);
         if (c) /* else the symbol is not a TA constructor */ {
-          TermList sort = env.signature->getFunction(f.first)->fnType()->result();
+          TermList sort = env->signature->getFunction(f.first)->fnType()->result();
           if (!c->hasDiscriminator()) {
             // add discriminator predicate
             bool added;
-            unsigned pred = env.signature->addPredicate(c->discriminatorName(), 1, added);
+            unsigned pred = env->signature->addPredicate(c->discriminatorName(), 1, added);
             ASS(added);
             OperatorType* type = OperatorType::getPredicateType({ sort });
-            env.signature->getPredicate(pred)->setType(type);
+            env->signature->getPredicate(pred)->setType(type);
             c->addDiscriminator(pred);
             // this predicate is not declare for the parser as it has a reserved name
           }
@@ -2347,11 +2347,11 @@ void SMTLIB2::colorSymbol(const vstring& name, Color color)
   }
   DeclaredFunction& f = _declaredFunctions.get(name);
 
-  env.colorUsed = true;
+  env->colorUsed = true;
   
   Signature::Symbol* sym = f.second
-    ? env.signature->getFunction(f.first)
-    : env.signature->getPredicate(f.first);
+    ? env->signature->getFunction(f.first)
+    : env->signature->getPredicate(f.first);
 
   sym->addColor(color);
 }

@@ -103,8 +103,8 @@ long long LRS::estimatedReachableCount()
   }
 #endif
 
-  long long processed=env.statistics->activeClauses;
-  int currTime=env.timer->elapsedMilliseconds();
+  long long processed=env->statistics->activeClauses;
+  int currTime=env->timer->elapsedMilliseconds();
   long long timeSpent=currTime-_startTime;
   //the result is in miliseconds, as _opt.lrsFirstTimeCheck() is in percents.
   int firstCheck=_opt.lrsFirstTimeCheck()*_opt.timeLimitInDeciseconds();

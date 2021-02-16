@@ -276,7 +276,7 @@ void Problem::refreshProperty() const
   CALL("Problem::refreshProperty");
 
   TimeCounter tc(TC_PROPERTY_EVALUATION);
-  ScopedLet<Statistics::ExecutionPhase> phaseLet(env.statistics->phase, Statistics::PROPERTY_SCANNING);
+  ScopedLet<Statistics::ExecutionPhase> phaseLet(env->statistics->phase, Statistics::PROPERTY_SCANNING);
 
   if(_property) {
     delete _property;

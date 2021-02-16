@@ -137,7 +137,7 @@ void TPTP::parse()
       break;
     case THF:
       _isThf = true;
-      env.statistics->higherOrder = true;
+      env->statistics->higherOrder = true;
     case TFF:
       _isFof = false;
       tff();
@@ -255,7 +255,7 @@ void TPTP::parse()
       symbolDefinition();
       break;
     case TUPLE_DEFINITION:
-      if(!env.options->newCNF()){ USER_ERROR("Set --newcnf on if using tuples"); }
+      if(!env->options->newCNF()){ USER_ERROR("Set --newcnf on if using tuples"); }
       tupleDefinition();
       break;
     case END_LET:
@@ -265,7 +265,7 @@ void TPTP::parse()
       endTheoryFunction();
       break;
     case END_TUPLE:
-      if(!env.options->newCNF()){ USER_ERROR("Set --newcnf on if using tuples"); }
+      if(!env->options->newCNF()){ USER_ERROR("Set --newcnf on if using tuples"); }
       endTuple();
       break;
     default:
@@ -1213,7 +1213,7 @@ int TPTP::positiveDecimal(int pos)
 void TPTP::unitList()
 {
   CALL("TPTP::unitList");
-  if (env.timeLimitReached()) {
+  if (env->timeLimitReached()) {
     // empty states to avoid infinite loop
     while (!_states.isEmpty()) {
       _states.pop();
@@ -1416,8 +1416,8 @@ void TPTP::tff()
         bool added = false;
         unsigned fun = arity == 0
             ? addUninterpretedConstant(nm, _overflow, added)
-            : env.signature->addFunction(nm, arity, added);
-        Signature::Symbol* symbol = env.signature->getFunction(fun);
+            : env->signature->addFunction(nm, arity, added);
+        Signature::Symbol* symbol = env->signature->getFunction(fun);
         OperatorType* ot = OperatorType::getFunctionTypeUniformRange(arity, Term::superSort(), Term::superSort());
         if (!added) {
           if(symbol->fnType()!=ot){
@@ -1945,7 +1945,7 @@ void TPTP::endApp()
   args.push(s2);
   args.push(lhs);
   args.push(rhs);
-  unsigned app = env.signature->getApp();
+  unsigned app = env->signature->getApp();
   
   _termLists.push(TermList(Term::create(app, 4, args.begin())));
   _lastPushed = TM;
@@ -2053,7 +2053,7 @@ void TPTP::endTheoryFunction() {
   }
 
   OperatorType* type = Theory::getArrayOperatorType(arraySort,itp);
-  unsigned symbol = env.signature->getInterpretingSymbol(itp, type);
+  unsigned symbol = env->signature->getInterpretingSymbol(itp, type);
   unsigned arity = Theory::getArity(itp);
 
   if (Theory::isFunction(itp)) {
@@ -2123,7 +2123,7 @@ void TPTP::include()
   // here should be a computation of the new include directory according to
   // the TPTP standard, so far we just set it to ""
   _includeDirectory = "";
-  vstring fileName(env.options->includeFileName(relativeName));
+  vstring fileName(env->options->includeFileName(relativeName));
   {
     BYPASSING_ALLOCATOR; // we cannot make ifstream allocated via Allocator
     _in = new ifstream(fileName.c_str());
@@ -2289,7 +2289,7 @@ void TPTP::funApp()
       return;
 
     case T_ITE:
-      if(env.statistics->higherOrder){
+      if(env->statistics->higherOrder){
         //Does higher-order even use this code? I dont think so.
         USER_ERROR("Higher-order Vampire is currently not compatible with FOOL reasoning");
       }
@@ -2303,7 +2303,7 @@ void TPTP::funApp()
       return;
 
     case T_LET: {
-      if(env.statistics->higherOrder){
+      if(env->statistics->higherOrder){
         //Does higher-order even use this code? I dont think so.        
         USER_ERROR("Higher-order  Vampire is currently not compatible with FOOL reasoning");
       }
@@ -2378,13 +2378,13 @@ void TPTP::endLetTypes()
   bool isPredicate = type->isPredicateType();
 
   unsigned symbol = isPredicate
-                  ? env.signature->addFreshPredicate(arity, name.c_str())
-                  : env.signature->addFreshFunction(arity,  name.c_str());
+                  ? env->signature->addFreshPredicate(arity, name.c_str())
+                  : env->signature->addFreshFunction(arity,  name.c_str());
 
   if (isPredicate) {
-    env.signature->getPredicate(symbol)->setType(type);
+    env->signature->getPredicate(symbol)->setType(type);
   } else {
-    env.signature->getFunction(symbol)->setType(type);
+    env->signature->getFunction(symbol)->setType(type);
   }
 
   LetSymbolName symbolName(name, arity);
@@ -2548,8 +2548,8 @@ void TPTP::symbolDefinition()
 
   if (arity > 0) {
     OperatorType* type = isPredicate
-                       ? env.signature->getPredicate(symbol)->predType()
-                       : env.signature->getFunction(symbol)->fnType();
+                       ? env->signature->getPredicate(symbol)->predType()
+                       : env->signature->getFunction(symbol)->fnType();
 
     unsigned index = 0;
     while (vars.isNonEmpty()) {
@@ -2608,7 +2608,7 @@ void TPTP::tupleDefinition()
 
     TermList sort = isPredicate
                   ? Term::boolSort()
-                  : env.signature->getFunction(symbol)->fnType()->result();
+                  : env->signature->getFunction(symbol)->fnType()->result();
     sorts.push(sort);
 
     if (getTok(0).tag == T_NAME) {
@@ -2650,16 +2650,16 @@ void TPTP::endDefinition() {
 
   TermList refSort = isPredicate
                      ? Term::boolSort()
-                     : env.signature->getFunction(symbol)->fnType()->result();
+                     : env->signature->getFunction(symbol)->fnType()->result();
 
   if (refSort != definitionSort) {
     vstring definitionSortName = definitionSort.toString();
     vstring refSymbolName = isPredicate
-                            ? env.signature->predicateName(symbol)
-                            : env.signature->functionName(symbol);
+                            ? env->signature->predicateName(symbol)
+                            : env->signature->functionName(symbol);
     OperatorType* type = isPredicate
-                         ? env.signature->getPredicate(symbol)->predType()
-                         : env.signature->getFunction(symbol)->fnType();
+                         ? env->signature->getPredicate(symbol)->predType()
+                         : env->signature->getFunction(symbol)->fnType();
     USER_ERROR("The term " + definition.toString() + " of the sort " + definitionSortName +
                " is used as definition of the symbol " + refSymbolName +
                " of the type " + type->toString());
@@ -2726,7 +2726,7 @@ void TPTP::endLet()
 
     bool isTuple = false;
     if (!isPredicate) {
-      TermList resultSort = env.signature->getFunction(symbol)->fnType()->result();
+      TermList resultSort = env->signature->getFunction(symbol)->fnType()->result();
       isTuple = SortHelper::isTupleSort(resultSort);
     }
 
@@ -2926,14 +2926,14 @@ void TPTP::term()
     case T_INT:
     case T_REAL:
     case T_RAT: {
-      if(/*env.statistics->polymorphic ||*/ env.statistics->higherOrder){
+      if(/*env->statistics->polymorphic ||*/ env->statistics->higherOrder){
         USER_ERROR("Polymorphic Vampire is currently not compatible with theory reasoning");
       }
       resetToks();
       unsigned number;
       switch (tok.tag) {
         case T_STRING:
-          number = env.signature->addStringConstant(tok.content);
+          number = env->signature->addStringConstant(tok.content);
           break;
         case T_INT:
           number = addIntegerConstant(tok.content,_overflow,_isFof);
@@ -2949,7 +2949,7 @@ void TPTP::term()
       }
       Term *t = new(0) Term;
       t->makeSymbol(number, 0);
-      t = env.sharing->insert(t);
+      t = env->sharing->insert(t);
       TermList constant(t);
       _termLists.push(constant);
       return;
@@ -3003,7 +3003,7 @@ void TPTP::endTerm()
   }
 
   LetSymbolReference ref;
-  if (env.signature->predicateExists(name, arity) ||
+  if (env->signature->predicateExists(name, arity) ||
       (findLetSymbol(LetSymbolName(name, arity), ref) && IS_PREDICATE(ref)) ||
       findInterpretedPredicate(name, arity)) {
     // if the function symbol is actually a predicate,
@@ -3181,7 +3181,7 @@ Formula* TPTP::createPredicateApplication(vstring name, unsigned arity)
       bool dummy;
       pred = addPredicate(name, arity, dummy, _termLists.top());
     } else {
-      pred = env.signature->addPredicate(name, 0);
+      pred = env->signature->addPredicate(name, 0);
     }
   }
   if (pred == -1) { // equality
@@ -3204,20 +3204,20 @@ Formula* TPTP::createPredicateApplication(vstring name, unsigned arity)
       return distinct_formula;
     }else{
       // Otherwise record them as being in a distinct group
-      unsigned grpIdx = env.signature->createDistinctGroup(0);
+      unsigned grpIdx = env->signature->createDistinctGroup(0);
       for(int i = arity-1;i >=0; i--){
         TermList ts = _termLists.pop();
         if(!ts.isTerm() || ts.term()->arity()!=0){
           USER_ERROR("$distinct should only be used positively with constants");
         }
-        env.signature->addToDistinctGroup(ts.term()->functor(),grpIdx);
+        env->signature->addToDistinctGroup(ts.term()->functor(),grpIdx);
       }
       return new Formula(true); // we ignore it, it evaluates to true as we have recorded it elsewhere
     }
   }
   // not equality or distinct
   Literal* lit = new(arity) Literal(pred,arity,true,false);
-  OperatorType* type = env.signature->getPredicate(pred)->predType();
+  OperatorType* type = env->signature->getPredicate(pred)->predType();
   bool safe = true;
   for (int i = arity-1;i >= 0;i--) {
     TermList sort = type->arg(i);
@@ -3240,7 +3240,7 @@ Formula* TPTP::createPredicateApplication(vstring name, unsigned arity)
     *(lit->nthArgument(i)) = ts;
   }
   if (safe) {
-    lit = env.sharing->insert(lit);
+    lit = env->sharing->insert(lit);
   }
   return new AtomicFormula(lit);
 } // createPredicateApplication
@@ -3270,7 +3270,7 @@ TermList TPTP::createFunctionApplication(vstring name, unsigned arity)
   }
   Term* t = new(arity) Term;
   t->makeSymbol(fun,arity);
-  OperatorType* type = env.signature->getFunction(fun)->fnType();
+  OperatorType* type = env->signature->getFunction(fun)->fnType();
   bool safe = true;
   for (int i = arity-1;i >= 0;i--) {
     TermList sort = type->arg(i);
@@ -3294,12 +3294,12 @@ TermList TPTP::createFunctionApplication(vstring name, unsigned arity)
     safe = safe && ss.isSafe();
   }
   if (safe) {
-    t = env.sharing->insert(t);
+    t = env->sharing->insert(t);
   }
   TermList ts(t);
   TermList resultSort = type->result();
   if(resultSort == Term::superSort()){
-    env.sorts->addSort(ts);
+    env->sorts->addSort(ts);
   }
   return ts;
 }
@@ -3608,12 +3608,12 @@ void TPTP::endFof()
 
   Unit* unit;
   if (isFof) { // fof() or tff()
-    env.statistics->inputFormulas++;
+    env->statistics->inputFormulas++;
     unit = new FormulaUnit(f,FromInput(_lastInputType));
     unit->setInheritedColor(_currentColor);
   }
   else { // cnf()
-    env.statistics->inputClauses++;
+    env->statistics->inputClauses++;
     // convert the input formula f to a clause
     Stack<Formula*> forms;
     Stack<Literal*> lits;
@@ -3664,7 +3664,7 @@ void TPTP::endFof()
     _unitSources->insert(unit,source);
   }
 
-  if (env.options->outputAxiomNames()) {
+  if (env->options->outputAxiomNames()) {
     assignAxiomName(unit,nm);
   }
 #if DEBUG_SHOW_UNITS
@@ -3679,19 +3679,19 @@ void TPTP::endFof()
     if(!isFof) USER_ERROR("conjecture is not allowed in cnf");
     if(_seenConjecture) USER_ERROR("Vampire only supports a single conjecture in a problem");
     _seenConjecture=true;
-    if (_isQuestion && ((env.options->mode() == Options::Mode::CLAUSIFY) || (env.options->mode() == Options::Mode::TCLAUSIFY)) && f->connective() == EXISTS) {
+    if (_isQuestion && ((env->options->mode() == Options::Mode::CLAUSIFY) || (env->options->mode() == Options::Mode::TCLAUSIFY)) && f->connective() == EXISTS) {
       // create an answer predicate
       QuantifiedFormula* g = static_cast<QuantifiedFormula*>(f);
       unsigned arity = VList::length(g->vars());
-      unsigned pred = env.signature->addPredicate("$$answer",arity);
-      env.signature->getPredicate(pred)->markAnswerPredicate();
+      unsigned pred = env->signature->addPredicate("$$answer",arity);
+      env->signature->getPredicate(pred)->markAnswerPredicate();
       Literal* a = new(arity) Literal(pred,arity,true,false);
       VList::Iterator vs(g->vars());
       int i = 0;
       while (vs.hasNext()) {
         a->nthArgument(i++)->makeVar(vs.next());
       }
-      a = env.sharing->insert(a);
+      a = env->sharing->insert(a);
       f = new QuantifiedFormula(FORALL,
         g->vars(),
         g->sorts(),
@@ -3715,13 +3715,13 @@ void TPTP::endFof()
   case UnitInputType::CLAIM:
     {
       bool added;
-      unsigned pred = env.signature->addPredicate(nm,0,added);
+      unsigned pred = env->signature->addPredicate(nm,0,added);
       if (!added) {
   USER_ERROR("Names of claims must be unique: "+nm);
       }
-      env.signature->getPredicate(pred)->markLabel();
+      env->signature->getPredicate(pred)->markLabel();
       Literal* a = new(0) Literal(pred,0,true,false);
-      a = env.sharing->insert(a);
+      a = env->sharing->insert(a);
       Formula* claim = new AtomicFormula(a);
       VList* vs = f->freeVariables();
       if (VList::isNonEmpty(vs)) {
@@ -3780,8 +3780,8 @@ void TPTP::endTff()
   bool added;
   Signature::Symbol* symbol;
   if (isPredicate) {
-    unsigned pred = env.signature->addPredicate(name, arity, added);
-    symbol = env.signature->getPredicate(pred);
+    unsigned pred = env->signature->addPredicate(name, arity, added);
+    symbol = env->signature->getPredicate(pred);
     if (!added) {
       // GR: Multiple identical type declarations for a symbol are allowed
       if(symbol->predType() != ot){
@@ -3796,8 +3796,8 @@ void TPTP::endTff()
   } else {
     unsigned fun = arity == 0
                    ? addUninterpretedConstant(name, _overflow, added)
-                   : env.signature->addFunction(name, arity, added);
-    symbol = env.signature->getFunction(fun);
+                   : env->signature->addFunction(name, arity, added);
+    symbol = env->signature->getFunction(fun);
     if (!added) {
       if(symbol->fnType() != ot){
         USER_ERROR("Function symbol type is declared after its use: " + name);
@@ -3888,7 +3888,7 @@ OperatorType* TPTP::constructOperatorType(Type* t, VList* vars)
   bool isPredicate = resultSort == Term::boolSort();
   unsigned arity = (unsigned)argumentSorts.size();
 
-  if(env.statistics->polymorphic){
+  if(env->statistics->polymorphic){
     SortHelper::normaliseArgSorts(vars, argumentSorts);
     SortHelper::normaliseSort(vars, resultSort);
   }
@@ -4164,7 +4164,7 @@ void TPTP::simpleType()
   Token& tok = getTok(0);
 
   if(tok.tag == T_TYPE_QUANT) {
-    env.statistics->polymorphic = true;
+    env->statistics->polymorphic = true;
     resetToks();
     _typeTags.push(TT_QUANTIFIED);
     consumeToken(T_LBRA);
@@ -4613,10 +4613,10 @@ unsigned TPTP::addFunction(vstring name,int arity,bool& added,TermList& arg)
 				 Theory::REAL_TO_REAL);
   } 
   if (name == "vPI"  || name == "vSIGMA"){
-    return env.signature->getPiSigmaProxy(name); 
+    return env->signature->getPiSigmaProxy(name); 
   }
   if (arity > 0) {
-    return env.signature->addFunction(name,arity,added);
+    return env->signature->addFunction(name,arity,added);
   }
   return addUninterpretedConstant(name,_overflow,added);
 } // addFunction
@@ -4686,7 +4686,7 @@ int TPTP::addPredicate(vstring name,int arity,bool& added,TermList& arg)
     // special case for distinct, dealt with in formulaInfix
     return -2;
   }
-  return env.signature->addPredicate(name,arity,added);
+  return env->signature->addPredicate(name,arity,added);
 } // addPredicate
 
 
@@ -4706,13 +4706,13 @@ unsigned TPTP::addOverloadedFunction(vstring name,int arity,int symbolArity,bool
     n = n->next();
   }
   if (srt == Term::intSort()) {
-    return env.signature->addInterpretedFunction(integer,name);
+    return env->signature->addInterpretedFunction(integer,name);
   }
   if (srt == Term::rationalSort()) {
-    return env.signature->addInterpretedFunction(rational,name);
+    return env->signature->addInterpretedFunction(rational,name);
   }
   if (srt == Term::realSort()) {
-    return env.signature->addInterpretedFunction(real,name);
+    return env->signature->addInterpretedFunction(real,name);
   }
   USER_ERROR((vstring)"The symbol " + name + " is used with a non-numeric type");
 } // addOverloadedFunction
@@ -4734,13 +4734,13 @@ unsigned TPTP::addOverloadedPredicate(vstring name,int arity,int symbolArity,boo
   }
   
   if (srt == Term::intSort()) {
-    return env.signature->addInterpretedPredicate(integer,name);
+    return env->signature->addInterpretedPredicate(integer,name);
   }
   if (srt == Term::rationalSort()) {
-    return env.signature->addInterpretedPredicate(rational,name);
+    return env->signature->addInterpretedPredicate(rational,name);
   }
   if (srt == Term::realSort()) {
-    return env.signature->addInterpretedPredicate(real,name);
+    return env->signature->addInterpretedPredicate(real,name);
   }
   USER_ERROR((vstring)"The symbol " + name + " is used with a non-numeric type");
 } // addOverloadedPredicate
@@ -4792,14 +4792,14 @@ unsigned TPTP::addIntegerConstant(const vstring& name, Set<vstring>& overflow, b
   CALL("TPTP::addIntegerConstant");
 
   try {
-    return env.signature->addIntegerConstant(name,defaultSort);
+    return env->signature->addIntegerConstant(name,defaultSort);
   }
   catch (Kernel::ArithmeticException&) {
     bool added;
-    unsigned fun = env.signature->addFunction(name,0,added,true /* overflown constant*/);
+    unsigned fun = env->signature->addFunction(name,0,added,true /* overflown constant*/);
     if (added) {
       overflow.insert(name);
-      Signature::Symbol* symbol = env.signature->getFunction(fun);
+      Signature::Symbol* symbol = env->signature->getFunction(fun);
       symbol->setType(OperatorType::getConstantsType(defaultSort ? Term::defaultSort() : Term::intSort()));
     }
     else if (!overflow.contains(name)) {
@@ -4826,16 +4826,16 @@ unsigned TPTP::addRationalConstant(const vstring& name, Set<vstring>& overflow, 
   size_t i = name.find_first_of("/");
   ASS(i != vstring::npos);
   try {
-    return env.signature->addRationalConstant(name.substr(0,i),
+    return env->signature->addRationalConstant(name.substr(0,i),
 					      name.substr(i+1),
 					      defaultSort);
   }
   catch(Kernel::ArithmeticException&) {
     bool added;
-    unsigned fun = env.signature->addFunction(name,0,added,true /* overflown constant*/);
+    unsigned fun = env->signature->addFunction(name,0,added,true /* overflown constant*/);
     if (added) {
       overflow.insert(name);
-      Signature::Symbol* symbol = env.signature->getFunction(fun);
+      Signature::Symbol* symbol = env->signature->getFunction(fun);
       symbol->setType(OperatorType::getConstantsType(defaultSort ? Term::defaultSort() : Term::rationalSort()));
     }
     else if (!overflow.contains(name)) {
@@ -4860,14 +4860,14 @@ unsigned TPTP::addRealConstant(const vstring& name, Set<vstring>& overflow, bool
   CALL("TPTP::addRealConstant");
 
   try {
-    return env.signature->addRealConstant(name,defaultSort);
+    return env->signature->addRealConstant(name,defaultSort);
   }
   catch(Kernel::ArithmeticException&) {
     bool added;
-    unsigned fun = env.signature->addFunction(name,0,added,true /* overflown constant*/);
+    unsigned fun = env->signature->addFunction(name,0,added,true /* overflown constant*/);
     if (added) {
       overflow.insert(name);
-      Signature::Symbol* symbol = env.signature->getFunction(fun);
+      Signature::Symbol* symbol = env->signature->getFunction(fun);
       symbol->setType(OperatorType::getConstantsType(defaultSort ? Term::defaultSort() : Term::realSort()));
     }
     else if (!overflow.contains(name)) {
@@ -4895,11 +4895,11 @@ unsigned TPTP::addUninterpretedConstant(const vstring& name, Set<vstring>& overf
   //and cannot occur in the input AYB
   if(name == "vAND" || name == "vOR" || name == "vIMP" ||
      name == "vIFF" || name == "vXOR"){
-    return env.signature->getBinaryProxy(name);
+    return env->signature->getBinaryProxy(name);
   } else if (name == "vNOT"){
-    return env.signature->getNotProxy();
+    return env->signature->getNotProxy();
   }
-  return env.signature->addFunction(name,0,added);
+  return env->signature->addFunction(name,0,added);
 } // TPTP::addUninterpretedConstant
 
 /**
@@ -4942,7 +4942,7 @@ void TPTP::vampire()
     case T_INT:
     case T_REAL:
     case T_NAME:
-      env.options->set(opt,tok.content);
+      env->options->set(opt,tok.content);
       resetToks();
       break;
     default:
@@ -4988,11 +4988,11 @@ void TPTP::vampire()
       bool polarity;
       if(pol=="true"){polarity=true;}else if(pol=="false"){polarity=false;}
       else{ PARSE_ERROR("polarity expected (true/false)",getTok(0)); }
-      unsigned f = env.signature->addPredicate(symb,arity);
+      unsigned f = env->signature->addPredicate(symb,arity);
       theory->registerLaTeXPredName(f,polarity,temp);
     }
     else{
-      unsigned f = env.signature->addFunction(symb,arity);
+      unsigned f = env->signature->addFunction(symb,arity);
       theory->registerLaTeXFuncName(f,temp);
     }
   }
@@ -5037,10 +5037,10 @@ void TPTP::vampire()
     else {
       PARSE_ERROR("'left', 'right' or 'skip' expected",getTok(0));
     }
-    env.colorUsed = true;
+    env->colorUsed = true;
     Signature::Symbol* sym = pred
-                             ? env.signature->getPredicate(env.signature->addPredicate(symb,arity))
-                             : env.signature->getFunction(env.signature->addFunction(symb,arity));
+                             ? env->signature->getPredicate(env->signature->addPredicate(symb,arity))
+                             : env->signature->getFunction(env->signature->addFunction(symb,arity));
     if (skip) {
       sym->markSkip();
     }
@@ -5304,8 +5304,8 @@ void TPTP::printStacks() {
         unsigned symbol  = f.second.first;
         bool isPredicate = f.second.second;
 
-        vstring symbolName = isPredicate ? env.signature->predicateName(symbol)
-                                         : env.signature->functionName (symbol);
+        vstring symbolName = isPredicate ? env->signature->predicateName(symbol)
+                                         : env->signature->functionName (symbol);
 
         cout << name << "/" << arity << " -> " << symbolName;
         if (--i > 0) {
@@ -5333,8 +5333,8 @@ void TPTP::printStacks() {
         unsigned symbol  = f.second.first;
         bool isPredicate = f.second.second;
 
-        vstring symbolName = isPredicate ? env.signature->predicateName(symbol)
-                                         : env.signature->functionName (symbol);
+        vstring symbolName = isPredicate ? env->signature->predicateName(symbol)
+                                         : env->signature->functionName (symbol);
 
         cout << name << "/" << arity << " -> " << symbolName;
         if (--i > 0) {
@@ -5360,8 +5360,8 @@ void TPTP::printStacks() {
         LetSymbolReference ref = lbit.next();
         unsigned symbol = SYMBOL(ref);
         bool isPredicate = IS_PREDICATE(ref);
-        vstring symbolName = isPredicate ? env.signature->predicateName(symbol)
-                                         : env.signature->functionName (symbol);
+        vstring symbolName = isPredicate ? env->signature->predicateName(symbol)
+                                         : env->signature->functionName (symbol);
         cout << symbolName;
         if (--i > 0) {
           cout << ", ";

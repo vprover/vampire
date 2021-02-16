@@ -92,7 +92,7 @@ ClauseIterator getProblemClauses()
   {
     TimeCounter tc1(TC_PARSING);
 
-    vstring inputFile = env.options->inputFile();
+    vstring inputFile = env->options->inputFile();
 
     istream* input;
     if(inputFile=="") {
@@ -104,8 +104,8 @@ ClauseIterator getProblemClauses()
       }
     }
 
-    env.statistics->phase=Statistics::PARSING;
-    if(env.options->inputSyntax()!=Options::IS_TPTP) {
+    env->statistics->phase=Statistics::PARSING;
+    if(env->options->inputSyntax()!=Options::IS_TPTP) {
       USER_ERROR("Unsupported input syntax");
     }
 
@@ -129,9 +129,9 @@ ClauseIterator getProblemClauses()
 
   TimeCounter tc2(TC_PREPROCESSING);
 
-  env.statistics->phase=Statistics::PROPERTY_SCANNING;
+  env->statistics->phase=Statistics::PROPERTY_SCANNING;
   property.scan(units);
-  Preprocess prepro(property,*env.options);
+  Preprocess prepro(property,*env->options);
   //phases for preprocessing are being set inside the proprocess method
   prepro.preprocess(units);
 
@@ -144,67 +144,67 @@ void outputResult()
 {
   CALL("outputResult()");
 
-  switch (env.statistics->terminationReason) {
+  switch (env->statistics->terminationReason) {
   case Statistics::REFUTATION:
-    env.out << "Refutation found. Thanks to "
-	    << env.options->thanks() << "!\n";
-    if (env.options->proof() != Options::PROOF_OFF) {
-//	Shell::Refutation refutation(env.statistics->refutation,
-//		env.options->proof() == Options::PROOF_ON);
-//	refutation.output(env.out);
-      InferenceStore::instance()->outputProof(env.out, env.statistics->refutation);
+    env->out << "Refutation found. Thanks to "
+	    << env->options->thanks() << "!\n";
+    if (env->options->proof() != Options::PROOF_OFF) {
+//	Shell::Refutation refutation(env->statistics->refutation,
+//		env->options->proof() == Options::PROOF_ON);
+//	refutation.output(env->out);
+      InferenceStore::instance()->outputProof(env->out, env->statistics->refutation);
     }
-    if(env.options->showInterpolant()!=Options::INTERP_OFF) {
-      ASS(env.statistics->refutation->isClause());
-      Formula* interpolant=Interpolants::getInterpolant(static_cast<Clause*>(env.statistics->refutation));
-      env.out << "Interpolant: " << interpolant->toString() << endl;
+    if(env->options->showInterpolant()!=Options::INTERP_OFF) {
+      ASS(env->statistics->refutation->isClause());
+      Formula* interpolant=Interpolants::getInterpolant(static_cast<Clause*>(env->statistics->refutation));
+      env->out << "Interpolant: " << interpolant->toString() << endl;
     }
-    if(env.options->latexOutput()!="off") {
-      ofstream latexOut(env.options->latexOutput().c_str());
+    if(env->options->latexOutput()!="off") {
+      ofstream latexOut(env->options->latexOutput().c_str());
 
       LaTeX formatter;
-      latexOut<<formatter.refutationToString(env.statistics->refutation);
+      latexOut<<formatter.refutationToString(env->statistics->refutation);
     }
     break;
   case Statistics::TIME_LIMIT:
-    env.out << "Time limit reached!\n";
+    env->out << "Time limit reached!\n";
     break;
   case Statistics::MEMORY_LIMIT:
 #if VDEBUG
     Allocator::reportUsageByClasses();
 #endif
-    env.out << "Memory limit exceeded!\n";
+    env->out << "Memory limit exceeded!\n";
     break;
   case Statistics::REFUTATION_NOT_FOUND:
-    if(env.options->complete()) {
-      ASS_EQ(env.options->saturationAlgorithm(), Options::LRS);
-      env.out << "Refutation not found, LRS age and weight limit was active for some time!\n";
+    if(env->options->complete()) {
+      ASS_EQ(env->options->saturationAlgorithm(), Options::LRS);
+      env->out << "Refutation not found, LRS age and weight limit was active for some time!\n";
     } else {
-      env.out << "Refutation not found with incomplete strategy!\n";
+      env->out << "Refutation not found with incomplete strategy!\n";
     }
     break;
   case Statistics::SATISFIABLE:
-    env.out << "Refutation not found!\n";
+    env->out << "Refutation not found!\n";
     break;
   case Statistics::UNKNOWN:
-    env.out << "Unknown reason of termination!\n";
+    env->out << "Unknown reason of termination!\n";
     break;
   default:
     ASSERTION_VIOLATION;
   }
-  env.statistics->print();
+  env->statistics->print();
 }
 
 void explainException (Exception& exception)
 {
-  exception.cry(env.out);
+  exception.cry(env->out);
 } // explainException
 
 void ltbBuildMode()
 {
   CALL("ltbBuildMode");
 
-  vstring inputFile = env.options->inputFile();
+  vstring inputFile = env->options->inputFile();
 
   istream* input0;
   if(inputFile=="") {
@@ -243,31 +243,31 @@ void ltbSolveMode()
 {
   CALL("ltbSolveMode");
 
-  env.beginOutput();
-  env.out()<<env.options->testId()<<" on "<<env.options->problemName()<<endl;
-  env.endOutput();
+  env->beginOutput();
+  env->out()<<env->options->testId()<<" on "<<env->options->problemName()<<endl;
+  env->endOutput();
   try {
     ClauseIterator clauses=getProblemClauses();
     Unit::onPreprocessingEnd();
 
-    env.statistics->phase=Statistics::SATURATION;
+    env->statistics->phase=Statistics::SATURATION;
     MainLoopSP salg=MainLoop::createFromOptions();
     salg->addInputClauses(clauses);
 
     MainLoopResult sres(salg->saturate());
-    env.statistics->phase=Statistics::FINALIZATION;
+    env->statistics->phase=Statistics::FINALIZATION;
     sres.updateStatistics();
   }
   catch(MemoryLimitExceededException) {
-    env.statistics->terminationReason=Statistics::MEMORY_LIMIT;
-    env.statistics->refutation=0;
+    env->statistics->terminationReason=Statistics::MEMORY_LIMIT;
+    env->statistics->refutation=0;
     size_t limit=Allocator::getMemoryLimit();
     //add extra 1 MB to allow proper termination
     Allocator::setMemoryLimit(limit+1000000);
   }
   catch(TimeLimitExceededException) {
-    env.statistics->terminationReason=Statistics::TIME_LIMIT;
-    env.statistics->refutation=0;
+    env->statistics->terminationReason=Statistics::TIME_LIMIT;
+    env->statistics->refutation=0;
   }
   outputResult();
 }
@@ -289,12 +289,12 @@ int main(int argc, char* argv [])
   try {
     // read the command line and interpret it
     Shell::CommandLine cl(argc,argv);
-    cl.interpret(*env.options);
+    cl.interpret(*env->options);
 
-    Allocator::setMemoryLimit(env.options->memoryLimit()*1048576ul);
-    Lib::Random::setSeed(env.options->randomSeed());
+    Allocator::setMemoryLimit(env->options->memoryLimit()*1048576ul);
+    Lib::Random::setSeed(env->options->randomSeed());
 
-    switch (env.options->mode())
+    switch (env->options->mode())
     {
     case Options::MODE_LTB_BUILD:
       ltbBuildMode();
@@ -311,8 +311,8 @@ int main(int argc, char* argv [])
       MemoryLeak leak;
       leak.release(globUnitList);
     }
-    delete env.signature;
-    env.signature = 0;
+    delete env->signature;
+    env->signature = 0;
 #endif
   }
 #if VDEBUG
@@ -336,16 +336,16 @@ int main(int argc, char* argv [])
     MemoryLeak::cancelReport();
 #endif
     explainException(exception);
-    env.statistics->print();
+    env->statistics->print();
   }
   catch (std::bad_alloc& _) {
     reportSpiderFail();
 #if CHECK_LEAKS
     MemoryLeak::cancelReport();
 #endif
-    env.out << "Insufficient system memory" << '\n';
+    env->out << "Insufficient system memory" << '\n';
   }
-//   delete env.allocator;
+//   delete env->allocator;
 
   return EXIT_SUCCESS;
 } // main

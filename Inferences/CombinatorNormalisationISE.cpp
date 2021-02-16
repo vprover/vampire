@@ -191,7 +191,7 @@ bool CombinatorNormalisationISE::replaceWithSmallerCombinator(TermList& t)
                                    AH::getComb(head1) == Signature::S_COMB) &&
              AH::isComb(args1[0]) && AH::getComb(args1[0]) == Signature::K_COMB){
             //S (C K) = I /\ S (S K) = I
-            t =  TermList(Term::create1(env.signature->getCombinator(Signature::I_COMB), AH::getNthArg(sort,1)));
+            t =  TermList(Term::create1(env->signature->getCombinator(Signature::I_COMB), AH::getNthArg(sort,1)));
             return true;
           }
           if(args1.size() == 2 &&
@@ -207,7 +207,7 @@ bool CombinatorNormalisationISE::replaceWithSmallerCombinator(TermList& t)
           TermList arg1 = args[1];
           TermList arg2 = args[0];
           if(AH::isComb(arg1) && AH::getComb(arg1) == Signature::K_COMB){
-            t = TermList(Term::create1(env.signature->getCombinator(Signature::I_COMB), AH::getNthArg(sort,1)));
+            t = TermList(Term::create1(env->signature->getCombinator(Signature::I_COMB), AH::getNthArg(sort,1)));
             return true;
           }
           AH::getHeadAndArgs(arg1, head1, args1);
@@ -250,7 +250,7 @@ bool CombinatorNormalisationISE::replaceWithSmallerCombinator(TermList& t)
       case Signature::B_COMB : {
         if(args.size() == 1){
           if(AH::isComb(args[0]) && AH::getComb(args[0]) == Signature::I_COMB){
-            t =  TermList(Term::create1(env.signature->getCombinator(Signature::I_COMB), AH::getNthArg(sort,1)));
+            t =  TermList(Term::create1(env->signature->getCombinator(Signature::I_COMB), AH::getNthArg(sort,1)));
             return true;
           }
         }
@@ -308,7 +308,7 @@ TermList CombinatorNormalisationISE::createKTerm(TermList s1, TermList s2, TermL
 {
   CALL("CombinatorNormalisationISE::createKTerm");
   
-  unsigned kcomb = env.signature->getCombinator(Signature::K_COMB);
+  unsigned kcomb = env->signature->getCombinator(Signature::K_COMB);
   TermList res = TermList(Term::create2(kcomb, s1, s2));
   res = AH::createAppTerm(SortHelper::getResultSort(res.term()), res, arg1);             
   return res;
@@ -320,7 +320,7 @@ TermList CombinatorNormalisationISE::createSCorBTerm(TermList arg1, TermList arg
   CALL("CombinatorNormalisationISE::createSCorBTerm");
   
   TermList s1, s2, s3;
-  unsigned cb = env.signature->getCombinator(comb);
+  unsigned cb = env->signature->getCombinator(comb);
   
   if(comb == Signature::S_COMB || comb == Signature::C_COMB){
     //cout << "CCOMB arg1 " + arg1.toString() + " of sort " + arg1sort.toString() << endl; 

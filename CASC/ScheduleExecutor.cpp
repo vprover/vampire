@@ -20,7 +20,7 @@ static unsigned getNumWorkers()
 
   unsigned cores = System::getNumberOfCores();
   cores = cores < 1 ? 1 : cores;
-  unsigned workers = min(cores, env.options->multicore());
+  unsigned workers = min(cores, env->options->multicore());
   if(!workers)
   {
     workers = cores >= 8 ? cores - 2 : cores;
