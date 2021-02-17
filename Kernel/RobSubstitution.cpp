@@ -396,6 +396,14 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2,MismatchHandler* hndlr)
         TermSpec tsss(*ss,dt1.index);
         TermSpec tstt(*tt,dt2.index);
 
+
+        //TODO this is currently hard-coded to happen whenever handlr is set, shoudl it be behind an option? 
+        // if both terms are interpreted then call the mismatch handlr
+        if(hndlr && ss->isTerm() && tt->isTerm() && theory->isInterpretedFunction(*ss) && theory->isInterpretedFunction(*tt)){
+          //cout << "HERE" << endl;
+          hndlr->handle(this,tsss.term,tsss.index,tstt.term,tstt.index); 
+          break;
+        }
         // If they don't have the same content but have the same top functor
         // then we need to get their subterm arguments and check those
         if (!tsss.sameTermContent(tstt) && TermList::sameTopFunctor(*ss,*tt)) {
