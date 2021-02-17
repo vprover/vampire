@@ -203,6 +203,10 @@ void GaussElimination::solve()
     printArray(solution, 0, numberOfUnkowns);
 }
 
+}
+
+#if GAUSS 
+
 int main()
 {
     int numberOfEquation = 2;
@@ -218,7 +222,7 @@ int main()
         for (int j = 0; j < numberOfUnkowns + 1; j++)
             rowlist[i][j] = rowVector[i][j];
 
-    GaussElimination ge = GaussElimination(rowlist, numberOfUnkowns, numberOfEquation);
+    DP::GaussElimination ge = DP::GaussElimination(rowlist, numberOfUnkowns, numberOfEquation);
     ge.solve();
 
     // Freeing
@@ -228,5 +232,5 @@ int main()
 
     return 0;
 }
+#endif
 
-}
