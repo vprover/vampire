@@ -897,6 +897,8 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "add sort functions";
   case InferenceRule::INSTANTIATION:
     return "instantiation";
+  case InferenceRule::INEQUALITY_RESOLUTION:
+    return "inequality resolution";
   case InferenceRule::MODEL_NOT_FOUND:
     return "finite model not found";
   case InferenceRule::INDUCTION_AXIOM:

@@ -166,7 +166,8 @@ namespace TypeList {
 
 
   template<unsigned idx, class A>
-  struct Indexed {};
+  struct Indexed 
+  { static unsigned constexpr index = idx; };
 
   /* 
    * Zipps the list of types terms with indices.
@@ -188,6 +189,22 @@ namespace TypeList {
     using type = Concat<List<Indexed<acc, A>>, typename WithIndicesImpl<acc + 1, List<As...>>::type>;
   };
 
+  /* 
+   * Zipps the list of types terms with indices.
+   *
+   * E.g. WithIndices<List<A, B, A>> ==> List<Indexed<0, A>, Indexed<1, B>, Indexed<2, A>>
+   */  
+  template<class A> struct IndicesImpl;
+
+  template<class As> using Indices = typename IndicesImpl<WithIndices<As>>::type;
+
+  template<int...>
+  struct UnsignedList {};
+
+
+  template<class ...As> struct IndicesImpl<List<As...>>
+  { using type = UnsignedList<As::index...>; };
+  
 
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   ////// COMPILE TIME TESTS
@@ -265,6 +282,11 @@ namespace TypeList {
     STATIC_TEST_TYPE_EQ(
        WithIndices<List<A, B, A>>,
        List<Indexed<0, A>, Indexed<1, B>, Indexed<2, A>>)
+
+    STATIC_TEST_TYPE_EQ(
+       Indices<List<A, B, A>>,
+       UnsignedList<0, 1, 2>)
+
   }
 
 } // namespace TypeList
