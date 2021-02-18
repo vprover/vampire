@@ -96,13 +96,15 @@ public:
     return Var{m_used_vars++};
   }
 
-  /// Reserve space for n variables (in total).
-  void reserve_variables(uint32_t count)
-  {
-    m_values.reserve(2 * count);
-    // TODO: call reserve on all necessary vectors where this is necessary
-  }
+  // /// Reserve space for n variables (in total).
+  // void reserve_variables(uint32_t count)
+  // {
+  //   m_values.reserve(2 * count);
+  //   // TODO: call reserve on all necessary vectors where this is necessary
+  // }
 
+  /// Reserve space for a clause of 'capacity' literals
+  /// and returns a handle to the storage.
   [[nodiscard]] AllocatedClause alloc_clause(uint32_t capacity)
   {
     return m_clauses.alloc(capacity);
@@ -117,39 +119,40 @@ public:
     m_clauses.clear();
   }
 
-
-    /*
-  void add_empty_clause()
-  {
-  }
-
-  void add_unit_clause(Lit* lit)
-  {
-  }
-
-  void add_binary_clause(Lit* lit1, Lit* lit2)
-  {
-  }
-  */
-
-  // void add_clause(ClauseRef cref)
-  // {
-  //   // // TODO
-  //   // ClauseRef cr = m_clauses.size();
-  //   // CDEBUG("add_clause: " << cr << " ~> " << *clause);
-  //   // m_clauses.push_back(clause);
-  //   watch_clause(cref);
-  // }
-
   void add_clause(std::initializer_list<Lit> literals)
   {
-    auto c = m_clauses.alloc(literals.size());
-    for (Lit lit : literals) {
-      c.push(lit);
+    add_clause(literals.begin(), literals.size());
+  }
+
+  void add_clause(Lit const* literals, uint32_t count)
+  {
+    auto ca = m_clauses.alloc(count);
+    for (Lit const* p = literals; p < literals + count; ++p) {
+      ca.push(*p);
     }
-    ClauseRef cr = c.build();
-    CDEBUG("add_clause: " << cr << " ~> " << m_clauses.deref(cr));
-    watch_clause(cr);
+    add_clause(ca);
+  }
+
+  void add_clause(AllocatedClause ca)
+  {
+    ClauseRef cr = ca.build();
+    Clause const& c = m_clauses.deref(cr);
+    CDEBUG("add_clause: " << cr << " ~> " << c);
+    for (Lit lit : c) {
+      while (lit.var().index() >= m_used_vars) {
+        (void)new_variable();
+      }
+    }
+    if (c.size() == 0) {
+      m_inconsistent = true;
+    } else if (c.size() == 1) {
+      // TODO: add unit
+    } else {
+      assert(c.size() >= 2);
+      watch_clause(cr);
+    }
+    // TODO: special handling for empty, unit, binary clauses
+    // TODO: check variables and allocate new ones if needed
   }
 
   /// Preconditions: ...

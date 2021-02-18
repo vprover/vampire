@@ -155,7 +155,7 @@ std::ostream& operator<<(std::ostream& os, ClauseRef cr)
 
 
 
-class AllocatedClause
+class AllocatedClause final
 {
 public:
   void push(Lit lit) noexcept
@@ -184,7 +184,6 @@ private:
 #endif
   {
     assert(m_clause);
-    assert(capacity >= 2);
   }
 
   template <typename Allocator> friend class ClauseArena;

@@ -2,29 +2,84 @@
 
 #include <initializer_list>
 #include <iostream>
+#include <string>
 
 using namespace SMTSubsumption;
 
 #ifdef SUBSAT_STANDALONE
+
+/// DIMACS literals are 1, -1, 2, -2, ...
+static Lit from_dimacs(int dimacs_lit)
+{
+  assert(dimacs_lit != 0);
+  Var v(std::abs(dimacs_lit) - 1);
+  return Lit{v, dimacs_lit > 0};
+}
+
+static void parse_dimacs(std::istream& in, Solver& solver)
+{
+  std::string buf;
+
+  in >> buf;
+  if (buf != "p") { throw std::runtime_error{"expected: p"}; }
+  in >> buf;
+  if (buf != "cnf") { throw std::runtime_error{"expected: cnf"}; }
+
+  int expected_vars, expected_clauses;
+  in >> expected_vars;
+  in >> expected_clauses;
+
+  int parsed_vars = 0;
+  int parsed_clauses = 0;
+  int dimacs_lit;
+  std::vector<Lit> clause_buf;
+  while (in >> dimacs_lit) {
+    if (std::abs(dimacs_lit) > parsed_vars) {
+      parsed_vars = std::abs(dimacs_lit);
+    }
+    if (dimacs_lit == 0) {
+      solver.add_clause(clause_buf.data(), clause_buf.size());
+      clause_buf.clear();
+      parsed_clauses += 1;
+    } else {
+      clause_buf.push_back(from_dimacs(dimacs_lit));
+    }
+  }
+  if (!clause_buf.empty()) {
+    throw std::runtime_error{"expected: literal or 0"};
+  }
+  if (parsed_vars != expected_vars) {
+    throw std::runtime_error{"wrong #variables"};
+  }
+  if (parsed_clauses != expected_clauses) {
+    throw std::runtime_error{"wrong #clauses"};
+  }
+}
+
 // TODO: simple dimacs parser so we can test various instances
 int main()
 {
     std::cout << "hello" << std::endl;
 
     Solver s;
-    Var x = s.new_variable();
-    Var y = s.new_variable();
-    Var z = s.new_variable();
 
-    std::cout << "\n\nADDING CLAUSES\n" << std::endl;
-    s.add_clause({x, y, z});
-    s.add_clause({x, y, ~z});
-    s.add_clause({x, ~y, z});
-    s.add_clause({x, ~y, ~z});
-    s.add_clause({~x, y, z});
-    s.add_clause({~x, y, ~z});
-    s.add_clause({~x, ~y, z});
-    s.add_clause({~x, ~y, ~z});
+    std::cout << "\n\nPARSING DIMACS INPUT\n" << std::endl;
+    parse_dimacs(std::cin, s);
+    // return 123;
+
+    // Var x = s.new_variable();
+    // Var y = s.new_variable();
+    // Var z = s.new_variable();
+
+    // std::cout << "\n\nADDING CLAUSES\n" << std::endl;
+    // s.add_clause({x, y, z});
+    // s.add_clause({x, y, ~z});
+    // s.add_clause({x, ~y, z});
+    // s.add_clause({x, ~y, ~z});
+    // s.add_clause({~x, y, z});
+    // s.add_clause({~x, y, ~z});
+    // s.add_clause({~x, ~y, z});
+    // s.add_clause({~x, ~y, ~z});
 
     std::cout << "\n\nSOLVING\n" << std::endl;
     auto res = s.solve();
