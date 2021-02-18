@@ -203,6 +203,7 @@ inline ostream& operator<<(ostream& out, Ordering::Result const& r)
     case Ordering::Result::EQUAL: return out << "EQUAL";
     case Ordering::Result::INCOMPARABLE: return out << "INCOMPARABLE";
   }
+  ASSERTION_VIOLATION
 }
 
 }

@@ -36,13 +36,13 @@ public:
   PolynomialEvaluation(Ordering& ordering);
   virtual ~PolynomialEvaluation();
 
+  Option<PolyNf> evaluate(PolyNf in) const;
 private:
 
   Result simplifyLiteral(Literal*) override;
 
   Option<PolyNf> evaluate(TermList in, SortId sortNumber) const;
   Option<PolyNf> evaluate(Term* in) const;
-  Option<PolyNf> evaluate(PolyNf in) const;
   Option<PolyNf> evaluate(TypedTermList in) const;
 
   Option<Result> tryEvalPredicate(Literal* orig, PolyNf* evaluatedArgs) const;

@@ -212,7 +212,7 @@ struct Generalize
     }
 
     std::sort(out.begin(), out.end());
-    return move(out);
+    return out;
   }
 };
 

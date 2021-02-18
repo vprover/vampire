@@ -56,7 +56,7 @@ bool TestUnit::runTest(vstring const& testCase)
     if (test.name == testCase) {
       try {
         test.proc();
-      } catch (UserErrorException& e) {
+      } catch (Exception& e) {
         e.cry(std::cout);
         std::cout.flush();
         exit(-1);
@@ -166,7 +166,7 @@ bool TestUnit::spawnTest(TestProc proc)
   if(fres == 0) {
     try {
       proc();
-    } catch (UserErrorException& e) {
+    } catch (Exception& e) {
       e.cry(std::cout);
       std::cout.flush();
       exit(-1);
@@ -205,7 +205,7 @@ int main(int argc, const char** argv)
   bool success;
   auto cmd = vstring(argv[1]);
   auto args = Stack<vstring>(argc - 2);
-  for (unsigned i = 2; i < argc; i++) {
+  for (int i = 2; i < argc; i++) {
     args.push(vstring(argv[i]));
   }
   if (cmd == "ls") {

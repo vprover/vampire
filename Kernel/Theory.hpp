@@ -81,6 +81,7 @@ public:
   IntegerConstantType quotientE(const IntegerConstantType& num) const; 
   IntegerConstantType quotientT(const IntegerConstantType& num) const;
   IntegerConstantType quotientF(const IntegerConstantType& num) const; 
+  static IntegerConstantType gcd(IntegerConstantType const& lhs, IntegerConstantType const& rhs);
 
   IntegerConstantType remainderT(const IntegerConstantType& num) const
   { return (*this) - num * quotientT(num); }

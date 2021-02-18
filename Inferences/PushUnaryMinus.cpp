@@ -75,7 +75,7 @@ TermList pushUMinus(UMinus outerMinus, TermList t)
       }
     }
     Stack<TermList> args(term->arity());
-    for (int i =0; i < term->arity(); i++) {
+    for (unsigned i =0; i < term->arity(); i++) {
       args.push(pushUMinus(UMinus::None, *term->nthArgument(i)));
     }
     return wrapMinus(TermList(Term::create(term, args.begin())));
@@ -95,7 +95,7 @@ Clause* PushUnaryMinus::simplify(Clause* cl_)
 
   bool changed = false;
 
-  for (int i = 0; i < cl.size(); i++) {
+  for (unsigned i = 0; i < cl.size(); i++) {
     auto litIn = cl[i];
     Stack<TermList> litStack;
     for (int j = 0; j < litIn->arity(); j++) {

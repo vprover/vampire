@@ -167,10 +167,10 @@ Option<PolyNf> trySimplify(Theory::Interpretation i, PolyNf* evalArgs)
       default:
         return none<PolyNf>();
     }
-  } catch (MachineArithmeticException) {
+  } catch (MachineArithmeticException&) {
     return none<PolyNf>();
 
-  } catch (DivByZeroException) {
+  } catch (DivByZeroException&) {
     return none<PolyNf>();
   }
 }
@@ -288,7 +288,7 @@ Polynom<Number> simplifyPoly(Polynom<Number> const& in, PolyNf* simplifiedArgs)
     auto poly = Polynom(std::move(out));
     poly.integrity();
     return poly;
-  } catch (ArithmeticException) { 
+  } catch (ArithmeticException&) { 
     return in.replaceTerms(simplifiedArgs);
   }
 }

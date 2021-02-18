@@ -316,7 +316,7 @@ Comparison IntegerConstantType::comparePrecedence(IntegerConstantType n1, Intege
       }
     }
   }
-  catch(ArithmeticException) {
+  catch(ArithmeticException&) {
     ASSERTION_VIOLATION;
     throw;
   }
@@ -436,6 +436,9 @@ vstring RationalConstantType::toString() const
   return numStr+"/"+denStr;
 }
 
+IntegerConstantType IntegerConstantType::gcd(IntegerConstantType const& l, IntegerConstantType const& r)
+{ return IntegerConstantType(Int::gcd(l.toInner(), r.toInner())); }
+
 /**
  * Ensure the GCD of numerator and denominator is 1, and the only
  * number that may be negative is numerator
@@ -468,7 +471,7 @@ void RationalConstantType::cannonize()
   // Unless it is of the form 0/0
   if(_num==0 && _den!=0){ _den=1; }
 }
-
+ 
 Comparison RationalConstantType::comparePrecedence(RationalConstantType n1, RationalConstantType n2)
 {
   CALL("RationalConstantType::comparePrecedence");
@@ -488,13 +491,13 @@ Comparison RationalConstantType::comparePrecedence(RationalConstantType n1, Rati
   //
   //   try {
   //     repr1 = n1.numerator()+n1.denominator();
-  //   } catch(ArithmeticException) {
+  //   } catch(ArithmeticException&) {
   //     haveRepr1 = false;
   //   }
   //
   //   try {
   //     repr2 = n2.numerator()+n2.denominator();
-  //   } catch(ArithmeticException) {
+  //   } catch(ArithmeticException&) {
   //     haveRepr2 = false;
   //   }
   //
@@ -523,7 +526,7 @@ Comparison RationalConstantType::comparePrecedence(RationalConstantType n1, Rati
   //   ASS_NEQ(res, EQUAL);
   //   return res;
   // }
-  // catch(ArithmeticException) {
+  // catch(ArithmeticException&) {
   //   ASSERTION_VIOLATION;
   //   throw;
   // }
@@ -581,7 +584,7 @@ bool RealConstantType::parseDouble(const vstring& num, RationalConstantType& res
     }
     IntegerConstantType numerator(newNum);
     res = RationalConstantType(numerator, denominator);
-  } catch(ArithmeticException) {
+  } catch(ArithmeticException&) {
     return false;
   }
   return true;

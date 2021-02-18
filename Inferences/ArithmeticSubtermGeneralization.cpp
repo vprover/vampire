@@ -315,8 +315,8 @@ Stack<C> intersectSortedStack(Stack<C>&& l, Stack<C>&& r)
 
   auto outOffs = 0;
   auto& out = l.size() <= r.size() ? l : r;
-  auto loffs = 0;
-  auto roffs = 0;
+  unsigned loffs = 0;
+  unsigned roffs = 0;
   while (loffs < l.size() && roffs < r.size()) {
     if (l[loffs] == r[roffs]) {
       out[outOffs++] = l[loffs];

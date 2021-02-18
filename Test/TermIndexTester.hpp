@@ -74,9 +74,9 @@ public:                                                                         
                                                                                                               \
 
 #define TERM_INDEX_TEST_SET_DEFAULT(field, val)                                                               \
-  template<> struct Test::DefaultValue<TermIndex::TestCase::__##field##_default>                              \
+  template<> struct Test::DefaultValue<TermIndexTest::TestCase::__##field##_default>                          \
   {                                                                                                           \
-    using Type = typename TermIndex::TestCase::__##field##_default::Type;                                     \
+    using Type = typename TermIndexTest::TestCase::__##field##_default::Type;                                 \
     static Option<Type> value()                                                                               \
     { return Option<Type>(val); }                                                                             \
   }                                                                                                           \
@@ -85,7 +85,7 @@ template<class Field>
 Option<typename Field::Type> getDefault()
 { return DefaultValue<Field>::value(); }
 
-namespace TermIndex {
+namespace TermIndexTest {
 
 using Kernel::TermList;
 using Indexing::TermIndex;
@@ -114,11 +114,11 @@ public:
   friend std::ostream& operator<<(std::ostream& out, TermQueryResultPattern const& self) 
   {
     out << "termQueryResult(";
-    if (self.        term().isSome()) out <<    "term: " << pretty(             self.term().unwrap()) << ", ";
-    if (self.     literal().isSome()) out << "literal: " << pretty(          self.literal().unwrap()) << ", ";
+    if (self.        term().isSome()) out <<    "term: " << pretty(              self.term().unwrap()) << ", ";
+    if (self.     literal().isSome()) out << "literal: " << pretty(           self.literal().unwrap()) << ", ";
     if (self.      clause().isSome()) out <<  "clause: " << pretty(::clause(  self.clause().unwrap())) << ", ";
-    if (self.substitution().isSome()) out <<  "clause: " << pretty(     self.substitution().unwrap()) << ", ";
-    if (self. constraints().isSome()) out <<  "clause: " << pretty(      self.constraints().unwrap()) << ", ";
+    if (self.substitution().isSome()) out <<   "subst: " << pretty(      self.substitution().unwrap()) << ", ";
+    if (self. constraints().isSome()) out <<  "constr: " << pretty(       self.constraints().unwrap()) << ", ";
     out << ")";
     return out;
   }
@@ -127,6 +127,25 @@ public:
 TermQueryResultPattern termQueryResult()
 { return TermQueryResultPattern(); }
 
+
+template<class Iter>
+class IterPrinter {
+  mutable Iter _iter;
+public: 
+  IterPrinter(Iter iter) : _iter(std::move(iter)) {}
+  friend std::ostream& operator<<(std::ostream& out, IterPrinter const& self) 
+  { 
+    out << "iter[ ";
+    if (self._iter.hasNext()) 
+      out << self._iter.next();
+    while(self._iter.hasNext()) 
+      out << ", " << self._iter.next();
+    out << " ]";
+    return out;
+  }
+};
+template<class Iter> IterPrinter<Iter> iterPrinter(Iter iter) 
+{ return IterPrinter<Iter>(std::move(iter)); }
 
 class TestCase
 {
@@ -139,18 +158,19 @@ class TestCase
   BUILDER_METHOD(TestCase, bool, withConstraints)
 
   template<class Is, class Expected>
-  void testFail(Is const& is, Expected const& expected) const
+  void testFail(TermIndex* index, Is const& is, Expected const& expected) const
   {
       cout  << endl;
       cout << "[    query ]: " << pretty(query().unwrap()) << endl;
       cout << "[ contents ]: " << pretty(contents().unwrap()) << endl;
+      cout << "[    index ]: " << pretty(*index) << endl;
       cout << "[       is ]: " << pretty(is) << endl;
       cout << "[ expected ]: " << pretty(expected) << endl;
       exit(-1);
   }
 
   bool eq(TermQueryResult& res, TermList lhs, TermList rhs)  const
-  { return lhs == rhs; }
+  { return TestUtils::eqModAC(lhs,rhs); }
 
   bool eq(TermQueryResult& res, Stack<Lit> lhs, Clause* rhs)  const
   { return TestUtils::eqModAC(clause(lhs), rhs); }
@@ -158,13 +178,12 @@ class TestCase
   bool eq(TermQueryResult& res, Literal* lhs, Literal* rhs)  const
   { return TestUtils::eqModAC(lhs, rhs); }
 
-  bool eq(TermQueryResult& res, Lib::Stack<Test::TermIndex::SubsElem> const& lhs, Indexing::ResultSubstitutionSP const& rhs) const
+  bool eq(TermQueryResult& res, Lib::Stack<SubsElem> const& lhs, Indexing::ResultSubstitutionSP const& rhs) const
   { 
-    // if (lhs.size() != rhs->size()) {
-    //   return false;
-    // }
+    CALL("eq(TermQueryResult& res, Lib::Stack<SubsElem> const& lhs, Indexing::ResultSubstitutionSP const& rhs) const")
     for (auto& x : lhs) {
-      if (!eq(res, rhs->applyToQuery(x.var), x.replace)) 
+      auto appl = rhs->applyToQuery(x.var);
+      if (!eq(res, appl, x.replace)) 
         return false;
     }
     return true;
@@ -173,9 +192,11 @@ class TestCase
 
   bool eq(TermQueryResult& res, Lib::Stack<Kernel::Literal*> const& lhs, Kernel::UnificationConstraintStackSP const& rConst) const
   { 
+    CALL("eq(TermQueryResult& res, Lib::Stack<Kernel::Literal*> const&, Kernel::UnificationConstraintStackSP const&) const")
+    if (!rConst) return lhs.size() == 0;
     if (lhs.size() != rConst->size()) return false;
     for (unsigned i = 0; i < lhs.size(); i++) {
-      auto subst = [&res](pair<TermList, unsigned> const& x) 
+      auto subst = [&](pair<TermList, unsigned> const& x) 
       { return res.substitution->apply(x.first, x.second); };
 
       auto exp = lhs[i];
@@ -194,16 +215,18 @@ class TestCase
   void run() 
   {
     CALL("Test::TermIndex::TestCase::run()")
-#define UNWRAP(field)  \
-      this->field().isNone() ? throw UserErrorException(#field " must be specified for a valid TermIndex test case") \
-                             : this->field().unwrap()
+
+#define UNWRAP(field)                                                                                         \
+      this->field().isNone()                                                                                  \
+        ? throw UserErrorException(#field " must be specified for a valid TermIndex test case")               \
+        : this->field().unwrap()
 
     auto index           = UNWRAP(index);
     auto contents        = UNWRAP(contents);
     auto query           = UNWRAP(query);
     auto withConstraints = UNWRAP(withConstraints);
 
-    Stack<TermQueryResultPattern> expected        = this->       expected().unwrap();
+    Stack<TermQueryResultPattern> expected        = this->expected().unwrap();
 
     auto container = PlainClauseContainer();
     index->attachContainer(&container);
@@ -212,14 +235,12 @@ class TestCase
       container.add(c);
     }
 
-    auto results = iterTraits(withConstraints ? index->getUnificationsWithConstraints(query)
-                                              : index->getUnifications(query)).collect<Stack>();
-
-    if (results.size() != expected.size()) 
-      testFail(results, expected);
+    auto results = withConstraints ? index->getUnificationsWithConstraints(query)
+                                   : index->getUnifications(query);
 
     unsigned done = 0;
-    for (auto& r : results) {
+    while (results.hasNext() && done < expected.size()) {
+      auto r = results.next();
       auto matches = [&]() {
         for (unsigned i = done; i < expected.size(); i++) {
           if (expected[i].matches(*this, r)) {
@@ -231,8 +252,13 @@ class TestCase
         return false;
       };
 
-      if (!matches())
-        testFail(r, expected);
+      if (!matches()) { testFail(index, r, expected); }
+    }
+
+    if (done < expected.size() || results.hasNext()) {
+      auto iter = withConstraints ? index->getUnificationsWithConstraints(query)
+                                  : index->getUnifications(query);
+      testFail(index, iterPrinter(iter), expected);
     }
 
 #undef UNWRAP

@@ -50,7 +50,7 @@ KboWeightMap<SigTraits> toWeightMap(unsigned introducedSymbolWeight, KboSpecialW
   df._specialWeights = ws;
 
   DArray<KboWeight> out(sz);
-  for (int i = 0; i < sz; i++) {
+  for (unsigned i = 0; i < sz; i++) {
     auto w = xs.getPtr(i);
     out[i] = w == NULL ? df.symbolWeight(i) : *w;
   }

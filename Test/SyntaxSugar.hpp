@@ -510,6 +510,9 @@ inline Clause* clause(Stack<Lit> ls) {
   return &out; 
 }
 
+inline Clause* clause(std::initializer_list<Lit> ls) 
+{ return clause(Stack<Lit>(ls)); }
+
 inline Stack<Clause*> clauses(std::initializer_list<std::initializer_list<Lit>> cls) { 
   auto out = Stack<Clause*>();
   for (auto cl : cls) {
