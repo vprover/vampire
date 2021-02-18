@@ -185,6 +185,7 @@ Result Solver::solve()
 {
   m_trail.reserve(m_used_vars);
   m_frames.resize(m_used_vars + 1, 0);
+  m_queue.resize(m_used_vars);
 
   if (m_inconsistent) {
     return Result::Unsat;

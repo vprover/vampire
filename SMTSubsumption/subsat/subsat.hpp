@@ -66,6 +66,109 @@ struct Watch {
 };
 
 
+/// Doubly-linked queue for variable-move-to-front (VMTF) decision heuristic.
+class DecisionQueue
+{
+  using Timestamp = uint32_t;
+
+  struct Link
+  {
+    Var prev = Var::invalid();
+    Var next = Var::invalid();
+    /// Timestamp of last enqueue operation.
+    Timestamp stamp;
+#ifndef NDEBUG
+    bool enqueued = false;
+#endif
+  };
+
+public:
+  void resize(uint32_t var_count)
+  {
+    m_links.resize(var_count);
+  }
+
+  /// Move variable to front of decision queue.
+  void bump(Var var, Value var_value)
+  {
+    if (var != m_last) {
+      dequeue(var);
+      enqueue(var, var_value);
+    }
+  }
+
+private:
+  /// Remove variable from the queue.
+  void dequeue(Var var)
+  {
+    Link& link = m_links[var];
+    assert(link.enqueued);
+    if (link.prev.is_valid()) {
+      Link& prev = m_links[link.prev];
+      assert(prev.next == var);
+      prev.next = link.next;
+    } else {
+      assert(m_first == var);
+      m_first = link.next;
+    }
+    if (link.next.is_valid()) {
+      Link& next = m_links[link.next];
+      assert(next.prev == var);
+      next.prev = link.prev;
+    } else {
+      assert(m_last == var);
+      m_last = link.prev;
+    }
+  }
+
+  /// Enqueue variable at the end of the queue.
+  void enqueue(Var var, Value var_value)
+  {
+    Link& link = m_links[var];
+    assert(!link.enqueued);
+    if (m_last.is_valid()) {
+      assert(!m_links[m_last].next.is_valid());
+      m_links[m_last].next = var;
+    } else {
+      assert(!m_first.is_valid());
+      m_first = var;
+    }
+    link.prev = m_last;
+    m_last = var;
+    link.next = Var::invalid();
+
+    link.stamp = ++m_stamp;
+
+    if (link.stamp == 0) {
+      // Timestamp overflow happened
+      restamp();
+    } else {
+      if (var_value == Value::Unassigned) {
+        m_search = var;
+      }
+    }
+  }
+
+  /// Reassign enqueue timestamps to prevent overflow.
+  void restamp()
+  {
+    Timestamp stamp = 0;
+    for (Var v = m_first; v.is_valid(); v = m_links[v].next) {
+      assert(stamp < std::numeric_limits<Timestamp>::max());
+      m_links[v].stamp = ++stamp;
+    }
+    m_search = m_last;  // TODO: why?
+    m_stamp = stamp;
+  }
+
+  vector_map<Var, Link> m_links;
+  Var m_first = Var::invalid();
+  Var m_last = Var::invalid();
+  Var m_search = Var::invalid();
+  Timestamp m_stamp = 0;
+};
+
+
 using Mark = unsigned char;
 static constexpr Mark MarkSeen = 1;
 static constexpr Mark MarkPoisoned = 2;  // since we probably won't do CC-minimization, we don't need "poisoned" and "removable"
@@ -637,6 +740,9 @@ private:
 
   /// Mark flags of variables
   vector_map<Var, Mark> m_marks;
+
+  /// Queue for VMTF decision heuristic
+  DecisionQueue m_queue;
 
 #if SUBSAT_PHASE_SAVING
   // TODO
