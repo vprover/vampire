@@ -96,12 +96,13 @@ public:
     return Var{m_used_vars++};
   }
 
-  // /// Reserve space for n variables (in total).
-  // void reserve_variables(uint32_t count)
-  // {
-  //   m_values.reserve(2 * count);
-  //   // TODO: call reserve on all necessary vectors where this is necessary
-  // }
+  /// Reserve space for 'count' variables (in total),
+  /// but does not actually enable the new variables in the solver.
+  void reserve_variables(uint32_t count)
+  {
+    m_values.reserve(2 * count);
+    // TODO: call reserve on all necessary vectors where this is necessary
+  }
 
   /// Reserve space for a clause of 'capacity' literals
   /// and returns a handle to the storage.
@@ -138,21 +139,40 @@ public:
     ClauseRef cr = ca.build();
     Clause const& c = m_clauses.deref(cr);
     CDEBUG("add_clause: " << cr << " ~> " << c);
+    // TODO: improve this?
     for (Lit lit : c) {
       while (lit.var().index() >= m_used_vars) {
         (void)new_variable();
       }
     }
     if (c.size() == 0) {
-      m_inconsistent = true;
+      add_empty_clause();
     } else if (c.size() == 1) {
-      // TODO: add unit
+      add_unit_clause(c[0]);
     } else {
+      // TODO: special handling for binary clauses
       assert(c.size() >= 2);
       watch_clause(cr);
     }
-    // TODO: special handling for empty, unit, binary clauses
-    // TODO: check variables and allocate new ones if needed
+  }
+
+  void add_empty_clause()
+  {
+    m_inconsistent = true;
+  }
+
+  void add_unit_clause(Lit lit)
+  {
+      while (lit.var().index() >= m_used_vars) {
+        (void)new_variable();
+      }
+    m_units.push_back(lit);
+  }
+
+  void add_binary_clause(Lit lit1, Lit lit2)
+  {
+    // TODO: special handling for binary clauses
+    add_clause({lit1, lit2});
   }
 
   /// Preconditions: ...
@@ -174,7 +194,6 @@ private:
   void assign(Lit lit, ClauseRef reason)
   {
     CDEBUG("assign: " << lit << ", reason: " << reason);
-    // TODO: log
 
     /*
     // TODO: Assignment on root level => no need to store the reason
@@ -213,7 +232,15 @@ private:
   void propagate_units()
   {
     for (Lit lit : m_units) {
-      assign(lit, ClauseRef::invalid());
+      auto value = m_values[lit];
+      if (value == Value::Unassigned) {
+        assign(lit, ClauseRef::invalid());
+      } else if (value == Value::False)  {
+        m_inconsistent = true;
+      } else {
+        // do nothing
+        assert(value == Value::True);
+      }
     }
   }
 

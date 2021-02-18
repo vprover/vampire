@@ -56,16 +56,12 @@ static void parse_dimacs(std::istream& in, Solver& solver)
   }
 }
 
-// TODO: simple dimacs parser so we can test various instances
 int main()
 {
-    std::cout << "hello" << std::endl;
-
     Solver s;
 
-    std::cout << "\n\nPARSING DIMACS INPUT\n" << std::endl;
+    std::cout << "PARSING DIMACS INPUT\n" << std::endl;
     parse_dimacs(std::cin, s);
-    // return 123;
 
     // Var x = s.new_variable();
     // Var y = s.new_variable();
@@ -166,7 +162,7 @@ bool Solver::checkInvariants() const
           m_values[clause[0]] == Value::Unassigned && m_values[clause[1]] == Value::Unassigned;
         bool is_conflict =
           std::all_of(clause.begin(), clause.end(), [this](auto l) { return m_values[l] == Value::False; });
-        assert(both_watches_unassigned || is_conflict);
+        // assert(both_watches_unassigned || is_conflict);  // ???
       }
     }
   }
@@ -194,7 +190,7 @@ Result Solver::solve()
     return Result::Unsat;
   }
 
-  // propagate_units();  // TODO do this later when we add optimizations
+  propagate_units();
 
   while (true) {
     ClauseRef conflict = propagate();
