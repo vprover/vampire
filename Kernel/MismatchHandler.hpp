@@ -21,6 +21,7 @@
 
 #include "Forwards.hpp"
 #include "Term.hpp"
+#include "Shell/Options.hpp"
 
 namespace Kernel
 {
@@ -35,7 +36,7 @@ public:
 class UWAMismatchHandler : public MismatchHandler
 {
 public:
-  UWAMismatchHandler(Stack<UnificationConstraint>& c) : constraints(c) /*, specialVar(0)*/ {}
+  UWAMismatchHandler(Shell::Options::UnificationWithAbstraction mode, Stack<UnificationConstraint>& c) : _mode(mode), _constraints(c) /*, specialVar(0)*/ {}
   virtual bool handle(RobSubstitution* sub, TermList t1, unsigned index1, TermList t2, unsigned index2);
 
   CLASS_NAME(UWAMismatchHandler);
@@ -45,7 +46,8 @@ private:
   bool checkUWA(TermList t1, TermList t2); 
   virtual bool introduceConstraint(RobSubstitution* subst,TermList t1,unsigned index1, TermList t2, unsigned index2);
 
-  Stack<UnificationConstraint>& constraints;
+  Shell::Options::UnificationWithAbstraction const _mode;
+  Stack<UnificationConstraint>& _constraints;
   // unsigned specialVar;
 };
 

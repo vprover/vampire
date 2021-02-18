@@ -230,6 +230,21 @@ public:
     : PointerIterator<T>(obj._data, obj._data+obj._size) {}
   };
 
+  friend std::ostream& operator<<(std::ostream& out, BinaryHeap const& self) 
+  { 
+    out << "[";
+    Iterator iter(self);
+    if (iter.hasNext()) {
+      out << iter.next();
+      while (iter.hasNext()) {
+        out << ", " << iter.next();
+      }
+    }
+    return out << "]";
+  }
+
+
+
 private:
   class BHPopBacktrackObject
   : public BacktrackObject

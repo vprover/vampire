@@ -116,7 +116,7 @@ LiteralIndexingStructure* getBasicIndex()
 {
   // Let's create an index with some data in it
   // We pass true to say that we want to use constraints
-  LiteralIndexingStructure * is = new LiteralSubstitutionTree(true); 
+  LiteralIndexingStructure * is = new LiteralSubstitutionTree(env.options->unificationWithAbstraction(), true); 
 
 
   TermList one_plus_one = int_plus(number("1"),number("1"));
@@ -209,7 +209,7 @@ void reportRobUnify(TermList a, TermList b)
   RobSubstitution sub;
   Stack<UnificationConstraint> constraints;
   //MismatchHandler* hndlr = new testMismatchHandler(&constraints);
-  MismatchHandler* hndlr = new UWAMismatchHandler(constraints);
+  MismatchHandler* hndlr = new UWAMismatchHandler(env.options->unificationWithAbstraction(), constraints);
   bool result = sub.unify(a,NORM_QUERY_BANK,b,NORM_RESULT_BANK,hndlr);
   cout << "Result is " << result << endl;
   if(result){
@@ -257,7 +257,7 @@ TEST_FUN(complex_case)
 
   reportRobUnify(query,node);
 
-  LiteralIndexingStructure* index = new LiteralSubstitutionTree(true); 
+  LiteralIndexingStructure* index = new LiteralSubstitutionTree(env.options->unificationWithAbstraction(), true); 
   Literal* nlit = pred("p",node);
   index->insert(nlit,unit(nlit));
   Literal* qlit = pred("p",query);

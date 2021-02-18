@@ -35,8 +35,8 @@ namespace Indexing
 using namespace Lib;
 using namespace Kernel;
 
-TermSubstitutionTree::TermSubstitutionTree(bool useC)
-: SubstitutionTree(env.signature->functions(),useC)
+TermSubstitutionTree::TermSubstitutionTree(Shell::Options::UnificationWithAbstraction uwa, bool useC)
+: SubstitutionTree(env.signature->functions(),uwa, useC)
 {
 }
 
@@ -405,5 +405,7 @@ TermQueryResultIterator TermSubstitutionTree::getAllUnifyingIterator(TermList tr
   }
 }
 
+std::ostream& TermSubstitutionTree::output(std::ostream& out) const 
+{ return out << *static_cast<SubstitutionTree const*>(this); }
 
 }

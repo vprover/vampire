@@ -87,7 +87,7 @@ struct EqualityResolution::ResultFn
     }
   
     if(use_handler){
-      UWAMismatchHandler hndlr(constraints);
+      UWAMismatchHandler hndlr(uwa, constraints);
       if(!subst.unify(*lit->nthArgument(0),0,*lit->nthArgument(1),0,&hndlr)){ 
         return 0;
       }

@@ -22,6 +22,7 @@
 
 #include "Kernel/Renaming.hpp"
 #include "Lib/SkipList.hpp"
+#include "Lib/PairUtils.hpp"
 
 #include "Index.hpp"
 #include "TermIndexingStructure.hpp"
@@ -36,28 +37,28 @@ public:
   CLASS_NAME(TermSubstitutionTree);
   USE_ALLOCATOR(TermSubstitutionTree);
 
-  TermSubstitutionTree(bool useC=false);
+  TermSubstitutionTree(Shell::Options::UnificationWithAbstraction uwa, bool useC=false);
 
-  void insert(TermList t, Literal* lit, Clause* cls);
-  void remove(TermList t, Literal* lit, Clause* cls);
+  void insert(TermList t, Literal* lit, Clause* cls) final override;
+  void remove(TermList t, Literal* lit, Clause* cls) final override;
 
-  bool generalizationExists(TermList t);
+  bool generalizationExists(TermList t) final override;
 
 
   TermQueryResultIterator getUnifications(TermList t,
-	  bool retrieveSubstitutions);
+	  bool retrieveSubstitutions) final override;
 
   TermQueryResultIterator getUnificationsWithConstraints(TermList t,
-          bool retrieveSubstitutions);
+          bool retrieveSubstitutions) final override;
 
   TermQueryResultIterator getGeneralizations(TermList t,
-	  bool retrieveSubstitutions);
+	  bool retrieveSubstitutions) final override;
 
   TermQueryResultIterator getInstances(TermList t,
-	  bool retrieveSubstitutions);
+	  bool retrieveSubstitutions) final override;
 
 #if VDEBUG
-  virtual void markTagged(){ SubstitutionTree::markTagged();}
+  virtual void markTagged() final override { SubstitutionTree::markTagged();}
 #endif
 
 private:
@@ -88,6 +89,7 @@ private:
     return t->functor();
   }
 
+  virtual std::ostream& output(std::ostream& out) const final override;
 
   typedef SkipList<LeafData,LDComparator> LDSkipList;
   LDSkipList _vars;

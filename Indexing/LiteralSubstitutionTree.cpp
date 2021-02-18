@@ -29,8 +29,8 @@
 namespace Indexing
 {
 
-LiteralSubstitutionTree::LiteralSubstitutionTree(bool useC)
-: SubstitutionTree(2*env.signature->predicates(),useC)
+LiteralSubstitutionTree::LiteralSubstitutionTree(Shell::Options::UnificationWithAbstraction uwa, bool useC)
+: SubstitutionTree(2*env.signature->predicates(), uwa, useC)
 {
 }
 

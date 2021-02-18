@@ -54,8 +54,8 @@ using namespace Indexing;
  * Initialise the substitution tree.
  * @since 16/08/2008 flight Sydney-San Francisco
  */
-SubstitutionTree::SubstitutionTree(int nodes,bool useC)
-  : tag(false), _nextVar(0), _nodes(nodes), _useC(useC)
+SubstitutionTree::SubstitutionTree(int nodes,Shell::Options::UnificationWithAbstraction uwa, bool useC)
+  : tag(false), _nextVar(0), _nodes(nodes), _useC(useC), _uwa(uwa)
 {
   CALL("SubstitutionTree::SubstitutionTree");
 
@@ -788,6 +788,7 @@ SubstitutionTree::QueryResult SubstitutionTree::UnificationsIterator::next()
 
   if(retrieveSubstitution) {
     Renaming normalizer;
+    // TODO: should normalization of variables really happen here, and not in the construction of the nodes?
     if(literalRetrieval) {
       normalizer.normalizeVariables(ld.literal);
     } else {
@@ -939,7 +940,7 @@ bool SubstitutionTree::UnificationsIterator::associate(TermList query, TermList 
   CALL("SubstitutionTree::UnificationsIterator::associate");
 
   if(useConstraints){ 
-    SubstitutionTreeMismatchHandler hndlr(constraints,tree,bd);
+    SubstitutionTreeMismatchHandler hndlr(tree->_uwa, constraints,tree,bd);
     return subst.unify(query,NORM_QUERY_BANK,node,NORM_RESULT_BANK,&hndlr);
   } 
   return subst.unify(query,NORM_QUERY_BANK,node,NORM_RESULT_BANK);

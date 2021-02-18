@@ -1,4 +1,3 @@
-
 /*
  * File SubstitutionTree_FastGen.cpp.
  *
@@ -186,6 +185,8 @@ public:
   : _parent(parent), _resultNormalizer(resultNormalizer),
   _applicator(0)
   {}
+
+
   ~Substitution()
   {
     if(_applicator) {
@@ -193,17 +194,16 @@ public:
     }
   }
 
-  TermList applyToBoundResult(TermList t)
+  TermList applyToBoundResult(TermList t) final override
   { return SubstHelper::apply(t, *getApplicator()); }
 
-  Literal* applyToBoundResult(Literal* lit)
+  Literal* applyToBoundResult(Literal* lit) final override
   { return SubstHelper::apply(lit, *getApplicator()); }
 
-  bool isIdentityOnQueryWhenResultBound() {return true;}
+  bool isIdentityOnQueryWhenResultBound() final override {return true;}
 
-#if VDEBUG
-  virtual vstring toString(){ return _resultNormalizer->toString(); }
-#endif
+  virtual std::ostream& output(std::ostream& out) final override 
+  { return out << _resultNormalizer->toString(); }
 
 private:
   Applicator* getApplicator()

@@ -19,6 +19,7 @@
 #include "Lib/Metaiterators.hpp"
 #include "Lib/SmartPtr.hpp"
 #include "Lib/TimeCounter.hpp"
+#include "Lib/Environment.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/LiteralComparators.hpp"
@@ -190,7 +191,7 @@ void SubstitutionTreeClauseVariantIndex::insert(Clause* cl)
   }
 
   if(!_strees[clen]) {
-    _strees[clen]=new LiteralSubstitutionTree();
+    _strees[clen]=new LiteralSubstitutionTree(env.options->unificationWithAbstraction());
   }
   Literal* mainLit=getMainLiteral(cl->literals(), clen);
   _strees[clen]->insert(mainLit, cl);

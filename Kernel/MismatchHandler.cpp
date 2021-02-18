@@ -54,36 +54,35 @@ bool UWAMismatchHandler::checkUWA(TermList t1, TermList t2)
     bool t2Interp = Shell::UnificationWithAbstractionConfig::isInterpreted(t2.term());
     bool bothNumbers = (theory->isInterpretedConstant(t1) && theory->isInterpretedConstant(t2));
 
-    bool okay = true;
-   
-    static Shell::Options::UnificationWithAbstraction opt = env.options->unificationWithAbstraction();
-    if(opt == Shell::Options::UnificationWithAbstraction::OFF){ return false; }
+    switch(_mode) {
+      case Shell::Options::UnificationWithAbstraction::OFF:
+        return false;
 
-      switch(opt){
-        case Shell::Options::UnificationWithAbstraction::INTERP_ONLY:
-          okay &= (t1Interp && t2Interp && !bothNumbers);
-          break;
-        case Shell::Options::UnificationWithAbstraction::ONE_INTERP:
-          okay &= !bothNumbers && (t1Interp || t2Interp);
-          break;
-        case Shell::Options::UnificationWithAbstraction::CONSTANT:
-          okay &= !bothNumbers && (t1Interp || t2Interp);
-          okay &= (t1Interp || env.signature->functionArity(t1.term()->functor()));
-          okay &= (t2Interp || env.signature->functionArity(t2.term()->functor()));
-          break; 
-        case Shell::Options::UnificationWithAbstraction::ALL:
-        case Shell::Options::UnificationWithAbstraction::GROUND:
-          break;
-        default:
-          ASSERTION_VIOLATION;
-      }
-   return okay;
+      case Shell::Options::UnificationWithAbstraction::INTERP_ONLY:
+        return t1Interp && t2Interp && !bothNumbers;
+
+      case Shell::Options::UnificationWithAbstraction::ONE_INTERP:
+        return !bothNumbers && (t1Interp || t2Interp);
+
+      case Shell::Options::UnificationWithAbstraction::CONSTANT:
+        return  !bothNumbers 
+             && (t1Interp || t2Interp)
+             && (t1Interp || env.signature->functionArity(t1.term()->functor()))
+             && (t2Interp || env.signature->functionArity(t2.term()->functor()));
+
+      case Shell::Options::UnificationWithAbstraction::ALL:
+      case Shell::Options::UnificationWithAbstraction::GROUND: // TODO should ground & all really behave in the same way?
+        return true;
+
+      default:
+        ASSERTION_VIOLATION;
+    }
 }
 
 bool UWAMismatchHandler::introduceConstraint(RobSubstitution* subst,TermList t1,unsigned index1, TermList t2,unsigned index2)
 {
   auto constraint = make_pair(make_pair(t1,index1),make_pair(t2,index2));
-  constraints.push(constraint);
+  _constraints.push(constraint);
   return true;
 }
 

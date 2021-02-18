@@ -24,6 +24,7 @@
 #include "Lib/Exception.hpp"
 #include "Lib/VirtualIterator.hpp"
 #include "Saturation/ClauseContainer.hpp"
+#include "Kernel/Clause.hpp"
 #include "ResultSubstitution.hpp"
 
 #include "Lib/Allocator.hpp"
@@ -82,14 +83,8 @@ struct TermQueryResult
   Clause* clause;
   ResultSubstitutionSP substitution;
   UnificationConstraintStackSP constraints;
-  friend std::ostream& operator<<(std::ostream& out, TermQueryResult const& self)
-  { return out << "TermQueryResult("
-               <<   "term: "         << self.term
-               << ", literal: "      << self.literal
-               << ", clause: "       << self.clause
-               << ", substitution: " << self.substitution
-               << ", constraints: "  << self.constraints
-               << ")"; }
+
+  friend std::ostream& operator<<(std::ostream& out, TermQueryResult const& self);
 };
 
 struct ClauseSResQueryResult

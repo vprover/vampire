@@ -436,4 +436,10 @@ typedef Stack<BoundInfo> BoundStack;
 }
 
 
+namespace std {
+  template<class A, class B>
+  ostream& operator<<(ostream& out, pair<A,B> const& self)
+  { return out << "(" << self.first << ", " << self.second << ")"; }
+}
+
 #endif /* __Forwards__ */
