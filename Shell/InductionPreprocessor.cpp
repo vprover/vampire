@@ -637,7 +637,7 @@ void InductionPreprocessor::preprocess(UnitList* units)
     if (formula->connective() == Connective::LITERAL
         && formula->literal()->isFunctionDefinition()) {
       parseRecursiveDefinition(formula->literal());
-    } else {
+    } else if (env.options->functionDefinitionDiscovery()) {
       findPossibleRecursiveDefinitions(formula, vvector<Formula*>());
     }
   }

@@ -1164,6 +1164,11 @@ void Options::init()
             _inductionTermOccHeuristic.reliesOn(_structInduction.is(equal(StructuralInductionKind::FOUR)));
             _lookup.insert(&_inductionTermOccHeuristic);
 
+            _functionDefinitionDiscovery = BoolOptionValue("function_definition_discovery","fnd",false);
+            _functionDefinitionDiscovery.description = "Try to find function definitions";
+            _functionDefinitionDiscovery.tag(OptionTag::INFERENCES);
+            _lookup.insert(&_functionDefinitionDiscovery);
+
             _functionDefinitionRewriting = BoolOptionValue("function_definition_rewriting","fnrw",false);
             _functionDefinitionRewriting.description = "Use function definitions as rewrite rules with the intended orientation rather than the term ordering one";
             _functionDefinitionRewriting.tag(OptionTag::INFERENCES); // TODO(mhajdu): should this be something else?

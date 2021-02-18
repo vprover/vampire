@@ -2142,6 +2142,7 @@ public:
   bool inductionStrengthen() const { return _inductionStrengthen.actualValue; }
   bool inductionMultiClause() const { return _inductionMultiClause.actualValue; }
   InductionTermOccurrenceSelectionHeuristic inductionTermOccurrenceSelectionHeuristic() const { return _inductionTermOccHeuristic.actualValue; }
+  bool functionDefinitionDiscovery() const { return _functionDefinitionDiscovery.actualValue; }
   bool functionDefinitionRewriting() const { return _functionDefinitionRewriting.actualValue; }
   bool simplifyBeforeInduction() const { return _simplifyBeforeInduction.actualValue; }
 
@@ -2444,6 +2445,7 @@ private:
   BoolOptionValue _inductionStrengthen;
   BoolOptionValue _inductionMultiClause;
   ChoiceOptionValue<InductionTermOccurrenceSelectionHeuristic> _inductionTermOccHeuristic;
+  BoolOptionValue _functionDefinitionDiscovery;
   BoolOptionValue _functionDefinitionRewriting;
   BoolOptionValue _simplifyBeforeInduction;
 

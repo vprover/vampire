@@ -1664,22 +1664,28 @@ void SMTLIB2::parseMatchBegin(LExpr* exp)
     LExprList* pair = casesRdr.readList();
     LispListReader pRdr(pair);
 
+    if (!pRdr.hasNext()) {
+      USER_ERROR("Match cases should contain two elements");
+    }
     LExpr* pattern = pRdr.readNext();
+    if (!pRdr.hasNext()) {
+      USER_ERROR("Match cases should contain two elements");
+    }
     LExpr* body = pRdr.readNext();
 
     // copy lookup
     TermLookup* lookup = new TermLookup;
     if (pattern->isList()) {
       LispListReader tRdr(pattern);
-      // skip the functor
-      tRdr.readAtom();
+      auto ctorName = tRdr.readAtom();
+      auto fn = env.signature->getFunction(_declaredFunctions.get(ctorName).first);
+      unsigned argcnt = 0;
       while (tRdr.hasNext()) {
         auto arg = tRdr.readNext();
-        unsigned int unused;
         if (!arg->isAtom() || isAlreadyKnownFunctionSymbol(arg->str)) {
           USER_ERROR("Nested ctors in match patterns are disallowed: '"+exp->toString()+"'");
         }
-        addVarToLookup(arg, lookup, matchedTerm.second);
+        addVarToLookup(arg, lookup, fn->fnType()->arg(argcnt++));
       }
     } else if (!isTermAlgebraConstructor(pattern->str)) {
       if (isAlreadyKnownFunctionSymbol(pattern->str)) {
