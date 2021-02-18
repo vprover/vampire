@@ -118,6 +118,7 @@ public:
     m_used_vars = 0;
     // TODO: clear everything else too
     m_clauses.clear();
+    // TODO: don't clear m_watches! we should keep the nested vectors to save re-allocation
   }
 
   void add_clause(std::initializer_list<Lit> literals)
@@ -193,7 +194,7 @@ private:
   /// Precondition: literal is not assigned.
   void assign(Lit lit, ClauseRef reason)
   {
-    CDEBUG("assign: " << lit << ", reason: " << reason);
+    CDEBUG("assign: " << lit << ", reason: " << reason << ", level: " << m_level);
 
     /*
     // TODO: Assignment on root level => no need to store the reason
@@ -350,8 +351,8 @@ private:
         // The replacement literal is true,
         // so it's enough to update the blocking literal.
         // TODO: update blocking literal to replacement
-        // TODO: think about why this works. (if replacement was assigned after not_lit, it must still have been in the same decision level? so when we backtrack, we're guaranteed to undo both.)
-        assert(m_vars[replacement.var()].level == m_vars[not_lit.var()].level);
+        // Since the 'replacement' is true, the clause is only relevant when 'replacement' is unassigned.
+        // So if it was assigned in an earlier decision level, that is actually good.
       }
       else if (replacement_value == Value::Unassigned) {
         // The replacement literal is unassigned.

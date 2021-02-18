@@ -148,7 +148,13 @@ private:
 
 std::ostream& operator<<(std::ostream& os, ClauseRef cr)
 {
-  os << "ClauseRef{" << cr.index() << "}";
+  os << "ClauseRef{";
+  if (cr.is_valid()) {
+    os << cr.index();
+  } else {
+    os << "-";
+  }
+  os << "}";
   return os;
 }
 
@@ -288,6 +294,7 @@ private:
   std::vector<storage_type, default_init_allocator<storage_type, Allocator>> m_storage;
 #ifndef NDEBUG
   /// Timestamp to check for invalid clause references (debug mode only).
+  /// TODO: start with a random timestamp instead of 0. Then we effectively check for different arenas as well!
   std::uint32_t m_timestamp = 0;
 #endif
 };
