@@ -218,7 +218,7 @@ public:
   static Stack fromIterator(It it) {
     CALL("Stack::fromIterator");
     Stack out;
-    out.loadFromIterator(it);
+    out.moveFromIterator(it);
     return out;
   }
 

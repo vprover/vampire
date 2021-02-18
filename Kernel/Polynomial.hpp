@@ -146,10 +146,12 @@ struct Monom
   Perfect<MonomFactors<Number>> factors;
 
   Monom(Numeral numeral, Perfect<MonomFactors<Number>> factors);
+  Monom(MonomFactors<Number> factors) : Monom(Numeral(1), perfect(std::move(factors))) {}
 
   static Monom zero();
 
   Option<Variable> tryVar() const;
+  Option<Numeral> tryNumeral() const;
 
   /** performs an integrity check on the datastructure, only has an effect in debug mode */
   void integrity() const;
@@ -392,8 +394,9 @@ public:
   template<class N> friend bool operator==(const MonomFactors<N>& l, const MonomFactors<N>& r);
 
   /** helper function for PolyNf::denormalize() */
-  TermList denormalize(TermList* results)  const;
+  TermList denormalize(TermList* results) const;
 
+  TermList denormalize() const;
   Stack<MonomFactor>& raw();
 };
 
@@ -470,6 +473,8 @@ public:
 
   /** returns the summand with the given index */
   Monom      & summandAt(unsigned summand);
+
+  Option<Monom> tryMonom() const;
 
   /** integrity check of the data structure. does noly have an effect in debug mode */
   void integrity() const;
@@ -549,6 +554,17 @@ Monom<Number> Monom<Number>::zero()
 { 
   static Monom p = Monom(Numeral(0), perfect(MonomFactors<Number>()));
   return p; 
+}
+
+template<class Number>
+Option<typename Monom<Number>::Numeral> Monom<Number>::tryNumeral() const 
+{
+  using Opt = Option<Numeral>;
+  if (this->factors->isOne()) {
+    return Opt(numeral);
+  } else {
+    return Opt();
+  }
 }
 
 template<class Number>
@@ -897,11 +913,17 @@ template<class Number>
 bool operator==(const MonomFactors<Number>& l, const MonomFactors<Number>& r) {
   return l._factors == r._factors;
 }
+template<class Number>
+TermList MonomFactors<Number>::denormalize()  const
+{
+  CALL("MonomFactors::denormalize()")
+  return PolyNf(AnyPoly(perfect(Polynom(Monom(MonomFactors(*this)))))).denormalize(); 
+}
 
 template<class Number>
 TermList MonomFactors<Number>::denormalize(TermList* results)  const
 {
-  CALL("MonomFactors::denormalize()")
+  CALL("MonomFactors::denormalize(TermList*)")
 
   if (_factors.size() == 0) {
     return Number::one();
@@ -1003,7 +1025,7 @@ Polynom<Number>::Polynom(Stack<Monom>&& summands)
       summands.isEmpty() 
         ? Stack<Monom>{Monom::zero()} 
         : std::move(summands)) 
-{ }
+{ integrity(); }
 
 template<class Number>
 Polynom<Number>::Polynom(Monom m) 
@@ -1085,7 +1107,7 @@ typename Number::ConstantType Polynom<Number>::unwrapNumber() const&
 template<class Number>
 TermList Polynom<Number>::denormalize(TermList* results) const
 {
-  CALL("Polynom::denormalize()")
+  CALL("Polynom::denormalize(TermList* results)")
 
   auto monomToTerm = [](Monom const& monom, TermList* t) -> TermList {
     auto c = TermList(theory->representConstant(monom.numeral));

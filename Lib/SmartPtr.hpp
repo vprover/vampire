@@ -118,6 +118,15 @@ public:
   template<class Target>
   inline
   Target* pcast() const { return static_cast<Target*>(_obj); }
+
+  friend std::ostream& operator<<(std::ostream& out, SmartPtr const& self)
+  { 
+    out << "SmartPtr(";
+    if (self) {
+      out << *self;
+    }
+    return out << ")";
+  }
 private:
   template<typename U> friend class SmartPtr;
 

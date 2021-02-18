@@ -77,6 +77,14 @@ typedef std::basic_string<char,std::char_traits<char>,STLAllocator<char> > vstri
  * redefine all of them and make an ugly explicit downcast.
  */
 
+/** converts an object that implements the output operator (operator<<) to a vstring */
+template<class T> vstring outputToString(T const& t)
+{ 
+  vstringstream out;
+  out << t;
+  return out.str();
+}
+
 } // namespace Lib
 
 #endif // __VString__

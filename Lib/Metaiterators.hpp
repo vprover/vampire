@@ -239,6 +239,22 @@ private:
   T* _afterLast;
 };
 
+template<typename T>
+class ConstPointerPtrIterator
+{
+public:
+  DECL_ELEMENT_TYPE(T*);
+  inline ConstPointerPtrIterator(T const* first, T const* afterLast) :
+    _curr(first), _afterLast(afterLast) {}
+  inline bool hasNext() { ASS(_curr<=_afterLast); return _curr!=_afterLast; }
+  inline const T* next() { ASS(hasNext()); return _curr++; }
+private:
+  const T *_curr;
+  const T *_afterLast;
+};
+
+
+
 
 /**
  * Iterator returning a single element
@@ -408,7 +424,7 @@ public:
   DECL_ELEMENT_TYPE(ELEMENT_TYPE(Inner));
 
   FilteredIterator(Inner inn, Functor func)
-  : _func(func), _inn(inn), _next() {}
+  : _func(std::move(func)), _inn(std::move(inn)), _next() {}
 
   bool hasNext()
   {
@@ -536,7 +552,7 @@ template<class Inner, class Functor>
 inline
 FilteredIterator<Inner,Functor> getFilteredIterator(Inner inn, Functor func)
 {
-  return FilteredIterator<Inner,Functor>(inn, func);
+  return FilteredIterator<Inner,Functor>(std::move(inn), std::move(func));
 }
 
 template<class Inner, class Functor>
@@ -687,9 +703,18 @@ template<typename Inner, typename Functor, typename ResultType=RETURN_TYPE(Funct
 class MappingIterator
 {
 public:
+  MappingIterator(MappingIterator const&) = default;
+  MappingIterator(MappingIterator     &&) = default;
+  MappingIterator& operator=(MappingIterator const&) = default;
+  MappingIterator& operator=(MappingIterator     && o)
+  {
+    _func  = std::move(o._func );
+    _inner = std::move(o._inner);
+    return *this;
+  }
   DECL_ELEMENT_TYPE(ResultType);
   explicit MappingIterator(Inner inner, Functor func)
-  : _func(func), _inner(std::move(inner)) {}
+  : _func(std::move(func)), _inner(std::move(inner)) {}
   inline bool hasNext() { CALL("MappingIterator::hasNext"); return _inner.hasNext(); };
   inline ResultType next() { return _func(_inner.next()); };
 
@@ -759,7 +784,7 @@ private:
 template<typename Inner, typename Functor>
 MappingIterator<Inner,Functor,RETURN_TYPE(Functor(ELEMENT_TYPE(Inner)))> getMappingIterator(Inner it, Functor f)
 {
-  return MappingIterator<Inner,Functor,RETURN_TYPE(Functor(ELEMENT_TYPE(Inner)))>(std::move(it), f);
+  return MappingIterator<Inner,Functor,RETURN_TYPE(Functor(ELEMENT_TYPE(Inner)))>(std::move(it), std::move(f));
 }
 
 // /**
@@ -1644,6 +1669,12 @@ struct GetSecondOfPair {
   }
 };
 
+#define DEFAULT_CONSTRUCTORS(Class)                                                                           \
+  Class(Class const&) = default;                                                                              \
+  Class(Class     &&) = default;                                                                              \
+  Class& operator=(Class const&) = default;                                                                   \
+  Class& operator=(Class     &&) = default;                                                                   \
+
 template<class Iter>
 class IterTraits
 {
@@ -1653,6 +1684,7 @@ public:
   using Elem = ELEMENT_TYPE(Iter);
 
   explicit IterTraits(Iter iter) : _iter(std::move(iter)) {}
+  // DEFAULT_CONSTRUCTORS(IterTraits)
 
   Elem next() 
   { 
@@ -1713,19 +1745,19 @@ public:
 
   template<class F>
   IterTraits<MappingIterator<Iter, F>> map(F f)
-  { return iterTraits(getMappingIterator<Iter, F>(std::move(_iter), f)); }
+  { return iterTraits(getMappingIterator<Iter, F>(std::move(_iter), std::move(f))); }
 
   template<class F>
   IterTraits<FilteredIterator<Iter, F>> filter(F f)
-  { return iterTraits(getFilteredIterator<Iter, F>(std::move(_iter), f)); }
+  { return iterTraits(getFilteredIterator<Iter, F>(std::move(_iter), std::move(f))); }
 
   template<class F>
   IterTraits<FilterMapIter<Iter, F>> filterMap(F f)
-  { return iterTraits(FilterMapIter<Iter, F>(std::move(_iter), f)); }
+  { return iterTraits(FilterMapIter<Iter, F>(std::move(_iter), std::move(f))); }
 
   template<class F>
   IterTraits<FlatMapIter<Iter, F>> flatMap(F f)
-  { return iterTraits(getFlattenedIterator(getMappingIterator(std::move(_iter), f))); }
+  { return iterTraits(getFlattenedIterator(getMappingIterator(std::move(_iter), std::move(f)))); }
 
 
   Option<Elem> min()

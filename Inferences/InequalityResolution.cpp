@@ -29,6 +29,7 @@
 #include "Kernel/Inference.hpp"
 #include "Kernel/LiteralSelector.hpp"
 #include "Kernel/SortHelper.hpp"
+#include "Lib/TypeList.hpp"
 
 #include "Indexing/Index.hpp"
 
@@ -39,29 +40,51 @@
 
 #include "InequalityResolution.hpp"
 #include "Shell/UnificationWithAbstractionConfig.hpp"
+#include "Kernel/PolynomialNormalizer.hpp"
+#include "Kernel/InequalityNormalizer.hpp"
+#include "Indexing/TermIndexingStructure.hpp"
+#define DEBUG(...) DBG(__VA_ARGS__)
 
+using Kernel::InequalityLiteral;
 namespace Indexing {
+
+
+template<class NumTraits>
+bool InequalityResolutionIndex::handleLiteral(Literal* lit, Clause* c, bool adding)
+{
+  /* normlizing to t >= 0 */
+  auto norm_ = this->normalizer().normalize<NumTraits>(lit);
+  if (norm_.isSome()) {
+    auto norm = norm_.unwrap();
+    for (auto monom : norm.term().iterSummands()) {
+      if (!monom.tryNumeral().isSome()) {
+
+        auto term = monom.factors->denormalize();
+        if (adding) {
+          DEBUG("inserting: ", term);
+          _is->insert(term, lit, c);
+        } else {
+          DEBUG("removing: ", term);
+          _is->remove(term, lit, c);
+        }
+      }
+    }
+    return true;
+  } else {
+    return false;
+  }
+}
 
 void InequalityResolutionIndex::handleClause(Clause* c, bool adding)
 {
   CALL("InequalityResolutionIndex::handleClause");
 
-  DBG("lala")
-
-  ASSERTION_VIOLATION // TODO
-  // unsigned selCnt=c->numSelected();
-  // for (unsigned i=0; i<selCnt; i++) {
-  //   Literal* lit=(*c)[i];
-  //   TermIterator rsti=EqHelper::getRewritableSubtermIterator(lit,_ord);
-  //   while (rsti.hasNext()) {
-  //     if (adding) {
-	// _is->insert(rsti.next(), lit, c);
-  //     }
-  //     else {
-	// _is->remove(rsti.next(), lit, c);
-  //     }
-  //   }
-  // }
+  for (unsigned i = 0; i < c->size(); i++) {
+    auto lit = (*c)[i];
+    handleLiteral< IntTraits>(lit, c, adding) 
+    || handleLiteral< RatTraits>(lit, c, adding)
+    || handleLiteral<RealTraits>(lit, c, adding);
+  }
 }
 
 }
@@ -343,28 +366,195 @@ void InequalityResolution::detach()
 //   return res;
 // }
 
+
+/* 
+ * maps (num1, num2) -> (k1, k2) 
+ * s.t.  num1 * k1 = - num2 * k2
+ */
+template<class Numeral>
+pair<Numeral,Numeral> computeFactors(Numeral num1, Numeral num2)
+{ 
+  ASS(num1 != Numeral(0))
+  ASS(num2 != Numeral(0))
+  // num1 * k1 = - num2 * k2
+  // let k1 = 1
+  // ==> num1 = - num2 * k2 ==> k2 = - num1 / num2
+  return std::make_pair(Numeral(1), -(num1 / num2));
+}
+
+/* 
+ * maps (num1, num2) -> (k1, k2) 
+ * s.t.  num1 * k1 = - num2 * k2
+ */
+pair<IntegerConstantType,IntegerConstantType> computeFactors(IntegerConstantType num1, IntegerConstantType num2)
+{ 
+  ASS(num1 != IntegerConstantType(0))
+  ASS(num2 != IntegerConstantType(0))
+  // num1 * k1 = - num2 * k2
+  // let k1 =   num2 / gcd(num1, num2)
+  //     k2 = - num1 / gcd(num1, num2)
+  // num1 * num2 / gcd(num1, num2) = - num2 * (- num1 / gcd(num1, num2))
+  auto gcd = IntegerConstantType::gcd(num1, num2);
+  ASS(gcd.divides(num1));
+  ASS(gcd.divides(num2));
+  return std::make_pair(num2.quotientE(gcd) , -num1.quotientE(gcd));
+}
+
+
+// template<template<class...> class C, class... Args>
+// class Adaptor 
+// { 
+//   std::tuple<Args...> _args; 
+//
+// public:
+//   Adaptor(Args... args) : _args(std::tuple<Args>(args)...) {}
+//
+//   template<class Iter>
+//   C<Iter, Args...> operator()(Iter i) 
+//   { return apply(std::move(i), Indices<List<Args...>>{}); }
+//
+//   template<class Iter, int ...idx>
+//   C<Iter, Args...> apply(Iter iter, UnsignedList<idx ...>)
+//   { return C<Iter, Args...>(std::move(iter), std::move(std::get<idx>(_args))...); }
+// };
+
+using Lib::TypeList::List;
+using Lib::TypeList::Indices;
+using Lib::TypeList::UnsignedList;
+
+template<class F, class... Capt>
+class Capture
+{
+  
+  template<class... Args> using Result = typename std::result_of<F(Capt..., Args...)>::type;
+  F _fun;
+  std::tuple<Capt...> _capt;
+public:
+  Capture(F fun, Capt... capt) : _fun(std::move(fun)), _capt(std::forward<Capt>(capt)...) {}
+
+  template<class... Args>
+  Result<Args...> operator()(Args... args)
+  { return apply(Indices<List<Args...>>{}, std::forward<Args>(args)...); }
+
+  template<class... Args, int... idx>
+  Result<Args...> apply(UnsignedList<idx...>, Args... args)
+  { return _fun(std::get<idx>(_capt)..., std::forward<Args>(args)...); }
+};
+
+template<class F, class... Capt>
+Capture<F, Capt...> capture(F f, Capt... capt) 
+{ return Capture<F,Capt...>(std::move(f), capt...); }
+
+template<class NumTraits>
+ClauseIterator InequalityResolution::generateClauses(Clause* cl1, Literal* lit) const
+{
+  using Polynom           = Polynom<NumTraits>;
+  using Monom             = Monom<NumTraits>;
+  using MonomFactors      = MonomFactors<NumTraits>;
+  using Numeral           = typename Monom::Numeral;
+  using InequalityLiteral = InequalityLiteral<NumTraits>;
+
+  auto lit_ = this->normalizer().normalize<NumTraits>(lit);
+  if (lit_.isNone()) 
+    ClauseIterator::getEmpty();
+
+  // The rule we compute looks as follows:
+  //
+  // num1 * term + rest1 >= 0 \/ C1      num2 * term2 + rest2 >= 0 \/ C2
+  // --------------------------------------------------------------------
+  //         k1 * rest1 + k2 * rest2 >= 0 \/ C1 \/ C2
+
+
+  auto lit1 = lit_.unwrap();
+  //   ^^^^--> num1 * term + rest1 >= 0
+
+  return pvi(iterTraits(maxTerms(lit1))
+    .flatMap([this, cl1, lit1](Monom monom)  -> VirtualIterator<Clause*> { 
+      auto num1  = monom.numeral;
+      auto term1 = monom.factors;
+
+      return pvi(iterTraits(_index->getUnificationsWithConstraints(term1->denormalize(), true))
+                .map([this, cl1, lit1, num1, term1](TermQueryResult res) -> Clause* {
+                  auto cl2   = res.clause;
+                  auto term2 = normalizeTerm(TypedTermList(res.term, NumTraits::sort))
+                                .downcast<NumTraits>().unwrap()
+                                ->tryMonom().unwrap()
+                                .factors;
+                  auto lit2_ = res.literal;
+                  auto lit2 = this->normalizer().normalize<NumTraits>(lit2_).unwrap();
+                  //   ^^^^ ~=  num2 * term2 + rest2 >= 0
+
+                  auto strictness = lit1.strict() || lit2.strict();
+                  //   ^^^^^^^^^^ if either of the two inequalities is strict, the result will be as well.
+                  //              consider e.g.
+                  //                    s + t > 0 /\ u - t >= 0 
+                  //                ==> s + t > 0 /\ 0 >= t - u 
+                  //                ==> s + t > t - u 
+                  //                ==> s + u > 0
+
+                  auto num2 = lit2.term()
+                                  .iterSummands()
+                                  .find([&](Monom m) { return m.factors == term2; })
+                                  .unwrap()
+                                  .numeral;
+
+                  auto factors = computeFactors(num1, num2);
+                  //   ^^^^^^^--> (k1, k2)
+
+                  Stack<Monom> resolventTerm(lit1.term().nSummands() + lit2.term().nSummands() - 2);
+                  //           ^^^^^^^^^^^^^--> gonna be k1 * rest1 + k2 * rest2
+                  {
+                    auto pushTerms = [&resolventTerm](InequalityLiteral lit, Perfect<MonomFactors> termToSkip, Numeral num)
+                              {
+                                resolventTerm.loadFromIterator(lit.term().iterSummands()
+                                    .filter([&](Monom m) { return m.factors != termToSkip; })
+                                    .map   ([&](Monom m) { return Monom(m.numeral * num, m.factors); })
+                                );
+                              };
+
+                    pushTerms(lit1, term1, factors.first);
+                    pushTerms(lit2, term2, factors.second);
+                  }
+
+                  // TODO check whether we need to pre-sort the resolventTerms
+                  auto resolventLit = InequalityLiteral(perfect(Polynom(std::move(resolventTerm))), strictness);
+                  //   ^^^^^^^^^^^^--> k1 * rest1 + k2 * rest2 >= 0
+
+                  Inference inf(GeneratingInference2(Kernel::InferenceRule::INEQUALITY_RESOLUTION, cl1, cl2));
+                  auto size = cl1->size() + cl2->size() - 1;
+                  auto& resolvent = *new(size) Clause(size, inf);
+                  //    ^^^^^^^^^--> gonna be k1 * rest1 + k2 * rest2 >= 0 \/ C1 \/ C2
+                  {
+                    unsigned offset = 0;
+                    resolvent[offset++] = resolventLit.denormalize();
+                    auto pushLiterals = 
+                      [&resolvent, &offset](Clause& cl, Literal* skipLiteral)
+                      {
+                        for (unsigned i = 0; i < cl.size(); i++) {
+                          if (cl[i] != skipLiteral) {
+                            resolvent[offset++] = cl[i];
+                          }
+                        }
+                      };
+                    pushLiterals(*cl1, lit1.denormalize());
+                    pushLiterals(*cl2, lit2.denormalize());
+                  }
+                  return &resolvent;
+                }));
+    }));
+}
+
 ClauseIterator InequalityResolution::generateClauses(Clause* premise)
 {
   CALL("InequalityResolution::generateClauses");
-  ASSERTION_VIOLATION //TODO
-  //
-  // //cout << "InequalityResolution for " << premise->toString() << endl;
-  //
-  // PassiveClauseContainer* passiveClauseContainer = _salg->getPassiveClauseContainer();
-  //
-  // // generate pairs of the form (literal selected in premise, unifying object in index)
-  // auto it1 = getMappingIterator(premise->getSelectedLiteralIterator(),UnificationsFn(_index,_unificationWithAbstraction));
-  // // actually, we got one iterator per selected literal; we flatten the obtained iterator of iterators:
-  // auto it2 = getFlattenedIterator(it1);
-  // // perform binary resolution on these pairs
-  // auto it3 = getMappingIterator(it2,ResultFn(premise, passiveClauseContainer,
-  //     getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete(), &_salg->getOrdering(),_salg->getLiteralSelector(),*this));
-  // // filter out only non-zero results
-  // auto it4 = getFilteredIterator(it3, NonzeroFn());
-  // // measure time (on the TC_RESOLUTION budget) of the overall processing
-  // auto it5 = getTimeCountedIterator(it4,TC_RESOLUTION);
-  //
-  // return pvi(it5);
+
+  return pvi(iterTraits(premise->getSelectedLiteralIterator())
+    .flatMap([&](Literal* lit) {
+        return getConcatenatedIterator(getConcatenatedIterator(
+              generateClauses< IntTraits>(premise, lit) ,
+              generateClauses< RatTraits>(premise, lit)),
+              generateClauses<RealTraits>(premise, lit));
+    }));
 }
 
 }

@@ -276,6 +276,17 @@ public:
   }                                                                                                           \
                                                                                                               \
   /**                                                                                                         \
+   * returns the value held by this option if there is one, or returns the value alt otherwise                \
+   */                                                                                                         \
+  A REF unwrapOr(A REF alt) REF {                                                                             \
+    if (this->isSome()) {                                                                                     \
+      return MOVE(*this).unwrap();                                                                            \
+    } else {                                                                                                  \
+      return MOVE(alt);                                                                                       \
+    }                                                                                                         \
+  }                                                                                                           \
+                                                                                                              \
+  /**                                                                                                         \
    * returns the value held by this option if there is one, or calls the given function f without arguments   \
    * and returns the value otherwise.                                                                         \
    */                                                                                                         \
