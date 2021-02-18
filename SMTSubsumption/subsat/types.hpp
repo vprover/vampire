@@ -108,6 +108,8 @@ public:
 
 static_assert(Var::max_index() == static_cast<uint32_t>(INT32_MAX - 1), "unexpected max variable index");
 static_assert(Var::max_index() < Var::invalid().index(), "valid variable indices overlap with invalid sentinel value");
+static_assert(!Var::invalid().is_valid());
+static_assert(Var{Var::max_index()}.is_valid());
 
 [[nodiscard]] constexpr bool operator==(Var lhs, Var rhs) noexcept
 {
@@ -223,6 +225,9 @@ public:
 }; // Lit
 
 static_assert(Lit::max_index() < Lit::invalid().index(), "valid literal indices overlap with invalid sentinel value");
+static_assert(!Lit::invalid().is_valid());
+static_assert(Lit{Var{Var::max_index()}, true}.is_valid());
+static_assert(Lit{Var{Var::max_index()}, false}.is_valid());
 
 
 

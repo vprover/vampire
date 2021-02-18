@@ -21,10 +21,19 @@
 
 // Ensure NDEBUG and VDEBUG are synchronized
 #ifdef NDEBUG
-static_assert(!VDEBUG, "");
+static_assert(VDEBUG == 0, "VDEBUG and NDEBUG are not synchronized");
 #else
-static_assert(VDEBUG, "");
+static_assert(VDEBUG == 1, "VDEBUG and NDEBUG are not synchronized");
 #endif
+
+
+// TODO: add feature flags for some optimizations where it's not 100% clear how much benefit they give us
+//       the default values here can then be adjusted to what turns out to be best for the Vampire use case
+#ifndef SUBSAT_PHASE_SAVING
+#define SUBSAT_PHASE_SAVING 1
+#endif
+
+
 
 // TODO:
 // Once this works, make a separate version 'matchsat',
@@ -52,13 +61,14 @@ struct Watch {
   { }
 
   // TODO: optimizations: binary clause, blocking literal
+  //       (although kitten doesn't seem to do either of those)
   ClauseRef clause_ref;
 };
 
 
 using Mark = unsigned char;
 static constexpr Mark MarkSeen = 1;
-static constexpr Mark MarkPoisoned = 2;
+static constexpr Mark MarkPoisoned = 2;  // since we probably won't do CC-minimization, we don't need "poisoned" and "removable"
 static constexpr Mark MarkRemovable = 4;
 // enum class Mark : char {
 //   Seen = 1,
@@ -75,6 +85,7 @@ public:
   /// Use reserve_variables if you know the number of variables upfront.
   [[nodiscard]] Var new_variable()
   {
+    // TODO: optional argument phase_hint as initial value for m_phases?
     m_unassigned_vars++;
     m_vars.push_back({ .level = InvalidLevel, .reason = ClauseRef::invalid()});
     m_marks.push_back(0);
@@ -596,6 +607,11 @@ private:
   /// Mark flags of variables
   vector_map<Var, Mark> m_marks;
 
+#if SUBSAT_PHASE_SAVING
+  // TODO
+  // vector_map<Var, > m_phases;
+#endif
+
   ClauseArena<> m_clauses;
   std::vector<Lit> m_units;
   vector_map<Lit, std::vector<Watch>> m_watches;
@@ -619,6 +635,11 @@ private:
 // 3. phase saving? but for our problem, just choosing 'true' will almost always be correct.
 //    => maybe add a 'hint' to 'new_variable'... that will be the first phase tried if we need to decide on it.
 // 4. AtMostOne support
+//    => needs special support for binary reasons so we don't have to materialize them
+//    => can "chop off" highest bit of ClauseRef to embed literals in there?
+//       (using highest bit means no arithmetic is required for normal clause indexing)
+//       this would also allow us to easily do the binary clause optimization in watch lists.
+//       although for that, it might be better to use blocking literals + invalid clauseref for binary watches
 
 
 } // namespace SMTSubsumption
