@@ -20,6 +20,7 @@
 #include <iostream>
 #if VTHREADED
 #include <thread>
+#include "Saturation/PersistentGrounding.hpp"
 #endif
 
 #include "Forwards.hpp"
@@ -343,6 +344,11 @@ Problem* UIHelper::getInputProblem(const Options& opts)
 
   Problem* res = new Problem(units);
   res->setSMTLIBLogic(smtLibLogic);
+
+#if VTHREADED
+  if(env->options->persistentGrounding())
+    PersistentGrounding::instance();
+#endif
 
   env->statistics->phase=Statistics::UNKNOWN_PHASE;
   return res;

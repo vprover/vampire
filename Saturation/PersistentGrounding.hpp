@@ -21,6 +21,7 @@
 #include "Forwards.hpp"
 #include "Lib/Deque.hpp"
 #include "Lib/DHMap.hpp"
+#include "Lib/Array.hpp"
 
 namespace Saturation {
 
@@ -41,6 +42,7 @@ private:
   std::thread _solveTask;
   std::mutex _lock;
   unsigned _fresh;
+  Array<TermList> _sortConstants;
   DHMap<Literal*, unsigned> _literalMap;
   VTHREAD_LOCAL static DHMap<unsigned, unsigned> _splitMap;
   Deque<SATClause *> _queue;

@@ -30,31 +30,55 @@ namespace Saturation {
 VTHREAD_LOCAL DHMap<unsigned, unsigned> PersistentGrounding::_splitMap;
 
 PersistentGrounding::PersistentGrounding()
-  : _fresh(0), _solver(new MinisatInterfacing(*env->options)) {
+    : _fresh(0), _solver(new MinisatInterfacing(*env->options))
+{
+  ZIArray<unsigned> constants;
+  for(int i = 0; i < env->signature->functions(); i++) {
+    Signature::Symbol *fun = env->signature->getFunction(i);
+    if(fun->arity() != 0) {
+      continue;
+    }
+    OperatorType *type = fun->fnType();
+    unsigned sort = type->result();
+    unsigned usage = fun->usageCnt();
+    unsigned best = constants[sort];
+    if(!best || env->signature->getFunction(best)->usageCnt() < usage)
+      constants[sort] = i;
+  }
+  for(int i = 0; i < env->sorts->count(); i++) {
+    if(constants[i]) {
+      _sortConstants[i].setTerm(Term::create(constants[i], 0, nullptr));
+    }
+    else {
+      _sortConstants[i].makeVar(0);
+    }
+  }
   _solveTask = std::thread([&] { this->work(); });
 }
 
-PersistentGrounding *PersistentGrounding::instance() {
+PersistentGrounding *PersistentGrounding::instance()
+{
   static PersistentGrounding *instance = new PersistentGrounding;
   return instance;
 }
 
-void PersistentGrounding::work() {
+void PersistentGrounding::work()
+{
   bool idle = false;
-  while(true) {
+  while (true) {
     // asserting phase
     {
-      if(idle)
+      if (idle)
         std::this_thread::yield();
       std::lock_guard<std::mutex> lock{_lock};
-      if(_queue.isEmpty()) {
+      if (_queue.isEmpty()) {
         // wait for more clauses to come through
         idle = true;
         continue;
       }
       idle = false;
       _solver->ensureVarCount(_fresh);
-      while(_queue.isNonEmpty()) {
+      while (_queue.isNonEmpty()) {
         SATClause *cl = _queue.pop_front();
         _solver->addClause(cl);
         //std::cout << "received: " << cl->toString() << std::endl;
@@ -62,35 +86,38 @@ void PersistentGrounding::work() {
     }
     // solving phase
     // std::cout << "solving..." << std::endl;
-    if(_solver->solve() == SAT::SATSolver::Status::UNSATISFIABLE) {
+    if (_solver->solve() == SAT::SATSolver::Status::UNSATISFIABLE) {
       std::cout << "% SZS status PersistentlyUnsat" << std::endl;
       break;
     }
   }
 }
 
-void PersistentGrounding::enqueueClause(Clause *cl) {
+void PersistentGrounding::enqueueClause(Clause *cl)
+{
   std::lock_guard<std::mutex> lock{_lock};
   //std::cout << "clause: " << cl->toString() << std::endl;
 
   SATLiteralStack satLiterals;
   {
-    // like InstGen: maps all variables to the same distinct term
-    class MapToSame
-    {
-    public:
+    // map all variables to one constant (or variable if no constants) per sort
+    struct MapToSortConstant {
       TermList apply(unsigned var)
       {
-        return TermList(0, false);
+        unsigned sort = SortHelper::getVariableSort(TermList(var, false), parent);
+        return constants[sort];
       }
+      Term *parent;
+      const Array<TermList> &constants;
     };
     // for regular literals, map them InstGen-style to ground literals
-    for(int i = 0; i < cl->length(); i++) {
-      MapToSame map;
-      Literal *ground = SubstHelper::apply(cl->literals()[i], map);
+    for (int i = 0; i < cl->length(); i++) {
+      Literal *lit = cl->literals()[i];
+      MapToSortConstant map{.parent = lit, .constants=_sortConstants};
+      Literal *ground = SubstHelper::apply(lit, map);
       Literal *positive = Literal::positiveLiteral(ground);
       unsigned *var;
-      if(_literalMap.getValuePtr(positive, var)) {    
+      if (_literalMap.getValuePtr(positive, var)) {
         *var = ++_fresh;
       }
       satLiterals.push(SATLiteral(*var, ground->isPositive()));
@@ -102,13 +129,13 @@ void PersistentGrounding::enqueueClause(Clause *cl) {
   // note thread-local, because (1) in one thread is not the same as in another
   SATLiteralStack satSplits;
   auto splits = cl->splits();
-  if(splits) {
+  if (splits) {
     SplitSet::Iterator it(*splits);
-    while(it.hasNext()) {
+    while (it.hasNext()) {
       SplitLevel split = it.next();
       SATLiteral literal = Splitter::getLiteralFromName(split);
       unsigned *var;
-      if(_splitMap.getValuePtr(literal.var(), var)) {
+      if (_splitMap.getValuePtr(literal.var(), var)) {
         *var = ++_fresh;
       }
       // (sp1, ... spN) -> L1 \/ ... \/ LN
@@ -129,15 +156,16 @@ void PersistentGrounding::enqueueClause(Clause *cl) {
   }
 }
 
-void PersistentGrounding::enqueueSATClause(SATClause *cl) {
+void PersistentGrounding::enqueueSATClause(SATClause *cl)
+{
   std::lock_guard<std::mutex> lock{_lock};
   //std::cout << "SAT clause: " << cl->toString() << std::endl;
 
   SATLiteralStack clause;
-  for(int i = 0; i < cl->length(); i++) {
+  for (int i = 0; i < cl->length(); i++) {
     SATLiteral literal = cl->literals()[i];
     unsigned *var;
-    if(_splitMap.getValuePtr(literal.var(), var)) {
+    if (_splitMap.getValuePtr(literal.var(), var)) {
       *var = ++_fresh;
     }
     clause.push(SATLiteral(*var, literal.isPositive()));
