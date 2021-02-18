@@ -80,10 +80,8 @@ public:
     m_marks.push_back(0);
     m_values.push_back(Value::Unassigned); // value of positive literal
     m_values.push_back(Value::Unassigned); // value of negative literal
-    m_watches.emplace_back();           // positive literal watches
-    // m_watches.back().reserve(16);
-    m_watches.emplace_back();           // negative literal watches
-    // m_watches.back().reserve(16);
+    m_watches.emplace_back().reserve(16);  // positive literal watches
+    m_watches.emplace_back().reserve(16);  // negative literal watches
     return Var{m_used_vars++};
   }
 
@@ -598,7 +596,7 @@ private:
   /// Mark flags of variables
   vector_map<Var, Mark> m_marks;
 
-  ClauseArena m_clauses;
+  ClauseArena<> m_clauses;
   std::vector<Lit> m_units;
   vector_map<Lit, std::vector<Watch>> m_watches;
 

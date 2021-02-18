@@ -5,6 +5,7 @@
 #include <type_traits>
 #include <vector>
 
+#include "./default_init_allocator.hpp"
 #include "./types.hpp"
 
 namespace SMTSubsumption {
@@ -65,7 +66,7 @@ private:
   Clause& operator=(Clause&) = delete;
   Clause& operator=(Clause&&) = delete;
 
-  friend class ClauseArena;
+  template <typename Allocator> friend class ClauseArena;
   friend class AllocatedClause;
 
 private:
@@ -124,7 +125,7 @@ private:
       : m_index{index}
   { }
 
-  friend class ClauseArena;
+  template <typename Allocator> friend class ClauseArena;
 
 private:
   /// Index into the arena storage.
@@ -186,7 +187,7 @@ private:
     assert(capacity >= 2);
   }
 
-  friend class ClauseArena;
+  template <typename Allocator> friend class ClauseArena;
 
 private:
   Clause* m_clause;
@@ -200,10 +201,12 @@ private:
 
 
 
+template <typename Allocator = std::allocator<std::uint32_t>>
 class ClauseArena final
 {
 private:
   using storage_type = std::uint32_t;
+  static_assert(std::is_same_v<storage_type, typename Allocator::value_type>);
   static_assert(alignof(Clause) == alignof(storage_type), "Clause alignment mismatch");
   // Maybe the more correct condition is this (storage alignment must be a multiple of clause alignment):
   static_assert(alignof(storage_type) % alignof(Clause) == 0, "Alignment of storage must imply alignment of clause");
@@ -249,7 +252,6 @@ public:
     std::size_t const elements = bytes / sizeof(storage_type);
     std::size_t const new_size = old_size + elements;
 
-    // TODO: avoid zero-initialization of vector elements by using custom allocator, or just don't use std::vector for the buffer...
     m_storage.resize(new_size);
 
     ClauseRef cr(old_size);
@@ -283,7 +285,8 @@ public:
   //       hmm, we may have gaps. so we can't iterate easily.
 
 private:
-  std::vector<storage_type> m_storage;
+  // NOTE: we use the default_init_allocator to avoid zero-initialization when resizing m_storage
+  std::vector<storage_type, default_init_allocator<storage_type, Allocator>> m_storage;
 #ifndef NDEBUG
   /// Timestamp to check for invalid clause references (debug mode only).
   std::uint32_t m_timestamp = 0;
