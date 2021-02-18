@@ -933,6 +933,18 @@ public:
     Entry* _curr;
   }; // class DHMap::Iterator
 
+  friend std::ostream& operator<<(std::ostream& out, DHMap const& self) 
+  { 
+    out << "{";
+    auto iter = self.items();
+    if (iter.hasNext()) {
+      out << iter.next();
+      while (iter.hasNext()) {
+        out << ", " << iter.next();
+      }
+    }
+    return out << "}";
+  }
 
 
 }; // class DHMap

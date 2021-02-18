@@ -18,6 +18,7 @@
 #include "Kernel/Matcher.hpp"
 #include "Kernel/MLVariant.hpp"
 #include "Kernel/Ordering.hpp"
+#include "Lib/Environment.hpp"
 
 #include "LiteralIndexingStructure.hpp"
 #include "LiteralSubstitutionTree.hpp"
@@ -184,7 +185,7 @@ void NonUnitClauseLiteralIndex::handleClause(Clause* c, bool adding)
 RewriteRuleIndex::RewriteRuleIndex(LiteralIndexingStructure* is, Ordering& ordering)
 : LiteralIndex(is), _ordering(ordering)
 {
-  _partialIndex=new LiteralSubstitutionTree();
+  _partialIndex=new LiteralSubstitutionTree(env.options->unificationWithAbstraction());
 }
 
 RewriteRuleIndex::~RewriteRuleIndex()

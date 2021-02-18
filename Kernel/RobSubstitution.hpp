@@ -106,7 +106,10 @@ public:
    * - Without backtracking, this number doesn't decrease.
    */
   size_t size() const {return _bank.size(); }
+
 #endif
+  friend std::ostream& operator<<(std::ostream& out, RobSubstitution const& self);
+  std::ostream& output(std::ostream& out, bool deref) const;
 
   /** Specifies instance of a variable (i.e. (variable, variable bank) pair) */
   struct VarSpec
@@ -124,6 +127,7 @@ public:
 #if VDEBUG
     vstring toString() const;
 #endif
+    friend std::ostream& operator<<(std::ostream& out, VarSpec const& self);
 
     /** number of variable */
     unsigned var;
@@ -197,6 +201,7 @@ public:
 #if VDEBUG
     vstring toString() const;
 #endif
+    friend std::ostream& operator<<(std::ostream& out, TermSpec const& self);
 
     /** term reference */
     TermList term;
@@ -204,6 +209,8 @@ public:
     int index;
   };
   typedef pair<TermSpec,TermSpec> TTPair;
+  friend std::ostream& operator<<(std::ostream& out,  VarSpec const& self);
+  friend std::ostream& operator<<(std::ostream& out, TermSpec const& self);
 
   /** struct containing first hash function of TTPair objects*/
   struct TTPairHash
@@ -328,14 +335,6 @@ private:
   struct UnificationFn;
 
 };
-
-#if VDEBUG
-
-ostream& operator<< (ostream& out, RobSubstitution::VarSpec vs );
-ostream& operator<< (ostream& out, RobSubstitution::TermSpec vs );
-
-#endif
-
 
 };
 

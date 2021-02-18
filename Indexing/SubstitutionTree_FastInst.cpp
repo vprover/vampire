@@ -258,8 +258,12 @@ public:
     return _resultDenormalizer->apply(normalized);
   }
   
-  bool isIdentityOnResultWhenQueryBound() override
+  bool isIdentityOnResultWhenQueryBound() final override
   { return true; }
+
+  virtual std::ostream& output(std::ostream& out) final override 
+  { return out << "SubstitutionTree::InstMatcher::Substitution"; }
+
 private:
   InstMatcher* _parent;
   Renaming* _resultDenormalizer;

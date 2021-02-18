@@ -17,6 +17,7 @@
 #define __TermIndex__
 
 #include "Index.hpp"
+#include "TermIndexingStructure.hpp"
 
 #include "TermIndexingStructure.hpp"
 #include "Lib/Set.hpp"
@@ -43,6 +44,9 @@ public:
   TermQueryResultIterator getInstances(TermList t,
 	  bool retrieveSubstitutions = true);
 
+  friend std::ostream& operator<<(std::ostream& out, TermIndex const& self) 
+  { return out << "TermIndex(" << *self._is << ")"; }
+
 protected:
   TermIndex(TermIndexingStructure* is) : _is(is) {}
 
@@ -64,20 +68,7 @@ private:
   Ordering& _ord;
 };
 
-class InequalityResolutionIndex
-: public TermIndex
-{
-public:
-  CLASS_NAME(InequalityResolutionIndex);
-  USE_ALLOCATOR(InequalityResolutionIndex);
-
-  InequalityResolutionIndex(TermIndexingStructure* is, Ordering& ord)
-  : TermIndex(is), _ord(ord) {};
-protected:
-  void handleClause(Clause* c, bool adding);
-private:
-  Ordering& _ord;
-};
+class InequalityResolutionIndex;
 
 class SuperpositionLHSIndex
 : public TermIndex

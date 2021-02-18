@@ -1134,11 +1134,9 @@ struct RobSubstitution::UnificationFn {
 };
 
 
-#if VDEBUG
-vstring RobSubstitution::toString(bool deref) const
+std::ostream& RobSubstitution::output(std::ostream& out, bool deref) const
 {
-  CALL("RobSubstitution::toString");
-  vstring res;
+  CALL("RobSubstitution::output(std::ostream& out, bool deref)");
   BankType::Iterator bit(_bank);
   while(bit.hasNext()) {
     VarSpec v;
@@ -1146,46 +1144,50 @@ vstring RobSubstitution::toString(bool deref) const
     bit.next(v,binding);
     TermList tl;
     if(v.index==SPECIAL_INDEX) {
-      res+="S"+Int::toString(v.var)+" -> ";
+      out << v << " -> ";
       tl.makeSpecialVar(v.var);
     } else {
-      res+="X"+Int::toString(v.var)+"/"+Int::toString(v.index)+ " -> ";
+      out << v << " -> ";
       tl.makeVar(v.var);
     }
     if(deref) {
       tl=apply(tl, v.index);
-      res+=tl.toString()+"\n";
+      out << tl << ", ";
     } else {
-      res+=binding.term.toString()+"/"+Int::toString(binding.index)+"\n";
+      out << binding << ", ";
     }
-
   }
-  return res;
+  return out;
+}
+std::ostream& operator<<(std::ostream& out, RobSubstitution::TermSpec const& self)
+{ return out << self.term << "/" << self.index; }
+
+std::ostream& operator<<(std::ostream& out,  RobSubstitution::VarSpec const& self)
+{
+  if(self.index==RobSubstitution::SPECIAL_INDEX) {
+    return out << "S" << self.var;
+  } else {
+    return out << "X" << self.var << "/" << self.index;
+  }
+}
+
+std::ostream& operator<<(std::ostream& out, RobSubstitution const& self)
+{ return self.output(out, /* deref */ true); }
+
+
+#if VDEBUG
+vstring RobSubstitution::toString(bool deref) const
+{
+  vstringstream out;
+  this->output(out, deref);
+  return out.str();
 }
 
 vstring RobSubstitution::VarSpec::toString() const
-{
-  if(index==SPECIAL_INDEX) {
-    return "S"+Int::toString(var);
-  } else {
-    return "X"+Int::toString(var)+"/"+Int::toString(index);
-  }
-}
+{ return outputToString(*this); }
 
 vstring RobSubstitution::TermSpec::toString() const
-{
-  return term.toString()+"/"+Int::toString(index);
-}
-
-ostream& operator<< (ostream& out, RobSubstitution::VarSpec vs )
-{
-  return out<<vs.toString();
-}
-
-ostream& operator<< (ostream& out, RobSubstitution::TermSpec ts )
-{
-  return out<<ts.toString();
-}
+{ return outputToString(*this); }
 
 #endif
 

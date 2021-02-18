@@ -19,7 +19,7 @@
 
 #include "Kernel/Renaming.hpp"
 #include "Lib/SkipList.hpp"
-#include "Lib/BiMap.hpp"
+#include "Lib/PairUtils.hpp"
 
 #include "Index.hpp"
 #include "TermIndexingStructure.hpp"
@@ -52,36 +52,36 @@ public:
    * store Terms of type $o (formulas) in the tree, but in the leaf we store
    * the skolem terms used to witness them (to facilitate the reuse of Skolems)
    */
-  TermSubstitutionTree(bool useC=false, bool replaceFunctionalSubterms = false, bool extra = false);
+  TermSubstitutionTree(Shell::Options::UnificationWithAbstraction uwa, bool useC=false, bool replaceFunctionalSubterms = false, bool extra = false);
 
-  void insert(TermList t, Literal* lit, Clause* cls);
-  void remove(TermList t, Literal* lit, Clause* cls);
-  void insert(TermList t, TermList trm);
-  void insert(TermList t, TermList trm, Literal* lit, Clause* cls);
+  void insert(TermList t, Literal* lit, Clause* cls) final override;
+  void remove(TermList t, Literal* lit, Clause* cls) final override;
+  void insert(TermList t, TermList trm) final override;
+  void insert(TermList t, TermList trm, Literal* lit, Clause* cls) final override;
 
-  bool generalizationExists(TermList t);
+  bool generalizationExists(TermList t) final override;
 
 
   TermQueryResultIterator getUnifications(TermList t,
-	  bool retrieveSubstitutions);
+	  bool retrieveSubstitutions) final override;
 
   TermQueryResultIterator getUnificationsWithConstraints(TermList t,
-    bool retrieveSubstitutions);
+    bool retrieveSubstitutions) final override;
 
   /*
    * A higher order concern (though it may be useful in other situations)
    */
   TermQueryResultIterator getUnificationsUsingSorts(TermList t, TermList sort,
-    bool retrieveSubstitutions);
+    bool retrieveSubstitutions) final override;
 
   TermQueryResultIterator getGeneralizations(TermList t,
-	  bool retrieveSubstitutions);
+	  bool retrieveSubstitutions) final override;
 
   TermQueryResultIterator getInstances(TermList t,
-	  bool retrieveSubstitutions);
+	  bool retrieveSubstitutions) final override;
 
 #if VDEBUG
-  virtual void markTagged(){ SubstitutionTree::markTagged();}
+  virtual void markTagged() final override { SubstitutionTree::markTagged();}
 #endif
 
 private:
@@ -113,6 +113,8 @@ private:
   {
     return t->functor();
   }
+
+  virtual std::ostream& output(std::ostream& out) const final override;
 
   typedef SkipList<LeafData,LDComparator> LDSkipList;
   LDSkipList _vars;

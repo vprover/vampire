@@ -42,6 +42,12 @@ public:
 
   virtual bool generalizationExists(TermList t) { NOT_IMPLEMENTED; }
 
+
+  virtual std::ostream& output(std::ostream& out) const = 0;
+
+  friend std::ostream& operator<<(std::ostream& out, TermIndexingStructure const& self) 
+  { return self.output(out); }
+
 #if VDEBUG
   virtual void markTagged() = 0;
 #endif

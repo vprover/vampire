@@ -29,6 +29,8 @@
 #include "Shell/Statistics.hpp"
 
 #include "IndexManager.hpp"
+#include "Kernel/InequalityNormalizer.hpp"
+#include "Inferences/InequalityResolution.hpp"
 
 using namespace Lib;
 using namespace Indexing;
@@ -149,7 +151,7 @@ Index* IndexManager::create(IndexType t)
                     
   switch(t) {
   case GENERATING_SUBST_TREE:
-    is=new LiteralSubstitutionTree(useConstraints);
+    is=new LiteralSubstitutionTree(env.options->unificationWithAbstraction(), useConstraints);
 #if VDEBUG
     //is->markTagged();
 #endif
@@ -158,35 +160,35 @@ Index* IndexManager::create(IndexType t)
     isGenerating = true;
     break;
   case SIMPLIFYING_SUBST_TREE:
-    is=new LiteralSubstitutionTree();
+    is=new LiteralSubstitutionTree(env.options->unificationWithAbstraction());
     res=new SimplifyingLiteralIndex(is);
     isGenerating = false;
     break;
 
   case SIMPLIFYING_UNIT_CLAUSE_SUBST_TREE:
-    is=new LiteralSubstitutionTree();
+    is=new LiteralSubstitutionTree(env.options->unificationWithAbstraction());
     res=new UnitClauseLiteralIndex(is);
     isGenerating = false;
     break;
   case GENERATING_UNIT_CLAUSE_SUBST_TREE:
-    is=new LiteralSubstitutionTree();
+    is=new LiteralSubstitutionTree(env.options->unificationWithAbstraction());
     res=new UnitClauseLiteralIndex(is);
     isGenerating = true;
     break;
   case GENERATING_NON_UNIT_CLAUSE_SUBST_TREE:
-    is=new LiteralSubstitutionTree();
+    is=new LiteralSubstitutionTree(env.options->unificationWithAbstraction());
     res=new NonUnitClauseLiteralIndex(is);
     isGenerating = true;
     break;
 
   case INEQUALITY_RESOLUTION_SUBST_TREE:
-    tis=new TermSubstitutionTree(useConstraints);
-    res=new InequalityResolutionIndex(tis, _alg->getOrdering());
+    tis=new TermSubstitutionTree(env.options->unificationWithAbstraction(), useConstraints);
+    res=new InequalityResolutionIndex(tis, _alg->getOrdering(), InequalityNormalizer(PolynomialEvaluation(_alg->getOrdering())));
     isGenerating = true;
     break;
 
   case SUPERPOSITION_SUBTERM_SUBST_TREE:
-    tis=new TermSubstitutionTree(useConstraints, extByAbs);
+    tis=new TermSubstitutionTree(env.options->unificationWithAbstraction(), useConstraints, extByAbs);
 #if VDEBUG
     //tis->markTagged();
 #endif
@@ -195,7 +197,7 @@ Index* IndexManager::create(IndexType t)
     break;
 
   case SUPERPOSITION_LHS_SUBST_TREE:
-    tis=new TermSubstitutionTree(useConstraints, extByAbs);
+    tis=new TermSubstitutionTree(env.options->unificationWithAbstraction(), useConstraints, extByAbs);
     res=new SuperpositionLHSIndex(tis, _alg->getOrdering(), _alg->getOptions());
     //tis->markTagged();
     isGenerating = true;
@@ -230,7 +232,7 @@ Index* IndexManager::create(IndexType t)
     break;*/
 
   case NARROWING_INDEX:
-    tis=new TermSubstitutionTree();
+    tis=new TermSubstitutionTree(env.options->unificationWithAbstraction());
     res=new NarrowingIndex(tis); 
     isGenerating = true;
     break; 
@@ -241,13 +243,13 @@ Index* IndexManager::create(IndexType t)
     isGenerating = true;
     break;  
    case ACYCLICITY_INDEX:
-    tis = new TermSubstitutionTree();
+    tis = new TermSubstitutionTree(env.options->unificationWithAbstraction());
     res = new AcyclicityIndex(tis);
     isGenerating = true;
     break; 
 
   case DEMODULATION_SUBTERM_SUBST_TREE:
-    tis=new TermSubstitutionTree();
+    tis=new TermSubstitutionTree(env.options->unificationWithAbstraction());
     if (env.options->combinatorySup()) {
       res=new DemodulationSubtermIndexImpl<true>(tis);
     } else {
@@ -256,7 +258,7 @@ Index* IndexManager::create(IndexType t)
     isGenerating = false;
     break;
   case DEMODULATION_LHS_SUBST_TREE:
-//    tis=new TermSubstitutionTree();
+//    tis=new TermSubstitutionTree(env.options->unificationWithAbstraction());
     tis=new CodeTreeTIS();
     res=new DemodulationLHSIndex(tis, _alg->getOrdering(), _alg->getOptions());
     isGenerating = false;
@@ -268,20 +270,20 @@ Index* IndexManager::create(IndexType t)
     break;
 
   case FW_SUBSUMPTION_SUBST_TREE:
-    is=new LiteralSubstitutionTree();
+    is=new LiteralSubstitutionTree(env.options->unificationWithAbstraction());
 //    is=new CodeTreeLIS();
     res=new FwSubsSimplifyingLiteralIndex(is);
     isGenerating = false;
     break;
 
   case FSD_SUBST_TREE:
-    is = new LiteralSubstitutionTree();
+    is = new LiteralSubstitutionTree(env.options->unificationWithAbstraction());
     res = new FSDLiteralIndex(is);
     isGenerating = false;
     break;
 
   case REWRITE_RULE_SUBST_TREE:
-    is=new LiteralSubstitutionTree();
+    is=new LiteralSubstitutionTree(env.options->unificationWithAbstraction());
     res=new RewriteRuleIndex(is, _alg->getOrdering());
     isGenerating = false;
     break;

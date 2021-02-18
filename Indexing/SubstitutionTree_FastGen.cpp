@@ -184,6 +184,8 @@ public:
   : _parent(parent), _resultNormalizer(resultNormalizer),
   _applicator(0)
   {}
+
+
   ~Substitution()
   {
     if(_applicator) {
@@ -191,22 +193,20 @@ public:
     }
   }
 
-  TermList applyToBoundResult(TermList t) override
+  TermList applyToBoundResult(TermList t) final override
   { return SubstHelper::apply(t, *getApplicator()); }
 
-  Literal* applyToBoundResult(Literal* lit) override
+  Literal* applyToBoundResult(Literal* lit) final override
   { return SubstHelper::apply(lit, *getApplicator()); }
 
-  bool matchSorts(TermList base, TermList instance) override
+  bool matchSorts(TermList base, TermList instance) final override
   { return _parent->matchNextAux(instance, base, false); }
 
-  bool isIdentityOnQueryWhenResultBound() override
+  bool isIdentityOnQueryWhenResultBound() final override
   { return true; }
 
-#if VDEBUG
-  virtual vstring toString() override
-  { return _resultNormalizer->toString(); }
-#endif
+  virtual std::ostream& output(std::ostream& out) final override 
+  { return out << _resultNormalizer->toString(); }
 
 private:
   Applicator* getApplicator()

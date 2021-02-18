@@ -538,6 +538,8 @@ public:
 
   CodeBlock* _entryPoint;
 
+  friend std::ostream& operator<<(std::ostream& out, CodeTree const& self)
+  { return out << "CodeTree(<output operator not (yet) implemented properly>)"; }
 };
 
 }

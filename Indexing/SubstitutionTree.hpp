@@ -39,6 +39,7 @@
 #include "Kernel/Clause.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Sorts.hpp"
+#include "Shell/Options.hpp"
 
 #include "Lib/Allocator.hpp"
 
@@ -73,7 +74,7 @@ public:
   CLASS_NAME(SubstitutionTree);
   USE_ALLOCATOR(SubstitutionTree);
 
-  SubstitutionTree(int nodes,bool useC=false, bool rfSubs=false);
+  SubstitutionTree(int nodes, Shell::Options::UnificationWithAbstraction uwa, bool useC=false, bool rfSubs=false);
   ~SubstitutionTree();
 
   // Tags are used as a debug tool to turn debugging on for a particular instance
@@ -107,7 +108,18 @@ public:
       if(!term.isEmpty()){ ret += " with " +term.toString(); }
       return ret;
     }
+    friend std::ostream& operator<<(std::ostream& out, LeafData const& self)
+    {
+      out << "LeafData(";
+      if (self.clause) out << *self.clause;
+      else             out << "<no clause>";
+      out << ", ";
+      if (self.literal) out << *self.literal;
+      else              out << "<no literal>";
 
+      out << "," <<  self.term;
+      return out << ")";
+    }
   };
   typedef VirtualIterator<LeafData&> LDIterator;
 
@@ -190,7 +202,7 @@ public:
      *
      * Descendant classes should override this method.
      */
-    virtual int size() const { NOT_IMPLEMENTED; }
+    virtual int size() const = 0;
     virtual NodeAlgorithm algorithm() const = 0;
 
     /**
@@ -204,23 +216,23 @@ public:
     static void split(Node** pnode, TermList* where, int var);
 
 #if VDEBUG
-    virtual void assertValid() const {};
+    virtual void assertValid() const = 0;
 #endif
 
     /** term at this node */
     TermList term;
 
-    virtual void print(unsigned depth=0){
-       printDepth(depth);
-       cout <<  "[" + term.toString() + "]" << endl;
-    }
-    void printDepth(unsigned depth){
-      while(depth-->0){ cout <<" "; }
-    }
+    virtual void print(unsigned depth=0, std::ostream& out = std::cout) const = 0;
+    void printDepth(unsigned depth) const 
+    { while(depth-->0){ cout << " "; } }
+
+    friend std::ostream& operator<<(std::ostream& out, Node const& self)
+    { self.print(0, out); return out; }
   };
 
 
   typedef VirtualIterator<Node**> NodeIterator;
+  typedef VirtualIterator<Node const *> ConstNodeIterator;
   typedef List<Node*> NodeList;
   class IntermediateNode;
     
@@ -329,9 +341,10 @@ public:
     IntermediateNode(TermList ts, unsigned childVar) : Node(ts), childVar(childVar),_childBySortHelper(0) {}
 
     inline
-    bool isLeaf() const { return false; };
+    bool isLeaf() const final override { return false; };
 
     virtual NodeIterator allChildren() = 0;
+    virtual ConstNodeIterator allChildren() const = 0;
     virtual NodeIterator variableChildren() = 0;
     /**
      * Return pointer to pointer to child node with top symbol
@@ -361,7 +374,7 @@ public:
 
     void destroyChildren();
 
-    void makeEmpty()
+    void makeEmpty() final override 
     {
       Node::makeEmpty();
       removeAllChildren();
@@ -384,12 +397,13 @@ public:
     const unsigned childVar;
     ChildBySortHelper* _childBySortHelper;
 
-    virtual void print(unsigned depth=0){
+    virtual void print(unsigned depth=0, std::ostream& out = std::cout) const final override 
+    {
        auto children = allChildren();
        printDepth(depth);
        cout << "I [" << childVar << "] with " << term.toString() << endl;
        while(children.hasNext()){
-         (*children.next())->print(depth+1);
+         children.next()->print(depth+1, out);
        }
     }
 
@@ -428,17 +442,17 @@ public:
     Leaf(TermList ts) : Node(ts) {}
 
     inline
-    bool isLeaf() const { return true; };
-    virtual LDIterator allChildren() = 0;
+    bool isLeaf() const final override { return true; };
+    virtual LDIterator allChildren() const = 0;
     virtual void insert(LeafData ld) = 0;
     virtual void remove(LeafData ld) = 0;
     void loadChildren(LDIterator children);
 
-    virtual void print(unsigned depth=0){
+    virtual void print(unsigned depth=0, std::ostream& out = std::cout) const final override {
        auto children = allChildren();
        while(children.hasNext()){
          printDepth(depth);
-         cout << children.next().toString() << endl;
+         out << children.next() << endl;
        } 
     }
   };
@@ -485,28 +499,30 @@ public:
       }
     }
 
-    void removeAllChildren()
+    void removeAllChildren() final override 
     {
       _size=0;
       _nodes[0]=0;
     }
 
-    NodeAlgorithm algorithm() const { return UNSORTED_LIST; }
-    bool isEmpty() const { return !_size; }
-    int size() const { return _size; }
-    NodeIterator allChildren()
+    NodeAlgorithm algorithm() const final override  { return UNSORTED_LIST; }
+    bool isEmpty() const final override { return !_size; }
+    int size() const final override  { return _size; }
+    NodeIterator allChildren() final override
     { return pvi( PointerPtrIterator<Node*>(&_nodes[0],&_nodes[_size]) ); }
+    ConstNodeIterator allChildren() const final override
+    { return pvi( iterTraits(ConstPointerPtrIterator<Node*>(&_nodes[0],&_nodes[_size])).map([](Node* const* n) { return (Node const*) *n; }) ); }
 
-    NodeIterator variableChildren()
+    NodeIterator variableChildren() final override
     {
       return pvi( getFilteredIterator(PointerPtrIterator<Node*>(&_nodes[0],&_nodes[_size]),
   	    IsPtrToVarNodeFn()) );
     }
-    virtual Node** childByTop(TermList t, bool canCreate);
-    void remove(TermList t);
+    virtual Node** childByTop(TermList t, bool canCreate) final override;
+    void remove(TermList t) final override;
 
 #if VDEBUG
-    virtual void assertValid() const
+    virtual void assertValid() const final override
     {
       ASS_ALLOC_TYPE(this,"SubstitutionTree::UArrIntermediateNode");
     }
@@ -545,7 +561,7 @@ public:
       }
     }
 
-    void removeAllChildren()
+    void removeAllChildren() final override 
     {
       while(!_nodes.isEmpty()) {
         _nodes.pop();
@@ -555,29 +571,31 @@ public:
     static IntermediateNode* assimilate(IntermediateNode* orig);
 
     inline
-    NodeAlgorithm algorithm() const { return SKIP_LIST; }
+    NodeAlgorithm algorithm() const final override  { return SKIP_LIST; }
     inline
-    bool isEmpty() const { return _nodes.isEmpty(); }
-    int size() const { return _nodes.size(); }
+    bool isEmpty() const final override { return _nodes.isEmpty(); }
+    int size() const final override  { return _nodes.size(); }
 #if VDEBUG
-    virtual void assertValid() const
+    virtual void assertValid() const final override
     {
       ASS_ALLOC_TYPE(this,"SubstitutionTree::SListIntermediateNode");
     }
 #endif
     inline
-    NodeIterator allChildren()
-    {
-      return pvi( NodeSkipList::PtrIterator(_nodes) );
-    }
+    NodeIterator allChildren() final override
+    { return pvi( NodeSkipList::PtrIterator(_nodes) ); }
+
+    ConstNodeIterator allChildren() const final override
+    { return pvi(iterTraits( NodeSkipList::Iterator(_nodes)).map([](Node* n) { return (Node const* ) n; } )); }
+
     inline
-    NodeIterator variableChildren()
+    NodeIterator variableChildren() final override
     {
       return pvi( getWhileLimitedIterator(
   		    NodeSkipList::PtrIterator(_nodes),
   		    IsPtrToVarNodeFn()) );
     }
-    virtual Node** childByTop(TermList t, bool canCreate)
+    virtual Node** childByTop(TermList t, bool canCreate) final override
     {
       CALL("SubstitutionTree::SListIntermediateNode::childByTop");
 
@@ -594,7 +612,7 @@ public:
       return res;
     }
     inline
-    void remove(TermList t)
+    void remove(TermList t) final override
     {
       _nodes.remove(t);
       if(_childBySortHelper){
@@ -664,6 +682,8 @@ public:
     	return Int::compare(b2.var, b1.var);
       }
     };
+    friend std::ostream& operator<<(std::ostream& out, Binding const& self)
+    { return out << self.var << " -> " << self.term; }
   }; // class SubstitutionTree::Binding
 
   struct SpecVarComparator
@@ -817,8 +837,8 @@ public:
   class SubstitutionTreeMismatchHandler : public UWAMismatchHandler 
   {
   public:
-    SubstitutionTreeMismatchHandler(Stack<UnificationConstraint>& c, BacktrackData& bd) : 
-      UWAMismatchHandler(c), _constraints(c), _bd(bd) {}
+    SubstitutionTreeMismatchHandler(Shell::Options::UnificationWithAbstraction mode, Stack<UnificationConstraint>& c, BacktrackData& bd) : 
+      UWAMismatchHandler(mode, c), _constraints(c), _bd(bd) {}
     //virtual bool handle(RobSubstitution* subst, TermList query, unsigned index1, TermList node, unsigned index2);
   private:
     virtual bool introduceConstraint(TermList t1,unsigned index1, TermList t2,unsigned index2);
@@ -920,9 +940,25 @@ public:
   bool isEmpty() const;
 
   int _iteratorCnt;
+  Shell::Options::UnificationWithAbstraction const _uwa;
 #endif
 
-}; // class SubstiutionTree
+public:
+  friend std::ostream& operator<<(std::ostream& out, SubstitutionTree const& self)
+  {
+    out << "SubstitutionTree{" << std::endl;
+    for (auto& node : self._nodes) {
+      out << "\t";
+      if (node) {
+        out << *node;
+      } else {
+        out << "<null>";
+      }
+      out << std::endl;
+    }
+    return out << "}";
+  }
+}; // class SubstitutionTree
 
 } // namespace Indexing
 
