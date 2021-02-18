@@ -31,8 +31,8 @@ using namespace std;
 using namespace Kernel;
 using namespace Inferences;
 using namespace Test;
-using Test::TermIndex::termQueryResult;
-using Test::TermIndex::subs;
+using Test::TermIndexTest::termQueryResult;
+using Test::TermIndexTest::subs;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////// TEST CASES 
@@ -44,20 +44,31 @@ using Test::TermIndex::subs;
   DECL_FUNC(f, {Rat}, Rat)                                                                                    \
   DECL_CONST(a, Rat)                                                                                          \
   DECL_CONST(b, Rat)                                                                                          \
+  DECL_CONST(c, Rat)                                                                                          \
+  DECL_CONST(d, Rat)                                                                                          \
 
+
+InequalityResolutionIndex* inequalityResolutionIndex() 
+{
+  auto kbo = new KBO(KBO::testKBO());
+  return new InequalityResolutionIndex(
+               new TermSubstitutionTree(Options::UnificationWithAbstraction::ALL, /* useC = */ true), 
+               *kbo, 
+               PolynomialEvaluation(*kbo));
+}
 
 TERM_INDEX_TEST_SET_DEFAULT(withConstraints, true);
-TERM_INDEX_TEST_SET_DEFAULT(index, new InequalityResolutionIndex(new TermSubstitutionTree(), *new KBO(KBO::testKBO())));
+TERM_INDEX_TEST_SET_DEFAULT(index, inequalityResolutionIndex());
 
 TEST_TERM_INDEX(test01,
-    TermIndex::TestCase()
+    TermIndexTest::TestCase()
       .contents ({ 
                   clause({  2 * a + 3 * b > 0  }),
       })
-      .query (  3 * a )
+      .query ( a )
       .expected({
           termQueryResult()
-            .term        (   2 * a               )
+            .term        (   a               )
             .literal     (   2 * a + 3 * b > 0   )
             .clause      ({  2 * a + 3 * b > 0  })
             .substitution({ })
@@ -66,50 +77,50 @@ TEST_TERM_INDEX(test01,
     )
 
 TEST_TERM_INDEX(test02,
-    TermIndex::TestCase()
+    TermIndexTest::TestCase()
       .contents ({ 
                   clause({  2 * a + 3 * b > 0  }),
       })
-      .query (  3 * b )
+      .query ( b )
       .expected({
           termQueryResult()
-            .term        (   3 * b               )
+            .term        ( b )
             .substitution({ })
             .constraints ({ })
       })
     )
 
 TEST_TERM_INDEX(test03,
-    TermIndex::TestCase()
+    TermIndexTest::TestCase()
       .contents ({ 
                   clause({  2 * a + 3 * b > 0  }),
       })
-      .query (  3 * b )
+      .query ( b )
       .expected({
           termQueryResult()
-            .term        (   3 * b               )
+            .term        ( b )
             .substitution({ })
             .constraints ({ })
       })
     )
 
 TEST_TERM_INDEX(test04,
-    TermIndex::TestCase()
+    TermIndexTest::TestCase()
       .contents ({ 
                   clause({      f(a) > 0  }),
                   clause({  2 * f(b) > 0  }),
       })
-      .query (  3 * b )
+      .query ( b )
       .expected({ /* nothing */ })
     )
 
 TEST_TERM_INDEX(test05,
-    TermIndex::TestCase()
+    TermIndexTest::TestCase()
       .contents ({ 
                   clause({      f(a) > 0  }),
                   clause({  2 * f(b) > 0  }),
       })
-      .query (  f(x) )
+      .query ( f(x) )
       .expected({
 
           termQueryResult()
@@ -126,7 +137,7 @@ TEST_TERM_INDEX(test05,
     )
 
 TEST_TERM_INDEX(test06,
-    TermIndex::TestCase()
+    TermIndexTest::TestCase()
       .contents ({ 
                   clause({  f(b + x + y) > 0  }),
       })
@@ -142,22 +153,38 @@ TEST_TERM_INDEX(test06,
     )
 
 TEST_TERM_INDEX(test07,
-    TermIndex::TestCase()
+    TermIndexTest::TestCase()
       .contents ({ 
-                  clause({  f(b + x + y) + f(a + b) > 0  }),
+                  clause({  f(c + b + a) + f(c) > 0  }),
       })
-      .query (  f(a + z) )
+      .query (  f(c) )
       .expected({
 
           termQueryResult()
-            .term        ( f(b + x + y) )
+            .term        ( f(c) )
             .substitution({  })
-            .constraints ({ b + x + y == a + z }),
+            .constraints ({  }),
+
+          termQueryResult()
+            .term        ( f(c + b + a) )
+            .substitution({   })
+            .constraints ({ c + b + a == c }),
+
+      })
+    )
+
+TEST_TERM_INDEX(test08,
+    TermIndexTest::TestCase()
+      .contents ({ 
+                  clause({  f(a + b) > 0  }),
+      })
+      .query (  f(c + d) )
+      .expected({
 
           termQueryResult()
             .term        ( f(a + b) )
-            .substitution({ subs(z, a)  })
-            .constraints ({  }),
+            .substitution({  })
+            .constraints ({ a == c, b == d }),
 
       })
     )

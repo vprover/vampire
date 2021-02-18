@@ -549,7 +549,7 @@ public:
       res = TermList(theory->representConstant(resNum));
       return true;
     }
-    catch(ArithmeticException)
+    catch(ArithmeticException&)
     {
        DEBUG( "ArithmeticException" );
       return false;

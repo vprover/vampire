@@ -161,7 +161,7 @@ struct Preprocess
 
   void dbgState() const {
     DEBUG("---------------------");
-    for (int i = 0; i < varMap.size(); i++) {
+    for (unsigned i = 0; i < varMap.size(); i++) {
       DEBUG(varMap.fromInt(i), " -> ", varMap.fromInt(components.root(i)), " -> ", varRegions[components.root(i)]);
     }
     DEBUG("---------------------");
@@ -227,7 +227,7 @@ struct Generalize
     }
 
     std::sort(out.begin(), out.end());
-    return move(out);
+    return out;
   }
 };
 
