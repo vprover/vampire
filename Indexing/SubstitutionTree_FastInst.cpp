@@ -237,7 +237,7 @@ public:
   {
   }
 
-  TermList applyToBoundQuery(TermList t)
+  TermList applyToBoundQuery(TermList t) final override
   {
     CALL("SubstitutionTree::InstMatcher::Substitution::applyToBoundQuery");
 
@@ -253,7 +253,7 @@ public:
     return _resultDenormalizer->apply(normalized);
   }
 
-  bool isIdentityOnResultWhenQueryBound() { return true; }
+  bool isIdentityOnResultWhenQueryBound() final override { return true; }
   virtual std::ostream& output(std::ostream& out) final override 
   { return out << "SubstitutionTree::InstMatcher::Substitution"; }
 private:
