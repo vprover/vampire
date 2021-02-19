@@ -87,7 +87,7 @@ int main(int argc, char* argv[])
 
     s.clear();
 
-    std::cout << "PARSING DIMACS INPUT " << i << ": " << filename << '\n' << std::endl;
+    std::cout << "INPUT " << filename << std::endl;
     if (filename == "-") {
       parse_dimacs(std::cin, s);
     } else {
@@ -95,10 +95,10 @@ int main(int argc, char* argv[])
       parse_dimacs(file_in, s);
     }
 
-    std::cout << "\n\nSOLVING\n" << std::endl;
+    std::cout << "SOLVING..." << std::endl;
     res = s.solve();
 
-    std::cout << "\n\nRESULT " << i << ": " << res << std::endl;
+    std::cout << "RESULT " << filename << ": " << static_cast<int>(res) << " " << res << std::endl;
   }
 
   return static_cast<int>(res);
