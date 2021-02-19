@@ -59,23 +59,14 @@ static void parse_dimacs(std::istream& in, Solver& solver)
 
 int main(int argc, char* argv[])
 {
-  if (argc != 2) {
+  if (argc < 2) {
     char const* program = (argc >= 1) ? argv[0] : "subsat";
-    std::cout << "Usage: " << program << " FILE" << std::endl;
+    std::cout << "Usage: " << program << " FILE..." << std::endl;
     return 1;
   }
 
   Solver s;
-
-  std::cout << "PARSING DIMACS INPUT\n" << std::endl;
-
-  std::string filename{argv[1]};
-  if (filename == "-") {
-    parse_dimacs(std::cin, s);
-  } else {
-    std::ifstream file_in{filename};
-    parse_dimacs(file_in, s);
-  }
+  Result res;
 
   // Var x = s.new_variable();
   // Var y = s.new_variable();
@@ -91,10 +82,25 @@ int main(int argc, char* argv[])
   // s.add_clause({~x, ~y, z});
   // s.add_clause({~x, ~y, ~z});
 
-  std::cout << "\n\nSOLVING\n" << std::endl;
-  auto res = s.solve();
+  for (int i = 1; i < argc; ++i) {
+    std::string filename{argv[i]};
 
-  std::cout << "\n\nRESULT: " << res << std::endl;
+    s.clear();
+
+    std::cout << "PARSING DIMACS INPUT " << i << ": " << filename << '\n' << std::endl;
+    if (filename == "-") {
+      parse_dimacs(std::cin, s);
+    } else {
+      std::ifstream file_in{filename};
+      parse_dimacs(file_in, s);
+    }
+
+    std::cout << "\n\nSOLVING\n" << std::endl;
+    res = s.solve();
+
+    std::cout << "\n\nRESULT " << i << ": " << res << std::endl;
+  }
+
   return static_cast<int>(res);
 }
 #endif
@@ -146,7 +152,7 @@ bool Solver::checkInvariants() const
   */
 
   // Check watch invariants
-  assert(m_watches.size() == 2 * m_used_vars);
+  // assert(m_watches.size() == 2 * m_used_vars);  // not true because we keep those after clear()
   std::map<ClauseRef::index_type, int> num_watches; // counts how many times each clause is watched
   for (uint32_t lit_idx = 0; lit_idx < m_watches.size(); ++lit_idx) {
     Lit const lit = Lit::from_index(lit_idx);

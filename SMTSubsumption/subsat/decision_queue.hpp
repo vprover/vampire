@@ -25,6 +25,15 @@ class DecisionQueue
   };
 
 public:
+  void clear() noexcept
+  {
+    m_links.clear();
+    m_first = Var::invalid();
+    m_last = Var::invalid();
+    m_search = Var::invalid();
+    m_stamp = 0;
+  }
+
   void reserve(uint32_t var_count)
   {
     m_links.reserve(var_count);
@@ -209,6 +218,7 @@ private:
     m_stamp = stamp;
   }
 
+private:
   vector_map<Var, Link> m_links;
   Var m_first = Var::invalid();
   Var m_last = Var::invalid();

@@ -115,9 +115,24 @@ public:
     m_inconsistent = false;
     m_used_vars = 0;
     m_unassigned_vars = 0;
-    // TODO: clear everything else too
+    m_level = 0;
+
+    m_values.clear();
+    m_vars.clear();
+    m_marks.clear();
+
+    m_queue.clear();
+
     m_clauses.clear();
-    // TODO: don't clear m_watches! we should keep the nested vectors to save re-allocation
+    // Don't clear m_watches itself! We want to keep the nested vectors to save re-allocation.
+    for (auto& watches : m_watches) {
+      watches.clear();
+    }
+
+    m_trail.clear();
+    m_propagate_head = 0;
+
+    m_frames.clear();
   }
 
   /// Reserve space for a clause of 'capacity' literals

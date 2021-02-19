@@ -82,6 +82,8 @@ public:
 
   // TODO: a map-like iterator would be nice. need to extend Index with the backward conversion.
 
+  void clear() noexcept { m_data.clear(); }
+
   void push_back(T const& value) { m_data.push_back(value); }
   void push_back(T&& value) { m_data.push_back(std::move(value)); }
 
