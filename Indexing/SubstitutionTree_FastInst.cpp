@@ -235,14 +235,14 @@ public:
   {
   }
 
-  bool matchSorts(TermList base, TermList instance) override
+  bool matchSorts(TermList base, TermList instance) final override
   {
     CALL("SubstitutionTree::InstMatcher::Substitution::matchSorts");
 
     return _parent->matchNextAux(base, instance, false);
   }
 
-  TermList applyToBoundQuery(TermList t) override
+  TermList applyToBoundQuery(TermList t) final override
   {
     CALL("SubstitutionTree::InstMatcher::Substitution::applyToBoundQuery");
 
@@ -261,6 +261,7 @@ public:
   bool isIdentityOnResultWhenQueryBound() final override
   { return true; }
 
+  bool isIdentityOnResultWhenQueryBound() final override { return true; }
   virtual std::ostream& output(std::ostream& out) final override 
   { return out << "SubstitutionTree::InstMatcher::Substitution"; }
 

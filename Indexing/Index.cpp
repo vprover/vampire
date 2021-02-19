@@ -51,9 +51,13 @@ std::ostream& operator<<(std::ostream& out, TermQueryResult const& self)
 { 
   out << "TermQueryResult("
       <<   "term: "         << self.term
-      << ", literal: "      << *self.literal
-      << ", clause: "       << *self.clause
-      << ", substitution: " << self.substitution
+      << ", literal: ";
+  if (self.literal) out << *self.literal;
+  else              out << "<null>";
+  out << ", clause: ";
+  if (self.clause) out << *self.clause;
+  else              out << "<null>";
+  out << ", substitution: " << self.substitution
       << ", constraints: " ;
 
   auto toTerm = [&](pair<TermList, int> const& x) 
@@ -61,16 +65,20 @@ std::ostream& operator<<(std::ostream& out, TermQueryResult const& self)
   auto writeConst = [&](UnificationConstraint const&c)
                     { out << toTerm(c.first) << " = " << toTerm(c.second); };
 
-  out << "[";
-  auto iter = self.constraints->iterFifo();
-  if (iter.hasNext()) {
-    writeConst(iter.next());
-    while (iter.hasNext()) {
-      out << ", ";
+  if (self.constraints) {
+    out << "[";
+    auto iter = self.constraints->iterFifo();
+    if (iter.hasNext()) {
       writeConst(iter.next());
+      while (iter.hasNext()) {
+        out << ", ";
+        writeConst(iter.next());
+      }
     }
+    out << "]";
+  } else {
+    out << "<null>";
   }
-  out << "]";
   out << ")"; 
   return out;
 }
