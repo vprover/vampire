@@ -1,5 +1,6 @@
 #include "subsat.hpp"
 
+#include <fstream>
 #include <initializer_list>
 #include <iostream>
 #include <string>
@@ -56,32 +57,45 @@ static void parse_dimacs(std::istream& in, Solver& solver)
   }
 }
 
-int main()
+int main(int argc, char* argv[])
 {
-    Solver s;
+  if (argc != 2) {
+    char const* program = (argc >= 1) ? argv[0] : "subsat";
+    std::cout << "Usage: " << program << " FILE" << std::endl;
+    return 1;
+  }
 
-    std::cout << "PARSING DIMACS INPUT\n" << std::endl;
+  Solver s;
+
+  std::cout << "PARSING DIMACS INPUT\n" << std::endl;
+
+  std::string filename{argv[1]};
+  if (filename == "-") {
     parse_dimacs(std::cin, s);
+  } else {
+    std::ifstream file_in{filename};
+    parse_dimacs(file_in, s);
+  }
 
-    // Var x = s.new_variable();
-    // Var y = s.new_variable();
-    // Var z = s.new_variable();
+  // Var x = s.new_variable();
+  // Var y = s.new_variable();
+  // Var z = s.new_variable();
 
-    // std::cout << "\n\nADDING CLAUSES\n" << std::endl;
-    // s.add_clause({x, y, z});
-    // s.add_clause({x, y, ~z});
-    // s.add_clause({x, ~y, z});
-    // s.add_clause({x, ~y, ~z});
-    // s.add_clause({~x, y, z});
-    // s.add_clause({~x, y, ~z});
-    // s.add_clause({~x, ~y, z});
-    // s.add_clause({~x, ~y, ~z});
+  // std::cout << "\n\nADDING CLAUSES\n" << std::endl;
+  // s.add_clause({x, y, z});
+  // s.add_clause({x, y, ~z});
+  // s.add_clause({x, ~y, z});
+  // s.add_clause({x, ~y, ~z});
+  // s.add_clause({~x, y, z});
+  // s.add_clause({~x, y, ~z});
+  // s.add_clause({~x, ~y, z});
+  // s.add_clause({~x, ~y, ~z});
 
-    std::cout << "\n\nSOLVING\n" << std::endl;
-    auto res = s.solve();
+  std::cout << "\n\nSOLVING\n" << std::endl;
+  auto res = s.solve();
 
-    std::cout << "\n\nRESULT: " << res << std::endl;
-    return static_cast<int>(res);
+  std::cout << "\n\nRESULT: " << res << std::endl;
+  return static_cast<int>(res);
 }
 #endif
 
@@ -152,9 +166,11 @@ bool Solver::checkInvariants() const
             min_true_level = get_level(l);
           }
         }
-        // If the clause is satisfied, one of the watches must be on the same level or above
-        // at least one of the true literals.
-        assert(get_level(clause[0]) >= min_true_level || get_level(clause[1]) >= min_true_level);
+        // If the clause is satisfied and the watches are assigned,
+        // one of the watches must be on the same level or above one of the true literals.
+        bool both_watches_unassigned =
+          m_values[clause[0]] == Value::Unassigned && m_values[clause[1]] == Value::Unassigned;
+        assert(both_watches_unassigned || get_level(clause[0]) >= min_true_level || get_level(clause[1]) >= min_true_level);
       } else {
         // If the clause is not satisfied, either both watch literals must be unassigned,
         // or all literals are false (conflict).
@@ -185,13 +201,13 @@ Result Solver::solve()
 {
   m_trail.reserve(m_used_vars);
   m_frames.resize(m_used_vars + 1, 0);
-  m_queue.resize(m_used_vars);
+  m_queue.resize_and_init(m_used_vars);
+
+  propagate_units();
 
   if (m_inconsistent) {
     return Result::Unsat;
   }
-
-  propagate_units();
 
   while (true) {
     ClauseRef conflict = propagate();

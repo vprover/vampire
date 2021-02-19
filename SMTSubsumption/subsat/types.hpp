@@ -110,6 +110,7 @@ static_assert(Var::max_index() == static_cast<uint32_t>(INT32_MAX - 1), "unexpec
 static_assert(Var::max_index() < Var::invalid().index(), "valid variable indices overlap with invalid sentinel value");
 static_assert(!Var::invalid().is_valid());
 static_assert(Var{Var::max_index()}.is_valid());
+// static_assert(std::is_trivially_constructible_v<Var>, "Var should be trivially constructible so we can allocate vectors without initialization");  // TODO: do we really need this for VMTF? maybe we need to initialize there anyway (then a reserve+push_back loop would do it.)
 
 [[nodiscard]] constexpr bool operator==(Var lhs, Var rhs) noexcept
 {

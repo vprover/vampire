@@ -83,9 +83,10 @@ class DecisionQueue
   };
 
 public:
-  void resize(uint32_t var_count)
+  void resize_and_init(uint32_t var_count)
   {
     m_links.resize(var_count);
+    // TODO: init queue (see satch)
   }
 
   /// Move variable to front of decision queue.
@@ -103,6 +104,9 @@ private:
   {
     Link& link = m_links[var];
     assert(link.enqueued);
+#ifndef NDEBUG
+    link.enqueued = false;
+#endif
     if (link.prev.is_valid()) {
       Link& prev = m_links[link.prev];
       assert(prev.next == var);
@@ -126,6 +130,9 @@ private:
   {
     Link& link = m_links[var];
     assert(!link.enqueued);
+#ifndef NDEBUG
+    link.enqueued = true;
+#endif
     if (m_last.is_valid()) {
       assert(!m_links[m_last].next.is_valid());
       m_links[m_last].next = var;
@@ -339,8 +346,14 @@ private:
       auto value = m_values[lit];
       if (value == Value::Unassigned) {
         assign(lit, ClauseRef::invalid());
+        ClauseRef const conflict = propagate();
+        if (conflict.is_valid()) {
+          m_inconsistent = true;
+          return;
+        }
       } else if (value == Value::False)  {
         m_inconsistent = true;
+        return;
       } else {
         // do nothing
         assert(value == Value::True);
