@@ -91,27 +91,36 @@ public:
     for (uint32_t idx = old_var_count; idx < var_count; ++idx) {
       enqueue(Var{idx}, Value::Unassigned);
     }
+    assert(m_search == m_last);
   }
 
   /// Move variable to front of decision queue.
-  void bump(Var var, Value var_value)
+  void move_to_front(Var var, Value var_value)
   {
+    // TODO: simplify enqueue (remove var_value) since we only bump assigned vars
+    //       add checkQueue like in kitten
+    assert(var_value != Value::Unassigned);
     if (var != m_last) {
       dequeue(var);
       enqueue(var, var_value);
     }
   }
 
+  /// Finds the next unassigned variable.
+  /// Precondition: at least one variable is unassigned.
   Var next_unassigned_variable(vector_map<Lit, Value> const& values)
   {
+    assert(std::any_of(values.begin(), values.end(), [](auto x){ return x == Value::Unassigned; }));
     Var var = m_search;
     while (true) {
       assert(var.is_valid());
       if (values[var] == Value::Unassigned) {
+        // We will always reach this point because all unassigned variables
+        // are to the left of the search position cache.
         break;
       } else {
         var = m_links[var].prev;
-        // TODO: why can't we go past the first element here?
+        assert(var.is_valid());
       }
     }
     m_search = var;
@@ -119,6 +128,7 @@ public:
     return var;
   }
 
+  /// Updates the search position cache when a variable is unassigned.
   void unassign(Var var)
   {
     if (m_links[m_search].stamp < m_links[var].stamp) {
@@ -126,10 +136,70 @@ public:
     }
   }
 
+#ifndef NDEBUG
+  bool checkInvariants(vector_map<Lit, Value> const& values) const
+  {
+    if (m_first.is_valid()) {
+      assert(m_last.is_valid());
+      assert(m_search.is_valid());
+    } else {
+      assert(!m_last.is_valid());
+      assert(!m_search.is_valid());
+    }
+
+    std::set<Var> seen;
+
+    // Forward traversal
+    Timestamp stamp = 0;
+    Var prev = Var::invalid();
+    for (Var var = m_first; var.is_valid();) {
+      Link const& link = m_links[var];
+      // Check that there are no cycles
+      auto [_, inserted] = seen.insert(var);
+      assert(inserted);
+      // Check pointers
+      assert(link.prev == prev);
+      // Check timestamp order
+      assert(var == m_first || stamp < link.stamp);
+      assert(link.stamp < m_stamp);
+      stamp = link.stamp;
+      prev = var;
+      var = link.next;
+    }
+    assert(seen.size() == m_links.size());
+
+    // Backward traversal
+    seen.clear();
+    Var next = Var::invalid();
+    for (Var var = m_last; var.is_valid();) {
+      Link const& link = m_links[var];
+      // Check that there are no cycles
+      auto [_, inserted] = seen.insert(var);
+      assert(inserted);
+      // Check pointers
+      assert(link.next == next);
+      next = var;
+      var = link.prev;
+    }
+    assert(seen.size() == m_links.size());
+
+    // Check search position cache
+    // (there should be no unassigned variable after the cached search position)
+    for (Var var = m_search; var.is_valid(); var = m_links[var].next) {
+      if (var != m_search) {
+        assert(values[var] != Value::Unassigned);
+      }
+    }
+
+    return true;
+  }  // checkInvariants
+#endif
+
 private:
   /// Remove variable from the queue.
   void dequeue(Var var)
   {
+    CDEBUG("dequeue " << var);
     Link& link = m_links[var];
     assert(link.enqueued);
 #ifndef NDEBUG
@@ -156,6 +226,7 @@ private:
   /// Enqueue variable at the end of the queue.
   void enqueue(Var var, Value var_value)
   {
+    CDEBUG("enqueue " << var);
     Link& link = m_links[var];
     assert(!link.enqueued);
 #ifndef NDEBUG
@@ -172,9 +243,9 @@ private:
     m_last = var;
     link.next = Var::invalid();
 
-    link.stamp = ++m_stamp;
+    link.stamp = m_stamp++;
 
-    if (link.stamp == 0) {
+    if (m_stamp == 0) {
       // Timestamp overflow happened
       restamp();
     } else {
@@ -400,6 +471,7 @@ private:
 
     m_level += 1;
 
+    assert(m_queue.checkInvariants(m_values));
     Var var = m_queue.next_unassigned_variable(m_values);
 
     // TODO: phase saving (+ hints?)
@@ -669,11 +741,12 @@ private:
 
     // TODO: sort analyzed vars by time stamp?
     for (Var var : seen) {
-      m_queue.bump(var, m_values[var]);
+      m_queue.move_to_front(var, m_values[var]);
       assert(m_marks[var]);
       m_marks[var] = 0;
     }
     seen.clear();
+    assert(m_queue.checkInvariants(m_values));
 
     backtrack(jump_level);
 
@@ -740,6 +813,7 @@ private:
   {
     CDEBUG("backtrack to level " << new_level);
     assert(new_level <= m_level);
+    assert(m_queue.checkInvariants(m_values));
 
     while (!m_trail.empty()) {
       Lit const lit = m_trail.back();
@@ -754,6 +828,7 @@ private:
 
     m_propagate_head = m_trail.size();
     m_level = new_level;
+    assert(m_queue.checkInvariants(m_values));
   }  // backtrack
 
 #ifndef NDEBUG

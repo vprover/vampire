@@ -202,6 +202,7 @@ Result Solver::solve()
   m_trail.reserve(m_used_vars);
   m_frames.resize(m_used_vars + 1, 0);
   m_queue.resize_and_init(m_used_vars);
+  assert(m_queue.checkInvariants(m_values));
 
   propagate_units();
 
