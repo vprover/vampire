@@ -85,8 +85,12 @@ class DecisionQueue
 public:
   void resize_and_init(uint32_t var_count)
   {
-    m_links.resize(var_count);
-    // TODO: init queue (see satch)
+    uint32_t const old_var_count = m_links.size();
+
+    m_links.resize(var_count);  // TODO: should not initialize memory here
+    for (uint32_t idx = old_var_count; idx < var_count; ++idx) {
+      enqueue(Var{idx}, Value::Unassigned);
+    }
   }
 
   /// Move variable to front of decision queue.
@@ -95,6 +99,30 @@ public:
     if (var != m_last) {
       dequeue(var);
       enqueue(var, var_value);
+    }
+  }
+
+  Var next_unassigned_variable(vector_map<Lit, Value> const& values)
+  {
+    Var var = m_search;
+    while (true) {
+      assert(var.is_valid());
+      if (values[var] == Value::Unassigned) {
+        break;
+      } else {
+        var = m_links[var].prev;
+        // TODO: why can't we go past the first element here?
+      }
+    }
+    m_search = var;
+    CDEBUG("VMTF decision variable " << var << " with stamp " << m_links[var].stamp);
+    return var;
+  }
+
+  void unassign(Var var)
+  {
+    if (m_links[m_search].stamp < m_links[var].stamp) {
+      m_search = var;
     }
   }
 
@@ -171,6 +199,7 @@ private:
   vector_map<Var, Link> m_links;
   Var m_first = Var::invalid();
   Var m_last = Var::invalid();
+  /// Search position cache
   Var m_search = Var::invalid();
   Timestamp m_stamp = 0;
 };
@@ -371,16 +400,12 @@ private:
 
     m_level += 1;
 
-    // TODO: use VMTF heuristic
-    // for now, just choose the first unassigned literal
-    for (uint32_t lit_idx = 0; lit_idx < m_values.size(); ++lit_idx) {
-      Lit const lit = Lit::from_index(lit_idx);
-      if (m_values[lit] == Value::Unassigned) {
-        assign(lit, ClauseRef::invalid());
-        return;
-      }
-    }
-    assert(false);
+    Var var = m_queue.next_unassigned_variable(m_values);
+
+    // TODO: phase saving (+ hints?)
+    // for now, just use the positive phase always (works quite well for our type of problems, or at least much better than always-negative)
+    Lit decision{var, true};
+    assign(decision, ClauseRef::invalid());
   }
 
   /// Unit propagation.
@@ -642,9 +667,9 @@ private:
 
     // TODO: update averages
 
-    // TODO: sort analyzed vars by time stamp
+    // TODO: sort analyzed vars by time stamp?
     for (Var var : seen) {
-      // TODO: bump in varorder
+      m_queue.bump(var, m_values[var]);
       assert(m_marks[var]);
       m_marks[var] = 0;
     }
@@ -695,12 +720,26 @@ private:
     return true;
   }  // analyze
 
+
+
+  void unassign(Lit lit)
+  {
+    assert(m_unassigned_vars < m_used_vars);
+    m_unassigned_vars += 1;
+
+    assert(m_values[lit] == Value::True);
+    assert(m_values[~lit] == Value::False);
+    m_values[lit] = Value::Unassigned;
+    m_values[~lit] = Value::Unassigned;
+
+    m_queue.unassign(lit.var());
+  }
+
+
   void backtrack(Level new_level)
   {
     CDEBUG("backtrack to level " << new_level);
     assert(new_level <= m_level);
-
-    // TODO: update VMTF
 
     while (!m_trail.empty()) {
       Lit const lit = m_trail.back();
@@ -710,12 +749,7 @@ private:
       }
 
       m_trail.pop_back();
-      assert(m_unassigned_vars < m_used_vars);
-      m_unassigned_vars += 1;
-      assert(m_values[lit] == Value::True);
-      assert(m_values[~lit] == Value::False);
-      m_values[lit] = Value::Unassigned;
-      m_values[~lit] = Value::Unassigned;
+      unassign(lit);
     }
 
     m_propagate_head = m_trail.size();
