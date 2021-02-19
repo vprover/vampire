@@ -69,10 +69,12 @@ class TestCase
   Stack<ClausePattern> _expected;
   Stack<Clause*> _context;
   bool _premiseRedundant;
+  Stack<Indexing::Index*> _indices;
 
   template<class Is, class Expected>
   void testFail(Is const& is, Expected const& expected) {
       cout  << endl;
+      cout << "[  context ]: " << pretty(_context) << endl;
       cout << "[     case ]: " << pretty(*_input) << endl;
       cout << "[       is ]: " << pretty(is) << endl;
       cout << "[ expected ]: " << pretty(expected) << endl;
@@ -95,16 +97,23 @@ public:
   BUILDER_METHOD(Stack<ClausePattern>, expected)
   BUILDER_METHOD(bool, premiseRedundant)
   BUILDER_METHOD(SimplifyingGeneratingInference*, rule)
+  BUILDER_METHOD(Stack<Indexing::Index*>, indices)
 
   template<class Rule>
   void run(GenerationTester<Rule>& simpl) {
 
-    // set up saturation algorithm
-    Problem p;
-    Options o;
-    MockedSaturationAlgorithm alg(p, o);
+    // set up clause container and indexing strucure
+    auto container =  PlainClauseContainer();
     SimplifyingGeneratingInference& rule = *_rule.unwrapOrElse([&](){ return &simpl._rule; });
-    rule.attach(&alg);
+    rule.setTestIndices(_indices);
+    for (auto i : _indices) {
+      i->attachContainer(&container);
+    }
+
+    // add the clauses to the index
+    for (auto c : _context) {
+      container.add(c);
+    }
 
     // run rule
     auto res = rule.generateSimplify(_input);
@@ -132,9 +141,6 @@ public:
       auto wrapStr = [](bool b) -> vstring { return b ? "premise is redundant" : "premis not redundant"; };
       testFail( wrapStr(res.premiseRedundant), wrapStr(_premiseRedundant));
     }
-
-    // tear down saturation algorithm
-    rule.detach();
   }
 };
 

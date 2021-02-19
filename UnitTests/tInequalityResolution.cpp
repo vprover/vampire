@@ -25,11 +25,14 @@
 #include "Test/SimplificationTester.hpp"
 #include "Test/GenerationTester.hpp"
 #include "Kernel/KBO.hpp"
+#include "Indexing/TermSubstitutionTree.hpp"
+#include "Inferences/PolynomialEvaluation.hpp"
 
 using namespace std;
 using namespace Kernel;
 using namespace Inferences;
 using namespace Test;
+using namespace Indexing;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////// TEST CASES 
@@ -43,22 +46,36 @@ using namespace Test;
   DECL_CONST(b, Rat)                                                                                          \
 
 
+Stack<Indexing::Index*> indices() 
+{ 
+  auto& kbo = *new KBO(KBO::testKBO());
+  // auto uwa = env.options->unificationWithAbstraction();
+  auto uwa = Options::UnificationWithAbstraction::ONE_INTERP;
+  return {
+    new InequalityResolutionIndex(
+        new TermSubstitutionTree(uwa, true), kbo,
+        InequalityNormalizer(PolynomialEvaluation(kbo)))
+  };
+}
+
 REGISTER_GEN_TESTER(Test::Generation::GenerationTester<InequalityResolution>)
 
 TEST_GENERATION(test01,
     Generation::TestCase()
-      .input   (  clause({  f(x) > 0, x == 7  }) )
-      .context ({ clause({ -f(x) > 0 }) })
+      .indices(indices())
+      .input   (  clause({selected( f(x) > 0 ), x == 7   }) )
+      .context ({ clause({         -f(x) > 0             }) })
       .expected(exactly(
-            clause({  x == 7  })
+            clause({ num(0) > 0,  x == 7  })
       ))
       .premiseRedundant(false)
     )
 
 TEST_GENERATION(test02,
     Generation::TestCase()
-      .input   (  clause({  f(a) > 0  }) )
-      .context ({ clause({ a + f(a) > 0 }) })
+      .indices(indices())
+      .input   (  clause({selected(f(a) > 0)  }) )
+      .context ({ clause({     a + f(a) > 0 }) })
       .expected(exactly(
             clause({  -a > 0  })
       ))
@@ -67,8 +84,9 @@ TEST_GENERATION(test02,
 
 TEST_GENERATION(test03,
     Generation::TestCase()
-      .input   (  clause({ -a + f(a) > 0 }) )
-      .context ({ clause({  a + f(a) > 0 }) })
+      .indices(indices())
+      .input   (  clause({selected( -a + f(a) > 0) }) )
+      .context ({ clause({           a + f(a) > 0  }) })
       .expected(exactly(
             clause({  -2 * a > 0  })
       ))
@@ -77,18 +95,31 @@ TEST_GENERATION(test03,
 
 TEST_GENERATION(test04,
     Generation::TestCase()
-      .input   (  clause({ -a + f(x) > 0 }) )
-      .context ({ clause({  a + f(a) > 0 }) })
+      .indices(indices())
+      .input   (  clause({ selected(-a + f(x) > 0), x == 7 }) )
+      .context ({ clause({           a + f(a) > 0 }) })
       .expected(exactly(
-            clause({  -2 * a > 0  })
+            clause({  -2 * a > 0, a == 7  })
       ))
       .premiseRedundant(false)
     )
 
 TEST_GENERATION(test05,
     Generation::TestCase()
-      .input   (  clause({ f(x) > 0 }) )
-      .context ({ clause({ f(y) + f(a) > 0 }) })
+      .indices(indices())
+      .input   (  clause({ selected(-a + f(x) > 0) }) )
+      .context ({ clause({           a + f(a) > 0 , x == 7}) })
+      .expected(exactly(
+            clause({  -2 * a > 0, x == 7  })
+      ))
+      .premiseRedundant(false)
+    )
+
+TEST_GENERATION(test06,
+    Generation::TestCase()
+      .indices(indices())
+      .input   (  clause({ selected(f(x) > 0) }) )
+      .context ({ clause({   f(y) + f(a) > 0  }) })
       .expected(exactly(
             clause({  -f(a) > 0 }),
             clause({  -f(x) > 0 })
@@ -96,10 +127,11 @@ TEST_GENERATION(test05,
       .premiseRedundant(false)
     )
 
-TEST_GENERATION(test06,
+TEST_GENERATION(test07,
     Generation::TestCase()
-      .input   (  clause({ 6 * f(x) + b > 0 })  )
-      .context ({ clause({ 4 * f(y) + a > 0 }) })
+      .indices(indices())
+      .input   (  clause({ selected(6 * f(x) + b > 0) })  )
+      .context ({ clause({          4 * f(y) + a > 0  }) })
       .expected(exactly(
             clause({  -2 * b  + 3 * a  > 0 })
       ))
