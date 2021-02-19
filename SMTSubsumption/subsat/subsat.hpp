@@ -101,15 +101,42 @@ public:
   /// but does not actually enable the new variables in the solver.
   void reserve_variables(uint32_t count)
   {
+    m_vars.reserve(count);
+    m_marks.reserve(count);
     m_values.reserve(2 * count);
-    // TODO: call reserve on all necessary vectors where this is necessary
+    m_watches.reserve(2 * count);
+    // TODO: call reserve on all vectors where this is necessary
+  }
+
+  void clear()
+  {
+    // TODO: reset solver to empty state without deallocating memory
+    m_used_vars = 0;
+    m_unassigned_vars = 0;
+    // ...
   }
 
   /// Reserve space for a clause of 'capacity' literals
   /// and returns a handle to the storage.
-  [[nodiscard]] AllocatedClause alloc_clause(uint32_t capacity)
+  [[nodiscard]] AllocatedClauseHandle alloc_clause(uint32_t capacity)
   {
     return m_clauses.alloc(capacity);
+  }
+
+  void clause_start()
+  {
+    m_clauses.start();
+  }
+
+  void clause_literal(Lit lit)
+  {
+    m_clauses.push_literal(lit);
+  }
+
+  void clause_end()
+  {
+    ClauseRef cr = m_clauses.end();
+    add_clause_internal(cr);
   }
 
   /// Reset solver to empty state, but keep allocated memory buffers.
@@ -136,26 +163,10 @@ public:
     add_clause(ca);
   }
 
-  void add_clause(AllocatedClause ca)
+  void add_clause(AllocatedClauseHandle ca)
   {
     ClauseRef cr = ca.build();
-    Clause const& c = m_clauses.deref(cr);
-    CDEBUG("add_clause: " << cr << " ~> " << c);
-    // TODO: improve this?
-    for (Lit lit : c) {
-      while (lit.var().index() >= m_used_vars) {
-        (void)new_variable();
-      }
-    }
-    if (c.size() == 0) {
-      add_empty_clause();
-    } else if (c.size() == 1) {
-      add_unit_clause(c[0]);
-    } else {
-      // TODO: special handling for binary clauses
-      assert(c.size() >= 2);
-      watch_clause(cr);
-    }
+    add_clause_internal(cr);
   }
 
   void add_empty_clause()
@@ -177,7 +188,32 @@ public:
     add_clause({lit1, lit2});
   }
 
-  /// Preconditions: ...
+  void add_clause_internal(ClauseRef cr)
+  {
+    Clause const& c = m_clauses.deref(cr);
+    CDEBUG("add_clause: " << cr << " ~> " << c);
+    // TODO: improve this?
+    for (Lit lit : c) {
+      while (lit.var().index() >= m_used_vars) {
+        (void)new_variable();
+      }
+    }
+    // TODO: check for duplicate variables
+    if (c.size() == 0) {
+      add_empty_clause();
+    } else if (c.size() == 1) {
+      add_unit_clause(c[0]);
+    } else {
+      // TODO: special handling for binary clauses
+      assert(c.size() >= 2);
+      watch_clause(cr);
+    }
+  }
+
+  /// Preconditions:
+  /// - all variables in the clause have been added using new_variable()
+  /// - no duplicate variables in the clause
+  /// - ???
   void add_clause_unsafe(Clause* clause)
   {
     // // TODO
@@ -664,7 +700,7 @@ private:
 #endif
 
   ClauseArena<> m_clauses;
-  std::vector<Lit> m_units;
+  std::vector<Lit> m_units;  // TODO: no need for this and propagate_units, do it like satch and just assign
   vector_map<Lit, std::vector<Watch>> m_watches;
 
   /// The currently true literals in order of assignment
@@ -680,17 +716,17 @@ private:
   vector_map<Level, char> m_frames;  ///< stores for each level whether we already have it in blocks (we use 'char' because vector<bool> is bad)
 }; // Solver
 
+
 // TODO:
-// 1. VMTF decision heuristic
-// 2. binary clause optimization
-// 3. phase saving? but for our problem, just choosing 'true' will almost always be correct.
-//    => maybe add a 'hint' to 'new_variable'... that will be the first phase tried if we need to decide on it.
-// 4. AtMostOne support
+// 1. AtMostOne support
 //    => needs special support for binary reasons so we don't have to materialize them
 //    => can "chop off" highest bit of ClauseRef to embed literals in there?
 //       (using highest bit means no arithmetic is required for normal clause indexing)
 //       this would also allow us to easily do the binary clause optimization in watch lists.
 //       although for that, it might be better to use blocking literals + invalid clauseref for binary watches
+// 2. binary clause optimization
+// 3. phase saving? but for our problem, just choosing 'true' will almost always be correct.
+//    => maybe add a 'hint' to 'new_variable'... that will be the first phase tried if we need to decide on it.
 
 
 } // namespace SMTSubsumption

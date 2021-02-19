@@ -44,6 +44,15 @@ public:
     return m_size;
   }
 
+  /// Number of bytes required for the clause header (without literals).
+  static constexpr size_t header_bytes() noexcept
+  {
+    size_t constexpr embedded_literals = std::extent_v<decltype(m_literals)>;
+    size_t constexpr header_bytes = sizeof(Clause) - sizeof(Lit) * embedded_literals;
+    static_assert(header_bytes == offsetof(Clause, m_literals));
+    return header_bytes;
+  }
+
   /// Number of bytes required by a clause containing 'size' literals.
   static size_t bytes(size_type size) noexcept
   {
@@ -67,7 +76,7 @@ private:
   Clause& operator=(Clause&&) = delete;
 
   template <typename Allocator> friend class ClauseArena;
-  friend class AllocatedClause;
+  friend class AllocatedClauseHandle;
 
 private:
   size_type m_size;    // number of literals
@@ -161,7 +170,7 @@ std::ostream& operator<<(std::ostream& os, ClauseRef cr)
 
 
 
-class AllocatedClause final
+class AllocatedClauseHandle final
 {
 public:
   void push(Lit lit) noexcept
@@ -182,7 +191,7 @@ public:
   }
 
 private:
-  AllocatedClause(Clause& clause, ClauseRef clause_ref, uint32_t capacity) noexcept
+  AllocatedClauseHandle(Clause& clause, ClauseRef clause_ref, uint32_t capacity) noexcept
       : m_clause{&clause}
       , m_clause_ref{clause_ref}
 #ifndef NDEBUG
@@ -244,28 +253,62 @@ public:
 
   /// Allocate a new clause with enough space for 'capacity' literals.
   /// May throw std::bad_alloc if the arena is exhausted, or reallocating the arena fails.
-  [[nodiscard]] AllocatedClause alloc(std::uint32_t capacity)
+  [[nodiscard]] AllocatedClauseHandle alloc(std::uint32_t capacity)
   {
-    std::size_t const old_size = m_storage.size();
-    if (old_size > static_cast<std::size_t>(ClauseRef::max_index())) {
-      std::cerr << "ClauseArena::alloc: too many stored literals, unable to represent additional clause reference" << std::endl;
-      throw std::bad_alloc();
-    }
+    assert(!m_dynamic_ref.is_valid());
+
+    ClauseRef cr = make_ref();
 
     std::size_t const bytes = Clause::bytes(capacity);
     assert(bytes % sizeof(storage_type) == 0);
     std::size_t const elements = bytes / sizeof(storage_type);
-    std::size_t const new_size = old_size + elements;
+    std::size_t const new_size = m_storage.size() + elements;
 
     m_storage.resize(new_size);
 
-    ClauseRef cr(old_size);
-#ifndef NDEBUG
-    cr.m_timestamp = m_timestamp;
-#endif
     void* p = deref_plain(cr);
     Clause* c = new (p) Clause{0};
-    return AllocatedClause{*c, cr, capacity};
+    return AllocatedClauseHandle{*c, cr, capacity};
+  }
+
+  /// Start a new clause of unknown size at the end of the current storage.
+  /// Only one of these can be active at a time, and alloc_clause cannot be used while this is active.
+  void start()
+  {
+    assert(!m_dynamic_ref.is_valid());
+
+    m_dynamic_ref = make_ref();
+
+    std::size_t constexpr header_bytes = Clause::header_bytes();
+    static_assert(header_bytes % sizeof(storage_type) == 0);
+    std::size_t constexpr header_elements = header_bytes / sizeof(storage_type);
+    std::size_t const new_size = m_storage.size() + header_elements;
+
+    m_storage.resize(new_size);
+  }
+
+  void push_literal(Lit lit)
+  {
+    assert(m_dynamic_ref.is_valid());
+    assert(lit.is_valid());
+    m_storage.push_back(lit.index());
+  }
+
+  [[nodiscard]] ClauseRef end()
+  {
+    assert(m_dynamic_ref.is_valid());
+
+    std::size_t const old_size = m_dynamic_ref.m_index;
+    std::size_t constexpr header_elements = Clause::header_bytes() / sizeof(storage_type);
+    assert(m_storage.size() >= old_size + header_elements);
+    std::size_t const clause_size = m_storage.size() - old_size - header_elements;
+
+    ClauseRef cr = m_dynamic_ref;
+    Clause& c = deref(cr);
+    c.m_size = clause_size;
+
+    m_dynamic_ref = ClauseRef::invalid();
+    return cr;
   }
 
   /// Remove all clauses from the arena.
@@ -290,6 +333,21 @@ public:
   //       hmm, we may have gaps. so we can't iterate easily.
 
 private:
+  [[nodiscard]] ClauseRef make_ref()
+  {
+    std::size_t const size = m_storage.size();
+    if (size > static_cast<std::size_t>(ClauseRef::max_index())) {
+      std::cerr << "ClauseArena::alloc: too many stored literals, unable to represent additional clause reference" << std::endl;
+      throw std::bad_alloc();
+    }
+    ClauseRef cr(size);
+#ifndef NDEBUG
+    cr.m_timestamp = m_timestamp;
+#endif
+    return cr;
+  }
+
+private:
   // NOTE: we use the default_init_allocator to avoid zero-initialization when resizing m_storage
   std::vector<storage_type, default_init_allocator<storage_type, Allocator>> m_storage;
 #ifndef NDEBUG
@@ -297,6 +355,7 @@ private:
   /// TODO: start with a random timestamp instead of 0. Then we effectively check for different arenas as well!
   std::uint32_t m_timestamp = 0;
 #endif
+  ClauseRef m_dynamic_ref = ClauseRef::invalid();
 };
 
 
