@@ -204,8 +204,6 @@ Result Solver::solve()
   m_queue.resize_and_init(m_used_vars);
   assert(m_queue.checkInvariants(m_values));
 
-  propagate_units();
-
   if (m_inconsistent) {
     return Result::Unsat;
   }

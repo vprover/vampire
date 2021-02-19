@@ -108,12 +108,16 @@ public:
     // TODO: call reserve on all vectors where this is necessary
   }
 
+
+  /// Reset solver to empty state, but keep allocated memory buffers.
   void clear()
   {
-    // TODO: reset solver to empty state without deallocating memory
+    m_inconsistent = false;
     m_used_vars = 0;
     m_unassigned_vars = 0;
-    // ...
+    // TODO: clear everything else too
+    m_clauses.clear();
+    // TODO: don't clear m_watches! we should keep the nested vectors to save re-allocation
   }
 
   /// Reserve space for a clause of 'capacity' literals
@@ -137,16 +141,6 @@ public:
   {
     ClauseRef cr = m_clauses.end();
     add_clause_internal(cr);
-  }
-
-  /// Reset solver to empty state, but keep allocated memory buffers.
-  void clear()
-  {
-    m_inconsistent = false;
-    m_used_vars = 0;
-    // TODO: clear everything else too
-    m_clauses.clear();
-    // TODO: don't clear m_watches! we should keep the nested vectors to save re-allocation
   }
 
   void add_clause(std::initializer_list<Lit> literals)
@@ -174,12 +168,29 @@ public:
     m_inconsistent = true;
   }
 
+  void ensure_variable(Var var)
+  {
+    while (var.index() >= m_used_vars) {
+      (void)new_variable();
+    }
+  }
+
   void add_unit_clause(Lit lit)
   {
-      while (lit.var().index() >= m_used_vars) {
-        (void)new_variable();
-      }
-    m_units.push_back(lit);
+    ensure_variable(lit.var());
+    switch (m_values[lit]) {
+      case Value::True:
+        CDEBUG("skipping redundant unit clause: " << lit);
+        break;
+      case Value::False:
+        CDEBUG("inconsistent unit clause: " << lit);
+        m_inconsistent = true;
+        break;
+      case Value::Unassigned:
+        CDEBUG("unit clause: " << lit);
+        assign(lit, ClauseRef::invalid());
+        break;
+    }
   }
 
   void add_binary_clause(Lit lit1, Lit lit2)
@@ -194,9 +205,7 @@ public:
     CDEBUG("add_clause: " << cr << " ~> " << c);
     // TODO: improve this?
     for (Lit lit : c) {
-      while (lit.var().index() >= m_used_vars) {
-        (void)new_variable();
-      }
+      ensure_variable(lit.var());
     }
     // TODO: check for duplicate variables
     if (c.size() == 0) {
@@ -265,27 +274,6 @@ private:
 
     assert(m_unassigned_vars > 0);
     m_unassigned_vars -= 1;
-  }
-
-  void propagate_units()
-  {
-    for (Lit lit : m_units) {
-      auto value = m_values[lit];
-      if (value == Value::Unassigned) {
-        assign(lit, ClauseRef::invalid());
-        ClauseRef const conflict = propagate();
-        if (conflict.is_valid()) {
-          m_inconsistent = true;
-          return;
-        }
-      } else if (value == Value::False)  {
-        m_inconsistent = true;
-        return;
-      } else {
-        // do nothing
-        assert(value == Value::True);
-      }
-    }
   }
 
   /// Make a decision.
@@ -700,7 +688,6 @@ private:
 #endif
 
   ClauseArena<> m_clauses;
-  std::vector<Lit> m_units;  // TODO: no need for this and propagate_units, do it like satch and just assign
   vector_map<Lit, std::vector<Watch>> m_watches;
 
   /// The currently true literals in order of assignment
