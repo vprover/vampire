@@ -87,14 +87,16 @@ public:
   [[nodiscard]] Var new_variable()
   {
     // TODO: optional argument phase_hint as initial value for m_phases?
+    Var new_var = Var{m_used_vars++};
     m_unassigned_vars++;
     m_vars.push_back({ .level = InvalidLevel, .reason = ClauseRef::invalid()});
     m_marks.push_back(0);
     m_values.push_back(Value::Unassigned); // value of positive literal
     m_values.push_back(Value::Unassigned); // value of negative literal
-    m_watches.emplace_back().reserve(16);  // positive literal watches
-    m_watches.emplace_back().reserve(16);  // negative literal watches
-    return Var{m_used_vars++};
+    while (m_watches.size() < 2 * m_used_vars) {
+      m_watches.emplace_back().reserve(16);
+    }
+    return new_var;
   }
 
   /// Reserve space for 'count' variables (in total),
