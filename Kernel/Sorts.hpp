@@ -58,7 +58,7 @@ public:
 
   //once arrays are fixed and axiomatused by a fixed number of polymorphic axioms
   //_arraySorts can be deleted
-  //Once finite model buuilding is refactored (Giles Reger knows how)
+  //Once finite model building is refactored (Giles Reger knows how)
   //there is no longer a need to store any sorts at all.
   void addArraySort(TermList sort){ _arraySorts->insert(sort); }
   DHSet<TermList>* getArraySorts(){
@@ -83,7 +83,7 @@ private:
  *
  * https://link.springer.com/chapter/10.1007/978-3-030-51054-1_21
  *
- * The class stores data in a Vector<TermList>*, of length  +
+ * The class stores data in a Vector<TermList>*, of length 
  * num_of_arg_sorts + 1. The number of bound variables is stored in
  * a field _typeArgsArity. It is assumed that the bound variables range from
  * 0 to _typeArgsArity - 1. In order for this assumption to be valid all sorts must

@@ -359,7 +359,6 @@ Formula* Skolem::skolemise (Formula* f)
 
   case EXISTS: 
     {
-      //cout << "skolemising " + f->toString() << endl;
       // create the skolems for the existentials here
       // and bind them in _subst
       unsigned arity = 0;
@@ -375,6 +374,8 @@ Formula* Skolem::skolemise (Formula* f)
 
       // for proof recording purposes, see below
       VList* varArgs = VList::empty();
+      //We use a FIFO structure since in the polymorphic case
+      //a variable list must be of the form [typevars, termvars]
       VList::FIFO vArgs(varArgs);
       Formula* before = SubstHelper::apply(f, _subst);
 
@@ -404,12 +405,16 @@ Formula* Skolem::skolemise (Formula* f)
         unsigned uvar = vuIt.next();
         TermList sort = _varSorts.get(uvar, Term::defaultSort());
         if(sort == Term::superSort()){
+          //This a type variable
           TermList var = TermList(uvar, false);
           allVars.push(var);
           typeVars.push(var);
           vArgs.pushFront(uvar);
         } else {
+          //This is a term variable
           if(sort.isVar() || !sort.term()->shared() || !sort.term()->ground()){
+            //the sort may include existential type variables that have been skolemised 
+            //above
             sort = SubstHelper::apply(sort, _subst);
           }
           termVarSorts.push(sort);
@@ -418,7 +423,6 @@ Formula* Skolem::skolemise (Formula* f)
         }
         arity++;
       }
-      ASS(termVars.size() == termVarSorts.size());
 
       for(unsigned i = 0; i < termVars.size() && !_appify; i++){
         allVars.push(termVars[i]);
@@ -431,6 +435,8 @@ Formula* Skolem::skolemise (Formula* f)
         TermList rangeSort=_varSorts.get(v, Term::defaultSort());
         if(rangeSort.isVar() || !rangeSort.term()->shared() || 
            !rangeSort.term()->ground()){
+          //the range sort may include existential type variables that have been skolemised 
+          //above
           rangeSort = SubstHelper::apply(rangeSort, _subst);
         }
 
@@ -438,10 +444,14 @@ Formula* Skolem::skolemise (Formula* f)
         Term* skolemTerm;
 
         if(!_appify){
+          //Not the higher-order case. Create the term
+          //sk(typevars, termvars).
           unsigned fun = addSkolemFunction(arity, termVarSorts.begin(), rangeSort, v, typeVars.size());
           _introducedSkolemFuns.push(fun);
           skolemTerm = Term::create(fun, arity, allVars.begin());
         } else {
+          //The higher-order case. Create the term
+          //sk(typevars) @ termvar_1 @ termvar_2 @ ... @ termvar_n
           TermList skSymSort = Term::arrowSort(termVarSorts, rangeSort);
           unsigned fun = addSkolemFunction(typeVars.size(), 0, skSymSort, v, typeVars.size());
           _introducedSkolemFuns.push(fun);

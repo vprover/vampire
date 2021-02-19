@@ -116,8 +116,13 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
           continue;
         }
 
-
-        static RobSubstitution subst; // to deal with polymorphic matching
+        // to deal with polymorphic matching
+        // Ideally, we would like to extend the substitution 
+        // returned by the index to carry out the sort match.
+        // However, ForwardDemodulation uses a CodeTree as its
+        // indexing mechanism, and it is not clear how to extend
+        // the substitution returned by a code tree.
+        static RobSubstitution subst; 
         bool resultTermIsVar = qr.term.isVar();
         if(resultTermIsVar){
           TermList eqSort = SortHelper::getEqualityArgumentSort(qr.literal);
