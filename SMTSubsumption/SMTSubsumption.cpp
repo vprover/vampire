@@ -1004,6 +1004,670 @@ class SMTSubsumptionImpl
 
 
 
+
+
+
+
+
+/****************************************************************************
+ * SMT-Subsumption with custom SAT solver
+ ****************************************************************************/
+
+
+// TODO: early exit in case time limit hits, like in MLMatcher which checks every 50k iterations if time limit has been exceeded
+
+
+class SMTSubsumptionImpl2
+{
+  private:
+    subsat::Solver solver;
+
+    /// Clauses stating that each base literal must be matched to at least one instance literal.
+    // vvector<subsat::AllocatedClause> match_clauses;  // NOT NECESSARY, since we iterate over 'base' outside
+
+    /// AtMostOne constraints stating that each instance literal may be matched at most once.
+    vvector<subsat::AllocatedClause> instance_constraints;
+
+  public:
+    struct BindingsRef {
+      uint32_t index;
+      uint32_t size;
+      BindingsRef(VectorStoringBinder const& binder)
+        : index(binder.index())
+        , size(binder.size())
+      { }
+      /// last index + 1
+      uint32_t end() {
+        return index + size;
+      }
+    };
+
+    /// Set up the subsumption problem.
+    /// Returns false if no solution is possible.
+    /// Otherwise, solve() needs to be called.
+    bool setup(Kernel::Clause* base, Kernel::Clause* instance)
+    {
+      CDEBUG("SMTSubsumptionImpl2::setup()");
+
+      solver.clear();
+
+      // The match clauses + AtMostOne constraints saying that each base literal is matches to exactly one instance literal.
+      // Worst case: each base literal may be matchable to two boolean vars per instance literal (two orientations of equalities).
+      uint32_t const clause_maxsize = 2 * instance->length();
+
+      // Here we store the AtMostOne constraints saying that each instance literal may be matched at most once.
+      // Each instance literal can be matched by at most 2 boolean vars per base literal (two orientations of equalities).
+      // NOTE: instance constraints cannot be packed densely because we only know their shape at the end.
+      uint32_t const instance_constraint_maxsize = 2 * base->length();
+      for (size_t i = 0; i < instance_constraints_storage.size(); i += max_instance_constraint_len) {
+        instance_constraints.push_back(solver.alloc_clause(instance_constraint_maxsize));
+      }
+
+      // Minisat::Var b ... boolean variable with FO bindings attached
+      // bindings_table[b] ... index/size of FO bindings for b
+      // bindings_storage[bindings_table[b].index .. bindings_table[b].end] ... FO bindings for b
+      vvector<BindingsRef> bindings_table;
+      bindings_table.reserve(32);
+      vvector<std::pair<unsigned, TermList>> bindings_storage;
+      bindings_storage.reserve(128);
+
+      // Matching for subsumption checks whether
+      //
+      //      side_premise\theta \subseteq main_premise
+      //
+      // holds.
+      uint32_t nextVar = 0;
+      for (unsigned i = 0; i < base->length(); ++i) {
+        Literal* base_lit = base->literals()[i];
+
+        // Build clause stating that base_lit must be matched to at least one corresponding instance literal.
+        // subsat::AllocatedClause base_clause = solver.alloc_clause();
+        solver.clause_start();
+
+        for (unsigned j = 0; j < instance->length(); ++j) {
+          Literal* inst_lit = instance->literals()[j];
+
+          if (!Literal::headersMatch(base_lit, inst_lit, false)) {
+            continue;
+          }
+
+          VectorStoringBinder binder(bindings_storage);
+          if (base_lit->arity() == 0 || MatchingUtils::matchArgs(base_lit, inst_lit, binder)) {
+            subsat::Var b{nextVar++};
+
+            if (binder.size() > 0) {
+              ASS(!base_lit->ground());
+            } else {
+              ASS(base_lit->ground());
+              ASS_EQ(base_lit, inst_lit);
+              // TODO: in this case, at least for subsumption, we should skip this base_lit and this inst_list.
+              // probably best to have a separate loop first that deals with ground literals? since those are only pointer equality checks.
+            }
+
+            ASS_EQ(bindings_table.size(), b);
+            bindings_table.emplace_back(binder);
+
+            // base_lit_alts.push_back({ .b = b, });
+            clause_storage.push_back(Minisat::index(Minisat::Lit(b)));
+            uint32_t* inst_constraint = &instance_constraints_storage[j * max_instance_constraint_len];
+            inst_constraint[0] += 1;
+            inst_constraint[inst_constraint[0]] = Minisat::index(Minisat::Lit(b));
+            // possible_base_vars[j].push_back(b);
+          }
+
+          if (base_lit->commutative()) {
+            ASS_EQ(base_lit->arity(), 2);
+            ASS_EQ(inst_lit->arity(), 2);
+            binder.reset();
+            if (MatchingUtils::matchReversedArgs(base_lit, inst_lit, binder)) {
+
+              Minisat::Var b = nextVar++;
+
+              ASS_EQ(bindings_table.size(), b);
+              bindings_table.emplace_back(binder);
+
+              // base_lit_alts.push_back({ .b = b, });
+              clause_storage.push_back(Minisat::index(Minisat::Lit(b)));
+              uint32_t* inst_constraint = &instance_constraints_storage[j * max_instance_constraint_len];
+              inst_constraint[0] += 1;
+              inst_constraint[inst_constraint[0]] = Minisat::index(Minisat::Lit(b));
+              // possible_base_vars[j].push_back(b);
+            }
+          }
+        }
+        uint32_t clause_size = clause_storage.size() - clause_index - 1;
+        if (clause_size == 0) {
+          // no matches for this base literal => conflict on root level due to empty clause
+          return false;
+        }
+        clause_storage[clause_index] = clause_size;
+        // if (base_lit_alts.empty()) {
+        //   return false;
+        // }
+        // alts.push_back(std::move(base_lit_alts));
+      }
+
+      solver.newVars(nextVar);
+
+      CDEBUG("setting substitution theory...");
+      // solver.setSubstitutionTheory(std::move(stc));  // TODO lazy version
+
+      // // Pre-matching done
+      // for (auto const& v : alts) {
+      //   if (v.empty()) {
+      //     ASSERTION_VIOLATION; // should have been discovered above
+      //     // There is a base literal without any possible matches => abort
+      //     return false;
+      //   }
+      // }
+      // return bindings_storage.size() > 10 && bindings_storage.back().first > 5
+      //       && instance_constraints_storage.size() > 20 && instance_constraints_storage[20] > 3
+      //       && clause_storage.size() > 5 && clause_storage[5] > 1;
+
+      using Minisat::Lit;
+
+      std::cerr << "clause_storage:";
+      for (auto x : clause_storage) {
+        std::cerr << " " << x;
+      }
+      std::cerr << std::endl;
+
+      { // add match clauses/constraints
+      size_t c_index = 0;
+      while (c_index < clause_storage.size()) {
+        std::cerr << "Adding clause at index " << c_index << std::endl;
+        uint32_t* c_size = &clause_storage[c_index];
+        uint32_t* c_lits = &clause_storage[c_index + 1];
+        uint32_t const c_original_size = *c_size;
+        ASS_G(c_original_size, 0);  // otherwise we would have returned in the matching loop already
+
+        std::cerr << "  *c_size = " << *c_size << std::endl;
+        std::cerr << "  c_original_size = " << c_original_size << std::endl;
+        for (int k = 0; k < c_original_size; ++k) {
+          std::cerr << "  c_lits[" << k << "] = " << c_lits[k] << std::endl;
+        }
+
+        // Clean the constraint (remove literals with already-known value)
+        // TODO: maybe extract this into a separate function?
+        int n_true = 0;
+        int i = 0, j = 0;
+        while (j < *c_size) {
+          Lit l = Minisat::toLit(c_lits[j]);
+          Minisat::lbool lvalue = solver.value(l);
+          if (lvalue == Minisat::l_True) {
+            n_true += 1;
+            // skip literal (in this case we don't really care about the constraint anymore)
+            std::cerr << "    skip " << j << std::endl;
+            ++j;
+          }
+          else if (lvalue == Minisat::l_False) {
+            // skip literal
+            std::cerr << "    skip " << j << std::endl;
+            ++j;
+          }
+          else {
+            ASS_EQ(lvalue, Minisat::l_Undef);
+            // copy literal
+            std::cerr << "    copy " << j << " to " << i << std::endl;
+            c_lits[i] = c_lits[j];
+            ++i; ++j;
+          }
+        }
+        *c_size = i;
+
+        std::cerr << "  *c_size = " << *c_size << std::endl;
+        std::cerr << "  c_original_size = " << c_original_size << std::endl;
+        for (int k = 0; k < c_original_size; ++k) {
+          std::cerr << "  c_lits[" << k << "] = " << c_lits[k] << std::endl;
+        }
+
+        // we use the same storage for both Clause and AtMostOne constraint
+        Minisat::Clause* c1 = reinterpret_cast<Minisat::Clause*>(&clause_storage[c_index]);   // use std::launder? see https://stackoverflow.com/a/39382728 (but requires C++17)
+        Minisat::AtMostOne* c2 = reinterpret_cast<Minisat::AtMostOne*>(&clause_storage[c_index]);   // use std::launder?
+        ASS(!c1->learnt());
+        ASS_EQ(*c_size, c1->size());  // TODO: if VDEBUG check contents too?
+        ASS_EQ(*c_size, c2->size());  // TODO: if VDEBUG check contents too?
+
+        if (n_true == 0) {
+          // At least one must be true
+          solver.addClause_unchecked(c1);
+          // At most one must be true
+          if (c2->size() >= 2) {
+            solver.addConstraint_AtMostOne_unchecked(c2);
+          }
+        } else if (n_true == 1) {
+          // one is already true => skip clause, propagate AtMostOne constraint
+          for (int k = 0; k < c2->size(); ++k) {
+            Lit l = (*c2)[k];
+            ASS(solver.value(l) == Minisat::l_Undef);
+            solver.addUnit(~l);
+          }
+        } else {
+          ASS(n_true >= 2);
+          // conflict at root level due to AtMostOne constraint
+          return false;
+        }
+
+        // go to next clause
+        c_index += 1 + c_original_size;
+      }
+      ASS_EQ(c_index, clause_storage.size());
+      }
+/* OLD below
+      // Add constraints:
+      // \Land_i ExactlyOneOf(b_{i1}, ..., b_{ij})
+      Minisat::vec<Lit> ls;
+      for (auto const& v : alts) {
+        ls.clear();
+        // Collect still-undefined literals
+        int n_true = 0;
+        for (auto const& alt : v) {
+          Lit l = Lit(alt.b);
+          Minisat::lbool lvalue = solver.value(l);
+          if (lvalue == Minisat::l_True) {
+            // skip clause and AtMostOne-constraint
+            n_true += 1;
+          } else if (lvalue == Minisat::l_False) {
+            // skip literal
+          } else {
+            ASS_EQ(lvalue, Minisat::l_Undef);
+            ls.push(l);
+          }
+        }
+        if (n_true == 0) {
+          // At least one must be true
+          solver.addClause_unchecked(ls);
+          // At most one must be true
+          if (ls.size() >= 2) {
+            solver.addConstraint_AtMostOne_unchecked(ls);
+          }
+        } else if (n_true == 1) {
+          // one is already true => skip clause, propagate AtMostOne constraint
+          for (auto const& alt : v) {
+            Lit l = Lit(alt.b);
+            if (solver.value(l) == Minisat::l_Undef) {
+              solver.addUnit(~l);
+            }
+          }
+        } else {
+          ASS(n_true >= 2);
+          // conflict at root level due to AtMostOne constraint
+          return false;
+        }
+      }
+      */
+
+      // Add constraints:
+      // \Land_j AtMostOneOf(b_{1j}, ..., b_{ij})
+      for (size_t c_index = 0; c_index < instance_constraints_storage.size(); c_index += max_instance_constraint_len) {
+        uint32_t* c_size = &instance_constraints_storage[c_index];  // TODO
+        uint32_t* c_lits = &instance_constraints_storage[c_index + 1];
+
+        // Clean the constraint (remove literals with already-known value)
+        // => actually, this should be done in the solver in addConstraint_AtMostOne_unchecked(AtMostOne*)
+        //    (the 'unchecked' then just is about the properties no-duplicates and sorted.)
+        // => OTOH, above we can use the same structure for clause AND constraint. So we don't really want to do this twice. (or modify at all, after adding one)
+        int n_true = 0;
+        int i = 0, j = 0;
+        while (j < *c_size) {
+          Lit l = Minisat::toLit(c_lits[j]);
+          Minisat::lbool lvalue = solver.value(l);
+          if (lvalue == Minisat::l_True) {
+            n_true += 1;
+            // skip literal (in this case we don't really care about the constraint anymore)
+            ++j;
+          }
+          else if (lvalue == Minisat::l_False) {
+            // skip literal
+            ++j;
+          }
+          else {
+            ASS_EQ(lvalue, Minisat::l_Undef);
+            // copy literal
+            c_lits[i] = c_lits[j];
+            ++i; ++j;
+          }
+        }
+        *c_size = i;
+        Minisat::AtMostOne* c = reinterpret_cast<Minisat::AtMostOne*>(&instance_constraints_storage[c_index]);
+        ASS_EQ(*c_size, c->size());  // TODO if VDEBUG check contents too?
+
+        if (n_true == 0) {
+          // At most one must be true
+          if (c->size() >= 2) {
+            solver.addConstraint_AtMostOne_unchecked(c);
+          }
+        }
+        else if (n_true == 1) {
+          // one is already true => propagate AtMostOne constraint
+          for (int k = 0; k < c->size(); ++k) {
+            Lit l = (*c)[k];
+            ASS(solver.value(l) == Minisat::l_Undef);
+            solver.addUnit(~l);
+          }
+        }
+        else {
+          ASS(n_true >= 2);
+          // conflict at root level due to AtMostOne constraint
+          return false;
+        }
+
+      /* OLD below
+        if (w.size() >= 2) {
+          ls.clear();
+          int n_true = 0;
+          for (auto const b : w) {
+            Lit l = Lit(b);
+            Minisat::lbool lvalue = solver.value(l);
+            if (lvalue == Minisat::l_True) {
+              n_true += 1;
+            }
+            else if (lvalue == Minisat::l_False) {
+              // skip literal
+            }
+            else {
+              ASS_EQ(lvalue, Minisat::l_Undef);
+              ls.push(l);
+            }
+            // ls.push(Lit(b));
+          }
+          // solver.addConstraint_AtMostOne(ls);
+          if (n_true == 0) {
+            // At most one must be true
+            if (ls.size() >= 2) {
+              solver.addConstraint_AtMostOne_unchecked(ls);
+            }
+          }
+          else if (n_true == 1) {
+            // one is already true => propagate AtMostOne constraint
+            for (auto const b : w) {
+              Lit l = Lit(b);
+              if (solver.value(l) == Minisat::l_Undef) {
+                solver.addUnit(~l);
+              }
+            }
+          }
+          else {
+            ASS(n_true >= 2);
+            // conflict at root level due to AtMostOne constraint
+            return false;
+          }
+        }
+        */
+      }
+
+      return true;
+    }
+
+
+
+    void printStats(std::ostream& out)
+    {
+      // printf("==================================[MINISAT]===================================\n");
+      // printf("| Conflicts |     ORIGINAL     |              LEARNT              | Progress |\n");
+      // printf("|           | Clauses Literals |   Limit Clauses Literals  Lit/Cl |          |\n");
+      // printf("==============================================================================\n");
+      // printf("| %9d | %7d %8d | %7d %7d %8d %7.1f | %6.3f %% |\n",
+      //        (int)solver.stats.conflicts,
+      //        solver.nClauses(), (int)solver.stats.clauses_literals,
+      //        -1, solver.nLearnts(), (int)solver.stats.learnts_literals, (double)solver.stats.learnts_literals / solver.nLearnts(),
+      //        -1);
+      // fflush(stdout);
+      out << "Starts:       " << std::setw(8) << solver.stats.starts << std::endl;
+      out << "Decisions:    " << std::setw(8) << solver.stats.decisions << std::endl;
+      out << "Conflicts:    " << std::setw(8) << solver.stats.conflicts << std::endl;
+      out << "Propagations: " << std::setw(8) << solver.stats.propagations << std::endl;
+    }
+
+    /// Set up the subsumption problem.
+    /// Returns false if no solution is possible.
+    /// Otherwise, solve() needs to be called.
+    bool setup(Kernel::Clause* side_premise, Kernel::Clause* main_premise, Minisat::VarOrderStrategy vo_strategy = Minisat::VarOrderStrategy::MinisatDefault)
+    {
+      CDEBUG("SMTSubsumptionImpl::setup()");
+      // solver.reset();  // TODO
+      // solver.verbosity = 2;  // maybe only for debug...
+
+      // TODO: use miniindex
+      // LiteralMiniIndex const main_premise_mini_index(main_premise);
+
+      // Pre-matching
+      // Determine which literals of the side_premise can be matched to which
+      // literals of the main_premise when considered on their own.
+      // Along with this, we create variables b_ij and the mapping for substitution
+      // constraints.
+      vvector<vvector<Alt>> alts;
+      alts.reserve(side_premise->length());
+
+      // for each instance literal (of main_premise),
+      // the possible variables indicating a match with the instance literal
+      vvector<vvector<Minisat::Var>> possible_base_vars;
+      // start with empty vector for each instance literal
+      possible_base_vars.resize(main_premise->length());
+
+      SubstitutionTheoryConfiguration stc;
+      MapBinder binder;
+
+      Minisat::VarOrder_info& vo_info = solver.vo_info;
+      vo_info.strategy = vo_strategy;
+      vo_info.var_baselit.clear();
+      vo_info.num_baselits = side_premise->length();
+
+      // Matching for subsumption checks whether
+      //
+      //      side_premise\theta \subseteq main_premise
+      //
+      // holds.
+      Minisat::Var nextVar = 0;
+      for (unsigned i = 0; i < side_premise->length(); ++i) {
+        Literal* base_lit = side_premise->literals()[i];
+        vo_info.baselit_distinctVars.push(base_lit->getDistinctVars());
+
+        vvector<Alt> base_lit_alts;
+
+        // TODO: use LiteralMiniIndex here? (need to extend InstanceIterator to a version that returns the binder)
+        // LiteralMiniIndex::InstanceIterator inst_it(main_premise_mini_index, base_lit, false);
+        for (unsigned j = 0; j < main_premise->length(); ++j) {
+          Literal* inst_lit = main_premise->literals()[j];
+
+          if (!Literal::headersMatch(base_lit, inst_lit, false)) {
+            continue;
+          }
+
+          binder.reset();
+          if (base_lit->arity() == 0 || MatchingUtils::matchArgs(base_lit, inst_lit, binder)) {
+            Minisat::Var b = nextVar++;
+            vo_info.var_baselit.push(i);
+
+            if (binder.bindings().size() > 0) {
+              ASS(!base_lit->ground());
+              auto atom = SubstitutionAtom::from_binder(binder);
+              stc.register_atom(b, std::move(atom));
+            }
+            else {
+              ASS(base_lit->ground());
+              ASS_EQ(base_lit, inst_lit);
+              // TODO: in this case, at least for subsumption, we should skip this base_lit and this inst_list.
+              // probably best to have a separate loop first that deals with ground literals? since those are only pointer equality checks.
+              //
+              // For now, just register an empty substitution atom.
+              auto atom = SubstitutionAtom::from_binder(binder);
+              stc.register_atom(b, std::move(atom));
+            }
+
+            base_lit_alts.push_back({
+                // .lit = inst_lit,
+                // .j = j,
+                .b = b,
+                // .reversed = false,
+            });
+            possible_base_vars[j].push_back(b);
+          }
+
+          if (base_lit->commutative()) {
+            ASS_EQ(base_lit->arity(), 2);
+            ASS_EQ(inst_lit->arity(), 2);
+            binder.reset();
+            if (MatchingUtils::matchReversedArgs(base_lit, inst_lit, binder)) {
+              auto atom = SubstitutionAtom::from_binder(binder);
+
+              Minisat::Var b = nextVar++;
+              vo_info.var_baselit.push(i);
+              stc.register_atom(b, std::move(atom));
+
+              base_lit_alts.push_back({
+                  // .lit = inst_lit,
+                  // .j = j,
+                  .b = b,
+                  // .reversed = true,
+              });
+              possible_base_vars[j].push_back(b);
+            }
+          }
+        }
+        if (base_lit_alts.empty()) {
+          return false;
+        }
+        alts.push_back(std::move(base_lit_alts));
+      }
+
+      solver.newVars(nextVar);
+      ASS_EQ(vo_info.var_baselit.size(), solver.nVars());
+      ASS_EQ(vo_info.baselit_distinctVars.size(), side_premise->length());
+
+      CDEBUG("setting substitution theory...");
+      solver.setSubstitutionTheory(std::move(stc));
+
+      // Pre-matching done
+      for (auto const& v : alts) {
+        if (v.empty()) {
+          ASSERTION_VIOLATION; // should have been discovered above
+          // There is a base literal without any possible matches => abort
+          return false;
+        }
+      }
+
+      // Add constraints:
+      // \Land_i ExactlyOneOf(b_{i1}, ..., b_{ij})
+      using Minisat::Lit;
+      Minisat::vec<Lit> ls;
+      for (auto const& v : alts) {
+        ls.clear();
+        // Collect still-undefined literals
+        int n_true = 0;
+        for (auto const& alt : v) {
+          Lit l = Lit(alt.b);
+          Minisat::lbool lvalue = solver.value(l);
+          if (lvalue == Minisat::l_True) {
+            // skip clause and AtMostOne-constraint
+            n_true += 1;
+          } else if (lvalue == Minisat::l_False) {
+            // skip literal
+          } else {
+            ASS_EQ(lvalue, Minisat::l_Undef);
+            ls.push(l);
+          }
+        }
+        if (n_true == 0) {
+          // At least one must be true
+          solver.addClause_unchecked(ls);
+          // At most one must be true
+          // NOTE: according to Armin, these redundant constraints may actually be harmful (correspond to blocked clauses which an advanced SAT solver would even remove in preprocessing)
+          //       preliminary tests show no difference in #decisions with/without this constraint (so it's better to not add them)
+          // if (ls.size() >= 2) {
+          //   solver.addConstraint_AtMostOne_unchecked(ls);
+          // }
+        } else if (n_true == 1) {
+          // one is already true => skip clause, propagate AtMostOne constraint
+          for (auto const& alt : v) {
+            Lit l = Lit(alt.b);
+            if (solver.value(l) == Minisat::l_Undef) {
+              solver.addUnit(~l);
+            }
+          }
+        } else {
+          ASS(n_true >= 2);
+          // conflict at root level due to AtMostOne constraint
+          return false;
+        }
+      }
+
+      // Add constraints:
+      // \Land_j AtMostOneOf(b_{1j}, ..., b_{ij})
+      for (auto const& w : possible_base_vars) {
+        if (w.size() >= 2) {
+          ls.clear();
+          int n_true = 0;
+          for (auto const b : w) {
+            Lit l = Lit(b);
+            Minisat::lbool lvalue = solver.value(l);
+            if (lvalue == Minisat::l_True) {
+              n_true += 1;
+            }
+            else if (lvalue == Minisat::l_False) {
+              // skip literal
+            }
+            else {
+              ASS_EQ(lvalue, Minisat::l_Undef);
+              ls.push(l);
+            }
+            // ls.push(Lit(b));
+          }
+          // solver.addConstraint_AtMostOne(ls);
+          if (n_true == 0) {
+            // At most one must be true
+            if (ls.size() >= 2) {
+              solver.addConstraint_AtMostOne_unchecked(ls);
+            }
+          }
+          else if (n_true == 1) {
+            // one is already true => propagate AtMostOne constraint
+            for (auto const b : w) {
+              Lit l = Lit(b);
+              if (solver.value(l) == Minisat::l_Undef) {
+                solver.addUnit(~l);
+              }
+            }
+          }
+          else {
+            ASS(n_true >= 2);
+            // conflict at root level due to AtMostOne constraint
+            return false;
+          }
+        }
+      }
+
+      return true;
+    }
+
+
+    /// Solve the subsumption instance created by the previous call to setup()
+    bool solve()
+    {
+      CDEBUG("SMTSubsumptionImpl::solve()");
+      return solver.solve({});
+    }
+
+    bool checkSubsumption(Kernel::Clause* side_premise, Kernel::Clause* main_premise)
+    {
+      return setup(side_premise, main_premise) && solve();
+    }
+};  // class SMTSubsumptionImpl
+
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
+
+
+
+
+
+
+
+
+
 /****************************************************************************
  * --mode stest
  ****************************************************************************/
