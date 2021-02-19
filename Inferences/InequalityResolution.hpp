@@ -41,16 +41,17 @@ public:
 
   InequalityResolutionIndex(TermIndexingStructure* is, Ordering& ord, InequalityNormalizer norm)
     : TermIndex(is)
-    , _ord(ord)
+    , _ord(&ord)
     , _normalizer(std::move(norm)) {}
 
   InequalityNormalizer const& normalizer() const { return _normalizer; }
+  Ordering* ord() const { return _ord; }
 protected:
   void handleClause(Clause* c, bool adding);
 private:
   template<class NumTraits> bool handleLiteral(Literal* lit, Clause* c, bool adding);
 
-  Ordering& _ord;
+  Ordering* _ord;
   InequalityNormalizer _normalizer;
 };
 }
@@ -72,23 +73,24 @@ public:
 
   InequalityResolution() 
     : _index(0)
-    , _unificationWithAbstraction(false)
   {  }
 
-  void attach(SaturationAlgorithm* salg);
-  void detach();
+  void attach(SaturationAlgorithm* salg) final override;
+  void detach() final override;
 
 
-  ClauseIterator generateClauses(Clause* premise);
+  ClauseIterator generateClauses(Clause* premise) final override;
 
+  
+  virtual void setTestIndices(Stack<Indexing::Index*> const&) final override;
 private:
 
   template<class NumTraits> VirtualIterator<Monom<NumTraits>> maxTerms(InequalityLiteral<NumTraits> const& lit) const;
   template<class NumTraits> ClauseIterator generateClauses(Clause* clause, Literal* lit) const;
 
   InequalityNormalizer const& normalizer() const { return _index->normalizer(); }
+  Ordering* ord() const { return _index->ord(); }
   InequalityResolutionIndex* _index;
-  bool _unificationWithAbstraction;
 };
 
 };

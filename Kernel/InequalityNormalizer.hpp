@@ -62,6 +62,8 @@ namespace Kernel {
     InequalityLiteral(Perfect<Polynom<NumTraits>> term, bool strict) 
       : _term(term), _strict(strict) {}
 
+    friend class InequalityNormalizer;
+
     /* returns the lhs of the inequality lhs >= 0 (or lhs > 0) */
     Polynom<NumTraits> const& term() const
     { return *_term; }

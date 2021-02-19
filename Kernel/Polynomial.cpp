@@ -8,7 +8,6 @@
  * and in the source directory
  */
 
-
 #include "Kernel/Polynomial.hpp"
 #include "Kernel/PolynomialNormalizer.hpp"
 

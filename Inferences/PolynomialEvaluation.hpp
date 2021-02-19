@@ -37,6 +37,12 @@ public:
   virtual ~PolynomialEvaluation();
 
   Option<PolyNf> evaluate(PolyNf in) const;
+  template<class NumTraits>
+  Option<Perfect<Polynom<NumTraits>>> evaluate(Perfect<Polynom<NumTraits>> in) const
+  { return evaluate(PolyNf(in)).map([](PolyNf p) { return p.unwrap<Polynom<NumTraits>>(); }); }
+
+  template<class NumTraits>
+  static Polynom<NumTraits> simplifySummation(Stack<Monom<NumTraits>>);
 private:
 
   Result simplifyLiteral(Literal*) override;

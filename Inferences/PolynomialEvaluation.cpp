@@ -241,11 +241,53 @@ PolyNf createTerm(unsigned fun, PolyNf* evaluatedArgs)
 { return perfect(FuncTerm(FuncId(fun), evaluatedArgs)); }
 
 template<class Number>
+Polynom<Number> PolynomialEvaluation::simplifySummation(Stack<Monom<Number>> summands)
+{ 
+  CALL("simplifySummation(Stack<Monom<Number>>)") 
+  using Monom   = Monom<Number>;
+  using Polynom = Polynom<Number>;
+  try {
+
+    // then we sort them by their monom, in order to add up the coefficients efficiently
+    std::sort(summands.begin(), summands.end());
+
+    // add up the coefficient (in place)
+    {
+      auto offs = 0;
+      for (unsigned i = 0; i < summands.size(); i++) { 
+        auto monom = summands[i];
+        auto numeral = monom.numeral;
+        auto factors = monom.factors;
+        while ( i + 1 < summands.size() && summands[i+1].factors == factors ) {
+          numeral = numeral + summands[i+1].numeral;
+          i++;
+        }
+        if (numeral != Number::zeroC) 
+          summands[offs++] = Monom(numeral, factors);
+      }
+      summands.truncate(offs);
+
+    }
+
+    auto poly = Polynom(std::move(summands));
+    poly.integrity();
+    return poly;
+  } catch (ArithmeticException&) { 
+    return Polynom(std::move(summands));
+  }
+}
+
+template Polynom< IntTraits> PolynomialEvaluation::simplifySummation< IntTraits>(Stack<Monom< IntTraits>> summands);
+template Polynom< RatTraits> PolynomialEvaluation::simplifySummation< RatTraits>(Stack<Monom< RatTraits>> summands);
+template Polynom<RealTraits> PolynomialEvaluation::simplifySummation<RealTraits>(Stack<Monom<RealTraits>> summands);
+
+
+
+template<class Number>
 Polynom<Number> simplifyPoly(Polynom<Number> const& in, PolyNf* simplifiedArgs)
 { 
   CALL("simplify(Polynom<Number>const&, PolyNf* simplifiedArgs)") 
   using Monom   = Monom<Number>;
-  using Polynom = Polynom<Number>;
   try {
 
     // first we simplify all the monoms containted in this polynom
@@ -264,30 +306,7 @@ Polynom<Number> simplifyPoly(Polynom<Number> const& in, PolyNf* simplifiedArgs)
       }
     }
 
-    // then we sort them by their monom, in order to add up the coefficients efficiently
-    std::sort(out.begin(), out.end());
-
-    // add up the coefficient (in place)
-    {
-      auto offs = 0;
-      for (unsigned i = 0; i < out.size(); i++) { 
-        auto monom = out[i];
-        auto numeral = monom.numeral;
-        auto factors = monom.factors;
-        while ( i + 1 < out.size() && out[i+1].factors == factors ) {
-          numeral = numeral + out[i+1].numeral;
-          i++;
-        }
-        if (numeral != Number::zeroC) 
-          out[offs++] = Monom(numeral, factors);
-      }
-      out.truncate(offs);
-
-    }
-
-    auto poly = Polynom(std::move(out));
-    poly.integrity();
-    return poly;
+    return PolynomialEvaluation::simplifySummation(std::move(out));
   } catch (ArithmeticException&) { 
     return in.replaceTerms(simplifiedArgs);
   }
