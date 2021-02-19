@@ -83,26 +83,29 @@ class DecisionQueue
   };
 
 public:
+  void reserve(uint32_t var_count)
+  {
+    m_links.reserve(var_count);
+  }
+
   void resize_and_init(uint32_t var_count)
   {
     uint32_t const old_var_count = m_links.size();
 
     m_links.resize(var_count);  // TODO: should not initialize memory here
     for (uint32_t idx = old_var_count; idx < var_count; ++idx) {
-      enqueue(Var{idx}, Value::Unassigned);
+      enqueue(Var{idx});
     }
-    assert(m_search == m_last);
+    m_search = m_last;
   }
 
   /// Move variable to front of decision queue.
-  void move_to_front(Var var, Value var_value)
+  /// Precondition: variable must be assigned (otherwise the search position cache will be incorrect).
+  void move_to_front(Var var)
   {
-    // TODO: simplify enqueue (remove var_value) since we only bump assigned vars
-    //       add checkQueue like in kitten
-    assert(var_value != Value::Unassigned);
     if (var != m_last) {
       dequeue(var);
-      enqueue(var, var_value);
+      enqueue(var);
     }
   }
 
@@ -224,7 +227,7 @@ private:
   }
 
   /// Enqueue variable at the end of the queue.
-  void enqueue(Var var, Value var_value)
+  void enqueue(Var var)
   {
     CDEBUG("enqueue " << var);
     Link& link = m_links[var];
@@ -248,16 +251,13 @@ private:
     if (m_stamp == 0) {
       // Timestamp overflow happened
       restamp();
-    } else {
-      if (var_value == Value::Unassigned) {
-        m_search = var;
-      }
     }
   }
 
   /// Reassign enqueue timestamps to prevent overflow.
   void restamp()
   {
+    CDEBUG("restamping decision queue");
     Timestamp stamp = 0;
     for (Var v = m_first; v.is_valid(); v = m_links[v].next) {
       assert(stamp < std::numeric_limits<Timestamp>::max());
@@ -741,7 +741,8 @@ private:
 
     // TODO: sort analyzed vars by time stamp?
     for (Var var : seen) {
-      m_queue.move_to_front(var, m_values[var]);
+      assert(m_values[var] != Value::Unassigned);  // precondition of DecisionQueue::move_to_front
+      m_queue.move_to_front(var);
       assert(m_marks[var]);
       m_marks[var] = 0;
     }
