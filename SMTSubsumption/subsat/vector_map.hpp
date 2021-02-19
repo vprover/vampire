@@ -38,16 +38,23 @@ template <typename Key>
 using DefaultIndex_t = typename DefaultIndex<Key>::type;
 
 /// Vector-based map with type-safe indexing.
-template <typename Key, typename T, typename Index = DefaultIndex_t<Key>>
+template <
+    typename Key,
+    typename T,
+    typename Allocator = std::allocator<T>,
+    typename Indexing = DefaultIndex_t<Key>>
 class vector_map {
 public:
   using key_type = Key;
   using value_type = T;
+  using indexing_type = Indexing;
+  using allocator_type = Allocator;
+  using vector_type = std::vector<value_type, Allocator>;
   using reference = value_type&;
   using const_reference = value_type const&;
-  using size_type = typename std::vector<T>::size_type;
-  using iterator = typename std::vector<T>::iterator;
-  using const_iterator = typename std::vector<T>::const_iterator;
+  using size_type = typename vector_type::size_type;
+  using iterator = typename vector_type::iterator;
+  using const_iterator = typename vector_type::const_iterator;
 
   reference operator[](key_type key)
   {
@@ -90,12 +97,12 @@ public:
 private:
   size_type index(Key key) const
   {
-    Index index;
+    indexing_type index;
     return index(key);
   }
 
 private:
-  std::vector<T> m_data;
+  vector_type m_data;
 };
 
 } // namespace SMTSubsumption
