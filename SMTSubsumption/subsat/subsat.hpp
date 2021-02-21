@@ -77,9 +77,30 @@ static constexpr Mark MarkRemovable = 4;
 //   Removable = 4,
 // };
 
+template <typename A>
+struct ShowClauseRef {
+  ShowClauseRef(ClauseArena<A> const& arena, ClauseRef cr)
+    : arena(arena), cr(cr)
+  { }
+  ClauseArena<A> const& arena;
+  ClauseRef const cr;
+};
+
+template <typename A>
+std::ostream& operator<<(std::ostream& os, ShowClauseRef<A> const& scr)
+{
+  if (scr.cr.is_valid()) {
+    os << scr.arena.deref(scr.cr);
+  } else {
+    os << "{-}";
+  }
+  return os;
+}
 
 class Solver
 {
+#define SHOWREF(cr) ShowClauseRef<decltype(m_clauses)::allocator_type>(m_clauses, cr)
+
 public:
   /// Ensure space for a new variable and return it.
   /// By default, memory is increased exponentially (relying on the default behaviour of std::vector).
@@ -197,14 +218,14 @@ public:
     ensure_variable(lit.var());
     switch (m_values[lit]) {
       case Value::True:
-        CDEBUG("skipping redundant unit clause: " << lit);
+        LOG_INFO("skipping redundant unit clause: " << lit);
         break;
       case Value::False:
-        CDEBUG("inconsistent unit clause: " << lit);
+        LOG_INFO("inconsistent unit clause: " << lit);
         m_inconsistent = true;
         break;
       case Value::Unassigned:
-        CDEBUG("unit clause: " << lit);
+        LOG_INFO("adding unit clause: " << lit);
         assign(lit, ClauseRef::invalid());
         break;
     }
@@ -218,8 +239,9 @@ public:
 
   void add_clause_internal(ClauseRef cr)
   {
+    LOG_INFO("adding " << SHOWREF(cr));
+
     Clause const& c = m_clauses.deref(cr);
-    CDEBUG("add_clause: " << cr << " ~> " << c);
     // TODO: improve this?
     for (Lit lit : c) {
       ensure_variable(lit.var());
@@ -257,7 +279,7 @@ private:
   /// Precondition: literal is not assigned.
   void assign(Lit lit, ClauseRef reason)
   {
-    CDEBUG("assign: " << lit << ", reason: " << reason << ", level: " << m_level);
+    LOG_INFO("assigning " << lit << ", reason: " << SHOWREF(reason) << ", level: " << m_level);
 
     /*
     // TODO: Assignment on root level => no need to store the reason
@@ -296,7 +318,6 @@ private:
   /// Make a decision.
   void decide()
   {
-    CDEBUG("decide");
     assert(m_unassigned_vars > 0);
     assert(!m_inconsistent);
     assert(m_level < m_used_vars);
@@ -309,6 +330,7 @@ private:
     // TODO: phase saving (+ hints?)
     // for now, just use the positive phase always (works quite well for our type of problems, or at least much better than always-negative)
     Lit decision{var, true};
+    LOG_INFO("decide " << decision);
     assign(decision, ClauseRef::invalid());
   }
 
@@ -317,7 +339,7 @@ private:
   /// or an invalid ClauseRef if all unit clauses have been propagated without conflict.
   ClauseRef propagate()
   {
-    CDEBUG("propagate");
+    // CDEBUG("propagate");
     // assert(checkInvariants());
     while (m_propagate_head < m_trail.size()) {
       Lit const lit = m_trail[m_propagate_head++];
@@ -332,7 +354,7 @@ private:
   /// Unit propagation for the given literal.
   ClauseRef propagate_literal(Lit lit)
   {
-    CDEBUG("propagate_literal: " << lit);
+    LOG_INFO("propagating " << lit);
     // assert(checkInvariants());
     assert(m_values[lit] == Value::True);
 
@@ -436,7 +458,7 @@ private:
   /// Watch literal 'lit' in the given clause.
   void watch_literal(Lit lit, /* TODO: Lit blocking_lit, */ ClauseRef clause_ref)
   {
-    CDEBUG("watching " << lit << /* " blocked by " << blocking_lit << */ " in " << clause_ref);
+    LOG_INFO("watching " << lit << /* " blocked by " << blocking_lit << */ " in " << SHOWREF(clause_ref));
     auto& watches = m_watches[lit];
     assert(std::all_of(watches.cbegin(), watches.cend(), [=](auto w){ return w.clause_ref != clause_ref; }));
     watches.push_back(Watch{clause_ref});
@@ -457,7 +479,7 @@ private:
   /// Returns true if the search should continue.
   [[nodiscard]] bool analyze(ClauseRef conflict_ref)
   {
-    CDEBUG("analyze: conflict clause " << conflict_ref);
+    LOG_INFO("conflict clause " << conflict_ref);
     assert(!m_inconsistent);
     assert(checkInvariants());
 

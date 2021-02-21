@@ -153,7 +153,7 @@ private:
   /// Remove variable from the queue.
   void dequeue(Var var)
   {
-    CDEBUG("dequeue " << var);
+    LOG_TRACE(var);
     Link& link = m_links[var];
     assert(link.enqueued);
 #ifndef NDEBUG
@@ -180,7 +180,7 @@ private:
   /// Enqueue variable at the end of the queue.
   void enqueue(Var var)
   {
-    CDEBUG("enqueue " << var);
+    LOG_TRACE(var);
     Link& link = m_links[var];
     assert(!link.enqueued);
 #ifndef NDEBUG
@@ -208,7 +208,7 @@ private:
   /// Reassign enqueue timestamps to prevent overflow.
   void restamp()
   {
-    CDEBUG("restamping decision queue");
+    LOG_INFO("restamping decision queue");
     Timestamp stamp = 0;
     for (Var v = m_first; v.is_valid(); v = m_links[v].next) {
       assert(stamp < std::numeric_limits<Timestamp>::max());

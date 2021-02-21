@@ -241,6 +241,8 @@ private:
   }
 
 public:
+  using allocator_type = Allocator;
+
   [[nodiscard]] Clause& deref(ClauseRef cr) noexcept
   {
     return *reinterpret_cast<Clause*>(deref_plain(cr));
