@@ -8,7 +8,7 @@
 #include "./default_init_allocator.hpp"
 #include "./types.hpp"
 
-namespace SMTSubsumption {
+namespace subsat {
 
 
 class Clause final
@@ -362,6 +362,6 @@ private:
 
 
 
-} // namespace SMTSubsumption
+} // namespace subsat
 
 #endif /* !CLAUSE_HPP */

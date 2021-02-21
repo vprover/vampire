@@ -41,7 +41,7 @@ static_assert(VDEBUG == 1, "VDEBUG and NDEBUG are not synchronized");
 // which keeps an array of matches as well.
 // (see my notes on SAT+CSP)
 
-namespace SMTSubsumption {
+namespace subsat {
 
 
 using Level = uint32_t;
@@ -755,6 +755,6 @@ private:
 //    => maybe add a 'hint' to 'new_variable'... that will be the first phase tried if we need to decide on it.
 
 
-} // namespace SMTSubsumption
+} // namespace subsat
 
 #endif /* !SUBSAT_HPP */

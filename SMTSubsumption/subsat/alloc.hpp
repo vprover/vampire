@@ -4,7 +4,7 @@
 #include <cstdlib>
 #include <new>
 
-namespace SMTSubsumption {
+namespace subsat {
 
 
 inline void* subsat_alloc(std::size_t size)
@@ -30,6 +30,6 @@ inline void subsat_dealloc(void* p)
 }
 
 
-} // namespace SMTSubsumption
+} // namespace subsat
 
 #endif /* !ALLOC_HPP */

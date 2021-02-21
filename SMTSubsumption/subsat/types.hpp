@@ -8,7 +8,7 @@
 
 #include "./vector_map.hpp"
 
-namespace SMTSubsumption {
+namespace subsat {
 
 
 using std::uint32_t;
@@ -271,6 +271,6 @@ template <> struct DefaultIndex<Lit> {
 };
 
 
-} // namespace SMTSubsumption
+} // namespace subsat
 
 #endif /* !TYPES_HPP */

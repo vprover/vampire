@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <vector>
 
-namespace SMTSubsumption { // TODO: remove namespace once I separate out Var/Lit from subsat.hpp
+namespace subsat { // TODO: remove namespace once I separate out Var/Lit from subsat.hpp
 
 /// Get index by calling a member function 'index()'.
 template <typename Key>
@@ -107,6 +107,6 @@ private:
   vector_type m_data;
 };
 
-} // namespace SMTSubsumption
+} // namespace subsat
 
 #endif /* !VECTOR_MAP_HPP */

@@ -5,7 +5,7 @@
 #include "./vector_map.hpp"
 #include "./types.hpp"
 
-namespace SMTSubsumption {
+namespace subsat {
 
 
 /// Doubly-linked queue for variable-move-to-front (VMTF) decision heuristic.
@@ -229,6 +229,6 @@ private:
 };
 
 
-} // namespace SMTSubsumption
+} // namespace subsat
 
 #endif /* !DECISION_QUEUE_HPP */

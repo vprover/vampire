@@ -5,7 +5,7 @@
 #include <iostream>
 #include <string>
 
-using namespace SMTSubsumption;
+using namespace subsat;
 
 #ifdef SUBSAT_STANDALONE
 
