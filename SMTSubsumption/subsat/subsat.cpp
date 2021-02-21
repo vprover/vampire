@@ -184,7 +184,10 @@ bool Solver::checkInvariants() const
           m_values[clause[0]] == Value::Unassigned && m_values[clause[1]] == Value::Unassigned;
         bool is_conflict =
           std::all_of(clause.begin(), clause.end(), [this](auto l) { return m_values[l] == Value::False; });
+        // TODO fix this
         // assert(both_watches_unassigned || is_conflict);  // ???
+        (void)is_conflict;
+        (void)both_watches_unassigned;
       }
     }
   }

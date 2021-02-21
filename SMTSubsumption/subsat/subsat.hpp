@@ -48,8 +48,8 @@ using Level = uint32_t;
 #define InvalidLevel (std::numeric_limits<Level>::max())
 
 struct VarInfo {
-  Level level;
-  ClauseRef reason;
+  Level level = InvalidLevel;
+  ClauseRef reason = ClauseRef::invalid();
 };
 
 struct Watch {
@@ -110,7 +110,7 @@ public:
     // TODO: optional argument phase_hint as initial value for m_phases?
     Var new_var = Var{m_used_vars++};
     m_unassigned_vars++;
-    m_vars.push_back({ .level = InvalidLevel, .reason = ClauseRef::invalid()});
+    m_vars.emplace_back();
     m_marks.push_back(0);
     m_values.push_back(Value::Unassigned); // value of positive literal
     m_values.push_back(Value::Unassigned); // value of negative literal
@@ -264,11 +264,8 @@ public:
   /// - ???
   void add_clause_unsafe(Clause* clause)
   {
-    // // TODO
-    // ClauseRef cr = m_clauses.size();
-    // CDEBUG("add_clause: " << cr << " ~> " << *clause);
-    // m_clauses.push_back(clause);
-    // watch_clause(cr);
+    // TODO
+    (void)clause;
   }
 
   Result solve();
@@ -304,10 +301,8 @@ private:
     m_values[~lit] = Value::False;
 
     Var const var = lit.var();
-    m_vars[var] = {
-      .level = m_level,
-      .reason = reason,
-    };
+    m_vars[var].level = m_level;
+    m_vars[var].reason = reason;
 
     m_trail.push_back(lit);
 
@@ -479,7 +474,7 @@ private:
   /// Returns true if the search should continue.
   [[nodiscard]] bool analyze(ClauseRef conflict_ref)
   {
-    LOG_INFO("conflict clause " << SHOWREF(conflict_ref) << " on level " << m_level);
+    LOG_INFO("Conflict clause " << SHOWREF(conflict_ref) << " on level " << m_level);
     assert(!m_inconsistent);
     assert(checkInvariants());
 
@@ -581,7 +576,8 @@ private:
 
     // TODO: cc-minimization?
 
-    uint32_t const glue = blocks.size();
+    // uint32_t const glue = blocks.size();
+
     Level jump_level = 0;
     for (Level lit_level : blocks) {
       frames[lit_level] = 0;
@@ -610,7 +606,7 @@ private:
     if (size == 1) {
       // We learned a unit clause
       assert(jump_level == 0);
-      LOG_INFO("learned unit: " << not_uip);
+      LOG_INFO("Learned unit: " << not_uip);
       assign(not_uip, ClauseRef::invalid());
     }
     // else if (size == 2) {
@@ -637,7 +633,7 @@ private:
         learned.push(learned_lit);
       }
       ClauseRef learned_ref = learned.build();
-      LOG_INFO("learned: " << SHOWREF(learned_ref));
+      LOG_INFO("Learned: " << SHOWREF(learned_ref));
       // TODO: call new_redundant_clause
       watch_clause(learned_ref);
       assign(not_uip, learned_ref);

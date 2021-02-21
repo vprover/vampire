@@ -8,7 +8,7 @@
 
 /// Filter log messages
 bool
-subsat_should_log(LogLevel msg_level, std::string fn, std::string pretty_fn)
+subsat_should_log(LogLevel msg_level, std::string /* fn */, std::string pretty_fn)
 {
   // by default, log everything
   LogLevel max_log_level = LogLevel::Trace;
@@ -52,7 +52,7 @@ level_color(LogLevel msg_level)
 }
 
 std::pair<std::ostream&, bool>
-subsat_log(LogLevel msg_level, std::string fn, std::string pretty_fn)
+subsat_log(LogLevel msg_level, std::string fn, std::string /* pretty_fn */)
 {
   std::ostream& os = std::cerr;
   int const fd = fileno(stderr);

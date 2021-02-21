@@ -11,16 +11,14 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -DVDEBUG=0")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 add_compile_options(
-    # "-ftrapv"
-    # "-pedantic"
-    # "-Wall"
-    # "-Wextra"
+    "-ftrapv"
+    "-pedantic"
+    "-Wall"
+    "-Wextra"
     # "-Wconversion"
     # "$<$<CONFIG:DEBUG>:-fsanitize=undefined>"
     # "$<$<CONFIG:DEBUG>:-fsanitize=integer>"
     # "$<$<CONFIG:DEBUG>:-fsanitize=address>"
-    # "$<$<CONFIG:DEBUG>:-O0>"
-    # "$<$<CONFIG:RELEASE>:-O3>"
 )
 
 message("compiler: " ${CMAKE_CXX_COMMAND})
