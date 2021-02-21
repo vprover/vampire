@@ -33,6 +33,13 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 add_executable(subsat
     subsat.cpp
     subsat.hpp
+    decision_queue.hpp
+    default_init_allocator.hpp
+    types.hpp
+    clause.hpp
+    vector_map.hpp
+    log.hpp
+    log.cpp
 )
 
 target_compile_definitions(subsat PRIVATE SUBSAT_STANDALONE=1)

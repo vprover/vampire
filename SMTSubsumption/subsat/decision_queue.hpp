@@ -1,7 +1,7 @@
 #ifndef DECISION_QUEUE_HPP
 #define DECISION_QUEUE_HPP
 
-#include "./cdebug.hpp"
+#include "./log.hpp"
 #include "./vector_map.hpp"
 #include "./types.hpp"
 
@@ -78,7 +78,7 @@ public:
       }
     }
     m_search = var;
-    CDEBUG("VMTF decision variable " << var << " with stamp " << m_links[var].stamp);
+    LOG_DEBUG("VMTF decision variable " << var << " with stamp " << m_links[var].stamp);
     return var;
   }
 

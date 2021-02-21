@@ -18,7 +18,7 @@
 #include "./decision_queue.hpp"
 #include "./types.hpp"
 #include "./vector_map.hpp"
-#include "./cdebug.hpp"
+#include "./log.hpp"
 
 // Ensure NDEBUG and VDEBUG are synchronized
 #ifdef NDEBUG
@@ -279,7 +279,7 @@ private:
   /// Precondition: literal is not assigned.
   void assign(Lit lit, ClauseRef reason)
   {
-    LOG_INFO("assigning " << lit << ", reason: " << SHOWREF(reason) << ", level: " << m_level);
+    LOG_DEBUG("assigning " << lit << ", reason: " << SHOWREF(reason) << ", level: " << m_level);
 
     /*
     // TODO: Assignment on root level => no need to store the reason
@@ -330,7 +330,7 @@ private:
     // TODO: phase saving (+ hints?)
     // for now, just use the positive phase always (works quite well for our type of problems, or at least much better than always-negative)
     Lit decision{var, true};
-    LOG_INFO("decide " << decision);
+    LOG_DEBUG("decision: " << decision);
     assign(decision, ClauseRef::invalid());
   }
 
@@ -354,7 +354,7 @@ private:
   /// Unit propagation for the given literal.
   ClauseRef propagate_literal(Lit lit)
   {
-    LOG_INFO("propagating " << lit);
+    LOG_DEBUG("propagating " << lit);
     // assert(checkInvariants());
     assert(m_values[lit] == Value::True);
 
@@ -458,7 +458,7 @@ private:
   /// Watch literal 'lit' in the given clause.
   void watch_literal(Lit lit, /* TODO: Lit blocking_lit, */ ClauseRef clause_ref)
   {
-    LOG_INFO("watching " << lit << /* " blocked by " << blocking_lit << */ " in " << SHOWREF(clause_ref));
+    LOG_DEBUG("watching " << lit << /* " blocked by " << blocking_lit << */ " in " << SHOWREF(clause_ref));
     auto& watches = m_watches[lit];
     assert(std::all_of(watches.cbegin(), watches.cend(), [=](auto w){ return w.clause_ref != clause_ref; }));
     watches.push_back(Watch{clause_ref});
@@ -479,7 +479,7 @@ private:
   /// Returns true if the search should continue.
   [[nodiscard]] bool analyze(ClauseRef conflict_ref)
   {
-    LOG_INFO("conflict clause " << conflict_ref);
+    LOG_INFO("conflict clause " << SHOWREF(conflict_ref) << " on level " << m_level);
     assert(!m_inconsistent);
     assert(checkInvariants());
 
@@ -512,29 +512,29 @@ private:
     ClauseRef reason_ref = conflict_ref;
 
     while (true) {
-      CDEBUG("reason_ref = " << reason_ref);
+      LOG_TRACE("reason_ref = " << reason_ref);
       assert(reason_ref.is_valid());
       Clause const& reason = m_clauses.deref(reason_ref);
 
       // TODO: reason->used = true
 
-      CDEBUG("reason = " << reason);
+      LOG_TRACE("reason = " << reason);
       for (Lit const lit : reason) {
         Var const var = lit.var();
-        CDEBUG("    checking lit " << lit << "  (uip = " << uip << ")");
+        LOG_TRACE("    checking lit " << lit << "  (uip = " << uip << ")");
 
         if (lit == uip)
           continue;  // TODO: why???
 
         Level const lit_level = get_level(var);
-        CDEBUG("    lit_level = " << lit_level);
+        LOG_TRACE("    lit_level = " << lit_level);
         if (lit_level == 0) {
           // no need to consider literals at level 0 since they are unconditionally true
           continue;
         }
 
         Mark const mark = m_marks[var];
-        CDEBUG("    mark = " << (int)mark);
+        LOG_TRACE("    mark = " << (int)mark);
         assert(mark == 0 || mark == MarkSeen);
         if (mark) {
           continue;
@@ -610,7 +610,7 @@ private:
     if (size == 1) {
       // We learned a unit clause
       assert(jump_level == 0);
-      CDEBUG("learned unit: " << not_uip);
+      LOG_INFO("learned unit: " << not_uip);
       assign(not_uip, ClauseRef::invalid());
     }
     // else if (size == 2) {
@@ -637,7 +637,7 @@ private:
         learned.push(learned_lit);
       }
       ClauseRef learned_ref = learned.build();
-      // CDEBUG("learned: " << learned_ref << " ~> " << *learned);
+      LOG_INFO("learned: " << SHOWREF(learned_ref));
       // TODO: call new_redundant_clause
       watch_clause(learned_ref);
       assign(not_uip, learned_ref);
@@ -666,7 +666,7 @@ private:
 
   void backtrack(Level new_level)
   {
-    CDEBUG("backtrack to level " << new_level);
+    LOG_INFO("Backtracking to level " << new_level);
     assert(new_level <= m_level);
     assert(m_queue.checkInvariants(m_values));
 
