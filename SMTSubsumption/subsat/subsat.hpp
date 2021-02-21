@@ -183,7 +183,9 @@ public:
 
   void add_clause(std::initializer_list<Lit> literals)
   {
-    add_clause(literals.begin(), literals.size());
+    assert(literals.size() <= UINT32_MAX);
+    auto literals_size = static_cast<uint32_t>(literals.size());
+    add_clause(literals.begin(), literals_size);
   }
 
   void add_clause(Lit const* literals, uint32_t count)
@@ -443,7 +445,9 @@ private:
     while (p != watches.cend()) {
       *q++ = *p++;
     }
-    watches.resize(std::distance(watches.begin(), q));
+    auto const remaining_watches = std::distance(watches.begin(), q);
+    assert(remaining_watches >= 0);
+    watches.resize(static_cast<std::size_t>(remaining_watches));
     assert(watches.end() == q);
 
     return conflict;
@@ -601,7 +605,7 @@ private:
 
     backtrack(jump_level);
 
-    uint32_t const size = clause.size();
+    uint32_t const size = static_cast<uint32_t>(clause.size());
     assert(size > 0);
     if (size == 1) {
       // We learned a unit clause
@@ -677,7 +681,7 @@ private:
       unassign(lit);
     }
 
-    m_propagate_head = m_trail.size();
+    m_propagate_head = static_cast<uint32_t>(m_trail.size());
     m_level = new_level;
     assert(m_queue.checkInvariants(m_values));
   }  // backtrack

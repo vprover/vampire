@@ -13,7 +13,8 @@ using namespace SMTSubsumption;
 static Lit from_dimacs(int dimacs_lit)
 {
   assert(dimacs_lit != 0);
-  Var v(std::abs(dimacs_lit) - 1);
+  int idx = std::abs(dimacs_lit) - 1;
+  Var v{static_cast<uint32_t>(idx)};
   return Lit{v, dimacs_lit > 0};
 }
 
@@ -39,7 +40,9 @@ static void parse_dimacs(std::istream& in, Solver& solver)
       parsed_vars = std::abs(dimacs_lit);
     }
     if (dimacs_lit == 0) {
-      solver.add_clause(clause_buf.data(), clause_buf.size());
+      assert(clause_buf.size() <= UINT32_MAX);
+      auto clause_size = static_cast<uint32_t>(clause_buf.size());
+      solver.add_clause(clause_buf.data(), clause_size);
       clause_buf.clear();
       parsed_clauses += 1;
     } else {

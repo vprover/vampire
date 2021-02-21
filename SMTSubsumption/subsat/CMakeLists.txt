@@ -15,7 +15,7 @@ add_compile_options(
     "-pedantic"
     "-Wall"
     "-Wextra"
-    # "-Wconversion"
+    "-Wconversion"
     # "$<$<CONFIG:DEBUG>:-fsanitize=undefined>"
     # "$<$<CONFIG:DEBUG>:-fsanitize=integer>"
     # "$<$<CONFIG:DEBUG>:-fsanitize=address>"

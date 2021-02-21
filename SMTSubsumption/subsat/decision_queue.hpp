@@ -41,7 +41,8 @@ public:
 
   void resize_and_init(uint32_t var_count)
   {
-    uint32_t const old_var_count = m_links.size();
+    assert(m_links.size() <= UINT32_MAX);
+    uint32_t const old_var_count = static_cast<uint32_t>(m_links.size());
 
     m_links.resize(var_count);  // TODO: should not initialize memory here
     for (uint32_t idx = old_var_count; idx < var_count; ++idx) {

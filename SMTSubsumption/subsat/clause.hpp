@@ -307,7 +307,7 @@ public:
 
     ClauseRef cr = m_dynamic_ref;
     Clause& c = deref(cr);
-    c.m_size = clause_size;
+    c.m_size = static_cast<Clause::size_type>(clause_size);
 
     m_dynamic_ref = ClauseRef::invalid();
     return cr;
@@ -342,7 +342,7 @@ private:
       std::cerr << "ClauseArena::alloc: too many stored literals, unable to represent additional clause reference" << std::endl;
       throw std::bad_alloc();
     }
-    ClauseRef cr(size);
+    ClauseRef cr(static_cast<ClauseRef::index_type>(size));
 #ifndef NDEBUG
     cr.m_timestamp = m_timestamp;
 #endif
