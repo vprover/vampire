@@ -1544,8 +1544,7 @@ void SMTLIB2::parseMatchBegin(LExpr* exp)
   _todo.push(make_pair(PO_PARSE,matchedAtom));
 
   while (casesRdr.hasNext()) {
-    LExprList* pair = casesRdr.readList();
-    LispListReader pRdr(pair);
+    LispListReader pRdr(casesRdr.readList());
 
     if (!pRdr.hasNext()) {
       complainAboutArgShortageOrWrongSorts(MATCH,exp);
@@ -1557,9 +1556,9 @@ void SMTLIB2::parseMatchBegin(LExpr* exp)
     LExpr* body = pRdr.readNext();
 
     LExpr* l = new LExpr(LispParser::LIST);
-    l->list = LExprList::cons(body, l->list);
-    l->list = LExprList::cons(pattern, l->list);
-    l->list = LExprList::cons(matchedAtom, l->list);
+    LExprList::push(body, l->list);
+    LExprList::push(pattern, l->list);
+    LExprList::push(matchedAtom, l->list);
     _todo.push(make_pair(PO_MATCH_CASE_END, l));
     _todo.push(make_pair(PO_MATCH_CASE_START, l));
     pRdr.acceptEOL();
@@ -1618,20 +1617,19 @@ void SMTLIB2::parseMatchCaseStart(LExpr* exp)
     if (isAlreadyKnownFunctionSymbol(pattern->str)) {
       USER_ERROR("Constant symbol found in match pattern: '"+exp->toString()+"'");
     }
-    // TODO(mhajdu): now _ is added to the lookup but
-    // this has to be dealt with some other way since
-    // _ cannot be used in inner lookups anymore
-
     // in case of _ nothing to add to lookup
-    // if (pattern->str != UNDERSCORE) {
+    if (pattern->str != UNDERSCORE) {
       if (!lookup->insert(pattern->str, make_pair(TermList(_nextVar++, false), matchedTerm.second))) {
         USER_ERROR("Variable '"+pattern->str+"' has already been defined");
       }
-    // }
+    }
   }
 
   _scopes.push(lookup);
-  _todo.push(make_pair(PO_PARSE,pattern));
+  // only parse pattern if it's not _
+  if (pattern->isList() || pattern->str != UNDERSCORE) {
+    _todo.push(make_pair(PO_PARSE,pattern));
+  }
   _todo.push(make_pair(PO_PARSE,body));
 }
 
@@ -1653,9 +1651,6 @@ void SMTLIB2::parseMatchEnd(LExpr* exp)
   ASS_EQ(getBuiltInTermSymbol(theMatchAtom),TS_MATCH);
 
   vstring matched = lRdr.readAtom();
-  auto numCases = LExprList::length(lRdr.readList());
-  lRdr.acceptEOL();
-
   TermList matchedTerm;
   auto matchedTermSort = _results.pop().asTerm(matchedTerm);
   LOG2("CASE matched ", matchedTerm.toString());
@@ -1675,32 +1670,42 @@ void SMTLIB2::parseMatchEnd(LExpr* exp)
   Stack<TermList> elements;
   elements.push(matchedTerm);
   TermList sort = Term::defaultSort();
-  for (unsigned j = 0; j < numCases; j++) {
-    TermList pattern;
-    TermList patternSort = _results.pop().asTerm(pattern);
-    TermList body;
-    sort = _results.pop().asTerm(body);
 
-    LOG2("CASE pattern ",pattern.toString());
-    LOG2("CASE body    ",body.toString());
+  LispListReader cRdr(lRdr.readList());
+  while (cRdr.hasNext()) {
+    LispListReader pRdr(cRdr.readList());
+    LExpr* pattern = pRdr.readNext();
+    pRdr.readNext(); // body
+    pRdr.acceptEOL();
+    TermList p;
+    if (pattern->isAtom() && pattern->str == UNDERSCORE) {
+      p = TermList(_nextVar++, false);
+    } else {
+      ALWAYS(_results.pop().asTerm(p) == matchedTermSort);
+    }
+    TermList b;
+    sort = _results.pop().asTerm(b);
 
-    ASS_EQ(patternSort, matchedTermSort);
-    if (pattern.isVar()) {
+    LOG2("CASE pattern ",p.toString());
+    LOG2("CASE body    ",b.toString());
+
+    if (p.isVar()) {
       if (varUsed) {
         USER_ERROR("Else branch cannot be used twice in match in '"+exp->toString()+"'");
       }
       varUsed = true;
-      varPattern = pattern;
-      varBody = body;
+      varPattern = p;
+      varBody = b;
     } else {
-      auto functor = pattern.term()->functor();
+      auto functor = p.term()->functor();
       if (ctorFunctors.erase(functor) != 1) {
-        USER_ERROR("Match pattern '"+pattern.toString()+"' is either not ctor or was listed twice in '"+exp->toString()+"'");
+        USER_ERROR("Match pattern '"+p.toString()+"' is either not ctor or was listed twice in '"+exp->toString()+"'");
       }
-      elements.push(pattern);
-      elements.push(body);
+      elements.push(p);
+      elements.push(b);
     }
   }
+  lRdr.acceptEOL();
 
   // if there is a variable pattern,
   // we add the missing ctors
