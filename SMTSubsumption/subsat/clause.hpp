@@ -47,19 +47,27 @@ public:
   /// Number of bytes required for the clause header (without literals).
   static constexpr size_t header_bytes() noexcept
   {
+#if __cplusplus >= 201703L
     size_t constexpr embedded_literals = std::extent_v<decltype(m_literals)>;
     size_t constexpr header_bytes = sizeof(Clause) - sizeof(Lit) * embedded_literals;
     static_assert(header_bytes == offsetof(Clause, m_literals));
     return header_bytes;
+#else
+    return sizeof(Clause) - sizeof(Lit) * std::extent<decltype(m_literals)>::value;
+#endif
   }
 
   /// Number of bytes required by a clause containing 'size' literals.
   static size_t bytes(size_type size) noexcept
   {
+#if __cplusplus >= 201703L
     size_t const embedded_literals = std::extent_v<decltype(m_literals)>;
     size_t const additional_literals = (size >= embedded_literals) ? (size - embedded_literals) : 0;
     size_t const total_bytes = sizeof(Clause) + sizeof(Lit) * additional_literals;
     return total_bytes;
+#else
+    return sizeof(Clause) + sizeof(Lit) * ((size >= std::extent<decltype(m_literals)>::value) ? (size - std::extent<decltype(m_literals)>::value) : 0);
+#endif
   }
 
 private:
@@ -109,22 +117,22 @@ public:
   using index_type = std::uint32_t;
 
   /// Create an invalid ClauseRef.
-  [[nodiscard]] static constexpr ClauseRef invalid() noexcept
+  NODISCARD static constexpr ClauseRef invalid() noexcept
   {
     return ClauseRef{std::numeric_limits<index_type>::max()};
   }
 
-  [[nodiscard]] static constexpr index_type max_index() noexcept
+  NODISCARD static constexpr index_type max_index() noexcept
   {
     return std::numeric_limits<index_type>::max() - 1;
   }
 
-  [[nodiscard]] constexpr bool is_valid() const noexcept
+  NODISCARD constexpr bool is_valid() const noexcept
   {
     return m_index <= max_index();
   }
 
-  [[nodiscard]] constexpr index_type index() const noexcept
+  NODISCARD constexpr index_type index() const noexcept
   {
     return m_index;
   }
@@ -145,12 +153,12 @@ private:
 #endif
 };
 
-[[nodiscard]] constexpr bool operator==(ClauseRef lhs, ClauseRef rhs) noexcept
+NODISCARD constexpr bool operator==(ClauseRef lhs, ClauseRef rhs) noexcept
 {
   return lhs.index() == rhs.index();
 }
 
-[[nodiscard]] constexpr bool operator!=(ClauseRef lhs, ClauseRef rhs) noexcept
+NODISCARD constexpr bool operator!=(ClauseRef lhs, ClauseRef rhs) noexcept
 {
   return !operator==(lhs, rhs);
 }
@@ -181,7 +189,7 @@ public:
     m_clause->m_size += 1;
   }
 
-  [[nodiscard]] ClauseRef build() noexcept
+  NODISCARD ClauseRef build() noexcept
   {
     assert(m_clause);
 #ifndef NDEBUG
@@ -220,20 +228,20 @@ class ClauseArena final
 {
 private:
   using storage_type = std::uint32_t;
-  static_assert(std::is_same_v<storage_type, typename Allocator::value_type>);
+  static_assert(std::is_same<storage_type, typename Allocator::value_type>::value, "");
   static_assert(alignof(Clause) == alignof(storage_type), "Clause alignment mismatch");
   // Maybe the more correct condition is this (storage alignment must be a multiple of clause alignment):
   static_assert(alignof(storage_type) % alignof(Clause) == 0, "Alignment of storage must imply alignment of clause");
-  static_assert(std::is_trivially_destructible_v<Clause>, "Clause destructor must be trivial because we never call it");
+  static_assert(std::is_trivially_destructible<Clause>::value, "Clause destructor must be trivial because we never call it");
 
-  [[nodiscard]] void* deref_plain(ClauseRef cr) noexcept
+  NODISCARD void* deref_plain(ClauseRef cr) noexcept
   {
     assert(cr.is_valid());
     assert(cr.m_timestamp == m_timestamp);
     return &m_storage[cr.m_index];
   }
 
-  [[nodiscard]] void const* deref_plain(ClauseRef cr) const noexcept
+  NODISCARD void const* deref_plain(ClauseRef cr) const noexcept
   {
     assert(cr.is_valid());
     assert(cr.m_timestamp == m_timestamp);
@@ -243,19 +251,19 @@ private:
 public:
   using allocator_type = Allocator;
 
-  [[nodiscard]] Clause& deref(ClauseRef cr) noexcept
+  NODISCARD Clause& deref(ClauseRef cr) noexcept
   {
     return *reinterpret_cast<Clause*>(deref_plain(cr));
   }
 
-  [[nodiscard]] Clause const& deref(ClauseRef cr) const noexcept
+  NODISCARD Clause const& deref(ClauseRef cr) const noexcept
   {
     return *reinterpret_cast<Clause const*>(deref_plain(cr));
   }
 
   /// Allocate a new clause with enough space for 'capacity' literals.
   /// May throw std::bad_alloc if the arena is exhausted, or reallocating the arena fails.
-  [[nodiscard]] AllocatedClauseHandle alloc(std::uint32_t capacity)
+  NODISCARD AllocatedClauseHandle alloc(std::uint32_t capacity)
   {
     assert(!m_dynamic_ref.is_valid());
 
@@ -282,7 +290,7 @@ public:
     m_dynamic_ref = make_ref();
 
     std::size_t constexpr header_bytes = Clause::header_bytes();
-    static_assert(header_bytes % sizeof(storage_type) == 0);
+    static_assert(header_bytes % sizeof(storage_type) == 0, "");
     std::size_t constexpr header_elements = header_bytes / sizeof(storage_type);
     std::size_t const new_size = m_storage.size() + header_elements;
 
@@ -296,7 +304,7 @@ public:
     m_storage.push_back(lit.index());
   }
 
-  [[nodiscard]] ClauseRef end()
+  NODISCARD ClauseRef end()
   {
     assert(m_dynamic_ref.is_valid());
 
@@ -335,7 +343,7 @@ public:
   //       hmm, we may have gaps. so we can't iterate easily.
 
 private:
-  [[nodiscard]] ClauseRef make_ref()
+  NODISCARD ClauseRef make_ref()
   {
     std::size_t const size = m_storage.size();
     if (size > static_cast<std::size_t>(ClauseRef::max_index())) {

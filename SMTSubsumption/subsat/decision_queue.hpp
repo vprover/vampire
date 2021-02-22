@@ -65,7 +65,7 @@ public:
   /// Precondition: at least one variable is unassigned.
   Var next_unassigned_variable(vector_map<Lit, Value> const& values)
   {
-    assert(std::any_of(values.begin(), values.end(), [](auto x){ return x == Value::Unassigned; }));
+    assert(std::any_of(values.begin(), values.end(), [](Value x){ return x == Value::Unassigned; }));
     Var var = m_search;
     while (true) {
       assert(var.is_valid());
@@ -110,7 +110,7 @@ public:
     for (Var var = m_first; var.is_valid();) {
       Link const& link = m_links[var];
       // Check that there are no cycles
-      auto [_, inserted] = seen.insert(var);
+      bool inserted = seen.insert(var).second;
       assert(inserted);
       // Check pointers
       assert(link.prev == prev);
@@ -129,7 +129,7 @@ public:
     for (Var var = m_last; var.is_valid();) {
       Link const& link = m_links[var];
       // Check that there are no cycles
-      auto [_, inserted] = seen.insert(var);
+      bool inserted = seen.insert(var).second;
       assert(inserted);
       // Check pointers
       assert(link.next == next);

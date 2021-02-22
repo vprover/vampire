@@ -31,17 +31,18 @@ subsat_should_log(LogLevel msg_level, std::string fn, std::string pretty_fn);
 std::pair<std::ostream&, bool>
 subsat_log(LogLevel msg_level, std::string fn, std::string pretty_fn);
 
-#define LOG(lvl, x)                                              \
-  do {                                                           \
-    if (subsat_should_log(lvl, __func__, __PRETTY_FUNCTION__)) { \
-      auto [os, should_reset] =                                  \
-          subsat_log(lvl, __func__, __PRETTY_FUNCTION__);        \
-      os << x;                                                   \
-      if (should_reset) {                                        \
-        os << "\x1B[0m"; /* reset color */                       \
-      }                                                          \
-      os << std::endl;                                           \
-    }                                                            \
+#define LOG(lvl, x)                                               \
+  do {                                                            \
+    if (subsat_should_log(lvl, __func__, __PRETTY_FUNCTION__)) {  \
+      auto pair = subsat_log(lvl, __func__, __PRETTY_FUNCTION__); \
+      std::ostream& os = pair.first;                              \
+      bool should_reset = pair.second;                            \
+      os << x;                                                    \
+      if (should_reset) {                                         \
+        os << "\x1B[0m"; /* reset color */                        \
+      }                                                           \
+      os << std::endl;                                            \
+    }                                                             \
   } while (false)
 
 #define LOG_WARN(x)  LOG(LogLevel::Warn, x)

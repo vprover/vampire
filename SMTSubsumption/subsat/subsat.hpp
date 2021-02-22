@@ -105,7 +105,7 @@ public:
   /// Ensure space for a new variable and return it.
   /// By default, memory is increased exponentially (relying on the default behaviour of std::vector).
   /// Use reserve_variables if you know the number of variables upfront.
-  [[nodiscard]] Var new_variable()
+  NODISCARD Var new_variable()
   {
     // TODO: optional argument phase_hint as initial value for m_phases?
     Var new_var = Var{m_used_vars++};
@@ -169,7 +169,7 @@ public:
 
   /// Reserve space for a clause of 'capacity' literals
   /// and returns a handle to the storage.
-  [[nodiscard]] AllocatedClauseHandle alloc_clause(uint32_t capacity)
+  NODISCARD AllocatedClauseHandle alloc_clause(uint32_t capacity)
   {
     return m_clauses.alloc(capacity);
   }
@@ -482,7 +482,7 @@ private:
   {
     LOG_DEBUG("watching " << lit << /* " blocked by " << blocking_lit << */ " in " << SHOWREF(clause_ref));
     auto& watches = m_watches[lit];
-    assert(std::all_of(watches.cbegin(), watches.cend(), [=](auto w){ return w.clause_ref != clause_ref; }));
+    assert(std::all_of(watches.cbegin(), watches.cend(), [=](Watch w){ return w.clause_ref != clause_ref; }));
     watches.push_back(Watch{clause_ref});
   }
 
@@ -499,7 +499,7 @@ private:
 
   /// Analyze conflict, learn a clause, backjump.
   /// Returns true if the search should continue.
-  [[nodiscard]] bool analyze(ClauseRef conflict_ref)
+  NODISCARD bool analyze(ClauseRef conflict_ref)
   {
     LOG_INFO("Conflict clause " << SHOWREF(conflict_ref) << " on level " << m_level);
     assert(!m_inconsistent);
@@ -523,7 +523,7 @@ private:
     assert(blocks.empty());
     assert(seen.empty());
     assert(frames.size() >= conflict_level);
-    assert(std::all_of(frames.cbegin(), frames.cend(), [](auto x){ return x == 0; }));
+    assert(std::all_of(frames.cbegin(), frames.cend(), [](char x){ return x == 0; }));
 
     // Make room for the first UIP
     clause.push_back(Lit::invalid());
@@ -710,7 +710,7 @@ private:
   }  // backtrack
 
 #ifndef NDEBUG
-  [[nodiscard]] bool checkInvariants() const;
+  NODISCARD bool checkInvariants() const;
 #endif
 
   Level get_level(Var var) const

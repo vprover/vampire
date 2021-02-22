@@ -131,7 +131,7 @@ bool Solver::checkInvariants() const
   std::set<Var> trail_vars;
   for (Lit lit : m_trail) {
     assert(lit.is_valid());
-    auto [_, inserted] = trail_vars.insert(lit.var());
+    bool inserted = trail_vars.insert(lit.var()).second;
     assert(inserted);
   }
   assert(trail_vars.size() == m_trail.size());
@@ -167,7 +167,7 @@ bool Solver::checkInvariants() const
       // Check status of watch literals
       // TODO: this holds only after propagation (obviously); so maybe we should make it a separate check.
       bool clause_satisfied =
-        std::any_of(clause.begin(), clause.end(), [this](auto l){ return m_values[l] == Value::True; });
+        std::any_of(clause.begin(), clause.end(), [this](Lit l){ return m_values[l] == Value::True; });
       if (clause_satisfied) {
         Level min_true_level = std::numeric_limits<Level>::max();
         for (Lit l : clause) {
@@ -186,7 +186,7 @@ bool Solver::checkInvariants() const
         bool both_watches_unassigned =
           m_values[clause[0]] == Value::Unassigned && m_values[clause[1]] == Value::Unassigned;
         bool is_conflict =
-          std::all_of(clause.begin(), clause.end(), [this](auto l) { return m_values[l] == Value::False; });
+          std::all_of(clause.begin(), clause.end(), [this](Lit l){ return m_values[l] == Value::False; });
         // TODO fix this
         // assert(both_watches_unassigned || is_conflict);  // ???
         (void)is_conflict;

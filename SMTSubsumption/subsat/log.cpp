@@ -1,5 +1,4 @@
 #include <unistd.h>
-#include <optional>
 #include <utility>
 
 #include "./log.hpp"
@@ -36,7 +35,7 @@ level_name(LogLevel msg_level)
   }
 }
 
-static std::optional<char const*>
+static char const*
 level_color(LogLevel msg_level)
 {
   switch (msg_level) {
@@ -47,7 +46,7 @@ level_color(LogLevel msg_level)
     case LogLevel::Info:
       return "\x1B[34m"; // blue
     default:
-      return std::nullopt;
+      return nullptr;
   }
 }
 
@@ -60,10 +59,10 @@ subsat_log(LogLevel msg_level, std::string fn, std::string /* pretty_fn */)
   size_t width = 20;
   size_t padding = width - std::min(width, fn.size());
 
-  auto color = level_color(msg_level);
-  if (color && !isatty(fd)) { color = std::nullopt; }
+  char const* color = level_color(msg_level);
+  if (color && !isatty(fd)) { color = nullptr; }
 
-  if (color) { os << *color; }
+  if (color) { os << color; }
   os << level_name(msg_level) << " [" << fn << "] " << std::string(padding, ' ');
   return {os, (bool)color};
 }
