@@ -129,7 +129,6 @@ std::ostream& operator<<(std::ostream& out, const FuncTerm& self)
   return out;
 }
 
-
 /////////////////////////////////////////////////////////
 // impl AnyPoly 
 ////////////////////////////
@@ -155,7 +154,6 @@ unsigned AnyPoly::nFactors(unsigned i) const
 
 std::ostream& operator<<(std::ostream& out, const AnyPoly& self) 
 { return self.apply(Polymorphic::outputOp{out}); }
-
 
 /////////////////////////////////////////////////////////
 // impl PolyNf 
@@ -208,7 +206,6 @@ bool PolyNf::SubtermIter::hasNext() const
   CALL("PolyNf::SubtermIter::hasNext")
   return !_stack.isEmpty(); 
 }
-
 
 /////////////////////////////////////////////////////////
 // impl IterArgsPnf
