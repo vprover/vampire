@@ -332,6 +332,7 @@ public:
     m_dynamic_ref = ClauseRef::invalid();
 #ifndef NDEBUG
     m_timestamp += 1;
+    m_clause_refs.clear();
 #endif
     assert(empty());
   }
@@ -341,6 +342,7 @@ public:
     bool const is_empty = m_storage.empty();
     if (is_empty) {
       assert(!m_dynamic_ref.is_valid());
+      assert(m_clause_refs.empty());
     }
     return is_empty;
   }
@@ -352,8 +354,11 @@ public:
     m_storage.reserve(capacity);
   }
 
-  // TODO: iterator over clauses, counter for #clauses stored
-  //       hmm, we may have gaps. so we can't iterate easily.
+#ifndef NDEBUG
+  using const_iterator = std::vector<ClauseRef>::const_iterator;
+  const_iterator begin() const noexcept { return m_clause_refs.begin(); }
+  const_iterator end() const noexcept { return m_clause_refs.end(); }
+#endif
 
 private:
   NODISCARD ClauseRef make_ref()
@@ -366,6 +371,7 @@ private:
     ClauseRef cr(static_cast<ClauseRef::index_type>(size));
 #ifndef NDEBUG
     cr.m_timestamp = m_timestamp;
+    m_clause_refs.emplace_back(cr);
 #endif
     return cr;
   }
@@ -378,6 +384,8 @@ private:
   /// TODO: start with a random timestamp instead of 0. Then we effectively check for different arenas as well!
   /// (then just name it m_arena_id, and also set randomly on clear()... we don't need "timestamp semantics" for this)
   std::uint32_t m_timestamp = 0;
+  /// List of references to all clauses that have been added to the storage.
+  std::vector<ClauseRef> m_clause_refs;
 #endif
   ClauseRef m_dynamic_ref = ClauseRef::invalid();
 };

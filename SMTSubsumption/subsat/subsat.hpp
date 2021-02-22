@@ -445,8 +445,8 @@ private:
       }
 
       if (replacement_value == Value::True) {
-        // The replacement literal is true,
-        // so it's enough to update the blocking literal.
+        // The replacement literal is true, so it's enough to update the blocking literal.
+        // Since we entered this clause, this means the current blocking literal is not true, so this update is always beneficial.
         // TODO: update blocking literal to replacement
         // Since the 'replacement' is true, the clause is only relevant when 'replacement' is unassigned.
         // So if it was assigned in an earlier decision level, that is actually good.
@@ -735,6 +735,7 @@ private:
 #ifndef NDEBUG
   NODISCARD bool checkEmpty() const;
   NODISCARD bool checkInvariants() const;
+  NODISCARD bool checkWatches() const;
 #endif
 
 #if LOGGING_ENABLED

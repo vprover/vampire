@@ -16,9 +16,9 @@ get_max_log_level(std::string const& fn, std::string const& pretty_fn)
     return LogLevel::Info;
   }
 
-  if (fn == "analyze") {
-    return LogLevel::Trace;
-  }
+  // if (fn == "analyze") {
+  //   return LogLevel::Trace;
+  // }
 
   // by default, log everything up to debug level
   return LogLevel::Debug;

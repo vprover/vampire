@@ -160,37 +160,58 @@ bool Solver::checkInvariants() const
   assert(trail_vars.size() == m_trail.size());
   assert(m_trail.size() <= m_used_vars);
 
-/*
+  assert(m_propagate_head <= m_trail.size());
+
   // Check clause invariants
-  for (Clause const* clause : m_clauses) {
-    // Every stored clause has size >= 2
-    // TODO: after binary clause optimization: >= 3
-    assert(clause->size() >= 2);
+  for (ClauseRef cr : m_clauses) {
+    Clause const& clause = m_clauses.deref(cr);
     // No duplicate variables in the clause (this prevents duplicate literals and tautological clauses)
     std::set<Var> clause_vars;
-    for (Lit lit : *clause) {
+    for (Lit lit : clause) {
       assert(lit.is_valid());
-      auto [_, inserted] = clause_vars.insert(lit.var());
+      bool inserted = clause_vars.insert(lit.var()).second;
       assert(inserted);
     }
-    assert(clause_vars.size() == clause->size());
+    assert(clause_vars.size() == clause.size());
   }
-  */
 
-  // Check watch invariants
-  // assert(m_watches.size() == 2 * m_used_vars);  // not true because we keep those after clear()
-  std::map<ClauseRef::index_type, int> num_watches; // counts how many times each clause is watched
+  // Check watch invariants if we're in a fully propagated state
+  if (m_propagate_head == m_trail.size()) {
+    assert(checkWatches());
+  }
+
+  return true;
+}  // checkInvariants
+
+bool Solver::checkWatches() const
+{
+  // Some of the checks only make sense in a fully-propagated state
+  assert(m_propagate_head == m_trail.size());
+  assert(!m_inconsistent);
+
+  // All allocated but unused watch lists are empty
+  for (uint32_t lit_idx = 2 * m_used_vars; lit_idx < m_watches.size(); ++lit_idx) {
+    Lit const lit = Lit::from_index(lit_idx);
+    assert(m_watches[lit].empty());
+  }
+
+  // Count how many times each clause is watched
+  std::map<ClauseRef::index_type, int> num_watches;
+
   for (uint32_t lit_idx = 0; lit_idx < m_watches.size(); ++lit_idx) {
     Lit const lit = Lit::from_index(lit_idx);
+
     for (Watch watch : m_watches[lit]) {
-      num_watches[watch.clause_ref.index()] += 1;
       Clause const& clause = m_clauses.deref(watch.clause_ref);
-      // The watched literals are always the first two in the clause
+
+      num_watches[watch.clause_ref.index()] += 1;
+
+      // The watched literals are always the first two literals of the clause
       assert(clause[0] == lit || clause[1] == lit);
+
       // Check status of watch literals
-      // TODO: this holds only after propagation (obviously); so maybe we should make it a separate check.
-      bool clause_satisfied =
-        std::any_of(clause.begin(), clause.end(), [this](Lit l){ return m_values[l] == Value::True; });
+      bool clause_satisfied = std::any_of(clause.begin(), clause.end(),
+                                          [this](Lit l) { return m_values[l] == Value::True; });
       if (clause_satisfied) {
         Level min_true_level = std::numeric_limits<Level>::max();
         for (Lit l : clause) {
@@ -198,33 +219,28 @@ bool Solver::checkInvariants() const
             min_true_level = get_level(l);
           }
         }
-        // If the clause is satisfied and the watches are assigned,
-        // one of the watches must be on the same level or above one of the true literals.
-        bool both_watches_unassigned =
-          m_values[clause[0]] == Value::Unassigned && m_values[clause[1]] == Value::Unassigned;
-        assert(both_watches_unassigned || get_level(clause[0]) >= min_true_level || get_level(clause[1]) >= min_true_level);
+        // If the clause is satisfied and a watched literal is assigned,
+        // it must be on the same level or above one of the true literals.
+        assert(m_values[clause[0]] == Value::Unassigned || get_level(clause[0]) >= min_true_level);
+        assert(m_values[clause[1]] == Value::Unassigned || get_level(clause[1]) >= min_true_level);
       } else {
-        // If the clause is not satisfied, either both watch literals must be unassigned,
-        // or all literals are false (conflict).
-        bool both_watches_unassigned =
-          m_values[clause[0]] == Value::Unassigned && m_values[clause[1]] == Value::Unassigned;
-        bool is_conflict =
-          std::all_of(clause.begin(), clause.end(), [this](Lit l){ return m_values[l] == Value::False; });
-        // TODO fix this
-        // assert(both_watches_unassigned || is_conflict);  // ???
-        (void)is_conflict;
-        (void)both_watches_unassigned;
+        // If the clause is not yet satisfied, both watched literals must be unassigned
+        // (otherwise we would have propagated them)
+        assert(m_values[clause[0]] == Value::Unassigned && m_values[clause[1]] == Value::Unassigned);
       }
     }
   }
-  // Every clause in m_clauses is watched twice
-  // for (ClauseRef::index_type cr = 0; cr < m_clauses.size(); ++cr) {
-  //   assert(num_watches[cr] == 2);
-  // }
-  for (auto kvpair : num_watches) {
-    assert(kvpair.second == 2);
+  // Every clause of size >= 2 is watched twice
+  for (ClauseRef cr : m_clauses) {
+    Clause const& c = m_clauses.deref(cr);
+    if (c.size() >= 2) {
+      auto it = num_watches.find(cr.index());
+      assert(it != num_watches.end());
+      assert(it->second == 2);
+      num_watches.erase(it);
+    }
   }
-
+  assert(num_watches.empty());
   return true;
 }
 #endif
