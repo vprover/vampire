@@ -26,11 +26,11 @@ enum class Value : signed char {
   True = 1,
 };
 
-Value operator~(Value v) {
+static Value operator~(Value v) {
   return static_cast<Value>(-static_cast<signed char>(v));
 }
 
-std::ostream& operator<<(std::ostream& os, Value v)
+static std::ostream& operator<<(std::ostream& os, Value v)
 {
   switch (v) {
     case Value::False:
@@ -56,7 +56,7 @@ enum class Result : int {
   Unsat = 20,
 };
 
-std::ostream& operator<<(std::ostream& os, Result r)
+static std::ostream& operator<<(std::ostream& os, Result r)
 {
   switch (r) {
     case Result::Sat:
@@ -117,22 +117,22 @@ static_assert(!Var::invalid().is_valid(), "");
 static_assert(Var{Var::max_index()}.is_valid(), "");
 // static_assert(std::is_trivially_constructible_v<Var>, "Var should be trivially constructible so we can allocate vectors without initialization");  // TODO: do we really need this for VMTF? maybe we need to initialize there anyway (then a reserve+push_back loop would do it.)
 
-NODISCARD constexpr bool operator==(Var lhs, Var rhs) noexcept
+NODISCARD static constexpr bool operator==(Var lhs, Var rhs) noexcept
 {
   return lhs.index() == rhs.index();
 }
 
-NODISCARD constexpr bool operator!=(Var lhs, Var rhs) noexcept
+NODISCARD static constexpr bool operator!=(Var lhs, Var rhs) noexcept
 {
   return !operator==(lhs, rhs);
 }
 
-NODISCARD constexpr bool operator<(Var lhs, Var rhs) noexcept
+NODISCARD static constexpr bool operator<(Var lhs, Var rhs) noexcept
 {
   return lhs.index() < rhs.index();
 }
 
-std::ostream& operator<<(std::ostream& os, Var var)
+static std::ostream& operator<<(std::ostream& os, Var var)
 {
   os << var.index();
   return os;
@@ -239,17 +239,17 @@ static_assert(Lit{Var{Var::max_index()}, false}.is_valid(), "");
 
 
 
-NODISCARD constexpr bool operator==(Lit lhs, Lit rhs) noexcept
+NODISCARD static constexpr bool operator==(Lit lhs, Lit rhs) noexcept
 {
   return lhs.index() == rhs.index();
 }
 
-NODISCARD constexpr bool operator!=(Lit lhs, Lit rhs) noexcept
+NODISCARD static constexpr bool operator!=(Lit lhs, Lit rhs) noexcept
 {
   return !operator==(lhs, rhs);
 }
 
-std::ostream& operator<<(std::ostream& os, Lit lit)
+static std::ostream& operator<<(std::ostream& os, Lit lit)
 {
   if (lit.is_negative()) {
     os << '-';
