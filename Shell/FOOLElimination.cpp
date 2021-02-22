@@ -46,6 +46,7 @@ using namespace Shell;
 const char* FOOLElimination::ITE_PREFIX  = "iG";
 const char* FOOLElimination::LET_PREFIX  = "lG";
 const char* FOOLElimination::BOOL_PREFIX = "bG";
+const char* FOOLElimination::MATCH_PREFIX  = "mG";
 
 FOOLElimination::FOOLElimination() : _defs(0), _higherOrder(0), _polymorphic(0) {}
 
@@ -766,6 +767,74 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         // the literature. 
         LambdaElimination le = LambdaElimination();
         termResult = le.elimLambda(term);
+        break;
+      }
+
+      case Term::SF_MATCH: {
+        /**
+         * Having a term of the form $match(v, p1, b1, ..., pm, bm) and the list
+         * X1, ..., Xn of its free variables (it is the union of free variables
+         * of f, s and t) we do the following:
+         *  1) Create a fresh function symbol g of arity n that spans over sorts
+         *     of X1, ..., Xn and the returns sort of the term
+         *  2) Add m definitions:
+         *     * ![X1, ..., Xn]: (v = p1 => g(X1, ..., Xn) = b1)
+         *       ...
+         *     * ![X1, ..., Xn]: (v = pm => g(X1, ..., Xn) = bm)
+         *  3) Replace the term with g(X1, ..., Xn)
+         */
+
+        TermList matchedTerm;
+        Formula* matchedFormula;
+        Context matchedContext = term->nthArgument(0)->isTerm()
+          && term->nthArgument(0)->term()->isBoolean() ? FORMULA_CONTEXT : TERM_CONTEXT;
+        process(*term->nthArgument(0), matchedContext, matchedTerm, matchedFormula);
+
+        TermList resultSort = Term::defaultSort();
+        if (context == TERM_CONTEXT) {
+          resultSort = sd->getSort();
+        }
+
+        collectSorts(freeVars, typeVars, termVars, allVars, termVarSorts);
+        SortHelper::normaliseSort(typeVars, resultSort);
+        // create a fresh symbol g
+        unsigned freshSymbol = introduceFreshSymbol(context, MATCH_PREFIX, termVarSorts, resultSort, typeVars.size());
+
+        // build g(X1, ..., Xn)
+        TermList freshFunctionApplication;
+        Formula* freshPredicateApplication;
+        buildApplication(freshSymbol, context, allVars, freshFunctionApplication, freshPredicateApplication);
+
+        for (unsigned int i = 1; i < term->arity(); i+=2) {
+          TermList patternTerm;
+          Formula* patternFormula;
+          process(*term->nthArgument(i), matchedContext, patternTerm, patternFormula);
+          // build v = pi
+          Formula* head = buildEq(matchedContext, matchedFormula, patternFormula,
+                                  matchedTerm, patternTerm, sd->getMatchedSort());
+
+          TermList bodyTerm;
+          Formula* bodyFormula;
+          process(*term->nthArgument(i+1), context, bodyTerm, bodyFormula);
+          // build g(X1, ..., Xn) == bi
+          Formula* body = buildEq(context, freshPredicateApplication, bodyFormula,
+                                  freshFunctionApplication, bodyTerm, resultSort);
+          // build (v = pi => g(X1, ..., Xn) == bi)
+          Formula* impl = new BinaryFormula(IMP, head, body);
+
+          // build ![X1, ..., Xn]: (f => g(X1, ..., Xn) == s)
+          if (VList::length(freeVars) > 0) {
+            //TODO do we know the sorts of freeVars?
+            impl = new QuantifiedFormula(FORALL, freeVars,0, impl);
+          }
+          addDefinition(new FormulaUnit(impl, NonspecificInference1(InferenceRule::FOOL_MATCH_ELIMINATION, _unit)));
+        }
+
+        if (context == FORMULA_CONTEXT) {
+          formulaResult = freshPredicateApplication;
+        } else {
+          termResult = freshFunctionApplication;
+        }
         break;
       }
 

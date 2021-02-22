@@ -156,6 +156,7 @@ bool SortHelper::getResultSortOrMasterVariable(const Term* t, TermList& resultSo
     case Term::SF_LET:
     case Term::SF_LET_TUPLE:
     case Term::SF_ITE:
+    case Term::SF_MATCH:
       resultSort = t->getSpecialData()->getSort();
       return true;
     case Term::SF_FORMULA:
@@ -472,6 +473,30 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermL
             newTask.t = sd->getTupleTerm();
             todo.push(newTask);
           } break;
+
+          case Term::SF_MATCH: {
+            CollectTask newTask;
+
+            newTask.fncTag = COLLECT_TERMLIST;
+            auto matchedSort = term->getSpecialData()->getMatchedSort();
+
+            // there are two sorts here, one is the sort
+            // of matched term and patterns, the other is
+            // the sort of the match block and of each case 
+            newTask.ts = *term->nthArgument(0);
+            newTask.contextSort = matchedSort;
+            todo.push(newTask);
+            for (unsigned int i = 1; i < term->arity(); i+=2) {
+              newTask.ts = *term->nthArgument(i);
+              newTask.contextSort = matchedSort;
+              todo.push(newTask);
+
+              newTask.ts = *term->nthArgument(i+1);
+              newTask.contextSort = task.contextSort;
+              todo.push(newTask);
+            }
+            break;
+          }
 
       #if VDEBUG
           default:
@@ -848,6 +873,15 @@ bool SortHelper::tryGetVariableSort(TermList var, Term* t0, TermList& result)
       } else {
         if(lambdaTerm == var){
           result = sort;
+          return true;
+        }
+      }
+      continue;
+    }
+    if (t->isMatch()) {
+      for (unsigned int i = 0; i < t->arity(); i++) {
+        auto arg = t->nthArgument(i);
+        if (*arg == var && tryGetResultSort(*arg, result)) {
           return true;
         }
       }

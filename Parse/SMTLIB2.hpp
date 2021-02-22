@@ -217,6 +217,7 @@ private:
     TS_DIV,
     TS_ITE,
     TS_LET,
+    TS_MATCH,
     TS_MOD,
     TS_SELECT,
     TS_STORE,
@@ -262,7 +263,9 @@ private:
    *
    * Defining a function extends the signature and adds the new function's definition into _formulas.
    */
-  void readDefineFun(const vstring& name, LExprList* iArgs, LExpr* oSort, LExpr* body);
+  void readDefineFun(const vstring& name, LExprList* iArgs, LExpr* oSort, LExpr* body, bool recursive = false);
+
+  void readDeclareDatatype(LExpr* sort, LExprList* datatype, bool codatatype = false);
 
   void readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool codatatype = false);
 
@@ -352,7 +355,10 @@ private:
     PO_CHECK_ARITY,        // takes LExpr* (again the whole, just for error reporting)
     // these two are intermediate cases for handling let
     PO_LET_PREPARE_LOOKUP, // takes LExpr* (the whole let expression again, why not)
-    PO_LET_END             // takes LExpr* (the whole let expression again, why not)
+    PO_LET_END,            // takes LExpr* (the whole let expression again, why not)
+    PO_MATCH_CASE_START,   // takes LExpr*, a list containing the matched term, pattern, case
+    PO_MATCH_CASE_END,     // takes LExpr*, a list containing the matched term, pattern, case
+    PO_MATCH_END           // takes LExpr* (the whole match again)
   };
   /**
    * Main smtlib term parsing stack.
@@ -368,6 +374,12 @@ private:
   void parseLetBegin(LExpr* exp);
   void parseLetPrepareLookup(LExpr* exp);
   void parseLetEnd(LExpr* exp);
+
+  bool isTermAlgebraConstructor(const vstring& name);
+  void parseMatchBegin(LExpr* exp);
+  void parseMatchCaseStart(LExpr* exp);
+  void parseMatchCaseEnd(LExpr* exp);
+  void parseMatchEnd(LExpr* exp);
 
   void parseQuantBegin(LExpr* exp);
 

@@ -244,6 +244,21 @@ Term* Rectify::rectifySpecialTerm(Term* t)
     }
     return Term::createTuple(rectifiedTupleTerm);
   }
+  case Term::SF_MATCH:
+  {
+    DArray<TermList> terms(t->arity());
+    bool unchanged = true;
+    for (unsigned i = 0; i < t->arity(); i++) {
+      TermList subterm = rectify(*t->nthArgument(i));
+      unchanged = unchanged && (subterm == *t->nthArgument(i));
+      terms[i] = subterm;
+    }
+
+    if (unchanged) {
+      return t;
+    }
+    return Term::createMatch(sd->getSort(), sd->getMatchedSort(), t->arity(), terms.begin());
+  }
   default:
     ASSERTION_VIOLATION;
   }
