@@ -43,7 +43,7 @@
 #include "Kernel/PolynomialNormalizer.hpp"
 #include "Kernel/InequalityNormalizer.hpp"
 #include "Indexing/TermIndexingStructure.hpp"
-#define DEBUG(...) DBG(__VA_ARGS__)
+#define DEBUG(...) // DBG(__VA_ARGS__)
 
 using Kernel::InequalityLiteral;
 namespace Indexing {
@@ -153,7 +153,8 @@ pair<IntegerConstantType,IntegerConstantType> computeFactors(IntegerConstantType
   auto gcd = IntegerConstantType::gcd(num1, num2);
   ASS(gcd.divides(num1));
   ASS(gcd.divides(num2));
-  return std::make_pair(num2.quotientE(gcd) , -num1.quotientE(gcd));
+  return num1.isNegative() ? std::make_pair( num2.quotientE(gcd), -num1.quotientE(gcd))
+                           : std::make_pair(-num2.quotientE(gcd),  num1.quotientE(gcd));
 }
 
 
@@ -219,6 +220,7 @@ ClauseIterator InequalityResolution::generateClauses(Clause* cl1, Literal* lit1_
   using MonomFactors      = MonomFactors<NumTraits>;
   using Numeral           = typename Monom::Numeral;
   using InequalityLiteral = InequalityLiteral<NumTraits>;
+  const bool isInt        = std::is_same<NumTraits, IntTraits>::value;
 
   auto lit1Opt = this->normalizer().normalize<NumTraits>(lit1_);
   if (lit1Opt.isNone()) 
@@ -243,15 +245,17 @@ ClauseIterator InequalityResolution::generateClauses(Clause* cl1, Literal* lit1_
       DEBUG("monom1: ", monom)
 
       return pvi(iterTraits(_index->getUnificationsWithConstraints(term1->denormalize(), true))
-                .map([this, cl1, lit1, lit1_, num1, term1](TermQueryResult res) -> Clause* {
+                .filterMap([this, cl1, lit1, lit1_, num1, term1](TermQueryResult res) -> Option<Clause*> {
                   CALL("InequalityResolution::generateClauses:@clsr2")
+                  auto& subs = *res.substitution;
+
                   auto cl2   = res.clause;
                   auto term2 = normalizeTerm(TypedTermList(res.term, NumTraits::sort))
                                 .downcast<NumTraits>().unwrap()
                                 ->tryMonom().unwrap()
                                 .factors;
                   auto lit2_ = res.literal;
-                  auto lit2 = this->normalizer().normalize<NumTraits>(lit2_).unwrap();
+                  auto lit2  = this->normalizer().normalize<NumTraits>(lit2_).unwrap();
                   //   ^^^^ ~=  num2 * term2 + rest2 >= 0
                   DEBUG("resolving against: ", lit2, " (term: ", term2, ", constr: ", res.constraints, ")");
 
@@ -269,56 +273,81 @@ ClauseIterator InequalityResolution::generateClauses(Clause* cl1, Literal* lit1_
                                   .unwrap()
                                   .numeral;
 
+                  if (num1.isNegative() == num2.isNegative())
+                    return Option<Clause*>();
+
                   auto factors = computeFactors(num1, num2);
                   //   ^^^^^^^--> (k1, k2)
+                  ASS_REP(factors.first.isPositive() && factors.second.isPositive(), factors)
 
-                  Stack<Monom> resolventSum(lit1.term().nSummands() + lit2.term().nSummands() - 2);
-                  //           ^^^^^^^^^^^^--> gonna be k1 * rest1 + k2 * rest2
+                  Stack<Monom> resolventSum(lit1.term().nSummands() + lit2.term().nSummands() - 2 + (isInt ? 1 : 0));
+                  //           ^^^^^^^^^^^^--> gonna be k1 * rest1 + k2 * rest2                   
                   {
-                    auto pushTerms = [&resolventSum](InequalityLiteral lit, Perfect<MonomFactors> termToSkip, Numeral num)
+                    auto pushTerms = [&](InequalityLiteral lit, Perfect<MonomFactors> termToSkip, Numeral num, bool resultVarBank)
                               {
-                                resolventSum.loadFromIterator(lit.term().iterSummands()
+                                resolventSum.loadFromIterator(lit.term()
+                                    .iterSummands()
                                     .filter([&](Monom m) { return m.factors != termToSkip; })
-                                    .map   ([&](Monom m) { return Monom(m.numeral * num, m.factors); })
+                                    .map   ([&](Monom m) { 
+                                      auto out = Monom(m.numeral * num, m.factors)
+                                        .mapVars([&](Variable v) { 
+                                          auto var = TermList::var(v.id());
+                                          auto t = subs.applyTo(var, resultVarBank);
+                                          return normalizeTerm(TypedTermList(t, NumTraits::sort)); 
+                                        }); 
+                                      return out;
+                                    })
                                 );
                               };
 
-                    pushTerms(lit1, term1, factors.first);
-                    pushTerms(lit2, term2, factors.second);
+                    pushTerms(lit1, term1, factors.first , false);
+                    pushTerms(lit2, term2, factors.second, true);
+                    if (isInt) {
+                      resolventSum.push(Monom(Numeral(-1)));
+                    }
                   }
 
-                  std::sort(resolventSum.begin(), resolventSum.end());
                   auto resolventLit = InequalityLiteral(perfect(PolynomialEvaluation::simplifySummation(resolventSum)), strictness);
                   //   ^^^^^^^^^^^^--> k1 * rest1 + k2 * rest2 >= 0
 
                   Inference inf(GeneratingInference2(Kernel::InferenceRule::INEQUALITY_RESOLUTION, cl1, cl2));
-                  auto size = cl1->size() + cl2->size() - 1;
-                  DBGE(cl1->size());
-                  DBGE(cl2->size());
-                  DBGE(size);
+                  auto size = cl1->size() + cl2->size() - 1 + (res.constraints ? res.constraints->size() : 0);
                   auto resolvent = new(size) Clause(size, inf);
-                  //   ^^^^^^^^^--> gonna be k1 * rest1 + k2 * rest2 >= 0 \/ C1 \/ C2
+                  //   ^^^^^^^^^--> gonna be k1 * rest1 + k2 * rest2 >= 0 \/ C1 \/ C2 \/ constraints
                   {
                     unsigned offset = 0;
-                    (*resolvent)[offset++] = resolventLit.denormalize();
+                    auto push = [&offset, &resolvent](Literal* lit) { (*resolvent)[offset++] = lit; };
+                    
+                    // push resolvent literal: k1 * rest1 + k2 * rest2 >= 0 
+                    push(subs.applyToResult(subs.applyToResult(resolventLit.denormalize())));
+
+                    // push other literals from clause: C1 \/ C2
                     auto pushLiterals = 
-                      [&resolvent, &offset](Clause& cl, Literal* skipLiteral)
+                      [&](Clause& cl, Literal* skipLiteral, bool result)
                       {
-                        DBGE(cl.size())
                         for (unsigned i = 0; i < cl.size(); i++) {
                           if (cl[i] != skipLiteral) {
-                            DBGE(offset)
-                            DBGE(*cl[i])
-                            (*resolvent)[offset++] = cl[i];
+                            push(subs.apply(cl[i], result));
                           }
                         }
                       };
-                    pushLiterals(*cl1, lit1_);
-                    pushLiterals(*cl2, lit2_);
+                    pushLiterals(*cl1, lit1_, false);
+                    pushLiterals(*cl2, lit2_, true);
+
+                    // push constraints
+                    if (res.constraints) {
+                      for (auto& c : *res.constraints) {
+                        auto toTerm = [&](pair<TermList, unsigned> const& weirdConstraintPair) -> TermList
+                                      { return subs.applyTo(weirdConstraintPair.first, weirdConstraintPair.second); };
+                        // t1\sigma != c2\simga
+                        push(Literal::createEquality(false, toTerm(c.first), toTerm(c.second), NumTraits::sort));
+                      }
+                    }
+
                     ASS_EQ(offset, size)
                   }
                   DEBUG("resolvent: ", *resolvent);
-                  return resolvent;
+                  return Option<Clause*>(resolvent);
                 }));
     }));
 }

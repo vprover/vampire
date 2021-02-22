@@ -143,12 +143,15 @@ struct Monom
   Perfect<MonomFactors<Number>> factors;
 
   Monom(Numeral numeral, Perfect<MonomFactors<Number>> factors);
+  Monom(Numeral numeral) : Monom(numeral, perfect(MonomFactors<Number>::one())) {}
   Monom(MonomFactors<Number> factors) : Monom(Numeral(1), perfect(std::move(factors))) {}
 
   static Monom zero();
 
   Option<Variable> tryVar() const;
   Option<Numeral> tryNumeral() const;
+
+  template<class F> Monom mapVars(F f) const;
 
   /** performs an integrity check on the datastructure, only has an effect in debug mode */
   void integrity() const;
@@ -176,10 +179,13 @@ public:
   template<class Number> 
   Option<typename Number::ConstantType> tryNumeral() const;
 
+  template<class F> FuncTerm mapVars(F f) const;
+
   friend std::ostream& operator<<(std::ostream& out, const FuncTerm& self);
   friend bool operator==(FuncTerm const& lhs, FuncTerm const& rhs);
   friend bool operator!=(FuncTerm const& lhs, FuncTerm const& rhs);
   friend struct std::hash<FuncTerm>;
+
 };
 
 using AnyPolySuper = Coproduct< 
@@ -206,6 +212,8 @@ public:
 
   /** \see template<class N> Polynom<N>::replaceTerms */
   AnyPoly replaceTerms(PolyNf* newTs) const;
+
+  template<class F> AnyPoly mapVars(F f) const;
 
   /** \see template<class N> Polynom<N>::nSummands */
   unsigned nSummands() const;
@@ -275,6 +283,8 @@ public:
   /** returns an iterator over all PolyNf s that are subterms of this one */
   IterTraits<SubtermIter> iterSubterms() const;
 
+  template<class F> PolyNf mapVars(F f) const;
+
   friend struct std::hash<PolyNf>;
   friend bool operator==(PolyNf const& lhs, PolyNf const& rhs);
   friend bool operator!=(PolyNf const& lhs, PolyNf const& rhs);
@@ -299,6 +309,8 @@ struct MonomFactor
   int power;
 
   MonomFactor(PolyNf term, int power);
+
+  template<class F> MonomFactor mapVars(F f) const;
    
   /** if this monomfactor is a Variable and has power one it is turned into a variable */
   Option<Variable> tryVar() const;
@@ -380,6 +392,8 @@ public:
 
   /** returns an iterator over all factors */
   FactorIter iter() const&;
+
+  template<class F> MonomFactors mapVars(F f) const;
 
   explicit MonomFactors(const MonomFactors&) = default;
   explicit MonomFactors(MonomFactors&) = default;
@@ -484,6 +498,8 @@ public:
 
   Stack<Monom>& raw();
 
+  template<class F> Polynom mapVars(F f) const;
+
   template<class N> friend bool operator==(const Polynom<N>& lhs, const Polynom<N>& rhs);
   template<class N> friend std::ostream& operator<<(std::ostream& out, const Polynom<N>& self);
 };  
@@ -545,6 +561,12 @@ template<class Number>
 Monom<Number>::Monom(Monom<Number>::Numeral numeral, Perfect<MonomFactors<Number>> factors) 
   : numeral(numeral), factors(factors)
 {}
+
+
+template<class Number>
+template<class F>
+Monom<Number> Monom<Number>::mapVars(F fun) const 
+{ return Monom(numeral, perfect(factors->mapVars(fun))); }
 
 template<class Number>
 Monom<Number> Monom<Number>::zero() 
@@ -643,6 +665,11 @@ template<class Number>
 Option<typename Number::ConstantType> FuncTerm::tryNumeral() const
 { return _fun.template tryNumeral<Number>(); }
 
+template<class F> FuncTerm FuncTerm::mapVars(F fun) const
+{ return FuncTerm(_fun, iterTraits(_args.iterFifo())
+                          .map([&](PolyNf t) { return t.mapVars(fun); })
+                          .template collect<Stack>()); }
+
 } // namespace Kernel
 
 
@@ -698,6 +725,17 @@ template<class NumTraits>
 Option<typename NumTraits::ConstantType> AnyPoly::tryNumeral() const&
 { return apply(PolymorphicToNumeral<NumTraits>{}); }
 
+template<class F> 
+struct __MapVars {
+  F _fun;
+  template<class A> 
+  AnyPoly operator()(A a) 
+  { return AnyPoly(perfect(a->mapVars(_fun))); }
+};
+
+template<class F> AnyPoly AnyPoly::mapVars(F fun) const
+{ return apply(__MapVars<F>{fun}); }
+
 } // namespace Kernel
 
 template<> struct std::less<Kernel::AnyPoly> 
@@ -712,8 +750,6 @@ template<> struct std::hash<Kernel::AnyPoly>
   size_t operator()(Kernel::AnyPoly const& self) const 
   { return std::hash<Kernel::AnyPolySuper>{}(self); }
 };
-
-
 
 /////////////////////////////////////////////////////////
 // impl PolyNf  template stuff
@@ -754,6 +790,12 @@ Option<typename Number::ConstantType> PolyNf::tryNumeral() const
     );
 }
 
+template<class F> PolyNf PolyNf::mapVars(F fun) const
+{ return match(
+    [&](Perfect<FuncTerm> t) { return PolyNf(perfect(t->mapVars(fun))); },
+    [&](Variable var       ) { return PolyNf(fun(var)                ); },
+    [&](AnyPoly p)           { return PolyNf(p.mapVars(fun)          ); }); }
+
 } // namespace Kernel
 
 template<> struct std::hash<Kernel::PolyNf> 
@@ -793,6 +835,12 @@ std::ostream& operator<<(std::ostream& out, const MonomFactor<Number>& self) {
     out << "^" << self.power;
   return out;
 }
+
+
+template<class Number>
+template<class F>
+MonomFactor<Number> MonomFactor<Number>::mapVars(F fun) const 
+{ return MonomFactor(this->term.template mapVars<F>(fun), this->power); }
 
 template<class Number>
 Option<Variable> MonomFactor<Number>::tryVar() const 
@@ -853,6 +901,15 @@ MonomFactor<Number> const& MonomFactors<Number>::factorAt(unsigned i) const
 template<class Number>
 PolyNf const& MonomFactors<Number>::termAt(unsigned i) const
 { return _factors[i].term; }
+
+
+template<class Number>
+template<class F>
+MonomFactors<Number> MonomFactors<Number>::mapVars(F fun) const 
+{ return MonomFactors(
+        iterTraits(_factors.iterFifo()) 
+          .map([&](MonomFactor const& fac) { return fac.mapVars(fun); })
+          .template collect<Stack>()); }
 
 template<class Number>
 Stack<MonomFactor<Number>> & MonomFactors<Number>::raw()
@@ -1016,7 +1073,7 @@ Polynom<Number>::Polynom(Stack<Monom>&& summands)
       summands.isEmpty() 
         ? Stack<Monom>{Monom::zero()} 
         : std::move(summands)) 
-{ integrity(); }
+{ /* integrity(); */ }
 
 template<class Number>
 Polynom<Number>::Polynom(Monom m) 
@@ -1090,6 +1147,13 @@ bool Polynom<Number>::isNumber() const&
 { 
   return toNumber().isSome();
 }
+
+template<class Number>
+template<class F>
+Polynom<Number> Polynom<Number>::mapVars(F fun) const
+{ return Polynom(iterTraits(_summands.iterFifo())
+                  .map([&](Monom const& m) { return m.mapVars(fun); })
+                  .template collect<Stack>());                       }
 
 template<class Number>
 typename Number::ConstantType Polynom<Number>::unwrapNumber() const& 

@@ -41,7 +41,7 @@
 #include "Inferences/InferenceEngine.hpp"
 #include "Inferences/PolynomialEvaluation.hpp"
 #include "Kernel/PolynomialNormalizer.hpp"
-#define DEBUG(...) //DBG(__VA_ARGS__)
+#define DEBUG(...) // DBG(__VA_ARGS__)
 
 
 namespace Kernel {
@@ -111,6 +111,7 @@ namespace Kernel {
   {
     CALL("InequalityLiteral<NumTraits>::fromLiteral(Literal*)")
     DEBUG("in: ", *lit, "(", NumTraits::name(), ")")
+
     auto impl = [&]() {
 
       constexpr bool isInt = std::is_same<NumTraits, IntTraits>::value;
@@ -124,55 +125,52 @@ namespace Kernel {
       auto itp = theory->interpretPredicate(f);
 
 
-      auto l = [lit]() -> TermList { return *lit->nthArgument(0); };
-      auto r = [lit]() -> TermList { return *lit->nthArgument(1); };
-      auto minus = [](TermList l, TermList r) { return NumTraits::add(l, NumTraits::minus(r)); };
-      auto one = [](){ return NumTraits::one(); };
-
       bool strict;
-      TermList t;
+      TermList l, r; // <- we rewrite to l < r or l <= r
       switch(itp) {
-        case NumTraits::leqI:
-          /* l <= r ==> r >= l ==> r - l >= 0 */
-          t = minus(r(), l());
+        case NumTraits::leqI: /* l <= r */
+          l = *lit->nthArgument(0);
+          r = *lit->nthArgument(1);
           strict = false;
           break;
 
-        case NumTraits::geqI:
-          /* l >= r ==> l - r >= 0*/
-          t = minus(l(), r());
+        case NumTraits::geqI: /* l >= r ==> r <= l */
+          l = *lit->nthArgument(1);
+          r = *lit->nthArgument(0);
           strict = false;
           break;
 
-        case NumTraits::lessI:
-          if (isInt)  {
-            /* l < r ==> r > l ==> r - l > 0 ==> r - l - 1 >= 0 */
-            t = minus(minus(r(), l()), one());
-            strict = false;
-          } else  {
-            /* l < r ==> r > l ==> r - l > 0 */
-            t = minus(r(), l());
-            strict = true;
-          }
+        case NumTraits::lessI: /* l < r */
+          l = *lit->nthArgument(0);
+          r = *lit->nthArgument(1);
+          strict = true;
           break;
 
-        case NumTraits::greaterI:
-          if (isInt) {
-            /* l > r ==> l - r > 0 ==> l - r - 1 >= 0 */
-            t = minus(minus(l(), r()), one());
-            strict = false;
-          } else {
-            /* l > r ==> l - r > 0 */
-            t = minus(l(), r());
-            strict = true;
-          }
+        case NumTraits::greaterI: /* l > r ==> r < l */
+          l = *lit->nthArgument(1);
+          r = *lit->nthArgument(0);
+          strict = true;
           break;
 
         default: 
           return Opt();
       }
 
-      ASS(!isInt || !strict)
+      if (lit->isNegative()) {
+        std::swap(l, r);
+        strict = !strict;
+      }
+
+      if (isInt && !strict) {
+        /* l <= r ==> l < r + 1 */
+        r = NumTraits::add(r, NumTraits::one());
+        strict = true;
+      }
+
+      /* l < r ==> r > l ==> r - l > 0 */
+      auto t = NumTraits::add(r, NumTraits::minus(l));
+
+      ASS(!isInt || strict)
       auto norm = Kernel::normalizeTerm(TypedTermList(t.term()));
       auto simpl = _eval.evaluate(norm).unwrapOr(norm);
       return Opt(InequalityLiteral<NumTraits>(simpl.wrapPoly<NumTraits>(), strict));

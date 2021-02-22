@@ -98,8 +98,9 @@ public:
 
   InnerType toInner() const { return _val; }
 
-  bool isZero(){ return _val==0; }
-  bool isNegative(){ return _val<0; }
+  bool isZero()     const { return _val == 0; }
+  bool isNegative() const { return _val  < 0; }
+  bool isPositive() const { return _val  > 0; }
 
   static IntegerConstantType floor(RationalConstantType rat);
   static IntegerConstantType floor(IntegerConstantType rat);
