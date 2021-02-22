@@ -142,10 +142,10 @@ public:
 //	  int queryBank, int resultBank);
 
 #if VDEBUG
-  friend std::ostream& operator<<(std::ostream& out, ResultSubstitution& self)
+  friend std::ostream& operator<<(std::ostream& out, ResultSubstitution const& self)
   { return self.output(out); }
 
-  virtual std::ostream& output(std::ostream& out) = 0;
+  virtual std::ostream& output(std::ostream& out) const = 0;
 
 #endif
 };
@@ -168,7 +168,7 @@ public:
   Literal* applyTo(Literal* l,unsigned index) final override { return l; }
   bool isIdentityOnQueryWhenResultBound() final override {return true;}
 #if VDEBUG
-  virtual std::ostream& output(std::ostream& out) final override { return out << "identity"; }
+  virtual std::ostream& output(std::ostream& out) const final override { return out << "identity"; }
 #endif
 };
 
@@ -191,7 +191,7 @@ public:
    */
   bool isIdentityOnQueryWhenResultBound() final override {return true;}
 #if VDEBUG
-  virtual std::ostream& output(std::ostream& out) final override 
+  virtual std::ostream& output(std::ostream& out) const final override 
   { return out << "DisjunctQueryAndResultVariablesSubstitution"; }
 #endif
 private:
