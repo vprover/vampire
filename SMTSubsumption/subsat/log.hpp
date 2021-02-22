@@ -13,7 +13,92 @@
 #if LOGGING_ENABLED
 
 
+#include <cstdint>
 #include <iostream>
+#include <vector>
+#include <typeinfo>
+#include "./vector_map.hpp"
+
+namespace numerical_chars {
+inline std::ostream &operator<<(std::ostream &os, char c) {
+    return std::is_signed<char>::value ? os << static_cast<int>(c)
+                                       : os << static_cast<unsigned int>(c);
+}
+
+inline std::ostream &operator<<(std::ostream &os, signed char c) {
+    return os << static_cast<int>(c);
+}
+
+inline std::ostream &operator<<(std::ostream &os, unsigned char c) {
+    return os << static_cast<unsigned int>(c);
+}
+}
+
+template <typename T, typename Allocator>
+struct ShowVec {
+  std::vector<T, Allocator> const& vec;
+};
+
+template<typename T, typename Allocator>
+std::ostream& operator<<(std::ostream& os, ShowVec<T, Allocator> const& sv)
+{
+  using namespace numerical_chars;
+  auto const& vec = sv.vec;
+
+  if (vec.empty()) {
+    return os << "[]";
+  }
+
+  os << "[ ";
+  bool first = true;
+  for (auto&& x : vec) {
+    if (first) {
+      first = false;
+    } else {
+      os << ", ";
+    }
+    os << x;
+  }
+  os << " ]";
+  return os;
+}
+
+template<typename T, typename Allocator>
+ShowVec<T, Allocator> SHOWVEC(std::vector<T, Allocator> const& vec)
+{
+    return ShowVec<T, Allocator>{vec};
+}
+
+template<typename Key, typename T, typename Allocator, typename Indexing>
+ShowVec<T, Allocator> SHOWVEC(subsat::vector_map<Key, T, Allocator, Indexing> const& vecmap)
+{
+    return ShowVec<T, Allocator>{vecmap.underlying()};
+}
+
+
+/*
+template<typename T, typename Allocator>
+std::ostream& operator<<(std::ostream& os, std::vector<T, Allocator> const& vec)
+{
+  if (vec.empty()) {
+    return os << "[]";
+  }
+
+  os << "[ ";
+  bool first = true;
+  for (auto&& x : vec) {
+    if (first) {
+      first = false;
+    } else {
+      os << ", ";
+    }
+    os << x;
+  }
+  os << " ]";
+  return os;
+}
+*/
+
 
 /// lower level means more important
 enum class LogLevel : int {

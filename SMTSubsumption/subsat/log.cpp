@@ -5,20 +5,30 @@
 
 #if LOGGING_ENABLED
 
-/// Filter log messages
-bool
-subsat_should_log(LogLevel msg_level, std::string /* fn */, std::string pretty_fn)
+static LogLevel
+get_max_log_level(std::string const& fn, std::string const& pretty_fn)
 {
-  // by default, log everything
-  LogLevel max_log_level = LogLevel::Trace;
+  (void)fn;
+  (void)pretty_fn;
 
-  bool const from_decision_queue =
-      pretty_fn.find("DecisionQueue") != std::string::npos;
-
+  bool const from_decision_queue = pretty_fn.find("DecisionQueue") != std::string::npos;
   if (from_decision_queue) {
-    max_log_level = LogLevel::Info;
+    return LogLevel::Info;
   }
 
+  if (fn == "analyze") {
+    return LogLevel::Trace;
+  }
+
+  // by default, log everything up to debug level
+  return LogLevel::Debug;
+}
+
+/// Filter log messages
+bool
+subsat_should_log(LogLevel msg_level, std::string fn, std::string pretty_fn)
+{
+  LogLevel max_log_level = get_max_log_level(fn, pretty_fn);
   return msg_level <= max_log_level;
 }
 

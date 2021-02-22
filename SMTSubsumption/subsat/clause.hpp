@@ -163,6 +163,7 @@ NODISCARD constexpr bool operator!=(ClauseRef lhs, ClauseRef rhs) noexcept
   return !operator==(lhs, rhs);
 }
 
+/*
 static std::ostream& operator<<(std::ostream& os, ClauseRef cr)
 {
   os << "ClauseRef{";
@@ -174,6 +175,7 @@ static std::ostream& operator<<(std::ostream& os, ClauseRef cr)
   os << "}";
   return os;
 }
+*/
 
 
 

@@ -229,6 +229,27 @@ bool Solver::checkInvariants() const
 }
 #endif
 
+#if LOGGING_ENABLED
+void Solver::showAssignment(std::ostream& os) const
+{
+  bool first = true;
+  Level prev_level = 0;
+  for (Lit lit : m_trail) {
+    if (first) {
+      first = false;
+    } else {
+      os << " ";
+    }
+    Level const level = m_vars[lit.var()].level;
+    if (level != prev_level) {
+      os << "// ";
+      prev_level = level;
+    }
+    os << lit;
+  }
+}
+#endif
+
 
 
 

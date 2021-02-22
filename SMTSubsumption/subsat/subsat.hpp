@@ -77,6 +77,7 @@ static constexpr Mark MarkRemovable = 4;
 //   Removable = 4,
 // };
 
+#if LOGGING_ENABLED
 template <typename A>
 struct ShowClauseRef {
   ShowClauseRef(ClauseArena<A> const& arena, ClauseRef cr)
@@ -96,6 +97,12 @@ std::ostream& operator<<(std::ostream& os, ShowClauseRef<A> const& scr)
   }
   return os;
 }
+
+struct ShowAssignment {
+  class Solver const& solver;
+};
+std::ostream& operator<<(std::ostream& os, ShowAssignment sa);
+#endif
 
 class Solver
 {
@@ -464,7 +471,6 @@ private:
         assert(other_value == Value::Unassigned);
         assign(other_lit, clause_ref);
       }
-
     }  // while
 
     // Copy remaining watches
@@ -505,11 +511,10 @@ private:
   NODISCARD bool analyze(ClauseRef conflict_ref)
   {
     LOG_INFO("Conflict clause " << SHOWREF(conflict_ref) << " on level " << m_level);
+    LOG_TRACE("Assignment: " << ShowAssignment{*this});
     assert(!m_inconsistent);
+    assert(conflict_ref.is_valid());
     assert(checkInvariants());
-
-    // assert(conflict_ref.is_valid());
-    // Clause const& conflict = m_clauses.deref(conflict_ref);
 
     Level const conflict_level = m_level;
     if (conflict_level == 0) {
@@ -518,50 +523,59 @@ private:
       return false;
     }
 
-    std::vector<Lit>& clause = tmp_analyze_clause;
-    std::vector<Level>& blocks = tmp_analyze_blocks;
-    std::vector<Var>& seen = tmp_analyze_seen;
-    vector_map<Level, char>& frames = m_frames;
+    // These variables are morally local variables,
+    // but we store them as class members to avoid allocation overhead.
+    std::vector<Lit>& clause = tmp_analyze_clause;    // the learned clause
+    std::vector<Level>& blocks = tmp_analyze_blocks;  // the analyzed decision levels
+    std::vector<Var>& seen = tmp_analyze_seen;        // the analyzed variables
+    vector_map<Level, uint8_t>& frames = m_frames;    // for each decision level, whether it has been analyzed
     assert(clause.empty());
     assert(blocks.empty());
     assert(seen.empty());
     assert(frames.size() >= conflict_level);
     assert(std::all_of(frames.cbegin(), frames.cend(), [](char x){ return x == 0; }));
 
-    // Make room for the first UIP
+    // Reserve space for the first UIP
     clause.push_back(Lit::invalid());
 
-    auto t = m_trail.crbegin();
+    // Iterator into the trail, indicating the next literal to resolve
+    auto t = m_trail.cend();
+    // The number of literals in the current clause that are on the highest decision level.
+    // We need to resolve all of them away except one to reach a UIP.
     uint32_t unresolved_on_conflict_level = 0;
+    // The literal we have just resolved away, or invalid in the first step
     Lit uip = Lit::invalid();
+    // The reason of the resolved literal, or the conflict clause in the first step
     ClauseRef reason_ref = conflict_ref;
 
     while (true) {
-      LOG_TRACE("reason_ref = " << reason_ref);
+      LOG_TRACE("Reason: " << SHOWREF(reason_ref) << ", uip: " << uip << ", unresolved: " << unresolved_on_conflict_level);
       assert(reason_ref.is_valid());
       Clause const& reason = m_clauses.deref(reason_ref);
 
       // TODO: reason->used = true
 
-      LOG_TRACE("reason = " << reason);
       for (Lit const lit : reason) {
         Var const var = lit.var();
-        LOG_TRACE("    checking lit " << lit << "  (uip = " << uip << ")");
+        LOG_TRACE("  Checking literal " << lit << " (level: " << get_level(var) << ")");
 
-        if (lit == uip)
-          continue;  // TODO: why???
+        // Skip the resolved literal
+        if (lit == uip) {
+          assert(m_values[uip] == Value::True);
+          continue;
+        }
 
         Level const lit_level = get_level(var);
-        LOG_TRACE("    lit_level = " << lit_level);
         if (lit_level == 0) {
-          // no need to consider literals at level 0 since they are unconditionally true
+          // Skip literals at level 0 since they are unconditionally false
           continue;
         }
 
         Mark const mark = m_marks[var];
-        LOG_TRACE("    mark = " << (int)mark);
         assert(mark == 0 || mark == MarkSeen);
         if (mark) {
+          // Skip already-seen variables to prevent duplicates in the learned clause,
+          // and to correctly count the unresolved variables on the conflict level
           continue;
         }
         m_marks[var] = MarkSeen;
@@ -571,24 +585,32 @@ private:
         if (lit_level < conflict_level) {
           if (!frames[lit_level]) {
             blocks.push_back(lit_level);
-            frames[lit_level] = 1;
+            frames[lit_level] = true;
           }
           clause.push_back(lit);
         } else {
           assert(lit_level == conflict_level);
           unresolved_on_conflict_level++;
         }
+
+        LOG_TRACE("    blocks: " << SHOWVEC(blocks));
+        LOG_TRACE("    unresolved: " << unresolved_on_conflict_level);
       }  // for (lit : reason)
 
-      // Find next literal to resolve by going backward over the trail
+      // Find next literal to resolve by going backward over the trail.
+      // We skip over unseen literals here because those are unrelated to the current conflict
+      // (think of unit propagation branching out in an interleaved way).
       do {
-        assert(t < m_trail.crend());
-        uip = *t;
-        t++;
+        assert(t > m_trail.cbegin());
+        uip = *(--t);
       } while (!m_marks[uip.var()]);
 
+      // We have resolved away one literal on the highest decision level
+      assert(get_level(uip) == conflict_level);
       unresolved_on_conflict_level--;
       if (unresolved_on_conflict_level == 0) {
+        // We would resolve away the last literal on the highest decision level
+        // => we reached the first UIP
         break;
       }
 
@@ -598,16 +620,14 @@ private:
     assert(uip.is_valid());
     Lit const not_uip = ~uip;
     clause[0] = not_uip;
-
-    // CDEBUG("learning clause:");
-    // for (Lit l : clause) {
-    //   CDEBUG("    " << l);
-    // }
+    LOG_TRACE("Learning clause: " << SHOWVEC(clause));
 
     // TODO: cc-minimization?
 
     // uint32_t const glue = blocks.size();
 
+    // We backjump to the second-highest decision level in the conflict clause
+    // (which is the highest level below the conflict level).
     Level jump_level = 0;
     for (Level lit_level : blocks) {
       frames[lit_level] = 0;
@@ -717,6 +737,11 @@ private:
   NODISCARD bool checkInvariants() const;
 #endif
 
+#if LOGGING_ENABLED
+  void showAssignment(std::ostream& os) const;
+  friend std::ostream& operator<<(std::ostream&, ShowAssignment);
+#endif
+
   Level get_level(Var var) const
   {
     return m_vars[var].level;
@@ -766,8 +791,18 @@ private:
   std::vector<Lit> tmp_analyze_clause;  ///< learned clause
   std::vector<Level> tmp_analyze_blocks;  ///< analyzed decision levels
   std::vector<Var> tmp_analyze_seen;  ///< analyzed literals
-  vector_map<Level, char> m_frames;  ///< stores for each level whether we already have it in blocks (we use 'char' because vector<bool> is bad)
+  vector_map<Level, uint8_t> m_frames;  ///< stores for each level whether we already have it in blocks (we use 'char' because vector<bool> is bad)
 }; // Solver
+
+
+
+#if LOGGING_ENABLED
+std::ostream& operator<<(std::ostream& os, ShowAssignment sa)
+{
+  sa.solver.showAssignment(os);
+  return os;
+}
+#endif
 
 
 // TODO:

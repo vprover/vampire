@@ -110,6 +110,11 @@ public:
   void resize(size_type count) { m_data.resize(count); }
   void resize(size_type count, value_type const& value) { m_data.resize(count, value); }
 
+  vector_type const& underlying() const
+  {
+    return m_data;
+  }
+
 private:
   size_type index(Key key) const
   {
