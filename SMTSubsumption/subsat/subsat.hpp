@@ -132,6 +132,15 @@ public:
   }
 
 
+  /// Return true iff the solver is empty
+  /// (i.e., in the state after construction/clear).
+  bool empty() const
+  {
+    assert(false); // TODO
+    return m_used_vars == 0;
+  }
+
+
   /// Reset solver to empty state, but keep allocated memory buffers.
   void clear()
   {
@@ -203,6 +212,13 @@ public:
     add_clause_internal(cr);
   }
 
+  void add_atmostone_constraint(AllocatedClauseHandle ca)
+  {
+    ClauseRef cr = ca.build();
+    (void)cr;
+    assert(false); // TODO
+  }
+
   void add_empty_clause()
   {
     m_inconsistent = true;
@@ -268,6 +284,13 @@ public:
   {
     // TODO
     (void)clause;
+  }
+
+  /// Returns true iff the solver is in an inconsistent state.
+  /// (may return true before calling solve() if e.g. an empty clause is added.)
+  bool inconsistent() const
+  {
+    return m_inconsistent;
   }
 
   Result solve();
