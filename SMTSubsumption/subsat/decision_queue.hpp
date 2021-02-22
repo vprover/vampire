@@ -25,6 +25,18 @@ class DecisionQueue
   };
 
 public:
+  bool empty() const noexcept
+  {
+    bool const is_empty = m_links.empty();
+    if (is_empty) {
+      assert(m_first == Var::invalid());
+      assert(m_last == Var::invalid());
+      assert(m_search == Var::invalid());
+      assert(m_stamp == 0);
+    }
+    return is_empty;
+  }
+
   void clear() noexcept
   {
     m_links.clear();
@@ -32,6 +44,7 @@ public:
     m_last = Var::invalid();
     m_search = Var::invalid();
     m_stamp = 0;
+    assert(empty());
   }
 
   void reserve(uint32_t var_count)

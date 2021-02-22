@@ -69,6 +69,8 @@ int main(int argc, char* argv[])
   }
 
   Solver s;
+  assert(s.empty());
+
   Result res;
 
   // Var x = s.new_variable();
@@ -111,6 +113,27 @@ int main(int argc, char* argv[])
 
 
 #ifndef NDEBUG
+bool Solver::checkEmpty() const
+{
+  assert(!m_inconsistent);
+  assert(m_used_vars == 0);
+  assert(m_unassigned_vars == 0);
+  assert(m_level == 0);
+  assert(m_values.empty());
+  assert(m_vars.empty());
+  assert(m_marks.empty());
+  assert(m_queue.empty());
+  assert(m_clauses.empty());
+  assert(std::all_of(m_watches.begin(), m_watches.end(), [](std::vector<Watch> const& ws){ return ws.empty(); }));
+  assert(m_trail.empty());
+  assert(m_propagate_head == 0);
+  assert(tmp_analyze_clause.empty());
+  assert(tmp_analyze_blocks.empty());
+  assert(tmp_analyze_seen.empty());
+  assert(m_frames.empty());
+  return true;
+}
+
 bool Solver::checkInvariants() const
 {
   // assigned vars + unassiged vars = used vars

@@ -136,8 +136,9 @@ public:
   /// (i.e., in the state after construction/clear).
   bool empty() const
   {
-    assert(false); // TODO
-    return m_used_vars == 0;
+    bool const is_empty = (m_used_vars == 0);
+    if (is_empty) { assert(checkEmpty()); }
+    return is_empty;
   }
 
 
@@ -165,6 +166,8 @@ public:
     m_propagate_head = 0;
 
     m_frames.clear();
+
+    assert(checkEmpty());
   }
 
   /// Reserve space for a clause of 'capacity' literals
@@ -710,6 +713,7 @@ private:
   }  // backtrack
 
 #ifndef NDEBUG
+  NODISCARD bool checkEmpty() const;
   NODISCARD bool checkInvariants() const;
 #endif
 

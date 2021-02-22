@@ -327,9 +327,20 @@ public:
   void clear() noexcept
   {
     m_storage.clear();
+    m_dynamic_ref = ClauseRef::invalid();
 #ifndef NDEBUG
     m_timestamp += 1;
 #endif
+    assert(empty());
+  }
+
+  bool empty() const noexcept
+  {
+    bool const is_empty = m_storage.empty();
+    if (is_empty) {
+      assert(!m_dynamic_ref.is_valid());
+    }
+    return is_empty;
   }
 
   /// Allocate storage for 'capacity' literals.
@@ -363,6 +374,7 @@ private:
 #ifndef NDEBUG
   /// Timestamp to check for invalid clause references (debug mode only).
   /// TODO: start with a random timestamp instead of 0. Then we effectively check for different arenas as well!
+  /// (then just name it m_arena_id, and also set randomly on clear()... we don't need "timestamp semantics" for this)
   std::uint32_t m_timestamp = 0;
 #endif
   ClauseRef m_dynamic_ref = ClauseRef::invalid();

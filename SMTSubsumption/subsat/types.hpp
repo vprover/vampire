@@ -30,6 +30,7 @@ static Value operator~(Value v) {
   return static_cast<Value>(-static_cast<signed char>(v));
 }
 
+/*
 static std::ostream& operator<<(std::ostream& os, Value v)
 {
   switch (v) {
@@ -48,6 +49,7 @@ static std::ostream& operator<<(std::ostream& os, Value v)
   }
   return os;
 }
+*/
 
 
 /// Solver result.

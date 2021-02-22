@@ -78,6 +78,8 @@ public:
   }
 
   void reserve(size_type new_cap) { m_data.reserve(new_cap); }
+
+  bool empty() const noexcept { return m_data.empty(); }
   size_type size() const noexcept { return m_data.size(); }
 
   iterator begin() noexcept { return m_data.begin(); }
