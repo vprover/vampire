@@ -54,13 +54,13 @@ public:
   virtual size_t getResultApplicationWeight(TermList t) final override { return _subst->getApplicationResultWeight(t, _resultBank); }
   virtual size_t getResultApplicationWeight(Literal* l) final override { return _subst->getApplicationResultWeight(l, _resultBank); }
 
-  RobSubstitution* tryGetRobSubstitution() { return _subst; }
+  RobSubstitution* tryGetRobSubstitution() final override { return _subst; }
 
 #if VDEBUG
   vstring toStringDeref(bool deref){ return _subst->toString(deref); }
 #endif
 
-  virtual std::ostream& output(std::ostream& out) final override 
+  virtual std::ostream& output(std::ostream& out) const final override 
   { return out << "RSProxy(" << *_subst << ")"; }
 
 private:

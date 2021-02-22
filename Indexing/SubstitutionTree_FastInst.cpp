@@ -254,7 +254,7 @@ public:
   }
 
   bool isIdentityOnResultWhenQueryBound() final override { return true; }
-  virtual std::ostream& output(std::ostream& out) final override 
+  virtual std::ostream& output(std::ostream& out) const final override 
   { return out << "SubstitutionTree::InstMatcher::Substitution"; }
 private:
   InstMatcher* _parent;
