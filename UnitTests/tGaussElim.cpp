@@ -11,7 +11,6 @@
 #include "Test/SyntaxSugar.hpp"
 #include "DP/GaussElimination.hpp"
 
-#define UNIT_ID GaussElim
 UT_CREATE;
 using namespace std;
 using namespace Kernel;

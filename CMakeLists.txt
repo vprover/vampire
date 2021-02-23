@@ -478,6 +478,10 @@ set(VAMPIRE_DECISION_PROCEDURES_SOURCES
     DP/DecisionProcedure.hpp
     DP/ShortConflictMetaDP.hpp
     DP/SimpleCongruenceClosure.hpp
+    DP/LinearArithmeticDP.cpp
+    DP/LinearArithmeticDP.hpp
+    DP/GaussElimination.cpp
+    DP/GaussElimination.hpp
     )
 source_group(decision_procedures_source_files FILES ${VAMPIRE_DECISION_PROCEDURES_SOURCES})
 
@@ -716,6 +720,7 @@ set(UNIT_TESTS
     UnitTests/tImplicationSetClosure.cpp
     UnitTests/tUnificationWithAbstraction.cpp
     UnitTests/tGaussianElimination.cpp
+    UnitTests/tGaussElim.cpp
     UnitTests/tDisagreement.cpp
     UnitTests/tDynamicHeap.cpp
     UnitTests/tIntegerConstantType.cpp
