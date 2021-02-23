@@ -22,23 +22,28 @@
 #ifndef __GaussElimination__
 #define __GaussElimination__
 
-namespace DP{
+//#include "Forwards.hpp"
 
-class GaussElimination
+namespace DP
 {
-public:
-    //CLASS_NAME(GaussElimination);
-    //USE_ALLOCATOR(GaussElimination);
+    //using namespace Lib;
+    //using namespace Kernel;
 
-    GaussElimination(float **augmentedMatrix, int numberOfUnkowns, int numberOfEquations);
+    class GaussElimination
+    {
+    public:
+        //CLASS_NAME(GaussElimination);
+        //USE_ALLOCATOR(GaussElimination);
 
-    void solve();
+        GaussElimination(float **augmentedMatrix, int numberOfUnkowns, int numberOfEquations);
 
-private:
-    float **augmentedMatrix;
-    int numberOfUnkowns;
-    int numberOfEquations;
-};
+        void solve();
+
+    private:
+        float **augmentedMatrix;
+        int numberOfUnkowns;
+        int numberOfEquations;
+    };
 
 }
 

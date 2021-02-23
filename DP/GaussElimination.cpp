@@ -24,13 +24,16 @@
 
 #include "GaussElimination.hpp"
 
-#include "Kernel/Rational.hpp"
+//#include "Kernel/Rational.hpp"
+#include "Lib/List.hpp"
 
 #include <iostream>
 #include <vector>
 #include <iterator>
 #include <set>
 #include <typeinfo>
+
+//#include "Lib/Environment.hpp"
 
 namespace DP {
 
@@ -211,6 +214,7 @@ int main()
 {
     int numberOfEquation = 2;
     int numberOfUnkowns = 2;
+    //Rational::Rational test = Rational(3);
 
     float **rowlist = new float *[numberOfEquation];
     for (int i = 0; i < numberOfEquation; i++)
