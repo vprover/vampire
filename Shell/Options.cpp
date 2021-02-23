@@ -1080,6 +1080,50 @@ void Options::init()
            _lookup.insert(&_pushUnaryMinus);
            _pushUnaryMinus.tag(OptionTag::INFERENCES);
 
+           _inequalityResolution  = BoolOptionValue("inequality_resolution","ir",false);
+           _inequalityResolution.description=
+                  "Enables the following inference cules \"Inequality resolution\":\n"
+                  "\n"
+                  "For reals and rationals:\n"
+                  "\n"
+                  "n1 t1 + r1 > 0 \/ C1                  n2 t2 + r2 > 0 \/ C2 \n"
+                  "============================================================ (IR_strict)\n"
+                  "  (k1 r1 + k2 r2 > 0 \/ C1 \/ C2 )sigma \/ constraints\n"
+                  "\n"
+                  "n1 t1 + r1 >= 0 \/ C1                  n2 t2 + r2 >= 0 \/ C2 \n"
+                  "============================================================ (IR_lax)\n"
+                  "  (k1 r1 + k2 r2 >= 0 \/ C1 \/ C2 )sigma \/ constraints\n"
+                  "\n"
+                  "n1 t1 + r1 > 0 \/ C1                  n2 t2 + r2 >= 0 \/ C2 \n"
+                  "============================================================ (IR_mix)\n"
+                  "  (k1 r1 + k2 r2 > 0 \/ C1 \/ C2 )sigma \/ constraints\n"
+                  "\n"
+                  "For integers:\n"
+                  "\n"
+                  "n1 t1 + r1 > 0 \/ C1                  n2 t2 + r2 > 0 \/ C2 \n"
+                  "============================================================ (IR)\n"
+                  "  (k1 r1 + k2 r2 - 1 > 0 \/ C1 \/ C2 )sigma \/ constraints\n"
+                  "\n"
+                  "where \n"
+                  "- uwa(t_1, t_2) = (sigma, constraints)\n"
+                  "- t_1, and t_2 are maximal within their respective sums\n"
+                  "- n1, n2 are numerals\n"
+                  "- sign(n1) != sign(n1)\n"
+                  "- k1 n1 = -k2 n2\n"
+                  "\n"
+                  "\n"
+                  "\n"
+                  "Additionally to these rules, normalizing inequalities to the from t > 0, or t >= 0 is enabled.\n"
+                  "\n"
+                  "An example for an application of the rules is the following:\n"
+                  "3 x + -2 > 0      -6 x > 0\n"
+                  "==========================\n"
+                  "      -4 > 0\n"
+                  "\n";
+           _lookup.insert(&_inequalityResolution);
+           _inequalityResolution.tag(OptionTag::INFERENCES);
+           _inequalitySplitting.setExperimental();
+
            _gaussianVariableElimination = choiceArithmeticSimplificationMode(
                "gaussian_variable_elimination", "gve",
                ArithmeticSimplificationMode::OFF);

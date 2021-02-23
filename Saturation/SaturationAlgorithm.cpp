@@ -47,6 +47,7 @@
 #include "Inferences/PushUnaryMinus.hpp"
 #include "Inferences/Cancellation.hpp"
 #include "Inferences/GaussianVariableElimination.hpp"
+#include "Inferences/InequalityResolution.hpp"
 #include "Inferences/EquationalTautologyRemoval.hpp"
 #include "Inferences/Condensation.hpp"
 #include "Inferences/FastCondensation.hpp"
@@ -1488,6 +1489,10 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     for (auto gen : allArithmeticSubtermGeneralizations())  {
       sgi->push(gen);
     }
+  }
+
+  if (env.options->inequalityResolution()) {
+    sgi->push(new InequalityResolution()); 
   }
 
 
