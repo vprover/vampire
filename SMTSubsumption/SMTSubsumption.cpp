@@ -1023,12 +1023,14 @@ class SMTSubsumptionImpl
 
 // TODO: early exit in case time limit hits, like in MLMatcher which checks every 50k iterations if time limit has been exceeded
 #include "./subsat/subsat.hpp"
+#include "./SubstitutionTheory2.hpp"
 
 
 class SMTSubsumptionImpl2
 {
   private:
     subsat::Solver solver;
+    SubstitutionTheory2 st;
 
     /// Clauses stating that each base literal must be matched to at least one instance literal.
     // vvector<subsat::AllocatedClause> match_clauses;  // NOT NECESSARY, since we iterate over 'base' outside
@@ -1037,32 +1039,17 @@ class SMTSubsumptionImpl2
     vvector<subsat::AllocatedClauseHandle> instance_constraints;
 
   public:
-    struct BindingsRef {
-      uint32_t index;
-      uint32_t size;
-      BindingsRef(VectorStoringBinder const& binder)
-        : index(binder.index())
-        , size(binder.size())
-      { }
-      /// last index + 1
-      uint32_t end() {
-        return index + size;
-      }
-    };
 
     /// Set up the subsumption problem.
     /// Returns false if no solution is possible.
     /// Otherwise, solve() needs to be called.
     bool setup(Kernel::Clause* base, Kernel::Clause* instance)
     {
-      CDEBUG("SMTSubsumptionImpl2::setup()");
-
       solver.clear();
       ASS(solver.empty());
 
-      // // The match clauses constraints saying that each base literal is matches to exactly one instance literal.
-      // // Worst case: each base literal may be matchable to two boolean vars per instance literal (two orientations of equalities).
-      // uint32_t const clause_maxsize = 2 * instance->length();
+      st.clear();
+      ASS(st.empty());
 
       // Here we store the AtMostOne constraints saying that each instance literal may be matched at most once.
       // Each instance literal can be matched by at most 2 boolean vars per base literal (two orientations of equalities).
@@ -1073,14 +1060,6 @@ class SMTSubsumptionImpl2
       for (size_t i = 0; i < instance->length(); ++i) {
         instance_constraints.push_back(solver.alloc_clause(instance_constraint_maxsize));
       }
-
-      // subsat::Var b ... boolean variable with FO bindings attached
-      // bindings_table[b] ... index/size of FO bindings for b
-      // bindings_storage[bindings_table[b].index .. bindings_table[b].end] ... FO bindings for b
-      vvector<BindingsRef> bindings_table;
-      bindings_table.reserve(32);
-      vvector<std::pair<unsigned, TermList>> bindings_storage;
-      bindings_storage.reserve(128);
 
       // Matching for subsumption checks whether
       //
@@ -1101,7 +1080,7 @@ class SMTSubsumptionImpl2
           }
 
           {
-            VectorStoringBinder binder(bindings_storage);
+            auto binder = st.start_binder();
             if (base_lit->arity() == 0 || MatchingUtils::matchArgs(base_lit, inst_lit, binder)) {
               subsat::Var b = solver.new_variable();
 
@@ -1114,20 +1093,19 @@ class SMTSubsumptionImpl2
                 // probably best to have a separate loop first that deals with ground literals? since those are only pointer equality checks.
               }
 
-              ASS_EQ(bindings_table.size(), b.index());
-              bindings_table.emplace_back(binder);
+              st.register_bindings(b, std::move(binder));
 
               solver.clause_literal(b);
               instance_constraints[j].push(b);
             } else {
-              binder.reset();
+              st.drop_bindings(std::move(binder));
             }
           }
 
           if (base_lit->commutative()) {
             ASS_EQ(base_lit->arity(), 2);
             ASS_EQ(inst_lit->arity(), 2);
-            VectorStoringBinder binder(bindings_storage);
+            auto binder = st.start_binder();
             if (MatchingUtils::matchReversedArgs(base_lit, inst_lit, binder)) {
               subsat::Var b = solver.new_variable();
 
@@ -1140,13 +1118,12 @@ class SMTSubsumptionImpl2
                 // probably best to have a separate loop first that deals with ground literals? since those are only pointer equality checks.
               }
 
-              ASS_EQ(bindings_table.size(), b.index());
-              bindings_table.emplace_back(binder);
+              st.register_bindings(b, std::move(binder));
 
               solver.clause_literal(b);
               instance_constraints[j].push(b);
             } else {
-              binder.reset();
+              st.drop_bindings(std::move(binder));
             }
           }
         }

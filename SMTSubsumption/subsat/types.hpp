@@ -185,7 +185,8 @@ public:
     assert(index <= Lit::max_index());
     return Lit{index};
 #else
-    return assert(index <= Lit::max_index()), Lit{index};
+    // return assert(index <= Lit::max_index()), Lit{index};
+    return Lit{index};
 #endif
   }
 

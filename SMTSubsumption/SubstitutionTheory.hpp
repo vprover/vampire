@@ -1,10 +1,3 @@
-/*
- * SubstitutionTheory.hpp
- * Copyright (C) 2020 Jakob Rath <git@jakobrath.eu>
- *
- * Distributed under terms of the MIT license.
- */
-
 #ifndef SUBSTITUTIONTHEORY_HPP
 #define SUBSTITUTIONTHEORY_HPP
 
@@ -200,7 +193,7 @@ class SubstitutionTheory
     }
 
     /// Call this when a SAT variable has been set to true
-    /// PropagateCallback ~ bool(Minisat::Lit propagated, GClause reason)
+    /// PropagateCallback ~ bool propagate(Minisat::Lit propagated, GClause reason)
     template < typename PropagateCallback >
     bool enable(Minisat::Var var, Level level, PropagateCallback propagate)
     {

@@ -250,6 +250,8 @@ public:
   /// Reset solver to empty state, but keep allocated memory buffers.
   void clear()
   {
+    uint32_t const old_used_vars = m_used_vars;
+
     m_inconsistent = false;
     m_used_vars = 0;
     m_unassigned_vars = 0;
@@ -269,11 +271,13 @@ public:
 #endif
 
     // Don't clear m_watches itself! We want to keep the nested vectors to save re-allocation.
-    uint32_t const used_watches = 2 * m_used_vars;
+    uint32_t const used_watches = 2 * old_used_vars;
     for (uint32_t i = 0; i < used_watches; ++i) {
       m_watches[Lit::from_index(i)].clear();
       m_watches_amo[Lit::from_index(i)].clear();
     }
+    // for (auto& w : m_watches) { w.clear(); }
+    // for (auto& w : m_watches_amo) { w.clear(); }
 
     m_trail.clear();
     m_propagate_head = 0;

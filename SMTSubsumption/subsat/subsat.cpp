@@ -180,6 +180,8 @@ bool Solver::checkInvariants() const
   assert(m_trail.size() + m_unassigned_vars == m_used_vars);
 
   assert(m_values.size() == 2 * m_used_vars);
+  assert(std::all_of(m_values.begin(), m_values.end(),
+                     [](Value v) { return v == Value::False || v == Value::True || v == Value::Unassigned; }));
 
   // m_unassigned_values is correct
   assert(std::count(m_values.begin(), m_values.end(), Value::Unassigned) == 2 * m_unassigned_vars);
