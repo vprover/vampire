@@ -146,6 +146,10 @@ bool Solver::checkEmpty() const
   assert(m_queue.empty());
   assert(m_clauses.empty());
   assert(!tmp_binary_clause_ref.is_valid());
+#ifndef NDEBUG
+  assert(m_clause_refs.empty());
+  assert(m_atmostone_constraint_refs.empty());
+#endif
   assert(std::all_of(m_watches.begin(), m_watches.end(), [](std::vector<Watch> const& ws){ return ws.empty(); }));
   assert(std::all_of(m_watches_amo.begin(), m_watches_amo.end(), [](std::vector<Watch> const& ws){ return ws.empty(); }));
   assert(m_trail.empty());
@@ -154,6 +158,19 @@ bool Solver::checkEmpty() const
   assert(tmp_analyze_blocks.empty());
   assert(tmp_analyze_seen.empty());
   assert(m_frames.empty());
+  return true;
+}
+
+static NODISCARD bool checkConstraint(Clause const& c)
+{
+  // No duplicate variables in the constraint (this prevents duplicate literals and tautological clauses)
+  std::set<Var> vars;
+  for (Lit lit : c) {
+    assert(lit.is_valid());
+    bool inserted = vars.insert(lit.var()).second;
+    assert(inserted);
+  }
+  assert(vars.size() == c.size());
   return true;
 }
 
@@ -185,20 +202,12 @@ bool Solver::checkInvariants() const
 
   assert(m_propagate_head <= m_trail.size());
 
-  // Check clause invariants
-  for (ClauseRef cr : m_clauses) {
-    if (cr == tmp_binary_clause_ref) {
-      continue;
-    }
-    Clause const& clause = m_clauses.deref(cr);
-    // No duplicate variables in the clause (this prevents duplicate literals and tautological clauses)
-    std::set<Var> clause_vars;
-    for (Lit lit : clause) {
-      assert(lit.is_valid());
-      bool inserted = clause_vars.insert(lit.var()).second;
-      assert(inserted);
-    }
-    assert(clause_vars.size() == clause.size());
+  // Check constraint invariants
+  for (ClauseRef cr : m_clause_refs) {
+    assert(checkConstraint(m_clauses.deref(cr)));
+  }
+  for (ClauseRef cr : m_atmostone_constraint_refs) {
+    assert(checkConstraint(m_clauses.deref(cr)));
   }
 
   // Check watch invariants if we're in a fully propagated state
@@ -256,10 +265,8 @@ bool Solver::checkWatches() const
       }
     }
   }
-  /*
   // Every clause of size >= 2 is watched twice
-  // NOTE: not true atm because we also store atmostone constraints in the same space
-  for (ClauseRef cr : m_clauses) {
+  for (ClauseRef cr : m_clause_refs) {
     Clause const& c = m_clauses.deref(cr);
     if (c.size() >= 2) {
       auto it = num_watches.find(cr.index());
@@ -269,7 +276,38 @@ bool Solver::checkWatches() const
     }
   }
   assert(num_watches.empty());
-  */
+  return true;
+}
+
+/// Checks whether the current assignment satisfies all constraints
+bool Solver::checkModel() const
+{
+  for (ClauseRef cr : m_clause_refs) {
+    Clause const& c = m_clauses.deref(cr);
+    bool satisfied = std::any_of(c.begin(), c.end(), [this](Lit l) { return m_values[l] == Value::True; });
+    if (!satisfied) {
+      LOG_WARN("Clause " << c << " is not satisfied!");
+      return false;
+    }
+  }
+  for (ClauseRef cr : m_atmostone_constraint_refs) {
+    Clause const& c = m_clauses.deref(cr);
+    uint32_t num_false = 0;
+    uint32_t num_true = 0;
+    uint32_t num_open = 0;
+    for (Lit lit : c) {
+      if (m_values[lit] == Value::True) { num_true += 1; }
+      if (m_values[lit] == Value::Unassigned) { num_open += 1; }
+      if (m_values[lit] == Value::False) { num_false += 1; }
+    }
+    assert(num_true + num_open + num_false == c.size());
+    // AtMostOne constraint is satisfied if all but one literals are false
+    bool satisfied = (num_false == c.size() - 1);
+    if (!satisfied) {
+      LOG_WARN("AtMostOne constraint " << c << " is not satisfied!");
+      return false;
+    }
+  }
   return true;
 }
 #endif
@@ -327,6 +365,7 @@ Result Solver::solve()
       }
     } else {
       if (m_unassigned_vars == 0) {
+        assert(checkModel());
         return Result::Sat;
       } else {
         // TODO: restart? switch mode? reduce clause db?

@@ -263,6 +263,10 @@ public:
 
     m_clauses.clear();
     tmp_binary_clause_ref = ClauseRef::invalid();
+#ifndef NDEBUG
+    m_clause_refs.clear();
+    m_atmostone_constraint_refs.clear();
+#endif
 
     // Don't clear m_watches itself! We want to keep the nested vectors to save re-allocation.
     uint32_t const used_watches = 2 * m_used_vars;
@@ -362,7 +366,7 @@ public:
 
   void add_clause_internal(ClauseRef cr)
   {
-    LOG_INFO("adding clause " << SHOWREF(cr));
+    LOG_INFO("Adding clause " << SHOWREF(cr));
 
     Clause const& c = m_clauses.deref(cr);
     // TODO: improve this?
@@ -377,6 +381,9 @@ public:
     } else {
       // TODO: special handling for binary clauses
       assert(c.size() >= 2);
+#ifndef NDEBUG
+      m_clause_refs.push_back(cr);
+#endif
       watch_clause(cr);
     }
   }
@@ -431,6 +438,9 @@ public:
     } else {
       // Add proper AtMostOne constraint
       assert(c.size() >= 3);
+#ifndef NDEBUG
+      m_atmostone_constraint_refs.push_back(cr);
+#endif
       watch_atmostone_constraint(cr);
     }
   }
@@ -889,7 +899,7 @@ private:
       ClauseRef learned_ref = learned.build();
       LOG_INFO("Learned: " << SHOWREF(learned_ref));
       // TODO: call new_redundant_clause
-      watch_clause(learned_ref);
+      add_clause_internal(learned_ref);
       assign(not_uip, Reason{learned_ref});
     }
 
@@ -940,6 +950,7 @@ private:
   NODISCARD bool checkEmpty() const;
   NODISCARD bool checkInvariants() const;
   NODISCARD bool checkWatches() const;
+  NODISCARD bool checkModel() const;
 #endif
 
 #if LOGGING_ENABLED
@@ -987,6 +998,13 @@ private:
   vector_map<Lit, std::vector<Watch>> m_watches;
   vector_map<Lit, std::vector<Watch>> m_watches_amo;
 
+#ifndef NDEBUG
+  /// All proper clauses added to the solver
+  std::vector<ClauseRef> m_clause_refs;
+  /// All AtMostOne constraints added to the solver
+  std::vector<ClauseRef> m_atmostone_constraint_refs;
+#endif
+
   /// The currently true literals in order of assignment
   std::vector<Lit> m_trail;
   /// The next literal to propagate (index into the trail)
@@ -1013,14 +1031,8 @@ std::ostream& operator<<(std::ostream& os, ShowAssignment sa)
 
 
 // TODO:
-// 1. AtMostOne support
-//    => needs special support for binary reasons so we don't have to materialize them
-//    => can "chop off" highest bit of ClauseRef to embed literals in there?
-//       (using highest bit means no arithmetic is required for normal clause indexing)
-//       this would also allow us to easily do the binary clause optimization in watch lists.
-//       although for that, it might be better to use blocking literals + invalid clauseref for binary watches
-// 2. binary clause optimization
-// 3. phase saving? but for our problem, just choosing 'true' will almost always be correct.
+// 1. binary clause optimization
+// 2. phase saving? but for our problem, just choosing 'true' will almost always be correct.
 //    => maybe add a 'hint' to 'new_variable'... that will be the first phase tried if we need to decide on it.
 
 
