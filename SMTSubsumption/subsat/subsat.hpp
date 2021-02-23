@@ -214,7 +214,12 @@ public:
     m_values.push_back(Value::Unassigned); // value of positive literal
     m_values.push_back(Value::Unassigned); // value of negative literal
     while (m_watches.size() < 2 * m_used_vars) {
-      m_watches.emplace_back().reserve(16);
+      m_watches.emplace_back().reserve(8);  // positive literal watches
+      m_watches.emplace_back().reserve(8);  // negative literal watches
+    }
+    while (m_watches_amo.size() < 2 * m_used_vars) {
+      m_watches_amo.emplace_back().reserve(8);  // positive literal watches
+      m_watches_amo.emplace_back();             // positive literal watches -- generally not needed for our instances
     }
     return new_var;
   }
@@ -227,6 +232,7 @@ public:
     m_marks.reserve(count);
     m_values.reserve(2 * count);
     m_watches.reserve(2 * count);
+    m_watches_amo.reserve(2 * count);
     // TODO: call reserve on all vectors where this is necessary
   }
 
@@ -256,9 +262,13 @@ public:
     m_queue.clear();
 
     m_clauses.clear();
+    tmp_binary_clause_ref = ClauseRef::invalid();
+
     // Don't clear m_watches itself! We want to keep the nested vectors to save re-allocation.
-    for (auto& watches : m_watches) {
-      watches.clear();
+    uint32_t const used_watches = 2 * m_used_vars;
+    for (uint32_t i = 0; i < used_watches; ++i) {
+      m_watches[Lit::from_index(i)].clear();
+      m_watches_amo[Lit::from_index(i)].clear();
     }
 
     m_trail.clear();
@@ -312,13 +322,6 @@ public:
   {
     ClauseRef cr = ca.build();
     add_clause_internal(cr);
-  }
-
-  void add_atmostone_constraint(AllocatedClauseHandle ca)
-  {
-    ClauseRef cr = ca.build();
-    (void)cr;
-    assert(false); // TODO
   }
 
   void add_empty_clause()
@@ -388,6 +391,49 @@ public:
     (void)clause;
   }
 
+  void add_atmostone_constraint(std::initializer_list<Lit> literals)
+  {
+    assert(literals.size() <= UINT32_MAX);
+    auto literals_size = static_cast<uint32_t>(literals.size());
+    add_atmostone_constraint(literals.begin(), literals_size);
+  }
+
+  void add_atmostone_constraint(Lit const* literals, uint32_t count)
+  {
+    auto ca = m_clauses.alloc(count);
+    for (Lit const* p = literals; p < literals + count; ++p) {
+      ca.push(*p);
+    }
+    add_atmostone_constraint(ca);
+  }
+
+  void add_atmostone_constraint(AllocatedClauseHandle ca)
+  {
+    ClauseRef cr = ca.build();
+    add_atmostone_constraint_internal(cr);
+  }
+
+  void add_atmostone_constraint_internal(ClauseRef cr)
+  {
+    LOG_INFO("adding AtMostOne constraint " << SHOWREF(cr));
+
+    Clause const& c = m_clauses.deref(cr);
+    // TODO: improve this?
+    for (Lit lit : c) {
+      ensure_variable(lit.var());
+    }
+    // TODO: check for assigned and duplicate variables
+    if (c.size() <= 1) {
+      // AtMostOne constraints of sizes 0 and 1 are tautologies => do nothing
+    } else if (c.size() == 2) {
+      // AtMostOne constraint of size 2 is a binary clause
+      add_clause_internal(cr);
+    } else {
+      // Add proper AtMostOne constraint
+      assert(c.size() >= 3);
+      watch_atmostone_constraint(cr);
+    }
+  }
   /// Returns true iff the solver is in an inconsistent state.
   /// (may return true before calling solve() if e.g. an empty clause is added.)
   bool inconsistent() const
@@ -403,7 +449,7 @@ private:
   /// Precondition: literal is not assigned.
   void assign(Lit lit, Reason reason)
   {
-    LOG_DEBUG("assigning " << lit << ", reason: " << SHOWREASON(reason) << ", level: " << m_level);
+    LOG_DEBUG("Assigning " << lit << ", reason: " << SHOWREASON(reason) << ", level: " << m_level);
 
     /*
     // TODO: Assignment on root level => no need to store the reason
@@ -476,7 +522,7 @@ private:
   /// Unit propagation for the given literal.
   ClauseRef propagate_literal(Lit const lit)
   {
-    LOG_DEBUG("propagating " << lit);
+    LOG_DEBUG("Propagating " << lit);
     // assert(checkInvariants());
     assert(m_values[lit] == Value::True);
 
@@ -551,7 +597,7 @@ private:
         clause[1] = replacement;
         *replacement_it = not_lit;
         // Watch the replacement literal
-        watch_literal(replacement, /* TODO: other_lit, */ clause_ref);
+        watch_clause_literal(replacement, /* TODO: other_lit, */ clause_ref);
       }
       else if (other_value != Value::Unassigned) {
         // All literals in the clause are false => conflict
@@ -561,6 +607,7 @@ private:
       else {
         // All literals except other_lit are false => propagate
         assert(other_value == Value::Unassigned);
+        LOG_TRACE("Assigning " << other_lit << " due to clause " << SHOWREF(clause_ref));
         assign(other_lit, Reason{clause_ref});
       }
     }  // while
@@ -574,12 +621,51 @@ private:
     watches.resize(static_cast<std::size_t>(remaining_watches));
     assert(watches.end() == q);
 
-    return conflict;
+    if (conflict.is_valid()) {
+      return conflict;
+    }
+
+    // Propagate AtMostOne constraints.
+    // There's no need to copy/modify any watches here,
+    // because as soon as an AtMostOne constraint triggers,
+    // all other literals will be set to false immediately.
+    for (Watch const& watch : m_watches_amo[lit]) {
+      ClauseRef const cr = watch.clause_ref;
+      Clause& c = m_clauses.deref(cr);
+      assert(c.size() >= 3);
+      for (Lit other_lit : c) {
+        if (lit == other_lit) {
+          continue;
+        }
+        Value const other_value = m_values[other_lit];
+        if (other_value == Value::Unassigned) {
+          // propagate
+          LOG_TRACE("Assigning " << ~other_lit << " due to AtMostOne constraint " << SHOWREF(cr));
+          assign(~other_lit, Reason{lit});
+        }
+        else if (other_value == Value::True) {
+          LOG_TRACE("Current assignment: " << ShowAssignment{*this});
+          LOG_DEBUG("Conflict with AtMostOne constraint " << SHOWREF(cr));
+          // at least two literals in the AtMostOne constraint are true => conflict
+          Clause& tmp_binary_clause = m_clauses.deref(tmp_binary_clause_ref);
+          tmp_binary_clause[0] = ~lit;
+          tmp_binary_clause[1] = ~other_lit;
+          conflict = tmp_binary_clause_ref;
+          return conflict;
+        }
+        else {
+          assert(other_value == Value::False);
+          // nothing to do
+        }
+      }
+    }
+
+    return ClauseRef::invalid();
   }  // propagate_literal
 
 
   /// Watch literal 'lit' in the given clause.
-  void watch_literal(Lit lit, /* TODO: Lit blocking_lit, */ ClauseRef clause_ref)
+  void watch_clause_literal(Lit lit, /* TODO: Lit blocking_lit, */ ClauseRef clause_ref)
   {
     LOG_DEBUG("watching " << lit << /* " blocked by " << blocking_lit << */ " in " << SHOWREF(clause_ref));
     auto& watches = m_watches[lit];
@@ -593,8 +679,21 @@ private:
   {
     Clause const& clause = m_clauses.deref(clause_ref);
     assert(clause.size() >= 2);
-    watch_literal(clause[0], /* TODO: clause[1], */ clause_ref);
-    watch_literal(clause[1], /* TODO: clause[0], */ clause_ref);
+    watch_clause_literal(clause[0], /* TODO: clause[1], */ clause_ref);
+    watch_clause_literal(clause[1], /* TODO: clause[0], */ clause_ref);
+  }
+
+
+  /// Watch every literal in the AtMostOne constraint
+  void watch_atmostone_constraint(ClauseRef cr)
+  {
+    Clause const& c = m_clauses.deref(cr);
+    assert(c.size() >= 3);
+    for (Lit lit : c) {
+      auto& watches = m_watches_amo[lit];
+      assert(std::all_of(watches.cbegin(), watches.cend(), [=](Watch w) { return w.clause_ref != cr; }));
+      watches.push_back(Watch{cr});
+    }
   }
 
 
@@ -638,13 +737,12 @@ private:
     // The literal we have just resolved away, or invalid in the first step
     Lit uip = Lit::invalid();
     // The reason of the resolved literal, or the conflict clause in the first step
-    Reason reason{conflict_ref};
+    ClauseRef reason_ref = conflict_ref;
 
     while (true) {
-      LOG_TRACE("Reason: " << SHOWREASON(reason) << ", uip: " << uip << ", unresolved: " << unresolved_on_conflict_level);
-      assert(reason.is_valid());
-      assert(!reason.is_binary());
-      Clause const& reason_clause = m_clauses.deref(reason.get_clause_ref());
+      LOG_TRACE("Reason: " << SHOWREF(reason_ref) << ", uip: " << uip << ", unresolved: " << unresolved_on_conflict_level);
+      assert(reason_ref.is_valid());
+      Clause const& reason_clause = m_clauses.deref(reason_ref);
 
       // TODO: reason->used = true
 
@@ -707,7 +805,17 @@ private:
         break;
       }
 
-      reason = m_vars[uip.var()].reason;
+      Reason const& reason = m_vars[uip.var()].reason;
+      if (reason.is_binary()) {
+        // recover binary reason clause
+        Lit other_lit = reason.get_binary_other_lit();
+        Clause& tmp_binary_clause = m_clauses.deref(tmp_binary_clause_ref);
+        tmp_binary_clause[0] = uip;  // will be skipped
+        tmp_binary_clause[1] = ~other_lit;
+        reason_ref = tmp_binary_clause_ref;
+      } else {
+        reason_ref = reason.get_clause_ref();
+      }
     }  // while(true)
 
     // TODO: analyze loop is a bit simpler in kitten, maybe we can do that too?
@@ -877,6 +985,7 @@ private:
 
   ClauseArena<> m_clauses;
   vector_map<Lit, std::vector<Watch>> m_watches;
+  vector_map<Lit, std::vector<Watch>> m_watches_amo;
 
   /// The currently true literals in order of assignment
   std::vector<Lit> m_trail;
@@ -889,6 +998,7 @@ private:
   std::vector<Level> tmp_analyze_blocks;  ///< analyzed decision levels
   std::vector<Var> tmp_analyze_seen;  ///< analyzed literals
   vector_map<Level, uint8_t> m_frames;  ///< stores for each level whether we already have it in blocks (we use 'char' because vector<bool> is bad)
+  ClauseRef tmp_binary_clause_ref = ClauseRef::invalid();
 }; // Solver
 
 

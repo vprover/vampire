@@ -62,22 +62,24 @@ static void parse_dimacs(std::istream& in, Solver& solver)
 
 int main(int argc, char* argv[])
 {
-  if (argc < 2) {
-    char const* program = (argc >= 1) ? argv[0] : "subsat";
-    std::cout << "Usage: " << program << " FILE..." << std::endl;
-    return 1;
-  }
-
   Solver s;
   assert(s.empty());
 
   Result res;
 
-  // Var x = s.new_variable();
-  // Var y = s.new_variable();
-  // Var z = s.new_variable();
+#if 0
+  if (argc > 1) {
+    char const* program = (argc >= 1) ? argv[0] : "subsat";
+    std::cout << "Usage: " << program << std::endl;
+    return 1;
+  }
 
-  // std::cout << "\n\nADDING CLAUSES\n" << std::endl;
+  Var x = s.new_variable();
+  Var y = s.new_variable();
+  Var z = s.new_variable();
+  // Var u = s.new_variable();
+
+  std::cout << "\n\nADDING CLAUSES\n" << std::endl;
   // s.add_clause({x, y, z});
   // s.add_clause({x, y, ~z});
   // s.add_clause({x, ~y, z});
@@ -86,6 +88,23 @@ int main(int argc, char* argv[])
   // s.add_clause({~x, y, ~z});
   // s.add_clause({~x, ~y, z});
   // s.add_clause({~x, ~y, ~z});
+  s.add_clause({x, y});
+  s.add_clause({y, z});
+  s.add_clause({x, z});
+  s.add_atmostone_constraint({x, y, z});
+
+  std::cout << "SOLVING..." << std::endl;
+  res = s.solve();
+
+  std::cout << "RESULT: " << static_cast<int>(res) << " " << res << std::endl;
+
+#else
+
+  if (argc < 2) {
+    char const* program = (argc >= 1) ? argv[0] : "subsat";
+    std::cout << "Usage: " << program << " FILE..." << std::endl;
+    return 1;
+  }
 
   for (int i = 1; i < argc; ++i) {
     std::string filename{argv[i]};
@@ -106,6 +125,8 @@ int main(int argc, char* argv[])
     std::cout << "RESULT " << filename << ": " << static_cast<int>(res) << " " << res << std::endl;
   }
 
+#endif
+
   return static_cast<int>(res);
 }
 #endif
@@ -124,7 +145,9 @@ bool Solver::checkEmpty() const
   assert(m_marks.empty());
   assert(m_queue.empty());
   assert(m_clauses.empty());
+  assert(!tmp_binary_clause_ref.is_valid());
   assert(std::all_of(m_watches.begin(), m_watches.end(), [](std::vector<Watch> const& ws){ return ws.empty(); }));
+  assert(std::all_of(m_watches_amo.begin(), m_watches_amo.end(), [](std::vector<Watch> const& ws){ return ws.empty(); }));
   assert(m_trail.empty());
   assert(m_propagate_head == 0);
   assert(tmp_analyze_clause.empty());
@@ -164,6 +187,9 @@ bool Solver::checkInvariants() const
 
   // Check clause invariants
   for (ClauseRef cr : m_clauses) {
+    if (cr == tmp_binary_clause_ref) {
+      continue;
+    }
     Clause const& clause = m_clauses.deref(cr);
     // No duplicate variables in the clause (this prevents duplicate literals and tautological clauses)
     std::set<Var> clause_vars;
@@ -230,7 +256,9 @@ bool Solver::checkWatches() const
       }
     }
   }
+  /*
   // Every clause of size >= 2 is watched twice
+  // NOTE: not true atm because we also store atmostone constraints in the same space
   for (ClauseRef cr : m_clauses) {
     Clause const& c = m_clauses.deref(cr);
     if (c.size() >= 2) {
@@ -241,6 +269,7 @@ bool Solver::checkWatches() const
     }
   }
   assert(num_watches.empty());
+  */
   return true;
 }
 #endif
@@ -275,6 +304,13 @@ Result Solver::solve()
   m_frames.resize(m_used_vars + 1, 0);
   m_queue.resize_and_init(m_used_vars);
   assert(m_queue.checkInvariants(m_values));
+
+  if (!tmp_binary_clause_ref.is_valid()) {
+    auto ca = m_clauses.alloc(2);
+    ca.push(Lit::invalid());
+    ca.push(Lit::invalid());
+    tmp_binary_clause_ref = ca.build();
+  }
 
   if (m_inconsistent) {
     return Result::Unsat;
