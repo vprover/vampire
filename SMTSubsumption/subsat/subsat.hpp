@@ -47,12 +47,76 @@ namespace subsat {
 using Level = uint32_t;
 #define InvalidLevel (std::numeric_limits<Level>::max())
 
-struct VarInfo {
-  Level level = InvalidLevel;
-  ClauseRef reason = ClauseRef::invalid();
-};
+class Reason final {
+  enum class Type : uint8_t {
+    Invalid,
+    Binary,
+    ClauseRef,
+  };
 
-struct Watch {
+  Type type = Type::Invalid;
+
+  union {
+    Lit binary_other_lit;
+    ClauseRef clause_ref;
+  };
+
+public:
+  constexpr Reason() noexcept
+    : type{Type::Invalid}
+    , clause_ref{ClauseRef::invalid()}
+  { }
+
+  explicit Reason(Lit other) noexcept
+    : type{Type::Binary}
+    , binary_other_lit{other}
+  {
+    assert(other.is_valid());
+  }
+
+  explicit Reason(ClauseRef cr) noexcept
+    : type{Type::ClauseRef}
+    , clause_ref{cr}
+  {
+    assert(cr.is_valid());
+  }
+
+  static constexpr Reason invalid() noexcept
+  {
+    return Reason();
+  }
+
+  constexpr bool is_valid() const noexcept
+  {
+    return type != Type::Invalid;
+  }
+
+  constexpr bool is_binary() const noexcept
+  {
+    return type == Type::Binary;
+  }
+
+  Lit get_binary_other_lit() const noexcept
+  {
+    assert(type == Type::Binary);
+    return binary_other_lit;
+  }
+
+  ClauseRef get_clause_ref() const noexcept
+  {
+    assert(type == Type::ClauseRef);
+    return clause_ref;
+  }
+};
+static_assert(std::is_trivially_destructible<Reason>::value, "");
+
+struct VarInfo final {
+  Level level = InvalidLevel;
+  Reason reason;
+};
+static_assert(std::is_trivially_destructible<VarInfo>::value, "");
+
+struct Watch final {
   constexpr Watch() noexcept
     : clause_ref{ClauseRef::invalid()}
   { }
@@ -65,6 +129,7 @@ struct Watch {
   //       (although kitten doesn't seem to do either of those)
   ClauseRef clause_ref;
 };
+static_assert(std::is_trivially_destructible<Watch>::value, "");
 
 
 using Mark = unsigned char;
@@ -80,11 +145,11 @@ static constexpr Mark MarkRemovable = 4;
 #if LOGGING_ENABLED
 template <typename A>
 struct ShowClauseRef {
-  ShowClauseRef(ClauseArena<A> const& arena, ClauseRef cr)
+  ShowClauseRef(ClauseArena<A> const& arena, ClauseRef cr) noexcept
     : arena(arena), cr(cr)
   { }
   ClauseArena<A> const& arena;
-  ClauseRef const cr;
+  ClauseRef cr;
 };
 
 template <typename A>
@@ -98,6 +163,32 @@ std::ostream& operator<<(std::ostream& os, ShowClauseRef<A> const& scr)
   return os;
 }
 
+template <typename A>
+struct ShowReason {
+  ShowReason(ClauseArena<A> const& arena, Reason r) noexcept
+    : arena(arena), r(r)
+  { }
+  ClauseArena<A> const& arena;
+  Reason r;
+};
+
+template <typename A>
+std::ostream& operator<<(std::ostream& os, ShowReason<A> const& sr)
+{
+  Reason const& r = sr.r;
+  if (r.is_valid()) {
+    if (r.is_binary()) {
+      os << r.get_binary_other_lit();
+    } else {
+      os << sr.arena.deref(r.get_clause_ref());
+    }
+  } else {
+    os << "-";
+  }
+  return os;
+}
+
+
 struct ShowAssignment {
   class Solver const& solver;
 };
@@ -107,6 +198,7 @@ std::ostream& operator<<(std::ostream& os, ShowAssignment sa);
 class Solver
 {
 #define SHOWREF(cr) ShowClauseRef<decltype(m_clauses)::allocator_type>(m_clauses, cr)
+#define SHOWREASON(r) ShowReason<decltype(m_clauses)::allocator_type>(m_clauses, r)
 
 public:
   /// Ensure space for a new variable and return it.
@@ -254,7 +346,7 @@ public:
         break;
       case Value::Unassigned:
         LOG_INFO("adding unit clause: " << lit);
-        assign(lit, ClauseRef::invalid());
+        assign(lit, Reason::invalid());
         break;
     }
   }
@@ -267,7 +359,7 @@ public:
 
   void add_clause_internal(ClauseRef cr)
   {
-    LOG_INFO("adding " << SHOWREF(cr));
+    LOG_INFO("adding clause " << SHOWREF(cr));
 
     Clause const& c = m_clauses.deref(cr);
     // TODO: improve this?
@@ -309,9 +401,9 @@ private:
 
   /// Set the literal to true.
   /// Precondition: literal is not assigned.
-  void assign(Lit lit, ClauseRef reason)
+  void assign(Lit lit, Reason reason)
   {
-    LOG_DEBUG("assigning " << lit << ", reason: " << SHOWREF(reason) << ", level: " << m_level);
+    LOG_DEBUG("assigning " << lit << ", reason: " << SHOWREASON(reason) << ", level: " << m_level);
 
     /*
     // TODO: Assignment on root level => no need to store the reason
@@ -319,7 +411,7 @@ private:
     // probably because this is only helpful when we have clause deletion?
     // if we don't delete clauses, we don't care if we store extra reason references.
     if (m_level == 0) {
-      reason = ClauseRef::invalid();
+      reason = Reason::invalid();
     } */
 
     // TODO: kitten does phase-saving as well
@@ -361,7 +453,7 @@ private:
     // for now, just use the positive phase always (works quite well for our type of problems, or at least much better than always-negative)
     Lit decision{var, true};
     LOG_DEBUG("decision: " << decision);
-    assign(decision, ClauseRef::invalid());
+    assign(decision, Reason::invalid());
   }
 
   /// Unit propagation.
@@ -382,7 +474,7 @@ private:
   }
 
   /// Unit propagation for the given literal.
-  ClauseRef propagate_literal(Lit lit)
+  ClauseRef propagate_literal(Lit const lit)
   {
     LOG_DEBUG("propagating " << lit);
     // assert(checkInvariants());
@@ -469,7 +561,7 @@ private:
       else {
         // All literals except other_lit are false => propagate
         assert(other_value == Value::Unassigned);
-        assign(other_lit, clause_ref);
+        assign(other_lit, Reason{clause_ref});
       }
     }  // while
 
@@ -546,16 +638,17 @@ private:
     // The literal we have just resolved away, or invalid in the first step
     Lit uip = Lit::invalid();
     // The reason of the resolved literal, or the conflict clause in the first step
-    ClauseRef reason_ref = conflict_ref;
+    Reason reason{conflict_ref};
 
     while (true) {
-      LOG_TRACE("Reason: " << SHOWREF(reason_ref) << ", uip: " << uip << ", unresolved: " << unresolved_on_conflict_level);
-      assert(reason_ref.is_valid());
-      Clause const& reason = m_clauses.deref(reason_ref);
+      LOG_TRACE("Reason: " << SHOWREASON(reason) << ", uip: " << uip << ", unresolved: " << unresolved_on_conflict_level);
+      assert(reason.is_valid());
+      assert(!reason.is_binary());
+      Clause const& reason_clause = m_clauses.deref(reason.get_clause_ref());
 
       // TODO: reason->used = true
 
-      for (Lit const lit : reason) {
+      for (Lit const lit : reason_clause) {
         Var const var = lit.var();
         LOG_TRACE("  Checking literal " << lit << " (level: " << get_level(var) << ")");
 
@@ -614,8 +707,11 @@ private:
         break;
       }
 
-      reason_ref = m_vars[uip.var()].reason;
+      reason = m_vars[uip.var()].reason;
     }  // while(true)
+
+    // TODO: analyze loop is a bit simpler in kitten, maybe we can do that too?
+    //       kitten does not use any blocks/frames (we don't really use them here either)
 
     assert(uip.is_valid());
     Lit const not_uip = ~uip;
@@ -657,7 +753,7 @@ private:
       // We learned a unit clause
       assert(jump_level == 0);
       LOG_INFO("Learned unit: " << not_uip);
-      assign(not_uip, ClauseRef::invalid());
+      assign(not_uip, Reason::invalid());
     }
     // else if (size == 2) {
     //   // TODO: binary clause optimization
@@ -686,7 +782,7 @@ private:
       LOG_INFO("Learned: " << SHOWREF(learned_ref));
       // TODO: call new_redundant_clause
       watch_clause(learned_ref);
-      assign(not_uip, learned_ref);
+      assign(not_uip, Reason{learned_ref});
     }
 
     clause.clear();

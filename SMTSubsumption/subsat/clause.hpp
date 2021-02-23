@@ -152,6 +152,7 @@ private:
   std::uint32_t m_timestamp = 123456;
 #endif
 };
+static_assert(std::is_trivially_destructible<ClauseRef>::value, "");
 
 NODISCARD constexpr bool operator==(ClauseRef lhs, ClauseRef rhs) noexcept
 {
@@ -220,6 +221,7 @@ private:
   uint32_t m_capacity;
 #endif
 };
+static_assert(std::is_trivially_destructible<AllocatedClauseHandle>::value, "");
 
 
 

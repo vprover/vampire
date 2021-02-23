@@ -118,7 +118,10 @@ static_assert(Var::max_index() == static_cast<uint32_t>(INT32_MAX - 1), "unexpec
 static_assert(Var::max_index() < Var::invalid().index(), "valid variable indices overlap with invalid sentinel value");
 static_assert(!Var::invalid().is_valid(), "");
 static_assert(Var{Var::max_index()}.is_valid(), "");
+// static_assert(std::is_trivially_constructible<Var>::value, "Var should be trivially constructible so we can allocate vectors without initialization");  // TODO: do we really need this for VMTF? maybe we need to initialize there anyway (then a reserve+push_back loop would do it.)
+// static_assert(std::is_trivially_default_constructible<Var>::value, "Var should be trivially constructible so we can allocate vectors without initialization");  // TODO: do we really need this for VMTF? maybe we need to initialize there anyway (then a reserve+push_back loop would do it.)
 // static_assert(std::is_trivially_constructible_v<Var>, "Var should be trivially constructible so we can allocate vectors without initialization");  // TODO: do we really need this for VMTF? maybe we need to initialize there anyway (then a reserve+push_back loop would do it.)
+static_assert(std::is_trivially_destructible<Var>::value, "");
 
 NODISCARD static constexpr bool operator==(Var lhs, Var rhs) noexcept
 {
@@ -162,10 +165,7 @@ class Lit final {
 private:
   friend class Clause;
   /// Uninitialized value (for clause constructor)
-  Lit() noexcept
-  // : m_index{Lit::invalid().index()}
-  {
-  }
+  Lit() noexcept = default;
 
   explicit constexpr Lit(uint32_t index) noexcept
       : m_index{index}
@@ -183,8 +183,10 @@ public:
   {
 #if __cplusplus >= 201703L
     assert(index <= Lit::max_index());
-#endif
     return Lit{index};
+#else
+    return assert(index <= Lit::max_index()), Lit{index};
+#endif
   }
 
   NODISCARD static constexpr Lit pos(Var var) noexcept
@@ -243,6 +245,8 @@ static_assert(Lit::max_index() < Lit::invalid().index(), "valid literal indices 
 static_assert(!Lit::invalid().is_valid(), "");
 static_assert(Lit{Var{Var::max_index()}, true}.is_valid(), "");
 static_assert(Lit{Var{Var::max_index()}, false}.is_valid(), "");
+// static_assert(std::is_trivially_constructible<Lit>::value, "");
+static_assert(std::is_trivially_destructible<Lit>::value, "");
 
 
 
