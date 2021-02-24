@@ -1029,18 +1029,29 @@ class SMTSubsumptionImpl
 class SMTSubsumptionImpl2
 {
   private:
+
+#if 1
     template <typename T>
     using allocator_type = STLAllocator<T>;
-    // template <typename T>
-    // using allocator_type = std::allocator<T>;
+#else
+    template <typename T>
+    using allocator_type = std::allocator<T>;
+#endif
 
     subsat::Solver<allocator_type> solver;
-    SubstitutionTheory2<allocator_type> st;
 
     /// AtMostOne constraints stating that each instance literal may be matched at most once.
     vvector<subsat::AllocatedClauseHandle> instance_constraints;
 
   public:
+
+    SMTSubsumptionImpl2()
+    {
+      solver.reserve_variables(64);
+      solver.reserve_clause_storage(512);
+      solver.theory().reserve(64, 2, 16);
+      instance_constraints.reserve(16);
+    }
 
     /// Set up the subsumption problem.
     /// Returns false if no solution is possible.
@@ -1049,9 +1060,6 @@ class SMTSubsumptionImpl2
     {
       solver.clear();
       ASS(solver.empty());
-
-      st.clear();
-      ASS(st.empty());
 
       // Here we store the AtMostOne constraints saying that each instance literal may be matched at most once.
       // Each instance literal can be matched by at most 2 boolean vars per base literal (two orientations of equalities).
@@ -1082,7 +1090,7 @@ class SMTSubsumptionImpl2
           }
 
           {
-            auto binder = st.start_binder();
+            auto binder = solver.theory().start_binder();
             if (base_lit->arity() == 0 || MatchingUtils::matchArgs(base_lit, inst_lit, binder)) {
               subsat::Var b = solver.new_variable();
 
@@ -1095,19 +1103,19 @@ class SMTSubsumptionImpl2
                 // probably best to have a separate loop first that deals with ground literals? since those are only pointer equality checks.
               }
 
-              st.register_bindings(b, std::move(binder));
+              solver.theory().register_bindings(b, std::move(binder));
 
               solver.clause_literal(b);
               instance_constraints[j].push(b);
             } else {
-              st.drop_bindings(std::move(binder));
+              solver.theory().drop_bindings(std::move(binder));
             }
           }
 
           if (base_lit->commutative()) {
             ASS_EQ(base_lit->arity(), 2);
             ASS_EQ(inst_lit->arity(), 2);
-            auto binder = st.start_binder();
+            auto binder = solver.theory().start_binder();
             if (MatchingUtils::matchReversedArgs(base_lit, inst_lit, binder)) {
               subsat::Var b = solver.new_variable();
 
@@ -1120,12 +1128,12 @@ class SMTSubsumptionImpl2
                 // probably best to have a separate loop first that deals with ground literals? since those are only pointer equality checks.
               }
 
-              st.register_bindings(b, std::move(binder));
+              solver.theory().register_bindings(b, std::move(binder));
 
               solver.clause_literal(b);
               instance_constraints[j].push(b);
             } else {
-              st.drop_bindings(std::move(binder));
+              solver.theory().drop_bindings(std::move(binder));
             }
           }
         }

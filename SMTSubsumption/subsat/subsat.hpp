@@ -19,6 +19,7 @@
 #include "./types.hpp"
 #include "./vector_map.hpp"
 #include "./log.hpp"
+#include "../SubstitutionTheory2.hpp"
 
 // Ensure NDEBUG and VDEBUG are synchronized
 #ifdef NDEBUG
@@ -31,7 +32,7 @@ static_assert(VDEBUG == 1, "VDEBUG and NDEBUG are not synchronized");
 // TODO: add feature flags for some optimizations where it's not 100% clear how much benefit they give us
 //       the default values here can then be adjusted to what turns out to be best for the Vampire use case
 #ifndef SUBSAT_PHASE_SAVING
-#define SUBSAT_PHASE_SAVING 1
+#define SUBSAT_PHASE_SAVING 0
 #endif
 
 
@@ -247,9 +248,26 @@ public:
     m_vars.reserve(count);
     m_marks.reserve(count);
     m_values.reserve(2 * count);
+    m_queue.reserve(count);
     m_watches.reserve(2 * count);
     m_watches_amo.reserve(2 * count);
-    // TODO: call reserve on all vectors where this is necessary
+    m_trail.reserve(count);
+
+    tmp_analyze_clause.reserve(8);
+    tmp_analyze_blocks.reserve(8);
+    tmp_analyze_seen.reserve(16);
+    m_frames.reserve(count+1);
+  }
+
+  /// Reserve storage for 'count' literals (less will be available since clause header is stored in the same space)
+  void reserve_clause_storage(uint32_t count)
+  {
+    m_clauses.reserve(count);
+  }
+
+  ::SMTSubsumption::SubstitutionTheory2<allocator_type>& theory()
+  {
+    return m_theory;
   }
 
 
@@ -299,6 +317,8 @@ public:
     m_propagate_head = 0;
 
     m_frames.clear();
+
+    m_theory.clear();
 
     assert(checkEmpty());
   }
@@ -1086,11 +1106,13 @@ private:
   /// The next literal to propagate (index into the trail)
   uint32_t m_propagate_head = 0;
 
+  ::SMTSubsumption::SubstitutionTheory2<allocator_type> m_theory;
+
   // Temporary variables, defined as class members to reduce allocation overhead.
   // Prefixed by the method where they are used.
   vector<Lit> tmp_analyze_clause;  ///< learned clause
   vector<Level> tmp_analyze_blocks;  ///< analyzed decision levels
-  vector<Var> tmp_analyze_seen;  ///< analyzed literals
+  vector<Var> tmp_analyze_seen;  ///< analyzed variables
   vector_map<Level, uint8_t> m_frames;  ///< stores for each level whether we already have it in blocks (we use 'char' because vector<bool> is bad)
   ClauseRef tmp_binary_clause_ref = ClauseRef::invalid();
 }; // Solver
@@ -1138,6 +1160,7 @@ bool Solver<Allocator>::checkEmpty() const
   assert(tmp_analyze_blocks.empty());
   assert(tmp_analyze_seen.empty());
   assert(m_frames.empty());
+  assert(m_theory.empty());
   return true;
 }
 

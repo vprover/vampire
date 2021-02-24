@@ -1,33 +1,46 @@
 #ifndef SUBSTITUTIONTHEORY2_HPP
 #define SUBSTITUTIONTHEORY2_HPP
 
-#include "SMTSubsumption/MapBinder.hpp"
-#include "Kernel/Term.hpp"
-#include "Lib/STL.hpp"
-#include "SMTSubsumption/minisat/SolverTypes.h"
-
 #include <algorithm>
 #include <type_traits>
-
-#include "SMTSubsumption/cdebug.hpp"
 
 #include "./subsat/vector_map.hpp"
 #include "./subsat/types.hpp"
 
 
+#ifndef SUBSAT_STANDALONE
+#include "Kernel/Term.hpp"
+#endif
+
+
 namespace SMTSubsumption {
 
-using namespace Kernel;
+
+/// Domain of the substitution: Vampire's FOL variables
+using VampireVar = unsigned int;
+
+
+#ifndef SUBSAT_STANDALONE
+
+/// Range of the substitution: Vampire's FOL terms
+using VampireTerm = ::Kernel::TermList;
+
+#else
+
+using VampireTerm = std::uint64_t;
+#define ASSERTION_VIOLATION  assert(false)
+#define ASS(x) assert(x)
+#define ASS_EQ(x, y) assert(x == y)
+#define ASS_GE(x, y) assert(x >= y)
+
+#endif  // !SUBSAT_STANDALONE
+
+static_assert(sizeof(VampireTerm) == 8, "unexpected term size");
 
 
 template <template <typename> class Allocator = std::allocator>
 class SubstitutionTheory2 final {
 public:
-  /// Domain of the substitution: Vampire's FOL variables
-  using VampireVar = unsigned int;
-
-  /// Range of the substitution: Vampire's FOL terms
-  // using range = TermList;
 
   template <typename T>
   using allocator_type = Allocator<T>;
@@ -55,7 +68,7 @@ public:
   SubstitutionTheory2& operator=(SubstitutionTheory2&& other) = default;
 
 public:
-  using BindingsEntry = std::pair<VampireVar, TermList>;
+  using BindingsEntry = std::pair<VampireVar, VampireTerm>;
   using BindingsStorage = vector<BindingsEntry>;
 
   class Binder {
@@ -70,7 +83,7 @@ public:
     Binder(Binder&&) = default;
     Binder& operator=(Binder&&) = delete;
 
-    bool bind(VampireVar var, TermList term)
+    bool bind(VampireVar var, VampireTerm term)
     {
       // // Try to find entry for 'var'
       // auto it =
@@ -96,7 +109,7 @@ public:
       return true;
     }
 
-    void specVar(VampireVar var, TermList term)
+    void specVar(VampireVar /* var */, VampireTerm /* term */)
     {
       ASSERTION_VIOLATION;
     }
@@ -144,7 +157,7 @@ public:
     for (uint32_t i = bindings.index; i < bindings.end(); ++i) {
       BindingsEntry const& entry = m_bindings_storage[i];
       VampireVar var = entry.first;
-      TermList term = entry.second;
+      VampireTerm term = entry.second;
       while (var >= m_bindings_by_var.size()) {
         m_bindings_by_var.emplace_back();
       }
@@ -183,7 +196,7 @@ public:
     m_bindings_storage.clear();
     m_bindings.clear();
     for (VampireVar v : m_used_vars) {
-      m_bindings_by_var.clear();
+      m_bindings_by_var[v].clear();
     }
     m_used_vars.clear();
   }
@@ -201,6 +214,14 @@ public:
     return is_empty;
   }
 
+  void reserve(std::uint32_t bool_var_count, std::uint32_t bindings_per_bool_var, std::uint32_t vampire_var_count)
+  {
+    m_bindings_storage.reserve(bool_var_count * bindings_per_bool_var);
+    m_bindings.reserve(bool_var_count);
+    m_used_vars.reserve(vampire_var_count);
+    m_bindings_by_var.reserve(4*vampire_var_count);
+  }
+
 public:
     /// Call this when a SAT variable has been set to true
     /// PropagateCallback ~ bool propagate(subsat::Lit propagated, Lit reason)
@@ -211,7 +232,7 @@ public:
       BindingsRef bindings = m_bindings[b];
 
       // Exhaustively propagate the conflicting atoms
-      for (uint32_t i = bindings.index; i < bindings.end(); ++i) {
+      for (std::uint32_t i = bindings.index; i < bindings.end(); ++i) {
         // Substitution constraint (X0 -> t) for b
         BindingsEntry entry = m_bindings_storage[i];
         // Go through possible other mappings for X0
@@ -220,7 +241,7 @@ public:
             // conflicting substitution constraints
             subsat::Var conflicting_var = q.first;  // conflicting variable
             subsat::Lit reason = b;
-            if (!propagate(~conflicting_var, b)) {
+            if (!propagate(~conflicting_var, reason)) {
               return false;
             }
           }
@@ -236,7 +257,7 @@ private:
 
   // Unfortunately vampire variables don't need to be contiguous
   vector<VampireVar> m_used_vars;
-  vector_map<VampireVar, vector<std::pair<subsat::Var, TermList>>> m_bindings_by_var;
+  vector_map<VampireVar, vector<std::pair<subsat::Var, VampireTerm>>> m_bindings_by_var;
 };
 
 
