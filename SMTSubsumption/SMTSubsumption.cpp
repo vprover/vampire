@@ -1029,8 +1029,13 @@ class SMTSubsumptionImpl
 class SMTSubsumptionImpl2
 {
   private:
-    subsat::Solver solver;
-    SubstitutionTheory2 st;
+    template <typename T>
+    using allocator_type = STLAllocator<T>;
+    // template <typename T>
+    // using allocator_type = std::allocator<T>;
+
+    subsat::Solver<allocator_type> solver;
+    SubstitutionTheory2<allocator_type> st;
 
     /// AtMostOne constraints stating that each instance literal may be matched at most once.
     vvector<subsat::AllocatedClauseHandle> instance_constraints;

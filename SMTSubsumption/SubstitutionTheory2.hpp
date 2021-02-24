@@ -20,13 +20,23 @@ namespace SMTSubsumption {
 using namespace Kernel;
 
 
-class SubstitutionTheory2 {
+template <template <typename> class Allocator = std::allocator>
+class SubstitutionTheory2 final {
 public:
   /// Domain of the substitution: Vampire's FOL variables
   using VampireVar = unsigned int;
 
   /// Range of the substitution: Vampire's FOL terms
   // using range = TermList;
+
+  template <typename T>
+  using allocator_type = Allocator<T>;
+
+  template <typename T>
+  using vector = std::vector<T, allocator_type<T>>;
+
+  template <typename K, typename T>
+  using vector_map = subsat::vector_map<K, T, allocator_type<T>>;
 
 public:
   // empty substitution theory
@@ -46,7 +56,7 @@ public:
 
 public:
   using BindingsEntry = std::pair<VampireVar, TermList>;
-  using BindingsStorage = std::vector<BindingsEntry>;
+  using BindingsStorage = vector<BindingsEntry>;
 
   class Binder {
   public:
@@ -221,13 +231,13 @@ public:
 
 private:
   BindingsStorage m_bindings_storage;
-  subsat::vector_map<subsat::Var, BindingsRef> m_bindings;
+
+  vector_map<subsat::Var, BindingsRef> m_bindings;
 
   // Unfortunately vampire variables don't need to be contiguous
-  std::vector<VampireVar> m_used_vars;
-  subsat::vector_map<VampireVar, std::vector<std::pair<subsat::Var, TermList>>> m_bindings_by_var;
+  vector<VampireVar> m_used_vars;
+  vector_map<VampireVar, vector<std::pair<subsat::Var, TermList>>> m_bindings_by_var;
 };
-static_assert(std::is_nothrow_move_constructible<SubstitutionTheory2>::value, "");
 
 
 }  // namespace SMTSubsumption
