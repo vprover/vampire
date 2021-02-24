@@ -188,19 +188,35 @@ std::ostream& operator<<(std::ostream& os, ShowReason<A> const& sr)
   return os;
 }
 
+template <template <typename> class Allocator> class Solver;
 
+template <template <typename> class A>
 struct ShowAssignment {
-  class Solver const& solver;
+  ShowAssignment(Solver<A> const& solver) : solver(solver) { }
+  Solver<A> const& solver;
 };
-std::ostream& operator<<(std::ostream& os, ShowAssignment sa);
+
+template <template <typename> class A>
+std::ostream& operator<<(std::ostream& os, ShowAssignment<A> sa);
 #endif
 
-class Solver
-{
-#define SHOWREF(cr) ShowClauseRef<decltype(m_clauses)::allocator_type>(m_clauses, cr)
-#define SHOWREASON(r) ShowReason<decltype(m_clauses)::allocator_type>(m_clauses, r)
+template <template <typename> class Allocator = std::allocator>
+class Solver {
+#define SHOWREF(cr) ShowClauseRef<typename decltype(m_clauses)::allocator_type>(m_clauses, cr)
+#define SHOWREASON(r) ShowReason<typename decltype(m_clauses)::allocator_type>(m_clauses, r)
+#define SHOWASSIGNMENT() ShowAssignment<Allocator>{*this}
 
 public:
+  template <typename T>
+  using allocator_type = Allocator<T>;
+
+  template <typename T>
+  using vector = std::vector<T, allocator_type<T>>;
+
+  template <typename K, typename T>
+  using vector_map = subsat::vector_map<K, T, allocator_type<T>>;
+
+
   /// Ensure space for a new variable and return it.
   /// By default, memory is increased exponentially (relying on the default behaviour of std::vector).
   /// Use reserve_variables if you know the number of variables upfront.
@@ -455,7 +471,44 @@ public:
     return m_inconsistent;
   }
 
-  Result solve();
+  Result solve()
+  {
+    m_trail.reserve(m_used_vars);
+    m_frames.resize(m_used_vars + 1, 0);
+    m_queue.resize_and_init(m_used_vars);
+    assert(m_queue.checkInvariants(m_values));
+
+    if (!tmp_binary_clause_ref.is_valid()) {
+      auto ca = m_clauses.alloc(2);
+      ca.push(Lit::invalid());
+      ca.push(Lit::invalid());
+      tmp_binary_clause_ref = ca.build();
+    }
+
+    if (m_inconsistent) {
+      return Result::Unsat;
+    }
+
+    while (true) {
+      ClauseRef conflict = propagate();
+
+      assert(checkInvariants());
+
+      if (conflict.is_valid()) {
+        if (!analyze(conflict)) {
+          return Result::Unsat;
+        }
+      } else {
+        if (m_unassigned_vars == 0) {
+          assert(checkModel());
+          return Result::Sat;
+        } else {
+          // TODO: restart? switch mode? reduce clause db?
+          decide();
+        }
+      }
+    }
+  }
 
 private:
 
@@ -541,7 +594,7 @@ private:
     assert(m_values[lit] == Value::True);
 
     Lit const not_lit = ~lit;
-    std::vector<Watch>& watches = m_watches[not_lit];
+    vector<Watch>& watches = m_watches[not_lit];
 
     auto q = watches.begin();   // points to updated watch, follows p
     auto p = watches.cbegin();  // points to currently processed watch
@@ -658,7 +711,7 @@ private:
           assign(~other_lit, Reason{lit});
         }
         else if (other_value == Value::True) {
-          LOG_TRACE("Current assignment: " << ShowAssignment{*this});
+          LOG_TRACE("Current assignment: " << SHOWASSIGNMENT());
           LOG_DEBUG("Conflict with AtMostOne constraint " << SHOWREF(cr));
           // at least two literals in the AtMostOne constraint are true => conflict
           Clause& tmp_binary_clause = m_clauses.deref(tmp_binary_clause_ref);
@@ -716,7 +769,7 @@ private:
   NODISCARD bool analyze(ClauseRef conflict_ref)
   {
     LOG_INFO("Conflict clause " << SHOWREF(conflict_ref) << " on level " << m_level);
-    LOG_TRACE("Assignment: " << ShowAssignment{*this});
+    LOG_TRACE("Assignment: " << SHOWASSIGNMENT());
     assert(!m_inconsistent);
     assert(conflict_ref.is_valid());
     assert(checkInvariants());
@@ -730,9 +783,9 @@ private:
 
     // These variables are morally local variables,
     // but we store them as class members to avoid allocation overhead.
-    std::vector<Lit>& clause = tmp_analyze_clause;    // the learned clause
-    std::vector<Level>& blocks = tmp_analyze_blocks;  // the analyzed decision levels
-    std::vector<Var>& seen = tmp_analyze_seen;        // the analyzed variables
+    vector<Lit>& clause = tmp_analyze_clause;    // the learned clause
+    vector<Level>& blocks = tmp_analyze_blocks;  // the analyzed decision levels
+    vector<Var>& seen = tmp_analyze_seen;        // the analyzed variables
     vector_map<Level, uint8_t>& frames = m_frames;    // for each decision level, whether it has been analyzed
     assert(clause.empty());
     assert(blocks.empty());
@@ -958,8 +1011,27 @@ private:
 #endif
 
 #if LOGGING_ENABLED
-  void showAssignment(std::ostream& os) const;
-  friend std::ostream& operator<<(std::ostream&, ShowAssignment);
+public:
+  void showAssignment(std::ostream& os) const
+  {
+    bool first = true;
+    Level prev_level = 0;
+    for (Lit lit : m_trail) {
+      if (first) {
+        first = false;
+      } else {
+        os << " ";
+      }
+      Level const level = m_vars[lit.var()].level;
+      if (level != prev_level) {
+        os << "// ";
+        prev_level = level;
+      }
+      os << lit;
+    }
+  }
+  // friend std::ostream& operator<<(std::ostream&, ShowAssignment<allocator_type>);
+private:
 #endif
 
   Level get_level(Var var) const
@@ -991,42 +1063,41 @@ private:
   vector_map<Var, Mark> m_marks;
 
   /// Queue for VMTF decision heuristic
-  DecisionQueue m_queue;
+  DecisionQueue<allocator_type> m_queue;
 
 #if SUBSAT_PHASE_SAVING
   // TODO
   // vector_map<Var, > m_phases;
 #endif
 
-  ClauseArena<> m_clauses;
-  vector_map<Lit, std::vector<Watch>> m_watches;
-  vector_map<Lit, std::vector<Watch>> m_watches_amo;
+  ClauseArena<allocator_type<std::uint32_t>> m_clauses;
+  vector_map<Lit, vector<Watch>> m_watches;
+  vector_map<Lit, vector<Watch>> m_watches_amo;
 
 #ifndef NDEBUG
   /// All proper clauses added to the solver
-  std::vector<ClauseRef> m_clause_refs;
+  vector<ClauseRef> m_clause_refs;
   /// All AtMostOne constraints added to the solver
-  std::vector<ClauseRef> m_atmostone_constraint_refs;
+  vector<ClauseRef> m_atmostone_constraint_refs;
 #endif
 
   /// The currently true literals in order of assignment
-  std::vector<Lit> m_trail;
+  vector<Lit> m_trail;
   /// The next literal to propagate (index into the trail)
   uint32_t m_propagate_head = 0;
 
   // Temporary variables, defined as class members to reduce allocation overhead.
   // Prefixed by the method where they are used.
-  std::vector<Lit> tmp_analyze_clause;  ///< learned clause
-  std::vector<Level> tmp_analyze_blocks;  ///< analyzed decision levels
-  std::vector<Var> tmp_analyze_seen;  ///< analyzed literals
+  vector<Lit> tmp_analyze_clause;  ///< learned clause
+  vector<Level> tmp_analyze_blocks;  ///< analyzed decision levels
+  vector<Var> tmp_analyze_seen;  ///< analyzed literals
   vector_map<Level, uint8_t> m_frames;  ///< stores for each level whether we already have it in blocks (we use 'char' because vector<bool> is bad)
   ClauseRef tmp_binary_clause_ref = ClauseRef::invalid();
 }; // Solver
 
-
-
 #if LOGGING_ENABLED
-std::ostream& operator<<(std::ostream& os, ShowAssignment sa)
+template <template <typename> class A>
+std::ostream& operator<<(std::ostream& os, ShowAssignment<A> sa)
 {
   sa.solver.showAssignment(os);
   return os;
@@ -1038,6 +1109,195 @@ std::ostream& operator<<(std::ostream& os, ShowAssignment sa)
 // 1. binary clause optimization
 // 2. phase saving? but for our problem, just choosing 'true' will almost always be correct.
 //    => maybe add a 'hint' to 'new_variable'... that will be the first phase tried if we need to decide on it.
+
+
+#ifndef NDEBUG
+
+template <template <typename> class Allocator>
+bool Solver<Allocator>::checkEmpty() const
+{
+  assert(!m_inconsistent);
+  assert(m_used_vars == 0);
+  assert(m_unassigned_vars == 0);
+  assert(m_level == 0);
+  assert(m_values.empty());
+  assert(m_vars.empty());
+  assert(m_marks.empty());
+  assert(m_queue.empty());
+  assert(m_clauses.empty());
+  assert(!tmp_binary_clause_ref.is_valid());
+#ifndef NDEBUG
+  assert(m_clause_refs.empty());
+  assert(m_atmostone_constraint_refs.empty());
+#endif
+  assert(std::all_of(m_watches.begin(), m_watches.end(), [](vector<Watch> const& ws){ return ws.empty(); }));
+  assert(std::all_of(m_watches_amo.begin(), m_watches_amo.end(), [](vector<Watch> const& ws){ return ws.empty(); }));
+  assert(m_trail.empty());
+  assert(m_propagate_head == 0);
+  assert(tmp_analyze_clause.empty());
+  assert(tmp_analyze_blocks.empty());
+  assert(tmp_analyze_seen.empty());
+  assert(m_frames.empty());
+  return true;
+}
+
+static NODISCARD bool checkConstraint(Clause const& c)
+{
+  // No duplicate variables in the constraint (this prevents duplicate literals and tautological clauses)
+  std::set<Var> vars;
+  for (Lit lit : c) {
+    assert(lit.is_valid());
+    bool inserted = vars.insert(lit.var()).second;
+    assert(inserted);
+  }
+  assert(vars.size() == c.size());
+  return true;
+}
+
+template <template <typename> class Allocator>
+bool Solver<Allocator>::checkInvariants() const
+{
+  // assigned vars + unassiged vars = used vars
+  assert(m_trail.size() + m_unassigned_vars == m_used_vars);
+
+  assert(m_values.size() == 2 * m_used_vars);
+  assert(std::all_of(m_values.begin(), m_values.end(),
+                     [](Value v) { return v == Value::False || v == Value::True || v == Value::Unassigned; }));
+
+  // m_unassigned_values is correct
+  assert(std::count(m_values.begin(), m_values.end(), Value::Unassigned) == 2 * m_unassigned_vars);
+
+  // Opposite literals have opposite values
+  for (uint32_t var_idx = 0; var_idx < m_used_vars; ++var_idx) {
+    Var x{var_idx};
+    assert(m_values[x] == ~m_values[~x]);
+  }
+
+  // Every variable is at most once on the trail
+  std::set<Var> trail_vars;
+  for (Lit lit : m_trail) {
+    assert(lit.is_valid());
+    bool inserted = trail_vars.insert(lit.var()).second;
+    assert(inserted);
+  }
+  assert(trail_vars.size() == m_trail.size());
+  assert(m_trail.size() <= m_used_vars);
+
+  assert(m_propagate_head <= m_trail.size());
+
+  // Check constraint invariants
+  for (ClauseRef cr : m_clause_refs) {
+    assert(checkConstraint(m_clauses.deref(cr)));
+  }
+  for (ClauseRef cr : m_atmostone_constraint_refs) {
+    assert(checkConstraint(m_clauses.deref(cr)));
+  }
+
+  // Check watch invariants if we're in a fully propagated state
+  if (m_propagate_head == m_trail.size()) {
+    assert(checkWatches());
+  }
+
+  return true;
+}  // checkInvariants
+
+template <template <typename> class Allocator>
+bool Solver<Allocator>::checkWatches() const
+{
+  // Some of the checks only make sense in a fully-propagated state
+  assert(m_propagate_head == m_trail.size());
+  assert(!m_inconsistent);
+
+  // All allocated but unused watch lists are empty
+  for (uint32_t lit_idx = 2 * m_used_vars; lit_idx < m_watches.size(); ++lit_idx) {
+    Lit const lit = Lit::from_index(lit_idx);
+    assert(m_watches[lit].empty());
+  }
+
+  // Count how many times each clause is watched
+  std::map<ClauseRef::index_type, int> num_watches;
+
+  for (uint32_t lit_idx = 0; lit_idx < m_watches.size(); ++lit_idx) {
+    Lit const lit = Lit::from_index(lit_idx);
+
+    for (Watch watch : m_watches[lit]) {
+      Clause const& clause = m_clauses.deref(watch.clause_ref);
+
+      num_watches[watch.clause_ref.index()] += 1;
+
+      // The watched literals are always the first two literals of the clause
+      assert(clause[0] == lit || clause[1] == lit);
+
+      // Check status of watch literals
+      bool clause_satisfied = std::any_of(clause.begin(), clause.end(),
+                                          [this](Lit l) { return m_values[l] == Value::True; });
+      if (clause_satisfied) {
+        Level min_true_level = std::numeric_limits<Level>::max();
+        for (Lit l : clause) {
+          if (m_values[l] == Value::True && get_level(l) < min_true_level) {
+            min_true_level = get_level(l);
+          }
+        }
+        // If the clause is satisfied and a watched literal is assigned,
+        // it must be on the same level or above one of the true literals.
+        assert(m_values[clause[0]] == Value::Unassigned || get_level(clause[0]) >= min_true_level);
+        assert(m_values[clause[1]] == Value::Unassigned || get_level(clause[1]) >= min_true_level);
+      } else {
+        // If the clause is not yet satisfied, both watched literals must be unassigned
+        // (otherwise we would have propagated them)
+        assert(m_values[clause[0]] == Value::Unassigned && m_values[clause[1]] == Value::Unassigned);
+      }
+    }
+  }
+  // Every clause of size >= 2 is watched twice
+  for (ClauseRef cr : m_clause_refs) {
+    Clause const& c = m_clauses.deref(cr);
+    if (c.size() >= 2) {
+      auto it = num_watches.find(cr.index());
+      assert(it != num_watches.end());
+      assert(it->second == 2);
+      num_watches.erase(it);
+    }
+  }
+  assert(num_watches.empty());
+  return true;
+}
+
+/// Checks whether the current assignment satisfies all constraints
+template <template <typename> class Allocator>
+bool Solver<Allocator>::checkModel() const
+{
+  for (ClauseRef cr : m_clause_refs) {
+    Clause const& c = m_clauses.deref(cr);
+    bool satisfied = std::any_of(c.begin(), c.end(), [this](Lit l) { return m_values[l] == Value::True; });
+    if (!satisfied) {
+      LOG_WARN("Clause " << c << " is not satisfied!");
+      return false;
+    }
+  }
+  for (ClauseRef cr : m_atmostone_constraint_refs) {
+    Clause const& c = m_clauses.deref(cr);
+    uint32_t num_false = 0;
+    uint32_t num_true = 0;
+    uint32_t num_open = 0;
+    for (Lit lit : c) {
+      if (m_values[lit] == Value::True) { num_true += 1; }
+      if (m_values[lit] == Value::Unassigned) { num_open += 1; }
+      if (m_values[lit] == Value::False) { num_false += 1; }
+    }
+    assert(num_true + num_open + num_false == c.size());
+    // AtMostOne constraint is satisfied if all but one literals are false
+    bool satisfied = (num_false == c.size() - 1);
+    if (!satisfied) {
+      LOG_WARN("AtMostOne constraint " << c << " is not satisfied!");
+      return false;
+    }
+  }
+  return true;
+}
+
+#endif
+
 
 
 } // namespace subsat

@@ -9,6 +9,7 @@ namespace subsat {
 
 
 /// Doubly-linked queue for variable-move-to-front (VMTF) decision heuristic.
+template <template <typename> class Allocator = std::allocator>
 class DecisionQueue
 {
   using Timestamp = uint32_t;
@@ -25,6 +26,9 @@ class DecisionQueue
   };
 
 public:
+  template <typename T>
+  using allocator_type = Allocator<T>;
+
   bool empty() const noexcept
   {
     bool const is_empty = m_links.empty();
@@ -76,7 +80,8 @@ public:
 
   /// Finds the next unassigned variable.
   /// Precondition: at least one variable is unassigned.
-  Var next_unassigned_variable(vector_map<Lit, Value> const& values)
+  template <typename A>
+  Var next_unassigned_variable(vector_map<Lit, Value, A> const& values)
   {
     assert(std::any_of(values.begin(), values.end(), [](Value x){ return x == Value::Unassigned; }));
     Var var = m_search;
@@ -105,7 +110,8 @@ public:
   }
 
 #ifndef NDEBUG
-  bool checkInvariants(vector_map<Lit, Value> const& values) const
+  template <typename A>
+  bool checkInvariants(vector_map<Lit, Value, A> const& values) const
   {
     if (m_first.is_valid()) {
       assert(m_last.is_valid());
@@ -233,7 +239,7 @@ private:
   }
 
 private:
-  vector_map<Var, Link> m_links;
+  vector_map<Var, Link, allocator_type<Link>> m_links;
   Var m_first = Var::invalid();
   Var m_last = Var::invalid();
   /// Search position cache
