@@ -165,8 +165,8 @@ void SMTLIB2::readBenchmark(LExprList* bench)
     // TODO(mhajdu): is it possible that codatatypes are
     // declared this way?
     if (ibRdr.tryAcceptAtom("declare-datatype")) {
-      LExpr* sort = ibRdr.readNext();
-      LExprList* datatype = ibRdr.readList();
+      LExpr *sort = ibRdr.readNext();
+      LExprList *datatype = ibRdr.readList();
 
       readDeclareDatatype(sort, datatype, false);
 
@@ -223,11 +223,11 @@ void SMTLIB2::readBenchmark(LExprList* bench)
 
     if (ibRdr.tryAcceptAtom("define-fun-rec")) {
       vstring name = ibRdr.readAtom();
-      LExprList* iArgs = ibRdr.readList();
-      LExpr* oSort = ibRdr.readNext();
-      LExpr* body = ibRdr.readNext();
+      LExprList *iArgs = ibRdr.readList();
+      LExpr *oSort = ibRdr.readNext();
+      LExpr *body = ibRdr.readNext();
 
-      readDefineFun(name,iArgs,oSort,body,true/*recursive*/);
+      readDefineFun(name, iArgs, oSort, body, true /*recursive*/);
 
       ibRdr.acceptEOL();
 
@@ -926,7 +926,7 @@ void SMTLIB2::readDefineFun(const vstring& name, LExprList* iArgs, LExpr* oSort,
 
   DeclaredFunction fun;
   if (recursive) {
-    fun = declareFunctionOrPredicate(name,rangeSort,argSorts);
+    fun = declareFunctionOrPredicate(name, rangeSort, argSorts);
   }
 
   ParseResult res = parseTermOrFormula(body);
@@ -939,7 +939,7 @@ void SMTLIB2::readDefineFun(const vstring& name, LExprList* iArgs, LExpr* oSort,
   }
 
   if (!recursive) {
-    fun = declareFunctionOrPredicate(name,rangeSort,argSorts);
+    fun = declareFunctionOrPredicate(name, rangeSort, argSorts);
   }
 
   unsigned symbIdx = fun.first;
@@ -960,17 +960,17 @@ void SMTLIB2::readDefineFun(const vstring& name, LExprList* iArgs, LExpr* oSort,
   UnitList::push(fu, _formulas);
 }
 
-void SMTLIB2::readDeclareDatatype(LExpr* sort, LExprList* datatype, bool codatatype)
+void SMTLIB2::readDeclareDatatype(LExpr *sort, LExprList *datatype, bool codatatype)
 {
   CALL("SMTLIB2::readDeclareDatatype");
 
   // first declare the sort
   vstring dtypeName = sort->str;
   if (isAlreadyKnownSortSymbol(dtypeName)) {
-    USER_ERROR("Redeclaring built-in, declared or defined sort symbol as datatype: "+dtypeName);
+    USER_ERROR("Redeclaring built-in, declared or defined sort symbol as datatype: " + dtypeName);
   }
   ALWAYS(_declaredSorts.insert(dtypeName, 0));
-  Stack<TermAlgebraConstructor*> constructors;
+  Stack<TermAlgebraConstructor *> constructors;
   TermStack argSorts;
   Stack<vstring> destructorNames;
 
@@ -993,9 +993,10 @@ void SMTLIB2::readDeclareDatatype(LExpr* sort, LExprList* datatype, bool codatat
       // atom, constructor of arity 0
       constrName = constr->str;
       if (constrName == "par") {
-        USER_ERROR("Datatype '"+dtypeName+"' is declared parametric which is unsupported");
+        USER_ERROR("Datatype '" + dtypeName + "' is declared parametric which is unsupported");
       }
-    } else {
+    }
+    else {
       ASS(constr->isList());
       LispListReader constrRdr(constr);
       constrName = constrRdr.readAtom();
@@ -1497,65 +1498,65 @@ void SMTLIB2::parseLetEnd(LExpr* exp)
   delete lookup;
 }
 
-static const char* UNDERSCORE = "_";
+static const char *UNDERSCORE = "_";
 
-bool SMTLIB2::isTermAlgebraConstructor(const vstring& name)
+bool SMTLIB2::isTermAlgebraConstructor(const vstring &name)
 {
   CALL("SMTLIB2::isTermAlgebraConstructor");
 
   if (_declaredFunctions.find(name)) {
-    DeclaredFunction& f = _declaredFunctions.get(name);
+    DeclaredFunction &f = _declaredFunctions.get(name);
     return (f.second && env.signature->getTermAlgebraConstructor(f.first));
   }
 
   return false;
 }
 
-void SMTLIB2::parseMatchBegin(LExpr* exp)
+void SMTLIB2::parseMatchBegin(LExpr *exp)
 {
   CALL("SMTLIB2::parseMatchBegin");
 
-  LOG2("parseMatchBegin  ",exp->toString());
+  LOG2("parseMatchBegin  ", exp->toString());
 
   ASS(exp->isList());
   LispListReader lRdr(exp->list);
 
   // the match atom
-  const vstring& theMatchAtom = lRdr.readAtom();
-  ASS_EQ(theMatchAtom,MATCH);
+  const vstring &theMatchAtom = lRdr.readAtom();
+  ASS_EQ(theMatchAtom, MATCH);
 
   // next is the matched term
   if (!lRdr.hasNext()) {
-    complainAboutArgShortageOrWrongSorts(MATCH,exp);
+    complainAboutArgShortageOrWrongSorts(MATCH, exp);
   }
-  LExpr* matchedAtom = lRdr.readNext();
+  LExpr *matchedAtom = lRdr.readNext();
 
   // and the list of cases
   if (!lRdr.hasNext()) {
-    complainAboutArgShortageOrWrongSorts(MATCH,exp);
+    complainAboutArgShortageOrWrongSorts(MATCH, exp);
   }
   LispListReader casesRdr(lRdr.readList());
 
   lRdr.acceptEOL();
 
-  _todo.push(make_pair(PO_MATCH_END,exp));
+  _todo.push(make_pair(PO_MATCH_END, exp));
   // this is the last thing we parse so that it pops
   // first when the result is created
-  _todo.push(make_pair(PO_PARSE,matchedAtom));
+  _todo.push(make_pair(PO_PARSE, matchedAtom));
 
   while (casesRdr.hasNext()) {
     LispListReader pRdr(casesRdr.readList());
 
     if (!pRdr.hasNext()) {
-      complainAboutArgShortageOrWrongSorts(MATCH,exp);
+      complainAboutArgShortageOrWrongSorts(MATCH, exp);
     }
-    LExpr* pattern = pRdr.readNext();
+    LExpr *pattern = pRdr.readNext();
     if (!pRdr.hasNext()) {
-      complainAboutArgShortageOrWrongSorts(MATCH,exp);
+      complainAboutArgShortageOrWrongSorts(MATCH, exp);
     }
-    LExpr* body = pRdr.readNext();
+    LExpr *body = pRdr.readNext();
 
-    LExpr* l = new LExpr(LispParser::LIST);
+    LExpr *l = new LExpr(LispParser::LIST);
     LExprList::push(body, l->list);
     LExprList::push(pattern, l->list);
     LExprList::push(matchedAtom, l->list);
@@ -1565,17 +1566,19 @@ void SMTLIB2::parseMatchBegin(LExpr* exp)
   }
 }
 
-void SMTLIB2::parseMatchCaseStart(LExpr* exp)
+void SMTLIB2::parseMatchCaseStart(LExpr *exp)
 {
+  CALL("SMTLIB2::parseMatchCaseStart");
+
   ASS(exp->isList());
   LispListReader eRdr(exp->list);
 
   ASS(eRdr.hasNext());
   auto matched = eRdr.readNext();
   ASS(eRdr.hasNext());
-  LExpr* pattern = eRdr.readNext();
+  LExpr *pattern = eRdr.readNext();
   ASS(eRdr.hasNext());
-  LExpr* body = eRdr.readNext();
+  LExpr *body = eRdr.readNext();
   eRdr.acceptEOL();
 
   // find the matched term -- it must
@@ -1584,19 +1587,19 @@ void SMTLIB2::parseMatchCaseStart(LExpr* exp)
   Scopes::Iterator sIt(_scopes);
   bool foundMatched = false;
   while (sIt.hasNext()) {
-    if (sIt.next()->find(matched->str,matchedTerm)) {
+    if (sIt.next()->find(matched->str, matchedTerm)) {
       foundMatched = true;
       break;
     }
   }
 
   if (!foundMatched) {
-    complainAboutArgShortageOrWrongSorts(MATCH,exp);
+    complainAboutArgShortageOrWrongSorts(MATCH, exp);
   }
 
   // now parse the match pattern which
   // potentially declares new variables
-  TermLookup* lookup = new TermLookup;
+  TermLookup *lookup = new TermLookup;
   if (pattern->isList()) {
     LispListReader tRdr(pattern);
     auto ctorName = tRdr.readAtom();
@@ -1606,21 +1609,22 @@ void SMTLIB2::parseMatchCaseStart(LExpr* exp)
     while (tRdr.hasNext()) {
       auto arg = tRdr.readNext();
       if (!arg->isAtom() || isAlreadyKnownFunctionSymbol(arg->str)) {
-        USER_ERROR("Nested ctors in match patterns are disallowed: '"+exp->toString()+"'");
+        USER_ERROR("Nested ctors in match patterns are disallowed: '" + exp->toString() + "'");
       }
       if (!lookup->insert(arg->str, make_pair(TermList(_nextVar++, false), fn->fnType()->arg(argcnt++)))) {
-        USER_ERROR("Variable '"+arg->str+"' has already been defined");
+        USER_ERROR("Variable '" + arg->str + "' has already been defined");
       }
     }
+  }
   // non-ctor atom
-  } else if (!isTermAlgebraConstructor(pattern->str)) {
+  else if (!isTermAlgebraConstructor(pattern->str)) {
     if (isAlreadyKnownFunctionSymbol(pattern->str)) {
-      USER_ERROR("Constant symbol found in match pattern: '"+exp->toString()+"'");
+      USER_ERROR("Constant symbol found in match pattern: '" + exp->toString() + "'");
     }
     // in case of _ nothing to add to lookup
     if (pattern->str != UNDERSCORE) {
       if (!lookup->insert(pattern->str, make_pair(TermList(_nextVar++, false), matchedTerm.second))) {
-        USER_ERROR("Variable '"+pattern->str+"' has already been defined");
+        USER_ERROR("Variable '" + pattern->str + "' has already been defined");
       }
     }
   }
@@ -1628,37 +1632,40 @@ void SMTLIB2::parseMatchCaseStart(LExpr* exp)
   _scopes.push(lookup);
   // only parse pattern if it's not _
   if (pattern->isList() || pattern->str != UNDERSCORE) {
-    _todo.push(make_pair(PO_PARSE,pattern));
+    _todo.push(make_pair(PO_PARSE, pattern));
   }
-  _todo.push(make_pair(PO_PARSE,body));
+  _todo.push(make_pair(PO_PARSE, body));
 }
 
-void SMTLIB2::parseMatchCaseEnd(LExpr* exp)
+void SMTLIB2::parseMatchCaseEnd(LExpr *exp)
 {
+  CALL("SMTLIB2::parseMatchCaseEnd");
+
   LExprList::destroy(exp->list);
   delete exp;
   delete _scopes.pop();
 }
 
-void SMTLIB2::parseMatchEnd(LExpr* exp)
+void SMTLIB2::parseMatchEnd(LExpr *exp)
 {
   CALL("SMTLIB2::parseMatchEnd");
-  LOG2("PO_MATCH_END ",exp->toString());
+
+  LOG2("PO_MATCH_END ", exp->toString());
 
   ASS(exp->isList());
   LispListReader lRdr(exp->list);
-  const vstring& theMatchAtom = lRdr.readAtom();
-  ASS_EQ(getBuiltInTermSymbol(theMatchAtom),TS_MATCH);
+  const vstring &theMatchAtom = lRdr.readAtom();
+  ASS_EQ(getBuiltInTermSymbol(theMatchAtom), TS_MATCH);
 
   vstring matched = lRdr.readAtom();
   TermList matchedTerm;
   auto matchedTermSort = _results.pop().asTerm(matchedTerm);
   LOG2("CASE matched ", matchedTerm.toString());
 
-  vmap<unsigned, TermAlgebraConstructor*> ctorFunctors;
+  vmap<unsigned, TermAlgebraConstructor *> ctorFunctors;
   TermAlgebra *ta = env.signature->getTermAlgebraOfSort(matchedTermSort);
   if (ta == nullptr) {
-    USER_ERROR("Match term '"+matched+"' is not of a term algebra type in expression '"+exp->toString()+"'");
+    USER_ERROR("Match term '" + matched + "' is not of a term algebra type in expression '" + exp->toString() + "'");
   }
   for (unsigned int i = 0; i < ta->nConstructors(); i++) {
     ctorFunctors.insert(make_pair(ta->constructor(i)->functor(), ta->constructor(i)));
@@ -1674,32 +1681,34 @@ void SMTLIB2::parseMatchEnd(LExpr* exp)
   LispListReader cRdr(lRdr.readList());
   while (cRdr.hasNext()) {
     LispListReader pRdr(cRdr.readList());
-    LExpr* pattern = pRdr.readNext();
+    LExpr *pattern = pRdr.readNext();
     pRdr.readNext(); // body
     pRdr.acceptEOL();
     TermList p;
     if (pattern->isAtom() && pattern->str == UNDERSCORE) {
       p = TermList(_nextVar++, false);
-    } else {
+    }
+    else {
       ALWAYS(_results.pop().asTerm(p) == matchedTermSort);
     }
     TermList b;
     sort = _results.pop().asTerm(b);
 
-    LOG2("CASE pattern ",p.toString());
-    LOG2("CASE body    ",b.toString());
+    LOG2("CASE pattern ", p.toString());
+    LOG2("CASE body    ", b.toString());
 
     if (p.isVar()) {
       if (varUsed) {
-        USER_ERROR("Else branch cannot be used twice in match in '"+exp->toString()+"'");
+        USER_ERROR("Else branch cannot be used twice in match in '" + exp->toString() + "'");
       }
       varUsed = true;
       varPattern = p;
       varBody = b;
-    } else {
+    }
+    else {
       auto functor = p.term()->functor();
       if (ctorFunctors.erase(functor) != 1) {
-        USER_ERROR("Match pattern '"+p.toString()+"' is either not ctor or was listed twice in '"+exp->toString()+"'");
+        USER_ERROR("Match pattern '" + p.toString() + "' is either not ctor or was listed twice in '" + exp->toString() + "'");
       }
       elements.push(p);
       elements.push(b);
@@ -1711,23 +1720,24 @@ void SMTLIB2::parseMatchEnd(LExpr* exp)
   // we add the missing ctors
   if (varUsed) {
     Stack<TermList> argTerms;
-    for (const auto& kv : ctorFunctors) {
+    for (const auto &kv : ctorFunctors) {
       argTerms.reset();
       for (unsigned j = 0; j < kv.second->arity(); j++) {
         argTerms.push(TermList(_nextVar++, false));
       }
       TermList pattern(Term::create(kv.second->functor(), argTerms.size(), argTerms.begin()));
-      LOG2("CASE missing ",pattern);
+      LOG2("CASE missing ", pattern);
       elements.push(pattern);
       if (varPattern.isVar()) {
         Substitution subst;
-        subst.bind(varPattern.var(),pattern);
+        subst.bind(varPattern.var(), pattern);
         varBody = SubstHelper::apply<Substitution>(varBody, subst);
       }
       elements.push(varBody);
     }
-  } else if (ctorFunctors.size() > 0) {
-    USER_ERROR("Missing ctors in match expression '"+exp->toString()+"'");
+  }
+  else if (ctorFunctors.size() > 0) {
+    USER_ERROR("Missing ctors in match expression '" + exp->toString() + "'");
   }
 
   auto match = TermList(Term::createMatch(sort, matchedTermSort, elements.size(), elements.begin()));

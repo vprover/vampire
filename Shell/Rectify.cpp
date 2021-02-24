@@ -244,8 +244,7 @@ Term* Rectify::rectifySpecialTerm(Term* t)
     }
     return Term::createTuple(rectifiedTupleTerm);
   }
-  case Term::SF_MATCH:
-  {
+  case Term::SF_MATCH: {
     DArray<TermList> terms(t->arity());
     bool unchanged = true;
     for (unsigned i = 0; i < t->arity(); i++) {

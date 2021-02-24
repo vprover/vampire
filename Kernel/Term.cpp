@@ -1130,11 +1130,11 @@ Term* Term::createTuple(Term* tupleTerm) {
   return s;
 }
 
-Term* Term::createMatch(TermList sort, TermList matchedSort, unsigned int arity, TermList* elements) {
+Term *Term::createMatch(TermList sort, TermList matchedSort, unsigned int arity, TermList *elements) {
   CALL("Term::createMatch");
-  Term* s = new(arity, sizeof(SpecialTermData)) Term;
+  Term *s = new (arity, sizeof(SpecialTermData)) Term;
   s->makeSymbol(SF_MATCH, arity);
-  TermList* ss = s->args();
+  TermList *ss = s->args();
   s->getSpecialData()->_matchData.sort = sort;
   s->getSpecialData()->_matchData.matchedSort = matchedSort;
 

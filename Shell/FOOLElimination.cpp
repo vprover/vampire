@@ -785,9 +785,8 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
          */
 
         TermList matchedTerm;
-        Formula* matchedFormula;
-        Context matchedContext = term->nthArgument(0)->isTerm()
-          && term->nthArgument(0)->term()->isBoolean() ? FORMULA_CONTEXT : TERM_CONTEXT;
+        Formula *matchedFormula;
+        Context matchedContext = term->nthArgument(0)->isTerm() && term->nthArgument(0)->term()->isBoolean() ? FORMULA_CONTEXT : TERM_CONTEXT;
         process(*term->nthArgument(0), matchedContext, matchedTerm, matchedFormula);
 
         TermList resultSort = Term::defaultSort();
@@ -802,37 +801,38 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
 
         // build g(X1, ..., Xn)
         TermList freshFunctionApplication;
-        Formula* freshPredicateApplication;
+        Formula *freshPredicateApplication;
         buildApplication(freshSymbol, context, allVars, freshFunctionApplication, freshPredicateApplication);
 
-        for (unsigned int i = 1; i < term->arity(); i+=2) {
+        for (unsigned int i = 1; i < term->arity(); i += 2) {
           TermList patternTerm;
-          Formula* patternFormula;
+          Formula *patternFormula;
           process(*term->nthArgument(i), matchedContext, patternTerm, patternFormula);
           // build v = pi
-          Formula* head = buildEq(matchedContext, matchedFormula, patternFormula,
+          Formula *head = buildEq(matchedContext, matchedFormula, patternFormula,
                                   matchedTerm, patternTerm, sd->getMatchedSort());
 
           TermList bodyTerm;
-          Formula* bodyFormula;
-          process(*term->nthArgument(i+1), context, bodyTerm, bodyFormula);
+          Formula *bodyFormula;
+          process(*term->nthArgument(i + 1), context, bodyTerm, bodyFormula);
           // build g(X1, ..., Xn) == bi
-          Formula* body = buildEq(context, freshPredicateApplication, bodyFormula,
+          Formula *body = buildEq(context, freshPredicateApplication, bodyFormula,
                                   freshFunctionApplication, bodyTerm, resultSort);
           // build (v = pi => g(X1, ..., Xn) == bi)
-          Formula* impl = new BinaryFormula(IMP, head, body);
+          Formula *impl = new BinaryFormula(IMP, head, body);
 
           // build ![X1, ..., Xn]: (f => g(X1, ..., Xn) == s)
           if (VList::length(freeVars) > 0) {
             //TODO do we know the sorts of freeVars?
-            impl = new QuantifiedFormula(FORALL, freeVars,0, impl);
+            impl = new QuantifiedFormula(FORALL, freeVars, 0, impl);
           }
           addDefinition(new FormulaUnit(impl, NonspecificInference1(InferenceRule::FOOL_MATCH_ELIMINATION, _unit)));
         }
 
         if (context == FORMULA_CONTEXT) {
           formulaResult = freshPredicateApplication;
-        } else {
+        }
+        else {
           termResult = freshFunctionApplication;
         }
         break;

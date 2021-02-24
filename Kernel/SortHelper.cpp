@@ -482,16 +482,16 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermL
 
             // there are two sorts here, one is the sort
             // of matched term and patterns, the other is
-            // the sort of the match block and of each case 
+            // the sort of the match block and of each case
             newTask.ts = *term->nthArgument(0);
             newTask.contextSort = matchedSort;
             todo.push(newTask);
-            for (unsigned int i = 1; i < term->arity(); i+=2) {
+            for (unsigned int i = 1; i < term->arity(); i += 2) {
               newTask.ts = *term->nthArgument(i);
               newTask.contextSort = matchedSort;
               todo.push(newTask);
 
-              newTask.ts = *term->nthArgument(i+1);
+              newTask.ts = *term->nthArgument(i + 1);
               newTask.contextSort = task.contextSort;
               todo.push(newTask);
             }
