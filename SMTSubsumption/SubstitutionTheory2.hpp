@@ -216,7 +216,6 @@ public:
           }
         }
       }
-
       return true;
     }  // enable(...)
 

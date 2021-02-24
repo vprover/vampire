@@ -211,15 +211,15 @@ public:
     m_unassigned_vars++;
     m_vars.emplace_back();
     m_marks.push_back(0);
-    m_values.push_back(Value::Unassigned); // value of positive literal
-    m_values.push_back(Value::Unassigned); // value of negative literal
+    m_values.push_back(Value::Unassigned);  // value of positive literal
+    m_values.push_back(Value::Unassigned);  // value of negative literal
     while (m_watches.size() < 2 * m_used_vars) {
-      m_watches.emplace_back().reserve(8);  // positive literal watches
-      m_watches.emplace_back().reserve(8);  // negative literal watches
+      m_watches.emplace_back();             // positive literal watches
+      m_watches.emplace_back();             // negative literal watches
     }
     while (m_watches_amo.size() < 2 * m_used_vars) {
-      m_watches_amo.emplace_back().reserve(8);  // positive literal watches
-      m_watches_amo.emplace_back();             // positive literal watches -- generally not needed for our instances
+      m_watches_amo.emplace_back();         // positive literal watches
+      m_watches_amo.emplace_back();         // positive literal watches -- generally not needed for our instances
     }
     return new_var;
   }

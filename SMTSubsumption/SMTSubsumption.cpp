@@ -1032,9 +1032,6 @@ class SMTSubsumptionImpl2
     subsat::Solver solver;
     SubstitutionTheory2 st;
 
-    /// Clauses stating that each base literal must be matched to at least one instance literal.
-    // vvector<subsat::AllocatedClause> match_clauses;  // NOT NECESSARY, since we iterate over 'base' outside
-
     /// AtMostOne constraints stating that each instance literal may be matched at most once.
     vvector<subsat::AllocatedClauseHandle> instance_constraints;
 
@@ -2296,12 +2293,12 @@ void ProofOfConcept::benchmark_micro(vvector<SubsumptionInstance> instances)
 
     name = "smt2_setup_" + suffix;
     benchmark::RegisterBenchmark(name.c_str(), bench_smt2_setup, instance);
-    name = "smt2_setup_reusing" + suffix;
+    name = "smt2_setup_reusing_" + suffix;
     benchmark::RegisterBenchmark(name.c_str(), bench_smt2_setup_reusing, instance);
 
     name = "orig_setup_" + suffix;
     benchmark::RegisterBenchmark(name.c_str(), bench_orig_setup, instance);
-    name = "orig_setup_reusing" + suffix;
+    name = "orig_setup_reusing_" + suffix;
     benchmark::RegisterBenchmark(name.c_str(), bench_orig_setup_reusing, instance);
     // name = "orig_search_" + suffix;
     // benchmark::RegisterBenchmark(name.c_str(), bench_orig_search, instance);
