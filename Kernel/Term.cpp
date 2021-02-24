@@ -1394,9 +1394,17 @@ bool Term::isBoolean() const {
         return false;
       case SF_ITE:
       case SF_LET:
-      case SF_LET_TUPLE:
-      case SF_MATCH: {
+      case SF_LET_TUPLE: {
         const TermList *ts = term->nthArgument(0);
+        if (!ts->isTerm()) {
+          return false;
+        } else {
+          term = ts->term();
+          break;
+        }
+      }
+      case SF_MATCH: {
+        const TermList *ts = term->nthArgument(2);
         if (!ts->isTerm()) {
           return false;
         } else {

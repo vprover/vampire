@@ -1200,9 +1200,10 @@ void NewCNF::processBoolterm(TermList ts, Occurrences &occurrences)
       processLet(sd, *term->nthArgument(0), occurrences);
       break;
 
-    case Term::SF_MATCH:
+    case Term::SF_MATCH: {
       processMatch(sd, term, occurrences);
       break;
+    }
 
     default:
       ASSERTION_VIOLATION_REP(term->toString());

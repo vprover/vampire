@@ -690,6 +690,10 @@ void SortHelper::collectVariableSorts(TermList ts, TermList contextSort, DHMap<u
       collectVariableSorts(sd->getTupleTerm(), map);
       break;
 
+    case Term::SF_MATCH:
+      // args are handled below
+      break;
+
 #if VDEBUG
     default:
       ASSERTION_VIOLATION;

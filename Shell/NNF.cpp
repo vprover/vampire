@@ -338,9 +338,8 @@ TermList NNF::ennf(TermList ts, bool polarity)
         DArray<TermList> terms(term->arity());
         bool unchanged = true;
         for (unsigned i = 0; i < term->arity(); i++) {
-          TermList subterm = ennf(*term->nthArgument(i), polarity);
-          unchanged = unchanged && (subterm == *term->nthArgument(i));
-          terms[i] = subterm;
+          terms[i] = ennf(*term->nthArgument(i), polarity);
+          unchanged = unchanged && (terms[i] == *term->nthArgument(i));
         }
 
         if (unchanged) {

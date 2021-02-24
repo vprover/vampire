@@ -678,6 +678,10 @@ void Property::scan(TermList ts,bool unit,bool goal)
         _hasFOOL = true;
         break;
 
+      case Term::SF_MATCH:
+        //TODO(mhajdu): find out whether to do anything here
+        break;
+
       default:
         break;
     }

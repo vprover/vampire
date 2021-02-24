@@ -328,9 +328,8 @@ TermList Flattening::flatten (TermList ts)
         DArray<TermList> terms(term->arity());
         bool unchanged = true;
         for (unsigned i = 0; i < term->arity(); i++) {
-          TermList subterm = flatten(*term->nthArgument(i));
-          unchanged = unchanged && (subterm == *term->nthArgument(i));
-          terms[i] = subterm;
+          terms[i] = flatten(*term->nthArgument(i));
+          unchanged = unchanged && (terms[i] == *term->nthArgument(i));
         }
 
         if (unchanged) {
