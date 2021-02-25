@@ -97,21 +97,10 @@ ostream& operator<<(ostream& out, const InductionTemplate& templ);
  * This class generates the induction templates based on
  * the marked recursive function definitions from the parser.
  */
-class InductionPreprocessor {
-public:
-  void preprocess(Problem& prb);
-
-private:
-  void preprocess(UnitList* units);
-  void parseRecursiveDefinition(Literal* lit);
-  void findPossibleRecursiveDefinitions(Formula* f, vvector<Formula*> conditions);
-
-  void processFormulaBody(Formula* body, Literal* header, vvector<Formula*> conditions, InductionTemplate& templ);
-  void processBody(TermList body, TermList header, vvector<Formula*> conditions, InductionTemplate& templ);
-  void processCase(const unsigned recFun, const bool isPred, TermList body, vvector<TermList>& recursiveCalls);
-
-  vvector<vmap<unsigned, pair<InductionTemplate, vvector<pair<Literal*,bool>>>>> foundFunctionDefinitions;
-  vmap<unsigned, InductionTemplate> foundPredicateDefinitions;
+struct InductionPreprocessor {
+static void preprocessProblem(Problem& prb);
+static void processFormulaBody(Formula* body, Literal* header, vvector<Formula*> conditions, InductionTemplate& templ);
+static void processBody(TermList body, TermList header, vvector<Formula*> conditions, InductionTemplate& templ);
 };
 
 } // Shell

@@ -340,6 +340,7 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/EqualityProxy.o\
          Shell/Flattening.o\
          Shell/FunctionDefinition.o\
+         Shell/FunctionDefinitionDiscovery.o\
          Shell/GeneralSplitting.o\
          Shell/GoalGuessing.o\
          Shell/Grounding.o\
