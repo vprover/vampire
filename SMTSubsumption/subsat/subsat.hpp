@@ -1177,9 +1177,13 @@ std::ostream& operator<<(std::ostream& os, ShowAssignment<A> sa)
 
 
 // TODO:
-// 1. binary clause optimization
-// 2. phase saving? but for our problem, just choosing 'true' will almost always be correct.
+// 1. sort analyzed variables before VMTF-bumping
+// 2. binary clause optimization
+// 3. phase saving? but for our problem, just choosing 'true' will almost always be correct.
 //    => maybe add a 'hint' to 'new_variable'... that will be the first phase tried if we need to decide on it.
+// 4. restarts
+// 5. vsids / mode switching?
+// 6. are we missing other important minisat features? (clause deletion, ...?)
 
 
 #ifndef NDEBUG

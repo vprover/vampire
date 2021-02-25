@@ -19,6 +19,11 @@ namespace subsat {
 using std::uint8_t;
 using std::uint32_t;
 
+// TODO: use something like this instead of templates everywhere
+#ifdef SUBSAT_STANDALONE
+// template <typename T>
+// using allocator_type = std::allocator<T>;
+#endif
 
 /// Value of a boolean variable/literal.
 enum class Value : signed char {
