@@ -544,24 +544,24 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
           freshFunctionApplication = TermList(Term::create(freshSymbol, allVars.size(), allVars.begin()));
         }
         
-        // build g(Y1,...,Ym,X1, ..., Xn) == s
+        // build g(Y1, ..., Ym,X1, ..., Xn) == s
         Formula* thenEq = buildEq(context, freshPredicateApplication, thenBranchFormula,
                                            freshFunctionApplication, thenBranch, resultSort);
 
-        // build (f => g(Y1,...,Ym,X1, ..., Xn) == s)
+        // build (f => g(Y1, ..., Ym,X1, ..., Xn) == s)
         Formula* thenImplication = new BinaryFormula(IMP, condition, thenEq);
 
-        // build ![X1, ..., Xn]: (f => g(Y1,...,Ym,X1, ..., Xn) == s)
+        // build ![X1, ..., Xn]: (f => g(Y1, ..., Ym,X1, ..., Xn) == s)
         if (VList::length(freeVars) > 0) {
           //TODO do we know the sorts of freeVars?
           thenImplication = new QuantifiedFormula(FORALL, freeVars,0, thenImplication);
         }
 
-        // build g(X1, ..., Xn) == t
+        // build g(Y1, ..., Ym, X1, ..., Xn) == t
         Formula* elseEq = buildEq(context, freshPredicateApplication, elseBranchFormula,
                                            freshFunctionApplication, elseBranch, resultSort);
 
-        // build ~f => g(Y1,...,Ym,X1, ..., Xn) == t
+        // build ~f => g(Y1, ..., Ym,X1, ..., Xn) == t
         Formula* elseImplication = new BinaryFormula(IMP, new NegatedFormula(condition), elseEq);
 
         // build ![X1, ..., Xn]: (~f => g(Y1,...,Ym,X1, ..., Xn) == t)
@@ -689,7 +689,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         TermList contents = *term->nthArgument(0); // deliberately unprocessed here
 
         // replace occurrences of f(s1, ..., sj,t1, ..., tk) by 
-        // g(A1,...Am, s1,...sj,X1, ..., Xn, t1, ..., tk)
+        // g(A1, ..., Am, s1, ..., sj,X1, ..., Xn, t1, ..., tk)
         if (renameSymbol) {
           if (env.options->showPreprocessing()) {
             env.beginOutput();

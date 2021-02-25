@@ -83,6 +83,8 @@ public:
 
   void removeActiveOrPassiveClause(Clause* cl);
 
+  //Run when clause cl has been simplified. Replacement is the array of replacing
+  //clauses which can be empty
   void onClauseReduction(Clause* cl, Clause** replacements, unsigned numOfReplacements, 
                          Clause* premise, bool forward=true);
   void onClauseReduction(Clause* cl, Clause** replacements, unsigned numOfReplacements, 
@@ -188,6 +190,10 @@ protected:
   typedef List<ForwardSimplificationEngine*> FwSimplList;
   FwSimplList* _fwSimplifiers;
 
+  //Simplification occurs at the same point in the loop
+  //as forward and backward simplification, but does not involve
+  //clauses in active. At the moment, the only simplification inference
+  //is the higher-order cnfOnTheFly
   typedef List<SimplificationEngine*> SimplList;
   SimplList* _simplifiers;
 
