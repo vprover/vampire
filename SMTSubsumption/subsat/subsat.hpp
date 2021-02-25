@@ -664,6 +664,41 @@ private:
     assert(m_values[lit] == Value::True);
 
     Lit const not_lit = ~lit;
+
+    // Propagate AtMostOne constraints.
+    // There's no need to copy/modify any watches here,
+    // because as soon as an AtMostOne constraint triggers,
+    // all other literals will be set to false immediately.
+    for (Watch const& watch : m_watches_amo[lit]) {
+      ClauseRef const cr = watch.clause_ref;
+      Clause& c = m_clauses.deref(cr);
+      assert(c.size() >= 3);
+      for (Lit other_lit : c) {
+        if (lit == other_lit) {
+          continue;
+        }
+        Value const other_value = m_values[other_lit];
+        if (other_value == Value::Unassigned) {
+          // propagate
+          LOG_TRACE("Assigning " << ~other_lit << " due to AtMostOne constraint " << SHOWREF(cr));
+          assign(~other_lit, Reason{lit});
+        }
+        else if (other_value == Value::True) {
+          LOG_TRACE("Current assignment: " << SHOWASSIGNMENT());
+          LOG_DEBUG("Conflict with AtMostOne constraint " << SHOWREF(cr));
+          // at least two literals in the AtMostOne constraint are true => conflict
+          Clause& tmp_binary_clause = m_clauses.deref(tmp_binary_clause_ref);
+          tmp_binary_clause[0] = not_lit;
+          tmp_binary_clause[1] = ~other_lit;
+          return tmp_binary_clause_ref;
+        }
+        else {
+          assert(other_value == Value::False);
+          // nothing to do
+        }
+      }
+    }
+
     vector<Watch>& watches = m_watches[not_lit];
 
     auto q = watches.begin();   // points to updated watch, follows p
@@ -758,46 +793,7 @@ private:
     watches.resize(static_cast<std::size_t>(remaining_watches));
     assert(watches.end() == q);
 
-    if (conflict.is_valid()) {
-      return conflict;
-    }
-
-    // Propagate AtMostOne constraints.
-    // There's no need to copy/modify any watches here,
-    // because as soon as an AtMostOne constraint triggers,
-    // all other literals will be set to false immediately.
-    for (Watch const& watch : m_watches_amo[lit]) {
-      ClauseRef const cr = watch.clause_ref;
-      Clause& c = m_clauses.deref(cr);
-      assert(c.size() >= 3);
-      for (Lit other_lit : c) {
-        if (lit == other_lit) {
-          continue;
-        }
-        Value const other_value = m_values[other_lit];
-        if (other_value == Value::Unassigned) {
-          // propagate
-          LOG_TRACE("Assigning " << ~other_lit << " due to AtMostOne constraint " << SHOWREF(cr));
-          assign(~other_lit, Reason{lit});
-        }
-        else if (other_value == Value::True) {
-          LOG_TRACE("Current assignment: " << SHOWASSIGNMENT());
-          LOG_DEBUG("Conflict with AtMostOne constraint " << SHOWREF(cr));
-          // at least two literals in the AtMostOne constraint are true => conflict
-          Clause& tmp_binary_clause = m_clauses.deref(tmp_binary_clause_ref);
-          tmp_binary_clause[0] = ~lit;
-          tmp_binary_clause[1] = ~other_lit;
-          conflict = tmp_binary_clause_ref;
-          return conflict;
-        }
-        else {
-          assert(other_value == Value::False);
-          // nothing to do
-        }
-      }
-    }
-
-    return ClauseRef::invalid();
+    return conflict;
   }  // propagate_literal
 
 
