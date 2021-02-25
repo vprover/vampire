@@ -2289,8 +2289,9 @@ void TPTP::funApp()
       return;
 
     case T_ITE:
-      if(/*env.statistics->polymorphic ||*/ env.statistics->higherOrder){
-        USER_ERROR("Polymorphic Vampire is currently not compatible with FOOL reasoning");
+      if(env.statistics->higherOrder){
+        //Does higher-order even use this code? I dont think so.
+        USER_ERROR("Higher-order Vampire is currently not compatible with FOOL reasoning");
       }
       consumeToken(T_LPAR);
       addTagState(T_RPAR);
@@ -2302,8 +2303,9 @@ void TPTP::funApp()
       return;
 
     case T_LET: {
-      if(/*env.statistics->polymorphic ||*/ env.statistics->higherOrder){
-        USER_ERROR("Polymorphic Vampire is currently not compatible with FOOL reasoning");
+      if(env.statistics->higherOrder){
+        //Does higher-order even use this code? I dont think so.        
+        USER_ERROR("Higher-order  Vampire is currently not compatible with FOOL reasoning");
       }
       consumeToken(T_LPAR);
       addTagState(T_RPAR);

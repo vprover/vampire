@@ -788,10 +788,6 @@ private:
   void endIte();
   void letType();
   void endLetTypes();
-  void endApp();
-  void holFormula();
-  void endHolFormula();
-  void holTerm();
   void definition();
   void midDefinition();
   void endDefinition();
@@ -800,11 +796,22 @@ private:
   void endTuple();
   void addTagState(Tag);
 
+
+  //Higher-order parsing
+  //these functions were all written in early 2017 (start of PhD) and are consequently
+  //pretty nasty and don't follow the philosophy of the parser. However, they should
+  //not impact standard parsing functions in any way.
+  void endApp();
+  void holFormula();
+  void endHolFormula();
+  void holTerm();  
   void foldl(TermStack*);
   TermList readArrowSort();
   TermList readSort();
   void readTypeArgs(unsigned arity);
   unsigned getConstructorArity();
+  //End of higher-order specific functions
+
   void bindVariable(unsigned var,TermList sort);
   void unbindVariables();
   void skipToRPAR();
