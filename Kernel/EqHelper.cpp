@@ -337,7 +337,6 @@ TermIterator EqHelper::getEqualityArgumentIterator(Literal* lit)
 	  getSingletonIterator(*lit->nthArgument(1))) );
 }
 
-
 TermIterator EqHelper::getFnDefLHSIterator(Literal* lit, bool reversed)
 {
   ASS(lit->isEquality() && lit->isPositive());

@@ -321,6 +321,9 @@ void TimeCounter::outputSingleStat(TimeCounterUnit tcu, ostream& out)
   case TC_SUPERPOSITION:
     out<<"superposition";
     break;
+  case TC_FNDEF_REWRITING:
+    out<<"function definition rewriting";
+    break;
   case TC_LITERAL_ORDER_AFTERCHECK:
     out<<"literal order aftercheck";
     break;

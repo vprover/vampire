@@ -12,7 +12,6 @@
  * Defines class FnDefRewriting.
  */
 
-
 #ifndef __FnDefRewriting__
 #define __FnDefRewriting__
 
@@ -28,22 +27,21 @@ using namespace Indexing;
 using namespace Saturation;
 
 class FnDefRewriting
-: public GeneratingInferenceEngine
-{
+    : public GeneratingInferenceEngine {
 public:
   CLASS_NAME(FnDefRewriting);
   USE_ALLOCATOR(FnDefRewriting);
 
-  void attach(SaturationAlgorithm* salg);
+  void attach(SaturationAlgorithm *salg);
   void detach();
 
-  ClauseIterator generateClauses(Clause* premise) override;
+  ClauseIterator generateClauses(Clause *premise) override;
 
 private:
-  static Clause* perform(
-	  Clause* rwClause, Literal* rwLiteral, TermList rwTerm,
-	  Clause* eqClause, Literal* eqLiteral, TermList eqLHS,
-	  ResultSubstitutionSP subst, bool eqIsResult);
+  static Clause *perform(
+      Clause *rwClause, Literal *rwLiteral, TermList rwTerm,
+      Clause *eqClause, Literal *eqLiteral, TermList eqLHS,
+      ResultSubstitutionSP subst, bool eqIsResult);
 
   struct ForwardResultFn;
   struct RewriteableSubtermsFn;
@@ -51,11 +49,10 @@ private:
   struct GeneralizationsFn;
   struct BackwardResultFn;
 
-  DemodulationSubtermIndex* _subtermIndex;
-  FnDefLHSIndex* _lhsIndex;
+  DemodulationSubtermIndex *_subtermIndex;
+  FnDefLHSIndex *_lhsIndex;
 };
 
-
-};
+}; // namespace Inferences
 
 #endif /* __FnDefRewriting__ */

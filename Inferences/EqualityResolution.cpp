@@ -68,10 +68,6 @@ struct EqualityResolution::ResultFn
     ASS(lit->isEquality());
     ASS(lit->isNegative());
 
-    // if (_cl->containsFunctionDefinition()) {
-    //   return 0;
-    // }
-
     static RobSubstitution subst;
     subst.reset();
     static Stack<UnificationConstraint> constraints;
