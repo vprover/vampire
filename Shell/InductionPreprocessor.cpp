@@ -71,7 +71,7 @@ ostream& operator<<(ostream& out, const RDescription& rdesc)
 
 bool InductionTemplate::findVarOrder(
   const vvector<vvector<VarType>>& relations,
-  vset<unsigned>& candidates,
+  const vset<unsigned>& candidates,
   VarOrder& res)
 {
   if (relations.empty()) {
@@ -304,7 +304,9 @@ bool InductionTemplate::checkWellFoundedness()
         auto t2 = argIt2.next();
         if (t1 == t2) {
           relation[i] = VarType::FIXED;
-        } else if (t2.containsSubterm(t1)) {
+        } else if (t2.isTerm() && t2.term()->shared()
+                   && (t1.isVar() || t1.term()->shared())
+                   && t2.containsSubterm(t1)) {
           relation[i] = VarType::SUBTERM;
           candidatePositions.insert(i);
           _inductionVariables[i] = true;
@@ -317,7 +319,17 @@ bool InductionTemplate::checkWellFoundedness()
     }
   }
   _order.clear();
-  return findVarOrder(relations, candidatePositions, _order);
+  if (!findVarOrder(relations, candidatePositions, _order)) {
+    _order.clear();
+    _order.push_back(candidatePositions);
+    for (const auto& o : _order) {
+      for (const auto& i : o) {
+        _inductionVariables[i] = true;
+      }
+    }
+    return false;
+  }
+  return true;
 }
 
 ostream& operator<<(ostream& out, const InductionTemplate& templ)
@@ -358,8 +370,8 @@ void parseRecursiveDefinition(Literal* lit)
 {
   CALL("parseRecursiveDefinition");
 
-  auto lhs = lit->nthArgument(0);
-  auto rhs = lit->nthArgument(1);
+  auto lhs = lit->isFunctionOrientedReversed() ? lit->nthArgument(1) : lit->nthArgument(0);
+  auto rhs = lit->isFunctionOrientedReversed() ? lit->nthArgument(0) : lit->nthArgument(1);
   auto lhterm = lhs->term();
   bool isPred = lhterm->isFormula();
   if (isPred) {
@@ -369,11 +381,10 @@ void parseRecursiveDefinition(Literal* lit)
   InductionTemplate templ;
   TermList term(lhterm);
   InductionPreprocessor::processBody(*rhs, term, templ);
-  // TODO(mhajdu): consider adding missing cases here
-  if (!templ.checkWellFoundedness()
-      || !templ.checkUsefulness()) {
+  if (!templ.checkUsefulness()) {
     return;
   }
+  templ.checkWellFoundedness();
   vvector<vvector<TermList>> missingCases;
   if (!templ.checkWellDefinedness(missingCases) && !missingCases.empty()) {
     templ.addMissingCases(missingCases);
@@ -459,6 +470,10 @@ void processCase(const unsigned recFun, const bool isPred, TermList body, vvecto
       }
       case TRUE:
       case FALSE: {
+        break;
+      }
+      case FORALL:
+      case EXISTS: {
         break;
       }
 #if VDEBUG

@@ -178,38 +178,6 @@ TermList IteratorByInductiveVariables::next()
   return _it.next();
 }
 
-Formula* applyVarReplacement(Formula* f, VarReplacement& vr) {
-  if (f->connective() == Connective::LITERAL) {
-    auto lit = vr.transform(f->literal());
-    return new AtomicFormula(lit);
-  }
-
-  switch (f->connective()) {
-    case Connective::AND:
-    case Connective::OR: {
-      FormulaList* res = f->args();
-      FormulaList::RefIterator it(res);
-      while (it.hasNext()) {
-        auto& curr = it.next();
-        curr = applyVarReplacement(curr, vr);
-      }
-      return JunctionFormula::generalJunction(f->connective(), res);
-    }
-    case Connective::IMP:
-    case Connective::XOR:
-    case Connective::IFF: {
-      auto left = applyVarReplacement(f->left(), vr);
-      auto right = applyVarReplacement(f->right(), vr);
-      return new BinaryFormula(f->connective(), left, right);
-    }
-    case Connective::NOT: {
-      return new NegatedFormula(applyVarReplacement(f->uarg(), vr));
-    }
-    default:
-      ASSERTION_VIOLATION;
-  }
-}
-
 Formula* applySubst(RobSubstitution& subst, int index, Formula* f) {
   if (f->connective() == Connective::LITERAL) {
     auto lit = subst.apply(f->literal(), index);
@@ -817,21 +785,21 @@ bool InductionSchemeGenerator::process(TermList curr, bool active,
       if (!scheme.init(argTerms, templ)) {
         continue;
       }
-      if (!scheme.checkWellFoundedness()) {
-        if (env.options->showInduction()) {
-          env.beginOutput();
-          env.out() << "[Induction] induction scheme is not well-founded: " << endl
-            << scheme << endl << "suggested by template " << templ << endl << "and terms ";
-          for (const auto& argTerm : argTerms) {
-            env.out() << argTerm << ",";
-          }
-          env.out() << endl;
-          env.endOutput();
-        }
-        stringstream str;
-        str << "induction scheme is not well-founded: " << scheme << endl;
-        USER_ERROR(str.str());
-      } else {
+      // if (!scheme.checkWellFoundedness()) {
+      //   if (env.options->showInduction()) {
+      //     env.beginOutput();
+      //     env.out() << "[Induction] induction scheme is not well-founded: " << endl
+      //       << scheme << endl << "suggested by template " << templ << endl << "and terms ";
+      //     for (const auto& argTerm : argTerms) {
+      //       env.out() << argTerm << ",";
+      //     }
+      //     env.out() << endl;
+      //     env.endOutput();
+      //   }
+      //   vstringstream str;
+      //   str << "induction scheme is not well-founded: " << scheme << endl;
+      //   USER_ERROR(str.str());
+      // } else {
         auto litClMap = new DHMap<Literal*, Clause*>();
         litClMap->insert(lit, premise);
         if(env.options->showInduction()){
@@ -841,7 +809,7 @@ bool InductionSchemeGenerator::process(TermList curr, bool active,
           env.endOutput();
         }
         schemes.push_back(make_pair(std::move(scheme), litClMap));
-      }
+      // }
     }
   } else {
     for (unsigned i = 0; i < t->arity(); i++) {

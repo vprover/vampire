@@ -321,6 +321,9 @@ bool InductionSchemeFilter::mergeSchemes(const InductionScheme& sch1, const Indu
   // copy original schemes in case we fail and we modified them
   InductionScheme sch1copy = sch1;
   InductionScheme sch2copy = sch2.makeCopyWithVariablesShifted(sch1copy._maxVar+1);
+  if (!sch1copy.checkWellFoundedness() || !sch2copy.checkWellFoundedness()) {
+    return false;
+  }
 
   if (!includes(sch1._inductionTerms.begin(), sch1._inductionTerms.end(),
       sch2._inductionTerms.begin(), sch2._inductionTerms.end()) &&

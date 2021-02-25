@@ -84,7 +84,7 @@ struct InductionTemplate {
 private:
   bool findVarOrder(
     const vvector<vvector<VarType>>& relations,
-    vset<unsigned>& candidates,
+    const vset<unsigned>& candidates,
     VarOrder& res);
 };
 
