@@ -22,9 +22,8 @@ using namespace Kernel;
 
 namespace Shell {
 
-TermList applySubstAndVarReplacement(TermList t, const RobSubstitution& subst, unsigned bank, VarReplacement& vr) {
-  auto newTerm = subst.apply(t, bank);
-  return applyVarReplacement(newTerm, vr);
+inline TermList applySubstAndVarReplacement(TermList t, const RobSubstitution& subst, unsigned bank, VarReplacement& vr) {
+  return applyVarReplacement(subst.apply(t, bank), vr);
 }
 
 bool checkContainsRecCall(const vmap<TermList, TermList>& recCall1, const vmap<TermList, TermList>& recCall2, const vmap<TermList, TermList>& step)
@@ -68,128 +67,9 @@ bool beforeMergeCheck(const InductionScheme& sch1, const InductionScheme& sch2) 
   return true;
 }
 
-bool createSingleRDescription(const RDescriptionInst& rdesc, const InductionScheme& other,
-  const vset<TermList>& combinedInductionTerms, vvector<RDescriptionInst>& res, unsigned& var)
-{
-  // base cases are not considered here
-  if (rdesc._recursiveCalls.empty()) {
-    return false;
-  }
-  // create available terms for all induction terms
-  // that are mapped to non-variable terms, the rest will
-  // be created when needed
-  vmap<TermList, vvector<TermList>> availableTermsInitial;
-  for (const auto& kv : rdesc._step) {
-    if (kv.second.isTerm()) {
-      availableTermsInitial.insert(
-        make_pair(kv.first, vvector<TermList>({ kv.second })));
-    }
-  }
-  vvector<vmap<TermList, vvector<TermList>>> availableTermsLists({ availableTermsInitial });
-
-  for (const auto& rdesc2 : other._rDescriptionInstances) {
-    if (rdesc2._recursiveCalls.empty()) {
-      continue;
-    }
-    vvector<vmap<TermList, vvector<TermList>>> nextAvailableTermsList;
-    // the conditions given by the terms of rdesc2 are conjuncted,
-    // so their negation will be a disjunction and we have to create
-    // separate lists of available terms for each of them by distributivity 
-    for (const auto& indTerm : combinedInductionTerms) {
-      auto it2 = rdesc2._step.find(indTerm);
-      if (it2 == rdesc2._step.end()) {
-        // no condition
-        continue;
-      }
-
-      auto t2 = it2->second;
-      if (t2.isTerm()) {
-        // copy the current lists
-        auto tempLists = availableTermsLists;
-        // for each of them, impose the restriction
-        // on the available terms in that list
-        for (auto& availableTerms : tempLists) {
-          auto pIt = availableTerms.find(indTerm);
-          if (pIt == availableTerms.end()) {
-            // induction term was mapped to a variable in rdesc,
-            // generate the available terms for it now
-            pIt = availableTerms.insert(make_pair(
-              indTerm,
-              TermAlgebra::generateAvailableTerms(indTerm.term(), var))).first;
-          }
-          TermAlgebra::excludeTermFromAvailables(availableTerms.at(indTerm), t2, var);
-        }
-        nextAvailableTermsList.insert(nextAvailableTermsList.end(), tempLists.begin(), tempLists.end());
-      }
-    }
-    // finally replace current lists with new ones
-    availableTermsLists = nextAvailableTermsList;
-  }
-
-  // generate cross-product of available terms in result:
-  // - each list contains available terms for induction terms
-  // - any combination of these from the same list is valid 
-  res.clear();
-  for (const auto& availableTerms : availableTermsLists) {
-    // initially we have only the original rdesc
-    vvector<RDescriptionInst> rdescList({ rdesc });
-    auto invalid = false;
-    for (const auto& kv : availableTerms) {
-      auto indTerm = kv.first;
-      if (kv.second.empty()) {
-        // no available terms, cross product is empty
-        invalid = true;
-        break;
-      }
-      vvector<RDescriptionInst> nextRdescList;
-      for (const auto& p : kv.second) {
-        for (auto rdesc : rdescList) { // intentionally copy rdesc here
-          auto rIt = rdesc._step.find(indTerm);
-          if (rIt == rdesc._step.end()) {
-            rdesc._step.insert(make_pair(indTerm, p));
-          } else {
-            // we unify the term in rdesc with the available
-            // term to get the substitution needed for
-            // conditions and recursive calls
-            DHMap<unsigned, unsigned> varMap;
-            VarReplacement vr(varMap, var);
-            RobSubstitution subst;
-            ALWAYS(subst.unify(rIt->second, 0, p, 1));
-            rIt->second = applySubstAndVarReplacement(rIt->second, subst, 0, vr);
-
-            for (auto& recCall : rdesc._recursiveCalls) {
-              auto recIt = recCall.find(kv.first);
-              if (recIt != recCall.end()) {
-                recIt->second = applySubstAndVarReplacement(recIt->second, subst, 0, vr);
-              }
-              // TODO(mhajdu): initially we had all induction terms in each
-              // recursive call if it is present in the main substitution
-              // but since this counts as explicitly strengthening the formula,
-              // we do not want that yet
-              // else {
-              //   recCall.insert(make_pair(kv.first, TermList(var++, false)));
-              // }
-            }
-          }
-          nextRdescList.push_back(rdesc);
-        }
-      }
-      rdescList = nextRdescList;
-    }
-    if (!invalid) {
-      res.insert(res.end(), rdescList.begin(), rdescList.end());
-    }
-  }
-
-  return true;
-}
-
 bool createMergedRDescription(const RDescriptionInst& rdesc1, const RDescriptionInst& rdesc2,
   const vset<TermList>& combinedInductionTerms, RDescriptionInst& res, unsigned& var)
 {
-  if (rdesc1._recursiveCalls.empty() || rdesc2._recursiveCalls.empty()) {
-    return false;
-  }
   vmap<TermList, TermList> step;
   vmap<TermList, RobSubstitutionSP> substs;
   vmap<TermList, DHMap<unsigned, unsigned>> varMaps;
@@ -217,26 +97,20 @@ bool createMergedRDescription(const RDescriptionInst& rdesc1, const RDescription
     varReplacements.insert(make_pair(indTerm, vr));
   }
   vvector<vmap<TermList, TermList>> recCalls;
-  for (const auto& recCall : rdesc1._recursiveCalls) {
-    vmap<TermList, TermList> resRecCall;
-    for (const auto& kv : recCall) {
-      resRecCall.insert(make_pair(kv.first,
-        (substs.count(kv.first)) ?
-          applySubstAndVarReplacement(kv.second, *substs.at(kv.first), 0, varReplacements.at(kv.first)) :
-          applyVarReplacement(kv.second, varReplacements.at(kv.first))));
+  auto recCallFn = [&substs, &varReplacements, &recCalls](const RDescriptionInst& rdesc, unsigned bank) {
+    for (const auto& recCall : rdesc._recursiveCalls) {
+      vmap<TermList, TermList> resRecCall;
+      for (const auto& kv : recCall) {
+        resRecCall.insert(make_pair(kv.first,
+          (substs.count(kv.first)) ?
+            applySubstAndVarReplacement(kv.second, *substs.at(kv.first), bank, varReplacements.at(kv.first)) :
+            applyVarReplacement(kv.second, varReplacements.at(kv.first))));
+      }
+      recCalls.push_back(resRecCall);
     }
-    recCalls.push_back(resRecCall);
-  }
-  for (const auto& recCall : rdesc2._recursiveCalls) {
-    vmap<TermList, TermList> resRecCall;
-    for (const auto& kv : recCall) {
-      resRecCall.insert(make_pair(kv.first,
-        (substs.count(kv.first)) ?
-          applySubstAndVarReplacement(kv.second, *substs.at(kv.first), 1, varReplacements.at(kv.first)) :
-          applyVarReplacement(kv.second, varReplacements.at(kv.first))));
-    }
-    recCalls.push_back(resRecCall);
-  }
+  };
+  recCallFn(rdesc1, 0);
+  recCallFn(rdesc2, 1);
   for (unsigned i = 0; i < recCalls.size(); i++) {
     for (unsigned j = i+1; j < recCalls.size();) {
       if (checkContainsRecCall(recCalls[j], recCalls[i], step)) {
@@ -253,9 +127,6 @@ bool createMergedRDescription(const RDescriptionInst& rdesc1, const RDescription
 }
 
 void addBaseCases(InductionScheme& sch) {
-  // here we do essentially the same as in createSingleRdescription,
-  // only we do it on an initially empty RDescriptionInst and exclude
-  // all other in the scheme
   unsigned var = sch._maxVar;
   vvector<vmap<TermList, vvector<TermList>>> availableTermsLists(1); // contains one empty map
   for (const auto& rdesc : sch._rDescriptionInstances) {
@@ -336,18 +207,6 @@ bool InductionSchemeFilter::mergeSchemes(const InductionScheme& sch1, const Indu
 
   vvector<RDescriptionInst> resRdescs;
   unsigned var = 0;
-  for (const auto& rdesc : sch1copy._rDescriptionInstances) {
-    vvector<RDescriptionInst> inst;
-    if (createSingleRDescription(rdesc, sch2copy, combinedInductionTerms, inst, var)) {
-      resRdescs.insert(resRdescs.end(), inst.begin(), inst.end());
-    }
-  }
-  for (const auto& rdesc : sch2copy._rDescriptionInstances) {
-    vvector<RDescriptionInst> inst;
-    if (createSingleRDescription(rdesc, sch1copy, combinedInductionTerms, inst, var)) {
-      resRdescs.insert(resRdescs.end(), inst.begin(), inst.end());
-    }
-  }
   for (const auto& rdesc1 : sch1copy._rDescriptionInstances) {
     for (const auto& rdesc2 : sch2copy._rDescriptionInstances) {
       RDescriptionInst inst;
@@ -530,36 +389,6 @@ void InductionSchemeFilter::filterComplex(vvector<pair<InductionScheme, DHMap<Li
           filter = true;
           break;
         }
-        // while (it.hasNext()) {
-        //   auto lit = it.nextKey();
-        //   auto occ = currOccMaps->get(lit)->get(term);
-        //   // if (occ == 1) {
-        //   //   filter = true;
-        //   //   break;
-        //   // }
-        //   SubtermIterator it(term.term());
-        //   vmap<TermList,unsigned> skolemCount;
-        //   while (it.hasNext()) {
-        //     auto st = it.next();
-        //     if (isSkolem(st)) {
-        //       auto res = skolemCount.insert(make_pair(st, 0));
-        //       res.first->second++;
-        //     }
-        //   }
-        //   if (skolemCount.empty()) {
-        //     filter = true;
-        //   }
-        //   for (const auto kv2 : skolemCount) {
-        //     if (kv2.second*occ != currOccMaps->get(lit)->get(kv2.first)) {
-        //       // cout << "literal " << *lit << " contains " << kv2.first << " outside of " << kv.first << endl;
-        //       filter = true;
-        //       break;
-        //     }
-        //   }
-        //   if (filter) {
-        //     break;
-        //   }
-        // }
       }
       if (filter) {
         break;

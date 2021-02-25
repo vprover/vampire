@@ -178,68 +178,6 @@ TermList IteratorByInductiveVariables::next()
   return _it.next();
 }
 
-Formula* applySubst(RobSubstitution& subst, int index, Formula* f) {
-  if (f->connective() == Connective::LITERAL) {
-    auto lit = subst.apply(f->literal(), index);
-    return new AtomicFormula(lit);
-  }
-
-  switch (f->connective()) {
-    case Connective::AND:
-    case Connective::OR: {
-      FormulaList* res = f->args();
-      FormulaList::RefIterator it(res);
-      while (it.hasNext()) {
-        auto& curr = it.next();
-        curr = applySubst(subst, index, curr);
-      }
-      return JunctionFormula::generalJunction(f->connective(), res);
-    }
-    case Connective::IMP:
-    case Connective::XOR:
-    case Connective::IFF: {
-      auto left = applySubst(subst, index, f->left());
-      auto right = applySubst(subst, index, f->right());
-      return new BinaryFormula(f->connective(), left, right);
-    }
-    case Connective::NOT: {
-      return new NegatedFormula(applySubst(subst, index, f->uarg()));
-    }
-    default:
-      ASSERTION_VIOLATION;
-  }
-}
-
-bool subsumes(Formula* subsumer, Formula* subsumed) {
-  if (subsumer->connective() != subsumed->connective()) {
-    return false;
-  }
-  switch (subsumer->connective()) {
-    case LITERAL: {
-      return subsumer->literal() == subsumed->literal();
-      break;
-    }
-    case NOT: {
-      return subsumes(subsumer->uarg(), subsumed->uarg());
-    }
-    case AND:
-    case OR:
-    case IMP:
-    case IFF:
-    case XOR:
-    case FORALL:
-    case EXISTS:
-    case BOOL_TERM:
-    case FALSE:
-    case TRUE:
-    case NAME:
-    case NOCONN: {
-      break;
-    }
-  }
-  return false;
-}
-
 bool RDescriptionInst::contains(const RDescriptionInst& other) const
 {
   vmap<TermList, RobSubstitutionSP> substs;
