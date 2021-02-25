@@ -144,7 +144,7 @@ static constexpr Mark MarkRemovable = 4;
 // };
 
 #if LOGGING_ENABLED
-template <typename A>
+template <template <typename> class A>
 struct ShowClauseRef {
   ShowClauseRef(ClauseArena<A> const& arena, ClauseRef cr) noexcept
     : arena(arena), cr(cr)
@@ -153,7 +153,7 @@ struct ShowClauseRef {
   ClauseRef cr;
 };
 
-template <typename A>
+template <template <typename> class A>
 std::ostream& operator<<(std::ostream& os, ShowClauseRef<A> const& scr)
 {
   if (scr.cr.is_valid()) {
@@ -164,7 +164,7 @@ std::ostream& operator<<(std::ostream& os, ShowClauseRef<A> const& scr)
   return os;
 }
 
-template <typename A>
+template <template <typename> class A>
 struct ShowReason {
   ShowReason(ClauseArena<A> const& arena, Reason r) noexcept
     : arena(arena), r(r)
@@ -173,7 +173,7 @@ struct ShowReason {
   Reason r;
 };
 
-template <typename A>
+template <template <typename> class A>
 std::ostream& operator<<(std::ostream& os, ShowReason<A> const& sr)
 {
   Reason const& r = sr.r;
@@ -203,9 +203,9 @@ std::ostream& operator<<(std::ostream& os, ShowAssignment<A> sa);
 
 template <template <typename> class Allocator = std::allocator>
 class Solver {
-#define SHOWREF(cr) ShowClauseRef<typename decltype(m_clauses)::allocator_type>(m_clauses, cr)
-#define SHOWREASON(r) ShowReason<typename decltype(m_clauses)::allocator_type>(m_clauses, r)
-#define SHOWASSIGNMENT() ShowAssignment<Allocator>{*this}
+#define SHOWREF(cr) (ShowClauseRef<Allocator>{m_clauses, cr})
+#define SHOWREASON(r) (ShowReason<Allocator>{m_clauses, r})
+#define SHOWASSIGNMENT() (ShowAssignment<Allocator>{*this})
 
 public:
   template <typename T>
@@ -315,6 +315,7 @@ public:
 
     m_trail.clear();
     m_propagate_head = 0;
+    m_theory_propagate_head = 0;
 
     m_frames.clear();
 
@@ -330,6 +331,11 @@ public:
     return m_clauses.alloc(capacity);
   }
 
+  void handle_push_literal(AllocatedClauseHandle& handle, Lit lit) noexcept
+  {
+    m_clauses.handle_push_literal(handle, lit);
+  }
+
   void clause_start()
   {
     m_clauses.start();
@@ -340,9 +346,13 @@ public:
     m_clauses.push_literal(lit);
   }
 
-  void clause_end()
+  NODISCARD ClauseRef clause_end()
   {
-    ClauseRef cr = m_clauses.end();
+    return m_clauses.end();
+  }
+
+  void add_clause(ClauseRef cr)
+  {
     add_clause_internal(cr);
   }
 
@@ -357,14 +367,14 @@ public:
   {
     auto ca = m_clauses.alloc(count);
     for (Lit const* p = literals; p < literals + count; ++p) {
-      ca.push(*p);
+      handle_push_literal(ca, *p);
     }
     add_clause(ca);
   }
 
-  void add_clause(AllocatedClauseHandle ca)
+  void add_clause(AllocatedClauseHandle& handle)
   {
-    ClauseRef cr = ca.build();
+    ClauseRef cr = m_clauses.handle_build(handle);
     add_clause_internal(cr);
   }
 
@@ -449,14 +459,14 @@ public:
   {
     auto ca = m_clauses.alloc(count);
     for (Lit const* p = literals; p < literals + count; ++p) {
-      ca.push(*p);
+      handle_push_literal(ca, *p);
     }
     add_atmostone_constraint(ca);
   }
 
-  void add_atmostone_constraint(AllocatedClauseHandle ca)
+  void add_atmostone_constraint(AllocatedClauseHandle handle)
   {
-    ClauseRef cr = ca.build();
+    ClauseRef cr = m_clauses.handle_build(handle);
     add_atmostone_constraint_internal(cr);
   }
 
@@ -500,9 +510,9 @@ public:
 
     if (!tmp_binary_clause_ref.is_valid()) {
       auto ca = m_clauses.alloc(2);
-      ca.push(Lit::invalid());
-      ca.push(Lit::invalid());
-      tmp_binary_clause_ref = ca.build();
+      handle_push_literal(ca, Lit::invalid());
+      handle_push_literal(ca, Lit::invalid());
+      tmp_binary_clause_ref = m_clauses.handle_build(ca);
     }
 
     if (m_inconsistent) {
@@ -534,7 +544,7 @@ private:
 
   /// Set the literal to true.
   /// Precondition: literal is not assigned.
-  void assign(Lit lit, Reason reason)
+  void basic_assign(Lit lit, Reason reason)
   {
     LOG_DEBUG("Assigning " << lit << ", reason: " << SHOWREASON(reason) << ", level: " << m_level);
 
@@ -570,6 +580,45 @@ private:
     m_unassigned_vars -= 1;
   }
 
+  void assign(Lit lit, Reason reason)
+  {
+    basic_assign(lit, reason);
+    if (!m_theory.empty()) {
+      theory_propagate();
+    } else {
+      m_theory_propagate_head = static_cast<uint32_t>(m_trail.size());
+    }
+  }
+
+  void theory_propagate()
+  {
+    // NOTE on why we do theory propagation as part of enqueue and not in the propagate() loop:
+    // - we don't want to iterate through watchlists multiple times
+    // - but if we handle the watch completely, we may get multiple enqueues, and these may already contain a theory conflict
+    //   (unless our specific problem structure somehow prevents this -- but I don't see how it would; and relying on that seems fragile anyways)
+    // - so we cannot simply choose in each iteration what we do,
+    //   we need to theory-propagate after *each* call to enqueue
+    // - Also note that we may already get a conflict on decision level 0 if we add two theory-conflicting unit clauses.
+    assert(m_propagate_head <= m_theory_propagate_head);
+    while (m_theory_propagate_head < m_trail.size()) {
+      Lit p = m_trail[m_theory_propagate_head++];
+      LOG_DEBUG("Theory-propagating " << p);
+      if (p.is_positive()) {
+        bool enabled =
+            m_theory.enable(p.var(), [this](subsat::Lit propagated, Lit reason) {
+              LOG_DEBUG("Assigning " << propagated << " due to theory");
+              if (m_values[propagated] == Value::Unassigned) {
+                basic_assign(propagated, Reason{reason});
+              } else {
+                assert(m_values[propagated] == Value::True);
+              }
+              return true;
+            });
+        assert(enabled);
+      }
+    }
+  }
+
   /// Make a decision.
   void decide()
   {
@@ -596,6 +645,7 @@ private:
   {
     // CDEBUG("propagate");
     // assert(checkInvariants());
+    assert(m_theory_propagate_head == m_trail.size());
     while (m_propagate_head < m_trail.size()) {
       Lit const lit = m_trail[m_propagate_head++];
       ClauseRef const conflict = propagate_literal(lit);
@@ -754,7 +804,7 @@ private:
   /// Watch literal 'lit' in the given clause.
   void watch_clause_literal(Lit lit, /* TODO: Lit blocking_lit, */ ClauseRef clause_ref)
   {
-    LOG_DEBUG("watching " << lit << /* " blocked by " << blocking_lit << */ " in " << SHOWREF(clause_ref));
+    LOG_DEBUG("Watching " << lit << /* " blocked by " << blocking_lit << */ " in " << SHOWREF(clause_ref));
     auto& watches = m_watches[lit];
     assert(std::all_of(watches.cbegin(), watches.cend(), [=](Watch w){ return w.clause_ref != clause_ref; }));
     watches.push_back(Watch{clause_ref});
@@ -971,9 +1021,9 @@ private:
 
       auto learned = m_clauses.alloc(size);
       for (Lit learned_lit : clause) {
-        learned.push(learned_lit);
+        handle_push_literal(learned, learned_lit);
       }
-      ClauseRef learned_ref = learned.build();
+      ClauseRef learned_ref = m_clauses.handle_build(learned);
       LOG_INFO("Learned: " << SHOWREF(learned_ref));
       // TODO: call new_redundant_clause
       add_clause_internal(learned_ref);
@@ -1019,6 +1069,7 @@ private:
     }
 
     m_propagate_head = static_cast<uint32_t>(m_trail.size());
+    m_theory_propagate_head = static_cast<uint32_t>(m_trail.size());
     m_level = new_level;
     assert(m_queue.checkInvariants(m_values));
   }  // backtrack
@@ -1090,7 +1141,7 @@ private:
   // vector_map<Var, > m_phases;
 #endif
 
-  ClauseArena<allocator_type<std::uint32_t>> m_clauses;
+  ClauseArena<Allocator> m_clauses;
   vector_map<Lit, vector<Watch>> m_watches;
   vector_map<Lit, vector<Watch>> m_watches_amo;
 
@@ -1105,6 +1156,8 @@ private:
   vector<Lit> m_trail;
   /// The next literal to propagate (index into the trail)
   uint32_t m_propagate_head = 0;
+  /// The next literal to theory-propagate (index into the trail)
+  uint32_t m_theory_propagate_head = 0;
 
   ::SMTSubsumption::SubstitutionTheory2<allocator_type> m_theory;
 
@@ -1156,6 +1209,7 @@ bool Solver<Allocator>::checkEmpty() const
   assert(std::all_of(m_watches_amo.begin(), m_watches_amo.end(), [](vector<Watch> const& ws){ return ws.empty(); }));
   assert(m_trail.empty());
   assert(m_propagate_head == 0);
+  assert(m_theory_propagate_head == 0);
   assert(tmp_analyze_clause.empty());
   assert(tmp_analyze_blocks.empty());
   assert(tmp_analyze_seen.empty());
@@ -1207,6 +1261,8 @@ bool Solver<Allocator>::checkInvariants() const
   assert(m_trail.size() <= m_used_vars);
 
   assert(m_propagate_head <= m_trail.size());
+  assert(m_theory_propagate_head <= m_trail.size());
+  assert(m_propagate_head <= m_theory_propagate_head);
 
   // Check constraint invariants
   for (ClauseRef cr : m_clause_refs) {

@@ -83,8 +83,7 @@ private:
   Clause& operator=(Clause&) = delete;
   Clause& operator=(Clause&&) = delete;
 
-  template <typename Allocator> friend class ClauseArena;
-  friend class AllocatedClauseHandle;
+  template <template <typename> class Allocator> friend class ClauseArena;
 
 private:
   size_type m_size;    // number of literals
@@ -142,7 +141,7 @@ private:
       : m_index{index}
   { }
 
-  template <typename Allocator> friend class ClauseArena;
+  template <template <typename> class Allocator> friend class ClauseArena;
 
 private:
   /// Index into the arena storage.
@@ -164,7 +163,6 @@ NODISCARD constexpr bool operator!=(ClauseRef lhs, ClauseRef rhs) noexcept
   return !operator==(lhs, rhs);
 }
 
-/*
 static std::ostream& operator<<(std::ostream& os, ClauseRef cr)
 {
   os << "ClauseRef{";
@@ -176,63 +174,42 @@ static std::ostream& operator<<(std::ostream& os, ClauseRef cr)
   os << "}";
   return os;
 }
-*/
 
 
 
 
 class AllocatedClauseHandle final
 {
-public:
-  void push(Lit lit) noexcept
-  {
-    assert(m_clause);
-    assert(m_clause->m_size < m_capacity);
-    m_clause->m_literals[m_clause->m_size] = lit;
-    m_clause->m_size += 1;
-  }
-
-  NODISCARD ClauseRef build() noexcept
-  {
-    assert(m_clause);
-#ifndef NDEBUG
-    m_clause = nullptr;
-#endif
-    return m_clause_ref;
-  }
-
 private:
-  AllocatedClauseHandle(Clause& clause, ClauseRef clause_ref, uint32_t capacity) noexcept
-      : m_clause{&clause}
-      , m_clause_ref{clause_ref}
+  AllocatedClauseHandle(ClauseRef clause_ref, uint32_t capacity) noexcept
+      : m_clause_ref{clause_ref}
 #ifndef NDEBUG
       , m_capacity{capacity}
 #endif
   {
-    assert(m_clause);
+    (void)capacity;
   }
 
-  template <typename Allocator> friend class ClauseArena;
+  template <template <typename> class Allocator> friend class ClauseArena;
 
 private:
-  Clause* m_clause;
   ClauseRef m_clause_ref;
 #ifndef NDEBUG
   uint32_t m_capacity;
 #endif
 };
+
 static_assert(std::is_trivially_destructible<AllocatedClauseHandle>::value, "");
 
 
 
 
 
-template <typename Allocator = std::allocator<std::uint32_t>>
+template <template <typename> class Allocator = std::allocator>
 class ClauseArena final
 {
 private:
   using storage_type = std::uint32_t;
-  static_assert(std::is_same<storage_type, typename Allocator::value_type>::value, "");
   static_assert(alignof(Clause) == alignof(storage_type), "Clause alignment mismatch");
   // Maybe the more correct condition is this (storage alignment must be a multiple of clause alignment):
   static_assert(alignof(storage_type) % alignof(Clause) == 0, "Alignment of storage must imply alignment of clause");
@@ -253,7 +230,8 @@ private:
   }
 
 public:
-  using allocator_type = Allocator;
+  template <typename T>
+  using allocator_type = Allocator<T>;
 
   NODISCARD Clause& deref(ClauseRef cr) noexcept
   {
@@ -282,7 +260,27 @@ public:
 
     void* p = deref_plain(cr);
     Clause* c = new (p) Clause{0};
-    return AllocatedClauseHandle{*c, cr, capacity};
+    assert(c);
+    return AllocatedClauseHandle{cr, capacity};
+  }
+
+  void handle_push_literal(AllocatedClauseHandle& handle, Lit lit) noexcept
+  {
+    assert(handle.m_clause_ref.is_valid());
+    Clause& clause = deref(handle.m_clause_ref);
+    assert(clause.m_size < handle.m_capacity);
+    clause.m_literals[clause.m_size] = lit;
+    clause.m_size += 1;
+  }
+
+  NODISCARD ClauseRef handle_build(AllocatedClauseHandle& handle) noexcept
+  {
+    assert(handle.m_clause_ref.is_valid());
+    ClauseRef cr = handle.m_clause_ref;
+#ifndef NDEBUG
+    handle.m_clause_ref = ClauseRef::invalid();
+#endif
+    return cr;
   }
 
   /// Start a new clause of unknown size at the end of the current storage.
@@ -380,14 +378,14 @@ private:
 
 private:
   // NOTE: we use the default_init_allocator to avoid zero-initialization when resizing m_storage
-  std::vector<storage_type, default_init_allocator<storage_type, Allocator>> m_storage;
+  std::vector<storage_type, default_init_allocator<storage_type, allocator_type<storage_type>>> m_storage;
 #ifndef NDEBUG
   /// Timestamp to check for invalid clause references (debug mode only).
   /// TODO: start with a random timestamp instead of 0. Then we effectively check for different arenas as well!
   /// (then just name it m_arena_id, and also set randomly on clear()... we don't need "timestamp semantics" for this)
   std::uint32_t m_timestamp = 0;
   /// List of references to all clauses that have been added to the storage.
-  std::vector<ClauseRef> m_clause_refs;
+  std::vector<ClauseRef, allocator_type<ClauseRef>> m_clause_refs;
 #endif
   ClauseRef m_dynamic_ref = ClauseRef::invalid();
 };

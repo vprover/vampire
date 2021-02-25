@@ -1040,6 +1040,9 @@ class SMTSubsumptionImpl2
 
     subsat::Solver<allocator_type> solver;
 
+    /// Match clauses stating that each base literal is matched to at least one instance literal.
+    vvector<subsat::ClauseRef> base_clauses;
+
     /// AtMostOne constraints stating that each instance literal may be matched at most once.
     vvector<subsat::AllocatedClauseHandle> instance_constraints;
 
@@ -1050,6 +1053,7 @@ class SMTSubsumptionImpl2
       solver.reserve_variables(64);
       solver.reserve_clause_storage(512);
       solver.theory().reserve(64, 2, 16);
+      base_clauses.reserve(16);
       instance_constraints.reserve(16);
     }
 
@@ -1078,6 +1082,7 @@ class SMTSubsumptionImpl2
       // holds.
       for (unsigned i = 0; i < base->length(); ++i) {
         Literal* base_lit = base->literals()[i];
+        uint32_t match_count = 0;
 
         // Build clause stating that base_lit must be matched to at least one corresponding instance literal.
         solver.clause_start();
@@ -1093,6 +1098,7 @@ class SMTSubsumptionImpl2
             auto binder = solver.theory().start_binder();
             if (base_lit->arity() == 0 || MatchingUtils::matchArgs(base_lit, inst_lit, binder)) {
               subsat::Var b = solver.new_variable();
+              // std::cerr << "Match: " << b << " => " << base_lit->toString() << " -> " << inst_lit->toString() << std::endl;
 
               if (binder.size() > 0) {
                 ASS(!base_lit->ground());
@@ -1106,7 +1112,8 @@ class SMTSubsumptionImpl2
               solver.theory().register_bindings(b, std::move(binder));
 
               solver.clause_literal(b);
-              instance_constraints[j].push(b);
+              solver.handle_push_literal(instance_constraints[j], b);
+              match_count += 1;
             } else {
               solver.theory().drop_bindings(std::move(binder));
             }
@@ -1131,22 +1138,31 @@ class SMTSubsumptionImpl2
               solver.theory().register_bindings(b, std::move(binder));
 
               solver.clause_literal(b);
-              instance_constraints[j].push(b);
+              solver.handle_push_literal(instance_constraints[j], b);
+              match_count += 1;
             } else {
               solver.theory().drop_bindings(std::move(binder));
             }
           }
         }
-        solver.clause_end();
+        subsat::ClauseRef cr = solver.clause_end();
+        base_clauses.push_back(cr);
+
         // If there are no matches for this base literal, we have just added an empty clause.
         // => conflict on root level due to empty clause, abort early
-        if (solver.inconsistent()) {
+        if (match_count == 0) {
           return false;
         }
+        // if (solver.inconsistent()) {
+        //   return false;
+        // }
       }
 
-      // solver.setSubstitutionTheory(std::move(stc));  // TODO lazy version
-
+      // Need to add clauses after the loop because the current implementation requires
+      // the theory to be fully set up
+      for (auto cr : base_clauses) {
+        solver.add_clause(cr);
+      }
       for (auto& constraint : instance_constraints) {
         solver.add_atmostone_constraint(constraint);
       }
@@ -1223,7 +1239,12 @@ void ProofOfConcept::test(Clause* side_premise, Clause* main_premise)
     ASS_EQ((*c1)[3], ~Lit(8));
   }
 
+
+  BYPASSING_ALLOCATOR;
+
+  {
   SMTSubsumptionImpl impl;
+  std::cout << "\nTESTING 'minisat'" << std::endl;
   std::cout << "SETUP" << std::endl;
   bool subsumed1 = impl.setup(side_premise, main_premise);
   // bool subsumed1 = impl.setup2(side_premise, main_premise);
@@ -1231,10 +1252,24 @@ void ProofOfConcept::test(Clause* side_premise, Clause* main_premise)
   std::cout << "SOLVE" << std::endl;
   bool subsumed = subsumed1 && impl.solve();
   std::cout << "  => " << subsumed << std::endl;
+  }
+
+  {
+  SMTSubsumptionImpl2 impl;
+  std::cout << "\nTESTING 'subsat'" << std::endl;
+  std::cout << "SETUP" << std::endl;
+  bool subsumed1 = impl.setup(side_premise, main_premise);
+  // bool subsumed1 = impl.setup2(side_premise, main_premise);
+  std::cout << "  => " << subsumed1 << std::endl;
+  std::cout << "SOLVE" << std::endl;
+  bool subsumed = subsumed1 && impl.solve();
+  std::cout << "  => " << subsumed << std::endl;
+  }
   // return;
 
-  bool const expected_subsumed = subsumed;
+  // bool const expected_subsumed = subsumed;
 
+/*
   std::cout << "\n\n==================================================\nTESTING VARIABLE ORDERING STRATEGIES:\n\n";
 
   std::pair<char const*, Minisat::VarOrderStrategy> vo_strategies[] = {
@@ -1265,15 +1300,16 @@ void ProofOfConcept::test(Clause* side_premise, Clause* main_premise)
 
     std::cout << std::endl;
   }
+*/
 
   {
-    std::cout << "MLMatcher" << std::endl;
+    std::cout << "\nTESTING 'MLMatcher'" << std::endl;
     OriginalSubsumption::Impl orig;
     bool subsumed = orig.checkSubsumption(side_premise, main_premise);
-    std::cout << "MLMatcher says: " << subsumed << std::endl;
-    if (subsumed != expected_subsumed) {
-      std::cout << "UNEXPECTED RESULT: " << subsumed << std::endl;
-    }
+    std::cout << "  => " << subsumed << std::endl;
+    // if (subsumed != expected_subsumed) {
+    //   std::cout << "UNEXPECTED RESULT: " << subsumed << std::endl;
+    // }
     orig.printStats(std::cout);
   }
 }

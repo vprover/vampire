@@ -6,7 +6,7 @@
 
 #include "./subsat/vector_map.hpp"
 #include "./subsat/types.hpp"
-
+#include "./subsat/log.hpp"
 
 #ifndef SUBSAT_STANDALONE
 #include "Kernel/Term.hpp"
@@ -24,14 +24,18 @@ using VampireVar = unsigned int;
 
 /// Range of the substitution: Vampire's FOL terms
 using VampireTerm = ::Kernel::TermList;
+#define SHOWVAR(var) (Kernel::TermList{var, false})
+#define SHOWTERM(term) (term.toString())
 
 #else
 
 using VampireTerm = std::uint64_t;
-#define ASSERTION_VIOLATION  assert(false)
+#define ASSERTION_VIOLATION assert(false)
 #define ASS(x) assert(x)
 #define ASS_EQ(x, y) assert(x == y)
 #define ASS_GE(x, y) assert(x >= y)
+#define SHOWVAR(var) (var)
+#define SHOWTERM(term) (term)
 
 #endif  // !SUBSAT_STANDALONE
 
@@ -153,11 +157,13 @@ public:
     ASS(!bindings.is_valid());
     bindings.index = binder.index();
     bindings.size = binder.size();
+    ASS(bindings.is_valid());
 
     for (uint32_t i = bindings.index; i < bindings.end(); ++i) {
       BindingsEntry const& entry = m_bindings_storage[i];
       VampireVar var = entry.first;
       VampireTerm term = entry.second;
+      LOG_TRACE(SHOWVAR(var) << " -> " << SHOWTERM(term));
       while (var >= m_bindings_by_var.size()) {
         m_bindings_by_var.emplace_back();
       }
@@ -165,7 +171,7 @@ public:
       if (var_bindings.empty()) {
         m_used_vars.push_back(var);
       }
-      var_bindings.emplace_back(var, term);
+      var_bindings.push_back({b, term});
     }
   }
 
