@@ -47,17 +47,14 @@ private:
  *   (if not present it is a base case)
  */
 struct RDescription {
-  RDescription(const vvector<TermList>& recursiveCalls,
-               TermList step,
-               const vvector<Formula*>& conditions)
-    : _recursiveCalls(recursiveCalls), _step(step), _conditions(conditions) {}
+  RDescription(const vvector<TermList>& recursiveCalls, TermList step)
+    : _recursiveCalls(recursiveCalls), _step(step) {}
 
-  RDescription(TermList step, const vvector<Formula*>& conditions)
-    : _recursiveCalls(), _step(step), _conditions(conditions) {}
+  RDescription(TermList base)
+    : _recursiveCalls(), _step(base) {}
 
   vvector<TermList> _recursiveCalls;
   TermList _step;
-  vvector<Formula*> _conditions;
 };
 
 ostream& operator<<(ostream& out, const RDescription& rdesc);
@@ -99,8 +96,8 @@ ostream& operator<<(ostream& out, const InductionTemplate& templ);
  */
 struct InductionPreprocessor {
 static void preprocessProblem(Problem& prb);
-static void processFormulaBody(Formula* body, Literal* header, vvector<Formula*> conditions, InductionTemplate& templ);
-static void processBody(TermList body, TermList header, vvector<Formula*> conditions, InductionTemplate& templ);
+static void processFormulaBody(Formula* body, Literal* header, InductionTemplate& templ);
+static void processBody(TermList body, TermList header, InductionTemplate& templ);
 };
 
 } // Shell

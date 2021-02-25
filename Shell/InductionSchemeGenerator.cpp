@@ -295,20 +295,6 @@ bool RDescriptionInst::contains(const RDescriptionInst& other) const
     }
     substs.insert(make_pair(kv.first, subst));
   }
-  // check condition subsumption
-  for (const auto& c1 : other._conditions) {
-    bool found = false;
-    for (const auto& c2 : _conditions) {
-      // TODO(mhajdu): this check should be based on the unification on the arguments
-      if (subsumes(c2, c1)) {
-        found = true;
-        break;
-      }
-    }
-    if (!found) {
-      return false;
-    }
-  }
   // if successful, find pair for each recCall in sch1
   // don't check if recCall1 or recCall2 contain kv.first
   // as they should by definition
@@ -345,31 +331,11 @@ bool InductionScheme::init(const vvector<TermList>& argTerms, const InductionTem
     // for each RDescription, use a new substitution and variable
     // replacement as these cases should be independent
     vmap<TermList,TermList> stepSubst;
-    vvector<Formula*> condSubstList;
     IntList::Iterator fvIt(rdesc._step.freeVariables());
     vset<unsigned> stepFreeVars;
     vset<unsigned> freeVars;
     while (fvIt.hasNext()) {
       stepFreeVars.insert(fvIt.next());
-    }
-    for (auto& c : rdesc._conditions) {
-      // TODO(mhajdu): check if this hack is okay
-      // this substitutes non-induction terms into conditions
-      // as well, induction terms are already there from the template
-      // ALWAYS(false);
-      auto cond = c;
-      for (unsigned i = 0; i < templ._inductionVariables.size(); i++) {
-        if (!templ._inductionVariables[i]) {
-          auto arg = *(rdesc._step.term()->nthArgument(i));
-          TermListReplacement tr(arg, argTerms.at(i));
-          cond = tr.transform(cond);
-        }
-      }
-      condSubstList.push_back(cond);
-      IntList::Iterator cIt(cond->freeVariables());
-      while (cIt.hasNext()) {
-        freeVars.insert(cIt.next());
-      }
     }
     auto& recCalls = rdesc._recursiveCalls;
     for (auto& r : recCalls) {
@@ -401,12 +367,6 @@ bool InductionScheme::init(const vvector<TermList>& argTerms, const InductionTem
             break;
           }
           stepSubst.at(argTerm) = subst.apply(stepSubst.at(argTerm), 0);
-          if (!condSubstList.empty()) {
-            return false;
-          }
-          for (auto& c : condSubstList) {
-            c = applySubst(subst, 0, c);
-          }
         } else {
           stepSubst.insert(make_pair(argTerm, argStep));
         }
@@ -467,9 +427,6 @@ bool InductionScheme::init(const vvector<TermList>& argTerms, const InductionTem
       DHMap<unsigned, unsigned> varMap;
       VarReplacement vr(varMap, var);
       stepSubst.at(kv.first) = applyVarReplacement(stepSubst.at(kv.first), vr);
-      for (auto& c : condSubstList) {
-        c = applyVarReplacement(c, vr);
-      }
       for (unsigned i = 0; i < recCalls.size(); i++) {
         if (invalid[i]) {
           continue;
@@ -484,7 +441,7 @@ bool InductionScheme::init(const vvector<TermList>& argTerms, const InductionTem
         recCallSubstFinal.push_back(recCallSubstList[i]);
       }
     }
-    _rDescriptionInstances.emplace_back(std::move(recCallSubstFinal), std::move(stepSubst), std::move(condSubstList));
+    _rDescriptionInstances.emplace_back(std::move(recCallSubstFinal), std::move(stepSubst));
   }
   _maxVar = var;
   // clean();
@@ -514,9 +471,6 @@ void InductionScheme::init(vvector<RDescriptionInst>&& rdescs)
           ? vr.transformSubterm(kv.second)
           : TermList(vr.transform(kv.second.term()));
       }
-    }
-    for (auto& f : rdesc._conditions) {
-      f = vr.transform(f);
     }
   }
   _maxVar = var;
@@ -562,12 +516,7 @@ InductionScheme InductionScheme::makeCopyWithVariablesShifted(unsigned shift) co
           ? vsr.transformSubterm(kv.second)
           : TermList(vsr.transform(kv.second.term()))));
     }
-    vvector<Formula*> resCond;
-    for (auto f : rdesc._conditions) {
-      resCond.push_back(vsr.transform(f));
-    }
-    res._rDescriptionInstances.emplace_back(std::move(resRecCalls),
-      std::move(resStep), std::move(resCond));
+    res._rDescriptionInstances.emplace_back(std::move(resRecCalls), std::move(resStep));
   }
   res._maxVar = _maxVar + shift;
   return res;
@@ -654,17 +603,9 @@ ostream& operator<<(ostream& out, const InductionScheme& scheme)
     }
   }
   out << ':';
-  unsigned i;
   unsigned j = 0;
   for (const auto& rdesc : scheme._rDescriptionInstances) {
-    i = 0;
-    for (const auto& cond : rdesc._conditions) {
-      out << '[' << *cond << ']';
-      if (++i < rdesc._conditions.size()) {
-        out << ',';
-      }
-    }
-    i = 0;
+    unsigned i = 0;
     for (const auto& recCall : rdesc._recursiveCalls) {
       out << '[';
       k = 0;
@@ -680,7 +621,7 @@ ostream& operator<<(ostream& out, const InductionScheme& scheme)
         out << ',';
       }
     }
-    if (!rdesc._conditions.empty() || !rdesc._recursiveCalls.empty()) {
+    if (!rdesc._recursiveCalls.empty()) {
       out << "=>";
     }
     k = 0;
@@ -950,12 +891,6 @@ pair<Formula*, vmap<Literal*, pair<Literal*, Clause*>>> InductionSchemeGenerator
       hyp = new FormulaList(JunctionFormula::generalJunction(Connective::OR,innerHyp),hyp);
     }
 
-    // add conditions
-    if (!desc._conditions.empty()) {
-      for (const auto& cond : desc._conditions) {
-        hyp = new FormulaList(cond, hyp);
-      }
-    }
     Formula* res = nullptr;
     if (hyp == 0) {
       // base case

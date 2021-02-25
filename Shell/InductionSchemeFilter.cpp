@@ -14,8 +14,6 @@
 #include "Kernel/Problem.hpp"
 #include "Kernel/Renaming.hpp"
 #include "Kernel/RobSubstitution.hpp"
-#include "Kernel/SubstHelper.hpp"
-#include "Kernel/Substitution.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Unit.hpp"
@@ -68,77 +66,6 @@ bool beforeMergeCheck(const InductionScheme& sch1, const InductionScheme& sch2) 
     }
   }
   return true;
-}
-
-Formula* applySubst(RobSubstitution& subst, int index, Formula* f, VarReplacement& vr) {
-  if (f->connective() == Connective::LITERAL) {
-    auto lit = subst.apply(f->literal(), index);
-    return new AtomicFormula(vr.transform(lit));
-  }
-
-  switch (f->connective()) {
-    case Connective::AND:
-    case Connective::OR: {
-      FormulaList* res = f->args();
-      FormulaList::RefIterator it(res);
-      while (it.hasNext()) {
-        auto& curr = it.next();
-        curr = applySubst(subst, index, curr, vr);
-      }
-      return JunctionFormula::generalJunction(f->connective(), res);
-    }
-    case Connective::IMP:
-    case Connective::XOR:
-    case Connective::IFF: {
-      auto left = applySubst(subst, index, f->left(), vr);
-      auto right = applySubst(subst, index, f->right(), vr);
-      return new BinaryFormula(f->connective(), left, right);
-    }
-    case Connective::NOT: {
-      return new NegatedFormula(applySubst(subst, index, f->uarg(), vr));
-    }
-    // case Connective::EXISTS:
-    // case Connective::FORALL: {
-    //   return new QuantifiedFormula(f->connective(), vars, sorts, arg);
-    // }
-    default:
-      ASSERTION_VIOLATION;
-  }
-}
-
-Formula* applyRenaming(Renaming& renaming, Formula* f) {
-  if (f->connective() == Connective::LITERAL) {
-    return new AtomicFormula(renaming.apply(f->literal()));
-  }
-
-  switch (f->connective()) {
-    case Connective::AND:
-    case Connective::OR: {
-      FormulaList* res = f->args();
-      FormulaList::RefIterator it(res);
-      while (it.hasNext()) {
-        auto& curr = it.next();
-        curr = applyRenaming(renaming, curr);
-      }
-      return JunctionFormula::generalJunction(f->connective(), res);
-    }
-    case Connective::IMP:
-    case Connective::XOR:
-    case Connective::IFF: {
-      auto left = applyRenaming(renaming, f->left());
-      auto right = applyRenaming(renaming, f->right());
-      return new BinaryFormula(f->connective(), left, right);
-    }
-    case Connective::NOT: {
-      return new NegatedFormula(applyRenaming(renaming, f->uarg()));
-    }
-    // case Connective::EXISTS:
-    // case Connective::FORALL: {
-    //   return new QuantifiedFormula(f->connective(), vars, sorts, arg);
-    // }
-    default:
-      ASSERTION_VIOLATION;
-  }
 }
 
 bool createSingleRDescription(const RDescriptionInst& rdesc, const InductionScheme& other,
@@ -230,9 +157,6 @@ bool createSingleRDescription(const RDescriptionInst& rdesc, const InductionSche
             ALWAYS(subst.unify(rIt->second, 0, p, 1));
             rIt->second = applySubstAndVarReplacement(rIt->second, subst, 0, vr);
 
-            for (auto& cond : rdesc._conditions) {
-              cond = applySubst(subst, 0, cond, vr);
-            }
             for (auto& recCall : rdesc._recursiveCalls) {
               auto recIt = recCall.find(kv.first);
               if (recIt != recCall.end()) {
@@ -324,10 +248,7 @@ bool createMergedRDescription(const RDescriptionInst& rdesc1, const RDescription
     }
   }
 
-  auto conditions = rdesc1._conditions;
-  conditions.insert(conditions.end(), rdesc2._conditions.begin(), rdesc2._conditions.end());
-  res = RDescriptionInst(std::move(recCalls), std::move(step), std::move(conditions));
-
+  res = RDescriptionInst(std::move(recCalls), std::move(step));
   return true;
 }
 
@@ -386,13 +307,12 @@ void addBaseCases(InductionScheme& sch) {
   var = sch._maxVar;
   for (auto step : steps) {
     vvector<vmap<TermList,TermList>> emptyRecCalls;
-    vvector<Formula*> emptyConds;
     DHMap<unsigned, unsigned> varMap;
     VarReplacement vr(varMap, var);
     for (auto& kv : step) {
       kv.second = applyVarReplacement(kv.second, vr);
     }
-    sch._rDescriptionInstances.emplace_back(std::move(emptyRecCalls), std::move(step), std::move(emptyConds));
+    sch._rDescriptionInstances.emplace_back(std::move(emptyRecCalls), std::move(step));
   }
   sch._maxVar = var;
 }
@@ -410,18 +330,6 @@ bool InductionSchemeFilter::mergeSchemes(const InductionScheme& sch1, const Indu
   }
   vset<TermList> combinedInductionTerms = sch1._inductionTerms;
   combinedInductionTerms.insert(sch2._inductionTerms.begin(), sch2._inductionTerms.end());
-
-  // check that no condition is present
-  for (const auto& rdesc : sch1._rDescriptionInstances) {
-    if (!rdesc._conditions.empty()) {
-      return false;
-    }
-  }
-  for (const auto& rdesc : sch2._rDescriptionInstances) {
-    if (!rdesc._conditions.empty()) {
-      return false;
-    }
-  }
 
   vvector<RDescriptionInst> resRdescs;
   unsigned var = 0;

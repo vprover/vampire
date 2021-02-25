@@ -54,20 +54,9 @@ TermList TermListReplacement::transformSubterm(TermList trm)
 
 ostream& operator<<(ostream& out, const RDescription& rdesc)
 {
-  unsigned n = 0;
-  if (!rdesc._conditions.empty()) {
-    out << "(";
-    for (const auto& c : rdesc._conditions) {
-      out << *c;
-      if (++n < rdesc._conditions.size()) {
-        out << " & ";
-      }
-    }
-    out << ") => ";
-  }
   if (!rdesc._recursiveCalls.empty()) {
     out << "(";
-    n = 0;
+    unsigned n = 0;
     for (const auto& r : rdesc._recursiveCalls) {
       out << r;
       if (++n < rdesc._recursiveCalls.size()) {
@@ -181,7 +170,7 @@ bool InductionTemplate::checkWellDefinedness(vvector<vvector<TermList>>& missing
       if (arg.isTerm()) {
         auto tempLists = availableTermsLists;
         for (auto& availableTerms : tempLists) {
-          if (TermAlgebra::excludeTermFromAvailables(availableTerms[j], arg, var) && rdesc._conditions.empty()) {
+          if (TermAlgebra::excludeTermFromAvailables(availableTerms[j], arg, var)) {
             excluded = true;
           }
         }
@@ -195,7 +184,7 @@ bool InductionTemplate::checkWellDefinedness(vvector<vvector<TermList>>& missing
           }
         }
       }
-      if (!excluded && rdesc._conditions.empty()) {
+      if (!excluded) {
         overdefined = true;
       }
       j++;
@@ -225,66 +214,7 @@ bool InductionTemplate::checkWellDefinedness(vvector<vvector<TermList>>& missing
         argTuples.begin(), argTuples.end());
     }
   }
-  if (overdefined || !missingCases.empty()) {
-    return false;
-  }
-
-  for (const auto& rdesc : _rDescriptions) {
-    if (rdesc._conditions.empty()) {
-      continue;
-    }
-
-    // we don't check any conditions more
-    // complex than a single literal
-    if (rdesc._conditions.size() > 1) {
-      return false;
-    }
-
-    auto f1 = rdesc._conditions[0];
-    const bool negation = f1->connective() == NOT;
-    if (negation) {
-      f1 = f1->uarg();
-    }
-    if (f1->connective() != LITERAL) {
-      return false;
-    }
-    auto l1 = f1->literal();
-
-    bool foundNeg = false;
-    for (const auto& rdesc2 : _rDescriptions) {
-      if (rdesc2._step != rdesc._step || rdesc2._conditions.size() != 1) {
-        continue;
-      }
-      auto f2 = rdesc2._conditions[0];
-      const bool negation2 = f2->connective() == NOT;
-      if (negation2) {
-        f2 = f2->uarg();
-      }
-      if (f2->connective() != LITERAL) {
-        continue;
-      }
-      auto l2 = f2->literal();
-      if (l1->isEquality() != l2->isEquality()) {
-        continue;
-      }
-      if (negation == negation2 && l1->isPositive() == l2->isPositive()) {
-        continue;
-      }
-      if (l1->nthArgument(0) != l2->nthArgument(0)) {
-        continue;
-      }
-      if (l1->isEquality() && l1->nthArgument(1) != l2->nthArgument(1)) {
-        continue;
-      }
-      foundNeg = true;
-      break;
-    }
-    if (!foundNeg) {
-      return false;
-    }
-  }
-
-  return true;
+  return !overdefined && missingCases.empty();
 }
 
 void InductionTemplate::addMissingCases(const vvector<vvector<TermList>>& missingCases)
@@ -308,9 +238,8 @@ void InductionTemplate::addMissingCases(const vvector<vvector<TermList>>& missin
     } else {
       t = TermList(Term::create(fn, arity, args.begin()));
     }
-    vvector<Formula*> empty;
     env.out() << t << ", ";
-    _rDescriptions.emplace_back(t, empty);
+    _rDescriptions.emplace_back(t);
   }
   env.out() << "to template " << *this << endl;
   env.endOutput();
@@ -439,13 +368,15 @@ void parseRecursiveDefinition(Literal* lit)
 
   InductionTemplate templ;
   TermList term(lhterm);
-  InductionPreprocessor::processBody(*rhs, term, vvector<Formula*>(), templ);
-  vvector<vvector<TermList>> missingCases;
+  InductionPreprocessor::processBody(*rhs, term, templ);
   // TODO(mhajdu): consider adding missing cases here
   if (!templ.checkWellFoundedness()
-      || !templ.checkWellDefinedness(missingCases)
       || !templ.checkUsefulness()) {
     return;
+  }
+  vvector<vvector<TermList>> missingCases;
+  if (!templ.checkWellDefinedness(missingCases) && !missingCases.empty()) {
+    templ.addMissingCases(missingCases);
   }
 
   if(env.options->showInduction()){
@@ -477,7 +408,7 @@ void InductionPreprocessor::preprocessProblem(Problem& prb)
         && formula->literal()->isFunctionDefinition()) {
       parseRecursiveDefinition(formula->literal());
     } else if (env.options->functionDefinitionDiscovery()) {
-      d.findPossibleRecursiveDefinitions(formula, vvector<Formula*>());
+      d.findPossibleRecursiveDefinitions(formula);
     }
   }
   d.addBestConfiguration();
@@ -544,7 +475,7 @@ void processCase(const unsigned recFun, const bool isPred, TermList body, vvecto
   }
 }
 
-void InductionPreprocessor::processFormulaBody(Formula* body, Literal* header, vvector<Formula*> conditions, InductionTemplate& templ)
+void InductionPreprocessor::processFormulaBody(Formula* body, Literal* header, InductionTemplate& templ)
 {
   CALL("InductionPreprocessor::processFormulaBody");
 
@@ -558,13 +489,13 @@ void InductionPreprocessor::processFormulaBody(Formula* body, Literal* header, v
       } else {
         processCase(header->functor(), header->isFormula(), TermList(lit), recCalls);
       }
-      templ._rDescriptions.emplace_back(recCalls, TermList(header), conditions);
+      templ._rDescriptions.emplace_back(recCalls, TermList(header));
       break;
     }
     case BOOL_TERM: {
       vvector<TermList> recCalls;
       processCase(header->functor(), header->isFormula(), body->getBooleanTerm(), recCalls);
-      templ._rDescriptions.emplace_back(recCalls, TermList(header), conditions);
+      templ._rDescriptions.emplace_back(recCalls, TermList(header));
       break;
     }
     case AND:
@@ -572,24 +503,24 @@ void InductionPreprocessor::processFormulaBody(Formula* body, Literal* header, v
       FormulaList::Iterator it(body->args());
       while (it.hasNext()) {
         auto arg = it.next();
-        processFormulaBody(arg, header, conditions, templ);
+        processFormulaBody(arg, header, templ);
       }
       break;
     }
     case FALSE:
     case TRUE: {
-      templ._rDescriptions.emplace_back(TermList(header), conditions);
+      templ._rDescriptions.emplace_back(TermList(header));
       break;
     }
     case NOT: {
-      processFormulaBody(body->uarg(), header, conditions, templ);
+      processFormulaBody(body->uarg(), header, templ);
       break;
     }
     case IMP:
     case IFF:
     case XOR: {
-      processFormulaBody(body->left(), header, conditions, templ);
-      processFormulaBody(body->right(), header, conditions, templ);
+      processFormulaBody(body->left(), header, templ);
+      processFormulaBody(body->right(), header, templ);
       break;
     }
     case FORALL:
@@ -601,13 +532,13 @@ void InductionPreprocessor::processFormulaBody(Formula* body, Literal* header, v
   }
 }
 
-void InductionPreprocessor::processBody(TermList body, TermList header, vvector<Formula*> conditions, InductionTemplate& templ)
+void InductionPreprocessor::processBody(TermList body, TermList header, InductionTemplate& templ)
 {
   CALL("InductionPreprocessor::processBody");
 
   // Base case
   if (body.isVar()) {
-    templ._rDescriptions.emplace_back(header, conditions);
+    templ._rDescriptions.emplace_back(header);
     return;
   }
   // Possibly recursive case
@@ -615,11 +546,10 @@ void InductionPreprocessor::processBody(TermList body, TermList header, vvector<
   if (!term->isSpecial() || term->isFormula()) {
     vvector<TermList> recursiveCalls;
     processCase(header.term()->functor(), header.term()->isFormula(), body, recursiveCalls);
-    templ._rDescriptions.emplace_back(recursiveCalls, header, conditions);
+    templ._rDescriptions.emplace_back(recursiveCalls, header);
     return;
   }
   // TODO(mhajdu): Here there can be other constructs e.g. ITE, process them
-  auto sd = term->getSpecialData();
   if (term->isMatch())
   {
     auto matchedVar = term->nthArgument(0)->var();
@@ -631,21 +561,13 @@ void InductionPreprocessor::processBody(TermList body, TermList header, vvector<
       // the pattern in the header and recurse
       TermListReplacement tr(TermList(matchedVar,false), *pattern);
       TermList t(tr.transform(header.term()));
-      auto cond = conditions;
-      for (auto& c : cond) {
-        c = tr.transform(c);
-      }
-      processBody(*matchBody, t, cond, templ);
+      processBody(*matchBody, t, templ);
     }
   }
   else if (term->isITE())
   {
-    auto cond1 = conditions;
-    auto cond2 = conditions;
-    cond1.push_back(sd->getCondition());
-    cond2.push_back(new NegatedFormula(sd->getCondition()));
-    processBody(*term->nthArgument(0), header, cond1, templ);
-    processBody(*term->nthArgument(1), header, cond2, templ);
+    processBody(*term->nthArgument(0), header, templ);
+    processBody(*term->nthArgument(1), header, templ);
   }
 }
 

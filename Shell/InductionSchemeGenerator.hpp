@@ -112,14 +112,12 @@ private:
 struct RDescriptionInst {
   RDescriptionInst() = default;
   RDescriptionInst(vvector<vmap<TermList, TermList>>&& recursiveCalls,
-                   vmap<TermList, TermList>&& step,
-                   vvector<Formula*>&& conditions)
-    : _recursiveCalls(recursiveCalls), _step(step), _conditions(conditions) {}
+                   vmap<TermList, TermList>&& step)
+    : _recursiveCalls(recursiveCalls), _step(step) {}
   bool contains(const RDescriptionInst& other) const;
 
   vvector<vmap<TermList, TermList>> _recursiveCalls;
   vmap<TermList, TermList> _step;
-  vvector<Formula*> _conditions;
 };
 
 /**

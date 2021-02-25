@@ -93,9 +93,6 @@ bool checkContains(const RDescription& rdesc1, const RDescription& rdesc2)
   if (t1 != r1.apply(rdesc1._step) || t2 != r2.apply(rdesc2._step)) {
     return false;
   }
-  if (!rdesc1._conditions.empty() || !rdesc2._conditions.empty()) {
-    return false;
-  }
   for (const auto& recCall1 : rdesc1._recursiveCalls) {
     bool found = false;
     for (const auto& recCall2 : rdesc2._recursiveCalls) {
@@ -223,7 +220,7 @@ void FunctionDefinitionDiscovery::addBestConfiguration()
   }
 }
 
-void FunctionDefinitionDiscovery::findPossibleRecursiveDefinitions(Formula* f, vvector<Formula*> conditions)
+void FunctionDefinitionDiscovery::findPossibleRecursiveDefinitions(Formula* f)
 {
   CALL("FunctionDefinitionDiscovery::findPossibleRecursiveDefinitions");
 
@@ -233,11 +230,11 @@ void FunctionDefinitionDiscovery::findPossibleRecursiveDefinitions(Formula* f, v
       if (lit->isEquality()) {
         auto lhs = *lit->nthArgument(0);
         auto rhs = *lit->nthArgument(1);
-        auto processFn = [this, conditions](TermList header, TermList body, InductionTemplate& templ) {
+        auto processFn = [this](TermList header, TermList body, InductionTemplate& templ) {
           if (!isHeader(header)) {
             return false;
           }
-          InductionPreprocessor::processBody(body, header, conditions, templ);
+          InductionPreprocessor::processBody(body, header, templ);
           // we have to check that the found relations
           // are decreasing, e.g. f(c(x),c(y))=f(x,y)
           // is checked both ways but only one is decreasing
@@ -298,10 +295,10 @@ void FunctionDefinitionDiscovery::findPossibleRecursiveDefinitions(Formula* f, v
           auto it = foundPredicateDefinitions.find(lit->functor());
           if (it == foundPredicateDefinitions.end()) {
             InductionTemplate templ;
-            templ._rDescriptions.emplace_back(TermList(lit), conditions);
+            templ._rDescriptions.emplace_back(TermList(lit));
             foundPredicateDefinitions.insert(make_pair(lit->functor(), std::move(templ)));
           } else {
-            it->second._rDescriptions.emplace_back(TermList(lit), conditions);
+            it->second._rDescriptions.emplace_back(TermList(lit));
           }
         }
       }
@@ -311,23 +308,22 @@ void FunctionDefinitionDiscovery::findPossibleRecursiveDefinitions(Formula* f, v
       FormulaList::Iterator it(f->args());
       while (it.hasNext()) {
         auto arg = it.next();
-        findPossibleRecursiveDefinitions(arg, conditions);
+        findPossibleRecursiveDefinitions(arg);
       }
       break;
     }
     case IMP: {
-      conditions.push_back(f->left());
-      findPossibleRecursiveDefinitions(f->right(), conditions);
+      findPossibleRecursiveDefinitions(f->right());
       break;
     }
     case FORALL: {
-      findPossibleRecursiveDefinitions(f->qarg(), conditions);
+      findPossibleRecursiveDefinitions(f->qarg());
       break;
     }
     case IFF: {
       auto lhs = f->left();
       auto rhs = f->right();
-      auto processFn = [this, conditions](Formula* header, Formula* body, InductionTemplate& templ) {
+      auto processFn = [this](Formula* header, Formula* body, InductionTemplate& templ) {
         if (header->connective() != LITERAL) {
           return false;
         }
@@ -335,7 +331,7 @@ void FunctionDefinitionDiscovery::findPossibleRecursiveDefinitions(Formula* f, v
         if (lit->isEquality() || !isHeader(TermList(lit))) {
           return false;
         }
-        InductionPreprocessor::processFormulaBody(body, lit, conditions, templ);
+        InductionPreprocessor::processFormulaBody(body, lit, templ);
         // we have to check that the found relations
         // are decreasing, e.g. p(c(x),c(y))<=>p(x,y)
         // is checked both ways but only one is decreasing
@@ -384,7 +380,7 @@ void FunctionDefinitionDiscovery::findPossibleRecursiveDefinitions(Formula* f, v
     }
     case NOT: {
       if (f->uarg()->connective() == LITERAL) {
-        findPossibleRecursiveDefinitions(f->uarg(), conditions);
+        findPossibleRecursiveDefinitions(f->uarg());
       }
       break;
     }

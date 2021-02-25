@@ -31,7 +31,7 @@ class FunctionDefinitionDiscovery {
 public:
   FunctionDefinitionDiscovery() : foundFunctionDefinitions(1) {}
 
-  void findPossibleRecursiveDefinitions(Formula* f, vvector<Formula*> conditions);
+  void findPossibleRecursiveDefinitions(Formula* f);
   void addBestConfiguration();
 
 private:
