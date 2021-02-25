@@ -921,17 +921,17 @@ class SMTSubsumptionImpl
           //   solver.addConstraint_AtMostOne_unchecked(ls);
           // }
         } else if (n_true == 1) {
-          // one is already true => skip clause, propagate AtMostOne constraint
-          for (auto const& alt : v) {
-            Lit l = Lit(alt.b);
-            if (solver.value(l) == Minisat::l_Undef) {
-              solver.addUnit(~l);
-            }
-          }
+          // // one is already true => skip clause, propagate AtMostOne constraint
+          // for (auto const& alt : v) {
+          //   Lit l = Lit(alt.b);
+          //   if (solver.value(l) == Minisat::l_Undef) {
+          //     solver.addUnit(~l);
+          //   }
+          // }
         } else {
           ASS(n_true >= 2);
-          // conflict at root level due to AtMostOne constraint
-          return false;
+          // // conflict at root level due to AtMostOne constraint
+          // return false;
         }
       }
 
