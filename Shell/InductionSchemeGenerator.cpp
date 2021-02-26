@@ -27,36 +27,12 @@ using namespace Kernel;
 
 namespace Shell {
 
-bool isSkolem(TermList t) {
-  CALL("isSkolem");
-
-  if (t.isVar()) {
-    return false;
-  }
-  auto fn = t.term()->functor();
-  auto symb = t.term()->isLiteral() ? env.signature->getPredicate(fn) : env.signature->getFunction(fn);
-  return symb->skolem();
-}
-
-bool canInductOn(TermList t)
+inline bool canInductOn(TermList t)
 {
   CALL("canInductOn");
 
-  if (t.isVar()) {
-    return false;
-  }
   static bool complexTermsAllowed = env.options->inductionOnComplexTerms();
-  return t.freeVariables() == IntList::empty() && (isSkolem(t) || (complexTermsAllowed && !isTermAlgebraCons(t)));
-}
-
-OperatorType* getType(TermList t)
-{
-  CALL("getType");
-
-  //TODO(mhajdu): maybe handle variables?
-  auto fn = t.term()->functor();
-  auto symb = t.term()->isLiteral() ? env.signature->getPredicate(fn) : env.signature->getFunction(fn);
-  return t.term()->isLiteral() ? symb->predType() : symb->fnType();
+  return env.signature->getFunction(t.term()->functor())->skolem() || complexTermsAllowed;
 }
 
 /**
@@ -65,22 +41,20 @@ OperatorType* getType(TermList t)
 vvector<TermList> getInductionTerms(TermList t)
 {
   CALL("getInductionTerms");
+  // no predicates or variables here
+  ASS(t.isTerm() && !t.term()->isLiteral());
 
   vvector<TermList> v;
-  if (t.isVar()) {
-    return v;
-  }
   if (canInductOn(t)) {
     v.push_back(t);
   }
   unsigned f = t.term()->functor();
-  bool isPred = t.term()->isFormula();
-  auto type = getType(t);
+  auto type = env.signature->getFunction(f)->fnType();
 
   // If function with recursive definition,
   // recurse in its active arguments
-  if (env.signature->hasInductionTemplate(f, isPred)) {
-    auto& templ = env.signature->getInductionTemplate(f, isPred);
+  if (env.signature->hasInductionTemplate(f, false /*pred*/)) {
+    auto& templ = env.signature->getInductionTemplate(f, false /*pred*/);
     const auto& indVars = templ._inductionVariables;
 
     Term::Iterator argIt(t.term());
@@ -94,8 +68,6 @@ vvector<TermList> getInductionTerms(TermList t)
       i++;
     }
   } else if (isTermAlgebraCons(t)) {
-    //TODO(mhajdu): eventually check whether we really recurse on a specific
-    // subterm of the constructor terms
     for (unsigned i = 0; i < t.term()->arity(); i++) {
       auto st = *t.term()->nthArgument(i);
       if (type->arg(i) == type->result()) {
@@ -131,7 +103,7 @@ TermList TermOccurrenceReplacement::transformSubterm(TermList trm)
     }
   }
   // otherwise we may replace it with a variable
-  if ((_replaceSkolem && isSkolem(trm)) || trm.isVar()) {
+  if ((_replaceSkolem && env.signature->getFunction(trm.term()->functor())->skolem()) || trm.isVar()) {
     if (!_r_g.count(trm)) {
       _r_g.insert(make_pair(trm, TermList(_v++,false)));
     }
@@ -158,24 +130,6 @@ TermList VarShiftReplacement::transformSubterm(TermList trm) {
     return TermList(trm.var()+_shift, trm.isSpecialVar());
   }
   return trm;
-}
-
-bool IteratorByInductiveVariables::hasNext()
-{
-  ASS(_it.hasNext() == (_indVarIt != _end));
-
-  while (_indVarIt != _end && !*_indVarIt && _it.hasNext()) {
-    _indVarIt++;
-    _it.next();
-  }
-  return _indVarIt != _end;
-}
-
-TermList IteratorByInductiveVariables::next()
-{
-  ASS(hasNext());
-  _indVarIt++;
-  return _it.next();
 }
 
 bool RDescriptionInst::contains(const RDescriptionInst& other) const
@@ -426,24 +380,6 @@ InductionScheme InductionScheme::makeCopyWithVariablesShifted(unsigned shift) co
   }
   res._maxVar = _maxVar + shift;
   return res;
-}
-
-void InductionScheme::addInductionTerms(const vset<TermList>& terms) {
-  for (const auto& t : terms) {
-    for (auto& rdesc : _rDescriptionInstances) {
-      if (rdesc._recursiveCalls.empty()) {
-        continue;
-      }
-      auto it = rdesc._step.find(t);
-      if (it == rdesc._step.end()) {
-        TermList var(_maxVar++, false);
-        rdesc._step.insert(make_pair(t, var));
-        for (auto& recCall : rdesc._recursiveCalls) {
-          recCall.insert(make_pair(t, var));
-        }
-      }
-    }
-  }
 }
 
 bool InductionScheme::checkWellFoundedness()
@@ -723,31 +659,15 @@ bool InductionSchemeGenerator::process(TermList curr, bool active,
       if (!scheme.init(argTerms, templ)) {
         continue;
       }
-      // if (!scheme.checkWellFoundedness()) {
-      //   if (env.options->showInduction()) {
-      //     env.beginOutput();
-      //     env.out() << "[Induction] induction scheme is not well-founded: " << endl
-      //       << scheme << endl << "suggested by template " << templ << endl << "and terms ";
-      //     for (const auto& argTerm : argTerms) {
-      //       env.out() << argTerm << ",";
-      //     }
-      //     env.out() << endl;
-      //     env.endOutput();
-      //   }
-      //   vstringstream str;
-      //   str << "induction scheme is not well-founded: " << scheme << endl;
-      //   USER_ERROR(str.str());
-      // } else {
-        auto litClMap = new DHMap<Literal*, Clause*>();
-        litClMap->insert(lit, premise);
-        if(env.options->showInduction()){
-          env.beginOutput();
-          env.out() << "[Induction] induction scheme " << scheme
-                    << " was suggested by term " << *t << " in " << *lit << endl;
-          env.endOutput();
-        }
-        schemes.push_back(make_pair(std::move(scheme), litClMap));
-      // }
+      auto litClMap = new DHMap<Literal*, Clause*>();
+      litClMap->insert(lit, premise);
+      if(env.options->showInduction()){
+        env.beginOutput();
+        env.out() << "[Induction] induction scheme " << scheme
+                  << " was suggested by term " << *t << " in " << *lit << endl;
+        env.endOutput();
+      }
+      schemes.push_back(make_pair(std::move(scheme), litClMap));
     }
   } else {
     for (unsigned i = 0; i < t->arity(); i++) {

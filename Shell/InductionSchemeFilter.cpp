@@ -369,7 +369,7 @@ void InductionSchemeFilter::filterComplex(vvector<pair<InductionScheme, DHMap<Li
     for (const auto& rdesc : schemes[i].first._rDescriptionInstances) {
       for (const auto& kv : rdesc._step) {
         auto term = kv.first;
-        if (isSkolem(term)) {
+        if (env.signature->getFunction(term.term()->functor())->skolem()) {
           continue;
         }
         // filter out complex terms that contain

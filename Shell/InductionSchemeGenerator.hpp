@@ -26,8 +26,6 @@ namespace Shell {
 using namespace Kernel;
 using namespace Lib;
 
-bool isSkolem(TermList t);
-
 /**
  * Replaces a subset of occurrences for given TermLists
  */
@@ -82,27 +80,6 @@ private:
 };
 
 /**
- * Iterator that only iterates through the active
- * occurrences of an inductive function header.
- */
-class IteratorByInductiveVariables
-{
-public:
-  IteratorByInductiveVariables(Term* term,
-                               const vvector<bool>& indVars)
-    : _it(term), _indVarIt(indVars.cbegin()), _end(indVars.cend())
-  {}
-
-  bool hasNext();
-  TermList next();
-
-private:
-  Term::Iterator _it;
-  vvector<bool>::const_iterator _indVarIt;
-  vvector<bool>::const_iterator _end;
-};
-
-/**
  * Stores an instance for an RDescription which
  * consists of all substitutions in the step case
  * and the corresponding recursive calls. This
@@ -128,7 +105,6 @@ struct InductionScheme {
   void init(vvector<RDescriptionInst>&& rdescs);
   void clean();
   InductionScheme makeCopyWithVariablesShifted(unsigned shift) const;
-  void addInductionTerms(const vset<TermList>& terms);
   bool checkWellFoundedness();
   bool checkWellFoundedness(
     vvector<pair<vmap<TermList,TermList>&,vmap<TermList,TermList>&>> relations,

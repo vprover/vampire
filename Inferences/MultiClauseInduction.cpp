@@ -133,6 +133,18 @@ private:
   Splitter* _splitter;
 };
 
+vset<TermList> getSkolems(Literal* lit) {
+  vset<TermList> skolems;
+  SubtermIterator stit(lit);
+  while (stit.hasNext()) {
+    auto st = stit.next();
+    if (env.signature->getFunction(st.term()->functor())->skolem()) {
+      skolems.insert(st);
+    }
+  }
+  return skolems;
+}
+
 ClauseIterator MultiClauseInduction::generateClauses(Clause* premise)
 {
   CALL("MultiClauseInduction::generateClauses");
@@ -164,15 +176,8 @@ ClauseIterator MultiClauseInduction::generateClauses(Clause* premise)
       if (mainGen._primarySchemes.empty()) {
         continue;
       }
-      vset<TermList> skolems;
+      auto skolems = getSkolems(lit);
       vset<TermList> indTerms;
-      SubtermIterator stit(lit);
-      while (stit.hasNext()) {
-        auto st = stit.next();
-        if (isSkolem(st)) {
-          skolems.insert(st);
-        }
-      }
       for (const auto& scheme : mainGen._primarySchemes) {
         for (const auto& t : scheme.first._inductionTerms) {
           indTerms.insert(t);
@@ -190,16 +195,8 @@ ClauseIterator MultiClauseInduction::generateClauses(Clause* premise)
               || qr.literal->isNegative() || !qr.literal->ground()) {
             continue;
           }
-          bool subset = true;
-          SubtermIterator stit(qr.literal);
-          while (stit.hasNext()) {
-            auto st = stit.next();
-            if (isSkolem(st) && !skolems.count(st)) {
-              subset = false;
-              break;
-            }
-          }
-          if (!subset) {
+          auto sideSkolems = getSkolems(qr.literal);
+          if (!includes(skolems.begin(), skolems.end(), sideSkolems.begin(), sideSkolems.end())) {
             continue;
           }
           mainGen.generateSecondary(qr.clause, qr.literal);
@@ -220,14 +217,7 @@ ClauseIterator MultiClauseInduction::generateClauses(Clause* premise)
               || qr.literal->isPositive() || !qr.literal->ground()) {
             continue;
           }
-          vset<TermList> mainSkolems;
-          SubtermIterator stit(qr.literal);
-          while (stit.hasNext()) {
-            auto st = stit.next();
-            if (isSkolem(st)) {
-              mainSkolems.insert(st);
-            }
-          }
+          auto mainSkolems = getSkolems(qr.literal);
           if (!includes(mainSkolems.begin(), mainSkolems.end(), skolems.begin(), skolems.end())) {
             continue;
           }
