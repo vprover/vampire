@@ -2275,6 +2275,32 @@ void bench_smt2_setup_reusing(benchmark::State& state, SubsumptionInstance insta
     benchmark::ClobberMemory();
   }
 }
+
+void bench_smt2_total(benchmark::State& state, SubsumptionInstance instance)
+{
+  for (auto _ : state) {
+    SMTSubsumptionImpl2 smt_impl;
+    bool smt_result = smt_impl.checkSubsumption(instance.side_premise, instance.main_premise);
+    benchmark::DoNotOptimize(smt_result);
+    if (smt_result != instance.subsumed) {
+      state.SkipWithError("Wrong result!");
+      return;
+    }
+  }
+}
+
+void bench_smt2_total_reusing(benchmark::State& state, SubsumptionInstance instance)
+{
+  SMTSubsumptionImpl2 smt_impl;
+  for (auto _ : state) {
+    bool smt_result = smt_impl.checkSubsumption(instance.side_premise, instance.main_premise);
+    benchmark::DoNotOptimize(smt_result);
+    if (smt_result != instance.subsumed) {
+      state.SkipWithError("Wrong result!");
+      return;
+    }
+  }
+}
 #endif
 
 
@@ -2337,13 +2363,17 @@ void ProofOfConcept::benchmark_micro(vvector<SubsumptionInstance> instances)
     // break;
     // name = "smt_search_" + suffix;
     // benchmark::RegisterBenchmark(name.c_str(), bench_smt_search, instance);
-    // name = "smt_total_" + suffix;
-    // benchmark::RegisterBenchmark(name.c_str(), bench_smt_total, instance);
+    name = "smt_total_" + suffix;
+    benchmark::RegisterBenchmark(name.c_str(), bench_smt_total, instance);
 
     name = "smt2_setup_" + suffix;
     benchmark::RegisterBenchmark(name.c_str(), bench_smt2_setup, instance);
     name = "smt2_setup_reusing_" + suffix;
     benchmark::RegisterBenchmark(name.c_str(), bench_smt2_setup_reusing, instance);
+    name = "smt2_total_" + suffix;
+    benchmark::RegisterBenchmark(name.c_str(), bench_smt2_total, instance);
+    name = "smt2_total_reusing_" + suffix;
+    benchmark::RegisterBenchmark(name.c_str(), bench_smt2_total_reusing, instance);
 
     name = "orig_setup_" + suffix;
     benchmark::RegisterBenchmark(name.c_str(), bench_orig_setup, instance);
@@ -2351,10 +2381,10 @@ void ProofOfConcept::benchmark_micro(vvector<SubsumptionInstance> instances)
     benchmark::RegisterBenchmark(name.c_str(), bench_orig_setup_reusing, instance);
     // name = "orig_search_" + suffix;
     // benchmark::RegisterBenchmark(name.c_str(), bench_orig_search, instance);
-    // name = "orig_total_" + suffix;
-    // benchmark::RegisterBenchmark(name.c_str(), bench_orig_total, instance);
-    // name = "orig_total_reusing_" + suffix;
-    // benchmark::RegisterBenchmark(name.c_str(), bench_orig_total_reusing, instance);
+    name = "orig_total_" + suffix;
+    benchmark::RegisterBenchmark(name.c_str(), bench_orig_total, instance);
+    name = "orig_total_reusing_" + suffix;
+    benchmark::RegisterBenchmark(name.c_str(), bench_orig_total_reusing, instance);
   }
 
   benchmark::Initialize(&argc, argv);

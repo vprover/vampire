@@ -261,6 +261,14 @@ private:
 
   vector_map<subsat::Var, BindingsRef> m_bindings;
 
+  // TODO: instead of these bindings, just store a vector_map<subsat::Var, vector<subsat::Var>>
+  // that lists for each boolean variable the list of propagations.
+  // This list can be built lazily during solving. Need also a flag whether the vector is initialized.
+  // combined: vector_map<subsat::Var, std::pair<bool, vector<subsat::Var>>> ??
+  // separate:
+  // vector_map<subsat::Var, char>
+  // vector_map<subsat::Var, vector<subsat::Var>>
+  //
   // Unfortunately vampire variables don't need to be contiguous
   vector<VampireVar> m_used_vars;
   vector_map<VampireVar, vector<std::pair<subsat::Var, VampireTerm>>> m_bindings_by_var;

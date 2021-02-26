@@ -1183,7 +1183,7 @@ std::ostream& operator<<(std::ostream& os, ShowAssignment<A> sa)
 //    => maybe add a 'hint' to 'new_variable'... that will be the first phase tried if we need to decide on it.
 // 4. restarts
 // 5. vsids / mode switching?
-// 6. are we missing other important minisat features? (clause deletion, ...?)
+// 6. are we missing other important minisat features? (clause deletion, CC-minimization, ...?)
 
 
 #ifndef NDEBUG
