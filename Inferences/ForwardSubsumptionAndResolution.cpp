@@ -470,7 +470,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
         env.endOutput();
       }
       if (stats.numDecisions >= m_numDecisions_frequency.size()) {
-        size_t new_size = std::max(std::max(256ul, stats.numDecisions+1), m_numDecisions_frequency.size() * 2);
+        size_t new_size = std::max(std::max(256ul, (size_t)stats.numDecisions+1), m_numDecisions_frequency.size() * 2);
         m_numDecisions_frequency.resize(new_size, 0);
         m_numDecisions_successes.resize(new_size, 0);
       }

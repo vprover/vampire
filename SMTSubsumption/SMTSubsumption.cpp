@@ -1065,6 +1065,9 @@ class SMTSubsumptionImpl2
       solver.clear();
       ASS(solver.empty());
 
+      base_clauses.clear();
+      ASS(base_clauses.empty());
+
       // Here we store the AtMostOne constraints saying that each instance literal may be matched at most once.
       // Each instance literal can be matched by at most 2 boolean vars per base literal (two orientations of equalities).
       // NOTE: instance constraints cannot be packed densely because we only know their shape at the end.

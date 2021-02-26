@@ -1112,9 +1112,14 @@ private:
   }
 
 private:
+  /// Whether we found a conflict at the root level
   bool m_inconsistent = false;
+
+  /// Number of active variables in the solver
   uint32_t m_used_vars = 0;
-  uint32_t m_unassigned_vars = 0; ///< Number of variables that have not yet been assigned
+
+  /// Number of variables that have not yet been assigned
+  uint32_t m_unassigned_vars = 0;
 
   /// Current decision level
   Level m_level = 0;
