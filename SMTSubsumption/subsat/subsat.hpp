@@ -519,6 +519,9 @@ public:
       return Result::Unsat;
     }
 
+    uint32_t const restart_interval = 100;
+    uint32_t restart_timer = restart_interval;
+
     while (true) {
       ClauseRef conflict = propagate();
 
@@ -528,14 +531,21 @@ public:
         if (!analyze(conflict)) {
           return Result::Unsat;
         }
-      } else {
-        if (m_unassigned_vars == 0) {
-          assert(checkModel());
-          return Result::Sat;
-        } else {
-          // TODO: restart? switch mode? reduce clause db?
-          decide();
+        if (restart_timer > 0) {
+          restart_timer--;
         }
+      }
+      else if (m_unassigned_vars == 0) {
+        assert(checkModel());
+        return Result::Sat;
+      }
+      else if (m_level > 0 && restart_timer == 0) {
+        restart();
+        restart_timer = restart_interval;
+      }
+      else {
+        // TODO: restart? switch mode? reduce clause db?
+        decide();
       }
     }
   }
@@ -1069,6 +1079,15 @@ private:
     m_level = new_level;
     assert(m_queue.checkInvariants(m_values));
   }  // backtrack
+
+
+  void restart()
+  {
+    assert(checkInvariants());
+    backtrack(0);
+    assert(checkInvariants());
+  }
+
 
 #ifndef NDEBUG
   NODISCARD bool checkEmpty() const;
