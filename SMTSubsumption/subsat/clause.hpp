@@ -10,6 +10,7 @@
 
 namespace subsat {
 
+// TODO: rename Clause -> Constraint, since we use the same types for AMO-constraints now too
 
 class Clause final
 {

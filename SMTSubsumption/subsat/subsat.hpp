@@ -1182,13 +1182,22 @@ std::ostream& operator<<(std::ostream& os, ShowAssignment<A> sa)
 
 
 // TODO:
-// 1. sort analyzed variables before VMTF-bumping
-// 2. binary clause optimization
-// 3. phase saving? but for our problem, just choosing 'true' will almost always be correct.
+// 1. Tuning for expected-UNSAT:
+//    - VMTF done
+//    - fast restarts => very important
+//    - clause deletion => if we have more than ~10k conflicts
+//    - (sort analyzed variables before VMTF-bumping -- not so important according to Armin)
+// 2. Instead of assumption (to switch between S/SR instance), allow resetting the solver while keeping the original clauses.
+//    Maybe a separate ClauseArena for learned clauses? (no, that just complicates the dereferencing of watch lists)
+//    Store the ClauseArena size when we added the last original clause and reset to that.
+//    Then we want to be able to later add to finalized clauses: we need to extend the base_clauses by the negative matches.
+//    Need to update the AMO's as well (and amo watch lists!); and add one AMO for the negative watches.
+//    This doesn't seem too complicated (but hard making a "safe" interface to this, but we don't need to care about that right now).
+// 3. binary clause optimization
+// 4. phase saving? but for our problem, just choosing 'true' will almost always be correct.
 //    => maybe add a 'hint' to 'new_variable'... that will be the first phase tried if we need to decide on it.
-// 4. restarts
 // 5. vsids / mode switching?
-// 6. are we missing other important minisat features? (clause deletion, CC-minimization, ...?)
+// 6. are we missing other important features? (CC-minimization, ...?)
 
 
 #ifndef NDEBUG
