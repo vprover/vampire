@@ -149,10 +149,6 @@ ClauseIterator MultiClauseInduction::generateClauses(Clause* premise)
 {
   CALL("MultiClauseInduction::generateClauses");
 
-  if (premise->containsFunctionDefinition()) {
-    return ClauseIterator::getEmpty();
-  }
-
   ASS(env.options->induction() == Options::Induction::BOTH ||
       env.options->induction() == Options::Induction::STRUCTURAL);
   ASS(env.options->structInduction() == Options::StructuralInductionKind::FOUR ||

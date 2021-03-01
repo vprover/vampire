@@ -1110,7 +1110,7 @@ bool SaturationAlgorithm::activate(Clause* cl)
   bool redundant=false;
   ClauseIterator instances = ClauseIterator::getEmpty();
 #if VZ3
-  if(_theoryInstSimp){
+  if(_theoryInstSimp && !cl->containsFunctionDefinition()){
     instances = _theoryInstSimp->generateClauses(cl,redundant);
   }
 #endif
@@ -1132,8 +1132,10 @@ bool SaturationAlgorithm::activate(Clause* cl)
   env.statistics->activeClauses++;
   _active->add(cl);
 
-
-    ClauseIterator toAdd= pvi(getConcatenatedIterator(instances,_generator->generateClauses(cl)));
+  ClauseIterator toAdd = ClauseIterator::getEmpty();
+  if (_generator->canGenerateFromClause(cl)) {
+    toAdd = pvi(getConcatenatedIterator(instances,_generator->generateClauses(cl)));
+  }
 
     while (toAdd.hasNext()) {
       Clause* genCl=toAdd.next();

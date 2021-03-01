@@ -176,9 +176,6 @@ private:
 ClauseIterator Superposition::generateClauses(Clause* premise)
 {
   CALL("Superposition::generateClauses");
-  if (premise->containsFunctionDefinition()) {
-    return ClauseIterator::getEmpty();
-  }
   PassiveClauseContainer* passiveClauseContainer = _salg->getPassiveClauseContainer();
 
   //cout << "SUPERPOSITION with " << premise->toString() << endl;

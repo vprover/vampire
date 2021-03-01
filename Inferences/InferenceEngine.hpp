@@ -24,6 +24,8 @@
 
 #include "Lib/Allocator.hpp"
 
+#include "Kernel/Clause.hpp"
+
 namespace Inferences
 {
 
@@ -93,6 +95,9 @@ class GeneratingInferenceEngine
 : public InferenceEngine
 {
 public:
+  virtual bool canGenerateFromClause(Clause* cl) {
+    return !cl->containsFunctionDefinition();
+  }
   virtual ClauseIterator generateClauses(Clause* premise) = 0;
 };
 

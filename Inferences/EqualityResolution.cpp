@@ -175,7 +175,7 @@ ClauseIterator EqualityResolution::generateClauses(Clause* premise)
 {
   CALL("EqualityResolution::generateClauses");
 
-  if(premise->containsFunctionDefinition() || premise->isEmpty()) {
+  if(premise->isEmpty()) {
     return ClauseIterator::getEmpty();
   }
   ASS(premise->numSelected()>0);

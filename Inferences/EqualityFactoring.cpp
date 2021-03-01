@@ -169,7 +169,7 @@ ClauseIterator EqualityFactoring::generateClauses(Clause* premise)
 {
   CALL("EqualityFactoring::generateClauses");
 
-  if(premise->containsFunctionDefinition() || premise->length()<=1) {
+  if(premise->length()<=1) {
     return ClauseIterator::getEmpty();
   }
   ASS(premise->numSelected()>0);

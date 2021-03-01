@@ -227,7 +227,7 @@ void BackwardDemodulation::perform(Clause* cl,
 {
   CALL("BackwardDemodulation::perform");
 
-  if(cl->length()!=1 || !(*cl)[0]->isEquality() || !(*cl)[0]->isPositive()) {
+  if(cl->length()!=1 || !(*cl)[0]->isEquality() || !(*cl)[0]->isPositive() ) {
     simplifications=BwSimplificationRecordIterator::getEmpty();
     return;
   }

@@ -175,7 +175,7 @@ ClauseIterator Factoring::generateClauses(Clause* premise)
 {
   CALL("Factoring::generateClauses");
 
-  if(premise->containsFunctionDefinition() || premise->length()<=1) {
+  if(premise->length()<=1) {
     return ClauseIterator::getEmpty();
   }
   if(premise->numSelected()==1 && _salg->getLiteralSelector().isNegativeForSelection((*premise)[0])) {

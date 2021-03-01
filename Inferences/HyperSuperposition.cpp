@@ -402,10 +402,6 @@ ClauseIterator HyperSuperposition::generateClauses(Clause* cl)
 {
   CALL("HyperSuperposition::generateClauses");
 
-  if (cl->containsFunctionDefinition()) {
-    return ClauseIterator::getEmpty();
-  }
-
   TimeCounter tc(TC_HYPER_SUPERPOSITION);
 
   static ClausePairStack res;

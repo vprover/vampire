@@ -358,10 +358,6 @@ ClauseIterator URResolution::generateClauses(Clause* cl)
 {
   CALL("URResolution::generateClauses");
 
-  if (cl->containsFunctionDefinition()) {
-    return ClauseIterator::getEmpty();
-  }
-
   unsigned clen = cl->size();
   if(clen<1) {
     return ClauseIterator::getEmpty();

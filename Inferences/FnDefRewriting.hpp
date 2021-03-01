@@ -35,6 +35,9 @@ public:
   void attach(SaturationAlgorithm *salg);
   void detach();
 
+  bool canGenerateFromClause(Clause* cl) override {
+    return true;
+  }
   ClauseIterator generateClauses(Clause *premise) override;
 
 private:
