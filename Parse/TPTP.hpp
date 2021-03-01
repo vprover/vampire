@@ -795,7 +795,8 @@ private:
   void endTheoryFunction();
   void endTuple();
   void addTagState(Tag);
-
+  TermList readSort();
+  unsigned getConstructorArity();
 
   //Higher-order parsing
   //these functions were all written in early 2017 (start of PhD) and are consequently
@@ -807,9 +808,7 @@ private:
   void holTerm();  
   void foldl(TermStack*);
   TermList readArrowSort();
-  TermList readSort();
   void readTypeArgs(unsigned arity);
-  unsigned getConstructorArity();
   //End of higher-order specific functions
 
   void bindVariable(unsigned var,TermList sort);

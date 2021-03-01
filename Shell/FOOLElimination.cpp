@@ -537,12 +537,8 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         // build g(Y1,...,Ym,X1, ..., Xn)
         TermList freshFunctionApplication;
         Formula* freshPredicateApplication;
+        buildApplication(freshSymbol, context, allVars, freshFunctionApplication, freshPredicateApplication);
 
-        if (context == FORMULA_CONTEXT) {
-          freshPredicateApplication = new AtomicFormula(Literal::create(freshSymbol, allVars.size(), true, false, allVars.begin()));
-        } else {
-          freshFunctionApplication = TermList(Term::create(freshSymbol, allVars.size(), allVars.begin()));
-        }
         
         // build g(Y1, ..., Ym,X1, ..., Xn) == s
         Formula* thenEq = buildEq(context, freshPredicateApplication, thenBranchFormula,
@@ -663,12 +659,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         // g(A1, ..., Am, B1, ..., Bj,X1, ..., Xn, Y1, ..., Yk)
         TermList freshFunctionApplication;
         Formula* freshPredicateApplication;
-
-        if (bindingContext == FORMULA_CONTEXT) {
-          freshPredicateApplication = new AtomicFormula(Literal::create(freshSymbol, allVars.size(), true, false, allVars.begin()));
-        } else {
-          freshFunctionApplication = TermList(Term::create(freshSymbol, allVars.size(), allVars.begin()));
-        }
+        buildApplication(freshSymbol, bindingContext, allVars, freshFunctionApplication, freshPredicateApplication);
 
         Term* freshApplication = bindingContext == FORMULA_CONTEXT ? freshPredicateApplication->literal() : 
                                                                      freshFunctionApplication.term();
@@ -867,6 +858,23 @@ Formula* FOOLElimination::buildEq(Context context, Formula* lhsFormula, Formula*
   } else {
     // build equality
     return new AtomicFormula(Literal::createEquality(true, lhsTerm, rhsTerm, termSort));
+  }
+}
+
+/**
+ * Given a symbol g of a given arity n and a stack of variables X1, ..., Xn
+ * builds a term g(X1, ..., Xn). Depending on a context, g is assumed to be
+ * a function or a predicate symbol. In the former case, the result in written
+ * to functionApplication, otherwise to predicateApplication.
+ */
+void FOOLElimination::buildApplication(unsigned symbol, Context context, TermStack& vars,
+                                       TermList& functionApplication, Formula*& predicateApplication) {
+  CALL("FOOLElimination::buildApplication");
+
+  if (context == FORMULA_CONTEXT) {
+    predicateApplication = new AtomicFormula(Literal::create(symbol, vars.size(), true, false, vars.begin()));
+  } else {
+    functionApplication = TermList(Term::create(symbol, vars.size(), vars.begin()));
   }
 }
 

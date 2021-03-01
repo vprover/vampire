@@ -81,7 +81,9 @@ private:
   // between pairs of arguments
   static Formula* buildEq(Context context, Formula* lhsFormula, Formula* rhsFormula,
                                            TermList lhsTerm, TermList rhsTerm, TermList termSort);
-  
+  static void buildApplication(unsigned function, Context context, TermStack& vars,
+                             TermList& functionApplication, Formula*& predicateApplication);
+
   // Creates a stack of sorts for the given variables, using the sorting
   // context of the current formula
   void collectSorts(VList* vars, TermStack& typeVars, TermStack& termVars, TermStack& allVars, TermStack& termVarSorts);

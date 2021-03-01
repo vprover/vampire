@@ -4258,7 +4258,7 @@ void TPTP::foldl(TermStack* terms)
 
 void TPTP::readTypeArgs(unsigned arity)
 {
-  CALL("TPTP::readApplicativeTypeTerm");
+  CALL("TPTP::readTypeArgs");
 
   for(unsigned i = 0; i < arity; i++){
     consumeToken(T_APP);
@@ -4295,6 +4295,13 @@ TermList TPTP::readSort()
         readTypeArgs(arity);
       } else {
         int c = getChar(0);
+        //Polymorphic sorts of are of the form 
+        //type_con(sort_1, ..., sort_n)
+        //the same as standard first-order terms.
+        //Code below works, but does not fit the philosophy of
+        //this parser. However, recursive calls to readSort are
+        //used in for array sorts and tuple sorts, so polymorphism
+        //isn't uniquely evil on this front!
         if(c == '('){
           consumeToken(T_LPAR);    
           for(;;){
