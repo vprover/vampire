@@ -1087,10 +1087,6 @@ bool Splitter::doSplitting(Clause* cl)
     return false;
   }
 
-  if (cl->containsFunctionDefinition()) {
-    return false;
-  }
-
   if (_fastRestart && _haveBranchRefutation) {
     _fastClauses.push(cl);
     return true; // the clause is ours now
@@ -1242,7 +1238,6 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
 
   Clause* compCl = Clause::fromIterator(getArrayishObjectIterator(lits, size),
           NonspecificInference1(InferenceRule::AVATAR_COMPONENT,def_u));
-  auto it = getArrayishObjectIterator(lits, size);
 
   // propagate running sums:
   // - we have certain values we propagate from the parents of a clause d to d. These values are mainly used to guide saturation.

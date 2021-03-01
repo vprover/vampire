@@ -1101,7 +1101,7 @@ bool SaturationAlgorithm::activate(Clause* cl)
     return false;
   }
 
-  if (_splitter && _opt.splitAtActivation()) {
+  if (_splitter && _opt.splitAtActivation() && !cl->containsFunctionDefinition()) {
     if (_splitter->doSplitting(cl)) {
       return false;
     }
@@ -1184,9 +1184,6 @@ start:
 
   while (! _unprocessed->isEmpty()) {
     Clause* c = _unprocessed->pop();
-    // if (c->containsFunctionDefinition()) {
-    //   continue;
-    // }
     ASS(!isRefutation(c));
 
     if (forwardSimplify(c)) {

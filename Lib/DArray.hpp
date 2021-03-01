@@ -441,10 +441,9 @@ public:
   public:
     DECL_ELEMENT_TYPE(C);
     inline Iterator() : _next(0), _afterLast(0) {}
-    inline Iterator(const DArray& arr) : _next(arr._array),
+    inline Iterator(DArray& arr) : _next(arr._array),
     _afterLast(arr._array+arr._size) {}
     inline bool hasNext() { return _next!=_afterLast; }
-    inline C peekAtNext() { return *_next; }
     inline C next() { return *(_next++); }
   private:
    C* _next;
@@ -467,7 +466,7 @@ public:
   {
   public:
     DECL_ELEMENT_TYPE(C);
-    inline ReversedIterator(const DArray& arr) : _curr(arr._array+arr._size),
+    inline ReversedIterator(DArray& arr) : _curr(arr._array+arr._size),
     _first(arr._array) {}
     inline bool hasNext() { return _curr!=_first; }
     inline C next() { return *(--_curr); }
