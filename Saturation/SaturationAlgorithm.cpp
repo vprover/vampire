@@ -992,6 +992,9 @@ void SaturationAlgorithm::backwardSimplify(Clause* cl)
 {
   CALL("SaturationAlgorithm::backwardSimplify");
 
+  if (cl->containsFunctionDefinition()) {
+    return;
+  }
 
   BwSimplList::Iterator bsit(_bwSimplifiers);
   while (bsit.hasNext()) {

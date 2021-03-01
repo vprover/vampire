@@ -94,10 +94,6 @@ void SLQueryBackwardSubsumption::perform(Clause* cl,
   CALL("SLQueryBackwardSubsumption::perform");
   ASSERT_VALID(*cl);
 
-  if (cl->containsFunctionDefinition()) {
-    return;
-  }
-
   //we do all work in this method, so we can just measure time simply
   //(which cannot generally be done when iterators are involved)
   TimeCounter tc(TC_BACKWARD_SUBSUMPTION);
