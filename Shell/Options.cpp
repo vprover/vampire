@@ -432,6 +432,10 @@ void Options::init()
     _equalityProxy.addHardConstraint(If(notEqual(EqualityProxy::OFF)).then(_combinatorySuperposition.is(notEqual(true))));
     _equalityProxy.setRandomChoices(isRandOn(),{"R","RS","RST","RSTC","off","off","off","off","off"}); // wasn't tested, make off more likely
     
+    _useMonoEqualityProxy = BoolOptionValue("mono_ep","mep",false);
+    _useMonoEqualityProxy.description="Use the mnomorphic version of equality proxy transformation.";
+    _lookup.insert(&_useMonoEqualityProxy);
+    _useMonoEqualityProxy.tag(OptionTag::PREPROCESSING);
 
     _equalityResolutionWithDeletion = ChoiceOptionValue<RuleActivity>( "equality_resolution_with_deletion","erd",
                                                                       RuleActivity::INPUT_ONLY,{"input_only","off","on"});
@@ -557,6 +561,8 @@ void Options::init()
     _lookup.insert(&_inlineLet);
     _inlineLet.tag(OptionTag::PREPROCESSING);
 
+     //Higher-order options
+     
     _addCombAxioms = BoolOptionValue("add_comb_axioms","aca",false);
     _addCombAxioms.description="Add combinator axioms";
     _lookup.insert(&_addCombAxioms);
@@ -1416,6 +1422,8 @@ void Options::init()
     _superpositionFromVariables.addProblemConstraint(hasEquality());
     _superpositionFromVariables.reliesOn(Or(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN)),_instGenWithResolution.is(equal(true))));
     _superpositionFromVariables.setRandomChoices({"on","off"});
+
+    //Higher-order Options
     
     _combinatorySuperposition = BoolOptionValue("combinatory_sup","csup",false);
     _combinatorySuperposition.description="Switches on a specific ordering and that orients combinator axioms left-right."
@@ -1551,6 +1559,8 @@ void Options::init()
     "Reason about lambda-free hol. See paper by Vukmirovic et al.";
     _lookup.insert(&_lambdaFreeHol);
     _lambdaFreeHol.tag(OptionTag::INFERENCES);
+
+    //Final higher-order option in this section
 
 //*********************** InstGen  ***********************
 

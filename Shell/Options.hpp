@@ -2093,6 +2093,7 @@ public:
   bool literalMaximalityAftercheck() const { return _literalMaximalityAftercheck.actualValue; }
   bool superpositionFromVariables() const { return _superpositionFromVariables.actualValue; }
   EqualityProxy equalityProxy() const { return _equalityProxy.actualValue; }
+  bool useMonoEqualityProxy() const { return _useMonoEqualityProxy.actualValue; }
   RuleActivity equalityResolutionWithDeletion() const { return _equalityResolutionWithDeletion.actualValue; }
   ExtensionalityResolution extensionalityResolution() const { return _extensionalityResolution.actualValue; }
   bool FOOLParamodulation() const { return _FOOLParamodulation.actualValue; }
@@ -2220,6 +2221,8 @@ public:
   bool useManualClauseSelection() const { return _manualClauseSelection.actualValue; }
   bool inequalityNormalization() const { return _inequalityNormalization.actualValue; }
   bool gaussianVariableElimination() const { return _gaussianVariableElimination.actualValue; }
+
+  //Higher-order Options
 
   bool addCombAxioms() const { return _addCombAxioms.actualValue; }
   bool addProxyAxioms() const { return _addProxyAxioms.actualValue; }
@@ -2399,6 +2402,7 @@ private:
   BoolOptionValue _demodulationRedundancyCheck;
 
   ChoiceOptionValue<EqualityProxy> _equalityProxy;
+  BoolOptionValue _useMonoEqualityProxy;  
   ChoiceOptionValue<RuleActivity> _equalityResolutionWithDeletion;
   BoolOptionValue _equivalentVariableRemoval;
   ChoiceOptionValue<ExtensionalityResolution> _extensionalityResolution;
@@ -2644,7 +2648,8 @@ private:
   BoolOptionValue _manualClauseSelection;
   BoolOptionValue _inequalityNormalization;
   BoolOptionValue _gaussianVariableElimination;
-
+ 
+  //Higher-order options
   BoolOptionValue _addCombAxioms;
   BoolOptionValue _addProxyAxioms;
   BoolOptionValue _combinatorySuperposition;

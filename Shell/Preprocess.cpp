@@ -29,6 +29,7 @@
 #include "DistinctGroupExpansion.hpp"
 #include "EqResWithDeletion.hpp"
 #include "EqualityProxy.hpp"
+#include "EqualityProxyMono.hpp"
 #include "Flattening.hpp"
 #include "FunctionDefinition.hpp"
 #include "GeneralSplitting.hpp"
@@ -452,8 +453,14 @@ void Preprocess::preprocess(Problem& prb)
      if (env.options->showPreprocessing())
        env.out() << "equality proxy" << std::endl;
 
-     EqualityProxy proxy(_options.equalityProxy());
-     proxy.apply(prb);
+     if(_options.useMonoEqualityProxy() && !prb.hasPolymorphicSym()){
+       EqualityProxyMono proxy(_options.equalityProxy());
+       proxy.apply(prb);
+     } else {
+       //default
+       EqualityProxy proxy(_options.equalityProxy());
+       proxy.apply(prb);
+     }
    }
 
    

@@ -12,15 +12,14 @@
  * Defines class EqualityProxy implementing the equality proxy transformation.
  */
 
-#ifndef __EqualityProxy__
-#define __EqualityProxy__
+#ifndef __EqualityProxyMono__
+#define __EqualityProxyMono__
 
 #include "Forwards.hpp"
 
 #include "Lib/Array.hpp"
 
 #include "Kernel/Term.hpp"
-#include "Kernel/Sorts.hpp"
 
 #include "Options.hpp"
 
@@ -29,7 +28,7 @@ namespace Shell {
 using namespace Lib;
 using namespace Kernel;
 
-// Polymorphic version of equality proxy transformation.
+// Monomorphic version of equality proxy transformation.
 // When working with a monomorphic problem, both the poly and the mono
 // versions can be used. Poly is default. 
 // The one exception is when using instGen calculus which has not 
@@ -55,39 +54,43 @@ using namespace Kernel;
  *   </li>
  * </ol>
  */
-class EqualityProxy
+class EqualityProxyMono
 {
 public:
-  CLASS_NAME(EqualityProxy);
-  USE_ALLOCATOR(EqualityProxy);
+  CLASS_NAME(EqualityProxyMono);
+  USE_ALLOCATOR(EqualityProxyMono);
 
-  EqualityProxy(Options::EqualityProxy opt);
+  EqualityProxyMono(Options::EqualityProxy opt);
 
   void apply(Problem& prb);
   void apply(UnitList*& units);
   Clause* apply(Clause* cl);
 private:
-  void addLocalAxioms(UnitList*& units);
+  void addLocalAxioms(UnitList*& units, TermList sort);
   void addAxioms(UnitList*& units);
   void addCongruenceAxioms(UnitList*& units);
-  void getArgumentEqualityLiterals(unsigned cnt, LiteralStack& lits, Stack<TermList>& vars1,
-      Stack<TermList>& vars2, OperatorType* symbolType);
+  bool getArgumentEqualityLiterals(unsigned cnt, LiteralStack& lits, Stack<TermList>& vars1,
+      Stack<TermList>& vars2, OperatorType* symbolType, bool skipSortsWithoutEquality);
   Literal* apply(Literal* lit);
   Literal* makeProxyLiteral(bool polarity, TermList arg0, TermList arg1, TermList sort);
 
-  unsigned getProxyPredicate();
+  bool haveProxyPredicate(unsigned sort) const;
+  unsigned getProxyPredicate(TermList sort);
   Clause* createEqProxyAxiom(const LiteralStack& literalIt);
 
   /** the equality proxy option value, passed in the constructor */
   Options::EqualityProxy _opt;
 
-  bool _addedPred;
-  unsigned _proxyPredicate;
-
+  /**
+   * Proxy predicate numbers for each sort. If element on at the position
+   * of a predicate is zero, it means the proxy predicate for that sort was not
+   * added yet.
+   */
+  static ZIArray<unsigned> s_proxyPredicates;
+  /** equality proxy predicate sorts */
+  static DHMap<unsigned,TermList> s_proxyPredicateSorts;
   /** array of proxy definitions E(x,y) <=> x = y  */
-  //static ZIArray<Unit*> s_proxyPremises;
-  Unit* _defUnit;
-
+  static ZIArray<Unit*> s_proxyPremises;
 };
 
 };
