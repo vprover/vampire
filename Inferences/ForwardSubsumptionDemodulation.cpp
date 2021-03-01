@@ -70,10 +70,6 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
 {
   CALL("ForwardSubsumptionDemodulation::perform");
 
-  if (cl->containsFunctionDefinition()) {
-    return false;
-  }
-
   //                        cl
   //                 vvvvvvvvvvvvvvvv
   //     mcl       matched      /-- only look for a term to demodulate in this part!

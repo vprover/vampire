@@ -84,7 +84,7 @@ bool CTFwSubsAndRes::perform(Clause* cl, Clause*& replacement, ClauseIterator& p
 {
   CALL("CTFwSubsAndRes::perform");
   
-  if(cl->containsFunctionDefinition() || cl->length()==0) {
+  if(cl->length()==0) {
     return false;
   }
 

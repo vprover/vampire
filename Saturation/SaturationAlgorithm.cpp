@@ -948,6 +948,11 @@ bool SaturationAlgorithm::forwardSimplify(Clause* cl)
     return false;
   }
 
+  if (cl->containsFunctionDefinition()) {
+    cl->incRefCnt(); // see below
+    return true;
+  }
+
   FwSimplList::Iterator fsit(_fwSimplifiers);
 
   while (fsit.hasNext()) {

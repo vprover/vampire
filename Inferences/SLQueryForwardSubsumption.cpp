@@ -98,10 +98,6 @@ void SLQueryForwardSubsumption::perform(Clause* cl, ForwardSimplificationPerform
 {
   CALL("SLQueryForwardSubsumption::perform");
 
-  if (cl->containsFunctionDefinition()) {
-    return false;
-  }
-
   unsigned clen=cl->length();
   if(clen==0) {
     return;

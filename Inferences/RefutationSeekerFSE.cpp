@@ -59,7 +59,7 @@ void RefutationSeekerFSE::perform(Clause* cl, ForwardSimplificationPerformer* si
 {
   CALL("RefutationSeekerFSE::perform");
 
-  if(cl->containsFunctionDefinition() || cl->length()!=1) {
+  if(cl->length()!=1) {
     return;
   }
 

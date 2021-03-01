@@ -73,10 +73,6 @@ bool ForwardDemodulation::perform(Clause* cl, Clause*& replacement, ClauseIterat
 {
   CALL("ForwardDemodulation::perform");
 
-  if (cl->containsFunctionDefinition()) {
-    return false;
-  }
-
   TimeCounter tc(TC_FORWARD_DEMODULATION);
 
   Ordering& ordering = _salg->getOrdering();

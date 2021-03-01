@@ -554,7 +554,7 @@ bool HyperSuperposition::tryUnifyingToResolveSimpl(Clause* cl, Clause*& replacem
 bool HyperSuperposition::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
 {
   CALL("HyperSuperposition::perform");
-  if(cl->containsFunctionDefinition() || cl->length()!=1) {
+  if(cl->length()!=1) {
     return false;
   }
 

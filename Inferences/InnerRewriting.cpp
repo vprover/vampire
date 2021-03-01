@@ -28,10 +28,6 @@ bool InnerRewriting::perform(Clause* cl, Clause*& replacement, ClauseIterator& p
 {
   CALL("InnerRewriting::perform");
 
-  if (cl->containsFunctionDefinition()) {
-    return false;
-  }
-
   Ordering& ordering = _salg->getOrdering();
 
   // look for the first equality which rewrites something and rewrite everything with it (check for EqTaut as you go)
