@@ -83,7 +83,8 @@ public:
   USE_ALLOCATOR(FnDefLHSIndex);
 
   FnDefLHSIndex(TermIndexingStructure* is)
-  : TermIndex(is) {};
+    : TermIndex(is) {}
+
 protected:
   void handleClause(Clause* c, bool adding);
 };

@@ -11,8 +11,7 @@
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Inference.hpp"
-#include "Kernel/Renaming.hpp"
-#include "Kernel/RobSubstitution.hpp"
+#include "Kernel/Matcher.hpp"
 #include "Kernel/SortHelper.hpp"
 
 using namespace Kernel;
@@ -165,48 +164,52 @@ bool TermAlgebra::excludeTermFromAvailables(vvector<TermList>& availables, TermL
   bool excluded = false;
   for (unsigned i = 0; i < last;) {
     auto p = availables[i];
-    RobSubstitution subst;
-    if (subst.unify(p, 0, e, 1)) {
+    // if p is an instance of e, p is removed
+    if (MatchingUtils::matchTerms(e, p)) {
       excluded = true;
-      // if they are unifiable, p will be either
-      // replaced by more specific terms, or removed
       availables[i] = availables.back();
       availables.pop_back();
       last--;
-      // if e is more special than p,
-      // we go into the arguments and
-      // create the remaining more special terms
-      auto t1 = subst.apply(p, 0);
-      Renaming r;
-      r.normalizeVariables(p);
-      auto t2 = r.apply(p);
-      if (t1 != t2) {
-        vvector<TermList> newTerms;
-        if (p.isVar()) {
-          newTerms = generateAvailableTerms(e.term(), var);
-          excludeTermFromAvailables(newTerms, e, var);
-        } else {
-          Term::Iterator pIt(p.term());
-          Term::Iterator eIt(e.term());
-          while (pIt.hasNext()) {
-            auto pArg = pIt.next();
-            auto eArg = eIt.next();
+    }
+    // if e is an instance of p, the remaining
+    // instances of p are added
+    else if (MatchingUtils::matchTerms(p, e)) {
+      excluded = true;
+      availables[i] = availables.back();
+      availables.pop_back();
+      last--;
+      vvector<TermList> newTerms;
+      if (p.isVar()) {
+        newTerms = generateAvailableTerms(e.term(), var);
+        excludeTermFromAvailables(newTerms, e, var);
+      } else {
+        Term::Iterator pIt(p.term());
+        Term::Iterator eIt(e.term());
+        while (pIt.hasNext()) {
+          auto pArg = pIt.next();
+          auto eArg = eIt.next();
 
-            if (pArg.isVar() && eArg.isTerm()) {
-              auto terms = generateAvailableTerms(eArg.term(), var);
-              excludeTermFromAvailables(terms, eArg, var);
-              for (auto& r : terms) {
-                TermListReplacement tr(pArg, r);
-                newTerms.push_back(TermList(tr.transform(p.term())));
-              }
+          // a variable excludes everything,
+          // so we only consider terms here
+          if (eArg.isTerm()) {
+            vvector<TermList> terms;
+            if (pArg.isVar()) {
+              terms = generateAvailableTerms(eArg.term(), var);
+            } else {
+              terms.push_back(pArg);
+            }
+            excludeTermFromAvailables(terms, eArg, var);
+            for (auto& r : terms) {
+              TermListReplacement tr(pArg, r);
+              newTerms.push_back(TermList(tr.transform(p.term())));
             }
           }
         }
-        availables.insert(availables.end(), newTerms.begin(), newTerms.end());
       }
-      continue;
+      availables.insert(availables.end(), newTerms.begin(), newTerms.end());
+    } else {
+      i++;
     }
-    i++;
   }
   availables.shrink_to_fit();
   return excluded;

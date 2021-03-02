@@ -306,17 +306,15 @@ TermIterator EqHelper::getDemodulationLHSIterator(Literal* lit, bool forward, co
       ASS(t0.containsAllVariablesOf(t1));
       if (!fndef || !reversed) {
         return pvi( getSingletonIterator(t0) );
-      } else {
-        return TermIterator::getEmpty();
       }
+      return TermIterator::getEmpty();
     case Ordering::LESS:
     case Ordering::LESS_EQ:
       ASS(t1.containsAllVariablesOf(t0));
       if (!fndef || reversed) {
         return pvi( getSingletonIterator(t1) );
-      } else {
-        return TermIterator::getEmpty();
       }
+      return TermIterator::getEmpty();
     //there should be no equality literals of equal terms
     case Ordering::EQUAL:
       ASSERTION_VIOLATION;
@@ -340,14 +338,11 @@ TermIterator EqHelper::getEqualityArgumentIterator(Literal* lit)
 TermIterator EqHelper::getFnDefLHSIterator(Literal* lit, bool reversed)
 {
   ASS(lit->isEquality() && lit->isPositive());
-  TermList t0=*lit->nthArgument(0);
-  TermList t1=*lit->nthArgument(1);
-  if (reversed) {
-    ASS_REP(t1.containsAllVariablesOf(t0), *lit);
-    return pvi( getSingletonIterator(t1) );
-  }
-  ASS_REP(t0.containsAllVariablesOf(t1), *lit);
-  return pvi( getSingletonIterator(t0) );
+
+  TermList header = *lit->nthArgument(reversed ? 1 : 0);
+  ASS(header.containsAllVariablesOf(*lit->nthArgument(reversed ? 0 : 1)));
+
+  return pvi(getSingletonIterator(header));
 }
 
 }
