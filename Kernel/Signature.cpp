@@ -159,9 +159,11 @@ void Signature::Symbol::setType(OperatorType* type)
   CALL("Signature::Symbol::setType");
   ASS_REP(!_type, _type->toString());
 
+  _type = type;
+
+  // these are copied out to the Symbol for convenience
   _typeConstructor = (type->result() == Term::superSort());
   _typeArgsArity = type->typeArgsArity(); 
-  _type = type;
 }
 
 /**

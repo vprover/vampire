@@ -83,6 +83,9 @@ class Signature
   protected:
     /** print name */
     vstring _name;
+
+    // both _arity and _typeArgsArity could be recovered from _type. Storing directly here as well for convenience
+
     /** arity */
     unsigned _arity;
     /** arity of type arguments */
