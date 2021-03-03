@@ -526,7 +526,7 @@ public:
   {
     LOG_INFO("Adding AtMostOne constraint " << SHOWREF(cr));
 
-    Clause const& c = m_clauses.deref(cr);
+    Clause& c = m_clauses.deref(cr);
     // TODO: improve this?
     for (Lit lit : c) {
       ensure_variable(lit.var());
@@ -536,6 +536,9 @@ public:
       // AtMostOne constraints of sizes 0 and 1 are tautologies => do nothing
     } else if (c.size() == 2) {
       // AtMostOne constraint of size 2 is a binary clause
+      // AtMostOne(p, q) == ~p \/ ~q
+      c[0] = ~c[0];
+      c[1] = ~c[1];
       add_clause_internal(cr);
     } else {
       // Add proper AtMostOne constraint
