@@ -10,6 +10,7 @@
 #include <limits>
 #include <new>
 #include <ostream>
+#include <iomanip>
 #include <set>
 #include <map>
 #include <vector>
@@ -35,6 +36,12 @@ static_assert(VDEBUG == 1, "VDEBUG and NDEBUG are not synchronized");
 #define SUBSAT_PHASE_SAVING 0
 #endif
 
+#if SUBSAT_STANDALONE || LOGGING_ENABLED
+#define SUBSAT_STATISTICS 1
+#else
+#define SUBSAT_STATISTICS 0
+#endif
+
 
 
 // TODO:
@@ -44,6 +51,46 @@ static_assert(VDEBUG == 1, "VDEBUG and NDEBUG are not synchronized");
 
 namespace subsat {
 
+#if SUBSAT_STATISTICS
+struct Statistics {
+  int conflicts = 0;              ///< Number of conflicts encountered.
+  int conflicts_by_amo = 0;       ///< Number of conflicts due to violated AtMostOne-constraint.
+  int conflicts_by_clause = 0;    ///< Number of conflicts due to violated clause.
+  int decisions = 0;              ///< Number of decisions.
+  int propagations = 0;           ///< Number of unit propagations performed.
+  int propagations_by_amo = 0;    ///< Number of unit propagations caused by AtMostOne-constraints.
+  int propagations_by_clause = 0; ///< Number of unit propagations caused by clauses.
+  int propagations_by_theory = 0; ///< Number of unit propagations caused by substitution theory.
+  int learned_units = 0;          ///< Number of learned unit clauses.
+  int learned_binary = 0;         ///< Number of learned binary clauses.
+  int learned_clauses = 0;        ///< Total number of learned clauses.
+  int original_clauses = 0;       ///< Total number of (non-unit) original clauses.
+  int original_amos = 0;          ///< Total number of (true) AtMostOne-constraints.
+  int restarts = 0;               ///< Number of restarts performed.
+};
+static std::ostream& operator<<(std::ostream& os, Statistics const& stats)
+{
+  os << std::string(70, '-') << '\n';
+  os << "Restarts:     " << std::setw(8) << stats.restarts << '\n';
+  os << "Decisions:    " << std::setw(8) << stats.decisions << '\n';
+  os << "Propagations: " << std::setw(8) << stats.propagations << " (by clause: " << stats.propagations_by_clause << ", by amo: " << stats.propagations_by_amo << ", by theory: " << stats.propagations_by_theory << ")\n";
+  os << "Conflicts:    " << std::setw(8) << stats.conflicts << " (by clause: " << stats.conflicts_by_clause << ", by amo: " << stats.conflicts_by_amo << ")\n";
+  os << "Learned:      " << std::setw(8) << stats.learned_clauses << " (of these: " << stats.learned_units << " unit, " << stats.learned_binary << " binary)\n";
+  assert(stats.conflicts == stats.conflicts_by_clause + stats.conflicts_by_amo);
+  assert(stats.propagations == stats.propagations_by_clause + stats.propagations_by_amo + stats.propagations_by_theory);
+  return os;
+}
+#define SUBSAT_STAT_INC(NAME)                                                  \
+  do {                                                                         \
+    assert(m_stats.NAME < std::numeric_limits<decltype(m_stats.NAME)>::max()); \
+    m_stats.NAME += 1;                                                         \
+  } while (false)
+#else
+#define SUBSAT_STAT_INC(NAME) \
+  do {                        \
+    /* do nothing */          \
+  } while (false)
+#endif
 
 using Level = uint32_t;
 #define InvalidLevel (std::numeric_limits<Level>::max())
@@ -321,6 +368,10 @@ public:
 
     m_theory.clear();
 
+#if SUBSAT_STATISTICS
+    m_stats = Statistics();
+#endif
+
     assert(checkEmpty());
   }
 
@@ -395,14 +446,14 @@ public:
     ensure_variable(lit.var());
     switch (m_values[lit]) {
       case Value::True:
-        LOG_INFO("skipping redundant unit clause: " << lit);
+        LOG_INFO("Skipping redundant unit clause: " << lit);
         break;
       case Value::False:
-        LOG_INFO("inconsistent unit clause: " << lit);
+        LOG_INFO("Inconsistent unit clause: " << lit);
         m_inconsistent = true;
         break;
       case Value::Unassigned:
-        LOG_INFO("adding unit clause: " << lit);
+        LOG_INFO("Adding unit clause: " << lit);
         assign(lit, Reason::invalid());
         break;
     }
@@ -431,6 +482,7 @@ public:
     } else {
       // TODO: special handling for binary clauses
       assert(c.size() >= 2);
+      SUBSAT_STAT_INC(original_clauses);
 #ifndef NDEBUG
       m_clause_refs.push_back(cr);
 #endif
@@ -472,7 +524,7 @@ public:
 
   void add_atmostone_constraint_internal(ClauseRef cr)
   {
-    LOG_INFO("adding AtMostOne constraint " << SHOWREF(cr));
+    LOG_INFO("Adding AtMostOne constraint " << SHOWREF(cr));
 
     Clause const& c = m_clauses.deref(cr);
     // TODO: improve this?
@@ -488,14 +540,16 @@ public:
     } else {
       // Add proper AtMostOne constraint
       assert(c.size() >= 3);
+      SUBSAT_STAT_INC(original_amos);
 #ifndef NDEBUG
       m_atmostone_constraint_refs.push_back(cr);
 #endif
       watch_atmostone_constraint(cr);
     }
   }
+
   /// Returns true iff the solver is in an inconsistent state.
-  /// (may return true before calling solve() if e.g. an empty clause is added.)
+  /// (may return true before calling solve if e.g. an empty clause is added.)
   bool inconsistent() const
   {
     return m_inconsistent;
@@ -503,6 +557,12 @@ public:
 
   Result solve()
   {
+#if SUBSAT_STATISTICS
+    LOG_INFO("Starting with "
+             << m_used_vars << " variables, "
+             << m_stats.original_clauses << " clauses, "
+             << m_stats.original_amos << " at-most-one constraints");
+#endif
     m_trail.reserve(m_used_vars);
     m_frames.resize(m_used_vars + 1, 0);
     m_queue.resize_and_init(m_used_vars);
@@ -515,21 +575,33 @@ public:
       tmp_binary_clause_ref = m_clauses.handle_build(ca);
     }
 
+    Result res = Result::Unknown;
+
     if (m_inconsistent) {
-      return Result::Unsat;
+      res = Result::Unsat;
     }
 
     uint32_t const restart_interval = 100;
     uint32_t restart_timer = restart_interval;
 
-    while (true) {
+    uint32_t const stats_interval = VDEBUG ? 500 : 5000;  // number of loop iterations
+    uint32_t stats_timer = 0;
+
+    while (res == Result::Unknown) {
+#if SUBSAT_STATISTICS
+      if (stats_timer-- == 0) {
+        stats_timer = stats_interval;
+        std::cerr << m_stats;
+      }
+#endif
+
       ClauseRef conflict = propagate();
 
       assert(checkInvariants());
 
       if (conflict.is_valid()) {
         if (!analyze(conflict)) {
-          return Result::Unsat;
+          res = Result::Unsat;
         }
         if (restart_timer > 0) {
           restart_timer--;
@@ -537,17 +609,22 @@ public:
       }
       else if (m_unassigned_vars == 0) {
         assert(checkModel());
-        return Result::Sat;
+        res = Result::Sat;
       }
       else if (m_level > 0 && restart_timer == 0) {
         restart();
         restart_timer = restart_interval;
       }
       else {
-        // TODO: restart? switch mode? reduce clause db?
+        // TODO: switch mode? reduce clause db?
         decide();
       }
     }
+
+#if SUBSAT_STATISTICS
+      std::cerr << m_stats;
+#endif
+    return res;
   }
 
 private:
@@ -618,6 +695,8 @@ private:
             m_theory.enable(p.var(), [this](subsat::Lit propagated, Lit reason) {
               LOG_DEBUG("Assigning " << propagated << " due to theory");
               if (m_values[propagated] == Value::Unassigned) {
+                SUBSAT_STAT_INC(propagations);
+                SUBSAT_STAT_INC(propagations_by_theory);
                 basic_assign(propagated, Reason{reason});
               } else {
                 assert(m_values[propagated] == Value::True);
@@ -635,6 +714,7 @@ private:
     assert(m_unassigned_vars > 0);
     assert(!m_inconsistent);
     assert(m_level < m_used_vars);
+    SUBSAT_STAT_INC(decisions);
 
     m_level += 1;
 
@@ -644,7 +724,7 @@ private:
     // TODO: phase saving (+ hints?)
     // for now, just use the positive phase always (works quite well for our type of problems, or at least much better than always-negative)
     Lit decision{var, true};
-    LOG_DEBUG("decision: " << decision);
+    LOG_INFO("Decision: " << decision);
     assign(decision, Reason::invalid());
   }
 
@@ -691,12 +771,15 @@ private:
         if (other_value == Value::Unassigned) {
           // propagate
           LOG_TRACE("Assigning " << ~other_lit << " due to AtMostOne constraint " << SHOWREF(cr));
+          SUBSAT_STAT_INC(propagations);
+          SUBSAT_STAT_INC(propagations_by_amo);
           assign(~other_lit, Reason{lit});
         }
         else if (other_value == Value::True) {
+          // at least two literals in the AtMostOne constraint are true => conflict
           LOG_TRACE("Current assignment: " << SHOWASSIGNMENT());
           LOG_DEBUG("Conflict with AtMostOne constraint " << SHOWREF(cr));
-          // at least two literals in the AtMostOne constraint are true => conflict
+          SUBSAT_STAT_INC(conflicts_by_amo);
           Clause& tmp_binary_clause = m_clauses.deref(tmp_binary_clause_ref);
           tmp_binary_clause[0] = not_lit;
           tmp_binary_clause[1] = ~other_lit;
@@ -784,12 +867,15 @@ private:
       else if (other_value != Value::Unassigned) {
         // All literals in the clause are false => conflict
         assert(other_value == Value::False);
+        SUBSAT_STAT_INC(conflicts_by_clause);
         conflict = clause_ref;
       }
       else {
         // All literals except other_lit are false => propagate
         assert(other_value == Value::Unassigned);
         LOG_TRACE("Assigning " << other_lit << " due to clause " << SHOWREF(clause_ref));
+        SUBSAT_STAT_INC(propagations);
+        SUBSAT_STAT_INC(propagations_by_clause);
         assign(other_lit, Reason{clause_ref});
       }
     }  // while
@@ -849,6 +935,7 @@ private:
     assert(!m_inconsistent);
     assert(conflict_ref.is_valid());
     assert(checkInvariants());
+    SUBSAT_STAT_INC(conflicts);
 
     Level const conflict_level = m_level;
     if (conflict_level == 0) {
@@ -953,6 +1040,7 @@ private:
         // recover binary reason clause
         Lit other_lit = reason.get_binary_other_lit();
         Clause& tmp_binary_clause = m_clauses.deref(tmp_binary_clause_ref);
+        assert(m_values[uip] == Value::True);
         tmp_binary_clause[0] = uip;  // will be skipped
         tmp_binary_clause[1] = ~other_lit;
         reason_ref = tmp_binary_clause_ref;
@@ -1004,6 +1092,7 @@ private:
       // We learned a unit clause
       assert(jump_level == 0);
       LOG_INFO("Learned unit: " << not_uip);
+      SUBSAT_STAT_INC(learned_units);
       assign(not_uip, Reason::invalid());
     }
     // else if (size == 2) {
@@ -1012,6 +1101,8 @@ private:
     else {
       assert(size > 1);
       assert(jump_level > 0);
+
+      if (size == 2) { SUBSAT_STAT_INC(learned_binary); }  // TODO: move this when adding binary clause optimization
 
       // First literal at jump level becomes the other watch.
       for (auto it = clause.begin() + 1; ; ++it) {
@@ -1030,7 +1121,8 @@ private:
         handle_push_literal(learned, learned_lit);
       }
       ClauseRef learned_ref = m_clauses.handle_build(learned);
-      LOG_INFO("Learned: " << SHOWREF(learned_ref));
+      LOG_INFO("Learned: size = " << size << ", literals = " << SHOWREF(learned_ref));
+      SUBSAT_STAT_INC(learned_clauses);
       // TODO: call new_redundant_clause
       add_clause_internal(learned_ref);
       assign(not_uip, Reason{learned_ref});
@@ -1084,6 +1176,8 @@ private:
   void restart()
   {
     assert(checkInvariants());
+    LOG_INFO("Restarting...");
+    SUBSAT_STAT_INC(restarts);
     backtrack(0);
     assert(checkInvariants());
   }
@@ -1122,6 +1216,7 @@ private:
 
   Level get_level(Var var) const
   {
+    assert(m_values[var] != Value::Unassigned);
     return m_vars[var].level;
   }
 
@@ -1188,6 +1283,10 @@ private:
   vector<Var> tmp_analyze_seen;  ///< analyzed variables
   vector_map<Level, uint8_t> m_frames;  ///< stores for each level whether we already have it in blocks (we use 'char' because vector<bool> is bad)
   ClauseRef tmp_binary_clause_ref = ClauseRef::invalid();
+
+#if SUBSAT_STATISTICS
+  Statistics m_stats;
+#endif
 }; // Solver
 
 #if LOGGING_ENABLED
@@ -1238,8 +1337,10 @@ bool Solver<Allocator>::checkEmpty() const
   assert(m_clause_refs.empty());
   assert(m_atmostone_constraint_refs.empty());
 #endif
-  assert(std::all_of(m_watches.begin(), m_watches.end(), [](vector<Watch> const& ws){ return ws.empty(); }));
-  assert(std::all_of(m_watches_amo.begin(), m_watches_amo.end(), [](vector<Watch> const& ws){ return ws.empty(); }));
+  assert(std::all_of(m_watches.begin(), m_watches.end(),
+                     [](vector<Watch> const& ws) { return ws.empty(); }));
+  assert(std::all_of(m_watches_amo.begin(), m_watches_amo.end(),
+                     [](vector<Watch> const& ws) { return ws.empty(); }));
   assert(m_trail.empty());
   assert(m_propagate_head == 0);
   assert(m_theory_propagate_head == 0);
@@ -1248,6 +1349,11 @@ bool Solver<Allocator>::checkEmpty() const
   assert(tmp_analyze_seen.empty());
   assert(m_frames.empty());
   assert(m_theory.empty());
+#if SUBSAT_STATISTICS
+  auto stats_ptr = reinterpret_cast<unsigned char const*>(&m_stats);
+  assert(std::all_of(stats_ptr, stats_ptr + sizeof(Statistics),
+                     [](unsigned char x) { return x == 0; }));
+#endif
   return true;
 }
 

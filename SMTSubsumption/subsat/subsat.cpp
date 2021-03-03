@@ -7,7 +7,7 @@
 
 using namespace subsat;
 
-#ifdef SUBSAT_STANDALONE
+#if SUBSAT_STANDALONE
 
 /// DIMACS literals are 1, -1, 2, -2, ...
 static Lit from_dimacs(int dimacs_lit)
