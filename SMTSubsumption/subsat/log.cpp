@@ -19,12 +19,14 @@ get_max_log_level(std::string const& fn, std::string const& pretty_fn)
   // if (fn == "analyze") {
   //   return LogLevel::Trace;
   // }
+  // if (fn.find("minimize") != std::string::npos) {
+  //   return LogLevel::Trace;
+  // }
   // if (fn == "propagate_literal") {
   //     return LogLevel::Trace;
   // }
 
-  // by default, log everything up to debug level
-  return LogLevel::Debug;
+  return LogLevel::Warn;
 }
 
 /// Filter log messages
