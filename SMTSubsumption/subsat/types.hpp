@@ -25,6 +25,10 @@ using std::uint32_t;
 // using allocator_type = std::allocator<T>;
 #endif
 
+class Lit;
+
+
+
 /// Value of a boolean variable/literal.
 enum class Value : signed char {
   False = -1,
@@ -32,30 +36,12 @@ enum class Value : signed char {
   True = 1,
 };
 
-static Value operator~(Value v) {
+constexpr Value operator~(Value v) {
   return static_cast<Value>(-static_cast<signed char>(v));
 }
 
-/*
-static std::ostream& operator<<(std::ostream& os, Value v)
-{
-  switch (v) {
-    case Value::False:
-      os << "false";
-      break;
-    case Value::Unassigned:
-      os << "unassigned";
-      break;
-    case Value::True:
-      os << "true";
-      break;
-    // default:
-    //   os << "illegal(" << static_cast<std::underlying_type_t<Value>>(v) << ")";
-    //   break;
-  }
-  return os;
-}
-*/
+std::ostream& operator<<(std::ostream& os, Value v);
+
 
 
 /// Solver result.
@@ -65,29 +51,9 @@ enum class Result : int {
   Unsat = 20,
 };
 
-static std::ostream& operator<<(std::ostream& os, Result r)
-{
-  switch (r) {
-    case Result::Sat:
-      os << "satisfiable";
-      break;
-    case Result::Unsat:
-      os << "unsatisfiable";
-      break;
-    case Result::Unknown:
-      os << "unknown";
-      break;
-#if NDEBUG
-    default:
-      os << "illegal(" << static_cast<std::underlying_type<Result>::type>(r) << ")";
-      break;
-#endif
-  }
-  return os;
-}
+std::ostream& operator<<(std::ostream& os, Result r);
 
 
-class Lit;
 
 /// Boolean variable represented by its integer index.
 /// Use consecutive indices starting at 0.
@@ -129,9 +95,6 @@ static_assert(Var::max_index() == static_cast<uint32_t>(INT32_MAX - 1), "unexpec
 static_assert(Var::max_index() < Var::invalid().index(), "valid variable indices overlap with invalid sentinel value");
 static_assert(!Var::invalid().is_valid(), "");
 static_assert(Var{Var::max_index()}.is_valid(), "");
-// static_assert(std::is_trivially_constructible<Var>::value, "Var should be trivially constructible so we can allocate vectors without initialization");  // TODO: do we really need this for VMTF? maybe we need to initialize there anyway (then a reserve+push_back loop would do it.)
-// static_assert(std::is_trivially_default_constructible<Var>::value, "Var should be trivially constructible so we can allocate vectors without initialization");  // TODO: do we really need this for VMTF? maybe we need to initialize there anyway (then a reserve+push_back loop would do it.)
-// static_assert(std::is_trivially_constructible_v<Var>, "Var should be trivially constructible so we can allocate vectors without initialization");  // TODO: do we really need this for VMTF? maybe we need to initialize there anyway (then a reserve+push_back loop would do it.)
 static_assert(std::is_trivially_destructible<Var>::value, "");
 
 NODISCARD static constexpr bool operator==(Var lhs, Var rhs) noexcept
@@ -149,15 +112,8 @@ NODISCARD static constexpr bool operator<(Var lhs, Var rhs) noexcept
   return lhs.index() < rhs.index();
 }
 
-static std::ostream& operator<<(std::ostream& os, Var var)
-{
-  if (var.is_valid()) {
-    os << var.index();
-  } else {
-    os << "-";
-  }
-  return os;
-}
+std::ostream& operator<<(std::ostream& os, Var var);
+
 
 
 /// Boolean literals represented by integer index.
@@ -260,8 +216,6 @@ static_assert(Lit{Var{Var::max_index()}, false}.is_valid(), "");
 // static_assert(std::is_trivially_constructible<Lit>::value, "");
 static_assert(std::is_trivially_destructible<Lit>::value, "");
 
-
-
 NODISCARD static constexpr bool operator==(Lit lhs, Lit rhs) noexcept
 {
   return lhs.index() == rhs.index();
@@ -272,18 +226,8 @@ NODISCARD static constexpr bool operator!=(Lit lhs, Lit rhs) noexcept
   return !operator==(lhs, rhs);
 }
 
-static std::ostream& operator<<(std::ostream& os, Lit lit)
-{
-  if (lit.is_valid()) {
-    if (lit.is_negative()) {
-      os << '~';
-    }
-    os << lit.var();
-  } else {
-    os << "-";
-  }
-  return os;
-}
+std::ostream& operator<<(std::ostream& os, Lit lit);
+
 
 
 NODISCARD constexpr Lit Var::operator~() const noexcept
@@ -296,6 +240,8 @@ NODISCARD constexpr Var::operator Lit() const noexcept
   return Lit{*this, true};
 }
 
+
+
 template <> struct DefaultIndex<Var> {
   using type = IndexMember<Var>;
 };
@@ -303,6 +249,7 @@ template <> struct DefaultIndex<Var> {
 template <> struct DefaultIndex<Lit> {
   using type = IndexMember<Lit>;
 };
+
 
 
 } // namespace subsat

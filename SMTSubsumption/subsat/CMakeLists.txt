@@ -34,6 +34,7 @@ add_executable(subsat
     decision_queue.hpp
     default_init_allocator.hpp
     types.hpp
+    types.cpp
     clause.hpp
     vector_map.hpp
     log.hpp
