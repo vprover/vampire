@@ -630,7 +630,7 @@ public:
       res = Result::Unsat;
     }
 
-    uint32_t const restart_interval = 100;
+    uint32_t const restart_interval = 100000;  // number of conflicts
     uint32_t restart_timer = restart_interval;
 
 #ifdef SUBSAT_STATISTICS_INTERVAL
