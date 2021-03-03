@@ -18,8 +18,11 @@
 #include "Kernel/EqHelper.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Kernel/Term.hpp"
+#include "Kernel/Formula.hpp"
 #include "Kernel/ApplicativeHelper.hpp"
 #include "Kernel/SortHelper.hpp"
+
+#include "Shell/LambdaElimination.hpp"
 
 #include "TermIndex.hpp"
 
@@ -118,6 +121,75 @@ void SuperpositionLHSIndex::handleClause(Clause* c, bool adding)
   }
 }
 
+template <bool combinatorySupSupport>
+void DemodulationSubtermIndexImpl<combinatorySupSupport>::handleClause(Clause* c, bool adding)
+{
+  CALL("DemodulationSubtermIndex::handleClause");
+
+  TimeCounter tc(TC_BACKWARD_DEMODULATION_INDEX_MAINTENANCE);
+
+  static DHSet<TermList> inserted;
+
+  unsigned cLen=c->length();
+  for (unsigned i=0; i<cLen; i++) {
+    // it is true (as stated below) that inserting only once per clause would be sufficient
+    // however, vampire does not guarantee the order of literals stays the same in a clause (selected literals are moved to front)
+    // so if the order changes while a clause is in the index (which can happen with "-sa otter")
+    // the removes could be called on different literals than the inserts!
+    inserted.reset();
+    Literal* lit=(*c)[i];
+    typename std::conditional<!combinatorySupSupport,
+      NonVariableNonTypeIterator,
+      FirstOrderSubtermIt>::type it(lit);
+    while (it.hasNext()) {
+      TermList t=it.next();
+      if (!inserted.insert(t)) {//TODO existing error? Terms are inserted once per a literal
+        //It is enough to insert a term only once per clause.
+        //Also, once we know term was inserted, we know that all its
+        //subterms were inserted as well, so we can skip them.
+        it.right();
+        continue;
+      }
+      if (adding) {
+        _is->insert(t, lit, c);
+      }
+      else {
+        _is->remove(t, lit, c);
+      }
+    }
+  }
+}
+
+// This is necessary for templates defined in cpp files.
+// We are happy to do it for DemodulationSubtermIndexImpl, since it (at the moment) has only two specializations:
+template class DemodulationSubtermIndexImpl<false>;
+template class DemodulationSubtermIndexImpl<true>;
+
+void DemodulationLHSIndex::handleClause(Clause* c, bool adding)
+{
+  CALL("DemodulationLHSIndex::handleClause");
+
+  if (c->length()!=1) {
+    return;
+  }
+
+  TimeCounter tc(TC_FORWARD_DEMODULATION_INDEX_MAINTENANCE);
+
+  Literal* lit=(*c)[0];
+  TermIterator lhsi=EqHelper::getDemodulationLHSIterator(lit, true, _ord, _opt);
+  while (lhsi.hasNext()) {
+    if (adding) {
+      _is->insert(lhsi.next(), lit, c);
+    }
+    else {
+      _is->remove(lhsi.next(), lit, c);
+    }
+  }
+}
+
+/////////////////////////////////////////////////////
+// Indices for higher-order inferences from here on//
+/////////////////////////////////////////////////////
 
 void SubVarSupSubtermIndex::handleClause(Clause* c, bool adding)
 {
@@ -313,6 +385,82 @@ void SkolemisingFormulaIndex::insertFormula(TermList formula, TermList skolem)
   _is->insert(formula, skolem);
 }
 
+void HeuristicInstantiationIndex::insertInstantiation(TermList sort, TermList instantiation)
+{
+  CALL("HeuristicInstantiationIndex::insertInstantiation");
+  _is->insert(sort, instantiation);
+}
+
+void HeuristicInstantiationIndex::handleClause(Clause* c, bool adding)
+{
+  CALL("HeuristicInstantiationIndex::handleClause");
+
+  typedef ApplicativeHelper AH;
+
+  TermList freshVar(c->maxVar() + 1, false);
+  VList* boundVar = new VList(freshVar.var());
+
+  for (unsigned i=0; i<c->length(); i++) {
+    Literal* lit=(*c)[i];
+    TermList leftHead, rightHead, lhSort, rhSort;
+    static TermStack leftArgs;
+    static TermStack rightArgs;
+    AH::getHeadSortAndArgs(*lit->nthArgument(0), leftHead, lhSort, leftArgs);
+    AH::getHeadSortAndArgs(*lit->nthArgument(1), rightHead, rhSort, rightArgs);
+    if(leftHead.isTerm() && AH::getComb(leftHead) == Signature::NOT_COMB && 
+       AH::getProxy(leftHead) == Signature::NOT_PROXY && 
+      leftHead == rightHead && 
+      leftArgs.size() == rightArgs.size() &&
+      leftArgs.size())
+    {
+      TermList sort, boundVarSort, combTerm;
+      for(i = 0; i < leftArgs.size(); i++){
+        boundVarSort = AH::getNthArg(lhSort, leftArgs.size() - i);
+        SList* boundVarSortList = new SList(boundVarSort);
+
+        Literal* newLit = EqHelper::replace(lit, leftArgs[i], freshVar);
+        newLit->setPolarity(!newLit->polarity());
+        Term* eqForm = Term::createFormula(new Kernel::AtomicFormula(newLit));
+        Term* lambdaTerm = Term::createLambda(TermList(eqForm), boundVar, boundVarSortList, Term::boolSort());
+        combTerm = LambdaElimination().elimLambda(lambdaTerm);
+        if(!_insertedInstantiations.contains(combTerm)){
+        /*cout << "lhs is " + lit->nthArgument(0)->toString() << endl;
+        cout << "arg " + leftArgs[i].toString() << endl;*/
+        cout << "inserting " + lambdaTerm->toString() << endl;
+        cout << "inserting " + combTerm.toString() << endl;          
+          _insertedInstantiations.insert(combTerm);
+          insertInstantiation(lambdaTerm->getSpecialData()->getSort(), combTerm);
+        }
+        //may be harmful performance wise, but otherwise these
+        //leak
+        //eqForm->destroy();
+        //lambdaTerm->destroy(); 
+
+        newLit = EqHelper::replace(lit, rightArgs[i], freshVar);
+        newLit->setPolarity(!newLit->polarity());        
+        eqForm = Term::createFormula(new Kernel::AtomicFormula(newLit));
+        lambdaTerm = Term::createLambda(TermList(eqForm), boundVar, boundVarSortList, Term::boolSort());
+        combTerm = LambdaElimination().elimLambda(lambdaTerm);
+        if(!_insertedInstantiations.contains(combTerm)){
+        /*cout << "rhs is " + lit->nthArgument(1)->toString() << endl;
+        cout << "arg " + rightArgs[i].toString() << endl;
+        cout << "inserting " + lambdaTerm->toString() << endl;
+        cout << "inserting " + combTerm.toString() << endl; */   
+          _insertedInstantiations.insert(combTerm);      
+          insertInstantiation(lambdaTerm->getSpecialData()->getSort(), combTerm);
+        }
+
+        //eqForm->destroy();
+        //lambdaTerm->destroy(); 
+
+        SList::destroy(boundVarSortList);        
+      }
+    }
+  }
+
+  VList::destroy(boundVar);
+}
+
 void RenamingFormulaIndex::insertFormula(TermList formula, TermList name,
                                          Literal* lit, Clause* cls)
 {
@@ -344,70 +492,6 @@ void RenamingFormulaIndex::handleClause(Clause* c, bool adding)
   }
 }
 
-template <bool combinatorySupSupport>
-void DemodulationSubtermIndexImpl<combinatorySupSupport>::handleClause(Clause* c, bool adding)
-{
-  CALL("DemodulationSubtermIndex::handleClause");
 
-  TimeCounter tc(TC_BACKWARD_DEMODULATION_INDEX_MAINTENANCE);
-
-  static DHSet<TermList> inserted;
-
-  unsigned cLen=c->length();
-  for (unsigned i=0; i<cLen; i++) {
-    // it is true (as stated below) that inserting only once per clause would be sufficient
-    // however, vampire does not guarantee the order of literals stays the same in a clause (selected literals are moved to front)
-    // so if the order changes while a clause is in the index (which can happen with "-sa otter")
-    // the removes could be called on different literals than the inserts!
-    inserted.reset();
-    Literal* lit=(*c)[i];
-    typename std::conditional<!combinatorySupSupport,
-      NonVariableNonTypeIterator,
-      FirstOrderSubtermIt>::type it(lit);
-    while (it.hasNext()) {
-      TermList t=it.next();
-      if (!inserted.insert(t)) {//TODO existing error? Terms are inserted once per a literal
-        //It is enough to insert a term only once per clause.
-        //Also, once we know term was inserted, we know that all its
-        //subterms were inserted as well, so we can skip them.
-        it.right();
-        continue;
-      }
-      if (adding) {
-        _is->insert(t, lit, c);
-      }
-      else {
-        _is->remove(t, lit, c);
-      }
-    }
-  }
-}
-
-// This is necessary for templates defined in cpp files.
-// We are happy to do it for DemodulationSubtermIndexImpl, since it (at the moment) has only two specializations:
-template class DemodulationSubtermIndexImpl<false>;
-template class DemodulationSubtermIndexImpl<true>;
-
-void DemodulationLHSIndex::handleClause(Clause* c, bool adding)
-{
-  CALL("DemodulationLHSIndex::handleClause");
-
-  if (c->length()!=1) {
-    return;
-  }
-
-  TimeCounter tc(TC_FORWARD_DEMODULATION_INDEX_MAINTENANCE);
-
-  Literal* lit=(*c)[0];
-  TermIterator lhsi=EqHelper::getDemodulationLHSIterator(lit, true, _ord, _opt);
-  while (lhsi.hasNext()) {
-    if (adding) {
-      _is->insert(lhsi.next(), lit, c);
-    }
-    else {
-      _is->remove(lhsi.next(), lit, c);
-    }
-  }
-}
 
 } // namespace Indexing
