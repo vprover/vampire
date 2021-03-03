@@ -61,6 +61,8 @@ namespace SMTSubsumption { namespace Minisat {
 struct SolverStats {
     int64   starts, decisions, propagations, conflicts;
     int64   clauses_literals, learnts_literals, max_literals, tot_literals;
+    int64   db_reductions = 0;
+    int64   db_simplifications = 0;
     SolverStats() : starts(0), decisions(0), propagations(0), conflicts(0)
       , clauses_literals(0), learnts_literals(0), max_literals(0), tot_literals(0) { }
 };

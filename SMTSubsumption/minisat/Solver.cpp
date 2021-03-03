@@ -174,7 +174,7 @@ void Solver::addClause_unchecked(const vec<Lit>& ps)
 
 #if TRACE_SOLVER
     std::cerr << "addClause_unchecked:";
-    for (Lit l : ps_) {
+    for (Lit l : ps) {
       std::cerr << " " << l;
     }
     std::cerr << std::endl;
@@ -241,15 +241,15 @@ void Solver::addClause_unchecked(Clause* pc)
 
     if (!ok) return;
 
+    Clause& c = *pc;
+
 #if TRACE_SOLVER
     std::cerr << "addClause_unchecked:";
-    for (Lit l : ps_) {
-      std::cerr << " " << l;
+    for (int i = 0; i < c.size(); ++i) {
+      std::cerr << " " << c[i];
     }
     std::cerr << std::endl;
 #endif
-
-    Clause& c = *pc;
 
 #if VDEBUG
     // Even if this is called "unchecked", we still do the checks in debug mode.
@@ -390,7 +390,7 @@ void Solver::addConstraint_AtMostOne_unchecked(const vec<Lit>& ps)
 
 #if TRACE_SOLVER
     std::cerr << "addConstraint_AtMostOne_unchecked:";
-    for (Lit l : ps_) {
+    for (Lit l : ps) {
       std::cerr << " " << l;
     }
     std::cerr << std::endl;
@@ -448,8 +448,8 @@ void Solver::addConstraint_AtMostOne_unchecked(AtMostOne* c)
 
 #if TRACE_SOLVER
     std::cerr << "addConstraint_AtMostOne_unchecked:";
-    for (Lit l : ps_) {
-      std::cerr << " " << l;
+    for (int i = 0; i < c->size(); ++i) {
+      std::cerr << " " << (*c)[i];
     }
     std::cerr << std::endl;
 #endif
@@ -516,7 +516,7 @@ void Solver::remove(Clause* c, bool just_dealloc)
         }
     }
 
-#if MINISAT_STATS
+#if MINISAT_STATS && ENABLE_CLAUSE_DELETION
     if (c->learnt()) stats.learnts_literals -= c->size();
     else             stats.clauses_literals -= c->size();
 #endif
@@ -736,8 +736,18 @@ void Solver::analyze(Clause* _confl, vec<Lit>& out_learnt, int& out_btlevel)
     }
 
     IF_MINISAT_STATS(stats.max_literals += out_learnt.size());
+    int const initial_learnt_size = out_learnt.size();
     out_learnt.shrink(i - j);
+    int const minimized_size = out_learnt.size();
     IF_MINISAT_STATS(stats.tot_literals += out_learnt.size());
+
+#if TRACE_SOLVER
+    std::cerr << "Learning: size = " << minimized_size << " (minimized by " << (initial_learnt_size - minimized_size) << ")" << ", literals =";
+    for (Lit lit : out_learnt) {
+      std::cerr << " " << lit;
+    }
+    std::cerr << std::endl;
+#endif
 
     for (int j = 0; j < analyze_toclear.size(); j++) seen[var(analyze_toclear[j])] = 0;    // ('seen[]' is now cleared)
 }
@@ -1083,6 +1093,7 @@ void Solver::reduceDB()
             learnts[j++] = learnts[i];
     }
     learnts.shrink(i - j);
+    stats.db_reductions += 1;
 }
 #endif
 
@@ -1139,6 +1150,7 @@ void Solver::simplifyDB()
 
     simpDB_assigns = nAssigns();
     IF_MINISAT_STATS(simpDB_props = stats.clauses_literals + stats.learnts_literals);   // (shouldn't depend on 'stats' really, but it will do for now)
+    stats.db_simplifications += 1;
 }
 
 
@@ -1274,6 +1286,9 @@ void Solver::claRescaleActivity()
 |________________________________________________________________________________________________@*/
 bool Solver::solve(const vec<Lit>& assumps)
 {
+#if TRACE_SOLVER
+    std::cerr << "Solving with " << nVars() << " variables, " << clauses.size() << " clauses, " << at_most_one_constraints.size() << " at-most-one constraints" << std::endl;
+#endif
     if (!ok) return false;
 
     simplifyDB();

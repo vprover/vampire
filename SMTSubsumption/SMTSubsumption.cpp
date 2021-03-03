@@ -758,8 +758,10 @@ class SMTSubsumptionImpl
       // fflush(stdout);
       out << "Starts:       " << std::setw(8) << solver.stats.starts << std::endl;
       out << "Decisions:    " << std::setw(8) << solver.stats.decisions << std::endl;
-      out << "Conflicts:    " << std::setw(8) << solver.stats.conflicts << std::endl;
       out << "Propagations: " << std::setw(8) << solver.stats.propagations << std::endl;
+      out << "Conflicts:    " << std::setw(8) << solver.stats.conflicts << std::endl;
+      out << "Learned:      " << std::setw(8) << solver.nLearnts() << " clauses, " << solver.stats.learnts_literals << " literals" << std::endl;
+      out << "Clause db:    " << std::setw(8) << solver.stats.db_reductions << " reductions, " << solver.stats.db_simplifications << " simplifications" << std::endl;
     }
 
     /// Set up the subsumption problem.
@@ -770,6 +772,7 @@ class SMTSubsumptionImpl
       CDEBUG("SMTSubsumptionImpl::setup()");
       // solver.reset();  // TODO
       // solver.verbosity = 2;  // maybe only for debug...
+      solver.verbosity = 1;
 
       // TODO: use miniindex
       // LiteralMiniIndex const main_premise_mini_index(main_premise);
@@ -821,6 +824,7 @@ class SMTSubsumptionImpl
           if (base_lit->arity() == 0 || MatchingUtils::matchArgs(base_lit, inst_lit, binder)) {
             Minisat::Var b = nextVar++;
             vo_info.var_baselit.push(i);
+            // std::cerr << "Match: " << b << " = " << base_lit->toString() << " -> " << inst_lit->toString() << std::endl;
 
             if (binder.bindings().size() > 0) {
               ASS(!base_lit->ground());
@@ -1219,28 +1223,28 @@ void ProofOfConcept::test(Clause* side_premise, Clause* main_premise)
   // static_assert(sizeof(Minisat::Clause) == 8, "");
   static_assert(sizeof(Minisat::Clause *) == 8, "");
 
-  {
-    using Minisat::index;
-    using Minisat::Lit;
-    uint32_t storage[] = {
-      27,
-      5,
-      (uint32_t)index(Lit(1)),
-      (uint32_t)index(Lit(2)),
-      (uint32_t)index(Lit(7)),
-      (uint32_t)index(~Lit(8)),
-      (uint32_t)index(Lit(13)),
-    };
-    Minisat::AtMostOne* c2 = reinterpret_cast<Minisat::AtMostOne*>(&storage[1]);
-    ASS_EQ(c2->size(), 5);
-    ASS_EQ((*c2)[0], Lit(1));
-    ASS_EQ((*c2)[3], ~Lit(8));
-    Minisat::Clause* c1 = reinterpret_cast<Minisat::Clause*>(&storage[1]);
-    ASS(!c1->learnt());
-    ASS_EQ(c1->size(), 5);
-    ASS_EQ((*c1)[0], Lit(1));
-    ASS_EQ((*c1)[3], ~Lit(8));
-  }
+  // {
+  //   using Minisat::index;
+  //   using Minisat::Lit;
+  //   uint32_t storage[] = {
+  //     27,
+  //     5,
+  //     (uint32_t)index(Lit(1)),
+  //     (uint32_t)index(Lit(2)),
+  //     (uint32_t)index(Lit(7)),
+  //     (uint32_t)index(~Lit(8)),
+  //     (uint32_t)index(Lit(13)),
+  //   };
+  //   Minisat::AtMostOne* c2 = reinterpret_cast<Minisat::AtMostOne*>(&storage[1]);
+  //   ASS_EQ(c2->size(), 5);
+  //   ASS_EQ((*c2)[0], Lit(1));
+  //   ASS_EQ((*c2)[3], ~Lit(8));
+  //   Minisat::Clause* c1 = reinterpret_cast<Minisat::Clause*>(&storage[1]);
+  //   ASS(!c1->learnt());
+  //   ASS_EQ(c1->size(), 5);
+  //   ASS_EQ((*c1)[0], Lit(1));
+  //   ASS_EQ((*c1)[3], ~Lit(8));
+  // }
 
 
   BYPASSING_ALLOCATOR;
@@ -1255,6 +1259,7 @@ void ProofOfConcept::test(Clause* side_premise, Clause* main_premise)
   std::cout << "SOLVE" << std::endl;
   bool subsumed = subsumed1 && impl.solve();
   std::cout << "  => " << subsumed << std::endl;
+  impl.printStats(std::cout);
   }
 
   {

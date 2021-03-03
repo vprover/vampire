@@ -213,9 +213,11 @@ public:
     if (is_empty) {
       ASS(m_bindings.empty());
       ASS(m_used_vars.empty());
+#if VDEBUG
       for (auto const& vec : m_bindings_by_var) {
         ASS(vec.empty());
       }
+#endif
     }
     return is_empty;
   }
