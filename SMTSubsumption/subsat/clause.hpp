@@ -85,6 +85,7 @@ private:
   Clause& operator=(Clause&&) = delete;
 
   template <template <typename> class Allocator> friend class ClauseArena;
+  template <template <typename> class Allocator> friend class Solver;
 
 private:
   size_type m_size;    // number of literals

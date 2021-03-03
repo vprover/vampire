@@ -497,10 +497,28 @@ public:
   {
     LOG_INFO("Adding clause " << SHOWREF(cr));
 
-    Clause const& c = m_clauses.deref(cr);
+    Clause& c = m_clauses.deref(cr);
     // TODO: improve this?
-    for (Lit lit : c) {
-      ensure_variable(lit.var());
+    if (m_level == 0) {
+      for (uint32_t i = 0; i < c.size(); ++i) {
+        Lit lit = c[i];
+        ensure_variable(lit.var());
+        switch (m_values[lit]) {
+          case Value::True:
+            LOG_INFO("Clause satisfied on root level due to literal: " << lit);
+            return;
+          case Value::False:
+            LOG_INFO("Literal false on root level: " << lit);
+            c.m_size -= 1;
+            c[i] = c[c.m_size];
+            break;
+          default:
+            break;
+        }
+      }
+    } else {
+      assert(std::all_of(c.begin(), c.end(),
+                         [=](Lit lit) { return lit.var().index() < m_used_vars; }));
     }
     // TODO: check for duplicate variables
     if (c.size() == 0) {
@@ -1082,7 +1100,7 @@ private:
     }  // while(true)
 
     // TODO: analyze loop is a bit simpler in kitten, maybe we can do that too?
-    //       kitten does not use any blocks/frames (we don't really use them here either)
+    //       kitten does not use any blocks/frames (we use them for minimization though)
 
     assert(uip.is_valid());
     Lit const not_uip = ~uip;
@@ -1274,19 +1292,6 @@ private:
     clause.erase(new_end, clause.end());
     LOG_DEBUG("minimized " << minimized << " literals");
     SUBSAT_STAT_ADD(minimized_literals, minimized);
-
-    // auto q = clause.begin() + 1;
-    // for (auto p = q; p != clause.end(); ++p) {
-    //   Lit lit = *p;
-    //   if (minimize_literal(lit, 0)) {
-    //     LOG_DEBUG("minimized literal " << lit);
-    //   }
-    //   else {
-    //     *(q++) = lit;
-    //   }
-    // }
-    // size_t const minimized = clause.end() - q;
-    // // TODO
 
     // Clear 'poisoned' and 'removable' marks
     for (Var var : m_marked) {
