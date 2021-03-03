@@ -60,6 +60,7 @@ static std::ostream& operator<<(std::ostream& os, Value v)
 
 /// Solver result.
 enum class Result : int {
+  Unknown = 0,
   Sat = 10,
   Unsat = 20,
 };
@@ -73,9 +74,14 @@ static std::ostream& operator<<(std::ostream& os, Result r)
     case Result::Unsat:
       os << "unsatisfiable";
       break;
-    // default:
-    //   os << "illegal(" << static_cast<std::underlying_type_t<Result>>(r) << ")";
-    //   break;
+    case Result::Unknown:
+      os << "unknown";
+      break;
+#if NDEBUG
+    default:
+      os << "illegal(" << static_cast<std::underlying_type<Result>::type>(r) << ")";
+      break;
+#endif
   }
   return os;
 }
