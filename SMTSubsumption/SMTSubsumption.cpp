@@ -567,7 +567,7 @@ class SMTSubsumptionImpl
         // we use the same storage for both Clause and AtMostOne constraint
         Minisat::Clause* c1 = reinterpret_cast<Minisat::Clause*>(&clause_storage[c_index]);   // use std::launder? see https://stackoverflow.com/a/39382728 (but requires C++17)
         Minisat::AtMostOne* c2 = reinterpret_cast<Minisat::AtMostOne*>(&clause_storage[c_index]);   // use std::launder?
-        ASS(!c1->learnt());
+        // ASS(!c1->learnt());
         ASS_EQ(*c_size, c1->size());  // TODO: if VDEBUG check contents too?
         ASS_EQ(*c_size, c2->size());  // TODO: if VDEBUG check contents too?
 
@@ -761,6 +761,7 @@ class SMTSubsumptionImpl
       out << "Propagations: " << std::setw(8) << solver.stats.propagations << std::endl;
       out << "Conflicts:    " << std::setw(8) << solver.stats.conflicts << std::endl;
       out << "Learned:      " << std::setw(8) << solver.nLearnts() << " clauses, " << solver.stats.learnts_literals << " literals" << std::endl;
+      out << "Minimized:    " << std::setw(8) << (solver.stats.max_literals - solver.stats.tot_literals) << " literals" << std::endl;
       out << "Clause db:    " << std::setw(8) << solver.stats.db_reductions << " reductions, " << solver.stats.db_simplifications << " simplifications" << std::endl;
     }
 
