@@ -36,10 +36,17 @@ static_assert(VDEBUG == 1, "VDEBUG and NDEBUG are not synchronized");
 #define SUBSAT_PHASE_SAVING 0
 #endif
 
+// By default, statistics are only enabled in standalone mode or if logging is enabled
 #if SUBSAT_STANDALONE || LOGGING_ENABLED
 #define SUBSAT_STATISTICS 1
 #else
 #define SUBSAT_STATISTICS 0
+#endif
+
+// If SUBSAT_STATISTICS_INTERVAL is set, print statistics periodically
+// (interval is measured in number of loop iterations)
+#if SUBSAT_STATISTICS && !defined(SUBSAT_STATISTICS_INTERVAL)
+#define SUBSAT_STATISTICS_INTERVAL (VDEBUG ? 500 : 5000)
 #endif
 
 
@@ -61,9 +68,10 @@ struct Statistics {
   int propagations_by_amo = 0;    ///< Number of unit propagations caused by AtMostOne-constraints.
   int propagations_by_clause = 0; ///< Number of unit propagations caused by clauses.
   int propagations_by_theory = 0; ///< Number of unit propagations caused by substitution theory.
-  int learned_units = 0;          ///< Number of learned unit clauses.
-  int learned_binary = 0;         ///< Number of learned binary clauses.
-  int learned_clauses = 0;        ///< Total number of learned clauses.
+  int learned_unit_clauses = 0;   ///< Number of learned unit clauses.
+  int learned_binary_clauses = 0; ///< Number of learned binary clauses.
+  int learned_long_clauses = 0;   ///< Number of learned long clauses (size >= 3).
+  int learned_literals = 0;       ///< Sum of the sizes of all learned clauses.
   int original_clauses = 0;       ///< Total number of (non-unit) original clauses.
   int original_amos = 0;          ///< Total number of (true) AtMostOne-constraints.
   int restarts = 0;               ///< Number of restarts performed.
@@ -71,21 +79,34 @@ struct Statistics {
 static std::ostream& operator<<(std::ostream& os, Statistics const& stats)
 {
   os << std::string(70, '-') << '\n';
-  os << "Restarts:     " << std::setw(8) << stats.restarts << '\n';
-  os << "Decisions:    " << std::setw(8) << stats.decisions << '\n';
-  os << "Propagations: " << std::setw(8) << stats.propagations << " (by clause: " << stats.propagations_by_clause << ", by amo: " << stats.propagations_by_amo << ", by theory: " << stats.propagations_by_theory << ")\n";
-  os << "Conflicts:    " << std::setw(8) << stats.conflicts << " (by clause: " << stats.conflicts_by_clause << ", by amo: " << stats.conflicts_by_amo << ")\n";
-  os << "Learned:      " << std::setw(8) << stats.learned_clauses << " (of these: " << stats.learned_units << " unit, " << stats.learned_binary << " binary)\n";
+  os << "Restarts:         " << std::setw(8) << stats.restarts << '\n';
+  os << "Decisions:        " << std::setw(8) << stats.decisions << '\n';
+  os << "Propagations:     " << std::setw(8) << stats.propagations << " (by clause: " << stats.propagations_by_clause << ", by amo: " << stats.propagations_by_amo << ", by theory: " << stats.propagations_by_theory << ")\n";
+  os << "Conflicts:        " << std::setw(8) << stats.conflicts << " (by clause: " << stats.conflicts_by_clause << ", by amo: " << stats.conflicts_by_amo << ")\n";
+  auto const total_learned_clauses = stats.learned_long_clauses + stats.learned_binary_clauses + stats.learned_unit_clauses;  // same as #conflicts during solving since we don't delete any
+  os << "Learned clauses:  " << std::setw(8) << total_learned_clauses << " (" << stats.learned_long_clauses << " long, " << stats.learned_binary_clauses << " binary, " << stats.learned_unit_clauses << " unit)\n";
+  os << "Learned literals: " << std::setw(8) << stats.learned_literals << " (on average " << std::setprecision(1) << std::fixed << (static_cast<double>(stats.learned_literals) / total_learned_clauses) << " literals/clause)\n";
   assert(stats.conflicts == stats.conflicts_by_clause + stats.conflicts_by_amo);
   assert(stats.propagations == stats.propagations_by_clause + stats.propagations_by_amo + stats.propagations_by_theory);
   return os;
 }
-#define SUBSAT_STAT_INC(NAME)                                                  \
-  do {                                                                         \
-    assert(m_stats.NAME < std::numeric_limits<decltype(m_stats.NAME)>::max()); \
-    m_stats.NAME += 1;                                                         \
+#define SUBSAT_STAT_ADD(NAME, VALUE)                                                \
+  do {                                                                              \
+    auto v = static_cast<decltype(m_stats.NAME)>(VALUE);                            \
+    assert(m_stats.NAME <= std::numeric_limits<decltype(m_stats.NAME)>::max() - v); \
+    m_stats.NAME += v;                                                              \
   } while (false)
+#define SUBSAT_STAT_INC(NAME) SUBSAT_STAT_ADD(NAME, 1)
+// #define SUBSAT_STAT_INC(NAME)                                                  \
+//   do {                                                                         \
+//     assert(m_stats.NAME < std::numeric_limits<decltype(m_stats.NAME)>::max()); \
+//     m_stats.NAME += 1;                                                         \
+//   } while (false)
 #else
+#define SUBSAT_STAT_ADD(NAME, VALUE) \
+  do {                        \
+    /* do nothing */          \
+  } while (false)
 #define SUBSAT_STAT_INC(NAME) \
   do {                        \
     /* do nothing */          \
@@ -587,13 +608,14 @@ public:
     uint32_t const restart_interval = 100;
     uint32_t restart_timer = restart_interval;
 
-    uint32_t const stats_interval = VDEBUG ? 500 : 5000;  // number of loop iterations
+#ifdef SUBSAT_STATISTICS_INTERVAL
     uint32_t stats_timer = 0;
+#endif
 
     while (res == Result::Unknown) {
-#if SUBSAT_STATISTICS
+#ifdef SUBSAT_STATISTICS_INTERVAL
       if (stats_timer-- == 0) {
-        stats_timer = stats_interval;
+        stats_timer = SUBSAT_STATISTICS_INTERVAL;
         std::cerr << m_stats;
       }
 #endif
@@ -1091,11 +1113,12 @@ private:
 
     uint32_t const size = static_cast<uint32_t>(clause.size());
     assert(size > 0);
+    SUBSAT_STAT_ADD(learned_literals, size);
     if (size == 1) {
       // We learned a unit clause
       assert(jump_level == 0);
       LOG_INFO("Learned unit: " << not_uip);
-      SUBSAT_STAT_INC(learned_units);
+      SUBSAT_STAT_INC(learned_unit_clauses);
       assign(not_uip, Reason::invalid());
     }
     // else if (size == 2) {
@@ -1105,7 +1128,8 @@ private:
       assert(size > 1);
       assert(jump_level > 0);
 
-      if (size == 2) { SUBSAT_STAT_INC(learned_binary); }  // TODO: move this when adding binary clause optimization
+      if (size == 2) { SUBSAT_STAT_INC(learned_binary_clauses); }  // TODO: move this when adding binary clause optimization
+      if (size >= 3) { SUBSAT_STAT_INC(learned_long_clauses); }
 
       // First literal at jump level becomes the other watch.
       for (auto it = clause.begin() + 1; ; ++it) {
@@ -1125,7 +1149,6 @@ private:
       }
       ClauseRef learned_ref = m_clauses.handle_build(learned);
       LOG_INFO("Learned: size = " << size << ", literals = " << SHOWREF(learned_ref));
-      SUBSAT_STAT_INC(learned_clauses);
       // TODO: call new_redundant_clause
       add_clause_internal(learned_ref);
       assign(not_uip, Reason{learned_ref});
