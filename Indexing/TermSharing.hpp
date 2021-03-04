@@ -81,6 +81,7 @@ public:
       _tsInstance->_wellSortednessCheckingDisabled = _valueToRestore;
     }
   };
+  bool isWellSortednessCheckingDisabled() const { return _wellSortednessCheckingDisabled; }
 
 private:
   int sumRedLengths(TermStack& args);
