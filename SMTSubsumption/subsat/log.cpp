@@ -11,10 +11,14 @@ get_max_log_level(std::string const& fn, std::string const& pretty_fn)
   (void)fn;
   (void)pretty_fn;
 
-  bool const from_decision_queue = pretty_fn.find("DecisionQueue") != std::string::npos;
-  if (from_decision_queue) {
-    return LogLevel::Info;
-  }
+  // bool const from_decision_queue = pretty_fn.find("DecisionQueue") != std::string::npos;
+  // if (from_decision_queue) {
+  //   return LogLevel::Info;
+  // }
+
+  // if (pretty_fn.find("DomainDegree") != std::string::npos) {
+  //   return LogLevel::Trace;
+  // }
 
   // if (fn == "analyze") {
   //   return LogLevel::Trace;

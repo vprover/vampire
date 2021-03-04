@@ -17,6 +17,7 @@
 
 #include "./clause.hpp"
 #include "./decision_queue.hpp"
+#include "./domain_degree.hpp"
 #include "./types.hpp"
 #include "./vector_map.hpp"
 #include "./log.hpp"
@@ -39,6 +40,11 @@ static_assert(VDEBUG == 1, "VDEBUG and NDEBUG are not synchronized");
 // Conflict clause minimization
 #ifndef SUBSAT_MINIMIZE
 #define SUBSAT_MINIMIZE 1
+#endif
+
+// Domain-degree decision heuristic
+#ifndef SUBSAT_DDEG
+#define SUBSAT_DDEG 1
 #endif
 
 // By default, statistics are only enabled in standalone mode or if logging is enabled
@@ -292,11 +298,14 @@ public:
   template <typename K, typename T>
   using vector_map = subsat::vector_map<K, T, allocator_type<T>>;
 
+  using ddeg = DomainDegree<allocator_type>;
+  using ddeg_group = typename ddeg::Group;
+
 
   /// Ensure space for a new variable and return it.
   /// By default, memory is increased exponentially (relying on the default behaviour of std::vector).
   /// Use reserve_variables if you know the number of variables upfront.
-  NODISCARD Var new_variable()
+  NODISCARD Var new_variable(ddeg_group group = ddeg::InvalidGroup)
   {
     // TODO: optional argument phase_hint as initial value for m_phases?
     Var new_var = Var{m_used_vars++};
@@ -313,6 +322,11 @@ public:
       m_watches_amo.emplace_back();         // positive literal watches
       m_watches_amo.emplace_back();         // positive literal watches -- generally not needed for our instances
     }
+#if SUBSAT_DDEG
+    if (group != ddeg::InvalidGroup) {
+      m_ddeg.set_group(new_var, group);
+    }
+#endif
     return new_var;
   }
 
@@ -724,6 +738,10 @@ private:
 
     m_trail.push_back(lit);
 
+#if SUBSAT_DDEG
+    m_ddeg.assigned(var);
+#endif
+
     assert(m_unassigned_vars > 0);
     m_unassigned_vars -= 1;
   }
@@ -779,8 +797,15 @@ private:
 
     m_level += 1;
 
-    assert(m_queue.checkInvariants(m_values));
-    Var var = m_queue.next_unassigned_variable(m_values);
+    Var var = Var::invalid();
+#if SUBSAT_DDEG
+    var = m_ddeg.select_min_domain(m_values);
+#endif
+    if (!var.is_valid()) {
+      assert(m_queue.checkInvariants(m_values));
+      var = m_queue.next_unassigned_variable(m_values);
+    }
+    assert(var.is_valid());
 
     // TODO: phase saving (+ hints?)
     // for now, just use the positive phase always (works quite well for our type of problems, or at least much better than always-negative)
@@ -1323,6 +1348,9 @@ private:
     m_values[~lit] = Value::Unassigned;
 
     m_queue.unassign(lit.var());
+#if SUBSAT_DDEG
+    m_ddeg.unassigned(lit.var());
+#endif
   }
 
 
@@ -1427,6 +1455,10 @@ private:
 
   /// Queue for VMTF decision heuristic
   DecisionQueue<allocator_type> m_queue;
+#if SUBSAT_DDEG
+  /// Domain-degree decision heuristic
+  ddeg m_ddeg;
+#endif
 
 #if SUBSAT_PHASE_SAVING
   // TODO
@@ -1478,6 +1510,7 @@ std::ostream& operator<<(std::ostream& os, ShowAssignment<A> sa)
 
 
 // TODO:
+// 0. Try the domain-degree heuristic for decisions?
 // 1. Tuning for expected-UNSAT:
 //    - VMTF done
 //    - fast restarts => very important

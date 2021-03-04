@@ -1105,7 +1105,7 @@ class SMTSubsumptionImpl2
           {
             auto binder = solver.theory().start_binder();
             if (base_lit->arity() == 0 || MatchingUtils::matchArgs(base_lit, inst_lit, binder)) {
-              subsat::Var b = solver.new_variable();
+              subsat::Var b = solver.new_variable(i);
               // std::cerr << "Match: " << b << " => " << base_lit->toString() << " -> " << inst_lit->toString() << std::endl;
 
               if (binder.size() > 0) {
@@ -1132,7 +1132,7 @@ class SMTSubsumptionImpl2
             ASS_EQ(inst_lit->arity(), 2);
             auto binder = solver.theory().start_binder();
             if (MatchingUtils::matchReversedArgs(base_lit, inst_lit, binder)) {
-              subsat::Var b = solver.new_variable();
+              subsat::Var b = solver.new_variable(i);
 
               if (binder.size() > 0) {
                 ASS(!base_lit->ground());

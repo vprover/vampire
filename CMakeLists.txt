@@ -777,6 +777,7 @@ set(VAMPIRE_SMT_SUBSUMPTION_SOURCES
     SMTSubsumption/subsat/subsat.hpp
     SMTSubsumption/subsat/decision_queue.hpp
     SMTSubsumption/subsat/default_init_allocator.hpp
+    SMTSubsumption/subsat/domain_degree.hpp
     SMTSubsumption/subsat/types.hpp
     SMTSubsumption/subsat/types.cpp
     SMTSubsumption/subsat/clause.hpp
