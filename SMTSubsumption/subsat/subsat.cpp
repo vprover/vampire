@@ -81,18 +81,22 @@ int main(int argc, char* argv[])
   // Var u = s.new_variable();
 
   std::cout << "\n\nADDING CLAUSES\n" << std::endl;
-  // s.add_clause({x, y, z});
-  // s.add_clause({x, y, ~z});
-  // s.add_clause({x, ~y, z});
-  // s.add_clause({x, ~y, ~z});
-  // s.add_clause({~x, y, z});
-  // s.add_clause({~x, y, ~z});
-  // s.add_clause({~x, ~y, z});
-  // s.add_clause({~x, ~y, ~z});
-  s.add_clause({x, y});
-  s.add_clause({y, z});
-  s.add_clause({x, z});
-  s.add_atmostone_constraint({x, y, z});
+
+  s.add_clause({x, y, z});
+  s.add_clause({x, y, ~z});
+  s.add_clause({x, ~y, z});
+  s.add_clause({x, ~y, ~z});
+  s.add_clause({~x, y, z});
+  s.add_clause({~x, y, ~z});
+  s.add_clause({~x, ~y, z});
+  s.add_clause({~x, ~y, ~z});
+  s.add_clause({~x, ~y, ~z, ~z, ~y, ~z});
+  s.add_clause({~x, ~y, ~z, ~z, y, ~z});
+
+  // s.add_clause({x, y});
+  // s.add_clause({y, z});
+  // s.add_clause({x, z});
+  // s.add_atmostone_constraint({x, y, z});
 
   std::cout << "SOLVING..." << std::endl;
   res = s.solve();

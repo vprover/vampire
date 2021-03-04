@@ -110,10 +110,13 @@ NODISCARD static constexpr bool operator!=(Var lhs, Var rhs) noexcept
   return !operator==(lhs, rhs);
 }
 
+#ifndef NDEBUG
+// for std::set<Var> in debug assertions
 NODISCARD static constexpr bool operator<(Var lhs, Var rhs) noexcept
 {
   return lhs.index() < rhs.index();
 }
+#endif
 
 std::ostream& operator<<(std::ostream& os, Var var);
 
@@ -232,6 +235,14 @@ NODISCARD static constexpr bool operator!=(Lit lhs, Lit rhs) noexcept
 {
   return !operator==(lhs, rhs);
 }
+
+#ifndef NDEBUG
+// for std::set<Lit> in debug assertions
+NODISCARD static constexpr bool operator<(Lit lhs, Lit rhs) noexcept
+{
+  return lhs.index() < rhs.index();
+}
+#endif
 
 std::ostream& operator<<(std::ostream& os, Lit lit);
 

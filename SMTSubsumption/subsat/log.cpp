@@ -30,6 +30,7 @@ get_max_log_level(std::string const& fn, std::string const& pretty_fn)
   //     return LogLevel::Trace;
   // }
 
+  // return LogLevel::Trace;
   return LogLevel::Warn;
 }
 

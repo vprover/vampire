@@ -228,7 +228,7 @@ struct Watch final {
 static_assert(std::is_trivially_destructible<Watch>::value, "");
 
 
-using Mark = unsigned char;
+using Mark = signed char;
 enum : Mark {
   MarkSeen = 1,
 #if SUBSAT_MINIMIZE
@@ -311,6 +311,14 @@ public:
 
   template <typename K, typename T>
   using vector_map = subsat::vector_map<K, T, allocator_type<T>>;
+
+#ifndef NDEBUG
+  // Note: std::set and std::map are slow, so use them only in debug mode!
+  template <typename Key, typename Compare = std::less<Key>>
+  using set = std::set<Key, Compare, allocator_type<Key>>;
+  template <typename Key, typename T, typename Compare = std::less<Key>>
+  using map = std::map<Key, T, Compare, allocator_type<std::pair<Key const, T>>>;
+#endif
 
   using ddeg = DomainDegree<allocator_type>;
   using ddeg_group = typename ddeg::Group;
@@ -533,45 +541,121 @@ public:
     add_clause({lit1, lit2});
   }
 
+private:
+#ifndef NDEBUG
+  /// Returns true if the given clause cannot be simplified further,
+  /// that is, all of the following conditions hold:
+  /// 1. it is not a tautology,
+  /// 2. it does not contain duplicate literals, and
+  /// 3. none of its literals are assigned at the root level.
+  bool isClauseSimplified(Clause const& c)
+  {
+    set<Lit> lits;
+    for (Lit lit : c) {
+      assert(lit.var().index() < m_used_vars);
+      if (lits.find(~lit) != lits.end()) {
+        // Clause is a tautology
+        return false;
+      }
+      bool inserted = lits.insert(lit).second;
+      if (!inserted) {
+        // Clause contains duplicate literals
+        return false;
+      }
+      Value const lit_value = m_values[lit];
+      if (lit_value != Value::Unassigned && get_level(lit) == 0) {
+        // Clause contains fixed literal
+        return false;
+      }
+    }
+    return true;
+  }
+#endif
+
+  /// Simplify clause:
+  /// 1. Ensure enough variables are allocated in the solver,
+  /// 2. Skip tautologies and clauses that are already satisfied on the root level,
+  /// 3. Remove duplicate literals and literals that are already false on the root level.
+  ///
+  /// This is only allowed at level 0, for two reasons:
+  /// 1. we only need to do this for original clauses (learned clauses are already simplified),
+  /// 2. we don't have to check levels of assigned variables during simplification.
+  ///
+  /// Returns true if the clause is a tautology.
+  bool simplifyClause(Clause& c)
+  {
+    assert(m_level == 0);
+    assert(std::all_of(m_marks.begin(), m_marks.end(), [](Mark m) { return m == 0; }));
+    bool is_tautology = false;
+    uint32_t i = 0;  // read iterator
+    uint32_t j = 0;  // write iterator (will lag behind i if any literals have been removed)
+    while (i < c.size()) {
+      Lit const lit = c[i];
+      Var const var = lit.var();
+
+      ensure_variable(var);
+
+      // copy literal by default
+      c[j++] = c[i++];
+      assert(j <= i);
+
+      Value const lit_value = m_values[lit];
+      if (lit_value == Value::True) {
+        LOG_INFO("Clause satisfied on root level due to literal: " << lit);
+        assert(get_level(var) == 0);
+        is_tautology = true;
+        break;
+      }
+      else if (lit_value == Value::False) {
+        LOG_INFO("Literal false on root level: " << lit);
+        assert(get_level(var) == 0);
+        j--;  // remove literal
+      }
+      else {
+        assert(lit_value == Value::Unassigned);
+        Mark const prev_mark = m_marks[var];
+        Mark const lit_mark = lit.is_positive() ? 1 : -1;
+        if (prev_mark == 0) {
+          m_marks[var] = lit_mark;
+        }
+        else if (prev_mark == lit_mark) {
+          LOG_INFO("Removing duplicate literal " << lit);
+          j--;  // remove literal
+        }
+        else {
+          assert(prev_mark == -lit_mark);
+          LOG_INFO("Clause is a tautology due to variable " << var);
+          is_tautology = true;
+          break;
+        }
+      }
+    }
+    assert(j <= c.m_size);
+    c.m_size = j;
+    // Reset marks
+    for (Lit lit : c) {
+      m_marks[lit.var()] = 0;
+    }
+    assert(std::all_of(m_marks.begin(), m_marks.end(), [](Mark m) { return m == 0; }));
+    return is_tautology;
+  }
+
+
   void add_clause_internal(ClauseRef cr)
   {
     LOG_INFO("Adding clause " << SHOWREF(cr));
-
     Clause& c = m_clauses.deref(cr);
-    // TODO: improve this?
+
     if (m_level == 0) {
-      // Simplify clause.
-      // We only need to do this for original clauses, learned clauses are already simplified.
-      uint32_t i = 0;
-      uint32_t j = 0;
-      while (i < c.size()) {
-        Lit const lit = c[i];
-
-        ensure_variable(lit.var());
-
-        // copy literal by default
-        c[j++] = c[i++];
-
-        Value const lit_value = m_values[lit];
-        if (lit_value == Value::True) {
-          LOG_INFO("Clause satisfied on root level due to literal: " << lit);
-          return;
-        }
-        else if (lit_value == Value::False) {
-          LOG_INFO("Literal false on root level: " << lit);
-          // remove literal
-          j--;
-        }
-        else {
-          assert(lit_value == Value::Unassigned);
-        }
+      bool is_tautology = simplifyClause(c);
+      if (is_tautology) {
+        LOG_DEBUG("Skipping clause.");
+        return; // skip clause
       }
-      c.m_size = j;
-    } else {
-      assert(std::all_of(c.begin(), c.end(),
-                         [=](Lit lit) { return lit.var().index() < m_used_vars; }));
+      LOG_DEBUG("Simplified clause " << c);
     }
-    // TODO: check for duplicate variables
+    assert(isClauseSimplified(c));
+
     if (c.size() == 0) {
       add_empty_clause();
     } else if (c.size() == 1) {
@@ -587,12 +671,14 @@ public:
     }
   }
 
+public:
   /// Preconditions:
-  /// - all variables in the clause have been added using new_variable()
-  /// - no duplicate variables in the clause
-  /// - ???
-  void add_clause_unsafe(Clause* clause)
+  /// - all variables in the clause have been added using 'new_variable',
+  /// - 'isClauseSimplified' returns true.
+  /// Check documentation of 'isClauseSimplified' and 'simplifyClause' for more details.
+  void add_clause_unsafe(Clause& clause)  // TODO: what parameter type do we want here?
   {
+    assert(isClauseSimplified(clause));
     // TODO
     (void)clause;
   }
@@ -1430,6 +1516,7 @@ private:
 
 #ifndef NDEBUG
   NODISCARD bool checkEmpty() const;
+  NODISCARD bool checkConstraint(Clause const& c) const;
   NODISCARD bool checkInvariants() const;
   NODISCARD bool checkWatches() const;
   NODISCARD bool checkModel() const;
@@ -1614,10 +1701,11 @@ bool Solver<Allocator>::checkEmpty() const
   return true;
 }
 
-static NODISCARD bool checkConstraint(Clause const& c)
+template <template <typename> class Allocator>
+bool Solver<Allocator>::checkConstraint(Clause const& c) const
 {
   // No duplicate variables in the constraint (this prevents duplicate literals and tautological clauses)
-  std::set<Var> vars;
+  set<Var> vars;
   for (Lit lit : c) {
     assert(lit.is_valid());
     bool inserted = vars.insert(lit.var()).second;
@@ -1647,7 +1735,7 @@ bool Solver<Allocator>::checkInvariants() const
   }
 
   // Every variable is at most once on the trail
-  std::set<Var> trail_vars;
+  set<Var> trail_vars;
   for (Lit lit : m_trail) {
     assert(lit.is_valid());
     bool inserted = trail_vars.insert(lit.var()).second;
@@ -1690,7 +1778,7 @@ bool Solver<Allocator>::checkWatches() const
   }
 
   // Count how many times each clause is watched
-  std::map<ClauseRef::index_type, int> num_watches;
+  map<ClauseRef::index_type, int> num_watches;
 
   for (uint32_t lit_idx = 0; lit_idx < m_watches.size(); ++lit_idx) {
     Lit const lit = Lit::from_index(lit_idx);
