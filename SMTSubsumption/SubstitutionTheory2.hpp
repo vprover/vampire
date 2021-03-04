@@ -24,7 +24,7 @@ using VampireVar = unsigned int;
 
 /// Range of the substitution: Vampire's FOL terms
 using VampireTerm = ::Kernel::TermList;
-#define SHOWVAR(var) (Kernel::TermList{var, false})
+#define SHOWVAR(var) (VampireTerm{var, false})
 #define SHOWTERM(term) (term.toString())
 
 #else
@@ -259,6 +259,9 @@ public:
     }  // enable(...)
 
 private:
+  // TODO: bindings in the array could be stored in a heap structure (i.e., one heap per binder).
+  // Then we don't need to do linear search.
+  // Furthermore, one could use the heap structure only for terms with a large number of variables.
   BindingsStorage m_bindings_storage;
 
   vector_map<subsat::Var, BindingsRef> m_bindings;
