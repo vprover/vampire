@@ -274,6 +274,9 @@ private:
   // Unfortunately vampire variables don't need to be contiguous
   vector<VampireVar> m_used_vars;
   vector_map<VampireVar, vector<std::pair<subsat::Var, VampireTerm>>> m_bindings_by_var;
+  // TODO: build bindings_by_var at the start of solve().
+  // do not theory-propagate during building the problem, but do an initial round at the start of solve
+  // (where tprop may fail on lvl 0; it's fine because we can just report unsat then.)
 };
 
 

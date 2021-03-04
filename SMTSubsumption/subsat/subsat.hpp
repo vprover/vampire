@@ -1510,7 +1510,6 @@ std::ostream& operator<<(std::ostream& os, ShowAssignment<A> sa)
 
 
 // TODO:
-// 0. Try the domain-degree heuristic for decisions?
 // 1. Tuning for expected-UNSAT:
 //    - VMTF done
 //    - fast restarts => very important

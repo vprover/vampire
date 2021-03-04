@@ -88,7 +88,7 @@ private:
   template <template <typename> class Allocator> friend class Solver;
 
 private:
-  size_type m_size;    // number of literals
+  size_type m_size;   // number of literals
   Lit m_literals[2];  // actual size is m_size, but C++ does not officially support flexible array members (as opposed to C)
 }; // Clause
 
