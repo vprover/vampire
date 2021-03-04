@@ -37,6 +37,7 @@ add_executable(subsat
     types.hpp
     types.cpp
     clause.hpp
+    clause.cpp
     vector_map.hpp
     log.hpp
     log.cpp

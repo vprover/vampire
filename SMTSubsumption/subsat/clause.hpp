@@ -92,21 +92,7 @@ private:
   Lit m_literals[2];  // actual size is m_size, but C++ does not officially support flexible array members (as opposed to C)
 }; // Clause
 
-static std::ostream& operator<<(std::ostream& os, Clause const& c)
-{
-  os << "{ ";
-  bool first = true;
-  for (Lit lit : c) {
-    if (first) {
-      first = false;
-    } else {
-      os << ", ";
-    }
-    os << lit;
-  }
-  os << " }";
-  return os;
-}
+std::ostream& operator<<(std::ostream& os, Clause const& c);
 
 
 
@@ -165,17 +151,7 @@ NODISCARD constexpr bool operator!=(ClauseRef lhs, ClauseRef rhs) noexcept
   return !operator==(lhs, rhs);
 }
 
-static std::ostream& operator<<(std::ostream& os, ClauseRef cr)
-{
-  os << "ClauseRef{";
-  if (cr.is_valid()) {
-    os << cr.index();
-  } else {
-    os << "-";
-  }
-  os << "}";
-  return os;
-}
+std::ostream& operator<<(std::ostream& os, ClauseRef cr);
 
 
 
