@@ -15,7 +15,7 @@ namespace subsat {
 /// A set of boolean variables representing the choices of a non-boolean variable ("value encoding")
 /// is called a "group" in this class.  (nothing to do with mathematical groups, just variables "grouped together").
 template <template <typename> class Allocator = std::allocator>
-class DomainDegree {
+class DomainDegree final {
 public:
   template <typename T>
   using allocator_type = Allocator<T>;

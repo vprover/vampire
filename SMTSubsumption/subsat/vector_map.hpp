@@ -50,7 +50,7 @@ template <
     typename T,
     typename Allocator = std::allocator<T>,
     typename Indexing = DefaultIndex_t<Key>>
-class vector_map {
+class vector_map final {
 public:
   using key_type = Key;
   using value_type = T;
