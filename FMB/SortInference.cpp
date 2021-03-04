@@ -217,7 +217,7 @@ void SortInference::doInference()
   }
 
 #if DEBUG_SORT_INFERENCE
-  cout << "count is " << count << endl;
+  cout << "count is " << count << ": this is the number of positions in the considered signature" << endl;
 #endif
 
   if(count==0) count=1;
@@ -321,7 +321,7 @@ void SortInference::doInference()
   unsigned comps = unionFind.getComponentCount();
 
 #if DEBUG_SORT_INFERENCE
-  cout << comps << " components" << endl;
+  cout << comps << " components: this is the number of disjoint subsorts" << endl;
 #endif
 
 

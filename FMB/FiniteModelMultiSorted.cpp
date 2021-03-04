@@ -77,7 +77,11 @@ FiniteModelMultiSorted::FiniteModelMultiSorted(DHMap<unsigned,unsigned> sizes) :
 
     OperatorType* sig = env.signature->getPredicate(p)->predType();
     unsigned add = 1;
-    for(unsigned i=0;i<arity;i++){ add*= _sizes.get(sig->arg(i)); }
+    for(unsigned i=0;i<arity;i++){ 
+      int mult = _sizes.get(sig->arg(i)); 
+      ASS(mult>0);
+      add*= (mult>0 ? mult : 1);
+    }
 
     ASS(UINT_MAX - add > offsets);
     offsets += add;
@@ -148,6 +152,8 @@ void FiniteModelMultiSorted::addPredicateDefinition(unsigned p, const DArray<uns
   CALL("FiniteModelMultiSorted::addPredicateDefinition");
 
   ASS_EQ(env.signature->predicateArity(p),args.size());
+
+  //cout << "addPredicateDefinition for " << p << "(" << env.signature->predicateName(p) << ")" << endl;
 
   unsigned var = p_offsets[p];
   unsigned mult = 1;
@@ -241,6 +247,7 @@ vstring FiniteModelMultiSorted::toString()
     modelStm << ")." << endl << endl;
     }
   }
+
   //Constants
   for(unsigned f=0;f<env.signature->functions();f++){
     if(env.signature->getFunction(f)->usageCnt()==0) continue;
@@ -366,7 +373,6 @@ fModelLabel:
     }
     modelStm << " > $o )." << endl;
 
-
     modelStm << "tff("<<prepend("predicate_", name)<<",axiom,"<<endl;
 
     unsigned offset = p_offsets[f];
@@ -378,7 +384,6 @@ fModelLabel:
     bool first=true;
 pModelLabel:
       for(unsigned i=arity-1;i+1!=0;i--){
-
         if(args[i]==_sizes.get(sig->arg(i))){
           args[i]=1;
         }
