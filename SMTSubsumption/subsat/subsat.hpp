@@ -38,19 +38,22 @@ static_assert(VDEBUG == 1, "VDEBUG and NDEBUG are not synchronized");
 #endif
 
 // Conflict clause minimization
+// ASSESSMENT: doesn't seem to help much with subsumption instances.
 #ifndef SUBSAT_MINIMIZE
-#define SUBSAT_MINIMIZE 1
+#define SUBSAT_MINIMIZE 0
 #endif
 
 // Domain-degree decision heuristic
+// ASSESSMENT: extremely valuable for hard subsumption instances!
 #ifndef SUBSAT_DDEG
 #define SUBSAT_DDEG 1
 #endif
 
 // VMTF decision heuristic
 // If both DDEG and VMTF are enabled, then VMTF is used as fallback (only useful if there are variables without an assigned group).
+// ASSESSMENT: can be removed for subsumption instances since all variables will be assigned to a group.
 #ifndef SUBSAT_VMTF
-#define SUBSAT_VMTF 1
+#define SUBSAT_VMTF 0
 #endif
 
 #if !SUBSAT_DDEG && !SUBSAT_VMTF
@@ -97,7 +100,9 @@ struct Statistics {
   int learned_binary_clauses = 0; ///< Number of learned binary clauses.
   int learned_long_clauses = 0;   ///< Number of learned long clauses (size >= 3).
   int learned_literals = 0;       ///< Sum of the sizes of all learned clauses.
+#if SUBSAT_MINIMIZE
   int minimized_literals = 0;     ///< Number of literals removed by learned clause minimization.
+#endif
   int original_clauses = 0;       ///< Total number of (non-unit) original clauses.
   int original_amos = 0;          ///< Total number of (true) AtMostOne-constraints.
   int restarts = 0;               ///< Number of restarts performed.
@@ -112,7 +117,9 @@ static std::ostream& operator<<(std::ostream& os, Statistics const& stats)
   auto const total_learned_clauses = stats.learned_long_clauses + stats.learned_binary_clauses + stats.learned_unit_clauses;  // same as #conflicts during solving since we don't delete any
   os << "Learned clauses:  " << std::setw(8) << total_learned_clauses << " (" << stats.learned_long_clauses << " long, " << stats.learned_binary_clauses << " binary, " << stats.learned_unit_clauses << " unit)\n";
   os << "Learned literals: " << std::setw(8) << stats.learned_literals << " (on average " << std::setprecision(1) << std::fixed << (static_cast<double>(stats.learned_literals) / total_learned_clauses) << " literals/clause)\n";
-  os << "Minimized lits:   " << std::setw(8) << stats.minimized_literals << " (on average " << std::setprecision(1) << std::fixed << (static_cast<double>(stats.minimized_literals) / total_learned_clauses) << " literals/clause)\n";
+#if SUBSAT_MINIMIZE
+  os << "Minimized literals:" << std::setw(7) << stats.minimized_literals << " (on average " << std::setprecision(1) << std::fixed << (static_cast<double>(stats.minimized_literals) / total_learned_clauses) << " literals/clause)\n";
+#endif
   assert(stats.conflicts == stats.conflicts_by_clause + stats.conflicts_by_amo);
   assert(stats.propagations == stats.propagations_by_clause + stats.propagations_by_amo + stats.propagations_by_theory);
   return os;

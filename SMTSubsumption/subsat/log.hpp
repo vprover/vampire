@@ -2,7 +2,7 @@
 #define LOG_HPP
 
 #ifndef LOGGING_ENABLED
-#   if !defined(NDEBUG) && defined(SUBSAT_STANDALONE)
+#   ifndef NDEBUG
 #       define LOGGING_ENABLED 1
 #   else
 #       define LOGGING_ENABLED 0
@@ -76,31 +76,7 @@ ShowVec<T, Allocator> SHOWVEC(subsat::vector_map<Key, T, Allocator, Indexing> co
 }
 
 
-/*
-template<typename T, typename Allocator>
-std::ostream& operator<<(std::ostream& os, std::vector<T, Allocator> const& vec)
-{
-  if (vec.empty()) {
-    return os << "[]";
-  }
-
-  os << "[ ";
-  bool first = true;
-  for (auto&& x : vec) {
-    if (first) {
-      first = false;
-    } else {
-      os << ", ";
-    }
-    os << x;
-  }
-  os << " ]";
-  return os;
-}
-*/
-
-
-/// lower level means more important
+/// Lower log level means more important
 enum class LogLevel : int {
   Error = 0,
   Warn = 1,

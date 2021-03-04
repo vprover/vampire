@@ -772,8 +772,9 @@ class SMTSubsumptionImpl
     {
       CDEBUG("SMTSubsumptionImpl::setup()");
       // solver.reset();  // TODO
-      // solver.verbosity = 2;  // maybe only for debug...
+#if VDEBUG
       solver.verbosity = 1;
+#endif
 
       // TODO: use miniindex
       // LiteralMiniIndex const main_premise_mini_index(main_premise);
