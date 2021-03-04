@@ -300,6 +300,15 @@ public:
   }                                                                                                           \
                                                                                                               \
   /**                                                                                                         \
+   * Returns this, if this is Some, or uses the closure to create an alternative option if this is None.      \
+   */                                                                                                         \
+  template<class Clsr>                                                                                        \
+  Option orElse(Clsr clsr) REF {                                                                              \
+    return this->isNone() ? clsr()                                                                            \
+                          : *this;                                                                            \
+  }                                                                                                           \
+                                                                                                              \
+   /**                                                                                                        \
    * applies a function to the value of this closure if ther is one. the function is expected to return       \
    * another option. the resulting Option<Option<Result>> will then be flattened to an Option<Result>.        \
    *                                                                                                          \
@@ -346,6 +355,27 @@ template<class T>
 Option<T> optionalFromPtr(T* t) 
 { return Option<T>::fromPtr(t); }
 
-}
+template<class T>
+T operator||(Option<T> t, T c)
+{ return t.unwrapOr(std::move(c)); }
+
+template<class T, class Clsr>
+Option<T> operator||(Option<T> t, Clsr c)
+{ return t.orElse(c); }
+
+template<class T>
+Option<T> operator||(Option<T> t, Option<T> c)
+{ return t.orElse([&](){ return std::move(c); }); }
+
+
+template<class T, class Clsr>
+Option<T> operator&&(Option<T> t, Clsr c)
+{ return t.andThen(c); }
+
+template<class T>
+Option<T> operator&&(Option<T> t, Option<T> c)
+{ return t.andThen([&](){ return std::move(c); }); }
+
+} // namespace Lib
 
 #endif // __OPTIONAL_H__

@@ -1,15 +1,15 @@
 
-  /*
-   * File tKBO.cpp.
-   *
-   * This file is part of the source code of the software program
-   * Vampire. It is protected by applicable
-   * copyright laws.
-   *
-   * This source code is distributed under the licence found here
-   * https://vprover.github.io/license.html
-   * and in the source directory
-   */
+/*
+ * File tLaKbo.cpp.
+ *
+ * This file is part of the source code of the software program
+ * Vampire. It is protected by applicable
+ * copyright laws.
+ *
+ * This source code is distributed under the licence found here
+ * https://vprover.github.io/license.html
+ * and in the source directory
+ */
 
 /**!  This file contains examples on how to use Test/SyntaxSugar.hpp.
  *
@@ -19,12 +19,20 @@
 
 #include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
+#include "Kernel/LaKbo.hpp"
 #include "Kernel/KBO.hpp"
 #include "Kernel/Ordering.hpp"
+#include "Test/TestUtils.hpp"
 
 //////////////////////////////////////////////////////////////////////////////// 
 /////////////////////////////// HELPER FUNCTIONS /////////////////////////////// 
 //////////////////////////////////////////////////////////////////////////////// 
+
+using namespace Test;
+const LaKbo::Result Greater = LaKbo::Result::GREATER;
+const LaKbo::Result Less    = LaKbo::Result::LESS;
+const LaKbo::Result Equal   = LaKbo::Result::EQUAL;
+const LaKbo::Result Incomp  = LaKbo::Result::INCOMPARABLE;
 
 inline DArray<int> funcPrec() {
   unsigned num = env.signature->functions();
@@ -65,12 +73,50 @@ KboWeightMap<SigTraits> toWeightMap(unsigned introducedSymbolWeight, KboSpecialW
   };
 }
 
-inline KBO kbo(unsigned introducedSymbolWeight, 
+template<class T>
+void check__(LaKbo& ord, T lhs, LaKbo::Result exp, T rhs) {
+  // std::cout << std::endl;
+  auto check_ = [&](T lhs, LaKbo::Result exp, T rhs) {
+    auto res = ord.compare(lhs,rhs);
+    if (res != exp) {
+      std::cout << "\r[ fail ] " << pretty(lhs) << "\t" << res << "\t" << pretty(rhs)  << "\t(expected: " << exp << " )"<< std::endl;
+      exit(-1);
+    } else {
+      std::cout << "\r[  ok  ] " << pretty(lhs) << "\t" << res << "\t" << pretty(rhs)  << std::endl;
+    }
+  };
+  switch (exp) {
+    case Incomp:
+    case Equal:
+      check_(lhs, exp, rhs);
+      check_(rhs, exp, lhs);
+      return;
+    case Greater:
+      check_(lhs, Greater, rhs);
+      check_(rhs, Less   , lhs);
+      return;
+    case Less: 
+      check_(lhs, Less   , rhs);
+      check_(rhs, Greater, lhs);
+      return;
+    default:
+      ASSERTION_VIOLATION
+  }
+}
+
+void check(LaKbo& ord, TermList lhs, LaKbo::Result exp, TermList rhs) 
+{ check__(ord, lhs,exp,rhs); }
+
+void check(LaKbo& ord, Literal* lhs, LaKbo::Result exp, Literal* rhs) 
+{ check__(ord, lhs,exp,rhs); }
+
+inline LaKbo kbo(unsigned introducedSymbolWeight, 
     unsigned variableWeight, 
     const Map<unsigned, KboWeight>& funcs, 
     const Map<unsigned, KboWeight>& preds) {
+  CALL("kbo(...)")
  
-  return KBO(toWeightMap<FuncSigTraits>(introducedSymbolWeight, { 
+  return LaKbo(KBO(toWeightMap<FuncSigTraits>(introducedSymbolWeight, { 
           ._variableWeight = variableWeight ,
           ._numInt  = variableWeight,
           ._numRat  = variableWeight,
@@ -85,11 +131,11 @@ inline KBO kbo(unsigned introducedSymbolWeight,
              funcPrec(), 
              predPrec(), 
              predLevels(),
-             /*revereseLCM*/ false);
+             /*revereseLCM*/ false));
 }
 
 
-inline KBO kbo(const Map<unsigned, KboWeight>& funcs, const Map<unsigned, KboWeight>& preds) {
+inline LaKbo kbo(const Map<unsigned, KboWeight>& funcs, const Map<unsigned, KboWeight>& preds) {
   return kbo(1, 1, funcs, preds);
 }
 
@@ -134,7 +180,7 @@ TEST_FUN(kbo_test01) {
       weights() // <- predicate symbol weights
       ); 
 
-  ASS_EQ(ord.compare(f(c), g(c)), Ordering::Result::GREATER)
+  check(ord, f(c), Greater, g(c));
 }
 //
 //
@@ -150,7 +196,7 @@ TEST_FUN(kbo_test02) {
 
   auto ord = kbo(weights(make_pair(f, 10u)), weights());
 
-  ASS_EQ(ord.compare(f(c), g(g(g(g(g(c)))))), Ordering::Result::GREATER)
+  check(ord, f(c), Greater, g(g(g(g(g(c))))));
 }
 
 TEST_FUN(kbo_test03) {
@@ -162,8 +208,7 @@ TEST_FUN(kbo_test03) {
 
   auto ord = kbo(weights(make_pair(f, 10u)), weights());
 
-
-  ASS_EQ(ord.compare(f(x), g(g(g(g(g(c)))))), Ordering::Result::GREATER)
+  check(ord, f(x), Greater, g(g(g(g(g(c))))));
 }
 
 TEST_FUN(kbo_test04) {
@@ -174,7 +219,7 @@ TEST_FUN(kbo_test04) {
 
   auto ord = kbo(weights(make_pair(f, 10u)), weights());
 
-  ASS_EQ(ord.compare(f(x), g(g(g(g(g(y)))))), Ordering::Result::INCOMPARABLE)
+  check(ord, f(x), Incomp, g(g(g(g(g(y))))));
 }
 
 TEST_FUN(kbo_test05) {
@@ -185,7 +230,7 @@ TEST_FUN(kbo_test05) {
 
   auto ord = kbo(weights(make_pair(f, 0u)), weights());
 
-  ASS_EQ(ord.compare(f(x), g(x)), Ordering::Result::LESS)
+  check(ord, f(x), Less, g(x));
 }
 
 TEST_FUN(kbo_test06) {
@@ -195,7 +240,7 @@ TEST_FUN(kbo_test06) {
 
   auto ord = kbo(weights(make_pair(f, 0u)), weights());
 
-  ASS_EQ(ord.compare(f(x), x), Ordering::Result::GREATER)
+  check(ord, f(x), Greater, x);
 }
 
 TEST_FUN(kbo_test07) {
@@ -205,7 +250,7 @@ TEST_FUN(kbo_test07) {
 
   auto ord = kbo(weights(make_pair(f, 0u)), weights());
 
-  ASS_EQ(ord.compare(f(x), x), Ordering::Result::GREATER)
+  check(ord, f(x), Greater, x);
 }
 
 TEST_FUN(kbo_test08) {
@@ -216,35 +261,7 @@ TEST_FUN(kbo_test08) {
 
   auto ord = kbo(weights(make_pair(f, 0u), make_pair(g, 1u)), weights());
 
-  ASS_EQ(ord.compare(g(f(x)), f(g(x))), Ordering::Result::LESS)
-}
-
-TEST_FUN(kbo_test09) {
-  DECL_DEFAULT_VARS
-  DECL_SORT(srt)
-  DECL_FUNC(f, {srt}, srt)
-  DECL_FUNC(g, {srt}, srt)
-
-  try {
-    auto ord = kbo(weights(make_pair(g, 1u), make_pair(f, 0u)), weights());
-    ASSERTION_VIOLATION
-  } catch (UserErrorException& e) {
-    /* f is not maximal wrt precedence but has weight 0 */
-  }
-}
-
-
-TEST_FUN(kbo_test10) {
-  DECL_DEFAULT_VARS
-  DECL_SORT(srt)
-  DECL_CONST(a, srt)
-
-  try {
-    auto ord = kbo(weights(make_pair(a, 0u)), weights());
-    ASSERTION_VIOLATION
-  } catch (UserErrorException& e) {
-    /* constant must be greater or equal to variable weight */
-  }
+  check(ord, g(f(x)), Less, f(g(x)));
 }
 
 TEST_FUN(kbo_test11) {
@@ -255,7 +272,7 @@ TEST_FUN(kbo_test11) {
 
   auto ord = kbo(weights(make_pair(f, 0u), make_pair(g, 1u)), weights());
 
-  ASS_EQ(ord.compare(g(f(x)), f(g(x))), Ordering::Result::LESS)
+  check(ord, g(f(x)), Less, f(g(x)));
 }
 
 TEST_FUN(kbo_test12) {
@@ -266,7 +283,7 @@ TEST_FUN(kbo_test12) {
 
   auto ord = kbo(weights(), weights());
 
-  ASS_EQ(ord.compare(a,b), Ordering::Result::LESS)
+  check(ord, a, Less,b);
 }
 
 TEST_FUN(kbo_test13) {
@@ -277,7 +294,7 @@ TEST_FUN(kbo_test13) {
 
   auto ord = kbo(weights(make_pair(a,3u), make_pair(b,2u)), weights());
 
-  ASS_EQ(ord.compare(a,b), Ordering::Result::GREATER)
+  check(ord, a, Greater,b);
 }
 
 TEST_FUN(kbo_test14) {
@@ -290,7 +307,7 @@ TEST_FUN(kbo_test14) {
 
   auto ord = kbo(weights(make_pair(a,1u), make_pair(u,0u)), weights());
 
-  ASS_EQ(ord.compare(u(f(g(x),g(a))), u(f(x,g(a)))), Ordering::Result::GREATER)
+  check(ord, u(f(g(x),g(a))), Greater, u(f(x,g(a))));
 }
 
 TEST_FUN(kbo_test15) {
@@ -303,7 +320,7 @@ TEST_FUN(kbo_test15) {
 
   auto ord = kbo(weights(make_pair(a,1u), make_pair(u,0u)), weights());
 
-  ASS_EQ(ord.compare(u(f(g(u(x)),g(a))), u(f(x,g(a)))), Ordering::Result::GREATER)
+  check(ord, u(f(g(u(x)),g(a))), Greater, u(f(x,g(a))));
 }
 
 TEST_FUN(kbo_test16) {
@@ -314,7 +331,7 @@ TEST_FUN(kbo_test16) {
 
   auto ord = kbo(weights(make_pair(a,1u), make_pair(u,0u)), weights());
 
-  ASS_EQ(ord.compare(u(x), x), Ordering::Result::GREATER)
+  check(ord, u(x), Greater, x);
 }
 
 TEST_FUN(kbo_test17) {
@@ -326,7 +343,7 @@ TEST_FUN(kbo_test17) {
 
   auto ord = kbo(weights(make_pair(a,1u), make_pair(u,0u)), weights());
 
-  ASS_EQ(ord.compare(u(f(x)), f(x)), Ordering::Result::GREATER)
+  check(ord, u(f(x)), Greater, f(x));
 }
 
 TEST_FUN(kbo_test18) {
@@ -338,7 +355,7 @@ TEST_FUN(kbo_test18) {
 
   auto ord = kbo(weights(make_pair(a,1u), make_pair(u,0u)), weights());
 
-  ASS_EQ(ord.compare(f(u(x)), f(x)), Ordering::Result::GREATER)
+  check(ord, f(u(x)), Greater, f(x));
 }
 
 TEST_FUN(kbo_test19) {
@@ -357,26 +374,7 @@ TEST_FUN(kbo_test19) {
         make_pair(p,2u)
       ));
 
-  ASS_EQ(ord.compare(p(f(g(x))), p(g(f(x)))), Ordering::Result::LESS)
-}
-
-TEST_FUN(kbo_test20) {
-  DECL_DEFAULT_VARS
-  DECL_SORT(srt)
-  DECL_CONST(a, srt)
-
-  try {
-    auto ord = kbo(
-        10, // <- introduced symbol weight
-        10, // <- variable weight
-        weights(
-          make_pair(a,1u)
-        ), 
-        weights());
-    ASSERTION_VIOLATION
-  } catch (UserErrorException&) {
-    /* constants must have smaller or equal weight compared to variables */
-  }
+  check(ord, p(f(g(x))), Less, p(g(f(x))));
 }
 
 TEST_FUN(kbo_test21) {
@@ -386,7 +384,7 @@ TEST_FUN(kbo_test21) {
   DECL_CONST(b, srt)
 
   auto ord = kbo(
-      10, // <- introduced symbol weight
+      10, // <- weight for introduced symbols
       10, // <- variable weight
       weights(
         make_pair(a,11u),
@@ -394,26 +392,36 @@ TEST_FUN(kbo_test21) {
       ), 
       weights());
 
-  ASS_EQ(ord.compare(a, b), Ordering::Result::LESS)
+  check(ord, a, Less, b);
 }
 
-TEST_FUN(kbo_test22) {
+
+TEST_FUN(lakbo_test01) {
   DECL_DEFAULT_VARS
-  DECL_SORT(srt)
-  DECL_CONST(a, srt)
+  NUMBER_SUGAR(Int)
+  DECL_FUNC (f, {Int}, Int)
+  DECL_CONST(a, Int)
 
-  try {
-    auto ord = kbo(
-        9, // <- introduced symbol weight
-        10, // <- variable weight
-        weights(
-          make_pair(a,12u)
-        ), 
-        weights());
-    ASSERTION_VIOLATION
-  } catch (UserErrorException& e) {
-    /* introduced symbol weight must be greater or equal to the variable weight */
-  }
+  auto ord = kbo(weights(
+      make_pair(f, 1u),
+      make_pair(a, 1u),
+      make_pair(add, 1u)
+    ), weights());
+
+  check(ord, f(x)    , Incomp, 3 * f(x));
+  check(ord, 5 * f(x), Incomp, 3 * f(x));
+
+  check(ord,          f(x) , Less,     f(f(x)));
+  check(ord,      3 * f(x) , Less,     f(f(x)));
+  check(ord,          f(x) , Less, 3 * f(f(x)));
+  check(ord,      5 * f(x) , Less, 3 * f(f(x)));
+  check(ord, 7 * (5 * f(x)), Less, 3 * f(f(x)));
+  check(ord, 7 * (f(x) * 5), Less, 3 * f(f(x)));
+
+  check(ord, f(x) * f(x), Greater, f(x));
+
+  check(ord, f(a) + f(a), Less, a + f(f(a)));
+  check(ord, f(a) + f(a), Less, f(f(a)) + a);
+  check(ord, f(a) + x   , Incomp, a + f(x));
+  check(ord, f(a) + x   , Incomp, f(x) + a);
 }
-
-
