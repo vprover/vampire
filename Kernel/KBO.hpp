@@ -158,13 +158,14 @@ public:
   using PrecedenceOrdering::compare;
   Result compare(TermList tl1, TermList tl2) const override;
 protected:
+  int symbolWeight(Term* t) const;
+  int variableWeight() const;
   Result comparePredicates(Literal* l1, Literal* l2) const override;
 
 
   class State;
 
   // int functionSymbolWeight(unsigned fun) const;
-  int symbolWeight(Term* t) const;
 
 private:
 

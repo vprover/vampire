@@ -157,6 +157,9 @@
   __ALLOW_UNUSED(                                                                                             \
     using NumTraits = Sort##Traits;                                                                           \
     syntaxSugarGlobals().setNumTraits(NumTraits{});                                                           \
+    auto add = FuncSugar(NumTraits::addF());                                                                  \
+    auto mul = FuncSugar(NumTraits::mulF());                                                                  \
+    auto minus = FuncSugar(NumTraits::minusF());                                                              \
     auto Sort = SortSugar(NumTraits::sort());                                                                 \
   )                                                                                                           \
 

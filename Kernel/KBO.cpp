@@ -187,7 +187,7 @@ void KBO::State::traverse(TermList tl,int coef)
   CALL("KBO::State::traverse(TermList...)");
 
   if(tl.isOrdinaryVar()) {
-    _weightDiff += _kbo._funcWeights._specialWeights._variableWeight * coef;
+    _weightDiff += _kbo.variableWeight() * coef;
     recordVariable(tl.var(), coef);
     return;
   }
@@ -217,7 +217,7 @@ void KBO::State::traverse(TermList tl,int coef)
     } else {
       ASS_METHOD(*ts,isOrdinaryVar());
       auto var = ts->var();
-      _weightDiff += _kbo._funcWeights._specialWeights._variableWeight * coef;
+      _weightDiff += _kbo.variableWeight() * coef;
       recordVariable(var, coef);
     }
     if(stack.isEmpty()) {
@@ -550,7 +550,7 @@ void KBO::checkAdmissibility(HandleError handle) const
   }
 
   ////////////////// check kbo-releated constraints //////////////////
-  unsigned varWght = _funcWeights._specialWeights._variableWeight;
+  unsigned varWght = variableWeight();
 
   for (unsigned i = 0; i < nFunctions; i++) {
     if(env.signature->isTypeConOrSup(i)){ continue; }
@@ -696,6 +696,9 @@ Ordering::Result KBO::compare(TermList tl1, TermList tl2) const
 #endif
   return res;
 }
+
+int KBO::variableWeight() const 
+{ return _funcWeights._specialWeights._variableWeight; }
 
 int KBO::symbolWeight(Term* t) const
 {

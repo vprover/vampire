@@ -77,7 +77,7 @@ public:
       _stack = static_cast<C*>(mem);
     }
     else {
-      _stack = 0;
+      _stack = nullptr;
     }
     _cursor = _stack;
     _end = _stack+_capacity;
@@ -136,6 +136,45 @@ public:
     _stack = _cursor = _end = nullptr;
 
     std::swap(*this,s);
+  }
+
+/**
+ * @brief Splits this stack into two parts. The first part will contain the first @param sizeOfFirst elements
+ * and the second part will contain the rest. This function does not involve any memory copying, hence it's 
+ * constant time. 
+ * 
+ * @pre this->size() >= sizeOfFirst
+ * @post this stack will be empty
+ * 
+ * @param sizeOfFirst the size of the first of the two parts to be returned
+ * @return std::pair<Stack, Stack>  a pair of stacks, which contain the same elements as this stack
+ * contained before the call of this function.
+ */
+  std::pair<Stack, Stack> split(unsigned sizeOfFirst) 
+  {
+    ASS(sizeOfFirst <= this->size())
+    Stack lhs;
+    Stack rhs;
+
+    if (sizeOfFirst == this->size()) {
+      lhs = std::move(*this);
+    } else if (sizeOfFirst == 0) {
+      rhs = std::move(*this);
+    } else {
+      lhs._stack = _stack;
+      lhs._end = lhs._cursor = lhs._stack + sizeOfFirst;
+      lhs._capacity = sizeOfFirst;
+      
+      rhs._stack = _stack + sizeOfFirst;
+      rhs._end = _end;
+      rhs._cursor = _cursor;
+      rhs._capacity = _capacity - sizeOfFirst;
+
+      _stack = _cursor = _end = nullptr;
+      _capacity = 0;
+    }
+
+    return make_pair(std::move(lhs), std::move(rhs));
   }
 
   /** De-allocate the stack
