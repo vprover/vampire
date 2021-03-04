@@ -910,7 +910,7 @@ bool SortHelper::areImmediateSortsValidPoly(Term* t)
     Term* ta = arg.term();
     TermList argSort = getResultSort(ta);
     TermList instantiatedTypeSort = SubstHelper::apply(type->arg(i), subst);
-    if (instantiatedTypeSort != argSort) { //TODO problem here?
+    if (instantiatedTypeSort != argSort) {
 /*
 #if VDEBUG
       cout << "the term is " + t->toString() << endl;

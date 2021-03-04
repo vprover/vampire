@@ -952,8 +952,8 @@ Term* Term::createNonShared(Term* t,TermList* args)
 
 
 
-/** Create a new complex term, and insert it into the sharing
- *  structure if all arguments are shared.
+/** Create a new complex term, and do not insert it into the sharing
+ *  structure.
  */
 Term* Term::createNonShared(unsigned function, unsigned arity, TermList* args)
 {
