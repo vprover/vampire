@@ -481,7 +481,6 @@ void Preprocess::preprocess(Problem& prb)
      }
    }
 
-   //bce hasn't been updated to deal with polymorphism
    if (_options.blockedClauseElimination()) {
      env.statistics->phase=Statistics::BLOCKED_CLAUSE_ELIMINATION;
      if(env.options->showPreprocessing())
