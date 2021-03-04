@@ -500,22 +500,33 @@ public:
     Clause& c = m_clauses.deref(cr);
     // TODO: improve this?
     if (m_level == 0) {
-      for (uint32_t i = 0; i < c.size(); ++i) {
-        Lit lit = c[i];
+      // Simplify clause.
+      // We only need to do this for original clauses, learned clauses are already simplified.
+      uint32_t i = 0;
+      uint32_t j = 0;
+      while (i < c.size()) {
+        Lit const lit = c[i];
+
         ensure_variable(lit.var());
-        switch (m_values[lit]) {
-          case Value::True:
-            LOG_INFO("Clause satisfied on root level due to literal: " << lit);
-            return;
-          case Value::False:
-            LOG_INFO("Literal false on root level: " << lit);
-            c.m_size -= 1;
-            c[i] = c[c.m_size];
-            break;
-          default:
-            break;
+
+        // copy literal by default
+        c[j++] = c[i++];
+
+        Value const lit_value = m_values[lit];
+        if (lit_value == Value::True) {
+          LOG_INFO("Clause satisfied on root level due to literal: " << lit);
+          return;
+        }
+        else if (lit_value == Value::False) {
+          LOG_INFO("Literal false on root level: " << lit);
+          // remove literal
+          j--;
+        }
+        else {
+          assert(lit_value == Value::Unassigned);
         }
       }
+      c.m_size = j;
     } else {
       assert(std::all_of(c.begin(), c.end(),
                          [=](Lit lit) { return lit.var().index() < m_used_vars; }));
