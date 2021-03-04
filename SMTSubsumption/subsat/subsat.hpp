@@ -53,7 +53,11 @@ static_assert(VDEBUG == 1, "VDEBUG and NDEBUG are not synchronized");
 // If both DDEG and VMTF are enabled, then VMTF is used as fallback (only useful if there are variables without an assigned group).
 // ASSESSMENT: can be removed for subsumption instances since all variables will be assigned to a group.
 #ifndef SUBSAT_VMTF
+#if SUBSAT_STANDALONE
+#define SUBSAT_VMTF 1
+#else
 #define SUBSAT_VMTF 0
+#endif
 #endif
 
 #if !SUBSAT_DDEG && !SUBSAT_VMTF
