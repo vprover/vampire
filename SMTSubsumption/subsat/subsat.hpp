@@ -123,25 +123,18 @@ static std::ostream& operator<<(std::ostream& os, Statistics const& stats)
     assert(m_stats.NAME <= std::numeric_limits<decltype(m_stats.NAME)>::max() - v); \
     m_stats.NAME += v;                                                              \
   } while (false)
-#define SUBSAT_STAT_INC(NAME) SUBSAT_STAT_ADD(NAME, 1)
-// #define SUBSAT_STAT_INC(NAME)                                                  \
-//   do {                                                                         \
-//     assert(m_stats.NAME < std::numeric_limits<decltype(m_stats.NAME)>::max()); \
-//     m_stats.NAME += 1;                                                         \
-//   } while (false)
 #else
 #define SUBSAT_STAT_ADD(NAME, VALUE) \
   do {                        \
     /* do nothing */          \
   } while (false)
-#define SUBSAT_STAT_INC(NAME) \
-  do {                        \
-    /* do nothing */          \
-  } while (false)
-#endif
+#endif  // SUBSAT_STATISTICS
+#define SUBSAT_STAT_INC(NAME) SUBSAT_STAT_ADD(NAME, 1)
+
 
 using Level = uint32_t;
 #define InvalidLevel (std::numeric_limits<Level>::max())
+
 
 class Reason final {
   enum class Type : uint8_t {
@@ -206,11 +199,13 @@ public:
 };
 static_assert(std::is_trivially_destructible<Reason>::value, "");
 
+
 struct VarInfo final {
   Level level = InvalidLevel;
   Reason reason;
 };
 static_assert(std::is_trivially_destructible<VarInfo>::value, "");
+
 
 struct Watch final {
   constexpr Watch() noexcept
