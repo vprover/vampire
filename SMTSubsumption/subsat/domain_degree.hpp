@@ -26,6 +26,30 @@ public:
     InvalidGroup = std::numeric_limits<Group>::max(),
   };
 
+  using GroupSize = std::uint32_t;
+
+  bool empty() const noexcept
+  {
+    bool const is_empty = m_groups.empty();
+    if (is_empty) {
+      assert(m_domain_sizes.empty());
+    }
+    return is_empty;
+  }
+
+  void clear() noexcept
+  {
+    m_groups.clear();
+    m_domain_sizes.clear();
+    assert(empty());
+  }
+
+  void reserve(uint32_t var_count, uint32_t group_count)
+  {
+    m_groups.reserve(var_count);
+    m_domain_sizes.reserve(group_count);
+  }
+
   // Register a new (unassigned) variable with a group
   void set_group(Var v, Group g)
   {
@@ -74,17 +98,17 @@ public:
     // TODO: for now, we choose the first unassigned variable from the group. Maybe we should choose the most "recent" one (recent in the VMTF sense), or something else?
     // Find group with minimal non-zero size
     Group sg = InvalidGroup;
-    uint32_t sg_size = std::numeric_limits<uint32_t>::max();
+    GroupSize sg_size = std::numeric_limits<uint32_t>::max();
     for (Group g = 0; g < m_domain_sizes.size(); ++g) {
-      uint32_t const g_size = m_domain_sizes[g];
+      GroupSize const g_size = m_domain_sizes[g];
       if (0 < g_size && g_size < sg_size) {
         sg = g;
         sg_size = g_size;
       }
     }
     // Find an unassigned variable from that group, we simply return the first one.
-    for (uint32_t v_idx = 0; v_idx < m_groups.size(); ++v_idx) {
-      Var v{v_idx};
+    for (Var::index_type idx = 0; idx < m_groups.size(); ++idx) {
+      Var v{idx};
       if (m_groups[v] == sg && values[v] == Value::Unassigned) {
         LOG_INFO("Domain degree: choose variable " << v << " of group " << sg << " with size " << sg_size);
         return v;
@@ -96,8 +120,10 @@ public:
   }
 
 private:
+  // TODO: rename to m_var_groups?
   vector_map<Var, Group, allocator_type<Group>> m_groups;
-  vector_map<Group, uint32_t, allocator_type<uint32_t>> m_domain_sizes;  ///< the number of unassigned variables belonging to each group
+  // TODO: rename to m_group_sizes?
+  vector_map<Group, GroupSize, allocator_type<GroupSize>> m_domain_sizes;  ///< the number of unassigned variables belonging to each group
 };
 
 

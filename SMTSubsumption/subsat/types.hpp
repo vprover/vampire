@@ -58,28 +58,28 @@ std::ostream& operator<<(std::ostream& os, Result r);
 /// Boolean variable represented by its integer index.
 /// Use consecutive indices starting at 0.
 class Var final {
-  uint32_t m_index;
-
 public:
-  explicit constexpr Var(uint32_t index) noexcept
+  using index_type = std::uint32_t;
+
+  explicit constexpr Var(index_type index) noexcept
       : m_index{index}
   {
     // assert(m_index <= Var::max_index());  // TODO: how to assert in constexpr constructor?
   }
 
-  NODISCARD constexpr uint32_t index() const noexcept
+  NODISCARD constexpr index_type index() const noexcept
   {
     return m_index;
   }
 
-  NODISCARD static constexpr uint32_t max_index() noexcept
+  NODISCARD static constexpr index_type max_index() noexcept
   {
     return (1u << 31) - 2;
   }
 
   NODISCARD static constexpr Var invalid() noexcept
   {
-    return Var{std::numeric_limits<uint32_t>::max()};
+    return Var{std::numeric_limits<index_type>::max()};
   }
 
   NODISCARD constexpr bool is_valid() const noexcept
@@ -89,6 +89,9 @@ public:
 
   NODISCARD constexpr Lit operator~() const noexcept;
   NODISCARD constexpr operator Lit() const noexcept;
+
+private:
+  index_type m_index;
 }; // Var
 
 static_assert(Var::max_index() == static_cast<uint32_t>(INT32_MAX - 1), "unexpected max variable index");
@@ -127,14 +130,15 @@ std::ostream& operator<<(std::ostream& os, Var var);
 ///      :
 ///      :
 class Lit final {
-  uint32_t m_index;
+public:
+  using index_type = Var::index_type;
 
 private:
   friend class Clause;
   /// Uninitialized value (for clause constructor)
   Lit() noexcept = default;
 
-  explicit constexpr Lit(uint32_t index) noexcept
+  explicit constexpr Lit(index_type index) noexcept
       : m_index{index}
   {
     // assert(m_index <= Lit::max_index()); // TODO: how to assert in constexpr constructor?
@@ -142,11 +146,11 @@ private:
 
 public:
   explicit constexpr Lit(Var var, bool positive) noexcept
-      : Lit{2 * var.index() + static_cast<uint32_t>(!positive)}
+      : Lit{2 * var.index() + static_cast<index_type>(!positive)}
   {
   }
 
-  NODISCARD static constexpr Lit from_index(uint32_t index) noexcept
+  NODISCARD static constexpr Lit from_index(index_type index) noexcept
   {
 #if __cplusplus >= 201703L
     assert(index <= Lit::max_index());
@@ -167,20 +171,20 @@ public:
     return Lit{var, false};
   }
 
-  NODISCARD constexpr uint32_t index() const noexcept
+  NODISCARD constexpr index_type index() const noexcept
   {
     return m_index;
   }
 
-  NODISCARD static constexpr uint32_t max_index() noexcept
+  NODISCARD static constexpr index_type max_index() noexcept
   {
-    static_assert(Var::max_index() < (std::numeric_limits<uint32_t>::max() - 1) / 2, "cannot represent all literals");
+    static_assert(Var::max_index() < (std::numeric_limits<index_type>::max() - 1) / 2, "cannot represent all literals");
     return 2 * Var::max_index() + 1;
   }
 
   NODISCARD static constexpr Lit invalid() noexcept
   {
-    return Lit{std::numeric_limits<uint32_t>::max()};
+    return Lit{std::numeric_limits<index_type>::max()};
   }
 
   NODISCARD constexpr bool is_valid() const noexcept
@@ -207,6 +211,9 @@ public:
   {
     return Var{m_index / 2};
   }
+
+private:
+  index_type m_index;
 }; // Lit
 
 static_assert(Lit::max_index() < Lit::invalid().index(), "valid literal indices overlap with invalid sentinel value");

@@ -47,6 +47,20 @@ static_assert(VDEBUG == 1, "VDEBUG and NDEBUG are not synchronized");
 #define SUBSAT_DDEG 1
 #endif
 
+// VMTF decision heuristic
+// If both DDEG and VMTF are enabled, then VMTF is used as fallback (only useful if there are variables without an assigned group).
+#ifndef SUBSAT_VMTF
+#define SUBSAT_VMTF 1
+#endif
+
+#if !SUBSAT_DDEG && !SUBSAT_VMTF
+#error "At least one decision heuristic must be enabled!"
+#endif
+
+#if SUBSAT_STANDALONE && !SUBSAT_VMTF
+#error "Pure SAT problems need VMTF (or another pure SAT heuristic) as fallback!"
+#endif
+
 // By default, statistics are only enabled in standalone mode or if logging is enabled
 #if SUBSAT_STANDALONE || LOGGING_ENABLED
 #define SUBSAT_STATISTICS 1
@@ -326,6 +340,8 @@ public:
     if (group != ddeg::InvalidGroup) {
       m_ddeg.set_group(new_var, group);
     }
+#else
+    (void)group;  // suppress warning about unused parameter
 #endif
     return new_var;
   }
@@ -337,7 +353,12 @@ public:
     m_vars.reserve(count);
     m_marks.reserve(count);
     m_values.reserve(2 * count);
+#if SUBSAT_DDEG
+    m_ddeg.reserve(count, count);
+#endif
+#if SUBSAT_VMTF
     m_queue.reserve(count);
+#endif
     m_watches.reserve(2 * count);
     m_watches_amo.reserve(2 * count);
     m_trail.reserve(count);
@@ -384,7 +405,12 @@ public:
     m_vars.clear();
     m_marks.clear();
 
+#if SUBSAT_DDEG
+    m_ddeg.clear();
+#endif
+#if SUBSAT_VMTF
     m_queue.clear();
+#endif
 
     m_clauses.clear();
     tmp_binary_clause_ref = ClauseRef::invalid();
@@ -639,8 +665,10 @@ public:
 #endif
     m_trail.reserve(m_used_vars);
     m_frames.resize(m_used_vars + 1, 0);
+#if SUBSAT_VMTF
     m_queue.resize_and_init(m_used_vars);
     assert(m_queue.checkInvariants(m_values));
+#endif
 
     if (!tmp_binary_clause_ref.is_valid()) {
       auto ca = m_clauses.alloc(2);
@@ -801,10 +829,12 @@ private:
 #if SUBSAT_DDEG
     var = m_ddeg.select_min_domain(m_values);
 #endif
+#if SUBSAT_VMTF
     if (!var.is_valid()) {
       assert(m_queue.checkInvariants(m_values));
       var = m_queue.next_unassigned_variable(m_values);
     }
+#endif
     assert(var.is_valid());
 
     // TODO: phase saving (+ hints?)
@@ -1168,12 +1198,16 @@ private:
     // TODO: sort analyzed vars by time stamp?
     for (Var var : seen) {
       assert(m_values[var] != Value::Unassigned);  // precondition of DecisionQueue::move_to_front
+#if SUBSAT_VMTF
       m_queue.move_to_front(var);
+#endif
       assert(m_marks[var]);
       m_marks[var] = 0;
     }
     seen.clear();
+#if SUBSAT_VMTF
     assert(m_queue.checkInvariants(m_values));
+#endif
 
     backtrack(jump_level);
 
@@ -1347,9 +1381,11 @@ private:
     m_values[lit] = Value::Unassigned;
     m_values[~lit] = Value::Unassigned;
 
-    m_queue.unassign(lit.var());
 #if SUBSAT_DDEG
     m_ddeg.unassigned(lit.var());
+#endif
+#if SUBSAT_VMTF
+    m_queue.unassign(lit.var());
 #endif
   }
 
@@ -1358,7 +1394,9 @@ private:
   {
     LOG_INFO("Backtracking to level " << new_level);
     assert(new_level <= m_level);
+#if SUBSAT_VMTF
     assert(m_queue.checkInvariants(m_values));
+#endif
 
     while (!m_trail.empty()) {
       Lit const lit = m_trail.back();
@@ -1374,7 +1412,9 @@ private:
     m_propagate_head = static_cast<uint32_t>(m_trail.size());
     m_theory_propagate_head = static_cast<uint32_t>(m_trail.size());
     m_level = new_level;
+#if SUBSAT_VMTF
     assert(m_queue.checkInvariants(m_values));
+#endif
   }  // backtrack
 
 
@@ -1453,11 +1493,13 @@ private:
   /// Mark flags of variables
   vector_map<Var, Mark> m_marks;
 
-  /// Queue for VMTF decision heuristic
-  DecisionQueue<allocator_type> m_queue;
 #if SUBSAT_DDEG
   /// Domain-degree decision heuristic
   ddeg m_ddeg;
+#endif
+#if SUBSAT_VMTF
+  /// Queue for VMTF decision heuristic
+  DecisionQueue<allocator_type> m_queue;
 #endif
 
 #if SUBSAT_PHASE_SAVING
@@ -1540,7 +1582,12 @@ bool Solver<Allocator>::checkEmpty() const
   assert(m_values.empty());
   assert(m_vars.empty());
   assert(m_marks.empty());
+#if SUBSAT_DDEG
+  assert(m_ddeg.empty());
+#endif
+#if SUBSAT_VMTF
   assert(m_queue.empty());
+#endif
   assert(m_clauses.empty());
   assert(!tmp_binary_clause_ref.is_valid());
 #ifndef NDEBUG
