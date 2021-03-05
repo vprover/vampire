@@ -56,6 +56,11 @@ using NormalizationResult = Coproduct<PolyNf
         >;
 
 PolyNf normalizeTerm(TypedTermList t);
+inline PolyNf normalizeTerm(TermList t, unsigned sort)
+{ return normalizeTerm(TypedTermList(t,sort)); }
+
+inline PolyNf normalizeTerm(Term* t)
+{ return normalizeTerm(TypedTermList(t)); }
 
 } // namespace Kernel
 

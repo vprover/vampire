@@ -870,22 +870,26 @@ DArray<int> PrecedenceOrdering::predPrecFromOpts(Problem& prb, const Options& op
 
 DArray<int> PrecedenceOrdering::predLevelsFromOptsAndPrec(Problem& prb, const Options& opt, const DArray<int>& predicatePrecedences) {
 
+  constexpr int minUserDefinedLevel = 2; // equality has level 0, inequalities have level 1
+  constexpr int lvlEq = 0;
+  constexpr int lvlIneq = 1;
+
   unsigned nPredicates = env.signature->predicates();
   DArray<int> predicateLevels(nPredicates);
 
   switch(opt.literalComparisonMode()) {
   case Shell::Options::LiteralComparisonMode::STANDARD:
-    predicateLevels.init(nPredicates, 1);
+    predicateLevels.init(nPredicates, minUserDefinedLevel);
     break;
   case Shell::Options::LiteralComparisonMode::PREDICATE:
   case Shell::Options::LiteralComparisonMode::REVERSE:
     for(unsigned i=1;i<nPredicates;i++) {
-      predicateLevels[i]=predicatePrecedences[i]+1;
+      predicateLevels[i] = predicatePrecedences[i] + minUserDefinedLevel;
     }
     break;
   }
   //equality is on the lowest level
-  predicateLevels[0]=0;
+  predicateLevels[0] = lvlEq;
 
   if (env.predicateSineLevels) {
     // predicateSineLevels start from zero
@@ -897,7 +901,7 @@ DArray<int> PrecedenceOrdering::predLevelsFromOptsAndPrec(Problem& prb, const Op
       if (!env.predicateSineLevels->find(i,level)) {
         level = bound;
       }
-      predicateLevels[i] = reverse ? (bound - level + 1) : level;
+      predicateLevels[i] = (reverse ? (bound - level) : level) + minUserDefinedLevel;
       // cout << "setting predicate level of " << env.signature->predicateName(i) << " to " << predicateLevels[i] << endl;
     }
   }
@@ -910,7 +914,12 @@ DArray<int> PrecedenceOrdering::predLevelsFromOptsAndPrec(Problem& prb, const Op
     }
     else if(predSym->equalityProxy()) {
       //equality proxy predicates have the highest level (lower than colored predicates)
-      predicateLevels[i]=nPredicates+2;
+      predicateLevels[i] = nPredicates + minUserDefinedLevel + 1;
+    }
+    else if (predSym->interpreted()) {
+      if (theory->isInequality(theory->interpretPredicate(i))) {
+        predicateLevels[i] = lvlIneq;
+      }
     }
 
   }

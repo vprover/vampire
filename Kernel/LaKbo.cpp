@@ -2,6 +2,7 @@
 #include "LaKbo.hpp"
 #include "Term.hpp"
 #include "NumTraits.hpp"
+#include "Kernel/PolynomialNormalizer.hpp"
 
 
 namespace Kernel {
@@ -151,50 +152,29 @@ void LaKbo::traverseAC(TraversalResult& res, Term* t1, Term* t2) const
     unsigned size() const { return _bigFnsAndVars.size() + _smallFns.size(); }
   };
 
+  /* flattens ac terms into a stack of their arguments.
+     assumes that terms are normalized to (t_1 * (t_2 * (... * t_n))).
+     Also it assumes that t_1 < t_2 < t_n wrt std::less<TermList>. */
   auto flatten = [&](Term* t) -> Flattened {
-    auto terms = Stack<TermList>{ TermList(t), };
-    unsigned i = 0;
-    while (i < terms.size()) {
-      if (terms[i].isTerm() && terms[i].term()->functor() == f) {
-        terms.push(*terms[i].term()->nthArgument(1));
-        terms[i] = *terms[i].term()->nthArgument(0);
-      } else {
-        i++;
-      }
-    }
     auto isSmallFn = [&](TermList t) -> bool 
       { return t.isTerm() &&  compareFunctionPrecedences(t.term()->functor(), f) == LESS; };
 
-    std::sort(terms.begin(), terms.end(), [&](TermList t1, TermList t2) {
-      auto tuplify = [&](TermList t) 
-        { return make_tuple(isSmallFn(t), t); };
-      return tuplify(t1) < tuplify(t2);
-    });
+    auto small = Stack<TermList>{ };
+    auto big   = Stack<TermList>{ };
 
-#if VDEBUG
-    ASS(terms.size() >= 2);
-    auto fst = isSmallFn(terms[0]);
-    auto lst = isSmallFn(terms[terms.size() - 1]);
-    ASS(fst == lst || (!fst && lst));
-#endif // VDEBUG
-    unsigned firstSmallFn;
-    if (fst == lst) {
-      if (fst) {
-        firstSmallFn = 0;
-      } else {
-        firstSmallFn = terms.size();
-      }
-    } else {
-      auto i = 0;
-      while (isSmallFn(terms[i]) == isSmallFn(terms[i + 1])){
-        i++;
-      }
-      firstSmallFn = i + 1;
+    auto insert = [&](TermList t) {
+      ASS(!(t.isTerm() && t.term()->functor() == f));
+      (isSmallFn(t) ? small : big).push(t);
+    };
+    auto cur = TermList(t);
+    while (cur.isTerm() && cur.term()->functor() == f) {
+      auto l = *cur.term()->nthArgument(0);
+      cur = *cur.term()->nthArgument(1);
+      insert(l);
     }
+    insert(cur);
 
-    auto split = terms.split(firstSmallFn);
-
-    return Flattened(std::move(split.second), std::move(split.first));
+    return Flattened(std::move(small), std::move(big));
   };
 
   auto multisetCmp = [&](Stack<TermList>& s1, Stack<TermList>& s2) -> LaKbo::Result
@@ -372,13 +352,31 @@ LaKbo::VarCondition LaKbo::TraversalResult::varCondition() const
   return out;
 }
 
+Literal* normalizeLiteral(Literal* lit) 
+{
+  Stack<TermList> args(lit->arity());
+  for (int i = 0; i < lit->arity(); i++) {
+    args.push(normalizeTerm(*lit->nthArgument(i), SortHelper::getArgSort(lit, i)).denormalize());
+  }
+  Literal::create(lit, args.begin());
+}
 
 LaKbo::Result LaKbo::comparePredicates(Literal* l1, Literal* l2) const 
 {
-  ASS_EQ(l1->functor() , l2->functor());
   ASS_EQ(l1->polarity(), l2->polarity());
+  l1 = normalizeLiteral(l1);
+  l2 = normalizeLiteral(l2);
   auto res = TraversalResult::initial(); 
-  traverseLex(res, l1->args(), l2->args());
+  if (l1->functor() == l2->functor()) {
+    traverseLex(res, l1->args(), l2->args());
+  } else {
+    res.weight_balance -= predicateWeight(l1->functor());
+    traverse(res, l1->args(), -1);
+    res.weight_balance += predicateWeight(l2->functor());
+    traverse(res, l2->args(),  1);
+    res.side_condition = Int::compare(predicatePrecedence(l1->functor()), 
+                                      predicatePrecedence(l2->functor())) == Lib::LESS ? Result::LESS : Result::GREATER;
+  }
   return toOrdering(res);
 }
 
@@ -432,8 +430,9 @@ LaKbo::TraversalResult LaKbo::TraversalResult::initial()
 
 Ordering::Result LaKbo::compare(TermList t1, TermList t2) const 
 {
+  auto norm = [](TermList t) { return t.isVar() ? t : normalizeTerm(t.term()).denormalize(); };
   auto res = TraversalResult::initial(); 
-  traverse(res, t1, t2);
+  traverse(res, norm(t1), norm(t2));
   return toOrdering(res);
 }
 

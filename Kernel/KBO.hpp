@@ -34,7 +34,7 @@
 #define SPECIAL_WEIGHT_IDENT_NUM_RAT        "$rat"
 #define SPECIAL_WEIGHT_IDENT_NUM_REAL       "$real"
 
-#define __KBO__CUSTOM_PREDICATE_WEIGHTS__ 0
+#define __KBO__CUSTOM_PREDICATE_WEIGHTS__ 1
 
 namespace Kernel {
 
@@ -161,7 +161,10 @@ public:
   using PrecedenceOrdering::compare;
   Result compare(TermList tl1, TermList tl2) const override;
 protected:
-  int symbolWeight(Term* t) const;
+#if __KBO__CUSTOM_PREDICATE_WEIGHTS__
+  int predicateWeight(unsigned t) const;
+#endif
+  int functionWeight(unsigned t) const;
   int variableWeight() const;
   Result comparePredicates(Literal* l1, Literal* l2) const override;
 
@@ -171,6 +174,7 @@ protected:
   // int functionSymbolWeight(unsigned fun) const;
 
 private:
+  int symbolWeight(Term* t) const;
 
   KboWeightMap<FuncSigTraits> _funcWeights;
 #if __KBO__CUSTOM_PREDICATE_WEIGHTS__

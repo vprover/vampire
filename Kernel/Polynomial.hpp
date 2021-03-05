@@ -184,6 +184,8 @@ public:
 
   template<class F> FuncTerm mapVars(F f) const;
 
+  inline auto iterArgs() -> decltype(iterTraits(_args.iterFifo())) const  { return iterTraits(_args.iterFifo()); }
+
   friend std::ostream& operator<<(std::ostream& out, const FuncTerm& self);
   friend bool operator==(FuncTerm const& lhs, FuncTerm const& rhs);
   friend bool operator!=(FuncTerm const& lhs, FuncTerm const& rhs);
@@ -287,6 +289,9 @@ public:
   IterTraits<SubtermIter> iterSubterms() const;
 
   template<class F> PolyNf mapVars(F f) const;
+
+  bool isFuncTerm() const { return is<Perfect<FuncTerm>>(); }
+  Perfect<FuncTerm> unwrapFuncTerm() const { return unwrap<Perfect<FuncTerm>>(); }
 
   friend struct std::hash<PolyNf>;
   friend bool operator==(PolyNf const& lhs, PolyNf const& rhs);
