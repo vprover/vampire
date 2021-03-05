@@ -700,6 +700,14 @@ Ordering::Result KBO::compare(TermList tl1, TermList tl2) const
 int KBO::variableWeight() const 
 { return _funcWeights._specialWeights._variableWeight; }
 
+int KBO::functionWeight(Term* t) const
+{ return _funcWeights.symbolWeight(t); }
+
+#if __KBO__CUSTOM_PREDICATE_WEIGHTS__
+int KBO::predicateWeight(Term* t) const
+{ return _predWeights.symbolWeight(t); }
+#endif
+
 int KBO::symbolWeight(Term* t) const
 {
 #if __KBO__CUSTOM_PREDICATE_WEIGHTS__
