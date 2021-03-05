@@ -39,8 +39,14 @@ static_assert(VDEBUG == 1, "VDEBUG and NDEBUG are not synchronized");
 
 // Clause learning
 // ASSESSMENT: TODO: try without learning
-#ifndef SUBSAT_LEARNING
-#define SUBSAT_LEARNING 1
+// TODO: also try limiting the amount of memory that can be used for learning... once the limit is reached, only learn units and maybe binary clauses.
+#ifndef SUBSAT_LEARN
+#define SUBSAT_LEARN 1
+#endif
+
+#ifndef SUBSAT_RESTART
+#define SUBSAT_RESTART 0
+#define SUBSAT_RESTART_INTERVAL 100
 #endif
 
 // Conflict clause minimization
@@ -115,12 +121,16 @@ struct Statistics {
 #endif
   int original_clauses = 0;       ///< Total number of (non-unit) original clauses.
   int original_amos = 0;          ///< Total number of (true) AtMostOne-constraints.
+#if SUBSAT_RESTART
   int restarts = 0;               ///< Number of restarts performed.
+#endif
 };
 static std::ostream& operator<<(std::ostream& os, Statistics const& stats)
 {
   os << std::string(70, '-') << '\n';
+#if SUBSAT_RESTART
   os << "Restarts:         " << std::setw(8) << stats.restarts << '\n';
+#endif
   os << "Decisions:        " << std::setw(8) << stats.decisions << '\n';
   os << "Propagations:     " << std::setw(8) << stats.propagations << " (by clause: " << stats.propagations_by_clause << ", by amo: " << stats.propagations_by_amo << ", by theory: " << stats.propagations_by_theory << ")\n";
   os << "Conflicts:        " << std::setw(8) << stats.conflicts << " (by clause: " << stats.conflicts_by_clause << ", by amo: " << stats.conflicts_by_amo << ")\n";
@@ -784,8 +794,9 @@ public:
       res = Result::Unsat;
     }
 
-    uint32_t const restart_interval = 100000;  // number of conflicts
-    uint32_t restart_timer = restart_interval;
+#if SUBSAT_RESTART
+    uint32_t restart_countdown = SUBSAT_RESTART_INTERVAL;
+#endif
 
 #ifdef SUBSAT_STATISTICS_INTERVAL
     uint32_t stats_timer = 0;
@@ -807,18 +818,22 @@ public:
         if (!analyze(conflict)) {
           res = Result::Unsat;
         }
-        if (restart_timer > 0) {
-          restart_timer--;
+#if SUBSAT_RESTART
+        if (restart_countdown > 0) {
+          restart_countdown--;
         }
+#endif
       }
       else if (m_unassigned_vars == 0) {
         assert(checkModel());
         res = Result::Sat;
       }
-      else if (m_level > 0 && restart_timer == 0) {
+#if SUBSAT_RESTART
+      else if (m_level > 0 && restart_countdown == 0) {
         restart();
-        restart_timer = restart_interval;
+        restart_countdown = SUBSAT_RESTART_INTERVAL;
       }
+#endif
       else {
         // TODO: switch mode? reduce clause db?
         decide();
@@ -1519,6 +1534,7 @@ private:
   }  // backtrack
 
 
+#if SUBSAT_RESTART
   void restart()
   {
     assert(checkInvariants());
@@ -1527,6 +1543,7 @@ private:
     backtrack(0);
     assert(checkInvariants());
   }
+#endif
 
 
 #ifndef NDEBUG
