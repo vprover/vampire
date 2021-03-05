@@ -97,6 +97,9 @@ public:
     Clause* clause;
     Literal* literal;
     TermList term;
+    // In some higher-order use cases, we want to store a different term 
+    // in the leaf to the indexed term. extraTerm is used for this purpose.
+    // In all other situations it is empty
     TermList extraTerm;
 
     vstring toString(){
