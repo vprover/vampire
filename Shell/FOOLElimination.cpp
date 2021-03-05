@@ -178,8 +178,8 @@ Formula* FOOLElimination::process(Formula* formula) {
 
   if(env.options->cnfOnTheFly() != Options::CNFOnTheFly::EAGER &&
      !_polymorphic){
-    LambdaElimination le = LambdaElimination(_varSorts);
-    TermList proxifiedFormula = le.processBeyondLambda(formula);
+    LambdaElimination le = LambdaElimination();
+    TermList proxifiedFormula = le.elimLambda(formula);
     Formula* processedFormula = toEquality(proxifiedFormula);
 
     if (env.options->showPreprocessing()) {
@@ -756,15 +756,15 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
 
           termResult = freshSymbolApplication;
         } else {
-          LambdaElimination le = LambdaElimination(_varSorts);
-          termResult = le.processBeyondLambda(term);
+          LambdaElimination le = LambdaElimination();
+          termResult = le.elimLambda(sd->getFormula());
         }
         break;
       }
       case Term::SF_LAMBDA: {
         // Lambda terms are translated to FOL using SKIBC combinators which are extensively described in 
         // the literature. 
-        LambdaElimination le = LambdaElimination(_varSorts);
+        LambdaElimination le = LambdaElimination();
         termResult = le.elimLambda(term);
         break;
       }

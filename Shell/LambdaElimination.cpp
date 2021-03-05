@@ -110,9 +110,9 @@ bool LambdaElimination::TermListComparator::lessThan(TermList t1, TermList t2)
 }
 
 
-TermList LambdaElimination::processBeyondLambda(Formula* formula)
+TermList LambdaElimination::elimLambda(Formula* formula)
 {
-  CALL("LambdaElimination::processBeyondLambda(Formula*)");
+  CALL("LambdaElimination::elimLambda(Formula*)");
 
   TermList appTerm; //The resulting term to be pushed onto _toBeProcessed 
   TermList constant; //The HOL constant for various connectives
@@ -127,8 +127,8 @@ TermList LambdaElimination::processBeyondLambda(Formula* formula)
       TermList lhs = *lit->nthArgument(0);
       TermList rhs = *lit->nthArgument(1);                                
 
-      if (lhs.isTerm()) { lhs = processBeyondLambda(lhs.term()); }
-      if (rhs.isTerm()) { rhs = processBeyondLambda(rhs.term()); }            
+      if (lhs.isTerm()) { lhs = elimLambda(lhs); }
+      if (rhs.isTerm()) { rhs = elimLambda(rhs); }            
                 
       TermList equalsSort = SortHelper::getEqualityArgumentSort(lit);
       
@@ -151,8 +151,8 @@ TermList LambdaElimination::processBeyondLambda(Formula* formula)
       vstring name = (conn == IFF ? "vIFF" : (conn == IMP ? "vIMP" : "vXOR"));
       constant = TermList(Term::createConstant(env.signature->getBinaryProxy(name)));
 
-      TermList form1 = processBeyondLambda(lhs);
-      TermList form2 = processBeyondLambda(rhs);
+      TermList form1 = elimLambda(lhs);
+      TermList form2 = elimLambda(rhs);
 
       /*TermListComparator tlc;
       if((conn == IFF || conn == XOR) && tlc.lessThan(form2, form1)){
@@ -186,7 +186,7 @@ TermList LambdaElimination::processBeyondLambda(Formula* formula)
       unsigned count = 1;
       while(argsIt.hasNext()){
         Formula* arg = argsIt.next();
-        form = processBeyondLambda(arg);
+        form = elimLambda(arg);
         if(count == 1){
           appTerm = AH::createAppTerm(sortOf(constant), constant, form);
         }else if(count == 2){
@@ -200,7 +200,7 @@ TermList LambdaElimination::processBeyondLambda(Formula* formula)
     }
     case NOT: {
       constant = TermList(Term::createConstant(env.signature->getNotProxy()));
-      TermList form = processBeyondLambda(formula->uarg());
+      TermList form = elimLambda(formula->uarg());
       return  AH::createAppTerm(sortOf(constant), constant, form);                                                    
     }
     case FORALL:
@@ -210,7 +210,7 @@ TermList LambdaElimination::processBeyondLambda(Formula* formula)
       SList* sort = SList::singleton(TermList(0, true)); //dummy data
       VList* var = VList::singleton(0);
 
-      TermList form = processBeyondLambda(formula->qarg());
+      TermList form = elimLambda(formula->qarg());
       vstring name = (conn == FORALL ? "vPI" : "vSIGMA");
       unsigned proxy = env.signature->getPiSigmaProxy(name);
 
@@ -227,7 +227,7 @@ TermList LambdaElimination::processBeyondLambda(Formula* formula)
       return form;
     }
     case BOOL_TERM:
-      return processBeyondLambda(formula->getBooleanTerm());
+      return elimLambda(formula->getBooleanTerm());
     case TRUE:
       return TermList(Term::foolTrue());
     case FALSE:
@@ -238,210 +238,137 @@ TermList LambdaElimination::processBeyondLambda(Formula* formula)
   }//switch conn             
 }   
 
-/** Function removes all apps, lambdas and top level connectives from
-  * a lambda expression via 
-  */  
-  
-TermList LambdaElimination::processBeyondLambda(Term* term)
+TermList LambdaElimination::elimLambda(TermList term)
 {
-  CALL("LambdaElimination::processBeyondLambda(Term*)");
-
-  TermList appTerm; //The resulting term to be pushed onto _toBeProcessed 
-
-  if(term->isSpecial()){   
-    switch(term->functor()){
-      case Term::SF_FORMULA: 
-        return processBeyondLambda(term->getSpecialData()->getFormula());
-      case Term::SF_LAMBDA:
-        return elimLambda(term);
-      default:
-        ASSERTION_VIOLATION;    
-    }
-  }
-  
-  if(env.signature->getFunction(term->functor())->app()){
-    TermList s1 = *(term->nthArgument(0));
-    TermList s2 = *(term->nthArgument(1));
-    TermList arg1 = *(term->nthArgument(2));
-    TermList arg2 = *(term->nthArgument(3));
-    arg1 = processBeyondLambda(arg1);
-    arg2 = processBeyondLambda(arg2);
-    return AH::createAppTerm(s1, s2, arg1, arg2);
-  } 
-   
-  return TermList(term); 
-}   
-
-TermList LambdaElimination::processBeyondLambda(TermList term)
-{
-  CALL("LambdaElimination::processBeyondLambda(TermList)");
+  CALL("LambdaElimination::elimLambda(TermList)");
 
   if(term.isVar()){
     return term;
   }
-  return processBeyondLambda(term.term());
+
+  Term* t = term.term();
+  if(t->isSpecial()){   
+    switch(t->functor()){
+      case Term::SF_FORMULA: 
+        return elimLambda(t->getSpecialData()->getFormula());
+
+      case Term::SF_LAMBDA:{
+        Stack<int> vars;
+        TermStack sorts;
+        Term::SpecialTermData* sd = t->getSpecialData();
+        SList* srts = sd->getLambdaVarSorts();
+        VList* vrs = sd->getLambdaVars();
+        
+        VList::Iterator vlit(vrs);
+        SList::Iterator slit(srts);
+
+        while(vlit.hasNext()){
+          vars.push(vlit.next());
+          sorts.push(slit.next());
+        }
+        TermList eliminated = elimLambda(vars, sorts, sd->getLambdaExp(), sd->getLambdaExpSort());
+        ASS_REP2(eliminated.isVar() || sortOf(eliminated) == sd->getSort(), t->toString(), eliminated.toString())
+        return eliminated;
+      }
+
+      default:
+        ASSERTION_VIOLATION;    
+    }
+  }
+
+  if(!AH::isApp(t)){
+    return term;
+  }
+
+  //must be of the form app(s1, s2, arg1, arg2)
+  TermList s1 = *t->nthArgument(0);
+  TermList s2 = *t->nthArgument(1);  
+  TermList arg1 = *t->nthArgument(2);
+  TermList arg2 = *t->nthArgument(3);
+
+  return AH::createAppTerm(s1, s2, elimLambda(arg1), elimLambda(arg2));
 }
 
+
+TermList LambdaElimination::elimLambda(Stack<int>& vars, TermStack& sorts, 
+                                       TermList body, TermList sort)
+{
+  CALL("LambdaElimination::elimLambda(Stack<int>& vars...)");
+
+  TermList bodye = elimLambda(body);
+  // Lambda elimination should not change the sort
+  // of a term
+  ASS(bodye.isVar() || sortOf(bodye) == sort);
+
+  while(vars.size()){
+    int v = vars.pop();
+    TermList s = sorts.pop();
+    bodye = elimLambda(v, s, bodye, sort);
+    sort = Term::arrowSort(s, sort);
+  }
+
+  return bodye;
+}
+
+
+TermList LambdaElimination::elimLambda(int var, TermList varSort, 
+                                       TermList body, TermList sort)
+{
+  CALL("LambdaElimination::elimLambda(int var...)");
+
+  if(!body.isFreeVariable(var)){
+    return createKTerm(sort, varSort, body);    
+  }
+
+  if(body.isVar()){
+    ASS(body.var() == (unsigned)var);
+    return TermList(Term::create1(env.signature->getCombinator(Signature::I_COMB), varSort));
+  }
+
+  Term* t = body.term();
+  // Specials should already have been removed via earlier
+  // recursive calls
+  ASS(!t->isSpecial());
+  
+  //must be of the form app(s1, s2, arg1, arg2)
+  TermList s1 = *t->nthArgument(0);
+  TermList s2 = *t->nthArgument(1);  
+  TermList arg1 = *t->nthArgument(2);
+  TermList arg2 = *t->nthArgument(3);
+  TermList a1sort = Term::arrowSort(s1, s2);
+  TermList a2sort = s1;
+
+  bool freeInArg1 = arg1.isFreeVariable(var);
+  bool freeInArg2 = arg2.isFreeVariable(var);
+
+  if(arg2.isVar() && (arg2.var() == (unsigned)var) && !freeInArg1){
+    //This is the case [\x. exp @ x] wehere x is not free in exp.
+    return arg1;
+  }
+
+  if (freeInArg1 && freeInArg2){
+    TermList arg1e = elimLambda(var, varSort, arg1, a1sort);
+    TermList s1e = Term::arrowSort(varSort, a1sort);
+    TermList arg2e = elimLambda(var, varSort, arg2, a2sort);
+    TermList s2e = Term::arrowSort(varSort, a2sort);     
+    return createSCorBTerm(arg1e, s1e, arg2e, s2e, Signature::S_COMB);
+  } else if (freeInArg1) {
+    TermList arg1e = elimLambda(var, varSort, arg1, a1sort);
+    TermList s1e = Term::arrowSort(varSort, a1sort);
+    return createSCorBTerm(arg1e, s1e, arg2, a2sort, Signature::C_COMB);
+  } else{
+    ASS(freeInArg2);
+    TermList arg2e = elimLambda(var, varSort, arg2, a2sort); 
+    TermList s2e = Term::arrowSort(varSort, a2sort);     
+    return createSCorBTerm(arg1, a1sort, arg2e, s2e, Signature::B_COMB);
+  }
+}
 
 TermList LambdaElimination::elimLambda(Term* lambdaTerm)
 {
   CALL("LambdaElimination::elimLambda");
   
-  Stack<int> vars;
-  TermStack sorts;
-  TermStack toBeProcessed;
-
-  ASS(lambdaTerm->isSpecial());
-  Term::SpecialTermData* sd = lambdaTerm->getSpecialData();
-  ASS_EQ(sd->getType(), Term::SF_LAMBDA);
-  
-  TermList lambdaExp;
-  SList* srts = sd->getLambdaVarSorts();
-  VList* vrs = sd->getLambdaVars();
-  
-  VList::Iterator vlit(vrs);
-  SList::Iterator slit(srts);
-
-  while(vlit.hasNext()){
-    vars.push(vlit.next());
-    sorts.push(slit.next());
-  }
-
-  lambdaExp = sd->getLambdaExp();
-  toBeProcessed.push(lambdaExp);
-
-  process(vars, sorts, toBeProcessed);    
-
-  return _processed.pop();   
-}
-
-
-void LambdaElimination::process(Stack<int>& vars, TermStack& sorts, TermStack &toBeProcessed){
-   
-  CALL("LambdaElimination::process");   
-  
-  TermList processing;
-  int lambdaVar;
-  TermList lambdaVarSort;
-  Stack<unsigned> argNums;
-   
-  while(!vars.isEmpty()){
-    lambdaVar = vars.pop();
-    lambdaVarSort = sorts.pop();
-    
-    while (!toBeProcessed.isEmpty()){  
-   
-      processing = toBeProcessed.pop(); 
-      
-      if (processing.isTerm()){ 
-        
-        Term* lExpTerm = processing.term();
-        
-        if(lExpTerm->isFreeVariable(lambdaVar)){
-          if(lExpTerm->isSpecial()){ 
-            toBeProcessed.push(processBeyondLambda(lExpTerm));   
-          }
-          else //not special. Of form app(s1, s2, t1, t2).
-          {
-            TermList arg1 = *lExpTerm->nthArgument(2);
-            TermList arg2 = *lExpTerm->nthArgument(3);
-            dealWithApp(arg1, arg2, lambdaVar, toBeProcessed, argNums);                
-          }
-        }
-        else //In the case \x.exp where x is not free in exp.
-        {
-          TermList arg1 = processBeyondLambda(processing);
-          addToProcessed(createKTerm(sortOf(arg1), lambdaVarSort, arg1), argNums);                  
-        }
-      }else{//lambda expression is a variable. If it is the lambda var, then this will be translated to I     
-        if(processing.var() == (unsigned)lambdaVar){ //an expression of the form \x.x
-          TermList ts = TermList(Term::create1(env.signature->getCombinator(Signature::I_COMB), lambdaVarSort));
-          addToProcessed(ts, argNums);
-        }else{ //an expression of the form \x.y 
-          addToProcessed(createKTerm(sortOf(processing), lambdaVarSort, processing), argNums);
-        }       
-      }
-    }//of while
-   
-    if(!vars.isEmpty()){
-      toBeProcessed.push(_processed.pop());     
-    }
-
-  }//outer while      
-}
-
-
-void LambdaElimination::addToProcessed(TermList ts, Stack<unsigned> &_argNums){
-    CALL("LambdaElimination::addToProcessed");
-  
-    unsigned numOfArgs;
-    _processed.push(ts);
-    if(!_argNums.isEmpty()){
-      numOfArgs = _argNums.pop();
-      numOfArgs +=1;
-    }else{
-      return;
-    }
-    
-    if(numOfArgs == 1){
-      _argNums.push(numOfArgs);
-      return;
-    }else{
-      while(true){
-        Signature::Combinator comb = _combinators.pop();
-
-        TermList arg1 = _processed.pop();   
-        TermList arg2 = _processed.pop();
-    
-        if(comb == Signature::B_COMB){
-          _processed.push(createSCorBTerm(arg2, arg1, comb));
-        }else{
-          _processed.push(createSCorBTerm(arg1, arg2, comb));
-        }
-        if(!_argNums.isEmpty()){
-          numOfArgs = _argNums.pop();
-          numOfArgs +=1;
-          if(numOfArgs != 2){
-            _argNums.push(numOfArgs);
-            return;
-          }
-        }else{
-          return;
-        }
-      }
-    }
-}
-
-
-void LambdaElimination::dealWithApp(TermList lhs, TermList rhs, const unsigned lambdaVar, TermStack &toBeProcessed, Stack<unsigned> &argNums)
-{
-  CALL("LambdaElimination::dealWithApp");
-
-  bool freeInLhs = lhs.isFreeVariable(lambdaVar);
-  bool freeInRhs = rhs.isFreeVariable(lambdaVar);
-
-  if(rhs.isVar() && (rhs.var() == (unsigned)lambdaVar) && !freeInLhs){
-    //This is the case [\x. exp @ x] wehere x is not free in exp.
-    lhs.isTerm() ? addToProcessed(processBeyondLambda(lhs.term()), argNums) : addToProcessed(lhs, argNums);
-    return;
-  }
-
-  if (freeInLhs && freeInRhs){
-    _combinators.push(Signature::S_COMB);
-    argNums.push(0);
-    toBeProcessed.push(lhs);
-    toBeProcessed.push(rhs); 
-  }else if (freeInLhs) {
-    _combinators.push(Signature::C_COMB);
-    argNums.push(0);
-    toBeProcessed.push(lhs);
-    rhs.isTerm() ? addToProcessed(processBeyondLambda(rhs.term()), argNums) : addToProcessed(rhs, argNums);  
-  }else if (freeInRhs) {
-    _combinators.push(Signature::B_COMB);            
-    argNums.push(0);
-    toBeProcessed.push(rhs);
-    lhs.isTerm() ? addToProcessed(processBeyondLambda(lhs.term()), argNums) : addToProcessed(lhs, argNums);   
-  }     
+  return elimLambda(TermList(lambdaTerm));
 }
 
 TermList LambdaElimination::createKTerm(TermList s1, TermList s2, TermList arg1)
@@ -450,18 +377,16 @@ TermList LambdaElimination::createKTerm(TermList s1, TermList s2, TermList arg1)
   
   unsigned kcomb = env.signature->getCombinator(Signature::K_COMB);
   TermList res = TermList(Term::create2(kcomb, s1, s2));
-  res = AH::createAppTerm(sortOf(res), res, arg1);             
-  return res;
+  return AH::createAppTerm(sortOf(res), res, arg1);             
 }   
     
-TermList LambdaElimination::createSCorBTerm(TermList arg1, TermList arg2, Signature::Combinator comb)
+TermList LambdaElimination::createSCorBTerm(TermList arg1, TermList arg1sort, 
+                                            TermList arg2, TermList arg2sort, Signature::Combinator comb)
 {
   CALL("LambdaElimination::createSCorBTerm");
   
   TermList s1, s2, s3;
   unsigned cb = env.signature->getCombinator(comb);
-  TermList arg1sort = sortOf(arg1);
-  TermList arg2sort = sortOf(arg2);
   
   if(comb == Signature::S_COMB || comb == Signature::C_COMB){
     s1 = AH::getNthArg(arg1sort, 1);
@@ -482,8 +407,8 @@ TermList LambdaElimination::sortOf(TermList t)
 {
   CALL("LambdaElimination::sortOf");
   
-  return SortHelper::getResultSort(t, _varSorts);
-  
+  ASS(t.isTerm());
+  return SortHelper::getResultSort(t.term());
 }
 
 void LambdaElimination::addCombinatorAxioms(Problem& prb)
