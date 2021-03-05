@@ -1866,7 +1866,7 @@ void FiniteModelBuilder::onModelFound()
  DHMap<unsigned,unsigned> vampireSortSizes;
  for(unsigned vSort=0;vSort<env.sorts->count();vSort++){
    unsigned size = 1;
-   if(vSort == Sorts::SRT_INTEGER || vSort == Sorts::SRT_RATIONAL || vSort == Sorts::SRT_REAL){ size=0;}
+   if(SortHelper::isInterpretedNonDefault(vSort) && SortHelper::isInterpretedNonBool(vSort)){ size=0;}
    unsigned dsort;
    if(_sortedSignature->vampireToDistinctParent.find(vSort,dsort)){
      size = _distinctSortSizes[dsort];
