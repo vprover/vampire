@@ -37,6 +37,12 @@ static_assert(VDEBUG == 1, "VDEBUG and NDEBUG are not synchronized");
 #define SUBSAT_PHASE_SAVING 0
 #endif
 
+// Clause learning
+// ASSESSMENT: TODO: try without learning
+#ifndef SUBSAT_LEARNING
+#define SUBSAT_LEARNING 1
+#endif
+
 // Conflict clause minimization
 // ASSESSMENT: doesn't seem to help much with subsumption instances.
 #ifndef SUBSAT_MINIMIZE
@@ -147,6 +153,7 @@ using Level = uint32_t;
 #define InvalidLevel (std::numeric_limits<Level>::max())
 
 
+// TODO: invariant of reasons is that all literals (other than the implied one) are false... document this and change the binary reasons to fit that notion.
 class Reason final {
   enum class Type : uint8_t {
     Invalid,
@@ -348,7 +355,7 @@ public:
     }
     while (m_watches_amo.size() < 2 * m_used_vars) {
       m_watches_amo.emplace_back();         // positive literal watches
-      m_watches_amo.emplace_back();         // positive literal watches -- generally not needed for our instances
+      m_watches_amo.emplace_back();         // negative literal watches -- generally not needed for our instances
     }
 #if SUBSAT_DDEG
     m_ddeg.ensure_var(new_var);
@@ -1565,6 +1572,18 @@ private:
     return get_level(lit.var());
   }
 
+  Clause& get_binary_reason(Reason reason) const
+  {
+    assert(reason.is_binary());
+    // TODO
+  }
+
+  /// Returns nullptr if var has been assigned by decision
+  Clause* get_reason(Var var) const
+  {
+    // TODO
+  }
+
 private:
   /// Whether we found a conflict at the root level
   bool m_inconsistent = false;
@@ -1603,6 +1622,7 @@ private:
 #endif
 
   ClauseArena<Allocator> m_clauses;
+  // TODO: merge these
   vector_map<Lit, vector<Watch>> m_watches;
   vector_map<Lit, vector<Watch>> m_watches_amo;
 
@@ -1767,6 +1787,21 @@ bool Solver<Allocator>::checkInvariants() const
   // Check watch invariants if we're in a fully propagated state
   if (m_propagate_head == m_trail.size()) {
     assert(checkWatches());
+  }
+
+  // Check reasons of assigned literals
+  for (Lit const lit : m_trail) {
+    Reason const reason = m_vars[lit.var()].reason;
+    if (reason.is_valid()) {
+      if (reason.is_binary()) {
+        // TODO
+      } else {
+        Clause const& c = m_clauses.deref(reason.get_clause_ref());
+        for (Lit const other : c) {
+          assert(other == lit | m_values[other] == Value::False);
+        }
+      }
+    }
   }
 
   return true;
