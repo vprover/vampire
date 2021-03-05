@@ -589,12 +589,15 @@ Term* getFreshConstant(unsigned index, TermList srt)
 {
   CALL("TheoryInstAndSimp::getFreshConstant");
   static Map<TermList, Stack<Term*>*> constants;
-  // static Stack<Stack<Term*>*> constants;
 
-  // while(srt+1 > constants.length()){
-  //   Stack<Term*>* stack = new Stack<Term*>;
-  //   constants.push(stack);
-  // }
+  /*
+  We skolemize at some point in instantiation. For that we need fresh constants.
+  These constants don't need to be "fresh globally", but just within the one application of instantiation.
+  Therefore we reuse these fresh constants (in order to not blow up the size of the signature).
+  Therefore we store the constants in a container, which contains a stack of constants per sort.
+  It used to be a stack of Stacks, but since sorts are now TermLists and not just unsigned anymore we need a hashmap of `Stack`s instead.
+  */
+
   Stack<Term*>* sortedConstants = constants.getOrInit(move(srt), [](Stack<Term*>** toInit) { *toInit = new Stack<Term*>(); });
   while(index+1 > sortedConstants->length()){
     unsigned sym = env.signature->addFreshFunction(0,"$inst");
