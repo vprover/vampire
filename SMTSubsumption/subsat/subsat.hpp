@@ -351,6 +351,7 @@ public:
       m_watches_amo.emplace_back();         // positive literal watches -- generally not needed for our instances
     }
 #if SUBSAT_DDEG
+    m_ddeg.ensure_var(new_var);
     if (group != ddeg::InvalidGroup) {
       m_ddeg.set_group(new_var, group);
     }
@@ -518,6 +519,7 @@ public:
 
   void ensure_variable(Var var)
   {
+    assert(var.is_valid());
     while (var.index() >= m_used_vars) {
       (void)new_variable();
     }

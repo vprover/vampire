@@ -23,6 +23,7 @@ public:
   using Group = std::uint32_t;
   // inline static constexpr Group InvalidGroup = std::numeric_limits<Group>::max();
   enum : Group {
+    // TODO: we could reserve group 0 as the invalid group, then we don't need any branching in assign/unassign.
     InvalidGroup = std::numeric_limits<Group>::max(),
   };
 
@@ -50,18 +51,25 @@ public:
     m_domain_sizes.reserve(group_count);
   }
 
+  // Allocate space for variable
+  void ensure_var(Var v)
+  {
+    assert(v.is_valid());
+    while (v.index() >= m_groups.size()) {
+      m_groups.push_back(InvalidGroup);
+    }
+  }
+
   // Register a new (unassigned) variable with a group
   void set_group(Var v, Group g)
   {
     assert(v.is_valid());
+    assert(v.index() < m_groups.size());
     assert(g != InvalidGroup);
-    while (v.index() >= m_groups.size()) {
-      m_groups.push_back(InvalidGroup);
-    }
+    assert(m_groups[v] == InvalidGroup);  // the group should be set only once, otherwise we have to correctly de-register from previous group
     while (g >= m_domain_sizes.size()) {
       m_domain_sizes.push_back(0);
     }
-    assert(m_groups[v] == InvalidGroup);  // the group should be set only once, otherwise we have to correctly de-register from previous group
     m_groups[v] = g;
     m_domain_sizes[g] += 1;
     LOG_DEBUG("Adding variable " << v << " to group " << g << ", domain size now is " << m_domain_sizes[g]);
@@ -69,23 +77,23 @@ public:
 
   void assigned(Var v)
   {
-    if (v.index() < m_groups.size()) {  // TODO: for subsumption problems, can convert this into an assertion
-      Group g = m_groups[v];
-      if (g != InvalidGroup) {
-        m_domain_sizes[g] -= 1;
-        LOG_DEBUG("Assigned variable " << v << " of group " << g << ", domain size now is " << m_domain_sizes[g]);
-      }
+    assert(v.is_valid());
+    assert(v.index() < m_groups.size());
+    Group g = m_groups[v];
+    if (g != InvalidGroup) {
+      m_domain_sizes[g] -= 1;
+      LOG_DEBUG("Assigned variable " << v << " of group " << g << ", domain size now is " << m_domain_sizes[g]);
     }
   }
 
   void unassigned(Var v)
   {
-    if (v.index() < m_groups.size()) {  // TODO: for subsumption problems, can convert this into an assertion
-      Group g = m_groups[v];
-      if (g != InvalidGroup) {
-        m_domain_sizes[g] += 1;
-        LOG_DEBUG("Unassigned variable " << v << " of group " << g << ", domain size now is " << m_domain_sizes[g]);
-      }
+    assert(v.is_valid());
+    assert(v.index() < m_groups.size());
+    Group g = m_groups[v];
+    if (g != InvalidGroup) {
+      m_domain_sizes[g] += 1;
+      LOG_DEBUG("Unassigned variable " << v << " of group " << g << ", domain size now is " << m_domain_sizes[g]);
     }
   }
 
