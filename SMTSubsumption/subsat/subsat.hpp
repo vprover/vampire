@@ -44,6 +44,9 @@ static_assert(VDEBUG == 1, "VDEBUG and NDEBUG are not synchronized");
 #define SUBSAT_LEARN 1
 #endif
 
+// Restarting
+// Very simple heuristic: restart every fixed number of conflicts.
+// ASSESSMENT: doesn't seem to help with subsumption instances.
 #ifndef SUBSAT_RESTART
 #define SUBSAT_RESTART 0
 #define SUBSAT_RESTART_INTERVAL 100
@@ -799,13 +802,13 @@ public:
 #endif
 
 #ifdef SUBSAT_STATISTICS_INTERVAL
-    uint32_t stats_timer = 0;
+    uint32_t stats_countdown = 0;
 #endif
 
     while (res == Result::Unknown) {
 #ifdef SUBSAT_STATISTICS_INTERVAL
-      if (stats_timer-- == 0) {
-        stats_timer = SUBSAT_STATISTICS_INTERVAL;
+      if (stats_countdown-- == 0) {
+        stats_countdown = SUBSAT_STATISTICS_INTERVAL;
         std::cerr << m_stats;
       }
 #endif
