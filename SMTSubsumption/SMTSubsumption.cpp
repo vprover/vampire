@@ -1032,7 +1032,7 @@ class SMTSubsumptionImpl
 #include "./SubstitutionTheory2.hpp"
 
 
-class SMTSubsumptionImpl2
+class SMTSubsumption::SMTSubsumptionImpl2
 {
   private:
 
@@ -1491,10 +1491,17 @@ void ProofOfConcept::test(Clause* side_premise, Clause* main_premise)
   }
 }
 
-bool ProofOfConcept::checkSubsumption(Kernel::Clause *side_premise, Kernel::Clause *main_premise)
+ProofOfConcept::ProofOfConcept()
 {
-  SMTSubsumptionImpl impl;
-  return impl.checkSubsumption(side_premise, main_premise);
+  m_subsat_impl.reset(new SMTSubsumptionImpl2());
+}
+
+ProofOfConcept::~ProofOfConcept() = default;
+
+bool ProofOfConcept::checkSubsumption(Kernel::Clause* base, Kernel::Clause* instance)
+{
+  ASS(m_subsat_impl);
+  return m_subsat_impl->checkSubsumption(base, instance);
 }
 
 
