@@ -311,6 +311,16 @@ std::ostream& operator<<(std::ostream& os, ShowReason<A> const& sr)
   return os;
 }
 
+/// SMT solver especially for subsumption-type problems.
+///
+/// Native support for
+/// - boolean variables and clauses,
+/// - at-most-one constraints,
+/// - substitution theory.
+///
+/// Based on two solvers by Armin Biere:
+/// - satch, see https://github.com/arminbiere/satch
+/// - kitten, which is part of kissat, see https://github.com/arminbiere/kissat
 template <template <typename> class Allocator> class Solver;
 
 template <template <typename> class A>
@@ -1658,6 +1668,14 @@ private:
   vector<Var> m_marked;                ///< marked variables during conflict clause minimization
   vector_map<Level, uint8_t> m_frames; ///< stores for each level whether we already have it in blocks (we use 'char' because vector<bool> is bad)
   ClauseRef tmp_propagate_binary_conflict_ref = ClauseRef::invalid();
+
+#ifndef NDEBUG
+  // TODO: to check correctness of API usage, add a state argument and check this when public methods are called.
+  // E.g.: Adding variables/clauses/amos is only allowed in Init, solve() only in Init and Sat,
+  //       access to model only in Sat, ...
+  // enum class State { Init, Unsat, Sat };  // any others?
+  // State m_state;
+#endif
 
 #if SUBSAT_STATISTICS
   Statistics m_stats;
