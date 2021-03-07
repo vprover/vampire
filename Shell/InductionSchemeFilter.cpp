@@ -232,21 +232,7 @@ bool InductionSchemeFilter::mergeSchemes(const InductionScheme& sch1, const Indu
   return true;
 }
 
-void mergeLitClausePairsInto(DHMap<Literal*, Clause*>* from, DHMap<Literal*, Clause*>* to)
-{
-  DHMap<Literal*, Clause*>::Iterator it(*from);
-  while (it.hasNext()) {
-    Literal* lit;
-    Clause* cl;
-    it.next(lit, cl);
-    // if this is violated, a more complicated structure is needed
-    ASS(!to->find(lit) || to->get(lit) == cl);
-    to->insert(lit, cl);
-  }
-}
-
-void InductionSchemeFilter::filter(vvector<pair<InductionScheme, DHMap<Literal*, Clause*>*>>& primary,
-  vvector<pair<InductionScheme, DHMap<Literal*, Clause*>*>>& secondary)
+void InductionSchemeFilter::filter(vvector<InductionScheme>& primary, vvector<InductionScheme>& secondary)
 {
   CALL("InductionSchemeGenerator::filter");
 
@@ -259,49 +245,43 @@ void InductionSchemeFilter::filter(vvector<pair<InductionScheme, DHMap<Literal*,
       auto& p = primary[j];
       auto& s = secondary[i];
 
-      if (!beforeMergeCheck(p.first, s.first)) {
+      if (!beforeMergeCheck(p, s)) {
         continue;
       }
 
       InductionScheme merged;
-      if (checkSubsumption(s.first, p.first)) {
+      if (checkSubsumption(s, p)) {
         if(env.options->showInduction()){
           env.beginOutput();
-          env.out() << "[Induction] secondary induction scheme " << s.first
-                    << " is subsumed by primary " << p.first << endl;
+          env.out() << "[Induction] secondary induction scheme " << s
+                    << " is subsumed by primary " << p << endl;
           env.endOutput();
         }
-        mergeLitClausePairsInto(s.second, p.second);
-      } else if (checkSubsumption(p.first, s.first)) {
+      } else if (checkSubsumption(p, s)) {
         if(env.options->showInduction()){
           env.beginOutput();
-          env.out() << "[Induction] primary induction scheme " << p.first
-                    << " is subsumed by secondary " << s.first << endl;
+          env.out() << "[Induction] primary induction scheme " << p
+                    << " is subsumed by secondary " << s << endl;
           env.endOutput();
         }
-        mergeLitClausePairsInto(s.second, p.second);
-        p.first = std::move(s.first);
-      } else if (mergeSchemes(p.first, s.first, merged)) {
+        p = std::move(s);
+      } else if (mergeSchemes(p, s, merged)) {
         if(env.options->showInduction()){
           env.beginOutput();
-          env.out() << "[Induction] primary induction scheme " << p.first
-                    << " and secondary induction scheme " << s.first
+          env.out() << "[Induction] primary induction scheme " << p
+                    << " and secondary induction scheme " << s
                     << " are merged into:" << endl << merged << endl;
           env.endOutput();
         }
-        p.first = std::move(merged);
-        mergeLitClausePairsInto(s.second, p.second);
+        p = std::move(merged);
         break;
       }
     }
   }
-  for (auto& kv : secondary) {
-    delete kv.second;
-  }
   secondary.clear();
 }
 
-void InductionSchemeFilter::filter(vvector<pair<InductionScheme, DHMap<Literal*, Clause*>*>>& schemes)
+void InductionSchemeFilter::filter(vvector<InductionScheme>& schemes)
 {
   CALL("InductionSchemeFilter::filter");
 
@@ -309,44 +289,41 @@ void InductionSchemeFilter::filter(vvector<pair<InductionScheme, DHMap<Literal*,
     bool subsumed = false;
     for (unsigned j = i+1; j < schemes.size();) {
 
-      if (!beforeMergeCheck(schemes[i].first, schemes[j].first)) {
+      if (!beforeMergeCheck(schemes[i], schemes[j])) {
         j++;
         continue;
       }
 
       InductionScheme merged;
-      if (checkSubsumption(schemes[j].first, schemes[i].first)) {
+      if (checkSubsumption(schemes[j], schemes[i])) {
         if(env.options->showInduction()){
           env.beginOutput();
-          env.out() << "[Induction] induction scheme " << schemes[j].first
-                    << " is subsumed by " << schemes[i].first << endl;
+          env.out() << "[Induction] induction scheme " << schemes[j]
+                    << " is subsumed by " << schemes[i] << endl;
           env.endOutput();
         }
-        mergeLitClausePairsInto(schemes[j].second, schemes[i].second);
         schemes[j] = std::move(schemes.back());
         schemes.pop_back();
-      } else if (checkSubsumption(schemes[i].first, schemes[j].first)) {
+      } else if (checkSubsumption(schemes[i], schemes[j])) {
         if(env.options->showInduction()){
           env.beginOutput();
-          env.out() << "[Induction] induction scheme " << schemes[i].first
-                    << " is subsumed by " << schemes[j].first << endl;
+          env.out() << "[Induction] induction scheme " << schemes[i]
+                    << " is subsumed by " << schemes[j] << endl;
           env.endOutput();
         }
-        mergeLitClausePairsInto(schemes[i].second, schemes[j].second);
         subsumed = true;
         break;
-      } else if (mergeSchemes(schemes[j].first, schemes[i].first, merged)) {
+      } else if (mergeSchemes(schemes[j], schemes[i], merged)) {
         if(env.options->showInduction()){
           env.beginOutput();
-          env.out() << "[Induction] induction schemes " << schemes[j].first
-                    << " and " << schemes[i].first
+          env.out() << "[Induction] induction schemes " << schemes[j]
+                    << " and " << schemes[i]
                     << "are merged into:" << endl << merged << endl;
           env.endOutput();
         }
         schemes[j] = std::move(schemes.back());
         schemes.pop_back();
-        schemes[i].first = merged;
-        mergeLitClausePairsInto(schemes[j].second, schemes[i].second);
+        schemes[i] = merged;
         break;
       } else {
         j++;
@@ -361,12 +338,11 @@ void InductionSchemeFilter::filter(vvector<pair<InductionScheme, DHMap<Literal*,
   }
 }
 
-void InductionSchemeFilter::filterComplex(vvector<pair<InductionScheme, DHMap<Literal*, Clause*>*>>& schemes,
-  DHMap<Literal*, DHMap<TermList, unsigned>*>* currOccMaps)
+void InductionSchemeFilter::filterComplex(vvector<InductionScheme>& schemes, const OccurrenceMap& occMap)
 {
   for (unsigned i = 0; i < schemes.size();) {
     bool filter = false;
-    for (const auto& rdesc : schemes[i].first._rDescriptionInstances) {
+    for (const auto& rdesc : schemes[i]._rDescriptionInstances) {
       for (const auto& kv : rdesc._step) {
         auto term = kv.first;
         if (env.signature->getFunction(term.term()->functor())->skolem()) {
@@ -376,13 +352,10 @@ void InductionSchemeFilter::filterComplex(vvector<pair<InductionScheme, DHMap<Li
         // Skolem constants that are not exclusively
         // present in occurrences of this complex term
         // also filter out ones without Skolem constants
-        DHMap<Literal*, Clause*>::Iterator it(*schemes[i].second);
         unsigned occ = 0;
-        while (it.hasNext()) {
-          auto lit = it.nextKey();
-          auto occmap = currOccMaps->get(lit);
-          if (occmap->find(term)) {
-            occ += occmap->get(term);
+        for (const auto& kv : occMap) {
+          if (kv.first.second == term) {
+            occ += __builtin_ctz(kv.second.first);
           }
         }
         if (occ == 1) {

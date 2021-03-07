@@ -18,13 +18,35 @@
 #include "Forwards.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermTransformer.hpp"
+#include "Indexing/Index.hpp"
 #include "InductionPreprocessor.hpp"
+// #include "Inferences/GeneralInduction.hpp"
 #include "Lib/STL.hpp"
 
 namespace Shell {
 
 using namespace Kernel;
 using namespace Lib;
+using namespace Indexing;
+
+using Occurrences = pair<unsigned, unsigned>;
+using OccurrenceMap = vmap<pair<Literal*, TermList>, Occurrences>;
+
+/**
+ * Replaces a subset of occurrences for given TermLists
+ */
+class TermOccurrenceReplacement2 : public TermTransformer {
+public:
+  TermOccurrenceReplacement2(const vmap<TermList, TermList>& r,
+                             const OccurrenceMap& occ, Literal* lit)
+                            : _r(r), _o(occ), _lit(lit) {}
+  TermList transformSubterm(TermList trm) override;
+
+private:
+  const vmap<TermList, TermList>& _r;
+  OccurrenceMap _o;
+  Literal* _lit;
+};
 
 /**
  * Replaces a subset of occurrences for given TermLists
@@ -117,32 +139,35 @@ struct InductionScheme {
 
 ostream& operator<<(ostream& out, const InductionScheme& scheme);
 
+using InductionIterator = VirtualIterator<pair<InductionScheme, OccurrenceMap> >;
+
 /**
  * This class instantiates the induction templates from a literal
  * we want to induct on. Afterwards, stores these and filters them.
  * Also stores all active occurrences of possible induction terms.
  */
 struct InductionSchemeGenerator {
-  ~InductionSchemeGenerator();
+  DECL_RETURN_TYPE(InductionIterator);
+  virtual OWN_RETURN_TYPE operator()(const SLQueryResult& main, const vvector<SLQueryResult>& side) = 0;
+};
 
-  void generatePrimary(Clause* premise, Literal* lit);
-  void generateSecondary(Clause* premise, Literal* lit);
-  vvector<pair<Formula*, vmap<Literal*, pair<Literal*, Clause*>>>> instantiateSchemes();
-
-  vvector<pair<InductionScheme, DHMap<Literal*, Clause*>*>> _primarySchemes;
-  vvector<pair<InductionScheme, DHMap<Literal*, Clause*>*>> _secondarySchemes;
-  DHMap<Literal*, DHMap<TermList, DHSet<unsigned>*>*> _actOccMaps;
-  DHMap<Literal*, DHMap<TermList, unsigned>*> _currOccMaps;
+struct RecursionInductionSchemeGenerator
+  : public InductionSchemeGenerator
+{
+  CLASS_NAME(RecursionInductionSchemeGenerator);
+  USE_ALLOCATOR(RecursionInductionSchemeGenerator);
+  OWN_RETURN_TYPE operator()(const SLQueryResult& main, const vvector<SLQueryResult>& side) override;
 
 private:
   bool generate(Clause* premise, Literal* lit,
-    vvector<pair<InductionScheme, DHMap<Literal*, Clause*>*>>& schemes,
+    vvector<InductionScheme>& schemes,
     bool returnOnMatch);
   bool process(TermList curr, bool active,
     Stack<bool>& actStack, Clause* premise, Literal* lit,
-    vvector<pair<InductionScheme, DHMap<Literal*, Clause*>*>>& schemes,
+    vvector<InductionScheme>& schemes,
     bool returnOnMatch);
-  pair<Formula*, vmap<Literal*, pair<Literal*, Clause*>>> instantiateScheme(unsigned index) const;
+
+  OccurrenceMap _actOccMaps;
 };
 
 } // Shell

@@ -79,6 +79,21 @@ vvector<TermList> getInductionTerms(TermList t)
   return v;
 }
 
+TermList TermOccurrenceReplacement2::transformSubterm(TermList trm)
+{
+  auto rIt = _r.find(trm);
+  if (rIt != _r.end()) {
+    auto oIt = _o.find(make_pair(_lit,trm));
+    ASS(oIt != _o.end());
+    auto val = oIt->second.second;
+    oIt->second.second >>= 1;
+    if (1 & val) {
+      return rIt->second;
+    }
+  }
+  return trm;
+}
+
 TermList TermOccurrenceReplacement::transformSubterm(TermList trm)
 {
   CALL("TermOccurrenceReplacement::transformSubterm");
@@ -485,68 +500,45 @@ ostream& operator<<(ostream& out, const InductionScheme& scheme)
   return out;
 }
 
-InductionSchemeGenerator::~InductionSchemeGenerator()
+InductionIterator RecursionInductionSchemeGenerator::operator()(const SLQueryResult& main, const vvector<SLQueryResult>& side)
 {
-  DHMap<Literal*, DHMap<TermList, DHSet<unsigned>*>*>::Iterator it(_actOccMaps);
-  while (it.hasNext()) {
-    DHMap<TermList, DHSet<unsigned>*>::Iterator aoIt(*it.next());
-    while (aoIt.hasNext()) {
-      delete aoIt.next();
-    }
-  }
-  for (auto& kv : _primarySchemes) {
-    delete kv.second;
-  }
-}
+  vvector<InductionScheme> primarySchemes;
+  vvector<InductionScheme> secondarySchemes;
+  _actOccMaps.clear();
 
-void InductionSchemeGenerator::generatePrimary(Clause* premise, Literal* lit)
-{
-  // we can only hope to simplify anything by function definitions if
-  // this flag is on, otherwise maybe no more simplifications can be
-  // applied and we have to induct anyway
+  static vset<Literal*> litsProcessed;
+  litsProcessed.clear();
+  litsProcessed.insert(main.literal);
 
-  // static bool rewriting = env.options->functionDefinitionRewriting();
   static bool simplify = env.options->simplifyBeforeInduction();
-  if (!generate(premise, lit, _primarySchemes, simplify)) {
-    _primarySchemes.clear();
-  };
-}
-
-void InductionSchemeGenerator::generateSecondary(Clause* premise, Literal* lit)
-{
-  generate(premise, lit, _secondarySchemes, false);
-}
-
-vvector<pair<Formula*, vmap<Literal*, pair<Literal*, Clause*>>>> InductionSchemeGenerator::instantiateSchemes() {
-  CALL("InductionSchemeGenerator::instantiateSchemes");
-
-  InductionSchemeFilter f;
-  f.filter(_primarySchemes, _secondarySchemes);
-  f.filterComplex(_primarySchemes, &_currOccMaps);
-
-  vvector<pair<Formula*, vmap<Literal*, pair<Literal*, Clause*>>>> res;
-  for (unsigned i = 0; i < _primarySchemes.size(); i++) {
-    if(env.options->showInduction()){
-      env.beginOutput();
-      env.out() << "[Induction] generating scheme " << _primarySchemes[i].first << " for literals ";
-      DHMap<Literal*, Clause*>::Iterator litClIt(*_primarySchemes[i].second);
-      while (litClIt.hasNext()) {
-        Literal* lit;
-        Clause* cl;
-        litClIt.next(lit, cl);
-        env.out() << lit->toString() << " in " << cl->toString() << ", ";
-      }
-      env.out() << endl;
-      env.endOutput();
-    }
-    res.push_back(instantiateScheme(i));
+  if (!generate(main.clause, main.literal, primarySchemes, simplify)) {
+    return InductionIterator::getEmpty();
   }
-  return res;
+  for (const auto& s : side) {
+    if (litsProcessed.insert(s.literal).second) {
+      generate(s.clause, s.literal, secondarySchemes, false);
+    }
+  }
+  InductionSchemeFilter f;
+  f.filter(primarySchemes, secondarySchemes);
+  f.filterComplex(primarySchemes, _actOccMaps);
+  
+  static Stack<pair<InductionScheme, OccurrenceMap>> res;
+  res.reset();
+  for (const auto& sch : primarySchemes) {
+    OccurrenceMap necessary;
+    for (const auto& kv : _actOccMaps) {
+      if (sch._inductionTerms.count(kv.first.second)) {
+        necessary.insert(kv);
+      }
+    }
+    res.push(make_pair(sch, necessary));
+  }
+  return pvi(getArrayishObjectIterator(res));
 }
 
-bool InductionSchemeGenerator::generate(Clause* premise, Literal* lit,
-  vvector<pair<InductionScheme, DHMap<Literal*, Clause*>*>>& schemes,
-  bool returnOnMatch)
+bool RecursionInductionSchemeGenerator::generate(Clause* premise, Literal* lit,
+  vvector<InductionScheme>& schemes, bool returnOnMatch)
 {
   CALL("InductionSchemeGenerator::generate");
 
@@ -554,11 +546,6 @@ bool InductionSchemeGenerator::generate(Clause* premise, Literal* lit,
   // be able to store occurrences of induction
   // terms. The literal itself and both sides
   // of the equality count as active positions.
-  if (_actOccMaps.find(lit)) {
-    return true;
-  }
-  _actOccMaps.insert(lit, new DHMap<TermList, DHSet<unsigned>*>());
-  _currOccMaps.insert(lit, new DHMap<TermList, unsigned>());
 
   Stack<bool> actStack;
   if (lit->isEquality()) {
@@ -583,9 +570,9 @@ bool InductionSchemeGenerator::generate(Clause* premise, Literal* lit,
   return true;
 }
 
-bool InductionSchemeGenerator::process(TermList curr, bool active,
+bool RecursionInductionSchemeGenerator::process(TermList curr, bool active,
   Stack<bool>& actStack, Clause* premise, Literal* lit,
-  vvector<pair<InductionScheme, DHMap<Literal*, Clause*>*>>& schemes,
+  vvector<InductionScheme>& schemes,
   bool returnOnMatch)
 {
   CALL("InductionSchemeGenerator::process");
@@ -597,14 +584,17 @@ bool InductionSchemeGenerator::process(TermList curr, bool active,
 
   // If induction term, store the occurrence
   if (canInductOn(curr)) {
-    if (!_currOccMaps.get(lit)->find(curr)) {
-      _currOccMaps.get(lit)->insert(curr, 0);
-      _actOccMaps.get(lit)->insert(curr, new DHSet<unsigned>());
+    auto p = make_pair(lit,curr);
+    auto aIt = _actOccMaps.find(p);
+    if (aIt == _actOccMaps.end()) {
+      aIt = _actOccMaps.insert(make_pair(p, make_pair(1 << 1,0))).first;
+    } else {
+      aIt->second.first <<= 1;
+      aIt->second.second <<= 1;
     }
-    if (active) {
-      _actOccMaps.get(lit)->get(curr)->insert(_currOccMaps.get(lit)->get(curr));
-    }
-    _currOccMaps.get(lit)->get(curr)++;
+    cout << curr << " " << aIt->second.first << " " << aIt->second.second;
+    aIt->second.second |= active;
+    cout << " " << aIt->second.first << " " << aIt->second.second << endl;
   }
 
   unsigned f = t->functor();
@@ -659,15 +649,13 @@ bool InductionSchemeGenerator::process(TermList curr, bool active,
       if (!scheme.init(argTerms, templ)) {
         continue;
       }
-      auto litClMap = new DHMap<Literal*, Clause*>();
-      litClMap->insert(lit, premise);
       if(env.options->showInduction()){
         env.beginOutput();
         env.out() << "[Induction] induction scheme " << scheme
                   << " was suggested by term " << *t << " in " << *lit << endl;
         env.endOutput();
       }
-      schemes.push_back(make_pair(std::move(scheme), litClMap));
+      schemes.push_back(std::move(scheme));
     }
   } else {
     for (unsigned i = 0; i < t->arity(); i++) {
@@ -675,108 +663,6 @@ bool InductionSchemeGenerator::process(TermList curr, bool active,
     }
   }
   return true;
-}
-
-pair<Formula*, vmap<Literal*, pair<Literal*, Clause*>>> InductionSchemeGenerator::instantiateScheme(unsigned index) const
-{
-  CALL("InductionSchemeGenerator::instantiateScheme");
-
-  const auto& schemePair = _primarySchemes[index];
-  const auto& scheme = schemePair.first;
-  const auto& litClMap = schemePair.second;
-  FormulaList* formulas = FormulaList::empty();
-  unsigned var = scheme._maxVar;
-  const bool strengthen = env.options->inductionStrengthen();
-
-  for (auto& desc : scheme._rDescriptionInstances) {
-    // We replace all induction terms with the corresponding step case terms
-    FormulaList* stepFormulas = FormulaList::empty();
-    DHMap<Literal*, Clause*>::Iterator litClIt(*litClMap);
-    ASS(litClIt.hasNext());
-    vmap<TermList, TermList> empty;
-    while (litClIt.hasNext()) {
-      auto lit = litClIt.nextKey();
-      TermOccurrenceReplacement tr(desc._step, *_actOccMaps.get(lit), *_currOccMaps.get(lit), var, empty);
-      stepFormulas = new FormulaList(new AtomicFormula(Literal::complementaryLiteral(tr.transform(lit))), stepFormulas);
-    }
-    auto right = JunctionFormula::generalJunction(Connective::OR, stepFormulas);
-
-    FormulaList* hyp = FormulaList::empty();
-
-    // Then we replace the arguments of the term with the
-    // corresponding recursive cases for this step case (if not base case)
-    for (const auto& r : desc._recursiveCalls) {
-      FormulaList* innerHyp = FormulaList::empty();
-      DHMap<Literal*, Clause*>::Iterator litClIt(*litClMap);
-      vmap<TermList, TermList> r_g;
-      while (litClIt.hasNext()) {
-        auto lit = litClIt.nextKey();
-        TermOccurrenceReplacement tr(r, *_actOccMaps.get(lit), *_currOccMaps.get(lit), var, r_g, strengthen);
-        innerHyp = new FormulaList(new AtomicFormula(Literal::complementaryLiteral(tr.transform(lit))),innerHyp);
-      }
-      hyp = new FormulaList(JunctionFormula::generalJunction(Connective::OR,innerHyp),hyp);
-    }
-
-    Formula* res = nullptr;
-    if (hyp == 0) {
-      // base case
-      res = right;
-    } else {
-      auto left = JunctionFormula::generalJunction(Connective::AND,hyp);
-      // there may be free variables present only in the conditions or
-      // hypoheses, quantify these first so that they won't be skolemized away
-      auto leftVarLst = left->freeVariables();
-      FormulaVarIterator fvit(right);
-      while(fvit.hasNext()) {
-        auto v = fvit.next();
-        if (Formula::VarList::member(v, leftVarLst)) {
-          leftVarLst = Formula::VarList::remove(v, leftVarLst);
-        }
-      }
-      if (leftVarLst) {
-        left = new QuantifiedFormula(FORALL, leftVarLst, 0, left);
-      }
-      res = new BinaryFormula(Connective::IMP,left,right);
-    }
-    formulas = new FormulaList(Formula::quantify(res), formulas);
-  }
-  ASS(formulas != 0);
-  Formula* indPremise = JunctionFormula::generalJunction(Connective::AND,formulas);
-
-  // After creating all cases, we need the main implicant to be resolved with
-  // the literal. For this, we use new variables starting from the max. var of
-  // the scheme.
-  vmap<TermList, TermList> r;
-  for (const auto& desc : scheme._rDescriptionInstances) {
-    for (const auto& kv : desc._step) {
-      if (r.count(kv.first) > 0) {
-        continue;
-      }
-      r.insert(make_pair(kv.first, TermList(var++,false)));
-    }
-  }
-  vmap<Literal*, pair<Literal*,Clause*>> conclusionToOrigLitClauseMap;
-  FormulaList* conclusionList = FormulaList::empty();
-  DHMap<Literal*, Clause*>::Iterator litClIt(*litClMap);
-  vmap<TermList, TermList> empty;
-  while (litClIt.hasNext()) {
-    Literal* origLit;
-    Clause* origClause;
-    litClIt.next(origLit, origClause);
-    TermOccurrenceReplacement tr(r, *_actOccMaps.get(origLit),
-      *_currOccMaps.get(origLit), var, empty);
-    auto conclusion = Literal::complementaryLiteral(tr.transform(origLit));
-    conclusionToOrigLitClauseMap.insert(make_pair(conclusion, make_pair(origLit, origClause)));
-    conclusionList = new FormulaList(new AtomicFormula(conclusion), conclusionList);
-  }
-  Formula* conclusions = JunctionFormula::generalJunction(Connective::OR, conclusionList);
-  Formula* hypothesis = new BinaryFormula(Connective::IMP,
-                            Formula::quantify(indPremise),
-                            Formula::quantify(conclusions));
-
-  // cout << hypothesis->toString() << endl << endl;
-
-  return make_pair(hypothesis, conclusionToOrigLitClauseMap);
 }
 
 } // Shell

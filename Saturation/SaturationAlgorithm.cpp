@@ -62,6 +62,7 @@
 #include "Inferences/ForwardLiteralRewriting.hpp"
 #include "Inferences/ForwardSubsumptionAndResolution.hpp"
 #include "Inferences/ForwardSubsumptionDemodulation.hpp"
+#include "Inferences/GeneralInduction.hpp"
 #include "Inferences/GlobalSubsumption.hpp"
 #include "Inferences/HyperSuperposition.hpp"
 #include "Inferences/InnerRewriting.hpp"
@@ -1453,10 +1454,11 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
 
   //TODO here induction is last, is that right?
   if(opt.induction()!=Options::Induction::NONE){
-    if (opt.inductionMultiClause()) {
-      gie->addFront(new MultiClauseInduction());
-    }
-    gie->addFront(new Induction());
+    // if (opt.inductionMultiClause()) {
+    //   gie->addFront(new MultiClauseInduction());
+    // }
+    // gie->addFront(new Induction());
+    gie->addFront(new GeneralInduction(new RecursionInductionSchemeGenerator(), new InductionGeneralization(true), InferenceRule::INDUCTION_AXIOM));
   }
 
   if(opt.instantiation()!=Options::Instantiation::OFF){

@@ -32,13 +32,11 @@ using namespace Lib;
  * Also stores all active occurrences of possible induction terms.
  */
 struct InductionSchemeFilter {
-  void filter(vvector<pair<InductionScheme, DHMap<Literal*, Clause*>*>>& primary,
-    vvector<pair<InductionScheme, DHMap<Literal*, Clause*>*>>& secondary);
-  void filterComplex(vvector<pair<InductionScheme, DHMap<Literal*, Clause*>*>>& schemes,
-    DHMap<Literal*, DHMap<TermList, unsigned>*>* currOccMaps);
+  void filter(vvector<InductionScheme>& primary, vvector<InductionScheme>& secondary);
+  void filterComplex(vvector<InductionScheme>& schemes, const OccurrenceMap& occMap);
 
 private:
-  void filter(vvector<pair<InductionScheme, DHMap<Literal*, Clause*>*>>& schemes);
+  void filter(vvector<InductionScheme>& schemes);
 
   bool mergeSchemes(const InductionScheme& sch1, const InductionScheme& sch2, InductionScheme& res);
   bool checkSubsumption(const InductionScheme& sch1, const InductionScheme& sch2);
