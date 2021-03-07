@@ -1053,6 +1053,8 @@ class SMTSubsumption::SMTSubsumptionImpl2
     vvector<subsat::AllocatedClauseHandle> instance_constraints;
 
   public:
+    CLASS_NAME(SMTSubsumptionImpl2);
+    USE_ALLOCATOR(SMTSubsumptionImpl2);
 
     SMTSubsumptionImpl2()
     {
@@ -1178,7 +1180,7 @@ class SMTSubsumption::SMTSubsumptionImpl2
     }  // setupSubsumption
 
 
-    vector<subsat::Var> complementary_matches;
+    vvector<subsat::Var> complementary_matches;
 
     /// Set up the subsumption resolution problem from scratch.
     /// Returns false if no solution is possible.
