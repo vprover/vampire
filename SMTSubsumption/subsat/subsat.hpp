@@ -166,7 +166,8 @@ using Level = uint32_t;
 #define InvalidLevel (std::numeric_limits<Level>::max())
 
 
-// TODO: invariant of reasons is that all literals (other than the implied one) are false... document this and change the binary reasons to fit that notion.
+/// Represents the reason for assigning a variable.
+/// Invariant: all literals (other than the implied one) are false.
 class Reason final {
   enum class Type : uint8_t {
     Invalid,
@@ -1005,10 +1006,10 @@ private:
         Value const other_value = m_values[other_lit];
         if (other_value == Value::Unassigned) {
           // propagate
-          LOG_TRACE("Assigning " << ~other_lit << " due to AtMostOne constraint " << SHOWREF(cr));
+          LOG_DEBUG("Assigning " << ~other_lit << " due to AtMostOne constraint " << SHOWREF(cr));
           SUBSAT_STAT_INC(propagations);
           SUBSAT_STAT_INC(propagations_by_amo);
-          assign(~other_lit, Reason{lit});
+          assign(~other_lit, Reason{not_lit});
         }
         else if (other_value == Value::True) {
           // at least two literals in the AtMostOne constraint are true => conflict
@@ -1202,12 +1203,13 @@ private:
     // The literal we have just resolved away, or invalid in the first step
     Lit uip = Lit::invalid();
     // The reason of the resolved literal, or the conflict clause in the first step
-    ClauseRef reason_ref = conflict_ref;
+    Clause const* reason_ptr = &m_clauses.deref(conflict_ref);
+    Clause tmp_binary{2};  // a stack-allocated clause has space for two literals
 
     while (true) {
-      LOG_TRACE("Reason: " << SHOWREF(reason_ref) << ", uip: " << uip << ", unresolved: " << unresolved_on_conflict_level);
-      assert(reason_ref.is_valid());
-      Clause const& reason_clause = m_clauses.deref(reason_ref);
+      assert(reason_ptr);
+      LOG_TRACE("Reason: " << *reason_ptr << ", uip: " << uip << ", unresolved: " << unresolved_on_conflict_level);
+      Clause const& reason_clause = *reason_ptr;
 
       // TODO: reason->used = true
 
@@ -1270,18 +1272,8 @@ private:
         break;
       }
 
-      Reason const& reason = m_vars[uip.var()].reason;
-      if (reason.is_binary()) {
-        // recover binary reason clause
-        Lit other_lit = reason.get_binary_other_lit();
-        Clause& tmp_binary_clause = m_clauses.deref(tmp_binary_clause_ref);
-        assert(m_values[uip] == Value::True);
-        tmp_binary_clause[0] = uip;  // will be skipped
-        tmp_binary_clause[1] = ~other_lit;
-        reason_ref = tmp_binary_clause_ref;
-      } else {
-        reason_ref = reason.get_clause_ref();
-      }
+      Reason const reason = m_vars[uip.var()].reason;
+      reason_ptr = &get_reason(uip, reason, tmp_binary);
     }  // while(true)
 
     // TODO: analyze loop is a bit simpler in kitten, maybe we can do that too?
@@ -1420,21 +1412,9 @@ private:
       return false;
     }
 
-    ClauseRef reason_ref = ClauseRef::invalid();
-    if (reason.is_binary()) {
-      // recover binary reason clause
-      // TODO: extract into separate function, and negate 'other_lit' (for consistency with satch and minisat... they store the other phase. should also define somewhere what it means exactly.)
-      // TODO: check out kissat's tail-recursive version for binary clauses
-      Lit other_lit = reason.get_binary_other_lit();
-      Clause& tmp_binary_clause = m_clauses.deref(tmp_binary_clause_ref);
-      tmp_binary_clause[0] = ~lit;
-      tmp_binary_clause[1] = ~other_lit;
-      reason_ref = tmp_binary_clause_ref;
-    }
-    else {
-      reason_ref = reason.get_clause_ref();
-    }
-    Clause& reason_clause = m_clauses.deref(reason_ref);
+    // TODO: check out kissat's tail-recursive version for binary clauses
+    Clause tmp_binary{2};  // a stack-allocated clause has space for two literals
+    Clause const& reason_clause = get_reason(~lit, reason, tmp_binary);
     LOG_TRACE("trying to remove " << lit << " at depth " << depth << " along " << reason_clause);
     bool should_remove = true;
     for (Lit other : reason_clause) {
@@ -1592,16 +1572,24 @@ private:
     return get_level(lit.var());
   }
 
-  Clause& get_binary_reason(Reason reason) const
+  void get_binary_reason(Lit lit, Reason reason, Clause& tmp_binary_clause) const
   {
     assert(reason.is_binary());
-    // TODO
+    assert(tmp_binary_clause.size() == 2);
+    Lit other_lit = reason.get_binary_other_lit();
+    tmp_binary_clause[0] = lit;
+    tmp_binary_clause[1] = other_lit;
   }
 
-  /// Returns nullptr if var has been assigned by decision
-  Clause* get_reason(Var var) const
+  Clause const& get_reason(Lit lit, Reason reason, Clause& tmp_binary_clause) const
   {
-    // TODO
+    assert(reason.is_valid());
+    if (reason.is_binary()) {
+      get_binary_reason(lit, reason, tmp_binary_clause);
+      return tmp_binary_clause;
+    } else {
+      return m_clauses.deref(reason.get_clause_ref());
+    }
   }
 
 private:
@@ -1810,16 +1798,16 @@ bool Solver<Allocator>::checkInvariants() const
   }
 
   // Check reasons of assigned literals
+  Clause tmp_binary{2};  // a stack-allocated clause has space for two literals
   for (Lit const lit : m_trail) {
     Reason const reason = m_vars[lit.var()].reason;
     if (reason.is_valid()) {
-      if (reason.is_binary()) {
-        // TODO
-      } else {
-        Clause const& c = m_clauses.deref(reason.get_clause_ref());
-        for (Lit const other : c) {
-          assert(other == lit | m_values[other] == Value::False);
-        }
+      Clause const& c = get_reason(lit, reason, tmp_binary);
+      // Clause const& c = reason.is_binary()
+      //     ? get_binary_reason(lit, reason)
+      //     : m_clauses.deref(reason.get_clause_ref());
+      for (Lit const other : c) {
+        assert(other == lit | m_values[other] == Value::False);
       }
     }
   }

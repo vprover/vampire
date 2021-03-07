@@ -247,8 +247,8 @@ public:
         for (auto q : m_bindings_by_var[entry.first]) {
           if (q.second != entry.second) {
             // conflicting substitution constraints
-            subsat::Var conflicting_var = q.first;  // conflicting variable
-            subsat::Lit reason = b;
+            subsat::Var const conflicting_var = q.first;  // conflicting variable
+            subsat::Lit const reason = ~b;
             if (!propagate(~conflicting_var, reason)) {
               return false;
             }
