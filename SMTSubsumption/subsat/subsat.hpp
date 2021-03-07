@@ -1912,8 +1912,8 @@ bool Solver<Allocator>::checkModel() const
       if (m_values[lit] == Value::False) { num_false += 1; }
     }
     assert(num_true + num_open + num_false == c.size());
-    // AtMostOne constraint is satisfied if all but one literals are false
-    bool satisfied = (num_false == c.size() - 1);
+    // AtMostOne constraint is satisfied if all or all but one literals are false
+    bool satisfied = (num_false >= c.size() - 1);
     if (!satisfied) {
       LOG_WARN("AtMostOne constraint " << c << " is not satisfied!");
       return false;
