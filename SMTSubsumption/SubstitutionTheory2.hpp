@@ -209,9 +209,9 @@ public:
 
   bool empty() const noexcept
   {
-    bool is_empty = m_bindings_storage.empty();
+    bool is_empty = m_bindings.empty();
     if (is_empty) {
-      ASS(m_bindings.empty());
+      ASS(m_bindings_storage.empty());
       ASS(m_used_vars.empty());
 #if VDEBUG
       for (auto const& vec : m_bindings_by_var) {
