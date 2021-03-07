@@ -33,6 +33,11 @@ class ProofOfConcept {
 
     bool checkSubsumption(Kernel::Clause* base, Kernel::Clause* instance);
 
+    // TODO: check if subsat-based implementation also discovers 'result' by SR (need to enumerate all, because there may be more than one possible SR inference)
+    // For correctness checking, we need to enumerate all possible subsumption resolution consequences.
+    // TODO: add an RSTAT_MCTR to see the distribution of "number of possible consequences per SR". (just to see how common this situation is.)
+    bool checkSubsumptionResolution(Kernel::Clause* base, Kernel::Clause* instance, Kernel::Clause* result);
+
   private:
     std::unique_ptr<SMTSubsumptionImpl2> m_subsat_impl;
 };
