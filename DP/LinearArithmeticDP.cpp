@@ -1,4 +1,3 @@
-
 /*
  * File LinearArithmeticDP.cpp.
  *
@@ -34,20 +33,19 @@
 #include "Kernel/Signature.hpp"
 #include "Kernel/SortHelper.hpp"
 
+namespace DP {
 
-namespace DP
-{
-
-LinearArithmeticDP::LinearArithmeticDP() 
+LinearArithmeticDP::LinearArithmeticDP()
 {
   CALL("LinearArithmeticDP::LinearArithmeticDP");
-
 }
 
 void LinearArithmeticDP::reset()
 {
+#if DLADP
+  cout << ">>####################RESET#####################" << endl;
+#endif
   CALL("LinearArithmeticDP::reset");
-
 }
 
 /**
@@ -63,42 +61,48 @@ void LinearArithmeticDP::addLiterals(LiteralIterator lits, bool onlyEqualites)
 #if DLADP
   cout << ">> addLiterals" << endl;
 #endif
-  while(lits.hasNext()) {
-    Literal* l = lits.next();
-    if(!l->ground()) {
+  while (lits.hasNext()) {
+    Literal *l = lits.next();
+    if (!l->ground()) {
       //for now we ignore non-ground literals
       continue;
     }
 #if DLADP
-    //cout << "Check " << l->toString() << endl;
+    cout << "Check " << l->toString() << endl;
 #endif
-    if(!theory->isInterpretedPredicate(l)) continue;
+    if (!theory->isInterpretedPredicate(l))
+      continue;
     SubtermIterator sit(l);
     bool skip = false;
-    while(sit.hasNext()){
-       // As l is ground we know that this term exists e.g. it's not a variable
-       Term* st = sit.next().term(); 
-       unsigned fun = st->functor();
+    while (sit.hasNext()) {
+      // As l is ground we know that this term exists e.g. it's not a variable
+      Term *st = sit.next().term();
+      unsigned fun = st->functor();
 
-       if(env.signature->functionArity(fun) == 0 && Sorts::isNumericSort(SortHelper::getResultSort(st))) continue;
-       if(theory->isInterpretedNumber(st)) continue; 
-       if(theory->isInterpretedFunction(fun)){
-         Interpretation interp = theory->interpretFunction(fun);
-         if(theory->isLinearOperation(interp)) continue;
+      if (env.signature->functionArity(fun) == 0 && Sorts::isNumericSort(SortHelper::getResultSort(st)))
+        continue;
+      if (theory->isInterpretedNumber(st))
+        continue;
+      if (theory->isInterpretedFunction(fun)) {
+        Interpretation interp = theory->interpretFunction(fun);
+        if (theory->isLinearOperation(interp))
+          continue;
 
-         // We're still linear if this is a multiplication by a numer
-         if(interp == Interpretation::INT_MULTIPLY || interp == Interpretation::RAT_MULTIPLY || interp == Interpretation::REAL_MULTIPLY){
-           // Again, have to be terms as there are no variables
-           Term* left  = st->nthArgument(0)->term();
-           Term* right = st->nthArgument(0)->term();
-           if(theory->isInterpretedNumber(left) || theory->isInterpretedNumber(right)) continue;
-         }
-       }
-       cout << st->toString() << endl;
-       skip = true;
-       break;
+        // We're still linear if this is a multiplication by a number
+        if (interp == Interpretation::INT_MULTIPLY || interp == Interpretation::RAT_MULTIPLY || interp == Interpretation::REAL_MULTIPLY) {
+          // Again, have to be terms as there are no variables
+          Term *left = st->nthArgument(0)->term();
+          Term *right = st->nthArgument(0)->term();
+          if (theory->isInterpretedNumber(left) || theory->isInterpretedNumber(right))
+            continue;
+        }
+      }
+      cout << st->toString() << endl;
+      skip = true;
+      break;
     }
-    if(skip) continue;
+    if (skip)
+      continue;
 
     if (!onlyEqualites || (l->isEquality() && l->isPositive())) {
       addLiteral(l);
@@ -106,7 +110,7 @@ void LinearArithmeticDP::addLiterals(LiteralIterator lits, bool onlyEqualites)
   }
 }
 
-void LinearArithmeticDP::addLiteral(Literal* lit)
+void LinearArithmeticDP::addLiteral(Literal *lit)
 {
   CALL("LinearArithmeticDP::addLiteral");
 
@@ -123,6 +127,4 @@ DecisionProcedure::Status LinearArithmeticDP::getStatus(bool retrieveMultipleCor
   return DecisionProcedure::SATISFIABLE;
 }
 
-
-
-}
+} // namespace DP

@@ -30,6 +30,9 @@
 #include "Lib/Deque.hpp"
 #include "Lib/DHMap.hpp"
 #include "Lib/Stack.hpp"
+#include "Lib/List.hpp"
+#include <vector>
+#include <set>
 
 #include "Kernel/Term.hpp"
 #include "Kernel/Ordering.hpp"
@@ -46,33 +49,43 @@ using namespace Kernel;
  * This class extracts a LA problem from the literals and then passes it elsewhere
  * to be solved. 
  */
-class LinearArithmeticDP : public DecisionProcedure
-{
+class LinearArithmeticDP : public DecisionProcedure {
 public:
   CLASS_NAME(LinearArithmeticDP);
   USE_ALLOCATOR(LinearArithmeticDP);
 
-  // TODO: Do we need to pass in anything?
   LinearArithmeticDP();
+  
+  enum Solver {
+    GaussElimination,
+    Simplex,
+  };
+
+  struct Parameter {
+    unsigned int varId;
+    float coefficient;
+  };
 
   virtual void addLiterals(LiteralIterator lits, bool onlyEqualites) override;
-  void addLiteral(Literal* lit);
+  void addLiteral(Literal *lit);
 
   virtual Status getStatus(bool retrieveMultipleCores) override;
 
   // TODO: For now we don't support unsat cores but we should do later
-  virtual unsigned getUnsatCoreCount() override { return 0; } 
-  virtual void getUnsatCore(LiteralStack& res, unsigned coreIndex) override {};
+  virtual unsigned getUnsatCoreCount() override { return 0; }
+  virtual void getUnsatCore(LiteralStack &res, unsigned coreIndex) override{};
 
   // TODO: For now do nothing but consider if we want/need to support this later
-  void getModel(LiteralStack& model) override {};
-  
+  void getModel(LiteralStack &model) override{};
+
   virtual void reset() override;
 
 private:
-
+  Solver solver;
+  std::vector< List<Parameter> *> rowsVector;
+  std::set<unsigned int> colLabelSet;
 };
 
-}
+} // namespace DP
 
 #endif // __LinearArithmeticDP__
