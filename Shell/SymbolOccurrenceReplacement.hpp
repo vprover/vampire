@@ -21,15 +21,16 @@ using namespace Shell;
 
 /**
  * A helper class that performs replacement of all terms/literals of the form
- * f(t1, ..., tk) by g(X1, ..., Xn, t1, ..., tk) for given f, g and X1,...,Xn
+ * f(s1, ..., sj,t1, ..., tk) by g(A1, ..., Am, s1, ..., sj,X1, ..., Xn, t1, ..., tk) 
+ * for given f, g, A1, ..., Am, and X1,...,Xn
  */
 // TODO: should a combination of MatcherUtils, SubstHelper be used instead?
 class SymbolOccurrenceReplacement {
   public:
     /**
      * symbol = f
-     * freshApplication = g(X1, ..., Xn, Y1, ..., Yk)
-     * argVars = Y1, ..., Yk
+     * freshApplication = g(A1, ..., Am, B1, ..., Bj,X1, ..., Xn, Y1, ..., Yk)
+     * argVars = B1, ..., Bj, Y1, ..., Yk
      * isPredicate = whether or not f and g are predicate symbols
      */
     SymbolOccurrenceReplacement(bool isPredicate, Term* freshApplication, unsigned symbol, VList* argVars)
