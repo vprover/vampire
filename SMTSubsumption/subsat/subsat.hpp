@@ -128,7 +128,7 @@ struct Statistics {
   int restarts = 0;               ///< Number of restarts performed.
 #endif
 };
-static std::ostream& operator<<(std::ostream& os, Statistics const& stats)
+static inline std::ostream& operator<<(std::ostream& os, Statistics const& stats)
 {
   os << std::string(70, '-') << '\n';
 #if SUBSAT_RESTART
