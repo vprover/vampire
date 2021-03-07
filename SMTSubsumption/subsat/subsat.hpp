@@ -449,7 +449,7 @@ public:
 #endif
 
     m_clauses.clear();
-    tmp_binary_clause_ref = ClauseRef::invalid();
+    tmp_propagate_binary_conflict_ref = ClauseRef::invalid();
 #ifndef NDEBUG
     m_clause_refs.clear();
     m_atmostone_constraint_refs.clear();
@@ -785,11 +785,11 @@ public:
     assert(m_queue.checkInvariants(m_values));
 #endif
 
-    if (!tmp_binary_clause_ref.is_valid()) {
+    if (!tmp_propagate_binary_conflict_ref.is_valid()) {
       auto ca = m_clauses.alloc(2);
       handle_push_literal(ca, Lit::invalid());
       handle_push_literal(ca, Lit::invalid());
-      tmp_binary_clause_ref = m_clauses.handle_build(ca);
+      tmp_propagate_binary_conflict_ref = m_clauses.handle_build(ca);
     }
 
     Result res = Result::Unknown;
@@ -1016,10 +1016,10 @@ private:
           LOG_TRACE("Current assignment: " << SHOWASSIGNMENT());
           LOG_DEBUG("Conflict with AtMostOne constraint " << SHOWREF(cr));
           SUBSAT_STAT_INC(conflicts_by_amo);
-          Clause& tmp_binary_clause = m_clauses.deref(tmp_binary_clause_ref);
+          Clause& tmp_binary_clause = m_clauses.deref(tmp_propagate_binary_conflict_ref);
           tmp_binary_clause[0] = not_lit;
           tmp_binary_clause[1] = ~other_lit;
-          return tmp_binary_clause_ref;
+          return tmp_propagate_binary_conflict_ref;
         }
         else {
           assert(other_value == Value::False);
@@ -1657,7 +1657,7 @@ private:
   vector<Var> tmp_analyze_seen;        ///< analyzed variables
   vector<Var> m_marked;                ///< marked variables during conflict clause minimization
   vector_map<Level, uint8_t> m_frames; ///< stores for each level whether we already have it in blocks (we use 'char' because vector<bool> is bad)
-  ClauseRef tmp_binary_clause_ref = ClauseRef::invalid();
+  ClauseRef tmp_propagate_binary_conflict_ref = ClauseRef::invalid();
 
 #if SUBSAT_STATISTICS
   Statistics m_stats;
@@ -1712,7 +1712,7 @@ bool Solver<Allocator>::checkEmpty() const
   assert(m_queue.empty());
 #endif
   assert(m_clauses.empty());
-  assert(!tmp_binary_clause_ref.is_valid());
+  assert(!tmp_propagate_binary_conflict_ref.is_valid());
 #ifndef NDEBUG
   assert(m_clause_refs.empty());
   assert(m_atmostone_constraint_refs.empty());
@@ -1803,9 +1803,6 @@ bool Solver<Allocator>::checkInvariants() const
     Reason const reason = m_vars[lit.var()].reason;
     if (reason.is_valid()) {
       Clause const& c = get_reason(lit, reason, tmp_binary);
-      // Clause const& c = reason.is_binary()
-      //     ? get_binary_reason(lit, reason)
-      //     : m_clauses.deref(reason.get_clause_ref());
       for (Lit const other : c) {
         assert(other == lit | m_values[other] == Value::False);
       }
