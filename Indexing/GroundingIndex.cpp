@@ -1,7 +1,4 @@
-
 /*
- * File GroundingIndex.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -24,7 +21,6 @@
 
 #include "Shell/Options.hpp"
 
-#include "SAT/TWLSolver.hpp"
 #include "SAT/MinisatInterfacing.hpp"
 #include "SAT/BufferedSolver.hpp"
 
@@ -38,16 +34,13 @@ GroundingIndex::GroundingIndex(const Options& opt)
   CALL("GroundingIndex::GroundingIndex");
 
   switch(opt.satSolver()){
-    case Options::SatSolver::VAMPIRE:
-    	_solver = new TWLSolver(opt,true);
-    	break;
 #if VZ3
     case Options::SatSolver::Z3:
-      //cout << "Warning, Z3 not curently used for Global Subsumption" << endl; 
+      //cout << "Warning, Z3 not curently used for Global Subsumption" << endl;
 #endif
     case Options::SatSolver::MINISAT:
       _solver = new MinisatInterfacing(opt,true);
-    	break;
+      break;
     default:
       ASSERTION_VIOLATION_REP(opt.satSolver());
   }

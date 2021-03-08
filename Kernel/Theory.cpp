@@ -1,7 +1,4 @@
-
 /*
- * File Theory.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -458,8 +455,9 @@ void RationalConstantType::cannonize()
     _den = 1;
     return;
   }
+
   // now it's safe to treat this unsigned as signed
-  ASS_LE(gcd,numeric_limits<signed>::max());
+  ASS_LE(gcd,(unsigned)numeric_limits<signed>::max());
   if (gcd!=1) {
     _num = _num.intDivide(gcd);
     _den = _den.intDivide(gcd);

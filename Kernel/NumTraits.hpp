@@ -1,6 +1,4 @@
 /*
- * File NumTraits.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,7 +7,6 @@
  * https://vprover.github.io/license.html
  * and in the source directory
  */
-
 #ifndef __NUM_TRAITS_H__
 #define __NUM_TRAITS_H__
 

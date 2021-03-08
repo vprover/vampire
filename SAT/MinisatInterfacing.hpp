@@ -1,7 +1,4 @@
-
 /*
- * File MinisatInterfacing.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -103,14 +100,6 @@ public:
     return (_assumptions.size() > 0);
   };
 
- /**
-  * Record the association between a SATLiteral var and a Literal
-  * In TWLSolver this is used for computing niceness values
-  */
-  virtual void recordSource(unsigned satlitvar, Literal* lit) override {
-    // unsupported by minisat; intentionally no-op
-  };
-  
   Status solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit, bool) override;
 
   /**

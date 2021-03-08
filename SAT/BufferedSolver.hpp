@@ -1,7 +1,4 @@
-
 /*
- * File BufferedSolver.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -78,9 +75,6 @@ public:
   }
   
   virtual void suggestPolarity(unsigned var,unsigned pol) override { _inner->suggestPolarity(var,pol); }
-  virtual void recordSource(unsigned var, Literal* lit) override {
-    _inner->recordSource(var,lit);
-  }
 
 private:
 

@@ -30,8 +30,8 @@ endif()
 # statically link libraries
 option(BUILD_SHARED_LIBS "Build an executable dynamically linking to libraries instead of a statically-linked one (static not working on Mac)" ON)
 if (NOT BUILD_SHARED_LIBS)
-  SET(CMAKE_FIND_LIBRARY_SUFFIXES .a)
-  SET(CMAKE_EXE_LINKER_FLAGS -static)
+  set(CMAKE_FIND_LIBRARY_SUFFIXES .a)
+  set(CMAKE_EXE_LINKER_FLAGS -static)
   set(VAMPIRE_BINARY_STATIC _static)
 endif()
 
@@ -40,6 +40,22 @@ if(CMAKE_BUILD_TYPE STREQUAL Debug)
   SET(COMPILE_TESTS ON)
 else()
   SET(COMPILE_TESTS OFF)
+endif()
+
+option(IPO "If supported, build with link-time optimisation." OFF)
+option(DEBUG_IPO "Print information about why IPO isn't supported" OFF)
+# check whether IPO is available
+include(CheckIPOSupported)
+check_ipo_supported(RESULT IPO_SUPPORTED OUTPUT IPO_ERROR)
+if (IPO_SUPPORTED)
+  message(STATUS "IPO supported")
+else()
+  message(STATUS "IPO not supported")
+  if(DEBUG_IPO)
+    message(STATUS "${IPO_ERROR}")
+  else()
+    message(STATUS "(if you need IPO, set DEBUG_IPO=ON to investigate)")
+  endif()
 endif()
 
 ################################################################
@@ -144,7 +160,6 @@ set(VAMPIRE_LIB_SOURCES
 #    Lib/Graph.hpp
     Lib/Hash.hpp
     Lib/ImplicationSetClosure.hpp
-    Lib/InPlaceStack.hpp
     Lib/Int.hpp
     Lib/IntNameTable.hpp
     Lib/IntUnionFind.hpp
@@ -460,34 +475,26 @@ source_group(instancegeneration_source_files FILES ${VAMPIRE_INSTANCEGENERATION_
 
 set(VAMPIRE_SAT_SOURCES
     SAT/BufferedSolver.cpp
-    SAT/ClauseDisposer.cpp
     SAT/DIMACS.cpp
     SAT/FallbackSolverWrapper.cpp
     SAT/MinimizingSolver.cpp
     SAT/Preprocess.cpp
-    SAT/RestartStrategy.cpp
     SAT/SAT2FO.cpp
     SAT/SATClause.cpp
     SAT/SATInference.cpp
     SAT/SATLiteral.cpp
-    SAT/TWLSolver.cpp
-    SAT/VariableSelector.cpp
     SAT/Z3Interfacing.cpp
 
     SAT/BufferedSolver.hpp
-    SAT/ClauseDisposer.hpp
     SAT/DIMACS.hpp
     SAT/FallbackSolverWrapper.hpp
     SAT/MinimizingSolver.hpp
     SAT/Preprocess.hpp
-    SAT/RestartStrategy.hpp
     SAT/SAT2FO.hpp
     SAT/SATClause.hpp
     SAT/SATInference.hpp
     SAT/SATLiteral.hpp
     SAT/SATSolver.hpp
-    SAT/TWLSolver.hpp
-    SAT/VariableSelector.hpp
     SAT/Z3Interfacing.hpp
     )
 source_group(sat_source_files FILES ${VAMPIRE_SAT_SOURCES})
@@ -680,7 +687,6 @@ source_group(shell_source_files FILES ${VAMPIRE_SHELL_SOURCES})
 set(VAMPIRE_PARSE_SOURCES
     Parse/SMTLIB2.cpp
     Parse/TPTP.cpp
-    Parse/SMTLIB.hpp
     Parse/SMTLIB2.hpp
     Parse/TPTP.hpp
     )
@@ -832,7 +838,20 @@ endif()
 # z3 stuff
 ################################################################
 
-find_package(Z3 CONFIG NO_DEFAULT_PATH PATHS ${CMAKE_SOURCE_DIR}/z3/build/)
+# find Z3 automatically!
+# normally this is just in /z3/build/, but this can be overridden
+find_package(
+  Z3
+  CONFIG
+    NO_CMAKE_PATH
+    NO_CMAKE_ENVIRONMENT_PATH
+    NO_SYSTEM_ENVIRONMENT_PATH
+    NO_CMAKE_PACKAGE_REGISTRY
+    NO_CMAKE_SYSTEM_PATH
+    NO_CMAKE_SYSTEM_PACKAGE_REGISTRY
+    PATHS
+      ${CMAKE_SOURCE_DIR}/z3/build/
+)
 if (NOT Z3_FOUND)
   message(STATUS "No Z3 found -- Compiling without SMT support.")
   add_compile_definitions(VZ3=0)
@@ -970,3 +989,9 @@ set_target_properties(vampire PROPERTIES
   RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
   )
 configure_file(version.cpp.in version.cpp)
+
+if(CMAKE_BUILD_TYPE STREQUAL Release AND IPO)
+  message(STATUS "compiling Vampire with IPO: this might take a while")
+  set_property(TARGET obj PROPERTY INTERPROCEDURAL_OPTIMIZATION true)
+  set_property(TARGET vampire PROPERTY INTERPROCEDURAL_OPTIMIZATION true)
+endif()

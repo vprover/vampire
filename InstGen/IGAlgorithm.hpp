@@ -1,7 +1,4 @@
-
 /*
- * File IGAlgorithm.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -170,7 +167,6 @@ private:
   TautologyDeletionISE _tautologyDeletion;
   DistinctEqualitySimplifier _distinctEqualitySimplifier;
 
-  bool _use_niceness;
   /*
   bool _use_dm;
 

@@ -1,7 +1,4 @@
-
 /*
- * File Splitter.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -41,7 +38,6 @@
 
 #include "SAT/Preprocess.hpp"
 #include "SAT/SATInference.hpp"
-#include "SAT/TWLSolver.hpp"
 #include "SAT/MinimizingSolver.hpp"
 #include "SAT/BufferedSolver.hpp"
 #include "SAT/FallbackSolverWrapper.hpp"
@@ -71,9 +67,6 @@ void SplittingBranchSelector::init()
   _literalPolarityAdvice = _parent.getOptions().splittingLiteralPolarityAdvice();
 
   switch(_parent.getOptions().satSolver()){
-    case Options::SatSolver::VAMPIRE:  
-      _solver = new TWLSolver(_parent.getOptions(), true);
-      break;
     case Options::SatSolver::MINISAT:
       _solver = new MinisatInterfacing(_parent.getOptions(),true);
       break;      

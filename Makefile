@@ -307,25 +307,17 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/GaussianVariableElimination.o
 #         Inferences/CTFwSubsAndRes.o\
 
-VSAT_OBJ=SAT/ClauseDisposer.o\
-         SAT/DIMACS.o\
+VSAT_OBJ=SAT/DIMACS.o\
          SAT/MinimizingSolver.o\
          SAT/Preprocess.o\
-         SAT/RestartStrategy.o\
          SAT/SAT2FO.o\
          SAT/SATClause.o\
          SAT/SATInference.o\
          SAT/SATLiteral.o\
-         SAT/TWLSolver.o\
-         SAT/VariableSelector.o\
 	 SAT/Z3Interfacing.o\
 	 SAT/Z3MainLoop.o\
 	 SAT/BufferedSolver.o\
 	 SAT/FallbackSolverWrapper.o
-#         SAT/ISSatSweeping.o\	 
-#         SAT/SATClauseSharing.o\
-#         SAT/TransparentSolver.o\
-#         SAT/SingleWatchSAT.o
 
 VST_OBJ= Saturation/AWPassiveClauseContainer.o\
          Saturation/PredicateSplitPassiveClauseContainer.o\
@@ -494,15 +486,10 @@ OTHER_CL_DEP = Indexing/FormulaIndex.o\
 	       Kernel/Problem.o\
 	       Kernel/Renaming.o\
 	       Kernel/RobSubstitution.o\
-	       SAT/ClauseDisposer.o\
-	       SAT/ISSatSweeping.o\
 	       SAT/Preprocess.o\
-	       SAT/RestartStrategy.o\
 	       SAT/SATClause.o\
 	       SAT/SATInference.o\
 	       SAT/SATLiteral.o\
-	       SAT/TWLSolver.o\
-	       SAT/VariableSelector.o	
 
 VAMP_DIRS := Api Debug DP Lib Lib/Sys Kernel FMB Indexing Inferences InstGen Shell CASC SAT Saturation Test UnitTests VUtils Parse Minisat Minisat/core Minisat/mtl Minisat/simp Minisat/utils Kernel/Rebalancing
 

@@ -1,7 +1,4 @@
-
 /*
- * File RobSubstitution.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -399,6 +396,18 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2,MismatchHandler* hndlr)
         TermSpec tsss(*ss,dt1.index);
         TermSpec tstt(*tt,dt2.index);
 
+
+        //TODO this is currently hard-coded to happen whenever hndlr is set (e.g. some uwa option is being used), shoudld it be behind an option? 
+        // if both terms are interpreted then call the mismatch handlr
+        if(hndlr && ss->isTerm() && tt->isTerm() && theory->isInterpretedFunction(*ss) && theory->isInterpretedFunction(*tt)){
+          // If the handler wants to handle it here then do so and break
+          // This means that options such as ground can decide whether to introduce a constraint
+          // If we wanted to support adding constraints when one side is not interpreted we could drop the outer check here
+          // and just let hndlr deal with it
+          if(hndlr->handle(this,tsss.term,tsss.index,tstt.term,tstt.index)){ 
+            break;
+          }
+        }
         // If they don't have the same content but have the same top functor
         // then we need to get their subterm arguments and check those
         if (!tsss.sameTermContent(tstt) && TermList::sameTopFunctor(*ss,*tt)) {
