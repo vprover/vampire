@@ -201,7 +201,7 @@ public:
   bool isIdentityOnQueryWhenResultBound() final override {return true;}
 
   virtual std::ostream& output(std::ostream& out) const final override 
-  { return out << _resultNormalizer->toString(); }
+  { return out << _resultNormalizer; }
 
 private:
   Applicator* getApplicator()

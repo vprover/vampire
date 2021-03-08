@@ -904,8 +904,8 @@ public:
   bool isEmpty() const;
 
   int _iteratorCnt;
-  Shell::Options::UnificationWithAbstraction const _uwa;
 #endif
+  Shell::Options::UnificationWithAbstraction const _uwa;
 
 public:
   friend std::ostream& operator<<(std::ostream& out, SubstitutionTree const& self)

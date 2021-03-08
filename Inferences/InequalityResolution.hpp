@@ -79,7 +79,11 @@ public:
   ClauseIterator generateClauses(Clause* premise) final override;
 
   
+
+#if VDEBUG
   virtual void setTestIndices(Stack<Indexing::Index*> const&) final override;
+#endif
+
 private:
 
   template<class NumTraits> VirtualIterator<Monom<NumTraits>> maxTerms(InequalityLiteral<NumTraits> const& lit) const;

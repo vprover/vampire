@@ -85,6 +85,7 @@ public:
   void assertValid() const;
   vstring toString() const;
 #endif
+  friend std::ostream& operator<<(std::ostream& out, Renaming const&);
 private:
   class Applicator
   {
