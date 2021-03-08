@@ -146,7 +146,7 @@ TEST_TERM_INDEX(test06,
           termQueryResult()
             .term        ( f(b + x + y) )
             .substitution({  })
-            .constraints ({ b + x + y == a + z }),
+            .constraints ({ a + z == b + x + y }),
 
       })
     )
@@ -167,7 +167,7 @@ TEST_TERM_INDEX(test07,
           termQueryResult()
             .term        ( f(c + b + a) )
             .substitution({   })
-            .constraints ({ c + b + a == c }),
+            .constraints ({ c == c + b + a }),
 
       })
     )
