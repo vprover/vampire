@@ -23,7 +23,6 @@
 #include "Lib/DHMap.hpp"
 #include "Lib/SkipList.hpp"
 #include "Lib/Int.hpp"
-#include "Lib/VString.hpp"
 
 #include "Clause.hpp"
 #include "Renaming.hpp"

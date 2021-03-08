@@ -160,7 +160,7 @@ class TestCase
       cout  << endl;
       cout << "[    query ]: " << pretty(query().unwrap()) << endl;
       cout << "[ contents ]: " << pretty(contents().unwrap()) << endl;
-      cout << "[    index ]: " << pretty(*index) << endl;
+      // cout << "[    index ]: " << pretty(*index) << endl;
       cout << "[       is ]: " << pretty(is) << endl;
       cout << "[ expected ]: " << pretty(expected) << endl;
       exit(-1);
@@ -197,21 +197,18 @@ class TestCase
       { return res.substitution->applyTo(x.first, x.second); };
 
       auto exp = lhs[i];
-      DBGE(*exp);
-      for (int i = 0; i < 3; i++) {
-        DBGE(i)
-        DBG("i: ", i, " -> ", *res.substitution->applyTo(exp, i))
-        DBG("i: ", i, " -> ", *res.substitution->applyTo(exp, i))
-      }
-      ASS(exp->isEquality())
-      auto expL = *exp->nthArgument(0);
-      auto expR = *exp->nthArgument(1);
-
-
       auto& is = (*rConst)[i];
-      if (!(   (eq(res, expL, subst(is.first)) && eq(res, expR, subst(is.second)) )
-            || (eq(res, expL, subst(is.second)) && eq(res, expR, subst(is.first)) ))
-         ) return false;
+
+      auto const_eq = [&](TermList queryPart, TermList resultPart) -> bool {
+        auto expQ = res.substitution->applyToResult(resultPart);
+        auto expR = res.substitution->applyToQuery(queryPart);
+        return eq(res, expR, subst(is.first)) && eq(res, expQ, subst(is.second));
+      };
+
+      if (!(const_eq(*exp->nthArgument(1), *exp->nthArgument(0)) 
+         || const_eq(*exp->nthArgument(0), *exp->nthArgument(1)) )) {
+        return false;
+      }
     }
     return true;
   }
