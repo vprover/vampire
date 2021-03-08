@@ -22,7 +22,6 @@
 #include "Test/SyntaxSugar.hpp"
 #include "Test/TestUtils.hpp"
 #include "Lib/Coproduct.hpp"
-#include "Test/SimplificationTester.hpp"
 #include "Test/TermIndexTester.hpp"
 #include "Kernel/KBO.hpp"
 #include "Indexing/TermSubstitutionTree.hpp"
@@ -184,7 +183,7 @@ TEST_TERM_INDEX(test08,
           termQueryResult()
             .term        ( f(a + b) )
             .substitution({  })
-            .constraints ({ a == c, b == d }),
+            .constraints ({ a + b == c + d }),
 
       })
     )

@@ -396,9 +396,10 @@ void TheoryAxioms::addAdditionOrderingAndMultiplicationAxioms(Interpretation plu
 {
   CALL("TheoryAxioms::addAdditionOrderingAndMultiplicationAxioms");
   unsigned mulFun = env.signature->getInterpretingSymbol(multiply);
+  auto srt = theory->getOperationSort(plus);
+  TermList x(0,false);
   if (!env.options->inequalityResolution()) {
 
-    auto srt = theory->getOperationSort(plus);
     ASS_EQ(srt, theory->getOperationSort(unaryMinus));
     ASS_EQ(srt, theory->getOperationSort(less));
     ASS_EQ(srt, theory->getOperationSort(multiply));
@@ -410,7 +411,6 @@ void TheoryAxioms::addAdditionOrderingAndMultiplicationAxioms(Interpretation plu
     addRightIdentity(multiply, oneElement);
 
     //axiom( X0*zero==zero );
-    TermList x(0,false);
     TermList xMulZero(Term::create2(mulFun, x, zeroElement));
     Literal* xEqXMulZero = Literal::createEquality(true, xMulZero, zeroElement, srt);
     addTheoryClauseFromLits({xEqXMulZero}, InferenceRule::THA_TIMES_ZERO, EXPENSIVE);
