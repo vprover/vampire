@@ -142,6 +142,9 @@ Term* Renaming::normalize(Term* trm)
 }
 
 
+std::ostream& operator<<(std::ostream& out, Renaming const& self)
+{ return out << self._data; }
+
 #if VDEBUG
 
 void Renaming::assertValid() const
@@ -156,16 +159,7 @@ void Renaming::assertValid() const
 }
 
 vstring Renaming::toString() const
-{
-  vstring res = "[";
-  VariableMap::Iterator mit(_data);
-  while(mit.hasNext()) {
-    unsigned from, to;
-    mit.next(from, to);
-    res+=Int::toString(from)+" -> "+Int::toString(to)+"\t";
-  }
-  return res+"]";
-}
+{ return outputToString(this); }
 
 #endif
 

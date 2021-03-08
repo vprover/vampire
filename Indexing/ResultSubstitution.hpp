@@ -141,13 +141,10 @@ public:
 //  static ResultSubstitutionSP fromSubstitution(EGSubstitution* s,
 //	  int queryBank, int resultBank);
 
-#if VDEBUG
   friend std::ostream& operator<<(std::ostream& out, ResultSubstitution const& self)
   { return self.output(out); }
 
   virtual std::ostream& output(std::ostream& out) const = 0;
-
-#endif
 };
 
 
@@ -167,9 +164,7 @@ public:
   TermList applyTo(TermList t, unsigned index) final override { return t; }
   Literal* applyTo(Literal* l,unsigned index) final override { return l; }
   bool isIdentityOnQueryWhenResultBound() final override {return true;}
-#if VDEBUG
   virtual std::ostream& output(std::ostream& out) const final override { return out << "identity"; }
-#endif
 };
 
 class DisjunctQueryAndResultVariablesSubstitution
@@ -190,10 +185,8 @@ public:
    * we can return true because nothing is bound to the result
    */
   bool isIdentityOnQueryWhenResultBound() final override {return true;}
-#if VDEBUG
   virtual std::ostream& output(std::ostream& out) const final override 
   { return out << "DisjunctQueryAndResultVariablesSubstitution"; }
-#endif
 private:
   struct Applicator;
   Renaming _renaming;

@@ -119,8 +119,11 @@ void InequalityResolution::detach()
 }
 
 
+
+#if VDEBUG
 void InequalityResolution::setTestIndices(Stack<Indexing::Index*> const& indices)
 { _index = (InequalityResolutionIndex*) indices[0]; }
+#endif
 
 
 /* 

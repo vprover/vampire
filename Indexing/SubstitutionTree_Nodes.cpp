@@ -70,7 +70,7 @@ public:
 
   CLASS_NAME(SubstitutionTree::UListLeaf);
   USE_ALLOCATOR(UListLeaf);
-#ifdef VDEBUG 
+#if VDEBUG 
   void assertValid() const final override {}
 #endif
 private:
@@ -93,10 +93,8 @@ public:
   NodeAlgorithm algorithm() const final override { return SKIP_LIST; }
   inline
   bool isEmpty() const final override { return _children.isEmpty(); }
-#if VDEBUG
   inline
   int size() const final override { return _children.size(); }
-#endif
   inline
   LDIterator allChildren() const final override
   {
@@ -115,7 +113,7 @@ public:
 
   CLASS_NAME(SubstitutionTree::SListLeaf);
   USE_ALLOCATOR(SListLeaf);
-#ifdef VDEBUG 
+#if VDEBUG 
   void assertValid() const final override {}
 #endif
 private:
