@@ -18,6 +18,7 @@
 #include "Forwards.hpp"
 
 #include "Kernel/Theory.hpp"
+#include "Kernel/InequalityNormalizer.hpp"
 
 
 
@@ -46,6 +47,7 @@ private:
   class NLiteralTransformer;
   class NFormulaTransformer;
   class NFormulaUnitTransformer;
+  InequalityNormalizer _ineqNorm;
 
   static bool isTrivialInterpretation(Interpretation itp);
 
