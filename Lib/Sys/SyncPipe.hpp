@@ -7,7 +7,6 @@
  * https://vprover.github.io/license.html
  * and in the source directory
  */
->>>>>>> fix_uwa
 /**
  * @file SyncPipe.hpp
  * Defines class SyncPipe.

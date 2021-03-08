@@ -280,7 +280,8 @@ void LaKbo::traverseLex(TraversalResult& res, TermList* tt1, TermList* tt2) cons
 int LaKbo::symbolWeight(Term* t) const
 {
   ASS_REP(tryNumeralMultiplication(t).isNone(), *t)
-  return KBO::symbolWeight(t);
+  ASS(!t->isLiteral());
+  return KBO::functionWeight(t->functor());
 }
 
 void LaKbo::traverse(TraversalResult& res, TermList tl1, TermList tl2) const
@@ -358,7 +359,7 @@ Literal* normalizeLiteral(Literal* lit)
   for (int i = 0; i < lit->arity(); i++) {
     args.push(normalizeTerm(*lit->nthArgument(i), SortHelper::getArgSort(lit, i)).denormalize());
   }
-  Literal::create(lit, args.begin());
+  return Literal::create(lit, args.begin());
 }
 
 LaKbo::Result LaKbo::comparePredicates(Literal* l1, Literal* l2) const 

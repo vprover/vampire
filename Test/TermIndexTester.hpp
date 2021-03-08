@@ -194,12 +194,19 @@ class TestCase
     if (lhs.size() != rConst->size()) return false;
     for (unsigned i = 0; i < lhs.size(); i++) {
       auto subst = [&](pair<TermList, unsigned> const& x) 
-      { return res.substitution->apply(x.first, x.second); };
+      { return res.substitution->applyTo(x.first, x.second); };
 
       auto exp = lhs[i];
+      DBGE(*exp);
+      for (int i = 0; i < 3; i++) {
+        DBGE(i)
+        DBG("i: ", i, " -> ", *res.substitution->applyTo(exp, i))
+        DBG("i: ", i, " -> ", *res.substitution->applyTo(exp, i))
+      }
       ASS(exp->isEquality())
       auto expL = *exp->nthArgument(0);
       auto expR = *exp->nthArgument(1);
+
 
       auto& is = (*rConst)[i];
       if (!(   (eq(res, expL, subst(is.first)) && eq(res, expR, subst(is.second)) )

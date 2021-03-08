@@ -61,7 +61,7 @@ std::ostream& operator<<(std::ostream& out, TermQueryResult const& self)
       << ", constraints: " ;
 
   auto toTerm = [&](pair<TermList, int> const& x) 
-                { return self.substitution->apply(x.first, x.second); };
+                { return self.substitution->applyTo(x.first, x.second); };
   auto writeConst = [&](UnificationConstraint const&c)
                     { out << toTerm(c.first) << " = " << toTerm(c.second); };
 
