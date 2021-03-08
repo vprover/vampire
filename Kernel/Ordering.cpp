@@ -39,6 +39,7 @@
 #include "Problem.hpp"
 #include "Signature.hpp"
 #include "Kernel/NumTraits.hpp" 
+#include "Kernel/LaKbo.hpp"
 
 #include "Ordering.hpp"
 
@@ -131,8 +132,11 @@ Ordering* Ordering::create(Problem& prb, const Options& opt)
         && !env.colorUsed
         && env.options->predicateWeights() == ""
         && env.options->functionWeights() == ""
+        && !env.options->inequalityResolution() // <- TODO should we somehow support this? I think it doesn't make sense
         ) {
       out = new KBOForEPR(prb, opt);
+    } else if (env.options->inequalityResolution()) {
+      out = new LaKbo(KBO(prb, opt));
     } else {
       out = new KBO(prb, opt);
     }

@@ -1123,6 +1123,7 @@ void Options::init()
            _lookup.insert(&_inequalityResolution);
            _inequalityResolution.tag(OptionTag::INFERENCES);
            _inequalitySplitting.setExperimental();
+           _inequalityResolution.reliesOn(_termOrdering.is(equal(TermOrdering::KBO)));
 
            _gaussianVariableElimination = choiceArithmeticSimplificationMode(
                "gaussian_variable_elimination", "gve",
