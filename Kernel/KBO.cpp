@@ -710,11 +710,13 @@ int KBO::predicateWeight(Term* t) const
 
 int KBO::symbolWeight(Term* t) const
 {
-#if __KBO__CUSTOM_PREDICATE_WEIGHTS__
   if (t->isLiteral()) 
+#if __KBO__CUSTOM_PREDICATE_WEIGHTS__
     return _predWeights.symbolWeight(t);
-  else 
+#else 
+    return 1;
 #endif
+  else 
     return _funcWeights.symbolWeight(t);
 }
 
