@@ -17,6 +17,7 @@
 #define __GeneralInduction__
 
 #include <cmath>
+#include <bitset>
 
 #include "Forwards.hpp"
 
@@ -44,51 +45,44 @@ public:
   USE_ALLOCATOR(InductionGeneralizationIterator);
   DECL_ELEMENT_TYPE(OccurrenceMap);
 
-  /* Based on a map of terms to bit vectors of necessary occurrences
+  /* Based on a map of advanceterms to bit vectors of necessary occurrences
    * and number of all occurrences, enumerates all possible generalizations
    * as bit vectors. 
    */
   InductionGeneralizationIterator(bool includeEmpty, const OccurrenceMap& occ)
-      : _occ(occ),
-        _includeEmpty(includeEmpty),
-        _iterations(occ),
-        _currOcc(_occ.begin()),
-        _currIter(_iterations.begin()) {}
+    : _occ(occ), _it(_occ.begin())
+  {
+    if (!includeEmpty) {
+      _it->second.next();
+      _it++;
+      if (_it == _occ.end()) {
+        _it = _occ.begin();
+      }
+    }
+  }
 
   inline bool hasNext()
   {
-    return _includeEmpty
-      ? _currIter->second.second < _currIter->second.first
-      : _currIter->second.second+1 < _currIter->second.first;
+    return _it->second.hasNext();
   }
+
   inline OWN_ELEMENT_TYPE next()
   {
     CALL("InductionGeneralizationIterator::next()");
     ASS(hasNext());
 
-    if (_includeEmpty) {
-      _includeEmpty = false;
-      return _iterations;
+    auto temp = _occ;
+    _it->second.next();
+    _it++;
+    if (_it == _occ.end()) {
+      _it = _occ.begin();
     }
-
-    _currIter->second.second++;
-    _currIter->second.second |= _currOcc->second.second;
-    _currIter++;
-    if (_currIter == _iterations.end()) {
-      _currIter = _iterations.begin();
-      _currOcc = _occ.begin();
-    } else {
-      _currOcc++;
-    }
-    return _iterations;
+    return temp;
   }
 
 private:
   OccurrenceMap _occ;
-  bool _includeEmpty;
-  OccurrenceMap _iterations;
-  OccurrenceMap::const_iterator _currOcc;
-  OccurrenceMap::iterator _currIter;
+  OccurrenceMap::iterator _it;
 };
 
 class InductionGeneralization {

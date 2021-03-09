@@ -355,7 +355,7 @@ void InductionSchemeFilter::filterComplex(vvector<InductionScheme>& schemes, con
         unsigned occ = 0;
         for (const auto& kv : occMap) {
           if (kv.first.second == term) {
-            occ += __builtin_ctz(kv.second.first);
+            occ += kv.second.max();
           }
         }
         if (occ == 1) {

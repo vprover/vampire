@@ -20,8 +20,9 @@
 #include "Kernel/TermTransformer.hpp"
 #include "Indexing/Index.hpp"
 #include "InductionPreprocessor.hpp"
-// #include "Inferences/GeneralInduction.hpp"
 #include "Lib/STL.hpp"
+
+#include <bitset>
 
 namespace Shell {
 
@@ -29,7 +30,73 @@ using namespace Kernel;
 using namespace Lib;
 using namespace Indexing;
 
-using Occurrences = pair<unsigned, unsigned>;
+class Occurrences {
+public:
+  Occurrences(bool initial)
+    : _occ(1 & initial), _iter(), _max(1 << 1), _finished(false) {}
+
+  void add(bool val) {
+    ASS(!_finished);
+    _occ <<= 1;
+    _max <<= 1;
+    _occ |= (1 & val);
+  }
+
+  void finalize() {
+    ASS(!_finished);
+    _finished = true;
+    const auto c = max();
+    auto temp = _occ;
+    _occ = 0;
+    for (uint64_t i = 0; i < c; i++) {
+      _occ <<= 1;
+      _occ |= temp & 1;
+      temp >>= 1;
+    }
+    _iter = _occ;
+  }
+
+  bool hasNext() const {
+    ASS(_finished);
+    return _occ < _max;
+  }
+
+  void next() {
+    ASS(_finished);
+    _iter++;
+    _iter |= _occ;
+  }
+
+  bool val() {
+    ASS(_finished);
+    bool res = _iter & 1;
+    _iter >>= 1;
+    _max >>= 1;
+    return res;
+  }
+
+  uint64_t max() const {
+    ASS(_finished);
+    return __builtin_ctz(_max);
+  }
+
+  vstring toString() const {
+    vstringstream str;
+    auto temp = _iter;
+    for (uint64_t i = 0; i < max(); i++) {
+      str << (temp & 1);
+      temp >>= 1;
+    }
+    return str.str();
+  }
+
+private:
+  uint64_t _occ;
+  uint64_t _iter;
+  uint64_t _max;
+  bool _finished;
+};
+
 using OccurrenceMap = vmap<pair<Literal*, TermList>, Occurrences>;
 
 /**

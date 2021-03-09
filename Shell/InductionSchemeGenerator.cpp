@@ -85,9 +85,7 @@ TermList TermOccurrenceReplacement2::transformSubterm(TermList trm)
   if (rIt != _r.end()) {
     auto oIt = _o.find(make_pair(_lit,trm));
     ASS(oIt != _o.end());
-    auto val = oIt->second.second;
-    oIt->second.second >>= 1;
-    if (1 & val) {
+    if (oIt->second.val()) {
       return rIt->second;
     }
   }
@@ -519,6 +517,9 @@ InductionIterator RecursionInductionSchemeGenerator::operator()(const SLQueryRes
       generate(s.clause, s.literal, secondarySchemes, false);
     }
   }
+  for (auto& o : _actOccMaps) {
+    o.second.finalize();
+  }
   InductionSchemeFilter f;
   f.filter(primarySchemes, secondarySchemes);
   f.filterComplex(primarySchemes, _actOccMaps);
@@ -587,14 +588,10 @@ bool RecursionInductionSchemeGenerator::process(TermList curr, bool active,
     auto p = make_pair(lit,curr);
     auto aIt = _actOccMaps.find(p);
     if (aIt == _actOccMaps.end()) {
-      aIt = _actOccMaps.insert(make_pair(p, make_pair(1 << 1,0))).first;
+      _actOccMaps.insert(make_pair(p, Occurrences(active)));
     } else {
-      aIt->second.first <<= 1;
-      aIt->second.second <<= 1;
+      aIt->second.add(active);
     }
-    cout << curr << " " << aIt->second.first << " " << aIt->second.second;
-    aIt->second.second |= active;
-    cout << " " << aIt->second.first << " " << aIt->second.second << endl;
   }
 
   unsigned f = t->functor();

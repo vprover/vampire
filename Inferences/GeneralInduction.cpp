@@ -221,7 +221,6 @@ InductionFormulaIterator::InductionFormulaIterator(
 
   // cout << hypothesis->toString() << endl << endl;
 
-  // return make_pair(hypothesis, conclusionToLitMap);
   NewCNF cnf(0);
   cnf.setForInduction();
   Stack<Clause*> hyp_clauses;
@@ -237,15 +236,19 @@ InductionFormulaIterator::InductionFormulaIterator(
   // Now perform resolution between origLit and the hyp_clauses on conclusion if conclusion in the clause
   // If conclusion not in the clause then the clause is a definition from clausification and just keep
   Stack<Clause*>::Iterator cit(hyp_clauses);
-  // TODO(mhajdu): here technically the substitution should contain
-  // the inductionterm -> variable mappings but this now works as we
-  // know exactly what to resolve in the call below. This, however,
-  // should be fixed later.
 
   // create substitutions to use during binary resolution
   for (auto& kv : conclusionToLitMap) {
     ScopedPtr<RobSubstitution> subst(new RobSubstitution());
-    ALWAYS(subst->unify(TermList(kv.first), 0, TermList(kv.second.literal), 1));
+    if (!subst->match(TermList(kv.first), 0, TermList(kv.second.literal), 1)) {
+      ASS(kv.first->isEquality() && kv.second.literal->isEquality());
+      subst->reset();
+      // direct match did not succeed, so we match one literal with the other reversed
+      subst->bindSpecialVar(1,*kv.first->nthArgument(0), 0);
+      subst->bindSpecialVar(0,*kv.first->nthArgument(1), 0);
+      ALWAYS(subst->match(TermList(1, true), 0, *kv.second.literal->nthArgument(1), 1)
+        && subst->match(TermList(0, true), 0, *kv.second.literal->nthArgument(0), 1));
+    }
     kv.second.substitution = ResultSubstitution::fromSubstitution(subst.ptr(), 1, 0);
   }
 
@@ -261,6 +264,7 @@ InductionFormulaIterator::InductionFormulaIterator(
       if (contains) {
         c = BinaryResolution::generateClause(c,conclusion,qr,*env.options);
         if (splitter) {
+          // TODO(mhajdu): the last clause is added twice, once here, once outside
           splitter->onNewClause(c);
         }
       }
