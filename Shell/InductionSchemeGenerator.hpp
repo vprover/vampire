@@ -45,7 +45,7 @@ public:
   void finalize() {
     ASS(!_finished);
     _finished = true;
-    const auto c = max();
+    const auto c = num_bits();
     auto temp = _occ;
     _occ = 0;
     for (uint64_t i = 0; i < c; i++) {
@@ -58,7 +58,7 @@ public:
 
   bool hasNext() const {
     ASS(_finished);
-    return _occ < _max;
+    return _iter < _max;
   }
 
   void next() {
@@ -67,7 +67,7 @@ public:
     _iter |= _occ;
   }
 
-  bool val() {
+  bool pop_last() {
     ASS(_finished);
     bool res = _iter & 1;
     _iter >>= 1;
@@ -75,15 +75,28 @@ public:
     return res;
   }
 
-  uint64_t max() const {
+  uint64_t val() {
+    ASS(_finished);
+    return _iter;
+  }
+
+  uint64_t num_bits() const {
     ASS(_finished);
     return __builtin_ctz(_max);
+  }
+
+  uint64_t num_set_bits() const {
+    return __builtin_popcount(_occ);
+  }
+
+  void set_bits() {
+    _iter = _max - 1;
   }
 
   vstring toString() const {
     vstringstream str;
     auto temp = _iter;
-    for (uint64_t i = 0; i < max(); i++) {
+    for (uint64_t i = 0; i < num_bits(); i++) {
       str << (temp & 1);
       temp >>= 1;
     }

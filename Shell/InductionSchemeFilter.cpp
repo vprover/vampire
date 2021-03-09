@@ -355,7 +355,7 @@ void InductionSchemeFilter::filterComplex(vvector<InductionScheme>& schemes, con
         unsigned occ = 0;
         for (const auto& kv : occMap) {
           if (kv.first.second == term) {
-            occ += kv.second.max();
+            occ += kv.second.num_bits();
           }
         }
         if (occ == 1) {

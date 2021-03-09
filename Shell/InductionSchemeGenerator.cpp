@@ -85,7 +85,7 @@ TermList TermOccurrenceReplacement2::transformSubterm(TermList trm)
   if (rIt != _r.end()) {
     auto oIt = _o.find(make_pair(_lit,trm));
     ASS(oIt != _o.end());
-    if (oIt->second.val()) {
+    if (oIt->second.pop_last()) {
       return rIt->second;
     }
   }
@@ -500,6 +500,8 @@ ostream& operator<<(ostream& out, const InductionScheme& scheme)
 
 InductionIterator RecursionInductionSchemeGenerator::operator()(const SLQueryResult& main, const vvector<SLQueryResult>& side)
 {
+  CALL("RecursionInductionSchemeGenerator()");
+
   vvector<InductionScheme> primarySchemes;
   vvector<InductionScheme> secondarySchemes;
   _actOccMaps.clear();

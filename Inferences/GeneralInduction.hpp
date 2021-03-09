@@ -37,6 +37,51 @@ namespace Inferences
 using namespace Kernel;
 using namespace Saturation;
 
+class HeuristicGeneralizationIterator
+  : public IteratorCore<OccurrenceMap>
+{
+public:
+  CLASS_NAME(HeuristicGeneralizationIterator);
+  USE_ALLOCATOR(HeuristicGeneralizationIterator);
+  DECL_ELEMENT_TYPE(OccurrenceMap);
+
+  HeuristicGeneralizationIterator(bool includeEmpty, const OccurrenceMap& occ)
+    : _occ(occ), _it(_occ.begin()) {}
+
+  inline bool hasNext()
+  {
+    return _it->second.hasNext();
+  }
+
+  inline OWN_ELEMENT_TYPE next()
+  {
+    CALL("HeuristicGeneralizationIterator::next()");
+    ASS(hasNext());
+
+    auto temp = _occ;
+    _it->second.next();
+    // check whether we were already at all 1
+    if (hasNext()) {
+      // all 1 is the next if the heuristics apply
+      _it->second.set_bits();
+      auto nsb = _it->second.num_set_bits();
+      // if they don't apply, we invalidate the iterator
+      if (nsb != 1 && nsb != _it->second.num_bits() - 1) {
+        _it->second.next();
+      }
+      _it++;
+      if (_it == _occ.end()) {
+        _it = _occ.begin();
+      }
+    }
+    return temp;
+  }
+
+private:
+  OccurrenceMap _occ;
+  OccurrenceMap::iterator _it;
+};
+
 class InductionGeneralizationIterator
   : public IteratorCore<OccurrenceMap>
 {
@@ -103,7 +148,7 @@ public:
     CALL("InductionGeneralization()");
 
     return pvi(pushPairIntoRightIterator(p.first,
-      vi(new InductionGeneralizationIterator(_includeEmpty, p.second))));
+      vi(new HeuristicGeneralizationIterator(_includeEmpty, p.second))));
   }
 
   bool next(OccurrenceMap& m);
