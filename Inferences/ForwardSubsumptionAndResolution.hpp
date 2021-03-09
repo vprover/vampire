@@ -74,8 +74,6 @@ private:
   vvector<int64_t> m_numDecisions_frequency;
   // only those where MLMatcher returned 'true'
   vvector<int64_t> m_numDecisions_successes;
-  uint64_t m_seq = 0;
-  uint64_t m_seq_output = 0;
 };
 
 

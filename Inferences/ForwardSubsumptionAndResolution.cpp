@@ -370,6 +370,12 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
   static CMStack cmStore(64);
   ASS(cmStore.isEmpty());
 
+
+  /*
+   * Subsumption by unit clauses.
+   * We don't cover this for our benchmarks.
+   */
+
   for(unsigned li=0;li<clen;li++) {
     SLQueryResultIterator rit=_unitIndex->getGeneralizations( (*cl)[li], false, false);
     while(rit.hasNext()) {
@@ -395,6 +401,10 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
       }
     }
   }
+
+  /*
+   *  Subsumption by longer clauses
+   */
 
   {
   LiteralMiniIndex miniIndex(cl);
@@ -422,52 +432,19 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
         continue;
       }
 
-      if (mcl->weight() > cl->weight()) {
-        RSTAT_CTR_INC("fw subsumption impossible due to weight");
-      }
+      // disable this for now (not done in master, needs to be checked and discussed)
+      // if (mcl->weight() > cl->weight()) {
+      //   RSTAT_CTR_INC("fw subsumption impossible due to weight");
+      // }
 
       RSTAT_CTR_INC("MLSubsumption Calls");
       bool isSubsumed =
         MLMatcher::canBeMatched(mcl,cl,cms->_matches,0)
         && ColorHelper::compatible(cl->color(), mcl->color());
 
-// Enable if you want to log *every* subsumption instance
-#if 0
-      if (m_logger) {
-        m_logger->log(mcl, cl, isSubsumed, MLMatcher::getStaticStats());
-      }
-#endif
-
-      m_seq += 1;
-      m_seq_output += 1;
       auto stats = MLMatcher::getStaticStats();
-      // env.beginOutput();
-      // // env.out() << "\% MLMatcher(" << mcl->number() << "," << cl->number() << ")\n";
-      // // env.out() << "\% mcl = " << mcl->toString() << "\n";
-      // // env.out() << "\%  cl = " << cl->toString() << "\n";
-      // env.out() << "\% Subsumption "
-      //           << "{ \"seq\": " << seq
-      //           << ", \"mcl\": " << mcl->number()
-      //           << ", \"cl\": " << cl->number()
-      //           << ", \"stats\": " << MLMatcher::getStaticStats()
-      //           << " }\n";
-      // env.endOutput();
-      if (stats.numDecisions >= 100) {
-        if (m_logger) {
-          // Log "interesting" subsumption instances
-          m_logger->log(mcl, cl, isSubsumed, &stats);
-        }
-        env.beginOutput();
-        env.out() << "\% Subsumption(" << mcl->number() << "," << cl->number() << ")\n";
-        env.out() << "\% mcl = " << mcl->toString() << "\n";
-        env.out() << "\%  cl = " << cl->toString() << "\n";
-        env.out() << "\% Subsumption "
-                  << "{ \"seq\": " << m_seq
-                  << ", \"mcl\": " << mcl->number()
-                  << ", \"cl\": " << cl->number()
-                  << ", \"stats\": " << stats
-                  << " }\n\%\n";
-        env.endOutput();
+      if (m_logger) {
+        m_logger->log(mcl, cl, isSubsumed, &stats);
       }
       if (stats.numDecisions >= m_numDecisions_frequency.size()) {
         size_t new_size = std::max(std::max(256ul, (size_t)stats.numDecisions+1), m_numDecisions_frequency.size() * 2);
@@ -498,13 +475,6 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
   }
 
   tc_fs.stop();
-
-  // if (m_seq_output > 10000) {
-  //   m_seq_output = 0;
-  //   env.beginOutput();
-  //   printStats(env.out());
-  //   env.endOutput();
-  // }
 
   if(!_subsumptionResolution) {
     goto fin;
