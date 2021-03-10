@@ -61,6 +61,62 @@ static void parse_dimacs(std::istream& in, Solver<A>& solver)
   }
 }
 
+template <template <typename> class A>
+static void parse_input(std::string filename, Solver<A>& solver)
+{
+    if (filename == "-") {
+      parse_dimacs(std::cin, solver);
+    } else {
+      std::ifstream file_in{filename};
+      parse_dimacs(file_in, solver);
+    }
+}
+
+static int enumerate_models(std::string filename)
+{
+  if (filename == "-") {
+    std::cerr << "stdin not supported for model enumeration at the moment!" << std::endl;
+    return 2;
+  }
+
+  Solver<> s;
+  parse_input(filename, s);
+
+  // Collect all models
+  std::vector<std::vector<Lit>> models;
+  Result res;
+  while ((res = s.solve()) == Result::Sat) {
+    models.push_back({});
+    auto& model = models.back();
+    s.get_model(model);
+    std::cout << SHOWVEC(model) << std::endl;
+  }
+  if (res != Result::Unsat) {
+    std::cerr << "Enumerating models: unexpected result: " << res << std::endl;
+    return 1;
+  }
+
+  // Check that the enumeration procedure didn't miss any models
+  s.clear();
+  parse_input(filename, s);
+  // Add blocking clause for each model discovered in the previous run
+  for (auto const& model : models) {
+    s.clause_start();
+    for (Lit lit : model) {
+      s.clause_literal(~lit);
+    }
+    ClauseRef cr = s.clause_end();
+    s.add_clause(cr);
+  }
+  // We expect unsat, otherwise we missed some model in the first part.
+  if ((res = s.solve()) != Result::Unsat) {
+    std::cerr << "Checking: unexpected result: " << res << std::endl;
+    return 1;
+  }
+
+  return 0;
+}
+
 int main(int argc, char* argv[])
 {
   Solver<> s;
@@ -111,18 +167,16 @@ int main(int argc, char* argv[])
     return 1;
   }
 
+  (void)enumerate_models;  // suppress 'unused function' warning
+  // return enumerate_models(argv[1]);
+
   for (int i = 1; i < argc; ++i) {
     std::string filename{argv[i]};
 
     s.clear();
 
     std::cout << "INPUT " << filename << std::endl;
-    if (filename == "-") {
-      parse_dimacs(std::cin, s);
-    } else {
-      std::ifstream file_in{filename};
-      parse_dimacs(file_in, s);
-    }
+    parse_input(filename, s);
 
     std::cout << "SOLVING..." << std::endl;
     res = s.solve();

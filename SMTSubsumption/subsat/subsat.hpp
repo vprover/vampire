@@ -235,6 +235,11 @@ static_assert(std::is_trivially_destructible<Reason>::value, "");
 struct VarInfo final {
   Level level = InvalidLevel;
   Reason reason;
+
+  constexpr bool is_decision() const noexcept
+  {
+    return level > 0 && !reason.is_valid();
+  }
 };
 static_assert(std::is_trivially_destructible<VarInfo>::value, "");
 
@@ -448,6 +453,7 @@ public:
   {
     uint32_t const old_used_vars = m_used_vars;
 
+    m_state = Result::Unknown;
     m_inconsistent = false;
     m_used_vars = 0;
     m_unassigned_vars = 0;
@@ -788,27 +794,61 @@ public:
 
   Result solve()
   {
+    assert(m_state == Result::Unknown || m_state == Result::Sat);
 #if SUBSAT_STATISTICS
-    LOG_INFO("Starting with "
+    LOG_INFO((m_state != Result::Sat ? "Starting solving with " : "Resuming solving with ")
              << m_used_vars << " variables, "
              << m_stats.original_clauses << " clauses, "
              << m_stats.original_amos << " at-most-one constraints");
 #endif
-    m_trail.reserve(m_used_vars);
-    m_frames.resize(m_used_vars + 1, 0);
+
+    // Initialize data structures if this is the first call to solve
+    if (m_state == Result::Unknown) {
+      m_trail.reserve(m_used_vars);
+      m_frames.resize(m_used_vars + 1, 0);
 #if SUBSAT_VMTF
-    m_queue.resize_and_init(m_used_vars);
-    assert(m_queue.checkInvariants(m_values));
+      m_queue.resize_and_init(m_used_vars);
+      assert(m_queue.checkInvariants(m_values));
 #endif
 
-    if (!tmp_propagate_binary_conflict_ref.is_valid()) {
-      auto ca = m_clauses.alloc(2);
-      handle_push_literal(ca, Lit::invalid());
-      handle_push_literal(ca, Lit::invalid());
-      tmp_propagate_binary_conflict_ref = m_clauses.handle_build(ca);
+      if (!tmp_propagate_binary_conflict_ref.is_valid()) {
+        auto ca = m_clauses.alloc(2);
+        handle_push_literal(ca, Lit::invalid());
+        handle_push_literal(ca, Lit::invalid());
+        tmp_propagate_binary_conflict_ref = m_clauses.handle_build(ca);
+      }
     }
 
     Result res = Result::Unknown;
+
+    // Prepare to find next model
+    if (m_state == Result::Sat) {
+#if SUBSAT_RESTART
+#warning "Model enumeration probably doesn't work with restarting at the moment!"
+#endif
+      // TODO: proper implementation later (for now, we only need this for debugging anyway)
+      if (m_level == 0) {
+        m_inconsistent = true;
+      } else {
+        // Build conflict clause from the current decisions.
+        auto conflict = m_clauses.alloc(m_level);
+        for (Lit lit : m_trail) {
+          if (m_vars[lit.var()].is_decision()) {
+            m_clauses.handle_push_literal(conflict, ~lit);
+          }
+        }
+        ClauseRef conflict_ref = m_clauses.handle_build(conflict);
+        if (!analyze(conflict_ref)) {
+          res = Result::Unsat;
+        }
+        // auto it = std::find_if(m_trail.rbegin(), m_trail.rend(),
+        //                        [this](Lit lit) { return !m_vars[lit.var()].reason.is_valid(); });
+        // assert(it != m_trail.rend());
+        // Lit last_decision = *it;
+        // backtrack(m_level - 1);
+        // assign(~last_decision, Reason::invalid());   // this won't work... if both branches lead to a model we'll keep flipping the same decision.
+      }
+    }
 
     if (m_inconsistent) {
       res = Result::Unsat;
@@ -861,9 +901,27 @@ public:
     }
 
 #if SUBSAT_STATISTICS
-      std::cerr << m_stats;
+    std::cerr << m_stats;
 #endif
+    m_state = res;
     return res;
+  }
+
+  /// Copy the currently true literals into the given vector.
+  template < typename A >
+  void get_model(std::vector<Lit, A>& model) const
+  {
+    assert(m_state == Result::Sat);
+    assert(m_unassigned_vars == 0);
+    model.assign(m_trail.begin(), m_trail.end());
+  }
+
+  /// Return the current value of the given literal.
+  Value get_value(Lit lit) const
+  {
+    assert(m_state == Result::Sat);
+    assert(m_unassigned_vars == 0);
+    return m_values[lit];
   }
 
 private:
@@ -1372,7 +1430,7 @@ private:
 
       auto learned = m_clauses.alloc(size);
       for (Lit learned_lit : clause) {
-        handle_push_literal(learned, learned_lit);
+        m_clauses.handle_push_literal(learned, learned_lit);
       }
       ClauseRef learned_ref = m_clauses.handle_build(learned);
       LOG_INFO("Learned: size = " << size << ", literals = " << SHOWREF(learned_ref));
@@ -1505,6 +1563,8 @@ private:
   }
 
 
+  /// Backtrack to decision level 'new_level',
+  /// i.e., undo all assignments on levels higher than 'new_level'.
   void backtrack(Level new_level)
   {
     LOG_INFO("Backtracking to level " << new_level);
@@ -1609,6 +1669,9 @@ private:
   }
 
 private:
+  /// Tracks the state the solver is in.
+  Result m_state = Result::Unknown;
+
   /// Whether we found a conflict at the root level
   bool m_inconsistent = false;
 
@@ -1675,14 +1738,6 @@ private:
   vector_map<Level, uint8_t> m_frames; ///< stores for each level whether we already have it in blocks (we use 'char' because vector<bool> is bad)
   ClauseRef tmp_propagate_binary_conflict_ref = ClauseRef::invalid();
 
-#ifndef NDEBUG
-  // TODO: to check correctness of API usage, add a state argument and check this when public methods are called.
-  // E.g.: Adding variables/clauses/amos is only allowed in Init, solve() only in Init and Sat,
-  //       access to model only in Sat, ...
-  // enum class State { Init, Unsat, Sat };  // any others?
-  // State m_state;
-#endif
-
 #if SUBSAT_STATISTICS
   Statistics m_stats;
 #endif
@@ -1722,6 +1777,7 @@ std::ostream& operator<<(std::ostream& os, ShowAssignment<A> sa)
 template <template <typename> class Allocator>
 bool Solver<Allocator>::checkEmpty() const
 {
+  assert(m_state == Result::Unknown);
   assert(!m_inconsistent);
   assert(m_used_vars == 0);
   assert(m_unassigned_vars == 0);
@@ -1803,6 +1859,11 @@ bool Solver<Allocator>::checkInvariants() const
   }
   assert(trail_vars.size() == m_trail.size());
   assert(m_trail.size() <= m_used_vars);
+
+  // Decision level is the number of decisions on the trail
+  auto num_decisions = std::count_if(m_trail.rbegin(), m_trail.rend(),
+                                     [this](Lit lit) { return m_vars[lit.var()].is_decision(); });
+  assert(m_level == num_decisions);
 
   assert(m_propagate_head <= m_trail.size());
   assert(m_theory_propagate_head <= m_trail.size());
