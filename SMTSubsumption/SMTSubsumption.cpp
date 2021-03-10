@@ -2542,33 +2542,33 @@ void ProofOfConcept::benchmark_micro(vvector<SubsumptionInstance> instances)
     // name = "smt_until_create_theory_" + suffix;
     // benchmark::RegisterBenchmark(name.c_str(), bench_smt_until_create_theory, instance);
 
-    name = "smt_setup_" + suffix;
-    benchmark::RegisterBenchmark(name.c_str(), bench_smt_setup, instance);
+    // name = "smt_setup_" + suffix;
+    // benchmark::RegisterBenchmark(name.c_str(), bench_smt_setup, instance);
     // name = "smt_setup2_" + suffix;
     // benchmark::RegisterBenchmark(name.c_str(), bench_smt_setup2, instance);
     // break;
     // name = "smt_search_" + suffix;
     // benchmark::RegisterBenchmark(name.c_str(), bench_smt_search, instance);
-    name = "smt_total_" + suffix;
-    benchmark::RegisterBenchmark(name.c_str(), bench_smt_total, instance);
+    // name = "smt_total_" + suffix;
+    // benchmark::RegisterBenchmark(name.c_str(), bench_smt_total, instance);
 
-    name = "smt2_setup_" + suffix;
-    benchmark::RegisterBenchmark(name.c_str(), bench_smt2_setup, instance);
+    // name = "smt2_setup_" + suffix;
+    // benchmark::RegisterBenchmark(name.c_str(), bench_smt2_setup, instance);
+    // name = "smt2_total_" + suffix;
+    // benchmark::RegisterBenchmark(name.c_str(), bench_smt2_total, instance);
     name = "smt2_setup_reusing_" + suffix;
     benchmark::RegisterBenchmark(name.c_str(), bench_smt2_setup_reusing, instance);
-    name = "smt2_total_" + suffix;
-    benchmark::RegisterBenchmark(name.c_str(), bench_smt2_total, instance);
     name = "smt2_total_reusing_" + suffix;
     benchmark::RegisterBenchmark(name.c_str(), bench_smt2_total_reusing, instance);
 
-    name = "orig_setup_" + suffix;
-    benchmark::RegisterBenchmark(name.c_str(), bench_orig_setup, instance);
-    name = "orig_setup_reusing_" + suffix;
-    benchmark::RegisterBenchmark(name.c_str(), bench_orig_setup_reusing, instance);
+    // name = "orig_setup_" + suffix;
+    // benchmark::RegisterBenchmark(name.c_str(), bench_orig_setup, instance);
+    // name = "orig_setup_reusing_" + suffix;
+    // benchmark::RegisterBenchmark(name.c_str(), bench_orig_setup_reusing, instance);
     // name = "orig_search_" + suffix;
     // benchmark::RegisterBenchmark(name.c_str(), bench_orig_search, instance);
-    name = "orig_total_" + suffix;
-    benchmark::RegisterBenchmark(name.c_str(), bench_orig_total, instance);
+    // name = "orig_total_" + suffix;
+    // benchmark::RegisterBenchmark(name.c_str(), bench_orig_total, instance);
     name = "orig_total_reusing_" + suffix;
     benchmark::RegisterBenchmark(name.c_str(), bench_orig_total_reusing, instance);
   }
