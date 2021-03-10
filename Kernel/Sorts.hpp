@@ -55,7 +55,7 @@ public:
   TermList getSortTerm(unsigned sort);
   unsigned count(){return (unsigned)_sorts.size(); }
   /** true if there is a sort different from built-ins */  
-  bool hasSort() { return count() > 5; }
+  bool hasSort() { return count() > FIRST_USER_SORT; }
 
   //once arrays are fixed and axiomatused by a fixed number of polymorphic axioms
   //_arraySorts can be deleted
