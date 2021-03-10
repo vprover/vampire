@@ -17,7 +17,7 @@
 
 #include "./clause.hpp"
 #include "./decision_queue.hpp"
-#include "./domain_degree.hpp"
+#include "./variable_domain_size.hpp"
 #include "./types.hpp"
 #include "./vector_map.hpp"
 #include "./log.hpp"
@@ -58,14 +58,14 @@ static_assert(VDEBUG == 1, "VDEBUG and NDEBUG are not synchronized");
 #define SUBSAT_MINIMIZE 0
 #endif
 
-// Domain-degree decision heuristic
+// VDOM (variable domain size) decision heuristic
 // ASSESSMENT: extremely valuable for hard subsumption instances!
-#ifndef SUBSAT_DDEG
-#define SUBSAT_DDEG 1
+#ifndef SUBSAT_VDOM
+#define SUBSAT_VDOM 1
 #endif
 
-// VMTF decision heuristic
-// If both DDEG and VMTF are enabled, then VMTF is used as fallback (only useful if there are variables without an assigned group).
+// VMTF (variable move to front) decision heuristic
+// If both VDOM and VMTF are enabled, then VMTF is used as fallback (only useful if there are variables without an assigned group).
 // ASSESSMENT: can be removed for subsumption instances since all variables will be assigned to a group.
 #ifndef SUBSAT_VMTF
 #if SUBSAT_STANDALONE
@@ -75,7 +75,7 @@ static_assert(VDEBUG == 1, "VDEBUG and NDEBUG are not synchronized");
 #endif
 #endif
 
-#if !SUBSAT_DDEG && !SUBSAT_VMTF
+#if !SUBSAT_VDOM && !SUBSAT_VMTF
 #error "At least one decision heuristic must be enabled!"
 #endif
 
@@ -311,16 +311,6 @@ std::ostream& operator<<(std::ostream& os, ShowReason<A> const& sr)
   return os;
 }
 
-/// SMT solver especially for subsumption-type problems.
-///
-/// Native support for
-/// - boolean variables and clauses,
-/// - at-most-one constraints,
-/// - substitution theory.
-///
-/// Based on two solvers by Armin Biere:
-/// - satch, see https://github.com/arminbiere/satch
-/// - kitten, which is part of kissat, see https://github.com/arminbiere/kissat
 template <template <typename> class Allocator> class Solver;
 
 template <template <typename> class A>
@@ -331,13 +321,29 @@ struct ShowAssignment {
 
 template <template <typename> class A>
 std::ostream& operator<<(std::ostream& os, ShowAssignment<A> sa);
-#endif
 
-template <template <typename> class Allocator = std::allocator>
-class Solver {
 #define SHOWREF(cr) (ShowClauseRef<Allocator>{m_clauses, cr})
 #define SHOWREASON(r) (ShowReason<Allocator>{m_clauses, r})
 #define SHOWASSIGNMENT() (ShowAssignment<Allocator>{*this})
+
+#endif
+
+
+
+
+
+/// SMT solver especially for subsumption-type problems.
+///
+/// Native support for
+/// - boolean variables and clauses,
+/// - at-most-one constraints,
+/// - substitution theory.
+///
+/// Based on two solvers by Armin Biere:
+/// - satch, see https://github.com/arminbiere/satch
+/// - kitten, which is part of kissat, see https://github.com/arminbiere/kissat
+template <template <typename> class Allocator = std::allocator>
+class Solver {
 
 public:
   template <typename T>
@@ -357,14 +363,14 @@ public:
   using map = std::map<Key, T, Compare, allocator_type<std::pair<Key const, T>>>;
 #endif
 
-  using ddeg = DomainDegree<allocator_type>;
-  using ddeg_group = typename ddeg::Group;
+  using vdom = VariableDomainSize<allocator_type>;
+  using vdom_group = typename vdom::Group;
 
 
   /// Ensure space for a new variable and return it.
   /// By default, memory is increased exponentially (relying on the default behaviour of std::vector).
   /// Use reserve_variables if you know the number of variables upfront.
-  NODISCARD Var new_variable(ddeg_group group = ddeg::InvalidGroup)
+  NODISCARD Var new_variable(vdom_group group = vdom::InvalidGroup)
   {
     // TODO: optional argument phase_hint as initial value for m_phases?
     Var new_var = Var{m_used_vars++};
@@ -381,10 +387,10 @@ public:
       m_watches_amo.emplace_back();         // positive literal watches
       m_watches_amo.emplace_back();         // negative literal watches -- generally not needed for our instances
     }
-#if SUBSAT_DDEG
-    m_ddeg.ensure_var(new_var);
-    if (group != ddeg::InvalidGroup) {
-      m_ddeg.set_group(new_var, group);
+#if SUBSAT_VDOM
+    m_vdom.ensure_var(new_var);
+    if (group != vdom::InvalidGroup) {
+      m_vdom.set_group(new_var, group);
     }
 #else
     (void)group;  // suppress warning about unused parameter
@@ -399,8 +405,8 @@ public:
     m_vars.reserve(count);
     m_marks.reserve(count);
     m_values.reserve(2 * count);
-#if SUBSAT_DDEG
-    m_ddeg.reserve(count, count);
+#if SUBSAT_VDOM
+    m_vdom.reserve(count, count);
 #endif
 #if SUBSAT_VMTF
     m_queue.reserve(count);
@@ -451,8 +457,8 @@ public:
     m_vars.clear();
     m_marks.clear();
 
-#if SUBSAT_DDEG
-    m_ddeg.clear();
+#if SUBSAT_VDOM
+    m_vdom.clear();
 #endif
 #if SUBSAT_VMTF
     m_queue.clear();
@@ -620,7 +626,7 @@ private:
   /// 1. we only need to do this for original clauses (learned clauses are already simplified),
   /// 2. we don't have to check levels of assigned variables during simplification.
   ///
-  /// Returns true if the clause is a tautology.
+  /// Returns true if the clause is a tautology or already satisfied at the root level.
   bool simplifyClause(Clause& c)
   {
     assert(m_level == 0);
@@ -896,8 +902,8 @@ private:
 
     m_trail.push_back(lit);
 
-#if SUBSAT_DDEG
-    m_ddeg.assigned(var);
+#if SUBSAT_VDOM
+    m_vdom.assigned(var);
 #endif
 
     assert(m_unassigned_vars > 0);
@@ -956,8 +962,8 @@ private:
     m_level += 1;
 
     Var var = Var::invalid();
-#if SUBSAT_DDEG
-    var = m_ddeg.select_min_domain(m_values);
+#if SUBSAT_VDOM
+    var = m_vdom.select_min_domain(m_values);
 #endif
 #if SUBSAT_VMTF
     if (!var.is_valid()) {
@@ -1490,8 +1496,8 @@ private:
     m_values[lit] = Value::Unassigned;
     m_values[~lit] = Value::Unassigned;
 
-#if SUBSAT_DDEG
-    m_ddeg.unassigned(lit.var());
+#if SUBSAT_VDOM
+    m_vdom.unassigned(lit.var());
 #endif
 #if SUBSAT_VMTF
     m_queue.unassign(lit.var());
@@ -1625,9 +1631,9 @@ private:
   /// Mark flags of variables
   vector_map<Var, Mark> m_marks;
 
-#if SUBSAT_DDEG
-  /// Domain-degree decision heuristic
-  ddeg m_ddeg;
+#if SUBSAT_VDOM
+  /// Domain size decision heuristic
+  vdom m_vdom;
 #endif
 #if SUBSAT_VMTF
   /// Queue for VMTF decision heuristic
@@ -1723,8 +1729,8 @@ bool Solver<Allocator>::checkEmpty() const
   assert(m_values.empty());
   assert(m_vars.empty());
   assert(m_marks.empty());
-#if SUBSAT_DDEG
-  assert(m_ddeg.empty());
+#if SUBSAT_VDOM
+  assert(m_vdom.empty());
 #endif
 #if SUBSAT_VMTF
   assert(m_queue.empty());

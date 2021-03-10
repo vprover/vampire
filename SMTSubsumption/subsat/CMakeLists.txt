@@ -34,11 +34,11 @@ add_executable(subsat
     subsat.hpp
     decision_queue.hpp
     default_init_allocator.hpp
-    domain_degree.hpp
     types.hpp
     types.cpp
     clause.hpp
     clause.cpp
+    variable_domain_size.hpp
     vector_map.hpp
     log.hpp
     log.cpp

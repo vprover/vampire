@@ -1,5 +1,5 @@
-#ifndef DOMAIN_DEGREE_HPP
-#define DOMAIN_DEGREE_HPP
+#ifndef VARIABLE_DOMAIN_SIZE_HPP
+#define VARIABLE_DOMAIN_SIZE_HPP
 
 #include <limits>
 
@@ -10,12 +10,12 @@
 namespace subsat {
 
 
-/// Domain degree decision heuristic, similar as in CSP solving.
+/// Domain size decision heuristic, similar as in CSP solving.
 ///
 /// A set of boolean variables representing the choices of a non-boolean variable ("value encoding")
 /// is called a "group" in this class.  (nothing to do with mathematical groups, just variables "grouped together").
 template <template <typename> class Allocator = std::allocator>
-class DomainDegree final {
+class VariableDomainSize final {
 public:
   template <typename T>
   using allocator_type = Allocator<T>;
@@ -44,7 +44,7 @@ private:
   using GroupSize = std::uint32_t;
 
 public:
-  DomainDegree()
+  VariableDomainSize()
   {
     clear();
   }
@@ -140,12 +140,12 @@ public:
     for (Var::index_type idx = 0; idx < m_var_groups.size(); ++idx) {
       Var v{idx};
       if (m_var_groups[v] == sg && values[v] == Value::Unassigned) {
-        LOG_INFO("Domain degree: choose variable " << v << " of group " << sg << " with size " << sg_size);
+        LOG_INFO("Domain size: choose variable " << v << " of group " << sg << " with size " << sg_size);
         return v;
       }
     }
     // This will only be reached if all variables are assigned, but then we don't make a decision.
-    LOG_INFO("Domain degree: no valid choice");
+    LOG_INFO("Domain size: no valid choice");
     return Var::invalid();
   }
 
@@ -178,4 +178,4 @@ private:
 
 }  // namespace subsat
 
-#endif /* !DOMAIN_DEGREE_HPP */
+#endif /* !VARIABLE_DOMAIN_SIZE_HPP */
