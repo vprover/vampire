@@ -627,81 +627,6 @@ void vampireMode()
 
 
 
-void subsumptionTestingMode()
-{
-  CALL("subsumptionTestingMode()");
-
-  // env.options->setNormalize(false);
-  // env.options->setUnusedPredicateDefinitionRemoval(false);
-
-  // We need to set this option to make the parser save axiom names
-  env.options->setOutputAxiomNames(true);
-
-  ScopedPtr<Problem> prb(UIHelper::getInputProblem(*env.options));
-
-  Shell::Preprocess prepro(*env.options);
-  prepro.preprocess_very_lightly(*prb);
-
-  // Find side premise and main premise from input file
-  Clause* side_premise = nullptr;
-  Clause* main_premise = nullptr;
-
-  UnitList* units = prb->units();
-  while (UnitList::isNonEmpty(units)) {
-    Clause* clause = units->head()->asClause();
-    // std::cerr << "Clause: " << clause->toString() << std::endl;
-
-    Unit* unit = clause;
-    while (true) {
-      auto const& inference = unit->inference();
-      auto parents = inference.iterator();
-      if (!inference.hasNext(parents)) {
-        // no parents -> we have an axiom
-        vstring name;
-        Parse::TPTP::findAxiomName(unit, name);
-        if (name == "side_premise") {
-          // std::cerr << "Found side premise axiom: " << unit->toString() << std::endl;
-          if (side_premise) {
-            USER_ERROR("Got multiple side premises");
-          }
-          side_premise = clause;
-        } else if (name == "main_premise") {
-          // std::cerr << "Found main premise axiom: " << unit->toString() << std::endl;
-          if (main_premise) {
-            USER_ERROR("Got multiple main premises");
-          }
-          main_premise = clause;
-        } else {
-          std::cerr << "Unexpected axiom: " << unit->toString() << std::endl;
-          USER_ERROR("Unexpected axiom");
-        }
-        break;
-      } else {
-        // There's still parents to process
-        Unit* parent = inference.next(parents);
-        ASS(!inference.hasNext(parents));  // we expect exactly one parent
-        unit = parent;
-      }
-    }
-
-    units = units->tail();
-  }
-
-  ASS(main_premise);
-  ASS(side_premise);
-  ASS(main_premise != side_premise);
-
-  // the parser reverses the order of literals in the clause as given in the input file, so we correct this here
-  std::reverse(side_premise->literals(), side_premise->literals() + side_premise->length());
-  std::reverse(main_premise->literals(), main_premise->literals() + main_premise->length());
-
-  SMTSubsumption::ProofOfConcept s;
-  s.test(side_premise, main_premise);
-
-  vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
-}
-
-
 bool subsumptionBenchmarkMode_parseAxiomName(vstring const& name, vstring const& prefix, std::pair<unsigned int, bool>& out_result)
 {
   vstring const success_suffix = "_success";
@@ -724,34 +649,14 @@ bool subsumptionBenchmarkMode_parseAxiomName(vstring const& name, vstring const&
   }
 }
 
-void subsumptionBenchmarkMode(bool simulate_full_run)
+vvector<SMTSubsumption::SubsumptionInstance> getSubsumptionInstances(UnitList const* units)
 {
-  CALL("subsumptionBenchmarkMode(bool)");
-
-  std::cerr << "\% Subsumption Benchmark Mode\n\% Parsing input..." << std::endl;
-
-  // env.options->setNormalize(false);
-  // env.options->setUnusedPredicateDefinitionRemoval(false);
-
-  // We need to set this option to make the parser save axiom names
-  env.options->setOutputAxiomNames(true);
-
-  ScopedPtr<Problem> prb(UIHelper::getInputProblem(*env.options));
-
-  Shell::Preprocess prepro(*env.options);
-  prepro.preprocess_very_lightly(*prb);
-
-  // // Components of key: number of main premise, number of side premise, whether side premise subsumes main premise
-  // //                    (numbers as in the original vampire run)
-  // using Key = std::tuple<unsigned int, unsigned int, bool>;
-
   // Components of key: sequence number, whether side premise subsumes main premise
   using Key = std::pair<unsigned int, bool>;
 
   vmap<Key, Clause*> side_premises;
   vmap<Key, Clause*> main_premises;
 
-  UnitList* units = prb->units();
   while (UnitList::isNonEmpty(units)) {
     Clause* clause = units->head()->asClause();
     // std::cerr << "Clause: " << clause->toString() << std::endl;
@@ -765,8 +670,14 @@ void subsumptionBenchmarkMode(bool simulate_full_run)
         vstring name;
         Parse::TPTP::findAxiomName(unit, name);
 
-        Key k;
-        if (subsumptionBenchmarkMode_parseAxiomName(name, "side_premise_", k)) {
+        Key k{0, false};
+        if (name == "side_premise") {
+          bool inserted = side_premises.insert({k, clause}).second;
+          if (!inserted) { USER_ERROR("duplicate 'side_premise'"); }
+        } else if (name == "main_premise") {
+          bool inserted = main_premises.insert({k, clause}).second;
+          if (!inserted) { USER_ERROR("duplicate 'main_premise'"); }
+        } else if (subsumptionBenchmarkMode_parseAxiomName(name, "side_premise_", k)) {
           auto res = side_premises.insert({k, clause});
           bool inserted = res.second;
           if (!inserted) {
@@ -793,8 +704,7 @@ void subsumptionBenchmarkMode(bool simulate_full_run)
     units = units->tail();
   }
 
-  using namespace SMTSubsumption;
-  vvector<SubsumptionInstance> instances;
+  vvector<SMTSubsumption::SubsumptionInstance> instances;
 
   for (auto p : side_premises) {
     Key k = p.first;
@@ -804,6 +714,8 @@ void subsumptionBenchmarkMode(bool simulate_full_run)
       throw UserErrorException("Got side premise but no main premise for key: {", k.first, ",", k.second, "}");
     }
     Clause* main_premise = lookup->second;
+
+    ASS_NEQ(side_premise, main_premise);
 
     instances.push_back({
       .number = k.first,
@@ -830,6 +742,29 @@ void subsumptionBenchmarkMode(bool simulate_full_run)
     ASS(instances.size() < main_premises.size());
     throw UserErrorException("Got main premise without corresponding side premise");
   }
+  ASS_EQ(instances.size(), side_premises.size());
+
+  return instances;
+}
+
+void subsumptionBenchmarkMode(bool simulate_full_run)
+{
+  CALL("subsumptionBenchmarkMode(bool)");
+
+  std::cerr << "\% Subsumption Benchmark Mode\n\% Parsing input..." << std::endl;
+
+  // env.options->setNormalize(false);
+  // env.options->setUnusedPredicateDefinitionRemoval(false);
+
+  // We need to set this option to make the parser save axiom names
+  env.options->setOutputAxiomNames(true);
+
+  ScopedPtr<Problem> prb(UIHelper::getInputProblem(*env.options));
+
+  Shell::Preprocess prepro(*env.options);
+  prepro.preprocess_very_lightly(*prb);
+
+  auto instances = getSubsumptionInstances(prb->units());
 
   if (simulate_full_run) {
     NOT_IMPLEMENTED;  // TODO
@@ -840,6 +775,37 @@ void subsumptionBenchmarkMode(bool simulate_full_run)
 
   vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
 }
+
+void subsumptionTestingMode()
+{
+  CALL("subsumptionTestingMode()");
+
+  // env.options->setNormalize(false);
+  // env.options->setUnusedPredicateDefinitionRemoval(false);
+
+  // We need to set this option to make the parser save axiom names
+  env.options->setOutputAxiomNames(true);
+
+  ScopedPtr<Problem> prb(UIHelper::getInputProblem(*env.options));
+
+  Shell::Preprocess prepro(*env.options);
+  prepro.preprocess_very_lightly(*prb);
+
+  auto instances = getSubsumptionInstances(prb->units());
+
+  if (instances.size() != 1) {
+    std::cerr << "stest: got " << instances.size() << " instances, will use the first one." << std::endl;
+  }
+
+  auto instance = instances.at(0);
+
+  SMTSubsumption::ProofOfConcept s;
+  s.test(instance.side_premise, instance.main_premise);
+
+  vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
+}
+
+
 
 
 
