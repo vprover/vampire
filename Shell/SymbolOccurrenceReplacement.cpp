@@ -122,6 +122,9 @@ Formula* SymbolOccurrenceReplacement::process(Formula* formula) {
       Literal* processedLiteral;
       if (renaming) {
         processedLiteral = SubstHelper::apply(static_cast<Literal*>(_freshApplication), substitution);
+        if(!literal->polarity()){
+          processedLiteral = Literal::complementaryLiteral(processedLiteral);
+        }
       } else {
         processedLiteral = Literal::create(literal, arguments.begin());
       }
