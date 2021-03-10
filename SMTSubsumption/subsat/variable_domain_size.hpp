@@ -25,9 +25,7 @@ public:
 
   /// Group indices should form a contiguous range starting at 0.
   using Group = std::uint32_t;
-  // inline static constexpr Group InvalidGroup = std::numeric_limits<Group>::max();
   enum : Group {
-    // TODO: we could reserve group 0 as the invalid group, then we don't need any branching in assign/unassign.
     InvalidGroup = std::numeric_limits<Group>::max(),
   };
 
@@ -36,7 +34,6 @@ private:
   /// InternalGroup == Group + 1.
   using InternalGroup = std::uint32_t;
   enum : InternalGroup {
-    // TODO: we could reserve group 0 as the invalid group, then we don't need any branching in assign/unassign.
     InvalidInternalGroup = 0,
   };
   static_assert(InvalidGroup + 1 == InvalidInternalGroup, "unexpected value");

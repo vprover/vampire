@@ -96,6 +96,9 @@ static_assert(VDEBUG == 1, "VDEBUG and NDEBUG are not synchronized");
 #define SUBSAT_STATISTICS_INTERVAL (VDEBUG ? 500 : 5000)
 #endif
 
+// TODO: disable this by default in Vampire mode (to not slow down vampire's debug mode too much),
+//       but only when this is ready to merge.
+#define SUBSAT_EXPENSIVE_ASSERTIONS 1
 
 
 // TODO:
@@ -1773,6 +1776,7 @@ std::ostream& operator<<(std::ostream& os, ShowAssignment<A> sa)
 
 
 #ifndef NDEBUG
+#if SUBSAT_EXPENSIVE_ASSERTIONS
 
 template <template <typename> class Allocator>
 bool Solver<Allocator>::checkEmpty() const
@@ -1992,7 +1996,8 @@ bool Solver<Allocator>::checkModel() const
   return true;
 }
 
-#endif
+#endif  // SUBSAT_EXPENSIVE_ASSERTIONS
+#endif  // !defined(NDEBUG)
 
 
 
