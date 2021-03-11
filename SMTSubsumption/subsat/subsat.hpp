@@ -40,6 +40,8 @@ static_assert(VDEBUG == 1, "VDEBUG and NDEBUG are not synchronized");
 // Clause learning
 // ASSESSMENT: TODO: try without learning
 // TODO: also try limiting the amount of memory that can be used for learning... once the limit is reached, only learn units and maybe binary clauses.
+// NOTE: this is not so easy... we still need to keep the "learned" clause as a reason for conflict analysis and backjumping. We just don't connect it to the watch structures.
+//       However, with the current design we cannot easily delete clauses. But we could append to the arena, and on backjumping always pop off clauses. That's all we need actually.
 #ifndef SUBSAT_LEARN
 #define SUBSAT_LEARN 1
 #endif
@@ -1002,15 +1004,6 @@ private:
   void basic_assign(Lit lit, Reason reason)
   {
     LOG_DEBUG("Assigning " << lit << ", reason: " << SHOWREASON(reason) << ", level: " << m_level);
-
-    /*
-    // TODO: Assignment on root level => no need to store the reason
-    // (done in satch, but not in kitten)
-    // probably because this is only helpful when we have clause deletion?
-    // if we don't delete clauses, we don't care if we store extra reason references.
-    if (m_level == 0) {
-      reason = Reason::invalid();
-    } */
 
     // TODO: kitten does phase-saving as well
 
