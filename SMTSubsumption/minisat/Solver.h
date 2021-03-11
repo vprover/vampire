@@ -23,7 +23,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include "SMTSubsumption/minisat/SolverTypes.h"
 #include "SMTSubsumption/minisat/VarOrder.h"
 
-#include "SMTSubsumption/SubstitutionTheory.hpp"
+#include "SMTSubsumption/OldSubstitutionTheory.hpp"
 
 
 // TODO: add a #define MINISAT_STATS or similar, by default only enable in debug mode. No need to collect stats here in release mode.

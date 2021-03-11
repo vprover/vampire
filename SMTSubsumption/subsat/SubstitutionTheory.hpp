@@ -1,19 +1,19 @@
-#ifndef SUBSTITUTIONTHEORY2_HPP
-#define SUBSTITUTIONTHEORY2_HPP
+#ifndef SUBSTITUTIONTHEORY_HPP
+#define SUBSTITUTIONTHEORY_HPP
 
 #include <algorithm>
 #include <type_traits>
 
-#include "./subsat/vector_map.hpp"
-#include "./subsat/types.hpp"
-#include "./subsat/log.hpp"
+#include "./vector_map.hpp"
+#include "./types.hpp"
+#include "./log.hpp"
 
 #ifndef SUBSAT_STANDALONE
 #include "Kernel/Term.hpp"
 #endif
 
 
-namespace SMTSubsumption {
+namespace subsat {
 
 
 /// Domain of the substitution: Vampire's FOL variables
@@ -43,7 +43,7 @@ static_assert(sizeof(VampireTerm) == 8, "unexpected term size");
 
 
 template <template <typename> class Allocator = std::allocator>
-class SubstitutionTheory2 final
+class SubstitutionTheory final
 {
 private:
 #ifndef NDEBUG
@@ -65,19 +65,19 @@ public:
 
 public:
   // empty substitution theory
-  SubstitutionTheory2()
+  SubstitutionTheory()
   {
     m_bindings.reserve(32);
     m_bindings_storage.reserve(128);
   }
 
   // prevent accidental copies
-  SubstitutionTheory2(SubstitutionTheory2& other) = delete;
-  SubstitutionTheory2& operator=(SubstitutionTheory2& other) = delete;
+  SubstitutionTheory(SubstitutionTheory& other) = delete;
+  SubstitutionTheory& operator=(SubstitutionTheory& other) = delete;
 
   // but we allow moves
-  SubstitutionTheory2(SubstitutionTheory2&& other) = default;
-  SubstitutionTheory2& operator=(SubstitutionTheory2&& other) = default;
+  SubstitutionTheory(SubstitutionTheory&& other) = default;
+  SubstitutionTheory& operator=(SubstitutionTheory&& other) = default;
 
 public:
   using BindingsEntry = std::pair<VampireVar, VampireTerm>;
@@ -147,14 +147,14 @@ public:
     }
 
   private:
-    /// Users should call SubstitutionTheory2::commit_bindings() instead.
+    /// Users should call SubstitutionTheory::commit_bindings() instead.
     void commit() noexcept
     {
       ASS(m_state == State::Active);
       m_state = State::Committed;
     }
 
-    friend class SubstitutionTheory2<Allocator>;
+    friend class SubstitutionTheory<Allocator>;
 
   private:
     BindingsStorage& m_bindings_storage;
@@ -334,4 +334,4 @@ private:
 
 }  // namespace SMTSubsumption
 
-#endif /* !SUBSTITUTIONTHEORY2_HPP */
+#endif /* !SUBSTITUTIONTHEORY_HPP */

@@ -1,5 +1,5 @@
-#ifndef SUBSTITUTIONTHEORY_HPP
-#define SUBSTITUTIONTHEORY_HPP
+#ifndef OLD_SUBSTITUTIONTHEORY_HPP
+#define OLD_SUBSTITUTIONTHEORY_HPP
 
 #include "SMTSubsumption/MapBinder.hpp"
 #include "Kernel/Term.hpp"
@@ -292,4 +292,4 @@ class LazyInitSubstitutionTheory
 
 }
 
-#endif /* !SUBSTITUTIONTHEORY_HPP */
+#endif /* !OLD_SUBSTITUTIONTHEORY_HPP */

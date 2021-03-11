@@ -32,16 +32,17 @@ add_executable(subsat
     subsat_main.cpp
     subsat.cpp
     subsat.hpp
+    clause.cpp
+    clause.hpp
     decision_queue.hpp
     default_init_allocator.hpp
-    types.hpp
+    log.cpp
+    log.hpp
+    SubstitutionTheory.hpp
     types.cpp
-    clause.hpp
-    clause.cpp
+    types.hpp
     variable_domain_size.hpp
     vector_map.hpp
-    log.hpp
-    log.cpp
 )
 
 target_compile_definitions(subsat PRIVATE SUBSAT_STANDALONE=1)

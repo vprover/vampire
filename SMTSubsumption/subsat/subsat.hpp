@@ -21,7 +21,7 @@
 #include "./types.hpp"
 #include "./vector_map.hpp"
 #include "./log.hpp"
-#include "../SubstitutionTheory2.hpp"
+#include "./SubstitutionTheory.hpp"
 
 // Ensure NDEBUG and VDEBUG are synchronized
 #ifdef NDEBUG
@@ -439,7 +439,7 @@ public:
     m_clauses.reserve(count);
   }
 
-  ::SMTSubsumption::SubstitutionTheory2<allocator_type>& theory()
+  SubstitutionTheory<allocator_type>& theory()
   {
     return m_theory;
   }
@@ -1832,7 +1832,7 @@ private:
   /// The next literal to theory-propagate (index into the trail)
   uint32_t m_theory_propagate_head = 0;
 
-  ::SMTSubsumption::SubstitutionTheory2<allocator_type> m_theory;
+  SubstitutionTheory<allocator_type> m_theory;
 
   // Temporary variables, defined as class members to reduce allocation overhead.
   // Prefixed by the method where they are used.

@@ -1,5 +1,5 @@
 #include "SMTSubsumption.hpp"
-#include "SubstitutionTheory.hpp"
+#include "OldSubstitutionTheory.hpp"
 #include "SMTSubsumption/minisat/Solver.h"
 #include "SMTSubsumption/slice.hpp"
 #include "Indexing/LiteralMiniIndex.hpp"
@@ -1029,7 +1029,6 @@ class SMTSubsumptionImpl
 
 // TODO: early exit in case time limit hits, like in MLMatcher which checks every 50k iterations if time limit has been exceeded
 #include "./subsat/subsat.hpp"
-#include "./SubstitutionTheory2.hpp"
 
 // The ground literal prefilter seems to slow us down slightly in general.
 // Maybe it's more helpful with induction enabled? since that adds a lot of ground clauses.

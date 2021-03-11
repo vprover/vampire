@@ -1,4 +1,4 @@
-#include "SubstitutionTheory.hpp"
+#include "OldSubstitutionTheory.hpp"
 
 namespace SMTSubsumption {
 

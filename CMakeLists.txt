@@ -768,23 +768,24 @@ set(VAMPIRE_SMT_SUBSUMPTION_SOURCES
 
     SMTSubsumption/SMTSubsumption.cpp
     SMTSubsumption/SMTSubsumption.hpp
-    SMTSubsumption/SubstitutionTheory.cpp
-    SMTSubsumption/SubstitutionTheory.hpp
+    SMTSubsumption/OldSubstitutionTheory.cpp
+    SMTSubsumption/OldSubstitutionTheory.hpp
     SMTSubsumption/MapBinder.cpp
     SMTSubsumption/MapBinder.hpp
 
-    SMTSubsumption/subsat/subsat.cpp
-    SMTSubsumption/subsat/subsat.hpp
+    SMTSubsumption/subsat/clause.cpp
+    SMTSubsumption/subsat/clause.hpp
     SMTSubsumption/subsat/decision_queue.hpp
     SMTSubsumption/subsat/default_init_allocator.hpp
-    SMTSubsumption/subsat/types.hpp
+    SMTSubsumption/subsat/log.cpp
+    SMTSubsumption/subsat/log.hpp
+    SMTSubsumption/subsat/subsat.cpp
+    SMTSubsumption/subsat/subsat.hpp
+    SMTSubsumption/subsat/SubstitutionTheory.hpp
     SMTSubsumption/subsat/types.cpp
-    SMTSubsumption/subsat/clause.hpp
-    SMTSubsumption/subsat/clause.cpp
+    SMTSubsumption/subsat/types.hpp
     SMTSubsumption/subsat/variable_domain_size.hpp
     SMTSubsumption/subsat/vector_map.hpp
-    SMTSubsumption/subsat/log.hpp
-    SMTSubsumption/subsat/log.cpp
     )
 source_group(sat_source_files FILES ${VAMPIRE_SAT_SOURCES})
 
