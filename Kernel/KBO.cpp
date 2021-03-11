@@ -35,7 +35,6 @@ namespace Kernel {
 using namespace Lib;
 using namespace Shell;
 
-
 /**
  * Class to represent the current state of the KBO comparison.
  * @since 30/04/2008 flight Brussels-Tel Aviv
@@ -44,8 +43,7 @@ class KBO::State
 {
 public:
   /** Initialise the state */
-  State(KBO* kbo)
-    : _kbo(*kbo)
+  State()
   {}
 
   void init()
@@ -60,12 +58,12 @@ public:
   CLASS_NAME(KBO::State);
   USE_ALLOCATOR(State);
 
-  void traverse(Term* t1, Term* t2);
-  void traverse(TermList tl,int coefficient);
-  Result result(Term* t1, Term* t2);
+  void traverse(KBO const& kbo, Term* t1, Term* t2);
+  void traverse(KBO const& kbo, TermList tl,int coefficient);
+  Result result(KBO const& kbo, Term* t1, Term* t2);
 private:
   void recordVariable(unsigned var, int coef);
-  Result innerResult(TermList t1, TermList t2);
+  Result innerResult(KBO const& kbo, TermList t1, TermList t2);
   Result applyVariableCondition(Result res)
   {
     if(_posNum>0 && (res==LESS || res==LESS_EQ || res==EQUAL)) {
@@ -84,8 +82,6 @@ private:
   int _negNum;
   /** First comparison result */
   Result _lexResult;
-  /** The ordering used */
-  KBO& _kbo;
   /** The variable counters */
 }; // class KBO::State
 
@@ -96,7 +92,7 @@ private:
  * traverse(Term*,int) for both terms/literals in case their
  * top functors are different.)
  */
-Ordering::Result KBO::State::result(Term* t1, Term* t2)
+Ordering::Result KBO::State::result(KBO const& kbo, Term* t1, Term* t2)
 {
   CALL("KBO::State::result")
   Result res;
@@ -105,12 +101,12 @@ Ordering::Result KBO::State::result(Term* t1, Term* t2)
   } else if(t1->functor()!=t2->functor()) {
     if(t1->isLiteral()) {
       int prec1, prec2;
-      prec1=_kbo.predicatePrecedence(t1->functor());
-      prec2=_kbo.predicatePrecedence(t2->functor());
+      prec1=kbo.predicatePrecedence(t1->functor());
+      prec2=kbo.predicatePrecedence(t2->functor());
       ASS_NEQ(prec1,prec2);//precedence ordering must be total
       res=(prec1>prec2)?GREATER:LESS;
     } else {
-      res=_kbo.compareFunctionPrecedences(t1->functor(), t2->functor());
+      res=kbo.compareFunctionPrecedences(t1->functor(), t2->functor());
       ASS_REP(res==GREATER || res==LESS, res); //precedence ordering must be total
     }
   } else {
@@ -130,7 +126,7 @@ Ordering::Result KBO::State::result(Term* t1, Term* t2)
   return res;
 }
 
-Ordering::Result KBO::State::innerResult(TermList tl1, TermList tl2)
+Ordering::Result KBO::State::innerResult(KBO const& kbo, TermList tl1, TermList tl2)
 {
   CALL("KBO::State::innerResult");
 
@@ -152,7 +148,7 @@ Ordering::Result KBO::State::innerResult(TermList tl1, TermList tl2)
       ASS_EQ(_posNum,0);
       res=GREATER;
     } else {
-      res=_kbo.compareFunctionPrecedences(tl1.term()->functor(), tl2.term()->functor());
+      res=kbo.compareFunctionPrecedences(tl1.term()->functor(), tl2.term()->functor());
       ASS_REP(res==GREATER || res==LESS, res);//precedence ordering must be total
     }
   }
@@ -182,12 +178,12 @@ void KBO::State::recordVariable(unsigned var, int coef)
   }
 }
 
-void KBO::State::traverse(TermList tl,int coef)
+void KBO::State::traverse(KBO const& kbo, TermList tl,int coef)
 {
   CALL("KBO::State::traverse(TermList...)");
 
   if(tl.isOrdinaryVar()) {
-    _weightDiff += _kbo.variableWeight() * coef;
+    _weightDiff += kbo.variableWeight() * coef;
     recordVariable(tl.var(), coef);
     return;
   }
@@ -196,7 +192,7 @@ void KBO::State::traverse(TermList tl,int coef)
   Term* t=tl.term();
   ASSERT_VALID(*t);
 
-  _weightDiff+=_kbo.symbolWeight(t)*coef;
+  _weightDiff+=kbo.symbolWeight(t)*coef;
 
   if(!t->arity()) {
     return;
@@ -210,14 +206,14 @@ void KBO::State::traverse(TermList tl,int coef)
     }
     if(ts->isTerm()) {
       auto term = ts->term();
-      _weightDiff+=_kbo.symbolWeight(term)*coef;
+      _weightDiff+=kbo.symbolWeight(term)*coef;
       if(term->arity()) {
 	stack.push(term->args());
       }
     } else {
       ASS_METHOD(*ts,isOrdinaryVar());
       auto var = ts->var();
-      _weightDiff += _kbo.variableWeight() * coef;
+      _weightDiff += kbo.variableWeight() * coef;
       recordVariable(var, coef);
     }
     if(stack.isEmpty()) {
@@ -227,7 +223,7 @@ void KBO::State::traverse(TermList tl,int coef)
   }
 }
 
-void KBO::State::traverse(Term* t1, Term* t2)
+void KBO::State::traverse(KBO const& kbo, Term* t1, Term* t2)
 {
   CALL("KBO::State::traverse");
   ASS(t1->functor()==t2->functor());
@@ -273,10 +269,10 @@ void KBO::State::traverse(Term* t1, Term* t2)
       stack.push(tt->term()->args());
       depth++;
     } else {
-      traverse(*ss,1);
-      traverse(*tt,-1);
+      traverse(kbo, *ss,1);
+      traverse(kbo, *tt,-1);
       if(_lexResult==EQUAL) {
-	_lexResult=innerResult(*ss, *tt);
+	_lexResult=innerResult(kbo, *ss, *tt);
 	lexValidDepth=depth;
 	ASS(_lexResult!=EQUAL);
 	ASS(_lexResult!=GREATER_EQ);
@@ -472,7 +468,6 @@ void warnError(UserErrorException e) {
   env.endOutput();
 }
 
-
 KBO::KBO(
     // KBO params
     KboWeightMap<FuncSigTraits> funcWeights, 
@@ -492,7 +487,7 @@ KBO::KBO(
 #if __KBO__CUSTOM_PREDICATE_WEIGHTS__
   , _predWeights(predWeights)
 #endif
-  , _state(new State(this))
+  , _state(new State())
 { 
   checkAdmissibility(throwError);
 }
@@ -593,7 +588,7 @@ KBO::KBO(Problem& prb, const Options& opts)
 #if __KBO__CUSTOM_PREDICATE_WEIGHTS__
  , _predWeights(weightsFromOpts<PredSigTraits>(opts))
 #endif
- , _state(new State(this))
+ , _state(new State())
 {
   CALL("KBO::KBO(Prb&, Opts&)");
   if (opts.kboAdmissabilityCheck() == Options::KboAdmissibilityCheck::ERROR)
@@ -637,19 +632,19 @@ Ordering::Result KBO::comparePredicates(Literal* l1, Literal* l2) const
     TermList* ts;
     ts=l1->args();
     while(!ts->isEmpty()) {
-      state->traverse(*ts,1);
+      state->traverse(*this, *ts,1);
       ts=ts->next();
     }
     ts=l2->args();
     while(!ts->isEmpty()) {
-      state->traverse(*ts,-1);
+      state->traverse(*this, *ts,-1);
       ts=ts->next();
     }
   } else {
-    state->traverse(l1,l2);
+    state->traverse(*this, l1,l2);
   }
 
-  res=state->result(l1,l2);
+  res=state->result(*this, l1,l2);
 #if VDEBUG
   _state=state;
 #endif
@@ -685,12 +680,12 @@ Ordering::Result KBO::compare(TermList tl1, TermList tl2) const
 
   state->init();
   if(t1->functor()==t2->functor()) {
-    state->traverse(t1,t2);
+    state->traverse(*this, t1,t2);
   } else {
-    state->traverse(tl1,1);
-    state->traverse(tl2,-1);
+    state->traverse(*this, tl1,1);
+    state->traverse(*this,tl2,-1);
   }
-  Result res=state->result(t1,t2);
+  Result res=state->result(*this,t1,t2);
 #if VDEBUG
   _state=state;
 #endif

@@ -170,15 +170,8 @@ protected:
 
   class State;
 
-  // int functionSymbolWeight(unsigned fun) const;
-
 private:
   int symbolWeight(Term* t) const;
-
-  KboWeightMap<FuncSigTraits> _funcWeights;
-#if __KBO__CUSTOM_PREDICATE_WEIGHTS__
-  KboWeightMap<PredSigTraits> _predWeights;
-#endif
 
   template<class SigTraits> const KboWeightMap<SigTraits>& getWeightMap() const;
   template<class SigTraits> KboWeightMap<SigTraits> weightsFromOpts(const Options& opts) const;
@@ -187,6 +180,10 @@ private:
   template<class SigTraits> 
   void showConcrete_(ostream&) const;
 
+  KboWeightMap<FuncSigTraits> _funcWeights;
+#if __KBO__CUSTOM_PREDICATE_WEIGHTS__
+  KboWeightMap<PredSigTraits> _predWeights;
+#endif
   /**
    * State used for comparing terms and literals
    */
