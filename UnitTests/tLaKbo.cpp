@@ -408,6 +408,8 @@ TEST_FUN(lakbo_test01) {
       make_pair(add, 1u)
     ), weights());
 
+  check(ord, x, Incomp, a); 
+
   check(ord, f(x)    , Incomp, 3 * f(x));
   check(ord, 5 * f(x), Incomp, 3 * f(x));
 
