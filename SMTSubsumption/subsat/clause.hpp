@@ -7,6 +7,7 @@
 
 #include "./default_init_allocator.hpp"
 #include "./types.hpp"
+#include "./log.hpp"
 
 namespace subsat {
 
@@ -59,7 +60,7 @@ public:
   }
 
   /// Number of bytes required by a clause containing 'size' literals.
-  static size_t bytes(size_type size) noexcept
+  static constexpr size_t bytes(size_type size) noexcept
   {
 #if __cplusplus >= 201703L
     size_t const embedded_literals = std::extent_v<decltype(m_literals)>;
@@ -233,12 +234,14 @@ public:
     assert(bytes % sizeof(storage_type) == 0);
     std::size_t const elements = bytes / sizeof(storage_type);
     std::size_t const new_size = m_storage.size() + elements;
+    LOG_TRACE("Allocating " << elements << " elements for capacity " << capacity << " (old storage size: " << m_storage.size() << ", new: " << new_size << ")");
 
     m_storage.resize(new_size);
 
     void* p = deref_plain(cr);
     Clause* c = new (p) Clause{0};
     assert(c);
+    (void)c;  // suppress "unused variable" warning
     return AllocatedClauseHandle{cr, capacity};
   }
 
@@ -301,6 +304,15 @@ public:
     return cr;
   }
 
+  /// Delete the given clause and all that were added afterwards!
+  void unsafe_delete(ClauseRef cr)
+  {
+    assert(cr.is_valid());
+    assert(cr.m_timestamp == m_timestamp);
+    assert(!m_dynamic_ref.is_valid());
+    m_storage.resize(cr.m_index);
+  }
+
   /// Remove all clauses from the arena.
   /// All existing clause references are invalidated.
   /// The backing storage is not deallocated.
@@ -310,7 +322,6 @@ public:
     m_dynamic_ref = ClauseRef::invalid();
 #ifndef NDEBUG
     m_timestamp += 1;
-    m_clause_refs.clear();
 #endif
     assert(empty());
   }
@@ -320,7 +331,6 @@ public:
     bool const is_empty = m_storage.empty();
     if (is_empty) {
       assert(!m_dynamic_ref.is_valid());
-      assert(m_clause_refs.empty());
     }
     return is_empty;
   }
@@ -332,11 +342,11 @@ public:
     m_storage.reserve(capacity);
   }
 
-#ifndef NDEBUG
-  using const_iterator = std::vector<ClauseRef>::const_iterator;
-  const_iterator begin() const noexcept { return m_clause_refs.begin(); }
-  const_iterator end() const noexcept { return m_clause_refs.end(); }
-#endif
+  /// Returns the amount of storage used (actually used, not allocated).
+  std::size_t size() const
+  {
+    return m_storage.size();
+  }
 
 private:
   NODISCARD ClauseRef make_ref()
@@ -349,7 +359,6 @@ private:
     ClauseRef cr(static_cast<ClauseRef::index_type>(size));
 #ifndef NDEBUG
     cr.m_timestamp = m_timestamp;
-    m_clause_refs.emplace_back(cr);
 #endif
     return cr;
   }
@@ -362,8 +371,6 @@ private:
   /// TODO: start with a random timestamp instead of 0. Then we effectively check for different arenas as well!
   /// (then just name it m_arena_id, and also set randomly on clear()... we don't need "timestamp semantics" for this)
   std::uint32_t m_timestamp = 0;
-  /// List of references to all clauses that have been added to the storage.
-  std::vector<ClauseRef, allocator_type<ClauseRef>> m_clause_refs;
 #endif
   ClauseRef m_dynamic_ref = ClauseRef::invalid();
 };

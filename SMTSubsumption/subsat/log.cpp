@@ -16,7 +16,7 @@ get_max_log_level(std::string const& fn, std::string const& pretty_fn)
   //   return LogLevel::Info;
   // }
 
-  // if (pretty_fn.find("VariableDomainSize") != std::string::npos) {
+  // if (pretty_fn.find("Arena") != std::string::npos) {
   //   return LogLevel::Trace;
   // }
 

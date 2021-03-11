@@ -38,10 +38,8 @@ static_assert(VDEBUG == 1, "VDEBUG and NDEBUG are not synchronized");
 #endif
 
 // Clause learning
-// ASSESSMENT: TODO: try without learning
+// ASSESSMENT: important
 // TODO: also try limiting the amount of memory that can be used for learning... once the limit is reached, only learn units and maybe binary clauses.
-// NOTE: this is not so easy... we still need to keep the "learned" clause as a reason for conflict analysis and backjumping. We just don't connect it to the watch structures.
-//       However, with the current design we cannot easily delete clauses. But we could append to the arena, and on backjumping always pop off clauses. That's all we need actually.
 #ifndef SUBSAT_LEARN
 #define SUBSAT_LEARN 1
 #endif
@@ -124,6 +122,7 @@ struct Statistics {
   int learned_binary_clauses = 0; ///< Number of learned binary clauses.
   int learned_long_clauses = 0;   ///< Number of learned long clauses (size >= 3).
   int learned_literals = 0;       ///< Sum of the sizes of all learned clauses.
+  std::size_t max_stored_literals = 0;    ///< Maximum number of literals in the m_clauses storage.
 #if SUBSAT_MINIMIZE
   int minimized_literals = 0;     ///< Number of literals removed by learned clause minimization.
 #endif
@@ -148,6 +147,8 @@ static inline std::ostream& operator<<(std::ostream& os, Statistics const& stats
 #if SUBSAT_MINIMIZE
   os << "Minimized literals:" << std::setw(7) << stats.minimized_literals << " (on average " << std::setprecision(1) << std::fixed << (static_cast<double>(stats.minimized_literals) / total_learned_clauses) << " literals/clause)\n";
 #endif
+  os << "Max. storage used:" << std::setw(8) << stats.max_stored_literals << " literals"
+     << "(= learned literals + clause headers + " << (stats.max_stored_literals - static_cast<std::size_t>(stats.learned_literals + stats.learned_long_clauses + stats.learned_binary_clauses)) << ")\n";
   assert(stats.conflicts == stats.conflicts_by_clause + stats.conflicts_by_amo);
   assert(stats.propagations == stats.propagations_by_clause + stats.propagations_by_amo + stats.propagations_by_theory);
   return os;
@@ -158,10 +159,18 @@ static inline std::ostream& operator<<(std::ostream& os, Statistics const& stats
     assert(m_stats.NAME <= std::numeric_limits<decltype(m_stats.NAME)>::max() - v); \
     m_stats.NAME += v;                                                              \
   } while (false)
+#define UPDATE_STORAGE_STATS()                                                             \
+  do {                                                                                     \
+    m_stats.max_stored_literals = std::max(m_stats.max_stored_literals, m_clauses.size()); \
+  } while (false)
 #else
 #define SUBSAT_STAT_ADD(NAME, VALUE) \
-  do {                        \
-    /* do nothing */          \
+  do {                               \
+    /* do nothing */                 \
+  } while (false)
+#define UPDATE_STORAGE_STATS() \
+  do {                         \
+    /* do nothing */           \
   } while (false)
 #endif  // SUBSAT_STATISTICS
 #define SUBSAT_STAT_INC(NAME) SUBSAT_STAT_ADD(NAME, 1)
@@ -178,6 +187,9 @@ class Reason final {
     Invalid,
     Binary,
     ClauseRef,
+#if !SUBSAT_LEARN
+    ClauseRefRedundant,
+#endif
   };
 
   Type type = Type::Invalid;
@@ -207,6 +219,20 @@ public:
     assert(cr.is_valid());
   }
 
+#if !SUBSAT_LEARN
+  explicit Reason(ClauseRef cr, bool redundant) noexcept
+    : type{redundant ? Type::ClauseRefRedundant : Type::ClauseRef}
+    , clause_ref{cr}
+  {
+    assert(cr.is_valid());
+  }
+
+  constexpr bool is_redundant() const noexcept
+  {
+    return type == Type::ClauseRefRedundant;
+  }
+#endif
+
   static constexpr Reason invalid() noexcept
   {
     return Reason();
@@ -230,7 +256,11 @@ public:
 
   ClauseRef get_clause_ref() const noexcept
   {
+#if SUBSAT_LEARN
     assert(type == Type::ClauseRef);
+#else
+    assert(type == Type::ClauseRef || type == Type::ClauseRefRedundant);
+#endif
     return clause_ref;
   }
 };
@@ -492,8 +522,6 @@ public:
       m_watches[Lit::from_index(i)].clear();
       m_watches_amo[Lit::from_index(i)].clear();
     }
-    // for (auto& w : m_watches) { w.clear(); }
-    // for (auto& w : m_watches_amo) { w.clear(); }
 
     m_trail.clear();
     m_propagate_head = 0;
@@ -533,7 +561,9 @@ public:
   /// May not be called while a constraint started by 'constraint_start' is active!
   NODISCARD AllocatedClauseHandle alloc_constraint(uint32_t capacity)
   {
-    return m_clauses.alloc(capacity);
+    auto handle = m_clauses.alloc(capacity);
+    UPDATE_STORAGE_STATS();
+    return handle;
   }
 
   /// Adds a literal to a pre-allocated constraint.
@@ -568,6 +598,7 @@ public:
   /// Call 'add_clause' to add it to the solver as a clause.
   NODISCARD ConstraintHandle constraint_end() noexcept
   {
+    UPDATE_STORAGE_STATS();
     return {m_clauses.end()};
   }
 
@@ -811,7 +842,7 @@ public:
 
   void add_atmostone_constraint(Lit const* literals, uint32_t count)
   {
-    auto ca = m_clauses.alloc(count);
+    auto ca = alloc_constraint(count);
     for (Lit const* p = literals; p < literals + count; ++p) {
       handle_push_literal(ca, *p);
     }
@@ -882,10 +913,10 @@ public:
 #endif
 
       if (!tmp_propagate_binary_conflict_ref.is_valid()) {
-        auto ca = m_clauses.alloc(2);
+        auto ca = alloc_constraint(2);
         handle_push_literal(ca, Lit::invalid());
         handle_push_literal(ca, Lit::invalid());
-        tmp_propagate_binary_conflict_ref = m_clauses.handle_build(ca);
+        tmp_propagate_binary_conflict_ref = handle_build(ca).m_ref;
       }
 
       m_theory.prepare_for_solving();
@@ -904,13 +935,13 @@ public:
         m_inconsistent = true;
       } else {
         // Build conflict clause from the current decisions.
-        auto conflict = m_clauses.alloc(m_level);
+        auto conflict = alloc_constraint(m_level);
         for (Lit lit : m_trail) {
           if (m_vars[lit.var()].is_decision()) {
-            m_clauses.handle_push_literal(conflict, ~lit);
+            handle_push_literal(conflict, ~lit);
           }
         }
-        ClauseRef conflict_ref = m_clauses.handle_build(conflict);
+        ClauseRef conflict_ref = handle_build(conflict).m_ref;
         if (!analyze(conflict_ref)) {
           res = Result::Unsat;
         }
@@ -1108,6 +1139,7 @@ private:
               return true;
             });
         assert(enabled);
+        (void)enabled;  // suppress "unused variable" warning
       }
     }
   }
@@ -1501,12 +1533,12 @@ private:
 
     uint32_t const size = static_cast<uint32_t>(clause.size());
     assert(size > 0);
-    SUBSAT_STAT_ADD(learned_literals, size);
     if (size == 1) {
       // We learned a unit clause
       assert(jump_level == 0);
       LOG_INFO("Learned unit: " << not_uip);
       SUBSAT_STAT_INC(learned_unit_clauses);
+      SUBSAT_STAT_ADD(learned_literals, 1);
       assign(not_uip, Reason::invalid());
     }
     // else if (size == 2) {
@@ -1515,9 +1547,6 @@ private:
     else {
       assert(size > 1);
       assert(jump_level > 0);
-
-      if (size == 2) { SUBSAT_STAT_INC(learned_binary_clauses); }  // TODO: move this when adding binary clause optimization
-      if (size >= 3) { SUBSAT_STAT_INC(learned_long_clauses); }
 
       // First literal at jump level becomes the other watch.
       for (auto it = clause.begin() + 1; ; ++it) {
@@ -1531,15 +1560,26 @@ private:
         }
       }
 
-      auto learned = m_clauses.alloc(size);
+      auto learned = alloc_constraint(size);
       for (Lit learned_lit : clause) {
-        m_clauses.handle_push_literal(learned, learned_lit);
+        handle_push_literal(learned, learned_lit);
       }
-      ClauseRef learned_ref = m_clauses.handle_build(learned);
+      ClauseRef learned_ref = handle_build(learned).m_ref;
+#if SUBSAT_LEARN
       LOG_INFO("Learned: size = " << size << ", literals = " << SHOWREF(learned_ref));
+      if (size == 2) { SUBSAT_STAT_INC(learned_binary_clauses); }  // TODO: move this when adding binary clause optimization
+      if (size >= 3) { SUBSAT_STAT_INC(learned_long_clauses); }
+      SUBSAT_STAT_ADD(learned_literals, size);
       // TODO: call new_redundant_clause
       connect_clause(learned_ref);
-      assign(not_uip, Reason{learned_ref});
+      Reason reason{learned_ref};
+#else
+#ifndef NDEBUG
+      m_clause_refs.push_back(learned_ref);
+#endif
+      Reason reason{learned_ref, true};  // mark as redundant so we delete it on backtracking
+#endif
+      assign(not_uip, reason);
     }
 
     clause.clear();
@@ -1656,6 +1696,20 @@ private:
     assert(m_values[~lit] == Value::False);
     m_values[lit] = Value::Unassigned;
     m_values[~lit] = Value::Unassigned;
+
+#if !SUBSAT_LEARN
+    // If we aren't doing clause learning, we need to delete the redundant reasons
+    Reason reason = m_vars[lit.var()].reason;
+    if (reason.is_redundant()) {
+      ClauseRef cr = reason.get_clause_ref();
+#ifndef NDEBUG
+      assert(m_clause_refs.back() == cr);
+      m_clause_refs.pop_back();
+#endif
+      m_clauses.unsafe_delete(cr);
+      UPDATE_STORAGE_STATS();
+    }
+#endif
 
 #if SUBSAT_VDOM
     m_vdom.unassigned(lit.var());
@@ -2049,6 +2103,7 @@ bool Solver<Allocator>::checkWatches() const
       }
     }
   }
+#if SUBSAT_LEARN  // if we're not learning, some of the clauses won't be watched
   // Every clause of size >= 2 is watched twice
   for (ClauseRef cr : m_clause_refs) {
     Clause const& c = m_clauses.deref(cr);
@@ -2060,6 +2115,7 @@ bool Solver<Allocator>::checkWatches() const
     }
   }
   assert(num_watches.empty());
+#endif
   return true;
 }
 
@@ -2093,6 +2149,38 @@ bool Solver<Allocator>::checkModel() const
       return false;
     }
   }
+  return true;
+}
+
+#else
+
+template <template <typename> class Allocator>
+bool Solver<Allocator>::checkEmpty() const
+{
+  return true;
+}
+
+template <template <typename> class Allocator>
+bool Solver<Allocator>::checkConstraint(Clause const& c) const
+{
+  return true;
+}
+
+template <template <typename> class Allocator>
+bool Solver<Allocator>::checkInvariants() const
+{
+  return true;
+}
+
+template <template <typename> class Allocator>
+bool Solver<Allocator>::checkWatches() const
+{
+  return true;
+}
+
+template <template <typename> class Allocator>
+bool Solver<Allocator>::checkModel() const
+{
   return true;
 }
 
