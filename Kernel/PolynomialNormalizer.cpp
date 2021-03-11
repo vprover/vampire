@@ -26,7 +26,7 @@ struct RenderMonom {
     auto& raw = x.raw();
     std::sort(raw.begin(), raw.end());
     auto fstNum = Option<Numeral>();
-    auto len = 0;
+    unsigned len = 0;
     for (auto x : raw) {
       ASS_EQ(x.power, 1)
       if (x.term.template tryNumeral<NumTraits>().isSome() && fstNum.isNone()) {
