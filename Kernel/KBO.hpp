@@ -168,7 +168,50 @@ protected:
   Result comparePredicates(Literal* l1, Literal* l2) const override;
 
 
-  class State;
+  /**
+   * Class to represent the current state of the KBO comparison.
+   * @since 30/04/2008 flight Brussels-Tel Aviv
+   */
+  class State
+  {
+  public:
+    /** Initialise the state */
+    State()
+    {}
+
+    void init()
+    {
+      _weightDiff=0;
+      _posNum=0;
+      _negNum=0;
+      _lexResult=EQUAL;
+      _varDiffs.reset();
+    }
+
+    CLASS_NAME(KBO::State);
+    USE_ALLOCATOR(State);
+
+    void traverse(KBO const& kbo, Term* t1, Term* t2);
+    void traverse(KBO const& kbo, TermList tl,int coefficient);
+    Result result(KBO const& kbo, Term* t1, Term* t2);
+  private:
+    void recordVariable(unsigned var, int coef);
+    Result innerResult(KBO const& kbo, TermList t1, TermList t2);
+    Result applyVariableCondition(Result res);
+    
+
+    int _weightDiff;
+    DHMap<unsigned, int, IdentityHash> _varDiffs;
+    /** Number of variables, that occur more times in the first literal */
+    int _posNum;
+    /** Number of variables, that occur more times in the second literal */
+    int _negNum;
+    /** First comparison result */
+    Result _lexResult;
+    /** The variable counters */
+  }; // class State
+
+
 
 private:
   int symbolWeight(Term* t) const;
@@ -187,7 +230,7 @@ private:
   /**
    * State used for comparing terms and literals
    */
-  mutable State* _state;
+  mutable unique_ptr<State> _state;
 };
 
 }

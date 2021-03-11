@@ -35,56 +35,15 @@ namespace Kernel {
 using namespace Lib;
 using namespace Shell;
 
-/**
- * Class to represent the current state of the KBO comparison.
- * @since 30/04/2008 flight Brussels-Tel Aviv
- */
-class KBO::State
+KBO::Result KBO::State::applyVariableCondition(Result res) 
 {
-public:
-  /** Initialise the state */
-  State()
-  {}
-
-  void init()
-  {
-    _weightDiff=0;
-    _posNum=0;
-    _negNum=0;
-    _lexResult=EQUAL;
-    _varDiffs.reset();
+  if(_posNum>0 && (res==LESS || res==LESS_EQ || res==EQUAL)) {
+    res=INCOMPARABLE;
+  } else if(_negNum>0 && (res==GREATER || res==GREATER_EQ || res==EQUAL)) {
+    res=INCOMPARABLE;
   }
-
-  CLASS_NAME(KBO::State);
-  USE_ALLOCATOR(State);
-
-  void traverse(KBO const& kbo, Term* t1, Term* t2);
-  void traverse(KBO const& kbo, TermList tl,int coefficient);
-  Result result(KBO const& kbo, Term* t1, Term* t2);
-private:
-  void recordVariable(unsigned var, int coef);
-  Result innerResult(KBO const& kbo, TermList t1, TermList t2);
-  Result applyVariableCondition(Result res)
-  {
-    if(_posNum>0 && (res==LESS || res==LESS_EQ || res==EQUAL)) {
-      res=INCOMPARABLE;
-    } else if(_negNum>0 && (res==GREATER || res==GREATER_EQ || res==EQUAL)) {
-      res=INCOMPARABLE;
-    }
-    return res;
-  }
-
-  int _weightDiff;
-  DHMap<unsigned, int, IdentityHash> _varDiffs;
-  /** Number of variables, that occur more times in the first literal */
-  int _posNum;
-  /** Number of variables, that occur more times in the second literal */
-  int _negNum;
-  /** First comparison result */
-  Result _lexResult;
-  /** The variable counters */
-}; // class KBO::State
-
+  return res;
+}
 /**
  * Return result of comparison between @b l1 and @b l2 under
  * an assumption, that @b traverse method have been called
@@ -487,7 +446,7 @@ KBO::KBO(
 #if __KBO__CUSTOM_PREDICATE_WEIGHTS__
   , _predWeights(predWeights)
 #endif
-  , _state(new State())
+  , _state(unique_ptr<State>(new State()))
 { 
   checkAdmissibility(throwError);
 }
@@ -588,7 +547,7 @@ KBO::KBO(Problem& prb, const Options& opts)
 #if __KBO__CUSTOM_PREDICATE_WEIGHTS__
  , _predWeights(weightsFromOpts<PredSigTraits>(opts))
 #endif
- , _state(new State())
+ , _state(unique_ptr<State>(new State()))
 {
   CALL("KBO::KBO(Prb&, Opts&)");
   if (opts.kboAdmissabilityCheck() == Options::KboAdmissibilityCheck::ERROR)
@@ -597,12 +556,7 @@ KBO::KBO(Problem& prb, const Options& opts)
     checkAdmissibility(warnError);
 }
 
-KBO::~KBO()
-{
-  CALL("KBO::~KBO");
-
-  delete _state;
-}
+KBO::~KBO() { }
 
 /**
  * Compare arguments of literals l1 and l2 and return the result
@@ -622,10 +576,11 @@ Ordering::Result KBO::comparePredicates(Literal* l1, Literal* l2) const
 
   Result res;
   ASS(_state);
-  State* state=_state;
 #if VDEBUG
   //this is to make sure _state isn't used while we're using it
-  _state=0;
+  auto state = std::move(_state);
+#else 
+  auto& state = _state;
 #endif
   state->init();
   if(p1!=p2) {
@@ -646,7 +601,7 @@ Ordering::Result KBO::comparePredicates(Literal* l1, Literal* l2) const
 
   res=state->result(*this, l1,l2);
 #if VDEBUG
-  _state=state;
+  _state=std::move(state);
 #endif
   return res;
 } // KBO::comparePredicates()
@@ -672,11 +627,13 @@ Ordering::Result KBO::compare(TermList tl1, TermList tl2) const
   Term* t2=tl2.term();
 
   ASS(_state);
-  State* state=_state;
 #if VDEBUG
   //this is to make sure _state isn't used while we're using it
-  _state=0;
+  auto state = std::move(_state);
+#else 
+  auto& state = _state;
 #endif
+
 
   state->init();
   if(t1->functor()==t2->functor()) {
@@ -687,7 +644,7 @@ Ordering::Result KBO::compare(TermList tl1, TermList tl2) const
   }
   Result res=state->result(*this,t1,t2);
 #if VDEBUG
-  _state=state;
+  _state = std::move(state);
 #endif
   return res;
 }
