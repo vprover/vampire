@@ -44,6 +44,7 @@ using namespace Indexing;
   DECL_CONST(a, Num)                                                                                          \
   DECL_CONST(b, Num)                                                                                          \
   DECL_CONST(c, Num)                                                                                          \
+  DECL_PRED(r, {Num,Num})                                                                                     \
 
 #define MY_SYNTAX_SUGAR SUGAR(Rat)
 
@@ -137,6 +138,16 @@ TEST_GENERATION(basic07,
     Generation::TestCase()
       .indices(indices())
       .input   (  clause({ selected(a > 0) }) )
+      .context ({ clause({          a > 0  }) })
+      .expected(exactly(
+      ))
+      .premiseRedundant(false)
+    )
+
+TEST_GENERATION(basic08,
+    Generation::TestCase()
+      .indices(indices())
+      .input   (  clause({ selected(a >= a) }) )
       .context ({ clause({          a > 0  }) })
       .expected(exactly(
       ))
@@ -266,6 +277,20 @@ TEST_GENERATION_WITH_SUGAR(normalization03,
       .context ({ clause({     a + -f(a) >  0 }) })
       .expected(exactly(
             clause({  a   > 0  })
+      ))
+      .premiseRedundant(false)
+    )
+
+// only for integers (which we r using here)
+TEST_GENERATION_WITH_SUGAR(bug01,
+    SUGAR(Real),
+    Generation::TestCase()
+      .indices(indices())
+      .input   (  clause({r(x, y), selected( (x + -y > 0) ) }) )
+      .context ({ clause({     a >  0 }) })
+      //                                      (y - 1 > 0) 
+      .expected(exactly(
+            clause({     x > 0, r(x, a) })
       ))
       .premiseRedundant(false)
     )

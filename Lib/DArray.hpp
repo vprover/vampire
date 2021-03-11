@@ -38,9 +38,6 @@ namespace Lib {
 template<typename C>
 class DArray
 {
-private:
-  //private and undefined operator= to avoid an implicitly generated one
-  DArray& operator=(const DArray&);
 public:
   CLASS_NAME(DArray<C>);
   USE_ALLOCATOR(DArray<C>);
@@ -81,6 +78,25 @@ public:
     for(size_t i=0; i<_size; i++) {
       new(&_array[i]) C(o[i]);
     }
+  }
+
+
+  DArray(DArray&& o)
+    : _size(o._size), _capacity(o._capacity), _array(o._array)
+  {
+    CALL("DArray::DArray(const DArray&)");
+
+    o._size = o._capacity = 0;
+    o._array = nullptr;
+  }
+
+  DArray& operator=(const DArray&) = delete;
+  DArray& operator=(DArray&& o)
+  {
+    CALL("DArray::DArray(const DArray&)");
+    this->~DArray();
+    ::new(this) DArray(std::move(o));
+    return *this;
   }
 
 

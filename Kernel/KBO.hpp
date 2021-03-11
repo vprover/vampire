@@ -131,6 +131,8 @@ public:
   CLASS_NAME(KBO);
   USE_ALLOCATOR(KBO);
 
+  KBO(KBO&&) = default;
+  KBO& operator=(KBO&&) = default;
   KBO(Problem& prb, const Options& opt);
   KBO(
       // KBO params

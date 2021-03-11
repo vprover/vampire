@@ -254,7 +254,7 @@ Polynom<Number> PolynomialEvaluation::simplifySummation(Stack<Monom<Number>> sum
     // then we sort them by their monom, in order to add up the coefficients efficiently
     std::sort(summands.begin(), summands.end());
 
-    // add up the coefficient (in place)
+    // add up the coefficients (in place)
     {
       auto offs = 0;
       for (unsigned i = 0; i < summands.size(); i++) { 
@@ -269,7 +269,6 @@ Polynom<Number> PolynomialEvaluation::simplifySummation(Stack<Monom<Number>> sum
           summands[offs++] = Monom(numeral, factors);
       }
       summands.truncate(offs);
-
     }
 
     auto poly = Polynom(std::move(summands));
@@ -302,6 +301,12 @@ Polynom<Number> simplifyPoly(Polynom<Number> const& in, PolyNf* simplifiedArgs)
         auto simpl = simplifyMonom(monom, &simplifiedArgs[offs]);
         if (simpl.numeral == Number::zeroC) {
           /* we don't add it */
+        } else if (simpl.factors->nFactors() == 1 && simpl.factors->factorAt(0).tryPolynom().isSome()) {
+          auto poly = simpl.factors->factorAt(0).tryPolynom().unwrap();
+          for (auto fac : poly->iterSummands()) {
+            fac.numeral = fac.numeral * simpl.numeral;
+            out.push(fac);
+          }
         } else {
           out.push(simpl);
         }
@@ -316,6 +321,9 @@ Polynom<Number> simplifyPoly(Polynom<Number> const& in, PolyNf* simplifiedArgs)
 }
 
 
+/** Simplifies the factors of a monom. 
+ * In exact this means, that all the numeral factors are collapsed into one numeral (e.g. 3*4*3*x ==> 36*x)
+ */
 template<class Number>
 Monom<Number> simplifyMonom(Monom<Number> const& in, PolyNf* simplifiedArgs) 
 { 

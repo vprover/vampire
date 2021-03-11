@@ -24,6 +24,7 @@
 #include "Lib/Comparison.hpp"
 #include "Lib/SmartPtr.hpp"
 #include "Lib/DArray.hpp"
+#include "Kernel/Term.hpp"
 
 #include "Lib/Allocator.hpp"
 
@@ -58,6 +59,8 @@ public:
   };
 
   Ordering();
+  Ordering(Ordering&&) = default;
+  Ordering& operator=(Ordering&&) = default;
   virtual ~Ordering();
 
   /** Return the result of comparing @b l1 and @b l2 */
@@ -134,12 +137,53 @@ private:
   };
 
 
-  void createEqualityComparator();
-  void destroyEqualityComparator();
+  class EqCmp
+  {
+  public:
+    CLASS_NAME(EqCmp);
+    USE_ALLOCATOR(EqCmp);
 
-  class EqCmp;
+#define BUF_SIZE 128
+
+    EqCmp()
+    {
+#if VDEBUG
+    inUse=false;
+#endif
+    }
+
+    Result compareEqualities(Ordering const& ord, Literal* eq1, Literal* eq2) const;
+
+
+#if VDEBUG
+    mutable bool inUse;
+#endif
+
+  private:
+
+    Result compare_s1Gt1(Ordering const& ord, TermList s1,TermList s2,TermList t1,TermList t2) const;
+    Result compare_s1GEt1(Ordering const& ord, TermList s1,TermList s2,TermList t1,TermList t2) const;
+    Result compare_s1It1(Ordering const& ord, TermList s1,TermList s2,TermList t1,TermList t2) const;
+    Result compare_s1It1_s2It2(Ordering const& ord, TermList s1,TermList s2,TermList t1,TermList t2) const;
+    Result compare_s1Gt1_s2It2(Ordering const& ord, TermList s1,TermList s2,TermList t1,TermList t2) const;
+    Result compare_s1Gt1_s2Lt2(Ordering const& ord, TermList s1,TermList s2,TermList t1,TermList t2) const;
+    Result compare_s1Gt1_s2LEt2(Ordering const& ord, TermList s1,TermList s2,TermList t1,TermList t2) const;
+    Result compare_s1GEt1_s2It2(Ordering const& ord, TermList s1,TermList s2,TermList t1,TermList t2) const;
+    Result compare_s1Gt1_s1It2_s2It1(Ordering const& ord, TermList s1,TermList s2,TermList t1,TermList t2) const;
+    Result compare_s1Gt1_s1GEt2_s2It1(Ordering const& ord, TermList s1,TermList s2,TermList t1,TermList t2) const;
+    Result compare_s1Gt1_s1GEt2_s2It2(Ordering const& ord, TermList s1,TermList s2,TermList t1,TermList t2) const;
+    Result compare_s1GEt1_s1GEt2_s2It1(Ordering const& ord, TermList s1,TermList s2,TermList t1,TermList t2) const;
+    Result compare_s1GEt1_s1It2_s2It1(Ordering const& ord, TermList s1,TermList s2,TermList t1,TermList t2) const;
+    Result compare_s1GEt1_s2LEt2(Ordering const& ord, TermList s1,TermList s2,TermList t1,TermList t2) const;
+    Result compare_s1Gt1_s1GEt2_s2Lt2(Ordering const& ord, TermList s1,TermList s2,TermList t1,TermList t2) const;
+    Result compare_s1GEt1_s1GEt2_s2LEt1(Ordering const& ord, TermList s1,TermList s2,TermList t1,TermList t2) const;
+
+    mutable TermList s1,s2,t1,t2;
+   
+  };
+
   /** Object used to compare equalities */
-  EqCmp* _eqCmp;
+  unique_ptr<EqCmp> _eqCmp;
 
   /**
    * We store orientation of equalities in this ordering inside
@@ -156,6 +200,8 @@ class PrecedenceOrdering
 : public Ordering
 {
 public:
+  PrecedenceOrdering(PrecedenceOrdering&&) = default;
+  PrecedenceOrdering& operator=(PrecedenceOrdering&&) = default;
   Result compare(Literal* l1, Literal* l2) const override;
   Comparison compareFunctors(unsigned fun1, unsigned fun2) const override;
   void show(ostream&) const override;

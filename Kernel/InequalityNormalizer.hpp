@@ -169,7 +169,8 @@ namespace Kernel {
       auto t = NumTraits::add(r, NumTraits::minus(l));
 
       ASS(!isInt || strict)
-      auto norm = Kernel::normalizeTerm(TypedTermList(t.term()));
+      auto tt = TypedTermList(t, NumTraits::sort);
+      auto norm = Kernel::normalizeTerm(tt);
       auto simpl = _eval.evaluate(norm).unwrapOr(norm);
       return Opt(InequalityLiteral<NumTraits>(simpl.wrapPoly<NumTraits>(), strict));
     };

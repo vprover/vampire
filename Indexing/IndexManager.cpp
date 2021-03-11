@@ -178,7 +178,7 @@ Index* IndexManager::create(IndexType t)
     break;
 
   case INEQUALITY_RESOLUTION_SUBST_TREE:
-    tis=new TermSubstitutionTree(env.options->unificationWithAbstraction(), useConstraints);
+    tis=new TermSubstitutionTree(env.options->unificationWithAbstraction(), true);
     res=new InequalityResolutionIndex(tis, _alg->getOrdering(), InequalityNormalizer(PolynomialEvaluation(_alg->getOrdering())));
     isGenerating = true;
     break;
