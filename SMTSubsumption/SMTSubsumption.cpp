@@ -1065,6 +1065,8 @@ class SMTSubsumption::SMTSubsumptionImpl2
       instance_constraints.reserve(16);
     }
 
+#define GROUND_LITERAL_PREFILTER 0  // TODO
+
     /// Set up the subsumption problem.
     /// Returns false if no solution is possible.
     /// Otherwise, solve() needs to be called.
@@ -1072,8 +1074,10 @@ class SMTSubsumption::SMTSubsumptionImpl2
     {
       solver.clear();
       ASS(solver.empty());
+      auto& theory = solver.theory();
+      ASS(theory.empty());
 
-      base_clauses.clear();
+      // base_clauses.clear();
       ASS(base_clauses.empty());
 
       // Here we store the AtMostOne constraints saying that each instance literal may be matched at most once.
@@ -1083,7 +1087,7 @@ class SMTSubsumption::SMTSubsumptionImpl2
       instance_constraints.clear();
       ASS(instance_constraints.empty());
       for (size_t i = 0; i < instance->length(); ++i) {
-        instance_constraints.push_back(solver.alloc_clause(instance_constraint_maxsize));
+        instance_constraints.push_back(solver.alloc_constraint(instance_constraint_maxsize));
       }
 
       // Matching for subsumption checks whether
@@ -1096,7 +1100,7 @@ class SMTSubsumption::SMTSubsumptionImpl2
         uint32_t match_count = 0;
 
         // Build clause stating that base_lit must be matched to at least one corresponding instance literal.
-        solver.clause_start();
+        solver.constraint_start();
 
         for (unsigned j = 0; j < instance->length(); ++j) {
           Literal* inst_lit = instance->literals()[j];
@@ -1106,7 +1110,7 @@ class SMTSubsumption::SMTSubsumptionImpl2
           }
 
           {
-            auto binder = solver.theory().start_binder();
+            auto binder = theory.start_binder();
             if (base_lit->arity() == 0 || MatchingUtils::matchArgs(base_lit, inst_lit, binder)) {
               subsat::Var b = solver.new_variable(i);
               // std::cerr << "Match: " << b << " => " << base_lit->toString() << " -> " << inst_lit->toString() << std::endl;
@@ -1120,20 +1124,18 @@ class SMTSubsumption::SMTSubsumptionImpl2
                 // probably best to have a separate loop first that deals with ground literals? since those are only pointer equality checks.
               }
 
-              solver.theory().register_bindings(b, std::move(binder));
+              theory.commit_bindings(binder, b);
 
-              solver.clause_literal(b);
+              solver.constraint_push_literal(b);
               solver.handle_push_literal(instance_constraints[j], b);
               match_count += 1;
-            } else {
-              solver.theory().drop_bindings(std::move(binder));
             }
           }
 
           if (base_lit->commutative()) {
             ASS_EQ(base_lit->arity(), 2);
             ASS_EQ(inst_lit->arity(), 2);
-            auto binder = solver.theory().start_binder();
+            auto binder = theory.start_binder();
             if (MatchingUtils::matchReversedArgs(base_lit, inst_lit, binder)) {
               subsat::Var b = solver.new_variable(i);
 
@@ -1146,32 +1148,25 @@ class SMTSubsumption::SMTSubsumptionImpl2
                 // probably best to have a separate loop first that deals with ground literals? since those are only pointer equality checks.
               }
 
-              solver.theory().register_bindings(b, std::move(binder));
+              theory.commit_bindings(binder, b);
 
-              solver.clause_literal(b);
+              solver.constraint_push_literal(b);
               solver.handle_push_literal(instance_constraints[j], b);
               match_count += 1;
-            } else {
-              solver.theory().drop_bindings(std::move(binder));
             }
           }
         }
-        subsat::ClauseRef cr = solver.clause_end();
-        base_clauses.push_back(cr);
+        auto handle = solver.constraint_end();
+        solver.add_clause(handle);
 
         // If there are no matches for this base literal, we have just added an empty clause.
         // => conflict on root level due to empty clause, abort early
-        if (match_count == 0) {
-          ASS(solver.inconsistent());   // TODO: can just check this and remove the variable 'match_count'
+        if (match_count == 0) { ASS(solver.inconsistent()); }
+        if (solver.inconsistent()) {
           return false;
         }
       }
 
-      // Need to add clauses after the loop because the current implementation requires
-      // the theory to be fully set up
-      for (auto cr : base_clauses) {
-        solver.add_clause(cr);
-      }
       for (auto& constraint : instance_constraints) {
         solver.add_atmostone_constraint(constraint);
       }
@@ -1195,6 +1190,10 @@ class SMTSubsumption::SMTSubsumptionImpl2
 
       complementary_matches.clear();
       ASS(complementary_matches.empty());
+
+      return false;
+
+      /*
 
       // // Here we store the AtMostOne constraints saying that each instance literal may be matched at most once.
       // // Each instance literal can be matched by at most 2 boolean vars per base literal (two orientations of equalities).
@@ -1238,13 +1237,11 @@ class SMTSubsumption::SMTSubsumptionImpl2
                 // probably best to have a separate loop first that deals with ground literals? since those are only pointer equality checks.
               }
 
-              solver.theory().register_bindings(b, std::move(binder));
+              solver.theory().commit_bindings(binder, b);
 
               solver.clause_literal(b);
               // solver.handle_push_literal(instance_constraints[j], b);
               match_count += 1;
-            } else {
-              solver.theory().drop_bindings(std::move(binder));
             }
             // For now, just assume this to make the code simpler
             ASS(!base_lit->commutative());
@@ -1266,14 +1263,12 @@ class SMTSubsumption::SMTSubsumptionImpl2
                 // probably best to have a separate loop first that deals with ground literals? since those are only pointer equality checks.
               }
 
-              solver.theory().register_bindings(b, std::move(binder));
+              solver.theory().commit_bindings(binder, b);
 
               solver.clause_literal(b);
               // solver.handle_push_literal(instance_constraints[j], b);
               complementary_matches.push_back(b);
               match_count += 1;
-            } else {
-              solver.theory().drop_bindings(std::move(binder));
             }
             // For now, just assume this to make the code simpler
             ASS(!base_lit->commutative());
@@ -1328,6 +1323,7 @@ class SMTSubsumption::SMTSubsumptionImpl2
       //       Why? because ForwardSubsumptionAndResolution does something similar with caching the ClauseMatches structure.
       //       However, we would have to cache the whole solver. Do we want to do this?
       //       No, actually we could also re-use the matches (store the matches separately and just cache that).
+      */
     }  // setupSubsumptionResolution
 
     // TODO: extract subsumption resolution (i.e., which is the complementary literal)

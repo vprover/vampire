@@ -43,9 +43,17 @@ static_assert(sizeof(VampireTerm) == 8, "unexpected term size");
 
 
 template <template <typename> class Allocator = std::allocator>
-class SubstitutionTheory2 final {
-public:
+class SubstitutionTheory2 final
+{
+private:
+#ifndef NDEBUG
+  enum class State {
+    Setup,
+    Solving,
+  };
+#endif
 
+public:
   template <typename T>
   using allocator_type = Allocator<T>;
 
@@ -75,7 +83,13 @@ public:
   using BindingsEntry = std::pair<VampireVar, VampireTerm>;
   using BindingsStorage = vector<BindingsEntry>;
 
-  class Binder {
+  class Binder final
+  {
+    enum class State {
+      Active,
+      Committed,
+      Reset,
+    };
   public:
     Binder(BindingsStorage& bindings_storage) noexcept
         : m_bindings_storage{bindings_storage}
@@ -87,24 +101,19 @@ public:
     Binder(Binder&&) = default;
     Binder& operator=(Binder&&) = delete;
 
+    ~Binder() noexcept
+    {
+      if (m_state == State::Active) {
+        reset();
+      }
+    }
+
     bool bind(VampireVar var, VampireTerm term)
     {
-      // // Try to find entry for 'var'
-      // auto it =
-      //     std::find_if(m_bindings_storage.begin() + m_bindings_start, m_bindings_storage.end(),
-      //                  [var](BindingsEntry entry) { return entry.first == var; });
-      // if (it != m_bindings_storage.end()) {
-      //   // 'var' is already bound => successful iff we bind to the same term again
-      //   return it->second == term;
-      // }
-      // else {
-      //   // 'var' is not bound yet => store new binding
-      //   m_bindings_storage.emplace_back(var, term);
-      //   return true;
-      // }
+      ASS(m_state == State::Active);
       for (auto it = m_bindings_storage.cbegin() + m_bindings_start; it != m_bindings_storage.cend(); ++it) {
         if (it->first == var) {
-          // 'var' is already bound => successful iff we bind to the same term again
+          // 'var' is already bound => binding succeeds iff we bind to the same term again
           return (it->second == term);
         }
       }
@@ -118,10 +127,12 @@ public:
       ASSERTION_VIOLATION;
     }
 
-    void reset()
+    void reset() noexcept
     {
+      ASS(m_state == State::Active);
       ASS_GE(m_bindings_storage.size(), m_bindings_start);
-      m_bindings_storage.resize(m_bindings_start);
+      m_bindings_storage.resize(m_bindings_start);  // will not throw because we shrink the size
+      m_state = State::Reset;
     }
 
     size_t index() const noexcept
@@ -136,29 +147,73 @@ public:
     }
 
   private:
+    /// Users should call SubstitutionTheory2::commit_bindings() instead.
+    void commit() noexcept
+    {
+      ASS(m_state == State::Active);
+      m_state = State::Committed;
+    }
+
+    friend class SubstitutionTheory2<Allocator>;
+
+  private:
     BindingsStorage& m_bindings_storage;
     /// First index of the current bindings in m_bindings_storage
     size_t m_bindings_start;
+    /// Current state of the binder
+    State m_state = State::Active;
   };  // class Binder
 
   /// Only one binder may be active at any time.
   /// Must call register_bindings or drop_bindings on the returned binder.
   Binder start_binder() noexcept
   {
+    ASS(m_state == State::Setup);
     return {m_bindings_storage};
   }
 
-  void register_bindings(subsat::Var b, Binder&& binder)
+  /// Commit bindings to storage.
+  void commit_bindings(Binder& binder, subsat::Var b)
   {
+    ASS(m_state == State::Setup);
+    binder.commit();
     while (b.index() >= m_bindings.size()) {
       m_bindings.emplace_back();
     }
     BindingsRef& bindings = m_bindings[b];
-    ASS(!bindings.is_valid());
+    ASS_REP(!bindings.is_valid(), "Bindings for b are already set");
     bindings.index = binder.index();
     bindings.size = binder.size();
     ASS(bindings.is_valid());
+  }
 
+  void prepare_for_solving()
+  {
+    ASS(m_state == State::Setup);
+#ifndef NDEBUG
+    m_state = State::Solving;
+#endif
+    // TODO: this should be done in a separate finalize() call before solving
+    // TODO: implement this properly and call from Solver::solve()
+    for (uint32_t b_idx = 0; b_idx < m_bindings.size(); ++b_idx) {
+      subsat::Var b{b_idx};
+      BindingsRef& bindings = m_bindings[b];
+      for (uint32_t i = bindings.index; i < bindings.end(); ++i) {
+        BindingsEntry const& entry = m_bindings_storage[i];
+        VampireVar var = entry.first;
+        VampireTerm term = entry.second;
+        LOG_TRACE(SHOWVAR(var) << " -> " << SHOWTERM(term));
+        while (var >= m_bindings_by_var.size()) {
+          m_bindings_by_var.emplace_back();
+        }
+        auto& var_bindings = m_bindings_by_var[var];
+        if (var_bindings.empty()) {
+          m_used_vars.push_back(var);
+        }
+        var_bindings.push_back({b, term});
+      }
+    }
+    /*
     for (uint32_t i = bindings.index; i < bindings.end(); ++i) {
       BindingsEntry const& entry = m_bindings_storage[i];
       VampireVar var = entry.first;
@@ -173,24 +228,21 @@ public:
       }
       var_bindings.push_back({b, term});
     }
-  }
-
-  void drop_bindings(Binder&& binder)
-  {
-    binder.reset();
+    */
   }
 
 private:
-  struct BindingsRef {
+  struct BindingsRef final
+  {
     uint32_t index = std::numeric_limits<uint32_t>::max();
     uint32_t size = 0;
 
-    constexpr bool is_valid() const
+    constexpr bool is_valid() const noexcept
     {
       return index < std::numeric_limits<uint32_t>::max();
     }
     /// last index + 1
-    uint32_t end()
+    constexpr uint32_t end() const noexcept
     {
       return index + size;
     }
@@ -199,6 +251,9 @@ private:
 public:
   void clear() noexcept
   {
+#if VDEBUG
+    m_state = State::Setup;
+#endif
     m_bindings_storage.clear();
     m_bindings.clear();
     for (VampireVar v : m_used_vars) {
@@ -211,6 +266,7 @@ public:
   {
     bool is_empty = m_bindings.empty();
     if (is_empty) {
+      // ASS(m_state == State::Setup);   // not true if there's no bindings?
       ASS(m_bindings_storage.empty());
       ASS(m_used_vars.empty());
 #if VDEBUG
@@ -231,11 +287,21 @@ public:
   }
 
 public:
-    /// Call this when a SAT variable has been set to true
-    /// PropagateCallback ~ bool propagate(subsat::Lit propagated, Lit reason)
+    /// Call this when a boolean variable has been set to true.
+    ///
+    /// The callback 'propagate' should have the following type:
+    ///
+    ///   PropagateCallback ~ bool propagate(subsat::Lit propagated, Lit reason)
+    ///
+    /// The callback will be called whenever a theory propagation is possible.
+    /// It should assign the given literal and return true, if this is possible.
+    /// It should return false if the assignment is conflicting.
+    ///
+    /// 'enable' will return true if all propagations succeeded, and false otherwise.
     template < typename PropagateCallback >
     bool enable(subsat::Var b, PropagateCallback propagate)
     {
+      ASS(m_state == State::Solving);
       // Retrieve the bindings corresponding to the given boolean variable
       BindingsRef bindings = m_bindings[b];
 
@@ -280,6 +346,10 @@ private:
   // TODO: build bindings_by_var at the start of solve().
   // do not theory-propagate during building the problem, but do an initial round at the start of solve
   // (where tprop may fail on lvl 0; it's fine because we can just report unsat then.)
+
+#ifndef NDEBUG
+  State m_state = State::Setup;
+#endif
 };
 
 

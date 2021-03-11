@@ -284,7 +284,7 @@ public:
     m_storage.push_back(lit.index());
   }
 
-  NODISCARD ClauseRef end()
+  NODISCARD ClauseRef end() noexcept
   {
     assert(m_dynamic_ref.is_valid());
 

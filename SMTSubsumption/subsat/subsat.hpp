@@ -374,12 +374,15 @@ public:
   using vdom = VariableDomainSize<allocator_type>;
   using vdom_group = typename vdom::Group;
 
+  using State = Result;
+
 
   /// Ensure space for a new variable and return it.
   /// By default, memory is increased exponentially (relying on the default behaviour of std::vector).
   /// Use reserve_variables if you know the number of variables upfront.
   NODISCARD Var new_variable(vdom_group group = vdom::InvalidGroup)
   {
+    assert(m_state == State::Unknown);
     // TODO: optional argument phase_hint as initial value for m_phases?
     Var new_var = Var{m_used_vars++};
     m_unassigned_vars++;
@@ -410,6 +413,7 @@ public:
   /// but does not actually enable the new variables in the solver.
   void reserve_variables(uint32_t count)
   {
+    assert(m_state == State::Unknown);
     m_vars.reserve(count);
     m_marks.reserve(count);
     m_values.reserve(2 * count);
@@ -456,7 +460,7 @@ public:
   {
     uint32_t const old_used_vars = m_used_vars;
 
-    m_state = Result::Unknown;
+    m_state = State::Unknown;
     m_inconsistent = false;
     m_used_vars = 0;
     m_unassigned_vars = 0;
@@ -504,75 +508,120 @@ public:
     assert(checkEmpty());
   }
 
-  /// Reserve space for a clause of 'capacity' literals
+
+  /********************************************************************
+   * Allocating new constraints
+   ********************************************************************/
+
+public:
+
+  /// Opaque handle to fully-constructed constraints.
+  class ConstraintHandle final {
+    ConstraintHandle(ClauseRef ref) : m_ref{ref} { }
+    ClauseRef m_ref;
+    friend class Solver<Allocator>;
+  };
+
+  /// Reserve space for a constraint of at most 'capacity' literals
   /// and returns a handle to the storage.
-  NODISCARD AllocatedClauseHandle alloc_clause(uint32_t capacity)
+  ///
+  /// Call 'handle_push_literal' up to 'capacity' times to add literals to the constraint,
+  /// and finish it with 'handle_build'.
+  ///
+  /// May not be called while a constraint started by 'constraint_start' is active!
+  NODISCARD AllocatedClauseHandle alloc_constraint(uint32_t capacity)
   {
     return m_clauses.alloc(capacity);
   }
 
+  /// Adds a literal to a pre-allocated constraint.
   void handle_push_literal(AllocatedClauseHandle& handle, Lit lit) noexcept
   {
     m_clauses.handle_push_literal(handle, lit);
   }
 
-  void clause_start()
+  /// Finish a pre-allocated constraint.
+  /// Call 'add_clause' to add it to the solver as a clause.
+  ConstraintHandle handle_build(AllocatedClauseHandle& handle) noexcept
+  {
+    return {m_clauses.handle_build(handle)};
+  }
+
+  /// Start a new constraint.
+  /// Call 'constraint_push_literal' to add an arbitrary number of literals, and finish with 'constraint_end'.
+  /// This method is useful when the size is not known a priori.
+  /// Drawback: only one such constraint may be active at one time.
+  void constraint_start()
   {
     m_clauses.start();
   }
 
-  void clause_literal(Lit lit)
+  /// Add a literal to the constraint started by 'constraint_start'.
+  void constraint_push_literal(Lit lit)
   {
     m_clauses.push_literal(lit);
   }
 
-  NODISCARD ClauseRef clause_end()
+  /// Finish the constraint started by 'constraint_start' and returns a handle to it.
+  /// Call 'add_clause' to add it to the solver as a clause.
+  NODISCARD ConstraintHandle constraint_end() noexcept
   {
-    return m_clauses.end();
+    return {m_clauses.end()};
   }
 
-  void add_clause(ClauseRef cr)
+
+  /********************************************************************
+   * Adding clauses
+   ********************************************************************/
+
+  /// Add a constraint to the solver as a clause.
+  void add_clause(ConstraintHandle& handle)
   {
-    add_clause_internal(cr);
+    assert(m_state == State::Unknown);
+    add_original_clause(handle.m_ref);
   }
 
+  /// Add clause by copying the given literals (convenience method)
   void add_clause(std::initializer_list<Lit> literals)
   {
-    assert(literals.size() <= UINT32_MAX);
+    assert(m_state == State::Unknown);
+    assert(literals.size() <= std::numeric_limits<uint32_t>::max());
     auto literals_size = static_cast<uint32_t>(literals.size());
     add_clause(literals.begin(), literals_size);
   }
 
+  /// Add clause by copying the given literals (convenience method)
   void add_clause(Lit const* literals, uint32_t count)
   {
-    auto ca = m_clauses.alloc(count);
+    assert(m_state == State::Unknown);
+    auto handle = alloc_constraint(count);
     for (Lit const* p = literals; p < literals + count; ++p) {
-      handle_push_literal(ca, *p);
+      handle_push_literal(handle, *p);
     }
-    add_clause(ca);
+    add_clause(handle_build(handle));
   }
 
-  void add_clause(AllocatedClauseHandle& handle)
-  {
-    ClauseRef cr = m_clauses.handle_build(handle);
-    add_clause_internal(cr);
-  }
-
+  /// Add the empty clause
   void add_empty_clause()
   {
+    assert(m_state == State::Unknown);
     m_inconsistent = true;
   }
 
+  // TODO: make this private?
   void ensure_variable(Var var)
   {
+    assert(m_state == State::Unknown);
     assert(var.is_valid());
     while (var.index() >= m_used_vars) {
       (void)new_variable();
     }
   }
 
+  /// Add the unit clause "lit"
   void add_unit_clause(Lit lit)
   {
+    assert(m_state == State::Unknown);
     ensure_variable(lit.var());
     switch (m_values[lit]) {
       case Value::True:
@@ -584,13 +633,15 @@ public:
         break;
       case Value::Unassigned:
         LOG_INFO("Adding unit clause: " << lit);
-        assign(lit, Reason::invalid());
+        basic_assign(lit, Reason::invalid());
         break;
     }
   }
 
+  /// Add the binary clause "lit1 \/ lit2"
   void add_binary_clause(Lit lit1, Lit lit2)
   {
+    assert(m_state == State::Unknown);
     // TODO: special handling for binary clauses
     add_clause({lit1, lit2});
   }
@@ -695,19 +746,19 @@ private:
   }
 
 
-  void add_clause_internal(ClauseRef cr)
+  void add_original_clause(ClauseRef cr)
   {
-    LOG_INFO("Adding clause " << SHOWREF(cr));
+    LOG_INFO("New original clause " << SHOWREF(cr));
+    assert(m_state == State::Unknown);
+    assert(m_level == 0);
     Clause& c = m_clauses.deref(cr);
 
-    if (m_level == 0) {
-      bool is_tautology = simplifyClause(c);
-      if (is_tautology) {
-        LOG_DEBUG("Skipping clause.");
-        return; // skip clause
-      }
-      LOG_DEBUG("Simplified clause " << c);
+    bool is_tautology = simplifyClause(c);
+    if (is_tautology) {
+      LOG_DEBUG("Skipping clause.");
+      return; // skip clause
     }
+    LOG_INFO("Adding simplified clause " << c);
     assert(isClauseSimplified(c));
 
     if (c.size() == 0) {
@@ -718,24 +769,35 @@ private:
       // TODO: special handling for binary clauses
       assert(c.size() >= 2);
       SUBSAT_STAT_INC(original_clauses);
+      connect_clause(cr);
+    }
+  }
+
+  /// Insert the given clause into internal data structures.
+  void connect_clause(ClauseRef cr)
+  {
 #ifndef NDEBUG
       m_clause_refs.push_back(cr);
 #endif
       watch_clause(cr);
-    }
   }
 
 public:
-  /// Preconditions:
-  /// - all variables in the clause have been added using 'new_variable',
-  /// - 'isClauseSimplified' returns true.
-  /// Check documentation of 'isClauseSimplified' and 'simplifyClause' for more details.
-  void add_clause_unsafe(Clause& clause)  // TODO: what parameter type do we want here?
-  {
-    assert(isClauseSimplified(clause));
-    // TODO
-    (void)clause;
-  }
+  // /// Preconditions:
+  // /// - all variables in the clause have been added using 'new_variable',
+  // /// - 'isClauseSimplified' returns true.
+  // /// Check documentation of 'isClauseSimplified' and 'simplifyClause' for more details.
+  // void add_clause_unsafe(Clause& clause)  // TODO: what parameter type do we want here?
+  // {
+  //   assert(isClauseSimplified(clause));
+  //   // TODO
+  //   (void)clause;
+  // }
+
+
+  /********************************************************************
+   * Adding AtMostOne constraints
+   ********************************************************************/
 
   void add_atmostone_constraint(std::initializer_list<Lit> literals)
   {
@@ -762,6 +824,7 @@ public:
   void add_atmostone_constraint_internal(ClauseRef cr)
   {
     LOG_INFO("Adding AtMostOne constraint " << SHOWREF(cr));
+    // TODO: simplify AMO similar to clauses
 
     Clause& c = m_clauses.deref(cr);
     // TODO: improve this?
@@ -776,7 +839,7 @@ public:
       // AtMostOne(p, q) == ~p \/ ~q
       c[0] = ~c[0];
       c[1] = ~c[1];
-      add_clause_internal(cr);
+      add_original_clause(cr);
     } else {
       // Add proper AtMostOne constraint
       assert(c.size() >= 3);
@@ -797,16 +860,17 @@ public:
 
   Result solve()
   {
-    assert(m_state == Result::Unknown || m_state == Result::Sat);
+    assert(m_state == State::Unknown || m_state == State::Sat);
 #if SUBSAT_STATISTICS
-    LOG_INFO((m_state != Result::Sat ? "Starting solving with " : "Resuming solving with ")
+    LOG_INFO((m_state != State::Sat ? "Starting solving with " : "Resuming solving with ")
              << m_used_vars << " variables, "
              << m_stats.original_clauses << " clauses, "
              << m_stats.original_amos << " at-most-one constraints");
 #endif
 
     // Initialize data structures if this is the first call to solve
-    if (m_state == Result::Unknown) {
+    if (m_state == State::Unknown) {
+      assert(m_level == 0);
       m_trail.reserve(m_used_vars);
       m_frames.resize(m_used_vars + 1, 0);
 #if SUBSAT_VMTF
@@ -820,12 +884,15 @@ public:
         handle_push_literal(ca, Lit::invalid());
         tmp_propagate_binary_conflict_ref = m_clauses.handle_build(ca);
       }
+
+      m_theory.prepare_for_solving();
+      theory_propagate_initial();
     }
 
     Result res = Result::Unknown;
 
     // Prepare to find next model
-    if (m_state == Result::Sat) {
+    if (m_state == State::Sat) {
 #if SUBSAT_RESTART
 #warning "Model enumeration probably doesn't work with restarting at the moment!"
 #endif
@@ -914,7 +981,7 @@ public:
   template < typename A >
   void get_model(std::vector<Lit, A>& model) const
   {
-    assert(m_state == Result::Sat);
+    assert(m_state == State::Sat);
     assert(m_unassigned_vars == 0);
     model.assign(m_trail.begin(), m_trail.end());
   }
@@ -922,7 +989,7 @@ public:
   /// Return the current value of the given literal.
   Value get_value(Lit lit) const
   {
-    assert(m_state == Result::Sat);
+    assert(m_state == State::Sat);
     assert(m_unassigned_vars == 0);
     return m_values[lit];
   }
@@ -978,6 +1045,41 @@ private:
       theory_propagate();
     } else {
       m_theory_propagate_head = static_cast<uint32_t>(m_trail.size());
+    }
+  }
+
+  /// Theory-propagation after all original clauses have been added.
+  /// This is separate from 'theory_propagate' because at this point we may actually get conflicts.
+  /// Since we are on level 0, such conflicts will immediately result in unsatisfiability.
+  void theory_propagate_initial()
+  {
+    assert(m_level == 0);
+    while (m_theory_propagate_head < m_trail.size()) {
+      Lit p = m_trail[m_theory_propagate_head++];
+      LOG_DEBUG("Theory-propagating " << p);
+      if (p.is_positive()) {
+        bool enabled =
+            m_theory.enable(p.var(), [this](subsat::Lit propagated, Lit reason) {
+              Value value = m_values[propagated];
+              if (value == Value::False) {
+                LOG_DEBUG("Theory conflict: got " << propagated << " from theory which is already false!");
+                m_inconsistent = true;
+                return false;
+              }
+              LOG_DEBUG("Assigning " << propagated << " due to theory");
+              if (value == Value::Unassigned) {
+                SUBSAT_STAT_INC(propagations);
+                SUBSAT_STAT_INC(propagations_by_theory);
+                basic_assign(propagated, Reason{reason});
+              } else {
+                assert(m_values[propagated] == Value::True);
+              }
+              return true;
+            });
+        if (!enabled) {
+          return;
+        }
+      }
     }
   }
 
@@ -1438,7 +1540,7 @@ private:
       ClauseRef learned_ref = m_clauses.handle_build(learned);
       LOG_INFO("Learned: size = " << size << ", literals = " << SHOWREF(learned_ref));
       // TODO: call new_redundant_clause
-      add_clause_internal(learned_ref);
+      connect_clause(learned_ref);
       assign(not_uip, Reason{learned_ref});
     }
 
@@ -1673,7 +1775,7 @@ private:
 
 private:
   /// Tracks the state the solver is in.
-  Result m_state = Result::Unknown;
+  State m_state = State::Unknown;
 
   /// Whether we found a conflict at the root level
   bool m_inconsistent = false;
@@ -1781,7 +1883,7 @@ std::ostream& operator<<(std::ostream& os, ShowAssignment<A> sa)
 template <template <typename> class Allocator>
 bool Solver<Allocator>::checkEmpty() const
 {
-  assert(m_state == Result::Unknown);
+  assert(m_state == State::Unknown);
   assert(!m_inconsistent);
   assert(m_used_vars == 0);
   assert(m_unassigned_vars == 0);
