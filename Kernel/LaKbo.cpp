@@ -388,7 +388,7 @@ LaKbo::Result LaKbo::toOrdering(TraversalResult const& res) const
     case LeftPlus:
       if (res.weight_balance < 0) {
         return Result::GREATER;
-      } else if (res.weight_balance > 0 || res.side_condition == LESS) {
+      } else if (res.weight_balance > 0  || res.side_condition == EQUAL|| res.side_condition == LESS) {
         return Result::INCOMPARABLE;
       } else {
         ASS_EQ(res.weight_balance, 0)
@@ -398,7 +398,7 @@ LaKbo::Result LaKbo::toOrdering(TraversalResult const& res) const
     case RightPlus:
       if (res.weight_balance > 0) {
         return Result::LESS;
-      } else if (res.weight_balance < 0 || res.side_condition == GREATER) {
+      } else if (res.weight_balance < 0 || res.side_condition == EQUAL || res.side_condition == GREATER) {
         return Result::INCOMPARABLE;
       } else {
         ASS_EQ(res.weight_balance, 0)
@@ -429,11 +429,11 @@ LaKbo::TraversalResult LaKbo::TraversalResult::initial()
 
 Ordering::Result LaKbo::compare(TermList t1, TermList t2) const 
 {
+  CALL("LaKbo::compare")
   auto norm = [](TermList t) { return t.isVar() ? t : normalizeTerm(t.term()).denormalize(); };
   auto res = TraversalResult::initial(); 
   traverse(res, norm(t1), norm(t2));
-  auto out = toOrdering(res);
-  return out;
+  return toOrdering(res);
 }
 
 void LaKbo::show(ostream& out) const 
