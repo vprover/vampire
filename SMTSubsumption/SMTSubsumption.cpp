@@ -1031,6 +1031,10 @@ class SMTSubsumptionImpl
 #include "./subsat/subsat.hpp"
 #include "./SubstitutionTheory2.hpp"
 
+// The ground literal prefilter seems to slow us down slightly in general.
+// Maybe it's more helpful with induction enabled? since that adds a lot of ground clauses.
+#define GROUND_LITERAL_PREFILTER 0
+
 
 class SMTSubsumption::SMTSubsumptionImpl2
 {
@@ -1049,6 +1053,11 @@ class SMTSubsumption::SMTSubsumptionImpl2
     /// Match clauses stating that each base literal is matched to at least one instance literal.
     vvector<subsat::ClauseRef> base_clauses;
 
+#if GROUND_LITERAL_PREFILTER
+    vvector<std::uint8_t> base_used;
+    vvector<std::uint8_t> inst_used;
+#endif
+
     /// AtMostOne constraints stating that each instance literal may be matched at most once.
     vvector<subsat::AllocatedClauseHandle> instance_constraints;
 
@@ -1065,8 +1074,6 @@ class SMTSubsumption::SMTSubsumptionImpl2
       instance_constraints.reserve(16);
     }
 
-#define GROUND_LITERAL_PREFILTER 0  // TODO
-
     /// Set up the subsumption problem.
     /// Returns false if no solution is possible.
     /// Otherwise, solve() needs to be called.
@@ -1080,10 +1087,47 @@ class SMTSubsumption::SMTSubsumptionImpl2
       // base_clauses.clear();
       ASS(base_clauses.empty());
 
+#if GROUND_LITERAL_PREFILTER
+      base_used.clear();
+      ASS(base_used.empty());
+      inst_used.clear();
+      ASS(inst_used.empty());
+
+      // base_used.resize(base->length(), false);
+      inst_used.resize(instance->length(), false);
+
+      uint32_t base_ground = 0;
+      for (unsigned i = 0; i < base->length(); ++i) {
+        Literal* base_lit = base->literals()[i];
+        if (base_lit->ground()) {
+          // Find matching ground literal
+          for (unsigned j = 0; j < instance->length(); ++j) {
+            Literal* inst_lit = instance->literals()[j];
+            if (!inst_used[j] && base_lit == inst_lit) {
+              base_used.push_back(true);
+              inst_used[j] = true;
+              break;
+            }
+          }
+          // No matching ground literal => cannot be subsumed
+          if (!base_used[i]) {
+            return false;
+          }
+          base_ground += 1;
+        } else {
+          base_used.push_back(false);
+        }
+      }
+
+      uint32_t const remaining_base_len = base->length() - base_ground;
+#else
+      uint32_t const remaining_base_len = base->length();
+#endif
+
       // Here we store the AtMostOne constraints saying that each instance literal may be matched at most once.
       // Each instance literal can be matched by at most 2 boolean vars per base literal (two orientations of equalities).
       // NOTE: instance constraints cannot be packed densely because we only know their shape at the end.
-      uint32_t const instance_constraint_maxsize = 2 * base->length();
+      uint32_t const instance_constraint_maxsize = 2 * remaining_base_len;
       instance_constraints.clear();
       ASS(instance_constraints.empty());
       for (size_t i = 0; i < instance->length(); ++i) {
@@ -1099,12 +1143,23 @@ class SMTSubsumption::SMTSubsumptionImpl2
         Literal* base_lit = base->literals()[i];
         uint32_t match_count = 0;
 
+#if GROUND_LITERAL_PREFILTER
+        if (base_used[i]) {
+          continue;
+        }
+#endif
+
         // Build clause stating that base_lit must be matched to at least one corresponding instance literal.
         solver.constraint_start();
 
         for (unsigned j = 0; j < instance->length(); ++j) {
           Literal* inst_lit = instance->literals()[j];
 
+#if GROUND_LITERAL_PREFILTER
+          if (inst_used[j]) {
+            continue;
+          }
+#endif
           if (!Literal::headersMatch(base_lit, inst_lit, false)) {
             continue;
           }
@@ -1115,6 +1170,9 @@ class SMTSubsumption::SMTSubsumptionImpl2
               subsat::Var b = solver.new_variable(i);
               // std::cerr << "Match: " << b << " => " << base_lit->toString() << " -> " << inst_lit->toString() << std::endl;
 
+#if GROUND_LITERAL_PREFILTER
+              ASS(!base_lit->ground());
+#endif
               if (binder.size() > 0) {
                 ASS(!base_lit->ground());
               } else {
@@ -2585,6 +2643,9 @@ void bench_smt2_run(benchmark::State& state, vvector<SubsumptionInstance> const&
     for (auto instance : instances) {
       bool res = impl.checkSubsumption(instance.side_premise, instance.main_premise);
       if (res != instance.subsumed) {
+        // std::cout << "Wrong result for instance: " << instance.number << std::endl;
+        // std::cout << "             side_premise: " << instance.side_premise->toString() << std::endl;
+        // std::cout << "             main_premise: " << instance.main_premise->toString() << std::endl;
         state.SkipWithError("Wrong result!");
         return;
       }
