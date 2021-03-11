@@ -766,10 +766,10 @@ void subsumptionBenchmarkMode(bool simulate_full_run)
 
   auto instances = getSubsumptionInstances(prb->units());
 
+  SMTSubsumption::ProofOfConcept s;
   if (simulate_full_run) {
-    NOT_IMPLEMENTED;  // TODO
+    s.benchmark_run(std::move(instances));
   } else {
-    SMTSubsumption::ProofOfConcept s;
     s.benchmark_micro(std::move(instances));
   }
 

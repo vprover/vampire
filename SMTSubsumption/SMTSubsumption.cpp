@@ -2580,6 +2580,64 @@ void ProofOfConcept::benchmark_micro(vvector<SubsumptionInstance> instances)
   std::cerr << "Benchmarking done, shutting down..." << std::endl;
 }
 
+
+void bench_smt2_run(benchmark::State& state, vvector<SubsumptionInstance> const& instances)
+{
+  for (auto _ : state) {
+    SMTSubsumptionImpl2 impl;
+    int count = 0;
+    for (auto instance : instances) {
+      bool res = impl.checkSubsumption(instance.side_premise, instance.main_premise);
+      if (res != instance.subsumed) {
+        state.SkipWithError("Wrong result!");
+        return;
+      }
+      count += res;
+    }
+    benchmark::DoNotOptimize(count);
+    benchmark::ClobberMemory();
+  }
+}
+
+void bench_orig_run(benchmark::State& state, vvector<SubsumptionInstance> const& instances)
+{
+  for (auto _ : state) {
+    OriginalSubsumption::Impl impl;
+    int count = 0;
+    for (auto instance : instances) {
+      bool res = impl.checkSubsumption(instance.side_premise, instance.main_premise);
+      if (res != instance.subsumed) {
+        state.SkipWithError("Wrong result!");
+        return;
+      }
+      count += res;
+    }
+    benchmark::DoNotOptimize(count);
+    benchmark::ClobberMemory();
+  }
+}
+
+void ProofOfConcept::benchmark_run(vvector<SubsumptionInstance> instances)
+{
+  CALL("ProofOfConcept::benchmark_run");
+
+  vvector<char const*> args = {
+    "vampire-sbench-run",
+    // "--benchmark_repetitions=10",  // Enable this to get mean/median/stddev
+    // // "--benchmark_report_aggregates_only=true",
+    // "--benchmark_display_aggregates_only=true",
+    // // "--help",
+  };
+  char** argv = const_cast<char**>(args.data());  // not really legal but whatever
+  int argc = args.size();
+
+  benchmark::RegisterBenchmark("smt2_run", bench_smt2_run, instances);
+  benchmark::RegisterBenchmark("orig_run", bench_orig_run, instances);
+  benchmark::Initialize(&argc, argv);
+  benchmark::RunSpecifiedBenchmarks();
+  std::cerr << "Benchmarking done, shutting down..." << std::endl;
+}
+
 /*
 template <typename Duration>
 vstring fmt_microsecs(Duration d) {
