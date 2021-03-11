@@ -45,6 +45,8 @@ template <typename Key>
 using DefaultIndex_t = typename DefaultIndex<Key>::type;
 
 /// Vector-based map with type-safe indexing.
+/// This class simply replaces vector's integral index by a newtype wrapper,
+/// so this class should only be used if the keys can be mapped easily to a range [0..n].
 template <
     typename Key,
     typename T,
@@ -90,6 +92,7 @@ public:
   const_iterator cend() const noexcept { return m_data.cend(); }
 
   // TODO: a map-like iterator would be nice. need to extend Index with the backward conversion.
+  //       Also, key_begin(), key_end() to iterate over indices.
 
   void clear() noexcept { m_data.clear(); }
 
