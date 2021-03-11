@@ -55,13 +55,13 @@ Option<TermList> _dropNumeralMultiplications(TermList t)
 }
 
 
-LaKbo::NumeralDropResult LaKbo::dropNumeralMultiplications(LaKbo::TraversalResult& res,  TermList t) const
+TermList LaKbo::dropNumeralMultiplications(LaKbo::TraversalResult& res,  TermList t) const
 {
 
   auto dropped = _dropNumeralMultiplications< IntTraits>(t)
     || [t]() { return _dropNumeralMultiplications< RatTraits>(t); }
     || [t]() { return _dropNumeralMultiplications<RealTraits>(t); };
-  return NumeralDropResult{.term = dropped || t, .changed = dropped.isSome()};
+  return dropped || t;
 }
 
 Option<NumeralMultiplication> tryNumeralMultiplication(Term* t)
@@ -76,8 +76,7 @@ template<class F>
 void LaKbo::traverse(TraversalResult& res, TermList t, int factor, F fun) const
 {
   ASS(factor == -1 || factor == 1)
-  auto dropped = dropNumeralMultiplications(res, t);
-  t = dropped.term;
+  t = dropNumeralMultiplications(res, t);
   fun(t);
   if (t.isTerm()) {
     auto term = t.term();
@@ -86,9 +85,6 @@ void LaKbo::traverse(TraversalResult& res, TermList t, int factor, F fun) const
   } else {
     res.addVarBalance(t.var(), factor);
     res.weight_balance += factor * KBO::variableWeight();
-  }
-  if (dropped.changed && res.side_condition == EQUAL) {
-    res.side_condition = INCOMPARABLE;
   }
 }
 
@@ -271,7 +267,7 @@ void LaKbo::traverseLex(TraversalResult& res, TermList* tt1, TermList* tt2) cons
       break;
     }
   }
-#ifdef VDEBUG
+#if VDEBUG
   auto cond = res.side_condition;
 #endif
   traverse(res, tt1, -1);
@@ -288,10 +284,8 @@ int LaKbo::symbolWeight(Term* t) const
 
 void LaKbo::traverse(TraversalResult& res, TermList tl1_, TermList tl2_) const
 {
-  auto dropped1 = dropNumeralMultiplications(res, tl1_);
-  auto dropped2 = dropNumeralMultiplications(res, tl2_);
-  auto tl1 = dropped1.term;
-  auto tl2 = dropped2.term;
+  auto tl1 = dropNumeralMultiplications(res, tl1_);
+  auto tl2 = dropNumeralMultiplications(res, tl2_);
   if (tl1.isTerm() && tl2.isTerm()) {
     auto t1 = tl1.term();
     auto t2 = tl2.term();
@@ -319,9 +313,6 @@ void LaKbo::traverse(TraversalResult& res, TermList tl1_, TermList tl2_) const
   } else {
     ASS(tl1.isTerm() && tl2.isVar()) 
     traverseSubterm(res, tl1.term(), tl2.var(), true);
-  }
-  if ((dropped1.changed || dropped2.changed) && tl1_ != tl2_ && res.side_condition == Result::EQUAL) {
-    res.side_condition = Result::INCOMPARABLE;
   }
 }
 
@@ -373,6 +364,8 @@ Literal* normalizeLiteral(Literal* lit)
 LaKbo::Result LaKbo::comparePredicates(Literal* l1_, Literal* l2_) const 
 {
   CALL("LaKbo::compare(Literal*, Literal*)");
+  if (l1_ == l2_ || Literal::complementaryLiteral(l1_) == l2_) return EQUAL;
+
   auto l1 = normalizeLiteral(l1_);
   auto l2 = normalizeLiteral(l2_);
   auto res = TraversalResult::initial(); 
@@ -386,12 +379,12 @@ LaKbo::Result LaKbo::comparePredicates(Literal* l1_, Literal* l2_) const
     res.side_condition = Int::compare(predicatePrecedence(l1->functor()), 
                                       predicatePrecedence(l2->functor())) == Lib::LESS ? Result::LESS : Result::GREATER;
   }
-  auto out = toOrdering(res, l1 != l1_ || l2 != l2_);
-  ASS(( out == Result::EQUAL ) == ( l1_ == l2_ ))
-  return out;
+  auto out = toOrdering(res);
+  return out == EQUAL ? INCOMPARABLE  // <- only equal modulo AC+numeral
+                      : out;
 }
 
-LaKbo::Result LaKbo::toOrdering(TraversalResult const& res, bool normalizationDidAlter) const
+LaKbo::Result LaKbo::toOrdering(TraversalResult const& res) const
 {
   switch (res.varCondition()) {
     case BothPlus:
@@ -422,8 +415,6 @@ LaKbo::Result LaKbo::toOrdering(TraversalResult const& res, bool normalizationDi
         return Result::GREATER;
       } else if (res.weight_balance > 0) {
         return Result::LESS;
-      } else if (res.side_condition == Result::EQUAL && normalizationDidAlter) {
-        return Result::INCOMPARABLE; // we r only equal modulo AC
       } else {
         return res.side_condition;
       }
@@ -444,13 +435,14 @@ LaKbo::TraversalResult LaKbo::TraversalResult::initial()
 Ordering::Result LaKbo::compare(TermList t1_, TermList t2_) const 
 {
   CALL("LaKbo::compare")
+  if (t1_ == t2_) return Result::EQUAL;
   auto norm = [](TermList t) { return t.isVar() ? t : normalizeTerm(t.term()).denormalize(); };
   auto res = TraversalResult::initial(); 
   auto t1 = norm(t1_), t2 = norm(t2_);
   traverse(res, t1, t2);
-  auto out = toOrdering(res, t1 != t1_ || t2 != t2_);
-  ASS(( out == Result::EQUAL ) == ( t1_ == t2_ ))
-  return out;
+  auto out = toOrdering(res);
+  return out == EQUAL ? INCOMPARABLE  // <- only equal modulo AC+numeral
+                      : out;
 }
 
 void LaKbo::show(ostream& out) const 
