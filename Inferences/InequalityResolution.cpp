@@ -43,6 +43,7 @@
 #include "Kernel/PolynomialNormalizer.hpp"
 #include "Kernel/InequalityNormalizer.hpp"
 #include "Indexing/TermIndexingStructure.hpp"
+
 #define DEBUG(...) // DBG(__VA_ARGS__)
 
 using Kernel::InequalityLiteral;
@@ -56,15 +57,16 @@ bool InequalityResolutionIndex::handleLiteral(Literal* lit, Clause* c, bool addi
   auto norm_ = this->normalizer().normalize<NumTraits>(lit);
   if (norm_.isSome()) {
     auto norm = norm_.unwrap();
+    DEBUG("literal: ", norm);
     for (auto monom : norm.term().iterSummands()) {
       if (!monom.tryNumeral().isSome()) {
 
         auto term = monom.factors->denormalize();
         if (adding) {
-          DEBUG("inserting: ", term);
+          DEBUG("\tinserting: ", term);
           _is->insert(term, lit, c);
         } else {
-          DEBUG("removing: ", term);
+          DEBUG("\tremoving: ", term);
           _is->remove(term, lit, c);
         }
       }
@@ -247,6 +249,7 @@ ClauseIterator InequalityResolution::generateClauses(Clause* cl1, Literal* lit1_
       auto term1 = monom.factors;
       DEBUG("monom1: ", monom)
 
+
       return pvi(iterTraits(_index->getUnificationsWithConstraints(term1->denormalize(), true))
                 .filterMap([this, cl1, lit1, lit1_, num1, term1](TermQueryResult res) -> Option<Clause*> {
                   CALL("InequalityResolution::generateClauses:@clsr2")
@@ -260,7 +263,6 @@ ClauseIterator InequalityResolution::generateClauses(Clause* cl1, Literal* lit1_
                   auto lit2_ = res.literal;
                   auto lit2  = this->normalizer().normalize<NumTraits>(lit2_).unwrap();
                   //   ^^^^ ~=  num2 * term2 + rest2 >= 0
-                  DEBUG("resolving against: ", lit2, " (term: ", term2, ", constr: ", res.constraints, ")");
 
                   auto strictness = lit1.strict() || lit2.strict();
                   //   ^^^^^^^^^^ if either of the two inequalities is strict, the result will be as well.
@@ -278,6 +280,8 @@ ClauseIterator InequalityResolution::generateClauses(Clause* cl1, Literal* lit1_
 
                   if (num1.isNegative() == num2.isNegative())
                     return Option<Clause*>();
+
+                  DEBUG("  resolving against: ", lit2, " (term: ", term2, ", constr: ", res.constraints, ")");
 
                   auto factors = computeFactors(num1, num2);
                   //   ^^^^^^^--> (k1, k2)
@@ -319,10 +323,10 @@ ClauseIterator InequalityResolution::generateClauses(Clause* cl1, Literal* lit1_
                   //   ^^^^^^^^^--> gonna be k1 * rest1 + k2 * rest2 >= 0 \/ C1 \/ C2 \/ constraints
                   {
                     unsigned offset = 0;
-                    auto push = [&offset, &resolvent](Literal* lit) { (*resolvent)[offset++] = lit; };
+                    auto push = [&](Literal* lit) { ASS(offset < size); (*resolvent)[offset++] = lit; };
                     
                     // push resolvent literal: k1 * rest1 + k2 * rest2 >= 0 
-                    push(subs.applyToResult(subs.applyToResult(resolventLit.denormalize())));
+                    push(resolventLit.denormalize());
 
                     // push other literals from clause: C1 \/ C2
                     auto pushLiterals = 
@@ -349,7 +353,7 @@ ClauseIterator InequalityResolution::generateClauses(Clause* cl1, Literal* lit1_
 
                     ASS_EQ(offset, size)
                   }
-                  DEBUG("resolvent: ", *resolvent);
+                  DEBUG("  resolvent: ", *resolvent);
                   return Option<Clause*>(resolvent);
                 }));
     }));
@@ -358,9 +362,11 @@ ClauseIterator InequalityResolution::generateClauses(Clause* cl1, Literal* lit1_
 ClauseIterator InequalityResolution::generateClauses(Clause* premise)
 {
   CALL("InequalityResolution::generateClauses");
+  DEBUG("in: ", *premise)
 
   return pvi(iterTraits(premise->getSelectedLiteralIterator())
-    .flatMap([&](Literal* lit) {
+    .flatMap([=](Literal* lit) {
+      CALL("InequalityResolution::generateClauses@clsr1");
         return getConcatenatedIterator(getConcatenatedIterator(
               generateClauses< IntTraits>(premise, lit) ,
               generateClauses< RatTraits>(premise, lit)),

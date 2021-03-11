@@ -51,19 +51,16 @@ using namespace Kernel;
 
 OrderingSP Ordering::s_globalOrdering;
 
-Ordering::Ordering()
+Ordering::Ordering() : _eqCmp(unique_ptr<EqCmp>(new  EqCmp()))
 {
   CALL("Ordering::Ordering");
-
-  createEqualityComparator();
-  ASS(_eqCmp);
 }
 
 Ordering::~Ordering()
 {
   CALL("Ordering::~Ordering");
 
-  destroyEqualityComparator();
+  // destroyEqualityComparator();
 }
 
 
@@ -268,6 +265,7 @@ Ordering::Result Ordering::getEqualityArgumentOrder(Literal* eq) const
 Ordering::Result PrecedenceOrdering::compare(Literal* l1, Literal* l2) const
 {
   CALL("PrecedenceOrdering::compare(Literal*...)");
+
   ASS(l1->shared());
   ASS(l2->shared());
 

@@ -90,7 +90,6 @@ bool NumberTheoryInverter::canInvertTop(const InversionContext &ctxt) {
 TermList NumberTheoryInverter::invertTop(const InversionContext &ctxt) {
   CALL("NumberTheoryInverter::invertTop")
   ASS(canInvertTop(ctxt))
-  // DBG("inverting: ", ctxt.topTerm().toString())
   auto &t = ctxt.topTerm();
   auto index = ctxt.topIdx();
   auto toWrap = ctxt.toWrap();

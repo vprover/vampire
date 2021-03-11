@@ -319,6 +319,7 @@ struct MonomFactor
    
   /** if this monomfactor is a Variable and has power one it is turned into a variable */
   Option<Variable> tryVar() const;
+  Option<Perfect<Polynom<Number>>> tryPolynom() const;
 };
 
 
@@ -626,6 +627,7 @@ bool operator!=(Monom<Number> const& l, Monom<Number> const& r)
 template<class Number>
 std::ostream& operator<<(std::ostream& out, const Monom<Number>& self)
 { 
+    // out << self.numeral;
   if (self.numeral != typename Number::ConstantType(1)) {
     out << self.numeral;
   }
@@ -851,6 +853,10 @@ template<class Number>
 Option<Variable> MonomFactor<Number>::tryVar() const 
 { return power == 1 ? term.tryVar() : none<Variable>(); }
 
+template<class Number>
+Option<Perfect<Polynom<Number>>> MonomFactor<Number>::tryPolynom() const 
+{ return power == 1 ? term.downcast<Number>() : none<Perfect<Polynom<Number>>>(); }
+
 } // namespace Kernel
 
 template<class NumTraits>
@@ -946,9 +952,8 @@ bool MonomFactors<Number>::isOne() const
 template<class Number>
 std::ostream& operator<<(std::ostream& out, const MonomFactors<Number>& self) 
 {
-  out << "(";
   if (self._factors.size() == 0) {
-    out << "MonomFactors()";
+    out << "1";
   } else {
     auto iter  = self._factors.begin();
     out << *iter;
@@ -957,7 +962,6 @@ std::ostream& operator<<(std::ostream& out, const MonomFactors<Number>& self)
       out << " " << *iter;
     }
   }
-  out << ")";
   return out;
 }
 
@@ -1109,9 +1113,8 @@ bool operator==(const Polynom<Number>& lhs, const Polynom<Number>& rhs)
 template<class Number>
 std::ostream& operator<<(std::ostream& out, const Polynom<Number>& self) {
   auto iter = self._summands.begin();
-  out << "Poly(";
   if ( iter == self._summands.end() ) {
-    out << "<empty>";
+    out << "0";
   } else {
     out << *iter;
     iter++;
@@ -1119,7 +1122,6 @@ std::ostream& operator<<(std::ostream& out, const Polynom<Number>& self) {
       out << " + " << *iter;
     }
   }
-  out << ")";
   return out;
 }
 

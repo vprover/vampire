@@ -1,4 +1,3 @@
-
 #include "LaKbo.hpp"
 #include "Term.hpp"
 #include "NumTraits.hpp"
@@ -9,7 +8,6 @@ namespace Kernel {
 
 LaKbo::LaKbo(KBO kbo) : KBO(std::move(kbo))
 {
-
 }
 
 struct NumeralMultiplication {
@@ -364,7 +362,7 @@ Literal* normalizeLiteral(Literal* lit)
 
 LaKbo::Result LaKbo::comparePredicates(Literal* l1, Literal* l2) const 
 {
-  ASS_EQ(l1->polarity(), l2->polarity());
+  CALL("LaKbo::compare(Literal*, Literal*)");
   l1 = normalizeLiteral(l1);
   l2 = normalizeLiteral(l2);
   auto res = TraversalResult::initial(); 
@@ -434,7 +432,8 @@ Ordering::Result LaKbo::compare(TermList t1, TermList t2) const
   auto norm = [](TermList t) { return t.isVar() ? t : normalizeTerm(t.term()).denormalize(); };
   auto res = TraversalResult::initial(); 
   traverse(res, norm(t1), norm(t2));
-  return toOrdering(res);
+  auto out = toOrdering(res);
+  return out;
 }
 
 void LaKbo::show(ostream& out) const 

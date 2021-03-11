@@ -41,6 +41,8 @@ public:
   CLASS_NAME(LaKbo);
   USE_ALLOCATOR(LaKbo);
 
+  LaKbo(LaKbo&& kbo) = default;
+  LaKbo& operator=(LaKbo&& kbo) = default;
   explicit LaKbo(KBO kbo);
 
   static LaKbo testKBO();
@@ -49,7 +51,7 @@ public:
 
   Result comparePredicates(Literal* l1,Literal* l2) const final override;
   Result compare(TermList, TermList) const final override;
-  Result compare(Literal* l1, Literal* l2) const final override{ return PrecedenceOrdering::compare(l1, l2); }
+  Result compare(Literal* l1, Literal* l2) const final override { return PrecedenceOrdering::compare(l1, l2); }
 
   void show(ostream& out) const final override;
   Comparison compareFunctors(unsigned fun1, unsigned fun2) const override;

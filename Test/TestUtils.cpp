@@ -58,7 +58,6 @@ bool __permEq(const List& lhs, const List& rhs, Eq elemEq, DArray<unsigned>& per
     ASS_EQ(rhs.size(), perm.size());
 
     for (unsigned i = 0; i < perm.size(); i++) {
-      // DBG(lhs[i], " ?= ", rhs[perm[i]]);
       if (!elemEq(lhs[i], rhs[perm[i]])) return false;
     }
     return true;

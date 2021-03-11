@@ -2240,7 +2240,7 @@ public:
 
   bool useManualClauseSelection() const { return _manualClauseSelection.actualValue; }
   bool inequalityNormalization() const { return _inequalityNormalization.actualValue; }
-  EvaluationMode evaluationMode() const { return _highSchool.actualValue ? EvaluationMode::POLYNOMIAL_CAUTIOUS : _evaluationMode.actualValue; }
+  EvaluationMode evaluationMode() const { return _highSchool.actualValue ? EvaluationMode::POLYNOMIAL_FORCE : _evaluationMode.actualValue; }
   ArithmeticSimplificationMode gaussianVariableElimination() const { return _highSchool.actualValue ? ArithmeticSimplificationMode::CAUTIOUS : _gaussianVariableElimination.actualValue; }
   bool inequalityResolution() const { return _inequalityResolution.actualValue; }
   bool pushUnaryMinus() const { return _pushUnaryMinus.actualValue || _highSchool.actualValue; }
