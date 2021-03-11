@@ -1050,9 +1050,6 @@ class SMTSubsumption::SMTSubsumptionImpl2
 
     subsat::Solver<allocator_type> solver;
 
-    /// Match clauses stating that each base literal is matched to at least one instance literal.
-    vvector<subsat::ClauseRef> base_clauses;
-
 #if GROUND_LITERAL_PREFILTER
     vvector<std::uint8_t> base_used;
     vvector<std::uint8_t> inst_used;
@@ -1070,7 +1067,6 @@ class SMTSubsumption::SMTSubsumptionImpl2
       solver.reserve_variables(64);
       solver.reserve_clause_storage(512);
       solver.theory().reserve(64, 2, 16);
-      base_clauses.reserve(16);
       instance_constraints.reserve(16);
     }
 
@@ -1084,16 +1080,12 @@ class SMTSubsumption::SMTSubsumptionImpl2
       auto& theory = solver.theory();
       ASS(theory.empty());
 
-      // base_clauses.clear();
-      ASS(base_clauses.empty());
-
 #if GROUND_LITERAL_PREFILTER
       base_used.clear();
       ASS(base_used.empty());
       inst_used.clear();
       ASS(inst_used.empty());
 
-      // base_used.resize(base->length(), false);
       inst_used.resize(instance->length(), false);
 
       uint32_t base_ground = 0;
@@ -1242,9 +1234,6 @@ class SMTSubsumption::SMTSubsumptionImpl2
     {
       solver.clear();
       ASS(solver.empty());
-
-      base_clauses.clear();
-      ASS(base_clauses.empty());
 
       complementary_matches.clear();
       ASS(complementary_matches.empty());
