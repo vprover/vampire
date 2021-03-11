@@ -33,11 +33,13 @@
 #include "Lib/List.hpp"
 #include <vector>
 #include <set>
+#include <map>
 
 #include "Kernel/Term.hpp"
 #include "Kernel/Ordering.hpp"
 
 #include "DecisionProcedure.hpp"
+#include "LinearArithmetricSolverDP.hpp"
 
 namespace DP {
 
@@ -53,17 +55,31 @@ class LinearArithmeticDP : public DecisionProcedure {
 public:
   CLASS_NAME(LinearArithmeticDP);
   USE_ALLOCATOR(LinearArithmeticDP);
+  BYPASSING_ALLOCATOR;
 
   LinearArithmeticDP();
-  
+
   enum Solver {
+    Undefined,
     GaussElimination,
     Simplex,
   };
 
   struct Parameter {
-    unsigned int varId;
-    float coefficient;
+    unsigned varId;
+    float mutable coefficient = 0.0;
+
+    Parameter(unsigned id, float coef)
+    {
+      varId = id;
+      coefficient = coef;
+    }
+  };
+
+  // Don't really know what to call it
+  struct ParameterDataContainer {
+    map<unsigned, float> parameters;
+    float constant = 0.0;
   };
 
   virtual void addLiterals(LiteralIterator lits, bool onlyEqualites) override;
@@ -76,14 +92,17 @@ public:
   virtual void getUnsatCore(LiteralStack &res, unsigned coreIndex) override{};
 
   // TODO: For now do nothing but consider if we want/need to support this later
-  void getModel(LiteralStack &model) override{};
+  virtual void getModel(LiteralStack &model) override;
 
   virtual void reset() override;
 
 private:
-  Solver solver;
-  std::vector< List<Parameter> *> rowsVector;
+  LinearArithmeticSolverDP *solverDP;
+  Solver solver = Undefined;
+  std::vector<List<Parameter> *> rowsVector;
   std::set<unsigned int> colLabelSet;
+
+  void toParams(Term *term, float coef, ParameterDataContainer *parData);
 };
 
 } // namespace DP

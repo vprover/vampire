@@ -24,14 +24,13 @@
 #include "GaussElimination.hpp"
 
 #include "Lib/List.hpp"
+#include "Kernel/Sorts.hpp"
 
 #include <iostream>
 #include <vector>
 #include <iterator>
 #include <set>
 #include <typeinfo>
-
-#include "Lib/Environment.hpp"
 
 namespace DP {
 
@@ -44,7 +43,7 @@ void printParameterList(List<LinearArithmeticDP::Parameter> *l)
   }
 }
 
-GaussElimination::GaussElimination(std::vector<List<LinearArithmeticDP::Parameter> *> rowsVector, unsigned int *colLabelList, int numberOfUnkowns)
+GaussElimination::GaussElimination(std::vector<List<LinearArithmeticDP::Parameter> *> rowsVector, std::set<unsigned int> colLabelSet)
 {
   CALL("GaussElimination::GaussElimination");
   this->rowsList = new List<LinearArithmeticDP::Parameter> *[rowsVector.size()];
@@ -52,14 +51,22 @@ GaussElimination::GaussElimination(std::vector<List<LinearArithmeticDP::Paramete
     this->rowsList[i] = rowsVector[i];
   }
   this->numberOfRows = rowsVector.size();
-  this->colLabelList = colLabelList;
-  this->numberOfUnkowns = numberOfUnkowns;
-  this->solution = new float[numberOfUnkowns];
+
+  this->colLabelList = new unsigned[colLabelSet.size()];
+  unsigned colLabelListIndex = 0;
+  for (unsigned const &colLabel : colLabelSet) {
+    colLabelList[colLabelListIndex++] = colLabel;
+  }
+
+  this->numberOfUnkowns = colLabelSet.size();
+
+  this->solutions = NULL;
 }
 
 DecisionProcedure::Status GaussElimination::getStatus()
 {
   CALL("GaussElimination::solve");
+
   List<LinearArithmeticDP::Parameter> **newRowsList = new List<LinearArithmeticDP::Parameter> *[numberOfRows];
 
   std::set<unsigned int> rowsLeftIndex;
@@ -97,22 +104,22 @@ DecisionProcedure::Status GaussElimination::getStatus()
     List<LinearArithmeticDP::Parameter> *row = rowsList[rowIndex];
     if (row->head().varId == UINT_MAX && row->head().coefficient != 0) {
 
-      #if GEDP
+#if GEDP
       std::cout << "Unsatisfiable: ";
       printParameterList(row);
-      #endif
+#endif
 
       return DecisionProcedure::UNSATISFIABLE;
     }
     List<LinearArithmeticDP::Parameter>::destroy(row);
   }
 
-  #if GEDP
+#if GEDP
   for (unsigned int i = 0; i < numberOfRows; i++) {
     printParameterList(newRowsList[i]);
     std::cout << std::endl;
   }
-  #endif
+#endif
 
   // At this point satisfiable. Possibly infinite solutions
   delete[] rowsList;
@@ -120,40 +127,42 @@ DecisionProcedure::Status GaussElimination::getStatus()
 
   // if matrix is triangular form use back subsitution
   if (numberOfRows < numberOfUnkowns) {
-    #if GEDP
+#if GEDP
     std::cout << "Satisfiable with infinite solutions as number of equations < number of unkowns." << std::endl;
-    #endif
+#endif
     return DecisionProcedure::SATISFIABLE;
   }
 
+  solutions = new float[numberOfUnkowns];
   // At this point, matrix in upper triangular form
   for (int i = numberOfUnkowns - 1; i >= 0; i--) {
     List<LinearArithmeticDP::Parameter> *row = newRowsList[i];
-    solution[i] = 0;
+    solutions[i] = 0;
     List<LinearArithmeticDP::Parameter> *current = row->tail();
     unsigned int m = i + 1;
 
     while (!List<LinearArithmeticDP::Parameter>::isEmpty(current->tail())) {
       m = getColLabelIndex(current->head().varId, m);
-      solution[i] = solution[i] - current->head().coefficient * solution[m];
+      solutions[i] = solutions[i] - current->head().coefficient * solutions[m];
       m++;
       current = current->tail();
     }
-    solution[i] = current->head().coefficient + solution[i];
-    solution[i] = solution[i] / row->head().coefficient;
+    solutions[i] = current->head().coefficient + solutions[i];
+    solutions[i] = solutions[i] / row->head().coefficient;
   }
 
-  #if GEDP
+#if GEDP
   for (unsigned int i = 0; i < numberOfUnkowns; i++) {
-    std::cout << "Varid: " << colLabelList[i] << " = " << solution[i] << std::endl;
+    std::cout << "Varid: " << colLabelList[i] << " = " << solutions[i] << std::endl;
   }
-  #endif
+#endif
 
   return DecisionProcedure::SATISFIABLE;
 }
 
 float GaussElimination::getCoefficient(List<LinearArithmeticDP::Parameter> *row, unsigned int varId)
 {
+  CALL("GaussElimination::getCoefficient");
   List<LinearArithmeticDP::Parameter> *current = row;
   while (!List<LinearArithmeticDP::Parameter>::isEmpty(current)) {
     if (current->head().varId == varId)
@@ -171,14 +180,15 @@ float GaussElimination::getCoefficient(List<LinearArithmeticDP::Parameter> *row,
 // e1 = e1 - multiplier*e2
 List<LinearArithmeticDP::Parameter> *GaussElimination::subtract(List<LinearArithmeticDP::Parameter> *e1, List<LinearArithmeticDP::Parameter> *e2, float multiplier)
 {
+  CALL("GaussElimination::subtract");
   List<LinearArithmeticDP::Parameter> *currentE1 = e1->tail();
   List<LinearArithmeticDP::Parameter> *previousE1 = e1;
   List<LinearArithmeticDP::Parameter> *currentE2 = e2->tail();
   while (!List<LinearArithmeticDP::Parameter>::isEmpty(currentE2)) {
     if (currentE1->head().varId == currentE2->head().varId) {
-      LinearArithmeticDP::Parameter elm;
-      elm.varId = currentE2->head().varId;
-      elm.coefficient = currentE1->head().coefficient - (multiplier * currentE2->head().coefficient);
+      unsigned varId = currentE2->head().varId;
+      float coefficient = currentE1->head().coefficient - (multiplier * currentE2->head().coefficient);
+      LinearArithmeticDP::Parameter elm = LinearArithmeticDP::Parameter(varId, coefficient);
       currentE1->setHead(elm);
 
       if (elm.coefficient == 0 && elm.varId != UINT_MAX) {
@@ -191,9 +201,9 @@ List<LinearArithmeticDP::Parameter> *GaussElimination::subtract(List<LinearArith
     }
     else if (currentE1->tail()->head().varId > currentE2->head().varId) {
       // Inserting new elm
-      LinearArithmeticDP::Parameter elm;
-      elm.varId = currentE2->head().varId;
-      elm.coefficient = -1 * multiplier * currentE2->head().coefficient;
+      unsigned varId = currentE2->head().varId;
+      float coefficient = -1 * multiplier * currentE2->head().coefficient;
+      LinearArithmeticDP::Parameter elm = LinearArithmeticDP::Parameter(varId, coefficient);
 
       List<LinearArithmeticDP::Parameter> *listElm = new List<LinearArithmeticDP::Parameter>(elm, currentE1->tail());
       currentE1->setTail(listElm);
@@ -211,8 +221,62 @@ List<LinearArithmeticDP::Parameter> *GaussElimination::subtract(List<LinearArith
   return e1->tail();
 }
 
+void GaussElimination::getModel(LiteralStack &model)
+{
+  CALL("GaussElimination::getModel");
+  cout << "GaussElimination::getModel" << endl;
+  if (solutions == NULL)
+    return;
+
+  for (unsigned i = 0; i < numberOfUnkowns; i++) {
+    unsigned varId = colLabelList[i];
+    float solution = solutions[i];
+    unsigned sort = env.signature->getFunction(varId)->fnType()->result();
+    switch (sort) {
+      case Sorts::SRT_INTEGER: {
+        if (ceilf(solution) != solution)
+          continue;
+
+        Term *var = Term::createConstant(varId);
+        Term *constant = theory->representConstant(IntegerConstantType((int)solution));
+        Literal *lit = Literal::createEquality(true, TermList(var), TermList(constant), sort);
+        cout << lit->toString() << endl;
+        model.push(lit);
+      } break;
+      case Sorts::SRT_RATIONAL: {
+        Term *var = Term::createConstant(varId);
+        unsigned count = 1;
+        while (ceil(solution) != solution) {
+          solution *= 10;
+          count++;
+        }
+        Term *constant = theory->representConstant(RationalConstantType(solution, count));
+        Literal *lit = Literal::createEquality(true, TermList(var), TermList(constant), sort);
+        cout << lit->toString() << endl;
+        model.push(lit);
+      } break;
+      case Sorts::SRT_REAL: {
+        Term *var = Term::createConstant(varId);
+        unsigned count = 1;
+        while (ceil(solution) != solution) {
+          solution *= 10;
+          count++;
+        }
+        Term *constant = theory->representConstant(RealConstantType(solution, count));
+        Literal *lit = Literal::createEquality(true, TermList(var), TermList(constant), sort);
+        cout << lit->toString() << endl;
+        model.push(lit);
+      } break;
+      default:
+        continue;
+        break;
+    }
+  }
+}
+
 int GaussElimination::getColLabelIndex(unsigned int label, unsigned int searchStartIndex)
 {
+  CALL("GaussElimination::getColLabelIndex");
   for (unsigned int i = searchStartIndex; i < numberOfUnkowns; i++) {
     if (colLabelList[i] == label) {
       return i;
@@ -223,11 +287,13 @@ int GaussElimination::getColLabelIndex(unsigned int label, unsigned int searchSt
 
 GaussElimination::~GaussElimination()
 {
+  CALL("GaussElimination::~GaussElimination");
   for (int i = 0; i < numberOfRows; i++) {
     List<LinearArithmeticDP::Parameter>::destroy(rowsList[i]);
   }
+
   delete[] rowsList;
-  delete[] solution;
+  delete[] solutions;
   delete[] colLabelList;
 }
 } // namespace DP

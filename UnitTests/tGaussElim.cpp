@@ -11,6 +11,7 @@
 #include "Test/SyntaxSugar.hpp"
 #include "DP/LinearArithmeticDP.hpp"
 #include "DP/GaussElimination.hpp"
+#include "Kernel/Term.hpp"
 
 #include "Lib/List.hpp"
 
@@ -41,9 +42,9 @@ List<DP::LinearArithmeticDP::Parameter>* subtract(List<DP::LinearArithmeticDP::P
   List<DP::LinearArithmeticDP::Parameter> *currentE2 = e2->tail();
   while (!List<DP::LinearArithmeticDP::Parameter>::isEmpty(currentE2)) {
     if (currentE1->head().varId == currentE2->head().varId) {
-      DP::LinearArithmeticDP::Parameter elm;
-      elm.varId = currentE2->head().varId;
-      elm.coefficient = currentE1->head().coefficient - (multiplier * currentE2->head().coefficient);
+      unsigned varId = currentE2->head().varId;
+      float coefficient = currentE1->head().coefficient - (multiplier * currentE2->head().coefficient);
+      DP::LinearArithmeticDP::Parameter elm = DP::LinearArithmeticDP::Parameter(varId, coefficient);
       currentE1->setHead(elm);
 
       if (elm.coefficient == 0 && elm.varId != UINT_MAX) {
@@ -55,10 +56,10 @@ List<DP::LinearArithmeticDP::Parameter>* subtract(List<DP::LinearArithmeticDP::P
     }
     else if (currentE1->tail()->head().varId > currentE2->head().varId) {
       // Inserting new elm
-      DP::LinearArithmeticDP::Parameter elm;
-      elm.varId = currentE2->head().varId;
-      elm.coefficient = -1 * multiplier * currentE2->head().coefficient;
-
+      unsigned varId = currentE2->head().varId;
+      float coefficient = -1 * multiplier * currentE2->head().coefficient;
+      DP::LinearArithmeticDP::Parameter elm = DP::LinearArithmeticDP::Parameter(varId, coefficient);
+    
       List<DP::LinearArithmeticDP::Parameter> *listElm = new List<DP::LinearArithmeticDP::Parameter>(elm, currentE1->tail());
       currentE1->setTail(listElm);
 
@@ -78,7 +79,7 @@ List<DP::LinearArithmeticDP::Parameter>* subtract(List<DP::LinearArithmeticDP::P
 void test_list()
 {
   std::cout << "\n\n#########################################################" << std::endl;
-  std::vector<std::vector<float>> rowVector = {{1,1,1, 10}, {1,2,1, 16}, {0,0,1,0}};
+  std::vector<std::vector<float>> rowVector = {{0, 2, 4}, {0, 2, 4}, {1,1,7}};
 
   std::set<unsigned int> colLabelSet;
   std::vector<List<DP::LinearArithmeticDP::Parameter> *> rowsList;
@@ -88,14 +89,14 @@ void test_list()
     if (rowVector[i].size() < 1)
       continue;
 
-    List<DP::LinearArithmeticDP::Parameter> *rowList = new List<DP::LinearArithmeticDP::Parameter>();
+    List<DP::LinearArithmeticDP::Parameter> *rowList = 0;
     for (k = 0; k < rowVector[i].size(); k++) {
       if (rowVector[i][k] != 0) {
-        DP::LinearArithmeticDP::Parameter elm;
-        elm.varId = k * 2;
+        unsigned varId = k * 2;
+        float coefficient = rowVector[i][k];
+        DP::LinearArithmeticDP::Parameter elm  = DP::LinearArithmeticDP::Parameter(varId, coefficient);
         colLabelSet.insert(elm.varId);
-        elm.coefficient = rowVector[i][k];
-
+  
         rowList = new List<DP::LinearArithmeticDP::Parameter>(elm);
         k++;
         break;
@@ -105,19 +106,18 @@ void test_list()
     List<DP::LinearArithmeticDP::Parameter> *current = rowList;
     for (j = k; j < rowVector[i].size() - 1; j++) {
       if (rowVector[i][j] != 0) {
-        DP::LinearArithmeticDP::Parameter elm;
-        elm.varId = j * 2;
+        unsigned varId = j * 2;
+        float coefficient = rowVector[i][j];
+        DP::LinearArithmeticDP::Parameter elm = DP::LinearArithmeticDP::Parameter(varId, coefficient);
         colLabelSet.insert(elm.varId);
-        elm.coefficient = rowVector[i][j];
 
         current->setTail(new List<DP::LinearArithmeticDP::Parameter>(elm));
         current = current->tail();
       }
     }
 
-    DP::LinearArithmeticDP::Parameter elm;
-    elm.varId = UINT_MAX;
-    elm.coefficient = rowVector[i][rowVector[i].size() - 1];
+    float coefficient = rowVector[i][rowVector[i].size() - 1];
+    DP::LinearArithmeticDP::Parameter elm = DP::LinearArithmeticDP::Parameter(UINT_MAX, coefficient);
     current->setTail(new List<DP::LinearArithmeticDP::Parameter>(elm));
 
     rowsList.push_back(rowList);
@@ -131,17 +131,10 @@ void test_list()
   }
   */
 
-  unsigned int colLabelList[colLabelSet.size()];
-  unsigned int colLabelListIndex = 0;
-  for (unsigned int const &colLabel : colLabelSet) {
-    colLabelList[colLabelListIndex++] = colLabel;
-    //std::cout << colLabel << std::endl;
-  }
-
   //std::cout << "Running GE" << std::endl;
 
   // Rowlist, col Label list, number of unknows
-  DP::GaussElimination ge = DP::GaussElimination(rowsList, colLabelList, colLabelSet.size());
+  DP::GaussElimination ge = DP::GaussElimination(rowsList, colLabelSet);
   ge.getStatus();
   
   //rowsList[1] = subtract(rowsList[1], rowsList[0], 2);
@@ -157,6 +150,7 @@ void test_list()
 
 TEST_FUN(test_1)
 {
-  test_list();
+  // x = 1 create term
+  Literal lit = Literal::createEquality(true, TermList(Term* t), TermList arg2, unsigned sort)
   exit(-1);
 }

@@ -23,33 +23,40 @@
 #define __GaussElimination__
 
 #include <vector>
+#include <set>
 #include "Forwards.hpp"
 #include "Lib/List.hpp"
 #include "LinearArithmeticDP.hpp"
 #include "DecisionProcedure.hpp"
+#include "LinearArithmetricSolverDP.hpp"
+
+#include "Lib/Environment.hpp"
+#include "Kernel/Signature.hpp"
 
 namespace DP {
 using namespace Lib;
 using namespace Kernel;
 
-class GaussElimination {
+class GaussElimination : public LinearArithmeticSolverDP {
 public:
   CLASS_NAME(GaussElimination);
   USE_ALLOCATOR(GaussElimination);
 
-  GaussElimination(std::vector< List<LinearArithmeticDP::Parameter> *> rowsVector, unsigned int* colLabelList, int numberOfUnkowns);
+  GaussElimination(std::vector<List<LinearArithmeticDP::Parameter> *> rowsVector, std::set<unsigned int> colLabelSet);
   ~GaussElimination();
 
-  DecisionProcedure::Status getStatus();
+  virtual LinearArithmeticDP::Status getStatus() override;
+
+  virtual void getModel(LiteralStack& model) override;
 
 private:
   List<LinearArithmeticDP::Parameter> **rowsList;
-  unsigned int* colLabelList;
+  unsigned int *colLabelList;
   unsigned int numberOfUnkowns;
   unsigned int numberOfRows;
-  float * solution;
+  float *solutions;
 
-  float getCoefficient(List<LinearArithmeticDP::Parameter> * row, unsigned int varId);
+  float getCoefficient(List<LinearArithmeticDP::Parameter> *row, unsigned int varId);
   List<LinearArithmeticDP::Parameter> *subtract(List<LinearArithmeticDP::Parameter> *e1, List<LinearArithmeticDP::Parameter> *e2, float multiplier);
   int getColLabelIndex(unsigned int label, unsigned int searchStartIndex);
 };
