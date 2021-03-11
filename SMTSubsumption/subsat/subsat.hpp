@@ -594,11 +594,12 @@ public:
   void add_clause(Lit const* literals, uint32_t count)
   {
     assert(m_state == State::Unknown);
-    auto handle = alloc_constraint(count);
+    auto alloc_handle = alloc_constraint(count);
     for (Lit const* p = literals; p < literals + count; ++p) {
-      handle_push_literal(handle, *p);
+      handle_push_literal(alloc_handle, *p);
     }
-    add_clause(handle_build(handle));
+    auto built_handle = handle_build(alloc_handle);
+    add_clause(built_handle);
   }
 
   /// Add the empty clause
@@ -1041,11 +1042,7 @@ private:
   void assign(Lit lit, Reason reason)
   {
     basic_assign(lit, reason);
-    if (!m_theory.empty()) {
-      theory_propagate();
-    } else {
-      m_theory_propagate_head = static_cast<uint32_t>(m_trail.size());
-    }
+    theory_propagate();
   }
 
   /// Theory-propagation after all original clauses have been added.
@@ -1054,6 +1051,10 @@ private:
   void theory_propagate_initial()
   {
     assert(m_level == 0);
+    if (m_theory.empty()) {
+      m_theory_propagate_head = static_cast<uint32_t>(m_trail.size());
+      return;
+    }
     while (m_theory_propagate_head < m_trail.size()) {
       Lit p = m_trail[m_theory_propagate_head++];
       LOG_DEBUG("Theory-propagating " << p);
@@ -1085,6 +1086,10 @@ private:
 
   void theory_propagate()
   {
+    if (m_theory.empty()) {
+      m_theory_propagate_head = static_cast<uint32_t>(m_trail.size());
+      return;
+    }
     // NOTE on why we do theory propagation as part of enqueue and not in the propagate() loop:
     // - we don't want to iterate through watchlists multiple times
     // - but if we handle the watch completely, we may get multiple enqueues, and these may already contain a theory conflict

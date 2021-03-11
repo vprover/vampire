@@ -89,7 +89,7 @@ static int enumerate_models(std::string filename)
     models.push_back({});
     auto& model = models.back();
     s.get_model(model);
-    std::cout << SHOWVEC(model) << std::endl;
+    // std::cout << SHOWVEC(model) << std::endl;
   }
   if (res != Result::Unsat) {
     std::cerr << "Enumerating models: unexpected result: " << res << std::endl;
@@ -101,12 +101,12 @@ static int enumerate_models(std::string filename)
   parse_input(filename, s);
   // Add blocking clause for each model discovered in the previous run
   for (auto const& model : models) {
-    s.clause_start();
+    s.constraint_start();
     for (Lit lit : model) {
-      s.clause_literal(~lit);
+      s.constraint_push_literal(~lit);
     }
-    ClauseRef cr = s.clause_end();
-    s.add_clause(cr);
+    auto handle = s.constraint_end();
+    s.add_clause(handle);
   }
   // We expect unsat, otherwise we missed some model in the first part.
   if ((res = s.solve()) != Result::Unsat) {
