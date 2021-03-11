@@ -396,6 +396,25 @@ TEST_FUN(kbo_test21) {
 }
 
 
+TEST_FUN(kbo_test22) {
+  DECL_DEFAULT_VARS
+  DECL_SORT(srt)
+  DECL_PRED(r, {srt, srt})
+  DECL_FUNC(g, {srt, srt}, srt)
+
+  auto ord = kbo(
+      1, // <- weight for introduced symbols
+      1, // <- variable weight
+      weights(
+        make_pair(r,1u)
+      ), 
+      weights());
+
+  check(ord, r(x,y), Incomp, r(y,x));
+  check(ord, g(x,y), Incomp, g(y,x));
+}
+
+
 TEST_FUN(lakbo_test01) {
   DECL_DEFAULT_VARS
   NUMBER_SUGAR(Int)

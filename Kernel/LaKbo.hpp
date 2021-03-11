@@ -28,7 +28,6 @@
 
 #include "Ordering.hpp"
 #include "Lib/Map.hpp"
-// #include "Kernel/PolynomialNormalizer.hpp"
 
 namespace Kernel {
 
@@ -77,7 +76,7 @@ private:
     VarCondition varCondition() const;
   };
 
-  Result toOrdering(TraversalResult const& res) const;
+  Result toOrdering(TraversalResult const& res, bool normalizationDidAlter) const;
   void traverse(TraversalResult& res, TermList  t1, TermList t2) const;
   void traverse(TraversalResult& res, TermList* tt, int factor ) const;
   void traverse(TraversalResult& res, TermList  t , int factor ) const;
@@ -86,7 +85,11 @@ private:
   void traverseLex(TraversalResult& res, TermList* tt1, TermList* tt2) const;
   void traverseSubterm(TraversalResult& res, Term* t, unsigned v, bool varRhs) const;
   void traverseAC(TraversalResult& res, Term* t1, Term* t2) const;
-  TermList dropNumeralMultiplications(LaKbo::TraversalResult& res,  TermList t) const;
+  struct NumeralDropResult {
+    TermList term;
+    bool changed;
+  };
+  NumeralDropResult dropNumeralMultiplications(LaKbo::TraversalResult& res,  TermList t) const;
 
 };
 
