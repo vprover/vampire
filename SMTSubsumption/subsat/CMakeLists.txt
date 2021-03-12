@@ -32,6 +32,7 @@ add_executable(subsat
     subsat_main.cpp
     subsat.cpp
     subsat.hpp
+    subsat_config.hpp
     constraint.cpp
     constraint.hpp
     decision_queue.hpp

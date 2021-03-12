@@ -1,13 +1,7 @@
 #ifndef SUBSAT_LOG_HPP
 #define SUBSAT_LOG_HPP
 
-#ifndef SUBSAT_LOGGING_ENABLED
-#   ifndef NDEBUG
-#       define SUBSAT_LOGGING_ENABLED 1
-#   else
-#       define SUBSAT_LOGGING_ENABLED 0
-#   endif
-#endif
+#include "./subsat_config.hpp"
 
 
 #if SUBSAT_LOGGING_ENABLED

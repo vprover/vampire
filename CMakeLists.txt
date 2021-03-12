@@ -781,6 +781,7 @@ set(VAMPIRE_SMT_SUBSUMPTION_SOURCES
     SMTSubsumption/subsat/log.hpp
     SMTSubsumption/subsat/subsat.cpp
     SMTSubsumption/subsat/subsat.hpp
+    SMTSubsumption/subsat/subsat_config.hpp
     SMTSubsumption/subsat/SubstitutionTheory.hpp
     SMTSubsumption/subsat/types.cpp
     SMTSubsumption/subsat/types.hpp
