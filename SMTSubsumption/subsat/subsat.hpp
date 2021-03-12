@@ -31,8 +31,9 @@ static_assert(VDEBUG == 1, "VDEBUG and NDEBUG are not synchronized");
 #endif
 
 
-// TODO: add feature flags for some optimizations where it's not 100% clear how much benefit they give us
-//       the default values here can then be adjusted to what turns out to be best for the Vampire use case
+// Phase saving
+// CONJECTURE: probably not very helpful; always choosing true should be fine for our use case.
+// TODO: maybe implement and test
 #ifndef SUBSAT_PHASE_SAVING
 #define SUBSAT_PHASE_SAVING 0
 #endif
@@ -84,7 +85,7 @@ static_assert(VDEBUG == 1, "VDEBUG and NDEBUG are not synchronized");
 #endif
 
 // By default, statistics are only enabled in standalone mode or if logging is enabled
-#if SUBSAT_STANDALONE || LOGGING_ENABLED
+#if SUBSAT_STANDALONE || SUBSAT_LOGGING_ENABLED
 #define SUBSAT_STATISTICS 1
 #else
 #define SUBSAT_STATISTICS 0
@@ -305,7 +306,7 @@ enum : Mark {
 };
 
 
-#if LOGGING_ENABLED
+#if SUBSAT_LOGGING_ENABLED
 template <template <typename> class A>
 struct ShowConstraintRef {
   ShowConstraintRef(ConstraintArena<A> const& arena, ConstraintRef cr) noexcept
@@ -1770,7 +1771,7 @@ private:
   NODISCARD bool checkModel() const;
 #endif
 
-#if LOGGING_ENABLED
+#if SUBSAT_LOGGING_ENABLED
 public:
   void showAssignment(std::ostream& os) const
   {
@@ -1900,7 +1901,7 @@ private:
 #endif
 }; // Solver
 
-#if LOGGING_ENABLED
+#if SUBSAT_LOGGING_ENABLED
 template <template <typename> class A>
 std::ostream& operator<<(std::ostream& os, ShowAssignment<A> sa)
 {

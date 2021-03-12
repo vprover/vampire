@@ -1,16 +1,16 @@
-#ifndef LOG_HPP
-#define LOG_HPP
+#ifndef SUBSAT_LOG_HPP
+#define SUBSAT_LOG_HPP
 
-#ifndef LOGGING_ENABLED
+#ifndef SUBSAT_LOGGING_ENABLED
 #   ifndef NDEBUG
-#       define LOGGING_ENABLED 1
+#       define SUBSAT_LOGGING_ENABLED 1
 #   else
-#       define LOGGING_ENABLED 0
+#       define SUBSAT_LOGGING_ENABLED 0
 #   endif
 #endif
 
 
-#if LOGGING_ENABLED
+#if SUBSAT_LOGGING_ENABLED
 
 
 #include <cstdint>
@@ -112,7 +112,7 @@ subsat_log(LogLevel msg_level, std::string fn, std::string pretty_fn);
 #define LOG_TRACE(x) LOG(LogLevel::Trace, x)
 
 
-#else  // LOGGING_ENABLED
+#else  // SUBSAT_LOGGING_ENABLED
 
 
 #define LOG(lvl, x)  \
@@ -126,7 +126,7 @@ subsat_log(LogLevel msg_level, std::string fn, std::string pretty_fn);
 #define LOG_TRACE(x) LOG(0, x)
 
 
-#endif  // LOGGING_ENABLED
+#endif  // SUBSAT_LOGGING_ENABLED
 
 
-#endif  // LOG_HPP
+#endif  // SUBSAT_LOG_HPP

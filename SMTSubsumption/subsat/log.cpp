@@ -3,7 +3,7 @@
 
 #include "./log.hpp"
 
-#if LOGGING_ENABLED
+#if SUBSAT_LOGGING_ENABLED
 
 static LogLevel
 get_max_log_level(std::string const& fn, std::string const& pretty_fn)
@@ -87,4 +87,4 @@ subsat_log(LogLevel msg_level, std::string fn, std::string /* pretty_fn */)
   return {os, (bool)color};
 }
 
-#endif  // LOGGING_ENABLED
+#endif  // SUBSAT_LOGGING_ENABLED
