@@ -1055,7 +1055,7 @@ class SMTSubsumption::SMTSubsumptionImpl2
 #endif
 
     /// AtMostOne constraints stating that each instance literal may be matched at most once.
-    vvector<subsat::AllocatedClauseHandle> instance_constraints;
+    vvector<subsat::AllocatedConstraintHandle> instance_constraints;
 
   public:
     CLASS_NAME(SMTSubsumptionImpl2);

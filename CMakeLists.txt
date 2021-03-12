@@ -773,8 +773,8 @@ set(VAMPIRE_SMT_SUBSUMPTION_SOURCES
     SMTSubsumption/MapBinder.cpp
     SMTSubsumption/MapBinder.hpp
 
-    SMTSubsumption/subsat/clause.cpp
-    SMTSubsumption/subsat/clause.hpp
+    SMTSubsumption/subsat/constraint.cpp
+    SMTSubsumption/subsat/constraint.hpp
     SMTSubsumption/subsat/decision_queue.hpp
     SMTSubsumption/subsat/default_init_allocator.hpp
     SMTSubsumption/subsat/log.cpp
