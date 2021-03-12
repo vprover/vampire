@@ -292,115 +292,68 @@ bool checkForSubsumptionResolution(Clause* cl, ClauseMatches* cms, Literal* resL
   return MLMatcher::canBeMatched(mcl,cl,cms->_matches,resLit);
 }
 
-struct SubsumptionInstance
-{
-  Clause* side_premise;
-  Clause* main_premise;
-  unsigned int seq;
-  bool isSubsumed;
 
-  void print(std::ostream& os, TPTPPrinter& tptp)
-  {
-    vstringstream id_stream;
-    id_stream
-        << seq << "_"
-        << (isSubsumed ? "success" : "failure");
-    vstring id = id_stream.str();
-
-    os << "\% Begin Inference \"FS-" << id << "\"\n";
-
-    os << "\% Info: "
-       // << "{ \"seq\": " << m_seq
-       << "{ \"side_premise\": " << side_premise->number()
-       << ", \"main_premise\": " << main_premise->number()
-       << " }\n";
-
-    tptp.printWithRole("side_premise_" + id, "hypothesis", side_premise, false); // subsumer
-    tptp.printWithRole("main_premise_" + id, "hypothesis", main_premise, false); // subsumed (if isSubsumed == 1)
-    os << "\% End Inference \"FS-" << id << "\"\n\%" << std::endl;
-  }
-};
-
-#define LOG_IMMEDIATELY 1
 
 class SubsumptionLogger
 {
   private:
-    std::ofstream m_logfile;
+    std::ofstream m_file_slog;
+    std::ofstream m_file_clauses;
     TPTPPrinter m_tptp;  // this needs to be a member so we get the type definitions only once at the beginning
     unsigned int m_seq;  // sequence number of logged inferences
-    vvector<SubsumptionInstance> m_instances;
+    vset<unsigned int> m_seen_clauses;
   public:
     CLASS_NAME(SubsumptionLogger);
     USE_ALLOCATOR(SubsumptionLogger);
     SubsumptionLogger(vstring logfile_path);
-    ~SubsumptionLogger() { env.beginOutput(); env.out() << "Destroying logger" << std::endl; env.endOutput(); }
     void log(Clause* side_premise, Clause* main_premise, bool isSubsumed, MLMatchStats const* opt_stats);
-    void printInstances();
-    void flush() { m_logfile.flush(); }
+    void flush()
+    {
+      m_file_slog.flush();
+      m_file_clauses.flush();
+    }
 };
 
 SubsumptionLogger::SubsumptionLogger(vstring logfile_path)
-  : m_logfile{}
-  , m_tptp{&m_logfile}
+  : m_file_slog{}
+  , m_file_clauses{}
+  , m_tptp{&m_file_clauses}
   , m_seq{1}
 {
   CALL("SubsumptionLogger::SubsumptionLogger");
-  std::cerr << "Creating logger: " << logfile_path << std::endl;
-  m_logfile.open(logfile_path.c_str());
-  ASS(m_logfile.is_open());
+  vstring slog_path = logfile_path + ".slog";
+  vstring clauses_path = logfile_path + ".p";
+  m_file_slog.open(slog_path.c_str());
+  m_file_clauses.open(clauses_path.c_str());
+  ASS(m_file_slog.is_open());
+  ASS(m_file_clauses.is_open());
 }
 
 void SubsumptionLogger::log(Clause* side_premise, Clause* main_premise, bool isSubsumed, MLMatchStats const* opt_stats)
 {
-#if LOG_IMMEDIATELY
-  vstringstream id_stream;
-  id_stream
-    << m_seq << "_"
-    // << main_premise->number() << "_"  // main premise first because that increases during the run
-    // << side_premise->number() << "_"
-    << (isSubsumed ? "success" : "failure");
-  vstring id = id_stream.str();
-
-  m_logfile << "\% Begin Inference \"FS-" << id << "\"\n";
-
-  m_logfile << "\% Info: "
-            // << "{ \"seq\": " << m_seq
-            << "{ \"side_premise\": " << side_premise->number()
-            << ", \"main_premise\": " << main_premise->number();
-  if (opt_stats) {
-    m_logfile << ", \"stats\": " << (*opt_stats);
-    // m_logfile << "\% Stats: " << (*opt_stats) << '\n';
-  }
-  m_logfile << " }\n";
-
-  m_tptp.printWithRole("side_premise_" + id, "hypothesis", side_premise, false);  // subsumer
-  m_tptp.printWithRole("main_premise_" + id, "hypothesis", main_premise, false);  // subsumed (if isSubsumed == 1)
-  m_logfile << "\% End Inference \"FS-" << id << "\"\n\%" << std::endl;
-#else
-  (void)opt_stats;
-  m_instances.push_back({side_premise, main_premise, m_seq, isSubsumed});
-#endif
-
-  m_seq += 1;
-}
-
-void SubsumptionLogger::printInstances()
-{
-  if (!m_instances.empty()) {
-    for (auto& instance : m_instances) {
-      instance.print(m_logfile, m_tptp);
+  // Print clauses if they haven't been printed yet
+  for (Clause* clause : {side_premise, main_premise}) {
+    bool inserted = m_seen_clauses.insert(clause->number()).second;
+    if (inserted) {
+      // std::cerr << "printing " << clause << " " << clause->toString() << std::endl;
+      vstringstream id_stream;
+      id_stream << "clause_" << clause->number();
+      m_tptp.printWithRole(id_stream.str(), "hypothesis", clause, false);
     }
   }
+  // Print subsumption log
+  m_file_slog << "S "
+              // << m_seq << ' '
+              << side_premise->number() << ' '
+              << main_premise->number() << ' '
+              << isSubsumed << '\n';
+  m_seq += 1;
 }
 
 void ForwardSubsumptionAndResolution::printStats(std::ostream& out)
 {
   if (fsstats.m_logger) {
-    out << "Printing subsumption instances..." << std::endl;
-    fsstats.m_logger->printInstances();
     fsstats.m_logger->flush();
-    out << "Printing done." << std::endl;
     {
       BYPASSING_ALLOCATOR;
       fsstats.m_logger.reset();
