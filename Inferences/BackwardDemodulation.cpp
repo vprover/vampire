@@ -126,6 +126,11 @@ struct BackwardDemodulation::ResultFn
 
     TermList qrSort = SortHelper::getTermSort(qr.term, qr.literal);
 
+    /* The following check replaces the original:
+      "if(qrSort!=_eqSort) {
+         return BwSimplificationRecord(0);
+      }"
+      from the monomorphic setting */
     if(lhs.isVar()){
       //when finding instances of a variable, RobSubstitution is used
       //view Indexing::TermSubstitutionTree::getInstances
