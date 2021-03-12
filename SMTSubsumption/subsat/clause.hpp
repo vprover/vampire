@@ -1,7 +1,8 @@
-#ifndef CLAUSE_HPP
-#define CLAUSE_HPP
+#ifndef SUBSAT_CONSTRAINT_HPP
+#define SUBSAT_CONSTRAINT_HPP
 
 #include <iostream>
+#include <random>
 #include <type_traits>
 #include <vector>
 
@@ -11,9 +12,13 @@
 
 namespace subsat {
 
-// TODO: rename Clause -> Constraint, since we use the same types for AMO-constraints now too
 
-class Clause final
+
+
+
+/// A constraint represented by an array of literals.
+/// We use this for both clauses and at-most-one constraints.
+class Constraint final
 {
 public:
   using iterator = Lit*;
@@ -46,68 +51,69 @@ public:
     return m_size;
   }
 
-  /// Number of bytes required for the clause header (without literals).
+  /// Number of bytes required for the constraint header (without literals).
   static constexpr size_t header_bytes() noexcept
   {
 #if __cplusplus >= 201703L
     size_t constexpr embedded_literals = std::extent_v<decltype(m_literals)>;
-    size_t constexpr header_bytes = sizeof(Clause) - sizeof(Lit) * embedded_literals;
-    static_assert(header_bytes == offsetof(Clause, m_literals));
+    size_t constexpr header_bytes = sizeof(Constraint) - sizeof(Lit) * embedded_literals;
+    static_assert(header_bytes == offsetof(Constraint, m_literals));
     return header_bytes;
 #else
-    return sizeof(Clause) - sizeof(Lit) * std::extent<decltype(m_literals)>::value;
+    return sizeof(Constraint) - sizeof(Lit) * std::extent<decltype(m_literals)>::value;
 #endif
   }
 
-  /// Number of bytes required by a clause containing 'size' literals.
+  /// Number of bytes required by a constraint containing 'size' literals.
   static constexpr size_t bytes(size_type size) noexcept
   {
 #if __cplusplus >= 201703L
     size_t const embedded_literals = std::extent_v<decltype(m_literals)>;
     size_t const additional_literals = (size >= embedded_literals) ? (size - embedded_literals) : 0;
-    size_t const total_bytes = sizeof(Clause) + sizeof(Lit) * additional_literals;
+    size_t const total_bytes = sizeof(Constraint) + sizeof(Lit) * additional_literals;
     return total_bytes;
 #else
-    return sizeof(Clause) + sizeof(Lit) * ((size >= std::extent<decltype(m_literals)>::value) ? (size - std::extent<decltype(m_literals)>::value) : 0);
+    return sizeof(Constraint) + sizeof(Lit) * ((size >= std::extent<decltype(m_literals)>::value) ? (size - std::extent<decltype(m_literals)>::value) : 0);
 #endif
   }
 
 private:
   // NOTE: do not use this constructor directly
   // because it does not allocate enough memory for the literals
-  Clause(size_type size) noexcept
+  Constraint(size_type size) noexcept
       : m_size{size}
   { }
 
   // cannot copy/move because of flexible array member
-  Clause(Clause&) = delete;
-  Clause(Clause&&) = delete;
-  Clause& operator=(Clause&) = delete;
-  Clause& operator=(Clause&&) = delete;
+  Constraint(Constraint&) = delete;
+  Constraint(Constraint&&) = delete;
+  Constraint& operator=(Constraint&) = delete;
+  Constraint& operator=(Constraint&&) = delete;
 
-  template <template <typename> class Allocator> friend class ClauseArena;
+  template <template <typename> class Allocator> friend class ConstraintArena;
   template <template <typename> class Allocator> friend class Solver;
 
 private:
   size_type m_size;   // number of literals
   Lit m_literals[2];  // actual size is m_size, but C++ does not officially support flexible array members (as opposed to C)
-}; // Clause
+};  // Constraint
 
-std::ostream& operator<<(std::ostream& os, Clause const& c);
-
-
+std::ostream& operator<<(std::ostream& os, Constraint const& c);
 
 
 
-class ClauseRef final
+
+
+/// Reference to a constraint stored in a ConstraintArena.
+class ConstraintRef final
 {
 public:
   using index_type = std::uint32_t;
 
-  /// Create an invalid ClauseRef.
-  NODISCARD static constexpr ClauseRef invalid() noexcept
+  /// Create an invalid ConstraintRef.
+  NODISCARD static constexpr ConstraintRef invalid() noexcept
   {
-    return ClauseRef{std::numeric_limits<index_type>::max()};
+    return ConstraintRef{std::numeric_limits<index_type>::max()};
   }
 
   NODISCARD static constexpr index_type max_index() noexcept
@@ -126,42 +132,43 @@ public:
   }
 
 private:
-  explicit constexpr ClauseRef(index_type index) noexcept
+  explicit constexpr ConstraintRef(index_type index) noexcept
       : m_index{index}
   { }
 
-  template <template <typename> class Allocator> friend class ClauseArena;
+  template <template <typename> class Allocator> friend class ConstraintArena;
 
 private:
   /// Index into the arena storage.
   index_type m_index;
 #ifndef NDEBUG
-  /// Timestamp to check for invalid clause references (debug mode only).
-  std::uint32_t m_timestamp = 123456;
+  /// Arena id to check for mismatched constraint references (debug mode only).
+  std::uint32_t m_arena_id = 123456;
 #endif
 };
-static_assert(std::is_trivially_destructible<ClauseRef>::value, "");
+static_assert(std::is_trivially_destructible<ConstraintRef>::value, "");
 
-NODISCARD constexpr bool operator==(ClauseRef lhs, ClauseRef rhs) noexcept
+NODISCARD constexpr bool operator==(ConstraintRef lhs, ConstraintRef rhs) noexcept
 {
   return lhs.index() == rhs.index();
 }
 
-NODISCARD constexpr bool operator!=(ClauseRef lhs, ClauseRef rhs) noexcept
+NODISCARD constexpr bool operator!=(ConstraintRef lhs, ConstraintRef rhs) noexcept
 {
   return !operator==(lhs, rhs);
 }
 
-std::ostream& operator<<(std::ostream& os, ClauseRef cr);
+std::ostream& operator<<(std::ostream& os, ConstraintRef cr);
 
 
 
 
-class AllocatedClauseHandle final
+
+class AllocatedConstraintHandle final
 {
 private:
-  AllocatedClauseHandle(ClauseRef clause_ref, uint32_t capacity) noexcept
-      : m_clause_ref{clause_ref}
+  AllocatedConstraintHandle(ConstraintRef constraint_ref, uint32_t capacity) noexcept
+      : m_constraint_ref{constraint_ref}
 #ifndef NDEBUG
       , m_capacity{capacity}
 #endif
@@ -169,42 +176,42 @@ private:
     (void)capacity;
   }
 
-  template <template <typename> class Allocator> friend class ClauseArena;
+  template <template <typename> class Allocator> friend class ConstraintArena;
 
 private:
-  ClauseRef m_clause_ref;
+  ConstraintRef m_constraint_ref;
 #ifndef NDEBUG
   uint32_t m_capacity;
 #endif
 };
 
-static_assert(std::is_trivially_destructible<AllocatedClauseHandle>::value, "");
+static_assert(std::is_trivially_destructible<AllocatedConstraintHandle>::value, "");
 
 
 
 
 
 template <template <typename> class Allocator = std::allocator>
-class ClauseArena final
+class ConstraintArena final
 {
 private:
   using storage_type = std::uint32_t;
-  static_assert(alignof(Clause) == alignof(storage_type), "Clause alignment mismatch");
-  // Maybe the more correct condition is this (storage alignment must be a multiple of clause alignment):
-  static_assert(alignof(storage_type) % alignof(Clause) == 0, "Alignment of storage must imply alignment of clause");
-  static_assert(std::is_trivially_destructible<Clause>::value, "Clause destructor must be trivial because we never call it");
+  static_assert(alignof(Constraint) == alignof(storage_type), "Constraint alignment mismatch");
+  // Maybe the more correct condition is this (storage alignment must be a multiple of Constraint alignment):
+  static_assert(alignof(storage_type) % alignof(Constraint) == 0, "Alignment of storage must imply alignment of Constraint");
+  static_assert(std::is_trivially_destructible<Constraint>::value, "Constraint destructor must be trivial because we never call it");
 
-  NODISCARD void* deref_plain(ClauseRef cr) noexcept
+  NODISCARD void* deref_plain(ConstraintRef cr) noexcept
   {
     assert(cr.is_valid());
-    assert(cr.m_timestamp == m_timestamp);
+    assert(cr.m_arena_id == m_arena_id);
     return &m_storage[cr.m_index];
   }
 
-  NODISCARD void const* deref_plain(ClauseRef cr) const noexcept
+  NODISCARD void const* deref_plain(ConstraintRef cr) const noexcept
   {
     assert(cr.is_valid());
-    assert(cr.m_timestamp == m_timestamp);
+    assert(cr.m_arena_id == m_arena_id);
     return &m_storage[cr.m_index];
   }
 
@@ -212,25 +219,34 @@ public:
   template <typename T>
   using allocator_type = Allocator<T>;
 
-  NODISCARD Clause& deref(ClauseRef cr) noexcept
+  ConstraintArena()
   {
-    return *reinterpret_cast<Clause*>(deref_plain(cr));
+#ifndef NDEBUG
+    static thread_local std::mt19937 gen(123);
+    std::uniform_int_distribution<uint32_t> d{0, std::numeric_limits<uint32_t>::max()};
+    m_arena_id = d(gen);
+#endif
   }
 
-  NODISCARD Clause const& deref(ClauseRef cr) const noexcept
+  NODISCARD Constraint& deref(ConstraintRef cr) noexcept
   {
-    return *reinterpret_cast<Clause const*>(deref_plain(cr));
+    return *reinterpret_cast<Constraint*>(deref_plain(cr));
   }
 
-  /// Allocate a new clause with enough space for 'capacity' literals.
+  NODISCARD Constraint const& deref(ConstraintRef cr) const noexcept
+  {
+    return *reinterpret_cast<Constraint const*>(deref_plain(cr));
+  }
+
+  /// Allocate a new constraint with enough space for 'capacity' literals.
   /// May throw std::bad_alloc if the arena is exhausted, or reallocating the arena fails.
-  NODISCARD AllocatedClauseHandle alloc(std::uint32_t capacity)
+  NODISCARD AllocatedConstraintHandle alloc(std::uint32_t capacity)
   {
     assert(!m_dynamic_ref.is_valid());
 
-    ClauseRef cr = make_ref();
+    ConstraintRef cr = make_ref();
 
-    std::size_t const bytes = Clause::bytes(capacity);
+    std::size_t const bytes = Constraint::bytes(capacity);
     assert(bytes % sizeof(storage_type) == 0);
     std::size_t const elements = bytes / sizeof(storage_type);
     std::size_t const new_size = m_storage.size() + elements;
@@ -239,40 +255,40 @@ public:
     m_storage.resize(new_size);
 
     void* p = deref_plain(cr);
-    Clause* c = new (p) Clause{0};
+    Constraint* c = new (p) Constraint{0};
     assert(c);
     (void)c;  // suppress "unused variable" warning
-    return AllocatedClauseHandle{cr, capacity};
+    return AllocatedConstraintHandle{cr, capacity};
   }
 
-  void handle_push_literal(AllocatedClauseHandle& handle, Lit lit) noexcept
+  void handle_push_literal(AllocatedConstraintHandle& handle, Lit lit) noexcept
   {
-    assert(handle.m_clause_ref.is_valid());
-    Clause& clause = deref(handle.m_clause_ref);
-    assert(clause.m_size < handle.m_capacity);
-    clause.m_literals[clause.m_size] = lit;
-    clause.m_size += 1;
+    assert(handle.m_constraint_ref.is_valid());
+    Constraint& c = deref(handle.m_constraint_ref);
+    assert(c.m_size < handle.m_capacity);
+    c.m_literals[c.m_size] = lit;
+    c.m_size += 1;
   }
 
-  NODISCARD ClauseRef handle_build(AllocatedClauseHandle& handle) noexcept
+  NODISCARD ConstraintRef handle_build(AllocatedConstraintHandle& handle) noexcept
   {
-    assert(handle.m_clause_ref.is_valid());
-    ClauseRef cr = handle.m_clause_ref;
+    assert(handle.m_constraint_ref.is_valid());
+    ConstraintRef cr = handle.m_constraint_ref;
 #ifndef NDEBUG
-    handle.m_clause_ref = ClauseRef::invalid();
+    handle.m_constraint_ref = ConstraintRef::invalid();
 #endif
     return cr;
   }
 
-  /// Start a new clause of unknown size at the end of the current storage.
-  /// Only one of these can be active at a time, and alloc_clause cannot be used while this is active.
+  /// Start a new constraint of unknown size at the end of the current storage.
+  /// Only one of these can be active at a time, and alloc cannot be used while this is active.
   void start()
   {
     assert(!m_dynamic_ref.is_valid());
 
     m_dynamic_ref = make_ref();
 
-    std::size_t constexpr header_bytes = Clause::header_bytes();
+    std::size_t constexpr header_bytes = Constraint::header_bytes();
     static_assert(header_bytes % sizeof(storage_type) == 0, "");
     std::size_t constexpr header_elements = header_bytes / sizeof(storage_type);
     std::size_t const new_size = m_storage.size() + header_elements;
@@ -287,46 +303,46 @@ public:
     m_storage.push_back(lit.index());
   }
 
-  NODISCARD ClauseRef end() noexcept
+  NODISCARD ConstraintRef end() noexcept
   {
     assert(m_dynamic_ref.is_valid());
 
     std::size_t const old_size = m_dynamic_ref.m_index;
-    std::size_t constexpr header_elements = Clause::header_bytes() / sizeof(storage_type);
+    std::size_t constexpr header_elements = Constraint::header_bytes() / sizeof(storage_type);
     assert(m_storage.size() >= old_size + header_elements);
-    std::size_t const clause_size = m_storage.size() - old_size - header_elements;
+    std::size_t const c_size = m_storage.size() - old_size - header_elements;
 
-    ClauseRef cr = m_dynamic_ref;
-    Clause& c = deref(cr);
-    c.m_size = static_cast<Clause::size_type>(clause_size);
+    ConstraintRef cr = m_dynamic_ref;
+    Constraint& c = deref(cr);
+    c.m_size = static_cast<Constraint::size_type>(c_size);
 
-    m_dynamic_ref = ClauseRef::invalid();
+    m_dynamic_ref = ConstraintRef::invalid();
     return cr;
   }
 
-  /// Delete the given clause and all that were added afterwards!
-  void unsafe_delete(ClauseRef cr)
+  /// Delete the given constraint and all that were added afterwards!
+  void unsafe_delete(ConstraintRef cr)
   {
     assert(cr.is_valid());
-    assert(cr.m_timestamp == m_timestamp);
+    assert(cr.m_arena_id == m_arena_id);
     assert(!m_dynamic_ref.is_valid());
     m_storage.resize(cr.m_index);
   }
 
-  /// Remove all clauses from the arena.
-  /// All existing clause references are invalidated.
+  /// Remove all constraints from the arena.
+  /// All existing constraint references are invalidated.
   /// The backing storage is not deallocated.
   void clear() noexcept
   {
     m_storage.clear();
-    m_dynamic_ref = ClauseRef::invalid();
+    m_dynamic_ref = ConstraintRef::invalid();
 #ifndef NDEBUG
-    m_timestamp += 1;
+    m_arena_id += 1;
 #endif
     assert(empty());
   }
 
-  bool empty() const noexcept
+  NODISCARD bool empty() const noexcept
   {
     bool const is_empty = m_storage.empty();
     if (is_empty) {
@@ -336,29 +352,35 @@ public:
   }
 
   /// Allocate storage for 'capacity' literals.
-  /// Note that the actual space for literals will be less, since clause headers is stored in the same space.
+  /// Note that the actual space for literals will be less, since constraint headers is stored in the same space.
   void reserve(std::size_t capacity)
   {
     m_storage.reserve(capacity);
   }
 
   /// Returns the amount of storage used (actually used, not allocated).
-  std::size_t size() const
+  NODISCARD std::size_t size() const noexcept
   {
     return m_storage.size();
   }
 
+  /// Returns the amount of allocated storage.
+  NODISCARD std::size_t capacity() const noexcept
+  {
+    return m_storage.capacity();
+  }
+
 private:
-  NODISCARD ClauseRef make_ref()
+  NODISCARD ConstraintRef make_ref()
   {
     std::size_t const size = m_storage.size();
-    if (size > static_cast<std::size_t>(ClauseRef::max_index())) {
-      std::cerr << "ClauseArena::alloc: too many stored literals, unable to represent additional clause reference" << std::endl;
+    if (size > static_cast<std::size_t>(ConstraintRef::max_index())) {
+      std::cerr << "ConstraintArena::alloc: too many stored literals, unable to represent additional constraint reference" << std::endl;
       throw std::bad_alloc();
     }
-    ClauseRef cr(static_cast<ClauseRef::index_type>(size));
+    ConstraintRef cr(static_cast<ConstraintRef::index_type>(size));
 #ifndef NDEBUG
-    cr.m_timestamp = m_timestamp;
+    cr.m_arena_id = m_arena_id;
 #endif
     return cr;
   }
@@ -367,16 +389,16 @@ private:
   // NOTE: we use the default_init_allocator to avoid zero-initialization when resizing m_storage
   std::vector<storage_type, default_init_allocator<storage_type, allocator_type<storage_type>>> m_storage;
 #ifndef NDEBUG
-  /// Timestamp to check for invalid clause references (debug mode only).
-  /// TODO: start with a random timestamp instead of 0. Then we effectively check for different arenas as well!
-  /// (then just name it m_arena_id, and also set randomly on clear()... we don't need "timestamp semantics" for this)
-  std::uint32_t m_timestamp = 0;
+  /// Arena id allows to check for constraint references coming from wrong or cleared arenas (debug mode only).
+  std::uint32_t m_arena_id;
 #endif
-  ClauseRef m_dynamic_ref = ClauseRef::invalid();
+  ConstraintRef m_dynamic_ref = ConstraintRef::invalid();
 };
+
+
 
 
 
 } // namespace subsat
 
-#endif /* !CLAUSE_HPP */
+#endif /* !SUBSAT_CONSTRAINT_HPP */

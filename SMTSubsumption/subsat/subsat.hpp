@@ -122,7 +122,7 @@ struct Statistics {
   int learned_binary_clauses = 0; ///< Number of learned binary clauses.
   int learned_long_clauses = 0;   ///< Number of learned long clauses (size >= 3).
   int learned_literals = 0;       ///< Sum of the sizes of all learned clauses.
-  std::size_t max_stored_literals = 0;    ///< Maximum number of literals in the m_clauses storage.
+  std::size_t max_stored_literals = 0;    ///< Maximum number of literals in the m_constraints storage.
 #if SUBSAT_MINIMIZE
   int minimized_literals = 0;     ///< Number of literals removed by learned clause minimization.
 #endif
@@ -159,9 +159,9 @@ static inline std::ostream& operator<<(std::ostream& os, Statistics const& stats
     assert(m_stats.NAME <= std::numeric_limits<decltype(m_stats.NAME)>::max() - v); \
     m_stats.NAME += v;                                                              \
   } while (false)
-#define UPDATE_STORAGE_STATS()                                                             \
-  do {                                                                                     \
-    m_stats.max_stored_literals = std::max(m_stats.max_stored_literals, m_clauses.size()); \
+#define UPDATE_STORAGE_STATS()                                                                 \
+  do {                                                                                         \
+    m_stats.max_stored_literals = std::max(m_stats.max_stored_literals, m_constraints.size()); \
   } while (false)
 #else
 #define SUBSAT_STAT_ADD(NAME, VALUE) \
@@ -196,13 +196,13 @@ class Reason final {
 
   union {
     Lit binary_other_lit;
-    ClauseRef clause_ref;
+    ConstraintRef clause_ref;
   };
 
 public:
   constexpr Reason() noexcept
     : type{Type::Invalid}
-    , clause_ref{ClauseRef::invalid()}
+    , clause_ref{ConstraintRef::invalid()}
   { }
 
   explicit Reason(Lit other) noexcept
@@ -212,7 +212,7 @@ public:
     assert(other.is_valid());
   }
 
-  explicit Reason(ClauseRef cr) noexcept
+  explicit Reason(ConstraintRef cr) noexcept
     : type{Type::ClauseRef}
     , clause_ref{cr}
   {
@@ -220,7 +220,7 @@ public:
   }
 
 #if !SUBSAT_LEARN
-  explicit Reason(ClauseRef cr, bool redundant) noexcept
+  explicit Reason(ConstraintRef cr, bool redundant) noexcept
     : type{redundant ? Type::ClauseRefRedundant : Type::ClauseRef}
     , clause_ref{cr}
   {
@@ -254,7 +254,7 @@ public:
     return binary_other_lit;
   }
 
-  ClauseRef get_clause_ref() const noexcept
+  ConstraintRef get_clause_ref() const noexcept
   {
 #if SUBSAT_LEARN
     assert(type == Type::ClauseRef);
@@ -281,16 +281,16 @@ static_assert(std::is_trivially_destructible<VarInfo>::value, "");
 
 struct Watch final {
   constexpr Watch() noexcept
-    : clause_ref{ClauseRef::invalid()}
+    : clause_ref{ConstraintRef::invalid()}
   { }
 
-  constexpr Watch(ClauseRef cr) noexcept
+  constexpr Watch(ConstraintRef cr) noexcept
     : clause_ref{cr}
   { }
 
   // TODO: optimizations: binary clause, blocking literal
   //       (although kitten doesn't seem to do either of those)
-  ClauseRef clause_ref;
+  ConstraintRef clause_ref;
 };
 static_assert(std::is_trivially_destructible<Watch>::value, "");
 
@@ -307,16 +307,16 @@ enum : Mark {
 
 #if LOGGING_ENABLED
 template <template <typename> class A>
-struct ShowClauseRef {
-  ShowClauseRef(ClauseArena<A> const& arena, ClauseRef cr) noexcept
+struct ShowConstraintRef {
+  ShowConstraintRef(ConstraintArena<A> const& arena, ConstraintRef cr) noexcept
     : arena(arena), cr(cr)
   { }
-  ClauseArena<A> const& arena;
-  ClauseRef cr;
+  ConstraintArena<A> const& arena;
+  ConstraintRef cr;
 };
 
 template <template <typename> class A>
-std::ostream& operator<<(std::ostream& os, ShowClauseRef<A> const& scr)
+std::ostream& operator<<(std::ostream& os, ShowConstraintRef<A> const& scr)
 {
   if (scr.cr.is_valid()) {
     os << scr.arena.deref(scr.cr);
@@ -328,10 +328,10 @@ std::ostream& operator<<(std::ostream& os, ShowClauseRef<A> const& scr)
 
 template <template <typename> class A>
 struct ShowReason {
-  ShowReason(ClauseArena<A> const& arena, Reason r) noexcept
+  ShowReason(ConstraintArena<A> const& arena, Reason r) noexcept
     : arena(arena), r(r)
   { }
-  ClauseArena<A> const& arena;
+  ConstraintArena<A> const& arena;
   Reason r;
 };
 
@@ -362,8 +362,8 @@ struct ShowAssignment {
 template <template <typename> class A>
 std::ostream& operator<<(std::ostream& os, ShowAssignment<A> sa);
 
-#define SHOWREF(cr) (ShowClauseRef<Allocator>{m_clauses, cr})
-#define SHOWREASON(r) (ShowReason<Allocator>{m_clauses, r})
+#define SHOWREF(cr) (ShowConstraintRef<Allocator>{m_constraints, cr})
+#define SHOWREASON(r) (ShowReason<Allocator>{m_constraints, r})
 #define SHOWASSIGNMENT() (ShowAssignment<Allocator>{*this})
 
 #endif
@@ -468,7 +468,7 @@ public:
   /// Reserve storage for 'count' literals (less will be available since clause header is stored in the same space)
   void reserve_clause_storage(uint32_t count)
   {
-    m_clauses.reserve(count);
+    m_constraints.reserve(count);
   }
 
   SubstitutionTheory<allocator_type>& theory()
@@ -509,8 +509,8 @@ public:
     m_queue.clear();
 #endif
 
-    m_clauses.clear();
-    tmp_propagate_binary_conflict_ref = ClauseRef::invalid();
+    m_constraints.clear();
+    tmp_propagate_binary_conflict_ref = ConstraintRef::invalid();
 #ifndef NDEBUG
     m_clause_refs.clear();
     m_atmostone_constraint_refs.clear();
@@ -547,8 +547,8 @@ public:
 
   /// Opaque handle to fully-constructed constraints.
   class ConstraintHandle final {
-    ConstraintHandle(ClauseRef ref) : m_ref{ref} { }
-    ClauseRef m_ref;
+    ConstraintHandle(ConstraintRef ref) : m_ref{ref} { }
+    ConstraintRef m_ref;
     friend class Solver<Allocator>;
   };
 
@@ -559,24 +559,24 @@ public:
   /// and finish it with 'handle_build'.
   ///
   /// May not be called while a constraint started by 'constraint_start' is active!
-  NODISCARD AllocatedClauseHandle alloc_constraint(uint32_t capacity)
+  NODISCARD AllocatedConstraintHandle alloc_constraint(uint32_t capacity)
   {
-    auto handle = m_clauses.alloc(capacity);
+    auto handle = m_constraints.alloc(capacity);
     UPDATE_STORAGE_STATS();
     return handle;
   }
 
   /// Adds a literal to a pre-allocated constraint.
-  void handle_push_literal(AllocatedClauseHandle& handle, Lit lit) noexcept
+  void handle_push_literal(AllocatedConstraintHandle& handle, Lit lit) noexcept
   {
-    m_clauses.handle_push_literal(handle, lit);
+    m_constraints.handle_push_literal(handle, lit);
   }
 
   /// Finish a pre-allocated constraint.
   /// Call 'add_clause' to add it to the solver as a clause.
-  ConstraintHandle handle_build(AllocatedClauseHandle& handle) noexcept
+  ConstraintHandle handle_build(AllocatedConstraintHandle& handle) noexcept
   {
-    return {m_clauses.handle_build(handle)};
+    return {m_constraints.handle_build(handle)};
   }
 
   /// Start a new constraint.
@@ -585,13 +585,13 @@ public:
   /// Drawback: only one such constraint may be active at one time.
   void constraint_start()
   {
-    m_clauses.start();
+    m_constraints.start();
   }
 
   /// Add a literal to the constraint started by 'constraint_start'.
   void constraint_push_literal(Lit lit)
   {
-    m_clauses.push_literal(lit);
+    m_constraints.push_literal(lit);
   }
 
   /// Finish the constraint started by 'constraint_start' and returns a handle to it.
@@ -599,7 +599,7 @@ public:
   NODISCARD ConstraintHandle constraint_end() noexcept
   {
     UPDATE_STORAGE_STATS();
-    return {m_clauses.end()};
+    return {m_constraints.end()};
   }
 
 
@@ -687,7 +687,7 @@ private:
   /// 1. it is not a tautology,
   /// 2. it does not contain duplicate literals, and
   /// 3. none of its literals are assigned at the root level.
-  bool isClauseSimplified(Clause const& c)
+  bool isClauseSimplified(Constraint const& c)
   {
     set<Lit> lits;
     for (Lit lit : c) {
@@ -721,7 +721,7 @@ private:
   /// 2. we don't have to check levels of assigned variables during simplification.
   ///
   /// Returns true if the clause is a tautology or already satisfied at the root level.
-  bool simplifyClause(Clause& c)
+  bool simplifyClause(Constraint& c)
   {
     assert(m_level == 0);
     assert(std::all_of(m_marks.begin(), m_marks.end(), [](Mark m) { return m == 0; }));
@@ -780,12 +780,12 @@ private:
   }
 
 
-  void add_original_clause(ClauseRef cr)
+  void add_original_clause(ConstraintRef cr)
   {
     LOG_INFO("New original clause " << SHOWREF(cr));
     assert(m_state == State::Unknown);
     assert(m_level == 0);
-    Clause& c = m_clauses.deref(cr);
+    Constraint& c = m_constraints.deref(cr);
 
     bool is_tautology = simplifyClause(c);
     if (is_tautology) {
@@ -808,7 +808,7 @@ private:
   }
 
   /// Insert the given clause into internal data structures.
-  void connect_clause(ClauseRef cr)
+  void connect_clause(ConstraintRef cr)
   {
 #ifndef NDEBUG
       m_clause_refs.push_back(cr);
@@ -849,18 +849,18 @@ public:
     add_atmostone_constraint(ca);
   }
 
-  void add_atmostone_constraint(AllocatedClauseHandle handle)
+  void add_atmostone_constraint(AllocatedConstraintHandle handle)
   {
-    ClauseRef cr = m_clauses.handle_build(handle);
+    ConstraintRef cr = m_constraints.handle_build(handle);
     add_atmostone_constraint_internal(cr);
   }
 
-  void add_atmostone_constraint_internal(ClauseRef cr)
+  void add_atmostone_constraint_internal(ConstraintRef cr)
   {
     LOG_INFO("Adding AtMostOne constraint " << SHOWREF(cr));
     // TODO: simplify AMO similar to clauses
 
-    Clause& c = m_clauses.deref(cr);
+    Constraint& c = m_constraints.deref(cr);
     // TODO: improve this?
     for (Lit lit : c) {
       ensure_variable(lit.var());
@@ -941,7 +941,7 @@ public:
             handle_push_literal(conflict, ~lit);
           }
         }
-        ClauseRef conflict_ref = handle_build(conflict).m_ref;
+        ConstraintRef conflict_ref = handle_build(conflict).m_ref;
         if (!analyze(conflict_ref)) {
           res = Result::Unsat;
         }
@@ -974,7 +974,7 @@ public:
       }
 #endif
 
-      ClauseRef conflict = propagate();
+      ConstraintRef conflict = propagate();
 
       assert(checkInvariants());
 
@@ -1176,23 +1176,23 @@ private:
   /// Unit propagation.
   /// Returns the conflicting clause when a conflict is encountered,
   /// or an invalid ClauseRef if all unit clauses have been propagated without conflict.
-  ClauseRef propagate()
+  ConstraintRef propagate()
   {
     // CDEBUG("propagate");
     // assert(checkInvariants());
     assert(m_theory_propagate_head == m_trail.size());
     while (m_propagate_head < m_trail.size()) {
       Lit const lit = m_trail[m_propagate_head++];
-      ClauseRef const conflict = propagate_literal(lit);
+      ConstraintRef const conflict = propagate_literal(lit);
       if (conflict.is_valid()) {
         return conflict;
       }
     }
-    return ClauseRef::invalid();
+    return ConstraintRef::invalid();
   }
 
   /// Unit propagation for the given literal.
-  ClauseRef propagate_literal(Lit const lit)
+  ConstraintRef propagate_literal(Lit const lit)
   {
     LOG_DEBUG("Propagating " << lit);
     // assert(checkInvariants());
@@ -1205,8 +1205,8 @@ private:
     // because as soon as an AtMostOne constraint triggers,
     // all other literals will be set to false immediately.
     for (Watch const& watch : m_watches_amo[lit]) {
-      ClauseRef const cr = watch.clause_ref;
-      Clause& c = m_clauses.deref(cr);
+      ConstraintRef const cr = watch.clause_ref;
+      Constraint& c = m_constraints.deref(cr);
       assert(c.size() >= 3);
       for (Lit other_lit : c) {
         if (lit == other_lit) {
@@ -1225,7 +1225,7 @@ private:
           LOG_TRACE("Current assignment: " << SHOWASSIGNMENT());
           LOG_DEBUG("Conflict with AtMostOne constraint " << SHOWREF(cr));
           SUBSAT_STAT_INC(conflicts_by_amo);
-          Clause& tmp_binary_clause = m_clauses.deref(tmp_propagate_binary_conflict_ref);
+          Constraint& tmp_binary_clause = m_constraints.deref(tmp_propagate_binary_conflict_ref);
           tmp_binary_clause[0] = not_lit;
           tmp_binary_clause[1] = ~other_lit;
           return tmp_propagate_binary_conflict_ref;
@@ -1242,7 +1242,7 @@ private:
     auto q = watches.begin();   // points to updated watch, follows p
     auto p = watches.cbegin();  // points to currently processed watch
 
-    ClauseRef conflict = ClauseRef::invalid();
+    ConstraintRef conflict = ConstraintRef::invalid();
 
     while (!conflict.is_valid() && p != watches.cend()) {
       Watch const& watch = *p;
@@ -1257,8 +1257,8 @@ private:
 
       // TODO: blocking literal optimization
 
-      ClauseRef const clause_ref = watch.clause_ref;
-      Clause& clause = m_clauses.deref(clause_ref);
+      ConstraintRef const clause_ref = watch.clause_ref;
+      Constraint& clause = m_constraints.deref(clause_ref);
       assert(clause.size() >= 2);
 
       // The two watched literals of a clause are stored as the first two literals,
@@ -1339,7 +1339,7 @@ private:
 
 
   /// Watch literal 'lit' in the given clause.
-  void watch_clause_literal(Lit lit, /* TODO: Lit blocking_lit, */ ClauseRef clause_ref)
+  void watch_clause_literal(Lit lit, /* TODO: Lit blocking_lit, */ ConstraintRef clause_ref)
   {
     LOG_DEBUG("Watching " << lit << /* " blocked by " << blocking_lit << */ " in " << SHOWREF(clause_ref));
     auto& watches = m_watches[lit];
@@ -1349,9 +1349,9 @@ private:
 
 
   /// Watch the first two literals in the given clause.
-  void watch_clause(ClauseRef clause_ref)
+  void watch_clause(ConstraintRef clause_ref)
   {
-    Clause const& clause = m_clauses.deref(clause_ref);
+    Constraint const& clause = m_constraints.deref(clause_ref);
     assert(clause.size() >= 2);
     watch_clause_literal(clause[0], /* TODO: clause[1], */ clause_ref);
     watch_clause_literal(clause[1], /* TODO: clause[0], */ clause_ref);
@@ -1359,9 +1359,9 @@ private:
 
 
   /// Watch every literal in the AtMostOne constraint
-  void watch_atmostone_constraint(ClauseRef cr)
+  void watch_atmostone_constraint(ConstraintRef cr)
   {
-    Clause const& c = m_clauses.deref(cr);
+    Constraint const& c = m_constraints.deref(cr);
     assert(c.size() >= 3);
     for (Lit lit : c) {
       auto& watches = m_watches_amo[lit];
@@ -1373,7 +1373,7 @@ private:
 
   /// Analyze conflict, learn a clause, backjump.
   /// Returns true if the search should continue.
-  NODISCARD bool analyze(ClauseRef conflict_ref)
+  NODISCARD bool analyze(ConstraintRef conflict_ref)
   {
     LOG_INFO("Conflict clause " << SHOWREF(conflict_ref) << " on level " << m_level);
     LOG_TRACE("Assignment: " << SHOWASSIGNMENT());
@@ -1412,13 +1412,13 @@ private:
     // The literal we have just resolved away, or invalid in the first step
     Lit uip = Lit::invalid();
     // The reason of the resolved literal, or the conflict clause in the first step
-    Clause const* reason_ptr = &m_clauses.deref(conflict_ref);
-    Clause tmp_binary{2};  // a stack-allocated clause has space for two literals
+    Constraint const* reason_ptr = &m_constraints.deref(conflict_ref);
+    Constraint tmp_binary{2};  // a stack-allocated clause has space for two literals
 
     while (true) {
       assert(reason_ptr);
       LOG_TRACE("Reason: " << *reason_ptr << ", uip: " << uip << ", unresolved: " << unresolved_on_conflict_level);
-      Clause const& reason_clause = *reason_ptr;
+      Constraint const& reason_clause = *reason_ptr;
 
       // TODO: reason->used = true
 
@@ -1564,7 +1564,7 @@ private:
       for (Lit learned_lit : clause) {
         handle_push_literal(learned, learned_lit);
       }
-      ClauseRef learned_ref = handle_build(learned).m_ref;
+      ConstraintRef learned_ref = handle_build(learned).m_ref;
 #if SUBSAT_LEARN
       LOG_INFO("Learned: size = " << size << ", literals = " << SHOWREF(learned_ref));
       if (size == 2) { SUBSAT_STAT_INC(learned_binary_clauses); }  // TODO: move this when adding binary clause optimization
@@ -1630,8 +1630,8 @@ private:
     }
 
     // TODO: check out kissat's tail-recursive version for binary clauses
-    Clause tmp_binary{2};  // a stack-allocated clause has space for two literals
-    Clause const& reason_clause = get_reason(~lit, reason, tmp_binary);
+    Constraint tmp_binary{2};  // a stack-allocated clause has space for two literals
+    Constraint const& reason_clause = get_reason(~lit, reason, tmp_binary);
     LOG_TRACE("trying to remove " << lit << " at depth " << depth << " along " << reason_clause);
     bool should_remove = true;
     for (Lit other : reason_clause) {
@@ -1701,12 +1701,12 @@ private:
     // If we aren't doing clause learning, we need to delete the redundant reasons
     Reason reason = m_vars[lit.var()].reason;
     if (reason.is_redundant()) {
-      ClauseRef cr = reason.get_clause_ref();
+      ConstraintRef cr = reason.get_clause_ref();
 #ifndef NDEBUG
       assert(m_clause_refs.back() == cr);
       m_clause_refs.pop_back();
 #endif
-      m_clauses.unsafe_delete(cr);
+      m_constraints.unsafe_delete(cr);
       UPDATE_STORAGE_STATS();
     }
 #endif
@@ -1764,7 +1764,7 @@ private:
 
 #ifndef NDEBUG
   NODISCARD bool checkEmpty() const;
-  NODISCARD bool checkConstraint(Clause const& c) const;
+  NODISCARD bool checkConstraint(Constraint const& c) const;
   NODISCARD bool checkInvariants() const;
   NODISCARD bool checkWatches() const;
   NODISCARD bool checkModel() const;
@@ -1805,7 +1805,7 @@ private:
     return get_level(lit.var());
   }
 
-  void get_binary_reason(Lit lit, Reason reason, Clause& tmp_binary_clause) const
+  void get_binary_reason(Lit lit, Reason reason, Constraint& tmp_binary_clause) const
   {
     assert(reason.is_binary());
     assert(tmp_binary_clause.size() == 2);
@@ -1814,14 +1814,14 @@ private:
     tmp_binary_clause[1] = other_lit;
   }
 
-  Clause const& get_reason(Lit lit, Reason reason, Clause& tmp_binary_clause) const
+  Constraint const& get_reason(Lit lit, Reason reason, Constraint& tmp_binary_clause) const
   {
     assert(reason.is_valid());
     if (reason.is_binary()) {
       get_binary_reason(lit, reason, tmp_binary_clause);
       return tmp_binary_clause;
     } else {
-      return m_clauses.deref(reason.get_clause_ref());
+      return m_constraints.deref(reason.get_clause_ref());
     }
   }
 
@@ -1865,16 +1865,16 @@ private:
   // vector_map<Var, > m_phases;
 #endif
 
-  ClauseArena<Allocator> m_clauses;
+  ConstraintArena<Allocator> m_constraints;
   // TODO: merge these
   vector_map<Lit, vector<Watch>> m_watches;
   vector_map<Lit, vector<Watch>> m_watches_amo;
 
 #ifndef NDEBUG
   /// All proper clauses added to the solver
-  vector<ClauseRef> m_clause_refs;
+  vector<ConstraintRef> m_clause_refs;
   /// All AtMostOne constraints added to the solver
-  vector<ClauseRef> m_atmostone_constraint_refs;
+  vector<ConstraintRef> m_atmostone_constraint_refs;
 #endif
 
   /// The currently true literals in order of assignment
@@ -1893,7 +1893,7 @@ private:
   vector<Var> tmp_analyze_seen;        ///< analyzed variables
   vector<Var> m_marked;                ///< marked variables during conflict clause minimization
   vector_map<Level, uint8_t> m_frames; ///< stores for each level whether we already have it in blocks (we use 'char' because vector<bool> is bad)
-  ClauseRef tmp_propagate_binary_conflict_ref = ClauseRef::invalid();
+  ConstraintRef tmp_propagate_binary_conflict_ref = ConstraintRef::invalid();
 
 #if SUBSAT_STATISTICS
   Statistics m_stats;
@@ -1917,8 +1917,8 @@ std::ostream& operator<<(std::ostream& os, ShowAssignment<A> sa)
 //    - clause deletion => if we have more than ~10k conflicts
 //    - (sort analyzed variables before VMTF-bumping -- not so important according to Armin)
 // 2. Instead of assumption (to switch between S/SR instance), allow resetting the solver while keeping the original clauses.
-//    Maybe a separate ClauseArena for learned clauses? (no, that just complicates the dereferencing of watch lists)
-//    Store the ClauseArena size when we added the last original clause and reset to that.
+//    Maybe a separate ConstraintArena for learned clauses? (no, that just complicates the dereferencing of watch lists)
+//    Store the ConstraintArena size when we added the last original clause and reset to that.
 //    Then we want to be able to later add to finalized clauses: we need to extend the base_clauses by the negative matches.
 //    Need to update the AMO's as well (and amo watch lists!); and add one AMO for the negative watches.
 //    This doesn't seem too complicated (but hard making a "safe" interface to this, but we don't need to care about that right now).
@@ -1949,7 +1949,7 @@ bool Solver<Allocator>::checkEmpty() const
 #if SUBSAT_VMTF
   assert(m_queue.empty());
 #endif
-  assert(m_clauses.empty());
+  assert(m_constraints.empty());
   assert(!tmp_propagate_binary_conflict_ref.is_valid());
 #ifndef NDEBUG
   assert(m_clause_refs.empty());
@@ -1976,7 +1976,7 @@ bool Solver<Allocator>::checkEmpty() const
 }
 
 template <template <typename> class Allocator>
-bool Solver<Allocator>::checkConstraint(Clause const& c) const
+bool Solver<Allocator>::checkConstraint(Constraint const& c) const
 {
   // No duplicate variables in the constraint (this prevents duplicate literals and tautological clauses)
   set<Var> vars;
@@ -2028,11 +2028,11 @@ bool Solver<Allocator>::checkInvariants() const
   assert(m_propagate_head <= m_theory_propagate_head);
 
   // Check constraint invariants
-  for (ClauseRef cr : m_clause_refs) {
-    assert(checkConstraint(m_clauses.deref(cr)));
+  for (ConstraintRef cr : m_clause_refs) {
+    assert(checkConstraint(m_constraints.deref(cr)));
   }
-  for (ClauseRef cr : m_atmostone_constraint_refs) {
-    assert(checkConstraint(m_clauses.deref(cr)));
+  for (ConstraintRef cr : m_atmostone_constraint_refs) {
+    assert(checkConstraint(m_constraints.deref(cr)));
   }
 
   // Check watch invariants if we're in a fully propagated state
@@ -2041,11 +2041,11 @@ bool Solver<Allocator>::checkInvariants() const
   }
 
   // Check reasons of assigned literals
-  Clause tmp_binary{2};  // a stack-allocated clause has space for two literals
+  Constraint tmp_binary{2};  // a stack-allocated clause has space for two literals
   for (Lit const lit : m_trail) {
     Reason const reason = m_vars[lit.var()].reason;
     if (reason.is_valid()) {
-      Clause const& c = get_reason(lit, reason, tmp_binary);
+      Constraint const& c = get_reason(lit, reason, tmp_binary);
       for (Lit const other : c) {
         assert(other == lit | m_values[other] == Value::False);
       }
@@ -2069,13 +2069,13 @@ bool Solver<Allocator>::checkWatches() const
   }
 
   // Count how many times each clause is watched
-  map<ClauseRef::index_type, int> num_watches;
+  map<ConstraintRef::index_type, int> num_watches;
 
   for (uint32_t lit_idx = 0; lit_idx < m_watches.size(); ++lit_idx) {
     Lit const lit = Lit::from_index(lit_idx);
 
     for (Watch watch : m_watches[lit]) {
-      Clause const& clause = m_clauses.deref(watch.clause_ref);
+      Constraint const& clause = m_constraints.deref(watch.clause_ref);
 
       num_watches[watch.clause_ref.index()] += 1;
 
@@ -2105,8 +2105,8 @@ bool Solver<Allocator>::checkWatches() const
   }
 #if SUBSAT_LEARN  // if we're not learning, some of the clauses won't be watched
   // Every clause of size >= 2 is watched twice
-  for (ClauseRef cr : m_clause_refs) {
-    Clause const& c = m_clauses.deref(cr);
+  for (ConstraintRef cr : m_clause_refs) {
+    Constraint const& c = m_constraints.deref(cr);
     if (c.size() >= 2) {
       auto it = num_watches.find(cr.index());
       assert(it != num_watches.end());
@@ -2123,16 +2123,16 @@ bool Solver<Allocator>::checkWatches() const
 template <template <typename> class Allocator>
 bool Solver<Allocator>::checkModel() const
 {
-  for (ClauseRef cr : m_clause_refs) {
-    Clause const& c = m_clauses.deref(cr);
+  for (ConstraintRef cr : m_clause_refs) {
+    Constraint const& c = m_constraints.deref(cr);
     bool satisfied = std::any_of(c.begin(), c.end(), [this](Lit l) { return m_values[l] == Value::True; });
     if (!satisfied) {
       LOG_WARN("Clause " << c << " is not satisfied!");
       return false;
     }
   }
-  for (ClauseRef cr : m_atmostone_constraint_refs) {
-    Clause const& c = m_clauses.deref(cr);
+  for (ConstraintRef cr : m_atmostone_constraint_refs) {
+    Constraint const& c = m_constraints.deref(cr);
     uint32_t num_false = 0;
     uint32_t num_true = 0;
     uint32_t num_open = 0;
@@ -2161,7 +2161,7 @@ bool Solver<Allocator>::checkEmpty() const
 }
 
 template <template <typename> class Allocator>
-bool Solver<Allocator>::checkConstraint(Clause const& c) const
+bool Solver<Allocator>::checkConstraint(Constraint const& c) const
 {
   return true;
 }

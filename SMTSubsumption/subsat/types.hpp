@@ -137,7 +137,7 @@ public:
   using index_type = Var::index_type;
 
 private:
-  friend class Clause;
+  friend class Constraint;
   /// Uninitialized value (for clause constructor)
   Lit() noexcept = default;
 

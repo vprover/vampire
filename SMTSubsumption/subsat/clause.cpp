@@ -3,7 +3,7 @@
 namespace subsat {
 
 
-std::ostream& operator<<(std::ostream& os, Clause const& c)
+std::ostream& operator<<(std::ostream& os, Constraint const& c)
 {
   os << "{ ";
   bool first = true;
@@ -19,9 +19,9 @@ std::ostream& operator<<(std::ostream& os, Clause const& c)
   return os;
 }
 
-std::ostream& operator<<(std::ostream& os, ClauseRef cr)
+std::ostream& operator<<(std::ostream& os, ConstraintRef cr)
 {
-  os << "ClauseRef{";
+  os << "ConstraintRef{";
   if (cr.is_valid()) {
     os << cr.index();
   } else {
