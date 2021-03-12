@@ -89,7 +89,7 @@ static int enumerate_models(std::string filename)
     models.push_back({});
     auto& model = models.back();
     s.get_model(model);
-    // std::cout << SHOWVEC(model) << std::endl;
+    // std::cout << ShowVec(model) << std::endl;
   }
   if (res != Result::Unsat) {
     std::cerr << "Enumerating models: unexpected result: " << res << std::endl;

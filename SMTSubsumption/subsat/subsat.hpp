@@ -1385,7 +1385,7 @@ private:
           unresolved_on_conflict_level++;
         }
 
-        LOG_TRACE("    blocks: " << SHOWVEC(blocks));
+        LOG_TRACE("    blocks: " << ShowVec(blocks));
         LOG_TRACE("    unresolved: " << unresolved_on_conflict_level);
       }  // for (lit : reason)
 
@@ -1416,13 +1416,13 @@ private:
     assert(uip.is_valid());
     Lit const not_uip = ~uip;
     clause[0] = not_uip;
-    LOG_TRACE("Learning clause: " << SHOWVEC(clause));
+    LOG_TRACE("Learning clause: " << ShowVec(clause));
 
     assert(std::all_of(clause.begin(), clause.end(), [this](Lit lit) { return m_values[lit] == Value::False; }));
 
 #if SUBSAT_MINIMIZE
     minimize_learned_clause();
-    LOG_TRACE("Minimized clause: " << SHOWVEC(clause));
+    LOG_TRACE("Minimized clause: " << ShowVec(clause));
 #endif
 
     // uint32_t const glue = blocks.size();

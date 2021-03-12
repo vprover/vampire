@@ -29,12 +29,12 @@ inline std::ostream &operator<<(std::ostream &os, unsigned char c) {
 }
 
 template <typename T, typename Allocator>
-struct ShowVec {
+struct ShowVecImpl {
   std::vector<T, Allocator> const& vec;
 };
 
 template<typename T, typename Allocator>
-std::ostream& operator<<(std::ostream& os, ShowVec<T, Allocator> const& sv)
+std::ostream& operator<<(std::ostream& os, ShowVecImpl<T, Allocator> const& sv)
 {
   using namespace numerical_chars;
   auto const& vec = sv.vec;
@@ -58,15 +58,15 @@ std::ostream& operator<<(std::ostream& os, ShowVec<T, Allocator> const& sv)
 }
 
 template<typename T, typename Allocator>
-ShowVec<T, Allocator> SHOWVEC(std::vector<T, Allocator> const& vec)
+ShowVecImpl<T, Allocator> ShowVec(std::vector<T, Allocator> const& vec)
 {
-    return ShowVec<T, Allocator>{vec};
+    return ShowVecImpl<T, Allocator>{vec};
 }
 
 template<typename Key, typename T, typename Allocator, typename Indexing>
-ShowVec<T, Allocator> SHOWVEC(subsat::vector_map<Key, T, Allocator, Indexing> const& vecmap)
+ShowVecImpl<T, Allocator> ShowVec(subsat::vector_map<Key, T, Allocator, Indexing> const& vecmap)
 {
-    return ShowVec<T, Allocator>{vecmap.underlying()};
+    return ShowVecImpl<T, Allocator>{vecmap.underlying()};
 }
 
 
