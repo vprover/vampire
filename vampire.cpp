@@ -649,7 +649,7 @@ bool subsumptionBenchmarkMode_parseAxiomName(vstring const& name, vstring const&
   }
 }
 
-vvector<SMTSubsumption::SubsumptionInstance> getSubsumptionInstances(UnitList const* units)
+vvector<SMTSubsumption::SubsumptionInstance> getOldFormatSubsumptionInstances(UnitList const* units)
 {
   // Components of key: sequence number, whether side premise subsumes main premise
   using Key = std::pair<unsigned int, bool>;
@@ -746,6 +746,95 @@ vvector<SMTSubsumption::SubsumptionInstance> getSubsumptionInstances(UnitList co
 
   return instances;
 }
+
+vmap<unsigned int, Clause*> getNumberedClauses(UnitList const* units)
+{
+  vmap<unsigned int, Clause*> clauses;
+
+  while (UnitList::isNonEmpty(units)) {
+    Clause* clause = units->head()->asClause();
+    // std::cerr << "Clause: " << clause->toString() << std::endl;
+
+    Unit* unit = clause;
+    while (true) {
+      auto const& inference = unit->inference();
+      auto parents = inference.iterator();
+      if (!inference.hasNext(parents)) {
+        // no parents -> we have an axiom
+        vstring name;
+        Parse::TPTP::findAxiomName(unit, name);
+
+        vstring prefix = "clause_";
+        if (std::strncmp(name.c_str(), prefix.c_str(), prefix.size()) == 0) {
+          unsigned int number = std::strtoul(name.c_str() + prefix.size(), nullptr, 10);
+          bool inserted = clauses.insert({number, clause}).second;
+          if (!inserted) {
+             throw UserErrorException("duplicate clause with number: ", number);
+          }
+        }
+        // done with this clause, go to the next one
+        break;
+      } else {
+        // There's still parents to process
+        Unit* parent = inference.next(parents);
+        ASS(!inference.hasNext(parents));  // we expect exactly one parent
+        unit = parent;
+      }
+    }
+
+    units = units->tail();
+  }
+
+  return clauses;
+}
+
+vvector<SMTSubsumption::SubsumptionInstance> getSubsumptionInstances(UnitList const* units)
+{
+  BYPASSING_ALLOCATOR;
+
+  vstring slog_path = env.options->subsumptionLogfile();
+  if (slog_path.empty()) {
+    std::cerr << "\% Parsing old-style subsumption log..." << std::endl;
+    return getOldFormatSubsumptionInstances(units);
+  }
+
+  std::cerr << "\% Parsing new-style subsumption log..." << std::endl;
+  vvector<SMTSubsumption::SubsumptionInstance> instances;
+  unsigned int number = 0;
+  auto clauses = getNumberedClauses(units);
+  std::ifstream slog{slog_path.c_str()};
+  while (true) {
+    // parse slog line, format:
+    // S <side_premise_number> <main_premise_number> <is_subsumed>
+    vstring buf;
+    if (!(slog >> buf)) {
+      break;
+    }
+    if (buf != "S") {
+      USER_ERROR("expected 'S'");
+    }
+    unsigned int side_premise_number;
+    if (!(slog >> side_premise_number)) {
+      USER_ERROR("expected <side_premise_number>");
+    }
+    unsigned int main_premise_number;
+    if (!(slog >> main_premise_number)) {
+      USER_ERROR("expected <main_premise_number>");
+    }
+    bool is_subsumed;
+    if (!(slog >> is_subsumed)) {
+      USER_ERROR("expected <is_subsumed>");
+    }
+    instances.push_back({
+        .number = ++number,
+        .side_premise = clauses.at(side_premise_number),
+        .main_premise = clauses.at(main_premise_number),
+        .subsumed = is_subsumed,
+    });
+  }
+  return instances;
+}
+
 
 void subsumptionBenchmarkMode(bool simulate_full_run)
 {
