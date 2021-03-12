@@ -15,7 +15,7 @@
 #include <map>
 #include <vector>
 
-#include "./clause.hpp"
+#include "./constraint.hpp"
 #include "./decision_queue.hpp"
 #include "./variable_domain_size.hpp"
 #include "./types.hpp"

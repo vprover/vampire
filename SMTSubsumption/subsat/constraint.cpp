@@ -1,4 +1,4 @@
-#include "./clause.hpp"
+#include "./constraint.hpp"
 
 namespace subsat {
 
