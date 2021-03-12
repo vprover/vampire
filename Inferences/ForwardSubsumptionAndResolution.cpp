@@ -64,7 +64,25 @@ using namespace Saturation;
 
 #define CHECK_SMT_SUBSUMPTION 0
 
-static ForwardSubsumptionAndResolution* fwsubsandres_instance = nullptr;
+
+
+class SubsumptionLogger;
+
+
+class FwSubsAndResStats {
+public:
+  std::unique_ptr<SubsumptionLogger> m_logger;
+
+  // Store numDecisions as histogram
+  // m_numDecisions_frequence[numDecisions] = absolute number of MLMatcher calls that return numDecisions
+  vvector<int64_t> m_numDecisions_frequency;
+  // only those where MLMatcher returned 'true'
+  vvector<int64_t> m_numDecisions_successes;
+};
+
+static FwSubsAndResStats fsstats;
+
+
 
 ForwardSubsumptionAndResolution::ForwardSubsumptionAndResolution(bool subsumptionResolution)
   : _subsumptionResolution(subsumptionResolution)
@@ -73,16 +91,16 @@ ForwardSubsumptionAndResolution::ForwardSubsumptionAndResolution(bool subsumptio
   vstring const& logfile = env.options->subsumptionLogfile();
   if (!logfile.empty()) {
     BYPASSING_ALLOCATOR;
-    m_logger = make_unique<SubsumptionLogger>(logfile);
+    fsstats.m_logger = make_unique<SubsumptionLogger>(logfile);
   }
 }
 
 ForwardSubsumptionAndResolution::~ForwardSubsumptionAndResolution()
 {
-  if (m_logger) {
-    BYPASSING_ALLOCATOR;
-    m_logger.reset();
-  }
+  // if (fsstats.m_logger) {
+  //   BYPASSING_ALLOCATOR;
+  //   fsstats.m_logger.reset();
+  // }
 }
 
 void ForwardSubsumptionAndResolution::attach(SaturationAlgorithm* salg)
@@ -93,15 +111,6 @@ void ForwardSubsumptionAndResolution::attach(SaturationAlgorithm* salg)
 	  _salg->getIndexManager()->request(SIMPLIFYING_UNIT_CLAUSE_SUBST_TREE) );
   _fwIndex=static_cast<FwSubsSimplifyingLiteralIndex*>(
 	  _salg->getIndexManager()->request(FW_SUBSUMPTION_SUBST_TREE) );
-  if (fwsubsandres_instance != nullptr && fwsubsandres_instance != this) {
-    VAMPIRE_EXCEPTION;
-  }
-  fwsubsandres_instance = this;
-}
-
-ForwardSubsumptionAndResolution* ForwardSubsumptionAndResolution::getInstance()
-{
-  return fwsubsandres_instance;
 }
 
 void ForwardSubsumptionAndResolution::detach()
@@ -283,17 +292,51 @@ bool checkForSubsumptionResolution(Clause* cl, ClauseMatches* cms, Literal* resL
   return MLMatcher::canBeMatched(mcl,cl,cms->_matches,resLit);
 }
 
+struct SubsumptionInstance
+{
+  Clause* side_premise;
+  Clause* main_premise;
+  unsigned int seq;
+  bool isSubsumed;
+
+  void print(std::ostream& os, TPTPPrinter& tptp)
+  {
+    vstringstream id_stream;
+    id_stream
+        << seq << "_"
+        << (isSubsumed ? "success" : "failure");
+    vstring id = id_stream.str();
+
+    os << "\% Begin Inference \"FS-" << id << "\"\n";
+
+    os << "\% Info: "
+       // << "{ \"seq\": " << m_seq
+       << "{ \"side_premise\": " << side_premise->number()
+       << ", \"main_premise\": " << main_premise->number()
+       << " }\n";
+
+    tptp.printWithRole("side_premise_" + id, "hypothesis", side_premise, false); // subsumer
+    tptp.printWithRole("main_premise_" + id, "hypothesis", main_premise, false); // subsumed (if isSubsumed == 1)
+    os << "\% End Inference \"FS-" << id << "\"\n\%" << std::endl;
+  }
+};
+
+#define LOG_IMMEDIATELY 1
+
 class SubsumptionLogger
 {
   private:
     std::ofstream m_logfile;
     TPTPPrinter m_tptp;  // this needs to be a member so we get the type definitions only once at the beginning
     unsigned int m_seq;  // sequence number of logged inferences
+    vvector<SubsumptionInstance> m_instances;
   public:
     CLASS_NAME(SubsumptionLogger);
     USE_ALLOCATOR(SubsumptionLogger);
     SubsumptionLogger(vstring logfile_path);
+    ~SubsumptionLogger() { env.beginOutput(); env.out() << "Destroying logger" << std::endl; env.endOutput(); }
     void log(Clause* side_premise, Clause* main_premise, bool isSubsumed, MLMatchStats const* opt_stats);
+    void printInstances();
     void flush() { m_logfile.flush(); }
 };
 
@@ -303,12 +346,14 @@ SubsumptionLogger::SubsumptionLogger(vstring logfile_path)
   , m_seq{1}
 {
   CALL("SubsumptionLogger::SubsumptionLogger");
+  std::cerr << "Creating logger: " << logfile_path << std::endl;
   m_logfile.open(logfile_path.c_str());
   ASS(m_logfile.is_open());
 }
 
 void SubsumptionLogger::log(Clause* side_premise, Clause* main_premise, bool isSubsumed, MLMatchStats const* opt_stats)
 {
+#if LOG_IMMEDIATELY
   vstringstream id_stream;
   id_stream
     << m_seq << "_"
@@ -332,19 +377,39 @@ void SubsumptionLogger::log(Clause* side_premise, Clause* main_premise, bool isS
   m_tptp.printWithRole("side_premise_" + id, "hypothesis", side_premise, false);  // subsumer
   m_tptp.printWithRole("main_premise_" + id, "hypothesis", main_premise, false);  // subsumed (if isSubsumed == 1)
   m_logfile << "\% End Inference \"FS-" << id << "\"\n\%" << std::endl;
+#else
+  (void)opt_stats;
+  m_instances.push_back({side_premise, main_premise, m_seq, isSubsumed});
+#endif
 
   m_seq += 1;
 }
 
+void SubsumptionLogger::printInstances()
+{
+  if (!m_instances.empty()) {
+    for (auto& instance : m_instances) {
+      instance.print(m_logfile, m_tptp);
+    }
+  }
+}
+
 void ForwardSubsumptionAndResolution::printStats(std::ostream& out)
 {
-  if (m_logger) {
-    m_logger->flush();
+  if (fsstats.m_logger) {
+    out << "Printing subsumption instances..." << std::endl;
+    fsstats.m_logger->printInstances();
+    fsstats.m_logger->flush();
+    out << "Printing done." << std::endl;
+    {
+      BYPASSING_ALLOCATOR;
+      fsstats.m_logger.reset();
+    }
   }
   out << "\% Subsumption MLMatcher Statistics\n\% (numDecisions Frequency Successes)\n";
-  for (size_t n = 0; n < m_numDecisions_frequency.size(); ++n) {
-    if (m_numDecisions_frequency[n] > 0) {
-      out << "\% " << n << ' ' << m_numDecisions_frequency[n] << ' ' << m_numDecisions_successes[n] << '\n';
+  for (size_t n = 0; n < fsstats.m_numDecisions_frequency.size(); ++n) {
+    if (fsstats.m_numDecisions_frequency[n] > 0) {
+      out << "\% " << n << ' ' << fsstats.m_numDecisions_frequency[n] << ' ' << fsstats.m_numDecisions_successes[n] << '\n';
     }
   }
 }
@@ -429,6 +494,9 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
       cms->fillInMatches(&miniIndex);
 
       if(cms->anyNonMatched()) {
+        if (fsstats.m_logger) {
+          fsstats.m_logger->log(mcl, cl, false, nullptr);
+        }
         continue;
       }
 
@@ -442,19 +510,25 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
         MLMatcher::canBeMatched(mcl,cl,cms->_matches,0)
         && ColorHelper::compatible(cl->color(), mcl->color());
 
+      if (fsstats.m_logger) {
+        fsstats.m_logger->log(mcl, cl, isSubsumed, nullptr);
+      }
+
+/*
       auto stats = MLMatcher::getStaticStats();
-      if (m_logger) {
-        m_logger->log(mcl, cl, isSubsumed, &stats);
+      if (fsstats.m_logger) {
+        fsstats.m_logger->log(mcl, cl, isSubsumed, &stats);
       }
-      if (stats.numDecisions >= m_numDecisions_frequency.size()) {
-        size_t new_size = std::max(std::max(256ul, (size_t)stats.numDecisions+1), m_numDecisions_frequency.size() * 2);
-        m_numDecisions_frequency.resize(new_size, 0);
-        m_numDecisions_successes.resize(new_size, 0);
+      if (stats.numDecisions >= fsstats.m_numDecisions_frequency.size()) {
+        size_t new_size = std::max(std::max(256ul, (size_t)stats.numDecisions+1), fsstats.m_numDecisions_frequency.size() * 2);
+        fsstats.m_numDecisions_frequency.resize(new_size, 0);
+        fsstats.m_numDecisions_successes.resize(new_size, 0);
       }
-      m_numDecisions_frequency[stats.numDecisions] += 1;
+      fsstats.m_numDecisions_frequency[stats.numDecisions] += 1;
       if (stats.result) {
-        m_numDecisions_successes[stats.numDecisions] += 1;
+        fsstats.m_numDecisions_successes[stats.numDecisions] += 1;
       }
+      */
 
 #if CHECK_SMT_SUBSUMPTION
         if (smtsubs.checkSubsumption(mcl, cl) != isSubsumed) {

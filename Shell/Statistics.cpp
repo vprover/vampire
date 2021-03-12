@@ -421,8 +421,7 @@ void Statistics::print(ostream& out)
   addCommentSignForSZS(out);
   out << "------------------------------\n";
 
-  auto fwsubs = ForwardSubsumptionAndResolution::getInstance();
-  fwsubs->printStats(out);
+  ForwardSubsumptionAndResolution::printStats(out);
   addCommentSignForSZS(out);
   out << "------------------------------\n";
 

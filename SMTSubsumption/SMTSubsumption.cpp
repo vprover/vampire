@@ -23,7 +23,7 @@ using namespace SMTSubsumption;
 #include "SMTSubsumption/cdebug.hpp"
 
 
-#define ENABLE_BENCHMARK 1
+// #define ENABLE_BENCHMARK 1
 
 
 
@@ -2529,7 +2529,7 @@ void bench_smt2_total_reusing(benchmark::State& state, SubsumptionInstance insta
     }
   }
 }
-#endif
+#endif  // ENABLE_BENCHMARK
 
 
 void ProofOfConcept::benchmark_micro(vvector<SubsumptionInstance> instances)
@@ -2617,12 +2617,13 @@ void ProofOfConcept::benchmark_micro(vvector<SubsumptionInstance> instances)
 
   benchmark::Initialize(&argc, argv);
   benchmark::RunSpecifiedBenchmarks();
-#endif
+#endif  // ENABLE_BENCHMARK
 
   std::cerr << "Benchmarking done, shutting down..." << std::endl;
 }
 
 
+#if ENABLE_BENCHMARK
 void bench_smt2_run(benchmark::State& state, vvector<SubsumptionInstance> const& instances)
 {
   for (auto _ : state) {
@@ -2666,6 +2667,11 @@ void ProofOfConcept::benchmark_run(vvector<SubsumptionInstance> instances)
 {
   CALL("ProofOfConcept::benchmark_run");
 
+  std::cerr << "\% SMTSubsumption: benchmarking " << instances.size() << " instances" << std::endl;
+#if VDEBUG
+  std::cerr << "\n\n\nWARNING: compiled in debug mode!\n\n\n" << std::endl;
+#endif
+
   vvector<char const*> args = {
     "vampire-sbench-run",
     // "--benchmark_repetitions=10",  // Enable this to get mean/median/stddev
@@ -2683,71 +2689,15 @@ void ProofOfConcept::benchmark_run(vvector<SubsumptionInstance> instances)
   std::cerr << "Benchmarking done, shutting down..." << std::endl;
 }
 
-/*
-template <typename Duration>
-vstring fmt_microsecs(Duration d) {
-  std::uint64_t microsecs = std::chrono::duration_cast<std::chrono::microseconds>(d).count();
-  vstringstream s;
-  s << std::setw(10) << microsecs << " [µs]";
-  return s.str();
-}
+#else
 
-template <typename Duration>
-vstring fmt_nanosecs(Duration d) {
-  std::uint64_t nanosecs = std::chrono::duration_cast<std::chrono::nanoseconds>(d).count();
-  vstringstream s;
-  s << std::setw(10) << nanosecs << " [ns]";
-  return s.str();
-}
-
-void ProofOfConcept::benchmark_micro1(SubsumptionInstance instance)
+void ProofOfConcept::benchmark_run(vvector<SubsumptionInstance> instances)
 {
-  CALL("ProofOfConcept::benchmark_micro1");
-  // TODO return results
-
-  clobber();
-
-  // TODO: this includes all allocation overhead, which is not what we want
-  using namespace std::chrono;
-  steady_clock::time_point smt_ts_begin = steady_clock::now();
-  clobber();
-  // uint64_t c1 = rdtscp();
-  SMTSubsumptionImpl smt_impl;
-  bool smt_result = smt_impl.checkSubsumption(instance.side_premise, instance.main_premise);
-  // uint64_t c2 = rdtscp();
-  clobber();
-  steady_clock::time_point smt_ts_end = steady_clock::now();
-  steady_clock::duration smt_duration = smt_ts_end - smt_ts_begin;
-
-  clobber();
-
-  steady_clock::time_point orig_ts_begin = steady_clock::now();
-  clobber();
-  OriginalSubsumption::Impl orig_impl;
-  // uint64_t c1 = rdtscp();
-  bool orig_result = orig_impl.checkSubsumption(instance.side_premise, instance.main_premise);
-  // uint64_t c2 = rdtscp();
-  clobber();
-  steady_clock::time_point orig_ts_end = steady_clock::now();
-  steady_clock::duration orig_duration = orig_ts_end - orig_ts_begin;
-
-  clobber();
-
-
-  std::cout << "Instance #" << instance.number << ": ";
-  std::cout << "SMTS: " << fmt_nanosecs(smt_duration) << " / ";
-  std::cout << "Orig: " << fmt_nanosecs(orig_duration);
-  if (smt_duration < orig_duration) {
-    std::cout << "  !!!!!!";
-  }
-  std::cout << std::endl;
-  // std::cout << "SMT Subsumption: rdtscp: " << c2 - c1 << std::endl;
-
-  if (smt_result != instance.subsumed) {
-    std::cout << "ERROR: wrong result!" << std::endl;
-  }
+  CALL("ProofOfConcept::benchmark_run");
+  USER_ERROR("compiled without benchmarking!");
 }
-*/
+
+#endif  // ENABLE_BENCHMARK
 
 
 // Example commutativity:

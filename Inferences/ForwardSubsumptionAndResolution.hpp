@@ -38,8 +38,6 @@ using namespace Indexing;
 using namespace Saturation;
 
 
-class SubsumptionLogger;
-
 class ForwardSubsumptionAndResolution
 : public ForwardSimplificationEngine
 {
@@ -56,8 +54,7 @@ public:
 
   static Clause* generateSubsumptionResolutionClause(Clause* cl, Literal* lit, Clause* baseClause);
 
-  static ForwardSubsumptionAndResolution* getInstance();
-  void printStats(std::ostream& out);
+  static void printStats(std::ostream& out);
 
 private:
   /** Simplification unit index */
@@ -67,13 +64,6 @@ private:
   bool _subsumptionResolution;
 
   SMTSubsumption::ProofOfConcept smtsubs;
-  std::unique_ptr<SubsumptionLogger> m_logger;
-
-  // Store numDecisions as histogram
-  // m_numDecisions_frequence[numDecisions] = absolute number of MLMatcher calls that return numDecisions
-  vvector<int64_t> m_numDecisions_frequency;
-  // only those where MLMatcher returned 'true'
-  vvector<int64_t> m_numDecisions_successes;
 };
 
 
