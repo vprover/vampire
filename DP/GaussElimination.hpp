@@ -28,7 +28,7 @@
 #include "Lib/List.hpp"
 #include "LinearArithmeticDP.hpp"
 #include "DecisionProcedure.hpp"
-#include "LinearArithmetricSolverDP.hpp"
+#include "LinearArithmeticSolverDP.hpp"
 
 #include "Lib/Environment.hpp"
 #include "Kernel/Signature.hpp"

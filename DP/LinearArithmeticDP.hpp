@@ -39,7 +39,7 @@
 #include "Kernel/Ordering.hpp"
 
 #include "DecisionProcedure.hpp"
-#include "LinearArithmetricSolverDP.hpp"
+#include "LinearArithmeticSolverDP.hpp"
 
 namespace DP {
 
