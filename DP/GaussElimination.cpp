@@ -66,7 +66,6 @@ GaussElimination::GaussElimination(std::vector<List<LinearArithmeticDP::Paramete
 DecisionProcedure::Status GaussElimination::getStatus()
 {
   CALL("GaussElimination::solve");
-
   List<LinearArithmeticDP::Parameter> **newRowsList = new List<LinearArithmeticDP::Parameter> *[numberOfRows];
 
   std::set<unsigned int> rowsLeftIndex;
@@ -224,7 +223,9 @@ List<LinearArithmeticDP::Parameter> *GaussElimination::subtract(List<LinearArith
 void GaussElimination::getModel(LiteralStack &model)
 {
   CALL("GaussElimination::getModel");
+#if GEDP
   cout << "GaussElimination::getModel" << endl;
+#endif
   if (solutions == NULL)
     return;
 
@@ -264,7 +265,9 @@ void GaussElimination::getModel(LiteralStack &model)
         }
         Term *constant = theory->representConstant(RealConstantType(solution, count));
         Literal *lit = Literal::createEquality(true, TermList(var), TermList(constant), sort);
+        #if GEDP
         cout << lit->toString() << endl;
+        #endif
         model.push(lit);
       } break;
       default:
@@ -293,7 +296,9 @@ GaussElimination::~GaussElimination()
   }
 
   delete[] rowsList;
-  delete[] solutions;
+  if (solutions != NULL) {
+    delete[] solutions;
+  }
   delete[] colLabelList;
 }
 } // namespace DP

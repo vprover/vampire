@@ -96,6 +96,8 @@ public:
 
   virtual void reset() override;
 
+  ~LinearArithmeticDP() { reset(); }
+
 private:
   LinearArithmeticSolverDP *solverDP;
   Solver solver = Undefined;

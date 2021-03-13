@@ -164,6 +164,22 @@ void LinearArithmeticDP::addLiteral(Literal *lit)
   }
 }
 
+float toFloat(Term *term)
+{
+  unsigned func = term->functor();
+  Signature::Symbol *sym = env.signature->getFunction(func);
+  if (sym->integerConstant())
+    return sym->integerValue().toInner();
+
+  if (sym->rationalConstant())
+    return sym->rationalValue().numerator().toInner() / sym->rationalValue().denominator().toInner();
+
+  if (sym->realConstant())
+    return sym->realValue().numerator().toInner() / sym->realValue().denominator().toInner();
+
+  return 1.0;
+}
+
 void LinearArithmeticDP::toParams(Term *term, float coef, LinearArithmeticDP::ParameterDataContainer *parData)
 {
   CALL("LinearArithmeticDP::toParams");
@@ -173,7 +189,7 @@ void LinearArithmeticDP::toParams(Term *term, float coef, LinearArithmeticDP::Pa
     unsigned fun = term->functor();
     // Either got a number of a constant or paramerter
     if (theory->isInterpretedNumber(term)) {
-      parData->constant += coef * atoi(term->functionName().c_str());
+      parData->constant += coef * toFloat(term);
     }
     else {
       // If parameter insert or update
@@ -191,10 +207,10 @@ void LinearArithmeticDP::toParams(Term *term, float coef, LinearArithmeticDP::Pa
     // Multiply
     if (interp == Interpretation::INT_MULTIPLY || interp == Interpretation::RAT_MULTIPLY || interp == Interpretation::REAL_MULTIPLY) {
       if (theory->isInterpretedNumber(term->nthArgument(0)->term())) {
-        toParams(term->nthArgument(1)->term(), coef * std::atoi(term->nthArgument(0)->term()->functionName().c_str()), parData);
+        toParams(term->nthArgument(1)->term(), coef * toFloat(term->nthArgument(0)->term()), parData);
       }
       else {
-        toParams(term->nthArgument(0)->term(), coef * std::atoi(term->nthArgument(1)->term()->functionName().c_str()), parData);
+        toParams(term->nthArgument(0)->term(), coef * toFloat(term->nthArgument(1)->term()), parData);
       }
     }
     // Adition
@@ -214,27 +230,20 @@ DecisionProcedure::Status LinearArithmeticDP::getStatus(bool retrieveMultipleCor
 #if DLADP
   cout << "##############Solve############" << endl;
 #endif
+  if (rowsVector.size() < 1)
+    return DecisionProcedure::SATISFIABLE;
   switch (solver) {
-    case Undefined: {
-      return DecisionProcedure::UNKNOWN;
-    }
     case GaussElimination: {
       solverDP = new DP::GaussElimination(rowsVector, colLabelSet);
-      Status stat = solverDP->getStatus();
-      Stack<Kernel::Literal *> * stack = new LiteralStack(100);
-      solverDP->getModel(*stack);
-      return stat;
+      return solverDP->getStatus();
     }
-    case Simplex:
-      break;
+    case Simplex: {
+      return DecisionProcedure::SATISFIABLE;
+    }
     default: {
       return DecisionProcedure::UNKNOWN;
-      break;
     }
   }
-
-  // Currently just return Satisfiable as this is always safe
-  return DecisionProcedure::SATISFIABLE;
 }
 
 void LinearArithmeticDP::getModel(LiteralStack &model)
