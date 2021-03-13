@@ -145,13 +145,13 @@ void LinearArithmeticDP::addLiteral(Literal *lit)
 
   try {
     ParameterDataContainer parData;
-    toParams(leftHandSide, 1, &parData);
-    toParams(rightHandSide, -1, &parData);
+    toParams(leftHandSide, RationalConstantType(1, 1), &parData);
+    toParams(rightHandSide, RationalConstantType(-1, 1), &parData);
 
     List<Parameter> *row = 0;
     List<Parameter>::push(Parameter(UINT_MAX, -parData.constant), row);
 
-    map<unsigned, float>::reverse_iterator it = parData.parameters.rbegin();
+    map<unsigned, RationalConstantType>::reverse_iterator it = parData.parameters.rbegin();
     while (it != parData.parameters.rend()) {
       List<Parameter>::push(Parameter(it->first, it->second), row);
       colLabelSet.insert(it->first);
@@ -164,23 +164,23 @@ void LinearArithmeticDP::addLiteral(Literal *lit)
   }
 }
 
-float toFloat(Term *term)
+RationalConstantType toRational(Term *term)
 {
   unsigned func = term->functor();
   Signature::Symbol *sym = env.signature->getFunction(func);
   if (sym->integerConstant())
-    return sym->integerValue().toInner();
+    return RationalConstantType(sym->integerValue());
 
   if (sym->rationalConstant())
-    return sym->rationalValue().numerator().toInner() / sym->rationalValue().denominator().toInner();
+    return sym->rationalValue();
 
   if (sym->realConstant())
-    return sym->realValue().numerator().toInner() / sym->realValue().denominator().toInner();
+    return sym->realValue();
 
-  return 1.0;
+  return RationalConstantType(1, 1);
 }
 
-void LinearArithmeticDP::toParams(Term *term, float coef, LinearArithmeticDP::ParameterDataContainer *parData)
+void LinearArithmeticDP::toParams(Term *term, RationalConstantType coef, LinearArithmeticDP::ParameterDataContainer *parData)
 {
   CALL("LinearArithmeticDP::toParams");
   unsigned arity = term->arity();
@@ -189,11 +189,16 @@ void LinearArithmeticDP::toParams(Term *term, float coef, LinearArithmeticDP::Pa
     unsigned fun = term->functor();
     // Either got a number of a constant or paramerter
     if (theory->isInterpretedNumber(term)) {
-      parData->constant += coef * toFloat(term);
+      parData->constant = parData->constant + (coef * toRational(term));
     }
     else {
       // If parameter insert or update
-      parData->parameters[fun] += coef;
+      if (parData->parameters.find(fun) == parData->parameters.end()) {
+        parData->parameters[fun] = coef;
+      }
+      else {
+        parData->parameters[fun] = parData->parameters[fun] + coef;
+      }
     }
   }
   // unary minus
@@ -207,10 +212,10 @@ void LinearArithmeticDP::toParams(Term *term, float coef, LinearArithmeticDP::Pa
     // Multiply
     if (interp == Interpretation::INT_MULTIPLY || interp == Interpretation::RAT_MULTIPLY || interp == Interpretation::REAL_MULTIPLY) {
       if (theory->isInterpretedNumber(term->nthArgument(0)->term())) {
-        toParams(term->nthArgument(1)->term(), coef * toFloat(term->nthArgument(0)->term()), parData);
+        toParams(term->nthArgument(1)->term(), coef * toRational(term->nthArgument(0)->term()), parData);
       }
       else {
-        toParams(term->nthArgument(0)->term(), coef * toFloat(term->nthArgument(1)->term()), parData);
+        toParams(term->nthArgument(0)->term(), coef * toRational(term->nthArgument(1)->term()), parData);
       }
     }
     // Adition
@@ -249,7 +254,9 @@ DecisionProcedure::Status LinearArithmeticDP::getStatus(bool retrieveMultipleCor
 void LinearArithmeticDP::getModel(LiteralStack &model)
 {
   CALL("LinearArithmeticDP::getModel");
+#if DLADP
   cout << "LinearArithmeticDP::getModel" << endl;
+#endif
   if (solverDP != NULL)
     solverDP->getModel(model);
 }

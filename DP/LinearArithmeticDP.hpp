@@ -37,6 +37,7 @@
 
 #include "Kernel/Term.hpp"
 #include "Kernel/Ordering.hpp"
+#include "Kernel/Theory.hpp"
 
 #include "DecisionProcedure.hpp"
 #include "LinearArithmeticSolverDP.hpp"
@@ -67,9 +68,9 @@ public:
 
   struct Parameter {
     unsigned varId;
-    float mutable coefficient = 0.0;
+    RationalConstantType mutable coefficient = RationalConstantType(0);
 
-    Parameter(unsigned id, float coef)
+    Parameter(unsigned id, RationalConstantType coef)
     {
       varId = id;
       coefficient = coef;
@@ -78,8 +79,8 @@ public:
 
   // Don't really know what to call it
   struct ParameterDataContainer {
-    map<unsigned, float> parameters;
-    float constant = 0.0;
+    map<unsigned, RationalConstantType> parameters;
+    RationalConstantType constant = RationalConstantType(0);
   };
 
   virtual void addLiterals(LiteralIterator lits, bool onlyEqualites) override;
@@ -102,9 +103,9 @@ private:
   LinearArithmeticSolverDP *solverDP;
   Solver solver = Undefined;
   std::vector<List<Parameter> *> rowsVector;
-  std::set<unsigned int> colLabelSet;
+  std::set<unsigned> colLabelSet;
 
-  void toParams(Term *term, float coef, ParameterDataContainer *parData);
+  void toParams(Term *term, RationalConstantType coef, ParameterDataContainer *parData);
 };
 
 } // namespace DP

@@ -54,10 +54,10 @@ private:
   unsigned int *colLabelList;
   unsigned int numberOfUnkowns;
   unsigned int numberOfRows;
-  float *solutions;
+  RationalConstantType *solutions;
 
-  float getCoefficient(List<LinearArithmeticDP::Parameter> *row, unsigned int varId);
-  List<LinearArithmeticDP::Parameter> *subtract(List<LinearArithmeticDP::Parameter> *e1, List<LinearArithmeticDP::Parameter> *e2, float multiplier);
+  RationalConstantType getCoefficient(List<LinearArithmeticDP::Parameter> *row, unsigned int varId);
+  List<LinearArithmeticDP::Parameter> *subtract(List<LinearArithmeticDP::Parameter> *e1, List<LinearArithmeticDP::Parameter> *e2, RationalConstantType multiplier);
   int getColLabelIndex(unsigned int label, unsigned int searchStartIndex);
 };
 

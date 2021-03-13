@@ -78,7 +78,7 @@ DecisionProcedure::Status GaussElimination::getStatus()
 
     std::vector<unsigned int> rowsIndexWithNonZero;
     for (auto &rowIndex : rowsLeftIndex) {
-      if (getCoefficient(rowsList[rowIndex], colLabel) != 0) {
+      if (!getCoefficient(rowsList[rowIndex], colLabel).isZero()) {
         rowsIndexWithNonZero.emplace_back(rowIndex);
       }
     }
@@ -90,7 +90,7 @@ DecisionProcedure::Status GaussElimination::getStatus()
 
       for (unsigned int j = 1; j < rowsIndexWithNonZero.size(); j++) {
         int rowIndex = rowsIndexWithNonZero[j];
-        float multiplier = getCoefficient(rowsList[rowIndex], colLabel) / getCoefficient(rowsList[pivotIndex], colLabel);
+        RationalConstantType multiplier = getCoefficient(rowsList[rowIndex], colLabel) / getCoefficient(rowsList[pivotIndex], colLabel);
 
         // subtract
         rowsList[rowIndex] = subtract(rowsList[rowIndex], rowsList[pivotIndex], multiplier);
@@ -101,7 +101,7 @@ DecisionProcedure::Status GaussElimination::getStatus()
   // There are some leftover rows. Some are all zeros -> disregard. Others, check for satifiability
   for (auto &rowIndex : rowsLeftIndex) {
     List<LinearArithmeticDP::Parameter> *row = rowsList[rowIndex];
-    if (row->head().varId == UINT_MAX && row->head().coefficient != 0) {
+    if (row->head().varId == UINT_MAX && !row->head().coefficient.isZero()) {
 
 #if GEDP
       std::cout << "Unsatisfiable: ";
@@ -132,11 +132,11 @@ DecisionProcedure::Status GaussElimination::getStatus()
     return DecisionProcedure::SATISFIABLE;
   }
 
-  solutions = new float[numberOfUnkowns];
+  solutions = new RationalConstantType[numberOfUnkowns];
   // At this point, matrix in upper triangular form
   for (int i = numberOfUnkowns - 1; i >= 0; i--) {
     List<LinearArithmeticDP::Parameter> *row = newRowsList[i];
-    solutions[i] = 0;
+    solutions[i] = RationalConstantType(0);
     List<LinearArithmeticDP::Parameter> *current = row->tail();
     unsigned int m = i + 1;
 
@@ -159,7 +159,7 @@ DecisionProcedure::Status GaussElimination::getStatus()
   return DecisionProcedure::SATISFIABLE;
 }
 
-float GaussElimination::getCoefficient(List<LinearArithmeticDP::Parameter> *row, unsigned int varId)
+RationalConstantType GaussElimination::getCoefficient(List<LinearArithmeticDP::Parameter> *row, unsigned int varId)
 {
   CALL("GaussElimination::getCoefficient");
   List<LinearArithmeticDP::Parameter> *current = row;
@@ -173,11 +173,11 @@ float GaussElimination::getCoefficient(List<LinearArithmeticDP::Parameter> *row,
     current = current->tail();
   }
 
-  return 0.0;
+  return RationalConstantType(0);
 }
 
 // e1 = e1 - multiplier*e2
-List<LinearArithmeticDP::Parameter> *GaussElimination::subtract(List<LinearArithmeticDP::Parameter> *e1, List<LinearArithmeticDP::Parameter> *e2, float multiplier)
+List<LinearArithmeticDP::Parameter> *GaussElimination::subtract(List<LinearArithmeticDP::Parameter> *e1, List<LinearArithmeticDP::Parameter> *e2, RationalConstantType multiplier)
 {
   CALL("GaussElimination::subtract");
   List<LinearArithmeticDP::Parameter> *currentE1 = e1->tail();
@@ -186,11 +186,11 @@ List<LinearArithmeticDP::Parameter> *GaussElimination::subtract(List<LinearArith
   while (!List<LinearArithmeticDP::Parameter>::isEmpty(currentE2)) {
     if (currentE1->head().varId == currentE2->head().varId) {
       unsigned varId = currentE2->head().varId;
-      float coefficient = currentE1->head().coefficient - (multiplier * currentE2->head().coefficient);
+      RationalConstantType coefficient = currentE1->head().coefficient - (multiplier * currentE2->head().coefficient);
       LinearArithmeticDP::Parameter elm = LinearArithmeticDP::Parameter(varId, coefficient);
       currentE1->setHead(elm);
 
-      if (elm.coefficient == 0 && elm.varId != UINT_MAX) {
+      if (elm.coefficient.isZero() && elm.varId != UINT_MAX) {
         previousE1->setTail(currentE1->tail());
         delete currentE1;
         currentE1 = previousE1;
@@ -201,7 +201,7 @@ List<LinearArithmeticDP::Parameter> *GaussElimination::subtract(List<LinearArith
     else if (currentE1->tail()->head().varId > currentE2->head().varId) {
       // Inserting new elm
       unsigned varId = currentE2->head().varId;
-      float coefficient = -1 * multiplier * currentE2->head().coefficient;
+      RationalConstantType coefficient = RationalConstantType(-1) * multiplier * currentE2->head().coefficient;
       LinearArithmeticDP::Parameter elm = LinearArithmeticDP::Parameter(varId, coefficient);
 
       List<LinearArithmeticDP::Parameter> *listElm = new List<LinearArithmeticDP::Parameter>(elm, currentE1->tail());
@@ -231,39 +231,29 @@ void GaussElimination::getModel(LiteralStack &model)
 
   for (unsigned i = 0; i < numberOfUnkowns; i++) {
     unsigned varId = colLabelList[i];
-    float solution = solutions[i];
+    RationalConstantType solution = solutions[i];
     unsigned sort = env.signature->getFunction(varId)->fnType()->result();
     switch (sort) {
       case Sorts::SRT_INTEGER: {
-        if (ceilf(solution) != solution)
+        if (!solution.isInt())
           continue;
 
         Term *var = Term::createConstant(varId);
-        Term *constant = theory->representConstant(IntegerConstantType((int)solution));
+        Term *constant = theory->representConstant(IntegerConstantType(solution.numerator()));
         Literal *lit = Literal::createEquality(true, TermList(var), TermList(constant), sort);
         cout << lit->toString() << endl;
         model.push(lit);
       } break;
       case Sorts::SRT_RATIONAL: {
         Term *var = Term::createConstant(varId);
-        unsigned count = 1;
-        while (ceil(solution) != solution) {
-          solution *= 10;
-          count++;
-        }
-        Term *constant = theory->representConstant(RationalConstantType(solution, count));
+        Term *constant = theory->representConstant(solution);
         Literal *lit = Literal::createEquality(true, TermList(var), TermList(constant), sort);
         cout << lit->toString() << endl;
         model.push(lit);
       } break;
       case Sorts::SRT_REAL: {
         Term *var = Term::createConstant(varId);
-        unsigned count = 1;
-        while (ceil(solution) != solution) {
-          solution *= 10;
-          count++;
-        }
-        Term *constant = theory->representConstant(RealConstantType(solution, count));
+        Term *constant = theory->representConstant(RealConstantType(solution));
         Literal *lit = Literal::createEquality(true, TermList(var), TermList(constant), sort);
         #if GEDP
         cout << lit->toString() << endl;
