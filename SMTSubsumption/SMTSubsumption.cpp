@@ -23,9 +23,6 @@ using namespace SMTSubsumption;
 #include "SMTSubsumption/cdebug.hpp"
 
 
-// #define ENABLE_BENCHMARK 1
-
-
 
 template <typename T, typename Allocator = STLAllocator<T>>
 class pinned_vector
@@ -142,6 +139,7 @@ class OriginalSubsumptionImpl
 {
   private:
     Kernel::MLMatcher matcher;
+    ClauseMatches* cms = nullptr;
   public:
 
     void printStats(std::ostream& out)
@@ -156,12 +154,15 @@ class OriginalSubsumptionImpl
       LiteralMiniIndex miniIndex(cl);  // TODO: to benchmark forward subsumption, we might want to move this to the benchmark setup instead? as the work may be shared between differed side premises.
 
       unsigned mlen = mcl->length();
-      // ASS_G(mlen,1);   // (not really necessary for the benchmarks)
 
-      ClauseMatches* cms = new ClauseMatches(mcl);
+      if (cms) { delete cms; cms = nullptr; }
+      ASS_EQ(cms, nullptr);
+      cms = new ClauseMatches(mcl);  // NOTE: why "new"? because the original code does it like this as well.
       cms->fillInMatches(&miniIndex);
 
       if (cms->anyNonMatched()) {
+        delete cms;
+        cms = nullptr;
         return false;
       }
 
@@ -171,7 +172,10 @@ class OriginalSubsumptionImpl
 
     bool solve()
     {
+      ASS(cms);
       bool isSubsumed = matcher.nextMatch();
+      delete cms;
+      cms = nullptr;
       return isSubsumed;
     }
 
@@ -182,6 +186,77 @@ class OriginalSubsumptionImpl
 };
 using Impl = OriginalSubsumptionImpl;  // shorthand if we use qualified namespace
 
+
+
+/*
+typedef Stack<ClauseMatches*> CMStack;
+
+class OriginalForwardSubsumptionImpl
+{
+  private:
+    Kernel::MLMatcher matcher;
+    ClauseMatches* cms = nullptr;
+
+    CMStack cmStore{64};
+
+    Clause* cl = nullptr;
+    std::unique_ptr<LiteralMiniIndex> miniIndex;
+
+  public:
+    void printStats(std::ostream& out)
+    {
+      out << "Stats: " << matcher.getStats() << std::endl;
+    }
+
+    // In forward subsumption, one main premise is tested against (possibly) multiple side premises.
+    // So we can do shared set-up work here.
+    void setup_main_premise(Clause* main_premise)
+    {
+      ASS(cmStore.isEmpty());
+      cl = main_premise;
+      ASS(!miniIndex);
+      miniIndex.reset(new LiteralMiniIndex(cl));
+    }
+
+    bool setup(Clause* side_premise, Clause* main_premise)
+    {
+      if (cl != main_premise) {
+        setup_main_premise(main_premise);
+      }
+      Clause* mcl = side_premise;
+
+      unsigned mlen = mcl->length();
+
+      if (cms) { delete cms; cms = nullptr; }
+      ASS_EQ(cms, nullptr);
+      cms = new ClauseMatches(mcl);  // NOTE: why "new"? because the original code does it like this as well.
+      cms->fillInMatches(&miniIndex);
+
+      if (cms->anyNonMatched()) {
+        delete cms;
+        cms = nullptr;
+        return false;
+      }
+
+      matcher.init(mcl, cl, cms->_matches, true);
+      return true;
+    }
+
+    bool solve()
+    {
+      ASS(cms);
+      bool isSubsumed = matcher.nextMatch();
+      delete cms;
+      cms = nullptr;
+      return isSubsumed;
+    }
+
+    bool checkSubsumption(Kernel::Clause* side_premise, Kernel::Clause* main_premise)
+    {
+      return setup(side_premise, main_premise) && solve();
+    }
+};
+*/
 
 
 }  // namespace OriginalSubsumption
@@ -2663,20 +2738,100 @@ void bench_orig_run(benchmark::State& state, vvector<SubsumptionInstance> const&
   }
 }
 
+struct FwSubsumptionInstance
+{
+  struct SidePremise {
+    Kernel::Clause* side_premise; // also called "base clause"
+    bool subsumed;                // expected result
+  };
+  Kernel::Clause* main_premise;  // also called "instance clause"
+  vvector<SidePremise> side_premises;
+};
+
+void bench_orig_fwrun(benchmark::State& state, vvector<FwSubsumptionInstance> const& fw_instances)
+{
+  for (auto _ : state) {
+
+    int count = 0;  // counter to introduce data dependency which should prevent compiler optimization from removing code
+
+    using namespace OriginalSubsumption;
+    using CMStack = Stack<ClauseMatches*>;
+
+    // the static variables from the original implementation
+    Kernel::MLMatcher matcher;
+    CMStack cmStore{64};
+
+    for (auto const& fw_instance : fw_instances) {
+
+      // Set up main premise
+      ASS(cmStore.isEmpty());
+      Kernel::Clause* cl = fw_instance.main_premise;
+
+      LiteralMiniIndex miniIndex(cl);
+
+      // Test side premises
+      for (auto const& instance : fw_instance.side_premises) {
+        Clause* mcl = instance.side_premise;
+        unsigned mlen = mcl->length();
+
+        ClauseMatches* cms = new ClauseMatches(mcl);  // NOTE: why "new" here? because the original code does it like this as well.
+        cmStore.push(cms);
+        cms->fillInMatches(&miniIndex);
+
+        if (cms->anyNonMatched()) {
+          // NOT SUBSUMED
+          if (instance.subsumed) { state.SkipWithError("Wrong result!"); return; }
+          continue;
+        }
+
+        matcher.init(mcl, cl, cms->_matches, true);
+        bool isSubsumed = matcher.nextMatch();
+        if (isSubsumed != instance.subsumed) { state.SkipWithError("Wrong result!"); return; }
+        if (isSubsumed) { count++; break; }  // NOTE: since we record subsumption log from a real fwsubsumption run, this will only happen at the last iteration anyway.
+      }
+
+      // Cleanup
+      while (cmStore.isNonEmpty()) {
+        delete cmStore.pop();
+      }
+
+    }
+    benchmark::DoNotOptimize(count);
+    benchmark::ClobberMemory();
+  }
+}
+
+
+
 void ProofOfConcept::benchmark_run(vvector<SubsumptionInstance> instances)
 {
   CALL("ProofOfConcept::benchmark_run");
+  BYPASSING_ALLOCATOR;  // google-benchmark needs its own memory
 
   std::cerr << "\% SMTSubsumption: benchmarking " << instances.size() << " instances" << std::endl;
 #if VDEBUG
   std::cerr << "\n\n\nWARNING: compiled in debug mode!\n\n\n" << std::endl;
 #endif
 
+  // vset<Kernel::Clause*> seen;
+  vvector<FwSubsumptionInstance> fw_instances;
+  for (auto const& instance : instances) {
+    if (fw_instances.empty() || fw_instances.back().main_premise != instance.main_premise) {
+      // NOTE: the same main premise can be used multiple times, e.g., if AVATAR is used (subsumption called for each split separately)
+      // bool inserted = seen.insert(instance.main_premise).second;
+      // if (!inserted) { std::cerr << "Error! Unexpected slog ordering at number " << instance.number << " (main number = " << instance.main_premise->number() << ", side number = " << instance.side_premise->number() << ")" << std::endl; std::abort(); }
+      fw_instances.emplace_back();
+      fw_instances.back().main_premise = instance.main_premise;
+    }
+    ASS_EQ(fw_instances.back().main_premise, instance.main_premise);
+    fw_instances.back().side_premises.push_back({instance.side_premise, instance.subsumed});
+  }
+
   vvector<char const*> args = {
     "vampire-sbench-run",
-    // "--benchmark_repetitions=10",  // Enable this to get mean/median/stddev
-    // // "--benchmark_report_aggregates_only=true",
+    "--benchmark_repetitions=3",  // Enable this to get mean/median/stddev
     // "--benchmark_display_aggregates_only=true",
+    // // "--benchmark_report_aggregates_only=true",
     // // "--help",
   };
   char** argv = const_cast<char**>(args.data());  // not really legal but whatever
@@ -2684,6 +2839,7 @@ void ProofOfConcept::benchmark_run(vvector<SubsumptionInstance> instances)
 
   benchmark::RegisterBenchmark("smt2_run", bench_smt2_run, instances);
   benchmark::RegisterBenchmark("orig_run", bench_orig_run, instances);
+  benchmark::RegisterBenchmark("orig_fwrun", bench_orig_fwrun, fw_instances);
   benchmark::Initialize(&argc, argv);
   benchmark::RunSpecifiedBenchmarks();
   std::cerr << "Benchmarking done, shutting down..." << std::endl;
