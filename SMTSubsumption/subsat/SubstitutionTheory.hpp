@@ -8,7 +8,7 @@
 #include "./types.hpp"
 #include "./log.hpp"
 
-#ifndef SUBSAT_STANDALONE
+#if !SUBSAT_STANDALONE
 #include "Kernel/Term.hpp"
 #endif
 
@@ -20,7 +20,7 @@ namespace subsat {
 using VampireVar = unsigned int;
 
 
-#ifndef SUBSAT_STANDALONE
+#if !SUBSAT_STANDALONE
 
 /// Range of the substitution: Vampire's FOL terms
 using VampireTerm = ::Kernel::TermList;

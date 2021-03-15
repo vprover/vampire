@@ -73,7 +73,7 @@ static inline std::ostream& operator<<(std::ostream& os, Statistics const& stats
   os << "Minimized literals:" << std::setw(7) << stats.minimized_literals << " (on average " << std::setprecision(1) << std::fixed << (static_cast<double>(stats.minimized_literals) / total_learned_clauses) << " literals/clause)\n";
 #endif
   os << "Max. storage used:" << std::setw(8) << stats.max_stored_literals << " literals"
-     << "(= learned literals + clause headers + " << (stats.max_stored_literals - static_cast<std::size_t>(stats.learned_literals + stats.learned_long_clauses + stats.learned_binary_clauses)) << ")\n";
+     << " (= learned literals + clause headers + " << (stats.max_stored_literals - static_cast<std::size_t>(stats.learned_literals + stats.learned_long_clauses + stats.learned_binary_clauses)) << ")\n";
   assert(stats.conflicts == stats.conflicts_by_clause + stats.conflicts_by_amo);
   assert(stats.propagations == stats.propagations_by_clause + stats.propagations_by_amo + stats.propagations_by_theory);
   return os;

@@ -1454,6 +1454,7 @@ void ProofOfConcept::test(Clause* side_premise, Clause* main_premise)
 
   BYPASSING_ALLOCATOR;
 
+/*
   {
   SMTSubsumptionImpl impl;
   std::cout << "\nTESTING 'minisat'" << std::endl;
@@ -1466,10 +1467,12 @@ void ProofOfConcept::test(Clause* side_premise, Clause* main_premise)
   std::cout << "  => " << subsumed << std::endl;
   impl.printStats(std::cout);
   }
+*/
 
   {
   SMTSubsumptionImpl2 impl;
   std::cout << "\nTESTING 'subsat' subsumption" << std::endl;
+  subsat_print_config(std::cout);
   std::cout << "SETUP" << std::endl;
   bool subsumed1 = impl.setupSubsumption(side_premise, main_premise);
   // bool subsumed1 = impl.setup2(side_premise, main_premise);
@@ -1478,8 +1481,9 @@ void ProofOfConcept::test(Clause* side_premise, Clause* main_premise)
   bool subsumed = subsumed1 && impl.solve();
   std::cout << "  => " << subsumed << std::endl;
   }
-  // return;
+  return;
 
+/*  TODO: fix this
   {
   SMTSubsumptionImpl2 impl;
   std::cout << "\nTESTING 'subsat' subsumption resolution" << std::endl;
@@ -1490,6 +1494,7 @@ void ProofOfConcept::test(Clause* side_premise, Clause* main_premise)
   bool sr = sr1 && impl.solve();
   std::cout << "  => " << sr << std::endl;
   }
+*/
 
   // bool const expected_subsumed = subsumed;
 

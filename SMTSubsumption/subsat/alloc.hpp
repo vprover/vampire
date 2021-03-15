@@ -9,7 +9,7 @@ namespace subsat {
 
 inline void* subsat_alloc(std::size_t size)
 {
-#ifdef SUBSAT_STANDALONE
+#if SUBSAT_STANDALONE
   void* p = std::malloc(size);
 #else
   void* p = ALLOC_UNKNOWN(size, "subsat");
@@ -22,7 +22,7 @@ inline void* subsat_alloc(std::size_t size)
 
 inline void subsat_dealloc(void* p)
 {
-#ifdef SUBSAT_STANDALONE
+#if SUBSAT_STANDALONE
   std::free(p);
 #else
   DEALLOC_UNKNOWN(p, "subsat");
