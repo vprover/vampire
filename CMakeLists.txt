@@ -855,9 +855,9 @@ endif()
 # google benchmark library
 #################################################################
 
-# add_subdirectory(benchmark)
-# target_link_libraries(vampire PRIVATE benchmark::benchmark)
-# target_compile_definitions(vampire PRIVATE ENABLE_BENCHMARK=1)
+add_subdirectory(benchmark)
+target_link_libraries(vampire PRIVATE benchmark::benchmark)
+target_compile_definitions(vampire PRIVATE ENABLE_BENCHMARK=1)
 
 
 #################################################################
