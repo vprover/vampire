@@ -627,11 +627,13 @@ bool operator!=(Monom<Number> const& l, Monom<Number> const& r)
 template<class Number>
 std::ostream& operator<<(std::ostream& out, const Monom<Number>& self)
 { 
-    // out << self.numeral;
-  if (self.numeral != typename Number::ConstantType(1)) {
-    out << self.numeral;
+  if (self.factors->isOne()) {
+    return out << self.numeral;
+  } else {
+    if (self.numeral != typename Number::ConstantType(1))
+      out << self.numeral << " ";
+    return out << self.factors; 
   }
-  return out << self.factors; 
 }
 
 

@@ -192,6 +192,9 @@ public:
   /** number of simplifications by PolynomialNormalizer */
   unsigned evaluationCnt;
 
+  /** number of machine arithmetic overflows within the inequality resolution calculus specific rules */
+  unsigned irOverflow;
+
   /** number of (proper) inner rewrites */
   unsigned innerRewrites;
   /** number of inner rewrites into equational tautologies */

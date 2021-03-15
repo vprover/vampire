@@ -118,6 +118,7 @@ Statistics::Statistics()
     evaluationIncomp(0),
     evaluationGreater(0),
     evaluationCnt(0),
+    irOverflow(0),
 
     innerRewrites(0),
     innerRewritesToEqTaut(0),
@@ -408,12 +409,17 @@ void Statistics::print(ostream& out)
   COND_OUT("SMT fallbacks",smtFallbacks);
   SEPARATOR;
 
+
   HEADING("Instance Generation",instGenGeneratedClauses+instGenRedundantClauses+
        instGenKeptClauses+instGenIterations);
   COND_OUT("InstGen generated clauses", instGenGeneratedClauses);
   COND_OUT("InstGen redundant clauses", instGenRedundantClauses);
   COND_OUT("InstGen kept clauses", instGenKeptClauses);
   COND_OUT("InstGen iterations", instGenIterations);
+  SEPARATOR;
+
+  HEADING("Inequality Resolution Calculus",irOverflow);
+  COND_OUT("Overflows", irOverflow);
   SEPARATOR;
 
   //TODO record statistics for FMB
