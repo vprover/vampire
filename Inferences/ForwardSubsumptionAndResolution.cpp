@@ -307,7 +307,10 @@ class SubsumptionLogger
     CLASS_NAME(SubsumptionLogger);
     USE_ALLOCATOR(SubsumptionLogger);
     SubsumptionLogger(vstring logfile_path);
-    void log(Clause* side_premise, Clause* main_premise, bool isSubsumed, MLMatchStats const* opt_stats);
+    // Only log the clauses; must call logResult afterwards or the file will not be formatted correctly!
+    void logClauses(Clause* side_premise, Clause* main_premise);
+    void logResult(int result);
+    void log(Clause* side_premise, Clause* main_premise, int result);
     void flush()
     {
       m_file_slog.flush();
@@ -330,7 +333,7 @@ SubsumptionLogger::SubsumptionLogger(vstring logfile_path)
   ASS(m_file_clauses.is_open());
 }
 
-void SubsumptionLogger::log(Clause* side_premise, Clause* main_premise, bool isSubsumed, MLMatchStats const* opt_stats)
+void SubsumptionLogger::logClauses(Clause* side_premise, Clause* main_premise)
 {
   // Print clauses if they haven't been printed yet
   for (Clause* clause : {side_premise, main_premise}) {
@@ -343,12 +346,19 @@ void SubsumptionLogger::log(Clause* side_premise, Clause* main_premise, bool isS
     }
   }
   // Print subsumption log
-  m_file_slog << "S "
-              // << m_seq << ' '
-              << side_premise->number() << ' '
-              << main_premise->number() << ' '
-              << isSubsumed << '\n';
+  m_file_slog << "S " << side_premise->number() << ' ' << main_premise->number();
+}
+
+void SubsumptionLogger::logResult(int result)
+{
+  m_file_slog << ' ' << result << '\n';
   m_seq += 1;
+}
+
+void SubsumptionLogger::log(Clause* side_premise, Clause* main_premise, int result)
+{
+  logClauses(side_premise, main_premise);
+  logResult(result);
 }
 
 void ForwardSubsumptionAndResolution::printStats(std::ostream& out)
@@ -451,7 +461,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
       if(cms->anyNonMatched()) {
         fsstats.m_logged_count += 1;
         if (fsstats.m_logger) {
-          fsstats.m_logger->log(mcl, cl, false, nullptr);
+          fsstats.m_logger->log(mcl, cl, false);
         }
         continue;
       }
@@ -461,6 +471,10 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
       //   RSTAT_CTR_INC("fw subsumption impossible due to weight");
       // }
 
+      fsstats.m_logged_count += 1;
+      if (fsstats.m_logger) {
+        fsstats.m_logger->logClauses(mcl, cl);
+      }
       int isSubsumed = -1;
       try {
         RSTAT_CTR_INC("MLSubsumption Calls");
@@ -469,13 +483,15 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
           && ColorHelper::compatible(cl->color(), mcl->color());
       }
       catch(...) {
-        std::cerr << "BIG SUBSUMPTION INTERRUPTED BY EXCEPTION!!! (time limit?)" << std::endl;
+        std::cout << "BIG SUBSUMPTION INTERRUPTED BY EXCEPTION!!! (time limit?)" << std::endl;
+        if (fsstats.m_logger) {
+          fsstats.m_logger->logResult(-2);
+        }
         throw;
       }
 
-      fsstats.m_logged_count += 1;
       if (fsstats.m_logger) {
-        fsstats.m_logger->log(mcl, cl, isSubsumed, nullptr);
+        fsstats.m_logger->logResult(isSubsumed);
       }
 
       /*
