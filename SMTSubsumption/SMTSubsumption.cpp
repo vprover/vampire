@@ -156,7 +156,7 @@ class OriginalSubsumptionImpl
       unsigned mlen = mcl->length();
 
       if (cms) { delete cms; cms = nullptr; }
-      ASS_EQ(cms, nullptr);
+      ASS(cms == nullptr);
       cms = new ClauseMatches(mcl);  // NOTE: why "new"? because the original code does it like this as well.
       cms->fillInMatches(&miniIndex);
 
