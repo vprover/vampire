@@ -785,6 +785,15 @@ vmap<unsigned int, Clause*> getNumberedClauses(UnitList const* units)
     units = units->tail();
   }
 
+  // The parser reverses the order of literals in the clause as given in the input file, so we correct this here
+  DHSet<Clause*> seen;
+  for (auto& pair : clauses) {
+    Clause* clause = pair.second;
+    if (seen.insert(clause)) {
+      std::reverse(clause->literals(), clause->literals() + clause->length());
+    }
+  }
+
   return clauses;
 }
 
