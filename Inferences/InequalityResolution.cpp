@@ -56,7 +56,8 @@ bool InequalityResolutionIndex::handleLiteral(Literal* lit, Clause* c, bool addi
     auto norm = norm_.unwrap();
     DEBUG("literal: ", norm);
     for (auto monom : norm.term().iterSummands()) {
-      if (!monom.tryNumeral().isSome()) {
+      // if (!monom.tryNumeral().isSome()) { // TODO shall we skip this?
+      if (!monom.factors->tryVar().isSome()) { // TODO shall we not skip this?
 
         auto term = monom.factors->denormalize();
         if (adding) {
@@ -208,7 +209,7 @@ VirtualIterator<Monom<NumTraits>> InequalityResolution::maxTerms(InequalityLiter
         ASSERTION_VIOLATION_REP(cmp)
       }
     }
-    if (isMax) 
+    if (isMax && monoms[i].factors->tryVar().isNone())  // TODO we don't wanna skip varibles in the future
       max.push(monoms[i]);
   }
   return pvi(ownedArrayishIterator(std::move(max))); 
@@ -228,11 +229,17 @@ ClauseIterator InequalityResolution::generateClauses(Clause* cl1, Literal* lit1_
   if (lit1Opt.isNone()) 
     return ClauseIterator::getEmpty();
 
-  // The rule we compute looks as follows:
+  // The rule we compute looks as follows for rat & real:
   //
-  // num1 * term + rest1 >= 0 \/ C1      num2 * term2 + rest2 >= 0 \/ C2
+  // num1 * term + rest1 > 0 \/ C1      num2 * term2 + rest2 > 0 \/ C2
   // --------------------------------------------------------------------
-  //         k1 * rest1 + k2 * rest2 >= 0 \/ C1 \/ C2
+  //         k1 * rest1 + k2 * rest2 > 0 \/ C1 \/ C2
+  //
+  // or in the integer case
+  //
+  // num1 * term + rest1 > 0 \/ C1      num2 * term2 + rest2 > 0 \/ C2
+  // --------------------------------------------------------------------
+  //         k1 * rest1 + k2 * rest2 - 1 > 0 \/ C1 \/ C2
 
 
   auto lit1 = lit1Opt.unwrap();
