@@ -256,109 +256,114 @@ ClauseIterator InequalityResolution::generateClauses(Clause* cl1, Literal* lit1_
 
       return pvi(iterTraits(_index->getUnificationsWithConstraints(term1->denormalize(), true))
                 .filterMap([this, cl1, lit1, lit1_, num1, term1](TermQueryResult res) -> Option<Clause*> {
-                  CALL("InequalityResolution::generateClauses:@clsr2")
-                  auto& subs = *res.substitution;
+                  try {
+                    CALL("InequalityResolution::generateClauses:@clsr2")
+                    auto& subs = *res.substitution;
 
-                  auto cl2   = res.clause;
-                  auto term2 = normalizeTerm(TypedTermList(res.term, NumTraits::sort))
-                                .downcast<NumTraits>().unwrap()
-                                ->tryMonom().unwrap()
-                                .factors;
-                  auto lit2_ = res.literal;
-                  auto lit2  = this->normalizer().normalize<NumTraits>(lit2_).unwrap();
-                  //   ^^^^ ~=  num2 * term2 + rest2 >= 0
+                    auto cl2   = res.clause;
+                    auto term2 = normalizeTerm(TypedTermList(res.term, NumTraits::sort))
+                                  .downcast<NumTraits>().unwrap()
+                                  ->tryMonom().unwrap()
+                                  .factors;
+                    auto lit2_ = res.literal;
+                    auto lit2  = this->normalizer().normalize<NumTraits>(lit2_).unwrap();
+                    //   ^^^^ ~=  num2 * term2 + rest2 >= 0
 
-                  auto strictness = lit1.strict() || lit2.strict();
-                  //   ^^^^^^^^^^ if either of the two inequalities is strict, the result will be as well.
-                  //              consider e.g.
-                  //                    s + t > 0 /\ u - t >= 0 
-                  //                ==> s + t > 0 /\ 0 >= t - u 
-                  //                ==> s + t > t - u 
-                  //                ==> s + u > 0
+                    auto strictness = lit1.strict() || lit2.strict();
+                    //   ^^^^^^^^^^ if either of the two inequalities is strict, the result will be as well.
+                    //              consider e.g.
+                    //                    s + t > 0 /\ u - t >= 0 
+                    //                ==> s + t > 0 /\ 0 >= t - u 
+                    //                ==> s + t > t - u 
+                    //                ==> s + u > 0
 
-                  auto num2 = lit2.term()
-                                  .iterSummands()
-                                  .find([&](Monom m) { return m.factors == term2; })
-                                  .unwrap()
-                                  .numeral;
-
-                  if (num1.isNegative() == num2.isNegative())
-                    return Option<Clause*>();
-
-                  DEBUG("  resolving against: ", lit2, " (term: ", term2, ", constr: ", res.constraints, ")");
-
-                  auto factors = computeFactors(num1, num2);
-                  //   ^^^^^^^--> (k1, k2)
-                  ASS_REP(factors.first.isPositive() && factors.second.isPositive(), factors)
-
-                  Stack<Monom> resolventSum(lit1.term().nSummands() + lit2.term().nSummands() - 2 + (isInt ? 1 : 0));
-                  //           ^^^^^^^^^^^^--> gonna be k1 * rest1 + k2 * rest2                   
-                  {
-                    auto pushTerms = [&](InequalityLiteral lit, Perfect<MonomFactors> termToSkip, Numeral num, bool resultVarBank)
-                              {
-                                resolventSum.loadFromIterator(lit.term()
+                    auto num2 = lit2.term()
                                     .iterSummands()
-                                    .filter([&](Monom m) { return m.factors != termToSkip; })
-                                    .map   ([&](Monom m) { 
-                                      auto out = Monom(m.numeral * num, m.factors)
-                                        .mapVars([&](Variable v) { 
-                                          auto var = TermList::var(v.id());
-                                          auto t = subs.applyTo(var, resultVarBank);
-                                          return normalizeTerm(TypedTermList(t, NumTraits::sort)); 
-                                        }); 
-                                      return out;
-                                    })
-                                );
-                              };
+                                    .find([&](Monom m) { return m.factors == term2; })
+                                    .unwrap()
+                                    .numeral;
 
-                    pushTerms(lit1, term1, factors.first , false);
-                    pushTerms(lit2, term2, factors.second, true);
-                    if (isInt) {
-                      resolventSum.push(Monom(Numeral(-1)));
-                    }
-                  }
+                    if (num1.isNegative() == num2.isNegative())
+                      return Option<Clause*>();
 
-                  auto resolventLit = InequalityLiteral(perfect(PolynomialEvaluation::simplifySummation(resolventSum)), strictness);
-                  //   ^^^^^^^^^^^^--> k1 * rest1 + k2 * rest2 >= 0
+                    DEBUG("  resolving against: ", lit2, " (term: ", term2, ", constr: ", res.constraints, ")");
 
-                  Inference inf(GeneratingInference2(Kernel::InferenceRule::INEQUALITY_RESOLUTION, cl1, cl2));
-                  auto size = cl1->size() + cl2->size() - 1 + (res.constraints ? res.constraints->size() : 0);
-                  auto resolvent = new(size) Clause(size, inf);
-                  //   ^^^^^^^^^--> gonna be k1 * rest1 + k2 * rest2 >= 0 \/ C1 \/ C2 \/ constraints
-                  {
-                    unsigned offset = 0;
-                    auto push = [&](Literal* lit) { ASS(offset < size); (*resolvent)[offset++] = lit; };
-                    
-                    // push resolvent literal: k1 * rest1 + k2 * rest2 >= 0 
-                    push(resolventLit.denormalize());
+                    auto factors = computeFactors(num1, num2);
+                    //   ^^^^^^^--> (k1, k2)
+                    ASS_REP(factors.first.isPositive() && factors.second.isPositive(), factors)
 
-                    // push other literals from clause: C1 \/ C2
-                    auto pushLiterals = 
-                      [&](Clause& cl, Literal* skipLiteral, bool result)
-                      {
-                        for (unsigned i = 0; i < cl.size(); i++) {
-                          if (cl[i] != skipLiteral) {
-                            push(subs.apply(cl[i], result));
-                          }
-                        }
-                      };
-                    pushLiterals(*cl1, lit1_, false);
-                    pushLiterals(*cl2, lit2_, true);
+                    Stack<Monom> resolventSum(lit1.term().nSummands() + lit2.term().nSummands() - 2 + (isInt ? 1 : 0));
+                    //           ^^^^^^^^^^^^--> gonna be k1 * rest1 + k2 * rest2                   
+                    {
+                      auto pushTerms = [&](InequalityLiteral lit, Perfect<MonomFactors> termToSkip, Numeral num, bool resultVarBank)
+                                {
+                                  resolventSum.loadFromIterator(lit.term()
+                                      .iterSummands()
+                                      .filter([&](Monom m) { return m.factors != termToSkip; })
+                                      .map   ([&](Monom m) { 
+                                        auto out = Monom(m.numeral * num, m.factors)
+                                          .mapVars([&](Variable v) { 
+                                            auto var = TermList::var(v.id());
+                                            auto t = subs.applyTo(var, resultVarBank);
+                                            return normalizeTerm(TypedTermList(t, NumTraits::sort)); 
+                                          }); 
+                                        return out;
+                                      })
+                                  );
+                                };
 
-                    // push constraints
-                    if (res.constraints) {
-                      for (auto& c : *res.constraints) {
-                        auto toTerm = [&](pair<TermList, unsigned> const& weirdConstraintPair) -> TermList
-                                      { return subs.applyTo(weirdConstraintPair.first, weirdConstraintPair.second); };
-                        // t1\sigma != c2\simga
-                        push(Literal::createEquality(false, toTerm(c.first), toTerm(c.second), NumTraits::sort));
+                      pushTerms(lit1, term1, factors.first , false);
+                      pushTerms(lit2, term2, factors.second, true);
+                      if (isInt) {
+                        resolventSum.push(Monom(Numeral(-1)));
                       }
                     }
 
-                    ASS_EQ(offset, size)
+                    auto resolventLit = InequalityLiteral(perfect(PolynomialEvaluation::simplifySummation(resolventSum)), strictness);
+                    //   ^^^^^^^^^^^^--> k1 * rest1 + k2 * rest2 >= 0
+
+                    Inference inf(GeneratingInference2(Kernel::InferenceRule::INEQUALITY_RESOLUTION, cl1, cl2));
+                    auto size = cl1->size() + cl2->size() - 1 + (res.constraints ? res.constraints->size() : 0);
+                    auto resolvent = new(size) Clause(size, inf);
+                    //   ^^^^^^^^^--> gonna be k1 * rest1 + k2 * rest2 >= 0 \/ C1 \/ C2 \/ constraints
+                    {
+                      unsigned offset = 0;
+                      auto push = [&](Literal* lit) { ASS(offset < size); (*resolvent)[offset++] = lit; };
+                      
+                      // push resolvent literal: k1 * rest1 + k2 * rest2 >= 0 
+                      push(resolventLit.denormalize());
+
+                      // push other literals from clause: C1 \/ C2
+                      auto pushLiterals = 
+                        [&](Clause& cl, Literal* skipLiteral, bool result)
+                        {
+                          for (unsigned i = 0; i < cl.size(); i++) {
+                            if (cl[i] != skipLiteral) {
+                              push(subs.apply(cl[i], result));
+                            }
+                          }
+                        };
+                      pushLiterals(*cl1, lit1_, false);
+                      pushLiterals(*cl2, lit2_, true);
+
+                      // push constraints
+                      if (res.constraints) {
+                        for (auto& c : *res.constraints) {
+                          auto toTerm = [&](pair<TermList, unsigned> const& weirdConstraintPair) -> TermList
+                                        { return subs.applyTo(weirdConstraintPair.first, weirdConstraintPair.second); };
+                          // t1\sigma != c2\simga
+                          push(Literal::createEquality(false, toTerm(c.first), toTerm(c.second), NumTraits::sort));
+                        }
+                      }
+
+                      ASS_EQ(offset, size)
+                    }
+                    DEBUG("  resolvent: ", *resolvent);
+                    return Option<Clause*>(resolvent);
+                  } catch (MachineArithmeticException&) {
+                    env.statistics->irOverflow++;
+                    return Option<Clause*>();
                   }
-                  DEBUG("  resolvent: ", *resolvent);
-                  return Option<Clause*>(resolvent);
                 }));
     }));
 }
