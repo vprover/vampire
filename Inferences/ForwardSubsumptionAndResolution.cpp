@@ -72,6 +72,7 @@ class SubsumptionLogger;
 class FwSubsAndResStats {
 public:
   std::unique_ptr<SubsumptionLogger> m_logger;
+  int64_t m_logged_count;  // count how many we would have logged even if there's no logger attached
 
   // Store numDecisions as histogram
   // m_numDecisions_frequence[numDecisions] = absolute number of MLMatcher calls that return numDecisions
@@ -359,6 +360,7 @@ void ForwardSubsumptionAndResolution::printStats(std::ostream& out)
       fsstats.m_logger.reset();
     }
   }
+  out << "\% Subsumptions to be logged: " << fsstats.m_logged_count << "\n";
   out << "\% Subsumption MLMatcher Statistics\n\% (numDecisions Frequency Successes)\n";
   for (size_t n = 0; n < fsstats.m_numDecisions_frequency.size(); ++n) {
     if (fsstats.m_numDecisions_frequency[n] > 0) {
@@ -447,6 +449,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
       cms->fillInMatches(&miniIndex);
 
       if(cms->anyNonMatched()) {
+        fsstats.m_logged_count += 1;
         if (fsstats.m_logger) {
           fsstats.m_logger->log(mcl, cl, false, nullptr);
         }
@@ -458,17 +461,26 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
       //   RSTAT_CTR_INC("fw subsumption impossible due to weight");
       // }
 
-      RSTAT_CTR_INC("MLSubsumption Calls");
-      bool isSubsumed =
-        MLMatcher::canBeMatched(mcl,cl,cms->_matches,0)
-        && ColorHelper::compatible(cl->color(), mcl->color());
+      int isSubsumed = -1;
+      try {
+        RSTAT_CTR_INC("MLSubsumption Calls");
+        isSubsumed =
+          MLMatcher::canBeMatched(mcl,cl,cms->_matches,0)
+          && ColorHelper::compatible(cl->color(), mcl->color());
+      }
+      catch(...) {
+        std::cerr << "BIG SUBSUMPTION INTERRUPTED BY EXCEPTION!!! (time limit?)" << std::endl;
+        throw;
+      }
 
+      fsstats.m_logged_count += 1;
       if (fsstats.m_logger) {
         fsstats.m_logger->log(mcl, cl, isSubsumed, nullptr);
       }
 
-/*
+      /*
       auto stats = MLMatcher::getStaticStats();
+      fsstats.m_logged_count += 1;
       if (fsstats.m_logger) {
         fsstats.m_logger->log(mcl, cl, isSubsumed, &stats);
       }
