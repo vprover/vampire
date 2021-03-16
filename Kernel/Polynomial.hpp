@@ -147,6 +147,7 @@ struct Monom
   Monom(MonomFactors<Number> factors) : Monom(Numeral(1), perfect(std::move(factors))) {}
 
   static Monom zero();
+  bool isZero() const;
 
   Option<Variable> tryVar() const;
   Option<Numeral> tryNumeral() const;
@@ -270,6 +271,16 @@ public:
    */
   template<class Number> 
   Perfect<Polynom<Number>> wrapPoly() const;
+  
+  /** 
+   * Turns this PolyNf term into a typed polynom of sort Number.
+   * this must have the same sort as Number. 
+   * If this is already a polynom it will just be downcasted, 
+   * otherwise (when it is a Variable, or a FuncTerm) it will be 
+   * wrapped in a polynom.
+   */
+  template<class Number> 
+  Monom<Number> wrapMonom() const;
   
 
   /** if this PolyNf is a numeral, the numeral is returned */
@@ -578,7 +589,16 @@ template<class Number>
 Monom<Number> Monom<Number>::zero() 
 { 
   static Monom p = Monom(Numeral(0), perfect(MonomFactors<Number>()));
+  ASS(p.isZero()) 
   return p; 
+}
+
+template<class Number>
+bool Monom<Number>::isZero() const
+{ 
+  auto out = Numeral(0) == this->numeral;
+  ASS(!out || this->factors->nFactors() == 0)
+  return out; 
 }
 
 template<class Number>
@@ -794,6 +814,12 @@ Perfect<Polynom<Number>> PolyNf::wrapPoly() const
   }
 }
 
+template<class Number> 
+Monom<Number> PolyNf::wrapMonom() const
+{
+  return this->wrapPoly<Number>()->tryMonom() || [&]() -> Monom<Number> { return Monom<Number>(*this); };
+}
+
 template<class Number>
 Option<typename Number::ConstantType> PolyNf::tryNumeral() const
 { 
@@ -964,10 +990,16 @@ std::ostream& operator<<(std::ostream& out, const MonomFactors<Number>& self)
     out << "1";
   } else {
     auto iter  = self._factors.begin();
-    out << *iter;
+    auto write = [&](MonomFactor<Number> const& f) { 
+      if (f.tryPolynom().isSome()) 
+        out << "(" << f << ")";
+      else out << f;
+    };
+    write(*iter);
     iter++;
     for (; iter != self._factors.end(); iter++) {
-      out << " " << *iter;
+      out << " ";
+      write(*iter);
     }
   }
   return out;
@@ -994,19 +1026,20 @@ TermList MonomFactors<Number>::denormalize(TermList* results)  const
     return Number::one();
   } else {
 
-    auto powerTerm = [](TermList t, int pow) -> TermList {
-      ASS(pow > 0)
-      TermList out = t;
-      for (int i = 1; i < pow; i++) {
+    auto prependPowerTerm = [](TermList t, int pow, TermList tail) -> TermList {
+      TermList out = tail;
+      for (int i = 0; i < pow; i++) {
         out = Number::mul(t,out);
       }
       return out;
     };
 
-    TermList out = powerTerm(results[0], _factors[0].power);
+    auto end = nFactors() - 1;
+    ASS(_factors[end].power > 0)
+    TermList out = prependPowerTerm(results[end], _factors[end].power - 1, results[end]);
 
     for (unsigned i = 1; i < nFactors(); i++) {
-      out = Number::mul(out, powerTerm(results[i], _factors[i].power));
+      out = prependPowerTerm(results[end - i], _factors[end - i].power, out);
     }
 
     return out;

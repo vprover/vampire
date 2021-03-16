@@ -41,7 +41,7 @@
 #include "Kernel/InequalityNormalizer.hpp"
 #include "Indexing/TermIndexingStructure.hpp"
 
-#define DEBUG(...) // DBG(__VA_ARGS__)
+#define DEBUG(...) //DBG(__VA_ARGS__)
 
 using Kernel::InequalityLiteral;
 namespace Indexing {
@@ -214,6 +214,7 @@ VirtualIterator<Monom<NumTraits>> InequalityResolution::maxTerms(InequalityLiter
   }
   return pvi(ownedArrayishIterator(std::move(max))); 
 }
+#define OVERFLOW_SAFE 1
 
 template<class NumTraits>
 ClauseIterator InequalityResolution::generateClauses(Clause* cl1, Literal* lit1_) const
@@ -261,10 +262,16 @@ ClauseIterator InequalityResolution::generateClauses(Clause* cl1, Literal* lit1_
                     auto& subs = *res.substitution;
 
                     auto cl2   = res.clause;
-                    auto term2 = normalizeTerm(TypedTermList(res.term, NumTraits::sort))
-                                  .downcast<NumTraits>().unwrap()
-                                  ->tryMonom().unwrap()
-                                  .factors;
+                    auto term2 =
+                      normalizeTerm(TypedTermList(res.term, NumTraits::sort))
+#if OVERFLOW_SAFE
+                        /* the term might also be a polynom if we for example can't multily out 2 * (k + x) 
+                          * to 2k + 2x because 2k would overflow */
+                        .wrapMonom<NumTraits>() 
+#else
+                        .downcast<NumTraits>().unwrap()->tryMonom().unwrap()
+#endif
+                        .factors;
                     auto lit2_ = res.literal;
                     auto lit2  = this->normalizer().normalize<NumTraits>(lit2_).unwrap();
                     //   ^^^^ ~=  num2 * term2 + rest2 >= 0

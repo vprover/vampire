@@ -281,16 +281,38 @@ TEST_GENERATION_WITH_SUGAR(normalization03,
       .premiseRedundant(false)
     )
 
-// only for integers (which we r using here)
 TEST_GENERATION_WITH_SUGAR(bug01,
     SUGAR(Real),
     Generation::TestCase()
       .indices(indices())
-      .input   (  clause({r(x, y), selected( (x + -y > 0) ) }) )
-      .context ({ clause({     a >  0 }) })
+      .input   (  clause({r(x, y), selected( (f(x) + -f(y) > 0) ) }) )
+      .context ({ clause({     f(a) >  0 }) })
       //                                      (y - 1 > 0) 
       .expected(exactly(
-            clause({     x > 0, r(x, a) })
+            clause({     f(x) > 0, r(x, a) })
+      ))
+      .premiseRedundant(false)
+    )
+
+TEST_GENERATION_WITH_SUGAR(bug02,
+    SUGAR(Real),
+    Generation::TestCase()
+      .indices(indices())
+      .input   (  clause({ selected( 3 +  a > 0 ) })  )
+      .context ({ clause({           0 + -a > 0   }) })
+      .expected(exactly(
+      ))
+      .premiseRedundant(false)
+    )
+
+TEST_GENERATION_WITH_SUGAR(bug03,
+    SUGAR(Real),
+    Generation::TestCase()
+      .indices(indices())
+      .input   (  clause({ selected( num(2) * (1073741824 * a + 536870912) > 0 ) })  )
+      .context ({ clause({ num(-1) * num(2) * (1073741824 * a + 536870912) > 0   }) })
+      .expected(exactly(
+          clause({ num(0) > 0 })
       ))
       .premiseRedundant(false)
     )

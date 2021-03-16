@@ -440,6 +440,7 @@ TEST_FUN(lakbo_test01) {
 
 TEST_FUN(lakbo_bug01) {
   DECL_DEFAULT_VARS
+  DECL_VAR(x0, 0); DECL_VAR(x1, 1); DECL_VAR(x2, 2); DECL_VAR(x3, 3);
   NUMBER_SUGAR(Int)
   DECL_FUNC (f, {Int,Int}, Int)
   DECL_CONST(a, Int)
@@ -448,16 +449,45 @@ TEST_FUN(lakbo_bug01) {
 
   // lG300($sum(f21,sLF0),f22)
   // f($sum(a,b),c)
-  auto ord = kbo(weights(
-      make_pair(f, 1u),
-      make_pair(a, 1u),
-      make_pair(b, 1u),
-      make_pair(c, 1u),
-      make_pair(add, 1u)
-    ), weights());
+  auto ord = kbo(weights( make_pair(f, 1u)
+                        , make_pair(a, 1u)
+                        , make_pair(b, 1u)
+                        , make_pair(c, 1u)
+                        , make_pair(add, 1u)
+                        , make_pair(mul, 1u)
+                        )
+                , weights());
 
   check(ord, x, Incomp, a); 
 
   check(ord, f(a + b, c), Equal , f(a + b, c));
   check(ord, f(b + a, c), Incomp, f(a + b, c));
+
+  check(ord,  f(x0 * (x1 * x3), x0 * (x1 * x2)),
+        Less, f(x0 * (x1 * x2 + x1 * x3), x0 * (x1 * x2)) );
 }
+
+// TEST_FUN(lakbo_bug02) {
+//   DECL_DEFAULT_VARS
+//   NUMBER_SUGAR(Int)
+//   DECL_FUNC (f, {Int,Int}, Int)
+//   DECL_CONST(a, Int)
+//   DECL_CONST(b, Int)
+//   DECL_CONST(c, Int)
+//
+//
+//   // lG300($sum(f21,sLF0),f22)
+//   // f($sum(a,b),c)
+//   auto ord = kbo(weights(
+//       make_pair(f, 1u),
+//       make_pair(a, 1u),
+//       make_pair(b, 1u),
+//       make_pair(c, 1u),
+//       make_pair(add, 1u)
+//     ), weights());
+//
+//   check(ord, x, Incomp, a); 
+//
+//   check(ord, f(a + b, c), Equal , f(a + b, c));
+//   check(ord, f(b + a, c), Incomp, f(a + b, c));
+// }
