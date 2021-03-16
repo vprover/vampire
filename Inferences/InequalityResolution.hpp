@@ -92,6 +92,7 @@ private:
   template<class NumTraits> VirtualIterator<Monom<NumTraits>> maxTerms(InequalityLiteral<NumTraits> const& lit) const;
   template<class NumTraits> ClauseIterator generateClauses(Clause* clause, Literal* lit) const;
 
+
   InequalityNormalizer const& normalizer() const { return _index->normalizer(); }
   Ordering* ord() const { return _index->ord(); }
   InequalityResolutionIndex* _index;

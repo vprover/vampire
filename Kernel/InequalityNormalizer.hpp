@@ -94,8 +94,8 @@ namespace Kernel {
       : _eval(eval) {  }
 
     template<class NumTraits> Option<InequalityLiteral<NumTraits>> normalize(Literal* lit) const;
-    template<class NumTraits> Literal* denormalize(InequalityLiteral<NumTraits> const& lit) const;
   };
+
 
 
 }
@@ -110,7 +110,7 @@ namespace Kernel {
   Option<InequalityLiteral<NumTraits>> InequalityNormalizer::normalize(Literal* lit) const
   {
     CALL("InequalityLiteral<NumTraits>::fromLiteral(Literal*)")
-    DEBUG("in: ", *lit, "(", NumTraits::name(), ")")
+    DEBUG("in: ", *lit, " (", NumTraits::name(), ")")
 
     auto impl = [&]() {
 

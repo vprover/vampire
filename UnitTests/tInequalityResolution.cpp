@@ -307,7 +307,8 @@ TEST_GENERATION_WITH_SUGAR(bug02,
       .premiseRedundant(false)
     )
 
-TEST_GENERATION_WITH_SUGAR(bug03,
+
+TEST_GENERATION_WITH_SUGAR(bug_overflow_01,
     SUGAR(Real),
     Generation::TestCase()
       .indices(indices())
@@ -315,6 +316,20 @@ TEST_GENERATION_WITH_SUGAR(bug03,
       .context ({ clause({ num(-1) * num(2) * (1073741824 * a + 536870912) > 0   }) })
       .expected(exactly(
           clause({ num(0) > 0 })
+      ))
+      .premiseRedundant(false)
+    )
+
+  // 2 f13(f14, 1) 1073741824
+
+  
+TEST_GENERATION_WITH_SUGAR(bug_overflow_02,
+    SUGAR(Int),
+    Generation::TestCase()
+      .indices(indices())
+      .input   (  clause({ selected( 0 < 2 * (f(a) * num(1073741824)) ) })  )
+      .context ({ clause({                                  3  + -a > 0   }) })
+      .expected(exactly(
       ))
       .premiseRedundant(false)
     )

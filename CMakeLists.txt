@@ -788,6 +788,7 @@ set(UNIT_TESTS
     UnitTests/tImplicationSetClosure.cpp
     UnitTests/tUnificationWithAbstraction.cpp
     UnitTests/tGaussianElimination.cpp
+    UnitTests/tInequalityNormalizer.cpp
     UnitTests/tInequalityResolution.cpp
     UnitTests/tInequalityResolutionIndex.cpp
     UnitTests/tArithmeticSubtermGeneralization.cpp

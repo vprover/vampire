@@ -287,8 +287,12 @@ ClauseIterator InequalityResolution::generateClauses(Clause* cl1, Literal* lit1_
                     //                ==> s + t > t - u 
                     //                ==> s + u > 0
 
+                    DBGE(*cl2);
+                    DBGE(lit2);
+                    DBGE(term2);
                     auto num2 = lit2.term()
                                     .iterSummands()
+                                    .map([&](Monom m) { DBGE(m.factors); return m; })
                                     .find([&](Monom m) { return m.factors == term2; })
                                     .unwrap()
                                     .numeral;

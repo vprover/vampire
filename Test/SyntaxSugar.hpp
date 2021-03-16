@@ -336,7 +336,10 @@ inline TermSugar fool(bool b)
 
 ////////////////////////// operators to create terms ////////////////////////// 
 
+inline TermSugar operator-(TermSugar x) { return syntaxSugarGlobals().minus(x); }
+
 inline TermSugar operator+(TermSugar lhs, TermSugar rhs)  { return syntaxSugarGlobals().add(lhs, rhs); }  
+inline TermSugar operator-(TermSugar lhs, TermSugar rhs)  { return lhs + -rhs; }  
 inline TermSugar operator*(TermSugar lhs, TermSugar rhs)  { return syntaxSugarGlobals().mul(lhs, rhs); }  
 inline TermSugar operator/(TermSugar lhs, TermSugar rhs)  { return syntaxSugarGlobals().div(lhs, rhs); }  
 
@@ -362,7 +365,6 @@ __BIN_FUNC_QUOTIENT_REMAINDER(F)
 #undef __BIN_FUNC_QUOTIENT_REMAINDER
 
 
-inline TermSugar operator-(TermSugar x) { return syntaxSugarGlobals().minus(x); }
 
 ////////////////////////// operators to create literals ////////////////////////// 
 

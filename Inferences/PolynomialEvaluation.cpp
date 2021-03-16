@@ -246,7 +246,7 @@ Polynom<Number> PolynomialEvaluation::simplifySummation(Stack<Monom<Number>> sum
   CALL("simplifySummation(Stack<Monom<Number>>)") 
   using Monom   = Monom<Number>;
   using Polynom = Polynom<Number>;
-  try {
+  // try {
 
     // then we sort them by their monom, in order to add up the coefficients efficiently
     std::sort(summands.begin(), summands.end());
@@ -259,7 +259,15 @@ Polynom<Number> PolynomialEvaluation::simplifySummation(Stack<Monom<Number>> sum
         auto numeral = monom.numeral;
         auto factors = monom.factors;
         while ( i + 1 < summands.size() && summands[i+1].factors == factors ) {
-          numeral = numeral + summands[i+1].numeral;
+          try {
+            numeral = numeral + summands[i+1].numeral;
+          } catch (MachineArithmeticException&) {
+            auto max = std::max(numeral, summands[i+1].numeral);
+            auto min = std::min(numeral, summands[i+1].numeral);
+            summands[offs++] = Monom(max, factors);
+            numeral = decltype(numeral)(0);
+            summands[i+1].numeral = min;
+          }
           i++;
         }
         if (numeral != Number::zeroC) 
@@ -271,9 +279,9 @@ Polynom<Number> PolynomialEvaluation::simplifySummation(Stack<Monom<Number>> sum
     auto poly = Polynom(std::move(summands));
     poly.integrity();
     return poly;
-  } catch (ArithmeticException&) { 
-    return Polynom(std::move(summands));
-  }
+  // } catch (Div&) { 
+  //   return Polynom(std::move(summands));
+  // }
 }
 
 template Polynom< IntTraits> PolynomialEvaluation::simplifySummation< IntTraits>(Stack<Monom< IntTraits>> summands);
@@ -287,40 +295,36 @@ Polynom<Number> simplifyPoly(Polynom<Number> const& in, PolyNf* simplifiedArgs)
 { 
   CALL("simplify(Polynom<Number>const&, PolyNf* simplifiedArgs)") 
   using Monom   = Monom<Number>;
-  try {
 
-    // first we simplify all the monoms containted in this polynom
-    Stack<Monom> out;
-    {
-      auto offs = 0;
-      for (unsigned i = 0; i < in.nSummands(); i++) {
-        auto monom  = in.summandAt(i);
-        auto simpl = simplifyMonom(monom, &simplifiedArgs[offs]);
-        if (simpl.isZero()) {
-          /* we don't add it */
-        } else if (simpl.factors->nFactors() == 1 && simpl.factors->factorAt(0).tryPolynom().isSome()) {
-          auto origSize = out.size(); 
-          try {
-            auto poly = simpl.factors->factorAt(0).tryPolynom().unwrap();
-            for (auto fac : poly->iterSummands()) {
-              fac.numeral = fac.numeral * simpl.numeral;
-              ASS(fac.numeral != Number::zeroC)
-              out.push(fac);
-            }
-          } catch (ArithmeticException&) {
-            out.truncate(origSize);
-            out.push(simpl);
+  // first we simplify all the monoms containted in this polynom
+  Stack<Monom> out;
+  {
+    auto offs = 0;
+    for (unsigned i = 0; i < in.nSummands(); i++) {
+      auto monom  = in.summandAt(i);
+      auto simpl = simplifyMonom(monom, &simplifiedArgs[offs]);
+      if (simpl.isZero()) {
+        /* we don't add it */
+      } else if (simpl.factors->nFactors() == 1 && simpl.factors->factorAt(0).tryPolynom().isSome()) {
+        auto origSize = out.size(); 
+        try {
+          auto poly = simpl.factors->factorAt(0).tryPolynom().unwrap();
+          for (auto fac : poly->iterSummands()) {
+            fac.numeral = fac.numeral * simpl.numeral;
+            ASS(fac.numeral != Number::zeroC)
+            out.push(fac);
           }
-        } else {
+        } catch (ArithmeticException&) {
+          out.truncate(origSize);
           out.push(simpl);
         }
-        offs += monom.factors->nFactors();
+      } else {
+        out.push(simpl);
       }
+      offs += monom.factors->nFactors();
     }
-    return PolynomialEvaluation::simplifySummation(std::move(out));
-  } catch (ArithmeticException&) { 
-    return in.replaceTerms(simplifiedArgs);
   }
+  return PolynomialEvaluation::simplifySummation(std::move(out));
 }
 
 
@@ -333,6 +337,7 @@ Monom<Number> simplifyMonom(Monom<Number> const& in, PolyNf* simplifiedArgs)
 
   using Numeral      = typename Number::ConstantType;
   using Monom        = Monom<Number>;
+  using Polynom      = Polynom<Number>;
   using MonomFactor  = MonomFactor<Number>;
   using MonomFactors = MonomFactors<Number>;
 
@@ -360,7 +365,19 @@ Monom<Number> simplifyMonom(Monom<Number> const& in, PolyNf* simplifiedArgs)
     auto c = arg.term.template tryNumeral<Number>();
     if (c.isSome()) {
       // arg is a number constant
-      numeral = numeral * pow(c.unwrap(), arg.power);
+      try {
+        auto num2 = pow(c.unwrap(), arg.power);
+        try {
+          numeral = numeral * num2;
+        } catch (MachineArithmeticException&) {
+          auto min = std::min(numeral, num2);
+          auto max = std::max(numeral, num2);
+          args[offs++] = MonomFactor(PolyNf(AnyPoly(perfect(Polynom(max)))), 1);
+          numeral = min;
+        }
+      } catch (MachineArithmeticException&) {
+        args[offs++] = arg;
+      }
     } else {
       // arg is a non-number term
       auto term  = arg.term;
