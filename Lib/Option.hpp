@@ -299,11 +299,26 @@ public:
   /**                                                                                                         \
    * Returns this, if this is Some, or uses the closure to create an alternative option if this is None.      \
    */                                                                                                         \
-  template<class Clsr>                                                                                        \
-  Option orElse(Clsr clsr) REF {                                                                              \
-    return this->isNone() ? clsr()                                                                            \
-                          : *this;                                                                            \
-  }                                                                                                           \
+  template<class Clsr,                                                                                        \
+           typename std::enable_if<std::is_same< typename std::result_of<Clsr()>::type                        \
+                                      , Option                                                                \
+                                      >::value                                                                \
+                         , bool                                                                               \
+                         >::type = true                                                                       \
+          >                                                                                                   \
+  auto orElse(Clsr clsr) REF -> Option                                                                        \
+  { return this->isNone() ? clsr() : *this; }                                                                 \
+                                                                                                              \
+  /** Returns the value of this, if this is Some, or uses the closure to create a value othewise. */          \
+  template<class Clsr,                                                                                        \
+           typename std::enable_if<std::is_same< typename std::result_of<Clsr()>::type                        \
+                                      , A                                                                     \
+                                      >::value                                                                \
+                         , bool                                                                               \
+                         >::type = true                                                                       \
+          >                                                                                                   \
+  auto orElse(Clsr clsr) REF -> A                                                                             \
+  { return this->isSome() ? this->unwrap() : clsr(); }                                                         \
                                                                                                               \
    /**                                                                                                        \
    * applies a function to the value of this closure if ther is one. the function is expected to return       \
@@ -357,8 +372,8 @@ T operator||(Option<T> t, T c)
 { return t.unwrapOr(std::move(c)); }
 
 template<class T, class Clsr>
-Option<T> operator||(Option<T> t, Clsr c)
-{ return t.orElse(c); }
+auto operator||(Option<T> t, Clsr f) -> decltype(f())
+{ return t.orElse(f); }
 
 template<class T>
 Option<T> operator||(Option<T> t, Option<T> c)

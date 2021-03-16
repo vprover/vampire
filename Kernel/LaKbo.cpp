@@ -3,6 +3,7 @@
 #include "NumTraits.hpp"
 #include "Kernel/PolynomialNormalizer.hpp"
 
+#define DEBUG(...) // DBG(__VA_ARGS__)
 
 namespace Kernel {
 
@@ -364,24 +365,31 @@ Literal* normalizeLiteral(Literal* lit)
 LaKbo::Result LaKbo::comparePredicates(Literal* l1_, Literal* l2_) const 
 {
   CALL("LaKbo::compare(Literal*, Literal*)");
-  if (l1_ == l2_ || Literal::complementaryLiteral(l1_) == l2_) return EQUAL;
+  auto inner = [&]() {
+    if (l1_ == l2_ || Literal::complementaryLiteral(l1_) == l2_) return EQUAL;
 
-  auto l1 = normalizeLiteral(l1_);
-  auto l2 = normalizeLiteral(l2_);
-  auto res = TraversalResult::initial(); 
-  if (l1->functor() == l2->functor()) {
-    traverseLex(res, l1->args(), l2->args());
-  } else {
-    res.weight_balance -= predicateWeight(l1->functor());
-    traverse(res, l1->args(), -1);
-    res.weight_balance += predicateWeight(l2->functor());
-    traverse(res, l2->args(),  1);
-    res.side_condition = Int::compare(predicatePrecedence(l1->functor()), 
-                                      predicatePrecedence(l2->functor())) == Lib::LESS ? Result::LESS : Result::GREATER;
-  }
-  auto out = toOrdering(res);
-  return out == EQUAL ? INCOMPARABLE  // <- only equal modulo AC+numeral
-                      : out;
+    auto l1 = normalizeLiteral(l1_);
+    auto l2 = normalizeLiteral(l2_);
+    auto res = TraversalResult::initial(); 
+    if (l1->functor() == l2->functor()) {
+      traverseLex(res, l1->args(), l2->args());
+    } else {
+      res.weight_balance -= predicateWeight(l1->functor());
+      traverse(res, l1->args(), -1);
+      res.weight_balance += predicateWeight(l2->functor());
+      traverse(res, l2->args(),  1);
+      res.side_condition = Int::compare(predicatePrecedence(l1->functor()), 
+                                        predicatePrecedence(l2->functor())) == Lib::LESS ? Result::LESS : Result::GREATER;
+    }
+    auto out = toOrdering(res);
+    return out == EQUAL ? INCOMPARABLE  // <- only equal modulo AC+numeral
+                        : out;
+  };
+  DEBUG("lhs: ", *l1_)
+  DEBUG("rhs: ", *l2_)
+  auto out = inner();
+  DEBUG("out: ", out)
+  return out;
 }
 
 LaKbo::Result LaKbo::toOrdering(TraversalResult const& res) const
@@ -435,14 +443,21 @@ LaKbo::TraversalResult LaKbo::TraversalResult::initial()
 Ordering::Result LaKbo::compare(TermList t1_, TermList t2_) const 
 {
   CALL("LaKbo::compare")
-  if (t1_ == t2_) return Result::EQUAL;
-  auto norm = [](TermList t) { return t.isVar() ? t : normalizeTerm(t.term()).denormalize(); };
-  auto res = TraversalResult::initial(); 
-  auto t1 = norm(t1_), t2 = norm(t2_);
-  traverse(res, t1, t2);
-  auto out = toOrdering(res);
-  return out == EQUAL ? INCOMPARABLE  // <- only equal modulo AC+numeral
-                      : out;
+  auto inner = [&]() {
+    if (t1_ == t2_) return Result::EQUAL;
+    auto norm = [](TermList t) { return t.isVar() ? t : normalizeTerm(t.term()).denormalize(); };
+    auto res = TraversalResult::initial(); 
+    auto t1 = norm(t1_), t2 = norm(t2_);
+    traverse(res, t1, t2);
+    auto out = toOrdering(res);
+    return out == EQUAL ? INCOMPARABLE  // <- only equal modulo AC+numeral
+                        : out;
+  };
+  DEBUG("lhs: ", t1_)
+  DEBUG("rhs: ", t2_)
+  auto out = inner();
+  DEBUG("out: ", out)
+  return out;
 }
 
 void LaKbo::show(ostream& out) const 

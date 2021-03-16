@@ -39,7 +39,7 @@ Literal* createLiteral(Literal* orig, PolyNf* evaluatedArgs) {
   } else {
     auto arity = orig->arity();
     Stack<TermList> args(arity);
-    for (int i = 0; i < arity; i++) {
+    for (unsigned i = 0; i < arity; i++) {
       args.push(evaluatedArgs[i].denormalize());
     }
     return Literal::create(orig, args.begin());
@@ -50,7 +50,7 @@ PolynomialEvaluation::Result PolynomialEvaluation::simplifyLiteral(Literal* lit)
 {
   Stack<PolyNf> terms(lit->arity());
   auto anyChange = false;
-  for (int i = 0; i < lit->arity(); i++) {
+  for (unsigned i = 0; i < lit->arity(); i++) {
     auto term = *lit->nthArgument(i);
     auto norm = PolyNf::normalize(TypedTermList(term, SortHelper::getArgSort(lit, i)));
     auto ev = evaluate(norm);
@@ -296,13 +296,20 @@ Polynom<Number> simplifyPoly(Polynom<Number> const& in, PolyNf* simplifiedArgs)
       for (unsigned i = 0; i < in.nSummands(); i++) {
         auto monom  = in.summandAt(i);
         auto simpl = simplifyMonom(monom, &simplifiedArgs[offs]);
-        if (simpl.numeral == Number::zeroC) {
+        if (simpl.isZero()) {
           /* we don't add it */
         } else if (simpl.factors->nFactors() == 1 && simpl.factors->factorAt(0).tryPolynom().isSome()) {
-          auto poly = simpl.factors->factorAt(0).tryPolynom().unwrap();
-          for (auto fac : poly->iterSummands()) {
-            fac.numeral = fac.numeral * simpl.numeral;
-            out.push(fac);
+          auto origSize = out.size(); 
+          try {
+            auto poly = simpl.factors->factorAt(0).tryPolynom().unwrap();
+            for (auto fac : poly->iterSummands()) {
+              fac.numeral = fac.numeral * simpl.numeral;
+              ASS(fac.numeral != Number::zeroC)
+              out.push(fac);
+            }
+          } catch (ArithmeticException&) {
+            out.truncate(origSize);
+            out.push(simpl);
           }
         } else {
           out.push(simpl);
@@ -310,7 +317,6 @@ Polynom<Number> simplifyPoly(Polynom<Number> const& in, PolyNf* simplifiedArgs)
         offs += monom.factors->nFactors();
       }
     }
-
     return PolynomialEvaluation::simplifySummation(std::move(out));
   } catch (ArithmeticException&) { 
     return in.replaceTerms(simplifiedArgs);
@@ -367,7 +373,6 @@ Monom<Number> simplifyMonom(Monom<Number> const& in, PolyNf* simplifiedArgs)
         args[offs++] = MonomFactor(term, power);
     }
   }
-
 
   if (numeral == Numeral(0)) {
     return Monom::zero();
