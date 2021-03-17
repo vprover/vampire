@@ -718,9 +718,9 @@ vvector<SMTSubsumption::SubsumptionInstance> getOldFormatSubsumptionInstances(Un
     ASS_NEQ(side_premise, main_premise);
 
     instances.push_back({
-      .number = k.first,
       .side_premise = side_premise,
       .main_premise = main_premise,
+      .number = k.first,
       .subsumed = k.second,
     });
   }
@@ -835,9 +835,9 @@ vvector<SMTSubsumption::SubsumptionInstance> getSubsumptionInstances(UnitList co
       USER_ERROR("expected <is_subsumed>");
     }
     instances.push_back({
-        .number = ++number,
         .side_premise = clauses.at(side_premise_number),
         .main_premise = clauses.at(main_premise_number),
+        .number = ++number,
         .subsumed = is_subsumed,
     });
   }

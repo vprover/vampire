@@ -2856,6 +2856,7 @@ struct FwSubsumptionInstance
 {
   struct SidePremise {
     Kernel::Clause* side_premise; // also called "base clause"
+    unsigned int number;
     bool subsumed;                // expected result
   };
   Kernel::Clause* main_premise;  // also called "instance clause"
@@ -2875,7 +2876,13 @@ void bench_smt3_fwrun(benchmark::State& state, vvector<FwSubsumptionInstance> co
       // Test side premises
       for (auto const& instance : fw_instance.side_premises) {
         bool const subsumed = impl.setupSubsumption(instance.side_premise) && impl.solve();
-        if (subsumed != instance.subsumed) { state.SkipWithError("Wrong result!"); return; }
+        if (subsumed != instance.subsumed) {
+          // std::cout << "Wrong result for instance: " << instance.number << std::endl;
+          // std::cout << "             side_premise: " << instance.side_premise->toString() << std::endl;
+          // std::cout << "             main_premise: " << fw_instance.main_premise->toString() << std::endl;
+          state.SkipWithError("Wrong result!");
+          return;
+        }
         if (subsumed) { count++; break; }  // NOTE: since we record subsumption log from a real fwsubsumption run, this will only happen at the last iteration anyway.
       }
     }
@@ -2960,12 +2967,12 @@ void ProofOfConcept::benchmark_run(vvector<SubsumptionInstance> instances)
       fw_instances.back().main_premise = instance.main_premise;
     }
     ASS_EQ(fw_instances.back().main_premise, instance.main_premise);
-    fw_instances.back().side_premises.push_back({instance.side_premise, instance.subsumed});
+    fw_instances.back().side_premises.push_back({instance.side_premise, instance.number, instance.subsumed});
   }
 
   vvector<char const*> args = {
     "vampire-sbench-run",
-    // "--benchmark_repetitions=3",  // Enable this to get mean/median/stddev
+    "--benchmark_repetitions=3",  // Enable this to get mean/median/stddev
     // "--benchmark_display_aggregates_only=true",
     // // "--benchmark_report_aggregates_only=true",
     // // "--help",
