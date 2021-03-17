@@ -91,7 +91,7 @@ namespace Kernel {
     InequalityNormalizer(PolynomialEvaluation eval) 
       : _eval(eval) {  }
 
-    template<class NumTraits> Option<InequalityLiteral<NumTraits>> normalize(Literal* lit) const;
+    template<class NumTraits> Option<MaybeOverflow<InequalityLiteral<NumTraits>>> normalize(Literal* lit) const;
   };
 
 
@@ -105,7 +105,7 @@ namespace Kernel {
 namespace Kernel {
 
   template<class NumTraits>
-  Option<InequalityLiteral<NumTraits>> InequalityNormalizer::normalize(Literal* lit) const
+  Option<MaybeOverflow<InequalityLiteral<NumTraits>>> InequalityNormalizer::normalize(Literal* lit) const
   {
     CALL("InequalityLiteral<NumTraits>::fromLiteral(Literal*)")
     DEBUG("in: ", *lit, " (", NumTraits::name(), ")")
@@ -114,7 +114,7 @@ namespace Kernel {
 
       constexpr bool isInt = std::is_same<NumTraits, IntTraits>::value;
 
-      using Opt = Option<InequalityLiteral<NumTraits>>;
+      using Opt = Option<MaybeOverflow<InequalityLiteral<NumTraits>>>;
 
       auto f = lit->functor();
       if (!theory->isInterpretedPredicate(f))
@@ -171,8 +171,8 @@ namespace Kernel {
       ASS(!isInt || strict)
       auto tt = TypedTermList(t, NumTraits::sort);
       auto norm = Kernel::normalizeTerm(tt);
-      auto simpl = _eval.evaluate(norm).unwrapOr(norm);
-      return Opt(InequalityLiteral<NumTraits>(simpl.wrapPoly<NumTraits>(), strict));
+      auto simpl = _eval.evaluate(norm);
+      return Opt(maybeOverflow(InequalityLiteral<NumTraits>((simpl.value || norm).wrapPoly<NumTraits>(), strict), simpl.overflowOccurred));
     };
     auto out = impl();
     DEBUG("out: ", out);

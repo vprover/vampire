@@ -21,8 +21,27 @@
 
 #include "InferenceEngine.hpp"
 
+template<class C>
+struct MaybeOverflow
+{
+  C value;
+  bool overflowOccurred;
+
+  MaybeOverflow(MaybeOverflow&&) = default;
+  MaybeOverflow& operator=(MaybeOverflow&&) = default;
+
+  template<class F>
+  auto map(F f)  -> MaybeOverflow<decltype(f(value))>
+  { return { .value = f(value), .overflowOccurred = overflowOccurred, }; }
+};
+
+template<class C>
+static MaybeOverflow<C> maybeOverflow(C simplified, bool overflowOccurred) 
+{ return { .value = simplified, .overflowOccurred = overflowOccurred, }; }
+
 namespace Inferences 
 {
+
 
 class PolynomialEvaluation
 : public SimplifyingGeneratingLiteralSimplification
@@ -34,24 +53,24 @@ public:
   PolynomialEvaluation(Ordering& ordering);
   virtual ~PolynomialEvaluation();
 
-  Option<PolyNf> evaluate(PolyNf in) const;
+  MaybeOverflow<Option<PolyNf>> evaluate(PolyNf in) const;
   template<class NumTraits>
   Option<Perfect<Polynom<NumTraits>>> evaluate(Perfect<Polynom<NumTraits>> in) const
   { return evaluate(PolyNf(in)).map([](PolyNf p) { return p.unwrap<Polynom<NumTraits>>(); }); }
 
   template<class NumTraits>
-  static Polynom<NumTraits> simplifySummation(Stack<Monom<NumTraits>>);
+  static Polynom<NumTraits> simplifySummation(Stack<Monom<NumTraits>>, bool& overflow);
 private:
 
   Result simplifyLiteral(Literal*) override;
 
-  Option<PolyNf> evaluate(TermList in, unsigned sortNumber) const;
-  Option<PolyNf> evaluate(Term* in) const;
-  Option<PolyNf> evaluate(TypedTermList in) const;
+  MaybeOverflow<Option<PolyNf>> evaluate(TermList in, unsigned sortNumber) const;
+  MaybeOverflow<Option<PolyNf>> evaluate(Term* in) const;
+  MaybeOverflow<Option<PolyNf>> evaluate(TypedTermList in) const;
 
   Option<Result> tryEvalPredicate(Literal* orig, PolyNf* evaluatedArgs) const;
 
-  PolyNf evaluateStep(Term* orig, PolyNf* evaluatedArgs) const;
+  MaybeOverflow<PolyNf> evaluateStep(Term* orig, PolyNf* evaluatedArgs) const;
 };
 
 

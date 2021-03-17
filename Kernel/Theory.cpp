@@ -111,7 +111,7 @@ IntegerConstantType IntegerConstantType::remainderE(const IntegerConstantType& n
   CALL("IntegerConstantType::remainderE");
 
   if (num._val == 0) {
-    throw MachineArithmeticException();
+    throw DivByZeroException();
   }
 
   if (this->_val == numeric_limits<IntegerConstantType::InnerType>::min() && num._val == -1) {
