@@ -12,9 +12,9 @@
  *
  * In summary, you are allowed to use Vampire for non-commercial
  * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
+ * or use in competitions.
  * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
+ * licence, which we will make an effort to provide.
  */
 /**
  * @file LiteralMiniIndex.hpp
@@ -41,7 +41,10 @@ class LiteralMiniIndex
 public:
   CLASS_NAME(LiteralMiniIndex);
   USE_ALLOCATOR(LiteralMiniIndex);
-  
+
+  LiteralMiniIndex();
+  void init(Clause* cl);
+
   LiteralMiniIndex(Clause* cl);
   LiteralMiniIndex(Literal* const * lits, unsigned length);
 
@@ -63,6 +66,7 @@ private:
   unsigned _cnt;
   DArray<Entry> _entries;
 
+  // TODO: name is misleading, because "base" means something different when next to "instance"  (IteratorBase would already be better)
   struct BaseIterator
   {
     BaseIterator(LiteralMiniIndex const& index, Literal* query, bool complementary)
@@ -113,33 +117,47 @@ public:
   static int badPred;*/
 
   struct InstanceIterator
-  : BaseIterator
-  {
+      : BaseIterator {
     InstanceIterator(LiteralMiniIndex const& index, Literal* base, bool complementary)
-    : BaseIterator(index, base, complementary)
-    {}
+        : BaseIterator(index, base, complementary)
+    {
+    }
 
     bool hasNext()
     {
-      CALL("LiteralMiniIndex::InstanceIterator::hasNext");
+      CALL("LiteralMiniIndex::InstanceIterator::hasNext/0");
 
-      if(_ready) { return true; }
-      while(_curr->_header==_hdr) {
-	bool prediction=_curr->_lit->couldArgsBeInstanceOf(_query);
-#if VDEBUG
-	if(MatchingUtils::match(_query, _curr->_lit, _compl)) {
-	  ASS(prediction);
-#else
-	if(prediction && MatchingUtils::match(_query, _curr->_lit, _compl)) {
-#endif
-	  _ready=true;
-	  return true;
-	}
-
-	_curr++;
+      if (_ready) {
+        return true;
+      }
+      while (_curr->_header == _hdr) {
+        if (MatchingUtils::match(_query, _curr->_lit, _compl)) {
+          _ready = true;
+          return true;
+        }
+        _curr++;
       }
       return false;
     }
+
+    template <class Binder>
+    bool hasNext(Binder& binder)
+    {
+      CALL("LiteralMiniIndex::InstanceIterator::hasNext/1");
+
+      if (_ready) {
+        return true;
+      }
+      while (_curr->_header == _hdr) {
+        if (MatchingUtils::match(_query, _curr->_lit, _compl, binder)) {
+          _ready = true;
+          return true;
+        }
+        _curr++;
+      }
+      return false;
+    }
+
     Literal* next()
     {
       return BaseIterator::next();
