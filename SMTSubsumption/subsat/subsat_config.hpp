@@ -66,6 +66,9 @@ static_assert(VDEBUG == 1, "VDEBUG and NDEBUG are not synchronized");
 #ifndef SUBSAT_VMTF_BUMP
 #define SUBSAT_VMTF_BUMP 1
 #endif
+#if !SUBSAT_VMTF_BUMP
+#error "Disabling SUBSAT_VMTF_BUMP is not yet implemented!"
+#endif
 
 #if !SUBSAT_VDOM && !SUBSAT_VMTF
 #error "At least one decision heuristic must be enabled!"
@@ -111,22 +114,7 @@ static_assert(VDEBUG == 1, "VDEBUG and NDEBUG are not synchronized");
 
 
 #include <ostream>
-static void subsat_print_config(std::ostream& os)
-{
-    os << "Features:";
-    if (SUBSAT_STANDALONE) { os << " STANDALONE"; }
-    if (VDEBUG) { os << " DEBUG"; }
-    if (SUBSAT_LOGGING_ENABLED) { os << " LOG"; }
-    if (SUBSAT_LEARN) { os << " LEARN"; }
-    if (SUBSAT_RESTART) { os << " RESTART(" << SUBSAT_RESTART_INTERVAL << ")"; }
-    if (SUBSAT_MINIMIZE) { os << " MINIMIZE"; }
-    if (SUBSAT_VDOM) { os << " VDOM"; }
-    if (SUBSAT_VMTF) { os << " VMTF"; }
-    if (SUBSAT_PHASE_SAVING) { os << " PHASE_SAVING"; }
-    if (SUBSAT_STATISTICS) { os << " STATS"; }
-    if (VDEBUG && SUBSAT_EXPENSIVE_ASSERTIONS) { os << " EXPENSIVE_ASSERTIONS"; }
-    os << '\n';
-}
+void subsat_print_config(std::ostream& os);
 
 
 #endif /* !SUBSAT_CONFIG_HPP */
