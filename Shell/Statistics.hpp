@@ -193,7 +193,8 @@ public:
   unsigned evaluationCnt;
 
   /** number of machine arithmetic overflows within the inequality resolution calculus specific rules */
-  unsigned irOverflow;
+  unsigned irOverflowApply;
+  unsigned irOverflowNorm;
 
   /** number of (proper) inner rewrites */
   unsigned innerRewrites;

@@ -56,19 +56,27 @@ bool InequalityResolutionIndex::handleLiteral(Literal* lit, Clause* c, bool addi
   /* normlizing to t >= 0 */
   auto norm_ = this->normalizer().normalize<NumTraits>(lit);
   if (norm_.isSome()) {
-    auto norm = norm_.unwrap();
-    DEBUG("literal: ", norm);
-    for (auto monom : norm.term().iterSummands()) {
-      // if (!monom.tryNumeral().isSome()) { // TODO shall we skip this?
-      if (!monom.factors->tryVar().isSome()) { // TODO shall we not skip this?
+    if (norm_.unwrap().overflowOccurred) {
+      DEBUG("skipping overflown literal: ", norm_.unwrap().value)
+      env.statistics->irOverflowNorm++;
+      /* we skip it */
 
-        auto term = monom.factors->denormalize();
-        if (adding) {
-          DEBUG("\tinserting: ", term);
-          _is->insert(term, lit, c);
-        } else {
-          DEBUG("\tremoving: ", term);
-          _is->remove(term, lit, c);
+    } else {
+      auto norm = std::move(norm_).unwrap().value;
+
+      DEBUG("literal: ", norm);
+      for (auto monom : norm.term().iterSummands()) {
+        // if (!monom.tryNumeral().isSome()) { // TODO shall we skip this?
+        if (!monom.factors->tryVar().isSome()) { // TODO shall we not skip this?
+
+          auto term = monom.factors->denormalize();
+          if (adding) {
+            DEBUG("\tinserting: ", term);
+            _is->insert(term, lit, c);
+          } else {
+            DEBUG("\tremoving: ", term);
+            _is->remove(term, lit, c);
+          }
         }
       }
     }
@@ -219,8 +227,12 @@ VirtualIterator<Monom<NumTraits>> InequalityResolution::maxTerms(InequalityLiter
 }
 #define OVERFLOW_SAFE 1
 
+#define ASSERT_NO_OVERFLOW(...)                                                                               \
+  [&]() { try { return __VA_ARGS__; }                                                                         \
+          catch (MachineArithmeticException&) { ASSERTION_VIOLATION }} }()                                    \
+
 template<class NumTraits>
-ClauseIterator InequalityResolution::generateClauses(Clause* cl1, Literal* lit1_) const
+ClauseIterator InequalityResolution::generateClauses(Clause* cl1, Literal* literal1) const
 {
   CALL("InequalityResolution::generateClauses(Clause*, Literal*) const")
   using Monom             = Monom<NumTraits>;
@@ -229,7 +241,7 @@ ClauseIterator InequalityResolution::generateClauses(Clause* cl1, Literal* lit1_
   using InequalityLiteral = InequalityLiteral<NumTraits>;
   const bool isInt        = std::is_same<NumTraits, IntTraits>::value;
 
-  auto lit1Opt = this->normalizer().normalize<NumTraits>(lit1_);
+  auto lit1Opt = this->normalizer().normalize<NumTraits>(literal1);
   if (lit1Opt.isNone()) 
     return ClauseIterator::getEmpty();
 
@@ -246,12 +258,17 @@ ClauseIterator InequalityResolution::generateClauses(Clause* cl1, Literal* lit1_
   //         k1 * rest1 + k2 * rest2 - 1 > 0 \/ C1 \/ C2
 
 
-  auto lit1 = lit1Opt.unwrap();
+  auto lit1_ = std::move(lit1Opt).unwrap();
+  if (lit1_.overflowOccurred) {
+    env.statistics->irOverflowNorm++;
+    return ClauseIterator::getEmpty();
+  }
+  auto lit1 = lit1_.value;
   //   ^^^^--> num1 * term + rest1 >= 0
 
   DEBUG("lit1: ", lit1)
   return pvi(iterTraits(maxTerms(lit1))
-    .flatMap([this, cl1, lit1, lit1_](Monom monom)  -> VirtualIterator<Clause*> { 
+    .flatMap([this, cl1, lit1, literal1](Monom monom)  -> VirtualIterator<Clause*> { 
       CALL("InequalityResolution::generateClauses:@clsr1")
       auto num1  = monom.numeral;
       auto term1 = monom.factors;
@@ -259,8 +276,7 @@ ClauseIterator InequalityResolution::generateClauses(Clause* cl1, Literal* lit1_
 
 
       return pvi(iterTraits(_index->getUnificationsWithConstraints(term1->denormalize(), true))
-                .filterMap([this, cl1, lit1, lit1_, num1, term1](TermQueryResult res) -> Option<Clause*> {
-                  try {
+                .filterMap([this, cl1, lit1, literal1, num1, term1](TermQueryResult res) -> Option<Clause*> {
                     CALL("InequalityResolution::generateClauses:@clsr2")
                     auto& subs = *res.substitution;
 
@@ -275,8 +291,10 @@ ClauseIterator InequalityResolution::generateClauses(Clause* cl1, Literal* lit1_
                         .downcast<NumTraits>().unwrap()->tryMonom().unwrap()
 #endif
                         .factors;
-                    auto lit2_ = res.literal;
-                    auto lit2  = this->normalizer().normalize<NumTraits>(lit2_).unwrap();
+                    auto literal2 = res.literal;
+                    auto lit2_ = this->normalizer().normalize<NumTraits>(literal2).unwrap();
+                    ASS(!lit2_.overflowOccurred)
+                    auto lit2  = lit2_.value;
                     //   ^^^^ ~=  num2 * term2 + rest2 >= 0
 
                     auto strictness = lit1.strict() || lit2.strict();
@@ -287,12 +305,8 @@ ClauseIterator InequalityResolution::generateClauses(Clause* cl1, Literal* lit1_
                     //                ==> s + t > t - u 
                     //                ==> s + u > 0
 
-                    DBGE(*cl2);
-                    DBGE(lit2);
-                    DBGE(term2);
                     auto num2 = lit2.term()
                                     .iterSummands()
-                                    .map([&](Monom m) { DBGE(m.factors); return m; })
                                     .find([&](Monom m) { return m.factors == term2; })
                                     .unwrap()
                                     .numeral;
@@ -308,20 +322,20 @@ ClauseIterator InequalityResolution::generateClauses(Clause* cl1, Literal* lit1_
 
                     Stack<Monom> resolventSum(lit1.term().nSummands() + lit2.term().nSummands() - 2 + (isInt ? 1 : 0));
                     //           ^^^^^^^^^^^^--> gonna be k1 * rest1 + k2 * rest2                   
-                    {
+
+                    try {
                       auto pushTerms = [&](InequalityLiteral lit, Perfect<MonomFactors> termToSkip, Numeral num, bool resultVarBank)
                                 {
                                   resolventSum.loadFromIterator(lit.term()
                                       .iterSummands()
                                       .filter([&](Monom m) { return m.factors != termToSkip; })
                                       .map   ([&](Monom m) { 
-                                        auto out = Monom(m.numeral * num, m.factors)
+                                        return Monom(m.numeral * num, m.factors)
                                           .mapVars([&](Variable v) { 
                                             auto var = TermList::var(v.id());
                                             auto t = subs.applyTo(var, resultVarBank);
                                             return normalizeTerm(TypedTermList(t, NumTraits::sort)); 
                                           }); 
-                                        return out;
                                       })
                                   );
                                 };
@@ -331,10 +345,18 @@ ClauseIterator InequalityResolution::generateClauses(Clause* cl1, Literal* lit1_
                       if (isInt) {
                         resolventSum.push(Monom(Numeral(-1)));
                       }
+                    } catch (MachineArithmeticException&) {
+                      env.statistics->irOverflowApply++;
+                      return Option<Clause*>();
                     }
 
-                    auto resolventLit = InequalityLiteral(perfect(PolynomialEvaluation::simplifySummation(resolventSum)), strictness);
+                    bool overflow = false;
+                    auto resolventLit = InequalityLiteral(perfect(PolynomialEvaluation::simplifySummation(resolventSum, overflow)), strictness);
                     //   ^^^^^^^^^^^^--> k1 * rest1 + k2 * rest2 >= 0
+                    if (overflow) { 
+                      env.statistics->irOverflowApply++;
+                      return Option<Clause*>(); 
+                    }
 
                     Inference inf(GeneratingInference2(Kernel::InferenceRule::INEQUALITY_RESOLUTION, cl1, cl2));
                     auto size = cl1->size() + cl2->size() - 1 + (res.constraints ? res.constraints->size() : 0);
@@ -357,8 +379,8 @@ ClauseIterator InequalityResolution::generateClauses(Clause* cl1, Literal* lit1_
                             }
                           }
                         };
-                      pushLiterals(*cl1, lit1_, false);
-                      pushLiterals(*cl2, lit2_, true);
+                      pushLiterals(*cl1, literal1, false);
+                      pushLiterals(*cl2, literal2, true);
 
                       // push constraints
                       if (res.constraints) {
@@ -374,10 +396,6 @@ ClauseIterator InequalityResolution::generateClauses(Clause* cl1, Literal* lit1_
                     }
                     DEBUG("  resolvent: ", *resolvent);
                     return Option<Clause*>(resolvent);
-                  } catch (MachineArithmeticException&) {
-                    env.statistics->irOverflow++;
-                    return Option<Clause*>();
-                  }
                 }));
     }));
 }

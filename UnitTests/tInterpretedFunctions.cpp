@@ -600,13 +600,13 @@ ALL_NUMBERS_TEST(eval_overflow_3,
 
 ALL_NUMBERS_TEST(eval_overflow_4,
     p(-1 * num(std::numeric_limits<int>::min())),
-    // p(-num(std::numeric_limits<int>::min()))
-    evaluationFail
+    p(-1 * num(std::numeric_limits<int>::min()))
+    // evaluationFail
     )
 
 ALL_NUMBERS_TEST(eval_overflow_5,
     p(std::numeric_limits<int>::min() * num(std::numeric_limits<int>::min() + 1) * std::numeric_limits<int>::min()),
-    evaluationFail
+    p(std::numeric_limits<int>::min() * (num(std::numeric_limits<int>::min() + 1) * std::numeric_limits<int>::min()))
     )
 
 FRACTIONAL_TEST(eval_overflow_6,

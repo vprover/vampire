@@ -118,7 +118,8 @@ Statistics::Statistics()
     evaluationIncomp(0),
     evaluationGreater(0),
     evaluationCnt(0),
-    irOverflow(0),
+    irOverflowApply(0),
+    irOverflowNorm(0),
 
     innerRewrites(0),
     innerRewritesToEqTaut(0),
@@ -418,8 +419,9 @@ void Statistics::print(ostream& out)
   COND_OUT("InstGen iterations", instGenIterations);
   SEPARATOR;
 
-  HEADING("Inequality Resolution Calculus",irOverflow);
-  COND_OUT("Overflows", irOverflow);
+  HEADING("Inequality Resolution Calculus",irOverflowApply+irOverflowNorm);
+  COND_OUT("Overflows in application", irOverflowApply);
+  COND_OUT("Overflows in normalizing", irOverflowNorm);
   SEPARATOR;
 
   //TODO record statistics for FMB

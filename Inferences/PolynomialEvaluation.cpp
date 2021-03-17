@@ -54,8 +54,8 @@ PolynomialEvaluation::Result PolynomialEvaluation::simplifyLiteral(Literal* lit)
     auto term = *lit->nthArgument(i);
     auto norm = PolyNf::normalize(TypedTermList(term, SortHelper::getArgSort(lit, i)));
     auto ev = evaluate(norm);
-    anyChange = anyChange || ev.isSome();
-    terms.push(std::move(ev).unwrapOrElse([&](){ return norm; }));
+    anyChange = anyChange || ev.value.isSome();
+    terms.push(std::move(ev).value || norm);
   }
   auto simplified = tryEvalPredicate(lit, terms.begin());
   anyChange = anyChange || simplified.isSome();
@@ -167,8 +167,6 @@ Option<PolyNf> trySimplify(Theory::Interpretation i, PolyNf* evalArgs)
       default:
         return none<PolyNf>();
     }
-  } catch (MachineArithmeticException&) {
-    return none<PolyNf>();
 
   } catch (DivByZeroException&) {
     return none<PolyNf>();
@@ -176,25 +174,25 @@ Option<PolyNf> trySimplify(Theory::Interpretation i, PolyNf* evalArgs)
 }
 
 
-Option<PolyNf> PolynomialEvaluation::evaluate(TermList term, SortId sort) const 
+MaybeOverflow<Option<PolyNf>> PolynomialEvaluation::evaluate(TermList term, SortId sort) const 
 { return evaluate(TypedTermList(term, sort)); }
 
-Option<PolyNf> PolynomialEvaluation::evaluate(Term* term) const 
+MaybeOverflow<Option<PolyNf>> PolynomialEvaluation::evaluate(Term* term) const 
 { return evaluate(TypedTermList(term)); }
 
-Option<PolyNf> PolynomialEvaluation::evaluate(TypedTermList term) const 
+MaybeOverflow<Option<PolyNf>> PolynomialEvaluation::evaluate(TypedTermList term) const 
 { return evaluate(PolyNf::normalize(term)); }
 
 template<class Number>
-Polynom<Number> simplifyPoly(Polynom<Number> const& in, PolyNf* simplifiedArgs);
+Polynom<Number> simplifyPoly(Polynom<Number> const& in, PolyNf* simplifiedArgs, bool& overflow);
 
 template<class Number>
-Monom<Number> simplifyMonom(Monom<Number> const&, PolyNf* simplifiedArgs);
+Monom<Number> simplifyMonom(Monom<Number> const&, PolyNf* simplifiedArgs, bool& overflow);
 
-AnyPoly simplifyPoly(AnyPoly const& p, PolyNf* ts)
-{ return p.apply([&](auto& p) { return AnyPoly(perfect(simplifyPoly(*p, ts))); }); }
+AnyPoly simplifyPoly(AnyPoly const& p, PolyNf* ts, bool& overflow)
+{ return p.apply([&](auto& p) { return AnyPoly(perfect(simplifyPoly(*p, ts, overflow))); }); }
 
-Option<PolyNf> PolynomialEvaluation::evaluate(PolyNf normalized) const 
+MaybeOverflow<Option<PolyNf>> PolynomialEvaluation::evaluate(PolyNf normalized) const 
 {
   CALL("PolynomialEvaluation::evaluate(TypedTermList term) const")
 
@@ -202,6 +200,7 @@ Option<PolyNf> PolynomialEvaluation::evaluate(PolyNf normalized) const
   struct Eval 
   {
     const PolynomialEvaluation& norm;
+    bool& overflow;
 
     using Result = PolyNf;
     using Arg    = PolyNf;
@@ -223,16 +222,17 @@ Option<PolyNf> PolynomialEvaluation::evaluate(PolyNf normalized) const
           { return v; },
 
           [&](AnyPoly p) 
-          { return simplifyPoly(p, ts); }
+          { return simplifyPoly(p, ts, overflow); }
       );
     }
   };
   static Memo::Hashed<PolyNf, PolyNf> memo;
-  auto out = evaluateBottomUp(normalized, Eval{ *this }, memo);
+  bool overflow = false;
+  auto out = evaluateBottomUp(normalized, Eval{ *this, overflow }, memo);
   if (out == normalized) {
-    return Option<PolyNf>();
+    return maybeOverflow(Option<PolyNf>(), overflow);
   } else {
-    return Option<PolyNf>(out);
+    return maybeOverflow(Option<PolyNf>(std::move(out)), overflow);
   }
 }
 
@@ -241,57 +241,56 @@ PolyNf createTerm(unsigned fun, PolyNf* evaluatedArgs)
 { return perfect(FuncTerm(FuncId(fun), evaluatedArgs)); }
 
 template<class Number>
-Polynom<Number> PolynomialEvaluation::simplifySummation(Stack<Monom<Number>> summands)
+Polynom<Number> PolynomialEvaluation::simplifySummation(Stack<Monom<Number>> summands, bool& overflow)
 { 
   CALL("simplifySummation(Stack<Monom<Number>>)") 
   using Monom   = Monom<Number>;
   using Polynom = Polynom<Number>;
-  // try {
 
-    // then we sort them by their monom, in order to add up the coefficients efficiently
-    std::sort(summands.begin(), summands.end());
+  // then we sort them by their monom, in order to add up the coefficients efficiently
+  std::sort(summands.begin(), summands.end());
 
-    // add up the coefficients (in place)
-    {
-      auto offs = 0;
-      for (unsigned i = 0; i < summands.size(); i++) { 
-        auto monom = summands[i];
-        auto numeral = monom.numeral;
-        auto factors = monom.factors;
-        while ( i + 1 < summands.size() && summands[i+1].factors == factors ) {
-          try {
-            numeral = numeral + summands[i+1].numeral;
-          } catch (MachineArithmeticException&) {
-            auto max = std::max(numeral, summands[i+1].numeral);
-            auto min = std::min(numeral, summands[i+1].numeral);
-            summands[offs++] = Monom(max, factors);
-            numeral = decltype(numeral)(0);
-            summands[i+1].numeral = min;
+  // add up the coefficients (in place)
+  {
+    auto offs = 0;
+    for (unsigned i = 0; i < summands.size(); i++) { 
+      auto monom = summands[i];
+      auto numeral = monom.numeral;
+      auto factors = monom.factors;
+      while ( i + 1 < summands.size() && summands[i+1].factors == factors ) {
+        try {
+          numeral = numeral + summands[i+1].numeral;
+        } catch (MachineArithmeticException&) {
+          overflow = true;
+          auto max = numeral;//std::max(numeral, summands[i+1].numeral);
+          auto min = summands[i+1].numeral;
+          if (min.abs() > max.abs()) {
+            std::swap(min, max);
           }
-          i++;
+          summands[offs++] = Monom(max, factors);
+          numeral = min;
         }
-        if (numeral != Number::zeroC) 
-          summands[offs++] = Monom(numeral, factors);
+        i++;
       }
-      summands.truncate(offs);
+      if (numeral != Number::zeroC) 
+        summands[offs++] = Monom(numeral, factors);
     }
+    summands.truncate(offs);
+  }
 
-    auto poly = Polynom(std::move(summands));
-    poly.integrity();
-    return poly;
-  // } catch (Div&) { 
-  //   return Polynom(std::move(summands));
-  // }
+  auto poly = Polynom(std::move(summands));
+  poly.integrity();
+  return poly;
 }
 
-template Polynom< IntTraits> PolynomialEvaluation::simplifySummation< IntTraits>(Stack<Monom< IntTraits>> summands);
-template Polynom< RatTraits> PolynomialEvaluation::simplifySummation< RatTraits>(Stack<Monom< RatTraits>> summands);
-template Polynom<RealTraits> PolynomialEvaluation::simplifySummation<RealTraits>(Stack<Monom<RealTraits>> summands);
+template Polynom< IntTraits> PolynomialEvaluation::simplifySummation< IntTraits>(Stack<Monom< IntTraits>> summands, bool& overflow);
+template Polynom< RatTraits> PolynomialEvaluation::simplifySummation< RatTraits>(Stack<Monom< RatTraits>> summands, bool& overflow);
+template Polynom<RealTraits> PolynomialEvaluation::simplifySummation<RealTraits>(Stack<Monom<RealTraits>> summands, bool& overflow);
 
 
 
 template<class Number>
-Polynom<Number> simplifyPoly(Polynom<Number> const& in, PolyNf* simplifiedArgs)
+Polynom<Number> simplifyPoly(Polynom<Number> const& in, PolyNf* simplifiedArgs, bool& overflow)
 { 
   CALL("simplify(Polynom<Number>const&, PolyNf* simplifiedArgs)") 
   using Monom   = Monom<Number>;
@@ -302,7 +301,7 @@ Polynom<Number> simplifyPoly(Polynom<Number> const& in, PolyNf* simplifiedArgs)
     auto offs = 0;
     for (unsigned i = 0; i < in.nSummands(); i++) {
       auto monom  = in.summandAt(i);
-      auto simpl = simplifyMonom(monom, &simplifiedArgs[offs]);
+      auto simpl = simplifyMonom(monom, &simplifiedArgs[offs], overflow);
       if (simpl.isZero()) {
         /* we don't add it */
       } else if (simpl.factors->nFactors() == 1 && simpl.factors->factorAt(0).tryPolynom().isSome()) {
@@ -314,7 +313,8 @@ Polynom<Number> simplifyPoly(Polynom<Number> const& in, PolyNf* simplifiedArgs)
             ASS(fac.numeral != Number::zeroC)
             out.push(fac);
           }
-        } catch (ArithmeticException&) {
+        } catch (MachineArithmeticException&) {
+          overflow = true;
           out.truncate(origSize);
           out.push(simpl);
         }
@@ -324,7 +324,7 @@ Polynom<Number> simplifyPoly(Polynom<Number> const& in, PolyNf* simplifiedArgs)
       offs += monom.factors->nFactors();
     }
   }
-  return PolynomialEvaluation::simplifySummation(std::move(out));
+  return PolynomialEvaluation::simplifySummation(std::move(out), overflow);
 }
 
 
@@ -332,7 +332,7 @@ Polynom<Number> simplifyPoly(Polynom<Number> const& in, PolyNf* simplifiedArgs)
  * In exact this means, that all the numeral factors are collapsed into one numeral (e.g. 3*4*3*x ==> 36*x)
  */
 template<class Number>
-Monom<Number> simplifyMonom(Monom<Number> const& in, PolyNf* simplifiedArgs) 
+Monom<Number> simplifyMonom(Monom<Number> const& in, PolyNf* simplifiedArgs, bool& overflow) 
 { 
 
   using Numeral      = typename Number::ConstantType;
@@ -370,12 +370,14 @@ Monom<Number> simplifyMonom(Monom<Number> const& in, PolyNf* simplifiedArgs)
         try {
           numeral = numeral * num2;
         } catch (MachineArithmeticException&) {
+          overflow = true;
           auto min = std::min(numeral, num2);
           auto max = std::max(numeral, num2);
           args[offs++] = MonomFactor(PolyNf(AnyPoly(perfect(Polynom(max)))), 1);
           numeral = min;
         }
       } catch (MachineArithmeticException&) {
+        overflow = true;
         args[offs++] = arg;
       }
     } else {

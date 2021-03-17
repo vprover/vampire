@@ -315,7 +315,7 @@ TEST_GENERATION_WITH_SUGAR(bug_overflow_01,
       .input   (  clause({ selected( num(2) * (1073741824 * a + 536870912) > 0 ) })  )
       .context ({ clause({ num(-1) * num(2) * (1073741824 * a + 536870912) > 0   }) })
       .expected(exactly(
-          clause({ num(0) > 0 })
+          // clause({ num(0) > 0 }) // we don't perform the rule if we overflow
       ))
       .premiseRedundant(false)
     )
