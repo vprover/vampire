@@ -87,12 +87,24 @@ public:
     assert(v.index() < m_var_groups.size());
     assert(m_var_groups[v] == InvalidInternalGroup);  // the group should be set only once, otherwise we have to correctly de-register from previous group
     InternalGroup const ig = g + 1;
-    while (ig >= m_domain_sizes.size()) {
-      m_domain_sizes.push_back(0);
-    }
+    // while (ig >= m_domain_sizes.size()) {
+    //   m_domain_sizes.push_back(0);
+    // }
     m_var_groups[v] = ig;
-    m_domain_sizes[ig] += 1;
-    LOG_DEBUG("Adding variable " << v << " to group " << g << ", domain size now is " << m_domain_sizes[ig]);
+    // m_domain_sizes[ig] += 1;
+    LOG_DEBUG("Adding variable " << v << " to group " << g /* << ", domain size now is " << m_domain_sizes[ig] */);
+  }
+
+  /// Call this after set_group has been called for all variables,
+  /// and before using assigned/unassigned/select_min_domain.
+  void prepare_for_solving()
+  {
+    for (InternalGroup const ig : m_var_groups) {
+      while (ig >= m_domain_sizes.size()) {
+        m_domain_sizes.push_back(0);
+      }
+      m_domain_sizes[ig] += 1;
+    }
   }
 
   void assigned(Var v)

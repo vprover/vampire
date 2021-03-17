@@ -1209,18 +1209,22 @@ class SMTSubsumption::SMTSubsumptionImpl2
           }
         }
         auto handle = solver.constraint_end();
-        solver.add_clause(handle);
+        solver.add_clause_unsafe(handle);
 
         // If there are no matches for this base literal, we have just added an empty clause.
         // => conflict on root level due to empty clause, abort early
-        if (match_count == 0) { ASS(solver.inconsistent()); }
-        if (solver.inconsistent()) {
+        // if (match_count == 0) { ASS(solver.inconsistent()); }
+        // if (solver.inconsistent()) {
+        //   return false;
+        // }
+        if (match_count == 0) {
           return false;
         }
       }
 
-      for (auto& constraint : instance_constraints) {
-        solver.add_atmostone_constraint(constraint);
+      for (auto& handle : instance_constraints) {
+        auto built = solver.handle_build(handle);
+        solver.add_atmostone_constraint_unsafe(built);
       }
 
       return !solver.inconsistent();
@@ -1521,12 +1525,12 @@ class SMTSubsumption::SMTSubsumptionImpl3
           solver.constraint_push_literal(b);
         }
         auto handle = solver.constraint_end();
-        solver.add_clause(handle);
+        solver.add_clause_unsafe(handle);
       }
-      // solver.
 
       for (auto handle : instance_constraints) {
-        solver.add_atmostone_constraint(handle);
+        auto built = solver.handle_build(handle);
+        solver.add_atmostone_constraint_unsafe(built);
       }
 
       return !solver.inconsistent();
@@ -1611,7 +1615,7 @@ void ProofOfConcept::test(Clause* side_premise, Clause* main_premise)
   std::cout << "  => " << subsumed << std::endl;
   impl.printStats(std::cout);
   }
-*/
+// */
 
   {
   SMTSubsumptionImpl2 impl;
@@ -1637,7 +1641,7 @@ void ProofOfConcept::test(Clause* side_premise, Clause* main_premise)
   bool subsumed = subsumed1 && impl.solve();
   std::cout << "  => " << subsumed << std::endl;
   }
-  return;
+  // return;
 
 /*  TODO: fix this
   {

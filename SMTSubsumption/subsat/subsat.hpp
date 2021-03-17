@@ -334,14 +334,17 @@ public:
   using State = Result;
 
 
-  /// Ensure space for a new variable and return it.
-  /// By default, memory is increased exponentially (relying on the default behaviour of std::vector).
-  /// Use reserve_variables if you know the number of variables upfront.
+  /// Returns the next unused variable.
   NODISCARD Var new_variable(vdom_group group = vdom::InvalidGroup)
   {
+    LOG_TRACE("new_variable");
+    // TODO: we should defer as much of this as possible to solve().
+    //       new_variable and add_clause(_unsafe) must be as lightweight as possible.
+    //       => so just add all the simplification steps to a step before solve().
+    //       (goal: get rid of the separate SMTSubsumptionImpl3 and use the simpler code from SMTSubsumptionImpl2)
     assert(m_state == State::Unknown);
-    // TODO: optional argument phase_hint as initial value for m_phases?
     Var new_var = Var{m_used_vars++};
+    /*
     m_unassigned_vars++;
     m_vars.emplace_back();
     m_marks.push_back(0);
@@ -355,6 +358,7 @@ public:
       m_watches_amo.emplace_back();         // positive literal watches
       m_watches_amo.emplace_back();         // negative literal watches -- generally not needed for our instances
     }
+    */
 #if SUBSAT_VDOM
     m_vdom.ensure_var(new_var);
     if (group != vdom::InvalidGroup) {
@@ -383,6 +387,7 @@ public:
     m_watches.reserve(2 * count);
     m_watches_amo.reserve(2 * count);
     m_trail.reserve(count);
+    m_original_constraints.reserve(32);
 
     tmp_analyze_clause.reserve(8);
     tmp_analyze_blocks.reserve(8);
@@ -440,9 +445,11 @@ public:
     m_clause_refs.clear();
     m_atmostone_constraint_refs.clear();
 #endif
+    m_original_constraints.clear();
 
-    // Don't clear m_watches itself! We want to keep the nested vectors to save re-allocation.
-    uint32_t const used_watches = 2 * old_used_vars;
+    // Don't clear m_watches itself! We want to keep the nested vectors to save re-allocations.
+    assert(m_watches.size() == m_watches_amo.size());
+    uint32_t const used_watches = std::min(2 * old_used_vars, static_cast<uint32_t>(m_watches.size()));
     for (uint32_t i = 0; i < used_watches; ++i) {
       m_watches[Lit::from_index(i)].clear();
       m_watches_amo[Lit::from_index(i)].clear();
@@ -465,7 +472,7 @@ public:
 
 
   /********************************************************************
-   * Allocating new constraints
+   * Creating new constraints
    ********************************************************************/
 
 public:
@@ -529,27 +536,22 @@ public:
 
 
   /********************************************************************
-   * Adding clauses
+   * Adding constraints to the solver
    ********************************************************************/
 
-  /// Add a constraint to the solver as a clause.
-  void add_clause(ConstraintHandle& handle)
-  {
-    assert(m_state == State::Unknown);
-    add_original_clause(handle.m_ref);
-  }
+public:
 
-  /// Add clause by copying the given literals (convenience method)
-  void add_clause(std::initializer_list<Lit> literals)
+  /// Add constraint by copying the given literals (convenience method)
+  void add_constraint(Constraint::Kind kind, std::initializer_list<Lit> literals)
   {
     assert(m_state == State::Unknown);
     assert(literals.size() <= std::numeric_limits<uint32_t>::max());
     auto literals_size = static_cast<uint32_t>(literals.size());
-    add_clause(literals.begin(), literals_size);
+    add_constraint(kind, literals.begin(), literals_size);
   }
 
-  /// Add clause by copying the given literals (convenience method)
-  void add_clause(Lit const* literals, uint32_t count)
+  /// Add constraint by copying the given literals (convenience method)
+  void add_constraint(Constraint::Kind kind, Lit const* literals, uint32_t count)
   {
     assert(m_state == State::Unknown);
     auto alloc_handle = alloc_constraint(count);
@@ -557,55 +559,82 @@ public:
       handle_push_literal(alloc_handle, *p);
     }
     auto built_handle = handle_build(alloc_handle);
-    add_clause(built_handle);
+    add_constraint(kind, built_handle);
   }
 
-  /// Add the empty clause
-  void add_empty_clause()
+  /// Add constraint to the solver.
+  void add_constraint(Constraint::Kind kind, ConstraintHandle& handle)
   {
     assert(m_state == State::Unknown);
-    m_inconsistent = true;
-  }
-
-  // TODO: make this private?
-  void ensure_variable(Var var)
-  {
-    assert(m_state == State::Unknown);
-    assert(var.is_valid());
-    while (var.index() >= m_used_vars) {
-      (void)new_variable();
+    ConstraintRef const cr = handle.m_ref;
+    Constraint const& c = m_constraints.deref(cr);
+    for (Lit lit : c) {
+      assert(lit.is_valid());
+      while (lit.var().index() >= m_used_vars) {
+        (void)new_variable();
+      }
     }
+    add_constraint_unsafe(kind, handle);
   }
 
-  /// Add the unit clause "lit"
-  void add_unit_clause(Lit lit)
+  /// Add constraint to the solver.
+  /// Precondition: all variables in the clause have already been added to the solver.
+  void add_constraint_unsafe(Constraint::Kind kind, ConstraintHandle& handle)
   {
     assert(m_state == State::Unknown);
-    ensure_variable(lit.var());
-    switch (m_values[lit]) {
-      case Value::True:
-        LOG_INFO("Skipping redundant unit clause: " << lit);
-        break;
-      case Value::False:
-        LOG_INFO("Inconsistent unit clause: " << lit);
-        m_inconsistent = true;
-        break;
-      case Value::Unassigned:
-        LOG_INFO("Adding unit clause: " << lit);
-        basic_assign(lit, Reason::invalid());
-        break;
-    }
+    ConstraintRef const cr = handle.m_ref;
+#ifndef NDEBUG
+    Constraint const& c = m_constraints.deref(cr);
+    assert(std::all_of(c.begin(), c.end(), [this](Lit lit){ return lit.var().index() < m_used_vars; }));
+#endif
+    if (kind == Constraint::Kind::Clause) { SUBSAT_STAT_INC(original_clauses); }
+    if (kind == Constraint::Kind::AtMostOne) { SUBSAT_STAT_INC(original_amos); }
+    m_original_constraints.push_back({kind, cr});
   }
 
-  /// Add the binary clause "lit1 \/ lit2"
-  void add_binary_clause(Lit lit1, Lit lit2)
-  {
-    assert(m_state == State::Unknown);
-    // TODO: special handling for binary clauses
-    add_clause({lit1, lit2});
-  }
+
+  /********************************************************************
+   * Convenience methods for adding clauses
+   ********************************************************************/
+
+  /// Add clause by copying the given literals (convenience method)
+  void add_clause(std::initializer_list<Lit> literals) { add_constraint(Constraint::Kind::Clause, literals); }
+
+  /// Add clause by copying the given literals (convenience method)
+  void add_clause(Lit const* literals, uint32_t count) { add_constraint(Constraint::Kind::Clause, literals, count); }
+
+  /// Add a constraint to the solver as a clause.
+  void add_clause(ConstraintHandle& handle) { add_constraint(Constraint::Kind::Clause, handle); }
+
+  /// Add a constraint to the solver as a clause.
+  /// Precondition: all variables in the clause have already been added to the solver.
+  void add_clause_unsafe(ConstraintHandle& handle) { add_constraint_unsafe(Constraint::Kind::Clause, handle); }
+
+
+  /********************************************************************
+   * Convenience methods for AtMostOne constraints
+   ********************************************************************/
+
+  /// Add an AtMostOne constraint by copying the given literals (convenience method)
+  void add_atmostone_constraint(std::initializer_list<Lit> literals) { add_constraint(Constraint::Kind::AtMostOne, literals); }
+
+  /// Add an AtMostOne constraint by copying the given literals (convenience method)
+  void add_atmostone_constraint(Lit const* literals, uint32_t count) { add_constraint(Constraint::Kind::AtMostOne, literals, count); }
+
+  /// Add an AtMostOne constraint to the solver.
+  void add_atmostone_constraint(ConstraintHandle& handle) { add_constraint(Constraint::Kind::AtMostOne, handle); }
+
+  /// Add an AtMostOne constraint to the solver.
+  /// Precondition: all variables in the clause have already been added to the solver.
+  void add_atmostone_constraint_unsafe(ConstraintHandle& handle) { add_constraint_unsafe(Constraint::Kind::AtMostOne, handle); }
+
+
+  /********************************************************************
+   * Simplifying clauses and adding them to internal data structures
+   ********************************************************************/
 
 private:
+#if SUBSAT_SIMPLIFY_CLAUSES
 #ifndef NDEBUG
   /// Returns true if the given clause cannot be simplified further,
   /// that is, all of the following conditions hold:
@@ -618,7 +647,7 @@ private:
     for (Lit lit : c) {
       assert(lit.var().index() < m_used_vars);
       if (lits.find(~lit) != lits.end()) {
-        // Clause is a tautology
+        // Clause contains complementary literals => tautology
         return false;
       }
       bool inserted = lits.insert(lit).second;
@@ -636,28 +665,27 @@ private:
   }
 #endif
 
-  /// Simplify clause:
-  /// 1. Ensure enough variables are allocated in the solver,
-  /// 2. Skip tautologies and clauses that are already satisfied on the root level,
-  /// 3. Remove duplicate literals and literals that are already false on the root level.
+  /// Simplifies the given clause:
+  /// 1. Skip tautologies and clauses that are already satisfied on the root level,
+  /// 2. Remove duplicate literals and literals that are already false on the root level.
   ///
-  /// This is only allowed at level 0, for two reasons:
+  /// Calling this method is only allowed at level 0, for two reasons:
   /// 1. we only need to do this for original clauses (learned clauses are already simplified),
   /// 2. we don't have to check levels of assigned variables during simplification.
   ///
-  /// Returns true if the clause is a tautology or already satisfied at the root level.
+  /// Returns true if the clause is a tautology or already satisfied at the root level,
+  /// i.e., if we should skip it instead of adding it to the solver.
   bool simplifyClause(Constraint& c)
   {
     assert(m_level == 0);
     assert(std::all_of(m_marks.begin(), m_marks.end(), [](Mark m) { return m == 0; }));
-    bool is_tautology = false;
+    bool is_trivial = false;
     uint32_t i = 0;  // read iterator
     uint32_t j = 0;  // write iterator (will lag behind i if any literals have been removed)
     while (i < c.size()) {
       Lit const lit = c[i];
       Var const var = lit.var();
-
-      ensure_variable(var);
+      assert(var.index() < m_used_vars);
 
       // copy literal by default
       c[j++] = c[i++];
@@ -667,7 +695,7 @@ private:
       if (lit_value == Value::True) {
         LOG_INFO("Clause satisfied on root level due to literal: " << lit);
         assert(get_level(var) == 0);
-        is_tautology = true;
+        is_trivial = true;
         break;
       }
       else if (lit_value == Value::False) {
@@ -689,7 +717,7 @@ private:
         else {
           assert(prev_mark == -lit_mark);
           LOG_INFO("Clause is a tautology due to variable " << var);
-          is_tautology = true;
+          is_trivial = true;
           break;
         }
       }
@@ -701,38 +729,60 @@ private:
       m_marks[lit.var()] = 0;
     }
     assert(std::all_of(m_marks.begin(), m_marks.end(), [](Mark m) { return m == 0; }));
-    return is_tautology;
+    return is_trivial;
   }
+#endif  // SUBSAT_SIMPLIFY_CLAUSES
 
-
-  void add_original_clause(ConstraintRef cr)
+  /// Simplify the given clause and insert it into the internal data structures.
+  void simplify_and_connect_clause(ConstraintRef cr)
   {
     LOG_INFO("New original clause " << SHOWREF(cr));
     assert(m_state == State::Unknown);
     assert(m_level == 0);
     Constraint& c = m_constraints.deref(cr);
 
-    bool is_tautology = simplifyClause(c);
-    if (is_tautology) {
+#if SUBSAT_SIMPLIFY_CLAUSES
+    bool is_trivial = simplifyClause(c);
+    if (is_trivial) {
       LOG_DEBUG("Skipping clause.");
       return; // skip clause
     }
     LOG_INFO("Adding simplified clause " << c);
     assert(isClauseSimplified(c));
+#endif
 
     if (c.size() == 0) {
-      add_empty_clause();
-    } else if (c.size() == 1) {
-      add_unit_clause(c[0]);
-    } else {
+      // Empty clause means inconsistent
+      m_inconsistent = true;
+    }
+    else if (c.size() == 1) {
+      // Units are assigned directly
+      Lit lit = c[0];
+      assert(lit.var().index() < m_used_vars);
+      switch (m_values[lit]) {
+        case Value::True:
+          LOG_INFO("Skipping redundant unit clause: " << lit);
+          break;
+        case Value::False:
+          LOG_INFO("Inconsistent unit clause: " << lit);
+          m_inconsistent = true;
+          break;
+        case Value::Unassigned:
+          LOG_INFO("Adding unit clause: " << lit);
+          basic_assign(lit, Reason::invalid());
+          break;
+      }
+    }
+    else {
+      // Long clauses will be added to the watch lists
       // TODO: special handling for binary clauses
       assert(c.size() >= 2);
-      SUBSAT_STAT_INC(original_clauses);
       connect_clause(cr);
     }
   }
 
   /// Insert the given clause into internal data structures.
+  /// Precondition: size >= 2.
   void connect_clause(ConstraintRef cr)
   {
 #ifndef NDEBUG
@@ -741,56 +791,185 @@ private:
       watch_clause(cr);
   }
 
-public:
-  // /// Preconditions:
-  // /// - all variables in the clause have been added using 'new_variable',
-  // /// - 'isClauseSimplified' returns true.
-  // /// Check documentation of 'isClauseSimplified' and 'simplifyClause' for more details.
-  // void add_clause_unsafe(Clause& clause)  // TODO: what parameter type do we want here?
-  // {
-  //   assert(isClauseSimplified(clause));
-  //   // TODO
-  //   (void)clause;
-  // }
-
 
   /********************************************************************
-   * Adding AtMostOne constraints
+   * Simplifying AtMostOne constraints and adding them to internal data structures
    ********************************************************************/
 
-  void add_atmostone_constraint(std::initializer_list<Lit> literals)
+private:
+#if SUBSAT_SIMPLIFY_AMOS
+#ifndef NDEBUG
+  /// Returns true if the given AtMostOne constraint cannot be simplified further,
+  /// that is, all of the following conditions hold:
+  /// 1. it is not a tautology (i.e., its size is at least 2),
+  /// 2. it does not contain duplicate literals, and
+  /// 3. none of its literals are assigned at the root level.
+  bool isAmoSimplified(Constraint const& c)
   {
-    assert(literals.size() <= UINT32_MAX);
-    auto literals_size = static_cast<uint32_t>(literals.size());
-    add_atmostone_constraint(literals.begin(), literals_size);
-  }
-
-  void add_atmostone_constraint(Lit const* literals, uint32_t count)
-  {
-    auto ca = alloc_constraint(count);
-    for (Lit const* p = literals; p < literals + count; ++p) {
-      handle_push_literal(ca, *p);
+    if (c.size() < 2) {
+      // AMO is always satisfied
+      return false;
     }
-    add_atmostone_constraint(ca);
-  }
-
-  void add_atmostone_constraint(AllocatedConstraintHandle handle)
-  {
-    ConstraintRef cr = m_constraints.handle_build(handle);
-    add_atmostone_constraint_internal(cr);
-  }
-
-  void add_atmostone_constraint_internal(ConstraintRef cr)
-  {
-    LOG_INFO("Adding AtMostOne constraint " << SHOWREF(cr));
-    // TODO: simplify AMO similar to clauses
-
-    Constraint& c = m_constraints.deref(cr);
-    // TODO: improve this?
+    set<Lit> lits;
     for (Lit lit : c) {
-      ensure_variable(lit.var());
+      assert(lit.var().index() < m_used_vars);
+      if (lits.find(~lit) != lits.end()) {
+        // AMO contains complementary literals
+        // => either it is a tautology (when size 2), or we can propagate all other literals to false
+        return false;
+      }
+      bool inserted = lits.insert(lit).second;
+      if (!inserted) {
+        // AMO contains duplicate literals
+        return false;
+      }
+      Value const lit_value = m_values[lit];
+      if (lit_value != Value::Unassigned && get_level(lit) == 0) {
+        // AMO contains fixed literal
+        return false;
+      }
     }
-    // TODO: check for assigned and duplicate variables
+    return true;
+  }
+#endif
+
+  /// Simplifies the given AtMostOne constraint:
+  /// 1. Skip tautologies and AMOs that are already satisfied on the root level,
+  /// 2. Remove duplicate literals and literals that are already false on the root level.
+  ///
+  /// Calling this method is only allowed at level 0, for two reasons:
+  /// 1. we only need to do this for original AMOs once before they are added, and
+  /// 2. we don't have to check levels of assigned variables during simplification.
+  ///
+  /// Returns true if the AtMostOne constraint is trivial,
+  /// i.e., if we should skip it instead of adding it to the solver.
+  bool simplifyAmo(Constraint& c)
+  {
+    assert(m_level == 0);
+    assert(std::all_of(m_marks.begin(), m_marks.end(), [](Mark m) { return m == 0; }));
+    if (c.size() < 2) {
+      // always satisfied
+      return true;
+    }
+    bool is_trivial = false;
+    uint32_t i = 0;  // read iterator
+    uint32_t j = 0;  // write iterator (will lag behind i if any literals have been removed)
+    while (i < c.size()) {
+      Lit const lit = c[i];
+      Var const var = lit.var();
+      assert(var.index() < m_used_vars);
+
+      // copy literal by default
+      c[j++] = c[i++];
+      assert(j <= i);
+
+      Value const lit_value = m_values[lit];
+      if (lit_value == Value::True) {
+        LOG_INFO("AtMostOne constraint has true literal on root level: " << lit);
+        assert(get_level(var) == 0);
+        // One literal of the AMO is already true => propagate all others to be false
+        for (uint32_t k = 0; k < c.size(); ++k) {
+          Lit const other = c[k];
+          if (other == lit) {
+            continue;
+          }
+          if (m_values[other] == Value::True) {
+            // conflict at root level!
+            LOG_INFO("AtMostOne constraint is conflicting on root level due to literals: " << lit << ", " << other);
+            m_inconsistent = true;
+            break;
+          }
+          else if (m_values[other] == Value::Unassigned) {
+            // propagate other literal to false
+            basic_assign(~other, Reason::invalid());
+          }
+          else {
+            assert(m_values[other] == Value::False);
+            // other literal already false => nothing to do
+          }
+        }
+        is_trivial = true;
+        break;
+      }
+      else if (lit_value == Value::False) {
+        LOG_INFO("Literal false on root level: " << lit);
+        assert(get_level(var) == 0);
+        j--;  // remove literal
+      }
+      else {
+        assert(lit_value == Value::Unassigned);
+        Mark const prev_mark = m_marks[var];
+        Mark const lit_mark = lit.is_positive() ? 1 : -1;
+        if (prev_mark == 0) {
+          m_marks[var] = lit_mark;
+        }
+        else if (prev_mark == lit_mark) {
+          LOG_INFO("Removing duplicate literal " << lit);
+          j--;  // remove literal
+        }
+        else {
+          assert(prev_mark == -lit_mark);
+          LOG_INFO("AtMostOne constraint contains both polarities of variable " << var);
+          // For example: AtMostOne(x, ~x, y, z, ...)
+          // In this case we can propagate all other literals to false.
+          // If we don't get a conflict, the AMO then degenerates to a tautology AtMostOne(x, ~x).
+          for (uint32_t k = 0; k < c.size(); ++k) {
+            Lit const other = c[k];
+            if (other.var() == var) {
+              continue;
+            }
+            if (m_values[other] == Value::True) {
+              // conflict at root level!
+              LOG_INFO("AtMostOne constraint is conflicting on root level due to literals: " << lit << ", " << other);
+              m_inconsistent = true;
+              break;
+            }
+            else if (m_values[other] == Value::Unassigned) {
+              // propagate other literal to false
+              basic_assign(~other, Reason::invalid());
+            }
+            else {
+              assert(m_values[other] == Value::False);
+              // other literal already false => nothing to do
+            }
+          }
+          is_trivial = true;
+          break;
+        }
+      }
+    }
+    assert(j <= c.m_size);
+    c.m_size = j;
+    // AtMostOne constraints of sizes 0 and 1 are tautologies
+    if (c.size() <= 1) {
+      is_trivial = true;
+    }
+    // Reset marks
+    for (Lit lit : c) {
+      m_marks[lit.var()] = 0;
+    }
+    assert(std::all_of(m_marks.begin(), m_marks.end(), [](Mark m) { return m == 0; }));
+    return is_trivial;
+  }
+#endif  // SUBSAT_SIMPLIFY_AMOS
+
+  void simplify_and_connect_atmostone_constraint(ConstraintRef cr)
+  {
+    LOG_INFO("Connecting AtMostOne constraint " << SHOWREF(cr));
+    assert(m_state == State::Unknown);
+    assert(m_level == 0);
+    Constraint& c = m_constraints.deref(cr);
+
+#if SUBSAT_SIMPLIFY_AMOS
+    bool is_trivial = simplifyAmo(c);
+    if (is_trivial) {
+      LOG_DEBUG("Skipping AtMostOne constraint.");
+      return; // skip constraint
+    }
+    LOG_INFO("Adding simplified AtMostOne constraint " << c);
+    assert(isAmoSimplified(c));
+#endif
+
     if (c.size() <= 1) {
       // AtMostOne constraints of sizes 0 and 1 are tautologies => do nothing
     } else if (c.size() == 2) {
@@ -798,11 +977,11 @@ public:
       // AtMostOne(p, q) == ~p \/ ~q
       c[0] = ~c[0];
       c[1] = ~c[1];
-      add_original_clause(cr);
+      assert(!SUBSAT_SIMPLIFY_AMOS || isClauseSimplified(c));
+      simplify_and_connect_clause(cr);
     } else {
       // Add proper AtMostOne constraint
       assert(c.size() >= 3);
-      SUBSAT_STAT_INC(original_amos);
 #ifndef NDEBUG
       m_atmostone_constraint_refs.push_back(cr);
 #endif
@@ -810,11 +989,70 @@ public:
     }
   }
 
+public:
   /// Returns true iff the solver is in an inconsistent state.
   /// (may return true before calling solve if e.g. an empty clause is added.)
   bool inconsistent() const
   {
     return m_inconsistent;
+  }
+
+  /// Prepare internal data structures for solving.
+  void prepare_for_solving()
+  {
+    assert(m_state == State::Unknown);
+    assert(m_level == 0);
+
+    assert(m_values.size() == 0);
+    m_unassigned_vars = m_used_vars;
+    m_vars.resize(m_used_vars);
+    m_marks.resize(m_used_vars, 0);
+    m_values.resize(2 * m_used_vars, Value::Unassigned);
+    if (m_watches.size() < 2 * m_used_vars) {
+      m_watches.resize(2 * m_used_vars);
+    }
+    if (m_watches_amo.size() < 2 * m_used_vars) {
+      m_watches_amo.resize(2 * m_used_vars);
+    }
+
+#if SUBSAT_VDOM
+    m_vdom.prepare_for_solving();
+#endif
+#if SUBSAT_VMTF
+    m_queue.resize_and_init(m_used_vars);
+    assert(m_queue.checkInvariants(m_values));
+#endif
+
+    m_trail.reserve(m_used_vars);
+
+    for (auto p : m_original_constraints) {
+      Constraint::Kind const kind = p.first;
+      ConstraintRef cr = p.second;
+      switch (kind) {
+        case Constraint::Kind::Clause:
+          simplify_and_connect_clause(cr);
+          break;
+        case Constraint::Kind::AtMostOne:
+          simplify_and_connect_atmostone_constraint(cr);
+          break;
+      }
+      if (m_inconsistent) {
+        // If we're inconsistent there's no point in further adding constraints
+        return;
+      }
+    }
+
+    m_frames.resize(m_used_vars + 1, 0);
+
+    if (!tmp_propagate_binary_conflict_ref.is_valid()) {
+      auto ca = alloc_constraint(2);
+      handle_push_literal(ca, Lit::invalid());
+      handle_push_literal(ca, Lit::invalid());
+      tmp_propagate_binary_conflict_ref = handle_build(ca).m_ref;
+    }
+
+    m_theory.prepare_for_solving();
+    theory_propagate_initial();
   }
 
   Result solve()
@@ -829,23 +1067,7 @@ public:
 
     // Initialize data structures if this is the first call to solve
     if (m_state == State::Unknown) {
-      assert(m_level == 0);
-      m_trail.reserve(m_used_vars);
-      m_frames.resize(m_used_vars + 1, 0);
-#if SUBSAT_VMTF
-      m_queue.resize_and_init(m_used_vars);
-      assert(m_queue.checkInvariants(m_values));
-#endif
-
-      if (!tmp_propagate_binary_conflict_ref.is_valid()) {
-        auto ca = alloc_constraint(2);
-        handle_push_literal(ca, Lit::invalid());
-        handle_push_literal(ca, Lit::invalid());
-        tmp_propagate_binary_conflict_ref = handle_build(ca).m_ref;
-      }
-
-      m_theory.prepare_for_solving();
-      theory_propagate_initial();
+      prepare_for_solving();
     }
 
     Result res = Result::Unknown;
@@ -1801,6 +2023,7 @@ private:
   /// All AtMostOne constraints added to the solver
   vector<ConstraintRef> m_atmostone_constraint_refs;
 #endif
+  vector<std::pair<Constraint::Kind, ConstraintRef>> m_original_constraints;
 
   /// The currently true literals in order of assignment
   vector<Lit> m_trail;
@@ -1880,6 +2103,7 @@ bool Solver<Allocator>::checkEmpty() const
   assert(m_clause_refs.empty());
   assert(m_atmostone_constraint_refs.empty());
 #endif
+  assert(m_original_constraints.empty());
   assert(std::all_of(m_watches.begin(), m_watches.end(),
                      [](vector<Watch> const& ws) { return ws.empty(); }));
   assert(std::all_of(m_watches_amo.begin(), m_watches_amo.end(),

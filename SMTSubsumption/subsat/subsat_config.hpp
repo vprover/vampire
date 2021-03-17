@@ -82,6 +82,16 @@ static_assert(VDEBUG == 1, "VDEBUG and NDEBUG are not synchronized");
 #define SUBSAT_PHASE_SAVING 0
 #endif
 
+// Simplify clauses before solving
+#ifndef SUBSAT_SIMPLIFY_CLAUSES
+#define SUBSAT_SIMPLIFY_CLAUSES 1
+#endif
+
+// Simplify AtMostOne constraints before solving
+#ifndef SUBSAT_SIMPLIFY_AMOS
+#define SUBSAT_SIMPLIFY_AMOS 1
+#endif
+
 // By default, statistics are only enabled in standalone mode or if logging is enabled
 #if SUBSAT_STANDALONE || SUBSAT_LOGGING_ENABLED
 #define SUBSAT_STATISTICS 1

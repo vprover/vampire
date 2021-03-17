@@ -21,6 +21,11 @@ namespace subsat {
 class Constraint final
 {
 public:
+  enum class Kind {
+    Clause,
+    AtMostOne,
+  };
+
   using iterator = Lit*;
   using const_iterator = Lit const*;
   using size_type = uint32_t;
