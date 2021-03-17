@@ -122,6 +122,8 @@ int main(int argc, char* argv[])
   Solver<> s;
   assert(s.empty());
 
+  subsat_print_config(std::cout);
+
   Result res;
 
 #if 0
