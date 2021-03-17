@@ -88,7 +88,6 @@ public:
   }
 
   NODISCARD constexpr Lit operator~() const noexcept;
-  NODISCARD constexpr operator Lit() const noexcept;
 
 private:
   index_type m_index;
@@ -148,7 +147,9 @@ private:
   }
 
 public:
-  explicit constexpr Lit(Var var, bool positive) noexcept
+  /// Construct literal from variable and polarity.
+  /// Enables implicit conversion from variables to positive literals.
+  constexpr Lit(Var var, bool positive = true) noexcept
       : Lit{2 * var.index() + static_cast<index_type>(!positive)}
   {
   }
@@ -221,6 +222,8 @@ private:
 
 static_assert(Lit::max_index() < Lit::invalid().index(), "valid literal indices overlap with invalid sentinel value");
 static_assert(!Lit::invalid().is_valid(), "");
+static_assert(Lit{Var{0}, true}.index() == 0, "");
+static_assert(Lit{Var{0}, false}.index() == 1, "");
 static_assert(Lit{Var{Var::max_index()}, true}.is_valid(), "");
 static_assert(Lit{Var{Var::max_index()}, false}.is_valid(), "");
 // static_assert(std::is_trivially_constructible<Lit>::value, "");
@@ -251,11 +254,6 @@ std::ostream& operator<<(std::ostream& os, Lit lit);
 NODISCARD constexpr Lit Var::operator~() const noexcept
 {
   return Lit{*this, false};
-}
-
-NODISCARD constexpr Var::operator Lit() const noexcept
-{
-  return Lit{*this, true};
 }
 
 
