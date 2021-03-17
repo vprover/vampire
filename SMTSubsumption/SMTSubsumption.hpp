@@ -20,6 +20,8 @@ struct SubsumptionInstance
 
 class SMTSubsumptionImpl2;
 
+class SMTSubsumptionImpl3;
+
 class ProofOfConcept {
   public:
     CLASS_NAME(ProofOfConcept);
