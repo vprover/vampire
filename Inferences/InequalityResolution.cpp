@@ -316,9 +316,16 @@ ClauseIterator InequalityResolution::generateClauses(Clause* cl1, Literal* liter
 
                     DEBUG("  resolving against: ", lit2, " (term: ", term2, ", constr: ", res.constraints, ")");
 
-                    auto factors = computeFactors(num1, num2);
-                    //   ^^^^^^^--> (k1, k2)
-                    ASS_REP(factors.first.isPositive() && factors.second.isPositive(), factors)
+                    pair<Numeral,Numeral> factors;
+                    //                    ^^^^^^^--> (k1, k2)
+                    try {
+                      factors = computeFactors(num1, num2);
+                      ASS_REP(factors.first.isPositive() && factors.second.isPositive(), factors)
+
+                    } catch (MachineArithmeticException&) {
+                      env.statistics->irOverflowApply++;
+                      return Option<Clause*>();
+                    }
 
                     Stack<Monom> resolventSum(lit1.term().nSummands() + lit2.term().nSummands() - 2 + (isInt ? 1 : 0));
                     //           ^^^^^^^^^^^^--> gonna be k1 * rest1 + k2 * rest2                   
