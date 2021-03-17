@@ -279,6 +279,9 @@ private:
    * (So the key here is never odd!)
    **/
   DHMap<SplitLevel,Unit*> _defs;
+
+  // Current hack to deal with literals implied by current model
+  Stack<Clause*> _implied;
   
   //state variable used for flushing:  
   /** When this number of generated clauses is reached, it will cause flush */

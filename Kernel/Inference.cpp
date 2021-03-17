@@ -822,6 +822,9 @@ vstring Kernel::ruleName(InferenceRule rule)
   case InferenceRule::GENERAL_SPLITTING:
     return "general splitting";
 
+  case InferenceRule::DP:
+    return "implied by decision procedure";
+
 
   case InferenceRule::COLOR_UNBLOCKING:
     return "color unblocking";

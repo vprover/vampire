@@ -444,6 +444,40 @@ SATSolver::Status SplittingBranchSelector::processDPConflicts()
     }
   }
   
+  // TODO - guard this by a check that we are using linear arithmetic
+  {
+    static LiteralStack model;
+    _dp->getModel(model); 
+    LiteralStack::Iterator it(model);
+
+    UnitList* prems = UnitList::empty();
+    for(unsigned i=1;i<=_parent.maxSatVar();i++){
+      SATSolver::VarAssignment asgn = _solver->getAssignment(i);  
+      if(asgn == SATSolver::TRUE){
+        SplitLevel s = _parent.getNameFromLiteral(SATLiteral(i,true));
+        Splitter::SplitRecord* sr = _parent._db[s];
+        Clause* c = sr->component;
+        UnitList::push(c,prems);
+      }
+    }
+    Inference inf = NonspecificInferenceMany(InferenceRule::DP,prems);
+
+    while(it.hasNext()){
+      Literal* lit = it.next();
+      cout << lit->toString() << endl;
+      ASS(lit->isPositive());
+      ASS(lit->isEquality());
+      ASS(lit->ground());
+      static Stack<Literal*> stack;
+      stack.reset();
+      stack.push(lit);
+      Clause* c = Clause::fromStack(stack,inf);
+      cout << "to add " << c->toString() << endl;
+      _parent._implied.push(c);
+    }
+  }
+
+
   // ASS(_solver->getStatus()==SATSolver::SATISFIABLE);
   if (_ccModel) {
     TimeCounter tc(TC_CCMODEL);
@@ -1715,6 +1749,10 @@ void Splitter::addComponents(const SplitLevelStack& toAdd)
       // RSTAT_MCTR_INC("reactivated clauses",reactivated_cnt);
     }
   }
+
+  Stack<Clause*>::Iterator it(_implied);
+  while(it.hasNext()){ _sa->addNewClause(it.next()); }
+  _implied.reset();
 }
 
 /**

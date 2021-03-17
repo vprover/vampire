@@ -310,6 +310,11 @@ enum class InferenceRule : unsigned char {
   AVATAR_SPLIT_CLAUSE,
   /** sat clause representing FO clause for AVATAR */
   AVATAR_CONTRADICTION_CLAUSE,
+ 
+  /** something true in the current model due to a Decision Procedure **/
+  // TODO better name 
+  DP,
+
   /** sat color elimination */
   SAT_COLOR_ELIMINATION,
   /** obtain a formula from a clause */
