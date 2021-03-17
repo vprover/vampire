@@ -1397,8 +1397,6 @@ class SMTSubsumption::SMTSubsumptionImpl2
 
 
 
-#define USE_INSTANCE_MINIINDEX 0
-
 class SMTSubsumption::SMTSubsumptionImpl3
 {
   private:
@@ -1414,9 +1412,6 @@ class SMTSubsumption::SMTSubsumptionImpl3
     subsat::Solver<allocator_type> solver;
 
     Kernel::Clause* instance = nullptr;   // main premise for forward subsumption (resolution)
-#if USE_INSTANCE_MINIINDEX
-    LiteralMiniIndex instance_miniIndex;
-#endif
 
     /// AtLeastOne constraints stating that each base literal may be matched at least once.
     /// Since we allocate SAT variables consecutively, we only need to store the length of each of these clauses.
@@ -1441,9 +1436,6 @@ class SMTSubsumption::SMTSubsumptionImpl3
     void setupMainPremise(Kernel::Clause* new_instance)
     {
       instance = new_instance;
-#if USE_INSTANCE_MINIINDEX
-      instance_miniIndex.init(instance);
-#endif
     }
 
     /// Set up the subsumption problem. Must have called setupMainPremise first.
@@ -1474,24 +1466,6 @@ class SMTSubsumption::SMTSubsumptionImpl3
 
       // Pre-matching
       // To keep overhead as low as possible, we do not yet create solver variables at this point
-#if USE_INSTANCE_MINIINDEX
-      for (unsigned bi = 0; bi < base_len; ++bi) {
-        Literal* const base_lit = base->literals()[bi];
-        LiteralMiniIndex::InstanceIterator inst_it{instance_miniIndex, base_lit, false};
-        while (true) {
-          auto binder = theory.start_binder();
-          // TODO: this doesn't work as it is now, because LiteralMiniIndex will only return one match for commutative literals;
-          //       but we need to take into account both orderings (because they could lead to different variable bindings).
-          if (!inst_it.hasNext(binder)) {
-            break;
-          }
-          Literal* const inst_lit = inst_it.next();
-          binder.commit();
-          // TODO: record
-        }
-        // TODO: no match => return false
-      }
-#else
       uint32_t nextVarIndex = 0;
       for (unsigned bi = 0; bi < base->length(); ++bi) {
         Literal* base_lit = base->literals()[bi];
@@ -1508,6 +1482,7 @@ class SMTSubsumption::SMTSubsumptionImpl3
             auto binder = theory.start_binder();
             if (base_lit->arity() == 0 || MatchingUtils::matchArgs(base_lit, inst_lit, binder)) {
               subsat::Var b{nextVarIndex++};
+              LOG_DEBUG("MatchFwd: " << b << " ~ " << base_lit->toString() << " -> " << inst_lit->toString());
               match_count += 1;
               theory.commit_bindings(binder, b);
               solver.handle_push_literal(instance_constraints[j], b);
@@ -1520,6 +1495,7 @@ class SMTSubsumption::SMTSubsumptionImpl3
             auto binder = theory.start_binder();
             if (MatchingUtils::matchReversedArgs(base_lit, inst_lit, binder)) {
               subsat::Var b{nextVarIndex++};
+              LOG_DEBUG("MatchRev: " << b << " ~ " << base_lit->toString() << " -> " << inst_lit->toString());
               match_count += 1;
               theory.commit_bindings(binder, b);
               solver.handle_push_literal(instance_constraints[j], b);
@@ -1534,7 +1510,6 @@ class SMTSubsumption::SMTSubsumptionImpl3
           return false;
         }
       }
-#endif
 
       // Build clauses stating that base_lit must be matched to at least one corresponding instance literal.
       ASS_EQ(base_clauses.size(), base->length());
