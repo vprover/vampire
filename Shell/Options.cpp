@@ -12,9 +12,9 @@
  *
  * In summary, you are allowed to use Vampire for non-commercial
  * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
+ * or use in competitions.
  * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
+ * licence, which we will make an effort to provide.
  */
 /**
  * @file Options.cpp
@@ -275,7 +275,7 @@ void Options::Options::init()
     _badOption.description = "What should be done if a bad option value (wrt hard and soft constraints) is encountered:\n"
        " - hard: will cause a user error\n"
        " - soft: will only report the error (unless it is unsafe)\n"
-       " - forced: <under development> \n" 
+       " - forced: <under development> \n"
        " - off: will ignore safe errors\n"
        "Note that unsafe errors will aways lead to a user error";
     _lookup.insert(&_badOption);
@@ -304,7 +304,7 @@ void Options::Options::init()
       "- proofcheck will output proof as a sequence of TPTP problems to allow for proof-checking by external solvers\n"
       "- tptp gives TPTP output\n"
       "- property is a developmental option. It allows developers to output statistics about the proof using a ProofPrinter "
-      "object (see Kernel/InferenceStore::ProofPropertyPrinter\n"; 
+      "object (see Kernel/InferenceStore::ProofPropertyPrinter\n";
     _lookup.insert(&_proof);
     _proof.tag(OptionTag::OUTPUT);
 
@@ -316,7 +316,7 @@ void Options::Options::init()
 
     _proofExtra = ChoiceOptionValue<ProofExtra>("proof_extra","",ProofExtra::OFF,{"off","free","full"});
     _proofExtra.description="Add extra detail to proofs:\n "
-      "- free uses known information only\n" 
+      "- free uses known information only\n"
       "- full may perform expensive operations to acheive this so may"
       " significantly impact on performance.\n"
       " The option is still under development and the format of extra information (mainly from full) may change between minor releases";
@@ -431,7 +431,7 @@ void Options::Options::init()
     _sos = ChoiceOptionValue<Sos>("sos","sos",Sos::OFF,{"all","off","on","theory"});
     _sos.description=
     "Set of support strategy. All formulas annotated as axioms are put directly among active clauses, without performing any inferences between them."
-    " If all, select all literals of set-of-support clauses, otherwise use the default literal selector. If theory then only apply to theory" 
+    " If all, select all literals of set-of-support clauses, otherwise use the default literal selector. If theory then only apply to theory"
     " axioms introduced by vampire (all literals are selected).";
     _lookup.insert(&_sos);
     _sos.tag(OptionTag::PREPROCESSING);
@@ -463,7 +463,7 @@ void Options::Options::init()
     _equalityProxy.tag(OptionTag::PREPROCESSING);
     _equalityProxy.addProblemConstraint(hasEquality());
     _equalityProxy.setRandomChoices(isRandOn(),{"R","RS","RST","RSTC","off","off","off","off","off"}); // wasn't tested, make off more likely
-    
+
 
     _equalityResolutionWithDeletion = ChoiceOptionValue<RuleActivity>( "equality_resolution_with_deletion","erd",
                                                                       RuleActivity::INPUT_ONLY,{"input_only","off","on"});
@@ -481,7 +481,7 @@ void Options::Options::init()
        "This also ensures a symbol is not used as a function and predicate.";
     _lookup.insert(&_arityCheck);
     _arityCheck.tag(OptionTag::DEVELOPMENT);
-    
+
     _functionDefinitionElimination = ChoiceOptionValue<FunctionDefinitionElimination>("function_definition_elimination","fde",
                                                                                       FunctionDefinitionElimination::ALL,{"all","none","unused"});
     _functionDefinitionElimination.description=
@@ -697,7 +697,7 @@ void Options::Options::init()
     _showPassive.description="Show clauses added to the passive set.";
     _lookup.insert(&_showPassive);
     _showPassive.tag(OptionTag::DEVELOPMENT);
-    
+
     _showReductions = BoolOptionValue("show_reductions","",false);
     _showReductions.description="Show reductions.";
     _showReductions.tag(OptionTag::DEVELOPMENT);
@@ -754,7 +754,7 @@ void Options::Options::init()
     _manualClauseSelection.description="Run Vampire interactively by manually picking the clauses to be selected";
     _lookup.insert(&_manualClauseSelection);
     _manualClauseSelection.tag(OptionTag::DEVELOPMENT);
-    
+
 //************************************************************************
 //*********************** VAMPIRE (includes CASC)  ***********************
 //************************************************************************
@@ -811,7 +811,7 @@ void Options::Options::init()
 
     _fmbSymmetryOrderSymbols = ChoiceOptionValue<FMBSymbolOrders>("fmb_symmetry_symbol_order","fmbsso",
                                                      FMBSymbolOrders::OCCURENCE,
-                                                     {"occurence","input_usage","preprocessed_usage"}); 
+                                                     {"occurence","input_usage","preprocessed_usage"});
     _fmbSymmetryOrderSymbols.description = "The order of symbols considered for symmetry avoidance. See Symmetry Avoidance in MACE-Style Finite Model Finding.";
     _lookup.insert(&_fmbSymmetryOrderSymbols);
     _fmbSymmetryOrderSymbols.tag(OptionTag::FMB);
@@ -890,7 +890,7 @@ void Options::Options::init()
     _lookaheadDelay.tag(OptionTag::SATURATION);
     _lookup.insert(&_lookaheadDelay);
     _lookaheadDelay.reliesOn(_selection.isLookAheadSelection());
-    
+
     _ageWeightRatio = RatioOptionValue("age_weight_ratio","awr",1,1,':');
     _ageWeightRatio.description=
     "Ratio in which clauses are being selected for activation i.e. a:w means that for every a clauses selected based on age "
@@ -1011,8 +1011,8 @@ void Options::Options::init()
     _positiveLiteralSplitQueueLayeredArrangement.tag(OptionTag::SATURATION);
 
     _literalMaximalityAftercheck = BoolOptionValue("literal_maximality_aftercheck","lma",false);
-    _literalMaximalityAftercheck.description = 
-                                   "For efficiency we perform maximality checks before applying substitutions. Sometimes this can " 
+    _literalMaximalityAftercheck.description =
+                                   "For efficiency we perform maximality checks before applying substitutions. Sometimes this can "
                                    "lead to generating more clauses than needed for completeness. Set this on to add the checks "
                                    "afterwards as well.";
     _lookup.insert(&_literalMaximalityAftercheck);
@@ -1045,7 +1045,7 @@ void Options::Options::init()
 
            _theoryInstAndSimp = ChoiceOptionValue<TheoryInstSimp>("theory_instantiation","thi",
                                                 TheoryInstSimp::OFF,{"off","all","strong","overlap","full","new"});
-           _theoryInstAndSimp.description = ""; 
+           _theoryInstAndSimp.description = "";
            _theoryInstAndSimp.tag(OptionTag::INFERENCES);
            _lookup.insert(&_theoryInstAndSimp);
 #endif
@@ -1057,7 +1057,7 @@ void Options::Options::init()
               "resolving p(1) \\/ C with ~p(a+2) would produce C \\/ 1 !=a+2. This is controlled by a check on the terms. The expected "
               "use case is in theory reasoning. The possible values are:"
               "- off: do not introduce a constraint\n"
-              "- interpreted_only: only if s and t have interpreted top symbols\n" 
+              "- interpreted_only: only if s and t have interpreted top symbols\n"
               "- one_side_interpreted: only if one of s or t have interpreted top symbols\n"
               "- one_side_constant: only if one of s or t is an interpreted constant (e.g. a number)\n"
               "- all: always apply\n"
@@ -1070,12 +1070,12 @@ void Options::Options::init()
            _useACeval.description="Evaluate associative and commutative operators e.g. + and *.";
            _useACeval.tag(OptionTag::INFERENCES);
            _lookup.insert(&_useACeval);
- 
+
            _inequalityNormalization = BoolOptionValue("normalize_inequalities","norm_ineq",false);
            _inequalityNormalization.description="Enable normalizing of inequalities like s < t ==> 0 < t - s.";
            _lookup.insert(&_inequalityNormalization);
            _inequalityNormalization.tag(OptionTag::INFERENCES);
- 
+
            _gaussianVariableElimination = BoolOptionValue("gaussian_variable_elimination","gve",false);
            _gaussianVariableElimination.description=
                   "Enable the immideate simplification \"Gaussian Variable Elimination\":\n"
@@ -1118,7 +1118,7 @@ void Options::Options::init()
             _inductionChoice = ChoiceOptionValue<InductionChoice>("induction_choice","indc",InductionChoice::ALL,
                                 {"all","goal","goal_plus"});
             _inductionChoice.description="Where to apply induction. Goal only applies to constants in goal, goal_plus"
-                                         " extends this with skolem constants introduced by induction. Consider using" 
+                                         " extends this with skolem constants introduced by induction. Consider using"
                                          " guess_the_goal for problems in SMTLIB as they do not come with a conjecture";
             _inductionChoice.tag(OptionTag::INFERENCES);
             _lookup.insert(&_inductionChoice);
@@ -1256,7 +1256,7 @@ void Options::Options::init()
 	    _demodulationRedundancyCheck.addProblemConstraint(hasEquality());
 	    _demodulationRedundancyCheck.setRandomChoices({"on","off"});
 
-	    
+
 	    _extensionalityAllowPosEq = BoolOptionValue( "extensionality_allow_pos_eq","",false);
 	    _extensionalityAllowPosEq.description="If extensionality resolution equals filter, this dictates"
 	      " whether we allow other positive equalities when recognising extensionality clauses";
@@ -1264,7 +1264,7 @@ void Options::Options::init()
 	    _extensionalityAllowPosEq.tag(OptionTag::INFERENCES);
 	    _extensionalityAllowPosEq.reliesOn(_extensionalityResolution.is(equal(ExtensionalityResolution::FILTER)));
 	    _extensionalityAllowPosEq.setRandomChoices({"on","off","off"}); // Prefer off
-	    
+
 	    _extensionalityMaxLength = UnsignedOptionValue("extensionality_max_length","",0);
 	    _extensionalityMaxLength.description="Sets the maximum length (number of literals) an extensionality"
 	      " clause can have when doing recognition for extensionality resolution. If zero there is no maximum.";
@@ -1275,7 +1275,7 @@ void Options::Options::init()
 	    _extensionalityMaxLength.reliesOn(_extensionalityResolution.is(notEqual(ExtensionalityResolution::OFF)));
 	    //TODO does this depend on anything?
 	    _extensionalityMaxLength.setRandomChoices({"0","0","0","2","3"}); // TODO what are good values?
-	    
+
 	    _extensionalityResolution = ChoiceOptionValue<ExtensionalityResolution>("extensionality_resolution","er",
 										    ExtensionalityResolution::OFF,{"filter","known","tagged","off"});
 	    _extensionalityResolution.description=
@@ -1284,7 +1284,7 @@ void Options::Options::init()
 	      "  -----------------------\n"
 	      "  C{x → s, y → t} \\/ D\n"
 	      "Where s!=t is selected in s!=t \\/D and x=y \\/ C is a recognised as an extensionality clause - how clauses are recognised depends on the value of this option.\n"
-	      "If filter we attempt to recognise all extensionality clauses i.e. those that have exactly one X=Y, no inequality of the same sort as X-Y (and optionally no equality except X=Y, see extensionality_allow_pos_eq).\n" 
+	      "If filter we attempt to recognise all extensionality clauses i.e. those that have exactly one X=Y, no inequality of the same sort as X-Y (and optionally no equality except X=Y, see extensionality_allow_pos_eq).\n"
 	      "If known we only recognise a known set of extensionality clauses. At the moment this includes the standard and subset-based formulations of the set extensionality axiom, as well as the array extensionality axiom.\n"
 	      "If tagged we only use formulas tagged as extensionality clauses.";
 	    _lookup.insert(&_extensionalityResolution);
@@ -1345,7 +1345,7 @@ void Options::Options::init()
 	    _lookup.insert(&_forwardDemodulation);
 	    _forwardDemodulation.tag(OptionTag::INFERENCES);
 	    _forwardDemodulation.setRandomChoices({"all","all","all","off","preordered"});
-    
+
     _forwardLiteralRewriting = BoolOptionValue("forward_literal_rewriting","flr",false);
     _forwardLiteralRewriting.description="Perform forward literal rewriting.";
     _lookup.insert(&_forwardLiteralRewriting);
@@ -1385,6 +1385,16 @@ void Options::Options::init()
     _subsumptionLogfile.description="Log subsumption inferences";
     _lookup.insert(&_subsumptionLogfile);
     _subsumptionLogfile.setExperimental();
+
+    _benchmarkOut = StringOptionValue("benchmark_out","","");
+    _benchmarkOut.description="Filename where benchmark results should be written";
+    _lookup.insert(&_benchmarkOut);
+    _benchmarkOut.setExperimental();
+
+    _benchmarkRepetitions = UnsignedOptionValue("benchmark_repetitions","",0);
+    _benchmarkRepetitions.description="How many times each benchmarks should be repeated (default 0 means don't pass this option to the benchmark library)";
+    _lookup.insert(&_benchmarkRepetitions);
+    _benchmarkRepetitions.setExperimental();
 
     _hyperSuperposition = BoolOptionValue("hyper_superposition","",false);
     _hyperSuperposition.description=
@@ -1590,7 +1600,7 @@ void Options::Options::init()
     _splittingCongruenceClosure.setRandomChoices({"model","off","on"});
     _splittingCongruenceClosure.addHardConstraint(If(equal(SplittingCongruenceClosure::MODEL)).
                                                   then(_splittingMinimizeModel.is(notEqual(SplittingMinimizeModel::SCO))));
-    
+
     _ccUnsatCores = ChoiceOptionValue<CCUnsatCores>("cc_unsat_cores","ccuc",CCUnsatCores::ALL,
                                                      {"first", "small_ones", "all"});
     _ccUnsatCores.description="";
@@ -1610,7 +1620,7 @@ void Options::Options::init()
 
     _splittingMinimizeModel = ChoiceOptionValue<SplittingMinimizeModel>("avatar_minimize_model","amm",
                                                                         SplittingMinimizeModel::ALL,{"off","sco","all"});
-    
+
     _splittingMinimizeModel.description="Minimize the SAT-solver model by replacing concrete values with don't-cares"
                                         " provided <all> the sat clauses (or only the split clauses with <sco>) remain provably satisfied"
                                         " by the partial model.";
@@ -1793,7 +1803,7 @@ void Options::Options::init()
     _satFallbackForSMT.reliesOn(_satSolver.is(equal(SatSolver::Z3)));
 
     _z3UnsatCores = BoolOptionValue("z3_unsat_core","z3uc",false);
-    _z3UnsatCores.description=""; 
+    _z3UnsatCores.description="";
     _lookup.insert(&_z3UnsatCores);
     _z3UnsatCores.tag(OptionTag::SAT);
 #endif
@@ -1815,7 +1825,7 @@ void Options::Options::init()
     //*************************************************************
     //*********************** which mode or tag?  ************************
     //*************************************************************
-    
+
     _bfnt = BoolOptionValue("bfnt","bfnt",false);
     _bfnt.description="";
     _lookup.insert(&_bfnt);
@@ -1825,7 +1835,7 @@ void Options::Options::init()
     _bfnt.addProblemConstraint(notWithCat(Property::EPR));
     _bfnt.setRandomChoices({},{"on","off","off","off","off","off"});
     _bfnt.setExperimental();
-    
+
     _increasedNumeralWeight = BoolOptionValue("increased_numeral_weight","inw",false);
     _increasedNumeralWeight.description=
              "This option only applies if the problem has interpreted numbers. The weight of integer constants depends on the logarithm of their absolute value (instead of being 1)";
@@ -1941,7 +1951,7 @@ void Options::Options::init()
 
 
     _functionWeights = StringOptionValue("function_weights","fw","");
-    _functionWeights.description = 
+    _functionWeights.description =
       "Path to a file that defines weights for KBO for function symbols, or 'random'.\n"
       "\n"
       "If 'random' is used the weights will be assigned randomly.\n"
@@ -1997,14 +2007,14 @@ void Options::Options::init()
     //*********************** Vinter???  *******************************
     //******************************************************************
 
-    
+
     _colorUnblocking = BoolOptionValue("color_unblocking","",false);
     _colorUnblocking.description="";
     _lookup.insert(&_colorUnblocking);
     _colorUnblocking.setExperimental();
     _colorUnblocking.tag(OptionTag::OTHER);
-    
-    
+
+
     _showInterpolant = ChoiceOptionValue<InterpolantMode>("show_interpolant","",InterpolantMode::OFF,
                                                           {"new_heur","new_opt","off", "old", "old_opt"});
     _lookup.insert(&_showInterpolant);
@@ -2014,38 +2024,38 @@ void Options::Options::init()
 //******************************************************************
 //*********************** Bound Propagation  ***********************
 //******************************************************************
-    
+
 /*
     _whileNumber = IntOptionValue("while_number","",1);
     _whileNumber.description="";
     _lookup.insert(&_whileNumber);
     _whileNumber.tag(Mode::BOUND_PROP);
-    
+
     _functionNumber = IntOptionValue("function_number","",1);
     _functionNumber.description="";
     _lookup.insert(&_functionNumber);
     _functionNumber.tag(Mode::BOUND_PROP);
     _functionNumber.tag(OptionTag::PREPROCESSING);
-    
+
     _bpCollapsingPropagation = BoolOptionValue("bp_add_collapsing_inequalities","",false); // ASSUMED default, wasn't in Options
     _bpCollapsingPropagation.description="";
     _lookup.insert(&_bpCollapsingPropagation);
     _bpCollapsingPropagation.tag(Mode::BOUND_PROP);
     _bpCollapsingPropagation.reliesOn(_mode.is(equal(Mode::BOUND_PROP)));
-    
+
     _bpAllowedFMBalance = UnsignedOptionValue("bp_allowed_fm_balance","",0);
     _bpAllowedFMBalance.description="";
     _lookup.insert(&_bpAllowedFMBalance);
     _bpAllowedFMBalance.tag(Mode::BOUND_PROP);
     _bpAllowedFMBalance.reliesOn(_mode.is(equal(Mode::BOUND_PROP)));
-    
+
     _bpAlmostHalfBoundingRemoval= ChoiceOptionValue<BPAlmostHalfBoundingRemoval>("bp_almost_half_bounding_removal","",
                                                                                  BPAlmostHalfBoundingRemoval::ON,{"bounds_on","off","on"});
     _bpAlmostHalfBoundingRemoval.description="";
     _lookup.insert(&_bpAlmostHalfBoundingRemoval);
     _bpAlmostHalfBoundingRemoval.tag(Mode::BOUND_PROP);
     _bpAlmostHalfBoundingRemoval.reliesOn(_mode.is(equal(Mode::BOUND_PROP)));
-    
+
     _bpAssignmentSelector = ChoiceOptionValue<BPAssignmentSelector>("bp_assignment_selector","",
                                                                     BPAssignmentSelector::RANDOM,
                                                                     {"alternating","bmp","lower_bound",
@@ -2055,56 +2065,56 @@ void Options::Options::init()
     _lookup.insert(&_bpAssignmentSelector);
     _bpAssignmentSelector.tag(Mode::BOUND_PROP);
     _bpAssignmentSelector.reliesOn(_mode.is(equal(Mode::BOUND_PROP)));
-    
+
     _updatesByOneConstraint= UnsignedOptionValue("bp_bound_improvement_limit","",3);
     _updatesByOneConstraint.description="";
     _lookup.insert(&_updatesByOneConstraint);
     _updatesByOneConstraint.tag(Mode::BOUND_PROP);
     _updatesByOneConstraint.reliesOn(_mode.is(equal(Mode::BOUND_PROP)));
-    
+
     _bpConflictSelector = ChoiceOptionValue<BPConflictSelector>("bp_conflict_selector","",
                                                                 BPConflictSelector::MOST_RECENT,{"least_recent","most_recent","shortest"});
     _bpConflictSelector.description="";
     _lookup.insert(&_bpConflictSelector);
     _bpConflictSelector.tag(Mode::BOUND_PROP);
     _bpConflictSelector.reliesOn(_mode.is(equal(Mode::BOUND_PROP)));
-    
+
     _bpConservativeAssignmentSelection = BoolOptionValue("bp_conservative_assignment_selection","",true);
     _bpConservativeAssignmentSelection.description="";
     _lookup.insert(&_bpConservativeAssignmentSelection);
     _bpConservativeAssignmentSelection.tag(Mode::BOUND_PROP);
     _bpConservativeAssignmentSelection.reliesOn(_mode.is(equal(Mode::BOUND_PROP)));
-    
+
     _bpFmElimination= BoolOptionValue("bp_fm_elimination","",true);
     _bpFmElimination.description="";
     _lookup.insert(&_bpFmElimination);
     _bpFmElimination.tag(Mode::BOUND_PROP);
     _bpFmElimination.reliesOn(_mode.is(equal(Mode::BOUND_PROP)));
-    
+
     _maximalPropagatedEqualityLength = UnsignedOptionValue("bp_max_prop_length","",5);
     _maximalPropagatedEqualityLength.description="";
     _lookup.insert(&_maximalPropagatedEqualityLength);
     _maximalPropagatedEqualityLength.tag(Mode::BOUND_PROP);
     _maximalPropagatedEqualityLength.reliesOn(_mode.is(equal(Mode::BOUND_PROP)));
-    
+
     _bpPropagateAfterConflict = BoolOptionValue("bp_propagate_after_conflict","",true);
     _bpPropagateAfterConflict.description="";
     _lookup.insert(&_bpPropagateAfterConflict);
     _bpPropagateAfterConflict.tag(Mode::BOUND_PROP);
     _bpPropagateAfterConflict.reliesOn(_mode.is(equal(Mode::BOUND_PROP)));
-    
+
     _bpStartWithPrecise = BoolOptionValue("bp_start_with_precise","",false);
     _bpStartWithPrecise.description="";
     _lookup.insert(&_bpStartWithPrecise);
     _bpStartWithPrecise.tag(Mode::BOUND_PROP);
     _bpStartWithPrecise.reliesOn(_mode.is(equal(Mode::BOUND_PROP)));
-    
+
     _bpStartWithRational = BoolOptionValue("bp_start_with_rational","",false);
     _bpStartWithRational.description="";
     _lookup.insert(&_bpStartWithRational);
     _bpStartWithRational.tag(Mode::BOUND_PROP);
     _bpStartWithRational.reliesOn(_mode.is(equal(Mode::BOUND_PROP)));
-    
+
     _bpVariableSelector = ChoiceOptionValue<BPVariableSelector>("bp_variable_selector","",
                                                                 BPVariableSelector::TIGHTEST_BOUND,
                                                                 {"conflicting","conflicting_and_collapsing",
@@ -2116,9 +2126,9 @@ void Options::Options::init()
     _bpVariableSelector.reliesOn(_mode.is(equal(Mode::BOUND_PROP)));
 */
 
-    
+
  // Declare tag names
-    
+
     _tagNames = {
                  "Unused",
                  "Other",
@@ -2293,7 +2303,7 @@ vstring Options::includeFileName (const vstring& relativeName)
     // (b) search in the directory of the 'current file'
     // i.e. the input file
     vstring currentFile = inputFile();
-    System::extractDirNameFromPath(currentFile,dir); 
+    System::extractDirNameFromPath(currentFile,dir);
     if(System::fileExists(dir+"/"+relativeName)){
       return dir + "/" + relativeName;
     }
@@ -2345,7 +2355,7 @@ void Options::output (ostream& str) const
      try{
        option = _lookup.findLong(name);
      }
-     catch(const ValueNotFoundException&){ 
+     catch(const ValueNotFoundException&){
        try{
          option = _lookup.findShort(name);
        }
@@ -2353,12 +2363,12 @@ void Options::output (ostream& str) const
          option = 0;
        }
      }
-     if(!option){ 
+     if(!option){
        str << name << " not a known option" << endl;
        Stack<vstring> sim_s = getSimilarOptionNames(name,true);
        Stack<vstring> sim_l = getSimilarOptionNames(name,false);
        VirtualIterator<vstring> sit = pvi(getConcatenatedIterator(
-           Stack<vstring>::Iterator(sim_s),Stack<vstring>::Iterator(sim_l))); 
+           Stack<vstring>::Iterator(sim_s),Stack<vstring>::Iterator(sim_l)));
         if(sit.hasNext()){
           vstring first = sit.next();
           str << "\tMaybe you meant ";
@@ -2396,8 +2406,8 @@ void Options::output (ostream& str) const
   }
 
   bool normalshow = showOptions();
-  bool experimental = showExperimentalOptions();  
-  
+  bool experimental = showExperimentalOptions();
+
   if(normalshow || experimental) {
 
     //We bypass the allocator here because of the use of vstringstream
@@ -2420,8 +2430,8 @@ void Options::output (ostream& str) const
 
     while(options.hasNext()){
       AbstractOptionValue* option = options.next();
-      if(option->inMode(this_mode) && 
-              ((experimental && option->experimental) || 
+      if(option->inMode(this_mode) &&
+              ((experimental && option->experimental) ||
                (normalshow && !option->experimental) )){
         unsigned tag = static_cast<unsigned>(option->getTag());
         //option->output(*groups[tag]);
@@ -2488,7 +2498,7 @@ bool Options::OptionValue<T>::randomize(Property* prop){
   if(env.options->randomStrategy()==RandomStrategy::NOCHECK) prop=0;
 
   // Only randomize if we have a property and need it or don't have one and don't need it!
-  if( env.options->randomStrategy()!=RandomStrategy::NOCHECK && 
+  if( env.options->randomStrategy()!=RandomStrategy::NOCHECK &&
       ((prop && !hasProblemConstraints()) || (!prop && hasProblemConstraints()))
     ){
     return false;
@@ -2503,7 +2513,7 @@ bool Options::OptionValue<T>::randomize(Property* prop){
     if(!entry.first || (prop && entry.first->check(prop))){
       choices = entry.second.get();
       break;
-    }  
+    }
   }
   if(!choices || choices->size()==0) return false; // no valid choices
 
@@ -2527,7 +2537,7 @@ bool Options::OptionValue<T>::checkConstraints(){
            USER_ERROR("\nBroken Constraint: "+con->msg(*this));
          }
 
-         if(con->isHard()){ 
+         if(con->isHard()){
            if(env.options->randomStrategy()!=RandomStrategy::OFF)
               return false; // Skip warning for Hard
            USER_ERROR("\nBroken Constraint: "+con->msg(*this));
@@ -2545,7 +2555,7 @@ bool Options::OptionValue<T>::checkConstraints(){
                }else{
                  USER_ERROR("\nCould not force Constraint: "+con->msg(*this));
                }
-           case BadOption::OFF: 
+           case BadOption::OFF:
              return false;
            default: ASSERTION_VIOLATION;
         }
@@ -3011,7 +3021,7 @@ void Options::readFromEncodedOptions (vstring testId)
   }
   vstring timeString = testId.substr(index+1);
   _timeLimitInDeciseconds.set(timeString);
-  // setting assumes seconds as default, but encoded strings use deciseconds 
+  // setting assumes seconds as default, but encoded strings use deciseconds
   _timeLimitInDeciseconds.actualValue = _timeLimitInDeciseconds.actualValue/10;
 
   testId = testId.substr(3,index-3);
@@ -3074,7 +3084,7 @@ vstring Options::generateEncodedOptions() const
     default : ASSERTION_VIOLATION;
   }
 
-  res << sat; 
+  res << sat;
 
   //selection function
   res << (selection() < 0 ? "-" : "+") << abs(selection());
@@ -3126,9 +3136,9 @@ vstring Options::generateEncodedOptions() const
 
   if(!first){ res << "_"; }
   res << Lib::Int::toString(_timeLimitInDeciseconds.actualValue);
- 
+
   return res.str();
- 
+
 }
 
 
@@ -3177,7 +3187,7 @@ bool Options::complete(const Problem& prb) const
   if (_sos.actualValue != Sos::OFF) return false;
   // run-time rule causing incompleteness
   if (_forwardLiteralRewriting.actualValue) return false;
-  
+
   bool unitEquality = prop.category() == Property::UEQ;
   bool hasEquality = (prop.equalityAtoms() != 0);
 
@@ -3222,7 +3232,7 @@ bool Options::completeForNNE() const
   if (_sos.actualValue != Sos::OFF) return false;
   // run-time rule causing incompleteness
   if (_forwardLiteralRewriting.actualValue) return false;
-  
+
   if (_selection.actualValue <= -100 || _selection.actualValue >= 100) return false;
 
   return _binaryResolution.actualValue;
@@ -3240,7 +3250,7 @@ bool Options::checkGlobalOptionConstraints(bool fail_early)
 
   //Check forbidden options
   readOptionsString(_forbiddenOptions.actualValue,false);
-    
+
   //if we're not in mid-randomisation then check bfnt completeness
   //this assumes that fail_early is only on when being called from randomizeStrategy
   if(!fail_early && env.options->bfnt() && !completeForNNE()){
@@ -3251,8 +3261,8 @@ bool Options::checkGlobalOptionConstraints(bool fail_early)
 
   // Check recorded option constraints
   VirtualIterator<AbstractOptionValue*> options = _lookup.values();
-  while(options.hasNext()){ 
-    result = options.next()->checkConstraints() && result; 
+  while(options.hasNext()){
+    result = options.next()->checkConstraints() && result;
     if(fail_early && !result) return result;
   }
 
@@ -3270,7 +3280,7 @@ bool Options::checkProblemOptionConstraints(Property* prop,bool fail_early)
 
   VirtualIterator<AbstractOptionValue*> options = _lookup.values();
   while(options.hasNext()){
-    result = options.next()->checkProblemConstraints(prop) && result; 
+    result = options.next()->checkProblemConstraints(prop) && result;
     if(fail_early && !result) return result;
   }
 
