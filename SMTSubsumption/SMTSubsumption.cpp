@@ -2712,17 +2712,11 @@ void ProofOfConcept::benchmark_micro(vvector<SubsumptionInstance> instances)
 
 #if ENABLE_BENCHMARK
 
-  vvector<char const*> args = {
+  vvector<vstring> args = {
     "vampire-sbench-micro",
-    // "--benchmark_repetitions=10",  // Enable this to get mean/median/stddev
-    // // "--benchmark_report_aggregates_only=true",
-    // "--benchmark_display_aggregates_only=true",
-    // // "--help",
+    // "--help",
   };
-  char** argv = const_cast<char**>(args.data());  // not really legal but whatever
-  int argc = args.size();
 
-  // for (auto instance : instances)
   // for (int i = 0; i < 5; ++i)
   // for (int i = 0; i < instances.size(); ++i)
   for (int i = 0; i < 1; ++i)
@@ -2783,7 +2777,7 @@ void ProofOfConcept::benchmark_micro(vvector<SubsumptionInstance> instances)
     benchmark::RegisterBenchmark(name.c_str(), bench_orig_total_reusing, instance);
   }
 
-  benchmark::Initialize(&argc, argv);
+  init_benchmark(std::move(args));
   benchmark::RunSpecifiedBenchmarks();
 #endif  // ENABLE_BENCHMARK
 
@@ -2949,21 +2943,17 @@ void ProofOfConcept::benchmark_run(vvector<SubsumptionInstance> instances)
     fw_instances.back().side_premises.push_back({instance.side_premise, instance.number, instance.subsumed});
   }
 
-  vvector<char const*> args = {
+  vvector<vstring> args = {
     "vampire-sbench-run",
-    "--benchmark_repetitions=3",  // Enable this to get mean/median/stddev
-    // "--benchmark_display_aggregates_only=true",
-    // // "--benchmark_report_aggregates_only=true",
-    // // "--help",
+    // "--help",
   };
-  char** argv = const_cast<char**>(args.data());  // not really legal but whatever
-  int argc = args.size();
 
   benchmark::RegisterBenchmark("smt2_run", bench_smt2_run, instances);
   benchmark::RegisterBenchmark("smt3_fwrun", bench_smt3_fwrun, fw_instances);
   // benchmark::RegisterBenchmark("orig_run", bench_orig_run, instances);
   benchmark::RegisterBenchmark("orig_fwrun", bench_orig_fwrun, fw_instances);
-  benchmark::Initialize(&argc, argv);
+
+  init_benchmark(std::move(args));
   benchmark::RunSpecifiedBenchmarks();
   std::cerr << "Benchmarking done, shutting down..." << std::endl;
 }

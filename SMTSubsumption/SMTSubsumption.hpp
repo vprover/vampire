@@ -42,6 +42,10 @@ class ProofOfConcept {
     bool checkSubsumptionResolution(Kernel::Clause* base, Kernel::Clause* instance, Kernel::Clause* result);
 
   private:
+    void add_common_benchmark_args(vvector<vstring>& args);
+    void init_benchmark(vvector<vstring> the_args);
+
+  private:
     std::unique_ptr<SMTSubsumptionImpl2> m_subsat_impl;
 };
 

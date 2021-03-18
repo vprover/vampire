@@ -767,6 +767,7 @@ set(VAMPIRE_SMT_SUBSUMPTION_SOURCES
     SMTSubsumption/minisat/VarOrder.h
 
     SMTSubsumption/SMTSubsumption.cpp
+    SMTSubsumption/SMTSubsumption_benchmark.cpp
     SMTSubsumption/SMTSubsumption.hpp
     SMTSubsumption/OldSubstitutionTheory.cpp
     SMTSubsumption/OldSubstitutionTheory.hpp
