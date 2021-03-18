@@ -2830,7 +2830,7 @@ struct FwSubsumptionInstance
   struct SidePremise {
     Kernel::Clause* side_premise; // also called "base clause"
     unsigned int number;
-    bool subsumed;                // expected result
+    int subsumed;                // expected result
   };
   Kernel::Clause* main_premise;  // also called "instance clause"
   vvector<SidePremise> side_premises;
@@ -2849,14 +2849,14 @@ void bench_smt3_fwrun(benchmark::State& state, vvector<FwSubsumptionInstance> co
       // Test side premises
       for (auto const& instance : fw_instance.side_premises) {
         bool const subsumed = impl.setupSubsumption(instance.side_premise) && impl.solve();
-        if (subsumed != instance.subsumed) {
+        if (instance.subsumed >= 0 && subsumed != instance.subsumed) {
           // std::cout << "Wrong result for instance: " << instance.number << std::endl;
           // std::cout << "             side_premise: " << instance.side_premise->toString() << std::endl;
           // std::cout << "             main_premise: " << fw_instance.main_premise->toString() << std::endl;
           state.SkipWithError("Wrong result!");
           return;
         }
-        if (subsumed) { count++; break; }  // NOTE: since we record subsumption log from a real fwsubsumption run, this will only happen at the last iteration anyway.
+        if (subsumed) { count++; }  // NOTE: since we record subsumption log from a real fwsubsumption run, this will only happen at the last iteration anyway.
       }
     }
     benchmark::DoNotOptimize(count);
@@ -2902,8 +2902,11 @@ void bench_orig_fwrun(benchmark::State& state, vvector<FwSubsumptionInstance> co
 
         matcher.init(mcl, cl, cms->_matches, true);
         bool const subsumed = matcher.nextMatch();
-        if (subsumed != instance.subsumed) { state.SkipWithError("Wrong result!"); return; }
-        if (subsumed) { count++; break; }  // NOTE: since we record subsumption log from a real fwsubsumption run, this will only happen at the last iteration anyway.
+        if (instance.subsumed >= 0 && subsumed != instance.subsumed) {
+          state.SkipWithError("Wrong result!");
+          return;
+        }
+        if (subsumed) { count++; }  // NOTE: since we record subsumption log from a real fwsubsumption run, this will only happen at the last iteration anyway.
       }
 
       // Cleanup

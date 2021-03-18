@@ -454,8 +454,6 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
       ClauseMatches* cms=new ClauseMatches(mcl);
       mcl->setAux(cms);
       cmStore.push(cms);
-      //      cms->addMatch(res.literal, (*cl)[li]);
-      //      cms->fillInMatches(&miniIndex, res.literal, (*cl)[li]);
       cms->fillInMatches(&miniIndex);
 
       if(cms->anyNonMatched()) {
@@ -494,12 +492,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
         fsstats.m_logger->logResult(isSubsumed);
       }
 
-      /*
       auto stats = MLMatcher::getStaticStats();
-      fsstats.m_logged_count += 1;
-      if (fsstats.m_logger) {
-        fsstats.m_logger->log(mcl, cl, isSubsumed, &stats);
-      }
       if (stats.numDecisions >= fsstats.m_numDecisions_frequency.size()) {
         size_t new_size = std::max(std::max(256ul, (size_t)stats.numDecisions+1), fsstats.m_numDecisions_frequency.size() * 2);
         fsstats.m_numDecisions_frequency.resize(new_size, 0);
@@ -509,7 +502,6 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
       if (stats.result) {
         fsstats.m_numDecisions_successes[stats.numDecisions] += 1;
       }
-      */
 
 #if CHECK_SMT_SUBSUMPTION
         if (smtsubs.checkSubsumption(mcl, cl) != isSubsumed) {

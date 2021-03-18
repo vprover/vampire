@@ -15,7 +15,7 @@ struct SubsumptionInstance
   Kernel::Clause* side_premise;  // also called "base clause"
   Kernel::Clause* main_premise;  // also called "instance clause"
   unsigned int number;
-  bool subsumed;  // expected result
+  int subsumed;  // expected result
 };
 
 class SMTSubsumptionImpl2;

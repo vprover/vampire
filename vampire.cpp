@@ -830,9 +830,11 @@ vvector<SMTSubsumption::SubsumptionInstance> getSubsumptionInstances(UnitList co
     if (!(slog >> main_premise_number)) {
       USER_ERROR("expected <main_premise_number>");
     }
-    bool is_subsumed;
+    int is_subsumed;
     if (!(slog >> is_subsumed)) {
-      USER_ERROR("expected <is_subsumed>");
+      // USER_ERROR("expected <is_subsumed>");
+      std::cerr << "expected <is_subsumed> (continue with 'unknown' value)" << std::endl;
+      is_subsumed = -3;
     }
     instances.push_back({
         .side_premise = clauses.at(side_premise_number),
