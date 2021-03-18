@@ -2793,7 +2793,7 @@ void bench_smt2_run(benchmark::State& state, vvector<SubsumptionInstance> const&
     int count = 0;
     for (auto instance : instances) {
       bool res = impl.checkSubsumption(instance.side_premise, instance.main_premise);
-      if (res != instance.subsumed) {
+      if (instance.subsumed >= 0 && res != instance.subsumed) {
         // std::cout << "Wrong result for instance: " << instance.number << std::endl;
         // std::cout << "             side_premise: " << instance.side_premise->toString() << std::endl;
         // std::cout << "             main_premise: " << instance.main_premise->toString() << std::endl;
@@ -2814,7 +2814,7 @@ void bench_orig_run(benchmark::State& state, vvector<SubsumptionInstance> const&
     int count = 0;
     for (auto instance : instances) {
       bool res = impl.checkSubsumption(instance.side_premise, instance.main_premise);
-      if (res != instance.subsumed) {
+      if (instance.subsumed >= 0 && res != instance.subsumed) {
         state.SkipWithError("Wrong result!");
         return;
       }
