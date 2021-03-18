@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 3.5.1)
+cmake_minimum_required (VERSION 3.13)
 
 project(VampireSubSAT)
 
@@ -16,9 +16,6 @@ add_compile_options(
     "-Wall"
     "-Wextra"
     "-Wconversion"
-    # "$<$<CONFIG:DEBUG>:-fsanitize=undefined>"
-    # "$<$<CONFIG:DEBUG>:-fsanitize=integer>"
-    # "$<$<CONFIG:DEBUG>:-fsanitize=address>"
 )
 
 message("compiler: " ${CMAKE_CXX_COMMAND})
@@ -47,3 +44,7 @@ add_executable(subsat
 )
 
 target_compile_definitions(subsat PRIVATE SUBSAT_STANDALONE=1)
+
+# set(SUBSAT_SANITIZER_FLAGS "-fsanitize=undefined,address,integer")
+# target_compile_options(subsat PRIVATE "$<$<CONFIG:DEBUG>:${SUBSAT_SANITIZER_FLAGS}>")
+# target_link_options(subsat PRIVATE "$<$<CONFIG:DEBUG>:${SUBSAT_SANITIZER_FLAGS}>")
