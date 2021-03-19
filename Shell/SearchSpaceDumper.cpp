@@ -1,4 +1,5 @@
 #ifdef __FEATURE_SEARCH_SPACE_DUMPER
+
 #include "SearchSpaceDumper.hpp"
 #include <iostream>
 #include "Forwards.hpp"
@@ -241,7 +242,7 @@ template<class Ser> tuple<const char*, json> _serialize(const TermList& self, Se
 
 template<class Ser> tuple<const char*, json> _serialize(const Clause& self, Ser serial) {
   json j;
-  j["thry_desc"] = self.isTheoryDescendant();
+  j["thry_desc"] = self.isPureTheoryDescendant();
 
   json lits = json::array();
   for (int i = 0; i < self.size(); i++) {

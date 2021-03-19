@@ -205,6 +205,7 @@ set(VAMPIRE_LIB_SOURCES
     Lib/VirtualIterator.hpp
     Lib/VString.hpp
     Lib/STL.hpp
+    Lib/json.hpp
     )
 source_group(lib_source_files FILES ${VAMPIRE_LIB_SOURCES})
 
@@ -592,6 +593,7 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/TheoryFinder.cpp
     Shell/TheoryFlattening.cpp
     Shell/BlockedClauseElimination.cpp
+    Shell/SearchSpaceDumper.cpp
     Shell/Token.cpp
     Shell/TPTPPrinter.cpp
     #Shell/TrivialPredicateRemover.cpp
@@ -630,6 +632,7 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/Interpolants.hpp
     Shell/InterpolantsNew.hpp
     Shell/InterpretedNormalizer.hpp
+    Shell/SearchSpaceDumper.hpp
     Shell/LaTeX.hpp
     Shell/Lexer.hpp
     Shell/LispLexer.hpp
