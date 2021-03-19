@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file TheoryFlattening.cpp
@@ -177,8 +171,7 @@ Clause* TheoryFlattening::apply(Clause*& cl,Stack<Literal*>& target)
   }
   if(!updated){ return cl;}
 
-  Clause* rep = Clause::fromStack(result,cl->inputType(),
-                            new Inference1(Inference::THEORY_FLATTENING,cl)); 
+  Clause* rep = Clause::fromStack(result,SimplifyingInference1(InferenceRule::THEORY_FLATTENING,cl));
 
   //cout << cl->toString() << " replaced by " << rep->toString() << endl;
 

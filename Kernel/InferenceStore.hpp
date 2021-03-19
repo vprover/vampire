@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file InferenceStore.hpp
@@ -77,7 +71,7 @@ public:
 
     int csId;
     unsigned premCnt;
-    Inference::Rule rule;
+    InferenceRule rule;
     Unit* premises[1];
   };
 
@@ -88,7 +82,7 @@ public:
   void outputProof(ostream& out, Unit* refutation);
   void outputProof(ostream& out, UnitList* units);
 
-  UnitIterator getParents(Unit* us, Inference::Rule& rule);
+  UnitIterator getParents(Unit* us, InferenceRule& rule);
   UnitIterator getParents(Unit* us);
 
   vstring getUnitIdStr(Unit* cs);

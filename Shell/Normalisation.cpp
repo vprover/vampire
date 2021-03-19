@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file Normalisation.cpp
@@ -139,7 +133,7 @@ bool Normalisation::lessThan (Unit* u1, Unit* u2)
 
   // the below code should be uncommented, it gives the best behavior
   // on the average
-  switch (compare((int)u1->inputType(),(int)u2->inputType())) {
+  switch (compare(static_cast<int>(u1->inputType()),static_cast<int>(u2->inputType()))) {
   case LESS:
     return false;
   case EQUAL:

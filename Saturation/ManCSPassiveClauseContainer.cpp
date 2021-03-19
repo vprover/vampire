@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file ManCSPassiveClauseContainer.cpp
@@ -48,20 +42,16 @@ private:
   const std::vector<Clause*>::const_iterator end;
 };
 
-
-ClauseIterator ManCSPassiveClauseContainer::iterator()
-{
-  return vi( new VectorIteratorWrapper(clauses));
-}
-
 void ManCSPassiveClauseContainer::add(Clause* cl)
 {
+  CALL("ManCSPassiveClauseContainer::add");
   clauses.push_back(cl);
   addedEvent.fire(cl);
 }
 
 void ManCSPassiveClauseContainer::remove(Clause* cl)
 {
+  CALL("ManCSPassiveClauseContainer::remove");
   ASS(cl->store()==Clause::PASSIVE);
 
   auto it = std::find(clauses.begin(),clauses.end(),cl);
@@ -74,6 +64,7 @@ void ManCSPassiveClauseContainer::remove(Clause* cl)
 
 Clause* ManCSPassiveClauseContainer::popSelected()
 {
+  CALL("ManCSPassiveClauseContainer::popSelected");
   ASS(!clauses.empty());
 
   std::vector<Clause*>::iterator selectedClauseIt;
@@ -105,6 +96,6 @@ Clause* ManCSPassiveClauseContainer::popSelected()
   return selectedClause;
 }
 
-unsigned ManCSPassiveClauseContainer::size() const { return clauses.size(); }
+unsigned ManCSPassiveClauseContainer::sizeEstimate() const { return clauses.size(); }
 bool ManCSPassiveClauseContainer::isEmpty() const { return clauses.empty(); }
 }

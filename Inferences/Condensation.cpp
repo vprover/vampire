@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file Condensation.cpp
@@ -140,19 +134,16 @@ Clause* Condensation::simplify(Clause* cl)
       }
 
       if(success) {
-	Inference* inf = new Inference1(Inference::CONDENSATION, cl);
-	Unit::InputType inpType = cl->inputType();
-	Clause* res = new(newLen) Clause(newLen, inpType, inf);
-	Renaming norm;
+        Clause* res = new(newLen) Clause(newLen, SimplifyingInference1(InferenceRule::CONDENSATION, cl));
+        Renaming norm;
 
-	for(unsigned i=0;i<newLen;i++) {
-	  //(*res)[i] = norm.normalize(newLits[i]);
-	  (*res)[i] = newLits[i];
-	}
+        for(unsigned i=0;i<newLen;i++) {
+          //(*res)[i] = norm.normalize(newLits[i]);
+          (*res)[i] = newLits[i];
+        }
 
-	res->setAge(cl->age());
-	env.statistics->condensations++;
-	return res;
+        env.statistics->condensations++;
+        return res;
       }
     }
   }

@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file FastCondensation.cpp
@@ -124,9 +118,8 @@ Clause* FastCondensation::simplify(Clause* cl)
       }
       if(MatchingUtils::match(cLit, (*cl)[mIndex], false, cbinder)) {
 	unsigned newLen=clen-1;
-	Inference* inf = new Inference1(Inference::CONDENSATION, cl);
-	Unit::InputType inpType = cl->inputType();
-	Clause* res = new(newLen) Clause(newLen, inpType, inf);
+	Clause* res = new(newLen) Clause(newLen,
+	    SimplifyingInference1(InferenceRule::CONDENSATION, cl));
 
 	unsigned ri=0;
 	for(unsigned ci=0;ci<clen;ci++) {
@@ -136,7 +129,6 @@ Clause* FastCondensation::simplify(Clause* cl)
 	}
 	ASS_EQ(ri, newLen);
 
-	res->setAge(cl->age());
 	env.statistics->condensations++;
 
 	return res;

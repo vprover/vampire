@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file FormulaBuilder.cpp
@@ -641,7 +635,7 @@ AnnotatedFormula FormulaBuilder::annotatedFormula(Formula f, Annotation a, vstri
     f=negation(inner);
   }
 
-  FormulaUnit* fures=new Kernel::FormulaUnit(f, new Kernel::Inference(Kernel::Inference::INPUT), inputType);
+  FormulaUnit* fures=new Kernel::FormulaUnit(f, new Kernel::Inference0(Kernel::Inference::INPUT), inputType);
 
   AnnotatedFormula res(fures);
   res._aux=_aux; //assign the correct helper object
@@ -743,7 +737,7 @@ Formula FormulaBuilder::replaceConstant(Formula f, Term replaced, Term target)
 
   Kernel::Formula* letForm = Formula::createLet(replaced.functor(), 0, target, f.form);
   Shell::FOOLElimination fe;
-  FormulaUnit* auxUnit = new FormulaUnit(letForm, new Inference(Inference::INPUT), Unit::AXIOM);
+  FormulaUnit* auxUnit = new FormulaUnit(letForm, new Inference0(Inference::INPUT), Unit::AXIOM);
   UnitList* defs = 0;
   FormulaUnit* auxReplaced = fe.apply(auxUnit, defs);
   ASS_EQ(defs, 0);

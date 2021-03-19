@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file GoalGuessing.cpp
@@ -74,7 +68,7 @@ bool GoalGuessing::apply(UnitList*& units)
 
     if(_checkPosition){
       if(u->number() == Unit::getLastParsingNumber()){
-        u->setInputType(Unit::NEGATED_CONJECTURE);
+        u->inference().setInputType(UnitInputType::NEGATED_CONJECTURE);
         modified=true;
       }
     }
@@ -97,7 +91,7 @@ bool GoalGuessing::apply(Clause* cl)
 {
   CALL("GoalGuessing::apply(Clause* cl)");
 
-  if(cl->isTheoryDescendant()){ return false; }
+  if(cl->isPureTheoryDescendant()){ return false; }
 
   unsigned clen = cl->length();
   bool looksLikeGoal = false;
@@ -105,7 +99,7 @@ bool GoalGuessing::apply(Clause* cl)
     Literal* lit = (*cl)[i];
     looksLikeGoal |= apply(lit); // need to consider all as apply(Lit) may update signature
   }
-  if(looksLikeGoal){ cl->setInputType(Unit::NEGATED_CONJECTURE); }
+  if(looksLikeGoal){ cl->inference().setInputType(UnitInputType::NEGATED_CONJECTURE); }
   return looksLikeGoal; 
 }
 bool GoalGuessing::apply(FormulaUnit* fu)
@@ -130,7 +124,7 @@ bool GoalGuessing::apply(FormulaUnit* fu)
       looksLikeGoal |= apply(sf->literal()); // need to consider all as apply(Lit) may update signature
     }
   }
-  if(looksLikeGoal){ fu->setInputType(Unit::NEGATED_CONJECTURE); }
+  if(looksLikeGoal){ fu->inference().setInputType(UnitInputType::NEGATED_CONJECTURE); }
   return looksLikeGoal;
 }
 

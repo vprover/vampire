@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file InequalitySplitting.hpp
@@ -27,6 +21,7 @@
 
 #include "Forwards.hpp"
 #include "Lib/Stack.hpp"
+#include "Kernel/Inference.hpp"
 
 namespace Shell {
 
@@ -45,7 +40,7 @@ public:
 
 private:
   Clause* trySplitClause(Clause* cl);
-  Literal* splitLiteral(Literal* lit, Unit::InputType inpType, Clause*& premise);
+  Literal* splitLiteral(Literal* lit, UnitInputType inpType, Clause*& premise);
 
   Literal* makeNameLiteral(unsigned predNum, TermList arg, bool polarity);
 

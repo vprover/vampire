@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file TermSubstitutionTree.cpp
@@ -204,8 +198,7 @@ TermQueryResultIterator TermSubstitutionTree::getInstances(TermList t,
  */
 struct TermSubstitutionTree::TermQueryResultFn
 {
-  DECL_RETURN_TYPE(TermQueryResult);
-  OWN_RETURN_TYPE operator() (const QueryResult& qr) {
+  TermQueryResult operator() (const QueryResult& qr) {
     return TermQueryResult(qr.first.first->term, qr.first.first->literal,
 	    qr.first.first->clause, qr.first.second,qr.second);
   }
@@ -246,8 +239,7 @@ TermQueryResultIterator TermSubstitutionTree::getResultIterator(Term* trm,
 
 struct TermSubstitutionTree::LDToTermQueryResultFn
 {
-  DECL_RETURN_TYPE(TermQueryResult);
-  OWN_RETURN_TYPE operator() (const LeafData& ld) {
+  TermQueryResult operator() (const LeafData& ld) {
     return TermQueryResult(ld.term, ld.literal, ld.clause);
   }
 };
@@ -262,8 +254,7 @@ struct TermSubstitutionTree::LDToTermQueryResultWithSubstFn
     _subst=RobSubstitutionSP(new RobSubstitution());
     _constraints=UnificationConstraintStackSP(new Stack<UnificationConstraint>());
   }
-  DECL_RETURN_TYPE(TermQueryResult);
-  OWN_RETURN_TYPE operator() (const LeafData& ld) {
+  TermQueryResult operator() (const LeafData& ld) {
     if(_withConstraints){
       return TermQueryResult(ld.term, ld.literal, ld.clause,
             ResultSubstitution::fromSubstitution(_subst.ptr(),
@@ -284,8 +275,7 @@ private:
 
 struct TermSubstitutionTree::LeafToLDIteratorFn
 {
-  DECL_RETURN_TYPE(LDIterator);
-  OWN_RETURN_TYPE operator() (Leaf* l) {
+  LDIterator operator() (Leaf* l) {
     CALL("TermSubstitutionTree::LeafToLDIteratorFn()");
     return l->allChildren();
   }
@@ -294,7 +284,11 @@ struct TermSubstitutionTree::LeafToLDIteratorFn
 struct TermSubstitutionTree::UnifyingContext
 {
   UnifyingContext(TermList queryTerm,bool withConstraints)
-  : _queryTerm(queryTerm),_withConstraints(withConstraints) {}
+  : _queryTerm(queryTerm)
+#if VDEBUG
+    , _withConstraints(withConstraints)
+#endif
+  {}
   bool enter(TermQueryResult qr)
   {
     //if(_withConstraints){ cout << "enter " << qr.term << endl; }
@@ -360,7 +354,9 @@ struct TermSubstitutionTree::UnifyingContext
   }
 private:
   TermList _queryTerm;
+#if VDEBUG
   bool _withConstraints;
+#endif
 };
 
 template<class LDIt>

@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file SLQueryBackwardSubsumption.cpp
@@ -80,8 +74,7 @@ void SLQueryBackwardSubsumption::detach()
 
 struct SLQueryBackwardSubsumption::ClauseExtractorFn
 {
-  DECL_RETURN_TYPE(Clause*);
-  OWN_RETURN_TYPE operator()(const SLQueryResult& res)
+  Clause* operator()(const SLQueryResult& res)
   {
     return res.clause;
   }
@@ -89,8 +82,7 @@ struct SLQueryBackwardSubsumption::ClauseExtractorFn
 
 struct SLQueryBackwardSubsumption::ClauseToBwSimplRecordFn
 {
-  DECL_RETURN_TYPE(BwSimplificationRecord);
-  OWN_RETURN_TYPE operator()(Clause* cl)
+  BwSimplificationRecord operator()(Clause* cl)
   {
     return BwSimplificationRecord(cl);
   }

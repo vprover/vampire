@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file CommandLine.cpp
@@ -23,8 +17,8 @@
  * @since 14/11/2004 Manchester
  */
 
-#include <stdlib.h>
-#include <string.h>
+#include <cstdlib>
+#include <cstring>
 
 #include "Debug/Assertion.hpp"
 #include "Debug/Tracer.hpp"
@@ -32,6 +26,7 @@
 #include "Lib/VString.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Exception.hpp"
+#include "SAT/Z3Interfacing.hpp"
 
 #include "CommandLine.hpp"
 #include "Options.hpp"
@@ -65,6 +60,9 @@ void CommandLine::interpret (Options& options)
     const char* arg = *_next++;
     if (strcmp(arg, "--version")==0) {
       cout<<VERSION_STRING<<endl;
+#if VZ3
+      cout << "Linked with Z3 " << Z3Interfacing::z3_full_version() << endl;
+#endif
       exit(0);
     }
     // If --help or -h are used without arguments we still print help
@@ -102,7 +100,11 @@ void CommandLine::interpret (Options& options)
       options.setInputFile(arg);
     }
   }
-  options.setForcedOptionValues();
+  // Don't force options if in Portfolio mode as the
+  // forced options should apply to inner strategies only
+  if(options.mode() != Options::Mode::PORTFOLIO){
+    options.setForcedOptionValues();
+  }
   options.checkGlobalOptionConstraints();
   if(options.encodeStrategy()){
     cout << options.generateEncodedOptions();

@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file FiniteModelBuilder.hpp
@@ -306,7 +300,7 @@ private:
       return true;
     }
 
-    bool isFmbComplete(unsigned noDomains) override { return noDomains == 1; }
+    bool isFmbComplete(unsigned noDomains) override { return noDomains <= 1; }
     void learnNogood(Constraint_Generator_Vals& nogood, unsigned weight) override;
     bool increaseModelSizes(DArray<unsigned>& newSortSizes, DArray<unsigned>& sortMaxes) override;
   };

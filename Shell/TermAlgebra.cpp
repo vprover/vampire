@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 #include "Kernel/Clause.hpp"
 #include "Kernel/Formula.hpp"
@@ -25,6 +19,10 @@ using namespace Kernel;
 using namespace Lib;
 
 namespace Shell {
+
+TermAlgebraConstructor::TermAlgebraConstructor(unsigned functor, std::initializer_list<unsigned> destructors)
+  : TermAlgebraConstructor(functor, Lib::Array<unsigned>(destructors))
+{ }
 
 TermAlgebraConstructor::TermAlgebraConstructor(unsigned functor, Lib::Array<unsigned> destructors)
   : _functor(functor), _hasDiscriminator(false), _destructors(destructors)
@@ -64,6 +62,25 @@ Lib::vstring TermAlgebraConstructor::discriminatorName()
   CALL("TermAlgebraConstructor::discriminatorName");
 
   return "$is" + env.signature->functionName(_functor);
+}
+
+TermAlgebra::TermAlgebra(unsigned sort,
+                         std::initializer_list<TermAlgebraConstructor*> constrs,
+                         bool allowsCyclicTerms) :
+  TermAlgebra(sort, Lib::Array<TermAlgebraConstructor*>(constrs), allowsCyclicTerms)
+{ }
+
+TermAlgebra::TermAlgebra(unsigned sort,
+                         Lib::Array<TermAlgebraConstructor*> constrs,
+                         bool allowsCyclicTerms) :
+  _sort(sort),
+  _n(constrs.size()),
+  _allowsCyclicTerms(allowsCyclicTerms),
+  _constrs(constrs)
+{
+  for (unsigned i = 0; i < constrs.size(); i++) {
+    ASS(constrs[i]->rangeSort() == _sort);
+  }
 }
 
 TermAlgebra::TermAlgebra(unsigned sort,

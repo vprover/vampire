@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file ResultSubstitution.cpp
@@ -49,6 +43,11 @@ public:
   { return _subst->apply(t,_resultBank); }
   Literal* applyToResult(Literal* l)
   { return _subst->apply(l,_resultBank); }
+
+  TermList applyTo(TermList t,unsigned index)
+  { return _subst->apply(t,index); }
+  Literal* applyTo(Literal* l,unsigned index)
+  { return _subst->apply(l,index); }
 
   virtual size_t getQueryApplicationWeight(TermList t) { return _subst->getApplicationResultWeight(t, _queryBank); }
   virtual size_t getQueryApplicationWeight(Literal* l) { return _subst->getApplicationResultWeight(l, _queryBank); }

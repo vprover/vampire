@@ -8,12 +8,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 
 /**
@@ -145,113 +139,139 @@ bool PortfolioMode::performStrategy(Shell::Property* property)
 
   Schedule main;
   Schedule fallback;
+  Schedule main_extra;
+  Schedule fallback_extra;
 
   getSchedules(*property,main,fallback);
+  getExtraSchedules(*property,main,main_extra,true,3);
+  getExtraSchedules(*property,fallback,fallback_extra,true,3);
 
-  // simply insert fallback after main
-  Schedule::BottomFirstIterator it(fallback);
-  main.loadFromIterator(it);
-
-  int terminationTime = env.remainingTime()/100;
-
-  if (terminationTime <= 0) {
-    return false;
+  // Normally we do main fallback main_extra fallback_extra
+  // However, in SMTCOMP mode the fallback is universal for all
+  // logics e.g. it's not very strong. Therefore, in SMTCOMP
+  // mode we do main main_extra fallback fallback_extra
+ 
+  Stack<Schedule> schedules;
+  if(env.options->schedule() == Options::Schedule::SMTCOMP){
+    schedules.push(fallback_extra);
+    schedules.push(fallback);
+    schedules.push(main_extra);
+    schedules.push(main);
+  }
+  else{
+    schedules.push(fallback_extra);
+    schedules.push(main_extra);
+    schedules.push(fallback);
+    schedules.push(main);
   }
 
-  if(!runSchedule(main,terminationTime)){
-    Schedule extra;
-    getExtraSchedules(*property,extra);
-    terminationTime = env.remainingTime()/100;
-    if (terminationTime <= 0) {
-      return false;
+  int remainingTime = env.remainingTime()/100;
+
+  while(remainingTime > 0) {
+    // After running for the first time we replace schedules
+    // by copies with x2 time limits and do this forever
+    // We build these next_schedules as we go
+    Stack<Schedule> next_schedules;
+
+    Stack<Schedule>::Iterator sit(schedules);
+    while(sit.hasNext() && remainingTime > 0){
+      Schedule s = sit.next();
+      if(runSchedule(s)){ return true; }
+      Schedule ns;
+      getExtraSchedules(*property,s,ns,false,2);
+      next_schedules.push(ns);
+      remainingTime = env.remainingTime()/100;
     }
-    return runSchedule(extra,terminationTime); 
+
+    schedules = next_schedules;
   }
-  else{ return true;}
+  return false;
 }
 
-void PortfolioMode::getExtraSchedules(Property& prop, Schedule& extra)
+/**
+ * The idea here is to create extra schedules based on the existing schedules
+ * There are two motivations
+ *  1. Sometimes the provided schedules don't fill the given time limit
+ *  2. Sometimes we have new options that are not yet included in the schedules
+ *
+ * This function will
+ *  1. Increase the time limit of existing strategies (by time_multiplier)
+ *  2. Add extra options to existing strategies (if add_extra is true)
+ *
+ * The expectation is that the extra_opts is updated before each competition submission
+ *
+ * IMPORTANT - every time we add something to extra_opts we are multiplying the length of the old schedule. For example,
+ * if the old schedule takes 60 seconds to run and the length of extra_opts is 10 then extra could take 10 minutes to run
+ * of course, many of the new strategies might fail immediately due to inconsistent constraints etc but in general we want
+ * to keep extra_opts for important new additions only.
+ *
+ * @author Giles
+ **/
+void PortfolioMode::getExtraSchedules(Property& prop, Schedule& old, Schedule& extra, bool add_extra, int time_multiplier)
 {
   CALL("PortfolioMode::getExtraSchedules");
-  // Currently just implement something interesting for SMTCOMP
-  // For everything else just return the main schedule with all times expanded
-  if(env.options->schedule() == Options::Schedule::SMTCOMP){
 
-    Schedule main;
-    Schedule fallback;
+  // Add new extra_opts here
+  Stack<vstring> extra_opts;
 
-    getSchedules(prop,main,fallback);     
-    Schedule::BottomFirstIterator fit(fallback);
-    main.loadFromIterator(fit);
+  if(add_extra){
 
-    Stack<vstring> extra_opts;
-    extra_opts.push("sp=frequency");
-    extra_opts.push("tha=some");
+   // Always try these
+   extra_opts.push("sp=frequency");
+   extra_opts.push("avsq=on");
+   extra_opts.push("plsq=on");
+   extra_opts.push("bsd=on:fsd=on");
+
+   // If contains integers, rationals and reals
+   if(prop.props() & (Property::PR_HAS_INTEGERS | Property::PR_HAS_RATS | Property::PR_HAS_REALS)){
+    extra_opts.push("gve=on");
     extra_opts.push("sos=theory:sstl=5");
-    extra_opts.push("gtg=exists_all");
-    extra_opts.push("uwa=fixed:uwaf=on");
-    if(prop.getSMTLIBLogic() == SMT_UFDT || prop.getSMTLIBLogic() == SMT_AUFDTLIA || 
-       prop.getSMTLIBLogic() == SMT_UFDTNIA || prop.getSMTLIBLogic() == SMT_UFDTLIA){
-      extra_opts.push("gtg=exists_all:ind=all");
-      extra_opts.push("gtg=exists_all:ind=all:sik=all");
-      extra_opts.push("gtg=exists_all:ind=all:sik=all:indmd=1");
-    }
+    extra_opts.push("thsq=on");
+    extra_opts.push("thsq=on:thsqd=16");
+   }
 
-    Schedule::Iterator it(main);
-    while(it.hasNext()){
+   // If in SMT-COMP mode try guessing the goal
+   if(env.options->schedule() == Options::Schedule::SMTCOMP){
+    extra_opts.push("gtg=exists_all");
+   }
+   else{
+   // Don't try this in SMT-COMP mode
+    extra_opts.push("slsq=on");
+   }
+
+   // If using Datatypes try induction
+   if(prop.props() & (Property::PR_HAS_DT_CONSTRUCTORS | Property::PR_HAS_CDT_CONSTRUCTORS)){
+    extra_opts.push("ind=struct");
+    extra_opts.push("gtg=exists_all:ind=struct");
+    extra_opts.push("ind=struct:sik=all");
+    extra_opts.push("ind=struct:sik=all:indmd=1");
+    extra_opts.push("ind=struct:indgen=on");
+    extra_opts.push("ind=struct:indgen=on:indoct=on");
+   }
+
+  }
+
+  Schedule::BottomFirstIterator it(old);
+  while(it.hasNext()){
       vstring s = it.next();
+      // try and grab time string
       vstring ts = s.substr(s.find_last_of("_")+1,vstring::npos);
       int t;
       if(Lib::Int::stringToInt(ts,t)){
         vstring prefix = s.substr(0,s.find_last_of("_")); 
 
+        // Add a copy with increased time limit
+        vstring new_s = prefix + "_" + Lib::Int::toString(t*time_multiplier);
+        extra.push(new_s);
+
+        // Add copies with new extra options (keeping the old time limit) 
         Stack<vstring>::Iterator addit(extra_opts);
         while(addit.hasNext()){
-          s = prefix + ":" + addit.next() + "_" + Lib::Int::toString(t*3);
-          extra.push(s);
+          vstring new_s = prefix + ":" + addit.next() + "_" + Lib::Int::toString(t);
+          extra.push(new_s);
         }
       }
       else{ASSERTION_VIOLATION;}
-    }
-
-
-
-  }
-  else{
-    // grab main and fallback and iterate through multiplying time limit by 3
-    Schedule main;
-    Schedule fallback;
-
-    getSchedules(prop,main,fallback);    
-    Schedule::BottomFirstIterator fit(fallback);
-    main.loadFromIterator(fit);
-
-    Stack<vstring> extra_opts;
-    extra_opts.push("");
-    // contains integers, rationals and reals
-    if(prop.props() & (524288ul | 1048576ul | 2097152ul)){
-      extra_opts.push("tha=some");
-      extra_opts.push("sos=theory:sstl=5");
-      extra_opts.push("uwa=fixed:uwaf=on");
-    }
-
-    Schedule::Iterator it(main);
-    while(it.hasNext()){
-      vstring s = it.next();
-      vstring ts = s.substr(s.find_last_of("_")+1,vstring::npos);
-      int t;
-      if(Lib::Int::stringToInt(ts,t)){
-        vstring prefix = s.substr(0,s.find_last_of("_"));
-        Stack<vstring>::Iterator addit(extra_opts);
-        while(addit.hasNext()){
-          s = prefix + ":" + addit.next() + "_" + Lib::Int::toString(t*3);
-          extra.push(s);
-        }
-
-      }
-      else{ASSERTION_VIOLATION;}
-    }
-
   }
 
 }
@@ -261,121 +281,39 @@ void PortfolioMode::getSchedules(Property& prop, Schedule& quick, Schedule& fall
   CALL("PortfolioMode::getSchedules");
 
   switch(env.options->schedule()) {
-  case Options::Schedule::CASC_2014_EPR:
-    Schedules::getCasc2014EprSchedule(prop,quick,fallback);
-    break;
-  case Options::Schedule::CASC_2014:
-    Schedules::getCasc2014Schedule(prop,quick,fallback);
-    break;
-  case Options::Schedule::CASC_2016:
-    Schedules::getCasc2016Schedule(prop,quick,fallback);
-    break;
-  case Options::Schedule::CASC_2017:
-    Schedules::getCasc2017Schedule(prop,quick,fallback);
-    break;
-  case Options::Schedule::CASC_2018:
-    Schedules::getCasc2018Schedule(prop,quick,fallback);
-    break;
   case Options::Schedule::CASC_2019:
   case Options::Schedule::CASC:
     Schedules::getCasc2019Schedule(prop,quick,fallback);
     break;
-  case Options::Schedule::CASC_SAT_2014:
-    Schedules::getCascSat2014Schedule(prop,quick,fallback);
-    break;
-  case Options::Schedule::CASC_SAT_2016:
-    Schedules::getCascSat2016Schedule(prop,quick,fallback);
-    break;
-  case Options::Schedule::CASC_SAT_2017:
-    Schedules::getCascSat2017Schedule(prop,quick,fallback);
-    break;
-  case Options::Schedule::CASC_SAT_2018:
-    Schedules::getCascSat2018Schedule(prop,quick,fallback);
-    break;
+
   case Options::Schedule::CASC_SAT_2019:
   case Options::Schedule::CASC_SAT:
     Schedules::getCascSat2019Schedule(prop,quick,fallback);
     break;
-  case Options::Schedule::SMTCOMP_2016:
-    Schedules::getSmtcomp2016Schedule(prop,quick,fallback);
-    break;
-  case Options::Schedule::SMTCOMP_2017:
-    Schedules::getSmtcomp2017Schedule(prop,quick,fallback);
-    break;
+
   case Options::Schedule::SMTCOMP:
   case Options::Schedule::SMTCOMP_2018:
     Schedules::getSmtcomp2018Schedule(prop,quick,fallback);
     break;
 
-  case Options::Schedule::LTB_HH4_2015_FAST:
-    Schedules::getLtb2015Hh4FastSchedule(prop,quick);
-    break;
-  case Options::Schedule::LTB_HH4_2015_MIDD:
-    Schedules::getLtb2015Hh4MiddSchedule(prop,quick);
-    break;
-  case Options::Schedule::LTB_HH4_2015_SLOW:
-    Schedules::getLtb2015Hh4SlowSchedule(prop,quick);
-    break;
   case Options::Schedule::LTB_HH4_2017:
     Schedules::getLtb2017Hh4Schedule(prop,quick);
-    break;
-
-  case Options::Schedule::LTB_HLL_2015_FAST:
-    Schedules::getLtb2015HllFastSchedule(prop,quick);
-    break;
-  case Options::Schedule::LTB_HLL_2015_MIDD:
-    Schedules::getLtb2015HllMiddSchedule(prop,quick);
-    break;
-  case Options::Schedule::LTB_HLL_2015_SLOW:
-    Schedules::getLtb2015HllSlowSchedule(prop,quick);
     break;
   case Options::Schedule::LTB_HLL_2017:
     Schedules::getLtb2017HllSchedule(prop,quick);
     break;
-
-  case Options::Schedule::LTB_ISA_2015_FAST:
-    Schedules::getLtb2015IsaFastSchedule(prop,quick);
-    break;
-  case Options::Schedule::LTB_ISA_2015_MIDD:
-    Schedules::getLtb2015IsaMiddSchedule(prop,quick);
-    break;
-  case Options::Schedule::LTB_ISA_2015_SLOW:
-    Schedules::getLtb2015IsaSlowSchedule(prop,quick);
-    break;
   case Options::Schedule::LTB_ISA_2017:
     Schedules::getLtb2017IsaSchedule(prop,quick);
-    break;
-
-  case Options::Schedule::LTB_MZR_2015_FAST:
-    Schedules::getLtb2015MzrFastSchedule(prop,quick);
-    break;
-  case Options::Schedule::LTB_MZR_2015_MIDD:
-    Schedules::getLtb2015MzrMiddSchedule(prop,quick);
-    break;
-  case Options::Schedule::LTB_MZR_2015_SLOW:
-    Schedules::getLtb2015MzrSlowSchedule(prop,quick);
     break;
   case Options::Schedule::LTB_MZR_2017:
     Schedules::getLtb2017MzrSchedule(prop,quick);
     break;
-  case Options::Schedule::LTB_2014:
-    Schedules::getLtb2014Schedule(prop,quick);
-    break;
-  case Options::Schedule::LTB_2014_MZR:
-    Schedules::getLtb2014MzrSchedule(prop,quick,fallback);
-    break;
-
   case Options::Schedule::LTB_DEFAULT_2017:
     Schedules::getLtb2017DefaultSchedule(prop,quick);
     break;
-  default:
-    INVALID_OPERATION("Unknown schedule");
   }
 }
 
-static unsigned milliToDeci(unsigned timeInMiliseconds) {
-  return timeInMiliseconds/100;
-}
 
 // Simple one-after-the-other priority.
 float PortfolioProcessPriorityPolicy::staticPriority(vstring sliceCode)
@@ -396,14 +334,13 @@ PortfolioSliceExecutor::PortfolioSliceExecutor(PortfolioMode *mode)
   : _mode(mode)
 {}
 
-void PortfolioSliceExecutor::runSlice
-  (vstring sliceCode, int terminationTime)
+void PortfolioSliceExecutor::runSlice(vstring sliceCode,int remainingTime)
 {
+  CALL("PortfolioSliceExecutor::runSlice");
+
   vstring chopped;
   int sliceTime = _mode->getSliceTime(sliceCode, chopped);
 
-  int elapsedTime = milliToDeci(env.timer->elapsedMilliseconds());
-  int remainingTime = terminationTime - elapsedTime;
   if (sliceTime > remainingTime)
   {
     sliceTime = remainingTime;
@@ -429,7 +366,7 @@ void PortfolioSliceExecutor::runSlice
  * Run a schedule.
  * Return true if a proof was found, otherwise return false.
  */
-bool PortfolioMode::runSchedule(Schedule& schedule, int terminationTime)
+bool PortfolioMode::runSchedule(Schedule& schedule)
 {
   CALL("PortfolioMode::runSchedule");
 
@@ -439,7 +376,7 @@ bool PortfolioMode::runSchedule(Schedule& schedule, int terminationTime)
   PortfolioSliceExecutor executor(this);
   ScheduleExecutor sched(&policy, &executor);
 
-  return sched.run(schedule, terminationTime);
+  return sched.run(schedule);
 }
 
 /**
@@ -474,10 +411,9 @@ bool PortfolioMode::waitForChildAndCheckIfProofFound()
   ASS(!childIds.isEmpty());
 
   int resValue;
-  pid_t finishedChild = Multiprocessing::instance()->waitForChildTermination(resValue);
-#if VDEBUG
-  ALWAYS(childIds.remove(finishedChild));
-#endif
+  DEBUG_CODE(pid_t finishedChild =)
+    Multiprocessing::instance()->waitForChildTermination(resValue);
+  ASS(childIds.remove(finishedChild));
   if (!resValue) {
     // we have found the proof. It has been already written down by the writer child,
 

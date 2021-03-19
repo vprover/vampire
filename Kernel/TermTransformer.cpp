@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file TermTransformer.cpp
@@ -242,9 +236,10 @@ Term* TermTransformerTransformTransformed::transform(Term* term)
   static Stack<TermList*> toDo(8);
   static Stack<Term*> terms(8);
   static Stack<TermList> args(8);
-  ASS(toDo.isEmpty());
-  ASS(terms.isEmpty());
+  /* all stacks must be reset since the function might have been aborted by an exception */
   args.reset();
+  terms.reset();
+  toDo.reset(); 
 
   toDo.push(term->args());
 

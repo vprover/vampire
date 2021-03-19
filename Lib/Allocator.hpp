@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file Allocator.hpp
@@ -303,13 +297,12 @@ private:
   /** All pages allocated by this allocator and not returned to 
    *  the global manager via deallocatePages (doubly linked).  */
   Page* _myPages;
-#if VDEBUG
-#else 
+#if ! USE_SYSTEM_ALLOCATION
   /** Number of bytes available on the reserve page */
   size_t _reserveBytesAvailable;
   /** next available known */
   char* _nextAvailableReserve;
-#endif
+#endif // ! USE_SYSTEM_ALLOCATION
 
   /** Total memory allocated by pages */
   static size_t _usedMemory;

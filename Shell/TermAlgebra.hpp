@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 #ifndef __TERM_ALGEBRA__
 #define __TERM_ALGEBRA__
@@ -37,6 +31,7 @@ namespace Shell {
        arity, and for each argument: the name of its destructor and
        its sort*/
     TermAlgebraConstructor(unsigned functor, Lib::Array<unsigned> destructors);
+    TermAlgebraConstructor(unsigned functor, std::initializer_list<unsigned> destructors);
     TermAlgebraConstructor(unsigned functor, unsigned discriminator, Lib::Array<unsigned> destructors);
     ~TermAlgebraConstructor() {}
 
@@ -83,6 +78,12 @@ namespace Shell {
     TermAlgebra(unsigned sort,
                 unsigned n,
                 TermAlgebraConstructor** constrs,
+                bool allowsCyclicTerms = false);
+    TermAlgebra(unsigned sort,
+                Lib::Array<TermAlgebraConstructor*> constrs,
+                bool allowsCyclicTerms = false);
+    TermAlgebra(unsigned sort,
+                std::initializer_list<TermAlgebraConstructor*> constrs,
                 bool allowsCyclicTerms = false);
     ~TermAlgebra() {}
 

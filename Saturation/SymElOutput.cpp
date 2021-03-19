@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file SymElOutput.cpp
@@ -194,10 +188,10 @@ void SymElOutput::checkForPreprocessorSymbolElimination(Clause* cl)
 
   while(units.isNonEmpty()) {
     Unit* u=units.pop();
-    Inference::Iterator iit=u->inference()->iterator();
+    Inference::Iterator iit=u->inference().iterator();
 //    if(u->inference()->rule()==Inference::INPUT ||
 //	    u->inference()->rule()==Inference::NEGATED_CONJECTURE) {
-    if(!u->inference()->hasNext(iit)) {
+    if(!u->inference().hasNext(iit)) {
       Color uCol;
       if(u->isClause()) {
 	uCol=static_cast<Clause*>(u)->color();
@@ -215,8 +209,8 @@ void SymElOutput::checkForPreprocessorSymbolElimination(Clause* cl)
 #endif
       }
     } else {
-      while(u->inference()->hasNext(iit)) {
-        Unit* premUnit=u->inference()->next(iit);
+      while(u->inference().hasNext(iit)) {
+        Unit* premUnit=u->inference().next(iit);
         units.push(premUnit);
       }
     }

@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file BitUtils.hpp
@@ -25,7 +19,7 @@
 #ifndef __BitUtils__
 #define __BitUtils__
 
-#include <string.h>
+#include <cstring>
 
 #include "Lib/Portability.hpp"
 
@@ -101,7 +95,7 @@ public:
    */
   static unsigned reverseBits(unsigned v) __attribute__((const))
   {
-    ASS_STATIC(sizeof(unsigned)==4);
+    static_assert(sizeof(unsigned) == 4, "size of unsigned must be 4");
 
     // swap odd and even bits
     v = ((v >> 1) & 0x55555555) | ((v & 0x55555555) << 1);

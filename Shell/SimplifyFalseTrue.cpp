@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file SimplifyFalseTrue.cpp
@@ -58,12 +52,7 @@ FormulaUnit* SimplifyFalseTrue::simplify (FormulaUnit* unit)
     return unit;
   }
 
-  FormulaUnit* res = new FormulaUnit(g,
-			 new Inference1(Inference::REDUCE_FALSE_TRUE,unit),
-			 unit->inputType());
-  if(unit->included()) {
-    res->markIncluded();
-  }
+  FormulaUnit* res = new FormulaUnit(g,FormulaTransformation(InferenceRule::REDUCE_FALSE_TRUE,unit));
   if (env.options->showPreprocessing()) {
     env.beginOutput();
     env.out() << "[PP] simplify in: " << unit->toString() << std::endl;
@@ -328,11 +317,11 @@ Formula* SimplifyFalseTrue::simplify (Formula* f)
       }
     }
 
-#if VDEBUG
-  default:
+  case NAME:
+  case NOCONN:
     ASSERTION_VIOLATION;
-#endif
   }
+  ASSERTION_VIOLATION;
 } // SimplifyFalseTrue::simplify ()
 
 
@@ -377,12 +366,12 @@ TermList SimplifyFalseTrue::simplify(TermList ts)
         #define THEN 0u
         #define ELSE 1u
 
-        TermList branches[2];
-        bool isTrue[2];
-        bool isFalse[2];
-        for (BRANCH branch : {THEN, ELSE }) {
-          branches[branch] = simplify(*term->nthArgument(branch));
-        }
+        TermList branches[2] = {
+          simplify(*term->nthArgument(THEN)),
+          simplify(*term->nthArgument(ELSE)),
+        };
+        bool isTrue[2] {};
+        bool isFalse[2] {};
 
         switch (condition->connective()) {
           case TRUE:

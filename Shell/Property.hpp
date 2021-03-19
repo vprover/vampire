@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file Property.hpp (syntactic properties of problems)
@@ -241,6 +235,7 @@ public:
   bool knownInfiniteDomain() const { return _knownInfiniteDomain; }
   
   void setSMTLIBLogic(SMTLIBLogic smtLibLogic) { 
+    CALL("Property::setSMTLIBLogic");
     _smtlibLogic = smtLibLogic; 
   }
   SMTLIBLogic getSMTLIBLogic() const { 
@@ -315,7 +310,7 @@ public:
   /** Symbols in this formula, used during counting 
       Functions are positive, predicates stored in the negative part
   **/
-  DHSet<int>* _symbolsInFormula;
+  DHSet<int> _symbolsInFormula;
 
   /** Bitwise OR of all properties of this problem */
   uint64_t _props;

@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file SimpleCongruenceClosure.cpp
@@ -128,7 +122,7 @@ void SimpleCongruenceClosure::ConstInfo::resetEquivalences(SimpleCongruenceClosu
   }
 }
 
-#ifdef VDEBUG
+#if VDEBUG
 
 void SimpleCongruenceClosure::ConstInfo::assertValid(SimpleCongruenceClosure& parent, unsigned selfIndex) const
 {
@@ -169,21 +163,7 @@ void SimpleCongruenceClosure::reset()
 {
   CALL("SimpleCongruenceClosure::reset");
 
-#if 0
-  _cInfos.expand(1);
-  _sigConsts.reset();
-  _pairNames.reset();
-  _termNames.reset();
-  _litNames.reset();
-
-  _negEqualities.reset();
-  _posLitConst = getFreshConst();
-  _negLitConst = getFreshConst();
-  _negEqualities.push(CEq(_posLitConst, _negLitConst, 0));
-
-#else
   //do reset that keeps the data for converting terms to constants
-
   unsigned maxConst = getMaxConst();
   for(unsigned i=1; i<=maxConst; i++) {
     _cInfos[i].resetEquivalences(*this, i);
@@ -204,7 +184,6 @@ void SimpleCongruenceClosure::reset()
   _negEqualities.truncate(1);
   ASS_EQ(_negEqualities.top().c1,_posLitConst);
   ASS_EQ(_negEqualities.top().c2,_negLitConst);
-#endif
 
   //no unsat non-equality
   _unsatEqs.reset();
@@ -1105,7 +1084,7 @@ void SimpleCongruenceClosure::getModel(LiteralStack& model)
   DEBUG_CODE( assertModelInfoClean(); );  
 }
 
-#ifdef VDEBUG
+#if VDEBUG
 void SimpleCongruenceClosure::assertModelInfoClean() const
 {
   CALL("SimpleCongruenceClosure::assertModelInfoClean");

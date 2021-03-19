@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file PortfolioMode.hpp
@@ -59,7 +53,7 @@ class PortfolioSliceExecutor : public SliceExecutor
 {
 public:
   PortfolioSliceExecutor(PortfolioMode *mode);
-  void runSlice(vstring sliceCode, int terminationTime) override;
+  void runSlice(vstring sliceCode, int remainingTime) override;
 
 private:
   PortfolioMode *_mode;
@@ -72,8 +66,7 @@ class PortfolioMode {
   };
 
   PortfolioMode();
-  friend void PortfolioSliceExecutor::runSlice
-    (vstring sliceCode, int terminationTime);
+  friend void PortfolioSliceExecutor::runSlice(vstring sliceCode, int terminationTime);
 public:
   static bool perform(float slowness);
   unsigned getSliceTime(vstring sliceCode,vstring& chopped);
@@ -85,8 +78,8 @@ private:
   bool searchForProof();
   bool performStrategy(Shell::Property* property);
   void getSchedules(Property& prop, Schedule& quick, Schedule& fallback);
-  void getExtraSchedules(Property& prop, Schedule& extra); 
-  bool runSchedule(Schedule& schedule, int terminationTime);
+  void getExtraSchedules(Property& prop, Schedule& old, Schedule& extra, bool add_extra, int time_multiplier); 
+  bool runSchedule(Schedule& schedule);
   bool waitForChildAndCheckIfProofFound();
   void runSlice(vstring slice, unsigned timeLimitInDeciseconds) NO_RETURN;
   void runSlice(Options& strategyOpt) NO_RETURN;

@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file PredicateDefinition.cpp
@@ -409,8 +403,7 @@ FormulaUnit* PredicateDefinition::replacePurePredicates(FormulaUnit* u)
 {
   Formula* resf=replacePurePredicates(u->formula());
   if(resf!=u->formula()) {
-    return new FormulaUnit(resf, new Inference1(Inference::PURE_PREDICATE_REMOVAL, u),
-	    u->inputType());
+    return new FormulaUnit(resf,NonspecificInference1(InferenceRule::PURE_PREDICATE_REMOVAL, u));
   }
   else {
     return u;
@@ -432,7 +425,7 @@ Clause* PredicateDefinition::replacePurePredicates(Clause* cl)
 
 Unit* PredicateDefinition::replacePurePredicates(Unit* u)
 {
-  if(u->isGoal() && env.options->ignoreConjectureInPreprocessing()){
+  if(u->derivedFromGoal() && env.options->ignoreConjectureInPreprocessing()){
     return u;
   }
   if(u->isClause()) {
@@ -731,14 +724,12 @@ FormulaUnit* PredicateDefinition::makeImplFromDef(FormulaUnit* def, unsigned pre
   } else {
     resf0=resf;
   }
-  return new FormulaUnit(resf0,
-	  new Inference1(Inference::UNUSED_PREDICATE_DEFINITION_REMOVAL, def),
-	  def->inputType());
+  return new FormulaUnit(resf0,NonspecificInference1(InferenceRule::UNUSED_PREDICATE_DEFINITION_REMOVAL, def));
 }
 
 void PredicateDefinition::scan(Unit* u)
 {
-  if(!(u->isGoal() && env.options->ignoreConjectureInPreprocessing())){
+  if(!(u->derivedFromGoal() && env.options->ignoreConjectureInPreprocessing())){
     if(u->isClause()) {
       scan(static_cast<Clause*>(u));
     } else {
@@ -870,11 +861,9 @@ void PredicateDefinition::count (Formula* f,int polarity,int add, Unit* unit)
       count (f->getBooleanTerm(), add, unit);
       return;
 
-#if VDEBUG
-    default:
+    case NAME:
+    case NOCONN:
       ASSERTION_VIOLATION;
-      return;
-#endif
   }
 } // PredicateDefinition::count (Formula* f,...)
 

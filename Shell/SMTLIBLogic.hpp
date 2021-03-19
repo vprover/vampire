@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 #ifndef __SMTLIBLogic__
 #define __SMTLIBLogic__
@@ -35,6 +29,8 @@ enum SMTLIBLogic {
   SMT_ALIA,
   SMT_ALL,
   SMT_AUFDTLIA,
+  SMT_AUFDTLIRA,
+  SMT_AUFDTNIRA,
   SMT_AUFNIA,
   SMT_AUFLIA,
   SMT_AUFLIRA,
@@ -71,7 +67,9 @@ enum SMTLIBLogic {
   SMT_UFBV,
   SMT_UFDT,
   SMT_UFDTLIA,
+  SMT_UFDTLIRA,
   SMT_UFDTNIA,
+  SMT_UFDTNIRA,
   SMT_UFIDL,
   SMT_UFLIA,
   SMT_UFLRA,

@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file FiniteModelMultiSorted.cpp
@@ -24,7 +18,7 @@
  * @author Giles
  */
 
-#include <math.h>
+#include <cmath>
 
 #include "Kernel/Term.hpp"
 #include "Kernel/Unit.hpp"
@@ -250,9 +244,9 @@ vstring FiniteModelMultiSorted::toString()
     modelStm << ")." << endl << endl;
     }
   }
-
   //Constants
   for(unsigned f=0;f<env.signature->functions();f++){
+    if(env.signature->getFunction(f)->usageCnt()==0) continue;
     unsigned arity = env.signature->functionArity(f);
     if(arity>0) continue;
     if(!printIntroduced && env.signature->getFunction(f)->introduced()) continue;
@@ -274,6 +268,7 @@ vstring FiniteModelMultiSorted::toString()
 
   //Functions
   for(unsigned f=0;f<env.signature->functions();f++){
+    if(env.signature->getFunction(f)->usageCnt()==0) continue;
     unsigned arity = env.signature->functionArity(f);
     if(arity==0) continue;
     if(!printIntroduced && env.signature->getFunction(f)->introduced()) continue;

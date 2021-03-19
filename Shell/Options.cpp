@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file Options.cpp
@@ -37,6 +31,7 @@
 #include "Debug/Assertion.hpp"
 
 #include "Lib/VString.hpp"
+#include "Lib/StringUtils.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Timer.hpp"
 #include "Lib/Exception.hpp"
@@ -55,6 +50,8 @@
 
 using namespace Lib;
 using namespace Shell;
+
+static const int COPY_SIZE = 128;
 
 /**
  * Initialize options to the default values.
@@ -75,11 +72,9 @@ Options::Options ()
     init();
 }
 
-void Options::Options::init()
+void Options::init()
 {
    CALL("Options::init");
-
-   BYPASSING_ALLOCATOR; // Necessary because of use of std::function
 
    // some options that were not give names previously
     _forceIncompleteness = BoolOptionValue("force_incompleteness","",false);
@@ -130,12 +125,12 @@ void Options::Options::init()
     "Select the mode of operation. Choices are:\n"
     "  -vampire: the standard mode of operation for first-order theorem proving\n"
     "  -portfolio: a portfolio mode running a specified schedule (see schedule)\n"
-    "  -casc, casc_sat, smtcomp - like portfolio mode, with competition specific presets for schedule, etc.\n"
-    "  -preprocess,axiom_selection,clausify,grounding: modes for producing output\n   for other solvers.\n"
-    "  -tpreprocess,tclausify: output modes for theory input"
+    "  -casc, casc_sat, smtcomp - like portfolio mode, with competition specific\n     presets for schedule, etc.\n"
+    "  -preprocess,axiom_selection,clausify,grounding: modes for producing output\n      for other solvers.\n"
+    "  -tpreprocess,tclausify: output modes for theory input (clauses are quantified\n      with sort information).\n"
     "  -output,profile: output information about the problem\n"
-    "  -sat_solver: accepts problems in DIMACS and uses the internal sat solver\n   directly\n"
-    "Some modes are not currently maintained:\n"
+    "  -sat_solver: accepts problems in DIMACS and uses the internal sat solver\n      directly\n"
+    "Some modes are not currently maintained (get in touch if interested):\n"
     "  -bpa: perform bound propagation\n"
     "  -consequence_elimination: perform consequence elimination\n"
     "  -random_strategy: attempts to randomize the option values\n";
@@ -144,55 +139,24 @@ void Options::Options::init()
 
     _schedule = ChoiceOptionValue<Schedule>("schedule","sched",Schedule::CASC,
         {"casc",
-         "casc_2014",
-         "casc_2014_epr",
-         "casc_2016",
-         "casc_2017",
-         "casc_2018",
          "casc_2019",
          "casc_sat",
-         "casc_sat_2014",
-         "casc_sat_2016",
-         "casc_sat_2017",
-         "casc_sat_2018",
          "casc_sat_2019",
-         "ltb_2014",
-         "ltb_2014_mzr",
          "ltb_default_2017",
-         "ltb_hh4_2015_fast",
-         "ltb_hh4_2015_midd",
-         "ltb_hh4_2015_slow",
          "ltb_hh4_2017",
-         "ltb_hll_2015_fast",
-         "ltb_hll_2015_midd",
-         "ltb_hll_2015_slow",
          "ltb_hll_2017",
-         "ltb_isa_2015_fast",
-         "ltb_isa_2015_midd",
-         "ltb_isa_2015_slow",
          "ltb_isa_2017",
-         "ltb_mzr_2015_fast",
-         "ltb_mzr_2015_midd",
-         "ltb_mzr_2015_slow",
          "ltb_mzr_2017",
          "smtcomp",
-         "smtcomp_2016",
-         "smtcomp_2017",
          "smtcomp_2018"});
-    _schedule.description = "Schedule to be run by the portfolio mode.";
+    _schedule.description = "Schedule to be run by the portfolio mode. casc and smtcomp usually point to the most recent schedule in that category. Note that some old schedules may contain option values that are no longer supported - see ignore_missing.";
     _lookup.insert(&_schedule);
-    _schedule.reliesOnHard(_mode.is(equal(Mode::CASC)->
-        Or(_mode.is(equal(Mode::CASC_SAT)))->
-        Or(_mode.is(equal(Mode::SMTCOMP)))->
-        Or(_mode.is(equal(Mode::PORTFOLIO)))));
+    _schedule.reliesOnHard(Or(_mode.is(equal(Mode::CASC)),_mode.is(equal(Mode::CASC_SAT)),_mode.is(equal(Mode::SMTCOMP)),_mode.is(equal(Mode::PORTFOLIO))));
 
     _multicore = UnsignedOptionValue("cores","",1);
-    _multicore.description = "When running in portfolio mode mode specify the number of cores, set to 0 to use maximum";
+    _multicore.description = "When running in portfolio modes (including casc or smtcomp modes) specify the number of cores, set to 0 to use maximum";
     _lookup.insert(&_multicore);
-    _multicore.reliesOnHard(_mode.is(equal(Mode::CASC)->
-        Or(_mode.is(equal(Mode::CASC_SAT)))->
-        Or(_mode.is(equal(Mode::SMTCOMP)))->
-        Or(_mode.is(equal(Mode::PORTFOLIO)))));
+    _multicore.reliesOnHard(Or(_mode.is(equal(Mode::CASC)),_mode.is(equal(Mode::CASC_SAT)),_mode.is(equal(Mode::SMTCOMP)),_mode.is(equal(Mode::PORTFOLIO))));
 
     _ltbLearning = ChoiceOptionValue<LTBLearning>("ltb_learning","ltbl",LTBLearning::OFF,{"on","off","biased"});
     _ltbLearning.description = "Perform learning in LTB mode";
@@ -202,6 +166,7 @@ void Options::Options::init()
     _ltbDirectory = StringOptionValue("ltb_directory","","");
     _ltbDirectory.description = "Directory for output from LTB mode. Default is to put output next to problem.";
     _lookup.insert(&_ltbDirectory);
+    _ltbDirectory.setExperimental();
 
     _decode = DecodeOptionValue("decode","",this);
     _decode.description="Decodes an encoded strategy. Can be used to replay a strategy. To make Vampire output an encoded version of the strategy use the encode option.";
@@ -219,18 +184,18 @@ void Options::Options::init()
       "set, whatever order they have been given in. A random number of options will be selected "
       " and set with a safe (possibly default) value.";
     _lookup.insert(&_randomStrategy);
-    _randomStrategy.reliesOnHard(_mode.is(equal(Mode::VAMPIRE)->Or(_mode.is(equal(Mode::RANDOM_STRATEGY)))));
+    _randomStrategy.reliesOnHard(Or(_mode.is(equal(Mode::VAMPIRE)),_mode.is(equal(Mode::RANDOM_STRATEGY))));
     _randomStrategy.tag(OptionTag::DEVELOPMENT);
 
     _forbiddenOptions = StringOptionValue("forbidden_options","","");
     _forbiddenOptions.description=
-    "If some of the specified options are set to a forbidden state, vampire will fail to start, or in the CASC mode it will skip such strategies. The expected syntax is <opt1>=<val1>:<opt2>:<val2>:...:<optn>=<valN>";
+    "If some of the specified options are set to a forbidden state, vampire will fail to start, or in portfolio modes it will skip such strategies. The expected syntax is <opt1>=<val1>:<opt2>:<val2>:...:<optn>=<valN>";
     _lookup.insert(&_forbiddenOptions);
     _forbiddenOptions.tag(OptionTag::INPUT);
 
     _forcedOptions = StringOptionValue("forced_options","","");
     _forcedOptions.description=
-    "Options in the format <opt1>=<val1>:<opt2>=<val2>:...:<optn>=<valN> that override the option values set by other means (also inside CASC mode strategies)";
+    "Options in the format <opt1>=<val1>:<opt2>=<val2>:...:<optn>=<valN> that override the option values set by other means (also inside portfolio mode strategies)";
     _lookup.insert(&_forcedOptions);
     _forcedOptions.tag(OptionTag::INPUT);
 
@@ -241,7 +206,7 @@ void Options::Options::init()
     _printAllTheoryAxioms.setExperimental();
 
     _showHelp = BoolOptionValue("help","h",false);
-    _showHelp.description="Display this help";
+    _showHelp.description="Display the help message";
     _lookup.insert(&_showHelp);
     _showHelp.tag(OptionTag::HELP);
 
@@ -249,6 +214,12 @@ void Options::Options::init()
     _showOptions.description="List all available options";
     _lookup.insert(&_showOptions);
     _showOptions.tag(OptionTag::HELP);
+
+    _showOptionsLineWrap = BoolOptionValue("show_options_line_wrap","",true);
+    _showOptionsLineWrap.description="Line wrap in show options. Mainly used when options are read by another tool that applies its own line wrap.";
+    _lookup.insert(&_showOptionsLineWrap);
+    _showOptionsLineWrap.tag(OptionTag::HELP);
+    _showOptionsLineWrap.setExperimental();
 
     _showExperimentalOptions = BoolOptionValue("show_experimental_options","",false);
     _showExperimentalOptions.description="Include experimental options in showOption";
@@ -263,7 +234,8 @@ void Options::Options::init()
 
     _ignoreMissing = ChoiceOptionValue<IgnoreMissing>("ignore_missing","",IgnoreMissing::OFF,{"on","off","warn"});
     _ignoreMissing.description=
-    "Ignore any options that have been removed (useful in CASC mode where this can cause errors)";
+      "Ignore any options that have been removed (useful in portfolio modes where this can cause strategies to be skipped). If set to warn "
+      "this will print a warning when ignoring. This is set to warn in CASC mode.";
     _lookup.insert(&_ignoreMissing);
     _ignoreMissing.tag(OptionTag::DEVELOPMENT);
 
@@ -278,11 +250,14 @@ void Options::Options::init()
     _badOption.tag(OptionTag::HELP);
 
 
+/*
+ * TODO: Not currently used, bring back?
     _namePrefix = StringOptionValue("name_prefix","","");
     _namePrefix.description=
     "Prefix for symbols introduced by Vampire (naming predicates, Skolem functions)";
     _lookup.insert(&_namePrefix);
     _namePrefix.tag(OptionTag::OUTPUT);
+*/
 
     // Do we really need to be able to set this externally?
     _problemName = StringOptionValue("problem_name","","");
@@ -291,7 +266,13 @@ void Options::Options::init()
 
     _proof = ChoiceOptionValue<Proof>("proof","p",Proof::ON,{"off","on","proofcheck","tptp","property"});
     _proof.description=
-    "Specifies whether proof will be output. 'proofcheck' will output proof as a sequence of TPTP problems to allow for proof-checking.";
+      "Specifies whether proof (or similar e.g. model/saturation) will be output and in which format:\n"
+      "- off gives no proof output\n"
+      "- on gives native Vampire proof output\n"
+      "- proofcheck will output proof as a sequence of TPTP problems to allow for proof-checking by external solvers\n"
+      "- tptp gives TPTP output\n"
+      "- property is a developmental option. It allows developers to output statistics about the proof using a ProofPrinter "
+      "object (see Kernel/InferenceStore::ProofPropertyPrinter\n"; 
     _lookup.insert(&_proof);
     _proof.tag(OptionTag::OUTPUT);
 
@@ -299,14 +280,16 @@ void Options::Options::init()
     _minimizeSatProofs.description="Perform unsat core minimization when a sat solver finds a clause set UNSAT\n"
         "(such as with AVATAR proofs or with global subsumption).";
     _lookup.insert(&_minimizeSatProofs);
+    _minimizeSatProofs.tag(OptionTag::OUTPUT);
 
     _proofExtra = ChoiceOptionValue<ProofExtra>("proof_extra","",ProofExtra::OFF,{"off","free","full"});
-    _proofExtra.description="Add extra detail to proofs. "
-      "When 'free' this uses known information only. " 
-      "When 'full' this is allowed to perform expensive operations to acheive this so may"
-      " significantly impact on performance. The option is experimental and the format "
-      "of extra information may change between minor releases";
+    _proofExtra.description="Add extra detail to proofs:\n "
+      "- free uses known information only\n" 
+      "- full may perform expensive operations to acheive this so may"
+      " significantly impact on performance.\n"
+      " The option is still under development and the format of extra information (mainly from full) may change between minor releases";
     _lookup.insert(&_proofExtra);
+    _proofExtra.tag(OptionTag::OUTPUT);
 
     _proofChecking = BoolOptionValue("proof_checking","",false);
     _proofChecking.description="";
@@ -330,9 +313,11 @@ void Options::Options::init()
     _testId.setExperimental();
 
     _outputMode = ChoiceOptionValue<Output>("output_mode","om",Output::SZS,{"smtcomp","spider","szs","vampire"});
-    _outputMode.description="";
+    _outputMode.description="Change how Vampire prints the final result. SZS uses TPTP's SZS ontology. smtcomp mode"
+    " supresses all output and just prints sat/unsat. vampire is the same as SZS just without the SZS."
+    " Spider prints out some profile information and extra error reports.";
     _lookup.insert(&_outputMode);
-    _outputMode.setExperimental();
+    _outputMode.tag(OptionTag::OUTPUT);
 
     _thanks = StringOptionValue("thanks","","Tanya");
     _thanks.description="";
@@ -363,20 +348,17 @@ void Options::Options::init()
 
     _inputSyntax= ChoiceOptionValue<InputSyntax>("input_syntax","",
                                                  //in case we compile vampire with bpa, then the default input syntax is smtlib
-#if !GNUMP
                                                  InputSyntax::TPTP,
-#else
-                                                 InputSyntax::SMTLIB,
-#endif
-                                                 {"simplify","smtlib","smtlib2","tptp"});//,"xhuman","xmps","xnetlib"});
-    _inputSyntax.description="Input syntax. Only TPTP is actively maintained.";
+                                                 //{"simplify","smtlib","smtlib2","tptp"});//,"xhuman","xmps","xnetlib"});
+                                                 {"smtlib2","tptp"});//,"xhuman","xmps","xnetlib"});
+    _inputSyntax.description=
+    "Input syntax. Historic input syntaxes have been removed as they are not actively maintained. Contact developers for help with these.";
     _lookup.insert(&_inputSyntax);
     _inputSyntax.tag(OptionTag::INPUT);
 
     _smtlibConsiderIntsReal = BoolOptionValue("smtlib_consider_ints_real","",false);
-    _smtlibConsiderIntsReal.description="all integers will be considered to be reals by the SMTLIB parser";
+    _smtlibConsiderIntsReal.description="All integers will be considered to be reals by the SMTLIB parser";
     _lookup.insert(&_smtlibConsiderIntsReal);
-    _smtlibConsiderIntsReal.setExperimental();
     _smtlibConsiderIntsReal.tag(OptionTag::INPUT);
 
     _smtlibFletAsDefinition = BoolOptionValue("smtlib_flet_as_definition","",false);
@@ -387,39 +369,39 @@ void Options::Options::init()
 
     _guessTheGoal = ChoiceOptionValue<GoalGuess>("guess_the_goal","gtg",GoalGuess::OFF,{"off","all","exists_top","exists_all","exists_sym","position"});
     _guessTheGoal.description = "Use heuristics to guess formulas that correspond to the goal. Doesn't "
-                                "really make sense if there is already a goal.";
+                                "really make sense if there is already a goal but it will still do something. "
+                                "This is really designed for use with SMTLIB problems that don't have goals";
     _lookup.insert(&_guessTheGoal);
     _guessTheGoal.tag(OptionTag::INPUT);
-    _guessTheGoal.setExperimental();
 
     _guessTheGoalLimit = UnsignedOptionValue("guess_the_goal_limit","gtgl",1);
     _guessTheGoalLimit.description = "The maximum number of input units a symbol appears for it to be considered in a goal";
     _guessTheGoalLimit.tag(OptionTag::INPUT);
-    _guessTheGoalLimit.setExperimental();
-    //_guessTheGoalLimit.reliesOn(_guessTheGoal.is(equal(true)));
+    _guessTheGoalLimit.reliesOn(_guessTheGoal.is(notEqual(GoalGuess::OFF)));
     _lookup.insert(&_guessTheGoalLimit);
 
 
 //*********************** Preprocessing  ***********************
 
     _ignoreConjectureInPreprocessing = BoolOptionValue("ignore_conjecture_in_preprocessing","icip",false);
-    _ignoreConjectureInPreprocessing.description="Make sure we do not delete the conjecture in preprocessing";
+    _ignoreConjectureInPreprocessing.description="Make sure we do not delete the conjecture in preprocessing even if it can be deleted.";
     _lookup.insert(&_ignoreConjectureInPreprocessing);
     _ignoreConjectureInPreprocessing.tag(OptionTag::PREPROCESSING);
 
     _inequalitySplitting = IntOptionValue("inequality_splitting","ins",0);
     _inequalitySplitting.description=
-    "Defines a weight threshold w such that any clause C \\/ s!=t where s (or conversely t) is ground "
-    "and has weight less than w is replaced by C \\/ p(s) with the additional clause ~p(t) being added "
+    "When greater than zero, ins defines a weight threshold w such that any clause C \\/ s!=t "
+    "where s (or conversely t) is ground and has weight greater or equal than w "
+    "is replaced by C \\/ p(s) with the additional unit clause ~p(t) being added "
     "for fresh predicate p.";
     _lookup.insert(&_inequalitySplitting);
     _inequalitySplitting.tag(OptionTag::PREPROCESSING);
 
-    //TODO randomly switch to different values for testing?
-
     _sos = ChoiceOptionValue<Sos>("sos","sos",Sos::OFF,{"all","off","on","theory"});
     _sos.description=
-    "Set of support strategy. All formulas annotated as axioms are put directly among active clauses, without performing any inferences between them. If all, select all literals of set-of-support clauses, ortherwise use the default literal selector.";
+    "Set of support strategy. All formulas annotated as axioms are put directly among active clauses, without performing any inferences between them."
+    " If all, select all literals of set-of-support clauses, otherwise use the default literal selector. If theory then only apply to theory" 
+    " axioms introduced by vampire (all literals are selected).";
     _lookup.insert(&_sos);
     _sos.tag(OptionTag::PREPROCESSING);
     _sos.setRandomChoices(And(isRandSat(),saNotInstGen()),{"on","off","off","off","off"});
@@ -427,8 +409,7 @@ void Options::Options::init()
     _sos.setRandomChoices(isRandOn(),{"all","off","on"});
 
     _sosTheoryLimit = UnsignedOptionValue("sos_theory_limit","sstl",0);
-    _sosTheoryLimit.description="When sos=theory the depth of descendants a theory axiom can have";
-    _sosTheoryLimit.setExperimental();
+    _sosTheoryLimit.description="When sos=theory, limit the depth of descendants a theory axiom can have.";
     _lookup.insert(&_sosTheoryLimit);
     _sosTheoryLimit.tag(OptionTag::PREPROCESSING);
     _sosTheoryLimit.reliesOn(_sos.is(equal(Sos::THEORY)));
@@ -436,7 +417,7 @@ void Options::Options::init()
 
 
     _equalityProxy = ChoiceOptionValue<EqualityProxy>( "equality_proxy","ep",EqualityProxy::OFF,{"R","RS","RST","RSTC","off"});
-    _equalityProxy.description="Aplies the equality proxy transformation to the problem. It works as follows:\n"
+    _equalityProxy.description="Applies the equality proxy transformation to the problem. It works as follows:\n"
      " - All literals s=t are replaced by E(s,t)\n"
      " - All literals s!=t are replaced by ~E(s,t)\n"
      " - If S the symmetry clause ~E(x,y) \\/ E(y,x) is added\n"
@@ -510,10 +491,9 @@ void Options::Options::init()
     _theoryAxioms.tag(OptionTag::PREPROCESSING);
 
     _theoryFlattening = BoolOptionValue("theory_flattening","thf",false);
-    _theoryFlattening.description = "Flatten clauses to separate theory and non-theory parts";
+    _theoryFlattening.description = "Flatten clauses to separate theory and non-theory parts in the input. This is often quickly undone in proof search.";
     _lookup.insert(&_theoryFlattening);
     _theoryFlattening.tag(OptionTag::PREPROCESSING);
-    _theoryFlattening.setExperimental();
 
     _sineDepth = UnsignedOptionValue("sine_depth","sd",0);
     _sineDepth.description=
@@ -532,9 +512,9 @@ void Options::Options::init()
     // Captures that if the value is not default then sineSelection must be on
     _sineGeneralityThreshold.reliesOn(_sineSelection.is(notEqual(SineSelection::OFF)));
 
-    _sineSelection = ChoiceOptionValue<SineSelection>("sine_selection","ss",SineSelection::OFF,{"axioms","included","off","priority"});
+    _sineSelection = ChoiceOptionValue<SineSelection>("sine_selection","ss",SineSelection::OFF,{"axioms","included","off"});
     _sineSelection.description=
-    "If 'axioms', all formulas that are not annotated as 'axiom' (i.e. conjectures and hypotheses) are initially selected, and the SInE selection is performed on those annotated as 'axiom'. If 'included', all formulas that are directly in the problem file are initially selected, and the SInE selection is performed on formulas from included files. The 'included' value corresponds to the behaviour of the original SInE implementation. The 'priority' value acts like 'axioms' except a clauses weight is multiplied by 1+ the depth at which it was selected.";
+    "If 'axioms', all formulas that are not annotated as 'axiom' (i.e. conjectures and hypotheses) are initially selected, and the SInE selection is performed on those annotated as 'axiom'. If 'included', all formulas that are directly in the problem file are initially selected, and the SInE selection is performed on formulas from included files. The 'included' value corresponds to the behaviour of the original SInE implementation.";
     _lookup.insert(&_sineSelection);
     _sineSelection.tag(OptionTag::PREPROCESSING);
     _sineSelection.setRandomChoices(atomsMoreThan(100000),{"axioms","axioms","off"});
@@ -547,7 +527,7 @@ void Options::Options::init()
     _sineTolerance.description="SInE tolerance parameter (sometimes referred to as 'benevolence')";
     _lookup.insert(&_sineTolerance);
     _sineTolerance.tag(OptionTag::PREPROCESSING);
-    _sineTolerance.addConstraint(equal(0.0f)->Or(greaterThanEq(1.0f) ));
+    _sineTolerance.addConstraint(Or(equal(0.0f),greaterThanEq(1.0f) ));
     // Captures that if the value is not 1.0 then sineSelection must be on
     _sineTolerance.reliesOn(_sineSelection.is(notEqual(SineSelection::OFF)));
     _sineTolerance.setRandomChoices({"1.0","1.2","1.5","2.0","3.0","5.0"});
@@ -560,7 +540,7 @@ void Options::Options::init()
     _naming.addHardConstraint(greaterThan(-1));
     _naming.addHardConstraint(notEqual(1));
 
-    _newCNF = BoolOptionValue("newcnf","",false);
+    _newCNF = BoolOptionValue("newcnf","newcnf",false);
     _newCNF.description="Use NewCNF algorithm to do naming, preprecess3 and clausificiation.";
     _lookup.insert(&_newCNF);
     _newCNF.tag(OptionTag::PREPROCESSING);
@@ -662,15 +642,15 @@ void Options::Options::init()
     _sineToAgeGeneralityThreshold = UnsignedOptionValue("sine_to_age_generality_threshold","s2agt",0);
     _lookup.insert(&_sineToAgeGeneralityThreshold);
     _sineToAgeGeneralityThreshold.tag(OptionTag::DEVELOPMENT);
-    _sineToAgeGeneralityThreshold.reliesOn(_sineToAge.is(equal(true)->Or(_sineToPredLevels.is(notEqual(PredicateSineLevels::OFF)))));
+    _sineToAgeGeneralityThreshold.reliesOn(Or(_sineToAge.is(equal(true)),_sineToPredLevels.is(notEqual(PredicateSineLevels::OFF))));
 
     // Like generality threshold for SiNE, except used by the sine2age trick
     _sineToAgeTolerance = FloatOptionValue("sine_to_age_tolerance","s2at",1.0);
     _lookup.insert(&_sineToAgeTolerance);
     _sineToAgeTolerance.tag(OptionTag::DEVELOPMENT);
-    _sineToAgeTolerance.addConstraint(equal(0.0f)->Or(greaterThanEq(1.0f) ));
+    _sineToAgeTolerance.addConstraint(Or(equal(0.0f),greaterThanEq(1.0f)));
     // Captures that if the value is not 1.0 then sineSelection must be on
-    _sineToAgeTolerance.reliesOn(_sineToAge.is(equal(true)->Or(_sineToPredLevels.is(notEqual(PredicateSineLevels::OFF)))));
+    _sineToAgeTolerance.reliesOn(Or(_sineToAge.is(equal(true)),_sineToPredLevels.is(notEqual(PredicateSineLevels::OFF))));
     _sineToAgeTolerance.setRandomChoices({"1.0","1.2","1.5","2.0","3.0","5.0"});
 
     _showSplitting = BoolOptionValue("show_splitting","",false);
@@ -741,6 +721,11 @@ void Options::Options::init()
     _lookup.insert(&_showInduction);
     _showInduction.tag(OptionTag::OUTPUT);
 
+    _showSimplOrdering = BoolOptionValue("show_ordering","",false);
+    _showSimplOrdering.description = "Display the used simplification ordering's parameters.";
+    _lookup.insert(&_showSimplOrdering);
+    _showSimplOrdering.tag(OptionTag::OUTPUT);
+
     _manualClauseSelection = BoolOptionValue("manual_cs","",false);
     _manualClauseSelection.description="Run Vampire interactively by manually picking the clauses to be selected";
     _lookup.insert(&_manualClauseSelection);
@@ -793,26 +778,26 @@ void Options::Options::init()
     _fmbStartSize = UnsignedOptionValue("fmb_start_size","fmbss",1);
     _fmbStartSize.description = "Set the initial model size for finite model building";
     _lookup.insert(&_fmbStartSize);
-    _fmbStartSize.setExperimental();
+    _fmbStartSize.tag(OptionTag::FMB);
 
     _fmbSymmetryRatio = FloatOptionValue("fmb_symmetry_ratio","fmbsr",1.0);
-    _fmbSymmetryRatio.description = "";
+    _fmbSymmetryRatio.description = "Usually we use at most n principal terms for symmetry avoidance where n is the current model size. This option allows us to supply a multiplier for that n. See Symmetry Avoidance in MACE-Style Finite Model Finding.";
     _lookup.insert(&_fmbSymmetryRatio);
-    _fmbSymmetryRatio.setExperimental();
+    _fmbSymmetryRatio.tag(OptionTag::FMB);
 
     _fmbSymmetryOrderSymbols = ChoiceOptionValue<FMBSymbolOrders>("fmb_symmetry_symbol_order","fmbsso",
                                                      FMBSymbolOrders::OCCURENCE,
                                                      {"occurence","input_usage","preprocessed_usage"}); 
-    _fmbSymmetryOrderSymbols.description = "";
+    _fmbSymmetryOrderSymbols.description = "The order of symbols considered for symmetry avoidance. See Symmetry Avoidance in MACE-Style Finite Model Finding.";
     _lookup.insert(&_fmbSymmetryOrderSymbols);
-    _fmbSymmetryOrderSymbols.setExperimental();
+    _fmbSymmetryOrderSymbols.tag(OptionTag::FMB);
 
     _fmbSymmetryWidgetOrders = ChoiceOptionValue<FMBWidgetOrders>("fmb_symmetry_widget_order","fmbswo",
                                                      FMBWidgetOrders::FUNCTION_FIRST,
                                                      {"function_first","argument_first","diagonal"});
-    _fmbSymmetryWidgetOrders.description = "";
+    _fmbSymmetryWidgetOrders.description = "The order of constructed principal terms used in symmetry avoidance. See Symmetry Avoidance in MACE-Style Finite Model Finding.";
     _lookup.insert(&_fmbSymmetryWidgetOrders);
-    _fmbSymmetryWidgetOrders.setExperimental();
+    _fmbSymmetryWidgetOrders.tag(OptionTag::FMB);
 
     _fmbAdjustSorts = ChoiceOptionValue<FMBAdjustSorts>("fmb_adjust_sorts","fmbas",
                                                            FMBAdjustSorts::GROUP,
@@ -821,24 +806,25 @@ void Options::Options::init()
     _lookup.insert(&_fmbAdjustSorts);
     _fmbAdjustSorts.addHardConstraint(
       If(equal(FMBAdjustSorts::EXPAND)).then(_fmbEnumerationStrategy.is(notEqual(FMBEnumerationStrategy::CONTOUR))));
+    _fmbAdjustSorts.tag(OptionTag::FMB);
 
     _fmbDetectSortBounds = BoolOptionValue("fmb_detect_sort_bounds","fmbdsb",false);
     _fmbDetectSortBounds.description = "Use a saturation loop to detect sort bounds introduced by (for example) injective functions";
-    _fmbDetectSortBounds.setExperimental();
     _lookup.insert(&_fmbDetectSortBounds);
     _fmbDetectSortBounds.addHardConstraint(If(equal(true)).then(_fmbAdjustSorts.is(notEqual(FMBAdjustSorts::PREDICATE))));
     _fmbDetectSortBounds.addHardConstraint(If(equal(true)).then(_fmbAdjustSorts.is(notEqual(FMBAdjustSorts::FUNCTION))));
+    _fmbDetectSortBounds.tag(OptionTag::FMB);
 
     _fmbDetectSortBoundsTimeLimit = UnsignedOptionValue("fmb_detect_sort_bounds_time_limit","fmbdsbt",1);
     _fmbDetectSortBoundsTimeLimit.description = "The time limit (in seconds) for performing sort bound detection";
-    _fmbDetectSortBoundsTimeLimit.setExperimental();
     _lookup.insert(&_fmbDetectSortBoundsTimeLimit);
+    _fmbDetectSortBoundsTimeLimit.tag(OptionTag::FMB);
 
     _fmbSizeWeightRatio = UnsignedOptionValue("fmb_size_weight_ratio","fmbswr",1);
     _fmbSizeWeightRatio.description = "Controls the priority the next sort size vector is given based on a ratio. 0 is size only, 1 means 1:1, 2 means 1:2, etc.";
     _fmbSizeWeightRatio.reliesOn(_fmbEnumerationStrategy.is(equal(FMBEnumerationStrategy::CONTOUR)));
-    _fmbSizeWeightRatio.setExperimental();
     _lookup.insert(&_fmbSizeWeightRatio);
+    _fmbSizeWeightRatio.tag(OptionTag::FMB);
 
     _fmbEnumerationStrategy = ChoiceOptionValue<FMBEnumerationStrategy>("fmb_enumeration_strategy","fmbes",FMBEnumerationStrategy::SBMEAM,{"sbeam",
 #if VZ3
@@ -846,8 +832,8 @@ void Options::Options::init()
 #endif
         "contour"});
     _fmbEnumerationStrategy.description = "How model sizes assignments are enumerated in the multi-sorted setting. (Only smt and contour are known to be finite model complete and can therefore return UNSAT.)";
-    _fmbEnumerationStrategy.setExperimental();
     _lookup.insert(&_fmbEnumerationStrategy);
+    _fmbEnumerationStrategy.tag(OptionTag::FMB);
 
     _selection = SelectionOptionValue("selection","s",10);
     _selection.description=
@@ -864,11 +850,12 @@ void Options::Options::init()
     " 1004  - Incomplete version of 4\n"
     " 1010  - Incomplete version of 10\n"
     " 1011  - Incomplete version of 11\n"
-    "Or negated, which means that reversePolarity is true (?)\n";
+    "Or negated, which means that reversePolarity is true i.e. for selection we treat all negative non-equalty literals as "
+    "positive and vice versa (can only apply to non-equality literals).\n";
 
     _lookup.insert(&_selection);
     _selection.tag(OptionTag::SATURATION);
-    _selection.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->Or<int>(_instGenWithResolution.is(equal(true))));
+    _selection.reliesOn(Or(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN)),_instGenWithResolution.is(equal(true))));
     _selection.setRandomChoices(And(isRandSat(),saNotInstGen()),{"0","1","2","3","4","10","11","-1","-2","-3","-4","-10","-11"});
     _selection.setRandomChoices({"0","1","2","3","4","10","11","1002","1003","1004","1010","1011","-1","-2","-3","-4","-10","-11","-1002","-1003","-1004","-1010"});
 
@@ -886,8 +873,9 @@ void Options::Options::init()
     "there will be w selected based on weight.";
     _lookup.insert(&_ageWeightRatio);
     _ageWeightRatio.tag(OptionTag::SATURATION);
-    _ageWeightRatio.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->Or<int>(_instGenWithResolution.is(equal(true))));
+    _ageWeightRatio.reliesOn(Or(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN)),_instGenWithResolution.is(equal(true))));
     _ageWeightRatio.setRandomChoices({"8:1","5:1","4:1","3:1","2:1","3:2","5:4","1","2:3","2","3","4","5","6","7","8","10","12","14","16","20","24","28","32","40","50","64","128","1024"});
+
 
     _ageWeightRatioShape = ChoiceOptionValue<AgeWeightRatioShape>("age_weight_ratio_shape","awrs",AgeWeightRatioShape::CONSTANT,{"constant","decay", "converge"});
     _ageWeightRatioShape.description = "How to change the age/weight ratio during proof search.";
@@ -899,10 +887,112 @@ void Options::Options::init()
     _lookup.insert(&_ageWeightRatioShapeFrequency);
     _ageWeightRatioShapeFrequency.tag(OptionTag::SATURATION);
 
-      _literalMaximalityAftercheck = BoolOptionValue("literal_maximality_aftercheck","lma",false);
-      _lookup.insert(&_literalMaximalityAftercheck);
-      _literalMaximalityAftercheck.tag(OptionTag::SATURATION);
-      _literalMaximalityAftercheck.setExperimental();
+    _useTheorySplitQueues = BoolOptionValue("theory_split_queue","thsq",false);
+    _useTheorySplitQueues.description = "Turn on clause selection using multiple queues containing different clauses (split by amount of theory reasoning)";
+    _lookup.insert(&_useTheorySplitQueues);
+    _useTheorySplitQueues.tag(OptionTag::SATURATION);
+
+    _theorySplitQueueExpectedRatioDenom = IntOptionValue("theory_split_queue_expected_ratio_denom","thsqd", 8);
+    _theorySplitQueueExpectedRatioDenom.description = "The denominator n such that we expect the final proof to have a ratio of theory-axioms to all-axioms of 1/n.";
+    _lookup.insert(&_theorySplitQueueExpectedRatioDenom);
+    _theorySplitQueueExpectedRatioDenom.reliesOn(_useTheorySplitQueues.is(equal(true)));
+    _theorySplitQueueExpectedRatioDenom.tag(OptionTag::SATURATION);
+
+    _theorySplitQueueCutoffs = StringOptionValue("theory_split_queue_cutoffs", "thsqc", "0,32,80");
+    _theorySplitQueueCutoffs.description = "The cutoff-values for the split-queues (the cutoff value for the last queue has to be omitted, as it is always infinity). Any split-queue contains all clauses which are assigned a feature-value less or equal to the cutoff-value of the queue. If no custom value for this option is set, the implementation will use cutoffs 0,4*d,10*d,infinity (where d denotes the theory split queue expected ratio denominator).";
+    _lookup.insert(&_theorySplitQueueCutoffs);
+    _theorySplitQueueCutoffs.reliesOn(_useTheorySplitQueues.is(equal(true)));
+    _theorySplitQueueCutoffs.tag(OptionTag::SATURATION);
+
+    _theorySplitQueueRatios = StringOptionValue("theory_split_queue_ratios", "thsqr", "20,10,10,1");
+    _theorySplitQueueRatios.description = "The ratios for picking clauses from the split-queues using weighted round robin. If a queue is empty, the clause will be picked from the next non-empty queue to the right. Note that this option implicitly also sets the number of queues.";
+    _lookup.insert(&_theorySplitQueueRatios);
+    _theorySplitQueueRatios.reliesOn(_useTheorySplitQueues.is(equal(true)));
+    _theorySplitQueueRatios.tag(OptionTag::SATURATION);
+
+    _theorySplitQueueLayeredArrangement = BoolOptionValue("theory_split_queue_layered_arrangement","thsql",true);
+    _theorySplitQueueLayeredArrangement.description = "If turned on, use a layered arrangement to split clauses into queues. Otherwise use a tammet-style-arrangement.";
+    _lookup.insert(&_theorySplitQueueLayeredArrangement);
+    _theorySplitQueueLayeredArrangement.reliesOn(_useTheorySplitQueues.is(equal(true)));
+    _theorySplitQueueLayeredArrangement.tag(OptionTag::SATURATION);
+
+    _useAvatarSplitQueues = BoolOptionValue("avatar_split_queue","avsq",false);
+    _useAvatarSplitQueues.description = "Turn on experiments: clause selection with multiple queues containing different clauses (split by amount of avatar-split-set-size)";
+    _lookup.insert(&_useAvatarSplitQueues);
+    _useAvatarSplitQueues.tag(OptionTag::AVATAR);
+    _avatarSplitQueueCutoffs.reliesOn(_splitting.is(equal(true)));
+
+    _avatarSplitQueueCutoffs = StringOptionValue("avatar_split_queue_cutoffs", "avsqc", "0");
+    _avatarSplitQueueCutoffs.description = "The cutoff-values for the avatar-split-queues (the cutoff value for the last queue is omitted, since it has to be infinity).";
+    _lookup.insert(&_avatarSplitQueueCutoffs);
+    _avatarSplitQueueCutoffs.reliesOn(_useAvatarSplitQueues.is(equal(true)));
+    _avatarSplitQueueCutoffs.tag(OptionTag::AVATAR);
+
+    _avatarSplitQueueRatios = StringOptionValue("avatar_split_queue_ratios", "avsqr", "1,1");
+    _avatarSplitQueueRatios.description = "The ratios for picking clauses from the split-queues using weighted round robin. If a queue is empty, the clause will be picked from the next non-empty queue to the right. Note that this option implicitly also sets the number of queues.";
+    _lookup.insert(&_avatarSplitQueueRatios);
+    _avatarSplitQueueRatios.reliesOn(_useAvatarSplitQueues.is(equal(true)));
+    _avatarSplitQueueRatios.tag(OptionTag::AVATAR);
+
+    _avatarSplitQueueLayeredArrangement = BoolOptionValue("avatar_split_queue_layered_arrangement","avsql",false);
+    _avatarSplitQueueLayeredArrangement.description = "If turned on, use a layered arrangement to split clauses into queues. Otherwise use a tammet-style-arrangement.";
+    _lookup.insert(&_avatarSplitQueueLayeredArrangement);
+    _avatarSplitQueueLayeredArrangement.reliesOn(_useAvatarSplitQueues.is(equal(true)));
+    _avatarSplitQueueLayeredArrangement.tag(OptionTag::AVATAR);
+
+    _useSineLevelSplitQueues = BoolOptionValue("sine_level_split_queue","slsq",false);
+    _useSineLevelSplitQueues.description = "Turn on experiments: clause selection with multiple queues containing different clauses (split by sine-level of clause)";
+    _lookup.insert(&_useSineLevelSplitQueues);
+    _useSineLevelSplitQueues.tag(OptionTag::SATURATION);
+
+    _sineLevelSplitQueueCutoffs = StringOptionValue("sine_level_split_queue_cutoffs", "slsqc", "0,1");
+    _sineLevelSplitQueueCutoffs.description = "The cutoff-values for the sine-level-split-queues (the cutoff value for the last queue is omitted, since it has to be infinity).";
+    _lookup.insert(&_sineLevelSplitQueueCutoffs);
+    _sineLevelSplitQueueCutoffs.reliesOn(_useSineLevelSplitQueues.is(equal(true)));
+    _sineLevelSplitQueueCutoffs.tag(OptionTag::SATURATION);
+
+    _sineLevelSplitQueueRatios = StringOptionValue("sine_level_split_queue_ratios", "slsqr", "1,2,3");
+    _sineLevelSplitQueueRatios.description = "The ratios for picking clauses from the sine-level-split-queues using weighted round robin. If a queue is empty, the clause will be picked from the next non-empty queue to the right. Note that this option implicitly also sets the number of queues.";
+    _lookup.insert(&_sineLevelSplitQueueRatios);
+    _sineLevelSplitQueueRatios.reliesOn(_useSineLevelSplitQueues.is(equal(true)));
+    _sineLevelSplitQueueRatios.tag(OptionTag::SATURATION);
+
+    _sineLevelSplitQueueLayeredArrangement = BoolOptionValue("sine_level_split_queue_layered_arrangement","slsql",true);
+    _sineLevelSplitQueueLayeredArrangement.description = "If turned on, use a layered arrangement to split clauses into queues. Otherwise use a tammet-style-arrangement.";
+    _lookup.insert(&_sineLevelSplitQueueLayeredArrangement);
+    _sineLevelSplitQueueLayeredArrangement.reliesOn(_useSineLevelSplitQueues.is(equal(true)));
+    _sineLevelSplitQueueLayeredArrangement.tag(OptionTag::SATURATION);
+
+    _usePositiveLiteralSplitQueues = BoolOptionValue("positive_literal_split_queue","plsq",false);
+    _usePositiveLiteralSplitQueues.description = "Turn on experiments: clause selection with multiple queues containing different clauses (split by number of positive literals in clause)";
+    _lookup.insert(&_usePositiveLiteralSplitQueues);
+    _usePositiveLiteralSplitQueues.tag(OptionTag::SATURATION);
+
+    _positiveLiteralSplitQueueCutoffs = StringOptionValue("positive_literal_split_queue_cutoffs", "plsqc", "0");
+    _positiveLiteralSplitQueueCutoffs.description = "The cutoff-values for the positive-literal-split-queues (the cutoff value for the last queue is omitted, since it has to be infinity).";
+    _lookup.insert(&_positiveLiteralSplitQueueCutoffs);
+    _positiveLiteralSplitQueueCutoffs.reliesOn(_usePositiveLiteralSplitQueues.is(equal(true)));
+    _positiveLiteralSplitQueueCutoffs.tag(OptionTag::SATURATION);
+
+    _positiveLiteralSplitQueueRatios = StringOptionValue("positive_literal_split_queue_ratios", "plsqr", "1,4");
+    _positiveLiteralSplitQueueRatios.description = "The ratios for picking clauses from the positive-literal-split-queues using weighted round robin. If a queue is empty, the clause will be picked from the next non-empty queue to the right. Note that this option implicitly also sets the number of queues.";
+    _lookup.insert(&_positiveLiteralSplitQueueRatios);
+    _positiveLiteralSplitQueueRatios.reliesOn(_usePositiveLiteralSplitQueues.is(equal(true)));
+    _positiveLiteralSplitQueueRatios.tag(OptionTag::SATURATION);
+
+    _positiveLiteralSplitQueueLayeredArrangement = BoolOptionValue("positive_literal_split_queue_layered_arrangement","plsql",false);
+    _positiveLiteralSplitQueueLayeredArrangement.description = "If turned on, use a layered arrangement to split clauses into queues. Otherwise use a tammet-style-arrangement.";
+    _lookup.insert(&_positiveLiteralSplitQueueLayeredArrangement);
+    _positiveLiteralSplitQueueLayeredArrangement.reliesOn(_usePositiveLiteralSplitQueues.is(equal(true)));
+    _positiveLiteralSplitQueueLayeredArrangement.tag(OptionTag::SATURATION);
+
+    _literalMaximalityAftercheck = BoolOptionValue("literal_maximality_aftercheck","lma",false);
+    _literalMaximalityAftercheck.description = 
+                                   "For efficiency we perform maximality checks before applying substitutions. Sometimes this can " 
+                                   "lead to generating more clauses than needed for completeness. Set this on to add the checks "
+                                   "afterwards as well.";
+    _lookup.insert(&_literalMaximalityAftercheck);
+    _literalMaximalityAftercheck.tag(OptionTag::SATURATION);
 
       _lrsFirstTimeCheck = IntOptionValue("lrs_first_time_check","",5);
       _lrsFirstTimeCheck.description=
@@ -934,50 +1024,116 @@ void Options::Options::init()
            _theoryInstAndSimp.description = ""; 
            _theoryInstAndSimp.tag(OptionTag::INFERENCES);
            _lookup.insert(&_theoryInstAndSimp);
-           _theoryInstAndSimp.setExperimental();
+
+           _thiTautologyDeletion = BoolOptionValue("theory_instantiation_tautology_deletion", "thitd", false);
+           _thiTautologyDeletion.description = "Enable deletion of tautology theory subclauses detected via theory instantiation."; 
+           _thiTautologyDeletion.tag(OptionTag::INFERENCES);
+           _lookup.insert(&_thiTautologyDeletion);
+           _thiTautologyDeletion.setExperimental();
+           _thiTautologyDeletion.reliesOn(_theoryInstAndSimp.is(notEqual(TheoryInstSimp::OFF)));
 #endif
+
            _unificationWithAbstraction = ChoiceOptionValue<UnificationWithAbstraction>("unification_with_abstraction","uwa",
                                              UnificationWithAbstraction::OFF,
-                                             {"off","interpreted_only","one_side_interpreted","one_side_constant","all","ground","fixed"});
-           _unificationWithAbstraction.description="";
+                                             {"off","interpreted_only","one_side_interpreted","one_side_constant","all","ground"});
+           _unificationWithAbstraction.description=
+              "During unification, if two terms s and t fail to unify we will introduce a constraint s!=t and carry on. For example, "
+              "resolving p(1) \\/ C with ~p(a+2) would produce C \\/ 1 !=a+2. This is controlled by a check on the terms. The expected "
+              "use case is in theory reasoning. The possible values are:"
+              "- off: do not introduce a constraint\n"
+              "- interpreted_only: only if s and t have interpreted top symbols\n" 
+              "- one_side_interpreted: only if one of s or t have interpreted top symbols\n"
+              "- one_side_constant: only if one of s or t is an interpreted constant (e.g. a number)\n"
+              "- all: always apply\n"
+              "- ground: only if both s and t are ground\n"
+              "See Unification with Abstraction and Theory Instantiation in Saturation-Based Reasoning for further details.";
            _unificationWithAbstraction.tag(OptionTag::INFERENCES);
            _lookup.insert(&_unificationWithAbstraction);
-           _unificationWithAbstraction.setExperimental();
-
-           _fixUWA = BoolOptionValue("uwa_fix","uwaf",false);
-           _fixUWA.description="";
-           _fixUWA.tag(OptionTag::INFERENCES);
-           _lookup.insert(&_fixUWA);
-           _fixUWA.setExperimental();
 
            _useACeval = BoolOptionValue("use_ac_eval","uace",true);
-           _useACeval.description="";
+           _useACeval.description="Evaluate associative and commutative operators e.g. + and *.";
            _useACeval.tag(OptionTag::INFERENCES);
            _lookup.insert(&_useACeval);
-           _useACeval.setExperimental();
+ 
+           _inequalityNormalization = BoolOptionValue("normalize_inequalities","norm_ineq",false);
+           _inequalityNormalization.description="Enable normalizing of inequalities like s < t ==> 0 < t - s.";
+           _lookup.insert(&_inequalityNormalization);
+           _inequalityNormalization.tag(OptionTag::INFERENCES);
+
+           auto choiceArithmeticSimplificationMode = [&](vstring l, vstring s, ArithmeticSimplificationMode d) 
+           { return ChoiceOptionValue<ArithmeticSimplificationMode>(l,s,d, {"force", "cautious", "off", }); };
+           _cancellation = choiceArithmeticSimplificationMode(
+               "cancellation", "canc",
+               ArithmeticSimplificationMode::OFF);
+           _cancellation.description = "Enable addition cancellation.";
+           _lookup.insert(&_cancellation);
+           _cancellation.tag(OptionTag::INFERENCES);
+           _cancellation.setExperimental();
+
+           _highSchool = BoolOptionValue("high_school", "", false);
+           _highSchool.description="Enables high school education for vampire. (i.e.: sets -gve cautious, -asg cautious, -ev cautious, -canc cautious, -pum on )";
+           _lookup.insert(&_highSchool);
+           _highSchool.tag(OptionTag::INFERENCES);
+
+
+           _pushUnaryMinus = BoolOptionValue(
+               "push_unary_minus", "pum",
+               false);
+           _pushUnaryMinus.description=
+                  "Enable the immideate simplifications:\n"
+                  " -(t + s) ==> -t + -s\n"
+                  " -(-t) ==> t\n"
+                  ;
+           _lookup.insert(&_pushUnaryMinus);
+           _pushUnaryMinus.tag(OptionTag::INFERENCES);
+
+           _gaussianVariableElimination = choiceArithmeticSimplificationMode(
+               "gaussian_variable_elimination", "gve",
+               ArithmeticSimplificationMode::OFF);
+           _gaussianVariableElimination.description=
+                  "Enable the immideate simplification \"Gaussian Variable Elimination\":\n"
+                  "\n"
+                  "s != t | C[X] \n"
+                  "-------------  if s != t can be rewritten to X != r \n"
+                  "    C[r] \n"
+                  "\n"
+                  "example:\n"
+                  "\n"
+                  "6 * X0 != 2 * X1 | p(X0, X1)\n"
+                  "-------------------------------\n"
+                  "  p(2 * X1 / 6, X1)";
+           _lookup.insert(&_gaussianVariableElimination);
+           _gaussianVariableElimination.tag(OptionTag::INFERENCES);
+
+
+           _arithmeticSubtermGeneralizations = choiceArithmeticSimplificationMode(
+               "arithmetic_subterm_generalizations", "asg",
+               ArithmeticSimplificationMode::OFF);
+           _arithmeticSubtermGeneralizations.description=
+                  "Enable variaous immediate simplification rules for arithmetic terms.\n"
+                  "All of these rules work by generalizing a subterm.";
+           _lookup.insert(&_arithmeticSubtermGeneralizations);
+           _arithmeticSubtermGeneralizations.tag(OptionTag::INFERENCES);
 
             _induction = ChoiceOptionValue<Induction>("induction","ind",Induction::NONE,
                                 {"none","struct","math","both"});
-            _induction.description = "Apply structural and/or mathematical induction on datatypes and integers";
+            _induction.description = "Apply structural and/or mathematical induction on datatypes and integers.";
             _induction.tag(OptionTag::INFERENCES);
             _lookup.insert(&_induction);
             //_induction.setRandomChoices
-            _induction.setExperimental();
 
             _structInduction = ChoiceOptionValue<StructuralInductionKind>("structural_induction_kind","sik",
                                  StructuralInductionKind::ONE,{"one","two","three","all"});
-            _structInduction.description="";
+            _structInduction.description="The kind of structural induction applied";
             _structInduction.tag(OptionTag::INFERENCES);
-            _structInduction.reliesOn(_induction.is(equal(Induction::STRUCTURAL))->Or<StructuralInductionKind>(_induction.is(equal(Induction::BOTH))));
+            _structInduction.reliesOn(Or(_induction.is(equal(Induction::STRUCTURAL)),_induction.is(equal(Induction::BOTH))));
             _lookup.insert(&_structInduction);
-            _structInduction.setExperimental();
 
             _mathInduction = ChoiceOptionValue<MathInductionKind>("math_induction_kind","mik",
                                  MathInductionKind::ONE,{"one","two","all"});
-            _mathInduction.description="";
+            _mathInduction.description="The kind of mathematical induction applied";
             _mathInduction.tag(OptionTag::INFERENCES);
-            _mathInduction.setExperimental();
-            _mathInduction.reliesOn(_induction.is(equal(Induction::MATHEMATICAL))->Or<MathInductionKind>(_induction.is(equal(Induction::BOTH))));
+            _mathInduction.reliesOn(Or(_induction.is(equal(Induction::MATHEMATICAL)),_induction.is(equal(Induction::BOTH))));
             //_lookup.insert(&_mathInduction);
 
             _inductionChoice = ChoiceOptionValue<InductionChoice>("induction_choice","indc",InductionChoice::ALL,
@@ -987,7 +1143,6 @@ void Options::Options::init()
                                          " guess_the_goal for problems in SMTLIB as they do not come with a conjecture";
             _inductionChoice.tag(OptionTag::INFERENCES);
             _lookup.insert(&_inductionChoice);
-            _inductionChoice.setExperimental();
             _inductionChoice.reliesOn(_induction.is(notEqual(Induction::NONE)));
             //_inductionChoice.addHardConstraint(If(equal(InductionChoice::GOAL)->Or(equal(InductionChoice::GOAL_PLUS))).then(
             //  _inputSyntax.is(equal(InputSyntax::TPTP))->Or<InductionChoice>(_guessTheGoal.is(equal(true)))));
@@ -995,7 +1150,6 @@ void Options::Options::init()
 
             _maxInductionDepth = UnsignedOptionValue("induction_max_depth","indmd",0);
             _maxInductionDepth.description = "Set maximum depth of induction where 0 means no max.";
-            _maxInductionDepth.setExperimental();
             _maxInductionDepth.tag(OptionTag::INFERENCES);
             _maxInductionDepth.reliesOn(_induction.is(notEqual(Induction::NONE)));
             _maxInductionDepth.addHardConstraint(lessThan(33u));
@@ -1003,24 +1157,42 @@ void Options::Options::init()
 
             _inductionNegOnly = BoolOptionValue("induction_neg_only","indn",true);
             _inductionNegOnly.description = "Only apply induction to negative literals";
-            _inductionNegOnly.setExperimental();
             _inductionNegOnly.tag(OptionTag::INFERENCES);
             _inductionNegOnly.reliesOn(_induction.is(notEqual(Induction::NONE)));
             _lookup.insert(&_inductionNegOnly);
 
             _inductionUnitOnly = BoolOptionValue("induction_unit_only","indu",true);
             _inductionUnitOnly.description = "Only apply induction to unit clauses";
-            _inductionUnitOnly.setExperimental();
             _inductionUnitOnly.tag(OptionTag::INFERENCES);
             _inductionUnitOnly.reliesOn(_induction.is(notEqual(Induction::NONE)));
             _lookup.insert(&_inductionUnitOnly);
 
+            _inductionGen = BoolOptionValue("induction_gen","indgen",false);
+            _inductionGen.description = "Apply induction with generalization (on both all & selected occurrences)";
+            _inductionGen.tag(OptionTag::INFERENCES);
+            _inductionGen.reliesOn(_induction.is(notEqual(Induction::NONE)));
+            _lookup.insert(&_inductionGen);
+
+            _maxInductionGenSubsetSize = UnsignedOptionValue("max_induction_gen_subset_size","indgenss",3);
+            _maxInductionGenSubsetSize.description = "Set maximum number of occurrences of the induction term to be"
+                                                      " generalized, where 0 means no max. (Regular induction will"
+                                                      " be applied without this restriction.)";
+            _maxInductionGenSubsetSize.tag(OptionTag::INFERENCES);
+            _maxInductionGenSubsetSize.reliesOn(_inductionGen.is(equal(true)));
+            _maxInductionGenSubsetSize.addHardConstraint(lessThan(10u));
+            _lookup.insert(&_maxInductionGenSubsetSize);
+
+            _inductionOnComplexTerms = BoolOptionValue("induction_on_complex_terms","indoct",false);
+            _inductionOnComplexTerms.description = "Apply induction on complex (ground) terms vs. only on constants";
+            _inductionOnComplexTerms.tag(OptionTag::INFERENCES);
+            _inductionOnComplexTerms.reliesOn(_induction.is(notEqual(Induction::NONE)));
+            _lookup.insert(&_inductionOnComplexTerms);
+
 	    _instantiation = ChoiceOptionValue<Instantiation>("instantiation","inst",Instantiation::OFF,{"off","on"});
-	    _instantiation.description = "Heuristically instantiate variables";
+	    _instantiation.description = "Heuristically instantiate variables. Often wastes a lot of effort. Consider using thi instead.";
 	    _instantiation.tag(OptionTag::INFERENCES);
 	    _lookup.insert(&_instantiation);
 	    _instantiation.setRandomChoices({"off","on"}); // Turn this on rarely
-	    _instantiation.setExperimental();
 
 	    _backwardDemodulation = ChoiceOptionValue<Demodulation>("backward_demodulation","bd",
 								    Demodulation::ALL,
@@ -1033,7 +1205,7 @@ void Options::Options::init()
 	    _lookup.insert(&_backwardDemodulation);
 	    _backwardDemodulation.tag(OptionTag::INFERENCES);
 	    _backwardDemodulation.addProblemConstraint(hasEquality());
-	    _backwardDemodulation.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->Or<Demodulation>(_instGenWithResolution.is(equal(true))));
+	    _backwardDemodulation.reliesOn(Or(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN)),_instGenWithResolution.is(equal(true))));
 	    _backwardDemodulation.setRandomChoices({"all","off"});
 
 	    _backwardSubsumption = ChoiceOptionValue<Subsumption>("backward_subsumption","bs",
@@ -1042,7 +1214,7 @@ void Options::Options::init()
 		     "Perform subsumption deletion of kept clauses by newly derived clauses. Unit_only means that the subsumption will be performed only by unit clauses";
 	    _lookup.insert(&_backwardSubsumption);
 	    _backwardSubsumption.tag(OptionTag::INFERENCES);
-	    _backwardSubsumption.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->Or<Subsumption>(_instGenWithResolution.is(equal(true))));
+	    _backwardSubsumption.reliesOn(Or(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN)),_instGenWithResolution.is(equal(true))));
 	    _backwardSubsumption.setRandomChoices({"on","off"});
 
 	    _backwardSubsumptionResolution = ChoiceOptionValue<Subsumption>("backward_subsumption_resolution","bsr",
@@ -1051,8 +1223,21 @@ void Options::Options::init()
 		     "Perform subsumption resolution on kept clauses using newly derived clauses. Unit_only means that the subsumption resolution will be performed only by unit clauses";
 	    _lookup.insert(&_backwardSubsumptionResolution);
 	    _backwardSubsumptionResolution.tag(OptionTag::INFERENCES);
-	    _backwardSubsumptionResolution.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->Or<Subsumption>(_instGenWithResolution.is(equal(true))));
+	    _backwardSubsumptionResolution.reliesOn(Or(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN)),_instGenWithResolution.is(equal(true))));
 	    _backwardSubsumptionResolution.setRandomChoices({"on","off"});
+
+            _backwardSubsumptionDemodulation = BoolOptionValue("backward_subsumption_demodulation", "bsd", false);
+            _backwardSubsumptionDemodulation.description = "Perform backward subsumption demodulation.";
+            _lookup.insert(&_backwardSubsumptionDemodulation);
+            _backwardSubsumptionDemodulation.tag(OptionTag::INFERENCES);
+            _backwardSubsumptionDemodulation.addProblemConstraint(hasEquality());
+            _backwardSubsumptionDemodulation.setRandomChoices({"on","off"});
+
+            _backwardSubsumptionDemodulationMaxMatches = UnsignedOptionValue("backward_subsumption_demodulation_max_matches", "bsdmm", 0);
+            _backwardSubsumptionDemodulationMaxMatches.description = "Maximum number of multi-literal matches to consider in backward subsumption demodulation. 0 means to try all matches (until first success).";
+            _lookup.insert(&_backwardSubsumptionDemodulationMaxMatches);
+            _backwardSubsumptionDemodulationMaxMatches.tag(OptionTag::INFERENCES);
+            _backwardSubsumptionDemodulationMaxMatches.setRandomChoices({"0", "1", "3"});
 
 	    _binaryResolution = BoolOptionValue("binary_resolution","br",true);
 	    _binaryResolution.description=
@@ -1066,7 +1251,7 @@ void Options::Options::init()
 	    // If urr is off then binary resolution should be on
 	    _binaryResolution.addConstraint(
 	      If(equal(false)).then(_unitResultingResolution.is(notEqual(URResolution::OFF))));
-	    _binaryResolution.setRandomChoices(And(isRandSat(),saNotInstGen(),Or(hasEquality(),isBfnt(),hasCat(Property::HNE))),{"on"});
+	    _binaryResolution.setRandomChoices(And(isRandSat(),saNotInstGen(),Or(hasEquality(),hasCat(Property::HNE))),{"on"});
 	    _binaryResolution.setRandomChoices({"on","off"});
 
 
@@ -1075,7 +1260,7 @@ void Options::Options::init()
 		     "Perform condensation. If 'fast' is specified, we only perform condensations that are easy to check for.";
 	    _lookup.insert(&_condensation);
 	    _condensation.tag(OptionTag::INFERENCES);
-	    _condensation.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->Or<Condensation>(_instGenWithResolution.is(equal(true))));
+	    _condensation.reliesOn(Or(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN)),_instGenWithResolution.is(equal(true))));
 	    _condensation.setRandomChoices({"on","off","fast"});
 
 	    _demodulationRedundancyCheck = BoolOptionValue("demodulation_redundancy_check","drc",true);
@@ -1088,7 +1273,7 @@ void Options::Options::init()
 		     "where t > t1 and s = t > C (RHS replaced)";
 	    _lookup.insert(&_demodulationRedundancyCheck);
 	    _demodulationRedundancyCheck.tag(OptionTag::INFERENCES);
-	    _demodulationRedundancyCheck.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->Or<bool>(_instGenWithResolution.is(equal(true))));
+	    _demodulationRedundancyCheck.reliesOn(Or(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN)),_instGenWithResolution.is(equal(true))));
 	    _demodulationRedundancyCheck.addProblemConstraint(hasEquality());
 	    _demodulationRedundancyCheck.setRandomChoices({"on","off"});
 
@@ -1187,7 +1372,7 @@ void Options::Options::init()
     _lookup.insert(&_forwardLiteralRewriting);
     _forwardLiteralRewriting.tag(OptionTag::INFERENCES);
     _forwardLiteralRewriting.addProblemConstraint(hasNonUnits());
-    _forwardLiteralRewriting.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->Or<bool>(_instGenWithResolution.is(equal(true))));
+    _forwardLiteralRewriting.reliesOn(Or(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN)),_instGenWithResolution.is(equal(true))));
     _forwardLiteralRewriting.setRandomChoices({"on","off"});
 
     _forwardSubsumption = BoolOptionValue("forward_subsumption","fs",true);
@@ -1200,12 +1385,26 @@ void Options::Options::init()
     _forwardSubsumptionResolution.description="Perform forward subsumption resolution.";
     _lookup.insert(&_forwardSubsumptionResolution);
     _forwardSubsumptionResolution.tag(OptionTag::INFERENCES);
-    _forwardSubsumptionResolution    .reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->Or<bool>(_instGenWithResolution.is(equal(true))));
+
+    _forwardSubsumptionResolution.reliesOn(Or(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN)),_instGenWithResolution.is(equal(true))));
     _forwardSubsumptionResolution.setRandomChoices({"on","off"});
+
+    _forwardSubsumptionDemodulation = BoolOptionValue("forward_subsumption_demodulation", "fsd", false);
+    _forwardSubsumptionDemodulation.description = "Perform forward subsumption demodulation.";
+    _lookup.insert(&_forwardSubsumptionDemodulation);
+    _forwardSubsumptionDemodulation.tag(OptionTag::INFERENCES);
+    _forwardSubsumptionDemodulation.addProblemConstraint(hasEquality());
+    _forwardSubsumptionDemodulation.setRandomChoices({"off","on"});
+
+    _forwardSubsumptionDemodulationMaxMatches = UnsignedOptionValue("forward_subsumption_demodulation_max_matches", "fsdmm", 0);
+    _forwardSubsumptionDemodulationMaxMatches.description = "Maximum number of multi-literal matches to consider in forward subsumption demodulation. 0 means to try all matches (until first success).";
+    _lookup.insert(&_forwardSubsumptionDemodulationMaxMatches);
+    _forwardSubsumptionDemodulationMaxMatches.tag(OptionTag::INFERENCES);
+    _forwardSubsumptionDemodulationMaxMatches.setRandomChoices({"0", "1", "3"});
 
     _hyperSuperposition = BoolOptionValue("hyper_superposition","",false);
     _hyperSuperposition.description=
-    "Generating inference that attempts to do several rewritings at once if it will eliminate literals of the original clause (now we aim just for elimination by equality resolution)";
+    "Simplifying inference that attempts to do several rewritings at once if it will eliminate literals of the original clause (now we aim just for elimination by equality resolution)";
     _lookup.insert(&_hyperSuperposition);
     _hyperSuperposition.tag(OptionTag::INFERENCES);
 
@@ -1213,19 +1412,16 @@ void Options::Options::init()
     _simultaneousSuperposition.description="Rewrite the whole RHS clause during superposition, not just the target literal.";
     _lookup.insert(&_simultaneousSuperposition);
     _simultaneousSuperposition.tag(OptionTag::INFERENCES);
-    _simultaneousSuperposition.setExperimental();
 
     _innerRewriting = BoolOptionValue("inner_rewriting","irw",false);
     _innerRewriting.description="C[t_1] | t1 != t2 ==> C[t_2] | t1 != t2 when t1>t2";
     _lookup.insert(&_innerRewriting);
     _innerRewriting.tag(OptionTag::INFERENCES);
-    _innerRewriting.setExperimental();
 
     _equationalTautologyRemoval = BoolOptionValue("equational_tautology_removal","etr",false);
-    _equationalTautologyRemoval.description="A reduction which uses CC to remove logically valid clauses.";
+    _equationalTautologyRemoval.description="A reduction which uses congruence closure to remove logically valid clauses.";
     _lookup.insert(&_equationalTautologyRemoval);
     _equationalTautologyRemoval.tag(OptionTag::INFERENCES);
-    _equationalTautologyRemoval.setExperimental();
 
     _unitResultingResolution = ChoiceOptionValue<URResolution>("unit_resulting_resolution","urr",URResolution::OFF,{"ec_only","off","on"});
     _unitResultingResolution.description=
@@ -1239,7 +1435,7 @@ void Options::Options::init()
     _unitResultingResolution.addProblemConstraint(hasPredicates());
     // If br has already been set off then this will be forced on, if br has not yet been set
     // then setting this to off will force br on
-    _unitResultingResolution.setRandomChoices(And(isRandSat(),saNotInstGen(),Or(hasEquality(),isBfnt(),hasCat(Property::HNE))),{"on","off"});
+    _unitResultingResolution.setRandomChoices(And(isRandSat(),saNotInstGen(),Or(hasEquality(),hasCat(Property::HNE))),{"on","off"});
     _unitResultingResolution.setRandomChoices(isRandSat(),{});
     _unitResultingResolution.setRandomChoices({"on","on","off"});
 
@@ -1249,7 +1445,7 @@ void Options::Options::init()
     _lookup.insert(&_superpositionFromVariables);
     _superpositionFromVariables.tag(OptionTag::INFERENCES);
     _superpositionFromVariables.addProblemConstraint(hasEquality());
-    _superpositionFromVariables.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->Or<bool>(_instGenWithResolution.is(equal(true))));
+    _superpositionFromVariables.reliesOn(Or(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN)),_instGenWithResolution.is(equal(true))));
     _superpositionFromVariables.setRandomChoices({"on","off"});
 
 //*********************** InstGen  ***********************
@@ -1268,7 +1464,6 @@ void Options::Options::init()
     _globalSubsumptionSatSolverPower.tag(OptionTag::INFERENCES);
     _globalSubsumptionSatSolverPower.reliesOn(_globalSubsumption.is(equal(true)));
     _globalSubsumptionSatSolverPower.setRandomChoices({"propagation_only","full"});
-    _globalSubsumptionSatSolverPower.setExperimental();
 
     _globalSubsumptionExplicitMinim = ChoiceOptionValue<GlobalSubsumptionExplicitMinim>("global_subsumption_explicit_minim","gsem",
         GlobalSubsumptionExplicitMinim::RANDOMIZED,{"off","on","randomized"});
@@ -1277,24 +1472,25 @@ void Options::Options::init()
     _globalSubsumptionExplicitMinim.tag(OptionTag::INFERENCES);
     _globalSubsumptionExplicitMinim.reliesOn(_globalSubsumption.is(equal(true)));
     _globalSubsumptionExplicitMinim.setRandomChoices({"off","on","randomized"});
-    _globalSubsumptionExplicitMinim.setExperimental();
 
     _globalSubsumptionAvatarAssumptions = ChoiceOptionValue<GlobalSubsumptionAvatarAssumptions>("global_subsumption_avatar_assumptions","gsaa",
         GlobalSubsumptionAvatarAssumptions::OFF,{"off","from_current","full_model"});
-    _globalSubsumptionAvatarAssumptions.description="";
+    _globalSubsumptionAvatarAssumptions.description=
+      "When running global subsumption and AVATAR at the same time we need to include information about the current AVATAR model. When this is off "
+      "we ignore clauses with AVATAR assumptions for GS. When it is from_current we assume the assumptions in the current clause. When it is "
+      "full_model we assume the full model from AVATAR. See paper Global Subsumption Revisited (Briefly).";
     _lookup.insert(&_globalSubsumptionAvatarAssumptions);
     _globalSubsumptionAvatarAssumptions.tag(OptionTag::INFERENCES);
     _globalSubsumptionAvatarAssumptions.reliesOn(_globalSubsumption.is(equal(true)));
     _globalSubsumptionAvatarAssumptions.reliesOn(_splitting.is(equal(true)));
     _globalSubsumptionAvatarAssumptions.setRandomChoices({"off","from_current","full_model"});
-    _globalSubsumptionAvatarAssumptions.setExperimental();
 
     _instGenBigRestartRatio = FloatOptionValue("inst_gen_big_restart_ratio","igbrr",0.0);
     _instGenBigRestartRatio.description=
     "Determines how often a big restart (instance generation starts from input clauses) will be performed. Small restart means all clauses generated so far are processed again.";
     _lookup.insert(&_instGenBigRestartRatio);
     _instGenBigRestartRatio.tag(OptionTag::INST_GEN);
-    _instGenBigRestartRatio.addConstraint(greaterThanEq(0.0f)->And(lessThanEq(1.0f)));
+    _instGenBigRestartRatio.addConstraint(And(greaterThanEq(0.0f),lessThanEq(1.0f)));
     // Captures that this is only non-default when saturationAlgorithm is instgen
     _instGenBigRestartRatio.reliesOn(_saturationAlgorithm.is(equal(SaturationAlgorithm::INST_GEN)));
     _instGenBigRestartRatio.setRandomChoices({"0.0","0.1","0.2","0.3","0.4","0.5","0.6","0.7","0.8","0.9","1.0"});
@@ -1350,7 +1546,6 @@ void Options::Options::init()
     _useHashingVariantIndex.description= "Use clause variant index based on hashing for clause variant detection (affects inst_gen and avatar).";
     _lookup.insert(&_useHashingVariantIndex);
     _useHashingVariantIndex.tag(OptionTag::OTHER);
-    _useHashingVariantIndex.setExperimental();
     _useHashingVariantIndex.setRandomChoices({"on","off"});
 
     /*
@@ -1394,7 +1589,6 @@ void Options::Options::init()
     _splittingAddComplementary.description="";
     _lookup.insert(&_splittingAddComplementary);
     _splittingAddComplementary.tag(OptionTag::AVATAR);
-    _splittingAddComplementary.setExperimental();
     _splittingAddComplementary.reliesOn(_splitting.is(equal(true)));
     _splittingAddComplementary.setRandomChoices({"ground","none"});
 
@@ -1420,7 +1614,6 @@ void Options::Options::init()
     _ccUnsatCores.tag(OptionTag::AVATAR);
     _ccUnsatCores.reliesOn(_splittingCongruenceClosure.is(notEqual(SplittingCongruenceClosure::OFF)));
     _ccUnsatCores.setRandomChoices({"first", "small_ones", "all"});
-    _ccUnsatCores.setExperimental();
 
     _splittingLiteralPolarityAdvice = ChoiceOptionValue<SplittingLiteralPolarityAdvice>(
                                                 "avatar_literal_polarity_advice","alpa",
@@ -1430,7 +1623,6 @@ void Options::Options::init()
     _lookup.insert(&_splittingLiteralPolarityAdvice);
     _splittingLiteralPolarityAdvice.tag(OptionTag::AVATAR);
     _splittingLiteralPolarityAdvice.reliesOn(_splitting.is(equal(true)));
-    _splittingLiteralPolarityAdvice.setExperimental();
 
     _splittingMinimizeModel = ChoiceOptionValue<SplittingMinimizeModel>("avatar_minimize_model","amm",
                                                                         SplittingMinimizeModel::ALL,{"off","sco","all"});
@@ -1440,7 +1632,6 @@ void Options::Options::init()
                                         " by the partial model.";
     _lookup.insert(&_splittingMinimizeModel);
     _splittingMinimizeModel.tag(OptionTag::AVATAR);
-    //_splittingMinimizeModel.setExperimental();
     _splittingMinimizeModel.reliesOn(_splitting.is(equal(true)));
     _splittingMinimizeModel.setRandomChoices({"off","sco","all"});
 
@@ -1448,7 +1639,6 @@ void Options::Options::init()
     _splittingEagerRemoval.description="If a component was in the model and then becomes 'don't care' eagerly remove that component from the first-order solver. Note: only has any impact when smm is used.";
     _lookup.insert(&_splittingEagerRemoval);
     _splittingEagerRemoval.tag(OptionTag::AVATAR);
-    //_splittingEagerRemoval.setExperimental();
     _splittingEagerRemoval.reliesOn(_splitting.is(equal(true)));
     // if minimize is off then makes no difference
     // if minimize is sco then we could have a conflict clause added infinitely often
@@ -1459,7 +1649,6 @@ void Options::Options::init()
     _splittingFastRestart.description="";
     _lookup.insert(&_splittingFastRestart);
     _splittingFastRestart.tag(OptionTag::AVATAR);
-    _splittingFastRestart.setExperimental();
     _splittingFastRestart.reliesOn(_splitting.is(equal(true)));
     _splittingFastRestart.setRandomChoices({"on","off"});
 
@@ -1467,7 +1656,6 @@ void Options::Options::init()
     _splittingBufferedSolver.description="Added buffering funcitonality to the SAT solver used in AVATAR.";
     _lookup.insert(&_splittingBufferedSolver);
     _splittingBufferedSolver.tag(OptionTag::AVATAR);
-    _splittingBufferedSolver.setExperimental();
     _splittingBufferedSolver.reliesOn(_splitting.is(equal(true)));
     _splittingBufferedSolver.setRandomChoices({"on","off"});
 
@@ -1477,7 +1665,6 @@ void Options::Options::init()
     _splittingDeleteDeactivated.description="";
     _lookup.insert(&_splittingDeleteDeactivated);
     _splittingDeleteDeactivated.tag(OptionTag::AVATAR);
-    _splittingDeleteDeactivated.setExperimental();
     _splittingDeleteDeactivated.reliesOn(_splitting.is(equal(true)));
     _splittingDeleteDeactivated.setRandomChoices({"on","large","off"});
 
@@ -1487,7 +1674,6 @@ void Options::Options::init()
     "after given number of generated clauses without deriving an empty clause, the splitting component selection is shuffled. If equal to zero, shuffling is never performed.";
     _lookup.insert(&_splittingFlushPeriod);
     _splittingFlushPeriod.tag(OptionTag::AVATAR);
-    _splittingFlushPeriod.setExperimental();
     _splittingFlushPeriod.reliesOn(_splitting.is(equal(true)));
     _splittingFlushPeriod.setRandomChoices({"0","1000","4000","10000","40000","100000"});
 
@@ -1496,7 +1682,6 @@ void Options::Options::init()
     "after each flush, the avatar_flush_period is multiplied by the quotient";
     _lookup.insert(&_splittingFlushQuotient);
     _splittingFlushQuotient.tag(OptionTag::AVATAR);
-    _splittingFlushQuotient.setExperimental();
     _splittingFlushQuotient.addConstraint(greaterThanEq(1.0f));
     _splittingFlushQuotient.reliesOn(_splitting.is(equal(true)));
     _splittingFlushQuotient.setRandomChoices({"1.0","1.1","1.2","1.4","2.0"});
@@ -1511,7 +1696,6 @@ void Options::Options::init()
     "  -all_dependent: like all, but we don't introduce names for non-splittable clauses that don't depend on any components";
     _lookup.insert(&_splittingNonsplittableComponents);
     _splittingNonsplittableComponents.tag(OptionTag::AVATAR);
-    //_splittingNonsplittableComponents.setExperimental();
     _splittingNonsplittableComponents.reliesOn(_splitting.is(equal(true)));
     _splittingNonsplittableComponents.setRandomChoices({"all","all_dependent","known","none"});
 
@@ -1627,7 +1811,6 @@ void Options::Options::init()
     _z3UnsatCores = BoolOptionValue("z3_unsat_core","z3uc",false);
     _z3UnsatCores.description=""; 
     _lookup.insert(&_z3UnsatCores);
-    _z3UnsatCores.setExperimental();
     _z3UnsatCores.tag(OptionTag::SAT);
 #endif
 
@@ -1648,16 +1831,6 @@ void Options::Options::init()
     //*************************************************************
     //*********************** which mode or tag?  ************************
     //*************************************************************
-    
-    _bfnt = BoolOptionValue("bfnt","bfnt",false);
-    _bfnt.description="";
-    _lookup.insert(&_bfnt);
-    _bfnt.tag(OptionTag::SATURATION);
-    // This is checked in checkGlobal
-    //_bfnt.addConstraint(new OnAnd(new RequiresCompleteForNonHorn<bool>()));
-    _bfnt.addProblemConstraint(notWithCat(Property::EPR));
-    _bfnt.setRandomChoices({},{"on","off","off","off","off","off"});
-    _bfnt.setExperimental();
     
     _increasedNumeralWeight = BoolOptionValue("increased_numeral_weight","inw",false);
     _increasedNumeralWeight.description=
@@ -1706,11 +1879,6 @@ void Options::Options::init()
     //_lookup.insert(&_maxPassive);
     _maxPassive.tag(OptionTag::OTHER);
 
-    _maxWeight = IntOptionValue("max_weight","",0);
-    _maxWeight.description="Weight limit for clauses (0 means no weight limit)";
-    _lookup.insert(&_maxWeight);
-    _maxWeight.tag(OptionTag::SATURATION);
-
     _nonGoalWeightCoefficient = NonGoalWeightOptionValue("nongoal_weight_coefficient","nwc",1.0);
     _nonGoalWeightCoefficient.description=
              "coefficient that will multiply the weight of theory clauses (those marked as 'axiom' in TPTP)";
@@ -1722,7 +1890,6 @@ void Options::Options::init()
     _restrictNWCtoGC.description = "restrict nongoal_weight_coefficient to those containing goal constants";
     _lookup.insert(&_restrictNWCtoGC);
     _restrictNWCtoGC.tag(OptionTag::SATURATION);
-    _restrictNWCtoGC.setExperimental();
     _restrictNWCtoGC.reliesOn(_nonGoalWeightCoefficient.is(notEqual(1.0f)));
 
 
@@ -1745,8 +1912,8 @@ void Options::Options::init()
 
     _activationLimit = IntOptionValue("activation_limit","al",0);
     _activationLimit.description="Terminate saturation after this many iterations of the main loop. 0 means no limit.";
-    _activationLimit.setExperimental();
     _lookup.insert(&_activationLimit);
+    _activationLimit.tag(OptionTag::SATURATION);
 
     _termOrdering = ChoiceOptionValue<TermOrdering>("term_ordering","to", TermOrdering::KBO,
                                                     {"kbo","lpo"});
@@ -1770,6 +1937,60 @@ void Options::Options::init()
     _lookup.insert(&_introducedSymbolPrecedence);
     _introducedSymbolPrecedence.tag(OptionTag::SATURATION);
 
+    _evaluationMode = ChoiceOptionValue<EvaluationMode>("evaluation","ev",
+                                                        EvaluationMode::SIMPLE,
+                                                        {"simple","force","cautious"});
+    _evaluationMode.description=
+    "Choses the algorithm used to simplify interpreted integer, rational, and real terms. \
+                                 \
+    - simple: will only evaluate expressions built from interpreted constants only.\
+    - polynomial: will evaluate abstract expressions to a weak polynomial normal form. This is more powerful but may fail in some cases where the resulting polynomial is not strictly smaller than the initial one wrt. the simplification ordering. \
+    ";
+    _lookup.insert(&_evaluationMode);
+    _evaluationMode.tag(OptionTag::SATURATION);
+    _evaluationMode.setExperimental();
+
+
+    _kboAdmissabilityCheck = ChoiceOptionValue<KboAdmissibilityCheck>(
+        "kbo_admissibility_check", "", KboAdmissibilityCheck::ERROR,
+                                     {"error","warning" });
+    _kboAdmissabilityCheck.description = "Choose to emmit a warning instead of throwing an exception if the weight function and precedence ordering for kbo are not compatible.";
+    _kboAdmissabilityCheck.setExperimental();
+    _kboAdmissabilityCheck.reliesOn(_termOrdering.is(equal(TermOrdering::KBO)));
+    _lookup.insert(&_kboAdmissabilityCheck);
+
+
+    _functionWeights = StringOptionValue("function_weights","fw","");
+    _functionWeights.description = 
+      "Path to a file that defines weights for KBO for function symbols, or 'random'.\n"
+      "\n"
+      "If 'random' is used the weights will be assigned randomly.\n"
+      "\n"
+      "If the option is a file path, each line in the file is expected to contain a function name, followed by the functions arity, and a positive integer, that specifies symbols weight.\n"
+      "\n"
+      "Additionally there are special values that can be specified:\n"
+      "- `$default    <number>` specifies the default symbol weight, that is used for all symbols not present in the file (if not specified 0 is used)\n"
+      "- `$introduced <number>` specifies the weight used for symbols introduced during preprocessing or proof search\n"
+      "- `$var        <number>` specifies the weight used for variables\n"
+      "- `$int        <number>` specifies the weight used for integer constants\n"
+      "- `$rat        <number>` specifies the weight used for rational constants\n"
+      "- `$real       <number>` specifies the weight used for real constants\n"
+      "\n"
+      "\n"
+      "===== example ============\n"
+      "$add 2 2\n"
+      "$mul 2 7\n"
+      "f    1 2\n"
+      "$default 2\n"
+      "$var     2\n"
+      "===== end of example =====\n"
+      "\n"
+      "If this option is empty all weights default to 1.\n"
+      ;
+    _functionWeights.setExperimental();
+    _functionWeights.reliesOn(_termOrdering.is(equal(TermOrdering::KBO)));
+    _lookup.insert(&_functionWeights);
+
     _functionPrecedence = StringOptionValue("function_precendence","fp","");
     _functionPrecedence.description = "A name of a file with an explicit user specified precedence on function symbols.";
     _functionPrecedence.setExperimental();
@@ -1782,7 +2003,7 @@ void Options::Options::init()
 
     _symbolPrecedenceBoost = ChoiceOptionValue<SymbolPrecedenceBoost>("symbol_precedence_boost","spb",SymbolPrecedenceBoost::NONE,
                                      {"none","goal","units","goal_then_units"});
-    _symbolPrecedenceBoost.description = "";
+    _symbolPrecedenceBoost.description = "Boost the symbol precedence of symbols occuring in certain kinds of clauses in the input.";
     _symbolPrecedenceBoost.tag(OptionTag::SATURATION);
     _lookup.insert(&_symbolPrecedenceBoost);
 
@@ -1925,6 +2146,7 @@ void Options::Options::init()
                  "Output",
                  "Instance Generation",
                  "SAT Solving",
+                 "Finite Model Building",
                  "AVATAR",
                  "Inferences",
                  "LRS Specific",
@@ -1947,19 +2169,22 @@ void Options::copyValuesFrom(const Options& that)
     if(opt->shouldCopy()){
       AbstractOptionValue* other = that.getOptionValueByName(opt->longName);
       ASS(opt!=other);
-      bool status = opt -> set(other->getStringOfActual());
-      ASS(status);
+      ALWAYS(opt->set(other->getStringOfActual()));
     }
   }
 }
 Options::Options(const Options& that)
 {
+  CALL("Options::Options(const Options& that)");
+
   init();
   copyValuesFrom(that);
 }
 
 Options& Options::operator=(const Options& that)
 {
+  CALL("Options& Options::operator=(const Options& that)");
+
   if(this==&that) return *this;
   copyValuesFrom(that);
   return *this;
@@ -2045,19 +2270,15 @@ bool Options::OptionHasValue::check(Property*p){
  * Static functions to help specify random choice values
  */
 
-Options::OptionProblemConstraint* Options::isRandOn(){
-      return new OptionHasValue("random_strategy","on");
+Options::OptionProblemConstraintUP Options::isRandOn(){
+      return OptionProblemConstraintUP(new OptionHasValue("random_strategy","on"));
 }
-Options::OptionProblemConstraint* Options::isRandSat(){
-      return new OptionHasValue("random_strategy","sat");
+Options::OptionProblemConstraintUP Options::isRandSat(){
+      return OptionProblemConstraintUP(new OptionHasValue("random_strategy","sat"));
 }
-Options::OptionProblemConstraint* Options::saNotInstGen(){
-      return new OptionHasValue("sa","inst_gen");
+Options::OptionProblemConstraintUP Options::saNotInstGen(){
+      return OptionProblemConstraintUP(new OptionHasValue("sa","inst_gen"));
 }
-Options::OptionProblemConstraint* Options::isBfnt(){
-      return new OptionHasValue("bfnt","on");
-}
-
 /**
  * Return the include file name using its relative name.
  *
@@ -2164,7 +2385,7 @@ void Options::output (ostream& str) const
      }
      else{
        vstringstream vs;
-       option->output(vs);
+       option->output(vs,lineWrapInShowOptions());
        str << vs.str();
      }
 
@@ -2241,7 +2462,7 @@ void Options::output (ostream& str) const
       osa.sort(AbstractOptionValueCompatator());
       DArray<AbstractOptionValue*>::Iterator oit(osa);
       while(oit.hasNext()){
-        oit.next()->output(str);
+        oit.next()->output(str,lineWrapInShowOptions());
       }
       //str << (*groups[i]).str();
       //BYPASSING_ALLOCATOR;
@@ -2278,7 +2499,7 @@ template<typename T>
 bool Options::OptionValue<T>::randomize(Property* prop){
   CALL("Options::OptionValue::randomize()");
 
-  DArray<vstring>* choices = 0;
+  DArray<vstring>* choices = nullptr;
   if(env.options->randomStrategy()==RandomStrategy::NOCHECK) prop=0;
 
   // Only randomize if we have a property and need it or don't have one and don't need it!
@@ -2287,15 +2508,16 @@ bool Options::OptionValue<T>::randomize(Property* prop){
     ){
     return false;
   }
-  // Note that if we supressed the problem constraints
+  // Note that if we suppressed the problem constraints
   // the checks will be skipped
 
   //Search for the first set of random choices that is valid
   Stack<RandEntry>::BottomFirstIterator entry_it(rand_choices);
   while(entry_it.hasNext()){
-    auto entry = entry_it.next();
+    auto& entry = entry_it.next();
     if(!entry.first || (prop && entry.first->check(prop))){
-      choices = entry.second;
+      choices = entry.second.get();
+      break;
     }  
   }
   if(!choices || choices->size()==0) return false; // no valid choices
@@ -2310,33 +2532,33 @@ bool Options::OptionValue<T>::randomize(Property* prop){
 template<typename T>
 bool Options::OptionValue<T>::checkConstraints(){
      CALL("Options::OptionValue::checkConstraints");
-     typename Lib::Stack<OptionValueConstraint<T>*>::Iterator it(_constraints);
+     typename Lib::Stack<OptionValueConstraintUP<T>>::Iterator it(_constraints);
      while(it.hasNext()){
-       OptionValueConstraint<T>* con = it.next();
-       if(!con->check(this)){
+       const OptionValueConstraintUP<T>& con = it.next();
+       if(!con->check(*this)){
 
          if(env.options->mode()==Mode::SPIDER){
            reportSpiderFail();
-           USER_ERROR("\nBroken Constraint: "+con->msg(this));
+           USER_ERROR("\nBroken Constraint: "+con->msg(*this));
          }
 
          if(con->isHard()){ 
            if(env.options->randomStrategy()!=RandomStrategy::OFF)
               return false; // Skip warning for Hard
-           USER_ERROR("\nBroken Constraint: "+con->msg(this)); 
+           USER_ERROR("\nBroken Constraint: "+con->msg(*this));
          }
          switch(env.options->getBadOptionChoice()){
            case BadOption::HARD :
-               USER_ERROR("\nBroken Constraint: "+con->msg(this));
+               USER_ERROR("\nBroken Constraint: "+con->msg(*this));
            case BadOption::SOFT :
-               cout << "WARNING Broken Constraint: "+con->msg(this) << endl;
+               cout << "WARNING Broken Constraint: "+con->msg(*this) << endl;
                return false;
            case BadOption::FORCED :
                if(con->force(this)){
-                 cout << "Forced constraint " + con->msg(this) << endl;
+                 cout << "Forced constraint " + con->msg(*this) << endl;
                  break;
                }else{
-                 USER_ERROR("\nCould not force Constraint: "+con->msg(this));
+                 USER_ERROR("\nCould not force Constraint: "+con->msg(*this));
                }
            case BadOption::OFF: 
              return false;
@@ -2351,9 +2573,9 @@ template<typename T>
 bool Options::OptionValue<T>::checkProblemConstraints(Property* prop){
     CALL("Options::OptionValue::checkProblemConstraints");
 
-    Lib::Stack<OptionProblemConstraint*>::Iterator it(_prob_constraints);
+    Lib::Stack<OptionProblemConstraintUP>::Iterator it(_prob_constraints);
     while(it.hasNext()){
-      OptionProblemConstraint* con = it.next();
+      OptionProblemConstraintUP& con = it.next();
       // Constraint should hold whenever the option is set
       if(is_set && !con->check(prop)){
 
@@ -2373,47 +2595,10 @@ bool Options::OptionValue<T>::checkProblemConstraints(Property* prop){
     return true;
 }
 
-
 template<typename T>
-Options::WrappedConstraint<T>* Options::OptionValue<T>::is(OptionValueConstraint<T>* c)
+Options::AbstractWrappedConstraintUP Options::OptionValue<T>::is(OptionValueConstraintUP<T> c)
 {
-    return new WrappedConstraint<T>(this,c);
-}
-
-template<typename T>
-template<typename S, typename R>
-Options::OptionValueConstraint<S>* Options::WrappedConstraint<T>::And(WrappedConstraint<R>* another)
-{
-    return new AndWrapper<S>(new UnWrappedConstraint<S,T>(this), new UnWrappedConstraint<S,R>(another));
-}
-template<typename T>
-template<typename S, typename R>
-Options::OptionValueConstraint<S>* Options::WrappedConstraint<T>::Or(WrappedConstraint<R>* another)
-{
-    return new OrWrapper<S>(new UnWrappedConstraint<S,T>(this), new UnWrappedConstraint<S,R>(another));
-}
-
-template<typename T>
-Options::OptionValueConstraint<T>* Options::OptionValueConstraint<T>::And(OptionValueConstraint<T>* another)
-{
-    return new AndWrapper<T>(this,another);
-}
-template<typename T>
-Options::OptionValueConstraint<T>* Options::OptionValueConstraint<T>::Or(OptionValueConstraint<T>* another)
-{
-    return new OrWrapper<T>(this,another);
-}
-template<typename T>
-template<typename S>
-Options::OptionValueConstraint<T>* Options::OptionValueConstraint<T>::And(WrappedConstraint<S>* another)
-{
-    return new AndWrapper<T>(this,new UnWrappedConstraint<T,S>(another));
-}
-template<typename T>
-template<typename S>
-Options::OptionValueConstraint<T>* Options::OptionValueConstraint<T>::Or(WrappedConstraint<S>* another)
-{
-    return new OrWrapper<T>(this,new UnWrappedConstraint<T,S>(another));
+    return AbstractWrappedConstraintUP(new WrappedConstraint<T>(*this,std::move(c)));
 }
 
 /**
@@ -2438,11 +2623,11 @@ bool Options::RatioOptionValue::readRatio(const char* val, char separator)
   }
 
   if (found) {
-    if (strlen(val) > 127) {
+    if (strlen(val) >= COPY_SIZE) {
       return false;
     }
-    char copy[128];
-    strcpy(copy,val);
+    char copy[COPY_SIZE];
+    strncpy(copy,val,COPY_SIZE);
     copy[colonIndex] = 0;
     int age;
     if (! Int::stringToInt(copy,age)) {
@@ -2559,7 +2744,7 @@ bool Options::InputFileOptionValue::setValue(const vstring& value)
 
   //update the problem name
 
-  int length = value.length() - 1;
+  int length = value.length();
   const char* name = value.c_str();
 
   int b = length - 1;
@@ -2568,12 +2753,12 @@ bool Options::InputFileOptionValue::setValue(const vstring& value)
   }
   b++;
 
-  int e = length-1;
+  int e = length - 1;
   while (e >= b && name[e] != '.') {
     e--;
   }
   if (e < b) {
-    e = length-1;
+    e = length;
   }
 
   parent->_problemName.actualValue=value.substr(b,e-b);
@@ -2588,12 +2773,12 @@ bool Options::TimeLimitOptionValue::setValue(const vstring& value)
   CALL("Options::readTimeLimit");
 
   int length = value.size();
-  if (length == 0 || length > 127) {
+  if (length == 0 || length >= COPY_SIZE) {
     USER_ERROR((vstring)"wrong value for time limit: " + value);
   }
 
-  char copy[128];
-  strcpy(copy,value.c_str());
+  char copy[COPY_SIZE];
+  strncpy(copy,value.c_str(),COPY_SIZE);
   char* end = copy;
   // search for the end of the string for
   while (*end) {
@@ -2662,7 +2847,6 @@ void Options::randomizeStrategy(Property* prop)
   // Note this is a stack!
   Stack<AbstractOptionValue*> do_first;
   do_first.push(&_saturationAlgorithm);
-  do_first.push(&_bfnt);
 
   auto options = getConcatenatedIterator(Stack<AbstractOptionValue*>::Iterator(do_first),_lookup.values());
 
@@ -2703,16 +2887,7 @@ void Options::randomizeStrategy(Property* prop)
   _badOption.actualValue = saved_bad_option;
   Random::setSeed(saved_seed);
 
-  //When we reach this place all constraints should be holding
-  //However, there is one we haven't checked yet: bfnt completeness
-  //If this fails we restart this with bfnt set to off... only if it was on before
-  if(!checkGlobalOptionConstraints() && _bfnt.actualValue){
-    _bfnt.set("off");
-    randomizeStrategy(prop);
-  }
-  else{
-    if(prop) cout << "Random strategy: " + generateEncodedOptions() << endl;
-  }
+  if(prop) cout << "Random strategy: " + generateEncodedOptions() << endl;
 }
 
 /**
@@ -2980,10 +3155,6 @@ bool Options::complete(const Problem& prb) const
     return false;
   }
 
-  if(_maxWeight.actualValue > 0){
-    return false;
-  }
-
   Property& prop = *prb.getProperty();
 
   // general properties causing incompleteness
@@ -3075,12 +3246,6 @@ bool Options::checkGlobalOptionConstraints(bool fail_early)
   //Check forbidden options
   readOptionsString(_forbiddenOptions.actualValue,false);
     
-  //if we're not in mid-randomisation then check bfnt completeness
-  //this assumes that fail_early is only on when being called from randomizeStrategy
-  if(!fail_early && env.options->bfnt() && !completeForNNE()){
-    return false;
-  }
-
   bool result = true;
 
   // Check recorded option constraints
@@ -3109,4 +3274,185 @@ bool Options::checkProblemOptionConstraints(Property* prop,bool fail_early)
   }
 
   return result;
+}
+
+template<class A>
+Lib::vvector<A> parseCommaSeparatedList(vstring const& str) 
+{
+  vstringstream stream(str);
+  Lib::vvector<A> parsed;
+  vstring cur;
+  while (std::getline(stream, cur, ',')) {
+    parsed.push_back(StringUtils::parse<A>(cur));
+  }
+  return parsed;
+}
+
+Lib::vvector<int> Options::theorySplitQueueRatios() const
+{
+  CALL("Options::theorySplitQueueRatios");
+
+
+  auto inputRatios = parseCommaSeparatedList<int>(_theorySplitQueueRatios.actualValue);
+
+  // sanity checks
+  if (inputRatios.size() < 2) {
+    USER_ERROR("Wrong usage of option '-thsqr'. Needs to have at least two values (e.g. '10,1')");
+  }
+  for (unsigned i = 0; i < inputRatios.size(); i++) {
+    if(inputRatios[i] <= 0) {
+      USER_ERROR("Wrong usage of option '-thsqr'. Each ratio needs to be a positive integer");
+    }
+  }
+
+  return inputRatios;
+}
+
+Lib::vvector<float> Options::theorySplitQueueCutoffs() const
+{
+  CALL("Options::theorySplitQueueCutoffs");
+  // initialize cutoffs
+  Lib::vvector<float> cutoffs;
+  if (_theorySplitQueueCutoffs.isDefault()) {
+    // if no custom cutoffs are set, use heuristics: (0,4*d,10*d,infinity)
+    auto d = _theorySplitQueueExpectedRatioDenom.actualValue;
+    cutoffs.push_back(0.0f);
+    cutoffs.push_back(4.0f * d);
+    cutoffs.push_back(10.0f * d);
+    cutoffs.push_back(std::numeric_limits<float>::max());
+  } else {
+    // if custom cutoffs are set, parse them and add float-max as last value
+    cutoffs = parseCommaSeparatedList<float>(_theorySplitQueueCutoffs.actualValue);
+    cutoffs.push_back(std::numeric_limits<float>::max());
+  }
+
+  // sanity checks
+  for (unsigned i = 0; i < cutoffs.size(); i++)
+  {
+    auto cutoff = cutoffs[i];
+
+    if (i > 0 && cutoff <= cutoffs[i-1])
+    {
+      USER_ERROR("Wrong usage of option '-thsqc'. The cutoff values must be strictly increasing");
+    }
+  }
+
+  return cutoffs;
+}
+
+Lib::vvector<int> Options::avatarSplitQueueRatios() const
+{
+  CALL("Options::avatarSplitQueueRatios");
+  Lib::vvector<int> inputRatios = parseCommaSeparatedList<int>(_avatarSplitQueueRatios.actualValue);
+
+  // sanity checks
+  if (inputRatios.size() < 2) {
+    USER_ERROR("Wrong usage of option '-avsqr'. Needs to have at least two values (e.g. '10,1')");
+  }
+  for (unsigned i = 0; i < inputRatios.size(); i++) {
+    if(inputRatios[i] <= 0) {
+      USER_ERROR("Each ratio (supplied by option '-avsqr') needs to be a positive integer");
+    }
+  }
+
+  return inputRatios;
+}
+
+Lib::vvector<float> Options::avatarSplitQueueCutoffs() const
+{
+  CALL("Options::avatarSplitQueueCutoffs");
+  // initialize cutoffs and add float-max as last value
+  auto cutoffs = parseCommaSeparatedList<float>(_avatarSplitQueueCutoffs.actualValue);
+  cutoffs.push_back(std::numeric_limits<float>::max());
+
+  // sanity checks
+  for (unsigned i = 0; i < cutoffs.size(); i++)
+  {
+    auto cutoff = cutoffs[i];
+
+    if (i > 0 && cutoff <= cutoffs[i-1])
+    {
+      USER_ERROR("The cutoff values (supplied by option '-avsqc') must be strictly increasing");
+    }
+  }
+
+  return cutoffs;
+}
+
+Lib::vvector<int> Options::sineLevelSplitQueueRatios() const
+{
+  CALL("Options::sineLevelSplitQueueRatios");
+  auto inputRatios = parseCommaSeparatedList<int>(_sineLevelSplitQueueRatios.actualValue);
+
+  // sanity checks
+  if (inputRatios.size() < 2) {
+    USER_ERROR("Wrong usage of option '-slsqr'. Needs to have at least two values (e.g. '1,3')");
+  }
+  for (unsigned i = 0; i < inputRatios.size(); i++) {
+    if(inputRatios[i] <= 0) {
+      USER_ERROR("Each ratio (supplied by option '-slsqr') needs to be a positive integer");
+    }
+  }
+
+  return inputRatios;
+}
+
+Lib::vvector<float> Options::sineLevelSplitQueueCutoffs() const
+{
+  CALL("Options::sineLevelSplitQueueCutoffs");
+  // initialize cutoffs and add float-max as last value
+  auto cutoffs = parseCommaSeparatedList<float>(_sineLevelSplitQueueCutoffs.actualValue);
+  cutoffs.push_back(std::numeric_limits<float>::max());
+
+  // sanity checks
+  for (unsigned i = 0; i < cutoffs.size(); i++)
+  {
+    auto cutoff = cutoffs[i];
+
+    if (i > 0 && cutoff <= cutoffs[i-1])
+    {
+      USER_ERROR("The cutoff values (supplied by option '-slsqc') must be strictly increasing");
+    }
+  }
+
+  return cutoffs;
+}
+
+Lib::vvector<int> Options::positiveLiteralSplitQueueRatios() const
+{
+  CALL("Options::positiveLiteralSplitQueueRatios");
+  auto inputRatios = parseCommaSeparatedList<int>(_positiveLiteralSplitQueueRatios.actualValue);
+
+  // sanity checks
+  if (inputRatios.size() < 2) {
+    USER_ERROR("Wrong usage of option '-plsqr'. Needs to have at least two values (e.g. '1,3')");
+  }
+  for (unsigned i = 0; i < inputRatios.size(); i++) {
+    if(inputRatios[i] <= 0) {
+      USER_ERROR("Each ratio (supplied by option '-plsqr') needs to be a positive integer");
+    }
+  }
+
+  return inputRatios;
+}
+
+Lib::vvector<float> Options::positiveLiteralSplitQueueCutoffs() const
+{
+  CALL("Options::positiveLiteralSplitQueueCutoffs");
+  // initialize cutoffs and add float-max as last value
+  auto cutoffs = parseCommaSeparatedList<float>(_positiveLiteralSplitQueueCutoffs.actualValue);
+  cutoffs.push_back(std::numeric_limits<float>::max());
+
+  // sanity checks
+  for (unsigned i = 0; i < cutoffs.size(); i++)
+  {
+    auto cutoff = cutoffs[i];
+
+    if (i > 0 && cutoff <= cutoffs[i-1])
+    {
+      USER_ERROR("The cutoff values (supplied by option '-plsqc') must be strictly increasing");
+    }
+  }
+
+  return cutoffs;
 }

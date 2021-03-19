@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file RCPtr.hpp
@@ -130,8 +124,7 @@ public:
 
   struct UnRCFunctor
   {
-    DECL_RETURN_TYPE(T*);
-    OWN_RETURN_TYPE operator()(const RCPtr& p) const {
+    T* operator()(const RCPtr& p) const {
       return p.ptr();
     }
   };

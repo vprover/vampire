@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file URResolution.cpp
@@ -165,33 +159,29 @@ struct URResolution::Item
 
     UnitList* premLst = 0;
     UnitList::push(_orig, premLst);
-    unsigned premisesAge = _orig->age();
     Literal* single = 0;
     unsigned clen = _lits.size();
     for(unsigned i=0; i<clen; i++) {
       if(_lits[i]!=0) {
-	ASS_EQ(single,0);
-	ASS_EQ(_premises[i],0);
-	single = _lits[i];
+        ASS_EQ(single,0);
+        ASS_EQ(_premises[i],0);
+        single = _lits[i];
       }
       else {
-	Clause* premise = _premises[i];
-	ASS(premise);
-	premisesAge = max(premisesAge, premise->age());
-	UnitList::push(premise, premLst);
+        Clause* premise = _premises[i];
+        ASS(premise);
+        UnitList::push(premise, premLst);
       }
     }
-    Unit::InputType inpType = Unit::getInputType(premLst);
-    Inference* inf = new InferenceMany(Inference::UNIT_RESULTING_RESOLUTION, premLst);
+    Inference inf(GeneratingInferenceMany(InferenceRule::UNIT_RESULTING_RESOLUTION, premLst));
     Clause* res;
     if(single) {
       single = Renaming::normalize(single);
-      res = Clause::fromIterator(getSingletonIterator(single), inpType, inf);
+      res = Clause::fromIterator(getSingletonIterator(single), inf);
     }
     else {
-      res = Clause::fromIterator(LiteralIterator::getEmpty(), inpType, inf);
+      res = Clause::fromIterator(LiteralIterator::getEmpty(), inf);
     }
-    res->setAge(premisesAge+1);
     return res;
   }
 

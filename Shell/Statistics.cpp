@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file Statistics.cpp
@@ -32,6 +26,7 @@
 #include "Lib/TimeCounter.hpp"
 #include "Lib/Timer.hpp"
 #include "Shell/SearchSpaceDumper.hpp"
+#include "SAT/Z3Interfacing.hpp"
 
 #include "Shell/UIHelper.hpp"
 
@@ -46,7 +41,6 @@
 #include "Statistics.hpp"
 
 
-using namespace std;
 using namespace Lib;
 using namespace Saturation;
 using namespace Shell;
@@ -89,6 +83,8 @@ Statistics::Statistics()
     induction(0),
     maxInductionDepth(0),
     inductionInProof(0),
+    generalizedInduction(0),
+    generalizedInductionInProof(0),
     duplicateLiterals(0),
     trivialInequalities(0),
     forwardSubsumptionResolution(0),
@@ -97,11 +93,25 @@ Statistics::Statistics()
     forwardDemodulationsToEqTaut(0),
     backwardDemodulations(0),
     backwardDemodulationsToEqTaut(0),
+    forwardSubsumptionDemodulations(0),
+    forwardSubsumptionDemodulationsToEqTaut(0),
+    backwardSubsumptionDemodulations(0),
+    backwardSubsumptionDemodulationsToEqTaut(0),
     forwardLiteralRewrites(0),
     condensations(0),
     globalSubsumption(0),
-    evaluations(0),
     interpretedSimplifications(0),
+
+    asgViolations(0),
+    asgCnt(0),
+
+    gveViolations(0),
+    gveCnt(0),
+
+    evaluationIncomp(0),
+    evaluationGreater(0),
+    evaluationCnt(0),
+
     innerRewrites(0),
     innerRewritesToEqTaut(0),
     deepEquationalTautologies(0),
@@ -149,8 +159,6 @@ Statistics::Statistics()
     instGenRedundantClauses(0),
     instGenKeptClauses(0),
     instGenIterations(0),
-
-    maxBFNTModelSize(0),
 
     satPureVarsEliminated(0),
     terminationReason(UNKNOWN),
@@ -205,6 +213,10 @@ void Statistics::print(ostream& out)
   out << "------------------------------\n";
   addCommentSignForSZS(out);
   out << "Version: " << VERSION_STRING << endl;
+#if VZ3
+  addCommentSignForSZS(out);
+  out << "Linked with Z3 " << Z3Interfacing::z3_full_version() << endl;
+#endif
 
   addCommentSignForSZS(out);
   out << "Termination reason: ";
@@ -290,23 +302,40 @@ void Statistics::print(ostream& out)
   HEADING("Simplifying Inferences",duplicateLiterals+trivialInequalities+
       forwardSubsumptionResolution+backwardSubsumptionResolution+
       forwardDemodulations+backwardDemodulations+forwardLiteralRewrites+
-      condensations+globalSubsumption+evaluations+innerRewrites);
+      forwardSubsumptionDemodulations+backwardSubsumptionDemodulations+
+      condensations+globalSubsumption+evaluationCnt
+      +( gveCnt - gveViolations)
+      +( asgCnt - asgViolations)
+      +( evaluationCnt - evaluationIncomp - evaluationGreater)
+      +innerRewrites);
   COND_OUT("Duplicate literals", duplicateLiterals);
   COND_OUT("Trivial inequalities", trivialInequalities);
   COND_OUT("Fw subsumption resolutions", forwardSubsumptionResolution);
   COND_OUT("Bw subsumption resolutions", backwardSubsumptionResolution);
   COND_OUT("Fw demodulations", forwardDemodulations);
   COND_OUT("Bw demodulations", backwardDemodulations);
+  COND_OUT("Fw subsumption demodulations", forwardSubsumptionDemodulations);
+  COND_OUT("Bw subsumption demodulations", backwardSubsumptionDemodulations);
   COND_OUT("Fw literal rewrites", forwardLiteralRewrites);
   COND_OUT("Inner rewrites", innerRewrites);
   COND_OUT("Condensations", condensations);
   COND_OUT("Global subsumptions", globalSubsumption);
-  COND_OUT("Evaluations", evaluations);
-  //COND_OUT("Interpreted simplifications", interpretedSimplifications);
+  COND_OUT("Interpreted simplifications", interpretedSimplifications);
+
+  COND_OUT("asg count", asgCnt);
+  COND_OUT("asg results not smaller than the premis", asgViolations);
+
+  COND_OUT("gve count", gveCnt);
+  COND_OUT("gve results not smaller than the premis", gveViolations);
+
+  COND_OUT("Evaluation count",         evaluationCnt);
+  COND_OUT("Evaluation results greater than premise", evaluationGreater);
+  COND_OUT("Evaluation results incomparable to premise", evaluationIncomp);
   SEPARATOR;
 
   HEADING("Deletion Inferences",simpleTautologies+equationalTautologies+
       forwardSubsumed+backwardSubsumed+forwardDemodulationsToEqTaut+
+      forwardSubsumptionDemodulationsToEqTaut+backwardSubsumptionDemodulationsToEqTaut+
       backwardDemodulationsToEqTaut+innerRewritesToEqTaut);
   COND_OUT("Simple tautologies", simpleTautologies);
   COND_OUT("Equational tautologies", equationalTautologies);
@@ -315,6 +344,8 @@ void Statistics::print(ostream& out)
   COND_OUT("Backward subsumptions", backwardSubsumed);
   COND_OUT("Fw demodulations to eq. taut.", forwardDemodulationsToEqTaut);
   COND_OUT("Bw demodulations to eq. taut.", backwardDemodulationsToEqTaut);
+  COND_OUT("Fw subsumption demodulations to eq. taut.", forwardSubsumptionDemodulationsToEqTaut);
+  COND_OUT("Bw subsumption demodulations to eq. taut.", backwardSubsumptionDemodulationsToEqTaut);
   COND_OUT("Inner rewrites to eq. taut.", innerRewritesToEqTaut);
   SEPARATOR;
 
@@ -345,6 +376,8 @@ void Statistics::print(ostream& out)
   COND_OUT("Induction",induction);
   COND_OUT("MaxInductionDepth",maxInductionDepth);
   COND_OUT("InductionStepsInProof",inductionInProof);
+  COND_OUT("GeneralizedInduction",generalizedInduction);
+  COND_OUT("GeneralizedInductionInProof",generalizedInductionInProof);
   SEPARATOR;
 
   HEADING("Term algebra simplifications",taDistinctnessSimplifications+
@@ -375,10 +408,6 @@ void Statistics::print(ostream& out)
   SEPARATOR;
 
   //TODO record statistics for FMB
-  HEADING("Model Building",maxBFNTModelSize);
-  COND_OUT("Max BFNT model size", maxBFNTModelSize);
-  SEPARATOR;
-
 
   //TODO record statistics for MiniSAT
   HEADING("SAT Solver Statistics",satTWLClauseCount+satTWLVariablesCount+
@@ -436,8 +465,6 @@ const char* Statistics::phaseToString(ExecutionPhase p)
     return "Including theory axioms";
   case PREPROCESS_1:
     return "Preprocessing 1";
-  case EQUALITY_PROPAGATION:
-    return "Equality propagation";
   case PREDIACTE_DEFINITION_MERGING:
     return "Predicate definition merging";
   case PREDICATE_DEFINITION_INLINING:

@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file Grounding.cpp
@@ -107,7 +101,7 @@ ClauseList* Grounding::ground(Clause* cl)
 
   _ga.initForClause(cl);
   while(_ga.newAssignment()) {
-    Clause* rcl=new(clen) Clause(clen, cl->inputType(), new Inference1(Inference::GROUNDING, cl));
+    Clause* rcl=new(clen) Clause(clen, NonspecificInference1(InferenceRule::GROUNDING, cl));
     rcl->setAge(cl->age());
 
     for(unsigned i=0;i<clen;i++) {
@@ -140,7 +134,7 @@ void Grounding::getLocalEqualityAxioms(unsigned sort, bool otherThanReflexivity,
 {
   CALL("Grounding::getLocalEqualityAxioms");
 
-  Clause* axR = new(1) Clause(1, Clause::AXIOM, new Inference(Inference::EQUALITY_AXIOM));
+  Clause* axR = new(1) Clause(1, NonspecificInference0(UnitInputType::AXIOM,InferenceRule::EQUALITY_AXIOM));
   (*axR)[0]=Literal::createEquality(true, TermList(0,false),TermList(0,false), sort);
   ClauseList::push(axR, acc);
 
@@ -148,7 +142,7 @@ void Grounding::getLocalEqualityAxioms(unsigned sort, bool otherThanReflexivity,
   //normalization
 
   if(otherThanReflexivity) {
-    Clause* axT = new(3) Clause(3, Clause::AXIOM, new Inference(Inference::EQUALITY_AXIOM));
+    Clause* axT = new(3) Clause(3, NonspecificInference0(UnitInputType::AXIOM,InferenceRule::EQUALITY_AXIOM));
     (*axT)[0]=Literal::createEquality(false,TermList(0,false),TermList(1,false), sort);
     (*axT)[1]=Literal::createEquality(false,TermList(0,false),TermList(2,false), sort);
     (*axT)[2]=Literal::createEquality(true,TermList(2,false),TermList(1,false), sort);
@@ -191,7 +185,7 @@ ClauseList* Grounding::getEqualityAxioms(bool otherThanReflexivity)
 
 	Literal* eqLit=Literal::createEquality(false, TermList(0,false),TermList(1,false), predType->arg(i));
 
-	Clause* axCong = new(3) Clause(3, Clause::AXIOM, new Inference(Inference::EQUALITY_AXIOM));
+	Clause* axCong = new(3) Clause(3, NonspecificInference0(UnitInputType::AXIOM,InferenceRule::EQUALITY_AXIOM));
 	(*axCong)[0]=eqLit;
 
 	TermList iArg=args[i];

@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file NewCNF.cpp
@@ -66,8 +60,7 @@ void NewCNF::clausify(FormulaUnit* unit,Stack<Clause*>& output)
 
     case FALSE: {
       // create an empty clause and push it in the stack
-      Inference* inf = new Inference1(Inference::CLAUSIFY,unit);
-      Clause* clause = new(0) Clause(0, unit->inputType(),inf);
+      Clause* clause = new(0) Clause(0,FormulaTransformation(InferenceRule::CLAUSIFY,unit));
       output.push(clause);
       return;
     }
@@ -900,13 +893,13 @@ Term* NewCNF::createSkolemTerm(unsigned var, VarSet* free)
   bool isPredicate = (rangeSort == Sorts::SRT_BOOL);
   if (isPredicate) {
     unsigned pred = Skolem::addSkolemPredicate(arity, domainSorts.begin(), var);
-    if(_beingClausified->isGoal()){
+    if(_beingClausified->derivedFromGoal()){
       env.signature->getPredicate(pred)->markInGoal();
     }
     res = Term::createFormula(new AtomicFormula(Literal::create(pred, arity, true, false, fnArgs.begin())));
   } else {
     unsigned fun = Skolem::addSkolemFunction(arity, domainSorts.begin(), rangeSort, var);
-    if(_beingClausified->isGoal()){
+    if(_beingClausified->derivedFromGoal()){
       env.signature->getFunction(fun)->markInGoal();
     }
     if(_forInduction){
@@ -1087,12 +1080,9 @@ void NewCNF::processBoolterm(TermList ts, Occurrences &occurrences)
     case Term::SF_ITE: {
       Formula* condition = sd->getCondition();
 
-      Formula* branch[2];
-      for (SIDE side : { LEFT, RIGHT }) {
-        branch[side] = BoolTermFormula::create(*term->nthArgument(side));
-      }
-
-      processITE(condition, branch[LEFT], branch[RIGHT], occurrences);
+      Formula* left = BoolTermFormula::create(*term->nthArgument(LEFT));
+      Formula* right = BoolTermFormula::create(*term->nthArgument(RIGHT));
+      processITE(condition, left, right, occurrences);
       break;
     }
 
@@ -1452,8 +1442,7 @@ Clause* NewCNF::toClause(SPGenClause gc)
     properLiterals.push(l);
   }
 
-  Inference* inference = new Inference1(Inference::CLAUSIFY, _beingClausified);
-  Clause* clause = new(gc->size()) Clause(gc->size(), _beingClausified->inputType(), inference);
+  Clause* clause = new(gc->size()) Clause(gc->size(),FormulaTransformation(InferenceRule::CLAUSIFY,_beingClausified));
   for (int i = gc->size() - 1; i >= 0; i--) {
     (*clause)[i] = properLiterals[i];
   }

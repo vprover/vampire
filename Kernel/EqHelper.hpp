@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file EqHelper.hpp
@@ -56,8 +50,7 @@ public:
   {
     LHSIteratorFn(const Ordering& ord) : _ord(ord) {}
 
-    DECL_RETURN_TYPE(VirtualIterator<pair<Literal*, TermList> >);
-    OWN_RETURN_TYPE operator()(Literal* lit)
+    VirtualIterator<pair<Literal*, TermList> > operator()(Literal* lit)
     {
       return pvi( pushPairIntoRightIterator(lit, getLHSIterator(lit, _ord)) );
     }
@@ -69,8 +62,7 @@ public:
   {
     SuperpositionLHSIteratorFn(const Ordering& ord, const Options& opt) : _ord(ord), _opt(opt) {}
 
-    DECL_RETURN_TYPE(VirtualIterator<pair<Literal*, TermList> >);
-    OWN_RETURN_TYPE operator()(Literal* lit)
+    VirtualIterator<pair<Literal*, TermList> > operator()(Literal* lit)
     {
       return pvi( pushPairIntoRightIterator(lit, getSuperpositionLHSIterator(lit, _ord, _opt)) );
     }
@@ -81,8 +73,7 @@ public:
 
   struct EqualityArgumentIteratorFn
   {
-    DECL_RETURN_TYPE(VirtualIterator<pair<Literal*, TermList> >);
-    OWN_RETURN_TYPE operator()(Literal* lit)
+    VirtualIterator<pair<Literal*, TermList> > operator()(Literal* lit)
     {
       return pvi( pushPairIntoRightIterator(lit, getEqualityArgumentIterator(lit)) );
     }

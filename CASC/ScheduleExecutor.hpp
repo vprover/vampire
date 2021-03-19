@@ -1,3 +1,16 @@
+
+  /*
+   * File ScheduleExecutor.hpp.
+   *
+   * This file is part of the source code of the software program
+   * Vampire. It is protected by applicable
+   * copyright laws.
+   *
+   * This source code is distributed under the licence found here
+   * https://vprover.github.io/license.html
+   * and in the source directory
+   */
+
 #ifndef __ScheduleExecutor__
 #define __ScheduleExecutor__
 
@@ -17,17 +30,17 @@ public:
 class SliceExecutor
 {
 public:
-  virtual void runSlice(Lib::vstring sliceCode, int terminationTime) NO_RETURN = 0;
+  virtual void runSlice(Lib::vstring sliceCode, int remaminingTime) NO_RETURN = 0;
 };
 
 class ScheduleExecutor
 {
 public:
   ScheduleExecutor(ProcessPriorityPolicy *policy, SliceExecutor *executor);
-  bool run(const Schedule &schedule, int terminationTime);
+  bool run(const Schedule &schedule);
 
 private:
-  pid_t spawn(Lib::vstring code, int terminationTime);
+  pid_t spawn(Lib::vstring code, int remaminingTime);
   unsigned getNumWorkers();
 
   ProcessPriorityPolicy *_policy;

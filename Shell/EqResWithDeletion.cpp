@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file EqResWithDeletion.cpp
@@ -104,9 +98,8 @@ start_applying:
   unsigned nlen=resLits.size();
   ASS_L(nlen, clen);
 
-  Inference* inf = new Inference1(Inference::EQUALITY_RESOLUTION, cl);
-  Clause* res = new(nlen) Clause(nlen, cl->inputType(), inf);
-  res->setAge(cl->age());
+  Clause* res = new(nlen) Clause(nlen,
+      SimplifyingInference1(InferenceRule::EQUALITY_RESOLUTION_WITH_DELETION, cl));
 
   for(unsigned i=0;i<nlen;i++) {
     (*res)[i] = SubstHelper::apply(resLits[i], *this);

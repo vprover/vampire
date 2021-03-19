@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file TimeCounter.hpp
@@ -52,6 +46,7 @@ enum TimeCounterUnit
   TC_SIMPLIFYING_UNIT_LITERAL_INDEX_MAINTENANCE,
   TC_NON_UNIT_LITERAL_INDEX_MAINTENANCE,
   TC_FORWARD_SUBSUMPTION_INDEX_MAINTENANCE,
+  TC_FORWARD_SUBSUMPTION_DEMODULATION_INDEX_MAINTENANCE,
   TC_BINARY_RESOLUTION_INDEX_MAINTENANCE,
   TC_BACKWARD_SUBSUMPTION_INDEX_MAINTENANCE,
   TC_BACKWARD_SUPERPOSITION_INDEX_MAINTENANCE,
@@ -67,8 +62,10 @@ enum TimeCounterUnit
   TC_INTERPRETED_SIMPLIFICATION,
   TC_FORWARD_SUBSUMPTION,
   TC_FORWARD_SUBSUMPTION_RESOLUTION,
+  TC_FORWARD_SUBSUMPTION_DEMODULATION,
   TC_BACKWARD_SUBSUMPTION,
   TC_BACKWARD_SUBSUMPTION_RESOLUTION,
+  TC_BACKWARD_SUBSUMPTION_DEMODULATION,
   TC_FORWARD_DEMODULATION,
   TC_BACKWARD_DEMODULATION,
   TC_FORWARD_LITERAL_REWRITING,
@@ -104,6 +101,7 @@ enum TimeCounterUnit
   TC_Z3_IN_FMB,
   TC_NAMING,
   TC_LITERAL_SELECTION,
+  TC_PASSIVE_CONTAINER_MAINTENANCE,
   TC_THEORY_INST_SIMP,
   TC_OTHER,
   __TC_ELEMENT_COUNT,

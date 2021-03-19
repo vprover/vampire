@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file Superposition.hpp
@@ -53,18 +47,15 @@ private:
   Clause* performSuperposition(
 	  Clause* rwClause, Literal* rwLiteral, TermList rwTerm,
 	  Clause* eqClause, Literal* eqLiteral, TermList eqLHS,
-	  ResultSubstitutionSP subst, bool eqIsResult, Limits* limits,
+	  ResultSubstitutionSP subst, bool eqIsResult, PassiveClauseContainer* passiveClauseContainer,
           UnificationConstraintStackSP constraints);
 
   bool checkClauseColorCompatibility(Clause* eqClause, Clause* rwClause);
-  static int getWeightLimit(Clause* eqClause, Clause* rwClause, Limits* limits);
   static bool earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,
       Clause* rwClause, Literal* rwLit, TermList rwTerm, TermList eqLHS, TermList eqRHS,
-      ResultSubstitutionSP subst, bool eqIsResult, int weightLimit);
+      ResultSubstitutionSP subst, bool eqIsResult, PassiveClauseContainer* passiveClauseContainer, unsigned numPositiveLiteralsLowerBound, const Inference& inf);
 
   static bool checkSuperpositionFromVariable(Clause* eqClause, Literal* eqLit, TermList eqLHS);
-
-  static size_t getSubtermOccurrenceCount(Term* trm, TermList subterm);
 
   struct ForwardResultFn;
   struct RewriteableSubtermsFn;

@@ -1,3 +1,16 @@
+
+  /*
+   * File Multiprocessing.cpp.
+   *
+   * This file is part of the source code of the software program
+   * Vampire. It is protected by applicable
+   * copyright laws.
+   *
+   * This source code is distributed under the licence found here
+   * https://vprover.github.io/license.html
+   * and in the source directory
+   */
+
 /**
  * @file Multiprocessing.cpp
  * Implements class Multiprocessing.
@@ -7,7 +20,7 @@
 
 #include "Lib/Portability.hpp"
 
-#include <signal.h>
+#include <csignal>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>

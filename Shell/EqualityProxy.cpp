@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file EqualityProxy.cpp
@@ -159,7 +153,7 @@ void EqualityProxy::addAxioms(UnitList*& units)
   CALL("EqualityProxy::addAxioms");
 
   // if we're adding congruence axioms, we need to add them before adding the local axioms.
-  // Local axioms are added only for sorts on which euality is used, and the congruence axioms
+  // Local axioms are added only for sorts on which equality is used, and the congruence axioms
   // may spread the equality use into new sorts
   if (_opt == Options::EqualityProxy::RSTC) {
     addCongruenceAxioms(units);
@@ -289,20 +283,21 @@ Clause* EqualityProxy::apply(Clause* cl)
     return cl;
   }
 
-  Inference* inf;
+  Clause* res;
   ASS(proxyPremises.isNonEmpty());
   if (proxyPremises.size() == 1) {
-    inf = new Inference2(Inference::EQUALITY_PROXY_REPLACEMENT, cl, proxyPremises.top());
+    res = new(clen) Clause(clen,
+        NonspecificInference2(InferenceRule::EQUALITY_PROXY_REPLACEMENT, cl, proxyPremises.top()));
   }
   else {
     UnitList* prems = 0;
     UnitList::pushFromIterator(UnitStack::ConstIterator(proxyPremises),prems);
     UnitList::push(cl,prems);
-    inf = new InferenceMany(Inference::EQUALITY_PROXY_REPLACEMENT, prems);
-  }
 
-  Clause* res = new(clen) Clause(clen, cl->inputType(), inf);
-  res->setAge(cl->age());
+    res = new(clen) Clause(clen,
+        NonspecificInferenceMany(InferenceRule::EQUALITY_PROXY_REPLACEMENT, prems));
+  }
+  res->setAge(cl->age()); // MS: this seems useless; as long as EqualityProxy is only operating as a part of preprocessing, age is going to 0 anyway
 
   for (unsigned i=0;i<clen;i++) {
     (*res)[i] = resLits[i];
@@ -371,8 +366,7 @@ unsigned EqualityProxy::getProxyPredicate(unsigned sort)
   Formula* defForm = new BinaryFormula(IFF, new AtomicFormula(proxyLit), new AtomicFormula(eqLit));
   Formula* quantDefForm = Formula::quantify(defForm);
 
-  Inference* inf = new Inference(Inference::EQUALITY_PROXY_AXIOM1);
-  FormulaUnit* defUnit = new FormulaUnit(quantDefForm, inf, Unit::AXIOM);
+  FormulaUnit* defUnit = new FormulaUnit(quantDefForm,NonspecificInference0(UnitInputType::AXIOM,InferenceRule::EQUALITY_PROXY_AXIOM1));
 
   s_proxyPremises[sort] = defUnit;
   InferenceStore::instance()->recordIntroducedSymbol(defUnit, false, newPred);
@@ -407,8 +401,7 @@ Clause* EqualityProxy::createEqProxyAxiom(const LiteralStack& literalStack)
     UnitList::push(prem, prems);
   }
   ASS(prems);
-  Inference* inf = new InferenceMany(Inference::EQUALITY_PROXY_AXIOM2, prems);
-  Clause* res = Clause::fromStack(literalStack, Unit::AXIOM, inf);
+  Clause* res = Clause::fromStack(literalStack,NonspecificInferenceMany(InferenceRule::EQUALITY_PROXY_AXIOM2,prems));
   return res;
 } // EqualityProxy::createEqProxyAxiom
 

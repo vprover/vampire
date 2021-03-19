@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file MemoryLeak.cpp
@@ -127,10 +121,10 @@ void MemoryLeak::release(UnitList* units)
 
   while (us.isNonEmpty()) {
     Unit* u = us.pop();
-    Inference* inf = u->inference();
-    Inference::Iterator ps = inf->iterator();
-    while (inf->hasNext(ps)) {
-      Unit* p = inf->next(ps);
+    Inference inf = u->inference();
+    Inference::Iterator ps = inf.iterator();
+    while (inf.hasNext(ps)) {
+      Unit* p = inf.next(ps);
       if (_released.contains(p)) {
 	continue;
       }

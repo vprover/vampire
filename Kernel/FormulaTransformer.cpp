@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file FormulaTransformer.cpp
@@ -89,10 +83,9 @@ Formula* FormulaTransformer::apply(Formula* f)
   case FALSE:
     res = applyTrueFalse(f);
     break;
-#if VDEBUG
-  default:
+  case NAME:
+  case NOCONN:
     ASSERTION_VIOLATION;
-#endif
   }
   postApply(f, res);
   return res;
@@ -368,8 +361,7 @@ FormulaUnit* LocalFormulaUnitTransformer::transform(FormulaUnit* unit)
   if(f==newForm) {
     return unit;
   }
-  Inference* inf = new Inference1(_rule, unit);
-  return new FormulaUnit(newForm, inf, unit->inputType());
+  return new FormulaUnit(newForm, FormulaTransformation(_rule, unit));
 }
 
 
@@ -487,10 +479,7 @@ bool ScanAndApplyLiteralTransformer::apply(FormulaUnit* unit, Unit*& res)
   UnitList::pushFromIterator(UnitStack::Iterator(prems), premLst);
   UnitList::push(unit, premLst);
 
-  Inference* inf = new InferenceMany(_infRule, premLst);
-  Unit::InputType inpType = Unit::getInputType(premLst);
-
-  res = new FormulaUnit(newForm, inf, inpType);
+  res = new FormulaUnit(newForm, FormulaTransformationMany(_infRule, premLst));
 
   return true;
 }
@@ -525,10 +514,7 @@ bool ScanAndApplyLiteralTransformer::apply(Clause* cl, Unit*& res)
   UnitList::pushFromIterator(UnitStack::Iterator(prems), premLst);
   UnitList::push(cl, premLst);
 
-  Inference* inf = new InferenceMany(_infRule, premLst);
-  Unit::InputType inpType = Unit::getInputType(premLst);
-
-  res = Clause::fromIterator(LiteralStack::Iterator(lits), inpType, inf);
+  res = Clause::fromIterator(LiteralStack::Iterator(lits), FormulaTransformationMany(_infRule, premLst));
   return true;
 }
 

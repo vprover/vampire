@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file TPTPPrinter.hpp
@@ -45,6 +39,7 @@ public:
 
   void print(Unit* u);
   void printAsClaim(vstring name, Unit* u);
+  void printWithRole(vstring name, vstring role, Unit* u, bool includeSplitLevels = true);
 
   static vstring toString(const Unit*);
   static vstring toString(const Formula*);
@@ -53,7 +48,7 @@ public:
 
 private:
 
-  vstring getBodyStr(Unit* u);
+  vstring getBodyStr(Unit* u, bool includeSplitLevels);
 
   void ensureHeadersPrinted(Unit* u);
   void outputSymbolTypeDefinitions(unsigned symNumber, bool function);

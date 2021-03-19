@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file InterpretedLiteralEvaluator.cpp
@@ -30,22 +24,15 @@
 #include "TermIterators.hpp"
 #include "Term.hpp"
 #include "Theory.hpp"
-#include "num_traits.hpp"
+#include "NumTraits.hpp"
 #include "Debug/Tracer.hpp"
 
 
 #include "InterpretedLiteralEvaluator.hpp"
 
 #if VDEBUG
-#define IDEBUG 0
-// #define IDEBUG 1
-#else 
-#define IDEBUG 0
-#endif
-
-#if IDEBUG
 #define _DEBUG(...) 
-#define DEBUG(...) DBG(__VA_ARGS__)
+#define DEBUG(...) //DBG(__VA_ARGS__)
 #else 
 #define DEBUG(...)
 #define _DEBUG(...)
@@ -56,7 +43,7 @@ namespace Kernel
 using namespace Lib;
 
 struct PredEvalResult {
-  enum {
+  enum status_t {
     Simplified,
     Trivial,
     Nop,
@@ -65,9 +52,14 @@ struct PredEvalResult {
     bool trivial_val;
     Literal* simplified_val;
   };
-  static PredEvalResult nop() {return  PredEvalResult {.status = Nop}; }
-  static PredEvalResult trivial(bool value) {return  PredEvalResult {.status = Trivial, .trivial_val = value}; }
-  static PredEvalResult simplified(Literal* value) {return  PredEvalResult {.status = Simplified, .simplified_val = value}; }
+  static PredEvalResult nop() {return  PredEvalResult(Nop); }
+  static PredEvalResult trivial(bool value) {return  PredEvalResult (value); }
+  static PredEvalResult simplified(Literal* value) {return  PredEvalResult (value); }
+
+private:
+  explicit PredEvalResult(bool value) : status(Trivial), trivial_val(value) {}
+  explicit PredEvalResult(Literal* value) : status(Simplified), simplified_val(value) {}
+  explicit PredEvalResult(status_t stat) : status(stat) {}
 };
 
 /**
@@ -108,7 +100,7 @@ void stackTraverseIf(TermList term, Predicate pred, Fn action) {
     if(t.isTerm()) {
       auto& trm = *t.term();
       if (pred(trm)) {
-        for (auto i = 0; i < trm.arity(); i++) {
+        for (unsigned i = 0; i < trm.arity(); i++) {
           todo.push(trm[i]);
         }
       } else {
@@ -122,12 +114,12 @@ void stackTraverseIf(TermList term, Predicate pred, Fn action) {
 
 
 /**
- * We want to smplify terms that are interpred by abelian groups. e.g. (1+a)+1 -> 2 + a ... 
+ * We want to simplify terms that are interpreted by abelian groups. e.g. (1+a)+1 -> 2 + a ...
  * the standard evaluation will not do this. 
  *
  * Additionally evaluator has a weekly normalizing behaviour. Namely it re-brackets sums, such that the lhs 
  * of the operation is always a non-operator term. Further all interpreted constants will be collapsed into 
- * the 'left-most' term. The left most term is ommited if it is the identity element.
+ * the 'left-most' term. The left most term is omitted if it is the identity element.
  *
  * x + ( y + ( t + 4 ) + r ) + 5  ==> ( ( (9 + x) + y ) + t ) + r
  * x + ( y + 0 )                  ==> x + y
@@ -138,7 +130,7 @@ void stackTraverseIf(TermList term, Predicate pred, Fn action) {
  * @since 06/12/18
  */
 template<class AbelianGroup>
-class InterpretedLiteralEvaluator::ACFunEvaluator
+  class InterpretedLiteralEvaluator::ACFunEvaluator
    : public Evaluator
 {
 public:
@@ -157,6 +149,7 @@ CLASS_NAME(InterpretedLiteralEvaluator::ACFunEvaluator<AbelianGroup>);
     ASS_EQ(trm->functor(), _fun);
     ASS_EQ(trm->arity(),2);
 
+    unsigned nums = 0;
     ConstantType acc = AbelianGroup::IDENTITY;
     Stack<TermList> keep;
     stackTraverseIf(TermList(trm), 
@@ -167,16 +160,18 @@ CLASS_NAME(InterpretedLiteralEvaluator::ACFunEvaluator<AbelianGroup>);
           /* we eval constant parts */
           if (t.isTerm() && theory->tryInterpretConstant(t.term(), c)) {
             acc = AbelianGroup::groundEval(acc, c);
+            nums++;
           } else {
             keep.push(t);
           }
         });
+    if (nums <= 1) return false;
 
     if (acc != AbelianGroup::IDENTITY) {
       keep.push(TermList(theory->representConstant(acc)));
     }
 
-    auto iter = Stack<TermList>::Iterator(keep);
+    auto iter = Stack<TermList>::BottomFirstIterator(keep);
     if (!iter.hasNext()) {
       res = TermList(theory->representConstant(AbelianGroup::IDENTITY));
       return TermList(trm) != res;
@@ -184,7 +179,7 @@ CLASS_NAME(InterpretedLiteralEvaluator::ACFunEvaluator<AbelianGroup>);
       TermList out = iter.next();
       while (iter.hasNext()) {
         auto t = iter.next();
-        out = TermList(Term::create2(_fun, out, t));
+        out = TermList(Term::create2(_fun, t, out));
       }
       res = out;
       return TermList(trm) != res;
@@ -217,7 +212,7 @@ template<class ConstantType>
 class FracLess { 
   template<class Inequality> friend class InequalityNormalizer;
 
-  using number = num_traits<ConstantType>;
+  using number = NumTraits<ConstantType>;
   inline static unsigned functor() { return number::lessF(); }
 
   static Literal* normalizedLit(bool polarity, TermList lhs, TermList rhs) {
@@ -238,7 +233,7 @@ class FracLess {
 class IntLess { 
   template<class Inequality> friend class InequalityNormalizer;
 
-  using number = num_traits<IntegerConstantType>;
+  using number = NumTraits<IntegerConstantType>;
   inline static unsigned functor() { return number::lessF(); }
 
   static Literal* normalizedLit(bool polarity, TermList lhs, TermList rhs) {
@@ -436,7 +431,7 @@ class InterpretedLiteralEvaluator::TypedEvaluator : public Evaluator
 {
 public:
   using Value = T;
-  using number = num_traits<Value>;
+  using number = NumTraits<Value>;
 
   TypedEvaluator() {}
 
@@ -466,7 +461,7 @@ public:
   {
     CALL("InterpretedLiteralEvaluator::tryEvaluateFunc");
     ASS(theory->isInterpretedFunction(trm));
-    const auto num = num_traits<Value>{};
+    const auto num = NumTraits<Value>{};
 
     _DEBUG( "try evaluate ", trm->toString() );
 
@@ -493,7 +488,6 @@ public:
       }
       else if(arity==2){
 
-        // TODO handle addition x + -x ==> 0
 
         // If one argument is not a constant and the other is zero, one or minus one then
         // we might have some special cases
@@ -644,12 +638,12 @@ protected:
             result = t[0];
             return true;
 
-          case number::addI:
-            ASS_EQ(t.arity(), 2);
-            result = TermList(Term::create2(t.functor(), 
-                simplifyUnaryMinus(uminus_functor, t[0]),
-                simplifyUnaryMinus(uminus_functor, t[1])));
-            return true; 
+          // case number::addI:
+          //   ASS_EQ(t.arity(), 2);
+          //   result = TermList(Term::create2(t.functor(), 
+          //       simplifyUnaryMinus(uminus_functor, t[0]),
+          //       simplifyUnaryMinus(uminus_functor, t[1])));
+          //   return true; 
 
           default:
             /* interpreted function for which minus is not handled minus is not handled */
@@ -762,7 +756,7 @@ protected:
       return true;
     // The remainder is left - (quotient * right)
     case Theory::INT_REMAINDER_E:
-      res = arg1 - (arg1.quotientE(arg2)*arg2);
+      res = arg1.remainderE(arg2);
       return true;
     case Theory::INT_REMAINDER_T:
       res = arg1 - (arg1.quotientT(arg2)*arg2);
@@ -794,7 +788,7 @@ protected:
       res = arg1<=arg2;
       return true;
     case Theory::INT_DIVIDES:
-      res = (arg2%arg1)==0;
+      res = arg1.divides(arg2);
       return true;
     default:
       return false;
@@ -852,25 +846,6 @@ protected:
       return true;
     case Theory::RAT_QUOTIENT:
       res = arg1/arg2;
-      return true;
-    case Theory::RAT_QUOTIENT_E:
-      res = arg1.quotientE(arg2);
-      return true;
-    case Theory::RAT_QUOTIENT_T:
-      res = arg1.quotientT(arg2);
-      return true;
-    case Theory::RAT_QUOTIENT_F:
-      res = arg1.quotientF(arg2);
-      return true;
-    // The remainder is left - (quotient * right)
-    case Theory::RAT_REMAINDER_E:
-      res = arg1 - (arg1.quotientE(arg2)*arg2);
-      return true;
-    case Theory::RAT_REMAINDER_T:
-      res = arg1 - (arg1.quotientT(arg2)*arg2);
-      return true;
-    case Theory::RAT_REMAINDER_F:
-      res = arg1 - (arg1.quotientF(arg2)*arg2);
       return true;
     default:
       return false;
@@ -967,25 +942,6 @@ protected:
       return true;
     case Theory::REAL_QUOTIENT:
       res = arg1/arg2;
-      return true;
-    case Theory::REAL_QUOTIENT_E:
-      res = arg1.quotientE(arg2);
-      return true;
-    case Theory::REAL_QUOTIENT_T:
-      res = arg1.quotientT(arg2);
-      return true;
-    case Theory::REAL_QUOTIENT_F:
-      res = arg1.quotientF(arg2);
-      return true;
-    // The remainder is left - (quotient * right)
-    case Theory::REAL_REMAINDER_E:
-      res = arg1 - (arg1.quotientE(arg2)*arg2);
-      return true;
-    case Theory::REAL_REMAINDER_T:
-      res = arg1 - (arg1.quotientT(arg2)*arg2);
-      return true;
-    case Theory::REAL_REMAINDER_F:
-      res = arg1 - (arg1.quotientF(arg2)*arg2);
       return true;
     default:
       return false;
@@ -1425,38 +1381,40 @@ bool InterpretedLiteralEvaluator::balanceDivide(Interpretation multiply,
     return false;    
 }
 
-// // TODO document me
-// Literal& balance(Literal& in)
-// {
-//   /* we only rebalance equalities */
-//   if (!in.isEquality()) {
-//     return in;
-//
-//   } else {
-//     ASS(in.arity() == 2);
-//     unsigned sort;
-//     if (!SortHelper::tryGetResultSort(in[0], sort) &&
-//         !SortHelper::tryGetResultSort(in[1], sort)) {
-//       return in;
-//     } else {
-//
-//       Literal* out;
-//       switch (sort) {
-// #define _CASE(SRT, ConstantType) \
-//         case Sorts::SRT: \
-//           if (!balance<ConstantType>(in, out)){ \
-//             return in; \
-//           } 
-//         _CASE(SRT_REAL    ,    RealConstantType)
-//         _CASE(SRT_INTEGER , IntegerConstantType)
-//         _CASE(SRT_RATIONAL,RationalConstantType)
-// #undef _CASE
-//         default: return in;
-//       }
-//       return *out;
-//     }
-//   }
-// }
+/*
+ // TODO document me
+ Literal& balance(Literal& in)
+ {
+   // we only rebalance equalities
+   if (!in.isEquality()) {
+     return in;
+
+   } else {
+     ASS(in.arity() == 2);
+     unsigned sort;
+     if (!SortHelper::tryGetResultSort(in[0], sort) &&
+         !SortHelper::tryGetResultSort(in[1], sort)) {
+       return in;
+     } else {
+
+       Literal* out;
+       switch (sort) {
+ #define _CASE(SRT, ConstantType) \
+         case Sorts::SRT: \
+           if (!balance<ConstantType>(in, out)){ \
+             return in; \
+           }
+         _CASE(SRT_REAL    ,    RealConstantType)
+         _CASE(SRT_INTEGER , IntegerConstantType)
+         _CASE(SRT_RATIONAL,RationalConstantType)
+ #undef _CASE
+         default: return in;
+       }
+       return *out;
+     }
+   }
+ }
+*/
 
 class LiteralNormalizer 
 {
@@ -1601,7 +1559,7 @@ TermList InterpretedLiteralEvaluator::transformSubterm(TermList trm)
   CALL("InterpretedLiteralEvaluator::transformSubterm");
   // Debug::Tracer::printStack(cout);
 
-  DEBUG( "transformSubterm for ", trm.toString() );
+  // DEBUG( "transformSubterm for ", trm.toString() );
 
 
   if (!trm.isTerm()) { return trm; }

@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file Metaarrays.hpp
@@ -69,12 +63,12 @@ template<class Arr, typename Functor>
 class MappingArray
 {
 public:
-  DECL_ELEMENT_TYPE(RETURN_TYPE(Functor));
+  DECL_ELEMENT_TYPE(RETURN_TYPE(Functor(ELEMENT_TYPE(Arr))));
   explicit MappingArray(Arr arr, Functor func)
   : _arr(arr), _func(func) {}
 
   template<typename Idx>
-  RETURN_TYPE(Functor) operator[] (Idx index) { return _func(_arr[index]); }
+  RETURN_TYPE(Functor(ELEMENT_TYPE(Arr))) operator[] (Idx index) { return _func(_arr[index]); }
   size_t size() {return _arr.size(); }
 private:
   Arr _arr;

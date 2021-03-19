@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file SMTLIB.cpp
@@ -1316,7 +1310,7 @@ void SMTLIB::buildFormula()
     
   {
     Formula* f = readFormula(_lispFormula);
-    FormulaUnit* fu = new FormulaUnit(f, new Inference(Inference::INPUT), Unit::CONJECTURE);
+    FormulaUnit* fu = new FormulaUnit(f, new Inference0(Inference::INPUT), Unit::CONJECTURE);
     UnitList::push(fu, _formulas);
   }
  
@@ -1326,7 +1320,7 @@ void SMTLIB::buildFormula()
    
     LExpr* lispF = asIt.next();
     Formula* f = readFormula(lispF);
-    FormulaUnit* fu = new FormulaUnit(f, new Inference(Inference::INPUT), Unit::AXIOM);
+    FormulaUnit* fu = new FormulaUnit(f, new Inference0(Inference::INPUT), Unit::AXIOM);
     UnitList::push(fu, _formulas);
   }
 
@@ -1440,7 +1434,7 @@ Formula* SMTLIB::nameFormula(Formula* f, vstring fletVarName)
     // TODO add sorts list
     df = new QuantifiedFormula(FORALL, freeVars,0, df);
   }
-  FormulaUnit* def = new FormulaUnit(df, new Inference(Inference::INPUT), Unit::AXIOM);
+  FormulaUnit* def = new FormulaUnit(df, new Inference0(Inference::INPUT), Unit::AXIOM);
   UnitList::push(def, _definitions);
   return lhsF;
 }

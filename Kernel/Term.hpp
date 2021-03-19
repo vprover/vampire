@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file Term.hpp
@@ -75,6 +69,7 @@ enum TermTag {
  */
 class TermList {
 public:
+  CLASS_NAME(TermList)
   /** dummy constructor, does nothing */
   TermList() {}
   /** creates a term list and initialises its content with data */
@@ -152,6 +147,7 @@ public:
   unsigned weight() const;
   bool containsSubterm(TermList v);
   bool containsAllVariablesOf(TermList t);
+  bool containsAllVariableOccurrencesOf(TermList t);
 
   bool isSafe() const;
 
@@ -165,10 +161,8 @@ public:
   { return _content==t._content; }
   inline bool operator!=(const TermList& t) const
   { return _content!=t._content; }
-  inline bool operator<(const TermList& t) const
-  { return _content<t._content; }
-  inline bool operator>(const TermList& t) const
-  { return _content>t._content; }
+
+  friend bool operator<(const TermList& lhs, const TermList& rhs);
 
 private:
   vstring asArgsToString() const;
@@ -215,7 +209,10 @@ private:
   friend class Literal;
 }; // class TermList
 
-ASS_STATIC(sizeof(TermList)==sizeof(size_t));
+static_assert(
+  sizeof(TermList) == sizeof(size_t),
+  "size of TermList must be the same size as that of size_t"
+);
 
 /**
  * Class to represent terms and lists of terms.
@@ -539,6 +536,7 @@ public:
 
   bool containsSubterm(TermList v);
   bool containsAllVariablesOf(Term* t);
+  size_t countSubtermOccurrences(TermList subterm);
   /** Return true if term has no non-constant functions as subterms */
   bool isShallow() const;
 
@@ -890,6 +888,11 @@ private:
 
 }; // class Literal
 
+// TODO used in some proofExtra output
+//      find a better place for this?
+bool positionIn(TermList& subterm,TermList* term, vstring& position);
+bool positionIn(TermList& subterm,Term* term, vstring& position);
+
 struct TermListHash {
   static unsigned hash(TermList t) {
     return static_cast<unsigned>(t.content());
@@ -902,13 +905,16 @@ std::ostream& operator<< (ostream& out, const Literal& tl );
 
 };
 
+/* template specializations */
 namespace Lib
 {
+
 
 template<>
 struct FirstHashTypeInfo<Kernel::TermList> {
   typedef Kernel::TermListHash Type;
 };
+
 
 }
 

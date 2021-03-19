@@ -79,17 +79,6 @@ class SimpSolver : public Solver {
     //
     virtual void garbageCollect();
 
-
-    // Generate a (possibly simplified) DIMACS file:
-    //
-#if 0
-    void    toDimacs  (const char* file, const vec<Lit>& assumps);
-    void    toDimacs  (const char* file);
-    void    toDimacs  (const char* file, Lit p);
-    void    toDimacs  (const char* file, Lit p, Lit q);
-    void    toDimacs  (const char* file, Lit p, Lit q, Lit r);
-#endif
-
     // Mode of operation:
     //
     int     grow;              // Allow a variable elimination step to grow by a number of clauses (default to zero).

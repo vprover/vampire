@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file Property.cpp (syntactic properties of problems)
@@ -92,7 +86,6 @@ Property::Property()
 {
   _interpretationPresence.init(Theory::instance()->numberOfFixedInterpretations(), false);
   env.property = this;
-  _symbolsInFormula = new DHSet<int>();
 } // Property::Property
 
 /**
@@ -126,7 +119,6 @@ Property::~Property()
 {
   CALL("Property::~Property");
 
-  delete _symbolsInFormula;
   if (this == env.property) {
     env.property = 0;
   }
@@ -233,8 +225,7 @@ void Property::scan(Unit* unit)
 {
   CALL("Property::scan(const Unit*)");
 
-  ASS(_symbolsInFormula);
-  _symbolsInFormula->reset();
+  _symbolsInFormula.reset();
 
   if (unit->isClause()) {
     scan(static_cast<Clause*>(unit));
@@ -251,7 +242,7 @@ void Property::scan(Unit* unit)
     }
   }
 
-  DHSet<int>::Iterator it(*_symbolsInFormula);
+  DHSet<int>::Iterator it(_symbolsInFormula);
   while(it.hasNext()){
     int symbol = it.next();
     if(symbol >= 0){
@@ -300,7 +291,8 @@ void Property::scan(Clause* clause)
       }
     }
 
-    bool goal = (clause->inputType()==Unit::CONJECTURE || clause->inputType()==Unit::NEGATED_CONJECTURE);
+    bool goal = (clause->inputType()==UnitInputType::CONJECTURE ||
+        clause->inputType()==UnitInputType::NEGATED_CONJECTURE);
     bool unit = (clause->length() == 1);
 
     // 1 for context polarity, only used in formulas
@@ -327,7 +319,7 @@ void Property::scan(Clause* clause)
     _pureEquationalClauses ++;
   }
 
-  if (clause->inputType() == Unit::AXIOM) {
+  if (clause->inputType() == UnitInputType::AXIOM) {
     _axiomClauses ++;
     if ( literals == 1) {
       _unitAxioms ++;
@@ -386,7 +378,7 @@ void Property::scan(FormulaUnit* unit)
   CALL("Property::scan(const FormulaUnit*)");
 
 
-  if (unit->inputType() == Unit::AXIOM) {
+  if (unit->inputType() == UnitInputType::AXIOM) {
     _axiomFormulas ++;
   }
   else {
@@ -534,6 +526,9 @@ void Property::scanSort(unsigned sort)
  * Scan a literal.
  *
  * @param lit the literal
+ * @param polarity
+ * @param cLen
+ * @param goal
  * @since 29/06/2002 Manchester
  * @since 17/07/2003 Manchester, changed to non-pointer types
  * @since 27/05/2007 flight Manchester-Frankfurt, uses new datastructures
@@ -546,7 +541,7 @@ void Property::scan(Literal* lit, int polarity, unsigned cLen, bool goal)
     scanSort(SortHelper::getEqualityArgumentSort(lit));
   }
   else {
-    _symbolsInFormula->insert(-lit->functor());
+    _symbolsInFormula.insert(-lit->functor());
     int arity = lit->arity();
     if (arity > _maxPredArity) {
       _maxPredArity = arity;
@@ -587,6 +582,8 @@ void Property::scan(Literal* lit, int polarity, unsigned cLen, bool goal)
  * Scan a term arguments.
  *
  * @param ts the list of terms
+ * @param unit
+ * @param goal
  * @since 29/06/2002 Manchester
  * @since 17/07/2003 Manchester, changed to non-pointer types,
  *        also NUMERIC case added
@@ -623,7 +620,7 @@ void Property::scan(TermList ts,bool unit,bool goal)
   } else {
     scanForInterpreted(t);
 
-    _symbolsInFormula->insert(t->functor());
+    _symbolsInFormula.insert(t->functor());
     Signature::Symbol* func = env.signature->getFunction(t->functor());
     func->incUsageCnt();
     if(unit){ func->markInUnit();}
@@ -958,10 +955,9 @@ bool Property::hasXEqualsY(const Formula* f)
     case BOOL_TERM:
       return true;
 
-#if VDEBUG
-    default:
+    case NAME:
+    case NOCONN:
       ASSERTION_VIOLATION;
-#endif
     }
   }
   return false;

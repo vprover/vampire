@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file Signature.cpp
@@ -133,7 +127,7 @@ void Signature::Symbol::addToDistinctGroup(unsigned group,unsigned this_number)
   env.signature->_distinctGroupsAddedTo=true;
 
   Signature::DistinctGroupMembers members = env.signature->_distinctGroupMembers[group];
-  if(members->size() <= DistinctGroupExpansion::EXPAND_UP_TO_SIZE || env.options->bfnt()
+  if(members->size() <= DistinctGroupExpansion::EXPAND_UP_TO_SIZE
                        || env.options->saturationAlgorithm()==Options::SaturationAlgorithm::FINITE_MODEL_BUILDING){
     // we add one more than EXPAND_UP_TO_SIZE to signal to DistinctGroupExpansion::apply not to expand
     // ... instead DistinctEqualitySimplifier will take over
@@ -416,6 +410,7 @@ unsigned Signature::addInterpretedFunction(Interpretation interpretation, Operat
 
   unsigned res;
   if (_iSymbols.find(mi,res)) { // already declared
+    // TODO should this really be done in release mode?
     if (name!=functionName(res)) {
       USER_ERROR("Interpreted function '"+functionName(res)+"' has the same interpretation as '"+name+"' should have");
     }
@@ -568,6 +563,31 @@ unsigned Signature::getFunctionNumber(const vstring& name, unsigned arity) const
   return _funNames.get(key(name, arity));
 }
 
+bool Signature::tryGetFunctionNumber(const vstring& name, unsigned arity, unsigned& out) const
+{
+  CALL("Signature::tryGetFunctionNumber");
+  auto* value = _funNames.getPtr(key(name, arity));
+  if (value != NULL) {
+    out = *value;
+    return true;
+  } else {
+    return false;
+  }
+}
+
+bool Signature::tryGetPredicateNumber(const vstring& name, unsigned arity, unsigned& out) const
+{
+  CALL("Signature::tryGetPredicateNumber");
+  auto* value = _predNames.getPtr(key(name, arity));
+  if (value != NULL) {
+    out = *value;
+    return true;
+  } else {
+    return false;
+  }
+}
+
+
 unsigned Signature::getPredicateNumber(const vstring& name, unsigned arity) const
 {
   CALL("Signature::getPredicateNumber");
@@ -583,6 +603,7 @@ unsigned Signature::getPredicateNumber(const vstring& name, unsigned arity) cons
  * @param name name of the symbol
  * @param arity arity of the symbol
  * @param added will be set to true if the function did not exist
+ * @param overflowConstant
  * @since 07/05/2007 Manchester
  */
 unsigned Signature::addFunction (const vstring& name,

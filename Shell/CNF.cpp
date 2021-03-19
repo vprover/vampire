@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file CNF.cpp
@@ -67,8 +61,7 @@ void CNF::clausify (Unit* unit,Stack<Clause*>& stack)
     {
       // create an empty clause and push it in the stack
       Clause* clause = new(0) Clause(0,
-				     unit->inputType(),
-				     new Inference1(Inference::CLAUSIFY,unit));
+				     FormulaTransformation(InferenceRule::CLAUSIFY,unit));
       stack.push(clause);
     }
     return;
@@ -97,9 +90,7 @@ void CNF::clausify (Formula* f)
       // collect the clause
       int length = _literals.length();
       Clause* clause = new(length) Clause(length,
-					  _unit->inputType(),
-					  new Inference1(Inference::CLAUSIFY,
-							 _unit));;
+          FormulaTransformation(InferenceRule::CLAUSIFY,_unit));
       for (int i = length-1;i >= 0;i--) {
 	(*clause)[i] = _literals[i];
       }
@@ -139,10 +130,8 @@ void CNF::clausify (Formula* f)
     clausify(f->qarg());
     return;
 
-#if VDEBUG
   default:
     ASSERTION_VIOLATION;
-#endif
   }
 } // CNF::clausify
 

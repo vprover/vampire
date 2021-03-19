@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file EqualityFactoring.cpp
@@ -58,14 +52,12 @@ using namespace Saturation;
 
 struct EqualityFactoring::IsPositiveEqualityFn
 {
-  DECL_RETURN_TYPE(bool);
   bool operator()(Literal* l)
   { return l->isEquality() && l->isPositive(); }
 };
 struct EqualityFactoring::IsDifferentPositiveEqualityFn
 {
   IsDifferentPositiveEqualityFn(Literal* lit) : _lit(lit) {}
-  DECL_RETURN_TYPE(bool);
   bool operator()(Literal* l2)
   { return l2->isEquality() && l2->polarity() && l2!=_lit; }
 private:
@@ -75,8 +67,7 @@ private:
 struct EqualityFactoring::FactorablePairsFn
 {
   FactorablePairsFn(Clause* cl) : _cl(cl) {}
-  DECL_RETURN_TYPE(VirtualIterator<pair<pair<Literal*,TermList>,pair<Literal*,TermList> > >);
-  OWN_RETURN_TYPE operator() (pair<Literal*,TermList> arg)
+  VirtualIterator<pair<pair<Literal*,TermList>,pair<Literal*,TermList> > > operator() (pair<Literal*,TermList> arg)
   {
     auto it1 = getContentIterator(*_cl);
 
@@ -96,7 +87,6 @@ struct EqualityFactoring::ResultFn
 {
   ResultFn(Clause* cl, bool afterCheck, Ordering& ordering)
       : _cl(cl), _cLen(cl->length()), _afterCheck(afterCheck), _ordering(ordering) {}
-  DECL_RETURN_TYPE(Clause*);
   Clause* operator() (pair<pair<Literal*,TermList>,pair<Literal*,TermList> > arg)
   {
     CALL("EqualityFactoring::ResultFn::operator()");
@@ -133,8 +123,7 @@ struct EqualityFactoring::ResultFn
       return 0;
     }
 
-    Inference* inf = new Inference1(Inference::EQUALITY_FACTORING, _cl);
-    Clause* res = new(_cLen) Clause(_cLen, _cl->inputType(), inf);
+    Clause* res = new(_cLen) Clause(_cLen, GeneratingInference1(InferenceRule::EQUALITY_FACTORING, _cl));
 
     (*res)[0]=Literal::createEquality(false, sRHSS, fRHSS, srt);
 
@@ -164,7 +153,6 @@ struct EqualityFactoring::ResultFn
     }
     ASS_EQ(next,_cLen);
 
-    res->setAge(_cl->age()+1);
     env.statistics->equalityFactoring++;
 
     return res;

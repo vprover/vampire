@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file MinimizingSolver.hpp
@@ -71,7 +65,7 @@ public:
 
   virtual unsigned newVar() override {
     CALL("MinimizingSolver::newVar");
-    unsigned oldVC = _varCnt;
+    DEBUG_CODE(unsigned oldVC = _varCnt);
     ensureVarCount(_varCnt+1);
     ASS_EQ(_varCnt,oldVC+1);
     return _varCnt;

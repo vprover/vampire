@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file ColorHelper.cpp
@@ -129,7 +123,7 @@ Clause* ColorHelper::skolemizeColoredConstants(Clause* c)
       resStack[i] = EqHelper::replace(resStack[i], replaced, newTrm);
     }
   }
-  Clause* res = Clause::fromStack(resStack, c->inputType(), new Inference1(Inference::COLOR_UNBLOCKING, c));
+  Clause* res = Clause::fromStack(resStack, NonspecificInference1(InferenceRule::COLOR_UNBLOCKING, c));
   return res;
 }
 
@@ -231,7 +225,7 @@ Clause* ColorHelper::skolemizeColoredTerms(Clause* c)
   }
 
   ASS_EQ(resStack.size(), clen);
-  Clause* res = Clause::fromStack(resStack, c->inputType(), new Inference1(Inference::COLOR_UNBLOCKING, c));
+  Clause* res = Clause::fromStack(resStack, NonspecificInference1(InferenceRule::COLOR_UNBLOCKING, c));
   return res;
 }
 

@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file FOOLElimination.cpp
@@ -52,9 +46,6 @@ using namespace Shell;
 const char* FOOLElimination::ITE_PREFIX  = "iG";
 const char* FOOLElimination::LET_PREFIX  = "lG";
 const char* FOOLElimination::BOOL_PREFIX = "bG";
-
-// The default input type of introduced definitions
-const Unit::InputType FOOLElimination::DEFINITION_INPUT_TYPE = Unit::AXIOM;
 
 FOOLElimination::FOOLElimination() : _defs(0) {}
 
@@ -162,12 +153,13 @@ FormulaUnit* FOOLElimination::apply(FormulaUnit* unit) {
     return rectifiedUnit;
   }
 
-  Inference* inference = new Inference1(Inference::FOOL_ELIMINATION, rectifiedUnit);
-  FormulaUnit* processedUnit = new FormulaUnit(processedFormula, inference, rectifiedUnit->inputType());
-
-  if (unit->included()) {
-    processedUnit->markIncluded();
-  }
+  /*
+   * MS/TODO: We should be presenting the new formula as following
+   * from the rectifiedUnit and the generated definitions
+   * (similarly to how this is done with Naming)
+   */
+  FormulaUnit* processedUnit = new FormulaUnit(processedFormula,
+      NonspecificInference1(InferenceRule::FOOL_ELIMINATION, rectifiedUnit));
 
   if (env.options->showPreprocessing()) {
     env.beginOutput();
@@ -304,11 +296,11 @@ Formula* FOOLElimination::process(Formula* formula) {
     case FALSE:
       return formula;
 
-#if VDEBUG
-    default:
+    case NAME:
+    case NOCONN:
       ASSERTION_VIOLATION;
-#endif
   }
+  ASSERTION_VIOLATION;
 }
 
 FormulaList* FOOLElimination::process(FormulaList* formulas) {
@@ -499,11 +491,11 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         Formula* condition = process(sd->getCondition());
 
         TermList thenBranch;
-        Formula* thenBranchFormula;
+        Formula* thenBranchFormula {};
         process(*term->nthArgument(0), context, thenBranch, thenBranchFormula);
 
         TermList elseBranch;
-        Formula* elseBranchFormula;
+        Formula* elseBranchFormula {};
         process(*term->nthArgument(1), context, elseBranch, elseBranchFormula);
 
         // the sort of the term is the sort of the then branch
@@ -548,9 +540,8 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         }
 
         // add both definitions
-        Inference* iteInference = new Inference1(Inference::FOOL_ITE_ELIMINATION, _unit);
-        addDefinition(new FormulaUnit(thenImplication, iteInference, DEFINITION_INPUT_TYPE));
-        addDefinition(new FormulaUnit(elseImplication, iteInference, DEFINITION_INPUT_TYPE));
+        addDefinition(new FormulaUnit(thenImplication, NonspecificInference1(InferenceRule::FOOL_ITE_ELIMINATION, _unit)));
+        addDefinition(new FormulaUnit(elseImplication, NonspecificInference1(InferenceRule::FOOL_ITE_ELIMINATION, _unit)));
 
         if (context == FORMULA_CONTEXT) {
           formulaResult = freshPredicateApplication;
@@ -658,8 +649,8 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         }
 
         // add the introduced definition
-        Inference* letInference = new Inference1(Inference::FOOL_LET_ELIMINATION, _unit);
-        addDefinition(new FormulaUnit(freshSymbolDefinition, letInference, DEFINITION_INPUT_TYPE));
+        addDefinition(new FormulaUnit(freshSymbolDefinition,
+            NonspecificInference1(InferenceRule::FOOL_LET_ELIMINATION, _unit)));
 
         TermList contents = *term->nthArgument(0); // deliberately unprocessed here
 
@@ -729,8 +720,8 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         }
 
         // add the introduced definition
-        Inference* inference = new Inference1(Inference::FOOL_ELIMINATION, _unit);
-        addDefinition(new FormulaUnit(freshSymbolDefinition, inference, DEFINITION_INPUT_TYPE));
+        addDefinition(new FormulaUnit(freshSymbolDefinition,
+            NonspecificInference1(InferenceRule::FOOL_ELIMINATION, _unit)));
 
         termResult = freshSymbolApplication;
         break;
@@ -748,7 +739,9 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
   }
 
 #if VDEBUG
+
   // free variables of the input and the result should coincide
+  /*
   Formula::VarList* resultFreeVars;
   if (context == TERM_CONTEXT) {
     resultFreeVars = termResult.isVar() ? new List<int>(termResult.var()) : termResult.term()->freeVariables();
@@ -766,6 +759,12 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
     unsigned var = (unsigned)pfv.next();
     ASS_REP(Formula::VarList::member(var, freeVars), var);
   }
+  */
+  /* this seems to strict for, e.g.
+  [PP] FOOL in:  $let(sLF0: $int, sLF0 := X1, $ite((X0 = $true), $true,$false))
+  [PP] FOOL out: iG4(X0)
+  where, since sLF0 does not occur in the body, X1 simply disappears
+  */
 
   // special subterms should be eliminated
   if (context == TERM_CONTEXT) {

@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file MapToLIFO.hpp
@@ -186,8 +180,7 @@ private:
   struct KeyToIterFn
   {
     KeyToIterFn(const MapToLIFO& parent) : _par(parent) {}
-    DECL_RETURN_TYPE(typename ValList::Iterator);
-    OWN_RETURN_TYPE operator() (K key)
+    typename ValList::Iterator operator() (K key)
     {
       return _par.keyIterator(key);
     }

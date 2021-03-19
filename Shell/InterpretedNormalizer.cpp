@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file InterpretedNormalizer.cpp
@@ -473,7 +467,7 @@ bool InterpretedNormalizer::apply(UnitList*& units)
   CALL("InterpretedNormalizer::apply(UnitList*& units)");
 
   NFormulaTransformer ftransf(_litTransf);
-  FTFormulaUnitTransformer<NFormulaTransformer> futransf(Inference::EVALUATION, ftransf);
+  FTFormulaUnitTransformer<NFormulaTransformer> futransf(InferenceRule::THEORY_NORMALIZATION, ftransf);
 
   bool modified = false;
 
@@ -538,8 +532,8 @@ Clause* InterpretedNormalizer::apply(Clause* cl)
     return cl;
   }
 
-  Clause* res = Clause::fromStack(lits, cl->inputType(),
-      new Inference1(Inference::EVALUATION, cl));
+  Clause* res = Clause::fromStack(lits,
+      FormulaTransformation(InferenceRule::THEORY_NORMALIZATION, cl));
   return res;
 }
 

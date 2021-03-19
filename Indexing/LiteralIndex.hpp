@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file LiteralIndex.hpp
@@ -28,6 +22,7 @@
 #include "Lib/DHMap.hpp"
 
 #include "Index.hpp"
+
 
 namespace Indexing {
 
@@ -99,9 +94,26 @@ public:
   USE_ALLOCATOR(FwSubsSimplifyingLiteralIndex);
 
   FwSubsSimplifyingLiteralIndex(LiteralIndexingStructure* is)
-  : LiteralIndex(is) {};
+    : LiteralIndex(is)
+  { }
+
 protected:
-  void handleClause(Clause* c, bool adding);
+  void handleClause(Clause* c, bool adding) override;
+};
+
+class FSDLiteralIndex
+: public LiteralIndex
+{
+public:
+  CLASS_NAME(FSDLiteralIndex);
+  USE_ALLOCATOR(FSDLiteralIndex);
+
+  FSDLiteralIndex(LiteralIndexingStructure* is)
+    : LiteralIndex(is)
+  { }
+
+protected:
+  void handleClause(Clause* c, bool adding) override;
 };
 
 class UnitClauseLiteralIndex

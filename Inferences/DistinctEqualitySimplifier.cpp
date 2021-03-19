@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file DistinctEqualitySimplifier.cpp
@@ -69,15 +63,10 @@ Clause* DistinctEqualitySimplifier::simplify(Clause* cl)
   prems.push(cl);
   UnitList* premLst = 0;
   UnitList::pushFromIterator(Stack<Unit*>::Iterator(prems), premLst);
-  Inference* inf;
-  if(premLst) {
-    inf = new InferenceMany(Inference::DISTINCT_EQUALITY_REMOVAL, premLst);
-  }
-  else {
-    inf = new Inference(Inference::DISTINCT_EQUALITY_REMOVAL);
-  }
-  Unit::InputType inpType = cl->inputType();
-  Clause* res = Clause::fromStack(lits, inpType, inf);
+  ASS(premLst); // at least, because of "prems.push(cl);" above
+
+  Clause* res = Clause::fromStack(lits,
+      SimplifyingInferenceMany(InferenceRule::DISTINCT_EQUALITY_REMOVAL, premLst));
   return res;
 }
 

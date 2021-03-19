@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file SaturationAlgorithm.hpp
@@ -47,8 +41,6 @@
 #  include "Shell/SearchSpaceDumper.hpp"
 #endif
 
-#include "Limits.hpp"
-
 #if VDEBUG
 #include<iostream>
 #endif
@@ -79,11 +71,8 @@ public:
 
   UnitList* collectSaturatedSet();
 
-  void setGeneratingInferenceEngine(GeneratingInferenceEngine* generator);
+  void setGeneratingInferenceEngine(SimplifyingGeneratingInference* generator);
   void setImmediateSimplificationEngine(ImmediateSimplificationEngine* immediateSimplifier);
-#if VZ3
-  void setTheoryInstAndSimp(TheoryInstAndSimp* t);
-#endif
 
   void setLabelFinder(LabelFinder* finder){ _labelFinder = finder; }
 
@@ -109,14 +98,11 @@ public:
   }
 
   ClauseIterator activeClauses();
-  ClauseIterator passiveClauses();
-  size_t activeClauseCount();
-  size_t passiveClauseCount();
 
-  Limits* getLimits() { return &_limits; }
+  PassiveClauseContainer* getPassiveClauseContainer() { return _passive.get(); }
   IndexManager* getIndexManager() { return _imgr.ptr(); }
   AnswerLiteralManager* getAnswerLiteralManager() { return _answerLiteralManager; }
-  Ordering& getOrdering() const { return *_ordering; }
+  Ordering& getOrdering() const {  return *_ordering; }
   LiteralSelector& getLiteralSelector() const { return *_selector; }
 
   /** Return the number of clauses that entered the passive container */
@@ -141,15 +127,16 @@ protected:
   virtual void init();
   virtual MainLoopResult runImpl();
   void doUnprocessedLoop();
-  virtual void handleUnsuccessfulActivation(Clause* c);
   virtual bool handleClauseBeforeActivation(Clause* c);
   void addInputSOSClause(Clause* cl);
+
   void newClausesToUnprocessed();
   void addUnprocessedClause(Clause* cl);
   bool forwardSimplify(Clause* c);
   void backwardSimplify(Clause* c);
   void addToPassive(Clause* c);
-  bool activate(Clause* c);
+  void activate(Clause* c);
+  void removeSelected(Clause*);
   virtual void onSOSClauseAdded(Clause* c) {}
   void onActiveAdded(Clause* c);
   virtual void onActiveRemoved(Clause* c);
@@ -161,6 +148,8 @@ protected:
   virtual void onUnprocessedSelected(Clause* c);
   void onNewUsefulPropositionalClause(Clause* c);
   virtual void onClauseRetained(Clause* cl);
+  /** called before the selected clause is deleted from the searchspace */
+  virtual void beforeSelectedRemoved(Clause* cl) {};
   void onAllProcessed();
   int elapsedTime();
   virtual bool isComplete();
@@ -175,7 +164,6 @@ private:
   void handleEmptyClause(Clause* cl);
   Clause* doImmediateSimplification(Clause* cl);
   MainLoopResult saturateImpl();
-  Limits _limits;
   SmartPtr<IndexManager> _imgr;
 
   class TotalSimplificationPerformer;
@@ -193,11 +181,11 @@ protected:
   ClauseStack _postponedClauseRemovals;
 
   UnprocessedClauseContainer* _unprocessed;
-  PassiveClauseContainer* _passive;
+  std::unique_ptr<PassiveClauseContainer> _passive;
   ActiveClauseContainer* _active;
   ExtensionalityClauseContainer* _extensionality;
 
-  ScopedPtr<GeneratingInferenceEngine> _generator;
+  ScopedPtr<SimplifyingGeneratingInference> _generator;
   ScopedPtr<ImmediateSimplificationEngine> _immediateSimplifier;
 
   typedef List<ForwardSimplificationEngine*> FwSimplList;
@@ -216,9 +204,6 @@ protected:
   SymElOutput* _symEl;
   AnswerLiteralManager* _answerLiteralManager;
   Instantiation* _instantiation;
-#if VZ3
-  TheoryInstAndSimp* _theoryInstSimp;
-#endif
 
 
   SubscriptionData _passiveContRemovalSData;
@@ -239,6 +224,8 @@ protected:
   unsigned _generatedClauseCount;
 
   unsigned _activationLimit;
+private:
+  static ImmediateSimplificationEngine* createISE(Problem& prb, const Options& opt, Ordering& ordering);
 };
 
 

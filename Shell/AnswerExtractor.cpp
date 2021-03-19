@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file AnswerExtractor.cpp
@@ -108,13 +102,13 @@ void AnswerExtractor::getNeededUnits(Clause* refutation, ClauseStack& premiseCla
     if(!seen.insert(curr)) {
       continue;
     }
-    Inference::Rule infRule;
+    InferenceRule infRule;
     UnitIterator parents = is.getParents(curr, infRule);
-    if(infRule==Inference::NEGATED_CONJECTURE) {
+    if(infRule==InferenceRule::NEGATED_CONJECTURE) {
       conjectures.push(curr);
     }
-    if(infRule==Inference::CLAUSIFY ||
-	(curr->isClause() && (infRule==Inference::INPUT || infRule==Inference::NEGATED_CONJECTURE )) ){
+    if(infRule==InferenceRule::CLAUSIFY ||
+	(curr->isClause() && (infRule==InferenceRule::INPUT || infRule==InferenceRule::NEGATED_CONJECTURE )) ){
       ASS(curr->isClause());
       premiseClauses.push(curr->asClause());
     }
@@ -364,7 +358,7 @@ Unit* AnswerLiteralManager::tryAddingAnswerLiteral(Unit* unit)
 {
   CALL("AnswerLiteralManager::tryAddingAnswerLiteral");
 
-  if(unit->isClause() || unit->inputType()!=Unit::CONJECTURE) {
+  if(unit->isClause() || unit->inputType()!=UnitInputType::CONJECTURE) {
     return unit;
   }
 
@@ -390,8 +384,7 @@ Unit* AnswerLiteralManager::tryAddingAnswerLiteral(Unit* unit)
 
   newForm = Flattening::flatten(newForm);
 
-  Inference* inf = new Inference1(Inference::ANSWER_LITERAL, unit);
-  Unit* res = new FormulaUnit(newForm, inf, unit->inputType());
+  Unit* res = new FormulaUnit(newForm,FormulaTransformation(InferenceRule::ANSWER_LITERAL, unit));
 
   return res;
 }
@@ -481,8 +474,7 @@ Clause* AnswerLiteralManager::getResolverClause(unsigned pred)
     args.push(TermList(i, false));
   }
   Literal* lit = Literal::create(pred, arity, true, false, args.begin());
-  res = Clause::fromIterator(getSingletonIterator(lit), Unit::AXIOM,
-      new Inference(Inference::ANSWER_LITERAL));
+  res = Clause::fromIterator(getSingletonIterator(lit),NonspecificInference0(UnitInputType::AXIOM,InferenceRule::ANSWER_LITERAL_RESOLVER));
 
   _resolverClauses.insert(pred, res);
   return res;
@@ -501,8 +493,8 @@ Clause* AnswerLiteralManager::getRefutation(Clause* answer)
     UnitList::push(resolvingPrem, premises);
   }
 
-  Inference* inf = new InferenceMany(Inference::UNIT_RESULTING_RESOLUTION, premises);
-  Clause* refutation = Clause::fromIterator(LiteralIterator::getEmpty(), answer->inputType(), inf);
+  Clause* refutation = Clause::fromIterator(LiteralIterator::getEmpty(),
+      GeneratingInferenceMany(InferenceRule::UNIT_RESULTING_RESOLUTION, premises));
   return refutation;
 }
 

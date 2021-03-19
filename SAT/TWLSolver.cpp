@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file TWLSolver.cpp
@@ -1154,7 +1148,8 @@ void TWLSolver::assertValid()
 
   Stack<USRec>::Iterator uit(_unitStack);
   while(uit.hasNext()) {
-    USRec rec=uit.next();
+    DEBUG_CODE(USRec rec =)
+      uit.next();
     ASS_NEQ(_assignment[rec.var], AS_UNDEFINED);
   }
 }

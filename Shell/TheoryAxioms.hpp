@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file TheoryAxioms.hpp
@@ -28,6 +22,8 @@
 
 #include "Kernel/Theory.hpp"
 #include "Options.hpp"
+
+#include <initializer_list>
 
 namespace Shell {
 
@@ -115,11 +111,7 @@ private:
      recursive) */
   bool addSubtermDefinitions(unsigned subtermPredicate, TermAlgebraConstructor* c);
 
-  void addTheoryUnitClause(Literal* lit, unsigned level);
-  void addTheoryUnitClause(Literal* lit, Inference* inf, unsigned level);
-  void addTheoryNonUnitClause(Literal* lit1, Literal* lit2,unsigned level);
-  void addTheoryNonUnitClause(Literal* lit1, Literal* lit2, Literal* lit3,unsigned level);
-  void addTheoryNonUnitClause(Literal* lit1, Literal* lit2, Literal* lit3, Literal* lit4,unsigned level);
+  void addTheoryClauseFromLits(std::initializer_list<Literal*> lits, InferenceRule rule, unsigned level);
   void addAndOutputTheoryUnit(Unit* unit, unsigned level);
 };
 

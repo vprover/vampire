@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file RestartStrategy.hpp
@@ -118,7 +112,7 @@ public:
    * According to "Armin Biere, PicoSAT Essentials" paper.
    */
   MinisatRestartStrategy(size_t initCnt = 100, float increase=1.1f)
-  : _initConflictCnt(initCnt), _increase(increase) { reset(); }
+  : _initConflictCnt(initCnt), _increase(increase) { MinisatRestartStrategy::reset(); }
 
   virtual size_t getNextConflictCount();
   virtual void reset() { _innerCnt = _outerCnt = _initConflictCnt; }

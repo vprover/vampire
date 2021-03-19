@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file Indexing/Index.hpp
@@ -41,8 +35,6 @@ using namespace Kernel;
 using namespace Lib;
 using namespace Saturation;
 
-typedef pair<TermList,TermList> UnificationConstraint;
-typedef Lib::SmartPtr<Stack<UnificationConstraint>> UnificationConstraintStackSP;
 
 /**
  * Class of objects which contain results of single literal queries.
@@ -65,7 +57,6 @@ struct SLQueryResult
 
   struct ClauseExtractFn
   {
-    DECL_RETURN_TYPE(Clause*);
     Clause* operator()(const SLQueryResult& res)
     {
       return res.clause;
@@ -78,7 +69,7 @@ struct SLQueryResult
  */
 struct TermQueryResult
 {
-  TermQueryResult() {}
+  TermQueryResult() : literal(nullptr), clause(nullptr) {}
   TermQueryResult(TermList t, Literal* l, Clause* c, ResultSubstitutionSP s)
   : term(t), literal(l), clause(c), substitution(s) {}
   TermQueryResult(TermList t, Literal* l, Clause* c)

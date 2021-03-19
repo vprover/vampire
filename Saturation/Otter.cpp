@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file Otter.cpp
@@ -105,13 +99,11 @@ void Otter::onSOSClauseAdded(Clause* cl)
   _simplCont.add(cl);
 }
 
-void Otter::handleUnsuccessfulActivation(Clause* c)
+void Otter::beforeSelectedRemoved(Clause* cl) 
 {
-  CALL("Otter::handleUnsuccessfulActivation");
-
-  ASS_EQ(c->store(), Clause::SELECTED);
-  _simplCont.remove(c);
-  c->setStore(Clause::NONE);
+  CALL("Otter::beforeSelectedRemoved");
+  ASS_EQ(cl->store(), Clause::SELECTED);
+  _simplCont.remove(cl);
 }
 
 }

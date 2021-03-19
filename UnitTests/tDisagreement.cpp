@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 #include <iostream>
 
@@ -26,9 +20,6 @@
 #include "Kernel/Term.hpp"
 
 #include "Test/UnitTesting.hpp"
-
-#define UNIT_ID disagreement
-UT_CREATE;
 
 using namespace std;
 using namespace Lib;
@@ -49,13 +40,13 @@ TEST_FUN(dis1)
   static DisagreementSetIterator dsit;
   dsit.reset(px, py, true);
 
-  while (dsit.hasNext()) {
-    pair<TermList, TermList> diff=dsit.next();
-    TermList st1=diff.first;
-    TermList st2=diff.second;
+  ASS(dsit.hasNext());
 
-    cout << "st1 " << st1.toString() << endl;
-    cout << "st2 " << st2.toString() << endl;
-  }
+  pair<TermList, TermList> diff=dsit.next();
+  TermList st1=diff.first;
+  TermList st2=diff.second;
 
+  ASS(st1 == x)
+  ASS(st2 == y)
+  ASS(!dsit.hasNext())
 }

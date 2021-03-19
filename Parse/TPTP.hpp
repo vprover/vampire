@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file Parse/TPTP.hpp
@@ -37,6 +31,7 @@
 #include "Kernel/Formula.hpp"
 #include "Kernel/Unit.hpp"
 #include "Kernel/Theory.hpp"
+#include "Kernel/Inference.hpp"
 
 //#define DEBUG_SHOW_STATE
 
@@ -537,7 +532,7 @@ private:
   /** stack of unprocessed states */
   Stack<State> _states;
   /** input type of the last read unit */ // it must be int since -1 can be used as a value
-  int _lastInputType;
+  UnitInputType _lastInputType;
   /** true if the last read unit is a question */ 
   bool _isQuestion;
   /** true if the last read unit is fof() or cnf() due to a subtle difference

@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file Statistics.hpp
@@ -35,8 +29,6 @@
 
 #include "Lib/Allocator.hpp"
 
-//#include "Kernel/Assignment.hpp"
-//#include "Kernel/Constraint.hpp"
 
 extern const char* VERSION_STRING;
 
@@ -46,7 +38,6 @@ namespace Kernel {
 
 namespace Shell {
 
-using namespace std;
 using namespace Kernel;
 using namespace Solving;
 
@@ -138,6 +129,8 @@ public:
   unsigned induction;
   unsigned maxInductionDepth;
   unsigned inductionInProof;
+  unsigned generalizedInduction;
+  unsigned generalizedInductionInProof;
 
   // Simplifying inferences
   /** number of duplicate literals deleted */
@@ -156,16 +149,40 @@ public:
   unsigned backwardDemodulations;
   /** number of backward demodulations into equational tautologies */
   unsigned backwardDemodulationsToEqTaut;
+  /** number of forward subsumption demodulations */
+  unsigned forwardSubsumptionDemodulations;
+  /** number of forward subsumption demodulations into equational tautologies */
+  unsigned forwardSubsumptionDemodulationsToEqTaut;
+  /** number of backward subsumption demodulations */
+  unsigned backwardSubsumptionDemodulations;
+  /** number of backward subsumption demodulations into equational tautologies */
+  unsigned backwardSubsumptionDemodulationsToEqTaut;
   /** number of forward literal rewrites */
   unsigned forwardLiteralRewrites;
   /** number of condensations */
   unsigned condensations;
   /** number of global subsumptions */
   unsigned globalSubsumption;
-  /** number of evaluations */
-  unsigned evaluations;
   /** number of interpreted simplifications */
   unsigned interpretedSimplifications;
+
+  /** how often did asg not simplify correctly. */
+  unsigned asgViolations;
+  /** applications of asg */
+  unsigned asgCnt;
+
+  /** how often did gve not simplify correctly. */
+  unsigned gveViolations;
+  /** applications of gve */
+  unsigned gveCnt;
+
+  /** number of evaluations that resulted in a incomparable literal */
+  unsigned evaluationIncomp;
+  /** number of evaluations that resulted in a greater literal */
+  unsigned evaluationGreater;
+  /** number of simplifications by PolynomialNormalizer */
+  unsigned evaluationCnt;
+
   /** number of (proper) inner rewrites */
   unsigned innerRewrites;
   /** number of inner rewrites into equational tautologies */
@@ -245,8 +262,6 @@ public:
   unsigned instGenRedundantClauses;
   unsigned instGenKeptClauses;
   unsigned instGenIterations;
-
-  unsigned maxBFNTModelSize;
 
   /** Number of pure variables eliminated by SAT solver */
   unsigned satPureVarsEliminated;
@@ -382,7 +397,6 @@ public:
     SINE_SELECTION,
     INCLUDING_THEORY_AXIOMS,
     PREPROCESS_1,
-    EQUALITY_PROPAGATION,
     PREDIACTE_DEFINITION_MERGING,
     PREDICATE_DEFINITION_INLINING,
     UNUSED_PREDICATE_DEFINITION_REMOVAL,

@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file Stack.hpp
@@ -61,6 +55,8 @@ public:
   friend void std::swap(Stack<U>&,Stack<U>&);
 
   class Iterator;
+  class ConstIterator;
+  class BottomFirstIterator;
 
   DECL_ELEMENT_TYPE(C);
   DECL_ITERATOR_TYPE(Iterator);
@@ -90,6 +86,33 @@ public:
     _end = _stack+_capacity;
   }
 
+  inline
+  void reserve(size_t capacity) 
+  {
+    CALL("Stack::reserve(size_t)");
+    if (_capacity >= capacity) {
+      return;
+    }
+    C* mem = static_cast<C*>(ALLOC_KNOWN(capacity*sizeof(C),className()));
+    if (_stack) {
+      for (unsigned i = 0; i < size(); i++) {
+        ::new(&mem[i]) C(std::move((*this)[i]));
+      }
+      DEALLOC_KNOWN(_stack,_capacity*sizeof(C),className());
+
+      _cursor = mem + (_cursor - _stack);
+      _capacity = capacity;
+      _stack = mem;
+      _end = _stack + _capacity;
+    } else {
+      _stack = mem;
+      _cursor = mem;
+      _capacity = capacity;
+      _end = _stack + _capacity;
+    }
+  }
+
+
   Stack(const Stack& s)
    : _capacity(s._capacity)
   {
@@ -108,6 +131,15 @@ public:
     loadFromIterator(BottomFirstIterator(const_cast<Stack&>(s)));
   }
 
+  Stack(Stack&& s) noexcept
+  {
+    CALL("Stack::Stack(Stack&& s)");
+
+    _capacity = 0;
+    _stack = _cursor = _end = nullptr;
+
+    std::swap(*this,s);
+  }
 
   /** De-allocate the stack
    * @since 13/01/2008 Manchester
@@ -135,8 +167,19 @@ public:
   {
     CALL("Stack::operator=");
 
+    if(&s == this) {
+      return *this;
+    }
     reset();
     loadFromIterator(BottomFirstIterator(const_cast<Stack&>(s)));
+    return *this;
+  }
+
+  Stack& operator=(Stack&& s) noexcept
+  {
+    CALL("Stack::operator=&&");
+
+    std::swap(*this,s);
     return *this;
   }
 
@@ -148,10 +191,50 @@ public:
   void loadFromIterator(It it) {
     CALL("Stack::loadFromIterator");
 
+    // TODO check iterator.size() or iterator.sizeHint()
     while(it.hasNext()) {
       push(it.next());
     }
   }
+
+  /**
+   * Put all elements of an iterator onto the stack.
+   */
+  template<class It>
+  void moveFromIterator(It it) {
+    CALL("Stack::loadFromIterator");
+
+    // TODO check iterator.size() or iterator.sizeHint()
+    while(it.hasNext()) {
+      push(std::move(it.next()));
+    }
+  }
+
+
+  /**
+   * Create a new stack with the contents of the itererator.
+   */
+  template<class It>
+  static Stack fromIterator(It it) {
+    CALL("Stack::fromIterator");
+    Stack out;
+    out.loadFromIterator(it);
+    return out;
+  }
+
+  Iterator iter() &
+  { return Iterator(*this); }
+
+  ConstIterator iter() const&
+  { return ConstIterator(*this); }
+
+  /* a first-in-first-out iterator  */
+  BottomFirstIterator iterFifo() const 
+  { return BottomFirstIterator(*this); }
+
+  /* a first-in-first-out iterator  */
+  BottomFirstIterator iterFifoMut() const 
+  { return BottomFirstIterator(*this); }
 
   /**
    * Return a reference to the n-th element of the stack.
@@ -246,7 +329,7 @@ public:
    * @since 11/03/2006 Bellevue
    */
   inline
-  void push(C elem)
+  void push(const C& elem)
   {
     CALL("Stack::push");
 
@@ -254,7 +337,24 @@ public:
       expand();
     }
     ASS(_cursor < _end);
-    new(_cursor) C(elem);
+    ::new(_cursor) C(elem);
+    _cursor++;
+  } // Stack::push()
+
+  /**
+   * Push new element on the stack (move semantics version).
+   * @since 11/08/2020 
+   */
+  inline
+  void push(C&& elem)
+  {
+    CALL("Stack::push");
+
+    if (_cursor == _end) {
+      expand();
+    }
+    ASS(_cursor < _end);
+    ::new(_cursor) C(std::move(elem));
     _cursor++;
   } // Stack::push()
 
@@ -270,11 +370,20 @@ public:
     ASS(_cursor > _stack);
     _cursor--;
 
-    C res=*_cursor;
+    C res = std::move(*_cursor);
     _cursor->~C();
 
     return res;
   } // Stack::pop()
+
+
+  inline
+  void pop(unsigned cnt)
+  {
+    CALL("Stack::pop(unsigned)");
+    while (cnt-- != 0) 
+      pop();
+  } // Stack::pop(unsigned)
 
   /**
    * If the element @b el is present in the stack, remove it and return
@@ -516,6 +625,7 @@ public:
     inline
     bool hasNext() const
     {
+      CALL("Stack::BottomFirstIterator::hasNext()")
       ASS_LE(_pointer, _afterLast);
       return _pointer != _afterLast;
     }
@@ -524,8 +634,8 @@ public:
     inline
     const C& next()
     {
+      CALL("Stack::BottomFirstIterator::next()")
       ASS_L(_pointer, _afterLast);
-
       return *(_pointer++);
     }
 
@@ -677,8 +787,8 @@ protected:
     C* newStack = static_cast<C*>(mem);
     if(_capacity) {
       for (size_t i = 0; i<_capacity; i++) {
-	new(newStack+i) C(_stack[i]);
-	_stack[i].~C();
+        ::new(newStack+i) C(std::move(_stack[i]));
+        _stack[i].~C();
       }
       // deallocate the old stack
       DEALLOC_KNOWN(_stack,_capacity*sizeof(C),className());
@@ -720,6 +830,17 @@ public:
     out << " ]";
     return out;
   }
+
+  Stack(std::initializer_list<C> cont)
+   : Stack(cont.size())
+  {
+    CALL("Stack::Stack(initializer_list<C>)");
+
+    for (auto const& x : cont) {
+      push(x);
+    }
+  }
+
 };
 
 template<typename C>
@@ -732,7 +853,7 @@ struct Relocator<Stack<C> >
       Stack<C>* newStack=new(newAddr) Stack<C>( sz );
 
       for(size_t i=0;i<sz;i++) {
-	newStack->push((*oldStack)[i]);
+        newStack->push(std::move((*oldStack)[i]));
       }
 
       oldStack->~Stack<C>();

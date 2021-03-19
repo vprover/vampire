@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * Various functions on integers that should probably
@@ -107,26 +101,21 @@ class Int
 
   /** Return the greatest common divisor of @b i and @b j */
   template<typename INT>
-  static int gcd(INT i,INT j)
+  static unsigned gcd(INT i,INT j)
   {
     CALL("Int::gcd");
 
-    i=abs(i);
-    j=abs(j);
-    if(!i || !j) {
-      return 1;
-    }
+    unsigned a=safeAbs(i);
+    unsigned b=safeAbs(j);
 
-    for(;;) {
-      i = i % j;
-      if(i==0) {
-        return j;
+    while (b!=0) {
+      a %= b;
+      if(a==0) {
+        return b;
       }
-      j = j % i;
-      if(j==0) {
-        return i;
-      }
+      b %= a;
     }
+    return a;
   }
 
   /**
@@ -143,6 +132,17 @@ class Int
     }
     res=-num;
     return true;
+  }
+
+  static unsigned safeAbs(const int num)
+  {
+    CALL("Int::safeAbs");
+
+    if(num == numeric_limits<int>::min()) { // = -2147483648
+      return (unsigned)num; // = 2147483648
+    }
+    // abs works for all other values
+    return abs(num);
   }
 
   /**
@@ -198,10 +198,8 @@ class Int
   {
     CALL("Int::safeMultiply");
 
-    INT mres = arg1*arg2;
-
     if (arg1 == 0 || arg1 == 1 || arg2 == 0 || arg2 == 1) {
-      res=mres;
+      res=arg1*arg2;
       return true;
     }
 
@@ -218,6 +216,8 @@ class Int
       return false;
     }
 
+    INT mres = arg1*arg2;
+
     // this is perhaps obsolete and could be removed
     if ((mres == numeric_limits<INT>::min() && arg1 == -1) || // before, there was a SIGFPE for "-2147483648 / -1" TODO: are there other evil cases?
         (sgn(arg1)*sgn(arg2) != sgn(mres)) || // 1073741824 * 2 = -2147483648 is evil, and passes the test below
@@ -225,6 +225,21 @@ class Int
       return false;
     }
     res=mres;
+    return true;
+  }
+
+  inline static bool safeDivide(int arg1, int arg2, int& res)
+  {
+    CALL("Int::safeDivide");
+    if (arg2 == 0) return false;
+
+    // check for 2 complement representation
+    if (numeric_limits<int>::min() != -numeric_limits<int>::max())  {
+      if (arg1 == numeric_limits<int>::min() && arg2 == -1)  {
+        return false;
+      }
+    }
+    res = arg1 / arg2;
     return true;
   }
 };

@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file ForwardDemodulation.cpp
@@ -196,11 +190,8 @@ bool ForwardDemodulation::perform(Clause* cl, Clause*& replacement, ClauseIterat
 	  return true;
 	}
 
-	Inference* inf = new Inference2(Inference::FORWARD_DEMODULATION, cl, qr.clause);
-	Unit::InputType inpType = (Unit::InputType)
-		Int::max(cl->inputType(), qr.clause->inputType());
-
-	Clause* res = new(cLen) Clause(cLen, inpType, inf);
+	Clause* res = new(cLen) Clause(cLen,
+	  SimplifyingInference2(InferenceRule::FORWARD_DEMODULATION, cl, qr.clause));
 
 	(*res)[0]=resLit;
 
@@ -213,7 +204,6 @@ bool ForwardDemodulation::perform(Clause* cl, Clause*& replacement, ClauseIterat
 	}
 	ASS_EQ(next,cLen);
 
-	res->setAge(cl->age());
 	env.statistics->forwardDemodulations++;
 
 	premises = pvi( getSingletonIterator(qr.clause));

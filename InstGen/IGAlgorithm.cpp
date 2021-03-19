@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file IGAlgorithm.cpp
@@ -274,11 +268,11 @@ Clause* IGAlgorithm::getFORefutation(SATClause* satRefutation, SATClauseList* sa
 
   UnitList* prems = SATInference::getFOPremises(satRefutation);
 
-  Inference* foInf = satPremises ? // does our SAT solver support postponed minimization?
-      new InferenceFromSatRefutation(Inference::SAT_INSTGEN_REFUTATION, prems, satPremises) :
-      new InferenceMany(Inference::SAT_INSTGEN_REFUTATION, prems);
+  Inference foInf(FromSatRefutation(InferenceRule::SAT_INSTGEN_REFUTATION, prems,
+          // satPremises may be nullptr already, if our solver does not support minimization
+          env.options->minimizeSatProofs() ? satPremises : nullptr));
 
-  Clause* foRef = Clause::fromIterator(LiteralIterator::getEmpty(), Unit::CONJECTURE, foInf);
+  Clause* foRef = Clause::fromIterator(LiteralIterator::getEmpty(), foInf);
   return foRef;
 }
 
@@ -398,11 +392,9 @@ void IGAlgorithm::finishGeneratingClause(Clause* orig, ResultSubstitution& subst
 {
   CALL("IGAlgorithm::finishGeneratingClause");
 
-  Inference* inf = new Inference1(Inference::INSTANCE_GENERATION, orig);
-
-  Clause* res = Clause::fromStack(genLits, orig->inputType(), inf);
-  int newAge = max(orig->age(), otherCl->age())+1;
-  res->setAge(newAge);
+  Clause* res = Clause::fromStack(genLits, GeneratingInference1(InferenceRule::INSTANCE_GENERATION, orig));
+  // make age also depend on the age of otherCl
+  res->setAge(max(orig->age(), otherCl->age())+1);
 
   env.statistics->instGenGeneratedClauses++;
   bool added = addClause(res);

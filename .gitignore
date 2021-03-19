@@ -1,38 +1,37 @@
-obj/
+# ignore CMake/Doxygen output
+cmake-build
+build/
 doc/
 
-MyProblems/
-Problems/
-Axioms/
-tptp/
-Scratch/
+# ignore TPTP directories/symlinks
+Problems
+Axioms
+tptp
 
-Makefile_depend*
+# ctags
+tags
 
-version.cpp
-
-vampire
-vampire_*
-vtest
-vtest_*
-
-vampire.exe
-vampire_dbg.exe
-vampire_rel.exe
-
+# Callgrind?
 .kdbgrc.vampire*
 callgrind.out.*
 valgrind.supp
 
+# Mac things?
 ._*
 .DS_Store
 .cproject
 .project
 .settings/
 
+# Problem files
 *.p
 *.tptp
 *.txt
 *.smt2
 *.cnf
 tags
+cmake-build
+.exrc
+.clang-format
+.clangd
+.lldbinit

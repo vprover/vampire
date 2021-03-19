@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file InequalitySplitting.cpp
@@ -109,7 +103,7 @@ Clause* InequalitySplitting::trySplitClause(Clause* cl)
   static DArray<Literal*> resLits(8);
   resLits.ensure(clen);
 
-  Unit::InputType inpType = cl->inputType();
+  UnitInputType inpType = cl->inputType();
   UnitList* premises=0;
 
   for(unsigned i=0; i<firstSplittable; i++) {
@@ -121,19 +115,15 @@ Clause* InequalitySplitting::trySplitClause(Clause* cl)
       Clause* prem;
       resLits[i] = splitLiteral(lit, inpType , prem);
       UnitList::push(prem, premises);
-      if(env.clausePriorities){
-        env.clausePriorities->insert(prem,cl->getPriority());
-      }
     } else {
       resLits[i] = lit;
     }
   }
 
   UnitList::push(cl, premises);
-  Inference* inf = new InferenceMany(Inference::INEQUALITY_SPLITTING, premises);
 
-  Clause* res = new(clen) Clause(clen, inpType, inf);
-  res->setAge(cl->age());
+  Clause* res = new(clen) Clause(clen,NonspecificInferenceMany(InferenceRule::INEQUALITY_SPLITTING, premises));
+  res->setAge(cl->age()); // MS: this seems useless; as long as InequalitySplitting is only operating as a part of preprocessing, age is going to 0 anyway
 
   for(unsigned i=0;i<clen;i++) {
     (*res)[i] = resLits[i];
@@ -154,7 +144,7 @@ Clause* InequalitySplitting::trySplitClause(Clause* cl)
 
 }
 
-Literal* InequalitySplitting::splitLiteral(Literal* lit, Unit::InputType inpType, Clause*& premise)
+Literal* InequalitySplitting::splitLiteral(Literal* lit, UnitInputType inpType, Clause*& premise)
 {
   CALL("InequalitySplitting::splitLiteral");
   ASS(isSplittable(lit));
@@ -185,8 +175,7 @@ Literal* InequalitySplitting::splitLiteral(Literal* lit, Unit::InputType inpType
     predSym->markSkip();
   }
 
-  Inference* inf = new Inference(Inference::INEQUALITY_SPLITTING_NAME_INTRODUCTION);
-  Clause* defCl=new(1) Clause(1, inpType, inf);
+  Clause* defCl=new(1) Clause(1,NonspecificInference0(inpType,InferenceRule::INEQUALITY_SPLITTING_NAME_INTRODUCTION));
   (*defCl)[0]=makeNameLiteral(predNum, t, false);
   _predDefs.push(defCl);
 
@@ -197,7 +186,6 @@ Literal* InequalitySplitting::splitLiteral(Literal* lit, Unit::InputType inpType
   env.statistics->splitInequalities++;
 
   return makeNameLiteral(predNum, s, true);
-
 }
 
 bool InequalitySplitting::isSplittable(Literal* lit)

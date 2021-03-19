@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file Naming.cpp
@@ -109,18 +103,12 @@ FormulaUnit* Naming::apply(FormulaUnit* unit, UnitList*& defs) {
   }
   ASS(UnitList::isNonEmpty(_defs));
   UnitList::Iterator defit(_defs);
-  if(env.clausePriorities){
-    while(defit.hasNext()){
-      Unit* def = defit.next();
-      env.clausePriorities->insert(def,unit->getPriority());
-    }
-  }
+
   defs = _defs;
   UnitList* premises = UnitList::copy(_defs);
   UnitList::push(unit, premises);
   return new FormulaUnit(g,
-      new InferenceMany(Inference::DEFINITION_FOLDING, premises),
-      unit->inputType());
+      FormulaTransformationMany(InferenceRule::DEFINITION_FOLDING, premises));
 } // Naming::apply
 
 Formula* Naming::apply_iter(Formula* top_f) {
@@ -253,12 +241,8 @@ Formula* Naming::apply_iter(Formula* top_f) {
           todo_stack.push(t_new);
         }
       } break;
-
-#if VDEBUG
       default:
-        ASSERTION_VIOLATION_REP(*tas.f)
-        ;
-#endif
+        ASSERTION_VIOLATION_REP(*tas.f);
       }
     } break;
 
@@ -1085,11 +1069,8 @@ Formula* Naming::apply_sub(Formula* f, Where where, int& pos, int& neg) {
     return f;
   }
 
-#if VDEBUG
   default:
-    ASSERTION_VIOLATION_REP(*f)
-    ;
-#endif
+    ASSERTION_VIOLATION_REP(*f);
   }
 } // Naming::apply
 
@@ -1204,8 +1185,7 @@ Formula* Naming::introduceDefinition(Formula* f, bool iff) {
     //TODO do we know the sorts of the free variabls vs?
     def = new QuantifiedFormula(FORALL, vs, 0, def);
   }
-  Inference* inf = new Inference(Inference::PREDICATE_DEFINITION);
-  Unit* definition = new FormulaUnit(def, inf, Unit::AXIOM);
+  Unit* definition = new FormulaUnit(def, NonspecificInference0(UnitInputType::AXIOM,InferenceRule::PREDICATE_DEFINITION));
 
   InferenceStore::instance()->recordIntroducedSymbol(definition, false,
       atom->functor());

@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file Ordering.hpp
@@ -75,6 +69,8 @@ public:
    * @b t1 and @b t2 */
   virtual Result compare(TermList t1,TermList t2) const = 0;
 
+  virtual void show(ostream& out) const = 0;
+
   static bool isGorGEorE(Result r) { return (r == GREATER || r == GREATER_EQ || r == EQUAL); }
 
   virtual Comparison compareFunctors(unsigned fun1, unsigned fun2) const = 0;
@@ -82,6 +78,7 @@ public:
   void removeNonMaximal(LiteralList*& lits) const;
 
   static Result fromComparison(Comparison c);
+  static Comparison intoComparison(Result c);
 
   static Result reverse(Result r)
   {
@@ -162,14 +159,22 @@ class PrecedenceOrdering
 : public Ordering
 {
 public:
-  Result compare(Literal* l1,Literal* l2) const override;
+  Result compare(Literal* l1, Literal* l2) const override;
   Comparison compareFunctors(unsigned fun1, unsigned fun2) const override;
+  void show(ostream&) const override;
+  virtual void showConcrete(ostream&) const = 0;
 
 protected:
   // l1 and l2 are not equalities and have the same predicate
   virtual Result comparePredicates(Literal* l1,Literal* l2) const = 0;
   
+  PrecedenceOrdering(const DArray<int>& funcPrec, const DArray<int>& predPrec, const DArray<int>& predLevels, bool reverseLCM);
+  PrecedenceOrdering(Problem& prb, const Options& opt, const DArray<int>& predPrec);
   PrecedenceOrdering(Problem& prb, const Options& opt);
+
+  static DArray<int> funcPrecFromOpts(Problem& prb, const Options& opt);
+  static DArray<int> predPrecFromOpts(Problem& prb, const Options& opt);
+  static DArray<int> predLevelsFromOptsAndPrec(Problem& prb, const Options& opt, const DArray<int>& predicatePrecedences);
 
   Result compareFunctionPrecedences(unsigned fun1, unsigned fun2) const;
 
@@ -189,6 +194,19 @@ protected:
 
   bool _reverseLCM;
 };
+
+
+inline ostream& operator<<(ostream& out, Ordering::Result const& r) 
+{
+  switch (r) {
+    case Ordering::Result::GREATER: return out << "GREATER";
+    case Ordering::Result::LESS: return out << "LESS";
+    case Ordering::Result::GREATER_EQ: return out << "GREATER_EQ";
+    case Ordering::Result::LESS_EQ: return out << "LESS_EQ";
+    case Ordering::Result::EQUAL: return out << "EQUAL";
+    case Ordering::Result::INCOMPARABLE: return out << "INCOMPARABLE";
+  }
+}
 
 }
 

@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions.
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide.
  */
 /**
  * @file TheoryInstAndSimp.cpp
@@ -70,7 +64,7 @@ void TheoryInstAndSimp::attach(SaturationAlgorithm* salg)
 {
   CALL("Superposition::attach");
 
-  GeneratingInferenceEngine::attach(salg);
+  SimplifyingGeneratingInference::attach(salg);
   _splitter = salg->getSplitter();
 }
 
@@ -206,14 +200,14 @@ bool TheoryInstAndSimp::literalContainsVar(const Literal* lit, unsigned v) {
 /**
  * Scans through a clause C and selects the largest set T s.t. all literals in
  * T are trivial. A literal L is trivial in C if:
- *   1 L is of the form X != s where X does not occur in s
- *   2 L is pure
- *   3 for all literals L' in C that X (different from L) either
+ *   1. L is of the form X != s where X does not occur in s
+ *   2. L is pure
+ *   3. for all literals L' in C that X (different from L) either
  *      + L' is not pure
  *      + L' is trivial in C
+ *
  * some observations:
- *   - consider X != Y + 1 | Y != X - 1 | p(X,Y)
- *     then {} as well as {X != Y+1, Y != X-1} are sets of trivial literals
+ *   - consider X != Y + 1 | Y != X - 1 | p(X,Y): then {}, as well as {X != Y+1, Y != X-1} are sets of trivial literals
  *   - we can partition the clause into pure and impure literals
  *   - trivial literals are always a subset of the pure literals
  *   - a literal that violates condition is pure and not trivial
@@ -336,8 +330,10 @@ void TheoryInstAndSimp::selectTheoryLiterals(Clause* cl, Stack<Literal*>& theory
   cout << "selectTheoryLiterals in " << cl->toString() << endl;
 #endif
 
-  static Shell::Options::TheoryInstSimp selection = env.options->theoryInstAndSimp();
-  ASS(selection!=Shell::Options::TheoryInstSimp::OFF);
+  ASS_NEQ(
+    env.options->theoryInstAndSimp(),
+    Shell::Options::TheoryInstSimp::OFF
+  );
 
   //  Stack<Literal*> pure_lits;
   Stack<Literal*> trivial_lits;
@@ -731,13 +727,12 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
 
 struct InstanceFn
 {
-  InstanceFn(Clause* premise,Clause* cl, Stack<Literal*>& tl,Splitter* splitter,
-             SaturationAlgorithm* salg, TheoryInstAndSimp* parent,bool& red) :
-         _premise(premise),  _cl(cl), _theoryLits(tl), _splitter(splitter),
-         _salg(salg), _parent(parent), _red(red) {}
+  InstanceFn(Clause* cl, Stack<Literal*>& tl,Splitter* splitter,
+             TheoryInstAndSimp* parent,bool& red) :
+          _cl(cl), _theoryLits(tl), _splitter(splitter),
+         _parent(parent), _red(red) {}
 
-  DECL_RETURN_TYPE(Clause*);
-  OWN_RETURN_TYPE operator()(Solution sol)
+  Clause* operator()(Solution sol)
   {
     CALL("TheoryInstAndSimp::InstanceFn::operator()");
 
@@ -790,12 +785,9 @@ partial_check_end:
     Stack<Literal*>::Iterator tit(_theoryLits);
     while(tit.hasNext()){ cout << "\t" << tit.next()->toString() << endl;}
 #endif
-    Inference* inf_inst = new Inference1(Inference::INSTANTIATION,_cl);
-    Clause* inst = new(_cl->length()) Clause(_cl->length(),_cl->inputType(),inf_inst);
-
-    Inference* inf_simp = new Inference1(Inference::INTERPRETED_SIMPLIFICATION,inst);
+    Clause* inst = new(_cl->length()) Clause(_cl->length(),GeneratingInference1(InferenceRule::INSTANTIATION,_cl));
     unsigned newLen = _cl->length() - _theoryLits.size();
-    Clause* res = new(newLen) Clause(newLen,_cl->inputType(),inf_simp);
+    Clause* res = new(newLen) Clause(newLen,SimplifyingInference1(InferenceRule::INTERPRETED_SIMPLIFICATION,inst));
 
 #if VDEBUG
     unsigned skip = 0;
@@ -821,7 +813,6 @@ partial_check_end:
       _splitter->onNewClause(inst);
     }
 
-    res->setAge(_premise->age()+1);
     env.statistics->theoryInstSimp++;
 #if DPRINT
     cout << "to get " << res->toString() << endl;
@@ -830,20 +821,25 @@ partial_check_end:
   }
 
 private:
-  Clause* _premise;
   Clause* _cl;
   Stack<Literal*>& _theoryLits;
   Splitter* _splitter;
-  SaturationAlgorithm* _salg;
   TheoryInstAndSimp* _parent;
   bool& _red;
 };
 
-ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise,bool& premiseRedundant)
+SimplifyingGeneratingInference::ClauseGenerationResult TheoryInstAndSimp::generateSimplify(Clause* premise)
 {
-  CALL("TheoryInstAndSimp::generateClauses");
+  CALL("TheoryInstAndSimp::generateSimplify");
 
-  if(premise->isTheoryDescendant()){ return ClauseIterator::getEmpty(); }
+  auto empty = ClauseGenerationResult {
+    .clauses          = ClauseIterator::getEmpty(),
+    .premiseRedundant = false,
+  };
+
+  if(premise->isPureTheoryDescendant()){ 
+    return empty;
+  }
 
   static Options::TheoryInstSimp thi = env.options->theoryInstAndSimp();
 
@@ -860,14 +856,13 @@ ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise,bool& premiseR
 
   // if there are no eligable theory literals selected then there is nothing to do
   if(selectedLiterals.isEmpty()){
-        return ClauseIterator::getEmpty();
+    return empty;
   }
 
   // we have an eligable candidate
   env.statistics->theoryInstSimpCandidates++;
 
   // TODO use limits
-  //Limits* limits = _salg->getLimits();
 
   Clause* flattened = premise;
   if(thi != Options::TheoryInstSimp::NEW){
@@ -899,7 +894,7 @@ ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise,bool& premiseR
 #endif
     if(theoryLiterals.isEmpty()){
        //cout << "None" << endl;
-       return ClauseIterator::getEmpty();
+       return empty;
     }
     selectedLiterals.reset();
     selectedLiterals.loadFromIterator(Stack<Literal*>::Iterator(theoryLiterals));
@@ -907,12 +902,13 @@ ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise,bool& premiseR
 
   {
     TimeCounter t(TC_THEORY_INST_SIMP);
+    bool premiseRedundant = false;
 
     //auto it1 = getSolutions(theoryLiterals);
     auto it1 = getSolutions(selectedLiterals);
 
     auto it2 = getMappingIterator(it1,
-               InstanceFn(premise,flattened,selectedLiterals,_splitter,_salg,this,premiseRedundant));
+               InstanceFn(flattened,selectedLiterals,_splitter,this,premiseRedundant));
 
     // filter out only non-zero results
     auto it3 = getFilteredIterator(it2, NonzeroFn());
@@ -920,8 +916,27 @@ ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise,bool& premiseR
     // measure time of the overall processing
     auto it4 = getTimeCountedIterator(it3,TC_THEORY_INST_SIMP);
 
-    return pvi(it4);
+    auto clauses =  getPersistentIterator(it4);
+    if (premiseRedundant && env.options->thiTautologyDeletion()) {
+
+      return ClauseGenerationResult {
+        .clauses          = ClauseIterator::getEmpty(),
+        .premiseRedundant = true,
+      };
+    } else {
+
+      return ClauseGenerationResult {
+        .clauses          = clauses,
+        .premiseRedundant = false,
+      };
+    }
   }
+}
+
+std::ostream& operator<<(std::ostream& out, Solution const& self) 
+{
+  return out << "Solution(" << (self.status ? "sat" : "unsat") << ", " << self.subst << ")";
+  // return out;
 }
 
 }

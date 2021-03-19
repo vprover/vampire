@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file LiteralMiniIndex.hpp
@@ -65,13 +59,13 @@ private:
 
   struct BaseIterator
   {
-    BaseIterator(LiteralMiniIndex& index, Literal* query, bool complementary)
+    BaseIterator(LiteralMiniIndex const& index, Literal* query, bool complementary)
     : _ready(false), _hdr(complementary?query->complementaryHeader():query->header()),
     _query(query), _compl(complementary)
     {
       CALL("LiteralMiniIndex::BaseIterator::BaseIterator");
 
-      Entry* arr=index._entries.array();
+      Entry const* arr=index._entries.array();
       unsigned weight=query->weight();
       if(arr[0]._header>=_hdr || index._cnt==1) {
 	_curr=arr;
@@ -104,7 +98,7 @@ private:
     unsigned _hdr;
     Literal* _query;
     bool _compl;
-    Entry* _curr;
+    Entry const* _curr;
   };
 
 public:
@@ -115,7 +109,7 @@ public:
   struct InstanceIterator
   : BaseIterator
   {
-    InstanceIterator(LiteralMiniIndex& index, Literal* base, bool complementary)
+    InstanceIterator(LiteralMiniIndex const& index, Literal* base, bool complementary)
     : BaseIterator(index, base, complementary)
     {}
 

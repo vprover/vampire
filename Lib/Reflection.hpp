@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file Reflection.hpp
@@ -24,6 +18,9 @@
 
 #ifndef __Reflection__
 #define __Reflection__
+
+#include <type_traits>
+#include <initializer_list>
 
 ///@addtogroup Reflection
 ///@{
@@ -76,42 +73,12 @@
 #define OWN_ELEMENT_TYPE _ElementType
 
 /**
- * Declare type returned by a functor class
+ * RETURN_TYPE(F(Args...)) is the returntype of an object F when it's 
+ * operator()(Args...) is called. 
  *
- * To be used inside a public block of declaration of a functor class.
- *
- * A functor class is a class with @b operator() defined, so that its
- * objects can be called as functions. The return type to be declared
- * by this macro is the return type of this operator.
- *
- * Although the macro formally takes variable number of arguments, it
- * should be used only with a single argument. The variable number
- * of formal arguments is to allow for the use of template types,
- * such as pair<int,int>, since the preprocessor considers every
- * comma as an argument separator.
+ * @see std::result_of::type
  */
-#define DECL_RETURN_TYPE(...) typedef __VA_ARGS__ _ReturnType
-
-/**
- * Return type of the functor class @b Cl
- *
- * The class @b Cl must have its return type declared by the
- * @b DECL_RETURN_TYPE macro in order for this macro to be applicable
- *
- * @see DECL_RETURN_TYPE
- */
-#define RETURN_TYPE(Cl) typename Cl::_ReturnType
-
-/**
- * Return type of the current functor class
- *
- * The current class must have its return type declared by the
- * @b DECL_RETURN_TYPE macro in order for this macro to be applicable
- *
- * @see DECL_RETURN_TYPE
- */
-#define OWN_RETURN_TYPE _ReturnType
-
+#define RETURN_TYPE(...) typename std::result_of<__VA_ARGS__>::type 
 
 /**
  * Declare the iterator type for a container class
@@ -206,6 +173,11 @@ template<typename T>
 struct ElementTypeInfo<T*>
 {
   typedef T Type;
+};
+
+template<class C> 
+struct ElementTypeInfo<std::initializer_list<C>> {
+  using Type = C;
 };
 
 /**

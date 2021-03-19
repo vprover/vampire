@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file SubstitutionTree.cpp
@@ -259,9 +253,10 @@ start:
     BindingMap::Iterator svit(svBindings);
     BinaryHeap<Binding, BindingComparator> remainingBindings;
     while (svit.hasNext()) {
-      Binding b;
-      svit.next(b.var, b.term);
-      remainingBindings.insert(b);
+      unsigned var;
+      TermList term;
+      svit.next(var, term);
+      remainingBindings.insert(Binding(var, term));
     }
     while (!remainingBindings.isEmpty()) {
       Binding b=remainingBindings.pop();
@@ -925,6 +920,16 @@ bool SubstitutionTree::UnificationsIterator::enter(Node* n, BacktrackData& bd)
   return success;
 }
 
+
+bool SubstitutionTree::SubstitutionTreeMismatchHandler::introduceConstraint(RobSubstitution* subst,TermList query,unsigned index1, TermList node,unsigned index2)
+{
+    CALL("SubstitutionTree::MismatchHandler::introduceConstraint");
+        auto constraint = make_pair(make_pair(query,index1),make_pair(node,index2));
+        _constraints.backtrackablePush(constraint,_bd);
+        return true;
+}
+
+
 /**
  * TODO: explain properly what associate does
  * called from enter(...)
@@ -933,70 +938,11 @@ bool SubstitutionTree::UnificationsIterator::associate(TermList query, TermList 
 {
   CALL("SubstitutionTree::UnificationsIterator::associate");
 
-  // check for syntactic (robinson) unifiability
-  bool result = subst.unify(query,NORM_QUERY_BANK,node,NORM_RESULT_BANK);
-
-#if VDEBUG
-  if(tag && result){
-    cout << "unify " << query.toString() << " and " << node.toString() << endl;
-  }
-#endif
-
-  // if unification with abstraction enabled and no syntactic unifier exists
-  if(useConstraints && !result){
-    TermList queryTranslated = subst.apply(query,NORM_QUERY_BANK);
-    TermList nodeTranslated = subst.apply(node,NORM_RESULT_BANK);
-
-    static Options::UnificationWithAbstraction opt = env.options->unificationWithAbstraction();
-    
-    bool okay = queryTranslated.isTerm() && nodeTranslated.isTerm();
-
-    if(okay){
-
-      bool queryInterp = (theory->isInterpretedFunction(queryTranslated) || theory->isInterpretedConstant(queryTranslated)); 
-      bool nodeInterp = (theory->isInterpretedFunction(nodeTranslated) || theory->isInterpretedConstant(nodeTranslated)); 
-      bool bothNumbers = (theory->isInterpretedConstant(queryTranslated) && theory->isInterpretedConstant(nodeTranslated));
-    
-      switch(opt){
-        case Options::UnificationWithAbstraction::INTERP_ONLY:
-          okay &= (queryInterp && nodeInterp && !bothNumbers); 
-          break;
-        case Options::UnificationWithAbstraction::ONE_INTERP:
-          okay &= !bothNumbers && (queryInterp || nodeInterp);
-          break;
-        case Options::UnificationWithAbstraction::CONSTANT:
-          okay &= !bothNumbers && (queryInterp || nodeInterp);
-          okay &= (queryInterp || env.signature->functionArity(queryTranslated.term()->functor()));
-          okay &= (nodeInterp || env.signature->functionArity(nodeTranslated.term()->functor()));
-          break;  
-        case Options::UnificationWithAbstraction::ALL:
-        case Options::UnificationWithAbstraction::FIXED:
-        case Options::UnificationWithAbstraction::GROUND:
-          break;
-        default:
-          ASSERTION_VIOLATION; 
-      }
-      // ALL means no restrictions
-
-      if(okay){
-
-        //cout << "Add Constraint " << queryTranslated.toString() << " =  " << nodeTranslated.toString() << endl;
-        //cout << "Without translation " << query.toString() << " = " << node.toString() << endl;
-        //cout << "SUB " << endl << subst.toString() << endl; 
-
-        unsigned x = tree->_nextVar++;
-        TermList nodeVar = TermList(x,true);
-        subst.bindSpecialVar(x,node,NORM_RESULT_BANK);
-#if VDEBUG
-        //cout << "constraint " << query.toString() << " = " << nodeVar.toString() << endl;
-#endif
-        pair<TermList,TermList> constraint = make_pair(query,nodeVar);
-        constraints.backtrackablePush(constraint,bd);
-        return true;
-      }
-    }
-  }
-  return result;
+  if(useConstraints){ 
+    SubstitutionTreeMismatchHandler hndlr(constraints,tree,bd);
+    return subst.unify(query,NORM_QUERY_BANK,node,NORM_RESULT_BANK,&hndlr);
+  } 
+  return subst.unify(query,NORM_QUERY_BANK,node,NORM_RESULT_BANK);
 }
 
 SubstitutionTree::NodeIterator

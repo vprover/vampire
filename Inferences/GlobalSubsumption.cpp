@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file GlobalSubsumption.cpp
@@ -217,7 +211,7 @@ Clause* GlobalSubsumption::perform(Clause* cl, Stack<Unit*>& prems)
         SATInference::collectFilteredFOPremises(ref, prems,
           // Some solvers may return "all the clauses added so far" in the refutation.
           // That must be filtered since a derived clause cannot depend on inactive splits
-          [this,cl] (SATClause* prem) {
+          [this] (SATClause* prem) {
 
             // ignore ASSUMPTION clauses (they don't have FO premises anyway)
             if (prem->inference()->getType() == SATInference::ASSUMPTION) {
@@ -247,17 +241,19 @@ Clause* GlobalSubsumption::perform(Clause* cl, Stack<Unit*>& prems)
           UnitList::push(us, premList);
         }
         
-        SATClauseList* satPremises = solver.getRefutationPremiseList();
+        SATClauseList* satPremises = env.options->minimizeSatProofs() ?
+            solver.getRefutationPremiseList() : nullptr; // getRefutationPremiseList may be nullptr already, if our solver does not support minimization
 
-        Inference* inf = satPremises ? // does our SAT solver support postponed minimization?
-             new InferenceFromSatRefutation(Inference::GLOBAL_SUBSUMPTION, premList, satPremises, failedFinal) :
-             new InferenceMany(Inference::GLOBAL_SUBSUMPTION, premList);
-
-        Clause* replacement = Clause::fromIterator(LiteralStack::BottomFirstIterator(survivors),cl->inputType(), inf);
-        replacement->setAge(cl->age());
-        
+        Inference inf(FromSatRefutation(InferenceRule::GLOBAL_SUBSUMPTION, premList, satPremises, failedFinal));
+        // CAREFUL:
+        // FromSatRefutation does not automatically propagate age
+        inf.setAge(cl->age());
+        // also, let's not propagate inputType from the whole big (non-minimized) set of premises (which probably already contains a piece of the conjecture)
+        inf.setInputType(cl->inputType());
         // Splitter will set replacement's splitSet, so we don't have to do it here
-                
+
+        Clause* replacement = Clause::fromIterator(LiteralStack::BottomFirstIterator(survivors),inf);
+
         env.statistics->globalSubsumption++;
         ASS_L(replacement->length(), clen);
         
@@ -274,8 +270,7 @@ Clause* GlobalSubsumption::perform(Clause* cl, Stack<Unit*>& prems)
  */
 struct GlobalSubsumption::Unit2ClFn
 {
-  DECL_RETURN_TYPE(Clause*);
-  OWN_RETURN_TYPE operator() (Unit* us) {
+  Clause* operator() (Unit* us) {
     return us->asClause();
   }
 };

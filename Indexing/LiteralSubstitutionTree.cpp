@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file LiteralSubstitutionTree.cpp
@@ -122,16 +116,14 @@ SLQueryResultIterator LiteralSubstitutionTree::getInstances(Literal* lit,
 
 struct LiteralSubstitutionTree::SLQueryResultFunctor
 {
-  DECL_RETURN_TYPE(SLQueryResult);
-  OWN_RETURN_TYPE operator() (const QueryResult& qr) {
+  SLQueryResult operator() (const QueryResult& qr) {
     return SLQueryResult(qr.first.first->literal, qr.first.first->clause, qr.first.second,qr.second);
   }
 };
 
 struct LiteralSubstitutionTree::LDToSLQueryResultFn
 {
-  DECL_RETURN_TYPE(SLQueryResult);
-  OWN_RETURN_TYPE operator() (const LeafData& ld) {
+  SLQueryResult operator() (const LeafData& ld) {
     return SLQueryResult(ld.literal, ld.clause);
   }
 };
@@ -145,8 +137,7 @@ struct LiteralSubstitutionTree::LDToSLQueryResultWithSubstFn
   {
     _subst=RobSubstitutionSP(new RobSubstitution());
   }
-  DECL_RETURN_TYPE(SLQueryResult);
-  OWN_RETURN_TYPE operator() (const LeafData& ld) {
+  SLQueryResult operator() (const LeafData& ld) {
     return SLQueryResult(ld.literal, ld.clause,
 	    ResultSubstitution::fromSubstitution(_subst.ptr(),
 		    QRS_QUERY_BANK,QRS_RESULT_BANK));
@@ -186,8 +177,7 @@ private:
 
 struct LiteralSubstitutionTree::LeafToLDIteratorFn
 {
-  DECL_RETURN_TYPE(LDIterator);
-  OWN_RETURN_TYPE operator() (Leaf* l) {
+  LDIterator operator() (Leaf* l) {
     return l->allChildren();
   }
 };
@@ -198,8 +188,7 @@ struct LiteralSubstitutionTree::PropositionalLDToSLQueryResultWithSubstFn
   {
     _subst=ResultSubstitutionSP (new DisjunctQueryAndResultVariablesSubstitution()); 
   }
-  DECL_RETURN_TYPE(SLQueryResult);
-  OWN_RETURN_TYPE operator() (const LeafData& ld) {
+  SLQueryResult operator() (const LeafData& ld) {
     ASS_EQ(ld.literal->arity(),0);
     return SLQueryResult(ld.literal, ld.clause, _subst);
   }
@@ -263,7 +252,6 @@ SLQueryResultIterator LiteralSubstitutionTree::getAll()
 
 struct LiteralSubstitutionTree::EqualitySortFilter
 {
-  DECL_RETURN_TYPE(bool);
 
   EqualitySortFilter(Literal* queryLit)
   : _queryEqSort(SortHelper::getEqualityArgumentSort(queryLit)) {}

@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file Instantiation.cpp
@@ -52,8 +46,7 @@ using namespace Kernel;
 struct IntToIntTermFn
 {
   IntToIntTermFn(){}
-  DECL_RETURN_TYPE(Term*);
-  OWN_RETURN_TYPE operator()(unsigned int i)
+  Term* operator()(unsigned int i)
   {
     return theory->representConstant(IntegerConstantType(i));
   }
@@ -61,8 +54,7 @@ struct IntToIntTermFn
 struct IntToRatTermFn
 {
   IntToRatTermFn(){}
-  DECL_RETURN_TYPE(Term*);
-  OWN_RETURN_TYPE operator()(unsigned int i)
+  Term* operator()(unsigned int i)
   {
     return theory->representConstant(RationalConstantType(i,1));
   }
@@ -70,8 +62,7 @@ struct IntToRatTermFn
 struct IntToRealTermFn
 {
   IntToRealTermFn(){}
-  DECL_RETURN_TYPE(Term*);
-  OWN_RETURN_TYPE operator()(unsigned int i)
+  Term* operator()(unsigned int i)
   {
     return theory->representConstant(RealConstantType(RationalConstantType(i,1)));
   }
@@ -80,8 +71,7 @@ struct IntToRealTermFn
 struct InvertNumber
 {
   InvertNumber();
-  DECL_RETURN_TYPE(unsigned);
-  OWN_RETURN_TYPE operator()(unsigned int i){ return -i; }
+  unsigned operator()(unsigned int i){ return -i; }
 };
 
 void Instantiation::init(){
@@ -255,6 +245,7 @@ VirtualIterator<Term*> Instantiation::getCandidateTerms(Clause* cl, unsigned var
 
 class Instantiation::AllSubstitutionsIterator{
 public:
+  DECL_ELEMENT_TYPE(Substitution);
   AllSubstitutionsIterator(Clause* cl,Instantiation* ins)
   {
     CALL("Instantiation::AllSubstitutionsIterator");
@@ -315,15 +306,12 @@ private:
 struct Instantiation::ResultFn
 {
   ResultFn(Clause* cl) : _cl(cl) {}
-  DECL_RETURN_TYPE(Clause*);
-  OWN_RETURN_TYPE operator()(Substitution sub)
+  Clause* operator()(Substitution sub)
   {
     CALL("Instantiation::ResultFn::operator()");
 
-    Inference* inf = new Inference1(Inference::INSTANTIATION,_cl);
     unsigned clen = _cl->length();
-    Clause* res = new(clen) Clause(clen,_cl->inputType(),inf);
-    res->setAge(_cl->age()+1);
+    Clause* res = new(clen) Clause(clen,GeneratingInference1(InferenceRule::INSTANTIATION,_cl));
 
     for(unsigned i=0;i<clen;i++){
       (*res)[i] = SubstHelper::apply((*_cl)[i],sub);

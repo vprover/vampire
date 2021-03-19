@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file Shell/Preprocess.cpp
@@ -238,12 +232,8 @@ void Preprocess::preprocess(Problem& prb)
     DistinctGroupExpansion().apply(prb);
   }
 
-  if (_options.sineToAge() || (_options.sineToPredLevels() != Options::PredicateSineLevels::OFF)) {
+  if (_options.sineToAge() || _options.useSineLevelSplitQueues() || (_options.sineToPredLevels() != Options::PredicateSineLevels::OFF)) {
     env.statistics->phase=Statistics::SINE_SELECTION;
-
-    if (_options.sineToAge()) {
-      env.clauseSineLevels = new DHMap<const Unit*,unsigned>();
-    }
 
     if (_options.sineToPredLevels() != Options::PredicateSineLevels::OFF) {
       env.predicateSineLevels = new DHMap<unsigned,unsigned>();

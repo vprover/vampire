@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file Kernel/Problem.cpp
@@ -88,6 +82,8 @@ Problem::~Problem()
   if(_property) { delete _property; }
 
   //TODO: decrease reference counter of clauses (but make sure there's no segfault...)
+
+  UnitList::destroy(_units);
 }
 
 /**
@@ -290,8 +286,8 @@ void Problem::refreshProperty() const
   }
   _propertyValid = true;
   _property = Property::scan(_units);
+  ASS(_property);
   _property->setSMTLIBLogic(getSMTLIBLogic());
-
   readDetailsFromProperty();
 }
 
@@ -433,10 +429,10 @@ void Problem::collectPredicates(Stack<unsigned>& acc) const
   }
 }
 
+#if VDEBUG
 ///////////////////////
 // debugging
 //
-
 void Problem::assertValid()
 {
   CALL("Problem::assertValid");
@@ -447,3 +443,4 @@ void Problem::assertValid()
     ASSERT_VALID(*u);
   }
 }
+#endif

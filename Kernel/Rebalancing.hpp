@@ -1,3 +1,16 @@
+
+  /*
+   * File Rebalancing.hpp.
+   *
+   * This file is part of the source code of the software program
+   * Vampire. It is protected by applicable
+   * copyright laws.
+   *
+   * This source code is distributed under the licence found here
+   * https://vprover.github.io/license.html
+   * and in the source directory
+   */
+
 #ifndef __REBALANCING_H__
 #define __REBALANCING_H__
 
@@ -7,8 +20,7 @@
 #include "SortHelper.hpp"
 
 
-#define DEBUG(...) //DBG(__VA_ARGS__)
-#define DEBUG_ME DEBUG(_balancer._lit.toString(), " @ ", _litIndex , " ", _path, " --> ", derefPath())
+#define DEBUG(...) // DBG(__VA_ARGS__)
 
 #define CALL_DBG(...) CALL(__VA_ARGS__)
 
@@ -102,6 +114,7 @@ namespace Kernel {
       const TermList _toWrap;
       const unsigned _unwrapIdx;
       public: 
+      friend std::ostream& operator<<(std::ostream& out, const InversionContext&);
       InversionContext(const Term& toInvert, unsigned unwrapIdx, const TermList toWrap) : 
         _toInvert(toInvert),
         _toWrap(toWrap),
@@ -117,13 +130,6 @@ namespace Kernel {
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////// IMPLEMENTATION
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-// namespace Kernel {
-//
-// namespace Rebalancing {
-//
-#define UNIMPLEMENTED \
-  ASSERTION_VIOLATION
 
 template<class C> 
 Balancer<C>::Balancer(const Literal& l) : _lit(l) { }
@@ -173,15 +179,14 @@ template<class C> TermList BalanceIter<C>::derefPath() const
 
 template<class C> bool BalanceIter<C>::canInvert() const 
 {
-  // auto ctxt = _path.isEmpty() ? InversionContext(_balancer._lit[_litIndex], _)
-  //   : InversionContext(_path.top().term(), _path.top().index(), _balancer._lit[1 - _litIndex]);
+  CALL("Balancer::canInver()")
   if (_path.isEmpty()) {
+    DEBUG("can invert empty")
     return true;/* <- we can 'invert' an equality by doing nothing*/
   } else {
     auto ctxt = InversionContext(_path.top().term(), _path.top().index(), _balancer._lit[1 - _litIndex]);
     return C::canInvertTop(ctxt);
   }
-  // return C::canInvertTop(ctxt);
 }
 
 /** moves to the next invertible point in the term */
@@ -189,7 +194,6 @@ template<class C> void BalanceIter<C>::incrementPath()
 { 
   CALL_DBG("BalanceIter::incrementPath")
 
-  // auto canInvert = [this]() -> bool { return derefPath().isTerm() && derefPath().term()->arity() > 0  && true; };//TODO
   auto peak = [&]() -> Node& { return _path.top(); };
   auto incPeak = [&]() {
      ++peak()._index;
@@ -206,7 +210,6 @@ template<class C> void BalanceIter<C>::incrementPath()
       incPeak();
   };
   do {
-    DEBUG_ME
 
     if ( derefPath().isTerm()  
         && derefPath().term()->arity() > 0 
@@ -245,7 +248,6 @@ template<class C> void BalanceIter<C>::findNextVar()
   CALL_DBG("BalanceIter::findNextVar")
 
   while(inBounds() && !derefPath().isVar() ) {
-    DEBUG_ME
     incrementPath();
   }
 }

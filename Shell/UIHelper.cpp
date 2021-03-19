@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file UIHelper.cpp
@@ -23,7 +17,7 @@
 
 #include <fstream>
 
-#include <stdlib.h>
+#include <cstdlib>
 #include <sys/types.h>
 #include <unistd.h>
 #include <iostream>
@@ -51,7 +45,6 @@
 #include "LispLexer.hpp"
 #include "LispParser.hpp"
 #include "Options.hpp"
-#include "SimplifyProver.hpp"
 #include "Statistics.hpp"
 #include "TPTPPrinter.hpp"
 #include "UIHelper.hpp"
@@ -134,6 +127,9 @@ ostream& addCommentSignForSZS(ostream& out)
 
 bool UIHelper::s_haveConjecture=false;
 bool UIHelper::s_proofHasConjecture=true;
+
+bool UIHelper::s_expecting_sat=false;
+bool UIHelper::s_expecting_unsat=false;
 
 void UIHelper::outputAllPremises(ostream& out, UnitList* units, vstring prefix)
 {
@@ -227,15 +223,6 @@ Problem* UIHelper::getInputProblem(const Options& opts)
 
   UnitList* units;
   switch (opts.inputSyntax()) {
-  case Options::InputSyntax::SIMPLIFY:
-  {
-    Shell::LispLexer lexer(*input);
-    Shell::LispParser parser(lexer);
-    LispParser::Expression* expr = parser.parse();
-    SimplifyProver simplify;
-    units = simplify.units(expr);
-  }
-  break;
   case Options::InputSyntax::TPTP:
     {
       Parse::TPTP parser(*input);
@@ -250,20 +237,22 @@ Problem* UIHelper::getInputProblem(const Options& opts)
       s_haveConjecture=parser.containsConjecture();
     }
     break;
+/*
   case Options::InputSyntax::SMTLIB:
-    /*  {
+      {
         Parse::SMTLIB parser(opts);
         parser.parse(*input);
         units = parser.getFormulas();
         s_haveConjecture=true;
       }
-      break; */
+      break; 
     if (outputAllowed()) {
       env.beginOutput();
       addCommentSignForSZS(env.out());
       env.out() << "Vampire no longer supports the old smtlib format, trying with smtlib2 instead." << endl;
       env.endOutput();
     }
+*/
   case Options::InputSyntax::SMTLIB2:
   {
 	  Parse::SMTLIB2 parser(opts);
@@ -273,6 +262,15 @@ Problem* UIHelper::getInputProblem(const Options& opts)
 	  units = parser.getFormulas();
     smtLibLogic = parser.getLogic();
 	  s_haveConjecture=false;
+
+#if VDEBUG
+	  const vstring& expected_status = parser.getStatus();
+	  if (expected_status == "sat") {
+	    s_expecting_sat = true;
+	  } else if (expected_status == "unsat") {
+	    s_expecting_unsat = true;
+	  }
+#endif
 
 	  break;
   }
@@ -329,7 +327,7 @@ static void printInterpolationProofTask(ostream& out, Formula* intp, Color avoid
     }
   }
 
-  FormulaUnit* intpUnit = new FormulaUnit(negate ? new NegatedFormula(intp) : intp,new Inference(Inference::INPUT),Unit::CONJECTURE);
+  FormulaUnit* intpUnit = new FormulaUnit(negate ? new NegatedFormula(intp) : intp,new Inference0(Inference::INPUT),Unit::CONJECTURE);
   out << TPTPPrinter::toString(intpUnit) << "\n";
 }
 */
@@ -370,6 +368,8 @@ void UIHelper::outputResult(ostream& out)
       if (szsOutputMode()) {
         out << "% SZS output end Proof for " << env.options->problemName() << endl << flush;
       }
+      // outputProof could have triggered proof minimization which might have cause inductionDepth to change (in fact, decrease)
+      env.statistics->maxInductionDepth = env.statistics->refutation->inference().inductionDepth();
     }
     if (env.options->showInterpolant()!=Options::InterpolantMode::OFF) {
       ASS(env.statistics->refutation->isClause());
@@ -430,6 +430,9 @@ void UIHelper::outputResult(ostream& out)
       LaTeX formatter;
       latexOut << formatter.refutationToString(env.statistics->refutation);
     }
+
+    ASS(!s_expecting_sat);
+
     break;
   case Statistics::TIME_LIMIT:
     if(env.options->outputMode() == Options::Output::SMTCOMP){
@@ -472,6 +475,9 @@ void UIHelper::outputResult(ostream& out)
       return;
     }
     outputSatisfiableResult(out);
+
+    ASS(!s_expecting_unsat);
+
     break;
   case Statistics::SAT_SATISFIABLE:
     outputSatisfiableResult(out);
@@ -678,51 +684,6 @@ ConstraintRCList* UIHelper::getInputConstraints(const Options& opts)
   case Options::InputSyntax::TPTP:
     USER_ERROR("Format not supported for BPA");
     break;
-#if 0
-  case Options::InputSyntax::SMTLIB:
-  case Options::InputSyntax::SMTLIB2:
-  {
-    Parse::SMTLIB parser(opts);
-    parser.parse(*input);
-    UnitList* ulist = parser.getFormulas();
-    UnitList::Iterator ite(ulist);
-    while (ite.hasNext())
-    {
-      Unit* u = ite.next();
-      if ( !u->isClause()) {
-	Formula* f = u->getFormula();
-	std::cout << f->toString();
-      }
-
-
-    }
-    ASSERTION_VIOLATION;
-    s_haveConjecture=true;
-    SMTConstraintReader rdr(parser);
-    res = rdr.constraints();
-    break;
-    
-    /*
-    std::cout << "doing the constraint reading" << std::endl;
-    Parse::SMTLIB parser1(*env.options);
-  
-    vstring inputFile = env.options->inputFile();
-    std::cout << inputFile << std::endl;
-    istream* input;
-    if (inputFile=="") {
-      input=&cin;
-    } else {
-      input=new ifstream(inputFile.c_str());
-      if (input->fail()) {
-	USER_ERROR("Cannot open problem file: "+inputFile);
-      }
-    }
-  
-    parser1.parse(*input);
-    std::cout << parser1.getLispFormula()->toString() << std::endl;
-     */
-  }
-#endif
   case Options::InputSyntax::SMTLIB:
   {
     SMTLexer lex(*input);
@@ -752,13 +713,6 @@ ConstraintRCList* UIHelper::getInputConstraints(const Options& opts)
     MpsConstraintReader creader(*m);
     res = creader.constraints();
 
-#if 0
-    ConstraintRCList::Iterator ite(res);
-    while (ite.hasNext())
-	std::cout << ite.next()->toString() << std::endl;
-    throw TimeLimitExceededException();
-    ASSERTION_VIOLATION;
-#endif 
     break;
   }
   case Options::InputSyntax::HUMAN:

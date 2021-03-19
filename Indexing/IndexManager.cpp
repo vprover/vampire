@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file IndexManager.cpp
@@ -28,7 +22,6 @@
 #include "Saturation/SaturationAlgorithm.hpp"
 
 #include "AcyclicityIndex.hpp"
-#include "ArithmeticIndex.hpp"
 #include "CodeTreeInterfaces.hpp"
 #include "GroundingIndex.hpp"
 #include "LiteralIndex.hpp"
@@ -151,7 +144,8 @@ Index* IndexManager::create(IndexType t)
   TermIndexingStructure* tis;
 
   bool isGenerating;
-  static bool useConstraints = env.options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF;
+  static bool const useConstraints = env.options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF;
+
   switch(t) {
   case GENERATING_SUBST_TREE:
     is=new LiteralSubstitutionTree(useConstraints);
@@ -228,6 +222,12 @@ Index* IndexManager::create(IndexType t)
     isGenerating = false;
     break;
 
+  case FSD_SUBST_TREE:
+    is = new LiteralSubstitutionTree();
+    res = new FSDLiteralIndex(is);
+    isGenerating = false;
+    break;
+
   case REWRITE_RULE_SUBST_TREE:
     is=new LiteralSubstitutionTree();
     res=new RewriteRuleIndex(is, _alg->getOrdering());
@@ -238,11 +238,6 @@ Index* IndexManager::create(IndexType t)
     res = new GroundingIndex(_alg->getOptions());
     isGenerating = false;
     break;
-
-//  case ARITHMETIC_INDEX:
-//    res=new ArithmeticIndex();
-//    isGenerating = false;
-//    break;
 
   default:
     INVALID_OPERATION("Unsupported IndexType.");

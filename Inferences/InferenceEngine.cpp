@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file InferenceEngine.cpp
@@ -26,10 +20,10 @@
 #include "Lib/DArray.hpp"
 #include "Lib/List.hpp"
 #include "Lib/Metaiterators.hpp"
+#include "Kernel/Ordering.hpp"
 
 #include "Kernel/Term.hpp"
 #include "Kernel/Clause.hpp"
-#include "Kernel/Inference.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
@@ -38,6 +32,7 @@
 #include "InferenceEngine.hpp"
 
 #define DEBUG_DUPLICATE_LITERALS 0
+#define DEBUG(...) //DBG(__VA_ARGS__)
 
 namespace Inferences
 {
@@ -151,10 +146,9 @@ void CompositeISE::detach()
 
 struct GeneratingFunctor
 {
-  DECL_RETURN_TYPE(ClauseIterator);
 
   GeneratingFunctor(Clause* cl) : cl(cl) {}
-  OWN_RETURN_TYPE operator() (GeneratingInferenceEngine* gie)
+  ClauseIterator operator() (GeneratingInferenceEngine* gie)
   { return gie->generateClauses(cl); }
   Clause* cl;
 };
@@ -189,6 +183,67 @@ void CompositeGIE::detach()
     eit=eit->tail();
   }
   GeneratingInferenceEngine::detach();
+}
+
+void CompositeSGI::detach()
+{ 
+  for (auto g : _generators) {
+    g->detach();
+  }
+  for (auto s : _simplifiers) {
+    s->detach();
+  }
+}
+
+
+void CompositeSGI::attach(SaturationAlgorithm* sa)
+{ 
+  for (auto g : _generators) {
+    g->attach(sa);
+  }
+  for (auto s : _simplifiers) {
+    s->attach(sa);
+  }
+}
+
+void CompositeSGI::push(SimplifyingGeneratingInference* gen)
+{ _simplifiers.push(gen); }
+
+void CompositeSGI::push(GeneratingInferenceEngine* gen)
+{ _generators.push(gen); }
+
+CompositeSGI::ClauseGenerationResult CompositeSGI::generateSimplify(Kernel::Clause* cl)
+{
+  auto redundant = false;
+  Stack<ClauseIterator> clauses;
+  /* apply generations as until a redundancy is discovered */
+  for (auto simpl : _simplifiers) {
+    auto res = simpl->generateSimplify(cl);
+    clauses.push(res.clauses);
+    if (res.premiseRedundant) {
+      redundant = true;
+      break;
+    }
+  }
+  if (!redundant) {
+    /* apply strictly generating rules if there hasn't been a redundancy */
+    for (auto gen : _generators) {
+      clauses.push(gen->generateClauses(cl));
+    }
+  }
+  return ClauseGenerationResult {
+    .clauses          = pvi(getFlattenedIterator(ownedArrayishIterator(std::move(clauses)))),
+    .premiseRedundant = redundant,
+  };
+}
+
+CompositeSGI::~CompositeSGI() {
+  for (auto gen : _generators) {
+    delete gen;
+  }
+  for (auto simpl : _simplifiers) {
+    delete simpl;
+  }
 }
 
 
@@ -254,9 +309,7 @@ Clause* DuplicateLiteralRemovalISE::simplify(Clause* c)
   // now lits[0 ... newLength-1] contain the remaining literals
   Clause* d = new(newLength)
 		 Clause(newLength,
-			c->inputType(),
-			new Inference1(Inference::REMOVE_DUPLICATE_LITERALS,
-				       c));
+			 SimplifyingInference1(InferenceRule::REMOVE_DUPLICATE_LITERALS,c));
 
   int origIdx = length-1;
 
@@ -270,7 +323,6 @@ Clause* DuplicateLiteralRemovalISE::simplify(Clause* c)
   }
   ASS(skipped.isEmpty());
   ASS_EQ(origIdx,-1);
-  d->setAge(c->age());
   env.statistics->duplicateLiterals += length - newLength;
 
 #if DEBUG_DUPLICATE_LITERALS
@@ -321,18 +373,137 @@ Clause* TrivialInequalitiesRemovalISE::simplify(Clause* c)
   }
 
   int newLength = length - found;
-  Clause* d = new(newLength)
-                Clause(newLength,
-		       c->inputType(),
-		       new Inference1(Inference::TRIVIAL_INEQUALITY_REMOVAL,
-				      c));
+  Clause* d = new(newLength) Clause(newLength,
+		            SimplifyingInference1(InferenceRule::TRIVIAL_INEQUALITY_REMOVAL,c));
   for (int i = newLength-1;i >= 0;i--) {
     (*d)[i] = lits[newLength-i-1];
   }
-  d->setAge(c->age());
   env.statistics->trivialInequalities += found;
 
   return d;
 }
+
+Clause* SimplifyingGeneratingInference1::simplify(Clause* cl) 
+{
+  CALL("SimplifyingGeneratingInference1::simplify(Clause*)")
+  if (cl->isTheoryAxiom()) {
+    DEBUG("skipping theory axiom")
+    return cl;
+  }
+  return this->simplify(cl, false).simplified;
+}
+
+ImmediateSimplificationEngine& SimplifyingGeneratingInference1::asISE() 
+{ return *this; }
+
+
+
+SimplifyingGeneratingInference::ClauseGenerationResult SimplifyingGeneratingInference1::generateSimplify(Clause* cl) {
+  CALL("SimplifyingGeneratingInference1::generateClauses(Clause*)")
+  auto gen = this->simplify(cl, true);
+  auto simpl = gen.simplified;
+  auto redundant = gen.premiseRedundant;
+
+  if (simpl == cl) {
+    return ClauseGenerationResult {
+      .clauses = ClauseIterator::getEmpty(),
+      .premiseRedundant = false,
+    };
+
+  } else {
+    return ClauseGenerationResult {
+      .clauses = simpl == nullptr 
+        ? ClauseIterator::getEmpty()
+        : pvi(getSingletonIterator(simpl)),
+      .premiseRedundant = redundant && !cl->isTheoryAxiom(),
+    };
+  }
+}
+
+SimplifyingGeneratingInference1::Result SimplifyingGeneratingLiteralSimplification::simplify(Clause* cl_, bool doOrderingCheck) {
+  DEBUG("in:  ", *cl_)
+  auto& cl = *cl_;
+  Stack<Literal*> out(cl.size());
+
+  bool changed = false;
+  bool allLessEq = true;
+  bool oneLess = false;
+
+  for (int i = 0; i < cl.size(); i++) {
+
+    auto orig = cl[i];
+    auto result = simplifyLiteral(orig);
+
+    if (result.isLiteral() && result.unwrapLiteral() == orig ) {
+      out.push(orig);
+    } else {
+      auto simpl = result;
+      env.statistics->evaluationCnt++;
+
+      if (simpl.isConstant()) {
+
+        bool trivialValue = simpl.unwrapConstant();
+        if (trivialValue) {
+          /* clause is a tautology and can be deleted */
+          return SimplifyingGeneratingInference1::Result::tautology();
+        } else {
+          /* do not add the literal to the output stack */
+          changed = true;
+        }
+
+      } else {
+
+        Literal* simplLit = simpl.unwrapLiteral();
+        ASS_NEQ(simplLit, orig)
+        changed = true;
+        out.push(simplLit);
+
+        if (doOrderingCheck) {
+          ASS(_ordering)
+          auto cmp = _ordering->compare(simplLit, orig);
+          switch(cmp) {
+            case Ordering::Result::LESS:
+              oneLess = true;
+              break;
+            case Ordering::Result::LESS_EQ:
+            case Ordering::Result::EQUAL:
+              ASSERTION_VIOLATION
+              break;
+            case Ordering::Result::INCOMPARABLE:
+            case Ordering::Result::GREATER:
+            case Ordering::Result::GREATER_EQ:
+              if (cmp == Ordering::Result::INCOMPARABLE) {
+                env.statistics->evaluationIncomp++;
+              } else {
+                env.statistics->evaluationGreater++;
+              }
+              DEBUG("ordering violated: ", cmp)
+              DEBUG("orig: ", *orig)
+              DEBUG("simp: ", *simplLit)
+              allLessEq = false;
+              break;
+          }
+        }
+      }
+    }
+  }
+
+
+  if (!changed) {
+    return SimplifyingGeneratingInference1::Result::nop(cl_);
+  } else {
+    auto result = Clause::fromStack(out, SimplifyingInference1(_rule, cl_));
+    DEBUG("out: ", *result)
+    return SimplifyingGeneratingInference1::Result{
+            .simplified = result, 
+            .premiseRedundant = allLessEq && oneLess,
+          };
+  }
+}
+
+SimplifyingGeneratingLiteralSimplification::SimplifyingGeneratingLiteralSimplification(InferenceRule rule, Ordering& ordering): _ordering(&ordering), _rule(rule) {}
+
+
+
 
 }

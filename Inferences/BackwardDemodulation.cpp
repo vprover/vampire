@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file BackwardDemodulation.cpp
@@ -75,8 +69,7 @@ void BackwardDemodulation::detach()
 
 struct BackwardDemodulation::RemovedIsNonzeroFn
 {
-  DECL_RETURN_TYPE(bool);
-  OWN_RETURN_TYPE operator() (BwSimplificationRecord arg)
+  bool operator() (BwSimplificationRecord arg)
   {
     return arg.toRemove!=0;
   }
@@ -85,8 +78,7 @@ struct BackwardDemodulation::RemovedIsNonzeroFn
 struct BackwardDemodulation::RewritableClausesFn
 {
   RewritableClausesFn(DemodulationSubtermIndex* index) : _index(index) {}
-  DECL_RETURN_TYPE(VirtualIterator<pair<TermList,TermQueryResult> >);
-  OWN_RETURN_TYPE operator() (TermList lhs)
+  VirtualIterator<pair<TermList,TermQueryResult> > operator() (TermList lhs)
   {
     return pvi( pushPairIntoRightIterator(lhs, _index->getInstances(lhs, true)) );
   }
@@ -107,13 +99,12 @@ struct BackwardDemodulation::ResultFn
     _eqSort = SortHelper::getEqualityArgumentSort(_eqLit);
     _removed=SmartPtr<ClauseSet>(new ClauseSet());
   }
-  DECL_RETURN_TYPE(BwSimplificationRecord);
   /**
    * Return pair of clauses. First clause is being replaced,
    * and the second is the clause, that replaces it. If no
    * replacement should occur, return pair of zeroes.
    */
-  OWN_RETURN_TYPE operator() (pair<TermList,TermQueryResult> arg)
+  BwSimplificationRecord operator() (pair<TermList,TermQueryResult> arg)
   {
     CALL("BackwardDemodulation::ResultFn::operator()");
 
@@ -134,7 +125,6 @@ struct BackwardDemodulation::ResultFn
     if(qrSort!=_eqSort) {
       return BwSimplificationRecord(0);
     }
-
 
     TermList lhs=arg.first;
     TermList rhs=EqHelper::getOtherEqualitySide(_eqLit, lhs);
@@ -165,35 +155,34 @@ struct BackwardDemodulation::ResultFn
     }
 
     if(_parent.getOptions().demodulationRedundancyCheck() && qr.literal->isEquality() &&
-	(qr.term==*qr.literal->nthArgument(0) || qr.term==*qr.literal->nthArgument(1)) ) {
+      (qr.term==*qr.literal->nthArgument(0) || qr.term==*qr.literal->nthArgument(1)) ) {
       TermList other=EqHelper::getOtherEqualitySide(qr.literal, qr.term);
       Ordering::Result tord=_ordering.compare(rhsS, other);
       if(tord!=Ordering::LESS && tord!=Ordering::LESS_EQ) {
-	unsigned eqSort = SortHelper::getEqualityArgumentSort(qr.literal);
-	Literal* eqLitS=Literal::createEquality(true, lhsS, rhsS, eqSort);
-	bool isMax=true;
-	Clause::Iterator cit(*qr.clause);
-	while(cit.hasNext()) {
-	  Literal* lit2=cit.next();
-	  if(qr.literal==lit2) {
-	    continue;
-	  }
-	  if(_ordering.compare(eqLitS, lit2)==Ordering::LESS) {
-	    isMax=false;
-	    break;
-	  }
-	}
-	if(isMax) {
-//	  RSTAT_CTR_INC("bw subsumptions prevented by tlCheck");
-	  //The demodulation is this case which doesn't preserve completeness:
-	  //s = t     s = t1 \/ C
-	  //---------------------
-	  //     t = t1 \/ C
-	  //where t > t1 and s = t > C
-	  return BwSimplificationRecord(0);
-	}
+        unsigned eqSort = SortHelper::getEqualityArgumentSort(qr.literal);
+        Literal* eqLitS=Literal::createEquality(true, lhsS, rhsS, eqSort);
+        bool isMax=true;
+        Clause::Iterator cit(*qr.clause);
+        while(cit.hasNext()) {
+          Literal* lit2=cit.next();
+          if(qr.literal==lit2) {
+            continue;
+          }
+          if(_ordering.compare(eqLitS, lit2)==Ordering::LESS) {
+            isMax=false;
+            break;
+          }
+        }
+        if(isMax) {
+          //	  RSTAT_CTR_INC("bw subsumptions prevented by tlCheck");
+          //The demodulation is this case which doesn't preserve completeness:
+          //s = t     s = t1 \/ C
+          //---------------------
+          //     t = t1 \/ C
+          //where t > t1 and s = t > C
+          return BwSimplificationRecord(0);
+        }
       }
-
     }
 
     Literal* resLit=EqHelper::replace(qr.literal,lhsS,rhsS);
@@ -203,13 +192,8 @@ struct BackwardDemodulation::ResultFn
       return BwSimplificationRecord(qr.clause);
     }
 
-
-    Inference* inf = new Inference2(Inference::BACKWARD_DEMODULATION, _cl, qr.clause);
-    Unit::InputType inpType = (Unit::InputType)
-	Int::max(_cl->inputType(), qr.clause->inputType());
-
     unsigned cLen=qr.clause->length();
-    Clause* res = new(cLen) Clause(cLen, inpType, inf);
+    Clause* res = new(cLen) Clause(cLen, SimplifyingInference2(InferenceRule::BACKWARD_DEMODULATION, qr.clause, _cl));
 
     (*res)[0]=resLit;
 
@@ -217,12 +201,11 @@ struct BackwardDemodulation::ResultFn
     for(unsigned i=0;i<cLen;i++) {
       Literal* curr=(*qr.clause)[i];
       if(curr!=qr.literal) {
-	(*res)[next++] = curr;
+        (*res)[next++] = curr;
       }
     }
     ASS_EQ(next,cLen);
 
-    res->setAge(qr.clause->age());
     env.statistics->backwardDemodulations++;
 
     _removed->insert(qr.clause);

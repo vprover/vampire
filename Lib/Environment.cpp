@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file Environment.cpp
@@ -54,14 +48,15 @@ Environment::Environment()
   : signature(0),
     sharing(0),
     property(0),
-    clausePriorities(0),
-    maxClausePriority(1),
-    clauseSineLevels(nullptr),
+    maxSineLevel(1),
+    predicateSineLevels(nullptr),
     colorUsed(false),
     _outputDepth(0),
     _priorityOutput(0),
     _pipe(0)
 {
+  START_CHECKING_FOR_ALLOCATOR_BYPASSES;
+
   options = new Options;
   statistics = new Statistics;  
   sorts = new Sorts;
@@ -76,6 +71,8 @@ Environment::~Environment()
 {
   CALL("Environment::~Environment");
 
+  Timer::setTimeLimitEnforcement(false);
+
   //in the usual cases the _outputDepth should be zero at this point, but in case of
   //thrown exceptions this might not be true.
 //  ASS_EQ(_outputDepth,0);
@@ -89,7 +86,7 @@ Environment::~Environment()
   delete signature;
   delete sorts;
   delete statistics;
-  if(clausePriorities) delete clausePriorities; 
+  if (predicateSineLevels) delete predicateSineLevels;
   {
     BYPASSING_ALLOCATOR; // use of std::function in options
     delete options;
@@ -109,6 +106,7 @@ bool Environment::timeLimitReached() const
   if (options->timeLimitInDeciseconds() &&
       timer->elapsedDeciseconds() > options->timeLimitInDeciseconds()) {
     statistics->terminationReason = Shell::Statistics::TIME_LIMIT;
+    Timer::setTimeLimitEnforcement(false);
     return true;
   }
   return false;
@@ -120,6 +118,10 @@ bool Environment::timeLimitReached() const
  */
 int Environment::remainingTime() const
 {
+  // If time limit is set to 0 then assume we always have a minute left
+  if(options->timeLimitInDeciseconds() == 0){
+    return 60000;
+  }
   return options->timeLimitInDeciseconds()*100 - timer->elapsedMilliseconds();
 }
 

@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file DistinctGroupExpansion.cpp
@@ -73,9 +67,7 @@ bool DistinctGroupExpansion::apply(UnitList*& units)
 
   // If this is updated then make sure you update the check in
   // Kernel::Signature::Symol::addToDistinctGroup as well
-  bool expandEverything = 
-    env.options->saturationAlgorithm()==Options::SaturationAlgorithm::FINITE_MODEL_BUILDING ||
-    env.options->bfnt();
+  bool expandEverything = env.options->saturationAlgorithm()==Options::SaturationAlgorithm::FINITE_MODEL_BUILDING;
 
   bool someLeft = false;
 
@@ -89,7 +81,9 @@ bool DistinctGroupExpansion::apply(UnitList*& units)
           env.out() << "  expansion adding " << expansion->toString() << endl;
         }
         // Currently we just say that these are from the Input, not $distinct or theory of ints
-        UnitList::push(new FormulaUnit(expansion, new Inference(Inference::INPUT),Unit::AXIOM),units);
+        UnitList::push(
+          new FormulaUnit(expansion,NonspecificInference0(UnitInputType::AXIOM,InferenceRule::DISTINCTNESS_AXIOM)),
+          units);
       }
       else someLeft=true;
     }

@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file Api/Problem.cpp
@@ -294,8 +288,7 @@ void Problem::PreprocessingOptions::importAssymmetricRulesFrom(const Preprocessi
  */
 struct Problem::PreprocessingOptions::Atom2LitFn
 {
-  DECL_RETURN_TYPE(Kernel::Literal*);
-  OWN_RETURN_TYPE operator()(Formula f) {
+  Kernel::Literal* operator()(Formula f) {
     CALL("Problem::PreprocessingOptions::Atom2LitFn::operator()");
 
     Kernel::Formula* form = f.form;

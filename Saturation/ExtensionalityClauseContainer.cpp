@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 #include "Kernel/Clause.hpp"
 #include "Kernel/SortHelper.hpp"
@@ -141,8 +135,7 @@ void ExtensionalityClauseContainer::add(ExtensionalityClause c) {
 struct ExtensionalityClauseContainer::ActiveFilterFn
 {
   ActiveFilterFn(ExtensionalityClauseContainer& parent) : _parent(parent) {}
-  DECL_RETURN_TYPE(bool);
-  OWN_RETURN_TYPE operator()(ExtensionalityClause extCl)
+  bool operator()(ExtensionalityClause extCl)
   {
     CALL("ExtensionalityClauseContainer::ActiveFilterFn::operator()");
     

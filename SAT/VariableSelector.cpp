@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file SAT/VariableSelector.cpp
@@ -177,7 +171,11 @@ for(const TermList* t = _stack.pop(); !t->isEmpty(); t = t->next()){
       }
       RSTAT_MCTR_INC("nscore",level_sum);
       // if we want average, we set divid=true earlier
-      if(divide){ level_sum = (level_sum/count);}//This division will truncate
+      if(divide) {
+        ASS_NEQ(count, 0);
+        //This division will truncate
+        level_sum = (level_sum/count);
+      }
       return level_sum;
     default: ASSERTION_VIOLATION_REP2("Invalid niceness option: ",static_cast<int>(_niceness_option));
   }

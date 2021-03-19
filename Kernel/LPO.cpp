@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file LPO.cpp
@@ -56,7 +50,8 @@ Ordering::Result LPO::comparePredicates(Literal* l1, Literal *l2) const
   unsigned p2 = l2->functor();
 
   if (p1 == p2) {
-    ASS_EQ(l1->isNegative(), l1->isNegative())
+    ASS_EQ(l1->isNegative(), l1->isNegative()) // this assertion is meaningless. 
+    //maybe:  ASS_EQ(l1->isNegative(), l2->isNegative())
 
     // compare arguments in lexicographic order
     for (unsigned i = 0; i < l1->arity(); i++) {
@@ -277,5 +272,8 @@ Ordering::Result LPO::majo(Term* s, TermList* tl, unsigned arity) const
   }
   return GREATER;
 }
+
+void LPO::showConcrete(ostream&) const 
+{ /* lpo is fully defined by the precedence relation */ }
 
 }

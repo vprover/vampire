@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file FOOLElimination.hpp
@@ -113,9 +107,6 @@ private:
   static const char* ITE_PREFIX;
   static const char* LET_PREFIX;
   static const char* BOOL_PREFIX;
-
-  // The inout type of introduced definitions of fresh symbols
-  static const Unit::InputType DEFINITION_INPUT_TYPE;
 
   // Report that a given formula or a term has been rewritten during defooling
   // The term or formula is passed as its string representation

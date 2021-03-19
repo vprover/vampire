@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file SAT2FO.cpp
@@ -122,7 +116,7 @@ void SAT2FO::collectAssignment(SATSolver& solver, LiteralStack& res) const
   }
 }
 
-SATClause* SAT2FO::createConflictClause(LiteralStack& unsatCore, Inference::Rule rule)
+SATClause* SAT2FO::createConflictClause(LiteralStack& unsatCore, InferenceRule rule)
 {
   CALL("SAT2FO::createConflictClause");
 
@@ -133,7 +127,7 @@ SATClause* SAT2FO::createConflictClause(LiteralStack& unsatCore, Inference::Rule
     Literal* ul = ucit.next();
     negStack.push(Literal::complementaryLiteral(ul));
   }
-  Clause* foConfl = Clause::fromStack(negStack, Unit::AXIOM, new Inference(rule));
+  Clause* foConfl = Clause::fromStack(negStack,NonspecificInference0(UnitInputType::AXIOM,rule));
   return toSAT(foConfl);
 }
 

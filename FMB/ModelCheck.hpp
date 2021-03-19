@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file ModelCheck.hpp 
@@ -61,7 +55,7 @@ static void doCheck(Problem*& prb)
     UnitList::Iterator uit(prb->units());
     while(uit.hasNext()){
       Unit* u = uit.next();
-      if(u->inputType()!= Unit::MODEL_DEFINITION) continue;
+      if(u->inputType()!= UnitInputType::MODEL_DEFINITION) continue;
       vstring name;
       ALWAYS(Parse::TPTP::findAxiomName(u,name));
       if(name == "finite_domain"){
@@ -116,7 +110,7 @@ static void doCheck(Problem*& prb)
     UnitList::Iterator uit(prb->units());
     while(uit.hasNext()){
       Unit* u = uit.next();
-      if(u->inputType()!= Unit::MODEL_DEFINITION) continue;
+      if(u->inputType()!= UnitInputType::MODEL_DEFINITION) continue;
       vstring name;
       ALWAYS(Parse::TPTP::findAxiomName(u,name));
       if(name == "finite_domain" || name == "distinct_domain") continue;
@@ -160,7 +154,7 @@ static void doCheck(Problem*& prb)
       UnitList::Iterator uit(prb->units());
       while(uit.hasNext()){
         Unit* u = uit.next();
-        if(u->inputType()== Unit::MODEL_DEFINITION) continue;
+        if(u->inputType()== UnitInputType::MODEL_DEFINITION) continue;
 
         cout << "Checking " << u->toString() << "..." << endl;
         bool res = model.evaluate(u);

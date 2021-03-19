@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file SubstitutionTree_Nodes.cpp
@@ -219,11 +213,7 @@ SubstitutionTree::IntermediateNode* SubstitutionTree::SListIntermediateNode
   IntermediateNode* res= 0;
   if(orig->withSorts()){
     res = new SListIntermediateNodeWithSorts(orig->term, orig->childVar);
-    static bool fix = env.options->unificationWithAbstraction() == Options::UnificationWithAbstraction::FIXED ||
-                      env.options->fixUWA(); 
-    if(fix){
-      res->_childBySortHelper->loadFrom(orig->_childBySortHelper);
-    }
+    res->_childBySortHelper->loadFrom(orig->_childBySortHelper);
   }else{
     res = new SListIntermediateNode(orig->term, orig->childVar);
   }

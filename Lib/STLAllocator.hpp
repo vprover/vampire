@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file STLAllocator.hpp
@@ -26,11 +20,11 @@
  * @author Martin Suda
  */
 
-
-#ifndef __STLAllocator__
-#define __STLAllocator__
-
+#ifndef __STLAllocator__ 
+#define __STLAllocator__ 
 #include <limits>
+#include <memory>
+#include <utility>
 
 #include "Lib/Allocator.hpp"
 
@@ -68,20 +62,21 @@ public :
 
     //    memory allocation
     inline pointer allocate(size_type cnt, 
-       typename std::allocator<void>::const_pointer = 0) { 
-      return reinterpret_cast<pointer>(ALLOC_UNKNOWN(cnt*sizeof(T),"STLAllocator<T>"));           
+      typename std::allocator<void>::const_pointer = 0) { 
+      return reinterpret_cast<pointer>(ALLOC_KNOWN(cnt*sizeof(T),"STLAllocator<T>"));           
     }
-    inline void deallocate(pointer p, size_type) { 
-        DEALLOC_UNKNOWN(p,"STLAllocator<T>");
+    inline void deallocate(pointer p, size_type cnt) { 
+      DEALLOC_KNOWN(p,cnt * sizeof(T),"STLAllocator<T>");
     }
 
     //    size
     inline size_type max_size() const { 
         return std::numeric_limits<size_type>::max() / sizeof(T);
- }
+    }
 
     //    construction/destruction
-    inline void construct(pointer p, const T& t) { new(p) T(t); }
+    template <typename... Args>
+    inline void construct(pointer p, Args&&... args) { new(p) T(std::forward<Args>(args)...); }
     inline void destroy(pointer p) { p->~T(); }
 
     inline bool operator==(STLAllocator const&) const { return true; }

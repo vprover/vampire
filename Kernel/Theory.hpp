@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file Theory.hpp
@@ -24,7 +18,7 @@
 #ifndef __Theory__
 #define __Theory__
 
-#include <math.h>
+#include <cmath>
 
 #include "Forwards.hpp"
 
@@ -42,16 +36,35 @@ namespace Kernel {
  * Exception to be thrown when the requested operation cannot be performed,
  * e.g. because of overflow of a native type.
  */
-class ArithmeticException : public ThrowableBase {};
+class ArithmeticException : public Exception {
+protected:
+  ArithmeticException(const char* msg) : Exception(msg) {}
+};
+
+class MachineArithmeticException : public ArithmeticException 
+{ 
+public:
+  MachineArithmeticException() : ArithmeticException("machine arithmetic exception"){} 
+};
+
+class DivByZeroException         : public ArithmeticException 
+{ 
+public:
+  DivByZeroException() : ArithmeticException("divided by zero"){} 
+};
 
 class IntegerConstantType
 {
 public:
+  CLASS_NAME(IntegerConstantType)
   static unsigned getSort() { return Sorts::SRT_INTEGER; }
 
   typedef int InnerType;
 
   IntegerConstantType() {}
+  IntegerConstantType(IntegerConstantType&&) = default;
+  IntegerConstantType(const IntegerConstantType&) = default;
+  IntegerConstantType& operator=(const IntegerConstantType&) = default;
   constexpr IntegerConstantType(InnerType v) : _val(v) {}
   explicit IntegerConstantType(const vstring& str);
 
@@ -59,56 +72,23 @@ public:
   IntegerConstantType operator-(const IntegerConstantType& num) const;
   IntegerConstantType operator-() const;
   IntegerConstantType operator*(const IntegerConstantType& num) const;
-  IntegerConstantType operator/(const IntegerConstantType& num) const;
-  IntegerConstantType operator%(const IntegerConstantType& num) const;
 
   // true if this divides num
-  bool divides(const IntegerConstantType& num) const {
-    CALL("IntegerConstantType:divides");
-    // if this is zero it shouldn't divide anything, if num is zero dividing it doesn't make sense
-    if(_val==0 || num._val==0){ return false; }
-    // if this is bigger than num then the result cannot be an integer
-    if(_val > num._val){ return false; }
-    // now we only need to check the absolute value
-    int safeVal=_val;
-    if (_val < 0 && ! Lib::Int::safeUnaryMinus<int>(_val,safeVal)) {
-      return false;
-    }
-    return (num._val % safeVal ==0);
-  }
-
+  bool divides(const IntegerConstantType& num) const ;
   float realDivide(const IntegerConstantType& num) const { 
-    if(num._val==0) throw ArithmeticException();
+    if(num._val==0) throw DivByZeroException();
     return ((float)_val)/num._val; 
   }
-  int intDivide(const IntegerConstantType& num) const {
-      CALL("IntegerConstantType::intDivide");
-      ASS(num.divides(*this));
-      if(num._val==0){ throw ArithmeticException(); }
-      return _val/num._val;
-  }
-  // TODO: shouldn't we always be using intDivide for quotientE - when are they different (apart from real rounding)?
-  IntegerConstantType quotientE(const IntegerConstantType& num) const { 
-    CALL("IntegerConstantType::quotientE");
-    //cout << "quotientE " << _val << " and " << num._val << endl;
-    if(num.divides(*this)){
-      return IntegerConstantType(intDivide(num));
-    }
-    if(num._val>0) return IntegerConstantType(::floor(realDivide(num)));
-    else return IntegerConstantType(::ceil(realDivide(num)));
-  }
-  IntegerConstantType quotientT(const IntegerConstantType& num) const { 
-    if(num.divides(*this)){
-      return IntegerConstantType(intDivide(num));
-    }
-    return IntegerConstantType(::trunc(realDivide(num)));
-  }
-  IntegerConstantType quotientF(const IntegerConstantType& num) const { 
-    if(num.divides(*this)){
-      return IntegerConstantType(intDivide(num));
-    }
-    return IntegerConstantType(::floor(realDivide(num)));
-  }
+  int intDivide(const IntegerConstantType& num) const ;  
+  IntegerConstantType remainderE(const IntegerConstantType& num) const; 
+  IntegerConstantType quotientE(const IntegerConstantType& num) const; 
+  IntegerConstantType quotientT(const IntegerConstantType& num) const;
+  IntegerConstantType quotientF(const IntegerConstantType& num) const; 
+
+  IntegerConstantType remainderT(const IntegerConstantType& num) const
+  { return (*this) - num * quotientT(num); }
+  IntegerConstantType remainderF(const IntegerConstantType& num) const
+  { return (*this) - num * quotientF(num); } 
 
   bool operator==(const IntegerConstantType& num) const;
   bool operator>(const IntegerConstantType& num) const;
@@ -124,13 +104,20 @@ public:
   bool isNegative(){ return _val<0; }
 
   static IntegerConstantType floor(RationalConstantType rat);
+  static IntegerConstantType floor(IntegerConstantType rat);
+
   static IntegerConstantType ceiling(RationalConstantType rat);
+  static IntegerConstantType ceiling(IntegerConstantType rat);
+  IntegerConstantType abs() const;
 
   static Comparison comparePrecedence(IntegerConstantType n1, IntegerConstantType n2);
+  size_t hash() const;
 
   vstring toString() const;
 private:
   InnerType _val;
+  IntegerConstantType operator/(const IntegerConstantType& num) const;
+  IntegerConstantType operator%(const IntegerConstantType& num) const;
 };
 
 inline
@@ -147,10 +134,14 @@ std::ostream& operator<< (ostream& out, const IntegerConstantType& val) {
  */
 struct RationalConstantType {
   typedef IntegerConstantType InnerType;
+  CLASS_NAME(RationalConstantType)
 
   static unsigned getSort() { return Sorts::SRT_RATIONAL; }
 
   RationalConstantType() {}
+  RationalConstantType(RationalConstantType&&) = default;
+  RationalConstantType(const RationalConstantType&) = default;
+  RationalConstantType& operator=(const RationalConstantType&) = default;
 
   RationalConstantType(InnerType num, InnerType den);
   RationalConstantType(const vstring& num, const vstring& den);
@@ -184,26 +175,16 @@ struct RationalConstantType {
 
   bool isZero(){ return _num.toInner()==0; } 
   // relies on the fact that cannonize ensures that _den>=0
-  bool isNegative(){ ASS(_den>=0); return _num.toInner() < 0; }
+  bool isNegative() const { ASS(_den>=0); return _num.toInner() < 0; }
+  bool isPositive() const { ASS(_den>=0); return _num.toInner() > 0; }
 
-  RationalConstantType quotientE(const RationalConstantType& num) const {
-    if(_num.toInner()>0 && _den.toInner()>0){
-       return ((*this)/num).floor(); 
-    }
-    else return ((*this)/num).ceiling();
-  }
-  RationalConstantType quotientT(const RationalConstantType& num) const {
-    return ((*this)/num).truncate();
-  }
-  RationalConstantType quotientF(const RationalConstantType& num) const {
-    return ((*this)/num).floor(); 
-  }
-
+  RationalConstantType abs() const;
 
   vstring toString() const;
 
   const InnerType& numerator() const { return _num; }
   const InnerType& denominator() const { return _den; }
+  size_t hash() const;
 
   static Comparison comparePrecedence(RationalConstantType n1, RationalConstantType n2);
 
@@ -226,11 +207,17 @@ std::ostream& operator<< (ostream& out, const RationalConstantType& val) {
 class RealConstantType : public RationalConstantType
 {
 public:
+  CLASS_NAME(RealConstantType)
   static unsigned getSort() { return Sorts::SRT_REAL; }
 
   RealConstantType() {}
+  RealConstantType(RealConstantType&&) = default;
+  RealConstantType(const RealConstantType&) = default;
+  RealConstantType& operator=(const RealConstantType&) = default;
+
   explicit RealConstantType(const vstring& number);
   explicit constexpr RealConstantType(const RationalConstantType& rat) : RationalConstantType(rat) {}
+  RealConstantType(int num, int den) : RationalConstantType(num, den) {}
   explicit constexpr RealConstantType(typename IntegerConstantType::InnerType number) : RealConstantType(RationalConstantType(number)) {}
 
   RealConstantType operator+(const RealConstantType& num) const
@@ -248,20 +235,39 @@ public:
   RealConstantType truncate() const { return RealConstantType(RationalConstantType::truncate()); }
   RealConstantType ceiling() const { return RealConstantType(RationalConstantType::ceiling()); }
 
-  RealConstantType quotientE(const RealConstantType& num) const
-    { return RealConstantType(RationalConstantType::quotientE(num)); }
-  RealConstantType quotientT(const RealConstantType& num) const
-    { return RealConstantType(RationalConstantType::quotientT(num)); }
-  RealConstantType quotientF(const RealConstantType& num) const
-    { return RealConstantType(RationalConstantType::quotientF(num)); }
+  RealConstantType abs() const;
 
   vstring toNiceString() const;
 
+  size_t hash() const;
   static Comparison comparePrecedence(RealConstantType n1, RealConstantType n2);
+
+  /** 
+   * returns the internal represenation of this RealConstantType. 
+   * 
+   * Currently we represent Reals as Rationals. We might
+   * change this representation in the future in order to represent numerals other algebraic numbers (e.g.  sqrt(2)). 
+   * In order to make this future proof this function is called in places where we rely on the representation of reals,
+   * so we get a compiler error if we change the underlying datatype.
+   */
+  RationalConstantType representation() const;
 private:
   static bool parseDouble(const vstring& num, RationalConstantType& res);
 
 };
+
+inline bool operator<(const RealConstantType& lhs ,const RealConstantType& rhs) { 
+  return static_cast<const RationalConstantType&>(lhs) < static_cast<const RationalConstantType&>(rhs);
+}
+inline bool operator>(const RealConstantType& lhs, const RealConstantType& rhs) {
+  return static_cast<const RationalConstantType&>(lhs) > static_cast<const RationalConstantType&>(rhs);
+}
+inline bool operator<=(const RealConstantType& lhs, const RealConstantType& rhs) {
+  return static_cast<const RationalConstantType&>(lhs) <= static_cast<const RationalConstantType&>(rhs);
+}
+inline bool operator>=(const RealConstantType& lhs, const RealConstantType& rhs) {
+  return static_cast<const RationalConstantType&>(lhs) >= static_cast<const RationalConstantType&>(rhs);
+}
 
 inline
 std::ostream& operator<< (ostream& out, const RealConstantType& val) {
@@ -517,6 +523,7 @@ public:
     return tryInterpretConstant(trm.term(),res);
   }
   bool tryInterpretConstant(const Term* t, IntegerConstantType& res);
+  bool tryInterpretConstant(unsigned functor, IntegerConstantType& res);
   /**
    * Try to interpret the term list as an rational constant. If it is an
    * rational constant, return true and save the constant in @c res, otherwise
@@ -531,6 +538,7 @@ public:
     return tryInterpretConstant(trm.term(),res);
   }
   bool tryInterpretConstant(const Term* t, RationalConstantType& res);
+  bool tryInterpretConstant(unsigned functor, RationalConstantType& res);
   /**
    * Try to interpret the term list as an real constant. If it is an
    * real constant, return true and save the constant in @c res, otherwise
@@ -545,6 +553,7 @@ public:
     return tryInterpretConstant(trm.term(),res);
   }
   bool tryInterpretConstant(const Term* t, RealConstantType& res);
+  bool tryInterpretConstant(unsigned functor, RealConstantType& res);
 
   Term* representConstant(const IntegerConstantType& num);
   Term* representConstant(const RationalConstantType& num);
@@ -562,7 +571,7 @@ public:
   class Tuples {
   public:
     bool isFunctor(unsigned functor);
-    unsigned getFunctor(unsigned arity, unsigned sorts[]);
+    unsigned getFunctor(unsigned arity, unsigned* sorts);
     unsigned getFunctor(unsigned tupleSort);
     unsigned getProjectionFunctor(unsigned proj, unsigned tupleSort);
     bool findProjection(unsigned projFunctor, bool isPredicate, unsigned &proj);
@@ -580,5 +589,27 @@ typedef Theory::Interpretation Interpretation;
 extern Theory* theory;
 
 }
+
+template<>
+struct std::hash<Kernel::IntegerConstantType>
+{
+  size_t operator()(Kernel::IntegerConstantType const& self) const noexcept 
+  { return self.hash(); }
+};
+
+template<>
+struct std::hash<Kernel::RationalConstantType>
+{
+  size_t operator()(Kernel::RationalConstantType const& self) const noexcept 
+  { return self.hash(); }
+};
+
+
+template<>
+struct std::hash<Kernel::RealConstantType>
+{
+  size_t operator()(Kernel::RealConstantType const& self) const noexcept 
+  { return self.hash(); }
+};
 
 #endif // __Theory__

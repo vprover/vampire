@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file AcyclicityIndex.cpp
@@ -208,7 +202,6 @@ namespace Indexing
                         AcyclicityIndex& aindex)
       :
       _queryLit(queryLit),
-      _queryClause(queryClause),
       _nextResult(nullptr),
       _stack(0),
       _subst(new RobSubstitution()),
@@ -244,10 +237,8 @@ namespace Indexing
       CALL("AcyclicityIndex::applySubstitution");
       
       unsigned clen = c->length();
-      Inference* inf = new Inference1(Inference::INSTANTIATION, c);
       Clause* res = new(clen) Clause(clen,
-                                     c->inputType(),
-                                     inf);
+          GeneratingInference1(InferenceRule::INSTANTIATION, c));
 
       for (unsigned i = 0; i < clen; i++) {
         (*res)[i] = _subst->apply((*c)[i], index);
@@ -397,7 +388,6 @@ namespace Indexing
     }
   private:
     Literal *_queryLit;
-    Clause *_queryClause;
     SIndex *_index;
     TermIndexingStructure *_tis;    
     CycleQueryResult *_nextResult;

@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file DArray.hpp
@@ -256,6 +250,14 @@ public:
   /** Return the ensured size of the array */
   inline size_t size() const { return _size; }
 
+  /** Creates a new array that is initialized with @b value on every position */
+  static DArray initialized(size_t count, const C& value=C()) {
+    CALL("DArray::initialized");
+    DArray out(count);
+    out.init(count, value);
+    return out;
+  }
+
   /** Ensure that the array's size is at least @b count and
    * initialize first @b count elements of the array to @b value. */
   void init(size_t count, const C& value=C()) {
@@ -475,6 +477,21 @@ public:
     C* _curr;
     C* _first;
   };
+
+  friend std::ostream& operator<<(std::ostream& out, DArray const& self) 
+  {
+    ConstIterator iter(self);
+    out << "[ ";
+    if (iter.hasNext()) {
+      out << iter.next();
+      while (iter.hasNext()) {
+        out << ", ";
+        out << iter.next();
+      }
+    }
+    out << " ]";
+    return out;
+  }
 }; // class DArray
 
 template<typename T>

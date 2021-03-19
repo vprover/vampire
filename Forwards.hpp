@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file Forwards.hpp
@@ -70,7 +64,7 @@ template<typename T> class SharedSet;
 template <typename Key, typename Val,class Hash=Lib::Hash> class Map;
 
 
-template<typename T> class ArrayishObjectIterator;
+template<typename T, template<class> class ref_t> class ArrayishObjectIterator;
 template<typename T> class ArrayMap;
 template<typename C> class Vector;
 
@@ -109,7 +103,6 @@ template <typename Val,class Hash=Lib::Hash> class Set;
 
 template <typename Value,class ValueComparator> class SkipList;
 
-template<class Arr> class ArrayishObjectIterator;
 template<typename T> class PointerIterator;
 
 class BacktrackData;
@@ -168,6 +161,10 @@ typedef Stack<ConstraintRCPtr> ConstraintRCStack;
 class TermList;
 typedef VirtualIterator<TermList> TermIterator;
 typedef Stack<TermList> TermStack;
+
+typedef std::pair<std::pair<TermList,unsigned>,std::pair<TermList,unsigned>> UnificationConstraint;
+typedef Lib::SmartPtr<Stack<UnificationConstraint>> UnificationConstraintStackSP;
+
 class Term;
 class Literal;
 typedef List<Literal*> LiteralList;
@@ -303,7 +300,6 @@ class CodeTreeTIS;
 class CodeTreeLIS;
 class CodeTreeSubsumptionIndex;
 
-class ArithmeticIndex;
 class ConstraintDatabase;
 };
 
@@ -320,7 +316,6 @@ typedef Lib::SmartPtr<PassiveClauseContainer> PassiveClauseContainerSP;
 
 class ActiveClauseContainer;
 
-class Limits;
 class Splitter;
 class ConsequenceFinder;
 class LabelFinder;

@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file FormulaUnit.cpp
@@ -42,7 +36,7 @@ using namespace Kernel;
  */
 void FormulaUnit::destroy()
 {
-  _inference->destroy();
+  _inference.destroy(); // decrease counters on parents and release heap allocated things own by _inference
   delete this;
 } // FormulaUnit::destroy
 

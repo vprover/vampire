@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file BinaryResolution.cpp
@@ -46,6 +40,7 @@
 #include "Shell/Statistics.hpp"
 
 #include "BinaryResolution.hpp"
+#include "Shell/UnificationWithAbstractionConfig.hpp"
 
 namespace Inferences
 {
@@ -82,12 +77,11 @@ struct BinaryResolution::UnificationsFn
 {
   UnificationsFn(GeneratingLiteralIndex* index,bool cU)
   : _index(index),_unificationWithAbstraction(cU) {}
-  DECL_RETURN_TYPE(VirtualIterator<pair<Literal*, SLQueryResult> >);
-  OWN_RETURN_TYPE operator()(Literal* lit)
+  VirtualIterator<pair<Literal*, SLQueryResult> > operator()(Literal* lit)
   {
     if(lit->isEquality()) {
       //Binary resolution is not performed with equality literals
-      return OWN_RETURN_TYPE::getEmpty();
+      return VirtualIterator<pair<Literal*, SLQueryResult> >::getEmpty();
     }
     if(_unificationWithAbstraction){
       return pvi( pushPairIntoRightIterator(lit, _index->getUnificationsWithConstraints(lit, true)) );
@@ -101,21 +95,20 @@ private:
 
 struct BinaryResolution::ResultFn
 {
-  ResultFn(Clause* cl, Limits* limits, bool afterCheck, Ordering* ord, LiteralSelector& selector, BinaryResolution& parent)
-  : _cl(cl), _limits(limits), _afterCheck(afterCheck), _ord(ord), _selector(selector), _parent(parent) {}
-  DECL_RETURN_TYPE(Clause*);
-  OWN_RETURN_TYPE operator()(pair<Literal*, SLQueryResult> arg)
+  ResultFn(Clause* cl, PassiveClauseContainer* passiveClauseContainer, bool afterCheck, Ordering* ord, LiteralSelector& selector, BinaryResolution& parent)
+  : _cl(cl), _passiveClauseContainer(passiveClauseContainer), _afterCheck(afterCheck), _ord(ord), _selector(selector), _parent(parent) {}
+  Clause* operator()(pair<Literal*, SLQueryResult> arg)
   {
     CALL("BinaryResolution::ResultFn::operator()");
 
     SLQueryResult& qr = arg.second;
     Literal* resLit = arg.first;
 
-    return BinaryResolution::generateClause(_cl, resLit, qr, _parent.getOptions(), _limits, _afterCheck ? _ord : 0, &_selector);
+    return BinaryResolution::generateClause(_cl, resLit, qr, _parent.getOptions(), _passiveClauseContainer, _afterCheck ? _ord : 0, &_selector);
   }
 private:
   Clause* _cl;
-  Limits* _limits;
+  PassiveClauseContainer* _passiveClauseContainer;
   bool _afterCheck;
   Ordering* _ord;
   LiteralSelector& _selector;
@@ -126,7 +119,7 @@ private:
  * Ordering aftercheck is performed iff ord is not 0,
  * in which case also ls is assumed to be not 0.
  */
-Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQueryResult qr, const Options& opts, Limits* limits, Ordering* ord, LiteralSelector* ls)
+Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQueryResult qr, const Options& opts, PassiveClauseContainer* passiveClauseContainer, Ordering* ord, LiteralSelector* ls)
 {
   CALL("BinaryResolution::generateClause");
   ASS(qr.clause->store()==Clause::ACTIVE);//Added to check that generation only uses active clauses
@@ -152,22 +145,23 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
   bool withConstraints = !constraints.isEmpty() && !constraints->isEmpty();
   unsigned clength = queryCl->length();
   unsigned dlength = qr.clause->length();
-  unsigned newAge=Int::max(queryCl->age(),qr.clause->age())+1;
-  bool shouldLimitWeight=limits && limits->ageLimited() && newAge > limits->ageLimit()
-	&& limits->weightLimited();
-  unsigned weightLimit;
-  if(shouldLimitWeight) {
-    bool isNonGoal= !queryCl->isGoal() && !qr.clause->isGoal();
-    if(isNonGoal) {
-      weightLimit=limits->nonGoalWeightLimit();
-    } else {
-      weightLimit=limits->weightLimit();
-    }
-  }
 
-
+  // LRS-specific optimization:
+  // check whether we can conclude that the resulting clause will be discarded by LRS since it does not fulfil the age/weight limits (in which case we can discard the clause)
+  // we already know the age here so we can immediately conclude whether the clause fulfils the age limit
+  // since we have not built the clause yet we compute lower bounds on the weight of the clause after each step and recheck whether the weight-limit can still be fulfilled.
   unsigned wlb=0;//weight lower bound
-  if(shouldLimitWeight) {
+  unsigned numPositiveLiteralsLowerBound = // lower bound on number of positive literals, don't know at this point whether duplicate positive literals will occur
+      Int::max(queryLit->isPositive() ? queryCl->numPositiveLiterals()-1 : queryCl->numPositiveLiterals(),
+              qr.literal->isPositive() ? qr.clause->numPositiveLiterals()-1 : qr.clause->numPositiveLiterals());
+
+  Inference inf(GeneratingInference2(withConstraints?
+      InferenceRule::CONSTRAINED_RESOLUTION:InferenceRule::RESOLUTION,queryCl, qr.clause));
+  Inference::Destroyer inf_destroyer(inf); // will call destroy on inf when coming out of scope unless disabled
+
+  bool needsToFulfilWeightLimit = passiveClauseContainer && !passiveClauseContainer->fulfilsAgeLimit(wlb, numPositiveLiteralsLowerBound, inf) && passiveClauseContainer->weightLimited();
+
+  if(needsToFulfilWeightLimit) {
     for(unsigned i=0;i<clength;i++) {
       Literal* curr=(*queryCl)[i];
       if(curr!=queryLit) {
@@ -180,7 +174,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
         wlb+=curr->weight();
       }
     }
-    if(wlb > weightLimit) {
+    if(!passiveClauseContainer->fulfilsWeightLimit(wlb, numPositiveLiteralsLowerBound, inf)) {
       RSTAT_CTR_INC("binary resolutions skipped for weight limit before building clause");
       env.statistics->discardedNonRedundantClauses++;
       return 0;
@@ -190,12 +184,8 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
   unsigned conlength = withConstraints ? constraints->size() : 0;
   unsigned newLength = clength+dlength-2+conlength;
 
-  Inference* inf = new Inference2((withConstraints?Inference::CONSTRAINED_RESOLUTION:Inference::RESOLUTION), 
-                                  queryCl, qr.clause);
-  Unit::InputType inpType = (Unit::InputType)
-  	Int::max(queryCl->inputType(), qr.clause->inputType());
-
-  Clause* res = new(newLength) Clause(newLength, inpType, inf);
+  inf_destroyer.disable(); // ownership passed to the the clause below
+  Clause* res = new(newLength) Clause(newLength, inf); // the inference object owned by res from now on
 
   Literal* queryLitAfter = 0;
   if (ord && queryCl->numSelected() > 1) {
@@ -219,14 +209,14 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
   unsigned next = 0;
   if(withConstraints){
   for(unsigned i=0;i<constraints->size();i++){
-      pair<TermList,TermList> con = (*constraints)[i]; 
+      pair<pair<TermList,unsigned>,pair<TermList,unsigned>> con = (*constraints)[i]; 
 
 #if VDEBUG
       //cout << "con pair " << con.first.toString() << " , " << con.second.toString() << endl;
 #endif
 
-      TermList qT = qr.substitution->applyToQuery(con.first);
-      TermList rT = qr.substitution->applyToResult(con.second);
+      TermList qT = qr.substitution->applyTo(con.first.first,con.first.second);
+      TermList rT = qr.substitution->applyTo(con.second.first,con.second.second);
 
       unsigned sort = SortHelper::getResultSort(rT.term()); 
       Literal* constraint = Literal::createEquality(false,qT,rT,sort);
@@ -234,8 +224,8 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
       static Options::UnificationWithAbstraction uwa = opts.unificationWithAbstraction();
       if(uwa==Options::UnificationWithAbstraction::GROUND &&
          !constraint->ground() &&
-         (!theory->isInterpretedFunction(qT) && !theory->isInterpretedConstant(qT)) && 
-         (!theory->isInterpretedFunction(rT) && !theory->isInterpretedConstant(rT))){
+         (!UnificationWithAbstractionConfig::isInterpreted(qT) && 
+          !UnificationWithAbstractionConfig::isInterpreted(rT))) {
 
         // the unification was between two uninterpreted things that were not ground 
         res->destroy();
@@ -250,9 +240,9 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
     Literal* curr=(*queryCl)[i];
     if(curr!=queryLit) {
       Literal* newLit=qr.substitution->applyToQuery(curr);
-      if(shouldLimitWeight) {
+      if(needsToFulfilWeightLimit) {
         wlb+=newLit->weight() - curr->weight();
-        if(wlb > weightLimit) {
+        if(!passiveClauseContainer->fulfilsWeightLimit(wlb, numPositiveLiteralsLowerBound, res->inference())) {
           RSTAT_CTR_INC("binary resolutions skipped for weight limit while building clause");
           env.statistics->discardedNonRedundantClauses++;
           res->destroy();
@@ -288,9 +278,9 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
     Literal* curr=(*qr.clause)[i];
     if(curr!=qr.literal) {
       Literal* newLit = qr.substitution->applyToResult(curr);
-      if(shouldLimitWeight) {
+      if(needsToFulfilWeightLimit) {
         wlb+=newLit->weight() - curr->weight();
-        if(wlb > weightLimit) {
+        if(!passiveClauseContainer->fulfilsWeightLimit(wlb, numPositiveLiteralsLowerBound, res->inference())) {
           RSTAT_CTR_INC("binary resolutions skipped for weight limit while building clause");
           env.statistics->discardedNonRedundantClauses++;
           res->destroy();
@@ -316,7 +306,6 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
     }
   }
 
-  res->setAge(newAge);
   if(withConstraints){
     env.statistics->cResolution++;
   }
@@ -335,14 +324,14 @@ ClauseIterator BinaryResolution::generateClauses(Clause* premise)
 
   //cout << "BinaryResolution for " << premise->toString() << endl;
 
-  Limits* limits = _salg->getLimits();
+  PassiveClauseContainer* passiveClauseContainer = _salg->getPassiveClauseContainer();
 
   // generate pairs of the form (literal selected in premise, unifying object in index)
   auto it1 = getMappingIterator(premise->getSelectedLiteralIterator(),UnificationsFn(_index,_unificationWithAbstraction));
   // actually, we got one iterator per selected literal; we flatten the obtained iterator of iterators:
   auto it2 = getFlattenedIterator(it1);
   // perform binary resolution on these pairs
-  auto it3 = getMappingIterator(it2,ResultFn(premise, limits,
+  auto it3 = getMappingIterator(it2,ResultFn(premise, passiveClauseContainer,
       getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete(), &_salg->getOrdering(),_salg->getLiteralSelector(),*this));
   // filter out only non-zero results
   auto it4 = getFilteredIterator(it3, NonzeroFn());

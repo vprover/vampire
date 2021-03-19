@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file ExtensionalityResolution.cpp
@@ -60,13 +54,12 @@ struct ExtensionalityResolution::ForwardPairingFn
 {
   ForwardPairingFn (ExtensionalityClauseContainer* extClauses)
   : _extClauses(extClauses) {}
-  DECL_RETURN_TYPE(VirtualIterator<pair<Literal*, ExtensionalityClause> >);
-  OWN_RETURN_TYPE operator()(Literal* lit)
+  VirtualIterator<pair<Literal*, ExtensionalityClause> > operator()(Literal* lit)
   {
     CALL("ExtensionalityResolution::ForwardPairingFn::operator()");
     
     if (!lit->isEquality() || lit->isPositive()) {
-      return OWN_RETURN_TYPE::getEmpty();
+      return VirtualIterator<pair<Literal*, ExtensionalityClause> >::getEmpty();
     }
 
     unsigned s = SortHelper::getEqualityArgumentSort(lit);
@@ -87,8 +80,7 @@ private:
 struct ExtensionalityResolution::ForwardUnificationsFn
 {
   ForwardUnificationsFn() { _subst = RobSubstitutionSP(new RobSubstitution()); }
-  DECL_RETURN_TYPE(VirtualIterator<pair<pair<Literal*, ExtensionalityClause>, RobSubstitution*> >);
-  OWN_RETURN_TYPE operator()(pair<Literal*, ExtensionalityClause> arg)
+  VirtualIterator<pair<pair<Literal*, ExtensionalityClause>, RobSubstitution*> > operator()(pair<Literal*, ExtensionalityClause> arg)
   {
     CALL("ExtensionalityResolution::ForwardUnificationsFn::operator()");
     
@@ -97,7 +89,7 @@ struct ExtensionalityResolution::ForwardUnificationsFn
 
     SubstIterator unifs = _subst->unifiers(varEq,0,trmEq,1,true);
     if (!unifs.hasNext()) {
-      return OWN_RETURN_TYPE::getEmpty();
+      return VirtualIterator<pair<pair<Literal*, ExtensionalityClause>, RobSubstitution*> >::getEmpty();
     }
     return pvi(pushPairIntoRightIterator(arg, unifs));
   }
@@ -111,8 +103,7 @@ private:
 struct ExtensionalityResolution::ForwardResultFn
 {
   ForwardResultFn(Clause* otherCl, ExtensionalityResolution& parent) : _otherCl(otherCl), _parent(parent) {}
-  DECL_RETURN_TYPE(Clause*);
-  OWN_RETURN_TYPE operator()(pair<pair<Literal*, ExtensionalityClause>, RobSubstitution*> arg)
+  Clause* operator()(pair<pair<Literal*, ExtensionalityClause>, RobSubstitution*> arg)
   {
     CALL("ExtensionalityResolution::ForwardResultFn::operator()");
     
@@ -138,8 +129,7 @@ private:
 struct ExtensionalityResolution::NegEqSortFn
 {
   NegEqSortFn (unsigned sort) : _sort(sort) {}
-  DECL_RETURN_TYPE(bool);
-  OWN_RETURN_TYPE operator()(Literal* lit)
+  bool operator()(Literal* lit)
   {
     CALL("ExtensionalityResolution::NegEqSortFn::operator()");
     
@@ -157,8 +147,7 @@ private:
 struct ExtensionalityResolution::BackwardPairingFn
 {
   BackwardPairingFn (unsigned sort) : _sort(sort) {}
-  DECL_RETURN_TYPE(VirtualIterator<pair<Clause*, Literal*> >);
-  OWN_RETURN_TYPE operator()(Clause* cl)
+  VirtualIterator<pair<Clause*, Literal*> > operator()(Clause* cl)
   {
     CALL("ExtensionalityResolution::BackwardPairingFn::operator()");
     
@@ -181,8 +170,7 @@ struct ExtensionalityResolution::BackwardUnificationsFn
 {
   BackwardUnificationsFn(Literal* extLit)
   : _extLit (extLit) { _subst = RobSubstitutionSP(new RobSubstitution()); }
-  DECL_RETURN_TYPE(VirtualIterator<pair<pair<Clause*, Literal*>, RobSubstitution*> >);
-  OWN_RETURN_TYPE operator()(pair<Clause*, Literal*> arg)
+  VirtualIterator<pair<pair<Clause*, Literal*>, RobSubstitution*> > operator()(pair<Clause*, Literal*> arg)
   {
     CALL("ExtensionalityResolution::BackwardUnificationsFn::operator()");
     
@@ -190,7 +178,7 @@ struct ExtensionalityResolution::BackwardUnificationsFn
     
     SubstIterator unifs = _subst->unifiers(_extLit,0,otherLit,1,true);
     if (!unifs.hasNext()) {
-      return OWN_RETURN_TYPE::getEmpty();
+      return VirtualIterator<pair<pair<Clause*, Literal*>, RobSubstitution*> >::getEmpty();
     }
     return pvi(pushPairIntoRightIterator(arg, unifs));
   }
@@ -205,8 +193,7 @@ private:
 struct ExtensionalityResolution::BackwardResultFn
 {
   BackwardResultFn(Clause* extCl, Literal* extLit, ExtensionalityResolution& parent) : _extCl(extCl), _extLit(extLit), _parent(parent) {}
-  DECL_RETURN_TYPE(Clause*);
-  OWN_RETURN_TYPE operator()(pair<pair<Clause*, Literal*>, RobSubstitution*> arg)
+  Clause* operator()(pair<pair<Clause*, Literal*>, RobSubstitution*> arg)
   {
     CALL("ExtensionalityResolution::BackwardResultFn::operator()");
     
@@ -253,9 +240,7 @@ Clause* ExtensionalityResolution::performExtensionalityResolution(
   unsigned otherLen = otherCl->length();
   
   unsigned newLength = otherLen + extLen - 2;
-  Unit::InputType newInputType = Unit::getInputType(extCl->inputType(), otherCl->inputType());
-  Inference* inf = new Inference2(Inference::EXTENSIONALITY_RESOLUTION, extCl, otherCl);
-  Clause* res = new(newLength) Clause(newLength, newInputType, inf);
+  Clause* res = new(newLength) Clause(newLength, GeneratingInference2(InferenceRule::EXTENSIONALITY_RESOLUTION, extCl, otherCl));
 
   unsigned next = 0;
 
@@ -275,7 +260,6 @@ Clause* ExtensionalityResolution::performExtensionalityResolution(
     
   ASS_EQ(next,newLength);
   counter++;
-  res->setAge(max(extCl->age(),otherCl->age())+1);
      
   return res;
 }

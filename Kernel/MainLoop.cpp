@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file MainLoop.cpp
@@ -26,15 +20,9 @@
 #include "Lib/SmartPtr.hpp"
 #include "Lib/System.hpp"
 
-#include "Inferences/Condensation.hpp"
-#include "Inferences/DistinctEqualitySimplifier.hpp"
-#include "Inferences/FastCondensation.hpp"
 #include "Inferences/InferenceEngine.hpp"
-#include "Inferences/InterpretedEvaluation.hpp"
 #include "Inferences/TermAlgebraReasoning.hpp"
 #include "Inferences/TautologyDeletionISE.hpp"
-#include "Inferences/EquationalTautologyRemoval.hpp"
-#include "Inferences/RebalancingElimination.hpp"
 
 #include "InstGen/IGAlgorithm.hpp"
 
@@ -44,7 +32,6 @@
 
 #include "SAT/Z3MainLoop.hpp"
 
-#include "Shell/BFNTMainLoop.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/UIHelper.hpp"
 
@@ -66,8 +53,8 @@ void MainLoopResult::updateStatistics()
   env.statistics->terminationReason = terminationReason;
   env.statistics->refutation = refutation;
   env.statistics->saturatedSet = saturatedSet;
-  if(refutation && refutation->isClause() && env.statistics->maxInductionDepth==0){
-    env.statistics->maxInductionDepth = static_cast<Clause*>(refutation)->inductionDepth();
+  if(refutation) {
+    env.statistics->maxInductionDepth = refutation->inference().inductionDepth();
   }
 }
 
@@ -113,61 +100,9 @@ bool MainLoop::isRefutation(Clause* cl)
   return cl->isEmpty() && cl->noSplits();
 }
 
-/**
- * Create local clause simplifier for problem @c prb according to options @c opt
- */
-ImmediateSimplificationEngine* MainLoop::createISE(Problem& prb, const Options& opt)
-{
-  CALL("MainLoop::createImmediateSE");
-
-  CompositeISE* res=new CompositeISE();
-
-  if(prb.hasEquality() && opt.equationalTautologyRemoval()) {
-    res->addFront(new EquationalTautologyRemoval());
-  }
-
-  switch(opt.condensation()) {
-  case Options::Condensation::ON:
-    res->addFront(new Condensation());
-    break;
-  case Options::Condensation::FAST:
-    res->addFront(new FastCondensation());
-    break;
-  case Options::Condensation::OFF:
-    break;
-  }
-
-  // Only add if there are distinct groups 
-  if(prb.hasEquality() && env.signature->hasDistinctGroups()) {
-    res->addFront(new DistinctEqualitySimplifier());
-  }
-  if(prb.hasEquality() && env.signature->hasTermAlgebras()) {
-    if (opt.termAlgebraInferences()) {
-      res->addFront(new DistinctnessISE());
-      res->addFront(new InjectivityISE());
-      res->addFront(new NegativeInjectivityISE());
-    }
-  }
-  if(prb.hasInterpretedOperations() || prb.hasInterpretedEquality()) {
-    res->addFront(new RebalancingElimination()); //TODO ok here
-    res->addFront(new InterpretedEvaluation());
-  }
-  if(prb.hasEquality()) {
-    res->addFront(new TrivialInequalitiesRemovalISE());
-  }
-  res->addFront(new TautologyDeletionISE());
-  res->addFront(new DuplicateLiteralRemovalISE());
-
-  return res;
-}
-
 MainLoop* MainLoop::createFromOptions(Problem& prb, const Options& opt)
 {
   CALL("MainLoop::createFromOptions");
-
-  if(opt.bfnt()) {
-    return new BFNTMainLoop(prb, opt);
-  }
 
 #if VZ3
   bool isComplete = false; // artificially prevent smtForGround from running

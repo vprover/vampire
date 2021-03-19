@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file FormulaTransformer.hpp
@@ -148,7 +142,7 @@ public:
 class LocalFormulaUnitTransformer : public FormulaUnitTransformer
 {
 public:
-  LocalFormulaUnitTransformer(Inference::Rule rule)
+  LocalFormulaUnitTransformer(InferenceRule rule)
   : _rule(rule) {}
 
   using FormulaUnitTransformer::transform;
@@ -158,14 +152,14 @@ public:
   virtual FormulaUnit* transform(FormulaUnit* unit);
 
 private:
-  Inference::Rule _rule;
+  InferenceRule _rule;
 };
 
 template<class FT>
 class FTFormulaUnitTransformer : public LocalFormulaUnitTransformer
 {
 public:
-  FTFormulaUnitTransformer(Inference::Rule rule, FT& formulaTransformer)
+  FTFormulaUnitTransformer(InferenceRule rule, FT& formulaTransformer)
   : LocalFormulaUnitTransformer(rule), _formulaTransformer(formulaTransformer) {}
 
   using LocalFormulaUnitTransformer::transform;
@@ -211,7 +205,7 @@ protected:
   /**
    * @param infRule the rule that will be used to derive modified units
    */
-  ScanAndApplyLiteralTransformer(Inference::Rule infRule) : _infRule(infRule) {}
+  ScanAndApplyLiteralTransformer(InferenceRule infRule) : _infRule(infRule) {}
 
   /**
    * @param l the literal
@@ -225,7 +219,7 @@ protected:
 private:
   struct LitFormulaTransformer;
 
-  Inference::Rule _infRule;
+  InferenceRule _infRule;
 };
 
 

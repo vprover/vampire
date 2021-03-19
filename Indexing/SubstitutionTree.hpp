@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file SubstitutionTree.hpp
@@ -53,10 +47,7 @@
 #include "Index.hpp"
 
 #if VDEBUG
-
 #include <iostream>
-#include "Test/Output.hpp"
-
 #endif
 
 using namespace std;
@@ -293,6 +284,20 @@ public:
                 }
             }
         }
+        void remove(TermList t)
+        {
+            CALL("SubstitutionTree::ChildBySortHelper::remove");
+            if(!t.isTerm()){ return;}
+            unsigned srt;
+            if(SortHelper::tryGetResultSort(t,srt)){
+                if(srt > Sorts::SRT_DEFAULT && srt < Sorts::FIRST_USER_SORT){
+                    unsigned f = t.term()->functor();
+                    if(bySort[srt].remove(f)){
+                        bySortTerms[srt].remove(t);
+                    }
+                }
+            }
+        }
         
     };// class SubstitutionTree::ChildBySortHelper
     
@@ -379,8 +384,7 @@ public:
     struct ByTopFn
     {
         ByTopFn(ChildBySortHelper* n) : node(n) {};
-        DECL_RETURN_TYPE(Node**);
-        OWN_RETURN_TYPE operator()(TermList t){
+        Node** operator()(TermList t){
             return node->_parent->childByTop(t,false);
         }
     private:
@@ -389,8 +393,7 @@ public:
     struct NotTop
     {
         NotTop(unsigned t) : top(t) {};
-        DECL_RETURN_TYPE(bool);
-        OWN_RETURN_TYPE operator()(TermList t){
+        bool operator()(TermList t){
             return t.term()->functor()!=top;
         }
     private:
@@ -440,7 +443,6 @@ public:
 
   struct IsPtrToVarNodeFn
   {
-    DECL_RETURN_TYPE(bool);
     bool operator()(Node** n)
     {
       return (*n)->term.isVar();
@@ -581,6 +583,9 @@ public:
     void remove(TermList t)
     {
       _nodes.remove(t);
+      if(_childBySortHelper){
+        _childBySortHelper->remove(t);
+      }
     }
 
     CLASS_NAME(SubstitutionTree::SListIntermediateNode);
@@ -635,8 +640,6 @@ public:
     TermList term;
     /** Create new binding */
     Binding(int v,TermList t) : var(v), term(t) {}
-    /** Create uninitialised binding */
-    Binding() {}
 
     struct Comparator
     {
@@ -781,13 +784,28 @@ public:
     InstMatcher* _subst;
 
     Renaming _resultDenormalizer;
-    SubstitutionTree* _tree;
     Node* _root;
 
     Stack<void*> _alternatives;
     Stack<unsigned> _specVarNumbers;
     Stack<NodeAlgorithm> _nodeTypes;
+#if VDEBUG
+    SubstitutionTree* _tree;
+#endif
   };
+
+class SubstitutionTreeMismatchHandler : public UWAMismatchHandler 
+{
+public:
+  SubstitutionTreeMismatchHandler(Stack<UnificationConstraint>& c,SubstitutionTree* t,BacktrackData& bd) : 
+    UWAMismatchHandler(c), _constraints(c), /*_tree(t),*/ _bd(bd) {}
+  //virtual bool handle(RobSubstitution* subst, TermList query, unsigned index1, TermList node, unsigned index2);
+private:
+  virtual bool introduceConstraint(RobSubstitution* subst, TermList t1,unsigned index1, TermList t2,unsigned index2);
+  Stack<UnificationConstraint>& _constraints;
+  // SubstitutionTree* _tree;
+  BacktrackData& _bd;
+};
 
   class UnificationsIterator
   : public IteratorCore<QueryResult>

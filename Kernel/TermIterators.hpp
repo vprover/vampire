@@ -9,12 +9,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file TermIterators.hpp
@@ -29,6 +23,7 @@
 #include "Lib/Recycler.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/VirtualIterator.hpp"
+#include "Lib/Metaiterators.hpp"
 
 #include "Term.hpp"
 
@@ -113,7 +108,6 @@ private:
 
 struct VariableIteratorFn
 {
-  DECL_RETURN_TYPE(VirtualIterator<TermList>);
   VirtualIterator<TermList> operator()(Term* t)
   {
     return vi( new VariableIterator(t) );
@@ -131,7 +125,6 @@ struct VariableIteratorFn
 
 struct OrdVarNumberExtractorFn
 {
-  DECL_RETURN_TYPE(unsigned);
   unsigned operator()(TermList t)
   {
     CALL("OrdVarNumberExtractorFn::operator()");
@@ -283,7 +276,7 @@ public:
     CALL("NonVariableIterator::NonVariableIterator");
     _stack.push(term);
     if (!includeSelf) {
-      next();
+      NonVariableIterator::next();
     }
   }
   // NonVariableIterator(TermList ts);
@@ -438,6 +431,23 @@ private:
   Stack<const TermList*> _stack;
 }; // class TermVarIterator
 
+
+class LiteralArgIterator 
+{
+  Literal* _lit;
+  unsigned _idx;
+public:
+  DECL_ELEMENT_TYPE(TermList);
+
+  LiteralArgIterator(Literal* lit) : _lit(lit), _idx(0) {}
+
+  inline bool hasNext() const { return _idx < _lit->arity(); }
+  inline TermList next() { return *_lit->nthArgument(_idx++); }
+  unsigned size() const { return _lit->arity(); }
+};
+
+inline IterTraits<LiteralArgIterator> argIter(Literal* lit) 
+{ return iterTraits(LiteralArgIterator(lit)); }
 
 
 }
