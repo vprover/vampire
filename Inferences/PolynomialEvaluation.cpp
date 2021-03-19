@@ -308,7 +308,7 @@ MaybeOverflow<Polynom<Number>> simplifyPoly(Polynom<Number> const& in, MaybeOver
 
   // first we simplify all the monoms containted in this polynom
   bool overflow = false;
-  Stack<Monom> out;
+  Stack<Monom> sum;
   {
     auto offs = 0;
     for (unsigned i = 0; i < in.nSummands(); i++) {
@@ -323,26 +323,27 @@ MaybeOverflow<Polynom<Number>> simplifyPoly(Polynom<Number> const& in, MaybeOver
         /* we don't add it */
       } else if (simpl.factors->nFactors() == 1 && simpl.factors->factorAt(0).tryPolynom().isSome()) {
         /* k * (t1 + ... tn) ==> k * t1 + ... k * tn */
-        auto origSize = out.size(); 
+        auto origSize = sum.size(); 
         try {
           auto poly = simpl.factors->factorAt(0).tryPolynom().unwrap();
           for (auto fac : poly->iterSummands()) {
             fac.numeral = fac.numeral * simpl.numeral;
             ASS(fac.numeral != Number::zeroC)
-            out.push(fac);
+            sum.push(fac);
           }
         } catch (MachineArithmeticException&) {
           overflow = true;
-          out.truncate(origSize);
-          out.push(simpl);
+          sum.truncate(origSize);
+          sum.push(simpl);
         }
       } else {
-        out.push(simpl);
+        sum.push(simpl);
       }
       offs += monom.factors->nFactors();
     }
   }
-  auto res = PolynomialEvaluation::simplifySummation(std::move(out));
+
+  auto res = PolynomialEvaluation::simplifySummation(std::move(sum));
   if (overflow) {
     res.overflowOccurred = true;
   }
@@ -386,6 +387,7 @@ MaybeOverflow<Monom<Number>> simplifyMonom(Monom<Number> const& in, MaybeOverflo
 
   auto offs = 0;
   auto numeral = in.numeral;
+  bool needsSorting = false;
   for (unsigned i = 0; i < facs.nFactors(); i++) {
     auto& arg = args[i];
     auto c = arg.term.template tryNumeral<Number>();
@@ -397,6 +399,7 @@ MaybeOverflow<Monom<Number>> simplifyMonom(Monom<Number> const& in, MaybeOverflo
           numeral = numeral * num2;
         } catch (MachineArithmeticException&) {
           overflow = true;
+          needsSorting = true;
           auto min = std::min(numeral, num2);
           auto max = std::max(numeral, num2);
           args[offs++] = MonomFactor(PolyNf(AnyPoly(perfect(Polynom(max)))), 1);
@@ -417,6 +420,9 @@ MaybeOverflow<Monom<Number>> simplifyMonom(Monom<Number> const& in, MaybeOverflo
       if (power != 0)
         args[offs++] = MonomFactor(term, power);
     }
+  }
+  if (needsSorting) {
+    std::sort(args.begin(), args.end());
   }
 
   if (numeral == Numeral(0)) {
