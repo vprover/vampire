@@ -2936,7 +2936,7 @@ void ProofOfConcept::benchmark_run(vvector<SubsumptionInstance> instances)
   vvector<FwSubsumptionInstance> fw_instances;
   for (auto const& instance : instances) {
     if (fw_instances.empty() || fw_instances.back().main_premise != instance.main_premise) {
-      // NOTE: the same main premise can be used multiple times, e.g., if AVATAR is used (subsumption called for each split separately)
+      // NOTE: the same main premise can be used multiple times, e.g., if AVATAR is used (subsumption is called for each split separately)
       // bool inserted = seen.insert(instance.main_premise).second;
       // if (!inserted) { std::cerr << "Error! Unexpected slog ordering at number " << instance.number << " (main number = " << instance.main_premise->number() << ", side number = " << instance.side_premise->number() << ")" << std::endl; std::abort(); }
       fw_instances.emplace_back();

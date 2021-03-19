@@ -847,9 +847,11 @@ vvector<SMTSubsumption::SubsumptionInstance> getSubsumptionInstances(UnitList co
 }
 
 
+/// Handle modes 'sbench-micro' and 'sbench-run'
 void subsumptionBenchmarkMode(bool simulate_full_run)
 {
   CALL("subsumptionBenchmarkMode(bool)");
+  Timer::setTimeLimitEnforcement(false);  // don't terminate in signal handler
 
   std::cerr << "\% Subsumption Benchmark Mode\n\% Parsing input..." << std::endl;
 
@@ -876,9 +878,11 @@ void subsumptionBenchmarkMode(bool simulate_full_run)
   vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
 }
 
+/// Handle mode 'stest'
 void subsumptionTestingMode()
 {
   CALL("subsumptionTestingMode()");
+  Timer::setTimeLimitEnforcement(false);  // don't terminate in signal handler
 
   // env.options->setNormalize(false);
   // env.options->setUnusedPredicateDefinitionRemoval(false);
