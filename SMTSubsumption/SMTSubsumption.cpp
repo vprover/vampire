@@ -1057,8 +1057,15 @@ class SMTSubsumption::SMTSubsumptionImpl2
     vvector<std::uint8_t> inst_used;
 #endif
 
+    Kernel::Clause* m_base = nullptr;
+    Kernel::Clause* m_instance = nullptr;
+
     /// AtMostOne constraints stating that each instance literal may be matched at most once.
     vvector<subsat::AllocatedConstraintHandle> instance_constraints;
+
+    /// Possibly resolved literals for subsumption resolution
+    /// Entry: pair of boolean variable and index of the corresponding instance literal.
+    vvector<std::pair<subsat::Var, std::uint32_t>> complementary_matches;
 
   public:
     CLASS_NAME(SMTSubsumptionImpl2);
@@ -1081,6 +1088,9 @@ class SMTSubsumption::SMTSubsumptionImpl2
       ASS(solver.empty());
       auto& theory = solver.theory();
       ASS(theory.empty());
+
+      m_base = base;
+      m_instance = instance;
 
 #if GROUND_LITERAL_PREFILTER
       base_used.clear();
@@ -1231,8 +1241,6 @@ class SMTSubsumption::SMTSubsumptionImpl2
     }  // setupSubsumption
 
 
-    vvector<subsat::Var> complementary_matches;
-
     /// Set up the subsumption resolution problem from scratch.
     /// Returns false if no solution is possible.
     /// Otherwise, solve() needs to be called.
@@ -1240,152 +1248,183 @@ class SMTSubsumption::SMTSubsumptionImpl2
     {
       solver.clear();
       ASS(solver.empty());
-
+      auto& theory = solver.theory();
+      ASS(theory.empty());
       complementary_matches.clear();
       ASS(complementary_matches.empty());
 
-      return false;
+      m_base = base;
+      m_instance = instance;
 
-      /*
-
-      // // Here we store the AtMostOne constraints saying that each instance literal may be matched at most once.
-      // // Each instance literal can be matched by at most 2 boolean vars per base literal (two orientations of equalities).
-      // // NOTE: instance constraints cannot be packed densely because we only know their shape at the end.
-      // uint32_t const instance_constraint_maxsize = 2 * base->length();
-      // instance_constraints.clear();
-      // ASS(instance_constraints.empty());
-      // for (size_t i = 0; i < instance->length(); ++i) {
-      //   instance_constraints.push_back(solver.alloc_clause(instance_constraint_maxsize));
-      // }
-      // NOTE: instance constraints are not necessary for SR because we do subset matching (not sub-multiset)
-
-      // Matching for subsumption checks whether
-      //
-      //      side_premise\theta \subseteq main_premise
-      //
-      // holds.
       for (unsigned i = 0; i < base->length(); ++i) {
-        Literal* base_lit = base->literals()[i];
+        Literal* const base_lit = base->literals()[i];
         uint32_t match_count = 0;
 
         // Build clause stating that base_lit must be matched to at least one corresponding instance literal.
-        solver.clause_start();
+        solver.constraint_start();
 
         for (unsigned j = 0; j < instance->length(); ++j) {
-          Literal* inst_lit = instance->literals()[j];
+          Literal* const inst_lit = instance->literals()[j];
 
           // Same-polarity match (subsumption part)
           if (Literal::headersMatch(base_lit, inst_lit, false)) {
-            auto binder = solver.theory().start_binder();
-            if (base_lit->arity() == 0 || MatchingUtils::matchArgs(base_lit, inst_lit, binder)) {
-              subsat::Var b = solver.new_variable(i);
-              // std::cerr << "Match: " << b << " => " << base_lit->toString() << " -> " << inst_lit->toString() << std::endl;
-
-              if (binder.size() > 0) {
-                ASS(!base_lit->ground());
-              } else {
-                ASS(base_lit->ground());
-                ASS_EQ(base_lit, inst_lit);
-                // TODO: in this case, at least for subsumption, we should skip this base_lit and this inst_list.
-                // probably best to have a separate loop first that deals with ground literals? since those are only pointer equality checks.
+            {
+              auto binder = theory.start_binder();
+              if (base_lit->arity() == 0 || MatchingUtils::matchArgs(base_lit, inst_lit, binder)) {
+                subsat::Var b = solver.new_variable(i);
+                theory.commit_bindings(binder, b);
+                solver.constraint_push_literal(b);
+                match_count += 1;
               }
-
-              solver.theory().commit_bindings(binder, b);
-
-              solver.clause_literal(b);
-              // solver.handle_push_literal(instance_constraints[j], b);
-              match_count += 1;
             }
-            // For now, just assume this to make the code simpler
-            ASS(!base_lit->commutative());
+            if (base_lit->commutative()) {
+              auto binder = theory.start_binder();
+              if (MatchingUtils::matchReversedArgs(base_lit, inst_lit, binder)) {
+                subsat::Var b = solver.new_variable(i);
+                theory.commit_bindings(binder, b);
+                solver.constraint_push_literal(b);
+                match_count += 1;
+              }
+            }
           }
 
           // Complementary match (subsumption resolution part)
           if (Literal::headersMatch(base_lit, inst_lit, true)) {
-            auto binder = solver.theory().start_binder();
-            if (base_lit->arity() == 0 || MatchingUtils::matchArgs(base_lit, inst_lit, binder)) {
-              subsat::Var b = solver.new_variable(i);
-              // std::cerr << "Match: " << b << " => " << base_lit->toString() << " -> " << inst_lit->toString() << std::endl;
-
-              if (binder.size() > 0) {
-                ASS(!base_lit->ground());
-              } else {
-                ASS(base_lit->ground());
-                ASS_EQ(base_lit, inst_lit);
-                // TODO: in this case, at least for subsumption, we should skip this base_lit and this inst_list.
-                // probably best to have a separate loop first that deals with ground literals? since those are only pointer equality checks.
+            {
+              auto binder = theory.start_binder();
+              if (base_lit->arity() == 0 || MatchingUtils::matchArgs(base_lit, inst_lit, binder)) {
+                subsat::Var b = solver.new_variable(i);
+                theory.commit_bindings(binder, b);
+                solver.constraint_push_literal(b);
+                complementary_matches.push_back({b, j});
+                match_count += 1;
               }
-
-              solver.theory().commit_bindings(binder, b);
-
-              solver.clause_literal(b);
-              // solver.handle_push_literal(instance_constraints[j], b);
-              complementary_matches.push_back(b);
-              match_count += 1;
             }
-            // For now, just assume this to make the code simpler
-            ASS(!base_lit->commutative());
+            if (base_lit->commutative()) {
+              auto binder = theory.start_binder();
+              if (MatchingUtils::matchReversedArgs(base_lit, inst_lit, binder)) {
+                subsat::Var b = solver.new_variable(i);
+                theory.commit_bindings(binder, b);
+                solver.constraint_push_literal(b);
+                complementary_matches.push_back({b, j});
+                match_count += 1;
+              }
+            }
           }
         }
-        subsat::ClauseRef cr = solver.clause_end();
-        base_clauses.push_back(cr);
+
+        auto handle = solver.constraint_end();
+        solver.add_clause_unsafe(handle);
 
         // If there are no matches for this base literal, we have just added an empty clause.
         // => conflict on root level due to empty clause, abort early
         if (match_count == 0) {
-          ASS(solver.inconsistent());   // TODO: can just check this and remove the variable 'match_count'
           return false;
         }
       }
 
-      // Need to add clauses after the loop because the current implementation requires
-      // the theory to be fully set up
-      for (auto cr : base_clauses) {
-        solver.add_clause(cr);
-      }
-      // for (auto& constraint : instance_constraints) {
-      //   solver.add_atmostone_constraint(constraint);
-      // }
-
       // At least one complementary match
-      // NOTE: this clause is actually optional. If we call SR after subsumption has failed, we will never get a model that violates this clause.
-      //       However this clause encodes the knowledge that subsumption is impossible, so intuitively we should keep it.
-      //       NO ACTUALLY IT'S NOT OPTIONAL! Since we do set-matching and not multiset-matching we may get "wrong" subsumptions without it.
-      // TODO: maybe it's better to keep the learned clauses instead? (unclear how this would work, since we also need to change the 'base_clauses' for this)
-      solver.clause_start();
-      for (subsat::Var var : complementary_matches) {
-        solver.clause_literal(var);
+      // NOTE: this clause is required. Without it, we may get a false subsumption
+      //       (because subsumption resolution uses set-matching and not multiset-matching)
+      solver.constraint_start();
+      for (auto const pair : complementary_matches) {
+        subsat::Var const b = pair.first;
+        solver.constraint_push_literal(b);
       }
-      subsat::ClauseRef cr = solver.clause_end();
-      solver.add_clause(cr);
-      // At most one complementary match.
-      // TODO: What if we have multiple, maybe that's a valid inference too? probably not
-      //       Can we have multiple models? One with one complementary match and one with two?
-      //       Yes:
-      //            base = P(x) \/ Q(x) \/ R(x)
-      //            inst = P(c) \/ Q(c) \/ ~R(c) \/ P(d) \/ ~Q(d) \/ ~R(d)
-      //       So we do want this AMO constraint.
-      auto compl_amo = solver.alloc_clause(complementary_matches.size());
-      for (subsat::Var var : complementary_matches) {
-        solver.handle_push_literal(compl_amo, var);
-      }
-      solver.add_atmostone_constraint(compl_amo);
+      auto handle = solver.constraint_end();
+      // NOTE: we use the same constraint both as clause and atmostone constraint
+      // (should work... while clause-watching rearranges the literals so always the first two are watched,
+      // the atmostone constraint doesn't require any specific ordering.)
+      solver.add_clause_unsafe(handle);
+      solver.add_atmostone_constraint_unsafe(handle);
 
       return !solver.inconsistent();
       // TODO: second version that transforms the subsumption instance into an SR instance?
       //       Why? because ForwardSubsumptionAndResolution does something similar with caching the ClauseMatches structure.
       //       However, we would have to cache the whole solver. Do we want to do this?
       //       No, actually we could also re-use the matches (store the matches separately and just cache that).
-      */
     }  // setupSubsumptionResolution
 
-    // TODO: extract subsumption resolution (i.e., which is the complementary literal)
 
     /// Solve the subsumption instance created by the previous call to a setup... function.
     bool solve()
     {
-      CDEBUG("SMTSubsumptionImpl2::solve()");
       return solver.solve() == subsat::Result::Sat;
+    }
+
+    /// Call this function after solve() has returned true for an SR instance
+    Kernel::Clause* getSubsumptionResolutionConclusion()
+    {
+      int const conclusion_len = m_instance->length() - 1;
+      Clause* conclusion = new (conclusion_len) Clause(conclusion_len,
+          SimplifyingInference2(InferenceRule::SUBSUMPTION_RESOLUTION, m_instance, m_base));
+
+      std::uint32_t resolved_idx = UINT32_MAX;
+      for (auto const pair : complementary_matches) {
+        subsat::Var const b = pair.first;
+        if (solver.get_value(b) == subsat::Value::True) {
+          resolved_idx = pair.second;
+          break;
+        }
+      }
+      ASS_NEQ(resolved_idx, UINT32_MAX);
+      Literal* const resolved_lit = m_instance->literals()[resolved_idx];
+
+      unsigned next = 0;
+      for (unsigned i = 0; i < m_instance->length(); ++i) {
+        Literal* const lit = m_instance->literals()[i];
+        if (lit != resolved_lit) {
+          (*conclusion)[next++] = lit;
+        }
+      }
+      ASS_EQ(next, conclusion_len);
+      return conclusion;
+    }
+
+    /// For correctness checking: if the original subsumption resolution finds a conclusion, call this to check whether we can also find this conclusion.
+    /// Note that SR is not unique, so there could be multiple possible conclusions, and both approaches may return a different one.
+    ///
+    /// Example for multiple possible subsumption resolutions:
+    ///     base = P(x) \/ Q(x) \/ R(x)
+    ///     inst = P(c) \/ Q(c) \/ ~R(c) \/ P(d) \/ ~Q(d) \/ R(d)
+    ///
+    /// (Do not call solve() if you want to use this function.)
+    bool findSubsumptionResolutionConclusion(Kernel::Clause* conclusion)
+    {
+      while (solve()) {
+        // Found another model, build the corresponding result
+        Kernel::Clause* cl = getSubsumptionResolutionConclusion();
+        if (checkClauseEquality(cl, conclusion)) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    bool checkClauseEquality(Clause* const cl1, Clause* const cl2)
+    {
+      return checkClauseEquality(cl1->literals(), cl1->length(), cl2->literals(), cl2->length());
+    }
+
+    bool checkClauseEquality(Literal const* const lits1[], unsigned len1, Literal const* const lits2[], unsigned len2)
+    {
+      if (len1 != len2) {
+        return false;
+      }
+      // Copy given literals so we can sort them
+      vvector<Literal const*> c1(lits1, lits1 + len1);
+      vvector<Literal const*> c2(lits2, lits2 + len2);
+      // The equality tests only make sense for shared literals
+      std::for_each(c1.begin(), c1.end(), [](Literal const* lit) { ASS(lit->shared()); });
+      std::for_each(c2.begin(), c2.end(), [](Literal const* lit) { ASS(lit->shared()); });
+      // Sort input by pointer value
+      // NOTE: we use std::less<> because the C++ standard guarantees it is a total order on pointer types.
+      //       (the built-in operator< is not required to be a total order for pointer types.)
+      std::less<Literal const*> const lit_ptr_less{};
+      std::sort(c1.begin(), c1.end(), lit_ptr_less);
+      std::sort(c2.begin(), c2.end(), lit_ptr_less);
+      // Finally check the equality
+      return c1 == c2;
     }
 
     bool checkSubsumption(Kernel::Clause* base, Kernel::Clause* instance)
