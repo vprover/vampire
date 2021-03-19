@@ -1332,11 +1332,16 @@ class SMTSubsumption::SMTSubsumptionImpl2
         solver.constraint_push_literal(b);
       }
       auto handle = solver.constraint_end();
-      // NOTE: we use the same constraint both as clause and atmostone constraint
-      // (should work... while clause-watching rearranges the literals so always the first two are watched,
-      // the atmostone constraint doesn't require any specific ordering.)
       solver.add_clause_unsafe(handle);
-      solver.add_atmostone_constraint_unsafe(handle);
+
+      // At most one complementary match
+      solver.constraint_start();
+      for (auto const pair : complementary_matches) {
+        subsat::Var const b = pair.first;
+        solver.constraint_push_literal(b);
+      }
+      auto handle2 = solver.constraint_end();
+      solver.add_atmostone_constraint_unsafe(handle2);
 
       return !solver.inconsistent();
       // TODO: second version that transforms the subsumption instance into an SR instance?
