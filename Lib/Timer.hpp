@@ -12,9 +12,9 @@
  *
  * In summary, you are allowed to use Vampire for non-commercial
  * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
+ * or use in competitions.
  * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
+ * licence, which we will make an effort to provide.
  */
 /**
  *  @file Timer.hpp
@@ -69,13 +69,13 @@ class Timer
 
   ~Timer() { deinitializeTimer(); }
   friend void ::checked_delete<Timer>(Timer*);
-  
+
 public:
   CLASS_NAME(Timer);
   USE_ALLOCATOR(Timer);
 
   static Timer* instance();
-  
+
   /** stop the timer and reset the clock */
   inline void reset()
   { _running = false;

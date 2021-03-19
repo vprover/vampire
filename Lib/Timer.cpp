@@ -12,9 +12,9 @@
  *
  * In summary, you are allowed to use Vampire for non-commercial
  * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
+ * or use in competitions.
  * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
+ * licence, which we will make an effort to provide.
  */
 /**
  * @file Timer.cpp
@@ -72,7 +72,7 @@ void timeLimitReached()
 
   // CAREFUL, we might be in a signal handler and potentially at the same time inside Allocator which is not re-entrant
   // so any code below that allocates might corrupt the allocator state.
-  // Therefore, the printing below should avoid allocations!
+  // Therefore, the printing below should avoid allocations!   AAAH oh no this is bad
 
   env.beginOutput();
   reportSpiderStatus('t');
@@ -113,7 +113,10 @@ timer_sigalrm_handler (int sig)
 
   timer_sigalrm_counter++;
 
-  if(Timer::s_timeLimitEnforcement && env.timeLimitReached()) {
+  if (Timer::s_timeLimitEnforcement && env.timeLimitReached()) {
+    char const str[] = "% Time limit enforced by signal handler!!!\n";
+    // Unlike cout and printf, write is signal-safe
+    write(STDERR_FILENO, str, sizeof(str) - 1);
     timeLimitReached();
   }
 
@@ -215,8 +218,8 @@ void Lib::Timer::deinitializeTimer()
   tv1.it_interval.tv_usec=0;
   tv1.it_interval.tv_sec=0;
   setitimer(ITIMER_REAL, &tv1, &tv2);
-  
-  signal (SIGALRM, SIG_IGN); // unregister the handler (and ignore the rest of SIGALRMs, should they still come) 
+
+  signal (SIGALRM, SIG_IGN); // unregister the handler (and ignore the rest of SIGALRMs, should they still come)
 }
 
 void Lib::Timer::syncClock()
@@ -359,7 +362,7 @@ void Timer::printMSString(ostream& str, int ms)
 Timer* Timer::instance()
 {
   static ScopedPtr<Timer> inst(new Timer());
-  
+
   return inst.ptr();
 }
 

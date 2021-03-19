@@ -28,6 +28,7 @@
 #include "Lib/Comparison.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/TimeCounter.hpp"
+#include "Lib/Timer.hpp"
 
 #include "Kernel/Term.hpp"
 #include "Kernel/Clause.hpp"
@@ -93,6 +94,8 @@ ForwardSubsumptionAndResolution::ForwardSubsumptionAndResolution(bool subsumptio
   if (!logfile.empty()) {
     BYPASSING_ALLOCATOR;
     fsstats.m_logger = make_unique<SubsumptionLogger>(logfile);
+    // We cannot use the signal handler for termination if we want to log stuff properly
+    Timer::setTimeLimitEnforcement(false);
   }
 }
 
@@ -471,7 +474,13 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
 
       fsstats.m_logged_count += 1;
       if (fsstats.m_logger) {
+        ASS_EQ(Timer::s_timeLimitEnforcement, false);
         fsstats.m_logger->logClauses(mcl, cl);
+        if (env.timeLimitReached()) {
+          fsstats.m_logger->logResult(-4);
+          fsstats.m_logger->flush();
+          throw TimeLimitExceededException();
+        }
       }
       int isSubsumed = -1;
       try {
@@ -484,23 +493,28 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
         std::cout << "BIG SUBSUMPTION INTERRUPTED BY EXCEPTION!!! (time limit?)" << std::endl;
         if (fsstats.m_logger) {
           fsstats.m_logger->logResult(-2);
+          fsstats.m_logger->flush();
         }
         throw;
       }
 
       if (fsstats.m_logger) {
         fsstats.m_logger->logResult(isSubsumed);
-      }
+        if (env.timeLimitReached()) {
+          fsstats.m_logger->flush();
+          throw TimeLimitExceededException();
+        }
 
-      auto stats = MLMatcher::getStaticStats();
-      if (stats.numDecisions >= fsstats.m_numDecisions_frequency.size()) {
-        size_t new_size = std::max(std::max(256ul, (size_t)stats.numDecisions+1), fsstats.m_numDecisions_frequency.size() * 2);
-        fsstats.m_numDecisions_frequency.resize(new_size, 0);
-        fsstats.m_numDecisions_successes.resize(new_size, 0);
-      }
-      fsstats.m_numDecisions_frequency[stats.numDecisions] += 1;
-      if (stats.result) {
-        fsstats.m_numDecisions_successes[stats.numDecisions] += 1;
+        auto stats = MLMatcher::getStaticStats();
+        if (stats.numDecisions >= fsstats.m_numDecisions_frequency.size()) {
+          size_t new_size = std::max(std::max(256ul, (size_t)stats.numDecisions + 1), fsstats.m_numDecisions_frequency.size() * 2);
+          fsstats.m_numDecisions_frequency.resize(new_size, 0);
+          fsstats.m_numDecisions_successes.resize(new_size, 0);
+        }
+        fsstats.m_numDecisions_frequency[stats.numDecisions] += 1;
+        if (stats.result) {
+          fsstats.m_numDecisions_successes[stats.numDecisions] += 1;
+        }
       }
 
 #if CHECK_SMT_SUBSUMPTION
